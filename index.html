@@ -1590,59 +1590,6 @@ style="opacity:0.45;cursor:not-allowed;" title="Önce kampanya seçin">
 </table>
 </div>
 </div>
-<div class="modal-overlay" id="m-wv-form" style="display:none;">
-<div class="modal" style="max-width:520px;">
-<div class="modal-hdr">
-<div class="modal-title" id="wv-form-title" data-tr="Aranacak Ekle" data-de="WV hinzufügen">Aranacak Ekle</div>
-<button class="modal-close" onclick="closeModal('m-wv-form')">✕</button>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 20px;">
-<div class="form-row" style="grid-column:1/-1;">
-<label class="form-label" data-tr="Arama Zamanı *" data-de="Anrufzeit *">Arama Zamanı *</label>
-<input type="datetime-local" class="form-input" id="wv-dt">
-</div>
-<div class="form-row">
-<label class="form-label" data-tr="Ad Soyad *" data-de="Name *">Ad Soyad *</label>
-<input class="form-input" id="wv-name" placeholder="Max Mustermann">
-</div>
-<div class="form-row">
-<label class="form-label" data-tr="Telefon *" data-de="Telefon *">Telefon *</label>
-<input class="form-input" id="wv-tel" placeholder="+49...">
-</div>
-<div class="form-row">
-<label class="form-label" data-tr="Telefon 2" data-de="Telefon 2">Telefon 2</label>
-<input class="form-input" id="wv-tel2" placeholder="+49...">
-</div>
-<div class="form-row">
-<label class="form-label" data-tr="PLZ" data-de="PLZ">PLZ</label>
-<input class="form-input" id="wv-plz" placeholder="12345">
-</div>
-<div class="form-row">
-<label class="form-label" data-tr="Şehir" data-de="Ort">Şehir</label>
-<input class="form-input" id="wv-ort" placeholder="Berlin">
-</div>
-<div class="form-row" style="grid-column:1/-1;">
-<label class="form-label" data-tr="Adres" data-de="Straße">Adres</label>
-<input class="form-input" id="wv-str" placeholder="Musterstraße 1">
-</div>
-<div class="form-row" id="wv-agent-row">
-<label class="form-label" data-tr="Agent" data-de="Agent">Agent</label>
-<select class="form-input" id="wv-agent-sel"></select>
-</div>
-<div class="form-row" style="grid-column:1/-1;">
-<label class="form-label" data-tr="Not" data-de="Notiz">Not</label>
-<textarea class="form-input" id="wv-note" rows="2" style="resize:vertical;"></textarea>
-</div>
-</div>
-<div class="modal-footer">
-<button class="btn btn-ghost" onclick="closeModal('m-wv-form')">İptal</button>
-<button class="btn btn-primary" id="wv-save-btn" onclick="saveWv()">
-<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13"/><polyline points="7,3 7,8 15,8"/></svg>
-<span data-tr="Kaydet" data-de="Speichern">Kaydet</span>
-</button>
-</div>
-</div>
-</div>
 </div>
 <div class="page" id="page-qc">
 <div class="page-hdr">
@@ -1685,36 +1632,6 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
 </tbody>
 </table>
-</div>
-</div>
-<div class="modal-overlay" id="m-qc-detail" style="display:none;">
-<div class="modal" style="max-width:560px;">
-<div class="modal-hdr">
-<div class="modal-title">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-QC Detay
-</div>
-<button class="modal-close" onclick="closeModal('m-qc-detail')">✕</button>
-</div>
-<div id="qc-detail-body" style="padding:16px 20px;"></div>
-<div class="modal-footer" style="flex-wrap:wrap;gap:6px;">
-<button class="btn btn-sm" style="background:var(--green);color:#fff;border-color:var(--green);" onclick="qcUpdateStatus('başarılı')">
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>
-<span data-tr="Başarılı" data-de="Erfolgreich">Başarılı</span>
-</button>
-<button class="btn btn-sm" style="background:var(--red);color:#fff;border-color:var(--red);" onclick="qcUpdateStatus('başarısız')">
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-<span data-tr="Başarısız" data-de="Erfolglos">Başarısız</span>
-</button>
-<button class="btn btn-sm" style="background:var(--yellow);color:#000;border-color:var(--yellow);" onclick="qcUpdateStatus('beklemede')">
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
-<span data-tr="Beklemede" data-de="Ausstehend">Beklemede</span>
-</button>
-<button class="btn btn-sm" style="background:var(--accent);color:#fff;border-color:var(--accent);" onclick="qcUpdateStatus('qc bekleniyor')">QC Bekleniyor</button>
-<div style="flex:1;display:flex;gap:6px;align-items:center;">
-<input class="form-input" id="qc-note-input" placeholder="QC notu (opsiyonel)..." style="flex:1;padding:5px 8px;font-size:12px;">
-</div>
-</div>
 </div>
 </div>
 </div>
@@ -1775,54 +1692,6 @@ Toplu Slot
 Başarısız / Alta Taşınan
 </div>
 <div id="takvim-failed-grid" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
-</div>
-</div>
-<div class="modal-overlay" id="m-takvim-detail" style="display:none;">
-<div class="modal" style="max-width:620px;">
-<div class="modal-hdr">
-<div class="modal-title" id="takvim-detail-title">Termin</div>
-<button class="modal-close" onclick="closeModal('m-takvim-detail')">✕</button>
-</div>
-<div id="takvim-detail-body" style="padding:16px 20px;max-height:70vh;overflow-y:auto;"></div>
-<div class="modal-footer" id="takvim-detail-footer"></div>
-</div>
-</div>
-<div class="modal-overlay" id="m-bulk-slot" style="display:none;">
-<div class="modal" style="max-width:400px;">
-<div class="modal-hdr">
-<div class="modal-title">Toplu Slot Ekle</div>
-<button class="modal-close" onclick="closeModal('m-bulk-slot')">✕</button>
-</div>
-<div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
-<div class="form-row">
-<label class="form-label">Günler</label>
-<div style="display:flex;gap:4px;flex-wrap:wrap;">
-<button class="btn btn-ghost btn-sm bulk-day active" data-d="1">Pzt</button>
-<button class="btn btn-ghost btn-sm bulk-day active" data-d="2">Sal</button>
-<button class="btn btn-ghost btn-sm bulk-day active" data-d="3">Çar</button>
-<button class="btn btn-ghost btn-sm bulk-day active" data-d="4">Per</button>
-<button class="btn btn-ghost btn-sm bulk-day active" data-d="5">Cum</button>
-</div>
-</div>
-<div class="form-row">
-<label class="form-label">Slot sayısı / gün</label>
-<select class="form-input" id="bulk-count">
-<option value="1">1 (10:00)</option>
-<option value="2">2 (10, 12)</option>
-<option value="3">3 (10, 12, 14)</option>
-<option value="4">4 (10, 12, 14, 16)</option>
-<option value="5" selected>5 (10, 12, 14, 16, 18)</option>
-</select>
-</div>
-<div class="form-row">
-<label class="form-label">Başlangıç saati</label>
-<input type="time" class="form-input" id="bulk-start" value="10:00">
-</div>
-</div>
-<div class="modal-footer">
-<button class="btn btn-ghost" onclick="closeModal('m-bulk-slot')">İptal</button>
-<button class="btn btn-primary" onclick="saveBulkSlots()">Ekle</button>
-</div>
 </div>
 </div>
 </div>
@@ -6513,7 +6382,8 @@ document.addEventListener('click',e=>{if(e.target.classList.contains('bulk-day')
 function openTakvimOverlay() {
 const overlay = document.getElementById('takvim-popup-overlay');
 if (!overlay) return;
-overlay.style.display = 'block';
+overlay.style.display = 'flex';
+window._takvimGridId = 'takvim-grid'; // overlay içindeki grid
 const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
 const adminDiv = document.getElementById('takvim-overlay-admin');
 if (adminDiv) adminDiv.style.display = isAdmin ? 'flex' : 'none';
@@ -6522,6 +6392,7 @@ loadTakvimPage();
 function closeTakvimOverlay() {
 const overlay = document.getElementById('takvim-popup-overlay');
 if (overlay) overlay.style.display = 'none';
+window._takvimGridId = null;
 }
 async function saveMesaiSaatleri() {
 const rows = GUNLER.map(g => ({
@@ -6684,5 +6555,156 @@ Duyuru metni burada görünecek
 100% { transform: translateX(-100%); }
 }
 </style>
+<div class="modal-overlay" id="m-wv-form" style="display:none;">
+<div class="modal" style="max-width:520px;">
+<div class="modal-hdr">
+<div class="modal-title" id="wv-form-title" data-tr="Aranacak Ekle" data-de="WV hinzufügen">Aranacak Ekle</div>
+<button class="modal-close" onclick="closeModal('m-wv-form')">✕</button>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 20px;">
+<div class="form-row" style="grid-column:1/-1;">
+<label class="form-label" data-tr="Arama Zamanı *" data-de="Anrufzeit *">Arama Zamanı *</label>
+<input type="datetime-local" class="form-input" id="wv-dt">
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Ad Soyad *" data-de="Name *">Ad Soyad *</label>
+<input class="form-input" id="wv-name" placeholder="Max Mustermann">
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Telefon *" data-de="Telefon *">Telefon *</label>
+<input class="form-input" id="wv-tel" placeholder="+49...">
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Telefon 2" data-de="Telefon 2">Telefon 2</label>
+<input class="form-input" id="wv-tel2" placeholder="+49...">
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="PLZ" data-de="PLZ">PLZ</label>
+<input class="form-input" id="wv-plz" placeholder="12345">
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Şehir" data-de="Ort">Şehir</label>
+<input class="form-input" id="wv-ort" placeholder="Berlin">
+</div>
+<div class="form-row" style="grid-column:1/-1;">
+<label class="form-label" data-tr="Adres" data-de="Straße">Adres</label>
+<input class="form-input" id="wv-str" placeholder="Musterstraße 1">
+</div>
+<div class="form-row" id="wv-agent-row">
+<label class="form-label" data-tr="Agent" data-de="Agent">Agent</label>
+<select class="form-input" id="wv-agent-sel"></select>
+</div>
+<div class="form-row" style="grid-column:1/-1;">
+<label class="form-label" data-tr="Not" data-de="Notiz">Not</label>
+<textarea class="form-input" id="wv-note" rows="2" style="resize:vertical;"></textarea>
+</div>
+</div>
+<div class="modal-footer">
+<button class="btn btn-ghost" onclick="closeModal('m-wv-form')">İptal</button>
+<button class="btn btn-primary" id="wv-save-btn" onclick="saveWv()">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13"/><polyline points="7,3 7,8 15,8"/></svg>
+<span data-tr="Kaydet" data-de="Speichern">Kaydet</span>
+</button>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="m-qc-detail" style="display:none;">
+<div class="modal" style="max-width:560px;">
+<div class="modal-hdr">
+<div class="modal-title">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+QC Detay
+</div>
+<button class="modal-close" onclick="closeModal('m-qc-detail')">✕</button>
+</div>
+<div id="qc-detail-body" style="padding:16px 20px;"></div>
+<div class="modal-footer" style="flex-wrap:wrap;gap:6px;">
+<button class="btn btn-sm" style="background:var(--green);color:#fff;border-color:var(--green);" onclick="qcUpdateStatus('başarılı')">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>
+<span data-tr="Başarılı" data-de="Erfolgreich">Başarılı</span>
+</button>
+<button class="btn btn-sm" style="background:var(--red);color:#fff;border-color:var(--red);" onclick="qcUpdateStatus('başarısız')">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+<span data-tr="Başarısız" data-de="Erfolglos">Başarısız</span>
+</button>
+<button class="btn btn-sm" style="background:var(--yellow);color:#000;border-color:var(--yellow);" onclick="qcUpdateStatus('beklemede')">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+<span data-tr="Beklemede" data-de="Ausstehend">Beklemede</span>
+</button>
+<button class="btn btn-sm" style="background:var(--accent);color:#fff;border-color:var(--accent);" onclick="qcUpdateStatus('qc bekleniyor')">QC Bekleniyor</button>
+<div style="flex:1;display:flex;gap:6px;align-items:center;">
+<input class="form-input" id="qc-note-input" placeholder="QC notu (opsiyonel)..." style="flex:1;padding:5px 8px;font-size:12px;">
+</div>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="m-takvim-detail" style="display:none;">
+<div class="modal" style="max-width:620px;">
+<div class="modal-hdr">
+<div class="modal-title" id="takvim-detail-title">Termin</div>
+<button class="modal-close" onclick="closeModal('m-takvim-detail')">✕</button>
+</div>
+<div id="takvim-detail-body" style="padding:16px 20px;max-height:70vh;overflow-y:auto;"></div>
+<div class="modal-footer" id="takvim-detail-footer"></div>
+</div>
+</div>
+<div class="modal-overlay" id="m-bulk-slot" style="display:none;">
+<div class="modal" style="max-width:400px;">
+<div class="modal-hdr">
+<div class="modal-title">Toplu Slot Ekle</div>
+<button class="modal-close" onclick="closeModal('m-bulk-slot')">✕</button>
+</div>
+<div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+<div class="form-row">
+<label class="form-label">Günler</label>
+<div style="display:flex;gap:4px;flex-wrap:wrap;">
+<button class="btn btn-ghost btn-sm bulk-day active" data-d="1">Pzt</button>
+<button class="btn btn-ghost btn-sm bulk-day active" data-d="2">Sal</button>
+<button class="btn btn-ghost btn-sm bulk-day active" data-d="3">Çar</button>
+<button class="btn btn-ghost btn-sm bulk-day active" data-d="4">Per</button>
+<button class="btn btn-ghost btn-sm bulk-day active" data-d="5">Cum</button>
+</div>
+</div>
+<div class="form-row">
+<label class="form-label">Slot sayısı / gün</label>
+<select class="form-input" id="bulk-count">
+<option value="1">1 (10:00)</option>
+<option value="2">2 (10, 12)</option>
+<option value="3">3 (10, 12, 14)</option>
+<option value="4">4 (10, 12, 14, 16)</option>
+<option value="5" selected>5 (10, 12, 14, 16, 18)</option>
+</select>
+</div>
+<div class="form-row">
+<label class="form-label">Başlangıç saati</label>
+<input type="time" class="form-input" id="bulk-start" value="10:00">
+</div>
+</div>
+<div class="modal-footer">
+<button class="btn btn-ghost" onclick="closeModal('m-bulk-slot')">İptal</button>
+<button class="btn btn-primary" onclick="saveBulkSlots()">Ekle</button>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="m-assign">
+<div class="modal" style="max-width:380px;">
+<div class="modal-hdr">
+<div class="modal-title">👤 Agent Ekle</div>
+<button class="modal-close" onclick="closeModal('m-assign')">✕</button>
+</div>
+<div style="padding:16px 20px;">
+<div class="form-row">
+<label class="form-label">Agent Seç</label>
+<select class="form-input" id="assign-sel">
+<option value="">Yükleniyor...</option>
+</select>
+</div>
+</div>
+<div class="modal-footer">
+<button class="btn btn-ghost" onclick="closeModal('m-assign')">İptal</button>
+<button class="btn btn-primary" onclick="assignAgent()">Ekle</button>
+</div>
+</div>
+</div>
 </body>
 </html>
