@@ -2185,6 +2185,99 @@ let currentPalette = 'blue';
 let campaigns = [];
 let currentCampId = null;
 let uploadFile = null;
+// ─────────────────────────────────────────────
+// GLOBAL STATE — tüm değişkenler burada
+// ─────────────────────────────────────────────
+// Kampanya
+// (yukarıya taşındı)
+let _ncDragData = null;
+// Upload
+const UQ_AUTO_MAP = {
+'telefon':'phone','phone':'phone','tel':'phone','handy':'phone','mobil':'phone',
+'telefon2':'phone2','phone2':'phone2','tel2':'phone2',
+'ad':'first_name','vorname':'first_name','name':'first_name','firstname':'first_name',
+'soyad':'last_name','nachname':'last_name','familienname':'last_name','lastname':'last_name',
+'adres':'address','adresse':'address','strasse':'address','straße':'address',
+'posta kodu':'plz','postleitzahl':'plz','plz':'plz',
+'şehir':'city','stadt':'city','ort':'city',
+'not':'notes','notiz':'notes','anmerkung':'notes',
+};
+let uploadParsedRows = [];
+let uploadHeaders = [];
+// Telnyx / WebRTC
+let callStart = null;
+// Toast
+// Alan ayarları
+// Takvim
+let takvimView = 'week';
+let takvimDate = new Date();
+let takvimCampId = null;
+let takvimSlots = [];
+let takvimAppts = [];
+let takvimClosedDays = {};
+const SLOT_HOURS = 2;
+let _bookingSlot = null;
+// WV
+let wvList = [];
+let wvTab = 'all';
+let wvEditId = null;
+let wvReminderTimer = null;
+// QC
+let qcList = [];
+let qcTab = 'qc bekleniyor';
+let qcDetailId = null;
+// Firmalar
+// Audio
+let _currentAudio = null;
+let _currentAudioBtn = null;
+// Hotkeys
+// Gamification
+let _dailyGoal = 5;
+let _dailyAppointments = 0;
+let _confettiShown = false;
+// Google / TomTom
+let _googleApiKey = '';
+let _mapInstance = null;
+// Auto-dial / Pre-call
+let _autoDial = true;
+// Super admin firma seçici
+let _allFirms = [];
+let _selectedFirmId = null;
+// Ticker
+// Import
+let _iaRows = [];
+let _iaHeaders = [];
+// ACW
+// Places
+let _placesDebounce = null;
+let _placesDropdown = null;
+// Precall
+let _precallStream = null;
+let _precallAnalyser = null;
+let _precallMeter = null;
+let _precallOk = false;
+// QC tab
+const DEFAULT_AUX_CODES = ['Yemek Molası','Çay Molası','Lavabo','Toplantı','Teknik Sorun'];
+const DEFAULT_OUTCOMES = [
+{key:'appointment', label:'Termin', enabled:true, color:'green'},
+{key:'negative', label:'Olumsuz', enabled:true, color:'red'},
+{key:'callback', label:'Geri Ara', enabled:true, color:'blue'},
+{key:'no_answer', label:'Cevap Yok', enabled:true, color:'gray'},
+{key:'dnc', label:'Kara Liste', enabled:true, color:'red'},
+{key:'voicemail', label:'Telesekreter', enabled:false, color:'gray'},
+];
+const IA_FIELDS = [
+{key:'nachname', label:'Ad Soyad *', required:true},
+{key:'telefon', label:'Telefon *', required:true},
+{key:'telefon2', label:'Telefon 2', required:false},
+{key:'strasse', label:'Adres/Sokak', required:false},
+{key:'plz', label:'PLZ', required:false},
+{key:'ort', label:'Şehir', required:false},
+{key:'termin_tarih', label:'Termin Tarihi *', required:true},
+{key:'termin_saat', label:'Termin Saati', required:false},
+{key:'notiz', label:'Not', required:false},
+{key:'durum', label:'Durum', required:false},
+];
 // Dialer state
 let dialerStatus = 'offline'; // offline|ready|on_call|wrapping|break
 let currentContact = null;
@@ -2365,8 +2458,6 @@ updateConnectionStatus('disconnected');
 }
 }
 // ── Süper Admin Global Firma Seçici ──────────────────
-let _allFirms = []; // tüm firmalar
-let _selectedFirmId = null; // seçili firma (null = tümü)
 function isSuperAdmin() { return currentUser?.role === 'super_admin'; }
 function getActiveFirmId() {
 // super_admin için seçili firma, diğerleri için kendi firma_id
@@ -2935,18 +3026,6 @@ const UQ_TARGET_FIELDS = [
 { key:'city', label:'🏙 Şehir' },
 { key:'address', label:'🏠 Adres' },
 ];
-// Otomatik eşleştirme sözlüğü
-const UQ_AUTO_MAP = {
-phone: ['phone','telefon','tel','telefonnummer','handy','mobil','nummer','phone1','tel1','telefon1'],
-phone2: ['phone2','telefon2','tel2','handy2','mobil2'],
-last_name: ['last_name','nachname','soyad','surname','lastname','name'],
-first_name: ['first_name','vorname','ad','firstname','name2'],
-plz: ['plz','zip','posta','postleitzahl','zipcode','postal'],
-city: ['city','ort','şehir','stadt','town','place'],
-address: ['address','strasse','adres','adresse','street','str'],
-};
-let uploadParsedRows = [];
-let uploadHeaders = [];
 async function setFile(f) {
 uploadFile = f;
 document.getElementById('uq-fname').textContent = `✓ ${f.name} (${(f.size/1024).toFixed(1)} KB)`;
@@ -3628,7 +3707,6 @@ updateConnectionStatus('connecting');
 toast('❌ Telnyx hata: ' + e.message, 'err');
 }
 }
-let callStart = null;
 function _makeCall(destination, callerNumber) {
 if (!_telnyxClient || !telnyxReady) {
 toast('Telnyx bağlı değil', 'err'); return;
@@ -4272,10 +4350,6 @@ openKalender(currentContact || null);
 // ─────────────────────────────────────────────
 // WV — Wiedervorlage
 // ─────────────────────────────────────────────
-let wvList = [];
-let wvTab = 'all';
-let wvEditId = null;
-let wvReminderTimer = null;
 async function loadWvPage() {
 // Agent görünümünde sadece kendi WV'leri, admin hepsini
 const agentFilter = currentUser?.role === 'admin' ? null : currentUser?.email;
@@ -4515,9 +4589,6 @@ showToast(msg, diff<=0 ? 'err' : 'ok', 6000);
 // ─────────────────────────────────────────────
 // QC PANELİ
 // ─────────────────────────────────────────────
-let qcList = [];
-let qcTab = 'qc bekleniyor';
-let qcDetailId = null;
 async function loadQcData() {
 const qcSel = document.getElementById('qc-firm-selector');
 if (qcSel) { qcSel.style.display = isSuperAdmin() ? '' : 'none'; renderFirmSelector('qc-firm-selector', loadQcData); }
@@ -4890,9 +4961,6 @@ toast('Şifre güncellendi ✓','ok');
 // ══════════════════════════════════════════════════
 // TAKVİM SİSTEMİ
 // ══════════════════════════════════════════════════
-let takvimView='week', takvimDate=new Date(), takvimCampId=null;
-let takvimSlots=[], takvimAppts=[], takvimClosedDays={};
-const SLOT_HOURS=2;
 function takvimFmtD(d){if(!d)return'';const dt=typeof d==='string'?new Date(d):d;return`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`}
 function takvimGetMonday(d){const dt=new Date(d);const day=dt.getDay();dt.setDate(dt.getDate()-(day===0?6:day-1));dt.setHours(0,0,0,0);return dt}
 function takvimAddHours(t,h){const[hr,m]=t.split(':').map(Number);const tot=hr*60+m+h*60;return String(Math.min(Math.floor(tot/60),22)).padStart(2,'0')+':'+String(tot%60).padStart(2,'0')}
@@ -5116,7 +5184,6 @@ if(!confirm('Slot silinecek?'))return;
 await sb(`takvim_slots?id=eq.${slotId}`,{method:'DELETE',prefer:'return=minimal'}).catch(e=>toast('Hata: '+e.message,'err'));
 closeModal('m-takvim-detail');await loadTakvimSlots();toast('Slot silindi','ok');
 }
-let _bookingSlot=null;
 async function lockAndBookSlot(slot) {
 if(!slot)return;
 try{await sb(`takvim_slots?id=eq.${slot.id}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'kilitli',kilitli_agent_id:currentUser.id,kilitli_at:new Date().toISOString()})});}
@@ -5222,8 +5289,6 @@ document.body.appendChild(ov);
 // Telnyx webhook geldiğinde recording_url'i call_logs'a kaydet
 // Bu endpoint /webhook olarak Netlify Functions veya dış server'da olmalı
 // Şimdilik manual URL girişi ve player
-let _currentAudio = null;
-let _currentAudioBtn = null;
 function switchContactTab(tab) {
 ['info','map','history'].forEach(t => {
 const btn = document.getElementById('ctab-'+t);
@@ -5376,9 +5441,6 @@ toast(`📋 ${label||'Kopyalandı'}`, 'ok', 1500);
 // ════════════════════════════════════════════════
 // GAMİFİCATİON — Günlük hedef + konfeti
 // ════════════════════════════════════════════════
-let _dailyGoal = 5; // varsayılan
-let _dailyAppointments = 0;
-let _confettiShown = false;
 function updateDailyProgress(apptCount) {
 _dailyAppointments = apptCount;
 const el = document.getElementById('daily-progress-bar');
@@ -5422,8 +5484,6 @@ toast('🎉 Günlük hedefe ulaştınız!', 'ok', 4000);
 // ════════════════════════════════════════════════
 // GOOGLE MAPS — Müşteri konumu
 // ════════════════════════════════════════════════
-let _googleApiKey = '';
-let _mapInstance = null;
 function initGoogleMaps(apiKey) {
 _googleApiKey = apiKey;
 localStorage.setItem('mb_google_key', apiKey);
@@ -5480,11 +5540,9 @@ if (goal>0) { _dailyGoal=goal; localStorage.setItem('mb_daily_goal',String(goal)
 toast('API ayarları kaydedildi ✓','ok');
 }
 // Ayarlar sayfası yüklenince
-const _origLoadSaved = typeof loadSavedSettings === 'function' ? loadSavedSettings : null;
 // ════════════════════════════════════════════════
 // AUTO-DIAL TOGGLE
 // ════════════════════════════════════════════════
-let _autoDial = true;
 function toggleAutoDial() {
 _autoDial = !_autoDial;
 const cb = document.getElementById('auto-dial-toggle');
@@ -5723,15 +5781,6 @@ await saveCampSettingsPatch(s);
 toast('Arama ayarları kaydedildi ✓', 'ok');
 }
 // ── QC/Wrapping Sekmesi ──────────────────────────
-const DEFAULT_AUX_CODES = ['Yemek Molası','Çay Molası','Lavabo','Toplantı','Teknik Sorun'];
-const DEFAULT_OUTCOMES = [
-{key:'appointment',label:'Termin',enabled:true,color:'green'},
-{key:'negative',label:'Olumsuz',enabled:true,color:'red'},
-{key:'callback',label:'Geri Ara',enabled:true,color:'blue'},
-{key:'no_answer',label:'Cevap Yok',enabled:true,color:'gray'},
-{key:'dnc',label:'Kara Liste',enabled:true,color:'red'},
-{key:'voicemail',label:'Telesekreter',enabled:false,color:'gray'},
-];
 function loadCampQcTab() {
 const camp = campaigns.find(c=>c.id===currentCampId);
 if (!camp) return;
@@ -5953,8 +6002,6 @@ if (el) el.style.display = 'none';
 // ════════════════════════════════════════════════
 // GOOGLE PLACES — Adres Tamamlama
 // ════════════════════════════════════════════════
-let _placesDebounce = null;
-let _placesDropdown = null;
 async function placesAutocomplete(inputEl, fieldKey) {
 clearTimeout(_placesDebounce);
 const val = inputEl.value.trim();
@@ -6170,20 +6217,6 @@ loadDashboard();
 // ════════════════════════════════════════════════
 // ESKİ TERMİN İMPORT SİSTEMİ
 // ════════════════════════════════════════════════
-let _iaRows = [];
-let _iaHeaders = [];
-const IA_FIELDS = [
-{key:'nachname', label:'Ad Soyad *', required:true},
-{key:'telefon', label:'Telefon *', required:true},
-{key:'telefon2', label:'Telefon 2', required:false},
-{key:'strasse', label:'Adres/Sokak', required:false},
-{key:'plz', label:'PLZ', required:false},
-{key:'ort', label:'Şehir', required:false},
-{key:'termin_tarih',label:'Termin Tarihi *', required:true},
-{key:'termin_saat', label:'Termin Saati', required:false},
-{key:'notiz', label:'Not', required:false},
-{key:'durum', label:'Durum', required:false},
-];
 function openImportApptModal() {
 // Kampanya ve agent listelerini doldur
 const campSel = document.getElementById('ia-campaign');
@@ -6359,10 +6392,6 @@ toast(`✓ ${done} termin içe aktarıldı${errors?`, ${errors} hata`:''}`, erro
 // ════════════════════════════════════════════════
 // PRE-CALL MİKROFON TESTİ
 // ════════════════════════════════════════════════
-let _precallStream = null;
-let _precallAnalyser = null;
-let _precallMeter = null;
-let _precallOk = false;
 async function runPrecallTest() {
 openModal('m-precall-test');
 _precallOk = false;
