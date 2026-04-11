@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Montblanc Dialer</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
@@ -140,7 +142,8 @@ align-items: center;
 padding: 0 14px;
 gap: 8px;
 z-index: 100;
-box-shadow: var(--shadow);
+box-shadow: 0 1px 0 var(--border), 0 4px 20px rgba(0,0,0,0.04);
+backdrop-filter: blur(8px);
 }
 .tb-hamburger {
 width: 34px; height: 34px;
@@ -244,14 +247,26 @@ font-size: 11px; font-weight: 700; color: white;
 #sidebar {
 width: var(--sidebar-w);
 min-width: var(--sidebar-w);
-background: var(--sidebar-bg);
-border-right: 1px solid var(--border);
+background: #0f172a;
+border-right: none;
 display: flex; flex-direction: column;
 overflow: hidden;
 z-index: 90;
 transition: width var(--transition), min-width var(--transition), transform var(--transition);
+box-shadow: 4px 0 24px rgba(0,0,0,0.15);
 }
-#sidebar.collapsed { width: 0; min-width: 0; }
+[data-theme="dark"] #sidebar { background: #080c14; }
+#sidebar.collapsed { width: 56px; min-width: 56px; }
+#sidebar.collapsed .sb-label,
+#sidebar.collapsed .tb-logo-name,
+#sidebar.collapsed .tb-logo-tag,
+#sidebar.collapsed .sb-item span:not(.sb-item-icon):not(.sb-badge),
+#sidebar.collapsed .sb-badge,
+#sidebar.collapsed .sb-ver,
+#sidebar.collapsed .sb-footer-text { display: none; }
+#sidebar.collapsed .sb-item { justify-content: center; padding: 10px; }
+#sidebar.collapsed .sb-item-icon { width: 22px; height: 22px; }
+#sidebar.collapsed .sb-section { padding: 6px 4px; }
 #sidebar-overlay {
 display: none; position: absolute; inset: 0;
 background: #00000040; z-index: 89;
@@ -269,33 +284,48 @@ transition: transform var(--transition);
 }
 .sb-section { padding: 8px; }
 .sb-label {
-font-size: 10px; font-weight: 700; color: var(--text-3);
-letter-spacing: 1px; text-transform: uppercase;
-padding: 8px 10px 4px;
+font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.3);
+letter-spacing: 1.5px; text-transform: uppercase;
+padding: 12px 14px 4px;
 }
 .sb-item {
-display: flex; align-items: center; gap: 9px;
-padding: 9px 10px; border-radius: var(--radius-sm);
-color: var(--text-2); cursor: pointer;
+display: flex; align-items: center; gap: 10px;
+padding: 9px 12px; border-radius: var(--radius-sm);
+color: rgba(255,255,255,0.55); cursor: pointer;
 transition: var(--transition); width: 100%;
 text-align: left; position: relative;
 font-size: 13px; font-weight: 500;
 white-space: nowrap;
 }
-.sb-item:hover { background: var(--bg-3); color: var(--text); }
+.sb-item:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); }
 .sb-item.active {
-background: var(--accent-soft);
-color: var(--accent);
+background: var(--accent);
+color: #fff;
+box-shadow: 0 2px 12px rgba(37,99,235,0.4);
 }
-.sb-item-icon { width: 18px; height: 18px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.sb-item.active .sb-item-icon { opacity: 1; }
+.sb-item-icon {
+width: 18px; height: 18px;
+display:flex; align-items:center; justify-content:center;
+flex-shrink:0; opacity: 0.7;
+transition: opacity var(--transition);
+}
+.sb-item:hover .sb-item-icon { opacity: 1; }
 .sb-badge {
 margin-left: auto; background: var(--accent); color: white;
 font-size: 10px; font-weight: 700; padding: 1px 6px;
 border-radius: 10px; font-family: var(--mono);
 }
-.sb-divider { height: 1px; background: var(--border); margin: 4px 10px; }
-.sb-footer { margin-top: auto; padding: 12px 10px; border-top: 1px solid var(--border); }
-.sb-ver { font-size: 10px; color: var(--text-3); font-family: var(--mono); }
+.sb-item.active .sb-badge { background: rgba(255,255,255,0.25); }
+.sb-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 4px 10px; }
+.sb-footer { margin-top: auto; padding: 12px 10px; border-top: 1px solid rgba(255,255,255,0.08); }
+.sb-ver { font-size: 10px; color: rgba(255,255,255,0.25); font-family: var(--mono); }
+/* Sidebar header logo */
+#sidebar .tb-logo-name { color: rgba(255,255,255,0.95) !important; }
+#sidebar .tb-logo-tag { color: var(--accent) !important; background: rgba(37,99,235,0.2) !important; }
+#sidebar .tb-hamburger { color: rgba(255,255,255,0.5); }
+#sidebar .tb-hamburger:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); }
+#sidebar .tb-hamburger span { background: currentColor; }
 /* ── MAIN ── */
 #main {
 flex: 1; overflow: hidden;
@@ -879,7 +909,7 @@ flex:1; border:none; border-radius:0 0 var(--radius) var(--radius);
 <span class="tb-pill-lbl" data-tr="kampanya" data-de="Kampagne">kampanya</span>
 </div>
 <div class="tb-pill pill-appt">
-<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+<span><i class="ph ph-calendar" style="font-size:12px;"></i></span>
 <span class="tb-pill-val" id="pill-appt">0</span>
 <span class="tb-pill-lbl" data-tr="termin" data-de="Termin">termin</span>
 </div>
@@ -935,7 +965,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span data-tr="İstatistikler" data-de="Statistiken">İstatistikler</span>
 </button>
 <button class="sb-item" onclick="navigate('callhistory')">
-<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.1 6.1l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+<span class="sb-item-icon"><i class="ph ph-phone-list" style="font-size:17px;"></i></span>
 <span data-tr="Çağrı Geçmişi" data-de="Anrufliste">Çağrı Geçmişi</span>
 </button>
 </div>
@@ -961,7 +991,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div id="nav-agent" style="display:none;">
 <div class="sb-section">
 <button class="sb-item active" onclick="navigate('dialer')">
-<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.1 6.1l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+<span class="sb-item-icon"><i class="ph ph-phone-call" style="font-size:17px;"></i></span>
 <span data-tr="Dialer" data-de="Dialer">Dialer</span>
 </button>
 <button class="sb-item" onclick="navigate('myhistory')">
@@ -1509,7 +1539,14 @@ style="opacity:0.45;cursor:not-allowed;" title="Önce kampanya seçin">
 </div>
 </div>
 <div class="agent-camps-panel" id="agent-camps-panel">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
 <div class="card-title" data-tr="Kampanyalarım" data-de="Meine Kampagnen">Kampanyalarım</div>
+<button class="btn btn-ghost btn-sm" id="fake-call-btn" onclick="startFakeCall()"
+style="font-size:10px;padding:3px 8px;color:var(--yellow);border-color:var(--yellow);display:none;"
+title="Test amaçlı fake çağrı başlat">
+🧪 Test
+</button>
+</div>
 <div id="agent-camp-list" style="display:flex;flex-direction:column;gap:6px;">
 <div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Yükleniyor...</div>
 </div>
@@ -3411,6 +3448,9 @@ document.getElementById('dialer-camp-label').textContent = name || id;
 document.querySelectorAll('.agent-camp-item').forEach(el => {
 el.classList.toggle('active', el.getAttribute('onclick').includes(id));
 });
+// Test butonu göster
+const fakeBtn = document.getElementById('fake-call-btn');
+if (fakeBtn) fakeBtn.style.display = '';
 // Kampanya seçilince "Hazır" butonu aktif olsun
 const btn = document.getElementById('btn-ready');
 const notice = document.getElementById('camp-required-notice');
@@ -4954,6 +4994,8 @@ const[sh,sm]=s.baslangic_saat.split(':').map(Number);const[eh,em]=s.bitis_saat.s
 el.style.cssText+=`;position:absolute;top:${(sm/60)*100}%;height:${((eh+em/60)-(sh+sm/60))*100}%;left:2px;right:2px;z-index:10;`;
 cell.appendChild(el);
 });
+// Drop zone'ları kur (drag-to-move)
+setTimeout(setupDropZones, 50);
 }
 function renderTakvimSlotsMonth() {
 takvimSlots.filter(s=>!s.gun_kapali&&!s.alta_tasindi).forEach(s=>{
@@ -4981,6 +5023,10 @@ setTimeout(()=>calcAndShowSlotDistance(slot, distId),100);
 else if(slot.durum==='kilitli'){el.innerHTML=`<div style="font-weight:700;">🔒 ${slot.baslangic_saat.slice(0,5)}</div>`;el.style.color='#1e40af';}
 else if(appt){const show=isAdmin||appt.agent_id===currentUser?.id;el.innerHTML=`<div style="font-weight:800;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${show?appt.nachname:'***'}</div><div style="font-size:9px;opacity:.85;">${show?appt.plz||'':''} ${slot.baslangic_saat.slice(0,5)}</div>`;el.onclick=()=>openTakvimSlotDetail(slot,appt);}
 else{el.innerHTML=`<div>${slot.baslangic_saat.slice(0,5)}</div>`;el.onclick=()=>openTakvimSlotDetail(slot,null);}
+// Sağ klik context menu
+el.oncontextmenu=(e)=>{e.preventDefault();showSlotContextMenu(e,slot,appt);};
+// Drag (boş slotlar için)
+if(slot.durum==='bos') initSlotDrag(el,slot);
 return el;
 }
 function getSlotBg(slot,appt) {
@@ -5142,6 +5188,193 @@ closeModal('m-bulk-slot');
 await loadTakvimSlots();
 toast(`${slots.length} slot eklendi ✓`,'ok');
 } catch(e){ console.error('Bulk slot hata:',e); toast('Hata: '+e.message,'err'); }
+}
+// ════════════════════════════════════════════════════════
+// TAKVİM CONTEXT MENU (Sağ Klik)
+// ════════════════════════════════════════════════════════
+let _ctxSlot = null;
+let _ctxAppt = null;
+function showSlotContextMenu(e, slot, appt) {
+e.preventDefault();
+e.stopPropagation();
+_ctxSlot = slot;
+_ctxAppt = appt;
+// Mevcut menüyü kaldır
+const old = document.getElementById('slot-ctx-menu');
+if (old) old.remove();
+const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
+const isDolu = slot.durum === 'dolu' && appt;
+const items = [];
+if (slot.durum === 'bos') {
+if (!isAdmin) items.push({ icon:'📅', label:'Termin Al', fn:'lockAndBookSlot(_ctxSlot)' });
+if (isAdmin) items.push({ icon:'✏️', label:'Detay', fn:'openTakvimSlotDetail(_ctxSlot,null)' });
+if (isAdmin) items.push({ icon:'🗑️', label:'Sil', fn:'deleteTakvimSlot(_ctxSlot.id)', danger:true });
+}
+if (isDolu) {
+items.push({ icon:'👁️', label:'Detay Gör', fn:'openTakvimSlotDetail(_ctxSlot,_ctxAppt)' });
+if (isAdmin) {
+items.push({ sep: true });
+items.push({ icon:'✅', label:'Başarılı', fn:"takvimQcUpdate(_ctxAppt.id,'basarili')", green:true });
+items.push({ icon:'❌', label:'Başarısız', fn:"takvimQcUpdate(_ctxAppt.id,'basarisiz')", danger:true });
+items.push({ icon:'📞', label:'Beklemede', fn:"takvimQcUpdate(_ctxAppt.id,'beklemede')", yellow:true });
+items.push({ sep: true });
+items.push({ icon:'⬇️', label:'Alta Taşı', fn:'slotAltaTasi(_ctxSlot.id)', yellow:true });
+items.push({ icon:'🗑️', label:'Slotu Sil', fn:'deleteTakvimSlot(_ctxSlot.id)', danger:true });
+}
+}
+if (!items.length) return;
+const menu = document.createElement('div');
+menu.id = 'slot-ctx-menu';
+menu.style.cssText = `
+position:fixed;
+z-index:99999;
+background:var(--bg-2);
+border:1px solid var(--border);
+border-radius:10px;
+box-shadow:0 8px 32px rgba(0,0,0,.2),0 2px 8px rgba(0,0,0,.1);
+padding:6px;
+min-width:180px;
+font-size:12px;
+font-family:var(--font);
+animation: ctxFadeIn .12s ease;
+`;
+// Animasyon
+if (!document.getElementById('ctx-style')) {
+const s = document.createElement('style');
+s.id = 'ctx-style';
+s.textContent = '@keyframes ctxFadeIn{from{opacity:0;transform:scale(.95) translateY(-4px)}to{opacity:1;transform:scale(1) translateY(0)}}';
+document.head.appendChild(s);
+}
+items.forEach(item => {
+if (item.sep) {
+const hr = document.createElement('div');
+hr.style.cssText = 'height:1px;background:var(--border);margin:4px 0;';
+menu.appendChild(hr);
+return;
+}
+const btn = document.createElement('button');
+btn.style.cssText = `
+display:flex;align-items:center;gap:8px;
+width:100%;padding:7px 10px;border:none;
+background:transparent;border-radius:6px;
+cursor:pointer;font-size:12px;font-family:var(--font);
+color:${item.danger?'var(--red)':item.green?'var(--green)':item.yellow?'var(--yellow)':'var(--text)'};
+text-align:left;
+transition:.12s;
+`;
+btn.innerHTML = `<span style="font-size:14px;">${item.icon}</span><span style="font-weight:600;">${item.label}</span>`;
+btn.onmouseover = () => btn.style.background = 'var(--bg-3)';
+btn.onmouseout = () => btn.style.background = 'transparent';
+btn.onclick = (ev) => { ev.stopPropagation(); menu.remove(); eval(item.fn); };
+menu.appendChild(btn);
+});
+// Pozisyonla
+document.body.appendChild(menu);
+const mw = menu.offsetWidth, mh = menu.offsetHeight;
+const vw = window.innerWidth, vh = window.innerHeight;
+let x = e.clientX + 4, y = e.clientY + 4;
+if (x + mw > vw - 8) x = e.clientX - mw - 4;
+if (y + mh > vh - 8) y = e.clientY - mh - 4;
+menu.style.left = x + 'px';
+menu.style.top = y + 'px';
+// Dışarı tıklayınca kapat
+setTimeout(() => {
+document.addEventListener('click', () => menu.remove(), { once: true });
+document.addEventListener('contextmenu', () => menu.remove(), { once: true });
+}, 50);
+}
+// Alta Taşı
+async function slotAltaTasi(slotId) {
+try {
+await sb(`takvim_slots?id=eq.${slotId}`, {method:'PATCH', prefer:'return=minimal',
+body: JSON.stringify({alta_tasindi: true, durum: 'dolu'})
+});
+await loadTakvimSlots();
+toast('Slot alta taşındı', 'ok');
+} catch(e) { toast('Hata: '+e.message, 'err'); }
+}
+// ════════════════════════════════════════════════════════
+// SLOT DRAG-TO-MOVE (Sürükle taşı — sadece admin/boş slot)
+// ════════════════════════════════════════════════════════
+let _dragSlot = null;
+let _dragGhost = null;
+let _dragOrigCell = null;
+function initSlotDrag(el, slot) {
+const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
+if (!isAdmin || slot.durum !== 'bos') return;
+el.draggable = true;
+el.style.cursor = 'grab';
+el.addEventListener('dragstart', e => {
+_dragSlot = slot;
+_dragOrigCell = el.parentElement;
+e.dataTransfer.effectAllowed = 'move';
+e.dataTransfer.setData('text/plain', slot.id);
+el.style.opacity = '0.4';
+_dragGhost = el;
+// Mevcut hedef hücreleri işaretle
+document.querySelectorAll('[id^="tc_"]').forEach(cell => {
+cell.classList.add('drag-target');
+cell.style.transition = 'background .15s';
+});
+});
+el.addEventListener('dragend', () => {
+el.style.opacity = '1';
+el.style.cursor = 'grab';
+document.querySelectorAll('.drag-target').forEach(c => {
+c.classList.remove('drag-target','drag-over');
+c.style.background = '';
+});
+_dragSlot = null; _dragGhost = null;
+});
+}
+// Drop zone setup — grid render sonrası çağrılır
+function setupDropZones() {
+const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
+if (!isAdmin) return;
+document.querySelectorAll('[id^="tc_"]').forEach(cell => {
+cell.addEventListener('dragover', e => {
+if (!_dragSlot) return;
+e.preventDefault();
+e.dataTransfer.dropEffect = 'move';
+document.querySelectorAll('.drag-over').forEach(c => {
+c.classList.remove('drag-over');
+c.style.background = '';
+});
+cell.classList.add('drag-over');
+cell.style.background = 'rgba(37,99,235,.15)';
+});
+cell.addEventListener('dragleave', e => {
+cell.classList.remove('drag-over');
+cell.style.background = '';
+});
+cell.addEventListener('drop', async e => {
+e.preventDefault();
+cell.classList.remove('drag-over');
+cell.style.background = '';
+if (!_dragSlot) return;
+// Hedef tarih ve saat — ID'den parse et: tc_2026-04-14_10
+const cellId = cell.id; // tc_YYYY-MM-DD_HH
+const parts = cellId.replace('tc_','').split('_');
+const newDate = parts.slice(0,-1).join('_'); // YYYY-MM-DD
+const newHour = parts[parts.length-1];
+const newStart = `${newHour}:00`;
+const [sh,sm] = _dragSlot.baslangic_saat.split(':').map(Number);
+const [eh,em] = _dragSlot.bitis_saat.split(':').map(Number);
+const durMin = (eh*60+em) - (sh*60+sm);
+const newStartMin = parseInt(newHour)*60;
+const newEndMin = newStartMin + durMin;
+const newEnd = String(Math.floor(newEndMin/60)).padStart(2,'0')+':'+String(newEndMin%60).padStart(2,'0');
+if (newDate === _dragSlot.tarih && newStart === _dragSlot.baslangic_saat) return; // Aynı yer
+try {
+await sb(`takvim_slots?id=eq.${_dragSlot.id}`, {
+method:'PATCH', prefer:'return=minimal',
+body: JSON.stringify({tarih: newDate, baslangic_saat: newStart, bitis_saat: newEnd})
+});
+await loadTakvimSlots();
+toast(`Slot taşındı: ${newDate} ${newStart}`, 'ok');
+} catch(e2) { toast('Taşıma hatası: '+e2.message, 'err'); }
+});
+});
 }
 function renderTakvimFailed() {
 const sec=document.getElementById(window._takvimFailedSecId||'takvim-failed-section');const grid=document.getElementById(window._takvimFailedGridId||'takvim-failed-grid');
@@ -6429,6 +6662,61 @@ const from = document.getElementById('ch-date-from');
 const to   = document.getElementById('ch-date-to');
 if (from && !from.value) from.value = today;
 if (to   && !to.value)   to.value   = today;
+}
+// ════════════════════════════════════════════════
+// FAKE ÇAĞRI — TEST MODU
+// ════════════════════════════════════════════════
+let _fakeCallTimer = null;
+let _fakeCallActive = false;
+async function startFakeCall() {
+if (!selectedCampId) { toast('Önce kampanya seçin','err'); return; }
+if (dialerStatus !== 'ready') { toast('Önce Hazır moduna geçin','err'); return; }
+if (_fakeCallActive) { toast('Zaten aktif bir test çağrısı var','err'); return; }
+// Kuyruktan gerçek bir contact al
+const contact = await getNextContact();
+if (!contact) { toast('Kuyrukta kayıt yok','err'); return; }
+_fakeCallActive = true;
+currentContact = contact;
+showCustomerCard(contact);
+showPrevCallInfo(contact);
+showCampScript(contact);
+// Contact'ı "calling" olarak kilitle
+await sb(`contacts?id=eq.${contact.id}`, {
+method:'PATCH', prefer:'return=minimal',
+body: JSON.stringify({status:'calling', assigned_agent: currentUser.id})
+}).catch(()=>{});
+// Fake bağlantı kurma animasyonu
+toast('📞 Test çağrısı başlatılıyor...', 'ok', 1500);
+setTimeout(() => {
+// 2 saniye sonra "bağlandı" simüle et
+setDialerStatus('on_call');
+updateSessionInDB('on_call');
+startCallTimer();
+const btn = document.getElementById('btn-mute');
+const callActions = document.getElementById('call-actions');
+if (callActions) callActions.style.display = '';
+const readySection = document.getElementById('ready-section');
+if (readySection) readySection.style.display = 'none';
+toast('🔴 TEST: Çağrı bağlandı — istediğin zaman kapat', 'ok', 3000);
+// Fake konuşma simüle et — 30 saniye sonra otomatik kapatılmaz
+// Agent kendisi kapatır
+}, 2000);
+}
+function endFakeCall() {
+if (!_fakeCallActive) return;
+_fakeCallActive = false;
+// Normal hangup akışı
+if (callTimerInt) clearInterval(callTimerInt);
+setDialerStatus('wrapping');
+updateSessionInDB('wrapping');
+startAcwTimer();
+const callActions = document.getElementById('call-actions');
+if (callActions) callActions.style.display = 'none';
+const outcomeSection = document.getElementById('outcome-section');
+if (outcomeSection) outcomeSection.style.display = '';
+const readySection = document.getElementById('ready-section');
+if (readySection) readySection.style.display = 'none';
+toast('Test çağrısı sonlandırıldı — sonucu kaydet', 'ok', 2000);
 }
 async function setActiveCampaign(campId,msg='') {
 if(!campId)return;
