@@ -2349,6 +2349,7 @@ function renderFirmSelector(containerId, callbackFn) {
 const el = document.getElementById(containerId);
 if (!el) return;
 if (!isSuperAdmin()) { el.innerHTML = ''; return; }
+const buildSelect = () => {
 el.innerHTML = `
 <div style="display:flex;align-items:center;gap:6px;">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-3);flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
@@ -2357,13 +2358,22 @@ el.innerHTML = `
 ${_allFirms.map(f=>`<option value="${f.id}" ${f.id===(_selectedFirmId||'')?'selected':''}>${f.name}</option>`).join('')}
 </select>
 </div>`;
-// Event listener ekle
 const sel = document.getElementById(containerId+'-sel');
 if (sel) {
 sel.onchange = function() {
 _selectedFirmId = this.value || null;
 if (typeof callbackFn === 'function') callbackFn();
 };
+}
+};
+// _allFirms boşsa önce yükle
+if (!_allFirms.length) {
+sb('firms?select=id,name,slug&order=name.asc').then(firms => {
+_allFirms = firms || [];
+buildSelect();
+}).catch(() => buildSelect());
+} else {
+buildSelect();
 }
 }
 // API keylerini başta yükle
@@ -2609,7 +2619,7 @@ return `<div class="camp-card" onclick="openCampDetail('${c.id}')">
 <div><div class="camp-name">${c.name}</div><div class="camp-did">${c.telnyx_did||'DID atanmadı'}</div></div>
 <div style="display:flex;gap:4px;flex-shrink:0;" onclick="event.stopPropagation()">
 ${sb2}
-<button class="btn-icon" onclick="openCampFieldSettings('${c.id}')" style="font-size:11px;">Alan Ayarları</button>
+<button class="btn-icon" onclick="openCampFieldSettings('${c.id}')" style="font-size:10px;padding:2px 6px;white-space:nowrap;">⚙️</button>
 <button class="btn btn-ghost btn-sm" onclick="deleteCampaign('${c.id}')" style="width:26px;height:26px;font-size:11px;">🗑</button>
 </div>
 </div>
@@ -2726,6 +2736,9 @@ onchange="_ncFields[${i}].type=this.value;updateCampPreview()">
 <option value="number" ${f.type==='number'?'selected':''}>Sayı</option>
 <option value="date" ${f.type==='date'?'selected':''}>Tarih</option>
 <option value="boolean" ${f.type==='boolean'?'selected':''}>Evet/Hayır</option>
+<option value="select" ${f.type==='select'?'selected':''}>Açılır Menü</option>
+<option value="multiselect" ${f.type==='multiselect'?'selected':''}>Çoktan Seçmeli</option>
+<option value="checkbox" ${f.type==='checkbox'?'selected':''}>Checkbox</option>
 </select>
 ${f.locked
 ? '<span style="font-size:10px;color:var(--text-3);">🔒</span>'
@@ -3969,6 +3982,7 @@ if (_autoDial) setTimeout(()=>dialNext(), 1200);
 function openModal(id) {
 const el = document.getElementById(id);
 if (!el) { console.warn('openModal: element not found:', id); return; }
+el.style.removeProperty('display'); // inline style'ı temizle
 el.classList.add('open');
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -4119,6 +4133,9 @@ onchange="_fsFields[${i}].type=this.value;updateFsPreview()">
 <option value="number" ${f.type==='number'?'selected':''}>Sayı</option>
 <option value="date" ${f.type==='date'?'selected':''}>Tarih</option>
 <option value="boolean" ${f.type==='boolean'?'selected':''}>Evet/Hayır</option>
+<option value="select" ${f.type==='select'?'selected':''}>Açılır Menü</option>
+<option value="multiselect" ${f.type==='multiselect'?'selected':''}>Çoktan Seçmeli</option>
+<option value="checkbox" ${f.type==='checkbox'?'selected':''}>Checkbox</option>
 </select>
 ${f.locked?'<span style="font-size:10px;color:var(--text-3);">🔒</span>':''}
 </div>`).join('');
@@ -4896,7 +4913,7 @@ renderTakvimFailed();
 } catch(e){toast('Takvim hatası: '+e.message,'err');}
 }
 function renderTakvimGrid() {
-const grid=document.getElementById(window._takvimGridId||'takvim-grid'); if(!grid) return;
+const grid=document.getElementById(window._takvimGridId || 'takvim-grid'); if(!grid) return;
 if(takvimView==='month'){renderTakvimMonthGrid(grid);return;}
 const isDay=takvimView==='day';
 const startDt=isDay?new Date(takvimDate):takvimGetMonday(takvimDate);
@@ -5592,6 +5609,9 @@ onchange="_fsFields[${i}].type=this.value">
 <option value="number" ${f.type==='number'?'selected':''}>Sayı</option>
 <option value="date" ${f.type==='date'?'selected':''}>Tarih</option>
 <option value="boolean" ${f.type==='boolean'?'selected':''}>Evet/Hayır</option>
+<option value="select" ${f.type==='select'?'selected':''}>Açılır Menü</option>
+<option value="multiselect" ${f.type==='multiselect'?'selected':''}>Çoktan Seçmeli</option>
+<option value="checkbox" ${f.type==='checkbox'?'selected':''}>Checkbox</option>
 </select>
 ${f.locked?'<span style="font-size:9px;">🔒</span>':`<button onclick="_fsFields.splice(${i},1);renderCdFsFieldList();updateCdFsPreview()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`}
 </div>`).join('');
@@ -5692,12 +5712,45 @@ el?.parentElement?.remove();
 function renderOutcomes(outcomes) {
 const el = document.getElementById('cd-outcomes');
 if (!el) return;
+const cats = ['appointment','negative','callback','neutral'];
+const catLabels = {appointment:'✅ Başarılı', negative:'❌ Negatif', callback:'🔄 Geri Ara', neutral:'⚪ Nötr'};
 el.innerHTML = outcomes.map((o,i)=>`
-<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--bg-2);border-radius:5px;">
+<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg-2);border-radius:5px;">
 <input type="checkbox" ${o.enabled?'checked':''} id="outcome-enabled-${i}">
 <input class="form-input" value="${o.label}" id="outcome-label-${i}" style="flex:1;font-size:12px;padding:3px 7px;">
-<span style="font-size:10px;color:var(--text-3);">${o.key}</span>
-</div>`).join('');
+${o.key && ['appointment','negative','callback','no_answer','dnc','voicemail'].includes(o.key)
+? `<span style="font-size:10px;color:var(--text-3);min-width:60px;">${o.key}</span>`
+: `<select class="form-input" id="outcome-cat-${i}" style="font-size:11px;padding:2px 4px;width:110px;">
+${cats.map(c=>`<option value="${c}" ${(o.category||'neutral')===c?'selected':''}>${catLabels[c]}</option>`).join('')}
+</select>`
+}
+${o.key && ['appointment','negative','callback','no_answer','dnc','voicemail'].includes(o.key)
+? ''
+: `<button onclick="removeCustomOutcome(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`
+}
+</div>`).join('') +
+`<button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="addCustomOutcome()">+ Sonuç Ekle</button>`;
+}
+function addCustomOutcome() {
+const el = document.getElementById('cd-outcomes');
+if (!el) return;
+const idx = el.querySelectorAll('[id^="outcome-enabled-"]').length;
+const div = document.createElement('div');
+div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg-2);border-radius:5px;';
+div.innerHTML = `
+<input type="checkbox" checked id="outcome-enabled-${idx}">
+<input class="form-input" value="Yeni Sonuç" id="outcome-label-${idx}" style="flex:1;font-size:12px;padding:3px 7px;">
+<select class="form-input" id="outcome-cat-${idx}" style="font-size:11px;padding:2px 4px;width:110px;">
+<option value="appointment">✅ Başarılı</option>
+<option value="negative">❌ Negatif</option>
+<option value="callback">🔄 Geri Ara</option>
+<option value="neutral" selected>⚪ Nötr</option>
+</select>
+<button onclick="this.closest('div').remove()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`;
+el.insertBefore(div, el.lastElementChild);
+}
+function removeCustomOutcome(i) {
+document.getElementById('outcome-enabled-'+i)?.closest('div')?.remove();
 }
 async function saveCampQcSettings() {
 // AUX codes
@@ -6388,7 +6441,7 @@ function openTakvimOverlay() {
 const overlay = document.getElementById('takvim-popup-overlay');
 if (!overlay) return;
 overlay.style.display = 'flex';
-window._takvimGridId = 'takvim-grid'; // overlay içindeki grid
+window._takvimGridId = 'takvim-grid-ov'; // overlay içindeki grid
 const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
 const adminDiv = document.getElementById('takvim-overlay-admin');
 if (adminDiv) adminDiv.style.display = isAdmin ? 'flex' : 'none';
@@ -6540,8 +6593,8 @@ navigator.mediaDevices?.getUserMedia({audio:true,video:false})
 </div>
 <div id="takvim-camp-label" style="font-size:12px;font-weight:700;color:var(--accent);"></div>
 </div>
-<div id="takvim-scroll" style="flex:1;overflow:auto;position:relative;">
-<div id="takvim-grid"></div>
+<div id="takvim-scroll-ov" style="flex:1;overflow:auto;position:relative;">
+<div id="takvim-grid-ov"></div>
 </div>
 <div id="takvim-failed-section" style="display:none;border-top:2px solid var(--red);padding:8px 12px;max-height:100px;overflow-y:auto;">
 <div style="font-size:11px;font-weight:800;color:var(--red);margin-bottom:4px;">Başarısız / Alta Taşınan</div>
@@ -6560,7 +6613,7 @@ Duyuru metni burada görünecek
 100% { transform: translateX(-100%); }
 }
 </style>
-<div class="modal-overlay" id="m-wv-form" style="display:none;">
+<div class="modal-overlay" id="m-wv-form">
 <div class="modal" style="max-width:520px;">
 <div class="modal-hdr">
 <div class="modal-title" id="wv-form-title" data-tr="Aranacak Ekle" data-de="WV hinzufügen">Aranacak Ekle</div>
@@ -6613,7 +6666,7 @@ Duyuru metni burada görünecek
 </div>
 </div>
 </div>
-<div class="modal-overlay" id="m-qc-detail" style="display:none;">
+<div class="modal-overlay" id="m-qc-detail">
 <div class="modal" style="max-width:560px;">
 <div class="modal-hdr">
 <div class="modal-title">
@@ -6643,7 +6696,7 @@ QC Detay
 </div>
 </div>
 </div>
-<div class="modal-overlay" id="m-takvim-detail" style="display:none;">
+<div class="modal-overlay" id="m-takvim-detail">
 <div class="modal" style="max-width:620px;">
 <div class="modal-hdr">
 <div class="modal-title" id="takvim-detail-title">Termin</div>
@@ -6653,7 +6706,7 @@ QC Detay
 <div class="modal-footer" id="takvim-detail-footer"></div>
 </div>
 </div>
-<div class="modal-overlay" id="m-bulk-slot" style="display:none;">
+<div class="modal-overlay" id="m-bulk-slot">
 <div class="modal" style="max-width:400px;">
 <div class="modal-hdr">
 <div class="modal-title">Toplu Slot Ekle</div>
