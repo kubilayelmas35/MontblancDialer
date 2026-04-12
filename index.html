@@ -695,7 +695,7 @@ border:2px solid #dc262625;
 .btn-ready-big.stop:hover { background:#dc262620; }
 /* Outcome buttons */
 .outcome-grid {
-display:grid; grid-template-columns:1fr 1fr; gap:8px;
+display:grid; grid-template-columns:1fr 1fr; gap:10px;
 }
 .outcome-btn {
 padding:12px 8px; border-radius:var(--radius-sm);
@@ -727,9 +727,10 @@ transition:var(--transition);
 .call-action-btn.active { background:var(--yellow-soft); color:var(--yellow); border-color:#d9770625; }
 /* Outcome form */
 .outcome-form {
-background:var(--bg-3); border:1px solid var(--border);
-border-radius:var(--radius-sm); padding:14px;
-display:flex; flex-direction:column; gap:10px;
+background:var(--bg-2); border:1px solid var(--border);
+border-radius:var(--radius); padding:16px 18px;
+display:flex; flex-direction:column; gap:12px;
+box-shadow:var(--shadow);
 }
 .outcome-form-title { font-size:12px; font-weight:700; color:var(--text-2); text-transform:uppercase; letter-spacing:.5px; }
 /* Right panel: campaigns list for agent */
@@ -1439,8 +1440,8 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div class="cust-fields" id="cust-fields"></div>
 </div>
-<div id="ctab-map-panel" style="display:none;">
-<div id="contact-map-container" style="min-height:380px;background:var(--bg-3);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:12px;">
+<div id="ctab-map-panel" style="display:none;margin:-10px -8px -8px;">
+<div id="contact-map-container" style="height:380px;background:var(--bg-3);border-radius:var(--radius-sm);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:12px;margin:-4px;">
 Müşteri seçilince harita gösterilecek
 </div>
 </div>
@@ -1448,48 +1449,6 @@ Müşteri seçilince harita gösterilecek
 <div id="contact-history-list" style="font-size:12px;color:var(--text-3);">Yükleniyor...</div>
 </div>
 </div>
-</div>
-<div id="call-actions" style="display:none;">
-<div class="call-action-row">
-<button class="call-action-btn" id="btn-mute" onclick="toggleMute()">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg> <span data-tr="Mikrofon" data-de="Mikrofon">Mikrofon</span>
-</button>
-<button class="call-action-btn" id="btn-hold" onclick="toggleHold()">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> <span data-tr="Beklet" data-de="Halten">Beklet</span>
-</button>
-<button class="call-action-btn" style="color:var(--red);" onclick="hangup()">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.19 18M1 1l22 22"/></svg> <span data-tr="Kapat" data-de="Auflegen">Kapat</span>
-</button>
-</div>
-</div>
-<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;">
-<div>
-<div style="font-size:12px;font-weight:700;">⚡ Otomatik Arama</div>
-<div style="font-size:10px;color:var(--text-3);">Sonuç sonrası otomatik geçiş</div>
-</div>
-<label style="position:relative;display:inline-block;width:40px;height:22px;cursor:pointer;">
-<input type="checkbox" id="auto-dial-toggle" checked style="opacity:0;width:0;height:0;">
-<span onclick="toggleAutoDial()" style="position:absolute;inset:0;background:var(--accent);border-radius:11px;transition:.3s;display:flex;align-items:center;padding:2px;" id="auto-dial-slider">
-<span style="width:18px;height:18px;background:#fff;border-radius:50%;transition:.3s;transform:translateX(18px);" id="auto-dial-knob"></span>
-</span>
-</label>
-</div>
-<div id="prev-call-info" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;font-size:12px;">
-<div style="font-weight:700;color:var(--yellow);margin-bottom:4px;">📋 Önceki Arama</div>
-<div id="prev-call-body" style="color:var(--text-2);"></div>
-</div>
-<div id="ready-section">
-<div id="camp-required-notice" style="display:none;background:linear-gradient(135deg,rgba(var(--yellow-rgb),.12),rgba(var(--yellow-rgb),.06));border:1px solid var(--yellow);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:8px;font-size:13px;font-weight:600;color:var(--yellow);display:flex;align-items:center;gap:8px;">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-<span data-tr="Aramaya başlamadan önce sağdan bir kampanya seçin" data-de="Wählen Sie rechts eine Kampagne bevor Sie starten">Aramaya başlamadan önce sağdan bir kampanya seçin</span>
-</div>
-<button class="btn-ready-big ready" id="btn-ready" onclick="toggleReady()" disabled
-style="opacity:0.45;cursor:not-allowed;" title="Önce kampanya seçin">
-<span id="ready-icon">
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
-</span>
-<span id="ready-text" data-tr="Kampanya Seç → Aramayı Başlat" data-de="Kampagne wählen → Anruf starten">Kampanya Seç → Aramayı Başlat</span>
-</button>
 </div>
 <div id="outcome-section" style="display:none;">
 <div class="outcome-form">
@@ -1537,6 +1496,48 @@ style="opacity:0.45;cursor:not-allowed;" title="Önce kampanya seçin">
 </button>
 </div>
 </div>
+</div>
+<div id="call-actions" style="display:none;">
+<div class="call-action-row">
+<button class="call-action-btn" id="btn-mute" onclick="toggleMute()">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg> <span data-tr="Mikrofon" data-de="Mikrofon">Mikrofon</span>
+</button>
+<button class="call-action-btn" id="btn-hold" onclick="toggleHold()">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> <span data-tr="Beklet" data-de="Halten">Beklet</span>
+</button>
+<button class="call-action-btn" style="color:var(--red);" onclick="hangup()">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.19 18M1 1l22 22"/></svg> <span data-tr="Kapat" data-de="Auflegen">Kapat</span>
+</button>
+</div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;">
+<div>
+<div style="font-size:12px;font-weight:700;">⚡ Otomatik Arama</div>
+<div style="font-size:10px;color:var(--text-3);">Sonuç sonrası otomatik geçiş</div>
+</div>
+<label style="position:relative;display:inline-block;width:40px;height:22px;cursor:pointer;">
+<input type="checkbox" id="auto-dial-toggle" checked style="opacity:0;width:0;height:0;">
+<span onclick="toggleAutoDial()" style="position:absolute;inset:0;background:var(--accent);border-radius:11px;transition:.3s;display:flex;align-items:center;padding:2px;" id="auto-dial-slider">
+<span style="width:18px;height:18px;background:#fff;border-radius:50%;transition:.3s;transform:translateX(18px);" id="auto-dial-knob"></span>
+</span>
+</label>
+</div>
+<div id="prev-call-info" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;font-size:12px;">
+<div style="font-weight:700;color:var(--yellow);margin-bottom:4px;">📋 Önceki Arama</div>
+<div id="prev-call-body" style="color:var(--text-2);"></div>
+</div>
+<div id="ready-section">
+<div id="camp-required-notice" style="display:none;background:linear-gradient(135deg,rgba(var(--yellow-rgb),.12),rgba(var(--yellow-rgb),.06));border:1px solid var(--yellow);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:8px;font-size:13px;font-weight:600;color:var(--yellow);display:flex;align-items:center;gap:8px;">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+<span data-tr="Aramaya başlamadan önce sağdan bir kampanya seçin" data-de="Wählen Sie rechts eine Kampagne bevor Sie starten">Aramaya başlamadan önce sağdan bir kampanya seçin</span>
+</div>
+<button class="btn-ready-big ready" id="btn-ready" onclick="toggleReady()" disabled
+style="opacity:0.45;cursor:not-allowed;" title="Önce kampanya seçin">
+<span id="ready-icon">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
+</span>
+<span id="ready-text" data-tr="Kampanya Seç → Aramayı Başlat" data-de="Kampagne wählen → Anruf starten">Kampanya Seç → Aramayı Başlat</span>
+</button>
 </div>
 </div>
 <div class="agent-camps-panel" id="agent-camps-panel">
@@ -3843,40 +3844,67 @@ const allFields = [
 { key:'phone2',  l:currentLang==='tr'?'2. Telefon':'2. Tel',    v:c.phone2 },
 { key:'notes',   l:currentLang==='tr'?'Not':'Notiz',            v:c.notes },
 ];
+// Termin için gerekli alanlar (her zaman gösterilir, kampanya tipine göre)
+const terminFields = [
+{ key:'hausart',  l:'Ev Tipi',        v:c.hausart,  type:'select', opts:['','Einfamilienhaus','Zweifamilienhaus','Reihenhaus','Doppelhaus','Mehrfamilienhaus'], required:true },
+{ key:'baujahr',  l:'Yapım Yılı',     v:c.baujahr,  required:true },
+{ key:'qm',       l:'m²',             v:c.qm,       required:true },
+{ key:'heizung',  l:'Isıtma',         v:c.heizung,  type:'select', opts:['','Gas','Öl','Pellet','WP','Fernwärme'], required:true },
+{ key:'alter_der_heizung', l:'Isıtma Yaşı', v:c.alter_der_heizung, required:true },
+{ key:'verbrauch_pro_jahr', l:'Tüketim/Yıl', v:c.verbrauch_pro_jahr },
+{ key:'personen', l:'Kişi Sayısı',    v:c.personen },
+];
 const visibleFields = allFields.filter(f => show(f.key));
 // Agent edit yetkisi var mı?
 const campSettings = getCampSettings(camp||{});
 const canEdit = campSettings.agent_edit || false;
 document.getElementById('cust-fields').innerHTML = visibleFields.map(f=>`
-<div class="cust-field" style="position:relative;">
-<div class="cust-field-lbl">${f.l}</div>
-${canEdit
-? `<div style="position:relative;">
-<input class="form-input cust-edit-input" id="cedit-${f.key}"
-value="${(f.v||'').replace(/"/g,'&quot;')}"
-style="font-size:12px;padding:3px 24px 3px 6px;${f.mono?'font-family:var(--mono)':''}"
-oninput="markContactDirty()"
-${f.key==='plz'||f.key==='city'||f.key==='address'?`onkeyup="placesAutocomplete(this,'${f.key}')"`:''}>
-<button onclick="copyToClipboard(document.getElementById('cedit-${f.key}').value,'${f.l} kopyalandı')"
-style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:11px;color:var(--text-3);">📋</button>
-</div>`
-: `<div class="cust-field-val${f.mono?' mono':''}" style="cursor:pointer;"
+<div class="cust-field" style="position:relative;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+<div class="cust-field-lbl" style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">${f.l}</div>
+<div style="display:flex;align-items:center;gap:6px;">
+<div class="cust-field-val${f.mono?' mono':''}" id="cval-${f.key}"
+style="flex:1;font-size:14px;font-weight:600;cursor:pointer;min-height:20px;"
 onclick="copyToClipboard('${(f.v||'').replace(/'/g,"\'")}','${f.l} kopyalandı')"
-title="Kopyala">${f.v||'—'}</div>`
-}
+title="Kopyala (tıkla) — düzenlemek için kalem ikonuna bas">${f.v||'—'}</div>
+<button onclick="startFieldEdit('${f.key}','${f.l}',this)"
+style="flex-shrink:0;background:transparent;border:none;cursor:pointer;color:var(--text-3);padding:2px;border-radius:4px;opacity:.6;transition:.15s;"
+title="Düzenle"
+onmouseover="this.style.opacity='1';this.style.color='var(--accent)'"
+onmouseout="this.style.opacity='.6';this.style.color='var(--text-3)'">
+<i class="ph ph-pencil-simple" style="font-size:14px;"></i>
+</button>
+</div>
 </div>`).join('');
-if (canEdit) {
-// Kaydet butonu
-let saveBtn = document.getElementById('cust-save-btn');
-if (!saveBtn) {
-saveBtn = document.createElement('div');
-saveBtn.id = 'cust-save-btn';
-saveBtn.style.cssText = 'display:none;margin-top:8px;';
-saveBtn.innerHTML = `<button class="btn btn-primary btn-sm" onclick="saveContactEdits()" style="width:100%;">💾 Değişiklikleri Kaydet</button>`;
-document.getElementById('cust-fields')?.after(saveBtn);
+// Termin alanları bölümü
+const terminContainer = document.getElementById('termin-fields-section') || (() => {
+const el = document.createElement('div');
+el.id = 'termin-fields-section';
+el.style.cssText = 'margin-top:12px;padding-top:12px;border-top:2px dashed var(--accent);';
+document.getElementById('cust-fields')?.after(el);
+return el;
+})();
+terminContainer.innerHTML = `
+<div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:5px;">
+<i class="ph ph-calendar-check" style="font-size:12px;"></i>
+Termin Bilgileri
+<span style="font-size:9px;color:var(--text-3);font-weight:400;">(Termin için zorunlu)</span>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+${terminFields.map(f => `
+<div style="background:var(--bg-3);border:1px solid ${f.required?'rgba(37,99,235,.3)':'var(--border)'};border-radius:8px;padding:7px 10px;">
+<div style="font-size:10px;font-weight:700;color:${f.required?'var(--accent-text)':'var(--text-3)'};text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;">
+${f.l}${f.required?'<span style="color:var(--red);margin-left:2px;">*</span>':''}
+</div>
+${f.type==='select'
+? `<select id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;" onchange="updateTerminField('${f.key}',this.value)">
+${f.opts.map(o=>`<option value="${o}" ${o===f.v?'selected':''}>${o||'Seçin...'}</option>`).join('')}
+</select>`
+: `<input id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;"
+value="${f.v||''}" placeholder="${f.l}..."
+oninput="updateTerminField('${f.key}',this.value)">`
 }
-saveBtn.style.display = 'none';
-}
+</div>`).join('')}
+</div>`;
 // Click-to-copy isim ve telefon
 const nameEl = document.getElementById('cust-name');
 if (nameEl) { nameEl.style.cursor='pointer'; nameEl.title='Kopyala'; nameEl.onclick=()=>copyToClipboard(nameEl.textContent,'İsim kopyalandı'); }
@@ -4102,9 +4130,138 @@ document.querySelector(map.appointment)?.style.setProperty('outline','2px solid 
 }
 });
 function handleAppointmentClick() {
+// Önce zorunlu termin alanlarını kontrol et
+const missing = validateTerminFields();
+if (missing.length > 0) {
+// Müşteri tabına geç ve termin alanlarını göster
+switchContactTab('info');
+// Termin fields bölümüne scroll
+const terminSection = document.getElementById('termin-fields-section');
+if (terminSection) {
+terminSection.scrollIntoView({behavior:'smooth', block:'center'});
+// Titreşim efekti
+terminSection.style.boxShadow = '0 0 0 3px rgba(220,38,38,.4)';
+setTimeout(() => terminSection.style.boxShadow = '', 2000);
+}
+const names = {hausart:'Ev Tipi', baujahr:'Yapım Yılı', qm:'m²', heizung:'Isıtma', alter_der_heizung:'Isıtma Yaşı'};
+toast('⚠️ Zorunlu alanlar eksik: ' + missing.map(k=>names[k]||k).join(', '), 'err', 4000);
+return;
+}
 setOutcome('appointment');
-// Mevcut müşteri bilgileriyle takvim popup aç
-openKalender(currentContact || null);
+// Takvim sayfasına navigate et
+navigate('takvim');
+toast('📅 Takvimden uygun slot seç', 'ok', 3000);
+}
+// ════════════════════════════════════════════════
+// MÜŞTERİ ALAN DÜZENLEMESİ (inline edit)
+// ════════════════════════════════════════════════
+// Termin alanı güncelle (contact'a yaz)
+async function updateTerminField(key, value) {
+if (!currentContact?.id) return;
+currentContact[key] = value;
+try {
+await sb(`contacts?id=eq.${currentContact.id}`, {
+method:'PATCH', prefer:'return=minimal',
+body: JSON.stringify({[key]: value || null})
+});
+} catch(e) { /* Sessizce geç */ }
+}
+// Termin alanlarını currentContact'tan oku
+function getTerminFieldValues() {
+if (!currentContact) return {};
+const keys = ['hausart','baujahr','qm','heizung','alter_der_heizung','verbrauch_pro_jahr','personen'];
+const vals = {};
+keys.forEach(k => {
+const el = document.getElementById('tf2-' + k);
+vals[k] = el ? el.value : (currentContact[k] || '');
+});
+return vals;
+}
+// Zorunlu termin alanlarını kontrol et
+function validateTerminFields() {
+const required = ['hausart','baujahr','qm','heizung','alter_der_heizung'];
+const missing = [];
+required.forEach(k => {
+const el = document.getElementById('tf2-' + k);
+const val = el ? el.value.trim() : (currentContact?.[k] || '');
+if (!val) {
+missing.push(k);
+if (el) { el.style.borderColor = 'var(--red)'; el.style.boxShadow = '0 0 0 2px rgba(220,38,38,.2)'; }
+} else {
+if (el) { el.style.borderColor = ''; el.style.boxShadow = ''; }
+}
+});
+return missing;
+}
+function startFieldEdit(fieldKey, fieldLabel, btnEl) {
+// Zaten input varsa kapat
+const valEl = document.getElementById('cval-' + fieldKey);
+if (!valEl) return;
+const parent = valEl.parentElement; // flex container
+const currentVal = valEl.textContent === '—' ? '' : valEl.textContent;
+// Input oluştur
+const input = document.createElement('input');
+input.className = 'form-input';
+input.value = currentVal;
+input.style.cssText = 'flex:1;font-size:13px;padding:3px 8px;height:28px;';
+input.placeholder = fieldLabel + '...';
+// Val'ı gizle, input'u yerleştir
+valEl.style.display = 'none';
+parent.insertBefore(input, valEl);
+input.focus();
+input.select();
+// Buton → kaydet ikonu
+btnEl.innerHTML = '<i class="ph ph-check" style="font-size:14px;"></i>';
+btnEl.title = 'Kaydet';
+btnEl.style.color = 'var(--green)';
+btnEl.style.opacity = '1';
+btnEl.onclick = () => saveFieldEdit(fieldKey, fieldLabel, input, valEl, btnEl);
+// Enter → kaydet, Esc → iptal
+input.onkeydown = (e) => {
+if (e.key === 'Enter') saveFieldEdit(fieldKey, fieldLabel, input, valEl, btnEl);
+if (e.key === 'Escape') cancelFieldEdit(fieldKey, input, valEl, btnEl);
+};
+}
+async function saveFieldEdit(fieldKey, fieldLabel, inputEl, valEl, btnEl) {
+const newVal = inputEl.value.trim();
+if (!currentContact?.id) { cancelFieldEdit(fieldKey, inputEl, valEl, btnEl); return; }
+try {
+// Supabase'e yaz
+const updateData = {};
+if (fieldKey === 'plz') updateData.plz = newVal;
+else if (fieldKey === 'city') updateData.city = newVal;
+else if (fieldKey === 'address') updateData.address = newVal;
+else if (fieldKey === 'phone2') updateData.phone2 = newVal;
+else if (fieldKey === 'notes') updateData.notes = newVal;
+await sb(`contacts?id=eq.${currentContact.id}`, {
+method: 'PATCH', prefer: 'return=minimal',
+body: JSON.stringify(updateData)
+});
+// Local güncelle
+currentContact[fieldKey === 'city' ? 'city' : fieldKey] = newVal;
+// UI güncelle
+valEl.textContent = newVal || '—';
+inputEl.remove();
+valEl.style.display = '';
+btnEl.innerHTML = '<i class="ph ph-pencil-simple" style="font-size:14px;"></i>';
+btnEl.title = 'Düzenle';
+btnEl.style.color = 'var(--text-3)';
+btnEl.style.opacity = '.6';
+btnEl.onclick = () => startFieldEdit(fieldKey, fieldLabel, btnEl);
+toast(fieldLabel + ' güncellendi ✓', 'ok', 1500);
+} catch(e) {
+toast('Güncelleme hatası: ' + e.message, 'err');
+cancelFieldEdit(fieldKey, inputEl, valEl, btnEl);
+}
+}
+function cancelFieldEdit(fieldKey, inputEl, valEl, btnEl) {
+inputEl.remove();
+valEl.style.display = '';
+btnEl.innerHTML = '<i class="ph ph-pencil-simple" style="font-size:14px;"></i>';
+btnEl.title = 'Düzenle';
+btnEl.style.color = 'var(--text-3)';
+btnEl.style.opacity = '.6';
+btnEl.onclick = () => startFieldEdit(fieldKey, fieldLabel, btnEl);
 }
 // ─────────────────────────────────────────────
 // KAMPANYA ALAN AYARLARI
@@ -5633,7 +5790,8 @@ return;
 }
 const query = encodeURIComponent(`${address||''} ${plz||''} ${city||''} Germany`);
 const src = `https://www.google.com/maps/embed/v1/place?key=${key}&q=${query}&maptype=satellite&zoom=17`;
-container.innerHTML = `<iframe width="100%" height="220" frameborder="0" style="border-radius:8px;" allowfullscreen referrerpolicy="no-referrer-when-downgrade" src="${src}"></iframe>`;
+// pointer-events:none kaldırıldı — scroll ile yakınlaşma için
+container.innerHTML = `<iframe width="100%" height="100%" frameborder="0" style="border:none;display:block;min-height:360px;" allowfullscreen referrerpolicy="no-referrer-when-downgrade" src="${src}"></iframe>`;
 }
 // ════════════════════════════════════════════════
 // TELNYX RECORDING AYAR — Supabase call_logs
