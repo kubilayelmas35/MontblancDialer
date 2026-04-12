@@ -612,7 +612,7 @@ AGENT DIALER EKRANI
 ============================================================ */
 .dialer-layout {
 display:grid;
-grid-template-columns:1fr 340px;
+grid-template-columns:1fr 320px;
 gap:16px; height:100%;
 }
 @media(max-width:900px) { .dialer-layout { grid-template-columns:1fr; } }
@@ -644,12 +644,13 @@ margin-left:auto;
 /* Customer card */
 .customer-card {
 background:var(--bg-2); border:1px solid var(--border);
-border-radius:var(--radius); padding:22px;
-box-shadow:var(--shadow); display:flex; flex-direction:column; gap:18px;
+border-radius:var(--radius); padding:20px 24px;
+box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;
+flex:1; min-height:0;
 }
 .cust-header { display:flex; align-items:flex-start; gap:14px; }
 .cust-avatar {
-width:52px; height:52px; border-radius:50%;
+width:60px; height:60px; border-radius:50%;
 background: linear-gradient(135deg, var(--accent), var(--purple));
 display:flex; align-items:center; justify-content:center;
 color:white; font-size:20px; font-weight:800; flex-shrink:0;
@@ -658,11 +659,11 @@ color:white; font-size:20px; font-weight:800; flex-shrink:0;
 .cust-phone  { font-family:var(--mono); font-size:14px; color:var(--text-2); margin-top:3px; }
 .cust-badge-row { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
 .cust-fields {
-display:grid; grid-template-columns:1fr 1fr; gap:10px;
+display:grid; grid-template-columns:1fr 1fr; gap:12px;
 }
 .cust-field { display:flex; flex-direction:column; gap:2px; }
-.cust-field-lbl { font-size:10px; color:var(--text-3); font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
-.cust-field-val { font-size:13px; font-weight:600; color:var(--text); }
+.cust-field-lbl { font-size:11px; color:var(--text-3); font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
+.cust-field-val { font-size:14px; font-weight:600; color:var(--text); }
 .cust-field-val.mono { font-family:var(--mono); }
 .cust-empty {
 display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -1389,7 +1390,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="dialer-layout">
-<div style="display:flex;flex-direction:column;gap:12px;">
+<div style="display:flex;flex-direction:column;gap:12px;min-height:0;">
 <div class="dialer-status-bar">
 <div class="status-indicator">
 <div class="status-dot offline" id="status-dot"></div>
@@ -1418,10 +1419,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="cust-empty-sub" data-tr="Arama başladığında kart otomatik dolacak" data-de="Die Karte wird automatisch ausgefüllt">Arama başladığında kart otomatik dolacak</div>
 </div>
 <div id="cust-data" style="display:none;">
-<div style="display:flex;margin:-8px -8px 10px;border-bottom:1px solid var(--border);">
-<button id="ctab-info" onclick="switchContactTab('info')" style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border:none;background:var(--accent);color:#fff;cursor:pointer;">👤 Müşteri</button>
-<button id="ctab-map" onclick="switchContactTab('map')" style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;">🗺️ Harita</button>
-<button id="ctab-history" onclick="switchContactTab('history')" style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;">📋 Geçmiş</button>
+<div style="display:flex;margin:-8px -8px 12px;border-bottom:2px solid var(--border);">
+<button id="ctab-info" onclick="switchContactTab('info')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:var(--accent);color:#fff;cursor:pointer;border-radius:var(--radius) 0 0 0;transition:.15s;"><i class="ph ph-user" style="margin-right:5px;"></i>Müşteri</button>
+<button id="ctab-map" onclick="switchContactTab('map')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:.15s;"><i class="ph ph-map-pin" style="margin-right:5px;"></i>Harita</button>
+<button id="ctab-history" onclick="switchContactTab('history')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;border-radius:0 var(--radius) 0 0;transition:.15s;"><i class="ph ph-clock-clockwise" style="margin-right:5px;"></i>Geçmiş</button>
 </div>
 <div id="ctab-info-panel">
 <div class="cust-header">
@@ -1439,7 +1440,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="cust-fields" id="cust-fields"></div>
 </div>
 <div id="ctab-map-panel" style="display:none;">
-<div id="contact-map-container" style="min-height:200px;background:var(--bg-3);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:12px;">
+<div id="contact-map-container" style="min-height:380px;background:var(--bg-3);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:12px;">
 Müşteri seçilince harita gösterilecek
 </div>
 </div>
@@ -3937,8 +3938,18 @@ sendToRTC('MB_HOLD',{hold:isOnHold});
 toast(isOnHold?(currentLang==='tr'?'Çağrı beklemeye alındı':'Anruf gehalten'):(currentLang==='tr'?'Çağrı devam ediyor':'Anruf fortgesetzt'),'ok');
 }
 function hangup() {
+// Fake call aktifse → test modunu bitir
+if (_fakeCallActive) {
+endFakeCall();
+return;
+}
+// Gerçek çağrı — Telnyx'e hangup gönder
 sendToRTC('MB_HANGUP');
 // handleCallEnd MB_CALL_END mesajıyla gelecek
+// Telnyx bağlı değilse manuel bitir
+if (!telnyxReady || !_telnyxCall) {
+handleCallEnd(Math.floor(callSeconds));
+}
 }
 // Outcome kaydet — Telnyx entegrasyonlu
 async function submitOutcome(goBreak) {
@@ -6693,10 +6704,10 @@ body: JSON.stringify({status:'calling', assigned_agent: currentUser.id})
 toast('📞 Test çağrısı başlatılıyor...', 'ok', 1500);
 setTimeout(() => {
 // 2 saniye sonra "bağlandı" simüle et
+// NOT: setDialerStatus('on_call') zaten startCallTimer() çağırıyor
+// Çift interval olmaması için burada startCallTimer() çağırmıyoruz
 setDialerStatus('on_call');
 updateSessionInDB('on_call');
-startCallTimer();
-const btn = document.getElementById('btn-mute');
 const callActions = document.getElementById('call-actions');
 if (callActions) callActions.style.display = '';
 const readySection = document.getElementById('ready-section');
@@ -6911,7 +6922,7 @@ Duyuru metni burada görünecek
 <div class="modal-title" id="wv-form-title" data-tr="Aranacak Ekle" data-de="WV hinzufügen">Aranacak Ekle</div>
 <button class="modal-close" onclick="closeModal('m-wv-form')">✕</button>
 </div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 20px;">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 20px;">
 <div class="form-row" style="grid-column:1/-1;">
 <label class="form-label" data-tr="Arama Zamanı *" data-de="Anrufzeit *">Arama Zamanı *</label>
 <input type="datetime-local" class="form-input" id="wv-dt">
