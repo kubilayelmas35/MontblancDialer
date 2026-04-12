@@ -466,8 +466,11 @@ async function saveTerminFromSection() {
     const badge = document.getElementById('termin-slot-badge');
     if (badge) { badge.textContent = 'Slot seçilmedi'; }
     toast('Termin kaydedildi ✓','ok');
-    // Finalize outcome
-    if (typeof submitOutcome === 'function' && selectedOutcome === 'appointment') submitOutcome(false);
+    // Finalize outcome — override to prevent re-opening overlay
+    if (typeof submitOutcome === 'function' && selectedOutcome === 'appointment') {
+      selectedOutcome = 'appointment_done'; // prevent overlay re-open in submitOutcome
+      submitOutcome(false);
+    }
   } catch(e) { toast('Hata: '+e.message,'err'); console.error(e); }
 }
 

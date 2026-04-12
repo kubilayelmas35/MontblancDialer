@@ -335,16 +335,15 @@ async function submitOutcome(goBreak) {
   const isDnc  = document.getElementById('outcome-dnc')?.checked || false;
   try {
     if (currentContact) {
-      const finalOutcome = isDnc ? 'dnc' : selectedOutcome;
-      const statusMap = {appointment:'appointment',negative:'negative',callback:'callback',no_answer:'no_answer',dnc:'dnc'};
+      const finalOutcome = isDnc ? 'dnc' : (selectedOutcome === 'appointment_done' ? 'appointment' : selectedOutcome);
+      const statusMap = {appointment:'appointment',appointment_done:'appointment',negative:'negative',callback:'callback',no_answer:'no_answer',dnc:'dnc'};
       const contactPatch = {
         status: statusMap[finalOutcome],
         attempt_count: (currentContact.attempt_count||0)+1,
         last_called_at: new Date().toISOString(),
-        callback_at: cbTime||null
+        locked_by: null,
+        locked_at: null
       };
-      // locked_by/locked_at may not exist in all schemas
-      try { contactPatch.locked_by = null; contactPatch.locked_at = null; } catch(e) {}
       await sb(`contacts?id=eq.${currentContact.id}`,{method:'PATCH',prefer:'return=minimal',
         body:JSON.stringify(contactPatch)
       });
@@ -371,7 +370,15 @@ async function submitOutcome(goBreak) {
       }
     }
   } catch(e){ console.error(e); toast('Kayıt hatası: '+e.message,'err'); }
-  // Termin → Takvim aç
+  // Termin dışı sonuç seçilirse kilitli slot serbest bırak
+  const lockedSlotId = _bookingSlot?.id || window._selectedBookingSlot?.id;
+  if (lockedSlotId && selectedOutcome !== 'appointment' && selectedOutcome !== 'appointment_done') {
+    sb(`takvim_slots?id=eq.${lockedSlotId}`,{method:'PATCH',prefer:'return=minimal',
+      body:JSON.stringify({durum:'bos',kilitli_agent_id:null,kilitli_at:null})
+    }).catch(()=>{});
+    _bookingSlot = null; window._selectedBookingSlot = null;
+  }
+  // Termin → Takvim aç (sadece slot henüz seçilmemişse; appointment_done slot zaten kaydedildi)
   if (selectedOutcome==='appointment' && !isDnc) {
     openTakvimOverlay();
     if (currentContact) {
@@ -413,7 +420,17 @@ async function submitOutcome(goBreak) {
   } else {
     setDialerStatus('ready');
     upsertAgentSession({agent_id:currentUser.id,status:'ready',last_seen:new Date().toISOString()}).catch(()=>{});
-    if (_autoDial) setTimeout(()=>dialNext(), 1200);
+    if (_autoDial) {
+      const callCheck = isCallAllowed(new Date().toISOString().split('T')[0], new Date().toTimeString().slice(0,8));
+      if (!callCheck.allowed) {
+        toast('⏸ Otomatik arama duraklatıldı: ' + callCheck.reason, 'warn', 6000);
+        _autoDial = false;
+        const tog = document.getElementById('auto-dial-toggle');
+        if (tog) tog.checked = false;
+      } else {
+        setTimeout(()=>dialNext(), 1200);
+      }
+    }
   }
 }
 
