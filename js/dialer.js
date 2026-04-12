@@ -741,7 +741,7 @@ function toggleTakvimPopup() {
 function openTakvimOverlay() {
   const ov = document.getElementById('takvim-popup-overlay');
   if (!ov) { navigate('takvim'); return; }
-  ov.style.display = '';
+  ov.classList.add('open');
 
   // Overlay içindeki grid ID'lerini ayarla
   window._takvimGridId      = 'takvim-grid-ov';
@@ -779,7 +779,7 @@ function openTakvimOverlay() {
 
 function closeTakvimOverlay() {
   const ov = document.getElementById('takvim-popup-overlay');
-  if (ov) ov.style.display = 'none';
+  if (ov) ov.classList.remove('open');
   // Ana sayfaya geçince grid ID'leri resetle
   window._takvimGridId     = 'takvim-grid';
   window._takvimScrollId   = 'takvim-scroll';

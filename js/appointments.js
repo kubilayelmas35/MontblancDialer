@@ -399,7 +399,8 @@ async function lockAndBookSlot(slot) {
   const inDialerCtx = typeof onAgentSlotSelected === 'function' && typeof dialerStatus !== 'undefined';
   if (inDialerCtx) {
     onAgentSlotSelected(slot);
-    if (typeof closeTakvimOverlay === 'function') closeTakvimOverlay();
+    const _ov = document.getElementById('takvim-popup-overlay');
+    if (_ov) _ov.classList.remove('open');
     navigate('dialer');
   } else {
     openTakvimBookForm(slot);
