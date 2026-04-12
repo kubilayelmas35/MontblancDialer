@@ -738,7 +738,7 @@ function toggleTakvimPopup() {
 }
 
 // Tam ekran takvim overlay'ini aç (topbar butonu + handleAppointmentClick)
-function openTakvimOverlay() {
+async function openTakvimOverlay() {
   const ov = document.getElementById('takvim-popup-overlay');
   if (!ov) { navigate('takvim'); return; }
   ov.classList.add('open');
@@ -748,31 +748,42 @@ function openTakvimOverlay() {
   window._takvimScrollId    = 'takvim-scroll-ov';
   window._takvimWeekLabelId = 'takvim-week-label-ov';
 
-  // Admin tools + camp select overlay içinde göster/gizle
   const ovAdmin  = document.getElementById('takvim-overlay-admin');
   const ovCampLbl = document.getElementById('takvim-overlay-camp-label');
   const isAdmin  = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
-  if (ovAdmin) ovAdmin.style.display = isAdmin ? '' : 'none';
+  if (ovAdmin) ovAdmin.style.display = isAdmin ? 'flex' : 'none';
 
-  // Agent için kampanya adını göster
-  if (!isAdmin && selectedCampId) {
-    const camp = campaigns.find(c=>c.id===selectedCampId);
-    if (ovCampLbl) ovCampLbl.textContent = camp?.name || '';
-    if (!takvimCampId) takvimCampId = selectedCampId;
-  }
-
-  // Admin için kampanya select'ini doldur
   if (isAdmin) {
+    // Admin: kampanya select'ini doldur
     const sel = document.getElementById('takvim-camp-select-ov');
-    if (sel && !sel.options.length) {
-      sb(`campaigns?firm_id=eq.${currentUser.firm_id}&status=eq.active&order=name.asc`)
-        .then(camps => {
-          if (sel) sel.innerHTML = '<option value="">Kampanya seç...</option>' + (camps||[]).map(c=>`<option value="${c.id}" ${c.id===takvimCampId?'selected':''}>${c.name}</option>`).join('');
-        }).catch(()=>{});
+    if (sel) {
+      try {
+        const camps = await sb(`campaigns?firm_id=eq.${getActiveFirmId()}&status=eq.active&order=name.asc`);
+        sel.innerHTML = '<option value="">Kampanya seç...</option>' + (camps||[]).map(c=>`<option value="${c.id}" ${c.id===takvimCampId?'selected':''}>${c.name}</option>`).join('');
+        if (!takvimCampId && camps?.length === 1) takvimCampId = camps[0].id;
+      } catch(e) {}
+    }
+  } else {
+    // Agent: kampanya ID'sini seç (dialer'dan ya da DB'den)
+    if (!takvimCampId) {
+      if (selectedCampId) {
+        takvimCampId = selectedCampId;
+      } else {
+        // Agent'ın atanmış kampanyasını getir
+        try {
+          const ac = await sb(`agent_campaigns?agent_id=eq.${currentUser.id}&select=campaign_id,campaigns(id,name)&limit=1`);
+          if (ac?.length) takvimCampId = ac[0].campaign_id;
+        } catch(e) {}
+      }
+    }
+    // Kampanya adını göster
+    if (takvimCampId) {
+      const camp = campaigns.find(c=>c.id===takvimCampId);
+      if (ovCampLbl) ovCampLbl.textContent = camp?.name || '';
     }
   }
 
-  // Takvimi render et
+  if (!takvimDate) takvimDate = new Date();
   renderTakvimGrid();
   if (takvimCampId) loadTakvimSlots();
 }
