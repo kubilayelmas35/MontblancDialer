@@ -1,0 +1,143 @@
+// ─────────────────────────────────────────────
+// QC PANELİ — kalite kontrol
+// ─────────────────────────────────────────────
+
+async function loadQcData() {
+  const qcSel = document.getElementById('qc-firm-selector');
+  if (qcSel) { qcSel.style.display = isSuperAdmin() ? '' : 'none'; renderFirmSelector('qc-firm-selector', loadQcData); }
+  const tbody = document.getElementById('qc-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>';
+  try {
+    qcList = await sb('call_logs?select=*,contacts(*),users(name),campaigns(name)&order=started_at.desc&limit=500').catch(()=>[]);
+    renderQcTable();
+    const pending = (qcList||[]).filter(r => (r.outcome||'') === 'appointment' && (r.contacts?.durum||'qc bekleniyor') === 'qc bekleniyor');
+    const badge = document.getElementById('sb-badge-qc');
+    if (badge) {
+      badge.style.display = pending.length > 0 ? '' : 'none';
+      badge.textContent = pending.length;
+    }
+  } catch(e) { console.error('QC load err:', e); }
+}
+
+function setQcTab(tab) {
+  qcTab = tab;
+  const tabs = ['pending','success','fail','callback','all'];
+  const tabMap = {'qc bekleniyor':'pending','başarılı':'success','başarısız':'fail','beklemede':'callback','all':'all'};
+  tabs.forEach(t => {
+    const btn = document.getElementById('qc-tab-'+t);
+    if (btn) {
+      const isActive = tabMap[qcTab] === t || (t==='pending' && qcTab==='qc bekleniyor');
+      btn.style.background = isActive ? 'var(--accent)' : 'transparent';
+      btn.style.color = isActive ? '#fff' : 'var(--text-2)';
+    }
+  });
+  renderQcTable();
+}
+
+function filterQcTable() { renderQcTable(); }
+
+function renderQcTable() {
+  const tbody = document.getElementById('qc-tbody');
+  if (!tbody) return;
+  const search = (document.getElementById('qc-search')?.value||'').toLowerCase();
+  let list = [...(qcList||[])];
+  list = list.filter(r => r.outcome === 'appointment' || r.contacts?.durum);
+  if (qcTab !== 'all') {
+    list = list.filter(r => {
+      const durum = (r.contacts?.durum || 'qc bekleniyor').toLowerCase();
+      return durum.includes(qcTab.toLowerCase());
+    });
+  }
+  if (search) {
+    list = list.filter(r =>
+      (r.contacts?.last_name||'').toLowerCase().includes(search) ||
+      (r.contacts?.first_name||'').toLowerCase().includes(search) ||
+      (r.contacts?.phone||'').includes(search) ||
+      (r.agent_id||'').toLowerCase().includes(search)
+    );
+  }
+  const pendingCnt = (qcList||[]).filter(r => (r.contacts?.durum||'qc bekleniyor') === 'qc bekleniyor' && r.outcome === 'appointment').length;
+  const cntEl = document.getElementById('qc-cnt-pending');
+  if (cntEl) cntEl.textContent = pendingCnt;
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:32px;">Kayıt yok</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(r => {
+    const contact = r.contacts||{};
+    const dt = r.started_at ? new Date(r.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+    const durum = contact.durum || 'qc bekleniyor';
+    const durumColor = {'başarılı':'var(--green)','başarısız':'var(--red)','beklemede':'var(--yellow)','qc bekleniyor':'var(--accent)'}[durum]||'var(--text-3)';
+    const name = `${contact.first_name||''} ${contact.last_name||''}`.trim()||'—';
+    const agentName = r.users?.name || r.agent_id?.slice(0,8)||'—';
+    const campName = r.campaigns?.name || r.campaign_id?.slice(0,8)||'—';
+    const recUrl = r.recording_url||'';
+    const recHtml = recUrl
+      ? `<div style="display:flex;align-items:center;gap:4px;">
+<audio id="aud-${r.id}" src="${recUrl}" preload="none" style="display:none;"></audio>
+<button onclick="toggleAudio('${r.id}')" style="background:var(--accent);border:none;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:10px;" title="Dinle">▶</button>
+<span style="font-size:10px;color:var(--text-3);">${r.duration_sec?Math.floor(r.duration_sec/60)+'m'+r.duration_sec%60+'s':''}</span>
+</div>`
+      : `<span style="font-size:10px;color:var(--text-3);">—</span>`;
+    return `<tr>
+<td style="font-family:var(--mono);font-size:11px;">${dt}</td>
+<td style="font-weight:600;cursor:pointer;" onclick="openQcDetail('${r.id}')">${name}</td>
+<td style="font-family:var(--mono);font-size:12px;">${contact.phone||'—'}</td>
+<td style="font-family:var(--mono);font-size:12px;">${contact.plz||'—'}</td>
+<td style="font-size:12px;">${agentName}</td>
+<td style="font-size:11px;">${campName}</td>
+<td>${recHtml}</td>
+<td><span style="font-size:11px;font-weight:700;color:${durumColor};">${durum}</span></td>
+<td>
+<div style="display:flex;gap:3px;">
+<button class="btn btn-ghost btn-sm" style="padding:3px 7px;" onclick="openQcDetail('${r.id}')">🔍</button>
+<button class="btn btn-sm" style="padding:3px 7px;background:var(--green);color:#fff;" onclick="quickQcUpdate('${r.id}','başarılı')">✓</button>
+<button class="btn btn-sm" style="padding:3px 7px;background:var(--red);color:#fff;" onclick="quickQcUpdate('${r.id}','başarısız')">✗</button>
+</div>
+</td>
+</tr>`;
+  }).join('');
+}
+
+function openQcDetail(logId) {
+  const r = (qcList||[]).find(x => x.id === logId);
+  if (!r) return;
+  qcDetailId = logId;
+  const contact = r.contacts||{};
+  const name = `${contact.first_name||''} ${contact.last_name||''}`.trim()||'—';
+  const dt = r.started_at ? new Date(r.started_at).toLocaleString('tr-TR') : '—';
+  const body = document.getElementById('qc-detail-body');
+  if (body) body.innerHTML = `
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">MÜŞTERİ</div><div style="font-weight:700;">${name}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">TELEFON</div><div style="font-weight:700;font-family:var(--mono);">${contact.phone||'—'}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">PLZ / ŞEHİR</div><div style="font-weight:700;">${contact.plz||'—'} ${contact.city||''}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">ADRES</div><div style="font-weight:700;">${contact.address||'—'}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">AGENT</div><div style="font-weight:700;">${r.users?.name||r.agent_id||'—'}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">TARİH</div><div style="font-weight:700;">${dt}</div></div>
+${contact.notes ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">NOT</div><div>${contact.notes}</div></div>` : ''}
+${r.recording_url ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:6px;">KAYIT</div><audio controls src="${r.recording_url}" style="width:100%;"></audio></div>` : ''}
+</div>
+<div style="margin-top:12px;">
+<textarea id="qc-note-input" class="form-input" rows="2" placeholder="QC notu..." style="width:100%;resize:vertical;"></textarea>
+</div>`;
+  openModal('m-qc-detail');
+}
+
+async function qcUpdateStatus(status) {
+  if (!qcDetailId) return;
+  await quickQcUpdate(qcDetailId, status);
+  closeModal('m-qc-detail');
+}
+
+async function quickQcUpdate(logId, status) {
+  const r = (qcList||[]).find(x => x.id === logId);
+  if (!r?.contact_id) { toast('Contact ID yok','err'); return; }
+  const note = document.getElementById('qc-note-input')?.value||'';
+  try {
+    await sb(`contacts?id=eq.${r.contact_id}`, {method:'PATCH', prefer:'return=minimal',
+      body: JSON.stringify({durum: status, qc_note: note || undefined})});
+    await loadQcData();
+    toast(`Durum: ${status} ✓`, 'ok');
+  } catch(e) { toast('Hata: '+e.message,'err'); }
+}
