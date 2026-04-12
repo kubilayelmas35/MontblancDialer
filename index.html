@@ -63,7 +63,7 @@
 <span class="tb-pill-lbl">ms</span>
 </div>
 <div class="tb-pill pill-bal">
-<span>💰</span>
+<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
 <span class="tb-pill-val" id="pill-bal">--</span>
 <span class="tb-pill-lbl">USD</span>
 </div>
@@ -100,7 +100,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span style="font-size:11px;">Takvim</span>
 </button>
 <button class="tb-icon-btn" onclick="toggleTheme()" title="Tema">
-<span id="theme-icon">🌙</span>
+<span id="theme-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
 </button>
 <button class="tb-icon-btn" onclick="cycleLang()" id="lang-btn" title="Dil" style="font-size:12px;font-weight:700;font-family:var(--mono);">TR</button>
 <button class="tb-user" onclick="navigate('settings')">
@@ -280,13 +280,14 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div style="display:flex;gap:0;margin:-4px 0 16px;border-bottom:2px solid var(--border);overflow-x:auto;">
-<button class="cd-tab active" data-tab="genel" onclick="switchCampTab('genel')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--accent);white-space:nowrap;">⚙️ Genel</button>
-<button class="cd-tab" data-tab="alanlar" onclick="switchCampTab('alanlar')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">📋 Alanlar</button>
-<button class="cd-tab" data-tab="script" onclick="switchCampTab('script')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">📝 Script</button>
-<button class="cd-tab" data-tab="arama" onclick="switchCampTab('arama')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">📞 Arama</button>
-<button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">✅ QC/Wrapping</button>
-<button class="cd-tab" data-tab="bildirim" onclick="switchCampTab('bildirim')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">🔔 Bildirim</button>
-<button class="cd-tab" data-tab="agentler" onclick="switchCampTab('agentler')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">👥 Agentler</button>
+<button class="cd-tab active" data-tab="genel" onclick="switchCampTab('genel')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--accent);white-space:nowrap;">Genel</button>
+<button class="cd-tab" data-tab="alanlar" onclick="switchCampTab('alanlar')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Alanlar</button>
+<button class="cd-tab" data-tab="termin-form" onclick="switchCampTab('termin-form')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Termin Formu</button>
+<button class="cd-tab" data-tab="script" onclick="switchCampTab('script')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Script</button>
+<button class="cd-tab" data-tab="arama" onclick="switchCampTab('arama')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Arama</button>
+<button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">QC/Wrapping</button>
+<button class="cd-tab" data-tab="bildirim" onclick="switchCampTab('bildirim')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Bildirim</button>
+<button class="cd-tab" data-tab="agentler" onclick="switchCampTab('agentler')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Agentler</button>
 </div>
 <div id="cd-tab-genel" class="cd-tab-panel">
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -449,6 +450,13 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 </div>
+<div id="cd-tab-termin-form" class="cd-tab-panel" style="display:none;">
+<div style="display:flex;flex-direction:column;gap:10px;">
+<div style="font-size:12px;color:var(--text-3);padding:8px;background:var(--bg-3);border-radius:6px;">Agent termin aldığında hangi ek bilgi alanları sorulsun? Aktif edeceğiniz alanlar termin formunda görünür.</div>
+<div id="cd-termin-form-fields" style="display:flex;flex-direction:column;gap:6px;"></div>
+<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampTerminFormSettings()">Kaydet</button>
+</div>
+</div>
 <div id="cd-tab-agentler" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
 <button class="btn btn-ghost btn-sm" onclick="openAssignModal()">+ Agent Ekle</button>
@@ -555,34 +563,31 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="page" id="page-dialer">
-<div class="page-hdr">
-<div>
-<div class="page-title" data-tr="Dialer" data-de="Dialer">Dialer</div>
-<div class="page-sub" id="dialer-camp-label" data-tr="Kampanya seçin" data-de="Kampagne auswählen">Kampanya seçin</div>
+<div class="page-hdr" style="padding:8px 16px;min-height:0;">
+<div style="display:flex;align-items:center;gap:10px;">
+<div class="status-indicator" style="gap:6px;">
+<div class="status-dot offline" id="status-dot"></div>
+<div class="status-label" id="status-label" style="font-size:12px;font-weight:700;" data-tr="Çevrimdışı" data-de="Offline">Çevrimdışı</div>
 </div>
-<div style="display:flex;gap:8px;">
-<div id="my-daily-stats" style="display:flex;gap:6px;">
-<span class="badge badge-green">🗓️ <span id="my-appt">0</span> termin</span>
-<span class="badge badge-blue">📞 <span id="my-calls">0</span> çağrı</span>
+<span id="mic-status" title="Mikrofon" style="font-size:15px;cursor:default;">🔇</span>
+<span id="rtc-status" style="font-size:11px;color:var(--text-3);">🔴 Bağlantı yok</span>
+<div id="dialer-timer" class="dialer-timer" style="display:none;">00:00</div>
 </div>
+<div style="display:flex;gap:6px;align-items:center;margin-left:auto;">
+<span class="badge badge-green" style="font-size:11px;padding:3px 8px;"><span id="my-appt">0</span> termin</span>
+<span class="badge badge-blue" style="font-size:11px;padding:3px 8px;"><span id="my-calls">0</span> çağrı</span>
 </div>
 </div>
 <div class="dialer-layout">
 <div style="display:flex;flex-direction:column;gap:12px;">
-<div class="dialer-status-bar">
-<div class="status-indicator">
-<div class="status-dot offline" id="status-dot"></div>
-<div class="status-label" id="status-label" data-tr="Çevrimdışı" data-de="Offline">Çevrimdışı</div>
-</div>
-<div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
-<span id="mic-status" title="Mikrofon" style="font-size:16px;cursor:default;">🔇</span>
-<span id="rtc-status" style="font-size:11px;color:var(--text-3);">🔴 Bağlantı yok</span>
-<div id="dialer-timer" class="dialer-timer" style="display:none;">00:00</div>
-</div>
-</div>
 <div id="daily-goal-bar" style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:8px;display:none;">
+<div style="display:flex;gap:2px;margin-bottom:8px;background:var(--bg-2);border-radius:4px;padding:2px;">
+<button id="goal-tab-daily" onclick="setGoalTab('daily')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;">Günlük</button>
+<button id="goal-tab-weekly" onclick="setGoalTab('weekly')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:3px;cursor:pointer;">Haftalık</button>
+<button id="goal-tab-monthly" onclick="setGoalTab('monthly')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:3px;cursor:pointer;">Aylık</button>
+</div>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-<span style="font-size:11px;font-weight:700;color:var(--text-2);">🎯 Günlük Hedef</span>
+<span style="font-size:11px;font-weight:700;color:var(--text-2);" id="goal-tab-label">Günlük Hedef</span>
 <span id="daily-progress-label" style="font-size:11px;font-weight:800;color:var(--accent);">0/5 Termin</span>
 </div>
 <div style="background:var(--bg-2);border-radius:4px;height:6px;overflow:hidden;">
@@ -690,18 +695,6 @@ Müşteri seçilince harita gösterilecek
 </button>
 </div>
 </div>
-<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;">
-<div>
-<div style="font-size:12px;font-weight:700;">⚡ Otomatik Arama</div>
-<div style="font-size:10px;color:var(--text-3);">Sonuç sonrası otomatik geçiş</div>
-</div>
-<label style="position:relative;display:inline-block;width:40px;height:22px;cursor:pointer;">
-<input type="checkbox" id="auto-dial-toggle" checked style="opacity:0;width:0;height:0;">
-<span onclick="toggleAutoDial()" style="position:absolute;inset:0;background:var(--accent);border-radius:11px;transition:.3s;display:flex;align-items:center;padding:2px;" id="auto-dial-slider">
-<span style="width:18px;height:18px;background:#fff;border-radius:50%;transition:.3s;transform:translateX(18px);" id="auto-dial-knob"></span>
-</span>
-</label>
-</div>
 <div id="prev-call-info" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;font-size:12px;">
 <div style="font-weight:700;color:var(--yellow);margin-bottom:4px;">📋 Önceki Arama</div>
 <div id="prev-call-body" style="color:var(--text-2);"></div>
@@ -721,20 +714,44 @@ style="opacity:0.45;cursor:not-allowed;" title="Önce kampanya seçin">
 </div>
 </div>
 <div class="agent-camps-panel" id="agent-camps-panel">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
 <div class="card-title" data-tr="Kampanyalarım" data-de="Meine Kampagnen">Kampanyalarım</div>
 <button class="btn btn-ghost btn-sm" id="fake-call-btn" onclick="startFakeCall()"
 style="font-size:10px;padding:3px 8px;color:var(--yellow);border-color:var(--yellow);display:none;"
-title="Test amaçlı fake çağrı — Telnyx bağlantısı gerekmez">
-🧪 Test Çağrısı
+title="Test amaçlı fake çağrı">
+🧪 Test
 </button>
 </div>
-<div id="agent-camp-list" style="display:flex;flex-direction:column;gap:6px;">
+<div id="agent-camp-list" style="display:flex;flex-direction:column;gap:5px;">
 <div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Yükleniyor...</div>
 </div>
-<div class="sb-divider"></div>
-<div class="card-title" style="font-size:12px;" data-tr="Bugünkü Performansım" data-de="Meine heutige Leistung">Bugünkü Performansım</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="my-stats-mini"></div>
+<!-- Auto-dial küçük satır -->
+<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:8px;">
+<div style="font-size:11px;font-weight:700;">Otomatik Arama</div>
+<label style="position:relative;display:inline-block;width:34px;height:18px;cursor:pointer;">
+<input type="checkbox" id="auto-dial-toggle" checked style="opacity:0;width:0;height:0;">
+<span onclick="toggleAutoDial()" style="position:absolute;inset:0;background:var(--accent);border-radius:9px;transition:.3s;display:flex;align-items:center;padding:2px;" id="auto-dial-slider">
+<span style="width:14px;height:14px;background:#fff;border-radius:50%;transition:.3s;transform:translateX(16px);" id="auto-dial-knob"></span>
+</span>
+</label>
+</div>
+<div class="sb-divider" style="margin:8px 0;"></div>
+<!-- Performans sekmeleri -->
+<div style="display:flex;gap:2px;margin-bottom:8px;background:var(--bg-3);border-radius:var(--radius-sm);padding:2px;">
+<button id="perf-tab-today" onclick="setPerfTab('today')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:var(--accent);color:#fff;border-radius:4px;cursor:pointer;">Bugün</button>
+<button id="perf-tab-week" onclick="setPerfTab('week')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:4px;cursor:pointer;">Hafta</button>
+<button id="perf-tab-month" onclick="setPerfTab('month')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:4px;cursor:pointer;">Ay</button>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;" id="my-stats-mini"></div>
+<div class="sb-divider" style="margin:8px 0;"></div>
+<!-- Yaklaşan WV'ler -->
+<div style="font-size:11px;font-weight:800;color:var(--text-2);margin-bottom:6px;display:flex;align-items:center;gap:5px;">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+Yaklaşan Aramalar
+</div>
+<div id="upcoming-wv-list" style="display:flex;flex-direction:column;gap:4px;font-size:11px;">
+<div style="color:var(--text-3);text-align:center;padding:8px;">Yükleniyor...</div>
+</div>
 </div>
 </div>
 </div>
@@ -898,6 +915,10 @@ Takvim
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 Toplu Slot
 </button>
+<button class="btn btn-ghost btn-sm" onclick="openTakvimSettings()">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+Ayarlar
+</button>
 </div>
 </div>
 </div>
@@ -951,7 +972,7 @@ Başarısız / Alta Taşınan
 </div>
 </div>
 <div class="card">
-<div class="card-title" style="margin-bottom:16px;">🔑 API Anahtarları</div>
+<div class="card-title" style="margin-bottom:16px;">API Anahtarları</div>
 <div style="display:flex;flex-direction:column;gap:10px;">
 <div class="form-row">
 <label class="form-label">Google Maps API Key</label>
@@ -971,7 +992,7 @@ Başarısız / Alta Taşınan
 </div>
 </div>
 <div class="card" id="mesai-settings-card">
-<div class="card-title" style="margin-bottom:12px;">🕐 Çalışma Saatleri &amp; Günler</div>
+<div class="card-title" style="margin-bottom:12px;">Çalışma Saatleri &amp; Günler</div>
 <div id="mesai-grid" style="display:flex;flex-direction:column;gap:6px;"></div>
 <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="saveMesaiSaatleri()">Kaydet</button>
 </div>

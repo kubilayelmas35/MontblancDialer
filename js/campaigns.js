@@ -376,14 +376,24 @@ updateFsPreview();
 function renderFsFieldList() {
 const el = document.getElementById('fs-field-list');
 if (!el) return;
-el.innerHTML = _fsFields.map((f,i)=>`
-<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;">
+el.innerHTML = _fsFields.map((f,i)=>{
+const needsOpts = ['select','multiselect','checkbox'].includes(f.type);
+const optHtml = needsOpts ? `
+<div style="margin-top:4px;padding:4px 6px;background:var(--bg-3);border-radius:4px;">
+<div style="font-size:9px;color:var(--text-3);margin-bottom:3px;">Seçenekler (virgülle ayır):</div>
+<input class="form-input" style="font-size:10px;padding:2px 5px;width:100%;"
+placeholder="Seçenek 1, Seçenek 2"
+value="${(f.options||[]).join(', ')}"
+oninput="_fsFields[${i}].options=this.value.split(',').map(s=>s.trim()).filter(Boolean)">
+</div>` : '';
+return `<div style="padding:6px 8px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;">
+<div style="display:flex;align-items:center;gap:6px;">
 <input type="checkbox" ${f.show?'checked':''} ${f.locked?'disabled':''}
 onchange="_fsFields[${i}].show=this.checked;updateFsPreview()">
-<input class="form-input" value="${f.label}" style="flex:1;font-size:12px;padding:3px 7px;"
+<input class="form-input" value="${f.label||''}" style="flex:1;font-size:12px;padding:3px 7px;"
 oninput="_fsFields[${i}].label=this.value;updateFsPreview()" placeholder="Alan adı">
 <select class="form-input" style="width:80px;font-size:11px;padding:3px;"
-onchange="_fsFields[${i}].type=this.value;updateFsPreview()">
+onchange="_fsFields[${i}].type=this.value;renderFsFieldList();updateFsPreview()">
 <option value="text" ${f.type==='text'?'selected':''}>Metin</option>
 <option value="number" ${f.type==='number'?'selected':''}>Sayı</option>
 <option value="date" ${f.type==='date'?'selected':''}>Tarih</option>
@@ -392,8 +402,10 @@ onchange="_fsFields[${i}].type=this.value;updateFsPreview()">
 <option value="multiselect" ${f.type==='multiselect'?'selected':''}>Çoktan Seçmeli</option>
 <option value="checkbox" ${f.type==='checkbox'?'selected':''}>Checkbox</option>
 </select>
-${f.locked?'<span style="font-size:10px;color:var(--text-3);">🔒</span>':''}
-</div>`).join('');
+${f.locked?'<span style="font-size:10px;color:var(--text-3);">Kilitli</span>':''}
+</div>${optHtml}
+</div>`;
+}).join('');
 }
 
 function updateFsPreview() {
@@ -448,6 +460,65 @@ if (tab === 'qc' && currentCampId) loadCampQcTab();
 if (tab === 'script' && currentCampId) loadCampScriptTab();
 if (tab === 'arama' && currentCampId) loadCampAramaTab();
 if (tab === 'bildirim' && currentCampId) loadCampBildirimTab();
+if (tab === 'termin-form' && currentCampId) loadCampTerminFormTab();
+}
+
+function loadCampTerminFormTab() {
+const el = document.getElementById('cd-termin-form-fields');
+if (!el) return;
+const camp = campaigns.find(c=>c.id===currentCampId);
+let tf = {};
+try { tf = camp?.termin_form_config ? (typeof camp.termin_form_config==='string'?JSON.parse(camp.termin_form_config):camp.termin_form_config) : {}; } catch(e) {}
+const DEFAULT_TF = [
+  {key:'hausart',label:'Ev Tipi',type:'select',opts:'Einfamilienhaus,Zweifamilienhaus,Reihenhaus,Doppelhaus,Mehrfamilienhaus',enabled:true,required:true},
+  {key:'baujahr',label:'Yapım Yılı',type:'text',enabled:true,required:true},
+  {key:'qm',label:'m²',type:'number',enabled:true,required:true},
+  {key:'heizung',label:'Isıtma',type:'select',opts:'Gas,Öl,Pellet,WP,Fernwärme',enabled:true,required:true},
+  {key:'alter_der_heizung',label:'Isıtma Yaşı',type:'text',enabled:true,required:true},
+  {key:'verbrauch_pro_jahr',label:'Tüketim/Yıl',type:'text',enabled:true,required:false},
+  {key:'personen',label:'Kişi Sayısı',type:'number',enabled:true,required:false},
+  {key:'interesse_an_pv',label:'PV İlgisi',type:'boolean',enabled:false,required:false},
+];
+const fields = DEFAULT_TF.map(f=>({...f, enabled:tf[f.key]?.enabled??f.enabled, required:tf[f.key]?.required??f.required, label:tf[f.key]?.label||f.label, opts:tf[f.key]?.opts||f.opts||''}));
+el.innerHTML = fields.map((f,i)=>`
+<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg-3);border-radius:6px;" data-key="${f.key}">
+<input type="checkbox" id="tf-en-${i}" ${f.enabled?'checked':''} style="width:15px;height:15px;">
+<input class="form-input" id="tf-lbl-${i}" value="${f.label}" style="flex:1;font-size:12px;padding:3px 7px;">
+<select class="form-input" id="tf-type-${i}" style="width:80px;font-size:11px;padding:3px;">
+<option value="text" ${f.type==='text'?'selected':''}>Metin</option>
+<option value="number" ${f.type==='number'?'selected':''}>Sayı</option>
+<option value="select" ${f.type==='select'?'selected':''}>Açılır Menü</option>
+<option value="boolean" ${f.type==='boolean'?'selected':''}>Evet/Hayır</option>
+</select>
+<label style="font-size:11px;display:flex;align-items:center;gap:4px;"><input type="checkbox" id="tf-req-${i}" ${f.required?'checked':''}>Zorunlu</label>
+</div>
+${['select'].includes(f.type)?`<div style="padding:3px 10px 6px;"><input class="form-input" id="tf-opts-${i}" style="font-size:10px;padding:2px 6px;width:100%;" placeholder="Seçenekler (virgülle)" value="${f.opts||''}"></div>`:''}
+`).join('');
+el.dataset.count = fields.length;
+}
+
+async function saveCampTerminFormSettings() {
+const el = document.getElementById('cd-termin-form-fields');
+if (!el) return;
+const n = parseInt(el.dataset.count||'0');
+const keys = ['hausart','baujahr','qm','heizung','alter_der_heizung','verbrauch_pro_jahr','personen','interesse_an_pv'];
+const cfg = {};
+for (let i=0;i<n;i++) {
+  const key = keys[i];
+  if (!key) continue;
+  cfg[key] = {
+    enabled: document.getElementById(`tf-en-${i}`)?.checked||false,
+    label: document.getElementById(`tf-lbl-${i}`)?.value||key,
+    type: document.getElementById(`tf-type-${i}`)?.value||'text',
+    required: document.getElementById(`tf-req-${i}`)?.checked||false,
+    opts: document.getElementById(`tf-opts-${i}`)?.value||''
+  };
+}
+try {
+  await sb(`campaigns?id=eq.${currentCampId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({termin_form_config:cfg})});
+  toast('Termin form ayarları kaydedildi ✓','ok');
+  loadCampaigns();
+} catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
 function loadCampFieldsTab() {
@@ -492,14 +563,24 @@ updateCdFsPreview();
 function renderCdFsFieldList() {
 const el = document.getElementById('cd-fs-field-list');
 if (!el) return;
-el.innerHTML = _fsFields.map((f,i)=>`
-<div style="display:flex;align-items:center;gap:5px;padding:5px 7px;background:var(--bg-2);border:1px solid var(--border);border-radius:5px;">
+el.innerHTML = _fsFields.map((f,i)=>{
+const needsOpts = ['select','multiselect','checkbox'].includes(f.type);
+const optHtml = needsOpts ? `
+<div style="margin-top:4px;padding:4px 6px;background:var(--bg-3);border-radius:4px;">
+<div style="font-size:9px;color:var(--text-3);margin-bottom:3px;">Seçenekler (virgülle ayır):</div>
+<input class="form-input" style="font-size:10px;padding:2px 5px;width:100%;"
+placeholder="Seçenek 1,Seçenek 2,Seçenek 3"
+value="${(f.options||[]).join(',')}"
+oninput="_fsFields[${i}].options=this.value.split(',').map(s=>s.trim()).filter(Boolean)">
+</div>` : '';
+return `<div style="padding:5px 7px;background:var(--bg-2);border:1px solid var(--border);border-radius:5px;">
+<div style="display:flex;align-items:center;gap:5px;">
 <input type="checkbox" ${f.show?'checked':''} ${f.locked?'disabled':''}
 onchange="_fsFields[${i}].show=this.checked;updateCdFsPreview()">
-<input class="form-input" value="${f.label}" style="flex:1;font-size:11px;padding:2px 6px;"
+<input class="form-input" value="${f.label||''}" style="flex:1;font-size:11px;padding:2px 6px;"
 oninput="_fsFields[${i}].label=this.value;updateCdFsPreview()">
-<select class="form-input" style="width:75px;font-size:10px;padding:2px;"
-onchange="_fsFields[${i}].type=this.value">
+<select class="form-input" style="width:80px;font-size:10px;padding:2px;"
+onchange="_fsFields[${i}].type=this.value;renderCdFsFieldList();updateCdFsPreview()">
 <option value="text" ${f.type==='text'?'selected':''}>Metin</option>
 <option value="number" ${f.type==='number'?'selected':''}>Sayı</option>
 <option value="date" ${f.type==='date'?'selected':''}>Tarih</option>
@@ -508,8 +589,10 @@ onchange="_fsFields[${i}].type=this.value">
 <option value="multiselect" ${f.type==='multiselect'?'selected':''}>Çoktan Seçmeli</option>
 <option value="checkbox" ${f.type==='checkbox'?'selected':''}>Checkbox</option>
 </select>
-${f.locked?'<span style="font-size:9px;">🔒</span>':`<button onclick="_fsFields.splice(${i},1);renderCdFsFieldList();updateCdFsPreview()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`}
-</div>`).join('');
+${f.locked?'<span style="font-size:9px;color:var(--text-3);">Kilitli</span>':`<button onclick="_fsFields.splice(${i},1);renderCdFsFieldList();updateCdFsPreview()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`}
+</div>${optHtml}
+</div>`;
+}).join('');
 }
 
 function addFsField() {

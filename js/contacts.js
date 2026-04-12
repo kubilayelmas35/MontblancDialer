@@ -264,14 +264,18 @@ onmouseout="this.style.opacity='.6';this.style.color='var(--text-3)'">
   const terminContainer = document.getElementById('termin-fields-section') || (() => {
     const el = document.createElement('div');
     el.id = 'termin-fields-section';
-    el.style.cssText = 'margin-top:12px;padding-top:12px;border-top:2px dashed var(--accent);';
+    el.style.cssText = 'margin-top:12px;padding-top:12px;border-top:2px dashed var(--accent);display:none;';
     document.getElementById('cust-fields')?.after(el);
     return el;
   })();
+  // Default hidden — only show when slot selected
+  if (!window._selectedBookingSlot) terminContainer.style.display = 'none';
   terminContainer.innerHTML = `
-<div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:5px;">
-<i class="ph ph-calendar-check" style="font-size:12px;"></i> Termin Bilgileri
-<span style="font-size:9px;color:var(--text-3);font-weight:400;">(Termin için zorunlu)</span>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+<div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:5px;" class="termin-slot-hdr">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Termin Bilgileri
+</div>
+<span id="termin-slot-badge" style="font-size:9px;color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;">Slot seçilmedi</span>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 ${terminFields.map(f => `
@@ -288,7 +292,14 @@ value="${f.v||''}" placeholder="${f.l}..."
 oninput="updateTerminField('${f.key}',this.value)">`
 }
 </div>`).join('')}
-</div>`;
+</div>
+<div id="tf-note-row" style="margin-top:8px;">
+<label style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;">Not</label>
+<textarea id="tf2-note" class="form-input" rows="2" style="font-size:12px;resize:vertical;margin-top:3px;" placeholder="Agent notu..."></textarea>
+</div>
+<button onclick="saveTerminFromSection()" style="margin-top:8px;width:100%;padding:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2,var(--accent)));color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer;">
+Termini Kaydet
+</button>`;
   const nameEl = document.getElementById('cust-name');
   if (nameEl) { nameEl.style.cursor='pointer'; nameEl.title='Kopyala'; nameEl.onclick=()=>copyToClipboard(nameEl.textContent,'İsim kopyalandı'); }
   const phoneEl = document.getElementById('cust-phone');

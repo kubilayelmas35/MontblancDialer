@@ -15,14 +15,24 @@ async function initDialer() {
       list.innerHTML=`<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Kampanya atanmamış<br><small style="font-size:10px;">Admin sizi bir kampanyaya atamalı</small></div>`;
       return;
     }
-    list.innerHTML = myCamps.map(ac=>`
-<div class="agent-camp-item ${selectedCampId===ac.campaign_id?'active':''}" onclick="selectCamp('${ac.campaign_id}','${ac.campaigns?.name||''}')">
+    list.innerHTML = myCamps.map(ac=>{
+      const q = ac.campaigns?.queues;
+      const tot = q ? q.reduce((s,qq)=>s+(qq.total_contacts||0),0).toLocaleString() : '—';
+      const isActive = selectedCampId===ac.campaign_id;
+      return `<div class="agent-camp-item ${isActive?'active':''}" style="cursor:pointer;">
+<div onclick="selectCamp('${ac.campaign_id}','${ac.campaigns?.name||''}')" style="flex:1;">
 <div class="agent-camp-name">${ac.campaigns?.name||ac.campaign_id}</div>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px;">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
 <span class="agent-camp-count">${ac.campaigns?.dial_speed||1} hat</span>
-<span class="agent-camp-count" style="color:var(--accent);">${(()=>{const q=ac.campaigns?.queues;return q?q.reduce((s,qq)=>s+(qq.total_contacts||0),0).toLocaleString()+' kişi':'—'})()}</span>
+<span class="agent-camp-count" style="color:var(--accent);">${tot} kişi</span>
 </div>
-</div>`).join('');
+</div>
+<button onclick="selectCamp('${ac.campaign_id}','${ac.campaigns?.name||''}')" 
+style="margin-top:4px;width:100%;padding:4px;background:${isActive?'var(--accent)':'var(--bg-3)'};color:${isActive?'#fff':'var(--text-2)'};border:1px solid ${isActive?'var(--accent)':'var(--border)'};border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">
+${isActive?'✓ Aktif':'Aktif Et'}
+</button>
+</div>`;
+    }).join('');
     if (!selectedCampId && myCamps.length) selectCamp(myCamps[0].campaign_id, myCamps[0].campaigns?.name||'');
     if (!myCamps.length) {
       const notice = document.getElementById('camp-required-notice');
@@ -42,9 +52,19 @@ async function initDialer() {
 
 function selectCamp(id, name) {
   selectedCampId = id;
-  document.getElementById('dialer-camp-label').textContent = name || id;
+  const lbl = document.getElementById('dialer-camp-label');
+  if (lbl) lbl.textContent = name || id;
+  // Store aux codes from campaign settings
+  const camp = campaigns.find(c=>c.id===id);
+  if (camp?.qc_settings) {
+    try {
+      const qs = typeof camp.qc_settings==='string' ? JSON.parse(camp.qc_settings) : camp.qc_settings;
+      if (qs.aux_codes?.length) window._campAuxCodes = qs.aux_codes;
+    } catch(e){}
+  }
+  // Re-render camp list to reflect active state
   document.querySelectorAll('.agent-camp-item').forEach(el => {
-    el.classList.toggle('active', el.getAttribute('onclick').includes(id));
+    el.classList.toggle('active', el.querySelector('[onclick]')?.getAttribute('onclick')?.includes(id)||false);
   });
   const fakeBtn = document.getElementById('fake-call-btn');
   if (fakeBtn) fakeBtn.style.display = '';
@@ -59,24 +79,105 @@ function selectCamp(id, name) {
   if (notice) notice.style.display = 'none';
 }
 
+let _perfTab = 'today';
+let _goalTab = 'daily';
+
+function setPerfTab(tab) {
+  _perfTab = tab;
+  ['today','week','month'].forEach(t => {
+    const b = document.getElementById(`perf-tab-${t}`);
+    if (b) { b.style.background = t===tab ? 'var(--accent)' : 'transparent'; b.style.color = t===tab ? '#fff' : 'var(--text-2)'; }
+  });
+  loadMyMiniStats();
+}
+
+function setGoalTab(tab) {
+  _goalTab = tab;
+  ['daily','weekly','monthly'].forEach(t => {
+    const b = document.getElementById(`goal-tab-${t}`);
+    if (b) { b.style.background = t===tab ? 'var(--accent)' : 'transparent'; b.style.color = t===tab ? '#fff' : 'var(--text-2)'; }
+  });
+  const labels = {daily:'Günlük Hedef', weekly:'Haftalık Hedef', monthly:'Aylık Hedef'};
+  const lbl = document.getElementById('goal-tab-label');
+  if (lbl) lbl.textContent = labels[tab]||'Hedef';
+  loadMyMiniStats();
+}
+
 async function loadMyMiniStats() {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const logs = await sb(`call_logs?select=*&agent_id=eq.${currentUser?.id}&started_at=gte.${today}T00:00:00`);
-    const appts = logs.filter(l=>l.outcome==='appointment').length;
+    const now = new Date();
+    let since;
+    if (_perfTab === 'today') {
+      since = now.toISOString().split('T')[0] + 'T00:00:00';
+    } else if (_perfTab === 'week') {
+      const mon = new Date(now); mon.setDate(now.getDate() - (now.getDay()||7) + 1); mon.setHours(0,0,0,0);
+      since = mon.toISOString();
+    } else {
+      since = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01T00:00:00`;
+    }
+    const logs = await sb(`call_logs?select=outcome&agent_id=eq.${currentUser?.id}&started_at=gte.${since}`);
+    const appts = (logs||[]).filter(l=>l.outcome==='appointment').length;
+    const calls = (logs||[]).length;
+    const neg = (logs||[]).filter(l=>l.outcome==='negative').length;
+    const cb = (logs||[]).filter(l=>l.outcome==='callback').length;
     document.getElementById('my-appt').textContent = appts;
-    document.getElementById('my-calls').textContent = logs.length;
+    document.getElementById('my-calls').textContent = calls;
+
+    // Goal depends on tab
+    let goalVal = _dailyGoal;
+    if (_goalTab === 'weekly') goalVal = _dailyGoal * 5;
+    else if (_goalTab === 'monthly') goalVal = _dailyGoal * 22;
+    let goalAppts = appts;
+    if (_goalTab === 'weekly') {
+      const monSince = new Date(now); monSince.setDate(now.getDate()-(now.getDay()||7)+1); monSince.setHours(0,0,0,0);
+      const wl = await sb(`call_logs?select=outcome&agent_id=eq.${currentUser?.id}&started_at=gte.${monSince.toISOString()}&outcome=eq.appointment`);
+      goalAppts = (wl||[]).length;
+    } else if (_goalTab === 'monthly') {
+      const monSince = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01T00:00:00`;
+      const ml = await sb(`call_logs?select=outcome&agent_id=eq.${currentUser?.id}&started_at=gte.${monSince}&outcome=eq.appointment`);
+      goalAppts = (ml||[]).length;
+    }
+    updateDailyProgress(goalAppts, goalVal);
+
     document.getElementById('my-stats-mini').innerHTML=`
-<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:10px;">
-<div style="font-size:20px;font-weight:800;color:var(--green);font-family:var(--mono);">${appts}</div>
+<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
+<div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono);">${appts}</div>
 <div style="font-size:10px;color:var(--text-3);">Termin</div>
 </div>
-<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:10px;">
-<div style="font-size:20px;font-weight:800;color:var(--accent);font-family:var(--mono);">${logs.length}</div>
+<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
+<div style="font-size:18px;font-weight:800;color:var(--accent);font-family:var(--mono);">${calls}</div>
 <div style="font-size:10px;color:var(--text-3);">Çağrı</div>
+</div>
+<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
+<div style="font-size:18px;font-weight:800;color:var(--red);font-family:var(--mono);">${neg}</div>
+<div style="font-size:10px;color:var(--text-3);">Olumsuz</div>
+</div>
+<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
+<div style="font-size:18px;font-weight:800;color:var(--yellow);font-family:var(--mono);">${cb}</div>
+<div style="font-size:10px;color:var(--text-3);">Geri Ara</div>
 </div>`;
-    updateDailyProgress(appts);
-  } catch(e){}
+    loadUpcomingWv();
+  } catch(e){ console.error('stats err:',e); }
+}
+
+async function loadUpcomingWv() {
+  const el = document.getElementById('upcoming-wv-list');
+  if (!el) return;
+  try {
+    const now = new Date();
+    const soon = new Date(now.getTime() + 48*60*60*1000).toISOString();
+    const list = await sb(`wiedervorlage?agent=eq.${currentUser?.name}&durum=eq.bekliyor&termin_zaman=lte.${soon}&order=termin_zaman.asc&limit=5`);
+    if (!list?.length) { el.innerHTML='<div style="color:var(--text-3);text-align:center;padding:6px;font-size:11px;">Yaklaşan arama yok</div>'; return; }
+    el.innerHTML = list.map(w => {
+      const dt = new Date(w.termin_zaman);
+      const timeStr = dt.toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      const isOverdue = dt < now;
+      return `<div style="padding:5px 8px;background:var(--bg-3);border-radius:5px;border-left:3px solid ${isOverdue?'var(--red)':'var(--yellow)'};" onclick="navigate('wiedervorlage')">
+<div style="font-weight:700;font-size:11px;color:${isOverdue?'var(--red)':'var(--text)'};">${w.nachname||w.telefon}</div>
+<div style="font-size:10px;color:var(--text-3);">${timeStr}</div>
+</div>`;
+    }).join('');
+  } catch(e) { el.innerHTML='<div style="color:var(--text-3);text-align:center;padding:6px;font-size:11px;">—</div>'; }
 }
 
 async function toggleReady() {
@@ -105,7 +206,7 @@ function setDialerStatus(s) {
   const rdyBtn = document.getElementById('btn-ready');
   const rdyTxt = document.getElementById('ready-text');
   const rdyIc  = document.getElementById('ready-icon');
-  if (dot) dot.className = `status-dot ${s}`;
+  if (dot) { dot.className = `status-dot ${s}`; }
   const labels = {
     offline: {tr:'Çevrimdışı',de:'Offline'},
     ready:   {tr:'Hazır — Arama Bekleniyor',de:'Bereit — Warte auf Anruf'},
@@ -236,29 +337,33 @@ async function submitOutcome(goBreak) {
     if (currentContact) {
       const finalOutcome = isDnc ? 'dnc' : selectedOutcome;
       const statusMap = {appointment:'appointment',negative:'negative',callback:'callback',no_answer:'no_answer',dnc:'dnc'};
+      const contactPatch = {
+        status: statusMap[finalOutcome],
+        attempt_count: (currentContact.attempt_count||0)+1,
+        last_called_at: new Date().toISOString(),
+        callback_at: cbTime||null
+      };
+      // locked_by/locked_at may not exist in all schemas
+      try { contactPatch.locked_by = null; contactPatch.locked_at = null; } catch(e) {}
       await sb(`contacts?id=eq.${currentContact.id}`,{method:'PATCH',prefer:'return=minimal',
-        body:JSON.stringify({
-          status: statusMap[finalOutcome],
-          attempt_count: (currentContact.attempt_count||0)+1,
-          last_called_at: new Date().toISOString(),
-          locked_by: null, locked_at: null,
-          callback_at: cbTime||null
-        })
+        body:JSON.stringify(contactPatch)
       });
       if (isDnc) await addToDnc(currentContact.phone, currentContact.id);
-      await sb('call_logs',{method:'POST',prefer:'return=minimal',body:JSON.stringify({
+      const logData = {
         contact_id: currentContact.id,
         campaign_id: selectedCampId,
         firm_id: currentUser.firm_id,
         agent_id: currentUser.id,
-        telnyx_call_id: activeCallId,
         phone: currentContact.phone,
         outcome: isDnc ? 'dnc' : selectedOutcome,
         notes: note,
         duration_sec: callSeconds,
         started_at: new Date(Date.now()-callSeconds*1000).toISOString(),
         ended_at: new Date().toISOString(),
-      })});
+      };
+      // telnyx_call_id may not exist in all schemas
+      if (activeCallId) { try { logData.telnyx_call_id = activeCallId; } catch(e) {} }
+      await sb('call_logs',{method:'POST',prefer:'return=minimal',body:JSON.stringify(logData)});
       if (currentContact.queue_id) {
         sb(`queues?id=eq.${currentContact.queue_id}`,{method:'PATCH',prefer:'return=minimal',
           body:JSON.stringify({dialed_count:(currentContact.dialed_count||0)+1})
@@ -303,31 +408,48 @@ async function submitOutcome(goBreak) {
   loadMyMiniStats();
   if (goBreak) {
     setDialerStatus('break');
-    upsertAgentSession({agent_id:currentUser.id,status:'break'});
+    upsertAgentSession({agent_id:currentUser.id,status:'break',last_seen:new Date().toISOString()}).catch(()=>{});
+    openBreakModal();
   } else {
     setDialerStatus('ready');
-    upsertAgentSession({agent_id:currentUser.id,status:'ready',last_seen:new Date().toISOString()});
+    upsertAgentSession({agent_id:currentUser.id,status:'ready',last_seen:new Date().toISOString()}).catch(()=>{});
     if (_autoDial) setTimeout(()=>dialNext(), 1200);
   }
 }
 
 function handleAppointmentClick() {
-  const missing = validateTerminFields();
-  if (missing.length > 0) {
-    switchContactTab('info');
-    const terminSection = document.getElementById('termin-fields-section');
-    if (terminSection) {
-      terminSection.scrollIntoView({behavior:'smooth', block:'center'});
-      terminSection.style.boxShadow = '0 0 0 3px rgba(220,38,38,.4)';
-      setTimeout(() => terminSection.style.boxShadow = '', 2000);
-    }
-    const names = {hausart:'Ev Tipi', baujahr:'Yapım Yılı', qm:'m²', heizung:'Isıtma', alter_der_heizung:'Isıtma Yaşı'};
-    toast('⚠️ Zorunlu alanlar eksik: ' + missing.map(k=>names[k]||k).join(', '), 'err', 4000);
-    return;
-  }
   setOutcome('appointment');
-  navigate('takvim');
-  toast('📅 Takvimden uygun slot seç', 'ok', 3000);
+  // Show termin fields section if hidden
+  const terminSection = document.getElementById('termin-fields-section');
+  if (terminSection) terminSection.style.display = '';
+  switchContactTab('info');
+  // Scroll to termin section
+  setTimeout(() => {
+    if (terminSection) terminSection.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 100);
+  // Show calendar in overlay to pick slot
+  toast('📅 Takvimden bir slot seçin, ardından termin bilgilerini doldurun', 'ok', 4000);
+  openTakvimOverlay();
+}
+
+// Called from appointments.js when agent selects a slot
+function onAgentSlotSelected(slot) {
+  window._selectedBookingSlot = slot;
+  const terminSection = document.getElementById('termin-fields-section');
+  if (terminSection) {
+    terminSection.style.display = '';
+    // Update slot info header
+    const hdr = terminSection.querySelector('.termin-slot-hdr');
+    if (hdr) {
+      hdr.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${slot.tarih} · ${(slot.baslangic_saat||'').slice(0,5)}–${(slot.bitis_saat||'').slice(0,5)}`;
+    }
+  }
+  // Prefill form from currentContact
+  if (currentContact) {
+    const pre = { 'tf2-hausart': currentContact.hausart, 'tf2-baujahr': currentContact.baujahr, 'tf2-qm': currentContact.qm, 'tf2-heizung': currentContact.heizung, 'tf2-alter_der_heizung': currentContact.alter_der_heizung };
+    Object.entries(pre).forEach(([id, val]) => { const el = document.getElementById(id); if (el && val) el.value = val; });
+  }
+  toast('Slot seçildi — termin bilgilerini doldurun ve kaydedin', 'ok', 3000);
 }
 
 async function updateTerminField(key, value) {
@@ -368,6 +490,31 @@ function validateTerminFields() {
   return missing;
 }
 
+// ── Break / Mola modal ────────────────────────
+function openBreakModal() {
+  const auxCodes = window._campAuxCodes || DEFAULT_AUX_CODES;
+  const old = document.getElementById('m-break-select');
+  if (old) old.remove();
+  const m = document.createElement('div');
+  m.id = 'm-break-select';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;';
+  m.innerHTML = `<div style="background:var(--bg-2);border-radius:var(--radius);padding:20px;width:280px;box-shadow:0 16px 48px rgba(0,0,0,.3);">
+<div style="font-size:14px;font-weight:800;margin-bottom:12px;">Mola Türü Seç</div>
+<div style="display:flex;flex-direction:column;gap:6px;">
+${auxCodes.map(c=>`<button onclick="selectBreakCode('${c}');this.closest('#m-break-select').remove();"
+style="padding:10px 14px;border:1px solid var(--border);background:var(--bg-3);border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;text-align:left;color:var(--text);">${c}</button>`).join('')}
+</div>
+<button onclick="this.closest('#m-break-select').remove();"
+style="margin-top:10px;width:100%;padding:8px;background:transparent;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;color:var(--text-3);">Kapat</button>
+</div>`;
+  document.body.appendChild(m);
+}
+
+async function selectBreakCode(code) {
+  toast(`☕ Mola: ${code}`, 'ok', 2000);
+  upsertAgentSession({agent_id:currentUser.id,status:'break',break_code:code,last_seen:new Date().toISOString()}).catch(()=>{});
+}
+
 // ── Auto-dial ─────────────────────────────────
 function toggleAutoDial() {
   _autoDial = !_autoDial;
@@ -381,16 +528,17 @@ function toggleAutoDial() {
 }
 
 // ── Gamification ──────────────────────────────
-function updateDailyProgress(apptCount) {
+function updateDailyProgress(apptCount, customGoal) {
   _dailyAppointments = apptCount;
   const el = document.getElementById('daily-progress-bar');
   const label = document.getElementById('daily-progress-label');
   if (!el) return;
-  const pct = Math.min(100, Math.round((apptCount/_dailyGoal)*100));
+  const goal = customGoal || _dailyGoal;
+  const pct = Math.min(100, Math.round((apptCount/goal)*100));
   el.style.width = pct + '%';
   el.style.background = pct>=100 ? 'var(--green)' : pct>=60 ? 'var(--yellow)' : 'var(--accent)';
-  if (label) label.textContent = `${apptCount}/${_dailyGoal} Termin`;
-  if (pct>=100 && !_confettiShown) { _confettiShown = true; launchConfetti(); }
+  if (label) label.textContent = `${apptCount}/${goal} Termin`;
+  if (pct>=100 && !_confettiShown && _goalTab==='daily') { _confettiShown = true; launchConfetti(); }
 }
 
 function launchConfetti() {

@@ -85,8 +85,15 @@ const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser.role);
 document.getElementById('nav-admin').style.display = isAdmin ? '' : 'none';
 document.getElementById('nav-agent').style.display = isAdmin ? 'none' : '';
 document.getElementById('tb-pills').style.display  = isAdmin ? '' : 'none';
-document.getElementById('sb-settings').style.display = isAdmin ? '' : 'none';
+document.getElementById('sb-settings').style.display = currentUser.role === 'super_admin' ? '' : 'none';
 document.getElementById('telnyx-settings').style.display = currentUser.role === 'super_admin' ? '' : 'none';
+// API keys (Google, TomTom, daily goal) — super_admin only
+const apiCard = document.querySelector('#page-settings .card:has(#s-google-key)') ||
+  [...document.querySelectorAll('#page-settings .card')].find(c=>c.querySelector('#s-google-key'));
+if (apiCard) apiCard.style.display = currentUser.role === 'super_admin' ? '' : 'none';
+// Mesai settings — admin+ (not agents)
+const mesaiCard = document.getElementById('mesai-settings-card');
+if (mesaiCard) mesaiCard.style.display = isAdmin ? '' : 'none';
 const roleMap = {
 'super_admin':'Süper Admin','firm_admin':'Firma Admin',
 'admin':'Admin','agent':'Agent','qc':'QC'
