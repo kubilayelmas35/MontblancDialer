@@ -419,17 +419,9 @@ async function submitOutcome(goBreak) {
 
 function handleAppointmentClick() {
   setOutcome('appointment');
-  // Show termin fields section if hidden
-  const terminSection = document.getElementById('termin-fields-section');
-  if (terminSection) terminSection.style.display = '';
-  switchContactTab('info');
-  // Scroll to termin section
-  setTimeout(() => {
-    if (terminSection) terminSection.scrollIntoView({behavior:'smooth', block:'start'});
-  }, 100);
-  // Show calendar in overlay to pick slot
-  toast('📅 Takvimden bir slot seçin, ardından termin bilgilerini doldurun', 'ok', 4000);
+  // Takvim overlay'ini aç — agent slot seçer
   openTakvimOverlay();
+  toast('Takvimden uygun bir slot seçin', 'ok', 3500);
 }
 
 // Called from appointments.js when agent selects a slot
@@ -745,23 +737,53 @@ function toggleTakvimPopup() {
   }
 }
 
+// Tam ekran takvim overlay'ini aç (topbar butonu + handleAppointmentClick)
 function openTakvimOverlay() {
-  if (!selectedCampId) return;
-  const camp = campaigns.find(c => c.id === selectedCampId);
-  if (!camp) return;
-  const ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:8000;display:flex;align-items:center;justify-content:center;';
-  ov.innerHTML = `
-<div style="background:var(--bg-2);border-radius:var(--radius);padding:24px;max-width:360px;width:90%;text-align:center;">
-<div style="font-size:24px;margin-bottom:12px;">📅</div>
-<div style="font-size:15px;font-weight:800;margin-bottom:8px;">Termin Alındı!</div>
-<div style="font-size:16px;font-weight:700;padding:10px 16px;background:var(--bg-3);border-radius:8px;margin-bottom:20px;">${camp.name}</div>
-${camp.notif_message?`<div style="font-size:13px;color:var(--text-2);margin-bottom:16px;">${camp.notif_message}</div>`:''}
-<button onclick="this.closest('[style*=fixed]').remove();navigate('takvim');"
-style="width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;">📅 Takvime Git</button>
-<button onclick="this.closest('[style*=fixed]').remove();" style="width:100%;padding:10px;background:transparent;color:var(--text-2);border:none;font-size:12px;cursor:pointer;margin-top:8px;">Kapat</button>
-</div>`;
-  document.body.appendChild(ov);
+  const ov = document.getElementById('takvim-popup-overlay');
+  if (!ov) { navigate('takvim'); return; }
+  ov.style.display = '';
+
+  // Overlay içindeki grid ID'lerini ayarla
+  window._takvimGridId      = 'takvim-grid-ov';
+  window._takvimScrollId    = 'takvim-scroll-ov';
+  window._takvimWeekLabelId = 'takvim-week-label-ov';
+
+  // Admin tools + camp select overlay içinde göster/gizle
+  const ovAdmin  = document.getElementById('takvim-overlay-admin');
+  const ovCampLbl = document.getElementById('takvim-overlay-camp-label');
+  const isAdmin  = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
+  if (ovAdmin) ovAdmin.style.display = isAdmin ? '' : 'none';
+
+  // Agent için kampanya adını göster
+  if (!isAdmin && selectedCampId) {
+    const camp = campaigns.find(c=>c.id===selectedCampId);
+    if (ovCampLbl) ovCampLbl.textContent = camp?.name || '';
+    if (!takvimCampId) takvimCampId = selectedCampId;
+  }
+
+  // Admin için kampanya select'ini doldur
+  if (isAdmin) {
+    const sel = document.getElementById('takvim-camp-select-ov');
+    if (sel && !sel.options.length) {
+      sb(`campaigns?firm_id=eq.${currentUser.firm_id}&status=eq.active&order=name.asc`)
+        .then(camps => {
+          if (sel) sel.innerHTML = '<option value="">Kampanya seç...</option>' + (camps||[]).map(c=>`<option value="${c.id}" ${c.id===takvimCampId?'selected':''}>${c.name}</option>`).join('');
+        }).catch(()=>{});
+    }
+  }
+
+  // Takvimi render et
+  renderTakvimGrid();
+  if (takvimCampId) loadTakvimSlots();
+}
+
+function closeTakvimOverlay() {
+  const ov = document.getElementById('takvim-popup-overlay');
+  if (ov) ov.style.display = 'none';
+  // Ana sayfaya geçince grid ID'leri resetle
+  window._takvimGridId     = 'takvim-grid';
+  window._takvimScrollId   = 'takvim-scroll';
+  window._takvimWeekLabelId = 'takvim-week-label';
 }
 
 // ── Precall mic test ──────────────────────────

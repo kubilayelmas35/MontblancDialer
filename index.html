@@ -1349,15 +1349,15 @@ ondrop="handleDrop(event)">
 </div>
 <div style="display:flex;align-items:center;gap:4px;">
 <button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="takvimPrev()">◀</button>
-<span id="takvim-week-label" style="font-size:12px;font-weight:700;min-width:130px;text-align:center;">—</span>
+<span id="takvim-week-label-ov" style="font-size:12px;font-weight:700;min-width:130px;text-align:center;">—</span>
 <button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="takvimNext()">▶</button>
 <button class="btn btn-ghost btn-sm" onclick="takvimGoToday()">Bugün</button>
 </div>
-<div id="takvim-overlay-admin" style="display:none;display:flex;gap:6px;align-items:center;">
-<select class="form-input" id="takvim-camp-select" onchange="onTakvimCampChange(this.value)" style="font-size:12px;padding:5px 10px;max-width:200px;">
+<div id="takvim-overlay-admin" style="display:none;gap:6px;align-items:center;">
+<select class="form-input" id="takvim-camp-select-ov" onchange="onTakvimCampChange(this.value)" style="font-size:12px;padding:5px 10px;max-width:200px;">
 <option value="">Kampanya seç...</option>
 </select>
-<div id="takvim-admin-tools" style="display:flex;gap:6px;">
+<div style="display:flex;gap:6px;">
 <button class="btn btn-ghost btn-sm" onclick="openBulkSlotModal()">+ Toplu Slot</button>
 </div>
 </div>

@@ -52,9 +52,14 @@ async function loadTakvimPage() {
 
 function onTakvimCampChange(campId) {
   takvimCampId = campId;
-  const sel = document.getElementById('takvim-camp-select');
+  // Hem ana sayfa select'ini hem overlay select'ini güncelle
+  ['takvim-camp-select','takvim-camp-select-ov'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel) sel.value = campId;
+  });
   const lbl = document.getElementById('takvim-camp-label');
-  if (lbl && sel) lbl.textContent = sel.options[sel.selectedIndex]?.text||campId;
+  const selRef = document.getElementById('takvim-camp-select') || document.getElementById('takvim-camp-select-ov');
+  if (lbl && selRef) lbl.textContent = selRef.options[selRef.selectedIndex]?.text||campId;
   if (campId) loadTakvimSlots();
 }
 
@@ -390,13 +395,11 @@ async function lockAndBookSlot(slot) {
   } catch(e) { toast('Slot kilitlenemiyor: '+e.message,'err'); return; }
   _bookingSlot = slot;
   // If we're in dialer context, show termin section instead of popup
-  if (typeof onAgentSlotSelected === 'function' && dialerStatus === 'wrapping') {
+  // Agent, dialer sayfasındayken takvim overlay'inden slot seçti
+  const inDialerCtx = typeof onAgentSlotSelected === 'function' && typeof dialerStatus !== 'undefined';
+  if (inDialerCtx) {
     onAgentSlotSelected(slot);
-    // Close any open overlays
-    const ov = document.getElementById('takvim-popup-overlay');
-    if (ov) ov.style.display = 'none';
-    const fixedOv = document.querySelector('[style*="z-index:8000"]');
-    if (fixedOv) fixedOv.remove();
+    if (typeof closeTakvimOverlay === 'function') closeTakvimOverlay();
     navigate('dialer');
   } else {
     openTakvimBookForm(slot);
