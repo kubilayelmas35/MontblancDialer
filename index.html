@@ -1543,8 +1543,8 @@ style="opacity:0.45;cursor:not-allowed;" title="Önce kampanya seçin">
 <div class="card-title" data-tr="Kampanyalarım" data-de="Meine Kampagnen">Kampanyalarım</div>
 <button class="btn btn-ghost btn-sm" id="fake-call-btn" onclick="startFakeCall()"
 style="font-size:10px;padding:3px 8px;color:var(--yellow);border-color:var(--yellow);display:none;"
-title="Test amaçlı fake çağrı başlat">
-🧪 Test
+title="Test amaçlı fake çağrı — Telnyx bağlantısı gerekmez">
+🧪 Test Çağrısı
 </button>
 </div>
 <div id="agent-camp-list" style="display:flex;flex-direction:column;gap:6px;">
@@ -6670,8 +6670,12 @@ let _fakeCallTimer = null;
 let _fakeCallActive = false;
 async function startFakeCall() {
 if (!selectedCampId) { toast('Önce kampanya seçin','err'); return; }
-if (dialerStatus !== 'ready') { toast('Önce Hazır moduna geçin','err'); return; }
 if (_fakeCallActive) { toast('Zaten aktif bir test çağrısı var','err'); return; }
+// Test modunda Telnyx bağlantısı gerekmez — direkt hazır'a geç
+if (dialerStatus === 'offline' || dialerStatus === 'break') {
+setDialerStatus('ready');
+updateSessionInDB('ready');
+}
 // Kuyruktan gerçek bir contact al
 const contact = await getNextContact();
 if (!contact) { toast('Kuyrukta kayıt yok','err'); return; }
@@ -6705,18 +6709,18 @@ toast('🔴 TEST: Çağrı bağlandı — istediğin zaman kapat', 'ok', 3000);
 function endFakeCall() {
 if (!_fakeCallActive) return;
 _fakeCallActive = false;
-// Normal hangup akışı
 if (callTimerInt) clearInterval(callTimerInt);
 setDialerStatus('wrapping');
 updateSessionInDB('wrapping');
-startAcwTimer();
+if (typeof startAcwTimer === 'function') startAcwTimer();
+// Call actions gizle, outcome göster
 const callActions = document.getElementById('call-actions');
 if (callActions) callActions.style.display = 'none';
 const outcomeSection = document.getElementById('outcome-section');
-if (outcomeSection) outcomeSection.style.display = '';
+if (outcomeSection) { outcomeSection.style.display = ''; outcomeSection.style.removeProperty('display'); }
 const readySection = document.getElementById('ready-section');
 if (readySection) readySection.style.display = 'none';
-toast('Test çağrısı sonlandırıldı — sonucu kaydet', 'ok', 2000);
+toast('🧪 Test çağrısı bitti — sonucu seç ve kaydet', 'ok', 3000);
 }
 async function setActiveCampaign(campId,msg='') {
 if(!campId)return;
