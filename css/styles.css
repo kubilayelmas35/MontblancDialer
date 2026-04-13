@@ -263,7 +263,7 @@ background: #00000040; z-index: 89;
 backdrop-filter: blur(2px);
 }
 #sidebar-overlay.show { display: block; }
-@media (max-width: 640px) {
+@media (max-width: 480px) {
 #sidebar {
 position: absolute; top:0; left:0; height:100%;
 transform: translateX(-100%); box-shadow: var(--shadow-md);
