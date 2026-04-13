@@ -26,12 +26,57 @@ document.getElementById('pill-appt').textContent = logs.length;
 } catch(e){}
 }
 
+function _dashCanUseAgentFilter() {
+  return ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+}
+
 function _dashLogFilter() {
   const ff = getFirmFilter('&') || '';
   const role = currentUser?.role || '';
   const onlySelf = role === 'agent';
-  const agentQ = onlySelf ? `&agent_id=eq.${currentUser.id}` : '';
-  return { ff, agentQ, onlySelf, isAdmin: ['admin','super_admin','firm_admin'].includes(role) };
+  let agentQ = '';
+  if (onlySelf) {
+    agentQ = `&agent_id=eq.${currentUser.id}`;
+  } else if (_dashCanUseAgentFilter()) {
+    const sel = document.getElementById('dash-agent-f');
+    const aid = sel && !sel.disabled ? String(sel.value || '').trim() : '';
+    if (aid) agentQ = `&agent_id=eq.${aid}`;
+  }
+  return { ff, agentQ, onlySelf, isAdmin: ['admin', 'super_admin', 'firm_admin'].includes(role) };
+}
+
+async function populateDashAgentSelect() {
+  const wrap = document.getElementById('dash-agent-wrap');
+  const sel = document.getElementById('dash-agent-f');
+  if (!wrap || !sel) return;
+  if (!_dashCanUseAgentFilter()) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = '';
+  const prev = sel.value;
+  if (currentUser?.role === 'super_admin' && !getActiveFirmId()) {
+    sel.innerHTML = `<option value="">${currentLang === 'tr' ? 'Önce firma seçin' : 'Firma wählen'}</option>`;
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  const fid = getActiveFirmId() || currentUser.firm_id;
+  if (!fid) {
+    sel.innerHTML = `<option value="">${currentLang === 'tr' ? 'Tüm agentler' : 'Alle Agenten'}</option>`;
+    return;
+  }
+  try {
+    const users = await sb(`users?firm_id=eq.${fid}&select=id,name,role&order=name.asc`) || [];
+    const trAll = currentLang === 'tr' ? 'Tüm agentler' : 'Alle Agenten';
+    sel.innerHTML = `<option value="">${trAll}</option>` + users.map(u => {
+      const nm = String(u.name || u.id.slice(0, 8)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return `<option value="${u.id}">${nm}</option>`;
+    }).join('');
+    if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 function _isTerminOutcome(o) {
@@ -225,6 +270,7 @@ function renderDashOutcomeDonut(logs) {
 
 async function loadDashboard() {
 renderFirmSelector('dash-firm-selector', loadDashboard);
+await populateDashAgentSelect();
 const { ff, agentQ, onlySelf } = _dashLogFilter();
 const costEl = document.getElementById('dash-stat-cost');
 const liveWrap = document.getElementById('dash-live-wrap');
