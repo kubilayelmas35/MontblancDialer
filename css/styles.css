@@ -168,6 +168,9 @@ z-index: 1;
 min-height: 44px;
 border-radius: 14px;
 overflow: hidden;
+/* Sol menü ile aynı taban — aksi halde açık topbar arkası aurorayı beyaza çeker */
+background: #0f172a;
+isolation: isolate;
 border: 1px solid rgba(255, 255, 255, 0.14);
 box-shadow: 0 2px 14px rgba(0, 0, 0, 0.12);
 }
@@ -212,6 +215,7 @@ color: var(--brand-chrome-fg);
 text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 [data-theme="dark"] .tb-logo {
+background: #080c14;
 border-color: rgba(255, 255, 255, 0.1);
 box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
 }
