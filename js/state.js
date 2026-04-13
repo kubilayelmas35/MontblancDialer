@@ -103,6 +103,9 @@ let _fakeCallTimer  = null;
 let _fakeCallActive = false;
 let _testMode       = false;
 
+// Multi-campaign dialing
+let _activeCampIds  = [];  // agent'ın aktif seçtiği kampanya ID'leri
+
 // Field settings
 let _fsFields = [];
 let _fsCampId = null;

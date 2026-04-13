@@ -15,22 +15,30 @@ async function initDialer() {
       list.innerHTML=`<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Kampanya atanmamış<br><small style="font-size:10px;">Admin sizi bir kampanyaya atamalı</small></div>`;
       return;
     }
+    // Tüm kampanyaları varsayılan aktif yap (ilk yüklemede)
+    if (!_activeCampIds.length) {
+      _activeCampIds = myCamps.map(ac => ac.campaign_id);
+    }
     list.innerHTML = myCamps.map(ac=>{
       const q = ac.campaigns?.queues;
       const tot = q ? q.reduce((s,qq)=>s+(qq.total_contacts||0),0).toLocaleString() : '—';
-      const isActive = selectedCampId===ac.campaign_id;
-      return `<div class="agent-camp-item ${isActive?'active':''}" style="cursor:pointer;">
-<div onclick="selectCamp('${ac.campaign_id}','${ac.campaigns?.name||''}')" style="flex:1;">
-<div class="agent-camp-name">${ac.campaigns?.name||ac.campaign_id}</div>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
-<span class="agent-camp-count">${ac.campaigns?.dial_speed||1} hat</span>
-<span class="agent-camp-count" style="color:var(--accent);">${tot} kişi</span>
+      const isActive = _activeCampIds.includes(ac.campaign_id);
+      const cid = ac.campaign_id;
+      return `<div class="agent-camp-item ${isActive?'active':''}" id="camp-item-${cid}" style="padding:8px 10px;">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+  <div style="flex:1;min-width:0;">
+    <div class="agent-camp-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ac.campaigns?.name||cid}</div>
+    <div style="font-size:10px;color:var(--text-3);margin-top:1px;">${tot} kişi · ${ac.campaigns?.dial_speed||1} hat</div>
+  </div>
+  <!-- Toggle switch -->
+  <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;cursor:pointer;" title="${isActive?'Kapat':'Aktif Et'}">
+    <input type="checkbox" ${isActive?'checked':''} onchange="toggleCampActive('${cid}',this.checked)"
+      style="opacity:0;width:0;height:0;">
+    <span style="position:absolute;inset:0;background:${isActive?'var(--accent)':'var(--border)'};border-radius:10px;transition:.25s;" id="camp-slider-${cid}">
+      <span style="position:absolute;top:3px;left:${isActive?'19':'3'}px;width:14px;height:14px;background:#fff;border-radius:50%;transition:.25s;" id="camp-knob-${cid}"></span>
+    </span>
+  </label>
 </div>
-</div>
-<button onclick="selectCamp('${ac.campaign_id}','${ac.campaigns?.name||''}')" 
-style="margin-top:4px;width:100%;padding:4px;background:${isActive?'var(--accent)':'var(--bg-3)'};color:${isActive?'#fff':'var(--text-2)'};border:1px solid ${isActive?'var(--accent)':'var(--border)'};border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;">
-${isActive?'✓ Aktif':'Aktif Et'}
-</button>
 </div>`;
     }).join('');
     if (!selectedCampId && myCamps.length) selectCamp(myCamps[0].campaign_id, myCamps[0].campaigns?.name||'');
@@ -48,6 +56,29 @@ ${isActive?'✓ Aktif':'Aktif Et'}
   renderHotkeyHints();
   const hints = document.getElementById('hotkey-hints');
   if (hints) hints.style.display = '';
+}
+
+// Kampanya aktif/pasif toggle
+function toggleCampActive(campId, checked) {
+  if (checked) {
+    if (!_activeCampIds.includes(campId)) _activeCampIds.push(campId);
+  } else {
+    _activeCampIds = _activeCampIds.filter(id => id !== campId);
+  }
+  // Görsel güncelle
+  const item   = document.getElementById(`camp-item-${campId}`);
+  const slider = document.getElementById(`camp-slider-${campId}`);
+  const knob   = document.getElementById(`camp-knob-${campId}`);
+  if (item)   item.classList.toggle('active', checked);
+  if (slider) slider.style.background = checked ? 'var(--accent)' : 'var(--border)';
+  if (knob)   knob.style.left = checked ? '19px' : '3px';
+  // selectedCampId'yi güncelle: aktif kampanya yoksa ilkini seç
+  if (!_activeCampIds.includes(selectedCampId) && _activeCampIds.length) {
+    selectedCampId = _activeCampIds[0];
+  }
+  const countStr = _activeCampIds.length === 0 ? 'Hiç kampanya aktif değil' :
+    `${_activeCampIds.length} kampanya aktif`;
+  toast(checked ? `✓ Aktif: ${countStr}` : `Pasif: ${countStr}`, checked ? 'ok' : 'warn', 2000);
 }
 
 function selectCamp(id, name) {
@@ -771,32 +802,44 @@ function checkCallAllowed() {
 // ── Test Modu ─────────────────────────────────
 function toggleTestMode() {
   _testMode = !_testMode;
-  const btn = document.getElementById('test-mode-btn');
+  const btn    = document.getElementById('test-mode-btn');
   const rdyBtn = document.getElementById('btn-ready');
   if (_testMode) {
-    btn.style.background = 'rgba(234,179,8,.15)';
-    btn.style.color = 'var(--yellow)';
-    btn.style.borderColor = 'var(--yellow)';
-    btn.textContent = '⚙ TEST MODU AÇIK';
-    // Telnyx olmadan da hazır butonu aktif olsun
-    if (rdyBtn && selectedCampId) {
+    btn.style.cssText += ';background:rgba(234,179,8,.18)!important;color:var(--yellow)!important;border-color:var(--yellow)!important;';
+    btn.textContent = '⚙ TEST AÇIK';
+    // Hazır butonunu Telnyx'ten bağımsız hale getir
+    if (rdyBtn) {
       rdyBtn.disabled = false;
       rdyBtn.style.opacity = '1';
       rdyBtn.style.cursor = 'pointer';
+      rdyBtn.onclick = testToggleReady; // Telnyx kontrolsüz versiyon
     }
     toast('Test modu açık — gerçek arama yapılmaz, veriler DB\'ye kaydedilir', 'ok', 4000);
   } else {
-    btn.style.background = 'transparent';
-    btn.style.color = 'var(--text-3)';
-    btn.style.borderColor = 'var(--text-3)';
+    btn.style.cssText = btn.style.cssText.replace(/background[^;]+;|color[^;]+;|border-color[^;]+;/g, '');
     btn.textContent = 'TEST MODU';
-    // Telnyx bağlı değilse tekrar disable et
-    if (rdyBtn && !telnyxReady) {
-      rdyBtn.disabled = true;
-      rdyBtn.style.opacity = '0.45';
-      rdyBtn.style.cursor = 'not-allowed';
+    if (rdyBtn) {
+      rdyBtn.onclick = toggleReady; // Normal versiyona geri dön
+      if (!telnyxReady && !selectedCampId) {
+        rdyBtn.disabled = true;
+        rdyBtn.style.opacity = '0.45';
+        rdyBtn.style.cursor = 'not-allowed';
+      }
     }
     toast('Test modu kapatıldı', 'warn', 2000);
+  }
+}
+
+// Test moduna özel hazır toggle — Telnyx kontrolü yok
+async function testToggleReady() {
+  if (!_activeCampIds.length && !selectedCampId) { toast('Önce en az bir kampanyayı aktif edin', 'err'); return; }
+  if (dialerStatus === 'offline' || dialerStatus === 'break') {
+    setDialerStatus('ready');
+    upsertAgentSession({agent_id:currentUser.id, status:'ready', last_seen:new Date().toISOString()}).catch(()=>{});
+    setTimeout(() => dialNext(), 300);
+  } else if (dialerStatus === 'ready') {
+    setDialerStatus('offline');
+    upsertAgentSession({agent_id:currentUser.id, status:'offline', last_seen:new Date().toISOString()}).catch(()=>{});
   }
 }
 

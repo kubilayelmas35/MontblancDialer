@@ -195,10 +195,17 @@ async function uploadQueue() {
 
 // ── Contact manipulation ──────────────────────
 async function getNextContact() {
-  if (!selectedCampId) return null;
+  // Aktif kampanya listesini kullan (yoksa selectedCampId ile fallback)
+  const ids = (typeof _activeCampIds !== 'undefined' && _activeCampIds.length)
+    ? _activeCampIds
+    : (selectedCampId ? [selectedCampId] : []);
+  if (!ids.length) return null;
   try {
+    const campFilter = ids.length === 1
+      ? `campaign_id=eq.${ids[0]}`
+      : `campaign_id=in.(${ids.join(',')})`;
     const contacts = await sb(
-      `contacts?campaign_id=eq.${selectedCampId}` +
+      `contacts?${campFilter}` +
       `&status=in.(pending,no_answer)` +
       `&order=last_called_at.asc.nullsfirst` +
       `&limit=1&select=*,queues(name,status)`
