@@ -343,7 +343,7 @@ visibility: visible;
 }
 #page-settings,
 #page-competition {
-  padding-top: 24px;
+  padding-top: calc(var(--topbar-h) + 16px) !important;
 }
 @media (max-width: 768px) { .page { padding: 14px; } }
 .page-hdr {
