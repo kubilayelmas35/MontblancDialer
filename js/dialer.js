@@ -781,12 +781,34 @@ function isGermanHoliday(dateStr) {
 }
 
 function isCallAllowed(dateStr, timeStr) {
-  const d = new Date(dateStr + 'T' + timeStr);
-  const day = d.getDay(); const hour = d.getHours();
-  if (day === 0) return {allowed:false, reason:'Pazar günü arama yapılamaz'};
-  if (isGermanHoliday(dateStr)) return {allowed:false, reason:'Tatil günü arama yapılamaz'};
-  if (hour < 9 || hour >= 20) return {allowed:false, reason:'Sessizlik saati (09:00-20:00 arası arama yapılabilir)'};
-  if (day === 6 && (hour < 9 || hour >= 13)) return {allowed:false, reason:'Cumartesi 09:00-13:00 arası arama yapılabilir'};
+  const d   = new Date(dateStr + 'T' + timeStr);
+  const day = d.getDay();
+  const toMin = t => { const [hh,mm] = (t||'00:00').split(':').map(Number); return hh*60+mm; };
+  const nowMin = toMin(timeStr.slice(0,5));
+
+  // Firma ayarlarına bak, yoksa Almanya yasal saatleri varsayılan
+  const ch = _callHours || {};
+  const wdStart      = ch.weekday_start   || '09:00';
+  const wdEnd        = ch.weekday_end     || '20:00';
+  const satAllowed   = ch.sat_allowed     !== false;
+  const satStart     = ch.sat_start       || '09:00';
+  const satEnd       = ch.sat_end         || '13:00';
+  const sunAllowed   = !!ch.sun_allowed;
+  const holidayCheck = ch.holiday_check   !== false;
+
+  if (day === 0 && !sunAllowed)
+    return {allowed:false, reason:'Pazar günü arama yapılamaz'};
+  if (holidayCheck && isGermanHoliday(dateStr))
+    return {allowed:false, reason:'Tatil günü arama yapılamaz'};
+  if (day === 6) {
+    if (!satAllowed)
+      return {allowed:false, reason:'Cumartesi arama yapılamaz'};
+    if (nowMin < toMin(satStart) || nowMin >= toMin(satEnd))
+      return {allowed:false, reason:`Cumartesi ${satStart}–${satEnd} arası arama yapılabilir`};
+  } else if (day !== 0) {
+    if (nowMin < toMin(wdStart) || nowMin >= toMin(wdEnd))
+      return {allowed:false, reason:`Sessizlik saati (${wdStart}–${wdEnd} arası arama yapılabilir)`};
+  }
   return {allowed:true};
 }
 

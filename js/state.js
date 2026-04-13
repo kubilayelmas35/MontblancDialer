@@ -73,6 +73,10 @@ let _selectedFirmId = null;
 let _mesaiFirmId       = null;  // super admin'in mesai için seçtiği firma
 let _mesaiFirmSettings = null;  // o firmanın settings JSONB'si (admin_can_edit_mesai vb.)
 
+// Arama kısıtlamaları (isCallAllowed için — firmadan yüklenir)
+let _callHours        = null;   // {weekday_start,weekday_end,sat_allowed,sat_start,sat_end,sun_allowed,holiday_check}
+let _callHoursFirmId  = null;   // super admin'in call-hours için seçtiği firma
+
 // Import
 let _iaRows    = [];
 let _iaHeaders = [];

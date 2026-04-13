@@ -1061,3 +1061,104 @@ async function saveMesaiSaatleri() {
     toast('Çalışma saatleri kaydedildi ✓', 'ok');
   } catch(e) { toast('Hata: '+e.message, 'err'); }
 }
+
+// ── Arama Kısıtlamaları (Call Hours) ──────────
+
+async function loadCallHoursSettings() {
+  const card = document.getElementById('call-hours-card');
+  if (!card) return;
+  const isSuperAdmin = currentUser?.role === 'super_admin';
+  card.style.display = isSuperAdmin ? '' : 'none';
+  if (!isSuperAdmin) return;
+
+  const firmSel = document.getElementById('ch-firm-select');
+  if (firmSel && !firmSel.options.length) {
+    try {
+      const firms = await sb('firms?is_active=eq.true&select=id,name&order=name');
+      firmSel.innerHTML = (firms||[]).map(f =>
+        `<option value="${f.id}">${f.name}</option>`
+      ).join('');
+    } catch(e) {}
+  }
+  if (!_callHoursFirmId && firmSel?.value) _callHoursFirmId = firmSel.value;
+
+  await _renderCallHoursForm();
+}
+
+async function _renderCallHoursForm() {
+  const firmId = _callHoursFirmId;
+  if (!firmId) return;
+
+  let ch = {};
+  try {
+    const firms = await sb(`firms?id=eq.${firmId}&select=settings`);
+    ch = firms?.[0]?.settings?.call_hours || {};
+  } catch(e) {}
+
+  const g = id => document.getElementById(id);
+  g('ch-wd-start')?.setAttribute('value', ch.weekday_start||'09:00');
+  g('ch-wd-end')  ?.setAttribute('value', ch.weekday_end  ||'20:00');
+
+  const satAllowed = ch.sat_allowed !== false;
+  if (g('ch-sat-allowed')) g('ch-sat-allowed').checked = satAllowed;
+  const satTimes = g('ch-sat-times');
+  if (satTimes) satTimes.style.display = satAllowed ? 'flex' : 'none';
+  g('ch-sat-start')?.setAttribute('value', ch.sat_start||'09:00');
+  g('ch-sat-end')  ?.setAttribute('value', ch.sat_end  ||'13:00');
+
+  if (g('ch-sun-allowed'))   g('ch-sun-allowed').checked   = !!ch.sun_allowed;
+  if (g('ch-holiday-check')) g('ch-holiday-check').checked = ch.holiday_check !== false;
+
+  // value attribute does not update live input, set .value directly too
+  ['ch-wd-start','ch-wd-end','ch-sat-start','ch-sat-end'].forEach(id => {
+    const el = g(id); if (el) el.value = el.getAttribute('value');
+  });
+}
+
+async function onCallHoursFirmChange() {
+  _callHoursFirmId = document.getElementById('ch-firm-select')?.value || null;
+  await _renderCallHoursForm();
+}
+
+async function saveCallHoursSettings() {
+  if (currentUser?.role !== 'super_admin') return;
+  const firmId = _callHoursFirmId;
+  if (!firmId) { toast('Önce firma seçin', 'err'); return; }
+
+  const g = id => document.getElementById(id);
+  const ch = {
+    weekday_start  : g('ch-wd-start')?.value     || '09:00',
+    weekday_end    : g('ch-wd-end')?.value        || '20:00',
+    sat_allowed    : !!g('ch-sat-allowed')?.checked,
+    sat_start      : g('ch-sat-start')?.value     || '09:00',
+    sat_end        : g('ch-sat-end')?.value        || '13:00',
+    sun_allowed    : !!g('ch-sun-allowed')?.checked,
+    holiday_check  : !!g('ch-holiday-check')?.checked
+  };
+
+  try {
+    const firms = await sb(`firms?id=eq.${firmId}&select=id,settings`);
+    const firm  = firms?.[0];
+    if (!firm) throw new Error('Firma bulunamadı');
+    const newSettings = { ...(firm.settings||{}), call_hours: ch };
+    await sb(`firms?id=eq.${firmId}`, {
+      method:'PATCH', prefer:'return=minimal',
+      body: JSON.stringify({ settings: newSettings })
+    });
+    // Aynı firma aktif firmaysa çalışan _callHours'u da güncelle
+    if (firmId === currentUser?.firm_id || firmId === _selectedFirmId) {
+      _callHours = ch;
+    }
+    toast('Arama kısıtlamaları kaydedildi ✓', 'ok');
+  } catch(e) { toast('Hata: '+e.message, 'err'); }
+}
+
+// Login sonrası kendi firmasının call_hours'unu yükle
+async function loadFirmCallHours() {
+  const firmId = currentUser?.firm_id;
+  if (!firmId) return;
+  try {
+    const firms = await sb(`firms?id=eq.${firmId}&select=settings`);
+    _callHours = firms?.[0]?.settings?.call_hours || null;
+  } catch(e) { _callHours = null; }
+}

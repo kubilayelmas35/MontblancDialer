@@ -48,7 +48,7 @@ if (page==='settings')       loadSavedSettings();
 if (page==='wiedervorlage')  loadWvPage();
 if (page==='qc')             loadQcData();
 if (page==='firms')          loadFirmsPage();
-if (page==='settings')        { loadMesaiSettings(); }
+if (page==='settings')        { loadMesaiSettings(); loadCallHoursSettings(); }
 if (page==='takvim')         loadTakvimPage();
 }
 

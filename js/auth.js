@@ -104,6 +104,7 @@ if (roleEl) roleEl.textContent = (roleMap[currentUser.role]||currentUser.role)
 const firmsBtn = document.getElementById('nav-firms-btn');
 if (firmsBtn) firmsBtn.style.display = currentUser.role === 'super_admin' ? '' : 'none';
 if (currentUser.role === 'super_admin') { loadAllFirms(); }
+loadFirmCallHours(); // arama kısıtlamalarını yükle
 if (isAdmin) { navigate('dashboard'); }
 else         { navigate('dialer'); }
 if (isAdmin) {
