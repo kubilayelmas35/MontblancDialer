@@ -354,6 +354,7 @@ function updateDialerVoiceVisuals(seconds) {
 }
 
 function resetDialerVoiceVisuals() {
+  if (typeof stopDialerVoiceRings === 'function') stopDialerVoiceRings();
   const page = document.getElementById('page-dialer');
   if (!page) return;
   page.style.removeProperty('--voice-progress');
@@ -362,6 +363,7 @@ function resetDialerVoiceVisuals() {
 function startCallTimer() {
   callSeconds = 0;
   updateDialerVoiceVisuals(0);
+  if (typeof startDialerVoiceRings === 'function') startDialerVoiceRings();
   callTimerInt = setInterval(()=>{
     callSeconds++;
     const m=String(Math.floor(callSeconds/60)).padStart(2,'0');

@@ -260,8 +260,13 @@ border-right: none;
 display: flex; flex-direction: column;
 overflow: hidden;
 z-index: 90;
+position: relative;
 transition: width var(--transition), min-width var(--transition), transform var(--transition);
 box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+}
+#sidebar > *:not(.fluid-aurora--sidebar) {
+position: relative;
+z-index: 1;
 }
 [data-theme="dark"] #sidebar { background: #080c14; }
 #sidebar.collapsed { width: 56px; min-width: 56px; }
@@ -791,35 +796,34 @@ position: relative;
 display: flex;
 align-items: center;
 justify-content: center;
-min-width: 56px;
-min-height: 44px;
+min-width: 88px;
+min-height: 48px;
 margin-left: auto;
 }
-.dialer-timer-orb {
+.voice-ring-canvas {
+pointer-events: none;
+display: block;
+}
+.voice-ring-canvas--timer {
 position: absolute;
 left: 50%;
 top: 50%;
 transform: translate(-50%, -50%);
-width: 54px;
-height: 54px;
-border-radius: 50%;
-pointer-events: none;
-background: conic-gradient(from 0deg at 50% 50%,
-  hsl(calc(230 - var(--voice-progress, 0) * 100), 90%, 52%) 0deg,
-  hsl(calc(200 - var(--voice-progress, 0) * 85), 85%, 50%) 120deg,
-  hsl(calc(165 - var(--voice-progress, 0) * 55), 78%, 48%) 240deg,
-  hsl(calc(230 - var(--voice-progress, 0) * 100), 90%, 52%) 360deg);
-animation: fluid-spin 11s linear infinite;
-filter: blur(0.8px) saturate(1.2);
-opacity: 0.88;
-box-shadow: 0 0 calc(10px + var(--voice-progress, 0) * 22px) hsla(calc(145 + var(--voice-progress, 0) * 35), 75%, 42%, 0.45);
+width: 88px;
+height: 88px;
+z-index: 0;
 }
 .dialer-timer {
 font-family:var(--mono); font-size:18px; font-weight:800;
 letter-spacing:0.5px;
-margin-left:0;
+margin:0;
 position: relative;
-z-index: 1;
+z-index: 2;
+display: flex;
+align-items: center;
+justify-content: center;
+width: 100%;
+min-height: 44px;
 color: hsl(calc(215 - var(--voice-progress, 0) * 100), 45%, calc(28% + var(--voice-progress, 0) * 12%));
 text-shadow: 0 0 12px rgba(255,255,255,0.35);
 }
@@ -835,6 +839,27 @@ box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;
 overflow-y:auto;
 }
 .cust-header { display:flex; align-items:flex-start; gap:14px; }
+.cust-avatar-voice-wrap {
+position: relative;
+width: 76px;
+height: 76px;
+flex-shrink: 0;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+.voice-ring-canvas--cust {
+position: absolute;
+left: 50%;
+top: 50%;
+transform: translate(-50%, -50%);
+width: 96px;
+height: 96px;
+z-index: 0;
+}
+.cust-avatar-voice-wrap .cust-avatar {
+z-index: 1;
+}
 .cust-avatar {
 width:60px; height:60px; border-radius:50%;
 background: linear-gradient(135deg, var(--accent), var(--purple));
@@ -855,18 +880,15 @@ box-shadow: 0 4px 20px rgba(37, 99, 235, 0.25);
 .cust-avatar--fluid::before {
 content: '';
 position: absolute;
-inset: -35%;
+inset: 0;
 border-radius: 50%;
 z-index: 0;
-background: conic-gradient(from 0deg at 50% 50%,
-  hsl(calc(265 - var(--voice-progress, 0) * 40), 75%, 52%) 0deg,
-  hsl(calc(220 - var(--voice-progress, 0) * 85), 88%, 50%) 100deg,
-  hsl(calc(195 - var(--voice-progress, 0) * 70), 82%, 48%) 200deg,
-  hsl(calc(155 - var(--voice-progress, 0) * 35), 80%, 46%) 280deg,
-  hsl(calc(265 - var(--voice-progress, 0) * 40), 75%, 52%) 360deg);
-animation: fluid-spin 14s linear infinite;
-filter: blur(5px) saturate(1.15);
-opacity: 0.95;
+background: linear-gradient(145deg,
+  hsl(calc(252 - var(--voice-progress, 0) * 55), 58%, calc(44% + var(--voice-progress, 0) * 6%)),
+  hsl(calc(175 - var(--voice-progress, 0) * 45), 52%, calc(38% + var(--voice-progress, 0) * 8%)));
+animation: none;
+filter: none;
+opacity: 1;
 }
 .cust-avatar--fluid::after {
 content: '';
@@ -1279,4 +1301,44 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   height: 220%;
   left: -40%;
   top: -60%;
+}
+/* Sidebar — logo / menü tarafı (daha belirgin sıvı aurora) */
+.fluid-aurora--sidebar {
+  inset: 0;
+  z-index: 0;
+}
+.fluid-aurora--sidebar::before {
+  background: conic-gradient(from 120deg at 20% 15%,
+    rgba(6, 182, 212, 0.62) 0deg,
+    rgba(37, 99, 235, 0.55) 90deg,
+    rgba(244, 114, 182, 0.42) 200deg,
+    rgba(34, 211, 238, 0.58) 300deg,
+    rgba(6, 182, 212, 0.62) 360deg);
+  animation: fluid-spin 26s linear infinite;
+  filter: blur(52px);
+  opacity: 0.72;
+  width: 220%;
+  height: 180%;
+  left: -65%;
+  top: -35%;
+}
+.fluid-aurora--sidebar::after {
+  background: conic-gradient(from 300deg at 80% 70%,
+    rgba(251, 146, 60, 0.38) 0deg,
+    rgba(99, 102, 241, 0.45) 130deg,
+    rgba(16, 185, 129, 0.32) 260deg,
+    rgba(251, 146, 60, 0.38) 360deg);
+  animation: fluid-spin-rev 31s linear infinite;
+  filter: blur(44px);
+  opacity: 0.58;
+  width: 200%;
+  height: 200%;
+  left: -48%;
+  top: -48%;
+}
+[data-theme="dark"] .fluid-aurora--sidebar::before {
+  opacity: 0.78;
+}
+[data-theme="dark"] .fluid-aurora--sidebar::after {
+  opacity: 0.62;
 }

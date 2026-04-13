@@ -59,12 +59,14 @@ audio.autoplay = true;
 document.body.appendChild(audio);
 }
 try { audio.srcObject = call.remoteStream; audio.play(); } catch(e) {}
+window._telnyxRemoteStream = call.remoteStream || null;
 handleCallState('active', call.id);
 }
 if (state === 'ringing') { _telnyxCall = call; handleCallState('ringing', call.id); }
 if (state === 'done' || state === 'destroy' || state === 'hangup') {
 const dur = callStart ? Math.round((Date.now()-callStart)/1000) : 0;
 _telnyxCall = null; callStart = null;
+window._telnyxRemoteStream = null;
 handleCallEnd(dur);
 }
 if (call?.amd_result) handleAMD(call.amd_result);
