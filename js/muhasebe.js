@@ -1,0 +1,652 @@
+// ─────────────────────────────────────────────
+// MUHASEBE — maaş, prim, kesinti, müşteri
+// ─────────────────────────────────────────────
+
+window._muhasebeRows = [];
+window._payrollRulesCacheByFirm = window._payrollRulesCacheByFirm || {};
+window._customersCacheByFirm = window._customersCacheByFirm || {};
+
+function isMuhasebeAdmin() {
+  return ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+}
+
+function canViewMuhasebe() {
+  return isMuhasebeAdmin() || ['agent', 'qc'].includes(currentUser?.role || '');
+}
+
+function muhasebeFirmId() {
+  return getActiveFirmId() || currentUser?.firm_id || null;
+}
+
+function defaultPayrollRules() {
+  return {
+    currency: 'EUR',
+    base_salary_mode: 'net',
+    base_salary_amount: 0,
+    tax_rate_percent: 0,
+    government_supported: false,
+    exchange_rate: 1,
+    late_penalty_enabled: false,
+    late_penalty_amount: 0,
+    leave_overflow_penalty_enabled: false,
+    leave_overflow_penalty_amount: 0,
+    appointment_customer_select_by_agent: false,
+    bonus_tiers: [],
+  };
+}
+
+function _mEsc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function _mMonthBounds(ym) {
+  const [y, m] = String(ym || '').split('-').map(Number);
+  if (!y || !m) {
+    const now = new Date();
+    const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return _mMonthBounds(cur);
+  }
+  const s = `${y}-${String(m).padStart(2, '0')}-01`;
+  const e = `${y}-${String(m).padStart(2, '0')}-${new Date(y, m, 0).getDate()}`;
+  return { start: s, end: e, year: y };
+}
+
+function _mParseTiers(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function _mFmt(n) {
+  return Number(n || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function _mGetPeriod() {
+  const el = document.getElementById('muhasebe-period');
+  if (el?.value) return el.value;
+  const now = new Date();
+  const v = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  if (el) el.value = v;
+  return v;
+}
+
+async function loadFirmPayrollRules(fid, force = false) {
+  if (!fid) return defaultPayrollRules();
+  if (!force && window._payrollRulesCacheByFirm[fid]) return window._payrollRulesCacheByFirm[fid];
+  let rules = null;
+  try {
+    const rows = await sb(`payroll_rules?firm_id=eq.${fid}&select=*`);
+    if (rows?.length) rules = rows[0];
+  } catch (e) {}
+  if (!rules) {
+    try {
+      const firms = await sb(`firms?id=eq.${fid}&select=settings`);
+      rules = firms?.[0]?.settings?.payroll || null;
+    } catch (e) {}
+  }
+  const merged = { ...defaultPayrollRules(), ...(rules || {}) };
+  merged.bonus_tiers = _mParseTiers(merged.bonus_tiers);
+  window._payrollRulesCacheByFirm[fid] = merged;
+  return merged;
+}
+
+async function loadFirmCustomers(fid, force = false) {
+  if (!fid) return [];
+  if (!force && window._customersCacheByFirm[fid]) return window._customersCacheByFirm[fid];
+  try {
+    const rows = await sb(`customers?firm_id=eq.${fid}&is_active=eq.true&select=id,name,code&order=name.asc`);
+    window._customersCacheByFirm[fid] = rows || [];
+    return rows || [];
+  } catch (e) {
+    window._customersCacheByFirm[fid] = [];
+    return [];
+  }
+}
+
+async function canAgentSelectCustomer(fid) {
+  const r = await loadFirmPayrollRules(fid);
+  return !!r.appointment_customer_select_by_agent;
+}
+
+function _mBonusFor(successCount, tiers, ruleCurrency, targetCurrency, rate) {
+  let sum = 0;
+  (tiers || []).forEach(t => {
+    const min = Number(t.min || 0);
+    const max = Number(t.max || 999999);
+    if (successCount >= min && successCount <= max) {
+      const amount = Number(t.amount || 0);
+      const ccy = (t.currency || ruleCurrency || 'EUR').toUpperCase();
+      if (ccy === targetCurrency) sum += amount * successCount;
+      else if (ccy === 'EUR' && targetCurrency === 'TRY') sum += amount * successCount * rate;
+      else if (ccy === 'TRY' && targetCurrency === 'EUR') sum += amount * successCount / (rate || 1);
+      else sum += amount * successCount;
+    }
+  });
+  return sum;
+}
+
+function _mConvertCurrency(v, from, to, rate) {
+  const n = Number(v || 0);
+  const a = (from || '').toUpperCase();
+  const b = (to || '').toUpperCase();
+  if (a === b) return n;
+  if (a === 'EUR' && b === 'TRY') return n * (rate || 1);
+  if (a === 'TRY' && b === 'EUR') return n / (rate || 1);
+  return n;
+}
+
+async function loadMuhasebePage() {
+  renderFirmSelector('muhasebe-firm-selector', loadMuhasebePage);
+  const fid = muhasebeFirmId();
+  const noAccess = document.getElementById('muhasebe-no-access');
+  const main = document.getElementById('muhasebe-main');
+  const sub = document.getElementById('muhasebe-sub');
+  if (!canViewMuhasebe()) {
+    if (noAccess) noAccess.style.display = '';
+    if (main) main.style.display = 'none';
+    return;
+  }
+  if (isSuperAdmin() && !fid) {
+    if (noAccess) {
+      noAccess.style.display = '';
+      noAccess.textContent = 'Muhasebe için firma seçin.';
+    }
+    if (main) main.style.display = 'none';
+    return;
+  }
+  if (noAccess) noAccess.style.display = 'none';
+  if (main) main.style.display = 'flex';
+  if (sub) {
+    sub.textContent = isMuhasebeAdmin()
+      ? 'Maaş, prim, kesinti, müşteri ve bordro yönetimi'
+      : 'Kendi maaş özeti ve ödeme durumu';
+  }
+
+  const period = _mGetPeriod();
+  const rules = await loadFirmPayrollRules(fid);
+  renderPayrollRulesForm(rules);
+  document.getElementById('muhasebe-rules-card').style.display = isMuhasebeAdmin() ? '' : 'none';
+  document.getElementById('muhasebe-customers-card').style.display = isMuhasebeAdmin() ? '' : 'none';
+  if (isMuhasebeAdmin()) await renderMuhasebeCustomers();
+  await renderMuhasebePayrollTable(fid, period, rules);
+}
+
+function renderPayrollRulesForm(r) {
+  const tiers = Array.isArray(r.bonus_tiers) ? r.bonus_tiers : [];
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el != null) el.value = val;
+  };
+  set('pr-currency', r.currency || 'EUR');
+  set('pr-rate', Number(r.exchange_rate || 1));
+  set('pr-mode', r.base_salary_mode || 'net');
+  set('pr-base', Number(r.base_salary_amount || 0));
+  set('pr-tax', Number(r.tax_rate_percent || 0));
+  set('pr-late', Number(r.late_penalty_amount || 0));
+  set('pr-leave-over-amt', Number(r.leave_overflow_penalty_amount || 0));
+  set('pr-tiers', JSON.stringify(tiers, null, 2));
+  const setChk = (id, v) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = !!v;
+  };
+  setChk('pr-gov', r.government_supported);
+  setChk('pr-late-on', r.late_penalty_enabled);
+  setChk('pr-leave-over', r.leave_overflow_penalty_enabled);
+  setChk('pr-agent-customer', r.appointment_customer_select_by_agent);
+}
+
+async function savePayrollRules() {
+  if (!isMuhasebeAdmin()) return;
+  const fid = muhasebeFirmId();
+  if (!fid) return;
+  const rules = {
+    firm_id: fid,
+    currency: document.getElementById('pr-currency')?.value || 'EUR',
+    exchange_rate: Number(document.getElementById('pr-rate')?.value) || 1,
+    base_salary_mode: document.getElementById('pr-mode')?.value || 'net',
+    base_salary_amount: Number(document.getElementById('pr-base')?.value) || 0,
+    tax_rate_percent: Number(document.getElementById('pr-tax')?.value) || 0,
+    government_supported: !!document.getElementById('pr-gov')?.checked,
+    late_penalty_enabled: !!document.getElementById('pr-late-on')?.checked,
+    late_penalty_amount: Number(document.getElementById('pr-late')?.value) || 0,
+    leave_overflow_penalty_enabled: !!document.getElementById('pr-leave-over')?.checked,
+    leave_overflow_penalty_amount: Number(document.getElementById('pr-leave-over-amt')?.value) || 0,
+    appointment_customer_select_by_agent: !!document.getElementById('pr-agent-customer')?.checked,
+    bonus_tiers: _mParseTiers(document.getElementById('pr-tiers')?.value || '[]'),
+    updated_at: new Date().toISOString(),
+  };
+  try {
+    const exists = await sb(`payroll_rules?firm_id=eq.${fid}&select=id`).catch(() => []);
+    if (exists?.length) {
+      await sb(`payroll_rules?firm_id=eq.${fid}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(rules) });
+    } else {
+      await sb('payroll_rules', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(rules) });
+    }
+  } catch (e) {
+    console.warn('payroll_rules table fallback:', e.message);
+  }
+  try {
+    const firms = await sb(`firms?id=eq.${fid}&select=settings`);
+    const settings = { ...(firms?.[0]?.settings || {}) };
+    settings.payroll = { ...defaultPayrollRules(), ...rules };
+    await sb(`firms?id=eq.${fid}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ settings }) });
+  } catch (e) {
+    toast('Kural kaydetme hatası: ' + e.message, 'err');
+    return;
+  }
+  window._payrollRulesCacheByFirm[fid] = { ...defaultPayrollRules(), ...rules };
+  toast('Muhasebe ayarları kaydedildi', 'ok');
+}
+
+async function renderMuhasebeCustomers() {
+  const fid = muhasebeFirmId();
+  const box = document.getElementById('muhasebe-customers-table');
+  if (!box || !fid) return;
+  try {
+    const list = await sb(`customers?firm_id=eq.${fid}&select=id,name,code,is_active,notes&order=name.asc`);
+    const rows = list || [];
+    window._customersCacheByFirm[fid] = rows.filter(r => r.is_active);
+    if (!rows.length) {
+      box.innerHTML = `<div style="color:var(--text-3);padding:10px;">Müşteri yok</div>`;
+      return;
+    }
+    box.innerHTML = `<div class="tbl-wrap"><table><thead><tr>
+      <th>Müşteri</th><th>Kod</th><th>Durum</th><th>Not</th><th>İşlem</th>
+    </tr></thead><tbody>${
+      rows.map(r => `<tr>
+        <td>${_mEsc(r.name)}</td>
+        <td>${_mEsc(r.code || '—')}</td>
+        <td>${r.is_active ? '<span class="muh-badge ok">Aktif</span>' : '<span class="muh-badge warn">Pasif</span>'}</td>
+        <td>${_mEsc(r.notes || '—')}</td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="toggleMuhasebeCustomer('${r.id}',${!r.is_active})">${r.is_active ? 'Pasif' : 'Aktif'}</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="deleteMuhasebeCustomer('${r.id}')">Sil</button>
+        </td>
+      </tr>`).join('')
+    }</tbody></table></div>`;
+  } catch (e) {
+    box.innerHTML = `<div style="color:var(--red);padding:10px;">Hata: ${_mEsc(e.message)}</div>`;
+  }
+}
+
+async function createMuhasebeCustomer() {
+  const fid = muhasebeFirmId();
+  if (!fid || !isMuhasebeAdmin()) return;
+  const name = document.getElementById('mc-name')?.value?.trim();
+  const code = document.getElementById('mc-code')?.value?.trim() || null;
+  const notes = document.getElementById('mc-note')?.value?.trim() || null;
+  if (!name) {
+    toast('Müşteri adı zorunlu', 'err');
+    return;
+  }
+  try {
+    await sb('customers', {
+      method: 'POST',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ firm_id: fid, name, code, notes, is_active: true, created_by: currentUser?.id || null }),
+    });
+    document.getElementById('mc-name').value = '';
+    document.getElementById('mc-code').value = '';
+    document.getElementById('mc-note').value = '';
+    await renderMuhasebeCustomers();
+    toast('Müşteri eklendi', 'ok');
+  } catch (e) {
+    toast('Müşteri eklenemedi: ' + e.message, 'err');
+  }
+}
+
+async function toggleMuhasebeCustomer(id, toActive) {
+  if (!isMuhasebeAdmin()) return;
+  try {
+    await sb(`customers?id=eq.${id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ is_active: !!toActive }) });
+    await renderMuhasebeCustomers();
+  } catch (e) {
+    toast('Güncellenemedi: ' + e.message, 'err');
+  }
+}
+
+async function deleteMuhasebeCustomer(id) {
+  if (!isMuhasebeAdmin()) return;
+  if (!confirm('Müşteri silinsin mi?')) return;
+  try {
+    await sb(`customers?id=eq.${id}`, { method: 'DELETE', prefer: 'return=minimal' });
+    await renderMuhasebeCustomers();
+  } catch (e) {
+    toast('Silinemedi: ' + e.message, 'err');
+  }
+}
+
+async function _mFetchUsers(fid) {
+  try {
+    const rows = await sb(`users?firm_id=eq.${fid}&is_active=eq.true&select=id,name,role&order=name.asc`);
+    return rows || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+async function _mFetchMonthlyData(fid, ym, year, monthBounds) {
+  const [ovr, adj, monthly, appts, leaveReqs, ents, lates, firmRows] = await Promise.all([
+    sb(`payroll_employee_overrides?firm_id=eq.${fid}&select=*`).catch(() => []),
+    sb(`payroll_adjustments?firm_id=eq.${fid}&period_ym=eq.${ym}&select=*`).catch(() => []),
+    sb(`payroll_monthly?firm_id=eq.${fid}&period_ym=eq.${ym}&select=*`).catch(() => []),
+    sb(`appointments?firm_id=eq.${fid}&termin_tarih=gte.${monthBounds.start}T00:00:00&termin_tarih=lte.${monthBounds.end}T23:59:59&select=id,agent_id,durum,customer_id`).catch(() => []),
+    sb(`leave_requests?firm_id=eq.${fid}&status=eq.approved&date_from=lte.${monthBounds.end}&date_to=gte.${monthBounds.start}&select=user_id,days_used,kind`).catch(() => []),
+    sb(`user_leave_entitlements?year=eq.${year}&select=user_id,extra_days_granted`).catch(() => []),
+    sb(`late_arrivals?firm_id=eq.${fid}&day_date=gte.${monthBounds.start}&day_date=lte.${monthBounds.end}&select=user_id,minutes_late`).catch(() => []),
+    sb(`firms?id=eq.${fid}&select=settings`).catch(() => []),
+  ]);
+  const hr = mergeHr?.(firmRows?.[0]?.settings?.hr) || defaultHrSettings();
+  return { ovr: ovr || [], adj: adj || [], monthly: monthly || [], appts: appts || [], leaveReqs: leaveReqs || [], ents: ents || [], lates: lates || [], hr };
+}
+
+function _mBuildStatsByUser(appts, leaveReqs, ents, lates) {
+  const s = {};
+  const ensure = uid => {
+    if (!s[uid]) s[uid] = { success: 0, fail: 0, pending: 0, qc: 0, cancel: 0, leaveDays: 0, lateCount: 0, entitlementExtra: 0 };
+    return s[uid];
+  };
+  (appts || []).forEach(a => {
+    if (!a.agent_id) return;
+    const st = ensure(a.agent_id);
+    const d = String(a.durum || '').toLowerCase();
+    if (d === 'basarili') st.success += 1;
+    else if (d === 'basarisiz') st.fail += 1;
+    else if (d === 'beklemede') st.pending += 1;
+    else if (d === 'qc_bekleniyor') st.qc += 1;
+    else if (d === 'iptal') st.cancel += 1;
+  });
+  (leaveReqs || []).forEach(r => {
+    if (!r.user_id) return;
+    const st = ensure(r.user_id);
+    st.leaveDays += Number(r.days_used || 0);
+  });
+  (ents || []).forEach(e => {
+    if (!e.user_id) return;
+    const st = ensure(e.user_id);
+    st.entitlementExtra += Number(e.extra_days_granted || 0);
+  });
+  (lates || []).forEach(l => {
+    if (!l.user_id) return;
+    const st = ensure(l.user_id);
+    st.lateCount += 1;
+  });
+  return s;
+}
+
+function _mCollectAdjustments(adj, uid, rules) {
+  let add = 0;
+  let ded = 0;
+  (adj || []).filter(a => a.user_id === uid).forEach(a => {
+    const cv = _mConvertCurrency(a.amount, a.currency || rules.currency, rules.currency, Number(rules.exchange_rate || 1));
+    if (a.adjustment_type === 'add') add += cv;
+    else ded += cv;
+  });
+  return { add, ded };
+}
+
+async function renderMuhasebePayrollTable(fid, ym, rules) {
+  const users = await _mFetchUsers(fid);
+  const b = _mMonthBounds(ym);
+  const data = await _mFetchMonthlyData(fid, ym, b.year, b);
+  const statsByUser = _mBuildStatsByUser(data.appts, data.leaveReqs, data.ents, data.lates);
+  const overMap = {};
+  const monthlyMap = {};
+  (data.ovr || []).forEach(o => { overMap[o.user_id] = o; });
+  (data.monthly || []).forEach(m => { monthlyMap[m.user_id] = m; });
+
+  const rows = users.map(u => {
+    const st = statsByUser[u.id] || { success: 0, fail: 0, pending: 0, qc: 0, cancel: 0, leaveDays: 0, lateCount: 0, entitlementExtra: 0 };
+    const ov = overMap[u.id] || {};
+    const noTermin = !!ov.no_termin;
+    const mode = ov.base_salary_mode || rules.base_salary_mode;
+    const baseSalary = Number(ov.base_salary_amount ?? rules.base_salary_amount ?? 0);
+    const taxRate = Number(ov.tax_rate_percent ?? rules.tax_rate_percent ?? 0);
+    const tiers = Array.isArray(ov.bonus_tiers) ? ov.bonus_tiers : rules.bonus_tiers;
+    const success = noTermin ? 0 : st.success;
+    const bonus = _mBonusFor(success, tiers, rules.currency, rules.currency, Number(rules.exchange_rate || 1));
+    const latePenalty = rules.late_penalty_enabled ? st.lateCount * Number(rules.late_penalty_amount || 0) : 0;
+    const annualAllowance = (Number(data.hr?.annual_leave_days_default || 14)) + Number(st.entitlementExtra || 0);
+    const leaveOverflow = Math.max(0, Number(st.leaveDays || 0) - annualAllowance);
+    const leavePenalty = rules.leave_overflow_penalty_enabled ? leaveOverflow * Number(rules.leave_overflow_penalty_amount || 0) : 0;
+    const adj = _mCollectAdjustments(data.adj, u.id, rules);
+    const preTax = baseSalary + bonus + adj.add - adj.ded - latePenalty - leavePenalty;
+    const taxAmount = rules.government_supported ? 0 : Math.max(0, preTax) * (taxRate / 100);
+    const netPayable = preTax - taxAmount;
+    const paidAmount = Number(monthlyMap[u.id]?.paid_amount || 0);
+    const remaining = netPayable - paidAmount;
+    return {
+      user_id: u.id,
+      user_name: u.name || u.id.slice(0, 8),
+      role: u.role,
+      ym,
+      mode,
+      noTermin,
+      success,
+      fail: st.fail,
+      pending: st.pending,
+      qc: st.qc,
+      cancel: st.cancel,
+      leaveDays: st.leaveDays,
+      leaveOverflow,
+      lateCount: st.lateCount,
+      baseSalary,
+      bonus,
+      manualAdd: adj.add,
+      manualDeduct: adj.ded,
+      latePenalty,
+      leavePenalty,
+      taxRate,
+      taxAmount,
+      netPayable,
+      paidAmount,
+      remaining,
+      currency: rules.currency,
+    };
+  });
+
+  let filtered = rows;
+  if (currentUser?.role === 'agent') filtered = rows.filter(r => r.user_id === currentUser.id);
+  window._muhasebeRows = filtered;
+  renderMuhasebeSummaryCards(filtered, rules);
+  renderMuhasebeRowsTable(filtered, rules);
+}
+
+function renderMuhasebeSummaryCards(rows, rules) {
+  const box = document.getElementById('muhasebe-summary-cards');
+  if (!box) return;
+  const sum = rows.reduce((a, r) => {
+    a.base += r.baseSalary; a.bonus += r.bonus; a.pen += r.latePenalty + r.leavePenalty + r.manualDeduct;
+    a.tax += r.taxAmount; a.pay += r.netPayable; a.paid += r.paidAmount; a.rem += r.remaining;
+    return a;
+  }, { base: 0, bonus: 0, pen: 0, tax: 0, pay: 0, paid: 0, rem: 0 });
+  const cur = _mEsc(rules.currency || 'EUR');
+  box.innerHTML = `
+    <div class="stat-card"><div class="stat-lbl">Baz Maaş (${cur})</div><div class="stat-val">${_mFmt(sum.base)}</div></div>
+    <div class="stat-card stat-green"><div class="stat-lbl">Prim (${cur})</div><div class="stat-val">${_mFmt(sum.bonus)}</div></div>
+    <div class="stat-card stat-red"><div class="stat-lbl">Toplam Kesinti (${cur})</div><div class="stat-val">${_mFmt(sum.pen)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Vergi (${cur})</div><div class="stat-val">${_mFmt(sum.tax)}</div></div>
+    <div class="stat-card stat-blue"><div class="stat-lbl">Hakediş (${cur})</div><div class="stat-val">${_mFmt(sum.pay)}</div></div>
+    <div class="stat-card stat-purple"><div class="stat-lbl">Kalan (${cur})</div><div class="stat-val">${_mFmt(sum.rem)}</div><div class="stat-meta">Ödenen: ${_mFmt(sum.paid)} ${cur}</div></div>
+  `;
+}
+
+function renderMuhasebeRowsTable(rows, rules) {
+  const wrap = document.getElementById('muhasebe-table-wrap');
+  if (!wrap) return;
+  if (!rows.length) {
+    wrap.innerHTML = `<div style="padding:20px;color:var(--text-3);">Bu dönemde kayıt yok.</div>`;
+    return;
+  }
+  const admin = isMuhasebeAdmin();
+  const cur = _mEsc(rules.currency || 'EUR');
+  wrap.innerHTML = `<table><thead><tr>
+    <th>Personel</th><th>Başarılı</th><th>Baz</th><th>Prim</th><th>Geç/Kalma</th><th>İzin Aşımı</th>
+    <th>Manuel</th><th>Vergi</th><th>Hakediş</th><th>Ödenen</th><th>Kalan</th>${admin ? '<th>İşlem</th>' : ''}
+  </tr></thead><tbody>${
+    rows.map(r => {
+      const manualNet = r.manualAdd - r.manualDeduct;
+      const manualClass = manualNet >= 0 ? 'ok' : 'err';
+      return `<tr>
+        <td style="font-weight:700;">${_mEsc(r.user_name)}<div style="font-size:10px;color:var(--text-3);margin-top:2px;">${_mEsc(r.role)}${r.noTermin ? ' · sabit personel' : ''}</div></td>
+        <td>${r.success}</td>
+        <td>${_mFmt(r.baseSalary)} ${cur}</td>
+        <td>${_mFmt(r.bonus)} ${cur}</td>
+        <td>${_mFmt(r.latePenalty)} ${cur}<div style="font-size:10px;color:var(--text-3);">${r.lateCount} kez</div></td>
+        <td>${_mFmt(r.leavePenalty)} ${cur}<div style="font-size:10px;color:var(--text-3);">${_mFmt(r.leaveOverflow)} gün</div></td>
+        <td><span class="muh-badge ${manualClass}">${manualNet >= 0 ? '+' : ''}${_mFmt(manualNet)} ${cur}</span></td>
+        <td>${_mFmt(r.taxAmount)} ${cur}<div style="font-size:10px;color:var(--text-3);">%${_mFmt(r.taxRate)}</div></td>
+        <td style="font-weight:800;">${_mFmt(r.netPayable)} ${cur}</td>
+        <td>${_mFmt(r.paidAmount)} ${cur}</td>
+        <td style="font-weight:800;color:${r.remaining > 0 ? 'var(--red)' : 'var(--green)'};">${_mFmt(r.remaining)} ${cur}</td>
+        ${admin ? `<td>
+          <button class="btn btn-ghost btn-sm" onclick="openPayrollOverride('${r.user_id}')">Override</button>
+          <button class="btn btn-ghost btn-sm" onclick="addPayrollAdjustment('${r.user_id}')">Ekle/Kes</button>
+          <button class="btn btn-ghost btn-sm" onclick="savePayrollPayment('${r.user_id}')">Ödeme</button>
+        </td>` : ''}
+      </tr>`;
+    }).join('')
+  }</tbody></table>`;
+}
+
+async function openPayrollOverride(uid) {
+  if (!isMuhasebeAdmin()) return;
+  const fid = muhasebeFirmId();
+  const rows = await sb(`payroll_employee_overrides?firm_id=eq.${fid}&user_id=eq.${uid}&select=*`).catch(() => []);
+  const cur = rows?.[0] || {};
+  const noTermin = confirm('Bu personel termin yapmıyor olarak işaretlensin mi? (Tamam=Evet, İptal=Hayır)');
+  const base = prompt('Baz maaş override (boş bırak = varsayılan)', cur.base_salary_amount ?? '');
+  const tax = prompt('Vergi % override (boş bırak = varsayılan)', cur.tax_rate_percent ?? '');
+  const mode = prompt('Maaş modu (net / gross_minimum)', cur.base_salary_mode || '');
+  const notes = prompt('Not', cur.notes || '');
+  const body = {
+    firm_id: fid,
+    user_id: uid,
+    no_termin: !!noTermin,
+    base_salary_amount: base === '' ? null : Number(base),
+    tax_rate_percent: tax === '' ? null : Number(tax),
+    base_salary_mode: mode === '' ? null : mode,
+    notes: notes || null,
+    is_active: true,
+  };
+  try {
+    if (rows?.length) await sb(`payroll_employee_overrides?id=eq.${rows[0].id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(body) });
+    else await sb('payroll_employee_overrides', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(body) });
+    toast('Override kaydedildi', 'ok');
+    loadMuhasebePage();
+  } catch (e) {
+    toast('Override hatası: ' + e.message, 'err');
+  }
+}
+
+async function addPayrollAdjustment(uid) {
+  if (!isMuhasebeAdmin()) return;
+  const fid = muhasebeFirmId();
+  const type = prompt('İşlem tipi: add veya deduct', 'add');
+  if (!['add', 'deduct'].includes(String(type || '').trim())) return;
+  const amount = Number(prompt('Tutar', '0'));
+  if (!amount || amount <= 0) return;
+  const currency = (prompt('Para birimi (EUR/TRY)', 'EUR') || 'EUR').toUpperCase();
+  const reason = prompt('Açıklama', '') || null;
+  try {
+    await sb('payroll_adjustments', {
+      method: 'POST',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ firm_id: fid, user_id: uid, period_ym: _mGetPeriod(), adjustment_type: type, amount, currency, reason, created_by: currentUser?.id || null }),
+    });
+    toast('İşlem kaydedildi', 'ok');
+    loadMuhasebePage();
+  } catch (e) {
+    toast('İşlem hatası: ' + e.message, 'err');
+  }
+}
+
+async function savePayrollPayment(uid) {
+  if (!isMuhasebeAdmin()) return;
+  const row = (window._muhasebeRows || []).find(r => r.user_id === uid);
+  if (!row) return;
+  const amount = Number(prompt(`Ödenen tutar (${row.currency})`, String(row.paidAmount || 0)));
+  if (isNaN(amount) || amount < 0) return;
+  const fid = muhasebeFirmId();
+  const period = _mGetPeriod();
+  const body = {
+    firm_id: fid,
+    user_id: uid,
+    period_ym: period,
+    currency: row.currency,
+    base_salary: row.baseSalary,
+    bonus_amount: row.bonus,
+    leave_penalty: row.leavePenalty,
+    late_penalty: row.latePenalty,
+    manual_additions: row.manualAdd,
+    manual_deductions: row.manualDeduct,
+    tax_amount: row.taxAmount,
+    net_payable: row.netPayable,
+    paid_amount: amount,
+    updated_at: new Date().toISOString(),
+  };
+  try {
+    const ex = await sb(`payroll_monthly?firm_id=eq.${fid}&user_id=eq.${uid}&period_ym=eq.${period}&select=id`).catch(() => []);
+    if (ex?.length) await sb(`payroll_monthly?id=eq.${ex[0].id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(body) });
+    else await sb('payroll_monthly', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(body) });
+    toast('Ödeme kaydedildi', 'ok');
+    loadMuhasebePage();
+  } catch (e) {
+    toast('Ödeme hatası: ' + e.message, 'err');
+  }
+}
+
+function exportMuhasebeCsv() {
+  const rows = window._muhasebeRows || [];
+  if (!rows.length) {
+    toast('Dışa aktarılacak satır yok', 'warn');
+    return;
+  }
+  const h = ['Dönem', 'Personel', 'Rol', 'Başarılı', 'Baz', 'Prim', 'GeçKalmaKes', 'IzinKes', 'ManuelEkle', 'ManuelKes', 'Vergi', 'Hakediş', 'Ödenen', 'Kalan', 'ParaBirimi'];
+  const esc = v => {
+    const s = String(v ?? '');
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [h.map(esc).join(',')];
+  rows.forEach(r => {
+    lines.push([
+      r.ym, r.user_name, r.role, r.success, r.baseSalary, r.bonus, r.latePenalty, r.leavePenalty, r.manualAdd, r.manualDeduct,
+      r.taxAmount, r.netPayable, r.paidAmount, r.remaining, r.currency,
+    ].map(esc).join(','));
+  });
+  const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `muhasebe_${_mGetPeriod()}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function exportMuhasebeXlsx() {
+  const rows = window._muhasebeRows || [];
+  if (!rows.length) {
+    toast('Dışa aktarılacak satır yok', 'warn');
+    return;
+  }
+  if (typeof XLSX === 'undefined') {
+    toast('XLSX kütüphanesi bulunamadı', 'err');
+    return;
+  }
+  const head = ['Dönem', 'Personel', 'Rol', 'Başarılı', 'Baz', 'Prim', 'GeçKalmaKes', 'IzinKes', 'ManuelEkle', 'ManuelKes', 'Vergi', 'Hakediş', 'Ödenen', 'Kalan', 'ParaBirimi'];
+  const aoa = [head];
+  rows.forEach(r => aoa.push([r.ym, r.user_name, r.role, r.success, r.baseSalary, r.bonus, r.latePenalty, r.leavePenalty, r.manualAdd, r.manualDeduct, r.taxAmount, r.netPayable, r.paidAmount, r.remaining, r.currency]));
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Muhasebe');
+  XLSX.writeFile(wb, `muhasebe_${_mGetPeriod()}.xlsx`);
+}

@@ -21,6 +21,93 @@ function takvimAddHours(timeStr, hours) {
   return String(Math.floor(total/60)).padStart(2,'0') + ':' + String(total%60).padStart(2,'0');
 }
 
+async function _loadPayrollRulesFromFirmSettings(fid) {
+  try {
+    const rows = await sb(`firms?id=eq.${fid}&select=settings`);
+    return rows?.[0]?.settings?.payroll || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function _getCustomerCtx(selectedId) {
+  const fid = getActiveFirmId?.() || currentUser?.firm_id;
+  const role = currentUser?.role || '';
+  const elevated = ['admin', 'super_admin', 'firm_admin', 'qc'].includes(role);
+  let rules = null;
+  if (typeof loadFirmPayrollRules === 'function') rules = await loadFirmPayrollRules(fid).catch(() => null);
+  if (!rules) rules = await _loadPayrollRulesFromFirmSettings(fid);
+  rules = rules || {};
+  let customers = [];
+  if (typeof loadFirmCustomers === 'function') customers = await loadFirmCustomers(fid, true).catch(() => []);
+  if (!customers.length) {
+    customers = await sb(`customers?firm_id=eq.${fid}&is_active=eq.true&select=id,name,code&order=name.asc`).catch(() => []);
+  }
+  const agentCanSelect = !!rules.appointment_customer_select_by_agent;
+  const canSelect = elevated || agentCanSelect;
+  return { fid, customers: customers || [], canSelect, mustSelect: canSelect && (customers || []).length > 0, selectedId: selectedId || '' };
+}
+
+function _renderCustomerField(ctx, selectId) {
+  const opts = (ctx.customers || []).map(c =>
+    `<option value="${c.id}" ${String(ctx.selectedId || '') === String(c.id) ? 'selected' : ''}>${(c.code ? c.code + ' · ' : '') + c.name}</option>`
+  ).join('');
+  if (!ctx.customers?.length) {
+    return `<div class="form-row" style="grid-column:1/-1;">
+      <label class="form-label">Müşteri</label>
+      <div style="font-size:11px;color:var(--text-3);padding:8px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;">
+        Müşteri listesi boş. Muhasebe sayfasından müşteri ekleyin.
+      </div>
+    </div>`;
+  }
+  if (!ctx.canSelect) {
+    return `<div class="form-row" style="grid-column:1/-1;">
+      <label class="form-label">Müşteri</label>
+      <div style="font-size:11px;color:var(--text-3);padding:8px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;">
+        Bu alanda müşteri seçimi sadece QC/Admin tarafından yapılır.
+      </div>
+    </div>`;
+  }
+  return `<div class="form-row" style="grid-column:1/-1;">
+    <label class="form-label">Müşteri *</label>
+    <select class="form-input" id="${selectId}"><option value="">Seçin...</option>${opts}</select>
+  </div>`;
+}
+
+function _selectedCustomerId(selectId) {
+  return String(document.getElementById(selectId)?.value || '').trim() || null;
+}
+
+function _validateCustomerSelection(ctx, selectId) {
+  if (!ctx.mustSelect) return true;
+  if (!_selectedCustomerId(selectId)) {
+    toast('Müşteri seçin', 'err');
+    return false;
+  }
+  return true;
+}
+
+async function _createAppointmentWithCustomerFallback(data) {
+  try {
+    return await sb('appointments',{method:'POST',prefer:'return=representation',body:JSON.stringify(data)});
+  } catch (e) {
+    if (String(e.message || '').includes('customer_id')) {
+      const clone = { ...data };
+      delete clone.customer_id;
+      toast('Not: customer_id migration bekliyor, müşteri bilgisi geçici kaydedilemedi.', 'warn');
+      return await sb('appointments',{method:'POST',prefer:'return=representation',body:JSON.stringify(clone)});
+    }
+    throw e;
+  }
+}
+
+async function renderInlineTerminCustomerField(selectedId) {
+  const wrap = document.getElementById('tf2-customer-wrap');
+  if (!wrap) return;
+  const ctx = await _getCustomerCtx(selectedId || null);
+  wrap.innerHTML = _renderCustomerField(ctx, 'tf2-customer');
+}
+
 async function loadTakvimPage() {
   const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
   const tools = document.getElementById('takvim-admin-tools');
@@ -310,6 +397,7 @@ async function saveTakvimSlot(od) {
 
 function openTakvimSlotDetail(slot, appt) {
   const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
+  const canManageAppt = ['admin','super_admin','firm_admin','qc'].includes(currentUser?.role||'');
   document.getElementById('takvim-detail-title').textContent = appt ? appt.nachname : 'Boş Slot';
   openModal('m-takvim-detail');
   const body = document.getElementById('takvim-detail-body');
@@ -340,7 +428,7 @@ ${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="dele
 ${appt.agent_notu?`<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">AGENT NOTU</div><div>${appt.agent_notu}</div></div>`:''}
 </div>`;
   footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">Kapat</button>
-${isAdmin ? `
+${canManageAppt ? `
 <select class="form-input" id="appt-status-sel" style="width:auto;font-size:12px;padding:6px 10px;">
 <option value="">Durum değiştir...</option>
 <option value="basarili">✅ Başarılı</option>
@@ -349,16 +437,33 @@ ${isAdmin ? `
 <option value="ulasilamadi">📵 Ulaşılamadı</option>
 <option value="iptal">🚫 İptal</option>
 </select>
-<button class="btn btn-primary" onclick="takvimQcUpdate('${appt.id}',document.getElementById('appt-status-sel').value)">Kaydet</button>` : ''}`;
+<button class="btn btn-primary" onclick="takvimQcUpdate('${appt.id}',document.getElementById('appt-status-sel').value,document.getElementById('appt-customer-sel')?.value)">Kaydet</button>` : ''}`;
+  if (canManageAppt) {
+    _getCustomerCtx(appt.customer_id).then(ctx => {
+      if (!ctx?.customers?.length) return;
+      const el = document.createElement('div');
+      el.className = 'form-row';
+      el.style.cssText = 'margin-top:8px;';
+      el.innerHTML = `<label class="form-label">Müşteri</label>
+      <select class="form-input" id="appt-customer-sel" style="width:100%;font-size:12px;padding:6px 10px;">
+        <option value="">Seçin...</option>
+        ${ctx.customers.map(c => `<option value="${c.id}" ${String(appt.customer_id||'')===String(c.id)?'selected':''}>${(c.code?c.code+' · ':'')+c.name}</option>`).join('')}
+      </select>`;
+      body.appendChild(el);
+    }).catch(()=>{});
+  }
 }
 
-async function takvimQcUpdate(apptId, status) {
-  if (!status) { toast('Durum seçin','err'); return; }
+async function takvimQcUpdate(apptId, status, customerId) {
+  if (!status && !customerId) { toast('Durum veya müşteri seçin','err'); return; }
   try {
-    await sb(`appointments?id=eq.${apptId}`, {method:'PATCH', prefer:'return=minimal', body: JSON.stringify({durum: status})});
+    const body = {};
+    if (status) body.durum = status;
+    if (customerId !== undefined) body.customer_id = customerId || null;
+    await sb(`appointments?id=eq.${apptId}`, {method:'PATCH', prefer:'return=minimal', body: JSON.stringify(body)});
     closeModal('m-takvim-detail');
     await loadTakvimSlots();
-    toast(`Durum: ${status} ✓`, 'ok');
+    toast('Termin güncellendi ✓', 'ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
@@ -409,8 +514,9 @@ async function lockAndBookSlot(slot) {
   }
 }
 
-function openTakvimBookForm(slot) {
+async function openTakvimBookForm(slot) {
   const contact = currentContact||{};
+  const custCtx = await _getCustomerCtx(null);
   document.getElementById('takvim-detail-title').textContent = `Termin — ${slot.tarih} ${slot.baslangic_saat?.slice(0,5)}`;
   openModal('m-takvim-detail');
   document.getElementById('takvim-detail-body').innerHTML = `
@@ -430,6 +536,7 @@ function openTakvimBookForm(slot) {
 <div class="form-row"><label class="form-label">Tüketim/Yıl *</label><input class="form-input" id="tf-vj" value="${contact.verbrauch_pro_jahr||''}"></div>
 <div class="form-row"><label class="form-label">Kişi *</label><input class="form-input" id="tf-pe" value="${contact.personen||''}"></div>
 <div class="form-row"><label class="form-label">PV İlgisi</label><select class="form-input" id="tf-pv"><option value="false">Hayır</option><option value="true">Evet</option></select></div>
+${_renderCustomerField(custCtx, 'tf-customer')}
 </div>
 <div class="form-row" style="margin-top:8px;"><label class="form-label">Not</label><textarea class="form-input" id="tf-note" rows="2" style="resize:vertical;">${contact.notes||''}</textarea></div>`;
   document.getElementById('takvim-detail-footer').innerHTML = `<button class="btn btn-ghost" onclick="cancelTakvimBook('${slot.id}')">İptal</button><button class="btn btn-primary" onclick="submitTakvimBook('${slot.id}')">✓ Kaydet</button>`;
@@ -439,6 +546,8 @@ function openTakvimBookForm(slot) {
 async function saveTerminFromSection() {
   const slot = _bookingSlot || window._selectedBookingSlot;
   if (!slot) { toast('Önce takvimden bir slot seçin','err'); return; }
+  const custCtx = await _getCustomerCtx(null);
+  if (!_validateCustomerSelection(custCtx, 'tf2-customer')) return;
   const g = id => document.getElementById(id)?.value?.trim()||'';
   if (!g('tf2-hausart')||!g('tf2-baujahr')||!g('tf2-qm')||!g('tf2-heizung')||!g('tf2-alter_der_heizung')) {
     toast('Zorunlu alanları doldurun (*)','err'); return;
@@ -456,9 +565,10 @@ async function saveTerminFromSection() {
       heizung: g('tf2-heizung'), alter_der_heizung: g('tf2-alter_der_heizung'),
       verbrauch_pro_jahr: g('tf2-verbrauch_pro_jahr'), personen: g('tf2-personen'),
       agent_notu: g('tf2-note'), durum: 'qc_bekleniyor',
+      customer_id: _selectedCustomerId('tf2-customer'),
       termin_tarih: `${slot.tarih}T${saatNorm(slot.baslangic_saat)}:00`
     };
-    const created = await sb('appointments',{method:'POST',prefer:'return=representation',body:JSON.stringify(data)});
+    const created = await _createAppointmentWithCustomerFallback(data);
     const aid = Array.isArray(created) ? created[0]?.id : created?.id;
     await sb(`takvim_slots?id=eq.${slot.id}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'dolu',appointment_id:aid,kilitli_agent_id:null,kilitli_at:null})});
     _bookingSlot = null; window._selectedBookingSlot = null;
@@ -483,6 +593,8 @@ async function cancelTakvimBook(slotId) {
 }
 
 async function submitTakvimBook(slotId) {
+  const custCtx = await _getCustomerCtx(null);
+  if (!_validateCustomerSelection(custCtx, 'tf-customer')) return;
   const g = id => document.getElementById(id)?.value?.trim()||'';
   if (!g('tf-name')||!g('tf-tel')||!g('tf-plz')||!g('tf-hausart')||!g('tf-bj')||!g('tf-qm')||!g('tf-hz')||!g('tf-ah')) {
     toast('Zorunlu alanları doldurun!','err'); return;
@@ -500,9 +612,10 @@ async function submitTakvimBook(slotId) {
       heizung:g('tf-hz'), alter_der_heizung:g('tf-ah'), verbrauch_pro_jahr:g('tf-vj'),
       personen:g('tf-pe'), interesse_an_pv:g('tf-pv')==='true',
       agent_notu:g('tf-note'), durum:'qc_bekleniyor',
+      customer_id:_selectedCustomerId('tf-customer'),
       termin_tarih: slot ? `${slot.tarih}T${saatNorm(slot.baslangic_saat)}:00` : new Date().toISOString()
     };
-    const created = await sb('appointments',{method:'POST',prefer:'return=representation',body:JSON.stringify(data)});
+    const created = await _createAppointmentWithCustomerFallback(data);
     const aid = Array.isArray(created) ? created[0]?.id : created?.id;
     await sb(`takvim_slots?id=eq.${slotId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'dolu',appointment_id:aid,kilitli_agent_id:null,kilitli_at:null})});
     _bookingSlot = null;

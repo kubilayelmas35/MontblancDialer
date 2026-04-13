@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=4.1">
+<link rel="stylesheet" href="css/styles.css?v=4.2">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -33,7 +33,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v4.1 — 2026</div>
+<div class="login-version">v4.2 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -211,6 +211,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span class="sb-item-icon"><i class="ph ph-calendar-check" style="font-size:17px;"></i></span>
 <span data-tr="İzin &amp; Devam" data-de="Urlaub &amp; Anwesenheit">İzin &amp; Devam</span>
 </button>
+<button class="sb-item" onclick="navigate('muhasebe')">
+<span class="sb-item-icon"><i class="ph ph-calculator" style="font-size:17px;"></i></span>
+<span data-tr="Muhasebe" data-de="Buchhaltung">Muhasebe</span>
+</button>
 <button class="sb-item" onclick="navigate('competition')">
 <span class="sb-item-icon"><i class="ph ph-trophy" style="font-size:17px;"></i></span>
 <span data-tr="Ayın elemanı" data-de="Mitarbeiter des Monats">Ayın elemanı</span>
@@ -244,6 +248,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span class="sb-item-icon"><i class="ph ph-calendar-check" style="font-size:17px;"></i></span>
 <span data-tr="İzin &amp; Devam" data-de="Urlaub &amp; Anwesenheit">İzin &amp; Devam</span>
 </button>
+<button class="sb-item" onclick="navigate('muhasebe')">
+<span class="sb-item-icon"><i class="ph ph-wallet" style="font-size:17px;"></i></span>
+<span data-tr="Maaşım" data-de="Mein Gehalt">Maaşım</span>
+</button>
 <button class="sb-item" onclick="navigate('competition')">
 <span class="sb-item-icon"><i class="ph ph-trophy" style="font-size:17px;"></i></span>
 <span data-tr="Ayın elemanı" data-de="Mitarbeiter des Monats">Ayın elemanı</span>
@@ -262,7 +270,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v4.1</div>
+<div class="sb-ver">Montblanc Dialer v4.2</div>
 </div>
 </nav>
 <main id="main">
@@ -1246,6 +1254,74 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </div>
 </div>
 </div>
+<div class="page" id="page-muhasebe">
+<div class="page-hdr">
+<div>
+<div class="page-title" data-tr="Muhasebe" data-de="Buchhaltung">Muhasebe</div>
+<div class="page-sub" id="muhasebe-sub">Maaş, prim, kesinti ve müşteri yönetimi</div>
+</div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+<div id="muhasebe-firm-selector"></div>
+<input type="month" class="form-input" id="muhasebe-period" style="width:160px;" onchange="loadMuhasebePage()">
+<button class="btn btn-ghost btn-sm" onclick="loadMuhasebePage()"><i class="ph ph-arrow-clockwise"></i> Yenile</button>
+</div>
+</div>
+<div id="muhasebe-no-access" class="card" style="display:none;padding:18px;">Bu sayfayı görüntüleme yetkiniz yok.</div>
+<div id="muhasebe-main" style="display:flex;flex-direction:column;gap:14px;padding-bottom:28px;">
+<div class="card" id="muhasebe-rules-card" style="padding:16px;display:none;">
+<div class="card-title" style="margin-bottom:10px;">Firma muhasebe ayarları</div>
+<div class="stats-grid" style="margin-bottom:10px;">
+<div class="form-row"><label class="form-label">Para birimi</label><select class="form-input" id="pr-currency"><option value="EUR">EUR</option><option value="TRY">TRY</option></select></div>
+<div class="form-row"><label class="form-label">Kur (1 EUR = ? TRY)</label><input class="form-input" id="pr-rate" type="number" step="0.0001" value="1"></div>
+<div class="form-row"><label class="form-label">Maaş modu</label><select class="form-input" id="pr-mode"><option value="net">Net</option><option value="gross_minimum">Asgari (brüt)</option></select></div>
+<div class="form-row"><label class="form-label">Baz maaş</label><input class="form-input" id="pr-base" type="number" step="0.01" value="0"></div>
+<div class="form-row"><label class="form-label">Vergi %</label><input class="form-input" id="pr-tax" type="number" step="0.01" value="0"></div>
+<div class="form-row"><label class="form-label">Geç kalma cezası (olay başı)</label><input class="form-input" id="pr-late" type="number" step="0.01" value="0"></div>
+<div class="form-row"><label class="form-label">İzin aşımı cezası (gün başı)</label><input class="form-input" id="pr-leave-over-amt" type="number" step="0.01" value="0"></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:12px;">
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-gov"> Devlet destekli (vergi uygulama)</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-late-on"> Geç kalma kesilsin</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-leave-over"> Yıllık izin aşımında kes</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-agent-customer"> Agent müşteri seçebilsin</label>
+</div>
+<div class="form-row">
+<label class="form-label">Prim kademeleri (JSON)</label>
+<textarea class="form-input" id="pr-tiers" rows="4" placeholder='[{"min":20,"max":25,"amount":46,"currency":"EUR"}]'></textarea>
+</div>
+<button class="btn btn-primary btn-sm" onclick="savePayrollRules()">Muhasebe ayarlarını kaydet</button>
+</div>
+<div class="card" id="muhasebe-customers-card" style="padding:16px;display:none;">
+<div class="card-hdr">
+<div>
+<div class="card-title">Müşteriler</div>
+<div class="card-sub">Terminlerde kullanılacak müşteri listesi</div>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 130px 1fr auto;gap:8px;align-items:end;">
+<div class="form-row"><label class="form-label">Müşteri adı</label><input class="form-input" id="mc-name"></div>
+<div class="form-row"><label class="form-label">Kod</label><input class="form-input" id="mc-code"></div>
+<div class="form-row"><label class="form-label">Not</label><input class="form-input" id="mc-note"></div>
+<button class="btn btn-primary btn-sm" onclick="createMuhasebeCustomer()">Ekle</button>
+</div>
+<div id="muhasebe-customers-table" style="margin-top:12px;"></div>
+</div>
+<div class="card" style="padding:16px;">
+<div class="card-hdr">
+<div>
+<div class="card-title">Aylık personel muhasebesi</div>
+<div class="card-sub">Baz maaş, prim, kesintiler, manuel ekleme/kesme, ödenen/kalan</div>
+</div>
+<div style="display:flex;gap:6px;">
+<button class="btn btn-ghost btn-sm" onclick="exportMuhasebeCsv()">CSV</button>
+<button class="btn btn-ghost btn-sm" onclick="exportMuhasebeXlsx()">Excel</button>
+</div>
+</div>
+<div id="muhasebe-summary-cards" class="stats-grid"></div>
+<div id="muhasebe-table-wrap" class="tbl-wrap" style="margin-top:10px;"></div>
+</div>
+</div>
+</div>
 <div class="page" id="page-competition">
 <div class="page-hdr">
 <div>
@@ -2025,22 +2101,23 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=4.1"></script>
-<script src="js/state.js?v=4.1"></script>
-<script src="js/api.js?v=4.1"></script>
-<script src="js/auth.js?v=4.1"></script>
-<script src="js/ui.js?v=4.1"></script>
-<script src="js/export-admin.js?v=4.1"></script>
-<script src="js/competition.js?v=4.1"></script>
-<script src="js/dashboard.js?v=4.1"></script>
-<script src="js/campaigns.js?v=4.1"></script>
-<script src="js/contacts.js?v=4.1"></script>
-<script src="js/telnyx.js?v=4.1"></script>
-<script src="js/dialer.js?v=4.1"></script>
-<script src="js/appointments.js?v=4.1"></script>
-<script src="js/wiedervorlage.js?v=4.1"></script>
-<script src="js/qc.js?v=4.1"></script>
-<script src="js/leave-hr.js?v=4.1"></script>
-<script src="js/agents.js?v=4.1"></script>
+<script src="js/config.js?v=4.2"></script>
+<script src="js/state.js?v=4.2"></script>
+<script src="js/api.js?v=4.2"></script>
+<script src="js/auth.js?v=4.2"></script>
+<script src="js/ui.js?v=4.2"></script>
+<script src="js/export-admin.js?v=4.2"></script>
+<script src="js/competition.js?v=4.2"></script>
+<script src="js/dashboard.js?v=4.2"></script>
+<script src="js/campaigns.js?v=4.2"></script>
+<script src="js/contacts.js?v=4.2"></script>
+<script src="js/telnyx.js?v=4.2"></script>
+<script src="js/dialer.js?v=4.2"></script>
+<script src="js/appointments.js?v=4.2"></script>
+<script src="js/wiedervorlage.js?v=4.2"></script>
+<script src="js/qc.js?v=4.2"></script>
+<script src="js/leave-hr.js?v=4.2"></script>
+<script src="js/muhasebe.js?v=4.2"></script>
+<script src="js/agents.js?v=4.2"></script>
 </body>
 </html>
