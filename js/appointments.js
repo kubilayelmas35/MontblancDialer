@@ -395,9 +395,12 @@ async function saveTakvimSlot(od) {
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
-function openTakvimSlotDetail(slot, appt) {
+async function openTakvimSlotDetail(slot, appt) {
   const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
   const canManageAppt = ['admin','super_admin','firm_admin','qc'].includes(currentUser?.role||'');
+  const resultCfg = await loadFirmAppointmentResults(getActiveFirmId() || currentUser?.firm_id);
+  const resultMap = {};
+  (resultCfg || []).forEach(r => { resultMap[r.key] = r; });
   document.getElementById('takvim-detail-title').textContent = appt ? appt.nachname : 'Boş Slot';
   openModal('m-takvim-detail');
   const body = document.getElementById('takvim-detail-body');
@@ -414,9 +417,11 @@ ${lockInfo}
 ${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="deleteTakvimSlot('${slot.id}')">Sil</button>${slot.durum==='kilitli'?`<button class="btn btn-ghost" style="color:var(--yellow);" onclick="closeModal('m-takvim-detail');unlockSlot('${slot.id}')">Kilidi Kaldır</button>`:''}`:`<button class="btn btn-primary" onclick="closeModal('m-takvim-detail');lockAndBookSlot(takvimSlots.find(s=>s.id==='${slot.id}'))">Termin Al</button>`}`;
     return;
   }
-  const dc = {'basarili':'var(--green)','basarisiz':'var(--red)','beklemede':'var(--yellow)','qc_bekleniyor':'var(--accent)','iptal':'var(--red)'}[appt.durum]||'var(--accent)';
+  const statusCfg = resultMap[_normResultKey(appt.durum)] || {};
+  const dc = statusCfg.color || 'var(--accent)';
+  const statusLabel = statusCfg.label || (appt.durum || '').replace('_', ' ').toUpperCase();
   body.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">DURUM</div><div style="font-weight:800;font-size:14px;color:${dc};">${(appt.durum||'').replace('_',' ').toUpperCase()}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">DURUM</div><div style="font-weight:800;font-size:14px;color:${dc};">${statusLabel}</div></div>
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">MÜŞTERİ</div><div style="font-weight:700;">${appt.nachname||'—'}</div></div>
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">TELEFON</div><div style="font-weight:700;font-family:var(--mono);">${appt.telefonnummer||'—'}</div></div>
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">PLZ / ŞEHİR</div><div style="font-weight:700;">${appt.plz||'—'} ${appt.ortschaft||''}</div></div>
@@ -428,14 +433,11 @@ ${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="dele
 ${appt.agent_notu?`<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">AGENT NOTU</div><div>${appt.agent_notu}</div></div>`:''}
 </div>`;
   footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">Kapat</button>
+<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail');openDialerForContact('${appt.contact_id||''}')">Dialer'a Git</button>
 ${canManageAppt ? `
 <select class="form-input" id="appt-status-sel" style="width:auto;font-size:12px;padding:6px 10px;">
 <option value="">Durum değiştir...</option>
-<option value="basarili">✅ Başarılı</option>
-<option value="basarisiz">❌ Başarısız</option>
-<option value="beklemede">📞 Beklemede</option>
-<option value="ulasilamadi">📵 Ulaşılamadı</option>
-<option value="iptal">🚫 İptal</option>
+${(resultCfg||[]).map(r=>`<option value="${r.key}">${r.label}</option>`).join('')}
 </select>
 <button class="btn btn-primary" onclick="takvimQcUpdate('${appt.id}',document.getElementById('appt-status-sel').value,document.getElementById('appt-customer-sel')?.value)">Kaydet</button>` : ''}`;
   if (canManageAppt) {
@@ -754,7 +756,8 @@ function showSlotContextMenu(e, slot, appt) {
     }
   }
   if (isDolu) {
-    items.push({ icon:'', label:'Detay Gör', fn:'openTakvimSlotDetail(_ctxSlot,_ctxAppt)' });
+    items.push({ icon:'', label:'Detaya Git (Dialer)', fn:'openDialerForContact(_ctxAppt.contact_id)' });
+    items.push({ icon:'', label:'Slot Detayı', fn:'openTakvimSlotDetail(_ctxSlot,_ctxAppt)' });
     if (isAdmin) {
       items.push({ sep: true });
       items.push({ icon:'', label:'Başarılı', fn:"takvimQcUpdate(_ctxAppt.id,'basarili')", green:true });

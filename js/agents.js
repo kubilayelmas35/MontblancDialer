@@ -471,9 +471,25 @@ async function loadRolesPage() {
   if (!card || !el) return;
   if (!isSuperAdmin()) { card.style.display='none'; return; }
   card.style.display = '';
+  let targetFirmId = getActiveFirmId() || currentUser.firm_id;
+  let firmOptions = '';
+  try {
+    const firmsAll = await sb('firms?select=id,name&order=name.asc');
+    if (firmsAll?.length) {
+      firmOptions = firmsAll.map(f => `<option value="${f.id}" ${String(targetFirmId)===String(f.id)?'selected':''}>${f.name||f.id}</option>`).join('');
+      const titleRow = card.querySelector('.roles-firm-row');
+      if (titleRow) titleRow.remove();
+      const row = document.createElement('div');
+      row.className = 'roles-firm-row';
+      row.style.cssText = 'margin-bottom:12px;';
+      row.innerHTML = `<label class="form-label" style="font-size:11px;">Firma</label><select class="form-input" id="roles-firm-select" onchange="loadRolesPage()">${firmOptions}</select>`;
+      card.insertBefore(row, el);
+      targetFirmId = document.getElementById('roles-firm-select')?.value || targetFirmId;
+    }
+  } catch(e) {}
   let customRoles = [];
   try {
-    const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
+    const firms = await sb(`firms?id=eq.${targetFirmId}&select=settings`);
     customRoles = firms?.[0]?.settings?.custom_roles || [];
   } catch(e) {}
   const allRoles = [...BUILTIN_ROLES, ...customRoles.map(r=>({...r,builtin:false}))];
@@ -501,12 +517,13 @@ async function openAddRoleModal() {
   const key   = name.toLowerCase().replace(/[^a-z0-9_]/g,'_');
   const label = name.charAt(0).toUpperCase() + name.slice(1);
   try {
-    const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
+    const fid = document.getElementById('roles-firm-select')?.value || getActiveFirmId() || currentUser.firm_id;
+    const firms = await sb(`firms?id=eq.${fid}&select=settings`);
     const existing = firms?.[0]?.settings || {};
     const roles = existing.custom_roles || [];
     if (roles.find(r=>r.key===key)||BUILTIN_ROLES.find(r=>r.key===key)) { toast('Bu rol adı zaten var','warn'); return; }
     roles.push({key,label,color:'var(--text-2)',perms:[]});
-    await sb(`firms?id=eq.${currentUser.firm_id}`,{method:'PATCH',prefer:'return=minimal',
+    await sb(`firms?id=eq.${fid}`,{method:'PATCH',prefer:'return=minimal',
       body:JSON.stringify({settings:{...existing,custom_roles:roles}})});
     await loadRolesPage();
     toast('Rol oluşturuldu ✓','ok');
@@ -515,14 +532,15 @@ async function openAddRoleModal() {
 
 async function toggleRolePerm(roleKey, pageKey, enabled) {
   try {
-    const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
+    const fid = document.getElementById('roles-firm-select')?.value || getActiveFirmId() || currentUser.firm_id;
+    const firms = await sb(`firms?id=eq.${fid}&select=settings`);
     const existing = firms?.[0]?.settings || {};
     const roles = existing.custom_roles || [];
     const role = roles.find(r=>r.key===roleKey);
     if (!role) return;
     if (enabled) { if (!role.perms.includes(pageKey)) role.perms.push(pageKey); }
     else role.perms = role.perms.filter(p=>p!==pageKey);
-    await sb(`firms?id=eq.${currentUser.firm_id}`,{method:'PATCH',prefer:'return=minimal',
+    await sb(`firms?id=eq.${fid}`,{method:'PATCH',prefer:'return=minimal',
       body:JSON.stringify({settings:{...existing,custom_roles:roles}})});
     toast('İzin güncellendi ✓','ok',1200);
   } catch(e) { toast('Hata','err'); }
@@ -531,10 +549,11 @@ async function toggleRolePerm(roleKey, pageKey, enabled) {
 async function deleteCustomRole(roleKey) {
   if (!(await mbConfirm('Bu rolü silmek istediğinize emin misiniz?', 'Rol Sil'))) return;
   try {
-    const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
+    const fid = document.getElementById('roles-firm-select')?.value || getActiveFirmId() || currentUser.firm_id;
+    const firms = await sb(`firms?id=eq.${fid}&select=settings`);
     const existing = firms?.[0]?.settings || {};
     const roles = (existing.custom_roles||[]).filter(r=>r.key!==roleKey);
-    await sb(`firms?id=eq.${currentUser.firm_id}`,{method:'PATCH',prefer:'return=minimal',
+    await sb(`firms?id=eq.${fid}`,{method:'PATCH',prefer:'return=minimal',
       body:JSON.stringify({settings:{...existing,custom_roles:roles}})});
     await loadRolesPage();
     toast('Rol silindi','ok');

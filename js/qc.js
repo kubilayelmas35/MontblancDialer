@@ -9,6 +9,10 @@ async function loadQcData() {
   if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>';
   try {
     const fid = getActiveFirmId() || currentUser?.firm_id || null;
+    const resultCfg = await loadFirmAppointmentResults(fid);
+    window._qcResultCfg = resultCfg || [];
+    window._qcResultMap = {};
+    (window._qcResultCfg || []).forEach(r => { window._qcResultMap[r.key] = r; });
     const firmFilter = fid ? `&firm_id=eq.${fid}` : '';
     qcList = await sb(`call_logs?select=*,contacts(*),users(name),campaigns(name)&outcome=in.(appointment,appointment_done)${firmFilter}&order=started_at.desc&limit=500`).catch(()=>[]);
     window._qcCustomers = fid ? await sb(`customers?firm_id=eq.${fid}&is_active=eq.true&select=id,name,code&order=name.asc`).catch(()=>[]) : [];
@@ -79,8 +83,11 @@ function renderQcTable() {
   tbody.innerHTML = list.map(r => {
     const contact = r.contacts||{};
     const dt = r.started_at ? new Date(r.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
-    const durum = contact.durum || 'qc bekleniyor';
-    const durumColor = {'başarılı':'var(--green)','başarısız':'var(--red)','beklemede':'var(--yellow)','qc bekleniyor':'var(--accent)'}[durum]||'var(--text-3)';
+    const rawDurum = contact.durum || 'qc bekleniyor';
+    const resultKey = contactStatusToAppointmentResult(rawDurum);
+    const resultCfg = window._qcResultMap?.[resultKey];
+    const durum = resultCfg?.label || rawDurum;
+    const durumColor = resultCfg?.color || 'var(--text-3)';
     const name = `${contact.first_name||''} ${contact.last_name||''}`.trim()||'—';
     const agentName = r.users?.name || r.agent_id?.slice(0,8)||'—';
     const campName = r.campaigns?.name || r.campaign_id?.slice(0,8)||'—';
@@ -93,7 +100,7 @@ function renderQcTable() {
 </div>`
       : `<span style="font-size:10px;color:var(--text-3);">—</span>`;
     const contactDetailBtn = r.contact_id
-      ? `<button class="icon-btn" onclick="openContactDrawer('${r.contact_id}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button>`
+      ? `<button class="icon-btn" onclick="openDialerForContact('${r.contact_id}')" title="Dialer'da Aç"><i class="ph ph-magnifying-glass"></i></button>`
       : `<button class="icon-btn" onclick="openQcDetail('${r.id}')" title="Detay"><i class="ph ph-magnifying-glass"></i></button>`;
     const ap = window._qcApptByContact?.[r.contact_id] || {};
     const selectedCustomer = ap.customer_id || '';
@@ -152,6 +159,12 @@ ${r.recording_url ? `<div style="background:var(--bg-3);padding:8px;border-radiu
     }).join('')}
   </select>
 </div>
+<div style="margin-top:10px;">
+  <label class="form-label">Sonuç</label>
+  <select class="form-input" id="qc-status-select" style="width:100%;">
+    ${(window._qcResultCfg || []).map(s => `<option value="${s.key}" ${contactStatusToAppointmentResult(contact.durum||'qc bekleniyor')===s.key?'selected':''}>${s.label}</option>`).join('')}
+  </select>
+</div>
 <div style="margin-top:12px;">
 <textarea id="qc-note-input" class="form-input" rows="2" placeholder="QC notu..." style="width:100%;resize:vertical;"></textarea>
 </div>`;
@@ -160,7 +173,8 @@ ${r.recording_url ? `<div style="background:var(--bg-3);padding:8px;border-radiu
 
 async function qcUpdateStatus(status) {
   if (!qcDetailId) return;
-  await quickQcUpdate(qcDetailId, status);
+  const selected = document.getElementById('qc-status-select')?.value || '';
+  await quickQcUpdate(qcDetailId, selected || status);
   closeModal('m-qc-detail');
 }
 
@@ -171,21 +185,24 @@ async function quickQcUpdate(logId, status) {
     || document.getElementById('qc-detail-customer')?.value
     || '';
   if (!customerId) { toast('Önce müşteri seçmelisiniz', 'err'); return; }
+  const resultKey = _normResultKey(status || '');
+  const resultCfg = window._qcResultMap?.[resultKey];
+  const contactStatus = resultCfg?.contact_status || appointmentResultToContactStatus(resultKey);
+  const apptStatus = resultKey || contactStatusToAppointmentResult(contactStatus);
   const note = document.getElementById('qc-note-input')?.value||'';
   try {
     const fid = getActiveFirmId() || currentUser?.firm_id || null;
     await sb(`contacts?id=eq.${r.contact_id}`, {method:'PATCH', prefer:'return=minimal',
-      body: JSON.stringify({durum: status, qc_note: note || undefined})});
+      body: JSON.stringify({durum: contactStatus, qc_note: note || undefined})});
     const apptRows = fid ? await sb(`appointments?firm_id=eq.${fid}&contact_id=eq.${r.contact_id}&select=id&order=created_at.desc&limit=1`).catch(()=>[]) : [];
     if (apptRows?.length) {
-      const aDurum = status === 'başarılı' ? 'basarili' : (status === 'başarısız' ? 'basarisiz' : (status === 'beklemede' ? 'beklemede' : 'qc_bekleniyor'));
       await sb(`appointments?id=eq.${apptRows[0].id}`, {
         method: 'PATCH',
         prefer: 'return=minimal',
-        body: JSON.stringify({ customer_id: customerId, durum: aDurum }),
+        body: JSON.stringify({ customer_id: customerId, durum: apptStatus }),
       });
     }
     await loadQcData();
-    toast(`Durum: ${status} ✓`, 'ok');
+    toast(`Durum güncellendi ✓`, 'ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }

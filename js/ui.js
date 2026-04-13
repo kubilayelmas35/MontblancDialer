@@ -45,6 +45,7 @@ if (page==='callhistory'){ initCallHistoryFilters(); loadCallHistory(); }
 if (page==='dialer')         initDialer();
 if (page==='myhistory')      { initMyHistoryFilters(); loadMyHistory(); }
 if (page==='settings')       { loadSavedSettings(); loadRolesPage(); }
+if (page==='settings')       { loadAppointmentResultsSettings(); }
 if (page==='wiedervorlage')  loadWvPage();
 if (page==='qc')             loadQcData();
 if (page==='firms')          loadFirmsPage();
@@ -53,6 +54,111 @@ if (page==='takvim')         loadTakvimPage();
 if (page==='leave')          loadLeavePage();
 if (page==='muhasebe')       loadMuhasebePage();
 if (page==='competition')     loadCompetitionPage();
+}
+
+window._apptResultsByFirm = window._apptResultsByFirm || {};
+
+function defaultAppointmentResults() {
+  return [
+    { key: 'qc_bekleniyor', label: 'QC Bekleniyor', color: '#2563eb', contact_status: 'qc bekleniyor' },
+    { key: 'basarili', label: 'Başarılı', color: '#16a34a', contact_status: 'başarılı' },
+    { key: 'basarisiz', label: 'Başarısız', color: '#dc2626', contact_status: 'başarısız' },
+    { key: 'beklemede', label: 'Beklemede', color: '#f59e0b', contact_status: 'beklemede' },
+    { key: 'ulasilamadi', label: 'Ulaşılamadı', color: '#64748b', contact_status: 'ulaşılamadı' },
+    { key: 'iptal', label: 'İptal', color: '#b91c1c', contact_status: 'iptal' },
+  ];
+}
+
+function _normResultKey(v) {
+  return String(v || '')
+    .toLowerCase()
+    .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+    .replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function appointmentResultToContactStatus(resultKey) {
+  const k = _normResultKey(resultKey);
+  const map = {
+    qc_bekleniyor: 'qc bekleniyor',
+    basarili: 'başarılı',
+    basarisiz: 'başarısız',
+    beklemede: 'beklemede',
+    ulasilamadi: 'ulaşılamadı',
+    iptal: 'iptal',
+  };
+  return map[k] || k.replaceAll('_', ' ');
+}
+
+function contactStatusToAppointmentResult(contactStatus) {
+  const s = String(contactStatus || '').toLowerCase().trim();
+  const map = {
+    'qc bekleniyor': 'qc_bekleniyor',
+    'başarılı': 'basarili',
+    'başarısız': 'basarisiz',
+    'beklemede': 'beklemede',
+    'ulaşılamadı': 'ulasilamadi',
+    'iptal': 'iptal',
+  };
+  return map[s] || _normResultKey(s.replaceAll(' ', '_'));
+}
+
+async function loadFirmAppointmentResults(fid, force = false) {
+  const firmId = fid || getActiveFirmId() || currentUser?.firm_id;
+  if (!firmId) return defaultAppointmentResults();
+  if (!force && window._apptResultsByFirm[firmId]) return window._apptResultsByFirm[firmId];
+  let settings = {};
+  try {
+    const firms = await sb(`firms?id=eq.${firmId}&select=settings`);
+    settings = firms?.[0]?.settings || {};
+  } catch (e) {}
+  const raw = Array.isArray(settings?.appointment_results) ? settings.appointment_results : [];
+  const norm = raw.length
+    ? raw.map(r => ({
+        key: _normResultKey(r?.key),
+        label: String(r?.label || r?.key || '').trim(),
+        color: String(r?.color || '').trim() || '#64748b',
+        contact_status: String(r?.contact_status || appointmentResultToContactStatus(r?.key)).trim(),
+      })).filter(r => r.key && r.label)
+    : defaultAppointmentResults();
+  window._apptResultsByFirm[firmId] = norm;
+  return norm;
+}
+
+async function loadAppointmentResultsSettings() {
+  const ta = document.getElementById('s-appt-results');
+  if (!ta) return;
+  const fid = getActiveFirmId() || currentUser?.firm_id;
+  if (!fid) { ta.value = ''; return; }
+  const rows = await loadFirmAppointmentResults(fid, true);
+  ta.value = rows.map(r => `${r.key}|${r.label}|${r.color || ''}`).join('\n');
+}
+
+async function saveAppointmentResultsSettings() {
+  const ta = document.getElementById('s-appt-results');
+  const fid = getActiveFirmId() || currentUser?.firm_id;
+  if (!ta || !fid) return;
+  const lines = String(ta.value || '').split('\n').map(s => s.trim()).filter(Boolean);
+  const parsed = lines.map(line => {
+    const [k, l, c] = line.split('|').map(s => (s || '').trim());
+    const key = _normResultKey(k);
+    const label = l || key;
+    const color = c || '#64748b';
+    return { key, label, color, contact_status: appointmentResultToContactStatus(key) };
+  }).filter(r => r.key && r.label);
+  if (!parsed.length) { toast('En az bir sonuç girin', 'err'); return; }
+  try {
+    const firms = await sb(`firms?id=eq.${fid}&select=settings`);
+    const existing = firms?.[0]?.settings || {};
+    await sb(`firms?id=eq.${fid}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings: { ...existing, appointment_results: parsed } }),
+    });
+    window._apptResultsByFirm[fid] = parsed;
+    toast('Termin sonuçları kaydedildi', 'ok');
+  } catch (e) {
+    toast('Kaydetme hatası: ' + e.message, 'err');
+  }
 }
 
 // ── LANG ─────────────────────────────────────

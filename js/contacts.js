@@ -619,6 +619,22 @@ async function openContactDrawer(contactId) {
   }
 }
 
+async function openDialerForContact(contactId) {
+  if (!contactId) return;
+  try {
+    const rows = await sb(`contacts?id=eq.${contactId}&select=*`);
+    const c = rows?.[0];
+    if (!c) { toast('Kişi bulunamadı', 'warn'); return; }
+    currentContact = c;
+    navigate('dialer');
+    setTimeout(() => {
+      if (typeof showCustomerCard === 'function') showCustomerCard(c);
+    }, 120);
+  } catch (e) {
+    toast('Dialer açılırken hata: ' + e.message, 'err');
+  }
+}
+
 function _renderCdrHistory() {
   const el = document.getElementById('cdr-history-list');
   if (!el) return;

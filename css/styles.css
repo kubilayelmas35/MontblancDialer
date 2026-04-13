@@ -339,6 +339,10 @@ display: flex;
 pointer-events: auto;
 visibility: visible;
 }
+#page-settings,
+#page-competition {
+  padding-top: 34px;
+}
 @media (max-width: 768px) { .page { padding: 14px; } }
 .page-hdr {
 display: flex; align-items: flex-start; justify-content: space-between;
