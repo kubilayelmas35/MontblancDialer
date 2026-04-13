@@ -39,7 +39,7 @@ const appts = logs.filter(l=>l.outcome==='appointment').length;
 const cbs   = logs.filter(l=>l.outcome==='callback').length;
 const vms   = logs.filter(l=>l.amd_result==='machine').length;
 const cost  = logs.reduce((s,l)=>s+(l.cost_usd||0),0);
-const talk  = logs.reduce((s,l)=>s+(l.talk_seconds||0),0);
+const talk  = logs.reduce((s,l)=>s+(l.duration_sec||0),0);
 document.getElementById('d-calls').textContent  = total;
 document.getElementById('d-appt').textContent   = appts;
 document.getElementById('d-cb').textContent     = cbs;
@@ -216,7 +216,7 @@ const campName = l.campaigns?.name || '—';
 const recHtml = l.recording_url
 ? `<div style="display:flex;align-items:center;gap:4px;">
 <audio id="ch-aud-${l.id}" src="${l.recording_url}" preload="none" style="display:none;"></audio>
-<button onclick="toggleAudio('ch-aud-${l.id.split('-')[0]}')" style="background:var(--accent);border:none;border-radius:50%;width:24px;height:24px;color:#fff;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;">▶</button>
+<button onclick="toggleAudio('ch-aud-${l.id}')" style="background:var(--accent);border:none;border-radius:50%;width:24px;height:24px;color:#fff;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;">▶</button>
 </div>`
 : '<span style="font-size:10px;color:var(--text-3);">—</span>';
 return `<tr>

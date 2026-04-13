@@ -237,7 +237,7 @@ function showCustomerCard(c) {
   document.getElementById('cust-attempt-badge').style.display = show('attempt') ? '' : 'none';
   document.getElementById('cust-attempt-badge').textContent = `${c.attempt_count||1}. arama`;
   document.getElementById('cust-camp-badge').textContent  = camp?.name||'—';
-  document.getElementById('cust-queue-badge').textContent = c.queue_name||'—';
+  document.getElementById('cust-queue-badge').textContent = c.queues?.name||c.queue_name||'—';
   const allFields = [
     { key:'plz',     l:'PLZ',                                      v:c.plz,    mono:true },
     { key:'city',    l:currentLang==='tr'?'Şehir':'Stadt',          v:c.city },

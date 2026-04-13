@@ -565,22 +565,24 @@ onclick="this.classList.toggle('active');this.style.background=this.classList.co
 }
 
 async function saveTakvimSettings() {
+  if (!takvimCampId) { toast('Kampanya seçili değil','err'); return; }
   const activeDays = [...document.querySelectorAll('.ts-day-btn.active')].map(b=>b.dataset.d);
-  const start = document.getElementById('ts-start')?.value || '08:00';
-  const end = document.getElementById('ts-end')?.value || '20:00';
-  const dur = parseInt(document.getElementById('ts-slot-dur')?.value||'2');
+  const start    = document.getElementById('ts-start')?.value    || '08:00';
+  const end      = document.getElementById('ts-end')?.value      || '20:00';
+  const dur      = parseInt(document.getElementById('ts-slot-dur')?.value||'2');
   const maxSlots = parseInt(document.getElementById('ts-max-slots')?.value||'5');
-  const settings = { active_days: activeDays, start_hour: start, end_hour: end, slot_dur: dur, max_slots: maxSlots };
+  const takvimSettings = { active_days: activeDays, start_hour: start, end_hour: end, slot_dur: dur, max_slots: maxSlots };
   try {
-    await sbUpsert('mesai_saatleri', {
-      campaign_id: takvimCampId, firm_id: currentUser.firm_id,
-      gun: '_settings', aktif: true,
-      baslangic_saat: start, bitis_saat: end,
-      settings_json: JSON.stringify(settings)
-    }, 'campaign_id,gun');
+    // Takvim ayarlarını campaigns.settings.takvim altına yaz
+    const camps = await sb(`campaigns?id=eq.${takvimCampId}&select=settings`);
+    const existingSettings = camps?.[0]?.settings || {};
+    await sb(`campaigns?id=eq.${takvimCampId}`, {
+      method: 'PATCH', prefer: 'return=minimal',
+      body: JSON.stringify({ settings: { ...existingSettings, takvim: takvimSettings } })
+    });
     document.getElementById('m-takvim-settings')?.remove();
-    toast('Takvim ayarları kaydedildi ✓','ok');
-  } catch(e) { toast('Hata: '+e.message,'err'); }
+    toast('Takvim ayarları kaydedildi ✓', 'ok');
+  } catch(e) { toast('Hata: '+e.message, 'err'); }
 }
 
 function openBulkSlotModal() {

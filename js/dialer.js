@@ -197,7 +197,7 @@ async function loadUpcomingWv() {
   try {
     const now = new Date();
     const soon = new Date(now.getTime() + 48*60*60*1000).toISOString();
-    const list = await sb(`wiedervorlage?agent=eq.${currentUser?.name}&durum=eq.bekliyor&termin_zaman=lte.${soon}&order=termin_zaman.asc&limit=5`);
+    const list = await sb(`wiedervorlage?agent_id=eq.${currentUser?.id}&durum=eq.bekliyor&termin_zaman=lte.${soon}&order=termin_zaman.asc&limit=5`);
     if (!list?.length) { el.innerHTML='<div style="color:var(--text-3);text-align:center;padding:6px;font-size:11px;">Yaklaşan arama yok</div>'; return; }
     el.innerHTML = list.map(w => {
       const dt = new Date(w.termin_zaman);
@@ -218,7 +218,7 @@ async function toggleReady() {
     setDialerStatus('ready');
     try {
       await sb('agent_sessions',{method:'POST',prefer:'resolution=merge-duplicates,return=minimal',
-        body:JSON.stringify({agent_id:currentUser.email,agent_name:currentUser.name,status:'ready',last_ready_at:new Date().toISOString()})
+        body:JSON.stringify({agent_id:currentUser.id,agent_name:currentUser.name,firm_id:currentUser.firm_id,status:'ready',last_seen:new Date().toISOString()})
       });
     } catch(e){}
     setTimeout(()=>dialNext(), 500);
@@ -453,7 +453,10 @@ async function submitOutcome(goBreak) {
         telefon: currentContact.phone, telefon2: currentContact.phone2||'',
         plz: currentContact.plz||'', ort: currentContact.city||'', strasse: currentContact.address||'',
         termin_zaman: new Date(cbTime).toISOString(),
-        agent: currentUser.name||currentUser.email,
+        agent_id: currentUser.id,
+        agent_name: currentUser.name,
+        firm_id: currentUser.firm_id,
+        contact_id: isValidUUID(currentContact.id) ? currentContact.id : null,
         durum: 'bekliyor',
         notiz: note
       })});

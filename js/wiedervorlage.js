@@ -3,18 +3,21 @@
 // ─────────────────────────────────────────────
 
 async function loadWvPage() {
-  const agentFilter = currentUser?.role === 'admin' ? null : currentUser?.email;
+  const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);
   const col = document.getElementById('wv-agent-col');
-  if (col) col.style.display = currentUser?.role === 'admin' ? '' : 'none';
+  if (col) col.style.display = isAdminRole ? '' : 'none';
   const agentRow = document.getElementById('wv-agent-row');
-  if (agentRow) agentRow.style.display = currentUser?.role === 'admin' ? '' : 'none';
-  if (currentUser?.role === 'admin') {
+  if (agentRow) agentRow.style.display = isAdminRole ? '' : 'none';
+  if (isAdminRole) {
     const sel = document.getElementById('wv-agent-sel');
     if (sel) {
-      const agents = await sb('agent_sessions?select=agent_id,agent_name&order=agent_name.asc').catch(() => []);
-      sel.innerHTML = `<option value="${currentUser.email}">${currentUser.name||currentUser.email}</option>` +
-        [...new Set((agents||[]).map(a=>a.agent_name||a.agent_id).filter(Boolean))].map(n=>
-          `<option value="${n}">${n}</option>`).join('');
+      // Değer olarak agent_id (UUID) kullan — güvenilir filtre
+      const agents = await sb('users?role=in.(agent,firm_admin,admin)&select=id,name&is_active=eq.true&order=name.asc').catch(() => []);
+      sel.innerHTML = `<option value="">Tümü</option>` +
+        `<option value="${currentUser.id}">${currentUser.name} (Ben)</option>` +
+        (agents||[]).filter(a => a.id !== currentUser.id).map(a =>
+          `<option value="${a.id}">${a.name||a.id}</option>`
+        ).join('');
     }
   }
   await refreshWvList();
@@ -23,9 +26,17 @@ async function loadWvPage() {
 
 async function refreshWvList() {
   try {
-    const url = currentUser?.role === 'admin'
-      ? 'wiedervorlage?select=*&order=termin_zaman.asc'
-      : `wiedervorlage?select=*&agent_name=eq.${encodeURIComponent(currentUser?.name||currentUser?.email)}&order=termin_zaman.asc`;
+    const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);
+    const sel = document.getElementById('wv-agent-sel');
+    const selectedAgentId = sel?.value || '';
+    let url;
+    if (isAdminRole && !selectedAgentId) {
+      url = 'wiedervorlage?select=*&order=termin_zaman.asc';
+    } else if (isAdminRole && selectedAgentId) {
+      url = `wiedervorlage?select=*&agent_id=eq.${selectedAgentId}&order=termin_zaman.asc`;
+    } else {
+      url = `wiedervorlage?select=*&agent_id=eq.${currentUser?.id}&order=termin_zaman.asc`;
+    }
     wvList = await sb(url).catch(() => []);
     renderWvTable();
     updateWvBadge();
@@ -34,9 +45,10 @@ async function refreshWvList() {
 
 function loadWvBadge() {
   if (!currentUser) return;
-  const url = currentUser?.role === 'admin'
+  const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);
+  const url = isAdminRole
     ? 'wiedervorlage?select=id,termin_zaman,durum&order=termin_zaman.asc'
-    : `wiedervorlage?select=id,termin_zaman,durum&agent_name=eq.${encodeURIComponent(currentUser?.name||currentUser?.email)}`;
+    : `wiedervorlage?select=id,termin_zaman,durum&agent_id=eq.${currentUser.id}`;
   sb(url).then(list => {
     wvList = list || [];
     updateWvBadge();
@@ -174,7 +186,9 @@ async function saveWv() {
     strasse: document.getElementById('wv-str').value.trim(),
     notiz: document.getElementById('wv-note').value.trim(),
     termin_zaman: new Date(dt).toISOString(),
-    agent: agentSel?.value || currentUser?.name || currentUser?.email || '',
+    agent_id: agentSel?.value || currentUser?.id,
+    agent_name: currentUser?.name || '',
+    firm_id: currentUser?.firm_id,
     durum: 'bekliyor',
   };
   try {
