@@ -26,6 +26,9 @@ function defaultPayrollRules() {
     tax_rate_percent: 0,
     government_supported: false,
     exchange_rate: 1,
+    fx_api_provider: 'exchangerate_host',
+    fx_api_url: '',
+    fx_api_key: '',
     late_penalty_enabled: false,
     late_penalty_amount: 0,
     leave_overflow_penalty_enabled: false,
@@ -130,20 +133,20 @@ async function canAgentSelectCustomer(fid) {
 }
 
 function _mBonusFor(successCount, tiers, ruleCurrency, targetCurrency, rate) {
-  let sum = 0;
+  let bonus = 0;
   (tiers || []).forEach(t => {
     const min = Number(t.min || 0);
     const max = Number(t.max || 999999);
     if (successCount >= min && successCount <= max) {
       const amount = Number(t.amount || 0);
       const ccy = (t.currency || ruleCurrency || 'EUR').toUpperCase();
-      if (ccy === targetCurrency) sum += amount * successCount;
-      else if (ccy === 'EUR' && targetCurrency === 'TRY') sum += amount * successCount * rate;
-      else if (ccy === 'TRY' && targetCurrency === 'EUR') sum += amount * successCount / (rate || 1);
-      else sum += amount * successCount;
+      if (ccy === targetCurrency) bonus = amount;
+      else if (ccy === 'EUR' && targetCurrency === 'TRY') bonus = amount * rate;
+      else if (ccy === 'TRY' && targetCurrency === 'EUR') bonus = amount / (rate || 1);
+      else bonus = amount;
     }
   });
-  return sum;
+  return bonus;
 }
 
 function _mConvertCurrency(v, from, to, rate) {
@@ -201,6 +204,9 @@ function renderPayrollRulesForm(r) {
   };
   set('pr-currency', r.currency || 'EUR');
   set('pr-rate', Number(r.exchange_rate || 1));
+  set('pr-fx-provider', r.fx_api_provider || 'exchangerate_host');
+  set('pr-fx-url', r.fx_api_url || '');
+  set('pr-fx-key', r.fx_api_key || '');
   set('pr-mode', r.base_salary_mode || 'net');
   set('pr-base', Number(r.base_salary_amount || 0));
   set('pr-tax', Number(r.tax_rate_percent || 0));
@@ -216,7 +222,17 @@ function renderPayrollRulesForm(r) {
   setChk('pr-agent-customer', r.appointment_customer_select_by_agent);
   renderPayrollTierRows('bonus', bonusTiers);
   renderPayrollTierRows('salary', salaryTiers);
+  onFxProviderChange();
   updatePayrollPreview();
+}
+
+function onFxProviderChange() {
+  const p = document.getElementById('pr-fx-provider')?.value || 'exchangerate_host';
+  const urlRow = document.getElementById('pr-fx-url-row');
+  const keyRow = document.getElementById('pr-fx-key-row');
+  const isCustom = p === 'custom';
+  if (urlRow) urlRow.style.display = isCustom ? '' : 'none';
+  if (keyRow) keyRow.style.display = isCustom ? '' : 'none';
 }
 
 function renderPayrollTierRows(type, rows) {
@@ -227,7 +243,7 @@ function renderPayrollTierRows(type, rows) {
     ${safe.map((r, i) => `<div style="display:grid;grid-template-columns:90px 90px 1fr 90px auto;gap:6px;align-items:end;">
       <div><label class="form-label">Min</label><input class="form-input" type="number" id="pr-${type}-min-${i}" value="${Number(r.min||0)}" oninput="updatePayrollPreview()"></div>
       <div><label class="form-label">Max</label><input class="form-input" type="number" id="pr-${type}-max-${i}" value="${Number(r.max||0)}" oninput="updatePayrollPreview()"></div>
-      <div><label class="form-label">${type==='bonus'?'Tutar/Termin':'Net Maaş'}</label><input class="form-input" type="number" step="0.01" id="pr-${type}-amount-${i}" value="${Number(r.amount||0)}" oninput="updatePayrollPreview()"></div>
+      <div><label class="form-label">${type==='bonus'?'Kademe Primi':'Net Maaş'}</label><input class="form-input" type="number" step="0.01" id="pr-${type}-amount-${i}" value="${Number(r.amount||0)}" oninput="updatePayrollPreview()"></div>
       <div><label class="form-label">Para</label>
         <select class="form-input" id="pr-${type}-currency-${i}" onchange="updatePayrollPreview()">
           <option value="EUR" ${String(r.currency||'EUR').toUpperCase()==='EUR'?'selected':''}>EUR</option>
@@ -297,6 +313,9 @@ async function savePayrollRules() {
     firm_id: fid,
     currency: document.getElementById('pr-currency')?.value || 'EUR',
     exchange_rate: Number(document.getElementById('pr-rate')?.value) || 1,
+    fx_api_provider: document.getElementById('pr-fx-provider')?.value || 'exchangerate_host',
+    fx_api_url: document.getElementById('pr-fx-url')?.value?.trim() || '',
+    fx_api_key: document.getElementById('pr-fx-key')?.value?.trim() || '',
     base_salary_mode: document.getElementById('pr-mode')?.value || 'net',
     base_salary_amount: Number(document.getElementById('pr-base')?.value) || 0,
     tax_rate_percent: Number(document.getElementById('pr-tax')?.value) || 0,
@@ -350,7 +369,32 @@ function _mSalaryForSuccess(baseSalary, successCount, salaryTiers, ruleCurrency,
 }
 
 async function _fetchEurTryRateAt(dateStr) {
+  return await _fetchFxRateByRules(dateStr, defaultPayrollRules());
+}
+
+async function _fetchFxRateByRules(dateStr, rules) {
+  const provider = rules?.fx_api_provider || 'exchangerate_host';
   try {
+    if (provider === 'frankfurter') {
+      const res = await fetch(`https://api.frankfurter.app/${dateStr}?from=EUR&to=TRY`);
+      if (!res.ok) return null;
+      const json = await res.json();
+      return Number(json?.rates?.TRY || 0) || null;
+    }
+    if (provider === 'custom') {
+      const tpl = rules?.fx_api_url || '';
+      if (!tpl) return null;
+      let url = tpl.replaceAll('{date}', dateStr).replaceAll('{base}', 'EUR').replaceAll('{quote}', 'TRY');
+      const key = rules?.fx_api_key || '';
+      if (key) {
+        const joiner = url.includes('?') ? '&' : '?';
+        url += `${joiner}apikey=${encodeURIComponent(key)}`;
+      }
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const json = await res.json();
+      return Number(json?.rates?.TRY || json?.data?.TRY || json?.TRY || 0) || null;
+    }
     const res = await fetch(`https://api.exchangerate.host/${dateStr}?base=EUR&symbols=TRY`);
     if (!res.ok) return null;
     const json = await res.json();
@@ -360,14 +404,14 @@ async function _fetchEurTryRateAt(dateStr) {
   }
 }
 
-async function _getMonthFxRate(fid, ym, fallbackRate) {
+async function _getMonthFxRate(fid, ym, fallbackRate, rules) {
   const b = _mMonthBounds(ym);
   const rateDate = b.end;
   try {
     const ex = await sb(`payroll_fx_rates?firm_id=eq.${fid}&rate_date=eq.${rateDate}&base_currency=eq.EUR&quote_currency=eq.TRY&select=rate&limit=1`);
     if (ex?.length && Number(ex[0].rate) > 0) return Number(ex[0].rate);
   } catch (e) {}
-  const apiRate = await _fetchEurTryRateAt(rateDate);
+  const apiRate = await _fetchFxRateByRules(rateDate, rules || {});
   const rate = apiRate || Number(fallbackRate || 1) || 1;
   try {
     await sb('payroll_fx_rates', {
@@ -537,7 +581,7 @@ function _mCollectAdjustments(adj, uid, rules) {
 async function renderMuhasebePayrollTable(fid, ym, rules) {
   const users = await _mFetchUsers(fid);
   const b = _mMonthBounds(ym);
-  const monthRate = await _getMonthFxRate(fid, ym, Number(rules.exchange_rate || 1));
+  const monthRate = await _getMonthFxRate(fid, ym, Number(rules.exchange_rate || 1), rules);
   const data = await _mFetchMonthlyData(fid, ym, b.year, b);
   const statsByUser = _mBuildStatsByUser(data.appts, data.leaveReqs, data.ents, data.lates);
   const overMap = {};
@@ -653,7 +697,7 @@ function renderMuhasebeRowsTable(rows, rules) {
         <td>${_mFmt(r.paidAmount)} ${cur}</td>
         <td style="font-weight:800;color:${r.remaining > 0 ? 'var(--red)' : 'var(--green)'};">${_mFmt(r.remaining)} ${cur}</td>
         ${admin ? `<td>
-          <button class="btn btn-ghost btn-sm" onclick="openPayrollOverride('${r.user_id}')">Override</button>
+          <button class="btn btn-ghost btn-sm" onclick="openPayrollOverride('${r.user_id}')">Özel Ayar</button>
           <button class="btn btn-ghost btn-sm" onclick="addPayrollAdjustment('${r.user_id}')">Ekle/Kes</button>
           <button class="btn btn-ghost btn-sm" onclick="savePayrollPayment('${r.user_id}')">Ödeme</button>
         </td>` : ''}
