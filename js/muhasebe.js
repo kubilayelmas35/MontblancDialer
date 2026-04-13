@@ -79,6 +79,7 @@ function _mNormTiers(arr) {
     max: Number(t.max || 999999),
     amount: Number(t.amount || 0),
     currency: (t.currency || 'EUR').toUpperCase(),
+    calc_type: t.calc_type === 'per_appointment' ? 'per_appointment' : 'fixed',
   })).filter(t => t.max >= t.min && t.amount >= 0);
 }
 
@@ -142,11 +143,16 @@ function _mBonusFor(successCount, tiers, ruleCurrency, targetCurrency, rate) {
     const max = Number(t.max || 999999);
     if (successCount >= min && successCount <= max) {
       const amount = Number(t.amount || 0);
+      const calcType = t.calc_type === 'per_appointment' ? 'per_appointment' : 'fixed';
       const ccy = (t.currency || ruleCurrency || 'EUR').toUpperCase();
-      if (ccy === targetCurrency) bonus = amount;
-      else if (ccy === 'EUR' && targetCurrency === 'TRY') bonus = amount * rate;
-      else if (ccy === 'TRY' && targetCurrency === 'EUR') bonus = amount / (rate || 1);
-      else bonus = amount;
+      let oneUnit = amount;
+      if (ccy !== targetCurrency) oneUnit = _mConvertCurrency(amount, ccy, targetCurrency, rate);
+      if (calcType === 'per_appointment') {
+        const countInTier = Math.max(0, Math.min(successCount, max) - min + 1);
+        bonus = oneUnit * countInTier;
+      } else {
+        bonus = oneUnit;
+      }
     }
   });
   return bonus;
@@ -221,13 +227,17 @@ async function testFxRateNow() {
 }
 
 function setMuhasebeTab(tab) {
-  window._muhasebeTab = tab || 'ozet';
+  const isAgentOnly = currentUser?.role === 'agent';
+  window._muhasebeTab = isAgentOnly ? 'personel' : (tab || 'ozet');
   const panes = ['ozet', 'gelir', 'personel', 'vergi', 'musteri'];
   panes.forEach(p => {
     const pane = document.getElementById(`muh-pane-${p}`);
     if (pane) pane.style.display = p === window._muhasebeTab ? '' : 'none';
   });
   document.querySelectorAll('.muh-tab-btn').forEach(btn => {
+    const tabId = btn.dataset.muhTab;
+    const hiddenForAgent = isAgentOnly && tabId !== 'personel';
+    btn.style.display = hiddenForAgent ? 'none' : '';
     const active = btn.dataset.muhTab === window._muhasebeTab;
     btn.classList.toggle('active', active);
     btn.style.background = active ? 'var(--accent)' : '';
@@ -280,12 +290,18 @@ function onFxProviderChange() {
 function renderPayrollTierRows(type, rows) {
   const wrap = document.getElementById(type === 'bonus' ? 'pr-bonus-tiers-wrap' : 'pr-salary-tiers-wrap');
   if (!wrap) return;
-  const safe = rows?.length ? rows : [{ min: 0, max: 0, amount: 0, currency: 'EUR' }];
+  const safe = rows?.length ? rows : [{ min: 0, max: 0, amount: 0, currency: 'EUR', calc_type: 'fixed' }];
   wrap.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px;">
-    ${safe.map((r, i) => `<div style="display:grid;grid-template-columns:90px 90px 1fr 90px auto;gap:6px;align-items:end;">
+    ${safe.map((r, i) => `<div style="display:grid;grid-template-columns:90px 90px 1fr ${type==='bonus'?'170px ':''}90px auto;gap:6px;align-items:end;">
       <div><label class="form-label">Min</label><input class="form-input" type="number" id="pr-${type}-min-${i}" value="${Number(r.min||0)}" oninput="updatePayrollPreview()"></div>
       <div><label class="form-label">Max</label><input class="form-input" type="number" id="pr-${type}-max-${i}" value="${Number(r.max||0)}" oninput="updatePayrollPreview()"></div>
       <div><label class="form-label">${type==='bonus'?'Kademe Primi':'Net Maaş'}</label><input class="form-input" type="number" step="0.01" id="pr-${type}-amount-${i}" value="${Number(r.amount||0)}" oninput="updatePayrollPreview()"></div>
+      ${type==='bonus' ? `<div><label class="form-label">Prim tipi</label>
+        <select class="form-input" id="pr-${type}-calc-${i}" onchange="updatePayrollPreview()">
+          <option value="fixed" ${(r.calc_type||'fixed')==='fixed'?'selected':''}>Sabit</option>
+          <option value="per_appointment" ${(r.calc_type||'fixed')==='per_appointment'?'selected':''}>Termin Başı</option>
+        </select>
+      </div>` : ''}
       <div><label class="form-label">Para</label>
         <select class="form-input" id="pr-${type}-currency-${i}" onchange="updatePayrollPreview()">
           <option value="EUR" ${String(r.currency||'EUR').toUpperCase()==='EUR'?'selected':''}>EUR</option>
@@ -302,14 +318,14 @@ function addPayrollTierRow(type) {
   const wrap = document.getElementById(type === 'bonus' ? 'pr-bonus-tiers-wrap' : 'pr-salary-tiers-wrap');
   if (!wrap) return;
   const cur = readPayrollTierRows(type);
-  cur.push({ min: 0, max: 0, amount: 0, currency: 'EUR' });
+  cur.push({ min: 0, max: 0, amount: 0, currency: 'EUR', calc_type: 'fixed' });
   renderPayrollTierRows(type, cur);
   updatePayrollPreview();
 }
 
 function removePayrollTierRow(type, idx) {
   const cur = readPayrollTierRows(type).filter((_, i) => i !== idx);
-  renderPayrollTierRows(type, cur.length ? cur : [{ min: 0, max: 0, amount: 0, currency: 'EUR' }]);
+  renderPayrollTierRows(type, cur.length ? cur : [{ min: 0, max: 0, amount: 0, currency: 'EUR', calc_type: 'fixed' }]);
   updatePayrollPreview();
 }
 
@@ -323,6 +339,9 @@ function readPayrollTierRows(type) {
       max: Number(document.getElementById(`pr-${type}-max-${i}`)?.value || 0),
       amount: Number(document.getElementById(`pr-${type}-amount-${i}`)?.value || 0),
       currency: (document.getElementById(`pr-${type}-currency-${i}`)?.value || 'EUR').toUpperCase(),
+      calc_type: type === 'bonus'
+        ? (document.getElementById(`pr-${type}-calc-${i}`)?.value === 'per_appointment' ? 'per_appointment' : 'fixed')
+        : 'fixed',
     });
   }
   return _mNormTiers(rows);
@@ -346,7 +365,7 @@ function updatePayrollPreview() {
   const revenue = success * revenuePerSuccess;
   const matrah = Math.max(0, revenue - net);
   const companyTax = gov ? 0 : matrah * (taxRate / 100);
-  out.innerHTML = `Başarılı: <b>${success}</b> · Baz(Net): <b>${_mFmt(salary)} ${currency}</b> · Prim: <b>${_mFmt(bonus)} ${currency}</b> · Personel Hakedişi: <b>${_mFmt(net)} ${currency}</b> · Şirket Geliri: <b>${_mFmt(revenue)} ${currency}</b> · Şirket Vergisi: <b>${_mFmt(companyTax)} ${currency}</b>`;
+  out.innerHTML = `Başarılı: <b>${success}</b> · Baz(Net): <b>${_mFmt(salary)} ${currency}</b> · Prim: <b>${_mFmt(bonus)} ${currency}</b> · Personel Hakedişi: <b>${_mFmt(net)} ${currency}</b> · Şirket Geliri: <b>${_mFmt(revenue)} ${currency}</b> · Şirket Vergisi: <b>${_mFmt(companyTax)} ${currency}</b><div style="margin-top:4px;font-size:11px;color:var(--text-3);">Prim tipi: Sabit = kademeye girince tek tutar, Termin Başı = aralıktaki her termin için tutar.</div>`;
 }
 
 async function savePayrollRules() {
@@ -771,9 +790,18 @@ async function renderMuhasebePayrollTable(fid, ym, rules) {
   let filtered = rows;
   if (currentUser?.role === 'agent') filtered = rows.filter(r => r.user_id === currentUser.id);
   window._muhasebeRows = filtered;
-  renderMuhasebeSummaryCards(filtered, rules);
+  const showCompanyFinance = isMuhasebeAdmin();
+  const summaryBox = document.getElementById('muhasebe-summary-cards');
+  if (showCompanyFinance) renderMuhasebeSummaryCards(filtered, rules);
+  else if (summaryBox) summaryBox.innerHTML = '';
   renderMuhasebeRowsTable(filtered, rules);
-  renderMuhasebeFinancePanels(filtered, rules);
+  if (showCompanyFinance) renderMuhasebeFinancePanels(filtered, rules);
+  else {
+    const incomeBox = document.getElementById('muh-income-expense-summary');
+    const taxBox = document.getElementById('muh-tax-summary');
+    if (incomeBox) incomeBox.innerHTML = '';
+    if (taxBox) taxBox.innerHTML = '';
+  }
 }
 
 function renderMuhasebeSummaryCards(rows, rules) {
