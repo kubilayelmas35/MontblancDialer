@@ -142,12 +142,12 @@ inset: -40% auto -40% -8%;
 width: min(420px, 55vw);
 pointer-events: none;
 z-index: 0;
-opacity: 0.42;
-mix-blend-mode: multiply;
+opacity: 0.38;
+/* multiply/screen logo metninde morumsu leke yapıyordu */
+mix-blend-mode: normal;
 }
 [data-theme="dark"] .tb-aurora-layer {
-mix-blend-mode: screen;
-opacity: 0.28;
+opacity: 0.26;
 }
 #topbar > *:not(.tb-aurora-layer) {
 position: relative;
@@ -170,6 +170,13 @@ transition: var(--transition);
 .tb-logo {
 display: flex; align-items: center; gap: 9px;
 margin-right: 12px; flex-shrink: 0;
+position: relative;
+z-index: 2;
+/* Topbar aurora / blend arkasından renk sızmasın */
+background: var(--topbar-bg);
+border-radius: 12px;
+padding: 3px 10px 3px 5px;
+isolation: isolate;
 }
 .tb-logo-mark {
 width: 30px; height: 30px;
@@ -183,8 +190,11 @@ box-shadow: 0 2px 8px var(--accent-soft);
 .tb-logo-tag {
 font-size: 9px; color: var(--accent); font-family: var(--mono);
 font-weight: 600; letter-spacing: 1px;
-background: transparent;
+background: transparent !important;
 padding: 0;
+margin: 0;
+border: none;
+box-shadow: none;
 border-radius: 0;
 }
 /* Topbar pills */
@@ -265,24 +275,10 @@ position: relative;
 transition: width var(--transition), min-width var(--transition), transform var(--transition);
 box-shadow: 4px 0 24px rgba(0,0,0,0.15);
 }
-#sidebar > *:not(.sb-top-strip) {
+/* Aurora altta (z-index:0), menü üstte — sb-top-strip kaldırıldı; yanlış seçici aurorayı bozuyordu */
+#sidebar > *:not(.fluid-aurora--sidebar) {
 position: relative;
 z-index: 1;
-}
-.sb-top-strip {
-position: relative;
-width: 100%;
-height: var(--topbar-h);
-min-height: var(--topbar-h);
-flex-shrink: 0;
-overflow: hidden;
-border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-.sb-top-strip .fluid-aurora--sidebar {
-position: absolute;
-inset: 0;
-width: 100%;
-height: 100%;
 }
 [data-theme="dark"] #sidebar { background: #080c14; }
 #sidebar.collapsed { width: 56px; min-width: 56px; }
@@ -1321,6 +1317,9 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 /* Sol menü — v6.15 / e50ce62 aurora: dönen conic, renk zamanla kayar */
 .fluid-aurora--sidebar {
   inset: 0;
+  z-index: 0;
+}
+#sidebar .fluid-aurora.fluid-aurora--sidebar {
   z-index: 0;
 }
 .fluid-aurora--sidebar::before {
