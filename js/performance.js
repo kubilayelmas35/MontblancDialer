@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────
 
 function canUsePerformancePage() {
-  return ['admin', 'super_admin'].includes(currentUser?.role || '');
+  return ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
 }
 
 let _perfRawAppts = [];
@@ -719,3 +719,4 @@ async function loadPerformancePage() {
     await perfReload();
   }
 }
+
