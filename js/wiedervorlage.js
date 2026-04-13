@@ -112,11 +112,16 @@ function renderWvTable() {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:32px;">Kayıt yok</td></tr>';
     return;
   }
+  const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);
   tbody.innerHTML = list.map(w => {
     const dt = w.termin_zaman ? new Date(w.termin_zaman) : null;
     const dtStr = dt ? dt.toLocaleString('tr-TR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
     const isOverdue = dt && dt < now && w.durum !== 'tamamlandi';
     const rowStyle = isOverdue ? 'background:rgba(var(--red-rgb),.06);' : '';
+    // Conditionally render agent cell to avoid misalignment for non-admin
+    const agentCell = isAdminRole
+      ? `<td style="font-size:12px;">${w.agent_name||w.agent||'—'}</td>`
+      : '';
     return `<tr style="${rowStyle}">
 <td style="font-family:var(--mono);font-size:11px;${isOverdue?'color:var(--red);font-weight:700;':''}">${dtStr}</td>
 <td style="font-weight:600;">${w.nachname||'—'}</td>
@@ -124,13 +129,13 @@ function renderWvTable() {
 ${w.telefon2?`<br><a href="tel:${w.telefon2}" style="color:var(--text-3);font-family:var(--mono);font-size:11px;">${w.telefon2}</a>`:''}
 </td>
 <td style="font-family:var(--mono);font-size:12px;">${w.plz||''} ${w.ort||''}</td>
-<td style="font-size:12px;">${w.agent||'—'}</td>
+${agentCell}
 <td style="font-size:11px;color:var(--text-2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(w.notiz||'').replace(/"/g,'')}">${w.notiz||'—'}</td>
 <td>
-<div style="display:flex;gap:4px;">
-<button class="btn btn-ghost btn-sm" style="padding:3px 7px;" onclick="openWvEditModal('${w.id}')">✏️</button>
-<button class="btn btn-ghost btn-sm" style="padding:3px 7px;color:var(--green);" onclick="wvMarkDone('${w.id}')" title="Tamamlandı">✓</button>
-<button class="btn btn-ghost btn-sm" style="padding:3px 7px;" onclick="wvCallNow('${w.id}')">📞</button>
+<div style="display:flex;gap:4px;align-items:center;">
+<button class="icon-btn" onclick="openWvEditModal('${w.id}')" title="Düzenle"><i class="ph ph-pencil-simple"></i></button>
+<button class="icon-btn" style="border-color:var(--green);color:var(--green);" onclick="wvMarkDone('${w.id}')" title="Tamamlandı"><i class="ph ph-check"></i></button>
+<button class="icon-btn" style="border-color:var(--accent);color:var(--accent);" onclick="wvCallNow('${w.id}')" title="Ara"><i class="ph ph-phone"></i></button>
 </div>
 </td>
 </tr>`;

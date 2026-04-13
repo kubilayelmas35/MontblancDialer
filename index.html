@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr" data-theme="light" data-palette="blue">
 <head>
 <meta charset="UTF-8">
@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=2.9">
+<link rel="stylesheet" href="css/styles.css?v=3.0">
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
 <body>
@@ -200,7 +200,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v2.9</div>
+<div class="sb-ver">Montblanc Dialer v3.0</div>
 </div>
 </nav>
 <main id="main">
@@ -574,8 +574,8 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="status-dot offline" id="status-dot"></div>
 <div class="status-label" id="status-label" style="font-size:12px;font-weight:700;" data-tr="Çevrimdışı" data-de="Offline">Çevrimdışı</div>
 </div>
-<span id="mic-status" title="Mikrofon" style="font-size:15px;cursor:default;">🔇</span>
-<span id="rtc-status" style="font-size:11px;color:var(--text-3);">🔴 Bağlantı yok</span>
+<span id="mic-status" title="Mikrofon" style="font-size:15px;cursor:default;"><i class="ph ph-microphone-slash" style="vertical-align:-3px;font-size:17px;color:var(--text-3);"></i></span>
+<span id="rtc-status" style="font-size:11px;color:var(--text-3);"><i class="ph ph-dot" style="vertical-align:-1px;"></i> Bağlantı yok</span>
 <div id="dialer-timer" class="dialer-timer" style="display:none;">00:00</div>
 </div>
 <div style="display:flex;gap:6px;align-items:center;margin-left:auto;">
@@ -725,11 +725,6 @@ style="opacity:0.45;cursor:not-allowed;" title="Önce kampanya seçin">
 <div class="agent-camps-panel" id="agent-camps-panel">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
 <div class="card-title" data-tr="Kampanyalarım" data-de="Meine Kampagnen">Kampanyalarım</div>
-<button class="btn btn-ghost btn-sm" id="fake-call-btn" onclick="startFakeCall()"
-style="font-size:10px;padding:3px 8px;color:var(--yellow);border-color:var(--yellow);display:none;"
-title="Test amaçlı fake çağrı">
-🧪 Test
-</button>
 </div>
 <div id="agent-camp-list" style="display:flex;flex-direction:column;gap:5px;">
 <div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Yükleniyor...</div>
@@ -1646,19 +1641,19 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=2.9"></script>
-<script src="js/state.js?v=2.9"></script>
-<script src="js/api.js?v=2.9"></script>
-<script src="js/auth.js?v=2.9"></script>
-<script src="js/ui.js?v=2.9"></script>
-<script src="js/dashboard.js?v=2.9"></script>
-<script src="js/campaigns.js?v=2.9"></script>
-<script src="js/contacts.js?v=2.9"></script>
-<script src="js/telnyx.js?v=2.9"></script>
-<script src="js/dialer.js?v=2.9"></script>
-<script src="js/appointments.js?v=2.9"></script>
-<script src="js/wiedervorlage.js?v=2.9"></script>
-<script src="js/qc.js?v=2.9"></script>
-<script src="js/agents.js?v=2.9"></script>
+<script src="js/config.js?v=3.0"></script>
+<script src="js/state.js?v=3.0"></script>
+<script src="js/api.js?v=3.0"></script>
+<script src="js/auth.js?v=3.0"></script>
+<script src="js/ui.js?v=3.0"></script>
+<script src="js/dashboard.js?v=3.0"></script>
+<script src="js/campaigns.js?v=3.0"></script>
+<script src="js/contacts.js?v=3.0"></script>
+<script src="js/telnyx.js?v=3.0"></script>
+<script src="js/dialer.js?v=3.0"></script>
+<script src="js/appointments.js?v=3.0"></script>
+<script src="js/wiedervorlage.js?v=3.0"></script>
+<script src="js/qc.js?v=3.0"></script>
+<script src="js/agents.js?v=3.0"></script>
 </body>
 </html>

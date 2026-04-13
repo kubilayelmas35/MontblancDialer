@@ -539,6 +539,7 @@ function showCampScript2(contact) { showCampScript(contact); }
 
 // ── Contact Drawer ─────────────────────────────
 let _cdrContactId = null;
+let _cdrContact   = null;
 let _cdrTab = 'info';
 let _cdrLogs = [];
 
@@ -567,6 +568,7 @@ async function openContactDrawer(contactId) {
     ]);
     const c = Array.isArray(contacts) ? contacts[0] : contacts;
     _cdrLogs = Array.isArray(logs) ? logs : [];
+    _cdrContact = c || null;
     if (!c) { toast('Kişi bulunamadı','warn'); closeContactDrawer(); return; }
     const fullName = `${c.first_name||''} ${c.last_name||''}`.trim() || c.phone || '?';
     document.getElementById('cdr-av').textContent = (fullName.charAt(0)||'?').toUpperCase();
@@ -599,11 +601,11 @@ async function openContactDrawer(contactId) {
     _renderCdrHistory();
     // Recordings tab
     _renderCdrRecordings();
-    // Show call button only for agents/dialer
+    // Show call button for agents and qc users
     const footer = document.getElementById('cdr-footer');
     if (footer) {
-      const isAgent = currentUser?.role === 'agent';
-      footer.style.display = isAgent ? '' : 'none';
+      const canCall = ['agent','qc'].includes(currentUser?.role);
+      footer.style.display = canCall ? '' : 'none';
       const btn = document.getElementById('cdr-call-btn');
       if (btn) btn.setAttribute('data-phone', c.phone||'');
     }
@@ -683,12 +685,21 @@ function closeContactDrawer() {
 }
 
 function drawerCallContact() {
-  const phone = document.getElementById('cdr-call-btn')?.getAttribute('data-phone');
-  if (!phone) return;
+  const c = _cdrContact;
+  if (!c?.phone) { toast('Telefon numarası yok', 'warn'); return; }
   closeContactDrawer();
-  // Navigate to dialer and dial
+  // Set as current contact and open dialer
+  currentContact = c;
   navigate('dialer');
-  if (typeof makeCall === 'function') makeCall(phone);
+  // Small delay to let dialer UI render
+  setTimeout(() => {
+    // Show customer card with the contact's info
+    if (typeof showCustomerCard === 'function') showCustomerCard(c);
+    // Transition to ready/calling state
+    if (typeof setDialerStatus === 'function') setDialerStatus('calling');
+    // Start the actual call
+    if (typeof makeCall === 'function') makeCall(c.phone);
+  }, 150);
 }
 
 function showContactMap(address, plz, city) {

@@ -135,8 +135,9 @@ break;
 function updateMicStatus(granted) {
 const el = document.getElementById('mic-status');
 if (!el) return;
-el.textContent = granted ? '🎤' : '🔇';
-el.style.color = granted ? 'var(--green)' : 'var(--red)';
+el.innerHTML = granted
+  ? '<i class="ph ph-microphone" style="vertical-align:-3px;font-size:17px;color:var(--green);"></i>'
+  : '<i class="ph ph-microphone-slash" style="vertical-align:-3px;font-size:17px;color:var(--red);"></i>';
 el.title = granted
 ? (currentLang==='tr' ? 'Mikrofon aktif' : 'Mikrofon aktiv')
 : (currentLang==='tr' ? 'Mikrofon izni yok' : 'Kein Mikrofon-Zugriff');
@@ -146,12 +147,12 @@ function updateConnectionStatus(status) {
 const el = document.getElementById('rtc-status');
 if (!el) return;
 const map = {
-connecting:   { icon:'🔄', color:'var(--yellow)', tr:'Bağlanıyor...', de:'Verbinde...' },
-connected:    { icon:'🟢', color:'var(--green)',  tr:'Bağlandı',      de:'Verbunden'   },
-disconnected: { icon:'🔴', color:'var(--red)',    tr:'Bağlantı yok',  de:'Getrennt'    },
+connecting:   { icon:'<i class="ph ph-arrows-clockwise"></i>', color:'var(--yellow)', tr:'Bağlanıyor...', de:'Verbinde...' },
+connected:    { icon:'<i class="ph ph-circle-wavy-check"></i>',  color:'var(--green)',  tr:'Bağlandı',      de:'Verbunden'   },
+disconnected: { icon:'<i class="ph ph-x-circle"></i>',    color:'var(--red)',    tr:'Bağlantı yok',  de:'Getrennt'    },
 };
 const s = map[status]||map.disconnected;
-el.innerHTML = `${s.icon} <span style="color:${s.color};font-size:11px;font-weight:600;">${s[currentLang]||s.tr}</span>`;
+el.innerHTML = `<span style="color:${s.color};font-size:11px;font-weight:600;display:flex;align-items:center;gap:3px;">${s.icon} ${s[currentLang]||s.tr}</span>`;
 }
 
 function handleCallState(state, callId) {
