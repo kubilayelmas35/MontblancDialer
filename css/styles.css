@@ -136,35 +136,20 @@ backdrop-filter: blur(8px);
 position: relative;
 overflow: hidden;
 }
-/* Marka alanı: menü genişliği kadar, yuvarlatılmış — içte koyu sıvı arka plan */
-.tb-brand-cluster {
-position: relative;
-display: flex;
-align-items: center;
-gap: 8px;
-max-width: var(--sidebar-w);
-flex-shrink: 0;
-padding: 5px 12px 5px 5px;
-border-radius: 16px;
-overflow: hidden;
-border: 1px solid rgba(37, 99, 235, 0.12);
-box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
-}
-.tb-brand-aurora {
-position: absolute !important;
-inset: 0 !important;
-width: 100% !important;
-height: 100% !important;
-border-radius: inherit;
-z-index: 0;
+.tb-aurora-layer {
+position: absolute;
+inset: -40% auto -40% -8%;
+width: min(420px, 55vw);
 pointer-events: none;
+z-index: 0;
+opacity: 0.42;
+mix-blend-mode: multiply;
 }
-.tb-brand-cluster .tb-hamburger,
-.tb-brand-cluster .tb-logo {
-position: relative;
-z-index: 1;
+[data-theme="dark"] .tb-aurora-layer {
+mix-blend-mode: screen;
+opacity: 0.28;
 }
-#topbar > * {
+#topbar > *:not(.tb-aurora-layer) {
 position: relative;
 z-index: 1;
 }
@@ -198,14 +183,8 @@ box-shadow: 0 2px 8px var(--accent-soft);
 .tb-logo-tag {
 font-size: 9px; color: var(--accent); font-family: var(--mono);
 font-weight: 600; letter-spacing: 1px;
-background: rgba(37, 99, 235, 0.14);
-padding: 2px 7px; border-radius: 8px;
-border: 1px solid rgba(37, 99, 235, 0.18);
-}
-[data-theme="dark"] .tb-logo-tag {
-background: rgba(96, 165, 250, 0.12);
-border-color: rgba(96, 165, 250, 0.2);
-color: #93c5fd;
+background: var(--accent-soft);
+padding: 1px 5px; border-radius: 3px;
 }
 /* Topbar pills */
 #tb-pills {
@@ -1338,69 +1317,43 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   left: -40%;
   top: -60%;
 }
-/* Topbar marka kutusu — menü genişliği kadar, yuvarlatılmış; koyu lacivert–teal, durağan */
-.fluid-aurora--brand::before {
-  background: radial-gradient(ellipse 95% 130% at 32% 32%,
-    rgba(32, 62, 98, 0.55) 0%,
-    rgba(18, 42, 68, 0.38) 50%,
-    rgba(12, 28, 48, 0.22) 100%);
-  animation: none;
-  filter: blur(20px);
-  opacity: 0.92;
-  width: 125%;
-  height: 200%;
-  left: -10%;
-  top: -48%;
+/* Sol menü — tam yükseklik renkli aurora (önceki sürüm gibi); tonlar koyu, açık renge kaymaz */
+.fluid-aurora--sidebar {
+  inset: 0;
+  z-index: 0;
 }
-.fluid-aurora--brand::after {
-  background: radial-gradient(ellipse 75% 90% at 72% 58%,
-    rgba(28, 78, 98, 0.32) 0%,
-    transparent 72%);
-  animation: none;
-  filter: blur(16px);
-  opacity: 0.72;
-  width: 115%;
-  height: 190%;
-  left: -6%;
-  top: -42%;
-}
-[data-theme="dark"] .fluid-aurora--brand::before {
-  opacity: 0.82;
-}
-[data-theme="dark"] .fluid-aurora--brand::after {
-  opacity: 0.58;
-}
-/* Sol menü — tam yükseklik, koyu; tek aile içinde hafif derinlik (az renk sıçraması) */
 .fluid-aurora--sidebar::before {
-  background: conic-gradient(from 165deg at 48% 28%,
-    rgba(6, 10, 20, 0.95) 0deg,
-    rgba(16, 38, 52, 0.48) 150deg,
-    rgba(10, 48, 56, 0.4) 290deg,
-    rgba(6, 10, 20, 0.95) 360deg);
-  animation: none;
-  filter: blur(56px);
-  opacity: 0.4;
-  width: 175%;
-  height: 135%;
-  left: -40%;
-  top: -16%;
+  background: conic-gradient(from 120deg at 20% 15%,
+    rgba(12, 75, 95, 0.72) 0deg,
+    rgba(28, 52, 115, 0.68) 90deg,
+    rgba(85, 32, 88, 0.62) 200deg,
+    rgba(14, 88, 95, 0.7) 300deg,
+    rgba(12, 75, 95, 0.72) 360deg);
+  animation: fluid-spin 26s linear infinite;
+  filter: blur(52px);
+  opacity: 0.52;
+  width: 220%;
+  height: 180%;
+  left: -65%;
+  top: -35%;
 }
 .fluid-aurora--sidebar::after {
-  background: conic-gradient(from 330deg at 55% 65%,
-    rgba(12, 28, 42, 0.42) 0deg,
-    rgba(8, 36, 46, 0.32) 200deg,
-    rgba(12, 28, 42, 0.42) 360deg);
-  animation: none;
-  filter: blur(48px);
-  opacity: 0.3;
-  width: 155%;
-  height: 155%;
-  left: -30%;
-  top: -26%;
+  background: conic-gradient(from 300deg at 80% 70%,
+    rgba(95, 48, 38, 0.42) 0deg,
+    rgba(48, 42, 95, 0.48) 130deg,
+    rgba(18, 72, 62, 0.42) 260deg,
+    rgba(95, 48, 38, 0.42) 360deg);
+  animation: fluid-spin-rev 31s linear infinite;
+  filter: blur(44px);
+  opacity: 0.44;
+  width: 200%;
+  height: 200%;
+  left: -48%;
+  top: -48%;
 }
 [data-theme="dark"] .fluid-aurora--sidebar::before {
-  opacity: 0.46;
+  opacity: 0.58;
 }
 [data-theme="dark"] .fluid-aurora--sidebar::after {
-  opacity: 0.36;
+  opacity: 0.5;
 }
