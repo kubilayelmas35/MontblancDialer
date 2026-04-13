@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.16">
+<link rel="stylesheet" href="css/styles.css?v=6.17">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -84,7 +84,8 @@
 </div>
 <div id="app" style="display:none;">
 <div id="topbar">
-<div class="tb-aurora-layer fluid-aurora fluid-aurora--topbar" aria-hidden="true"></div>
+<div class="tb-brand-cluster">
+<div class="tb-brand-aurora fluid-aurora fluid-aurora--brand" aria-hidden="true"></div>
 <button class="tb-hamburger" onclick="toggleSidebar()" id="hamburger">
 <span></span><span></span><span></span>
 </button>
@@ -98,6 +99,7 @@
 <div>
 <div class="tb-logo-name">Montblanc</div>
 <div class="tb-logo-tag">DIALER</div>
+</div>
 </div>
 </div>
 <div id="tb-pills" style="display:none;">
@@ -159,9 +161,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div id="body">
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 <nav id="sidebar">
-<div class="sb-top-strip">
 <div class="fluid-aurora fluid-aurora--sidebar" aria-hidden="true"></div>
-</div>
 <div id="nav-admin">
 <div class="sb-section">
 <div class="sb-label" data-tr="Genel" data-de="Allgemein">Genel</div>
@@ -287,7 +287,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v6.16</div>
+<div class="sb-ver">Montblanc Dialer v6.17</div>
 </div>
 </nav>
 <main id="main">
@@ -1060,7 +1060,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <span id="mic-status" title="Mikrofon" style="font-size:15px;cursor:default;"><i class="ph ph-microphone-slash" style="vertical-align:-3px;font-size:17px;color:var(--text-3);"></i></span>
 <span id="rtc-status" style="font-size:11px;color:var(--text-3);"><i class="ph ph-dot" style="vertical-align:-1px;"></i> Bağlantı yok</span>
 <div class="dialer-timer-block" id="dialer-timer-block" style="display:none;">
-<canvas id="dialer-timer-voice-canvas" class="voice-ring-canvas voice-ring-canvas--timer" width="88" height="88" aria-hidden="true"></canvas>
+<canvas id="dialer-timer-voice-canvas" class="voice-ring-canvas voice-ring-canvas--timer" width="112" height="112" aria-hidden="true"></canvas>
 <div id="dialer-timer" class="dialer-timer">00:00</div>
 </div>
 </div>
@@ -1105,7 +1105,7 @@ TEST MODU
 <div id="ctab-info-panel">
 <div class="cust-header">
 <div class="cust-avatar-voice-wrap">
-<canvas id="cust-voice-canvas" class="voice-ring-canvas voice-ring-canvas--cust" width="96" height="96" aria-hidden="true"></canvas>
+<canvas id="cust-voice-canvas" class="voice-ring-canvas voice-ring-canvas--cust" width="112" height="112" aria-hidden="true"></canvas>
 <div class="cust-avatar cust-avatar--fluid" id="cust-av"><span class="cust-av-inner">?</span></div>
 </div>
 <div>
@@ -2572,27 +2572,27 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=6.16"></script>
-<script src="js/state.js?v=6.16"></script>
-<script src="js/api.js?v=6.16"></script>
-<script src="js/auth.js?v=6.16"></script>
-<script src="js/ui.js?v=6.16"></script>
-<script src="js/export-admin.js?v=6.16"></script>
-<script src="js/export-termin.js?v=6.16"></script>
-<script src="js/performance.js?v=6.16"></script>
-<script src="js/competition.js?v=6.16"></script>
-<script src="js/dashboard.js?v=6.16"></script>
-<script src="js/campaigns.js?v=6.16"></script>
-<script src="js/contacts.js?v=6.16"></script>
-<script src="js/telnyx.js?v=6.16"></script>
-<script src="js/voice-orb.js?v=6.16"></script>
-<script src="js/dialer.js?v=6.16"></script>
-<script src="js/appointments.js?v=6.16"></script>
-<script src="js/wiedervorlage.js?v=6.16"></script>
-<script src="js/qc.js?v=6.16"></script>
-<script src="js/leave-hr.js?v=6.16"></script>
-<script src="js/muhasebe.js?v=6.16"></script>
-<script src="js/agent-self-performance.js?v=6.16"></script>
-<script src="js/agents.js?v=6.16"></script>
+<script src="js/config.js?v=6.17"></script>
+<script src="js/state.js?v=6.17"></script>
+<script src="js/api.js?v=6.17"></script>
+<script src="js/auth.js?v=6.17"></script>
+<script src="js/ui.js?v=6.17"></script>
+<script src="js/export-admin.js?v=6.17"></script>
+<script src="js/export-termin.js?v=6.17"></script>
+<script src="js/performance.js?v=6.17"></script>
+<script src="js/competition.js?v=6.17"></script>
+<script src="js/dashboard.js?v=6.17"></script>
+<script src="js/campaigns.js?v=6.17"></script>
+<script src="js/contacts.js?v=6.17"></script>
+<script src="js/telnyx.js?v=6.17"></script>
+<script src="js/voice-orb.js?v=6.17"></script>
+<script src="js/dialer.js?v=6.17"></script>
+<script src="js/appointments.js?v=6.17"></script>
+<script src="js/wiedervorlage.js?v=6.17"></script>
+<script src="js/qc.js?v=6.17"></script>
+<script src="js/leave-hr.js?v=6.17"></script>
+<script src="js/muhasebe.js?v=6.17"></script>
+<script src="js/agent-self-performance.js?v=6.17"></script>
+<script src="js/agents.js?v=6.17"></script>
 </body>
 </html>

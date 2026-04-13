@@ -1,5 +1,5 @@
 // Ses halkaları — süre (agent mikrofon) ve müşteri avatarı (uzak akış)
-// Tek bir r(θ) eğrisi: iç/dış sınır birlikte hareket eder; sürekli dönüş yok, ses + hafif nefes.
+// Titreşim / sıvı dalga: faz sürekli dönmez (yörünge hissi yok); ses + sınırlı titreşim.
 (function () {
   const TWO_PI = Math.PI * 2;
 
@@ -58,7 +58,7 @@
   class VoiceRing {
     /**
      * @param {string} canvasId
-     * @param {{ mode: 'agent' | 'remote'; baseRadius: number; ringWidth?: number; lineLayers?: number }} opt
+     * @param {{ mode: 'agent' | 'remote'; baseRadius: number; ringWidth?: number; lineLayers?: number; lineGap?: number; vivid?: boolean }} opt
      */
     constructor(canvasId, opt) {
       this.id = canvasId;
@@ -67,7 +67,8 @@
       this.opt = {
         ringWidth: 9,
         lineLayers: 5,
-        lineGap: 1.65,
+        lineGap: 1.55,
+        vivid: false,
         ...opt,
       };
       this._smooth = 0;
@@ -113,6 +114,7 @@
         return;
       }
 
+      if (window.__voiceOrbSimRemote) return;
       this._attachRemote(ctx);
     }
 
@@ -134,6 +136,7 @@
 
     tryReattachRemote() {
       if (this.opt.mode !== 'remote') return;
+      if (window.__voiceOrbSimRemote) return;
       const stream = window._telnyxRemoteStream;
       if (stream === this._attachedStream) return;
       const ctx = getAudioContext();
@@ -158,6 +161,17 @@
     }
 
     _readLevel(dt) {
+      if (this.opt.mode === 'remote' && window.__voiceOrbSimRemote) {
+        const t = this._t * 0.001;
+        const b0 = 0.5 + 0.5 * Math.sin(t * 3.7);
+        const b1 = 0.5 + 0.5 * Math.sin(t * 8.2 + 1.1);
+        const b2 = 0.5 + 0.5 * Math.sin(t * 14.6 + 2.3);
+        const b3 = 0.5 + 0.5 * Math.sin(t * 21.1 + 0.7);
+        const b4 = 0.5 + 0.5 * Math.sin(t * 27.4 + 1.4);
+        const raw = 0.1 + 0.2 * b0 + 0.2 * b1 + 0.18 * b2 + 0.16 * b3 + 0.12 * b4;
+        this._smooth = this._smooth * 0.7 + raw * 0.3;
+        return Math.min(1, Math.max(0.08, this._smooth * 1.12));
+      }
       if (this.analyser && this.freq) {
         this.analyser.getByteFrequencyData(this.freq);
         const n = this.freq.length;
@@ -183,8 +197,8 @@
     resize() {
       if (!this.canvas) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = this.canvas.clientWidth || 88;
-      const h = this.canvas.clientHeight || 88;
+      const w = this.canvas.clientWidth || 112;
+      const h = this.canvas.clientHeight || 112;
       if (this.canvas.width !== Math.floor(w * dpr) || this.canvas.height !== Math.floor(h * dpr)) {
         this.canvas.width = Math.floor(w * dpr);
         this.canvas.height = Math.floor(h * dpr);
@@ -192,18 +206,33 @@
       this.ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
-    /** Ortak dış sınır — tüm katmanlar aynı şekli paylaşır (komple halka birlikte akar) */
+    /**
+     * Dış yarıçap: sin(a + titreşen faz) — faz sürekli artmıyor, sin/cos ile sınırlı titreşim.
+     */
     _outerR(a, level, vp) {
-      const breath = (0.04 + level * 0.96) * 0.45 * Math.sin(this._t * 0.00042);
-      const slow = this._t * 0.00028 * (0.06 + level * 0.94);
+      const t = this._t;
+      const tremor = Math.sin(t * 0.012) * (0.38 + level * 1.05);
+      const tremor2 = Math.cos(t * 0.019) * (0.24 + level * 0.82);
+      const tremor3 = Math.sin(t * 0.027) * (0.16 + level * 0.52);
       const amp = level * (6.5 + vp * 9.5) + (0.02 + level * 0.35);
-      const wobble =
+      const p1 = tremor * 2.15;
+      const p2 = tremor2 * 1.65;
+      const p3 = tremor3 * 1.05;
+      let wobble =
         amp *
-        (0.42 * Math.sin(3 * a + slow) +
-          0.28 * Math.sin(5 * a + 1.1 + slow * 1.35) +
-          0.22 * Math.sin(7 * a + 0.65 + slow * 0.9) +
-          0.08 * Math.sin(11 * a + slow * 0.55));
-      return this.opt.baseRadius + breath + wobble;
+        (0.42 * Math.sin(3 * a + p1) +
+          0.28 * Math.sin(5 * a + p2 + 1.1) +
+          0.22 * Math.sin(7 * a + p3 + 0.65) +
+          0.08 * Math.sin(11 * a + tremor * 0.55));
+      if (window.__voiceOrbSimRemote && this.opt.mode === 'remote') {
+        const st = t * 0.001;
+        wobble +=
+          amp *
+          0.28 *
+          (Math.sin(st * 6.2) * Math.sin(4 * a) + Math.sin(st * 11.4) * Math.sin(8 * a + 0.5) + 0.6 * Math.sin(st * 2.2) * Math.sin(6 * a));
+      }
+      const radialPulse = Math.sin(t * 0.011) * (0.55 + level * 1.75);
+      return this.opt.baseRadius + radialPulse + wobble;
     }
 
     drawFrame(dt) {
@@ -215,8 +244,8 @@
       const level = this._readLevel(dt);
       const vp = getVoiceProgress01();
 
-      const w = this.canvas.clientWidth || 88;
-      const h = this.canvas.clientHeight || 88;
+      const w = this.canvas.clientWidth || 112;
+      const h = this.canvas.clientHeight || 112;
       const cx = w / 2;
       const cy = h / 2;
       const ctx = this.ctx2d;
@@ -226,22 +255,21 @@
       const n = 128;
       const hueA = 195 - vp * 80;
       const hueB = 32 + vp * 40;
+      const vivid = this.opt.vivid ? 1.25 : 1;
 
       const outer = (a) => this._outerR(a, level, vp);
       const inner = (a) => Math.max(4, outer(a) - ringW);
 
-      /* Yumuşak dolgu: tek halka — dış ve iç aynı r(θ) dalgası (paralel sınır) */
       ctx.beginPath();
       blobContourOuter(ctx, cx, cy, outer, n);
       blobContourInnerHole(ctx, cx, cy, inner, n);
-      const g = ctx.createRadialGradient(cx, cy, inner(0) * 0.35, cx, cy, this.opt.baseRadius + ringW + 8);
-      g.addColorStop(0, `hsla(${hueA}, 78%, 52%, ${0.14 + level * 0.18})`);
-      g.addColorStop(0.55, `hsla(${145 + vp * 35}, 62%, 48%, ${0.08 + level * 0.12})`);
+      const g = ctx.createRadialGradient(cx, cy, inner(0) * 0.35, cx, cy, this.opt.baseRadius + ringW + 10);
+      g.addColorStop(0, `hsla(${hueA}, 78%, 52%, ${(0.14 + level * 0.2) * vivid})`);
+      g.addColorStop(0.55, `hsla(${145 + vp * 35}, 62%, 48%, ${(0.08 + level * 0.14) * vivid})`);
       g.addColorStop(1, `hsla(${hueB}, 70%, 50%, 0.02)`);
       ctx.fillStyle = g;
       ctx.fill('evenodd');
 
-      /* İnce eşmerkezli çizgiler — aynı r(θ), sadece yarıçap ofseti */
       const layers = this.opt.lineLayers;
       const gap = this.opt.lineGap;
       ctx.lineCap = 'round';
@@ -260,8 +288,9 @@
         ctx.closePath();
         const alt = k % 2;
         const hue = alt ? hueB : hueA;
-        ctx.strokeStyle = `hsla(${hue + k * 4}, ${84 + vp * 5}%, ${56 - k * 2}%, ${0.22 + k * 0.1 + level * 0.15})`;
-        ctx.lineWidth = 1.05 + (level > 0.18 ? 0.15 : 0);
+        const baseA = 0.22 + k * 0.1 + level * 0.18;
+        ctx.strokeStyle = `hsla(${hue + k * 4}, ${84 + vp * 5}%, ${56 - k * 2}%, ${Math.min(0.95, baseA * vivid)})`;
+        ctx.lineWidth = 1.05 + (level > 0.18 ? 0.15 : 0) + (this.opt.vivid ? 0.12 : 0);
         ctx.stroke();
       }
     }
@@ -288,17 +317,19 @@
 
     timerRing = new VoiceRing('dialer-timer-voice-canvas', {
       mode: 'agent',
-      baseRadius: 24,
-      ringWidth: 8,
+      baseRadius: 34,
+      ringWidth: 10,
       lineLayers: 5,
       lineGap: 1.55,
+      vivid: false,
     });
     custRing = new VoiceRing('cust-voice-canvas', {
       mode: 'remote',
-      baseRadius: 30,
-      ringWidth: 10,
-      lineLayers: 6,
+      baseRadius: 32,
+      ringWidth: 11,
+      lineLayers: 7,
       lineGap: 1.55,
+      vivid: true,
     });
 
     await timerRing.attach();

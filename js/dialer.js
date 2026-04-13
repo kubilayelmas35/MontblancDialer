@@ -933,6 +933,7 @@ async function startTestCall() {
     return;
   }
   _fakeCallActive = true;
+  window.__voiceOrbSimRemote = true;
   currentContact = contact;
   showCustomerCard(contact);
   // Kontakt durumunu "calling" olarak güncelle
@@ -948,6 +949,7 @@ async function startTestCall() {
 
 function endFakeCall() {
   _fakeCallActive = false;
+  window.__voiceOrbSimRemote = false;
   clearTimeout(_fakeCallTimer); _fakeCallTimer = null;
   handleCallEnd(Math.floor(callSeconds) || 15);
 }

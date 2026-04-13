@@ -136,20 +136,35 @@ backdrop-filter: blur(8px);
 position: relative;
 overflow: hidden;
 }
-.tb-aurora-layer {
-position: absolute;
-inset: -40% auto -40% -8%;
-width: min(420px, 55vw);
-pointer-events: none;
+/* Marka alanı: menü genişliği kadar, yuvarlatılmış — içte koyu sıvı arka plan */
+.tb-brand-cluster {
+position: relative;
+display: flex;
+align-items: center;
+gap: 8px;
+max-width: var(--sidebar-w);
+flex-shrink: 0;
+padding: 5px 12px 5px 5px;
+border-radius: 16px;
+overflow: hidden;
+border: 1px solid rgba(37, 99, 235, 0.12);
+box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+}
+.tb-brand-aurora {
+position: absolute !important;
+inset: 0 !important;
+width: 100% !important;
+height: 100% !important;
+border-radius: inherit;
 z-index: 0;
-opacity: 0.42;
-mix-blend-mode: multiply;
+pointer-events: none;
 }
-[data-theme="dark"] .tb-aurora-layer {
-mix-blend-mode: screen;
-opacity: 0.28;
+.tb-brand-cluster .tb-hamburger,
+.tb-brand-cluster .tb-logo {
+position: relative;
+z-index: 1;
 }
-#topbar > *:not(.tb-aurora-layer) {
+#topbar > * {
 position: relative;
 z-index: 1;
 }
@@ -183,8 +198,14 @@ box-shadow: 0 2px 8px var(--accent-soft);
 .tb-logo-tag {
 font-size: 9px; color: var(--accent); font-family: var(--mono);
 font-weight: 600; letter-spacing: 1px;
-background: var(--accent-soft);
-padding: 1px 5px; border-radius: 3px;
+background: rgba(37, 99, 235, 0.14);
+padding: 2px 7px; border-radius: 8px;
+border: 1px solid rgba(37, 99, 235, 0.18);
+}
+[data-theme="dark"] .tb-logo-tag {
+background: rgba(96, 165, 250, 0.12);
+border-color: rgba(96, 165, 250, 0.2);
+color: #93c5fd;
 }
 /* Topbar pills */
 #tb-pills {
@@ -811,8 +832,8 @@ position: relative;
 display: flex;
 align-items: center;
 justify-content: center;
-min-width: 88px;
-min-height: 48px;
+min-width: 112px;
+min-height: 52px;
 margin-left: auto;
 }
 .voice-ring-canvas {
@@ -824,8 +845,8 @@ position: absolute;
 left: 50%;
 top: 50%;
 transform: translate(-50%, -50%);
-width: 88px;
-height: 88px;
+width: 112px;
+height: 112px;
 z-index: 0;
 }
 .dialer-timer {
@@ -856,8 +877,8 @@ overflow-y:auto;
 .cust-header { display:flex; align-items:flex-start; gap:14px; }
 .cust-avatar-voice-wrap {
 position: relative;
-width: 76px;
-height: 76px;
+width: 84px;
+height: 84px;
 flex-shrink: 0;
 display: flex;
 align-items: center;
@@ -868,8 +889,8 @@ position: absolute;
 left: 50%;
 top: 50%;
 transform: translate(-50%, -50%);
-width: 96px;
-height: 96px;
+width: 112px;
+height: 112px;
 z-index: 0;
 }
 .cust-avatar-voice-wrap .cust-avatar {
@@ -1317,39 +1338,69 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   left: -40%;
   top: -60%;
 }
-/* Sidebar üst şerit — sadece bu bant renkli (menü genişliği), dönen animasyon yok */
-.fluid-aurora--sidebar::before {
-  background: conic-gradient(from 120deg at 20% 15%,
-    rgba(6, 182, 212, 0.62) 0deg,
-    rgba(37, 99, 235, 0.55) 90deg,
-    rgba(244, 114, 182, 0.42) 200deg,
-    rgba(34, 211, 238, 0.58) 300deg,
-    rgba(6, 182, 212, 0.62) 360deg);
+/* Topbar marka kutusu — menü genişliği kadar, yuvarlatılmış; koyu lacivert–teal, durağan */
+.fluid-aurora--brand::before {
+  background: radial-gradient(ellipse 95% 130% at 32% 32%,
+    rgba(32, 62, 98, 0.55) 0%,
+    rgba(18, 42, 68, 0.38) 50%,
+    rgba(12, 28, 48, 0.22) 100%);
   animation: none;
-  filter: blur(40px);
-  opacity: 0.68;
-  width: 140%;
-  height: 220%;
-  left: -22%;
-  top: -55%;
-}
-.fluid-aurora--sidebar::after {
-  background: conic-gradient(from 300deg at 80% 70%,
-    rgba(251, 146, 60, 0.38) 0deg,
-    rgba(99, 102, 241, 0.45) 130deg,
-    rgba(16, 185, 129, 0.32) 260deg,
-    rgba(251, 146, 60, 0.38) 360deg);
-  animation: none;
-  filter: blur(36px);
-  opacity: 0.52;
-  width: 130%;
+  filter: blur(20px);
+  opacity: 0.92;
+  width: 125%;
   height: 200%;
-  left: -18%;
+  left: -10%;
   top: -48%;
 }
+.fluid-aurora--brand::after {
+  background: radial-gradient(ellipse 75% 90% at 72% 58%,
+    rgba(28, 78, 98, 0.32) 0%,
+    transparent 72%);
+  animation: none;
+  filter: blur(16px);
+  opacity: 0.72;
+  width: 115%;
+  height: 190%;
+  left: -6%;
+  top: -42%;
+}
+[data-theme="dark"] .fluid-aurora--brand::before {
+  opacity: 0.82;
+}
+[data-theme="dark"] .fluid-aurora--brand::after {
+  opacity: 0.58;
+}
+/* Sol menü — tam yükseklik, koyu; tek aile içinde hafif derinlik (az renk sıçraması) */
+.fluid-aurora--sidebar::before {
+  background: conic-gradient(from 165deg at 48% 28%,
+    rgba(6, 10, 20, 0.95) 0deg,
+    rgba(16, 38, 52, 0.48) 150deg,
+    rgba(10, 48, 56, 0.4) 290deg,
+    rgba(6, 10, 20, 0.95) 360deg);
+  animation: none;
+  filter: blur(56px);
+  opacity: 0.4;
+  width: 175%;
+  height: 135%;
+  left: -40%;
+  top: -16%;
+}
+.fluid-aurora--sidebar::after {
+  background: conic-gradient(from 330deg at 55% 65%,
+    rgba(12, 28, 42, 0.42) 0deg,
+    rgba(8, 36, 46, 0.32) 200deg,
+    rgba(12, 28, 42, 0.42) 360deg);
+  animation: none;
+  filter: blur(48px);
+  opacity: 0.3;
+  width: 155%;
+  height: 155%;
+  left: -30%;
+  top: -26%;
+}
 [data-theme="dark"] .fluid-aurora--sidebar::before {
-  opacity: 0.74;
+  opacity: 0.46;
 }
 [data-theme="dark"] .fluid-aurora--sidebar::after {
-  opacity: 0.56;
+  opacity: 0.36;
 }
