@@ -369,8 +369,16 @@ function setOutcome(o) {
   document.querySelectorAll('.outcome-btn').forEach(b => b.classList.remove('active'));
   const map = {appointment:'.ob-appointment',negative:'.ob-negative',callback:'.ob-callback',no_answer:'.ob-noanswer',voicemail:'.ob-voicemail'};
   if (map[o]) document.querySelector(map[o])?.classList.add('active');
-  const cbRow = document.getElementById('callback-row');
+  const cbRow = document.getElementById('callback-time-row') || document.getElementById('callback-row');
   if (cbRow) cbRow.style.display = o==='callback' ? '' : 'none';
+  // Geri ara seçildiğinde varsayılan zaman: yarın aynı saat
+  if (o === 'callback') {
+    const dtInput = document.getElementById('callback-dt');
+    if (dtInput && !dtInput.value) {
+      const def = new Date(Date.now() + 24*60*60*1000);
+      dtInput.value = def.toISOString().slice(0,16);
+    }
+  }
 }
 
 async function submitOutcome(goBreak) {
