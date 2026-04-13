@@ -134,6 +134,69 @@ function showToast(msg, type, duration) {
 toast(msg, type);
 }
 
+let _systemDialogResolve = null;
+let _systemDialogType = 'alert';
+
+function _openSystemDialog({ type = 'alert', title = 'Bildirim', message = '', defaultValue = '', okText = 'Tamam', cancelText = 'İptal' }) {
+  return new Promise((resolve) => {
+    const ov = document.getElementById('m-system-dialog');
+    const titleEl = document.getElementById('sysdlg-title');
+    const msgEl = document.getElementById('sysdlg-message');
+    const inputWrap = document.getElementById('sysdlg-input-wrap');
+    const input = document.getElementById('sysdlg-input');
+    const ok = document.getElementById('sysdlg-ok');
+    const cancel = document.getElementById('sysdlg-cancel');
+    if (!ov || !titleEl || !msgEl || !inputWrap || !input || !ok || !cancel) {
+      if (type === 'confirm') return resolve(false);
+      if (type === 'prompt') return resolve(null);
+      return resolve(true);
+    }
+    _systemDialogType = type;
+    _systemDialogResolve = resolve;
+    titleEl.textContent = title;
+    msgEl.textContent = message || '';
+    ok.textContent = okText || 'Tamam';
+    cancel.textContent = cancelText || 'İptal';
+    cancel.style.display = type === 'alert' ? 'none' : '';
+    inputWrap.style.display = type === 'prompt' ? '' : 'none';
+    input.value = defaultValue == null ? '' : String(defaultValue);
+    openModal('m-system-dialog');
+    setTimeout(() => {
+      if (type === 'prompt') input.focus();
+      else ok.focus();
+    }, 0);
+  });
+}
+
+function closeSystemDialog(ok) {
+  const ov = document.getElementById('m-system-dialog');
+  if (!ov || !_systemDialogResolve) return;
+  const resolve = _systemDialogResolve;
+  _systemDialogResolve = null;
+  closeModal('m-system-dialog');
+  const input = document.getElementById('sysdlg-input');
+  if (_systemDialogType === 'confirm') resolve(!!ok);
+  else if (_systemDialogType === 'prompt') resolve(ok ? (input?.value ?? '') : null);
+  else resolve(true);
+}
+
+async function mbAlert(message, title = 'Bilgi') {
+  await _openSystemDialog({ type: 'alert', title, message, okText: 'Tamam' });
+}
+
+async function mbConfirm(message, title = 'Onay') {
+  return await _openSystemDialog({ type: 'confirm', title, message, okText: 'Evet', cancelText: 'Hayır' });
+}
+
+async function mbPrompt(message, defaultValue = '', title = 'Girdi') {
+  return await _openSystemDialog({ type: 'prompt', title, message, defaultValue, okText: 'Kaydet', cancelText: 'İptal' });
+}
+
+// Safety: legacy code paths calling native dialogs get redirected to in-app.
+window.alert = (msg) => { mbAlert(String(msg ?? '')); };
+window.confirm = (msg) => { console.warn('Use mbConfirm instead of confirm:', msg); return false; };
+window.prompt = (msg, def) => { console.warn('Use mbPrompt instead of prompt:', msg); return null; };
+
 // ── MODALS ───────────────────────────────────
 function openModal(id) {
 const el = document.getElementById(id);
@@ -146,6 +209,21 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 
 document.querySelectorAll('.modal-overlay').forEach(m=>{
 m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
+});
+
+document.addEventListener('keydown', (e) => {
+  const ov = document.getElementById('m-system-dialog');
+  if (!ov || !ov.classList.contains('open')) return;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    closeSystemDialog(false);
+  } else if (e.key === 'Enter') {
+    const typePrompt = document.getElementById('sysdlg-input-wrap')?.style.display !== 'none';
+    if (typePrompt || document.activeElement?.id === 'sysdlg-ok') {
+      e.preventDefault();
+      closeSystemDialog(true);
+    }
+  }
 });
 
 // ── SETTINGS — SIP bilgilerini kaydet ve bağlan ──

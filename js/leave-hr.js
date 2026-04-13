@@ -416,7 +416,7 @@ async function approveLeaveRequest(id) {
 async function rejectLeaveRequest(id) {
   const fid = _leaveFirmId();
   if (!fid || !isLeaveAdmin()) return;
-  const c = prompt('Red notu (isteğe bağlı):');
+  const c = await mbPrompt('Red notu (isteğe bağlı):', '', 'Talebi Reddet');
   if (c === null) return;
   try {
     await sb(`leave_requests?id=eq.${id}`, {

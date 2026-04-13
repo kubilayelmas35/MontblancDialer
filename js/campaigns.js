@@ -188,8 +188,8 @@ function saveFieldTemplates(tpls) {
 localStorage.setItem('mb_field_templates', JSON.stringify(tpls));
 }
 
-function ncSaveTemplate() {
-const name = prompt('Şablon adı:', 'Varsayılan');
+async function ncSaveTemplate() {
+const name = await mbPrompt('Şablon adı:', 'Varsayılan', 'Şablon Kaydet');
 if (!name) return;
 const tpls = getFieldTemplates();
 tpls[name] = _ncFields.map(f=>({...f}));
@@ -228,10 +228,10 @@ updateCampPreview();
 toast(`"${name}" şablonu yüklendi`, 'ok');
 }
 
-function ncDeleteTemplate() {
+async function ncDeleteTemplate() {
 const sel = document.getElementById('nc-template-sel');
 const name = sel?.value;
-if (!name || !confirm(`"${name}" şablonu silinsin?`)) return;
+if (!name || !(await mbConfirm(`"${name}" şablonu silinsin?`, 'Şablon Sil'))) return;
 const tpls = getFieldTemplates();
 delete tpls[name];
 saveFieldTemplates(tpls);
@@ -303,7 +303,7 @@ loadCampaigns();
 }
 
 async function deleteCampaign(id) {
-if (!confirm('Bu kampanyayı silmek istediğine emin misin?')) return;
+if (!(await mbConfirm('Bu kampanyayı silmek istediğine emin misin?', 'Kampanya Sil'))) return;
 try {
 await sb(`campaigns?id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
 toast('Silindi','ok'); closeCampDetail(); loadCampaigns();
@@ -801,7 +801,7 @@ toast('Kayan yazı yayınlandı ✓', 'ok');
 }
 
 async function activateCampaignForAgents() {
-const msg = prompt('Agentlere gönderilecek mesaj (opsiyonel):','');
+const msg = await mbPrompt('Agentlere gönderilecek mesaj (opsiyonel):','', 'Kampanya Mesajı');
 await setActiveCampaign(currentCampId, msg||'');
 }
 

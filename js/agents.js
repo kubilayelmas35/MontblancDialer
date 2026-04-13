@@ -146,7 +146,7 @@ async function saveAgentEdit(userId) {
 }
 
 async function confirmDeleteAgent(userId) {
-  if (!confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) return;
+  if (!(await mbConfirm('Bu kullanıcıyı silmek istediğinize emin misiniz?', 'Kullanıcı Sil'))) return;
   try {
     await sb(`users?id=eq.${userId}`,{method:'DELETE',prefer:'return=minimal'});
     document.getElementById('m-agent-mgr')?.remove();
@@ -423,7 +423,7 @@ async function toggleUserActive(userId, cur) {
 }
 
 async function resetUserPass(userId, email) {
-  const p = prompt(`${email} için yeni şifre:`);
+  const p = await mbPrompt(`${email} için yeni şifre:`, '', 'Şifre Sıfırla');
   if (!p) return;
   try {
     await fetch(`${SB_URL}/rest/v1/rpc/reset_user_password`,{
@@ -495,7 +495,7 @@ ${p.label}</label>`).join('')}
 }
 
 async function openAddRoleModal() {
-  const name = prompt('Yeni rol adı (örn: muhasebeci):','');
+  const name = await mbPrompt('Yeni rol adı (örn: muhasebeci):','', 'Yeni Rol');
   if (!name) return;
   const key   = name.toLowerCase().replace(/[^a-z0-9_]/g,'_');
   const label = name.charAt(0).toUpperCase() + name.slice(1);
@@ -528,7 +528,7 @@ async function toggleRolePerm(roleKey, pageKey, enabled) {
 }
 
 async function deleteCustomRole(roleKey) {
-  if (!confirm('Bu rolü silmek istediğinize emin misiniz?')) return;
+  if (!(await mbConfirm('Bu rolü silmek istediğinize emin misiniz?', 'Rol Sil'))) return;
   try {
     const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
     const existing = firms?.[0]?.settings || {};

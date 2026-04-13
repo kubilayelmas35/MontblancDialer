@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=4.2">
+<link rel="stylesheet" href="css/styles.css?v=4.3">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -33,7 +33,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v4.2 — 2026</div>
+<div class="login-version">v4.3 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -270,7 +270,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v4.2</div>
+<div class="sb-ver">Montblanc Dialer v4.3</div>
 </div>
 </nav>
 <main id="main">
@@ -1830,6 +1830,24 @@ Sütun Eşleştirme
 </div>
 </div>
 <div id="toast"></div>
+<div class="modal-overlay" id="m-system-dialog">
+<div class="modal" style="max-width:460px;">
+<div class="modal-hdr">
+<div class="modal-title" id="sysdlg-title">Bildirim</div>
+<button class="modal-close" onclick="closeSystemDialog(false)">✕</button>
+</div>
+<div style="padding:14px 18px;">
+<div id="sysdlg-message" style="font-size:13px;color:var(--text);line-height:1.45;">—</div>
+<div id="sysdlg-input-wrap" style="display:none;margin-top:10px;">
+<input id="sysdlg-input" class="form-input" type="text">
+</div>
+</div>
+<div class="modal-footer" style="justify-content:flex-end;">
+<button class="btn btn-ghost" id="sysdlg-cancel" onclick="closeSystemDialog(false)">İptal</button>
+<button class="btn btn-primary" id="sysdlg-ok" onclick="closeSystemDialog(true)">Tamam</button>
+</div>
+</div>
+</div>
 <div class="modal-overlay" id="m-firm">
 <div class="modal" style="max-width:480px;">
 <div class="modal-hdr">
@@ -2116,23 +2134,23 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=4.2"></script>
-<script src="js/state.js?v=4.2"></script>
-<script src="js/api.js?v=4.2"></script>
-<script src="js/auth.js?v=4.2"></script>
-<script src="js/ui.js?v=4.2"></script>
-<script src="js/export-admin.js?v=4.2"></script>
-<script src="js/competition.js?v=4.2"></script>
-<script src="js/dashboard.js?v=4.2"></script>
-<script src="js/campaigns.js?v=4.2"></script>
-<script src="js/contacts.js?v=4.2"></script>
-<script src="js/telnyx.js?v=4.2"></script>
-<script src="js/dialer.js?v=4.2"></script>
-<script src="js/appointments.js?v=4.2"></script>
-<script src="js/wiedervorlage.js?v=4.2"></script>
-<script src="js/qc.js?v=4.2"></script>
-<script src="js/leave-hr.js?v=4.2"></script>
-<script src="js/muhasebe.js?v=4.2"></script>
-<script src="js/agents.js?v=4.2"></script>
+<script src="js/config.js?v=4.3"></script>
+<script src="js/state.js?v=4.3"></script>
+<script src="js/api.js?v=4.3"></script>
+<script src="js/auth.js?v=4.3"></script>
+<script src="js/ui.js?v=4.3"></script>
+<script src="js/export-admin.js?v=4.3"></script>
+<script src="js/competition.js?v=4.3"></script>
+<script src="js/dashboard.js?v=4.3"></script>
+<script src="js/campaigns.js?v=4.3"></script>
+<script src="js/contacts.js?v=4.3"></script>
+<script src="js/telnyx.js?v=4.3"></script>
+<script src="js/dialer.js?v=4.3"></script>
+<script src="js/appointments.js?v=4.3"></script>
+<script src="js/wiedervorlage.js?v=4.3"></script>
+<script src="js/qc.js?v=4.3"></script>
+<script src="js/leave-hr.js?v=4.3"></script>
+<script src="js/muhasebe.js?v=4.3"></script>
+<script src="js/agents.js?v=4.3"></script>
 </body>
 </html>

@@ -456,7 +456,7 @@ async function toggleMuhasebeCustomer(id, toActive) {
 
 async function deleteMuhasebeCustomer(id) {
   if (!isMuhasebeAdmin()) return;
-  if (!confirm('Müşteri silinsin mi?')) return;
+  if (!(await mbConfirm('Müşteri silinsin mi?', 'Müşteri Sil'))) return;
   try {
     await sb(`customers?id=eq.${id}`, { method: 'DELETE', prefer: 'return=minimal' });
     await renderMuhasebeCustomers();
@@ -667,11 +667,15 @@ async function openPayrollOverride(uid) {
   const fid = muhasebeFirmId();
   const rows = await sb(`payroll_employee_overrides?firm_id=eq.${fid}&user_id=eq.${uid}&select=*`).catch(() => []);
   const cur = rows?.[0] || {};
-  const noTermin = confirm('Bu personel termin yapmıyor olarak işaretlensin mi? (Tamam=Evet, İptal=Hayır)');
-  const base = prompt('Baz maaş override (boş bırak = varsayılan)', cur.base_salary_amount ?? '');
-  const tax = prompt('Vergi % override (boş bırak = varsayılan)', cur.tax_rate_percent ?? '');
-  const mode = prompt('Maaş modu (net / gross_minimum)', cur.base_salary_mode || '');
-  const notes = prompt('Not', cur.notes || '');
+  const noTermin = await mbConfirm('Bu personel termin yapmıyor olarak işaretlensin mi?', 'Personel Tipi');
+  const base = await mbPrompt('Baz maaş override (boş bırak = varsayılan)', cur.base_salary_amount ?? '', 'Override');
+  if (base === null) return;
+  const tax = await mbPrompt('Vergi % override (boş bırak = varsayılan)', cur.tax_rate_percent ?? '', 'Override');
+  if (tax === null) return;
+  const mode = await mbPrompt('Maaş modu (net / gross_minimum)', cur.base_salary_mode || '', 'Override');
+  if (mode === null) return;
+  const notes = await mbPrompt('Not', cur.notes || '', 'Override');
+  if (notes === null) return;
   const body = {
     firm_id: fid,
     user_id: uid,
@@ -695,12 +699,18 @@ async function openPayrollOverride(uid) {
 async function addPayrollAdjustment(uid) {
   if (!isMuhasebeAdmin()) return;
   const fid = muhasebeFirmId();
-  const type = prompt('İşlem tipi: add veya deduct', 'add');
+  const type = await mbPrompt('İşlem tipi: add veya deduct', 'add', 'Ekle/Kes');
   if (!['add', 'deduct'].includes(String(type || '').trim())) return;
-  const amount = Number(prompt('Tutar', '0'));
+  const amountStr = await mbPrompt('Tutar', '0', 'Ekle/Kes');
+  if (amountStr === null) return;
+  const amount = Number(amountStr);
   if (!amount || amount <= 0) return;
-  const currency = (prompt('Para birimi (EUR/TRY)', 'EUR') || 'EUR').toUpperCase();
-  const reason = prompt('Açıklama', '') || null;
+  const currencyIn = await mbPrompt('Para birimi (EUR/TRY)', 'EUR', 'Ekle/Kes');
+  if (currencyIn === null) return;
+  const currency = (currencyIn || 'EUR').toUpperCase();
+  const reasonIn = await mbPrompt('Açıklama', '', 'Ekle/Kes');
+  if (reasonIn === null) return;
+  const reason = reasonIn || null;
   try {
     await sb('payroll_adjustments', {
       method: 'POST',
@@ -718,7 +728,9 @@ async function savePayrollPayment(uid) {
   if (!isMuhasebeAdmin()) return;
   const row = (window._muhasebeRows || []).find(r => r.user_id === uid);
   if (!row) return;
-  const amount = Number(prompt(`Ödenen tutar (${row.currency})`, String(row.paidAmount || 0)));
+  const amountIn = await mbPrompt(`Ödenen tutar (${row.currency})`, String(row.paidAmount || 0), 'Ödeme');
+  if (amountIn === null) return;
+  const amount = Number(amountIn);
   if (isNaN(amount) || amount < 0) return;
   const fid = muhasebeFirmId();
   const period = _mGetPeriod();

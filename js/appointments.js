@@ -354,9 +354,9 @@ function takvimCellClick(ds, hh, e) {
   openTakvimNewSlotModal(ds, start, takvimAddHours(start, SLOT_HOURS));
 }
 
-function takvimHeaderClick(ds) {
+async function takvimHeaderClick(ds) {
   const isClosed = takvimClosedDays[ds];
-  if (!confirm(isClosed ? 'Günü açmak istiyor musunuz?' : 'Günü kapatmak istiyor musunuz?')) return;
+  if (!(await mbConfirm(isClosed ? 'Günü açmak istiyor musunuz?' : 'Günü kapatmak istiyor musunuz?', 'Gün Durumu'))) return;
   if (isClosed) {
     takvimClosedDays[ds] = false;
     sb(`takvim_slots?campaign_id=eq.${takvimCampId}&tarih=eq.${ds}&gun_kapali=eq.true`,{method:'DELETE',prefer:'return=minimal'}).then(()=>loadTakvimSlots());
@@ -468,7 +468,7 @@ async function takvimQcUpdate(apptId, status, customerId) {
 }
 
 async function unlockSlot(slotId) {
-  if (!confirm('Slot kilidi kaldırılsın mı?')) return;
+  if (!(await mbConfirm('Slot kilidi kaldırılsın mı?', 'Slot Kilidi'))) return;
   try {
     await sb(`takvim_slots?id=eq.${slotId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'bos',kilitli_agent_id:null,kilitli_at:null})});
     await loadTakvimSlots();
@@ -477,7 +477,7 @@ async function unlockSlot(slotId) {
 }
 
 async function agentCancelAppt(slotId, apptId) {
-  if (!confirm('Terminini iptal etmek istediğine emin misin?')) return;
+  if (!(await mbConfirm('Terminini iptal etmek istediğine emin misin?', 'Termin İptali'))) return;
   try {
     await sb(`appointments?id=eq.${apptId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'iptal'})});
     await sb(`takvim_slots?id=eq.${slotId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'bos',appointment_id:null})});
@@ -487,7 +487,7 @@ async function agentCancelAppt(slotId, apptId) {
 }
 
 async function deleteTakvimSlot(slotId) {
-  if (!confirm('Slot silinecek?')) return;
+  if (!(await mbConfirm('Slot silinecek?', 'Slot Sil'))) return;
   await sb(`takvim_slots?id=eq.${slotId}`,{method:'DELETE',prefer:'return=minimal'}).catch(e=>toast('Hata: '+e.message,'err'));
   closeModal('m-takvim-detail');
   await loadTakvimSlots();
