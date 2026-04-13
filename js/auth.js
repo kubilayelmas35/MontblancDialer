@@ -60,9 +60,18 @@ btn.textContent = 'Giriş Yap';
 }
 }
 
-document.getElementById('login-pass').addEventListener('keydown', e => {
-if (e.key === 'Enter') doLogin();
-});
+function toggleLoginPass() {
+  const inp = document.getElementById('login-pass');
+  const eye = document.getElementById('login-eye');
+  if (!inp) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    if (eye) eye.innerHTML = '<i class="ph ph-eye-slash"></i>';
+  } else {
+    inp.type = 'password';
+    if (eye) eye.innerHTML = '<i class="ph ph-eye"></i>';
+  }
+}
 
 async function doLogout() {
 if (currentUser?.id) {

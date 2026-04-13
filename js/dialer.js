@@ -982,22 +982,25 @@ async function openTakvimOverlay() {
       } catch(e) {}
     }
   } else {
-    // Agent: kampanya ID'sini seç (dialer'dan ya da DB'den)
-    if (!takvimCampId) {
-      if (selectedCampId) {
-        takvimCampId = selectedCampId;
-      } else {
-        // Agent'ın atanmış kampanyasını getir
-        try {
-          const ac = await sb(`agent_campaigns?agent_id=eq.${currentUser.id}&select=campaign_id,campaigns(id,name)&limit=1`);
-          if (ac?.length) takvimCampId = ac[0].campaign_id;
-        } catch(e) {}
+    // Agent: atanmış kampanyaları yükle ve select göster
+    try {
+      const ac = await sb(`agent_campaigns?agent_id=eq.${currentUser.id}&select=campaign_id,campaigns(id,name,status)`);
+      const agentCamps = (ac||[]).map(a=>a.campaigns).filter(Boolean);
+      if (!takvimCampId && agentCamps.length) takvimCampId = agentCamps[0].id;
+      // Show a simple select for agents too if they have multiple campaigns
+      if (agentCamps.length > 1) {
+        const agentCampWrap = document.getElementById('takvim-overlay-camp-label');
+        if (agentCampWrap) {
+          agentCampWrap.innerHTML = `<select class="form-input" id="takvim-camp-select-agent-ov" style="font-size:12px;padding:5px 10px;max-width:200px;" onchange="onTakvimCampChange(this.value)">
+          ${agentCamps.map(c=>`<option value="${c.id}" ${c.id===takvimCampId?'selected':''}>${c.name}</option>`).join('')}
+          </select>`;
+        }
+      } else if (agentCamps.length === 1) {
+        if (ovCampLbl) ovCampLbl.textContent = agentCamps[0].name;
+        takvimCampId = agentCamps[0].id;
       }
-    }
-    // Kampanya adını göster
-    if (takvimCampId) {
-      const camp = campaigns.find(c=>c.id===takvimCampId);
-      if (ovCampLbl) ovCampLbl.textContent = camp?.name || '';
+    } catch(e) {
+      if (selectedCampId) takvimCampId = selectedCampId;
     }
   }
 

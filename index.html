@@ -8,39 +8,75 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=3.0">
+<link rel="stylesheet" href="css/styles.css?v=3.1">
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
 <body>
 <div id="page-login">
+<!-- Left branding panel -->
+<div class="login-left">
+<div class="login-brand">
+<div class="login-logo-svg">
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+<rect width="48" height="48" rx="14" fill="white" fill-opacity=".15"/>
+<path d="M10 34V14l14 10L38 14v20" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="24" cy="24" r="4" fill="white"/>
+</svg>
+</div>
+<div class="login-brand-name">Montblanc</div>
+<div class="login-brand-sub">Call Center Platform</div>
+</div>
+<div class="login-features">
+<div class="login-feat"><i class="ph ph-phone-call"></i><span>Otomatik arama &amp; WebRTC</span></div>
+<div class="login-feat"><i class="ph ph-chart-line-up"></i><span>Gerçek zamanlı istatistikler</span></div>
+<div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
+<div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
+</div>
+<div class="login-version">v3.0 — 2026</div>
+</div>
+<!-- Right form panel -->
+<div class="login-right">
 <div class="login-card">
+<div class="login-card-logo">
+<div class="login-logo-mark">
+<svg width="28" height="28" viewBox="0 0 48 48" fill="none">
+<path d="M10 34V14l14 10L38 14v20" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="24" cy="24" r="4" fill="white"/>
+</svg>
+</div>
 <div>
-<div class="login-logo">
-<div class="login-logo-mark">M</div>
-<div>
-<div class="login-title">Montblanc</div>
-<div class="login-sub">Call Center Dialer</div>
+<div class="login-title">Hoş geldiniz</div>
+<div class="login-sub">Hesabınıza giriş yapın</div>
 </div>
 </div>
-</div>
-<div style="display:flex;flex-direction:column;gap:10px;">
+<div style="display:flex;flex-direction:column;gap:14px;">
 <div class="form-row">
 <label class="form-label" id="lbl-email">E-posta</label>
-<input class="form-input" type="email" id="login-email" placeholder="kullanici@montblanccs.com" autocomplete="email">
+<div style="position:relative;">
+<i class="ph ph-envelope" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--text-3);pointer-events:none;"></i>
+<input class="form-input" type="email" id="login-email" placeholder="kullanici@firma.com" autocomplete="email" style="padding-left:36px;" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+</div>
 </div>
 <div class="form-row">
 <label class="form-label" id="lbl-pass">Şifre</label>
-<input class="form-input" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+<div style="position:relative;">
+<i class="ph ph-lock-simple" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--text-3);pointer-events:none;"></i>
+<input class="form-input" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" style="padding-left:36px;padding-right:40px;" onkeydown="if(event.key==='Enter')doLogin()">
+<button onclick="toggleLoginPass()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;" id="login-eye"><i class="ph ph-eye"></i></button>
+</div>
 </div>
 </div>
 <div id="login-err" class="login-error"></div>
 <div>
-<button class="login-btn" onclick="doLogin()" id="login-submit">Giriş Yap</button>
+<button class="login-btn" onclick="doLogin()" id="login-submit">
+<i class="ph ph-sign-in" style="vertical-align:-2px;margin-right:5px;"></i>Giriş Yap
+</button>
 <div class="login-demo" id="login-demo-hint">Demo: admin@test.com / 1234 &nbsp;|&nbsp; agent@test.com / 1234</div>
 </div>
-<div style="display:flex;justify-content:center;gap:8px;margin-top:-4px;">
+<div style="display:flex;justify-content:center;gap:8px;">
 <button class="btn btn-ghost btn-sm" onclick="setLang('tr')">TR</button>
 <button class="btn btn-ghost btn-sm" onclick="setLang('de')">DE</button>
+</div>
 </div>
 </div>
 </div>
@@ -50,7 +86,12 @@
 <span></span><span></span><span></span>
 </button>
 <div class="tb-logo">
-<div class="tb-logo-mark">M</div>
+<div class="tb-logo-mark">
+<svg width="20" height="20" viewBox="0 0 48 48" fill="none">
+<path d="M10 34V14l14 10L38 14v20" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="24" cy="24" r="4" fill="white"/>
+</svg>
+</div>
 <div>
 <div class="tb-logo-name">Montblanc</div>
 <div class="tb-logo-tag">DIALER</div>
@@ -200,7 +241,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v3.0</div>
+<div class="sb-ver">Montblanc Dialer v3.1</div>
 </div>
 </nav>
 <main id="main">
@@ -475,7 +516,12 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="page-title" data-tr="Agentler" data-de="Agenten">Agentler</div>
 <div class="page-sub" data-tr="Ekip ve kampanya atamaları" data-de="Team und Kampagnenzuweisungen">Ekip ve kampanya atamaları</div>
 </div>
+<div style="display:flex;gap:8px;align-items:center;">
 <div id="agents-firm-selector"></div>
+<button class="btn btn-primary btn-sm" onclick="openAddAgentModal()">
+<i class="ph ph-plus"></i> Yeni Agent
+</button>
+</div>
 </div>
 <div class="agents-grid" id="agents-grid"></div>
 </div>
@@ -514,11 +560,12 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <th data-tr="Termin" data-de="Termin">Termin</th>
 <th data-tr="Olumsuz" data-de="Negativ">Olumsuz</th>
 <th data-tr="Geri Ara" data-de="Rückruf">Geri Ara</th>
+<th data-tr="Cevap Yok" data-de="Kein Anspr.">Cevap Yok</th>
 <th data-tr="Ort. Süre" data-de="Ø Dauer">Ort. Süre</th>
-<th data-tr="Maliyet" data-de="Kosten">Maliyet</th>
+<th data-tr="Dönüşüm" data-de="Konversion">Dönüşüm</th>
 </tr></thead>
 <tbody id="stats-tbody">
-<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
+<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
 </tbody>
 </table>
 </div>
@@ -530,8 +577,11 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="page-title" data-tr="Çağrı Geçmişi" data-de="Anrufliste">Çağrı Geçmişi</div>
 </div>
 <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-<input type="text" class="form-input" style="width:160px;" placeholder="Ara..." id="ch-search" oninput="loadCallHistory()">
-<select class="form-input" style="width:auto;" id="ch-outcome" onchange="loadCallHistory()">
+<input type="text" class="form-input" style="width:150px;" placeholder="İsim, numara..." id="ch-search" oninput="loadCallHistory()">
+<select class="form-input" style="width:130px;" id="ch-agent-f" onchange="loadCallHistory()">
+<option value="">Tüm Agentler</option>
+</select>
+<select class="form-input" style="width:130px;" id="ch-outcome" onchange="loadCallHistory()">
 <option value="">Tüm Sonuçlar</option>
 <option value="appointment">Termin</option>
 <option value="negative">Olumsuz</option>
@@ -540,10 +590,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <option value="no_answer">Cevap Yok</option>
 <option value="dnc">Kara Liste</option>
 </select>
-<input type="date" class="form-input" id="ch-date-from" style="width:140px;" onchange="loadCallHistory()">
+<input type="date" class="form-input" id="ch-date-from" style="width:135px;" onchange="loadCallHistory()">
 <span style="font-size:12px;color:var(--text-3);">—</span>
-<input type="date" class="form-input" id="ch-date-to" style="width:140px;" onchange="loadCallHistory()">
-<button class="btn btn-ghost btn-sm" onclick="loadCallHistory()">↻ Yenile</button>
+<input type="date" class="form-input" id="ch-date-to" style="width:135px;" onchange="loadCallHistory()">
+<button class="btn btn-ghost btn-sm" onclick="loadCallHistory()"><i class="ph ph-arrow-clockwise"></i></button>
 </div>
 </div>
 <div class="card">
@@ -1074,6 +1124,17 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 </div>
 <button class="btn btn-primary btn-sm" onclick="saveCallHoursSettings()">💾 Kaydet</button>
 </div>
+<!-- Roles & Permissions -->
+<div class="card" id="roles-card" style="display:none;">
+<div class="card-title" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+<span><i class="ph ph-shield-check" style="vertical-align:-3px;margin-right:6px;"></i>Roller & İzinler</span>
+<button class="btn btn-primary btn-sm" onclick="openAddRoleModal()"><i class="ph ph-plus"></i> Yeni Rol</button>
+</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:14px;">Hangi rolün hangi bölümlere erişebileceğini belirleyin. Yerleşik roller düzenlenemez.</div>
+<div id="roles-list" style="display:flex;flex-direction:column;gap:8px;">
+<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Yükleniyor...</div>
+</div>
+</div>
 <div class="card" id="telnyx-settings">
 <div class="card-title" style="margin-bottom:16px;">Telnyx Bağlantısı</div>
 <div style="display:flex;flex-direction:column;gap:12px;">
@@ -1450,10 +1511,11 @@ ondrop="handleDrop(event)">
 </div>
 </div>
 </div>
-<div id="broadcast-ticker" style="display:none;position:fixed;top:var(--topbar-h);left:0;right:0;z-index:1000;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;padding:6px 0;overflow:hidden;white-space:nowrap;">
-<div style="display:inline-block;animation:ticker-scroll 20s linear infinite;" id="ticker-text">
+<div id="broadcast-ticker" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:990;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;padding:5px 40px 5px 0;overflow:hidden;white-space:nowrap;">
+<div style="display:inline-block;animation:ticker-scroll 22s linear infinite;" id="ticker-text">
 Duyuru metni burada görünecek
 </div>
+<button onclick="document.getElementById('broadcast-ticker').style.display='none'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;border-radius:4px;color:#fff;cursor:pointer;padding:2px 7px;font-size:12px;">✕</button>
 </div>
 <div class="modal-overlay" id="m-wv-form">
 <div class="modal" style="max-width:520px;">
@@ -1641,19 +1703,19 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=3.0"></script>
-<script src="js/state.js?v=3.0"></script>
-<script src="js/api.js?v=3.0"></script>
-<script src="js/auth.js?v=3.0"></script>
-<script src="js/ui.js?v=3.0"></script>
-<script src="js/dashboard.js?v=3.0"></script>
-<script src="js/campaigns.js?v=3.0"></script>
-<script src="js/contacts.js?v=3.0"></script>
-<script src="js/telnyx.js?v=3.0"></script>
-<script src="js/dialer.js?v=3.0"></script>
-<script src="js/appointments.js?v=3.0"></script>
-<script src="js/wiedervorlage.js?v=3.0"></script>
-<script src="js/qc.js?v=3.0"></script>
-<script src="js/agents.js?v=3.0"></script>
+<script src="js/config.js?v=3.1"></script>
+<script src="js/state.js?v=3.1"></script>
+<script src="js/api.js?v=3.1"></script>
+<script src="js/auth.js?v=3.1"></script>
+<script src="js/ui.js?v=3.1"></script>
+<script src="js/dashboard.js?v=3.1"></script>
+<script src="js/campaigns.js?v=3.1"></script>
+<script src="js/contacts.js?v=3.1"></script>
+<script src="js/telnyx.js?v=3.1"></script>
+<script src="js/dialer.js?v=3.1"></script>
+<script src="js/appointments.js?v=3.1"></script>
+<script src="js/wiedervorlage.js?v=3.1"></script>
+<script src="js/qc.js?v=3.1"></script>
+<script src="js/agents.js?v=3.1"></script>
 </body>
 </html>

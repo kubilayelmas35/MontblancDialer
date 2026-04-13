@@ -173,17 +173,19 @@ campSel.appendChild(opt);
 
 async function loadCallHistory() {
 const tbody = document.getElementById('ch-tbody');
-if(tbody) tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>`;
+if(tbody) tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>`;
 try {
 const ff = getFirmFilter('&');
 const search = document.getElementById('ch-search')?.value?.toLowerCase()||'';
 const outcome = document.getElementById('ch-outcome')?.value||'';
+const agentFilter = document.getElementById('ch-agent-f')?.value||'';
 const dateFrom = document.getElementById('ch-date-from')?.value||new Date().toISOString().split('T')[0];
 const dateTo = document.getElementById('ch-date-to')?.value||new Date().toISOString().split('T')[0];
-let query = `call_logs?select=*,users(name),campaigns(name),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=500`;
+let query = `call_logs?select=*,users(id,name),campaigns(name),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=500`;
 query += `&started_at=gte.${dateFrom}T00:00:00`;
 query += `&started_at=lte.${dateTo}T23:59:59`;
-if (outcome) query += `&outcome=eq.${outcome}`;
+if (outcome) query += outcome==='appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
+if (agentFilter) query += `&agent_id=eq.${agentFilter}`;
 const logs = await sb(query) || [];
 const OM={
 appointment:'<span class="badge badge-green">Termin</span>',
@@ -202,8 +204,17 @@ const agent = l.users?.name?.toLowerCase()||'';
 return name.includes(search) || phone.includes(search) || agent.includes(search);
 });
 }
+// Populate agent filter dropdown from unique agents in results
+const agentSel = document.getElementById('ch-agent-f');
+if (agentSel && agentSel.options.length <= 1 && logs.length) {
+  const uniqueAgents = [];
+  const seen = new Set();
+  logs.forEach(l => { if (l.agent_id && !seen.has(l.agent_id)) { seen.add(l.agent_id); uniqueAgents.push({id:l.agent_id, name:l.users?.name||l.agent_id.slice(0,8)}); }});
+  uniqueAgents.sort((a,b)=>a.name.localeCompare(b.name));
+  uniqueAgents.forEach(a => { const o=document.createElement('option'); o.value=a.id; o.textContent=a.name; agentSel.appendChild(o); });
+}
 if (!filtered.length) {
-tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Kayıt yok</td></tr>`;
+tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:32px;">Kayıt yok</td></tr>`;
 return;
 }
 tbody.innerHTML = filtered.map(l=>{

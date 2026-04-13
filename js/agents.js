@@ -15,6 +15,7 @@ async function loadAgents() {
       grid.innerHTML = `<div style="color:var(--text-3);padding:32px;font-size:13px;">Henüz kullanıcı yok</div>`;
       return;
     }
+    const statusLabel = {ready:'Hazır',on_call:'Aramada',wrapping:'Sonuç giriyor',break:'Mola',offline:'Çevrimdışı'};
     grid.innerHTML = users.map(u => {
       const myAcs    = acs.filter(a => a.agent_id === u.id);
       const sess     = sessions.find(s => s.agent_id === u.id);
@@ -22,7 +23,7 @@ async function loadAgents() {
       const color    = SC[status] || 'var(--text-3)';
       const campNames = myAcs.map(a=>a.campaigns?.name||'').filter(Boolean);
       const roleMap  = {agent:'Agent',qc:'QC',firm_admin:'Firma Admin'};
-      return `<div class="agent-card-item" style="position:relative;">
+      return `<div class="agent-card-item" style="position:relative;cursor:pointer;" onclick="openEditAgentModal('${u.id}')">
 <div class="agent-av-lg" style="background:${u.is_active?'var(--accent)':'var(--text-3)'};">${u.name.charAt(0)}</div>
 <div class="agent-info-lg" style="flex:1;">
 <div class="name">${u.name}</div>
@@ -33,12 +34,125 @@ async function loadAgents() {
 <span style="font-size:10px;padding:2px 7px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-weight:700;">${roleMap[u.role]||u.role}</span>
 <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:${color};">
 <div style="width:7px;height:7px;border-radius:50%;background:${color};"></div>
-${status}
+${statusLabel[status]||status}
 </div>
 </div>
 </div>`;
     }).join('');
   } catch(e) { console.error(e); grid.innerHTML=`<div style="color:var(--red);padding:24px;">Hata: ${e.message}</div>`; }
+}
+
+function _agentModal(userId, prefill) {
+  const isEdit = !!userId;
+  document.getElementById('m-agent-mgr')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'm-agent-mgr'; modal.className = 'modal-overlay open';
+  modal.innerHTML = `
+<div class="modal" style="max-width:460px;">
+<div class="modal-hdr">
+<div class="modal-title"><i class="ph ph-user-circle"></i> ${isEdit ? 'Agent Düzenle' : 'Yeni Agent / Kullanıcı'}</div>
+<button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+</div>
+<div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;">
+<div class="form-grid">
+<div class="form-row"><label class="form-label">Ad Soyad *</label>
+<input class="form-input" id="am-name" value="${prefill?.name||''}" placeholder="Kürşat Şahan"></div>
+<div class="form-row"><label class="form-label">E-posta *</label>
+<input class="form-input" id="am-email" type="email" value="${prefill?.email||''}" placeholder="k.sahan@firma.com" ${isEdit?'readonly style="opacity:.6;"':''}></div>
+</div>
+${!isEdit ? `<div class="form-row"><label class="form-label">Şifre *</label>
+<input class="form-input" id="am-pass" type="password" placeholder="En az 6 karakter"></div>` : `
+<div class="form-row"><label class="form-label">Yeni Şifre <span style="color:var(--text-3)">(boş = değişmez)</span></label>
+<input class="form-input" id="am-pass" type="password" placeholder="••••••••"></div>`}
+<div class="form-grid">
+<div class="form-row"><label class="form-label">Rol</label>
+<select class="form-input" id="am-role">
+<option value="agent" ${prefill?.role==='agent'?'selected':''}>Agent</option>
+<option value="qc" ${prefill?.role==='qc'?'selected':''}>QC</option>
+<option value="firm_admin" ${prefill?.role==='firm_admin'?'selected':''}>Firma Admin</option>
+</select></div>
+<div class="form-row"><label class="form-label">Durum</label>
+<select class="form-input" id="am-active">
+<option value="true" ${prefill?.is_active!==false?'selected':''}>Aktif</option>
+<option value="false" ${prefill?.is_active===false?'selected':''}>Pasif</option>
+</select></div>
+</div>
+${!isEdit ? `<div class="form-row"><label class="form-label">Firma</label>
+<select class="form-input" id="am-firm">
+${(_allFirms||[]).map(f=>`<option value="${f.id}">${f.name}</option>`).join('')}
+${!(_allFirms||[]).length ? `<option value="${currentUser.firm_id}">${currentUser.firm_id}</option>` : ''}
+</select></div>` : ''}
+</div>
+<div class="modal-footer">
+${isEdit ? `<button class="btn btn-ghost" style="margin-right:auto;color:var(--red);" onclick="confirmDeleteAgent('${userId}')"><i class="ph ph-trash"></i> Sil</button>` : ''}
+<button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">İptal</button>
+<button class="btn btn-primary" onclick="${isEdit?`saveAgentEdit('${userId}')`:'saveNewAgent()'}">Kaydet</button>
+</div>
+</div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function openAddAgentModal() { _agentModal(null, null); }
+
+async function openEditAgentModal(userId) {
+  try {
+    const users = await sb(`users?id=eq.${userId}&select=*`).catch(()=>[]);
+    const u = users?.[0]; if (!u) return;
+    _agentModal(userId, u);
+  } catch(e) { toast('Kullanıcı yüklenemedi','err'); }
+}
+
+async function saveNewAgent() {
+  const name  = document.getElementById('am-name')?.value.trim();
+  const email = document.getElementById('am-email')?.value.trim().toLowerCase();
+  const pass  = document.getElementById('am-pass')?.value;
+  const role  = document.getElementById('am-role')?.value || 'agent';
+  const firmId = document.getElementById('am-firm')?.value || currentUser.firm_id;
+  if (!name||!email||!pass) { toast('Ad, e-posta ve şifre zorunlu','err'); return; }
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/rpc/create_user_with_password`,{
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+      body:JSON.stringify({p_firm_id:firmId,p_email:email,p_password:pass,p_name:name,p_role:role})
+    });
+    if (!res.ok) throw new Error(await res.text());
+    document.getElementById('m-agent-mgr')?.remove();
+    await loadAgents();
+    toast('Kullanıcı oluşturuldu ✓','ok');
+  } catch(e) { toast('Hata: '+e.message,'err'); }
+}
+
+async function saveAgentEdit(userId) {
+  const name   = document.getElementById('am-name')?.value.trim();
+  const pass   = document.getElementById('am-pass')?.value;
+  const role   = document.getElementById('am-role')?.value;
+  const active = document.getElementById('am-active')?.value === 'true';
+  if (!name) { toast('Ad zorunlu','err'); return; }
+  try {
+    await sb(`users?id=eq.${userId}`,{method:'PATCH',prefer:'return=minimal',
+      body:JSON.stringify({name,role,is_active:active})});
+    if (pass) {
+      await fetch(`${SB_URL}/rest/v1/rpc/reset_user_password`,{
+        method:'POST',
+        headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+        body:JSON.stringify({p_user_id:userId,p_new_password:pass})
+      });
+    }
+    document.getElementById('m-agent-mgr')?.remove();
+    await loadAgents();
+    toast('Güncellendi ✓','ok');
+  } catch(e) { toast('Hata: '+e.message,'err'); }
+}
+
+async function confirmDeleteAgent(userId) {
+  if (!confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) return;
+  try {
+    await sb(`users?id=eq.${userId}`,{method:'DELETE',prefer:'return=minimal'});
+    document.getElementById('m-agent-mgr')?.remove();
+    await loadAgents();
+    toast('Kullanıcı silindi','ok');
+  } catch(e) { toast('Silinemedi: '+e.message,'err'); }
 }
 
 async function openAssignModal() {
@@ -319,4 +433,107 @@ async function resetUserPass(userId, email) {
     });
     toast('Şifre sıfırlandı ✓','ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
+}
+
+// ── Roller & İzinler ──────────────────────────
+const BUILTIN_ROLES = [
+  { key:'super_admin', label:'Süper Admin', color:'var(--red)', builtin:true,
+    perms:['dashboard','campaigns','contacts','callhistory','stats','agents','firms','settings','takvim','qc','wiedervorlage'] },
+  { key:'firm_admin',  label:'Firma Admin',  color:'var(--accent)', builtin:true,
+    perms:['dashboard','campaigns','contacts','callhistory','stats','agents','takvim','qc','wiedervorlage'] },
+  { key:'agent',       label:'Agent',        color:'var(--green)', builtin:true,
+    perms:['dialer','myhistory','wiedervorlage','takvim'] },
+  { key:'qc',          label:'QC',           color:'var(--yellow)', builtin:true,
+    perms:['qc','callhistory','wiedervorlage'] },
+];
+const ALL_PAGES = [
+  {key:'dashboard',    label:'Dashboard'},
+  {key:'campaigns',    label:'Kampanyalar'},
+  {key:'contacts',     label:'Kişiler/Kuyruk'},
+  {key:'callhistory',  label:'Çağrı Geçmişi'},
+  {key:'stats',        label:'İstatistikler'},
+  {key:'agents',       label:'Agentler'},
+  {key:'firms',        label:'Firmalar'},
+  {key:'settings',     label:'Ayarlar'},
+  {key:'takvim',       label:'Takvim'},
+  {key:'qc',           label:'QC Paneli'},
+  {key:'wiedervorlage',label:'Aranacaklar'},
+  {key:'dialer',       label:'Dialer'},
+  {key:'myhistory',    label:'Geçmişim'},
+];
+
+async function loadRolesPage() {
+  const card = document.getElementById('roles-card');
+  const el   = document.getElementById('roles-list');
+  if (!card || !el) return;
+  if (!isSuperAdmin()) { card.style.display='none'; return; }
+  card.style.display = '';
+  let customRoles = [];
+  try {
+    const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
+    customRoles = firms?.[0]?.settings?.custom_roles || [];
+  } catch(e) {}
+  const allRoles = [...BUILTIN_ROLES, ...customRoles.map(r=>({...r,builtin:false}))];
+  el.innerHTML = allRoles.map(role => `
+<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-3);">
+<span style="width:10px;height:10px;border-radius:50%;background:${role.color||'var(--text-3)'};flex-shrink:0;"></span>
+<span style="font-size:13px;font-weight:700;flex:1;">${role.label}</span>
+<span style="font-size:11px;color:var(--text-3);font-family:var(--mono);">${role.key}</span>
+${role.builtin ? '<span class="badge badge-gray" style="font-size:10px;">Yerleşik</span>' :
+  `<button class="icon-btn" style="border-color:var(--red);color:var(--red);" onclick="deleteCustomRole('${role.key}')"><i class="ph ph-trash"></i></button>`}
+</div>
+<div style="padding:10px 14px;display:flex;flex-wrap:wrap;gap:6px;">
+${ALL_PAGES.map(p=>`
+<label style="display:inline-flex;align-items:center;gap:5px;cursor:${role.builtin?'default':'pointer'};font-size:11px;background:${role.perms.includes(p.key)?'var(--accent-soft)':'var(--bg-4)'};color:${role.perms.includes(p.key)?'var(--accent)':'var(--text-3)'};padding:3px 9px;border-radius:12px;border:1px solid ${role.perms.includes(p.key)?'var(--accent)':'var(--border)'};">
+${!role.builtin?`<input type="checkbox" style="width:11px;height:11px;" ${role.perms.includes(p.key)?'checked':''} onchange="toggleRolePerm('${role.key}','${p.key}',this.checked)" onclick="event.stopPropagation()">`:''}
+${p.label}</label>`).join('')}
+</div>
+</div>`).join('');
+}
+
+async function openAddRoleModal() {
+  const name = prompt('Yeni rol adı (örn: muhasebeci):','');
+  if (!name) return;
+  const key   = name.toLowerCase().replace(/[^a-z0-9_]/g,'_');
+  const label = name.charAt(0).toUpperCase() + name.slice(1);
+  try {
+    const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
+    const existing = firms?.[0]?.settings || {};
+    const roles = existing.custom_roles || [];
+    if (roles.find(r=>r.key===key)||BUILTIN_ROLES.find(r=>r.key===key)) { toast('Bu rol adı zaten var','warn'); return; }
+    roles.push({key,label,color:'var(--text-2)',perms:[]});
+    await sb(`firms?id=eq.${currentUser.firm_id}`,{method:'PATCH',prefer:'return=minimal',
+      body:JSON.stringify({settings:{...existing,custom_roles:roles}})});
+    await loadRolesPage();
+    toast('Rol oluşturuldu ✓','ok');
+  } catch(e) { toast('Hata: '+e.message,'err'); }
+}
+
+async function toggleRolePerm(roleKey, pageKey, enabled) {
+  try {
+    const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
+    const existing = firms?.[0]?.settings || {};
+    const roles = existing.custom_roles || [];
+    const role = roles.find(r=>r.key===roleKey);
+    if (!role) return;
+    if (enabled) { if (!role.perms.includes(pageKey)) role.perms.push(pageKey); }
+    else role.perms = role.perms.filter(p=>p!==pageKey);
+    await sb(`firms?id=eq.${currentUser.firm_id}`,{method:'PATCH',prefer:'return=minimal',
+      body:JSON.stringify({settings:{...existing,custom_roles:roles}})});
+    toast('İzin güncellendi ✓','ok',1200);
+  } catch(e) { toast('Hata','err'); }
+}
+
+async function deleteCustomRole(roleKey) {
+  if (!confirm('Bu rolü silmek istediğinize emin misiniz?')) return;
+  try {
+    const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
+    const existing = firms?.[0]?.settings || {};
+    const roles = (existing.custom_roles||[]).filter(r=>r.key!==roleKey);
+    await sb(`firms?id=eq.${currentUser.firm_id}`,{method:'PATCH',prefer:'return=minimal',
+      body:JSON.stringify({settings:{...existing,custom_roles:roles}})});
+    await loadRolesPage();
+    toast('Rol silindi','ok');
+  } catch(e) { toast('Hata','err'); }
 }

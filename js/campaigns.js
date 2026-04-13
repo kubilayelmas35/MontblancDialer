@@ -861,3 +861,88 @@ ticker.style.display = 'none';
 }
 } catch(e) {}
 }
+
+// ── Kuyruk Yönetim Modalı ─────────────────────
+async function openRequeueModal(queueId, queueName) {
+  try {
+    const [pending, no_answer, negative, callback_c, dnc] = await Promise.all([
+      sb(`contacts?queue_id=eq.${queueId}&status=eq.pending&select=id`),
+      sb(`contacts?queue_id=eq.${queueId}&status=eq.no_answer&select=id`),
+      sb(`contacts?queue_id=eq.${queueId}&status=eq.negative&select=id`),
+      sb(`contacts?queue_id=eq.${queueId}&status=eq.callback&select=id`),
+      sb(`contacts?queue_id=eq.${queueId}&status=eq.dnc&select=id`),
+    ]);
+    const counts = {
+      pending: (pending||[]).length,
+      no_answer: (no_answer||[]).length,
+      negative: (negative||[]).length,
+      callback: (callback_c||[]).length,
+      dnc: (dnc||[]).length,
+    };
+    document.getElementById('m-requeue')?.remove();
+    const modal = document.createElement('div');
+    modal.id = 'm-requeue'; modal.className = 'modal-overlay open';
+    modal.innerHTML = `
+<div class="modal" style="max-width:460px;">
+<div class="modal-hdr">
+<div class="modal-title"><i class="ph ph-arrows-clockwise"></i> Kuyruk Yönet — ${queueName}</div>
+<button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+</div>
+<div style="padding:16px 20px;">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+${Object.entries({pending:'Bekliyor',no_answer:'Cevap Yok',negative:'Olumsuz',callback:'Geri Ara',dnc:'Kara Liste'}).map(([k,l])=>`
+<div style="background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
+<span style="font-size:12px;color:var(--text-2);">${l}</span>
+<span style="font-size:18px;font-weight:800;font-family:var(--mono);">${counts[k]}</span>
+</div>`).join('')}
+</div>
+<div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:8px;">Tekrar Kuyruğa Al:</div>
+<div style="display:flex;flex-direction:column;gap:6px;">
+${['no_answer','negative','callback'].map(k=>`
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;background:var(--bg-3);border-radius:6px;border:1px solid var(--border);">
+<input type="checkbox" id="rq-${k}" style="width:15px;height:15px;">
+<span style="font-size:12px;">${{no_answer:'Cevap Yok',negative:'Olumsuz',callback:'Geri Ara'}[k]} <span style="color:var(--text-3);">(${counts[k]} kişi)</span></span>
+</label>`).join('')}
+</div>
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;margin-top:8px;background:var(--bg-3);border-radius:6px;border:1px solid var(--border);">
+<input type="checkbox" id="rq-reset-attempts" style="width:15px;height:15px;">
+<span style="font-size:12px;">Deneme sayılarını sıfırla</span>
+</label>
+</div>
+<div class="modal-footer">
+<button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">İptal</button>
+<button class="btn btn-primary" onclick="doRequeue('${queueId}')">
+<i class="ph ph-arrows-clockwise"></i> Kuyruğa Al
+</button>
+</div>
+</div>`;
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+  } catch(e) { toast('Kuyruk yüklenemedi: ' + e.message, 'err'); }
+}
+
+async function doRequeue(queueId) {
+  const statuses = ['no_answer','negative','callback'].filter(s => document.getElementById('rq-'+s)?.checked);
+  if (!statuses.length) { toast('En az bir durum seçin','warn'); return; }
+  const resetAttempts = document.getElementById('rq-reset-attempts')?.checked;
+  try {
+    for (const status of statuses) {
+      const patch = { status: 'pending', last_called_at: null };
+      if (resetAttempts) patch.attempt_count = 0;
+      await sb(`contacts?queue_id=eq.${queueId}&status=eq.${status}`, {
+        method: 'PATCH', prefer: 'return=minimal',
+        body: JSON.stringify(patch)
+      });
+    }
+    // Dialed count'u yeniden hesapla
+    const notPending = await sb(`contacts?queue_id=eq.${queueId}&status=neq.pending&select=id`);
+    const dialedCount = (notPending||[]).length;
+    await sb(`queues?id=eq.${queueId}`, {
+      method: 'PATCH', prefer: 'return=minimal',
+      body: JSON.stringify({ dialed_count: dialedCount })
+    }).catch(()=>{});
+    document.getElementById('m-requeue')?.remove();
+    toast(`Kuyruğa alındı ✓ (${statuses.length} durum)`, 'ok');
+    if (currentCampId) { loadCampaigns(); setTimeout(()=>openCampDetail(currentCampId), 400); }
+  } catch(e) { toast('Hata: ' + e.message, 'err'); }
+}

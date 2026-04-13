@@ -44,7 +44,7 @@ if (page==='stats')      { initStatsFilters(); loadStats(); }
 if (page==='callhistory'){ initCallHistoryFilters(); loadCallHistory(); }
 if (page==='dialer')         initDialer();
 if (page==='myhistory')      { initMyHistoryFilters(); loadMyHistory(); }
-if (page==='settings')       loadSavedSettings();
+if (page==='settings')       { loadSavedSettings(); loadRolesPage(); }
 if (page==='wiedervorlage')  loadWvPage();
 if (page==='qc')             loadQcData();
 if (page==='firms')          loadFirmsPage();
