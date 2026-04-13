@@ -438,13 +438,13 @@ async function resetUserPass(userId, email) {
 // ── Roller & İzinler ──────────────────────────
 const BUILTIN_ROLES = [
   { key:'super_admin', label:'Süper Admin', color:'var(--red)', builtin:true,
-    perms:['dashboard','campaigns','contacts','callhistory','stats','agents','firms','settings','takvim','qc','wiedervorlage','leave','competition'] },
+    perms:['dashboard','campaigns','contacts','callhistory','stats','agents','firms','settings','takvim','qc','wiedervorlage','leave','competition','muhasebe'] },
   { key:'firm_admin',  label:'Firma Admin',  color:'var(--accent)', builtin:true,
-    perms:['dashboard','campaigns','contacts','callhistory','stats','agents','takvim','qc','wiedervorlage','leave','competition'] },
+    perms:['dashboard','campaigns','contacts','callhistory','stats','agents','takvim','qc','wiedervorlage','leave','competition','muhasebe'] },
   { key:'agent',       label:'Agent',        color:'var(--green)', builtin:true,
-    perms:['dashboard','dialer','myhistory','wiedervorlage','takvim','leave','competition'] },
+    perms:['dashboard','dialer','myhistory','wiedervorlage','takvim','leave','competition','muhasebe'] },
   { key:'qc',          label:'QC',           color:'var(--yellow)', builtin:true,
-    perms:['dashboard','qc','callhistory','wiedervorlage','leave','competition'] },
+    perms:['dashboard','qc','callhistory','wiedervorlage','leave','competition','muhasebe'] },
 ];
 const ALL_PAGES = [
   {key:'dashboard',    label:'Özet'},
@@ -462,6 +462,7 @@ const ALL_PAGES = [
   {key:'myhistory',    label:'Geçmişim'},
   {key:'leave',        label:'İzin & Devam'},
   {key:'competition',  label:'Ayın elemanı'},
+  {key:'muhasebe',     label:'Muhasebe'},
 ];
 
 async function loadRolesPage() {

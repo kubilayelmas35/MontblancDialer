@@ -24,6 +24,7 @@ function defaultPayrollRules() {
     base_salary_mode: 'net',
     base_salary_amount: 0,
     tax_rate_percent: 0,
+    revenue_per_success: 0,
     government_supported: false,
     exchange_rate: 1,
     fx_api_provider: 'exchangerate_host',
@@ -210,6 +211,7 @@ function renderPayrollRulesForm(r) {
   set('pr-mode', r.base_salary_mode || 'net');
   set('pr-base', Number(r.base_salary_amount || 0));
   set('pr-tax', Number(r.tax_rate_percent || 0));
+  set('pr-rev-success', Number(r.revenue_per_success || 0));
   set('pr-late', Number(r.late_penalty_amount || 0));
   set('pr-leave-over-amt', Number(r.leave_overflow_penalty_amount || 0));
   const setChk = (id, v) => {
@@ -299,10 +301,12 @@ function updatePayrollPreview() {
   const salaryTiers = readPayrollTierRows('salary');
   const salary = _mSalaryForSuccess(base, success, salaryTiers, currency, currency, rate);
   const bonus = _mBonusFor(success, bonusTiers, currency, currency, rate);
-  const preTax = salary + bonus;
-  const tax = gov ? 0 : Math.max(0, preTax) * (taxRate / 100);
-  const net = preTax - tax;
-  out.innerHTML = `Başarılı: <b>${success}</b> · Baz(Net): <b>${_mFmt(salary)} ${currency}</b> · Prim: <b>${_mFmt(bonus)} ${currency}</b> · Vergi: <b>${_mFmt(tax)} ${currency}</b> · Hakediş: <b>${_mFmt(net)} ${currency}</b>`;
+  const revenuePerSuccess = Number(document.getElementById('pr-rev-success')?.value || 0);
+  const net = salary + bonus;
+  const revenue = success * revenuePerSuccess;
+  const matrah = Math.max(0, revenue - net);
+  const companyTax = gov ? 0 : matrah * (taxRate / 100);
+  out.innerHTML = `Başarılı: <b>${success}</b> · Baz(Net): <b>${_mFmt(salary)} ${currency}</b> · Prim: <b>${_mFmt(bonus)} ${currency}</b> · Personel Hakedişi: <b>${_mFmt(net)} ${currency}</b> · Şirket Geliri: <b>${_mFmt(revenue)} ${currency}</b> · Şirket Vergisi: <b>${_mFmt(companyTax)} ${currency}</b>`;
 }
 
 async function savePayrollRules() {
@@ -319,6 +323,7 @@ async function savePayrollRules() {
     base_salary_mode: document.getElementById('pr-mode')?.value || 'net',
     base_salary_amount: Number(document.getElementById('pr-base')?.value) || 0,
     tax_rate_percent: Number(document.getElementById('pr-tax')?.value) || 0,
+    revenue_per_success: Number(document.getElementById('pr-rev-success')?.value) || 0,
     government_supported: !!document.getElementById('pr-gov')?.checked,
     late_penalty_enabled: !!document.getElementById('pr-late-on')?.checked,
     late_penalty_amount: Number(document.getElementById('pr-late')?.value) || 0,
@@ -607,8 +612,8 @@ async function renderMuhasebePayrollTable(fid, ym, rules) {
     const leavePenalty = rules.leave_overflow_penalty_enabled ? leaveOverflow * Number(rules.leave_overflow_penalty_amount || 0) : 0;
     const adj = _mCollectAdjustments(data.adj, u.id, { ...rules, exchange_rate: monthRate });
     const preTax = baseSalary + bonus + adj.add - adj.ded - latePenalty - leavePenalty;
-    const taxAmount = rules.government_supported ? 0 : Math.max(0, preTax) * (taxRate / 100);
-    const netPayable = preTax - taxAmount;
+    const taxAmount = 0;
+    const netPayable = preTax;
     const paidAmount = Number(monthlyMap[u.id]?.paid_amount || 0);
     const remaining = netPayable - paidAmount;
     return {
@@ -655,16 +660,24 @@ function renderMuhasebeSummaryCards(rows, rules) {
   const sum = rows.reduce((a, r) => {
     a.base += r.baseSalary; a.bonus += r.bonus; a.pen += r.latePenalty + r.leavePenalty + r.manualDeduct;
     a.tax += r.taxAmount; a.pay += r.netPayable; a.paid += r.paidAmount; a.rem += r.remaining;
+    a.success += r.success || 0;
     return a;
-  }, { base: 0, bonus: 0, pen: 0, tax: 0, pay: 0, paid: 0, rem: 0 });
+  }, { base: 0, bonus: 0, pen: 0, tax: 0, pay: 0, paid: 0, rem: 0, success: 0 });
+  const revenuePerSuccess = Number(rules.revenue_per_success || 0);
+  const totalRevenue = sum.success * revenuePerSuccess;
+  const taxBase = Math.max(0, totalRevenue - sum.pay);
+  const companyTax = rules.government_supported ? 0 : taxBase * (Number(rules.tax_rate_percent || 0) / 100);
+  const netProfit = totalRevenue - sum.pay - companyTax;
   const cur = _mEsc(rules.currency || 'EUR');
   box.innerHTML = `
+    <div class="stat-card"><div class="stat-lbl">Gelir (${cur})</div><div class="stat-val">${_mFmt(totalRevenue)}</div><div class="stat-meta">${sum.success} başarılı termin</div></div>
     <div class="stat-card"><div class="stat-lbl">Baz Maaş (${cur})</div><div class="stat-val">${_mFmt(sum.base)}</div></div>
     <div class="stat-card stat-green"><div class="stat-lbl">Prim (${cur})</div><div class="stat-val">${_mFmt(sum.bonus)}</div></div>
     <div class="stat-card stat-red"><div class="stat-lbl">Toplam Kesinti (${cur})</div><div class="stat-val">${_mFmt(sum.pen)}</div></div>
-    <div class="stat-card"><div class="stat-lbl">Vergi (${cur})</div><div class="stat-val">${_mFmt(sum.tax)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Şirket Vergisi (${cur})</div><div class="stat-val">${_mFmt(companyTax)}</div><div class="stat-meta">Matrah: ${_mFmt(taxBase)} ${cur}</div></div>
     <div class="stat-card stat-blue"><div class="stat-lbl">Hakediş (${cur})</div><div class="stat-val">${_mFmt(sum.pay)}</div></div>
     <div class="stat-card stat-purple"><div class="stat-lbl">Kalan (${cur})</div><div class="stat-val">${_mFmt(sum.rem)}</div><div class="stat-meta">Ödenen: ${_mFmt(sum.paid)} ${cur}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Net Kar (${cur})</div><div class="stat-val" style="color:${netProfit>=0?'var(--green)':'var(--red)'}">${_mFmt(netProfit)}</div></div>
   `;
 }
 
@@ -692,7 +705,7 @@ function renderMuhasebeRowsTable(rows, rules) {
         <td>${_mFmt(r.latePenalty)} ${cur}<div style="font-size:10px;color:var(--text-3);">${r.lateCount} kez</div></td>
         <td>${_mFmt(r.leavePenalty)} ${cur}<div style="font-size:10px;color:var(--text-3);">${_mFmt(r.leaveOverflow)} gün</div></td>
         <td><span class="muh-badge ${manualClass}">${manualNet >= 0 ? '+' : ''}${_mFmt(manualNet)} ${cur}</span></td>
-        <td>${_mFmt(r.taxAmount)} ${cur}<div style="font-size:10px;color:var(--text-3);">%${_mFmt(r.taxRate)}</div></td>
+        <td><span style="font-size:11px;color:var(--text-3);">Şirket matrahında</span></td>
         <td style="font-weight:800;">${_mFmt(r.netPayable)} ${cur}</td>
         <td>${_mFmt(r.paidAmount)} ${cur}</td>
         <td style="font-weight:800;color:${r.remaining > 0 ? 'var(--red)' : 'var(--green)'};">${_mFmt(r.remaining)} ${cur}</td>
@@ -712,13 +725,13 @@ async function openPayrollOverride(uid) {
   const rows = await sb(`payroll_employee_overrides?firm_id=eq.${fid}&user_id=eq.${uid}&select=*`).catch(() => []);
   const cur = rows?.[0] || {};
   const noTermin = await mbConfirm('Bu personel termin yapmıyor olarak işaretlensin mi?', 'Personel Tipi');
-  const base = await mbPrompt('Baz maaş override (boş bırak = varsayılan)', cur.base_salary_amount ?? '', 'Override');
+  const base = await mbPrompt('Baz maaş özel ayarı (boş bırak = varsayılan)', cur.base_salary_amount ?? '', 'Kişiye Özel Ayar');
   if (base === null) return;
-  const tax = await mbPrompt('Vergi % override (boş bırak = varsayılan)', cur.tax_rate_percent ?? '', 'Override');
+  const tax = await mbPrompt('Vergi % özel ayarı (boş bırak = varsayılan)', cur.tax_rate_percent ?? '', 'Kişiye Özel Ayar');
   if (tax === null) return;
-  const mode = await mbPrompt('Maaş modu (net / gross_minimum)', cur.base_salary_mode || '', 'Override');
+  const mode = await mbPrompt('Maaş modu (net / gross_minimum)', cur.base_salary_mode || '', 'Kişiye Özel Ayar');
   if (mode === null) return;
-  const notes = await mbPrompt('Not', cur.notes || '', 'Override');
+  const notes = await mbPrompt('Not', cur.notes || '', 'Kişiye Özel Ayar');
   if (notes === null) return;
   const body = {
     firm_id: fid,
@@ -733,10 +746,10 @@ async function openPayrollOverride(uid) {
   try {
     if (rows?.length) await sb(`payroll_employee_overrides?id=eq.${rows[0].id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(body) });
     else await sb('payroll_employee_overrides', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(body) });
-    toast('Override kaydedildi', 'ok');
+    toast('Kişiye özel ayar kaydedildi', 'ok');
     loadMuhasebePage();
   } catch (e) {
-    toast('Override hatası: ' + e.message, 'err');
+    toast('Kişiye özel ayar hatası: ' + e.message, 'err');
   }
 }
 
