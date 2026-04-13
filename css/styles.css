@@ -876,7 +876,9 @@ cursor:pointer; transition:var(--transition);
 /* ============================================================
 SETTINGS PAGE
 ============================================================ */
-.settings-layout { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.settings-layout { display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:14px; }
+.comp-grid-2 { display:grid !important; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)) !important; gap:12px !important; }
+.comp-grid-3 { display:grid !important; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)) !important; gap:10px !important; }
 @media(max-width:768px) { .settings-layout { grid-template-columns:1fr; } }
 /* Palette picker */
 .palette-grid { display:flex; gap:8px; flex-wrap:wrap; }
