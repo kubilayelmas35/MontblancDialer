@@ -802,6 +802,10 @@ async function renderMuhasebePayrollTable(fid, ym, rules) {
     if (incomeBox) incomeBox.innerHTML = '';
     if (taxBox) taxBox.innerHTML = '';
   }
+  const payrollRowForSelf = rows.find(r => r.user_id === currentUser.id) || null;
+  if (typeof loadAgentSelfPerformanceDash === 'function') {
+    loadAgentSelfPerformanceDash(fid, ym, rules, payrollRowForSelf);
+  }
 }
 
 function renderMuhasebeSummaryCards(rows, rules) {
