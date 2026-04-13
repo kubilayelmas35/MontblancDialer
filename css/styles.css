@@ -231,11 +231,20 @@ font-size: 11px; font-weight: 700; color: white;
 .tb-uname { font-size: 13px; font-weight: 600; }
 .tb-urole { font-size: 10px; color: var(--text-3); }
 /* ── BODY ── */
-#body { display:flex; flex:1; overflow:hidden; position:relative; min-height:0; height:calc(100vh - var(--topbar-h)); }
+#body {
+display:grid;
+grid-template-columns:auto minmax(0,1fr);
+flex:1;
+overflow:hidden;
+position:relative;
+min-height:0;
+height:calc(100vh - var(--topbar-h));
+}
 /* ── SIDEBAR ── */
 #sidebar {
 width: var(--sidebar-w);
 min-width: var(--sidebar-w);
+flex: 0 0 var(--sidebar-w);
 background: #0f172a;
 border-right: none;
 display: flex; flex-direction: column;
@@ -244,9 +253,14 @@ overflow-y: auto;
 z-index: 90;
 transition: width var(--transition), min-width var(--transition), transform var(--transition);
 box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+position: relative !important;
+left: auto !important;
+top: auto !important;
+transform: none !important;
 }
 [data-theme="dark"] #sidebar { background: #080c14; }
 #sidebar.collapsed { width: 56px; min-width: 56px; }
+#sidebar.collapsed { flex-basis: 56px; }
 #sidebar.collapsed .sb-label,
 #sidebar.collapsed .tb-logo-name,
 #sidebar.collapsed .tb-logo-tag,
@@ -269,10 +283,12 @@ position: relative !important;
 left: auto !important;
 top: auto !important;
 transform: none !important;
+inset: auto !important;
 }
 #body > #main {
 flex: 1 1 auto;
 min-width: 0;
+width: 100%;
 }
 .sb-section { padding: 8px; }
 .sb-label {
