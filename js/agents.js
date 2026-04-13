@@ -438,7 +438,7 @@ async function resetUserPass(userId, email) {
 // ── Roller & İzinler ──────────────────────────
 const BUILTIN_ROLES = [
   { key:'super_admin', label:'Süper Admin', color:'var(--red)', builtin:true,
-    perms:['dashboard','campaigns','contacts','callhistory','stats','agents','firms','settings','takvim','qc','wiedervorlage','leave','competition','muhasebe','export'] },
+    perms:['dashboard','campaigns','contacts','callhistory','stats','agents','firms','settings','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
   { key:'firm_admin',  label:'Firma Admin',  color:'var(--accent)', builtin:true,
     perms:['dashboard','campaigns','contacts','callhistory','stats','agents','takvim','qc','wiedervorlage','leave','competition','muhasebe','export'] },
   { key:'agent',       label:'Agent',        color:'var(--green)', builtin:true,
@@ -464,6 +464,7 @@ const ALL_PAGES = [
   {key:'competition',  label:'Ayın elemanı'},
   {key:'muhasebe',     label:'Muhasebe'},
   {key:'export',       label:'Dışa aktarım'},
+  {key:'performance',  label:'Personel performans'},
 ];
 
 async function loadRolesPage() {

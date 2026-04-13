@@ -112,6 +112,8 @@ if (roleEl) roleEl.textContent = (roleMap[currentUser.role]||currentUser.role)
 + (currentUser.firm_name ? ` · ${currentUser.firm_name}` : '');
 const firmsBtn = document.getElementById('nav-firms-btn');
 if (firmsBtn) firmsBtn.style.display = currentUser.role === 'super_admin' ? '' : 'none';
+const perfNav = document.getElementById('nav-performance-btn');
+if (perfNav) perfNav.style.display = ['admin', 'super_admin'].includes(currentUser.role) ? '' : 'none';
 if (currentUser.role === 'super_admin') { loadAllFirms(); }
 loadFirmCallHours(); // arama kısıtlamalarını yükle
 if (isAdmin) { navigate('dashboard'); }

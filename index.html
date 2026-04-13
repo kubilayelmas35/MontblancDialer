@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.7">
+<link rel="stylesheet" href="css/styles.css?v=6.8">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -185,6 +185,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
 <span data-tr="İstatistikler" data-de="Statistiken">İstatistikler</span>
 </button>
+<button class="sb-item" id="nav-performance-btn" style="display:none;" onclick="navigate('performance')">
+<span class="sb-item-icon"><i class="ph ph-chart-line-up" style="font-size:17px;"></i></span>
+<span data-tr="Personel performans" data-de="Personal Performance">Personel performans</span>
+</button>
 <button class="sb-item" onclick="navigate('callhistory')">
 <span class="sb-item-icon"><i class="ph ph-phone-list" style="font-size:17px;"></i></span>
 <span data-tr="Çağrı Geçmişi" data-de="Anrufliste">Çağrı Geçmişi</span>
@@ -274,7 +278,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v6.7</div>
+<div class="sb-ver">Montblanc Dialer v6.8</div>
 </div>
 </nav>
 <main id="main">
@@ -817,6 +821,222 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
 <div style="font-size:11px;color:var(--text-3);" data-tr="Seçim yoksa tablodaki tüm satırlar indirilir." data-de="Ohne Auswahl werden alle sichtbaren Zeilen exportiert.">Seçim yoksa tablodaki tüm satırlar indirilir.</div>
 <button type="button" class="btn btn-primary" id="et-download" onclick="exportTerminXlsx()" disabled><i class="ph ph-table"></i> Excel (<span id="et-download-count">0</span>)</button>
+</div>
+</div>
+</div>
+</div>
+<div class="page" id="page-performance">
+<style>
+#page-performance .perf-hdr{background:linear-gradient(135deg,var(--bg-3) 0%,var(--bg-2) 100%);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:14px;}
+#page-performance .perf-sum{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px;}
+@media(max-width:900px){#page-performance .perf-sum{grid-template-columns:repeat(2,1fr);}}
+#page-performance .perf-sum-box{background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;}
+#page-performance .perf-sum-val{font-size:17px;font-weight:800;color:var(--accent);}
+#page-performance .perf-sum-lbl{font-size:10px;color:var(--text-3);font-weight:600;}
+#page-performance .perf-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:10px;}
+@media(max-width:1100px){#page-performance .perf-cards{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:600px){#page-performance .perf-cards{grid-template-columns:repeat(2,1fr);}}
+#page-performance .perf-card{border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;background:var(--bg-2);}
+#page-performance .perf-card-total{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;}
+#page-performance .perf-card-total .perf-ct{color:rgba(255,255,255,.85);}
+#page-performance .perf-ct{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:4px;}
+#page-performance .perf-cv{font-size:22px;font-weight:900;}
+#page-performance .perf-call-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+@media(max-width:900px){#page-performance .perf-call-row{grid-template-columns:repeat(2,1fr);}}
+#page-performance .perf-charts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
+@media(max-width:1200px){#page-performance .perf-charts{grid-template-columns:1fr 1fr;}}
+@media(max-width:700px){#page-performance .perf-charts{grid-template-columns:1fr;}}
+#page-performance .perf-chart-box{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg-2);}
+#page-performance .perf-chart-t{height:220px;position:relative;}
+#page-performance .perf-chart-wide{grid-column:1/-1;}
+#page-performance .perf-chart-t-lg{height:260px;}
+#page-performance .perf-tables{display:grid;grid-template-columns:1.2fr 0.8fr;gap:12px;}
+@media(max-width:1100px){#page-performance .perf-tables{grid-template-columns:1fr;}}
+#page-performance .perf-loading{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9998;display:none;align-items:center;justify-content:center;}
+#page-performance .perf-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:none;align-items:center;justify-content:center;padding:16px;}
+#page-performance .perf-modal-inner{background:var(--bg-2);border-radius:14px;max-width:920px;width:100%;max-height:88vh;overflow:hidden;border:1px solid var(--border);display:flex;flex-direction:column;}
+#page-performance .range-btn{padding:6px 10px;font-size:11px;border-radius:6px;border:1px solid var(--border);background:var(--bg-2);cursor:pointer;font-weight:600;}
+#page-performance .range-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+@keyframes perfspin{to{transform:rotate(360deg);}}
+#page-performance .perf-spin{animation:perfspin 0.8s linear infinite;}
+</style>
+<div id="perf-loading" class="perf-loading"><div class="card" style="padding:24px;text-align:center;"><div class="perf-spin" style="width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;margin:0 auto 10px;animation:perfspin 0.8s linear infinite;"></div><div style="font-weight:600;">…</div></div></div>
+<div id="perf-modal" class="perf-modal">
+<div class="perf-modal-inner">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--accent);color:#fff;">
+<h3 id="perf-modal-title" style="margin:0;font-size:16px;">—</h3>
+<button type="button" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.4);" onclick="perfCloseModal()"><i class="ph ph-x"></i></button>
+</div>
+<div id="perf-modal-sub" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+<div class="tbl-wrap" style="flex:1;overflow:auto;max-height:55vh;">
+<table style="min-width:720px;">
+<thead><tr>
+<th data-tr="Tarih" data-de="Datum">Tarih</th>
+<th data-tr="Müşteri" data-de="Kunde">Müşteri</th>
+<th data-tr="Telefon" data-de="Telefon">Telefon</th>
+<th data-tr="Konum" data-de="Ort">Konum</th>
+<th data-tr="Atanan müşteri" data-de="Kunde">Atanan müşteri</th>
+<th data-tr="Durum" data-de="Status">Durum</th>
+<th data-tr="Not" data-de="Notiz">Not</th>
+</tr></thead>
+<tbody id="perf-modal-tbody"></tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="page-hdr">
+<div>
+<div class="page-title" data-tr="Personel performans" data-de="Personal Performance">Personel performans</div>
+<div class="page-sub" data-tr="Termin ve arama metrikleri" data-de="Termin- und Anrufmetriken">Termin ve arama metrikleri</div>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+<div id="perf-firm-wrap"></div>
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfExportCsv()"><i class="ph ph-download-simple"></i> CSV</button>
+<button type="button" class="btn btn-primary btn-sm" onclick="perfReload()"><i class="ph ph-arrow-clockwise"></i> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
+</div>
+</div>
+<div class="perf-hdr">
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">
+<div><label class="form-label" style="font-size:10px;">Başlangıç</label><input type="date" class="form-input" id="perf-date-from" onchange="perfReload()"/></div>
+<div><label class="form-label" style="font-size:10px;">Bitiş</label><input type="date" class="form-input" id="perf-date-to" onchange="perfReload()"/></div>
+<div><label class="form-label" style="font-size:10px;">Agent</label><select class="form-input" id="perf-agent" onchange="perfOnFilterChange()"><option value="">Tümü</option></select></div>
+<div><label class="form-label" style="font-size:10px;">Kampanya</label><select class="form-input" id="perf-campaign" onchange="perfOnFilterChange()"><option value="">Tümü</option></select></div>
+</div>
+<div style="margin-bottom:10px;"><label class="form-label" style="font-size:10px;">Termin durumu</label><select class="form-input" id="perf-status" onchange="perfOnFilterChange()" style="max-width:280px;">
+<option value="">Tümü</option>
+<option value="ok">Başarılı</option>
+<option value="pend">Beklemede</option>
+<option value="qc">QC bekleniyor</option>
+<option value="fail">Başarısız / İptal</option>
+<option value="other">Diğer</option>
+</select></div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+<button type="button" class="range-btn perf-range-btn" data-perf-range="today" onclick="perfSetQuickRange('today',event)">Bugün</button>
+<button type="button" class="range-btn perf-range-btn active" data-perf-range="week" onclick="perfSetQuickRange('week',event)">Bu hafta</button>
+<button type="button" class="range-btn perf-range-btn" data-perf-range="month" onclick="perfSetQuickRange('month',event)">Bu ay</button>
+<button type="button" class="range-btn perf-range-btn" data-perf-range="lastweek" onclick="perfSetQuickRange('lastweek',event)">Geçen hafta</button>
+<button type="button" class="range-btn perf-range-btn" data-perf-range="lastmonth" onclick="perfSetQuickRange('lastmonth',event)">Geçen ay</button>
+<button type="button" class="range-btn perf-range-btn" data-perf-range="all" onclick="perfSetQuickRange('all',event)">Tümü</button>
+</div>
+<div class="perf-sum">
+<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-total">0</div><div class="perf-sum-lbl" data-tr="Toplam termin (dönem)" data-de="Termine (Zeitraum)">Toplam termin (dönem)</div></div>
+<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-rate">0%</div><div class="perf-sum-lbl" data-tr="Başarı oranı" data-de="Erfolgsquote">Başarı oranı</div></div>
+<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-avg">0</div><div class="perf-sum-lbl" data-tr="Ort. termin/agent" data-de="Durchschn. Termine/Agent">Ort. termin/agent</div></div>
+<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-days">0</div><div class="perf-sum-lbl" data-tr="Aktif gün" data-de="Aktive Tage">Aktif gün</div></div>
+<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-agents">0</div><div class="perf-sum-lbl" data-tr="Aktif agent" data-de="Aktive Agenten">Aktif agent</div></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:12px;color:var(--text-3);">
+<span><i class="ph ph-calendar-dots"></i> <span data-tr="Bugün" data-de="Heute">Bugün</span>: <strong id="perf-sum-date">—</strong></span>
+</div>
+</div>
+<div class="perf-cards">
+<div class="perf-card perf-card-total"><div class="perf-ct" data-tr="Toplam termin" data-de="Gesamt">Toplam termin</div><div class="perf-cv" id="perf-card-total">0</div></div>
+<div class="perf-card" style="border-color:var(--green);background:rgba(34,197,94,.08);"><div class="perf-ct" style="color:var(--green);">Başarılı</div><div class="perf-cv" id="perf-card-ok" style="color:var(--green);">0</div><div style="font-size:11px;color:var(--text-3);"><span id="perf-card-okpct">0%</span></div></div>
+<div class="perf-card" style="border-color:var(--yellow);"><div class="perf-ct">Beklemede</div><div class="perf-cv" id="perf-card-pend">0</div></div>
+<div class="perf-card" style="border-color:var(--accent);"><div class="perf-ct">QC</div><div class="perf-cv" id="perf-card-qc">0</div></div>
+<div class="perf-card" style="border-color:var(--red);"><div class="perf-ct">Başarısız</div><div class="perf-cv" id="perf-card-fail">0</div></div>
+</div>
+<div class="perf-call-row">
+<div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">ARAMA (dönem)</div><div style="font-size:20px;font-weight:900;" id="perf-call-total">0</div></div>
+<div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">Termin sonucu</div><div style="font-size:20px;font-weight:900;color:var(--green);" id="perf-call-appt">0</div></div>
+<div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">Dönüşüm</div><div style="font-size:20px;font-weight:900;" id="perf-call-conv">0%</div></div>
+<div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">Ort. süre</div><div style="font-size:20px;font-weight:900;" id="perf-call-avg">0:00</div></div>
+</div>
+<div class="perf-charts">
+<div class="perf-chart-box">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+<span style="font-weight:800;font-size:13px;"><i class="ph ph-trend-up"></i> Trend</span>
+<div style="display:flex;gap:4px;">
+<button type="button" class="range-btn perf-cperiod-btn active" onclick="perfSetChartPeriod('daily',event)">Gün</button>
+<button type="button" class="range-btn perf-cperiod-btn" onclick="perfSetChartPeriod('weekly',event)">Hafta</button>
+<button type="button" class="range-btn perf-cperiod-btn" onclick="perfSetChartPeriod('monthly',event)">Ay</button>
+</div>
+</div>
+<div class="perf-chart-t"><canvas id="perf-chart-trend"></canvas></div>
+</div>
+<div class="perf-chart-box">
+<div style="font-weight:800;font-size:13px;margin-bottom:8px;"><i class="ph ph-chart-pie-slice"></i> Durum</div>
+<div class="perf-chart-t"><canvas id="perf-chart-status"></canvas></div>
+</div>
+<div class="perf-chart-box">
+<div style="font-weight:800;font-size:13px;margin-bottom:8px;"><i class="ph ph-medal"></i> Agent başarı %</div>
+<div class="perf-chart-t"><canvas id="perf-chart-rate"></canvas></div>
+</div>
+<div class="perf-chart-box perf-chart-wide">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+<span style="font-weight:800;font-size:13px;"><i class="ph ph-users-three"></i> Karşılaştırma</span>
+<div style="display:flex;gap:4px;">
+<button type="button" class="range-btn perf-cmp-btn active" onclick="perfSetCompType('termin',event)">Termin</button>
+<button type="button" class="range-btn perf-cmp-btn" onclick="perfSetCompType('success',event)">Oran %</button>
+<button type="button" class="range-btn perf-cmp-btn" onclick="perfSetCompType('efficiency',event)">Verim</button>
+</div>
+</div>
+<div class="perf-chart-t perf-chart-t-lg"><canvas id="perf-chart-agents"></canvas></div>
+</div>
+</div>
+<div class="perf-tables">
+<div class="card" style="padding:0;overflow:hidden;">
+<div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;">
+<span style="font-weight:800;">Personel tablosu</span>
+<div style="display:flex;gap:4px;flex-wrap:wrap;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('total')">Termin</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('ok')">Başarılı</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('rate')">Oran</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('calls')">Arama</button>
+</div>
+</div>
+<div class="tbl-wrap">
+<table style="min-width:980px;">
+<thead><tr>
+<th>Agent</th>
+<th>Termin</th>
+<th>OK</th>
+<th>Bekl.</th>
+<th>QC</th>
+<th>Kötü</th>
+<th>Oran</th>
+<th>Arama</th>
+<th>A→T</th>
+<th>Dön.</th>
+<th>Ort.sn</th>
+<th></th>
+</tr></thead>
+<tbody id="perf-tbody-main"><tr><td colspan="12" style="text-align:center;padding:28px;color:var(--text-3);">—</td></tr></tbody>
+</table>
+</div>
+<div style="border-top:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+<span style="font-weight:800;">Bu ay (takvim)</span>
+<div style="display:flex;gap:4px;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfMonthSort('total')">Termin</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfMonthSort('ok')">Başarılı</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfMonthSort('rate')">Oran</button>
+</div>
+</div>
+<div class="tbl-wrap">
+<table style="min-width:720px;">
+<thead><tr><th>Agent</th><th>Top.</th><th>OK</th><th>Bekl.</th><th>QC</th><th>Kötü</th><th>Oran</th><th></th></tr></thead>
+<tbody id="perf-tbody-month"><tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-3);">—</td></tr></tbody>
+</table>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;">
+<div class="card" style="padding:0;overflow:hidden;">
+<div style="padding:10px 14px;font-weight:800;border-bottom:1px solid var(--border);"><i class="ph ph-calendar-check"></i> Son terminler</div>
+<div class="tbl-wrap" style="max-height:280px;">
+<table style="min-width:400px;font-size:12px;">
+<thead><tr><th>Tarih</th><th>Agent</th><th>Müşteri</th><th>Kamp.</th><th>Durum</th></tr></thead>
+<tbody id="perf-tbody-appts"></tbody>
+</table>
+</div>
+</div>
+<div class="card" style="padding:0;overflow:hidden;">
+<div style="padding:10px 14px;font-weight:800;border-bottom:1px solid var(--border);"><i class="ph ph-phone-call"></i> Son aramalar</div>
+<div class="tbl-wrap" style="max-height:280px;">
+<table style="min-width:400px;font-size:12px;">
+<thead><tr><th>Tarih</th><th>Agent</th><th>Numara</th><th>Kamp.</th><th>Sonuç</th><th>Süre</th></tr></thead>
+<tbody id="perf-tbody-calls"></tbody>
+</table>
+</div>
 </div>
 </div>
 </div>
@@ -2297,24 +2517,25 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=6.7"></script>
-<script src="js/state.js?v=6.7"></script>
-<script src="js/api.js?v=6.7"></script>
-<script src="js/auth.js?v=6.7"></script>
-<script src="js/ui.js?v=6.7"></script>
-<script src="js/export-admin.js?v=6.7"></script>
-<script src="js/export-termin.js?v=6.7"></script>
-<script src="js/competition.js?v=6.7"></script>
-<script src="js/dashboard.js?v=6.7"></script>
-<script src="js/campaigns.js?v=6.7"></script>
-<script src="js/contacts.js?v=6.7"></script>
-<script src="js/telnyx.js?v=6.7"></script>
-<script src="js/dialer.js?v=6.7"></script>
-<script src="js/appointments.js?v=6.7"></script>
-<script src="js/wiedervorlage.js?v=6.7"></script>
-<script src="js/qc.js?v=6.7"></script>
-<script src="js/leave-hr.js?v=6.7"></script>
-<script src="js/muhasebe.js?v=6.7"></script>
-<script src="js/agents.js?v=6.7"></script>
+<script src="js/config.js?v=6.8"></script>
+<script src="js/state.js?v=6.8"></script>
+<script src="js/api.js?v=6.8"></script>
+<script src="js/auth.js?v=6.8"></script>
+<script src="js/ui.js?v=6.8"></script>
+<script src="js/export-admin.js?v=6.8"></script>
+<script src="js/export-termin.js?v=6.8"></script>
+<script src="js/performance.js?v=6.8"></script>
+<script src="js/competition.js?v=6.8"></script>
+<script src="js/dashboard.js?v=6.8"></script>
+<script src="js/campaigns.js?v=6.8"></script>
+<script src="js/contacts.js?v=6.8"></script>
+<script src="js/telnyx.js?v=6.8"></script>
+<script src="js/dialer.js?v=6.8"></script>
+<script src="js/appointments.js?v=6.8"></script>
+<script src="js/wiedervorlage.js?v=6.8"></script>
+<script src="js/qc.js?v=6.8"></script>
+<script src="js/leave-hr.js?v=6.8"></script>
+<script src="js/muhasebe.js?v=6.8"></script>
+<script src="js/agents.js?v=6.8"></script>
 </body>
 </html>
