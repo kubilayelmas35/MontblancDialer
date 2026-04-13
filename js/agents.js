@@ -442,9 +442,9 @@ const BUILTIN_ROLES = [
   { key:'firm_admin',  label:'Firma Admin',  color:'var(--accent)', builtin:true,
     perms:['dashboard','campaigns','contacts','callhistory','stats','agents','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
   { key:'agent',       label:'Agent',        color:'var(--green)', builtin:true,
-    perms:['dashboard','dialer','myhistory','wiedervorlage','takvim','leave','competition','muhasebe'] },
+    perms:['dashboard','dialer','myhistory','wiedervorlage','takvim','leave','competition','maasim','performansim'] },
   { key:'qc',          label:'QC',           color:'var(--yellow)', builtin:true,
-    perms:['dashboard','qc','callhistory','wiedervorlage','leave','competition','muhasebe'] },
+    perms:['dashboard','qc','callhistory','wiedervorlage','leave','competition','maasim','performansim'] },
 ];
 const ALL_PAGES = [
   {key:'dashboard',    label:'Özet'},
@@ -463,6 +463,8 @@ const ALL_PAGES = [
   {key:'leave',        label:'İzin & Devam'},
   {key:'competition',  label:'Ayın elemanı'},
   {key:'muhasebe',     label:'Muhasebe'},
+  {key:'maasim',       label:'Maaşım'},
+  {key:'performansim', label:'Performansım'},
   {key:'export',       label:'Dışa aktarım'},
   {key:'performance',  label:'Personel performans'},
 ];
@@ -666,9 +668,55 @@ async function saveRolePermModal(roleKey, fid) {
     });
     document.getElementById('role-perm-modal')?.remove();
     await loadRolesPage();
+    if (typeof refreshUserPagePerms === 'function') refreshUserPagePerms().catch(() => {});
     toast('İzinler güncellendi ✓', 'ok');
   } catch (e) {
     toast('Kaydetme hatası: ' + e.message, 'err');
   }
 }
 
+function userHasPagePerm(key) {
+  const p = window._userPagePerms;
+  if (!p || !(p instanceof Set) || p.size === 0) {
+    const b = BUILTIN_ROLES.find(r => r.key === currentUser?.role);
+    const arr = b?.perms || [];
+    if (arr.includes(key)) return true;
+    if ((key === 'maasim' || key === 'performansim') && arr.includes('muhasebe')) return true;
+    return false;
+  }
+  if (p.has(key)) return true;
+  if ((key === 'maasim' || key === 'performansim') && p.has('muhasebe')) return true;
+  return false;
+}
+
+async function refreshUserPagePerms() {
+  const role = currentUser?.role;
+  let list = [...(BUILTIN_ROLES.find(r => r.key === role)?.perms || [])];
+  window._userPagePerms = new Set(list);
+  if (typeof applyAgentPayNavVisibility === 'function') applyAgentPayNavVisibility();
+  try {
+    if (!currentUser?.firm_id) return;
+    const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
+    const st = firms?.[0]?.settings || {};
+    const ov = st.role_permissions?.[role];
+    if (Array.isArray(ov)) list = [...ov];
+    else if (!BUILTIN_ROLES.find(r => r.key === role)) {
+      const cr = (st.custom_roles || []).find(r => r.key === role);
+      if (cr?.perms) list = [...cr.perms];
+    }
+    window._userPagePerms = new Set(list);
+    if (typeof applyAgentPayNavVisibility === 'function') applyAgentPayNavVisibility();
+  } catch (e) {}
+}
+
+function applyAgentPayNavVisibility() {
+  const isStaff = ['agent', 'qc'].includes(currentUser?.role || '');
+  const p = window._userPagePerms || new Set();
+  const legacy = p.has('muhasebe');
+  const ma = p.has('maasim') || legacy;
+  const pe = p.has('performansim') || legacy;
+  const maBtn = document.getElementById('nav-maasim-btn');
+  const peBtn = document.getElementById('nav-performansim-btn');
+  if (maBtn) maBtn.style.display = isStaff && ma ? '' : 'none';
+  if (peBtn) peBtn.style.display = isStaff && pe ? '' : 'none';
+}

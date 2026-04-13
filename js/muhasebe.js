@@ -11,7 +11,29 @@ function isMuhasebeAdmin() {
 }
 
 function canViewMuhasebe() {
-  return isMuhasebeAdmin() || ['agent', 'qc'].includes(currentUser?.role || '');
+  return isMuhasebeAdmin();
+}
+
+function _mPayrollUiMode() {
+  return window._muhPayrollUi === 'maasim' ? 'maasim' : 'admin';
+}
+
+function _mPayrollSummaryBox() {
+  const id = _mPayrollUiMode() === 'maasim' ? 'maasim-summary-cards' : 'muhasebe-summary-cards';
+  return document.getElementById(id);
+}
+
+function _mPayrollTableWrap() {
+  const id = _mPayrollUiMode() === 'maasim' ? 'maasim-table-wrap' : 'muhasebe-table-wrap';
+  return document.getElementById(id);
+}
+
+function canViewMaasimPage() {
+  return ['agent', 'qc'].includes(currentUser?.role || '') && typeof userHasPagePerm === 'function' && userHasPagePerm('maasim');
+}
+
+function canViewPerformansimPage() {
+  return ['agent', 'qc'].includes(currentUser?.role || '') && typeof userHasPagePerm === 'function' && userHasPagePerm('performansim');
 }
 
 function muhasebeFirmId() {
@@ -88,12 +110,27 @@ function _mFmt(n) {
 }
 
 function _mGetPeriod() {
-  const el = document.getElementById('muhasebe-period');
-  if (el?.value) return el.value;
+  const ids = ['muhasebe-period', 'maasim-period', 'performansim-period'];
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (el?.value) return el.value;
+  }
   const now = new Date();
   const v = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  if (el) el.value = v;
+  ids.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && !el.value) el.value = v;
+  });
   return v;
+}
+
+function _mSyncPayrollPeriodInputs(changedEl) {
+  const v = changedEl?.value;
+  if (!v) return;
+  ['muhasebe-period', 'maasim-period', 'performansim-period'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && el !== changedEl) el.value = v;
+  });
 }
 
 async function loadFirmPayrollRules(fid, force = false) {
@@ -190,12 +227,7 @@ async function loadMuhasebePage() {
   if (noAccess) noAccess.style.display = 'none';
   if (main) main.style.display = 'flex';
   if (sub) {
-    const staffPay = ['agent', 'qc'].includes(currentUser?.role || '');
-    sub.textContent = isMuhasebeAdmin()
-      ? 'Maaş, prim, kesinti, müşteri ve bordro yönetimi'
-      : staffPay
-        ? 'Maaşım (bordro, prim kademeleri) ve Performansım (termin & aramalar)'
-        : 'Kendi maaş özeti ve ödeme durumu';
+    sub.textContent = 'Maaş, prim, kesinti, müşteri ve bordro yönetimi';
   }
 
   const period = _mGetPeriod();
@@ -230,29 +262,16 @@ async function testFxRateNow() {
 }
 
 function setMuhasebeTab(tab) {
-  const staffPay = ['agent', 'qc'].includes(currentUser?.role || '');
-  let t = tab || 'ozet';
-  if (staffPay) {
-    if (t !== 'personel' && t !== 'performans') t = 'personel';
-    window._muhasebeTab = t;
-  } else {
-    window._muhasebeTab = t;
-  }
-  const panes = ['ozet', 'gelir', 'personel', 'performans', 'vergi', 'musteri'];
+  window._muhasebeTab = tab || 'ozet';
+  const panes = ['ozet', 'gelir', 'personel', 'vergi', 'musteri'];
   panes.forEach(p => {
     const pane = document.getElementById(`muh-pane-${p}`);
     if (pane) pane.style.display = p === window._muhasebeTab ? '' : 'none';
   });
   const personelBtn = document.querySelector('.muh-tab-btn[data-muh-tab="personel"]');
-  if (personelBtn) {
-    personelBtn.textContent = staffPay ? 'Maaşım' : 'Personel Maaş';
-  }
+  if (personelBtn) personelBtn.textContent = 'Personel Maaş';
   document.querySelectorAll('.muh-tab-btn').forEach(btn => {
-    const tabId = btn.dataset.muhTab;
-    let hide = false;
-    if (staffPay) hide = tabId !== 'personel' && tabId !== 'performans';
-    else hide = tabId === 'performans';
-    btn.style.display = hide ? 'none' : '';
+    btn.style.display = '';
     const active = btn.dataset.muhTab === window._muhasebeTab;
     btn.classList.toggle('active', active);
     btn.style.background = active ? 'var(--accent)' : '';
@@ -261,14 +280,68 @@ function setMuhasebeTab(tab) {
   const ex = document.getElementById('muh-personel-export-btns');
   const ct = document.getElementById('muh-personel-card-title');
   const cs = document.getElementById('muh-personel-card-sub');
-  if (staffPay) {
-    if (ex) ex.style.display = 'none';
-    if (ct) ct.textContent = 'Aylık bordrom';
-    if (cs) cs.textContent = 'Özet tutarlar; prim ve baz maaş kademeleri yukarıda açıklanır.';
-  } else {
-    if (ex) ex.style.display = '';
-    if (ct) ct.textContent = 'Aylık personel muhasebesi';
-    if (cs) cs.textContent = 'Baz maaş, prim, kesintiler, manuel ekleme/kesme, ödenen/kalan';
+  if (ex) ex.style.display = '';
+  if (ct) ct.textContent = 'Aylık personel muhasebesi';
+  if (cs) cs.textContent = 'Baz maaş, prim, kesintiler, manuel ekleme/kesme, ödenen/kalan';
+}
+
+async function loadMaasimPage() {
+  renderFirmSelector('maasim-firm-selector', loadMaasimPage);
+  const fid = muhasebeFirmId();
+  const noAccess = document.getElementById('maasim-no-access');
+  const main = document.getElementById('maasim-main');
+  const sub = document.getElementById('maasim-sub');
+  if (!canViewMaasimPage()) {
+    if (noAccess) noAccess.style.display = '';
+    if (main) main.style.display = 'none';
+    return;
+  }
+  if (isSuperAdmin() && !fid) {
+    if (noAccess) {
+      noAccess.style.display = '';
+      noAccess.textContent = 'Firma seçin.';
+    }
+    if (main) main.style.display = 'none';
+    return;
+  }
+  if (noAccess) noAccess.style.display = 'none';
+  if (main) main.style.display = 'flex';
+  if (sub) sub.textContent = 'Bordro özeti, prim ve baz maaş kademeleri';
+  const period = _mGetPeriod();
+  const rules = await loadFirmPayrollRules(fid);
+  const liveRate = await _getMonthFxRate(fid, period, Number(rules.exchange_rate || 1), rules);
+  rules.exchange_rate = liveRate;
+  await renderMuhasebePayrollTable(fid, period, rules, { ui: 'maasim' });
+}
+
+async function loadPerformansimPage() {
+  renderFirmSelector('performansim-firm-selector', loadPerformansimPage);
+  const fid = muhasebeFirmId();
+  const noAccess = document.getElementById('performansim-no-access');
+  const main = document.getElementById('performansim-main');
+  const sub = document.getElementById('performansim-sub');
+  if (!canViewPerformansimPage()) {
+    if (noAccess) noAccess.style.display = '';
+    if (main) main.style.display = 'none';
+    return;
+  }
+  if (isSuperAdmin() && !fid) {
+    if (noAccess) {
+      noAccess.style.display = '';
+      noAccess.textContent = 'Firma seçin.';
+    }
+    if (main) main.style.display = 'none';
+    return;
+  }
+  if (noAccess) noAccess.style.display = 'none';
+  if (main) main.style.display = 'flex';
+  if (sub) sub.textContent = 'Seçili ay termin ve çağrı özeti';
+  const period = _mGetPeriod();
+  const rules = await loadFirmPayrollRules(fid);
+  const liveRate = await _getMonthFxRate(fid, period, Number(rules.exchange_rate || 1), rules);
+  rules.exchange_rate = liveRate;
+  if (typeof loadAgentSelfPerformanceDash === 'function') {
+    loadAgentSelfPerformanceDash(fid, period, rules);
   }
 }
 
@@ -732,7 +805,8 @@ function _mCollectAdjustments(adj, uid, rules) {
   return { add, ded };
 }
 
-async function renderMuhasebePayrollTable(fid, ym, rules) {
+async function renderMuhasebePayrollTable(fid, ym, rules, opts = {}) {
+  window._muhPayrollUi = opts.ui || 'admin';
   const users = await _mFetchUsers(fid);
   const b = _mMonthBounds(ym);
   const monthRate = await _getMonthFxRate(fid, ym, Number(rules.exchange_rate || 1), rules);
@@ -815,10 +889,11 @@ async function renderMuhasebePayrollTable(fid, ym, rules) {
   });
 
   let filtered = rows;
-  if (currentUser?.role === 'agent') filtered = rows.filter(r => r.user_id === currentUser.id);
+  if (window._muhPayrollUi === 'maasim') filtered = rows.filter(r => r.user_id === currentUser.id);
+  else if (currentUser?.role === 'agent') filtered = rows.filter(r => r.user_id === currentUser.id);
   window._muhasebeRows = filtered;
   const showCompanyFinance = isMuhasebeAdmin();
-  const summaryBox = document.getElementById('muhasebe-summary-cards');
+  const summaryBox = _mPayrollSummaryBox();
   if (showCompanyFinance) renderMuhasebeSummaryCards(filtered, rules);
   else if (summaryBox) summaryBox.innerHTML = '';
   renderMuhasebeRowsTable(filtered, rules);
@@ -834,16 +909,18 @@ async function renderMuhasebePayrollTable(fid, ym, rules) {
   const ovSelf = overMap[uidSelf] || {};
   const bonusTiersSelf = Array.isArray(ovSelf.bonus_tiers) ? ovSelf.bonus_tiers : rules.bonus_tiers;
   const salaryTiersSelf = Array.isArray(ovSelf.salary_tiers) ? ovSelf.salary_tiers : rules.salary_tiers;
-  if (typeof loadAgentSalaryDash === 'function') {
-    loadAgentSalaryDash(fid, ym, rules, payrollRowForSelf, bonusTiersSelf, salaryTiersSelf);
-  }
-  if (typeof loadAgentSelfPerformanceDash === 'function') {
-    loadAgentSelfPerformanceDash(fid, ym, rules);
+  if (['agent', 'qc'].includes(currentUser?.role || '')) {
+    if (typeof loadAgentSalaryDash === 'function') {
+      loadAgentSalaryDash(fid, ym, rules, payrollRowForSelf, bonusTiersSelf, salaryTiersSelf);
+    }
+    if (typeof loadAgentSelfPerformanceDash === 'function') {
+      loadAgentSelfPerformanceDash(fid, ym, rules);
+    }
   }
 }
 
 function renderMuhasebeSummaryCards(rows, rules) {
-  const box = document.getElementById('muhasebe-summary-cards');
+  const box = _mPayrollSummaryBox();
   if (!box) return;
   const sum = rows.reduce((a, r) => {
     a.base += r.baseSalary; a.bonus += r.bonus; a.pen += r.latePenalty + r.leavePenalty + r.manualDeduct;
@@ -898,7 +975,7 @@ function renderMuhasebeFinancePanels(rows, rules) {
 }
 
 function renderMuhasebeRowsTable(rows, rules) {
-  const wrap = document.getElementById('muhasebe-table-wrap');
+  const wrap = _mPayrollTableWrap();
   if (!wrap) return;
   if (!rows.length) {
     wrap.innerHTML = `<div style="padding:20px;color:var(--text-3);">Bu dönemde kayıt yok.</div>`;

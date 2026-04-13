@@ -55,6 +55,8 @@ if (page==='settings')        { loadMesaiSettings(); loadCallHoursSettings(); }
 if (page==='takvim')         loadTakvimPage();
 if (page==='leave')          loadLeavePage();
 if (page==='muhasebe')       loadMuhasebePage();
+if (page==='maasim')         loadMaasimPage();
+if (page==='performansim')   loadPerformansimPage();
 if (page==='competition')     loadCompetitionPage();
 }
 

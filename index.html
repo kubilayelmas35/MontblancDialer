@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.12">
+<link rel="stylesheet" href="css/styles.css?v=6.13">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -256,9 +256,13 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span class="sb-item-icon"><i class="ph ph-calendar-check" style="font-size:17px;"></i></span>
 <span data-tr="İzin &amp; Devam" data-de="Urlaub &amp; Anwesenheit">İzin &amp; Devam</span>
 </button>
-<button class="sb-item" onclick="navigate('muhasebe')">
+<button class="sb-item" id="nav-maasim-btn" style="display:none;" onclick="navigate('maasim')">
 <span class="sb-item-icon"><i class="ph ph-wallet" style="font-size:17px;"></i></span>
 <span data-tr="Maaşım" data-de="Mein Gehalt">Maaşım</span>
+</button>
+<button class="sb-item" id="nav-performansim-btn" style="display:none;" onclick="navigate('performansim')">
+<span class="sb-item-icon"><i class="ph ph-chart-line-up" style="font-size:17px;"></i></span>
+<span data-tr="Performansım" data-de="Meine Performance">Performansım</span>
 </button>
 <button class="sb-item" onclick="navigate('competition')">
 <span class="sb-item-icon"><i class="ph ph-trophy" style="font-size:17px;"></i></span>
@@ -278,7 +282,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v6.12</div>
+<div class="sb-ver">Montblanc Dialer v6.13</div>
 </div>
 </nav>
 <main id="main">
@@ -1593,7 +1597,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="muhasebe-firm-selector"></div>
-<input type="month" class="form-input" id="muhasebe-period" style="width:160px;" onchange="loadMuhasebePage()">
+<input type="month" class="form-input" id="muhasebe-period" style="width:160px;" onchange="_mSyncPayrollPeriodInputs(this);loadMuhasebePage()">
 <button class="btn btn-ghost btn-sm" onclick="loadMuhasebePage()"><i class="ph ph-arrow-clockwise"></i> Yenile</button>
 </div>
 </div>
@@ -1604,7 +1608,6 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <button class="btn btn-ghost btn-sm muh-tab-btn active" data-muh-tab="ozet" onclick="setMuhasebeTab('ozet')">Özet & Takip</button>
 <button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="gelir" onclick="setMuhasebeTab('gelir')">Gelir / Gider</button>
 <button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="personel" onclick="setMuhasebeTab('personel')">Personel Maaş</button>
-<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="performans" onclick="setMuhasebeTab('performans')" style="display:none;">Performansım</button>
 <button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="vergi" onclick="setMuhasebeTab('vergi')">Vergi & SGK</button>
 <button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="musteri" onclick="setMuhasebeTab('musteri')">Müşteri Tarifeleri</button>
 </div>
@@ -1684,7 +1687,6 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </div>
 </div>
 <div id="muh-pane-personel" class="muh-pane" style="display:none;">
-<div id="muh-agent-salary-wrap" style="display:none;"></div>
 <div class="card" style="padding:16px;">
 <div class="card-hdr">
 <div>
@@ -1700,9 +1702,6 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div id="muhasebe-table-wrap" class="tbl-wrap" style="margin-top:10px;"></div>
 </div>
 </div>
-<div id="muh-pane-performans" class="muh-pane" style="display:none;">
-<div id="muh-agent-perf-wrap" style="display:none;"></div>
-</div>
 <div id="muh-pane-gelir" class="muh-pane" style="display:none;">
 <div class="card" style="padding:16px;">
 <div class="card-title" style="margin-bottom:8px;">Gelir / Gider Özeti</div>
@@ -1715,6 +1714,46 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div id="muh-tax-summary"></div>
 </div>
 </div>
+</div>
+</div>
+<div class="page" id="page-maasim">
+<div class="page-hdr">
+<div>
+<div class="page-title"><i class="ph ph-wallet" style="vertical-align:-3px;"></i> Maaşım</div>
+<div class="page-sub" id="maasim-sub">Bordro özeti ve prim kademeleri</div>
+</div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+<div id="maasim-firm-selector"></div>
+<input type="month" class="form-input" id="maasim-period" style="width:160px;" onchange="_mSyncPayrollPeriodInputs(this);loadMaasimPage()">
+<button class="btn btn-ghost btn-sm" onclick="loadMaasimPage()"><i class="ph ph-arrow-clockwise"></i> Yenile</button>
+</div>
+</div>
+<div id="maasim-no-access" class="card" style="display:none;padding:18px;">Bu sayfayı görüntüleme yetkiniz yok.</div>
+<div id="maasim-main" style="display:flex;flex-direction:column;gap:14px;padding-bottom:28px;">
+<div id="muh-agent-salary-wrap" style="display:none;"></div>
+<div class="card" style="padding:16px;">
+<div class="card-title">Aylık bordrom</div>
+<div class="card-sub">Detaylı satır; yukarıda özet ve kademeler</div>
+<div id="maasim-summary-cards" class="stats-grid"></div>
+<div id="maasim-table-wrap" class="tbl-wrap" style="margin-top:10px;"></div>
+</div>
+</div>
+</div>
+<div class="page" id="page-performansim">
+<div class="page-hdr">
+<div>
+<div class="page-title"><i class="ph ph-chart-line-up" style="vertical-align:-3px;"></i> Performansım</div>
+<div class="page-sub" id="performansim-sub">Termin ve çağrı özeti</div>
+</div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+<div id="performansim-firm-selector"></div>
+<input type="month" class="form-input" id="performansim-period" style="width:160px;" onchange="_mSyncPayrollPeriodInputs(this);loadPerformansimPage()">
+<button class="btn btn-ghost btn-sm" onclick="loadPerformansimPage()"><i class="ph ph-arrow-clockwise"></i> Yenile</button>
+</div>
+</div>
+<div id="performansim-no-access" class="card" style="display:none;padding:18px;">Bu sayfayı görüntüleme yetkiniz yok.</div>
+<div id="performansim-main" style="display:flex;flex-direction:column;gap:14px;padding-bottom:28px;">
+<div id="muh-agent-perf-wrap" style="display:none;"></div>
 </div>
 </div>
 <div class="page" id="page-competition">
@@ -2522,26 +2561,26 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=6.12"></script>
-<script src="js/state.js?v=6.12"></script>
-<script src="js/api.js?v=6.12"></script>
-<script src="js/auth.js?v=6.12"></script>
-<script src="js/ui.js?v=6.12"></script>
-<script src="js/export-admin.js?v=6.12"></script>
-<script src="js/export-termin.js?v=6.12"></script>
-<script src="js/performance.js?v=6.12"></script>
-<script src="js/competition.js?v=6.12"></script>
-<script src="js/dashboard.js?v=6.12"></script>
-<script src="js/campaigns.js?v=6.12"></script>
-<script src="js/contacts.js?v=6.12"></script>
-<script src="js/telnyx.js?v=6.12"></script>
-<script src="js/dialer.js?v=6.12"></script>
-<script src="js/appointments.js?v=6.12"></script>
-<script src="js/wiedervorlage.js?v=6.12"></script>
-<script src="js/qc.js?v=6.12"></script>
-<script src="js/leave-hr.js?v=6.12"></script>
-<script src="js/muhasebe.js?v=6.12"></script>
-<script src="js/agent-self-performance.js?v=6.12"></script>
-<script src="js/agents.js?v=6.12"></script>
+<script src="js/config.js?v=6.13"></script>
+<script src="js/state.js?v=6.13"></script>
+<script src="js/api.js?v=6.13"></script>
+<script src="js/auth.js?v=6.13"></script>
+<script src="js/ui.js?v=6.13"></script>
+<script src="js/export-admin.js?v=6.13"></script>
+<script src="js/export-termin.js?v=6.13"></script>
+<script src="js/performance.js?v=6.13"></script>
+<script src="js/competition.js?v=6.13"></script>
+<script src="js/dashboard.js?v=6.13"></script>
+<script src="js/campaigns.js?v=6.13"></script>
+<script src="js/contacts.js?v=6.13"></script>
+<script src="js/telnyx.js?v=6.13"></script>
+<script src="js/dialer.js?v=6.13"></script>
+<script src="js/appointments.js?v=6.13"></script>
+<script src="js/wiedervorlage.js?v=6.13"></script>
+<script src="js/qc.js?v=6.13"></script>
+<script src="js/leave-hr.js?v=6.13"></script>
+<script src="js/muhasebe.js?v=6.13"></script>
+<script src="js/agent-self-performance.js?v=6.13"></script>
+<script src="js/agents.js?v=6.13"></script>
 </body>
 </html>

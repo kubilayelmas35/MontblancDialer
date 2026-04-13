@@ -231,7 +231,7 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
 
   host.innerHTML = `<div class="card" style="padding:16px;margin-bottom:14px;">
 <div class="card-title" style="margin-bottom:4px;"><i class="ph ph-chart-line-up"></i> Performansım</div>
-<div class="card-sub" style="margin-bottom:14px;">Seçili ay: <strong id="asp-ym-label"></strong> · Termin ve çağrı özeti (maaş için <strong>Maaşım</strong> sekmesine geçin)</div>
+<div class="card-sub" style="margin-bottom:14px;">Seçili ay: <strong id="asp-ym-label"></strong> · Termin ve çağrı özeti (maaş için menüden <strong>Maaşım</strong>)</div>
 <div id="asp-body" style="color:var(--text-3);font-size:13px;">Yükleniyor…</div>
 </div>`;
   document.getElementById('asp-ym-label').textContent = ym;
