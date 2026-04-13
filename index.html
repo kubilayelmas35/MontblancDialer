@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=3.6">
+<link rel="stylesheet" href="css/styles.css?v=3.7">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -207,6 +207,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
 <span data-tr="Takvim" data-de="Kalender">Takvim</span>
 </button>
+<button class="sb-item" onclick="navigate('leave')">
+<span class="sb-item-icon"><i class="ph ph-calendar-check" style="font-size:17px;"></i></span>
+<span data-tr="İzin &amp; Devam" data-de="Urlaub &amp; Anwesenheit">İzin &amp; Devam</span>
+</button>
 </div>
 </div>
 <div id="nav-agent" style="display:none;">
@@ -232,6 +236,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
 <span data-tr="Takvim" data-de="Kalender">Takvim</span>
 </button>
+<button class="sb-item" onclick="navigate('leave')">
+<span class="sb-item-icon"><i class="ph ph-calendar-check" style="font-size:17px;"></i></span>
+<span data-tr="İzin &amp; Devam" data-de="Urlaub &amp; Anwesenheit">İzin &amp; Devam</span>
+</button>
 </div>
 </div>
 <div class="sb-divider"></div>
@@ -246,7 +254,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v3.6</div>
+<div class="sb-ver">Montblanc Dialer v3.7</div>
 </div>
 </nav>
 <main id="main">
@@ -1048,6 +1056,159 @@ Başarısız / Alta Taşınan
 </div>
 </div>
 </div>
+<div class="page" id="page-leave">
+<div class="page-hdr">
+<div>
+<div class="page-title" data-tr="İzin &amp; Devam" data-de="Urlaub &amp; Anwesenheit">İzin &amp; Devam</div>
+<div class="page-sub" id="leave-sub">—</div>
+</div>
+<div id="leave-firm-selector" style="display:flex;align-items:center;"></div>
+</div>
+<div id="leave-no-firm" style="display:none;padding:24px;background:var(--bg-3);border-radius:var(--radius);border:1px solid var(--border);font-size:13px;color:var(--text-2);">
+Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
+</div>
+<div id="leave-main" style="display:flex;flex-direction:column;gap:16px;padding-bottom:24px;">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+<div class="card" style="padding:14px;">
+<div style="font-size:11px;color:var(--text-3);font-weight:700;">Bu yıl kullanılan izin (gün)</div>
+<div id="leave-stat-used" style="font-size:22px;font-weight:800;margin-top:4px;">—</div>
+</div>
+<div class="card" style="padding:14px;">
+<div style="font-size:11px;color:var(--text-3);font-weight:700;">Ek hak (gün)</div>
+<div id="leave-stat-extra" style="font-size:22px;font-weight:800;margin-top:4px;">—</div>
+</div>
+<div class="card" style="padding:14px;">
+<div style="font-size:11px;color:var(--text-3);font-weight:700;">Kalan (tahmini)</div>
+<div id="leave-stat-remaining" style="font-size:22px;font-weight:800;margin-top:4px;">—</div>
+</div>
+<div class="card" style="padding:14px;">
+<div style="font-size:11px;color:var(--text-3);font-weight:700;">Geç kalma (adet)</div>
+<div id="leave-stat-late-n" style="font-size:22px;font-weight:800;margin-top:4px;">—</div>
+</div>
+<div class="card" style="padding:14px;">
+<div style="font-size:11px;color:var(--text-3);font-weight:700;">Geç kalma (dk)</div>
+<div id="leave-stat-late-m" style="font-size:22px;font-weight:800;margin-top:4px;">—</div>
+</div>
+</div>
+<div class="card" style="padding:14px 16px;">
+<div style="font-size:12px;color:var(--text-3);" id="leave-salary-hint">—</div>
+</div>
+<div class="card" id="leave-request-card" style="padding:16px;">
+<div class="card-title" style="margin-bottom:12px;">Yeni izin talebi</div>
+<div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+<div class="form-row">
+<label class="form-label">Başlangıç</label>
+<input type="date" class="form-input" id="lr-from" onchange="onLeaveDatesChange()">
+</div>
+<div class="form-row">
+<label class="form-label">Bitiş</label>
+<input type="date" class="form-input" id="lr-to" onchange="onLeaveDatesChange()">
+</div>
+</div>
+<div class="form-row" style="margin-top:10px;">
+<label class="form-label">Gün sayısı</label>
+<input type="number" class="form-input" id="lr-days" min="0.5" step="0.5" value="1" style="max-width:120px;">
+</div>
+<div class="form-row" style="margin-top:10px;">
+<label class="form-label">Tür</label>
+<select class="form-input" id="lr-kind" style="max-width:220px;">
+<option value="annual">Yıllık</option>
+<option value="sick">Hastalık</option>
+<option value="unpaid">Ücretsiz</option>
+<option value="other">Diğer</option>
+</select>
+</div>
+<div class="form-row" style="margin-top:10px;">
+<label class="form-label">Açıklama</label>
+<textarea class="form-input" id="lr-reason" rows="2" placeholder="İsteğe bağlı"></textarea>
+</div>
+<button type="button" class="btn btn-primary" onclick="submitLeaveRequest()">Talep gönder</button>
+</div>
+<div class="card" id="leave-admin-settings" style="padding:16px;display:none;">
+<div class="card-title" style="margin-bottom:12px;">Firma İK kuralları</div>
+<div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+<div class="form-row">
+<label class="form-label">Varsayılan yıllık izin (gün)</label>
+<input type="number" class="form-input" id="hr-annual-days" min="0" step="0.5" value="14">
+</div>
+<div class="form-row">
+<label class="form-label">İzin — günlük maaş etkisi (%)</label>
+<input type="number" class="form-input" id="hr-leave-pct" min="0" step="0.01" value="0">
+<div style="font-size:10px;color:var(--text-3);margin-top:4px;">Tanınan yıllık izin günü için örnek oran.</div>
+</div>
+</div>
+<div class="form-row" style="margin-top:10px;">
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+<input type="checkbox" id="hr-leave-affects"> İzin kullanımı maaşa yansısın
+</label>
+</div>
+<div class="form-row" style="margin-top:10px;">
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+<input type="checkbox" id="hr-late-affects"> Geç kalmalar maaşa yansısın
+</label>
+</div>
+<div class="form-row" style="margin-top:10px;">
+<label class="form-label">Geç kalma — olay başına (EUR)</label>
+<input type="number" class="form-input" id="hr-late-penalty" min="0" step="0.01" value="0" style="max-width:160px;">
+</div>
+<button type="button" class="btn btn-primary" onclick="saveHrSettings()">Kuralları kaydet</button>
+</div>
+<div class="card" id="leave-admin-late" style="padding:16px;display:none;">
+<div class="card-title" style="margin-bottom:12px;">Geç kalma kaydı</div>
+<div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr 100px;gap:12px;align-items:end;">
+<div class="form-row">
+<label class="form-label">Agent</label>
+<select class="form-input" id="late-user"></select>
+</div>
+<div class="form-row">
+<label class="form-label">Tarih</label>
+<input type="date" class="form-input" id="late-date">
+</div>
+<div class="form-row">
+<label class="form-label">Dakika</label>
+<input type="number" class="form-input" id="late-mins" min="0" value="0">
+</div>
+</div>
+<div class="form-row" style="margin-top:10px;">
+<label class="form-label">Not</label>
+<input type="text" class="form-input" id="late-note" placeholder="İsteğe bağlı">
+</div>
+<button type="button" class="btn btn-primary btn-sm" onclick="submitLateArrival()">Kaydet</button>
+<div id="leave-late-table" style="margin-top:16px;"></div>
+</div>
+<div class="card" id="leave-admin-ent" style="padding:16px;display:none;">
+<div class="card-title" style="margin-bottom:12px;">Ek izin günü</div>
+<div class="form-grid" style="display:grid;grid-template-columns:1fr 100px 100px;gap:12px;align-items:end;">
+<div class="form-row">
+<label class="form-label">Kullanıcı</label>
+<select class="form-input" id="ent-user"></select>
+</div>
+<div class="form-row">
+<label class="form-label">Yıl</label>
+<input type="number" class="form-input" id="ent-year" min="2020" max="2100">
+</div>
+<div class="form-row">
+<label class="form-label">Ek gün</label>
+<input type="number" class="form-input" id="ent-days" min="0" step="0.5" value="0">
+</div>
+</div>
+<button type="button" class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="saveExtraLeaveDays()">Kaydet</button>
+<div id="leave-ent-table" style="margin-top:16px;"></div>
+</div>
+<div class="card" id="leave-admin-pending" style="padding:16px;display:none;">
+<div class="card-title" style="margin-bottom:12px;">Bekleyen talepler</div>
+<div id="leave-pending-table"></div>
+</div>
+<div class="card" style="padding:16px;">
+<div class="card-title" style="margin-bottom:12px;">Taleplerim</div>
+<div id="leave-my-table"></div>
+</div>
+<div class="card" id="leave-admin-all" style="padding:16px;display:none;">
+<div class="card-title" style="margin-bottom:12px;">Son talepler (firma)</div>
+<div id="leave-all-table"></div>
+</div>
+</div>
+</div>
 <div class="page" id="page-settings">
 <div class="page-hdr">
 <div>
@@ -1745,19 +1906,20 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=3.6"></script>
-<script src="js/state.js?v=3.6"></script>
-<script src="js/api.js?v=3.6"></script>
-<script src="js/auth.js?v=3.6"></script>
-<script src="js/ui.js?v=3.6"></script>
-<script src="js/dashboard.js?v=3.6"></script>
-<script src="js/campaigns.js?v=3.6"></script>
-<script src="js/contacts.js?v=3.6"></script>
-<script src="js/telnyx.js?v=3.6"></script>
-<script src="js/dialer.js?v=3.6"></script>
-<script src="js/appointments.js?v=3.6"></script>
-<script src="js/wiedervorlage.js?v=3.6"></script>
-<script src="js/qc.js?v=3.6"></script>
-<script src="js/agents.js?v=3.6"></script>
+<script src="js/config.js?v=3.7"></script>
+<script src="js/state.js?v=3.7"></script>
+<script src="js/api.js?v=3.7"></script>
+<script src="js/auth.js?v=3.7"></script>
+<script src="js/ui.js?v=3.7"></script>
+<script src="js/dashboard.js?v=3.7"></script>
+<script src="js/campaigns.js?v=3.7"></script>
+<script src="js/contacts.js?v=3.7"></script>
+<script src="js/telnyx.js?v=3.7"></script>
+<script src="js/dialer.js?v=3.7"></script>
+<script src="js/appointments.js?v=3.7"></script>
+<script src="js/wiedervorlage.js?v=3.7"></script>
+<script src="js/qc.js?v=3.7"></script>
+<script src="js/leave-hr.js?v=3.7"></script>
+<script src="js/agents.js?v=3.7"></script>
 </body>
 </html>

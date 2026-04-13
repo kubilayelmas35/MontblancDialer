@@ -50,6 +50,7 @@ if (page==='qc')             loadQcData();
 if (page==='firms')          loadFirmsPage();
 if (page==='settings')        { loadMesaiSettings(); loadCallHoursSettings(); }
 if (page==='takvim')         loadTakvimPage();
+if (page==='leave')          loadLeavePage();
 }
 
 // ── LANG ─────────────────────────────────────
