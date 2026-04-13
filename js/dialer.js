@@ -183,7 +183,7 @@ async function loadUpcomingWv() {
 async function toggleReady() {
   if (dialerStatus==='offline' || dialerStatus==='break') {
     if (!selectedCampId) { toast(currentLang==='tr'?'Önce kampanya seçin':'Kampagne auswählen','err'); return; }
-    if (!telnyxReady) { toast(currentLang==='tr'?'Telnyx bağlanıyor, bekleyin...':'Telnyx verbindet sich...','err'); return; }
+    if (!telnyxReady && !_testMode) { toast(currentLang==='tr'?'Telnyx bağlanıyor, bekleyin...':'Telnyx verbindet sich...','err'); return; }
     setDialerStatus('ready');
     try {
       await sb('agent_sessions',{method:'POST',prefer:'resolution=merge-duplicates,return=minimal',
@@ -257,7 +257,7 @@ function setDialerStatus(s) {
 
 async function dialNext() {
   if (dialerStatus !== 'ready') return;
-  if (!checkCallAllowed()) return;
+  if (!_testMode && !checkCallAllowed()) return;
 
   // Test modunda Telnyx gerekmez
   if (_testMode) {
@@ -772,17 +772,30 @@ function checkCallAllowed() {
 function toggleTestMode() {
   _testMode = !_testMode;
   const btn = document.getElementById('test-mode-btn');
+  const rdyBtn = document.getElementById('btn-ready');
   if (_testMode) {
     btn.style.background = 'rgba(234,179,8,.15)';
     btn.style.color = 'var(--yellow)';
     btn.style.borderColor = 'var(--yellow)';
     btn.textContent = '⚙ TEST MODU AÇIK';
+    // Telnyx olmadan da hazır butonu aktif olsun
+    if (rdyBtn && selectedCampId) {
+      rdyBtn.disabled = false;
+      rdyBtn.style.opacity = '1';
+      rdyBtn.style.cursor = 'pointer';
+    }
     toast('Test modu açık — gerçek arama yapılmaz, veriler DB\'ye kaydedilir', 'ok', 4000);
   } else {
     btn.style.background = 'transparent';
     btn.style.color = 'var(--text-3)';
     btn.style.borderColor = 'var(--text-3)';
     btn.textContent = 'TEST MODU';
+    // Telnyx bağlı değilse tekrar disable et
+    if (rdyBtn && !telnyxReady) {
+      rdyBtn.disabled = true;
+      rdyBtn.style.opacity = '0.45';
+      rdyBtn.style.cursor = 'not-allowed';
+    }
     toast('Test modu kapatıldı', 'warn', 2000);
   }
 }
