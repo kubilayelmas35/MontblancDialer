@@ -184,9 +184,8 @@ padding: 8px 14px 8px 10px;
 }
 .tb-logo-text {
 display: flex;
-flex-direction: column;
-gap: 1px;
-line-height: 1.15;
+align-items: center;
+line-height: 1.2;
 }
 .tb-logo-mark {
 width: 36px;
@@ -207,19 +206,6 @@ font-weight: 800;
 letter-spacing: -0.4px;
 color: #fff;
 text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-}
-.tb-logo-tag {
-font-size: 9px;
-font-family: var(--mono);
-font-weight: 600;
-letter-spacing: 1.2px;
-color: rgba(255, 200, 210, 0.92);
-background: transparent !important;
-padding: 0;
-margin: 0;
-border: none;
-box-shadow: none;
-border-radius: 0;
 }
 [data-theme="dark"] .tb-logo {
 border-color: rgba(255, 255, 255, 0.1);
@@ -312,7 +298,6 @@ z-index: 1;
 #sidebar.collapsed { width: 56px; min-width: 56px; }
 #sidebar.collapsed .sb-label,
 #sidebar.collapsed .tb-logo-name,
-#sidebar.collapsed .tb-logo-tag,
 #sidebar.collapsed .sb-item span:not(.sb-item-icon):not(.sb-badge),
 #sidebar.collapsed .sb-badge,
 #sidebar.collapsed .sb-ver,
@@ -375,7 +360,6 @@ border-radius: 10px; font-family: var(--mono);
 .sb-ver { font-size: 10px; color: rgba(255,255,255,0.25); font-family: var(--mono); }
 /* Sidebar header logo */
 #sidebar .tb-logo-name { color: rgba(255,255,255,0.95) !important; }
-#sidebar .tb-logo-tag { color: var(--accent) !important; background: transparent !important; }
 #sidebar .tb-hamburger { color: rgba(255,255,255,0.5); }
 #sidebar .tb-hamburger:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); }
 #sidebar .tb-hamburger span { background: currentColor; }
@@ -1324,9 +1308,12 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .fluid-aurora--logo::before {
   background: conic-gradient(from 115deg at 22% 18%,
     rgba(6, 48, 62, 0.92) 0deg,
+    rgba(72, 32, 52, 0.52) 40deg,
     rgba(18, 40, 92, 0.9) 70deg,
+    rgba(52, 22, 78, 0.55) 108deg,
     rgba(58, 24, 68, 0.85) 145deg,
     rgba(10, 62, 58, 0.88) 215deg,
+    rgba(44, 26, 72, 0.52) 252deg,
     rgba(38, 26, 72, 0.82) 290deg,
     rgba(6, 48, 62, 0.92) 360deg);
   animation: fluid-spin 20s linear infinite;
@@ -1340,8 +1327,11 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .fluid-aurora--logo::after {
   background: conic-gradient(from 295deg at 78% 68%,
     rgba(78, 36, 28, 0.58) 0deg,
+    rgba(88, 34, 48, 0.46) 58deg,
     rgba(32, 34, 78, 0.6) 120deg,
+    rgba(58, 26, 72, 0.44) 178deg,
     rgba(14, 58, 48, 0.56) 235deg,
+    rgba(48, 22, 68, 0.42) 278deg,
     rgba(52, 26, 58, 0.52) 320deg,
     rgba(78, 36, 28, 0.58) 360deg);
   animation: fluid-spin-rev 26s linear infinite;
@@ -1363,11 +1353,15 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .fluid-aurora--sidebar::before {
   background: conic-gradient(from 118deg at 20% 14%,
     rgba(5, 42, 58, 0.85) 0deg,
+    rgba(68, 28, 48, 0.48) 32deg,
     rgba(14, 36, 82, 0.82) 48deg,
+    rgba(48, 20, 72, 0.52) 78deg,
     rgba(42, 20, 58, 0.76) 105deg,
     rgba(8, 58, 52, 0.8) 168deg,
+    rgba(22, 24, 78, 0.5) 198deg,
     rgba(18, 28, 72, 0.78) 228deg,
     rgba(6, 62, 72, 0.82) 292deg,
+    rgba(58, 24, 52, 0.46) 312deg,
     rgba(52, 22, 48, 0.72) 330deg,
     rgba(5, 42, 58, 0.85) 360deg);
   animation: fluid-spin 26s linear infinite;
@@ -1381,9 +1375,12 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .fluid-aurora--sidebar::after {
   background: conic-gradient(from 302deg at 78% 68%,
     rgba(72, 38, 28, 0.52) 0deg,
+    rgba(82, 32, 44, 0.42) 48deg,
     rgba(28, 32, 72, 0.54) 95deg,
+    rgba(52, 24, 62, 0.4) 142deg,
     rgba(12, 58, 48, 0.5) 185deg,
     rgba(48, 22, 58, 0.48) 255deg,
+    rgba(62, 28, 52, 0.38) 288deg,
     rgba(18, 48, 42, 0.5) 315deg,
     rgba(72, 38, 28, 0.52) 360deg);
   animation: fluid-spin-rev 31s linear infinite;
