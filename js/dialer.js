@@ -258,6 +258,13 @@ function setDialerStatus(s) {
 async function dialNext() {
   if (dialerStatus !== 'ready') return;
   if (!checkCallAllowed()) return;
+
+  // Test modunda Telnyx gerekmez
+  if (_testMode) {
+    await startTestCall();
+    return;
+  }
+
   if (!telnyxReady) {
     toast(currentLang==='tr' ? 'Telnyx bağlantısı bekleniyor...' : 'Warte auf Telnyx-Verbindung...', 'err');
     return;
@@ -272,7 +279,7 @@ async function dialNext() {
   showCustomerCard(contact);
   try {
     await sb(`contacts?id=eq.${contact.id}`, { method:'PATCH', prefer:'return=minimal',
-      body: JSON.stringify({ status:'calling', assigned_agent:currentUser?.email, last_called_at:new Date().toISOString() })
+      body: JSON.stringify({ status:'calling', last_called_at: new Date().toISOString() })
     });
   } catch(e) {}
   const campaign = campaigns.find(c => c.id === selectedCampId);
@@ -321,7 +328,7 @@ function toggleHold() {
 }
 
 function hangup() {
-  if (_fakeCallActive) { endFakeCall(); return; }
+  if (_fakeCallActive || _testMode) { endFakeCall(); return; }
   sendToRTC('MB_HANGUP');
   if (!telnyxReady || !_telnyxCall) handleCallEnd(Math.floor(callSeconds));
 }
@@ -329,7 +336,7 @@ function hangup() {
 function setOutcome(o) {
   selectedOutcome = o;
   document.querySelectorAll('.outcome-btn').forEach(b => b.classList.remove('active'));
-  const map = {appointment:'.ob-appointment',negative:'.ob-negative',callback:'.ob-callback',no_answer:'.ob-no_answer',voicemail:'.ob-voicemail'};
+  const map = {appointment:'.ob-appointment',negative:'.ob-negative',callback:'.ob-callback',no_answer:'.ob-noanswer',voicemail:'.ob-voicemail'};
   if (map[o]) document.querySelector(map[o])?.classList.add('active');
   const cbRow = document.getElementById('callback-row');
   if (cbRow) cbRow.style.display = o==='callback' ? '' : 'none';
@@ -761,31 +768,52 @@ function checkCallAllowed() {
   return true;
 }
 
-// ── Fake call (test mode) ─────────────────────
-function startFakeCall() {
-  if (_fakeCallActive) return;
-  _fakeCallActive = true;
-  setDialerStatus('on_call');
-  // Fake contact ile dialer göster
-  if (!currentContact) {
-    currentContact = {
-      id: 'fake-' + Date.now(), phone: '+49 176 0000000',
-      first_name: 'Test', last_name: 'Müşteri',
-      plz:'12345', city:'Berlin', address:'Teststraße 1',
-      attempt_count:1, campaign_id: selectedCampId
-    };
-    showCustomerCard(currentContact);
+// ── Test Modu ─────────────────────────────────
+function toggleTestMode() {
+  _testMode = !_testMode;
+  const btn = document.getElementById('test-mode-btn');
+  if (_testMode) {
+    btn.style.background = 'rgba(234,179,8,.15)';
+    btn.style.color = 'var(--yellow)';
+    btn.style.borderColor = 'var(--yellow)';
+    btn.textContent = '⚙ TEST MODU AÇIK';
+    toast('Test modu açık — gerçek arama yapılmaz, veriler DB\'ye kaydedilir', 'ok', 4000);
+  } else {
+    btn.style.background = 'transparent';
+    btn.style.color = 'var(--text-3)';
+    btn.style.borderColor = 'var(--text-3)';
+    btn.textContent = 'TEST MODU';
+    toast('Test modu kapatıldı', 'warn', 2000);
   }
-  _fakeCallTimer = setTimeout(() => {
-    if (_fakeCallActive) endFakeCall();
-  }, 30000);
-  toast('🔧 Test modu — gerçek arama yok', 'ok', 3000);
+}
+
+// Test modunda gerçek contact ile simüle edilmiş çağrı başlat
+async function startTestCall() {
+  if (_fakeCallActive) return;
+  const contact = await getNextContact();
+  if (!contact) {
+    toast('✅ Kuyrukta numara kalmadı', 'ok');
+    setDialerStatus('offline'); updateSessionInDB('offline');
+    return;
+  }
+  _fakeCallActive = true;
+  currentContact = contact;
+  showCustomerCard(contact);
+  // Kontakt durumunu "calling" olarak güncelle
+  try {
+    await sb(`contacts?id=eq.${contact.id}`, {
+      method:'PATCH', prefer:'return=minimal',
+      body: JSON.stringify({ status:'calling', last_called_at: new Date().toISOString() })
+    });
+  } catch(e) {}
+  setDialerStatus('on_call');
+  toast(`⚙ TEST: ${contact.first_name||''} ${contact.last_name||''} ${contact.phone}`, 'ok', 3000);
 }
 
 function endFakeCall() {
   _fakeCallActive = false;
   clearTimeout(_fakeCallTimer); _fakeCallTimer = null;
-  handleCallEnd(Math.floor(callSeconds) || 30);
+  handleCallEnd(Math.floor(callSeconds) || 15);
 }
 
 // ── Kalender / Takvim bağlantısı ─────────────

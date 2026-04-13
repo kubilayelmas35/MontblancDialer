@@ -98,9 +98,10 @@ let selectedOutcome = null;
 // Toast timer
 let toastT;
 
-// Fake call
+// Fake / test call
 let _fakeCallTimer  = null;
 let _fakeCallActive = false;
+let _testMode       = false;
 
 // Field settings
 let _fsFields = [];

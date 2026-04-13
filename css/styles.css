@@ -699,13 +699,25 @@ flex-direction:column; gap:4px;
 .outcome-btn .icon { font-size:20px; }
 .outcome-btn .lbl  { font-size:11px; font-weight:700; }
 .ob-appointment { background:var(--green-soft); color:var(--green); border-color:#16a34a25; }
-.ob-appointment:hover { background:#16a34a22; }
+.ob-appointment:hover,.ob-appointment.active { background:#16a34a22; }
 .ob-negative    { background:var(--red-soft);   color:var(--red);   border-color:#dc262625; }
-.ob-negative:hover { background:#dc262622; }
+.ob-negative:hover,.ob-negative.active { background:#dc262622; }
 .ob-callback    { background:var(--yellow-soft); color:var(--yellow); border-color:#d9770625; }
-.ob-callback:hover { background:#d9770622; }
+.ob-callback:hover,.ob-callback.active { background:#d9770622; }
 .ob-noanswer    { background:var(--bg-3); color:var(--text-2); border-color:var(--border); }
-.ob-noanswer:hover { background:var(--bg-4); }
+.ob-noanswer:hover,.ob-noanswer.active { background:var(--bg-4); }
+/* Seçili outcome butonu belirgin gösterim */
+.outcome-btn.active {
+  border-width:2px !important;
+  transform:scale(1.04);
+  box-shadow:0 0 0 3px currentColor;
+  opacity:1 !important;
+  filter:brightness(1.08);
+}
+.ob-appointment.active { box-shadow:0 0 0 3px rgba(22,163,74,.35); border-color:var(--green) !important; }
+.ob-negative.active    { box-shadow:0 0 0 3px rgba(220,38,38,.35); border-color:var(--red) !important; }
+.ob-callback.active    { box-shadow:0 0 0 3px rgba(217,119,6,.35); border-color:var(--yellow) !important; }
+.ob-noanswer.active    { box-shadow:0 0 0 3px rgba(100,116,139,.35); border-color:var(--text-2) !important; }
 /* Mute / hold */
 .call-action-row { display:flex; gap:8px; }
 .call-action-btn {
