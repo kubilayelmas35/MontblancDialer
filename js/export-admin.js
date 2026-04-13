@@ -142,7 +142,6 @@ function _logToExportRow(l) {
 
 async function exportCallHistoryCsv() {
   if (!isExportAdmin()) return;
-  toast(currentLang === 'tr' ? 'Hazırlanıyor…' : 'Wird vorbereitet…', 'ok');
   try {
     const logs = await _fetchCallHistoryExportRows();
     if (!logs.length) {
@@ -181,7 +180,6 @@ async function exportCallHistoryXlsx() {
     toast(currentLang === 'tr' ? 'Excel kütüphanesi yüklenemedi' : 'Excel-Bibliothek fehlt', 'err');
     return;
   }
-  toast(currentLang === 'tr' ? 'Hazırlanıyor…' : 'Wird vorbereitet…', 'ok');
   try {
     const logs = await _fetchCallHistoryExportRows();
     if (!logs.length) {
