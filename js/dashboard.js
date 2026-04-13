@@ -45,6 +45,152 @@ function _dashLogFilter() {
   return { ff, agentQ, onlySelf, isAdmin: ['admin', 'super_admin', 'firm_admin'].includes(role) };
 }
 
+window._dashRange = window._dashRange || 'today';
+
+function setDashRange(r) {
+  window._dashRange = r;
+  document.querySelectorAll('.dash-range-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.dashRange === r);
+  });
+  loadDashboard();
+}
+
+function _dashGetRange() {
+  return window._dashRange || 'today';
+}
+
+function _dashDateBounds() {
+  const range = _dashGetRange();
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  if (range === 'today') return { from: today, to: today, range };
+  if (range === 'week') {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 6);
+    return { from: d.toISOString().split('T')[0], to: today, range };
+  }
+  if (range === 'month') {
+    const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    return { from, to: today, range };
+  }
+  return { from: '2000-01-01', to: today, range };
+}
+
+function _eachDayInRange(fromStr, toStr) {
+  const out = [];
+  const d = new Date(fromStr + 'T12:00:00');
+  const end = new Date(toStr + 'T12:00:00');
+  while (d <= end) {
+    out.push(d.toISOString().split('T')[0]);
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+
+function _monthKeysLastN(n) {
+  const out = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = d.toLocaleDateString(currentLang === 'tr' ? 'tr-TR' : 'de-DE', { month: 'short', year: '2-digit' });
+    out.push({ key, label });
+  }
+  return out;
+}
+
+function _logDayKey(log) {
+  return String(log.started_at || '').slice(0, 10);
+}
+
+function _logMonthKey(log) {
+  const s = String(log.started_at || '');
+  return s.length >= 7 ? s.slice(0, 7) : '';
+}
+
+function _dashUpdateStatLabels(rangeKey) {
+  const tr = currentLang === 'tr';
+  const calls = document.getElementById('stat-lbl-calls');
+  const costM = document.getElementById('d-cost-m');
+  if (calls) {
+    if (tr) {
+      calls.textContent =
+        rangeKey === 'today'
+          ? 'Bugünkü Aramalar'
+          : rangeKey === 'week'
+            ? 'Bu haftaki Aramalar'
+            : rangeKey === 'month'
+              ? 'Bu ayki Aramalar'
+              : 'Tüm zamanlar — Aramalar';
+    } else {
+      calls.textContent =
+        rangeKey === 'today'
+          ? 'Heutige Anrufe'
+          : rangeKey === 'week'
+            ? 'Anrufe (Woche)'
+            : rangeKey === 'month'
+              ? 'Anrufe (Monat)'
+              : 'Anrufe (gesamt)';
+    }
+  }
+  if (costM) {
+    costM.textContent = tr ? (rangeKey === 'today' ? 'bugün' : 'seçili aralık') : rangeKey === 'today' ? 'heute' : 'Zeitraum';
+  }
+}
+
+function _dashUpdateCardTitles(rangeKey) {
+  const tr = currentLang === 'tr';
+  const hourlyTitle = document.getElementById('dash-hourly-title');
+  const hourlySub = document.getElementById('dash-hourly-sub');
+  const outTitle = document.getElementById('dash-outcome-title');
+  const outSub = document.getElementById('dash-outcome-sub');
+  const trendTitle = document.getElementById('dash-trend-title');
+  const trendSub = document.getElementById('dash-chart-sub');
+  if (hourlyTitle && hourlySub) {
+    if (rangeKey === 'today') {
+      hourlyTitle.textContent = tr ? 'Bugün — saatlik analiz' : 'Heute — Stundenanalyse';
+      hourlySub.textContent = tr ? 'Çağrı hacmi ve termin (saat başı)' : 'Anrufvolumen und Termine pro Stunde';
+    } else if (rangeKey === 'week') {
+      hourlyTitle.textContent = tr ? 'Bu hafta — günlük analiz' : 'Diese Woche — Tagesanalyse';
+      hourlySub.textContent = tr ? 'Günlük çağrı ve termin' : 'Anrufe und Termine pro Tag';
+    } else if (rangeKey === 'month') {
+      hourlyTitle.textContent = tr ? 'Bu ay — günlük analiz' : 'Dieser Monat — Tagesanalyse';
+      hourlySub.textContent = tr ? 'Günlük çağrı ve termin' : 'Anrufe und Termine pro Tag';
+    } else {
+      hourlyTitle.textContent = tr ? 'Son 24 ay — aylık analiz' : 'Letzte 24 Monate';
+      hourlySub.textContent = tr ? 'Aylık çağrı ve termin' : 'Monatliche Anrufe und Termine';
+    }
+  }
+  if (outTitle && outSub) {
+    outTitle.textContent = tr ? 'Termin sonuçları' : 'Termin-Ergebnisse';
+    outSub.textContent = tr ? 'Randevu durumları (termin tarihine göre)' : 'Terminstatus nach Terminzeit';
+  }
+  if (trendTitle && trendSub) {
+    if (rangeKey === 'today') {
+      trendTitle.textContent = tr ? 'Bugün — kümülatif çağrı' : 'Heute — kumulativ';
+      trendSub.textContent = tr ? 'Gün içi birikimli çağrı sayısı' : 'Kumulative Anrufe';
+    } else if (rangeKey === 'all') {
+      trendTitle.textContent = tr ? 'Son 24 ay — çağrı trendi' : 'Trend (24 Monate)';
+      trendSub.textContent = tr ? 'Aylık toplam çağrı' : 'Monatliche Anrufe';
+    } else {
+      trendTitle.textContent = tr ? 'Çağrı trendi' : 'Anruf-Trend';
+      trendSub.textContent = tr ? 'Günlük toplam çağrı' : 'Anrufe pro Tag';
+    }
+  }
+}
+
+async function fetchDashAppointmentsInRange(from, to, ff, agentQ) {
+  let q = `appointments?select=durum,termin_tarih,agent_id&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&limit=15000`;
+  if (ff) q += ff;
+  if (agentQ) q += agentQ;
+  try {
+    return (await sb(q)) || [];
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
 async function populateDashAgentSelect() {
   const wrap = document.getElementById('dash-agent-wrap');
   const sel = document.getElementById('dash-agent-f');
@@ -88,33 +234,37 @@ function _dashCssVar(name, fallback) {
   return v || fallback;
 }
 
-function renderDashChart7d(logsByDay, labels) {
+function renderDashChart7d(logsByDay, labels, opts) {
   const canvas = document.getElementById('dash-chart-7d');
   if (!canvas || typeof Chart === 'undefined') return;
   const accent = _dashCssVar('--accent', '#2563eb');
   const border = _dashCssVar('--border', '#e2e8f0');
+  const tr = currentLang === 'tr';
   if (window._dashChart7d) { window._dashChart7d.destroy(); window._dashChart7d = null; }
   window._dashChart7d = new Chart(canvas, {
     type: 'line',
     data: {
       labels,
       datasets: [{
-        label: currentLang === 'tr' ? 'Çağrı' : 'Anrufe',
+        label: opts?.datasetLabel || (tr ? 'Çağrı' : 'Anrufe'),
         data: logsByDay,
         borderColor: accent,
         backgroundColor: accent.length === 7 ? accent + '22' : 'rgba(37,99,235,0.12)',
-        fill: true,
+        fill: opts?.fill !== false,
         tension: 0.35,
-        pointRadius: 3
+        pointRadius: labels.length <= 2 ? 5 : 3
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: { legend: { display: !!opts?.showLegend } },
       scales: {
-        x: { grid: { color: border }, ticks: { font: { size: 11 } } },
-        y: { beginAtZero: true, grid: { color: border }, ticks: { stepSize: 1, font: { size: 11 } } }
+        x: {
+          grid: { color: border },
+          ticks: { font: { size: 11 }, maxRotation: 45, autoSkip: true, maxTicksLimit: opts?.maxTicksLimit || 14 }
+        },
+        y: { beginAtZero: true, grid: { color: border }, ticks: { font: { size: 11 } } }
       }
     }
   });
@@ -202,31 +352,122 @@ function renderDashHourlyMixed(logs) {
   });
 }
 
-/** Bugün — sonuç dağılımı (doughnut) */
-function renderDashOutcomeDonut(logs) {
+/** Hafta/ay/24 ay — günlük veya aylık çubuk + termin çizgisi */
+function renderDashPeriodMixed(logs, rangeKey, from, to) {
+  const canvas = document.getElementById('dash-chart-hourly');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const accent = _dashCssVar('--accent', '#2563eb');
+  const green = _dashCssVar('--green', '#16a34a');
+  const border = _dashCssVar('--border', '#e2e8f0');
+  const t = currentLang === 'tr';
+  let labels = [];
+  let bar = [];
+  let line = [];
+  if (rangeKey === 'all') {
+    const months = _monthKeysLastN(24);
+    const keys = months.map(m => m.key);
+    labels = months.map(m => m.label);
+    bar = Array(keys.length).fill(0);
+    line = Array(keys.length).fill(0);
+    (logs || []).forEach(l => {
+      const mk = _logMonthKey(l);
+      const ix = keys.indexOf(mk);
+      if (ix < 0) return;
+      bar[ix]++;
+      if (_isTerminOutcome(l.outcome)) line[ix]++;
+    });
+  } else {
+    const days = _eachDayInRange(from, to);
+    labels = days.map(d => {
+      const dt = new Date(d + 'T12:00:00');
+      return dt.toLocaleDateString(t ? 'tr-TR' : 'de-DE', { weekday: 'short', day: 'numeric' });
+    });
+    bar = days.map(d => (logs || []).filter(l => _logDayKey(l) === d).length);
+    line = days.map(d => (logs || []).filter(l => _logDayKey(l) === d && _isTerminOutcome(l.outcome)).length);
+  }
+  if (window._dashChartHourly) { window._dashChartHourly.destroy(); window._dashChartHourly = null; }
+  window._dashChartHourly = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: t ? 'Çağrı' : 'Anrufe',
+          data: bar,
+          backgroundColor: accent.length === 7 ? accent + '33' : 'rgba(37,99,235,0.2)',
+          borderColor: accent,
+          borderWidth: 1,
+          order: 2,
+          borderRadius: 4
+        },
+        {
+          type: 'line',
+          label: t ? 'Termin (çağrı)' : 'Termin (Anruf)',
+          data: line,
+          borderColor: green,
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          tension: 0.25,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          order: 1,
+          yAxisID: 'y'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            afterLabel(ctx) {
+              if (ctx.datasetIndex !== 0) return '';
+              const tot = bar[ctx.dataIndex] || 0;
+              const te = line[ctx.dataIndex] || 0;
+              if (!tot) return '';
+              return t ? `Başarı: %${((te / tot) * 100).toFixed(0)} (termin/çağrı)` : `Quote: %${((te / tot) * 100).toFixed(0)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { maxRotation: rangeKey === 'month' ? 45 : 0, autoSkip: true, maxTicksLimit: rangeKey === 'month' ? 16 : 14, font: { size: 10 } }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: border },
+          ticks: { stepSize: 1, font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+/** Termin randevuları — durum dağılımı (doughnut) */
+function renderDashTerminDonut(appts) {
   const canvas = document.getElementById('dash-chart-outcomes');
   if (!canvas || typeof Chart === 'undefined') return;
   const tr = currentLang === 'tr';
   const cat = {
-    termin: { n: 0, tr: 'Termin', de: 'Termin' },
-    callback: { n: 0, tr: 'Geri ara', de: 'Rückruf' },
-    negative: { n: 0, tr: 'Olumsuz', de: 'Negativ' },
-    no_answer: { n: 0, tr: 'Cevap yok', de: 'Keine Antwort' },
-    voicemail: { n: 0, tr: 'Telesekreter', de: 'Mailbox' },
-    dnc: { n: 0, tr: 'Kara liste', de: 'DNC' },
+    basarili: { n: 0, tr: 'Başarılı', de: 'Erfolgreich' },
+    basarisiz: { n: 0, tr: 'Başarısız', de: 'Nicht erfolgreich' },
+    beklemede: { n: 0, tr: 'Beklemede', de: 'Wartend' },
+    qc_bekleniyor: { n: 0, tr: 'QC bekleniyor', de: 'QC ausstehend' },
+    iptal: { n: 0, tr: 'İptal', de: 'Storniert' },
     other: { n: 0, tr: 'Diğer', de: 'Sonstige' }
   };
-  (logs || []).forEach(l => {
-    const o = l.outcome || '';
-    if (_isTerminOutcome(o)) cat.termin.n++;
-    else if (o === 'callback') cat.callback.n++;
-    else if (o === 'negative') cat.negative.n++;
-    else if (o === 'no_answer') cat.no_answer.n++;
-    else if (o === 'voicemail') cat.voicemail.n++;
-    else if (o === 'dnc') cat.dnc.n++;
+  (appts || []).forEach(a => {
+    const k = String(a.durum || '').toLowerCase();
+    if (cat[k]) cat[k].n++;
     else cat.other.n++;
   });
-  const order = ['termin', 'callback', 'negative', 'no_answer', 'voicemail', 'dnc', 'other'];
+  const order = ['basarili', 'basarisiz', 'beklemede', 'qc_bekleniyor', 'iptal', 'other'];
   const labels = [];
   const data = [];
   const colors = [];
@@ -234,9 +475,15 @@ function renderDashOutcomeDonut(logs) {
   const yellow = _dashCssVar('--yellow', '#d97706');
   const red = _dashCssVar('--red', '#dc2626');
   const accent = _dashCssVar('--accent', '#2563eb');
-  const purple = _dashCssVar('--purple', '#7c3aed');
   const muted = _dashCssVar('--text-3', '#9ca3af');
-  const colorMap = { termin: green, callback: yellow, negative: red, no_answer: muted, voicemail: accent, dnc: purple, other: _dashCssVar('--text-2', '#6b7280') };
+  const colorMap = {
+    basarili: green,
+    basarisiz: red,
+    beklemede: yellow,
+    qc_bekleniyor: accent,
+    iptal: _dashCssVar('--text-2', '#6b7280'),
+    other: muted
+  };
   order.forEach(k => {
     if (cat[k].n > 0) {
       labels.push(tr ? cat[k].tr : cat[k].de);
@@ -257,15 +504,76 @@ function renderDashOutcomeDonut(logs) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { bottom: 4 } },
       cutout: '58%',
       plugins: {
         legend: {
-          position: 'right',
-          labels: { boxWidth: 10, font: { size: 11 }, padding: 10, usePointStyle: true }
+          position: 'bottom',
+          align: 'center',
+          labels: {
+            boxWidth: 10,
+            font: { size: 10 },
+            padding: 8,
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label(ctx) {
+              const v = ctx.raw;
+              const lbl = ctx.label || '';
+              return tr ? `${lbl}: ${v} randevu` : `${lbl}: ${v}`;
+            }
+          }
         }
       }
     }
   });
+}
+
+/** Üçüncü grafik: aralığa göre trend */
+function renderDashTrendForRange(rangeKey, logs, from, to) {
+  const tr = currentLang === 'tr';
+  if (rangeKey === 'today') {
+    const hourly = Array(24).fill(0);
+    (logs || []).forEach(l => {
+      if (!l.started_at) return;
+      const h = new Date(l.started_at).getHours();
+      if (h >= 0 && h <= 23) hourly[h]++;
+    });
+    const cum = [];
+    let s = 0;
+    for (let i = 0; i < 24; i++) {
+      s += hourly[i];
+      cum.push(s);
+    }
+    const labels = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0') + ':00');
+    renderDashChart7d(cum, labels, {
+      datasetLabel: tr ? 'Kümülatif çağrı' : 'Kumulativ',
+      fill: true,
+      maxTicksLimit: 12
+    });
+    return;
+  }
+  if (rangeKey === 'all') {
+    const months = _monthKeysLastN(24);
+    const keys = months.map(m => m.key);
+    const counts = Array(keys.length).fill(0);
+    (logs || []).forEach(l => {
+      const mk = _logMonthKey(l);
+      const ix = keys.indexOf(mk);
+      if (ix >= 0) counts[ix]++;
+    });
+    renderDashChart7d(counts, months.map(m => m.label), { maxTicksLimit: 12 });
+    return;
+  }
+  const days = _eachDayInRange(from, to);
+  const counts = days.map(d => (logs || []).filter(l => _logDayKey(l) === d).length);
+  const labels = days.map(d => {
+    const dt = new Date(d + 'T12:00:00');
+    return dt.toLocaleDateString(tr ? 'tr-TR' : 'de-DE', { weekday: 'short', day: 'numeric' });
+  });
+  renderDashChart7d(counts, labels, { maxTicksLimit: rangeKey === 'month' ? 18 : 10 });
 }
 
 async function loadDashboard() {
@@ -278,22 +586,43 @@ const subEl = document.getElementById('dash-chart-sub');
 if (costEl) costEl.style.display = onlySelf ? 'none' : '';
 const showLive = ['admin', 'super_admin', 'firm_admin', 'qc'].includes(currentUser?.role || '');
 if (liveWrap) liveWrap.style.display = showLive ? '' : 'none';
-if (subEl) {
-  subEl.textContent = onlySelf
-    ? (currentLang === 'tr' ? 'Senin günlük çağrı sayın' : 'Deine Anrufe pro Tag')
-    : (currentLang === 'tr' ? 'Günlük toplam çağrı sayısı' : 'Anzahl Anrufe pro Tag');
+document.querySelectorAll('.dash-range-btn').forEach(b => {
+  b.classList.toggle('active', b.dataset.dashRange === _dashGetRange());
+});
+const { from, to, range: rangeKey } = _dashDateBounds();
+_dashUpdateStatLabels(rangeKey);
+_dashUpdateCardTitles(rangeKey);
+if (onlySelf && subEl) {
+  subEl.textContent =
+    currentLang === 'tr' ? 'Senin çağrıların (seçili aralık)' : 'Deine Anrufe (Zeitraum)';
 }
 const now = new Date();
 const today = now.toISOString().split('T')[0];
 document.getElementById('dash-date').textContent =
 now.toLocaleDateString(currentLang==='tr'?'tr-TR':'de-DE', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+const tr = currentLang === 'tr';
+const rangeSuffix =
+  rangeKey === 'today'
+    ? (tr ? 'bugün' : 'heute')
+    : rangeKey === 'week'
+      ? (tr ? 'bu hafta' : 'diese Woche')
+      : rangeKey === 'month'
+        ? (tr ? 'bu ay' : 'diesen Monat')
+        : (tr ? 'seçili aralık' : 'Zeitraum');
 try {
-let qToday = `call_logs?select=*&started_at=gte.${today}T00:00:00&started_at=lte.${today}T23:59:59`;
-qToday += ff;
-qToday += agentQ;
-const logs  = await sb(qToday);
-renderDashHourlyMixed(logs);
-renderDashOutcomeDonut(logs);
+let qLogs = `call_logs?select=*&started_at=gte.${from}T00:00:00&started_at=lte.${to}T23:59:59`;
+qLogs += ff;
+qLogs += agentQ;
+qLogs += '&limit=50000';
+const logs  = await sb(qLogs) || [];
+if (rangeKey === 'today') {
+  renderDashHourlyMixed(logs);
+} else {
+  renderDashPeriodMixed(logs, rangeKey, from, to);
+}
+const apptRows = await fetchDashAppointmentsInRange(from, to, ff, agentQ);
+renderDashTerminDonut(apptRows);
+renderDashTrendForRange(rangeKey, logs, from, to);
 const total = logs.length;
 const appts = logs.filter(l=>_isTerminOutcome(l.outcome)).length;
 const cbs   = logs.filter(l=>l.outcome==='callback').length;
@@ -306,30 +635,22 @@ document.getElementById('d-cb').textContent     = cbs;
 document.getElementById('d-vm').textContent     = vms;
 document.getElementById('d-cost').textContent   = `$${cost.toFixed(2)}`;
 document.getElementById('d-talk').textContent   = `${Math.floor(talk/60)}dk`;
-document.getElementById('d-calls-m').textContent= `${total} çağrı bugün`;
-document.getElementById('d-appt-m').textContent = total>0?`%${((appts/total)*100).toFixed(1)} dönüşüm`:'%0 dönüşüm';
-document.getElementById('d-avg').textContent    = `ort. ${total>0?Math.round(talk/total):0}sn/çağrı`;
+document.getElementById('d-calls-m').textContent= tr
+  ? `${total} çağrı ${rangeSuffix}`
+  : `${total} Anrufe ${rangeSuffix}`;
+document.getElementById('d-appt-m').textContent = total > 0
+  ? (tr ? `%${((appts / total) * 100).toFixed(1)} dönüşüm` : `${((appts / total) * 100).toFixed(1)}% Quote`)
+  : (tr ? '%0 dönüşüm' : '0% Quote');
+document.getElementById('d-avg').textContent    = tr
+  ? `ort. ${total > 0 ? Math.round(talk / total) : 0}sn/çağrı`
+  : `Ø ${total > 0 ? Math.round(talk / total) : 0}s/Anruf`;
 document.getElementById('pill-appt').textContent= appts;
-} catch(e){ console.error(e); renderDashHourlyMixed([]); renderDashOutcomeDonut([]); }
-try {
-const from7 = new Date(now);
-from7.setDate(from7.getDate() - 6);
-const fromStr = from7.toISOString().split('T')[0];
-let q7 = `call_logs?select=started_at&started_at=gte.${fromStr}T00:00:00&started_at=lte.${today}T23:59:59`;
-q7 += ff;
-q7 += agentQ;
-const weekLogs = await sb(q7) || [];
-const labels = [];
-const counts = [];
-for (let i = 6; i >= 0; i--) {
-  const d = new Date(now);
-  d.setDate(d.getDate() - i);
-  const ds = d.toISOString().split('T')[0];
-  labels.push(d.toLocaleDateString(currentLang === 'tr' ? 'tr-TR' : 'de-DE', { weekday: 'short', day: 'numeric' }));
-  counts.push(weekLogs.filter(l => String(l.started_at || '').slice(0, 10) === ds).length);
+} catch(e){
+  console.error(e);
+  renderDashHourlyMixed([]);
+  renderDashTerminDonut([]);
+  renderDashChart7d([0], [tr ? '—' : '—']);
 }
-renderDashChart7d(counts, labels);
-} catch (e) { console.error(e); }
 if (showLive) try {
 const sessions = await sb('agent_sessions?select=*');
 const live = document.getElementById('live-agents');

@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=4.0">
+<link rel="stylesheet" href="css/styles.css?v=4.1">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -284,7 +284,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div class="stats-grid">
 <div class="stat-card stat-blue">
-<div class="stat-lbl" data-tr="Bugünkü Aramalar" data-de="Heutige Anrufe">Bugünkü Aramalar</div>
+<div class="stat-lbl" id="stat-lbl-calls">Bugünkü Aramalar</div>
 <div class="stat-val" id="d-calls">0</div>
 <div class="stat-meta" id="d-calls-m">—</div>
 </div>
@@ -306,13 +306,19 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="stat-card" id="dash-stat-cost">
 <div class="stat-lbl" data-tr="Harcanan Bakiye" data-de="Kosten heute">Harcanan Bakiye</div>
 <div class="stat-val" id="d-cost" style="color:var(--yellow);">$0.00</div>
-<div class="stat-meta" data-tr="bugün" data-de="heute">bugün</div>
+<div class="stat-meta" id="d-cost-m">bugün</div>
 </div>
 <div class="stat-card stat-purple">
 <div class="stat-lbl" data-tr="Konuşma Süresi" data-de="Gesprächszeit">Konuşma Süresi</div>
 <div class="stat-val" id="d-talk">0dk</div>
 <div class="stat-meta" id="d-avg">ort. 0sn/çağrı</div>
 </div>
+</div>
+<div class="dash-range-tabs" role="tablist" aria-label="Özet zaman aralığı">
+<button type="button" class="dash-range-btn active" data-dash-range="today" data-tr="Bugün" data-de="Heute" onclick="setDashRange('today')">Bugün</button>
+<button type="button" class="dash-range-btn" data-dash-range="week" data-tr="Bu hafta" data-de="Diese Woche" onclick="setDashRange('week')">Bu hafta</button>
+<button type="button" class="dash-range-btn" data-dash-range="month" data-tr="Bu ay" data-de="Dieser Monat" onclick="setDashRange('month')">Bu ay</button>
+<button type="button" class="dash-range-btn" data-dash-range="all" data-tr="Tüm zamanlar" data-de="Gesamt" onclick="setDashRange('all')">Tüm zamanlar</button>
 </div>
 <div class="card" id="dash-eom-card" style="display:flex;flex-wrap:wrap;align-items:stretch;gap:16px;padding:18px 20px;margin-bottom:4px;background:linear-gradient(135deg,rgba(37,99,235,.08),transparent);border:1px solid var(--border);">
 <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:220px;">
@@ -331,8 +337,8 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="card" id="dash-hourly-card">
 <div class="card-hdr">
 <div>
-<div class="card-title" data-tr="Bugün — saatlik analiz" data-de="Heute — Stundenanalyse">Bugün — saatlik analiz</div>
-<div class="card-sub" data-tr="Çağrı hacmi ve termin (saat başı)" data-de="Anrufvolumen und Termine pro Stunde">Çağrı hacmi ve termin (saat başı)</div>
+<div class="card-title" id="dash-hourly-title">Bugün — saatlik analiz</div>
+<div class="card-sub" id="dash-hourly-sub">Çağrı hacmi ve termin (saat başı)</div>
 </div>
 </div>
 <div class="dash-chart-box"><canvas id="dash-chart-hourly"></canvas></div>
@@ -340,8 +346,8 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="card" id="dash-outcome-card">
 <div class="card-hdr">
 <div>
-<div class="card-title" data-tr="Bugün — sonuç dağılımı" data-de="Heute — Ergebnisverteilung">Bugün — sonuç dağılımı</div>
-<div class="card-sub" data-tr="Sonuçlandırılan çağrılar" data-de="Abgeschlossene Anrufe">Sonuçlandırılan çağrılar</div>
+<div class="card-title" id="dash-outcome-title">Termin sonuçları</div>
+<div class="card-sub" id="dash-outcome-sub">Randevu durumları (termin tarihine göre)</div>
 </div>
 </div>
 <div class="dash-chart-box"><canvas id="dash-chart-outcomes"></canvas></div>
@@ -350,11 +356,11 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="card" id="dash-chart-card">
 <div class="card-hdr">
 <div>
-<div class="card-title" data-tr="Son 7 gün — çağrılar" data-de="Letzte 7 Tage — Anrufe">Son 7 gün — çağrılar</div>
-<div class="card-sub" id="dash-chart-sub" data-tr="Günlük toplam çağrı sayısı" data-de="Anzahl Anrufe pro Tag">Günlük toplam çağrı sayısı</div>
+<div class="card-title" id="dash-trend-title">Çağrı trendi</div>
+<div class="card-sub" id="dash-chart-sub">Günlük toplam çağrı sayısı</div>
 </div>
 </div>
-<div style="height:240px;position:relative;padding:0 4px 8px;">
+<div class="dash-trend-chart-wrap">
 <canvas id="dash-chart-7d"></canvas>
 </div>
 </div>
@@ -2023,10 +2029,10 @@ QC Detay
 <script src="js/state.js?v=4.0"></script>
 <script src="js/api.js?v=4.0"></script>
 <script src="js/auth.js?v=4.0"></script>
-<script src="js/ui.js?v=4.0"></script>
+<script src="js/ui.js?v=4.1"></script>
 <script src="js/export-admin.js?v=4.0"></script>
 <script src="js/competition.js?v=4.0"></script>
-<script src="js/dashboard.js?v=4.0"></script>
+<script src="js/dashboard.js?v=4.1"></script>
 <script src="js/campaigns.js?v=4.0"></script>
 <script src="js/contacts.js?v=4.0"></script>
 <script src="js/telnyx.js?v=4.0"></script>

@@ -397,6 +397,34 @@ box-shadow: var(--shadow);
 .stat-yellow .stat-val { color: var(--yellow); }
 .stat-red .stat-val    { color: var(--red); }
 .stat-purple .stat-val { color: var(--purple); }
+/* Özet — zaman sekmeleri */
+.dash-range-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.dash-range-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.dash-range-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+.dash-range-btn.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
 /* Özet — analiz grid */
 .dash-analytics-grid {
   display: grid;
@@ -404,10 +432,31 @@ box-shadow: var(--shadow);
   gap: 12px;
   margin-bottom: 12px;
 }
+.dash-analytics-grid > .card {
+  min-width: 0;
+}
 @media (max-width: 960px) {
   .dash-analytics-grid { grid-template-columns: 1fr; }
 }
-.dash-chart-box { height: 260px; position: relative; padding: 0 4px 8px; }
+.dash-chart-box {
+  height: 260px;
+  position: relative;
+  padding: 0 4px 8px;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.dash-trend-chart-wrap {
+  height: 240px;
+  position: relative;
+  padding: 0 4px 8px;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+#dash-chart-card {
+  min-width: 0;
+}
 /* Table */
 .tbl-wrap { overflow-x: auto; }
 table { width:100%; border-collapse:collapse; }

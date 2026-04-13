@@ -68,6 +68,16 @@ el.textContent = el.getAttribute(`data-${l}`)||el.textContent;
 el.textContent = el.getAttribute(`data-${l}`)||el.getAttribute('data-tr');
 }
 });
+if (typeof _dashGetRange === 'function' && typeof _dashUpdateStatLabels === 'function' && typeof _dashUpdateCardTitles === 'function' &&
+    document.getElementById('page-dashboard')?.classList.contains('active')) {
+  const rk = _dashGetRange();
+  _dashUpdateStatLabels(rk);
+  _dashUpdateCardTitles(rk);
+  const subEl = document.getElementById('dash-chart-sub');
+  if (subEl && currentUser?.role === 'agent') {
+    subEl.textContent = currentLang === 'tr' ? 'Senin çağrıların (seçili aralık)' : 'Deine Anrufe (Zeitraum)';
+  }
+}
 }
 
 function cycleLang() {
