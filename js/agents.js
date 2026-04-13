@@ -468,50 +468,72 @@ const ALL_PAGES = [
 async function loadRolesPage() {
   const card = document.getElementById('roles-card');
   const el   = document.getElementById('roles-list');
+  const addBtn = card?.querySelector('button[onclick="openAddRoleModal()"]');
   if (!card || !el) return;
-  if (!isSuperAdmin()) { card.style.display='none'; return; }
+  const canManage = ['super_admin', 'admin', 'firm_admin'].includes(currentUser?.role || '');
+  if (!canManage) { card.style.display='none'; return; }
   card.style.display = '';
   let targetFirmId = getActiveFirmId() || currentUser.firm_id;
+  if (addBtn) addBtn.style.display = isSuperAdmin() ? '' : 'none';
   let firmOptions = '';
   try {
-    const firmsAll = await sb('firms?select=id,name&order=name.asc');
-    if (firmsAll?.length) {
-      firmOptions = firmsAll.map(f => `<option value="${f.id}" ${String(targetFirmId)===String(f.id)?'selected':''}>${f.name||f.id}</option>`).join('');
-      const titleRow = card.querySelector('.roles-firm-row');
-      if (titleRow) titleRow.remove();
-      const row = document.createElement('div');
-      row.className = 'roles-firm-row';
-      row.style.cssText = 'margin-bottom:12px;';
-      row.innerHTML = `<label class="form-label" style="font-size:11px;">Firma</label><select class="form-input" id="roles-firm-select" onchange="loadRolesPage()">${firmOptions}</select>`;
-      card.insertBefore(row, el);
-      targetFirmId = document.getElementById('roles-firm-select')?.value || targetFirmId;
+    const titleRow = card.querySelector('.roles-firm-row');
+    if (titleRow) titleRow.remove();
+    if (isSuperAdmin()) {
+      const firmsAll = await sb('firms?select=id,name&order=name.asc');
+      if (firmsAll?.length) {
+        firmOptions = firmsAll.map(f => `<option value="${f.id}" ${String(targetFirmId)===String(f.id)?'selected':''}>${f.name||f.id}</option>`).join('');
+        const row = document.createElement('div');
+        row.className = 'roles-firm-row';
+        row.style.cssText = 'margin-bottom:12px;';
+        row.innerHTML = `<label class="form-label" style="font-size:11px;">Firma</label><select class="form-input" id="roles-firm-select" onchange="loadRolesPage()">${firmOptions}</select>`;
+        card.insertBefore(row, el);
+        targetFirmId = document.getElementById('roles-firm-select')?.value || targetFirmId;
+      }
     }
   } catch(e) {}
   let customRoles = [];
+  let rolePermOverrides = {};
   try {
     const firms = await sb(`firms?id=eq.${targetFirmId}&select=settings`);
     customRoles = firms?.[0]?.settings?.custom_roles || [];
+    rolePermOverrides = firms?.[0]?.settings?.role_permissions || {};
   } catch(e) {}
-  const allRoles = [...BUILTIN_ROLES, ...customRoles.map(r=>({...r,builtin:false}))];
+  const allRoles = [
+    ...BUILTIN_ROLES.map(r => ({ ...r, perms: rolePermOverrides?.[r.key] || r.perms })),
+    ...customRoles.map(r=>({...r,builtin:false}))
+  ].filter(role => {
+    if (isSuperAdmin()) return true;
+    return ['agent', 'qc'].includes(role.key);
+  });
   el.innerHTML = allRoles.map(role => `
 <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
 <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-3);">
 <span style="width:10px;height:10px;border-radius:50%;background:${role.color||'var(--text-3)'};flex-shrink:0;"></span>
 <span style="font-size:13px;font-weight:700;flex:1;">${role.label}</span>
 <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);">${role.key}</span>
-${role.builtin ? '<span class="badge badge-gray" style="font-size:10px;">Yerleşik</span>' :
-  `<button class="icon-btn" style="border-color:var(--red);color:var(--red);" onclick="deleteCustomRole('${role.key}')"><i class="ph ph-trash"></i></button>`}
+<button class="btn btn-ghost btn-sm" type="button" onclick="openRolePermModal('${role.key}')"><i class="ph ph-pencil-simple"></i> Düzenle</button>
+${(!role.builtin && isSuperAdmin()) ?
+  `<button class="icon-btn" style="border-color:var(--red);color:var(--red);" onclick="deleteCustomRole('${role.key}')"><i class="ph ph-trash"></i></button>` :
+  (role.builtin ? '<span class="badge badge-gray" style="font-size:10px;">Yerleşik</span>' : '')}
 </div>
 <div style="padding:10px 14px;display:flex;flex-wrap:wrap;gap:6px;">
 ${ALL_PAGES.map(p=>`
-<label style="display:inline-flex;align-items:center;gap:5px;cursor:${role.builtin?'default':'pointer'};font-size:11px;background:${role.perms.includes(p.key)?'var(--accent-soft)':'var(--bg-4)'};color:${role.perms.includes(p.key)?'var(--accent)':'var(--text-3)'};padding:3px 9px;border-radius:12px;border:1px solid ${role.perms.includes(p.key)?'var(--accent)':'var(--border)'};">
-${!role.builtin?`<input type="checkbox" style="width:11px;height:11px;" ${role.perms.includes(p.key)?'checked':''} onchange="toggleRolePerm('${role.key}','${p.key}',this.checked)" onclick="event.stopPropagation()">`:''}
+<label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;background:${role.perms.includes(p.key)?'var(--accent-soft)':'var(--bg-4)'};color:${role.perms.includes(p.key)?'var(--accent)':'var(--text-3)'};padding:3px 9px;border-radius:12px;border:1px solid ${role.perms.includes(p.key)?'var(--accent)':'var(--border)'};">
 ${p.label}</label>`).join('')}
 </div>
 </div>`).join('');
 }
 
+function _canEditRoleForCurrentUser(roleKey) {
+  if (isSuperAdmin()) return true;
+  const role = currentUser?.role || '';
+  if (role === 'admin' || role === 'firm_admin') return ['agent', 'qc'].includes(roleKey);
+  return false;
+}
+
 async function openAddRoleModal() {
+  if (!isSuperAdmin()) { toast('Sadece süper admin yeni rol ekleyebilir', 'warn'); return; }
   const name = await mbPrompt('Yeni rol adı (örn: muhasebeci):','', 'Yeni Rol');
   if (!name) return;
   const key   = name.toLowerCase().replace(/[^a-z0-9_]/g,'_');
@@ -531,15 +553,31 @@ async function openAddRoleModal() {
 }
 
 async function toggleRolePerm(roleKey, pageKey, enabled) {
+  if (!_canEditRoleForCurrentUser(roleKey)) { toast('Bu rolü düzenleyemezsiniz', 'warn'); return; }
   try {
     const fid = document.getElementById('roles-firm-select')?.value || getActiveFirmId() || currentUser.firm_id;
     const firms = await sb(`firms?id=eq.${fid}&select=settings`);
     const existing = firms?.[0]?.settings || {};
     const roles = existing.custom_roles || [];
     const role = roles.find(r=>r.key===roleKey);
-    if (!role) return;
-    if (enabled) { if (!role.perms.includes(pageKey)) role.perms.push(pageKey); }
-    else role.perms = role.perms.filter(p=>p!==pageKey);
+    if (role) {
+      if (enabled) { if (!role.perms.includes(pageKey)) role.perms.push(pageKey); }
+      else role.perms = role.perms.filter(p=>p!==pageKey);
+    } else {
+      const builtin = BUILTIN_ROLES.find(r => r.key === roleKey);
+      if (!builtin) return;
+      const overrides = { ...(existing.role_permissions || {}) };
+      const perms = Array.isArray(overrides[roleKey]) ? [...overrides[roleKey]] : [...builtin.perms];
+      if (enabled) { if (!perms.includes(pageKey)) perms.push(pageKey); }
+      else {
+        const minPerm = roleKey === 'agent' ? 'dialer' : 'qc';
+        if (pageKey === minPerm) { toast('Temel izin kaldırılamaz', 'warn'); return; }
+        const idx = perms.indexOf(pageKey);
+        if (idx >= 0) perms.splice(idx, 1);
+      }
+      overrides[roleKey] = perms;
+      existing.role_permissions = overrides;
+    }
     await sb(`firms?id=eq.${fid}`,{method:'PATCH',prefer:'return=minimal',
       body:JSON.stringify({settings:{...existing,custom_roles:roles}})});
     toast('İzin güncellendi ✓','ok',1200);
@@ -547,6 +585,7 @@ async function toggleRolePerm(roleKey, pageKey, enabled) {
 }
 
 async function deleteCustomRole(roleKey) {
+  if (!isSuperAdmin()) { toast('Sadece süper admin rol silebilir', 'warn'); return; }
   if (!(await mbConfirm('Bu rolü silmek istediğinize emin misiniz?', 'Rol Sil'))) return;
   try {
     const fid = document.getElementById('roles-firm-select')?.value || getActiveFirmId() || currentUser.firm_id;
@@ -558,4 +597,75 @@ async function deleteCustomRole(roleKey) {
     await loadRolesPage();
     toast('Rol silindi','ok');
   } catch(e) { toast('Hata','err'); }
+}
+
+async function openRolePermModal(roleKey) {
+  if (!_canEditRoleForCurrentUser(roleKey)) { toast('Bu rolü düzenleyemezsiniz', 'warn'); return; }
+  const fid = document.getElementById('roles-firm-select')?.value || getActiveFirmId() || currentUser.firm_id;
+  if (!fid) { toast('Önce firma seçin', 'warn'); return; }
+  try {
+    const firms = await sb(`firms?id=eq.${fid}&select=settings`);
+    const settings = firms?.[0]?.settings || {};
+    const roleOverrides = settings.role_permissions || {};
+    const customRoles = settings.custom_roles || [];
+    const builtin = BUILTIN_ROLES.find(r => r.key === roleKey);
+    const custom = customRoles.find(r => r.key === roleKey);
+    const base = custom || (builtin ? { ...builtin, perms: roleOverrides[roleKey] || builtin.perms, builtin: true } : null);
+    if (!base) return;
+    const currentPerms = new Set(base.perms || []);
+    const title = `${base.label} izinleri`;
+    const html = `
+      <div id="role-perm-modal" class="modal-overlay open">
+        <div class="modal" style="max-width:620px;">
+          <div class="modal-hdr">
+            <div class="modal-title"><i class="ph ph-shield-check"></i> ${title}</div>
+            <button class="modal-close" onclick="document.getElementById('role-perm-modal')?.remove()">✕</button>
+          </div>
+          <div style="padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;max-height:60vh;overflow:auto;">
+            ${ALL_PAGES.map(p => `
+              <label style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--border);border-radius:8px;">
+                <input type="checkbox" id="rpm-${p.key}" ${currentPerms.has(p.key) ? 'checked' : ''}>
+                <span style="font-size:12px;">${p.label}</span>
+              </label>
+            `).join('')}
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="document.getElementById('role-perm-modal')?.remove()">İptal</button>
+            <button class="btn btn-primary" onclick="saveRolePermModal('${roleKey}', '${fid}')">Kaydet</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+  } catch (e) {
+    toast('İzinler açılamadı: ' + e.message, 'err');
+  }
+}
+
+async function saveRolePermModal(roleKey, fid) {
+  if (!_canEditRoleForCurrentUser(roleKey)) { toast('Bu rolü düzenleyemezsiniz', 'warn'); return; }
+  const selected = ALL_PAGES.filter(p => document.getElementById(`rpm-${p.key}`)?.checked).map(p => p.key);
+  if (!selected.length) { toast('En az bir izin seçin', 'warn'); return; }
+  try {
+    const firms = await sb(`firms?id=eq.${fid}&select=settings`);
+    const settings = firms?.[0]?.settings || {};
+    const roles = settings.custom_roles || [];
+    const custom = roles.find(r => r.key === roleKey);
+    if (custom) {
+      custom.perms = selected;
+    } else {
+      const overrides = { ...(settings.role_permissions || {}) };
+      overrides[roleKey] = selected;
+      settings.role_permissions = overrides;
+    }
+    await sb(`firms?id=eq.${fid}`, {
+      method:'PATCH',
+      prefer:'return=minimal',
+      body: JSON.stringify({ settings: { ...settings, custom_roles: roles } })
+    });
+    document.getElementById('role-perm-modal')?.remove();
+    await loadRolesPage();
+    toast('İzinler güncellendi ✓', 'ok');
+  } catch (e) {
+    toast('Kaydetme hatası: ' + e.message, 'err');
+  }
 }

@@ -94,7 +94,7 @@ const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser.role);
 document.getElementById('nav-admin').style.display = isAdmin ? '' : 'none';
 document.getElementById('nav-agent').style.display = isAdmin ? 'none' : '';
 document.getElementById('tb-pills').style.display  = isAdmin ? '' : 'none';
-document.getElementById('sb-settings').style.display = currentUser.role === 'super_admin' ? '' : 'none';
+document.getElementById('sb-settings').style.display = isAdmin ? '' : 'none';
 document.getElementById('telnyx-settings').style.display = currentUser.role === 'super_admin' ? '' : 'none';
 // API keys (Google, TomTom, daily goal) — super_admin only
 const apiCard = document.querySelector('#page-settings .card:has(#s-google-key)') ||

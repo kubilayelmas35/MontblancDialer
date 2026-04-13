@@ -83,6 +83,11 @@ function _normResultKey(v) {
     .replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
 }
 
+function _normalizeResultColor(v) {
+  const s = String(v || '').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(s) ? s : '#64748b';
+}
+
 function appointmentResultToContactStatus(resultKey) {
   const k = _normResultKey(resultKey);
   const map = {
@@ -135,12 +140,20 @@ async function loadFirmAppointmentResults(fid, force = false) {
 async function loadAppointmentResultsSettings() {
   const box = document.getElementById('results-settings-card');
   const wrap = document.getElementById('s-appt-results-rows');
+  const selectorHost = document.getElementById('results-firm-selector');
   if (!wrap || !box) return;
   const canEdit = ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
   box.style.display = canEdit ? '' : 'none';
   if (!canEdit) return;
+  if (selectorHost) {
+    renderFirmSelector('results-firm-selector', loadAppointmentResultsSettings);
+    selectorHost.style.display = isSuperAdmin() ? '' : 'none';
+  }
   const fid = getActiveFirmId() || currentUser?.firm_id;
-  if (!fid) { wrap.innerHTML = ''; return; }
+  if (!fid) {
+    wrap.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Termin sonuçlarını görmek için firma seçin.</div>`;
+    return;
+  }
   const rows = await loadFirmAppointmentResults(fid, true);
   renderAppointmentResultRows(rows);
 }
@@ -163,7 +176,7 @@ function renderAppointmentResultRows(rows) {
         </select>
       </div>
       <div class="form-row"><label class="form-label">Görünen ad</label><input class="form-input" id="ar-label-${i}" value="${_uiEsc(r.label||'')}"></div>
-      <div class="form-row"><label class="form-label">Renk</label><input class="form-input" id="ar-color-${i}" value="${_uiEsc(r.color||'#64748b')}"></div>
+      <div class="form-row"><label class="form-label">Renk</label><input class="form-input" id="ar-color-${i}" type="color" value="${_uiEsc(_normalizeResultColor(r.color))}"></div>
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;padding-bottom:8px;"><input type="checkbox" id="ar-move-${i}" ${r.auto_move_down?'checked':''}> Otomatik alta taşı</label>
       <button class="btn btn-ghost btn-sm" type="button" onclick="removeAppointmentResultRow(${i})">Sil</button>
     </div>
@@ -193,7 +206,7 @@ function readAppointmentResultRows() {
   for (let i = 0; i < count; i++) {
     const key = _normResultKey(document.getElementById(`ar-type-${i}`)?.value || '');
     const label = String(document.getElementById(`ar-label-${i}`)?.value || '').trim() || key;
-    const color = String(document.getElementById(`ar-color-${i}`)?.value || '#64748b').trim();
+    const color = _normalizeResultColor(document.getElementById(`ar-color-${i}`)?.value || '#64748b');
     const auto_move_down = !!document.getElementById(`ar-move-${i}`)?.checked;
     if (!key) continue;
     out.push({ key, label, color, contact_status: appointmentResultToContactStatus(key), auto_move_down });
@@ -215,7 +228,8 @@ function removeAppointmentResultRow(idx) {
 async function saveAppointmentResultsSettings() {
   const box = document.getElementById('results-settings-card');
   const fid = getActiveFirmId() || currentUser?.firm_id;
-  if (!box || box.style.display === 'none' || !fid) return;
+  if (!box || box.style.display === 'none') return;
+  if (!fid) { toast('Önce firma seçin', 'warn'); return; }
   const parsed = readAppointmentResultRows();
   if (!parsed.length) { toast('En az bir sonuç girin', 'err'); return; }
   try {
