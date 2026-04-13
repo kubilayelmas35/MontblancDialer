@@ -1,4 +1,5 @@
 // Ses halkaları — süre (agent mikrofon) ve müşteri avatarı (uzak akış)
+// Tek bir r(θ) eğrisi: iç/dış sınır birlikte hareket eder; sürekli dönüş yok, ses + hafif nefes.
 (function () {
   const TWO_PI = Math.PI * 2;
 
@@ -30,16 +31,45 @@
     return _cachedMic;
   }
 
+  function blobContourOuter(ctx, cx, cy, getR, n) {
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * TWO_PI;
+      const r = getR(a);
+      const x = cx + Math.cos(a) * r;
+      const y = cy + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  }
+
+  function blobContourInnerHole(ctx, cx, cy, getR, n) {
+    for (let i = n; i >= 0; i--) {
+      const a = (i / n) * TWO_PI;
+      const r = getR(a);
+      const x = cx + Math.cos(a) * r;
+      const y = cy + Math.sin(a) * r;
+      if (i === n) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  }
+
   class VoiceRing {
     /**
      * @param {string} canvasId
-     * @param {{ mode: 'agent' | 'remote'; baseRadius: number; synthetic?: boolean }} opt
+     * @param {{ mode: 'agent' | 'remote'; baseRadius: number; ringWidth?: number; lineLayers?: number }} opt
      */
     constructor(canvasId, opt) {
       this.id = canvasId;
       this.canvas = document.getElementById(canvasId);
       this.ctx2d = this.canvas?.getContext('2d');
-      this.opt = opt;
+      this.opt = {
+        ringWidth: 9,
+        lineLayers: 5,
+        lineGap: 1.65,
+        ...opt,
+      };
       this._smooth = 0;
       this._t = 0;
       this.audioCtx = null;
@@ -162,6 +192,20 @@
       this.ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
+    /** Ortak dış sınır — tüm katmanlar aynı şekli paylaşır (komple halka birlikte akar) */
+    _outerR(a, level, vp) {
+      const breath = (0.04 + level * 0.96) * 0.45 * Math.sin(this._t * 0.00042);
+      const slow = this._t * 0.00028 * (0.06 + level * 0.94);
+      const amp = level * (6.5 + vp * 9.5) + (0.02 + level * 0.35);
+      const wobble =
+        amp *
+        (0.42 * Math.sin(3 * a + slow) +
+          0.28 * Math.sin(5 * a + 1.1 + slow * 1.35) +
+          0.22 * Math.sin(7 * a + 0.65 + slow * 0.9) +
+          0.08 * Math.sin(11 * a + slow * 0.55));
+      return this.opt.baseRadius + breath + wobble;
+    }
+
     drawFrame(dt) {
       if (!this.canvas || !this.ctx2d) return;
       this.resize();
@@ -178,45 +222,48 @@
       const ctx = this.ctx2d;
       ctx.clearRect(0, 0, w, h);
 
-      const baseR = this.opt.baseRadius;
-      const amp = level * (16 + vp * 14);
-      const hueA = 200 - vp * 85;
-      const hueB = 28 + vp * 35;
+      const ringW = this.opt.ringWidth;
+      const n = 128;
+      const hueA = 195 - vp * 80;
+      const hueB = 32 + vp * 40;
 
-      const layers = 6;
-      const n = 144;
-      for (let layer = 0; layer < layers; layer++) {
-        const rOff = layer * 1.35;
-        const phase = layer * 0.55;
+      const outer = (a) => this._outerR(a, level, vp);
+      const inner = (a) => Math.max(4, outer(a) - ringW);
+
+      /* Yumuşak dolgu: tek halka — dış ve iç aynı r(θ) dalgası (paralel sınır) */
+      ctx.beginPath();
+      blobContourOuter(ctx, cx, cy, outer, n);
+      blobContourInnerHole(ctx, cx, cy, inner, n);
+      const g = ctx.createRadialGradient(cx, cy, inner(0) * 0.35, cx, cy, this.opt.baseRadius + ringW + 8);
+      g.addColorStop(0, `hsla(${hueA}, 78%, 52%, ${0.14 + level * 0.18})`);
+      g.addColorStop(0.55, `hsla(${145 + vp * 35}, 62%, 48%, ${0.08 + level * 0.12})`);
+      g.addColorStop(1, `hsla(${hueB}, 70%, 50%, 0.02)`);
+      ctx.fillStyle = g;
+      ctx.fill('evenodd');
+
+      /* İnce eşmerkezli çizgiler — aynı r(θ), sadece yarıçap ofseti */
+      const layers = this.opt.lineLayers;
+      const gap = this.opt.lineGap;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (let k = 0; k < layers; k++) {
+        const off = k * gap;
         ctx.beginPath();
         for (let i = 0; i <= n; i++) {
           const a = (i / n) * TWO_PI;
-          const wobble =
-            Math.sin(a * 7 + this._t * 0.055 + phase) * amp * 0.42 +
-            Math.sin(a * 14 + this._t * 0.09) * amp * 0.28 +
-            Math.sin(a * 4 + this._t * 0.035 + layer * 0.2) * amp * 0.22;
-          const r = baseR + rOff + wobble;
+          const r = outer(a) - off * 0.92;
           const x = cx + Math.cos(a) * r;
           const y = cy + Math.sin(a) * r;
           if (i === 0) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
         }
         ctx.closePath();
-        const alt = layer % 2;
+        const alt = k % 2;
         const hue = alt ? hueB : hueA;
-        ctx.strokeStyle = `hsla(${hue + layer * 5}, ${86 + vp * 6}%, ${54 - layer * 2.5}%, ${0.28 + layer * 0.09})`;
-        ctx.lineWidth = 1.05 + (level > 0.2 ? 0.2 : 0);
+        ctx.strokeStyle = `hsla(${hue + k * 4}, ${84 + vp * 5}%, ${56 - k * 2}%, ${0.22 + k * 0.1 + level * 0.15})`;
+        ctx.lineWidth = 1.05 + (level > 0.18 ? 0.15 : 0);
         ctx.stroke();
       }
-
-      ctx.save();
-      ctx.globalCompositeOperation = 'screen';
-      ctx.strokeStyle = `hsla(${145 + vp * 40}, 70%, 55%, ${0.12 + level * 0.2})`;
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.arc(cx, cy, baseR + layers * 1.35 + amp * 0.15, 0, TWO_PI);
-      ctx.stroke();
-      ctx.restore();
     }
   }
 
@@ -239,8 +286,20 @@
     if (running) return;
     if (!document.getElementById('dialer-timer-voice-canvas') && !document.getElementById('cust-voice-canvas')) return;
 
-    timerRing = new VoiceRing('dialer-timer-voice-canvas', { mode: 'agent', baseRadius: 24 });
-    custRing = new VoiceRing('cust-voice-canvas', { mode: 'remote', baseRadius: 28 });
+    timerRing = new VoiceRing('dialer-timer-voice-canvas', {
+      mode: 'agent',
+      baseRadius: 24,
+      ringWidth: 8,
+      lineLayers: 5,
+      lineGap: 1.55,
+    });
+    custRing = new VoiceRing('cust-voice-canvas', {
+      mode: 'remote',
+      baseRadius: 30,
+      ringWidth: 10,
+      lineLayers: 6,
+      lineGap: 1.55,
+    });
 
     await timerRing.attach();
     await custRing.attach();

@@ -264,9 +264,24 @@ position: relative;
 transition: width var(--transition), min-width var(--transition), transform var(--transition);
 box-shadow: 4px 0 24px rgba(0,0,0,0.15);
 }
-#sidebar > *:not(.fluid-aurora--sidebar) {
+#sidebar > *:not(.sb-top-strip) {
 position: relative;
 z-index: 1;
+}
+.sb-top-strip {
+position: relative;
+width: 100%;
+height: var(--topbar-h);
+min-height: var(--topbar-h);
+flex-shrink: 0;
+overflow: hidden;
+border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.sb-top-strip .fluid-aurora--sidebar {
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
 }
 [data-theme="dark"] #sidebar { background: #080c14; }
 #sidebar.collapsed { width: 56px; min-width: 56px; }
@@ -1302,11 +1317,7 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   left: -40%;
   top: -60%;
 }
-/* Sidebar — logo / menü tarafı (daha belirgin sıvı aurora) */
-.fluid-aurora--sidebar {
-  inset: 0;
-  z-index: 0;
-}
+/* Sidebar üst şerit — sadece bu bant renkli (menü genişliği), dönen animasyon yok */
 .fluid-aurora--sidebar::before {
   background: conic-gradient(from 120deg at 20% 15%,
     rgba(6, 182, 212, 0.62) 0deg,
@@ -1314,13 +1325,13 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
     rgba(244, 114, 182, 0.42) 200deg,
     rgba(34, 211, 238, 0.58) 300deg,
     rgba(6, 182, 212, 0.62) 360deg);
-  animation: fluid-spin 26s linear infinite;
-  filter: blur(52px);
-  opacity: 0.72;
-  width: 220%;
-  height: 180%;
-  left: -65%;
-  top: -35%;
+  animation: none;
+  filter: blur(40px);
+  opacity: 0.68;
+  width: 140%;
+  height: 220%;
+  left: -22%;
+  top: -55%;
 }
 .fluid-aurora--sidebar::after {
   background: conic-gradient(from 300deg at 80% 70%,
@@ -1328,17 +1339,17 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
     rgba(99, 102, 241, 0.45) 130deg,
     rgba(16, 185, 129, 0.32) 260deg,
     rgba(251, 146, 60, 0.38) 360deg);
-  animation: fluid-spin-rev 31s linear infinite;
-  filter: blur(44px);
-  opacity: 0.58;
-  width: 200%;
+  animation: none;
+  filter: blur(36px);
+  opacity: 0.52;
+  width: 130%;
   height: 200%;
-  left: -48%;
+  left: -18%;
   top: -48%;
 }
 [data-theme="dark"] .fluid-aurora--sidebar::before {
-  opacity: 0.78;
+  opacity: 0.74;
 }
 [data-theme="dark"] .fluid-aurora--sidebar::after {
-  opacity: 0.62;
+  opacity: 0.56;
 }
