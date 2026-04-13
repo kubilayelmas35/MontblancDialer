@@ -256,7 +256,7 @@ return;
 const sampleVal = t => t==='number'?'123':t==='date'?'01.01.2024':t==='boolean'?'Evet':'Örnek veri';
 el.innerHTML = `
 <div style="font-size:13px;font-weight:800;padding:8px 10px;background:var(--accent);color:#fff;border-radius:6px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-📞 +49 176 1234567
+<i class="ph ph-phone"></i> +49 176 1234567
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
 ${visible.map(f=>`
@@ -367,7 +367,7 @@ modal.innerHTML = `
 </div>
 <div class="modal-footer" style="flex-shrink:0;">
 <button class="btn btn-ghost" onclick="document.getElementById('m-field-settings').remove()">İptal</button>
-<button class="btn btn-primary" onclick="saveCampFieldSettings('${campId}')">💾 Kaydet</button>
+<button class="btn btn-primary" onclick="saveCampFieldSettings('${campId}')"><i class="ph ph-floppy-disk"></i> Kaydet</button>
 </div>
 </div>`;
 modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
@@ -552,7 +552,7 @@ container.innerHTML = `
 <div style="font-size:12px;font-weight:700;margin-bottom:8px;">Alan Listesi</div>
 <div id="cd-fs-field-list" style="display:flex;flex-direction:column;gap:4px;"></div>
 <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="addFsField()">+ Özel Alan Ekle</button>
-<button class="btn btn-primary btn-sm" style="margin-top:8px;margin-left:4px;" onclick="saveCampFieldSettings('${currentCampId}')">💾 Kaydet</button>
+<button class="btn btn-primary btn-sm" style="margin-top:8px;margin-left:4px;" onclick="saveCampFieldSettings('${currentCampId}')"><i class="ph ph-floppy-disk"></i> Kaydet</button>
 </div>
 <div>
 <div style="font-size:12px;font-weight:700;margin-bottom:8px;text-align:center;color:var(--text-3);">ÖNIZLEME</div>
@@ -608,7 +608,7 @@ const el = document.getElementById('cd-fs-preview');
 if (!el) return;
 const vis = _fsFields.filter(f=>f.show);
 const sv = t=>t==='number'?'123':t==='date'?'01.01.2024':t==='boolean'?'Evet':'Örnek';
-el.innerHTML = `<div style="font-size:11px;font-weight:800;padding:5px 8px;background:var(--accent);color:#fff;border-radius:5px;margin-bottom:6px;">📞 +49 176 1234567</div>
+el.innerHTML = `<div style="font-size:11px;font-weight:800;padding:5px 8px;background:var(--accent);color:#fff;border-radius:5px;margin-bottom:6px;"><i class="ph ph-phone"></i> +49 176 1234567</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
 ${vis.map(f=>`<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;">
 <div style="font-size:8px;color:var(--text-3);text-transform:uppercase;">${f.label}</div>
@@ -729,10 +729,10 @@ div.innerHTML = `
 <input type="checkbox" checked id="outcome-enabled-${idx}">
 <input class="form-input" value="Yeni Sonuç" id="outcome-label-${idx}" style="flex:1;font-size:12px;padding:3px 7px;">
 <select class="form-input" id="outcome-cat-${idx}" style="font-size:11px;padding:2px 4px;width:110px;">
-<option value="appointment">✅ Başarılı</option>
+<option value="appointment">Başarılı</option>
 <option value="negative">Negatif</option>
-<option value="callback">🔄 Geri Ara</option>
-<option value="neutral" selected>⚪ Nötr</option>
+<option value="callback">Geri Ara</option>
+<option value="neutral" selected>Nötr</option>
 </select>
 <button onclick="this.closest('div').remove()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`;
 el.insertBefore(div, el.lastElementChild);

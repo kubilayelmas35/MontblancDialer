@@ -241,8 +241,8 @@ ${fu.map(u=>`
 <div style="display:flex;gap:5px;align-items:center;" onclick="event.stopPropagation()">
 <span style="font-size:10px;padding:2px 7px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-weight:700;">${u.role}</span>
 <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;${u.is_active?'':'color:var(--red);'}" onclick="toggleUserActive('${u.id}',${u.is_active})">${u.is_active?'Aktif':'Pasif'}</button>
-<button class="btn btn-ghost btn-sm" style="padding:2px 6px;" onclick="resetUserPass('${u.id}','${u.email}')">🔑</button>
-<button class="btn btn-ghost btn-sm" style="padding:2px 6px;" onclick="openEditUserModal('${u.id}')">✏️</button>
+<button class="btn btn-ghost btn-sm" style="padding:2px 6px;" onclick="resetUserPass('${u.id}','${u.email}')"><i class="ph ph-key"></i></button>
+<button class="btn btn-ghost btn-sm" style="padding:2px 6px;" onclick="openEditUserModal('${u.id}')"><i class="ph ph-pencil-simple"></i></button>
 </div>
 </div>`).join('')}
 </div>
@@ -260,7 +260,7 @@ async function openEditUserModal(userId) {
   modal.innerHTML = `
 <div class="modal" style="max-width:440px;">
 <div class="modal-hdr">
-<div class="modal-title">✏️ Kullanıcı Düzenle</div>
+<div class="modal-title"><i class="ph ph-pencil-simple"></i> Kullanıcı Düzenle</div>
 <button class="modal-close" onclick="document.getElementById('m-edit-user').remove()">✕</button>
 </div>
 <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">

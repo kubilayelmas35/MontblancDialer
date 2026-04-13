@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr" data-theme="light" data-palette="blue">
 <head>
 <meta charset="UTF-8">
@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=3.1">
+<link rel="stylesheet" href="css/styles.css?v=3.2">
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
 <body>
@@ -28,11 +28,11 @@
 </div>
 <div class="login-features">
 <div class="login-feat"><i class="ph ph-phone-call"></i><span>Otomatik arama &amp; WebRTC</span></div>
-<div class="login-feat"><i class="ph ph-chart-line-up"></i><span>Gerçek zamanlı istatistikler</span></div>
-<div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
-<div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
+<div class="login-feat"><i class="ph ph-chart-line-up"></i><span>GerÃ§ek zamanlÄ± istatistikler</span></div>
+<div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yÃ¶netimi</span></div>
+<div class="login-feat"><i class="ph ph-shield-check"></i><span>Ã‡ok kiracÄ±lÄ± gÃ¼venli altyapÄ±</span></div>
 </div>
-<div class="login-version">v3.0 — 2026</div>
+<div class="login-version">v3.0 â€” 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -45,8 +45,8 @@
 </svg>
 </div>
 <div>
-<div class="login-title">Hoş geldiniz</div>
-<div class="login-sub">Hesabınıza giriş yapın</div>
+<div class="login-title">HoÅŸ geldiniz</div>
+<div class="login-sub">HesabÄ±nÄ±za giriÅŸ yapÄ±n</div>
 </div>
 </div>
 <div style="display:flex;flex-direction:column;gap:14px;">
@@ -58,10 +58,10 @@
 </div>
 </div>
 <div class="form-row">
-<label class="form-label" id="lbl-pass">Şifre</label>
+<label class="form-label" id="lbl-pass">Åifre</label>
 <div style="position:relative;">
 <i class="ph ph-lock-simple" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--text-3);pointer-events:none;"></i>
-<input class="form-input" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" style="padding-left:36px;padding-right:40px;" onkeydown="if(event.key==='Enter')doLogin()">
+<input class="form-input" type="password" id="login-pass" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password" style="padding-left:36px;padding-right:40px;" onkeydown="if(event.key==='Enter')doLogin()">
 <button onclick="toggleLoginPass()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;" id="login-eye"><i class="ph ph-eye"></i></button>
 </div>
 </div>
@@ -69,7 +69,7 @@
 <div id="login-err" class="login-error"></div>
 <div>
 <button class="login-btn" onclick="doLogin()" id="login-submit">
-<i class="ph ph-sign-in" style="vertical-align:-2px;margin-right:5px;"></i>Giriş Yap
+<i class="ph ph-sign-in" style="vertical-align:-2px;margin-right:5px;"></i>GiriÅŸ Yap
 </button>
 <div class="login-demo" id="login-demo-hint">Demo: admin@test.com / 1234 &nbsp;|&nbsp; agent@test.com / 1234</div>
 </div>
@@ -111,12 +111,12 @@
 <div class="tb-pill pill-call">
 <div class="tb-pill-dot"></div>
 <span class="tb-pill-val" id="pill-call">0</span>
-<span class="tb-pill-lbl" data-tr="aramada" data-de="Gespräch">aramada</span>
+<span class="tb-pill-lbl" data-tr="aramada" data-de="GesprÃ¤ch">aramada</span>
 </div>
 <div class="tb-pill pill-ready">
 <div class="tb-pill-dot"></div>
 <span class="tb-pill-val" id="pill-ready">0</span>
-<span class="tb-pill-lbl" data-tr="hazır" data-de="bereit">hazır</span>
+<span class="tb-pill-lbl" data-tr="hazÄ±r" data-de="bereit">hazÄ±r</span>
 </div>
 <div class="tb-pill pill-break">
 <div class="tb-pill-dot"></div>
@@ -147,8 +147,8 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <button class="tb-user" onclick="navigate('settings')">
 <div class="tb-avatar" id="tb-av">K</div>
 <div>
-<div class="tb-uname" id="tb-uname">—</div>
-<div class="tb-urole" id="tb-urole">—</div>
+<div class="tb-uname" id="tb-uname">â€”</div>
+<div class="tb-urole" id="tb-urole">â€”</div>
 </div>
 </button>
 </div>
@@ -182,16 +182,16 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="sb-label" data-tr="Raporlar" data-de="Berichte">Raporlar</div>
 <button class="sb-item" onclick="navigate('stats')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-<span data-tr="İstatistikler" data-de="Statistiken">İstatistikler</span>
+<span data-tr="Ä°statistikler" data-de="Statistiken">Ä°statistikler</span>
 </button>
 <button class="sb-item" onclick="navigate('callhistory')">
 <span class="sb-item-icon"><i class="ph ph-phone-list" style="font-size:17px;"></i></span>
-<span data-tr="Çağrı Geçmişi" data-de="Anrufliste">Çağrı Geçmişi</span>
+<span data-tr="Ã‡aÄŸrÄ± GeÃ§miÅŸi" data-de="Anrufliste">Ã‡aÄŸrÄ± GeÃ§miÅŸi</span>
 </button>
 </div>
 <div class="sb-divider"></div>
 <div class="sb-section">
-<div class="sb-label" data-tr="Araçlar" data-de="Tools">Araçlar</div>
+<div class="sb-label" data-tr="AraÃ§lar" data-de="Tools">AraÃ§lar</div>
 <button class="sb-item" onclick="navigate('qc')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
 <span data-tr="QC Paneli" data-de="QC-Panel">QC Paneli</span>
@@ -199,7 +199,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 <button class="sb-item" onclick="navigate('wiedervorlage')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
-<span data-tr="Tüm WV'ler" data-de="Alle WV">Tüm WV'ler</span>
+<span data-tr="TÃ¼m WV'ler" data-de="Alle WV">TÃ¼m WV'ler</span>
 <span class="sb-badge" id="sb-badge-wv" style="display:none;background:var(--yellow);color:#000;">0</span>
 </button>
 <button class="sb-item" onclick="navigate('takvim')">
@@ -216,7 +216,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 <button class="sb-item" onclick="navigate('myhistory')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg></span>
-<span data-tr="Geçmişim" data-de="Mein Verlauf">Geçmişim</span>
+<span data-tr="GeÃ§miÅŸim" data-de="Mein Verlauf">GeÃ§miÅŸim</span>
 </button>
 <button class="sb-item" onclick="navigate('wiedervorlage')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
@@ -237,11 +237,11 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 <button class="sb-item" onclick="doLogout()">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
-<span data-tr="Çıkış" data-de="Abmelden">Çıkış</span>
+<span data-tr="Ã‡Ä±kÄ±ÅŸ" data-de="Abmelden">Ã‡Ä±kÄ±ÅŸ</span>
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v3.1</div>
+<div class="sb-ver">Montblanc Dialer v3.2</div>
 </div>
 </nav>
 <main id="main">
@@ -253,50 +253,50 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div style="display:flex;align-items:center;gap:8px;">
 <div id="dash-firm-selector"></div>
-<button class="btn btn-ghost btn-sm" onclick="loadDashboard()">↻ <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
+<button class="btn btn-ghost btn-sm" onclick="loadDashboard()">â†» <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
 </div>
 </div>
 <div class="stats-grid">
 <div class="stat-card stat-blue">
-<div class="stat-lbl" data-tr="Bugünkü Aramalar" data-de="Heutige Anrufe">Bugünkü Aramalar</div>
+<div class="stat-lbl" data-tr="BugÃ¼nkÃ¼ Aramalar" data-de="Heutige Anrufe">BugÃ¼nkÃ¼ Aramalar</div>
 <div class="stat-val" id="d-calls">0</div>
-<div class="stat-meta" id="d-calls-m">—</div>
+<div class="stat-meta" id="d-calls-m">â€”</div>
 </div>
 <div class="stat-card stat-green">
 <div class="stat-lbl" data-tr="Terminler" data-de="Termine">Terminler</div>
 <div class="stat-val" id="d-appt">0</div>
-<div class="stat-meta" id="d-appt-m">%0 dönüşüm</div>
+<div class="stat-meta" id="d-appt-m">%0 dÃ¶nÃ¼ÅŸÃ¼m</div>
 </div>
 <div class="stat-card stat-yellow">
-<div class="stat-lbl" data-tr="Geri Aramalar" data-de="Rückrufe">Geri Aramalar</div>
+<div class="stat-lbl" data-tr="Geri Aramalar" data-de="RÃ¼ckrufe">Geri Aramalar</div>
 <div class="stat-val" id="d-cb">0</div>
 <div class="stat-meta" data-tr="bekliyor" data-de="ausstehend">bekliyor</div>
 </div>
 <div class="stat-card stat-red">
 <div class="stat-lbl" data-tr="Telesekreter" data-de="Mailbox">Telesekreter</div>
 <div class="stat-val" id="d-vm">0</div>
-<div class="stat-meta" data-tr="AMD yakaladı" data-de="AMD erkannt">AMD yakaladı</div>
+<div class="stat-meta" data-tr="AMD yakaladÄ±" data-de="AMD erkannt">AMD yakaladÄ±</div>
 </div>
 <div class="stat-card">
 <div class="stat-lbl" data-tr="Harcanan Bakiye" data-de="Kosten heute">Harcanan Bakiye</div>
 <div class="stat-val" id="d-cost" style="color:var(--yellow);">$0.00</div>
-<div class="stat-meta" data-tr="bugün" data-de="heute">bugün</div>
+<div class="stat-meta" data-tr="bugÃ¼n" data-de="heute">bugÃ¼n</div>
 </div>
 <div class="stat-card stat-purple">
-<div class="stat-lbl" data-tr="Konuşma Süresi" data-de="Gesprächszeit">Konuşma Süresi</div>
+<div class="stat-lbl" data-tr="KonuÅŸma SÃ¼resi" data-de="GesprÃ¤chszeit">KonuÅŸma SÃ¼resi</div>
 <div class="stat-val" id="d-talk">0dk</div>
-<div class="stat-meta" id="d-avg">ort. 0sn/çağrı</div>
+<div class="stat-meta" id="d-avg">ort. 0sn/Ã§aÄŸrÄ±</div>
 </div>
 </div>
 <div class="card">
 <div class="card-hdr">
 <div>
-<div class="card-title" data-tr="Canlı Agent Durumu" data-de="Live-Agentenstatus">Canlı Agent Durumu</div>
-<div class="card-sub" data-tr="Gerçek zamanlı" data-de="Echtzeit">Gerçek zamanlı</div>
+<div class="card-title" data-tr="CanlÄ± Agent Durumu" data-de="Live-Agentenstatus">CanlÄ± Agent Durumu</div>
+<div class="card-sub" data-tr="GerÃ§ek zamanlÄ±" data-de="Echtzeit">GerÃ§ek zamanlÄ±</div>
 </div>
 </div>
 <div id="live-agents" style="display:flex;flex-direction:column;gap:6px;">
-<div style="color:var(--text-3);text-align:center;padding:24px;font-size:13px;">Veri yükleniyor...</div>
+<div style="color:var(--text-3);text-align:center;padding:24px;font-size:13px;">Veri yÃ¼kleniyor...</div>
 </div>
 </div>
 </div>
@@ -304,10 +304,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="page-hdr">
 <div>
 <div class="page-title" data-tr="Kampanyalar" data-de="Kampagnen">Kampanyalar</div>
-<div class="page-sub" data-tr="Kampanya ve kuyruk yönetimi" data-de="Kampagnen- und Warteschlangenverwaltung">Kampanya ve kuyruk yönetimi</div>
+<div class="page-sub" data-tr="Kampanya ve kuyruk yÃ¶netimi" data-de="Kampagnen- und Warteschlangenverwaltung">Kampanya ve kuyruk yÃ¶netimi</div>
 </div>
 <div id="camp-firm-selector" style="display:inline-flex;"></div>
-<button class="btn btn-ghost btn-sm" onclick="openImportApptModal()">📅 Termin İçe Aktar</button>
+<button class="btn btn-ghost btn-sm" onclick="openImportApptModal()">ğŸ“… Termin Ä°Ã§e Aktar</button>
 <button class="btn btn-primary" onclick="openNewCampModal()">
 + <span data-tr="Yeni Kampanya" data-de="Neue Kampagne">Yeni Kampanya</span>
 </button>
@@ -316,12 +316,12 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="card" id="camp-detail" style="display:none;">
 <div class="card-hdr">
 <div>
-<div class="card-title" id="cd-name">—</div>
-<div class="card-sub" id="cd-did">—</div>
+<div class="card-title" id="cd-name">â€”</div>
+<div class="card-sub" id="cd-did">â€”</div>
 </div>
 <div style="display:flex;gap:6px;">
-<button class="btn btn-ghost btn-sm" onclick="openModal('m-upload-q')">📁 Kuyruk Yükle</button>
-<button class="btn-icon" onclick="closeCampDetail()">✕</button>
+<button class="btn btn-ghost btn-sm" onclick="openModal('m-upload-q')">ğŸ“ Kuyruk YÃ¼kle</button>
+<button class="btn-icon" onclick="closeCampDetail()">âœ•</button>
 </div>
 </div>
 <div style="display:flex;gap:0;margin:-4px 0 16px;border-bottom:2px solid var(--border);overflow-x:auto;">
@@ -337,7 +337,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div id="cd-tab-genel" class="cd-tab-panel">
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
 <div>
-<div class="form-label" style="margin-bottom:6px;">Arama Hızı (eş zamanlı hat)</div>
+<div class="form-label" style="margin-bottom:6px;">Arama HÄ±zÄ± (eÅŸ zamanlÄ± hat)</div>
 <div class="speed-row">
 <input type="range" min="1" max="10" value="2" id="cd-speed" oninput="document.getElementById('cd-speed-v').textContent=this.value" onchange="saveSpeed(this.value)">
 <div class="speed-val" id="cd-speed-v">2</div>
@@ -345,7 +345,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div>
 <div class="form-label" style="margin-bottom:6px;">Aktif Kampanya (Agentlere Bildir)</div>
-<button class="btn btn-primary btn-sm" onclick="activateCampaignForAgents()">📢 Aktif Et & Bildir</button>
+<button class="btn btn-primary btn-sm" onclick="activateCampaignForAgents()">ğŸ“¢ Aktif Et & Bildir</button>
 </div>
 </div>
 <div style="margin-top:16px;">
@@ -359,55 +359,55 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div id="cd-tab-script" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:12px;">
 <div>
-<div class="form-label" style="margin-bottom:4px;">Konuşma Metni (Script)</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Kullanılabilir değişkenler: [Ad] [Soyad] [PLZ] [Şehir] [Telefon]</div>
+<div class="form-label" style="margin-bottom:4px;">KonuÅŸma Metni (Script)</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">KullanÄ±labilir deÄŸiÅŸkenler: [Ad] [Soyad] [PLZ] [Åehir] [Telefon]</div>
 <textarea class="form-input" id="cd-script" rows="8" style="resize:vertical;font-family:var(--font);line-height:1.6;" placeholder="Guten Tag, spreche ich mit [Ad] [Soyad]? Ich rufe an wegen..."></textarea>
 </div>
 <div style="display:flex;align-items:center;gap:8px;">
 <input type="checkbox" id="cd-script-enabled">
-<label for="cd-script-enabled" style="font-size:12px;font-weight:600;">Script'i agent ekranında göster</label>
+<label for="cd-script-enabled" style="font-size:12px;font-weight:600;">Script'i agent ekranÄ±nda gÃ¶ster</label>
 </div>
-<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampScript()">💾 Script Kaydet</button>
+<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampScript()"><i class="ph ph-floppy-disk"></i> Script Kaydet</button>
 </div>
 </div>
 <div id="cd-tab-arama" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:14px;">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div>
-<div style="font-size:13px;font-weight:700;">⚡ Otomatik Arama</div>
-<div style="font-size:11px;color:var(--text-3);">Agentlerin otomatik aramayı kullanabilmesi</div>
+<div style="font-size:13px;font-weight:700;"><i class="ph ph-lightning"></i> Otomatik Arama</div>
+<div style="font-size:11px;color:var(--text-3);">Agentlerin otomatik aramayÄ± kullanabilmesi</div>
 </div>
 <input type="checkbox" id="cd-auto-dial" style="width:18px;height:18px;">
 </div>
 <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div>
-<div style="font-size:13px;font-weight:700;">✏️ Agent Veri Düzenleyebilir</div>
-<div style="font-size:11px;color:var(--text-3);">Müşteri isim/adres/PLZ güncelleme</div>
+<div style="font-size:13px;font-weight:700;"><i class="ph ph-pencil-simple"></i> Agent Veri DÃ¼zenleyebilir</div>
+<div style="font-size:11px;color:var(--text-3);">MÃ¼ÅŸteri isim/adres/PLZ gÃ¼ncelleme</div>
 </div>
 <input type="checkbox" id="cd-agent-edit" style="width:18px;height:18px;">
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;">🔄 Akıllı Yeniden Arama</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-arrows-clockwise"></i> AkÄ±llÄ± Yeniden Arama</div>
 <div style="display:flex;gap:8px;align-items:center;">
 <input type="checkbox" id="cd-recycle" style="width:16px;height:16px;">
-<label for="cd-recycle" style="font-size:12px;">Cevapsız aramaları otomatik yeniden kuyruğa al</label>
+<label for="cd-recycle" style="font-size:12px;">CevapsÄ±z aramalarÄ± otomatik yeniden kuyruÄŸa al</label>
 </div>
 <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-<label style="font-size:12px;color:var(--text-3);">Bekleme süresi:</label>
+<label style="font-size:12px;color:var(--text-3);">Bekleme sÃ¼resi:</label>
 <select class="form-input" id="cd-recycle-delay" style="width:140px;font-size:12px;padding:4px 8px;">
 <option value="30">30 dakika</option>
 <option value="60" selected>1 saat</option>
 <option value="120">2 saat</option>
 <option value="240">4 saat</option>
-<option value="1440">1 gün</option>
+<option value="1440">1 gÃ¼n</option>
 </select>
 </div>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;">🛡️ Anti-Spam (Cool-down)</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-shield"></i> Anti-Spam (Cool-down)</div>
 <div style="display:flex;gap:8px;align-items:center;">
 <input type="checkbox" id="cd-cooldown" style="width:16px;height:16px;">
-<label for="cd-cooldown" style="font-size:12px;">İki arama arası bekleme süresi</label>
+<label for="cd-cooldown" style="font-size:12px;">Ä°ki arama arasÄ± bekleme sÃ¼resi</label>
 </div>
 <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
 <label style="font-size:12px;color:var(--text-3);">Bekleme (dakika):</label>
@@ -415,89 +415,89 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;">🔊 Pre-call Ses Testi</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-speaker-high"></i> Pre-call Ses Testi</div>
 <div style="display:flex;gap:8px;align-items:center;">
 <input type="checkbox" id="cd-precall-test" style="width:16px;height:16px;">
-<label for="cd-precall-test" style="font-size:12px;">Hazır olmadan önce mikrofon testi zorunlu</label>
+<label for="cd-precall-test" style="font-size:12px;">HazÄ±r olmadan Ã¶nce mikrofon testi zorunlu</label>
 </div>
 </div>
-<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampAramaSettings()">💾 Arama Ayarlarını Kaydet</button>
+<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampAramaSettings()"><i class="ph ph-floppy-disk"></i> Arama AyarlarÄ±nÄ± Kaydet</button>
 </div>
 </div>
 <div id="cd-tab-qc" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:14px;">
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;">⏱️ Wrap-up (ACW) Süresi</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-timer"></i> Wrap-up (ACW) SÃ¼resi</div>
 <div style="display:flex;gap:8px;align-items:center;">
 <input type="checkbox" id="cd-acw-enabled" style="width:16px;height:16px;">
-<label for="cd-acw-enabled" style="font-size:12px;">Sonuç girme süresi kısıtla</label>
+<label for="cd-acw-enabled" style="font-size:12px;">SonuÃ§ girme sÃ¼resi kÄ±sÄ±tla</label>
 </div>
 <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
-<label style="font-size:12px;color:var(--text-3);">Süre (saniye):</label>
+<label style="font-size:12px;color:var(--text-3);">SÃ¼re (saniye):</label>
 <input type="number" class="form-input" id="cd-acw-seconds" value="60" min="10" max="300" style="width:80px;font-size:12px;padding:4px 8px;">
 <select class="form-input" id="cd-acw-action" style="font-size:12px;padding:4px 8px;">
-<option value="warn">Yöneticiye uyar</option>
-<option value="auto">Otomatik sonuçlandır</option>
-<option value="ready">Hazır'a döndür</option>
+<option value="warn">YÃ¶neticiye uyar</option>
+<option value="auto">Otomatik sonuÃ§landÄ±r</option>
+<option value="ready">HazÄ±r'a dÃ¶ndÃ¼r</option>
 </select>
 </div>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;">☕ Mola (AUX) Kodları</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Agentlerin seçeceği mola türleri</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-coffee"></i> Mola (AUX) KodlarÄ±</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Agentlerin seÃ§eceÄŸi mola tÃ¼rleri</div>
 <div id="cd-aux-codes" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">
 </div>
 <button class="btn btn-ghost btn-sm" onclick="addAuxCode()">+ Kod Ekle</button>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;">📞 Çağrı Sonuçları</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Agent ekranında görünecek sonuç seçenekleri</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-phone"></i> Ã‡aÄŸrÄ± SonuÃ§larÄ±</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Agent ekranÄ±nda gÃ¶rÃ¼necek sonuÃ§ seÃ§enekleri</div>
 <div id="cd-outcomes" style="display:flex;flex-direction:column;gap:4px;">
 </div>
 </div>
-<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampQcSettings()">💾 QC Ayarlarını Kaydet</button>
+<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampQcSettings()"><i class="ph ph-floppy-disk"></i> QC AyarlarÄ±nÄ± Kaydet</button>
 </div>
 </div>
 <div id="cd-tab-bildirim" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:14px;">
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;">📢 Yönetici Kayan Yazı (Broadcast Ticker)</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-megaphone"></i> YÃ¶netici Kayan YazÄ± (Broadcast Ticker)</div>
 <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
 <input type="checkbox" id="cd-ticker-enabled" style="width:16px;height:16px;">
-<label for="cd-ticker-enabled" style="font-size:12px;">Kayan yazıyı aktif et</label>
+<label for="cd-ticker-enabled" style="font-size:12px;">Kayan yazÄ±yÄ± aktif et</label>
 </div>
-<input class="form-input" id="cd-ticker-text" placeholder="Tüm agentlere duyuru metni..." style="font-size:12px;">
-<button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveBroadcastTicker()">📤 Yayınla</button>
+<input class="form-input" id="cd-ticker-text" placeholder="TÃ¼m agentlere duyuru metni..." style="font-size:12px;">
+<button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveBroadcastTicker()"><i class="ph ph-paper-plane-tilt"></i> YayÄ±nla</button>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;">📅 Termin Onay Mesajı</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-calendar"></i> Termin Onay MesajÄ±</div>
 <div style="display:flex;flex-direction:column;gap:6px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="cd-notif-whatsapp"> WhatsApp gönder
+<input type="checkbox" id="cd-notif-whatsapp"> WhatsApp gÃ¶nder
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="cd-notif-sms"> SMS gönder
+<input type="checkbox" id="cd-notif-sms"> SMS gÃ¶nder
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="cd-notif-email"> E-posta gönder (.ics takvim linki)
+<input type="checkbox" id="cd-notif-email"> E-posta gÃ¶nder (.ics takvim linki)
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="cd-notif-auto"> Otomatik gönder (agent onayı gerekmez)
+<input type="checkbox" id="cd-notif-auto"> Otomatik gÃ¶nder (agent onayÄ± gerekmez)
 </label>
 </div>
-<button class="btn btn-primary btn-sm" style="margin-top:8px;align-self:flex-start;" onclick="saveCampNotifSettings()">💾 Kaydet</button>
+<button class="btn btn-primary btn-sm" style="margin-top:8px;align-self:flex-start;" onclick="saveCampNotifSettings()"><i class="ph ph-floppy-disk"></i> Kaydet</button>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;">🔗 Webhook / API Dışa Aktarım</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Başarılı terminler bu URL'e POST olarak gönderilir</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-link"></i> Webhook / API DÄ±ÅŸa AktarÄ±m</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">BaÅŸarÄ±lÄ± terminler bu URL'e POST olarak gÃ¶nderilir</div>
 <input class="form-input" id="cd-webhook-url" placeholder="https://hooks.zapier.com/..." style="font-size:12px;">
-<button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveCampWebhook()">💾 Kaydet</button>
+<button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveCampWebhook()"><i class="ph ph-floppy-disk"></i> Kaydet</button>
 </div>
 </div>
 </div>
 <div id="cd-tab-termin-form" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:10px;">
-<div style="font-size:12px;color:var(--text-3);padding:8px;background:var(--bg-3);border-radius:6px;">Agent termin aldığında hangi ek bilgi alanları sorulsun? Aktif edeceğiniz alanlar termin formunda görünür.</div>
+<div style="font-size:12px;color:var(--text-3);padding:8px;background:var(--bg-3);border-radius:6px;">Agent termin aldÄ±ÄŸÄ±nda hangi ek bilgi alanlarÄ± sorulsun? Aktif edeceÄŸiniz alanlar termin formunda gÃ¶rÃ¼nÃ¼r.</div>
 <div id="cd-termin-form-fields" style="display:flex;flex-direction:column;gap:6px;"></div>
 <button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampTerminFormSettings()">Kaydet</button>
 </div>
@@ -514,7 +514,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="page-hdr">
 <div>
 <div class="page-title" data-tr="Agentler" data-de="Agenten">Agentler</div>
-<div class="page-sub" data-tr="Ekip ve kampanya atamaları" data-de="Team und Kampagnenzuweisungen">Ekip ve kampanya atamaları</div>
+<div class="page-sub" data-tr="Ekip ve kampanya atamalarÄ±" data-de="Team und Kampagnenzuweisungen">Ekip ve kampanya atamalarÄ±</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
 <div id="agents-firm-selector"></div>
@@ -527,30 +527,30 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div class="page" id="page-stats">
 <div class="page-hdr">
-<div id="stats-firm-selector" style="margin-left:auto;"></div>
 <div>
-<div class="page-title" data-tr="İstatistikler" data-de="Statistiken">İstatistikler</div>
+<div class="page-title" data-tr="Ä°statistikler" data-de="Statistiken">Ä°statistikler</div>
 </div>
-<div style="display:flex;gap:8px;flex-wrap:wrap;">
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto;">
+<div id="stats-firm-selector"></div>
 <select class="form-input" style="width:auto;" id="stats-camp-f">
-<option value="" data-tr="Tüm Kampanyalar" data-de="Alle Kampagnen">Tüm Kampanyalar</option>
+<option value="" data-tr="TÃ¼m Kampanyalar" data-de="Alle Kampagnen">TÃ¼m Kampanyalar</option>
 </select>
 <select class="form-input" style="width:auto;" id="stats-date-f" onchange="toggleCustomDateRange();loadStats()">
-<option value="today">Bugün</option>
+<option value="today">BugÃ¼n</option>
 <option value="week">Bu Hafta</option>
 <option value="month">Bu Ay</option>
-<option value="custom">Özel Aralık</option>
+<option value="custom">Ã–zel AralÄ±k</option>
 </select>
 <div id="stats-custom-range" style="display:none;display:flex;gap:4px;">
 <input type="date" class="form-input" id="stats-date-from" style="width:130px;" onchange="loadStats()">
-<span style="align-self:center;color:var(--text-3);">—</span>
+<span style="align-self:center;color:var(--text-3);">â€”</span>
 <input type="date" class="form-input" id="stats-date-to" style="width:130px;" onchange="loadStats()">
 </div>
-<button class="btn btn-ghost btn-sm" onclick="exportStatsCsv()">⬇️ CSV</button>
+<button class="btn btn-ghost btn-sm" onclick="exportStatsCsv()"><i class="ph ph-download-simple"></i> CSV</button>
 </div>
 </div>
 <div class="card">
-<div class="card-title" style="margin-bottom:14px;" data-tr="Agent Performansı" data-de="Agentenleistung">Agent Performansı</div>
+<div class="card-title" style="margin-bottom:14px;" data-tr="Agent PerformansÄ±" data-de="Agentenleistung">Agent PerformansÄ±</div>
 <div class="tbl-wrap">
 <table>
 <thead><tr>
@@ -559,13 +559,13 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <th data-tr="Aramalar" data-de="Anrufe">Aramalar</th>
 <th data-tr="Termin" data-de="Termin">Termin</th>
 <th data-tr="Olumsuz" data-de="Negativ">Olumsuz</th>
-<th data-tr="Geri Ara" data-de="Rückruf">Geri Ara</th>
+<th data-tr="Geri Ara" data-de="RÃ¼ckruf">Geri Ara</th>
 <th data-tr="Cevap Yok" data-de="Kein Anspr.">Cevap Yok</th>
-<th data-tr="Ort. Süre" data-de="Ø Dauer">Ort. Süre</th>
-<th data-tr="Dönüşüm" data-de="Konversion">Dönüşüm</th>
+<th data-tr="Ort. SÃ¼re" data-de="Ã˜ Dauer">Ort. SÃ¼re</th>
+<th data-tr="DÃ¶nÃ¼ÅŸÃ¼m" data-de="Konversion">DÃ¶nÃ¼ÅŸÃ¼m</th>
 </tr></thead>
 <tbody id="stats-tbody">
-<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
+<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:32px;">YÃ¼kleniyor...</td></tr>
 </tbody>
 </table>
 </div>
@@ -574,15 +574,15 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="page" id="page-callhistory">
 <div class="page-hdr">
 <div>
-<div class="page-title" data-tr="Çağrı Geçmişi" data-de="Anrufliste">Çağrı Geçmişi</div>
+<div class="page-title" data-tr="Ã‡aÄŸrÄ± GeÃ§miÅŸi" data-de="Anrufliste">Ã‡aÄŸrÄ± GeÃ§miÅŸi</div>
 </div>
 <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-<input type="text" class="form-input" style="width:150px;" placeholder="İsim, numara..." id="ch-search" oninput="loadCallHistory()">
+<input type="text" class="form-input" style="width:150px;" placeholder="Ä°sim, numara..." id="ch-search" oninput="loadCallHistory()">
 <select class="form-input" style="width:130px;" id="ch-agent-f" onchange="loadCallHistory()">
-<option value="">Tüm Agentler</option>
+<option value="">TÃ¼m Agentler</option>
 </select>
 <select class="form-input" style="width:130px;" id="ch-outcome" onchange="loadCallHistory()">
-<option value="">Tüm Sonuçlar</option>
+<option value="">TÃ¼m SonuÃ§lar</option>
 <option value="appointment">Termin</option>
 <option value="negative">Olumsuz</option>
 <option value="callback">Geri Ara</option>
@@ -591,7 +591,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <option value="dnc">Kara Liste</option>
 </select>
 <input type="date" class="form-input" id="ch-date-from" style="width:135px;" onchange="loadCallHistory()">
-<span style="font-size:12px;color:var(--text-3);">—</span>
+<span style="font-size:12px;color:var(--text-3);">â€”</span>
 <input type="date" class="form-input" id="ch-date-to" style="width:135px;" onchange="loadCallHistory()">
 <button class="btn btn-ghost btn-sm" onclick="loadCallHistory()"><i class="ph ph-arrow-clockwise"></i></button>
 </div>
@@ -601,17 +601,17 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <table>
 <thead><tr>
 <th>Tarih/Saat</th>
-<th>Müşteri</th>
+<th>MÃ¼ÅŸteri</th>
 <th>Numara</th>
 <th>Agent</th>
 <th>Kampanya</th>
-<th>Süre</th>
-<th>Kayıt</th>
-<th>Sonuç</th>
+<th>SÃ¼re</th>
+<th>KayÄ±t</th>
+<th>SonuÃ§</th>
 <th></th>
 </tr></thead>
 <tbody id="ch-tbody">
-<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
+<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">YÃ¼kleniyor...</td></tr>
 </tbody>
 </table>
 </div>
@@ -622,16 +622,16 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div style="display:flex;align-items:center;gap:10px;">
 <div class="status-indicator" style="gap:6px;">
 <div class="status-dot offline" id="status-dot"></div>
-<div class="status-label" id="status-label" style="font-size:12px;font-weight:700;" data-tr="Çevrimdışı" data-de="Offline">Çevrimdışı</div>
+<div class="status-label" id="status-label" style="font-size:12px;font-weight:700;" data-tr="Ã‡evrimdÄ±ÅŸÄ±" data-de="Offline">Ã‡evrimdÄ±ÅŸÄ±</div>
 </div>
 <span id="mic-status" title="Mikrofon" style="font-size:15px;cursor:default;"><i class="ph ph-microphone-slash" style="vertical-align:-3px;font-size:17px;color:var(--text-3);"></i></span>
-<span id="rtc-status" style="font-size:11px;color:var(--text-3);"><i class="ph ph-dot" style="vertical-align:-1px;"></i> Bağlantı yok</span>
+<span id="rtc-status" style="font-size:11px;color:var(--text-3);"><i class="ph ph-dot" style="vertical-align:-1px;"></i> BaÄŸlantÄ± yok</span>
 <div id="dialer-timer" class="dialer-timer" style="display:none;">00:00</div>
 </div>
 <div style="display:flex;gap:6px;align-items:center;margin-left:auto;">
 <span class="badge badge-green" style="font-size:11px;padding:3px 8px;"><span id="my-appt">0</span> termin</span>
-<span class="badge badge-blue" style="font-size:11px;padding:3px 8px;"><span id="my-calls">0</span> çağrı</span>
-<button id="test-mode-btn" onclick="toggleTestMode()" title="Test Modu — gerçek arama yapılmaz"
+<span class="badge badge-blue" style="font-size:11px;padding:3px 8px;"><span id="my-calls">0</span> Ã§aÄŸrÄ±</span>
+<button id="test-mode-btn" onclick="toggleTestMode()" title="Test Modu â€” gerÃ§ek arama yapÄ±lmaz"
 style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;border:1.5px dashed var(--text-3);background:transparent;color:var(--text-3);cursor:pointer;transition:.2s;letter-spacing:.3px;">
 TEST MODU
 </button>
@@ -641,12 +641,12 @@ TEST MODU
 <div style="display:flex;flex-direction:column;gap:12px;">
 <div id="daily-goal-bar" style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:8px;display:none;">
 <div style="display:flex;gap:2px;margin-bottom:8px;background:var(--bg-2);border-radius:4px;padding:2px;">
-<button id="goal-tab-daily" onclick="setGoalTab('daily')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;">Günlük</button>
-<button id="goal-tab-weekly" onclick="setGoalTab('weekly')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:3px;cursor:pointer;">Haftalık</button>
-<button id="goal-tab-monthly" onclick="setGoalTab('monthly')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:3px;cursor:pointer;">Aylık</button>
+<button id="goal-tab-daily" onclick="setGoalTab('daily')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;">GÃ¼nlÃ¼k</button>
+<button id="goal-tab-weekly" onclick="setGoalTab('weekly')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:3px;cursor:pointer;">HaftalÄ±k</button>
+<button id="goal-tab-monthly" onclick="setGoalTab('monthly')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:3px;cursor:pointer;">AylÄ±k</button>
 </div>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-<span style="font-size:11px;font-weight:700;color:var(--text-2);" id="goal-tab-label">Günlük Hedef</span>
+<span style="font-size:11px;font-weight:700;color:var(--text-2);" id="goal-tab-label">GÃ¼nlÃ¼k Hedef</span>
 <span id="daily-progress-label" style="font-size:11px;font-weight:800;color:var(--accent);">0/5 Termin</span>
 </div>
 <div style="background:var(--bg-2);border-radius:4px;height:6px;overflow:hidden;">
@@ -657,24 +657,24 @@ TEST MODU
 <div class="customer-card" id="customer-card">
 <div class="cust-empty" id="cust-empty">
 <div class="cust-empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg></div>
-<div class="cust-empty-text" data-tr="Hazır ol — müşteri bilgileri burada görünecek" data-de="Bereit schalten — Kundeninformationen erscheinen hier">Hazır ol — müşteri bilgileri burada görünecek</div>
-<div class="cust-empty-sub" data-tr="Arama başladığında kart otomatik dolacak" data-de="Die Karte wird automatisch ausgefüllt">Arama başladığında kart otomatik dolacak</div>
+<div class="cust-empty-text" data-tr="HazÄ±r ol â€” mÃ¼ÅŸteri bilgileri burada gÃ¶rÃ¼necek" data-de="Bereit schalten â€” Kundeninformationen erscheinen hier">HazÄ±r ol â€” mÃ¼ÅŸteri bilgileri burada gÃ¶rÃ¼necek</div>
+<div class="cust-empty-sub" data-tr="Arama baÅŸladÄ±ÄŸÄ±nda kart otomatik dolacak" data-de="Die Karte wird automatisch ausgefÃ¼llt">Arama baÅŸladÄ±ÄŸÄ±nda kart otomatik dolacak</div>
 </div>
 <div id="cust-data" style="display:none;">
 <div style="display:flex;margin:-8px -8px 12px;border-bottom:2px solid var(--border);">
-<button id="ctab-info" onclick="switchContactTab('info')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:var(--accent);color:#fff;cursor:pointer;border-radius:var(--radius) 0 0 0;transition:.15s;"><i class="ph ph-user" style="margin-right:5px;"></i>Müşteri</button>
+<button id="ctab-info" onclick="switchContactTab('info')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:var(--accent);color:#fff;cursor:pointer;border-radius:var(--radius) 0 0 0;transition:.15s;"><i class="ph ph-user" style="margin-right:5px;"></i>MÃ¼ÅŸteri</button>
 <button id="ctab-map" onclick="switchContactTab('map')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:.15s;"><i class="ph ph-map-pin" style="margin-right:5px;"></i>Harita</button>
-<button id="ctab-history" onclick="switchContactTab('history')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;border-radius:0 var(--radius) 0 0;transition:.15s;"><i class="ph ph-clock-clockwise" style="margin-right:5px;"></i>Geçmiş</button>
+<button id="ctab-history" onclick="switchContactTab('history')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;border-radius:0 var(--radius) 0 0;transition:.15s;"><i class="ph ph-clock-clockwise" style="margin-right:5px;"></i>GeÃ§miÅŸ</button>
 </div>
 <div id="ctab-info-panel">
 <div class="cust-header">
 <div class="cust-avatar" id="cust-av">?</div>
 <div>
-<div class="cust-name" id="cust-name">—</div>
-<div class="cust-phone" id="cust-phone">—</div>
+<div class="cust-name" id="cust-name">â€”</div>
+<div class="cust-phone" id="cust-phone">â€”</div>
 <div class="cust-badge-row">
-<span class="badge badge-gray" id="cust-camp-badge">—</span>
-<span class="badge badge-gray" id="cust-queue-badge">—</span>
+<span class="badge badge-gray" id="cust-camp-badge">â€”</span>
+<span class="badge badge-gray" id="cust-queue-badge">â€”</span>
 <span class="badge badge-yellow" id="cust-attempt-badge">1. arama</span>
 </div>
 </div>
@@ -683,11 +683,11 @@ TEST MODU
 </div>
 <div id="ctab-map-panel" style="display:none;margin:-10px -8px -8px;">
 <div id="contact-map-container" style="height:380px;background:var(--bg-3);border-radius:var(--radius-sm);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:12px;margin:-4px;">
-Müşteri seçilince harita gösterilecek
+MÃ¼ÅŸteri seÃ§ilince harita gÃ¶sterilecek
 </div>
 </div>
 <div id="ctab-history-panel" style="display:none;">
-<div id="contact-history-list" style="font-size:12px;color:var(--text-3);">Yükleniyor...</div>
+<div id="contact-history-list" style="font-size:12px;color:var(--text-3);">YÃ¼kleniyor...</div>
 </div>
 </div>
 </div>
@@ -695,7 +695,7 @@ Müşteri seçilince harita gösterilecek
 <div class="outcome-form">
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
 <i class="ph ph-phone-x" style="font-size:16px;color:var(--accent);"></i>
-<div class="outcome-form-title" data-tr="Çağrı Sonucu" data-de="Anrufergebnis" style="font-size:13px;color:var(--text);">ÇAĞRI SONUCU</div>
+<div class="outcome-form-title" data-tr="Ã‡aÄŸrÄ± Sonucu" data-de="Anrufergebnis" style="font-size:13px;color:var(--text);">Ã‡AÄRI SONUCU</div>
 </div>
 <div class="outcome-grid">
 <button class="outcome-btn ob-appointment" onclick="handleAppointmentClick()">
@@ -708,7 +708,7 @@ Müşteri seçilince harita gösterilecek
 </button>
 <button class="outcome-btn ob-callback" onclick="setOutcome('callback')">
 <div class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div>
-<div class="lbl" data-tr="Geri Ara" data-de="Rückruf">Geri Ara</div>
+<div class="lbl" data-tr="Geri Ara" data-de="RÃ¼ckruf">Geri Ara</div>
 </button>
 <button class="outcome-btn ob-noanswer" onclick="setOutcome('no_answer')">
 <div class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 5a10.94 10.94 0 0 0-1.28 5.39 11 11 0 0 0 6.29 9.83M10.5 5.09a10.88 10.88 0 0 1 3.29.72M14 13a5 5 0 0 1-5-5"/></svg></div>
@@ -721,22 +721,22 @@ Müşteri seçilince harita gösterilecek
 </div>
 <div id="callback-time-row" style="display:none;">
 <div class="form-row">
-<label class="form-label" data-tr="Geri Arama Zamanı" data-de="Rückrufzeit">Geri Arama Zamanı</label>
+<label class="form-label" data-tr="Geri Arama ZamanÄ±" data-de="RÃ¼ckrufzeit">Geri Arama ZamanÄ±</label>
 <input type="datetime-local" class="form-input" id="callback-dt">
 </div>
 </div>
 <div style="margin-bottom:6px;">
 <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;padding:7px 10px;background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:6px;">
 <input type="checkbox" id="outcome-dnc" style="accent-color:var(--red);">
-<span style="color:var(--red);font-weight:700;">🚫 Kara Listeye Ekle (Bir Daha Arama)</span>
+<span style="color:var(--red);font-weight:700;"><i class="ph ph-prohibit"></i> Kara Listeye Ekle (Bir Daha Arama)</span>
 </label>
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
 <button class="btn btn-primary" style="flex:1;" onclick="submitOutcome(false)">
-✓ <span data-tr="Sonuçlandır" data-de="Abschließen">Sonuçlandır</span>
+âœ“ <span data-tr="SonuÃ§landÄ±r" data-de="AbschlieÃŸen">SonuÃ§landÄ±r</span>
 </button>
 <button class="btn btn-ghost" onclick="submitOutcome(true)">
-☕ <span data-tr="Mola" data-de="Pause">Mola</span>
+â˜• <span data-tr="Mola" data-de="Pause">Mola</span>
 </button>
 </div>
 </div>
@@ -755,31 +755,31 @@ Müşteri seçilince harita gösterilecek
 </div>
 </div>
 <div id="prev-call-info" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;font-size:12px;">
-<div style="font-weight:700;color:var(--yellow);margin-bottom:4px;">📋 Önceki Arama</div>
+<div style="font-weight:700;color:var(--yellow);margin-bottom:4px;"><i class="ph ph-clock-counter-clockwise"></i> Ã–nceki Arama</div>
 <div id="prev-call-body" style="color:var(--text-2);"></div>
 </div>
 <div id="ready-section">
 <div id="camp-required-notice" style="display:none;background:linear-gradient(135deg,rgba(var(--yellow-rgb),.12),rgba(var(--yellow-rgb),.06));border:1px solid var(--yellow);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:8px;font-size:13px;font-weight:600;color:var(--yellow);display:flex;align-items:center;gap:8px;">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-<span data-tr="Aramaya başlamadan önce sağdan bir kampanya seçin" data-de="Wählen Sie rechts eine Kampagne bevor Sie starten">Aramaya başlamadan önce sağdan bir kampanya seçin</span>
+<span data-tr="Aramaya baÅŸlamadan Ã¶nce saÄŸdan bir kampanya seÃ§in" data-de="WÃ¤hlen Sie rechts eine Kampagne bevor Sie starten">Aramaya baÅŸlamadan Ã¶nce saÄŸdan bir kampanya seÃ§in</span>
 </div>
 <button class="btn-ready-big ready" id="btn-ready" onclick="toggleReady()" disabled
-style="opacity:0.45;cursor:not-allowed;" title="Önce kampanya seçin">
+style="opacity:0.45;cursor:not-allowed;" title="Ã–nce kampanya seÃ§in">
 <span id="ready-icon">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
 </span>
-<span id="ready-text" data-tr="Kampanya Seç → Aramayı Başlat" data-de="Kampagne wählen → Anruf starten">Kampanya Seç → Aramayı Başlat</span>
+<span id="ready-text" data-tr="Kampanya SeÃ§ â†’ AramayÄ± BaÅŸlat" data-de="Kampagne wÃ¤hlen â†’ Anruf starten">Kampanya SeÃ§ â†’ AramayÄ± BaÅŸlat</span>
 </button>
 </div>
 </div>
 <div class="agent-camps-panel" id="agent-camps-panel">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-<div class="card-title" data-tr="Kampanyalarım" data-de="Meine Kampagnen">Kampanyalarım</div>
+<div class="card-title" data-tr="KampanyalarÄ±m" data-de="Meine Kampagnen">KampanyalarÄ±m</div>
 </div>
 <div id="agent-camp-list" style="display:flex;flex-direction:column;gap:5px;">
-<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Yükleniyor...</div>
+<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">YÃ¼kleniyor...</div>
 </div>
-<!-- Auto-dial küçük satır -->
+<!-- Auto-dial kÃ¼Ã§Ã¼k satÄ±r -->
 <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:8px;">
 <div style="font-size:11px;font-weight:700;">Otomatik Arama</div>
 <label style="position:relative;display:inline-block;width:34px;height:18px;cursor:pointer;">
@@ -792,19 +792,19 @@ style="opacity:0.45;cursor:not-allowed;" title="Önce kampanya seçin">
 <div class="sb-divider" style="margin:8px 0;"></div>
 <!-- Performans sekmeleri -->
 <div style="display:flex;gap:2px;margin-bottom:8px;background:var(--bg-3);border-radius:var(--radius-sm);padding:2px;">
-<button id="perf-tab-today" onclick="setPerfTab('today')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:var(--accent);color:#fff;border-radius:4px;cursor:pointer;">Bugün</button>
+<button id="perf-tab-today" onclick="setPerfTab('today')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:var(--accent);color:#fff;border-radius:4px;cursor:pointer;">BugÃ¼n</button>
 <button id="perf-tab-week" onclick="setPerfTab('week')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:4px;cursor:pointer;">Hafta</button>
 <button id="perf-tab-month" onclick="setPerfTab('month')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:4px;cursor:pointer;">Ay</button>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;" id="my-stats-mini"></div>
 <div class="sb-divider" style="margin:8px 0;"></div>
-<!-- Yaklaşan WV'ler -->
+<!-- YaklaÅŸan WV'ler -->
 <div style="font-size:11px;font-weight:800;color:var(--text-2);margin-bottom:6px;display:flex;align-items:center;gap:5px;">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-Yaklaşan Aramalar
+YaklaÅŸan Aramalar
 </div>
 <div id="upcoming-wv-list" style="display:flex;flex-direction:column;gap:4px;font-size:11px;">
-<div style="color:var(--text-3);text-align:center;padding:8px;">Yükleniyor...</div>
+<div style="color:var(--text-3);text-align:center;padding:8px;">YÃ¼kleniyor...</div>
 </div>
 </div>
 </div>
@@ -812,19 +812,19 @@ Yaklaşan Aramalar
 <div class="page" id="page-myhistory">
 <div class="page-hdr">
 <div>
-<div class="page-title" data-tr="Geçmişim" data-de="Mein Verlauf">Geçmişim</div>
+<div class="page-title" data-tr="GeÃ§miÅŸim" data-de="Mein Verlauf">GeÃ§miÅŸim</div>
 </div>
 <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-<input type="text" class="form-input" id="mh-search" placeholder="İsim, numara..." style="width:160px;padding:5px 10px;font-size:12px;" oninput="loadMyHistory()">
+<input type="text" class="form-input" id="mh-search" placeholder="Ä°sim, numara..." style="width:160px;padding:5px 10px;font-size:12px;" oninput="loadMyHistory()">
 <select class="form-input" id="mh-outcome" style="width:130px;padding:5px 8px;font-size:12px;" onchange="loadMyHistory()">
-<option value="">Tüm Sonuçlar</option>
+<option value="">TÃ¼m SonuÃ§lar</option>
 <option value="appointment">Termin</option>
 <option value="callback">Geri Ara</option>
 <option value="negative">Olumsuz</option>
 <option value="no_answer">Cevap Yok</option>
 </select>
 <input type="date" class="form-input" id="mh-date-from" style="width:135px;padding:5px 8px;font-size:12px;" onchange="loadMyHistory()">
-<span style="font-size:12px;color:var(--text-3);">—</span>
+<span style="font-size:12px;color:var(--text-3);">â€”</span>
 <input type="date" class="form-input" id="mh-date-to" style="width:135px;padding:5px 8px;font-size:12px;" onchange="loadMyHistory()">
 <button class="btn btn-ghost btn-sm" onclick="loadMyHistory()">
 <i class="ph ph-arrow-clockwise"></i>
@@ -836,16 +836,16 @@ Yaklaşan Aramalar
 <table>
 <thead><tr>
 <th data-tr="Zaman" data-de="Zeit">Zaman</th>
-<th data-tr="Müşteri" data-de="Kunde">Müşteri</th>
+<th data-tr="MÃ¼ÅŸteri" data-de="Kunde">MÃ¼ÅŸteri</th>
 <th data-tr="Numara" data-de="Nummer">Numara</th>
 <th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
-<th data-tr="Süre" data-de="Dauer">Süre</th>
-<th data-tr="Kayıt" data-de="Aufn.">Kayıt</th>
-<th data-tr="Sonuç" data-de="Ergebnis">Sonuç</th>
+<th data-tr="SÃ¼re" data-de="Dauer">SÃ¼re</th>
+<th data-tr="KayÄ±t" data-de="Aufn.">KayÄ±t</th>
+<th data-tr="SonuÃ§" data-de="Ergebnis">SonuÃ§</th>
 <th></th>
 </tr></thead>
 <tbody id="my-tbody">
-<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
+<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">YÃ¼kleniyor...</td></tr>
 </tbody>
 </table>
 </div>
@@ -855,10 +855,10 @@ Yaklaşan Aramalar
 <div class="page-hdr">
 <div>
 <div class="page-title" data-tr="Aranacaklar (Wiedervorlage)" data-de="Wiedervorlage">Aranacaklar</div>
-<div class="page-sub" data-tr="Geri arama hatırlatmaları" data-de="Rückruferinnerungen">Geri arama hatırlatmaları</div>
+<div class="page-sub" data-tr="Geri arama hatÄ±rlatmalarÄ±" data-de="RÃ¼ckruferinnerungen">Geri arama hatÄ±rlatmalarÄ±</div>
 </div>
 <div style="display:flex;gap:8px;">
-<input type="text" class="form-input" id="wv-search" placeholder="İsim, numara, PLZ..." style="width:200px;padding:6px 10px;font-size:12px;" oninput="filterWvTable()">
+<input type="text" class="form-input" id="wv-search" placeholder="Ä°sim, numara, PLZ..." style="width:200px;padding:6px 10px;font-size:12px;" oninput="filterWvTable()">
 <button class="btn btn-primary btn-sm" onclick="openWvModal()">
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 <span data-tr="Yeni Ekle" data-de="Neu">Yeni</span>
@@ -867,13 +867,13 @@ Yaklaşan Aramalar
 </div>
 <div style="display:flex;gap:4px;margin-bottom:12px;background:var(--bg-3);border-radius:var(--radius-sm);padding:3px;width:fit-content;">
 <button class="btn btn-sm" id="wv-tab-all" onclick="setWvTab('all')" style="background:var(--accent);color:#fff;font-size:11px;padding:4px 12px;">
-<span data-tr="Tümü" data-de="Alle">Tümü</span>
+<span data-tr="TÃ¼mÃ¼" data-de="Alle">TÃ¼mÃ¼</span>
 </button>
 <button class="btn btn-sm" id="wv-tab-today" onclick="setWvTab('today')" style="background:transparent;color:var(--text-2);font-size:11px;padding:4px 12px;">
-<span data-tr="Bugün" data-de="Heute">Bugün</span>
+<span data-tr="BugÃ¼n" data-de="Heute">BugÃ¼n</span>
 </button>
 <button class="btn btn-sm" id="wv-tab-overdue" onclick="setWvTab('overdue')" style="background:transparent;color:var(--text-2);font-size:11px;padding:4px 12px;">
-<span data-tr="Gecikmiş" data-de="Überfällig">Gecikmiş</span>
+<span data-tr="GecikmiÅŸ" data-de="ÃœberfÃ¤llig">GecikmiÅŸ</span>
 <span id="wv-overdue-count" style="display:none;background:var(--red);color:#fff;border-radius:8px;padding:0 5px;font-size:10px;margin-left:3px;">0</span>
 </button>
 <button class="btn btn-sm" id="wv-tab-week" onclick="setWvTab('week')" style="background:transparent;color:var(--text-2);font-size:11px;padding:4px 12px;">
@@ -885,15 +885,15 @@ Yaklaşan Aramalar
 <table>
 <thead><tr>
 <th data-tr="Zaman" data-de="Zeit">Zaman</th>
-<th data-tr="İsim" data-de="Name">İsim</th>
+<th data-tr="Ä°sim" data-de="Name">Ä°sim</th>
 <th data-tr="Telefon" data-de="Telefon">Telefon</th>
-<th data-tr="PLZ / Şehir" data-de="PLZ / Ort">PLZ / Şehir</th>
+<th data-tr="PLZ / Åehir" data-de="PLZ / Ort">PLZ / Åehir</th>
 <th id="wv-agent-col" data-tr="Agent" data-de="Agent">Agent</th>
 <th data-tr="Not" data-de="Notiz">Not</th>
-<th data-tr="İşlem" data-de="Aktion">İşlem</th>
+<th data-tr="Ä°ÅŸlem" data-de="Aktion">Ä°ÅŸlem</th>
 </tr></thead>
 <tbody id="wv-tbody">
-<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
+<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:32px;">YÃ¼kleniyor...</td></tr>
 </tbody>
 </table>
 </div>
@@ -903,10 +903,10 @@ Yaklaşan Aramalar
 <div class="page-hdr">
 <div>
 <div class="page-title">QC Paneli</div>
-<div class="page-sub" data-tr="Randevuları onayla veya reddet" data-de="Termine bestätigen oder ablehnen">Randevuları onayla veya reddet</div>
+<div class="page-sub" data-tr="RandevularÄ± onayla veya reddet" data-de="Termine bestÃ¤tigen oder ablehnen">RandevularÄ± onayla veya reddet</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
-<input type="text" class="form-input" id="qc-search" placeholder="İsim, numara, agent..." style="width:200px;padding:6px 10px;font-size:12px;" oninput="filterQcTable()">
+<input type="text" class="form-input" id="qc-search" placeholder="Ä°sim, numara, agent..." style="width:200px;padding:6px 10px;font-size:12px;" oninput="filterQcTable()">
 <button class="btn btn-ghost btn-sm" onclick="loadQcData()">
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
 <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span>
@@ -917,27 +917,27 @@ Yaklaşan Aramalar
 <button class="btn btn-sm" id="qc-tab-pending" onclick="setQcTab('qc bekleniyor')" style="background:var(--accent);color:#fff;font-size:11px;padding:4px 12px;">
 QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);padding:0 5px;border-radius:8px;font-size:10px;margin-left:3px;">0</span>
 </button>
-<button class="btn btn-sm" id="qc-tab-success" onclick="setQcTab('başarılı')" style="background:transparent;color:var(--text-2);font-size:11px;padding:4px 12px;" data-tr="Başarılı" data-de="Erfolgreich">Başarılı</button>
-<button class="btn btn-sm" id="qc-tab-fail" onclick="setQcTab('başarısız')" style="background:transparent;color:var(--text-2);font-size:11px;padding:4px 12px;" data-tr="Başarısız" data-de="Erfolglos">Başarısız</button>
+<button class="btn btn-sm" id="qc-tab-success" onclick="setQcTab('baÅŸarÄ±lÄ±')" style="background:transparent;color:var(--text-2);font-size:11px;padding:4px 12px;" data-tr="BaÅŸarÄ±lÄ±" data-de="Erfolgreich">BaÅŸarÄ±lÄ±</button>
+<button class="btn btn-sm" id="qc-tab-fail" onclick="setQcTab('baÅŸarÄ±sÄ±z')" style="background:transparent;color:var(--text-2);font-size:11px;padding:4px 12px;" data-tr="BaÅŸarÄ±sÄ±z" data-de="Erfolglos">BaÅŸarÄ±sÄ±z</button>
 <button class="btn btn-sm" id="qc-tab-callback" onclick="setQcTab('beklemede')" style="background:transparent;color:var(--text-2);font-size:11px;padding:4px 12px;" data-tr="Beklemede" data-de="Ausstehend">Beklemede</button>
-<button class="btn btn-sm" id="qc-tab-all" onclick="setQcTab('all')" style="background:transparent;color:var(--text-2);font-size:11px;padding:4px 12px;" data-tr="Tümü" data-de="Alle">Tümü</button>
+<button class="btn btn-sm" id="qc-tab-all" onclick="setQcTab('all')" style="background:transparent;color:var(--text-2);font-size:11px;padding:4px 12px;" data-tr="TÃ¼mÃ¼" data-de="Alle">TÃ¼mÃ¼</button>
 </div>
 <div class="card" style="padding:0;overflow:hidden;">
 <div class="tbl-wrap">
 <table>
 <thead><tr>
 <th>Tarih</th>
-<th>Müşteri</th>
+<th>MÃ¼ÅŸteri</th>
 <th>Telefon</th>
 <th>PLZ</th>
 <th>Agent</th>
 <th>Kampanya</th>
-<th>Kayıt</th>
+<th>KayÄ±t</th>
 <th>Durum</th>
-<th>İşlem</th>
+<th>Ä°ÅŸlem</th>
 </tr></thead>
 <tbody id="qc-tbody">
-<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
+<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">YÃ¼kleniyor...</td></tr>
 </tbody>
 </table>
 </div>
@@ -947,7 +947,7 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <div class="page-hdr">
 <div>
 <div class="page-title">Firmalar</div>
-<div class="page-sub">Tüm firmalar ve kullanıcılar</div>
+<div class="page-sub">TÃ¼m firmalar ve kullanÄ±cÄ±lar</div>
 </div>
 <button class="btn btn-primary btn-sm" onclick="openFirmModal()">
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -963,23 +963,23 @@ Firma Ekle
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px;"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
 Takvim
 </div>
-<div class="page-sub" id="takvim-camp-label">Kampanya seçin</div>
+<div class="page-sub" id="takvim-camp-label">Kampanya seÃ§in</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
 <div style="display:flex;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-xs);overflow:hidden;">
-<button id="tv-day-btn" onclick="setTakvimView('day')" style="padding:5px 11px;font-size:11px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;">Gün</button>
+<button id="tv-day-btn" onclick="setTakvimView('day')" style="padding:5px 11px;font-size:11px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;">GÃ¼n</button>
 <button id="tv-week-btn" onclick="setTakvimView('week')" style="padding:5px 11px;font-size:11px;font-weight:700;border:none;background:var(--accent);color:#fff;cursor:pointer;">Hafta</button>
 <button id="tv-month-btn" onclick="setTakvimView('month')" style="padding:5px 11px;font-size:11px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;">Ay</button>
 </div>
 <div style="display:flex;align-items:center;gap:4px;">
-<button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="takvimPrev()">◀</button>
-<span id="takvim-week-label" style="font-size:12px;font-weight:700;min-width:120px;text-align:center;">—</span>
-<button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="takvimNext()">▶</button>
-<button class="btn btn-ghost btn-sm" onclick="takvimGoToday()">Bugün</button>
+<button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="takvimPrev()">â—€</button>
+<span id="takvim-week-label" style="font-size:12px;font-weight:700;min-width:120px;text-align:center;">â€”</span>
+<button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="takvimNext()">â–¶</button>
+<button class="btn btn-ghost btn-sm" onclick="takvimGoToday()">BugÃ¼n</button>
 </div>
 <div id="takvim-camp-select-wrap" style="display:none;">
 <select class="form-input" id="takvim-camp-select" onchange="onTakvimCampChange(this.value)" style="font-size:12px;padding:5px 10px;">
-<option value="">Kampanya seç...</option>
+<option value="">Kampanya seÃ§...</option>
 </select>
 </div>
 <div id="takvim-admin-tools" style="display:none;display:flex;gap:6px;">
@@ -1001,7 +1001,7 @@ Ayarlar
 <div id="takvim-failed-section" style="display:none;border-top:2px solid var(--red);padding:8px 12px;max-height:120px;overflow-y:auto;">
 <div style="font-size:11px;font-weight:800;color:var(--red);margin-bottom:6px;">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-Başarısız / Alta Taşınan
+BaÅŸarÄ±sÄ±z / Alta TaÅŸÄ±nan
 </div>
 <div id="takvim-failed-grid" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
 </div>
@@ -1015,87 +1015,87 @@ Başarısız / Alta Taşınan
 </div>
 <div class="settings-layout">
 <div class="card">
-<div class="card-title" style="margin-bottom:16px;" data-tr="Görünüm" data-de="Erscheinungsbild">Görünüm</div>
+<div class="card-title" style="margin-bottom:16px;" data-tr="GÃ¶rÃ¼nÃ¼m" data-de="Erscheinungsbild">GÃ¶rÃ¼nÃ¼m</div>
 <div style="display:flex;flex-direction:column;gap:16px;">
 <div class="form-row">
 <label class="form-label" data-tr="Tema" data-de="Thema">Tema</label>
 <div style="display:flex;gap:8px;margin-top:4px;">
-<button class="btn btn-ghost btn-sm" onclick="setTheme('light')" id="btn-theme-light">☀️ <span data-tr="Açık" data-de="Hell">Açık</span></button>
-<button class="btn btn-ghost btn-sm" onclick="setTheme('dark')"  id="btn-theme-dark">🌙 <span data-tr="Koyu" data-de="Dunkel">Koyu</span></button>
+<button class="btn btn-ghost btn-sm" onclick="setTheme('light')" id="btn-theme-light">â˜€ï¸ <span data-tr="AÃ§Ä±k" data-de="Hell">AÃ§Ä±k</span></button>
+<button class="btn btn-ghost btn-sm" onclick="setTheme('dark')"  id="btn-theme-dark">ğŸŒ™ <span data-tr="Koyu" data-de="Dunkel">Koyu</span></button>
 </div>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Renk Paleti" data-de="Farbpalette">Renk Paleti</label>
 <div class="palette-grid" style="margin-top:8px;">
 <div class="palette-dot" style="background:#2563eb;" onclick="setPalette('blue')"  title="Mavi"    data-p="blue"></div>
-<div class="palette-dot" style="background:#b8860b;" onclick="setPalette('gold')"  title="Altın"   data-p="gold"></div>
-<div class="palette-dot" style="background:#059669;" onclick="setPalette('green')" title="Yeşil"   data-p="green"></div>
-<div class="palette-dot" style="background:#e11d48;" onclick="setPalette('rose')"  title="Kırmızı" data-p="rose"></div>
+<div class="palette-dot" style="background:#b8860b;" onclick="setPalette('gold')"  title="AltÄ±n"   data-p="gold"></div>
+<div class="palette-dot" style="background:#059669;" onclick="setPalette('green')" title="YeÅŸil"   data-p="green"></div>
+<div class="palette-dot" style="background:#e11d48;" onclick="setPalette('rose')"  title="KÄ±rmÄ±zÄ±" data-p="rose"></div>
 <div class="palette-dot" style="background:#7c3aed;" onclick="setPalette('violet')"title="Mor"     data-p="violet"></div>
 </div>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Dil" data-de="Sprache">Dil</label>
 <div style="display:flex;gap:8px;margin-top:4px;">
-<button class="btn btn-ghost btn-sm" onclick="setLang('tr')">🇹🇷 Türkçe</button>
-<button class="btn btn-ghost btn-sm" onclick="setLang('de')">🇩🇪 Deutsch</button>
+<button class="btn btn-ghost btn-sm" onclick="setLang('tr')">ğŸ‡¹ğŸ‡· TÃ¼rkÃ§e</button>
+<button class="btn btn-ghost btn-sm" onclick="setLang('de')">ğŸ‡©ğŸ‡ª Deutsch</button>
 </div>
 </div>
 </div>
 </div>
 <div class="card">
-<div class="card-title" style="margin-bottom:16px;">API Anahtarları</div>
+<div class="card-title" style="margin-bottom:16px;">API AnahtarlarÄ±</div>
 <div style="display:flex;flex-direction:column;gap:10px;">
 <div class="form-row">
 <label class="form-label">Google Maps API Key</label>
 <input class="form-input" id="s-google-key" placeholder="AIza...">
-<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Harita ve adres görüntüleme için</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Harita ve adres gÃ¶rÃ¼ntÃ¼leme iÃ§in</div>
 </div>
 <div class="form-row">
 <label class="form-label">TomTom API Key</label>
 <input class="form-input" id="s-tomtom-key" placeholder="...">
-<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Termin mesafe hesaplama için</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Termin mesafe hesaplama iÃ§in</div>
 </div>
 <div class="form-row">
-<label class="form-label">Günlük Termin Hedefi (Agent)</label>
+<label class="form-label">GÃ¼nlÃ¼k Termin Hedefi (Agent)</label>
 <input class="form-input" id="s-daily-goal" type="number" min="1" max="50" value="5" style="width:100px;">
 </div>
-<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveApiSettings()">💾 API Ayarlarını Kaydet</button>
+<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveApiSettings()"><i class="ph ph-floppy-disk"></i> API AyarlarÄ±nÄ± Kaydet</button>
 </div>
 </div>
 <div class="card" id="mesai-settings-card">
-<div class="card-title" style="margin-bottom:12px;">Çalışma Saatleri &amp; Günler</div>
-<!-- Sadece süper admin görür: firma seçici -->
+<div class="card-title" style="margin-bottom:12px;">Ã‡alÄ±ÅŸma Saatleri &amp; GÃ¼nler</div>
+<!-- Sadece sÃ¼per admin gÃ¶rÃ¼r: firma seÃ§ici -->
 <div id="mesai-firm-row" style="display:none;margin-bottom:12px;">
 <label class="form-label" style="font-size:11px;color:var(--text-3);margin-bottom:4px;display:block;">Firma</label>
 <select class="form-input" id="mesai-firm-select" style="width:100%;" onchange="onMesaiFirmChange()"></select>
 </div>
-<!-- Sadece süper admin görür: admin izin toggle -->
+<!-- Sadece sÃ¼per admin gÃ¶rÃ¼r: admin izin toggle -->
 <div id="mesai-admin-perm-row" style="display:none;margin-bottom:12px;padding:8px 12px;background:var(--bg-3);border-radius:6px;align-items:center;gap:8px;">
 <input type="checkbox" id="mesai-admin-perm-chk" style="width:15px;height:15px;cursor:pointer;">
-<span style="font-size:12px;flex:1;">Admin bu saatleri düzenleyebilir</span>
+<span style="font-size:12px;flex:1;">Admin bu saatleri dÃ¼zenleyebilir</span>
 <button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;" onclick="saveAdminMesaiPermission()">Kaydet</button>
 </div>
 <div id="mesai-readonly-notice" style="display:none;margin-bottom:8px;padding:6px 10px;background:var(--bg-3);border-radius:6px;font-size:11px;color:var(--text-3);">
-Sadece görüntüleme — düzenleme yetkiniz yok
+Sadece gÃ¶rÃ¼ntÃ¼leme â€” dÃ¼zenleme yetkiniz yok
 </div>
 <div id="mesai-grid" style="display:flex;flex-direction:column;gap:6px;"></div>
 <button class="btn btn-primary btn-sm" id="mesai-save-btn" style="margin-top:12px;" onclick="saveMesaiSaatleri()">Kaydet</button>
 </div>
 <div class="card" id="call-hours-card" style="display:none;">
-<div class="card-title" style="margin-bottom:12px;">Arama Kısıtlamaları</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Hangi gün ve saatlerde arama yapılabileceğini firma bazında belirleyin.</div>
-<!-- Firma seçici -->
+<div class="card-title" style="margin-bottom:12px;">Arama KÄ±sÄ±tlamalarÄ±</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Hangi gÃ¼n ve saatlerde arama yapÄ±labileceÄŸini firma bazÄ±nda belirleyin.</div>
+<!-- Firma seÃ§ici -->
 <div style="margin-bottom:12px;">
 <label class="form-label" style="font-size:11px;color:var(--text-3);margin-bottom:4px;display:block;">Firma</label>
 <select class="form-input" id="ch-firm-select" style="width:100%;" onchange="onCallHoursFirmChange()"></select>
 </div>
-<!-- Hafta içi -->
+<!-- Hafta iÃ§i -->
 <div style="padding:10px 12px;background:var(--bg-3);border-radius:6px;margin-bottom:8px;">
-<div style="font-size:12px;font-weight:600;margin-bottom:8px;">Hafta İçi (Pzt–Cum)</div>
+<div style="font-size:12px;font-weight:600;margin-bottom:8px;">Hafta Ä°Ã§i (Pztâ€“Cum)</div>
 <div style="display:flex;align-items:center;gap:8px;">
 <input type="time" class="form-input" id="ch-wd-start" value="09:00" style="width:90px;font-size:12px;padding:4px 6px;">
-<span style="font-size:11px;color:var(--text-3);">—</span>
+<span style="font-size:11px;color:var(--text-3);">â€”</span>
 <input type="time" class="form-input" id="ch-wd-end" value="20:00" style="width:90px;font-size:12px;padding:4px 6px;">
 </div>
 </div>
@@ -1103,40 +1103,40 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <div style="padding:10px 12px;background:var(--bg-3);border-radius:6px;margin-bottom:8px;">
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
 <input type="checkbox" id="ch-sat-allowed" checked style="width:15px;height:15px;cursor:pointer;" onchange="document.getElementById('ch-sat-times').style.display=this.checked?'flex':'none'">
-<span style="font-size:12px;font-weight:600;">Cumartesi aramaya açık</span>
+<span style="font-size:12px;font-weight:600;">Cumartesi aramaya aÃ§Ä±k</span>
 </div>
 <div id="ch-sat-times" style="display:flex;align-items:center;gap:8px;">
 <input type="time" class="form-input" id="ch-sat-start" value="09:00" style="width:90px;font-size:12px;padding:4px 6px;">
-<span style="font-size:11px;color:var(--text-3);">—</span>
+<span style="font-size:11px;color:var(--text-3);">â€”</span>
 <input type="time" class="form-input" id="ch-sat-end" value="13:00" style="width:90px;font-size:12px;padding:4px 6px;">
 </div>
 </div>
 <!-- Pazar -->
 <div style="padding:10px 12px;background:var(--bg-3);border-radius:6px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
 <input type="checkbox" id="ch-sun-allowed" style="width:15px;height:15px;cursor:pointer;">
-<span style="font-size:12px;font-weight:600;">Pazar aramaya açık</span>
+<span style="font-size:12px;font-weight:600;">Pazar aramaya aÃ§Ä±k</span>
 </div>
-<!-- Tatil günleri -->
+<!-- Tatil gÃ¼nleri -->
 <div style="padding:10px 12px;background:var(--bg-3);border-radius:6px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
 <input type="checkbox" id="ch-holiday-check" checked style="width:15px;height:15px;cursor:pointer;">
-<span style="font-size:12px;font-weight:600;">Resmi tatillerde arama yapılmasın</span>
+<span style="font-size:12px;font-weight:600;">Resmi tatillerde arama yapÄ±lmasÄ±n</span>
 <span style="font-size:11px;color:var(--text-3);margin-left:auto;">(Almanya takvimi)</span>
 </div>
-<button class="btn btn-primary btn-sm" onclick="saveCallHoursSettings()">💾 Kaydet</button>
+<button class="btn btn-primary btn-sm" onclick="saveCallHoursSettings()"><i class="ph ph-floppy-disk"></i> Kaydet</button>
 </div>
 <!-- Roles & Permissions -->
 <div class="card" id="roles-card" style="display:none;">
 <div class="card-title" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
-<span><i class="ph ph-shield-check" style="vertical-align:-3px;margin-right:6px;"></i>Roller & İzinler</span>
+<span><i class="ph ph-shield-check" style="vertical-align:-3px;margin-right:6px;"></i>Roller & Ä°zinler</span>
 <button class="btn btn-primary btn-sm" onclick="openAddRoleModal()"><i class="ph ph-plus"></i> Yeni Rol</button>
 </div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:14px;">Hangi rolün hangi bölümlere erişebileceğini belirleyin. Yerleşik roller düzenlenemez.</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:14px;">Hangi rolÃ¼n hangi bÃ¶lÃ¼mlere eriÅŸebileceÄŸini belirleyin. YerleÅŸik roller dÃ¼zenlenemez.</div>
 <div id="roles-list" style="display:flex;flex-direction:column;gap:8px;">
-<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Yükleniyor...</div>
+<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">YÃ¼kleniyor...</div>
 </div>
 </div>
 <div class="card" id="telnyx-settings">
-<div class="card-title" style="margin-bottom:16px;">Telnyx Bağlantısı</div>
+<div class="card-title" style="margin-bottom:16px;">Telnyx BaÄŸlantÄ±sÄ±</div>
 <div style="display:flex;flex-direction:column;gap:12px;">
 <div class="form-row">
 <label class="form-label">API Key</label>
@@ -1152,10 +1152,10 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 </div>
 <div class="form-row">
 <label class="form-label">SIP Password</label>
-<input type="password" class="form-input" id="s-sip-pass" placeholder="••••••••">
+<input type="password" class="form-input" id="s-sip-pass" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
 </div>
 <button class="btn btn-primary" style="align-self:flex-start;" onclick="saveSettings()">
-💾 <span data-tr="Kaydet" data-de="Speichern">Kaydet</span>
+<i class="ph ph-floppy-disk"></i> <span data-tr="Kaydet" data-de="Speichern">Kaydet</span>
 </button>
 </div>
 </div>
@@ -1171,7 +1171,7 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <input type="password" class="form-input" id="s-sb-key" placeholder="eyJ...">
 </div>
 <button class="btn btn-primary" style="align-self:flex-start;" onclick="saveSettings()">
-💾 <span data-tr="Kaydet" data-de="Speichern">Kaydet</span>
+<i class="ph ph-floppy-disk"></i> <span data-tr="Kaydet" data-de="Speichern">Kaydet</span>
 </button>
 </div>
 </div>
@@ -1184,30 +1184,30 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <div class="modal" style="max-width:780px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;">
 <div class="modal-hdr" style="flex-shrink:0;">
 <div class="modal-title">Yeni Kampanya</div>
-<button class="modal-close" onclick="closeModal('m-new-camp')">✕</button>
+<button class="modal-close" onclick="closeModal('m-new-camp')">âœ•</button>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;flex:1;overflow:hidden;">
 <div style="padding:16px 20px;border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;gap:12px;">
 <div id="nc-firm-row" style="display:none;" class="form-row">
 <label class="form-label">Firma *</label>
 <select class="form-input" id="nc-firm-id" style="font-size:12px;">
-<option value="">Firma seçin...</option>
+<option value="">Firma seÃ§in...</option>
 </select>
 </div>
 <div class="form-row">
-<label class="form-label">Kampanya Adı *</label>
-<input class="form-input" id="nc-name" placeholder="Wärmepumpe Q2">
+<label class="form-label">Kampanya AdÄ± *</label>
+<input class="form-input" id="nc-name" placeholder="WÃ¤rmepumpe Q2">
 </div>
 <div class="form-row">
 <label class="form-label">Telnyx DID (+49...)</label>
 <input class="form-input" id="nc-did" placeholder="+49301234567">
 </div>
 <div class="form-row">
-<label class="form-label">Açıklama</label>
-<input class="form-input" id="nc-desc" placeholder="Kısa açıklama...">
+<label class="form-label">AÃ§Ä±klama</label>
+<input class="form-input" id="nc-desc" placeholder="KÄ±sa aÃ§Ä±klama...">
 </div>
 <div class="form-row">
-<label class="form-label">Arama Hızı</label>
+<label class="form-label">Arama HÄ±zÄ±</label>
 <div style="display:flex;align-items:center;gap:10px;">
 <input type="range" min="1" max="10" value="1" id="nc-speed" style="flex:1;" oninput="document.getElementById('nc-sv').textContent=this.value;updateCampPreview()">
 <span id="nc-sv" style="font-family:var(--mono);font-weight:800;min-width:20px;">1</span>
@@ -1215,161 +1215,161 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 </div>
 <div style="border-top:1px solid var(--border);padding-top:12px;">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-<div style="font-size:12px;font-weight:800;color:var(--text-2);">📋 Çağrı Ekranı Alanları</div>
+<div style="font-size:12px;font-weight:800;color:var(--text-2);"><i class="ph ph-list-bullets"></i> Ã‡aÄŸrÄ± EkranÄ± AlanlarÄ±</div>
 <div style="display:flex;gap:4px;">
-<button class="btn btn-ghost btn-sm" onclick="ncSaveTemplate()" title="Bu düzeni şablon olarak kaydet">💾 Kaydet</button>
-<button class="btn btn-ghost btn-sm" onclick="ncLoadDefault()" title="Varsayılana dön">↺</button>
+<button class="btn btn-ghost btn-sm" onclick="ncSaveTemplate()" title="Bu dÃ¼zeni ÅŸablon olarak kaydet"><i class="ph ph-floppy-disk"></i> Kaydet</button>
+<button class="btn btn-ghost btn-sm" onclick="ncLoadDefault()" title="VarsayÄ±lana dÃ¶n">â†º</button>
 </div>
 </div>
 <div id="nc-template-wrap" style="margin-bottom:8px;"></div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">⠿ Sürükle sırala · ✓ Göster/gizle · Ad ve tip değiştir</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">â ¿ SÃ¼rÃ¼kle sÄ±rala Â· âœ“ GÃ¶ster/gizle Â· Ad ve tip deÄŸiÅŸtir</div>
 <div id="nc-field-list" style="display:flex;flex-direction:column;gap:4px;"></div>
 <button class="btn btn-ghost btn-sm" style="margin-top:8px;width:100%;" onclick="ncAddField()">
-+ Özel Alan Ekle
++ Ã–zel Alan Ekle
 </button>
 </div>
 </div>
 <div style="padding:16px;overflow-y:auto;background:var(--bg-3);">
-<div style="font-size:11px;font-weight:800;color:var(--text-3);margin-bottom:10px;text-align:center;letter-spacing:.5px;">AGENT ÇAĞRI EKRANI ÖNİZLEME</div>
+<div style="font-size:11px;font-weight:800;color:var(--text-3);margin-bottom:10px;text-align:center;letter-spacing:.5px;">AGENT Ã‡AÄRI EKRANI Ã–NÄ°ZLEME</div>
 <div id="nc-preview" style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;gap:8px;font-size:12px;">
 </div>
 </div>
 </div>
 <div class="modal-footer" style="flex-shrink:0;">
-<button class="btn btn-ghost" onclick="closeModal('m-new-camp')">İptal</button>
-<button class="btn btn-primary" onclick="createCampaign()">✓ Kampanya Oluştur</button>
+<button class="btn btn-ghost" onclick="closeModal('m-new-camp')">Ä°ptal</button>
+<button class="btn btn-primary" onclick="createCampaign()">âœ“ Kampanya OluÅŸtur</button>
 </div>
 </div>
 </div>
 <div class="modal-overlay" id="m-upload-q">
 <div class="modal" style="max-width:560px;">
 <div class="modal-hdr">
-<div class="modal-title" data-tr="Kuyruk Yükle" data-de="Liste laden">Kuyruk Yükle</div>
-<button class="modal-close" onclick="closeModal('m-upload-q')">✕</button>
+<div class="modal-title" data-tr="Kuyruk YÃ¼kle" data-de="Liste laden">Kuyruk YÃ¼kle</div>
+<button class="modal-close" onclick="closeModal('m-upload-q')">âœ•</button>
 </div>
 <div class="form-row">
-<label class="form-label" data-tr="Kuyruk Adı" data-de="Listenname">Kuyruk Adı</label>
-<input class="form-input" id="uq-name" placeholder="Liste A, Bölge Berlin...">
+<label class="form-label" data-tr="Kuyruk AdÄ±" data-de="Listenname">Kuyruk AdÄ±</label>
+<input class="form-input" id="uq-name" placeholder="Liste A, BÃ¶lge Berlin...">
 </div>
 <div class="upload-area" id="uq-area" onclick="document.getElementById('uq-file').click()"
 ondragover="event.preventDefault();this.classList.add('drag')"
 ondragleave="this.classList.remove('drag')"
 ondrop="handleDrop(event)">
-<div class="upload-icon">📊</div>
-<div class="upload-text" data-tr="Excel / CSV sürükle veya tıkla" data-de="Excel / CSV ablegen oder klicken">Excel / CSV sürükle veya tıkla</div>
-<div class="upload-sub" id="uq-fname">.xlsx, .csv — maks. 50.000 satır</div>
+<div class="upload-icon">ğŸ“Š</div>
+<div class="upload-text" data-tr="Excel / CSV sÃ¼rÃ¼kle veya tÄ±kla" data-de="Excel / CSV ablegen oder klicken">Excel / CSV sÃ¼rÃ¼kle veya tÄ±kla</div>
+<div class="upload-sub" id="uq-fname">.xlsx, .csv â€” maks. 50.000 satÄ±r</div>
 <input type="file" id="uq-file" accept=".xlsx,.csv" style="display:none" onchange="handleFileSelect(event)">
 </div>
 <div id="uq-mapping-section" style="display:none;">
 <div class="form-label" style="margin-bottom:8px;font-size:13px;font-weight:700;">
-📋 Sütun Eşleştirme
+SÃ¼tun EÅŸleÅŸtirme
 <span style="font-size:11px;color:var(--text-3);font-weight:400;margin-left:6px;">
-(<span id="uq-row-count">0</span> satır tespit edildi)
+(<span id="uq-row-count">0</span> satÄ±r tespit edildi)
 </span>
 </div>
 <div id="uq-mapping-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:240px;overflow-y:auto;padding-right:4px;"></div>
 <div id="uq-preview" style="margin-top:10px;background:var(--bg-3);border-radius:var(--radius-sm);padding:10px;font-size:11px;display:none;">
-<div style="font-weight:700;margin-bottom:6px;color:var(--text-2);">👁 İlk 3 satır önizleme:</div>
+<div style="font-weight:700;margin-bottom:6px;color:var(--text-2);">ğŸ‘ Ä°lk 3 satÄ±r Ã¶nizleme:</div>
 <div id="uq-preview-rows"></div>
 </div>
 </div>
 <div id="uq-progress-section" style="display:none;">
 <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:6px;">
-<span id="uq-progress-label">Yükleniyor...</span>
+<span id="uq-progress-label">YÃ¼kleniyor...</span>
 <span id="uq-progress-pct" style="color:var(--accent);font-family:var(--mono);">0%</span>
 </div>
 <div style="background:var(--bg-4);border-radius:4px;height:8px;overflow:hidden;">
 <div id="uq-progress-fill" style="height:100%;border-radius:4px;background:var(--accent);transition:width 0.3s ease;width:0%;"></div>
 </div>
-<div id="uq-progress-detail" style="font-size:11px;color:var(--text-3);margin-top:5px;text-align:center;">—</div>
+<div id="uq-progress-detail" style="font-size:11px;color:var(--text-3);margin-top:5px;text-align:center;">â€”</div>
 </div>
 <div style="padding:12px 20px 0;">
-<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-2);">🔍 Mükerrer Kayıt Kontrolü</div>
+<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-2);">ğŸ” MÃ¼kerrer KayÄ±t KontrolÃ¼</div>
 <div style="display:flex;flex-direction:column;gap:4px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
-<input type="radio" name="dedup-mode" value="excel" checked> Bu Excel içinde kontrol et
+<input type="radio" name="dedup-mode" value="excel" checked> Bu Excel iÃ§inde kontrol et
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
 <input type="radio" name="dedup-mode" value="campaign"> Bu Kampanyada kontrol et
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
-<input type="radio" name="dedup-mode" value="system"> Tüm Sistemde kontrol et
+<input type="radio" name="dedup-mode" value="system"> TÃ¼m Sistemde kontrol et
 </label>
 </div>
 <div id="dedup-result" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:5px;font-size:11px;color:var(--yellow);font-weight:700;"></div>
 </div>
 <div class="modal-footer">
-<button class="btn btn-ghost" onclick="closeModal('m-upload-q')" data-tr="İptal" data-de="Abbrechen">İptal</button>
-<button class="btn btn-primary" id="uq-submit-btn" onclick="uploadQueue()" data-tr="Yükle" data-de="Hochladen">📤 Yükle</button>
+<button class="btn btn-ghost" onclick="closeModal('m-upload-q')" data-tr="Ä°ptal" data-de="Abbrechen">Ä°ptal</button>
+<button class="btn btn-primary" id="uq-submit-btn" onclick="uploadQueue()" data-tr="YÃ¼kle" data-de="Hochladen">ğŸ“¤ YÃ¼kle</button>
 </div>
 </div>
 </div>
 <div class="modal-overlay" id="m-assign">
 <div class="modal" style="max-width:360px;">
 <div class="modal-hdr">
-<div class="modal-title" data-tr="Agent Ekle" data-de="Agent hinzufügen">Agent Ekle</div>
-<button class="modal-close" onclick="closeModal('m-assign')">✕</button>
+<div class="modal-title" data-tr="Agent Ekle" data-de="Agent hinzufÃ¼gen">Agent Ekle</div>
+<button class="modal-close" onclick="closeModal('m-assign')">âœ•</button>
 </div>
 <div class="form-row">
-<label class="form-label" data-tr="Agent Seç" data-de="Agent auswählen">Agent Seç</label>
+<label class="form-label" data-tr="Agent SeÃ§" data-de="Agent auswÃ¤hlen">Agent SeÃ§</label>
 <select class="form-input" id="assign-sel">
-<option value="">— Seç —</option>
+<option value="">â€” SeÃ§ â€”</option>
 </select>
 </div>
 <div class="modal-footer">
-<button class="btn btn-ghost" onclick="closeModal('m-assign')" data-tr="İptal" data-de="Abbrechen">İptal</button>
-<button class="btn btn-primary" onclick="assignAgent()" data-tr="Ekle" data-de="Hinzufügen">Ekle</button>
+<button class="btn btn-ghost" onclick="closeModal('m-assign')" data-tr="Ä°ptal" data-de="Abbrechen">Ä°ptal</button>
+<button class="btn btn-primary" onclick="assignAgent()" data-tr="Ekle" data-de="HinzufÃ¼gen">Ekle</button>
 </div>
 </div>
 </div>
 <div class="modal-overlay" id="m-import-appt">
 <div class="modal" style="max-width:680px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;">
 <div class="modal-hdr" style="flex-shrink:0;">
-<div class="modal-title">📅 Eski Termin İçe Aktar</div>
-<button class="modal-close" onclick="closeModal('m-import-appt')">✕</button>
+<div class="modal-title">ğŸ“… Eski Termin Ä°Ã§e Aktar</div>
+<button class="modal-close" onclick="closeModal('m-import-appt')">âœ•</button>
 </div>
 <div style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
 <div>
-<div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">1️⃣ Dosya Seç (Excel veya CSV)</div>
+<div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">1. Dosya SeÃ§ (Excel veya CSV)</div>
 <label style="display:flex;align-items:center;gap:10px;padding:16px;border:2px dashed var(--border);border-radius:8px;cursor:pointer;background:var(--bg-3);">
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--accent);flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
 <div>
-<div style="font-size:13px;font-weight:700;" id="ia-file-name">Dosya seçmek için tıkla</div>
+<div style="font-size:13px;font-weight:700;" id="ia-file-name">Dosya seÃ§mek iÃ§in tÄ±kla</div>
 <div style="font-size:11px;color:var(--text-3);">.xlsx, .xls, .csv desteklenir</div>
 </div>
 <input type="file" id="ia-file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="onImportFileChange(this)">
 </label>
 </div>
 <div id="ia-mapping-section" style="display:none;">
-<div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">2️⃣ Sütun Eşleştir</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Excel sütunlarını termin alanlarıyla eşleştirin. * zorunlu</div>
+<div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">2ï¸âƒ£ SÃ¼tun EÅŸleÅŸtir</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Excel sÃ¼tunlarÄ±nÄ± termin alanlarÄ±yla eÅŸleÅŸtirin. * zorunlu</div>
 <div id="ia-mapping-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
 </div>
 <div id="ia-options-section" style="display:none;">
-<div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">3️⃣ Ayarlar</div>
+<div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">3ï¸âƒ£ Ayarlar</div>
 <div style="display:flex;flex-direction:column;gap:10px;">
 <div class="form-row">
 <label class="form-label">Kampanya *</label>
 <select class="form-input" id="ia-campaign">
-<option value="">Kampanya seçin...</option>
+<option value="">Kampanya seÃ§in...</option>
 </select>
 </div>
 <div class="form-row">
 <label class="form-label">Atanacak Agent *</label>
 <select class="form-input" id="ia-agent">
-<option value="">Agent seçin...</option>
+<option value="">Agent seÃ§in...</option>
 </select>
 </div>
 <div class="form-row">
-<label class="form-label">Varsayılan Durum</label>
+<label class="form-label">VarsayÄ±lan Durum</label>
 <select class="form-input" id="ia-status">
 <option value="qc_bekleniyor">QC Bekleniyor</option>
-<option value="basarili">Başarılı</option>
+<option value="basarili">BaÅŸarÄ±lÄ±</option>
 <option value="beklemede">Beklemede</option>
 </select>
 </div>
 <div class="form-row">
-<label class="form-label">Tarih Formatı</label>
+<label class="form-label">Tarih FormatÄ±</label>
 <select class="form-input" id="ia-date-fmt">
 <option value="dd.mm.yyyy">GG.AA.YYYY (01.12.2024)</option>
 <option value="yyyy-mm-dd">YYYY-AA-GG (2024-12-01)</option>
@@ -1379,41 +1379,41 @@ ondrop="handleDrop(event)">
 </div>
 </div>
 <div id="ia-preview-section" style="display:none;">
-<div style="font-size:12px;font-weight:800;margin-bottom:6px;color:var(--text-2);">4️⃣ Önizleme</div>
+<div style="font-size:12px;font-weight:800;margin-bottom:6px;color:var(--text-2);">4ï¸âƒ£ Ã–nizleme</div>
 <div id="ia-preview-table" style="overflow-x:auto;max-height:200px;font-size:11px;"></div>
 <div id="ia-preview-info" style="font-size:11px;color:var(--text-3);margin-top:4px;"></div>
 </div>
 <div id="ia-progress-section" style="display:none;">
-<div style="font-size:12px;font-weight:700;margin-bottom:6px;" id="ia-progress-label">Yükleniyor...</div>
+<div style="font-size:12px;font-weight:700;margin-bottom:6px;" id="ia-progress-label">YÃ¼kleniyor...</div>
 <div style="background:var(--bg-3);border-radius:4px;height:8px;overflow:hidden;">
 <div id="ia-progress-bar" style="height:100%;background:var(--accent);border-radius:4px;transition:width .3s;width:0%;"></div>
 </div>
 </div>
 </div>
 <div class="modal-footer" style="flex-shrink:0;">
-<button class="btn btn-ghost" onclick="closeModal('m-import-appt')">İptal</button>
-<button class="btn btn-ghost btn-sm" id="ia-preview-btn" onclick="previewImport()" style="display:none;">👁️ Önizle</button>
-<button class="btn btn-primary" id="ia-submit-btn" onclick="startImportAppt()" style="display:none;">📤 İçe Aktar</button>
+<button class="btn btn-ghost" onclick="closeModal('m-import-appt')">Ä°ptal</button>
+<button class="btn btn-ghost btn-sm" id="ia-preview-btn" onclick="previewImport()" style="display:none;">ğŸ‘ï¸ Ã–nizle</button>
+<button class="btn btn-primary" id="ia-submit-btn" onclick="startImportAppt()" style="display:none;">ğŸ“¤ Ä°Ã§e Aktar</button>
 </div>
 </div>
 </div>
 <div class="modal-overlay" id="m-precall-test">
 <div class="modal" style="max-width:380px;text-align:center;">
 <div class="modal-hdr">
-<div class="modal-title">🎤 Mikrofon Testi</div>
-<button class="modal-close" onclick="skipPrecallTest()">✕</button>
+<div class="modal-title">ğŸ¤ Mikrofon Testi</div>
+<button class="modal-close" onclick="skipPrecallTest()">âœ•</button>
 </div>
 <div style="padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:16px;">
-<div id="precall-icon" style="width:80px;height:80px;border-radius:50%;background:var(--bg-3);border:3px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:32px;">🎤</div>
+<div id="precall-icon" style="width:80px;height:80px;border-radius:50%;background:var(--bg-3);border:3px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:32px;">ğŸ¤</div>
 <div id="precall-status" style="font-size:14px;font-weight:700;color:var(--text-2);">Mikrofon kontrol ediliyor...</div>
 <div id="precall-meter-wrap" style="width:100%;height:12px;background:var(--bg-3);border-radius:6px;overflow:hidden;display:none;">
 <div id="precall-meter" style="height:100%;background:var(--green);border-radius:6px;width:0%;transition:width .1s;"></div>
 </div>
-<div id="precall-hint" style="font-size:12px;color:var(--text-3);">Lütfen bekleyin...</div>
+<div id="precall-hint" style="font-size:12px;color:var(--text-3);">LÃ¼tfen bekleyin...</div>
 </div>
 <div class="modal-footer">
 <button class="btn btn-ghost" onclick="skipPrecallTest()">Atla</button>
-<button class="btn btn-primary" id="precall-ok-btn" onclick="completePrecallTest()" style="display:none;">✓ Test Başarılı — Devam Et</button>
+<button class="btn btn-primary" id="precall-ok-btn" onclick="completePrecallTest()" style="display:none;">âœ“ Test BaÅŸarÄ±lÄ± â€” Devam Et</button>
 </div>
 </div>
 </div>
@@ -1422,12 +1422,12 @@ ondrop="handleDrop(event)">
 <div class="modal" style="max-width:480px;">
 <div class="modal-hdr">
 <div class="modal-title" id="firm-modal-title">Firma Ekle</div>
-<button class="modal-close" onclick="closeModal('m-firm')">✕</button>
+<button class="modal-close" onclick="closeModal('m-firm')">âœ•</button>
 </div>
 <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
-<div class="form-row"><label class="form-label">Firma Adı *</label>
+<div class="form-row"><label class="form-label">Firma AdÄ± *</label>
 <input class="form-input" id="firm-name" placeholder="Montblanc Call Center"></div>
-<div class="form-row"><label class="form-label">Slug * (URL dostu, örn: montblanc)</label>
+<div class="form-row"><label class="form-label">Slug * (URL dostu, Ã¶rn: montblanc)</label>
 <input class="form-input" id="firm-slug" placeholder="montblanc"></div>
 <div class="form-row"><label class="form-label">Plan</label>
 <select class="form-input" id="firm-plan">
@@ -1437,7 +1437,7 @@ ondrop="handleDrop(event)">
 </select></div>
 </div>
 <div class="modal-footer">
-<button class="btn btn-ghost" onclick="closeModal('m-firm')">İptal</button>
+<button class="btn btn-ghost" onclick="closeModal('m-firm')">Ä°ptal</button>
 <button class="btn btn-primary" onclick="saveFirm()">Kaydet</button>
 </div>
 </div>
@@ -1445,27 +1445,27 @@ ondrop="handleDrop(event)">
 <div class="modal-overlay" id="m-user">
 <div class="modal" style="max-width:480px;">
 <div class="modal-hdr">
-<div class="modal-title" id="user-modal-title">Kullanıcı Ekle</div>
-<button class="modal-close" onclick="closeModal('m-user')">✕</button>
+<div class="modal-title" id="user-modal-title">KullanÄ±cÄ± Ekle</div>
+<button class="modal-close" onclick="closeModal('m-user')">âœ•</button>
 </div>
 <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
 <div class="form-row"><label class="form-label">Ad Soyad *</label>
-<input class="form-input" id="user-name" placeholder="Kürşat Şahan"></div>
+<input class="form-input" id="user-name" placeholder="KÃ¼rÅŸat Åahan"></div>
 <div class="form-row"><label class="form-label">E-posta *</label>
 <input class="form-input" id="user-email" type="email" placeholder="agent@firma.com"></div>
-<div class="form-row"><label class="form-label">Şifre *</label>
-<input class="form-input" id="user-pass" type="password" placeholder="••••••••"></div>
+<div class="form-row"><label class="form-label">Åifre *</label>
+<input class="form-input" id="user-pass" type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"></div>
 <div class="form-row"><label class="form-label">Rol *</label>
 <select class="form-input" id="user-role">
 <option value="agent">Agent</option>
 <option value="qc">QC</option>
 <option value="firm_admin">Firma Admin</option>
-<option value="super_admin">Süper Admin</option>
+<option value="super_admin">SÃ¼per Admin</option>
 </select></div>
 <input type="hidden" id="user-firm-id">
 </div>
 <div class="modal-footer">
-<button class="btn btn-ghost" onclick="closeModal('m-user')">İptal</button>
+<button class="btn btn-ghost" onclick="closeModal('m-user')">Ä°ptal</button>
 <button class="btn btn-primary" onclick="saveUser()">Kaydet</button>
 </div>
 </div>
@@ -1473,28 +1473,29 @@ ondrop="handleDrop(event)">
 <div id="takvim-popup-overlay" onclick="if(event.target===this)closeTakvimOverlay()">
 <div style="position:absolute;top:16px;left:16px;right:16px;bottom:16px;background:var(--bg-2);border-radius:var(--radius);display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.6);border:1px solid var(--border);overflow:hidden;">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg-3);">
-<div style="font-size:15px;font-weight:800;">📅 Takvim</div>
+<div style="font-size:15px;font-weight:800;"><i class="ph ph-calendar-blank"></i> Takvim</div>
 <div style="display:flex;gap:8px;align-items:center;">
 <div id="takvim-overlay-camp-label" style="font-size:12px;color:var(--text-3);font-weight:600;"></div>
-<button onclick="closeTakvimOverlay();navigate('takvim');" style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;color:var(--text);">Tam Ekran ↗</button>
-<button onclick="closeTakvimOverlay()" style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);width:32px;height:32px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:var(--text);">✕</button>
+<button onclick="closeTakvimOverlay();navigate('takvim');" style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;color:var(--text);">Tam Ekran â†—</button>
+<button onclick="closeTakvimOverlay()" style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);width:32px;height:32px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:var(--text);">âœ•</button>
 </div>
 </div>
 <div id="takvim-overlay-controls" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg-3);">
 <div style="display:flex;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-xs);overflow:hidden;">
-<button id="tvo-day" onclick="setTakvimView('day')" style="padding:5px 11px;font-size:11px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--text-2);">Gün</button>
+<button id="tvo-day" onclick="setTakvimView('day')" style="padding:5px 11px;font-size:11px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--text-2);">GÃ¼n</button>
 <button id="tvo-week" onclick="setTakvimView('week')" style="padding:5px 11px;font-size:11px;font-weight:700;border:none;background:var(--accent);color:#fff;cursor:pointer;">Hafta</button>
 <button id="tvo-month" onclick="setTakvimView('month')" style="padding:5px 11px;font-size:11px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--text-2);">Ay</button>
 </div>
 <div style="display:flex;align-items:center;gap:4px;">
-<button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="takvimPrev()">◀</button>
-<span id="takvim-week-label-ov" style="font-size:12px;font-weight:700;min-width:130px;text-align:center;">—</span>
-<button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="takvimNext()">▶</button>
-<button class="btn btn-ghost btn-sm" onclick="takvimGoToday()">Bugün</button>
+<button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="takvimPrev()">â—€</button>
+<span id="takvim-week-label-ov" style="font-size:12px;font-weight:700;min-width:130px;text-align:center;">â€”</span>
+<button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="takvimNext()">â–¶</button>
+<button class="btn btn-ghost btn-sm" onclick="takvimGoToday()">BugÃ¼n</button>
 </div>
-<div id="takvim-overlay-admin" style="display:none;gap:6px;align-items:center;">
+<div id="takvim-overlay-admin" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;">
+<div id="takvim-overlay-firm-selector"></div>
 <select class="form-input" id="takvim-camp-select-ov" onchange="onTakvimCampChange(this.value)" style="font-size:12px;padding:5px 10px;max-width:200px;">
-<option value="">Kampanya seç...</option>
+<option value="">Kampanya seÃ§...</option>
 </select>
 <div style="display:flex;gap:6px;">
 <button class="btn btn-ghost btn-sm" onclick="openBulkSlotModal()">+ Toplu Slot</button>
@@ -1502,30 +1503,30 @@ ondrop="handleDrop(event)">
 </div>
 <div id="takvim-camp-label" style="font-size:12px;font-weight:700;color:var(--accent);"></div>
 </div>
-<div id="takvim-scroll-ov" style="flex:1;overflow:auto;position:relative;">
+<div id="takvim-scroll-ov" style="flex:1;overflow:hidden;position:relative;">
 <div id="takvim-grid-ov"></div>
 </div>
 <div id="takvim-failed-section" style="display:none;border-top:2px solid var(--red);padding:8px 12px;max-height:100px;overflow-y:auto;">
-<div style="font-size:11px;font-weight:800;color:var(--red);margin-bottom:4px;">Başarısız / Alta Taşınan</div>
+<div style="font-size:11px;font-weight:800;color:var(--red);margin-bottom:4px;">BaÅŸarÄ±sÄ±z / Alta TaÅŸÄ±nan</div>
 <div id="takvim-failed-grid" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
 </div>
 </div>
 </div>
 <div id="broadcast-ticker" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:990;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;padding:5px 40px 5px 0;overflow:hidden;white-space:nowrap;">
 <div style="display:inline-block;animation:ticker-scroll 22s linear infinite;" id="ticker-text">
-Duyuru metni burada görünecek
+Duyuru metni burada gÃ¶rÃ¼necek
 </div>
-<button onclick="document.getElementById('broadcast-ticker').style.display='none'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;border-radius:4px;color:#fff;cursor:pointer;padding:2px 7px;font-size:12px;">✕</button>
+<button onclick="document.getElementById('broadcast-ticker').style.display='none'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;border-radius:4px;color:#fff;cursor:pointer;padding:2px 7px;font-size:12px;">âœ•</button>
 </div>
 <div class="modal-overlay" id="m-wv-form">
 <div class="modal" style="max-width:520px;">
 <div class="modal-hdr">
-<div class="modal-title" id="wv-form-title" data-tr="Aranacak Ekle" data-de="WV hinzufügen">Aranacak Ekle</div>
-<button class="modal-close" onclick="closeModal('m-wv-form')">✕</button>
+<div class="modal-title" id="wv-form-title" data-tr="Aranacak Ekle" data-de="WV hinzufÃ¼gen">Aranacak Ekle</div>
+<button class="modal-close" onclick="closeModal('m-wv-form')">âœ•</button>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 20px;">
 <div class="form-row" style="grid-column:1/-1;">
-<label class="form-label" data-tr="Arama Zamanı *" data-de="Anrufzeit *">Arama Zamanı *</label>
+<label class="form-label" data-tr="Arama ZamanÄ± *" data-de="Anrufzeit *">Arama ZamanÄ± *</label>
 <input type="datetime-local" class="form-input" id="wv-dt">
 </div>
 <div class="form-row">
@@ -1545,12 +1546,12 @@ Duyuru metni burada görünecek
 <input class="form-input" id="wv-plz" placeholder="12345">
 </div>
 <div class="form-row">
-<label class="form-label" data-tr="Şehir" data-de="Ort">Şehir</label>
+<label class="form-label" data-tr="Åehir" data-de="Ort">Åehir</label>
 <input class="form-input" id="wv-ort" placeholder="Berlin">
 </div>
 <div class="form-row" style="grid-column:1/-1;">
-<label class="form-label" data-tr="Adres" data-de="Straße">Adres</label>
-<input class="form-input" id="wv-str" placeholder="Musterstraße 1">
+<label class="form-label" data-tr="Adres" data-de="StraÃŸe">Adres</label>
+<input class="form-input" id="wv-str" placeholder="MusterstraÃŸe 1">
 </div>
 <div class="form-row" id="wv-agent-row">
 <label class="form-label" data-tr="Agent" data-de="Agent">Agent</label>
@@ -1562,7 +1563,7 @@ Duyuru metni burada görünecek
 </div>
 </div>
 <div class="modal-footer">
-<button class="btn btn-ghost" onclick="closeModal('m-wv-form')">İptal</button>
+<button class="btn btn-ghost" onclick="closeModal('m-wv-form')">Ä°ptal</button>
 <button class="btn btn-primary" id="wv-save-btn" onclick="saveWv()">
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13"/><polyline points="7,3 7,8 15,8"/></svg>
 <span data-tr="Kaydet" data-de="Speichern">Kaydet</span>
@@ -1577,17 +1578,17 @@ Duyuru metni burada görünecek
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
 QC Detay
 </div>
-<button class="modal-close" onclick="closeModal('m-qc-detail')">✕</button>
+<button class="modal-close" onclick="closeModal('m-qc-detail')">âœ•</button>
 </div>
 <div id="qc-detail-body" style="padding:16px 20px;"></div>
 <div class="modal-footer" style="flex-wrap:wrap;gap:6px;">
-<button class="btn btn-sm" style="background:var(--green);color:#fff;border-color:var(--green);" onclick="qcUpdateStatus('başarılı')">
+<button class="btn btn-sm" style="background:var(--green);color:#fff;border-color:var(--green);" onclick="qcUpdateStatus('baÅŸarÄ±lÄ±')">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>
-<span data-tr="Başarılı" data-de="Erfolgreich">Başarılı</span>
+<span data-tr="BaÅŸarÄ±lÄ±" data-de="Erfolgreich">BaÅŸarÄ±lÄ±</span>
 </button>
-<button class="btn btn-sm" style="background:var(--red);color:#fff;border-color:var(--red);" onclick="qcUpdateStatus('başarısız')">
+<button class="btn btn-sm" style="background:var(--red);color:#fff;border-color:var(--red);" onclick="qcUpdateStatus('baÅŸarÄ±sÄ±z')">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-<span data-tr="Başarısız" data-de="Erfolglos">Başarısız</span>
+<span data-tr="BaÅŸarÄ±sÄ±z" data-de="Erfolglos">BaÅŸarÄ±sÄ±z</span>
 </button>
 <button class="btn btn-sm" style="background:var(--yellow);color:#000;border-color:var(--yellow);" onclick="qcUpdateStatus('beklemede')">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
@@ -1604,7 +1605,7 @@ QC Detay
 <div class="modal" style="max-width:620px;">
 <div class="modal-hdr">
 <div class="modal-title" id="takvim-detail-title">Termin</div>
-<button class="modal-close" onclick="closeModal('m-takvim-detail')">✕</button>
+<button class="modal-close" onclick="closeModal('m-takvim-detail')">âœ•</button>
 </div>
 <div id="takvim-detail-body" style="padding:16px 20px;max-height:70vh;overflow-y:auto;"></div>
 <div class="modal-footer" id="takvim-detail-footer"></div>
@@ -1614,21 +1615,21 @@ QC Detay
 <div class="modal" style="max-width:400px;">
 <div class="modal-hdr">
 <div class="modal-title">Toplu Slot Ekle</div>
-<button class="modal-close" onclick="closeModal('m-bulk-slot')">✕</button>
+<button class="modal-close" onclick="closeModal('m-bulk-slot')">âœ•</button>
 </div>
 <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
 <div class="form-row">
-<label class="form-label">Günler</label>
+<label class="form-label">GÃ¼nler</label>
 <div style="display:flex;gap:4px;flex-wrap:wrap;">
 <button class="btn btn-ghost btn-sm bulk-day active" data-d="1">Pzt</button>
 <button class="btn btn-ghost btn-sm bulk-day active" data-d="2">Sal</button>
-<button class="btn btn-ghost btn-sm bulk-day active" data-d="3">Çar</button>
+<button class="btn btn-ghost btn-sm bulk-day active" data-d="3">Ã‡ar</button>
 <button class="btn btn-ghost btn-sm bulk-day active" data-d="4">Per</button>
 <button class="btn btn-ghost btn-sm bulk-day active" data-d="5">Cum</button>
 </div>
 </div>
 <div class="form-row">
-<label class="form-label">Slot sayısı / gün</label>
+<label class="form-label">Slot sayÄ±sÄ± / gÃ¼n</label>
 <select class="form-input" id="bulk-count">
 <option value="1">1 (10:00)</option>
 <option value="2">2 (10, 12)</option>
@@ -1638,12 +1639,12 @@ QC Detay
 </select>
 </div>
 <div class="form-row">
-<label class="form-label">Başlangıç saati</label>
+<label class="form-label">BaÅŸlangÄ±Ã§ saati</label>
 <input type="time" class="form-input" id="bulk-start" value="10:00">
 </div>
 </div>
 <div class="modal-footer">
-<button class="btn btn-ghost" onclick="closeModal('m-bulk-slot')">İptal</button>
+<button class="btn btn-ghost" onclick="closeModal('m-bulk-slot')">Ä°ptal</button>
 <button class="btn btn-primary" onclick="saveBulkSlots()">Ekle</button>
 </div>
 </div>
@@ -1651,31 +1652,31 @@ QC Detay
 <div class="modal-overlay" id="m-assign">
 <div class="modal" style="max-width:380px;">
 <div class="modal-hdr">
-<div class="modal-title">👤 Agent Ekle</div>
-<button class="modal-close" onclick="closeModal('m-assign')">✕</button>
+<div class="modal-title">ğŸ‘¤ Agent Ekle</div>
+<button class="modal-close" onclick="closeModal('m-assign')">âœ•</button>
 </div>
 <div style="padding:16px 20px;">
 <div class="form-row">
-<label class="form-label">Agent Seç</label>
+<label class="form-label">Agent SeÃ§</label>
 <select class="form-input" id="assign-sel">
-<option value="">Yükleniyor...</option>
+<option value="">YÃ¼kleniyor...</option>
 </select>
 </div>
 </div>
 <div class="modal-footer">
-<button class="btn btn-ghost" onclick="closeModal('m-assign')">İptal</button>
+<button class="btn btn-ghost" onclick="closeModal('m-assign')">Ä°ptal</button>
 <button class="btn btn-primary" onclick="assignAgent()">Ekle</button>
 </div>
 </div>
 </div>
-<!-- ── Contact Detail Drawer ─────────────────── -->
+<!-- â”€â”€ Contact Detail Drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <div class="contact-drawer-overlay" id="contact-drawer-overlay" onclick="closeContactDrawer()"></div>
 <div class="contact-drawer" id="contact-drawer">
 <div class="contact-drawer-hdr">
 <div class="contact-drawer-av" id="cdr-av">?</div>
 <div style="flex:1;">
-<div class="contact-drawer-title" id="cdr-name">—</div>
-<div class="contact-drawer-sub" id="cdr-phone">—</div>
+<div class="contact-drawer-title" id="cdr-name">â€”</div>
+<div class="contact-drawer-sub" id="cdr-phone">â€”</div>
 </div>
 <button class="contact-drawer-close" onclick="closeContactDrawer()" title="Kapat">
 <i class="ph ph-x"></i>
@@ -1683,18 +1684,18 @@ QC Detay
 </div>
 <div class="contact-drawer-tabs">
 <button class="contact-drawer-tab active" id="cdr-tab-info" onclick="setCdrTab('info')">Bilgi</button>
-<button class="contact-drawer-tab" id="cdr-tab-history" onclick="setCdrTab('history')">Geçmiş</button>
-<button class="contact-drawer-tab" id="cdr-tab-recordings" onclick="setCdrTab('recordings')">Kayıtlar</button>
+<button class="contact-drawer-tab" id="cdr-tab-history" onclick="setCdrTab('history')">GeÃ§miÅŸ</button>
+<button class="contact-drawer-tab" id="cdr-tab-recordings" onclick="setCdrTab('recordings')">KayÄ±tlar</button>
 </div>
 <div class="contact-drawer-body">
 <div id="cdr-panel-info">
 <div id="cdr-fields-grid"></div>
 </div>
 <div id="cdr-panel-history" style="display:none;">
-<div id="cdr-history-list"><div style="color:var(--text-3);text-align:center;padding:24px;font-size:12px;">Yükleniyor...</div></div>
+<div id="cdr-history-list"><div style="color:var(--text-3);text-align:center;padding:24px;font-size:12px;">YÃ¼kleniyor...</div></div>
 </div>
 <div id="cdr-panel-recordings" style="display:none;">
-<div id="cdr-recordings-list"><div style="color:var(--text-3);text-align:center;padding:24px;font-size:12px;">Yükleniyor...</div></div>
+<div id="cdr-recordings-list"><div style="color:var(--text-3);text-align:center;padding:24px;font-size:12px;">YÃ¼kleniyor...</div></div>
 </div>
 </div>
 <div class="contact-drawer-footer" id="cdr-footer" style="display:none;">
@@ -1703,19 +1704,19 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=3.1"></script>
-<script src="js/state.js?v=3.1"></script>
-<script src="js/api.js?v=3.1"></script>
-<script src="js/auth.js?v=3.1"></script>
-<script src="js/ui.js?v=3.1"></script>
-<script src="js/dashboard.js?v=3.1"></script>
-<script src="js/campaigns.js?v=3.1"></script>
-<script src="js/contacts.js?v=3.1"></script>
-<script src="js/telnyx.js?v=3.1"></script>
-<script src="js/dialer.js?v=3.1"></script>
-<script src="js/appointments.js?v=3.1"></script>
-<script src="js/wiedervorlage.js?v=3.1"></script>
-<script src="js/qc.js?v=3.1"></script>
-<script src="js/agents.js?v=3.1"></script>
+<script src="js/config.js?v=3.2"></script>
+<script src="js/state.js?v=3.2"></script>
+<script src="js/api.js?v=3.2"></script>
+<script src="js/auth.js?v=3.2"></script>
+<script src="js/ui.js?v=3.2"></script>
+<script src="js/dashboard.js?v=3.2"></script>
+<script src="js/campaigns.js?v=3.2"></script>
+<script src="js/contacts.js?v=3.2"></script>
+<script src="js/telnyx.js?v=3.2"></script>
+<script src="js/dialer.js?v=3.2"></script>
+<script src="js/appointments.js?v=3.2"></script>
+<script src="js/wiedervorlage.js?v=3.2"></script>
+<script src="js/qc.js?v=3.2"></script>
+<script src="js/agents.js?v=3.2"></script>
 </body>
 </html>

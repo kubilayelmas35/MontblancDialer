@@ -74,7 +74,7 @@ return `<div class="live-row">
 </span>
 ${isAdmin ? `<div style="display:flex;gap:2px;margin-left:4px;">
 <button onclick="remoteChangeAgentStatus('${s.agent_id}','ready')" title="Hazır yap" style="background:var(--green);border:none;border-radius:3px;padding:2px 5px;color:#fff;font-size:9px;cursor:pointer;">▶</button>
-<button onclick="remoteChangeAgentStatus('${s.agent_id}','break')" title="Molaya al" style="background:var(--yellow);border:none;border-radius:3px;padding:2px 5px;color:#000;font-size:9px;cursor:pointer;">☕</button>
+<button onclick="remoteChangeAgentStatus('${s.agent_id}','break')" title="Molaya al" style="background:var(--yellow);border:none;border-radius:3px;padding:2px 5px;color:#000;font-size:9px;cursor:pointer;"><i class="ph ph-coffee" style="font-size:10px;"></i></button>
 <button onclick="remoteChangeAgentStatus('${s.agent_id}','offline')" title="Çevrimdışı" style="background:var(--text-3);border:none;border-radius:3px;padding:2px 5px;color:#fff;font-size:9px;cursor:pointer;">⏹</button>
 </div>` : ''}
 </div>`;
@@ -149,7 +149,7 @@ return `<tr>
 <td><span style="font-weight:800;color:${convPct>=20?'var(--green)':convPct>=10?'var(--yellow)':'var(--red)'};">${convPct}%</span></td>
 </tr>`;
 }).join('') + `<tr style="background:var(--bg-3);font-weight:800;border-top:2px solid var(--border);">
-<td colspan="2" style="font-size:12px;">📊 TOPLAM</td>
+<td colspan="2" style="font-size:12px;font-weight:800;">TOPLAM</td>
 <td class="td-mono">${totAll}</td>
 <td><span class="badge badge-green">${apAll}</span></td>
 <td><span class="badge badge-red">${ngAll}</span></td>

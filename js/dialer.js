@@ -956,6 +956,19 @@ function toggleTakvimPopup() {
 }
 
 // Tam ekran takvim overlay'ini aç (topbar butonu + handleAppointmentClick)
+async function _loadTakvimOverlayCamps() {
+  const sel = document.getElementById('takvim-camp-select-ov');
+  if (!sel) return;
+  try {
+    const fid = getActiveFirmId();
+    const q = fid ? `campaigns?firm_id=eq.${fid}&status=eq.active&order=name.asc` : `campaigns?status=eq.active&order=name.asc`;
+    const camps = await sb(q) || [];
+    sel.innerHTML = '<option value="">Kampanya seç...</option>' + camps.map(c=>`<option value="${c.id}" ${c.id===takvimCampId?'selected':''}>${c.name}</option>`).join('');
+    if (!takvimCampId && camps.length === 1) { takvimCampId = camps[0].id; sel.value = takvimCampId; }
+    if (takvimCampId) loadTakvimSlots();
+  } catch(e) {}
+}
+
 async function openTakvimOverlay() {
   const ov = document.getElementById('takvim-popup-overlay');
   if (!ov) { navigate('takvim'); return; }
@@ -972,15 +985,11 @@ async function openTakvimOverlay() {
   if (ovAdmin) ovAdmin.style.display = isAdmin ? 'flex' : 'none';
 
   if (isAdmin) {
-    // Admin: kampanya select'ini doldur
-    const sel = document.getElementById('takvim-camp-select-ov');
-    if (sel) {
-      try {
-        const camps = await sb(`campaigns?firm_id=eq.${getActiveFirmId()}&status=eq.active&order=name.asc`);
-        sel.innerHTML = '<option value="">Kampanya seç...</option>' + (camps||[]).map(c=>`<option value="${c.id}" ${c.id===takvimCampId?'selected':''}>${c.name}</option>`).join('');
-        if (!takvimCampId && camps?.length === 1) takvimCampId = camps[0].id;
-      } catch(e) {}
+    // Super admin: firma seçici göster, firma değişince kampanyaları yenile
+    if (currentUser?.role === 'super_admin') {
+      renderFirmSelector('takvim-overlay-firm-selector', () => _loadTakvimOverlayCamps());
     }
+    await _loadTakvimOverlayCamps();
   } else {
     // Agent: atanmış kampanyaları yükle ve select göster
     try {
@@ -1005,8 +1014,11 @@ async function openTakvimOverlay() {
   }
 
   if (!takvimDate) takvimDate = new Date();
-  renderTakvimGrid();
-  if (takvimCampId) loadTakvimSlots();
+  // Re-render after layout is ready so clientHeight is correct for row height calc
+  requestAnimationFrame(() => {
+    renderTakvimGrid();
+    if (takvimCampId) loadTakvimSlots();
+  });
 }
 
 function closeTakvimOverlay() {

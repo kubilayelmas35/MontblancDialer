@@ -509,7 +509,7 @@ async function showPrevCallInfo(contact) {
     if (!logs?.length) { el.style.display = 'none'; return; }
     const prev = logs[0];
     const dt = new Date(prev.started_at).toLocaleString('tr-TR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    const outcomeMap = {appointment:'📅 Termin',negative:'❌ Olumsuz',callback:'🔄 Geri Ara',no_answer:'📵 Cevap Yok',dnc:'🚫 Kara Liste'};
+    const outcomeMap = {appointment:'Termin',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',dnc:'Kara Liste'};
     body.innerHTML = `
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <span style="font-weight:700;">${outcomeMap[prev.outcome]||prev.outcome}</span>

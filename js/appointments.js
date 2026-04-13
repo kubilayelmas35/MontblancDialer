@@ -28,7 +28,8 @@ async function loadTakvimPage() {
   if (tools) tools.style.display = isAdmin ? 'flex' : 'none';
   if (campWrap) campWrap.style.display = isAdmin ? '' : 'none';
   if (isAdmin) {
-    const camps = await sb(`campaigns?firm_id=eq.${currentUser.firm_id}&status=eq.active&order=name.asc`).catch(()=>[]);
+    const fid = getActiveFirmId();
+    const camps = await sb(fid ? `campaigns?firm_id=eq.${fid}&status=eq.active&order=name.asc` : `campaigns?status=eq.active&order=name.asc`).catch(()=>[]);
     const sel = document.getElementById('takvim-camp-select');
     if (sel) {
       sel.innerHTML = '<option value="">Kampanya seç...</option>' + (camps||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
