@@ -183,8 +183,9 @@ box-shadow: 0 2px 8px var(--accent-soft);
 .tb-logo-tag {
 font-size: 9px; color: var(--accent); font-family: var(--mono);
 font-weight: 600; letter-spacing: 1px;
-background: var(--accent-soft);
-padding: 1px 5px; border-radius: 3px;
+background: transparent;
+padding: 0;
+border-radius: 0;
 }
 /* Topbar pills */
 #tb-pills {
@@ -350,7 +351,7 @@ border-radius: 10px; font-family: var(--mono);
 .sb-ver { font-size: 10px; color: rgba(255,255,255,0.25); font-family: var(--mono); }
 /* Sidebar header logo */
 #sidebar .tb-logo-name { color: rgba(255,255,255,0.95) !important; }
-#sidebar .tb-logo-tag { color: var(--accent) !important; background: rgba(37,99,235,0.2) !important; }
+#sidebar .tb-logo-tag { color: var(--accent) !important; background: transparent !important; }
 #sidebar .tb-hamburger { color: rgba(255,255,255,0.5); }
 #sidebar .tb-hamburger:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); }
 #sidebar .tb-hamburger span { background: currentColor; }
@@ -1317,21 +1318,21 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   left: -40%;
   top: -60%;
 }
-/* Sol menü — tam yükseklik renkli aurora (önceki sürüm gibi); tonlar koyu, açık renge kaymaz */
+/* Sol menü — v6.15 / e50ce62 aurora: dönen conic, renk zamanla kayar */
 .fluid-aurora--sidebar {
   inset: 0;
   z-index: 0;
 }
 .fluid-aurora--sidebar::before {
   background: conic-gradient(from 120deg at 20% 15%,
-    rgba(12, 75, 95, 0.72) 0deg,
-    rgba(28, 52, 115, 0.68) 90deg,
-    rgba(85, 32, 88, 0.62) 200deg,
-    rgba(14, 88, 95, 0.7) 300deg,
-    rgba(12, 75, 95, 0.72) 360deg);
+    rgba(6, 182, 212, 0.62) 0deg,
+    rgba(37, 99, 235, 0.55) 90deg,
+    rgba(244, 114, 182, 0.42) 200deg,
+    rgba(34, 211, 238, 0.58) 300deg,
+    rgba(6, 182, 212, 0.62) 360deg);
   animation: fluid-spin 26s linear infinite;
   filter: blur(52px);
-  opacity: 0.52;
+  opacity: 0.72;
   width: 220%;
   height: 180%;
   left: -65%;
@@ -1339,21 +1340,21 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 }
 .fluid-aurora--sidebar::after {
   background: conic-gradient(from 300deg at 80% 70%,
-    rgba(95, 48, 38, 0.42) 0deg,
-    rgba(48, 42, 95, 0.48) 130deg,
-    rgba(18, 72, 62, 0.42) 260deg,
-    rgba(95, 48, 38, 0.42) 360deg);
+    rgba(251, 146, 60, 0.38) 0deg,
+    rgba(99, 102, 241, 0.45) 130deg,
+    rgba(16, 185, 129, 0.32) 260deg,
+    rgba(251, 146, 60, 0.38) 360deg);
   animation: fluid-spin-rev 31s linear infinite;
   filter: blur(44px);
-  opacity: 0.44;
+  opacity: 0.58;
   width: 200%;
   height: 200%;
   left: -48%;
   top: -48%;
 }
 [data-theme="dark"] .fluid-aurora--sidebar::before {
-  opacity: 0.58;
+  opacity: 0.78;
 }
 [data-theme="dark"] .fluid-aurora--sidebar::after {
-  opacity: 0.5;
+  opacity: 0.62;
 }
