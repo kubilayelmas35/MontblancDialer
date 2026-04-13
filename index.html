@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=3.9">
+<link rel="stylesheet" href="css/styles.css?v=4.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -211,6 +211,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span class="sb-item-icon"><i class="ph ph-calendar-check" style="font-size:17px;"></i></span>
 <span data-tr="İzin &amp; Devam" data-de="Urlaub &amp; Anwesenheit">İzin &amp; Devam</span>
 </button>
+<button class="sb-item" onclick="navigate('competition')">
+<span class="sb-item-icon"><i class="ph ph-trophy" style="font-size:17px;"></i></span>
+<span data-tr="Ayın elemanı" data-de="Mitarbeiter des Monats">Ayın elemanı</span>
+</button>
 </div>
 </div>
 <div id="nav-agent" style="display:none;">
@@ -240,6 +244,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span class="sb-item-icon"><i class="ph ph-calendar-check" style="font-size:17px;"></i></span>
 <span data-tr="İzin &amp; Devam" data-de="Urlaub &amp; Anwesenheit">İzin &amp; Devam</span>
 </button>
+<button class="sb-item" onclick="navigate('competition')">
+<span class="sb-item-icon"><i class="ph ph-trophy" style="font-size:17px;"></i></span>
+<span data-tr="Ayın elemanı" data-de="Mitarbeiter des Monats">Ayın elemanı</span>
+</button>
 </div>
 </div>
 <div class="sb-divider"></div>
@@ -254,7 +262,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v3.9</div>
+<div class="sb-ver">Montblanc Dialer v4.0</div>
 </div>
 </nav>
 <main id="main">
@@ -308,41 +316,15 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div class="card" id="dash-eom-card" style="display:flex;flex-wrap:wrap;align-items:stretch;gap:16px;padding:18px 20px;margin-bottom:4px;background:linear-gradient(135deg,rgba(37,99,235,.08),transparent);border:1px solid var(--border);">
 <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:220px;">
-<div id="dash-eom-av" style="width:56px;height:56px;border-radius:14px;background:var(--accent-soft);color:var(--accent);font-size:24px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">★</div>
+<div id="dash-eom-av" style="width:56px;height:56px;border-radius:14px;background:var(--accent-soft);color:var(--accent);font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">★</div>
 <div style="flex:1;min-width:0;">
-<div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;" data-tr="Ayın elemanı" data-de="Mitarbeiter des Monats">Ayın elemanı</div>
+<div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;">Ayın elemanı · Yarış</div>
 <div id="dash-eom-name" style="font-size:22px;font-weight:800;margin-top:4px;line-height:1.2;">—</div>
 <div id="dash-eom-period" style="font-size:12px;color:var(--text-3);margin-top:4px;">—</div>
-<div id="dash-eom-note" style="font-size:12px;margin-top:10px;color:var(--text-2);line-height:1.45;display:none;max-width:520px;"></div>
+<div id="dash-eom-note" style="font-size:11px;margin-top:8px;color:var(--text-3);line-height:1.4;"></div>
+<div id="dash-comp-self" style="font-size:13px;margin-top:8px;color:var(--text-2);font-weight:600;display:none;"></div>
+<button type="button" class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="navigate('competition')"><i class="ph ph-trophy"></i> Yarış sayfası</button>
 </div>
-</div>
-<div id="dash-eom-admin" style="display:none;flex:1;min-width:280px;border-left:1px solid var(--border);padding-left:18px;">
-<div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--text-2);">Atama (admin)</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-<div style="display:flex;flex-direction:column;gap:4px;">
-<label class="form-label" style="font-size:10px;">Yıl</label>
-<input type="number" class="form-input" id="eom-year" min="2020" max="2100" style="padding:6px 8px;font-size:12px;" onchange="onEomPeriodChange()">
-</div>
-<div style="display:flex;flex-direction:column;gap:4px;">
-<label class="form-label" style="font-size:10px;">Ay</label>
-<select class="form-input" id="eom-month" style="padding:6px 8px;font-size:12px;" onchange="onEomPeriodChange()">
-<option value="1">Ocak</option><option value="2">Şubat</option><option value="3">Mart</option><option value="4">Nisan</option>
-<option value="5">Mayıs</option><option value="6">Haziran</option><option value="7">Temmuz</option><option value="8">Ağustos</option>
-<option value="9">Eylül</option><option value="10">Ekim</option><option value="11">Kasım</option><option value="12">Aralık</option>
-</select>
-</div>
-</div>
-<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">
-<label class="form-label" style="font-size:10px;">Agent</label>
-<select class="form-input" id="eom-user" style="padding:6px 8px;font-size:12px;"></select>
-</div>
-<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px;">
-<label class="form-label" style="font-size:10px;">Not (isteğe bağlı)</label>
-<input type="text" class="form-input" id="eom-note" placeholder="İsteğe bağlı">
-</div>
-<button type="button" class="btn btn-primary btn-sm" onclick="saveDashEmployeeOfMonth()">Kaydet</button>
-<div style="margin-top:14px;font-size:11px;font-weight:700;color:var(--text-3);">Son dönemler</div>
-<div id="eom-history" style="max-height:140px;overflow-y:auto;margin-top:6px;"></div>
 </div>
 </div>
 <div class="dash-analytics-grid">
@@ -1258,6 +1240,88 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </div>
 </div>
 </div>
+<div class="page" id="page-competition">
+<div class="page-hdr">
+<div>
+<div class="page-title"><i class="ph ph-trophy" style="vertical-align:-3px;"></i> Ayın elemanı</div>
+<div class="page-sub" id="comp-page-sub">Başarılı termin yarışı — otomatik sıralama</div>
+</div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+<div id="comp-firm-selector"></div>
+<button type="button" class="btn btn-ghost btn-sm" onclick="loadCompetitionPage()"><i class="ph ph-arrow-clockwise"></i> Yenile</button>
+</div>
+</div>
+<div id="comp-no-firm" style="display:none;padding:24px;background:var(--bg-3);border-radius:var(--radius);border:1px solid var(--border);font-size:13px;color:var(--text-2);">
+Süper admin olarak yarışı görmek için üstten firma seçin.
+</div>
+<div id="comp-main" style="display:flex;flex-direction:column;gap:16px;padding-bottom:32px;">
+<div id="comp-you-banner" class="card" style="padding:12px 16px;display:none;background:var(--accent-soft);border-color:var(--accent);"></div>
+<div class="card" style="padding:14px 16px;">
+<div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:8px;">Ay ilerlemesi</div>
+<div style="height:8px;background:var(--bg-3);border-radius:999px;overflow:hidden;">
+<div id="comp-month-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .6s ease;"></div>
+</div>
+<div id="comp-month-label" style="font-size:12px;color:var(--text-3);margin-top:8px;">—</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+<div class="card" style="padding:16px;">
+<div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;">Bu ay lider</div>
+<div id="comp-champ-name" style="font-size:22px;font-weight:800;margin-top:6px;">—</div>
+<div id="comp-champ-sub" style="font-size:12px;color:var(--text-3);margin-top:4px;"></div>
+</div>
+<div class="card" style="padding:16px;">
+<div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;">Geçen ay birincisi</div>
+<div id="comp-last-name" style="font-size:20px;font-weight:800;margin-top:6px;">—</div>
+<div id="comp-last-sub" style="font-size:12px;color:var(--text-3);margin-top:4px;"></div>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+<div class="card" style="padding:14px;text-align:center;border-top:3px solid #eab308;">
+<div style="font-size:22px;">🥇</div>
+<div id="comp-podium-1" style="font-size:13px;margin-top:6px;font-weight:700;">—</div>
+</div>
+<div class="card" style="padding:14px;text-align:center;border-top:3px solid #94a3b8;">
+<div style="font-size:22px;">🥈</div>
+<div id="comp-podium-2" style="font-size:13px;margin-top:6px;font-weight:700;">—</div>
+</div>
+<div class="card" style="padding:14px;text-align:center;border-top:3px solid #b45309;">
+<div style="font-size:22px;">🥉</div>
+<div id="comp-podium-3" style="font-size:13px;margin-top:6px;font-weight:700;">—</div>
+</div>
+</div>
+<div class="card" style="padding:16px;">
+<div class="card-title" style="margin-bottom:6px;">Canlı yarış</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Pozisyonlar, bu ayki başarılı termin sayılarına göre hesaplanır. <span class="comp-admin-only" style="display:none;">Admin: her satırda termin sayısı görünür.</span><span class="comp-agent-hint">Agent: sadece sıra ve isim; adetler gizli.</span></div>
+<div id="comp-race-lanes" class="comp-race-lanes"></div>
+</div>
+<div class="card" style="padding:0;overflow:hidden;">
+<div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;">Bu ay sıralaması</div>
+<div class="tbl-wrap">
+<table>
+<thead><tr>
+<th style="width:56px;">#</th>
+<th>Agent</th>
+<th class="comp-admin-only td-mono" style="width:90px;text-align:right;">Termin</th>
+</tr></thead>
+<tbody id="comp-lb-month"></tbody>
+</table>
+</div>
+</div>
+<div class="card" style="padding:0;overflow:hidden;">
+<div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;">Bu yıl (Ocak — bugün)</div>
+<div class="tbl-wrap">
+<table>
+<thead><tr>
+<th style="width:56px;">#</th>
+<th>Agent</th>
+<th class="comp-admin-only td-mono" style="width:90px;text-align:right;">Termin</th>
+</tr></thead>
+<tbody id="comp-lb-year"></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
 <div class="page" id="page-settings">
 <div class="page-hdr">
 <div>
@@ -1955,22 +2019,22 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=3.9"></script>
-<script src="js/state.js?v=3.9"></script>
-<script src="js/api.js?v=3.9"></script>
-<script src="js/auth.js?v=3.9"></script>
-<script src="js/ui.js?v=3.9"></script>
-<script src="js/export-admin.js?v=3.9"></script>
-<script src="js/employee-of-month.js?v=3.9"></script>
-<script src="js/dashboard.js?v=3.9"></script>
-<script src="js/campaigns.js?v=3.9"></script>
-<script src="js/contacts.js?v=3.9"></script>
-<script src="js/telnyx.js?v=3.9"></script>
-<script src="js/dialer.js?v=3.9"></script>
-<script src="js/appointments.js?v=3.9"></script>
-<script src="js/wiedervorlage.js?v=3.9"></script>
-<script src="js/qc.js?v=3.9"></script>
-<script src="js/leave-hr.js?v=3.9"></script>
-<script src="js/agents.js?v=3.9"></script>
+<script src="js/config.js?v=4.0"></script>
+<script src="js/state.js?v=4.0"></script>
+<script src="js/api.js?v=4.0"></script>
+<script src="js/auth.js?v=4.0"></script>
+<script src="js/ui.js?v=4.0"></script>
+<script src="js/export-admin.js?v=4.0"></script>
+<script src="js/competition.js?v=4.0"></script>
+<script src="js/dashboard.js?v=4.0"></script>
+<script src="js/campaigns.js?v=4.0"></script>
+<script src="js/contacts.js?v=4.0"></script>
+<script src="js/telnyx.js?v=4.0"></script>
+<script src="js/dialer.js?v=4.0"></script>
+<script src="js/appointments.js?v=4.0"></script>
+<script src="js/wiedervorlage.js?v=4.0"></script>
+<script src="js/qc.js?v=4.0"></script>
+<script src="js/leave-hr.js?v=4.0"></script>
+<script src="js/agents.js?v=4.0"></script>
 </body>
 </html>
