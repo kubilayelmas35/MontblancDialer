@@ -5,12 +5,29 @@
 // ── SIDEBAR ──────────────────────────────────
 const MOBILE_SIDEBAR_BP = 480;
 
+function syncMainWithSidebar() {
+const sb = document.getElementById('sidebar');
+const main = document.getElementById('main');
+const body = document.getElementById('body');
+if (!sb || !main || !body) return;
+const inFlow = getComputedStyle(body).display !== 'grid' && getComputedStyle(body).display !== 'flex';
+const w = Math.max(0, Math.round(sb.getBoundingClientRect().width || 0));
+if (inFlow && w > 0) {
+  main.style.marginLeft = `${w}px`;
+  main.style.width = `calc(100% - ${w}px)`;
+} else {
+  main.style.marginLeft = '';
+  main.style.width = '';
+}
+}
+
 function toggleSidebar() {
 const sb   = document.getElementById('sidebar');
 const ov   = document.getElementById('sidebar-overlay');
 sb.classList.toggle('collapsed');
 ov.classList.remove('show');
 sb.classList.remove('open');
+syncMainWithSidebar();
 }
 
 function closeSidebar() {
@@ -21,6 +38,7 @@ document.getElementById('sidebar-overlay').classList.remove('show');
 window.addEventListener('resize', () => {
 document.getElementById('sidebar-overlay').classList.remove('show');
 document.getElementById('sidebar').classList.remove('open');
+syncMainWithSidebar();
 });
 
 // ── NAVIGATION ───────────────────────────────
@@ -32,6 +50,7 @@ if (pg) pg.classList.add('active');
 const btn = document.querySelector(`.sb-item[onclick="navigate('${page}')"]`);
 if (btn) btn.classList.add('active');
 closeSidebar();
+syncMainWithSidebar();
 if (page==='dashboard')  loadDashboard();
 if (page==='campaigns')  loadCampaigns();
 if (page==='agents')     loadAgents();
@@ -50,6 +69,11 @@ if (page==='leave')          loadLeavePage();
 if (page==='muhasebe')       loadMuhasebePage();
 if (page==='competition')     loadCompetitionPage();
 }
+
+window.addEventListener('load', () => {
+  syncMainWithSidebar();
+  setTimeout(syncMainWithSidebar, 150);
+});
 
 window._apptResultsByFirm = window._apptResultsByFirm || {};
 function _uiEsc(s) {
