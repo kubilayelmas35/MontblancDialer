@@ -43,7 +43,7 @@ if (page==='agents')     loadAgents();
 if (page==='stats')      { initStatsFilters(); loadStats(); }
 if (page==='callhistory'){ initCallHistoryFilters(); loadCallHistory(); }
 if (page==='dialer')         initDialer();
-if (page==='myhistory')      loadMyHistory();
+if (page==='myhistory')      { initMyHistoryFilters(); loadMyHistory(); }
 if (page==='settings')       loadSavedSettings();
 if (page==='wiedervorlage')  loadWvPage();
 if (page==='qc')             loadQcData();

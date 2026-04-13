@@ -274,6 +274,17 @@ function setDialerStatus(s) {
     document.getElementById('ready-section').style.display='none';
     document.getElementById('call-actions').style.display='none';
     stopCallTimer();
+    // Önceki sonuç seçimini temizle
+    selectedOutcome = null;
+    document.querySelectorAll('.outcome-btn').forEach(b => b.classList.remove('active'));
+    const cbRow2 = document.getElementById('callback-time-row');
+    if (cbRow2) cbRow2.style.display = 'none';
+    const cbDt = document.getElementById('callback-dt');
+    if (cbDt) cbDt.value = '';
+    const noteEl = document.getElementById('outcome-note');
+    if (noteEl) noteEl.value = '';
+    const dncEl = document.getElementById('outcome-dnc');
+    if (dncEl) dncEl.checked = false;
     const hasSlot = _bookingSlot || window._selectedBookingSlot;
     if (hasSlot) {
       // Slot seçiliyse direkt termin modunu göster

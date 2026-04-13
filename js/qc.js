@@ -75,10 +75,13 @@ function renderQcTable() {
     const recHtml = recUrl
       ? `<div style="display:flex;align-items:center;gap:4px;">
 <audio id="aud-${r.id}" src="${recUrl}" preload="none" style="display:none;"></audio>
-<button onclick="toggleAudio('${r.id}')" style="background:var(--accent);border:none;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:10px;" title="Dinle">▶</button>
+<button onclick="toggleAudio('${r.id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2);font-size:11px;" title="Dinle"><i class="ph ph-play"></i></button>
 <span style="font-size:10px;color:var(--text-3);">${r.duration_sec?Math.floor(r.duration_sec/60)+'m'+r.duration_sec%60+'s':''}</span>
 </div>`
       : `<span style="font-size:10px;color:var(--text-3);">—</span>`;
+    const contactDetailBtn = r.contact_id
+      ? `<button class="icon-btn" onclick="openContactDrawer('${r.contact_id}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button>`
+      : `<button class="icon-btn" onclick="openQcDetail('${r.id}')" title="Detay"><i class="ph ph-magnifying-glass"></i></button>`;
     return `<tr>
 <td style="font-family:var(--mono);font-size:11px;">${dt}</td>
 <td style="font-weight:600;cursor:pointer;" onclick="openQcDetail('${r.id}')">${name}</td>
@@ -89,10 +92,10 @@ function renderQcTable() {
 <td>${recHtml}</td>
 <td><span style="font-size:11px;font-weight:700;color:${durumColor};">${durum}</span></td>
 <td>
-<div style="display:flex;gap:3px;">
-<button class="btn btn-ghost btn-sm" style="padding:3px 7px;" onclick="openQcDetail('${r.id}')">🔍</button>
-<button class="btn btn-sm" style="padding:3px 7px;background:var(--green);color:#fff;" onclick="quickQcUpdate('${r.id}','başarılı')">✓</button>
-<button class="btn btn-sm" style="padding:3px 7px;background:var(--red);color:#fff;" onclick="quickQcUpdate('${r.id}','başarısız')">✗</button>
+<div style="display:flex;gap:3px;align-items:center;">
+${contactDetailBtn}
+<button class="icon-btn" style="border-color:var(--green);color:var(--green);" onclick="quickQcUpdate('${r.id}','başarılı')" title="Başarılı"><i class="ph ph-check"></i></button>
+<button class="icon-btn" style="border-color:var(--red);color:var(--red);" onclick="quickQcUpdate('${r.id}','başarısız')" title="Başarısız"><i class="ph ph-x"></i></button>
 </div>
 </td>
 </tr>`;

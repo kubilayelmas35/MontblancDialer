@@ -537,6 +537,160 @@ function showCampScript(contact) {
 
 function showCampScript2(contact) { showCampScript(contact); }
 
+// ── Contact Drawer ─────────────────────────────
+let _cdrContactId = null;
+let _cdrTab = 'info';
+let _cdrLogs = [];
+
+async function openContactDrawer(contactId) {
+  if (!contactId) return;
+  _cdrContactId = contactId;
+  _cdrTab = 'info';
+  // Show drawer immediately with loading state
+  const overlay = document.getElementById('contact-drawer-overlay');
+  const drawer  = document.getElementById('contact-drawer');
+  if (!overlay || !drawer) return;
+  overlay.classList.add('open');
+  drawer.classList.add('open');
+  document.getElementById('cdr-av').textContent = '…';
+  document.getElementById('cdr-name').textContent = 'Yükleniyor…';
+  document.getElementById('cdr-phone').textContent = '';
+  document.getElementById('cdr-fields-grid').innerHTML = '<div style="color:var(--text-3);text-align:center;padding:20px;font-size:12px;">Yükleniyor...</div>';
+  document.getElementById('cdr-history-list').innerHTML = '<div style="color:var(--text-3);text-align:center;padding:20px;font-size:12px;">Yükleniyor...</div>';
+  document.getElementById('cdr-recordings-list').innerHTML = '<div style="color:var(--text-3);text-align:center;padding:20px;font-size:12px;">Yükleniyor...</div>';
+  // Reset tabs
+  setCdrTab('info');
+  try {
+    const [contacts, logs] = await Promise.all([
+      sb(`contacts?id=eq.${contactId}&select=*,queues(name,status),campaigns:campaign_id(name)`),
+      sb(`call_logs?contact_id=eq.${contactId}&select=*,users(name),campaigns:campaign_id(name)&order=started_at.desc&limit=50`)
+    ]);
+    const c = Array.isArray(contacts) ? contacts[0] : contacts;
+    _cdrLogs = Array.isArray(logs) ? logs : [];
+    if (!c) { toast('Kişi bulunamadı','warn'); closeContactDrawer(); return; }
+    const fullName = `${c.first_name||''} ${c.last_name||''}`.trim() || c.phone || '?';
+    document.getElementById('cdr-av').textContent = (fullName.charAt(0)||'?').toUpperCase();
+    document.getElementById('cdr-name').textContent = fullName;
+    document.getElementById('cdr-phone').textContent = c.phone || '—';
+    // Info tab
+    const statusMap = {pending:'Bekliyor',no_answer:'Cevap Yok',callback:'Geri Ara',negative:'Olumsuz',appointment:'Termin',dnc:'Kara Liste',done:'Tamamlandı'};
+    const fields = [
+      {l:'Telefon',    v:c.phone,      mono:true, copy:true},
+      {l:'2. Tel',     v:c.phone2,     mono:true, copy:true},
+      {l:'Ad Soyad',   v:fullName},
+      {l:'PLZ',        v:c.plz,        mono:true},
+      {l:'Şehir',      v:c.city},
+      {l:'Adres',      v:c.address},
+      {l:'Kampanya',   v:c.campaigns?.name || c.campaign_id?.slice(0,8)},
+      {l:'Kuyruk',     v:c.queues?.name},
+      {l:'Durum',      v:statusMap[c.status]||c.status},
+      {l:'Deneme',     v:c.attempt_count ? `${c.attempt_count}. arama` : '—'},
+      {l:'Geri Ara',   v:c.callback_at ? new Date(c.callback_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : null},
+      {l:'Not',        v:c.notes},
+    ].filter(f => f.v);
+    document.getElementById('cdr-fields-grid').innerHTML = fields.map(f => `
+<div class="cdr-field">
+  <div class="cdr-field-label">${f.l}</div>
+  <div class="cdr-field-val${f.mono?' mono':''}"
+    ${f.copy?`style="cursor:pointer;" onclick="copyToClipboard('${(f.v||'').replace(/'/g,"\\'")}','${f.l} kopyalandı')" title="Kopyala"`:''}
+  >${f.v}</div>
+</div>`).join('');
+    // History tab
+    _renderCdrHistory();
+    // Recordings tab
+    _renderCdrRecordings();
+    // Show call button only for agents/dialer
+    const footer = document.getElementById('cdr-footer');
+    if (footer) {
+      const isAgent = currentUser?.role === 'agent';
+      footer.style.display = isAgent ? '' : 'none';
+      const btn = document.getElementById('cdr-call-btn');
+      if (btn) btn.setAttribute('data-phone', c.phone||'');
+    }
+  } catch(e) {
+    toast('Drawer yüklenemedi: ' + e.message, 'err');
+    closeContactDrawer();
+  }
+}
+
+function _renderCdrHistory() {
+  const el = document.getElementById('cdr-history-list');
+  if (!el) return;
+  if (!_cdrLogs.length) {
+    el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:20px;font-size:12px;">Arama geçmişi yok</div>';
+    return;
+  }
+  const OM = {appointment:'Termin',appointment_done:'Termin',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',voicemail:'Telesekreter',dnc:'Kara Liste'};
+  const colorMap = {appointment:'var(--green)',appointment_done:'var(--green)',negative:'var(--red)',callback:'var(--yellow)',no_answer:'var(--text-3)',dnc:'var(--red)',voicemail:'var(--text-3)'};
+  el.innerHTML = _cdrLogs.map(l => {
+    const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const dur = l.duration_sec ? `${Math.floor(l.duration_sec/60)}:${String(l.duration_sec%60).padStart(2,'0')}` : '—';
+    const oc = OM[l.outcome] || l.outcome || '—';
+    const oc_color = colorMap[l.outcome] || 'var(--text-3)';
+    const camp = l.campaigns?.name || '—';
+    const agent = l.users?.name || '—';
+    return `<div class="cdr-log-row">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+  <div style="font-size:11px;font-family:var(--mono);color:var(--text-2);">${dt}</div>
+  <span style="font-size:11px;font-weight:700;color:${oc_color};background:${oc_color}18;padding:2px 8px;border-radius:10px;">${oc}</span>
+</div>
+<div style="display:flex;gap:12px;font-size:11px;color:var(--text-3);">
+  <span><i class="ph ph-user" style="vertical-align:-2px;"></i> ${agent}</span>
+  <span><i class="ph ph-megaphone-simple" style="vertical-align:-2px;"></i> ${camp}</span>
+  <span><i class="ph ph-clock" style="vertical-align:-2px;"></i> ${dur}</span>
+</div>
+${l.notes ? `<div style="margin-top:4px;font-size:11px;color:var(--text-2);font-style:italic;">"${l.notes}"</div>` : ''}
+${l.recording_url ? `<div style="margin-top:6px;"><audio controls src="${l.recording_url}" style="width:100%;height:28px;" preload="none"></audio></div>` : ''}
+</div>`;
+  }).join('');
+}
+
+function _renderCdrRecordings() {
+  const el = document.getElementById('cdr-recordings-list');
+  if (!el) return;
+  const recs = _cdrLogs.filter(l => l.recording_url);
+  if (!recs.length) {
+    el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:20px;font-size:12px;">Ses kaydı yok</div>';
+    return;
+  }
+  el.innerHTML = recs.map(l => {
+    const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const dur = l.duration_sec ? `${Math.floor(l.duration_sec/60)}:${String(l.duration_sec%60).padStart(2,'0')}` : '—';
+    return `<div class="cdr-log-row">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+  <span style="font-size:11px;color:var(--text-2);font-family:var(--mono);">${dt}</span>
+  <span style="font-size:11px;color:var(--text-3);">${dur}</span>
+</div>
+<audio controls src="${l.recording_url}" style="width:100%;height:32px;" preload="none"></audio>
+</div>`;
+  }).join('');
+}
+
+function setCdrTab(tab) {
+  _cdrTab = tab;
+  ['info','history','recordings'].forEach(t => {
+    const btn   = document.getElementById('cdr-tab-' + t);
+    const panel = document.getElementById('cdr-panel-' + t);
+    if (btn)   btn.classList.toggle('active', t === tab);
+    if (panel) panel.style.display = t === tab ? '' : 'none';
+  });
+}
+
+function closeContactDrawer() {
+  document.getElementById('contact-drawer-overlay')?.classList.remove('open');
+  document.getElementById('contact-drawer')?.classList.remove('open');
+  _cdrContactId = null;
+}
+
+function drawerCallContact() {
+  const phone = document.getElementById('cdr-call-btn')?.getAttribute('data-phone');
+  if (!phone) return;
+  closeContactDrawer();
+  // Navigate to dialer and dial
+  navigate('dialer');
+  if (typeof makeCall === 'function') makeCall(phone);
+}
+
 function showContactMap(address, plz, city) {
   const container = document.getElementById('contact-map-container');
   if (!container) return;

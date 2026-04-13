@@ -216,9 +216,11 @@ const campName = l.campaigns?.name || '—';
 const recHtml = l.recording_url
 ? `<div style="display:flex;align-items:center;gap:4px;">
 <audio id="ch-aud-${l.id}" src="${l.recording_url}" preload="none" style="display:none;"></audio>
-<button onclick="toggleAudio('ch-aud-${l.id}')" style="background:var(--accent);border:none;border-radius:50%;width:24px;height:24px;color:#fff;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;">▶</button>
+<button onclick="toggleAudio('ch-aud-${l.id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--text-2);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;"><i class="ph ph-play"></i></button>
 </div>`
 : '<span style="font-size:10px;color:var(--text-3);">—</span>';
+const detailBtn = l.contact_id ? `<button class="icon-btn" onclick="openContactDrawer('${l.contact_id}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button>` : '';
+const cbHtml = l.callback_at ? `<div style="font-size:10px;color:var(--yellow);margin-top:2px;"><i class="ph ph-calendar" style="vertical-align:-2px;"></i> ${new Date(l.callback_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>` : '';
 return `<tr>
 <td class="td-mono" style="font-size:11px;">${dt}</td>
 <td style="font-weight:600;">${name}</td>
@@ -227,7 +229,8 @@ return `<tr>
 <td style="font-size:11px;">${campName}</td>
 <td class="td-mono" style="font-size:11px;">${dur}</td>
 <td>${recHtml}</td>
-<td>${OM[l.outcome]||`<span class="badge badge-gray">${l.outcome||'—'}</span>`}</td>
+<td>${OM[l.outcome]||`<span class="badge badge-gray">${l.outcome||'—'}</span>`}${cbHtml}</td>
+<td>${detailBtn}</td>
 </tr>`;
 }).join('');
 } catch(e){ console.error(e); if(tbody) tbody.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:24px;">Hata: ${e.message}</td></tr>`; }
@@ -236,7 +239,16 @@ return `<tr>
 async function loadMyHistory() {
 if (!currentUser) return;
 try {
-const logs=await sb(`call_logs?select=*&agent_id=eq.${currentUser.id}&order=started_at.desc&limit=100`);
+const today = new Date().toISOString().split('T')[0];
+const dateFrom = document.getElementById('mh-date-from')?.value || today;
+const dateTo   = document.getElementById('mh-date-to')?.value   || today;
+const search   = (document.getElementById('mh-search')?.value||'').toLowerCase();
+const outcome  = document.getElementById('mh-outcome')?.value||'';
+let query = `call_logs?select=*,contacts(first_name,last_name,phone),campaigns(name)&agent_id=eq.${currentUser.id}`;
+query += `&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59`;
+if (outcome) query += outcome === 'appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
+query += '&order=started_at.desc&limit=200';
+const logs = await sb(query) || [];
 const OM={
   appointment:'<span class="badge badge-green">Termin</span>',
   appointment_done:'<span class="badge badge-green">Termin</span>',
@@ -246,12 +258,44 @@ const OM={
   no_answer:'<span class="badge badge-gray">Cevap Yok</span>',
   dnc:'<span class="badge badge-red">DNC</span>'
 };
-document.getElementById('my-tbody').innerHTML=(logs||[]).map(l=>{
-const dt=new Date(l.started_at).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
-const cbInfo = l.callback_at ? `<div style="font-size:10px;color:var(--yellow);">📅 ${new Date(l.callback_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>` : '';
-return `<tr><td class="td-mono">${dt}</td><td>—</td><td class="td-mono">${l.phone||'—'}</td><td>—</td><td class="td-mono">${l.duration_sec||0}sn</td><td>${OM[l.outcome]||'—'}${cbInfo}</td></tr>`;
-}).join('')||`<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:32px;">Henüz çağrı yok</td></tr>`;
-} catch(e){}
+let filtered = logs;
+if (search) {
+  filtered = logs.filter(l => {
+    const name = `${l.contacts?.first_name||''} ${l.contacts?.last_name||''}`.toLowerCase();
+    const phone = (l.phone||l.contacts?.phone||'').toLowerCase();
+    return name.includes(search) || phone.includes(search);
+  });
+}
+const tbody = document.getElementById('my-tbody');
+if (!filtered.length) {
+  tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Kayıt yok</td></tr>`;
+  return;
+}
+tbody.innerHTML = filtered.map(l=>{
+const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+const name = `${l.contacts?.first_name||''} ${l.contacts?.last_name||''}`.trim()||'—';
+const phone = l.phone || l.contacts?.phone || '—';
+const camp = l.campaigns?.name || '—';
+const dur = l.duration_sec ? `${Math.floor(l.duration_sec/60)}:${String(l.duration_sec%60).padStart(2,'0')}` : '—';
+const cbInfo = l.callback_at ? `<div style="font-size:10px;color:var(--yellow);margin-top:2px;"><i class="ph ph-calendar" style="vertical-align:-2px;"></i> ${new Date(l.callback_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>` : '';
+const recHtml = l.recording_url
+  ? `<button onclick="event.stopPropagation();toggleAudio('mh-aud-${l.id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;">
+<audio id="mh-aud-${l.id}" src="${l.recording_url}" preload="none" style="display:none;"></audio>
+<i class="ph ph-play"></i></button>`
+  : '<span style="color:var(--text-3);font-size:11px;">—</span>';
+const detailBtn = l.contact_id ? `<button class="icon-btn" onclick="openContactDrawer('${l.contact_id}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button>` : '';
+return `<tr>
+<td class="td-mono" style="font-size:11px;">${dt}</td>
+<td style="font-weight:600;">${name}</td>
+<td class="td-mono" style="font-size:12px;cursor:pointer;" onclick="copyToClipboard('${phone}','Kopyalandı')" title="Kopyala">${phone}</td>
+<td style="font-size:11px;">${camp}</td>
+<td class="td-mono" style="font-size:11px;">${dur}</td>
+<td>${recHtml}</td>
+<td>${OM[l.outcome]||`<span class="badge badge-gray">${l.outcome||'—'}</span>`}${cbInfo}</td>
+<td>${detailBtn}</td>
+</tr>`;
+}).join('');
+} catch(e){ console.error(e); }
 }
 
 function initStatsFilters() {
@@ -266,6 +310,14 @@ function initCallHistoryFilters() {
 const today = new Date().toISOString().split('T')[0];
 const from = document.getElementById('ch-date-from');
 const to   = document.getElementById('ch-date-to');
+if (from && !from.value) from.value = today;
+if (to   && !to.value)   to.value   = today;
+}
+
+function initMyHistoryFilters() {
+const today = new Date().toISOString().split('T')[0];
+const from = document.getElementById('mh-date-from');
+const to   = document.getElementById('mh-date-to');
 if (from && !from.value) from.value = today;
 if (to   && !to.value)   to.value   = today;
 }

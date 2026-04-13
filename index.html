@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=2.6">
+<link rel="stylesheet" href="css/styles.css?v=2.9">
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
 <body>
@@ -200,7 +200,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v2.8</div>
+<div class="sb-ver">Montblanc Dialer v2.9</div>
 </div>
 </nav>
 <main id="main">
@@ -556,8 +556,9 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <th>Agent</th>
 <th>Kampanya</th>
 <th>Süre</th>
-<th>🎙️ Kayıt</th>
+<th>Kayıt</th>
 <th>Sonuç</th>
+<th></th>
 </tr></thead>
 <tbody id="ch-tbody">
 <tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
@@ -768,6 +769,22 @@ Yaklaşan Aramalar
 <div>
 <div class="page-title" data-tr="Geçmişim" data-de="Mein Verlauf">Geçmişim</div>
 </div>
+<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+<input type="text" class="form-input" id="mh-search" placeholder="İsim, numara..." style="width:160px;padding:5px 10px;font-size:12px;" oninput="loadMyHistory()">
+<select class="form-input" id="mh-outcome" style="width:130px;padding:5px 8px;font-size:12px;" onchange="loadMyHistory()">
+<option value="">Tüm Sonuçlar</option>
+<option value="appointment">Termin</option>
+<option value="callback">Geri Ara</option>
+<option value="negative">Olumsuz</option>
+<option value="no_answer">Cevap Yok</option>
+</select>
+<input type="date" class="form-input" id="mh-date-from" style="width:135px;padding:5px 8px;font-size:12px;" onchange="loadMyHistory()">
+<span style="font-size:12px;color:var(--text-3);">—</span>
+<input type="date" class="form-input" id="mh-date-to" style="width:135px;padding:5px 8px;font-size:12px;" onchange="loadMyHistory()">
+<button class="btn btn-ghost btn-sm" onclick="loadMyHistory()">
+<i class="ph ph-arrow-clockwise"></i>
+</button>
+</div>
 </div>
 <div class="card">
 <div class="tbl-wrap">
@@ -778,10 +795,12 @@ Yaklaşan Aramalar
 <th data-tr="Numara" data-de="Nummer">Numara</th>
 <th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
 <th data-tr="Süre" data-de="Dauer">Süre</th>
+<th data-tr="Kayıt" data-de="Aufn.">Kayıt</th>
 <th data-tr="Sonuç" data-de="Ergebnis">Sonuç</th>
+<th></th>
 </tr></thead>
 <tbody id="my-tbody">
-<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
+<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
 </tbody>
 </table>
 </div>
@@ -868,9 +887,9 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <th>PLZ</th>
 <th>Agent</th>
 <th>Kampanya</th>
-<th>🎙️ Kayıt</th>
+<th>Kayıt</th>
 <th>Durum</th>
-<th>QC İşlem</th>
+<th>İşlem</th>
 </tr></thead>
 <tbody id="qc-tbody">
 <tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
@@ -1592,19 +1611,54 @@ QC Detay
 </div>
 </div>
 </div>
-<script src="js/config.js?v=2.6"></script>
-<script src="js/state.js?v=2.6"></script>
-<script src="js/api.js?v=2.6"></script>
-<script src="js/auth.js?v=2.6"></script>
-<script src="js/ui.js?v=2.6"></script>
-<script src="js/dashboard.js?v=2.6"></script>
-<script src="js/campaigns.js?v=2.6"></script>
-<script src="js/contacts.js?v=2.6"></script>
-<script src="js/telnyx.js?v=2.6"></script>
-<script src="js/dialer.js?v=2.6"></script>
-<script src="js/appointments.js?v=2.6"></script>
-<script src="js/wiedervorlage.js?v=2.6"></script>
-<script src="js/qc.js?v=2.6"></script>
-<script src="js/agents.js?v=2.6"></script>
+<!-- ── Contact Detail Drawer ─────────────────── -->
+<div class="contact-drawer-overlay" id="contact-drawer-overlay" onclick="closeContactDrawer()"></div>
+<div class="contact-drawer" id="contact-drawer">
+<div class="contact-drawer-hdr">
+<div class="contact-drawer-av" id="cdr-av">?</div>
+<div style="flex:1;">
+<div class="contact-drawer-title" id="cdr-name">—</div>
+<div class="contact-drawer-sub" id="cdr-phone">—</div>
+</div>
+<button class="contact-drawer-close" onclick="closeContactDrawer()" title="Kapat">
+<i class="ph ph-x"></i>
+</button>
+</div>
+<div class="contact-drawer-tabs">
+<button class="contact-drawer-tab active" id="cdr-tab-info" onclick="setCdrTab('info')">Bilgi</button>
+<button class="contact-drawer-tab" id="cdr-tab-history" onclick="setCdrTab('history')">Geçmiş</button>
+<button class="contact-drawer-tab" id="cdr-tab-recordings" onclick="setCdrTab('recordings')">Kayıtlar</button>
+</div>
+<div class="contact-drawer-body">
+<div id="cdr-panel-info">
+<div id="cdr-fields-grid"></div>
+</div>
+<div id="cdr-panel-history" style="display:none;">
+<div id="cdr-history-list"><div style="color:var(--text-3);text-align:center;padding:24px;font-size:12px;">Yükleniyor...</div></div>
+</div>
+<div id="cdr-panel-recordings" style="display:none;">
+<div id="cdr-recordings-list"><div style="color:var(--text-3);text-align:center;padding:24px;font-size:12px;">Yükleniyor...</div></div>
+</div>
+</div>
+<div class="contact-drawer-footer" id="cdr-footer" style="display:none;">
+<button class="btn btn-primary" style="width:100%;" id="cdr-call-btn" onclick="drawerCallContact()">
+<i class="ph ph-phone"></i> Ara
+</button>
+</div>
+</div>
+<script src="js/config.js?v=2.9"></script>
+<script src="js/state.js?v=2.9"></script>
+<script src="js/api.js?v=2.9"></script>
+<script src="js/auth.js?v=2.9"></script>
+<script src="js/ui.js?v=2.9"></script>
+<script src="js/dashboard.js?v=2.9"></script>
+<script src="js/campaigns.js?v=2.9"></script>
+<script src="js/contacts.js?v=2.9"></script>
+<script src="js/telnyx.js?v=2.9"></script>
+<script src="js/dialer.js?v=2.9"></script>
+<script src="js/appointments.js?v=2.9"></script>
+<script src="js/wiedervorlage.js?v=2.9"></script>
+<script src="js/qc.js?v=2.9"></script>
+<script src="js/agents.js?v=2.9"></script>
 </body>
 </html>
