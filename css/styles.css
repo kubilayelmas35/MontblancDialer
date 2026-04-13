@@ -171,12 +171,7 @@ transition: var(--transition);
 display: flex; align-items: center; gap: 9px;
 margin-right: 12px; flex-shrink: 0;
 position: relative;
-z-index: 2;
-/* Topbar aurora / blend arkasından renk sızmasın */
-background: var(--topbar-bg);
-border-radius: 12px;
-padding: 3px 10px 3px 5px;
-isolation: isolate;
+z-index: 1;
 }
 .tb-logo-mark {
 width: 30px; height: 30px;
@@ -1289,10 +1284,10 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 }
 .fluid-aurora--topbar::before {
   background: conic-gradient(from 40deg at 30% 50%,
-    rgba(37, 99, 235, 0.5) 0deg,
-    rgba(6, 182, 212, 0.4) 100deg,
-    rgba(99, 102, 241, 0.45) 220deg,
-    rgba(37, 99, 235, 0.5) 360deg);
+    rgba(28, 58, 118, 0.38) 0deg,
+    rgba(12, 72, 92, 0.34) 100deg,
+    rgba(48, 42, 108, 0.36) 220deg,
+    rgba(28, 58, 118, 0.38) 360deg);
   animation: fluid-spin 16s linear infinite;
   filter: blur(38px);
   width: 180%;
@@ -1324,14 +1319,14 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 }
 .fluid-aurora--sidebar::before {
   background: conic-gradient(from 120deg at 20% 15%,
-    rgba(6, 182, 212, 0.62) 0deg,
-    rgba(37, 99, 235, 0.55) 90deg,
-    rgba(244, 114, 182, 0.42) 200deg,
-    rgba(34, 211, 238, 0.58) 300deg,
-    rgba(6, 182, 212, 0.62) 360deg);
+    rgba(8, 68, 82, 0.78) 0deg,
+    rgba(22, 48, 105, 0.72) 90deg,
+    rgba(78, 32, 72, 0.62) 200deg,
+    rgba(10, 78, 85, 0.74) 300deg,
+    rgba(8, 68, 82, 0.78) 360deg);
   animation: fluid-spin 26s linear infinite;
   filter: blur(52px);
-  opacity: 0.72;
+  opacity: 0.52;
   width: 220%;
   height: 180%;
   left: -65%;
@@ -1339,21 +1334,21 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 }
 .fluid-aurora--sidebar::after {
   background: conic-gradient(from 300deg at 80% 70%,
-    rgba(251, 146, 60, 0.38) 0deg,
-    rgba(99, 102, 241, 0.45) 130deg,
-    rgba(16, 185, 129, 0.32) 260deg,
-    rgba(251, 146, 60, 0.38) 360deg);
+    rgba(92, 48, 38, 0.48) 0deg,
+    rgba(42, 38, 88, 0.52) 130deg,
+    rgba(14, 72, 62, 0.46) 260deg,
+    rgba(92, 48, 38, 0.48) 360deg);
   animation: fluid-spin-rev 31s linear infinite;
   filter: blur(44px);
-  opacity: 0.58;
+  opacity: 0.44;
   width: 200%;
   height: 200%;
   left: -48%;
   top: -48%;
 }
 [data-theme="dark"] .fluid-aurora--sidebar::before {
-  opacity: 0.78;
+  opacity: 0.58;
 }
 [data-theme="dark"] .fluid-aurora--sidebar::after {
-  opacity: 0.62;
+  opacity: 0.48;
 }
