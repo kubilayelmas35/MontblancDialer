@@ -359,6 +359,9 @@ ${isAdmin ? `<div style="display:flex;gap:2px;margin-left:4px;">
 </div>`;
 }).join('');
 } catch(e){}
+if (typeof loadDashEmployeeOfMonth === 'function') {
+  try { await loadDashEmployeeOfMonth(); } catch (e) { console.warn('eom', e); }
+}
 }
 
 async function loadStats() {

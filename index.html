@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=3.7">
+<link rel="stylesheet" href="css/styles.css?v=3.8">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -254,7 +254,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v3.7</div>
+<div class="sb-ver">Montblanc Dialer v3.8</div>
 </div>
 </nav>
 <main id="main">
@@ -304,6 +304,45 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="stat-lbl" data-tr="Konuşma Süresi" data-de="Gesprächszeit">Konuşma Süresi</div>
 <div class="stat-val" id="d-talk">0dk</div>
 <div class="stat-meta" id="d-avg">ort. 0sn/çağrı</div>
+</div>
+</div>
+<div class="card" id="dash-eom-card" style="display:flex;flex-wrap:wrap;align-items:stretch;gap:16px;padding:18px 20px;margin-bottom:4px;background:linear-gradient(135deg,rgba(37,99,235,.08),transparent);border:1px solid var(--border);">
+<div style="display:flex;align-items:center;gap:14px;flex:1;min-width:220px;">
+<div id="dash-eom-av" style="width:56px;height:56px;border-radius:14px;background:var(--accent-soft);color:var(--accent);font-size:24px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">★</div>
+<div style="flex:1;min-width:0;">
+<div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;" data-tr="Ayın elemanı" data-de="Mitarbeiter des Monats">Ayın elemanı</div>
+<div id="dash-eom-name" style="font-size:22px;font-weight:800;margin-top:4px;line-height:1.2;">—</div>
+<div id="dash-eom-period" style="font-size:12px;color:var(--text-3);margin-top:4px;">—</div>
+<div id="dash-eom-note" style="font-size:12px;margin-top:10px;color:var(--text-2);line-height:1.45;display:none;max-width:520px;"></div>
+</div>
+</div>
+<div id="dash-eom-admin" style="display:none;flex:1;min-width:280px;border-left:1px solid var(--border);padding-left:18px;">
+<div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--text-2);">Atama (admin)</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+<div style="display:flex;flex-direction:column;gap:4px;">
+<label class="form-label" style="font-size:10px;">Yıl</label>
+<input type="number" class="form-input" id="eom-year" min="2020" max="2100" style="padding:6px 8px;font-size:12px;" onchange="onEomPeriodChange()">
+</div>
+<div style="display:flex;flex-direction:column;gap:4px;">
+<label class="form-label" style="font-size:10px;">Ay</label>
+<select class="form-input" id="eom-month" style="padding:6px 8px;font-size:12px;" onchange="onEomPeriodChange()">
+<option value="1">Ocak</option><option value="2">Şubat</option><option value="3">Mart</option><option value="4">Nisan</option>
+<option value="5">Mayıs</option><option value="6">Haziran</option><option value="7">Temmuz</option><option value="8">Ağustos</option>
+<option value="9">Eylül</option><option value="10">Ekim</option><option value="11">Kasım</option><option value="12">Aralık</option>
+</select>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">
+<label class="form-label" style="font-size:10px;">Agent</label>
+<select class="form-input" id="eom-user" style="padding:6px 8px;font-size:12px;"></select>
+</div>
+<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px;">
+<label class="form-label" style="font-size:10px;">Not (isteğe bağlı)</label>
+<input type="text" class="form-input" id="eom-note" placeholder="İsteğe bağlı">
+</div>
+<button type="button" class="btn btn-primary btn-sm" onclick="saveDashEmployeeOfMonth()">Kaydet</button>
+<div style="margin-top:14px;font-size:11px;font-weight:700;color:var(--text-3);">Son dönemler</div>
+<div id="eom-history" style="max-height:140px;overflow-y:auto;margin-top:6px;"></div>
 </div>
 </div>
 <div class="dash-analytics-grid">
@@ -1906,20 +1945,21 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=3.7"></script>
-<script src="js/state.js?v=3.7"></script>
-<script src="js/api.js?v=3.7"></script>
-<script src="js/auth.js?v=3.7"></script>
-<script src="js/ui.js?v=3.7"></script>
-<script src="js/dashboard.js?v=3.7"></script>
-<script src="js/campaigns.js?v=3.7"></script>
-<script src="js/contacts.js?v=3.7"></script>
-<script src="js/telnyx.js?v=3.7"></script>
-<script src="js/dialer.js?v=3.7"></script>
-<script src="js/appointments.js?v=3.7"></script>
-<script src="js/wiedervorlage.js?v=3.7"></script>
-<script src="js/qc.js?v=3.7"></script>
-<script src="js/leave-hr.js?v=3.7"></script>
-<script src="js/agents.js?v=3.7"></script>
+<script src="js/config.js?v=3.8"></script>
+<script src="js/state.js?v=3.8"></script>
+<script src="js/api.js?v=3.8"></script>
+<script src="js/auth.js?v=3.8"></script>
+<script src="js/ui.js?v=3.8"></script>
+<script src="js/employee-of-month.js?v=3.8"></script>
+<script src="js/dashboard.js?v=3.8"></script>
+<script src="js/campaigns.js?v=3.8"></script>
+<script src="js/contacts.js?v=3.8"></script>
+<script src="js/telnyx.js?v=3.8"></script>
+<script src="js/dialer.js?v=3.8"></script>
+<script src="js/appointments.js?v=3.8"></script>
+<script src="js/wiedervorlage.js?v=3.8"></script>
+<script src="js/qc.js?v=3.8"></script>
+<script src="js/leave-hr.js?v=3.8"></script>
+<script src="js/agents.js?v=3.8"></script>
 </body>
 </html>
