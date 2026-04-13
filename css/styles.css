@@ -1304,54 +1304,12 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 [data-theme="dark"] .fluid-aurora--login::after {
   opacity: 0.55;
 }
-/* Topbar logo kutusu — sidebar ile uyumlu koyu aurora */
+/* Üst logo kutusu — sol menü ile aynı aurora (gradient + süre + blur) */
 .fluid-aurora--logo {
   inset: 0;
   border-radius: inherit;
 }
-.fluid-aurora--logo::before {
-  background: conic-gradient(from 115deg at 22% 18%,
-    rgba(6, 48, 62, 0.92) 0deg,
-    rgba(88, 70, 108, 0.42) 22deg,
-    rgba(72, 32, 52, 0.52) 40deg,
-    rgba(18, 40, 92, 0.9) 70deg,
-    rgba(96, 58, 88, 0.4) 92deg,
-    rgba(52, 22, 78, 0.55) 108deg,
-    rgba(58, 24, 68, 0.85) 145deg,
-    rgba(10, 62, 58, 0.88) 215deg,
-    rgba(72, 78, 118, 0.38) 236deg,
-    rgba(44, 26, 72, 0.52) 252deg,
-    rgba(38, 26, 72, 0.82) 290deg,
-    rgba(6, 48, 62, 0.92) 360deg);
-  animation: fluid-spin 20s linear infinite;
-  filter: blur(16px);
-  opacity: 0.92;
-  width: 190%;
-  height: 170%;
-  left: -46%;
-  top: -32%;
-}
-.fluid-aurora--logo::after {
-  background: conic-gradient(from 295deg at 78% 68%,
-    rgba(78, 36, 28, 0.58) 0deg,
-    rgba(102, 52, 68, 0.4) 32deg,
-    rgba(88, 34, 48, 0.46) 58deg,
-    rgba(32, 34, 78, 0.6) 120deg,
-    rgba(58, 26, 72, 0.44) 178deg,
-    rgba(14, 58, 48, 0.56) 235deg,
-    rgba(92, 68, 112, 0.36) 258deg,
-    rgba(48, 22, 68, 0.42) 278deg,
-    rgba(52, 26, 58, 0.52) 320deg,
-    rgba(78, 36, 28, 0.58) 360deg);
-  animation: fluid-spin-rev 26s linear infinite;
-  filter: blur(12px);
-  opacity: 0.78;
-  width: 170%;
-  height: 170%;
-  left: -36%;
-  top: -32%;
-}
-/* Sol menü — ek koyu duraklar, geçişler daha okunur */
+/* Sol menü + üst logo — tek kaynak: renkler ve zamanlar birebir */
 .fluid-aurora--sidebar {
   inset: 0;
   z-index: 0;
@@ -1359,7 +1317,8 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 #sidebar .fluid-aurora.fluid-aurora--sidebar {
   z-index: 0;
 }
-.fluid-aurora--sidebar::before {
+.fluid-aurora--sidebar::before,
+.fluid-aurora--logo::before {
   background: conic-gradient(from 118deg at 20% 14%,
     rgba(5, 42, 58, 0.85) 0deg,
     rgba(88, 68, 102, 0.44) 16deg,
@@ -1385,7 +1344,8 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   left: -65%;
   top: -35%;
 }
-.fluid-aurora--sidebar::after {
+.fluid-aurora--sidebar::after,
+.fluid-aurora--logo::after {
   background: conic-gradient(from 302deg at 78% 68%,
     rgba(72, 38, 28, 0.52) 0deg,
     rgba(98, 48, 62, 0.4) 24deg,
@@ -1407,9 +1367,11 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   left: -48%;
   top: -48%;
 }
-[data-theme="dark"] .fluid-aurora--sidebar::before {
+[data-theme="dark"] .fluid-aurora--sidebar::before,
+[data-theme="dark"] .fluid-aurora--logo::before {
   opacity: 0.58;
 }
-[data-theme="dark"] .fluid-aurora--sidebar::after {
+[data-theme="dark"] .fluid-aurora--sidebar::after,
+[data-theme="dark"] .fluid-aurora--logo::after {
   opacity: 0.48;
 }
