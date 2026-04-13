@@ -380,32 +380,39 @@ async function submitOutcome(goBreak) {
   const isDnc  = document.getElementById('outcome-dnc')?.checked || false;
   try {
     if (currentContact) {
+      // appointment_done → call_logs'da 'appointment' olarak sakla (QC uyumu için)
       const finalOutcome = isDnc ? 'dnc' : (selectedOutcome === 'appointment_done' ? 'appointment' : selectedOutcome);
       const statusMap = {appointment:'appointment',appointment_done:'appointment',negative:'negative',callback:'callback',no_answer:'no_answer',dnc:'dnc'};
+      const cbAt = (finalOutcome === 'callback' && cbTime) ? new Date(cbTime).toISOString() : null;
       const contactPatch = {
-        status: statusMap[finalOutcome],
+        status: statusMap[finalOutcome] || finalOutcome,
         attempt_count: (currentContact.attempt_count||0)+1,
         last_called_at: new Date().toISOString(),
         locked_by: null,
-        locked_at: null
+        locked_at: null,
       };
-      await sb(`contacts?id=eq.${currentContact.id}`,{method:'PATCH',prefer:'return=minimal',
-        body:JSON.stringify(contactPatch)
-      });
+      if (cbAt) contactPatch.callback_at = cbAt; // geri ara zamanı
+      // Fake/test ID'lerinde UUID hatası önle
+      const contactId = isValidUUID(currentContact.id) ? currentContact.id : null;
+      if (contactId) {
+        await sb(`contacts?id=eq.${contactId}`,{method:'PATCH',prefer:'return=minimal',
+          body:JSON.stringify(contactPatch)
+        });
+      }
       if (isDnc) await addToDnc(currentContact.phone, currentContact.id);
       const logData = {
-        contact_id: currentContact.id,
+        contact_id: contactId,
         campaign_id: selectedCampId,
         firm_id: currentUser.firm_id,
         agent_id: currentUser.id,
         phone: currentContact.phone,
-        outcome: isDnc ? 'dnc' : selectedOutcome,
+        outcome: finalOutcome,   // normalleştirilmiş (appointment_done → appointment)
         notes: note,
         duration_sec: callSeconds,
         started_at: new Date(Date.now()-callSeconds*1000).toISOString(),
         ended_at: new Date().toISOString(),
       };
-      // telnyx_call_id may not exist in all schemas
+      if (cbAt) logData.callback_at = cbAt;
       if (activeCallId) { try { logData.telnyx_call_id = activeCallId; } catch(e) {} }
       await sb('call_logs',{method:'POST',prefer:'return=minimal',body:JSON.stringify(logData)});
       if (currentContact.queue_id) {

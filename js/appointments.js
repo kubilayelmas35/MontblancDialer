@@ -444,8 +444,6 @@ async function saveTerminFromSection() {
   }
   const contact = currentContact || {};
   const saatNorm = (t) => t ? t.slice(0,5) : '10:00';
-  // Fake/test ID'leri (UUID formatında değil) null olarak gönder
-  const isValidUUID = (id) => id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   try {
     const data = {
       slot_id: slot.id, contact_id: isValidUUID(contact.id) ? contact.id : null,
@@ -492,7 +490,6 @@ async function submitTakvimBook(slotId) {
   try {
     // Fix 22007: baslangic_saat may be 'HH:MM:SS' from DB — normalize to 'HH:MM'
     const saatNorm = (t) => t ? t.slice(0,5) : '10:00';
-    const isValidUUID = (id) => id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const data = {
       slot_id:slotId, contact_id:isValidUUID(currentContact?.id) ? currentContact.id : null,
       agent_id:currentUser.id, campaign_id:takvimCampId||selectedCampId, firm_id:currentUser.firm_id,

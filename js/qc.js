@@ -8,9 +8,9 @@ async function loadQcData() {
   const tbody = document.getElementById('qc-tbody');
   if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>';
   try {
-    qcList = await sb('call_logs?select=*,contacts(*),users(name),campaigns(name)&order=started_at.desc&limit=500').catch(()=>[]);
+    qcList = await sb('call_logs?select=*,contacts(*),users(name),campaigns(name)&outcome=in.(appointment,appointment_done)&order=started_at.desc&limit=500').catch(()=>[]);
     renderQcTable();
-    const pending = (qcList||[]).filter(r => (r.outcome||'') === 'appointment' && (r.contacts?.durum||'qc bekleniyor') === 'qc bekleniyor');
+    const pending = (qcList||[]).filter(r => ['appointment','appointment_done'].includes(r.outcome||'') && (r.contacts?.durum||'qc bekleniyor') === 'qc bekleniyor');
     const badge = document.getElementById('sb-badge-qc');
     if (badge) {
       badge.style.display = pending.length > 0 ? '' : 'none';
@@ -41,7 +41,7 @@ function renderQcTable() {
   if (!tbody) return;
   const search = (document.getElementById('qc-search')?.value||'').toLowerCase();
   let list = [...(qcList||[])];
-  list = list.filter(r => r.outcome === 'appointment' || r.contacts?.durum);
+  list = list.filter(r => ['appointment','appointment_done'].includes(r.outcome) || r.contacts?.durum);
   if (qcTab !== 'all') {
     list = list.filter(r => {
       const durum = (r.contacts?.durum || 'qc bekleniyor').toLowerCase();
@@ -56,7 +56,7 @@ function renderQcTable() {
       (r.agent_id||'').toLowerCase().includes(search)
     );
   }
-  const pendingCnt = (qcList||[]).filter(r => (r.contacts?.durum||'qc bekleniyor') === 'qc bekleniyor' && r.outcome === 'appointment').length;
+  const pendingCnt = (qcList||[]).filter(r => (r.contacts?.durum||'qc bekleniyor') === 'qc bekleniyor' && ['appointment','appointment_done'].includes(r.outcome||'')).length;
   const cntEl = document.getElementById('qc-cnt-pending');
   if (cntEl) cntEl.textContent = pendingCnt;
   if (!list.length) {

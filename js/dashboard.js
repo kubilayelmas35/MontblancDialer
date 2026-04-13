@@ -237,10 +237,19 @@ async function loadMyHistory() {
 if (!currentUser) return;
 try {
 const logs=await sb(`call_logs?select=*&agent_id=eq.${currentUser.id}&order=started_at.desc&limit=100`);
-const OM={appointment:'<span class="badge badge-green">Termin</span>',negative:'<span class="badge badge-red">Olumsuz</span>',callback:'<span class="badge badge-yellow">Geri Ara</span>',voicemail:'<span class="badge badge-gray">Telesekreter</span>',no_answer:'<span class="badge badge-gray">Cevap Yok</span>'};
-document.getElementById('my-tbody').innerHTML=logs.map(l=>{
+const OM={
+  appointment:'<span class="badge badge-green">Termin</span>',
+  appointment_done:'<span class="badge badge-green">Termin</span>',
+  negative:'<span class="badge badge-red">Olumsuz</span>',
+  callback:'<span class="badge badge-yellow">Geri Ara</span>',
+  voicemail:'<span class="badge badge-gray">Telesekreter</span>',
+  no_answer:'<span class="badge badge-gray">Cevap Yok</span>',
+  dnc:'<span class="badge badge-red">DNC</span>'
+};
+document.getElementById('my-tbody').innerHTML=(logs||[]).map(l=>{
 const dt=new Date(l.started_at).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
-return `<tr><td class="td-mono">${dt}</td><td>—</td><td class="td-mono">${l.phone_dialed}</td><td>—</td><td class="td-mono">${l.duration_seconds||0}sn</td><td>${OM[l.outcome]||'—'}</td></tr>`;
+const cbInfo = l.callback_at ? `<div style="font-size:10px;color:var(--yellow);">📅 ${new Date(l.callback_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>` : '';
+return `<tr><td class="td-mono">${dt}</td><td>—</td><td class="td-mono">${l.phone||'—'}</td><td>—</td><td class="td-mono">${l.duration_sec||0}sn</td><td>${OM[l.outcome]||'—'}${cbInfo}</td></tr>`;
 }).join('')||`<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:32px;">Henüz çağrı yok</td></tr>`;
 } catch(e){}
 }

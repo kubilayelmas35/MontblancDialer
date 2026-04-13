@@ -204,9 +204,13 @@ async function getNextContact() {
     const campFilter = ids.length === 1
       ? `campaign_id=eq.${ids[0]}`
       : `campaign_id=in.(${ids.join(',')})`;
+    const nowIso = new Date().toISOString();
+
+    // Önce bekleyen / cevap yok / vakti gelen geri aramalar
     const contacts = await sb(
       `contacts?${campFilter}` +
-      `&status=in.(pending,no_answer)` +
+      `&status=in.(pending,no_answer,callback)` +
+      `&or=(callback_at.is.null,callback_at.lte.${nowIso})` +
       `&order=last_called_at.asc.nullsfirst` +
       `&limit=1&select=*,queues(name,status)`
     );
