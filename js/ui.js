@@ -42,6 +42,7 @@ if (page==='campaigns')  loadCampaigns();
 if (page==='agents')     loadAgents();
 if (page==='stats')      { initStatsFilters(); loadStats(); }
 if (page==='callhistory'){ initCallHistoryFilters(); loadCallHistory(); }
+if (page==='export')       loadExportTerminPage();
 if (page==='dialer')         initDialer();
 if (page==='myhistory')      { initMyHistoryFilters(); loadMyHistory(); }
 if (page==='settings')       { loadSavedSettings(); loadRolesPage(); }

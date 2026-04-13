@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.6">
+<link rel="stylesheet" href="css/styles.css?v=6.7">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -189,6 +189,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span class="sb-item-icon"><i class="ph ph-phone-list" style="font-size:17px;"></i></span>
 <span data-tr="Çağrı Geçmişi" data-de="Anrufliste">Çağrı Geçmişi</span>
 </button>
+<button class="sb-item" onclick="navigate('export')">
+<span class="sb-item-icon"><i class="ph ph-table" style="font-size:17px;"></i></span>
+<span data-tr="Dışa aktarım" data-de="Export">Dışa aktarım</span>
+</button>
 </div>
 <div class="sb-divider"></div>
 <div class="sb-section">
@@ -270,7 +274,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v6.6</div>
+<div class="sb-ver">Montblanc Dialer v6.7</div>
 </div>
 </nav>
 <main id="main">
@@ -708,6 +712,112 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
 </tbody>
 </table>
+</div>
+</div>
+</div>
+<div class="page" id="page-export">
+<style>
+#page-export .et-layout{display:grid;grid-template-columns:minmax(280px,320px) 1fr;gap:16px;align-items:start;}
+@media(max-width:1100px){#page-export .et-layout{grid-template-columns:1fr;}}
+#page-export .et-kamp-list{max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg-3);}
+#page-export .et-kamp-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-size:12px;background:var(--bg-2);}
+#page-export .et-kamp-item:last-child{border-bottom:none;}
+#page-export .et-kamp-item:hover{background:var(--bg-4);}
+#page-export .et-kamp-sel{background:var(--accent-soft);font-weight:600;}
+#page-export .et-kamp-cb{margin:0;cursor:pointer;flex-shrink:0;}
+#page-export .et-kamp-lbl{flex:1;min-width:0;}
+#page-export .et-kamp-n{font-size:10px;background:var(--border);padding:2px 7px;border-radius:10px;font-weight:700;}
+#page-export .et-kamp-sel .et-kamp-n{background:var(--accent);color:#fff;}
+#page-export .et-stat-grid{display:flex;flex-direction:column;gap:6px;}
+#page-export .et-stat-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;background:var(--bg-2);}
+#page-export .et-stat-item:hover{border-color:var(--accent);}
+#page-export .et-stat-sel{border-color:var(--accent);background:var(--accent-soft);}
+#page-export .et-stat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+#page-export .et-stat-lbl{flex:1;}
+#page-export .et-stat-n{font-size:10px;background:var(--border);padding:2px 7px;border-radius:10px;font-weight:700;}
+#page-export .et-stat-sel .et-stat-n{background:var(--accent);color:#fff;}
+#page-export .et-loading{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9999;display:none;align-items:center;justify-content:center;}
+#page-export .et-loading-inner{background:var(--bg-2);padding:24px 32px;border-radius:12px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2);}
+#page-export .et-spin{border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;width:36px;height:36px;margin:0 auto 12px;animation:etspin .8s linear infinite;}
+@keyframes etspin{to{transform:rotate(360deg);}}
+</style>
+<div id="et-loading" class="et-loading"><div class="et-loading-inner"><div class="et-spin"></div><div id="et-loading-text" style="font-weight:600;">…</div></div></div>
+<div class="page-hdr">
+<div>
+<div class="page-title" data-tr="Dışa aktarım" data-de="Export">Dışa aktarım</div>
+<div class="page-sub" data-tr="Terminleri filtreleyip Excel olarak indirin" data-de="Termine filtern und als Excel exportieren">Terminleri filtreleyip Excel olarak indirin</div>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+<div id="et-firm-wrap"></div>
+<button type="button" class="btn btn-ghost btn-sm" onclick="etReload()"><i class="ph ph-arrow-clockwise"></i> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
+</div>
+</div>
+<div class="et-layout">
+<div class="et-side">
+<div class="card">
+<div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--accent);"><i class="ph ph-funnel"></i> <span data-tr="Filtreler" data-de="Filter">Filtreler</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+<div><label class="form-label" style="font-size:10px;">Başlangıç</label><input type="date" class="form-input" id="et-date-from" onchange="etReload()"/></div>
+<div><label class="form-label" style="font-size:10px;">Bitiş</label><input type="date" class="form-input" id="et-date-to" onchange="etReload()"/></div>
+</div>
+<div style="margin-bottom:12px;"><label class="form-label" style="font-size:10px;">Agent</label>
+<select class="form-input" id="et-agent" onchange="etApplyFilter()"><option value="">Tüm agentler</option></select></div>
+<div style="margin-bottom:12px;"><label class="form-label" style="font-size:10px;">Müşteri</label>
+<select class="form-input" id="et-customer" onchange="etApplyFilter()"><option value="">Tüm müşteriler</option></select></div>
+<div style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+<label class="form-label" style="margin:0;font-size:10px;">Kampanyalar</label>
+<span class="badge" id="et-kamp-count" style="background:var(--yellow);color:#000;font-size:10px;">0</span>
+</div>
+<div class="et-kamp-list" id="et-kamp-list"></div>
+<div style="display:flex;gap:6px;margin-top:8px;">
+<button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="etSelectAllKamp()"><i class="ph ph-checks"></i> Tümü</button>
+<button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="etDeselectAllKamp()"><i class="ph ph-x"></i> Hiçbiri</button>
+</div>
+<div style="margin-top:14px;margin-bottom:8px;"><label class="form-label" style="font-size:10px;">Durum</label></div>
+<div class="et-stat-grid" id="et-status-grid"></div>
+<div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
+<button type="button" class="btn btn-primary btn-sm" onclick="etReload()"><i class="ph ph-cloud-arrow-down"></i> <span data-tr="Veriyi yükle" data-de="Daten laden">Veriyi yükle</span></button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="etResetFilters(true)"><i class="ph ph-arrow-counter-clockwise"></i> Sıfırla</button>
+</div>
+<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);">
+<div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--accent);"><i class="ph ph-file-arrow-down"></i> <span data-tr="Hızlı liste (hafta · başarılı)" data-de="Schnellliste (Woche · erfolgreich)">Hızlı liste (hafta · başarılı)</span></div>
+<div id="et-shortcuts"></div>
+</div>
+</div>
+</div>
+<div class="card" style="min-height:420px;display:flex;flex-direction:column;">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
+<div style="font-weight:700;font-size:14px;"><i class="ph ph-calendar-dots"></i> Terminler</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+<span class="badge" style="background:var(--accent);color:#fff;"><span id="et-results-count">0</span> <span data-tr="kayıt" data-de="Einträge">kayıt</span></span>
+<span class="badge" style="background:var(--green);color:#fff;"><span id="et-selected-count">0</span> <span data-tr="seçili" data-de="gewählt">seçili</span></span>
+</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="etSelectAllFiltered()"><i class="ph ph-check-square"></i> Tümünü seç</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="etDeselectAll()">Seçimi kaldır</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="etInvertSelection()">Tersine çevir</button>
+</div>
+<div class="tbl-wrap" style="flex:1;max-height:calc(100vh - 260px);">
+<table style="min-width:1100px;">
+<thead><tr>
+<th style="width:40px;text-align:center;"><input type="checkbox" id="et-header-check" onchange="etToggleHeaderAll()"/></th>
+<th data-tr="Tarih / saat" data-de="Datum / Zeit">Tarih / saat</th>
+<th data-tr="Müşteri" data-de="Kunde">Müşteri</th>
+<th data-tr="Telefon" data-de="Telefon">Telefon</th>
+<th data-tr="Adres" data-de="Adresse">Adres</th>
+<th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
+<th data-tr="Durum" data-de="Status">Durum</th>
+<th data-tr="Agent" data-de="Agent">Agent</th>
+<th data-tr="Atanan müşteri" data-de="Kundenzuweisung">Atanan müşteri</th>
+</tr></thead>
+<tbody id="et-tbody"><tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:32px;">—</td></tr></tbody>
+</table>
+</div>
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+<div style="font-size:11px;color:var(--text-3);" data-tr="Seçim yoksa tablodaki tüm satırlar indirilir." data-de="Ohne Auswahl werden alle sichtbaren Zeilen exportiert.">Seçim yoksa tablodaki tüm satırlar indirilir.</div>
+<button type="button" class="btn btn-primary" id="et-download" onclick="exportTerminXlsx()" disabled><i class="ph ph-table"></i> Excel (<span id="et-download-count">0</span>)</button>
+</div>
 </div>
 </div>
 </div>
@@ -2187,23 +2297,24 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=6.6"></script>
-<script src="js/state.js?v=6.6"></script>
-<script src="js/api.js?v=6.6"></script>
-<script src="js/auth.js?v=6.6"></script>
-<script src="js/ui.js?v=6.6"></script>
-<script src="js/export-admin.js?v=6.6"></script>
-<script src="js/competition.js?v=6.6"></script>
-<script src="js/dashboard.js?v=6.6"></script>
-<script src="js/campaigns.js?v=6.6"></script>
-<script src="js/contacts.js?v=6.6"></script>
-<script src="js/telnyx.js?v=6.6"></script>
-<script src="js/dialer.js?v=6.6"></script>
-<script src="js/appointments.js?v=6.6"></script>
-<script src="js/wiedervorlage.js?v=6.6"></script>
-<script src="js/qc.js?v=6.6"></script>
-<script src="js/leave-hr.js?v=6.6"></script>
-<script src="js/muhasebe.js?v=6.6"></script>
-<script src="js/agents.js?v=6.6"></script>
+<script src="js/config.js?v=6.7"></script>
+<script src="js/state.js?v=6.7"></script>
+<script src="js/api.js?v=6.7"></script>
+<script src="js/auth.js?v=6.7"></script>
+<script src="js/ui.js?v=6.7"></script>
+<script src="js/export-admin.js?v=6.7"></script>
+<script src="js/export-termin.js?v=6.7"></script>
+<script src="js/competition.js?v=6.7"></script>
+<script src="js/dashboard.js?v=6.7"></script>
+<script src="js/campaigns.js?v=6.7"></script>
+<script src="js/contacts.js?v=6.7"></script>
+<script src="js/telnyx.js?v=6.7"></script>
+<script src="js/dialer.js?v=6.7"></script>
+<script src="js/appointments.js?v=6.7"></script>
+<script src="js/wiedervorlage.js?v=6.7"></script>
+<script src="js/qc.js?v=6.7"></script>
+<script src="js/leave-hr.js?v=6.7"></script>
+<script src="js/muhasebe.js?v=6.7"></script>
+<script src="js/agents.js?v=6.7"></script>
 </body>
 </html>
