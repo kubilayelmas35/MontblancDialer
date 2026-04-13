@@ -6,19 +6,10 @@
 const MOBILE_SIDEBAR_BP = 480;
 
 function syncMainWithSidebar() {
-const sb = document.getElementById('sidebar');
 const main = document.getElementById('main');
-const body = document.getElementById('body');
-if (!sb || !main || !body) return;
-const inFlow = getComputedStyle(body).display !== 'grid' && getComputedStyle(body).display !== 'flex';
-const w = Math.max(0, Math.round(sb.getBoundingClientRect().width || 0));
-if (inFlow && w > 0) {
-  main.style.marginLeft = `${w}px`;
-  main.style.width = `calc(100% - ${w}px)`;
-} else {
-  main.style.marginLeft = '';
-  main.style.width = '';
-}
+if (!main) return;
+main.style.marginLeft = '';
+main.style.width = '';
 }
 
 function toggleSidebar() {
