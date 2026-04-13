@@ -196,11 +196,22 @@ async function quickQcUpdate(logId, status) {
       body: JSON.stringify({durum: contactStatus, qc_note: note || undefined})});
     const apptRows = fid ? await sb(`appointments?firm_id=eq.${fid}&contact_id=eq.${r.contact_id}&select=id&order=created_at.desc&limit=1`).catch(()=>[]) : [];
     if (apptRows?.length) {
+      const cfg = (window._qcResultCfg || []).find(x => x.key === apptStatus);
       await sb(`appointments?id=eq.${apptRows[0].id}`, {
         method: 'PATCH',
         prefer: 'return=minimal',
         body: JSON.stringify({ customer_id: customerId, durum: apptStatus }),
       });
+      if (cfg?.auto_move_down) {
+        const slots = await sb(`takvim_slots?appointment_id=eq.${apptRows[0].id}&select=id&limit=1`).catch(() => []);
+        if (slots?.[0]?.id) {
+          await sb(`takvim_slots?id=eq.${slots[0].id}`, {
+            method: 'PATCH',
+            prefer: 'return=minimal',
+            body: JSON.stringify({ alta_tasindi: true, durum: 'dolu' }),
+          }).catch(() => {});
+        }
+      }
     }
     await loadQcData();
     toast(`Durum güncellendi ✓`, 'ok');

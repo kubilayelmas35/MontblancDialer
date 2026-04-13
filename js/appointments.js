@@ -463,6 +463,14 @@ async function takvimQcUpdate(apptId, status, customerId) {
     if (status) body.durum = status;
     if (customerId !== undefined) body.customer_id = customerId || null;
     await sb(`appointments?id=eq.${apptId}`, {method:'PATCH', prefer:'return=minimal', body: JSON.stringify(body)});
+    if (status) {
+      const resultCfg = await loadFirmAppointmentResults(getActiveFirmId() || currentUser?.firm_id);
+      const cfg = (resultCfg || []).find(r => r.key === _normResultKey(status));
+      if (cfg?.auto_move_down) {
+        const slots = await sb(`takvim_slots?appointment_id=eq.${apptId}&select=id&limit=1`).catch(() => []);
+        if (slots?.[0]?.id) await slotAltaTasi(slots[0].id);
+      }
+    }
     closeModal('m-takvim-detail');
     await loadTakvimSlots();
     toast('Termin güncellendi ✓', 'ok');

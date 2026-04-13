@@ -57,15 +57,22 @@ if (page==='competition')     loadCompetitionPage();
 }
 
 window._apptResultsByFirm = window._apptResultsByFirm || {};
+function _uiEsc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 function defaultAppointmentResults() {
   return [
-    { key: 'qc_bekleniyor', label: 'QC Bekleniyor', color: '#2563eb', contact_status: 'qc bekleniyor' },
-    { key: 'basarili', label: 'Başarılı', color: '#16a34a', contact_status: 'başarılı' },
-    { key: 'basarisiz', label: 'Başarısız', color: '#dc2626', contact_status: 'başarısız' },
-    { key: 'beklemede', label: 'Beklemede', color: '#f59e0b', contact_status: 'beklemede' },
-    { key: 'ulasilamadi', label: 'Ulaşılamadı', color: '#64748b', contact_status: 'ulaşılamadı' },
-    { key: 'iptal', label: 'İptal', color: '#b91c1c', contact_status: 'iptal' },
+    { key: 'qc_bekleniyor', label: 'QC Bekleniyor', color: '#2563eb', contact_status: 'qc bekleniyor', auto_move_down: false },
+    { key: 'basarili', label: 'Başarılı', color: '#16a34a', contact_status: 'başarılı', auto_move_down: false },
+    { key: 'basarisiz', label: 'Başarısız', color: '#dc2626', contact_status: 'başarısız', auto_move_down: true },
+    { key: 'beklemede', label: 'Beklemede', color: '#f59e0b', contact_status: 'beklemede', auto_move_down: true },
+    { key: 'ulasilamadi', label: 'Ulaşılamadı', color: '#64748b', contact_status: 'ulaşılamadı', auto_move_down: true },
+    { key: 'iptal', label: 'İptal', color: '#b91c1c', contact_status: 'iptal', auto_move_down: true },
   ];
 }
 
@@ -118,6 +125,7 @@ async function loadFirmAppointmentResults(fid, force = false) {
         label: String(r?.label || r?.key || '').trim(),
         color: String(r?.color || '').trim() || '#64748b',
         contact_status: String(r?.contact_status || appointmentResultToContactStatus(r?.key)).trim(),
+        auto_move_down: !!r?.auto_move_down,
       })).filter(r => r.key && r.label)
     : defaultAppointmentResults();
   window._apptResultsByFirm[firmId] = norm;
@@ -125,26 +133,90 @@ async function loadFirmAppointmentResults(fid, force = false) {
 }
 
 async function loadAppointmentResultsSettings() {
-  const ta = document.getElementById('s-appt-results');
-  if (!ta) return;
+  const box = document.getElementById('results-settings-card');
+  const wrap = document.getElementById('s-appt-results-rows');
+  if (!wrap || !box) return;
+  const canEdit = ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+  box.style.display = canEdit ? '' : 'none';
+  if (!canEdit) return;
   const fid = getActiveFirmId() || currentUser?.firm_id;
-  if (!fid) { ta.value = ''; return; }
+  if (!fid) { wrap.innerHTML = ''; return; }
   const rows = await loadFirmAppointmentResults(fid, true);
-  ta.value = rows.map(r => `${r.key}|${r.label}|${r.color || ''}`).join('\n');
+  renderAppointmentResultRows(rows);
+}
+
+function renderAppointmentResultRows(rows) {
+  const wrap = document.getElementById('s-appt-results-rows');
+  if (!wrap) return;
+  const safe = rows?.length ? rows : [defaultAppointmentResults()[0]];
+  wrap.innerHTML = safe.map((r, i) => `
+    <div style="display:grid;grid-template-columns:180px 1fr 140px 170px auto;gap:8px;align-items:end;">
+      <div class="form-row">
+        <label class="form-label">Sonuç tipi</label>
+        <select class="form-input" id="ar-type-${i}" onchange="syncAppointmentResultLabel(${i})">
+          <option value="qc_bekleniyor" ${r.key==='qc_bekleniyor'?'selected':''}>QC Bekleniyor</option>
+          <option value="basarili" ${r.key==='basarili'?'selected':''}>Başarılı</option>
+          <option value="basarisiz" ${r.key==='basarisiz'?'selected':''}>Başarısız</option>
+          <option value="beklemede" ${r.key==='beklemede'?'selected':''}>Beklemede</option>
+          <option value="ulasilamadi" ${r.key==='ulasilamadi'?'selected':''}>Ulaşılamadı</option>
+          <option value="iptal" ${r.key==='iptal'?'selected':''}>İptal</option>
+        </select>
+      </div>
+      <div class="form-row"><label class="form-label">Görünen ad</label><input class="form-input" id="ar-label-${i}" value="${_uiEsc(r.label||'')}"></div>
+      <div class="form-row"><label class="form-label">Renk</label><input class="form-input" id="ar-color-${i}" value="${_uiEsc(r.color||'#64748b')}"></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;padding-bottom:8px;"><input type="checkbox" id="ar-move-${i}" ${r.auto_move_down?'checked':''}> Otomatik alta taşı</label>
+      <button class="btn btn-ghost btn-sm" type="button" onclick="removeAppointmentResultRow(${i})">Sil</button>
+    </div>
+  `).join('');
+  wrap.dataset.count = String(safe.length);
+}
+
+function syncAppointmentResultLabel(idx) {
+  const t = document.getElementById(`ar-type-${idx}`)?.value || '';
+  const l = document.getElementById(`ar-label-${idx}`);
+  if (!l) return;
+  const map = {
+    qc_bekleniyor: 'QC Bekleniyor',
+    basarili: 'Başarılı',
+    basarisiz: 'Başarısız',
+    beklemede: 'Beklemede',
+    ulasilamadi: 'Ulaşılamadı',
+    iptal: 'İptal',
+  };
+  if (!String(l.value || '').trim()) l.value = map[t] || t;
+}
+
+function readAppointmentResultRows() {
+  const wrap = document.getElementById('s-appt-results-rows');
+  const count = Number(wrap?.dataset.count || 0);
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const key = _normResultKey(document.getElementById(`ar-type-${i}`)?.value || '');
+    const label = String(document.getElementById(`ar-label-${i}`)?.value || '').trim() || key;
+    const color = String(document.getElementById(`ar-color-${i}`)?.value || '#64748b').trim();
+    const auto_move_down = !!document.getElementById(`ar-move-${i}`)?.checked;
+    if (!key) continue;
+    out.push({ key, label, color, contact_status: appointmentResultToContactStatus(key), auto_move_down });
+  }
+  return out;
+}
+
+function addAppointmentResultRow() {
+  const cur = readAppointmentResultRows();
+  cur.push({ key: 'beklemede', label: 'Beklemede', color: '#f59e0b', contact_status: 'beklemede', auto_move_down: true });
+  renderAppointmentResultRows(cur);
+}
+
+function removeAppointmentResultRow(idx) {
+  const cur = readAppointmentResultRows().filter((_, i) => i !== idx);
+  renderAppointmentResultRows(cur);
 }
 
 async function saveAppointmentResultsSettings() {
-  const ta = document.getElementById('s-appt-results');
+  const box = document.getElementById('results-settings-card');
   const fid = getActiveFirmId() || currentUser?.firm_id;
-  if (!ta || !fid) return;
-  const lines = String(ta.value || '').split('\n').map(s => s.trim()).filter(Boolean);
-  const parsed = lines.map(line => {
-    const [k, l, c] = line.split('|').map(s => (s || '').trim());
-    const key = _normResultKey(k);
-    const label = l || key;
-    const color = c || '#64748b';
-    return { key, label, color, contact_status: appointmentResultToContactStatus(key) };
-  }).filter(r => r.key && r.label);
+  if (!box || box.style.display === 'none' || !fid) return;
+  const parsed = readAppointmentResultRows();
   if (!parsed.length) { toast('En az bir sonuç girin', 'err'); return; }
   try {
     const firms = await sb(`firms?id=eq.${fid}&select=settings`);
