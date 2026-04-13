@@ -136,20 +136,7 @@ backdrop-filter: blur(8px);
 position: relative;
 overflow: hidden;
 }
-.tb-aurora-layer {
-position: absolute;
-inset: -40% auto -40% -8%;
-width: min(420px, 55vw);
-pointer-events: none;
-z-index: 0;
-opacity: 0.38;
-/* multiply/screen logo metninde morumsu leke yapıyordu */
-mix-blend-mode: normal;
-}
-[data-theme="dark"] .tb-aurora-layer {
-opacity: 0.26;
-}
-#topbar > *:not(.tb-aurora-layer) {
+#topbar > * {
 position: relative;
 z-index: 1;
 }
@@ -687,10 +674,9 @@ LOGIN PAGE
 @media (prefers-reduced-motion: reduce) {
   .fluid-aurora--login::before,
   .fluid-aurora--login::after,
-  .fluid-aurora--topbar::before,
-  .fluid-aurora--topbar::after,
-  .cust-avatar--fluid::before,
-  .dialer-timer-orb {
+  .fluid-aurora--sidebar::before,
+  .fluid-aurora--sidebar::after,
+  .cust-avatar--fluid::before {
     animation: none !important;
   }
 }
@@ -1281,33 +1267,6 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 }
 [data-theme="dark"] .fluid-aurora--login::after {
   opacity: 0.55;
-}
-.fluid-aurora--topbar::before {
-  background: conic-gradient(from 40deg at 30% 50%,
-    rgba(28, 58, 118, 0.38) 0deg,
-    rgba(12, 72, 92, 0.34) 100deg,
-    rgba(48, 42, 108, 0.36) 220deg,
-    rgba(28, 58, 118, 0.38) 360deg);
-  animation: fluid-spin 16s linear infinite;
-  filter: blur(38px);
-  width: 180%;
-  height: 220%;
-  left: -40%;
-  top: -60%;
-}
-.fluid-aurora--topbar::after {
-  background: conic-gradient(from 200deg at 60% 40%,
-    rgba(255, 255, 255, 0.12) 0deg,
-    rgba(14, 165, 233, 0.28) 140deg,
-    rgba(167, 139, 250, 0.22) 280deg,
-    rgba(255, 255, 255, 0.12) 360deg);
-  animation: fluid-spin-rev 21s linear infinite;
-  filter: blur(32px);
-  opacity: 0.75;
-  width: 180%;
-  height: 220%;
-  left: -40%;
-  top: -60%;
 }
 /* Sol menü — v6.15 / e50ce62 aurora: dönen conic, renk zamanla kayar */
 .fluid-aurora--sidebar {
