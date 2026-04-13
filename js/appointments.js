@@ -910,44 +910,50 @@ async function loadMesaiSettings() {
   const card = document.getElementById('mesai-settings-card');
   if (card) card.style.display = isAdmin ? '' : 'none';
   if (!isAdmin) return;
+  const firmId = currentUser?.firm_id;
   let existing = {};
   try {
-    const campId = takvimCampId || currentCampId;
-    if (campId) {
-      const rows = await sb(`mesai_saatleri?campaign_id=eq.${campId}`);
+    if (firmId) {
+      const rows = await sb(`mesai_saatleri?firm_id=eq.${firmId}`);
       (rows||[]).forEach(r => { existing[r.gun] = r; });
     }
   } catch(e) {}
   grid.innerHTML = GUNLER.map(g => {
     const r = existing[g.key] || {};
+    const aktif = !r.calismiyor; // calismiyor=true → kapalı
     return `<div class="mesai-row" data-gun="${g.key}" style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg-3);border-radius:6px;">
-<input type="checkbox" class="mesai-aktif" ${r.aktif!==false?'checked':''} style="width:15px;height:15px;">
+<input type="checkbox" class="mesai-aktif" ${aktif?'checked':''} style="width:15px;height:15px;">
 <span style="font-size:12px;font-weight:600;min-width:90px;">${g.label}</span>
-<input type="time" class="form-input mesai-bas" value="${r.baslangic_saat||'09:00'}" style="width:90px;font-size:12px;padding:4px 6px;">
+<input type="time" class="form-input mesai-bas" value="${r.mesai_baslangic||'09:00'}" style="width:90px;font-size:12px;padding:4px 6px;">
 <span style="font-size:11px;color:var(--text-3);">—</span>
-<input type="time" class="form-input mesai-bit" value="${r.bitis_saat||'18:00'}" style="width:90px;font-size:12px;padding:4px 6px;">
+<input type="time" class="form-input mesai-bit" value="${r.mesai_bitis||'18:00'}" style="width:90px;font-size:12px;padding:4px 6px;">
 </div>`;
   }).join('');
 }
 
 async function saveMesaiSaatleri() {
   const rows = document.querySelectorAll('.mesai-row');
+  if (!rows.length) { toast('Kayıt edilecek satır yok','err'); return; }
+  const firmId = currentUser?.firm_id;
+  if (!firmId) { toast('Firma bilgisi bulunamadı','err'); return; }
   const records = [];
   rows.forEach(row => {
     const gun = row.dataset.gun;
     const aktif = row.querySelector('.mesai-aktif')?.checked;
-    const bas = row.querySelector('.mesai-bas')?.value;
-    const bit = row.querySelector('.mesai-bit')?.value;
+    const bas   = row.querySelector('.mesai-bas')?.value   || '09:00';
+    const bit   = row.querySelector('.mesai-bit')?.value   || '18:00';
     records.push({
-      campaign_id: takvimCampId || currentCampId,
-      firm_id: currentUser.firm_id,
-      gun, aktif: !!aktif, baslangic_saat: bas||'09:00', bitis_saat: bit||'18:00'
+      firm_id: firmId,
+      gun,
+      calismiyor: !aktif,       // aktif=false → calismiyor=true
+      mesai_baslangic: bas,
+      mesai_bitis: bit
     });
   });
   try {
     for (const r of records) {
-      await sbUpsert('mesai_saatleri', r, 'campaign_id,gun');
+      await sbUpsert('mesai_saatleri', r, 'firm_id,gun');
     }
-    toast('Mesai saatleri kaydedildi ✓', 'ok');
+    toast('Çalışma saatleri kaydedildi ✓', 'ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
