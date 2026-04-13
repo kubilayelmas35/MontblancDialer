@@ -7,6 +7,21 @@ function canUsePerformancePage() {
   return ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
 }
 
+/** Chart.js canvas CSS değişkenlerini okuyamaz; siyah çubuk önlemek için gerçek renk. */
+function perfThemeAccentHex() {
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    if (/^#[0-9a-fA-F]{3,8}$/.test(v)) return v.length === 4 ? `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}` : v;
+  } catch (e) {}
+  return '#2563eb';
+}
+
+function perfHexToRgba(hex, alpha) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
+  if (!m) return `rgba(37,99,235,${alpha})`;
+  return `rgba(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)},${alpha})`;
+}
+
 let _perfRawAppts = [];
 let _perfRawCalls = [];
 let _perfFiltAppts = [];
@@ -306,13 +321,14 @@ function perfUpdateCharts() {
   const trend = perfGroupTrend(_perfFiltAppts);
   const ChartCtor = window.Chart;
   if (!ChartCtor) return;
+  const accentHex = perfThemeAccentHex();
   perfEnsureChart('trend', 'perf-chart-trend', (ctx) => new ChartCtor(ctx, {
     type: 'line',
     data: {
       labels: trend.labels,
       datasets: [
         { label: L.ok, data: trend.success, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.08)', tension: 0.3, fill: true },
-        { label: L.tot, data: trend.tot, borderColor: 'var(--accent)', backgroundColor: 'rgba(37,99,235,.05)', tension: 0.3, fill: false },
+        { label: L.tot, data: trend.tot, borderColor: accentHex, backgroundColor: perfHexToRgba(accentHex, 0.06), tension: 0.3, fill: false },
       ],
     },
     options: {
@@ -362,11 +378,12 @@ function perfUpdateCharts() {
     if (_perfCompType === 'efficiency') return r.eff;
     return r.total;
   });
+  const barColors = rows2.map(() => perfHexToRgba(accentHex, 0.75));
   perfEnsureChart('agents', 'perf-chart-agents', (ctx) => new ChartCtor(ctx, {
     type: 'bar',
     data: {
       labels: rows2.map((r) => r.name),
-      datasets: [{ label: L.apBar, data, backgroundColor: 'var(--accent)', borderWidth: 0, borderRadius: 4 }],
+      datasets: [{ label: L.apBar, data, backgroundColor: barColors, borderWidth: 0, borderRadius: 6, maxBarThickness: 48 }],
     },
     options: {
       responsive: true,
