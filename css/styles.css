@@ -857,6 +857,18 @@ SETTINGS PAGE
 ============================================================ */
 .settings-layout { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 @media(max-width:768px) { .settings-layout { grid-template-columns:1fr; } }
+#page-settings .settings-layout > .card { min-width: 0; overflow: hidden; }
+#page-competition #comp-main { min-width: 0; }
+#page-competition .comp-top-grid,
+#page-competition .comp-podium-grid { min-width: 0; }
+@media (max-width: 1360px) {
+  #page-settings .settings-layout { grid-template-columns: 1fr; }
+  #page-competition .comp-top-grid { grid-template-columns: 1fr; }
+  #page-competition .comp-podium-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1024px) {
+  #page-competition .comp-podium-grid { grid-template-columns: 1fr; }
+}
 /* Palette picker */
 .palette-grid { display:flex; gap:8px; flex-wrap:wrap; }
 .palette-dot {
