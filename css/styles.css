@@ -155,29 +155,75 @@ background: currentColor; border-radius: 2px;
 transition: var(--transition);
 }
 .tb-logo {
-display: flex; align-items: center; gap: 9px;
-margin-right: 12px; flex-shrink: 0;
+position: relative;
+display: flex;
+align-items: stretch;
+margin-right: 12px;
+flex-shrink: 0;
+z-index: 1;
+min-height: 44px;
+border-radius: 14px;
+overflow: hidden;
+border: 1px solid rgba(255, 255, 255, 0.14);
+box-shadow: 0 2px 14px rgba(0, 0, 0, 0.12);
+}
+.tb-logo-aurora {
+position: absolute;
+inset: 0;
+border-radius: inherit;
+pointer-events: none;
+z-index: 0;
+}
+.tb-logo-inner {
 position: relative;
 z-index: 1;
+display: flex;
+align-items: center;
+gap: 11px;
+padding: 8px 14px 8px 10px;
+}
+.tb-logo-text {
+display: flex;
+flex-direction: column;
+gap: 1px;
+line-height: 1.15;
 }
 .tb-logo-mark {
-width: 30px; height: 30px;
-background: var(--accent);
-border-radius: 8px;
-display: flex; align-items: center; justify-content: center;
-color: white; font-weight: 800; font-size: 14px;
-box-shadow: 0 2px 8px var(--accent-soft);
+width: 36px;
+height: 36px;
+flex-shrink: 0;
+background: rgba(255, 255, 255, 0.16);
+border: 1px solid rgba(255, 255, 255, 0.28);
+border-radius: 10px;
+display: flex;
+align-items: center;
+justify-content: center;
+color: white;
+box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
-.tb-logo-name { font-size: 15px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
+.tb-logo-name {
+font-size: 16px;
+font-weight: 800;
+letter-spacing: -0.4px;
+color: #fff;
+text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
 .tb-logo-tag {
-font-size: 9px; color: var(--accent); font-family: var(--mono);
-font-weight: 600; letter-spacing: 1px;
+font-size: 9px;
+font-family: var(--mono);
+font-weight: 600;
+letter-spacing: 1.2px;
+color: rgba(255, 200, 210, 0.92);
 background: transparent !important;
 padding: 0;
 margin: 0;
 border: none;
 box-shadow: none;
 border-radius: 0;
+}
+[data-theme="dark"] .tb-logo {
+border-color: rgba(255, 255, 255, 0.1);
+box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
 }
 /* Topbar pills */
 #tb-pills {
@@ -674,6 +720,8 @@ LOGIN PAGE
 @media (prefers-reduced-motion: reduce) {
   .fluid-aurora--login::before,
   .fluid-aurora--login::after,
+  .fluid-aurora--logo::before,
+  .fluid-aurora--logo::after,
   .fluid-aurora--sidebar::before,
   .fluid-aurora--sidebar::after,
   .cust-avatar--fluid::before {
@@ -1268,7 +1316,43 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 [data-theme="dark"] .fluid-aurora--login::after {
   opacity: 0.55;
 }
-/* Sol menü — v6.15 / e50ce62 aurora: dönen conic, renk zamanla kayar */
+/* Topbar logo kutusu — sidebar ile uyumlu koyu aurora */
+.fluid-aurora--logo {
+  inset: 0;
+  border-radius: inherit;
+}
+.fluid-aurora--logo::before {
+  background: conic-gradient(from 115deg at 22% 18%,
+    rgba(6, 48, 62, 0.92) 0deg,
+    rgba(18, 40, 92, 0.9) 70deg,
+    rgba(58, 24, 68, 0.85) 145deg,
+    rgba(10, 62, 58, 0.88) 215deg,
+    rgba(38, 26, 72, 0.82) 290deg,
+    rgba(6, 48, 62, 0.92) 360deg);
+  animation: fluid-spin 20s linear infinite;
+  filter: blur(16px);
+  opacity: 0.92;
+  width: 190%;
+  height: 170%;
+  left: -46%;
+  top: -32%;
+}
+.fluid-aurora--logo::after {
+  background: conic-gradient(from 295deg at 78% 68%,
+    rgba(78, 36, 28, 0.58) 0deg,
+    rgba(32, 34, 78, 0.6) 120deg,
+    rgba(14, 58, 48, 0.56) 235deg,
+    rgba(52, 26, 58, 0.52) 320deg,
+    rgba(78, 36, 28, 0.58) 360deg);
+  animation: fluid-spin-rev 26s linear infinite;
+  filter: blur(12px);
+  opacity: 0.78;
+  width: 170%;
+  height: 170%;
+  left: -36%;
+  top: -32%;
+}
+/* Sol menü — ek koyu duraklar, geçişler daha okunur */
 .fluid-aurora--sidebar {
   inset: 0;
   z-index: 0;
@@ -1277,29 +1361,34 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   z-index: 0;
 }
 .fluid-aurora--sidebar::before {
-  background: conic-gradient(from 120deg at 20% 15%,
-    rgba(8, 68, 82, 0.78) 0deg,
-    rgba(22, 48, 105, 0.72) 90deg,
-    rgba(78, 32, 72, 0.62) 200deg,
-    rgba(10, 78, 85, 0.74) 300deg,
-    rgba(8, 68, 82, 0.78) 360deg);
+  background: conic-gradient(from 118deg at 20% 14%,
+    rgba(5, 42, 58, 0.85) 0deg,
+    rgba(14, 36, 82, 0.82) 48deg,
+    rgba(42, 20, 58, 0.76) 105deg,
+    rgba(8, 58, 52, 0.8) 168deg,
+    rgba(18, 28, 72, 0.78) 228deg,
+    rgba(6, 62, 72, 0.82) 292deg,
+    rgba(52, 22, 48, 0.72) 330deg,
+    rgba(5, 42, 58, 0.85) 360deg);
   animation: fluid-spin 26s linear infinite;
   filter: blur(52px);
-  opacity: 0.52;
+  opacity: 0.56;
   width: 220%;
   height: 180%;
   left: -65%;
   top: -35%;
 }
 .fluid-aurora--sidebar::after {
-  background: conic-gradient(from 300deg at 80% 70%,
-    rgba(92, 48, 38, 0.48) 0deg,
-    rgba(42, 38, 88, 0.52) 130deg,
-    rgba(14, 72, 62, 0.46) 260deg,
-    rgba(92, 48, 38, 0.48) 360deg);
+  background: conic-gradient(from 302deg at 78% 68%,
+    rgba(72, 38, 28, 0.52) 0deg,
+    rgba(28, 32, 72, 0.54) 95deg,
+    rgba(12, 58, 48, 0.5) 185deg,
+    rgba(48, 22, 58, 0.48) 255deg,
+    rgba(18, 48, 42, 0.5) 315deg,
+    rgba(72, 38, 28, 0.52) 360deg);
   animation: fluid-spin-rev 31s linear infinite;
   filter: blur(44px);
-  opacity: 0.44;
+  opacity: 0.48;
   width: 200%;
   height: 200%;
   left: -48%;
