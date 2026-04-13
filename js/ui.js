@@ -3,10 +3,12 @@
 // ─────────────────────────────────────────────
 
 // ── SIDEBAR ──────────────────────────────────
+const MOBILE_SIDEBAR_BP = 480;
+
 function toggleSidebar() {
 const sb   = document.getElementById('sidebar');
 const ov   = document.getElementById('sidebar-overlay');
-const mob  = window.innerWidth <= 768;
+const mob  = window.innerWidth <= MOBILE_SIDEBAR_BP;
 if (mob) {
 const open = sb.classList.contains('open');
 if (open) { sb.classList.remove('open'); ov.classList.remove('show'); }
@@ -22,7 +24,7 @@ document.getElementById('sidebar-overlay').classList.remove('show');
 }
 
 window.addEventListener('resize', () => {
-if (window.innerWidth > 768) {
+if (window.innerWidth > MOBILE_SIDEBAR_BP) {
 document.getElementById('sidebar-overlay').classList.remove('show');
 document.getElementById('sidebar').classList.remove('open');
 }
@@ -36,7 +38,7 @@ const pg = document.getElementById(`page-${page}`);
 if (pg) pg.classList.add('active');
 const btn = document.querySelector(`.sb-item[onclick="navigate('${page}')"]`);
 if (btn) btn.classList.add('active');
-if (window.innerWidth <= 768) closeSidebar();
+if (window.innerWidth <= MOBILE_SIDEBAR_BP) closeSidebar();
 if (page==='dashboard')  loadDashboard();
 if (page==='campaigns')  loadCampaigns();
 if (page==='agents')     loadAgents();
