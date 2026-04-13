@@ -78,6 +78,10 @@ DARK THEME
 SHARED TOKENS
 ============================================================ */
 :root {
+/* Üst logo + sol menüdeki marka ön planı — tek ton */
+--brand-chrome-fg:     rgba(255, 255, 255, 0.93);
+--brand-chrome-frost:  rgba(255, 255, 255, 0.15);
+--brand-chrome-border: rgba(255, 255, 255, 0.28);
 --green:        #16a34a;
 --green-soft:   #16a34a15;
 --yellow:       #d97706;
@@ -191,20 +195,20 @@ line-height: 1.2;
 width: 36px;
 height: 36px;
 flex-shrink: 0;
-background: rgba(255, 255, 255, 0.16);
-border: 1px solid rgba(255, 255, 255, 0.28);
+background: var(--brand-chrome-frost);
+border: 1px solid var(--brand-chrome-border);
 border-radius: 10px;
 display: flex;
 align-items: center;
 justify-content: center;
-color: white;
+color: var(--brand-chrome-fg);
 box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 .tb-logo-name {
 font-size: 16px;
 font-weight: 800;
 letter-spacing: -0.4px;
-color: #fff;
+color: var(--brand-chrome-fg);
 text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 [data-theme="dark"] .tb-logo {
@@ -359,7 +363,7 @@ border-radius: 10px; font-family: var(--mono);
 .sb-footer { margin-top: auto; padding: 12px 10px; border-top: 1px solid rgba(255,255,255,0.08); }
 .sb-ver { font-size: 10px; color: rgba(255,255,255,0.25); font-family: var(--mono); }
 /* Sidebar header logo */
-#sidebar .tb-logo-name { color: rgba(255,255,255,0.95) !important; }
+#sidebar .tb-logo-name { color: var(--brand-chrome-fg) !important; }
 #sidebar .tb-hamburger { color: rgba(255,255,255,0.5); }
 #sidebar .tb-hamburger:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); }
 #sidebar .tb-hamburger span { background: currentColor; }
@@ -1308,11 +1312,14 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .fluid-aurora--logo::before {
   background: conic-gradient(from 115deg at 22% 18%,
     rgba(6, 48, 62, 0.92) 0deg,
+    rgba(88, 70, 108, 0.42) 22deg,
     rgba(72, 32, 52, 0.52) 40deg,
     rgba(18, 40, 92, 0.9) 70deg,
+    rgba(96, 58, 88, 0.4) 92deg,
     rgba(52, 22, 78, 0.55) 108deg,
     rgba(58, 24, 68, 0.85) 145deg,
     rgba(10, 62, 58, 0.88) 215deg,
+    rgba(72, 78, 118, 0.38) 236deg,
     rgba(44, 26, 72, 0.52) 252deg,
     rgba(38, 26, 72, 0.82) 290deg,
     rgba(6, 48, 62, 0.92) 360deg);
@@ -1327,10 +1334,12 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .fluid-aurora--logo::after {
   background: conic-gradient(from 295deg at 78% 68%,
     rgba(78, 36, 28, 0.58) 0deg,
+    rgba(102, 52, 68, 0.4) 32deg,
     rgba(88, 34, 48, 0.46) 58deg,
     rgba(32, 34, 78, 0.6) 120deg,
     rgba(58, 26, 72, 0.44) 178deg,
     rgba(14, 58, 48, 0.56) 235deg,
+    rgba(92, 68, 112, 0.36) 258deg,
     rgba(48, 22, 68, 0.42) 278deg,
     rgba(52, 26, 58, 0.52) 320deg,
     rgba(78, 36, 28, 0.58) 360deg);
@@ -1353,13 +1362,17 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .fluid-aurora--sidebar::before {
   background: conic-gradient(from 118deg at 20% 14%,
     rgba(5, 42, 58, 0.85) 0deg,
+    rgba(88, 68, 102, 0.44) 16deg,
     rgba(68, 28, 48, 0.48) 32deg,
     rgba(14, 36, 82, 0.82) 48deg,
+    rgba(100, 78, 118, 0.4) 62deg,
     rgba(48, 20, 72, 0.52) 78deg,
     rgba(42, 20, 58, 0.76) 105deg,
+    rgba(95, 52, 72, 0.38) 138deg,
     rgba(8, 58, 52, 0.8) 168deg,
     rgba(22, 24, 78, 0.5) 198deg,
     rgba(18, 28, 72, 0.78) 228deg,
+    rgba(72, 82, 122, 0.42) 262deg,
     rgba(6, 62, 72, 0.82) 292deg,
     rgba(58, 24, 52, 0.46) 312deg,
     rgba(52, 22, 48, 0.72) 330deg,
@@ -1375,13 +1388,16 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .fluid-aurora--sidebar::after {
   background: conic-gradient(from 302deg at 78% 68%,
     rgba(72, 38, 28, 0.52) 0deg,
+    rgba(98, 48, 62, 0.4) 24deg,
     rgba(82, 32, 44, 0.42) 48deg,
     rgba(28, 32, 72, 0.54) 95deg,
     rgba(52, 24, 62, 0.4) 142deg,
     rgba(12, 58, 48, 0.5) 185deg,
+    rgba(88, 58, 88, 0.36) 218deg,
     rgba(48, 22, 58, 0.48) 255deg,
     rgba(62, 28, 52, 0.38) 288deg,
     rgba(18, 48, 42, 0.5) 315deg,
+    rgba(92, 72, 108, 0.34) 338deg,
     rgba(72, 38, 28, 0.52) 360deg);
   animation: fluid-spin-rev 31s linear infinite;
   filter: blur(44px);
