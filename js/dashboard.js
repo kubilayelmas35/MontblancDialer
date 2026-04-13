@@ -38,12 +38,16 @@ function _isTerminOutcome(o) {
   return o === 'appointment' || o === 'appointment_done';
 }
 
+function _dashCssVar(name, fallback) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
 function renderDashChart7d(logsByDay, labels) {
   const canvas = document.getElementById('dash-chart-7d');
   if (!canvas || typeof Chart === 'undefined') return;
-  const root = getComputedStyle(document.documentElement);
-  const accent = (root.getPropertyValue('--accent') || '#2563eb').trim();
-  const border = (root.getPropertyValue('--border') || '#e2e8f0').trim();
+  const accent = _dashCssVar('--accent', '#2563eb');
+  const border = _dashCssVar('--border', '#e2e8f0');
   if (window._dashChart7d) { window._dashChart7d.destroy(); window._dashChart7d = null; }
   window._dashChart7d = new Chart(canvas, {
     type: 'line',
@@ -53,7 +57,7 @@ function renderDashChart7d(logsByDay, labels) {
         label: currentLang === 'tr' ? 'Çağrı' : 'Anrufe',
         data: logsByDay,
         borderColor: accent,
-        backgroundColor: accent + '22',
+        backgroundColor: accent.length === 7 ? accent + '22' : 'rgba(37,99,235,0.12)',
         fill: true,
         tension: 0.35,
         pointRadius: 3
@@ -66,6 +70,154 @@ function renderDashChart7d(logsByDay, labels) {
       scales: {
         x: { grid: { color: border }, ticks: { font: { size: 11 } } },
         y: { beginAtZero: true, grid: { color: border }, ticks: { stepSize: 1, font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+/** Bugün — saatlik: çubuk = toplam çağrı, çizgi = termin */
+function renderDashHourlyMixed(logs) {
+  const canvas = document.getElementById('dash-chart-hourly');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const hourly = Array(24).fill(0);
+  const hourlyTermin = Array(24).fill(0);
+  (logs || []).forEach(l => {
+    if (!l.started_at) return;
+    const h = new Date(l.started_at).getHours();
+    if (h < 0 || h > 23) return;
+    hourly[h]++;
+    if (_isTerminOutcome(l.outcome)) hourlyTermin[h]++;
+  });
+  const labels = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0') + ':00');
+  const accent = _dashCssVar('--accent', '#2563eb');
+  const green = _dashCssVar('--green', '#16a34a');
+  const border = _dashCssVar('--border', '#e2e8f0');
+  const t = currentLang === 'tr';
+  if (window._dashChartHourly) { window._dashChartHourly.destroy(); window._dashChartHourly = null; }
+  window._dashChartHourly = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: t ? 'Çağrı' : 'Anrufe',
+          data: hourly,
+          backgroundColor: accent.length === 7 ? accent + '33' : 'rgba(37,99,235,0.2)',
+          borderColor: accent,
+          borderWidth: 1,
+          order: 2,
+          borderRadius: 4
+        },
+        {
+          type: 'line',
+          label: t ? 'Termin' : 'Termin',
+          data: hourlyTermin,
+          borderColor: green,
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          tension: 0.25,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          order: 1,
+          yAxisID: 'y'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            afterLabel(ctx) {
+              if (ctx.datasetIndex !== 0) return '';
+              const tot = hourly[ctx.dataIndex] || 0;
+              const te = hourlyTermin[ctx.dataIndex] || 0;
+              if (!tot) return '';
+              return t ? `Başarı: %${((te / tot) * 100).toFixed(0)} (termin/çağrı)` : `Quote: %${((te / tot) * 100).toFixed(0)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12, font: { size: 10 } }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: border },
+          ticks: { stepSize: 1, font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+/** Bugün — sonuç dağılımı (doughnut) */
+function renderDashOutcomeDonut(logs) {
+  const canvas = document.getElementById('dash-chart-outcomes');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const tr = currentLang === 'tr';
+  const cat = {
+    termin: { n: 0, tr: 'Termin', de: 'Termin' },
+    callback: { n: 0, tr: 'Geri ara', de: 'Rückruf' },
+    negative: { n: 0, tr: 'Olumsuz', de: 'Negativ' },
+    no_answer: { n: 0, tr: 'Cevap yok', de: 'Keine Antwort' },
+    voicemail: { n: 0, tr: 'Telesekreter', de: 'Mailbox' },
+    dnc: { n: 0, tr: 'Kara liste', de: 'DNC' },
+    other: { n: 0, tr: 'Diğer', de: 'Sonstige' }
+  };
+  (logs || []).forEach(l => {
+    const o = l.outcome || '';
+    if (_isTerminOutcome(o)) cat.termin.n++;
+    else if (o === 'callback') cat.callback.n++;
+    else if (o === 'negative') cat.negative.n++;
+    else if (o === 'no_answer') cat.no_answer.n++;
+    else if (o === 'voicemail') cat.voicemail.n++;
+    else if (o === 'dnc') cat.dnc.n++;
+    else cat.other.n++;
+  });
+  const order = ['termin', 'callback', 'negative', 'no_answer', 'voicemail', 'dnc', 'other'];
+  const labels = [];
+  const data = [];
+  const colors = [];
+  const green = _dashCssVar('--green', '#16a34a');
+  const yellow = _dashCssVar('--yellow', '#d97706');
+  const red = _dashCssVar('--red', '#dc2626');
+  const accent = _dashCssVar('--accent', '#2563eb');
+  const purple = _dashCssVar('--purple', '#7c3aed');
+  const muted = _dashCssVar('--text-3', '#9ca3af');
+  const colorMap = { termin: green, callback: yellow, negative: red, no_answer: muted, voicemail: accent, dnc: purple, other: _dashCssVar('--text-2', '#6b7280') };
+  order.forEach(k => {
+    if (cat[k].n > 0) {
+      labels.push(tr ? cat[k].tr : cat[k].de);
+      data.push(cat[k].n);
+      colors.push(colorMap[k]);
+    }
+  });
+  if (window._dashChartOutcomes) { window._dashChartOutcomes.destroy(); window._dashChartOutcomes = null; }
+  if (!data.length) {
+    labels.push(tr ? 'Veri yok' : 'Keine Daten');
+    data.push(1);
+    colors.push(muted);
+  }
+  const sliceBorder = _dashCssVar('--bg-2', '#ffffff');
+  window._dashChartOutcomes = new Chart(canvas, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: sliceBorder, borderWidth: 2, hoverOffset: 6 }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '58%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { boxWidth: 10, font: { size: 11 }, padding: 10, usePointStyle: true }
+        }
       }
     }
   });
@@ -86,14 +238,16 @@ if (subEl) {
     : (currentLang === 'tr' ? 'Günlük toplam çağrı sayısı' : 'Anzahl Anrufe pro Tag');
 }
 const now = new Date();
+const today = now.toISOString().split('T')[0];
 document.getElementById('dash-date').textContent =
 now.toLocaleDateString(currentLang==='tr'?'tr-TR':'de-DE', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
 try {
-const today = now.toISOString().split('T')[0];
 let qToday = `call_logs?select=*&started_at=gte.${today}T00:00:00&started_at=lte.${today}T23:59:59`;
 qToday += ff;
 qToday += agentQ;
 const logs  = await sb(qToday);
+renderDashHourlyMixed(logs);
+renderDashOutcomeDonut(logs);
 const total = logs.length;
 const appts = logs.filter(l=>_isTerminOutcome(l.outcome)).length;
 const cbs   = logs.filter(l=>l.outcome==='callback').length;
@@ -110,7 +264,7 @@ document.getElementById('d-calls-m').textContent= `${total} çağrı bugün`;
 document.getElementById('d-appt-m').textContent = total>0?`%${((appts/total)*100).toFixed(1)} dönüşüm`:'%0 dönüşüm';
 document.getElementById('d-avg').textContent    = `ort. ${total>0?Math.round(talk/total):0}sn/çağrı`;
 document.getElementById('pill-appt').textContent= appts;
-} catch(e){ console.error(e); }
+} catch(e){ console.error(e); renderDashHourlyMixed([]); renderDashOutcomeDonut([]); }
 try {
 const from7 = new Date(now);
 from7.setDate(from7.getDate() - 6);

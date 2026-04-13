@@ -397,6 +397,17 @@ box-shadow: var(--shadow);
 .stat-yellow .stat-val { color: var(--yellow); }
 .stat-red .stat-val    { color: var(--red); }
 .stat-purple .stat-val { color: var(--purple); }
+/* Özet — analiz grid */
+.dash-analytics-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+@media (max-width: 960px) {
+  .dash-analytics-grid { grid-template-columns: 1fr; }
+}
+.dash-chart-box { height: 260px; position: relative; padding: 0 4px 8px; }
 /* Table */
 .tbl-wrap { overflow-x: auto; }
 table { width:100%; border-collapse:collapse; }
