@@ -364,6 +364,14 @@ visibility: visible;
 #page-competition {
   padding-top: calc(var(--topbar-h) + 16px) !important;
 }
+#sidebar:not(.collapsed) ~ #main #page-settings,
+#sidebar:not(.collapsed) ~ #main #page-competition {
+  padding-left: calc(var(--sidebar-w) + 24px) !important;
+}
+#sidebar.collapsed ~ #main #page-settings,
+#sidebar.collapsed ~ #main #page-competition {
+  padding-left: 80px !important;
+}
 @media (max-width: 768px) { .page { padding: 14px; } }
 .page-hdr {
 display: flex; align-items: flex-start; justify-content: space-between;
