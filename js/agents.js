@@ -442,12 +442,12 @@ const BUILTIN_ROLES = [
   { key:'firm_admin',  label:'Firma Admin',  color:'var(--accent)', builtin:true,
     perms:['dashboard','campaigns','contacts','callhistory','stats','agents','takvim','qc','wiedervorlage'] },
   { key:'agent',       label:'Agent',        color:'var(--green)', builtin:true,
-    perms:['dialer','myhistory','wiedervorlage','takvim'] },
+    perms:['dashboard','dialer','myhistory','wiedervorlage','takvim'] },
   { key:'qc',          label:'QC',           color:'var(--yellow)', builtin:true,
-    perms:['qc','callhistory','wiedervorlage'] },
+    perms:['dashboard','qc','callhistory','wiedervorlage'] },
 ];
 const ALL_PAGES = [
-  {key:'dashboard',    label:'Dashboard'},
+  {key:'dashboard',    label:'Özet'},
   {key:'campaigns',    label:'Kampanyalar'},
   {key:'contacts',     label:'Kişiler/Kuyruk'},
   {key:'callhistory',  label:'Çağrı Geçmişi'},

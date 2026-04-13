@@ -26,16 +26,76 @@ document.getElementById('pill-appt').textContent = logs.length;
 } catch(e){}
 }
 
+function _dashLogFilter() {
+  const ff = getFirmFilter('&') || '';
+  const role = currentUser?.role || '';
+  const onlySelf = role === 'agent';
+  const agentQ = onlySelf ? `&agent_id=eq.${currentUser.id}` : '';
+  return { ff, agentQ, onlySelf, isAdmin: ['admin','super_admin','firm_admin'].includes(role) };
+}
+
+function _isTerminOutcome(o) {
+  return o === 'appointment' || o === 'appointment_done';
+}
+
+function renderDashChart7d(logsByDay, labels) {
+  const canvas = document.getElementById('dash-chart-7d');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const root = getComputedStyle(document.documentElement);
+  const accent = (root.getPropertyValue('--accent') || '#2563eb').trim();
+  const border = (root.getPropertyValue('--border') || '#e2e8f0').trim();
+  if (window._dashChart7d) { window._dashChart7d.destroy(); window._dashChart7d = null; }
+  window._dashChart7d = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: currentLang === 'tr' ? 'Çağrı' : 'Anrufe',
+        data: logsByDay,
+        borderColor: accent,
+        backgroundColor: accent + '22',
+        fill: true,
+        tension: 0.35,
+        pointRadius: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: border }, ticks: { font: { size: 11 } } },
+        y: { beginAtZero: true, grid: { color: border }, ticks: { stepSize: 1, font: { size: 11 } } }
+      }
+    }
+  });
+}
+
 async function loadDashboard() {
 renderFirmSelector('dash-firm-selector', loadDashboard);
+const { ff, agentQ, onlySelf } = _dashLogFilter();
+const costEl = document.getElementById('dash-stat-cost');
+const liveWrap = document.getElementById('dash-live-wrap');
+const subEl = document.getElementById('dash-chart-sub');
+if (costEl) costEl.style.display = onlySelf ? 'none' : '';
+const showLive = ['admin', 'super_admin', 'firm_admin', 'qc'].includes(currentUser?.role || '');
+if (liveWrap) liveWrap.style.display = showLive ? '' : 'none';
+if (subEl) {
+  subEl.textContent = onlySelf
+    ? (currentLang === 'tr' ? 'Senin günlük çağrı sayın' : 'Deine Anrufe pro Tag')
+    : (currentLang === 'tr' ? 'Günlük toplam çağrı sayısı' : 'Anzahl Anrufe pro Tag');
+}
 const now = new Date();
 document.getElementById('dash-date').textContent =
 now.toLocaleDateString(currentLang==='tr'?'tr-TR':'de-DE', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
 try {
 const today = now.toISOString().split('T')[0];
-const logs  = await sb(`call_logs?select=*&started_at=gte.${today}T00:00:00&started_at=lte.${today}T23:59:59`);
+let qToday = `call_logs?select=*&started_at=gte.${today}T00:00:00&started_at=lte.${today}T23:59:59`;
+qToday += ff;
+qToday += agentQ;
+const logs  = await sb(qToday);
 const total = logs.length;
-const appts = logs.filter(l=>l.outcome==='appointment').length;
+const appts = logs.filter(l=>_isTerminOutcome(l.outcome)).length;
 const cbs   = logs.filter(l=>l.outcome==='callback').length;
 const vms   = logs.filter(l=>l.amd_result==='machine').length;
 const cost  = logs.reduce((s,l)=>s+(l.cost_usd||0),0);
@@ -52,6 +112,25 @@ document.getElementById('d-avg').textContent    = `ort. ${total>0?Math.round(tal
 document.getElementById('pill-appt').textContent= appts;
 } catch(e){ console.error(e); }
 try {
+const from7 = new Date(now);
+from7.setDate(from7.getDate() - 6);
+const fromStr = from7.toISOString().split('T')[0];
+let q7 = `call_logs?select=started_at&started_at=gte.${fromStr}T00:00:00&started_at=lte.${today}T23:59:59`;
+q7 += ff;
+q7 += agentQ;
+const weekLogs = await sb(q7) || [];
+const labels = [];
+const counts = [];
+for (let i = 6; i >= 0; i--) {
+  const d = new Date(now);
+  d.setDate(d.getDate() - i);
+  const ds = d.toISOString().split('T')[0];
+  labels.push(d.toLocaleDateString(currentLang === 'tr' ? 'tr-TR' : 'de-DE', { weekday: 'short', day: 'numeric' }));
+  counts.push(weekLogs.filter(l => String(l.started_at || '').slice(0, 10) === ds).length);
+}
+renderDashChart7d(counts, labels);
+} catch (e) { console.error(e); }
+if (showLive) try {
 const sessions = await sb('agent_sessions?select=*');
 const live = document.getElementById('live-agents');
 const active = sessions.filter(s=>s.status!=='offline');

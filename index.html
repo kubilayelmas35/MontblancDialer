@@ -8,7 +8,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=3.3">
+<link rel="stylesheet" href="css/styles.css?v=3.4">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
 <body>
@@ -161,7 +162,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="sb-label" data-tr="Genel" data-de="Allgemein">Genel</div>
 <button class="sb-item active" onclick="navigate('dashboard')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
-<span data-tr="Dashboard" data-de="Dashboard">Dashboard</span>
+<span data-tr="Özet" data-de="Übersicht">Özet</span>
 </button>
 <button class="sb-item" id="nav-firms-btn" style="display:none;" onclick="navigate('firms')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></span>
@@ -210,6 +211,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div id="nav-agent" style="display:none;">
 <div class="sb-section">
+<button class="sb-item" onclick="navigate('dashboard')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+<span data-tr="Özet" data-de="Übersicht">Özet</span>
+</button>
 <button class="sb-item active" onclick="navigate('dialer')">
 <span class="sb-item-icon"><i class="ph ph-phone-call" style="font-size:17px;"></i></span>
 <span data-tr="Dialer" data-de="Dialer">Dialer</span>
@@ -241,14 +246,14 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v3.3</div>
+<div class="sb-ver">Montblanc Dialer v3.4</div>
 </div>
 </nav>
 <main id="main">
 <div class="page active" id="page-dashboard">
 <div class="page-hdr">
 <div>
-<div class="page-title" data-tr="Dashboard" data-de="Dashboard">Dashboard</div>
+<div class="page-title" data-tr="Özet" data-de="Übersicht">Özet</div>
 <div class="page-sub" id="dash-date"></div>
 </div>
 <div style="display:flex;align-items:center;gap:8px;">
@@ -277,7 +282,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="stat-val" id="d-vm">0</div>
 <div class="stat-meta" data-tr="AMD yakaladı" data-de="AMD erkannt">AMD yakaladı</div>
 </div>
-<div class="stat-card">
+<div class="stat-card" id="dash-stat-cost">
 <div class="stat-lbl" data-tr="Harcanan Bakiye" data-de="Kosten heute">Harcanan Bakiye</div>
 <div class="stat-val" id="d-cost" style="color:var(--yellow);">$0.00</div>
 <div class="stat-meta" data-tr="bugün" data-de="heute">bugün</div>
@@ -288,7 +293,18 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="stat-meta" id="d-avg">ort. 0sn/çağrı</div>
 </div>
 </div>
-<div class="card">
+<div class="card" id="dash-chart-card">
+<div class="card-hdr">
+<div>
+<div class="card-title" data-tr="Son 7 gün — çağrılar" data-de="Letzte 7 Tage — Anrufe">Son 7 gün — çağrılar</div>
+<div class="card-sub" id="dash-chart-sub" data-tr="Günlük toplam çağrı sayısı" data-de="Anzahl Anrufe pro Tag">Günlük toplam çağrı sayısı</div>
+</div>
+</div>
+<div style="height:240px;position:relative;padding:0 4px 8px;">
+<canvas id="dash-chart-7d"></canvas>
+</div>
+</div>
+<div class="card" id="dash-live-wrap">
 <div class="card-hdr">
 <div>
 <div class="card-title" data-tr="Canlı Agent Durumu" data-de="Live-Agentenstatus">Canlı Agent Durumu</div>
@@ -1704,19 +1720,19 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=3.3"></script>
-<script src="js/state.js?v=3.3"></script>
-<script src="js/api.js?v=3.3"></script>
-<script src="js/auth.js?v=3.3"></script>
-<script src="js/ui.js?v=3.3"></script>
-<script src="js/dashboard.js?v=3.3"></script>
-<script src="js/campaigns.js?v=3.3"></script>
-<script src="js/contacts.js?v=3.3"></script>
-<script src="js/telnyx.js?v=3.3"></script>
-<script src="js/dialer.js?v=3.3"></script>
-<script src="js/appointments.js?v=3.3"></script>
-<script src="js/wiedervorlage.js?v=3.3"></script>
-<script src="js/qc.js?v=3.3"></script>
-<script src="js/agents.js?v=3.3"></script>
+<script src="js/config.js?v=3.4"></script>
+<script src="js/state.js?v=3.4"></script>
+<script src="js/api.js?v=3.4"></script>
+<script src="js/auth.js?v=3.4"></script>
+<script src="js/ui.js?v=3.4"></script>
+<script src="js/dashboard.js?v=3.4"></script>
+<script src="js/campaigns.js?v=3.4"></script>
+<script src="js/contacts.js?v=3.4"></script>
+<script src="js/telnyx.js?v=3.4"></script>
+<script src="js/dialer.js?v=3.4"></script>
+<script src="js/appointments.js?v=3.4"></script>
+<script src="js/wiedervorlage.js?v=3.4"></script>
+<script src="js/qc.js?v=3.4"></script>
+<script src="js/agents.js?v=3.4"></script>
 </body>
 </html>
