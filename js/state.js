@@ -69,6 +69,10 @@ let _autoDial    = true;
 let _allFirms       = [];
 let _selectedFirmId = null;
 
+// Mesai saatleri
+let _mesaiFirmId       = null;  // super admin'in mesai için seçtiği firma
+let _mesaiFirmSettings = null;  // o firmanın settings JSONB'si (admin_can_edit_mesai vb.)
+
 // Import
 let _iaRows    = [];
 let _iaHeaders = [];

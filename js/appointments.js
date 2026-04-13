@@ -903,57 +903,161 @@ function getImportMapping() {
 }
 
 // ── Mesai saatleri ────────────────────────────
+
 async function loadMesaiSettings() {
-  const grid = document.getElementById('mesai-grid');
-  if (!grid) return;
-  const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
   const card = document.getElementById('mesai-settings-card');
-  if (card) card.style.display = isAdmin ? '' : 'none';
-  if (!isAdmin) return;
-  const firmId = currentUser?.firm_id;
+  if (!card) return;
+
+  const role = currentUser?.role || '';
+  const isSuperAdmin  = role === 'super_admin';
+  const isAdminLevel  = ['admin','firm_admin'].includes(role);
+  const canView = isSuperAdmin || isAdminLevel;
+
+  card.style.display = canView ? '' : 'none';
+  if (!canView) return;
+
+  const firmRow    = document.getElementById('mesai-firm-row');
+  const permRow    = document.getElementById('mesai-admin-perm-row');
+  const saveBtn    = document.getElementById('mesai-save-btn');
+  const noticeEl   = document.getElementById('mesai-readonly-notice');
+
+  if (isSuperAdmin) {
+    // Firma seçici göster
+    if (firmRow) firmRow.style.display = '';
+    if (permRow) permRow.style.display = 'flex';
+
+    const firmSel = document.getElementById('mesai-firm-select');
+    if (firmSel && !firmSel.options.length) {
+      try {
+        const firms = await sb('firms?is_active=eq.true&select=id,name&order=name');
+        firmSel.innerHTML = (firms||[]).map(f =>
+          `<option value="${f.id}">${f.name}</option>`
+        ).join('');
+      } catch(e) {}
+    }
+    if (firmSel?.value) _mesaiFirmId = firmSel.value;
+    else if (firmSel?.options.length) _mesaiFirmId = firmSel.options[0].value;
+    _mesaiFirmSettings = null; // firma değişti, cache temizle
+  } else {
+    if (firmRow) firmRow.style.display = 'none';
+    if (permRow) permRow.style.display = 'none';
+    _mesaiFirmId = currentUser?.firm_id;
+  }
+
+  await _renderMesaiGrid();
+}
+
+async function _renderMesaiGrid() {
+  const grid    = document.getElementById('mesai-grid');
+  const saveBtn = document.getElementById('mesai-save-btn');
+  const noticeEl= document.getElementById('mesai-readonly-notice');
+  const permChk = document.getElementById('mesai-admin-perm-chk');
+  if (!grid) return;
+
+  const role         = currentUser?.role || '';
+  const isSuperAdmin = role === 'super_admin';
+  const firmId       = _mesaiFirmId;
+
+  if (!firmId) {
+    grid.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:8px;">Firma seçin</div>';
+    return;
+  }
+
+  // Firma settings'ini yükle (admin izin kontrolü için)
+  if (!_mesaiFirmSettings) {
+    try {
+      const firms = await sb(`firms?id=eq.${firmId}&select=settings`);
+      _mesaiFirmSettings = firms?.[0]?.settings || {};
+    } catch(e) { _mesaiFirmSettings = {}; }
+  }
+
+  const adminCanEdit = !!_mesaiFirmSettings?.admin_can_edit_mesai;
+  const canEdit = isSuperAdmin || adminCanEdit;
+
+  // Admin izin checkbox'ını güncelle
+  if (permChk && isSuperAdmin) permChk.checked = adminCanEdit;
+
+  // Readonly uyarısı
+  if (noticeEl) noticeEl.style.display = (!isSuperAdmin && !canEdit) ? '' : 'none';
+  if (saveBtn)  saveBtn.style.display  = canEdit ? '' : 'none';
+
+  // Mesai satırlarını yükle
   let existing = {};
   try {
-    if (firmId) {
-      const rows = await sb(`mesai_saatleri?firm_id=eq.${firmId}`);
-      (rows||[]).forEach(r => { existing[r.gun] = r; });
-    }
+    const rows = await sb(`mesai_saatleri?firm_id=eq.${firmId}`);
+    (rows||[]).forEach(r => { existing[r.gun] = r; });
   } catch(e) {}
+
+  const dis = canEdit ? '' : 'disabled';
   grid.innerHTML = GUNLER.map(g => {
     const r = existing[g.key] || {};
-    const aktif = !r.calismiyor; // calismiyor=true → kapalı
+    const aktif = !r.calismiyor;
     return `<div class="mesai-row" data-gun="${g.key}" style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg-3);border-radius:6px;">
-<input type="checkbox" class="mesai-aktif" ${aktif?'checked':''} style="width:15px;height:15px;">
+<input type="checkbox" class="mesai-aktif" ${aktif?'checked':''} ${dis} style="width:15px;height:15px;${dis?'cursor:not-allowed;opacity:.5;':''}">
 <span style="font-size:12px;font-weight:600;min-width:90px;">${g.label}</span>
-<input type="time" class="form-input mesai-bas" value="${r.mesai_baslangic||'09:00'}" style="width:90px;font-size:12px;padding:4px 6px;">
+<input type="time" class="form-input mesai-bas" value="${r.mesai_baslangic||'09:00'}" ${dis} style="width:90px;font-size:12px;padding:4px 6px;${dis?'opacity:.5;':''}">
 <span style="font-size:11px;color:var(--text-3);">—</span>
-<input type="time" class="form-input mesai-bit" value="${r.mesai_bitis||'18:00'}" style="width:90px;font-size:12px;padding:4px 6px;">
+<input type="time" class="form-input mesai-bit" value="${r.mesai_bitis||'18:00'}" ${dis} style="width:90px;font-size:12px;padding:4px 6px;${dis?'opacity:.5;':''}">
 </div>`;
   }).join('');
 }
 
+// Süper admin firma dropdown değiştirince
+async function onMesaiFirmChange() {
+  const firmSel = document.getElementById('mesai-firm-select');
+  _mesaiFirmId       = firmSel?.value || null;
+  _mesaiFirmSettings = null; // cache sıfırla
+  await _renderMesaiGrid();
+}
+
+// Süper admin: adminin düzenleme iznini kaydet
+async function saveAdminMesaiPermission() {
+  if (currentUser?.role !== 'super_admin') return;
+  const firmId = _mesaiFirmId;
+  if (!firmId) { toast('Önce firma seçin', 'err'); return; }
+  const perm = !!document.getElementById('mesai-admin-perm-chk')?.checked;
+  try {
+    const firms = await sb(`firms?id=eq.${firmId}&select=id,settings`);
+    const firm  = firms?.[0];
+    if (!firm) throw new Error('Firma bulunamadı');
+    const newSettings = { ...(firm.settings||{}), admin_can_edit_mesai: perm };
+    await sb(`firms?id=eq.${firmId}`, {
+      method:'PATCH', prefer:'return=minimal',
+      body: JSON.stringify({ settings: newSettings })
+    });
+    _mesaiFirmSettings = newSettings;
+    toast(perm ? 'Admin düzenleme yetkisi verildi ✓' : 'Admin yetkisi kaldırıldı ✓', 'ok');
+  } catch(e) { toast('Hata: '+e.message, 'err'); }
+}
+
 async function saveMesaiSaatleri() {
+  const role = currentUser?.role || '';
+  const isSuperAdmin = role === 'super_admin';
+
+  // Yetki kontrolü
+  if (!isSuperAdmin && !_mesaiFirmSettings?.admin_can_edit_mesai) {
+    toast('Düzenleme yetkiniz yok', 'err'); return;
+  }
+
   const rows = document.querySelectorAll('.mesai-row');
-  if (!rows.length) { toast('Kayıt edilecek satır yok','err'); return; }
-  const firmId = currentUser?.firm_id;
-  if (!firmId) { toast('Firma bilgisi bulunamadı','err'); return; }
+  if (!rows.length) { toast('Kayıt edilecek satır yok', 'err'); return; }
+
+  const firmId = _mesaiFirmId;
+  if (!firmId) { toast('Firma bilgisi bulunamadı', 'err'); return; }
+
   const records = [];
   rows.forEach(row => {
-    const gun = row.dataset.gun;
+    const gun  = row.dataset.gun;
     const aktif = row.querySelector('.mesai-aktif')?.checked;
-    const bas   = row.querySelector('.mesai-bas')?.value   || '09:00';
-    const bit   = row.querySelector('.mesai-bit')?.value   || '18:00';
-    records.push({
-      firm_id: firmId,
-      gun,
-      calismiyor: !aktif,       // aktif=false → calismiyor=true
-      mesai_baslangic: bas,
-      mesai_bitis: bit
-    });
+    const bas   = row.querySelector('.mesai-bas')?.value || '09:00';
+    const bit   = row.querySelector('.mesai-bit')?.value || '18:00';
+    records.push({ firm_id: firmId, gun, calismiyor: !aktif, mesai_baslangic: bas, mesai_bitis: bit });
   });
+
   try {
     for (const r of records) {
       await sbUpsert('mesai_saatleri', r, 'firm_id,gun');
     }
     toast('Çalışma saatleri kaydedildi ✓', 'ok');
-  } catch(e) { toast('Hata: '+e.message,'err'); }
+  } catch(e) { toast('Hata: '+e.message, 'err'); }
 }
