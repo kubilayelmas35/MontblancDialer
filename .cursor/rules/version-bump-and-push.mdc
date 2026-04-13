@@ -1,0 +1,17 @@
+---
+description: Her kod değişikliğinde sürüm artır ve git push yap; kullanıcıya sorma.
+alwaysApply: true
+---
+
+# Sürüm ve push
+
+Bu repoda **anlamlı her değişiklikten sonra** (kullanıcı ayrıca söylemese bile):
+
+1. **`index.html` içindeki uygulama sürümünü artır**
+   - `css/styles.css?v=…`
+   - Tüm `js/*.js?v=…` script sorgu parametreleri **aynı** yeni sürümde olsun (tek sürüm numarası).
+   - Sidebar: `Montblanc Dialer v…` ile aynı numara.
+
+2. **Git: commit + `git push origin main`** (veya çalışılan dal). Kullanıcıya “pushlayım mı?” diye sorma.
+
+3. Sürüm formatı: mevcut düzeni koru (örn. `6.10`, `6.11`; gerekirse `7.0`).
