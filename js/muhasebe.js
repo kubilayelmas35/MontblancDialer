@@ -32,6 +32,7 @@ function defaultPayrollRules() {
     leave_overflow_penalty_amount: 0,
     appointment_customer_select_by_agent: false,
     bonus_tiers: [],
+    salary_tiers: [],
   };
 }
 
@@ -67,6 +68,15 @@ function _mParseTiers(raw) {
   }
 }
 
+function _mNormTiers(arr) {
+  return (arr || []).map(t => ({
+    min: Number(t.min || 0),
+    max: Number(t.max || 999999),
+    amount: Number(t.amount || 0),
+    currency: (t.currency || 'EUR').toUpperCase(),
+  })).filter(t => t.max >= t.min && t.amount >= 0);
+}
+
 function _mFmt(n) {
   return Number(n || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -96,6 +106,7 @@ async function loadFirmPayrollRules(fid, force = false) {
   }
   const merged = { ...defaultPayrollRules(), ...(rules || {}) };
   merged.bonus_tiers = _mParseTiers(merged.bonus_tiers);
+  merged.salary_tiers = _mParseTiers(merged.salary_tiers);
   window._payrollRulesCacheByFirm[fid] = merged;
   return merged;
 }
@@ -182,7 +193,8 @@ async function loadMuhasebePage() {
 }
 
 function renderPayrollRulesForm(r) {
-  const tiers = Array.isArray(r.bonus_tiers) ? r.bonus_tiers : [];
+  const bonusTiers = _mNormTiers(Array.isArray(r.bonus_tiers) ? r.bonus_tiers : []);
+  const salaryTiers = _mNormTiers(Array.isArray(r.salary_tiers) ? r.salary_tiers : []);
   const set = (id, val) => {
     const el = document.getElementById(id);
     if (el != null) el.value = val;
@@ -194,7 +206,6 @@ function renderPayrollRulesForm(r) {
   set('pr-tax', Number(r.tax_rate_percent || 0));
   set('pr-late', Number(r.late_penalty_amount || 0));
   set('pr-leave-over-amt', Number(r.leave_overflow_penalty_amount || 0));
-  set('pr-tiers', JSON.stringify(tiers, null, 2));
   const setChk = (id, v) => {
     const el = document.getElementById(id);
     if (el) el.checked = !!v;
@@ -203,6 +214,57 @@ function renderPayrollRulesForm(r) {
   setChk('pr-late-on', r.late_penalty_enabled);
   setChk('pr-leave-over', r.leave_overflow_penalty_enabled);
   setChk('pr-agent-customer', r.appointment_customer_select_by_agent);
+  renderPayrollTierRows('bonus', bonusTiers);
+  renderPayrollTierRows('salary', salaryTiers);
+}
+
+function renderPayrollTierRows(type, rows) {
+  const wrap = document.getElementById(type === 'bonus' ? 'pr-bonus-tiers-wrap' : 'pr-salary-tiers-wrap');
+  if (!wrap) return;
+  const safe = rows?.length ? rows : [{ min: 0, max: 0, amount: 0, currency: 'EUR' }];
+  wrap.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px;">
+    ${safe.map((r, i) => `<div style="display:grid;grid-template-columns:90px 90px 1fr 90px auto;gap:6px;align-items:end;">
+      <div><label class="form-label">Min</label><input class="form-input" type="number" id="pr-${type}-min-${i}" value="${Number(r.min||0)}"></div>
+      <div><label class="form-label">Max</label><input class="form-input" type="number" id="pr-${type}-max-${i}" value="${Number(r.max||0)}"></div>
+      <div><label class="form-label">${type==='bonus'?'Tutar/Termin':'Net Maaş'}</label><input class="form-input" type="number" step="0.01" id="pr-${type}-amount-${i}" value="${Number(r.amount||0)}"></div>
+      <div><label class="form-label">Para</label>
+        <select class="form-input" id="pr-${type}-currency-${i}">
+          <option value="EUR" ${String(r.currency||'EUR').toUpperCase()==='EUR'?'selected':''}>EUR</option>
+          <option value="TRY" ${String(r.currency||'').toUpperCase()==='TRY'?'selected':''}>TRY</option>
+        </select>
+      </div>
+      <button class="btn btn-ghost btn-sm" type="button" onclick="removePayrollTierRow('${type}',${i})">Sil</button>
+    </div>`).join('')}
+  </div>`;
+  wrap.dataset.count = String(safe.length);
+}
+
+function addPayrollTierRow(type) {
+  const wrap = document.getElementById(type === 'bonus' ? 'pr-bonus-tiers-wrap' : 'pr-salary-tiers-wrap');
+  if (!wrap) return;
+  const cur = readPayrollTierRows(type);
+  cur.push({ min: 0, max: 0, amount: 0, currency: 'EUR' });
+  renderPayrollTierRows(type, cur);
+}
+
+function removePayrollTierRow(type, idx) {
+  const cur = readPayrollTierRows(type).filter((_, i) => i !== idx);
+  renderPayrollTierRows(type, cur.length ? cur : [{ min: 0, max: 0, amount: 0, currency: 'EUR' }]);
+}
+
+function readPayrollTierRows(type) {
+  const wrap = document.getElementById(type === 'bonus' ? 'pr-bonus-tiers-wrap' : 'pr-salary-tiers-wrap');
+  const count = Number(wrap?.dataset.count || 0);
+  const rows = [];
+  for (let i = 0; i < count; i++) {
+    rows.push({
+      min: Number(document.getElementById(`pr-${type}-min-${i}`)?.value || 0),
+      max: Number(document.getElementById(`pr-${type}-max-${i}`)?.value || 0),
+      amount: Number(document.getElementById(`pr-${type}-amount-${i}`)?.value || 0),
+      currency: (document.getElementById(`pr-${type}-currency-${i}`)?.value || 'EUR').toUpperCase(),
+    });
+  }
+  return _mNormTiers(rows);
 }
 
 async function savePayrollRules() {
@@ -222,7 +284,8 @@ async function savePayrollRules() {
     leave_overflow_penalty_enabled: !!document.getElementById('pr-leave-over')?.checked,
     leave_overflow_penalty_amount: Number(document.getElementById('pr-leave-over-amt')?.value) || 0,
     appointment_customer_select_by_agent: !!document.getElementById('pr-agent-customer')?.checked,
-    bonus_tiers: _mParseTiers(document.getElementById('pr-tiers')?.value || '[]'),
+    bonus_tiers: readPayrollTierRows('bonus'),
+    salary_tiers: readPayrollTierRows('salary'),
     updated_at: new Date().toISOString(),
   };
   try {
@@ -246,6 +309,59 @@ async function savePayrollRules() {
   }
   window._payrollRulesCacheByFirm[fid] = { ...defaultPayrollRules(), ...rules };
   toast('Muhasebe ayarları kaydedildi', 'ok');
+}
+
+function _mSalaryForSuccess(baseSalary, successCount, salaryTiers, ruleCurrency, targetCurrency, rate) {
+  let salary = Number(baseSalary || 0);
+  (salaryTiers || []).forEach(t => {
+    const min = Number(t.min || 0);
+    const max = Number(t.max || 999999);
+    if (successCount >= min && successCount <= max) {
+      const ccy = (t.currency || ruleCurrency || 'EUR').toUpperCase();
+      let amt = Number(t.amount || 0);
+      if (ccy !== targetCurrency) amt = _mConvertCurrency(amt, ccy, targetCurrency, rate);
+      salary = amt;
+    }
+  });
+  return salary;
+}
+
+async function _fetchEurTryRateAt(dateStr) {
+  try {
+    const res = await fetch(`https://api.exchangerate.host/${dateStr}?base=EUR&symbols=TRY`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    return Number(json?.rates?.TRY || 0) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function _getMonthFxRate(fid, ym, fallbackRate) {
+  const b = _mMonthBounds(ym);
+  const rateDate = b.end;
+  try {
+    const ex = await sb(`payroll_fx_rates?firm_id=eq.${fid}&rate_date=eq.${rateDate}&base_currency=eq.EUR&quote_currency=eq.TRY&select=rate&limit=1`);
+    if (ex?.length && Number(ex[0].rate) > 0) return Number(ex[0].rate);
+  } catch (e) {}
+  const apiRate = await _fetchEurTryRateAt(rateDate);
+  const rate = apiRate || Number(fallbackRate || 1) || 1;
+  try {
+    await sb('payroll_fx_rates', {
+      method: 'POST',
+      prefer: 'return=minimal',
+      body: JSON.stringify({
+        firm_id: fid,
+        period_ym: ym,
+        rate_date: rateDate,
+        base_currency: 'EUR',
+        quote_currency: 'TRY',
+        rate,
+        source: apiRate ? 'exchangerate.host' : 'manual_fallback',
+      }),
+    });
+  } catch (e) {}
+  return rate;
 }
 
 async function renderMuhasebeCustomers() {
@@ -398,6 +514,7 @@ function _mCollectAdjustments(adj, uid, rules) {
 async function renderMuhasebePayrollTable(fid, ym, rules) {
   const users = await _mFetchUsers(fid);
   const b = _mMonthBounds(ym);
+  const monthRate = await _getMonthFxRate(fid, ym, Number(rules.exchange_rate || 1));
   const data = await _mFetchMonthlyData(fid, ym, b.year, b);
   const statsByUser = _mBuildStatsByUser(data.appts, data.leaveReqs, data.ents, data.lates);
   const overMap = {};
@@ -410,16 +527,18 @@ async function renderMuhasebePayrollTable(fid, ym, rules) {
     const ov = overMap[u.id] || {};
     const noTermin = !!ov.no_termin;
     const mode = ov.base_salary_mode || rules.base_salary_mode;
-    const baseSalary = Number(ov.base_salary_amount ?? rules.base_salary_amount ?? 0);
+    const rawBaseSalary = Number(ov.base_salary_amount ?? rules.base_salary_amount ?? 0);
     const taxRate = Number(ov.tax_rate_percent ?? rules.tax_rate_percent ?? 0);
-    const tiers = Array.isArray(ov.bonus_tiers) ? ov.bonus_tiers : rules.bonus_tiers;
+    const tiers = _mNormTiers(Array.isArray(ov.bonus_tiers) ? ov.bonus_tiers : rules.bonus_tiers);
+    const salaryTiers = _mNormTiers(Array.isArray(ov.salary_tiers) ? ov.salary_tiers : rules.salary_tiers);
     const success = noTermin ? 0 : st.success;
-    const bonus = _mBonusFor(success, tiers, rules.currency, rules.currency, Number(rules.exchange_rate || 1));
+    const baseSalary = _mSalaryForSuccess(rawBaseSalary, success, salaryTiers, rules.currency, rules.currency, monthRate);
+    const bonus = _mBonusFor(success, tiers, rules.currency, rules.currency, monthRate);
     const latePenalty = rules.late_penalty_enabled ? st.lateCount * Number(rules.late_penalty_amount || 0) : 0;
     const annualAllowance = (Number(data.hr?.annual_leave_days_default || 14)) + Number(st.entitlementExtra || 0);
     const leaveOverflow = Math.max(0, Number(st.leaveDays || 0) - annualAllowance);
     const leavePenalty = rules.leave_overflow_penalty_enabled ? leaveOverflow * Number(rules.leave_overflow_penalty_amount || 0) : 0;
-    const adj = _mCollectAdjustments(data.adj, u.id, rules);
+    const adj = _mCollectAdjustments(data.adj, u.id, { ...rules, exchange_rate: monthRate });
     const preTax = baseSalary + bonus + adj.add - adj.ded - latePenalty - leavePenalty;
     const taxAmount = rules.government_supported ? 0 : Math.max(0, preTax) * (taxRate / 100);
     const netPayable = preTax - taxAmount;
@@ -452,6 +571,7 @@ async function renderMuhasebePayrollTable(fid, ym, rules) {
       paidAmount,
       remaining,
       currency: rules.currency,
+      fxRate: monthRate,
     };
   });
 

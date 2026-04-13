@@ -1285,9 +1285,17 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-leave-over"> Yıllık izin aşımında kes</label>
 <label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-agent-customer"> Agent müşteri seçebilsin</label>
 </div>
-<div class="form-row">
-<label class="form-label">Prim kademeleri (JSON)</label>
-<textarea class="form-input" id="pr-tiers" rows="4" placeholder='[{"min":20,"max":25,"amount":46,"currency":"EUR"}]'></textarea>
+<div style="display:grid;grid-template-columns:1fr;gap:12px;">
+<div>
+<div class="form-label" style="margin-bottom:6px;">Prim kademeleri (başarılı termin başına)</div>
+<div id="pr-bonus-tiers-wrap"></div>
+<button class="btn btn-ghost btn-sm" type="button" onclick="addPayrollTierRow('bonus')">+ Prim kademesi ekle</button>
+</div>
+<div>
+<div class="form-label" style="margin-bottom:6px;">Net maaş hakediş kademeleri (başarılı termine göre)</div>
+<div id="pr-salary-tiers-wrap"></div>
+<button class="btn btn-ghost btn-sm" type="button" onclick="addPayrollTierRow('salary')">+ Maaş kademesi ekle</button>
+</div>
 </div>
 <button class="btn btn-primary btn-sm" onclick="savePayrollRules()">Muhasebe ayarlarını kaydet</button>
 </div>
