@@ -423,10 +423,12 @@ async function submitOutcome(goBreak) {
       if (cbAt) logData.callback_at = cbAt;
       if (activeCallId) { try { logData.telnyx_call_id = activeCallId; } catch(e) {} }
       await sb('call_logs',{method:'POST',prefer:'return=minimal',body:JSON.stringify(logData)});
-      if (currentContact.queue_id) {
-        sb(`queues?id=eq.${currentContact.queue_id}`,{method:'PATCH',prefer:'return=minimal',
-          body:JSON.stringify({dialed_count:(currentContact.dialed_count||0)+1})
-        }).catch(()=>{});
+      if (contactId && currentContact.queue_id) {
+        // dialed_count'u contacts tablosundan dinamik hesapla
+        sb(`contacts?queue_id=eq.${currentContact.queue_id}&status=not.in.(pending,calling)&select=id`)
+          .then(rows => sb(`queues?id=eq.${currentContact.queue_id}`,{method:'PATCH',prefer:'return=minimal',
+            body:JSON.stringify({dialed_count:(rows||[]).length})
+          })).catch(()=>{});
       }
     }
   } catch(e){ console.error(e); toast('Kayıt hatası: '+e.message,'err'); }
