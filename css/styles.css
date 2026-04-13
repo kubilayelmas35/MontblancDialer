@@ -231,36 +231,21 @@ font-size: 11px; font-weight: 700; color: white;
 .tb-uname { font-size: 13px; font-weight: 600; }
 .tb-urole { font-size: 10px; color: var(--text-3); }
 /* ── BODY ── */
-#body {
-display:grid;
-grid-template-columns:auto minmax(0,1fr);
-flex:1;
-overflow:hidden;
-position:relative;
-min-height:0;
-height:calc(100vh - var(--topbar-h));
-}
+#body { display:flex; flex:1; overflow:hidden; position:relative; }
 /* ── SIDEBAR ── */
 #sidebar {
 width: var(--sidebar-w);
 min-width: var(--sidebar-w);
-flex: 0 0 var(--sidebar-w);
 background: #0f172a;
 border-right: none;
 display: flex; flex-direction: column;
-overflow-x: hidden;
-overflow-y: auto;
+overflow: hidden;
 z-index: 90;
 transition: width var(--transition), min-width var(--transition), transform var(--transition);
 box-shadow: 4px 0 24px rgba(0,0,0,0.15);
-position: relative !important;
-left: auto !important;
-top: auto !important;
-transform: none !important;
 }
 [data-theme="dark"] #sidebar { background: #080c14; }
 #sidebar.collapsed { width: 56px; min-width: 56px; }
-#sidebar.collapsed { flex-basis: 56px; }
 #sidebar.collapsed .sb-label,
 #sidebar.collapsed .tb-logo-name,
 #sidebar.collapsed .tb-logo-tag,
@@ -277,18 +262,14 @@ background: #00000040; z-index: 89;
 backdrop-filter: blur(2px);
 }
 #sidebar-overlay.show { display: block; }
-/* Sidebar stays in flow to avoid page overlap issues. */
-#body > #sidebar {
-position: relative !important;
-left: auto !important;
-top: auto !important;
-transform: none !important;
-inset: auto !important;
+@media (max-width: 768px) {
+#sidebar {
+position: absolute; top:0; left:0; height:100%;
+transform: translateX(-100%); box-shadow: var(--shadow-md);
+transition: transform var(--transition);
 }
-#body > #main {
-flex: 1 1 auto;
-min-width: 0;
-width: 100%;
+#sidebar.open { transform: translateX(0); }
+#sidebar.collapsed { transform: translateX(-100%); width: var(--sidebar-w); min-width: var(--sidebar-w); }
 }
 .sb-section { padding: 8px; }
 .sb-label {
@@ -339,8 +320,6 @@ border-radius: 10px; font-family: var(--mono);
 flex: 1; overflow: hidden;
 position: relative;
 display: flex; flex-direction: column;
-min-height: 0;
-min-width: 0;
 }
 @media (max-width: 768px) { #main { padding: 0; } }
 /* ============================================================
