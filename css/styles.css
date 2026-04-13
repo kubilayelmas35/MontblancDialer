@@ -264,6 +264,16 @@ backdrop-filter: blur(2px);
 }
 #sidebar-overlay.show { display: block; }
 /* Sidebar stays in flow to avoid page overlap issues. */
+#body > #sidebar {
+position: relative !important;
+left: auto !important;
+top: auto !important;
+transform: none !important;
+}
+#body > #main {
+flex: 1 1 auto;
+min-width: 0;
+}
 .sb-section { padding: 8px; }
 .sb-label {
 font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.3);
@@ -314,6 +324,7 @@ flex: 1; overflow: hidden;
 position: relative;
 display: flex; flex-direction: column;
 min-height: 0;
+min-width: 0;
 }
 @media (max-width: 768px) { #main { padding: 0; } }
 /* ============================================================
