@@ -216,6 +216,7 @@ function renderPayrollRulesForm(r) {
   setChk('pr-agent-customer', r.appointment_customer_select_by_agent);
   renderPayrollTierRows('bonus', bonusTiers);
   renderPayrollTierRows('salary', salaryTiers);
+  updatePayrollPreview();
 }
 
 function renderPayrollTierRows(type, rows) {
@@ -224,11 +225,11 @@ function renderPayrollTierRows(type, rows) {
   const safe = rows?.length ? rows : [{ min: 0, max: 0, amount: 0, currency: 'EUR' }];
   wrap.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px;">
     ${safe.map((r, i) => `<div style="display:grid;grid-template-columns:90px 90px 1fr 90px auto;gap:6px;align-items:end;">
-      <div><label class="form-label">Min</label><input class="form-input" type="number" id="pr-${type}-min-${i}" value="${Number(r.min||0)}"></div>
-      <div><label class="form-label">Max</label><input class="form-input" type="number" id="pr-${type}-max-${i}" value="${Number(r.max||0)}"></div>
-      <div><label class="form-label">${type==='bonus'?'Tutar/Termin':'Net Maaş'}</label><input class="form-input" type="number" step="0.01" id="pr-${type}-amount-${i}" value="${Number(r.amount||0)}"></div>
+      <div><label class="form-label">Min</label><input class="form-input" type="number" id="pr-${type}-min-${i}" value="${Number(r.min||0)}" oninput="updatePayrollPreview()"></div>
+      <div><label class="form-label">Max</label><input class="form-input" type="number" id="pr-${type}-max-${i}" value="${Number(r.max||0)}" oninput="updatePayrollPreview()"></div>
+      <div><label class="form-label">${type==='bonus'?'Tutar/Termin':'Net Maaş'}</label><input class="form-input" type="number" step="0.01" id="pr-${type}-amount-${i}" value="${Number(r.amount||0)}" oninput="updatePayrollPreview()"></div>
       <div><label class="form-label">Para</label>
-        <select class="form-input" id="pr-${type}-currency-${i}">
+        <select class="form-input" id="pr-${type}-currency-${i}" onchange="updatePayrollPreview()">
           <option value="EUR" ${String(r.currency||'EUR').toUpperCase()==='EUR'?'selected':''}>EUR</option>
           <option value="TRY" ${String(r.currency||'').toUpperCase()==='TRY'?'selected':''}>TRY</option>
         </select>
@@ -245,11 +246,13 @@ function addPayrollTierRow(type) {
   const cur = readPayrollTierRows(type);
   cur.push({ min: 0, max: 0, amount: 0, currency: 'EUR' });
   renderPayrollTierRows(type, cur);
+  updatePayrollPreview();
 }
 
 function removePayrollTierRow(type, idx) {
   const cur = readPayrollTierRows(type).filter((_, i) => i !== idx);
   renderPayrollTierRows(type, cur.length ? cur : [{ min: 0, max: 0, amount: 0, currency: 'EUR' }]);
+  updatePayrollPreview();
 }
 
 function readPayrollTierRows(type) {
@@ -265,6 +268,25 @@ function readPayrollTierRows(type) {
     });
   }
   return _mNormTiers(rows);
+}
+
+function updatePayrollPreview() {
+  const out = document.getElementById('pr-preview-result');
+  if (!out) return;
+  const success = Number(document.getElementById('pr-preview-success')?.value || 0);
+  const base = Number(document.getElementById('pr-base')?.value || 0);
+  const taxRate = Number(document.getElementById('pr-tax')?.value || 0);
+  const gov = !!document.getElementById('pr-gov')?.checked;
+  const currency = (document.getElementById('pr-currency')?.value || 'EUR').toUpperCase();
+  const rate = Number(document.getElementById('pr-rate')?.value || 1) || 1;
+  const bonusTiers = readPayrollTierRows('bonus');
+  const salaryTiers = readPayrollTierRows('salary');
+  const salary = _mSalaryForSuccess(base, success, salaryTiers, currency, currency, rate);
+  const bonus = _mBonusFor(success, bonusTiers, currency, currency, rate);
+  const preTax = salary + bonus;
+  const tax = gov ? 0 : Math.max(0, preTax) * (taxRate / 100);
+  const net = preTax - tax;
+  out.innerHTML = `Başarılı: <b>${success}</b> · Baz(Net): <b>${_mFmt(salary)} ${currency}</b> · Prim: <b>${_mFmt(bonus)} ${currency}</b> · Vergi: <b>${_mFmt(tax)} ${currency}</b> · Hakediş: <b>${_mFmt(net)} ${currency}</b>`;
 }
 
 async function savePayrollRules() {
@@ -309,6 +331,7 @@ async function savePayrollRules() {
   }
   window._payrollRulesCacheByFirm[fid] = { ...defaultPayrollRules(), ...rules };
   toast('Muhasebe ayarları kaydedildi', 'ok');
+  updatePayrollPreview();
 }
 
 function _mSalaryForSuccess(baseSalary, successCount, salaryTiers, ruleCurrency, targetCurrency, rate) {
