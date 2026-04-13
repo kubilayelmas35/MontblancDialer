@@ -241,10 +241,17 @@ function setDialerStatus(s) {
   } else if (s==='wrapping') {
     if (typeof startAcwTimer === 'function') startAcwTimer();
     document.getElementById('ready-section').style.display='none';
-    document.getElementById('outcome-section').style.display='';
     document.getElementById('call-actions').style.display='none';
-    document.getElementById('customer-card').style.display='none';
     stopCallTimer();
+    const hasSlot = _bookingSlot || window._selectedBookingSlot;
+    if (hasSlot) {
+      // Slot seçiliyse direkt termin modunu göster
+      document.getElementById('outcome-section').style.display='none';
+      document.getElementById('customer-card').style.display='';
+    } else {
+      document.getElementById('outcome-section').style.display='';
+      document.getElementById('customer-card').style.display='none';
+    }
   }
 }
 
@@ -444,21 +451,78 @@ function handleAppointmentClick() {
 // Called from appointments.js when agent selects a slot
 function onAgentSlotSelected(slot) {
   window._selectedBookingSlot = slot;
+  _bookingSlot = slot;
+  setOutcome('appointment');
+
+  // Termin moduna geç: outcome section gizle, customer-card göster
+  document.getElementById('outcome-section').style.display = 'none';
+  document.getElementById('customer-card').style.display = '';
+
+  // Müşteri kartını yeniden render et (termin bölümüyle birlikte)
+  if (currentContact) showCustomerCard(currentContact);
+
+  // termin-fields-section'ı göster ve slot başlığını güncelle
   const terminSection = document.getElementById('termin-fields-section');
   if (terminSection) {
     terminSection.style.display = '';
-    // Update slot info header
     const hdr = terminSection.querySelector('.termin-slot-hdr');
-    if (hdr) {
-      hdr.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${slot.tarih} · ${(slot.baslangic_saat||'').slice(0,5)}–${(slot.bitis_saat||'').slice(0,5)}`;
-    }
+    if (hdr) hdr.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${slot.tarih} · ${(slot.baslangic_saat||'').slice(0,5)}–${(slot.bitis_saat||'').slice(0,5)}`;
+    const badge = document.getElementById('termin-slot-badge');
+    if (badge) badge.textContent = `${slot.tarih} ${(slot.baslangic_saat||'').slice(0,5)}`;
   }
-  // Prefill form from currentContact
+
+  // Mevcut müşteri verisiyle form alanlarını önceden doldur
   if (currentContact) {
-    const pre = { 'tf2-hausart': currentContact.hausart, 'tf2-baujahr': currentContact.baujahr, 'tf2-qm': currentContact.qm, 'tf2-heizung': currentContact.heizung, 'tf2-alter_der_heizung': currentContact.alter_der_heizung };
-    Object.entries(pre).forEach(([id, val]) => { const el = document.getElementById(id); if (el && val) el.value = val; });
+    const pre = {
+      'tf2-hausart': currentContact.hausart,
+      'tf2-baujahr': currentContact.baujahr,
+      'tf2-qm':      currentContact.qm,
+      'tf2-heizung': currentContact.heizung,
+      'tf2-alter_der_heizung': currentContact.alter_der_heizung,
+      'tf2-verbrauch_pro_jahr': currentContact.verbrauch_pro_jahr,
+      'tf2-personen': currentContact.personen
+    };
+    Object.entries(pre).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el && val) el.value = val;
+    });
   }
-  toast('Slot seçildi — termin bilgilerini doldurun ve kaydedin', 'ok', 3000);
+
+  // Termin formunun en altına "İptal" butonu ekle (yoksa)
+  if (!document.getElementById('termin-cancel-slot-btn') && terminSection) {
+    const cancelBtn = document.createElement('button');
+    cancelBtn.id = 'termin-cancel-slot-btn';
+    cancelBtn.style.cssText = 'margin-top:6px;width:100%;padding:6px;background:transparent;color:var(--text-3);border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;';
+    cancelBtn.textContent = '↩ Slotu İptal Et — Sonuç Seçimine Dön';
+    cancelBtn.onclick = cancelSlotAndShowOutcome;
+    terminSection.appendChild(cancelBtn);
+  }
+
+  // Scroll to termin form
+  setTimeout(() => {
+    terminSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 150);
+
+  toast('Slot seçildi — termin bilgilerini doldurun', 'ok', 3000);
+}
+
+// Slot iptal et ve outcome seçimine dön
+function cancelSlotAndShowOutcome() {
+  const slotId = (_bookingSlot || window._selectedBookingSlot)?.id;
+  if (slotId) {
+    sb(`takvim_slots?id=eq.${slotId}`, {method:'PATCH', prefer:'return=minimal',
+      body: JSON.stringify({durum:'bos', kilitli_agent_id:null, kilitli_at:null})
+    }).catch(()=>{});
+  }
+  _bookingSlot = null;
+  window._selectedBookingSlot = null;
+  selectedOutcome = null;
+  // Outcome section'ı tekrar göster
+  document.getElementById('customer-card').style.display = 'none';
+  document.getElementById('outcome-section').style.display = '';
+  const cancelBtn = document.getElementById('termin-cancel-slot-btn');
+  if (cancelBtn) cancelBtn.remove();
+  toast('Slot iptal edildi', 'warn', 2000);
 }
 
 async function updateTerminField(key, value) {
