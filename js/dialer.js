@@ -4,6 +4,7 @@
 
 async function initDialer() {
   if (!currentUser) return;
+  resetDialerVoiceVisuals();
   try {
     let myCamps = await sb(`agent_campaigns?select=*,campaigns(*,queues(*))&agent_id=eq.${currentUser.id}`) || [];
     if (!myCamps.length) {
@@ -266,7 +267,8 @@ function setDialerStatus(s) {
     document.getElementById('ready-section').style.display='none';
     document.getElementById('outcome-section').style.display='none';
     document.getElementById('call-actions').style.display='';
-    document.getElementById('dialer-timer').style.display='';
+    const tblk = document.getElementById('dialer-timer-block');
+    if (tblk) tblk.style.display = 'flex';
     document.getElementById('customer-card').style.display='';
     startCallTimer();
   } else if (s==='wrapping') {
@@ -339,19 +341,42 @@ async function updateSessionInDB(status) {
 }
 
 // ── Call timer ────────────────────────────────
+function _dialerVoiceProgressFromSeconds(sec) {
+  const t = Math.min(1, Number(sec || 0) / 150);
+  return Math.round(t * 1000) / 1000;
+}
+
+function updateDialerVoiceVisuals(seconds) {
+  const page = document.getElementById('page-dialer');
+  if (!page) return;
+  const p = _dialerVoiceProgressFromSeconds(seconds);
+  page.style.setProperty('--voice-progress', String(p));
+}
+
+function resetDialerVoiceVisuals() {
+  const page = document.getElementById('page-dialer');
+  if (!page) return;
+  page.style.removeProperty('--voice-progress');
+}
+
 function startCallTimer() {
   callSeconds = 0;
+  updateDialerVoiceVisuals(0);
   callTimerInt = setInterval(()=>{
     callSeconds++;
     const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
     const s=String(callSeconds%60).padStart(2,'0');
-    document.getElementById('dialer-timer').textContent=`${m}:${s}`;
+    const el = document.getElementById('dialer-timer');
+    if (el) el.textContent=`${m}:${s}`;
+    updateDialerVoiceVisuals(callSeconds);
   },1000);
 }
 
 function stopCallTimer() {
   clearInterval(callTimerInt);
-  document.getElementById('dialer-timer').style.display='none';
+  const tblk = document.getElementById('dialer-timer-block');
+  if (tblk) tblk.style.display='none';
+  resetDialerVoiceVisuals();
 }
 
 // ── Call controls ─────────────────────────────

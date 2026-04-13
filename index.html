@@ -8,12 +8,13 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.13">
+<link rel="stylesheet" href="css/styles.css?v=6.14">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
 <body>
 <div id="page-login">
+<div class="fluid-aurora fluid-aurora--login" aria-hidden="true"></div>
 <!-- Left branding panel -->
 <div class="login-left">
 <div class="login-brand">
@@ -83,6 +84,7 @@
 </div>
 <div id="app" style="display:none;">
 <div id="topbar">
+<div class="tb-aurora-layer fluid-aurora fluid-aurora--topbar" aria-hidden="true"></div>
 <button class="tb-hamburger" onclick="toggleSidebar()" id="hamburger">
 <span></span><span></span><span></span>
 </button>
@@ -282,7 +284,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v6.13</div>
+<div class="sb-ver">Montblanc Dialer v6.14</div>
 </div>
 </nav>
 <main id="main">
@@ -1054,7 +1056,10 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 </div>
 <span id="mic-status" title="Mikrofon" style="font-size:15px;cursor:default;"><i class="ph ph-microphone-slash" style="vertical-align:-3px;font-size:17px;color:var(--text-3);"></i></span>
 <span id="rtc-status" style="font-size:11px;color:var(--text-3);"><i class="ph ph-dot" style="vertical-align:-1px;"></i> Bağlantı yok</span>
-<div id="dialer-timer" class="dialer-timer" style="display:none;">00:00</div>
+<div class="dialer-timer-block" id="dialer-timer-block" style="display:none;">
+<div class="dialer-timer-orb" aria-hidden="true"></div>
+<div id="dialer-timer" class="dialer-timer">00:00</div>
+</div>
 </div>
 <div style="display:flex;gap:6px;align-items:center;margin-left:auto;">
 <span class="badge badge-green" style="font-size:11px;padding:3px 8px;"><span id="my-appt">0</span> termin</span>
@@ -1096,7 +1101,7 @@ TEST MODU
 </div>
 <div id="ctab-info-panel">
 <div class="cust-header">
-<div class="cust-avatar" id="cust-av">?</div>
+<div class="cust-avatar cust-avatar--fluid" id="cust-av"><span class="cust-av-inner">?</span></div>
 <div>
 <div class="cust-name" id="cust-name">—</div>
 <div class="cust-phone" id="cust-phone">—</div>
@@ -2561,26 +2566,26 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=6.13"></script>
-<script src="js/state.js?v=6.13"></script>
-<script src="js/api.js?v=6.13"></script>
-<script src="js/auth.js?v=6.13"></script>
-<script src="js/ui.js?v=6.13"></script>
-<script src="js/export-admin.js?v=6.13"></script>
-<script src="js/export-termin.js?v=6.13"></script>
-<script src="js/performance.js?v=6.13"></script>
-<script src="js/competition.js?v=6.13"></script>
-<script src="js/dashboard.js?v=6.13"></script>
-<script src="js/campaigns.js?v=6.13"></script>
-<script src="js/contacts.js?v=6.13"></script>
-<script src="js/telnyx.js?v=6.13"></script>
-<script src="js/dialer.js?v=6.13"></script>
-<script src="js/appointments.js?v=6.13"></script>
-<script src="js/wiedervorlage.js?v=6.13"></script>
-<script src="js/qc.js?v=6.13"></script>
-<script src="js/leave-hr.js?v=6.13"></script>
-<script src="js/muhasebe.js?v=6.13"></script>
-<script src="js/agent-self-performance.js?v=6.13"></script>
-<script src="js/agents.js?v=6.13"></script>
+<script src="js/config.js?v=6.14"></script>
+<script src="js/state.js?v=6.14"></script>
+<script src="js/api.js?v=6.14"></script>
+<script src="js/auth.js?v=6.14"></script>
+<script src="js/ui.js?v=6.14"></script>
+<script src="js/export-admin.js?v=6.14"></script>
+<script src="js/export-termin.js?v=6.14"></script>
+<script src="js/performance.js?v=6.14"></script>
+<script src="js/competition.js?v=6.14"></script>
+<script src="js/dashboard.js?v=6.14"></script>
+<script src="js/campaigns.js?v=6.14"></script>
+<script src="js/contacts.js?v=6.14"></script>
+<script src="js/telnyx.js?v=6.14"></script>
+<script src="js/dialer.js?v=6.14"></script>
+<script src="js/appointments.js?v=6.14"></script>
+<script src="js/wiedervorlage.js?v=6.14"></script>
+<script src="js/qc.js?v=6.14"></script>
+<script src="js/leave-hr.js?v=6.14"></script>
+<script src="js/muhasebe.js?v=6.14"></script>
+<script src="js/agent-self-performance.js?v=6.14"></script>
+<script src="js/agents.js?v=6.14"></script>
 </body>
 </html>

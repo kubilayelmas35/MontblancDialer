@@ -231,7 +231,11 @@ function showCustomerCard(c) {
   try { fc = camp?.field_config ? JSON.parse(camp.field_config) : {}; } catch(e) {}
   const show = (key, def=true) => fc[key] !== undefined ? fc[key] : def;
   const name = show('name') ? `${c.first_name||''} ${c.last_name||''}`.trim()||c.phone : c.phone;
-  document.getElementById('cust-av').textContent    = (c.first_name||c.phone||'?').charAt(0).toUpperCase();
+  const avEl = document.getElementById('cust-av');
+  const avLetter = (c.first_name||c.phone||'?').charAt(0).toUpperCase();
+  const avInner = avEl?.querySelector('.cust-av-inner');
+  if (avInner) avInner.textContent = avLetter;
+  else if (avEl) avEl.textContent = avLetter;
   document.getElementById('cust-name').textContent  = name;
   document.getElementById('cust-phone').textContent = c.phone;
   document.getElementById('cust-attempt-badge').style.display = show('attempt') ? '' : 'none';
