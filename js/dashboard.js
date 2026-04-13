@@ -605,6 +605,7 @@ const from = document.getElementById('ch-date-from');
 const to   = document.getElementById('ch-date-to');
 if (from && !from.value) from.value = today;
 if (to   && !to.value)   to.value   = today;
+if (typeof updateCallHistoryExportVisibility === 'function') updateCallHistoryExportVisibility();
 }
 
 function initMyHistoryFilters() {
@@ -613,20 +614,6 @@ const from = document.getElementById('mh-date-from');
 const to   = document.getElementById('mh-date-to');
 if (from && !from.value) from.value = today;
 if (to   && !to.value)   to.value   = today;
-}
-
-function exportStatsCsv() {
-var table = document.querySelector("#stats-tbody");
-if (!table) return;
-var result = ["Agent,Kampanya,Toplam,Termin,Olumsuz,Geri Ara,Cevap Yok,Ort Sure,Donusum"];
-var trs = table.querySelectorAll("tr");
-for (var i=0;i<trs.length;i++) {
-var tds=trs[i].querySelectorAll("td"), cells=[];
-for(var j=0;j<tds.length;j++) cells.push(tds[j].textContent.trim());
-if(cells.length) result.push(cells.join(","));
-}
-var blob=new Blob([result.join("\n")],{type:"text/csv"});
-var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="stats.csv"; a.click();
 }
 
 function toggleCustomDateRange() {
