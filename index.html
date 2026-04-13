@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=4.5">
+<link rel="stylesheet" href="css/styles.css?v=4.6">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -270,7 +270,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">Montblanc Dialer v4.5</div>
+<div class="sb-ver">Montblanc Dialer v4.6</div>
 </div>
 </nav>
 <main id="main">
@@ -1026,12 +1026,13 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <th>PLZ</th>
 <th>Agent</th>
 <th>Kampanya</th>
+<th>Termin Müşterisi</th>
 <th>Kayıt</th>
 <th>Durum</th>
 <th>İşlem</th>
 </tr></thead>
 <tbody id="qc-tbody">
-<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
+<tr><td colspan="10" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
 </tbody>
 </table>
 </div>
@@ -1268,11 +1269,21 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </div>
 <div id="muhasebe-no-access" class="card" style="display:none;padding:18px;">Bu sayfayı görüntüleme yetkiniz yok.</div>
 <div id="muhasebe-main" style="display:flex;flex-direction:column;gap:14px;padding-bottom:28px;">
+<div class="card" style="padding:10px 12px;">
+<div style="display:flex;gap:8px;flex-wrap:wrap;">
+<button class="btn btn-ghost btn-sm muh-tab-btn active" data-muh-tab="ozet" onclick="setMuhasebeTab('ozet')">Özet & Takip</button>
+<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="gelir" onclick="setMuhasebeTab('gelir')">Gelir / Gider</button>
+<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="personel" onclick="setMuhasebeTab('personel')">Personel Maaş</button>
+<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="vergi" onclick="setMuhasebeTab('vergi')">Vergi & SGK</button>
+<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="musteri" onclick="setMuhasebeTab('musteri')">Müşteri Tarifeleri</button>
+</div>
+</div>
+<div id="muh-pane-ozet" class="muh-pane">
 <div class="card" id="muhasebe-rules-card" style="padding:16px;display:none;">
 <div class="card-title" style="margin-bottom:10px;">Firma muhasebe ayarları</div>
 <div class="stats-grid" style="margin-bottom:10px;">
 <div class="form-row"><label class="form-label">Para birimi</label><select class="form-input" id="pr-currency" onchange="updatePayrollPreview()"><option value="EUR">EUR</option><option value="TRY">TRY</option></select></div>
-<div class="form-row"><label class="form-label">Kur (1 EUR = ? TRY)</label><input class="form-input" id="pr-rate" type="number" step="0.0001" value="1" oninput="updatePayrollPreview()"></div>
+<div class="form-row"><label class="form-label">Kur (1 EUR = TRY)</label><input class="form-input" id="pr-rate" type="number" step="0.0001" value="1" oninput="updatePayrollPreview()"></div>
 <div class="form-row"><label class="form-label">Kur API</label>
 <select class="form-input" id="pr-fx-provider" onchange="onFxProviderChange()">
 <option value="exchangerate_host">exchangerate.host (varsayılan)</option>
@@ -1280,6 +1291,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <option value="custom">Özel API</option>
 </select>
 </div>
+<div class="form-row"><label class="form-label">Kur testi</label><button class="btn btn-ghost btn-sm" type="button" onclick="testFxRateNow()">API'den Kuru Çek</button></div>
 <div class="form-row" id="pr-fx-url-row" style="display:none;"><label class="form-label">Özel API URL</label><input class="form-input" id="pr-fx-url" placeholder="https://api.example.com/rates?date={date}&base=EUR&symbols=TRY"></div>
 <div class="form-row" id="pr-fx-key-row" style="display:none;"><label class="form-label">Özel API Key (opsiyonel)</label><input class="form-input" id="pr-fx-key" placeholder="apikey / access_key"></div>
 <div class="form-row"><label class="form-label">Maaş modu</label><select class="form-input" id="pr-mode"><option value="net">Net</option><option value="gross_minimum">Asgari (brüt)</option></select></div>
@@ -1331,6 +1343,15 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </div>
 <div id="muhasebe-customers-table" style="margin-top:12px;"></div>
 </div>
+</div>
+<div id="muh-pane-musteri" class="muh-pane" style="display:none;">
+<div class="card" style="padding:16px;">
+<div class="card-title" style="margin-bottom:8px;">Müşteri bazlı gelir tarifesi</div>
+<div class="card-sub" style="margin-bottom:10px;">Onaylı (başarılı) terminlerde müşteriye göre gelir tutarı uygulanır.</div>
+<div id="muh-customer-rate-table"></div>
+</div>
+</div>
+<div id="muh-pane-personel" class="muh-pane" style="display:none;">
 <div class="card" style="padding:16px;">
 <div class="card-hdr">
 <div>
@@ -1344,6 +1365,20 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </div>
 <div id="muhasebe-summary-cards" class="stats-grid"></div>
 <div id="muhasebe-table-wrap" class="tbl-wrap" style="margin-top:10px;"></div>
+</div>
+</div>
+<div id="muh-pane-gelir" class="muh-pane" style="display:none;">
+<div class="card" style="padding:16px;">
+<div class="card-title" style="margin-bottom:8px;">Gelir / Gider Özeti</div>
+<div id="muh-income-expense-summary"></div>
+</div>
+</div>
+<div id="muh-pane-vergi" class="muh-pane" style="display:none;">
+<div class="card" style="padding:16px;">
+<div class="card-title" style="margin-bottom:8px;">Vergi & Matrah</div>
+<div id="muh-tax-summary"></div>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -2144,23 +2179,23 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=4.5"></script>
-<script src="js/state.js?v=4.5"></script>
-<script src="js/api.js?v=4.5"></script>
-<script src="js/auth.js?v=4.5"></script>
-<script src="js/ui.js?v=4.5"></script>
-<script src="js/export-admin.js?v=4.5"></script>
-<script src="js/competition.js?v=4.5"></script>
-<script src="js/dashboard.js?v=4.5"></script>
-<script src="js/campaigns.js?v=4.5"></script>
-<script src="js/contacts.js?v=4.5"></script>
-<script src="js/telnyx.js?v=4.5"></script>
-<script src="js/dialer.js?v=4.5"></script>
-<script src="js/appointments.js?v=4.5"></script>
-<script src="js/wiedervorlage.js?v=4.5"></script>
-<script src="js/qc.js?v=4.5"></script>
-<script src="js/leave-hr.js?v=4.5"></script>
-<script src="js/muhasebe.js?v=4.5"></script>
-<script src="js/agents.js?v=4.5"></script>
+<script src="js/config.js?v=4.6"></script>
+<script src="js/state.js?v=4.6"></script>
+<script src="js/api.js?v=4.6"></script>
+<script src="js/auth.js?v=4.6"></script>
+<script src="js/ui.js?v=4.6"></script>
+<script src="js/export-admin.js?v=4.6"></script>
+<script src="js/competition.js?v=4.6"></script>
+<script src="js/dashboard.js?v=4.6"></script>
+<script src="js/campaigns.js?v=4.6"></script>
+<script src="js/contacts.js?v=4.6"></script>
+<script src="js/telnyx.js?v=4.6"></script>
+<script src="js/dialer.js?v=4.6"></script>
+<script src="js/appointments.js?v=4.6"></script>
+<script src="js/wiedervorlage.js?v=4.6"></script>
+<script src="js/qc.js?v=4.6"></script>
+<script src="js/leave-hr.js?v=4.6"></script>
+<script src="js/muhasebe.js?v=4.6"></script>
+<script src="js/agents.js?v=4.6"></script>
 </body>
 </html>

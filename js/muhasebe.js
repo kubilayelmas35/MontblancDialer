@@ -37,6 +37,7 @@ function defaultPayrollRules() {
     appointment_customer_select_by_agent: false,
     bonus_tiers: [],
     salary_tiers: [],
+    customer_rates: [],
   };
 }
 
@@ -98,19 +99,20 @@ async function loadFirmPayrollRules(fid, force = false) {
   if (!fid) return defaultPayrollRules();
   if (!force && window._payrollRulesCacheByFirm[fid]) return window._payrollRulesCacheByFirm[fid];
   let rules = null;
+  let firmPayroll = null;
   try {
     const rows = await sb(`payroll_rules?firm_id=eq.${fid}&select=*`);
     if (rows?.length) rules = rows[0];
   } catch (e) {}
-  if (!rules) {
-    try {
-      const firms = await sb(`firms?id=eq.${fid}&select=settings`);
-      rules = firms?.[0]?.settings?.payroll || null;
-    } catch (e) {}
-  }
-  const merged = { ...defaultPayrollRules(), ...(rules || {}) };
+  try {
+    const firms = await sb(`firms?id=eq.${fid}&select=settings`);
+    firmPayroll = firms?.[0]?.settings?.payroll || null;
+  } catch (e) {}
+  if (!rules) rules = firmPayroll;
+  const merged = { ...defaultPayrollRules(), ...(firmPayroll || {}), ...(rules || {}) };
   merged.bonus_tiers = _mParseTiers(merged.bonus_tiers);
   merged.salary_tiers = _mParseTiers(merged.salary_tiers);
+  merged.customer_rates = _mParseTiers(merged.customer_rates);
   window._payrollRulesCacheByFirm[fid] = merged;
   return merged;
 }
@@ -189,11 +191,48 @@ async function loadMuhasebePage() {
 
   const period = _mGetPeriod();
   const rules = await loadFirmPayrollRules(fid);
+  const liveRate = await _getMonthFxRate(fid, period, Number(rules.exchange_rate || 1), rules);
+  rules.exchange_rate = liveRate;
+  setMuhasebeTab(window._muhasebeTab || 'ozet');
   renderPayrollRulesForm(rules);
   document.getElementById('muhasebe-rules-card').style.display = isMuhasebeAdmin() ? '' : 'none';
   document.getElementById('muhasebe-customers-card').style.display = isMuhasebeAdmin() ? '' : 'none';
   if (isMuhasebeAdmin()) await renderMuhasebeCustomers();
+  if (isMuhasebeAdmin()) renderCustomerRateTable(rules);
   await renderMuhasebePayrollTable(fid, period, rules);
+}
+
+async function testFxRateNow() {
+  const fid = muhasebeFirmId();
+  if (!fid) return;
+  const ym = _mGetPeriod();
+  const rules = {
+    ...defaultPayrollRules(),
+    exchange_rate: Number(document.getElementById('pr-rate')?.value || 1),
+    fx_api_provider: document.getElementById('pr-fx-provider')?.value || 'exchangerate_host',
+    fx_api_url: document.getElementById('pr-fx-url')?.value?.trim() || '',
+    fx_api_key: document.getElementById('pr-fx-key')?.value?.trim() || '',
+  };
+  const rate = await _getMonthFxRate(fid, ym, Number(rules.exchange_rate || 1), rules);
+  const rateInput = document.getElementById('pr-rate');
+  if (rateInput) rateInput.value = String(Number(rate || 1));
+  toast(`Kur güncellendi: 1 EUR = ${_mFmt(rate)} TRY`, 'ok');
+  updatePayrollPreview();
+}
+
+function setMuhasebeTab(tab) {
+  window._muhasebeTab = tab || 'ozet';
+  const panes = ['ozet', 'gelir', 'personel', 'vergi', 'musteri'];
+  panes.forEach(p => {
+    const pane = document.getElementById(`muh-pane-${p}`);
+    if (pane) pane.style.display = p === window._muhasebeTab ? '' : 'none';
+  });
+  document.querySelectorAll('.muh-tab-btn').forEach(btn => {
+    const active = btn.dataset.muhTab === window._muhasebeTab;
+    btn.classList.toggle('active', active);
+    btn.style.background = active ? 'var(--accent)' : '';
+    btn.style.color = active ? '#fff' : '';
+  });
 }
 
 function renderPayrollRulesForm(r) {
@@ -224,6 +263,7 @@ function renderPayrollRulesForm(r) {
   setChk('pr-agent-customer', r.appointment_customer_select_by_agent);
   renderPayrollTierRows('bonus', bonusTiers);
   renderPayrollTierRows('salary', salaryTiers);
+  renderCustomerRateTable(r);
   onFxProviderChange();
   updatePayrollPreview();
 }
@@ -332,14 +372,17 @@ async function savePayrollRules() {
     appointment_customer_select_by_agent: !!document.getElementById('pr-agent-customer')?.checked,
     bonus_tiers: readPayrollTierRows('bonus'),
     salary_tiers: readPayrollTierRows('salary'),
+    customer_rates: readCustomerRateRows(),
     updated_at: new Date().toISOString(),
   };
+  const rulesForTable = { ...rules };
+  delete rulesForTable.customer_rates;
   try {
     const exists = await sb(`payroll_rules?firm_id=eq.${fid}&select=id`).catch(() => []);
     if (exists?.length) {
-      await sb(`payroll_rules?firm_id=eq.${fid}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(rules) });
+      await sb(`payroll_rules?firm_id=eq.${fid}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(rulesForTable) });
     } else {
-      await sb('payroll_rules', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(rules) });
+      await sb('payroll_rules', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(rulesForTable) });
     }
   } catch (e) {
     console.warn('payroll_rules table fallback:', e.message);
@@ -356,6 +399,66 @@ async function savePayrollRules() {
   window._payrollRulesCacheByFirm[fid] = { ...defaultPayrollRules(), ...rules };
   toast('Muhasebe ayarları kaydedildi', 'ok');
   updatePayrollPreview();
+}
+
+function readCustomerRateRows() {
+  const wrap = document.getElementById('muh-customer-rate-table');
+  const count = Number(wrap?.dataset.count || 0);
+  const rows = [];
+  for (let i = 0; i < count; i++) {
+    const customer_id = document.getElementById(`mcr-customer-${i}`)?.value || '';
+    const amount = Number(document.getElementById(`mcr-amount-${i}`)?.value || 0);
+    const currency = (document.getElementById(`mcr-currency-${i}`)?.value || 'EUR').toUpperCase();
+    if (!customer_id || amount < 0) continue;
+    rows.push({ customer_id, amount, currency });
+  }
+  return rows;
+}
+
+function renderCustomerRateTable(rules) {
+  const box = document.getElementById('muh-customer-rate-table');
+  if (!box) return;
+  const fid = muhasebeFirmId();
+  const customers = (window._customersCacheByFirm[fid] || []).filter(c => c?.id);
+  if (!customers.length) {
+    box.innerHTML = `<div style="padding:10px;color:var(--text-3);">Önce müşteri ekleyin.</div>`;
+    box.dataset.count = '0';
+    return;
+  }
+  const existing = Array.isArray(rules?.customer_rates) ? rules.customer_rates : [];
+  const rows = existing.length ? existing : [{ customer_id: customers[0].id, amount: Number(rules?.revenue_per_success || 0), currency: (rules?.currency || 'EUR').toUpperCase() }];
+  box.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">
+    ${rows.map((r, i) => `
+      <div style="display:grid;grid-template-columns:1fr 150px 90px auto;gap:8px;align-items:end;">
+        <div class="form-row">
+          <label class="form-label">Müşteri</label>
+          <select class="form-input" id="mcr-customer-${i}">
+            ${customers.map(c => `<option value="${c.id}" ${c.id === r.customer_id ? 'selected' : ''}>${_mEsc(c.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-row"><label class="form-label">Onaylı Termin Geliri</label><input class="form-input" id="mcr-amount-${i}" type="number" step="0.01" value="${Number(r.amount || 0)}"></div>
+        <div class="form-row"><label class="form-label">Para</label><select class="form-input" id="mcr-currency-${i}"><option value="EUR" ${String(r.currency || 'EUR').toUpperCase() === 'EUR' ? 'selected' : ''}>EUR</option><option value="TRY" ${String(r.currency || '').toUpperCase() === 'TRY' ? 'selected' : ''}>TRY</option></select></div>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="removeCustomerRateRow(${i})">Sil</button>
+      </div>
+    `).join('')}
+    <div style="font-size:11px;color:var(--text-3);">Müşteriye özel satır yoksa genel "Başarılı termin gelir tutarı" kullanılır.</div>
+    <div><button class="btn btn-ghost btn-sm" type="button" onclick="addCustomerRateRow()">+ Tarife ekle</button></div>
+  </div>`;
+  box.dataset.count = String(rows.length);
+}
+
+function addCustomerRateRow() {
+  const fid = muhasebeFirmId();
+  const customers = (window._customersCacheByFirm[fid] || []).filter(c => c?.id);
+  if (!customers.length) return;
+  const cur = readCustomerRateRows();
+  cur.push({ customer_id: customers[0].id, amount: 0, currency: 'EUR' });
+  renderCustomerRateTable({ customer_rates: cur, revenue_per_success: Number(document.getElementById('pr-rev-success')?.value || 0), currency: document.getElementById('pr-currency')?.value || 'EUR' });
+}
+
+function removeCustomerRateRow(idx) {
+  const cur = readCustomerRateRows().filter((_, i) => i !== idx);
+  renderCustomerRateTable({ customer_rates: cur, revenue_per_success: Number(document.getElementById('pr-rev-success')?.value || 0), currency: document.getElementById('pr-currency')?.value || 'EUR' });
 }
 
 function _mSalaryForSuccess(baseSalary, successCount, salaryTiers, ruleCurrency, targetCurrency, rate) {
@@ -644,7 +747,25 @@ async function renderMuhasebePayrollTable(fid, ym, rules) {
       remaining,
       currency: rules.currency,
       fxRate: monthRate,
+      totalRevenue: 0,
     };
+  });
+
+  const rateRows = _mParseTiers(rules.customer_rates);
+  const rateMap = {};
+  rateRows.forEach(r => { if (r?.customer_id) rateMap[r.customer_id] = r; });
+  const byUser = {};
+  rows.forEach(r => { byUser[r.user_id] = r; });
+  (data.appts || []).forEach(a => {
+    const uid = a.agent_id;
+    if (!uid || !byUser[uid]) return;
+    const d = String(a.durum || '').toLowerCase();
+    if (d !== 'basarili' && d !== 'başarılı') return;
+    const customerRate = a.customer_id ? rateMap[a.customer_id] : null;
+    const rv = customerRate
+      ? _mConvertCurrency(Number(customerRate.amount || 0), customerRate.currency || rules.currency, rules.currency, monthRate)
+      : Number(rules.revenue_per_success || 0);
+    byUser[uid].totalRevenue += Number(rv || 0);
   });
 
   let filtered = rows;
@@ -652,6 +773,7 @@ async function renderMuhasebePayrollTable(fid, ym, rules) {
   window._muhasebeRows = filtered;
   renderMuhasebeSummaryCards(filtered, rules);
   renderMuhasebeRowsTable(filtered, rules);
+  renderMuhasebeFinancePanels(filtered, rules);
 }
 
 function renderMuhasebeSummaryCards(rows, rules) {
@@ -661,10 +783,10 @@ function renderMuhasebeSummaryCards(rows, rules) {
     a.base += r.baseSalary; a.bonus += r.bonus; a.pen += r.latePenalty + r.leavePenalty + r.manualDeduct;
     a.tax += r.taxAmount; a.pay += r.netPayable; a.paid += r.paidAmount; a.rem += r.remaining;
     a.success += r.success || 0;
+    a.rev += Number(r.totalRevenue || 0);
     return a;
-  }, { base: 0, bonus: 0, pen: 0, tax: 0, pay: 0, paid: 0, rem: 0, success: 0 });
-  const revenuePerSuccess = Number(rules.revenue_per_success || 0);
-  const totalRevenue = sum.success * revenuePerSuccess;
+  }, { base: 0, bonus: 0, pen: 0, tax: 0, pay: 0, paid: 0, rem: 0, success: 0, rev: 0 });
+  const totalRevenue = sum.rev;
   const taxBase = Math.max(0, totalRevenue - sum.pay);
   const companyTax = rules.government_supported ? 0 : taxBase * (Number(rules.tax_rate_percent || 0) / 100);
   const netProfit = totalRevenue - sum.pay - companyTax;
@@ -679,6 +801,34 @@ function renderMuhasebeSummaryCards(rows, rules) {
     <div class="stat-card stat-purple"><div class="stat-lbl">Kalan (${cur})</div><div class="stat-val">${_mFmt(sum.rem)}</div><div class="stat-meta">Ödenen: ${_mFmt(sum.paid)} ${cur}</div></div>
     <div class="stat-card"><div class="stat-lbl">Net Kar (${cur})</div><div class="stat-val" style="color:${netProfit>=0?'var(--green)':'var(--red)'}">${_mFmt(netProfit)}</div></div>
   `;
+}
+
+function renderMuhasebeFinancePanels(rows, rules) {
+  const cur = _mEsc(rules.currency || 'EUR');
+  const totals = rows.reduce((a, r) => {
+    a.rev += Number(r.totalRevenue || 0);
+    a.pay += Number(r.netPayable || 0);
+    a.paid += Number(r.paidAmount || 0);
+    return a;
+  }, { rev: 0, pay: 0, paid: 0 });
+  const taxBase = Math.max(0, totals.rev - totals.pay);
+  const tax = rules.government_supported ? 0 : taxBase * (Number(rules.tax_rate_percent || 0) / 100);
+  const incomeBox = document.getElementById('muh-income-expense-summary');
+  const taxBox = document.getElementById('muh-tax-summary');
+  if (incomeBox) {
+    incomeBox.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:10px;">
+      <div class="stat-card"><div class="stat-lbl">Toplam Gelir (${cur})</div><div class="stat-val">${_mFmt(totals.rev)}</div></div>
+      <div class="stat-card"><div class="stat-lbl">Toplam Hakediş (${cur})</div><div class="stat-val">${_mFmt(totals.pay)}</div></div>
+      <div class="stat-card"><div class="stat-lbl">Ödenen (${cur})</div><div class="stat-val">${_mFmt(totals.paid)}</div></div>
+    </div>`;
+  }
+  if (taxBox) {
+    taxBox.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:10px;">
+      <div class="stat-card"><div class="stat-lbl">Vergi Matrahı (${cur})</div><div class="stat-val">${_mFmt(taxBase)}</div></div>
+      <div class="stat-card"><div class="stat-lbl">Şirket Vergisi (${cur})</div><div class="stat-val">${_mFmt(tax)}</div></div>
+      <div class="stat-card"><div class="stat-lbl">Vergi Sonrası Kar (${cur})</div><div class="stat-val">${_mFmt(totals.rev - totals.pay - tax)}</div></div>
+    </div>`;
+  }
 }
 
 function renderMuhasebeRowsTable(rows, rules) {
