@@ -1,6 +1,5 @@
 // ─────────────────────────────────────────────
-// Agent / QC — kendi performans & arama özeti (Muhasebe > Personel)
-// Referans HTML ile uyumlu özet; Chart.js, firma payroll verisi
+// Agent / QC — Maaşım (bordro + kademeler) ve Performansım (termin & aramalar)
 // ─────────────────────────────────────────────
 
 let _aspCharts = {};
@@ -27,6 +26,42 @@ function _aspAccentHex() {
 
 function _aspFmt(n) {
   return Number(n || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function _aspNormTiers(arr) {
+  return (arr || []).map((t) => ({
+    min: Number(t.min || 0),
+    max: Number(t.max || 999999),
+    amount: Number(t.amount || 0),
+    currency: (t.currency || 'EUR').toUpperCase(),
+    calc_type: t.calc_type === 'per_appointment' ? 'per_appointment' : 'fixed',
+  })).filter((t) => t.max >= t.min && t.amount >= 0)
+    .sort((a, b) => a.min - b.min);
+}
+
+function _aspConvertCurrency(v, from, to, rate) {
+  const n = Number(v || 0);
+  const a = (from || '').toUpperCase();
+  const b = (to || '').toUpperCase();
+  if (a === b) return n;
+  if (a === 'EUR' && b === 'TRY') return n * (rate || 1);
+  if (a === 'TRY' && b === 'EUR') return n / (rate || 1);
+  return n;
+}
+
+function _aspTierBonusPortion(success, t, ruleCurrency, targetCurrency, rate) {
+  const min = Number(t.min || 0);
+  const max = Number(t.max || 999999);
+  if (success < min || success > max) return { portion: 0, countInTier: 0, active: false };
+  const calcType = t.calc_type === 'per_appointment' ? 'per_appointment' : 'fixed';
+  const ccy = (t.currency || ruleCurrency || 'EUR').toUpperCase();
+  let oneUnit = Number(t.amount || 0);
+  if (ccy !== targetCurrency) oneUnit = _aspConvertCurrency(oneUnit, ccy, targetCurrency, rate);
+  if (calcType === 'per_appointment') {
+    const countInTier = Math.max(0, Math.min(success, max) - min + 1);
+    return { portion: oneUnit * countInTier, countInTier, active: true };
+  }
+  return { portion: oneUnit, countInTier: 0, active: true };
 }
 
 function _aspMonthBounds(ym) {
@@ -87,44 +122,100 @@ async function _aspFetchCalls(fid, uid, start, end) {
   }
 }
 
-function _aspRenderBonusTiers(success, tiers, currency) {
-  const cur = String(currency || 'EUR').toUpperCase();
-  const norm = (tiers || [])
-    .map((t) => ({
-      min: Number(t.min || 0),
-      max: Number(t.max || 999999),
-      amount: Number(t.amount || 0),
-      calc_type: t.calc_type === 'per_appointment' ? 'per_appointment' : 'fixed',
-    }))
-    .filter((t) => t.max >= t.min)
-    .sort((a, b) => a.min - b.min);
+function _aspRenderSalaryTierTable(success, tiers, rules) {
+  const cur = String(rules?.currency || 'EUR').toUpperCase();
+  const rate = Number(rules?.exchange_rate || 1);
+  const norm = _aspNormTiers(tiers);
   if (!norm.length) {
-    return `<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Prim kademesi tanımlı değil.</div>`;
+    return `<p style="font-size:12px;color:var(--text-3);margin:0;">Baz maaş kademesi yok; tek tutar baz maaş uygulanıyor.</p>`;
   }
-  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:8px;">
-${norm.map((t) => {
-  const span = Math.max(1, t.max - t.min + 1);
-  const prog = Math.min(100, Math.round((Math.max(0, success - t.min + 1) / span) * 100));
-  const hit = success >= t.min;
-  const sub = t.calc_type === 'per_appointment'
-    ? `${t.min}–${t.max === 999999 ? '∞' : t.max} başarılı · ${_aspFmt(t.amount)} ${cur}/termin`
-    : `${t.min}–${t.max === 999999 ? '∞' : t.max} başarılı · ${_aspFmt(t.amount)} ${cur} sabit`;
-  return `<div style="background:var(--bg-3);border:1px solid var(--border);border-radius:10px;padding:12px;">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-<span style="font-weight:800;font-size:13px;">${t.min} → ${t.max === 999999 ? '∞' : t.max}</span>
-<span class="badge" style="background:${hit ? 'var(--green)' : 'var(--bg-4)'};color:${hit ? '#fff' : 'var(--text-3)'};">${hit ? '\u2713' : '—'}</span>
-</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">${_uiEsc(sub)}</div>
-<div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
-<div style="height:100%;width:${prog}%;background:linear-gradient(90deg,${_aspAccentHex()},#10b981);transition:width .4s;"></div>
-</div>
-<div style="font-size:11px;color:var(--text-3);margin-top:6px;">İlerleme: ${prog}% (siz: ${success})</div>
-</div>`;
-}).join('')}
-</div>`;
+  const rows = norm.map((t) => {
+    const active = success >= t.min && success <= t.max;
+    const ccy = (t.currency || cur).toUpperCase();
+    let amt = Number(t.amount || 0);
+    if (ccy !== cur) amt = _aspConvertCurrency(amt, ccy, cur, rate);
+    const rng = `${t.min}–${t.max === 999999 ? '∞' : t.max}`;
+    return `<tr style="${active ? 'background:var(--accent-soft);' : ''}"><td class="td-mono">${_uiEsc(rng)}</td><td><strong>${_aspFmt(amt)} ${_uiEsc(cur)}</strong> net baz</td><td>${active ? '<span class="badge badge-green">Bu aralıktasınız</span>' : '—'}</td></tr>`;
+  }).join('');
+  return `<div class="tbl-wrap" style="margin-top:8px;"><table style="font-size:12px;min-width:100%;"><thead><tr><th>Başarılı termin aralığı</th><th>Net baz maaş</th><th>Durum</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
-async function loadAgentSelfPerformanceDash(fid, ym, rules, payrollRow) {
+function _aspRenderBonusTierTable(success, tiers, rules) {
+  const cur = String(rules?.currency || 'EUR').toUpperCase();
+  const rate = Number(rules?.exchange_rate || 1);
+  const ruleCcy = cur;
+  const norm = _aspNormTiers(tiers);
+  if (!norm.length) {
+    return `<p style="font-size:12px;color:var(--text-3);margin:0;">Prim kademesi tanımlı değil; prim yalnızca manuel veya başka kural ile oluşabilir.</p>`;
+  }
+  const rows = norm.map((t) => {
+    const rng = `${t.min}–${t.max === 999999 ? '∞' : t.max}`;
+    const tip = t.calc_type === 'per_appointment' ? 'Termin başına' : 'Sabit (kademeye girince)';
+    const ccy = (t.currency || ruleCcy).toUpperCase();
+    const showAmt = Number(t.amount || 0);
+    const inPay = _aspConvertCurrency(showAmt, ccy, cur, rate);
+    const disp = ccy !== cur
+      ? `${_aspFmt(showAmt)} ${_uiEsc(ccy)} (~ ${_aspFmt(inPay)} ${_uiEsc(cur)})`
+      : `${_aspFmt(showAmt)} ${_uiEsc(cur)}`;
+    const { portion, countInTier, active } = _aspTierBonusPortion(success, t, ruleCcy, cur, rate);
+    let buDonem = 'Bu aralıkta değilsiniz';
+    if (active) {
+      if (t.calc_type === 'per_appointment') {
+        const unit = countInTier > 0 ? portion / countInTier : inPay;
+        buDonem = `${countInTier} termin × ${_aspFmt(unit)} ${cur} = ${_aspFmt(portion)} ${cur}`;
+      } else {
+        buDonem = `Sabit prim: ${_aspFmt(portion)} ${cur}`;
+      }
+    }
+    return `<tr style="${active ? 'background:var(--accent-soft);' : ''}"><td class="td-mono">${_uiEsc(rng)}</td><td>${disp}</td><td>${_uiEsc(tip)}</td><td>${_uiEsc(buDonem)}</td></tr>`;
+  }).join('');
+  return `<div class="tbl-wrap" style="margin-top:8px;"><table style="font-size:12px;min-width:100%;"><thead><tr><th>Başarılı termin</th><th>Tutar</th><th>Hesap tipi</th><th>Bu ay sizin durumunuz</th></tr></thead><tbody>${rows}</tbody></table></div>
+<p style="font-size:11px;color:var(--text-3);margin:10px 0 0;line-height:1.45;"><strong>Termin başına:</strong> Örneğin 21–25 aralığı ve 46 ${cur} ise, bu aralıktaki her başarılı termin için 46 ${cur} esas alınır (bu ay kaç başarınız bu aralığa düşüyorsa çarpılır). <strong>Sabit:</strong> Başarılı sayınız aralığa girince tek seferde gösterilen prim.</p>`;
+}
+
+function loadAgentSalaryDash(fid, ym, rules, payrollRow, bonusTiersRaw, salaryTiersRaw) {
+  const host = document.getElementById('muh-agent-salary-wrap');
+  if (!host) return;
+  if (!['agent', 'qc'].includes(currentUser?.role || '')) {
+    host.style.display = 'none';
+    host.innerHTML = '';
+    return;
+  }
+  host.style.display = '';
+  const pr = payrollRow || {};
+  const cur = String(rules?.currency || 'EUR').toUpperCase();
+  const success = Number(pr.success || 0);
+  const noTermin = !!pr.noTermin;
+
+  const man = Number(pr.manualAdd || 0) - Number(pr.manualDeduct || 0);
+  const manLbl = man >= 0 ? `+${_aspFmt(man)}` : _aspFmt(man);
+
+  const noteNoTermin = noTermin
+    ? `<div class="card" style="padding:12px;margin-bottom:12px;background:var(--bg-3);border:1px solid var(--border);font-size:13px;">Termin primi hesabı sizin için kapalı (sabit personel). Aşağıdaki kademe tabloları yalnızca firma politikasını gösterir.</div>`
+    : '';
+
+  host.innerHTML = `<div class="card" style="padding:16px;margin-bottom:14px;">
+<div class="card-title" style="margin-bottom:4px;"><i class="ph ph-wallet"></i> Maaşım</div>
+<div class="card-sub" style="margin-bottom:14px;">Dönem: <strong>${_uiEsc(ym)}</strong> · Özet tutarlar seçili ay bordrosuna göredir</div>
+${noteNoTermin}
+<div class="stats-grid" style="margin-bottom:14px;">
+<div class="stat-card"><div class="stat-lbl">Baz maaş (${cur})</div><div class="stat-val">${_aspFmt(pr.baseSalary)}</div></div>
+<div class="stat-card stat-green"><div class="stat-lbl">Prim (${cur})</div><div class="stat-val">${_aspFmt(pr.bonus)}</div></div>
+<div class="stat-card"><div class="stat-lbl">Manuel (+/−)</div><div class="stat-val">${manLbl} ${cur}</div></div>
+<div class="stat-card"><div class="stat-lbl">Geç kalma / izin kes.</div><div class="stat-val">${_aspFmt(Number(pr.latePenalty || 0) + Number(pr.leavePenalty || 0))} ${cur}</div></div>
+<div class="stat-card stat-blue"><div class="stat-lbl">Hakediş (${cur})</div><div class="stat-val">${_aspFmt(pr.netPayable)}</div></div>
+<div class="stat-card"><div class="stat-lbl">Ödenen / Kalan</div><div class="stat-val">${_aspFmt(pr.paidAmount)} / ${_aspFmt(pr.remaining)}</div></div>
+<div class="stat-card"><div class="stat-lbl">Başarılı termin</div><div class="stat-val">${noTermin ? '—' : success}</div></div>
+</div>
+<div class="form-label" style="margin-bottom:6px;">Prim kademeleri (size uygulanan tarife)</div>
+${_aspRenderBonusTierTable(noTermin ? 0 : success, bonusTiersRaw, rules)}
+<div class="form-label" style="margin-top:16px;margin-bottom:6px;">Baz maaş — net hakediş kademeleri</div>
+${_aspRenderSalaryTierTable(noTermin ? 0 : success, salaryTiersRaw, rules)}
+</div>`;
+  if (typeof applyLang === 'function') applyLang();
+}
+
+async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const host = document.getElementById('muh-agent-perf-wrap');
   if (!host) return;
   if (!['agent', 'qc'].includes(currentUser?.role || '')) {
@@ -139,8 +230,8 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules, payrollRow) {
   if (!start) return;
 
   host.innerHTML = `<div class="card" style="padding:16px;margin-bottom:14px;">
-<div class="card-title" style="margin-bottom:4px;"><i class="ph ph-chart-line-up"></i> Performansım & aramalar</div>
-<div class="card-sub" style="margin-bottom:14px;">Seçili ay: <strong id="asp-ym-label"></strong> · Termin ve çağrı özeti</div>
+<div class="card-title" style="margin-bottom:4px;"><i class="ph ph-chart-line-up"></i> Performansım</div>
+<div class="card-sub" style="margin-bottom:14px;">Seçili ay: <strong id="asp-ym-label"></strong> · Termin ve çağrı özeti (maaş için <strong>Maaşım</strong> sekmesine geçin)</div>
 <div id="asp-body" style="color:var(--text-3);font-size:13px;">Yükleniyor…</div>
 </div>`;
   document.getElementById('asp-ym-label').textContent = ym;
@@ -164,12 +255,6 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules, payrollRow) {
   const ss = String(cAvg % 60).padStart(2, '0');
   const conv = cTot > 0 ? Math.round((cAp / cTot) * 100) : 0;
 
-  const cur = String(rules?.currency || 'EUR').toUpperCase();
-  const pr = payrollRow || {};
-  const base = Number(pr.baseSalary || 0);
-  const bonus = Number(pr.bonus || 0);
-  const net = Number(pr.netPayable || 0);
-
   const dayKeys = _aspDaysInMonth(ym);
   const byDay = {};
   dayKeys.forEach((d) => { byDay[d] = { ok: 0, pend: 0, qc: 0, fail: 0, oth: 0 }; });
@@ -188,16 +273,11 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules, payrollRow) {
   const body = document.getElementById('asp-body');
   body.innerHTML = `
 <div class="stats-grid" style="margin-bottom:14px;">
-<div class="stat-card"><div class="stat-lbl">Baz maaş (${cur})</div><div class="stat-val">${_aspFmt(base)}</div></div>
-<div class="stat-card stat-green"><div class="stat-lbl">Prim (${cur})</div><div class="stat-val">${_aspFmt(bonus)}</div></div>
-<div class="stat-card stat-blue"><div class="stat-lbl">Hakediş (${cur})</div><div class="stat-val">${_aspFmt(net)}</div></div>
-<div class="stat-card"><div class="stat-lbl">Termin (ay)</div><div class="stat-val">${tot}</div><div class="stat-meta">${ok} başarılı · %${rate}</div></div>
-</div>
-<div class="stats-grid" style="margin-bottom:14px;">
-<div class="stat-card"><div class="stat-lbl">Aramalar</div><div class="stat-val">${cTot}</div></div>
-<div class="stat-card stat-green"><div class="stat-lbl">Arama → Termin</div><div class="stat-val">${cAp}</div></div>
+<div class="stat-card"><div class="stat-lbl">Termin (ay)</div><div class="stat-val">${tot}</div><div class="stat-meta">${ok} başarılı · oran %${rate}</div></div>
+<div class="stat-card stat-green"><div class="stat-lbl">Aramalar</div><div class="stat-val">${cTot}</div></div>
+<div class="stat-card"><div class="stat-lbl">Arama → Termin</div><div class="stat-val">${cAp}</div></div>
 <div class="stat-card"><div class="stat-lbl">Dönüşüm</div><div class="stat-val">${conv}%</div></div>
-<div class="stat-card"><div class="stat-lbl">Ort. süre</div><div class="stat-val">${mm}:${ss}</div></div>
+<div class="stat-card"><div class="stat-lbl">Ort. görüşme</div><div class="stat-val">${mm}:${ss}</div></div>
 </div>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:14px;">
 <div style="border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg-2);">
@@ -213,10 +293,6 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules, payrollRow) {
 <div style="border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg-2);margin-bottom:14px;">
 <div style="font-weight:800;font-size:13px;margin-bottom:8px;">Günlük terminler</div>
 <div style="height:240px;position:relative;"><canvas id="asp-chart-day"></canvas></div>
-</div>
-<div style="margin-bottom:10px;">
-<div class="form-label" style="margin-bottom:6px;">Prim kademeleri (firma ayarı)</div>
-${_aspRenderBonusTiers(ok, rules?.bonus_tiers, rules?.currency)}
 </div>
 <div style="margin-top:14px;">
 <div class="form-label" style="margin-bottom:6px;">Son terminler</div>
@@ -265,7 +341,6 @@ ${_aspRenderBonusTiers(ok, rules?.bonus_tiers, rules?.currency)}
   aspDestroyCharts();
   const ChartCtor = window.Chart;
   if (!ChartCtor) return;
-  const ax = _aspAccentHex();
 
   const pieEl = document.getElementById('asp-chart-pie');
   if (pieEl) {

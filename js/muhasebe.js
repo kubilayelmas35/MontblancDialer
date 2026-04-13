@@ -190,9 +190,12 @@ async function loadMuhasebePage() {
   if (noAccess) noAccess.style.display = 'none';
   if (main) main.style.display = 'flex';
   if (sub) {
+    const staffPay = ['agent', 'qc'].includes(currentUser?.role || '');
     sub.textContent = isMuhasebeAdmin()
       ? 'Maaş, prim, kesinti, müşteri ve bordro yönetimi'
-      : 'Kendi maaş özeti ve ödeme durumu';
+      : staffPay
+        ? 'Maaşım (bordro, prim kademeleri) ve Performansım (termin & aramalar)'
+        : 'Kendi maaş özeti ve ödeme durumu';
   }
 
   const period = _mGetPeriod();
@@ -227,22 +230,46 @@ async function testFxRateNow() {
 }
 
 function setMuhasebeTab(tab) {
-  const isAgentOnly = currentUser?.role === 'agent';
-  window._muhasebeTab = isAgentOnly ? 'personel' : (tab || 'ozet');
-  const panes = ['ozet', 'gelir', 'personel', 'vergi', 'musteri'];
+  const staffPay = ['agent', 'qc'].includes(currentUser?.role || '');
+  let t = tab || 'ozet';
+  if (staffPay) {
+    if (t !== 'personel' && t !== 'performans') t = 'personel';
+    window._muhasebeTab = t;
+  } else {
+    window._muhasebeTab = t;
+  }
+  const panes = ['ozet', 'gelir', 'personel', 'performans', 'vergi', 'musteri'];
   panes.forEach(p => {
     const pane = document.getElementById(`muh-pane-${p}`);
     if (pane) pane.style.display = p === window._muhasebeTab ? '' : 'none';
   });
+  const personelBtn = document.querySelector('.muh-tab-btn[data-muh-tab="personel"]');
+  if (personelBtn) {
+    personelBtn.textContent = staffPay ? 'Maaşım' : 'Personel Maaş';
+  }
   document.querySelectorAll('.muh-tab-btn').forEach(btn => {
     const tabId = btn.dataset.muhTab;
-    const hiddenForAgent = isAgentOnly && tabId !== 'personel';
-    btn.style.display = hiddenForAgent ? 'none' : '';
+    let hide = false;
+    if (staffPay) hide = tabId !== 'personel' && tabId !== 'performans';
+    else hide = tabId === 'performans';
+    btn.style.display = hide ? 'none' : '';
     const active = btn.dataset.muhTab === window._muhasebeTab;
     btn.classList.toggle('active', active);
     btn.style.background = active ? 'var(--accent)' : '';
     btn.style.color = active ? '#fff' : '';
   });
+  const ex = document.getElementById('muh-personel-export-btns');
+  const ct = document.getElementById('muh-personel-card-title');
+  const cs = document.getElementById('muh-personel-card-sub');
+  if (staffPay) {
+    if (ex) ex.style.display = 'none';
+    if (ct) ct.textContent = 'Aylık bordrom';
+    if (cs) cs.textContent = 'Özet tutarlar; prim ve baz maaş kademeleri yukarıda açıklanır.';
+  } else {
+    if (ex) ex.style.display = '';
+    if (ct) ct.textContent = 'Aylık personel muhasebesi';
+    if (cs) cs.textContent = 'Baz maaş, prim, kesintiler, manuel ekleme/kesme, ödenen/kalan';
+  }
 }
 
 function renderPayrollRulesForm(r) {
@@ -803,8 +830,15 @@ async function renderMuhasebePayrollTable(fid, ym, rules) {
     if (taxBox) taxBox.innerHTML = '';
   }
   const payrollRowForSelf = rows.find(r => r.user_id === currentUser.id) || null;
+  const uidSelf = currentUser.id;
+  const ovSelf = overMap[uidSelf] || {};
+  const bonusTiersSelf = Array.isArray(ovSelf.bonus_tiers) ? ovSelf.bonus_tiers : rules.bonus_tiers;
+  const salaryTiersSelf = Array.isArray(ovSelf.salary_tiers) ? ovSelf.salary_tiers : rules.salary_tiers;
+  if (typeof loadAgentSalaryDash === 'function') {
+    loadAgentSalaryDash(fid, ym, rules, payrollRowForSelf, bonusTiersSelf, salaryTiersSelf);
+  }
   if (typeof loadAgentSelfPerformanceDash === 'function') {
-    loadAgentSelfPerformanceDash(fid, ym, rules, payrollRowForSelf);
+    loadAgentSelfPerformanceDash(fid, ym, rules);
   }
 }
 
