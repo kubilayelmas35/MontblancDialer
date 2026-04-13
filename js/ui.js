@@ -8,14 +8,9 @@ const MOBILE_SIDEBAR_BP = 480;
 function toggleSidebar() {
 const sb   = document.getElementById('sidebar');
 const ov   = document.getElementById('sidebar-overlay');
-const mob  = window.innerWidth <= MOBILE_SIDEBAR_BP;
-if (mob) {
-const open = sb.classList.contains('open');
-if (open) { sb.classList.remove('open'); ov.classList.remove('show'); }
-else       { sb.classList.add('open');   ov.classList.add('show'); }
-} else {
 sb.classList.toggle('collapsed');
-}
+ov.classList.remove('show');
+sb.classList.remove('open');
 }
 
 function closeSidebar() {
@@ -24,10 +19,8 @@ document.getElementById('sidebar-overlay').classList.remove('show');
 }
 
 window.addEventListener('resize', () => {
-if (window.innerWidth > MOBILE_SIDEBAR_BP) {
 document.getElementById('sidebar-overlay').classList.remove('show');
 document.getElementById('sidebar').classList.remove('open');
-}
 });
 
 // ── NAVIGATION ───────────────────────────────
@@ -38,7 +31,7 @@ const pg = document.getElementById(`page-${page}`);
 if (pg) pg.classList.add('active');
 const btn = document.querySelector(`.sb-item[onclick="navigate('${page}')"]`);
 if (btn) btn.classList.add('active');
-if (window.innerWidth <= MOBILE_SIDEBAR_BP) closeSidebar();
+closeSidebar();
 if (page==='dashboard')  loadDashboard();
 if (page==='campaigns')  loadCampaigns();
 if (page==='agents')     loadAgents();
