@@ -2,7 +2,15 @@
 // CONFIG — sabitler ve API anahtarları
 // ─────────────────────────────────────────────
 const SB_URL = 'https://gsvvhzyhdhkbozjnlyrn.supabase.co';
-let SB_KEY   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdnZoenloZGhrYm96am5seXJuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTc2NjAxMiwiZXhwIjoyMDkxMzQyMDEyfQ.eP_iirIeVqQhy7OMpiCinGkG6_fn9Kfh4njwjdmOxdk';
+let SB_KEY   = localStorage.getItem('mb_sb_key') || '';
+
+function setSupabaseApiKey(key) {
+  const val = String(key || '').trim();
+  if (!val) return false;
+  SB_KEY = val;
+  localStorage.setItem('mb_sb_key', val);
+  return true;
+}
 
 const DEFAULT_GOOGLE_KEY = 'AIzaSyDzUsnQG-sKIO6wseQEbfrOOHRvwSyGUoM';
 const DEFAULT_TOMTOM_KEY = 'Ny6ghuTMCaMGRnD3v6vhe67rG7XvqZTX';

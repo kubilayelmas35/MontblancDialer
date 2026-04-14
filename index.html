@@ -307,7 +307,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.51</div>
+<div class="sb-ver">MontBlanc v6.52</div>
 </div>
 </nav>
 <main id="main">
@@ -1549,6 +1549,17 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
 <div class="card-title">Açık İlanlar</div>
 <input class="form-input" id="jm-search" placeholder="Başlık/şehir ara..." style="max-width:220px;" oninput="renderJobPostList()">
+</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+<button class="btn btn-ghost btn-sm jm-tab-btn" data-tab="active" onclick="setJobListTab('active')">Aktif</button>
+<button class="btn btn-ghost btn-sm jm-tab-btn" data-tab="pending_qc" onclick="setJobListTab('pending_qc')">QC Bekleyen</button>
+<button class="btn btn-ghost btn-sm jm-tab-btn" data-tab="completed" onclick="setJobListTab('completed')">Biten</button>
+<button class="btn btn-ghost btn-sm jm-tab-btn" data-tab="rejected" onclick="setJobListTab('rejected')">Red</button>
+</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+<button class="btn btn-ghost btn-sm" onclick="setJobPreset('today')">Bugün</button>
+<button class="btn btn-ghost btn-sm" onclick="setJobPreset('this_week')">Bu hafta</button>
+<button class="btn btn-ghost btn-sm" onclick="setJobPreset('high_budget')">Yüksek bütçe</button>
 </div>
 <div id="job-market-list" style="display:flex;flex-direction:column;gap:8px;">
 <div style="font-size:12px;color:var(--text-3);padding:8px;">Yükleniyor...</div>
@@ -2926,26 +2937,26 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/config.js?v=6.34"></script>
+<script src="js/config.js?v=6.52"></script>
 <script src="js/state.js?v=6.34"></script>
 <script src="js/api.js?v=6.34"></script>
-<script src="js/auth.js?v=6.46"></script>
+<script src="js/auth.js?v=6.52"></script>
 <script src="js/ui.js?v=6.46"></script>
 <script src="js/chat.js?v=6.35"></script>
 <script src="js/chat-settings.js?v=6.35"></script>
 <script src="js/field-settings.js?v=6.38"></script>
 <script src="js/audit.js?v=6.44"></script>
 <script src="js/feature-flags.js?v=6.46"></script>
-<script src="js/notification-center.js?v=6.51"></script>
+<script src="js/notification-center.js?v=6.52"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=6.51"></script>
-<script src="js/job-market.js?v=6.51"></script>
-<script src="js/qc-job-market.js?v=6.46"></script>
+<script src="js/wallet.js?v=6.52"></script>
+<script src="js/job-market.js?v=6.52"></script>
+<script src="js/qc-job-market.js?v=6.52"></script>
 <script src="js/export-admin.js?v=6.34"></script>
-<script src="js/export-termin.js?v=6.34"></script>
+<script src="js/export-termin.js?v=6.52"></script>
 <script src="js/performance.js?v=6.34"></script>
 <script src="js/competition.js?v=6.34"></script>
-<script src="js/dashboard.js?v=6.51"></script>
+<script src="js/dashboard.js?v=6.52"></script>
 <script src="js/campaigns.js?v=6.34"></script>
 <script src="js/contacts.js?v=6.34"></script>
 <script src="js/telnyx.js?v=6.34"></script>

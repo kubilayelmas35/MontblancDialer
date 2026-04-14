@@ -3,6 +3,9 @@ let _jobPostWorkers = [];
 let _jobPostSubs = [];
 let _jobPostSlots = [];
 let _jobFirmStats = {};
+let _jobListTab = 'active';
+let _jobPreset = '';
+let _jobPermissionsCache = {};
 let _jobMap = null;
 let _jobPolygonPoints = [];
 let _jobPolygonLayer = null;
@@ -15,6 +18,26 @@ function _jmEsc(s) {
 
 function _jmCanManage() {
   return ['super_admin', 'admin', 'firm_admin'].includes(currentUser?.role || '');
+}
+
+function defaultJobPermissions() {
+  return {
+    can_publish_job: true,
+    can_join_job: true,
+    can_submit_job: true,
+    can_qc_job: true,
+    can_manage_wallet: true
+  };
+}
+
+async function getJobPermissions(fid) {
+  const firmId = fid || getActiveFirmId() || currentUser?.firm_id;
+  if (!firmId) return defaultJobPermissions();
+  if (_jobPermissionsCache[firmId]) return _jobPermissionsCache[firmId];
+  const rows = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
+  const perms = { ...defaultJobPermissions(), ...(rows?.[0]?.settings?.job_permissions || {}) };
+  _jobPermissionsCache[firmId] = perms;
+  return perms;
 }
 
 async function loadJobMarketPage() {
@@ -35,8 +58,15 @@ async function loadJobMarketPage() {
   renderFirmSelector('job-market-firm-selector', loadJobMarketPage);
   initJobPolygonMap();
   onJobTypeChange();
+  await applyJobPermissionUi();
   await refreshWalletInfo();
   await loadJobPosts();
+}
+
+async function applyJobPermissionUi() {
+  const perms = await getJobPermissions();
+  const publishBtn = document.querySelector('#page-jobmarket button[onclick="createJobPost()"]');
+  if (publishBtn) publishBtn.disabled = !perms.can_publish_job;
 }
 
 async function bindJobOwnerFirmSelector() {
@@ -114,11 +144,29 @@ function renderJobPostList() {
   if (!list) return;
   const q = String(document.getElementById('jm-search')?.value || '').trim().toLowerCase();
   const fid = getActiveFirmId() || currentUser?.firm_id;
-  const items = (_jobPosts || []).filter((p) => {
+  let items = (_jobPosts || []).filter((p) => {
     if (!p?.id) return false;
     if (!q) return true;
     return `${p.title || ''} ${p.city || ''} ${p.country || ''}`.toLowerCase().includes(q);
   });
+  if (_jobListTab === 'active') items = items.filter((p) => ['published', 'in_progress'].includes(p.status));
+  if (_jobListTab === 'pending_qc') items = items.filter((p) => p.status === 'pending_qc');
+  if (_jobListTab === 'completed') items = items.filter((p) => p.status === 'completed');
+  if (_jobListTab === 'rejected') {
+    const rejectedJobIds = new Set(_jobPostSubs.filter((s) => s.status === 'rejected').map((s) => s.job_post_id));
+    items = items.filter((p) => rejectedJobIds.has(p.id));
+  }
+  if (_jobPreset === 'today') {
+    const d = new Date().toISOString().slice(0, 10);
+    items = items.filter((p) => String(p.created_at || '').startsWith(d));
+  } else if (_jobPreset === 'this_week') {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - 6);
+    items = items.filter((p) => (new Date(p.created_at || 0)).getTime() >= start.getTime());
+  } else if (_jobPreset === 'high_budget') {
+    items = items.filter((p) => Number(p.budget || 0) >= 500);
+  }
   if (!items.length) {
     list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:10px;">Açık ilan bulunamadı</div>`;
     return;
@@ -133,6 +181,11 @@ function renderJobPostList() {
     const score = calcJobMatchScore(p, fid);
     const sla = calcSlaState(p);
     const deadline = p.deadline_at ? new Date(p.deadline_at).toLocaleString('tr-TR') : '—';
+    const timeline = _jobPostSubs
+      .filter((s) => s.job_post_id === p.id)
+      .slice(0, 3)
+      .map((s) => `${new Date(s.created_at).toLocaleDateString('tr-TR')} ${s.status}`)
+      .join(' · ');
     return `<div class="card" style="padding:10px;">
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
 <div>
@@ -150,11 +203,14 @@ ${!isOwner ? `<button class="btn btn-ghost btn-sm" onclick="joinJobPost('${p.id}
 ${!isOwner ? `<button class="btn btn-primary btn-sm" onclick="openJobSubmissionModal('${p.id}')">Teslim gir</button>` : ''}
 ${mySubs.length ? `<span style="font-size:11px;color:var(--text-3);">${mySubs.length} teslim kaydı</span>` : ''}
 </div>
+${timeline ? `<div style="font-size:11px;color:var(--text-3);margin-top:6px;">Timeline: ${_jmEsc(timeline)}</div>` : ''}
 </div>`;
   }).join('');
 }
 
 async function createJobPost() {
+  const perms = await getJobPermissions();
+  if (!perms.can_publish_job) { toast('İlan yayınlama yetkiniz yok', 'err'); return; }
   const ownerFirmId = currentUser?.role === 'super_admin'
     ? (document.getElementById('jm-owner-firm')?.value || currentUser?.firm_id)
     : (getActiveFirmId() || currentUser?.firm_id);
@@ -294,6 +350,8 @@ function clearJobPolygon() {
 }
 
 async function joinJobPost(jobPostId) {
+  const perms = await getJobPermissions();
+  if (!perms.can_join_job) { toast('Bu işe katılma yetkiniz yok', 'err'); return; }
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/join_job_post`, {
       method: 'POST',
@@ -337,6 +395,8 @@ function openJobSubmissionModal(jobPostId) {
 }
 
 async function submitJobSubmission(jobPostId) {
+  const perms = await getJobPermissions();
+  if (!perms.can_submit_job) { toast('Teslim girme yetkiniz yok', 'err'); return; }
   const type = String(document.getElementById('jm-submit-type')?.value || 'custom').trim();
   const appointmentId = String(document.getElementById('jm-submit-appointment')?.value || '').trim() || null;
   const fieldTaskId = String(document.getElementById('jm-submit-fieldtask')?.value || '').trim() || null;
@@ -354,7 +414,8 @@ async function submitJobSubmission(jobPostId) {
         p_submission_type: type,
         p_payload: payload,
         p_appointment_id: appointmentId,
-        p_field_task_id: fieldTaskId
+        p_field_task_id: fieldTaskId,
+        p_idempotency_key: `${currentUser?.id || 'u'}-${jobPostId}-${Date.now()}`
       })
     });
     if (!res.ok) throw new Error(await res.text());
@@ -365,6 +426,17 @@ async function submitJobSubmission(jobPostId) {
   } catch (e) {
     toast('Teslim gönderilemedi: ' + (e.message || ''), 'err');
   }
+}
+
+function setJobListTab(tab) {
+  _jobListTab = tab;
+  document.querySelectorAll('.jm-tab-btn').forEach((b) => b.classList.toggle('btn-primary', b.dataset.tab === tab));
+  renderJobPostList();
+}
+
+function setJobPreset(preset) {
+  _jobPreset = preset || '';
+  renderJobPostList();
 }
 
 async function loadJobMarketKpi() {

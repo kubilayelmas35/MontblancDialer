@@ -2,6 +2,17 @@
 // AUTH — giriş, çıkış, oturum yönetimi
 // ─────────────────────────────────────────────
 async function doLogin() {
+if (!SB_KEY) {
+const entered = window.prompt('Supabase API key girin (ilk kurulum):', '') || '';
+if (!setSupabaseApiKey(entered)) {
+const errElPrompt = document.getElementById('login-err');
+if (errElPrompt) {
+errElPrompt.textContent = 'API key gerekli';
+errElPrompt.style.display = 'block';
+}
+return;
+}
+}
 const email  = document.getElementById('login-email').value.trim().toLowerCase();
 const pass   = document.getElementById('login-pass').value;
 const errEl  = document.getElementById('login-err');

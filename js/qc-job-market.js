@@ -29,6 +29,10 @@ async function loadJobMarketQcQueue() {
 }
 
 async function qcReviewJobSubmission(submissionId, approve) {
+  if (typeof getJobPermissions === 'function') {
+    const perms = await getJobPermissions();
+    if (!perms.can_qc_job) { toast('QC yetkiniz yok', 'err'); return; }
+  }
   const note = (window.prompt(approve ? 'QC onay notu (opsiyonel)' : 'Ret notu', '') || '').trim();
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/approve_job_submission`, {
