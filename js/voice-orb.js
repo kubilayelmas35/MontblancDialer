@@ -179,9 +179,23 @@
         const i1 = Math.floor(n * 0.4);
         let sum = 0;
         for (let i = i0; i < i1; i++) sum += this.freq[i];
-        const raw = sum / (i1 - i0) / 255;
-        this._smooth = this._smooth * 0.82 + raw * 0.18;
-        return Math.min(1, this._smooth * 2.2);
+        const band = sum / (i1 - i0) / 255;
+
+        // Tiny sounds are easier to catch with RMS from time-domain data.
+        const td = new Uint8Array(this.analyser.fftSize);
+        this.analyser.getByteTimeDomainData(td);
+        let sq = 0;
+        for (let i = 0; i < td.length; i++) {
+          const v = (td[i] - 128) / 128;
+          sq += v * v;
+        }
+        const rms = Math.sqrt(sq / td.length);
+        const raw = Math.max(band * 1.4, rms * 6.5);
+
+        this._smooth = this._smooth * 0.76 + raw * 0.24;
+        const out = Math.min(1, this._smooth * 2.8);
+        const noiseGate = 0.01;
+        return out < noiseGate ? 0 : out;
       }
       const t = this._t;
       if (this.opt.mode === 'remote') {
@@ -189,9 +203,8 @@
         this._smooth = this._smooth * 0.9 + fake * 0.1;
         return fake;
       }
-      const idle = 0.06 + 0.04 * Math.abs(Math.sin(t * 0.0015));
-      this._smooth = this._smooth * 0.92 + idle * 0.08;
-      return idle;
+      // Agent side should stay fully still when no real mic signal.
+      return 0;
     }
 
     resize() {
@@ -214,7 +227,7 @@
       const tremor = Math.sin(t * 0.012) * (0.38 + level * 1.05);
       const tremor2 = Math.cos(t * 0.019) * (0.24 + level * 0.82);
       const tremor3 = Math.sin(t * 0.027) * (0.16 + level * 0.52);
-      const amp = level * (6.5 + vp * 9.5) + (0.02 + level * 0.35);
+      const amp = level * (6.5 + vp * 9.5);
       const p1 = tremor * 2.15;
       const p2 = tremor2 * 1.65;
       const p3 = tremor3 * 1.05;
@@ -231,7 +244,7 @@
           0.28 *
           (Math.sin(st * 6.2) * Math.sin(4 * a) + Math.sin(st * 11.4) * Math.sin(8 * a + 0.5) + 0.6 * Math.sin(st * 2.2) * Math.sin(6 * a));
       }
-      const radialPulse = Math.sin(t * 0.011) * (0.55 + level * 1.75);
+      const radialPulse = Math.sin(t * 0.011) * (level * 1.75);
       return this.opt.baseRadius + radialPulse + wobble;
     }
 
