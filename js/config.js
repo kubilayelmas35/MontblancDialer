@@ -2,7 +2,7 @@
 // CONFIG — sabitler ve API anahtarları
 // ─────────────────────────────────────────────
 const SB_URL = 'https://gsvvhzyhdhkbozjnlyrn.supabase.co';
-const SB_ANON_KEY = 'SET_SUPABASE_ANON_KEY_HERE';
+const SB_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdnZoenloZGhrYm96am5seXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NjYwMTIsImV4cCI6MjA5MTM0MjAxMn0.PzpCpIO_aIg6JxiwRd7PuqGW9tn3qCKfyT31RpSF1go';
 const SB_KEY = SB_ANON_KEY;
 
 const DEFAULT_GOOGLE_KEY = 'AIzaSyDzUsnQG-sKIO6wseQEbfrOOHRvwSyGUoM';
