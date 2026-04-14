@@ -161,6 +161,12 @@
     }
 
     _readLevel(dt) {
+      if (this.opt.mode === 'agent') {
+        const inTestMode = typeof _testMode !== 'undefined' ? !!_testMode : false;
+        const muted = typeof isMuted !== 'undefined' ? !!isMuted : false;
+        const onCall = typeof dialerStatus !== 'undefined' ? dialerStatus === 'on_call' : true;
+        if (inTestMode || muted || !onCall) return 0;
+      }
       if (this.opt.mode === 'remote' && window.__voiceOrbSimRemote) {
         const t = this._t * 0.001;
         const b0 = 0.5 + 0.5 * Math.sin(t * 3.7);
