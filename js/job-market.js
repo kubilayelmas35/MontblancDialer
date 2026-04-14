@@ -1,6 +1,10 @@
 let _jobPosts = [];
 let _jobPostWorkers = [];
 let _jobPostSubs = [];
+let _jobPostSlots = [];
+let _jobMap = null;
+let _jobPolygonPoints = [];
+let _jobPolygonLayer = null;
 
 function _jmEsc(s) {
   const d = document.createElement('div');
@@ -26,9 +30,26 @@ async function loadJobMarketPage() {
       return;
     }
   }
+  await bindJobOwnerFirmSelector();
   renderFirmSelector('job-market-firm-selector', loadJobMarketPage);
+  initJobPolygonMap();
+  onJobTypeChange();
   await refreshWalletInfo();
   await loadJobPosts();
+}
+
+async function bindJobOwnerFirmSelector() {
+  const row = document.getElementById('jm-owner-firm-row');
+  const sel = document.getElementById('jm-owner-firm');
+  if (!row || !sel) return;
+  const isSuper = currentUser?.role === 'super_admin';
+  row.style.display = isSuper ? '' : 'none';
+  if (!isSuper) return;
+  if (sel.options.length) return;
+  const firms = await sb('firms?is_active=eq.true&select=id,name&order=name.asc').catch(() => []);
+  sel.innerHTML = (firms || []).map((f) => `<option value="${f.id}">${_jmEsc(f.name || f.id)}</option>`).join('');
+  if (!sel.value && currentUser?.firm_id) sel.value = currentUser.firm_id;
+  sel.onchange = () => refreshWalletInfo(sel.value);
 }
 
 async function loadJobPosts() {
@@ -43,9 +64,11 @@ async function loadJobPosts() {
   const posts = await sb(`job_posts?status=in.(published,in_progress,pending_qc)&order=created_at.desc&limit=120`).catch(() => []);
   const workers = await sb(`job_post_workers?select=id,job_post_id,worker_firm_id,status`).catch(() => []);
   const subs = await sb(`job_submissions?select=id,job_post_id,worker_firm_id,status,created_at&order=created_at.desc&limit=250`).catch(() => []);
+  const slots = await sb(`job_post_slots?select=id,job_post_id,status,slot_start_at,slot_end_at&order=slot_start_at.asc&limit=1200`).catch(() => []);
   _jobPosts = posts || [];
   _jobPostWorkers = workers || [];
   _jobPostSubs = subs || [];
+  _jobPostSlots = slots || [];
   renderJobPostList();
   if (typeof loadJobMarketKpi === 'function') loadJobMarketKpi();
 }
@@ -70,17 +93,19 @@ function renderJobPostList() {
     const isOwner = p.requester_firm_id === fid;
     const myWorker = _jobPostWorkers.find((w) => w.job_post_id === p.id && w.worker_firm_id === fid);
     const mySubs = _jobPostSubs.filter((s) => s.job_post_id === p.id && s.worker_firm_id === fid);
+    const slots = _jobPostSlots.filter((s) => s.job_post_id === p.id);
     const deadline = p.deadline_at ? new Date(p.deadline_at).toLocaleString('tr-TR') : '—';
     return `<div class="card" style="padding:10px;">
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
 <div>
 <div style="font-size:13px;font-weight:800;">${_jmEsc(p.title || 'İş ilanı')}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_jmEsc(p.job_type || 'custom')} · ${_jmEsc(p.city || 'Bölge serbest')} · Son: ${deadline}</div>
-<div style="font-size:11px;color:var(--text-3);margin-top:2px;">Bütçe: <b>${Number(p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'TRY')}</b> · Çalışan: <b>${workingCnt}</b></div>
+<div style="font-size:11px;color:var(--text-3);margin-top:2px;">İşlem başı: <b>${Number(p.unit_price || p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'TRY')}</b> · Adet: <b>${Number(p.quantity || slots.length || 1)}</b> · Toplam: <b>${Number(p.budget || 0).toFixed(2)}</b> · Çalışan: <b>${workingCnt}</b></div>
 </div>
 <div><span class="badge badge-blue">${_jmEsc(p.status || 'published')}</span></div>
 </div>
 ${p.description ? `<div style="font-size:12px;color:var(--text-2);margin-top:8px;">${_jmEsc(p.description)}</div>` : ''}
+${slots.length ? `<div style="font-size:11px;color:var(--text-3);margin-top:6px;">Slotlar: ${slots.slice(0,4).map((s) => `${new Date(s.slot_start_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}-${new Date(s.slot_end_at).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}`).join(' | ')}${slots.length>4?' ...':''}</div>` : ''}
 <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:10px;">
 ${!isOwner ? `<button class="btn btn-ghost btn-sm" onclick="joinJobPost('${p.id}')">${myWorker ? 'Çalışıyorum' : 'Buna çalışacağım'}</button>` : `<span style="font-size:11px;color:var(--text-3);">İlan sahibi sizsiniz</span>`}
 ${!isOwner ? `<button class="btn btn-primary btn-sm" onclick="openJobSubmissionModal('${p.id}')">Teslim gir</button>` : ''}
@@ -91,28 +116,40 @@ ${mySubs.length ? `<span style="font-size:11px;color:var(--text-3);">${mySubs.le
 }
 
 async function createJobPost() {
+  const ownerFirmId = currentUser?.role === 'super_admin'
+    ? (document.getElementById('jm-owner-firm')?.value || currentUser?.firm_id)
+    : (getActiveFirmId() || currentUser?.firm_id);
   const title = String(document.getElementById('jm-title')?.value || '').trim();
   const description = String(document.getElementById('jm-description')?.value || '').trim();
   const jobType = String(document.getElementById('jm-type')?.value || 'custom').trim();
-  const budget = Number(document.getElementById('jm-budget')?.value || 0);
+  const unitPrice = Number(document.getElementById('jm-unit-price')?.value || 0);
+  const quantity = Number(document.getElementById('jm-quantity')?.value || 1);
+  const budget = Math.round(unitPrice * quantity * 100) / 100;
   const qcMode = String(document.getElementById('jm-qc-mode')?.value || 'required').trim();
   const currency = String(document.getElementById('jm-currency')?.value || 'TRY').trim().toUpperCase();
   const country = String(document.getElementById('jm-country')?.value || '').trim();
   const city = String(document.getElementById('jm-city')?.value || '').trim();
   const radiusKm = Number(document.getElementById('jm-radius')?.value || 0);
   const deadline = document.getElementById('jm-deadline')?.value || null;
+  const slotDate = String(document.getElementById('jm-slot-date')?.value || '').trim();
+  const slotStart = String(document.getElementById('jm-slot-start')?.value || '').trim();
+  const slotEnd = String(document.getElementById('jm-slot-end')?.value || '').trim();
   const polygonTxt = String(document.getElementById('jm-polygon')?.value || '').trim();
   let polygon = null;
-  if (!title || budget <= 0) {
-    toast('Başlık ve geçerli bütçe zorunlu', 'warn');
+  if (!title || unitPrice <= 0 || quantity <= 0) {
+    toast('Başlık, işlem başı ücret ve adet zorunlu', 'warn');
+    return;
+  }
+  if (jobType === 'appointment' && (!slotDate || !slotStart || !slotEnd)) {
+    toast('Randevu için gün ve saat aralığı zorunlu', 'warn');
     return;
   }
   if (polygonTxt) {
     try { polygon = JSON.parse(polygonTxt); } catch (e) { toast('Polygon JSON geçersiz', 'warn'); return; }
   }
-  const wallet = await getFirmWallet();
+  const wallet = await getFirmWallet(ownerFirmId);
   if (budget > wallet.available) {
-    toast('Bütçe kullanılabilir bakiyeyi aşıyor', 'err');
+    toast('Toplam ücret kullanılabilir bakiyeyi aşıyor', 'err');
     return;
   }
   try {
@@ -124,7 +161,10 @@ async function createJobPost() {
         p_description: description,
         p_job_type: jobType,
         p_budget: budget,
+        p_unit_price: unitPrice,
+        p_quantity: quantity,
         p_currency: currency,
+        p_requester_firm_id: ownerFirmId,
         p_country: country || null,
         p_city: city || null,
         p_postal_code: null,
@@ -132,17 +172,82 @@ async function createJobPost() {
         p_polygon_geojson: polygon,
         p_requirements: description || null,
         p_deadline_at: deadline ? new Date(deadline).toISOString() : null,
-        p_qc_mode: qcMode
+        p_qc_mode: qcMode,
+        p_slot_date: slotDate || null,
+        p_slot_start: slotStart || null,
+        p_slot_end: slotEnd || null
       })
     });
     if (!res.ok) throw new Error(await res.text());
-    if (typeof logAuditEvent === 'function') await logAuditEvent('job_post_created', 'job_post', title, { budget, currency, qc_mode: qcMode });
+    if (typeof logAuditEvent === 'function') await logAuditEvent('job_post_created', 'job_post', title, { budget, unit_price: unitPrice, quantity, currency, qc_mode: qcMode, owner_firm_id: ownerFirmId });
     toast('İlan yayınlandı', 'ok');
     await refreshWalletInfo();
     await loadJobPosts();
   } catch (e) {
     toast('İlan açılamadı: ' + (e.message || ''), 'err');
   }
+}
+
+function onJobTypeChange() {
+  const t = String(document.getElementById('jm-type')?.value || 'custom');
+  const slotWrap = document.getElementById('jm-slot-wrap');
+  if (slotWrap) slotWrap.style.display = t === 'appointment' ? '' : 'none';
+  updateJobPricePreview();
+}
+
+function updateJobPricePreview() {
+  const unitPrice = Number(document.getElementById('jm-unit-price')?.value || 0);
+  const qty = Number(document.getElementById('jm-quantity')?.value || 1);
+  const total = Math.max(0, unitPrice * qty);
+  const el = document.getElementById('jm-price-preview');
+  if (el) el.textContent = `Toplam ücret: ${total.toFixed(2)}`;
+}
+
+function initJobPolygonMap() {
+  const mapEl = document.getElementById('jm-map');
+  if (!mapEl || typeof L === 'undefined' || _jobMap) return;
+  _jobMap = L.map(mapEl).setView([41.0082, 28.9784], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(_jobMap);
+  _jobMap.on('click', (ev) => {
+    _jobPolygonPoints.push([ev.latlng.lng, ev.latlng.lat]);
+    drawJobPolygon();
+  });
+}
+
+function drawJobPolygon() {
+  if (!_jobMap) return;
+  if (_jobPolygonLayer) _jobMap.removeLayer(_jobPolygonLayer);
+  const latLngs = _jobPolygonPoints.map((p) => [p[1], p[0]]);
+  if (latLngs.length >= 2) {
+    _jobPolygonLayer = L.polyline(latLngs, { color: '#2563eb' }).addTo(_jobMap);
+  }
+  const polyEl = document.getElementById('jm-polygon');
+  if (polyEl) {
+    polyEl.value = JSON.stringify({
+      type: 'Polygon',
+      coordinates: [_jobPolygonPoints.length >= 3 ? [..._jobPolygonPoints, _jobPolygonPoints[0]] : _jobPolygonPoints]
+    });
+  }
+}
+
+function closeJobPolygon() {
+  if (_jobPolygonPoints.length >= 3) {
+    _jobPolygonPoints = [..._jobPolygonPoints, _jobPolygonPoints[0]];
+    drawJobPolygon();
+  }
+}
+
+function clearJobPolygon() {
+  _jobPolygonPoints = [];
+  if (_jobMap && _jobPolygonLayer) {
+    _jobMap.removeLayer(_jobPolygonLayer);
+    _jobPolygonLayer = null;
+  }
+  const polyEl = document.getElementById('jm-polygon');
+  if (polyEl) polyEl.value = '';
 }
 
 async function joinJobPost(jobPostId) {

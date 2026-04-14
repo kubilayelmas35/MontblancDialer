@@ -15,6 +15,9 @@ async function getFirmWallet(fid) {
 async function refreshWalletInfo() {
   const el = document.getElementById('jm-wallet-info');
   if (!el) return;
-  const w = await getFirmWallet();
+  const ownerFirmId = currentUser?.role === 'super_admin'
+    ? (document.getElementById('jm-owner-firm')?.value || currentUser?.firm_id)
+    : (getActiveFirmId() || currentUser?.firm_id);
+  const w = await getFirmWallet(ownerFirmId);
   el.textContent = `Bakiye: ${w.balance.toFixed(2)} | Rezerve: ${w.reserved_balance.toFixed(2)} | Kullanılabilir: ${w.available.toFixed(2)}`;
 }

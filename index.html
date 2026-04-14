@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css?v=6.35">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -306,7 +307,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.47</div>
+<div class="sb-ver">MontBlanc v6.48</div>
 </div>
 </nav>
 <main id="main">
@@ -1463,17 +1464,32 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <div class="card">
 <div class="card-title" style="margin-bottom:10px;">Yeni İş İlanı</div>
 <div style="display:flex;flex-direction:column;gap:8px;">
+<div id="jm-owner-firm-row" style="display:none;">
+<label class="form-label" style="font-size:11px;color:var(--text-3);margin-bottom:4px;display:block;">İlan sahibi firma</label>
+<select class="form-input" id="jm-owner-firm"></select>
+</div>
 <input class="form-input" id="jm-title" placeholder="İlan başlığı">
 <textarea class="form-input" id="jm-description" rows="3" placeholder="Açıklama / şartlar"></textarea>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<select class="form-input" id="jm-type">
+<select class="form-input" id="jm-type" onchange="onJobTypeChange()">
 <option value="appointment">Randevu</option>
 <option value="lead">Lead</option>
 <option value="field_task">Saha işi</option>
 <option value="call_capacity">Çağrı kapasitesi</option>
 <option value="custom">Diğer</option>
 </select>
-<input class="form-input" id="jm-budget" type="number" min="1" placeholder="Bütçe">
+<input class="form-input" id="jm-unit-price" type="number" min="1" placeholder="İşlem başı ücret" oninput="updateJobPricePreview()">
+</div>
+<div id="jm-slot-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<input class="form-input" id="jm-slot-date" type="date" title="Gün">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<input class="form-input" id="jm-slot-start" type="time" value="10:00" title="Başlangıç">
+<input class="form-input" id="jm-slot-end" type="time" value="11:00" title="Bitiş">
+</div>
+</div>
+<div id="jm-qty-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<input class="form-input" id="jm-quantity" type="number" min="1" value="1" placeholder="İşlem adedi" oninput="updateJobPricePreview()">
+<div id="jm-price-preview" style="font-size:12px;color:var(--text-3);display:flex;align-items:center;">Toplam ücret: 0</div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 <select class="form-input" id="jm-qc-mode">
@@ -1491,7 +1507,15 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <input class="form-input" id="jm-radius" type="number" min="0" step="0.1" placeholder="Yarıçap km (opsiyonel)">
 <input class="form-input" id="jm-deadline" type="datetime-local">
 </div>
-<textarea class="form-input" id="jm-polygon" rows="2" placeholder="Polygon GeoJSON (opsiyonel)"></textarea>
+<div class="form-row" style="margin:0;">
+<label class="form-label">Haritadan polygon çiz (opsiyonel)</label>
+<div id="jm-map" style="height:220px;border:1px solid var(--border);border-radius:8px;"></div>
+<div style="display:flex;gap:8px;margin-top:6px;">
+<button class="btn btn-ghost btn-sm" type="button" onclick="closeJobPolygon()">Polygon kapat</button>
+<button class="btn btn-ghost btn-sm" type="button" onclick="clearJobPolygon()">Temizle</button>
+</div>
+</div>
+<textarea class="form-input" id="jm-polygon" rows="2" placeholder="Polygon GeoJSON (otomatik dolacak)"></textarea>
 <div id="jm-wallet-info" style="font-size:11px;color:var(--text-3);">Bakiye yükleniyor...</div>
 <button class="btn btn-primary btn-sm" onclick="createJobPost()">İlan Yayınla</button>
 </div>
@@ -2888,8 +2912,9 @@ QC Detay
 <script src="js/audit.js?v=6.44"></script>
 <script src="js/feature-flags.js?v=6.46"></script>
 <script src="js/notification-center.js?v=6.46"></script>
-<script src="js/wallet.js?v=6.46"></script>
-<script src="js/job-market.js?v=6.46"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/wallet.js?v=6.48"></script>
+<script src="js/job-market.js?v=6.48"></script>
 <script src="js/qc-job-market.js?v=6.46"></script>
 <script src="js/export-admin.js?v=6.34"></script>
 <script src="js/export-termin.js?v=6.34"></script>
