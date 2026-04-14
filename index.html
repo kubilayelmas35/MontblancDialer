@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.30">
+<link rel="stylesheet" href="css/styles.css?v=6.31">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -286,7 +286,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.30</div>
+<div class="sb-ver">MontBlanc v6.31</div>
 </div>
 </nav>
 <main id="main">
@@ -2571,27 +2571,72 @@ QC Detay
 </button>
 </div>
 </div>
-<script src="js/config.js?v=6.30"></script>
-<script src="js/state.js?v=6.30"></script>
-<script src="js/api.js?v=6.30"></script>
-<script src="js/auth.js?v=6.30"></script>
-<script src="js/ui.js?v=6.30"></script>
-<script src="js/export-admin.js?v=6.30"></script>
-<script src="js/export-termin.js?v=6.30"></script>
-<script src="js/performance.js?v=6.30"></script>
-<script src="js/competition.js?v=6.30"></script>
-<script src="js/dashboard.js?v=6.30"></script>
-<script src="js/campaigns.js?v=6.30"></script>
-<script src="js/contacts.js?v=6.30"></script>
-<script src="js/telnyx.js?v=6.30"></script>
-<script src="js/voice-orb.js?v=6.30"></script>
-<script src="js/dialer.js?v=6.30"></script>
-<script src="js/appointments.js?v=6.30"></script>
-<script src="js/wiedervorlage.js?v=6.30"></script>
-<script src="js/qc.js?v=6.30"></script>
-<script src="js/leave-hr.js?v=6.30"></script>
-<script src="js/muhasebe.js?v=6.30"></script>
-<script src="js/agent-self-performance.js?v=6.30"></script>
-<script src="js/agents.js?v=6.30"></script>
+<div id="team-chat-root" class="team-chat-root" aria-live="polite">
+<button type="button" id="team-chat-fab" class="team-chat-fab" aria-label="Ekip sohbeti" title="Sohbet">
+<div class="team-chat-fab-aurora fluid-aurora fluid-aurora--chat-fab" aria-hidden="true"></div>
+<div class="team-chat-fab-inner">
+<i class="ph ph-chats-circle" style="font-size:22px;"></i>
+<span id="team-chat-badge" class="team-chat-badge" style="display:none;">0</span>
+</div>
+</button>
+<div id="team-chat-panel" class="team-chat-panel" style="display:none;">
+<div class="team-chat-panel-head">
+<span class="team-chat-panel-title">Ekip sohbeti</span>
+<button type="button" id="team-chat-close" class="team-chat-icon-btn" aria-label="Kapat"><i class="ph ph-x"></i></button>
+</div>
+<div class="team-chat-panel-body">
+<div class="team-chat-groups-col">
+<div class="team-chat-groups-toolbar">
+<button type="button" id="team-chat-new-group" class="btn btn-sm btn-secondary" style="width:100%;display:none;">+ Grup kur</button>
+</div>
+<div id="team-chat-group-list" class="team-chat-group-list"></div>
+</div>
+<div class="team-chat-main-col">
+<div id="team-chat-messages" class="team-chat-messages"></div>
+<div class="team-chat-compose">
+<input type="file" id="team-chat-file" accept="image/*,audio/*,.pdf,.doc,.docx,.xlsx,.zip" style="display:none"/>
+<button type="button" class="team-chat-icon-btn" onclick="document.getElementById('team-chat-file').click()" title="Dosya / görsel"><i class="ph ph-paperclip"></i></button>
+<button type="button" id="team-chat-mic" class="team-chat-icon-btn" title="Sesli mesaj"><i class="ph ph-microphone"></i></button>
+<input type="text" id="team-chat-input" class="form-input team-chat-input" placeholder="Mesaj yazın…" autocomplete="off"/>
+<button type="button" id="team-chat-send" class="btn btn-primary btn-sm"><i class="ph ph-paper-plane-tilt"></i></button>
+</div>
+</div>
+</div>
+</div>
+<div id="team-chat-group-modal" class="team-chat-modal" style="display:none;">
+<div class="team-chat-modal-card">
+<h3 style="margin:0 0 12px;font-size:15px;">Yeni grup</h3>
+<input type="text" id="team-chat-group-name" class="form-input" placeholder="Grup adı" style="margin-bottom:12px;width:100%;"/>
+<div id="team-chat-group-members" class="team-chat-member-pick"></div>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+<button type="button" class="btn btn-secondary btn-sm" id="team-chat-group-cancel" onclick="closeNewGroupModal()">İptal</button>
+<button type="button" class="btn btn-primary btn-sm" id="team-chat-save-group">Oluştur</button>
+</div>
+</div>
+</div>
+</div>
+<script src="js/config.js?v=6.31"></script>
+<script src="js/state.js?v=6.31"></script>
+<script src="js/api.js?v=6.31"></script>
+<script src="js/auth.js?v=6.31"></script>
+<script src="js/ui.js?v=6.31"></script>
+<script src="js/chat.js?v=6.31"></script>
+<script src="js/export-admin.js?v=6.31"></script>
+<script src="js/export-termin.js?v=6.31"></script>
+<script src="js/performance.js?v=6.31"></script>
+<script src="js/competition.js?v=6.31"></script>
+<script src="js/dashboard.js?v=6.31"></script>
+<script src="js/campaigns.js?v=6.31"></script>
+<script src="js/contacts.js?v=6.31"></script>
+<script src="js/telnyx.js?v=6.31"></script>
+<script src="js/voice-orb.js?v=6.31"></script>
+<script src="js/dialer.js?v=6.31"></script>
+<script src="js/appointments.js?v=6.31"></script>
+<script src="js/wiedervorlage.js?v=6.31"></script>
+<script src="js/qc.js?v=6.31"></script>
+<script src="js/leave-hr.js?v=6.31"></script>
+<script src="js/muhasebe.js?v=6.31"></script>
+<script src="js/agent-self-performance.js?v=6.31"></script>
+<script src="js/agents.js?v=6.31"></script>
 </body>
 </html>

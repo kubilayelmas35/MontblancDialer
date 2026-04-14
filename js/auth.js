@@ -124,6 +124,7 @@ setInterval(updateTopbarStats, 30000);
 }
 loadWvBadge();
 if (typeof refreshUserPagePerms === 'function') refreshUserPagePerms().catch(() => {});
+if (typeof initChat === 'function') initChat();
 initRTCListener();
 const sipUser = localStorage.getItem('mb-sip-user')||'';
 const sipPass = localStorage.getItem('mb-sip-pass')||'';
