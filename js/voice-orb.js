@@ -18,13 +18,13 @@
   }
 
   function getTimelineHue(t) {
-    // 0: mor(280) -> 60sn: mavi(210) -> 120sn: yesil(130)
+    // 0: mavi(220) -> 60sn: turkuaz(190) -> 120sn: yesil(130)
     if (t <= 0.5) {
       const k = t * 2;
-      return 280 + (210 - 280) * k;
+      return 220 + (190 - 220) * k;
     }
     const k = (t - 0.5) * 2;
-    return 210 + (130 - 210) * k;
+    return 190 + (130 - 190) * k;
   }
 
   let sharedCtx = null;
@@ -180,8 +180,7 @@
       if (this.opt.mode === 'agent') {
         const inTestMode = typeof _testMode !== 'undefined' ? !!_testMode : false;
         const muted = typeof isMuted !== 'undefined' ? !!isMuted : false;
-        const onCall = typeof dialerStatus !== 'undefined' ? dialerStatus === 'on_call' : true;
-        if (inTestMode || muted || !onCall) return 0;
+        if (inTestMode || muted) return 0;
       }
       if (this.opt.mode === 'remote' && window.__voiceOrbSimRemote) {
         const t = this._t * 0.001;
@@ -212,11 +211,11 @@
           sq += v * v;
         }
         const rms = Math.sqrt(sq / td.length);
-        const raw = Math.max(band * 1.4, rms * 6.5);
+        const raw = Math.max(band * 2.2, rms * 10.0);
 
-        this._smooth = this._smooth * 0.76 + raw * 0.24;
-        const out = Math.min(1, this._smooth * 2.8);
-        const noiseGate = 0.01;
+        this._smooth = this._smooth * 0.62 + raw * 0.38;
+        const out = Math.min(1, this._smooth * 3.4);
+        const noiseGate = 0.002;
         return out < noiseGate ? 0 : out;
       }
       const t = this._t;
