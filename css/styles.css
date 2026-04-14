@@ -126,22 +126,45 @@ a { color: inherit; text-decoration: none; }
 /* ============================================================
 APP SHELL
 ============================================================ */
-#app { display: flex; flex-direction: column; height: 100vh; }
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+}
 /* ── TOPBAR ── */
 #topbar {
-height: var(--topbar-h);
 min-height: var(--topbar-h);
 background: var(--topbar-bg);
 border-bottom: 1px solid var(--border);
 display: flex;
 align-items: center;
-padding: 0 14px;
+padding: 6px 10px;
 gap: 8px;
 z-index: 100;
 box-shadow: 0 1px 0 var(--border), 0 4px 20px rgba(0,0,0,0.04);
 backdrop-filter: blur(8px);
 position: relative;
-overflow: hidden;
+overflow-x: auto;
+overflow-y: visible;
+flex-wrap: nowrap;
+-webkit-overflow-scrolling: touch;
+}
+#topbar::-webkit-scrollbar {
+  height: 0;
+}
+.tb-pills-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  display: flex;
+  justify-content: flex-end;
+  -webkit-overflow-scrolling: touch;
+}
+.tb-pills-wrap::-webkit-scrollbar {
+  height: 0;
 }
 #topbar > * {
 position: relative;
@@ -220,10 +243,15 @@ text-shadow: none;
 border-color: rgba(255, 255, 255, 0.12);
 box-shadow: 0 1px 12px rgba(0, 0, 0, 0.25);
 }
-/* Topbar pills */
+/* Topbar pills (wrapper .tb-pills-wrap kaydırır) */
 #tb-pills {
-display: flex; align-items: center; gap: 5px;
-flex: 1; overflow-x: auto; scrollbar-width: none;
+display: flex !important;
+align-items: center;
+gap: 5px;
+flex: 0 1 auto;
+min-width: 0;
+flex-wrap: nowrap;
+scrollbar-width: none;
 }
 #tb-pills::-webkit-scrollbar { display: none; }
 .tb-pill {
@@ -256,7 +284,15 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 50%      { opacity:.5; box-shadow:0 0 10px var(--accent); }
 }
 /* Topbar right */
-.tb-right { display:flex; align-items:center; gap:6px; margin-left:auto; flex-shrink:0; }
+.tb-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 .tb-icon-btn {
 width: 32px; height: 32px;
 display: flex; align-items: center; justify-content: center;
@@ -284,7 +320,14 @@ font-size: 11px; font-weight: 700; color: white;
 .tb-uname { font-size: 13px; font-weight: 600; }
 .tb-urole { font-size: 10px; color: var(--text-3); }
 /* ── BODY ── */
-#body { display:flex; flex:1; overflow:hidden; position:relative; }
+#body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  align-items: stretch;
+}
 /* ── SIDEBAR ── */
 #sidebar {
 width: var(--sidebar-w);
@@ -297,6 +340,14 @@ z-index: 90;
 position: relative;
 transition: width var(--transition), min-width var(--transition), transform var(--transition);
 box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+}
+.sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 /* Aurora altta (z-index:0), menü üstte — sb-top-strip kaldırıldı; yanlış seçici aurorayı bozuyordu */
 #sidebar > *:not(.fluid-aurora--sidebar) {
@@ -320,9 +371,11 @@ background: #00000040; z-index: 89;
 backdrop-filter: blur(2px);
 }
 #sidebar-overlay.show { display: block; }
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
 #sidebar {
-position: absolute; top:0; left:0; height:100%;
+position: absolute; top:0; left:0; bottom: 0;
+height: 100%;
+max-height: 100%;
 transform: translateX(-100%); box-shadow: var(--shadow-md);
 transition: transform var(--transition);
 }
@@ -380,11 +433,13 @@ border-radius: 10px; font-family: var(--mono);
 #sidebar .tb-hamburger span { background: currentColor; }
 /* ── MAIN ── */
 #main {
-flex: 1; overflow: hidden;
+flex: 1;
+min-height: 0;
+overflow: hidden;
 position: relative;
 display: flex; flex-direction: column;
 }
-@media (max-width: 768px) { #main { padding: 0; } }
+@media (max-width: 1024px) { #main { padding: 0; min-width: 0; } }
 /* ============================================================
 PAGES
 ============================================================ */
@@ -396,13 +451,15 @@ padding: 24px;
 z-index: 1;
 pointer-events: none;
 visibility: hidden;
+-webkit-overflow-scrolling: touch;
+overscroll-behavior: contain;
 }
 .page.active {
 display: flex;
 pointer-events: auto;
 visibility: visible;
 }
-@media (max-width: 768px) { .page { padding: 14px; } }
+@media (max-width: 1024px) { .page { padding: 14px; } }
 .page-hdr {
 display: flex; align-items: flex-start; justify-content: space-between;
 gap: 12px; flex-wrap: wrap;
@@ -1102,6 +1159,15 @@ font-size:16px; font-weight:800; flex-shrink:0;
 /* ============================================================
 MOBILE / RESPONSIVE
 ============================================================ */
+@media (max-width: 1024px) {
+  .tb-user .tb-uname,
+  .tb-user .tb-urole {
+    max-width: 96px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
 @media(max-width:768px) {
 .camp-grid { grid-template-columns:1fr; }
 .agents-grid { grid-template-columns:1fr; }
@@ -1114,7 +1180,7 @@ MOBILE / RESPONSIVE
 .outcome-btn .icon { font-size:16px; }
 }
 @media(max-width:480px) {
-#tb-pills { display:none; }
+#tb-pills { display:none !important; }
 .stats-grid { grid-template-columns:1fr 1fr; }
 .cust-fields { grid-template-columns:1fr; }
 }
@@ -1684,8 +1750,12 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .team-chat-groups-toolbar {
   padding: 8px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.team-chat-btn-new {
+.team-chat-btn-new,
+.team-chat-btn-quick {
   width: 100%;
   justify-content: center;
 }

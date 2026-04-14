@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.33">
+<link rel="stylesheet" href="css/styles.css?v=6.34">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -101,6 +101,7 @@
 </div>
 </div>
 </div>
+<div class="tb-pills-wrap">
 <div id="tb-pills" style="display:none;">
 <div class="tb-pill pill-ping">
 <div class="tb-pill-dot"></div>
@@ -138,6 +139,7 @@
 <span class="tb-pill-lbl" data-tr="termin" data-de="Termin">termin</span>
 </div>
 </div>
+</div>
 <div class="tb-right">
 <button class="tb-icon-btn" id="takvim-topbar-btn" onclick="openTakvimOverlay()" title="Takvim"
 style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid var(--border);border-radius:var(--radius-xs);gap:5px;display:flex;align-items:center;">
@@ -161,6 +163,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 <nav id="sidebar">
 <div class="fluid-aurora fluid-aurora--sidebar" aria-hidden="true"></div>
+<div id="sidebar-scroll" class="sidebar-scroll">
 <div id="nav-admin">
 <div class="sb-section">
 <div class="sb-label" data-tr="Genel" data-de="Allgemein">Genel</div>
@@ -285,8 +288,9 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span data-tr="Çıkış" data-de="Abmelden">Çıkış</span>
 </button>
 </div>
+</div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.33</div>
+<div class="sb-ver">MontBlanc v6.34</div>
 </div>
 </nav>
 <main id="main">
@@ -2594,6 +2598,7 @@ QC Detay
 <div id="team-chat-firm-layout" class="team-chat-firm-layout">
 <div class="team-chat-groups-col">
 <div class="team-chat-groups-toolbar">
+<button type="button" id="team-chat-quick-dm" class="btn btn-sm btn-secondary team-chat-btn-quick" style="display:none;">Hızlı mesaj</button>
 <button type="button" id="team-chat-new-group" class="btn btn-sm btn-secondary team-chat-btn-new" style="display:none;">+ Grup</button>
 </div>
 <div id="team-chat-group-list" class="team-chat-group-list"></div>
@@ -2614,6 +2619,19 @@ QC Detay
 <div id="team-chat-global-feed" class="team-chat-global-feed" style="display:none;">
 <div class="team-chat-global-hint"><i class="ph ph-info"></i> Tüm firmalardaki son mesajlar. Yanıtlamak için satıra tıklayın.</div>
 <div id="team-chat-global-list" class="team-chat-global-list"></div>
+</div>
+</div>
+</div>
+<div id="team-chat-quick-modal" class="team-chat-modal" style="display:none;">
+<div class="team-chat-modal-card">
+<h3 style="margin:0 0 8px;font-size:15px;">Hızlı mesaj</h3>
+<p class="team-chat-muted" style="margin:0 0 12px;font-size:12px;">Seçtiğiniz kişiyle birebir sohbet açılır (aynı firma bağlamında).</p>
+<select id="team-chat-quick-user" class="form-input" style="width:100%;margin-bottom:12px;">
+<option value="">Kişi seçin…</option>
+</select>
+<div style="display:flex;gap:8px;justify-content:flex-end;">
+<button type="button" class="btn btn-secondary btn-sm" id="team-chat-quick-cancel">İptal</button>
+<button type="button" class="btn btn-primary btn-sm" id="team-chat-quick-go">Sohbeti aç</button>
 </div>
 </div>
 </div>
@@ -2639,28 +2657,28 @@ QC Detay
 <div id="team-chat-members-add"></div>
 </div>
 </div>
-<script src="js/config.js?v=6.33"></script>
-<script src="js/state.js?v=6.33"></script>
-<script src="js/api.js?v=6.33"></script>
-<script src="js/auth.js?v=6.33"></script>
-<script src="js/ui.js?v=6.33"></script>
-<script src="js/chat.js?v=6.33"></script>
-<script src="js/export-admin.js?v=6.33"></script>
-<script src="js/export-termin.js?v=6.33"></script>
-<script src="js/performance.js?v=6.33"></script>
-<script src="js/competition.js?v=6.33"></script>
-<script src="js/dashboard.js?v=6.33"></script>
-<script src="js/campaigns.js?v=6.33"></script>
-<script src="js/contacts.js?v=6.33"></script>
-<script src="js/telnyx.js?v=6.33"></script>
-<script src="js/voice-orb.js?v=6.33"></script>
-<script src="js/dialer.js?v=6.33"></script>
-<script src="js/appointments.js?v=6.33"></script>
-<script src="js/wiedervorlage.js?v=6.33"></script>
-<script src="js/qc.js?v=6.33"></script>
-<script src="js/leave-hr.js?v=6.33"></script>
-<script src="js/muhasebe.js?v=6.33"></script>
-<script src="js/agent-self-performance.js?v=6.33"></script>
-<script src="js/agents.js?v=6.33"></script>
+<script src="js/config.js?v=6.34"></script>
+<script src="js/state.js?v=6.34"></script>
+<script src="js/api.js?v=6.34"></script>
+<script src="js/auth.js?v=6.34"></script>
+<script src="js/ui.js?v=6.34"></script>
+<script src="js/chat.js?v=6.34"></script>
+<script src="js/export-admin.js?v=6.34"></script>
+<script src="js/export-termin.js?v=6.34"></script>
+<script src="js/performance.js?v=6.34"></script>
+<script src="js/competition.js?v=6.34"></script>
+<script src="js/dashboard.js?v=6.34"></script>
+<script src="js/campaigns.js?v=6.34"></script>
+<script src="js/contacts.js?v=6.34"></script>
+<script src="js/telnyx.js?v=6.34"></script>
+<script src="js/voice-orb.js?v=6.34"></script>
+<script src="js/dialer.js?v=6.34"></script>
+<script src="js/appointments.js?v=6.34"></script>
+<script src="js/wiedervorlage.js?v=6.34"></script>
+<script src="js/qc.js?v=6.34"></script>
+<script src="js/leave-hr.js?v=6.34"></script>
+<script src="js/muhasebe.js?v=6.34"></script>
+<script src="js/agent-self-performance.js?v=6.34"></script>
+<script src="js/agents.js?v=6.34"></script>
 </body>
 </html>

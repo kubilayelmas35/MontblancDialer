@@ -32,6 +32,39 @@ function _chatSuperSeesAll() {
   return currentUser?.role === 'super_admin';
 }
 
+/** Grup / DM üye seçiminde tüm firmalar (süper admin + firmasız global admin) */
+function _chatPickUsersGlobally() {
+  const r = currentUser?.role || '';
+  if (r === 'super_admin') return true;
+  if (r === 'admin' && !currentUser?.firm_id) return true;
+  return false;
+}
+
+async function fetchUsersForChatPicker(fid) {
+  if (_chatPickUsersGlobally()) {
+    let rows =
+      (await sb(
+        `users?is_active=eq.true&select=id,name,role,firm_id,firms(name)&order=name.asc`
+      ).catch(() => null)) || [];
+    if (!rows.length) {
+      rows =
+        (await sb(`users?is_active=eq.true&select=id,name,role,firm_id&order=name.asc`).catch(() => [])) || [];
+    }
+    return rows;
+  }
+  if (!fid) return [];
+  return (
+    (await sb(`users?firm_id=eq.${fid}&is_active=eq.true&select=id,name,role&order=name.asc`).catch(() => [])) || []
+  );
+}
+
+function formatChatUserLabel(u) {
+  const fn = u.firms;
+  const firmName = typeof fn === 'object' && fn && fn.name ? fn.name : null;
+  if (firmName) return `${u.name} · ${firmName}`;
+  return `${u.name} (${u.role || '—'})`;
+}
+
 async function getSupabaseClient() {
   if (_sbClient) return _sbClient;
   try {
@@ -130,6 +163,12 @@ async function initChat() {
   if (micBtn) micBtn.onclick = () => toggleTeamChatVoice();
   const newGrp = document.getElementById('team-chat-new-group');
   if (newGrp) newGrp.onclick = () => openNewGroupModal();
+  const quickDm = document.getElementById('team-chat-quick-dm');
+  if (quickDm) quickDm.onclick = () => openQuickDmModal();
+  const quickCancel = document.getElementById('team-chat-quick-cancel');
+  const quickGo = document.getElementById('team-chat-quick-go');
+  if (quickCancel) quickCancel.onclick = () => closeQuickDmModal();
+  if (quickGo) quickGo.onclick = () => confirmQuickDm();
   const saveGrp = document.getElementById('team-chat-save-group');
   if (saveGrp) saveGrp.onclick = () => saveNewGroup();
   const modeWrap = document.getElementById('team-chat-mode-wrap');
@@ -273,7 +312,10 @@ async function refreshTeamChatGroups() {
     });
   }
   const newBtn = document.getElementById('team-chat-new-group');
-  if (newBtn) newBtn.style.display = _canManageChatGroups() ? '' : 'none';
+  const quickBtn = document.getElementById('team-chat-quick-dm');
+  const showMgr = _canManageChatGroups();
+  if (newBtn) newBtn.style.display = showMgr ? '' : 'none';
+  if (quickBtn) quickBtn.style.display = showMgr ? '' : 'none';
   if (!_chatActiveGroupId && _chatGroups.length) selectTeamChatGroup(_chatGroups[0].id);
 }
 
@@ -670,7 +712,7 @@ function openNewGroupModal() {
   const memSel = document.getElementById('team-chat-group-members');
   if (nameInp) nameInp.value = '';
   if (modal) modal.style.display = 'flex';
-  sb(`users?firm_id=eq.${fid}&select=id,name,role&is_active=eq.true&order=name.asc`)
+  fetchUsersForChatPicker(fid)
     .then((users) => {
       _firmUsersCache = users || [];
       if (memSel) {
@@ -678,12 +720,106 @@ function openNewGroupModal() {
           .filter((u) => u.id !== currentUser.id)
           .map(
             (u) =>
-              `<label class="team-chat-cb"><input type="checkbox" value="${u.id}"/> ${escapeHtml(u.name)} <span class="team-chat-muted">${u.role}</span></label>`
+              `<label class="team-chat-cb"><input type="checkbox" value="${u.id}"/> ${escapeHtml(formatChatUserLabel(u))}</label>`
           )
           .join('');
       }
     })
     .catch(() => {});
+}
+
+function openQuickDmModal() {
+  const fid = _chatFirmId();
+  if (!fid) {
+    toast('Firma seçin', 'warn');
+    return;
+  }
+  if (!_canManageChatGroups()) return;
+  const modal = document.getElementById('team-chat-quick-modal');
+  const sel = document.getElementById('team-chat-quick-user');
+  if (modal) modal.style.display = 'flex';
+  if (sel) sel.innerHTML = '<option value="">Kişi seçin…</option>';
+  fetchUsersForChatPicker(fid).then((users) => {
+    _firmUsersCache = users || [];
+    if (!sel) return;
+    for (const u of _firmUsersCache) {
+      if (u.id === currentUser.id) continue;
+      const o = document.createElement('option');
+      o.value = u.id;
+      o.textContent = formatChatUserLabel(u);
+      sel.appendChild(o);
+    }
+  });
+}
+
+function closeQuickDmModal() {
+  const modal = document.getElementById('team-chat-quick-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function confirmQuickDm() {
+  const sel = document.getElementById('team-chat-quick-user');
+  const uid = sel?.value;
+  if (!uid) {
+    toast('Kişi seçin', 'warn');
+    return;
+  }
+  await ensureOrOpenDirectChat(uid);
+}
+
+async function ensureOrOpenDirectChat(targetUserId) {
+  const fid = _chatFirmId();
+  if (!fid) {
+    toast('Firma seçin', 'warn');
+    return;
+  }
+  if (targetUserId === currentUser.id) return;
+  const pair = [currentUser.id, targetUserId].sort();
+  const slug = 'dm_' + pair[0] + '_' + pair[1];
+  const existing = await sb(`chat_groups?firm_id=eq.${fid}&slug=eq.${slug}&select=id,name`).catch(() => []);
+  let gid = existing?.[0]?.id;
+  if (!gid) {
+    const users = await sb(`users?id=eq.${targetUserId}&select=name`).catch(() => []);
+    const otherName = users?.[0]?.name || 'Sohbet';
+    const row = await sb('chat_groups', {
+      method: 'POST',
+      prefer: 'return=representation',
+      body: JSON.stringify({
+        firm_id: fid,
+        name: otherName,
+        slug,
+        created_by: currentUser.id
+      })
+    }).catch(() => null);
+    gid = row?.[0]?.id;
+    if (!gid) {
+      toast('Sohbet açılamadı', 'err');
+      return;
+    }
+    for (const uid of pair) {
+      await sb('chat_group_members', {
+        method: 'POST',
+        body: JSON.stringify({ group_id: gid, user_id: uid })
+      }).catch(() => {});
+    }
+  }
+  closeQuickDmModal();
+  _chatMode = 'firm';
+  document.querySelectorAll('.team-chat-mode-pill').forEach((p) => {
+    p.classList.toggle('active', p.getAttribute('data-mode') === 'firm');
+  });
+  const firmLayout = document.getElementById('team-chat-firm-layout');
+  const globalEl = document.getElementById('team-chat-global-feed');
+  const compose = document.getElementById('team-chat-compose-wrap');
+  if (firmLayout) firmLayout.style.display = 'flex';
+  if (globalEl) globalEl.style.display = 'none';
+  if (compose) compose.style.display = '';
+  _chatActiveGroupId = gid;
+  await refreshTeamChatGroups();
+  selectTeamChatGroup(gid);
+  bindRealtime();
+  if (!_chatOpen) toggleTeamChat(true);
+  else await loadTeamChatMessages();
 }
 
 function closeNewGroupModal() {
@@ -729,11 +865,11 @@ async function openGroupMembersModal(groupId) {
     if (isWide) {
       addWrap.innerHTML = '<p class="team-chat-muted" style="margin:0;font-size:12px;">Bu grupta üyelik firma kullanıcılarıyla senkrondur.</p>';
     } else {
-      const firmUsers = (await sb(`users?firm_id=eq.${fid}&select=id,name,role&is_active=eq.true&order=name.asc`).catch(() => [])) || [];
+      const firmUsers = (await fetchUsersForChatPicker(fid)) || [];
       const avail = firmUsers.filter((u) => !uids.includes(u.id));
       addWrap.innerHTML =
         `<label class="form-label" style="font-size:11px;">Üye ekle</label><select id="team-chat-add-user" class="form-input" style="width:100%;margin-top:4px;">
-<option value="">Seçin…</option>${avail.map((u) => `<option value="${u.id}">${escapeHtml(u.name)} (${u.role})</option>`).join('')}
+<option value="">Seçin…</option>${avail.map((u) => `<option value="${u.id}">${escapeHtml(formatChatUserLabel(u))}</option>`).join('')}
 </select><button type="button" class="btn btn-primary btn-sm" style="margin-top:8px;width:100%;" id="team-chat-add-user-btn">Ekle</button>`;
       const btn = document.getElementById('team-chat-add-user-btn');
       if (btn)
