@@ -407,15 +407,15 @@ ${currentLang === 'de' ? 'Keine Termine' : 'Kayıt yok'}</td></tr>`;
     const durumLbl = _etDurumLabel(e.durumKey);
     const badgeBg = _etBadgeColor(e.durumKey);
     tr.innerHTML = `
-<td style="text-align:center;"><input type="checkbox" class="et-row-cb" data-id="${e.id}" ${isSel ? 'checked' : ''}/></td>
-<td><div style="font-weight:700;color:var(--accent);">${_uiEsc(timeStr)}</div><div style="font-size:11px;color:var(--text-3);">${_uiEsc(dayStr)}</div></td>
-<td style="font-weight:600;">${_uiEsc(e.nachname)}</td>
-<td>${_uiEsc(tel)}</td>
-<td style="max-width:220px;font-size:12px;">${_uiEsc(addr)}</td>
-<td><span class="badge" style="background:var(--accent);color:#fff;font-size:10px;">${_uiEsc(e.kampName)}</span></td>
-<td><span class="badge" style="background:${badgeBg};color:#fff;font-size:10px;">${_uiEsc(durumLbl)}</span></td>
-<td>${_uiEsc(e.agentName || '—')}</td>
-<td style="font-size:12px;">${_uiEsc(e.custLabel)}</td>`;
+<td data-label="Seç" style="text-align:center;"><input type="checkbox" class="et-row-cb" data-id="${e.id}" ${isSel ? 'checked' : ''}/></td>
+<td data-label="Tarih / saat"><div style="font-weight:700;color:var(--accent);">${_uiEsc(timeStr)}</div><div style="font-size:11px;color:var(--text-3);">${_uiEsc(dayStr)}</div></td>
+<td data-label="Müşteri" style="font-weight:600;">${_uiEsc(e.nachname)}</td>
+<td data-label="Telefon">${_uiEsc(tel)}</td>
+<td data-label="Adres" style="max-width:220px;font-size:12px;">${_uiEsc(addr)}</td>
+<td data-label="Kampanya"><span class="badge" style="background:var(--accent);color:#fff;font-size:10px;">${_uiEsc(e.kampName)}</span></td>
+<td data-label="Durum"><span class="badge" style="background:${badgeBg};color:#fff;font-size:10px;">${_uiEsc(durumLbl)}</span></td>
+<td data-label="Agent">${_uiEsc(e.agentName || '—')}</td>
+<td data-label="Atanan müşteri" style="font-size:12px;">${_uiEsc(e.custLabel)}</td>`;
     const cb = tr.querySelector('.et-row-cb');
     cb.onchange = () => {
       if (cb.checked) _etSelectedIds.add(e.id);

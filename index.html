@@ -307,7 +307,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.48</div>
+<div class="sb-ver">MontBlanc v6.49</div>
 </div>
 </nav>
 <main id="main">
@@ -784,6 +784,23 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 #page-export .et-loading-inner{background:var(--bg-2);padding:24px 32px;border-radius:12px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2);}
 #page-export .et-spin{border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;width:36px;height:36px;margin:0 auto 12px;animation:etspin .8s linear infinite;}
 @keyframes etspin{to{transform:rotate(360deg);}}
+@media(max-width:900px){
+  #page-export .page-hdr{flex-direction:column;align-items:flex-start;}
+  #page-export .et-side .card{position:static;}
+  #page-export .et-layout{gap:12px;}
+  #page-export .et-layout .card{padding:10px;}
+  #page-export #et-shortcuts button{width:100%;justify-content:center;}
+}
+@media(max-width:760px){
+  #page-export .tbl-wrap{overflow-x:visible;max-height:none!important;}
+  #page-export table{min-width:0!important;border-collapse:separate;border-spacing:0 8px;}
+  #page-export thead{display:none;}
+  #page-export tbody tr{display:block;background:var(--bg-3);border:1px solid var(--border);border-radius:10px;padding:8px;}
+  #page-export tbody td{display:flex;justify-content:space-between;gap:10px;border:none!important;padding:6px 4px!important;font-size:12px;}
+  #page-export tbody td::before{content:attr(data-label);font-size:11px;color:var(--text-3);font-weight:700;}
+  #page-export tbody td:first-child{justify-content:flex-start;}
+  #page-export tbody td:first-child::before{display:none;}
+}
 </style>
 <div id="et-loading" class="et-loading"><div class="et-loading-inner"><div class="et-spin"></div><div id="et-loading-text" style="font-weight:600;">…</div></div></div>
 <div class="page-hdr">
