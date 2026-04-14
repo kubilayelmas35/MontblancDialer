@@ -32,6 +32,7 @@ async function loadQcData() {
       badge.style.display = pending.length > 0 ? '' : 'none';
       badge.textContent = pending.length;
     }
+    if (typeof loadJobMarketQcQueue === 'function') loadJobMarketQcQueue();
   } catch(e) { console.error('QC load err:', e); }
 }
 

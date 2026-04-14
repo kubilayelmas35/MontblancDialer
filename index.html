@@ -188,6 +188,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span class="sb-item-icon"><i class="ph ph-phone-call" style="font-size:17px;"></i></span>
 <span data-tr="Dialer" data-de="Dialer">Dialer</span>
 </button>
+<button class="sb-item" id="nav-jobs-btn" onclick="navigate('jobmarket')">
+<span class="sb-item-icon"><i class="ph ph-briefcase-metal" style="font-size:17px;"></i></span>
+<span data-tr="İş Platformu" data-de="Job Plattform">İş Platformu</span>
+</button>
 <button class="sb-item" onclick="navigate('agents')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
 <span data-tr="Agentler" data-de="Agenten">Agentler</span>
@@ -302,7 +306,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.45</div>
+<div class="sb-ver">MontBlanc v6.47</div>
 </div>
 </nav>
 <main id="main">
@@ -371,6 +375,17 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div id="dash-comp-self" style="font-size:13px;margin-top:8px;color:var(--text-2);font-weight:600;display:none;"></div>
 <button type="button" class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="navigate('competition')"><i class="ph ph-trophy"></i> Yarış sayfası</button>
 </div>
+</div>
+</div>
+<div class="card" id="dash-job-market-kpi" style="display:none;padding:12px;">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
+<div style="font-size:13px;font-weight:800;">İş Platformu KPI</div>
+<button class="btn btn-ghost btn-sm" onclick="navigate('jobmarket')">Detay</button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">
+<div style="padding:8px;background:var(--bg-3);border-radius:8px;"><div style="font-size:11px;color:var(--text-3);">Yayınlanan</div><div id="kpi-job-published" style="font-size:18px;font-weight:800;">0</div></div>
+<div style="padding:8px;background:var(--bg-3);border-radius:8px;"><div style="font-size:11px;color:var(--text-3);">QC Bekleyen</div><div id="kpi-job-qc" style="font-size:18px;font-weight:800;">0</div></div>
+<div style="padding:8px;background:var(--bg-3);border-radius:8px;"><div style="font-size:11px;color:var(--text-3);">Tamamlanan</div><div id="kpi-job-done" style="font-size:18px;font-weight:800;">0</div></div>
 </div>
 </div>
 <div class="dash-analytics-grid">
@@ -1424,6 +1439,71 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <tr><td colspan="10" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
 </tbody>
 </table>
+</div>
+</div>
+<div class="card" style="margin-top:10px;">
+<div class="card-title" style="margin-bottom:8px;">İş Platformu QC Kuyruğu</div>
+<div id="qc-job-market-queue" style="display:flex;flex-direction:column;gap:8px;">
+<div style="font-size:12px;color:var(--text-3);padding:8px;">Yükleniyor...</div>
+</div>
+</div>
+</div>
+<div class="page" id="page-jobmarket">
+<div class="page-hdr">
+<div>
+<div class="page-title"><i class="ph ph-briefcase-metal" style="vertical-align:-3px;margin-right:6px;"></i>İş Platformu</div>
+<div class="page-sub">Firmalar arası iş ilanı, çalışma ve teslim akışı</div>
+</div>
+<div style="display:flex;gap:8px;align-items:center;">
+<div id="job-market-firm-selector"></div>
+<button class="btn btn-ghost btn-sm" onclick="loadJobMarketPage()">↻ Yenile</button>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:10px;align-items:start;">
+<div class="card">
+<div class="card-title" style="margin-bottom:10px;">Yeni İş İlanı</div>
+<div style="display:flex;flex-direction:column;gap:8px;">
+<input class="form-input" id="jm-title" placeholder="İlan başlığı">
+<textarea class="form-input" id="jm-description" rows="3" placeholder="Açıklama / şartlar"></textarea>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<select class="form-input" id="jm-type">
+<option value="appointment">Randevu</option>
+<option value="lead">Lead</option>
+<option value="field_task">Saha işi</option>
+<option value="call_capacity">Çağrı kapasitesi</option>
+<option value="custom">Diğer</option>
+</select>
+<input class="form-input" id="jm-budget" type="number" min="1" placeholder="Bütçe">
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<select class="form-input" id="jm-qc-mode">
+<option value="required">QC zorunlu</option>
+<option value="optional">QC opsiyonel</option>
+<option value="none">QC istemiyorum</option>
+</select>
+<input class="form-input" id="jm-currency" value="TRY" placeholder="Para birimi">
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<input class="form-input" id="jm-country" placeholder="Ülke (opsiyonel)">
+<input class="form-input" id="jm-city" placeholder="Şehir / posta kodu">
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<input class="form-input" id="jm-radius" type="number" min="0" step="0.1" placeholder="Yarıçap km (opsiyonel)">
+<input class="form-input" id="jm-deadline" type="datetime-local">
+</div>
+<textarea class="form-input" id="jm-polygon" rows="2" placeholder="Polygon GeoJSON (opsiyonel)"></textarea>
+<div id="jm-wallet-info" style="font-size:11px;color:var(--text-3);">Bakiye yükleniyor...</div>
+<button class="btn btn-primary btn-sm" onclick="createJobPost()">İlan Yayınla</button>
+</div>
+</div>
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
+<div class="card-title">Açık İlanlar</div>
+<input class="form-input" id="jm-search" placeholder="Başlık/şehir ara..." style="max-width:220px;" oninput="renderJobPostList()">
+</div>
+<div id="job-market-list" style="display:flex;flex-direction:column;gap:8px;">
+<div style="font-size:12px;color:var(--text-3);padding:8px;">Yükleniyor...</div>
+</div>
 </div>
 </div>
 </div>
@@ -2800,19 +2880,22 @@ QC Detay
 <script src="js/config.js?v=6.34"></script>
 <script src="js/state.js?v=6.34"></script>
 <script src="js/api.js?v=6.34"></script>
-<script src="js/auth.js?v=6.44"></script>
-<script src="js/ui.js?v=6.36"></script>
+<script src="js/auth.js?v=6.46"></script>
+<script src="js/ui.js?v=6.46"></script>
 <script src="js/chat.js?v=6.35"></script>
 <script src="js/chat-settings.js?v=6.35"></script>
 <script src="js/field-settings.js?v=6.38"></script>
 <script src="js/audit.js?v=6.44"></script>
-<script src="js/feature-flags.js?v=6.44"></script>
-<script src="js/notification-center.js?v=6.44"></script>
+<script src="js/feature-flags.js?v=6.46"></script>
+<script src="js/notification-center.js?v=6.46"></script>
+<script src="js/wallet.js?v=6.46"></script>
+<script src="js/job-market.js?v=6.46"></script>
+<script src="js/qc-job-market.js?v=6.46"></script>
 <script src="js/export-admin.js?v=6.34"></script>
 <script src="js/export-termin.js?v=6.34"></script>
 <script src="js/performance.js?v=6.34"></script>
 <script src="js/competition.js?v=6.34"></script>
-<script src="js/dashboard.js?v=6.34"></script>
+<script src="js/dashboard.js?v=6.46"></script>
 <script src="js/campaigns.js?v=6.34"></script>
 <script src="js/contacts.js?v=6.34"></script>
 <script src="js/telnyx.js?v=6.34"></script>
@@ -2821,7 +2904,7 @@ QC Detay
 <script src="js/appointments.js?v=6.36"></script>
 <script src="js/field.js?v=6.38"></script>
 <script src="js/wiedervorlage.js?v=6.34"></script>
-<script src="js/qc.js?v=6.34"></script>
+<script src="js/qc.js?v=6.46"></script>
 <script src="js/leave-hr.js?v=6.34"></script>
 <script src="js/muhasebe.js?v=6.34"></script>
 <script src="js/agent-self-performance.js?v=6.34"></script>

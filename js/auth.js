@@ -99,12 +99,14 @@ document.getElementById('telnyx-settings').style.display = currentUser.role === 
 const fieldNav = document.getElementById('nav-field-btn');
 const dialerNav = document.getElementById('nav-dialer-btn');
 const adminDialerNav = document.getElementById('nav-admin-dialer-btn');
+const jobsNav = document.getElementById('nav-jobs-btn');
 const myHistoryNav = document.getElementById('nav-myhistory-btn');
 const wvNav = document.getElementById('nav-wv-btn');
 const takvimOverlayNav = document.getElementById('nav-takvim-overlay-btn');
 if (fieldNav) fieldNav.style.display = currentUser.role === 'field_agent' ? '' : 'none';
 if (dialerNav) dialerNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
 if (adminDialerNav) adminDialerNav.style.display = ['admin','firm_admin','super_admin'].includes(currentUser.role) ? '' : 'none';
+if (jobsNav) jobsNav.style.display = ['admin','firm_admin','super_admin'].includes(currentUser.role) ? '' : 'none';
 if (myHistoryNav) myHistoryNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
 if (wvNav) wvNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
 if (takvimOverlayNav) takvimOverlayNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';

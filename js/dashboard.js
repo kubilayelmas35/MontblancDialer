@@ -683,6 +683,9 @@ ${isAdmin ? `<div style="display:flex;gap:2px;margin-left:4px;">
 if (typeof loadDashCompetitionCard === 'function') {
   try { await loadDashCompetitionCard(); } catch (e) { console.warn('comp', e); }
 }
+if (typeof loadJobMarketKpi === 'function') {
+  try { await loadJobMarketKpi(); } catch (e) {}
+}
 }
 
 async function loadStats() {

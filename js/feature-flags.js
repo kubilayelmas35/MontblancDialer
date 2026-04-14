@@ -11,7 +11,8 @@ const FEATURE_FLAG_DEFS = [
   { key: 'admin_dialer_enabled', label: 'Admin dialer aktif' },
   { key: 'field_module_enabled', label: 'Saha modülü aktif' },
   { key: 'chat_enabled', label: 'Chat aktif' },
-  { key: 'notification_center_enabled', label: 'Bildirim merkezi aktif' }
+  { key: 'notification_center_enabled', label: 'Bildirim merkezi aktif' },
+  { key: 'job_market_enabled', label: 'İş platformu aktif' }
 ];
 
 function defaultFeatureFlags() {
@@ -21,7 +22,8 @@ function defaultFeatureFlags() {
     admin_dialer_enabled: true,
     field_module_enabled: true,
     chat_enabled: true,
-    notification_center_enabled: true
+    notification_center_enabled: true,
+    job_market_enabled: true
   };
 }
 
@@ -120,6 +122,8 @@ async function applyFeatureFlagsOnBoot() {
   if (fieldNav && currentUser?.role === 'field_agent') fieldNav.style.display = flags.field_module_enabled !== false ? '' : 'none';
   const notifBtn = document.getElementById('tb-notif-btn');
   if (notifBtn) notifBtn.style.display = flags.notification_center_enabled !== false ? '' : 'none';
+  const jobsNav = document.getElementById('nav-jobs-btn');
+  if (jobsNav && adminLike) jobsNav.style.display = flags.job_market_enabled !== false ? '' : 'none';
 }
 
 window.isFeatureEnabledForCurrentFirm = isFeatureEnabledForCurrentFirm;

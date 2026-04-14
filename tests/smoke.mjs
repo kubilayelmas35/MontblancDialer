@@ -6,7 +6,10 @@ const checks = [
   { file: 'js/dialer.js', includes: ['refreshDialerHealthPanel', 'checkCallAllowed'] },
   { file: 'js/field.js', includes: ['loadFieldPage', 'renderFieldKpi', 'saveFieldTaskUpdate'] },
   { file: 'js/notification-center.js', includes: ['loadNotificationCenter'] },
-  { file: 'js/feature-flags.js', includes: ['loadFeatureFlagsPage', 'applyFeatureFlagsOnBoot'] }
+  { file: 'js/feature-flags.js', includes: ['loadFeatureFlagsPage', 'applyFeatureFlagsOnBoot', 'job_market_enabled'] },
+  { file: 'js/job-market.js', includes: ['loadJobMarketPage', 'createJobPost', 'submitJobSubmission', 'loadJobMarketKpi'] },
+  { file: 'js/qc-job-market.js', includes: ['loadJobMarketQcQueue', 'qcReviewJobSubmission'] },
+  { file: 'js/wallet.js', includes: ['getFirmWallet', 'refreshWalletInfo'] }
 ];
 
 let failed = 0;

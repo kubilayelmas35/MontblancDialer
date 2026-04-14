@@ -66,6 +66,16 @@ async function loadNotificationCenter() {
     });
   } catch (e) {}
 
+  try {
+    const events = await sb(`job_events?select=id,event_type,created_at,job_posts!inner(id,title,requester_firm_id)&order=created_at.desc&limit=8`).catch(() => []);
+    (events || []).forEach((ev) => {
+      const title = ev?.job_posts?.title || 'İş ilanı';
+      const own = ev?.job_posts?.requester_firm_id === fid;
+      if (own || ['admin', 'firm_admin', 'super_admin', 'qc'].includes(currentUser.role)) unread++;
+      out.push(_notifItem('İş platformu', `${title} · ${ev.event_type}`, new Date(ev.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })));
+    });
+  } catch (e) {}
+
   list.innerHTML = out.length ? out.join('') : _notifItem('Bildirim yok', 'Yeni bildirim bulunmuyor', '');
   if (badge) {
     badge.textContent = unread > 99 ? '99+' : String(unread);

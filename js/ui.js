@@ -46,6 +46,7 @@ if (page==='export')       loadExportTerminPage();
 if (page==='performance') loadPerformancePage();
 if (page==='dialer')         initDialer();
 if (page==='field')          loadFieldPage();
+if (page==='jobmarket')      loadJobMarketPage();
 if (page==='myhistory')      { initMyHistoryFilters(); loadMyHistory(); }
 if (page==='settings')       { loadSavedSettings(); loadRolesPage(); }
 if (page==='settings')       { loadAppointmentResultsSettings(); }
@@ -55,6 +56,8 @@ if (page==='firms')          loadFirmsPage();
 if (page==='settings')        { loadMesaiSettings(); loadCallHoursSettings(); loadChatSettingsPage(); loadFieldSettingsPage(); loadFeatureFlagsPage(); if (typeof loadAuditEventsPage==='function') loadAuditEventsPage(); }
 if (page==='field')          { if (typeof loadNotificationCenter === 'function') loadNotificationCenter(); }
 if (page==='dialer')         { if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel(); }
+if (page==='qc')             { if (typeof loadJobMarketQcQueue === 'function') loadJobMarketQcQueue(); }
+if (page==='dashboard')      { if (typeof loadJobMarketKpi === 'function') loadJobMarketKpi(); }
 if (page==='takvim')         loadTakvimPage();
 if (page==='leave')          loadLeavePage();
 if (page==='muhasebe')       loadMuhasebePage();
