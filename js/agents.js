@@ -55,6 +55,27 @@ async function canManageFieldAgents(targetFirmId) {
   }
 }
 
+function _safeErrorText(e) {
+  const t = String(e?.message || e || '');
+  if (t.includes('duplicate key') || t.includes('already exists') || t.includes('users_email_key')) {
+    return 'Bu e-posta zaten kayıtlı.';
+  }
+  if (t.includes('users_role_check')) {
+    return 'Rol doğrulaması başarısız. Veritabanı migration güncel olmayabilir.';
+  }
+  if (t.includes('Password') || t.includes('password')) {
+    return 'Şifre geçersiz. En az 6 karakter kullanın.';
+  }
+  return t || 'Beklenmeyen hata';
+}
+
+function _validateUserPassword(pass, isNew) {
+  const p = String(pass || '');
+  if (isNew && !p) return 'Şifre zorunlu';
+  if (p && p.length < 6) return 'Şifre en az 6 karakter olmalı';
+  return '';
+}
+
 async function syncFieldAgentRoleOption(prefillRole, targetFirmId) {
   const sel = document.getElementById('am-role');
   if (!sel) return;
@@ -151,6 +172,8 @@ async function saveNewAgent() {
   const role  = document.getElementById('am-role')?.value || 'agent';
   const firmId = document.getElementById('am-firm')?.value || currentUser.firm_id;
   if (!name||!email||!pass) { toast('Ad, e-posta ve şifre zorunlu','err'); return; }
+  const pwdErr = _validateUserPassword(pass, true);
+  if (pwdErr) { toast(pwdErr, 'err'); return; }
   if (role === 'field_agent' && !(await canManageFieldAgents(firmId))) {
     toast('Saha elemanı ekleme yetkiniz yok','err');
     return;
@@ -165,7 +188,7 @@ async function saveNewAgent() {
     document.getElementById('m-agent-mgr')?.remove();
     await loadAgents();
     toast('Kullanıcı oluşturuldu ✓','ok');
-  } catch(e) { toast('Hata: '+e.message,'err'); }
+  } catch(e) { toast('Hata: '+_safeErrorText(e),'err'); }
 }
 
 async function saveAgentEdit(userId) {
@@ -174,6 +197,8 @@ async function saveAgentEdit(userId) {
   const role   = document.getElementById('am-role')?.value;
   const active = document.getElementById('am-active')?.value === 'true';
   if (!name) { toast('Ad zorunlu','err'); return; }
+  const pwdErr = _validateUserPassword(pass, false);
+  if (pwdErr) { toast(pwdErr, 'err'); return; }
   if (role === 'field_agent' && !(await canManageFieldAgents(currentUser?.firm_id))) {
     toast('Saha elemanı rolü için yetkiniz yok','err');
     return;
@@ -182,16 +207,17 @@ async function saveAgentEdit(userId) {
     await sb(`users?id=eq.${userId}`,{method:'PATCH',prefer:'return=minimal',
       body:JSON.stringify({name,role,is_active:active})});
     if (pass) {
-      await fetch(`${SB_URL}/rest/v1/rpc/reset_user_password`,{
+      const r = await fetch(`${SB_URL}/rest/v1/rpc/reset_user_password`,{
         method:'POST',
         headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
         body:JSON.stringify({p_user_id:userId,p_new_password:pass})
       });
+      if (!r.ok) throw new Error(await r.text());
     }
     document.getElementById('m-agent-mgr')?.remove();
     await loadAgents();
     toast('Güncellendi ✓','ok');
-  } catch(e) { toast('Hata: '+e.message,'err'); }
+  } catch(e) { toast('Hata: '+_safeErrorText(e),'err'); }
 }
 
 async function confirmDeleteAgent(userId) {
@@ -357,6 +383,8 @@ async function saveEditUser(userId) {
   const role   = document.getElementById('eu-role')?.value;
   const active = document.getElementById('eu-active')?.value === 'true';
   if (!name||!email) { toast('Ad ve e-posta zorunlu','err'); return; }
+  const pwdErr = _validateUserPassword(pass, false);
+  if (pwdErr) { toast(pwdErr, 'err'); return; }
   if (role === 'field_agent' && !(await canManageFieldAgents(currentUser?.firm_id))) {
     toast('Saha elemanı rolü için yetkiniz yok','err');
     return;
@@ -365,16 +393,17 @@ async function saveEditUser(userId) {
     await sb(`users?id=eq.${userId}`,{method:'PATCH',prefer:'return=minimal',
       body:JSON.stringify({name,email,role,is_active:active})});
     if (pass) {
-      await fetch(`${SB_URL}/rest/v1/rpc/reset_user_password`,{
+      const r = await fetch(`${SB_URL}/rest/v1/rpc/reset_user_password`,{
         method:'POST',
         headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
         body:JSON.stringify({p_user_id:userId,p_new_password:pass})
       });
+      if (!r.ok) throw new Error(await r.text());
     }
     document.getElementById('m-edit-user')?.remove();
     await loadFirmsPage();
     toast('Kullanıcı güncellendi ✓','ok');
-  } catch(e) { toast('Hata: '+e.message,'err'); }
+  } catch(e) { toast('Hata: '+_safeErrorText(e),'err'); }
 }
 
 function openBalanceModal(firmId, firmName, currentCurrency) {
