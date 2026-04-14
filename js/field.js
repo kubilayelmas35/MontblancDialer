@@ -42,6 +42,15 @@ function _fEsc(s) {
   return d.innerHTML;
 }
 
+function _fieldNormalizeSchemaRow(row) {
+  return {
+    key: String(row?.key || '').trim(),
+    label: String(row?.label || '').trim(),
+    type: ['text', 'number', 'select', 'date'].includes(String(row?.type || 'text')) ? String(row?.type) : 'text',
+    options: Array.isArray(row?.options) ? row.options : []
+  };
+}
+
 async function loadFieldPage() {
   const listEl = document.getElementById('field-task-list');
   if (!listEl || !currentUser) return;
@@ -127,8 +136,19 @@ ${(fs.result_options || []).map((r) => `<option value="${_fEsc(r)}" ${t.result_k
 <textarea class="form-input" rows="2" id="field-note-${t.id}" placeholder="Saha ziyareti notları...">${_fEsc(t.notes || '')}</textarea></div>
 ${(fs.form_schema || [])
   .map((f) => {
-    const v = payload?.[f.key] || '';
-    return `<div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(f.label)}</label><input class="form-input" id="field-extra-${t.id}-${_fEsc(f.key)}" value="${_fEsc(v)}"></div>`;
+    const ff = _fieldNormalizeSchemaRow(f);
+    const v = payload?.[ff.key] || '';
+    if (!ff.key || !ff.label) return '';
+    if (ff.type === 'number') {
+      return `<div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(ff.label)}</label><input type="number" class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`;
+    }
+    if (ff.type === 'date') {
+      return `<div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(ff.label)}</label><input type="date" class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`;
+    }
+    if (ff.type === 'select') {
+      return `<div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(ff.label)}</label><select class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}"><option value="">Seçin</option>${(ff.options || []).map((o) => `<option value="${_fEsc(o)}" ${String(v) === String(o) ? 'selected' : ''}>${_fEsc(o)}</option>`).join('')}</select></div>`;
+    }
+    return `<div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(ff.label)}</label><input class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`;
   })
   .join('')}
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;">

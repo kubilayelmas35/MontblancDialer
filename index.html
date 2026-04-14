@@ -1969,17 +1969,27 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <span>Firma admini saha elemanı ekleyebilsin</span>
 </label>
 </div>
-<div class="form-row" style="margin-bottom:10px;">
-<label class="form-label">Saha sonuç seçenekleri (virgülle)</label>
-<input class="form-input" id="field-set-results" placeholder="satış, teklif, ziyaret tamamlandı, ulaşılamadı">
+<div style="margin-bottom:10px;">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
+<label class="form-label" style="margin:0;">Saha sonuç seçenekleri</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="addFieldResultOptionRow()">+ Sonuç</button>
 </div>
-<div class="form-row" style="margin-bottom:10px;">
-<label class="form-label">Belge tipleri (virgülle)</label>
-<input class="form-input" id="field-set-doc-types" placeholder="kimlik, sözleşme, teklif formu">
+<div id="field-set-results-list" style="display:flex;flex-direction:column;gap:6px;"></div>
 </div>
-<div class="form-row" style="margin-bottom:12px;">
-<label class="form-label">Ek form alanları (satır satır: key|label)</label>
-<textarea class="form-input" id="field-set-form-schema" rows="4" placeholder="roof_type|Çatı tipi&#10;visit_quality|Ziyaret kalitesi"></textarea>
+<div style="margin-bottom:10px;">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
+<label class="form-label" style="margin:0;">Belge tipleri</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="addFieldDocTypeRow()">+ Belge tipi</button>
+</div>
+<div id="field-set-doc-types-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+</div>
+<div style="margin-bottom:12px;">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
+<label class="form-label" style="margin:0;">Ek form alanları</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="addFieldSchemaRow()">+ Alan</button>
+</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Her alan için anahtar ve görünen etiket tanımlayın.</div>
+<div id="field-set-form-schema-list" style="display:flex;flex-direction:column;gap:6px;"></div>
 </div>
 <button type="button" class="btn btn-primary btn-sm" onclick="saveFieldSettings()"><i class="ph ph-floppy-disk"></i> Saha ayarlarını kaydet</button>
 </div>
@@ -2747,7 +2757,7 @@ QC Detay
 <script src="js/ui.js?v=6.36"></script>
 <script src="js/chat.js?v=6.35"></script>
 <script src="js/chat-settings.js?v=6.35"></script>
-<script src="js/field-settings.js?v=6.36"></script>
+<script src="js/field-settings.js?v=6.38"></script>
 <script src="js/export-admin.js?v=6.34"></script>
 <script src="js/export-termin.js?v=6.34"></script>
 <script src="js/performance.js?v=6.34"></script>
@@ -2759,7 +2769,7 @@ QC Detay
 <script src="js/voice-orb.js?v=6.34"></script>
 <script src="js/dialer.js?v=6.34"></script>
 <script src="js/appointments.js?v=6.36"></script>
-<script src="js/field.js?v=6.36"></script>
+<script src="js/field.js?v=6.38"></script>
 <script src="js/wiedervorlage.js?v=6.34"></script>
 <script src="js/qc.js?v=6.34"></script>
 <script src="js/leave-hr.js?v=6.34"></script>
