@@ -307,7 +307,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.56</div>
+<div class="sb-ver">MontBlanc v6.58</div>
 </div>
 </nav>
 <main id="main">
@@ -1470,6 +1470,28 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 </div>
 </div>
 </div>
+<style>
+#page-jobmarket #jm-map{min-height:220px;height:220px;width:100%;position:relative;z-index:0;border-radius:8px;overflow:hidden;}
+#page-jobmarket .jm-pillbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center;}
+#page-jobmarket .jm-pill{
+ appearance:none;border:1px solid var(--border);background:var(--bg-3);color:var(--text-2);
+  font-size:11px;font-weight:700;padding:6px 12px;border-radius:999px;cursor:pointer;line-height:1.2;
+  transition:background .15s,border-color .15s,color .15s,box-shadow .15s;
+}
+#page-jobmarket .jm-pill:hover{border-color:var(--accent);color:var(--text-1);}
+#page-jobmarket .jm-pill.is-active{
+  background:var(--accent);color:#fff;border-color:var(--accent);
+  box-shadow:0 2px 10px rgba(0,0,0,.12);
+}
+#page-jobmarket .jm-hint{font-size:11px;color:var(--text-3);line-height:1.45;margin-top:4px;}
+#page-jobmarket .jm-slot-preview{
+  font-size:11px;color:var(--text-2);background:var(--bg-3);border:1px solid var(--border);
+  border-radius:8px;padding:8px 10px;margin-top:6px;max-height:160px;overflow-y:auto;
+}
+#page-jobmarket .jm-sla-box{
+  grid-column:1/-1;padding:8px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;
+}
+</style>
 <div class="page" id="page-jobmarket">
 <div class="page-hdr">
 <div>
@@ -1501,20 +1523,37 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 </select>
 <input class="form-input" id="jm-unit-price" type="number" min="1" placeholder="İşlem başı ücret" oninput="updateJobPricePreview()">
 </div>
+<div id="jm-appt-wrap" style="display:none;flex-direction:column;gap:6px;">
+<label class="form-label" style="font-size:11px;color:var(--text-3);margin:0;">Randevu türü</label>
+<select class="form-input" id="jm-appt-category">
+<option value="">Genel randevu</option>
+<option value="heat_pump">Isı pompası</option>
+<option value="solar">Solar / PV</option>
+<option value="gas_boiler">Kombi / doğalgaz</option>
+<option value="ac">Klima</option>
+<option value="energy_audit">Enerji danışmanlığı / keşif</option>
+<option value="other">Diğer</option>
+</select>
+<div class="jm-hint">Tür, ilan metninde ve listede etiket olarak görünür. Slotlar aynı gün içinde seçilen saat aralığından başlayıp arka arkaya <b>işlem adedi</b> kadar üretilir.</div>
+</div>
 <div id="jm-slot-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<input class="form-input" id="jm-slot-date" type="date" title="Gün">
+<input class="form-input" id="jm-slot-date" type="date" title="Gün" onchange="refreshJobSlotPreview()">
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<input class="form-input" id="jm-slot-start" type="time" value="10:00" title="Başlangıç">
-<input class="form-input" id="jm-slot-end" type="time" value="11:00" title="Bitiş">
+<input class="form-input" id="jm-slot-start" type="time" value="10:00" title="Başlangıç" onchange="refreshJobSlotPreview()">
+<input class="form-input" id="jm-slot-end" type="time" value="11:00" title="Bitiş" onchange="refreshJobSlotPreview()">
 </div>
 </div>
 <div id="jm-qty-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<input class="form-input" id="jm-quantity" type="number" min="1" value="1" placeholder="İşlem adedi" oninput="updateJobPricePreview()">
+<input class="form-input" id="jm-quantity" type="number" min="1" value="1" placeholder="İşlem adedi" oninput="updateJobPricePreview();refreshJobSlotPreview();">
 <div id="jm-price-preview" style="font-size:12px;color:var(--text-3);display:flex;align-items:center;">Toplam ücret: 0</div>
 </div>
+<div id="jm-slot-preview" class="jm-slot-preview" style="display:none;"></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<input class="form-input" id="jm-sla-first" type="number" min="5" value="120" placeholder="SLA ilk aksiyon (dk)">
-<input class="form-input" id="jm-sla-complete" type="number" min="30" value="1440" placeholder="SLA tamamlama (dk)">
+<input class="form-input" id="jm-sla-first" type="number" min="5" value="120" placeholder="SLA ilk aksiyon (dk)" title="İlk çalışan kaydı">
+<input class="form-input" id="jm-sla-complete" type="number" min="30" value="1440" placeholder="SLA tamamlama (dk)" title="İlk teslim">
+</div>
+<div class="jm-sla-box">
+<div class="jm-hint" style="margin-top:0;"><b>SLA nedir?</b> İlan yayınlandıktan sonra ölçülen süreler (dakika). <b>İlk aksiyon:</b> en az bir firmanın “Buna çalışacağım” ile işe bağlanması gereken süre. <b>Tamamlama:</b> ilk geçerli teslimin gelmesi gereken süre. Süre aşılırsa kartta “SLA ihlali” uyarısı çıkar (operasyon takibi içindir).</div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 <select class="form-input" id="jm-qc-mode">
@@ -1522,7 +1561,13 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <option value="optional">QC opsiyonel</option>
 <option value="none">QC istemiyorum</option>
 </select>
-<input class="form-input" id="jm-currency" value="TRY" placeholder="Para birimi">
+<select class="form-input" id="jm-currency" title="Firma ayarından otomatik doldurulur; gerekirse değiştirin.">
+<option value="EUR">EUR</option>
+<option value="TRY">TRY</option>
+<option value="USD">USD</option>
+<option value="GBP">GBP</option>
+<option value="CHF">CHF</option>
+</select>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 <input class="form-input" id="jm-country" placeholder="Ülke (opsiyonel)">
@@ -1554,16 +1599,17 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <div class="card-title">Açık İlanlar</div>
 <input class="form-input" id="jm-search" placeholder="Başlık/şehir ara..." style="max-width:220px;" oninput="renderJobPostList()">
 </div>
-<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-<button class="btn btn-ghost btn-sm jm-tab-btn" data-tab="active" onclick="setJobListTab('active')">Aktif</button>
-<button class="btn btn-ghost btn-sm jm-tab-btn" data-tab="pending_qc" onclick="setJobListTab('pending_qc')">QC Bekleyen</button>
-<button class="btn btn-ghost btn-sm jm-tab-btn" data-tab="completed" onclick="setJobListTab('completed')">Biten</button>
-<button class="btn btn-ghost btn-sm jm-tab-btn" data-tab="rejected" onclick="setJobListTab('rejected')">Red</button>
+<div class="jm-pillbar">
+<button type="button" class="jm-pill jm-tab-btn" data-tab="active" onclick="setJobListTab('active')">Aktif</button>
+<button type="button" class="jm-pill jm-tab-btn" data-tab="pending_qc" onclick="setJobListTab('pending_qc')">QC Bekleyen</button>
+<button type="button" class="jm-pill jm-tab-btn" data-tab="completed" onclick="setJobListTab('completed')">Biten</button>
+<button type="button" class="jm-pill jm-tab-btn" data-tab="rejected" onclick="setJobListTab('rejected')">Red</button>
 </div>
-<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-<button class="btn btn-ghost btn-sm" onclick="setJobPreset('today')">Bugün</button>
-<button class="btn btn-ghost btn-sm" onclick="setJobPreset('this_week')">Bu hafta</button>
-<button class="btn btn-ghost btn-sm" onclick="setJobPreset('high_budget')">Yüksek bütçe</button>
+<div class="jm-pillbar">
+<button type="button" class="jm-pill jm-preset" data-preset="" onclick="setJobPreset('')">Tüm tarihler</button>
+<button type="button" class="jm-pill jm-preset" data-preset="today" onclick="setJobPreset('today')">Bugün</button>
+<button type="button" class="jm-pill jm-preset" data-preset="this_week" onclick="setJobPreset('this_week')">Bu hafta</button>
+<button type="button" class="jm-pill jm-preset" data-preset="high_budget" onclick="setJobPreset('high_budget')">Yüksek bütçe</button>
 </div>
 <div id="job-market-list" style="display:flex;flex-direction:column;gap:8px;">
 <div style="font-size:12px;color:var(--text-3);padding:8px;">Yükleniyor...</div>
@@ -2959,7 +3005,7 @@ QC Detay
 <script src="js/notification-center.js?v=6.52"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="js/wallet.js?v=6.52"></script>
-<script src="js/job-market.js?v=6.54"></script>
+<script src="js/job-market.js?v=6.58"></script>
 <script src="js/qc-job-market.js?v=6.52"></script>
 <script src="js/export-admin.js?v=6.34"></script>
 <script src="js/export-termin.js?v=6.52"></script>
