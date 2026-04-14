@@ -6,10 +6,35 @@ async function initDialer() {
   if (!currentUser) return;
   resetDialerVoiceVisuals();
   try {
-    let myCamps = await sb(`agent_campaigns?select=*,campaigns(*,queues(*))&agent_id=eq.${currentUser.id}`) || [];
-    if (!myCamps.length) {
-      const allCamps = await sb(`campaigns?select=*,queues(*)&status=eq.active&firm_id=eq.${currentUser.firm_id}&order=created_at.desc`) || [];
+    const role = currentUser?.role || '';
+    const adminLike = ['admin', 'firm_admin', 'super_admin', 'qc'].includes(role);
+    const firmScopeId = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser.firm_id;
+    const firmSelWrap = document.getElementById('dialer-firm-selector');
+    if (firmSelWrap) {
+      if (role === 'super_admin' && typeof renderFirmSelector === 'function') {
+        renderFirmSelector('dialer-firm-selector', initDialer);
+      } else {
+        firmSelWrap.innerHTML = '';
+      }
+    }
+    if (role === 'super_admin' && !firmScopeId) {
+      const list = document.getElementById('agent-camp-list');
+      if (list) {
+        list.innerHTML = `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Dialer için önce firma seçin</div>`;
+      }
+      return;
+    }
+
+    let myCamps = [];
+    if (adminLike) {
+      const allCamps = await sb(`campaigns?select=*,queues(*)&status=eq.active&firm_id=eq.${firmScopeId}&order=created_at.desc`) || [];
       myCamps = allCamps.map(c => ({ campaign_id: c.id, campaigns: c, agent_id: currentUser.id }));
+    } else {
+      myCamps = await sb(`agent_campaigns?select=*,campaigns(*,queues(*))&agent_id=eq.${currentUser.id}`) || [];
+      if (!myCamps.length) {
+        const allCamps = await sb(`campaigns?select=*,queues(*)&status=eq.active&firm_id=eq.${currentUser.firm_id}&order=created_at.desc`) || [];
+        myCamps = allCamps.map(c => ({ campaign_id: c.id, campaigns: c, agent_id: currentUser.id }));
+      }
     }
     const list = document.getElementById('agent-camp-list');
     if (!myCamps.length) {

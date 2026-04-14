@@ -530,13 +530,13 @@ async function resetUserPass(userId, email) {
 // ── Roller & İzinler ──────────────────────────
 const BUILTIN_ROLES = [
   { key:'super_admin', label:'Süper Admin', color:'var(--red)', builtin:true,
-    perms:['dashboard','campaigns','contacts','callhistory','stats','agents','firms','settings','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
+    perms:['dashboard','dialer','campaigns','contacts','callhistory','stats','agents','firms','settings','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
   { key:'firm_admin',  label:'Firma Admin',  color:'var(--accent)', builtin:true,
-    perms:['dashboard','campaigns','contacts','callhistory','stats','agents','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
+    perms:['dashboard','dialer','campaigns','contacts','callhistory','stats','agents','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
   { key:'agent',       label:'Agent',        color:'var(--green)', builtin:true,
     perms:['dashboard','dialer','myhistory','wiedervorlage','takvim','leave','competition','maasim','performansim'] },
   { key:'qc',          label:'QC',           color:'var(--yellow)', builtin:true,
-    perms:['dashboard','qc','callhistory','wiedervorlage','leave','competition','maasim','performansim'] },
+    perms:['dashboard','dialer','qc','callhistory','wiedervorlage','leave','competition','maasim','performansim'] },
   { key:'field_agent', label:'Saha Elemanı', color:'var(--accent-2)', builtin:true,
     perms:['dashboard','field','leave','competition','maasim','performansim'] },
 ];
