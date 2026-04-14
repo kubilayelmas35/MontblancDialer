@@ -103,6 +103,8 @@ if (apiCard) apiCard.style.display = currentUser.role === 'super_admin' ? '' : '
 // Mesai settings — admin+ (not agents)
 const mesaiCard = document.getElementById('mesai-settings-card');
 if (mesaiCard) mesaiCard.style.display = isAdmin ? '' : 'none';
+const chatSetCard = document.getElementById('chat-settings-card');
+if (chatSetCard) chatSetCard.style.display = isAdmin ? '' : 'none';
 const roleMap = {
 'super_admin':'Süper Admin','firm_admin':'Firma Admin',
 'admin':'Admin','agent':'Agent','qc':'QC'

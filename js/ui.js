@@ -51,7 +51,7 @@ if (page==='settings')       { loadAppointmentResultsSettings(); }
 if (page==='wiedervorlage')  loadWvPage();
 if (page==='qc')             loadQcData();
 if (page==='firms')          loadFirmsPage();
-if (page==='settings')        { loadMesaiSettings(); loadCallHoursSettings(); }
+if (page==='settings')        { loadMesaiSettings(); loadCallHoursSettings(); loadChatSettingsPage(); }
 if (page==='takvim')         loadTakvimPage();
 if (page==='leave')          loadLeavePage();
 if (page==='muhasebe')       loadMuhasebePage();

@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.34">
+<link rel="stylesheet" href="css/styles.css?v=6.35">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -1908,6 +1908,32 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button class="btn btn-primary" style="align-self:flex-start;" onclick="saveApiSettings()"><i class="ph ph-floppy-disk"></i> API Ayarlarını Kaydet</button>
 </div>
 </div>
+<div class="card" id="chat-settings-card">
+<div class="card-title" style="margin-bottom:12px;"><i class="ph ph-chats-circle" style="vertical-align:-3px;margin-right:6px;"></i>Sohbet ayarları</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Hızlı mesaj ve üye seçim listelerinde kimlerin görüneceğini ve personeller arası mesajlaşmayı yönetin. Süper admin her firma için ayrı kayıt eder.</div>
+<div id="chat-settings-firm-row" style="display:none;margin-bottom:12px;">
+<label class="form-label" style="font-size:11px;color:var(--text-3);margin-bottom:4px;display:block;">Firma</label>
+<select class="form-input" id="chat-settings-firm-select" style="width:100%;" onchange="onChatSettingsFirmChange()"></select>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+<input type="checkbox" id="chat-set-peer-dm" checked style="width:15px;height:15px;cursor:pointer;">
+<span>Personel / QC birbirine hızlı mesaj atabilsin</span>
+</label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+<input type="checkbox" id="chat-set-firmadmin-super" checked style="width:15px;height:15px;cursor:pointer;">
+<span>Firma admini süper admin ile mesajlaşabilsin (listede görünsün)</span>
+</label>
+</div>
+<div style="margin-bottom:8px;">
+<div style="font-size:12px;font-weight:600;margin-bottom:6px;">Sohbet listelerinde gizlenecek kişiler</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">İşaretli kullanıcılar listelerde görünür; işareti kaldırdığınız kişiler hızlı mesaj ve grup üyesi seçiminde gizlenir (Tüm ekip üyeliği ayrı senkron ile devam eder).</div>
+<div id="chat-settings-user-list" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:8px;background:var(--bg-3);border-radius:8px;">
+<div style="color:var(--text-3);font-size:12px;text-align:center;padding:12px;">Yükleniyor…</div>
+</div>
+</div>
+<button type="button" class="btn btn-primary btn-sm" onclick="saveChatSettings()"><i class="ph ph-floppy-disk"></i> Sohbet ayarlarını kaydet</button>
+</div>
 <div class="card" id="mesai-settings-card">
 <div class="card-title" style="margin-bottom:12px;">Çalışma Saatleri &amp; Günler</div>
 <!-- Sadece süper admin görür: firma seçici -->
@@ -2576,6 +2602,13 @@ QC Detay
 </div>
 </div>
 <div id="team-chat-root" class="team-chat-root" aria-live="polite">
+<div class="team-chat-fab-stack" id="team-chat-fab-stack">
+<button type="button" id="team-chat-fab-pop" class="team-chat-fab-pop" style="display:none;" aria-label="Gelen mesaj önizlemesi">
+<div class="team-chat-fab-pop-inner">
+<div id="team-chat-fab-pop-from" class="team-chat-fab-pop-from"></div>
+<div id="team-chat-fab-pop-text" class="team-chat-fab-pop-text"></div>
+</div>
+</button>
 <button type="button" id="team-chat-fab" class="team-chat-fab" aria-label="Ekip sohbeti" title="Sohbet">
 <div class="team-chat-fab-aurora fluid-aurora fluid-aurora--chat-fab" aria-hidden="true"></div>
 <div class="team-chat-fab-inner">
@@ -2583,6 +2616,7 @@ QC Detay
 <span id="team-chat-badge" class="team-chat-badge" style="display:none;">0</span>
 </div>
 </button>
+</div>
 <div id="team-chat-panel" class="team-chat-panel" style="display:none;">
 <div class="team-chat-panel-head">
 <div class="team-chat-head-left">
@@ -2660,9 +2694,10 @@ QC Detay
 <script src="js/config.js?v=6.34"></script>
 <script src="js/state.js?v=6.34"></script>
 <script src="js/api.js?v=6.34"></script>
-<script src="js/auth.js?v=6.34"></script>
-<script src="js/ui.js?v=6.34"></script>
-<script src="js/chat.js?v=6.34"></script>
+<script src="js/auth.js?v=6.35"></script>
+<script src="js/ui.js?v=6.35"></script>
+<script src="js/chat.js?v=6.35"></script>
+<script src="js/chat-settings.js?v=6.35"></script>
 <script src="js/export-admin.js?v=6.34"></script>
 <script src="js/export-termin.js?v=6.34"></script>
 <script src="js/performance.js?v=6.34"></script>

@@ -17,6 +17,52 @@ let _firmUsersCache = [];
 let _chatLastFirmId = null;
 let _sbClient = null;
 let _rtChannel = null;
+let _firmChatSettingsCache = {};
+let _chatNotifySuppressedUntil = 0;
+let _chatLastNotifyTs = null;
+let _chatFabPreviewTimer = null;
+let _pendingNotifyGroupId = null;
+
+function defaultFirmChatSettings() {
+  return {
+    allow_peer_dm: true,
+    firm_admin_can_dm_super: true,
+    hidden_from_picker_ids: []
+  };
+}
+
+function invalidateFirmChatSettingsCache(fid) {
+  if (fid) delete _firmChatSettingsCache[fid];
+  else _firmChatSettingsCache = {};
+}
+
+async function getFirmChatSettings(fid) {
+  if (!fid) return defaultFirmChatSettings();
+  if (_firmChatSettingsCache[fid]) return _firmChatSettingsCache[fid];
+  try {
+    const r = await sb(`firms?id=eq.${fid}&select=settings`);
+    const raw = r?.[0]?.settings?.chat || {};
+    const merged = { ...defaultFirmChatSettings(), ...raw };
+    if (!Array.isArray(merged.hidden_from_picker_ids)) merged.hidden_from_picker_ids = [];
+    _firmChatSettingsCache[fid] = merged;
+    return merged;
+  } catch (e) {
+    return defaultFirmChatSettings();
+  }
+}
+
+function filterUsersByChatSettings(users, fid, settings, viewer) {
+  const hidden = new Set(settings.hidden_from_picker_ids || []);
+  const viewerRole = viewer?.role || '';
+  let out = (users || []).filter((u) => {
+    if (hidden.has(u.id)) return false;
+    return true;
+  });
+  if (['agent', 'qc'].includes(viewerRole) && !settings.allow_peer_dm) {
+    out = out.filter((u) => !['agent', 'qc'].includes(u.role));
+  }
+  return out;
+}
 
 function _chatFirmId() {
   const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : null;
@@ -41,8 +87,9 @@ function _chatPickUsersGlobally() {
 }
 
 async function fetchUsersForChatPicker(fid) {
+  let rows = [];
   if (_chatPickUsersGlobally()) {
-    let rows =
+    rows =
       (await sb(
         `users?is_active=eq.true&select=id,name,role,firm_id,firms(name)&order=name.asc`
       ).catch(() => null)) || [];
@@ -50,12 +97,38 @@ async function fetchUsersForChatPicker(fid) {
       rows =
         (await sb(`users?is_active=eq.true&select=id,name,role,firm_id&order=name.asc`).catch(() => [])) || [];
     }
-    return rows;
+    if (fid) {
+      const settings = await getFirmChatSettings(fid);
+      rows = rows.filter((u) => {
+        if (u.role === 'super_admin') return true;
+        if (!u.firm_id || u.firm_id === fid) return true;
+        return false;
+      });
+      rows = filterUsersByChatSettings(rows, fid, settings, currentUser);
+    }
+  } else {
+    if (!fid) return [];
+    rows =
+      (await sb(`users?firm_id=eq.${fid}&is_active=eq.true&select=id,name,role&order=name.asc`).catch(() => [])) ||
+      [];
+    const settings = await getFirmChatSettings(fid);
+    rows = filterUsersByChatSettings(rows, fid, settings, currentUser);
+    if (
+      settings.firm_admin_can_dm_super !== false &&
+      ['firm_admin', 'admin'].includes(currentUser?.role || '')
+    ) {
+      const supers =
+        (await sb(
+          `users?role=eq.super_admin&is_active=eq.true&select=id,name,role,firm_id,firms(name)&order=name.asc`
+        ).catch(() => [])) || [];
+      const have = new Set(rows.map((u) => u.id));
+      for (const s of supers) {
+        if (!have.has(s.id)) rows.push(s);
+      }
+    }
   }
-  if (!fid) return [];
-  return (
-    (await sb(`users?firm_id=eq.${fid}&is_active=eq.true&select=id,name,role&order=name.asc`).catch(() => [])) || []
-  );
+  rows.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
+  return rows;
 }
 
 function formatChatUserLabel(u) {
@@ -96,6 +169,9 @@ async function bindRealtime() {
   const handler = (payload) => {
     const row = payload.new;
     updateTeamChatBadge();
+    if (row && row.sender_id && row.sender_id !== currentUser.id) {
+      void handleChatMessageNotification(row);
+    }
     if (!_chatOpen) return;
     if (_chatSuperSeesAll() && _chatMode === 'global') {
       loadGlobalFeed(true);
@@ -143,7 +219,10 @@ async function initChat() {
   const root = document.getElementById('team-chat-root');
   const fab = document.getElementById('team-chat-fab');
   if (!root || !fab || !currentUser) return;
-  fab.onclick = () => toggleTeamChat();
+  fab.onclick = () => {
+    dismissChatFabPreview();
+    toggleTeamChat();
+  };
   const closeBtn = document.getElementById('team-chat-close');
   if (closeBtn) closeBtn.onclick = () => toggleTeamChat(false);
   const sendBtn = document.getElementById('team-chat-send');
@@ -164,11 +243,11 @@ async function initChat() {
   const newGrp = document.getElementById('team-chat-new-group');
   if (newGrp) newGrp.onclick = () => openNewGroupModal();
   const quickDm = document.getElementById('team-chat-quick-dm');
-  if (quickDm) quickDm.onclick = () => openQuickDmModal();
+  if (quickDm) quickDm.onclick = () => void openQuickDmModal();
   const quickCancel = document.getElementById('team-chat-quick-cancel');
   const quickGo = document.getElementById('team-chat-quick-go');
   if (quickCancel) quickCancel.onclick = () => closeQuickDmModal();
-  if (quickGo) quickGo.onclick = () => confirmQuickDm();
+  if (quickGo) quickGo.onclick = () => void confirmQuickDm();
   const saveGrp = document.getElementById('team-chat-save-group');
   if (saveGrp) saveGrp.onclick = () => saveNewGroup();
   const modeWrap = document.getElementById('team-chat-mode-wrap');
@@ -178,6 +257,27 @@ async function initChat() {
       p.onclick = () => setChatMode(p.getAttribute('data-mode'));
     });
   } else if (modeWrap) modeWrap.style.display = 'none';
+
+  _chatLastNotifyTs = new Date().toISOString();
+  _chatNotifySuppressedUntil = Date.now() + 2600;
+  const pop = document.getElementById('team-chat-fab-pop');
+  if (pop) {
+    pop.onclick = () => {
+      dismissChatFabPreview();
+      if (_pendingNotifyGroupId) {
+        const gid = _pendingNotifyGroupId;
+        _pendingNotifyGroupId = null;
+        _chatMode = 'firm';
+        setChatMode('firm');
+        _chatActiveGroupId = gid;
+        refreshTeamChatGroups().then(() => {
+          selectTeamChatGroup(gid);
+          bindRealtime();
+          toggleTeamChat(true);
+        });
+      } else toggleTeamChat(true);
+    };
+  }
 
   try {
     await refreshTeamChatGroups();
@@ -202,6 +302,7 @@ function toggleTeamChat(open) {
   panel.classList.toggle('team-chat-panel--open', _chatOpen);
   panel.style.display = _chatOpen ? 'flex' : 'none';
   if (_chatOpen) {
+    dismissChatFabPreview();
     const fid = _chatFirmId();
     if (!fid && _chatSuperSeesAll() && _chatMode === 'firm') {
       toast('Süper admin: firma seçin veya Tümü sekmesine geçin', 'warn');
@@ -314,8 +415,11 @@ async function refreshTeamChatGroups() {
   const newBtn = document.getElementById('team-chat-new-group');
   const quickBtn = document.getElementById('team-chat-quick-dm');
   const showMgr = _canManageChatGroups();
+  const st = await getFirmChatSettings(fid);
+  const peerOk = st.allow_peer_dm && ['agent', 'qc'].includes(currentUser?.role || '');
+  const showQuick = showMgr || peerOk;
   if (newBtn) newBtn.style.display = showMgr ? '' : 'none';
-  if (quickBtn) quickBtn.style.display = showMgr ? '' : 'none';
+  if (quickBtn) quickBtn.style.display = showQuick ? '' : 'none';
   if (!_chatActiveGroupId && _chatGroups.length) selectTeamChatGroup(_chatGroups[0].id);
 }
 
@@ -535,6 +639,108 @@ async function updateTeamChatBadge() {
     badge.textContent = total > 99 ? '99+' : String(total);
   }
   if (fab) fab.classList.toggle('team-chat-fab--unread', total > 0);
+  await scanChatInboundPreview(gids);
+}
+
+async function scanChatInboundPreview(gids) {
+  if (!currentUser || !gids.length) return;
+  const uid = currentUser.id;
+  const rows = await sb(
+    `chat_messages?group_id=in.(${gids.join(',')})&sender_id=neq.${uid}&select=id,body,content_type,file_name,sender_id,group_id,created_at&order=created_at.desc&limit=1`
+  ).catch(() => []);
+  const row = rows?.[0];
+  if (!row) return;
+  if (_chatLastNotifyTs && row.created_at <= _chatLastNotifyTs) return;
+  _chatLastNotifyTs = row.created_at;
+  if (_chatOpen && _chatMode === 'firm' && row.group_id === _chatActiveGroupId) return;
+  if (Date.now() < _chatNotifySuppressedUntil) return;
+  await showChatInboundPreview(row);
+}
+
+async function handleChatMessageNotification(row) {
+  if (!row || !currentUser || row.sender_id === currentUser.id) return;
+  const mem = await sb(
+    `chat_group_members?group_id=eq.${row.group_id}&user_id=eq.${currentUser.id}&select=user_id`
+  ).catch(() => []);
+  if (!mem?.length) return;
+  if (_chatLastNotifyTs && row.created_at <= _chatLastNotifyTs) return;
+  _chatLastNotifyTs = row.created_at;
+  if (_chatOpen && _chatMode === 'firm' && row.group_id === _chatActiveGroupId) return;
+  if (Date.now() < _chatNotifySuppressedUntil) return;
+  await showChatInboundPreview(row);
+}
+
+function playChatNotifySound() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const master = ctx.createGain();
+    master.connect(ctx.destination);
+    master.gain.setValueAtTime(0.0001, ctx.currentTime);
+    master.gain.exponentialRampToValueAtTime(0.085, ctx.currentTime + 0.018);
+    master.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.32);
+    [698, 932].forEach((freq, i) => {
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = freq;
+      const g = ctx.createGain();
+      o.connect(g);
+      g.connect(master);
+      g.gain.value = i === 0 ? 0.55 : 0.5;
+      o.start(ctx.currentTime + i * 0.065);
+      o.stop(ctx.currentTime + i * 0.065 + 0.16);
+    });
+    setTimeout(() => ctx.close(), 450);
+  } catch (e) {}
+}
+
+async function showChatInboundPreview(row) {
+  playChatNotifySound();
+  let name = '—';
+  try {
+    const u = await sb(`users?id=eq.${row.sender_id}&select=name`);
+    name = u?.[0]?.name || '—';
+  } catch (e) {}
+  let snippet = row.body || row.file_name || '';
+  if (row.content_type === 'audio') snippet = snippet || 'Sesli mesaj';
+  if (row.content_type === 'image') snippet = snippet || 'Görsel';
+  if (!snippet) snippet = 'Yeni mesaj';
+  snippet = String(snippet);
+  if (snippet.length > 80) snippet = snippet.slice(0, 78) + '…';
+  const pop = document.getElementById('team-chat-fab-pop');
+  const fromEl = document.getElementById('team-chat-fab-pop-from');
+  const textEl = document.getElementById('team-chat-fab-pop-text');
+  const fab = document.getElementById('team-chat-fab');
+  const stack = document.getElementById('team-chat-fab-stack');
+  _pendingNotifyGroupId = row.group_id;
+  if (fromEl) fromEl.textContent = name;
+  if (textEl) textEl.textContent = snippet;
+  if (pop) {
+    pop.style.display = 'block';
+    requestAnimationFrame(() => pop.classList.add('team-chat-fab-pop--show'));
+  }
+  if (fab) fab.classList.add('team-chat-fab--notify');
+  if (stack) stack.classList.add('team-chat-fab-stack--pulse');
+  pulseTeamChatFab();
+  if (_chatFabPreviewTimer) clearTimeout(_chatFabPreviewTimer);
+  _chatFabPreviewTimer = setTimeout(() => dismissChatFabPreview(), 9000);
+}
+
+function dismissChatFabPreview() {
+  const pop = document.getElementById('team-chat-fab-pop');
+  const fab = document.getElementById('team-chat-fab');
+  const stack = document.getElementById('team-chat-fab-stack');
+  if (_chatFabPreviewTimer) clearTimeout(_chatFabPreviewTimer);
+  _chatFabPreviewTimer = null;
+  if (pop) {
+    pop.classList.remove('team-chat-fab-pop--show');
+    setTimeout(() => {
+      if (!pop.classList.contains('team-chat-fab-pop--show')) pop.style.display = 'none';
+    }, 450);
+  }
+  if (fab) fab.classList.remove('team-chat-fab--notify');
+  if (stack) stack.classList.remove('team-chat-fab-stack--pulse');
 }
 
 function pulseTeamChatFab() {
@@ -728,13 +934,18 @@ function openNewGroupModal() {
     .catch(() => {});
 }
 
-function openQuickDmModal() {
+async function openQuickDmModal() {
   const fid = _chatFirmId();
   if (!fid) {
     toast('Firma seçin', 'warn');
     return;
   }
-  if (!_canManageChatGroups()) return;
+  const st = await getFirmChatSettings(fid);
+  const peerOk = st.allow_peer_dm && ['agent', 'qc'].includes(currentUser?.role || '');
+  if (!_canManageChatGroups() && !peerOk) {
+    toast('Hızlı mesaj yetkiniz yok', 'warn');
+    return;
+  }
   const modal = document.getElementById('team-chat-quick-modal');
   const sel = document.getElementById('team-chat-quick-user');
   if (modal) modal.style.display = 'flex';
@@ -774,6 +985,17 @@ async function ensureOrOpenDirectChat(targetUserId) {
     return;
   }
   if (targetUserId === currentUser.id) return;
+  const settings = await getFirmChatSettings(fid);
+  const peers = ['agent', 'qc'];
+  if (!settings.allow_peer_dm && peers.includes(currentUser?.role || '')) {
+    const tu =
+      (await sb(`users?id=eq.${targetUserId}&select=id,role,firm_id`).catch(() => [])) || [];
+    const tr = tu[0]?.role || '';
+    if (peers.includes(tr)) {
+      toast('Bu firma ayarlarında personeller arası mesaj kapalı', 'warn');
+      return;
+    }
+  }
   const pair = [currentUser.id, targetUserId].sort();
   const slug = 'dm_' + pair[0] + '_' + pair[1];
   const existing = await sb(`chat_groups?firm_id=eq.${fid}&slug=eq.${slug}&select=id,name`).catch(() => []);
@@ -956,3 +1178,5 @@ function escapeAttr(s) {
   if (!s) return '';
   return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
+
+window.invalidateFirmChatSettingsCache = invalidateFirmChatSettingsCache;
