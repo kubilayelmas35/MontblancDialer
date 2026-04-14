@@ -11,6 +11,22 @@
     return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0;
   }
 
+  function getCallTimeline01() {
+    const sec = typeof callSeconds !== 'undefined' ? Number(callSeconds || 0) : 0;
+    if (!Number.isFinite(sec) || sec <= 0) return 0;
+    return Math.min(1, sec / 120); // 0s..120s => 0..1
+  }
+
+  function getTimelineHue(t) {
+    // 0: mor(280) -> 60sn: mavi(210) -> 120sn: yesil(130)
+    if (t <= 0.5) {
+      const k = t * 2;
+      return 280 + (210 - 280) * k;
+    }
+    const k = (t - 0.5) * 2;
+    return 210 + (130 - 210) * k;
+  }
+
   let sharedCtx = null;
   function getAudioContext() {
     if (!sharedCtx) {
@@ -272,8 +288,10 @@
 
       const ringW = this.opt.ringWidth;
       const n = 128;
-      const hueA = 195 - vp * 80;
-      const hueB = 32 + vp * 40;
+      const timeline = getCallTimeline01();
+      const baseHue = getTimelineHue(timeline);
+      const hueA = baseHue;
+      const hueB = baseHue + 26;
       const vivid = this.opt.vivid ? 1.25 : 1;
 
       const outer = (a) => this._outerR(a, level, vp);
