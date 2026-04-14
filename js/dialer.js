@@ -875,12 +875,10 @@ function initGoogleMaps(apiKey) {
 function loadApiSettings() {
   const gk = localStorage.getItem('mb_google_key') || DEFAULT_GOOGLE_KEY;
   const tk = localStorage.getItem('mb_tomtom_key') || DEFAULT_TOMTOM_KEY;
-  const sk = localStorage.getItem('mb_sb_key') || SB_KEY || '';
   const goal = localStorage.getItem('mb_daily_goal') || '5';
   _googleApiKey = gk;
   if (document.getElementById('s-google-key')) document.getElementById('s-google-key').value = gk;
   if (document.getElementById('s-tomtom-key')) document.getElementById('s-tomtom-key').value = tk;
-  if (document.getElementById('s-sb-key')) document.getElementById('s-sb-key').value = sk;
   if (document.getElementById('s-daily-goal')) document.getElementById('s-daily-goal').value = goal;
   _dailyGoal = parseInt(goal);
 }
@@ -888,11 +886,9 @@ function loadApiSettings() {
 function saveApiSettings() {
   const gk = document.getElementById('s-google-key')?.value?.trim();
   const tk = document.getElementById('s-tomtom-key')?.value?.trim();
-  const sk = document.getElementById('s-sb-key')?.value?.trim();
   const goal = parseInt(document.getElementById('s-daily-goal')?.value||'5');
   if (gk) { _googleApiKey=gk; localStorage.setItem('mb_google_key',gk); }
   if (tk) localStorage.setItem('mb_tomtom_key',tk);
-  if (sk) setSupabaseApiKey(sk);
   if (goal>0) { _dailyGoal=goal; localStorage.setItem('mb_daily_goal',String(goal)); }
   toast('API ayarları kaydedildi ✓','ok');
 }

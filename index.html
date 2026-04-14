@@ -307,7 +307,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.54</div>
+<div class="sb-ver">MontBlanc v6.55</div>
 </div>
 </nav>
 <main id="main">
@@ -2087,11 +2087,6 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="font-size:11px;color:var(--text-3);margin-top:3px;">Termin mesafe hesaplama için</div>
 </div>
 <div class="form-row">
-<label class="form-label">Supabase API Key</label>
-<input class="form-input" id="s-sb-key" placeholder="eyJ...">
-<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Sadece super admin gorur. Diger roller anahtar gorme ve degistirmez.</div>
-</div>
-<div class="form-row">
 <label class="form-label">Günlük Termin Hedefi (Agent)</label>
 <input class="form-input" id="s-daily-goal" type="number" min="1" max="50" value="5" style="width:100px;">
 </div>
@@ -2295,16 +2290,12 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 </button>
 </div>
 </div>
-<div class="card" id="sb-settings">
-<div class="card-title" style="margin-bottom:16px;">Supabase</div>
+<div class="card" id="sb-settings" style="display:none;">
+<div class="card-title" style="margin-bottom:16px;">Supabase (Sadece Bilgi)</div>
 <div style="display:flex;flex-direction:column;gap:12px;">
 <div class="form-row">
 <label class="form-label">URL</label>
 <input type="text" class="form-input" id="s-sb-url" value="https://gsvvhzyhdhkbozjnlyrn.supabase.co">
-</div>
-<div class="form-row">
-<label class="form-label">Service Key</label>
-<input type="password" class="form-input" id="s-sb-key" placeholder="eyJ...">
 </div>
 <button class="btn btn-primary" style="align-self:flex-start;" onclick="saveSettings()">
 <i class="ph ph-floppy-disk"></i> <span data-tr="Kaydet" data-de="Speichern">Kaydet</span>
@@ -2955,7 +2946,7 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/config.js?v=6.52"></script>
+<script src="js/config.js?v=6.55"></script>
 <script src="js/state.js?v=6.34"></script>
 <script src="js/api.js?v=6.34"></script>
 <script src="js/auth.js?v=6.54"></script>
@@ -2979,7 +2970,7 @@ QC Detay
 <script src="js/contacts.js?v=6.34"></script>
 <script src="js/telnyx.js?v=6.34"></script>
 <script src="js/voice-orb.js?v=6.43"></script>
-<script src="js/dialer.js?v=6.54"></script>
+<script src="js/dialer.js?v=6.55"></script>
 <script src="js/appointments.js?v=6.36"></script>
 <script src="js/field.js?v=6.38"></script>
 <script src="js/wiedervorlage.js?v=6.34"></script>
