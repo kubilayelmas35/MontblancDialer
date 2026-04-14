@@ -96,6 +96,16 @@ document.getElementById('nav-agent').style.display = isAdmin ? 'none' : '';
 document.getElementById('tb-pills').style.display  = isAdmin ? '' : 'none';
 document.getElementById('sb-settings').style.display = isAdmin ? '' : 'none';
 document.getElementById('telnyx-settings').style.display = currentUser.role === 'super_admin' ? '' : 'none';
+const fieldNav = document.getElementById('nav-field-btn');
+const dialerNav = document.getElementById('nav-dialer-btn');
+const myHistoryNav = document.getElementById('nav-myhistory-btn');
+const wvNav = document.getElementById('nav-wv-btn');
+const takvimOverlayNav = document.getElementById('nav-takvim-overlay-btn');
+if (fieldNav) fieldNav.style.display = currentUser.role === 'field_agent' ? '' : 'none';
+if (dialerNav) dialerNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
+if (myHistoryNav) myHistoryNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
+if (wvNav) wvNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
+if (takvimOverlayNav) takvimOverlayNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
 // API keys (Google, TomTom, daily goal) — super_admin only
 const apiCard = document.querySelector('#page-settings .card:has(#s-google-key)') ||
   [...document.querySelectorAll('#page-settings .card')].find(c=>c.querySelector('#s-google-key'));
@@ -105,9 +115,11 @@ const mesaiCard = document.getElementById('mesai-settings-card');
 if (mesaiCard) mesaiCard.style.display = isAdmin ? '' : 'none';
 const chatSetCard = document.getElementById('chat-settings-card');
 if (chatSetCard) chatSetCard.style.display = isAdmin ? '' : 'none';
+const fieldSetCard = document.getElementById('field-settings-card');
+if (fieldSetCard) fieldSetCard.style.display = isAdmin ? '' : 'none';
 const roleMap = {
 'super_admin':'Süper Admin','firm_admin':'Firma Admin',
-'admin':'Admin','agent':'Agent','qc':'QC'
+'admin':'Admin','agent':'Agent','qc':'QC','field_agent':'Saha Elemanı'
 };
 const roleEl = document.getElementById('tb-urole');
 if (roleEl) roleEl.textContent = (roleMap[currentUser.role]||currentUser.role)
@@ -119,6 +131,7 @@ if (perfNav) perfNav.style.display = ['admin', 'firm_admin', 'super_admin'].incl
 if (currentUser.role === 'super_admin') { loadAllFirms(); }
 loadFirmCallHours(); // arama kısıtlamalarını yükle
 if (isAdmin) { navigate('dashboard'); }
+else if (currentUser.role === 'field_agent') { navigate('field'); }
 else         { navigate('dialer'); }
 if (isAdmin) {
 updateTopbarStats();

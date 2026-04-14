@@ -434,6 +434,7 @@ ${appt.agent_notu?`<div style="background:var(--bg-3);padding:8px;border-radius:
 </div>`;
   footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">Kapat</button>
 <button class="btn btn-ghost" onclick="closeModal('m-takvim-detail');openDialerForContact('${appt.contact_id||''}')">Dialer'a Git</button>
+${isAdmin ? `<button class="btn btn-ghost" onclick="openFieldAssignModal('${appt.id}','${appt.firm_id || currentUser.firm_id}')">Sahaya Ata</button>` : ''}
 ${canManageAppt ? `
 <select class="form-input" id="appt-status-sel" style="width:auto;font-size:12px;padding:6px 10px;">
 <option value="">Durum değiştir...</option>
@@ -766,6 +767,7 @@ function showSlotContextMenu(e, slot, appt) {
   if (isDolu) {
     items.push({ icon:'', label:'Detaya Git (Dialer)', fn:'openDialerForContact(_ctxAppt.contact_id)' });
     items.push({ icon:'', label:'Slot Detayı', fn:'openTakvimSlotDetail(_ctxSlot,_ctxAppt)' });
+    if (isAdmin) items.push({ icon:'', label:'Sahaya Ata', fn:"openFieldAssignModal(_ctxAppt.id,_ctxAppt.firm_id)" });
     if (isAdmin) {
       items.push({ sep: true });
       items.push({ icon:'', label:'Başarılı', fn:"takvimQcUpdate(_ctxAppt.id,'basarili')", green:true });

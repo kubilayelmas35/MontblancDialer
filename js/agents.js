@@ -7,7 +7,7 @@ async function loadAgents() {
   const grid = document.getElementById('agents-grid');
   try {
     const ff = getFirmFilter('&');
-    const users    = await sb(`users?select=id,name,email,role,is_active${ff}&role=in.(agent,qc,firm_admin)&order=name.asc`) || [];
+    const users    = await sb(`users?select=id,name,email,role,is_active${ff}&role=in.(agent,qc,firm_admin,field_agent)&order=name.asc`) || [];
     const acs      = await sb(`agent_campaigns?select=*,campaigns(id,name)${ff}`) || [];
     const sessions = await sb('agent_sessions?select=*') || [];
     const SC = {ready:'var(--green)',on_call:'var(--accent)',wrapping:'var(--yellow)',break:'var(--yellow)',offline:'var(--text-3)'};
@@ -22,7 +22,7 @@ async function loadAgents() {
       const status   = sess?.status || 'offline';
       const color    = SC[status] || 'var(--text-3)';
       const campNames = myAcs.map(a=>a.campaigns?.name||'').filter(Boolean);
-      const roleMap  = {agent:'Agent',qc:'QC',firm_admin:'Firma Admin'};
+      const roleMap  = {agent:'Agent',qc:'QC',firm_admin:'Firma Admin',field_agent:'Saha Elemanı'};
       return `<div class="agent-card-item" style="position:relative;cursor:pointer;" onclick="openEditAgentModal('${u.id}')">
 <div class="agent-av-lg" style="background:${u.is_active?'var(--accent)':'var(--text-3)'};">${u.name.charAt(0)}</div>
 <div class="agent-info-lg" style="flex:1;">
@@ -42,11 +42,45 @@ ${statusLabel[status]||status}
   } catch(e) { console.error(e); grid.innerHTML=`<div style="color:var(--red);padding:24px;">Hata: ${e.message}</div>`; }
 }
 
+async function canManageFieldAgents(targetFirmId) {
+  if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin') return true;
+  if (currentUser?.role !== 'firm_admin') return false;
+  const fid = targetFirmId || currentUser?.firm_id;
+  if (!fid) return false;
+  try {
+    const firms = await sb(`firms?id=eq.${fid}&select=settings`);
+    return !!firms?.[0]?.settings?.fieldService?.can_manage_agents;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function syncFieldAgentRoleOption(prefillRole, targetFirmId) {
+  const sel = document.getElementById('am-role');
+  if (!sel) return;
+  const can = await canManageFieldAgents(targetFirmId);
+  const has = [...sel.options].some((o) => o.value === 'field_agent');
+  if (can && !has) {
+    const o = document.createElement('option');
+    o.value = 'field_agent';
+    o.textContent = 'Saha Elemanı';
+    sel.appendChild(o);
+    if (prefillRole === 'field_agent') sel.value = 'field_agent';
+  }
+  if (!can && has) {
+    if (sel.value === 'field_agent') sel.value = 'agent';
+    [...sel.options].forEach((o) => {
+      if (o.value === 'field_agent') o.remove();
+    });
+  }
+}
+
 function _agentModal(userId, prefill) {
   const isEdit = !!userId;
   document.getElementById('m-agent-mgr')?.remove();
   const modal = document.createElement('div');
   modal.id = 'm-agent-mgr'; modal.className = 'modal-overlay open';
+  const showFieldOpt = currentUser?.role === 'super_admin' || currentUser?.role === 'admin';
   modal.innerHTML = `
 <div class="modal" style="max-width:460px;">
 <div class="modal-hdr">
@@ -70,6 +104,7 @@ ${!isEdit ? `<div class="form-row"><label class="form-label">Şifre *</label>
 <option value="agent" ${prefill?.role==='agent'?'selected':''}>Agent</option>
 <option value="qc" ${prefill?.role==='qc'?'selected':''}>QC</option>
 <option value="firm_admin" ${prefill?.role==='firm_admin'?'selected':''}>Firma Admin</option>
+${showFieldOpt ? `<option value="field_agent" ${prefill?.role==='field_agent'?'selected':''}>Saha Elemanı</option>` : ''}
 </select></div>
 <div class="form-row"><label class="form-label">Durum</label>
 <select class="form-input" id="am-active">
@@ -91,6 +126,12 @@ ${isEdit ? `<button class="btn btn-ghost" style="margin-right:auto;color:var(--r
 </div>`;
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   document.body.appendChild(modal);
+  const targetFirmId = document.getElementById('am-firm')?.value || prefill?.firm_id || currentUser?.firm_id;
+  syncFieldAgentRoleOption(prefill?.role, targetFirmId);
+  const firmSel = document.getElementById('am-firm');
+  if (firmSel) {
+    firmSel.onchange = () => syncFieldAgentRoleOption(prefill?.role, firmSel.value);
+  }
 }
 
 function openAddAgentModal() { _agentModal(null, null); }
@@ -110,6 +151,10 @@ async function saveNewAgent() {
   const role  = document.getElementById('am-role')?.value || 'agent';
   const firmId = document.getElementById('am-firm')?.value || currentUser.firm_id;
   if (!name||!email||!pass) { toast('Ad, e-posta ve şifre zorunlu','err'); return; }
+  if (role === 'field_agent' && !(await canManageFieldAgents(firmId))) {
+    toast('Saha elemanı ekleme yetkiniz yok','err');
+    return;
+  }
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/create_user_with_password`,{
       method:'POST',
@@ -129,6 +174,10 @@ async function saveAgentEdit(userId) {
   const role   = document.getElementById('am-role')?.value;
   const active = document.getElementById('am-active')?.value === 'true';
   if (!name) { toast('Ad zorunlu','err'); return; }
+  if (role === 'field_agent' && !(await canManageFieldAgents(currentUser?.firm_id))) {
+    toast('Saha elemanı rolü için yetkiniz yok','err');
+    return;
+  }
   try {
     await sb(`users?id=eq.${userId}`,{method:'PATCH',prefer:'return=minimal',
       body:JSON.stringify({name,role,is_active:active})});
@@ -159,7 +208,7 @@ async function openAssignModal() {
   if (!currentCampId) return;
   const ff = getFirmFilter('&');
   try {
-    const users = await sb(`users?select=id,name,email,role${ff}&role=in.(agent,qc)&is_active=eq.true&order=name.asc`) || [];
+    const users = await sb(`users?select=id,name,email,role${ff}&role=in.(agent,qc,field_agent)&is_active=eq.true&order=name.asc`) || [];
     const sel = document.getElementById('assign-sel');
     if (sel) {
       sel.innerHTML = '<option value="">Agent seçin...</option>' +
@@ -274,6 +323,7 @@ async function openEditUserModal(userId) {
 <select class="form-input" id="eu-role">
 <option value="agent" ${u.role==='agent'?'selected':''}>Agent</option>
 <option value="qc" ${u.role==='qc'?'selected':''}>QC</option>
+<option value="field_agent" ${u.role==='field_agent'?'selected':''}>Saha Elemanı</option>
 <option value="firm_admin" ${u.role==='firm_admin'?'selected':''}>Firma Admin</option>
 </select></div>
 <div class="form-row"><label class="form-label">Durum</label>
@@ -289,6 +339,15 @@ async function openEditUserModal(userId) {
 </div>`;
   modal.addEventListener('click', e=>{if(e.target===modal)modal.remove();});
   document.body.appendChild(modal);
+  const euRole = document.getElementById('eu-role');
+  canManageFieldAgents(u.firm_id).then((can) => {
+    if (!euRole) return;
+    const opt = [...euRole.options].find((o) => o.value === 'field_agent');
+    if (!can && opt) {
+      if (euRole.value === 'field_agent') euRole.value = 'agent';
+      opt.remove();
+    }
+  });
 }
 
 async function saveEditUser(userId) {
@@ -298,6 +357,10 @@ async function saveEditUser(userId) {
   const role   = document.getElementById('eu-role')?.value;
   const active = document.getElementById('eu-active')?.value === 'true';
   if (!name||!email) { toast('Ad ve e-posta zorunlu','err'); return; }
+  if (role === 'field_agent' && !(await canManageFieldAgents(currentUser?.firm_id))) {
+    toast('Saha elemanı rolü için yetkiniz yok','err');
+    return;
+  }
   try {
     await sb(`users?id=eq.${userId}`,{method:'PATCH',prefer:'return=minimal',
       body:JSON.stringify({name,email,role,is_active:active})});
@@ -445,6 +508,8 @@ const BUILTIN_ROLES = [
     perms:['dashboard','dialer','myhistory','wiedervorlage','takvim','leave','competition','maasim','performansim'] },
   { key:'qc',          label:'QC',           color:'var(--yellow)', builtin:true,
     perms:['dashboard','qc','callhistory','wiedervorlage','leave','competition','maasim','performansim'] },
+  { key:'field_agent', label:'Saha Elemanı', color:'var(--accent-2)', builtin:true,
+    perms:['dashboard','field','leave','competition','maasim','performansim'] },
 ];
 const ALL_PAGES = [
   {key:'dashboard',    label:'Özet'},
@@ -459,6 +524,7 @@ const ALL_PAGES = [
   {key:'qc',           label:'QC Paneli'},
   {key:'wiedervorlage',label:'Aranacaklar'},
   {key:'dialer',       label:'Dialer'},
+  {key:'field',        label:'Saha Operasyon'},
   {key:'myhistory',    label:'Geçmişim'},
   {key:'leave',        label:'İzin & Devam'},
   {key:'competition',  label:'Ayın elemanı'},
@@ -710,7 +776,7 @@ async function refreshUserPagePerms() {
 }
 
 function applyAgentPayNavVisibility() {
-  const isStaff = ['agent', 'qc'].includes(currentUser?.role || '');
+  const isStaff = ['agent', 'qc', 'field_agent'].includes(currentUser?.role || '');
   const p = window._userPagePerms || new Set();
   const legacy = p.has('muhasebe');
   const ma = p.has('maasim') || legacy;

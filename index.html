@@ -242,20 +242,24 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
 <span data-tr="Özet" data-de="Übersicht">Özet</span>
 </button>
-<button class="sb-item active" onclick="navigate('dialer')">
+<button class="sb-item active" id="nav-dialer-btn" onclick="navigate('dialer')">
 <span class="sb-item-icon"><i class="ph ph-phone-call" style="font-size:17px;"></i></span>
 <span data-tr="Dialer" data-de="Dialer">Dialer</span>
 </button>
-<button class="sb-item" onclick="navigate('myhistory')">
+<button class="sb-item" id="nav-field-btn" style="display:none;" onclick="navigate('field')">
+<span class="sb-item-icon"><i class="ph ph-briefcase" style="font-size:17px;"></i></span>
+<span data-tr="Saha Operasyon" data-de="Feldeinsatz">Saha Operasyon</span>
+</button>
+<button class="sb-item" id="nav-myhistory-btn" onclick="navigate('myhistory')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg></span>
 <span data-tr="Geçmişim" data-de="Mein Verlauf">Geçmişim</span>
 </button>
-<button class="sb-item" onclick="navigate('wiedervorlage')">
+<button class="sb-item" id="nav-wv-btn" onclick="navigate('wiedervorlage')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
 <span data-tr="Aranacaklar" data-de="Wiedervorlage">Aranacaklar</span>
 <span class="sb-badge" id="sb-badge-wv-agent" style="display:none;background:var(--yellow);color:#000;">0</span>
 </button>
-<button class="sb-item" onclick="openTakvimOverlay()">
+<button class="sb-item" id="nav-takvim-overlay-btn" onclick="openTakvimOverlay()">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
 <span data-tr="Takvim" data-de="Kalender">Takvim</span>
 </button>
@@ -1251,6 +1255,20 @@ Yaklaşan Aramalar
 </div>
 </div>
 </div>
+<div class="page" id="page-field">
+<div class="page-hdr">
+<div>
+<div class="page-title"><i class="ph ph-briefcase" style="vertical-align:-3px;margin-right:6px;"></i>Saha Operasyon</div>
+<div class="page-sub" id="field-page-sub">Atanmış saha görevleriniz</div>
+</div>
+<div style="display:flex;gap:8px;align-items:center;">
+<button class="btn btn-ghost btn-sm" onclick="loadFieldPage()">↻ Yenile</button>
+</div>
+</div>
+<div id="field-task-list" style="display:flex;flex-direction:column;gap:10px;">
+<div class="card" style="padding:20px;color:var(--text-3);font-size:12px;text-align:center;">Yükleniyor...</div>
+</div>
+</div>
 <div class="page" id="page-myhistory">
 <div class="page-hdr">
 <div>
@@ -1933,6 +1951,37 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <button type="button" class="btn btn-primary btn-sm" onclick="saveChatSettings()"><i class="ph ph-floppy-disk"></i> Sohbet ayarlarını kaydet</button>
+</div>
+<div class="card" id="field-settings-card" style="display:none;">
+<div class="card-title" style="margin-bottom:12px;"><i class="ph ph-briefcase" style="vertical-align:-3px;margin-right:6px;"></i>Saha modülü ayarları</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Saha görevlerinin aktifliği, saha elemanı yönetimi ve firma bazlı form ayarları.</div>
+<div id="field-settings-firm-row" style="display:none;margin-bottom:12px;">
+<label class="form-label" style="font-size:11px;color:var(--text-3);margin-bottom:4px;display:block;">Firma</label>
+<select class="form-input" id="field-settings-firm-select" style="width:100%;" onchange="onFieldSettingsFirmChange()"></select>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;">
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+<input type="checkbox" id="field-set-enabled" style="width:15px;height:15px;cursor:pointer;">
+<span>Saha modülü firma için aktif</span>
+</label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+<input type="checkbox" id="field-set-manage-agents" style="width:15px;height:15px;cursor:pointer;">
+<span>Firma admini saha elemanı ekleyebilsin</span>
+</label>
+</div>
+<div class="form-row" style="margin-bottom:10px;">
+<label class="form-label">Saha sonuç seçenekleri (virgülle)</label>
+<input class="form-input" id="field-set-results" placeholder="satış, teklif, ziyaret tamamlandı, ulaşılamadı">
+</div>
+<div class="form-row" style="margin-bottom:10px;">
+<label class="form-label">Belge tipleri (virgülle)</label>
+<input class="form-input" id="field-set-doc-types" placeholder="kimlik, sözleşme, teklif formu">
+</div>
+<div class="form-row" style="margin-bottom:12px;">
+<label class="form-label">Ek form alanları (satır satır: key|label)</label>
+<textarea class="form-input" id="field-set-form-schema" rows="4" placeholder="roof_type|Çatı tipi&#10;visit_quality|Ziyaret kalitesi"></textarea>
+</div>
+<button type="button" class="btn btn-primary btn-sm" onclick="saveFieldSettings()"><i class="ph ph-floppy-disk"></i> Saha ayarlarını kaydet</button>
 </div>
 <div class="card" id="mesai-settings-card">
 <div class="card-title" style="margin-bottom:12px;">Çalışma Saatleri &amp; Günler</div>
@@ -2694,10 +2743,11 @@ QC Detay
 <script src="js/config.js?v=6.34"></script>
 <script src="js/state.js?v=6.34"></script>
 <script src="js/api.js?v=6.34"></script>
-<script src="js/auth.js?v=6.35"></script>
-<script src="js/ui.js?v=6.35"></script>
+<script src="js/auth.js?v=6.36"></script>
+<script src="js/ui.js?v=6.36"></script>
 <script src="js/chat.js?v=6.35"></script>
 <script src="js/chat-settings.js?v=6.35"></script>
+<script src="js/field-settings.js?v=6.36"></script>
 <script src="js/export-admin.js?v=6.34"></script>
 <script src="js/export-termin.js?v=6.34"></script>
 <script src="js/performance.js?v=6.34"></script>
@@ -2708,12 +2758,13 @@ QC Detay
 <script src="js/telnyx.js?v=6.34"></script>
 <script src="js/voice-orb.js?v=6.34"></script>
 <script src="js/dialer.js?v=6.34"></script>
-<script src="js/appointments.js?v=6.34"></script>
+<script src="js/appointments.js?v=6.36"></script>
+<script src="js/field.js?v=6.36"></script>
 <script src="js/wiedervorlage.js?v=6.34"></script>
 <script src="js/qc.js?v=6.34"></script>
 <script src="js/leave-hr.js?v=6.34"></script>
 <script src="js/muhasebe.js?v=6.34"></script>
 <script src="js/agent-self-performance.js?v=6.34"></script>
-<script src="js/agents.js?v=6.34"></script>
+<script src="js/agents.js?v=6.36"></script>
 </body>
 </html>
