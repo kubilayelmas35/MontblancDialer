@@ -307,7 +307,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.50</div>
+<div class="sb-ver">MontBlanc v6.51</div>
 </div>
 </nav>
 <main id="main">
@@ -1511,6 +1511,10 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <div id="jm-qty-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 <input class="form-input" id="jm-quantity" type="number" min="1" value="1" placeholder="İşlem adedi" oninput="updateJobPricePreview()">
 <div id="jm-price-preview" style="font-size:12px;color:var(--text-3);display:flex;align-items:center;">Toplam ücret: 0</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<input class="form-input" id="jm-sla-first" type="number" min="5" value="120" placeholder="SLA ilk aksiyon (dk)">
+<input class="form-input" id="jm-sla-complete" type="number" min="30" value="1440" placeholder="SLA tamamlama (dk)">
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 <select class="form-input" id="jm-qc-mode">
@@ -2932,16 +2936,16 @@ QC Detay
 <script src="js/field-settings.js?v=6.38"></script>
 <script src="js/audit.js?v=6.44"></script>
 <script src="js/feature-flags.js?v=6.46"></script>
-<script src="js/notification-center.js?v=6.46"></script>
+<script src="js/notification-center.js?v=6.51"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=6.48"></script>
-<script src="js/job-market.js?v=6.48"></script>
+<script src="js/wallet.js?v=6.51"></script>
+<script src="js/job-market.js?v=6.51"></script>
 <script src="js/qc-job-market.js?v=6.46"></script>
 <script src="js/export-admin.js?v=6.34"></script>
 <script src="js/export-termin.js?v=6.34"></script>
 <script src="js/performance.js?v=6.34"></script>
 <script src="js/competition.js?v=6.34"></script>
-<script src="js/dashboard.js?v=6.46"></script>
+<script src="js/dashboard.js?v=6.51"></script>
 <script src="js/campaigns.js?v=6.34"></script>
 <script src="js/contacts.js?v=6.34"></script>
 <script src="js/telnyx.js?v=6.34"></script>

@@ -2,6 +2,7 @@ let _jobPosts = [];
 let _jobPostWorkers = [];
 let _jobPostSubs = [];
 let _jobPostSlots = [];
+let _jobFirmStats = {};
 let _jobMap = null;
 let _jobPolygonPoints = [];
 let _jobPolygonLayer = null;
@@ -69,8 +70,43 @@ async function loadJobPosts() {
   _jobPostWorkers = workers || [];
   _jobPostSubs = subs || [];
   _jobPostSlots = slots || [];
+  _jobFirmStats = buildJobFirmStats(_jobPostSubs);
   renderJobPostList();
   if (typeof loadJobMarketKpi === 'function') loadJobMarketKpi();
+}
+
+function buildJobFirmStats(subs) {
+  const st = {};
+  (subs || []).forEach((s) => {
+    const fid = s.worker_firm_id;
+    if (!fid) return;
+    if (!st[fid]) st[fid] = { approved: 0, rejected: 0, total: 0 };
+    st[fid].total++;
+    if (s.status === 'approved') st[fid].approved++;
+    if (s.status === 'rejected') st[fid].rejected++;
+  });
+  return st;
+}
+
+function calcJobMatchScore(post, viewerFirmId) {
+  const scoreBase = 50;
+  const byCountry = post.country ? 10 : 0;
+  const byCity = post.city ? 10 : 0;
+  const stats = _jobFirmStats[viewerFirmId] || { approved: 0, rejected: 0, total: 0 };
+  const quality = stats.total ? Math.round((stats.approved / stats.total) * 30) : 10;
+  return Math.max(0, Math.min(100, scoreBase + byCountry + byCity + quality - (stats.rejected * 2)));
+}
+
+function calcSlaState(post) {
+  const created = post.created_at ? new Date(post.created_at).getTime() : Date.now();
+  const now = Date.now();
+  const firstActionMin = Number(post.sla_first_action_min || 120);
+  const completeMin = Number(post.sla_complete_min || 1440);
+  const joined = post.first_worker_joined_at ? new Date(post.first_worker_joined_at).getTime() : null;
+  const submitted = post.first_submission_at ? new Date(post.first_submission_at).getTime() : null;
+  const firstActionBreach = !joined && ((now - created) / 60000 > firstActionMin);
+  const completeBreach = !submitted && ((now - created) / 60000 > completeMin);
+  return { firstActionBreach, completeBreach };
 }
 
 function renderJobPostList() {
@@ -94,6 +130,8 @@ function renderJobPostList() {
     const myWorker = _jobPostWorkers.find((w) => w.job_post_id === p.id && w.worker_firm_id === fid);
     const mySubs = _jobPostSubs.filter((s) => s.job_post_id === p.id && s.worker_firm_id === fid);
     const slots = _jobPostSlots.filter((s) => s.job_post_id === p.id);
+    const score = calcJobMatchScore(p, fid);
+    const sla = calcSlaState(p);
     const deadline = p.deadline_at ? new Date(p.deadline_at).toLocaleString('tr-TR') : '—';
     return `<div class="card" style="padding:10px;">
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
@@ -101,6 +139,7 @@ function renderJobPostList() {
 <div style="font-size:13px;font-weight:800;">${_jmEsc(p.title || 'İş ilanı')}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_jmEsc(p.job_type || 'custom')} · ${_jmEsc(p.city || 'Bölge serbest')} · Son: ${deadline}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">İşlem başı: <b>${Number(p.unit_price || p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'TRY')}</b> · Adet: <b>${Number(p.quantity || slots.length || 1)}</b> · Toplam: <b>${Number(p.budget || 0).toFixed(2)}</b> · Çalışan: <b>${workingCnt}</b></div>
+<div style="font-size:11px;color:var(--text-3);margin-top:2px;">Eşleşme skoru: <b>${score}</b>/100 ${sla.firstActionBreach || sla.completeBreach ? `· <span style="color:var(--red);font-weight:700;">SLA ihlali</span>` : ''}</div>
 </div>
 <div><span class="badge badge-blue">${_jmEsc(p.status || 'published')}</span></div>
 </div>
@@ -130,6 +169,8 @@ async function createJobPost() {
   const country = String(document.getElementById('jm-country')?.value || '').trim();
   const city = String(document.getElementById('jm-city')?.value || '').trim();
   const radiusKm = Number(document.getElementById('jm-radius')?.value || 0);
+  const slaFirst = Number(document.getElementById('jm-sla-first')?.value || 120);
+  const slaComplete = Number(document.getElementById('jm-sla-complete')?.value || 1440);
   const deadline = document.getElementById('jm-deadline')?.value || null;
   const slotDate = String(document.getElementById('jm-slot-date')?.value || '').trim();
   const slotStart = String(document.getElementById('jm-slot-start')?.value || '').trim();
@@ -175,7 +216,9 @@ async function createJobPost() {
         p_qc_mode: qcMode,
         p_slot_date: slotDate || null,
         p_slot_start: slotStart || null,
-        p_slot_end: slotEnd || null
+        p_slot_end: slotEnd || null,
+        p_sla_first_action_min: slaFirst,
+        p_sla_complete_min: slaComplete
       })
     });
     if (!res.ok) throw new Error(await res.text());

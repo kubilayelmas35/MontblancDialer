@@ -686,6 +686,9 @@ if (typeof loadDashCompetitionCard === 'function') {
 if (typeof loadJobMarketKpi === 'function') {
   try { await loadJobMarketKpi(); } catch (e) {}
 }
+if (typeof loadJobFinanceSummary === 'function') {
+  try { await loadJobFinanceSummary(); } catch (e) {}
+}
 }
 
 async function loadStats() {
