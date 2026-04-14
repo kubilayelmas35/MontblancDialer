@@ -171,10 +171,10 @@ z-index: 1;
 min-height: 44px;
 border-radius: 14px;
 overflow: hidden;
-background: var(--sidebar-aurora-base);
+background: transparent;
 isolation: isolate;
-border: 1px solid rgba(255, 255, 255, 0.14);
-box-shadow: 0 2px 14px rgba(0, 0, 0, 0.12);
+border: 1px solid rgba(15, 23, 42, 0.1);
+box-shadow: 0 1px 10px rgba(15, 23, 42, 0.08);
 }
 .tb-logo-aurora {
 position: absolute;
@@ -200,25 +200,25 @@ line-height: 1.2;
 width: 36px;
 height: 36px;
 flex-shrink: 0;
-background: var(--brand-chrome-frost);
-border: 1px solid var(--brand-chrome-border);
+background: rgba(255, 255, 255, 0.55);
+border: 1px solid rgba(15, 23, 42, 0.12);
 border-radius: 10px;
 display: flex;
 align-items: center;
 justify-content: center;
-color: var(--brand-chrome-fg);
-box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+color: #0f172a;
+box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
 }
 .tb-logo-name {
 font-size: 16px;
 font-weight: 800;
 letter-spacing: -0.4px;
-color: var(--brand-chrome-fg);
-text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+color: #0f172a;
+text-shadow: none;
 }
 [data-theme="dark"] .tb-logo {
-border-color: rgba(255, 255, 255, 0.1);
-box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
+border-color: rgba(255, 255, 255, 0.12);
+box-shadow: 0 1px 12px rgba(0, 0, 0, 0.25);
 }
 /* Topbar pills */
 #tb-pills {
@@ -368,7 +368,13 @@ border-radius: 10px; font-family: var(--mono);
 .sb-footer { margin-top: auto; padding: 12px 10px; border-top: 1px solid rgba(255,255,255,0.08); }
 .sb-ver { font-size: 10px; color: rgba(255,255,255,0.25); font-family: var(--mono); }
 /* Sidebar header logo */
+/* Sidebar içinde tb-logo olursa (koyu zemin) */
 #sidebar .tb-logo-name { color: var(--brand-chrome-fg) !important; }
+#sidebar .tb-logo-mark {
+  color: var(--brand-chrome-fg) !important;
+  background: var(--brand-chrome-frost) !important;
+  border-color: var(--brand-chrome-border) !important;
+}
 #sidebar .tb-hamburger { color: rgba(255,255,255,0.5); }
 #sidebar .tb-hamburger:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); }
 #sidebar .tb-hamburger span { background: currentColor; }
@@ -1309,7 +1315,7 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 [data-theme="dark"] .fluid-aurora--login::after {
   opacity: 0.55;
 }
-/* Üst logo kutusu — sol menü ile aynı aurora (gradient + süre + blur) */
+/* Üst logo — beyaz/gri aurora (sol menüden bağımsız); koyu taban yok */
 .fluid-aurora--logo {
   inset: 0;
   border-radius: inherit;
@@ -1372,58 +1378,47 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   top: -48%;
 }
 .fluid-aurora--logo::before {
-  background: conic-gradient(from 118deg at 50% 48%,
-    rgba(5, 42, 58, 0.85) 0deg,
-    rgba(88, 68, 102, 0.44) 16deg,
-    rgba(68, 28, 48, 0.48) 32deg,
-    rgba(14, 36, 82, 0.82) 48deg,
-    rgba(100, 78, 118, 0.4) 62deg,
-    rgba(48, 20, 72, 0.52) 78deg,
-    rgba(42, 20, 58, 0.76) 105deg,
-    rgba(95, 52, 72, 0.38) 138deg,
-    rgba(8, 58, 52, 0.8) 168deg,
-    rgba(22, 24, 78, 0.5) 198deg,
-    rgba(18, 28, 72, 0.78) 228deg,
-    rgba(72, 82, 122, 0.42) 262deg,
-    rgba(6, 62, 72, 0.82) 292deg,
-    rgba(58, 24, 52, 0.46) 312deg,
-    rgba(52, 22, 48, 0.72) 330deg,
-    rgba(5, 42, 58, 0.85) 360deg);
-  animation: fluid-spin 26s linear infinite;
-  filter: blur(46px);
-  opacity: 0.74;
-  width: 220%;
-  height: 180%;
-  left: -65%;
-  top: -35%;
+  background: conic-gradient(from 118deg at 38% 32%,
+    rgba(255, 255, 255, 0.92) 0deg,
+    rgba(236, 242, 252, 0.88) 55deg,
+    rgba(248, 250, 253, 0.95) 118deg,
+    rgba(210, 218, 232, 0.65) 175deg,
+    rgba(255, 255, 255, 0.9) 228deg,
+    rgba(225, 232, 244, 0.75) 288deg,
+    rgba(255, 255, 255, 0.92) 360deg);
+  animation: fluid-spin 24s linear infinite;
+  filter: blur(26px);
+  opacity: 0.88;
+  width: 200%;
+  height: 170%;
+  left: -52%;
+  top: -32%;
 }
 .fluid-aurora--logo::after {
-  background: conic-gradient(from 302deg at 50% 52%,
-    rgba(72, 38, 28, 0.52) 0deg,
-    rgba(98, 48, 62, 0.4) 24deg,
-    rgba(82, 32, 44, 0.42) 48deg,
-    rgba(28, 32, 72, 0.54) 95deg,
-    rgba(52, 24, 62, 0.4) 142deg,
-    rgba(12, 58, 48, 0.5) 185deg,
-    rgba(88, 58, 88, 0.36) 218deg,
-    rgba(48, 22, 58, 0.48) 255deg,
-    rgba(62, 28, 52, 0.38) 288deg,
-    rgba(18, 48, 42, 0.5) 315deg,
-    rgba(92, 72, 108, 0.34) 338deg,
-    rgba(72, 38, 28, 0.52) 360deg);
-  animation: fluid-spin-rev 31s linear infinite;
-  filter: blur(38px);
-  opacity: 0.62;
-  width: 200%;
-  height: 200%;
-  left: -48%;
-  top: -48%;
+  background: conic-gradient(from 305deg at 62% 58%,
+    rgba(180, 192, 208, 0.45) 0deg,
+    rgba(255, 255, 255, 0.72) 88deg,
+    rgba(200, 210, 224, 0.5) 168deg,
+    rgba(235, 240, 248, 0.68) 248deg,
+    rgba(165, 178, 198, 0.4) 318deg,
+    rgba(180, 192, 208, 0.45) 360deg);
+  animation: fluid-spin-rev 29s linear infinite;
+  filter: blur(22px);
+  opacity: 0.72;
+  width: 190%;
+  height: 190%;
+  left: -46%;
+  top: -44%;
 }
-[data-theme="dark"] .fluid-aurora--sidebar::before,
-[data-theme="dark"] .fluid-aurora--logo::before {
+[data-theme="dark"] .fluid-aurora--sidebar::before {
   opacity: 0.78;
 }
-[data-theme="dark"] .fluid-aurora--sidebar::after,
-[data-theme="dark"] .fluid-aurora--logo::after {
+[data-theme="dark"] .fluid-aurora--sidebar::after {
   opacity: 0.64;
+}
+[data-theme="dark"] .fluid-aurora--logo::before {
+  opacity: 0.82;
+}
+[data-theme="dark"] .fluid-aurora--logo::after {
+  opacity: 0.65;
 }
