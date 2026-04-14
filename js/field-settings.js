@@ -20,7 +20,11 @@ function _normalizeFieldSchemaRow(row) {
     key: String(row?.key || '').trim(),
     label: String(row?.label || '').trim(),
     type: ['text', 'number', 'select', 'date'].includes(String(row?.type || 'text')) ? String(row?.type) : 'text',
-    options: Array.isArray(row?.options) ? row.options.map((x) => String(x || '').trim()).filter(Boolean) : []
+    options: Array.isArray(row?.options) ? row.options.map((x) => String(x || '').trim()).filter(Boolean) : [],
+    required: !!row?.required,
+    min: row?.min ?? '',
+    max: row?.max ?? '',
+    show_when_result: String(row?.show_when_result || '').trim()
   };
   return out;
 }
@@ -85,6 +89,12 @@ function renderFieldSchemaRows() {
 <button type="button" class="btn btn-ghost btn-sm" onclick="moveFieldSchemaRow(${idx}, 1)" ${idx === rows.length - 1 ? 'disabled' : ''}>↓</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="removeFieldSchemaRow(${idx})">Sil</button>
 </div>
+<div style="grid-column:1/-1;display:grid;grid-template-columns:140px 1fr 1fr 1fr;gap:6px;align-items:center;">
+<label style="font-size:11px;display:flex;align-items:center;gap:6px;"><input type="checkbox" data-field-schema-required-index="${idx}" ${rr.required ? 'checked' : ''}> Zorunlu</label>
+<input class="form-input" data-field-schema-min-index="${idx}" value="${_fieldSetEsc(rr.min)}" placeholder="Min (opsiyonel)">
+<input class="form-input" data-field-schema-max-index="${idx}" value="${_fieldSetEsc(rr.max)}" placeholder="Max (opsiyonel)">
+<input class="form-input" data-field-schema-show-result-index="${idx}" value="${_fieldSetEsc(rr.show_when_result)}" placeholder="Koşul: sonuç anahtarı">
+</div>
 ${rr.type === 'select' ? `<div style="grid-column:1/-1;display:flex;gap:6px;align-items:center;">
 <input class="form-input" data-field-schema-options-index="${idx}" value="${_fieldSetEsc(rr.options.join(', '))}" placeholder="Seçenekler (virgülle): örn. düşük, orta, yüksek">
 </div>` : ''}
@@ -118,7 +128,7 @@ function removeFieldDocTypeRow(index) {
 
 function addFieldSchemaRow() {
   if (!_fieldSettingsDraft.form_schema) _fieldSettingsDraft.form_schema = [];
-  _fieldSettingsDraft.form_schema.push({ key: '', label: '', type: 'text', options: [] });
+  _fieldSettingsDraft.form_schema.push({ key: '', label: '', type: 'text', options: [], required: false, min: '', max: '', show_when_result: '' });
   renderFieldSchemaRows();
 }
 
@@ -231,11 +241,15 @@ async function saveFieldSettings() {
       .split(',')
       .map((x) => x.trim())
       .filter(Boolean);
+    const required = !!document.querySelector(`[data-field-schema-required-index="${i}"]`)?.checked;
+    const min = String(document.querySelector(`[data-field-schema-min-index="${i}"]`)?.value || '').trim();
+    const max = String(document.querySelector(`[data-field-schema-max-index="${i}"]`)?.value || '').trim();
+    const showWhenResult = String(document.querySelector(`[data-field-schema-show-result-index="${i}"]`)?.value || '').trim();
     if (type === 'select' && !options.length) {
       toast('Seçim tipinde en az 1 seçenek girilmeli', 'warn');
       return;
     }
-    schema.push({ key, label, type, options });
+    schema.push({ key, label, type, options, required, min, max, show_when_result: showWhenResult });
   }
 
   const fieldService = {
@@ -255,6 +269,7 @@ async function saveFieldSettings() {
       prefer: 'return=minimal',
       body: JSON.stringify({ settings: { ...existing, fieldService } })
     });
+    if (typeof logAuditEvent === 'function') await logAuditEvent('field_settings_updated', 'firm', fid, { fieldService });
     if (typeof invalidateFieldSettingsCache === 'function') invalidateFieldSettingsCache(fid);
     toast('Saha ayarları kaydedildi', 'ok');
   } catch (e) {

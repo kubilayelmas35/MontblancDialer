@@ -150,6 +150,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span id="theme-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
 </button>
 <button class="tb-icon-btn" onclick="cycleLang()" id="lang-btn" title="Dil" style="font-size:12px;font-weight:700;font-family:var(--mono);">TR</button>
+<button class="tb-icon-btn" id="tb-notif-btn" onclick="toggleNotificationCenter()" title="Bildirim Merkezi">
+<i class="ph ph-bell" style="font-size:15px;"></i>
+<span id="tb-notif-badge" class="sb-badge" style="display:none;position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;font-size:10px;padding:0 4px;">0</span>
+</button>
 <button class="tb-user" onclick="navigate('settings')">
 <div class="tb-avatar" id="tb-av">K</div>
 <div>
@@ -298,7 +302,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.43</div>
+<div class="sb-ver">MontBlanc v6.44</div>
 </div>
 </nav>
 <main id="main">
@@ -1210,6 +1214,14 @@ Müşteri seçilince harita gösterilecek
 <div id="prev-call-body" style="color:var(--text-2);"></div>
 </div>
 <div id="ready-section">
+<div id="dialer-reliability-card" style="display:block;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
+<div style="font-size:12px;font-weight:800;">Çağrı Sağlık Kontrolü</div>
+<span id="dialer-health-code" style="font-size:10px;color:var(--text-3);font-family:var(--mono);">DIAL-INIT</span>
+</div>
+<div id="dialer-health-msg" style="font-size:11px;color:var(--text-2);margin-bottom:6px;">Kontrol ediliyor…</div>
+<div id="dialer-health-checks" style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--text-3);"></div>
+</div>
 <div id="camp-required-notice" style="display:none;background:linear-gradient(135deg,rgba(var(--yellow-rgb),.12),rgba(var(--yellow-rgb),.06));border:1px solid var(--yellow);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:8px;font-size:13px;font-weight:600;color:var(--yellow);display:flex;align-items:center;gap:8px;">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
 <span data-tr="Aramaya başlamadan önce sağdan bir kampanya seçin" data-de="Wählen Sie rechts eine Kampagne bevor Sie starten">Aramaya başlamadan önce sağdan bir kampanya seçin</span>
@@ -1269,6 +1281,12 @@ Yaklaşan Aramalar
 <div style="display:flex;gap:8px;align-items:center;">
 <button class="btn btn-ghost btn-sm" onclick="loadFieldPage()">↻ Yenile</button>
 </div>
+</div>
+<div id="field-kpi-wrap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px;">
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Toplam Görev</div><div id="field-kpi-total" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Tamamlanan</div><div id="field-kpi-done" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Satış</div><div id="field-kpi-sales" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Belge Eksik</div><div id="field-kpi-missing-doc" style="font-size:20px;font-weight:800;">0</div></div>
 </div>
 <div id="field-task-list" style="display:flex;flex-direction:column;gap:10px;">
 <div class="card" style="padding:20px;color:var(--text-3);font-size:12px;text-align:center;">Yükleniyor...</div>
@@ -1997,6 +2015,23 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div id="field-set-form-schema-list" style="display:flex;flex-direction:column;gap:6px;"></div>
 </div>
 <button type="button" class="btn btn-primary btn-sm" onclick="saveFieldSettings()"><i class="ph ph-floppy-disk"></i> Saha ayarlarını kaydet</button>
+</div>
+<div class="card" id="feature-flags-card" style="display:none;">
+<div class="card-title" style="margin-bottom:12px;"><i class="ph ph-sliders-horizontal" style="vertical-align:-3px;margin-right:6px;"></i>Özellik Aç/Kapa</div>
+<div id="feature-flags-firm-row" style="display:none;margin-bottom:12px;">
+<label class="form-label" style="font-size:11px;color:var(--text-3);margin-bottom:4px;display:block;">Firma</label>
+<select class="form-input" id="feature-flags-firm-select" style="width:100%;" onchange="onFeatureFlagsFirmChange()"></select>
+</div>
+<div id="feature-flags-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+<button type="button" class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="saveFeatureFlags()">Özellikleri kaydet</button>
+</div>
+<div class="card" id="audit-log-card" style="display:none;">
+<div class="card-title" style="margin-bottom:10px;"><i class="ph ph-list-checks" style="vertical-align:-3px;margin-right:6px;"></i>Audit Log</div>
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+<input class="form-input" id="audit-log-filter" placeholder="Olay tipi filtrele (örn: user_)">
+<button class="btn btn-ghost btn-sm" onclick="loadAuditEventsPage()">Yenile</button>
+</div>
+<div id="audit-log-list" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow:auto;"></div>
 </div>
 <div class="card" id="mesai-settings-card">
 <div class="card-title" style="margin-bottom:12px;">Çalışma Saatleri &amp; Günler</div>
@@ -2755,6 +2790,13 @@ QC Detay
 <div id="team-chat-members-add"></div>
 </div>
 </div>
+<div id="notification-center" style="display:none;position:fixed;top:58px;right:14px;width:min(420px,92vw);max-height:72vh;overflow:auto;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;z-index:260;box-shadow:0 12px 28px rgba(0,0,0,.2);">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);">
+<div style="font-size:13px;font-weight:800;">Bildirim Merkezi</div>
+<button class="btn btn-ghost btn-sm" onclick="toggleNotificationCenter(false)">Kapat</button>
+</div>
+<div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
+</div>
 <script src="js/config.js?v=6.34"></script>
 <script src="js/state.js?v=6.34"></script>
 <script src="js/api.js?v=6.34"></script>
@@ -2763,6 +2805,9 @@ QC Detay
 <script src="js/chat.js?v=6.35"></script>
 <script src="js/chat-settings.js?v=6.35"></script>
 <script src="js/field-settings.js?v=6.38"></script>
+<script src="js/audit.js?v=6.44"></script>
+<script src="js/feature-flags.js?v=6.44"></script>
+<script src="js/notification-center.js?v=6.44"></script>
 <script src="js/export-admin.js?v=6.34"></script>
 <script src="js/export-termin.js?v=6.34"></script>
 <script src="js/performance.js?v=6.34"></script>

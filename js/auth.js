@@ -119,6 +119,8 @@ const chatSetCard = document.getElementById('chat-settings-card');
 if (chatSetCard) chatSetCard.style.display = isAdmin ? '' : 'none';
 const fieldSetCard = document.getElementById('field-settings-card');
 if (fieldSetCard) fieldSetCard.style.display = isAdmin ? '' : 'none';
+const featCard = document.getElementById('feature-flags-card');
+if (featCard) featCard.style.display = isAdmin ? '' : 'none';
 const roleMap = {
 'super_admin':'Süper Admin','firm_admin':'Firma Admin',
 'admin':'Admin','agent':'Agent','qc':'QC','field_agent':'Saha Elemanı'
@@ -141,7 +143,9 @@ setInterval(updateTopbarStats, 30000);
 }
 loadWvBadge();
 if (typeof refreshUserPagePerms === 'function') refreshUserPagePerms().catch(() => {});
+if (typeof applyFeatureFlagsOnBoot === 'function') applyFeatureFlagsOnBoot().catch(() => {});
 if (typeof initChat === 'function') initChat();
+if (typeof initNotificationCenter === 'function') initNotificationCenter();
 initRTCListener();
 const sipUser = localStorage.getItem('mb-sip-user')||'';
 const sipPass = localStorage.getItem('mb-sip-pass')||'';

@@ -1,0 +1,9 @@
+{
+  "name": "montblanc-dialer",
+  "private": true,
+  "version": "6.44.0",
+  "type": "module",
+  "scripts": {
+    "smoke": "node tests/smoke.mjs"
+  }
+}

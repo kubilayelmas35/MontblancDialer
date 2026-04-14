@@ -185,6 +185,7 @@ async function saveNewAgent() {
       body:JSON.stringify({p_firm_id:firmId,p_email:email,p_password:pass,p_name:name,p_role:role})
     });
     if (!res.ok) throw new Error(await res.text());
+    if (typeof logAuditEvent === 'function') await logAuditEvent('user_created', 'user', email, { role, firm_id: firmId });
     document.getElementById('m-agent-mgr')?.remove();
     await loadAgents();
     toast('Kullanıcı oluşturuldu ✓','ok');
@@ -213,7 +214,9 @@ async function saveAgentEdit(userId) {
         body:JSON.stringify({p_user_id:userId,p_new_password:pass})
       });
       if (!r.ok) throw new Error(await r.text());
+      if (typeof logAuditEvent === 'function') await logAuditEvent('user_password_reset', 'user', userId, {});
     }
+    if (typeof logAuditEvent === 'function') await logAuditEvent('user_updated', 'user', userId, { role, active });
     document.getElementById('m-agent-mgr')?.remove();
     await loadAgents();
     toast('Güncellendi ✓','ok');
@@ -224,6 +227,7 @@ async function confirmDeleteAgent(userId) {
   if (!(await mbConfirm('Bu kullanıcıyı silmek istediğinize emin misiniz?', 'Kullanıcı Sil'))) return;
   try {
     await sb(`users?id=eq.${userId}`,{method:'DELETE',prefer:'return=minimal'});
+    if (typeof logAuditEvent === 'function') await logAuditEvent('user_deleted', 'user', userId, {});
     document.getElementById('m-agent-mgr')?.remove();
     await loadAgents();
     toast('Kullanıcı silindi','ok');

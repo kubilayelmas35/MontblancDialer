@@ -47,8 +47,29 @@ function _fieldNormalizeSchemaRow(row) {
     key: String(row?.key || '').trim(),
     label: String(row?.label || '').trim(),
     type: ['text', 'number', 'select', 'date'].includes(String(row?.type || 'text')) ? String(row?.type) : 'text',
-    options: Array.isArray(row?.options) ? row.options : []
+    options: Array.isArray(row?.options) ? row.options : [],
+    required: !!row?.required,
+    min: row?.min ?? '',
+    max: row?.max ?? '',
+    show_when_result: String(row?.show_when_result || '').trim()
   };
+}
+
+function renderFieldKpi(tasks, files, fs) {
+  const total = tasks.length;
+  const done = tasks.filter((t) => t.status === 'completed').length;
+  const sales = tasks.filter((t) => String(t.result_key || '').toLowerCase() === 'satis').length;
+  const docReq = (fs.document_requirements || []).length;
+  let missing = 0;
+  tasks.forEach((t) => {
+    const count = (files || []).filter((f) => f.task_id === t.id).length;
+    if (docReq > 0 && count < docReq) missing++;
+  });
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = String(val); };
+  set('field-kpi-total', total);
+  set('field-kpi-done', done);
+  set('field-kpi-sales', sales);
+  set('field-kpi-missing-doc', missing);
 }
 
 async function loadFieldPage() {
@@ -92,6 +113,7 @@ async function loadFieldPage() {
     if (!fileMap[f.task_id]) fileMap[f.task_id] = [];
     fileMap[f.task_id].push(f);
   });
+  renderFieldKpi(_fieldTasks, files, fs);
 
   listEl.innerHTML = _fieldTasks
     .map((t) => {
@@ -139,16 +161,21 @@ ${(fs.form_schema || [])
     const ff = _fieldNormalizeSchemaRow(f);
     const v = payload?.[ff.key] || '';
     if (!ff.key || !ff.label) return '';
+    if (ff.show_when_result && String(t.result_key || '') !== String(ff.show_when_result)) return '';
+    const reqAttr = ff.required ? 'required' : '';
+    const minAttr = ff.min !== '' ? `min="${_fEsc(ff.min)}"` : '';
+    const maxAttr = ff.max !== '' ? `max="${_fEsc(ff.max)}"` : '';
+    const reqMark = ff.required ? ' *' : '';
     if (ff.type === 'number') {
-      return `<div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(ff.label)}</label><input type="number" class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`;
+      return `<div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><input type="number" ${reqAttr} ${minAttr} ${maxAttr} class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`;
     }
     if (ff.type === 'date') {
-      return `<div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(ff.label)}</label><input type="date" class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`;
+      return `<div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><input type="date" ${reqAttr} class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`;
     }
     if (ff.type === 'select') {
-      return `<div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(ff.label)}</label><select class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}"><option value="">Seçin</option>${(ff.options || []).map((o) => `<option value="${_fEsc(o)}" ${String(v) === String(o) ? 'selected' : ''}>${_fEsc(o)}</option>`).join('')}</select></div>`;
+      return `<div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><select ${reqAttr} class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}"><option value="">Seçin</option>${(ff.options || []).map((o) => `<option value="${_fEsc(o)}" ${String(v) === String(o) ? 'selected' : ''}>${_fEsc(o)}</option>`).join('')}</select></div>`;
     }
-    return `<div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(ff.label)}</label><input class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`;
+    return `<div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><input ${reqAttr} class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`;
   })
   .join('')}
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;">
@@ -176,9 +203,32 @@ async function saveFieldTaskUpdate(taskId) {
   const resultKey = document.getElementById(`field-result-${taskId}`)?.value || null;
   const notes = document.getElementById(`field-note-${taskId}`)?.value || '';
   const payload = { ...(t.result_payload || {}) };
-  (fs.form_schema || []).forEach((f) => {
-    payload[f.key] = document.getElementById(`field-extra-${taskId}-${f.key}`)?.value || '';
-  });
+  for (const f of fs.form_schema || []) {
+    const ff = _fieldNormalizeSchemaRow(f);
+    if (!ff.key) continue;
+    if (ff.show_when_result && String(resultKey || '') !== String(ff.show_when_result)) continue;
+    const val = document.getElementById(`field-extra-${taskId}-${ff.key}`)?.value || '';
+    if (ff.required && !String(val).trim()) {
+      toast(`Zorunlu alan: ${ff.label || ff.key}`, 'warn');
+      return;
+    }
+    if (ff.type === 'number' && String(val).trim()) {
+      const num = Number(val);
+      if (Number.isNaN(num)) {
+        toast(`Geçersiz sayı: ${ff.label || ff.key}`, 'warn');
+        return;
+      }
+      if (ff.min !== '' && num < Number(ff.min)) {
+        toast(`${ff.label || ff.key} min: ${ff.min}`, 'warn');
+        return;
+      }
+      if (ff.max !== '' && num > Number(ff.max)) {
+        toast(`${ff.label || ff.key} max: ${ff.max}`, 'warn');
+        return;
+      }
+    }
+    payload[ff.key] = val;
+  }
   const body = {
     status,
     result_key: resultKey,

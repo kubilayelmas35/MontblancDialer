@@ -5,6 +5,15 @@
 async function initDialer() {
   if (!currentUser) return;
   resetDialerVoiceVisuals();
+  if (typeof isFeatureEnabledForCurrentFirm === 'function') {
+    const canDial = await isFeatureEnabledForCurrentFirm('dialer_enabled');
+    if (!canDial) {
+      const list = document.getElementById('agent-camp-list');
+      if (list) list.innerHTML = `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Bu firma için dialer kapalı</div>`;
+      refreshDialerHealthPanel();
+      return;
+    }
+  }
   try {
     const role = currentUser?.role || '';
     const adminLike = ['admin', 'firm_admin', 'super_admin', 'qc'].includes(role);
@@ -73,6 +82,7 @@ async function initDialer() {
       if (notice) notice.style.display = 'flex';
     }
   } catch(e){ console.error('initDialer err:', e); }
+  refreshDialerHealthPanel();
   loadMyMiniStats();
   loadWvBadge();
   startTickerPoll();
@@ -238,6 +248,7 @@ async function loadUpcomingWv() {
 }
 
 async function toggleReady() {
+  refreshDialerHealthPanel();
   if (dialerStatus==='offline' || dialerStatus==='break') {
     if (!selectedCampId) { toast(currentLang==='tr'?'Önce kampanya seçin':'Kampagne auswählen','err'); return; }
     if (!telnyxReady && !_testMode) { toast(currentLang==='tr'?'Telnyx bağlanıyor, bekleyin...':'Telnyx verbindet sich...','err'); return; }
@@ -325,6 +336,7 @@ function setDialerStatus(s) {
 }
 
 async function dialNext() {
+  refreshDialerHealthPanel();
   if (dialerStatus !== 'ready') return;
   if (!_testMode && !checkCallAllowed()) return;
 
@@ -353,6 +365,47 @@ async function dialNext() {
   } catch(e) {}
   const campaign = campaigns.find(c => c.id === selectedCampId);
   sendToRTC('MB_CALL', { destination: contact.phone, callerNumber: campaign?.telnyx_did || '' });
+}
+
+function getDialerHealthState() {
+  const checks = [];
+  const push = (ok, label) => checks.push({ ok, label });
+  push(!!selectedCampId, 'Kampanya seçildi');
+  push(!!_activeCampIds.length, 'Aktif kampanya var');
+  push(_testMode || !!telnyxReady, _testMode ? 'Test modu aktif' : 'Telnyx bağlantısı hazır');
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0];
+  const timeStr = now.toTimeString().slice(0, 8);
+  const callWindow = isCallAllowed(dateStr, timeStr).allowed;
+  push(_testMode || callWindow, 'Saat kısıtı uygun');
+  push(typeof micGranted === 'undefined' ? true : !!micGranted, 'Mikrofon izni');
+  const firstFail = checks.find((c) => !c.ok);
+  const code = firstFail
+    ? !selectedCampId
+      ? 'DIAL-CAMP'
+      : !_activeCampIds.length
+        ? 'DIAL-ACTIVE'
+        : (!_testMode && !telnyxReady)
+          ? 'DIAL-SIP'
+          : (!_testMode && !callWindow)
+            ? 'DIAL-HOURS'
+            : 'DIAL-MIC'
+    : 'DIAL-OK';
+  const msg = firstFail ? `Bekleniyor: ${firstFail.label}` : 'Tüm kontroller geçildi. Arama başlatılabilir.';
+  return { checks, code, msg };
+}
+
+function refreshDialerHealthPanel() {
+  const codeEl = document.getElementById('dialer-health-code');
+  const msgEl = document.getElementById('dialer-health-msg');
+  const checksEl = document.getElementById('dialer-health-checks');
+  if (!codeEl || !msgEl || !checksEl) return;
+  const h = getDialerHealthState();
+  codeEl.textContent = h.code;
+  msgEl.textContent = h.msg;
+  checksEl.innerHTML = h.checks
+    .map((c) => `<div style="display:flex;align-items:center;gap:6px;color:${c.ok ? 'var(--green)' : 'var(--yellow)'};"><span>${c.ok ? '✓' : '•'}</span><span>${c.label}</span></div>`)
+    .join('');
 }
 
 async function updateSessionInDB(status) {

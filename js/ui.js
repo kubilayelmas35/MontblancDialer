@@ -52,7 +52,9 @@ if (page==='settings')       { loadAppointmentResultsSettings(); }
 if (page==='wiedervorlage')  loadWvPage();
 if (page==='qc')             loadQcData();
 if (page==='firms')          loadFirmsPage();
-if (page==='settings')        { loadMesaiSettings(); loadCallHoursSettings(); loadChatSettingsPage(); loadFieldSettingsPage(); }
+if (page==='settings')        { loadMesaiSettings(); loadCallHoursSettings(); loadChatSettingsPage(); loadFieldSettingsPage(); loadFeatureFlagsPage(); if (typeof loadAuditEventsPage==='function') loadAuditEventsPage(); }
+if (page==='field')          { if (typeof loadNotificationCenter === 'function') loadNotificationCenter(); }
+if (page==='dialer')         { if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel(); }
 if (page==='takvim')         loadTakvimPage();
 if (page==='leave')          loadLeavePage();
 if (page==='muhasebe')       loadMuhasebePage();
