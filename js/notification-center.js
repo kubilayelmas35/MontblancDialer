@@ -67,28 +67,15 @@ async function loadNotificationCenter() {
   } catch (e) {}
 
   try {
-    const events = await sb(`job_events?select=id,event_type,created_at,job_posts!inner(id,title,requester_firm_id)&order=created_at.desc&limit=8`).catch(() => []);
+    const events = await sb(`job_events?select=id,event_type,created_at,job_posts!inner(id,title,requester_firm_id)&order=created_at.desc&limit=12`).catch(() => []);
     (events || []).forEach((ev) => {
       const title = ev?.job_posts?.title || 'İş ilanı';
       const own = ev?.job_posts?.requester_firm_id === fid;
+      const isWithdraw = ev.event_type === 'job_withdrawn';
+      const headline = isWithdraw ? 'İlan geri çekildi' : 'İş platformu';
+      const detail = isWithdraw ? `${title} · rezerv iade edildi, ilan iptal` : `${title} · ${ev.event_type}`;
       if (own || ['admin', 'firm_admin', 'super_admin', 'qc'].includes(currentUser.role)) unread++;
-      out.push(_notifItem('İş platformu', `${title} · ${ev.event_type}`, new Date(ev.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })));
-    });
-  } catch (e) {}
-
-  try {
-    const slaRisk = await sb(`job_posts?select=id,title,created_at,sla_first_action_min,sla_complete_min,status,first_worker_joined_at,first_submission_at&status=in.(published,in_progress,pending_qc)&order=created_at.asc&limit=20`).catch(() => []);
-    (slaRisk || []).forEach((j) => {
-      const created = j.created_at ? new Date(j.created_at).getTime() : Date.now();
-      const now = Date.now();
-      const firstLimit = Number(j.sla_first_action_min || 120);
-      const completeLimit = Number(j.sla_complete_min || 1440);
-      const firstBreach = !j.first_worker_joined_at && ((now - created) / 60000 > firstLimit);
-      const completeBreach = !j.first_submission_at && ((now - created) / 60000 > completeLimit);
-      if (firstBreach || completeBreach) {
-        unread++;
-        out.push(_notifItem('SLA uyarısı', `${j.title || 'İş ilanı'} · ${firstBreach ? 'ilk aksiyon' : 'teslim'} SLA aşıldı`, new Date(j.created_at).toLocaleDateString('tr-TR')));
-      }
+      out.push(_notifItem(headline, detail, new Date(ev.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })));
     });
   } catch (e) {}
 

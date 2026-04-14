@@ -281,7 +281,7 @@ async function loadJobPosts() {
     const posts = await sb(`job_posts?order=created_at.desc&limit=220`);
     if (!posts) throw new Error('İlan listesi alınamadı');
     const workers = await sb(`job_post_workers?select=id,job_post_id,worker_firm_id,status`).catch(() => []);
-    const subs = await sb(`job_submissions?select=id,job_post_id,worker_firm_id,status,created_at&order=created_at.desc&limit=400`).catch(() => []);
+    const subs = await sb(`job_submissions?select=id,job_post_id,worker_firm_id,status,created_at,appointment_id&order=created_at.desc&limit=400`).catch(() => []);
     const slots = await sb(`job_post_slots?select=id,job_post_id,status,slot_start_at,slot_end_at&order=slot_start_at.asc&limit=2000`).catch(() => []);
     _jobPosts = posts || [];
     _jobPostWorkers = workers || [];
@@ -317,18 +317,6 @@ function calcJobMatchScore(post, viewerFirmId) {
   return Math.max(0, Math.min(100, scoreBase + byCountry + byCity + quality - (stats.rejected * 2)));
 }
 
-function calcSlaState(post) {
-  const created = post.created_at ? new Date(post.created_at).getTime() : Date.now();
-  const now = Date.now();
-  const firstActionMin = Number(post.sla_first_action_min || 120);
-  const completeMin = Number(post.sla_complete_min || 1440);
-  const joined = post.first_worker_joined_at ? new Date(post.first_worker_joined_at).getTime() : null;
-  const submitted = post.first_submission_at ? new Date(post.first_submission_at).getTime() : null;
-  const firstActionBreach = !joined && ((now - created) / 60000 > firstActionMin);
-  const completeBreach = !submitted && ((now - created) / 60000 > completeMin);
-  return { firstActionBreach, completeBreach };
-}
-
 function renderJobPostList() {
   const list = document.getElementById('job-market-list');
   if (!list) return;
@@ -343,6 +331,7 @@ function renderJobPostList() {
   if (_jobListTab === 'active') items = items.filter((p) => ['published', 'in_progress'].includes(p.status));
   if (_jobListTab === 'pending_qc') items = items.filter((p) => p.status === 'pending_qc');
   if (_jobListTab === 'completed') items = items.filter((p) => p.status === 'completed');
+  if (_jobListTab === 'cancelled') items = items.filter((p) => p.status === 'cancelled');
   if (_jobListTab === 'rejected') {
     const rejectedJobIds = new Set(_jobPostSubs.filter((s) => s.status === 'rejected').map((s) => s.job_post_id));
     items = items.filter((p) => rejectedJobIds.has(p.id));
@@ -371,11 +360,20 @@ function renderJobPostList() {
     const mySubs = _jobPostSubs.filter((s) => s.job_post_id === p.id && s.worker_firm_id === fid);
     const slots = _jobPostSlots.filter((s) => s.job_post_id === p.id);
     const score = calcJobMatchScore(p, fid);
-    const sla = calcSlaState(p);
     const apptCat = p.job_type === 'appointment' ? _jmAppointmentCategoryLabelFromRequirements(p.requirements) : '';
-    const slaFirstMin = Number(p.sla_first_action_min || 120);
-    const slaDoneMin = Number(p.sla_complete_min || 1440);
     const deadline = p.deadline_at ? new Date(p.deadline_at).toLocaleString('tr-TR') : '—';
+    const rdMs = p.retraction_deadline_at ? new Date(p.retraction_deadline_at).getTime() : 0;
+    const deadlinePassed = !!(rdMs && Date.now() >= rdMs);
+    const hasApproved = _jobPostSubs.some((s) => s.job_post_id === p.id && s.status === 'approved');
+    const hasApptLink = p.job_type === 'appointment' && _jobPostSubs.some((s) => s.job_post_id === p.id && s.appointment_id && ['submitted', 'qc_pending', 'approved'].includes(s.status));
+    const canManagePost = isOwner || currentUser?.role === 'super_admin';
+    const canWithdrawUi = canManagePost && ['published', 'in_progress', 'pending_qc'].includes(p.status) && deadlinePassed && !hasApproved && !hasApptLink;
+    let retractHint = '';
+    if (p.retraction_deadline_at) {
+      if (!deadlinePassed) retractHint = ' · Geri çekme için tarih bekleniyor';
+      else if (hasApproved || hasApptLink) retractHint = ' · Teslim/randevu kaydı var; geri çekilemez';
+      else retractHint = ' · Geri çekilebilir';
+    }
     const timeline = _jobPostSubs
       .filter((s) => s.job_post_id === p.id)
       .slice(0, 3)
@@ -386,8 +384,8 @@ function renderJobPostList() {
 <div>
 <div style="font-size:13px;font-weight:800;">${_jmEsc(p.title || 'İş ilanı')}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_jmEsc(p.job_type || 'custom')}${apptCat ? ` · <span style="color:var(--text-2);font-weight:600;">${_jmEsc(apptCat)}</span>` : ''} · ${_jmEsc(p.city || 'Bölge serbest')} · Son: ${deadline}</div>
-<div style="font-size:11px;color:var(--text-3);margin-top:2px;">İşlem başı: <b>${Number(p.unit_price || p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'TRY')}</b> · Adet: <b>${Number(p.quantity || slots.length || 1)}</b> · Toplam: <b>${Number(p.budget || 0).toFixed(2)}</b> · Çalışan: <b>${workingCnt}</b></div>
-<div style="font-size:11px;color:var(--text-3);margin-top:2px;">SLA: ilk aksiyon <b>${slaFirstMin} dk</b>, teslim <b>${slaDoneMin} dk</b> · Eşleşme: <b>${score}</b>/100 ${sla.firstActionBreach || sla.completeBreach ? `· <span style="color:var(--red);font-weight:700;">SLA ihlali</span>` : ''}</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:2px;">İşlem başı: <b>${Number(p.unit_price || p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'TRY')}</b> · Adet: <b>${Number(p.quantity || slots.length || 1)}</b> · Toplam: <b>${Number(p.budget || 0).toFixed(2)}</b> · Çalışan: <b>${workingCnt}</b> · Eşleşme: <b>${score}</b>/100</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:2px;">Geri çekme zamanı: <b>${p.retraction_deadline_at ? new Date(p.retraction_deadline_at).toLocaleString('tr-TR') : '—'}</b>${retractHint}</div>
 </div>
 <div><span class="badge badge-blue">${_jmEsc(p.status || 'published')}</span></div>
 </div>
@@ -396,6 +394,7 @@ ${slots.length ? `<div style="font-size:11px;color:var(--text-3);margin-top:6px;
 <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:10px;">
 ${slots.length && p.job_type === 'appointment' ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openJobSlotsModal('${p.id}')">Takvimi aç (${slots.length})</button>` : ''}
 ${!isOwner ? `<button type="button" class="btn btn-ghost btn-sm" onclick="joinJobPost('${p.id}')">${myWorker ? 'Çalışıyorum' : 'Buna çalışacağım'}</button>` : `<span style="font-size:11px;color:var(--text-3);">İlan sahibi sizsiniz</span>`}
+${canWithdrawUi ? `<button type="button" class="btn btn-ghost btn-sm" style="border-color:var(--red);color:var(--red);" onclick="withdrawJobPost('${p.id}')">İlanı geri çek</button>` : ''}
 ${!isOwner ? `<button type="button" class="btn btn-primary btn-sm" onclick="openJobSubmissionModal('${p.id}')">Teslim gir</button>` : ''}
 ${mySubs.length ? `<span style="font-size:11px;color:var(--text-3);">${mySubs.length} teslim kaydı</span>` : ''}
 </div>
@@ -423,8 +422,7 @@ async function createJobPost() {
   const country = String(document.getElementById('jm-country')?.value || '').trim();
   const city = String(document.getElementById('jm-city')?.value || '').trim();
   const radiusKm = Number(document.getElementById('jm-radius')?.value || 0);
-  const slaFirst = Number(document.getElementById('jm-sla-first')?.value || 120);
-  const slaComplete = Number(document.getElementById('jm-sla-complete')?.value || 1440);
+  const retractRaw = String(document.getElementById('jm-retract-by')?.value || '').trim();
   const deadline = document.getElementById('jm-deadline')?.value || null;
   const slotDate = String(document.getElementById('jm-slot-date')?.value || '').trim();
   const slotStart = String(document.getElementById('jm-slot-start')?.value || '').trim();
@@ -439,6 +437,16 @@ async function createJobPost() {
     toast('Randevu için gün ve saat aralığı zorunlu', 'warn');
     return;
   }
+  if (!retractRaw) {
+    toast('Geri çekme tarihi ve saati zorunlu', 'warn');
+    return;
+  }
+  const retractDt = new Date(retractRaw);
+  if (!Number.isFinite(retractDt.getTime())) {
+    toast('Geri çekme tarihi geçersiz', 'warn');
+    return;
+  }
+  const retractionDeadlineAt = retractDt.toISOString();
   if (polygonTxt) {
     try { polygon = JSON.parse(polygonTxt); } catch (e) { toast('Polygon JSON geçersiz', 'warn'); return; }
   }
@@ -475,8 +483,7 @@ async function createJobPost() {
         p_slot_date: slotDate || null,
         p_slot_start: slotStart || null,
         p_slot_end: slotEnd || null,
-        p_sla_first_action_min: slaFirst,
-        p_sla_complete_min: slaComplete
+        p_retraction_deadline_at: retractionDeadlineAt
       })
     });
     if (!res.ok) throw new Error(await res.text());
@@ -489,10 +496,52 @@ async function createJobPost() {
   }
 }
 
+async function withdrawJobPost(jobPostId) {
+  if (!jobPostId) return;
+  if (!confirm('İlanı geri çekmek rezerv tutarını iade eder ve ilanı iptal eder. Onaylıyor musunuz?')) return;
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/rpc/withdraw_job_post`, {
+      method: 'POST',
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_job_post_id: jobPostId })
+    });
+    const txt = await res.text();
+    let rows;
+    try {
+      rows = txt ? JSON.parse(txt) : [];
+    } catch (_) {
+      rows = [];
+    }
+    if (!res.ok) throw new Error(txt || res.statusText);
+    const row = rows?.[0];
+    if (!row?.ok) {
+      const msg = String(row?.message || '');
+      const friendly = {
+        not_authenticated: 'Oturum gerekli',
+        not_allowed: 'Yetkiniz yok',
+        job_not_found: 'İlan bulunamadı',
+        job_not_withdrawable: 'Bu ilan geri çekilemez',
+        retraction_not_yet_allowed: 'Geri çekme zamanı henüz gelmedi',
+        job_has_approved_submission: 'Onaylı teslim var; geri çekilemez',
+        appointment_already_linked: 'Randevuya bağlı teslim var; geri çekilemez'
+      };
+      toast(friendly[msg] || msg || 'Geri çekilemedi', 'warn');
+      return;
+    }
+    toast('İlan geri çekildi', 'ok');
+    await refreshWalletInfo();
+    await loadJobPosts();
+  } catch (e) {
+    toast('Geri çekme başarısız: ' + (e.message || ''), 'err');
+  }
+}
+
 function onJobTypeChange() {
   const t = String(document.getElementById('jm-type')?.value || 'custom');
   const slotWrap = document.getElementById('jm-slot-wrap');
   const apptWrap = document.getElementById('jm-appt-wrap');
+  const calSec = document.getElementById('jm-calendar-section');
+  if (calSec) calSec.style.display = t === 'appointment' ? '' : 'none';
   if (slotWrap) slotWrap.style.display = t === 'appointment' ? '' : 'none';
   if (apptWrap) apptWrap.style.display = t === 'appointment' ? 'flex' : 'none';
   updateJobPricePreview();
@@ -698,7 +747,7 @@ async function loadJobMarketKpi() {
   const canView = ['super_admin', 'admin', 'firm_admin'].includes(currentUser?.role || '');
   wrap.style.display = canView ? '' : 'none';
   if (!canView) return;
-  const jobs = await sb(`job_posts?select=id,status,created_at,first_worker_joined_at,first_submission_at,sla_first_action_min&order=created_at.desc&limit=400`).catch(() => []);
+  const jobs = await sb(`job_posts?select=id,status,created_at,first_submission_at,retraction_deadline_at&order=created_at.desc&limit=400`).catch(() => []);
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
   set('kpi-job-published', (jobs || []).filter((x) => ['published', 'in_progress'].includes(x.status)).length);
   set('kpi-job-qc', (jobs || []).filter((x) => x.status === 'pending_qc').length);
@@ -720,19 +769,9 @@ async function loadJobMarketKpi() {
   }
   const adv = document.getElementById('kpi-job-advanced');
   if (adv) adv.textContent = `Reject oranı: %${rejectRate} | Ortalama kapanış: ${avgClose} dk`;
-  const seriesElId = 'kpi-job-sla-trend';
-  const buckets = {};
-  (jobs || []).forEach((j) => {
-    const d = String(j.created_at || '').slice(0, 10);
-    if (!d) return;
-    if (!buckets[d]) buckets[d] = { total: 0, breach: 0 };
-    buckets[d].total += 1;
-    const firstMin = Number(j.sla_first_action_min || 120);
-    const createdMs = new Date(j.created_at).getTime();
-    const joinedMs = j.first_worker_joined_at ? new Date(j.first_worker_joined_at).getTime() : null;
-    if (!joinedMs || ((joinedMs - createdMs) / 60000 > firstMin)) buckets[d].breach += 1;
-  });
-  const trendText = Object.entries(buckets).sort(([a], [b]) => a.localeCompare(b)).slice(-7).map(([d, v]) => `${d.slice(5)} %${v.total ? Math.round((v.breach / v.total) * 100) : 0}`).join(' · ');
+  const nowMs = Date.now();
+  const retractable = (jobs || []).filter((j) => ['published', 'in_progress', 'pending_qc'].includes(j.status) && j.retraction_deadline_at && new Date(j.retraction_deadline_at).getTime() <= nowMs).length;
+  const seriesElId = 'kpi-job-retract-hint';
   if (!document.getElementById(seriesElId)) {
     const t = document.createElement('div');
     t.id = seriesElId;
@@ -740,7 +779,7 @@ async function loadJobMarketKpi() {
     wrap.appendChild(t);
   }
   const tEl = document.getElementById(seriesElId);
-  if (tEl) tEl.textContent = `SLA ihlal trendi (7g): ${trendText || 'veri yok'}`;
+  if (tEl) tEl.textContent = `Geri çekme zamanı gelmiş ilan: ${retractable}`;
 }
 
 function exportJobPolygon() {
