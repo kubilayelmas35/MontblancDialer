@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.31">
+<link rel="stylesheet" href="css/styles.css?v=6.33">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -286,7 +286,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </button>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.31</div>
+<div class="sb-ver">MontBlanc v6.33</div>
 </div>
 </nav>
 <main id="main">
@@ -2581,25 +2581,39 @@ QC Detay
 </button>
 <div id="team-chat-panel" class="team-chat-panel" style="display:none;">
 <div class="team-chat-panel-head">
-<span class="team-chat-panel-title">Ekip sohbeti</span>
-<button type="button" id="team-chat-close" class="team-chat-icon-btn" aria-label="Kapat"><i class="ph ph-x"></i></button>
+<div class="team-chat-head-left">
+<span class="team-chat-panel-title">Sohbet</span>
+<div id="team-chat-mode-wrap" class="team-chat-mode-wrap" style="display:none;">
+<button type="button" class="team-chat-mode-pill active" data-mode="firm">Firma</button>
+<button type="button" class="team-chat-mode-pill" data-mode="global">Tümü</button>
+</div>
+</div>
+<button type="button" id="team-chat-close" class="team-chat-icon-btn team-chat-close-btn" aria-label="Kapat"><i class="ph ph-x"></i></button>
 </div>
 <div class="team-chat-panel-body">
+<div id="team-chat-firm-layout" class="team-chat-firm-layout">
 <div class="team-chat-groups-col">
 <div class="team-chat-groups-toolbar">
-<button type="button" id="team-chat-new-group" class="btn btn-sm btn-secondary" style="width:100%;display:none;">+ Grup kur</button>
+<button type="button" id="team-chat-new-group" class="btn btn-sm btn-secondary team-chat-btn-new" style="display:none;">+ Grup</button>
 </div>
 <div id="team-chat-group-list" class="team-chat-group-list"></div>
 </div>
 <div class="team-chat-main-col">
 <div id="team-chat-messages" class="team-chat-messages"></div>
+<div id="team-chat-compose-wrap" class="team-chat-compose-wrap">
 <div class="team-chat-compose">
 <input type="file" id="team-chat-file" accept="image/*,audio/*,.pdf,.doc,.docx,.xlsx,.zip" style="display:none"/>
 <button type="button" class="team-chat-icon-btn" onclick="document.getElementById('team-chat-file').click()" title="Dosya / görsel"><i class="ph ph-paperclip"></i></button>
 <button type="button" id="team-chat-mic" class="team-chat-icon-btn" title="Sesli mesaj"><i class="ph ph-microphone"></i></button>
 <input type="text" id="team-chat-input" class="form-input team-chat-input" placeholder="Mesaj yazın…" autocomplete="off"/>
-<button type="button" id="team-chat-send" class="btn btn-primary btn-sm"><i class="ph ph-paper-plane-tilt"></i></button>
+<button type="button" id="team-chat-send" class="btn btn-primary btn-sm team-chat-send-btn"><i class="ph ph-paper-plane-tilt"></i></button>
 </div>
+</div>
+</div>
+</div>
+<div id="team-chat-global-feed" class="team-chat-global-feed" style="display:none;">
+<div class="team-chat-global-hint"><i class="ph ph-info"></i> Tüm firmalardaki son mesajlar. Yanıtlamak için satıra tıklayın.</div>
+<div id="team-chat-global-list" class="team-chat-global-list"></div>
 </div>
 </div>
 </div>
@@ -2615,28 +2629,38 @@ QC Detay
 </div>
 </div>
 </div>
-<script src="js/config.js?v=6.31"></script>
-<script src="js/state.js?v=6.31"></script>
-<script src="js/api.js?v=6.31"></script>
-<script src="js/auth.js?v=6.31"></script>
-<script src="js/ui.js?v=6.31"></script>
-<script src="js/chat.js?v=6.31"></script>
-<script src="js/export-admin.js?v=6.31"></script>
-<script src="js/export-termin.js?v=6.31"></script>
-<script src="js/performance.js?v=6.31"></script>
-<script src="js/competition.js?v=6.31"></script>
-<script src="js/dashboard.js?v=6.31"></script>
-<script src="js/campaigns.js?v=6.31"></script>
-<script src="js/contacts.js?v=6.31"></script>
-<script src="js/telnyx.js?v=6.31"></script>
-<script src="js/voice-orb.js?v=6.31"></script>
-<script src="js/dialer.js?v=6.31"></script>
-<script src="js/appointments.js?v=6.31"></script>
-<script src="js/wiedervorlage.js?v=6.31"></script>
-<script src="js/qc.js?v=6.31"></script>
-<script src="js/leave-hr.js?v=6.31"></script>
-<script src="js/muhasebe.js?v=6.31"></script>
-<script src="js/agent-self-performance.js?v=6.31"></script>
-<script src="js/agents.js?v=6.31"></script>
+<div id="team-chat-members-modal" class="team-chat-modal" style="display:none;">
+<div class="team-chat-modal-card team-chat-modal-card--wide">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+<h3 id="team-chat-members-title" style="margin:0;font-size:15px;">Grup üyeleri</h3>
+<button type="button" id="team-chat-members-close" class="team-chat-icon-btn" onclick="closeMembersModal()"><i class="ph ph-x"></i></button>
+</div>
+<div id="team-chat-members-list" class="team-chat-members-list"></div>
+<div id="team-chat-members-add"></div>
+</div>
+</div>
+<script src="js/config.js?v=6.33"></script>
+<script src="js/state.js?v=6.33"></script>
+<script src="js/api.js?v=6.33"></script>
+<script src="js/auth.js?v=6.33"></script>
+<script src="js/ui.js?v=6.33"></script>
+<script src="js/chat.js?v=6.33"></script>
+<script src="js/export-admin.js?v=6.33"></script>
+<script src="js/export-termin.js?v=6.33"></script>
+<script src="js/performance.js?v=6.33"></script>
+<script src="js/competition.js?v=6.33"></script>
+<script src="js/dashboard.js?v=6.33"></script>
+<script src="js/campaigns.js?v=6.33"></script>
+<script src="js/contacts.js?v=6.33"></script>
+<script src="js/telnyx.js?v=6.33"></script>
+<script src="js/voice-orb.js?v=6.33"></script>
+<script src="js/dialer.js?v=6.33"></script>
+<script src="js/appointments.js?v=6.33"></script>
+<script src="js/wiedervorlage.js?v=6.33"></script>
+<script src="js/qc.js?v=6.33"></script>
+<script src="js/leave-hr.js?v=6.33"></script>
+<script src="js/muhasebe.js?v=6.33"></script>
+<script src="js/agent-self-performance.js?v=6.33"></script>
+<script src="js/agents.js?v=6.33"></script>
 </body>
 </html>

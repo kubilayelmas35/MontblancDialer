@@ -1,11 +1,13 @@
 // ─────────────────────────────────────────────
-// Ekip sohbeti — gruplar, metin, ses, dosya, görsel
+// Ekip sohbeti — Realtime, global (süper admin), grup üyeleri, gelişmiş UI
 // ─────────────────────────────────────────────
 
 let _chatOpen = false;
+let _chatMode = 'firm'; // 'firm' | 'global'
 let _chatGroups = [];
 let _chatActiveGroupId = null;
 let _chatMessages = [];
+let _globalFeed = [];
 let _chatPollTimer = null;
 let _chatLastNotifiedId = null;
 let _mediaRecorder = null;
@@ -13,6 +15,8 @@ let _mediaChunks = [];
 let _recording = false;
 let _firmUsersCache = [];
 let _chatLastFirmId = null;
+let _sbClient = null;
+let _rtChannel = null;
 
 function _chatFirmId() {
   const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : null;
@@ -28,6 +32,80 @@ function _chatSuperSeesAll() {
   return currentUser?.role === 'super_admin';
 }
 
+async function getSupabaseClient() {
+  if (_sbClient) return _sbClient;
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.45.0');
+    _sbClient = createClient(SB_URL, SB_KEY, {
+      auth: { persistSession: false },
+      realtime: { params: { eventsPerSecond: 12 } }
+    });
+    return _sbClient;
+  } catch (e) {
+    console.warn('supabase-js load', e);
+    return null;
+  }
+}
+
+async function unbindRealtime() {
+  try {
+    if (_rtChannel && _sbClient) {
+      await _sbClient.removeChannel(_rtChannel);
+    }
+  } catch (e) {}
+  _rtChannel = null;
+}
+
+async function bindRealtime() {
+  await unbindRealtime();
+  const client = await getSupabaseClient();
+  if (!client) return;
+  const handler = (payload) => {
+    const row = payload.new;
+    updateTeamChatBadge();
+    if (!_chatOpen) return;
+    if (_chatSuperSeesAll() && _chatMode === 'global') {
+      loadGlobalFeed(true);
+      return;
+    }
+    if (row && row.group_id === _chatActiveGroupId) loadTeamChatMessages(true);
+  };
+  const base = { event: 'INSERT', schema: 'public', table: 'chat_messages' };
+  let filter = null;
+  if (!(_chatSuperSeesAll() && _chatMode === 'global')) {
+    const fid = _chatFirmId();
+    if (!fid) return;
+    filter = `firm_id=eq.${fid}`;
+  }
+  const topic = filter ? `chat-ins-${filter}` : 'chat-ins-all';
+  const cfg = filter ? { ...base, filter } : base;
+  _rtChannel = client
+    .channel(topic + '-' + Date.now())
+    .on('postgres_changes', cfg, handler)
+    .subscribe((status) => {
+      if (status === 'CHANNEL_ERROR') console.warn('chat realtime channel error');
+    });
+}
+
+function setChatMode(mode) {
+  _chatMode = mode === 'global' ? 'global' : 'firm';
+  document.querySelectorAll('.team-chat-mode-pill').forEach((p) => {
+    p.classList.toggle('active', p.getAttribute('data-mode') === _chatMode);
+  });
+  const firmLayout = document.getElementById('team-chat-firm-layout');
+  const globalEl = document.getElementById('team-chat-global-feed');
+  const compose = document.getElementById('team-chat-compose-wrap');
+  if (firmLayout) firmLayout.style.display = _chatMode === 'firm' ? 'flex' : 'none';
+  if (globalEl) globalEl.style.display = _chatMode === 'global' ? 'flex' : 'none';
+  if (compose) compose.style.display = _chatMode === 'global' ? 'none' : '';
+  if (_chatMode === 'global') {
+    loadGlobalFeed();
+  } else {
+    void refreshTeamChatGroups();
+  }
+  bindRealtime();
+}
+
 async function initChat() {
   const root = document.getElementById('team-chat-root');
   const fab = document.getElementById('team-chat-fab');
@@ -40,7 +118,10 @@ async function initChat() {
   const inp = document.getElementById('team-chat-input');
   if (inp) {
     inp.onkeydown = (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendTeamChatText(); }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendTeamChatText();
+      }
     };
   }
   const fInp = document.getElementById('team-chat-file');
@@ -51,16 +132,27 @@ async function initChat() {
   if (newGrp) newGrp.onclick = () => openNewGroupModal();
   const saveGrp = document.getElementById('team-chat-save-group');
   if (saveGrp) saveGrp.onclick = () => saveNewGroup();
+  const modeWrap = document.getElementById('team-chat-mode-wrap');
+  if (modeWrap && _chatSuperSeesAll()) {
+    modeWrap.style.display = 'flex';
+    modeWrap.querySelectorAll('.team-chat-mode-pill').forEach((p) => {
+      p.onclick = () => setChatMode(p.getAttribute('data-mode'));
+    });
+  } else if (modeWrap) modeWrap.style.display = 'none';
+
   try {
     await refreshTeamChatGroups();
     await updateTeamChatBadge();
-  } catch (e) { console.warn('chat init', e); }
+  } catch (e) {
+    console.warn('chat init', e);
+  }
   if (_chatPollTimer) clearInterval(_chatPollTimer);
   _chatPollTimer = setInterval(() => {
     if (!currentUser) return;
-    if (_chatOpen && _chatActiveGroupId) loadTeamChatMessages(true);
-    else updateTeamChatBadge();
-  }, 4000);
+    updateTeamChatBadge();
+    if (_chatOpen && _chatSuperSeesAll() && _chatMode === 'global') loadGlobalFeed(true);
+    else if (_chatOpen && _chatActiveGroupId && _chatMode === 'firm') loadTeamChatMessages(true);
+  }, 12000);
 }
 
 function toggleTeamChat(open) {
@@ -68,16 +160,25 @@ function toggleTeamChat(open) {
   if (!panel) return;
   if (open === undefined) _chatOpen = !_chatOpen;
   else _chatOpen = !!open;
+  panel.classList.toggle('team-chat-panel--open', _chatOpen);
   panel.style.display = _chatOpen ? 'flex' : 'none';
   if (_chatOpen) {
     const fid = _chatFirmId();
-    if (!fid && _chatSuperSeesAll()) {
-      toast('Süper admin: önce üstte firma seçin', 'warn');
+    if (!fid && _chatSuperSeesAll() && _chatMode === 'firm') {
+      toast('Süper admin: firma seçin veya Tümü sekmesine geçin', 'warn');
     }
-    refreshTeamChatGroups().then(() => {
-      if (_chatActiveGroupId) loadTeamChatMessages();
-      markTeamChatRead();
-    });
+    if (_chatMode === 'global') {
+      loadGlobalFeed();
+      bindRealtime();
+    } else {
+      refreshTeamChatGroups().then(() => {
+        if (_chatActiveGroupId) loadTeamChatMessages();
+        markTeamChatRead();
+        bindRealtime();
+      });
+    }
+  } else {
+    unbindRealtime();
   }
 }
 
@@ -106,13 +207,15 @@ async function ensureFirmWideGroup(firmId) {
 
 async function syncFirmWideMembers(firmId, groupId) {
   const users = await sb(`users?firm_id=eq.${firmId}&select=id&is_active=eq.true`).catch(() => []);
+  const supers = await sb(`users?role=eq.super_admin&select=id`).catch(() => []);
+  const ids = new Set([...(users || []).map((u) => u.id), ...(supers || []).map((s) => s.id)]);
   const mems = await sb(`chat_group_members?group_id=eq.${groupId}&select=user_id`).catch(() => []);
   const have = new Set((mems || []).map((m) => m.user_id));
-  for (const u of users || []) {
-    if (!have.has(u.id)) {
+  for (const uid of ids) {
+    if (!have.has(uid)) {
       await sb('chat_group_members', {
         method: 'POST',
-        body: JSON.stringify({ group_id: groupId, user_id: u.id })
+        body: JSON.stringify({ group_id: groupId, user_id: uid })
       }).catch(() => {});
     }
   }
@@ -147,13 +250,26 @@ async function refreshTeamChatGroups() {
   _chatGroups = groups || [];
   if (listEl) {
     listEl.innerHTML = _chatGroups
-      .map(
-        (g) =>
-          `<button type="button" class="team-chat-group-item${g.id === _chatActiveGroupId ? ' active' : ''}" data-gid="${g.id}">${escapeHtml(g.name)}</button>`
-      )
+      .map((g) => {
+        const sel = g.id === _chatActiveGroupId ? ' selected' : '';
+        const canGear = _canManageChatGroups() && g.slug !== 'firm_wide';
+        const gear = canGear
+          ? `<button type="button" class="team-chat-group-gear" data-gid="${g.id}" title="Üyeler"><i class="ph ph-users-three"></i></button>`
+          : _canManageChatGroups() && g.slug === 'firm_wide'
+            ? `<button type="button" class="team-chat-group-gear" data-gid="${g.id}" title="Üyeler (salt okunur)"><i class="ph ph-users-three"></i></button>`
+            : '';
+        return `<div class="team-chat-group-row${sel}">
+<button type="button" class="team-chat-group-item" data-gid="${g.id}">${escapeHtml(g.name)}</button>${gear}</div>`;
+      })
       .join('');
     listEl.querySelectorAll('.team-chat-group-item').forEach((btn) => {
       btn.onclick = () => selectTeamChatGroup(btn.getAttribute('data-gid'));
+    });
+    listEl.querySelectorAll('.team-chat-group-gear').forEach((b) => {
+      b.onclick = (e) => {
+        e.stopPropagation();
+        openGroupMembersModal(b.getAttribute('data-gid'));
+      };
     });
   }
   const newBtn = document.getElementById('team-chat-new-group');
@@ -163,15 +279,84 @@ async function refreshTeamChatGroups() {
 
 function selectTeamChatGroup(gid) {
   _chatActiveGroupId = gid;
-  document.querySelectorAll('.team-chat-group-item').forEach((b) => {
-    b.classList.toggle('active', b.getAttribute('data-gid') === gid);
+  document.querySelectorAll('.team-chat-group-row').forEach((row) => {
+    const btn = row.querySelector('.team-chat-group-item');
+    row.classList.toggle('selected', btn && btn.getAttribute('data-gid') === gid);
   });
   loadTeamChatMessages();
   markTeamChatRead();
 }
 
+async function loadGlobalFeed(quiet) {
+  if (!_chatSuperSeesAll()) return;
+  const rows =
+    (await sb(
+      `chat_messages?select=id,body,content_type,file_url,file_name,created_at,sender_id,firm_id,group_id,firms(name),chat_groups(name)&order=created_at.desc&limit=100`
+    ).catch(() => [])) || [];
+  const senders = [...new Set(rows.map((r) => r.sender_id).filter(Boolean))];
+  let names = {};
+  if (senders.length) {
+    const su = senders.join(',');
+    const users = await sb(`users?id=in.(${su})&select=id,name`).catch(() => []);
+    (users || []).forEach((u) => (names[u.id] = u.name));
+  }
+  _globalFeed = rows.map((r) => {
+    const fr = r.firms;
+    const gr = r.chat_groups;
+    const firmName = typeof fr === 'object' && fr ? fr.name : null;
+    const groupName = typeof gr === 'object' && gr ? gr.name : null;
+    return {
+      ...r,
+      sender_name: names[r.sender_id] || '—',
+      firm_label: firmName || '—',
+      group_label: groupName || '—'
+    };
+  });
+  renderGlobalFeed();
+  if (!quiet && rows.length) {
+    const last = rows[0];
+    if (last.id !== _chatLastNotifiedId && last.sender_id !== currentUser.id) {
+      _chatLastNotifiedId = last.id;
+      pulseTeamChatFab();
+    }
+  }
+}
+
+function renderGlobalFeed() {
+  const box = document.getElementById('team-chat-global-list');
+  if (!box) return;
+  if (!_globalFeed.length) {
+    box.innerHTML = '<div class="team-chat-empty"><i class="ph ph-globe-hemisphere-west"></i><p>Henüz mesaj yok</p></div>';
+    return;
+  }
+  box.innerHTML = _globalFeed
+    .map((m) => {
+      const prev = escapeHtml(m.body || m.file_name || '…');
+      return `<button type="button" class="team-chat-global-card" data-firm="${m.firm_id}" data-group="${m.group_id}">
+<div class="team-chat-global-card-top"><span class="team-chat-pill">${escapeHtml(m.firm_label)}</span><span class="team-chat-pill team-chat-pill--soft">${escapeHtml(m.group_label)}</span></div>
+<div class="team-chat-global-card-mid"><span class="team-chat-global-from">${escapeHtml(m.sender_name)}</span><span class="team-chat-global-time">${formatTeamChatTime(m.created_at)}</span></div>
+<div class="team-chat-global-snippet">${prev}</div>
+</button>`;
+    })
+    .join('');
+  box.querySelectorAll('.team-chat-global-card').forEach((card) => {
+    card.onclick = () => {
+      const firmId = card.getAttribute('data-firm');
+      const groupId = card.getAttribute('data-group');
+      if (typeof setSuperAdminFirmSelection === 'function') setSuperAdminFirmSelection(firmId);
+      _chatMode = 'firm';
+      setChatMode('firm');
+      _chatActiveGroupId = groupId;
+      refreshTeamChatGroups().then(() => {
+        selectTeamChatGroup(groupId);
+        bindRealtime();
+      });
+    };
+  });
+}
+
 async function loadTeamChatMessages(quiet) {
-  if (!_chatActiveGroupId) return;
+  if (!_chatActiveGroupId || _chatMode === 'global') return;
   const fid = _chatFirmId();
   if (!fid) return;
   const rows =
@@ -201,45 +386,59 @@ function renderTeamChatMessages() {
   const box = document.getElementById('team-chat-messages');
   if (!box) return;
   if (!_chatMessages.length) {
-    box.innerHTML = '<div class="team-chat-muted" style="padding:16px;">Henüz mesaj yok</div>';
+    box.innerHTML =
+      '<div class="team-chat-empty"><i class="ph ph-chat-circle-dots"></i><p>Henüz mesaj yok<br><span class="team-chat-muted">Sohbete başlayın</span></p></div>';
     return;
   }
-  box.innerHTML = _chatMessages
-    .map((m) => {
-      const mine = m.sender_id === currentUser.id;
-      let inner = '';
-      if (m.content_type === 'text') {
-        inner = `<div class="team-chat-bubble-txt">${escapeHtml(m.body || '')}</div>`;
-      } else if (m.content_type === 'image' && m.file_url) {
-        inner = `<img class="team-chat-img" src="${escapeAttr(m.file_url)}" alt=""/>`;
-        if (m.body) inner += `<div class="team-chat-caption">${escapeHtml(m.body)}</div>`;
-      } else if (m.content_type === 'audio' && m.file_url) {
-        inner = `<audio controls class="team-chat-audio" src="${escapeAttr(m.file_url)}"></audio>`;
-      } else if (m.content_type === 'file' && m.file_url) {
-        inner = `<a href="${escapeAttr(m.file_url)}" target="_blank" rel="noopener" class="team-chat-filelink"><i class="ph ph-file"></i> ${escapeHtml(m.file_name || 'Dosya')}</a>`;
-      } else {
-        inner = `<div class="team-chat-bubble-txt">${escapeHtml(m.body || '(mesaj)')}</div>`;
-      }
-      return `<div class="team-chat-row ${mine ? 'mine' : ''}">
-<div class="team-chat-meta">${escapeHtml(m.sender_name)} · ${formatTeamChatTime(m.created_at)}</div>
+  let lastDay = '';
+  const parts = [];
+  for (const m of _chatMessages) {
+    const d = new Date(m.created_at);
+    const dayKey = d.toDateString();
+    if (dayKey !== lastDay) {
+      lastDay = dayKey;
+      parts.push(
+        `<div class="team-chat-daysep"><span>${d.toLocaleDateString('tr-TR', { weekday: 'short', day: 'numeric', month: 'long' })}</span></div>`
+      );
+    }
+    const mine = m.sender_id === currentUser.id;
+    const initial = (m.sender_name || '?').charAt(0).toUpperCase();
+    let inner = '';
+    if (m.content_type === 'text') {
+      inner = `<div class="team-chat-bubble-txt">${escapeHtml(m.body || '')}</div>`;
+    } else if (m.content_type === 'image' && m.file_url) {
+      inner = `<img class="team-chat-img" src="${escapeAttr(m.file_url)}" alt=""/>`;
+      if (m.body) inner += `<div class="team-chat-caption">${escapeHtml(m.body)}</div>`;
+    } else if (m.content_type === 'audio' && m.file_url) {
+      inner = `<audio controls class="team-chat-audio" src="${escapeAttr(m.file_url)}"></audio>`;
+    } else if (m.content_type === 'file' && m.file_url) {
+      inner = `<a href="${escapeAttr(m.file_url)}" target="_blank" rel="noopener" class="team-chat-filelink"><i class="ph ph-file"></i> ${escapeHtml(m.file_name || 'Dosya')}</a>`;
+    } else {
+      inner = `<div class="team-chat-bubble-txt">${escapeHtml(m.body || '(mesaj)')}</div>`;
+    }
+    parts.push(`<div class="team-chat-row ${mine ? 'mine' : ''}">
+${mine ? '' : `<div class="team-chat-avatar" aria-hidden="true">${escapeHtml(initial)}</div>`}
+<div class="team-chat-bubble-wrap">
+<div class="team-chat-meta">${mine ? '' : `<span class="team-chat-name">${escapeHtml(m.sender_name)}</span>`}<span class="team-chat-time">${formatTeamChatTime(m.created_at)}</span></div>
 <div class="team-chat-bubble">${inner}</div>
-</div>`;
-    })
-    .join('');
+</div>
+</div>`);
+  }
+  box.innerHTML = parts.join('');
   box.scrollTop = box.scrollHeight;
 }
 
 function formatTeamChatTime(iso) {
   try {
     const d = new Date(iso);
-    return d.toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' });
+    return d.toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   } catch (e) {
     return '';
   }
 }
 
 async function markTeamChatRead() {
-  if (!_chatActiveGroupId || !currentUser) return;
+  if (!_chatActiveGroupId || !currentUser || _chatMode === 'global') return;
   const iso = new Date().toISOString();
   const uid = currentUser.id;
   const gid = _chatActiveGroupId;
@@ -263,13 +462,22 @@ async function updateTeamChatBadge() {
   const fid = _chatFirmId();
   const fab = document.getElementById('team-chat-fab');
   const badge = document.getElementById('team-chat-badge');
-  if (!fid || !currentUser) {
+  if (!currentUser) {
     if (badge) badge.style.display = 'none';
     if (fab) fab.classList.remove('team-chat-fab--unread');
     return;
   }
-  const mems = await sb(`chat_group_members?user_id=eq.${currentUser.id}&select=group_id`).catch(() => []);
-  const gids = (mems || []).map((m) => m.group_id);
+  let gids = [];
+  if (_chatSuperSeesAll() && !fid) {
+    const mems = await sb(`chat_group_members?user_id=eq.${currentUser.id}&select=group_id`).catch(() => []);
+    gids = (mems || []).map((m) => m.group_id);
+  } else if (!fid) {
+    if (badge) badge.style.display = 'none';
+    return;
+  } else {
+    const mems = await sb(`chat_group_members?user_id=eq.${currentUser.id}&select=group_id`).catch(() => []);
+    gids = (mems || []).map((m) => m.group_id);
+  }
   let total = 0;
   for (const gid of gids) {
     const rs = await sb(`chat_user_read_state?user_id=eq.${currentUser.id}&group_id=eq.${gid}&select=last_read_at`).catch(() => []);
@@ -295,6 +503,10 @@ function pulseTeamChatFab() {
 }
 
 async function sendTeamChatText() {
+  if (_chatMode === 'global') {
+    toast('Yanıt için Firma sekmesine geçin veya kart seçin', 'warn');
+    return;
+  }
   const inp = document.getElementById('team-chat-input');
   const fid = _chatFirmId();
   if (!inp || !fid || !_chatActiveGroupId) return;
@@ -316,6 +528,7 @@ async function sendTeamChatText() {
 }
 
 async function sendTeamChatFile(inputEl) {
+  if (_chatMode === 'global') return;
   const f = inputEl?.files?.[0];
   inputEl.value = '';
   const fid = _chatFirmId();
@@ -368,6 +581,7 @@ function fileSafeName(n) {
 }
 
 async function toggleTeamChatVoice() {
+  if (_chatMode === 'global') return;
   if (_recording) {
     stopTeamChatVoice();
     return;
@@ -475,6 +689,81 @@ function openNewGroupModal() {
 function closeNewGroupModal() {
   const modal = document.getElementById('team-chat-group-modal');
   if (modal) modal.style.display = 'none';
+}
+
+let _membersModalGroupId = null;
+
+async function openGroupMembersModal(groupId) {
+  const fid = _chatFirmId();
+  if (!fid || !_canManageChatGroups()) return;
+  const g = _chatGroups.find((x) => x.id === groupId);
+  const isWide = g?.slug === 'firm_wide';
+  _membersModalGroupId = groupId;
+  const modal = document.getElementById('team-chat-members-modal');
+  const title = document.getElementById('team-chat-members-title');
+  const list = document.getElementById('team-chat-members-list');
+  const addWrap = document.getElementById('team-chat-members-add');
+  if (title) title.textContent = isWide ? 'Tüm ekip üyeleri (otomatik)' : 'Grup üyeleri';
+  if (modal) modal.style.display = 'flex';
+  const mems = await sb(`chat_group_members?group_id=eq.${groupId}&select=user_id`).catch(() => []);
+  const uids = (mems || []).map((m) => m.user_id);
+  let users = [];
+  if (uids.length) {
+    users = (await sb(`users?id=in.(${uids.join(',')})&select=id,name,role`).catch(() => [])) || [];
+  }
+  if (list) {
+    list.innerHTML = users
+      .map((u) => {
+        const rm =
+          !isWide && u.id !== currentUser.id
+            ? `<button type="button" class="team-chat-member-rm" data-uid="${u.id}">Çıkar</button>`
+            : '';
+        return `<div class="team-chat-member-row"><span>${escapeHtml(u.name)}</span><span class="team-chat-muted">${u.role}</span>${rm}</div>`;
+      })
+      .join('');
+    list.querySelectorAll('.team-chat-member-rm').forEach((b) => {
+      b.onclick = () => removeUserFromGroup(groupId, b.getAttribute('data-uid'));
+    });
+  }
+  if (addWrap) {
+    if (isWide) {
+      addWrap.innerHTML = '<p class="team-chat-muted" style="margin:0;font-size:12px;">Bu grupta üyelik firma kullanıcılarıyla senkrondur.</p>';
+    } else {
+      const firmUsers = (await sb(`users?firm_id=eq.${fid}&select=id,name,role&is_active=eq.true&order=name.asc`).catch(() => [])) || [];
+      const avail = firmUsers.filter((u) => !uids.includes(u.id));
+      addWrap.innerHTML =
+        `<label class="form-label" style="font-size:11px;">Üye ekle</label><select id="team-chat-add-user" class="form-input" style="width:100%;margin-top:4px;">
+<option value="">Seçin…</option>${avail.map((u) => `<option value="${u.id}">${escapeHtml(u.name)} (${u.role})</option>`).join('')}
+</select><button type="button" class="btn btn-primary btn-sm" style="margin-top:8px;width:100%;" id="team-chat-add-user-btn">Ekle</button>`;
+      const btn = document.getElementById('team-chat-add-user-btn');
+      if (btn)
+        btn.onclick = async () => {
+          const sel = document.getElementById('team-chat-add-user');
+          const uid = sel?.value;
+          if (!uid) return;
+          await sb('chat_group_members', {
+            method: 'POST',
+            body: JSON.stringify({ group_id: groupId, user_id: uid })
+          }).catch(() => toast('Eklenemedi', 'err'));
+          toast('Üye eklendi', 'ok');
+          openGroupMembersModal(groupId);
+          refreshTeamChatGroups();
+        };
+    }
+  }
+}
+
+async function removeUserFromGroup(groupId, userId) {
+  await sb(`chat_group_members?group_id=eq.${groupId}&user_id=eq.${userId}`, { method: 'DELETE' }).catch(() => {});
+  toast('Çıkarıldı', 'ok');
+  openGroupMembersModal(groupId);
+  refreshTeamChatGroups();
+}
+
+function closeMembersModal() {
+  const modal = document.getElementById('team-chat-members-modal');
+  if (modal) modal.style.display = 'none';
+  _membersModalGroupId = null;
 }
 
 async function saveNewGroup() {

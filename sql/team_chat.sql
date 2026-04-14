@@ -47,3 +47,12 @@ create table if not exists public.chat_user_read_state (
 insert into storage.buckets (id, name, public)
 values ('chat-files', 'chat-files', true)
 on conflict (id) do update set public = true;
+
+-- Realtime (supabase_realtime yayını) — migrations/20260413220000_chat_realtime.sql ile aynı
+do $$
+begin
+  alter publication supabase_realtime add table public.chat_messages;
+exception
+  when others then
+    null;
+end $$;

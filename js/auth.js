@@ -143,6 +143,16 @@ function getActiveFirmId() {
 return isSuperAdmin() ? _selectedFirmId : currentUser?.firm_id;
 }
 
+/** Süper admin firma seçimini kod tarafında günceller (ör. sohbetten atlama) */
+function setSuperAdminFirmSelection(firmId) {
+  if (currentUser?.role !== 'super_admin' || !firmId) return;
+  _selectedFirmId = firmId;
+  document.querySelectorAll('select[id$="-sel"]').forEach((sel) => {
+    const opt = [...sel.options].find((o) => o.value === firmId);
+    if (opt) sel.value = firmId;
+  });
+}
+
 function getFirmFilter(prefix='') {
 const fid = getActiveFirmId();
 return fid ? `${prefix}firm_id=eq.${fid}` : '';
