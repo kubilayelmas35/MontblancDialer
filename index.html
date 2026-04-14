@@ -307,7 +307,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.53</div>
+<div class="sb-ver">MontBlanc v6.54</div>
 </div>
 </nav>
 <main id="main">
@@ -1535,9 +1535,13 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <div class="form-row" style="margin:0;">
 <label class="form-label">Haritadan polygon çiz (opsiyonel)</label>
 <div id="jm-map" style="height:220px;border:1px solid var(--border);border-radius:8px;"></div>
-<div style="display:flex;gap:8px;margin-top:6px;">
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
 <button class="btn btn-ghost btn-sm" type="button" onclick="closeJobPolygon()">Polygon kapat</button>
+<button class="btn btn-ghost btn-sm" type="button" onclick="undoJobPolygonPoint()">Son noktayı geri al</button>
 <button class="btn btn-ghost btn-sm" type="button" onclick="clearJobPolygon()">Temizle</button>
+<button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('jm-polygon-file').click()">İçe aktar</button>
+<button class="btn btn-ghost btn-sm" type="button" onclick="exportJobPolygon()">Dışa aktar</button>
+<input type="file" id="jm-polygon-file" accept=".json,.geojson,application/json" style="display:none;" onchange="importJobPolygon(this)">
 </div>
 </div>
 <textarea class="form-input" id="jm-polygon" rows="2" placeholder="Polygon GeoJSON (otomatik dolacak)"></textarea>
@@ -2169,6 +2173,15 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div id="feature-flags-list" style="display:flex;flex-direction:column;gap:8px;"></div>
 <button type="button" class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="saveFeatureFlags()">Özellikleri kaydet</button>
+</div>
+<div class="card" id="job-permissions-card" style="display:none;">
+<div class="card-title" style="margin-bottom:10px;"><i class="ph ph-lock-key" style="vertical-align:-3px;margin-right:6px;"></i>İş Platformu İzinleri</div>
+<div id="job-permissions-firm-row" style="display:none;margin-bottom:10px;">
+<label class="form-label" style="font-size:11px;color:var(--text-3);margin-bottom:4px;display:block;">Firma</label>
+<select class="form-input" id="job-permissions-firm-select" onchange="onJobPermissionsFirmChange()"></select>
+</div>
+<div id="job-permissions-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+<button type="button" class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="saveJobPermissionsSettings()">İzinleri kaydet</button>
 </div>
 <div class="card" id="audit-log-card" style="display:none;">
 <div class="card-title" style="margin-bottom:10px;"><i class="ph ph-list-checks" style="vertical-align:-3px;margin-right:6px;"></i>Audit Log</div>
@@ -2945,8 +2958,8 @@ QC Detay
 <script src="js/config.js?v=6.52"></script>
 <script src="js/state.js?v=6.34"></script>
 <script src="js/api.js?v=6.34"></script>
-<script src="js/auth.js?v=6.53"></script>
-<script src="js/ui.js?v=6.46"></script>
+<script src="js/auth.js?v=6.54"></script>
+<script src="js/ui.js?v=6.54"></script>
 <script src="js/chat.js?v=6.35"></script>
 <script src="js/chat-settings.js?v=6.35"></script>
 <script src="js/field-settings.js?v=6.38"></script>
@@ -2955,7 +2968,7 @@ QC Detay
 <script src="js/notification-center.js?v=6.52"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="js/wallet.js?v=6.52"></script>
-<script src="js/job-market.js?v=6.52"></script>
+<script src="js/job-market.js?v=6.54"></script>
 <script src="js/qc-job-market.js?v=6.52"></script>
 <script src="js/export-admin.js?v=6.34"></script>
 <script src="js/export-termin.js?v=6.52"></script>
@@ -2966,7 +2979,7 @@ QC Detay
 <script src="js/contacts.js?v=6.34"></script>
 <script src="js/telnyx.js?v=6.34"></script>
 <script src="js/voice-orb.js?v=6.43"></script>
-<script src="js/dialer.js?v=6.53"></script>
+<script src="js/dialer.js?v=6.54"></script>
 <script src="js/appointments.js?v=6.36"></script>
 <script src="js/field.js?v=6.38"></script>
 <script src="js/wiedervorlage.js?v=6.34"></script>

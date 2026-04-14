@@ -54,6 +54,7 @@ if (page==='wiedervorlage')  loadWvPage();
 if (page==='qc')             loadQcData();
 if (page==='firms')          loadFirmsPage();
 if (page==='settings')        { loadMesaiSettings(); loadCallHoursSettings(); loadChatSettingsPage(); loadFieldSettingsPage(); loadFeatureFlagsPage(); if (typeof loadAuditEventsPage==='function') loadAuditEventsPage(); }
+if (page==='settings')        { if (typeof loadJobPermissionsSettings==='function') loadJobPermissionsSettings(); }
 if (page==='field')          { if (typeof loadNotificationCenter === 'function') loadNotificationCenter(); }
 if (page==='dialer')         { if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel(); }
 if (page==='qc')             { if (typeof loadJobMarketQcQueue === 'function') loadJobMarketQcQueue(); }

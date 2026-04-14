@@ -6,9 +6,11 @@ let _jobFirmStats = {};
 let _jobListTab = 'active';
 let _jobPreset = '';
 let _jobPermissionsCache = {};
+let _jobPermissionsFirmId = null;
 let _jobMap = null;
 let _jobPolygonPoints = [];
 let _jobPolygonLayer = null;
+let _jobVertexMarkers = [];
 
 function _jmEsc(s) {
   const d = document.createElement('div');
@@ -30,6 +32,14 @@ function defaultJobPermissions() {
   };
 }
 
+const JOB_PERMISSION_DEFS = [
+  { key: 'can_publish_job', label: 'İlan yayınlayabilir' },
+  { key: 'can_join_job', label: 'İlana katılabilir' },
+  { key: 'can_submit_job', label: 'Teslim girebilir' },
+  { key: 'can_qc_job', label: 'QC onayı verebilir' },
+  { key: 'can_manage_wallet', label: 'Cüzdan hareketlerini yönetebilir' }
+];
+
 async function getJobPermissions(fid) {
   const firmId = fid || getActiveFirmId() || currentUser?.firm_id;
   if (!firmId) return defaultJobPermissions();
@@ -38,6 +48,62 @@ async function getJobPermissions(fid) {
   const perms = { ...defaultJobPermissions(), ...(rows?.[0]?.settings?.job_permissions || {}) };
   _jobPermissionsCache[firmId] = perms;
   return perms;
+}
+
+async function loadJobPermissionsSettings() {
+  const card = document.getElementById('job-permissions-card');
+  const list = document.getElementById('job-permissions-list');
+  if (!card || !list) return;
+  const role = currentUser?.role || '';
+  const canView = ['super_admin', 'admin', 'firm_admin'].includes(role);
+  card.style.display = canView ? '' : 'none';
+  if (!canView) return;
+  const row = document.getElementById('job-permissions-firm-row');
+  const sel = document.getElementById('job-permissions-firm-select');
+  if (role === 'super_admin') {
+    if (row) row.style.display = '';
+    if (sel && !sel.options.length) {
+      const firms = await sb('firms?is_active=eq.true&select=id,name&order=name.asc').catch(() => []);
+      sel.innerHTML = (firms || []).map((f) => `<option value="${f.id}">${_jmEsc(f.name || f.id)}</option>`).join('');
+    }
+    _jobPermissionsFirmId = sel?.value || sel?.options?.[0]?.value || null;
+  } else {
+    if (row) row.style.display = 'none';
+    _jobPermissionsFirmId = currentUser?.firm_id || null;
+  }
+  const perms = await getJobPermissions(_jobPermissionsFirmId);
+  list.innerHTML = JOB_PERMISSION_DEFS.map((d) => `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-3);border-radius:8px;font-size:12px;cursor:pointer;">
+<input type="checkbox" data-jp-key="${d.key}" ${perms[d.key] !== false ? 'checked' : ''} style="width:15px;height:15px;">
+<span>${d.label}</span>
+</label>`).join('');
+}
+
+async function onJobPermissionsFirmChange() {
+  _jobPermissionsFirmId = document.getElementById('job-permissions-firm-select')?.value || null;
+  await loadJobPermissionsSettings();
+}
+
+async function saveJobPermissionsSettings() {
+  const fid = _jobPermissionsFirmId || currentUser?.firm_id;
+  if (!fid) return;
+  const perms = { ...defaultJobPermissions() };
+  document.querySelectorAll('[data-jp-key]').forEach((el) => {
+    perms[el.getAttribute('data-jp-key')] = !!el.checked;
+  });
+  try {
+    const rows = await sb(`firms?id=eq.${fid}&select=settings`);
+    const old = rows?.[0]?.settings || {};
+    await sb(`firms?id=eq.${fid}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings: { ...old, job_permissions: perms } })
+    });
+    _jobPermissionsCache[fid] = perms;
+    toast('İş platformu izinleri kaydedildi', 'ok');
+    if (typeof logAuditEvent === 'function') await logAuditEvent('job_permissions_updated', 'firm', fid, { perms });
+  } catch (e) {
+    toast('İzinler kaydedilemedi', 'err');
+  }
 }
 
 async function loadJobMarketPage() {
@@ -311,7 +377,7 @@ function initJobPolygonMap() {
     attribution: '&copy; OpenStreetMap'
   }).addTo(_jobMap);
   _jobMap.on('click', (ev) => {
-    _jobPolygonPoints.push([ev.latlng.lng, ev.latlng.lat]);
+    _jobPolygonPoints.push([Number(ev.latlng.lng), Number(ev.latlng.lat)]);
     drawJobPolygon();
   });
 }
@@ -319,9 +385,33 @@ function initJobPolygonMap() {
 function drawJobPolygon() {
   if (!_jobMap) return;
   if (_jobPolygonLayer) _jobMap.removeLayer(_jobPolygonLayer);
+  _jobVertexMarkers.forEach((m) => _jobMap.removeLayer(m));
+  _jobVertexMarkers = [];
   const latLngs = _jobPolygonPoints.map((p) => [p[1], p[0]]);
   if (latLngs.length >= 2) {
-    _jobPolygonLayer = L.polyline(latLngs, { color: '#2563eb' }).addTo(_jobMap);
+    const closed = _jobPolygonPoints.length >= 3 && _jobPolygonPoints[0][0] === _jobPolygonPoints[_jobPolygonPoints.length - 1][0] && _jobPolygonPoints[0][1] === _jobPolygonPoints[_jobPolygonPoints.length - 1][1];
+    _jobPolygonLayer = (closed ? L.polygon(latLngs, { color: '#2563eb', fillOpacity: 0.1 }) : L.polyline(latLngs, { color: '#2563eb' })).addTo(_jobMap);
+  }
+  _jobPolygonPoints.forEach((p, i) => {
+    const isLastDuplicate = i === _jobPolygonPoints.length - 1 && _jobPolygonPoints.length >= 2 && p[0] === _jobPolygonPoints[0][0] && p[1] === _jobPolygonPoints[0][1];
+    if (isLastDuplicate) return;
+    const marker = L.circleMarker([p[1], p[0]], { radius: 5, color: '#0ea5e9', fillColor: '#0ea5e9', fillOpacity: 0.8, draggable: true });
+    marker.addTo(_jobMap);
+    marker.on('mousedown', () => {
+      if (!_jobMap?.dragging) return;
+      _jobMap.dragging.disable();
+    });
+    marker.on('mouseup', () => _jobMap?.dragging?.enable());
+    marker.on('mousemove', (ev) => {
+      if (!(ev.originalEvent?.buttons & 1)) return;
+      const latlng = ev.latlng || marker.getLatLng();
+      _jobPolygonPoints[i] = [Number(latlng.lng), Number(latlng.lat)];
+      if (_jobPolygonPoints.length >= 2 && _jobPolygonPoints[0][0] === _jobPolygonPoints[_jobPolygonPoints.length - 1][0] && _jobPolygonPoints[0][1] === _jobPolygonPoints[_jobPolygonPoints.length - 1][1]) {
+        _jobPolygonPoints[_jobPolygonPoints.length - 1] = [..._jobPolygonPoints[0]];
+      }
+      drawJobPolygon();
+    });
+    _jobVertexMarkers.push(marker);
   }
   const polyEl = document.getElementById('jm-polygon');
   if (polyEl) {
@@ -333,10 +423,18 @@ function drawJobPolygon() {
 }
 
 function closeJobPolygon() {
-  if (_jobPolygonPoints.length >= 3) {
-    _jobPolygonPoints = [..._jobPolygonPoints, _jobPolygonPoints[0]];
+  if (_jobPolygonPoints.length >= 3 && !(_jobPolygonPoints[0][0] === _jobPolygonPoints[_jobPolygonPoints.length - 1][0] && _jobPolygonPoints[0][1] === _jobPolygonPoints[_jobPolygonPoints.length - 1][1])) {
+    _jobPolygonPoints = [..._jobPolygonPoints, [..._jobPolygonPoints[0]]];
     drawJobPolygon();
   }
+}
+
+function undoJobPolygonPoint() {
+  if (!_jobPolygonPoints.length) return;
+  const closed = _jobPolygonPoints.length >= 2 && _jobPolygonPoints[0][0] === _jobPolygonPoints[_jobPolygonPoints.length - 1][0] && _jobPolygonPoints[0][1] === _jobPolygonPoints[_jobPolygonPoints.length - 1][1];
+  if (closed) _jobPolygonPoints.pop();
+  _jobPolygonPoints.pop();
+  drawJobPolygon();
 }
 
 function clearJobPolygon() {
@@ -345,6 +443,8 @@ function clearJobPolygon() {
     _jobMap.removeLayer(_jobPolygonLayer);
     _jobPolygonLayer = null;
   }
+  _jobVertexMarkers.forEach((m) => _jobMap?.removeLayer(m));
+  _jobVertexMarkers = [];
   const polyEl = document.getElementById('jm-polygon');
   if (polyEl) polyEl.value = '';
 }
@@ -445,9 +545,77 @@ async function loadJobMarketKpi() {
   const canView = ['super_admin', 'admin', 'firm_admin'].includes(currentUser?.role || '');
   wrap.style.display = canView ? '' : 'none';
   if (!canView) return;
-  const jobs = await sb(`job_posts?select=id,status&order=created_at.desc&limit=400`).catch(() => []);
+  const jobs = await sb(`job_posts?select=id,status,created_at,first_worker_joined_at,first_submission_at,sla_first_action_min&order=created_at.desc&limit=400`).catch(() => []);
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
   set('kpi-job-published', (jobs || []).filter((x) => ['published', 'in_progress'].includes(x.status)).length);
   set('kpi-job-qc', (jobs || []).filter((x) => x.status === 'pending_qc').length);
   set('kpi-job-done', (jobs || []).filter((x) => x.status === 'completed').length);
+  const subs = await sb(`job_submissions?select=status,created_at,reviewed_at,job_post_id&order=created_at.desc&limit=800`).catch(() => []);
+  const rejected = (subs || []).filter((s) => s.status === 'rejected').length;
+  const reviewed = (subs || []).filter((s) => ['approved', 'rejected'].includes(s.status)).length;
+  const rejectRate = reviewed ? ((rejected / reviewed) * 100).toFixed(1) : '0.0';
+  const closeCandidates = (jobs || []).filter((j) => j.status === 'completed' && j.created_at && j.first_submission_at);
+  let avgClose = 0;
+  if (closeCandidates.length) {
+    avgClose = Math.round(closeCandidates.reduce((acc, j) => acc + ((new Date(j.first_submission_at).getTime() - new Date(j.created_at).getTime()) / 60000), 0) / closeCandidates.length);
+  }
+  if (!document.getElementById('kpi-job-advanced')) {
+    const el = document.createElement('div');
+    el.id = 'kpi-job-advanced';
+    el.style.cssText = 'margin-top:6px;font-size:11px;color:var(--text-3);';
+    wrap.appendChild(el);
+  }
+  const adv = document.getElementById('kpi-job-advanced');
+  if (adv) adv.textContent = `Reject oranı: %${rejectRate} | Ortalama kapanış: ${avgClose} dk`;
+  const seriesElId = 'kpi-job-sla-trend';
+  const buckets = {};
+  (jobs || []).forEach((j) => {
+    const d = String(j.created_at || '').slice(0, 10);
+    if (!d) return;
+    if (!buckets[d]) buckets[d] = { total: 0, breach: 0 };
+    buckets[d].total += 1;
+    const firstMin = Number(j.sla_first_action_min || 120);
+    const createdMs = new Date(j.created_at).getTime();
+    const joinedMs = j.first_worker_joined_at ? new Date(j.first_worker_joined_at).getTime() : null;
+    if (!joinedMs || ((joinedMs - createdMs) / 60000 > firstMin)) buckets[d].breach += 1;
+  });
+  const trendText = Object.entries(buckets).sort(([a], [b]) => a.localeCompare(b)).slice(-7).map(([d, v]) => `${d.slice(5)} %${v.total ? Math.round((v.breach / v.total) * 100) : 0}`).join(' · ');
+  if (!document.getElementById(seriesElId)) {
+    const t = document.createElement('div');
+    t.id = seriesElId;
+    t.style.cssText = 'margin-top:6px;font-size:11px;color:var(--text-3);';
+    wrap.appendChild(t);
+  }
+  const tEl = document.getElementById(seriesElId);
+  if (tEl) tEl.textContent = `SLA ihlal trendi (7g): ${trendText || 'veri yok'}`;
+}
+
+function exportJobPolygon() {
+  const text = document.getElementById('jm-polygon')?.value || '';
+  if (!text.trim()) { toast('Polygon yok', 'warn'); return; }
+  const blob = new Blob([text], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `job-polygon-${Date.now()}.geojson`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importJobPolygon(fileInput) {
+  const file = fileInput?.files?.[0];
+  if (!file) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const geo = JSON.parse(String(fr.result || '{}'));
+      const coords = geo?.coordinates?.[0] || [];
+      _jobPolygonPoints = coords.map((p) => [Number(p[0]), Number(p[1])]).filter((p) => Number.isFinite(p[0]) && Number.isFinite(p[1]));
+      drawJobPolygon();
+      toast('Polygon içe aktarıldı', 'ok');
+    } catch (e) {
+      toast('GeoJSON geçersiz', 'err');
+    }
+  };
+  fr.readAsText(file);
+  fileInput.value = '';
 }

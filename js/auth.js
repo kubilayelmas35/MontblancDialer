@@ -123,6 +123,8 @@ const fieldSetCard = document.getElementById('field-settings-card');
 if (fieldSetCard) fieldSetCard.style.display = isAdmin ? '' : 'none';
 const featCard = document.getElementById('feature-flags-card');
 if (featCard) featCard.style.display = isAdmin ? '' : 'none';
+const jobPermCard = document.getElementById('job-permissions-card');
+if (jobPermCard) jobPermCard.style.display = isAdmin ? '' : 'none';
 const roleMap = {
 'super_admin':'Süper Admin','firm_admin':'Firma Admin',
 'admin':'Admin','agent':'Agent','qc':'QC','field_agent':'Saha Elemanı'
