@@ -28,9 +28,9 @@ delete from public.campaigns where firm_id in (select id from qa_firms) and name
 
 insert into public.firms (name, slug, plan, is_active, settings, balance, currency, reserved_balance)
 values
-  ('QA Alpha GmbH', 'qa-alpha', 'pro', true, '{"timezone":"Europe/Berlin","job_market_enabled":true}'::jsonb, 15000, 'EUR', 0),
-  ('QA Beta Elektrik', 'qa-beta', 'pro', true, '{"timezone":"Europe/Berlin","job_market_enabled":true}'::jsonb, 12000, 'EUR', 0),
-  ('QA Gamma Service', 'qa-gamma', 'basic', true, '{"timezone":"Europe/Berlin","job_market_enabled":true}'::jsonb, 8000, 'EUR', 0)
+  ('QA Alpha GmbH', 'qa-alpha', 'pro', true, '{"timezone":"Europe/Berlin","job_market_enabled":true,"fieldService":{"enabled":true,"can_manage_agents":true,"result_options":["satis","teklif","ziyaret_tamamlandi","ulasilamadi"],"document_requirements":["kimlik","sozlesme"],"form_schema":[]}}'::jsonb, 15000, 'EUR', 0),
+  ('QA Beta Elektrik', 'qa-beta', 'pro', true, '{"timezone":"Europe/Berlin","job_market_enabled":true,"fieldService":{"enabled":true,"can_manage_agents":true,"result_options":["satis","teklif","ziyaret_tamamlandi","ulasilamadi"],"document_requirements":["kimlik","sozlesme"],"form_schema":[]}}'::jsonb, 12000, 'EUR', 0),
+  ('QA Gamma Service', 'qa-gamma', 'basic', true, '{"timezone":"Europe/Berlin","job_market_enabled":true,"fieldService":{"enabled":true,"can_manage_agents":true,"result_options":["satis","teklif","ziyaret_tamamlandi","ulasilamadi"],"document_requirements":["kimlik","sozlesme"],"form_schema":[]}}'::jsonb, 8000, 'EUR', 0)
 on conflict (slug)
 do update set
   name = excluded.name,
@@ -251,6 +251,46 @@ set completed_at = now() - interval '2 hours'
 where notes = 'QA seed field task'
   and status = 'completed';
 
+insert into public.agent_sessions (agent_id, agent_name, firm_id, campaign_id, status, last_seen, call_start, break_start)
+select
+  u.id,
+  u.name,
+  u.firm_id,
+  (
+    select c.id
+    from public.campaigns c
+    where c.firm_id = u.firm_id and c.name like 'QA %'
+    order by c.created_at desc
+    limit 1
+  ) as campaign_id,
+  case
+    when row_number() over (partition by u.firm_id order by u.created_at, u.id) % 3 = 0 then 'on_call'
+    when row_number() over (partition by u.firm_id order by u.created_at, u.id) % 2 = 0 then 'ready'
+    else 'break'
+  end as status,
+  now() - ((row_number() over (partition by u.firm_id order by u.created_at, u.id) % 7) || ' minutes')::interval as last_seen,
+  case
+    when row_number() over (partition by u.firm_id order by u.created_at, u.id) % 3 = 0 then now() - interval '4 minutes'
+    else null
+  end as call_start,
+  case
+    when row_number() over (partition by u.firm_id order by u.created_at, u.id) % 2 <> 0 then now() - interval '9 minutes'
+    else null
+  end as break_start
+from public.users u
+where u.email like '%@mb-test.local'
+  and u.role in ('agent','qc')
+  and u.is_active = true
+on conflict (agent_id)
+do update set
+  agent_name = excluded.agent_name,
+  firm_id = excluded.firm_id,
+  campaign_id = excluded.campaign_id,
+  status = excluded.status,
+  last_seen = excluded.last_seen,
+  call_start = excluded.call_start,
+  break_start = excluded.break_start;
+
 select
   (select count(*) from public.firms where slug in ('qa-alpha','qa-beta','qa-gamma')) as qa_firms,
   (select count(*) from public.users where email like '%@mb-test.local') as qa_users,
@@ -258,4 +298,5 @@ select
   (select count(*) from public.contacts where notes = 'QA seed contact') as qa_contacts,
   (select count(*) from public.call_logs where notes = 'QA seed call log') as qa_call_logs,
   (select count(*) from public.appointments where agent_notu = 'QA seed appointment') as qa_appointments,
-  (select count(*) from public.field_tasks where notes = 'QA seed field task') as qa_field_tasks;
+  (select count(*) from public.field_tasks where notes = 'QA seed field task') as qa_field_tasks,
+  (select count(*) from public.agent_sessions s join public.users u on u.id=s.agent_id where u.email like '%@mb-test.local' and s.status in ('ready','on_call')) as qa_online_agents;

@@ -99,8 +99,9 @@ if (!currentUser.initials) currentUser.initials = (currentUser.name||'?').charAt
 document.getElementById('tb-av').textContent = currentUser.initials.charAt(0);
 document.getElementById('tb-uname').textContent = currentUser.name;
 const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser.role);
-document.getElementById('nav-admin').style.display = isAdmin ? '' : 'none';
-document.getElementById('nav-agent').style.display = isAdmin ? 'none' : '';
+const isBackoffice = isAdmin || currentUser.role === 'qc';
+document.getElementById('nav-admin').style.display = isBackoffice ? '' : 'none';
+document.getElementById('nav-agent').style.display = isBackoffice ? 'none' : '';
 document.getElementById('tb-pills').style.display  = isAdmin ? '' : 'none';
 document.getElementById('sb-settings').style.display = isAdmin ? '' : 'none';
 document.getElementById('telnyx-settings').style.display = currentUser.role === 'super_admin' ? '' : 'none';
@@ -113,7 +114,7 @@ const wvNav = document.getElementById('nav-wv-btn');
 const takvimOverlayNav = document.getElementById('nav-takvim-overlay-btn');
 if (fieldNav) fieldNav.style.display = currentUser.role === 'field_agent' ? '' : 'none';
 if (dialerNav) dialerNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
-if (adminDialerNav) adminDialerNav.style.display = ['admin','firm_admin','super_admin'].includes(currentUser.role) ? '' : 'none';
+if (adminDialerNav) adminDialerNav.style.display = ['admin','firm_admin','super_admin','qc'].includes(currentUser.role) ? '' : 'none';
 if (jobsNav) jobsNav.style.display = ['admin','firm_admin','super_admin'].includes(currentUser.role) ? '' : 'none';
 if (myHistoryNav) myHistoryNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
 if (wvNav) wvNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
@@ -150,6 +151,7 @@ if (perfNav) perfNav.style.display = ['admin', 'firm_admin', 'super_admin'].incl
 if (currentUser.role === 'super_admin') { loadAllFirms(); }
 loadFirmCallHours(); // arama kısıtlamalarını yükle
 if (isAdmin) { navigate('dashboard'); }
+else if (currentUser.role === 'qc') { navigate('qc'); }
 else if (currentUser.role === 'field_agent') { navigate('field'); }
 else         { navigate('dialer'); }
 if (isAdmin) {
