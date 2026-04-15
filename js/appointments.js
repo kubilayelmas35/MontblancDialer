@@ -393,8 +393,7 @@ async function saveTakvimSlot(od) {
 async function openTakvimSlotDetail(slot, appt) {
   const role = currentUser?.role || '';
   const isAdmin = ['admin','super_admin','firm_admin'].includes(role);
-  const canAssignField = ['admin','super_admin','firm_admin','qc'].includes(role)
-    || (typeof userHasPagePerm === 'function' && userHasPagePerm('field'));
+  const canAssignField = ['admin','super_admin','firm_admin'].includes(role);
   const canManageAppt = ['admin','super_admin','firm_admin','qc'].includes(currentUser?.role||'');
   const resultCfg = await loadFirmAppointmentResults(getActiveFirmId() || currentUser?.firm_id);
   const resultMap = {};

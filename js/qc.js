@@ -141,8 +141,7 @@ function openQcDetail(logId) {
   const r = (qcList||[]).find(x => x.id === logId);
   if (!r) return;
   const role = currentUser?.role || '';
-  const canAssignField = ['admin','super_admin','firm_admin','qc'].includes(role)
-    || (typeof userHasPagePerm === 'function' && userHasPagePerm('field'));
+  const canAssignField = ['admin','super_admin','firm_admin'].includes(role);
   qcDetailId = logId;
   const contact = r.contacts||{};
   const name = `${contact.first_name||''} ${contact.last_name||''}`.trim()||'—';

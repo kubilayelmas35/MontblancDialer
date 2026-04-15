@@ -321,7 +321,7 @@ async function createFieldTaskFromAppointment(appointmentId, assignedTo) {
     toast('Saha görevi atandı', 'ok');
     return true;
   } catch (e) {
-    toast('Sahaya atama yapılamadı', 'err');
+    toast(`Sahaya atama yapılamadı: ${e?.message || 'Bilinmeyen hata'}`, 'err');
     return false;
   }
 }
