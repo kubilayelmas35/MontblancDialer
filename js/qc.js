@@ -140,6 +140,9 @@ ${assignBtn}
 function openQcDetail(logId) {
   const r = (qcList||[]).find(x => x.id === logId);
   if (!r) return;
+  const role = currentUser?.role || '';
+  const canAssignField = ['admin','super_admin','firm_admin','qc'].includes(role)
+    || (typeof userHasPagePerm === 'function' && userHasPagePerm('field'));
   qcDetailId = logId;
   const contact = r.contacts||{};
   const name = `${contact.first_name||''} ${contact.last_name||''}`.trim()||'—';
@@ -175,7 +178,10 @@ ${hasCustomers ? `<div style="margin-top:10px;">
 </div>
 <div style="margin-top:12px;">
 <textarea id="qc-note-input" class="form-input" rows="2" placeholder="QC notu..." style="width:100%;resize:vertical;"></textarea>
-</div>`;
+</div>
+${canAssignField ? `<div style="margin-top:10px;display:flex;justify-content:flex-end;">
+  <button class="btn btn-primary" onclick="(function(){ const ap = window._qcApptByContact?.['${r.contact_id || ''}']; if (!ap?.id) { toast('Bu kayda bağlı randevu bulunamadı','warn'); return; } openFieldAssignModal(ap.id, '${r.firm_id || currentUser?.firm_id || ''}'); })()">Sahaya Ata</button>
+</div>` : ''}`;
   openModal('m-qc-detail');
 }
 

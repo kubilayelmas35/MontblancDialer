@@ -391,7 +391,10 @@ async function saveTakvimSlot(od) {
 }
 
 async function openTakvimSlotDetail(slot, appt) {
-  const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
+  const role = currentUser?.role || '';
+  const isAdmin = ['admin','super_admin','firm_admin'].includes(role);
+  const canAssignField = ['admin','super_admin','firm_admin','qc'].includes(role)
+    || (typeof userHasPagePerm === 'function' && userHasPagePerm('field'));
   const canManageAppt = ['admin','super_admin','firm_admin','qc'].includes(currentUser?.role||'');
   const resultCfg = await loadFirmAppointmentResults(getActiveFirmId() || currentUser?.firm_id);
   const resultMap = {};
@@ -427,9 +430,14 @@ ${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="dele
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">TÜKETİM</div><div style="font-weight:700;">${appt.verbrauch_pro_jahr||'—'}</div></div>
 ${appt.agent_notu?`<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">AGENT NOTU</div><div>${appt.agent_notu}</div></div>`:''}
 </div>`;
+  if (canAssignField) {
+    body.innerHTML += `<div style="margin-top:10px;display:flex;justify-content:flex-end;">
+      <button class="btn btn-primary" onclick="openFieldAssignModal('${appt.id}','${appt.firm_id || currentUser.firm_id}')">Sahaya Ata</button>
+    </div>`;
+  }
   footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">Kapat</button>
 <button class="btn btn-ghost" onclick="closeModal('m-takvim-detail');openDialerForContact('${appt.contact_id||''}')">Dialer'a Git</button>
-${isAdmin ? `<button class="btn btn-ghost" onclick="openFieldAssignModal('${appt.id}','${appt.firm_id || currentUser.firm_id}')">Sahaya Ata</button>` : ''}
+${canAssignField ? `<button class="btn btn-ghost" onclick="openFieldAssignModal('${appt.id}','${appt.firm_id || currentUser.firm_id}')">Sahaya Ata</button>` : ''}
 ${canManageAppt ? `
 <select class="form-input" id="appt-status-sel" style="width:auto;font-size:12px;padding:6px 10px;">
 <option value="">Durum değiştir...</option>
