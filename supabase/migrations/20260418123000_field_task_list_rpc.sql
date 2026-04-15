@@ -33,8 +33,8 @@ begin
   end if;
 
   select * into v_actor
-  from public.users
-  where id = p_actor_user_id and coalesce(is_active, true) = true
+  from public.users u
+  where u.id = p_actor_user_id and coalesce(u.is_active, true) = true
   limit 1;
 
   if v_actor.id is null then
