@@ -306,18 +306,23 @@ async function createFieldTaskFromAppointment(appointmentId, assignedTo) {
     return;
   }
   try {
-    await sb('field_tasks', {
+    const res = await fetch(`${SB_URL}/rest/v1/rpc/create_field_task_from_admin`, {
       method: 'POST',
-      prefer: 'return=minimal',
+      headers: {
+        apikey: SB_KEY,
+        Authorization: `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
-        firm_id: ap.firm_id,
-        appointment_id: ap.id,
-        contact_id: ap.contact_id || null,
-        assigned_to: assignedTo,
-        assigned_by: currentUser.id,
-        status: 'assigned'
+        p_actor_user_id: currentUser.id,
+        p_appointment_id: ap.id,
+        p_assigned_to: assignedTo
       })
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.message || err?.hint || `HTTP ${res.status}`);
+    }
     toast('Saha görevi atandı', 'ok');
     return true;
   } catch (e) {
