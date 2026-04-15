@@ -313,7 +313,12 @@ ${JM_WD_TR[(dt.getDay() + 6) % 7]}<br><span style="font-size:13px;font-weight:90
       const dt = new Date(startDt);
       dt.setDate(dt.getDate() + dayOffsets[d]);
       const ymd = jmFmtDate(dt);
-      const isSel = _jmCalSelections.some((s) => jmSelectionKey(s.ymd, s.hh) === jmSelectionKey(ymd, `${hh}:00`));
+      const hrNum = Number(hh);
+      const isSel = _jmCalSelections.some((s) => {
+        if (s.ymd !== ymd) return false;
+        const sHr = Number(String(s.hh || '00:00').slice(0, 2));
+        return hrNum >= sHr && hrNum < (sHr + _jmCalSlotHours);
+      });
       html += `<div onclick="jmCalPickCell('${ymd}','${hh}:00')" style="height:42px;position:relative;border-bottom:1px solid var(--border);border-right:1px solid var(--border);cursor:pointer;background:${isSel ? 'rgba(37,99,235,.28)' : ''};"></div>`;
     }
   }
