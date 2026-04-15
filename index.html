@@ -35,7 +35,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v6.79 — 2026</div>
+<div class="login-version">v6.80 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -226,6 +226,10 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span data-tr="QC Paneli" data-de="QC-Panel">QC Paneli</span>
 <span class="sb-badge" id="sb-badge-qc" style="display:none;background:var(--accent);">0</span>
 </button>
+<button class="sb-item" id="nav-fieldops-btn" style="display:none;" onclick="navigate('fieldops')">
+<span class="sb-item-icon"><i class="ph ph-map-trifold" style="font-size:17px;"></i></span>
+<span data-tr="Saha Operasyon" data-de="Feldoperationen">Saha Operasyon</span>
+</button>
 <button class="sb-item" onclick="navigate('wiedervorlage')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
 <span data-tr="Tüm WV'ler" data-de="Alle WV">Tüm WV'ler</span>
@@ -307,7 +311,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.79</div>
+<div class="sb-ver">MontBlanc v6.80</div>
 </div>
 </nav>
 <main id="main">
@@ -1327,6 +1331,49 @@ Yaklaşan Aramalar
 </div>
 <div id="field-task-list" style="display:flex;flex-direction:column;gap:10px;">
 <div class="card" style="padding:20px;color:var(--text-3);font-size:12px;text-align:center;">Yükleniyor...</div>
+</div>
+</div>
+<div class="page" id="page-fieldops">
+<div class="page-hdr">
+<div>
+<div class="page-title"><i class="ph ph-map-trifold" style="vertical-align:-3px;margin-right:6px;"></i>Saha Operasyon Takibi</div>
+<div class="page-sub">Hangi randevu hangi saha elemanında ve güncel sonuç durumu</div>
+</div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+<div id="fieldops-firm-wrap"></div>
+<select class="form-input" id="fieldops-status-filter" style="min-width:140px;font-size:12px;" onchange="fieldOpsApplyFilters()">
+<option value="">Tüm durumlar</option>
+<option value="assigned">Atandı</option>
+<option value="in_progress">Sahada</option>
+<option value="completed">Tamamlandı</option>
+<option value="cancelled">İptal</option>
+</select>
+<input class="form-input" id="fieldops-search" placeholder="Randevu, telefon, saha..." style="min-width:180px;font-size:12px;" oninput="fieldOpsApplyFilters()">
+<button class="btn btn-ghost btn-sm" onclick="loadFieldOpsPage()">↻ Yenile</button>
+</div>
+</div>
+<div id="fieldops-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px;">
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Toplam</div><div id="fieldops-kpi-total" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Atandı</div><div id="fieldops-kpi-assigned" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Sahada</div><div id="fieldops-kpi-progress" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Tamamlandı</div><div id="fieldops-kpi-done" style="font-size:20px;font-weight:800;">0</div></div>
+</div>
+<div class="card">
+<div class="tbl-wrap">
+<table>
+<thead><tr>
+<th>Tarih</th>
+<th>Randevu</th>
+<th>Telefon</th>
+<th>Saha Elemanı</th>
+<th>Durum</th>
+<th>Saha Sonucu</th>
+</tr></thead>
+<tbody id="fieldops-tbody">
+<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>
+</tbody>
+</table>
+</div>
 </div>
 </div>
 <div class="page" id="page-myhistory">
@@ -3005,16 +3052,16 @@ QC Detay
 <script src="js/state.js?v=6.34"></script>
 <script src="js/api.js?v=6.34"></script>
 <script src="js/auth.js?v=6.54"></script>
-<script src="js/ui.js?v=6.79"></script>
+<script src="js/ui.js?v=6.80"></script>
 <script src="js/chat.js?v=6.35"></script>
 <script src="js/chat-settings.js?v=6.35"></script>
 <script src="js/field-settings.js?v=6.38"></script>
 <script src="js/audit.js?v=6.44"></script>
 <script src="js/feature-flags.js?v=6.46"></script>
-<script src="js/notification-center.js?v=6.79"></script>
+<script src="js/notification-center.js?v=6.80"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="js/wallet.js?v=6.52"></script>
-<script src="js/job-market.js?v=6.79"></script>
+<script src="js/job-market.js?v=6.80"></script>
 <script src="js/qc-job-market.js?v=6.52"></script>
 <script src="js/export-admin.js?v=6.34"></script>
 <script src="js/export-termin.js?v=6.52"></script>
@@ -3028,6 +3075,7 @@ QC Detay
 <script src="js/dialer.js?v=6.55"></script>
 <script src="js/appointments.js?v=6.36"></script>
 <script src="js/field.js?v=6.38"></script>
+<script src="js/field-ops.js?v=6.80"></script>
 <script src="js/wiedervorlage.js?v=6.34"></script>
 <script src="js/qc.js?v=6.46"></script>
 <script src="js/leave-hr.js?v=6.34"></script>

@@ -46,6 +46,7 @@ if (page==='export')       loadExportTerminPage();
 if (page==='performance') loadPerformancePage();
 if (page==='dialer')         initDialer();
 if (page==='field')          loadFieldPage();
+if (page==='fieldops')       loadFieldOpsPage();
 if (page==='jobmarket') {
   loadJobMarketPage();
   if (typeof refreshJobMarketMap === 'function') {
