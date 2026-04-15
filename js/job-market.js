@@ -81,6 +81,8 @@ async function applyJobFormDefaultsFromFirm() {
 let _jmCalYear = new Date().getFullYear();
 let _jmCalMonth = new Date().getMonth();
 let _jmCalSelectedYmd = '';
+let _jmCalView = 'week';
+let _jmCalDate = new Date();
 
 const JM_WD_TR = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 const JM_MONTH_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
@@ -120,67 +122,155 @@ function openJobMarketSlotCalendarModal() {
     _jmCalMonth = n.getMonth();
     _jmCalSelectedYmd = '';
   }
+  _jmCalDate = new Date(_jmCalYear, _jmCalMonth, 1);
   document.getElementById('jm-cal-modal')?.remove();
   const ov = document.createElement('div');
   ov.id = 'jm-cal-modal';
   ov.className = 'modal-overlay open';
-  ov.innerHTML = `<div class="modal" style="max-width:400px;">
-<div class="modal-hdr"><div class="modal-title">Randevu — takvimden slot</div><button type="button" class="modal-close" onclick="document.getElementById('jm-cal-modal').remove()">&times;</button></div>
-<div id="jm-cal-modal-body" style="padding:12px 16px;"></div>
-<div class="modal-footer" style="flex-wrap:wrap;gap:8px;">
-<button type="button" class="btn btn-ghost btn-sm" onclick="jmCalNav(-1)">◀ Ay</button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="jmCalNav(1)">Ay ▶</button>
-<button type="button" class="btn btn-primary" onclick="jmCalApply()">Slotları uygula</button>
+  ov.innerHTML = `<div class="modal" style="max-width:980px;width:95vw;">
+<div class="modal-hdr"><div class="modal-title">İş İlanı Takvimi</div><button type="button" class="modal-close" onclick="document.getElementById('jm-cal-modal').remove()">&times;</button></div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg-3);">
+  <button type="button" class="btn btn-ghost btn-sm" onclick="jmCalSetView('day')">Gün</button>
+  <button type="button" class="btn btn-ghost btn-sm" onclick="jmCalSetView('week')">Hafta</button>
+  <button type="button" class="btn btn-ghost btn-sm" onclick="jmCalSetView('month')">Ay</button>
+  <button type="button" class="btn btn-ghost btn-sm" onclick="jmCalMove(-1)">◀</button>
+  <span id="jm-cal-range" style="font-size:12px;font-weight:700;min-width:160px;text-align:center;">—</span>
+  <button type="button" class="btn btn-ghost btn-sm" onclick="jmCalMove(1)">▶</button>
+  <button type="button" class="btn btn-ghost btn-sm" onclick="jmCalToday()">Bugün</button>
+</div>
+<div id="jm-cal-modal-body" style="padding:12px 16px;max-height:62vh;overflow:auto;"></div>
+<div class="modal-footer" style="flex-wrap:wrap;gap:8px;align-items:end;">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:260px;">
+<div><label class="form-label" style="font-size:11px;">Başlangıç saati</label><input type="time" class="form-input" id="jm-cal-t0" value="${String(document.getElementById('jm-slot-start')?.value || '10:00').slice(0, 5)}"></div>
+<div><label class="form-label" style="font-size:11px;">Bitiş saati</label><input type="time" class="form-input" id="jm-cal-t1" value="${String(document.getElementById('jm-slot-end')?.value || '11:00').slice(0, 5)}"></div>
+</div>
+<button type="button" class="btn btn-primary" onclick="jmCalApply()">Slotu Uygula</button>
 </div>
 </div>`;
   ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
   document.body.appendChild(ov);
+  jmCalSetView('week');
+}
+
+function jmFmtDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function jmGetMonday(d) {
+  const dt = new Date(d);
+  const day = dt.getDay() || 7;
+  if (day !== 1) dt.setDate(dt.getDate() - (day - 1));
+  dt.setHours(0, 0, 0, 0);
+  return dt;
+}
+
+function jmCalSetView(view) {
+  _jmCalView = view;
+  document.querySelectorAll('#jm-cal-modal .btn.btn-ghost.btn-sm').forEach((b) => {
+    if (['Gün', 'Hafta', 'Ay'].includes(String(b.textContent || '').trim())) {
+      const active = (view === 'day' && b.textContent.includes('Gün')) || (view === 'week' && b.textContent.includes('Hafta')) || (view === 'month' && b.textContent.includes('Ay'));
+      b.style.background = active ? 'var(--accent)' : '';
+      b.style.color = active ? '#fff' : '';
+      b.style.borderColor = active ? 'var(--accent)' : '';
+    }
+  });
   renderJobMarketCalendarGrid();
 }
 
-function jmCalNav(delta) {
-  _jmCalMonth += delta;
-  if (_jmCalMonth > 11) { _jmCalMonth = 0; _jmCalYear++; }
-  if (_jmCalMonth < 0) { _jmCalMonth = 11; _jmCalYear--; }
+function jmCalMove(delta) {
+  if (_jmCalView === 'day') _jmCalDate.setDate(_jmCalDate.getDate() + delta);
+  else if (_jmCalView === 'week') _jmCalDate.setDate(_jmCalDate.getDate() + (delta * 7));
+  else _jmCalDate.setMonth(_jmCalDate.getMonth() + delta);
+  _jmCalYear = _jmCalDate.getFullYear();
+  _jmCalMonth = _jmCalDate.getMonth();
+  renderJobMarketCalendarGrid();
+}
+
+function jmCalToday() {
+  _jmCalDate = new Date();
+  _jmCalYear = _jmCalDate.getFullYear();
+  _jmCalMonth = _jmCalDate.getMonth();
   renderJobMarketCalendarGrid();
 }
 
 function renderJobMarketCalendarGrid() {
   const body = document.getElementById('jm-cal-modal-body');
+  const rangeEl = document.getElementById('jm-cal-range');
   if (!body) return;
-  const t0 = String(document.getElementById('jm-cal-t0')?.value || document.getElementById('jm-slot-start')?.value || '10:00').slice(0, 5);
-  const t1 = String(document.getElementById('jm-cal-t1')?.value || document.getElementById('jm-slot-end')?.value || '11:00').slice(0, 5);
-  const first = new Date(_jmCalYear, _jmCalMonth, 1);
-  const startPad = (first.getDay() + 6) % 7;
-  const dim = new Date(_jmCalYear, _jmCalMonth + 1, 0).getDate();
   const today = new Date();
-  const todayYmd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  let cells = '';
-  for (let i = 0; i < startPad; i++) cells += '<div style="padding:6px;"></div>';
-  for (let d = 1; d <= dim; d++) {
-    const ymd = `${_jmCalYear}-${String(_jmCalMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const isSel = _jmCalSelectedYmd === ymd;
-    const isToday = todayYmd === ymd;
-    const st = [
-      'cursor:pointer;text-align:center;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:700;',
-      isSel ? 'background:var(--accent);color:#fff;' : 'background:var(--bg-3);color:var(--text-1);',
-      isToday && !isSel ? 'outline:2px solid var(--accent);' : ''
-    ].join('');
-    cells += `<div class="jm-cal-day" data-ymd="${ymd}" style="${st}" onclick="jmCalPickDay('${ymd}')">${d}</div>`;
-  }
-  body.innerHTML = `
-<div style="text-align:center;font-weight:800;margin-bottom:10px;font-size:14px;">${JM_MONTH_TR[_jmCalMonth]} ${_jmCalYear}</div>
+  if (_jmCalView === 'month') {
+    const first = new Date(_jmCalYear, _jmCalMonth, 1);
+    const startPad = (first.getDay() + 6) % 7;
+    const dim = new Date(_jmCalYear, _jmCalMonth + 1, 0).getDate();
+    const todayYmd = jmFmtDate(today);
+    if (rangeEl) rangeEl.textContent = `${JM_MONTH_TR[_jmCalMonth]} ${_jmCalYear}`;
+    let cells = '';
+    for (let i = 0; i < startPad; i++) cells += '<div style="padding:6px;"></div>';
+    for (let d = 1; d <= dim; d++) {
+      const ymd = `${_jmCalYear}-${String(_jmCalMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const isSel = _jmCalSelectedYmd === ymd;
+      const isToday = todayYmd === ymd;
+      const st = [
+        'cursor:pointer;text-align:center;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:700;',
+        isSel ? 'background:var(--accent);color:#fff;' : 'background:var(--bg-3);color:var(--text-1);',
+        isToday && !isSel ? 'outline:2px solid var(--accent);' : ''
+      ].join('');
+      cells += `<div class="jm-cal-day" data-ymd="${ymd}" style="${st}" onclick="jmCalPickDay('${ymd}')">${d}</div>`;
+    }
+    body.innerHTML = `
 <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px;font-size:10px;color:var(--text-3);text-align:center;">${JM_WD_TR.map((w) => `<div>${w}</div>`).join('')}</div>
 <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">${cells}</div>
-<div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end;">
-<div><label class="form-label" style="font-size:11px;">Başlangıç saati</label><input type="time" class="form-input" id="jm-cal-t0" value="${t0}"></div>
-<div><label class="form-label" style="font-size:11px;">Bitiş saati</label><input type="time" class="form-input" id="jm-cal-t1" value="${t1}"></div>
-</div>
-<div class="jm-hint" style="margin-top:8px;">Gün seçin, saat aralığını girin, <b>Slotları uygula</b> ile forma aktarın. İşlem adedi kadar ardışık slot üretilir.</div>`;
+<div class="jm-hint" style="margin-top:8px;">Ay görünümünde gün seçin. Hafta/Gün görünümünde saat satırından seçim yapabilirsiniz.</div>`;
+    return;
+  }
+  const startDt = _jmCalView === 'day' ? new Date(_jmCalDate) : jmGetMonday(_jmCalDate);
+  const daysCount = _jmCalView === 'day' ? 1 : 5;
+  const endDt = new Date(startDt);
+  endDt.setDate(endDt.getDate() + (daysCount - 1));
+  if (rangeEl) {
+    rangeEl.textContent = _jmCalView === 'day'
+      ? startDt.toLocaleDateString('tr-TR', { weekday: 'long', day: '2-digit', month: 'short' })
+      : `${startDt.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })} – ${endDt.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })}`;
+  }
+  let html = `<div style="display:grid;grid-template-columns:52px repeat(${daysCount},1fr);">`;
+  html += '<div style="background:var(--bg-3);border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 4px;"></div>';
+  for (let d = 0; d < daysCount; d++) {
+    const dt = new Date(startDt);
+    dt.setDate(dt.getDate() + d);
+    const ds = jmFmtDate(dt);
+    const isToday = ds === jmFmtDate(today);
+    html += `<div style="background:${isToday ? 'rgba(37,99,235,.08)' : 'var(--bg-3)'};border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:6px 4px;text-align:center;font-size:10px;font-weight:800;color:${isToday ? 'var(--accent)' : 'var(--text-2)'};">
+${JM_WD_TR[(dt.getDay() + 6) % 7]}<br><span style="font-size:13px;font-weight:900;">${dt.getDate()}</span></div>`;
+  }
+  for (let hr = 8; hr <= 20; hr++) {
+    const hh = String(hr).padStart(2, '0');
+    html += `<div style="height:42px;background:var(--bg-2);border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:9px;font-weight:700;color:var(--text-3);text-align:center;padding-top:4px;font-family:var(--mono);">${hh}:00</div>`;
+    for (let d = 0; d < daysCount; d++) {
+      const dt = new Date(startDt);
+      dt.setDate(dt.getDate() + d);
+      const ymd = jmFmtDate(dt);
+      const isSel = _jmCalSelectedYmd === ymd && String(document.getElementById('jm-cal-t0')?.value || '').startsWith(hh);
+      html += `<div onclick="jmCalPickCell('${ymd}','${hh}:00')" style="height:42px;position:relative;border-bottom:1px solid var(--border);border-right:1px solid var(--border);cursor:pointer;background:${isSel ? 'rgba(37,99,235,.18)' : ''};"></div>`;
+    }
+  }
+  html += '</div>';
+  body.innerHTML = `${html}<div class="jm-hint" style="margin-top:8px;">Kampanya takvimi gibi görünüm: saat satırına tıklayıp slot günü/saatini seçin.</div>`;
 }
 
 function jmCalPickDay(ymd) {
   _jmCalSelectedYmd = ymd;
+  _jmCalDate = new Date(ymd);
+  _jmCalYear = _jmCalDate.getFullYear();
+  _jmCalMonth = _jmCalDate.getMonth();
+  renderJobMarketCalendarGrid();
+}
+
+function jmCalPickCell(ymd, startTime) {
+  _jmCalSelectedYmd = ymd;
+  const t0 = document.getElementById('jm-cal-t0');
+  const t1 = document.getElementById('jm-cal-t1');
+  if (t0) t0.value = startTime.slice(0, 5);
+  if (t1) t1.value = `${String(Math.min(23, Number(startTime.slice(0, 2)) + 1)).padStart(2, '0')}:00`;
   renderJobMarketCalendarGrid();
 }
 
