@@ -591,6 +591,7 @@ async function createJobPost() {
   const country = String(document.getElementById('jm-country')?.value || '').trim();
   const city = String(document.getElementById('jm-city')?.value || '').trim();
   const radiusKm = Number(document.getElementById('jm-radius')?.value || 0);
+  const retractRaw = String(document.getElementById('jm-retract-by')?.value || '').trim();
   const deadline = document.getElementById('jm-deadline')?.value || null;
   const slotDate = String(document.getElementById('jm-slot-date')?.value || '').trim();
   const slotStart = String(document.getElementById('jm-slot-start')?.value || '').trim();
@@ -605,6 +606,16 @@ async function createJobPost() {
     toast('Randevu için önce Takvimden slot oluştur ile gün ve saat seçin', 'warn');
     return;
   }
+  if (!retractRaw) {
+    toast('Geri çekme tarih/saat alanı zorunlu', 'warn');
+    return;
+  }
+  const retractDt = new Date(retractRaw);
+  if (!Number.isFinite(retractDt.getTime())) {
+    toast('Geri çekme tarihi geçersiz', 'warn');
+    return;
+  }
+  const retractionDeadlineAt = retractDt.toISOString();
   if (polygonTxt) {
     try { polygon = JSON.parse(polygonTxt); } catch (e) { toast('Polygon JSON geçersiz', 'warn'); return; }
   }
@@ -641,7 +652,7 @@ async function createJobPost() {
         p_slot_date: slotDate || null,
         p_slot_start: slotStart || null,
         p_slot_end: slotEnd || null,
-        p_retraction_deadline_at: null
+        p_retraction_deadline_at: retractionDeadlineAt
       })
     });
     if (!res.ok) throw new Error(await res.text());
@@ -781,7 +792,7 @@ function drawJobPolygon() {
       drawJobPolygon();
     });
     _jobVertexMarkers.push(marker);
-  }
+  });
   const polyEl = document.getElementById('jm-polygon');
   if (polyEl) {
     polyEl.value = JSON.stringify({

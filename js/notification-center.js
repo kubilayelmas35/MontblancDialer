@@ -3,6 +3,14 @@
 // ─────────────────────────────────────────────
 
 let _notifTimer = null;
+const ZERO_UUID = '00000000-0000-0000-0000-000000000001';
+
+function _isValidFirmId(fid) {
+  const v = String(fid || '').trim();
+  if (!v) return false;
+  if (v === ZERO_UUID) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+}
 
 function toggleNotificationCenter(forceOpen) {
   const el = document.getElementById('notification-center');
@@ -27,7 +35,7 @@ async function loadNotificationCenter() {
   const badge = document.getElementById('tb-notif-badge');
   if (!list || !currentUser) return;
   const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
-  if (!fid) {
+  if (!_isValidFirmId(fid)) {
     list.innerHTML = _notifItem('Bildirim yok', 'Önce firma seçin', '');
     if (badge) badge.style.display = 'none';
     return;

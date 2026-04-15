@@ -1551,8 +1551,10 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <div id="jm-price-preview" style="font-size:12px;color:var(--text-3);display:flex;align-items:center;">Toplam ücret: 0</div>
 </div>
 <div id="jm-slot-preview" class="jm-slot-preview" style="display:none;"></div>
-<div class="jm-hint" style="margin-top:4px;padding:8px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;">
-<b>Geri çekme</b> otomatiktir: QC bekleyen ilanlar veya randevu ilanında CRM’e bağlı teslim yoksa (ve kural uygunsa) geri çekme yapılabilir; ayrı tarih girilmez.
+<div style="display:grid;grid-template-columns:1fr;gap:6px;">
+<label class="form-label" style="font-size:11px;color:var(--text-3);margin:0;">Geri çekme tarihi/saati (otomatik kontrol)</label>
+<input class="form-input" id="jm-retract-by" type="datetime-local" title="Bu zamana kadar teslim girişi yoksa ilan otomatik geri çekilir">
+<div class="jm-hint" style="margin-top:0;">Belirlenen saate kadar teslim (submitted/qc_pending/approved) yoksa ilan otomatik geri çekilir.</div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 <select class="form-input" id="jm-qc-mode">
@@ -1569,7 +1571,11 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 </select>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<input class="form-input" id="jm-country" placeholder="Ülke (opsiyonel)">
+<select class="form-input" id="jm-country" title="Ülke">
+<option value="">Ülke seçin</option>
+<option value="Türkiye">Türkiye</option>
+<option value="Deutschland">Almanya</option>
+</select>
 <input class="form-input" id="jm-city" placeholder="Şehir / posta kodu">
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -2996,16 +3002,16 @@ QC Detay
 <script src="js/state.js?v=6.34"></script>
 <script src="js/api.js?v=6.34"></script>
 <script src="js/auth.js?v=6.54"></script>
-<script src="js/ui.js?v=6.54"></script>
+<script src="js/ui.js?v=6.62"></script>
 <script src="js/chat.js?v=6.35"></script>
 <script src="js/chat-settings.js?v=6.35"></script>
 <script src="js/field-settings.js?v=6.38"></script>
 <script src="js/audit.js?v=6.44"></script>
 <script src="js/feature-flags.js?v=6.46"></script>
-<script src="js/notification-center.js?v=6.59"></script>
+<script src="js/notification-center.js?v=6.62"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="js/wallet.js?v=6.52"></script>
-<script src="js/job-market.js?v=6.60"></script>
+<script src="js/job-market.js?v=6.62"></script>
 <script src="js/qc-job-market.js?v=6.52"></script>
 <script src="js/export-admin.js?v=6.34"></script>
 <script src="js/export-termin.js?v=6.52"></script>

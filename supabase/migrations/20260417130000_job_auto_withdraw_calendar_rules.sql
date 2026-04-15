@@ -224,14 +224,12 @@ begin
   for r in
     select jp.id
     from public.job_posts jp
-    where jp.job_type = 'appointment'
-      and jp.status in ('published','in_progress')
-      and jp.created_at < now() - interval '2 hours'
-      and not exists (select 1 from public.job_submissions s where s.job_post_id = jp.id and s.status = 'approved')
+    where jp.status in ('published','in_progress','pending_qc')
+      and jp.retraction_deadline_at is not null
+      and jp.retraction_deadline_at <= now()
       and not exists (
         select 1 from public.job_submissions s
         where s.job_post_id = jp.id
-          and s.appointment_id is not null
           and s.status in ('submitted','qc_pending','approved')
       )
       and (
@@ -251,7 +249,7 @@ end;
 $$;
 
 comment on function public.job_market_run_auto_withdrawals() is
-  'Randevu ilanlarında CRM randevusu bağlı teslim yoksa ve ilan en az 2 saat önce açıldıysa otomatik geri çeker. İstemci sayfa yükünde bir kez çağırabilir.';
+  'Belirlenen geri çekme tarih/saatine kadar teslim girişi yoksa ilanları otomatik geri çeker.';
 
 grant execute on function public.job_market_run_auto_withdrawals() to anon;
 grant execute on function public.job_market_run_auto_withdrawals() to authenticated;
