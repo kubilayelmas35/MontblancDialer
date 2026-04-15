@@ -83,6 +83,8 @@ let _jmCalMonth = new Date().getMonth();
 let _jmCalSelectedYmd = '';
 let _jmCalView = 'week';
 let _jmCalDate = new Date();
+let _jmCalShowSat = false;
+let _jmCalShowSun = false;
 
 const JM_WD_TR = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 const JM_MONTH_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
@@ -137,12 +139,18 @@ function openJobMarketSlotCalendarModal() {
   <span id="jm-cal-range" style="font-size:12px;font-weight:700;min-width:160px;text-align:center;">—</span>
   <button type="button" class="btn btn-ghost btn-sm" onclick="jmCalMove(1)">▶</button>
   <button type="button" class="btn btn-ghost btn-sm" onclick="jmCalToday()">Bugün</button>
+  <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);margin-left:8px;"><input type="checkbox" id="jm-cal-show-sat" ${_jmCalShowSat ? 'checked' : ''} onchange="jmCalToggleWeekend()">Cmt</label>
+  <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><input type="checkbox" id="jm-cal-show-sun" ${_jmCalShowSun ? 'checked' : ''} onchange="jmCalToggleWeekend()">Paz</label>
 </div>
 <div id="jm-cal-modal-body" style="padding:12px 16px;max-height:62vh;overflow:auto;"></div>
 <div class="modal-footer" style="flex-wrap:wrap;gap:8px;align-items:end;">
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:260px;">
 <div><label class="form-label" style="font-size:11px;">Başlangıç saati</label><input type="time" class="form-input" id="jm-cal-t0" value="${String(document.getElementById('jm-slot-start')?.value || '10:00').slice(0, 5)}"></div>
 <div><label class="form-label" style="font-size:11px;">Bitiş saati</label><input type="time" class="form-input" id="jm-cal-t1" value="${String(document.getElementById('jm-slot-end')?.value || '11:00').slice(0, 5)}"></div>
+</div>
+<div style="min-width:140px;">
+<label class="form-label" style="font-size:11px;">Slot adedi</label>
+<input type="number" class="form-input" id="jm-cal-count" min="1" max="48" value="${Math.max(1, Number(document.getElementById('jm-quantity')?.value || 1))}">
 </div>
 <button type="button" class="btn btn-primary" onclick="jmCalApply()">Slotu Uygula</button>
 </div>
@@ -193,6 +201,12 @@ function jmCalToday() {
   renderJobMarketCalendarGrid();
 }
 
+function jmCalToggleWeekend() {
+  _jmCalShowSat = !!document.getElementById('jm-cal-show-sat')?.checked;
+  _jmCalShowSun = !!document.getElementById('jm-cal-show-sun')?.checked;
+  renderJobMarketCalendarGrid();
+}
+
 function renderJobMarketCalendarGrid() {
   const body = document.getElementById('jm-cal-modal-body');
   const rangeEl = document.getElementById('jm-cal-range');
@@ -224,9 +238,12 @@ function renderJobMarketCalendarGrid() {
     return;
   }
   const startDt = _jmCalView === 'day' ? new Date(_jmCalDate) : jmGetMonday(_jmCalDate);
-  const daysCount = _jmCalView === 'day' ? 1 : 5;
+  const dayOffsets = _jmCalView === 'day'
+    ? [((_jmCalDate.getDay() + 6) % 7)]
+    : [0, 1, 2, 3, 4, ...(_jmCalShowSat ? [5] : []), ...(_jmCalShowSun ? [6] : [])];
+  const daysCount = dayOffsets.length;
   const endDt = new Date(startDt);
-  endDt.setDate(endDt.getDate() + (daysCount - 1));
+  endDt.setDate(endDt.getDate() + (dayOffsets[dayOffsets.length - 1] || 0));
   if (rangeEl) {
     rangeEl.textContent = _jmCalView === 'day'
       ? startDt.toLocaleDateString('tr-TR', { weekday: 'long', day: '2-digit', month: 'short' })
@@ -236,7 +253,7 @@ function renderJobMarketCalendarGrid() {
   html += '<div style="background:var(--bg-3);border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 4px;"></div>';
   for (let d = 0; d < daysCount; d++) {
     const dt = new Date(startDt);
-    dt.setDate(dt.getDate() + d);
+    dt.setDate(dt.getDate() + dayOffsets[d]);
     const ds = jmFmtDate(dt);
     const isToday = ds === jmFmtDate(today);
     html += `<div style="background:${isToday ? 'rgba(37,99,235,.08)' : 'var(--bg-3)'};border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:6px 4px;text-align:center;font-size:10px;font-weight:800;color:${isToday ? 'var(--accent)' : 'var(--text-2)'};">
@@ -247,7 +264,7 @@ ${JM_WD_TR[(dt.getDay() + 6) % 7]}<br><span style="font-size:13px;font-weight:90
     html += `<div style="height:42px;background:var(--bg-2);border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:9px;font-weight:700;color:var(--text-3);text-align:center;padding-top:4px;font-family:var(--mono);">${hh}:00</div>`;
     for (let d = 0; d < daysCount; d++) {
       const dt = new Date(startDt);
-      dt.setDate(dt.getDate() + d);
+      dt.setDate(dt.getDate() + dayOffsets[d]);
       const ymd = jmFmtDate(dt);
       const isSel = _jmCalSelectedYmd === ymd && String(document.getElementById('jm-cal-t0')?.value || '').startsWith(hh);
       html += `<div onclick="jmCalPickCell('${ymd}','${hh}:00')" style="height:42px;position:relative;border-bottom:1px solid var(--border);border-right:1px solid var(--border);cursor:pointer;background:${isSel ? 'rgba(37,99,235,.18)' : ''};"></div>`;
@@ -281,6 +298,7 @@ function jmCalApply() {
   }
   const t0 = String(document.getElementById('jm-cal-t0')?.value || '').trim();
   const t1 = String(document.getElementById('jm-cal-t1')?.value || '').trim();
+  const cnt = Math.max(1, Number(document.getElementById('jm-cal-count')?.value || 1));
   if (!t0 || !t1) {
     toast('Başlangıç ve bitiş saati gerekli', 'warn');
     return;
@@ -288,13 +306,16 @@ function jmCalApply() {
   const hid = document.getElementById('jm-slot-date');
   const hs = document.getElementById('jm-slot-start');
   const he = document.getElementById('jm-slot-end');
+  const q = document.getElementById('jm-quantity');
   if (hid) hid.value = _jmCalSelectedYmd;
   if (hs) hs.value = t0.length === 5 ? `${t0}:00` : t0;
   if (he) he.value = t1.length === 5 ? `${t1}:00` : t1;
+  if (q) q.value = String(cnt);
   syncJmSlotSummary();
+  updateJobPricePreview();
   refreshJobSlotPreview();
   document.getElementById('jm-cal-modal')?.remove();
-  toast('Takvim seçildi; slotlar forma işlendi', 'ok');
+  toast(`Takvim seçildi; ${cnt} slot için forma işlendi`, 'ok');
 }
 
 function refreshJobMarketMap() {
