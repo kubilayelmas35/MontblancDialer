@@ -35,7 +35,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v6.66 — 2026</div>
+<div class="login-version">v6.67 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -307,7 +307,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.66</div>
+<div class="sb-ver">MontBlanc v6.67</div>
 </div>
 </nav>
 <main id="main">
@@ -1571,15 +1571,18 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 </select>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<select class="form-input" id="jm-country" title="Ülke">
+<select class="form-input" id="jm-country" title="Ülke" onchange="refreshJobRadiusPreview()">
 <option value="">Ülke seçin</option>
 <option value="Türkiye">Türkiye</option>
 <option value="Deutschland">Almanya</option>
 </select>
-<input class="form-input" id="jm-city" placeholder="Şehir / posta kodu">
+<input class="form-input" id="jm-city" placeholder="Şehir">
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<input class="form-input" id="jm-radius" type="number" min="0" step="0.1" placeholder="Yarıçap km (opsiyonel)">
+<input class="form-input" id="jm-postal-code" placeholder="Posta kodu" oninput="refreshJobRadiusPreview()">
+<input class="form-input" id="jm-radius" type="number" min="0" step="0.1" placeholder="Yarıçap km (opsiyonel)" oninput="refreshJobRadiusPreview()">
+</div>
+<div style="display:grid;grid-template-columns:1fr;gap:8px;">
 <input class="form-input" id="jm-deadline" type="datetime-local" title="İlan son tarihi (opsiyonel)">
 </div>
 <div class="form-row" style="margin:0;">
@@ -3002,16 +3005,16 @@ QC Detay
 <script src="js/state.js?v=6.34"></script>
 <script src="js/api.js?v=6.34"></script>
 <script src="js/auth.js?v=6.54"></script>
-<script src="js/ui.js?v=6.66"></script>
+<script src="js/ui.js?v=6.67"></script>
 <script src="js/chat.js?v=6.35"></script>
 <script src="js/chat-settings.js?v=6.35"></script>
 <script src="js/field-settings.js?v=6.38"></script>
 <script src="js/audit.js?v=6.44"></script>
 <script src="js/feature-flags.js?v=6.46"></script>
-<script src="js/notification-center.js?v=6.66"></script>
+<script src="js/notification-center.js?v=6.67"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="js/wallet.js?v=6.52"></script>
-<script src="js/job-market.js?v=6.66"></script>
+<script src="js/job-market.js?v=6.67"></script>
 <script src="js/qc-job-market.js?v=6.52"></script>
 <script src="js/export-admin.js?v=6.34"></script>
 <script src="js/export-termin.js?v=6.52"></script>

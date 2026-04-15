@@ -2,6 +2,7 @@ let _jobPosts = [];
 let _jobPostWorkers = [];
 let _jobPostSubs = [];
 let _jobPostSlots = [];
+let _jobGeoRules = [];
 let _jobFirmStats = {};
 let _jobListTab = 'active';
 let _jobPreset = '';
@@ -11,6 +12,8 @@ let _jobMap = null;
 let _jobPolygonPoints = [];
 let _jobPolygonLayer = null;
 let _jobVertexMarkers = [];
+let _jobRadiusCircle = null;
+let _jobRadiusMarker = null;
 
 function _jmEsc(s) {
   const d = document.createElement('div');
@@ -106,6 +109,37 @@ function syncJmSlotSummary() {
   el.innerHTML = `<span style="color:var(--text-2);font-weight:600;">${label}</span>`;
 }
 
+function renderSelectedSlotsEditor() {
+  const box = document.getElementById('jm-slot-selected-list');
+  if (!box) return;
+  const sorted = [..._jmCalSelections].sort((a, b) => (a.ymd + a.hh).localeCompare(b.ymd + b.hh));
+  if (!sorted.length) {
+    box.innerHTML = `<div style="font-size:11px;color:var(--text-3);">Henüz slot seçilmedi.</div>`;
+    return;
+  }
+  box.innerHTML = sorted.map((s, i) => {
+    const h = Number(String(s.hh || '00:00').slice(0, 2));
+    const eh = String(Math.min(23, h + _jmCalSlotHours)).padStart(2, '0');
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;border-bottom:1px dashed var(--border);">
+<span style="font-size:11px;">${i + 1}) ${_jmEsc(s.ymd)} ${_jmEsc(s.hh.slice(0, 5))}–${eh}:00</span>
+<button type="button" class="btn btn-ghost btn-sm" onclick="jmRemoveSelection('${s.ymd}','${s.hh}')" style="padding:2px 6px;">Sil</button>
+</div>`;
+  }).join('');
+}
+
+function jmRemoveSelection(ymd, hh) {
+  const key = jmSelectionKey(ymd, hh);
+  _jmCalSelections = _jmCalSelections.filter((s) => jmSelectionKey(s.ymd, s.hh) !== key);
+  jmCalRecomputeFromSelections();
+  renderJobMarketCalendarGrid();
+}
+
+function jmClearSelections() {
+  _jmCalSelections = [];
+  jmCalRecomputeFromSelections();
+  renderJobMarketCalendarGrid();
+}
+
 function openJobMarketSlotCalendarModal() {
   if (String(document.getElementById('jm-type')?.value || '') !== 'appointment') {
     toast('Önce ilan türü Randevu olmalı', 'warn');
@@ -147,6 +181,7 @@ function openJobMarketSlotCalendarModal() {
   <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><input type="checkbox" id="jm-cal-show-sun" ${_jmCalShowSun ? 'checked' : ''} onchange="jmCalToggleWeekend()">Paz</label>
 </div>
 <div id="jm-cal-modal-body" style="padding:12px 16px;max-height:62vh;overflow:auto;"></div>
+<div id="jm-slot-selected-list" style="margin:0 16px 8px 16px;padding:8px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;"></div>
 <div class="modal-footer" style="flex-wrap:wrap;gap:8px;align-items:end;">
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:260px;">
 <div><label class="form-label" style="font-size:11px;">Başlangıç saati</label><input type="time" class="form-input" id="jm-cal-t0" value="${String(document.getElementById('jm-slot-start')?.value || '10:00').slice(0, 5)}"></div>
@@ -165,6 +200,7 @@ function openJobMarketSlotCalendarModal() {
   <option value="4">4 saat</option>
 </select>
 </div>
+<button type="button" class="btn btn-ghost" onclick="jmClearSelections()">Seçimi Temizle</button>
 <button type="button" class="btn btn-primary" onclick="jmCalApply()">Slotu Uygula</button>
 </div>
 </div>`;
@@ -235,6 +271,7 @@ function jmSelectionKey(ymd, hh) {
 function jmCalOnSlotHoursChange() {
   _jmCalSlotHours = Math.max(1, Number(document.getElementById('jm-cal-slot-hours')?.value || 2));
   if (_jmCalSelections.length) jmCalRecomputeFromSelections();
+  renderSelectedSlotsEditor();
 }
 
 function jmCalRecomputeFromSelections() {
@@ -243,6 +280,10 @@ function jmCalRecomputeFromSelections() {
   const cEl = document.getElementById('jm-cal-count');
   if (!_jmCalSelections.length) {
     if (cEl) cEl.value = '1';
+    const t0 = document.getElementById('jm-cal-t0');
+    const t1 = document.getElementById('jm-cal-t1');
+    if (t0 && !t0.value) t0.value = '10:00';
+    if (t1 && !t1.value) t1.value = '12:00';
     return;
   }
   const sorted = [..._jmCalSelections].sort((a, b) => (a.ymd + a.hh).localeCompare(b.ymd + b.hh));
@@ -331,6 +372,7 @@ ${JM_WD_TR[(dt.getDay() + 6) % 7]}<br><span style="font-size:13px;font-weight:90
       .join(' · ')
     : 'Henüz seçim yok';
   body.innerHTML = `${html}<div class="jm-hint" style="margin-top:8px;">Kampanya takvimi gibi görünüm: saat satırına tıklayarak birden çok slot seçebilirsiniz.</div><div class="jm-hint" style="margin-top:6px;"><b>Seçilen slotlar:</b> ${preview}</div>`;
+  renderSelectedSlotsEditor();
 }
 
 function jmCalPickDay(ymd) {
@@ -378,6 +420,36 @@ function jmCalApply() {
   refreshJobSlotPreview();
   document.getElementById('jm-cal-modal')?.remove();
   toast(`Takvim seçildi; ${cnt} slot için forma işlendi`, 'ok');
+}
+
+async function geocodePostalCode(country, postalCode) {
+  const q = String(postalCode || '').trim();
+  if (!q) return null;
+  const cc = String(country || '').toLowerCase().includes('alm') || String(country || '').toLowerCase().includes('deutsch') ? 'de' : 'tr';
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=${encodeURIComponent(cc)}&postalcode=${encodeURIComponent(q)}`;
+  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!res.ok) return null;
+  const rows = await res.json();
+  const r = rows?.[0];
+  if (!r) return null;
+  return { lat: Number(r.lat), lng: Number(r.lon) };
+}
+
+async function refreshJobRadiusPreview() {
+  if (!_jobMap) return;
+  const postal = String(document.getElementById('jm-postal-code')?.value || '').trim();
+  const country = String(document.getElementById('jm-country')?.value || '').trim();
+  const radiusKm = Number(document.getElementById('jm-radius')?.value || 0);
+  if (_jobRadiusCircle) { _jobMap.removeLayer(_jobRadiusCircle); _jobRadiusCircle = null; }
+  if (_jobRadiusMarker) { _jobMap.removeLayer(_jobRadiusMarker); _jobRadiusMarker = null; }
+  if (!postal || radiusKm <= 0) return;
+  try {
+    const loc = await geocodePostalCode(country, postal);
+    if (!loc || !Number.isFinite(loc.lat) || !Number.isFinite(loc.lng)) return;
+    _jobRadiusMarker = L.marker([loc.lat, loc.lng]).addTo(_jobMap);
+    _jobRadiusCircle = L.circle([loc.lat, loc.lng], { radius: radiusKm * 1000, color: '#16a34a', fillColor: '#16a34a', fillOpacity: 0.12 }).addTo(_jobMap);
+    _jobMap.fitBounds(_jobRadiusCircle.getBounds(), { padding: [20, 20] });
+  } catch (_) {}
 }
 
 function refreshJobMarketMap() {
@@ -457,14 +529,19 @@ function openJobSlotsModal(jobPostId) {
   const post = (_jobPosts || []).find((p) => p.id === jobPostId);
   const slots = (_jobPostSlots || []).filter((s) => s.job_post_id === jobPostId).sort((a, b) => new Date(a.slot_start_at) - new Date(b.slot_start_at));
   const title = post?.title || 'Müsait slotlar';
+  const canManage = post && (post.requester_firm_id === (getActiveFirmId() || currentUser?.firm_id) || currentUser?.role === 'super_admin');
   const rows = slots.length
     ? slots.map((s) => {
       const st = s.status || 'open';
       const a = new Date(s.slot_start_at).toLocaleString('tr-TR');
       const b = new Date(s.slot_end_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-      return `<tr><td style="padding:6px 8px;font-size:12px;">${_jmEsc(a)}</td><td style="padding:6px 8px;font-size:12px;">${_jmEsc(b)}</td><td style="padding:6px 8px;font-size:12px;">${_jmEsc(st)}</td></tr>`;
+      const act = canManage && st === 'open'
+        ? `<button class="btn btn-ghost btn-sm" type="button" style="padding:2px 6px;" onclick="editJobSlot('${s.id}')">Düzenle</button>
+           <button class="btn btn-ghost btn-sm" type="button" style="padding:2px 6px;color:var(--red);border-color:var(--red);" onclick="deleteJobSlot('${s.id}','${jobPostId}')">Sil</button>`
+        : '';
+      return `<tr><td style="padding:6px 8px;font-size:12px;">${_jmEsc(a)}</td><td style="padding:6px 8px;font-size:12px;">${_jmEsc(b)}</td><td style="padding:6px 8px;font-size:12px;">${_jmEsc(st)}</td><td style="padding:6px 8px;font-size:12px;">${act}</td></tr>`;
     }).join('')
-    : '<tr><td colspan="3" style="padding:12px;font-size:12px;color:var(--text-3);">Bu ilan için slot yok veya henüz yüklenmedi.</td></tr>';
+    : '<tr><td colspan="4" style="padding:12px;font-size:12px;color:var(--text-3);">Bu ilan için slot yok veya henüz yüklenmedi.</td></tr>';
   const ov = document.createElement('div');
   ov.id = 'jm-slots-modal';
   ov.className = 'modal-overlay open';
@@ -473,7 +550,7 @@ function openJobSlotsModal(jobPostId) {
 <div style="padding:12px 16px;max-height:62vh;overflow:auto;">
 <div class="jm-hint" style="margin-bottom:10px;">Randevu ilanlarında ilan sahibinin açtığı müsait zamanlar. Gerçek randevu ataşmanız kendi süreçinize (teslim / CRM) bağlıdır.</div>
 <table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="text-align:left;border-bottom:1px solid var(--border);">
-<th style="padding:6px 8px;">Başlangıç</th><th style="padding:6px 8px;">Bitiş (saat)</th><th style="padding:6px 8px;">Durum</th>
+<th style="padding:6px 8px;">Başlangıç</th><th style="padding:6px 8px;">Bitiş (saat)</th><th style="padding:6px 8px;">Durum</th><th style="padding:6px 8px;">İşlem</th>
 </tr></thead><tbody>${rows}</tbody></table>
 </div>
 <div class="modal-footer">
@@ -482,6 +559,79 @@ function openJobSlotsModal(jobPostId) {
 </div>`;
   ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
   document.body.appendChild(ov);
+}
+
+function openJobRegionModal(jobPostId) {
+  const post = (_jobPosts || []).find((p) => p.id === jobPostId);
+  if (!post) return;
+  const geo = (_jobGeoRules || []).find((g) => g.job_post_id === jobPostId) || {};
+  document.getElementById('jm-region-modal')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'jm-region-modal';
+  ov.className = 'modal-overlay open';
+  ov.innerHTML = `<div class="modal" style="max-width:760px;">
+<div class="modal-hdr"><div class="modal-title">İş Bölgesi</div><button type="button" class="modal-close" onclick="document.getElementById('jm-region-modal').remove()">&times;</button></div>
+<div style="padding:10px 14px;">
+  <div style="font-size:12px;color:var(--text-3);margin-bottom:8px;">${_jmEsc(post.country || '')} ${_jmEsc(post.city || '')} ${_jmEsc(post.postal_code || '')} · Radius: ${Number(geo.radius_km || 0).toFixed(1)} km</div>
+  <div id="jm-region-map" style="height:320px;border:1px solid var(--border);border-radius:8px;"></div>
+</div>
+<div class="modal-footer"><button type="button" class="btn btn-ghost" onclick="document.getElementById('jm-region-modal').remove()">Kapat</button></div>
+</div>`;
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  document.body.appendChild(ov);
+  if (typeof L === 'undefined') return;
+  const map = L.map('jm-region-map', { scrollWheelZoom: true }).setView([51.1657, 10.4515], 7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+  const place = [post.country, post.postal_code, post.city].filter(Boolean).join(' ');
+  geocodePostalCode(post.country, post.postal_code || post.city || '').then((loc) => {
+    if (!loc) return;
+    L.marker([loc.lat, loc.lng]).addTo(map);
+    const rk = Number(geo.radius_km || 0);
+    if (rk > 0) {
+      const c = L.circle([loc.lat, loc.lng], { radius: rk * 1000, color: '#16a34a', fillColor: '#16a34a', fillOpacity: 0.12 }).addTo(map);
+      map.fitBounds(c.getBounds(), { padding: [20, 20] });
+    } else {
+      map.setView([loc.lat, loc.lng], 11);
+    }
+  }).catch(() => {});
+}
+
+async function deleteJobSlot(slotId, jobPostId) {
+  if (!slotId) return;
+  if (!(await mbConfirm('Bu açık slot silinsin mi?', 'Slot Sil'))) return;
+  try {
+    await sb(`job_post_slots?id=eq.${slotId}&status=eq.open`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ status: 'cancelled' }) });
+    toast('Slot silindi', 'ok');
+    await loadJobPosts();
+    openJobSlotsModal(jobPostId);
+  } catch (e) {
+    toast('Slot silinemedi', 'err');
+  }
+}
+
+async function editJobSlot(slotId) {
+  const slot = (_jobPostSlots || []).find((s) => s.id === slotId);
+  if (!slot) return;
+  const startRaw = new Date(slot.slot_start_at);
+  const endRaw = new Date(slot.slot_end_at);
+  const newStart = await mbPrompt('Yeni başlangıç (YYYY-MM-DD HH:MM)', `${startRaw.getFullYear()}-${String(startRaw.getMonth() + 1).padStart(2, '0')}-${String(startRaw.getDate()).padStart(2, '0')} ${String(startRaw.getHours()).padStart(2, '0')}:${String(startRaw.getMinutes()).padStart(2, '0')}`, 'Slot Düzenle');
+  if (!newStart) return;
+  const newEnd = await mbPrompt('Yeni bitiş (YYYY-MM-DD HH:MM)', `${endRaw.getFullYear()}-${String(endRaw.getMonth() + 1).padStart(2, '0')}-${String(endRaw.getDate()).padStart(2, '0')} ${String(endRaw.getHours()).padStart(2, '0')}:${String(endRaw.getMinutes()).padStart(2, '0')}`, 'Slot Düzenle');
+  if (!newEnd) return;
+  const s = new Date(newStart.replace(' ', 'T'));
+  const e = new Date(newEnd.replace(' ', 'T'));
+  if (!Number.isFinite(s.getTime()) || !Number.isFinite(e.getTime()) || e <= s) { toast('Tarih/saat geçersiz', 'warn'); return; }
+  try {
+    await sb(`job_post_slots?id=eq.${slotId}&status=eq.open`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ slot_start_at: s.toISOString(), slot_end_at: e.toISOString() })
+    });
+    toast('Slot güncellendi', 'ok');
+    await loadJobPosts();
+  } catch (err) {
+    toast('Slot güncellenemedi', 'err');
+  }
 }
 
 async function getJobPermissions(fid) {
@@ -625,10 +775,12 @@ async function loadJobPosts() {
     const workers = await sb(`job_post_workers?select=id,job_post_id,worker_firm_id,status`).catch(() => []);
     const subs = await sb(`job_submissions?select=id,job_post_id,worker_firm_id,status,created_at,appointment_id&order=created_at.desc&limit=400`).catch(() => []);
     const slots = await sb(`job_post_slots?select=id,job_post_id,status,slot_start_at,slot_end_at&order=slot_start_at.asc&limit=2000`).catch(() => []);
+    const geoRules = await sb(`job_post_geo_rules?select=job_post_id,radius_km,polygon_geojson&limit=2000`).catch(() => []);
     _jobPosts = posts || [];
     _jobPostWorkers = workers || [];
     _jobPostSubs = subs || [];
     _jobPostSlots = slots || [];
+    _jobGeoRules = geoRules || [];
     _jobFirmStats = buildJobFirmStats(_jobPostSubs);
     renderJobPostList();
     if (typeof loadJobMarketKpi === 'function') loadJobMarketKpi();
@@ -701,6 +853,7 @@ function renderJobPostList() {
     const myWorker = _jobPostWorkers.find((w) => w.job_post_id === p.id && w.worker_firm_id === fid);
     const mySubs = _jobPostSubs.filter((s) => s.job_post_id === p.id && s.worker_firm_id === fid);
     const slots = _jobPostSlots.filter((s) => s.job_post_id === p.id);
+    const geo = _jobGeoRules.find((g) => g.job_post_id === p.id) || {};
     const score = calcJobMatchScore(p, fid);
     const apptCat = p.job_type === 'appointment' ? _jmAppointmentCategoryLabelFromRequirements(p.requirements) : '';
     const deadline = p.deadline_at ? new Date(p.deadline_at).toLocaleString('tr-TR') : '—';
@@ -727,6 +880,7 @@ function renderJobPostList() {
 <div style="font-size:13px;font-weight:800;">${_jmEsc(p.title || 'İş ilanı')}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_jmEsc(p.job_type || 'custom')}${apptCat ? ` · <span style="color:var(--text-2);font-weight:600;">${_jmEsc(apptCat)}</span>` : ''} · ${_jmEsc(p.city || 'Bölge serbest')} · Son: ${deadline}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">İşlem başı: <b>${Number(p.unit_price || p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'TRY')}</b> · Adet: <b>${Number(p.quantity || slots.length || 1)}</b> · Toplam: <b>${Number(p.budget || 0).toFixed(2)}</b> · Çalışan: <b>${workingCnt}</b> · Eşleşme: <b>${score}</b>/100</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:2px;">Bölge: <b>${_jmEsc(p.postal_code || '-')}</b> · Radius: <b>${Number(geo.radius_km || 0).toFixed(1)} km</b></div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Geri çekme: <b>${p.retraction_deadline_at ? new Date(p.retraction_deadline_at).toLocaleString('tr-TR') : 'otomatik kural'}</b>${retractHint}</div>
 </div>
 <div><span class="badge badge-blue">${_jmEsc(p.status || 'published')}</span></div>
@@ -735,6 +889,7 @@ ${p.description ? `<div style="font-size:12px;color:var(--text-2);margin-top:8px
 ${slots.length ? `<div style="font-size:11px;color:var(--text-3);margin-top:6px;">Slotlar: ${slots.slice(0,4).map((s) => `${new Date(s.slot_start_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}-${new Date(s.slot_end_at).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}`).join(' | ')}${slots.length>4?' ...':''}</div>` : ''}
 <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:10px;">
 ${slots.length && p.job_type === 'appointment' ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openJobSlotsModal('${p.id}')">Takvimi aç (${slots.length})</button>` : ''}
+<button type="button" class="btn btn-ghost btn-sm" onclick="openJobRegionModal('${p.id}')">Bölgeyi Gör</button>
 ${!isOwner ? `<button type="button" class="btn btn-ghost btn-sm" onclick="joinJobPost('${p.id}')">${myWorker ? 'Çalışıyorum' : 'Buna çalışacağım'}</button>` : `<span style="font-size:11px;color:var(--text-3);">İlan sahibi sizsiniz</span>`}
 ${canWithdrawUi ? `<button type="button" class="btn btn-ghost btn-sm" style="border-color:var(--red);color:var(--red);" onclick="withdrawJobPost('${p.id}')">İlanı geri çek</button>` : ''}
 ${!isOwner ? `<button type="button" class="btn btn-primary btn-sm" onclick="openJobSubmissionModal('${p.id}')">Teslim gir</button>` : ''}
@@ -763,6 +918,7 @@ async function createJobPost() {
   const apptCat = String(document.getElementById('jm-appt-category')?.value || '').trim();
   const country = String(document.getElementById('jm-country')?.value || '').trim();
   const city = String(document.getElementById('jm-city')?.value || '').trim();
+  const postalCode = String(document.getElementById('jm-postal-code')?.value || '').trim();
   const radiusKm = Number(document.getElementById('jm-radius')?.value || 0);
   const retractRaw = String(document.getElementById('jm-retract-by')?.value || '').trim();
   const deadline = document.getElementById('jm-deadline')?.value || null;
@@ -816,7 +972,7 @@ async function createJobPost() {
         p_requester_firm_id: ownerFirmId,
         p_country: country || null,
         p_city: city || null,
-        p_postal_code: null,
+        p_postal_code: postalCode || null,
         p_radius_km: radiusKm || null,
         p_polygon_geojson: polygon,
         p_requirements: requirementsPayload || null,
@@ -891,6 +1047,7 @@ function onJobTypeChange() {
   refreshJobSlotPreview();
   ensureJobMarketMap();
   refreshJobMarketMap();
+  refreshJobRadiusPreview();
 }
 
 function updateJobPricePreview() {
@@ -933,6 +1090,7 @@ function ensureJobMarketMap() {
     setTimeout(fix, 120);
     setTimeout(fix, 450);
   });
+  refreshJobRadiusPreview();
 }
 
 function drawJobPolygon() {
