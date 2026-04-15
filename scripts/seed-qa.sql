@@ -9,6 +9,11 @@ delete from public.field_tasks where firm_id in (select id from qa_firms);
 with qa_firms as (
   select id from public.firms where slug in ('qa-alpha','qa-beta','qa-gamma')
 )
+delete from public.call_logs where firm_id in (select id from qa_firms);
+
+with qa_firms as (
+  select id from public.firms where slug in ('qa-alpha','qa-beta','qa-gamma')
+)
 delete from public.appointments where firm_id in (select id from qa_firms);
 
 with qa_firms as (
@@ -80,7 +85,7 @@ join (
 
 insert into public.contacts (campaign_id, firm_id, phone, phone2, first_name, last_name, address, city, plz, notes, status, attempt_count)
 select c.id, c.firm_id,
-       '+4915' || lpad((10000000 + gs.n)::text, 8, '0') as phone,
+       '+4915' || lpad((10000000 + (row_number() over (order by c.id, gs.n)))::text, 8, '0') as phone,
        null,
        'Test' || gs.n,
        'Kontakt',
@@ -88,12 +93,64 @@ select c.id, c.firm_id,
        case when f.slug='qa-gamma' then 'München' else 'Berlin' end,
        case when f.slug='qa-beta' then '50667' else '10115' end,
        'QA seed contact',
-       'pending',
-       0
+       case
+         when gs.n % 8 = 0 then 'appointment'
+         when gs.n % 7 = 0 then 'callback'
+         when gs.n % 5 = 0 then 'negative'
+         when gs.n % 3 = 0 then 'no_answer'
+         when gs.n % 2 = 0 then 'calling'
+         else 'pending'
+       end,
+       least(5, gs.n % 6)
 from public.campaigns c
 join public.firms f on f.id = c.firm_id
-cross join lateral (select n from generate_series(1,6) as n) gs
+cross join lateral (select n from generate_series(1,30) as n) gs
 where c.name like 'QA %';
+
+update public.contacts c
+set
+  last_called_at = now() - ((2 + (c.attempt_count * 3)) || ' hours')::interval,
+  callback_at = case when c.status = 'callback' then now() + ((2 + (c.attempt_count % 4)) || ' hours')::interval else null end
+where c.notes = 'QA seed contact';
+
+insert into public.call_logs (
+  contact_id, agent_id, campaign_id, firm_id, phone, outcome, duration_sec,
+  notes, telnyx_call_id, cost_usd, started_at, ended_at, callback_at
+)
+select
+  c.id,
+  ag.id,
+  c.campaign_id,
+  c.firm_id,
+  c.phone,
+  case
+    when (row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 11 = 0 then 'appointment_booked'
+    when (row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 7 = 0 then 'sale_closed'
+    when (row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 5 = 0 then 'no_answer'
+    when (row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 4 = 0 then 'busy'
+    when (row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 3 = 0 then 'callback_requested'
+    else 'not_interested'
+  end,
+  45 + (((row_number() over (partition by c.firm_id order by c.created_at, c.id)) * 17) % 380),
+  'QA seed call log',
+  'qa-' || replace(c.id::text, '-', ''),
+  round(((20 + ((row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 50))::numeric) / 1000, 4),
+  now() - (((row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 96) || ' hours')::interval,
+  now() - ((((row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 96) || ' hours')::interval) + ((30 + ((row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 200)) || ' seconds')::interval,
+  case
+    when (row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 3 = 0
+      then now() + (((row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 10 + 1) || ' hours')::interval
+    else null
+  end
+from public.contacts c
+join lateral (
+  select u.id
+  from public.users u
+  where u.firm_id = c.firm_id and u.role = 'agent' and u.is_active = true
+  order by u.created_at
+  limit 1
+) ag on true
+where c.notes = 'QA seed contact';
 
 insert into public.appointments (
   contact_id, agent_id, campaign_id, firm_id,
@@ -117,7 +174,11 @@ select ct.id,
        '12',
        '24000',
        '3',
-       case when row_number() over (partition by ct.firm_id order by ct.created_at, ct.id) % 3 = 0 then 'basarili' else 'qc_bekleniyor' end,
+       case
+         when row_number() over (partition by ct.firm_id order by ct.created_at, ct.id) % 5 = 0 then 'basarisiz'
+         when row_number() over (partition by ct.firm_id order by ct.created_at, ct.id) % 3 = 0 then 'basarili'
+         else 'qc_bekleniyor'
+       end,
        'QA seed appointment',
        now() + ((row_number() over (partition by ct.firm_id order by ct.created_at, ct.id)) || ' hours')::interval
 from public.contacts ct
@@ -129,9 +190,20 @@ join lateral (
   limit 1
 ) ag on true
 where ct.notes = 'QA seed contact'
+  and ct.status in ('appointment','callback','calling')
   and not exists (
     select 1 from public.appointments a where a.contact_id = ct.id
   );
+
+update public.appointments a
+set call_log_id = (
+  select c.id
+  from public.call_logs c
+  where c.contact_id = a.contact_id
+  order by c.started_at desc nulls last
+  limit 1
+)
+where a.agent_notu = 'QA seed appointment';
 
 insert into public.field_tasks (firm_id, appointment_id, contact_id, assigned_to, assigned_by, status, result_payload, notes)
 select a.firm_id,
@@ -139,8 +211,20 @@ select a.firm_id,
        a.contact_id,
        fa.id,
        ad.id,
-       'assigned',
-       '{}'::jsonb,
+       case
+         when row_number() over (partition by a.firm_id order by a.termin_tarih, a.id) % 6 = 0 then 'cancelled'
+         when row_number() over (partition by a.firm_id order by a.termin_tarih, a.id) % 4 = 0 then 'completed'
+         when row_number() over (partition by a.firm_id order by a.termin_tarih, a.id) % 2 = 0 then 'in_progress'
+         else 'assigned'
+       end,
+       jsonb_build_object(
+         'visit_result',
+         case
+           when row_number() over (partition by a.firm_id order by a.termin_tarih, a.id) % 4 = 0 then 'ok'
+           when row_number() over (partition by a.firm_id order by a.termin_tarih, a.id) % 6 = 0 then 'cancelled_by_customer'
+           else 'pending'
+         end
+       ),
        'QA seed field task'
 from public.appointments a
 join lateral (
@@ -162,10 +246,16 @@ where a.agent_notu = 'QA seed appointment'
     select 1 from public.field_tasks ft where ft.appointment_id = a.id
   );
 
+update public.field_tasks
+set completed_at = now() - interval '2 hours'
+where notes = 'QA seed field task'
+  and status = 'completed';
+
 select
   (select count(*) from public.firms where slug in ('qa-alpha','qa-beta','qa-gamma')) as qa_firms,
   (select count(*) from public.users where email like '%@mb-test.local') as qa_users,
   (select count(*) from public.campaigns where name like 'QA %') as qa_campaigns,
   (select count(*) from public.contacts where notes = 'QA seed contact') as qa_contacts,
+  (select count(*) from public.call_logs where notes = 'QA seed call log') as qa_call_logs,
   (select count(*) from public.appointments where agent_notu = 'QA seed appointment') as qa_appointments,
   (select count(*) from public.field_tasks where notes = 'QA seed field task') as qa_field_tasks;
