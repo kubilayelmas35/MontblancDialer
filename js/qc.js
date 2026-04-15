@@ -57,6 +57,7 @@ function renderQcTable() {
   const tbody = document.getElementById('qc-tbody');
   if (!tbody) return;
   const canAssignField = ['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '');
+  const hasCustomers = (window._qcCustomers || []).length > 0;
   const search = (document.getElementById('qc-search')?.value||'').toLowerCase();
   let list = [...(qcList||[])];
   list = list.filter(r => ['appointment','appointment_done'].includes(r.outcome) || r.contacts?.durum);
@@ -116,12 +117,12 @@ function renderQcTable() {
 <td style="font-family:var(--mono);font-size:12px;">${contact.plz||'—'}</td>
 <td style="font-size:12px;">${agentName}</td>
 <td style="font-size:11px;">${campName}</td>
-<td>
+<td>${hasCustomers ? `
   <select class="form-input" id="qc-customer-select-${r.id}" style="min-width:150px;">
     <option value="">Müşteri seç</option>
     ${customerOptions.replace(`value="${selectedCustomer}"`, `value="${selectedCustomer}" selected`)}
   </select>
-</td>
+` : `<span style="font-size:11px;color:var(--text-3);">—</span>`}</td>
 <td>${recHtml}</td>
 <td><span style="font-size:11px;font-weight:700;color:${durumColor};">${durum}</span></td>
 <td>
@@ -144,6 +145,7 @@ function openQcDetail(logId) {
   const name = `${contact.first_name||''} ${contact.last_name||''}`.trim()||'—';
   const dt = r.started_at ? new Date(r.started_at).toLocaleString('tr-TR') : '—';
   const body = document.getElementById('qc-detail-body');
+  const hasCustomers = (window._qcCustomers || []).length > 0;
   if (body) body.innerHTML = `
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">MÜŞTERİ</div><div style="font-weight:700;">${name}</div></div>
@@ -155,7 +157,7 @@ function openQcDetail(logId) {
 ${contact.notes ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">NOT</div><div>${contact.notes}</div></div>` : ''}
 ${r.recording_url ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:6px;">KAYIT</div><audio controls src="${r.recording_url}" style="width:100%;"></audio></div>` : ''}
 </div>
-<div style="margin-top:10px;">
+${hasCustomers ? `<div style="margin-top:10px;">
   <label class="form-label">Müşteri</label>
   <select class="form-input" id="qc-detail-customer" style="width:100%;">
     <option value="">Müşteri seç</option>
@@ -164,7 +166,7 @@ ${r.recording_url ? `<div style="background:var(--bg-3);padding:8px;border-radiu
       return `<option value="${c.id}" ${ap.customer_id === c.id ? 'selected' : ''}>${c.name}</option>`;
     }).join('')}
   </select>
-</div>
+</div>` : ''}
 <div style="margin-top:10px;">
   <label class="form-label">Sonuç</label>
   <select class="form-input" id="qc-status-select" style="width:100%;">
@@ -187,10 +189,11 @@ async function qcUpdateStatus(status) {
 async function quickQcUpdate(logId, status) {
   const r = (qcList||[]).find(x => x.id === logId);
   if (!r?.contact_id) { toast('Contact ID yok','err'); return; }
+  const hasCustomers = (window._qcCustomers || []).length > 0;
   const customerId = document.getElementById(`qc-customer-select-${logId}`)?.value
     || document.getElementById('qc-detail-customer')?.value
     || '';
-  if (!customerId) { toast('Önce müşteri seçmelisiniz', 'err'); return; }
+  if (hasCustomers && !customerId) { toast('Önce müşteri seçmelisiniz', 'err'); return; }
   const resultKey = _normResultKey(status || '');
   const resultCfg = window._qcResultMap?.[resultKey];
   const contactStatus = resultCfg?.contact_status || appointmentResultToContactStatus(resultKey);
@@ -206,7 +209,7 @@ async function quickQcUpdate(logId, status) {
       await sb(`appointments?id=eq.${apptRows[0].id}`, {
         method: 'PATCH',
         prefer: 'return=minimal',
-        body: JSON.stringify({ customer_id: customerId, durum: apptStatus }),
+        body: JSON.stringify({ customer_id: hasCustomers ? (customerId || null) : null, durum: apptStatus }),
       });
       if (cfg?.auto_move_down) {
         const slots = await sb(`takvim_slots?appointment_id=eq.${apptRows[0].id}&select=id&limit=1`).catch(() => []);

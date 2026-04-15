@@ -53,12 +53,7 @@ function _renderCustomerField(ctx, selectId) {
     `<option value="${c.id}" ${String(ctx.selectedId || '') === String(c.id) ? 'selected' : ''}>${(c.code ? c.code + ' · ' : '') + c.name}</option>`
   ).join('');
   if (!ctx.customers?.length) {
-    return `<div class="form-row" style="grid-column:1/-1;">
-      <label class="form-label">Müşteri</label>
-      <div style="font-size:11px;color:var(--text-3);padding:8px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;">
-        Müşteri listesi boş. Muhasebe sayfasından müşteri ekleyin.
-      </div>
-    </div>`;
+    return '';
   }
   if (!ctx.canSelect) {
     return `<div class="form-row" style="grid-column:1/-1;">
