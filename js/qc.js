@@ -56,6 +56,7 @@ function filterQcTable() { renderQcTable(); }
 function renderQcTable() {
   const tbody = document.getElementById('qc-tbody');
   if (!tbody) return;
+  const canAssignField = ['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '');
   const search = (document.getElementById('qc-search')?.value||'').toLowerCase();
   let list = [...(qcList||[])];
   list = list.filter(r => ['appointment','appointment_done'].includes(r.outcome) || r.contacts?.durum);
@@ -105,6 +106,9 @@ function renderQcTable() {
       : `<button class="icon-btn" onclick="openQcDetail('${r.id}')" title="Detay"><i class="ph ph-magnifying-glass"></i></button>`;
     const ap = window._qcApptByContact?.[r.contact_id] || {};
     const selectedCustomer = ap.customer_id || '';
+    const assignBtn = canAssignField
+      ? `<button class="icon-btn" ${ap.id ? '' : 'disabled style="opacity:.45;cursor:not-allowed;"'} onclick="${ap.id ? `openFieldAssignModal('${ap.id}','${r.firm_id || currentUser?.firm_id || ''}')` : 'void(0)'}" title="Sahaya Ata"><i class="ph ph-map-pin"></i></button>`
+      : '';
     return `<tr>
 <td style="font-family:var(--mono);font-size:11px;">${dt}</td>
 <td style="font-weight:600;cursor:pointer;" onclick="openQcDetail('${r.id}')">${name}</td>
@@ -123,6 +127,7 @@ function renderQcTable() {
 <td>
 <div style="display:flex;gap:3px;align-items:center;">
 ${contactDetailBtn}
+${assignBtn}
 <button class="icon-btn" style="border-color:var(--green);color:var(--green);" onclick="quickQcUpdate('${r.id}','başarılı')" title="Başarılı"><i class="ph ph-check"></i></button>
 <button class="icon-btn" style="border-color:var(--red);color:var(--red);" onclick="quickQcUpdate('${r.id}','başarısız')" title="Başarısız"><i class="ph ph-x"></i></button>
 </div>
