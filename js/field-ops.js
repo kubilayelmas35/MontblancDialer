@@ -102,20 +102,30 @@ async function loadFieldOpsPage() {
   }
   if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>';
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/rpc/list_field_tasks_for_user`, {
-      method: 'POST',
-      headers: {
-        apikey: SB_KEY,
-        Authorization: `Bearer ${SB_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        p_actor_user_id: currentUser.id,
-        p_firm_id: fid
-      })
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const tasks = (await res.json().catch(() => [])) || [];
+    const headers = {
+      apikey: SB_KEY,
+      Authorization: `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json'
+    };
+    const callRpc = async (payload) => {
+      const r = await fetch(`${SB_URL}/rest/v1/rpc/list_field_tasks_for_user`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+      const body = await r.json().catch(() => ({}));
+      return { ok: r.ok, status: r.status, body };
+    };
+    let rpc = await callRpc({ p_actor_user_id: currentUser.id, p_firm_id: fid });
+    // Some PostgREST setups are strict about nullable/default args.
+    if (!rpc.ok && fid == null) {
+      rpc = await callRpc({ p_actor_user_id: currentUser.id });
+    }
+    if (!rpc.ok) {
+      const msg = rpc.body?.message || rpc.body?.hint || `HTTP ${rpc.status}`;
+      throw new Error(msg);
+    }
+    const tasks = Array.isArray(rpc.body) ? rpc.body : [];
     const apptIds = [...new Set(tasks.map(t => t.appointment_id).filter(Boolean))];
     const userIds = [...new Set(tasks.map(t => t.assigned_to).filter(Boolean))];
     const appts = apptIds.length
