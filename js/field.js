@@ -80,16 +80,15 @@ async function loadFieldPage() {
     listEl.innerHTML = '<div class="card" style="padding:20px;color:var(--text-3);font-size:12px;text-align:center;">Firma bulunamadı</div>';
     return;
   }
+  let q = `field_tasks?firm_id=eq.${fid}&order=created_at.desc&limit=120`;
+  if (currentUser.role === 'field_agent') q += `&assigned_to=eq.${currentUser.id}`;
+  _fieldTasks = (await sb(q).catch(() => [])) || [];
   const fs = await getFirmFieldSettings(fid);
-  if (!fs.enabled && currentUser.role !== 'super_admin') {
+  if (!fs.enabled && currentUser.role !== 'super_admin' && !_fieldTasks.length) {
     listEl.innerHTML = '<div class="card" style="padding:20px;color:var(--text-3);font-size:12px;text-align:center;">Bu firma için saha modülü aktif değil</div>';
     return;
   }
   listEl.innerHTML = '<div class="card" style="padding:20px;color:var(--text-3);font-size:12px;text-align:center;">Yükleniyor...</div>';
-
-  let q = `field_tasks?firm_id=eq.${fid}&order=created_at.desc&limit=120`;
-  if (currentUser.role === 'field_agent') q += `&assigned_to=eq.${currentUser.id}`;
-  _fieldTasks = (await sb(q).catch(() => [])) || [];
   if (!_fieldTasks.length) {
     listEl.innerHTML = '<div class="card" style="padding:20px;color:var(--text-3);font-size:12px;text-align:center;">Atanmış saha görevi yok</div>';
     return;
@@ -306,19 +305,25 @@ async function createFieldTaskFromAppointment(appointmentId, assignedTo) {
     toast('Bu kullanıcıya zaten atanmış', 'warn');
     return;
   }
-  await sb('field_tasks', {
-    method: 'POST',
-    prefer: 'return=minimal',
-    body: JSON.stringify({
-      firm_id: ap.firm_id,
-      appointment_id: ap.id,
-      contact_id: ap.contact_id || null,
-      assigned_to: assignedTo,
-      assigned_by: currentUser.id,
-      status: 'assigned'
-    })
-  }).catch(() => toast('Sahaya atama yapılamadı', 'err'));
-  toast('Saha görevi atandı', 'ok');
+  try {
+    await sb('field_tasks', {
+      method: 'POST',
+      prefer: 'return=minimal',
+      body: JSON.stringify({
+        firm_id: ap.firm_id,
+        appointment_id: ap.id,
+        contact_id: ap.contact_id || null,
+        assigned_to: assignedTo,
+        assigned_by: currentUser.id,
+        status: 'assigned'
+      })
+    });
+    toast('Saha görevi atandı', 'ok');
+    return true;
+  } catch (e) {
+    toast('Sahaya atama yapılamadı', 'err');
+    return false;
+  }
 }
 
 async function openFieldAssignModal(appointmentId, firmId) {
@@ -359,6 +364,10 @@ async function openFieldAssignModal(appointmentId, firmId) {
 async function confirmFieldAssign(appointmentId) {
   const uid = document.getElementById('field-assign-user')?.value;
   if (!uid) return;
-  await createFieldTaskFromAppointment(appointmentId, uid);
+  const ok = await createFieldTaskFromAppointment(appointmentId, uid);
+  if (!ok) return;
   document.getElementById('field-assign-modal')?.remove();
+  if (document.getElementById('page-field')?.classList.contains('active')) {
+    await loadFieldPage();
+  }
 }
