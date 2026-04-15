@@ -124,7 +124,8 @@ select
   c.firm_id,
   c.phone,
   case
-    when (row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 11 = 0 then 'appointment_booked'
+    when (row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 13 = 0 then 'appointment_done'
+    when (row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 11 = 0 then 'appointment'
     when (row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 7 = 0 then 'sale_closed'
     when (row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 5 = 0 then 'no_answer'
     when (row_number() over (partition by c.firm_id order by c.created_at, c.id)) % 4 = 0 then 'busy'
@@ -190,7 +191,16 @@ join lateral (
   limit 1
 ) ag on true
 where ct.notes = 'QA seed contact'
-  and ct.status in ('appointment','callback','calling')
+  and (
+    ct.status in ('appointment','callback','calling')
+    or exists (
+      select 1
+      from public.call_logs l
+      where l.contact_id = ct.id
+        and l.notes = 'QA seed call log'
+        and l.outcome in ('appointment','appointment_done')
+    )
+  )
   and not exists (
     select 1 from public.appointments a where a.contact_id = ct.id
   );
@@ -204,6 +214,25 @@ set call_log_id = (
   limit 1
 )
 where a.agent_notu = 'QA seed appointment';
+
+insert into public.takvim_slots (
+  campaign_id, firm_id, tarih, baslangic_saat, bitis_saat, durum, appointment_id, alta_tasindi, gun_kapali
+)
+select
+  a.campaign_id,
+  a.firm_id,
+  (a.termin_tarih at time zone 'Europe/Berlin')::date as tarih,
+  ((a.termin_tarih at time zone 'Europe/Berlin')::time) as baslangic_saat,
+  (((a.termin_tarih at time zone 'Europe/Berlin') + interval '2 hours')::time) as bitis_saat,
+  'dolu',
+  a.id,
+  false,
+  false
+from public.appointments a
+where a.agent_notu = 'QA seed appointment'
+  and not exists (
+    select 1 from public.takvim_slots ts where ts.appointment_id = a.id
+  );
 
 insert into public.field_tasks (firm_id, appointment_id, contact_id, assigned_to, assigned_by, status, result_payload, notes)
 select a.firm_id,
@@ -297,6 +326,8 @@ select
   (select count(*) from public.campaigns where name like 'QA %') as qa_campaigns,
   (select count(*) from public.contacts where notes = 'QA seed contact') as qa_contacts,
   (select count(*) from public.call_logs where notes = 'QA seed call log') as qa_call_logs,
+  (select count(*) from public.call_logs where notes = 'QA seed call log' and outcome in ('appointment','appointment_done')) as qa_qc_call_logs,
   (select count(*) from public.appointments where agent_notu = 'QA seed appointment') as qa_appointments,
+  (select count(*) from public.takvim_slots where appointment_id in (select id from public.appointments where agent_notu = 'QA seed appointment')) as qa_booked_slots,
   (select count(*) from public.field_tasks where notes = 'QA seed field task') as qa_field_tasks,
   (select count(*) from public.agent_sessions s join public.users u on u.id=s.agent_id where u.email like '%@mb-test.local' and s.status in ('ready','on_call')) as qa_online_agents;
