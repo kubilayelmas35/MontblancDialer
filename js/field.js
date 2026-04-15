@@ -303,7 +303,7 @@ async function createFieldTaskFromAppointment(appointmentId, assignedTo) {
     [];
   if (ex.length) {
     toast('Bu kullanıcıya zaten atanmış', 'warn');
-    return;
+    return true;
   }
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/create_field_task_from_admin`, {
@@ -321,7 +321,16 @@ async function createFieldTaskFromAppointment(appointmentId, assignedTo) {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err?.message || err?.hint || `HTTP ${res.status}`);
+      const raw = String(err?.message || err?.hint || `HTTP ${res.status}`);
+      if (raw.includes('already_assigned')) {
+        toast('Bu randevu bu saha elemanına zaten atanmış', 'warn');
+        return true;
+      }
+      if (raw.includes('actor_not_allowed')) {
+        toast('Bu işlem için admin yetkisi gerekli', 'err');
+        return false;
+      }
+      throw new Error(raw);
     }
     toast('Saha görevi atandı', 'ok');
     return true;
