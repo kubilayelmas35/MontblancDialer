@@ -78,6 +78,170 @@ async function applyJobFormDefaultsFromFirm() {
   if (sel && cur && [...sel.options].some((o) => o.value === cur)) sel.value = cur;
 }
 
+let _jmCalYear = new Date().getFullYear();
+let _jmCalMonth = new Date().getMonth();
+let _jmCalSelectedYmd = '';
+
+const JM_WD_TR = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+const JM_MONTH_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+
+function syncJmSlotSummary() {
+  const el = document.getElementById('jm-slot-summary');
+  if (!el) return;
+  const date = String(document.getElementById('jm-slot-date')?.value || '').trim();
+  const t0 = String(document.getElementById('jm-slot-start')?.value || '').trim();
+  const t1 = String(document.getElementById('jm-slot-end')?.value || '').trim();
+  if (!date || !t0 || !t1) {
+    el.textContent = 'Henüz seçilmedi — Takvimden slot oluştur’a tıklayın.';
+    return;
+  }
+  const [y, m, d] = date.split('-').map(Number);
+  const label = `${d}.${m}.${y} · ${t0.slice(0, 5)}–${t1.slice(0, 5)}`;
+  el.innerHTML = `<span style="color:var(--text-2);font-weight:600;">${label}</span>`;
+}
+
+function openJobMarketSlotCalendarModal() {
+  if (String(document.getElementById('jm-type')?.value || '') !== 'appointment') {
+    toast('Önce ilan türü Randevu olmalı', 'warn');
+    return;
+  }
+  const hid = document.getElementById('jm-slot-date');
+  const cur = String(hid?.value || '').trim();
+  if (cur) {
+    const p = cur.split('-');
+    if (p.length === 3) {
+      _jmCalYear = Number(p[0]);
+      _jmCalMonth = Number(p[1]) - 1;
+      _jmCalSelectedYmd = cur;
+    }
+  } else {
+    const n = new Date();
+    _jmCalYear = n.getFullYear();
+    _jmCalMonth = n.getMonth();
+    _jmCalSelectedYmd = '';
+  }
+  document.getElementById('jm-cal-modal')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'jm-cal-modal';
+  ov.className = 'modal-overlay open';
+  ov.innerHTML = `<div class="modal" style="max-width:400px;">
+<div class="modal-hdr"><div class="modal-title">Randevu — takvimden slot</div><button type="button" class="modal-close" onclick="document.getElementById('jm-cal-modal').remove()">&times;</button></div>
+<div id="jm-cal-modal-body" style="padding:12px 16px;"></div>
+<div class="modal-footer" style="flex-wrap:wrap;gap:8px;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="jmCalNav(-1)">◀ Ay</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="jmCalNav(1)">Ay ▶</button>
+<button type="button" class="btn btn-primary" onclick="jmCalApply()">Slotları uygula</button>
+</div>
+</div>`;
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  document.body.appendChild(ov);
+  renderJobMarketCalendarGrid();
+}
+
+function jmCalNav(delta) {
+  _jmCalMonth += delta;
+  if (_jmCalMonth > 11) { _jmCalMonth = 0; _jmCalYear++; }
+  if (_jmCalMonth < 0) { _jmCalMonth = 11; _jmCalYear--; }
+  renderJobMarketCalendarGrid();
+}
+
+function renderJobMarketCalendarGrid() {
+  const body = document.getElementById('jm-cal-modal-body');
+  if (!body) return;
+  const t0 = String(document.getElementById('jm-cal-t0')?.value || document.getElementById('jm-slot-start')?.value || '10:00').slice(0, 5);
+  const t1 = String(document.getElementById('jm-cal-t1')?.value || document.getElementById('jm-slot-end')?.value || '11:00').slice(0, 5);
+  const first = new Date(_jmCalYear, _jmCalMonth, 1);
+  const startPad = (first.getDay() + 6) % 7;
+  const dim = new Date(_jmCalYear, _jmCalMonth + 1, 0).getDate();
+  const today = new Date();
+  const todayYmd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  let cells = '';
+  for (let i = 0; i < startPad; i++) cells += '<div style="padding:6px;"></div>';
+  for (let d = 1; d <= dim; d++) {
+    const ymd = `${_jmCalYear}-${String(_jmCalMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const isSel = _jmCalSelectedYmd === ymd;
+    const isToday = todayYmd === ymd;
+    const st = [
+      'cursor:pointer;text-align:center;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:700;',
+      isSel ? 'background:var(--accent);color:#fff;' : 'background:var(--bg-3);color:var(--text-1);',
+      isToday && !isSel ? 'outline:2px solid var(--accent);' : ''
+    ].join('');
+    cells += `<div class="jm-cal-day" data-ymd="${ymd}" style="${st}" onclick="jmCalPickDay('${ymd}')">${d}</div>`;
+  }
+  body.innerHTML = `
+<div style="text-align:center;font-weight:800;margin-bottom:10px;font-size:14px;">${JM_MONTH_TR[_jmCalMonth]} ${_jmCalYear}</div>
+<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px;font-size:10px;color:var(--text-3);text-align:center;">${JM_WD_TR.map((w) => `<div>${w}</div>`).join('')}</div>
+<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">${cells}</div>
+<div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end;">
+<div><label class="form-label" style="font-size:11px;">Başlangıç saati</label><input type="time" class="form-input" id="jm-cal-t0" value="${t0}"></div>
+<div><label class="form-label" style="font-size:11px;">Bitiş saati</label><input type="time" class="form-input" id="jm-cal-t1" value="${t1}"></div>
+</div>
+<div class="jm-hint" style="margin-top:8px;">Gün seçin, saat aralığını girin, <b>Slotları uygula</b> ile forma aktarın. İşlem adedi kadar ardışık slot üretilir.</div>`;
+}
+
+function jmCalPickDay(ymd) {
+  _jmCalSelectedYmd = ymd;
+  renderJobMarketCalendarGrid();
+}
+
+function jmCalApply() {
+  if (!_jmCalSelectedYmd) {
+    toast('Takvimden bir gün seçin', 'warn');
+    return;
+  }
+  const t0 = String(document.getElementById('jm-cal-t0')?.value || '').trim();
+  const t1 = String(document.getElementById('jm-cal-t1')?.value || '').trim();
+  if (!t0 || !t1) {
+    toast('Başlangıç ve bitiş saati gerekli', 'warn');
+    return;
+  }
+  const hid = document.getElementById('jm-slot-date');
+  const hs = document.getElementById('jm-slot-start');
+  const he = document.getElementById('jm-slot-end');
+  if (hid) hid.value = _jmCalSelectedYmd;
+  if (hs) hs.value = t0.length === 5 ? `${t0}:00` : t0;
+  if (he) he.value = t1.length === 5 ? `${t1}:00` : t1;
+  syncJmSlotSummary();
+  refreshJobSlotPreview();
+  document.getElementById('jm-cal-modal')?.remove();
+  toast('Takvim seçildi; slotlar forma işlendi', 'ok');
+}
+
+function refreshJobMarketMap() {
+  const mapEl = document.getElementById('jm-map');
+  const pg = document.getElementById('page-jobmarket');
+  if (!mapEl || typeof L === 'undefined') return;
+  if (!pg?.classList.contains('active')) return;
+  mapEl.style.minHeight = '220px';
+  mapEl.style.width = '100%';
+  mapEl.style.background = 'var(--bg-3)';
+  if (!_jobMap) ensureJobMarketMap();
+  const fix = () => {
+    try {
+      _jobMap?.invalidateSize({ animate: false });
+    } catch (_) {}
+  };
+  requestAnimationFrame(fix);
+  setTimeout(fix, 80);
+  setTimeout(fix, 400);
+}
+
+async function runJobMarketAutoWithdrawals() {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/rpc/job_market_run_auto_withdrawals`, {
+      method: 'POST',
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: '{}'
+    });
+    const txt = await res.text();
+    if (!res.ok) return;
+    const rows = txt ? JSON.parse(txt) : [];
+    const row = rows?.[0];
+    const w = Number(row?.withdrawn ?? 0);
+    if (w > 0) toast(`${w} randevu ilanı otomatik geri çekildi (CRM randevusu yok)`, 'ok', 4500);
+  } catch (_) {}
+}
+
 function refreshJobSlotPreview() {
   const wrap = document.getElementById('jm-slot-preview');
   if (!wrap) return;
@@ -96,8 +260,10 @@ function refreshJobSlotPreview() {
     wrap.innerHTML = '';
     return;
   }
-  const start = new Date(`${date}T${t0}:00`);
-  const end = new Date(`${date}T${t1}:00`);
+  const t0p = t0.slice(0, 5);
+  const t1p = t1.slice(0, 5);
+  const start = new Date(`${date}T${t0p}:00`);
+  const end = new Date(`${date}T${t1p}:00`);
   let durMs = end.getTime() - start.getTime();
   if (!Number.isFinite(start.getTime()) || durMs <= 0) durMs = 60 * 60 * 1000;
   const lines = [];
@@ -243,6 +409,8 @@ async function loadJobMarketPage() {
   await applyJobPermissionUi();
   await refreshWalletInfo();
   await loadJobPosts();
+  setTimeout(refreshJobMarketMap, 60);
+  setTimeout(refreshJobMarketMap, 400);
 }
 
 async function applyJobPermissionUi() {
@@ -278,6 +446,7 @@ async function loadJobPosts() {
   }
   list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:10px;">Yükleniyor...</div>`;
   try {
+    await runJobMarketAutoWithdrawals();
     const posts = await sb(`job_posts?order=created_at.desc&limit=220`);
     if (!posts) throw new Error('İlan listesi alınamadı');
     const workers = await sb(`job_post_workers?select=id,job_post_id,worker_firm_id,status`).catch(() => []);
@@ -363,17 +532,17 @@ function renderJobPostList() {
     const apptCat = p.job_type === 'appointment' ? _jmAppointmentCategoryLabelFromRequirements(p.requirements) : '';
     const deadline = p.deadline_at ? new Date(p.deadline_at).toLocaleString('tr-TR') : '—';
     const rdMs = p.retraction_deadline_at ? new Date(p.retraction_deadline_at).getTime() : 0;
-    const deadlinePassed = !!(rdMs && Date.now() >= rdMs);
+    const deadlinePassed = !p.retraction_deadline_at || !!(rdMs && Date.now() >= rdMs);
     const hasApproved = _jobPostSubs.some((s) => s.job_post_id === p.id && s.status === 'approved');
-    const hasApptLink = p.job_type === 'appointment' && _jobPostSubs.some((s) => s.job_post_id === p.id && s.appointment_id && ['submitted', 'qc_pending', 'approved'].includes(s.status));
+    const hasApptLinkBlock = p.job_type === 'appointment' && p.status !== 'pending_qc' && _jobPostSubs.some((s) => s.job_post_id === p.id && s.appointment_id && ['submitted', 'qc_pending', 'approved'].includes(s.status));
+    const autoPath = p.status === 'pending_qc' || (p.job_type === 'appointment' && !hasApptLinkBlock);
     const canManagePost = isOwner || currentUser?.role === 'super_admin';
-    const canWithdrawUi = canManagePost && ['published', 'in_progress', 'pending_qc'].includes(p.status) && deadlinePassed && !hasApproved && !hasApptLink;
+    const canWithdrawUi = canManagePost && ['published', 'in_progress', 'pending_qc'].includes(p.status) && !hasApproved && (autoPath || deadlinePassed) && !hasApptLinkBlock;
     let retractHint = '';
-    if (p.retraction_deadline_at) {
-      if (!deadlinePassed) retractHint = ' · Geri çekme için tarih bekleniyor';
-      else if (hasApproved || hasApptLink) retractHint = ' · Teslim/randevu kaydı var; geri çekilemez';
-      else retractHint = ' · Geri çekilebilir';
-    }
+    if (p.status === 'pending_qc') retractHint = ' · QC bekliyor — otomatik geri çekme kuralına uygun';
+    else if (p.job_type === 'appointment' && !hasApptLinkBlock) retractHint = ' · Randevu bağlı teslim yok — tarih beklemeden geri çekilebilir';
+    else if (p.retraction_deadline_at && !deadlinePassed) retractHint = ' · Geri çekme için tarih bekleniyor';
+    else retractHint = ' · Geri çekilebilir';
     const timeline = _jobPostSubs
       .filter((s) => s.job_post_id === p.id)
       .slice(0, 3)
@@ -385,7 +554,7 @@ function renderJobPostList() {
 <div style="font-size:13px;font-weight:800;">${_jmEsc(p.title || 'İş ilanı')}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_jmEsc(p.job_type || 'custom')}${apptCat ? ` · <span style="color:var(--text-2);font-weight:600;">${_jmEsc(apptCat)}</span>` : ''} · ${_jmEsc(p.city || 'Bölge serbest')} · Son: ${deadline}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">İşlem başı: <b>${Number(p.unit_price || p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'TRY')}</b> · Adet: <b>${Number(p.quantity || slots.length || 1)}</b> · Toplam: <b>${Number(p.budget || 0).toFixed(2)}</b> · Çalışan: <b>${workingCnt}</b> · Eşleşme: <b>${score}</b>/100</div>
-<div style="font-size:11px;color:var(--text-3);margin-top:2px;">Geri çekme zamanı: <b>${p.retraction_deadline_at ? new Date(p.retraction_deadline_at).toLocaleString('tr-TR') : '—'}</b>${retractHint}</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:2px;">Geri çekme: <b>${p.retraction_deadline_at ? new Date(p.retraction_deadline_at).toLocaleString('tr-TR') : 'otomatik kural'}</b>${retractHint}</div>
 </div>
 <div><span class="badge badge-blue">${_jmEsc(p.status || 'published')}</span></div>
 </div>
@@ -422,7 +591,6 @@ async function createJobPost() {
   const country = String(document.getElementById('jm-country')?.value || '').trim();
   const city = String(document.getElementById('jm-city')?.value || '').trim();
   const radiusKm = Number(document.getElementById('jm-radius')?.value || 0);
-  const retractRaw = String(document.getElementById('jm-retract-by')?.value || '').trim();
   const deadline = document.getElementById('jm-deadline')?.value || null;
   const slotDate = String(document.getElementById('jm-slot-date')?.value || '').trim();
   const slotStart = String(document.getElementById('jm-slot-start')?.value || '').trim();
@@ -434,19 +602,9 @@ async function createJobPost() {
     return;
   }
   if (jobType === 'appointment' && (!slotDate || !slotStart || !slotEnd)) {
-    toast('Randevu için gün ve saat aralığı zorunlu', 'warn');
+    toast('Randevu için önce Takvimden slot oluştur ile gün ve saat seçin', 'warn');
     return;
   }
-  if (!retractRaw) {
-    toast('Geri çekme tarihi ve saati zorunlu', 'warn');
-    return;
-  }
-  const retractDt = new Date(retractRaw);
-  if (!Number.isFinite(retractDt.getTime())) {
-    toast('Geri çekme tarihi geçersiz', 'warn');
-    return;
-  }
-  const retractionDeadlineAt = retractDt.toISOString();
   if (polygonTxt) {
     try { polygon = JSON.parse(polygonTxt); } catch (e) { toast('Polygon JSON geçersiz', 'warn'); return; }
   }
@@ -483,7 +641,7 @@ async function createJobPost() {
         p_slot_date: slotDate || null,
         p_slot_start: slotStart || null,
         p_slot_end: slotEnd || null,
-        p_retraction_deadline_at: retractionDeadlineAt
+        p_retraction_deadline_at: null
       })
     });
     if (!res.ok) throw new Error(await res.text());
@@ -545,8 +703,10 @@ function onJobTypeChange() {
   if (slotWrap) slotWrap.style.display = t === 'appointment' ? '' : 'none';
   if (apptWrap) apptWrap.style.display = t === 'appointment' ? 'flex' : 'none';
   updateJobPricePreview();
+  if (t === 'appointment') syncJmSlotSummary();
   refreshJobSlotPreview();
   ensureJobMarketMap();
+  refreshJobMarketMap();
 }
 
 function updateJobPricePreview() {
@@ -570,6 +730,14 @@ function ensureJobMarketMap() {
       _jobPolygonPoints.push([Number(ev.latlng.lng), Number(ev.latlng.lat)]);
       drawJobPolygon();
     });
+    if (typeof ResizeObserver !== 'undefined' && !mapEl._jmResizeObs) {
+      mapEl._jmResizeObs = new ResizeObserver(() => {
+        try {
+          _jobMap?.invalidateSize({ animate: false });
+        } catch (_) {}
+      });
+      mapEl._jmResizeObs.observe(mapEl);
+    }
   }
   const fix = () => {
     try {
@@ -770,7 +938,13 @@ async function loadJobMarketKpi() {
   const adv = document.getElementById('kpi-job-advanced');
   if (adv) adv.textContent = `Reject oranı: %${rejectRate} | Ortalama kapanış: ${avgClose} dk`;
   const nowMs = Date.now();
-  const retractable = (jobs || []).filter((j) => ['published', 'in_progress', 'pending_qc'].includes(j.status) && j.retraction_deadline_at && new Date(j.retraction_deadline_at).getTime() <= nowMs).length;
+  const retractable = (jobs || []).filter((j) => {
+    if (!['published', 'in_progress', 'pending_qc'].includes(j.status)) return false;
+    if (j.status === 'pending_qc') return true;
+    if (j.job_type === 'appointment' && j.retraction_deadline_at && new Date(j.retraction_deadline_at).getTime() <= nowMs) return true;
+    if (j.retraction_deadline_at && new Date(j.retraction_deadline_at).getTime() <= nowMs) return true;
+    return false;
+  }).length;
   const seriesElId = 'kpi-job-retract-hint';
   if (!document.getElementById(seriesElId)) {
     const t = document.createElement('div');
@@ -779,7 +953,7 @@ async function loadJobMarketKpi() {
     wrap.appendChild(t);
   }
   const tEl = document.getElementById(seriesElId);
-  if (tEl) tEl.textContent = `Geri çekme zamanı gelmiş ilan: ${retractable}`;
+  if (tEl) tEl.textContent = `Geri çekmeye uygun (tahmini): ${retractable} · Otomatik kural + tarih`;
 }
 
 function exportJobPolygon() {

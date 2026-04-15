@@ -46,7 +46,13 @@ if (page==='export')       loadExportTerminPage();
 if (page==='performance') loadPerformancePage();
 if (page==='dialer')         initDialer();
 if (page==='field')          loadFieldPage();
-if (page==='jobmarket')      loadJobMarketPage();
+if (page==='jobmarket') {
+  loadJobMarketPage();
+  if (typeof refreshJobMarketMap === 'function') {
+    setTimeout(() => refreshJobMarketMap(), 0);
+    setTimeout(() => refreshJobMarketMap(), 280);
+  }
+}
 if (page==='myhistory')      { initMyHistoryFilters(); loadMyHistory(); }
 if (page==='settings')       { loadSavedSettings(); loadRolesPage(); }
 if (page==='settings')       { loadAppointmentResultsSettings(); }

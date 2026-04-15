@@ -68,6 +68,8 @@ let _autoDial    = true;
 // Super admin firma seçici
 let _allFirms       = [];
 let _selectedFirmId = null;
+let _baseUser       = null;
+let _impersonation  = null;
 
 // Mesai saatleri
 let _mesaiFirmId       = null;  // super admin'in mesai için seçtiği firma

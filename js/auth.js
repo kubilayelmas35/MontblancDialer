@@ -42,7 +42,11 @@ role:      u.role,
 firm_name: u.firm_name,
 initials:  u.name.charAt(0).toUpperCase()
 };
+_baseUser = { ...currentUser };
+_impersonation = null;
 localStorage.setItem('mb_session', JSON.stringify(currentUser));
+localStorage.setItem('mb_base_session', JSON.stringify(_baseUser));
+localStorage.removeItem('mb_impersonation');
 sbUpsert('agent_sessions', {
 agent_id: currentUser.id,
 agent_name: currentUser.name,
@@ -81,7 +85,11 @@ last_seen: new Date().toISOString()
 }, 'agent_id').catch(()=>{});
 }
 localStorage.removeItem('mb_session');
+localStorage.removeItem('mb_base_session');
+localStorage.removeItem('mb_impersonation');
 currentUser = null;
+_baseUser = null;
+_impersonation = null;
 document.getElementById('page-login').style.display = 'flex';
 document.getElementById('app').style.display = 'none';
 }
@@ -130,8 +138,11 @@ const roleMap = {
 'admin':'Admin','agent':'Agent','qc':'QC','field_agent':'Saha Elemanı'
 };
 const roleEl = document.getElementById('tb-urole');
-if (roleEl) roleEl.textContent = (roleMap[currentUser.role]||currentUser.role)
-+ (currentUser.firm_name ? ` · ${currentUser.firm_name}` : '');
+if (roleEl) {
+  const suffix = currentUser.firm_name ? ` · ${currentUser.firm_name}` : '';
+  const imp = _impersonation ? ' · Temsil Modu' : '';
+  roleEl.textContent = (roleMap[currentUser.role]||currentUser.role) + suffix + imp;
+}
 const firmsBtn = document.getElementById('nav-firms-btn');
 if (firmsBtn) firmsBtn.style.display = currentUser.role === 'super_admin' ? '' : 'none';
 const perfNav = document.getElementById('nav-performance-btn');
@@ -221,6 +232,129 @@ buildSelect();
 }
 }
 
+function canUseImpersonation() {
+  return (_baseUser?.role || currentUser?.role) === 'super_admin';
+}
+
+function handleTopbarUserClick() {
+  if (canUseImpersonation()) {
+    openImpersonationModal();
+    return;
+  }
+  navigate('settings');
+}
+
+function _escHtml(v) {
+  return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+async function openImpersonationModal() {
+  if (!canUseImpersonation()) return navigate('settings');
+  document.getElementById('m-impersonation')?.remove();
+  const firms = (_allFirms && _allFirms.length) ? _allFirms : (await sb('firms?select=id,name&order=name.asc').catch(() => []));
+  _allFirms = firms || [];
+  const activeFirmId = _impersonation?.firm_id || _selectedFirmId || currentUser?.firm_id || _baseUser?.firm_id || '';
+  const ov = document.createElement('div');
+  ov.id = 'm-impersonation';
+  ov.className = 'modal-overlay open';
+  ov.innerHTML = `<div class="modal" style="max-width:560px;">
+<div class="modal-hdr">
+  <div class="modal-title">Süper Admin Test Temsili</div>
+  <button class="modal-close" onclick="closeImpersonationModal()">✕</button>
+</div>
+<div style="padding:14px 20px;display:flex;flex-direction:column;gap:10px;">
+  <div class="jm-hint" style="margin:0;">Bir firma ve kullanıcı seçip o kullanıcıymış gibi işlem yapabilirsiniz.</div>
+  <div class="form-row">
+    <label class="form-label">Firma</label>
+    <select id="imp-firm" class="form-input" onchange="onImpersonationFirmChange()">
+      ${_allFirms.map((f) => `<option value="${_escHtml(f.id)}" ${String(f.id)===String(activeFirmId)?'selected':''}>${_escHtml(f.name || f.id)}</option>`).join('')}
+    </select>
+  </div>
+  <div class="form-row">
+    <label class="form-label">Kullanıcı</label>
+    <select id="imp-user" class="form-input"><option value="">Yükleniyor...</option></select>
+  </div>
+  <div id="imp-info" style="font-size:12px;color:var(--text-3);"></div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-ghost" onclick="navigate('settings'); closeImpersonationModal();">Ayarlar</button>
+  <button class="btn btn-ghost" onclick="stopImpersonation()" ${_impersonation ? '' : 'disabled'}>Temsili Durdur</button>
+  <button class="btn btn-primary" onclick="applyImpersonation()">Temsili Başlat</button>
+</div>
+</div>`;
+  ov.onclick = (e) => { if (e.target === ov) closeImpersonationModal(); };
+  document.body.appendChild(ov);
+  await onImpersonationFirmChange();
+}
+
+function closeImpersonationModal() {
+  document.getElementById('m-impersonation')?.remove();
+}
+
+async function onImpersonationFirmChange() {
+  const firmId = document.getElementById('imp-firm')?.value || '';
+  const userSel = document.getElementById('imp-user');
+  const info = document.getElementById('imp-info');
+  if (!userSel || !firmId) return;
+  userSel.innerHTML = '<option value="">Yükleniyor...</option>';
+  const users = await sb(`users?firm_id=eq.${firmId}&is_active=eq.true&select=id,name,email,role,firm_id&order=name.asc`).catch(() => []);
+  userSel.innerHTML = (users || []).map((u) => {
+    const selected = _impersonation?.user_id === u.id ? 'selected' : '';
+    return `<option value="${_escHtml(u.id)}" ${selected}>${_escHtml(u.name)} · ${_escHtml(u.role)} · ${_escHtml(u.email || '')}</option>`;
+  }).join('') || '<option value="">Aktif kullanıcı yok</option>';
+  if (info) info.textContent = _impersonation ? `Aktif: ${_impersonation.name} (${_impersonation.role})` : 'Aktif temsil yok (kendi hesabınızdasınız).';
+}
+
+function persistImpersonationState() {
+  localStorage.setItem('mb_session', JSON.stringify(currentUser));
+  if (_baseUser) localStorage.setItem('mb_base_session', JSON.stringify(_baseUser));
+  if (_impersonation) localStorage.setItem('mb_impersonation', JSON.stringify(_impersonation));
+  else localStorage.removeItem('mb_impersonation');
+}
+
+async function applyImpersonation() {
+  if (!canUseImpersonation()) return;
+  const firmId = document.getElementById('imp-firm')?.value || '';
+  const userId = document.getElementById('imp-user')?.value || '';
+  if (!firmId || !userId) { toast('Firma ve kullanıcı seçin', 'warn'); return; }
+  const users = await sb(`users?id=eq.${userId}&select=id,name,email,role,firm_id&limit=1`).catch(() => []);
+  const u = users?.[0];
+  if (!u) { toast('Kullanıcı bulunamadı', 'err'); return; }
+  const firmName = (_allFirms.find((f) => String(f.id) === String(u.firm_id))?.name) || '';
+  _impersonation = {
+    user_id: u.id,
+    firm_id: u.firm_id,
+    name: u.name,
+    role: u.role,
+    email: u.email || '',
+    firm_name: firmName
+  };
+  _selectedFirmId = u.firm_id || _selectedFirmId;
+  currentUser = {
+    id: u.id,
+    firm_id: u.firm_id,
+    email: u.email || '',
+    name: u.name || 'Temsil',
+    role: u.role || 'agent',
+    firm_name: firmName,
+    initials: (u.name || 'T').charAt(0).toUpperCase()
+  };
+  persistImpersonationState();
+  closeImpersonationModal();
+  bootApp();
+  toast(`Temsil aktif: ${u.name}`, 'ok');
+}
+
+function stopImpersonation() {
+  if (!_impersonation || !_baseUser) return;
+  currentUser = { ..._baseUser };
+  _impersonation = null;
+  persistImpersonationState();
+  closeImpersonationModal();
+  bootApp();
+  toast('Temsil modu kapatıldı', 'ok');
+}
+
 // API keylerini başta yükle
 _googleApiKey = localStorage.getItem('mb_google_key') || DEFAULT_GOOGLE_KEY;
 
@@ -230,6 +364,10 @@ try {
 const saved = localStorage.getItem('mb_session');
 if (saved) {
 currentUser = JSON.parse(saved);
+const baseSaved = localStorage.getItem('mb_base_session');
+_baseUser = baseSaved ? JSON.parse(baseSaved) : { ...currentUser };
+const impSaved = localStorage.getItem('mb_impersonation');
+_impersonation = impSaved ? JSON.parse(impSaved) : null;
 if (document.readyState === 'loading') {
 document.addEventListener('DOMContentLoaded', () => {
 document.getElementById('page-login').style.display = 'none';
