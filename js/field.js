@@ -80,9 +80,22 @@ async function loadFieldPage() {
     listEl.innerHTML = '<div class="card" style="padding:20px;color:var(--text-3);font-size:12px;text-align:center;">Firma bulunamadı</div>';
     return;
   }
-  let q = `field_tasks?firm_id=eq.${fid}&order=created_at.desc&limit=120`;
-  if (currentUser.role === 'field_agent') q += `&assigned_to=eq.${currentUser.id}`;
-  _fieldTasks = (await sb(q).catch(() => [])) || [];
+  _fieldTasks = [];
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/rpc/list_field_tasks_for_user`, {
+      method: 'POST',
+      headers: {
+        apikey: SB_KEY,
+        Authorization: `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        p_actor_user_id: currentUser.id,
+        p_firm_id: fid || null
+      })
+    });
+    if (res.ok) _fieldTasks = (await res.json().catch(() => [])) || [];
+  } catch (e) {}
   const fs = await getFirmFieldSettings(fid);
   if (!fs.enabled && currentUser.role !== 'super_admin' && !_fieldTasks.length) {
     listEl.innerHTML = '<div class="card" style="padding:20px;color:var(--text-3);font-size:12px;text-align:center;">Bu firma için saha modülü aktif değil</div>';
