@@ -540,6 +540,7 @@ function _clearHangupUiTick() {
 }
 
 function refreshHangupFinalizeButton() {
+  if (document.getElementById('call-actions')?.classList.contains('call-actions--pre-call')) return;
   if (dialerStatus !== 'on_call') return;
   const lbl = document.getElementById('btn-hangup-label');
   const btn = document.getElementById('btn-hangup');
@@ -561,6 +562,72 @@ function _startHangupUiTick() {
   _clearHangupUiTick();
   refreshHangupFinalizeButton();
   _hangupUiTick = setInterval(refreshHangupFinalizeButton, 400);
+}
+
+/** Müşteri kartı açıkken (offline/ready) alt çubukta Hazır/sağlık yerine Ara/Mikrofon/Beklet/Sonuçlandır */
+function _isCustDataVisible() {
+  const custEmpty = document.getElementById('cust-empty');
+  return !!(custEmpty && custEmpty.style.display === 'none');
+}
+
+function refreshPreCallToolbarUi() {
+  const lbl = document.getElementById('btn-hangup-label');
+  const btn = document.getElementById('btn-hangup');
+  const tr = currentLang === 'tr';
+  if (lbl) lbl.textContent = tr ? 'Sonuçlandır' : 'Abschließen';
+  if (btn) {
+    btn.style.color = 'var(--accent)';
+    btn.onclick = () => {
+      if (typeof switchContactTab === 'function') switchContactTab('outcome');
+    };
+  }
+  const hold = document.getElementById('btn-hold');
+  if (hold) hold.disabled = true;
+}
+
+function syncDialerBottomChrome() {
+  const readySec = document.getElementById('ready-section');
+  const callAct = document.getElementById('call-actions');
+  const hold = document.getElementById('btn-hold');
+
+  const resetHold = () => {
+    if (hold) hold.disabled = false;
+  };
+
+  if (dialerStatus === 'on_call' || dialerStatus === 'wrapping') {
+    if (callAct) callAct.classList.remove('call-actions--pre-call');
+    if (dialerStatus === 'on_call') resetHold();
+    return;
+  }
+
+  const preCall =
+    (dialerStatus === 'offline' || dialerStatus === 'ready') &&
+    !!currentContact &&
+    _isCustDataVisible() &&
+    !_outboundDialPending &&
+    !_fakeCallActive;
+
+  if (preCall) {
+    if (readySec) readySec.style.display = 'none';
+    if (callAct) {
+      callAct.style.display = '';
+      callAct.classList.add('call-actions--pre-call');
+      callAct.classList.remove('call-actions--wrapping');
+    }
+    refreshPreCallToolbarUi();
+    _clearHangupUiTick();
+    return;
+  }
+
+  if (callAct) {
+    callAct.classList.remove('call-actions--pre-call');
+    callAct.style.display = 'none';
+  }
+  resetHold();
+
+  if (readySec && (dialerStatus === 'offline' || dialerStatus === 'ready' || dialerStatus === 'break')) {
+    readySec.style.display = '';
+  }
 }
 
 function setDialerStatus(s) {
@@ -654,6 +721,7 @@ function setDialerStatus(s) {
     _breakCardTick = setInterval(refreshBreakCustEmpty, 1000);
   }
   if (s === 'break') refreshBreakCustEmpty();
+  syncDialerBottomChrome();
 }
 
 function updateDialerNavCallIndicator() {
@@ -701,6 +769,7 @@ async function dialNext() {
     return;
   }
   currentContact = contact;
+  _outboundDialPending = true;
   showCustomerCard(contact);
   try {
     await sb(`contacts?id=eq.${contact.id}`, { method:'PATCH', prefer:'return=minimal',
@@ -708,7 +777,6 @@ async function dialNext() {
     });
   } catch(e) {}
   const campaign = campaigns.find(c => c.id === selectedCampId);
-  _outboundDialPending = true;
   sendToRTC('MB_CALL', { destination: contact.phone, callerNumber: campaign?.telnyx_did || '' });
 }
 
@@ -830,6 +898,12 @@ function stopCallTimer() {
 
 // ── Call controls ─────────────────────────────
 function toggleMute() {
+  const pre = document.getElementById('call-actions')?.classList.contains('call-actions--pre-call');
+  const lineUp = !!_telnyxCall || !!_fakeCallActive || !!_outboundDialPending;
+  if (pre && !lineUp && dialerStatus !== 'on_call') {
+    if (typeof toggleMicAudioDrawer === 'function') toggleMicAudioDrawer();
+    return;
+  }
   isMuted=!isMuted;
   document.getElementById('btn-mute')?.classList.toggle('active',isMuted);
   sendToRTC('MB_MUTE',{muted:isMuted});
@@ -837,6 +911,10 @@ function toggleMute() {
 }
 
 function toggleHold() {
+  if (document.getElementById('call-actions')?.classList.contains('call-actions--pre-call') && dialerStatus !== 'on_call') {
+    toast(currentLang === 'tr' ? 'Önce arama başlatın' : 'Zuerst Anruf starten', 'warn');
+    return;
+  }
   isOnHold=!isOnHold;
   document.getElementById('btn-hold')?.classList.toggle('active',isOnHold);
   sendToRTC('MB_HOLD',{hold:isOnHold});

@@ -299,6 +299,7 @@ if (typeof dialerStatus !== 'undefined' && dialerStatus === 'break' && typeof re
 if (typeof dialerStatus !== 'undefined' && dialerStatus === 'on_call' && typeof refreshHangupFinalizeButton === 'function') {
   refreshHangupFinalizeButton();
 }
+if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
 }
 
 function cycleLang() {

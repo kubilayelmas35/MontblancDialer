@@ -331,6 +331,7 @@ Termini Kaydet
   }
   const phoneEl = document.getElementById('cust-phone');
   if (phoneEl) { phoneEl.style.cursor='pointer'; phoneEl.title='Kopyala'; phoneEl.onclick=()=>copyToClipboard(phoneEl.textContent,'Telefon kopyalandı'); }
+  if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
 }
 
 function markContactDirty() {
@@ -361,6 +362,7 @@ async function saveContactEdits() {
 function clearCustomerCard() {
   document.getElementById('cust-empty').style.display='';
   document.getElementById('cust-data').style.display='none';
+  if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
 }
 
 function switchContactTab(tab) {

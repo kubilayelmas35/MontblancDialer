@@ -1152,6 +1152,39 @@ cursor:pointer; transition:var(--transition);
 .manual-dial-chip-sub { font-size:9px; color:var(--text-3); margin-top:1px; }
 .manual-dial-caret { font-size:12px; color:var(--text-3); transition:transform .2s; flex-shrink:0; }
 .manual-dial-chip.is-open .manual-dial-caret { transform:rotate(180deg); color:var(--accent); }
+/* Dialer üst şerit: kaymayı azalt (flex + min-width) */
+#page-dialer #dialer-page-hdr.dialer-page-hdr,
+#page-dialer .dialer-page-hdr.page-hdr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+#page-dialer .dialer-hdr-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+}
+#page-dialer .dialer-hdr-main > div:first-child {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+#page-dialer .dialer-hdr-badges {
+  margin-left: auto;
+  flex-shrink: 0;
+  align-self: center;
+}
+#call-actions.call-actions--pre-call #btn-hold:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .dialer-hdr-drawer {
   padding:12px 16px;
   border-bottom:1px solid var(--border);
@@ -1261,7 +1294,7 @@ MOBILE / RESPONSIVE
 #page-dialer .page-hdr {
   padding: 6px 8px !important;
 }
-#page-dialer .page-hdr > div:last-child {
+#page-dialer .dialer-hdr-badges {
   width: 100%;
   justify-content: flex-start !important;
   margin-left: 0 !important;
