@@ -51,27 +51,39 @@ async function initDialer() {
       return;
     }
 
+    // Tüm kampanyaları varsayılan aktif yap (ilk yüklemede)
+    if (!_activeCampIds.length) {
+      const savedActive = _loadActiveCampIds();
+      if (savedActive !== null) {
+        const allowed = new Set(myCamps.map((x) => String(x.campaign_id)));
+        _activeCampIds = (savedActive || []).filter((id) => allowed.has(String(id)));
+      } else {
+        // Daha önce hiç kayıt yoksa: seçili kampanya varsa onu aktif yap, yoksa boş kalsın
+        const savedSel = _loadSelectedCampId();
+        if (savedSel && myCamps.some((x) => String(x.campaign_id) === String(savedSel))) {
+          _activeCampIds = [savedSel];
+        } else {
+          _activeCampIds = [];
+        }
+      }
+    }
+
     // Seçili kampanyayı (kullanıcı bazlı) geri yükle
+    // Not: Eğer aktif kampanya listesi "bilerek boş" kaydedildiyse (savedActive === []), seçim UI için restore edilir ama aktif listeye eklenmez.
     if (!selectedCampId) {
       const saved = _loadSelectedCampId();
       if (saved && myCamps.some((x) => String(x.campaign_id) === String(saved))) {
         const found = myCamps.find((x) => String(x.campaign_id) === String(saved));
-        // selectCamp UI + state'i tek yerden güncellesin
-        selectCamp(found.campaign_id, found.campaigns?.name || '');
+        selectCamp(found.campaign_id, found.campaigns?.name || '', { skipActivate: true });
       }
     }
-    // Tüm kampanyaları varsayılan aktif yap (ilk yüklemede)
-    if (!_activeCampIds.length) {
-      const savedActive = _loadActiveCampIds();
-      if (savedActive?.length) {
-        const allowed = new Set(myCamps.map((x) => String(x.campaign_id)));
-        _activeCampIds = savedActive.filter((id) => allowed.has(String(id)));
-      } else if (selectedCampId) {
-        _activeCampIds = [selectedCampId];
-      } else {
-        _activeCampIds = [];
-      }
-    }
+
+    // A-Z sırala (kampanya adı)
+    myCamps = (myCamps || []).slice().sort((a, b) => {
+      const an = String(a?.campaigns?.name || '').toLocaleLowerCase('tr-TR');
+      const bn = String(b?.campaigns?.name || '').toLocaleLowerCase('tr-TR');
+      return an.localeCompare(bn, 'tr-TR');
+    });
     // Kullanıcı kampanya seçmeden hazır başlatamasın
     if (!selectedCampId) {
       const rdyBtn = document.getElementById('btn-ready');
@@ -169,11 +181,12 @@ function toggleCampActive(campId, checked) {
   refreshDialerHealthPanel();
 }
 
-function selectCamp(id, name) {
+function selectCamp(id, name, opts = {}) {
   selectedCampId = id;
   _saveSelectedCampId(id);
   // İlk kez kampanya seçiliyorsa aktif listesine ekle (hepsini seçmeden)
-  if (!_activeCampIds.includes(id)) {
+  const skipActivate = !!opts?.skipActivate;
+  if (!skipActivate && !_activeCampIds.includes(id)) {
     _activeCampIds = _activeCampIds.length ? _activeCampIds : [];
     _activeCampIds.push(id);
     _saveActiveCampIds(_activeCampIds);
@@ -236,10 +249,11 @@ function _saveActiveCampIds(ids) {
 function _loadActiveCampIds() {
   try {
     const raw = localStorage.getItem(_activeCampLsKey());
+    if (raw === null) return null; // hiç kayıt yok
     const arr = raw ? JSON.parse(raw) : [];
     return Array.isArray(arr) ? arr : [];
   } catch (e) {
-    return [];
+    return null;
   }
 }
 
