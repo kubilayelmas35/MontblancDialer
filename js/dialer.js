@@ -509,7 +509,38 @@ async function toggleReady() {
   }
 }
 
+function refreshBreakCustEmpty() {
+  if (dialerStatus !== 'break') return;
+  const root = document.getElementById('cust-empty');
+  if (!root) return;
+  const title = root.querySelector('.cust-empty-text');
+  const sub = root.querySelector('.cust-empty-sub');
+  if (!title || !sub) return;
+  const code = String(_breakCode || '').trim();
+  const trTitle = code ? `Mola — ${code}` : 'Mola — tür seçilmedi';
+  const deTitle = code ? `Pause — ${code}` : 'Pause — Typ nicht gewählt';
+  title.textContent = currentLang === 'tr' ? trTitle : deTitle;
+  if (!_breakStartedAt) {
+    sub.textContent = currentLang === 'tr' ? '—' : '—';
+    return;
+  }
+  const sec = Math.max(0, Math.floor((Date.now() - _breakStartedAt) / 1000));
+  const m = Math.floor(sec / 60);
+  const sRem = sec % 60;
+  let trSub;
+  let deSub;
+  if (m >= 1) {
+    trSub = `${m} dakikadır`;
+    deSub = `${m} Minuten`;
+  } else {
+    trSub = `${sRem} saniyedir`;
+    deSub = `${sRem} Sekunden`;
+  }
+  sub.textContent = currentLang === 'tr' ? trSub : deSub;
+}
+
 function setDialerStatus(s) {
+  const prev = dialerStatus;
   dialerStatus = s;
   updateDialerNavCallIndicator();
   const dot    = document.getElementById('status-dot');
@@ -576,6 +607,22 @@ function setDialerStatus(s) {
       document.getElementById('customer-card').style.display='none';
     }
   }
+
+  if (prev === 'break' && s !== 'break') {
+    _breakStartedAt = null;
+    _breakCode = null;
+    if (_breakCardTick) {
+      clearInterval(_breakCardTick);
+      _breakCardTick = null;
+    }
+    if (typeof applyLang === 'function') applyLang();
+  } else if (s === 'break' && prev !== 'break') {
+    _breakStartedAt = Date.now();
+    _breakCode = null;
+    if (_breakCardTick) clearInterval(_breakCardTick);
+    _breakCardTick = setInterval(refreshBreakCustEmpty, 1000);
+  }
+  if (s === 'break') refreshBreakCustEmpty();
 }
 
 function updateDialerNavCallIndicator() {
@@ -1053,6 +1100,8 @@ style="margin-top:10px;width:100%;padding:8px;background:transparent;border:1px 
 }
 
 async function selectBreakCode(code) {
+  _breakCode = code;
+  refreshBreakCustEmpty();
   toast(`☕ Mola: ${code}`, 'ok', 2000);
   upsertAgentSession({agent_id:currentUser.id,status:'break',break_code:code,last_seen:new Date().toISOString()}).catch(()=>{});
 }

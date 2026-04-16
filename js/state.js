@@ -96,6 +96,9 @@ let _precallDone     = false;
 
 // Dialer state
 let dialerStatus    = 'offline'; // offline|ready|on_call|wrapping|break
+let _breakStartedAt = null;      // Date.now() when entering break
+let _breakCode      = null;      // aux / mola türü (modalden)
+let _breakCardTick  = null;      // setInterval id — boş kartta süre
 let currentContact  = null;
 let currentCallLog  = null;
 let callTimerInt    = null;

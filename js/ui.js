@@ -289,6 +289,9 @@ if (typeof _dashGetRange === 'function' && typeof _dashUpdateStatLabels === 'fun
     subEl.textContent = currentLang === 'tr' ? 'Senin çağrıların (seçili aralık)' : 'Deine Anrufe (Zeitraum)';
   }
 }
+if (typeof dialerStatus !== 'undefined' && dialerStatus === 'break' && typeof refreshBreakCustEmpty === 'function') {
+  refreshBreakCustEmpty();
+}
 }
 
 function cycleLang() {
