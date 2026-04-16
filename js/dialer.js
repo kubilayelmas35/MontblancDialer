@@ -58,12 +58,24 @@ async function initDialer() {
       const q = ac.campaigns?.queues;
       const tot = q ? q.reduce((s,qq)=>s+(qq.total_contacts||0),0).toLocaleString() : '—';
       const isActive = _activeCampIds.includes(ac.campaign_id);
+      const camp = ac.campaigns || {};
+      const campSettings = (typeof getCampSettings === 'function') ? getCampSettings(camp) : (camp?.settings || {});
+      const autoAllowed = (campSettings?.auto_dial !== false);
       const cid = ac.campaign_id;
       return `<div class="agent-camp-item ${isActive?'active':''}" id="camp-item-${cid}" style="padding:8px 10px;">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
   <div style="flex:1;min-width:0;">
     <div class="agent-camp-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ac.campaigns?.name||cid}</div>
     <div style="font-size:10px;color:var(--text-3);margin-top:1px;">${tot} kişi · ${ac.campaigns?.dial_speed||1} hat</div>
+    <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-2);cursor:${adminLike?'pointer':'default'};opacity:${adminLike?'1':'.8'};" title="${adminLike?'Bu kampanyada otomatik arama izni':'Bu kampanyada otomatik arama izni (admin belirler)'}">
+        <input type="checkbox" ${autoAllowed?'checked':''} ${adminLike?'':'disabled'}
+          onchange="setCampaignAutoDialPermission('${cid}',this.checked)"
+          style="width:14px;height:14px;accent-color:var(--accent);">
+        Otomatik Arama
+      </label>
+      <span style="font-size:10px;color:${autoAllowed?'var(--green)':'var(--text-3)'};font-weight:700;">${autoAllowed?'Açık':'Kapalı'}</span>
+    </div>
   </div>
   <!-- Toggle switch -->
   <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;cursor:pointer;" title="${isActive?'Kapat':'Aktif Et'}">
@@ -149,6 +161,34 @@ function selectCamp(id, name) {
   refreshAutoDialUi();
 }
 
+async function setCampaignAutoDialPermission(campId, allowed) {
+  if (!campId) return;
+  const role = currentUser?.role || '';
+  const adminLike = ['admin', 'firm_admin', 'super_admin', 'qc'].includes(role);
+  if (!adminLike) {
+    toast('Bu ayarı sadece admin değiştirebilir', 'warn', 2200);
+    initDialer();
+    return;
+  }
+  try {
+    const camp = campaigns.find((c) => c.id === campId) || (await sb(`campaigns?id=eq.${campId}&select=id,settings&limit=1`))?.[0];
+    const existing = (typeof getCampSettings === 'function') ? getCampSettings(camp || {}) : (camp?.settings || {});
+    const merged = { ...(existing || {}), auto_dial: !!allowed };
+    await sb(`campaigns?id=eq.${campId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings: merged })
+    });
+    // local cache refresh (best-effort)
+    const idx = campaigns.findIndex((c) => c.id === campId);
+    if (idx >= 0) campaigns[idx].settings = merged;
+    toast(allowed ? 'Otomatik arama izni açıldı' : 'Otomatik arama izni kapatıldı', 'ok', 1800);
+  } catch (e) {
+    toast('Kaydedilemedi: ' + e.message, 'err');
+  }
+  refreshAutoDialUi();
+}
+
 function isCampaignAutoDialAllowed(campId) {
   if (!campId) return false;
   const camp = campaigns.find((c) => c.id === campId);
@@ -217,6 +257,8 @@ async function loadMyMiniStats() {
     const calls = (logs||[]).length;
     const neg = (logs||[]).filter(l=>l.outcome==='negative').length;
     const cb = (logs||[]).filter(l=>l.outcome==='callback').length;
+    const na = (logs||[]).filter(l=>l.outcome==='no_answer').length;
+    const dnc = (logs||[]).filter(l=>l.outcome==='dnc').length;
     document.getElementById('my-appt').textContent = appts;
     document.getElementById('my-calls').textContent = calls;
 
@@ -259,6 +301,14 @@ async function loadMyMiniStats() {
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
 <div style="font-size:18px;font-weight:800;color:var(--yellow);font-family:var(--mono);">${cb}</div>
 <div style="font-size:10px;color:var(--text-3);">Geri Ara</div>
+</div>
+<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
+<div style="font-size:18px;font-weight:800;color:var(--text-2);font-family:var(--mono);">${na}</div>
+<div style="font-size:10px;color:var(--text-3);">Cevap Yok</div>
+</div>
+<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
+<div style="font-size:18px;font-weight:800;color:var(--red);font-family:var(--mono);">${dnc}</div>
+<div style="font-size:10px;color:var(--text-3);">Kara Liste</div>
 </div>
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
 <div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono);">${ok}</div>
