@@ -200,7 +200,7 @@ async function getNextContact(campaignIds = null) {
     ? campaignIds
     : (typeof _activeCampIds !== 'undefined' && _activeCampIds.length)
       ? _activeCampIds
-      : (selectedCampId ? [selectedCampId] : []);
+      : [];
   if (!ids.length) return null;
   try {
     const campFilter = ids.length === 1

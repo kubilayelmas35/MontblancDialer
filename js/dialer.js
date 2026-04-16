@@ -1136,9 +1136,10 @@ function toggleTestMode() {
     btn.textContent = '⚙ TEST AÇIK';
     // Hazır butonunu Telnyx'ten bağımsız hale getir
     if (rdyBtn) {
-      rdyBtn.disabled = false;
+      const canStart = getAutoDialCampaignIds().length > 0;
+      rdyBtn.disabled = !canStart;
       rdyBtn.style.opacity = '1';
-      rdyBtn.style.cursor = 'pointer';
+      rdyBtn.style.cursor = canStart ? 'pointer' : 'not-allowed';
       rdyBtn.onclick = testToggleReady; // Telnyx kontrolsüz versiyon
     }
     toast('Test modu açık — gerçek arama yapılmaz, veriler DB\'ye kaydedilir', 'ok', 4000);
@@ -1159,7 +1160,9 @@ function toggleTestMode() {
 
 // Test moduna özel hazır toggle — Telnyx kontrolü yok
 async function testToggleReady() {
-  if (!_activeCampIds.length && !selectedCampId) { toast('Önce en az bir kampanyayı aktif edin', 'err'); return; }
+  // Test modunda bile en az bir izinli/aktif kampanya olmadan arama başlamasın.
+  const allowed = getAutoDialCampaignIds();
+  if (!allowed.length) { toast('Önce en az bir kampanyayı aktif edin', 'err'); return; }
   if (dialerStatus === 'offline' || dialerStatus === 'break') {
     setDialerStatus('ready');
     upsertAgentSession({agent_id:currentUser.id, status:'ready', last_seen:new Date().toISOString()}).catch(()=>{});
