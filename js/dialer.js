@@ -62,7 +62,15 @@ async function initDialer() {
     }
     // Tüm kampanyaları varsayılan aktif yap (ilk yüklemede)
     if (!_activeCampIds.length) {
-      _activeCampIds = myCamps.map(ac => ac.campaign_id);
+      const savedActive = _loadActiveCampIds();
+      if (savedActive?.length) {
+        const allowed = new Set(myCamps.map((x) => String(x.campaign_id)));
+        _activeCampIds = savedActive.filter((id) => allowed.has(String(id)));
+      } else if (selectedCampId) {
+        _activeCampIds = [selectedCampId];
+      } else {
+        _activeCampIds = [];
+      }
     }
     // Kullanıcı kampanya seçmeden hazır başlatamasın
     if (!selectedCampId) {
@@ -141,6 +149,7 @@ function toggleCampActive(campId, checked) {
   } else {
     _activeCampIds = _activeCampIds.filter(id => id !== campId);
   }
+  _saveActiveCampIds(_activeCampIds);
   // Görsel güncelle
   const item   = document.getElementById(`camp-item-${campId}`);
   const slider = document.getElementById(`camp-slider-${campId}`);
@@ -163,6 +172,12 @@ function toggleCampActive(campId, checked) {
 function selectCamp(id, name) {
   selectedCampId = id;
   _saveSelectedCampId(id);
+  // İlk kez kampanya seçiliyorsa aktif listesine ekle (hepsini seçmeden)
+  if (!_activeCampIds.includes(id)) {
+    _activeCampIds = _activeCampIds.length ? _activeCampIds : [];
+    _activeCampIds.push(id);
+    _saveActiveCampIds(_activeCampIds);
+  }
   const lbl = document.getElementById('dialer-camp-label');
   if (lbl) lbl.textContent = name || id;
   // Store aux codes from campaign settings
@@ -196,6 +211,10 @@ function _selectedCampLsKey() {
   return `mb_selected_camp_${currentUser?.id || 'anon'}`;
 }
 
+function _activeCampLsKey() {
+  return `mb_active_camps_${currentUser?.id || 'anon'}`;
+}
+
 function _saveSelectedCampId(campId) {
   try {
     if (!campId) localStorage.removeItem(_selectedCampLsKey());
@@ -205,6 +224,23 @@ function _saveSelectedCampId(campId) {
 
 function _loadSelectedCampId() {
   try { return localStorage.getItem(_selectedCampLsKey()); } catch (e) { return null; }
+}
+
+function _saveActiveCampIds(ids) {
+  try {
+    const arr = Array.isArray(ids) ? ids : [];
+    localStorage.setItem(_activeCampLsKey(), JSON.stringify(arr));
+  } catch (e) {}
+}
+
+function _loadActiveCampIds() {
+  try {
+    const raw = localStorage.getItem(_activeCampLsKey());
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    return [];
+  }
 }
 
 async function setCampaignAutoDialPermission(campId, allowed) {
