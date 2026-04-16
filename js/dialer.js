@@ -97,8 +97,6 @@ async function initDialer() {
       if (notice) notice.style.display = 'flex';
     }
     list.innerHTML = myCamps.map(ac=>{
-      const q = ac.campaigns?.queues;
-      const tot = q ? q.reduce((s,qq)=>s+(qq.total_contacts||0),0).toLocaleString() : '—';
       const isActive = _activeCampIds.includes(ac.campaign_id);
       const camp = ac.campaigns || {};
       const campSettings = (typeof getCampSettings === 'function') ? getCampSettings(camp) : (camp?.settings || {});
@@ -111,7 +109,6 @@ async function initDialer() {
 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
   <div style="flex:1;min-width:0;">
     <div class="agent-camp-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ac.campaigns?.name||cid}</div>
-    <div style="font-size:10px;color:var(--text-3);margin-top:1px;">${tot} kişi · ${ac.campaigns?.dial_speed||1} hat</div>
     <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-2);cursor:pointer;opacity:1;"
         title="${canDisableAutoDial ? 'Bu kampanyada otomatik aramayı kapatabilirsiniz' : 'Bu kampanyada otomatik arama kapatılamaz'}">
@@ -214,7 +211,15 @@ function selectCamp(id, name, opts = {}) {
   if (btn) {
     btn.disabled = false; btn.style.opacity = ''; btn.style.cursor = ''; btn.title = '';
     const txt = document.getElementById('ready-text');
-    if (txt) txt.setAttribute('data-tr', 'Hazır — Aramayı Başlat');
+    if (txt) {
+      if (typeof dialerStatus !== 'undefined' && dialerStatus === 'ready') {
+        txt.setAttribute('data-tr', 'Durdur');
+        txt.setAttribute('data-de', 'Stoppen');
+      } else {
+        txt.setAttribute('data-tr', 'Hazır — Aramayı Başlat');
+        txt.setAttribute('data-de', 'Bereit — Start');
+      }
+    }
     applyLang();
   }
   if (notice) notice.style.display = 'none';
@@ -390,12 +395,17 @@ async function loadMyMiniStats() {
       `&started_at=gte.${since}&started_at=lte.${nowIso}`
     );
     const calls = (callsRows || []).length;
+    const posOutcomes = new Set(['appointment', 'appointment_done', 'basarili', 'positive']);
+    const posCalls = (callsRows || []).filter((r) => posOutcomes.has(String(r?.outcome || '').toLowerCase())).length;
 
     const apRowsPerf = await sb(
       `appointments?select=durum&agent_id=eq.${currentUser?.id}` +
       `&termin_tarih=gte.${since}&termin_tarih=lte.${nowIso}`
     );
     const appts = (apRowsPerf || []).length;
+    try {
+      window._dialerPerfSnapshot = { calls, appts, posCalls, since, tab: _perfTab };
+    } catch (e) {}
 
     document.getElementById('my-appt').textContent = appts;
     document.getElementById('my-calls').textContent = calls;
@@ -468,7 +478,79 @@ async function loadMyMiniStats() {
 
     document.getElementById('my-stats-mini').innerHTML = boxes.join('');
     loadUpcomingWv();
+    if (typeof startCustEmptyCoach === 'function') startCustEmptyCoach();
   } catch(e){ console.error('stats err:',e); }
+}
+
+let _custEmptyCoachTimer = null;
+
+function _custEmptyCoachTargetVisible() {
+  const root = document.getElementById('cust-empty');
+  return !!(root && root.style.display !== 'none');
+}
+
+function refreshCustEmptyCoachBubble() {
+  const bubble = document.getElementById('cust-empty-bubble');
+  const root = document.getElementById('cust-empty');
+  if (!bubble || !root || root.style.display === 'none') {
+    if (bubble) bubble.style.display = 'none';
+    return;
+  }
+  const tr = currentLang === 'tr';
+  const p = window._dialerPerfSnapshot || {};
+  const calls = Number(p.calls) || 0;
+  const appts = Number(p.appts) || 0;
+  const posCalls = Number(p.posCalls) || 0;
+  let msg = '';
+  if (calls >= 18 && appts >= 4) {
+    msg = tr ? 'Bugün çok tempo var — termin yağmuru!' : 'Starkes Tempo — viele Termine!';
+  } else if (calls >= 14 && posCalls === 0) {
+    msg = tr ? 'Çok çağrı aldın; birazdan yakalarsın.' : 'Viele Anrufe — der Treffer kommt.';
+  } else if (calls >= 10 && appts === 0) {
+    msg = tr ? 'Ritmin iyi, bir termin çok yakın.' : 'Guter Rhythmus — Termin in Sicht.';
+  } else if (appts >= 6) {
+    msg = tr ? 'Mükemmel iş — akış mükemmel.' : 'Sehr starke Buchungen heute!';
+  } else if (appts >= 3) {
+    msg = tr ? 'Harika gün, böyle devam.' : 'Tolle Serie — weiter so!';
+  } else {
+    const pool = tr
+      ? [
+        'Hazır olunca müşteri kartı burada belirir.',
+        'Yeşil düğme aramayı başlatır; kırmızı durdurur.',
+        'Kısayollar: Space sustur, Enter ilerlet.',
+        'Net ton, kısa cümle — güven verir.',
+      ]
+      : [
+        'Die Kundenkarte erscheint, sobald du startest.',
+        'Grün startet, Rot stoppt.',
+        'Kurz und klar klingt professionell.',
+      ];
+    msg = pool[Math.floor(Math.random() * pool.length)];
+  }
+  bubble.textContent = msg;
+  bubble.style.display = 'block';
+  bubble.classList.remove('cust-empty-bubble--pop');
+  void bubble.offsetWidth;
+  bubble.classList.add('cust-empty-bubble--pop');
+}
+
+function startCustEmptyCoach() {
+  stopCustEmptyCoach();
+  if (!_custEmptyCoachTargetVisible()) return;
+  refreshCustEmptyCoachBubble();
+  _custEmptyCoachTimer = setInterval(() => refreshCustEmptyCoachBubble(), 68000);
+}
+
+function stopCustEmptyCoach() {
+  if (_custEmptyCoachTimer) {
+    clearInterval(_custEmptyCoachTimer);
+    _custEmptyCoachTimer = null;
+  }
+  const bubble = document.getElementById('cust-empty-bubble');
+  if (bubble) {
+    bubble.style.display = 'none';
+    bubble.classList.remove('cust-empty-bubble--pop');
+  }
 }
 
 async function loadUpcomingWv() {
@@ -547,14 +629,20 @@ function refreshHangupFinalizeButton() {
   if (!lbl || !btn) return;
   const lineUp = !!_telnyxCall || !!_fakeCallActive || !!_outboundDialPending;
   const tr = currentLang === 'tr';
+  btn.disabled = false;
+  btn.style.opacity = '';
+  btn.style.cursor = 'pointer';
+  btn.onclick = hangup;
   if (lineUp) {
     lbl.textContent = tr ? 'Kapat' : 'Auflegen';
     btn.style.color = 'var(--red)';
-    btn.onclick = hangup;
+    btn.title = '';
   } else {
-    lbl.textContent = tr ? 'Sonuçlandır' : 'Abschließen';
+    lbl.textContent = tr ? 'Bitir' : 'Beenden';
     btn.style.color = 'var(--accent)';
-    btn.onclick = () => { handleCallEnd(Math.floor(callSeconds) || 0); };
+    btn.title = tr
+      ? 'Sonuçlandırmak için önce çağrıyı kapatın. Hat kapandıysa Bitir ile sonuç ekranına geçin.'
+      : 'Zum Abschließen zuerst auflegen. Wenn die Leitung weg ist: Beenden.';
   }
 }
 
@@ -654,7 +742,11 @@ function setDialerStatus(s) {
   if (s==='offline'||s==='break') {
     if (rdyBtn) rdyBtn.className='btn-ready-big ready';
     if (rdyIc) rdyIc.textContent='▶';
-    if (rdyTxt) rdyTxt.textContent=currentLang==='tr'?'Hazır — Aramayı Başlat':'Bereit schalten';
+    if (rdyTxt) {
+      rdyTxt.setAttribute('data-tr', 'Hazır — Aramayı Başlat');
+      rdyTxt.setAttribute('data-de', 'Bereit — Start');
+      rdyTxt.textContent = currentLang === 'tr' ? 'Hazır — Aramayı Başlat' : 'Bereit schalten';
+    }
     document.getElementById('ready-section').style.display='';
     if (callAct) callAct.style.display='none';
     document.getElementById('customer-card').style.display='';
@@ -662,7 +754,11 @@ function setDialerStatus(s) {
   } else if (s==='ready') {
     if (rdyBtn) rdyBtn.className='btn-ready-big stop';
     if (rdyIc) rdyIc.textContent='⏹';
-    if (rdyTxt) rdyTxt.textContent=currentLang==='tr'?'Durdur':'Stoppen';
+    if (rdyTxt) {
+      rdyTxt.setAttribute('data-tr', 'Durdur');
+      rdyTxt.setAttribute('data-de', 'Stoppen');
+      rdyTxt.textContent = currentLang === 'tr' ? 'Durdur' : 'Stoppen';
+    }
     document.getElementById('ready-section').style.display='';
     if (callAct) callAct.style.display='none';
     document.getElementById('customer-card').style.display='';
@@ -821,26 +917,40 @@ function refreshDialerHealthPanel() {
     .join('');
   const btn = document.getElementById('btn-ready');
   const txt = document.getElementById('ready-text');
-  if (btn) {
-    const ok = h.code === 'DIAL-OK';
-    btn.disabled = !ok;
-    btn.style.opacity = ok ? '' : '0.45';
-    btn.style.cursor = ok ? 'pointer' : 'not-allowed';
-    btn.title = ok ? '' : h.msg;
-    if (txt) {
-      const base = currentLang === 'tr' ? 'Hazır — Aramayı Başlat' : 'Bereit — Start';
-      if (ok) txt.textContent = base;
-      else {
-        // kısa sebep
-        const why =
-          h.code === 'DIAL-CAMP'  ? (currentLang === 'tr' ? 'Kampanya seçin' : 'Kampagne wählen') :
-          h.code === 'DIAL-ACTIVE'? (currentLang === 'tr' ? 'Aktif kampanya yok' : 'Keine aktive Kampagne') :
-          h.code === 'DIAL-SIP'   ? (currentLang === 'tr' ? 'Hat bağlantısı hazır değil' : 'Verbindung nicht bereit') :
-          h.code === 'DIAL-HOURS' ? (currentLang === 'tr' ? 'Saat kısıtı' : 'Zeitfenster') :
-                                   (currentLang === 'tr' ? 'Mikrofon izni' : 'Mikrofon');
-        txt.textContent = `${base} (${why})`;
-      }
-    }
+  if (!btn || !txt) return;
+  const ok = h.code === 'DIAL-OK';
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '' : '0.45';
+  btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+  btn.title = ok ? '' : h.msg;
+
+  if (typeof dialerStatus !== 'undefined' && dialerStatus === 'ready') {
+    const why =
+      h.code === 'DIAL-CAMP' ? (currentLang === 'tr' ? 'Kampanya seçin' : 'Kampagne wählen') :
+      h.code === 'DIAL-ACTIVE' ? (currentLang === 'tr' ? 'Aktif kampanya yok' : 'Keine aktive Kampagne') :
+      h.code === 'DIAL-SIP' ? (currentLang === 'tr' ? 'Hat hazır değil' : 'Verbindung nicht bereit') :
+      h.code === 'DIAL-HOURS' ? (currentLang === 'tr' ? 'Saat kısıtı' : 'Zeitfenster') :
+      (currentLang === 'tr' ? 'Mikrofon izni' : 'Mikrofon');
+    txt.setAttribute('data-tr', ok ? 'Durdur' : `Durdur (${why})`);
+    txt.setAttribute('data-de', ok ? 'Stoppen' : `Stoppen (${why})`);
+    txt.textContent = ok
+      ? (currentLang === 'tr' ? 'Durdur' : 'Stoppen')
+      : (currentLang === 'tr' ? `Durdur (${why})` : `Stoppen (${why})`);
+    return;
+  }
+
+  const base = currentLang === 'tr' ? 'Hazır — Aramayı Başlat' : 'Bereit — Start';
+  txt.setAttribute('data-tr', 'Hazır — Aramayı Başlat');
+  txt.setAttribute('data-de', 'Bereit — Start');
+  if (ok) txt.textContent = base;
+  else {
+    const why =
+      h.code === 'DIAL-CAMP' ? (currentLang === 'tr' ? 'Kampanya seçin' : 'Kampagne wählen') :
+      h.code === 'DIAL-ACTIVE' ? (currentLang === 'tr' ? 'Aktif kampanya yok' : 'Keine aktive Kampagne') :
+      h.code === 'DIAL-SIP' ? (currentLang === 'tr' ? 'Hat bağlantısı hazır değil' : 'Verbindung nicht bereit') :
+      h.code === 'DIAL-HOURS' ? (currentLang === 'tr' ? 'Saat kısıtı' : 'Zeitfenster') :
+      (currentLang === 'tr' ? 'Mikrofon izni' : 'Mikrofon');
+    txt.textContent = `${base} (${why})`;
   }
 }
 

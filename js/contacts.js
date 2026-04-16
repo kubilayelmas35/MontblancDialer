@@ -224,6 +224,7 @@ async function getNextContact(campaignIds = null) {
 }
 
 function showCustomerCard(c) {
+  if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
   document.getElementById('cust-empty').style.display='none';
   document.getElementById('cust-data').style.display='';
   showPrevCallInfo(c);
@@ -331,6 +332,9 @@ Termini Kaydet
   }
   const phoneEl = document.getElementById('cust-phone');
   if (phoneEl) { phoneEl.style.cursor='pointer'; phoneEl.title='Kopyala'; phoneEl.onclick=()=>copyToClipboard(phoneEl.textContent,'Telefon kopyalandı'); }
+  if (typeof dialerStatus === 'undefined' || dialerStatus !== 'wrapping') {
+    if (typeof switchContactTab === 'function') switchContactTab('info');
+  }
   if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
 }
 
@@ -363,6 +367,7 @@ function clearCustomerCard() {
   document.getElementById('cust-empty').style.display='';
   document.getElementById('cust-data').style.display='none';
   if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+  if (typeof startCustEmptyCoach === 'function') startCustEmptyCoach();
 }
 
 function switchContactTab(tab) {

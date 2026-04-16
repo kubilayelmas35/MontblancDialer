@@ -33,6 +33,7 @@ function navigate(page) {
 if (page !== 'dialer') {
   if (typeof closeMicAudioDrawer === 'function') closeMicAudioDrawer();
   if (typeof closeManualDialDrawer === 'function') closeManualDialDrawer();
+  if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
 }
 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
 document.querySelectorAll('.sb-item').forEach(s => s.classList.remove('active'));
@@ -300,6 +301,10 @@ if (typeof dialerStatus !== 'undefined' && dialerStatus === 'on_call' && typeof 
   refreshHangupFinalizeButton();
 }
 if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+  const _ce = document.getElementById('cust-empty');
+  if (_ce && _ce.style.display !== 'none' && typeof refreshCustEmptyCoachBubble === 'function') {
+    refreshCustEmptyCoachBubble();
+  }
 }
 
 function cycleLang() {
