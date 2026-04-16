@@ -411,6 +411,19 @@ flex-shrink:0; opacity: 0.7;
 transition: opacity var(--transition);
 }
 .sb-item:hover .sb-item-icon { opacity: 1; }
+
+/* Dialer nav call indicator (blink green while on call) */
+.sb-item.dialer-calling .sb-item-icon,
+.sb-item.dialer-calling .sb-item-icon svg,
+.sb-item.dialer-calling .sb-item-icon i {
+  color: var(--green) !important;
+  opacity: 1 !important;
+  animation: dialer-nav-blink 1s ease-in-out infinite;
+}
+@keyframes dialer-nav-blink {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(22,163,74,0)); opacity: 1; }
+  50% { filter: drop-shadow(0 0 7px rgba(22,163,74,0.65)); opacity: 0.35; }
+}
 .sb-badge {
 margin-left: auto; background: var(--accent); color: white;
 font-size: 10px; font-weight: 700; padding: 1px 6px;

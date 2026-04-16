@@ -511,6 +511,7 @@ async function toggleReady() {
 
 function setDialerStatus(s) {
   dialerStatus = s;
+  updateDialerNavCallIndicator();
   const dot    = document.getElementById('status-dot');
   const label  = document.getElementById('status-label');
   const rdyBtn = document.getElementById('btn-ready');
@@ -575,6 +576,16 @@ function setDialerStatus(s) {
       document.getElementById('customer-card').style.display='none';
     }
   }
+}
+
+function updateDialerNavCallIndicator() {
+  const onCall = dialerStatus === 'on_call' || !!_fakeCallActive;
+  const btn1 = document.getElementById('nav-dialer-btn');
+  const btn2 = document.getElementById('nav-admin-dialer-btn');
+  [btn1, btn2].forEach((b) => {
+    if (!b) return;
+    b.classList.toggle('dialer-calling', onCall);
+  });
 }
 
 async function dialNext() {
