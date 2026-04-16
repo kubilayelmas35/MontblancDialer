@@ -50,6 +50,16 @@ async function initDialer() {
       list.innerHTML=`<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Kampanya atanmamış<br><small style="font-size:10px;">Admin sizi bir kampanyaya atamalı</small></div>`;
       return;
     }
+
+    // Seçili kampanyayı (kullanıcı bazlı) geri yükle
+    if (!selectedCampId) {
+      const saved = _loadSelectedCampId();
+      if (saved && myCamps.some((x) => String(x.campaign_id) === String(saved))) {
+        const found = myCamps.find((x) => String(x.campaign_id) === String(saved));
+        // selectCamp UI + state'i tek yerden güncellesin
+        selectCamp(found.campaign_id, found.campaigns?.name || '');
+      }
+    }
     // Tüm kampanyaları varsayılan aktif yap (ilk yüklemede)
     if (!_activeCampIds.length) {
       _activeCampIds = myCamps.map(ac => ac.campaign_id);
@@ -152,6 +162,7 @@ function toggleCampActive(campId, checked) {
 
 function selectCamp(id, name) {
   selectedCampId = id;
+  _saveSelectedCampId(id);
   const lbl = document.getElementById('dialer-camp-label');
   if (lbl) lbl.textContent = name || id;
   // Store aux codes from campaign settings
@@ -179,6 +190,21 @@ function selectCamp(id, name) {
   if (notice) notice.style.display = 'none';
   refreshAutoDialUi();
   refreshDialerHealthPanel();
+}
+
+function _selectedCampLsKey() {
+  return `mb_selected_camp_${currentUser?.id || 'anon'}`;
+}
+
+function _saveSelectedCampId(campId) {
+  try {
+    if (!campId) localStorage.removeItem(_selectedCampLsKey());
+    else localStorage.setItem(_selectedCampLsKey(), String(campId));
+  } catch (e) {}
+}
+
+function _loadSelectedCampId() {
+  try { return localStorage.getItem(_selectedCampLsKey()); } catch (e) { return null; }
 }
 
 async function setCampaignAutoDialPermission(campId, allowed) {
@@ -586,12 +612,27 @@ function refreshDialerHealthPanel() {
     .map((c) => `<div style="display:flex;align-items:center;gap:6px;color:${c.ok ? 'var(--green)' : 'var(--yellow)'};"><span>${c.ok ? '✓' : '•'}</span><span>${c.label}</span></div>`)
     .join('');
   const btn = document.getElementById('btn-ready');
+  const txt = document.getElementById('ready-text');
   if (btn) {
     const ok = h.code === 'DIAL-OK';
     btn.disabled = !ok;
     btn.style.opacity = ok ? '' : '0.45';
     btn.style.cursor = ok ? 'pointer' : 'not-allowed';
     btn.title = ok ? '' : h.msg;
+    if (txt) {
+      const base = currentLang === 'tr' ? 'Hazır — Aramayı Başlat' : 'Bereit — Start';
+      if (ok) txt.textContent = base;
+      else {
+        // kısa sebep
+        const why =
+          h.code === 'DIAL-CAMP'  ? (currentLang === 'tr' ? 'Kampanya seçin' : 'Kampagne wählen') :
+          h.code === 'DIAL-ACTIVE'? (currentLang === 'tr' ? 'Aktif kampanya yok' : 'Keine aktive Kampagne') :
+          h.code === 'DIAL-SIP'   ? (currentLang === 'tr' ? 'Hat bağlantısı hazır değil' : 'Verbindung nicht bereit') :
+          h.code === 'DIAL-HOURS' ? (currentLang === 'tr' ? 'Saat kısıtı' : 'Zeitfenster') :
+                                   (currentLang === 'tr' ? 'Mikrofon izni' : 'Mikrofon');
+        txt.textContent = `${base} (${why})`;
+      }
+    }
   }
 }
 
