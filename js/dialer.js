@@ -54,6 +54,18 @@ async function initDialer() {
     if (!_activeCampIds.length) {
       _activeCampIds = myCamps.map(ac => ac.campaign_id);
     }
+    // Kullanıcı kampanya seçmeden hazır başlatamasın
+    if (!selectedCampId) {
+      const rdyBtn = document.getElementById('btn-ready');
+      if (rdyBtn) {
+        rdyBtn.disabled = true;
+        rdyBtn.style.opacity = '0.45';
+        rdyBtn.style.cursor = 'not-allowed';
+        rdyBtn.title = 'Önce bir kampanya seçin';
+      }
+      const notice = document.getElementById('camp-required-notice');
+      if (notice) notice.style.display = 'flex';
+    }
     list.innerHTML = myCamps.map(ac=>{
       const q = ac.campaigns?.queues;
       const tot = q ? q.reduce((s,qq)=>s+(qq.total_contacts||0),0).toLocaleString() : '—';
@@ -64,7 +76,8 @@ async function initDialer() {
       const canDisableAutoDial = (campSettings?.auto_dial !== false);
       const enabledForMe = isAutoDialEnabledForCampaign(ac.campaign_id, canDisableAutoDial);
       const cid = ac.campaign_id;
-      return `<div class="agent-camp-item ${isActive?'active':''}" id="camp-item-${cid}" style="padding:8px 10px;">
+      const cName = String(ac.campaigns?.name || cid).replace(/'/g, "\\'");
+      return `<div class="agent-camp-item ${isActive?'active':''}" id="camp-item-${cid}" style="padding:8px 10px;" onclick="selectCamp('${cid}','${cName}')">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
   <div style="flex:1;min-width:0;">
     <div class="agent-camp-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ac.campaigns?.name||cid}</div>
@@ -74,6 +87,7 @@ async function initDialer() {
         title="${canDisableAutoDial ? 'Bu kampanyada otomatik aramayı kapatabilirsiniz' : 'Bu kampanyada otomatik arama kapatılamaz'}">
         <input type="checkbox" ${enabledForMe ? 'checked' : ''}
           onchange="toggleCampaignAutoDialForMe('${cid}', this.checked)"
+          onclick="event.stopPropagation()"
           style="width:14px;height:14px;accent-color:var(--accent);">
         Otomatik Arama
       </label>
@@ -82,6 +96,7 @@ async function initDialer() {
   <!-- Toggle switch -->
   <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;cursor:pointer;" title="${isActive?'Kapat':'Aktif Et'}">
     <input type="checkbox" ${isActive?'checked':''} onchange="toggleCampActive('${cid}',this.checked)"
+      onclick="event.stopPropagation()"
       style="opacity:0;width:0;height:0;">
     <span style="position:absolute;inset:0;background:${isActive?'var(--accent)':'var(--border)'};border-radius:10px;transition:.25s;" id="camp-slider-${cid}">
       <span style="position:absolute;top:3px;left:${isActive?'19':'3'}px;width:14px;height:14px;background:#fff;border-radius:50%;transition:.25s;" id="camp-knob-${cid}"></span>
@@ -90,7 +105,7 @@ async function initDialer() {
 </div>
 </div>`;
     }).join('');
-    if (!selectedCampId && myCamps.length) selectCamp(myCamps[0].campaign_id, myCamps[0].campaigns?.name||'');
+    // kampanya otomatik seçilmez; kullanıcı tıklamalı
     if (!myCamps.length) {
       const notice = document.getElementById('camp-required-notice');
       if (notice) notice.style.display = 'flex';
@@ -124,13 +139,15 @@ function toggleCampActive(campId, checked) {
   if (slider) slider.style.background = checked ? 'var(--accent)' : 'var(--border)';
   if (knob)   knob.style.left = checked ? '19px' : '3px';
   // selectedCampId'yi güncelle: aktif kampanya yoksa ilkini seç
-  if (!_activeCampIds.includes(selectedCampId) && _activeCampIds.length) {
-    selectedCampId = _activeCampIds[0];
+  if (!_activeCampIds.includes(selectedCampId)) {
+    // Kullanıcı seçtiği kampanya pasif olduysa seçimi kaldır
+    selectedCampId = null;
   }
   const countStr = _activeCampIds.length === 0 ? 'Hiç kampanya aktif değil' :
     `${_activeCampIds.length} kampanya aktif`;
   toast(checked ? `✓ Aktif: ${countStr}` : `Pasif: ${countStr}`, checked ? 'ok' : 'warn', 2000);
   refreshAutoDialUi();
+  refreshDialerHealthPanel();
 }
 
 function selectCamp(id, name) {
@@ -161,6 +178,7 @@ function selectCamp(id, name) {
   }
   if (notice) notice.style.display = 'none';
   refreshAutoDialUi();
+  refreshDialerHealthPanel();
 }
 
 async function setCampaignAutoDialPermission(campId, allowed) {
@@ -486,6 +504,12 @@ function setDialerStatus(s) {
 async function dialNext() {
   refreshDialerHealthPanel();
   if (dialerStatus !== 'ready') return;
+  if (!selectedCampId) {
+    toast('Önce kampanya seçin', 'err');
+    setDialerStatus('offline');
+    updateSessionInDB('offline');
+    return;
+  }
   if (!_testMode && !checkCallAllowed()) return;
 
   // Test modunda Telnyx gerekmez
@@ -561,6 +585,14 @@ function refreshDialerHealthPanel() {
   checksEl.innerHTML = h.checks
     .map((c) => `<div style="display:flex;align-items:center;gap:6px;color:${c.ok ? 'var(--green)' : 'var(--yellow)'};"><span>${c.ok ? '✓' : '•'}</span><span>${c.label}</span></div>`)
     .join('');
+  const btn = document.getElementById('btn-ready');
+  if (btn) {
+    const ok = h.code === 'DIAL-OK';
+    btn.disabled = !ok;
+    btn.style.opacity = ok ? '' : '0.45';
+    btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+    btn.title = ok ? '' : h.msg;
+  }
 }
 
 async function updateSessionInDB(status) {
@@ -1136,7 +1168,7 @@ function toggleTestMode() {
     btn.textContent = '⚙ TEST AÇIK';
     // Hazır butonunu Telnyx'ten bağımsız hale getir
     if (rdyBtn) {
-      const canStart = getAutoDialCampaignIds().length > 0;
+      const canStart = !!selectedCampId && getAutoDialCampaignIds().length > 0;
       rdyBtn.disabled = !canStart;
       rdyBtn.style.opacity = '1';
       rdyBtn.style.cursor = canStart ? 'pointer' : 'not-allowed';
@@ -1162,6 +1194,7 @@ function toggleTestMode() {
 async function testToggleReady() {
   // Test modunda bile en az bir izinli/aktif kampanya olmadan arama başlamasın.
   const allowed = getAutoDialCampaignIds();
+  if (!selectedCampId) { toast('Önce kampanya seçin', 'err'); return; }
   if (!allowed.length) { toast('Önce en az bir kampanyayı aktif edin', 'err'); return; }
   if (dialerStatus === 'offline' || dialerStatus === 'break') {
     setDialerStatus('ready');
