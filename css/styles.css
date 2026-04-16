@@ -1128,6 +1128,52 @@ cursor:pointer; transition:var(--transition);
 .agent-camp-item.active { border-color:var(--accent); background:var(--accent-soft); }
 .agent-camp-name { font-size:13px; font-weight:700; }
 .agent-camp-count { font-size:11px; color:var(--text-3); margin-top:2px; font-family:var(--mono); }
+/* Dialer üst bar: manuel arama chip + çekmeceler */
+.manual-dial-chip {
+  display:flex; align-items:center; gap:10px;
+  padding:7px 11px; min-width:0; max-width:min(280px, 46vw);
+  border-radius:var(--radius-sm);
+  background:var(--bg-3); border:1px solid var(--border);
+  cursor:pointer; transition:var(--transition);
+  text-align:left;
+}
+.manual-dial-chip:hover { border-color:var(--border-2); background:var(--bg-4); }
+.manual-dial-chip.is-open { border-color:var(--accent); background:var(--accent-soft); }
+.manual-dial-chip-dot {
+  width:8px; height:8px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2, var(--accent)));
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.manual-dial-chip-text { flex:1; min-width:0; }
+.manual-dial-chip-title {
+  font-size:11px; font-weight:800; color:var(--text);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.manual-dial-chip-sub { font-size:9px; color:var(--text-3); margin-top:1px; }
+.manual-dial-caret { font-size:12px; color:var(--text-3); transition:transform .2s; flex-shrink:0; }
+.manual-dial-chip.is-open .manual-dial-caret { transform:rotate(180deg); color:var(--accent); }
+.dialer-hdr-drawer {
+  padding:12px 16px;
+  border-bottom:1px solid var(--border);
+  background:var(--bg-2);
+  animation:dialer-drawer-in .18s ease-out;
+}
+@keyframes dialer-drawer-in {
+  from { opacity:0; transform:translateY(-3px); }
+  to { opacity:1; transform:translateY(0); }
+}
+.hdr-meter-track {
+  position:relative; height:12px; border-radius:6px; overflow:hidden;
+  background:var(--bg-3); border:1px solid var(--border);
+}
+.hdr-meter-fill { height:100%; width:0%; border-radius:6px; transition:width .08s ease-out, opacity .12s; }
+.hdr-meter-fill--in { background:linear-gradient(90deg,var(--accent),var(--green)); }
+.hdr-meter-fill--out { background:linear-gradient(90deg,var(--yellow),var(--accent)); }
+.hdr-meter-threshold {
+  position:absolute; top:0; bottom:0; width:2px; margin-left:-1px;
+  background:rgba(15,23,42,.4); pointer-events:none;
+}
+html[data-theme="dark"] .hdr-meter-threshold { background:rgba(248,250,252,.35); }
 /* ============================================================
 SETTINGS PAGE
 ============================================================ */

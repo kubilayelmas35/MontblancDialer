@@ -135,6 +135,8 @@ async function initDialer() {
 </div>
 </div>`;
     }).join('');
+    // Manuel arama / Telnyx DID vb. için global kampanya listesi (agent kampanyaları)
+    campaigns = (myCamps || []).map((ac) => ac.campaigns).filter(Boolean);
     // kampanya otomatik seçilmez; kullanıcı tıklamalı
     if (!myCamps.length) {
       const notice = document.getElementById('camp-required-notice');
@@ -850,6 +852,27 @@ function hangup() {
   if (dialerStatus === 'on_call') handleCallEnd(Math.floor(callSeconds) || 0);
 }
 
+async function refreshDialerCampaignCacheIfEmpty() {
+  if (!currentUser) return;
+  if (Array.isArray(campaigns) && campaigns.length > 0) return;
+  const role = currentUser?.role || '';
+  const adminLike = ['admin', 'firm_admin', 'super_admin', 'qc'].includes(role);
+  const firmScopeId = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser.firm_id;
+  if (adminLike && role === 'super_admin' && !firmScopeId) return;
+  let myCamps = [];
+  if (adminLike && firmScopeId) {
+    const allCamps = (await sb(`campaigns?select=*,queues(*)&status=eq.active&firm_id=eq.${firmScopeId}&order=created_at.desc`)) || [];
+    myCamps = allCamps.map((c) => ({ campaign_id: c.id, campaigns: c, agent_id: currentUser.id }));
+  } else {
+    myCamps = (await sb(`agent_campaigns?select=*,campaigns(*,queues(*))&agent_id=eq.${currentUser.id}`)) || [];
+    if (!myCamps.length && currentUser.firm_id) {
+      const allCamps = (await sb(`campaigns?select=*,queues(*)&status=eq.active&firm_id=eq.${currentUser.firm_id}&order=created_at.desc`)) || [];
+      myCamps = allCamps.map((c) => ({ campaign_id: c.id, campaigns: c, agent_id: currentUser.id }));
+    }
+  }
+  campaigns = (myCamps || []).map((ac) => ac.campaigns).filter(Boolean);
+}
+
 function redialCurrentContact() {
   if (!currentContact?.phone) {
     toast(currentLang === 'tr' ? 'Önce müşteri / numara yok' : 'Kein Kontakt / Nummer', 'err');
@@ -919,28 +942,199 @@ async function _manualDialFetchRows(variants, campIds) {
   return [...merged.values()];
 }
 
-function openManualDialModal() {
-  const old = document.getElementById('m-manual-dial');
-  if (old) old.remove();
-  const tr = currentLang === 'tr';
-  const m = document.createElement('div');
-  m.id = 'm-manual-dial';
-  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:9200;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div style="background:var(--bg-2);border-radius:var(--radius);padding:18px;width:100%;max-width:420px;box-shadow:0 16px 48px rgba(0,0,0,.35);border:1px solid var(--border);">
-<div style="font-size:15px;font-weight:800;margin-bottom:8px;">${tr ? 'Manuel arama' : 'Manuelle Suche'}</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:10px;">${tr ? 'Numara girin; atanmış tüm kampanyalarda aranır.' : 'Nummer eingeben; Suche in allen zugewiesenen Kampagnen.'}</div>
-<input type="tel" id="manual-dial-input" class="form-input" placeholder="${tr ? 'Telefon numarası' : 'Telefonnummer'}" style="width:100%;margin-bottom:10px;">
-<div style="display:flex;gap:8px;margin-bottom:10px;">
-<button type="button" class="btn btn-primary" id="manual-dial-search-btn" style="flex:1;">${tr ? 'Bul' : 'Suchen'}</button>
-<button type="button" class="btn btn-ghost" id="manual-dial-close-btn">${tr ? 'Kapat' : 'Schließen'}</button>
-</div>
-<div id="manual-dial-results" style="max-height:240px;overflow:auto;font-size:12px;"></div>
-</div>`;
-  document.body.appendChild(m);
-  m.querySelector('#manual-dial-close-btn').onclick = () => m.remove();
-  m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
-  m.querySelector('#manual-dial-search-btn').onclick = () => runManualDialSearch();
-  m.querySelector('#manual-dial-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') runManualDialSearch(); });
+function closeManualDialDrawer() {
+  const el = document.getElementById('manual-dial-drawer');
+  if (el) el.style.display = 'none';
+  document.getElementById('manual-dial-toggle')?.classList.remove('is-open');
+}
+
+function toggleManualDialDrawer() {
+  const el = document.getElementById('manual-dial-drawer');
+  const chip = document.getElementById('manual-dial-toggle');
+  if (!el) return;
+  const isOpen = el.style.display !== 'none' && el.style.display !== '';
+  if (isOpen) {
+    closeManualDialDrawer();
+    return;
+  }
+  closeMicAudioDrawer();
+  el.style.display = 'block';
+  chip?.classList.add('is-open');
+  setTimeout(() => document.getElementById('manual-dial-input')?.focus(), 40);
+}
+
+function _micDrawerWireControlsOnce() {
+  if (window._micDrawerControlsWired) return;
+  window._micDrawerControlsWired = true;
+  const gainEl = document.getElementById('mic-drawer-gain');
+  const thrEl = document.getElementById('mic-drawer-threshold');
+  gainEl?.addEventListener('input', () => {
+    localStorage.setItem('mb_mic_drawer_gain', gainEl.value);
+    const g = parseFloat(gainEl.value);
+    if (_micDrawerInputGain) _micDrawerInputGain.gain.value = Number.isFinite(g) ? g : 1;
+  });
+  thrEl?.addEventListener('input', () => {
+    localStorage.setItem('mb_mic_drawer_thresh', thrEl.value);
+    const t = document.getElementById('mic-drawer-in-threshold');
+    if (t) t.style.left = `${thrEl.value}%`;
+  });
+}
+
+function _micDrawerLoadPrefs() {
+  const g = localStorage.getItem('mb_mic_drawer_gain');
+  const t = localStorage.getItem('mb_mic_drawer_thresh');
+  const ge = document.getElementById('mic-drawer-gain');
+  const te = document.getElementById('mic-drawer-threshold');
+  if (ge && g) ge.value = g;
+  if (te && t) te.value = t;
+  if (_micDrawerInputGain && ge) _micDrawerInputGain.gain.value = parseFloat(ge.value) || 1;
+  const trEl = document.getElementById('mic-drawer-in-threshold');
+  if (trEl && te) trEl.style.left = `${te.value}%`;
+}
+
+function _micDrawerStopAudioCore() {
+  _micDrawerMonitoring = false;
+  if (_micDrawerRaf) {
+    cancelAnimationFrame(_micDrawerRaf);
+    _micDrawerRaf = null;
+  }
+  if (_micDrawerStream) {
+    try { _micDrawerStream.getTracks().forEach((x) => x.stop()); } catch (e) {}
+    _micDrawerStream = null;
+  }
+  try { _micDrawerInputCtx?.close(); } catch (e) {}
+  try { _micDrawerRemoteCtx?.close(); } catch (e) {}
+  _micDrawerInputCtx = null;
+  _micDrawerRemoteCtx = null;
+  _micDrawerInputGain = null;
+  _micDrawerInAn = null;
+  _micDrawerOutAn = null;
+}
+
+function _micDrawerTick() {
+  if (!_micDrawerMonitoring) return;
+  const inMeter = document.getElementById('mic-drawer-in-meter');
+  const outMeter = document.getElementById('mic-drawer-out-meter');
+  const thrVal = parseFloat(document.getElementById('mic-drawer-threshold')?.value || '18');
+  if (_micDrawerInAn) {
+    const buf = new Uint8Array(_micDrawerInAn.frequencyBinCount);
+    _micDrawerInAn.getByteFrequencyData(buf);
+    let sum = 0;
+    for (let i = 0; i < buf.length; i++) sum += buf[i];
+    const avg = sum / buf.length;
+    const gain = parseFloat(document.getElementById('mic-drawer-gain')?.value || '1');
+    const v = Math.min(100, avg * gain * 0.45);
+    if (inMeter) {
+      inMeter.style.width = `${v}%`;
+      inMeter.style.opacity = v >= thrVal ? '1' : '0.55';
+    }
+  } else if (inMeter) inMeter.style.width = '0%';
+  if (_micDrawerOutAn) {
+    const buf2 = new Uint8Array(_micDrawerOutAn.frequencyBinCount);
+    _micDrawerOutAn.getByteFrequencyData(buf2);
+    let s2 = 0;
+    for (let i = 0; i < buf2.length; i++) s2 += buf2[i];
+    const v2 = Math.min(100, (s2 / buf2.length) * 0.55);
+    if (outMeter) outMeter.style.width = `${v2}%`;
+  } else if (outMeter) outMeter.style.width = '0%';
+  _micDrawerRaf = requestAnimationFrame(_micDrawerTick);
+}
+
+async function startMicDrawerMonitor() {
+  if (_micDrawerMonitoring) return;
+  _micDrawerStopAudioCore();
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    _micDrawerStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    _micDrawerInputCtx = new Ctx();
+    const src = _micDrawerInputCtx.createMediaStreamSource(_micDrawerStream);
+    _micDrawerInputGain = _micDrawerInputCtx.createGain();
+    _micDrawerInputGain.gain.value = parseFloat(document.getElementById('mic-drawer-gain')?.value || '1');
+    _micDrawerInAn = _micDrawerInputCtx.createAnalyser();
+    _micDrawerInAn.fftSize = 512;
+    src.connect(_micDrawerInputGain).connect(_micDrawerInAn);
+    if (window._telnyxRemoteStream) {
+      try {
+        _micDrawerRemoteCtx = new Ctx();
+        const rsrc = _micDrawerRemoteCtx.createMediaStreamSource(window._telnyxRemoteStream);
+        _micDrawerOutAn = _micDrawerRemoteCtx.createAnalyser();
+        _micDrawerOutAn.fftSize = 512;
+        rsrc.connect(_micDrawerOutAn);
+      } catch (e) {
+        _micDrawerOutAn = null;
+      }
+    }
+    _micDrawerMonitoring = true;
+    const btn = document.getElementById('mic-drawer-monitor-btn');
+    const sp = btn?.querySelector('span');
+    if (sp) {
+      sp.textContent = currentLang === 'tr' ? 'Dinlemeyi durdur' : 'Überwachung stoppen';
+      sp.setAttribute('data-tr', 'Dinlemeyi durdur');
+      sp.setAttribute('data-de', 'Überwachung stoppen');
+    }
+    micGranted = true;
+    if (typeof updateMicStatus === 'function') updateMicStatus(true);
+    _micDrawerTick();
+  } catch (e) {
+    toast(currentLang === 'tr' ? 'Mikrofon açılamadı: ' + e.message : 'Mikrofon: ' + e.message, 'err');
+    _micDrawerStopAudioCore();
+  }
+}
+
+function stopMicDrawerMonitor() {
+  _micDrawerStopAudioCore();
+  const btn = document.getElementById('mic-drawer-monitor-btn');
+  const sp = btn?.querySelector('span');
+  if (sp) {
+    sp.textContent = currentLang === 'tr' ? 'Dinlemeyi başlat' : 'Überwachung starten';
+    sp.setAttribute('data-tr', 'Dinlemeyi başlat');
+    sp.setAttribute('data-de', 'Überwachung starten');
+  }
+}
+
+function toggleMicDrawerMonitor() {
+  if (_micDrawerMonitoring) stopMicDrawerMonitor();
+  else void startMicDrawerMonitor();
+}
+
+function playMicDrawerBeep() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = 880;
+    g.gain.value = 0.1;
+    o.connect(g).connect(ctx.destination);
+    o.start();
+    setTimeout(() => {
+      try { o.stop(); } catch (e) {}
+      ctx.close();
+    }, 280);
+  } catch (e) {
+    toast('Beep: ' + (e.message || 'err'), 'err');
+  }
+}
+
+function closeMicAudioDrawer() {
+  const el = document.getElementById('mic-audio-drawer');
+  if (el) el.style.display = 'none';
+  stopMicDrawerMonitor();
+}
+
+function toggleMicAudioDrawer() {
+  const el = document.getElementById('mic-audio-drawer');
+  if (!el) return;
+  const isOpen = el.style.display !== 'none' && el.style.display !== '';
+  if (isOpen) {
+    closeMicAudioDrawer();
+    return;
+  }
+  closeManualDialDrawer();
+  _micDrawerWireControlsOnce();
+  _micDrawerLoadPrefs();
+  el.style.display = 'block';
 }
 
 async function runManualDialSearch() {
@@ -954,9 +1148,10 @@ async function runManualDialSearch() {
   }
   const tr = currentLang === 'tr';
   out.innerHTML = `<div style="color:var(--text-3);padding:8px;">${tr ? 'Aranıyor…' : 'Suche…'}</div>`;
+  await refreshDialerCampaignCacheIfEmpty();
   const campIds = (campaigns || []).map((c) => c.id).filter(Boolean);
   if (!campIds.length) {
-    out.innerHTML = `<div style="color:var(--red);padding:8px;">${tr ? 'Kampanya yok' : 'Keine Kampagne'}</div>`;
+    out.innerHTML = `<div style="color:var(--red);padding:8px;">${tr ? 'Kampanya yüklenemedi — önce Dialer sayfasını açın veya firma seçin.' : 'Keine Kampagne — Dialer öffnen oder Firma wählen.'}</div>`;
     return;
   }
   const variants = _manualDialVariants(raw);
@@ -991,7 +1186,7 @@ function pickManualDialContact(idx) {
   if (row.campaign_id) selectCamp(row.campaign_id, camp?.name || '', { skipActivate: true });
   currentContact = row;
   showCustomerCard(row);
-  document.getElementById('m-manual-dial')?.remove();
+  closeManualDialDrawer();
   if (typeof navigate === 'function') navigate('dialer');
   if (typeof switchContactTab === 'function') switchContactTab('info');
   toast(currentLang === 'tr' ? 'Kişi yüklendi — Ara ile arayın' : 'Kontakt geladen — mit Anrufen wählen', 'ok', 3200);

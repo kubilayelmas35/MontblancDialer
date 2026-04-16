@@ -30,6 +30,10 @@ document.getElementById('sidebar').classList.remove('open');
 
 // ── NAVIGATION ───────────────────────────────
 function navigate(page) {
+if (page !== 'dialer') {
+  if (typeof closeMicAudioDrawer === 'function') closeMicAudioDrawer();
+  if (typeof closeManualDialDrawer === 'function') closeManualDialDrawer();
+}
 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
 document.querySelectorAll('.sb-item').forEach(s => s.classList.remove('active'));
 const pg = document.getElementById(`page-${page}`);

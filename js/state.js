@@ -101,6 +101,15 @@ let _breakCode      = null;      // aux / mola türü (modalden)
 let _breakCardTick  = null;      // setInterval id — boş kartta süre
 let _hangupUiTick   = null;      // Kapat / Sonuçlandır etiketi (hat düştüyse)
 let _outboundDialPending = false; // MB_CALL sonrası Telnyx henüz ringing vermeden
+// Mikrofon çekmecesi (ses göstergesi / hat girişi)
+let _micDrawerStream = null;
+let _micDrawerInputCtx = null;
+let _micDrawerRemoteCtx = null;
+let _micDrawerInputGain = null;
+let _micDrawerInAn = null;
+let _micDrawerOutAn = null;
+let _micDrawerRaf = null;
+let _micDrawerMonitoring = false;
 let currentContact  = null;
 let currentCallLog  = null;
 let callTimerInt    = null;
