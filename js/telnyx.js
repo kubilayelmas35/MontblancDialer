@@ -49,6 +49,7 @@ _telnyxClient.on('telnyx.notification', (n) => {
 const call = n.call;
 if (n.type === 'callUpdate') {
 const state = call?.state;
+if (state === 'ringing' || state === 'active') _outboundDialPending = false;
 if (state === 'active') {
 _telnyxCall = call;
 let audio = document.getElementById('_telnyx_audio');
@@ -81,6 +82,7 @@ toast('❌ Hat hatası: ' + e.message, 'err');
 
 function _makeCall(destination, callerNumber) {
 if (!_telnyxClient || !telnyxReady) {
+_outboundDialPending = false;
 toast('Hat bağlantısı yok', 'err'); return;
 }
 try {
@@ -91,7 +93,7 @@ audio: true, video: false,
 detectAnsweringMachine: true,
 });
 callStart = Date.now();
-} catch(e) { toast('Arama hatası: ' + e.message, 'err'); }
+} catch(e) { _outboundDialPending = false; toast('Arama hatası: ' + e.message, 'err'); }
 }
 
 function initRTCListener() {
@@ -210,6 +212,7 @@ setTimeout(() => dialNext(), 1500);
 
 function handleCallEnd(duration) {
 if (amdResult === 'machine') return;
+_outboundDialPending = false;
 callSeconds  = duration || callSeconds;
 activeCallId = null;
 if (dialerStatus === 'on_call') {

@@ -364,7 +364,7 @@ function clearCustomerCard() {
 }
 
 function switchContactTab(tab) {
-  ['info','map','history','file'].forEach(t => {
+  ['info','map','history','file','outcome'].forEach(t => {
     const btn   = document.getElementById('ctab-'+t);
     const panel = document.getElementById('ctab-'+t+'-panel');
     if (btn) { btn.style.background=t===tab?'var(--accent)':'transparent'; btn.style.color=t===tab?'#fff':'var(--text-2)'; }

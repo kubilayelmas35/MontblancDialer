@@ -292,6 +292,9 @@ if (typeof _dashGetRange === 'function' && typeof _dashUpdateStatLabels === 'fun
 if (typeof dialerStatus !== 'undefined' && dialerStatus === 'break' && typeof refreshBreakCustEmpty === 'function') {
   refreshBreakCustEmpty();
 }
+if (typeof dialerStatus !== 'undefined' && dialerStatus === 'on_call' && typeof refreshHangupFinalizeButton === 'function') {
+  refreshHangupFinalizeButton();
+}
 }
 
 function cycleLang() {

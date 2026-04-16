@@ -525,18 +525,40 @@ function refreshBreakCustEmpty() {
     return;
   }
   const sec = Math.max(0, Math.floor((Date.now() - _breakStartedAt) / 1000));
-  const m = Math.floor(sec / 60);
-  const sRem = sec % 60;
-  let trSub;
-  let deSub;
-  if (m >= 1) {
-    trSub = `${m} dakikadır`;
-    deSub = `${m} Minuten`;
-  } else {
-    trSub = `${sRem} saniyedir`;
-    deSub = `${sRem} Sekunden`;
+  const mm = String(Math.floor(sec / 60)).padStart(2, '0');
+  const ss = String(sec % 60).padStart(2, '0');
+  sub.textContent = `${mm}:${ss}`;
+}
+
+function _clearHangupUiTick() {
+  if (_hangupUiTick) {
+    clearInterval(_hangupUiTick);
+    _hangupUiTick = null;
   }
-  sub.textContent = currentLang === 'tr' ? trSub : deSub;
+}
+
+function refreshHangupFinalizeButton() {
+  if (dialerStatus !== 'on_call') return;
+  const lbl = document.getElementById('btn-hangup-label');
+  const btn = document.getElementById('btn-hangup');
+  if (!lbl || !btn) return;
+  const lineUp = !!_telnyxCall || !!_fakeCallActive || !!_outboundDialPending;
+  const tr = currentLang === 'tr';
+  if (lineUp) {
+    lbl.textContent = tr ? 'Kapat' : 'Auflegen';
+    btn.style.color = 'var(--red)';
+    btn.onclick = hangup;
+  } else {
+    lbl.textContent = tr ? 'Sonuçlandır' : 'Abschließen';
+    btn.style.color = 'var(--accent)';
+    btn.onclick = () => { handleCallEnd(Math.floor(callSeconds) || 0); };
+  }
+}
+
+function _startHangupUiTick() {
+  _clearHangupUiTick();
+  refreshHangupFinalizeButton();
+  _hangupUiTick = setInterval(refreshHangupFinalizeButton, 400);
 }
 
 function setDialerStatus(s) {
@@ -557,35 +579,45 @@ function setDialerStatus(s) {
     break:   {tr:'Mola',de:'Pause'},
   };
   if (label) label.textContent = labels[s]?.[currentLang]||s;
+  const callAct = document.getElementById('call-actions');
+  if (callAct) callAct.classList.remove('call-actions--wrapping');
+
   if (s==='offline'||s==='break') {
     if (rdyBtn) rdyBtn.className='btn-ready-big ready';
     if (rdyIc) rdyIc.textContent='▶';
     if (rdyTxt) rdyTxt.textContent=currentLang==='tr'?'Hazır — Aramayı Başlat':'Bereit schalten';
     document.getElementById('ready-section').style.display='';
-    document.getElementById('outcome-section').style.display='none';
-    document.getElementById('call-actions').style.display='none';
+    if (callAct) callAct.style.display='none';
     document.getElementById('customer-card').style.display='';
+    _clearHangupUiTick();
   } else if (s==='ready') {
     if (rdyBtn) rdyBtn.className='btn-ready-big stop';
     if (rdyIc) rdyIc.textContent='⏹';
     if (rdyTxt) rdyTxt.textContent=currentLang==='tr'?'Durdur':'Stoppen';
     document.getElementById('ready-section').style.display='';
-    document.getElementById('outcome-section').style.display='none';
-    document.getElementById('call-actions').style.display='none';
+    if (callAct) callAct.style.display='none';
     document.getElementById('customer-card').style.display='';
+    _clearHangupUiTick();
   } else if (s==='on_call') {
     document.getElementById('ready-section').style.display='none';
-    document.getElementById('outcome-section').style.display='none';
-    document.getElementById('call-actions').style.display='';
+    if (callAct) {
+      callAct.style.display='';
+      callAct.classList.remove('call-actions--wrapping');
+    }
     const tblk = document.getElementById('dialer-timer-block');
     if (tblk) tblk.style.display = 'flex';
     document.getElementById('customer-card').style.display='';
     startCallTimer();
+    _startHangupUiTick();
   } else if (s==='wrapping') {
     if (typeof startAcwTimer === 'function') startAcwTimer();
     document.getElementById('ready-section').style.display='none';
-    document.getElementById('call-actions').style.display='none';
+    if (callAct) {
+      callAct.style.display='';
+      callAct.classList.add('call-actions--wrapping');
+    }
     stopCallTimer();
+    _clearHangupUiTick();
     // Önceki sonuç seçimini temizle
     selectedOutcome = null;
     document.querySelectorAll('.outcome-btn').forEach(b => b.classList.remove('active'));
@@ -598,13 +630,10 @@ function setDialerStatus(s) {
     const dncEl = document.getElementById('outcome-dnc');
     if (dncEl) dncEl.checked = false;
     const hasSlot = _bookingSlot || window._selectedBookingSlot;
-    if (hasSlot) {
-      // Slot seçiliyse direkt termin modunu göster
-      document.getElementById('outcome-section').style.display='none';
-      document.getElementById('customer-card').style.display='';
-    } else {
-      document.getElementById('outcome-section').style.display='';
-      document.getElementById('customer-card').style.display='none';
+    document.getElementById('customer-card').style.display='';
+    if (currentContact && typeof showCustomerCard === 'function') showCustomerCard(currentContact);
+    if (typeof switchContactTab === 'function') {
+      switchContactTab(hasSlot ? 'info' : 'outcome');
     }
   }
 
@@ -677,6 +706,7 @@ async function dialNext() {
     });
   } catch(e) {}
   const campaign = campaigns.find(c => c.id === selectedCampId);
+  _outboundDialPending = true;
   sendToRTC('MB_CALL', { destination: contact.phone, callerNumber: campaign?.telnyx_did || '' });
 }
 
@@ -775,6 +805,7 @@ function resetDialerVoiceVisuals() {
 }
 
 function startCallTimer() {
+  clearInterval(callTimerInt);
   callSeconds = 0;
   updateDialerVoiceVisuals(0);
   if (typeof startDialerVoiceRings === 'function') startDialerVoiceRings();
@@ -812,8 +843,158 @@ function toggleHold() {
 
 function hangup() {
   if (_fakeCallActive || _testMode) { endFakeCall(); return; }
-  sendToRTC('MB_HANGUP');
-  if (!telnyxReady || !_telnyxCall) handleCallEnd(Math.floor(callSeconds));
+  if (_telnyxCall) {
+    sendToRTC('MB_HANGUP');
+    return;
+  }
+  if (dialerStatus === 'on_call') handleCallEnd(Math.floor(callSeconds) || 0);
+}
+
+function redialCurrentContact() {
+  if (!currentContact?.phone) {
+    toast(currentLang === 'tr' ? 'Önce müşteri / numara yok' : 'Kein Kontakt / Nummer', 'err');
+    return;
+  }
+  if (!_testMode && !telnyxReady) {
+    toast(currentLang === 'tr' ? 'Hat bağlantısı yok' : 'Keine Verbindung', 'err');
+    return;
+  }
+  const campId = currentContact.campaign_id || selectedCampId;
+  const campaign = campaigns.find((c) => c.id === campId);
+  if (campId) selectCamp(campId, campaign?.name || '', { skipActivate: true });
+  if (_testMode) {
+    _fakeCallActive = true;
+    window.__voiceOrbSimRemote = true;
+    setDialerStatus('on_call');
+    toast(currentLang === 'tr' ? 'TEST: Tekrar aranıyor' : 'TEST: erneuter Anruf', 'ok', 2200);
+    return;
+  }
+  setDialerStatus('on_call');
+  _outboundDialPending = true;
+  sendToRTC('MB_CALL', { destination: currentContact.phone, callerNumber: campaign?.telnyx_did || '' });
+  updateSessionInDB('on_call').catch(() => {});
+  if (typeof switchContactTab === 'function') switchContactTab('info');
+}
+
+function _manualDialNormalizeDigits(v) {
+  return String(v || '').replace(/\D/g, '');
+}
+
+function _manualDialVariants(raw) {
+  const t = String(raw || '').trim();
+  const d = _manualDialNormalizeDigits(t);
+  const set = new Set();
+  if (t) set.add(t);
+  if (d) {
+    set.add(d);
+    if (d.length > 10) set.add(d.slice(-10));
+    if (d.startsWith('0')) set.add(d.replace(/^0+/, ''));
+    if (d.length === 10 && !d.startsWith('0')) set.add(`0${d}`);
+  }
+  return [...set].filter(Boolean).slice(0, 12);
+}
+
+async function _manualDialFetchRows(variants, campIds) {
+  const merged = new Map();
+  for (const v of variants) {
+    const enc = encodeURIComponent(v);
+    const path = `contacts?campaign_id=in.(${campIds.join(',')})&or=(phone.eq.${enc},phone2.eq.${enc})&select=*,queues(name,status)&limit=25`;
+    try {
+      const rows = await sb(path);
+      (rows || []).forEach((r) => merged.set(r.id, r));
+    } catch (e) {}
+  }
+  if (!merged.size && variants.length) {
+    const d = _manualDialNormalizeDigits(variants[0]);
+    const core = d.slice(-9);
+    if (core.length >= 6) {
+      const pat = encodeURIComponent(`*${core}*`);
+      const path2 = `contacts?campaign_id=in.(${campIds.join(',')})&or=(phone.like.${pat},phone2.like.${pat})&select=*,queues(name,status)&limit=25`;
+      try {
+        const rows2 = await sb(path2);
+        (rows2 || []).forEach((r) => merged.set(r.id, r));
+      } catch (e) {}
+    }
+  }
+  return [...merged.values()];
+}
+
+function openManualDialModal() {
+  const old = document.getElementById('m-manual-dial');
+  if (old) old.remove();
+  const tr = currentLang === 'tr';
+  const m = document.createElement('div');
+  m.id = 'm-manual-dial';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:9200;display:flex;align-items:center;justify-content:center;padding:16px;';
+  m.innerHTML = `<div style="background:var(--bg-2);border-radius:var(--radius);padding:18px;width:100%;max-width:420px;box-shadow:0 16px 48px rgba(0,0,0,.35);border:1px solid var(--border);">
+<div style="font-size:15px;font-weight:800;margin-bottom:8px;">${tr ? 'Manuel arama' : 'Manuelle Suche'}</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:10px;">${tr ? 'Numara girin; atanmış tüm kampanyalarda aranır.' : 'Nummer eingeben; Suche in allen zugewiesenen Kampagnen.'}</div>
+<input type="tel" id="manual-dial-input" class="form-input" placeholder="${tr ? 'Telefon numarası' : 'Telefonnummer'}" style="width:100%;margin-bottom:10px;">
+<div style="display:flex;gap:8px;margin-bottom:10px;">
+<button type="button" class="btn btn-primary" id="manual-dial-search-btn" style="flex:1;">${tr ? 'Bul' : 'Suchen'}</button>
+<button type="button" class="btn btn-ghost" id="manual-dial-close-btn">${tr ? 'Kapat' : 'Schließen'}</button>
+</div>
+<div id="manual-dial-results" style="max-height:240px;overflow:auto;font-size:12px;"></div>
+</div>`;
+  document.body.appendChild(m);
+  m.querySelector('#manual-dial-close-btn').onclick = () => m.remove();
+  m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
+  m.querySelector('#manual-dial-search-btn').onclick = () => runManualDialSearch();
+  m.querySelector('#manual-dial-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') runManualDialSearch(); });
+}
+
+async function runManualDialSearch() {
+  const input = document.getElementById('manual-dial-input');
+  const out = document.getElementById('manual-dial-results');
+  if (!input || !out || !currentUser) return;
+  const raw = input.value.trim();
+  if (!raw) {
+    toast(currentLang === 'tr' ? 'Numara girin' : 'Nummer eingeben', 'warn');
+    return;
+  }
+  const tr = currentLang === 'tr';
+  out.innerHTML = `<div style="color:var(--text-3);padding:8px;">${tr ? 'Aranıyor…' : 'Suche…'}</div>`;
+  const campIds = (campaigns || []).map((c) => c.id).filter(Boolean);
+  if (!campIds.length) {
+    out.innerHTML = `<div style="color:var(--red);padding:8px;">${tr ? 'Kampanya yok' : 'Keine Kampagne'}</div>`;
+    return;
+  }
+  const variants = _manualDialVariants(raw);
+  try {
+    const rows = await _manualDialFetchRows(variants, campIds);
+    window._manualDialLastResults = rows;
+    if (!rows.length) {
+      out.innerHTML = `<div style="color:var(--text-3);padding:8px;">${tr ? 'Kayıt bulunamadı' : 'Nicht gefunden'}</div>`;
+      return;
+    }
+    out.innerHTML = rows.map((r, i) => {
+      const camp = campaigns.find((x) => x.id === r.campaign_id);
+      const nm = `${r.first_name || ''} ${r.last_name || ''}`.trim() || '—';
+      const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+      return `<button type="button" class="manual-dial-pick" data-idx="${i}" style="display:block;width:100%;text-align:left;padding:10px 12px;margin-bottom:6px;border:1px solid var(--border);border-radius:8px;background:var(--bg-3);cursor:pointer;font-size:12px;">
+<div style="font-weight:800;">${esc(r.phone)}</div>
+<div style="color:var(--text-2);margin-top:2px;">${esc(nm)} · ${esc(camp?.name || '—')}</div>
+</button>`;
+    }).join('');
+    out.querySelectorAll('.manual-dial-pick').forEach((btn) => {
+      btn.onclick = () => pickManualDialContact(Number(btn.getAttribute('data-idx')));
+    });
+  } catch (e) {
+    out.innerHTML = `<div style="color:var(--red);padding:8px;">${e.message || 'Error'}</div>`;
+  }
+}
+
+function pickManualDialContact(idx) {
+  const row = window._manualDialLastResults?.[idx];
+  if (!row) return;
+  const camp = campaigns.find((x) => x.id === row.campaign_id);
+  if (row.campaign_id) selectCamp(row.campaign_id, camp?.name || '', { skipActivate: true });
+  currentContact = row;
+  showCustomerCard(row);
+  document.getElementById('m-manual-dial')?.remove();
+  if (typeof navigate === 'function') navigate('dialer');
+  if (typeof switchContactTab === 'function') switchContactTab('info');
+  toast(currentLang === 'tr' ? 'Kişi yüklendi — Ara ile arayın' : 'Kontakt geladen — mit Anrufen wählen', 'ok', 3200);
 }
 
 function setOutcome(o) {
@@ -970,12 +1151,10 @@ function onAgentSlotSelected(slot) {
   _bookingSlot = slot;
   setOutcome('appointment');
 
-  // Termin moduna geç: outcome section gizle, customer-card göster
-  document.getElementById('outcome-section').style.display = 'none';
+  // Termin moduna geç: müşteri kartı + bilgi sekmesi
   document.getElementById('customer-card').style.display = '';
-
-  // Müşteri kartını yeniden render et (termin bölümüyle birlikte)
   if (currentContact) showCustomerCard(currentContact);
+  if (typeof switchContactTab === 'function') switchContactTab('info');
 
   // termin-fields-section'ı göster ve slot başlığını güncelle
   const terminSection = document.getElementById('termin-fields-section');
@@ -1033,9 +1212,9 @@ function cancelSlotAndShowOutcome() {
   _bookingSlot = null;
   window._selectedBookingSlot = null;
   selectedOutcome = null;
-  // Outcome section'ı tekrar göster
-  document.getElementById('customer-card').style.display = 'none';
-  document.getElementById('outcome-section').style.display = '';
+  document.getElementById('customer-card').style.display = '';
+  if (currentContact && typeof showCustomerCard === 'function') showCustomerCard(currentContact);
+  if (typeof switchContactTab === 'function') switchContactTab('outcome');
   const cancelBtn = document.getElementById('termin-cancel-slot-btn');
   if (cancelBtn) cancelBtn.remove();
   toast('Slot iptal edildi', 'warn', 2000);

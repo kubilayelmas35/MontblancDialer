@@ -1091,6 +1091,10 @@ flex-direction:column; gap:4px;
 .ob-noanswer.active    { box-shadow:0 0 0 3px rgba(100,116,139,.35); border-color:var(--text-2) !important; }
 /* Mute / hold */
 .call-action-row { display:flex; gap:8px; }
+#call-actions.call-actions--wrapping #btn-mute,
+#call-actions.call-actions--wrapping #btn-hold,
+#call-actions.call-actions--wrapping #btn-hangup { display: none; }
+#call-actions.call-actions--wrapping #btn-redial { flex: 1; justify-content: center; }
 .call-action-btn {
 flex:1; padding:10px; border-radius:var(--radius-sm);
 background:var(--bg-3); border:1px solid var(--border);
