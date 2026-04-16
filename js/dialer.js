@@ -60,8 +60,9 @@ async function initDialer() {
       const isActive = _activeCampIds.includes(ac.campaign_id);
       const camp = ac.campaigns || {};
       const campSettings = (typeof getCampSettings === 'function') ? getCampSettings(camp) : (camp?.settings || {});
-      const autoAllowed = (campSettings?.auto_dial !== false);
-      const showAutoDialToggle = adminLike && autoAllowed;
+      // campaign.settings.auto_dial: "agent bu kampanyada auto-dial kapatabilir mi?"
+      const canDisableAutoDial = (campSettings?.auto_dial !== false);
+      const enabledForMe = isAutoDialEnabledForCampaign(ac.campaign_id, canDisableAutoDial);
       const cid = ac.campaign_id;
       return `<div class="agent-camp-item ${isActive?'active':''}" id="camp-item-${cid}" style="padding:8px 10px;">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
@@ -69,15 +70,13 @@ async function initDialer() {
     <div class="agent-camp-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ac.campaigns?.name||cid}</div>
     <div style="font-size:10px;color:var(--text-3);margin-top:1px;">${tot} kişi · ${ac.campaigns?.dial_speed||1} hat</div>
     <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      ${showAutoDialToggle ? `
-      <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-2);cursor:pointer;opacity:1;" title="Bu kampanyada otomatik arama kapatma izni">
-        <input type="checkbox" checked
-          onchange="setCampaignAutoDialPermission('${cid}',this.checked)"
+      <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-2);cursor:pointer;opacity:1;"
+        title="${canDisableAutoDial ? 'Bu kampanyada otomatik aramayı kapatabilirsiniz' : 'Bu kampanyada otomatik arama kapatılamaz'}">
+        <input type="checkbox" ${enabledForMe ? 'checked' : ''}
+          onchange="toggleCampaignAutoDialForMe('${cid}', this.checked)"
           style="width:14px;height:14px;accent-color:var(--accent);">
         Otomatik Arama
       </label>
-      ` : ''}
-      <span style="font-size:10px;color:${autoAllowed?'var(--green)':'var(--text-3)'};font-weight:700;">${autoAllowed?'Açık':'Kapalı'}</span>
     </div>
   </div>
   <!-- Toggle switch -->
@@ -185,7 +184,7 @@ async function setCampaignAutoDialPermission(campId, allowed) {
     // local cache refresh (best-effort)
     const idx = campaigns.findIndex((c) => c.id === campId);
     if (idx >= 0) campaigns[idx].settings = merged;
-    toast(allowed ? 'Otomatik arama izni açıldı' : 'Otomatik arama izni kapatıldı', 'ok', 1800);
+    toast(allowed ? 'Bu kampanyada otomatik arama kapatma izni açıldı' : 'Bu kampanyada otomatik arama kapatma izni kapatıldı', 'ok', 2200);
   } catch (e) {
     toast('Kaydedilemedi: ' + e.message, 'err');
   }
@@ -197,7 +196,8 @@ function isCampaignAutoDialAllowed(campId) {
   const camp = campaigns.find((c) => c.id === campId);
   if (!camp) return true;
   const s = (typeof getCampSettings === 'function') ? getCampSettings(camp) : {};
-  return s.auto_dial !== false;
+  const canDisableAutoDial = (s.auto_dial !== false);
+  return isAutoDialEnabledForCampaign(campId, canDisableAutoDial);
 }
 
 function getAutoDialCampaignIds() {
@@ -206,17 +206,50 @@ function getAutoDialCampaignIds() {
 }
 
 function refreshAutoDialUi() {
-  const cb = document.getElementById('auto-dial-toggle');
-  const slider = document.getElementById('auto-dial-slider');
-  const knob = document.getElementById('auto-dial-knob');
-  const label = document.getElementById('auto-dial-label');
   const allowedCount = getAutoDialCampaignIds().length;
-  if (label) label.textContent = allowedCount ? `Otomatik Arama (${allowedCount})` : 'Otomatik Arama (izin yok)';
   _autoDial = allowedCount > 0;
-  if (cb) cb.disabled = allowedCount === 0;
-  if (cb) cb.checked = _autoDial;
-  if (slider) slider.style.background = _autoDial ? 'var(--accent)' : 'var(--text-3)';
-  if (knob) knob.style.transform = _autoDial ? 'translateX(18px)' : 'translateX(0)';
+}
+
+function _autoDialLsKey() {
+  return `mb_auto_dial_off_${currentUser?.id || 'anon'}`;
+}
+
+function _getAutoDialOffSet() {
+  try {
+    const raw = localStorage.getItem(_autoDialLsKey());
+    const arr = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function _saveAutoDialOffSet(set) {
+  try { localStorage.setItem(_autoDialLsKey(), JSON.stringify([...set])); } catch (e) {}
+}
+
+function isAutoDialEnabledForCampaign(campId, canDisableAutoDial) {
+  // Eğer admin bu kampanyada kapatmaya izin vermiyorsa her zaman açık kabul et.
+  if (!canDisableAutoDial) return true;
+  const off = _getAutoDialOffSet();
+  return !off.has(campId);
+}
+
+function toggleCampaignAutoDialForMe(campId, checked) {
+  const camp = campaigns.find((c) => c.id === campId);
+  const s = camp ? (typeof getCampSettings === 'function' ? getCampSettings(camp) : (camp.settings || {})) : {};
+  const canDisableAutoDial = (s?.auto_dial !== false);
+  if (!canDisableAutoDial && !checked) {
+    toast('Bu kampanyada otomatik arama kapatılamaz', 'warn', 2600);
+    initDialer();
+    return;
+  }
+  const off = _getAutoDialOffSet();
+  if (!checked) off.add(campId);
+  else off.delete(campId);
+  _saveAutoDialOffSet(off);
+  refreshAutoDialUi();
+  // Arama devam ederken kapatıldıysa bir sonraki döngüde zaten filtrelenecek
 }
 
 let _perfTab = 'today';
