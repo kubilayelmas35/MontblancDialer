@@ -61,6 +61,7 @@ async function initDialer() {
       const camp = ac.campaigns || {};
       const campSettings = (typeof getCampSettings === 'function') ? getCampSettings(camp) : (camp?.settings || {});
       const autoAllowed = (campSettings?.auto_dial !== false);
+      const showAutoDialToggle = adminLike && autoAllowed;
       const cid = ac.campaign_id;
       return `<div class="agent-camp-item ${isActive?'active':''}" id="camp-item-${cid}" style="padding:8px 10px;">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
@@ -68,12 +69,14 @@ async function initDialer() {
     <div class="agent-camp-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ac.campaigns?.name||cid}</div>
     <div style="font-size:10px;color:var(--text-3);margin-top:1px;">${tot} kişi · ${ac.campaigns?.dial_speed||1} hat</div>
     <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-2);cursor:${adminLike?'pointer':'default'};opacity:${adminLike?'1':'.8'};" title="${adminLike?'Bu kampanyada otomatik arama izni':'Bu kampanyada otomatik arama izni (admin belirler)'}">
-        <input type="checkbox" ${autoAllowed?'checked':''} ${adminLike?'':'disabled'}
+      ${showAutoDialToggle ? `
+      <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-2);cursor:pointer;opacity:1;" title="Bu kampanyada otomatik arama kapatma izni">
+        <input type="checkbox" checked
           onchange="setCampaignAutoDialPermission('${cid}',this.checked)"
           style="width:14px;height:14px;accent-color:var(--accent);">
         Otomatik Arama
       </label>
+      ` : ''}
       <span style="font-size:10px;color:${autoAllowed?'var(--green)':'var(--text-3)'};font-weight:700;">${autoAllowed?'Açık':'Kapalı'}</span>
     </div>
   </div>
@@ -209,8 +212,8 @@ function refreshAutoDialUi() {
   const label = document.getElementById('auto-dial-label');
   const allowedCount = getAutoDialCampaignIds().length;
   if (label) label.textContent = allowedCount ? `Otomatik Arama (${allowedCount})` : 'Otomatik Arama (izin yok)';
+  _autoDial = allowedCount > 0;
   if (cb) cb.disabled = allowedCount === 0;
-  if (allowedCount === 0) _autoDial = false;
   if (cb) cb.checked = _autoDial;
   if (slider) slider.style.background = _autoDial ? 'var(--accent)' : 'var(--text-3)';
   if (knob) knob.style.transform = _autoDial ? 'translateX(18px)' : 'translateX(0)';
@@ -252,13 +255,19 @@ async function loadMyMiniStats() {
     } else {
       since = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01T00:00:00`;
     }
-    const logs = await sb(`call_logs?select=outcome&agent_id=eq.${currentUser?.id}&started_at=gte.${since}`);
-    const appts = (logs||[]).filter(l=>l.outcome==='appointment').length;
-    const calls = (logs||[]).length;
-    const neg = (logs||[]).filter(l=>l.outcome==='negative').length;
-    const cb = (logs||[]).filter(l=>l.outcome==='callback').length;
-    const na = (logs||[]).filter(l=>l.outcome==='no_answer').length;
-    const dnc = (logs||[]).filter(l=>l.outcome==='dnc').length;
+    const nowIso = now.toISOString();
+    const callsRows = await sb(
+      `call_logs?select=outcome&agent_id=eq.${currentUser?.id}` +
+      `&started_at=gte.${since}&started_at=lte.${nowIso}`
+    );
+    const calls = (callsRows || []).length;
+
+    const apRowsPerf = await sb(
+      `appointments?select=durum&agent_id=eq.${currentUser?.id}` +
+      `&termin_tarih=gte.${since}&termin_tarih=lte.${nowIso}`
+    );
+    const appts = (apRowsPerf || []).length;
+
     document.getElementById('my-appt').textContent = appts;
     document.getElementById('my-calls').textContent = calls;
 
@@ -269,55 +278,66 @@ async function loadMyMiniStats() {
     let goalAppts = appts;
     if (_goalTab === 'weekly') {
       const monSince = new Date(now); monSince.setDate(now.getDate()-(now.getDay()||7)+1); monSince.setHours(0,0,0,0);
-      const wl = await sb(`call_logs?select=outcome&agent_id=eq.${currentUser?.id}&started_at=gte.${monSince.toISOString()}&outcome=eq.appointment`);
-      goalAppts = (wl||[]).length;
+      const wl = await sb(
+        `appointments?select=id&agent_id=eq.${currentUser?.id}` +
+        `&termin_tarih=gte.${monSince.toISOString()}&termin_tarih=lte.${nowIso}`
+      );
+      goalAppts = (wl || []).length;
     } else if (_goalTab === 'monthly') {
       const monSince = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01T00:00:00`;
-      const ml = await sb(`call_logs?select=outcome&agent_id=eq.${currentUser?.id}&started_at=gte.${monSince}&outcome=eq.appointment`);
-      goalAppts = (ml||[]).length;
+      const ml = await sb(
+        `appointments?select=id&agent_id=eq.${currentUser?.id}` +
+        `&termin_tarih=gte.${monSince}&termin_tarih=lte.${nowIso}`
+      );
+      goalAppts = (ml || []).length;
     }
     updateDailyProgress(goalAppts, goalVal);
 
-    let ok = 0;
-    let fail = 0;
-    try {
-      const apRows = await sb(`appointments?select=durum&agent_id=eq.${currentUser?.id}&created_at=gte.${since}`);
-      ok = (apRows || []).filter((a) => String(a.durum || '') === 'basarili').length;
-      fail = (apRows || []).filter((a) => String(a.durum || '') === 'basarisiz').length;
-    } catch(e) {}
-    document.getElementById('my-stats-mini').innerHTML=`
+    const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
+    const resultRows = await loadFirmAppointmentResults(fid, false).catch(() => defaultAppointmentResults());
+    const orderedResultRows = (() => {
+      const primary = ['basarili', 'basarisiz'];
+      const out = [];
+      primary.forEach((k) => {
+        const row = (resultRows || []).find((r) => r.key === k);
+        if (row) out.push(row);
+      });
+      (resultRows || []).forEach((r) => {
+        if (!out.some((x) => x.key === r.key)) out.push(r);
+      });
+      return out;
+    })();
+    const counts = {};
+    (orderedResultRows || []).forEach((r) => { counts[r.key] = 0; });
+    (apRowsPerf || []).forEach((a) => {
+      const k = (typeof _normResultKey === 'function') ? _normResultKey(a?.durum) : String(a?.durum || '').toLowerCase();
+      if (counts[k] === undefined) counts[k] = 0;
+      counts[k] += 1;
+    });
+
+    const boxes = [];
+    boxes.push(`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
 <div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono);">${appts}</div>
 <div style="font-size:10px;color:var(--text-3);">Termin</div>
-</div>
+</div>`);
+    boxes.push(`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
 <div style="font-size:18px;font-weight:800;color:var(--accent);font-family:var(--mono);">${calls}</div>
 <div style="font-size:10px;color:var(--text-3);">Çağrı</div>
-</div>
+</div>`);
+    (orderedResultRows || []).forEach((r) => {
+      const val = counts[r.key] || 0;
+      const color = r.color || '#64748b';
+      const lbl = String(r.label || r.key || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      boxes.push(`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
-<div style="font-size:18px;font-weight:800;color:var(--red);font-family:var(--mono);">${neg}</div>
-<div style="font-size:10px;color:var(--text-3);">Olumsuz</div>
-</div>
-<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
-<div style="font-size:18px;font-weight:800;color:var(--yellow);font-family:var(--mono);">${cb}</div>
-<div style="font-size:10px;color:var(--text-3);">Geri Ara</div>
-</div>
-<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
-<div style="font-size:18px;font-weight:800;color:var(--text-2);font-family:var(--mono);">${na}</div>
-<div style="font-size:10px;color:var(--text-3);">Cevap Yok</div>
-</div>
-<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
-<div style="font-size:18px;font-weight:800;color:var(--red);font-family:var(--mono);">${dnc}</div>
-<div style="font-size:10px;color:var(--text-3);">Kara Liste</div>
-</div>
-<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
-<div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono);">${ok}</div>
-<div style="font-size:10px;color:var(--text-3);">Başarılı</div>
-</div>
-<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
-<div style="font-size:18px;font-weight:800;color:var(--red);font-family:var(--mono);">${fail}</div>
-<div style="font-size:10px;color:var(--text-3);">Başarısız</div>
-</div>`;
+<div style="font-size:18px;font-weight:800;color:${color};font-family:var(--mono);">${val}</div>
+<div style="font-size:10px;color:var(--text-3);">${lbl}</div>
+</div>`);
+    });
+
+    document.getElementById('my-stats-mini').innerHTML = boxes.join('');
     loadUpcomingWv();
   } catch(e){ console.error('stats err:',e); }
 }
