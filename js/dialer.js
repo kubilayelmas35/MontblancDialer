@@ -92,6 +92,7 @@ async function initDialer() {
   renderHotkeyHints();
   const hints = document.getElementById('hotkey-hints');
   if (hints) hints.style.display = '';
+  refreshAutoDialUi();
 }
 
 // Kampanya aktif/pasif toggle
@@ -115,6 +116,7 @@ function toggleCampActive(campId, checked) {
   const countStr = _activeCampIds.length === 0 ? 'Hiç kampanya aktif değil' :
     `${_activeCampIds.length} kampanya aktif`;
   toast(checked ? `✓ Aktif: ${countStr}` : `Pasif: ${countStr}`, checked ? 'ok' : 'warn', 2000);
+  refreshAutoDialUi();
 }
 
 function selectCamp(id, name) {
@@ -144,6 +146,34 @@ function selectCamp(id, name) {
     applyLang();
   }
   if (notice) notice.style.display = 'none';
+  refreshAutoDialUi();
+}
+
+function isCampaignAutoDialAllowed(campId) {
+  if (!campId) return false;
+  const camp = campaigns.find((c) => c.id === campId);
+  if (!camp) return true;
+  const s = (typeof getCampSettings === 'function') ? getCampSettings(camp) : {};
+  return s.auto_dial !== false;
+}
+
+function getAutoDialCampaignIds() {
+  const base = _activeCampIds.length ? _activeCampIds : (selectedCampId ? [selectedCampId] : []);
+  return base.filter((cid) => isCampaignAutoDialAllowed(cid));
+}
+
+function refreshAutoDialUi() {
+  const cb = document.getElementById('auto-dial-toggle');
+  const slider = document.getElementById('auto-dial-slider');
+  const knob = document.getElementById('auto-dial-knob');
+  const label = document.getElementById('auto-dial-label');
+  const allowedCount = getAutoDialCampaignIds().length;
+  if (label) label.textContent = allowedCount ? `Otomatik Arama (${allowedCount})` : 'Otomatik Arama (izin yok)';
+  if (cb) cb.disabled = allowedCount === 0;
+  if (allowedCount === 0) _autoDial = false;
+  if (cb) cb.checked = _autoDial;
+  if (slider) slider.style.background = _autoDial ? 'var(--accent)' : 'var(--text-3)';
+  if (knob) knob.style.transform = _autoDial ? 'translateX(18px)' : 'translateX(0)';
 }
 
 let _perfTab = 'today';
@@ -206,6 +236,13 @@ async function loadMyMiniStats() {
     }
     updateDailyProgress(goalAppts, goalVal);
 
+    let ok = 0;
+    let fail = 0;
+    try {
+      const apRows = await sb(`appointments?select=durum&agent_id=eq.${currentUser?.id}&created_at=gte.${since}`);
+      ok = (apRows || []).filter((a) => String(a.durum || '') === 'basarili').length;
+      fail = (apRows || []).filter((a) => String(a.durum || '') === 'basarisiz').length;
+    } catch(e) {}
     document.getElementById('my-stats-mini').innerHTML=`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
 <div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono);">${appts}</div>
@@ -222,6 +259,14 @@ async function loadMyMiniStats() {
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
 <div style="font-size:18px;font-weight:800;color:var(--yellow);font-family:var(--mono);">${cb}</div>
 <div style="font-size:10px;color:var(--text-3);">Geri Ara</div>
+</div>
+<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
+<div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono);">${ok}</div>
+<div style="font-size:10px;color:var(--text-3);">Başarılı</div>
+</div>
+<div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
+<div style="font-size:18px;font-weight:800;color:var(--red);font-family:var(--mono);">${fail}</div>
+<div style="font-size:10px;color:var(--text-3);">Başarısız</div>
 </div>`;
     loadUpcomingWv();
   } catch(e){ console.error('stats err:',e); }
@@ -251,7 +296,7 @@ async function toggleReady() {
   refreshDialerHealthPanel();
   if (dialerStatus==='offline' || dialerStatus==='break') {
     if (!selectedCampId) { toast(currentLang==='tr'?'Önce kampanya seçin':'Kampagne auswählen','err'); return; }
-    if (!telnyxReady && !_testMode) { toast(currentLang==='tr'?'Telnyx bağlanıyor, bekleyin...':'Telnyx verbindet sich...','err'); return; }
+    if (!telnyxReady && !_testMode) { toast(currentLang==='tr'?'Hat bağlantısı hazırlanıyor, bekleyin...':'Verbindung wird vorbereitet, bitte warten...','err'); return; }
     setDialerStatus('ready');
     try {
       await sb('agent_sessions',{method:'POST',prefer:'resolution=merge-duplicates,return=minimal',
@@ -347,10 +392,17 @@ async function dialNext() {
   }
 
   if (!telnyxReady) {
-    toast(currentLang==='tr' ? 'Telnyx bağlantısı bekleniyor...' : 'Warte auf Telnyx-Verbindung...', 'err');
+    toast(currentLang==='tr' ? 'Hat bağlantısı bekleniyor...' : 'Warte auf Verbindung...', 'err');
     return;
   }
-  const contact = await getNextContact();
+  const autoCampIds = getAutoDialCampaignIds();
+  if (!autoCampIds.length) {
+    toast('Otomatik arama izni olan aktif kampanya yok', 'warn');
+    setDialerStatus('offline');
+    updateSessionInDB('offline');
+    return;
+  }
+  const contact = await getNextContact(autoCampIds);
   if (!contact) {
     toast(currentLang==='tr' ? '✅ Kuyrukta numara kalmadı' : '✅ Keine Nummern mehr', 'ok');
     setDialerStatus('offline'); updateSessionInDB('offline');
@@ -372,7 +424,7 @@ function getDialerHealthState() {
   const push = (ok, label) => checks.push({ ok, label });
   push(!!selectedCampId, 'Kampanya seçildi');
   push(!!_activeCampIds.length, 'Aktif kampanya var');
-  push(_testMode || !!telnyxReady, _testMode ? 'Test modu aktif' : 'Telnyx bağlantısı hazır');
+  push(_testMode || !!telnyxReady, _testMode ? 'Test modu aktif' : 'Hat bağlantısı hazır');
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0];
   const timeStr = now.toTimeString().slice(0, 8);
@@ -602,6 +654,12 @@ async function submitOutcome(goBreak) {
     setDialerStatus('ready');
     upsertAgentSession({agent_id:currentUser.id,status:'ready',last_seen:new Date().toISOString()}).catch(()=>{});
     if (_autoDial) {
+      if (!getAutoDialCampaignIds().length) {
+        _autoDial = false;
+        refreshAutoDialUi();
+        toast('Bu kampanyalarda otomatik arama pasif', 'warn', 2400);
+        return;
+      }
       const callCheck = isCallAllowed(new Date().toISOString().split('T')[0], new Date().toTimeString().slice(0,8));
       if (!callCheck.allowed) {
         toast('⏸ Otomatik arama duraklatıldı: ' + callCheck.reason, 'warn', 6000);
@@ -764,6 +822,13 @@ async function selectBreakCode(code) {
 
 // ── Auto-dial ─────────────────────────────────
 function toggleAutoDial() {
+  const allowedCount = getAutoDialCampaignIds().length;
+  if (!allowedCount) {
+    _autoDial = false;
+    refreshAutoDialUi();
+    toast('Aktif kampanyalarda otomatik arama izni yok', 'warn', 2200);
+    return;
+  }
   _autoDial = !_autoDial;
   const cb = document.getElementById('auto-dial-toggle');
   const slider = document.getElementById('auto-dial-slider');
@@ -772,6 +837,7 @@ function toggleAutoDial() {
   if (slider) slider.style.background = _autoDial ? 'var(--accent)' : 'var(--text-3)';
   if (knob) knob.style.transform = _autoDial ? 'translateX(18px)' : 'translateX(0)';
   toast(_autoDial ? '⚡ Otomatik arama açık' : '⏸ Otomatik arama kapalı', 'ok', 1500);
+  refreshAutoDialUi();
 }
 
 // ── Gamification ──────────────────────────────
@@ -1004,7 +1070,7 @@ async function testToggleReady() {
 // Test modunda gerçek contact ile simüle edilmiş çağrı başlat
 async function startTestCall() {
   if (_fakeCallActive) return;
-  const contact = await getNextContact();
+  const contact = await getNextContact(getAutoDialCampaignIds());
   if (!contact) {
     toast('✅ Kuyrukta numara kalmadı', 'ok');
     setDialerStatus('offline'); updateSessionInDB('offline');

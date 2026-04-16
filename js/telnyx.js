@@ -36,10 +36,10 @@ _telnyxClient = new TelnyxRTC({ login: sipUser, password: sipPass });
 _telnyxClient.on('telnyx.ready', () => {
 telnyxReady = true;
 updateConnectionStatus('connected');
-toast('✅ Telnyx bağlandı', 'ok');
+toast('✅ Hat bağlantısı hazır', 'ok');
 });
 _telnyxClient.on('telnyx.error', (err) => {
-toast('❌ Telnyx: ' + (err?.message||'bağlantı hatası'), 'err');
+toast('❌ Hat bağlantı hatası: ' + (err?.message||'bağlantı hatası'), 'err');
 });
 _telnyxClient.on('telnyx.socket.close', () => {
 telnyxReady = false;
@@ -75,13 +75,13 @@ if (call?.amd_result) handleAMD(call.amd_result);
 _telnyxClient.connect();
 updateConnectionStatus('connecting');
 } catch(e) {
-toast('❌ Telnyx hata: ' + e.message, 'err');
+toast('❌ Hat hatası: ' + e.message, 'err');
 }
 }
 
 function _makeCall(destination, callerNumber) {
 if (!_telnyxClient || !telnyxReady) {
-toast('Telnyx bağlı değil', 'err'); return;
+toast('Hat bağlantısı yok', 'err'); return;
 }
 try {
 _telnyxCall = _telnyxClient.newCall({
@@ -112,7 +112,7 @@ break;
 case 'MB_READY':
 telnyxReady = true;
 updateConnectionStatus('connected');
-toast('✅ Telnyx ' + (currentLang==='tr' ? 'bağlandı' : 'verbunden'), 'ok');
+toast('✅ ' + (currentLang==='tr' ? 'Hat bağlantısı kuruldu' : 'Verbindung hergestellt'), 'ok');
 break;
 case 'MB_DISCONNECTED':
 telnyxReady = false;

@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Montblanc Dialer</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.35">
+<link rel="stylesheet" href="css/styles.css?v=6.83">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -1157,7 +1158,8 @@ TEST MODU
 <div style="display:flex;margin:-8px -8px 12px;border-bottom:2px solid var(--border);">
 <button id="ctab-info" onclick="switchContactTab('info')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:var(--accent);color:#fff;cursor:pointer;border-radius:var(--radius) 0 0 0;transition:.15s;"><i class="ph ph-user" style="margin-right:5px;"></i>Müşteri</button>
 <button id="ctab-map" onclick="switchContactTab('map')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:.15s;"><i class="ph ph-map-pin" style="margin-right:5px;"></i>Harita</button>
-<button id="ctab-history" onclick="switchContactTab('history')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;border-radius:0 var(--radius) 0 0;transition:.15s;"><i class="ph ph-clock-clockwise" style="margin-right:5px;"></i>Geçmiş</button>
+<button id="ctab-history" onclick="switchContactTab('history')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:.15s;"><i class="ph ph-clock-clockwise" style="margin-right:5px;"></i>Geçmiş</button>
+<button id="ctab-file" onclick="switchContactTab('file')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;border-radius:0 var(--radius) 0 0;transition:.15s;"><i class="ph ph-file-arrow-down" style="margin-right:5px;"></i>Dosya</button>
 </div>
 <div id="ctab-info-panel">
 <div class="cust-header">
@@ -1184,6 +1186,15 @@ Müşteri seçilince harita gösterilecek
 </div>
 <div id="ctab-history-panel" style="display:none;">
 <div id="contact-history-list" style="font-size:12px;color:var(--text-3);">Yükleniyor...</div>
+</div>
+<div id="ctab-file-panel" style="display:none;">
+<div style="display:flex;gap:8px;flex-wrap:wrap;">
+<button class="btn btn-ghost btn-sm" onclick="downloadContactAppointmentExcel()"><i class="ph ph-file-xls"></i> Excel İndir</button>
+<button class="btn btn-ghost btn-sm" onclick="downloadContactAppointmentPdf()"><i class="ph ph-file-pdf"></i> PDF İndir</button>
+</div>
+<div style="margin-top:8px;font-size:11px;color:var(--text-3);" id="contact-file-hint">
+Son randevu bilgileri indirilebilir.
+</div>
 </div>
 </div>
 </div>
@@ -1285,7 +1296,7 @@ style="opacity:0.45;cursor:not-allowed;" title="Önce kampanya seçin">
 </div>
 <!-- Auto-dial küçük satır -->
 <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:8px;">
-<div style="font-size:11px;font-weight:700;">Otomatik Arama</div>
+<div id="auto-dial-label" style="font-size:11px;font-weight:700;">Otomatik Arama</div>
 <label style="position:relative;display:inline-block;width:34px;height:18px;cursor:pointer;">
 <input type="checkbox" id="auto-dial-toggle" checked style="opacity:0;width:0;height:0;">
 <span onclick="toggleAutoDial()" style="position:absolute;inset:0;background:var(--accent);border-radius:9px;transition:.3s;display:flex;align-items:center;padding:2px;" id="auto-dial-slider">
@@ -2369,7 +2380,7 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="saveAppointmentResultsSettings()">Sonuçları Kaydet</button>
 </div>
 <div class="card" id="telnyx-settings">
-<div class="card-title" style="margin-bottom:16px;">Telnyx Bağlantısı</div>
+<div class="card-title" style="margin-bottom:16px;">Hat Bağlantısı</div>
 <div style="display:flex;flex-direction:column;gap:12px;">
 <div class="form-row">
 <label class="form-label">API Key</label>
@@ -2428,7 +2439,7 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <input class="form-input" id="nc-name" placeholder="Wärmepumpe Q2">
 </div>
 <div class="form-row">
-<label class="form-label">Telnyx DID (+49...)</label>
+<label class="form-label">Hat DID (+49...)</label>
 <input class="form-input" id="nc-did" placeholder="+49301234567">
 </div>
 <div class="form-row">
@@ -3052,7 +3063,7 @@ QC Detay
 <script src="js/state.js?v=6.34"></script>
 <script src="js/api.js?v=6.34"></script>
 <script src="js/auth.js?v=6.54"></script>
-<script src="js/ui.js?v=6.82"></script>
+<script src="js/ui.js?v=6.83"></script>
 <script src="js/chat.js?v=6.35"></script>
 <script src="js/chat-settings.js?v=6.35"></script>
 <script src="js/field-settings.js?v=6.38"></script>
@@ -3069,10 +3080,10 @@ QC Detay
 <script src="js/competition.js?v=6.34"></script>
 <script src="js/dashboard.js?v=6.52"></script>
 <script src="js/campaigns.js?v=6.34"></script>
-<script src="js/contacts.js?v=6.34"></script>
-<script src="js/telnyx.js?v=6.34"></script>
+<script src="js/contacts.js?v=6.83"></script>
+<script src="js/telnyx.js?v=6.83"></script>
 <script src="js/voice-orb.js?v=6.43"></script>
-<script src="js/dialer.js?v=6.55"></script>
+<script src="js/dialer.js?v=6.83"></script>
 <script src="js/appointments.js?v=6.36"></script>
 <script src="js/field.js?v=6.38"></script>
 <script src="js/field-ops.js?v=6.82"></script>

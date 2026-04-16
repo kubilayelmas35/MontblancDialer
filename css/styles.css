@@ -1178,11 +1178,35 @@ MOBILE / RESPONSIVE
 .outcome-grid { grid-template-columns:repeat(4,1fr); }
 .outcome-btn { padding:10px 4px; }
 .outcome-btn .icon { font-size:16px; }
+#page-dialer .page-hdr > div {
+  flex-wrap: wrap;
+}
+#page-dialer .dialer-timer-block {
+  min-width: 86px;
+}
+#page-dialer #dialer-timer {
+  font-size: 15px;
+}
+#page-dialer #daily-goal-bar {
+  margin-top: 6px;
+}
 }
 @media(max-width:480px) {
 #tb-pills { display:none !important; }
 .stats-grid { grid-template-columns:1fr 1fr; }
 .cust-fields { grid-template-columns:1fr; }
+#page-dialer .page-hdr {
+  padding: 6px 8px !important;
+}
+#page-dialer .page-hdr > div:last-child {
+  width: 100%;
+  justify-content: flex-start !important;
+  margin-left: 0 !important;
+  flex-wrap: wrap;
+}
+#page-dialer #daily-goal-bar {
+  padding: 6px 8px !important;
+}
 }
 /* ── TAKVİM POPUP ── */
 #takvim-popup-overlay {

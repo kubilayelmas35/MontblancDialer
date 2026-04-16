@@ -194,11 +194,13 @@ async function uploadQueue() {
 }
 
 // ── Contact manipulation ──────────────────────
-async function getNextContact() {
+async function getNextContact(campaignIds = null) {
   // Aktif kampanya listesini kullan (yoksa selectedCampId ile fallback)
-  const ids = (typeof _activeCampIds !== 'undefined' && _activeCampIds.length)
-    ? _activeCampIds
-    : (selectedCampId ? [selectedCampId] : []);
+  const ids = Array.isArray(campaignIds)
+    ? campaignIds
+    : (typeof _activeCampIds !== 'undefined' && _activeCampIds.length)
+      ? _activeCampIds
+      : (selectedCampId ? [selectedCampId] : []);
   if (!ids.length) return null;
   try {
     const campFilter = ids.length === 1
@@ -320,7 +322,13 @@ Termini Kaydet
     renderInlineTerminCustomerField();
   }
   const nameEl = document.getElementById('cust-name');
-  if (nameEl) { nameEl.style.cursor='pointer'; nameEl.title='Kopyala'; nameEl.onclick=()=>copyToClipboard(nameEl.textContent,'İsim kopyalandı'); }
+  if (nameEl) {
+    const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim();
+    nameEl.innerHTML = `<span>${_escHtml(name || '—')}</span><button onclick="startCustomerNameEdit(this)" style="margin-left:6px;background:transparent;border:none;cursor:pointer;color:var(--text-3);vertical-align:middle;" title="İsim düzenle"><i class="ph ph-pencil-simple"></i></button>`;
+    nameEl.style.cursor = 'default';
+    nameEl.title = fullName ? '' : 'İsim yok';
+    nameEl.onclick = null;
+  }
   const phoneEl = document.getElementById('cust-phone');
   if (phoneEl) { phoneEl.style.cursor='pointer'; phoneEl.title='Kopyala'; phoneEl.onclick=()=>copyToClipboard(phoneEl.textContent,'Telefon kopyalandı'); }
 }
@@ -356,7 +364,7 @@ function clearCustomerCard() {
 }
 
 function switchContactTab(tab) {
-  ['info','map','history'].forEach(t => {
+  ['info','map','history','file'].forEach(t => {
     const btn   = document.getElementById('ctab-'+t);
     const panel = document.getElementById('ctab-'+t+'-panel');
     if (btn) { btn.style.background=t===tab?'var(--accent)':'transparent'; btn.style.color=t===tab?'#fff':'var(--text-2)'; }
@@ -364,6 +372,115 @@ function switchContactTab(tab) {
   });
   if (tab==='map' && currentContact) showContactMap(currentContact.address, currentContact.plz, currentContact.city);
   if (tab==='history' && currentContact) loadContactHistory(currentContact.id);
+  if (tab==='file' && currentContact) updateContactFileHint();
+}
+
+function _escHtml(v) {
+  return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+async function startCustomerNameEdit(btnEl) {
+  if (!currentContact?.id) return;
+  const nameEl = document.getElementById('cust-name');
+  if (!nameEl) return;
+  const curFirst = currentContact.first_name || '';
+  const curLast = currentContact.last_name || '';
+  nameEl.innerHTML = `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+    <input id="cust-edit-first" class="form-input" style="max-width:140px;height:28px;padding:4px 8px;font-size:12px;" value="${_escHtml(curFirst)}" placeholder="Ad">
+    <input id="cust-edit-last" class="form-input" style="max-width:160px;height:28px;padding:4px 8px;font-size:12px;" value="${_escHtml(curLast)}" placeholder="Soyad">
+    <button onclick="saveCustomerNameEdit()" style="background:transparent;border:none;color:var(--green);cursor:pointer;" title="Kaydet"><i class="ph ph-check"></i></button>
+    <button onclick="showCustomerCard(currentContact)" style="background:transparent;border:none;color:var(--text-3);cursor:pointer;" title="İptal"><i class="ph ph-x"></i></button>
+  </div>`;
+}
+
+async function saveCustomerNameEdit() {
+  if (!currentContact?.id) return;
+  const first = document.getElementById('cust-edit-first')?.value?.trim() || '';
+  const last = document.getElementById('cust-edit-last')?.value?.trim() || '';
+  try {
+    await sb(`contacts?id=eq.${currentContact.id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ first_name: first, last_name: last })
+    });
+    currentContact.first_name = first;
+    currentContact.last_name = last;
+    showCustomerCard(currentContact);
+    toast('İsim güncellendi', 'ok');
+  } catch (e) {
+    toast('İsim güncellenemedi: ' + e.message, 'err');
+  }
+}
+
+async function _getLatestAppointmentForContact(contactId) {
+  if (!contactId) return null;
+  try {
+    const rows = await sb(`appointments?contact_id=eq.${contactId}&select=*&order=created_at.desc&limit=1`);
+    return rows?.[0] || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function updateContactFileHint() {
+  const hint = document.getElementById('contact-file-hint');
+  if (!hint || !currentContact?.id) return;
+  const appt = await _getLatestAppointmentForContact(currentContact.id);
+  if (!appt) {
+    hint.textContent = 'Henüz randevu bulunamadı. Müşteri ve çağrı bilgileri indirilecek.';
+    return;
+  }
+  hint.textContent = `Son randevu: ${new Date(appt.created_at || Date.now()).toLocaleString('tr-TR')} · Durum: ${appt.durum || '—'}`;
+}
+
+async function _buildContactExportRows() {
+  if (!currentContact) return [];
+  const appt = await _getLatestAppointmentForContact(currentContact.id);
+  return [{
+    ad_soyad: `${currentContact.first_name || ''} ${currentContact.last_name || ''}`.trim() || '—',
+    telefon: currentContact.phone || '—',
+    plz: currentContact.plz || '—',
+    sehir: currentContact.city || '—',
+    adres: currentContact.address || '—',
+    kampanya: campaigns.find((x) => x.id === currentContact.campaign_id)?.name || currentContact.campaign_id || '—',
+    randevu_durum: appt?.durum || '—',
+    randevu_tarih: appt?.tarih || '—',
+    randevu_saat: appt?.saat || '—',
+    not: appt?.notiz || currentContact.notes || '—'
+  }];
+}
+
+async function downloadContactAppointmentExcel() {
+  const rows = await _buildContactExportRows();
+  if (!rows.length || typeof XLSX === 'undefined') {
+    toast('Excel için veri/kütüphane bulunamadı', 'err');
+    return;
+  }
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Randevu');
+  const slug = (rows[0].ad_soyad || 'musteri').replace(/[^\w]+/g, '_');
+  XLSX.writeFile(wb, `randevu_${slug}.xlsx`);
+}
+
+async function downloadContactAppointmentPdf() {
+  const rows = await _buildContactExportRows();
+  if (!rows.length || !window.jspdf?.jsPDF) {
+    toast('PDF kütüphanesi bulunamadı', 'err');
+    return;
+  }
+  const r = rows[0];
+  const doc = new window.jspdf.jsPDF();
+  doc.setFontSize(14);
+  doc.text('Randevu Bilgileri', 14, 16);
+  doc.setFontSize(10);
+  let y = 28;
+  Object.entries(r).forEach(([k, v]) => {
+    doc.text(`${k}: ${String(v || '—')}`, 14, y);
+    y += 8;
+  });
+  const slug = (r.ad_soyad || 'musteri').replace(/[^\w]+/g, '_');
+  doc.save(`randevu_${slug}.pdf`);
 }
 
 async function loadContactHistory(contactId) {
