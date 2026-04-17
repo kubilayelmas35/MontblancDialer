@@ -960,13 +960,22 @@ let _contactMapMarker = null;
 let _contactMapMeasureMode = false;
 let _contactMapMeasurePath = [];
 let _contactMapMeasurePolyline = null;
+let _contactMapMeasurePolygon = null;
 let _contactMapMeasureInfo = null;
 let _contactMapMeasureClickListener = null;
+let _contactMapMeasureType = 'distance';
 
 function _fmtMeters(m) {
   const n = Number(m || 0);
   if (n >= 1000) return `${(n / 1000).toFixed(2)} km`;
   return `${Math.round(n)} m`;
+}
+
+function _fmtAreaM2(m2) {
+  const n = Math.max(0, Number(m2) || 0);
+  if (n >= 1000000) return `${(n / 1000000).toFixed(2)} km²`;
+  if (n >= 10000) return `${Math.round(n).toLocaleString('tr-TR')} m²`;
+  return `${n.toFixed(1)} m²`;
 }
 
 function _haversineMeters(a, b) {
@@ -995,11 +1004,23 @@ function _measureTotalMeters(path) {
   return total;
 }
 
+function _measureAreaM2(path) {
+  if (!Array.isArray(path) || path.length < 3) return 0;
+  if (window.google?.maps?.geometry?.spherical?.computeArea) {
+    return google.maps.geometry.spherical.computeArea(path);
+  }
+  return 0;
+}
+
 function _contactMapResetMeasure() {
   _contactMapMeasurePath = [];
   if (_contactMapMeasurePolyline) {
     _contactMapMeasurePolyline.setMap(null);
     _contactMapMeasurePolyline = null;
+  }
+  if (_contactMapMeasurePolygon) {
+    _contactMapMeasurePolygon.setMap(null);
+    _contactMapMeasurePolygon = null;
   }
   if (_contactMapMeasureInfo) {
     _contactMapMeasureInfo.close();
@@ -1009,6 +1030,37 @@ function _contactMapResetMeasure() {
 
 function _contactMapRenderMeasure() {
   if (!_contactMap) return;
+  if (_contactMapMeasureType === 'area') {
+    if (_contactMapMeasurePolyline) {
+      _contactMapMeasurePolyline.setMap(null);
+      _contactMapMeasurePolyline = null;
+    }
+    if (!_contactMapMeasurePolygon) {
+      _contactMapMeasurePolygon = new google.maps.Polygon({
+        map: _contactMap,
+        paths: [],
+        strokeColor: '#f59e0b',
+        strokeOpacity: 0.95,
+        strokeWeight: 2,
+        fillColor: '#f59e0b',
+        fillOpacity: 0.2,
+        clickable: false,
+      });
+    }
+    _contactMapMeasurePolygon.setPath(_contactMapMeasurePath);
+    if (_contactMapMeasurePath.length < 3) return;
+    const area = _measureAreaM2(_contactMapMeasurePath);
+    const last = _contactMapMeasurePath[_contactMapMeasurePath.length - 1];
+    if (!_contactMapMeasureInfo) _contactMapMeasureInfo = new google.maps.InfoWindow();
+    _contactMapMeasureInfo.setContent(`<div style="font-size:12px;font-weight:700;">Alan: ${_fmtAreaM2(area)}</div>`);
+    _contactMapMeasureInfo.setPosition(last);
+    _contactMapMeasureInfo.open({ map: _contactMap });
+    return;
+  }
+  if (_contactMapMeasurePolygon) {
+    _contactMapMeasurePolygon.setMap(null);
+    _contactMapMeasurePolygon = null;
+  }
   if (!_contactMapMeasurePolyline) {
     _contactMapMeasurePolyline = new google.maps.Polyline({
       map: _contactMap,
@@ -1044,6 +1096,11 @@ function _setContactMapMeasureMode(on) {
   }
 }
 
+function _setContactMapMeasureType(type) {
+  _contactMapMeasureType = type === 'area' ? 'area' : 'distance';
+  _contactMapResetMeasure();
+}
+
 function _ensureContactMapScript(apiKey) {
   if (window.google?.maps) return Promise.resolve();
   if (window.__contactMapScriptPromise) return window.__contactMapScriptPromise;
@@ -1064,46 +1121,53 @@ function _buildContactMapToolbar(container) {
   if (existing) existing.remove();
   const bar = document.createElement('div');
   bar.id = 'contact-map-toolbar';
-  bar.style.cssText = 'position:absolute;top:10px;right:10px;z-index:10;display:flex;gap:6px;flex-wrap:wrap;';
+  bar.style.cssText = 'position:absolute;top:10px;left:10px;z-index:8;display:flex;gap:6px;flex-wrap:wrap;';
   const btnStyle = 'background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;color:var(--text);';
   bar.innerHTML = `
-    <button id="cm-btn-measure" type="button" style="${btnStyle}">Cetvel</button>
+    <button id="cm-btn-dist" type="button" style="${btnStyle}">Mesafe</button>
+    <button id="cm-btn-area" type="button" style="${btnStyle}">Alan (m²)</button>
     <button id="cm-btn-clear" type="button" style="${btnStyle}">Temizle</button>
-    <button id="cm-btn-3d" type="button" style="${btnStyle}">3D</button>
     <button id="cm-btn-2d" type="button" style="${btnStyle};display:none;">3D'den çık</button>
   `;
   container.appendChild(bar);
-  const btnMeasure = document.getElementById('cm-btn-measure');
+  const btnDist = document.getElementById('cm-btn-dist');
+  const btnArea = document.getElementById('cm-btn-area');
   const btnClear = document.getElementById('cm-btn-clear');
-  const btn3d = document.getElementById('cm-btn-3d');
   const btn2d = document.getElementById('cm-btn-2d');
-  if (btnMeasure) {
-    btnMeasure.onclick = () => {
+  const refreshMeasureUi = () => {
+    if (btnDist) {
+      btnDist.style.background = _contactMapMeasureMode && _contactMapMeasureType === 'distance' ? 'var(--accent-soft)' : 'var(--bg-2)';
+      btnDist.style.borderColor = _contactMapMeasureMode && _contactMapMeasureType === 'distance' ? 'var(--accent)' : 'var(--border)';
+    }
+    if (btnArea) {
+      btnArea.style.background = _contactMapMeasureMode && _contactMapMeasureType === 'area' ? 'var(--accent-soft)' : 'var(--bg-2)';
+      btnArea.style.borderColor = _contactMapMeasureMode && _contactMapMeasureType === 'area' ? 'var(--accent)' : 'var(--border)';
+    }
+  };
+  if (btnDist) {
+    btnDist.onclick = () => {
+      _setContactMapMeasureType('distance');
       _setContactMapMeasureMode(!_contactMapMeasureMode);
-      btnMeasure.style.background = _contactMapMeasureMode ? 'var(--accent-soft)' : 'var(--bg-2)';
-      btnMeasure.style.borderColor = _contactMapMeasureMode ? 'var(--accent)' : 'var(--border)';
-      btnMeasure.textContent = _contactMapMeasureMode ? 'Cetvel: Açık' : 'Cetvel';
+      refreshMeasureUi();
+    };
+  }
+  if (btnArea) {
+    btnArea.onclick = () => {
+      _setContactMapMeasureType('area');
+      _setContactMapMeasureMode(!_contactMapMeasureMode);
+      refreshMeasureUi();
     };
   }
   if (btnClear) btnClear.onclick = () => _contactMapResetMeasure();
-  if (btn3d) {
-    btn3d.onclick = () => {
-      if (!_contactMap) return;
-      _contactMap.setTilt(67.5);
-      _contactMap.setHeading(35);
-      if (btn2d) btn2d.style.display = '';
-      btn3d.style.display = 'none';
-    };
-  }
   if (btn2d) {
     btn2d.onclick = () => {
       if (!_contactMap) return;
       _contactMap.setTilt(0);
       _contactMap.setHeading(0);
       btn2d.style.display = 'none';
-      if (btn3d) btn3d.style.display = '';
     };
   }
+  refreshMeasureUi();
 }
 
 async function showContactMap(address, plz, city) {
@@ -1132,13 +1196,15 @@ async function showContactMap(address, plz, city) {
     fullscreenControl: true,
     rotateControl: true,
     gestureHandling: 'greedy', // Ctrl zorunlu olmasın
-    tilt: 0,
-    heading: 0,
+    tilt: 67.5,
+    heading: 35,
     headingInteractionEnabled: true,
     tiltInteractionEnabled: true,
   };
   _contactMap = new google.maps.Map(mapEl, mapOpts);
   _contactMap.setOptions({ minZoom: 3, maxZoom: 22 });
+  const btn2d = document.getElementById('cm-btn-2d');
+  if (btn2d) btn2d.style.display = '';
   _setContactMapMeasureMode(false);
   _contactMapResetMeasure();
   const q = `${address || ''} ${plz || ''} ${city || ''} Germany`.trim();

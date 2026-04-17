@@ -580,7 +580,15 @@ async function loadUpcomingWv() {
 
 let _unfinalizedCallsOpen = false;
 
+function _hasLiveCallInProgress() {
+  return dialerStatus === 'on_call' && (!!_telnyxCall || !!_fakeCallActive || !!_outboundDialPending);
+}
+
 function toggleUnfinalizedCallsPanel() {
+  if (_hasLiveCallInProgress()) {
+    toast('Önce aktif çağrıyı kapatın', 'err', 2200);
+    return;
+  }
   _unfinalizedCallsOpen = !_unfinalizedCallsOpen;
   const list = document.getElementById('unfinalized-calls-list');
   const btn = document.getElementById('unfinalized-calls-toggle');
@@ -636,6 +644,10 @@ async function loadUnfinalizedCalls() {
 }
 
 async function openUnfinalizedCall(contactId) {
+  if (_hasLiveCallInProgress()) {
+    toast('Önce aktif çağrıyı kapatın', 'err', 2200);
+    return;
+  }
   if (!contactId) return;
   try {
     const rows = await sb(`contacts?id=eq.${contactId}&select=*,queues(name,status)&limit=1`);
@@ -796,9 +808,7 @@ function syncDialerBottomChrome() {
   const preCall =
     (dialerStatus === 'offline' || dialerStatus === 'ready') &&
     !!currentContact &&
-    _isCustDataVisible() &&
-    !_outboundDialPending &&
-    !_fakeCallActive;
+    _isCustDataVisible();
 
   if (preCall) {
     if (readySec) readySec.style.display = 'none';
@@ -1282,6 +1292,10 @@ function closeManualDialDrawer() {
 }
 
 function toggleManualDialDrawer() {
+  if (_hasLiveCallInProgress()) {
+    toast('Aktif çağrı varken numara ile aramaya geçilemez', 'err', 2200);
+    return;
+  }
   const el = document.getElementById('manual-dial-drawer');
   const chip = document.getElementById('manual-dial-toggle');
   if (!el) return;
@@ -1610,6 +1624,10 @@ function toggleMicAudioDrawer() {
 }
 
 async function runManualDialSearch() {
+  if (_hasLiveCallInProgress()) {
+    toast('Önce aktif çağrıyı kapatın', 'err', 2200);
+    return;
+  }
   const input = document.getElementById('manual-dial-input');
   const out = document.getElementById('manual-dial-results');
   if (!input || !out || !currentUser) return;
@@ -1661,6 +1679,10 @@ async function runManualDialSearch() {
 }
 
 function pickManualDialContact(idx) {
+  if (_hasLiveCallInProgress()) {
+    toast('Önce aktif çağrıyı kapatın', 'err', 2200);
+    return;
+  }
   const row = window._manualDialLastResults?.[idx];
   if (!row) return;
   const camp = campaigns.find((x) => x.id === row.campaign_id);
