@@ -582,6 +582,19 @@ async function loadUpcomingWv() {
 let _unfinalizedCallsOpen = false;
 /** TEST gelen arama simülasyonu: dış numara sıklığı için sayaç */
 let _inboundSimTickCount = 0;
+/** Dış gelen (TEST) fluid vurgusu — proceed’den önce iptal */
+let _inboundExternalCueTimer = null;
+
+function _hideInboundExternalFluidCue() {
+  if (_inboundExternalCueTimer) {
+    clearTimeout(_inboundExternalCueTimer);
+    _inboundExternalCueTimer = null;
+  }
+  const custEmpty = document.getElementById('cust-empty');
+  const cue = document.getElementById('cust-empty-inbound-cue');
+  custEmpty?.classList.remove('cust-empty--inbound-external');
+  if (cue) cue.style.display = 'none';
+}
 
 function _hasLiveCallInProgress() {
   return dialerStatus === 'on_call' && (!!_telnyxCall || !!_fakeCallActive || !!_outboundDialPending);
@@ -2426,35 +2439,84 @@ async function tickInboundTestSimulation() {
 
   const displayName = `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || phone;
   contact._inboundRouteDetail = routeDetail;
-  await beginInboundTestCall({ phone, displayName, contact, routeDetail });
+  await beginInboundTestCall({ phone, displayName, contact, routeDetail, isExternalInbound: useExternal });
 }
 
-async function beginInboundTestCall({ phone, displayName, contact, routeDetail }) {
+async function beginInboundTestCall({ phone, displayName, contact, routeDetail, isExternalInbound }) {
   if (_fakeCallActive || dialerStatus === 'on_call') return;
-  const tr = currentLang === 'tr';
-  const campId = contact.campaign_id || selectedCampId || campaigns?.[0]?.id;
-  if (campId) {
-    const camp = campaigns.find((c) => c.id === campId);
-    selectCamp(campId, camp?.name || '', { skipActivate: true });
-  }
-  currentContact = contact;
-  showCustomerCard(contact);
-  _fakeCallActive = true;
-  _inboundSimActive = true;
-  window.__voiceOrbSimRemote = true;
-  setDialerStatus('on_call');
-  updateSessionInDB('on_call').catch(() => {});
 
-  const ban = document.getElementById('dialer-inbound-banner');
-  if (ban) {
-    ban.style.display = '';
-    ban.textContent = tr
-      ? `Gelen arama (TEST): ${displayName} · ${phone}${routeDetail ? ' — ' + routeDetail : ''}`
-      : `Eingehend (TEST): ${displayName} · ${phone}`;
+  const proceed = async () => {
+    const tr = currentLang === 'tr';
+    const campId = contact.campaign_id || selectedCampId || campaigns?.[0]?.id;
+    if (campId) {
+      const camp = campaigns.find((c) => c.id === campId);
+      selectCamp(campId, camp?.name || '', { skipActivate: true });
+    }
+    currentContact = contact;
+    showCustomerCard(contact);
+    _fakeCallActive = true;
+    _inboundSimActive = true;
+    window.__voiceOrbSimRemote = true;
+    setDialerStatus('on_call');
+    updateSessionInDB('on_call').catch(() => {});
+
+    const ban = document.getElementById('dialer-inbound-banner');
+    if (ban) {
+      ban.style.display = '';
+      if (isExternalInbound) {
+        ban.classList.add('dialer-inbound-banner--external');
+        ban.textContent = tr
+          ? `Dış arama (TEST) · ${phone} — size aktarılıyor${routeDetail ? ' — ' + routeDetail : ''}`
+          : `Extern (TEST) · ${phone} — wird an Sie durchgestellt${routeDetail ? ' — ' + routeDetail : ''}`;
+      } else {
+        ban.classList.remove('dialer-inbound-banner--external');
+        ban.textContent = tr
+          ? `Gelen arama (TEST): ${displayName} · ${phone}${routeDetail ? ' — ' + routeDetail : ''}`
+          : `Eingehend (TEST): ${displayName} · ${phone}`;
+      }
+    }
+    const extra = _canShowInboundRoutingDetail() ? ` — ${routeDetail}` : '';
+    if (isExternalInbound) {
+      toast(
+        `${tr ? '📥 Dış arama (TEST) — size aktarılıyor: ' : '📥 Extern (TEST) — wird durchgestellt: '}${phone}${extra}`,
+        'ok',
+        5600
+      );
+    } else {
+      toast(`${tr ? '📥 Gelen arama (TEST)' : '📥 Eingehend (TEST)'}: ${displayName} · ${phone}${extra}`, 'ok', 5200);
+    }
+    if (typeof switchContactTab === 'function') switchContactTab('info');
+  };
+
+  if (_testMode && isExternalInbound && !_isCustDataVisible()) {
+    stopCustEmptyCoach();
+    if (_inboundExternalCueTimer) {
+      clearTimeout(_inboundExternalCueTimer);
+      _inboundExternalCueTimer = null;
+    }
+    const custEmpty = document.getElementById('cust-empty');
+    const custData = document.getElementById('cust-data');
+    const cue = document.getElementById('cust-empty-inbound-cue');
+    const bubble = document.getElementById('cust-empty-bubble');
+    if (bubble) bubble.style.display = 'none';
+    if (custData) custData.style.display = 'none';
+    if (custEmpty) {
+      custEmpty.style.display = '';
+      custEmpty.classList.add('cust-empty--inbound-external');
+    }
+    if (cue) {
+      cue.style.display = '';
+      if (typeof applyLang === 'function') applyLang();
+    }
+    _inboundExternalCueTimer = setTimeout(() => {
+      _inboundExternalCueTimer = null;
+      _hideInboundExternalFluidCue();
+      void proceed();
+    }, 1150);
+    return;
   }
-  const extra = _canShowInboundRoutingDetail() ? ` — ${routeDetail}` : '';
-  toast(`${tr ? '📥 Gelen arama (TEST)' : '📥 Eingehend (TEST)'}: ${displayName} · ${phone}${extra}`, 'ok', 5200);
-  if (typeof switchContactTab === 'function') switchContactTab('info');
+
+  await proceed();
 }
 
 async function loadIncomingCallsSettingsPage() {
@@ -2599,12 +2661,17 @@ async function startTestCall() {
 }
 
 function endFakeCall() {
+  _hideInboundExternalFluidCue();
   _fakeCallActive = false;
   _inboundSimActive = false;
   window.__voiceOrbSimRemote = false;
   clearTimeout(_fakeCallTimer); _fakeCallTimer = null;
   const ban = document.getElementById('dialer-inbound-banner');
-  if (ban) { ban.style.display = 'none'; ban.textContent = ''; }
+  if (ban) {
+    ban.style.display = 'none';
+    ban.textContent = '';
+    ban.classList.remove('dialer-inbound-banner--external');
+  }
   handleCallEnd(Math.floor(callSeconds) || 15);
 }
 

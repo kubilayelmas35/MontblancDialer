@@ -1116,6 +1116,92 @@ overflow: hidden;
   background: color-mix(in srgb, var(--accent) 18%, var(--bg-3));
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
 }
+
+/* TEST: dış gelen arama — fluid vurgu (boş hazır kartı) */
+.cust-empty--inbound-external .cust-empty-aurora {
+  opacity: 0.72;
+  animation-duration: 5s;
+  filter: blur(28px) saturate(1.15);
+}
+.cust-empty--inbound-external .cust-empty-blob {
+  box-shadow:
+    0 10px 44px color-mix(in srgb, var(--yellow) 45%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--yellow) 35%, transparent),
+    inset 0 0 22px rgba(255, 255, 255, 0.35);
+}
+.cust-empty--inbound-external .cust-empty-text,
+.cust-empty--inbound-external .cust-empty-sub {
+  opacity: 0.42;
+}
+.cust-empty-inbound-cue {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 360px;
+  margin: 4px auto 0;
+  padding: 2px;
+  border-radius: 14px;
+  background: linear-gradient(
+    125deg,
+    color-mix(in srgb, var(--accent) 70%, transparent),
+    color-mix(in srgb, var(--yellow) 65%, transparent),
+    color-mix(in srgb, var(--green) 55%, transparent),
+    color-mix(in srgb, var(--accent) 70%, transparent)
+  );
+  background-size: 240% 240%;
+  animation: cust-empty-inbound-cue-shift 3.2s ease-in-out infinite;
+}
+@keyframes cust-empty-inbound-cue-shift {
+  0%, 100% { background-position: 0% 40%; }
+  50% { background-position: 100% 60%; }
+}
+.cust-empty-inbound-cue__inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+}
+.cust-empty-inbound-cue__pulse {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--yellow);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--yellow) 55%, transparent);
+  animation: cust-empty-inbound-pulse 1.25s ease-out infinite;
+}
+@keyframes cust-empty-inbound-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--yellow) 55%, transparent); transform: scale(1); }
+  70% { box-shadow: 0 0 0 12px transparent; transform: scale(1.05); }
+  100% { box-shadow: 0 0 0 0 transparent; transform: scale(1); }
+}
+.cust-empty-inbound-cue__title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.35;
+}
+.cust-empty-inbound-cue__sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+#dialer-inbound-banner.dialer-inbound-banner--external {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--yellow) 22%, var(--bg-2)),
+    color-mix(in srgb, var(--accent) 14%, var(--bg-2))
+  );
+  border-bottom-color: color-mix(in srgb, var(--yellow) 45%, var(--border));
+  font-weight: 700;
+}
 /* Dialer controls */
 .dialer-controls {
 display:flex; flex-direction:column; gap:10px;
