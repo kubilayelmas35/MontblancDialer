@@ -410,27 +410,24 @@ async function loadMyMiniStats() {
     document.getElementById('my-appt').textContent = appts;
     document.getElementById('my-calls').textContent = calls;
 
-    // Goal depends on tab
+    // Goal scope follows the selected performance period.
+    const goalScope = _perfTab === 'week' ? 'weekly' : (_perfTab === 'month' ? 'monthly' : 'daily');
+    _goalTab = goalScope;
+    ['daily','weekly','monthly'].forEach((t) => {
+      const b = document.getElementById(`goal-tab-${t}`);
+      if (b) {
+        b.style.background = t === goalScope ? 'var(--accent)' : 'transparent';
+        b.style.color = t === goalScope ? '#fff' : 'var(--text-2)';
+      }
+    });
+    const labels = { daily:'Günlük Hedef', weekly:'Haftalık Hedef', monthly:'Aylık Hedef' };
+    const lbl = document.getElementById('goal-tab-label');
+    if (lbl) lbl.textContent = labels[goalScope] || 'Hedef';
+
     let goalVal = _dailyGoal;
-    if (_goalTab === 'weekly') goalVal = _dailyGoal * 5;
-    else if (_goalTab === 'monthly') goalVal = _dailyGoal * 22;
-    let goalAppts = appts;
-    if (_goalTab === 'weekly') {
-      const monSince = new Date(now); monSince.setDate(now.getDate()-(now.getDay()||7)+1); monSince.setHours(0,0,0,0);
-      const wl = await sb(
-        `appointments?select=id&agent_id=eq.${currentUser?.id}` +
-        `&termin_tarih=gte.${monSince.toISOString()}&termin_tarih=lte.${nowIso}`
-      );
-      goalAppts = (wl || []).length;
-    } else if (_goalTab === 'monthly') {
-      const monSince = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01T00:00:00`;
-      const ml = await sb(
-        `appointments?select=id&agent_id=eq.${currentUser?.id}` +
-        `&termin_tarih=gte.${monSince}&termin_tarih=lte.${nowIso}`
-      );
-      goalAppts = (ml || []).length;
-    }
-    updateDailyProgress(goalAppts, goalVal);
+    if (goalScope === 'weekly') goalVal = _dailyGoal * 5;
+    else if (goalScope === 'monthly') goalVal = _dailyGoal * 22;
+    updateDailyProgress(appts, goalVal);
 
     const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
     const resultRows = await loadFirmAppointmentResults(fid, false).catch(() => defaultAppointmentResults());
