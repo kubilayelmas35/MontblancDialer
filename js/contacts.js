@@ -1127,19 +1127,11 @@ function _buildContactMapToolbar(container) {
     <button id="cm-btn-dist" type="button" style="${btnStyle}">Mesafe</button>
     <button id="cm-btn-area" type="button" style="${btnStyle}">Alan (m²)</button>
     <button id="cm-btn-clear" type="button" style="${btnStyle}">Temizle</button>
-    <button id="cm-btn-2d" type="button" style="${btnStyle};display:none;">3D'den çık</button>
   `;
   container.appendChild(bar);
   const btnDist = document.getElementById('cm-btn-dist');
   const btnArea = document.getElementById('cm-btn-area');
   const btnClear = document.getElementById('cm-btn-clear');
-  const btn2d = document.getElementById('cm-btn-2d');
-  const exit3d = () => {
-    if (!_contactMap) return;
-    _contactMap.setTilt(0);
-    _contactMap.setHeading(0);
-    if (btn2d) btn2d.style.display = 'none';
-  };
   const refreshMeasureUi = () => {
     if (btnDist) {
       btnDist.style.background = _contactMapMeasureMode && _contactMapMeasureType === 'distance' ? 'var(--accent-soft)' : 'var(--bg-2)';
@@ -1152,7 +1144,6 @@ function _buildContactMapToolbar(container) {
   };
   if (btnDist) {
     btnDist.onclick = () => {
-      exit3d();
       _setContactMapMeasureType('distance');
       _setContactMapMeasureMode(!_contactMapMeasureMode);
       refreshMeasureUi();
@@ -1160,21 +1151,12 @@ function _buildContactMapToolbar(container) {
   }
   if (btnArea) {
     btnArea.onclick = () => {
-      exit3d();
       _setContactMapMeasureType('area');
       _setContactMapMeasureMode(!_contactMapMeasureMode);
       refreshMeasureUi();
     };
   }
   if (btnClear) btnClear.onclick = () => _contactMapResetMeasure();
-  if (btn2d) {
-    btn2d.onclick = () => {
-      if (!_contactMap) return;
-      _contactMap.setTilt(0);
-      _contactMap.setHeading(0);
-      btn2d.style.display = 'none';
-    };
-  }
   refreshMeasureUi();
 }
 
@@ -1211,8 +1193,6 @@ async function showContactMap(address, plz, city) {
   };
   _contactMap = new google.maps.Map(mapEl, mapOpts);
   _contactMap.setOptions({ minZoom: 3, maxZoom: 22 });
-  const btn2d = document.getElementById('cm-btn-2d');
-  if (btn2d) btn2d.style.display = '';
   _setContactMapMeasureMode(false);
   _contactMapResetMeasure();
   const q = `${address || ''} ${plz || ''} ${city || ''} Germany`.trim();
