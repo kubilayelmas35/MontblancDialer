@@ -151,6 +151,7 @@ async function initDialer() {
   const hints = document.getElementById('hotkey-hints');
   if (hints) hints.style.display = '';
   refreshAutoDialUi();
+  void loadFirmDialerSettingsCache().then(() => restartInboundTestSimulationScheduler());
 }
 
 // Kampanya aktif/pasif toggle
@@ -2259,6 +2260,247 @@ function checkCallAllowed() {
   return true;
 }
 
+// ── Gelen arama (firma ayarı + test simülasyonu) ─────────────────
+function _normalizeFirmDialerSettings(raw) {
+  const d = raw && typeof raw === 'object' ? raw : {};
+  return {
+    incoming_super_enabled: !!d.incoming_super_enabled,
+    incoming_enabled: !!d.incoming_enabled,
+    incoming_external: !!d.incoming_external,
+    incoming_show_routing_admin: d.incoming_show_routing_admin !== false,
+  };
+}
+
+async function loadFirmDialerSettingsCache() {
+  if (!currentUser?.firm_id) {
+    window._firmDialerSettings = _normalizeFirmDialerSettings({});
+    return window._firmDialerSettings;
+  }
+  try {
+    const rows = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
+    const d = rows?.[0]?.settings?.dialer || {};
+    window._firmDialerSettings = _normalizeFirmDialerSettings(d);
+  } catch (e) {
+    window._firmDialerSettings = _normalizeFirmDialerSettings({});
+  }
+  return window._firmDialerSettings;
+}
+
+function stopInboundTestSimulationScheduler() {
+  if (_inboundSimTimer) {
+    clearTimeout(_inboundSimTimer);
+    _inboundSimTimer = null;
+  }
+}
+
+function restartInboundTestSimulationScheduler() {
+  stopInboundTestSimulationScheduler();
+  const page = document.getElementById('page-dialer');
+  if (!page?.classList.contains('active')) return;
+  const tick = () => {
+    _inboundSimTimer = setTimeout(async () => {
+      await tickInboundTestSimulation();
+      tick();
+    }, 26000 + Math.floor(Math.random() * 24000));
+  };
+  tick();
+}
+
+function _canShowInboundRoutingDetail() {
+  const s = window._firmDialerSettings || {};
+  if (!s.incoming_show_routing_admin) return false;
+  const role = currentUser?.role || '';
+  return ['firm_admin', 'admin', 'super_admin'].includes(role);
+}
+
+async function tickInboundTestSimulation() {
+  if (!_testMode) return;
+  await loadFirmDialerSettingsCache();
+  const s = window._firmDialerSettings || {};
+  if (!s.incoming_super_enabled || !s.incoming_enabled) return;
+  if (dialerStatus !== 'ready') return;
+  if (_fakeCallActive || dialerStatus === 'on_call') return;
+  if (!currentUser?.firm_id) return;
+  const fid = currentUser.firm_id;
+  const tr = currentLang === 'tr';
+
+  const sessions = await sb(`agent_sessions?firm_id=eq.${fid}&status=eq.ready&select=agent_id,agent_name,last_seen&order=last_seen.asc`).catch(() => []);
+  if (!sessions?.length) return;
+  const readyIds = new Set(sessions.map((x) => x.agent_id));
+  if (!readyIds.has(currentUser.id)) return;
+
+  const contacts = await sb(`contacts?firm_id=eq.${fid}&select=id,phone,first_name,last_name,campaign_id&limit=120`).catch(() => []);
+  let phone = '';
+  let pickedContact = null;
+  const useExternal = s.incoming_external && (Math.random() < 0.45 || !contacts?.length);
+  if (useExternal) {
+    phone = `49${15 + Math.floor(Math.random() * 74)}${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`;
+  } else if (contacts?.length) {
+    pickedContact = contacts[Math.floor(Math.random() * contacts.length)];
+    phone = pickedContact.phone;
+  } else {
+    return;
+  }
+
+  let preferredId = null;
+  try {
+    const logs = await sb(`call_logs?phone=eq.${encodeURIComponent(phone)}&firm_id=eq.${fid}&order=started_at.desc&limit=1&select=agent_id`).catch(() => []);
+    preferredId = logs?.[0]?.agent_id || null;
+  } catch (e) {}
+
+  let targetId = null;
+  let routeDetail = '';
+  const prefName = sessions.find((x) => x.agent_id === preferredId)?.agent_name || '';
+  if (preferredId && readyIds.has(preferredId)) {
+    targetId = preferredId;
+    routeDetail = tr
+      ? `Yönlendirme: son arayan temsilci${prefName ? ` (${prefName})` : ''} müsait → öncelik`
+      : `Routing: letzter Agent${prefName ? ` (${prefName})` : ''} verfügbar`;
+  } else {
+    targetId = sessions[0].agent_id;
+    const tname = sessions[0].agent_name || '';
+    if (preferredId && !readyIds.has(preferredId)) {
+      routeDetail = tr
+        ? `Yönlendirme: son temsilci müsait değil → sıradaki hazır: ${tname || '—'}`
+        : `Routing: letzter Agent nicht frei → nächster: ${tname || '—'}`;
+    } else {
+      routeDetail = tr
+        ? `Yönlendirme: müsait temsilci: ${tname || '—'}`
+        : `Routing: verfügbar: ${tname || '—'}`;
+    }
+  }
+
+  if (targetId !== currentUser.id) {
+    if (_canShowInboundRoutingDetail()) {
+      toast(`📥 ${tr ? 'Gelen (TEST) başka temsilciye giderdi' : 'Eingehend (TEST) geht an anderen'} — ${routeDetail}`, 'warn', 4200);
+    }
+    return;
+  }
+
+  let contact = pickedContact;
+  if (!contact && phone) {
+    try {
+      const rows = await sb(`contacts?phone=eq.${encodeURIComponent(phone)}&firm_id=eq.${fid}&select=*&limit=1`).catch(() => []);
+      contact = rows?.[0] || null;
+    } catch (e) {}
+  }
+  if (!contact) {
+    if (!s.incoming_external) return;
+    const campId = selectedCampId || campaigns?.[0]?.id || null;
+    contact = {
+      id: `in-${Date.now()}`,
+      phone,
+      first_name: tr ? 'Gelen' : 'Eingehend',
+      last_name: tr ? 'Test' : 'Test',
+      firm_id: fid,
+      campaign_id: campId,
+      status: 'pending',
+      attempt_count: 0,
+      is_inbound_test: true,
+    };
+  }
+
+  const displayName = `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || phone;
+  contact._inboundRouteDetail = routeDetail;
+  await beginInboundTestCall({ phone, displayName, contact, routeDetail });
+}
+
+async function beginInboundTestCall({ phone, displayName, contact, routeDetail }) {
+  if (_fakeCallActive || dialerStatus === 'on_call') return;
+  const tr = currentLang === 'tr';
+  const campId = contact.campaign_id || selectedCampId || campaigns?.[0]?.id;
+  if (campId) {
+    const camp = campaigns.find((c) => c.id === campId);
+    selectCamp(campId, camp?.name || '', { skipActivate: true });
+  }
+  currentContact = contact;
+  showCustomerCard(contact);
+  _fakeCallActive = true;
+  _inboundSimActive = true;
+  window.__voiceOrbSimRemote = true;
+  setDialerStatus('on_call');
+  updateSessionInDB('on_call').catch(() => {});
+
+  const ban = document.getElementById('dialer-inbound-banner');
+  if (ban) {
+    ban.style.display = '';
+    ban.textContent = tr
+      ? `Gelen arama (TEST): ${displayName} · ${phone}${routeDetail ? ' — ' + routeDetail : ''}`
+      : `Eingehend (TEST): ${displayName} · ${phone}`;
+  }
+  const extra = _canShowInboundRoutingDetail() ? ` — ${routeDetail}` : '';
+  toast(`${tr ? '📥 Gelen arama (TEST)' : '📥 Eingehend (TEST)'}: ${displayName} · ${phone}${extra}`, 'ok', 5200);
+  if (typeof switchContactTab === 'function') switchContactTab('info');
+}
+
+async function loadIncomingCallsSettingsPage() {
+  const card = document.getElementById('incoming-calls-settings-card');
+  if (!card) return;
+  const role = currentUser?.role || '';
+  const can = ['firm_admin', 'admin', 'super_admin'].includes(role);
+  if (!can || !currentUser?.firm_id) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+  await loadFirmDialerSettingsCache();
+  const s = window._firmDialerSettings || {};
+  const locked = !s.incoming_super_enabled;
+  const hint = document.getElementById('inc-set-locked-hint');
+  const en = document.getElementById('inc-set-enabled');
+  const ex = document.getElementById('inc-set-external');
+  const ri = document.getElementById('inc-set-routing-info');
+  if (hint) hint.style.display = locked ? '' : 'none';
+  [en, ex, ri].forEach((el) => {
+    if (!el) return;
+    el.disabled = locked;
+    el.style.opacity = locked ? '0.5' : '';
+  });
+  if (en) en.checked = !!s.incoming_enabled;
+  if (ex) ex.checked = !!s.incoming_external;
+  if (ri) ri.checked = s.incoming_show_routing_admin !== false;
+}
+
+async function saveIncomingCallsSettings() {
+  if (!currentUser?.firm_id) return;
+  const role = currentUser?.role || '';
+  if (!['firm_admin', 'admin', 'super_admin'].includes(role)) {
+    toast('Yetki yok', 'err');
+    return;
+  }
+  try {
+    const rows = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
+    const oldSettings = rows?.[0]?.settings || {};
+    const oldDialer = oldSettings.dialer || {};
+    const locked = !oldDialer.incoming_super_enabled;
+    if (locked) {
+      toast('Süper admin bu özelliği henüz açmadı', 'warn');
+      return;
+    }
+    const dialer = {
+      ...oldDialer,
+      incoming_enabled: !!document.getElementById('inc-set-enabled')?.checked,
+      incoming_external: !!document.getElementById('inc-set-external')?.checked,
+      incoming_show_routing_admin: !!document.getElementById('inc-set-routing-info')?.checked,
+    };
+    await sb(`firms?id=eq.${currentUser.firm_id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings: { ...oldSettings, dialer } }),
+    });
+    await loadFirmDialerSettingsCache();
+    toast('Gelen arama ayarları kaydedildi ✓', 'ok');
+    restartInboundTestSimulationScheduler();
+  } catch (e) {
+    toast('Kayıt hatası: ' + e.message, 'err');
+  }
+}
+
+window.isIncomingDialerEnabled = function () {
+  const s = window._firmDialerSettings || {};
+  return !!(s.incoming_super_enabled && s.incoming_enabled);
+};
+
 // ── Test Modu ─────────────────────────────────
 function toggleTestMode() {
   _testMode = !_testMode;
@@ -2289,6 +2531,7 @@ function toggleTestMode() {
     }
     toast('Test modu kapatıldı', 'warn', 2000);
   }
+  restartInboundTestSimulationScheduler();
 }
 
 // Test moduna özel hazır toggle — Telnyx kontrolü yok
@@ -2333,8 +2576,11 @@ async function startTestCall() {
 
 function endFakeCall() {
   _fakeCallActive = false;
+  _inboundSimActive = false;
   window.__voiceOrbSimRemote = false;
   clearTimeout(_fakeCallTimer); _fakeCallTimer = null;
+  const ban = document.getElementById('dialer-inbound-banner');
+  if (ban) { ban.style.display = 'none'; ban.textContent = ''; }
   handleCallEnd(Math.floor(callSeconds) || 15);
 }
 

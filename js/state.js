@@ -134,6 +134,11 @@ let toastT;
 let _fakeCallTimer  = null;
 let _fakeCallActive = false;
 let _testMode       = false;
+let _inboundSimActive = false;
+let _inboundSimTimer  = null;
+
+// Firma dialer ayarları (gelen arama vb.) — cache
+window._firmDialerSettings = window._firmDialerSettings || null;
 
 // Multi-campaign dialing
 let _activeCampIds  = [];  // agent'ın aktif seçtiği kampanya ID'leri

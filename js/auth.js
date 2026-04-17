@@ -152,6 +152,8 @@ const perfNav = document.getElementById('nav-performance-btn');
 if (perfNav) perfNav.style.display = ['admin', 'firm_admin', 'super_admin'].includes(currentUser.role) ? '' : 'none';
 if (currentUser.role === 'super_admin') { loadAllFirms(); }
 loadFirmCallHours(); // arama kısıtlamalarını yükle
+if (typeof loadFirmDialerSettingsCache === 'function') void loadFirmDialerSettingsCache();
+if (typeof loadIncomingCallsSettingsPage === 'function') void loadIncomingCallsSettingsPage();
 if (isAdmin) { navigate('dashboard'); }
 else if (currentUser.role === 'qc') { navigate('qc'); }
 else if (currentUser.role === 'field_agent') { navigate('field'); }

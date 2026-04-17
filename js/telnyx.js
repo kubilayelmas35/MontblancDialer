@@ -49,6 +49,17 @@ _telnyxClient.on('telnyx.notification', (n) => {
 const call = n.call;
 if (n.type === 'callUpdate') {
 const state = call?.state;
+const isInbound = call?.direction === 'inbound';
+if (state === 'ringing' && isInbound) {
+  if (typeof window.isIncomingDialerEnabled === 'function' && !window.isIncomingDialerEnabled()) {
+    try { call.hangup(); } catch (e) {}
+    if (typeof toast === 'function') toast('Gelen arama bu firma için kapalı', 'warn', 3200);
+    return;
+  }
+  if (typeof call.answer === 'function') {
+    try { call.answer(); } catch (e) {}
+  }
+}
 if (state === 'ringing' || state === 'active') _outboundDialPending = false;
 if (state === 'active') {
 _telnyxCall = call;

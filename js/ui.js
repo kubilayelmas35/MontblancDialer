@@ -50,6 +50,7 @@ if (page==='callhistory'){ initCallHistoryFilters(); loadCallHistory(); }
 if (page==='export')       loadExportTerminPage();
 if (page==='performance') loadPerformancePage();
 if (page==='dialer')         initDialer();
+if (page !== 'dialer' && typeof stopInboundTestSimulationScheduler === 'function') stopInboundTestSimulationScheduler();
 if (page==='field')          loadFieldPage();
 if (page==='fieldops')       loadFieldOpsPage();
 if (page==='jobmarket') {
@@ -61,6 +62,7 @@ if (page==='jobmarket') {
 }
 if (page==='myhistory')      { initMyHistoryFilters(); loadMyHistory(); }
 if (page==='settings')       { loadSavedSettings(); loadRolesPage(); }
+if (page==='settings')       { if (typeof loadIncomingCallsSettingsPage === 'function') loadIncomingCallsSettingsPage(); }
 if (page==='settings')       { loadAppointmentResultsSettings(); }
 if (page==='wiedervorlage')  loadWvPage();
 if (page==='qc')             loadQcData();

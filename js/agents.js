@@ -481,6 +481,10 @@ function openFirmModal() {
   document.getElementById('firm-slug').value = '';
   document.getElementById('firm-plan').value = 'enterprise';
   document.getElementById('firm-currency').value = 'EUR';
+  const incRow = document.getElementById('firm-incoming-super-row');
+  const incChk = document.getElementById('firm-incoming-super');
+  if (incRow) incRow.style.display = currentUser?.role === 'super_admin' ? '' : 'none';
+  if (incChk) incChk.checked = false;
   openModal('m-firm');
 }
 
@@ -495,6 +499,10 @@ async function editFirm(id) {
     document.getElementById('firm-plan').value = f.plan || 'enterprise';
     const cur = String(f.currency || f.settings?.currency || 'EUR').toUpperCase();
     document.getElementById('firm-currency').value = ['EUR','USD','TRY'].includes(cur) ? cur : 'EUR';
+    const incRow = document.getElementById('firm-incoming-super-row');
+    const incChk = document.getElementById('firm-incoming-super');
+    if (incRow) incRow.style.display = currentUser?.role === 'super_admin' ? '' : 'none';
+    if (incChk) incChk.checked = !!(f.settings?.dialer?.incoming_super_enabled);
   } catch (e) {}
   openModal('m-firm');
 }
@@ -509,13 +517,23 @@ async function saveFirm() {
     if (firmEditId) {
       const rows = await sb(`firms?id=eq.${firmEditId}&select=settings`).catch(() => []);
       const oldSettings = rows?.[0]?.settings || {};
+      const oldDialer = oldSettings.dialer || {};
+      const incomingSuper = document.getElementById('firm-incoming-super')?.checked;
+      const dialer = {
+        ...oldDialer,
+        ...(currentUser?.role === 'super_admin'
+          ? { incoming_super_enabled: !!incomingSuper }
+          : {}),
+      };
       await sb(`firms?id=eq.${firmEditId}`,{
         method:'PATCH',
         prefer:'return=minimal',
-        body:JSON.stringify({name,slug,plan,currency,settings:{...oldSettings,currency}})
+        body:JSON.stringify({name,slug,plan,currency,settings:{...oldSettings,currency,dialer}})
       });
     } else {
-      await sb('firms',{method:'POST',prefer:'return=minimal',body:JSON.stringify({name,slug,plan,currency,settings:{currency}})});
+      const incomingSuperNew = document.getElementById('firm-incoming-super')?.checked;
+      const dialerNew = { incoming_super_enabled: currentUser?.role === 'super_admin' ? !!incomingSuperNew : false };
+      await sb('firms',{method:'POST',prefer:'return=minimal',body:JSON.stringify({name,slug,plan,currency,settings:{currency,dialer:dialerNew}})});
     }
     closeModal('m-firm');
     await loadFirmsPage();
