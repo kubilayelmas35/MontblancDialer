@@ -775,6 +775,7 @@ function setDialerStatus(s) {
     startCallTimer();
     _startHangupUiTick();
     _applyMicSensitivityToLiveCall();
+    _startMicThresholdGate();
   } else if (s==='wrapping') {
     if (typeof startAcwTimer === 'function') startAcwTimer();
     document.getElementById('ready-section').style.display='none';
@@ -801,6 +802,7 @@ function setDialerStatus(s) {
     if (typeof switchContactTab === 'function') {
       switchContactTab(hasSlot ? 'info' : 'outcome');
     }
+    _stopMicThresholdGate();
   }
 
   if (prev === 'break' && s !== 'break') {
@@ -818,6 +820,7 @@ function setDialerStatus(s) {
     _breakCardTick = setInterval(refreshBreakCustEmpty, 1000);
   }
   if (s === 'break') refreshBreakCustEmpty();
+  if (s !== 'on_call' && s !== 'wrapping') _stopMicThresholdGate();
   syncDialerBottomChrome();
 }
 
@@ -1009,8 +1012,8 @@ function stopCallTimer() {
 
 // ── Call controls ─────────────────────────────
 function toggleMute() {
-  if (_micForcedMute && !isMuted) {
-    toast(currentLang === 'tr' ? 'Hassasiyet 0 iken mikrofon kapalı' : 'Bei Empfindlichkeit 0 ist Mikrofon stumm', 'warn', 1800);
+  if ((_micForcedMute || _micThresholdForcedMute) && !isMuted) {
+    toast(currentLang === 'tr' ? 'Eşik altında mikrofon kapalı' : 'Unter Schwelle bleibt Mikrofon stumm', 'warn', 1800);
     return;
   }
   const pre = document.getElementById('call-actions')?.classList.contains('call-actions--pre-call');
@@ -1021,6 +1024,7 @@ function toggleMute() {
   }
   isMuted=!isMuted;
   document.getElementById('btn-mute')?.classList.toggle('active',isMuted);
+  if (isMuted) _micThresholdForcedMute = false;
   sendToRTC('MB_MUTE',{muted:isMuted});
   toast(isMuted?(currentLang==='tr'?'Mikrofon kapatıldı':'Mikrofon stumm'):(currentLang==='tr'?'Mikrofon açıldı':'Mikrofon aktiv'),'ok');
 }
@@ -1193,11 +1197,13 @@ function _micDrawerWireControlsOnce() {
     const g = parseFloat(gainEl.value);
     if (_micDrawerInputGain) _micDrawerInputGain.gain.value = Number.isFinite(g) ? g : 1;
     _applyMicSensitivityToLiveCall();
+    if (_micGateAnalyser) _runMicThresholdGateTick();
   });
   thrEl?.addEventListener('input', () => {
     localStorage.setItem('mb_mic_drawer_thresh', thrEl.value);
     const t = document.getElementById('mic-drawer-in-threshold');
     if (t) t.style.left = `${thrEl.value}%`;
+    if (_micGateAnalyser) _runMicThresholdGateTick();
   });
 }
 
@@ -1214,9 +1220,22 @@ function _micDrawerLoadPrefs() {
   _applyMicSensitivityToLiveCall();
 }
 
-function _applyMicSensitivityToLiveCall() {
+function _getMicThresholdValue() {
+  const te = document.getElementById('mic-drawer-threshold');
+  const raw = te?.value ?? localStorage.getItem('mb_mic_drawer_thresh') ?? '18';
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 18;
+}
+
+function _getMicGainValue() {
   const ge = document.getElementById('mic-drawer-gain');
-  const gain = parseFloat(ge?.value || '1');
+  const raw = ge?.value ?? localStorage.getItem('mb_mic_drawer_gain') ?? '1';
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? Math.min(4, Math.max(0, n)) : 1;
+}
+
+function _applyMicSensitivityToLiveCall() {
+  const gain = _getMicGainValue();
   const hardMute = Number.isFinite(gain) && gain <= 0.05;
   if (hardMute && !_micForcedMute) {
     _micForcedMute = true;
@@ -1233,6 +1252,78 @@ function _applyMicSensitivityToLiveCall() {
       sendToRTC('MB_MUTE', { muted: false });
       document.getElementById('btn-mute')?.classList.remove('active');
     }
+  }
+}
+
+function _stopMicThresholdGate() {
+  if (_micGateRaf) {
+    cancelAnimationFrame(_micGateRaf);
+    _micGateRaf = null;
+  }
+  if (_micGateStream) {
+    try { _micGateStream.getTracks().forEach((t) => t.stop()); } catch (e) {}
+    _micGateStream = null;
+  }
+  try { _micGateCtx?.close(); } catch (e) {}
+  _micGateCtx = null;
+  _micGateAnalyser = null;
+  _micGateLevelPct = 0;
+  if (_micThresholdForcedMute) {
+    _micThresholdForcedMute = false;
+    if (!_micForcedMute && !isMuted && dialerStatus === 'on_call') {
+      sendToRTC('MB_MUTE', { muted: false });
+      document.getElementById('btn-mute')?.classList.remove('active');
+    }
+  }
+}
+
+function _runMicThresholdGateTick() {
+  if (!_micGateAnalyser || dialerStatus !== 'on_call') {
+    _stopMicThresholdGate();
+    return;
+  }
+  const threshold = _getMicThresholdValue();
+  const gain = _getMicGainValue();
+  const buf = new Uint8Array(_micGateAnalyser.frequencyBinCount);
+  _micGateAnalyser.getByteFrequencyData(buf);
+  let sum = 0;
+  for (let i = 0; i < buf.length; i++) sum += buf[i];
+  const avg = sum / buf.length;
+  const gainForMeter = Math.min(2.2, Math.max(0.75, gain));
+  const levelPct = Math.min(100, (avg * 0.62 * gainForMeter) + (avg > 4 ? 6 : 0));
+  _micGateLevelPct = levelPct;
+  const gateOpen = levelPct >= threshold;
+  const canAutoMute = !_micForcedMute && !isMuted;
+
+  if (!gateOpen && canAutoMute && !_micThresholdForcedMute) {
+    _micThresholdForcedMute = true;
+    sendToRTC('MB_MUTE', { muted: true });
+    document.getElementById('btn-mute')?.classList.add('active');
+  } else if (gateOpen && _micThresholdForcedMute) {
+    _micThresholdForcedMute = false;
+    if (!_micForcedMute && !isMuted) {
+      sendToRTC('MB_MUTE', { muted: false });
+      document.getElementById('btn-mute')?.classList.remove('active');
+    }
+  }
+  _micGateRaf = requestAnimationFrame(_runMicThresholdGateTick);
+}
+
+async function _startMicThresholdGate() {
+  _stopMicThresholdGate();
+  if (dialerStatus !== 'on_call') return;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    _micGateStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    _micGateCtx = new Ctx();
+    const src = _micGateCtx.createMediaStreamSource(_micGateStream);
+    _micGateAnalyser = _micGateCtx.createAnalyser();
+    _micGateAnalyser.fftSize = 512;
+    _micGateAnalyser.smoothingTimeConstant = 0.72;
+    src.connect(_micGateAnalyser);
+    _runMicThresholdGateTick();
+  } catch (e) {
+    _stopMicThresholdGate();
   }
 }
 

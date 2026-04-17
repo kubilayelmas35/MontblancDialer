@@ -180,6 +180,8 @@
       if (this.opt.mode === 'agent') {
         const muted = typeof isMuted !== 'undefined' ? !!isMuted : false;
         const forcedMuted = typeof _micForcedMute !== 'undefined' ? !!_micForcedMute : false;
+        const thresholdMuted = typeof _micThresholdForcedMute !== 'undefined' ? !!_micThresholdForcedMute : false;
+        if (thresholdMuted) return 0;
         if (forcedMuted) return 0;
         if (muted) return 0;
       }
