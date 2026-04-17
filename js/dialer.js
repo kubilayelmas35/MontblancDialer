@@ -1087,6 +1087,33 @@ function redialCurrentContact() {
   if (typeof switchContactTab === 'function') switchContactTab('info');
 }
 
+function callSecondaryPhone() {
+  const p2 = String(currentContact?.phone2 || '').trim();
+  if (!p2) {
+    toast(currentLang === 'tr' ? '2. telefon numarası yok' : 'Keine zweite Nummer', 'warn');
+    return;
+  }
+  if (!_testMode && !telnyxReady) {
+    toast(currentLang === 'tr' ? 'Hat bağlantısı yok' : 'Keine Verbindung', 'err');
+    return;
+  }
+  const campId = currentContact?.campaign_id || selectedCampId;
+  const campaign = campaigns.find((c) => c.id === campId);
+  if (campId) selectCamp(campId, campaign?.name || '', { skipActivate: true });
+  if (_testMode) {
+    _fakeCallActive = true;
+    window.__voiceOrbSimRemote = true;
+    setDialerStatus('on_call');
+    toast(currentLang === 'tr' ? 'TEST: 2. numara aranıyor' : 'TEST: Zweitnummer wird angerufen', 'ok', 2200);
+    return;
+  }
+  setDialerStatus('on_call');
+  _outboundDialPending = true;
+  sendToRTC('MB_CALL', { destination: p2, callerNumber: campaign?.telnyx_did || '' });
+  updateSessionInDB('on_call').catch(() => {});
+  if (typeof switchContactTab === 'function') switchContactTab('info');
+}
+
 function _manualDialNormalizeDigits(v) {
   return String(v || '').replace(/\D/g, '');
 }
@@ -1178,6 +1205,20 @@ function _micDrawerLoadPrefs() {
   if (_micDrawerInputGain && ge) _micDrawerInputGain.gain.value = parseFloat(ge.value) || 1;
   const trEl = document.getElementById('mic-drawer-in-threshold');
   if (trEl && te) trEl.style.left = `${te.value}%`;
+}
+
+function saveMicDrawerPrefs() {
+  const ge = document.getElementById('mic-drawer-gain');
+  const te = document.getElementById('mic-drawer-threshold');
+  if (ge) localStorage.setItem('mb_mic_drawer_gain', ge.value);
+  if (te) localStorage.setItem('mb_mic_drawer_thresh', te.value);
+  if (_micDrawerInputGain && ge) {
+    const g = parseFloat(ge.value);
+    _micDrawerInputGain.gain.value = Number.isFinite(g) ? g : 1;
+  }
+  const trEl = document.getElementById('mic-drawer-in-threshold');
+  if (trEl && te) trEl.style.left = `${te.value}%`;
+  toast(currentLang === 'tr' ? 'Mikrofon ayarları kaydedildi' : 'Mikrofoneinstellungen gespeichert', 'ok', 1800);
 }
 
 function _micDrawerStopAudioCore() {

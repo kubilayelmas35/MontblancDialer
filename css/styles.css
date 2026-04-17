@@ -1181,6 +1181,23 @@ transition:var(--transition);
 }
 .call-action-btn:hover { background:var(--bg-4); color:var(--text); }
 .call-action-btn.active { background:var(--yellow-soft); color:var(--yellow); border-color:#d9770625; }
+.prev-call-row {
+display:flex; gap:12px; justify-content:space-between; align-items:center; flex-wrap:wrap;
+}
+.prev-call-main { flex:1; min-width:220px; }
+.prev-call-agent {
+display:inline-flex; align-items:center; gap:4px;
+font-size:11px; color:var(--text-2);
+background:var(--bg-3); border:1px solid var(--border); border-radius:999px; padding:2px 8px;
+}
+.prev-call-audio-wrap {
+display:flex; align-items:center; gap:8px;
+background:color-mix(in srgb, var(--accent) 8%, var(--bg-2));
+border:1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+border-radius:999px; padding:4px 8px;
+}
+.prev-call-audio-lbl { font-size:10px; font-weight:700; color:var(--accent); white-space:nowrap; }
+.prev-call-audio { width:190px; height:28px; }
 /* Outcome form */
 .outcome-form {
 background:var(--bg-2); border:2px solid var(--accent-soft);
@@ -1258,6 +1275,18 @@ cursor:pointer; transition:var(--transition);
   flex-shrink: 0;
   align-self: center;
 }
+#page-dialer .dialer-hdr-badges > * { flex-shrink: 0; }
+#page-dialer .dialer-hdr-drawer {
+  width: 100%;
+  box-sizing: border-box;
+}
+#page-dialer .manual-dial-drawer > div:first-child {
+  display: grid !important;
+  grid-template-columns: minmax(240px, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+#page-dialer .manual-dial-drawer .btn { white-space: nowrap; }
 #call-actions.call-actions--pre-call #btn-hold:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -1377,6 +1406,10 @@ MOBILE / RESPONSIVE
   margin-left: 0 !important;
   flex-wrap: wrap;
 }
+#page-dialer .manual-dial-drawer > div:first-child {
+  grid-template-columns: 1fr;
+}
+#page-dialer .prev-call-audio { width: 100%; min-width: 160px; }
 #page-dialer #daily-goal-bar {
   padding: 6px 8px !important;
 }

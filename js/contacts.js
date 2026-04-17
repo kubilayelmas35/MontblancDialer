@@ -262,7 +262,18 @@ function showCustomerCard(c) {
     { key:'personen',            l:'Kişi Sayısı', v:c.personen },
   ];
   const visibleFields = allFields.filter(f => show(f.key));
-  document.getElementById('cust-fields').innerHTML = visibleFields.map(f=>`
+  document.getElementById('cust-fields').innerHTML = visibleFields.map(f=>{
+    const canCallSecondary = f.key === 'phone2' && String(f.v || '').trim().length > 0;
+    const quickCallBtn = canCallSecondary
+      ? `<button type="button" onclick="callSecondaryPhone()"
+style="flex-shrink:0;background:var(--accent-soft);border:1px solid var(--accent);cursor:pointer;color:var(--accent);padding:4px 7px;border-radius:6px;transition:.15s;font-size:11px;font-weight:700;"
+title="2. numarayı ara"
+onmouseover="this.style.background='var(--accent)';this.style.color='#fff'"
+onmouseout="this.style.background='var(--accent-soft)';this.style.color='var(--accent)'">
+<i class="ph ph-phone-call" style="font-size:12px;vertical-align:-1px;"></i>
+</button>`
+      : '';
+    return `
 <div class="cust-field" style="position:relative;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
 <div class="cust-field-lbl" style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">${f.l}</div>
 <div style="display:flex;align-items:center;gap:6px;">
@@ -270,6 +281,7 @@ function showCustomerCard(c) {
 style="flex:1;font-size:14px;font-weight:600;cursor:pointer;min-height:20px;"
 onclick="copyToClipboard('${(f.v||'').replace(/'/g,"\\'")}','${f.l} kopyalandı')"
 title="Kopyala (tıkla) — düzenlemek için kalem ikonuna bas">${f.v||'—'}</div>
+${quickCallBtn}
 <button onclick="startFieldEdit('${f.key}','${f.l}',this)"
 style="flex-shrink:0;background:transparent;border:none;cursor:pointer;color:var(--text-3);padding:2px;border-radius:4px;opacity:.6;transition:.15s;"
 title="Düzenle"
@@ -278,7 +290,8 @@ onmouseout="this.style.opacity='.6';this.style.color='var(--text-3)'">
 <i class="ph ph-pencil-simple" style="font-size:14px;"></i>
 </button>
 </div>
-</div>`).join('');
+</div>`;
+  }).join('');
   const terminContainer = document.getElementById('termin-fields-section') || (() => {
     const el = document.createElement('div');
     el.id = 'termin-fields-section';
@@ -637,18 +650,33 @@ async function showPrevCallInfo(contact) {
   if (!el || !body) return;
   if (!contact || (contact.attempt_count || 0) < 1) { el.style.display = 'none'; return; }
   try {
-    const logs = await sb(`call_logs?contact_id=eq.${contact.id}&order=started_at.desc&limit=1&select=outcome,notes,started_at`);
+    const logs = await sb(`call_logs?contact_id=eq.${contact.id}&order=started_at.desc&limit=1&select=outcome,notes,started_at,recording_url,agent_id,users(name)`);
     if (!logs?.length) { el.style.display = 'none'; return; }
     const prev = logs[0];
     const dt = new Date(prev.started_at).toLocaleString('tr-TR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     const outcomeMap = {appointment:'Termin',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',dnc:'Kara Liste'};
+    const rawAgent = prev?.users?.name || '';
+    const own = !!currentUser?.id && prev?.agent_id === currentUser.id;
+    const agentLabel = own
+      ? `Sen${rawAgent ? ` · ${rawAgent}` : ''}`
+      : (rawAgent || '—');
     body.innerHTML = `
-<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-<span style="font-weight:700;">${outcomeMap[prev.outcome]||prev.outcome}</span>
-<span style="color:var(--text-3);">${dt}</span>
-<span style="color:var(--text-3);">(${contact.attempt_count}. arama)</span>
-</div>
-${prev.notes ? `<div style="margin-top:4px;color:var(--text-2);">"${prev.notes}"</div>` : ''}`;
+<div class="prev-call-row">
+  <div class="prev-call-main">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <span style="font-weight:700;">${outcomeMap[prev.outcome]||prev.outcome}</span>
+      <span style="color:var(--text-3);">${dt}</span>
+      <span style="color:var(--text-3);">(${contact.attempt_count}. arama)</span>
+      <span class="prev-call-agent"><i class="ph ph-user-circle"></i> ${agentLabel}</span>
+    </div>
+    ${prev.notes ? `<div style="margin-top:4px;color:var(--text-2);">"${prev.notes}"</div>` : ''}
+  </div>
+  ${prev.recording_url ? `
+  <div class="prev-call-audio-wrap">
+    <span class="prev-call-audio-lbl">Ses kaydı</span>
+    <audio controls src="${prev.recording_url}" preload="none" class="prev-call-audio"></audio>
+  </div>` : ''}
+</div>`;
     el.style.display = '';
   } catch(e) { el.style.display = 'none'; }
 }
