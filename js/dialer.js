@@ -580,6 +580,8 @@ async function loadUpcomingWv() {
 }
 
 let _unfinalizedCallsOpen = false;
+/** TEST gelen arama simülasyonu: dış numara sıklığı için sayaç */
+let _inboundSimTickCount = 0;
 
 function _hasLiveCallInProgress() {
   return dialerStatus === 'on_call' && (!!_telnyxCall || !!_fakeCallActive || !!_outboundDialPending);
@@ -791,6 +793,35 @@ function refreshPreCallToolbarUi() {
   if (hold) hold.disabled = true;
 }
 
+/** Müşteri kartı açıkken (ön arama) alt çubuğu Ara modunda tut — initDialer gecikmeli boyamalarda da kullanılır */
+function forceDialerPreCallBar() {
+  if (!(dialerStatus === 'offline' || dialerStatus === 'ready' || dialerStatus === 'calling')) return;
+  const readySec = document.getElementById('ready-section');
+  const callAct = document.getElementById('call-actions');
+  if (readySec) readySec.style.display = 'none';
+  if (callAct) {
+    callAct.style.display = '';
+    callAct.classList.add('call-actions--pre-call');
+    callAct.classList.remove('call-actions--wrapping');
+  }
+  refreshPreCallToolbarUi();
+}
+
+/** Numara ile ara / WV vb. ön aramadan çık: boş hazır kartına dön (sayfa yenilemeden) */
+function returnToDialerHub() {
+  if (dialerStatus === 'on_call' || dialerStatus === 'wrapping' || _fakeCallActive || _outboundDialPending) {
+    toast(currentLang === 'tr' ? 'Önce aktif çağrıyı kapatın' : 'Zuerst Gespräch beenden', 'err', 2200);
+    return;
+  }
+  currentContact = null;
+  window._manualDialLastResults = null;
+  closeManualDialDrawer();
+  clearCustomerCard();
+  if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
+  const tr = currentLang === 'tr';
+  toast(tr ? 'Dialer hazır ekranına dönüldü' : 'Zurück zur Bereitschaft', 'ok', 2400);
+}
+
 function syncDialerBottomChrome() {
   const readySec = document.getElementById('ready-section');
   const callAct = document.getElementById('call-actions');
@@ -807,7 +838,7 @@ function syncDialerBottomChrome() {
   }
 
   const preCall =
-    (dialerStatus === 'offline' || dialerStatus === 'ready') &&
+    (dialerStatus === 'offline' || dialerStatus === 'ready' || dialerStatus === 'calling') &&
     !!currentContact &&
     _isCustDataVisible();
 
@@ -847,6 +878,7 @@ function setDialerStatus(s) {
   const labels = {
     offline: {tr:'Çevrimdışı',de:'Offline'},
     ready:   {tr:'Hazır — Arama Bekleniyor',de:'Bereit — Warte auf Anruf'},
+    calling: {tr:'Ön arama',de:'Vor Anruf'},
     on_call: {tr:'Aramada',de:'Im Gespräch'},
     wrapping:{tr:'Sonuç Giriliyor',de:'Nachbearbeitung'},
     break:   {tr:'Mola',de:'Pause'},
@@ -878,6 +910,9 @@ function setDialerStatus(s) {
     }
     document.getElementById('ready-section').style.display='';
     if (callAct) callAct.style.display='none';
+    document.getElementById('customer-card').style.display='';
+    _clearHangupUiTick();
+  } else if (s==='calling') {
     document.getElementById('customer-card').style.display='';
     _clearHangupUiTick();
   } else if (s==='on_call') {
@@ -1694,24 +1729,9 @@ function pickManualDialContact(idx) {
   if (!dialerPageOpen && typeof navigate === 'function') navigate('dialer');
   showCustomerCard(row);
   syncDialerBottomChrome();
-  // Manual dial should always open the pre-call action bar
-  // instead of the Ready/health block when a customer card is visible.
-  const forcePreCallBar = () => {
-    if (!(dialerStatus === 'offline' || dialerStatus === 'ready')) return;
-    const readySec = document.getElementById('ready-section');
-    const callAct = document.getElementById('call-actions');
-    if (readySec) readySec.style.display = 'none';
-    if (callAct) {
-      callAct.style.display = '';
-      callAct.classList.add('call-actions--pre-call');
-      callAct.classList.remove('call-actions--wrapping');
-    }
-    if (typeof refreshPreCallToolbarUi === 'function') refreshPreCallToolbarUi();
-  };
-  forcePreCallBar();
-  // initDialer/navigation can repaint after a short delay; enforce once more.
-  setTimeout(() => { syncDialerBottomChrome(); forcePreCallBar(); }, 220);
-  setTimeout(() => { syncDialerBottomChrome(); forcePreCallBar(); }, 650);
+  forceDialerPreCallBar();
+  setTimeout(() => { syncDialerBottomChrome(); forceDialerPreCallBar(); }, 220);
+  setTimeout(() => { syncDialerBottomChrome(); forceDialerPreCallBar(); }, 650);
   if (typeof switchContactTab === 'function') switchContactTab('info');
   toast(currentLang === 'tr' ? 'Kişi yüklendi — Ara ile arayın' : 'Kontakt geladen — mit Anrufen wählen', 'ok', 3200);
 }
@@ -2332,7 +2352,11 @@ async function tickInboundTestSimulation() {
   const contacts = await sb(`contacts?firm_id=eq.${fid}&select=id,phone,first_name,last_name,campaign_id&limit=120`).catch(() => []);
   let phone = '';
   let pickedContact = null;
-  const useExternal = s.incoming_external && (Math.random() < 0.45 || !contacts?.length);
+  _inboundSimTickCount += 1;
+  const rotateExt = s.incoming_external && (_inboundSimTickCount % 3 === 0);
+  const useExternal =
+    s.incoming_external &&
+    (rotateExt || Math.random() < 0.58 || !contacts?.length);
   if (useExternal) {
     phone = `49${15 + Math.floor(Math.random() * 74)}${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`;
   } else if (contacts?.length) {

@@ -1313,6 +1313,18 @@ cursor:pointer; transition:var(--transition);
   opacity: 0.45;
   cursor: not-allowed;
 }
+#call-actions #btn-dialer-hub-back { display: none; }
+#call-actions.call-actions--pre-call #btn-dialer-hub-back {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+}
+#call-actions.call-actions--pre-call .call-action-btn--dialer-hub {
+  border-color: var(--border);
+  background: var(--bg-3);
+  color: var(--text-2);
+  font-weight: 700;
+}
 .dialer-hdr-drawer {
   padding:12px 16px;
   border-bottom:1px solid var(--border);

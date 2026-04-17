@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=7.12">
+<link rel="stylesheet" href="css/styles.css?v=7.13">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -36,7 +36,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v7.12 — 2026</div>
+<div class="login-version">v7.13 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -312,7 +312,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v7.12</div>
+<div class="sb-ver">MontBlanc v7.13</div>
 </div>
 </nav>
 <main id="main">
@@ -1298,6 +1298,9 @@ Son randevu bilgileri indirilebilir.
 <div class="call-action-row">
 <button type="button" class="call-action-btn" id="btn-redial" onclick="redialCurrentContact()" title="Tekrar ara">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> <span data-tr="Ara" data-de="Anrufen">Ara</span>
+</button>
+<button type="button" class="call-action-btn call-action-btn--dialer-hub" id="btn-dialer-hub-back" onclick="returnToDialerHub()" title="Boş hazır ekranına dön">
+<i class="ph ph-arrow-u-up-left" aria-hidden="true"></i> <span data-tr="Dialera dön" data-de="Zum Dialer">Dialera dön</span>
 </button>
 <button class="call-action-btn" id="btn-mute" onclick="toggleMute()">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg> <span data-tr="Mikrofon" data-de="Mikrofon">Mikrofon</span>
@@ -3163,40 +3166,40 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/config.js?v=7.12"></script>
-<script src="js/state.js?v=7.12"></script>
-<script src="js/api.js?v=7.12"></script>
-<script src="js/auth.js?v=7.12"></script>
-<script src="js/ui.js?v=7.12"></script>
-<script src="js/chat.js?v=7.12"></script>
-<script src="js/chat-settings.js?v=7.12"></script>
-<script src="js/field-settings.js?v=7.12"></script>
-<script src="js/audit.js?v=7.12"></script>
-<script src="js/feature-flags.js?v=7.12"></script>
-<script src="js/notification-center.js?v=7.12"></script>
+<script src="js/config.js?v=7.13"></script>
+<script src="js/state.js?v=7.13"></script>
+<script src="js/api.js?v=7.13"></script>
+<script src="js/auth.js?v=7.13"></script>
+<script src="js/ui.js?v=7.13"></script>
+<script src="js/chat.js?v=7.13"></script>
+<script src="js/chat-settings.js?v=7.13"></script>
+<script src="js/field-settings.js?v=7.13"></script>
+<script src="js/audit.js?v=7.13"></script>
+<script src="js/feature-flags.js?v=7.13"></script>
+<script src="js/notification-center.js?v=7.13"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=7.12"></script>
-<script src="js/job-market.js?v=7.12"></script>
-<script src="js/qc-job-market.js?v=7.12"></script>
-<script src="js/export-admin.js?v=7.12"></script>
-<script src="js/export-termin.js?v=7.12"></script>
-<script src="js/performance.js?v=7.12"></script>
-<script src="js/competition.js?v=7.12"></script>
-<script src="js/dashboard.js?v=7.12"></script>
-<script src="js/campaigns.js?v=7.12"></script>
-<script src="js/contacts.js?v=7.12"></script>
-<script src="js/telnyx.js?v=7.12"></script>
-<script src="js/voice-orb.js?v=7.12"></script>
-<script src="js/dialer.js?v=7.12"></script>
-<script src="js/appointments.js?v=7.12"></script>
-<script src="js/field.js?v=7.12"></script>
-<script src="js/field-ops.js?v=7.12"></script>
-<script src="js/wiedervorlage.js?v=7.12"></script>
-<script src="js/qc.js?v=7.12"></script>
-<script src="js/leave-hr.js?v=7.12"></script>
-<script src="js/muhasebe.js?v=7.12"></script>
-<script src="js/agent-self-performance.js?v=7.12"></script>
-<script src="js/agents.js?v=7.12"></script>
+<script src="js/wallet.js?v=7.13"></script>
+<script src="js/job-market.js?v=7.13"></script>
+<script src="js/qc-job-market.js?v=7.13"></script>
+<script src="js/export-admin.js?v=7.13"></script>
+<script src="js/export-termin.js?v=7.13"></script>
+<script src="js/performance.js?v=7.13"></script>
+<script src="js/competition.js?v=7.13"></script>
+<script src="js/dashboard.js?v=7.13"></script>
+<script src="js/campaigns.js?v=7.13"></script>
+<script src="js/contacts.js?v=7.13"></script>
+<script src="js/telnyx.js?v=7.13"></script>
+<script src="js/voice-orb.js?v=7.13"></script>
+<script src="js/dialer.js?v=7.13"></script>
+<script src="js/appointments.js?v=7.13"></script>
+<script src="js/field.js?v=7.13"></script>
+<script src="js/field-ops.js?v=7.13"></script>
+<script src="js/wiedervorlage.js?v=7.13"></script>
+<script src="js/qc.js?v=7.13"></script>
+<script src="js/leave-hr.js?v=7.13"></script>
+<script src="js/muhasebe.js?v=7.13"></script>
+<script src="js/agent-self-performance.js?v=7.13"></script>
+<script src="js/agents.js?v=7.13"></script>
 </body>
 </html>
 

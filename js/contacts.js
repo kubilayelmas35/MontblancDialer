@@ -946,12 +946,18 @@ function drawerCallContact() {
   navigate('dialer');
   // Small delay to let dialer UI render
   setTimeout(() => {
-    // Show customer card with the contact's info
     if (typeof showCustomerCard === 'function') showCustomerCard(c);
-    // Transition to ready/calling state
-    if (typeof setDialerStatus === 'function') setDialerStatus('calling');
-    // Start the actual call
-    if (typeof makeCall === 'function') makeCall(c.phone);
+    if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+    if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
+    setTimeout(() => {
+      if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+      if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
+    }, 220);
+    setTimeout(() => {
+      if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+      if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
+    }, 650);
+    if (typeof switchContactTab === 'function') switchContactTab('info');
   }, 150);
 }
 
