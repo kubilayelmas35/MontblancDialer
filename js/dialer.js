@@ -774,6 +774,7 @@ function setDialerStatus(s) {
     document.getElementById('customer-card').style.display='';
     startCallTimer();
     _startHangupUiTick();
+    _applyMicSensitivityToLiveCall();
   } else if (s==='wrapping') {
     if (typeof startAcwTimer === 'function') startAcwTimer();
     document.getElementById('ready-section').style.display='none';
@@ -1008,6 +1009,10 @@ function stopCallTimer() {
 
 // ── Call controls ─────────────────────────────
 function toggleMute() {
+  if (_micForcedMute && !isMuted) {
+    toast(currentLang === 'tr' ? 'Hassasiyet 0 iken mikrofon kapalı' : 'Bei Empfindlichkeit 0 ist Mikrofon stumm', 'warn', 1800);
+    return;
+  }
   const pre = document.getElementById('call-actions')?.classList.contains('call-actions--pre-call');
   const lineUp = !!_telnyxCall || !!_fakeCallActive || !!_outboundDialPending;
   if (pre && !lineUp && dialerStatus !== 'on_call') {
@@ -1187,6 +1192,7 @@ function _micDrawerWireControlsOnce() {
     localStorage.setItem('mb_mic_drawer_gain', gainEl.value);
     const g = parseFloat(gainEl.value);
     if (_micDrawerInputGain) _micDrawerInputGain.gain.value = Number.isFinite(g) ? g : 1;
+    _applyMicSensitivityToLiveCall();
   });
   thrEl?.addEventListener('input', () => {
     localStorage.setItem('mb_mic_drawer_thresh', thrEl.value);
@@ -1205,6 +1211,29 @@ function _micDrawerLoadPrefs() {
   if (_micDrawerInputGain && ge) _micDrawerInputGain.gain.value = parseFloat(ge.value) || 1;
   const trEl = document.getElementById('mic-drawer-in-threshold');
   if (trEl && te) trEl.style.left = `${te.value}%`;
+  _applyMicSensitivityToLiveCall();
+}
+
+function _applyMicSensitivityToLiveCall() {
+  const ge = document.getElementById('mic-drawer-gain');
+  const gain = parseFloat(ge?.value || '1');
+  const hardMute = Number.isFinite(gain) && gain <= 0.05;
+  if (hardMute && !_micForcedMute) {
+    _micForcedMute = true;
+    sendToRTC('MB_MUTE', { muted: true });
+    document.getElementById('btn-mute')?.classList.add('active');
+    if (dialerStatus === 'on_call') {
+      toast(currentLang === 'tr' ? 'Hassasiyet 0: mikrofon çağrıda kapatıldı' : 'Empfindlichkeit 0: Mikrofon stumm', 'warn', 2200);
+    }
+    return;
+  }
+  if (!hardMute && _micForcedMute) {
+    _micForcedMute = false;
+    if (!isMuted) {
+      sendToRTC('MB_MUTE', { muted: false });
+      document.getElementById('btn-mute')?.classList.remove('active');
+    }
+  }
 }
 
 function saveMicDrawerPrefs() {
@@ -1218,6 +1247,7 @@ function saveMicDrawerPrefs() {
   }
   const trEl = document.getElementById('mic-drawer-in-threshold');
   if (trEl && te) trEl.style.left = `${te.value}%`;
+  _applyMicSensitivityToLiveCall();
   toast(currentLang === 'tr' ? 'Mikrofon ayarları kaydedildi' : 'Mikrofoneinstellungen gespeichert', 'ok', 1800);
 }
 

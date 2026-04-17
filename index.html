@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=6.91">
+<link rel="stylesheet" href="css/styles.css?v=6.92">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -36,7 +36,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v6.91 — 2026</div>
+<div class="login-version">v6.92 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -312,7 +312,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v6.91</div>
+<div class="sb-ver">MontBlanc v6.92</div>
 </div>
 </nav>
 <main id="main">
@@ -1122,14 +1122,6 @@ style="font-size:15px;cursor:pointer;background:transparent;border:none;padding:
 </button>
 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
 <span id="rtc-status" style="font-size:11px;color:var(--text-3);"><i class="ph ph-dot" style="vertical-align:-1px;"></i> Bağlantı yok</span>
-<button type="button" id="manual-dial-toggle" class="manual-dial-chip" onclick="toggleManualDialDrawer()">
-<span class="manual-dial-chip-dot" aria-hidden="true"></span>
-<div class="manual-dial-chip-text">
-<div class="manual-dial-chip-title" data-tr="Numara ile ara" data-de="Nummerwahl">Numara ile ara</div>
-<div class="manual-dial-chip-sub" data-tr="Tüm kampanyalarda ara" data-de="Alle Kampagnen durchsuchen">Tüm kampanyalarda ara</div>
-</div>
-<i class="ph ph-caret-down manual-dial-caret" aria-hidden="true"></i>
-</button>
 </div>
 <div class="dialer-timer-block" id="dialer-timer-block" style="display:none;">
 <canvas id="dialer-timer-voice-canvas" class="voice-ring-canvas voice-ring-canvas--timer" width="112" height="112" aria-hidden="true"></canvas>
@@ -1156,7 +1148,7 @@ TEST MODU
 <div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap;">
 <label style="font-size:10px;color:var(--text-2);display:flex;align-items:center;gap:6px;flex:1;min-width:140px;">
 <span data-tr="Hassasiyet" data-de="Empfindlichkeit">Hassasiyet</span>
-<input type="range" id="mic-drawer-gain" min="0.3" max="4" step="0.1" value="1" style="flex:1;accent-color:var(--accent);">
+<input type="range" id="mic-drawer-gain" min="0" max="4" step="0.05" value="1" style="flex:1;accent-color:var(--accent);">
 </label>
 <label style="font-size:10px;color:var(--text-2);display:flex;align-items:center;gap:6px;flex:1;min-width:140px;">
 <span data-tr="Eşik" data-de="Schwelle">Eşik</span>
@@ -1342,6 +1334,14 @@ style="opacity:0.45;cursor:not-allowed;" title="Önce kampanya seçin">
 </button>
 </div>
 </div>
+<button type="button" id="manual-dial-toggle" class="manual-dial-side-trigger" onclick="toggleManualDialDrawer()">
+<span class="manual-dial-chip-dot" aria-hidden="true"></span>
+<div class="manual-dial-chip-text">
+<div class="manual-dial-chip-title" data-tr="Numara ile ara" data-de="Nummerwahl">Numara ile ara</div>
+<div class="manual-dial-chip-sub" data-tr="Tüm kampanyalarda ara" data-de="Alle Kampagnen durchsuchen">Tüm kampanyalarda ara</div>
+</div>
+<i class="ph ph-caret-down manual-dial-caret" aria-hidden="true"></i>
+</button>
 <div id="manual-dial-drawer" class="manual-dial-sidecard" style="display:none;">
 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">
 <div style="flex:1;min-width:180px;">
@@ -3115,39 +3115,39 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/config.js?v=6.91"></script>
-<script src="js/state.js?v=6.91"></script>
-<script src="js/api.js?v=6.91"></script>
-<script src="js/auth.js?v=6.91"></script>
-<script src="js/ui.js?v=6.91"></script>
-<script src="js/chat.js?v=6.91"></script>
-<script src="js/chat-settings.js?v=6.91"></script>
-<script src="js/field-settings.js?v=6.91"></script>
-<script src="js/audit.js?v=6.91"></script>
-<script src="js/feature-flags.js?v=6.91"></script>
-<script src="js/notification-center.js?v=6.91"></script>
+<script src="js/config.js?v=6.92"></script>
+<script src="js/state.js?v=6.92"></script>
+<script src="js/api.js?v=6.92"></script>
+<script src="js/auth.js?v=6.92"></script>
+<script src="js/ui.js?v=6.92"></script>
+<script src="js/chat.js?v=6.92"></script>
+<script src="js/chat-settings.js?v=6.92"></script>
+<script src="js/field-settings.js?v=6.92"></script>
+<script src="js/audit.js?v=6.92"></script>
+<script src="js/feature-flags.js?v=6.92"></script>
+<script src="js/notification-center.js?v=6.92"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=6.91"></script>
-<script src="js/job-market.js?v=6.91"></script>
-<script src="js/qc-job-market.js?v=6.91"></script>
-<script src="js/export-admin.js?v=6.91"></script>
-<script src="js/export-termin.js?v=6.91"></script>
-<script src="js/performance.js?v=6.91"></script>
-<script src="js/competition.js?v=6.91"></script>
-<script src="js/dashboard.js?v=6.91"></script>
-<script src="js/campaigns.js?v=6.91"></script>
-<script src="js/contacts.js?v=6.91"></script>
-<script src="js/telnyx.js?v=6.91"></script>
-<script src="js/voice-orb.js?v=6.91"></script>
-<script src="js/dialer.js?v=6.91"></script>
-<script src="js/appointments.js?v=6.91"></script>
-<script src="js/field.js?v=6.91"></script>
-<script src="js/field-ops.js?v=6.91"></script>
-<script src="js/wiedervorlage.js?v=6.91"></script>
-<script src="js/qc.js?v=6.91"></script>
-<script src="js/leave-hr.js?v=6.91"></script>
-<script src="js/muhasebe.js?v=6.91"></script>
-<script src="js/agent-self-performance.js?v=6.91"></script>
-<script src="js/agents.js?v=6.91"></script>
+<script src="js/wallet.js?v=6.92"></script>
+<script src="js/job-market.js?v=6.92"></script>
+<script src="js/qc-job-market.js?v=6.92"></script>
+<script src="js/export-admin.js?v=6.92"></script>
+<script src="js/export-termin.js?v=6.92"></script>
+<script src="js/performance.js?v=6.92"></script>
+<script src="js/competition.js?v=6.92"></script>
+<script src="js/dashboard.js?v=6.92"></script>
+<script src="js/campaigns.js?v=6.92"></script>
+<script src="js/contacts.js?v=6.92"></script>
+<script src="js/telnyx.js?v=6.92"></script>
+<script src="js/voice-orb.js?v=6.92"></script>
+<script src="js/dialer.js?v=6.92"></script>
+<script src="js/appointments.js?v=6.92"></script>
+<script src="js/field.js?v=6.92"></script>
+<script src="js/field-ops.js?v=6.92"></script>
+<script src="js/wiedervorlage.js?v=6.92"></script>
+<script src="js/qc.js?v=6.92"></script>
+<script src="js/leave-hr.js?v=6.92"></script>
+<script src="js/muhasebe.js?v=6.92"></script>
+<script src="js/agent-self-performance.js?v=6.92"></script>
+<script src="js/agents.js?v=6.92"></script>
 </body>
 </html>

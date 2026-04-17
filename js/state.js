@@ -110,6 +110,7 @@ let _micDrawerInAn = null;
 let _micDrawerOutAn = null;
 let _micDrawerRaf = null;
 let _micDrawerMonitoring = false;
+let _micForcedMute = false;
 let currentContact  = null;
 let currentCallLog  = null;
 let callTimerInt    = null;
