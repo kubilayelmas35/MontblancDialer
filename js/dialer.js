@@ -1298,10 +1298,12 @@ function _runMicThresholdGateTick() {
   const avg = sum / buf.length;
   const levelPct = _computeMicLevelPctFromAvg(avg, gain);
   _micGateLevelPct = levelPct;
-  const openThreshold = Math.min(100, threshold + 10);
-  const closeThreshold = Math.min(100, threshold + 2);
+  const openMargin = threshold <= 5 ? 1 : (threshold <= 20 ? 2 : 4);
+  const closeMargin = threshold <= 5 ? 0.5 : (threshold <= 20 ? 1 : 2);
+  const openThreshold = Math.min(100, threshold + openMargin);
+  const closeThreshold = Math.min(100, threshold + closeMargin);
   const now = Date.now();
-  if (levelPct >= openThreshold) _micGateOpenUntilMs = now + 900;
+  if (levelPct >= openThreshold) _micGateOpenUntilMs = now + 700;
   const gateOpen = levelPct >= closeThreshold || now < _micGateOpenUntilMs;
   const canAutoMute = !_micForcedMute && !isMuted;
 
