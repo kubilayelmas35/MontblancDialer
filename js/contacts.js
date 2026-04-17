@@ -1121,7 +1121,7 @@ function _buildContactMapToolbar(container) {
   if (existing) existing.remove();
   const bar = document.createElement('div');
   bar.id = 'contact-map-toolbar';
-  bar.style.cssText = 'position:absolute;top:10px;left:10px;z-index:8;display:flex;gap:6px;flex-wrap:wrap;';
+  bar.style.cssText = 'position:absolute;bottom:12px;left:10px;z-index:8;display:flex;gap:6px;flex-wrap:wrap;';
   const btnStyle = 'background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;color:var(--text);';
   bar.innerHTML = `
     <button id="cm-btn-dist" type="button" style="${btnStyle}">Mesafe</button>
@@ -1134,6 +1134,12 @@ function _buildContactMapToolbar(container) {
   const btnArea = document.getElementById('cm-btn-area');
   const btnClear = document.getElementById('cm-btn-clear');
   const btn2d = document.getElementById('cm-btn-2d');
+  const exit3d = () => {
+    if (!_contactMap) return;
+    _contactMap.setTilt(0);
+    _contactMap.setHeading(0);
+    if (btn2d) btn2d.style.display = 'none';
+  };
   const refreshMeasureUi = () => {
     if (btnDist) {
       btnDist.style.background = _contactMapMeasureMode && _contactMapMeasureType === 'distance' ? 'var(--accent-soft)' : 'var(--bg-2)';
@@ -1146,6 +1152,7 @@ function _buildContactMapToolbar(container) {
   };
   if (btnDist) {
     btnDist.onclick = () => {
+      exit3d();
       _setContactMapMeasureType('distance');
       _setContactMapMeasureMode(!_contactMapMeasureMode);
       refreshMeasureUi();
@@ -1153,6 +1160,7 @@ function _buildContactMapToolbar(container) {
   }
   if (btnArea) {
     btnArea.onclick = () => {
+      exit3d();
       _setContactMapMeasureType('area');
       _setContactMapMeasureMode(!_contactMapMeasureMode);
       refreshMeasureUi();
