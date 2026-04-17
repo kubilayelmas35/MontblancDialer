@@ -117,6 +117,7 @@ let _micGateCtx = null;
 let _micGateAnalyser = null;
 let _micGateRaf = null;
 let _micGateLevelPct = 0;
+let _micGateOpenUntilMs = 0;
 let currentContact  = null;
 let currentCallLog  = null;
 let callTimerInt    = null;

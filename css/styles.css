@@ -1315,14 +1315,17 @@ cursor:pointer; transition:var(--transition);
 #page-dialer { position: relative; }
 #page-dialer #mic-audio-drawer.dialer-hdr-drawer {
   position: absolute;
-  width: min(560px, calc(100% - 32px));
-  left: 50%;
-  transform: translateX(-50%);
+  left: 16px;
+  right: 16px;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
   top: 56px;
   z-index: 30;
   border:1px solid var(--border);
   border-radius:12px;
   box-shadow:var(--shadow-md);
+  animation: none;
 }
 @keyframes dialer-drawer-in {
   from { opacity:0; transform:translateY(-3px); }

@@ -1013,7 +1013,7 @@ function stopCallTimer() {
 // ── Call controls ─────────────────────────────
 function toggleMute() {
   if ((_micForcedMute || _micThresholdForcedMute) && !isMuted) {
-    toast(currentLang === 'tr' ? 'Eşik altında mikrofon kapalı' : 'Unter Schwelle bleibt Mikrofon stumm', 'warn', 1800);
+    toast(currentLang === 'tr' ? 'Eşik altında mikrofon kapalı (eşiği belirgin geçin)' : 'Unter Schwelle bleibt Mikrofon stumm', 'warn', 1800);
     return;
   }
   const pre = document.getElementById('call-actions')?.classList.contains('call-actions--pre-call');
@@ -1234,11 +1234,17 @@ function _getMicGainValue() {
   return Number.isFinite(n) ? Math.min(4, Math.max(0, n)) : 1;
 }
 
+function _computeMicLevelPctFromAvg(avg, gain) {
+  const gainForMeter = Math.min(2.2, Math.max(0.75, Number.isFinite(gain) ? gain : 1));
+  return Math.min(100, (avg * 0.62 * gainForMeter) + (avg > 4 ? 6 : 0));
+}
+
 function _applyMicSensitivityToLiveCall() {
   const gain = _getMicGainValue();
   const hardMute = Number.isFinite(gain) && gain <= 0.05;
   if (hardMute && !_micForcedMute) {
     _micForcedMute = true;
+    _micGateOpenUntilMs = 0;
     sendToRTC('MB_MUTE', { muted: true });
     document.getElementById('btn-mute')?.classList.add('active');
     if (dialerStatus === 'on_call') {
@@ -1268,6 +1274,7 @@ function _stopMicThresholdGate() {
   _micGateCtx = null;
   _micGateAnalyser = null;
   _micGateLevelPct = 0;
+  _micGateOpenUntilMs = 0;
   if (_micThresholdForcedMute) {
     _micThresholdForcedMute = false;
     if (!_micForcedMute && !isMuted && dialerStatus === 'on_call') {
@@ -1289,11 +1296,18 @@ function _runMicThresholdGateTick() {
   let sum = 0;
   for (let i = 0; i < buf.length; i++) sum += buf[i];
   const avg = sum / buf.length;
-  const gainForMeter = Math.min(2.2, Math.max(0.75, gain));
-  const levelPct = Math.min(100, (avg * 0.62 * gainForMeter) + (avg > 4 ? 6 : 0));
+  const levelPct = _computeMicLevelPctFromAvg(avg, gain);
   _micGateLevelPct = levelPct;
-  const gateOpen = levelPct >= threshold;
+  const openThreshold = Math.min(100, threshold + 10);
+  const closeThreshold = Math.min(100, threshold + 2);
+  const now = Date.now();
+  if (levelPct >= openThreshold) _micGateOpenUntilMs = now + 900;
+  const gateOpen = levelPct >= closeThreshold || now < _micGateOpenUntilMs;
   const canAutoMute = !_micForcedMute && !isMuted;
+
+  if (!canAutoMute && _micThresholdForcedMute) {
+    _micThresholdForcedMute = false;
+  }
 
   if (!gateOpen && canAutoMute && !_micThresholdForcedMute) {
     _micThresholdForcedMute = true;
@@ -1373,8 +1387,8 @@ function _micDrawerTick() {
     for (let i = 0; i < buf.length; i++) sum += buf[i];
     const avg = sum / buf.length;
     const gain = parseFloat(document.getElementById('mic-drawer-gain')?.value || '1');
+    const v = _computeMicLevelPctFromAvg(avg, gain);
     const gainForMeter = Math.min(2.2, Math.max(0.75, Number.isFinite(gain) ? gain : 1));
-    const v = Math.min(100, (avg * 0.62 * gainForMeter) + (avg > 4 ? 6 : 0));
     const effectiveThreshold = Math.max(6, thrVal * (gainForMeter < 1 ? 0.82 : 1));
     if (inMeter) {
       inMeter.style.width = `${v}%`;
