@@ -501,16 +501,21 @@ function refreshCustEmptyCoachBubble() {
   const scope = p.tab === 'week' ? 'week' : (p.tab === 'month' ? 'month' : 'today');
   const scopeWordTr = scope === 'week' ? 'Bu hafta' : (scope === 'month' ? 'Bu ay' : 'Bugün');
   const scopeWordDe = scope === 'week' ? 'Diese Woche' : (scope === 'month' ? 'Diesen Monat' : 'Heute');
+  const goalBase = Math.max(1, Number(_dailyGoal) || 5);
+  const goalFactor = scope === 'week' ? 5 : (scope === 'month' ? 22 : 1);
+  const periodGoal = goalBase * goalFactor;
+  const apptRatio = appts / periodGoal;
+  const hasStrongCallVolume = calls >= (12 * goalFactor);
   let msg = '';
-  if (calls >= 18 && appts >= 4) {
+  if (apptRatio >= 1.1 && hasStrongCallVolume) {
     msg = tr ? `${scopeWordTr} çok tempo var — termin yağmuru!` : `${scopeWordDe} starkes Tempo — viele Termine!`;
-  } else if (calls >= 14 && posCalls === 0) {
+  } else if (calls >= (14 * goalFactor) && posCalls === 0) {
     msg = tr ? `${scopeWordTr} çok çağrı aldın; birazdan yakalarsın.` : `${scopeWordDe} viele Anrufe — der Treffer kommt.`;
-  } else if (calls >= 10 && appts === 0) {
+  } else if (calls >= (10 * goalFactor) && appts === 0) {
     msg = tr ? `${scopeWordTr} ritmin iyi, bir termin çok yakın.` : `${scopeWordDe} guter Rhythmus — Termin in Sicht.`;
-  } else if (appts >= 6) {
+  } else if (apptRatio >= 0.9) {
     msg = tr ? `${scopeWordTr} mükemmel iş — akış çok güçlü.` : `${scopeWordDe} sehr starke Buchungen!`;
-  } else if (appts >= 3) {
+  } else if (apptRatio >= 0.6) {
     msg = tr ? `${scopeWordTr} harika gidiyor, böyle devam.` : `${scopeWordDe} tolle Serie — weiter so!`;
   } else {
     const pool = tr
@@ -1666,6 +1671,24 @@ function pickManualDialContact(idx) {
   if (!dialerPageOpen && typeof navigate === 'function') navigate('dialer');
   showCustomerCard(row);
   syncDialerBottomChrome();
+  // Manual dial should always open the pre-call action bar
+  // instead of the Ready/health block when a customer card is visible.
+  const forcePreCallBar = () => {
+    if (!(dialerStatus === 'offline' || dialerStatus === 'ready')) return;
+    const readySec = document.getElementById('ready-section');
+    const callAct = document.getElementById('call-actions');
+    if (readySec) readySec.style.display = 'none';
+    if (callAct) {
+      callAct.style.display = '';
+      callAct.classList.add('call-actions--pre-call');
+      callAct.classList.remove('call-actions--wrapping');
+    }
+    if (typeof refreshPreCallToolbarUi === 'function') refreshPreCallToolbarUi();
+  };
+  forcePreCallBar();
+  // initDialer/navigation can repaint after a short delay; enforce once more.
+  setTimeout(() => { syncDialerBottomChrome(); forcePreCallBar(); }, 220);
+  setTimeout(() => { syncDialerBottomChrome(); forcePreCallBar(); }, 650);
   if (typeof switchContactTab === 'function') switchContactTab('info');
   toast(currentLang === 'tr' ? 'Kişi yüklendi — Ara ile arayın' : 'Kontakt geladen — mit Anrufen wählen', 'ok', 3200);
 }
