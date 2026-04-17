@@ -478,6 +478,7 @@ async function loadMyMiniStats() {
 
     document.getElementById('my-stats-mini').innerHTML = boxes.join('');
     loadUpcomingWv();
+    loadUnfinalizedCalls();
     if (typeof startCustEmptyCoach === 'function') startCustEmptyCoach();
   } catch(e){ console.error('stats err:',e); }
 }
@@ -571,6 +572,81 @@ async function loadUpcomingWv() {
 </div>`;
     }).join('');
   } catch(e) { el.innerHTML='<div style="color:var(--text-3);text-align:center;padding:6px;font-size:11px;">—</div>'; }
+}
+
+let _unfinalizedCallsOpen = false;
+
+function toggleUnfinalizedCallsPanel() {
+  _unfinalizedCallsOpen = !_unfinalizedCallsOpen;
+  const list = document.getElementById('unfinalized-calls-list');
+  const btn = document.getElementById('unfinalized-calls-toggle');
+  if (list) list.style.display = _unfinalizedCallsOpen ? 'flex' : 'none';
+  if (btn) btn.textContent = _unfinalizedCallsOpen ? 'Kapat' : 'Aç';
+  if (_unfinalizedCallsOpen) void loadUnfinalizedCalls();
+}
+
+async function loadUnfinalizedCalls() {
+  const el = document.getElementById('unfinalized-calls-list');
+  const btn = document.getElementById('unfinalized-calls-toggle');
+  if (!el || !currentUser) return;
+  try {
+    const role = currentUser?.role || '';
+    const adminLike = ['admin', 'firm_admin', 'super_admin', 'qc'].includes(role);
+    let campIds = [];
+    if (adminLike) {
+      campIds = (campaigns || []).map((c) => c.id).filter(Boolean);
+    } else {
+      const rows = await sb(`agent_campaigns?agent_id=eq.${currentUser.id}&select=campaign_id`).catch(() => []);
+      campIds = (rows || []).map((r) => r.campaign_id).filter(Boolean);
+    }
+    if (!campIds.length) {
+      el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:8px;">Kampanya yok</div>';
+      return;
+    }
+    const query = `contacts?campaign_id=in.(${campIds.join(',')})&status=eq.calling&select=id,first_name,last_name,phone,last_called_at,attempt_count,campaign_id&order=last_called_at.desc&limit=25`;
+    const rows = await sb(query).catch(() => []);
+    const setBtnText = (count) => {
+      if (!btn) return;
+      const base = _unfinalizedCallsOpen ? 'Kapat' : 'Aç';
+      btn.textContent = count > 0 ? `${base} (${count})` : base;
+    };
+    if (!rows?.length) {
+      setBtnText(0);
+      el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:8px;">Sonuçsuz çağrı yok</div>';
+      return;
+    }
+    setBtnText(rows.length);
+    el.innerHTML = rows.map((r) => {
+      const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || r.phone || '—';
+      const dt = r.last_called_at ? new Date(r.last_called_at).toLocaleString('tr-TR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
+      const camp = campaigns.find((c) => c.id === r.campaign_id)?.name || '—';
+      return `<button type="button" onclick="openUnfinalizedCall('${r.id}')" style="text-align:left;padding:6px 8px;border:1px solid var(--border);background:var(--bg-3);border-radius:6px;cursor:pointer;">
+<div style="font-weight:700;font-size:11px;color:var(--text);">${name}</div>
+<div style="font-size:10px;color:var(--text-3);">${r.phone || '—'} · ${camp}</div>
+<div style="font-size:10px;color:var(--yellow);margin-top:2px;">${dt} · ${r.attempt_count || 0}. deneme</div>
+</button>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:8px;">Yüklenemedi</div>';
+  }
+}
+
+async function openUnfinalizedCall(contactId) {
+  if (!contactId) return;
+  try {
+    const rows = await sb(`contacts?id=eq.${contactId}&select=*,queues(name,status)&limit=1`);
+    const c = rows?.[0];
+    if (!c) return;
+    currentContact = c;
+    if (c.campaign_id) {
+      const camp = campaigns.find((x) => x.id === c.campaign_id);
+      selectCamp(c.campaign_id, camp?.name || '', { skipActivate: true });
+    }
+    if (typeof showCustomerCard === 'function') showCustomerCard(c);
+    if (typeof switchContactTab === 'function') switchContactTab('outcome');
+    setDialerStatus('wrapping');
+    toast('Sonuçsuz çağrı yüklendi — sonucu girin', 'warn', 2200);
+  } catch (e) {}
 }
 
 async function toggleReady() {
@@ -1246,7 +1322,6 @@ function _applyMicSensitivityToLiveCall() {
     _micForcedMute = true;
     _micGateOpenUntilMs = 0;
     sendToRTC('MB_MUTE', { muted: true });
-    document.getElementById('btn-mute')?.classList.add('active');
     if (dialerStatus === 'on_call') {
       toast(currentLang === 'tr' ? 'Hassasiyet 0: mikrofon çağrıda kapatıldı' : 'Empfindlichkeit 0: Mikrofon stumm', 'warn', 2200);
     }
@@ -1256,7 +1331,6 @@ function _applyMicSensitivityToLiveCall() {
     _micForcedMute = false;
     if (!isMuted) {
       sendToRTC('MB_MUTE', { muted: false });
-      document.getElementById('btn-mute')?.classList.remove('active');
     }
   }
 }
@@ -1279,7 +1353,6 @@ function _stopMicThresholdGate() {
     _micThresholdForcedMute = false;
     if (!_micForcedMute && !isMuted && dialerStatus === 'on_call') {
       sendToRTC('MB_MUTE', { muted: false });
-      document.getElementById('btn-mute')?.classList.remove('active');
     }
   }
 }
@@ -1314,12 +1387,10 @@ function _runMicThresholdGateTick() {
   if (!gateOpen && canAutoMute && !_micThresholdForcedMute) {
     _micThresholdForcedMute = true;
     sendToRTC('MB_MUTE', { muted: true });
-    document.getElementById('btn-mute')?.classList.add('active');
   } else if (gateOpen && _micThresholdForcedMute) {
     _micThresholdForcedMute = false;
     if (!_micForcedMute && !isMuted) {
       sendToRTC('MB_MUTE', { muted: false });
-      document.getElementById('btn-mute')?.classList.remove('active');
     }
   }
   _micGateRaf = requestAnimationFrame(_runMicThresholdGateTick);
