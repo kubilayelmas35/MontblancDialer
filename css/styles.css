@@ -1315,8 +1315,9 @@ cursor:pointer; transition:var(--transition);
 #page-dialer { position: relative; }
 #page-dialer #mic-audio-drawer.dialer-hdr-drawer {
   position: absolute;
-  left: 16px;
-  right: 16px;
+  width: min(560px, calc(100% - 32px));
+  left: 50%;
+  transform: translateX(-50%);
   top: 56px;
   z-index: 30;
   border:1px solid var(--border);

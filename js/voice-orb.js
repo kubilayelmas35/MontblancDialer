@@ -179,6 +179,8 @@
     _readLevel(dt) {
       if (this.opt.mode === 'agent') {
         const muted = typeof isMuted !== 'undefined' ? !!isMuted : false;
+        const forcedMuted = typeof _micForcedMute !== 'undefined' ? !!_micForcedMute : false;
+        if (forcedMuted) return 0;
         if (muted) return 0;
       }
       if (this.opt.mode === 'remote' && window.__voiceOrbSimRemote) {
