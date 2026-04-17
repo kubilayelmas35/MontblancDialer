@@ -515,10 +515,80 @@ async function loadContactHistory(contactId) {
 <div>
 <div style="font-weight:700;font-size:11px;">${new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
 ${l.notes?`<div style="font-size:11px;color:var(--text-3);">${l.notes}</div>`:''}
+${_isFakeRecordingRow(l) ? _fakeRecordingMarkup(l, 'history') : ''}
 </div>
 <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:var(--bg-3);">${l.outcome||'—'}</span>
 </div>`).join('');
   } catch(e) { el.innerHTML='Hata'; }
+}
+
+function _isFakeRecordingRow(log) {
+  return !!(_testMode && !String(log?.recording_url || '').trim() && Number(log?.duration_sec || 0) >= 8);
+}
+
+function _formatMMSS(totalSec) {
+  const n = Math.max(0, Number(totalSec) || 0);
+  const mm = Math.floor(n / 60);
+  const ss = Math.floor(n % 60);
+  return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+}
+
+let _simRecTimer = null;
+let _simRecState = { key: '', sec: 0, dur: 0 };
+
+function _stopSimRec() {
+  if (_simRecTimer) clearInterval(_simRecTimer);
+  _simRecTimer = null;
+  _simRecState = { key: '', sec: 0, dur: 0 };
+  const all = document.querySelectorAll('.sim-rec-wrap');
+  all.forEach((wrap) => {
+    const btn = wrap.querySelector('.sim-rec-btn');
+    const fill = wrap.querySelector('.sim-rec-fill');
+    const time = wrap.querySelector('.sim-rec-time');
+    const dur = Number(wrap.getAttribute('data-dur') || 0);
+    if (btn) btn.textContent = '▶';
+    if (fill) fill.style.width = '0%';
+    if (time) time.textContent = `00:00 / ${_formatMMSS(dur)}`;
+  });
+}
+
+function toggleFakeRecording(key, durSec) {
+  const wrap = document.querySelector(`.sim-rec-wrap[data-key="${String(key).replace(/"/g, '\\"')}"]`);
+  if (!wrap) return;
+  const btn = wrap.querySelector('.sim-rec-btn');
+  const fill = wrap.querySelector('.sim-rec-fill');
+  const time = wrap.querySelector('.sim-rec-time');
+  const dur = Math.max(1, Number(durSec) || 1);
+  if (_simRecState.key === key && _simRecTimer) {
+    _stopSimRec();
+    return;
+  }
+  _stopSimRec();
+  _simRecState = { key, sec: 0, dur };
+  if (btn) btn.textContent = '⏸';
+  _simRecTimer = setInterval(() => {
+    _simRecState.sec += 1;
+    const pct = Math.min(100, (_simRecState.sec / dur) * 100);
+    if (fill) fill.style.width = `${pct}%`;
+    if (time) time.textContent = `${_formatMMSS(_simRecState.sec)} / ${_formatMMSS(dur)}`;
+    if (_simRecState.sec >= dur) _stopSimRec();
+  }, 1000);
+}
+
+function _fakeRecordingMarkup(log, scopeKey) {
+  const dur = Math.max(8, Number(log?.duration_sec || 0));
+  const key = `${scopeKey}-${log?.id || log?.started_at || Math.random().toString(16).slice(2)}`;
+  return `<div class="sim-rec-wrap" data-key="${_escHtml(key)}" data-dur="${dur}" style="margin-top:6px;">
+<div style="display:flex;align-items:center;gap:6px;">
+  <button type="button" class="sim-rec-btn" onclick="toggleFakeRecording('${key}',${dur})"
+    style="border:1px solid var(--border);background:var(--bg-3);border-radius:6px;padding:2px 8px;cursor:pointer;">▶</button>
+  <span class="sim-rec-time" style="font-size:11px;color:var(--text-2);font-family:var(--mono);">00:00 / ${_formatMMSS(dur)}</span>
+  <span style="font-size:10px;color:var(--yellow);font-weight:700;">TEST KAYIT</span>
+</div>
+<div style="height:4px;background:var(--bg-3);border-radius:999px;overflow:hidden;margin-top:4px;">
+  <div class="sim-rec-fill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-2,var(--accent)));"></div>
+</div>
+</div>`;
 }
 
 function toggleAudio(logId) {
@@ -650,7 +720,7 @@ async function showPrevCallInfo(contact) {
   if (!el || !body) return;
   if (!contact || (contact.attempt_count || 0) < 1) { el.style.display = 'none'; return; }
   try {
-    const logs = await sb(`call_logs?contact_id=eq.${contact.id}&order=started_at.desc&limit=10&select=outcome,notes,started_at,recording_url,agent_id,users(name)`);
+    const logs = await sb(`call_logs?contact_id=eq.${contact.id}&order=started_at.desc&limit=10&select=id,outcome,notes,started_at,duration_sec,recording_url,agent_id,users(name)`);
     if (!logs?.length) { el.style.display = 'none'; return; }
     const prev = logs[0];
     const recLog = logs.find((l) => String(l?.recording_url || '').trim());
@@ -676,7 +746,11 @@ async function showPrevCallInfo(contact) {
   <div class="prev-call-audio-wrap">
     <span class="prev-call-audio-lbl">Ses kaydı</span>
     <audio controls src="${recLog.recording_url}" preload="none" class="prev-call-audio"></audio>
-  </div>` : ''}
+  </div>` : (_isFakeRecordingRow(prev) ? `
+  <div class="prev-call-audio-wrap">
+    <span class="prev-call-audio-lbl">Test kaydı</span>
+    ${_fakeRecordingMarkup(prev, 'prev')}
+  </div>` : '')}
 </div>`;
     el.style.display = '';
   } catch(e) { el.style.display = 'none'; }
@@ -819,7 +893,7 @@ function _renderCdrHistory() {
   <span><i class="ph ph-clock" style="vertical-align:-2px;"></i> ${dur}</span>
 </div>
 ${l.notes ? `<div style="margin-top:4px;font-size:11px;color:var(--text-2);font-style:italic;">"${l.notes}"</div>` : ''}
-${l.recording_url ? `<div style="margin-top:6px;"><audio controls src="${l.recording_url}" style="width:100%;height:28px;" preload="none"></audio></div>` : ''}
+${l.recording_url ? `<div style="margin-top:6px;"><audio controls src="${l.recording_url}" style="width:100%;height:28px;" preload="none"></audio></div>` : (_isFakeRecordingRow(l) ? _fakeRecordingMarkup(l, 'cdrhist') : '')}
 </div>`;
   }).join('');
 }
@@ -827,7 +901,7 @@ ${l.recording_url ? `<div style="margin-top:6px;"><audio controls src="${l.recor
 function _renderCdrRecordings() {
   const el = document.getElementById('cdr-recordings-list');
   if (!el) return;
-  const recs = _cdrLogs.filter(l => l.recording_url);
+  const recs = _cdrLogs.filter(l => l.recording_url || _isFakeRecordingRow(l));
   if (!recs.length) {
     el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:20px;font-size:12px;">Ses kaydı yok</div>';
     return;
@@ -840,7 +914,9 @@ function _renderCdrRecordings() {
   <span style="font-size:11px;color:var(--text-2);font-family:var(--mono);">${dt}</span>
   <span style="font-size:11px;color:var(--text-3);">${dur}</span>
 </div>
-<audio controls src="${l.recording_url}" style="width:100%;height:32px;" preload="none"></audio>
+${l.recording_url
+  ? `<audio controls src="${l.recording_url}" style="width:100%;height:32px;" preload="none"></audio>`
+  : _fakeRecordingMarkup(l, 'cdrrec')}
 </div>`;
   }).join('');
 }
@@ -879,7 +955,158 @@ function drawerCallContact() {
   }, 150);
 }
 
-function showContactMap(address, plz, city) {
+let _contactMap = null;
+let _contactMapMarker = null;
+let _contactMapMeasureMode = false;
+let _contactMapMeasurePath = [];
+let _contactMapMeasurePolyline = null;
+let _contactMapMeasureInfo = null;
+let _contactMapMeasureClickListener = null;
+
+function _fmtMeters(m) {
+  const n = Number(m || 0);
+  if (n >= 1000) return `${(n / 1000).toFixed(2)} km`;
+  return `${Math.round(n)} m`;
+}
+
+function _haversineMeters(a, b) {
+  const R = 6371000;
+  const toRad = (d) => d * Math.PI / 180;
+  const dLat = toRad(b.lat() - a.lat());
+  const dLng = toRad(b.lng() - a.lng());
+  const la1 = toRad(a.lat());
+  const la2 = toRad(b.lat());
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+function _measureTotalMeters(path) {
+  if (!Array.isArray(path) || path.length < 2) return 0;
+  let total = 0;
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1];
+    const b = path[i];
+    if (window.google?.maps?.geometry?.spherical?.computeDistanceBetween) {
+      total += google.maps.geometry.spherical.computeDistanceBetween(a, b);
+    } else {
+      total += _haversineMeters(a, b);
+    }
+  }
+  return total;
+}
+
+function _contactMapResetMeasure() {
+  _contactMapMeasurePath = [];
+  if (_contactMapMeasurePolyline) {
+    _contactMapMeasurePolyline.setMap(null);
+    _contactMapMeasurePolyline = null;
+  }
+  if (_contactMapMeasureInfo) {
+    _contactMapMeasureInfo.close();
+    _contactMapMeasureInfo = null;
+  }
+}
+
+function _contactMapRenderMeasure() {
+  if (!_contactMap) return;
+  if (!_contactMapMeasurePolyline) {
+    _contactMapMeasurePolyline = new google.maps.Polyline({
+      map: _contactMap,
+      path: [],
+      strokeColor: '#ef4444',
+      strokeOpacity: 0.95,
+      strokeWeight: 3,
+      clickable: false,
+    });
+  }
+  _contactMapMeasurePolyline.setPath(_contactMapMeasurePath);
+  if (_contactMapMeasurePath.length < 2) return;
+  const total = _measureTotalMeters(_contactMapMeasurePath);
+  const last = _contactMapMeasurePath[_contactMapMeasurePath.length - 1];
+  if (!_contactMapMeasureInfo) _contactMapMeasureInfo = new google.maps.InfoWindow();
+  _contactMapMeasureInfo.setContent(`<div style="font-size:12px;font-weight:700;">Mesafe: ${_fmtMeters(total)}</div>`);
+  _contactMapMeasureInfo.setPosition(last);
+  _contactMapMeasureInfo.open({ map: _contactMap });
+}
+
+function _setContactMapMeasureMode(on) {
+  _contactMapMeasureMode = !!on;
+  if (!_contactMap) return;
+  if (_contactMapMeasureClickListener) {
+    google.maps.event.removeListener(_contactMapMeasureClickListener);
+    _contactMapMeasureClickListener = null;
+  }
+  if (_contactMapMeasureMode) {
+    _contactMapMeasureClickListener = _contactMap.addListener('click', (ev) => {
+      _contactMapMeasurePath.push(ev.latLng);
+      _contactMapRenderMeasure();
+    });
+  }
+}
+
+function _ensureContactMapScript(apiKey) {
+  if (window.google?.maps) return Promise.resolve();
+  if (window.__contactMapScriptPromise) return window.__contactMapScriptPromise;
+  window.__contactMapScriptPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=geometry`;
+    s.async = true;
+    s.defer = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Google Maps yüklenemedi'));
+    document.head.appendChild(s);
+  });
+  return window.__contactMapScriptPromise;
+}
+
+function _buildContactMapToolbar(container) {
+  const existing = document.getElementById('contact-map-toolbar');
+  if (existing) existing.remove();
+  const bar = document.createElement('div');
+  bar.id = 'contact-map-toolbar';
+  bar.style.cssText = 'position:absolute;top:10px;right:10px;z-index:10;display:flex;gap:6px;flex-wrap:wrap;';
+  const btnStyle = 'background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;color:var(--text);';
+  bar.innerHTML = `
+    <button id="cm-btn-measure" type="button" style="${btnStyle}">Cetvel</button>
+    <button id="cm-btn-clear" type="button" style="${btnStyle}">Temizle</button>
+    <button id="cm-btn-3d" type="button" style="${btnStyle}">3D</button>
+    <button id="cm-btn-2d" type="button" style="${btnStyle};display:none;">3D'den çık</button>
+  `;
+  container.appendChild(bar);
+  const btnMeasure = document.getElementById('cm-btn-measure');
+  const btnClear = document.getElementById('cm-btn-clear');
+  const btn3d = document.getElementById('cm-btn-3d');
+  const btn2d = document.getElementById('cm-btn-2d');
+  if (btnMeasure) {
+    btnMeasure.onclick = () => {
+      _setContactMapMeasureMode(!_contactMapMeasureMode);
+      btnMeasure.style.background = _contactMapMeasureMode ? 'var(--accent-soft)' : 'var(--bg-2)';
+      btnMeasure.style.borderColor = _contactMapMeasureMode ? 'var(--accent)' : 'var(--border)';
+      btnMeasure.textContent = _contactMapMeasureMode ? 'Cetvel: Açık' : 'Cetvel';
+    };
+  }
+  if (btnClear) btnClear.onclick = () => _contactMapResetMeasure();
+  if (btn3d) {
+    btn3d.onclick = () => {
+      if (!_contactMap) return;
+      _contactMap.setTilt(67.5);
+      _contactMap.setHeading(35);
+      if (btn2d) btn2d.style.display = '';
+      btn3d.style.display = 'none';
+    };
+  }
+  if (btn2d) {
+    btn2d.onclick = () => {
+      if (!_contactMap) return;
+      _contactMap.setTilt(0);
+      _contactMap.setHeading(0);
+      btn2d.style.display = 'none';
+      if (btn3d) btn3d.style.display = '';
+    };
+  }
+}
+
+async function showContactMap(address, plz, city) {
   const container = document.getElementById('contact-map-container');
   if (!container) return;
   const key = _googleApiKey || localStorage.getItem('mb_google_key') || '';
@@ -887,7 +1114,42 @@ function showContactMap(address, plz, city) {
     container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-3);font-size:12px;">Google Maps API anahtarı gerekli<br><small>Ayarlar → Google API Key</small></div>';
     return;
   }
-  const query = encodeURIComponent(`${address||''} ${plz||''} ${city||''} Germany`);
-  const src = `https://www.google.com/maps/embed/v1/place?key=${key}&q=${query}&maptype=satellite&zoom=17`;
-  container.innerHTML = `<iframe width="100%" height="100%" frameborder="0" style="border:none;display:block;min-height:360px;" allowfullscreen referrerpolicy="no-referrer-when-downgrade" src="${src}"></iframe>`;
+  try {
+    await _ensureContactMapScript(key);
+  } catch (e) {
+    container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--red);font-size:12px;">${e.message}</div>`;
+    return;
+  }
+  container.innerHTML = '<div id="contact-map-canvas" style="width:100%;height:100%;min-height:460px;"></div>';
+  _buildContactMapToolbar(container);
+  const mapEl = document.getElementById('contact-map-canvas');
+  if (!mapEl) return;
+  const mapOpts = {
+    center: { lat: 52.52, lng: 13.405 },
+    zoom: 17,
+    mapTypeId: 'satellite',
+    streetViewControl: true, // Pegman
+    fullscreenControl: true,
+    rotateControl: true,
+    gestureHandling: 'greedy', // Ctrl zorunlu olmasın
+    tilt: 0,
+    heading: 0,
+    headingInteractionEnabled: true,
+    tiltInteractionEnabled: true,
+  };
+  _contactMap = new google.maps.Map(mapEl, mapOpts);
+  _contactMap.setOptions({ minZoom: 3, maxZoom: 22 });
+  _setContactMapMeasureMode(false);
+  _contactMapResetMeasure();
+  const q = `${address || ''} ${plz || ''} ${city || ''} Germany`.trim();
+  const geocoder = new google.maps.Geocoder();
+  geocoder.geocode({ address: q }, (results, status) => {
+    if (status === 'OK' && results?.[0]?.geometry?.location) {
+      const loc = results[0].geometry.location;
+      _contactMap.setCenter(loc);
+      _contactMap.setZoom(20);
+      if (_contactMapMarker) _contactMapMarker.setMap(null);
+      _contactMapMarker = new google.maps.Marker({ map: _contactMap, position: loc, title: q || 'Konum' });
+    }
+  });
 }
