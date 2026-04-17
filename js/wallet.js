@@ -12,6 +12,34 @@ async function getFirmWallet(fid) {
   }
 }
 
+function normalizeCurrency(cur) {
+  const c = String(cur || '').trim().toUpperCase();
+  return ['EUR', 'USD', 'TRY'].includes(c) ? c : 'EUR';
+}
+
+function getCurrencySymbol(cur) {
+  const c = normalizeCurrency(cur);
+  return ({ EUR: '€', USD: '$', TRY: '₺' })[c] || c;
+}
+
+function formatMoney(amount, cur) {
+  const c = normalizeCurrency(cur);
+  const sym = getCurrencySymbol(c);
+  return `${sym}${Number(amount || 0).toFixed(2)}`;
+}
+
+async function getFirmCurrency(fid) {
+  const firmId = fid || getActiveFirmId() || currentUser?.firm_id;
+  if (!firmId) return 'EUR';
+  try {
+    const rows = await sb(`firms?id=eq.${firmId}&select=currency,settings`);
+    const f = rows?.[0] || {};
+    return normalizeCurrency(f.currency || f.settings?.currency || f.settings?.payroll?.currency || 'EUR');
+  } catch (_) {
+    return 'EUR';
+  }
+}
+
 async function refreshWalletInfo() {
   const el = document.getElementById('jm-wallet-info');
   if (!el) return;
@@ -19,7 +47,8 @@ async function refreshWalletInfo() {
     ? (document.getElementById('jm-owner-firm')?.value || currentUser?.firm_id)
     : (getActiveFirmId() || currentUser?.firm_id);
   const w = await getFirmWallet(ownerFirmId);
-  el.textContent = `Bakiye: ${w.balance.toFixed(2)} | Rezerve: ${w.reserved_balance.toFixed(2)} | Kullanılabilir: ${w.available.toFixed(2)}`;
+  const cur = await getFirmCurrency(ownerFirmId);
+  el.textContent = `Bakiye: ${formatMoney(w.balance, cur)} | Rezerve: ${formatMoney(w.reserved_balance, cur)} | Kullanılabilir: ${formatMoney(w.available, cur)}`;
 }
 
 async function loadJobFinanceSummary() {
@@ -28,6 +57,7 @@ async function loadJobFinanceSummary() {
   const fid = getActiveFirmId() || currentUser?.firm_id;
   if (!fid) return;
   const rows = await sb(`wallet_ledger?firm_id=eq.${fid}&select=entry_type,amount,created_at&order=created_at.desc&limit=500`).catch(() => []);
+  const cur = await getFirmCurrency(fid);
   let charge = 0;
   let reward = 0;
   let reserve = 0;
@@ -44,5 +74,5 @@ async function loadJobFinanceSummary() {
     wrap.appendChild(host);
   }
   const el = document.getElementById('kpi-job-finance');
-  if (el) el.textContent = `Finans · Charge: ${charge.toFixed(2)} | Reward: ${reward.toFixed(2)} | Reserve: ${reserve.toFixed(2)}`;
+  if (el) el.textContent = `Finans · Charge: ${formatMoney(charge, cur)} | Reward: ${formatMoney(reward, cur)} | Reserve: ${formatMoney(reserve, cur)}`;
 }

@@ -7,7 +7,7 @@ async function loadAgents() {
   const grid = document.getElementById('agents-grid');
   try {
     const ff = getFirmFilter('&');
-    const users    = await sb(`users?select=id,name,email,role,is_active${ff}&role=in.(agent,qc,firm_admin,field_agent)&order=name.asc`) || [];
+    const users    = await sb(`users?select=id,name,email,role,is_active${ff}&role=in.(agent,qc,firm_admin,field_agent,super_admin)&order=name.asc`) || [];
     const acs      = await sb(`agent_campaigns?select=*,campaigns(id,name)${ff}`) || [];
     const sessions = await sb('agent_sessions?select=*') || [];
     const SC = {ready:'var(--green)',on_call:'var(--accent)',wrapping:'var(--yellow)',break:'var(--yellow)',offline:'var(--text-3)'};
@@ -22,7 +22,7 @@ async function loadAgents() {
       const status   = sess?.status || 'offline';
       const color    = SC[status] || 'var(--text-3)';
       const campNames = myAcs.map(a=>a.campaigns?.name||'').filter(Boolean);
-      const roleMap  = {agent:'Agent',qc:'QC',firm_admin:'Firma Admin',field_agent:'Saha Elemanı'};
+      const roleMap  = {agent:'Agent',qc:'QC',firm_admin:'Firma Admin',field_agent:'Saha Elemanı',super_admin:'Süper Admin'};
       return `<div class="agent-card-item" style="position:relative;cursor:pointer;" onclick="openEditAgentModal('${u.id}')">
 <div class="agent-av-lg" style="background:${u.is_active?'var(--accent)':'var(--text-3)'};">${u.name.charAt(0)}</div>
 <div class="agent-info-lg" style="flex:1;">
@@ -102,6 +102,7 @@ function _agentModal(userId, prefill) {
   const modal = document.createElement('div');
   modal.id = 'm-agent-mgr'; modal.className = 'modal-overlay open';
   const showFieldOpt = currentUser?.role === 'super_admin' || currentUser?.role === 'admin';
+  const canAssignSuper = currentUser?.role === 'super_admin';
   modal.innerHTML = `
 <div class="modal" style="max-width:460px;">
 <div class="modal-hdr">
@@ -126,6 +127,7 @@ ${!isEdit ? `<div class="form-row"><label class="form-label">Şifre *</label>
 <option value="qc" ${prefill?.role==='qc'?'selected':''}>QC</option>
 <option value="firm_admin" ${prefill?.role==='firm_admin'?'selected':''}>Firma Admin</option>
 ${showFieldOpt ? `<option value="field_agent" ${prefill?.role==='field_agent'?'selected':''}>Saha Elemanı</option>` : ''}
+${canAssignSuper ? `<option value="super_admin" ${prefill?.role==='super_admin'?'selected':''}>Süper Admin</option>` : ''}
 </select></div>
 <div class="form-row"><label class="form-label">Durum</label>
 <select class="form-input" id="am-active">
@@ -178,6 +180,10 @@ async function saveNewAgent() {
     toast('Saha elemanı ekleme yetkiniz yok','err');
     return;
   }
+  if (role === 'super_admin' && currentUser?.role !== 'super_admin') {
+    toast('Süper Admin rolünü sadece Süper Admin verebilir','err');
+    return;
+  }
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/create_user_with_password`,{
       method:'POST',
@@ -202,6 +208,10 @@ async function saveAgentEdit(userId) {
   if (pwdErr) { toast(pwdErr, 'err'); return; }
   if (role === 'field_agent' && !(await canManageFieldAgents(currentUser?.firm_id))) {
     toast('Saha elemanı rolü için yetkiniz yok','err');
+    return;
+  }
+  if (role === 'super_admin' && currentUser?.role !== 'super_admin') {
+    toast('Süper Admin rolünü sadece Süper Admin verebilir','err');
     return;
   }
   try {
@@ -336,6 +346,7 @@ async function openEditUserModal(userId) {
   document.getElementById('m-edit-user')?.remove();
   const modal = document.createElement('div');
   modal.id = 'm-edit-user'; modal.className = 'modal-overlay open'; modal.style.zIndex='3001';
+  const canAssignSuper = currentUser?.role === 'super_admin';
   modal.innerHTML = `
 <div class="modal" style="max-width:440px;">
 <div class="modal-hdr">
@@ -355,6 +366,7 @@ async function openEditUserModal(userId) {
 <option value="qc" ${u.role==='qc'?'selected':''}>QC</option>
 <option value="field_agent" ${u.role==='field_agent'?'selected':''}>Saha Elemanı</option>
 <option value="firm_admin" ${u.role==='firm_admin'?'selected':''}>Firma Admin</option>
+${canAssignSuper ? `<option value="super_admin" ${u.role==='super_admin'?'selected':''}>Süper Admin</option>` : ''}
 </select></div>
 <div class="form-row"><label class="form-label">Durum</label>
 <select class="form-input" id="eu-active">
@@ -391,6 +403,10 @@ async function saveEditUser(userId) {
   if (pwdErr) { toast(pwdErr, 'err'); return; }
   if (role === 'field_agent' && !(await canManageFieldAgents(currentUser?.firm_id))) {
     toast('Saha elemanı rolü için yetkiniz yok','err');
+    return;
+  }
+  if (role === 'super_admin' && currentUser?.role !== 'super_admin') {
+    toast('Süper Admin rolünü sadece Süper Admin verebilir','err');
     return;
   }
   try {
@@ -460,13 +476,26 @@ async function saveBalance(firmId) {
 
 function openFirmModal() {
   firmEditId = null;
+  document.getElementById('firm-modal-title').textContent = 'Firma Ekle';
   document.getElementById('firm-name').value = '';
   document.getElementById('firm-slug').value = '';
+  document.getElementById('firm-plan').value = 'enterprise';
+  document.getElementById('firm-currency').value = 'EUR';
   openModal('m-firm');
 }
 
-function editFirm(id) {
+async function editFirm(id) {
   firmEditId = id;
+  try {
+    const rows = await sb(`firms?id=eq.${id}&select=name,slug,plan,currency,settings`);
+    const f = rows?.[0] || {};
+    document.getElementById('firm-modal-title').textContent = 'Firma Düzenle';
+    document.getElementById('firm-name').value = f.name || '';
+    document.getElementById('firm-slug').value = f.slug || '';
+    document.getElementById('firm-plan').value = f.plan || 'enterprise';
+    const cur = String(f.currency || f.settings?.currency || 'EUR').toUpperCase();
+    document.getElementById('firm-currency').value = ['EUR','USD','TRY'].includes(cur) ? cur : 'EUR';
+  } catch (e) {}
   openModal('m-firm');
 }
 
@@ -474,10 +503,20 @@ async function saveFirm() {
   const name = document.getElementById('firm-name').value.trim();
   const slug = document.getElementById('firm-slug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
   const plan = document.getElementById('firm-plan').value;
+  const currency = String(document.getElementById('firm-currency')?.value || 'EUR').toUpperCase();
   if (!name||!slug) { toast('Ad ve slug zorunlu','err'); return; }
   try {
-    if (firmEditId) await sb(`firms?id=eq.${firmEditId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({name,slug,plan})});
-    else await sb('firms',{method:'POST',prefer:'return=minimal',body:JSON.stringify({name,slug,plan})});
+    if (firmEditId) {
+      const rows = await sb(`firms?id=eq.${firmEditId}&select=settings`).catch(() => []);
+      const oldSettings = rows?.[0]?.settings || {};
+      await sb(`firms?id=eq.${firmEditId}`,{
+        method:'PATCH',
+        prefer:'return=minimal',
+        body:JSON.stringify({name,slug,plan,currency,settings:{...oldSettings,currency}})
+      });
+    } else {
+      await sb('firms',{method:'POST',prefer:'return=minimal',body:JSON.stringify({name,slug,plan,currency,settings:{currency}})});
+    }
     closeModal('m-firm');
     await loadFirmsPage();
     toast('Firma kaydedildi ✓','ok');
@@ -489,7 +528,21 @@ function openUserModal(firmId, firmName) {
   document.getElementById('user-modal-title').textContent = `Kullanıcı Ekle — ${firmName}`;
   document.getElementById('user-firm-id').value = firmId;
   ['user-name','user-email','user-pass'].forEach(id => document.getElementById(id).value='');
-  document.getElementById('user-role').value = 'agent';
+  const roleSel = document.getElementById('user-role');
+  if (roleSel) {
+    const canAssignSuper = currentUser?.role === 'super_admin';
+    const hasSuper = [...roleSel.options].some((o) => o.value === 'super_admin');
+    if (!canAssignSuper && hasSuper) {
+      [...roleSel.options].forEach((o) => { if (o.value === 'super_admin') o.remove(); });
+    }
+    if (canAssignSuper && !hasSuper) {
+      const o = document.createElement('option');
+      o.value = 'super_admin';
+      o.textContent = 'Süper Admin';
+      roleSel.appendChild(o);
+    }
+    roleSel.value = 'agent';
+  }
   openModal('m-user');
 }
 
@@ -500,6 +553,10 @@ async function saveUser() {
   const role   = document.getElementById('user-role').value;
   const firmId = document.getElementById('user-firm-id').value;
   if (!name||!email||!pass) { toast('Tüm alanlar zorunlu','err'); return; }
+  if (role === 'super_admin' && currentUser?.role !== 'super_admin') {
+    toast('Süper Admin rolünü sadece Süper Admin verebilir','err');
+    return;
+  }
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/create_user_with_password`,{
       method:'POST',

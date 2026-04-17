@@ -24,6 +24,18 @@ const today = new Date().toISOString().split('T')[0];
 const logs  = await sb(`call_logs?select=id&outcome=eq.appointment&started_at=gte.${today}T00:00:00`);
 document.getElementById('pill-appt').textContent = logs.length;
 } catch(e){}
+try {
+const fid = getActiveFirmId() || currentUser?.firm_id;
+if (fid) {
+  const [wallet, cur] = await Promise.all([
+    (typeof getFirmWallet === 'function' ? getFirmWallet(fid) : Promise.resolve({ balance: 0 })),
+    (typeof getFirmCurrency === 'function' ? getFirmCurrency(fid) : Promise.resolve('EUR')),
+  ]);
+  document.getElementById('pill-bal').textContent = Number(wallet?.balance || 0).toFixed(2);
+  const curEl = document.getElementById('pill-bal-cur');
+  if (curEl) curEl.textContent = cur || 'EUR';
+}
+} catch(e){}
 }
 
 function _dashCanUseAgentFilter() {

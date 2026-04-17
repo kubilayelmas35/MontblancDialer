@@ -879,7 +879,7 @@ function renderJobPostList() {
 <div>
 <div style="font-size:13px;font-weight:800;">${_jmEsc(p.title || 'İş ilanı')}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_jmEsc(p.job_type || 'custom')}${apptCat ? ` · <span style="color:var(--text-2);font-weight:600;">${_jmEsc(apptCat)}</span>` : ''} · ${_jmEsc(p.city || 'Bölge serbest')} · Son: ${deadline}</div>
-<div style="font-size:11px;color:var(--text-3);margin-top:2px;">İşlem başı: <b>${Number(p.unit_price || p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'TRY')}</b> · Adet: <b>${Number(p.quantity || slots.length || 1)}</b> · Toplam: <b>${Number(p.budget || 0).toFixed(2)}</b> · Çalışan: <b>${workingCnt}</b> · Eşleşme: <b>${score}</b>/100</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:2px;">İşlem başı: <b>${(typeof formatMoney === 'function') ? formatMoney(Number(p.unit_price || p.budget || 0), p.currency || 'EUR') : `${Number(p.unit_price || p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'EUR')}`}</b> · Adet: <b>${Number(p.quantity || slots.length || 1)}</b> · Toplam: <b>${(typeof formatMoney === 'function') ? formatMoney(Number(p.budget || 0), p.currency || 'EUR') : `${Number(p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'EUR')}`}</b> · Çalışan: <b>${workingCnt}</b> · Eşleşme: <b>${score}</b>/100</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Bölge: <b>${_jmEsc(p.postal_code || '-')}</b> · Radius: <b>${Number(geo.radius_km || 0).toFixed(1)} km</b></div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Geri çekme: <b>${p.retraction_deadline_at ? new Date(p.retraction_deadline_at).toLocaleString('tr-TR') : 'otomatik kural'}</b>${retractHint}</div>
 </div>
@@ -1054,8 +1054,10 @@ function updateJobPricePreview() {
   const unitPrice = Number(document.getElementById('jm-unit-price')?.value || 0);
   const qty = Number(document.getElementById('jm-quantity')?.value || 1);
   const total = Math.max(0, unitPrice * qty);
+  const cur = String(document.getElementById('jm-currency')?.value || 'EUR').toUpperCase();
+  const totalLabel = (typeof formatMoney === 'function') ? formatMoney(total, cur) : `${total.toFixed(2)} ${cur}`;
   const el = document.getElementById('jm-price-preview');
-  if (el) el.textContent = `Toplam ücret: ${total.toFixed(2)}`;
+  if (el) el.textContent = `Toplam ücret: ${totalLabel}`;
 }
 
 function ensureJobMarketMap() {
