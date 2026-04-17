@@ -1280,30 +1280,28 @@ cursor:pointer; transition:var(--transition);
   width: 100%;
   box-sizing: border-box;
 }
-.manual-dial-side-trigger {
+.manual-dial-inline-wrap { position: relative; margin-bottom: 8px; }
+.manual-dial-camp-trigger {
   width: 100%;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:10px 12px;
-  margin-bottom:8px;
-  border-radius:var(--radius-sm);
-  background:var(--bg-3);
-  border:1px solid var(--border);
-  cursor:pointer;
-  text-align:left;
-  transition:var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
 }
-.manual-dial-side-trigger:hover { border-color:var(--border-2); background:var(--bg-4); }
-.manual-dial-side-trigger.is-open { border-color:var(--accent); background:var(--accent-soft); }
-.manual-dial-sidecard {
+.manual-dial-camp-trigger.is-open { border-color: var(--accent); background: var(--accent-soft); }
+.manual-dial-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
   background: var(--bg-2);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px;
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  box-shadow: var(--shadow-md);
+  z-index: 35;
 }
-.manual-dial-sidecard .btn { white-space: nowrap; }
+.manual-dial-popover .btn { white-space: nowrap; }
 #call-actions.call-actions--pre-call #btn-hold:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -1434,7 +1432,7 @@ MOBILE / RESPONSIVE
   margin-left: 0 !important;
   flex-wrap: wrap;
 }
-#page-dialer .manual-dial-sidecard > div:first-child { flex-direction: column; align-items: stretch; }
+#page-dialer .manual-dial-popover > div:first-child { flex-direction: column; align-items: stretch; }
 #page-dialer .prev-call-audio { width: 100%; min-width: 160px; }
 #page-dialer #daily-goal-bar {
   padding: 6px 8px !important;
