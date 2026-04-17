@@ -684,6 +684,31 @@ function refreshBreakCustEmpty() {
   const mm = String(Math.floor(sec / 60)).padStart(2, '0');
   const ss = String(sec % 60).padStart(2, '0');
   sub.textContent = `${mm}:${ss}`;
+  refreshStatusElapsed();
+}
+
+function _formatElapsed(sec) {
+  const n = Math.max(0, Math.floor(Number(sec) || 0));
+  const mm = String(Math.floor(n / 60)).padStart(2, '0');
+  const ss = String(n % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+}
+
+function refreshStatusElapsed() {
+  const el = document.getElementById('status-elapsed');
+  if (!el) return;
+  if (dialerStatus === 'on_call') {
+    el.style.display = '';
+    el.textContent = _formatElapsed(callSeconds);
+    return;
+  }
+  if (dialerStatus === 'break' && _breakStartedAt) {
+    const sec = Math.max(0, Math.floor((Date.now() - _breakStartedAt) / 1000));
+    el.style.display = '';
+    el.textContent = _formatElapsed(sec);
+    return;
+  }
+  el.style.display = 'none';
 }
 
 function _clearHangupUiTick() {
@@ -808,6 +833,7 @@ function setDialerStatus(s) {
     break:   {tr:'Mola',de:'Pause'},
   };
   if (label) label.textContent = labels[s]?.[currentLang]||s;
+  refreshStatusElapsed();
   const callAct = document.getElementById('call-actions');
   if (callAct) callAct.classList.remove('call-actions--wrapping');
 
@@ -1063,6 +1089,7 @@ function resetDialerVoiceVisuals() {
 function startCallTimer() {
   clearInterval(callTimerInt);
   callSeconds = 0;
+  refreshStatusElapsed();
   updateDialerVoiceVisuals(0);
   if (typeof startDialerVoiceRings === 'function') startDialerVoiceRings();
   callTimerInt = setInterval(()=>{
@@ -1071,6 +1098,7 @@ function startCallTimer() {
     const s=String(callSeconds%60).padStart(2,'0');
     const el = document.getElementById('dialer-timer');
     if (el) el.textContent=`${m}:${s}`;
+    refreshStatusElapsed();
     updateDialerVoiceVisuals(callSeconds);
   },1000);
 }
@@ -1080,6 +1108,7 @@ function stopCallTimer() {
   const tblk = document.getElementById('dialer-timer-block');
   if (tblk) tblk.style.display='none';
   resetDialerVoiceVisuals();
+  refreshStatusElapsed();
 }
 
 // ── Call controls ─────────────────────────────

@@ -650,9 +650,10 @@ async function showPrevCallInfo(contact) {
   if (!el || !body) return;
   if (!contact || (contact.attempt_count || 0) < 1) { el.style.display = 'none'; return; }
   try {
-    const logs = await sb(`call_logs?contact_id=eq.${contact.id}&order=started_at.desc&limit=1&select=outcome,notes,started_at,recording_url,agent_id,users(name)`);
+    const logs = await sb(`call_logs?contact_id=eq.${contact.id}&order=started_at.desc&limit=10&select=outcome,notes,started_at,recording_url,agent_id,users(name)`);
     if (!logs?.length) { el.style.display = 'none'; return; }
     const prev = logs[0];
+    const recLog = logs.find((l) => String(l?.recording_url || '').trim());
     const dt = new Date(prev.started_at).toLocaleString('tr-TR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     const outcomeMap = {appointment:'Termin',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',dnc:'Kara Liste'};
     const rawAgent = prev?.users?.name || '';
@@ -671,10 +672,10 @@ async function showPrevCallInfo(contact) {
     </div>
     ${prev.notes ? `<div style="margin-top:4px;color:var(--text-2);">"${prev.notes}"</div>` : ''}
   </div>
-  ${prev.recording_url ? `
+  ${recLog?.recording_url ? `
   <div class="prev-call-audio-wrap">
     <span class="prev-call-audio-lbl">Ses kaydı</span>
-    <audio controls src="${prev.recording_url}" preload="none" class="prev-call-audio"></audio>
+    <audio controls src="${recLog.recording_url}" preload="none" class="prev-call-audio"></audio>
   </div>` : ''}
 </div>`;
     el.style.display = '';
