@@ -366,14 +366,13 @@ function setPerfTab(tab) {
 }
 
 function setGoalTab(tab) {
-  _goalTab = tab;
-  ['daily','weekly','monthly'].forEach(t => {
-    const b = document.getElementById(`goal-tab-${t}`);
-    if (b) { b.style.background = t===tab ? 'var(--accent)' : 'transparent'; b.style.color = t===tab ? '#fff' : 'var(--text-2)'; }
-  });
-  const labels = {daily:'Günlük Hedef', weekly:'Haftalık Hedef', monthly:'Aylık Hedef'};
-  const lbl = document.getElementById('goal-tab-label');
-  if (lbl) lbl.textContent = labels[tab]||'Hedef';
+  // Keep goal scope aligned with selected performance period.
+  const perfMap = { daily: 'today', weekly: 'week', monthly: 'month' };
+  const nextPerf = perfMap[tab] || 'today';
+  if (_perfTab !== nextPerf) {
+    setPerfTab(nextPerf);
+    return;
+  }
   loadMyMiniStats();
 }
 
