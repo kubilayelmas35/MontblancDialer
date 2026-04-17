@@ -953,6 +953,18 @@ border-radius:var(--radius); padding:20px 24px;
 box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;
 overflow-y:auto;
 }
+#cust-data {
+position: relative;
+}
+#cust-data .dialer-timer-block {
+position: absolute;
+right: 8px;
+top: 42px;
+margin-left: 0;
+min-width: 118px;
+z-index: 4;
+pointer-events: none;
+}
 .cust-header { display:flex; align-items:flex-start; gap:14px; }
 .cust-avatar-voice-wrap {
 position: relative;
@@ -1440,6 +1452,11 @@ MOBILE / RESPONSIVE
 #page-dialer .prev-call-audio { width: 100%; min-width: 160px; }
 #page-dialer #daily-goal-bar {
   padding: 6px 8px !important;
+}
+#cust-data .dialer-timer-block {
+  right: 0;
+  top: 40px;
+  min-width: 88px;
 }
 }
 /* ── TAKVİM POPUP ── */
