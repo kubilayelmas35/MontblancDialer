@@ -1252,10 +1252,12 @@ function _micDrawerTick() {
     for (let i = 0; i < buf.length; i++) sum += buf[i];
     const avg = sum / buf.length;
     const gain = parseFloat(document.getElementById('mic-drawer-gain')?.value || '1');
-    const v = Math.min(100, avg * gain * 0.45);
+    const gainForMeter = Math.min(2.2, Math.max(0.75, Number.isFinite(gain) ? gain : 1));
+    const v = Math.min(100, (avg * 0.62 * gainForMeter) + (avg > 4 ? 6 : 0));
+    const effectiveThreshold = Math.max(6, thrVal * (gainForMeter < 1 ? 0.82 : 1));
     if (inMeter) {
       inMeter.style.width = `${v}%`;
-      inMeter.style.opacity = v >= thrVal ? '1' : '0.55';
+      inMeter.style.opacity = v >= effectiveThreshold ? '1' : '0.55';
     }
   } else if (inMeter) inMeter.style.width = '0%';
   if (_micDrawerOutAn) {
