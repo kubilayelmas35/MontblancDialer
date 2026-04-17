@@ -498,17 +498,20 @@ function refreshCustEmptyCoachBubble() {
   const calls = Number(p.calls) || 0;
   const appts = Number(p.appts) || 0;
   const posCalls = Number(p.posCalls) || 0;
+  const scope = p.tab === 'week' ? 'week' : (p.tab === 'month' ? 'month' : 'today');
+  const scopeWordTr = scope === 'week' ? 'Bu hafta' : (scope === 'month' ? 'Bu ay' : 'Bugün');
+  const scopeWordDe = scope === 'week' ? 'Diese Woche' : (scope === 'month' ? 'Diesen Monat' : 'Heute');
   let msg = '';
   if (calls >= 18 && appts >= 4) {
-    msg = tr ? 'Bugün çok tempo var — termin yağmuru!' : 'Starkes Tempo — viele Termine!';
+    msg = tr ? `${scopeWordTr} çok tempo var — termin yağmuru!` : `${scopeWordDe} starkes Tempo — viele Termine!`;
   } else if (calls >= 14 && posCalls === 0) {
-    msg = tr ? 'Çok çağrı aldın; birazdan yakalarsın.' : 'Viele Anrufe — der Treffer kommt.';
+    msg = tr ? `${scopeWordTr} çok çağrı aldın; birazdan yakalarsın.` : `${scopeWordDe} viele Anrufe — der Treffer kommt.`;
   } else if (calls >= 10 && appts === 0) {
-    msg = tr ? 'Ritmin iyi, bir termin çok yakın.' : 'Guter Rhythmus — Termin in Sicht.';
+    msg = tr ? `${scopeWordTr} ritmin iyi, bir termin çok yakın.` : `${scopeWordDe} guter Rhythmus — Termin in Sicht.`;
   } else if (appts >= 6) {
-    msg = tr ? 'Mükemmel iş — akış mükemmel.' : 'Sehr starke Buchungen heute!';
+    msg = tr ? `${scopeWordTr} mükemmel iş — akış çok güçlü.` : `${scopeWordDe} sehr starke Buchungen!`;
   } else if (appts >= 3) {
-    msg = tr ? 'Harika gün, böyle devam.' : 'Tolle Serie — weiter so!';
+    msg = tr ? `${scopeWordTr} harika gidiyor, böyle devam.` : `${scopeWordDe} tolle Serie — weiter so!`;
   } else {
     const pool = tr
       ? [
@@ -1623,7 +1626,16 @@ async function runManualDialSearch() {
     const rows = await _manualDialFetchRows(variants, campIds);
     window._manualDialLastResults = rows;
     if (!rows.length) {
-      out.innerHTML = `<div style="color:var(--text-3);padding:8px;">${tr ? 'Kayıt bulunamadı' : 'Nicht gefunden'}</div>`;
+      const adhoc = _buildAdhocDialContact(raw);
+      const saved = await _persistAdhocDialContact(adhoc);
+      window._manualDialLastResults = [saved];
+      out.innerHTML = `<button type="button" class="manual-dial-pick" data-idx="0" style="display:block;width:100%;text-align:left;padding:10px 12px;margin-bottom:6px;border:1px solid var(--accent);border-radius:8px;background:var(--accent-soft);cursor:pointer;font-size:12px;">
+<div style="font-weight:800;">${String(saved.phone || raw).replace(/</g, '&lt;')}</div>
+<div style="color:var(--text-2);margin-top:2px;">${tr ? 'Yeni çağrı olarak oluşturuldu — açmak için tıkla' : 'Als neuer Kontakt erstellt — zum Öffnen klicken'}</div>
+</button>`;
+      out.querySelectorAll('.manual-dial-pick').forEach((btn) => {
+        btn.onclick = () => pickManualDialContact(0);
+      });
       return;
     }
     out.innerHTML = rows.map((r, i) => {
@@ -1649,11 +1661,55 @@ function pickManualDialContact(idx) {
   const camp = campaigns.find((x) => x.id === row.campaign_id);
   if (row.campaign_id) selectCamp(row.campaign_id, camp?.name || '', { skipActivate: true });
   currentContact = row;
-  showCustomerCard(row);
   closeManualDialDrawer();
-  if (typeof navigate === 'function') navigate('dialer');
+  const dialerPageOpen = !!document.getElementById('page-dialer')?.classList.contains('active');
+  if (!dialerPageOpen && typeof navigate === 'function') navigate('dialer');
+  showCustomerCard(row);
+  syncDialerBottomChrome();
   if (typeof switchContactTab === 'function') switchContactTab('info');
   toast(currentLang === 'tr' ? 'Kişi yüklendi — Ara ile arayın' : 'Kontakt geladen — mit Anrufen wählen', 'ok', 3200);
+}
+
+function _buildAdhocDialContact(phoneRaw) {
+  const phone = String(phoneRaw || '').trim();
+  const campId = selectedCampId || campaigns?.[0]?.id || null;
+  return {
+    id: `adhoc-${Date.now()}`,
+    firm_id: currentUser?.firm_id || null,
+    campaign_id: campId,
+    first_name: currentLang === 'tr' ? 'Yeni' : 'Neu',
+    last_name: currentLang === 'tr' ? 'Çağrı' : 'Anruf',
+    phone,
+    phone2: '',
+    city: '',
+    plz: '',
+    address: '',
+    notes: '',
+    attempt_count: 0,
+    status: 'pending',
+    is_adhoc: true,
+  };
+}
+
+async function _persistAdhocDialContact(contact) {
+  if (!contact?.phone || !contact?.campaign_id || !currentUser?.firm_id) return contact;
+  try {
+    const rows = await sb('contacts', {
+      method: 'POST',
+      prefer: 'return=representation',
+      body: JSON.stringify({
+        firm_id: currentUser.firm_id,
+        campaign_id: contact.campaign_id,
+        first_name: contact.first_name || 'Yeni',
+        last_name: contact.last_name || 'Çağrı',
+        phone: contact.phone,
+        status: 'pending',
+      }),
+    });
+    return rows?.[0] || contact;
+  } catch (e) {
+    return contact;
+  }
 }
 
 function setOutcome(o) {
@@ -1674,6 +1730,17 @@ function setOutcome(o) {
 }
 
 async function submitOutcome(goBreak) {
+  const lineUp = !!_telnyxCall || !!_fakeCallActive || !!_outboundDialPending;
+  if (dialerStatus === 'on_call' && lineUp) {
+    toast(
+      currentLang === 'tr'
+        ? 'Önce çağrıyı kapatın. Çağrı kapanmadan sonuçlandırılamaz.'
+        : 'Bitte zuerst auflegen. Abschluss erst nach Gesprächsende.',
+      'warn',
+      2400
+    );
+    return;
+  }
   if (!selectedOutcome) { toast(currentLang==='tr'?'Sonuç seçin':'Ergebnis auswählen','err'); return; }
   const note   = document.getElementById('outcome-note')?.value.trim()||'';
   const cbTime = document.getElementById('callback-dt')?.value||null;
