@@ -158,7 +158,12 @@ async function initDialer() {
   }
   if (typeof applyMascotTheme === 'function') applyMascotTheme();
   syncCustomerCardEmptyVisual();
-  if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
+  if (typeof syncGlobalMascotDock === 'function') {
+    syncGlobalMascotDock();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => syncGlobalMascotDock());
+    });
+  }
   if (!_globalMascotResizeWired) {
     _globalMascotResizeWired = true;
     window.addEventListener('resize', () => {
@@ -322,7 +327,16 @@ function getAutoDialCampaignIds() {
 
 function refreshAutoDialUi() {
   const allowedCount = getAutoDialCampaignIds().length;
-  _autoDial = allowedCount > 0;
+  if (!allowedCount) {
+    _autoDial = false;
+  }
+  const cb = document.getElementById('auto-dial-toggle');
+  const slider = document.getElementById('auto-dial-slider');
+  const knob = document.getElementById('auto-dial-knob');
+  const effective = !!_autoDial && allowedCount > 0;
+  if (cb) cb.checked = effective;
+  if (slider) slider.style.background = effective ? 'var(--accent)' : 'var(--text-3)';
+  if (knob) knob.style.transform = effective ? 'translateX(18px)' : 'translateX(0)';
 }
 
 function _autoDialLsKey() {
@@ -1067,6 +1081,7 @@ function _placeGlobalMascotAtRect(rect) {
   const cy = rect.top + rect.height / 2;
   gm.style.left = `${cx}px`;
   gm.style.top = `${cy}px`;
+  gm.classList.add('global-mascot--placed');
 }
 
 function syncCustomerCardEmptyVisual() {
@@ -1083,7 +1098,10 @@ function syncGlobalMascotDock() {
   if (!gm || !anchor) return;
   gm.classList.toggle('global-mascot--muted', isMimiHidden());
   _wireGlobalMascotInteractions();
-  if (gm.classList.contains('global-mascot--peek-chat') || gm.classList.contains('global-mascot--peek-notif')) return;
+  if (gm.classList.contains('global-mascot--peek-chat') || gm.classList.contains('global-mascot--peek-notif')) {
+    gm.classList.add('global-mascot--placed');
+    return;
+  }
   if (isMimiHidden()) {
     const logo = document.querySelector('.tb-logo');
     const lr = logo ? logo.getBoundingClientRect() : anchor.getBoundingClientRect();
@@ -1105,6 +1123,7 @@ function syncGlobalMascotDock() {
   const custEmpty = document.getElementById('cust-empty');
   const slot = document.getElementById('cust-empty-mascot-slot');
   const st = typeof dialerStatus !== 'undefined' ? dialerStatus : '';
+  const busyLine = st === 'on_call' || st === 'wrapping' || st === 'calling';
   const useSlot =
     dialerActive &&
     !busyLine &&
@@ -1120,7 +1139,7 @@ function syncGlobalMascotDock() {
     if (custom) {
       gm.style.left = `${custom.x}px`;
       gm.style.top = `${custom.y}px`;
-      gm.classList.add('global-mascot--custom');
+      gm.classList.add('global-mascot--custom', 'global-mascot--placed');
       gm.classList.remove('global-mascot--dialer');
       gm.classList.add('global-mascot--topbar');
       return;
@@ -1241,13 +1260,18 @@ function _showCustEmptyBubbleMsg(msg) {
   bubble.classList.remove('cust-empty-bubble--pop');
   void bubble.offsetWidth;
   bubble.classList.add('cust-empty-bubble--pop');
-  requestAnimationFrame(() => {
+  const clampBubble = () => {
     const r = bubble.getBoundingClientRect();
-    const pad = 8;
+    const pad = 10;
     let shift = 0;
-    if (r.left < pad) shift += (pad - r.left);
-    if (r.right > window.innerWidth - pad) shift -= (r.right - (window.innerWidth - pad));
+    if (r.left < pad) shift += pad - r.left;
+    if (r.right > window.innerWidth - pad) shift -= r.right - (window.innerWidth - pad);
+    const maxShift = Math.min(120, Math.max(window.innerWidth, 400) * 0.2);
+    shift = Math.max(-maxShift, Math.min(maxShift, shift));
     bubble.style.setProperty('--bubble-shift-x', `${Math.round(shift)}px`);
+  };
+  requestAnimationFrame(() => {
+    requestAnimationFrame(clampBubble);
   });
 }
 
@@ -3011,10 +3035,13 @@ async function submitOutcome(goBreak) {
   const cbTime = document.getElementById('callback-dt')?.value||null;
   const isDnc  = document.getElementById('outcome-dnc')?.checked || false;
   const lockedSlotEarly = _bookingSlot?.id || window._selectedBookingSlot?.id;
+  const inboundTestContact =
+    !!currentContact &&
+    (_testMode && (currentContact.is_inbound_test || String(currentContact.id || '').startsWith('in-')));
   if (!isDnc && selectedCampId && typeof getCampSettings === 'function') {
     const camp = campaigns.find((c) => c.id === selectedCampId);
     const cs = camp ? getCampSettings(camp) : {};
-    if (cs.appointment_slot_required) {
+    if (cs.appointment_slot_required && !inboundTestContact) {
       const oc = String(selectedOutcome || '').toLowerCase();
       if ((oc === 'appointment' || oc === 'appointment_done') && !lockedSlotEarly) {
         toast(
@@ -3049,9 +3076,8 @@ async function submitOutcome(goBreak) {
           body:JSON.stringify(contactPatch)
         });
       }
-      if (isDnc) await addToDnc(currentContact.phone, currentContact.id);
+      if (isDnc) await addToDnc(currentContact.phone, contactId);
       const logData = {
-        contact_id: contactId,
         campaign_id: selectedCampId,
         firm_id: currentUser.firm_id,
         agent_id: currentUser.id,
@@ -3062,6 +3088,7 @@ async function submitOutcome(goBreak) {
         started_at: new Date(Date.now()-callSeconds*1000).toISOString(),
         ended_at: new Date().toISOString(),
       };
+      if (contactId) logData.contact_id = contactId;
       if (cbAt) logData.callback_at = cbAt;
       if (activeCallId) { try { logData.telnyx_call_id = activeCallId; } catch(e) {} }
       await sb('call_logs',{method:'POST',prefer:'return=minimal',body:JSON.stringify(logData)});
@@ -3134,14 +3161,19 @@ async function submitOutcome(goBreak) {
         toast('Bu kampanyalarda otomatik arama pasif', 'warn', 2400);
         return;
       }
-      const callCheck = isCallAllowed(new Date().toISOString().split('T')[0], new Date().toTimeString().slice(0,8));
-      if (!callCheck.allowed) {
-        toast('⏸ Otomatik arama duraklatıldı: ' + callCheck.reason, 'warn', 6000);
-        _autoDial = false;
-        const tog = document.getElementById('auto-dial-toggle');
-        if (tog) tog.checked = false;
+      if (!_testMode) {
+        const callCheck = isCallAllowed(new Date().toISOString().split('T')[0], new Date().toTimeString().slice(0, 8));
+        if (!callCheck.allowed) {
+          toast('⏸ Otomatik arama duraklatıldı: ' + callCheck.reason, 'warn', 6000);
+          _autoDial = false;
+          const tog = document.getElementById('auto-dial-toggle');
+          if (tog) tog.checked = false;
+          refreshAutoDialUi();
+        } else {
+          setTimeout(() => dialNext(), 1200);
+        }
       } else {
-        setTimeout(()=>dialNext(), 1200);
+        setTimeout(() => dialNext(), 1200);
       }
     }
   }
@@ -3304,12 +3336,6 @@ function toggleAutoDial() {
     return;
   }
   _autoDial = !_autoDial;
-  const cb = document.getElementById('auto-dial-toggle');
-  const slider = document.getElementById('auto-dial-slider');
-  const knob = document.getElementById('auto-dial-knob');
-  if (cb) cb.checked = _autoDial;
-  if (slider) slider.style.background = _autoDial ? 'var(--accent)' : 'var(--text-3)';
-  if (knob) knob.style.transform = _autoDial ? 'translateX(18px)' : 'translateX(0)';
   toast(_autoDial ? '⚡ Otomatik arama açık' : '⏸ Otomatik arama kapalı', 'ok', 1500);
   refreshAutoDialUi();
 }

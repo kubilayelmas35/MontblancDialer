@@ -309,10 +309,15 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   width: 0;
   height: 0;
   pointer-events: none;
+  opacity: 0;
   transition:
     left 0.5s cubic-bezier(0.33, 1, 0.68, 1),
-    top 0.5s cubic-bezier(0.33, 1, 0.68, 1);
+    top 0.5s cubic-bezier(0.33, 1, 0.68, 1),
+    opacity 0.2s ease;
   --mascot-call-heat: 0;
+}
+.global-mascot.global-mascot--placed {
+  opacity: 1;
 }
 .global-mascot .cust-empty-mascot {
   position: relative;
@@ -464,8 +469,14 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   top: 50%;
   margin-top: 52px;
   transform: translateX(calc(-50% + var(--bubble-shift-x, 0px)));
-  max-width: min(300px, calc(100vw - 20px));
-  width: max-content;
+  max-width: min(300px, calc(100vw - 24px));
+  width: min(max-content, calc(100vw - 24px));
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
+  padding: 10px 14px;
   z-index: 5;
   text-align: center;
 }
@@ -1341,7 +1352,7 @@ min-height: 0;
   width: 100%;
   margin: 0;
   max-width: none;
-  min-height: min(28vh, 260px);
+  min-height: min(40vh, 360px);
   align-items: stretch;
 }
 .cust-empty-stage {
@@ -1748,6 +1759,9 @@ min-height: 0;
   font-size: 12px;
   font-weight: 600;
   line-height: 1.4;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   color: var(--text);
   background: color-mix(in srgb, var(--accent) 12%, var(--bg-2));
   border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
