@@ -1,3 +1,14 @@
+/* Global maskot gezinme: --gm-wx/--gm-wy yumuşak geçiş (ışınlanma hissi azalır) */
+@property --gm-wx {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --gm-wy {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
 /* ============================================================
 PALETTES
 ============================================================ */
@@ -306,15 +317,22 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   z-index: 130;
   left: 0;
   top: 0;
-  width: 0;
-  height: 0;
+  /* 0×0 kutu abs. balonun width: max-content hesabını bozup tek harf sütunu yapıyordu */
+  width: 1px;
+  height: 1px;
+  overflow: visible;
   pointer-events: none;
   opacity: 0;
   transition:
-    left 0.5s cubic-bezier(0.33, 1, 0.68, 1),
-    top 0.5s cubic-bezier(0.33, 1, 0.68, 1),
-    opacity 0.2s ease;
+    left 0.65s cubic-bezier(0.33, 1, 0.68, 1),
+    top 0.65s cubic-bezier(0.33, 1, 0.68, 1),
+    opacity 0.2s ease,
+    --gm-wx 0.9s cubic-bezier(0.25, 0.9, 0.25, 1),
+    --gm-wy 0.9s cubic-bezier(0.25, 0.9, 0.25, 1);
   --mascot-call-heat: 0;
+}
+.global-mascot.global-mascot--dragging {
+  transition: none !important;
 }
 .global-mascot.global-mascot--placed {
   opacity: 1;
@@ -469,13 +487,14 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   top: 50%;
   margin-top: 52px;
   transform: translateX(calc(-50% + var(--bubble-shift-x, 0px)));
+  /* vw tabanı; genişlik 0×0 kapsayıcıya bağlı kalmasın */
+  width: auto;
+  min-width: min(200px, calc(100vw - 32px));
   max-width: min(300px, calc(100vw - 24px));
-  width: min(max-content, calc(100vw - 24px));
-  min-width: 0;
   box-sizing: border-box;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-  hyphens: auto;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
   padding: 10px 14px;
   z-index: 5;
   text-align: center;
@@ -1340,8 +1359,8 @@ max-width: none;
 padding: 12px 18px 18px;
 text-align:center; gap:14px; color:var(--text-3);
 overflow: hidden;
-border-radius: calc(var(--radius) - 1px);
-min-height: 0;
+  border-radius: 14px;
+  min-height: 0;
 }
 /* Aurora + metin aynı ızgarada: tek kutu, iç “kart” hissi yok */
 .cust-empty-default {
@@ -1354,6 +1373,8 @@ min-height: 0;
   max-width: none;
   min-height: min(40vh, 360px);
   align-items: stretch;
+  border-radius: 14px;
+  overflow: hidden;
 }
 .cust-empty-stage {
   grid-column: 1 / -1;
@@ -1760,8 +1781,9 @@ min-height: 0;
   font-weight: 600;
   line-height: 1.4;
   box-sizing: border-box;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
   color: var(--text);
   background: color-mix(in srgb, var(--accent) 12%, var(--bg-2));
   border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
