@@ -225,6 +225,7 @@ async function getNextContact(campaignIds = null) {
 
 function showCustomerCard(c) {
   if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
+  document.getElementById('customer-card')?.classList.remove('customer-card--empty');
   document.getElementById('cust-empty').style.display='none';
   document.getElementById('cust-data').style.display='';
   showPrevCallInfo(c);
@@ -377,6 +378,7 @@ async function saveContactEdits() {
 }
 
 function clearCustomerCard() {
+  document.getElementById('customer-card')?.classList.add('customer-card--empty');
   document.getElementById('cust-empty').style.display='';
   document.getElementById('cust-data').style.display='none';
   if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();

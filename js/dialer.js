@@ -623,9 +623,7 @@ function _applyMascotVarsToEl(el, baseHue, variantKey) {
 }
 
 function formatMascotSpokenLine(msg) {
-  const raw = (localStorage.getItem('mb_mascot_name') || '').trim();
-  if (!raw) return msg;
-  return `${raw}: ${msg}`;
+  return msg;
 }
 
 function applyMascotTheme() {
@@ -660,9 +658,9 @@ function applyMascotThemeLiveFromForm() {
 function updateMascotNameLabel() {
   const tag = document.getElementById('cust-empty-mascot-tag');
   if (!tag) return;
-  const raw = (localStorage.getItem('mb_mascot_name') || '').trim();
-  tag.textContent = raw ? raw : '';
-  tag.style.display = raw ? 'block' : 'none';
+  tag.textContent = '';
+  tag.style.display = 'none';
+  refreshGlobalMascotInfoPanel();
 }
 
 let _mascotSettingsFormWired = false;
@@ -682,10 +680,10 @@ function loadMascotSettingsForm() {
     applyMascotThemeLiveFromForm();
     const tag = document.getElementById('cust-empty-mascot-tag');
     if (tag) {
-      const t = (document.getElementById('s-mascot-name')?.value || '').trim();
-      tag.textContent = t;
-      tag.style.display = t ? 'block' : 'none';
+      tag.textContent = '';
+      tag.style.display = 'none';
     }
+    refreshGlobalMascotInfoPanel();
   };
   c.addEventListener('input', onLive);
   v.addEventListener('change', onLive);
@@ -714,11 +712,185 @@ try {
   window.saveMascotSettings = saveMascotSettings;
   window.loadMascotSettingsForm = loadMascotSettingsForm;
   window.applyMascotTheme = applyMascotTheme;
+  window.switchMimiTab = switchMimiTab;
 } catch (e) {}
 
 let _globalMascotResizeWired = false;
 let _lastMascotCheerSec = -1;
 let _mascotNotifMorphT = null;
+let _mascotDragState = null;
+let _mascotCallAccumSec = Number(localStorage.getItem('mb_mascot_call_accum_sec') || '0') || 0;
+let _globalMascotWanderT = null;
+let _mimiActiveTab = 'profile';
+
+function _fmtMimiLife(sec) {
+  const s = Math.max(0, Math.floor(sec));
+  const day = Math.floor(s / 86400);
+  const hour = Math.floor((s % 86400) / 3600);
+  const min = Math.floor((s % 3600) / 60);
+  const rem = s % 60;
+  return `${day}g ${hour}s ${min}d ${rem}sn`;
+}
+
+function refreshGlobalMascotInfoPanel() {
+  const nameEl = document.getElementById('global-mascot-info-name');
+  const ageEl = document.getElementById('global-mascot-info-age');
+  const callsEl = document.getElementById('global-mascot-info-calls');
+  const variantEl = document.getElementById('global-mascot-info-variant');
+  const noteEl = document.getElementById('global-mascot-info-note');
+  const moodEl = document.getElementById('global-mascot-info-mood');
+  const energyEl = document.getElementById('global-mascot-info-energy');
+  const moodNoteEl = document.getElementById('global-mascot-info-mood-note');
+  const tCallsEl = document.getElementById('global-mascot-info-today-calls');
+  const tApptEl = document.getElementById('global-mascot-info-today-appts');
+  const mApptEl = document.getElementById('global-mascot-info-month-appts');
+  const statsNoteEl = document.getElementById('global-mascot-info-stats-note');
+  const n = (localStorage.getItem('mb_mascot_name') || '').trim() || 'Mimi';
+  const v = (localStorage.getItem('mb_mascot_variant') || 'aurora').trim();
+  const totalCall = Math.max(0, _mascotCallAccumSec + (dialerStatus === 'on_call' ? (Number(callSeconds) || 0) : 0));
+  const mimiAge = totalCall * 10;
+  if (nameEl) nameEl.textContent = n;
+  if (ageEl) ageEl.textContent = _fmtMimiLife(mimiAge);
+  if (callsEl) callsEl.textContent = _fmtMimiLife(totalCall);
+  if (variantEl) variantEl.textContent = v.charAt(0).toUpperCase() + v.slice(1);
+  if (noteEl) {
+    noteEl.textContent = currentLang === 'tr'
+      ? 'Çağrı süresinin 10 katı kadar Mimi yaş alıyor. Ne kadar sakin kalırsan o kadar büyüyor.'
+      : 'Mimi altert mit dem 10-fachen deiner Gesprächszeit. Je ruhiger du bleibst, desto stärker wird sie.';
+  }
+  const gm = document.getElementById('global-mascot');
+  const moodKey = gm?.getAttribute('data-mood') || '';
+  const sad = gm?.classList.contains('global-mascot--sad');
+  const cel = gm?.classList.contains('global-mascot--celebrate');
+  const tr = currentLang === 'tr';
+  const moodLabel = cel ? (tr ? 'Kutlama' : 'Feier') : sad ? (tr ? 'Üzgün' : 'Traurig') : moodKey === 'break' ? (tr ? 'Uykulu' : 'Müde') : moodKey === 'angry' ? (tr ? 'Gergin' : 'Genervt') : moodKey === 'bored' ? (tr ? 'Sıkıldı' : 'Gelngweilt') : moodKey === 'eat' ? (tr ? 'Mutlu' : 'Happy') : (tr ? 'Sakin' : 'Ruhig');
+  if (moodEl) moodEl.textContent = moodLabel;
+  const heat = Number(document.getElementById('global-mascot')?.style.getPropertyValue('--mascot-call-heat') || '0') || 0;
+  if (energyEl) energyEl.textContent = `${Math.round(heat * 100)}%`;
+  if (moodNoteEl) {
+    moodNoteEl.textContent = tr
+      ? (sad ? 'Bir sonraki arama için minik bir nefes… Hazırsın.' : cel ? 'Bu enerjiyle çok iyi gidiyoruz!' : 'Sakin ve odaklı — en iyi hâlim.')
+      : (sad ? 'Kurz durchatmen… der nächste wird besser.' : cel ? 'Mit dieser Energie läuft’s!' : 'Ruhig und fokussiert.');
+  }
+  const p = window._dialerPerfSnapshot || {};
+  if (tCallsEl) tCallsEl.textContent = String(Number(p.todayCalls) || 0);
+  if (tApptEl) tApptEl.textContent = String(Number(p.todayAppts) || 0);
+  if (mApptEl) mApptEl.textContent = String(Number(p.monthlyAppts) || 0);
+  if (statsNoteEl) {
+    statsNoteEl.textContent = tr
+      ? 'İstatistikler performans panelinden güncellenir.'
+      : 'Statistiken werden aus dem Performance-Panel aktualisiert.';
+  }
+}
+
+function switchMimiTab(tab) {
+  _mimiActiveTab = tab || 'profile';
+  const map = [
+    ['profile', 'mimi-pane-profile', 'mimi-tab-profile'],
+    ['mood', 'mimi-pane-mood', 'mimi-tab-mood'],
+    ['stats', 'mimi-pane-stats', 'mimi-tab-stats'],
+  ];
+  map.forEach(([k, paneId, tabId]) => {
+    document.getElementById(paneId)?.style && (document.getElementById(paneId).style.display = k === _mimiActiveTab ? '' : 'none');
+    document.getElementById(tabId)?.classList.toggle('active', k === _mimiActiveTab);
+  });
+  refreshGlobalMascotInfoPanel();
+}
+
+function toggleGlobalMascotInfoPanel(forceOpen) {
+  const panel = document.getElementById('global-mascot-info');
+  const gm = document.getElementById('global-mascot');
+  if (!panel || !gm) return;
+  const open = forceOpen === undefined ? panel.style.display === 'none' || !panel.style.display : !!forceOpen;
+  if (open) refreshGlobalMascotInfoPanel();
+  panel.style.display = open ? 'block' : 'none';
+  gm.classList.toggle('global-mascot--panel-open', open);
+  if (open) switchMimiTab(_mimiActiveTab || 'profile');
+}
+
+function _loadMascotCustomPos() {
+  try {
+    const raw = localStorage.getItem('mb_mascot_custom_pos');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.x !== 'number' || typeof parsed.y !== 'number') return null;
+    return parsed;
+  } catch (e) {
+    return null;
+  }
+}
+
+function _wireGlobalMascotInteractions() {
+  const gm = document.getElementById('global-mascot');
+  const mascot = document.getElementById('cust-empty-mascot');
+  if (!gm || !mascot || gm.dataset.interactiveReady === '1') return;
+  gm.dataset.interactiveReady = '1';
+  mascot.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const r = gm.getBoundingClientRect();
+    _mascotDragState = {
+      pointerId: e.pointerId,
+      sx: e.clientX,
+      sy: e.clientY,
+      left: r.left,
+      top: r.top,
+      moved: false,
+    };
+    gm.classList.add('global-mascot--dragging');
+    mascot.setPointerCapture(e.pointerId);
+  });
+  mascot.addEventListener('pointermove', (e) => {
+    if (!_mascotDragState || _mascotDragState.pointerId !== e.pointerId) return;
+    const dx = e.clientX - _mascotDragState.sx;
+    const dy = e.clientY - _mascotDragState.sy;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) _mascotDragState.moved = true;
+    const x = _mascotDragState.left + dx;
+    const y = _mascotDragState.top + dy;
+    gm.style.left = `${x}px`;
+    gm.style.top = `${y}px`;
+    gm.classList.add('global-mascot--custom');
+    localStorage.setItem('mb_mascot_custom_pos', JSON.stringify({ x, y }));
+  });
+  mascot.addEventListener('pointerup', (e) => {
+    if (!_mascotDragState || _mascotDragState.pointerId !== e.pointerId) return;
+    const wasMove = _mascotDragState.moved;
+    _mascotDragState = null;
+    gm.classList.remove('global-mascot--dragging');
+    if (!wasMove) toggleGlobalMascotInfoPanel();
+  });
+  mascot.addEventListener('pointercancel', () => {
+    _mascotDragState = null;
+    gm.classList.remove('global-mascot--dragging');
+  });
+}
+
+function _stopGlobalMascotWander() {
+  if (_globalMascotWanderT) {
+    clearInterval(_globalMascotWanderT);
+    _globalMascotWanderT = null;
+  }
+  const gm = document.getElementById('global-mascot');
+  if (gm) {
+    gm.style.setProperty('--gm-wx', '0px');
+    gm.style.setProperty('--gm-wy', '0px');
+  }
+}
+
+function _startGlobalMascotWander() {
+  if (_globalMascotWanderT) return;
+  const gm = document.getElementById('global-mascot');
+  if (!gm) return;
+  const step = () => {
+    const r = 14;
+    const x = Math.round((Math.random() * 2 - 1) * r);
+    const y = Math.round((Math.random() * 2 - 1) * (r * 0.7));
+    gm.style.setProperty('--gm-wx', `${x}px`);
+    gm.style.setProperty('--gm-wy', `${y}px`);
+  };
+  step();
+  _globalMascotWanderT = setInterval(step, 2200);
+}
 
 function _placeGlobalMascotAtRect(rect) {
   const gm = document.getElementById('global-mascot');
@@ -731,8 +903,9 @@ function _placeGlobalMascotAtRect(rect) {
 
 function syncGlobalMascotDock() {
   const gm = document.getElementById('global-mascot');
-  const anchor = document.getElementById('tb-mascot-anchor');
+  const anchor = document.getElementById('sb-mascot-anchor') || document.getElementById('tb-mascot-anchor');
   if (!gm || !anchor) return;
+  _wireGlobalMascotInteractions();
   if (gm.classList.contains('global-mascot--peek-chat') || gm.classList.contains('global-mascot--peek-notif')) return;
   if (gm.classList.contains('global-mascot--notif-morph')) {
     const nb = document.getElementById('tb-notif-btn');
@@ -755,8 +928,22 @@ function syncGlobalMascotDock() {
     (st === 'ready' || st === 'offline' || st === 'break') &&
     slot &&
     slot.getBoundingClientRect().width > 1;
+  if (useSlot) _startGlobalMascotWander();
+  else _stopGlobalMascotWander();
+  if (!useSlot) {
+    const custom = _loadMascotCustomPos();
+    if (custom) {
+      gm.style.left = `${custom.x}px`;
+      gm.style.top = `${custom.y}px`;
+      gm.classList.add('global-mascot--custom');
+      gm.classList.remove('global-mascot--dialer');
+      gm.classList.add('global-mascot--topbar');
+      return;
+    }
+  }
   const rect = useSlot ? slot.getBoundingClientRect() : anchor.getBoundingClientRect();
   _placeGlobalMascotAtRect(rect);
+  gm.classList.remove('global-mascot--custom');
   gm.classList.toggle('global-mascot--dialer', !!useSlot);
   gm.classList.toggle('global-mascot--topbar', !useSlot);
 }
@@ -779,8 +966,9 @@ function syncGlobalMascotMoodFromCustEmpty() {
 function onCallTickForGlobalMascot() {
   if (typeof dialerStatus === 'undefined' || dialerStatus !== 'on_call') return;
   const sec = typeof callSeconds !== 'undefined' ? callSeconds : 0;
-  const heat = Math.min(sec / 150, 1);
+  const heat = Math.min(sec / 90, 1);
   document.getElementById('global-mascot')?.style.setProperty('--mascot-call-heat', String(heat));
+  refreshGlobalMascotInfoPanel();
   const milestones = [30, 70, 115, 175, 240, 330, 450];
   const hit = milestones.find((m) => m <= sec && m > _lastMascotCheerSec);
   if (!hit) return;
@@ -1889,9 +2077,22 @@ function startCallTimer() {
 }
 
 function stopCallTimer() {
+  const lastDur = Number(callSeconds) || 0;
   clearInterval(callTimerInt);
   _lastMascotCheerSec = -1;
   document.getElementById('global-mascot')?.style.setProperty('--mascot-call-heat', '0');
+  if (lastDur > 0) {
+    _mascotCallAccumSec += lastDur;
+    localStorage.setItem('mb_mascot_call_accum_sec', String(_mascotCallAccumSec));
+    if (lastDur < 60) {
+      _showCustEmptyBubbleMsg(
+        currentLang === 'tr'
+          ? 'Sanırım olmadı; bence diğer çağrıda başaracağız.'
+          : 'Hat wohl nicht gereicht; den nächsten holen wir.'
+      );
+    }
+  }
+  refreshGlobalMascotInfoPanel();
   const tblk = document.getElementById('dialer-timer-block');
   if (tblk) tblk.style.display='none';
   resetDialerVoiceVisuals();
@@ -2525,6 +2726,20 @@ function setOutcome(o) {
       const def = new Date(Date.now() + 24*60*60*1000);
       dtInput.value = def.toISOString().slice(0,16);
     }
+  }
+  const tr = currentLang === 'tr';
+  const gm = document.getElementById('global-mascot');
+  if (gm) gm.classList.remove('global-mascot--sad', 'global-mascot--celebrate');
+  if (o === 'appointment' || o === 'appointment_done') {
+    if (gm) gm.classList.add('global-mascot--celebrate');
+    _showCustEmptyBubbleMsg(tr ? 'Başardık! Termin adımına geçiyoruz.' : 'Geschafft! Wir gehen zum Termin-Schritt.');
+    setTimeout(() => gm?.classList.remove('global-mascot--celebrate'), 2300);
+  } else if (o === 'negative') {
+    if (gm) gm.classList.add('global-mascot--sad');
+    _showCustEmptyBubbleMsg(tr ? 'Bu olmadı ama sorun değil; diğerinde alacağız.' : 'Das war nichts, aber der nächste sitzt.');
+    setTimeout(() => gm?.classList.remove('global-mascot--sad'), 3600);
+  } else if (o === 'callback') {
+    _showCustEmptyBubbleMsg(tr ? 'Bence bu müşteri bizde, geri aramada kapanır.' : 'Der Kunde ist nah dran, Rückruf bringt es.');
   }
 }
 

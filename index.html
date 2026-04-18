@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=7.30">
+<link rel="stylesheet" href="css/styles.css?v=7.32">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -36,7 +36,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v7.30 — 2026</div>
+<div class="login-version">v7.32 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -178,6 +178,33 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div class="global-mascot-morph" id="global-mascot-morph" aria-hidden="true">
 <i class="ph ph-bell"></i>
+</div>
+<div id="global-mascot-info" class="global-mascot-info" style="display:none;" role="dialog" aria-label="Mimi bilgi kartı">
+<div class="global-mascot-info-title" id="global-mascot-info-name">Mimi</div>
+<div class="global-mascot-info-tabs" role="tablist" aria-label="Mimi sekmeleri">
+  <button type="button" class="global-mascot-tab active" id="mimi-tab-profile" onclick="switchMimiTab('profile')" role="tab">Profil</button>
+  <button type="button" class="global-mascot-tab" id="mimi-tab-mood" onclick="switchMimiTab('mood')" role="tab">Ruh hali</button>
+  <button type="button" class="global-mascot-tab" id="mimi-tab-stats" onclick="switchMimiTab('stats')" role="tab">İstatistik</button>
+</div>
+<div class="global-mascot-tabpanes">
+  <div id="mimi-pane-profile" class="global-mascot-pane" role="tabpanel">
+    <div class="global-mascot-info-row"><span>Yaş</span><strong id="global-mascot-info-age">0g 0s 0d 0sn</strong></div>
+    <div class="global-mascot-info-row"><span>Toplam çağrı</span><strong id="global-mascot-info-calls">0g 0s 0d 0sn</strong></div>
+    <div class="global-mascot-info-row"><span>Aura modu</span><strong id="global-mascot-info-variant">Aurora</strong></div>
+    <div class="global-mascot-info-note" id="global-mascot-info-note">—</div>
+  </div>
+  <div id="mimi-pane-mood" class="global-mascot-pane" role="tabpanel" style="display:none;">
+    <div class="global-mascot-info-row"><span>Durum</span><strong id="global-mascot-info-mood">Sakin</strong></div>
+    <div class="global-mascot-info-row"><span>Enerji</span><strong id="global-mascot-info-energy">0%</strong></div>
+    <div class="global-mascot-info-note" id="global-mascot-info-mood-note">—</div>
+  </div>
+  <div id="mimi-pane-stats" class="global-mascot-pane" role="tabpanel" style="display:none;">
+    <div class="global-mascot-info-row"><span>Bugün çağrı</span><strong id="global-mascot-info-today-calls">0</strong></div>
+    <div class="global-mascot-info-row"><span>Bugün termin</span><strong id="global-mascot-info-today-appts">0</strong></div>
+    <div class="global-mascot-info-row"><span>Bu ay termin</span><strong id="global-mascot-info-month-appts">0</strong></div>
+    <div class="global-mascot-info-note" id="global-mascot-info-stats-note">—</div>
+  </div>
+</div>
 </div>
 <div id="cust-empty-bubble" class="cust-empty-bubble global-mascot-bubble" style="display:none;" role="status" aria-live="polite"></div>
 </div>
@@ -328,7 +355,8 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v7.30</div>
+<div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
+<div class="sb-ver">MontBlanc v7.32</div>
 </div>
 </nav>
 <main id="main">
@@ -3267,40 +3295,40 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/config.js?v=7.30"></script>
-<script src="js/state.js?v=7.30"></script>
-<script src="js/api.js?v=7.30"></script>
-<script src="js/auth.js?v=7.30"></script>
-<script src="js/ui.js?v=7.30"></script>
-<script src="js/chat.js?v=7.30"></script>
-<script src="js/chat-settings.js?v=7.30"></script>
-<script src="js/field-settings.js?v=7.30"></script>
-<script src="js/audit.js?v=7.30"></script>
-<script src="js/feature-flags.js?v=7.30"></script>
-<script src="js/notification-center.js?v=7.30"></script>
+<script src="js/config.js?v=7.32"></script>
+<script src="js/state.js?v=7.32"></script>
+<script src="js/api.js?v=7.32"></script>
+<script src="js/auth.js?v=7.32"></script>
+<script src="js/ui.js?v=7.32"></script>
+<script src="js/chat.js?v=7.32"></script>
+<script src="js/chat-settings.js?v=7.32"></script>
+<script src="js/field-settings.js?v=7.32"></script>
+<script src="js/audit.js?v=7.32"></script>
+<script src="js/feature-flags.js?v=7.32"></script>
+<script src="js/notification-center.js?v=7.32"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=7.30"></script>
-<script src="js/job-market.js?v=7.30"></script>
-<script src="js/qc-job-market.js?v=7.30"></script>
-<script src="js/export-admin.js?v=7.30"></script>
-<script src="js/export-termin.js?v=7.30"></script>
-<script src="js/performance.js?v=7.30"></script>
-<script src="js/competition.js?v=7.30"></script>
-<script src="js/dashboard.js?v=7.30"></script>
-<script src="js/campaigns.js?v=7.30"></script>
-<script src="js/contacts.js?v=7.30"></script>
-<script src="js/telnyx.js?v=7.30"></script>
-<script src="js/voice-orb.js?v=7.30"></script>
-<script src="js/dialer.js?v=7.30"></script>
-<script src="js/appointments.js?v=7.30"></script>
-<script src="js/field.js?v=7.30"></script>
-<script src="js/field-ops.js?v=7.30"></script>
-<script src="js/wiedervorlage.js?v=7.30"></script>
-<script src="js/qc.js?v=7.30"></script>
-<script src="js/leave-hr.js?v=7.30"></script>
-<script src="js/muhasebe.js?v=7.30"></script>
-<script src="js/agent-self-performance.js?v=7.30"></script>
-<script src="js/agents.js?v=7.30"></script>
+<script src="js/wallet.js?v=7.32"></script>
+<script src="js/job-market.js?v=7.32"></script>
+<script src="js/qc-job-market.js?v=7.32"></script>
+<script src="js/export-admin.js?v=7.32"></script>
+<script src="js/export-termin.js?v=7.32"></script>
+<script src="js/performance.js?v=7.32"></script>
+<script src="js/competition.js?v=7.32"></script>
+<script src="js/dashboard.js?v=7.32"></script>
+<script src="js/campaigns.js?v=7.32"></script>
+<script src="js/contacts.js?v=7.32"></script>
+<script src="js/telnyx.js?v=7.32"></script>
+<script src="js/voice-orb.js?v=7.32"></script>
+<script src="js/dialer.js?v=7.32"></script>
+<script src="js/appointments.js?v=7.32"></script>
+<script src="js/field.js?v=7.32"></script>
+<script src="js/field-ops.js?v=7.32"></script>
+<script src="js/wiedervorlage.js?v=7.32"></script>
+<script src="js/qc.js?v=7.32"></script>
+<script src="js/leave-hr.js?v=7.32"></script>
+<script src="js/muhasebe.js?v=7.32"></script>
+<script src="js/agent-self-performance.js?v=7.32"></script>
+<script src="js/agents.js?v=7.32"></script>
 </body>
 </html>
 
