@@ -141,12 +141,12 @@ async function initDialer() {
     }
   } catch(e){ console.error('initDialer err:', e); }
   refreshDialerHealthPanel();
+  _dailyGoal = parseInt(localStorage.getItem('mb_daily_goal') || '5', 10);
   loadMyMiniStats();
   loadWvBadge();
   startTickerPoll();
   const goalBar = document.getElementById('daily-goal-bar');
   if (goalBar) goalBar.style.display = '';
-  _dailyGoal = parseInt(localStorage.getItem('mb_daily_goal')||'5');
   renderHotkeyHints();
   const hints = document.getElementById('hotkey-hints');
   if (hints) hints.style.display = '';
@@ -407,9 +407,23 @@ async function loadMyMiniStats() {
       `&termin_tarih=gte.${since}&termin_tarih=lte.${nowIso}`
     );
     const appts = (apRowsPerf || []).length;
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00`;
+    let monthlyAppts = appts;
+    if (_perfTab !== 'month') {
+      try {
+        const apMonth = await sb(
+          `appointments?select=id&agent_id=eq.${currentUser?.id}` +
+            `&termin_tarih=gte.${monthStart}&termin_tarih=lte.${nowIso}`
+        );
+        monthlyAppts = (apMonth || []).length;
+      } catch (e2) {
+        monthlyAppts = 0;
+      }
+    }
     try {
-      window._dialerPerfSnapshot = { calls, appts, posCalls, since, tab: _perfTab };
+      window._dialerPerfSnapshot = { calls, appts, posCalls, since, tab: _perfTab, monthlyAppts };
     } catch (e) {}
+    updateCustEmptyMascotScale();
 
     document.getElementById('my-appt').textContent = appts;
     document.getElementById('my-calls').textContent = calls;
@@ -481,7 +495,10 @@ async function loadMyMiniStats() {
     loadUpcomingWv();
     loadUnfinalizedCalls();
     if (typeof startCustEmptyCoach === 'function') startCustEmptyCoach();
-  } catch(e){ console.error('stats err:',e); }
+  } catch (e) {
+    console.error('stats err:', e);
+    document.getElementById('cust-empty')?.style.setProperty('--mascot-scale', '1');
+  }
 }
 
 let _custEmptyCoachTimer = null;
@@ -650,6 +667,17 @@ function startCustEmptyMascotLoops() {
   _mascotWanderTimer = setInterval(nudgeCustEmptyMascot, 3800 + Math.floor(Math.random() * 2200));
   _mascotMoodTimer = setInterval(refreshCustEmptyMascotState, 8000);
   if (dialerStatus === 'ready' || dialerStatus === 'offline') scheduleMascotEatOnce();
+}
+
+/** Aylık termin sayısı / aylık hedefe göre maskot ölçeği (1 = standart, üst sınır ~1.55) */
+function updateCustEmptyMascotScale() {
+  const root = document.getElementById('cust-empty');
+  if (!root) return;
+  const monthlyGoal = Math.max(1, Number(_dailyGoal) || 5) * 22;
+  const n = Number(window._dialerPerfSnapshot?.monthlyAppts ?? 0);
+  const t = Math.min(Math.max(n / monthlyGoal, 0), 2.2);
+  const scale = 1 + 0.28 * t;
+  root.style.setProperty('--mascot-scale', String(Math.min(Math.max(scale, 1), 1.55)));
 }
 
 async function loadUpcomingWv() {
@@ -2423,6 +2451,7 @@ function loadApiSettings() {
   if (document.getElementById('s-tomtom-key')) document.getElementById('s-tomtom-key').value = tk;
   if (document.getElementById('s-daily-goal')) document.getElementById('s-daily-goal').value = goal;
   _dailyGoal = parseInt(goal);
+  updateCustEmptyMascotScale();
 }
 
 function saveApiSettings() {
@@ -2432,6 +2461,7 @@ function saveApiSettings() {
   if (gk) { _googleApiKey=gk; localStorage.setItem('mb_google_key',gk); }
   if (tk) localStorage.setItem('mb_tomtom_key',tk);
   if (goal>0) { _dailyGoal=goal; localStorage.setItem('mb_daily_goal',String(goal)); }
+  updateCustEmptyMascotScale();
   toast('API ayarları kaydedildi ✓','ok');
 }
 
