@@ -2422,6 +2422,8 @@ function restartInboundTestSimulationScheduler() {
   stopInboundTestSimulationScheduler();
   const page = document.getElementById('page-dialer');
   if (!page?.classList.contains('active')) return;
+  /** Gelen (TEST) sadece test modunda; aksi halde boş zamanlayıcı döngüsü olmasın */
+  if (!_testMode) return;
   const tick = () => {
     const gap = _testMode
       ? 12000 + Math.floor(Math.random() * 10000)
@@ -2444,9 +2446,7 @@ function _canShowInboundRoutingDetail() {
 async function tickInboundTestSimulation() {
   if (!_testMode) return;
   await loadFirmDialerSettingsCache();
-  const s = window._firmDialerSettings || {};
-  /** incoming_enabled yeterli; incoming_super_enabled prod kilidi — test tick’inde zorunlu değil */
-  if (!s.incoming_enabled) return;
+  /** Test modunda gelen simülasyonu firma «Gelen aramalar» kapalı olsa da çalışır (demo). */
   if (dialerStatus !== 'ready') return;
   if (_fakeCallActive || dialerStatus === 'on_call' || _inboundTestRingOpen) return;
   if (!currentUser?.firm_id) return;
@@ -3134,9 +3134,11 @@ async function testToggleReady() {
       status: 'ready',
       last_seen: new Date().toISOString(),
     }).catch(() => {});
+    restartInboundTestSimulationScheduler();
     setTimeout(() => dialNext(), 300);
   } else if (dialerStatus === 'ready') {
     setDialerStatus('offline');
+    stopInboundTestSimulationScheduler();
     upsertAgentSession({
       agent_id: currentUser.id,
       agent_name: currentUser.name,

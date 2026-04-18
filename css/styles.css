@@ -1041,13 +1041,29 @@ overflow: hidden;
 .cust-empty-hero {
   position: relative;
   width: 100%;
-  max-width: 220px;
-  height: 100px;
+  max-width: 260px;
+  min-height: 128px;
+  height: auto;
   margin: 0 auto 4px;
+  overflow: hidden;
+  border-radius: 22px;
+  /* Bulanık katmanın kenarlarda şeffaflaşıp kart renginin «beyaz boşluk» gibi görünmesini önler */
+  background: radial-gradient(
+    ellipse 95% 85% at 50% 42%,
+    color-mix(in srgb, var(--accent) 28%, var(--bg-2)),
+    color-mix(in srgb, var(--green) 12%, var(--bg-2)) 52%,
+    var(--bg-2) 100%
+  );
 }
 .cust-empty-aurora {
   position: absolute;
-  inset: -30%;
+  left: 50%;
+  top: 50%;
+  width: 160%;
+  height: 200%;
+  min-width: 280px;
+  min-height: 220px;
+  transform: translate(-50%, -50%);
   background: conic-gradient(
     from 200deg,
     color-mix(in srgb, var(--accent) 55%, transparent),
@@ -1055,14 +1071,14 @@ overflow: hidden;
     color-mix(in srgb, var(--purple) 50%, transparent),
     color-mix(in srgb, var(--accent) 55%, transparent)
   );
-  filter: blur(32px);
-  opacity: 0.55;
+  filter: blur(36px);
+  opacity: 0.62;
   animation: cust-empty-aurora-spin 16s linear infinite;
   pointer-events: none;
 }
 @keyframes cust-empty-aurora-spin {
-  from { transform: rotate(0deg) scale(1); }
-  to { transform: rotate(360deg) scale(1.06); }
+  from { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+  to { transform: translate(-50%, -50%) rotate(360deg) scale(1.05); }
 }
 .cust-empty-blob {
   position: absolute;
