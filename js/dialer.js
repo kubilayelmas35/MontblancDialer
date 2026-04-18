@@ -152,7 +152,8 @@ async function initDialer() {
   if (hints) hints.style.display = '';
   refreshAutoDialUi();
   void loadFirmDialerSettingsCache().then(() => restartInboundTestSimulationScheduler());
-  if (typeof dialerStatus !== 'undefined' && (dialerStatus === 'ready' || dialerStatus === 'break')) {
+  if (typeof dialerStatus !== 'undefined' && (dialerStatus === 'ready' || dialerStatus === 'break' || dialerStatus === 'offline')) {
+    if (dialerStatus === 'offline' && !_custEmptyIdleSince) _custEmptyIdleSince = Date.now();
     startCustEmptyMascotLoops();
   }
 }
@@ -563,6 +564,8 @@ function stopCustEmptyCoach() {
 }
 
 let _readyEnteredAt = null;
+/** Boş kartta (Hazır değilken) sıkılma/sinir süresi için başlangıç */
+let _custEmptyIdleSince = null;
 let _mascotWanderTimer = null;
 let _mascotMoodTimer = null;
 let _mascotEatTimer = null;
@@ -592,8 +595,10 @@ function refreshCustEmptyMascotState() {
     root.classList.add('cust-empty--break');
     return;
   }
-  if (st !== 'ready') return;
-  const waitSec = _readyEnteredAt ? (Date.now() - _readyEnteredAt) / 1000 : 0;
+  if (st !== 'ready' && st !== 'offline') return;
+  if (st === 'offline' && !_custEmptyIdleSince) _custEmptyIdleSince = Date.now();
+  const t0 = st === 'ready' && _readyEnteredAt ? _readyEnteredAt : _custEmptyIdleSince || Date.now();
+  const waitSec = (Date.now() - t0) / 1000;
   if (waitSec > 120) root.classList.add('cust-empty--mascot-angry');
   else if (waitSec > 45) root.classList.add('cust-empty--mascot-bored');
 }
@@ -602,14 +607,16 @@ function nudgeCustEmptyMascot() {
   const mascot = document.getElementById('cust-empty-mascot');
   const root = document.getElementById('cust-empty');
   if (!mascot || !root || root.style.display === 'none' || root.classList.contains('cust-empty--ringing')) return;
-  if (dialerStatus !== 'ready' && dialerStatus !== 'break') return;
+  if (dialerStatus !== 'ready' && dialerStatus !== 'break' && dialerStatus !== 'offline') return;
   if (dialerStatus === 'break') {
     mascot.style.setProperty('--mx', `${Math.round((Math.random() - 0.5) * 28)}px`);
     mascot.style.setProperty('--my', `${Math.round((Math.random() - 0.5) * 20)}px`);
     return;
   }
-  mascot.style.setProperty('--mx', `${Math.round((Math.random() - 0.5) * 104)}px`);
-  mascot.style.setProperty('--my', `${Math.round((Math.random() - 0.5) * 72)}px`);
+  const span = dialerStatus === 'offline' ? 96 : 104;
+  const spanY = dialerStatus === 'offline' ? 70 : 72;
+  mascot.style.setProperty('--mx', `${Math.round((Math.random() - 0.5) * span)}px`);
+  mascot.style.setProperty('--my', `${Math.round((Math.random() - 0.5) * spanY)}px`);
 }
 
 function scheduleMascotEatOnce() {
@@ -617,7 +624,7 @@ function scheduleMascotEatOnce() {
   const delay = 22000 + Math.floor(Math.random() * 28000);
   _mascotEatTimer = setTimeout(() => {
     _mascotEatTimer = null;
-    if (dialerStatus !== 'ready') {
+    if (dialerStatus !== 'ready' && dialerStatus !== 'offline') {
       scheduleMascotEatOnce();
       return;
     }
@@ -636,12 +643,13 @@ function scheduleMascotEatOnce() {
 
 function startCustEmptyMascotLoops() {
   _stopCustEmptyMascotTimers();
+  if (dialerStatus === 'offline' && !_custEmptyIdleSince) _custEmptyIdleSince = Date.now();
   refreshCustEmptyMascotState();
   nudgeCustEmptyMascot();
-  if (dialerStatus !== 'ready' && dialerStatus !== 'break') return;
+  if (dialerStatus !== 'ready' && dialerStatus !== 'break' && dialerStatus !== 'offline') return;
   _mascotWanderTimer = setInterval(nudgeCustEmptyMascot, 3800 + Math.floor(Math.random() * 2200));
   _mascotMoodTimer = setInterval(refreshCustEmptyMascotState, 8000);
-  if (dialerStatus === 'ready') scheduleMascotEatOnce();
+  if (dialerStatus === 'ready' || dialerStatus === 'offline') scheduleMascotEatOnce();
 }
 
 async function loadUpcomingWv() {
@@ -1060,8 +1068,12 @@ function setDialerStatus(s) {
   dialerStatus = s;
   if (s === 'ready' && prev !== 'ready') {
     _readyEnteredAt = Date.now();
+    _custEmptyIdleSince = null;
   } else if (s !== 'ready') {
     _readyEnteredAt = null;
+  }
+  if (s === 'offline' && prev !== 'offline') {
+    _custEmptyIdleSince = Date.now();
   }
   updateDialerNavCallIndicator();
   const dot    = document.getElementById('status-dot');
@@ -1169,10 +1181,11 @@ function setDialerStatus(s) {
   if (s === 'break') refreshBreakCustEmpty();
   if (s !== 'on_call' && s !== 'wrapping') _stopMicThresholdGate();
   syncDialerBottomChrome();
-  if (s === 'ready' || s === 'break') {
+  if (s === 'ready' || s === 'break' || s === 'offline') {
     startCustEmptyMascotLoops();
   } else {
     _stopCustEmptyMascotTimers();
+    _custEmptyIdleSince = null;
     document.getElementById('cust-empty')?.classList.remove(
       'cust-empty--mascot-bored',
       'cust-empty--mascot-angry',

@@ -952,6 +952,7 @@ background:var(--bg-2); border:1px solid var(--border);
 border-radius:var(--radius); padding:20px 24px;
 box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;
 overflow-y:auto;
+overflow-x: hidden;
 }
 .cust-header { display:flex; align-items:flex-start; gap:14px; }
 .cust-header .dialer-timer-block {
@@ -1035,14 +1036,20 @@ display:grid; grid-template-columns:1fr 1fr; gap:12px;
 .cust-empty {
 position: relative;
 display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
-padding:36px 28px 40px; text-align:center; gap:14px; color:var(--text-3);
+/* Kart padding’ini nötrler — aurora kenarlarda beyaz bırakmaz */
+margin: -20px -24px -12px;
+width: calc(100% + 48px);
+max-width: none;
+padding: 28px 28px 36px;
+text-align:center; gap:14px; color:var(--text-3);
 overflow: hidden;
+border-radius: calc(var(--radius) - 1px);
 }
 /* Tek blok: sahne + metin, aurora keskin kutu gibi durmaz */
 .cust-empty-default {
   position: relative;
-  width: calc(100% + 56px);
-  margin: -36px -28px 0;
+  width: 100%;
+  margin: 0;
   max-width: none;
   display: flex;
   flex-direction: column;
@@ -1051,7 +1058,7 @@ overflow: hidden;
 }
 .cust-empty-stage {
   position: relative;
-  min-height: 200px;
+  min-height: 212px;
   overflow: hidden;
   border-radius: var(--radius);
   background: var(--bg-2);
@@ -1064,7 +1071,7 @@ overflow: hidden;
   background: linear-gradient(
     180deg,
     transparent 0%,
-    color-mix(in srgb, var(--bg-2) 55%, transparent) 55%,
+    color-mix(in srgb, var(--bg-2) 40%, transparent) 50%,
     var(--bg-2) 100%
   );
   pointer-events: none;
@@ -1074,20 +1081,23 @@ overflow: hidden;
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 240%;
-  height: 260%;
-  min-width: 380px;
-  min-height: 300px;
+  width: 280%;
+  height: 300%;
+  min-width: 420px;
+  min-height: 340px;
   transform: translate(-50%, -50%);
   background: conic-gradient(
-    from 200deg,
-    color-mix(in srgb, var(--accent) 55%, transparent),
-    color-mix(in srgb, var(--green) 45%, transparent),
-    color-mix(in srgb, var(--purple) 50%, transparent),
-    color-mix(in srgb, var(--accent) 55%, transparent)
+    from 160deg,
+    color-mix(in srgb, #f472b6 70%, transparent),
+    color-mix(in srgb, #a78bfa 65%, transparent),
+    color-mix(in srgb, #38bdf8 60%, transparent),
+    color-mix(in srgb, #4ade80 55%, transparent),
+    color-mix(in srgb, #fbbf24 58%, transparent),
+    color-mix(in srgb, #fb7185 65%, transparent),
+    color-mix(in srgb, #f472b6 70%, transparent)
   );
-  filter: blur(52px) saturate(0.75);
-  opacity: 0.32;
+  filter: blur(56px) saturate(1.05);
+  opacity: 0.42;
   pointer-events: none;
   z-index: 0;
 }
@@ -1095,21 +1105,52 @@ overflow: hidden;
   animation: cust-empty-aurora-spin 48s linear infinite;
 }
 .cust-empty-aurora--b {
-  opacity: 0.26;
-  animation: cust-empty-aurora-spin-rev 64s linear infinite, cust-empty-aurora-hue 22s ease-in-out infinite;
+  opacity: 0.36;
+  background: conic-gradient(
+    from -40deg,
+    color-mix(in srgb, #818cf8 68%, transparent),
+    color-mix(in srgb, #2dd4bf 62%, transparent),
+    color-mix(in srgb, #f472b6 65%, transparent),
+    color-mix(in srgb, #fcd34d 58%, transparent),
+    color-mix(in srgb, #818cf8 68%, transparent)
+  );
+  animation: cust-empty-aurora-spin-rev 64s linear infinite, cust-empty-aurora-hue 18s ease-in-out infinite;
+}
+.cust-empty-aurora--c {
+  opacity: 0.28;
+  width: 200%;
+  height: 220%;
+  min-width: 360px;
+  background: radial-gradient(
+    ellipse 80% 70% at 50% 50%,
+    color-mix(in srgb, #ec4899 45%, transparent),
+    color-mix(in srgb, #22d3ee 35%, transparent) 42%,
+    transparent 70%
+  );
+  animation: cust-empty-aurora-drift 26s ease-in-out infinite, cust-empty-aurora-pulse 14s ease-in-out infinite;
 }
 @keyframes cust-empty-aurora-spin {
   from { transform: translate(-50%, -50%) rotate(0deg) scale(1.02); }
-  to { transform: translate(-50%, -50%) rotate(360deg) scale(1.05); }
+  to { transform: translate(-50%, -50%) rotate(360deg) scale(1.06); }
 }
 @keyframes cust-empty-aurora-spin-rev {
   from { transform: translate(-50%, -50%) rotate(360deg) scale(1.08); }
   to { transform: translate(-50%, -50%) rotate(0deg) scale(1.02); }
 }
 @keyframes cust-empty-aurora-hue {
-  0%, 100% { filter: blur(52px) saturate(0.7) hue-rotate(0deg); }
-  33% { filter: blur(48px) saturate(0.85) hue-rotate(32deg); }
-  66% { filter: blur(48px) saturate(0.65) hue-rotate(-24deg); }
+  0%, 100% { filter: blur(56px) saturate(1) hue-rotate(0deg); }
+  25% { filter: blur(52px) saturate(1.15) hue-rotate(42deg); }
+  50% { filter: blur(50px) saturate(0.95) hue-rotate(-28deg); }
+  75% { filter: blur(54px) saturate(1.1) hue-rotate(18deg); }
+}
+@keyframes cust-empty-aurora-drift {
+  0%, 100% { transform: translate(-50%, -50%) translate(0, 0) scale(1); }
+  33% { transform: translate(-50%, -50%) translate(6%, -4%) scale(1.08); }
+  66% { transform: translate(-50%, -50%) translate(-5%, 5%) scale(0.96); }
+}
+@keyframes cust-empty-aurora-pulse {
+  0%, 100% { opacity: 0.22; }
+  50% { opacity: 0.38; }
 }
 .cust-empty-copy {
   position: relative;
@@ -1142,12 +1183,15 @@ overflow: hidden;
   border-radius: 58% 42% 62% 38% / 48% 55% 45% 52%;
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--accent) 85%, #fff),
-    color-mix(in srgb, var(--green) 70%, var(--accent))
+    #fce7f3 0%,
+    #f472b6 28%,
+    #a855f7 58%,
+    #6366f1 100%
   );
   box-shadow:
-    0 10px 40px color-mix(in srgb, var(--accent) 35%, transparent),
-    inset 0 0 20px rgba(255,255,255,0.35);
+    0 10px 36px rgba(236, 72, 153, 0.42),
+    0 0 28px rgba(99, 102, 241, 0.28),
+    inset 0 0 18px rgba(255,255,255,0.45);
   animation: cust-empty-blob-morph 9s ease-in-out infinite;
   pointer-events: none;
   transition: background 0.6s ease, box-shadow 0.6s ease, filter 0.6s ease;
@@ -1250,7 +1294,8 @@ overflow: hidden;
     animation: none !important;
   }
   .cust-empty-aurora--a,
-  .cust-empty-aurora--b {
+  .cust-empty-aurora--b,
+  .cust-empty-aurora--c {
     animation: none !important;
   }
 }
@@ -1288,14 +1333,18 @@ overflow: hidden;
 
 /* TEST: dış gelen arama — fluid vurgu (boş hazır kartı) */
 .cust-empty--inbound-external .cust-empty-aurora--a {
-  opacity: 0.44;
+  opacity: 0.52;
   animation-duration: 28s;
-  filter: blur(40px) saturate(0.95);
+  filter: blur(44px) saturate(1.1);
 }
 .cust-empty--inbound-external .cust-empty-aurora--b {
-  opacity: 0.38;
+  opacity: 0.45;
   animation-duration: 36s, 12s;
-  filter: blur(40px) saturate(0.95);
+  filter: blur(44px) saturate(1.1);
+}
+.cust-empty--inbound-external .cust-empty-aurora--c {
+  opacity: 0.4;
+  animation-duration: 18s, 10s;
 }
 .cust-empty--inbound-external .cust-empty-blob {
   box-shadow:
