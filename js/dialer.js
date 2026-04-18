@@ -2382,17 +2382,12 @@ async function tickInboundTestSimulation() {
   let phone = '';
   let pickedContact = null;
   _inboundSimTickCount += 1;
-  const rotateExt = s.incoming_external && (_inboundSimTickCount % 3 === 0);
-  /** Dış hat: test modunda ~yarısı dış (incoming_external açıksa) */
-  let useExternal = false;
-  if (s.incoming_external) {
-    if (_testMode) {
-      useExternal =
-        (_inboundSimTickCount % 2 === 1) || Math.random() < 0.5 || !contacts?.length;
-    } else {
-      useExternal = rotateExt || Math.random() < 0.58 || !contacts?.length;
-    }
-  }
+  /**
+   * Dış numara simülasyonu: admin panelinde «incoming_external» kapalı olsa bile
+   * test modunda karışık (iç/dış) gelsin — aksi halde hep kayıtlı kontak seçiliyordu.
+   */
+  const useExternal =
+    (_inboundSimTickCount % 2 === 1) || Math.random() < 0.52 || !contacts?.length;
   if (useExternal) {
     phone = `49${15 + Math.floor(Math.random() * 74)}${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`;
   } else if (contacts?.length) {
@@ -2451,7 +2446,6 @@ async function tickInboundTestSimulation() {
     } catch (e) {}
   }
   if (!contact) {
-    if (!s.incoming_external) return;
     const campId = selectedCampId || campaigns?.[0]?.id || null;
     contact = {
       id: `in-${Date.now()}`,
