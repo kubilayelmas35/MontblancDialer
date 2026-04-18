@@ -725,6 +725,7 @@ async function showChatInboundPreview(row) {
   pulseTeamChatFab();
   if (_chatFabPreviewTimer) clearTimeout(_chatFabPreviewTimer);
   _chatFabPreviewTimer = setTimeout(() => dismissChatFabPreview(), 9000);
+  if (typeof window.hintCustEmptyChatMessage === 'function') window.hintCustEmptyChatMessage(name);
 }
 
 function dismissChatFabPreview() {
@@ -741,6 +742,7 @@ function dismissChatFabPreview() {
   }
   if (fab) fab.classList.remove('team-chat-fab--notify');
   if (stack) stack.classList.remove('team-chat-fab-stack--pulse');
+  if (typeof window.clearCustEmptyChatPeek === 'function') window.clearCustEmptyChatPeek();
 }
 
 function pulseTeamChatFab() {

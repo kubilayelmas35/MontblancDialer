@@ -3,6 +3,8 @@
 // ─────────────────────────────────────────────
 
 let _notifTimer = null;
+/** Maskot bildirim ipucu: ilk yüklemede tetikleme yok */
+let _notifLastUnreadForMascot = null;
 const ZERO_UUID = '00000000-0000-0000-0000-000000000001';
 
 function _isValidFirmId(fid) {
@@ -92,6 +94,10 @@ async function loadNotificationCenter() {
     badge.textContent = unread > 99 ? '99+' : String(unread);
     badge.style.display = unread > 0 ? 'inline-flex' : 'none';
   }
+  if (_notifLastUnreadForMascot !== null && unread > _notifLastUnreadForMascot) {
+    if (typeof window.hintCustEmptyNotifUnread === 'function') window.hintCustEmptyNotifUnread(unread);
+  }
+  _notifLastUnreadForMascot = unread;
 }
 
 function initNotificationCenter() {

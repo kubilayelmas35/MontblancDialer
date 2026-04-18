@@ -420,8 +420,39 @@ async function loadMyMiniStats() {
         monthlyAppts = 0;
       }
     }
+    const dayStart = now.toISOString().split('T')[0] + 'T00:00:00';
+    let todayAppts = appts;
+    let todayCalls = calls;
+    if (_perfTab !== 'today') {
+      try {
+        const [apDayRows, clDayRows] = await Promise.all([
+          sb(
+            `appointments?select=id&agent_id=eq.${currentUser?.id}` +
+              `&termin_tarih=gte.${dayStart}&termin_tarih=lte.${nowIso}`
+          ),
+          sb(
+            `call_logs?select=id&agent_id=eq.${currentUser?.id}` +
+              `&started_at=gte.${dayStart}&started_at=lte.${nowIso}`
+          ),
+        ]);
+        todayAppts = (apDayRows || []).length;
+        todayCalls = (clDayRows || []).length;
+      } catch (e3) {
+        todayAppts = 0;
+        todayCalls = 0;
+      }
+    }
     try {
-      window._dialerPerfSnapshot = { calls, appts, posCalls, since, tab: _perfTab, monthlyAppts };
+      window._dialerPerfSnapshot = {
+        calls,
+        appts,
+        posCalls,
+        since,
+        tab: _perfTab,
+        monthlyAppts,
+        todayAppts,
+        todayCalls,
+      };
     } catch (e) {}
     updateCustEmptyMascotScale();
 
@@ -502,6 +533,92 @@ async function loadMyMiniStats() {
 }
 
 let _custEmptyCoachTimer = null;
+let _custEmptyChatPeekTimer = null;
+let _custEmptyNotifPeekTimer = null;
+let _custEmptyLastNotifHint = 0;
+
+function _clearCustEmptyCoachTimer() {
+  if (_custEmptyCoachTimer) {
+    clearInterval(_custEmptyCoachTimer);
+    _custEmptyCoachTimer = null;
+  }
+}
+
+function _showCustEmptyBubbleMsg(msg) {
+  const bubble = document.getElementById('cust-empty-bubble');
+  if (!bubble) return;
+  bubble.textContent = msg;
+  bubble.style.display = 'block';
+  bubble.classList.remove('cust-empty-bubble--pop');
+  void bubble.offsetWidth;
+  bubble.classList.add('cust-empty-bubble--pop');
+}
+
+function _clearCustEmptyNotifPeek() {
+  if (_custEmptyNotifPeekTimer) {
+    clearTimeout(_custEmptyNotifPeekTimer);
+    _custEmptyNotifPeekTimer = null;
+  }
+  document.getElementById('cust-empty')?.classList.remove('cust-empty--peek-notif');
+}
+
+function hintCustEmptyNotifUnread(totalUnread) {
+  const root = document.getElementById('cust-empty');
+  if (!root || root.style.display === 'none' || root.classList.contains('cust-empty--ringing')) return;
+  if (root.classList.contains('cust-empty--peek-chat')) return;
+  const n = Math.max(1, Number(totalUnread) || 1);
+  if (Date.now() - _custEmptyLastNotifHint < 85000) return;
+  _custEmptyLastNotifHint = Date.now();
+  _clearCustEmptyCoachTimer();
+  _clearCustEmptyNotifPeek();
+  root.classList.add('cust-empty--peek-notif');
+  const tr = currentLang === 'tr';
+  _showCustEmptyBubbleMsg(
+    tr
+      ? `Bildirim merkezinde okunmamış öğe var (${n}). Sağ üstteki zile tıkla.`
+      : `Ungelesene Benachrichtigungen (${n}). Glocke oben rechts.`
+  );
+  _custEmptyNotifPeekTimer = setTimeout(() => {
+    _custEmptyNotifPeekTimer = null;
+    root.classList.remove('cust-empty--peek-notif');
+    startCustEmptyCoach();
+  }, 11000);
+}
+
+function hintCustEmptyChatMessage(fromName) {
+  const root = document.getElementById('cust-empty');
+  if (!root || root.style.display === 'none' || root.classList.contains('cust-empty--ringing')) return;
+  _clearCustEmptyCoachTimer();
+  _clearCustEmptyNotifPeek();
+  root.classList.remove('cust-empty--peek-notif');
+  root.classList.add('cust-empty--peek-chat');
+  const tr = currentLang === 'tr';
+  const who = fromName && String(fromName).trim() ? String(fromName).trim() : tr ? 'Ekip' : 'Team';
+  _showCustEmptyBubbleMsg(
+    tr
+      ? `Sohbette yeni mesaj — ${who} yazdı. Sağ alttaki sohbet ikonuna bak!`
+      : `Neuer Chat — ${who}. Unten rechts das Chat-Symbol!`
+  );
+  if (_custEmptyChatPeekTimer) clearTimeout(_custEmptyChatPeekTimer);
+  _custEmptyChatPeekTimer = setTimeout(() => clearCustEmptyChatPeek(), 14000);
+}
+
+function clearCustEmptyChatPeek() {
+  const root = document.getElementById('cust-empty');
+  const hadPeek = !!(root && root.classList.contains('cust-empty--peek-chat'));
+  if (_custEmptyChatPeekTimer) {
+    clearTimeout(_custEmptyChatPeekTimer);
+    _custEmptyChatPeekTimer = null;
+  }
+  root?.classList.remove('cust-empty--peek-chat');
+  if (hadPeek) startCustEmptyCoach();
+}
+
+try {
+  window.hintCustEmptyChatMessage = hintCustEmptyChatMessage;
+  window.clearCustEmptyChatPeek = clearCustEmptyChatPeek;
+  window.hintCustEmptyNotifUnread = hintCustEmptyNotifUnread;
+} catch (e) {}
 
 function _custEmptyCoachTargetVisible() {
   const root = document.getElementById('cust-empty');
@@ -515,11 +632,15 @@ function refreshCustEmptyCoachBubble() {
     if (bubble) bubble.style.display = 'none';
     return;
   }
+  if (root.classList.contains('cust-empty--peek-chat') || root.classList.contains('cust-empty--peek-notif')) return;
   const tr = currentLang === 'tr';
   const p = window._dialerPerfSnapshot || {};
   const calls = Number(p.calls) || 0;
   const appts = Number(p.appts) || 0;
   const posCalls = Number(p.posCalls) || 0;
+  const tdA = Number(p.todayAppts) || 0;
+  const tdC = Number(p.todayCalls) || 0;
+  const monA = Number(p.monthlyAppts) || 0;
   const scope = p.tab === 'week' ? 'week' : (p.tab === 'month' ? 'month' : 'today');
   const scopeWordTr = scope === 'week' ? 'Bu hafta' : (scope === 'month' ? 'Bu ay' : 'Bugün');
   const scopeWordDe = scope === 'week' ? 'Diese Woche' : (scope === 'month' ? 'Diesen Monat' : 'Heute');
@@ -528,8 +649,17 @@ function refreshCustEmptyCoachBubble() {
   const periodGoal = goalBase * goalFactor;
   const apptRatio = appts / periodGoal;
   const hasStrongCallVolume = calls >= (12 * goalFactor);
+  const roll = Math.random();
   let msg = '';
-  if (apptRatio >= 1.1 && hasStrongCallVolume) {
+  if (roll < 0.28) {
+    msg = tr
+      ? `Bugün ${tdA} termin, ${tdC} çağrı kaydın var.`
+      : `Heute ${tdA} Termine, ${tdC} Anrufe notiert.`;
+  } else if (roll < 0.36 && monA > 0) {
+    msg = tr
+      ? `Bu ay ${monA} termin — maskotun da büyüyor.`
+      : `Diesen Monat ${monA} Termine — dein Maskottchen wächst mit.`;
+  } else if (apptRatio >= 1.1 && hasStrongCallVolume) {
     msg = tr ? `${scopeWordTr} çok tempo var — termin yağmuru!` : `${scopeWordDe} starkes Tempo — viele Termine!`;
   } else if (calls >= (14 * goalFactor) && posCalls === 0) {
     msg = tr ? `${scopeWordTr} çok çağrı aldın; birazdan yakalarsın.` : `${scopeWordDe} viele Anrufe — der Treffer kommt.`;
@@ -562,17 +692,16 @@ function refreshCustEmptyCoachBubble() {
 }
 
 function startCustEmptyCoach() {
-  stopCustEmptyCoach();
+  _clearCustEmptyCoachTimer();
+  const root = document.getElementById('cust-empty');
+  if (root && (root.classList.contains('cust-empty--peek-chat') || root.classList.contains('cust-empty--peek-notif'))) return;
   if (!_custEmptyCoachTargetVisible()) return;
   refreshCustEmptyCoachBubble();
-  _custEmptyCoachTimer = setInterval(() => refreshCustEmptyCoachBubble(), 68000);
+  _custEmptyCoachTimer = setInterval(() => refreshCustEmptyCoachBubble(), 52000);
 }
 
 function stopCustEmptyCoach() {
-  if (_custEmptyCoachTimer) {
-    clearInterval(_custEmptyCoachTimer);
-    _custEmptyCoachTimer = null;
-  }
+  _clearCustEmptyCoachTimer();
   const bubble = document.getElementById('cust-empty-bubble');
   if (bubble) {
     bubble.style.display = 'none';
@@ -624,6 +753,7 @@ function nudgeCustEmptyMascot() {
   const mascot = document.getElementById('cust-empty-mascot');
   const root = document.getElementById('cust-empty');
   if (!mascot || !root || root.style.display === 'none' || root.classList.contains('cust-empty--ringing')) return;
+  if (root.classList.contains('cust-empty--peek-chat') || root.classList.contains('cust-empty--peek-notif')) return;
   if (dialerStatus !== 'ready' && dialerStatus !== 'break' && dialerStatus !== 'offline') return;
   if (dialerStatus === 'break') {
     mascot.style.setProperty('--mx', `${Math.round((Math.random() - 0.5) * 28)}px`);

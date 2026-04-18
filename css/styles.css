@@ -1037,8 +1037,8 @@ display:grid; grid-template-columns:1fr 1fr; gap:12px;
 position: relative;
 display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
 /* Kart padding’ini nötrler — aurora kenarlarda beyaz bırakmaz */
-margin: -20px -24px -12px;
-width: calc(100% + 48px);
+margin: -20px -28px -12px;
+width: calc(100% + 56px);
 max-width: none;
 padding: 12px 18px 18px;
 text-align:center; gap:14px; color:var(--text-3);
@@ -1197,6 +1197,34 @@ min-height: 0;
     transform 0.5s cubic-bezier(0.33, 1, 0.68, 1);
   pointer-events: none;
   z-index: 2;
+}
+/* Sohbet: sağ alt; bildirim: üst tarafa bakış (zil sağ üst) */
+.cust-empty--peek-chat .cust-empty-mascot {
+  left: auto;
+  right: max(8px, 3.5%);
+  top: auto;
+  bottom: 16%;
+  margin: 0;
+  --mx: 0px;
+  --my: 0px;
+}
+.cust-empty--peek-chat .cust-empty-mascot-eyes {
+  transform: translateX(5px);
+}
+.cust-empty--peek-chat .cust-empty-eye::after {
+  transform: translate(-42%, -34%);
+}
+.cust-empty--peek-notif .cust-empty-mascot {
+  left: 13%;
+  top: 24%;
+  right: auto;
+  bottom: auto;
+  margin: -36px 0 0 -36px;
+  --mx: 0px;
+  --my: 0px;
+}
+.cust-empty--peek-notif .cust-empty-eye::after {
+  transform: translate(-30%, -62%);
 }
 .cust-empty-blob {
   position: relative;
