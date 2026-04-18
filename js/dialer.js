@@ -2367,9 +2367,16 @@ async function tickInboundTestSimulation() {
   let pickedContact = null;
   _inboundSimTickCount += 1;
   const rotateExt = s.incoming_external && (_inboundSimTickCount % 3 === 0);
-  const useExternal =
-    s.incoming_external &&
-    (rotateExt || Math.random() < 0.58 || !contacts?.length);
+  /** Dış hat: test modunda ~yarısı dış (incoming_external açıksa) */
+  let useExternal = false;
+  if (s.incoming_external) {
+    if (_testMode) {
+      useExternal =
+        (_inboundSimTickCount % 2 === 1) || Math.random() < 0.5 || !contacts?.length;
+    } else {
+      useExternal = rotateExt || Math.random() < 0.58 || !contacts?.length;
+    }
+  }
   if (useExternal) {
     phone = `49${15 + Math.floor(Math.random() * 74)}${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`;
   } else if (contacts?.length) {
@@ -2388,7 +2395,13 @@ async function tickInboundTestSimulation() {
   let targetId = null;
   let routeDetail = '';
   const prefName = sessions.find((x) => x.agent_id === preferredId)?.agent_name || '';
-  if (preferredId && readyIds.has(preferredId)) {
+  if (_testMode) {
+    /** Prod’da sıradaki temsilciye gider; testte aksi halde çoğu zaman başka temsilciye gider ve bu ekranda hiçbir şey olmaz */
+    targetId = currentUser.id;
+    routeDetail = tr
+      ? 'TEST: Gelen simülasyon bu oturuma yönlendirildi'
+      : 'TEST: Eingehend-Simulation an diese Session';
+  } else if (preferredId && readyIds.has(preferredId)) {
     targetId = preferredId;
     routeDetail = tr
       ? `Yönlendirme: son arayan temsilci${prefName ? ` (${prefName})` : ''} müsait → öncelik`
