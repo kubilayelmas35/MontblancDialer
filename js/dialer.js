@@ -605,6 +605,21 @@ async function _fetchFirmAgentsForInboundTest(fid) {
   return rows;
 }
 
+/** RLS çoğu zaman sadece kendi satırını döndürür; test senaryoları için isimler (aktarım metni) */
+function _testInboundAugmentOthers(others) {
+  const base = Array.isArray(others) ? [...others] : [];
+  if (base.length >= 2) return base;
+  const extra = [
+    { id: null, name: 'Ziya' },
+    { id: null, name: 'Mehmet' },
+  ];
+  for (const e of extra) {
+    if (base.length >= 2) break;
+    if (!base.some((b) => (b.name || '') === e.name)) base.push(e);
+  }
+  return base;
+}
+
 function _maybeConsumeTestTransferInbox() {
   if (!_testMode || dialerStatus !== 'ready') return;
   if (_inboundTestRingOpen || _fakeCallActive || dialerStatus === 'on_call') return;
@@ -2457,18 +2472,23 @@ async function tickInboundTestSimulation() {
   let pickedContact = null;
   _inboundSimTickCount += 1;
   /**
-   * Dış numara simülasyonu: admin panelinde «incoming_external» kapalı olsa bile
-   * test modunda karışık (iç/dış) gelsin — aksi halde hep kayıtlı kontak seçiliyordu.
+   * Test modunda dış / kayıtlı / aktarım senaryoları deterministik döner (şansa bırakılmaz).
+   * 0–1–2: dış numara (standart, aktarım bildirimi, sahiplik); 3–4–5: kampanyadan kayıtlı kontak.
    */
-  const useExternal =
-    (_inboundSimTickCount % 2 === 1) || Math.random() < 0.52 || !contacts?.length;
+  const phase = (_inboundSimTickCount - 1) % 6;
+  let useExternal = phase <= 2;
+  let scenarioKind = 'standard';
+  if (phase === 1 || phase === 4) scenarioKind = 'forwarded';
+  else if (phase === 2 || phase === 5) scenarioKind = 'owner_other';
+
   if (useExternal) {
     phone = `49${15 + Math.floor(Math.random() * 74)}${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`;
   } else if (contacts?.length) {
     pickedContact = contacts[Math.floor(Math.random() * contacts.length)];
     phone = pickedContact.phone;
   } else {
-    return;
+    useExternal = true;
+    phone = `49${15 + Math.floor(Math.random() * 74)}${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`;
   }
 
   let preferredId = null;
@@ -2538,28 +2558,31 @@ async function tickInboundTestSimulation() {
   contact._inboundRouteDetail = routeDetail;
 
   const agents = await _fetchFirmAgentsForInboundTest(fid);
-  const others = (agents || []).filter((a) => a.id !== currentUser.id);
+  let others = (agents || []).filter((a) => a.id !== currentUser.id);
+  others = _testInboundAugmentOthers(others);
+
   let scenario = 'standard';
   let fromAgentName = '';
   let testOwner = null;
   let testOwnerOnline = false;
-  const r = Math.random();
-  if (others.length >= 1) {
-    if (r < 0.18) {
-      scenario = 'forwarded';
-      const from = others[Math.floor(Math.random() * others.length)];
-      fromAgentName = from.name || '—';
-    } else if (r < 0.4) {
-      scenario = 'owner_other';
-      const o = others[Math.floor(Math.random() * others.length)];
+
+  if (scenarioKind === 'forwarded') {
+    scenario = 'forwarded';
+    const from = others[Math.floor(Math.random() * others.length)];
+    fromAgentName = from.name || '—';
+  } else if (scenarioKind === 'owner_other') {
+    scenario = 'owner_other';
+    const pool = others.filter((o) => o.id);
+    const o = (pool.length ? pool : others)[Math.floor(Math.random() * (pool.length || others.length))];
+    if (o?.id) {
       testOwner = { id: o.id, name: o.name || '—' };
       testOwnerOnline = readyIds.has(o.id);
+    } else {
+      testOwner = { id: null, name: o?.name || 'Ziya' };
+      testOwnerOnline = false;
     }
-  } else if (r < 0.14) {
-    scenario = 'owner_other';
-    testOwner = { id: null, name: 'Ziya' };
-    testOwnerOnline = false;
   }
+
   contact._testScenario = scenario;
   contact._testFromAgentName = scenario === 'forwarded' ? fromAgentName : '';
   contact._testOwner = scenario === 'owner_other' ? testOwner : null;
