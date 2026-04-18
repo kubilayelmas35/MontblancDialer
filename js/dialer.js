@@ -490,7 +490,7 @@ function _custEmptyCoachTargetVisible() {
 function refreshCustEmptyCoachBubble() {
   const bubble = document.getElementById('cust-empty-bubble');
   const root = document.getElementById('cust-empty');
-  if (!bubble || !root || root.style.display === 'none') {
+  if (!bubble || !root || root.style.display === 'none' || root.classList.contains('cust-empty--ringing')) {
     if (bubble) bubble.style.display = 'none';
     return;
   }
@@ -587,6 +587,80 @@ let _inboundExternalCueTimer = null;
 /** Gelen (TEST) kaydırmalı yanıtlama kartı açık */
 let _inboundTestRingOpen = false;
 let _inboundRingAutoDeclineTimer = null;
+/** Gelen test bağlamı (sahiplik, aktarım, proceed) */
+let _inboundTestCtx = null;
+let _inboundTestXferPoll = null;
+
+async function _fetchFirmAgentsForInboundTest(fid) {
+  const now = Date.now();
+  if (window._firmAgentsInboundCache && window._firmAgentsInboundTs && now - window._firmAgentsInboundTs < 45000) {
+    return window._firmAgentsInboundCache;
+  }
+  const rows =
+    (await sb(
+      `users?firm_id=eq.${fid}&role=in.(agent,qc,firm_admin)&is_active=eq.true&select=id,name&order=name.asc`
+    ).catch(() => [])) || [];
+  window._firmAgentsInboundCache = rows;
+  window._firmAgentsInboundTs = now;
+  return rows;
+}
+
+function _maybeConsumeTestTransferInbox() {
+  if (!_testMode || dialerStatus !== 'ready') return;
+  if (_inboundTestRingOpen || _fakeCallActive || dialerStatus === 'on_call') return;
+  if (!currentUser?.id) return;
+  const k = `mb_test_xfer_${currentUser.id}`;
+  let raw;
+  try {
+    raw = localStorage.getItem(k);
+  } catch (e) {
+    return;
+  }
+  if (!raw) return;
+  let p;
+  try {
+    p = JSON.parse(raw);
+  } catch (e) {
+    try {
+      localStorage.removeItem(k);
+    } catch (e2) {}
+    return;
+  }
+  if (Date.now() - (p.ts || 0) > 120000) {
+    try {
+      localStorage.removeItem(k);
+    } catch (e) {}
+    return;
+  }
+  try {
+    localStorage.removeItem(k);
+  } catch (e) {}
+  const tr = currentLang === 'tr';
+  const phone = String(p.phone || '').trim();
+  if (!phone) return;
+  const displayName = String(p.displayName || phone).trim();
+  const parts = displayName.split(/\s+/);
+  const contact = {
+    id: `in-${Date.now()}`,
+    phone,
+    first_name: parts[0] || (tr ? 'Gelen' : 'Eingehend'),
+    last_name: parts.slice(1).join(' ') || (tr ? 'Test' : 'Test'),
+    firm_id: currentUser.firm_id,
+    campaign_id: selectedCampId || campaigns?.[0]?.id || null,
+    status: 'pending',
+    attempt_count: 0,
+    is_inbound_test: true,
+    _testScenario: 'forwarded',
+    _testFromAgentName: p.fromAgent || '—',
+  };
+  void beginInboundTestCall({
+    phone,
+    displayName,
+    contact,
+    routeDetail: '',
+    isExternalInbound: false,
+  });
+}
 
 function _hideInboundExternalFluidCue() {
   if (_inboundExternalCueTimer) {
@@ -2462,20 +2536,70 @@ async function tickInboundTestSimulation() {
 
   const displayName = `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || phone;
   contact._inboundRouteDetail = routeDetail;
+
+  const agents = await _fetchFirmAgentsForInboundTest(fid);
+  const others = (agents || []).filter((a) => a.id !== currentUser.id);
+  let scenario = 'standard';
+  let fromAgentName = '';
+  let testOwner = null;
+  let testOwnerOnline = false;
+  const r = Math.random();
+  if (others.length >= 1) {
+    if (r < 0.18) {
+      scenario = 'forwarded';
+      const from = others[Math.floor(Math.random() * others.length)];
+      fromAgentName = from.name || '—';
+    } else if (r < 0.4) {
+      scenario = 'owner_other';
+      const o = others[Math.floor(Math.random() * others.length)];
+      testOwner = { id: o.id, name: o.name || '—' };
+      testOwnerOnline = readyIds.has(o.id);
+    }
+  } else if (r < 0.14) {
+    scenario = 'owner_other';
+    testOwner = { id: null, name: 'Ziya' };
+    testOwnerOnline = false;
+  }
+  contact._testScenario = scenario;
+  contact._testFromAgentName = scenario === 'forwarded' ? fromAgentName : '';
+  contact._testOwner = scenario === 'owner_other' ? testOwner : null;
+  contact._testOwnerOnline = scenario === 'owner_other' ? testOwnerOnline : false;
+
   await beginInboundTestCall({ phone, displayName, contact, routeDetail, isExternalInbound: useExternal });
 }
 
 function _closeInboundTestRingUI() {
   _inboundTestRingOpen = false;
+  _inboundTestCtx = null;
   if (_inboundRingAutoDeclineTimer) {
     clearTimeout(_inboundRingAutoDeclineTimer);
     _inboundRingAutoDeclineTimer = null;
   }
-  const ov = document.getElementById('dialer-incoming-overlay');
-  if (ov) {
-    ov.style.display = 'none';
-    ov.setAttribute('aria-hidden', 'true');
+  const root = document.getElementById('cust-empty');
+  const panel = document.getElementById('cust-empty-incoming-panel');
+  const def = document.getElementById('cust-empty-default');
+  if (root) root.classList.remove('cust-empty--ringing');
+  if (panel) {
+    panel.style.display = 'none';
+    panel.setAttribute('aria-hidden', 'true');
   }
+  if (def) def.style.display = '';
+  const addWrap = document.getElementById('cust-empty-inbound-add-wrap');
+  if (addWrap) addWrap.style.display = 'none';
+  const fw = document.getElementById('cust-empty-incoming-forward');
+  const ow = document.getElementById('cust-empty-incoming-owner');
+  if (fw) {
+    fw.style.display = 'none';
+    fw.textContent = '';
+  }
+  if (ow) {
+    ow.style.display = 'none';
+    ow.textContent = '';
+  }
+  const ownBtn = document.getElementById('dialer-incoming-btn-owner');
+  if (ownBtn) ownBtn.style.display = 'none';
+  const addTg = document.getElementById('dialer-incoming-btn-addtoggle');
+  if (addTg) addTg.style.display = 'none';
   const knob = document.getElementById('dialer-incoming-knob');
   if (knob) {
     knob.style.transform = '';
@@ -2524,31 +2648,124 @@ function _wireInboundTestSwipeOnce({ accept, decline }) {
   knob.onpointercancel = onUp;
 }
 
-function openInboundTestRingUI({ phone, displayName, routeDetail, isExternalInbound, proceed }) {
+function openInboundTestRingUI(ctx) {
+  const { phone, displayName, routeDetail, isExternalInbound, proceed, contact } = ctx;
   _closeInboundTestRingUI();
   _inboundTestRingOpen = true;
+  _inboundTestCtx = ctx;
   const tr = currentLang === 'tr';
+  const scenario = contact?._testScenario || 'standard';
+  const fromNm = contact?._testFromAgentName || '';
+  const owner = contact?._testOwner || null;
+  const ownerOn = !!contact?._testOwnerOnline;
+
+  const root = document.getElementById('cust-empty');
+  const def = document.getElementById('cust-empty-default');
+  const panel = document.getElementById('cust-empty-incoming-panel');
+  if (def) def.style.display = 'none';
+  if (root) root.classList.add('cust-empty--ringing');
+  if (panel) {
+    panel.style.display = 'block';
+    panel.setAttribute('aria-hidden', 'false');
+    panel.classList.toggle('cust-empty-incoming-panel--external', !!isExternalInbound);
+  }
+
+  if (typeof applyLang === 'function') applyLang();
+
   const nm = document.getElementById('dialer-incoming-name');
   const ph = document.getElementById('dialer-incoming-phone');
   const bd = document.getElementById('dialer-incoming-badge');
   const sub = document.getElementById('dialer-incoming-sub');
-  const ov = document.getElementById('dialer-incoming-overlay');
-  if (ov) {
-    ov.style.display = 'flex';
-    ov.setAttribute('aria-hidden', 'false');
-    ov.classList.toggle('dialer-incoming-overlay--external', !!isExternalInbound);
-  }
-  if (typeof applyLang === 'function') applyLang();
+  const lblL = document.getElementById('dialer-incoming-label-left');
+  const lblR = document.getElementById('dialer-incoming-label-right');
+  const fw = document.getElementById('cust-empty-incoming-forward');
+  const ow = document.getElementById('cust-empty-incoming-owner');
+  const ownBtn = document.getElementById('dialer-incoming-btn-owner');
+  const addTg = document.getElementById('dialer-incoming-btn-addtoggle');
+
   if (nm) nm.textContent = displayName || '—';
   if (ph) ph.textContent = phone || '—';
   if (bd) {
-    bd.textContent = isExternalInbound ? (tr ? 'Dış numara' : 'Extern') : tr ? 'Gelen arama' : 'Eingehend';
+    bd.textContent = isExternalInbound ? (tr ? 'Dış numara' : 'Extern') : tr ? 'Kayıtlı / iç' : 'Intern';
   }
+
+  if (fw) {
+    fw.style.display = scenario === 'forwarded' ? 'block' : 'none';
+    if (scenario === 'forwarded') {
+      fw.textContent = tr
+        ? `${fromNm || 'Temsilci'} size müşterinizi aktarıyor (TEST)`
+        : `${fromNm || 'Agent'} leitet Ihren Kontakt an Sie (TEST)`;
+    }
+  }
+  if (ow) {
+    ow.style.display = 'none';
+    ow.textContent = '';
+  }
+  if (ownBtn) ownBtn.style.display = 'none';
+  if (scenario === 'owner_other' && owner?.name) {
+    if (owner.id && owner.id !== currentUser.id) {
+      if (ow) {
+        ow.style.display = 'block';
+        ow.textContent = ownerOn
+          ? tr
+            ? `Müşteri temsilcisi: ${owner.name} (hazır)`
+            : `Kunde von: ${owner.name} (bereit)`
+          : tr
+            ? `${owner.name} şu an hazır değil / sistemde görünmüyor`
+            : `${owner.name} nicht bereit / nicht im System`;
+      }
+      if (ownBtn) {
+        ownBtn.style.display = ownerOn ? 'inline-flex' : 'none';
+        ownBtn.textContent = tr ? `${owner.name}’a aktar` : `An ${owner.name}`;
+      }
+    } else if (!owner.id) {
+      if (ow) {
+        ow.style.display = 'block';
+        ow.textContent = tr
+          ? `${owner.name} şu an hazır değil / sistemde görünmüyor`
+          : `${owner.name} nicht bereit / nicht im System`;
+      }
+      if (ownBtn) ownBtn.style.display = 'none';
+    }
+  }
+
   if (sub) {
-    sub.textContent = tr
-      ? 'Sağa kaydır — yanıtla · Sola kaydır — başka temsilciye aktar'
-      : 'Nach rechts — annehmen · Nach links — weiterleiten';
+    if (scenario === 'forwarded') {
+      sub.textContent = tr
+        ? 'Sağa kaydır — yanıtla · Sola kaydır — kapat (başkasına aktaramazsınız)'
+        : 'Rechts — annehmen · Links — ablehnen';
+    } else if (scenario === 'owner_other') {
+      sub.textContent = tr
+        ? 'Sağa kaydır — yanıtla · Sola kaydır — reddet · veya sahibine aktarın'
+        : 'Rechts annehmen · Links ablehnen oder an Besitzer weiterleiten';
+    } else {
+      sub.textContent = tr
+        ? 'Sağa kaydır — yanıtla · Sola kaydır — reddet'
+        : 'Rechts — annehmen · Links — ablehnen';
+    }
   }
+  if (lblL) {
+    lblL.textContent = tr ? 'Reddet' : 'Ablehnen';
+    if (scenario === 'forwarded') lblL.textContent = tr ? 'Kapat' : 'Schließen';
+  }
+  if (lblR) lblR.textContent = tr ? 'Yanıtla' : 'Annehmen';
+
+  const decBtn = document.getElementById('dialer-incoming-btn-decline');
+  if (decBtn) {
+    decBtn.textContent =
+      scenario === 'forwarded' ? (tr ? 'Kapat' : 'Schließen') : tr ? 'Reddet' : 'Ablehnen';
+  }
+
+  const linkIn = document.getElementById('inbound-link-phone');
+  if (linkIn) linkIn.value = '';
+
+  const unreg =
+    !contact?.id ||
+    String(contact.id).startsWith('in-') ||
+    String(contact.id).startsWith('adhoc-') ||
+    contact?.is_inbound_test === true;
+  if (addTg) addTg.style.display = unreg ? 'inline-flex' : 'none';
+
   try {
     navigator.vibrate?.(70);
   } catch (e) {}
@@ -2561,16 +2778,15 @@ function openInboundTestRingUI({ phone, displayName, routeDetail, isExternalInbo
     _closeInboundTestRingUI();
     toast(
       tr
-        ? `↩ Gelen (TEST) başka temsilciye aktarıldı${routeDetail ? ' — ' + routeDetail : ''}`
-        : `↩ Eingehend (TEST) weitergeleitet${routeDetail ? ' — ' + routeDetail : ''}`,
+        ? `↩ Gelen (TEST) reddedildi${routeDetail ? ' — ' + routeDetail : ''}`
+        : `↩ Eingehend (TEST) abgelehnt${routeDetail ? ' — ' + routeDetail : ''}`,
       'warn',
-      4200
+      3600
     );
     restartInboundTestSimulationScheduler();
   };
 
   const accBtn = document.getElementById('dialer-incoming-btn-accept');
-  const decBtn = document.getElementById('dialer-incoming-btn-decline');
   if (accBtn) accBtn.onclick = () => accept();
   if (decBtn) decBtn.onclick = () => decline();
 
@@ -2580,6 +2796,99 @@ function openInboundTestRingUI({ phone, displayName, routeDetail, isExternalInbo
   }, 32000);
 
   _wireInboundTestSwipeOnce({ accept, decline });
+}
+
+function inboundTestToggleAddPanel() {
+  const w = document.getElementById('cust-empty-inbound-add-wrap');
+  if (!w) return;
+  w.style.display = w.style.display === 'none' ? 'block' : 'none';
+}
+
+async function inboundTestLinkToContact() {
+  const ctx = _inboundTestCtx;
+  if (!ctx?.contact || !currentUser?.firm_id) return;
+  const tr = currentLang === 'tr';
+  const incoming = String(ctx.phone || '').trim();
+  const targetPhone = document.getElementById('inbound-link-phone')?.value?.trim();
+  if (!targetPhone) {
+    toast(tr ? 'Mevcut müşteri telefonunu girin' : 'Telefon eingeben', 'warn');
+    return;
+  }
+  if (!incoming) return;
+  const fid = currentUser.firm_id;
+  let rows =
+    (await sb(`contacts?firm_id=eq.${fid}&phone=eq.${encodeURIComponent(targetPhone)}&select=*&limit=1`).catch(() => [])) ||
+    [];
+  if (!rows.length) {
+    rows =
+      (await sb(`contacts?firm_id=eq.${fid}&phone2=eq.${encodeURIComponent(targetPhone)}&select=*&limit=1`).catch(() => [])) ||
+      [];
+  }
+  if (!rows?.length) {
+    toast(tr ? 'Bu telefonla müşteri bulunamadı' : 'Kein Kontakt', 'err');
+    return;
+  }
+  const row = rows[0];
+  const patch = {};
+  const p2 = String(row.phone2 || '').trim();
+  const p1 = String(row.phone || '').trim();
+  if (incoming === p1 || incoming === p2) {
+    toast(tr ? 'Numara zaten bu kayıtta' : 'Schon vorhanden', 'warn');
+    return;
+  }
+  if (!p2) {
+    patch.phone2 = incoming;
+  } else {
+    const note = String(row.notes || '').trim();
+    const line = tr ? `\n3. numara: ${incoming}` : `\n3. Nummer: ${incoming}`;
+    patch.notes = note ? note + line : line.trim();
+  }
+  try {
+    await sb(`contacts?id=eq.${row.id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(patch) });
+    toast(tr ? 'Numara kayda bağlandı ✓' : 'Gespeichert ✓', 'ok');
+    Object.assign(row, patch);
+    ctx.contact = row;
+    _closeInboundTestRingUI();
+    currentContact = row;
+    if (row.campaign_id) {
+      const camp = campaigns.find((c) => c.id === row.campaign_id);
+      selectCamp(row.campaign_id, camp?.name || '', { skipActivate: true });
+    }
+    showCustomerCard(row);
+    _fakeCallActive = true;
+    _inboundSimActive = true;
+    window.__voiceOrbSimRemote = true;
+    setDialerStatus('on_call');
+    updateSessionInDB('on_call').catch(() => {});
+    if (typeof switchContactTab === 'function') switchContactTab('info');
+  } catch (e) {
+    toast((tr ? 'Hata: ' : 'Fehler: ') + (e.message || ''), 'err');
+  }
+}
+
+function inboundTestTransferToOwner() {
+  const ctx = _inboundTestCtx;
+  const owner = ctx?.contact?._testOwner;
+  if (!owner?.id) return;
+  const tr = currentLang === 'tr';
+  const payload = {
+    phone: ctx.phone,
+    displayName: ctx.displayName,
+    fromAgent: currentUser.name,
+    ts: Date.now(),
+  };
+  try {
+    localStorage.setItem(`mb_test_xfer_${owner.id}`, JSON.stringify(payload));
+  } catch (e) {}
+  toast(
+    tr
+      ? `TEST: ${owner.name} için kuyruk bildirimi (aynı tarayıcıda ${owner.name} oturumu açıksa gelen çalar)`
+      : `TEST: Benachrichtigung an ${owner.name}`,
+    'ok',
+    5200
+  );
+  _closeInboundTestRingUI();
+  restartInboundTestSimulationScheduler();
 }
 
 async function beginInboundTestCall({ phone, displayName, contact, routeDetail, isExternalInbound }) {
@@ -2634,7 +2943,7 @@ async function beginInboundTestCall({ phone, displayName, contact, routeDetail, 
   }
 
   const ring = () =>
-    openInboundTestRingUI({ phone, displayName, routeDetail, isExternalInbound, proceed });
+    openInboundTestRingUI({ phone, displayName, routeDetail, isExternalInbound, proceed, contact });
 
   if (isExternalInbound && !_isCustDataVisible()) {
     stopCustEmptyCoach();
@@ -2775,6 +3084,14 @@ function toggleTestMode() {
       }
     }
     toast('Test modu kapatıldı', 'warn', 2000);
+  }
+  if (_inboundTestXferPoll) {
+    clearInterval(_inboundTestXferPoll);
+    _inboundTestXferPoll = null;
+  }
+  if (_testMode) {
+    _maybeConsumeTestTransferInbox();
+    _inboundTestXferPoll = setInterval(() => _maybeConsumeTestTransferInbox(), 2000);
   }
   restartInboundTestSimulationScheduler();
 }

@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=7.17">
+<link rel="stylesheet" href="css/styles.css?v=7.18">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -36,7 +36,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v7.17 — 2026</div>
+<div class="login-version">v7.18 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -312,7 +312,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v7.17</div>
+<div class="sb-ver">MontBlanc v7.18</div>
 </div>
 </nav>
 <main id="main">
@@ -1187,6 +1187,7 @@ TEST MODU
 <div id="hotkey-hints" style="margin-bottom:6px;"></div>
 <div class="customer-card" id="customer-card">
 <div class="cust-empty" id="cust-empty">
+<div class="cust-empty-default" id="cust-empty-default">
 <div class="cust-empty-hero" aria-hidden="true">
 <div class="cust-empty-aurora"></div>
 <div class="cust-empty-blob"></div>
@@ -1203,6 +1204,40 @@ TEST MODU
 </div>
 </div>
 <div id="cust-empty-bubble" class="cust-empty-bubble" style="display:none;" role="status" aria-live="polite"></div>
+</div>
+<div id="cust-empty-incoming-panel" class="cust-empty-incoming-panel" style="display:none;" aria-hidden="true">
+<div class="cust-empty-incoming-panel__fluid" aria-hidden="true"></div>
+<div class="cust-empty-incoming-panel__label" data-tr="Gelen arama" data-de="Eingehend">Gelen arama</div>
+<div class="cust-empty-incoming-panel__name" id="dialer-incoming-name">—</div>
+<div class="cust-empty-incoming-panel__phone" id="dialer-incoming-phone">—</div>
+<div class="cust-empty-incoming-panel__badge" id="dialer-incoming-badge">—</div>
+<p class="cust-empty-incoming-panel__sub" id="dialer-incoming-sub"></p>
+<div id="cust-empty-incoming-forward" class="cust-empty-incoming-forward" style="display:none;"></div>
+<div id="cust-empty-incoming-owner" class="cust-empty-incoming-owner" style="display:none;"></div>
+<div id="cust-empty-inbound-add-wrap" class="cust-empty-inbound-add-wrap" style="display:none;">
+<div class="cust-empty-inbound-add-title" data-tr="Kayıtlı müşteriye bağla" data-de="Mit bestehendem Kontakt verknüpfen">Kayıtlı müşteriye bağla</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+<input type="tel" id="inbound-link-phone" class="form-input" style="flex:1;min-width:140px;font-size:12px;" placeholder="Mevcut müşteri telefonu">
+<button type="button" class="btn btn-primary btn-sm" onclick="inboundTestLinkToContact()"><span data-tr="Bu numarayı ekle" data-de="Nummer hinzufügen">Bu numarayı ekle</span></button>
+</div>
+<p class="cust-empty-inbound-add-hint" style="font-size:10px;color:var(--text-3);margin-top:6px;" data-tr="2. telefon boşsa oraya yazılır; doluysa nota 3. numara eklenir." data-de="Wenn Telefon 2 leer: dort speichern; sonst in Notizen.">2. telefon boşsa oraya yazılır; doluysa nota 3. numara eklenir.</p>
+</div>
+<div class="cust-empty-incoming-swipe" id="dialer-incoming-swipe">
+<div class="cust-empty-incoming-swipe__label cust-empty-incoming-swipe__label--left" id="dialer-incoming-label-left" data-tr="Reddet" data-de="Ablehnen">Reddet</div>
+<div class="cust-empty-incoming-swipe__track" id="dialer-incoming-track">
+<button type="button" class="cust-empty-incoming-swipe__knob" id="dialer-incoming-knob" aria-label="Kaydır">
+<i class="ph ph-phone-incoming" aria-hidden="true"></i>
+</button>
+</div>
+<div class="cust-empty-incoming-swipe__label cust-empty-incoming-swipe__label--right" id="dialer-incoming-label-right" data-tr="Yanıtla" data-de="Annehmen">Yanıtla</div>
+</div>
+<div class="cust-empty-incoming-panel__btns">
+<button type="button" class="btn btn-ghost btn-sm" id="dialer-incoming-btn-decline" data-tr="Reddet" data-de="Ablehnen">Reddet</button>
+<button type="button" class="btn btn-primary btn-sm" id="dialer-incoming-btn-accept" data-tr="Yanıtla" data-de="Annehmen">Yanıtla</button>
+<button type="button" class="btn btn-ghost btn-sm" id="dialer-incoming-btn-owner" style="display:none;" onclick="inboundTestTransferToOwner()">—</button>
+<button type="button" class="btn btn-ghost btn-sm" id="dialer-incoming-btn-addtoggle" style="display:none;" onclick="inboundTestToggleAddPanel()" data-tr="Kayıtlıya ekle" data-de="Zu Kontakt">Kayıtlıya ekle</button>
+</div>
+</div>
 </div>
 <div id="cust-data" style="display:none;">
 <div style="display:flex;margin:-8px -8px 12px;border-bottom:2px solid var(--border);">
@@ -1403,31 +1438,6 @@ Sonuçsuz Çağrılar
 </div>
 <div id="unfinalized-calls-list" style="display:none;flex-direction:column;gap:4px;font-size:11px;position:relative;z-index:260;">
 <div style="color:var(--text-3);text-align:center;padding:8px;">Yükleniyor...</div>
-</div>
-</div>
-</div>
-</div>
-<div id="dialer-incoming-overlay" class="dialer-incoming-overlay" style="display:none;" aria-hidden="true">
-<div class="dialer-incoming-overlay__backdrop"></div>
-<div class="dialer-incoming-overlay__card">
-<div class="dialer-incoming-overlay__fluid" aria-hidden="true"></div>
-<div class="dialer-incoming-overlay__label" data-tr="Gelen arama" data-de="Eingehend">Gelen arama</div>
-<div class="dialer-incoming-overlay__name" id="dialer-incoming-name">—</div>
-<div class="dialer-incoming-overlay__phone" id="dialer-incoming-phone">—</div>
-<div class="dialer-incoming-overlay__badge" id="dialer-incoming-badge">—</div>
-<p class="dialer-incoming-overlay__sub" id="dialer-incoming-sub"></p>
-<div class="dialer-incoming-swipe" id="dialer-incoming-swipe">
-<div class="dialer-incoming-swipe__label dialer-incoming-swipe__label--left" data-tr="Aktar" data-de="Weiter">Aktar</div>
-<div class="dialer-incoming-swipe__track" id="dialer-incoming-track">
-<button type="button" class="dialer-incoming-swipe__knob" id="dialer-incoming-knob" aria-label="Kaydır">
-<i class="ph ph-phone-incoming" aria-hidden="true"></i>
-</button>
-</div>
-<div class="dialer-incoming-swipe__label dialer-incoming-swipe__label--right" data-tr="Yanıtla" data-de="Annehmen">Yanıtla</div>
-</div>
-<div class="dialer-incoming-overlay__btns">
-<button type="button" class="btn btn-ghost btn-sm" id="dialer-incoming-btn-decline" data-tr="Başka temsilciye aktar" data-de="Weiterleiten">Başka temsilciye aktar</button>
-<button type="button" class="btn btn-primary btn-sm" id="dialer-incoming-btn-accept" data-tr="Yanıtla" data-de="Annehmen">Yanıtla</button>
 </div>
 </div>
 </div>
@@ -3200,40 +3210,40 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/config.js?v=7.17"></script>
-<script src="js/state.js?v=7.17"></script>
-<script src="js/api.js?v=7.17"></script>
-<script src="js/auth.js?v=7.17"></script>
-<script src="js/ui.js?v=7.17"></script>
-<script src="js/chat.js?v=7.17"></script>
-<script src="js/chat-settings.js?v=7.17"></script>
-<script src="js/field-settings.js?v=7.17"></script>
-<script src="js/audit.js?v=7.17"></script>
-<script src="js/feature-flags.js?v=7.17"></script>
-<script src="js/notification-center.js?v=7.17"></script>
+<script src="js/config.js?v=7.18"></script>
+<script src="js/state.js?v=7.18"></script>
+<script src="js/api.js?v=7.18"></script>
+<script src="js/auth.js?v=7.18"></script>
+<script src="js/ui.js?v=7.18"></script>
+<script src="js/chat.js?v=7.18"></script>
+<script src="js/chat-settings.js?v=7.18"></script>
+<script src="js/field-settings.js?v=7.18"></script>
+<script src="js/audit.js?v=7.18"></script>
+<script src="js/feature-flags.js?v=7.18"></script>
+<script src="js/notification-center.js?v=7.18"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=7.17"></script>
-<script src="js/job-market.js?v=7.17"></script>
-<script src="js/qc-job-market.js?v=7.17"></script>
-<script src="js/export-admin.js?v=7.17"></script>
-<script src="js/export-termin.js?v=7.17"></script>
-<script src="js/performance.js?v=7.17"></script>
-<script src="js/competition.js?v=7.17"></script>
-<script src="js/dashboard.js?v=7.17"></script>
-<script src="js/campaigns.js?v=7.17"></script>
-<script src="js/contacts.js?v=7.17"></script>
-<script src="js/telnyx.js?v=7.17"></script>
-<script src="js/voice-orb.js?v=7.17"></script>
-<script src="js/dialer.js?v=7.17"></script>
-<script src="js/appointments.js?v=7.17"></script>
-<script src="js/field.js?v=7.17"></script>
-<script src="js/field-ops.js?v=7.17"></script>
-<script src="js/wiedervorlage.js?v=7.17"></script>
-<script src="js/qc.js?v=7.17"></script>
-<script src="js/leave-hr.js?v=7.17"></script>
-<script src="js/muhasebe.js?v=7.17"></script>
-<script src="js/agent-self-performance.js?v=7.17"></script>
-<script src="js/agents.js?v=7.17"></script>
+<script src="js/wallet.js?v=7.18"></script>
+<script src="js/job-market.js?v=7.18"></script>
+<script src="js/qc-job-market.js?v=7.18"></script>
+<script src="js/export-admin.js?v=7.18"></script>
+<script src="js/export-termin.js?v=7.18"></script>
+<script src="js/performance.js?v=7.18"></script>
+<script src="js/competition.js?v=7.18"></script>
+<script src="js/dashboard.js?v=7.18"></script>
+<script src="js/campaigns.js?v=7.18"></script>
+<script src="js/contacts.js?v=7.18"></script>
+<script src="js/telnyx.js?v=7.18"></script>
+<script src="js/voice-orb.js?v=7.18"></script>
+<script src="js/dialer.js?v=7.18"></script>
+<script src="js/appointments.js?v=7.18"></script>
+<script src="js/field.js?v=7.18"></script>
+<script src="js/field-ops.js?v=7.18"></script>
+<script src="js/wiedervorlage.js?v=7.18"></script>
+<script src="js/qc.js?v=7.18"></script>
+<script src="js/leave-hr.js?v=7.18"></script>
+<script src="js/muhasebe.js?v=7.18"></script>
+<script src="js/agent-self-performance.js?v=7.18"></script>
+<script src="js/agents.js?v=7.18"></script>
 </body>
 </html>
 
