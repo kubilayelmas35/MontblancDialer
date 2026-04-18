@@ -79,6 +79,7 @@ if (page==='muhasebe')       loadMuhasebePage();
 if (page==='maasim')         loadMaasimPage();
 if (page==='performansim')   loadPerformansimPage();
 if (page==='competition')     loadCompetitionPage();
+if (typeof syncGlobalMascotDock === 'function') setTimeout(() => syncGlobalMascotDock(), 0);
 }
 
 window._apptResultsByFirm = window._apptResultsByFirm || {};

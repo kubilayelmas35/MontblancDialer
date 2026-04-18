@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=7.29">
+<link rel="stylesheet" href="css/styles.css?v=7.30">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -36,7 +36,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v7.29 — 2026</div>
+<div class="login-version">v7.30 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -152,6 +152,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span id="theme-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
 </button>
 <button class="tb-icon-btn" onclick="cycleLang()" id="lang-btn" title="Dil" style="font-size:12px;font-weight:700;font-family:var(--mono);">TR</button>
+<div class="tb-mascot-anchor" id="tb-mascot-anchor" aria-hidden="true" title="Maskot"></div>
 <button class="tb-icon-btn" id="tb-notif-btn" onclick="toggleNotificationCenter()" title="Bildirim Merkezi" style="position:relative;">
 <i class="ph ph-bell" style="font-size:15px;"></i>
 <span id="tb-notif-badge" class="sb-badge" style="display:none;position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;font-size:10px;padding:0 4px;">0</span>
@@ -164,6 +165,21 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </button>
 </div>
+</div>
+<div id="global-mascot" class="global-mascot" aria-hidden="true">
+<div id="cust-empty-mascot" class="cust-empty-mascot">
+<div class="cust-empty-blob">
+<div class="cust-empty-mascot-eyes">
+<span class="cust-empty-eye"></span>
+<span class="cust-empty-eye cust-empty-eye--r"></span>
+</div>
+</div>
+<div class="cust-empty-mascot-tag" id="cust-empty-mascot-tag" aria-hidden="true"></div>
+</div>
+<div class="global-mascot-morph" id="global-mascot-morph" aria-hidden="true">
+<i class="ph ph-bell"></i>
+</div>
+<div id="cust-empty-bubble" class="cust-empty-bubble global-mascot-bubble" style="display:none;" role="status" aria-live="polite"></div>
 </div>
 <div id="body">
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
@@ -312,7 +328,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v7.29</div>
+<div class="sb-ver">MontBlanc v7.30</div>
 </div>
 </nav>
 <main id="main">
@@ -1192,15 +1208,7 @@ TEST MODU
 <div class="cust-empty-aurora cust-empty-aurora--a"></div>
 <div class="cust-empty-aurora cust-empty-aurora--b"></div>
 <div class="cust-empty-aurora cust-empty-aurora--c"></div>
-<div class="cust-empty-mascot" id="cust-empty-mascot">
-<div class="cust-empty-blob">
-<div class="cust-empty-mascot-eyes">
-<span class="cust-empty-eye"></span>
-<span class="cust-empty-eye cust-empty-eye--r"></span>
-</div>
-</div>
-<div class="cust-empty-mascot-tag" id="cust-empty-mascot-tag" aria-hidden="true"></div>
-</div>
+<div class="cust-empty-mascot-slot" id="cust-empty-mascot-slot"></div>
 </div>
 <div class="cust-empty-copy">
 <div class="cust-empty-text" data-tr="Hazır ol — müşteri bilgileri burada görünecek" data-de="Bereit schalten — Kundeninformationen erscheinen hier">Hazır ol — müşteri bilgileri burada görünecek</div>
@@ -1214,7 +1222,6 @@ TEST MODU
 </div>
 </div>
 </div>
-<div id="cust-empty-bubble" class="cust-empty-bubble" style="display:none;" role="status" aria-live="polite"></div>
 </div>
 </div>
 <div id="cust-empty-incoming-panel" class="cust-empty-incoming-panel" style="display:none;" aria-hidden="true">
@@ -3260,40 +3267,40 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/config.js?v=7.29"></script>
-<script src="js/state.js?v=7.29"></script>
-<script src="js/api.js?v=7.29"></script>
-<script src="js/auth.js?v=7.29"></script>
-<script src="js/ui.js?v=7.29"></script>
-<script src="js/chat.js?v=7.29"></script>
-<script src="js/chat-settings.js?v=7.29"></script>
-<script src="js/field-settings.js?v=7.29"></script>
-<script src="js/audit.js?v=7.29"></script>
-<script src="js/feature-flags.js?v=7.29"></script>
-<script src="js/notification-center.js?v=7.29"></script>
+<script src="js/config.js?v=7.30"></script>
+<script src="js/state.js?v=7.30"></script>
+<script src="js/api.js?v=7.30"></script>
+<script src="js/auth.js?v=7.30"></script>
+<script src="js/ui.js?v=7.30"></script>
+<script src="js/chat.js?v=7.30"></script>
+<script src="js/chat-settings.js?v=7.30"></script>
+<script src="js/field-settings.js?v=7.30"></script>
+<script src="js/audit.js?v=7.30"></script>
+<script src="js/feature-flags.js?v=7.30"></script>
+<script src="js/notification-center.js?v=7.30"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=7.29"></script>
-<script src="js/job-market.js?v=7.29"></script>
-<script src="js/qc-job-market.js?v=7.29"></script>
-<script src="js/export-admin.js?v=7.29"></script>
-<script src="js/export-termin.js?v=7.29"></script>
-<script src="js/performance.js?v=7.29"></script>
-<script src="js/competition.js?v=7.29"></script>
-<script src="js/dashboard.js?v=7.29"></script>
-<script src="js/campaigns.js?v=7.29"></script>
-<script src="js/contacts.js?v=7.29"></script>
-<script src="js/telnyx.js?v=7.29"></script>
-<script src="js/voice-orb.js?v=7.29"></script>
-<script src="js/dialer.js?v=7.29"></script>
-<script src="js/appointments.js?v=7.29"></script>
-<script src="js/field.js?v=7.29"></script>
-<script src="js/field-ops.js?v=7.29"></script>
-<script src="js/wiedervorlage.js?v=7.29"></script>
-<script src="js/qc.js?v=7.29"></script>
-<script src="js/leave-hr.js?v=7.29"></script>
-<script src="js/muhasebe.js?v=7.29"></script>
-<script src="js/agent-self-performance.js?v=7.29"></script>
-<script src="js/agents.js?v=7.29"></script>
+<script src="js/wallet.js?v=7.30"></script>
+<script src="js/job-market.js?v=7.30"></script>
+<script src="js/qc-job-market.js?v=7.30"></script>
+<script src="js/export-admin.js?v=7.30"></script>
+<script src="js/export-termin.js?v=7.30"></script>
+<script src="js/performance.js?v=7.30"></script>
+<script src="js/competition.js?v=7.30"></script>
+<script src="js/dashboard.js?v=7.30"></script>
+<script src="js/campaigns.js?v=7.30"></script>
+<script src="js/contacts.js?v=7.30"></script>
+<script src="js/telnyx.js?v=7.30"></script>
+<script src="js/voice-orb.js?v=7.30"></script>
+<script src="js/dialer.js?v=7.30"></script>
+<script src="js/appointments.js?v=7.30"></script>
+<script src="js/field.js?v=7.30"></script>
+<script src="js/field-ops.js?v=7.30"></script>
+<script src="js/wiedervorlage.js?v=7.30"></script>
+<script src="js/qc.js?v=7.30"></script>
+<script src="js/leave-hr.js?v=7.30"></script>
+<script src="js/muhasebe.js?v=7.30"></script>
+<script src="js/agent-self-performance.js?v=7.30"></script>
+<script src="js/agents.js?v=7.30"></script>
 </body>
 </html>
 

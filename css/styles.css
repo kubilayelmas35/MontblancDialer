@@ -293,6 +293,121 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+.tb-mascot-anchor {
+  width: 36px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  pointer-events: none;
+}
+/* Üst bar + dialer slot arasında gezen global maskot */
+.global-mascot {
+  position: fixed;
+  z-index: 130;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  transition:
+    left 0.5s cubic-bezier(0.33, 1, 0.68, 1),
+    top 0.5s cubic-bezier(0.33, 1, 0.68, 1);
+  --mascot-call-heat: 0;
+}
+.global-mascot .cust-empty-mascot {
+  position: relative;
+  left: 0;
+  top: 0;
+  margin: 0;
+  transform: translate(-50%, -50%) scale(var(--mascot-scale, 1));
+  transform-origin: center center;
+  filter: saturate(calc(1 + var(--mascot-call-heat, 0) * 0.35));
+}
+.global-mascot.global-mascot--topbar .cust-empty-mascot {
+  transform: translate(-50%, -50%) scale(calc(var(--mascot-scale, 1) * 0.92));
+}
+.global-mascot.global-mascot--dialer .cust-empty-mascot {
+  transform: translate(-50%, -50%) scale(calc(var(--mascot-scale, 1) * 1.02));
+}
+.global-mascot-morph {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 72px;
+  height: 72px;
+  margin: -36px 0 0 -36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.4);
+  transition: opacity 0.28s ease, transform 0.35s cubic-bezier(0.33, 1, 0.68, 1);
+  font-size: 26px;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+.global-mascot--notif-morph .global-mascot-morph {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.global-mascot--notif-morph .cust-empty-mascot {
+  opacity: 0.15;
+  transform: translate(-50%, -50%) scale(0.25);
+}
+.global-mascot--notif-morph.global-mascot--notif-open .cust-empty-mascot {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(0.55);
+}
+.global-mascot--notif-morph.global-mascot--notif-open .global-mascot-morph {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(1.25);
+}
+.global-mascot .cust-empty-bubble.global-mascot-bubble {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin-top: 52px;
+  transform: translateX(-50%);
+  max-width: min(300px, calc(100vw - 20px));
+  width: max-content;
+  z-index: 5;
+  text-align: center;
+}
+.global-mascot.global-mascot--peek-chat {
+  left: auto !important;
+  top: auto !important;
+  right: max(72px, 12vw);
+  bottom: max(16px, 2.5vh);
+  transform: none;
+}
+.global-mascot.global-mascot--peek-chat .cust-empty-mascot {
+  left: auto;
+  top: auto;
+  margin: 0;
+  transform: scale(var(--mascot-scale, 1));
+}
+.global-mascot.global-mascot--peek-chat .cust-empty-mascot-eyes {
+  transform: translateX(5px);
+}
+.global-mascot.global-mascot--peek-chat .cust-empty-eye::after {
+  transform: translate(-42%, -34%);
+}
+.global-mascot.global-mascot--peek-notif {
+  left: auto !important;
+  top: max(52px, var(--topbar-h, 54px)) !important;
+  right: 52px;
+  transform: none;
+}
+.global-mascot.global-mascot--peek-notif .cust-empty-mascot {
+  left: auto;
+  top: auto;
+  margin: 0;
+  transform: scale(var(--mascot-scale, 1));
+}
+.global-mascot.global-mascot--peek-notif .cust-empty-eye::after {
+  transform: translate(-30%, -62%);
+}
 .tb-icon-btn {
 width: 32px; height: 32px;
 display: flex; align-items: center; justify-content: center;
@@ -1181,6 +1296,18 @@ min-height: 0;
   max-width: 100%;
   text-align: center;
 }
+/* Dialer boş kartta maskot hedefi (global maskot buraya hizalanır) */
+.cust-empty-mascot-slot {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: 72px;
+  height: 92px;
+  margin: -36px 0 0 -36px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+}
 /* Meraklı küçük karakter: JS ile --mx/--my (rastgele gezinti) */
 .cust-empty-mascot {
   position: absolute;
@@ -1307,7 +1434,8 @@ min-height: 0;
   pointer-events: none;
   transition: background 0.6s ease, filter 0.6s ease;
 }
-.cust-empty--mascot-bored .cust-empty-blob {
+.cust-empty--mascot-bored .cust-empty-blob,
+.global-mascot[data-mood="bored"] .cust-empty-blob {
   background: linear-gradient(
     145deg,
     hsl(var(--m-b0, 292), 58%, 88%) 0%,
@@ -1318,7 +1446,8 @@ min-height: 0;
   box-shadow: inset 0 2px 12px rgba(255, 255, 255, 0.28);
   filter: saturate(0.85);
 }
-.cust-empty--mascot-angry .cust-empty-blob {
+.cust-empty--mascot-angry .cust-empty-blob,
+.global-mascot[data-mood="angry"] .cust-empty-blob {
   background: linear-gradient(
     145deg,
     hsl(var(--m-a0, 12), 86%, 78%) 0%,
@@ -1330,14 +1459,16 @@ min-height: 0;
   animation: cust-empty-blob-morph 4s ease-in-out infinite;
   filter: brightness(1.05) contrast(1.08);
 }
-.cust-empty--mascot-eat .cust-empty-blob {
+.cust-empty--mascot-eat .cust-empty-blob,
+.global-mascot[data-mood="eat"] .cust-empty-blob {
   animation: cust-empty-blob-munch 0.45s ease-in-out 4;
 }
 @keyframes cust-empty-blob-munch {
   0%, 100% { transform: scale(1) translateY(0); }
   50% { transform: scale(1.05, 0.92) translateY(2px); }
 }
-.cust-empty--break .cust-empty-blob {
+.cust-empty--break .cust-empty-blob,
+.global-mascot[data-mood="break"] .cust-empty-blob {
   background: linear-gradient(
     145deg,
     hsl(var(--m-k0, 210), 82%, 82%) 0%,
@@ -1348,10 +1479,12 @@ min-height: 0;
   box-shadow: inset 0 2px 12px rgba(255, 255, 255, 0.3);
   animation: cust-empty-blob-morph 14s ease-in-out infinite;
 }
-.cust-empty--break .cust-empty-eye {
+.cust-empty--break .cust-empty-eye,
+.global-mascot[data-mood="break"] .cust-empty-eye {
   animation: cust-empty-sleep 3.2s ease-in-out infinite;
 }
-.cust-empty--break .cust-empty-eye::after {
+.cust-empty--break .cust-empty-eye::after,
+.global-mascot[data-mood="break"] .cust-empty-eye::after {
   opacity: 0.15;
 }
 @keyframes cust-empty-sleep {

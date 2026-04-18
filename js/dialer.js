@@ -157,6 +157,13 @@ async function initDialer() {
     startCustEmptyMascotLoops();
   }
   if (typeof applyMascotTheme === 'function') applyMascotTheme();
+  if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
+  if (!_globalMascotResizeWired) {
+    _globalMascotResizeWired = true;
+    window.addEventListener('resize', () => {
+      if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
+    });
+  }
 }
 
 // Kampanya aktif/pasif toggle
@@ -627,8 +634,10 @@ function applyMascotTheme() {
   const h = _mascotHexToHue(hex);
   const cust = document.getElementById('cust-empty');
   const prev = document.getElementById('settings-mascot-preview-wrap');
+  const gm = document.getElementById('global-mascot');
   if (cust) _applyMascotVarsToEl(cust, h, variant);
   if (prev) _applyMascotVarsToEl(prev, h, variant);
+  if (gm) _applyMascotVarsToEl(gm, h, variant);
   updateMascotNameLabel();
 }
 
@@ -642,8 +651,10 @@ function applyMascotThemeLiveFromForm() {
   const h = _mascotHexToHue(c.value);
   const cust = document.getElementById('cust-empty');
   const prev = document.getElementById('settings-mascot-preview-wrap');
+  const gm = document.getElementById('global-mascot');
   if (cust) _applyMascotVarsToEl(cust, h, v.value);
   if (prev) _applyMascotVarsToEl(prev, h, v.value);
+  if (gm) _applyMascotVarsToEl(gm, h, v.value);
 }
 
 function updateMascotNameLabel() {
@@ -705,9 +716,127 @@ try {
   window.applyMascotTheme = applyMascotTheme;
 } catch (e) {}
 
+let _globalMascotResizeWired = false;
+let _lastMascotCheerSec = -1;
+let _mascotNotifMorphT = null;
+
+function _placeGlobalMascotAtRect(rect) {
+  const gm = document.getElementById('global-mascot');
+  if (!gm || !rect || rect.width < 0.5) return;
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  gm.style.left = `${cx}px`;
+  gm.style.top = `${cy}px`;
+}
+
+function syncGlobalMascotDock() {
+  const gm = document.getElementById('global-mascot');
+  const anchor = document.getElementById('tb-mascot-anchor');
+  if (!gm || !anchor) return;
+  if (gm.classList.contains('global-mascot--peek-chat') || gm.classList.contains('global-mascot--peek-notif')) return;
+  if (gm.classList.contains('global-mascot--notif-morph')) {
+    const nb = document.getElementById('tb-notif-btn');
+    const r = nb ? nb.getBoundingClientRect() : anchor.getBoundingClientRect();
+    _placeGlobalMascotAtRect(r);
+    gm.classList.add('global-mascot--topbar');
+    gm.classList.remove('global-mascot--dialer');
+    return;
+  }
+  const dialerActive = document.getElementById('page-dialer')?.classList.contains('active');
+  const custEmpty = document.getElementById('cust-empty');
+  const slot = document.getElementById('cust-empty-mascot-slot');
+  const st = typeof dialerStatus !== 'undefined' ? dialerStatus : '';
+  const busyLine = st === 'on_call' || st === 'wrapping' || st === 'calling';
+  const useSlot =
+    dialerActive &&
+    !busyLine &&
+    custEmpty &&
+    custEmpty.style.display !== 'none' &&
+    (st === 'ready' || st === 'offline' || st === 'break') &&
+    slot &&
+    slot.getBoundingClientRect().width > 1;
+  const rect = useSlot ? slot.getBoundingClientRect() : anchor.getBoundingClientRect();
+  _placeGlobalMascotAtRect(rect);
+  gm.classList.toggle('global-mascot--dialer', !!useSlot);
+  gm.classList.toggle('global-mascot--topbar', !useSlot);
+}
+
+function syncGlobalMascotMoodFromCustEmpty() {
+  const root = document.getElementById('cust-empty');
+  const gm = document.getElementById('global-mascot');
+  if (!gm) return;
+  if (!root || root.style.display === 'none') {
+    gm.removeAttribute('data-mood');
+    return;
+  }
+  if (root.classList.contains('cust-empty--break')) gm.setAttribute('data-mood', 'break');
+  else if (root.classList.contains('cust-empty--mascot-angry')) gm.setAttribute('data-mood', 'angry');
+  else if (root.classList.contains('cust-empty--mascot-bored')) gm.setAttribute('data-mood', 'bored');
+  else if (root.classList.contains('cust-empty--mascot-eat')) gm.setAttribute('data-mood', 'eat');
+  else gm.removeAttribute('data-mood');
+}
+
+function onCallTickForGlobalMascot() {
+  if (typeof dialerStatus === 'undefined' || dialerStatus !== 'on_call') return;
+  const sec = typeof callSeconds !== 'undefined' ? callSeconds : 0;
+  const heat = Math.min(sec / 150, 1);
+  document.getElementById('global-mascot')?.style.setProperty('--mascot-call-heat', String(heat));
+  const milestones = [30, 70, 115, 175, 240, 330, 450];
+  const hit = milestones.find((m) => m <= sec && m > _lastMascotCheerSec);
+  if (!hit) return;
+  _lastMascotCheerSec = hit;
+  const tr = currentLang === 'tr';
+  const pool = tr
+    ? [
+        'Harika gidiyorsun — böyle devam!',
+        'Süpersin, ritmini koru.',
+        'Ses tonun güven veriyor.',
+        'Uzun arama seni güçlendirir; haydi bitirelim!',
+        'İyi iş çıkarıyorsun — yaklaşıyoruz.',
+        'Müşteri seni dinliyor; net ve sakin.',
+        'Profesyonel duruşun çok iyi.',
+        'Haydi, başarabilirsin — nefes al, devam.',
+        'Zaman uzadıkça sen daha da iyisin; sabır senin gücün.',
+      ]
+    : [
+        'Stark — weiter so!',
+        'Sehr gute Kontrol — ruhig bleiben.',
+        'Das klingt vertrauenswürdig.',
+        'Längere Calls machen Routine — du packst das.',
+        'Du bist nah dran — klasse.',
+        'Bleib klar — der Kunde hört zu.',
+        'Professioneller Auftritt.',
+        'Du schaffst das — tief durchatmen, weiter.',
+        'Je länger das Gespräch, desto ruhiger wirkst du — top.',
+      ];
+  const msg = pool[Math.floor(Math.random() * pool.length)];
+  _showCustEmptyBubbleMsg(msg);
+}
+
+function runGlobalMascotNotifMorph() {
+  const gm = document.getElementById('global-mascot');
+  if (!gm) return;
+  if (_mascotNotifMorphT) clearTimeout(_mascotNotifMorphT);
+  gm.classList.remove('global-mascot--notif-open');
+  gm.classList.add('global-mascot--notif-morph');
+  syncGlobalMascotDock();
+  setTimeout(() => gm.classList.add('global-mascot--notif-open'), 420);
+  _mascotNotifMorphT = setTimeout(() => {
+    gm.classList.remove('global-mascot--notif-morph', 'global-mascot--notif-open');
+    _mascotNotifMorphT = null;
+    syncGlobalMascotDock();
+  }, 2900);
+}
+
+try {
+  window.syncGlobalMascotDock = syncGlobalMascotDock;
+  window.runGlobalMascotNotifMorph = runGlobalMascotNotifMorph;
+} catch (e) {}
+
 let _custEmptyCoachTimer = null;
 let _custEmptyChatPeekTimer = null;
 let _custEmptyNotifPeekTimer = null;
+let _custEmptyNotifPeekDelayT = null;
 let _custEmptyLastNotifHint = 0;
 
 function _clearCustEmptyCoachTimer() {
@@ -728,43 +857,63 @@ function _showCustEmptyBubbleMsg(msg) {
 }
 
 function _clearCustEmptyNotifPeek() {
+  if (_custEmptyNotifPeekDelayT) {
+    clearTimeout(_custEmptyNotifPeekDelayT);
+    _custEmptyNotifPeekDelayT = null;
+  }
   if (_custEmptyNotifPeekTimer) {
     clearTimeout(_custEmptyNotifPeekTimer);
     _custEmptyNotifPeekTimer = null;
   }
   document.getElementById('cust-empty')?.classList.remove('cust-empty--peek-notif');
+  document.getElementById('global-mascot')?.classList.remove('global-mascot--peek-notif');
 }
 
 function hintCustEmptyNotifUnread(totalUnread) {
   const root = document.getElementById('cust-empty');
-  if (!root || root.style.display === 'none' || root.classList.contains('cust-empty--ringing')) return;
-  if (root.classList.contains('cust-empty--peek-chat')) return;
+  const gm = document.getElementById('global-mascot');
+  if (!gm) return;
+  if (root && root.style.display !== 'none' && root.classList.contains('cust-empty--ringing')) return;
+  if (root?.classList.contains('cust-empty--peek-chat')) return;
+  if (gm.classList.contains('global-mascot--peek-chat')) return;
   const n = Math.max(1, Number(totalUnread) || 1);
   if (Date.now() - _custEmptyLastNotifHint < 85000) return;
   _custEmptyLastNotifHint = Date.now();
   _clearCustEmptyCoachTimer();
   _clearCustEmptyNotifPeek();
-  root.classList.add('cust-empty--peek-notif');
+  if (typeof runGlobalMascotNotifMorph === 'function') runGlobalMascotNotifMorph();
   const tr = currentLang === 'tr';
   _showCustEmptyBubbleMsg(
     tr
       ? `Bildirim merkezinde okunmamış öğe var (${n}). Sağ üstteki zile tıkla.`
       : `Ungelesene Benachrichtigungen (${n}). Glocke oben rechts.`
   );
+  _custEmptyNotifPeekDelayT = setTimeout(() => {
+    _custEmptyNotifPeekDelayT = null;
+    root?.classList.add('cust-empty--peek-notif');
+    gm.classList.add('global-mascot--peek-notif');
+    syncGlobalMascotDock();
+  }, 3000);
   _custEmptyNotifPeekTimer = setTimeout(() => {
     _custEmptyNotifPeekTimer = null;
-    root.classList.remove('cust-empty--peek-notif');
+    root?.classList.remove('cust-empty--peek-notif');
+    gm.classList.remove('global-mascot--peek-notif');
     startCustEmptyCoach();
-  }, 11000);
+    syncGlobalMascotDock();
+  }, 14000);
 }
 
 function hintCustEmptyChatMessage(fromName) {
   const root = document.getElementById('cust-empty');
-  if (!root || root.style.display === 'none' || root.classList.contains('cust-empty--ringing')) return;
+  const gm = document.getElementById('global-mascot');
+  if (!gm) return;
+  if (root && root.style.display !== 'none' && root.classList.contains('cust-empty--ringing')) return;
   _clearCustEmptyCoachTimer();
   _clearCustEmptyNotifPeek();
-  root.classList.remove('cust-empty--peek-notif');
-  root.classList.add('cust-empty--peek-chat');
+  root?.classList.remove('cust-empty--peek-notif');
+  gm.classList.remove('global-mascot--peek-notif');
+  root?.classList.add('cust-empty--peek-chat');
+  gm.classList.add('global-mascot--peek-chat');
   const tr = currentLang === 'tr';
   const who = fromName && String(fromName).trim() ? String(fromName).trim() : tr ? 'Ekip' : 'Team';
   _showCustEmptyBubbleMsg(
@@ -778,13 +927,21 @@ function hintCustEmptyChatMessage(fromName) {
 
 function clearCustEmptyChatPeek() {
   const root = document.getElementById('cust-empty');
-  const hadPeek = !!(root && root.classList.contains('cust-empty--peek-chat'));
+  const gm = document.getElementById('global-mascot');
+  const hadPeek = !!(
+    (root && root.classList.contains('cust-empty--peek-chat')) ||
+    (gm && gm.classList.contains('global-mascot--peek-chat'))
+  );
   if (_custEmptyChatPeekTimer) {
     clearTimeout(_custEmptyChatPeekTimer);
     _custEmptyChatPeekTimer = null;
   }
   root?.classList.remove('cust-empty--peek-chat');
-  if (hadPeek) startCustEmptyCoach();
+  gm?.classList.remove('global-mascot--peek-chat');
+  if (hadPeek) {
+    startCustEmptyCoach();
+    syncGlobalMascotDock();
+  }
 }
 
 try {
@@ -795,17 +952,20 @@ try {
 
 function _custEmptyCoachTargetVisible() {
   const root = document.getElementById('cust-empty');
-  return !!(root && root.style.display !== 'none');
+  const dialer = document.getElementById('page-dialer')?.classList.contains('active');
+  return !!(dialer && root && root.style.display !== 'none');
 }
 
 function refreshCustEmptyCoachBubble() {
   const bubble = document.getElementById('cust-empty-bubble');
   const root = document.getElementById('cust-empty');
+  const gm = document.getElementById('global-mascot');
   if (!bubble || !root || root.style.display === 'none' || root.classList.contains('cust-empty--ringing')) {
     if (bubble) bubble.style.display = 'none';
     return;
   }
   if (root.classList.contains('cust-empty--peek-chat') || root.classList.contains('cust-empty--peek-notif')) return;
+  if (gm && (gm.classList.contains('global-mascot--peek-chat') || gm.classList.contains('global-mascot--peek-notif'))) return;
   const tr = currentLang === 'tr';
   const p = window._dialerPerfSnapshot || {};
   const calls = Number(p.calls) || 0;
@@ -863,7 +1023,9 @@ function refreshCustEmptyCoachBubble() {
 function startCustEmptyCoach() {
   _clearCustEmptyCoachTimer();
   const root = document.getElementById('cust-empty');
+  const gm = document.getElementById('global-mascot');
   if (root && (root.classList.contains('cust-empty--peek-chat') || root.classList.contains('cust-empty--peek-notif'))) return;
+  if (gm && (gm.classList.contains('global-mascot--peek-chat') || gm.classList.contains('global-mascot--peek-notif'))) return;
   if (!_custEmptyCoachTargetVisible()) return;
   refreshCustEmptyCoachBubble();
   _custEmptyCoachTimer = setInterval(() => refreshCustEmptyCoachBubble(), 52000);
@@ -902,12 +1064,16 @@ function _stopCustEmptyMascotTimers() {
 
 function refreshCustEmptyMascotState() {
   const root = document.getElementById('cust-empty');
-  if (!root || root.style.display === 'none') return;
+  if (!root || root.style.display === 'none') {
+    syncGlobalMascotMoodFromCustEmpty();
+    return;
+  }
   if (root.classList.contains('cust-empty--ringing')) return;
   root.classList.remove('cust-empty--mascot-bored', 'cust-empty--mascot-angry', 'cust-empty--break');
   const st = typeof dialerStatus !== 'undefined' ? dialerStatus : '';
   if (st === 'break') {
     root.classList.add('cust-empty--break');
+    syncGlobalMascotMoodFromCustEmpty();
     return;
   }
   if (st !== 'ready' && st !== 'offline') return;
@@ -916,13 +1082,21 @@ function refreshCustEmptyMascotState() {
   const waitSec = (Date.now() - t0) / 1000;
   if (waitSec > 120) root.classList.add('cust-empty--mascot-angry');
   else if (waitSec > 45) root.classList.add('cust-empty--mascot-bored');
+  syncGlobalMascotMoodFromCustEmpty();
 }
 
 function nudgeCustEmptyMascot() {
   const mascot = document.getElementById('cust-empty-mascot');
   const root = document.getElementById('cust-empty');
+  const gm = document.getElementById('global-mascot');
   if (!mascot || !root || root.style.display === 'none' || root.classList.contains('cust-empty--ringing')) return;
-  if (root.classList.contains('cust-empty--peek-chat') || root.classList.contains('cust-empty--peek-notif')) return;
+  if (
+    root.classList.contains('cust-empty--peek-chat') ||
+    root.classList.contains('cust-empty--peek-notif') ||
+    gm?.classList.contains('global-mascot--peek-chat') ||
+    gm?.classList.contains('global-mascot--peek-notif')
+  )
+    return;
   if (dialerStatus !== 'ready' && dialerStatus !== 'break' && dialerStatus !== 'offline') return;
   if (dialerStatus === 'break') {
     mascot.style.setProperty('--mx', `${Math.round((Math.random() - 0.5) * 28)}px`);
@@ -950,8 +1124,10 @@ function scheduleMascotEatOnce() {
       return;
     }
     root.classList.add('cust-empty--mascot-eat');
+    syncGlobalMascotMoodFromCustEmpty();
     setTimeout(() => {
       root.classList.remove('cust-empty--mascot-eat');
+      syncGlobalMascotMoodFromCustEmpty();
       scheduleMascotEatOnce();
     }, 2600);
   }, delay);
@@ -971,12 +1147,15 @@ function startCustEmptyMascotLoops() {
 /** Aylık termin sayısı / aylık hedefe göre maskot ölçeği (1 = standart, üst sınır ~1.55) */
 function updateCustEmptyMascotScale() {
   const root = document.getElementById('cust-empty');
+  const gm = document.getElementById('global-mascot');
   if (!root) return;
   const monthlyGoal = Math.max(1, Number(_dailyGoal) || 5) * 22;
   const n = Number(window._dialerPerfSnapshot?.monthlyAppts ?? 0);
   const t = Math.min(Math.max(n / monthlyGoal, 0), 2.2);
   const scale = 1 + 0.28 * t;
-  root.style.setProperty('--mascot-scale', String(Math.min(Math.max(scale, 1), 1.55)));
+  const v = String(Math.min(Math.max(scale, 1), 1.55));
+  root.style.setProperty('--mascot-scale', v);
+  if (gm) gm.style.setProperty('--mascot-scale', v);
 }
 
 async function loadUpcomingWv() {
@@ -1520,6 +1699,10 @@ function setDialerStatus(s) {
       'cust-empty--mascot-eat'
     );
   }
+  syncGlobalMascotMoodFromCustEmpty();
+  if (s === 'on_call') _lastMascotCheerSec = -1;
+  if (s !== 'on_call') document.getElementById('global-mascot')?.style.setProperty('--mascot-call-heat', '0');
+  syncGlobalMascotDock();
 }
 
 function updateDialerNavCallIndicator() {
@@ -1689,6 +1872,7 @@ function resetDialerVoiceVisuals() {
 function startCallTimer() {
   clearInterval(callTimerInt);
   callSeconds = 0;
+  _lastMascotCheerSec = -1;
   refreshStatusElapsed();
   updateDialerVoiceVisuals(0);
   if (typeof startDialerVoiceRings === 'function') startDialerVoiceRings();
@@ -1700,11 +1884,14 @@ function startCallTimer() {
     if (el) el.textContent=`${m}:${s}`;
     refreshStatusElapsed();
     updateDialerVoiceVisuals(callSeconds);
+    if (typeof onCallTickForGlobalMascot === 'function') onCallTickForGlobalMascot();
   },1000);
 }
 
 function stopCallTimer() {
   clearInterval(callTimerInt);
+  _lastMascotCheerSec = -1;
+  document.getElementById('global-mascot')?.style.setProperty('--mascot-call-heat', '0');
   const tblk = document.getElementById('dialer-timer-block');
   if (tblk) tblk.style.display='none';
   resetDialerVoiceVisuals();
