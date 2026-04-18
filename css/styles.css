@@ -1202,6 +1202,182 @@ overflow: hidden;
   border-bottom-color: color-mix(in srgb, var(--yellow) 45%, var(--border));
   font-weight: 700;
 }
+
+/* Gelen (TEST) tam ekran — kaydırarak yanıtla / aktar */
+#page-dialer {
+  position: relative;
+}
+.dialer-incoming-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.dialer-incoming-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(6px);
+}
+html[data-theme="dark"] .dialer-incoming-overlay__backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+.dialer-incoming-overlay__card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 380px;
+  padding: 28px 22px 22px;
+  border-radius: 20px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.dialer-incoming-overlay--external .dialer-incoming-overlay__card {
+  border-color: color-mix(in srgb, var(--yellow) 45%, var(--border));
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--yellow) 15%, transparent);
+}
+.dialer-incoming-overlay__fluid {
+  position: absolute;
+  left: 50%;
+  top: -20%;
+  width: 120%;
+  height: 55%;
+  transform: translateX(-50%);
+  background: conic-gradient(
+    from 200deg,
+    color-mix(in srgb, var(--accent) 55%, transparent),
+    color-mix(in srgb, var(--green) 45%, transparent),
+    color-mix(in srgb, var(--yellow) 40%, transparent),
+    color-mix(in srgb, var(--accent) 55%, transparent)
+  );
+  filter: blur(32px);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: cust-empty-aurora-spin 14s linear infinite;
+}
+.dialer-incoming-overlay__label {
+  position: relative;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 6px;
+}
+.dialer-incoming-overlay__name {
+  position: relative;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1.2;
+}
+.dialer-incoming-overlay__phone {
+  position: relative;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--mono);
+  color: var(--text-2);
+  margin-top: 4px;
+}
+.dialer-incoming-overlay__badge {
+  position: relative;
+  display: inline-block;
+  margin-top: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-3));
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  color: var(--accent);
+}
+.dialer-incoming-overlay--external .dialer-incoming-overlay__badge {
+  background: color-mix(in srgb, var(--yellow) 18%, var(--bg-3));
+  border-color: color-mix(in srgb, var(--yellow) 45%, var(--border));
+  color: var(--yellow);
+}
+.dialer-incoming-overlay__sub {
+  position: relative;
+  margin: 14px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  line-height: 1.45;
+}
+.dialer-incoming-swipe {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 22px;
+}
+.dialer-incoming-swipe__label {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  max-width: 72px;
+  line-height: 1.2;
+}
+.dialer-incoming-swipe__label--left {
+  color: color-mix(in srgb, var(--red) 85%, var(--text-3));
+  text-align: right;
+}
+.dialer-incoming-swipe__label--right {
+  color: color-mix(in srgb, var(--green) 85%, var(--text-3));
+  text-align: left;
+}
+.dialer-incoming-swipe__track {
+  flex: 1;
+  position: relative;
+  height: 52px;
+  border-radius: 999px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dialer-incoming-swipe__knob {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: none;
+  cursor: grab;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: #fff;
+  background: linear-gradient(145deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #1e293b));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: transform 0.08s ease-out;
+}
+.dialer-incoming-swipe__knob:active {
+  cursor: grabbing;
+}
+.dialer-incoming-overlay__btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.dialer-incoming-overlay__btns .btn {
+  flex: 1;
+  min-width: 120px;
+}
 /* Dialer controls */
 .dialer-controls {
 display:flex; flex-direction:column; gap:10px;

@@ -584,6 +584,9 @@ let _unfinalizedCallsOpen = false;
 let _inboundSimTickCount = 0;
 /** Dış gelen (TEST) fluid vurgusu — proceed’den önce iptal */
 let _inboundExternalCueTimer = null;
+/** Gelen (TEST) kaydırmalı yanıtlama kartı açık */
+let _inboundTestRingOpen = false;
+let _inboundRingAutoDeclineTimer = null;
 
 function _hideInboundExternalFluidCue() {
   if (_inboundExternalCueTimer) {
@@ -2331,10 +2334,13 @@ function restartInboundTestSimulationScheduler() {
   const page = document.getElementById('page-dialer');
   if (!page?.classList.contains('active')) return;
   const tick = () => {
+    const gap = _testMode
+      ? 12000 + Math.floor(Math.random() * 10000)
+      : 26000 + Math.floor(Math.random() * 24000);
     _inboundSimTimer = setTimeout(async () => {
       await tickInboundTestSimulation();
       tick();
-    }, 26000 + Math.floor(Math.random() * 24000));
+    }, gap);
   };
   tick();
 }
@@ -2350,14 +2356,24 @@ async function tickInboundTestSimulation() {
   if (!_testMode) return;
   await loadFirmDialerSettingsCache();
   const s = window._firmDialerSettings || {};
-  if (!s.incoming_super_enabled || !s.incoming_enabled) return;
+  /** incoming_enabled yeterli; incoming_super_enabled prod kilidi — test tick’inde zorunlu değil */
+  if (!s.incoming_enabled) return;
   if (dialerStatus !== 'ready') return;
-  if (_fakeCallActive || dialerStatus === 'on_call') return;
+  if (_fakeCallActive || dialerStatus === 'on_call' || _inboundTestRingOpen) return;
   if (!currentUser?.firm_id) return;
   const fid = currentUser.firm_id;
   const tr = currentLang === 'tr';
 
-  const sessions = await sb(`agent_sessions?firm_id=eq.${fid}&status=eq.ready&select=agent_id,agent_name,last_seen&order=last_seen.asc`).catch(() => []);
+  let sessions = await sb(`agent_sessions?firm_id=eq.${fid}&status=eq.ready&select=agent_id,agent_name,last_seen&order=last_seen.asc`).catch(() => []);
+  if ((!sessions?.length || !sessions.some((x) => x.agent_id === currentUser.id)) && dialerStatus === 'ready') {
+    sessions = [
+      {
+        agent_id: currentUser.id,
+        agent_name: currentUser.name || '',
+        last_seen: new Date().toISOString(),
+      },
+    ];
+  }
   if (!sessions?.length) return;
   const readyIds = new Set(sessions.map((x) => x.agent_id));
   if (!readyIds.has(currentUser.id)) return;
@@ -2455,8 +2471,125 @@ async function tickInboundTestSimulation() {
   await beginInboundTestCall({ phone, displayName, contact, routeDetail, isExternalInbound: useExternal });
 }
 
+function _closeInboundTestRingUI() {
+  _inboundTestRingOpen = false;
+  if (_inboundRingAutoDeclineTimer) {
+    clearTimeout(_inboundRingAutoDeclineTimer);
+    _inboundRingAutoDeclineTimer = null;
+  }
+  const ov = document.getElementById('dialer-incoming-overlay');
+  if (ov) {
+    ov.style.display = 'none';
+    ov.setAttribute('aria-hidden', 'true');
+  }
+  const knob = document.getElementById('dialer-incoming-knob');
+  if (knob) {
+    knob.style.transform = '';
+    knob.onpointerdown = null;
+    knob.onpointermove = null;
+    knob.onpointerup = null;
+    knob.onpointercancel = null;
+  }
+}
+
+function _wireInboundTestSwipeOnce({ accept, decline }) {
+  const knob = document.getElementById('dialer-incoming-knob');
+  if (!knob) return;
+  const maxX = 92;
+  const TH = 46;
+  let startX = 0;
+  let cur = 0;
+  let dragging = false;
+  const onDown = (e) => {
+    dragging = true;
+    startX = e.clientX;
+    cur = 0;
+    try {
+      knob.setPointerCapture(e.pointerId);
+    } catch (err) {}
+  };
+  const onMove = (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    cur = Math.max(-maxX, Math.min(maxX, dx));
+    knob.style.transform = `translateX(${cur}px)`;
+  };
+  const onUp = (e) => {
+    if (!dragging) return;
+    dragging = false;
+    try {
+      knob.releasePointerCapture(e.pointerId);
+    } catch (err) {}
+    if (cur >= TH) accept();
+    else if (cur <= -TH) decline();
+    knob.style.transform = '';
+  };
+  knob.onpointerdown = onDown;
+  knob.onpointermove = onMove;
+  knob.onpointerup = onUp;
+  knob.onpointercancel = onUp;
+}
+
+function openInboundTestRingUI({ phone, displayName, routeDetail, isExternalInbound, proceed }) {
+  _closeInboundTestRingUI();
+  _inboundTestRingOpen = true;
+  const tr = currentLang === 'tr';
+  const nm = document.getElementById('dialer-incoming-name');
+  const ph = document.getElementById('dialer-incoming-phone');
+  const bd = document.getElementById('dialer-incoming-badge');
+  const sub = document.getElementById('dialer-incoming-sub');
+  const ov = document.getElementById('dialer-incoming-overlay');
+  if (ov) {
+    ov.style.display = 'flex';
+    ov.setAttribute('aria-hidden', 'false');
+    ov.classList.toggle('dialer-incoming-overlay--external', !!isExternalInbound);
+  }
+  if (typeof applyLang === 'function') applyLang();
+  if (nm) nm.textContent = displayName || '—';
+  if (ph) ph.textContent = phone || '—';
+  if (bd) {
+    bd.textContent = isExternalInbound ? (tr ? 'Dış numara' : 'Extern') : tr ? 'Gelen arama' : 'Eingehend';
+  }
+  if (sub) {
+    sub.textContent = tr
+      ? 'Sağa kaydır — yanıtla · Sola kaydır — başka temsilciye aktar'
+      : 'Nach rechts — annehmen · Nach links — weiterleiten';
+  }
+  try {
+    navigator.vibrate?.(70);
+  } catch (e) {}
+
+  const accept = () => {
+    _closeInboundTestRingUI();
+    void proceed();
+  };
+  const decline = () => {
+    _closeInboundTestRingUI();
+    toast(
+      tr
+        ? `↩ Gelen (TEST) başka temsilciye aktarıldı${routeDetail ? ' — ' + routeDetail : ''}`
+        : `↩ Eingehend (TEST) weitergeleitet${routeDetail ? ' — ' + routeDetail : ''}`,
+      'warn',
+      4200
+    );
+    restartInboundTestSimulationScheduler();
+  };
+
+  const accBtn = document.getElementById('dialer-incoming-btn-accept');
+  const decBtn = document.getElementById('dialer-incoming-btn-decline');
+  if (accBtn) accBtn.onclick = () => accept();
+  if (decBtn) decBtn.onclick = () => decline();
+
+  _inboundRingAutoDeclineTimer = setTimeout(() => {
+    _inboundRingAutoDeclineTimer = null;
+    if (_inboundTestRingOpen) decline();
+  }, 32000);
+
+  _wireInboundTestSwipeOnce({ accept, decline });
+}
+
 async function beginInboundTestCall({ phone, displayName, contact, routeDetail, isExternalInbound }) {
-  if (_fakeCallActive || dialerStatus === 'on_call') return;
+  if (_fakeCallActive || dialerStatus === 'on_call' || _inboundTestRingOpen) return;
 
   const proceed = async () => {
     const tr = currentLang === 'tr';
@@ -2501,18 +2634,26 @@ async function beginInboundTestCall({ phone, displayName, contact, routeDetail, 
     if (typeof switchContactTab === 'function') switchContactTab('info');
   };
 
-  if (_testMode && isExternalInbound && !_isCustDataVisible()) {
+  if (!_testMode) {
+    await proceed();
+    return;
+  }
+
+  const ring = () =>
+    openInboundTestRingUI({ phone, displayName, routeDetail, isExternalInbound, proceed });
+
+  if (isExternalInbound && !_isCustDataVisible()) {
     stopCustEmptyCoach();
     if (_inboundExternalCueTimer) {
       clearTimeout(_inboundExternalCueTimer);
       _inboundExternalCueTimer = null;
     }
-    const custEmpty = document.getElementById('cust-empty');
     const custData = document.getElementById('cust-data');
     const cue = document.getElementById('cust-empty-inbound-cue');
     const bubble = document.getElementById('cust-empty-bubble');
     if (bubble) bubble.style.display = 'none';
     if (custData) custData.style.display = 'none';
+    const custEmpty = document.getElementById('cust-empty');
     if (custEmpty) {
       custEmpty.style.display = '';
       custEmpty.classList.add('cust-empty--inbound-external');
@@ -2524,12 +2665,12 @@ async function beginInboundTestCall({ phone, displayName, contact, routeDetail, 
     _inboundExternalCueTimer = setTimeout(() => {
       _inboundExternalCueTimer = null;
       _hideInboundExternalFluidCue();
-      void proceed();
-    }, 1150);
+      ring();
+    }, 900);
     return;
   }
 
-  await proceed();
+  ring();
 }
 
 async function loadIncomingCallsSettingsPage() {
@@ -2617,6 +2758,17 @@ function toggleTestMode() {
       rdyBtn.onclick = testToggleReady; // Telnyx kontrolsüz versiyon
     }
     toast('Test modu açık — gerçek arama yapılmaz, veriler DB\'ye kaydedilir', 'ok', 4000);
+    void loadFirmDialerSettingsCache().then(() => {
+      if (!(window._firmDialerSettings?.incoming_enabled)) {
+        toast(
+          currentLang === 'tr'
+            ? 'Gelen arama simülasyonu için: admin panelinde firma ayarlarında «Gelen aramalar» açık olmalı.'
+            : 'Für eingehende Test-Anrufe: «Eingehend» in den Firmeneinstellungen aktivieren.',
+          'warn',
+          7000
+        );
+      }
+    });
   } else {
     btn.style.cssText = btn.style.cssText.replace(/background[^;]+;|color[^;]+;|border-color[^;]+;/g, '');
     btn.textContent = 'TEST MODU';
@@ -2641,11 +2793,23 @@ async function testToggleReady() {
   if (!allowed.length) { toast('Önce en az bir kampanyayı aktif edin', 'err'); return; }
   if (dialerStatus === 'offline' || dialerStatus === 'break') {
     setDialerStatus('ready');
-    upsertAgentSession({agent_id:currentUser.id, status:'ready', last_seen:new Date().toISOString()}).catch(()=>{});
+    upsertAgentSession({
+      agent_id: currentUser.id,
+      agent_name: currentUser.name,
+      firm_id: currentUser.firm_id,
+      status: 'ready',
+      last_seen: new Date().toISOString(),
+    }).catch(() => {});
     setTimeout(() => dialNext(), 300);
   } else if (dialerStatus === 'ready') {
     setDialerStatus('offline');
-    upsertAgentSession({agent_id:currentUser.id, status:'offline', last_seen:new Date().toISOString()}).catch(()=>{});
+    upsertAgentSession({
+      agent_id: currentUser.id,
+      agent_name: currentUser.name,
+      firm_id: currentUser.firm_id,
+      status: 'offline',
+      last_seen: new Date().toISOString(),
+    }).catch(() => {});
   }
 }
 
@@ -2674,6 +2838,7 @@ async function startTestCall() {
 }
 
 function endFakeCall() {
+  _closeInboundTestRingUI();
   _hideInboundExternalFluidCue();
   _fakeCallActive = false;
   _inboundSimActive = false;
