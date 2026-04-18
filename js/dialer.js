@@ -152,6 +152,9 @@ async function initDialer() {
   if (hints) hints.style.display = '';
   refreshAutoDialUi();
   void loadFirmDialerSettingsCache().then(() => restartInboundTestSimulationScheduler());
+  if (typeof dialerStatus !== 'undefined' && (dialerStatus === 'ready' || dialerStatus === 'break')) {
+    startCustEmptyMascotLoops();
+  }
 }
 
 // Kampanya aktif/pasif toggle
@@ -557,6 +560,88 @@ function stopCustEmptyCoach() {
     bubble.style.display = 'none';
     bubble.classList.remove('cust-empty-bubble--pop');
   }
+}
+
+let _readyEnteredAt = null;
+let _mascotWanderTimer = null;
+let _mascotMoodTimer = null;
+let _mascotEatTimer = null;
+
+function _stopCustEmptyMascotTimers() {
+  if (_mascotWanderTimer) {
+    clearInterval(_mascotWanderTimer);
+    _mascotWanderTimer = null;
+  }
+  if (_mascotMoodTimer) {
+    clearInterval(_mascotMoodTimer);
+    _mascotMoodTimer = null;
+  }
+  if (_mascotEatTimer) {
+    clearTimeout(_mascotEatTimer);
+    _mascotEatTimer = null;
+  }
+}
+
+function refreshCustEmptyMascotState() {
+  const root = document.getElementById('cust-empty');
+  if (!root || root.style.display === 'none') return;
+  if (root.classList.contains('cust-empty--ringing')) return;
+  root.classList.remove('cust-empty--mascot-bored', 'cust-empty--mascot-angry', 'cust-empty--break');
+  const st = typeof dialerStatus !== 'undefined' ? dialerStatus : '';
+  if (st === 'break') {
+    root.classList.add('cust-empty--break');
+    return;
+  }
+  if (st !== 'ready') return;
+  const waitSec = _readyEnteredAt ? (Date.now() - _readyEnteredAt) / 1000 : 0;
+  if (waitSec > 120) root.classList.add('cust-empty--mascot-angry');
+  else if (waitSec > 45) root.classList.add('cust-empty--mascot-bored');
+}
+
+function nudgeCustEmptyMascot() {
+  const mascot = document.getElementById('cust-empty-mascot');
+  const root = document.getElementById('cust-empty');
+  if (!mascot || !root || root.style.display === 'none' || root.classList.contains('cust-empty--ringing')) return;
+  if (dialerStatus !== 'ready' && dialerStatus !== 'break') return;
+  if (dialerStatus === 'break') {
+    mascot.style.setProperty('--mx', `${Math.round((Math.random() - 0.5) * 28)}px`);
+    mascot.style.setProperty('--my', `${Math.round((Math.random() - 0.5) * 20)}px`);
+    return;
+  }
+  mascot.style.setProperty('--mx', `${Math.round((Math.random() - 0.5) * 104)}px`);
+  mascot.style.setProperty('--my', `${Math.round((Math.random() - 0.5) * 72)}px`);
+}
+
+function scheduleMascotEatOnce() {
+  if (_mascotEatTimer) clearTimeout(_mascotEatTimer);
+  const delay = 22000 + Math.floor(Math.random() * 28000);
+  _mascotEatTimer = setTimeout(() => {
+    _mascotEatTimer = null;
+    if (dialerStatus !== 'ready') {
+      scheduleMascotEatOnce();
+      return;
+    }
+    const root = document.getElementById('cust-empty');
+    if (!root || root.classList.contains('cust-empty--ringing')) {
+      scheduleMascotEatOnce();
+      return;
+    }
+    root.classList.add('cust-empty--mascot-eat');
+    setTimeout(() => {
+      root.classList.remove('cust-empty--mascot-eat');
+      scheduleMascotEatOnce();
+    }, 2600);
+  }, delay);
+}
+
+function startCustEmptyMascotLoops() {
+  _stopCustEmptyMascotTimers();
+  refreshCustEmptyMascotState();
+  nudgeCustEmptyMascot();
+  if (dialerStatus !== 'ready' && dialerStatus !== 'break') return;
+  _mascotWanderTimer = setInterval(nudgeCustEmptyMascot, 3800 + Math.floor(Math.random() * 2200));
+  _mascotMoodTimer = setInterval(refreshCustEmptyMascotState, 8000);
+  if (dialerStatus === 'ready') scheduleMascotEatOnce();
 }
 
 async function loadUpcomingWv() {
@@ -973,6 +1058,11 @@ function syncDialerBottomChrome() {
 function setDialerStatus(s) {
   const prev = dialerStatus;
   dialerStatus = s;
+  if (s === 'ready' && prev !== 'ready') {
+    _readyEnteredAt = Date.now();
+  } else if (s !== 'ready') {
+    _readyEnteredAt = null;
+  }
   updateDialerNavCallIndicator();
   const dot    = document.getElementById('status-dot');
   const label  = document.getElementById('status-label');
@@ -1079,6 +1169,17 @@ function setDialerStatus(s) {
   if (s === 'break') refreshBreakCustEmpty();
   if (s !== 'on_call' && s !== 'wrapping') _stopMicThresholdGate();
   syncDialerBottomChrome();
+  if (s === 'ready' || s === 'break') {
+    startCustEmptyMascotLoops();
+  } else {
+    _stopCustEmptyMascotTimers();
+    document.getElementById('cust-empty')?.classList.remove(
+      'cust-empty--mascot-bored',
+      'cust-empty--mascot-angry',
+      'cust-empty--break',
+      'cust-empty--mascot-eat'
+    );
+  }
 }
 
 function updateDialerNavCallIndicator() {
@@ -2591,7 +2692,7 @@ async function tickInboundTestSimulation() {
   await beginInboundTestCall({ phone, displayName, contact, routeDetail, isExternalInbound: useExternal });
 }
 
-function _closeInboundTestRingUI() {
+function _closeInboundTestRingUI(opts = {}) {
   _inboundTestRingOpen = false;
   _inboundTestCtx = null;
   if (_inboundRingAutoDeclineTimer) {
@@ -2630,6 +2731,12 @@ function _closeInboundTestRingUI() {
     knob.onpointermove = null;
     knob.onpointerup = null;
     knob.onpointercancel = null;
+  }
+  if (
+    !opts.skipMascotRestart &&
+    (dialerStatus === 'ready' || dialerStatus === 'break')
+  ) {
+    startCustEmptyMascotLoops();
   }
 }
 
@@ -2673,7 +2780,8 @@ function _wireInboundTestSwipeOnce({ accept, decline }) {
 
 function openInboundTestRingUI(ctx) {
   const { phone, displayName, routeDetail, isExternalInbound, proceed, contact } = ctx;
-  _closeInboundTestRingUI();
+  _closeInboundTestRingUI({ skipMascotRestart: true });
+  _stopCustEmptyMascotTimers();
   _inboundTestRingOpen = true;
   _inboundTestCtx = ctx;
   const tr = currentLang === 'tr';
