@@ -156,6 +156,7 @@ async function initDialer() {
     if (dialerStatus === 'offline' && !_custEmptyIdleSince) _custEmptyIdleSince = Date.now();
     startCustEmptyMascotLoops();
   }
+  if (typeof applyMascotTheme === 'function') applyMascotTheme();
 }
 
 // Kampanya aktif/pasif toggle
@@ -532,6 +533,178 @@ async function loadMyMiniStats() {
   }
 }
 
+// ── Maskot tema (isim, ana renk, gradient) — localStorage ─────────
+const MASCOT_VARIANT_OFFSETS = {
+  aurora: [0, 24, 50, 78],
+  sunset: [0, 14, -22, -38],
+  ocean: [-10, 8, 28, 48],
+  forest: [28, 72, 98, 118],
+  candy: [0, 38, 58, 82],
+};
+
+function _mascotHexToRgb(hex) {
+  const s = String(hex || '')
+    .replace('#', '')
+    .trim();
+  if (s.length === 3) {
+    return {
+      r: parseInt(s[0] + s[0], 16),
+      g: parseInt(s[1] + s[1], 16),
+      b: parseInt(s[2] + s[2], 16),
+    };
+  }
+  if (s.length !== 6) return { r: 168, g: 85, b: 247 };
+  return {
+    r: parseInt(s.slice(0, 2), 16),
+    g: parseInt(s.slice(2, 4), 16),
+    b: parseInt(s.slice(4, 6), 16),
+  };
+}
+
+function _mascotRgbToHsl(r, g, b) {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r:
+        h = (g - b) / d + (g < b ? 6 : 0);
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      default:
+        h = (r - g) / d + 4;
+        break;
+    }
+    h /= 6;
+  }
+  return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
+function _mascotHexToHue(hex) {
+  const { r, g, b } = _mascotHexToRgb(hex);
+  return Math.round(_mascotRgbToHsl(r, g, b).h);
+}
+
+function _mascotWrapHue(x) {
+  let n = Math.round(x) % 360;
+  if (n < 0) n += 360;
+  return n;
+}
+
+function _applyMascotVarsToEl(el, baseHue, variantKey) {
+  if (!el || !el.style) return;
+  const offs = MASCOT_VARIANT_OFFSETS[variantKey] || MASCOT_VARIANT_OFFSETS.aurora;
+  const d = offs.map((o) => _mascotWrapHue(baseHue + o));
+  d.forEach((v, i) => el.style.setProperty(`--m-d${i}`, String(v)));
+  const bored = [18, 8, -4, -16];
+  bored.forEach((o, i) => el.style.setProperty(`--m-b${i}`, String(_mascotWrapHue(baseHue + o))));
+  const angryAnc = _mascotWrapHue(baseHue * 0.26 + 11 * 0.74);
+  const angryOff = [16, 5, -7, -18];
+  angryOff.forEach((o, i) => el.style.setProperty(`--m-a${i}`, String(_mascotWrapHue(angryAnc + o))));
+  const breakAnc = _mascotWrapHue(baseHue * 0.2 + 216 * 0.8);
+  const brkOff = [12, 2, -8, -18];
+  brkOff.forEach((o, i) => el.style.setProperty(`--m-k${i}`, String(_mascotWrapHue(breakAnc + o))));
+}
+
+function formatMascotSpokenLine(msg) {
+  const raw = (localStorage.getItem('mb_mascot_name') || '').trim();
+  if (!raw) return msg;
+  return `${raw}: ${msg}`;
+}
+
+function applyMascotTheme() {
+  const hex = localStorage.getItem('mb_mascot_color') || '#a855f7';
+  const variant = localStorage.getItem('mb_mascot_variant') || 'aurora';
+  const h = _mascotHexToHue(hex);
+  const cust = document.getElementById('cust-empty');
+  const prev = document.getElementById('settings-mascot-preview-wrap');
+  if (cust) _applyMascotVarsToEl(cust, h, variant);
+  if (prev) _applyMascotVarsToEl(prev, h, variant);
+  updateMascotNameLabel();
+}
+
+function applyMascotThemeLiveFromForm() {
+  const c = document.getElementById('s-mascot-color');
+  const v = document.getElementById('s-mascot-variant');
+  if (!c || !v) {
+    applyMascotTheme();
+    return;
+  }
+  const h = _mascotHexToHue(c.value);
+  const cust = document.getElementById('cust-empty');
+  const prev = document.getElementById('settings-mascot-preview-wrap');
+  if (cust) _applyMascotVarsToEl(cust, h, v.value);
+  if (prev) _applyMascotVarsToEl(prev, h, v.value);
+}
+
+function updateMascotNameLabel() {
+  const tag = document.getElementById('cust-empty-mascot-tag');
+  if (!tag) return;
+  const raw = (localStorage.getItem('mb_mascot_name') || '').trim();
+  tag.textContent = raw ? raw : '';
+  tag.style.display = raw ? 'block' : 'none';
+}
+
+let _mascotSettingsFormWired = false;
+
+function loadMascotSettingsForm() {
+  const n = document.getElementById('s-mascot-name');
+  const c = document.getElementById('s-mascot-color');
+  const v = document.getElementById('s-mascot-variant');
+  if (!n || !c || !v) return;
+  n.value = localStorage.getItem('mb_mascot_name') || '';
+  c.value = localStorage.getItem('mb_mascot_color') || '#a855f7';
+  v.value = localStorage.getItem('mb_mascot_variant') || 'aurora';
+  applyMascotTheme();
+  if (_mascotSettingsFormWired) return;
+  _mascotSettingsFormWired = true;
+  const onLive = () => {
+    applyMascotThemeLiveFromForm();
+    const tag = document.getElementById('cust-empty-mascot-tag');
+    if (tag) {
+      const t = (document.getElementById('s-mascot-name')?.value || '').trim();
+      tag.textContent = t;
+      tag.style.display = t ? 'block' : 'none';
+    }
+  };
+  c.addEventListener('input', onLive);
+  v.addEventListener('change', onLive);
+  n.addEventListener('input', onLive);
+}
+
+function saveMascotSettings() {
+  const n = document.getElementById('s-mascot-name');
+  const c = document.getElementById('s-mascot-color');
+  const v = document.getElementById('s-mascot-variant');
+  if (!n || !c || !v) return;
+  const name = String(n.value || '')
+    .trim()
+    .slice(0, 28);
+  let hex = String(c.value || '#a855f7').trim();
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) hex = '#a855f7';
+  const variant = v.value || 'aurora';
+  localStorage.setItem('mb_mascot_name', name);
+  localStorage.setItem('mb_mascot_color', hex);
+  localStorage.setItem('mb_mascot_variant', variant);
+  applyMascotTheme();
+  toast(currentLang === 'tr' ? '✓ Maskot kaydedildi' : '✓ Maskottchen gespeichert', 'ok');
+}
+
+try {
+  window.saveMascotSettings = saveMascotSettings;
+  window.loadMascotSettingsForm = loadMascotSettingsForm;
+  window.applyMascotTheme = applyMascotTheme;
+} catch (e) {}
+
 let _custEmptyCoachTimer = null;
 let _custEmptyChatPeekTimer = null;
 let _custEmptyNotifPeekTimer = null;
@@ -547,7 +720,7 @@ function _clearCustEmptyCoachTimer() {
 function _showCustEmptyBubbleMsg(msg) {
   const bubble = document.getElementById('cust-empty-bubble');
   if (!bubble) return;
-  bubble.textContent = msg;
+  bubble.textContent = formatMascotSpokenLine(msg);
   bubble.style.display = 'block';
   bubble.classList.remove('cust-empty-bubble--pop');
   void bubble.offsetWidth;
@@ -684,11 +857,7 @@ function refreshCustEmptyCoachBubble() {
       ];
     msg = pool[Math.floor(Math.random() * pool.length)];
   }
-  bubble.textContent = msg;
-  bubble.style.display = 'block';
-  bubble.classList.remove('cust-empty-bubble--pop');
-  void bubble.offsetWidth;
-  bubble.classList.add('cust-empty-bubble--pop');
+  _showCustEmptyBubbleMsg(msg);
 }
 
 function startCustEmptyCoach() {

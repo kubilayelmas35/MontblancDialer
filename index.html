@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=7.28">
+<link rel="stylesheet" href="css/styles.css?v=7.29">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -36,7 +36,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v7.28 — 2026</div>
+<div class="login-version">v7.29 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -312,7 +312,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div class="sb-footer">
-<div class="sb-ver">MontBlanc v7.28</div>
+<div class="sb-ver">MontBlanc v7.29</div>
 </div>
 </nav>
 <main id="main">
@@ -1199,6 +1199,7 @@ TEST MODU
 <span class="cust-empty-eye cust-empty-eye--r"></span>
 </div>
 </div>
+<div class="cust-empty-mascot-tag" id="cust-empty-mascot-tag" aria-hidden="true"></div>
 </div>
 </div>
 <div class="cust-empty-copy">
@@ -2313,6 +2314,44 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button class="btn btn-ghost btn-sm" onclick="setLang('de')">🇩🇪 Deutsch</button>
 </div>
 </div>
+<div class="form-row" style="margin-top:8px;padding-top:16px;border-top:1px solid var(--border);">
+<label class="form-label" data-tr="Dialer maskotu" data-de="Dialer-Maskottchen">Dialer maskotu</label>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:10px;line-height:1.45;" data-tr="İsim ve ana renk kişiseldir; sıkılma / sinir / mola renkleri aynı tonda devam eder." data-de="Name und Grundfarbe sind persönlich; Langeweile/Wut/Pause bleiben im gleichen Farbton.">İsim ve ana renk kişiseldir; sıkılma / sinir / mola renkleri aynı tonda devam eder.</div>
+<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+<div style="flex:1;min-width:140px;">
+<label class="form-label" style="font-size:11px;">İsim</label>
+<input class="form-input" id="s-mascot-name" maxlength="28" placeholder="örn. Piko" autocomplete="off">
+</div>
+<div>
+<label class="form-label" style="font-size:11px;">Ana renk</label>
+<input type="color" id="s-mascot-color" value="#a855f7" style="width:52px;height:38px;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);cursor:pointer;">
+</div>
+</div>
+<div style="margin-top:12px;">
+<label class="form-label" style="font-size:11px;" data-tr="Gradient stili" data-de="Verlauf-Stil">Gradient stili</label>
+<select class="form-input" id="s-mascot-variant" style="max-width:280px;margin-top:4px;">
+<option value="aurora">Aurora (varsayılan)</option>
+<option value="sunset">Günbatımı</option>
+<option value="ocean">Okyanus</option>
+<option value="forest">Yeşil / orman</option>
+<option value="candy">Şeker (canlı)</option>
+</select>
+</div>
+<div id="settings-mascot-preview-wrap" class="settings-mascot-preview-wrap">
+<div class="settings-mascot-preview-label" data-tr="Önizleme" data-de="Vorschau">Önizleme</div>
+<div class="settings-mascot-preview-stage">
+<div class="settings-mascot-preview-mascot">
+<div class="cust-empty-blob">
+<div class="cust-empty-mascot-eyes">
+<span class="cust-empty-eye"></span>
+<span class="cust-empty-eye cust-empty-eye--r"></span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<button type="button" class="btn btn-primary btn-sm" style="margin-top:12px;align-self:flex-start;" onclick="saveMascotSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Maskotu kaydet" data-de="Maskottchen speichern">Maskotu kaydet</span></button>
+</div>
 </div>
 </div>
 <div class="card">
@@ -3221,40 +3260,40 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/config.js?v=7.28"></script>
-<script src="js/state.js?v=7.28"></script>
-<script src="js/api.js?v=7.28"></script>
-<script src="js/auth.js?v=7.28"></script>
-<script src="js/ui.js?v=7.28"></script>
-<script src="js/chat.js?v=7.28"></script>
-<script src="js/chat-settings.js?v=7.28"></script>
-<script src="js/field-settings.js?v=7.28"></script>
-<script src="js/audit.js?v=7.28"></script>
-<script src="js/feature-flags.js?v=7.28"></script>
-<script src="js/notification-center.js?v=7.28"></script>
+<script src="js/config.js?v=7.29"></script>
+<script src="js/state.js?v=7.29"></script>
+<script src="js/api.js?v=7.29"></script>
+<script src="js/auth.js?v=7.29"></script>
+<script src="js/ui.js?v=7.29"></script>
+<script src="js/chat.js?v=7.29"></script>
+<script src="js/chat-settings.js?v=7.29"></script>
+<script src="js/field-settings.js?v=7.29"></script>
+<script src="js/audit.js?v=7.29"></script>
+<script src="js/feature-flags.js?v=7.29"></script>
+<script src="js/notification-center.js?v=7.29"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=7.28"></script>
-<script src="js/job-market.js?v=7.28"></script>
-<script src="js/qc-job-market.js?v=7.28"></script>
-<script src="js/export-admin.js?v=7.28"></script>
-<script src="js/export-termin.js?v=7.28"></script>
-<script src="js/performance.js?v=7.28"></script>
-<script src="js/competition.js?v=7.28"></script>
-<script src="js/dashboard.js?v=7.28"></script>
-<script src="js/campaigns.js?v=7.28"></script>
-<script src="js/contacts.js?v=7.28"></script>
-<script src="js/telnyx.js?v=7.28"></script>
-<script src="js/voice-orb.js?v=7.28"></script>
-<script src="js/dialer.js?v=7.28"></script>
-<script src="js/appointments.js?v=7.28"></script>
-<script src="js/field.js?v=7.28"></script>
-<script src="js/field-ops.js?v=7.28"></script>
-<script src="js/wiedervorlage.js?v=7.28"></script>
-<script src="js/qc.js?v=7.28"></script>
-<script src="js/leave-hr.js?v=7.28"></script>
-<script src="js/muhasebe.js?v=7.28"></script>
-<script src="js/agent-self-performance.js?v=7.28"></script>
-<script src="js/agents.js?v=7.28"></script>
+<script src="js/wallet.js?v=7.29"></script>
+<script src="js/job-market.js?v=7.29"></script>
+<script src="js/qc-job-market.js?v=7.29"></script>
+<script src="js/export-admin.js?v=7.29"></script>
+<script src="js/export-termin.js?v=7.29"></script>
+<script src="js/performance.js?v=7.29"></script>
+<script src="js/competition.js?v=7.29"></script>
+<script src="js/dashboard.js?v=7.29"></script>
+<script src="js/campaigns.js?v=7.29"></script>
+<script src="js/contacts.js?v=7.29"></script>
+<script src="js/telnyx.js?v=7.29"></script>
+<script src="js/voice-orb.js?v=7.29"></script>
+<script src="js/dialer.js?v=7.29"></script>
+<script src="js/appointments.js?v=7.29"></script>
+<script src="js/field.js?v=7.29"></script>
+<script src="js/field-ops.js?v=7.29"></script>
+<script src="js/wiedervorlage.js?v=7.29"></script>
+<script src="js/qc.js?v=7.29"></script>
+<script src="js/leave-hr.js?v=7.29"></script>
+<script src="js/muhasebe.js?v=7.29"></script>
+<script src="js/agent-self-performance.js?v=7.29"></script>
+<script src="js/agents.js?v=7.29"></script>
 </body>
 </html>
 

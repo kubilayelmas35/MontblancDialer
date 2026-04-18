@@ -477,6 +477,7 @@ Object.entries(fields).forEach(([elId,key])=>{
 const el=document.getElementById(elId), val=localStorage.getItem(key);
 if(el&&val) el.value=val;
 });
+if (typeof loadMascotSettingsForm === 'function') loadMascotSettingsForm();
 }
 
 // ── INIT ─────────────────────────────────────
