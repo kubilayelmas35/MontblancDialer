@@ -176,6 +176,7 @@ setTimeout(()=>{ sendToRTC('MB_CONNECT',{sipUser,sipPass}); }, 1200);
 } else {
 updateConnectionStatus('disconnected');
 }
+if (typeof reloadMascotStateForUser === 'function') reloadMascotStateForUser();
 }
 
 // ── Süper Admin Global Firma Seçici ──────────────────

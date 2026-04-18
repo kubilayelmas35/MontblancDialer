@@ -639,6 +639,7 @@ if (!camp) return;
 const s = getCampSettings(camp);
 setCheck('cd-auto-dial', s.auto_dial !== false);
 setCheck('cd-agent-edit', s.agent_edit || false);
+setCheck('cd-appointment-slot-required', s.appointment_slot_required || false);
 setCheck('cd-recycle', s.recycle || false);
 setCheck('cd-cooldown', s.cooldown || false);
 setCheck('cd-precall-test', s.precall_test || false);
@@ -650,6 +651,7 @@ async function saveCampAramaSettings() {
 const s = {
 auto_dial: getCheck('cd-auto-dial'),
 agent_edit: getCheck('cd-agent-edit'),
+appointment_slot_required: getCheck('cd-appointment-slot-required'),
 recycle: getCheck('cd-recycle'),
 recycle_delay: parseInt(getVal('cd-recycle-delay')||'60'),
 cooldown: getCheck('cd-cooldown'),

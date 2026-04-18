@@ -369,6 +369,16 @@ function toggleCampaignAutoDialForMe(campId, checked) {
 
 let _perfTab = 'today';
 let _goalTab = 'daily';
+let _loadMiniStatsTimer = null;
+let _miniStatsReq = 0;
+
+function scheduleLoadMyMiniStats(delayMs = 95) {
+  if (_loadMiniStatsTimer) clearTimeout(_loadMiniStatsTimer);
+  _loadMiniStatsTimer = setTimeout(() => {
+    _loadMiniStatsTimer = null;
+    void loadMyMiniStats();
+  }, delayMs);
+}
 
 function setPerfTab(tab) {
   _perfTab = tab;
@@ -376,7 +386,7 @@ function setPerfTab(tab) {
     const b = document.getElementById(`perf-tab-${t}`);
     if (b) { b.style.background = t===tab ? 'var(--accent)' : 'transparent'; b.style.color = t===tab ? '#fff' : 'var(--text-2)'; }
   });
-  loadMyMiniStats();
+  scheduleLoadMyMiniStats();
 }
 
 function setGoalTab(tab) {
@@ -387,10 +397,11 @@ function setGoalTab(tab) {
     setPerfTab(nextPerf);
     return;
   }
-  loadMyMiniStats();
+  scheduleLoadMyMiniStats();
 }
 
 async function loadMyMiniStats() {
+  const myReq = ++_miniStatsReq;
   try {
     const now = new Date();
     let since;
@@ -403,53 +414,64 @@ async function loadMyMiniStats() {
       since = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01T00:00:00`;
     }
     const nowIso = now.toISOString();
-    const callsRows = await sb(
-      `call_logs?select=outcome&agent_id=eq.${currentUser?.id}` +
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00`;
+    const dayStart = now.toISOString().split('T')[0] + 'T00:00:00';
+    const uid = currentUser?.id;
+
+    const qCalls = sb(
+      `call_logs?select=outcome&agent_id=eq.${uid}` +
       `&started_at=gte.${since}&started_at=lte.${nowIso}`
     );
+    const qApDurum = sb(
+      `appointments?select=durum&agent_id=eq.${uid}` +
+      `&termin_tarih=gte.${since}&termin_tarih=lte.${nowIso}`
+    );
+    const qMonth =
+      _perfTab !== 'month'
+        ? sb(
+            `appointments?select=id&agent_id=eq.${uid}` +
+              `&termin_tarih=gte.${monthStart}&termin_tarih=lte.${nowIso}`
+          ).catch(() => [])
+        : Promise.resolve(null);
+    const qDay =
+      _perfTab !== 'today'
+        ? Promise.all([
+            sb(
+              `appointments?select=id&agent_id=eq.${uid}` +
+                `&termin_tarih=gte.${dayStart}&termin_tarih=lte.${nowIso}`
+            ).catch(() => []),
+            sb(
+              `call_logs?select=id&agent_id=eq.${uid}` +
+                `&started_at=gte.${dayStart}&started_at=lte.${nowIso}`
+            ).catch(() => []),
+          ])
+        : Promise.resolve(null);
+
+    const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
+    const [callsRows, apRowsPerf, apMonthRows, dayBundle, resultRows] = await Promise.all([
+      qCalls,
+      qApDurum,
+      qMonth,
+      qDay,
+      loadFirmAppointmentResults(fid, false).catch(() => defaultAppointmentResults()),
+    ]);
+
+    if (myReq !== _miniStatsReq) return;
+
     const calls = (callsRows || []).length;
     const posOutcomes = new Set(['appointment', 'appointment_done', 'basarili', 'positive']);
     const posCalls = (callsRows || []).filter((r) => posOutcomes.has(String(r?.outcome || '').toLowerCase())).length;
 
-    const apRowsPerf = await sb(
-      `appointments?select=durum&agent_id=eq.${currentUser?.id}` +
-      `&termin_tarih=gte.${since}&termin_tarih=lte.${nowIso}`
-    );
     const appts = (apRowsPerf || []).length;
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00`;
     let monthlyAppts = appts;
-    if (_perfTab !== 'month') {
-      try {
-        const apMonth = await sb(
-          `appointments?select=id&agent_id=eq.${currentUser?.id}` +
-            `&termin_tarih=gte.${monthStart}&termin_tarih=lte.${nowIso}`
-        );
-        monthlyAppts = (apMonth || []).length;
-      } catch (e2) {
-        monthlyAppts = 0;
-      }
+    if (_perfTab !== 'month' && apMonthRows) {
+      monthlyAppts = (apMonthRows || []).length;
     }
-    const dayStart = now.toISOString().split('T')[0] + 'T00:00:00';
     let todayAppts = appts;
     let todayCalls = calls;
-    if (_perfTab !== 'today') {
-      try {
-        const [apDayRows, clDayRows] = await Promise.all([
-          sb(
-            `appointments?select=id&agent_id=eq.${currentUser?.id}` +
-              `&termin_tarih=gte.${dayStart}&termin_tarih=lte.${nowIso}`
-          ),
-          sb(
-            `call_logs?select=id&agent_id=eq.${currentUser?.id}` +
-              `&started_at=gte.${dayStart}&started_at=lte.${nowIso}`
-          ),
-        ]);
-        todayAppts = (apDayRows || []).length;
-        todayCalls = (clDayRows || []).length;
-      } catch (e3) {
-        todayAppts = 0;
-        todayCalls = 0;
-      }
+    if (_perfTab !== 'today' && dayBundle) {
+      todayAppts = (dayBundle[0] || []).length;
+      todayCalls = (dayBundle[1] || []).length;
     }
     try {
       window._dialerPerfSnapshot = {
@@ -486,9 +508,6 @@ async function loadMyMiniStats() {
     if (goalScope === 'weekly') goalVal = _dailyGoal * 5;
     else if (goalScope === 'monthly') goalVal = _dailyGoal * 22;
     updateDailyProgress(appts, goalVal);
-
-    const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
-    const resultRows = await loadFirmAppointmentResults(fid, false).catch(() => defaultAppointmentResults());
     const orderedResultRows = (() => {
       const primary = ['basarili', 'basarisiz'];
       const out = [];
@@ -531,6 +550,7 @@ async function loadMyMiniStats() {
 </div>`);
     });
 
+    if (myReq !== _miniStatsReq) return;
     document.getElementById('my-stats-mini').innerHTML = boxes.join('');
     loadUpcomingWv();
     loadUnfinalizedCalls();
@@ -1085,7 +1105,6 @@ function syncGlobalMascotDock() {
   const custEmpty = document.getElementById('cust-empty');
   const slot = document.getElementById('cust-empty-mascot-slot');
   const st = typeof dialerStatus !== 'undefined' ? dialerStatus : '';
-  const busyLine = st === 'on_call' || st === 'wrapping' || st === 'calling';
   const useSlot =
     dialerActive &&
     !busyLine &&
@@ -1097,19 +1116,6 @@ function syncGlobalMascotDock() {
   if (useSlot) _startGlobalMascotWander();
   else _stopGlobalMascotWander();
   if (!useSlot) {
-    if (dialerActive && busyLine) {
-      const tb = document.getElementById('topbar');
-      const tr = tb ? tb.getBoundingClientRect() : anchor.getBoundingClientRect();
-      _placeGlobalMascotAtRect({
-        left: tr.left + tr.width * 0.5 - 18,
-        top: tr.bottom + 8,
-        width: 36,
-        height: 36,
-      });
-      gm.classList.remove('global-mascot--dialer');
-      gm.classList.add('global-mascot--topbar');
-      return;
-    }
     const custom = _loadMascotCustomPos();
     if (custom) {
       gm.style.left = `${custom.x}px`;
@@ -1197,9 +1203,20 @@ function runGlobalMascotNotifMorph() {
   }, 2900);
 }
 
+function reloadMascotStateForUser() {
+  _mascotCallAccumSec = Number(getMascotPref('mb_mascot_call_accum_sec', '0')) || 0;
+  _lastMascotCheerSec = -1;
+  try {
+    refreshGlobalMascotInfoPanel();
+    applyMascotTheme();
+    syncGlobalMascotDock();
+  } catch (e) {}
+}
+
 try {
   window.syncGlobalMascotDock = syncGlobalMascotDock;
   window.runGlobalMascotNotifMorph = runGlobalMascotNotifMorph;
+  window.reloadMascotStateForUser = reloadMascotStateForUser;
 } catch (e) {}
 
 let _custEmptyCoachTimer = null;
@@ -2926,7 +2943,7 @@ function setOutcome(o) {
   const gm = document.getElementById('global-mascot');
   if (gm) gm.classList.remove('global-mascot--sad', 'global-mascot--celebrate');
   if (o === 'appointment' || o === 'appointment_done') {
-    if (gm) gm.classList.add('global-mascot--celebrate');
+    if (gm && !isMimiHidden()) gm.classList.add('global-mascot--celebrate');
     const okPool = tr
       ? [
           'Başardık! Termin adımına geçiyoruz.',
@@ -2938,10 +2955,12 @@ function setOutcome(o) {
           'Stark abgeschlossen, der Kunde ist drin.',
           'Sehr sauber geführt, top!',
         ];
-    _showCustEmptyBubbleMsg(okPool[Math.floor(Math.random() * okPool.length)]);
-    setTimeout(() => gm?.classList.remove('global-mascot--celebrate'), 2300);
+    if (!isMimiHidden()) {
+      _showCustEmptyBubbleMsg(okPool[Math.floor(Math.random() * okPool.length)]);
+      setTimeout(() => gm?.classList.remove('global-mascot--celebrate'), 2300);
+    }
   } else if (o === 'negative') {
-    if (gm) gm.classList.add('global-mascot--sad');
+    if (gm && !isMimiHidden()) gm.classList.add('global-mascot--sad');
     const negPool = tr
       ? [
           'Bu olmadı ama sorun değil; diğerinde alacağız.',
@@ -2953,8 +2972,10 @@ function setOutcome(o) {
           'Kurz durchatmen, der nächste wird gut.',
           'Du hast den Rhythmus, weiter.',
         ];
-    _showCustEmptyBubbleMsg(negPool[Math.floor(Math.random() * negPool.length)]);
-    setTimeout(() => gm?.classList.remove('global-mascot--sad'), 3600);
+    if (!isMimiHidden()) {
+      _showCustEmptyBubbleMsg(negPool[Math.floor(Math.random() * negPool.length)]);
+      setTimeout(() => gm?.classList.remove('global-mascot--sad'), 3600);
+    }
   } else if (o === 'callback') {
     const cbPool = tr
       ? [
@@ -2967,7 +2988,9 @@ function setOutcome(o) {
           'Warmer Lead, Rückruf passt gut.',
           'Im Rückruf holen wir ihn.',
         ];
-    _showCustEmptyBubbleMsg(cbPool[Math.floor(Math.random() * cbPool.length)]);
+    if (!isMimiHidden()) {
+      _showCustEmptyBubbleMsg(cbPool[Math.floor(Math.random() * cbPool.length)]);
+    }
   }
 }
 
@@ -2987,6 +3010,24 @@ async function submitOutcome(goBreak) {
   const note   = document.getElementById('outcome-note')?.value.trim()||'';
   const cbTime = document.getElementById('callback-dt')?.value||null;
   const isDnc  = document.getElementById('outcome-dnc')?.checked || false;
+  const lockedSlotEarly = _bookingSlot?.id || window._selectedBookingSlot?.id;
+  if (!isDnc && selectedCampId && typeof getCampSettings === 'function') {
+    const camp = campaigns.find((c) => c.id === selectedCampId);
+    const cs = camp ? getCampSettings(camp) : {};
+    if (cs.appointment_slot_required) {
+      const oc = String(selectedOutcome || '').toLowerCase();
+      if ((oc === 'appointment' || oc === 'appointment_done') && !lockedSlotEarly) {
+        toast(
+          currentLang === 'tr'
+            ? 'Bu kampanyada termin için önce takvimden slot seçmelisiniz.'
+            : 'In dieser Kampagne musst du zuerst einen Termin-Slot wählen.',
+          'warn',
+          4200
+        );
+        return;
+      }
+    }
+  }
   try {
     if (currentContact) {
       // appointment_done → call_logs'da 'appointment' olarak sakla (QC uyumu için)
