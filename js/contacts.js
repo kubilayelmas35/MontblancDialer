@@ -1179,7 +1179,7 @@ async function showContactMap(address, plz, city) {
   try {
     await _ensureContactMapScript(key);
   } catch (e) {
-    container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--red);font-size:12px;">${e.message}</div>`;
+    container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--red);font-size:12px;">${escapeHtml(e?.message || 'Map error')}</div>`;
     return;
   }
   container.innerHTML = '<div id="contact-map-canvas" style="width:100%;height:100%;min-height:460px;"></div>';

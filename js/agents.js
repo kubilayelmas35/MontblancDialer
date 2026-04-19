@@ -39,7 +39,7 @@ ${statusLabel[status]||status}
 </div>
 </div>`;
     }).join('');
-  } catch(e) { console.error(e); grid.innerHTML=`<div style="color:var(--red);padding:24px;">Hata: ${e.message}</div>`; }
+  } catch(e) { console.error(e); grid.innerHTML=`<div style="color:var(--red);padding:24px;">Hata: ${escapeHtml(e?.message || 'Bilinmeyen hata')}</div>`; }
 }
 
 async function canManageFieldAgents(targetFirmId) {

@@ -789,7 +789,7 @@ opt.value = cid; opt.textContent = log?.campaigns?.name || cid.slice(0,8);
 campSel.appendChild(opt);
 });
 }
-} catch(e){ console.error(e); if(tbody) tbody.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:24px;">Hata: ${e.message}</td></tr>`; }
+} catch(e){ console.error(e); if(tbody) tbody.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:24px;">Hata: ${escapeHtml(e?.message || 'Bilinmeyen hata')}</td></tr>`; }
 }
 
 async function loadCallHistory() {
@@ -865,7 +865,7 @@ return `<tr>
 <td>${detailBtn}</td>
 </tr>`;
 }).join('');
-} catch(e){ console.error(e); if(tbody) tbody.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:24px;">Hata: ${e.message}</td></tr>`; }
+} catch(e){ console.error(e); if(tbody) tbody.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:24px;">Hata: ${escapeHtml(e?.message || 'Bilinmeyen hata')}</td></tr>`; }
 }
 
 async function loadMyHistory() {

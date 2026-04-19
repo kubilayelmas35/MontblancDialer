@@ -3017,7 +3017,7 @@ async function runManualDialSearch() {
       btn.onclick = () => pickManualDialContact(Number(btn.getAttribute('data-idx')));
     });
   } catch (e) {
-    out.innerHTML = `<div style="color:var(--red);padding:8px;">${e.message || 'Error'}</div>`;
+    out.innerHTML = `<div style="color:var(--red);padding:8px;">${escapeHtml(e?.message || 'Error')}</div>`;
   }
 }
 

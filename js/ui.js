@@ -2,6 +2,16 @@
 // UI — sidebar, navigasyon, tema, dil, toast, modaller
 // ─────────────────────────────────────────────
 
+function escapeHtml(v) {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+try { window.escapeHtml = escapeHtml; } catch (_) {}
+
 // ── SIDEBAR ──────────────────────────────────
 function toggleSidebar() {
 const sb   = document.getElementById('sidebar');
