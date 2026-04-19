@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=7.49">
+<link rel="stylesheet" href="css/styles.css?v=7.50">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -36,7 +36,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v7.49 — 2026</div>
+<div class="login-version">v7.50 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -373,7 +373,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v7.49</div>
+<div class="sb-ver">MontBlanc v7.50</div>
 </div>
 </nav>
 <main id="main">
@@ -2426,6 +2426,22 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="form-label" style="font-size:11px;margin-bottom:8px;" data-tr="Mimi aksesuarları" data-de="Mimi-Accessoires">Mimi aksesuarları</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;align-items:end;">
 <div>
+<label class="form-label" style="font-size:10px;">Göz</label>
+<select class="form-input" id="s-mascot-cos-eye" style="margin-top:4px;font-size:12px;">
+<option value="none">Varsayılan</option>
+<option value="random">Rastgele (her yenilemede)</option>
+<option value="sparkle">Işıltılı</option>
+<option value="anime">Anime</option>
+<option value="sleepy">Uykulu</option>
+<option value="wink">Göz kırpma</option>
+<option value="shy">Utangaç</option>
+<option value="big">İri</option>
+<option value="star">Yıldız göz</option>
+<option value="glow">Parlak çerçeve</option>
+<option value="retro">Piksel</option>
+</select>
+</div>
+<div>
 <label class="form-label" style="font-size:10px;">Kaş</label>
 <select class="form-input" id="s-mascot-cos-brow" style="margin-top:4px;font-size:12px;">
 <option value="none">Yok</option>
@@ -2446,14 +2462,15 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <select class="form-input" id="s-mascot-cos-stache" style="margin-top:4px;font-size:12px;">
 <option value="none">Yok</option>
 <option value="random">Rastgele (her yenilemede)</option>
-<option value="shadow">Gölge</option>
-<option value="pencil">Kalem</option>
-<option value="chevron">Çift uç</option>
-<option value="horseshoe">At nalı</option>
-<option value="handlebar">Favori</option>
-<option value="walrus">Mors</option>
-<option value="toothbrush">Fırça</option>
-<option value="zapata">Zapata</option>
+<option value="silk">İpek çizgi</option>
+<option value="gentle">Yumuşak gölge</option>
+<option value="twirl">Uçları kıvrık</option>
+<option value="dapper">Zarif orta</option>
+<option value="velvet">Kadife dolgun</option>
+<option value="painter">Sanatsal süpürme</option>
+<option value="crescent">İnce hilal</option>
+<option value="film">Klasik sinema</option>
+<option value="sombrero">Geniş kavis</option>
 </select>
 </div>
 <div>
@@ -2461,14 +2478,15 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <select class="form-input" id="s-mascot-cos-mouth" style="margin-top:4px;font-size:12px;">
 <option value="none">Yok</option>
 <option value="random">Rastgele (her yenilemede)</option>
-<option value="smile">Gülümseme</option>
-<option value="grin">Diş</option>
-<option value="smirk">Sırıtma</option>
-<option value="flat">Düz</option>
-<option value="ooh">Şaşkın</option>
-<option value="tongue">Dil</option>
-<option value="line">Çizgi</option>
-<option value="kiss">Öpücük</option>
+<option value="beam">Parlak gülümseme</option>
+<option value="soft">Yumuşak gülüm</option>
+<option value="laugh">Kahkaha</option>
+<option value="smitten">Sevimli küçük</option>
+<option value="playful">Oyuncu</option>
+<option value="tiny">Minik O</option>
+<option value="pout">Somurtkan</option>
+<option value="cool">Cool çizgi</option>
+<option value="dreamy">Hayalperest</option>
 </select>
 </div>
 <div>
@@ -3501,40 +3519,40 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/config.js?v=7.49"></script>
-<script src="js/state.js?v=7.49"></script>
-<script src="js/api.js?v=7.49"></script>
-<script src="js/auth.js?v=7.49"></script>
-<script src="js/ui.js?v=7.49"></script>
-<script src="js/chat.js?v=7.49"></script>
-<script src="js/chat-settings.js?v=7.49"></script>
-<script src="js/field-settings.js?v=7.49"></script>
-<script src="js/audit.js?v=7.49"></script>
-<script src="js/feature-flags.js?v=7.49"></script>
-<script src="js/notification-center.js?v=7.49"></script>
+<script src="js/config.js?v=7.50"></script>
+<script src="js/state.js?v=7.50"></script>
+<script src="js/api.js?v=7.50"></script>
+<script src="js/auth.js?v=7.50"></script>
+<script src="js/ui.js?v=7.50"></script>
+<script src="js/chat.js?v=7.50"></script>
+<script src="js/chat-settings.js?v=7.50"></script>
+<script src="js/field-settings.js?v=7.50"></script>
+<script src="js/audit.js?v=7.50"></script>
+<script src="js/feature-flags.js?v=7.50"></script>
+<script src="js/notification-center.js?v=7.50"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=7.49"></script>
-<script src="js/job-market.js?v=7.49"></script>
-<script src="js/qc-job-market.js?v=7.49"></script>
-<script src="js/export-admin.js?v=7.49"></script>
-<script src="js/export-termin.js?v=7.49"></script>
-<script src="js/performance.js?v=7.49"></script>
-<script src="js/competition.js?v=7.49"></script>
-<script src="js/dashboard.js?v=7.49"></script>
-<script src="js/campaigns.js?v=7.49"></script>
-<script src="js/contacts.js?v=7.49"></script>
-<script src="js/telnyx.js?v=7.49"></script>
-<script src="js/voice-orb.js?v=7.49"></script>
-<script src="js/dialer.js?v=7.49"></script>
-<script src="js/appointments.js?v=7.49"></script>
-<script src="js/field.js?v=7.49"></script>
-<script src="js/field-ops.js?v=7.49"></script>
-<script src="js/wiedervorlage.js?v=7.49"></script>
-<script src="js/qc.js?v=7.49"></script>
-<script src="js/leave-hr.js?v=7.49"></script>
-<script src="js/muhasebe.js?v=7.49"></script>
-<script src="js/agent-self-performance.js?v=7.49"></script>
-<script src="js/agents.js?v=7.49"></script>
+<script src="js/wallet.js?v=7.50"></script>
+<script src="js/job-market.js?v=7.50"></script>
+<script src="js/qc-job-market.js?v=7.50"></script>
+<script src="js/export-admin.js?v=7.50"></script>
+<script src="js/export-termin.js?v=7.50"></script>
+<script src="js/performance.js?v=7.50"></script>
+<script src="js/competition.js?v=7.50"></script>
+<script src="js/dashboard.js?v=7.50"></script>
+<script src="js/campaigns.js?v=7.50"></script>
+<script src="js/contacts.js?v=7.50"></script>
+<script src="js/telnyx.js?v=7.50"></script>
+<script src="js/voice-orb.js?v=7.50"></script>
+<script src="js/dialer.js?v=7.50"></script>
+<script src="js/appointments.js?v=7.50"></script>
+<script src="js/field.js?v=7.50"></script>
+<script src="js/field-ops.js?v=7.50"></script>
+<script src="js/wiedervorlage.js?v=7.50"></script>
+<script src="js/qc.js?v=7.50"></script>
+<script src="js/leave-hr.js?v=7.50"></script>
+<script src="js/muhasebe.js?v=7.50"></script>
+<script src="js/agent-self-performance.js?v=7.50"></script>
+<script src="js/agents.js?v=7.50"></script>
 </body>
 </html>
 
