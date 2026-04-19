@@ -31,11 +31,11 @@ async function refreshWvList() {
     const selectedAgentId = sel?.value || '';
     let url;
     if (isAdminRole && !selectedAgentId) {
-      url = 'wiedervorlage?select=*&order=termin_zaman.asc';
+      url = 'wiedervorlage?select=*&durum=eq.bekliyor&order=termin_zaman.asc';
     } else if (isAdminRole && selectedAgentId) {
-      url = `wiedervorlage?select=*&agent_id=eq.${selectedAgentId}&order=termin_zaman.asc`;
+      url = `wiedervorlage?select=*&agent_id=eq.${selectedAgentId}&durum=eq.bekliyor&order=termin_zaman.asc`;
     } else {
-      url = `wiedervorlage?select=*&agent_id=eq.${currentUser?.id}&order=termin_zaman.asc`;
+      url = `wiedervorlage?select=*&agent_id=eq.${currentUser?.id}&durum=eq.bekliyor&order=termin_zaman.asc`;
     }
     wvList = await sb(url).catch(() => []);
     renderWvTable();
@@ -47,8 +47,8 @@ function loadWvBadge() {
   if (!currentUser) return;
   const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);
   const url = isAdminRole
-    ? 'wiedervorlage?select=id,termin_zaman,durum&order=termin_zaman.asc'
-    : `wiedervorlage?select=id,termin_zaman,durum&agent_id=eq.${currentUser.id}`;
+    ? 'wiedervorlage?select=id,termin_zaman,durum&durum=eq.bekliyor&order=termin_zaman.asc'
+    : `wiedervorlage?select=id,termin_zaman,durum&agent_id=eq.${currentUser.id}&durum=eq.bekliyor`;
   sb(url).then(list => {
     wvList = list || [];
     updateWvBadge();
@@ -58,7 +58,7 @@ function loadWvBadge() {
 
 function updateWvBadge() {
   const now = new Date();
-  const overdue = (wvList||[]).filter(w => w.durum !== 'tamamlandi' && new Date(w.termin_zaman) <= now);
+  const overdue = (wvList||[]).filter((w) => w.durum === 'bekliyor' && new Date(w.termin_zaman) <= now);
   const badge = document.getElementById('sb-badge-wv');
   if (badge) {
     badge.style.display = overdue.length > 0 ? '' : 'none';
@@ -96,7 +96,7 @@ function renderWvTable() {
   if (wvTab === 'today') {
     list = list.filter(w => w.termin_zaman?.startsWith(todayStr));
   } else if (wvTab === 'overdue') {
-    list = list.filter(w => w.durum !== 'tamamlandi' && new Date(w.termin_zaman) < now);
+    list = list.filter((w) => w.durum === 'bekliyor' && new Date(w.termin_zaman) < now);
   } else if (wvTab === 'week') {
     list = list.filter(w => new Date(w.termin_zaman) <= weekEnd && new Date(w.termin_zaman) >= now);
   }
@@ -116,7 +116,7 @@ function renderWvTable() {
   tbody.innerHTML = list.map(w => {
     const dt = w.termin_zaman ? new Date(w.termin_zaman) : null;
     const dtStr = dt ? dt.toLocaleString('tr-TR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
-    const isOverdue = dt && dt < now && w.durum !== 'tamamlandi';
+    const isOverdue = dt && dt < now && w.durum === 'bekliyor';
     const rowStyle = isOverdue ? 'background:rgba(var(--red-rgb),.06);' : '';
     // Conditionally render agent cell to avoid misalignment for non-admin
     const agentCell = isAdminRole
@@ -134,7 +134,7 @@ ${agentCell}
 <td>
 <div style="display:flex;gap:4px;align-items:center;">
 <button class="icon-btn" onclick="openWvEditModal('${w.id}')" title="Düzenle"><i class="ph ph-pencil-simple"></i></button>
-<button class="icon-btn" style="border-color:var(--green);color:var(--green);" onclick="wvMarkDone('${w.id}')" title="Tamamlandı"><i class="ph ph-check"></i></button>
+<button class="icon-btn" style="border-color:var(--red);color:var(--red);" onclick="wvMarkOlumsuz('${w.id}')" title="Sil (olumsuz)"><i class="ph ph-trash"></i></button>
 <button class="icon-btn" style="border-color:var(--accent);color:var(--accent);" onclick="wvCallNow('${w.id}')" title="Ara"><i class="ph ph-phone"></i></button>
 </div>
 </td>
@@ -208,12 +208,14 @@ async function saveWv() {
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
-async function wvMarkDone(id) {
+async function wvMarkOlumsuz(id) {
   try {
-    await sb(`wiedervorlage?id=eq.${id}`, {method:'PATCH', prefer:'return=minimal', body: JSON.stringify({durum:'tamamlandi'})});
+    await sb(`wiedervorlage?id=eq.${id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ durum: 'olumsuz' }) });
     await refreshWvList();
-    toast('Tamamlandı ✓','ok');
-  } catch(e) { toast('Hata: '+e.message,'err'); }
+    toast(currentLang === 'tr' ? 'Olumsuz olarak işaretlendi — listeden çıktı' : 'Als negativ markiert', 'ok');
+  } catch (e) {
+    toast('Hata: ' + e.message, 'err');
+  }
 }
 
 function wvCallNow(id) {
@@ -236,7 +238,7 @@ function checkWvReminders() {
   const now = new Date();
   const in15 = new Date(now.getTime() + 15*60*1000);
   const overdue = wvList.filter(w => {
-    if (w.durum === 'tamamlandi') return false;
+    if (w.durum !== 'bekliyor') return false;
     const t = new Date(w.termin_zaman);
     return t <= in15 && t >= new Date(now.getTime()-5*60*1000);
   });

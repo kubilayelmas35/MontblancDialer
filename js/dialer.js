@@ -3731,6 +3731,35 @@ function setOutcome(o) {
   }
 }
 
+/** Aranacaklar (WV) listesindeki bekleyen kayıtları olumsuz sonuçla eşleştir — listeden düşer. */
+async function _markMatchingWiedervorlageOlumsuz(contact) {
+  if (!contact || !currentUser?.firm_id || !currentUser?.id) return;
+  const fid = currentUser.firm_id;
+  const aid = currentUser.id;
+  const phone = String(contact.phone || '').trim();
+  const cid = isValidUUID(contact.id) ? contact.id : null;
+  let rows = [];
+  if (cid) {
+    rows = await sb(`wiedervorlage?firm_id=eq.${fid}&agent_id=eq.${aid}&contact_id=eq.${cid}&durum=eq.bekliyor&select=id`).catch(() => []);
+  }
+  if ((!rows || !rows.length) && phone) {
+    const enc = encodeURIComponent(phone);
+    rows = await sb(`wiedervorlage?firm_id=eq.${fid}&agent_id=eq.${aid}&telefon=eq.${enc}&durum=eq.bekliyor&select=id`).catch(() => []);
+  }
+  if (!rows?.length) return;
+  await Promise.all(
+    rows.map((r) =>
+      sb(`wiedervorlage?id=eq.${r.id}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ durum: 'olumsuz' }),
+      })
+    )
+  );
+  if (typeof refreshWvList === 'function') void refreshWvList();
+  if (typeof loadWvBadge === 'function') loadWvBadge();
+}
+
 async function submitOutcome(goBreak) {
   const lineUp = !!_telnyxCall || !!_fakeCallActive || !!_outboundDialPending;
   if (dialerStatus === 'on_call' && lineUp) {
@@ -3856,6 +3885,11 @@ async function submitOutcome(goBreak) {
         notiz: note
       })});
     } catch(e) {}
+  }
+  if (selectedOutcome === 'negative' && currentContact) {
+    try {
+      await _markMatchingWiedervorlageOlumsuz(currentContact);
+    } catch (e) {}
   }
   // ACW timer başlat
   setDialerStatus('wrapping');
