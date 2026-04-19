@@ -323,9 +323,8 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   overflow: visible;
   pointer-events: none;
   opacity: 0;
+  /* left/top: süre verme — Dialer sekmesine geçerken “ortaya kayma” hissi oluşmasın */
   transition:
-    left 0.78s cubic-bezier(0.33, 1, 0.68, 1),
-    top 0.78s cubic-bezier(0.33, 1, 0.68, 1),
     opacity 0.2s ease,
     --gm-wx 0.9s cubic-bezier(0.25, 0.9, 0.25, 1),
     --gm-wy 0.9s cubic-bezier(0.25, 0.9, 0.25, 1);
@@ -941,6 +940,49 @@ padding: 8px 12px; font-size:13px; transition: var(--transition); width:100%;
 .form-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
 .form-input::placeholder { color: var(--text-3); }
 /* Range: yatay padding thumb’u 100’e tam getirmez; maskot gezinme kaydırıcısı */
+#page-settings #s-mascot-user-scale.form-input {
+  width: 100%;
+  max-width: 280px;
+  height: 8px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+#page-settings #s-mascot-user-scale.form-input::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-4);
+}
+#page-settings #s-mascot-user-scale.form-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-2);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+#page-settings #s-mascot-user-scale.form-input::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-4);
+}
+#page-settings #s-mascot-user-scale.form-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-2);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
 #page-settings #s-mascot-wander.form-input {
   padding: 6px 0;
   height: 28px;
@@ -1686,7 +1728,7 @@ overflow: hidden;
   position: relative;
   width: 72px;
   height: 72px;
-  transform: scale(1.08);
+  transform: scale(calc(1.08 * var(--mascot-user-scale, 1)));
   transform-origin: center center;
 }
 .settings-mascot-preview-mascot .cust-empty-blob {

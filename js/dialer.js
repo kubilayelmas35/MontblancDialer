@@ -601,7 +601,7 @@ async function loadMyMiniStats() {
     }
   } catch (e) {
     console.error('stats err:', e);
-    document.getElementById('cust-empty')?.style.setProperty('--mascot-scale', '1');
+    if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
   }
 }
 
@@ -708,6 +708,17 @@ function getMascotWanderPct() {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
+/** Ayarlardan maskot boyutu: 50–150 → 0.5–1.5 (performans büyümesi ile çarpılır) */
+function getMascotUserScalePct() {
+  const n = Number(getMascotPref('mb_mascot_user_scale', '100'));
+  if (!Number.isFinite(n)) return 100;
+  return Math.max(50, Math.min(150, Math.round(n)));
+}
+
+function getMascotUserScaleMul() {
+  return getMascotUserScalePct() / 100;
+}
+
 function isMimiHidden() {
   return getMascotPref('mb_mascot_hidden', '0') === '1';
 }
@@ -747,6 +758,8 @@ function applyMascotTheme() {
   if (cust) _applyMascotVarsToEl(cust, h, variant, { breakHue, angryHue });
   if (prev) _applyMascotVarsToEl(prev, h, variant, { breakHue, angryHue });
   if (gm) _applyMascotVarsToEl(gm, h, variant, { breakHue, angryHue });
+  if (prev) prev.style.setProperty('--mascot-user-scale', String(getMascotUserScaleMul()));
+  if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
   updateMascotNameLabel();
 }
 
@@ -768,6 +781,10 @@ function applyMascotThemeLiveFromForm() {
   if (cust) _applyMascotVarsToEl(cust, h, v.value, { breakHue, angryHue });
   if (prev) _applyMascotVarsToEl(prev, h, v.value, { breakHue, angryHue });
   if (gm) _applyMascotVarsToEl(gm, h, v.value, { breakHue, angryHue });
+  const sc = document.getElementById('s-mascot-user-scale');
+  const mul = sc ? Math.max(0.5, Math.min(1.5, Number(sc.value) / 100 || 1)) : getMascotUserScaleMul();
+  if (prev) prev.style.setProperty('--mascot-user-scale', String(mul));
+  if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
 }
 
 function updateMascotNameLabel() {
@@ -787,6 +804,7 @@ function loadMascotSettingsForm() {
   const bk = document.getElementById('s-mascot-break-color');
   const ag = document.getElementById('s-mascot-angry-color');
   const wd = document.getElementById('s-mascot-wander');
+  const sc = document.getElementById('s-mascot-user-scale');
   const coef = document.getElementById('s-mascot-age-coef');
   const coefHint = document.getElementById('s-mascot-age-coef-hint');
   if (!n || !c || !v) return;
@@ -796,6 +814,7 @@ function loadMascotSettingsForm() {
   if (bk) bk.value = getMascotPref('mb_mascot_break_color', '#4f8cff');
   if (ag) ag.value = getMascotPref('mb_mascot_angry_color', '#ff5b55');
   if (wd) wd.value = String(getMascotWanderPct());
+  if (sc) sc.value = String(getMascotUserScalePct());
   const role = currentUser?.role || '';
   const adminLike = ['firm_admin', 'admin', 'super_admin'].includes(role);
   if (coef) {
@@ -835,6 +854,13 @@ function loadMascotSettingsForm() {
     setMascotPref('mb_mascot_wander_pct', wd.value);
     if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
   });
+  sc?.addEventListener('input', () => {
+    setMascotPref('mb_mascot_user_scale', sc.value);
+    const prevWrap = document.getElementById('settings-mascot-preview-wrap');
+    if (prevWrap) prevWrap.style.setProperty('--mascot-user-scale', String(getMascotUserScaleMul()));
+    if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
+    if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
+  });
 }
 
 function saveMascotSettings() {
@@ -844,6 +870,7 @@ function saveMascotSettings() {
   const bk = document.getElementById('s-mascot-break-color');
   const ag = document.getElementById('s-mascot-angry-color');
   const wd = document.getElementById('s-mascot-wander');
+  const sc = document.getElementById('s-mascot-user-scale');
   const coef = document.getElementById('s-mascot-age-coef');
   if (!n || !c || !v) return;
   const name = String(n.value || '')
@@ -858,6 +885,7 @@ function saveMascotSettings() {
   if (bk) setMascotPref('mb_mascot_break_color', bk.value || '#4f8cff');
   if (ag) setMascotPref('mb_mascot_angry_color', ag.value || '#ff5b55');
   if (wd) setMascotPref('mb_mascot_wander_pct', wd.value || '35');
+  if (sc) setMascotPref('mb_mascot_user_scale', sc.value || '100');
   applyMascotTheme();
   const role = currentUser?.role || '';
   const adminLike = ['firm_admin', 'admin', 'super_admin'].includes(role);
@@ -1265,7 +1293,12 @@ function _syncGlobalMascotDockImpl() {
     (st === 'ready' || st === 'offline' || st === 'break') &&
     slot &&
     slot.getBoundingClientRect().width > 1;
-  if (useSlot) _startGlobalMascotWander();
+  const allowWander =
+    getMascotWanderPct() > 0 &&
+    !gm.classList.contains('global-mascot--peek-chat') &&
+    !gm.classList.contains('global-mascot--peek-notif') &&
+    !gm.classList.contains('global-mascot--notif-morph');
+  if (allowWander) _startGlobalMascotWander();
   else _stopGlobalMascotWander();
   if (!useSlot) {
     const custom = _loadMascotCustomPos();
@@ -1704,17 +1737,18 @@ function startCustEmptyMascotLoops() {
   if (dialerStatus === 'ready' || dialerStatus === 'offline') scheduleMascotEatOnce();
 }
 
-/** Aylık termin sayısı / aylık hedefe göre maskot ölçeği (1 = standart, üst sınır ~1.55) */
+/** Aylık termin / hedefe göre büyüme × kullanıcı boyutu (ayarlar 50–150%) */
 function updateCustEmptyMascotScale() {
   const root = document.getElementById('cust-empty');
   const gm = document.getElementById('global-mascot');
-  if (!root) return;
   const monthlyGoal = Math.max(1, Number(_dailyGoal) || 5) * 22;
   const n = Number(window._dialerPerfSnapshot?.monthlyAppts ?? 0);
   const t = Math.min(Math.max(n / monthlyGoal, 0), 2.2);
-  const scale = 1 + 0.28 * t;
-  const v = String(Math.min(Math.max(scale, 1), 1.55));
-  root.style.setProperty('--mascot-scale', v);
+  const perf = 1 + 0.28 * t;
+  const userMul = getMascotUserScaleMul();
+  const combined = perf * userMul;
+  const v = String(Math.min(Math.max(combined, 0.45), 2));
+  if (root) root.style.setProperty('--mascot-scale', v);
   if (gm) gm.style.setProperty('--mascot-scale', v);
 }
 
