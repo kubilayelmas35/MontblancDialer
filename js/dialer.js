@@ -612,6 +612,8 @@ const MASCOT_VARIANT_OFFSETS = {
   ocean: [-10, 8, 28, 48],
   forest: [28, 72, 98, 118],
   candy: [0, 38, 58, 82],
+  midnight: [-18, -6, 14, 46],
+  ember: [6, -14, -32, 52],
 };
 
 const MASCOT_SHAPES = new Set([
@@ -689,6 +691,75 @@ function _mascotWrapHue(x) {
   let n = Math.round(x) % 360;
   if (n < 0) n += 360;
   return n;
+}
+
+/** Ayar formu / rastgele görünüş için HSL → #rrggbb */
+function _mascotHslToHex(h, s, l) {
+  let hh = ((Number(h) % 360) + 360) % 360;
+  const ss = Math.max(0, Math.min(100, Number(s))) / 100;
+  const ll = Math.max(0, Math.min(100, Number(l))) / 100;
+  hh /= 360;
+  let r;
+  let g;
+  let b;
+  if (ss === 0) {
+    r = g = b = ll;
+  } else {
+    const hue2rgb = (p, q, t) => {
+      let tt = t;
+      if (tt < 0) tt += 1;
+      if (tt > 1) tt -= 1;
+      if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+      if (tt < 1 / 2) return q;
+      if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+      return p;
+    };
+    const q = ll < 0.5 ? ll * (1 + ss) : ll + ss - ll * ss;
+    const p = 2 * ll - q;
+    r = hue2rgb(p, q, hh + 1 / 3);
+    g = hue2rgb(p, q, hh);
+    b = hue2rgb(p, q, hh - 1 / 3);
+  }
+  const toHex = (x) => Math.round(x * 255).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function _mascotPickRandomSelectValue(selectId) {
+  const el = document.getElementById(selectId);
+  if (!el?.options?.length) return '';
+  const opt = el.options[Math.floor(Math.random() * el.options.length)];
+  return opt ? String(opt.value || '') : '';
+}
+
+/** Ayarlardaki tüm renk + kozmetik seçeneklerini rastgele doldurur (gezinme ayarlarına dokunmaz). */
+function randomizeMascotAppearance() {
+  const mainHue = Math.floor(Math.random() * 360);
+  const hex = _mascotHslToHex(mainHue, 58 + Math.floor(Math.random() * 32), 44 + Math.floor(Math.random() * 20));
+  const breakHue = _mascotWrapHue(mainHue + 35 + Math.floor(Math.random() * 90));
+  const breakHex = _mascotHslToHex(breakHue, 52 + Math.floor(Math.random() * 36), 48 + Math.floor(Math.random() * 16));
+  const angryHue = _mascotWrapHue(mainHue - 40 + Math.floor(Math.random() * 80));
+  const angryHex = _mascotHslToHex(angryHue, 62 + Math.floor(Math.random() * 30), 44 + Math.floor(Math.random() * 18));
+
+  const variant = _mascotPickRandomSelectValue('s-mascot-variant') || 'aurora';
+  const shapeRaw = _mascotPickRandomSelectValue('s-mascot-shape') || 'blob';
+  const shape = mascotShapeFromString(shapeRaw);
+
+  setMascotPref('mb_mascot_color', hex);
+  setMascotPref('mb_mascot_break_color', breakHex);
+  setMascotPref('mb_mascot_angry_color', angryHex);
+  setMascotPref('mb_mascot_variant', variant);
+  setMascotPref('mb_mascot_shape', shape);
+  setMascotPref('mb_mascot_cos_brow', _mascotPickRandomSelectValue('s-mascot-cos-brow') || 'none');
+  setMascotPref('mb_mascot_cos_stache', _mascotPickRandomSelectValue('s-mascot-cos-stache') || 'none');
+  setMascotPref('mb_mascot_cos_mouth', _mascotPickRandomSelectValue('s-mascot-cos-mouth') || 'none');
+  setMascotPref('mb_mascot_cos_hat', _mascotPickRandomSelectValue('s-mascot-cos-hat') || 'none');
+  setMascotPref('mb_mascot_cos_outfit', _mascotPickRandomSelectValue('s-mascot-cos-outfit') || 'none');
+
+  try {
+    loadMascotSettingsForm();
+  } catch (e) {}
+  applyMascotTheme();
+  if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
 }
 
 function _mascotUserScope() {
@@ -797,6 +868,19 @@ function _mascotAnchorCenterPx(gm) {
   return { x, y };
 }
 
+/** Dialer gövdesi (sol panel + içerik); maskot ofset alanı bu kutuya göre */
+function _mascotDialerContentRect() {
+  const el = document.querySelector('.dialer-layout');
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  if (r.width < 16 || r.height < 16) return null;
+  return r;
+}
+
+/**
+ * Hareket alanı: bırakılan noktadan (P) dialer içinde izin verilen merkez aralığına doğrusal ölçek.
+ * t=0 → yalnızca P; t=1 → dialer kenarına kadar (kenar payı ile) tam ofset aralığı.
+ */
 function _mascotWanderBoundsFromViewport(gm) {
   const rangePct = getMascotWanderRangePct();
   const t = Math.max(0, Math.min(100, rangePct)) / 100;
@@ -819,41 +903,33 @@ function _mascotWanderBoundsFromViewport(gm) {
   const { x: Px, y: Py } = _mascotAnchorCenterPx(gm);
   const vw = Number(window.innerWidth) || 800;
   const vh = Number(window.innerHeight) || 600;
-  const minCx = edge + halfW;
-  const maxCx = vw - edge - halfW;
-  const minCy = edge + halfH;
-  const maxCy = vh - edge - halfH;
+  const dialer = _mascotDialerContentRect();
+  let dl = 0;
+  let dt = 0;
+  let dr = vw;
+  let db = vh;
+  if (dialer) {
+    dl = dialer.left;
+    dt = dialer.top;
+    dr = dialer.right;
+    db = dialer.bottom;
+  }
+  const minCx = dl + edge + halfW;
+  const maxCx = dr - edge - halfW;
+  const minCy = dt + edge + halfH;
+  const maxCy = db - edge - halfH;
   if (!Number.isFinite(Px) || !Number.isFinite(Py) || maxCx <= minCx + 4 || maxCy <= minCy + 4) {
     return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
   }
-  let mxMin = (1 - t) * Px + t * minCx;
-  let mxMax = (1 - t) * Px + t * maxCx;
-  let myMin = (1 - t) * Py + t * minCy;
-  let myMax = (1 - t) * Py + t * maxCy;
-  if (t > 0) {
-    mxMin = Math.max(mxMin, minCx);
-    mxMax = Math.min(mxMax, maxCx);
-    myMin = Math.max(myMin, minCy);
-    myMax = Math.min(myMax, maxCy);
-  } else {
-    mxMin = mxMax = Px;
-    myMin = myMax = Py;
-  }
-  if (mxMax < mxMin + 1) {
-    const c = Math.min(Math.max(Px, minCx), maxCx);
-    mxMin = c - 1;
-    mxMax = c + 1;
-  }
-  if (myMax < myMin + 1) {
-    const c = Math.min(Math.max(Py, minCy), maxCy);
-    myMin = c - 1;
-    myMax = c + 1;
-  }
+  const fullMinX = minCx - Px;
+  const fullMaxX = maxCx - Px;
+  const fullMinY = minCy - Py;
+  const fullMaxY = maxCy - Py;
   return {
-    minX: mxMin - Px,
-    maxX: mxMax - Px,
-    minY: myMin - Py,
-    maxY: myMax - Py,
+    minX: t * fullMinX,
+    maxX: t * fullMaxX,
+    minY: t * fullMinY,
+    maxY: t * fullMaxY,
   };
 }
 
@@ -1120,6 +1196,7 @@ try {
   window.applyMascotTheme = applyMascotTheme;
   window.applyMascotShape = applyMascotShape;
   window.applyMascotCosmetics = applyMascotCosmetics;
+  window.randomizeMascotAppearance = randomizeMascotAppearance;
   window.switchMimiTab = switchMimiTab;
   window.hideMimi = hideMimi;
   window.showMimi = showMimi;
@@ -1396,8 +1473,15 @@ function _pickWanderTarget(gm) {
     _wanderTgt.y = b.minY;
     return;
   }
-  _wanderTgt.x = b.minX + Math.random() * w;
-  _wanderTgt.y = b.minY + Math.random() * h;
+  const wanderPct = getMascotWanderPct();
+  /** Düşük gezinmede hedef yarıçapı küçülür; hareket alanı büyük olsa bile “sürekli köşelere” gitmez. */
+  const wf = Math.pow(Math.max(0, wanderPct) / 100, 1.22);
+  const midX = (b.minX + b.maxX) / 2;
+  const midY = (b.minY + b.maxY) / 2;
+  const halfWx = w / 2;
+  const halfHy = h / 2;
+  _wanderTgt.x = midX + (Math.random() * 2 - 1) * halfWx * wf;
+  _wanderTgt.y = midY + (Math.random() * 2 - 1) * halfHy * wf;
 }
 
 function _wanderFrame() {
@@ -1425,7 +1509,7 @@ function _wanderFrame() {
   const speedT = Math.max(0, speedPct) / 100;
   const speedK = 0.006 + speedT * 0.14;
   const wanderT = Math.max(0, Math.min(100, pct)) / 100;
-  const step = speedK * (0.12 + wanderT * 0.88) * 0.09;
+  const step = speedK * (0.12 + wanderT * 0.88) * 0.09 * Math.pow(wanderT, 1.35);
   _wanderCur.x += dx * step;
   _wanderCur.y += dy * step;
   _wanderCur.x = Math.min(bounds.maxX, Math.max(bounds.minX, _wanderCur.x));
@@ -1460,6 +1544,7 @@ function _startGlobalMascotWander() {
   if (pct <= 0) {
     gm.style.setProperty('--gm-wx', '0px');
     gm.style.setProperty('--gm-wy', '0px');
+    if (!isMimiHidden()) gm.classList.add('global-mascot--placed');
     return;
   }
   _wanderCur = { x: 0, y: 0 };
@@ -1529,6 +1614,7 @@ function _syncGlobalMascotDockImpl() {
     _placeGlobalMascotAtRect(r);
     gm.classList.add('global-mascot--topbar');
     gm.classList.remove('global-mascot--dialer');
+    if (!isMimiHidden()) gm.classList.add('global-mascot--placed');
     return;
   }
   const custom = _loadMascotCustomPos();
@@ -1552,6 +1638,7 @@ function _syncGlobalMascotDockImpl() {
     !gm.classList.contains('global-mascot--notif-morph');
   if (allowWander) _startGlobalMascotWander();
   else _stopGlobalMascotWander();
+  if (!isMimiHidden()) gm.classList.add('global-mascot--placed');
   const info = document.getElementById('global-mascot-info');
   if (info && info.style.display !== 'none') {
     requestAnimationFrame(() => positionGlobalMascotInfoPanel());
@@ -1915,8 +2002,7 @@ function refreshCustEmptyMascotState() {
 }
 
 function nudgeCustEmptyMascot() {
-  const mascot =
-    document.getElementById('cust-empty-card-mascot') || document.getElementById('cust-empty-mascot');
+  const mascot = document.getElementById('cust-empty-mascot');
   const root = document.getElementById('cust-empty');
   const gm = document.getElementById('global-mascot');
   if (!mascot || !root || root.style.display === 'none' || root.classList.contains('cust-empty--ringing')) return;

@@ -1724,12 +1724,15 @@ overflow: hidden;
   margin-top: 6px;
 }
 
-/* Mimi kozmetik: .mascot-theme-root (global, ayar önizlemesi, boş kart) */
+/* Mimi kozmetik: .mascot-theme-root (global, ayar önizlemesi) */
 .mascot-theme-root .mascot-cos-face {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 4;
+  z-index: 2;
+}
+.mascot-theme-root .cust-empty-blob > .cust-empty-mascot-eyes {
+  z-index: 6;
 }
 .mascot-theme-root .mascot-cos-brow {
   position: absolute;
@@ -1796,7 +1799,7 @@ overflow: hidden;
 .mascot-theme-root .mascot-cos-stache {
   position: absolute;
   left: 50%;
-  top: 30px;
+  top: 42px;
   transform: translateX(-50%);
   width: 22px;
   height: 8px;
@@ -1812,14 +1815,14 @@ overflow: hidden;
   width: 28px;
   height: 4px;
   border-radius: 2px;
-  top: 32px;
+  top: 44px;
 }
 .mascot-theme-root[data-mascot-stache="shadow"] .mascot-cos-stache {
   width: 32px;
   height: 5px;
   background: rgba(28, 22, 36, 0.35);
   filter: blur(1px);
-  top: 33px;
+  top: 45px;
 }
 .mascot-theme-root[data-mascot-stache="chevron"] .mascot-cos-stache {
   width: 0;
@@ -1829,7 +1832,7 @@ overflow: hidden;
   border-right: 14px solid transparent;
   border-top: 10px solid rgba(28, 22, 36, 0.62);
   border-radius: 0;
-  top: 30px;
+  top: 42px;
 }
 .mascot-theme-root[data-mascot-stache="horseshoe"] .mascot-cos-stache {
   width: 34px;
@@ -1839,13 +1842,13 @@ overflow: hidden;
   background: transparent;
   border: 3px solid rgba(28, 22, 36, 0.55);
   border-top: 0;
-  top: 28px;
+  top: 40px;
 }
 .mascot-theme-root[data-mascot-stache="handlebar"] .mascot-cos-stache {
   width: 40px;
   height: 10px;
   border-radius: 40% 40% 50% 50%;
-  top: 29px;
+  top: 41px;
   background: linear-gradient(
     90deg,
     transparent 0%,
@@ -1858,19 +1861,26 @@ overflow: hidden;
   width: 36px;
   height: 12px;
   border-radius: 30% 30% 45% 45%;
-  top: 30px;
+  top: 42px;
 }
 .mascot-theme-root[data-mascot-stache="toothbrush"] .mascot-cos-stache {
   width: 30px;
   height: 5px;
   border-radius: 3px;
-  top: 31px;
+  top: 43px;
+}
+.mascot-theme-root[data-mascot-stache="zapata"] .mascot-cos-stache {
+  width: 36px;
+  height: 7px;
+  border-radius: 4px;
+  top: 43px;
+  background: linear-gradient(90deg, transparent 0%, rgba(28, 22, 36, 0.72) 15%, rgba(28, 22, 36, 0.72) 85%, transparent 100%);
 }
 
 .mascot-theme-root .mascot-cos-mouth {
   position: absolute;
   left: 50%;
-  top: 40px;
+  top: 54px;
   transform: translateX(-50%);
   width: 14px;
   height: 6px;
@@ -1883,6 +1893,7 @@ overflow: hidden;
 }
 .mascot-theme-root[data-mascot-mouth]:not([data-mascot-mouth="none"]) .mascot-cos-mouth {
   opacity: 1;
+  animation: mascot-mouth-breathe 3.4s ease-in-out infinite;
 }
 .mascot-theme-root[data-mascot-mouth="smile"] .mascot-cos-mouth {
   width: 18px;
@@ -1904,14 +1915,22 @@ overflow: hidden;
   width: 16px;
   border: 0;
   background: rgba(28, 22, 36, 0.42);
-  top: 42px;
+  top: 56px;
 }
 .mascot-theme-root[data-mascot-mouth="ooh"] .mascot-cos-mouth {
   border-radius: 50%;
   width: 12px;
   height: 12px;
   border: 2px solid rgba(28, 22, 36, 0.45);
-  top: 38px;
+  top: 50px;
+}
+.mascot-theme-root[data-mascot-mouth="kiss"] .mascot-cos-mouth {
+  width: 14px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid rgba(28, 22, 36, 0.42);
+  background: rgba(255, 182, 193, 0.35);
+  top: 54px;
 }
 .mascot-theme-root[data-mascot-mouth="tongue"] .mascot-cos-mouth {
   width: 16px;
@@ -1927,7 +1946,20 @@ overflow: hidden;
   border: 0;
   border-radius: 2px;
   background: rgba(28, 22, 36, 0.5);
-  top: 42px;
+  top: 56px;
+}
+
+.mascot-theme-root[data-mascot-brow="straight"] .mascot-cos-brow {
+  width: 14px;
+  height: 2px;
+  top: 15px;
+  border-radius: 2px;
+}
+.mascot-theme-root[data-mascot-brow="curved"] .mascot-cos-brow {
+  width: 16px;
+  height: 3px;
+  top: 14px;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
 }
 
 .mascot-theme-root .mascot-cos-hat {
@@ -2004,6 +2036,15 @@ overflow: hidden;
   background: linear-gradient(180deg, #f472b6, #60a5fa);
   transform: translateX(-50%) rotate(-8deg);
 }
+.mascot-theme-root[data-mascot-hat="wizard"] .mascot-cos-hat {
+  width: 34px;
+  height: 34px;
+  border-radius: 4px 4px 2px 2px;
+  bottom: calc(100% - 4px);
+  background: linear-gradient(165deg, #4c1d95, #1e1b4b);
+  box-shadow: 0 3px 0 #fbbf24;
+  clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%);
+}
 
 .mascot-theme-root .mascot-cos-outfit {
   position: absolute;
@@ -2079,7 +2120,43 @@ overflow: hidden;
   clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
   top: calc(100% - 2px);
 }
+.mascot-theme-root[data-mascot-outfit="vest"] .mascot-cos-outfit {
+  width: 40px;
+  height: 14px;
+  border-radius: 6px 6px 2px 2px;
+  bottom: auto;
+  top: calc(100% + 2px);
+  background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+}
 
+@keyframes mascot-mouth-breathe {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.06);
+  }
+}
+@keyframes mascot-stache-sway {
+  0%,
+  100% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  50% {
+    transform: translateX(-50%) rotate(-2deg);
+  }
+}
+.mascot-theme-root[data-mascot-stache]:not([data-mascot-stache="none"]) .mascot-cos-stache {
+  animation: mascot-stache-sway 5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mascot-theme-root .mascot-cos-mouth,
+  .mascot-theme-root .mascot-cos-stache {
+    animation: none !important;
+  }
+}
 
 .cust-empty-blob {
   position: relative;
