@@ -628,6 +628,25 @@ const MASCOT_SHAPES = new Set([
   'heart',
   'droplet',
   'ring',
+  /* dinamik / canlı */
+  'pulse',
+  'wave',
+  'ripple',
+  'morph',
+  /* ek statik */
+  'cloud',
+  'egg',
+  'pebble',
+  'clover',
+  'leaf',
+  'moon',
+  'sun',
+  'bolt',
+  'gem',
+  'shield',
+  'flower',
+  'ticket',
+  'bow',
 ]);
 
 function mascotShapeFromString(val) {
@@ -761,6 +780,15 @@ function randomizeMascotAppearance() {
   setMascotPref('mb_mascot_cos_outfit', _mascotPickRandomSelectValue('s-mascot-cos-outfit') || 'none');
   setMascotPref('mb_mascot_cos_earring', _mascotPickRandomSelectValue('s-mascot-cos-earring') || 'none');
   setMascotPref('mb_mascot_cos_makeup', _mascotPickRandomSelectValue('s-mascot-cos-makeup') || 'none');
+  setMascotPref('mb_mascot_cos_hair', _mascotPickRandomSelectValue('s-mascot-cos-hair') || 'none');
+  for (const part of MASCOT_COS_COLOR_PARTS) {
+    const hx = _mascotHslToHex(
+      Math.floor(Math.random() * 360),
+      38 + Math.floor(Math.random() * 48),
+      32 + Math.floor(Math.random() * 38),
+    );
+    setMascotPref(`mb_mascot_cos_${part}_color`, hx);
+  }
 
   try {
     loadMascotSettingsForm();
@@ -816,7 +844,11 @@ function getMascotUserScaleMul() {
   return getMascotUserScalePct() / 100;
 }
 
-const MASCOT_COS_KEYS = ['eye', 'brow', 'stache', 'mouth', 'nose', 'hat', 'outfit', 'earring', 'makeup'];
+const MASCOT_COS_KEYS = ['eye', 'brow', 'stache', 'mouth', 'nose', 'hat', 'outfit', 'earring', 'makeup', 'hair'];
+
+const MASCOT_COS_COLOR_PARTS = ['eye', 'brow', 'stache', 'mouth', 'nose', 'hat', 'outfit', 'earring', 'makeup', 'hair'];
+
+const MASCOT_CCOL_PLACEHOLDER = '#64748b';
 
 /** Eski kayıtlı değerler → yeni bıyık / ağız anahtarları */
 const MASCOT_COS_LEGACY = {
@@ -853,6 +885,7 @@ const MASCOT_COS_RANDOM_POOLS = {
   outfit: ['none', 'bowtie', 'necktie', 'scarf', 'badge', 'collar', 'pearls', 'ribbon', 'vest'],
   earring: ['none', 'stud', 'hoop', 'pearl', 'drop', 'crystal', 'heart'],
   makeup: ['none', 'blush', 'glow', 'freckles', 'liner', 'sparkle', 'cute'],
+  hair: ['none', 'bob', 'short', 'long', 'braid', 'bun', 'pony', 'pixie', 'waves', 'slick', 'mohawk', 'afro', 'spikes', 'curly', 'side'],
 };
 
 let _mascotCosRandCache = {};
@@ -893,6 +926,31 @@ function applyMascotCosmetics() {
       root.setAttribute(attr, val);
     }
   });
+}
+
+function getMascotCosmeticColorPref(part) {
+  const v = String(getMascotPref(`mb_mascot_cos_${part}_color`, '') || '').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(v) ? v : '';
+}
+
+function applyMascotCosmeticColors() {
+  document.querySelectorAll('.mascot-theme-root').forEach((root) => {
+    for (const p of MASCOT_COS_COLOR_PARTS) {
+      const hex = getMascotCosmeticColorPref(p);
+      if (hex) root.style.setProperty(`--cos-${p}-color`, hex);
+      else root.style.removeProperty(`--cos-${p}-color`);
+    }
+  });
+}
+
+function _syncMascotCosColorInputsFromPrefs() {
+  for (const part of MASCOT_COS_COLOR_PARTS) {
+    const el = document.getElementById(`s-mascot-ccol-${part}`);
+    if (!el) continue;
+    const raw = getMascotCosmeticColorPref(part);
+    el.value = raw || MASCOT_CCOL_PLACEHOLDER;
+    el.dataset.cosInherit = raw ? '' : '1';
+  }
 }
 
 /** 0 = neredeyse duruyor, 100 = hızlı */
@@ -1022,6 +1080,7 @@ function applyMascotTheme() {
   if (prev) prev.style.setProperty('--mascot-user-scale', String(getMascotUserScaleMul()));
   applyMascotShape();
   applyMascotCosmetics();
+  applyMascotCosmeticColors();
   if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
   updateMascotNameLabel();
 }
@@ -1054,6 +1113,7 @@ function applyMascotThemeLiveFromForm() {
   }
   if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
   applyMascotCosmetics();
+  applyMascotCosmeticColors();
 }
 
 function updateMascotNameLabel() {
@@ -1085,6 +1145,7 @@ function loadMascotSettingsForm() {
   const cosOutfit = document.getElementById('s-mascot-cos-outfit');
   const cosEarring = document.getElementById('s-mascot-cos-earring');
   const cosMakeup = document.getElementById('s-mascot-cos-makeup');
+  const cosHair = document.getElementById('s-mascot-cos-hair');
   const coef = document.getElementById('s-mascot-age-coef');
   const coefHint = document.getElementById('s-mascot-age-coef-hint');
   if (!n || !c || !v) return;
@@ -1106,6 +1167,8 @@ function loadMascotSettingsForm() {
   if (cosOutfit) cosOutfit.value = getMascotCosmeticPref('outfit');
   if (cosEarring) cosEarring.value = getMascotCosmeticPref('earring');
   if (cosMakeup) cosMakeup.value = getMascotCosmeticPref('makeup');
+  if (cosHair) cosHair.value = getMascotCosmeticPref('hair');
+  _syncMascotCosColorInputsFromPrefs();
   const role = currentUser?.role || '';
   const adminLike = ['firm_admin', 'admin', 'super_admin'].includes(role);
   if (coef) {
@@ -1178,6 +1241,22 @@ function loadMascotSettingsForm() {
   onCos('outfit', cosOutfit);
   onCos('earring', cosEarring);
   onCos('makeup', cosMakeup);
+  onCos('hair', cosHair);
+  for (const part of MASCOT_COS_COLOR_PARTS) {
+    const cel = document.getElementById(`s-mascot-ccol-${part}`);
+    if (!cel) continue;
+    cel.addEventListener('input', () => {
+      delete cel.dataset.cosInherit;
+      setMascotPref(`mb_mascot_cos_${part}_color`, cel.value || '');
+      applyMascotCosmeticColors();
+    });
+    cel.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      setMascotPref(`mb_mascot_cos_${part}_color`, '');
+      _syncMascotCosColorInputsFromPrefs();
+      applyMascotCosmeticColors();
+    });
+  }
 }
 
 function saveMascotSettings() {
@@ -1199,6 +1278,7 @@ function saveMascotSettings() {
   const cosOutfit = document.getElementById('s-mascot-cos-outfit');
   const cosEarring = document.getElementById('s-mascot-cos-earring');
   const cosMakeup = document.getElementById('s-mascot-cos-makeup');
+  const cosHair = document.getElementById('s-mascot-cos-hair');
   const coef = document.getElementById('s-mascot-age-coef');
   if (!n || !c || !v) return;
   const name = String(n.value || '')
@@ -1225,6 +1305,13 @@ function saveMascotSettings() {
   if (cosOutfit) setMascotPref('mb_mascot_cos_outfit', cosOutfit.value || 'none');
   if (cosEarring) setMascotPref('mb_mascot_cos_earring', cosEarring.value || 'none');
   if (cosMakeup) setMascotPref('mb_mascot_cos_makeup', cosMakeup.value || 'none');
+  if (cosHair) setMascotPref('mb_mascot_cos_hair', cosHair.value || 'none');
+  for (const part of MASCOT_COS_COLOR_PARTS) {
+    const cel = document.getElementById(`s-mascot-ccol-${part}`);
+    if (!cel) continue;
+    if (cel.dataset.cosInherit === '1') setMascotPref(`mb_mascot_cos_${part}_color`, '');
+    else setMascotPref(`mb_mascot_cos_${part}_color`, cel.value || '');
+  }
   applyMascotTheme();
   const role = currentUser?.role || '';
   const adminLike = ['firm_admin', 'admin', 'super_admin'].includes(role);
@@ -1254,6 +1341,7 @@ try {
   window.applyMascotTheme = applyMascotTheme;
   window.applyMascotShape = applyMascotShape;
   window.applyMascotCosmetics = applyMascotCosmetics;
+  window.applyMascotCosmeticColors = applyMascotCosmeticColors;
   window.randomizeMascotAppearance = randomizeMascotAppearance;
   window.switchMimiTab = switchMimiTab;
   window.hideMimi = hideMimi;
@@ -1514,6 +1602,7 @@ function _stopGlobalMascotWander() {
   if (gm) {
     gm.style.setProperty('--gm-wx', '0px');
     gm.style.setProperty('--gm-wy', '0px');
+    if (!isMimiHidden()) gm.classList.add('global-mascot--placed');
   }
 }
 
@@ -1555,6 +1644,7 @@ function _wanderFrame() {
     gm.style.setProperty('--gm-wx', '0px');
     gm.style.setProperty('--gm-wy', '0px');
     _wanderRaf = null;
+    if (!isMimiHidden()) gm.classList.add('global-mascot--placed');
     return;
   }
   const dx = _wanderTgt.x - _wanderCur.x;
@@ -1649,8 +1739,8 @@ function syncGlobalMascotDock() {
 
 function _syncGlobalMascotDockImpl() {
   const gm = document.getElementById('global-mascot');
+  if (!gm) return;
   const anchor = document.getElementById('sb-mascot-anchor') || document.getElementById('tb-mascot-anchor');
-  if (!gm || !anchor) return;
   gm.classList.toggle('global-mascot--muted', isMimiHidden());
   _wireGlobalMascotInteractions();
   if (gm.classList.contains('global-mascot--peek-chat') || gm.classList.contains('global-mascot--peek-notif')) {
@@ -1659,7 +1749,12 @@ function _syncGlobalMascotDockImpl() {
   }
   if (isMimiHidden()) {
     const logo = document.querySelector('.tb-logo');
-    const lr = logo ? logo.getBoundingClientRect() : anchor.getBoundingClientRect();
+    const fallback = { left: 80, top: 28, width: 36, height: 34 };
+    const lr = logo
+      ? logo.getBoundingClientRect()
+      : anchor
+        ? anchor.getBoundingClientRect()
+        : fallback;
     _placeGlobalMascotAtRect({ left: lr.left + lr.width + 22, top: lr.top + 16, width: 18, height: 18 });
     gm.classList.remove('global-mascot--dialer');
     gm.classList.add('global-mascot--topbar');
@@ -1668,7 +1763,11 @@ function _syncGlobalMascotDockImpl() {
   }
   if (gm.classList.contains('global-mascot--notif-morph')) {
     const nb = document.getElementById('tb-notif-btn');
-    const r = nb ? nb.getBoundingClientRect() : anchor.getBoundingClientRect();
+    const r = nb
+      ? nb.getBoundingClientRect()
+      : anchor
+        ? anchor.getBoundingClientRect()
+        : { left: 80, top: 28, width: 36, height: 34 };
     _placeGlobalMascotAtRect(r);
     gm.classList.add('global-mascot--topbar');
     gm.classList.remove('global-mascot--dialer');
@@ -1682,12 +1781,18 @@ function _syncGlobalMascotDockImpl() {
     gm.classList.add('global-mascot--custom', 'global-mascot--placed');
     gm.classList.remove('global-mascot--dialer');
     gm.classList.add('global-mascot--topbar');
-  } else {
+  } else if (anchor) {
     const rect = anchor.getBoundingClientRect();
     _placeGlobalMascotAtRect(rect);
     gm.classList.remove('global-mascot--custom');
     gm.classList.remove('global-mascot--dialer');
     gm.classList.add('global-mascot--topbar');
+  } else {
+    const vw = Number(window.innerWidth) || 800;
+    _placeGlobalMascotAtRect({ left: vw * 0.5 - 18, top: 52, width: 36, height: 34 });
+    gm.classList.remove('global-mascot--custom');
+    gm.classList.remove('global-mascot--dialer');
+    gm.classList.add('global-mascot--topbar', 'global-mascot--placed');
   }
   const allowWander =
     getMascotWanderPct() > 0 &&

@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=7.50">
+<link rel="stylesheet" href="css/styles.css?v=7.51">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -36,7 +36,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v7.50 — 2026</div>
+<div class="login-version">v7.51 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -170,6 +170,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div id="cust-empty-mascot" class="cust-empty-mascot">
 <div class="cust-empty-blob">
 <div class="mascot-cos-makeup" aria-hidden="true"></div>
+<div class="mascot-cos-hair" aria-hidden="true"></div>
 <div class="cust-empty-mascot-eyes">
 <span class="cust-empty-eye"></span>
 <span class="cust-empty-eye cust-empty-eye--r"></span>
@@ -373,7 +374,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v7.50</div>
+<div class="sb-ver">MontBlanc v7.51</div>
 </div>
 </nav>
 <main id="main">
@@ -2427,7 +2428,8 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;align-items:end;">
 <div>
 <label class="form-label" style="font-size:10px;">Göz</label>
-<select class="form-input" id="s-mascot-cos-eye" style="margin-top:4px;font-size:12px;">
+<div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
+<select class="form-input" id="s-mascot-cos-eye" style="font-size:12px;">
 <option value="none">Varsayılan</option>
 <option value="random">Rastgele (her yenilemede)</option>
 <option value="sparkle">Işıltılı</option>
@@ -2440,10 +2442,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <option value="glow">Parlak çerçeve</option>
 <option value="retro">Piksel</option>
 </select>
+<input type="color" id="s-mascot-ccol-eye" value="#64748b" title="Renk · çift tık: varsayılan" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
+</div>
 </div>
 <div>
 <label class="form-label" style="font-size:10px;">Kaş</label>
-<select class="form-input" id="s-mascot-cos-brow" style="margin-top:4px;font-size:12px;">
+<div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
+<select class="form-input" id="s-mascot-cos-brow" style="font-size:12px;">
 <option value="none">Yok</option>
 <option value="random">Rastgele (her yenilemede)</option>
 <option value="thin">İnce</option>
@@ -2456,10 +2461,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <option value="straight">Düz</option>
 <option value="curved">Kavis (ince)</option>
 </select>
+<input type="color" id="s-mascot-ccol-brow" value="#64748b" title="Renk · çift tık: varsayılan" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
+</div>
 </div>
 <div>
 <label class="form-label" style="font-size:10px;">Bıyık</label>
-<select class="form-input" id="s-mascot-cos-stache" style="margin-top:4px;font-size:12px;">
+<div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
+<select class="form-input" id="s-mascot-cos-stache" style="font-size:12px;">
 <option value="none">Yok</option>
 <option value="random">Rastgele (her yenilemede)</option>
 <option value="silk">İpek çizgi</option>
@@ -2472,10 +2480,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <option value="film">Klasik sinema</option>
 <option value="sombrero">Geniş kavis</option>
 </select>
+<input type="color" id="s-mascot-ccol-stache" value="#64748b" title="Renk · çift tık: varsayılan" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
+</div>
 </div>
 <div>
 <label class="form-label" style="font-size:10px;">Ağız</label>
-<select class="form-input" id="s-mascot-cos-mouth" style="margin-top:4px;font-size:12px;">
+<div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
+<select class="form-input" id="s-mascot-cos-mouth" style="font-size:12px;">
 <option value="none">Yok</option>
 <option value="random">Rastgele (her yenilemede)</option>
 <option value="beam">Parlak gülümseme</option>
@@ -2488,10 +2499,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <option value="cool">Cool çizgi</option>
 <option value="dreamy">Hayalperest</option>
 </select>
+<input type="color" id="s-mascot-ccol-mouth" value="#64748b" title="Renk · çift tık: varsayılan" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
+</div>
 </div>
 <div>
 <label class="form-label" style="font-size:10px;">Burun</label>
-<select class="form-input" id="s-mascot-cos-nose" style="margin-top:4px;font-size:12px;">
+<div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
+<select class="form-input" id="s-mascot-cos-nose" style="font-size:12px;">
 <option value="none">Yok</option>
 <option value="random">Rastgele (her yenilemede)</option>
 <option value="dot">Nokta</option>
@@ -2501,10 +2515,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <option value="upturned">Hafif yukarı</option>
 <option value="pierced">Hızma</option>
 </select>
+<input type="color" id="s-mascot-ccol-nose" value="#64748b" title="Renk · çift tık: varsayılan" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
+</div>
 </div>
 <div>
 <label class="form-label" style="font-size:10px;">Şapka / baş</label>
-<select class="form-input" id="s-mascot-cos-hat" style="margin-top:4px;font-size:12px;">
+<div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
+<select class="form-input" id="s-mascot-cos-hat" style="font-size:12px;">
 <option value="none">Yok</option>
 <option value="random">Rastgele (her yenilemede)</option>
 <option value="cap">Kep</option>
@@ -2516,10 +2533,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <option value="party">Parti</option>
 <option value="wizard">Büyücü</option>
 </select>
+<input type="color" id="s-mascot-ccol-hat" value="#64748b" title="Renk · çift tık: varsayılan" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
+</div>
 </div>
 <div>
 <label class="form-label" style="font-size:10px;">Küpe</label>
-<select class="form-input" id="s-mascot-cos-earring" style="margin-top:4px;font-size:12px;">
+<div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
+<select class="form-input" id="s-mascot-cos-earring" style="font-size:12px;">
 <option value="none">Yok</option>
 <option value="random">Rastgele (her yenilemede)</option>
 <option value="stud">Pim</option>
@@ -2529,10 +2549,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <option value="crystal">Kristal</option>
 <option value="heart">Kalp</option>
 </select>
+<input type="color" id="s-mascot-ccol-earring" value="#64748b" title="Renk · çift tık: varsayılan" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
+</div>
 </div>
 <div style="grid-column:1 / -1;">
 <label class="form-label" style="font-size:10px;">Kıyafet / aksesuar</label>
-<select class="form-input" id="s-mascot-cos-outfit" style="margin-top:4px;font-size:12px;max-width:100%;">
+<div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
+<select class="form-input" id="s-mascot-cos-outfit" style="font-size:12px;max-width:100%;">
 <option value="none">Yok</option>
 <option value="random">Rastgele (her yenilemede)</option>
 <option value="bowtie">Papyon</option>
@@ -2544,10 +2567,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <option value="ribbon">Kurdele</option>
 <option value="vest">Yelek</option>
 </select>
+<input type="color" id="s-mascot-ccol-outfit" value="#64748b" title="Renk · çift tık: varsayılan" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
+</div>
 </div>
 <div style="grid-column:1 / -1;">
 <label class="form-label" style="font-size:10px;">Makyaj</label>
-<select class="form-input" id="s-mascot-cos-makeup" style="margin-top:4px;font-size:12px;max-width:100%;">
+<div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
+<select class="form-input" id="s-mascot-cos-makeup" style="font-size:12px;max-width:100%;">
 <option value="none">Yok</option>
 <option value="random">Rastgele (her yenilemede)</option>
 <option value="blush">Allık</option>
@@ -2557,6 +2583,32 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <option value="sparkle">Işıltı</option>
 <option value="cute">Sevimli pembe</option>
 </select>
+<input type="color" id="s-mascot-ccol-makeup" value="#64748b" title="Renk · çift tık: varsayılan" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
+</div>
+</div>
+<div style="grid-column:1 / -1;">
+<label class="form-label" style="font-size:10px;">Saç</label>
+<div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
+<select class="form-input" id="s-mascot-cos-hair" style="font-size:12px;max-width:100%;">
+<option value="none">Yok</option>
+<option value="random">Rastgele (her yenilemede)</option>
+<option value="bob">Bob</option>
+<option value="short">Kısa</option>
+<option value="long">Uzun</option>
+<option value="braid">Örgü</option>
+<option value="bun">Topuz</option>
+<option value="pony">At kuyruğu</option>
+<option value="pixie">Pixie</option>
+<option value="waves">Dalgalı</option>
+<option value="slick">Yapışık</option>
+<option value="mohawk">Mohawk</option>
+<option value="afro">Afro</option>
+<option value="spikes">Diken</option>
+<option value="curly">Kıvırcık</option>
+<option value="side">Yan perçem</option>
+</select>
+<input type="color" id="s-mascot-ccol-hair" value="#64748b" title="Renk · çift tık: varsayılan" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
+</div>
 </div>
 </div>
 <button type="button" class="btn btn-ghost btn-sm" style="margin-top:10px;align-self:flex-start;" onclick="randomizeMascotAppearance()"><i class="ph ph-shuffle"></i> <span data-tr="Rastgele görünüş" data-de="Zufälliges Aussehen">Rastgele görünüş</span></button>
@@ -2575,6 +2627,23 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <option value="heart">Kalp</option>
 <option value="droplet">Damla</option>
 <option value="ring">Halka</option>
+<option value="pulse">Nabız (canlı)</option>
+<option value="wave">Dalga (canlı)</option>
+<option value="ripple">Halka (canlı)</option>
+<option value="morph">Akan (canlı)</option>
+<option value="cloud">Bulut</option>
+<option value="egg">Yumurta</option>
+<option value="pebble">Çakıl</option>
+<option value="clover">Yonca</option>
+<option value="leaf">Yaprak</option>
+<option value="moon">Hilal</option>
+<option value="sun">Güneş</option>
+<option value="bolt">Şimşek</option>
+<option value="gem">Elmas kesim</option>
+<option value="shield">Kalkan</option>
+<option value="flower">Çiçek</option>
+<option value="ticket">Bilet</option>
+<option value="bow">Fiyonk</option>
 </select>
 </div>
 <div style="grid-column:1 / -1;">
@@ -2590,6 +2659,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="settings-mascot-preview-mascot">
 <div class="cust-empty-blob">
 <div class="mascot-cos-makeup" aria-hidden="true"></div>
+<div class="mascot-cos-hair" aria-hidden="true"></div>
 <div class="cust-empty-mascot-eyes">
 <span class="cust-empty-eye"></span>
 <span class="cust-empty-eye cust-empty-eye--r"></span>
@@ -3519,40 +3589,40 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/config.js?v=7.50"></script>
-<script src="js/state.js?v=7.50"></script>
-<script src="js/api.js?v=7.50"></script>
-<script src="js/auth.js?v=7.50"></script>
-<script src="js/ui.js?v=7.50"></script>
-<script src="js/chat.js?v=7.50"></script>
-<script src="js/chat-settings.js?v=7.50"></script>
-<script src="js/field-settings.js?v=7.50"></script>
-<script src="js/audit.js?v=7.50"></script>
-<script src="js/feature-flags.js?v=7.50"></script>
-<script src="js/notification-center.js?v=7.50"></script>
+<script src="js/config.js?v=7.51"></script>
+<script src="js/state.js?v=7.51"></script>
+<script src="js/api.js?v=7.51"></script>
+<script src="js/auth.js?v=7.51"></script>
+<script src="js/ui.js?v=7.51"></script>
+<script src="js/chat.js?v=7.51"></script>
+<script src="js/chat-settings.js?v=7.51"></script>
+<script src="js/field-settings.js?v=7.51"></script>
+<script src="js/audit.js?v=7.51"></script>
+<script src="js/feature-flags.js?v=7.51"></script>
+<script src="js/notification-center.js?v=7.51"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=7.50"></script>
-<script src="js/job-market.js?v=7.50"></script>
-<script src="js/qc-job-market.js?v=7.50"></script>
-<script src="js/export-admin.js?v=7.50"></script>
-<script src="js/export-termin.js?v=7.50"></script>
-<script src="js/performance.js?v=7.50"></script>
-<script src="js/competition.js?v=7.50"></script>
-<script src="js/dashboard.js?v=7.50"></script>
-<script src="js/campaigns.js?v=7.50"></script>
-<script src="js/contacts.js?v=7.50"></script>
-<script src="js/telnyx.js?v=7.50"></script>
-<script src="js/voice-orb.js?v=7.50"></script>
-<script src="js/dialer.js?v=7.50"></script>
-<script src="js/appointments.js?v=7.50"></script>
-<script src="js/field.js?v=7.50"></script>
-<script src="js/field-ops.js?v=7.50"></script>
-<script src="js/wiedervorlage.js?v=7.50"></script>
-<script src="js/qc.js?v=7.50"></script>
-<script src="js/leave-hr.js?v=7.50"></script>
-<script src="js/muhasebe.js?v=7.50"></script>
-<script src="js/agent-self-performance.js?v=7.50"></script>
-<script src="js/agents.js?v=7.50"></script>
+<script src="js/wallet.js?v=7.51"></script>
+<script src="js/job-market.js?v=7.51"></script>
+<script src="js/qc-job-market.js?v=7.51"></script>
+<script src="js/export-admin.js?v=7.51"></script>
+<script src="js/export-termin.js?v=7.51"></script>
+<script src="js/performance.js?v=7.51"></script>
+<script src="js/competition.js?v=7.51"></script>
+<script src="js/dashboard.js?v=7.51"></script>
+<script src="js/campaigns.js?v=7.51"></script>
+<script src="js/contacts.js?v=7.51"></script>
+<script src="js/telnyx.js?v=7.51"></script>
+<script src="js/voice-orb.js?v=7.51"></script>
+<script src="js/dialer.js?v=7.51"></script>
+<script src="js/appointments.js?v=7.51"></script>
+<script src="js/field.js?v=7.51"></script>
+<script src="js/field-ops.js?v=7.51"></script>
+<script src="js/wiedervorlage.js?v=7.51"></script>
+<script src="js/qc.js?v=7.51"></script>
+<script src="js/leave-hr.js?v=7.51"></script>
+<script src="js/muhasebe.js?v=7.51"></script>
+<script src="js/agent-self-performance.js?v=7.51"></script>
+<script src="js/agents.js?v=7.51"></script>
 </body>
 </html>
 
