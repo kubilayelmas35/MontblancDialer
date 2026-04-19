@@ -1,6 +1,16 @@
 // ─────────────────────────────────────────────
 // API — Supabase REST iletişim katmanı
 // ─────────────────────────────────────────────
+function _mbRequestScopeHeaders() {
+  const u = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : null;
+  if (!u) return {};
+  const h = {};
+  if (u.id) h['x-mb-user-id'] = String(u.id);
+  if (u.firm_id) h['x-mb-firm-id'] = String(u.firm_id);
+  if (u.role) h['x-mb-role'] = String(u.role);
+  return h;
+}
+
 async function sb(path, opts={}) {
 const ctrl = new AbortController();
 const timeoutMs = Number(opts.timeoutMs || 20000);
@@ -15,6 +25,7 @@ try {
       'Authorization': `Bearer ${SB_KEY}`,
       'Content-Type': 'application/json',
       'Prefer': opts.prefer || 'return=representation',
+      ..._mbRequestScopeHeaders(),
       ...(opts.headers||{})
     }
   });
@@ -39,12 +50,14 @@ catch(e) { return null; }
 
 async function sbUpsert(table, data, onConflict) {
 try {
+const scopeHeaders = _mbRequestScopeHeaders();
 const res = await fetch(`${SB_URL}/rest/v1/${table}`, {
 method: 'POST',
 headers: {
 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`,
 'Content-Type': 'application/json',
 'Prefer': `resolution=merge-duplicates,return=minimal`,
+...scopeHeaders,
 'on-conflict': onConflict || 'id'
 },
 body: JSON.stringify(data)
@@ -53,7 +66,7 @@ body: JSON.stringify(data)
 if (res.status === 409 && data[onConflict]) {
 await fetch(`${SB_URL}/rest/v1/${table}?${onConflict}=eq.${data[onConflict]}`, {
 method: 'PATCH',
-headers: {'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+headers: {'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal', ...scopeHeaders},
 body: JSON.stringify(data)
 });
 }
