@@ -1006,16 +1006,7 @@ function _mascotAnchorCenterPx(gm) {
   return { x, y };
 }
 
-/** Dialer gövdesi (sol panel + içerik); maskot ofset alanı bu kutuya göre */
-function _mascotDialerContentRect() {
-  const el = document.querySelector('.dialer-layout');
-  if (!el) return null;
-  const r = el.getBoundingClientRect();
-  if (r.width < 16 || r.height < 16) return null;
-  return r;
-}
-
-/** Bırakılan noktadan dialer kutusu içinde kenara kadar (kenar payı ile) tam ofset aralığı. */
+/** Bırakılan noktadan viewport kenarına kadar (kenar payı ile) tam ofset aralığı. */
 function _mascotWanderBoundsFromViewport(gm) {
   const t = 1;
   const edge = 12;
@@ -1037,17 +1028,11 @@ function _mascotWanderBoundsFromViewport(gm) {
   const { x: Px, y: Py } = _mascotAnchorCenterPx(gm);
   const vw = Number(window.innerWidth) || 800;
   const vh = Number(window.innerHeight) || 600;
-  const dialer = _mascotDialerContentRect();
-  let dl = 0;
-  let dt = 0;
-  let dr = vw;
-  let db = vh;
-  if (dialer) {
-    dl = dialer.left;
-    dt = dialer.top;
-    dr = dialer.right;
-    db = dialer.bottom;
-  }
+  /* Tüm sekmelerde aynı: gezinme alanı viewport (dialer paneline sıkıştırma yok). */
+  const dl = 0;
+  const dt = 0;
+  const dr = vw;
+  const db = vh;
   const minCx = dl + edge + halfW;
   const maxCx = dr - edge - halfW;
   const minCy = dt + edge + halfH;
@@ -1877,20 +1862,8 @@ function _syncGlobalMascotDockImpl() {
     gm.style.left = `${custom.x}px`;
     gm.style.top = `${custom.y}px`;
     gm.classList.add('global-mascot--custom', 'global-mascot--placed');
-    const dr = _mascotDialerContentRect();
-    const inDialer =
-      dr &&
-      custom.x >= dr.left - 6 &&
-      custom.x <= dr.right + 6 &&
-      custom.y >= dr.top - 6 &&
-      custom.y <= dr.bottom + 6;
-    if (inDialer) {
-      gm.classList.add('global-mascot--dialer');
-      gm.classList.remove('global-mascot--topbar');
-    } else {
-      gm.classList.remove('global-mascot--dialer');
-      gm.classList.add('global-mascot--topbar');
-    }
+    gm.classList.remove('global-mascot--dialer');
+    gm.classList.add('global-mascot--topbar');
   } else if (anchor) {
     const rect = anchor.getBoundingClientRect();
     _placeGlobalMascotAtRect(rect);
@@ -2234,15 +2207,18 @@ function stopCustEmptyCoach() {
 let _readyEnteredAt = null;
 /** Boş kartta (Hazır değilken) sıkılma/sinir süresi için başlangıç */
 let _custEmptyIdleSince = null;
-let _mascotWanderTimer = null;
 let _mascotMoodTimer = null;
 let _mascotEatTimer = null;
 
+/** İç --mx/--my titremesi kaldırıldı; gezinme yalnızca global _wanderFrame ile (diğer sekmelerle aynı). */
+function _resetCustEmptyMascotInnerOffset() {
+  const mascot = document.getElementById('cust-empty-mascot');
+  if (!mascot) return;
+  mascot.style.setProperty('--mx', '0px');
+  mascot.style.setProperty('--my', '0px');
+}
+
 function _stopCustEmptyMascotTimers() {
-  if (_mascotWanderTimer) {
-    clearInterval(_mascotWanderTimer);
-    _mascotWanderTimer = null;
-  }
   if (_mascotMoodTimer) {
     clearInterval(_mascotMoodTimer);
     _mascotMoodTimer = null;
@@ -2251,6 +2227,7 @@ function _stopCustEmptyMascotTimers() {
     clearTimeout(_mascotEatTimer);
     _mascotEatTimer = null;
   }
+  _resetCustEmptyMascotInnerOffset();
 }
 
 function refreshCustEmptyMascotState() {
@@ -2274,30 +2251,6 @@ function refreshCustEmptyMascotState() {
   if (waitSec > 120) root.classList.add('cust-empty--mascot-angry');
   else if (waitSec > 45) root.classList.add('cust-empty--mascot-bored');
   syncGlobalMascotMoodFromCustEmpty();
-}
-
-function nudgeCustEmptyMascot() {
-  const mascot = document.getElementById('cust-empty-mascot');
-  const root = document.getElementById('cust-empty');
-  const gm = document.getElementById('global-mascot');
-  if (!mascot || !root || root.style.display === 'none' || root.classList.contains('cust-empty--ringing')) return;
-  if (
-    root.classList.contains('cust-empty--peek-chat') ||
-    root.classList.contains('cust-empty--peek-notif') ||
-    gm?.classList.contains('global-mascot--peek-chat') ||
-    gm?.classList.contains('global-mascot--peek-notif')
-  )
-    return;
-  if (dialerStatus !== 'ready' && dialerStatus !== 'break' && dialerStatus !== 'offline') return;
-  if (dialerStatus === 'break') {
-    mascot.style.setProperty('--mx', `${Math.round((Math.random() - 0.5) * 28)}px`);
-    mascot.style.setProperty('--my', `${Math.round((Math.random() - 0.5) * 20)}px`);
-    return;
-  }
-  const span = dialerStatus === 'offline' ? 96 : 104;
-  const spanY = dialerStatus === 'offline' ? 70 : 72;
-  mascot.style.setProperty('--mx', `${Math.round((Math.random() - 0.5) * span)}px`);
-  mascot.style.setProperty('--my', `${Math.round((Math.random() - 0.5) * spanY)}px`);
 }
 
 function scheduleMascotEatOnce() {
@@ -2328,9 +2281,7 @@ function startCustEmptyMascotLoops() {
   _stopCustEmptyMascotTimers();
   if (dialerStatus === 'offline' && !_custEmptyIdleSince) _custEmptyIdleSince = Date.now();
   refreshCustEmptyMascotState();
-  nudgeCustEmptyMascot();
   if (dialerStatus !== 'ready' && dialerStatus !== 'break' && dialerStatus !== 'offline') return;
-  _mascotWanderTimer = setInterval(nudgeCustEmptyMascot, 3800 + Math.floor(Math.random() * 2200));
   _mascotMoodTimer = setInterval(refreshCustEmptyMascotState, 8000);
   if (dialerStatus === 'ready' || dialerStatus === 'offline') scheduleMascotEatOnce();
 }
