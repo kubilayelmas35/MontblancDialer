@@ -1693,7 +1693,7 @@ overflow: hidden;
     var(--bg-2)
   );
   border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
-  --mascot-range-fr: 0.38;
+  --mascot-range-fr: 1;
 }
 .settings-mascot-wander-bounds {
   position: absolute;
@@ -1702,8 +1702,8 @@ overflow: hidden;
   top: auto;
   right: auto;
   transform: none;
-  width: calc(4px + (100% - 16px) * var(--mascot-range-fr, 0.38));
-  height: calc(4px + (100% - 16px) * var(--mascot-range-fr, 0.38));
+  width: calc(4px + (100% - 16px) * var(--mascot-range-fr, 1));
+  height: calc(4px + (100% - 16px) * var(--mascot-range-fr, 1));
   max-width: calc(100% - 16px);
   max-height: calc(100% - 16px);
   border: 2px dashed color-mix(in srgb, var(--accent) 70%, transparent);
@@ -1719,6 +1719,11 @@ overflow: hidden;
   height: 72px;
   transform: scale(calc(1.08 * var(--mascot-user-scale, 1)));
   transform-origin: center center;
+}
+.global-mascot .cust-empty-mascot,
+.settings-mascot-preview-mascot {
+  /* küpe konumu */
+  overflow: visible;
 }
 .settings-mascot-preview-mascot .cust-empty-blob {
   margin-top: 6px;
@@ -1794,6 +1799,171 @@ overflow: hidden;
 }
 .mascot-theme-root[data-mascot-brow="angry"] .mascot-cos-brow--r {
   transform: rotate(18deg) translateY(1px);
+}
+
+.mascot-theme-root .cust-empty-blob > .mascot-cos-makeup {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.mascot-theme-root[data-mascot-makeup="blush"] .mascot-cos-makeup {
+  opacity: 1;
+  background:
+    radial-gradient(ellipse 60% 45% at 22% 60%, rgba(255, 120, 140, 0.42), transparent 70%),
+    radial-gradient(ellipse 60% 45% at 78% 60%, rgba(255, 120, 140, 0.42), transparent 70%);
+}
+.mascot-theme-root[data-mascot-makeup="glow"] .mascot-cos-makeup {
+  opacity: 1;
+  background: radial-gradient(ellipse 85% 70% at 50% 38%, rgba(255, 255, 255, 0.35), transparent 65%);
+  mix-blend-mode: soft-light;
+}
+.mascot-theme-root[data-mascot-makeup="freckles"] .mascot-cos-makeup {
+  opacity: 1;
+  background:
+    radial-gradient(circle at 28% 52%, rgba(120, 72, 48, 0.45) 0, rgba(120, 72, 48, 0.45) 1.2px, transparent 1.4px),
+    radial-gradient(circle at 38% 58%, rgba(120, 72, 48, 0.4) 0, rgba(120, 72, 48, 0.4) 1px, transparent 1.2px),
+    radial-gradient(circle at 62% 58%, rgba(120, 72, 48, 0.4) 0, rgba(120, 72, 48, 0.4) 1px, transparent 1.2px),
+    radial-gradient(circle at 72% 52%, rgba(120, 72, 48, 0.45) 0, rgba(120, 72, 48, 0.45) 1.2px, transparent 1.4px);
+}
+.mascot-theme-root[data-mascot-makeup="liner"] .mascot-cos-makeup {
+  opacity: 1;
+  background:
+    radial-gradient(ellipse 28% 14% at 30% 34%, transparent 55%, rgba(22, 18, 32, 0.35) 56%, transparent 58%),
+    radial-gradient(ellipse 28% 14% at 70% 34%, transparent 55%, rgba(22, 18, 32, 0.35) 56%, transparent 58%);
+}
+.mascot-theme-root[data-mascot-makeup="sparkle"] .mascot-cos-makeup {
+  opacity: 1;
+  background:
+    radial-gradient(circle at 24% 48%, rgba(255, 255, 255, 0.75) 0, rgba(255, 255, 255, 0.75) 1px, transparent 2px),
+    radial-gradient(circle at 76% 46%, rgba(255, 255, 255, 0.65) 0, rgba(255, 255, 255, 0.65) 1px, transparent 2px),
+    radial-gradient(circle at 50% 62%, rgba(255, 240, 252, 0.4) 0, rgba(255, 240, 252, 0.4) 2px, transparent 3px);
+  mix-blend-mode: screen;
+}
+.mascot-theme-root[data-mascot-makeup="cute"] .mascot-cos-makeup {
+  opacity: 1;
+  background:
+    radial-gradient(ellipse 50% 38% at 24% 58%, rgba(255, 150, 180, 0.45), transparent 72%),
+    radial-gradient(ellipse 50% 38% at 76% 58%, rgba(255, 150, 180, 0.45), transparent 72%),
+    radial-gradient(circle at 50% 72%, rgba(255, 182, 193, 0.22), transparent 55%);
+}
+
+.mascot-theme-root .mascot-cos-nose {
+  position: absolute;
+  left: 50%;
+  top: 33px;
+  transform: translateX(-50%);
+  width: 11px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(28, 22, 36, 0.38);
+  opacity: 0;
+  z-index: 4;
+  pointer-events: none;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+}
+.mascot-theme-root[data-mascot-nose]:not([data-mascot-nose="none"]) .mascot-cos-nose {
+  opacity: 1;
+}
+.mascot-theme-root[data-mascot-nose="dot"] .mascot-cos-nose {
+  width: 7px;
+  height: 7px;
+  top: 35px;
+}
+.mascot-theme-root[data-mascot-nose="oval"] .mascot-cos-nose {
+  width: 13px;
+  height: 11px;
+  border-radius: 48%;
+  top: 32px;
+}
+.mascot-theme-root[data-mascot-nose="button"] .mascot-cos-nose {
+  width: 12px;
+  height: 11px;
+  border-radius: 45% 45% 48% 48%;
+  background: linear-gradient(165deg, rgba(255, 220, 230, 0.55), rgba(28, 22, 36, 0.42));
+  top: 33px;
+}
+.mascot-theme-root[data-mascot-nose="tiny"] .mascot-cos-nose {
+  width: 5px;
+  height: 5px;
+  top: 36px;
+  opacity: 0.85;
+}
+.mascot-theme-root[data-mascot-nose="upturned"] .mascot-cos-nose {
+  width: 12px;
+  height: 8px;
+  border-radius: 50% 50% 45% 45%;
+  top: 34px;
+}
+.mascot-theme-root[data-mascot-nose="pierced"] .mascot-cos-nose {
+  width: 10px;
+  height: 9px;
+  top: 34px;
+  background: rgba(28, 22, 36, 0.36);
+  box-shadow:
+    inset 0 -2px 0 rgba(0, 0, 0, 0.1),
+    5px 2px 0 -3px #c9a227;
+}
+
+.mascot-theme-root .mascot-cos-ear {
+  position: absolute;
+  top: 44%;
+  width: 9px;
+  height: 9px;
+  opacity: 0;
+  z-index: 5;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+.mascot-theme-root .mascot-cos-ear--l {
+  left: 1px;
+}
+.mascot-theme-root .mascot-cos-ear--r {
+  right: 1px;
+  left: auto;
+}
+.mascot-theme-root[data-mascot-earring]:not([data-mascot-earring="none"]) .mascot-cos-ear {
+  opacity: 1;
+}
+.mascot-theme-root[data-mascot-earring="stud"] .mascot-cos-ear {
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 32%, rgba(255, 255, 255, 0.55), #94a3b8);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.mascot-theme-root[data-mascot-earring="hoop"] .mascot-cos-ear {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: transparent;
+  border: 2px solid #b8860b;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.mascot-theme-root[data-mascot-earring="pearl"] .mascot-cos-ear {
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fffef8, #e8dcc8 55%, #a89078);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+.mascot-theme-root[data-mascot-earring="drop"] .mascot-cos-ear {
+  width: 7px;
+  height: 12px;
+  border-radius: 40% 40% 50% 50%;
+  background: linear-gradient(180deg, #c4b5fd, #7c3aed);
+}
+.mascot-theme-root[data-mascot-earring="crystal"] .mascot-cos-ear {
+  width: 8px;
+  height: 10px;
+  border-radius: 2px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(180, 220, 255, 0.65));
+  box-shadow: 0 0 0 1px rgba(120, 180, 255, 0.35);
+}
+.mascot-theme-root[data-mascot-earring="heart"] .mascot-cos-ear {
+  width: 10px;
+  height: 9px;
+  background: #fb7185;
+  clip-path: polygon(50% 100%, 0 35%, 20% 0, 50% 18%, 80% 0, 100% 35%);
 }
 
 .mascot-theme-root .mascot-cos-stache {

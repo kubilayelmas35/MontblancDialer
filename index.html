@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=7.48">
+<link rel="stylesheet" href="css/styles.css?v=7.49">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -36,7 +36,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v7.48 — 2026</div>
+<div class="login-version">v7.49 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -169,6 +169,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div id="global-mascot" class="global-mascot mascot-theme-root" aria-hidden="true">
 <div id="cust-empty-mascot" class="cust-empty-mascot">
 <div class="cust-empty-blob">
+<div class="mascot-cos-makeup" aria-hidden="true"></div>
 <div class="cust-empty-mascot-eyes">
 <span class="cust-empty-eye"></span>
 <span class="cust-empty-eye cust-empty-eye--r"></span>
@@ -176,10 +177,13 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="mascot-cos-face" aria-hidden="true">
 <span class="mascot-cos-brow mascot-cos-brow--l"></span>
 <span class="mascot-cos-brow mascot-cos-brow--r"></span>
+<span class="mascot-cos-nose"></span>
 <span class="mascot-cos-stache"></span>
 <span class="mascot-cos-mouth"></span>
 </div>
 </div>
+<span class="mascot-cos-ear mascot-cos-ear--l" aria-hidden="true"></span>
+<span class="mascot-cos-ear mascot-cos-ear--r" aria-hidden="true"></span>
 <span class="mascot-cos-hat" aria-hidden="true"></span>
 <span class="mascot-cos-outfit" aria-hidden="true"></span>
 <div class="cust-empty-mascot-tag" id="cust-empty-mascot-tag" aria-hidden="true"></div>
@@ -369,7 +373,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v7.48</div>
+<div class="sb-ver">MontBlanc v7.49</div>
 </div>
 </nav>
 <main id="main">
@@ -2406,17 +2410,12 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="grid-column:1 / -1;">
 <label class="form-label" style="font-size:11px;" data-tr="Gezinme (0-100)" data-de="Umherlaufen (0–100)">Gezinme (0-100)</label>
 <input class="form-input settings-mascot-slider" id="s-mascot-wander" type="range" min="0" max="100" step="1" value="35">
-<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Düşük: kısa mesafede yavaş gezer; yüksek: daha geniş alanda daha sık hedef seçer." data-de="Niedrig: langsam/kurz; hoch: weiter/flüssiger.">Düşük: kısa mesafede yavaş gezer; yüksek: daha geniş alanda daha sık hedef seçer.</div>
+<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="0: durur. Yükseldikçe dialer alanı içinde daha uzağa ve daha sık hedef seçer; hız ayrıca aşağıda." data-de="0: still. Höher: weiter im Dialer; Zielwahl häufiger; Tempo separat.">0: durur. Yükseldikçe dialer alanı içinde daha uzağa ve daha sık hedef seçer; hız ayrıca aşağıda.</div>
 </div>
 <div style="grid-column:1 / -1;">
 <label class="form-label" style="font-size:11px;" data-tr="Hareket hızı (0-100)" data-de="Bewegungsgeschwindigkeit (0–100)">Hareket hızı (0-100)</label>
 <input class="form-input settings-mascot-slider" id="s-mascot-wander-speed" type="range" min="0" max="100" step="1" value="22">
 <div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="0: neredeyse durur; yükseldikçe hızlanır." data-de="0: fast still; höher: schneller.">0: neredeyse durur; yükseldikçe hızlanır.</div>
-</div>
-<div style="grid-column:1 / -1;">
-<label class="form-label" style="font-size:11px;" data-tr="Hareket alanı (0-100)" data-de="Bewegungsbereich (0–100)">Hareket alanı (0-100)</label>
-<input class="form-input settings-mascot-slider" id="s-mascot-wander-range" type="range" min="0" max="100" step="1" value="38">
-<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="0: sadece bıraktığın nokta; 100: dialer alanı içinde her yöne kadar (kenar payı). Sürüklemeyle yeri her zaman değiştirebilirsin." data-de="0: nur Position; 100: bis zum Dialer-Rand (Rand). Ziehen geht immer.">0: sadece bıraktığın nokta; 100: dialer alanı içinde her yöne kadar (kenar payı). Sürüklemeyle yeri her zaman değiştirebilirsin.</div>
 </div>
 <div style="grid-column:1 / -1;">
 <label class="form-label" style="font-size:11px;" data-tr="Boyut (%)" data-de="Größe (%)">Boyut (%)</label>
@@ -2430,6 +2429,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" style="font-size:10px;">Kaş</label>
 <select class="form-input" id="s-mascot-cos-brow" style="margin-top:4px;font-size:12px;">
 <option value="none">Yok</option>
+<option value="random">Rastgele (her yenilemede)</option>
 <option value="thin">İnce</option>
 <option value="soft">Yumuşak</option>
 <option value="arch">Kavisli</option>
@@ -2445,6 +2445,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" style="font-size:10px;">Bıyık</label>
 <select class="form-input" id="s-mascot-cos-stache" style="margin-top:4px;font-size:12px;">
 <option value="none">Yok</option>
+<option value="random">Rastgele (her yenilemede)</option>
 <option value="shadow">Gölge</option>
 <option value="pencil">Kalem</option>
 <option value="chevron">Çift uç</option>
@@ -2459,6 +2460,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" style="font-size:10px;">Ağız</label>
 <select class="form-input" id="s-mascot-cos-mouth" style="margin-top:4px;font-size:12px;">
 <option value="none">Yok</option>
+<option value="random">Rastgele (her yenilemede)</option>
 <option value="smile">Gülümseme</option>
 <option value="grin">Diş</option>
 <option value="smirk">Sırıtma</option>
@@ -2470,9 +2472,23 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </select>
 </div>
 <div>
+<label class="form-label" style="font-size:10px;">Burun</label>
+<select class="form-input" id="s-mascot-cos-nose" style="margin-top:4px;font-size:12px;">
+<option value="none">Yok</option>
+<option value="random">Rastgele (her yenilemede)</option>
+<option value="dot">Nokta</option>
+<option value="oval">Oval</option>
+<option value="button">Düğme</option>
+<option value="tiny">Minik</option>
+<option value="upturned">Hafif yukarı</option>
+<option value="pierced">Hızma</option>
+</select>
+</div>
+<div>
 <label class="form-label" style="font-size:10px;">Şapka / baş</label>
 <select class="form-input" id="s-mascot-cos-hat" style="margin-top:4px;font-size:12px;">
 <option value="none">Yok</option>
+<option value="random">Rastgele (her yenilemede)</option>
 <option value="cap">Kep</option>
 <option value="beanie">Bere</option>
 <option value="tophat">Silindir</option>
@@ -2483,10 +2499,24 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <option value="wizard">Büyücü</option>
 </select>
 </div>
+<div>
+<label class="form-label" style="font-size:10px;">Küpe</label>
+<select class="form-input" id="s-mascot-cos-earring" style="margin-top:4px;font-size:12px;">
+<option value="none">Yok</option>
+<option value="random">Rastgele (her yenilemede)</option>
+<option value="stud">Pim</option>
+<option value="hoop">Halka</option>
+<option value="pearl">İnci</option>
+<option value="drop">Damla</option>
+<option value="crystal">Kristal</option>
+<option value="heart">Kalp</option>
+</select>
+</div>
 <div style="grid-column:1 / -1;">
 <label class="form-label" style="font-size:10px;">Kıyafet / aksesuar</label>
 <select class="form-input" id="s-mascot-cos-outfit" style="margin-top:4px;font-size:12px;max-width:100%;">
 <option value="none">Yok</option>
+<option value="random">Rastgele (her yenilemede)</option>
 <option value="bowtie">Papyon</option>
 <option value="necktie">Kravat</option>
 <option value="scarf">Atkı</option>
@@ -2495,6 +2525,19 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <option value="pearls">İnci</option>
 <option value="ribbon">Kurdele</option>
 <option value="vest">Yelek</option>
+</select>
+</div>
+<div style="grid-column:1 / -1;">
+<label class="form-label" style="font-size:10px;">Makyaj</label>
+<select class="form-input" id="s-mascot-cos-makeup" style="margin-top:4px;font-size:12px;max-width:100%;">
+<option value="none">Yok</option>
+<option value="random">Rastgele (her yenilemede)</option>
+<option value="blush">Allık</option>
+<option value="glow">Parlama</option>
+<option value="freckles">Çiller</option>
+<option value="liner">Eyeliner hissi</option>
+<option value="sparkle">Işıltı</option>
+<option value="cute">Sevimli pembe</option>
 </select>
 </div>
 </div>
@@ -2523,11 +2566,12 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <div id="settings-mascot-preview-wrap" class="settings-mascot-preview-wrap mascot-theme-root">
-<div class="settings-mascot-preview-label" data-tr="Önizleme (hareket alanı)" data-de="Vorschau (Bewegungsfeld)">Önizleme (hareket alanı)</div>
+<div class="settings-mascot-preview-label" data-tr="Önizleme" data-de="Vorschau">Önizleme</div>
 <div class="settings-mascot-preview-stage" id="settings-mascot-preview-stage">
 <div class="settings-mascot-wander-bounds" id="settings-mascot-wander-bounds" aria-hidden="true"></div>
 <div class="settings-mascot-preview-mascot">
 <div class="cust-empty-blob">
+<div class="mascot-cos-makeup" aria-hidden="true"></div>
 <div class="cust-empty-mascot-eyes">
 <span class="cust-empty-eye"></span>
 <span class="cust-empty-eye cust-empty-eye--r"></span>
@@ -2535,10 +2579,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="mascot-cos-face" aria-hidden="true">
 <span class="mascot-cos-brow mascot-cos-brow--l"></span>
 <span class="mascot-cos-brow mascot-cos-brow--r"></span>
+<span class="mascot-cos-nose"></span>
 <span class="mascot-cos-stache"></span>
 <span class="mascot-cos-mouth"></span>
 </div>
 </div>
+<span class="mascot-cos-ear mascot-cos-ear--l" aria-hidden="true"></span>
+<span class="mascot-cos-ear mascot-cos-ear--r" aria-hidden="true"></span>
 <span class="mascot-cos-hat" aria-hidden="true"></span>
 <span class="mascot-cos-outfit" aria-hidden="true"></span>
 </div>
@@ -3454,40 +3501,40 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/config.js?v=7.48"></script>
-<script src="js/state.js?v=7.48"></script>
-<script src="js/api.js?v=7.48"></script>
-<script src="js/auth.js?v=7.48"></script>
-<script src="js/ui.js?v=7.48"></script>
-<script src="js/chat.js?v=7.48"></script>
-<script src="js/chat-settings.js?v=7.48"></script>
-<script src="js/field-settings.js?v=7.48"></script>
-<script src="js/audit.js?v=7.48"></script>
-<script src="js/feature-flags.js?v=7.48"></script>
-<script src="js/notification-center.js?v=7.48"></script>
+<script src="js/config.js?v=7.49"></script>
+<script src="js/state.js?v=7.49"></script>
+<script src="js/api.js?v=7.49"></script>
+<script src="js/auth.js?v=7.49"></script>
+<script src="js/ui.js?v=7.49"></script>
+<script src="js/chat.js?v=7.49"></script>
+<script src="js/chat-settings.js?v=7.49"></script>
+<script src="js/field-settings.js?v=7.49"></script>
+<script src="js/audit.js?v=7.49"></script>
+<script src="js/feature-flags.js?v=7.49"></script>
+<script src="js/notification-center.js?v=7.49"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=7.48"></script>
-<script src="js/job-market.js?v=7.48"></script>
-<script src="js/qc-job-market.js?v=7.48"></script>
-<script src="js/export-admin.js?v=7.48"></script>
-<script src="js/export-termin.js?v=7.48"></script>
-<script src="js/performance.js?v=7.48"></script>
-<script src="js/competition.js?v=7.48"></script>
-<script src="js/dashboard.js?v=7.48"></script>
-<script src="js/campaigns.js?v=7.48"></script>
-<script src="js/contacts.js?v=7.48"></script>
-<script src="js/telnyx.js?v=7.48"></script>
-<script src="js/voice-orb.js?v=7.48"></script>
-<script src="js/dialer.js?v=7.48"></script>
-<script src="js/appointments.js?v=7.48"></script>
-<script src="js/field.js?v=7.48"></script>
-<script src="js/field-ops.js?v=7.48"></script>
-<script src="js/wiedervorlage.js?v=7.48"></script>
-<script src="js/qc.js?v=7.48"></script>
-<script src="js/leave-hr.js?v=7.48"></script>
-<script src="js/muhasebe.js?v=7.48"></script>
-<script src="js/agent-self-performance.js?v=7.48"></script>
-<script src="js/agents.js?v=7.48"></script>
+<script src="js/wallet.js?v=7.49"></script>
+<script src="js/job-market.js?v=7.49"></script>
+<script src="js/qc-job-market.js?v=7.49"></script>
+<script src="js/export-admin.js?v=7.49"></script>
+<script src="js/export-termin.js?v=7.49"></script>
+<script src="js/performance.js?v=7.49"></script>
+<script src="js/competition.js?v=7.49"></script>
+<script src="js/dashboard.js?v=7.49"></script>
+<script src="js/campaigns.js?v=7.49"></script>
+<script src="js/contacts.js?v=7.49"></script>
+<script src="js/telnyx.js?v=7.49"></script>
+<script src="js/voice-orb.js?v=7.49"></script>
+<script src="js/dialer.js?v=7.49"></script>
+<script src="js/appointments.js?v=7.49"></script>
+<script src="js/field.js?v=7.49"></script>
+<script src="js/field-ops.js?v=7.49"></script>
+<script src="js/wiedervorlage.js?v=7.49"></script>
+<script src="js/qc.js?v=7.49"></script>
+<script src="js/leave-hr.js?v=7.49"></script>
+<script src="js/muhasebe.js?v=7.49"></script>
+<script src="js/agent-self-performance.js?v=7.49"></script>
+<script src="js/agents.js?v=7.49"></script>
 </body>
 </html>
 

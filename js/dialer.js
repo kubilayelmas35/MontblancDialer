@@ -727,8 +727,11 @@ function _mascotHslToHex(h, s, l) {
 function _mascotPickRandomSelectValue(selectId) {
   const el = document.getElementById(selectId);
   if (!el?.options?.length) return '';
-  const opt = el.options[Math.floor(Math.random() * el.options.length)];
-  return opt ? String(opt.value || '') : '';
+  const vals = Array.from(el.options)
+    .map((o) => String(o.value || ''))
+    .filter((v) => v && v !== 'random');
+  if (!vals.length) return '';
+  return vals[Math.floor(Math.random() * vals.length)];
 }
 
 /** Ayarlardaki tüm renk + kozmetik seçeneklerini rastgele doldurur (gezinme ayarlarına dokunmaz). */
@@ -752,8 +755,11 @@ function randomizeMascotAppearance() {
   setMascotPref('mb_mascot_cos_brow', _mascotPickRandomSelectValue('s-mascot-cos-brow') || 'none');
   setMascotPref('mb_mascot_cos_stache', _mascotPickRandomSelectValue('s-mascot-cos-stache') || 'none');
   setMascotPref('mb_mascot_cos_mouth', _mascotPickRandomSelectValue('s-mascot-cos-mouth') || 'none');
+  setMascotPref('mb_mascot_cos_nose', _mascotPickRandomSelectValue('s-mascot-cos-nose') || 'none');
   setMascotPref('mb_mascot_cos_hat', _mascotPickRandomSelectValue('s-mascot-cos-hat') || 'none');
   setMascotPref('mb_mascot_cos_outfit', _mascotPickRandomSelectValue('s-mascot-cos-outfit') || 'none');
+  setMascotPref('mb_mascot_cos_earring', _mascotPickRandomSelectValue('s-mascot-cos-earring') || 'none');
+  setMascotPref('mb_mascot_cos_makeup', _mascotPickRandomSelectValue('s-mascot-cos-makeup') || 'none');
 
   try {
     loadMascotSettingsForm();
@@ -809,16 +815,23 @@ function getMascotUserScaleMul() {
   return getMascotUserScalePct() / 100;
 }
 
-/** 0 = sadece bırakılan nokta; 100 = tüm görünür ekran (kenar payı ile), ara değerler P→F doğrusal */
-function getMascotWanderRangePct() {
-  const n = Number(getMascotPref('mb_mascot_wander_range', '38'));
-  if (!Number.isFinite(n)) return 38;
-  return Math.max(0, Math.min(100, Math.round(n)));
-}
+const MASCOT_COS_KEYS = ['brow', 'stache', 'mouth', 'nose', 'hat', 'outfit', 'earring', 'makeup'];
 
-const MASCOT_COS_KEYS = ['brow', 'stache', 'mouth', 'hat', 'outfit'];
+/** Rastgele seçenek: sayfa yükünde bir kez çözülür (yenilemede yeniden). */
+const MASCOT_COS_RANDOM_POOLS = {
+  brow: ['none', 'thin', 'soft', 'arch', 'thick', 'wispy', 'bold', 'angry', 'straight', 'curved'],
+  stache: ['none', 'shadow', 'pencil', 'chevron', 'horseshoe', 'handlebar', 'walrus', 'toothbrush', 'zapata'],
+  mouth: ['none', 'smile', 'grin', 'smirk', 'flat', 'ooh', 'tongue', 'line', 'kiss'],
+  nose: ['none', 'dot', 'oval', 'button', 'tiny', 'upturned', 'pierced'],
+  hat: ['none', 'cap', 'beanie', 'tophat', 'crown', 'headband', 'cat', 'party', 'wizard'],
+  outfit: ['none', 'bowtie', 'necktie', 'scarf', 'badge', 'collar', 'pearls', 'ribbon', 'vest'],
+  earring: ['none', 'stud', 'hoop', 'pearl', 'drop', 'crystal', 'heart'],
+  makeup: ['none', 'blush', 'glow', 'freckles', 'liner', 'sparkle', 'cute'],
+};
 
-function getMascotCosmetic(part) {
+let _mascotCosRandCache = {};
+
+function getMascotCosmeticPref(part) {
   const v = String(getMascotPref(`mb_mascot_cos_${part}`, '') || 'none')
     .trim()
     .toLowerCase()
@@ -826,11 +839,26 @@ function getMascotCosmetic(part) {
   return v || 'none';
 }
 
+function _rollMascotCosmeticFromPool(part) {
+  const pool = MASCOT_COS_RANDOM_POOLS[part];
+  if (!pool || !pool.length) return 'none';
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/** DOM / tema için: random → havuzdan rastgele (oturum içi önbellek). */
+function getMascotCosmeticApplied(part) {
+  const raw = getMascotCosmeticPref(part);
+  if (raw !== 'random') return raw;
+  if (!_mascotCosRandCache[part]) {
+    _mascotCosRandCache[part] = _rollMascotCosmeticFromPool(part);
+  }
+  return _mascotCosRandCache[part];
+}
+
 function applyMascotCosmetics() {
   const attrs = {};
   for (const k of MASCOT_COS_KEYS) {
-    const v = getMascotCosmetic(k);
-    attrs[`data-mascot-${k}`] = v;
+    attrs[`data-mascot-${k}`] = getMascotCosmeticApplied(k);
   }
   document.querySelectorAll('.mascot-theme-root').forEach((root) => {
     for (const [attr, val] of Object.entries(attrs)) {
@@ -857,11 +885,6 @@ function applyMascotShape() {
   });
 }
 
-function updateMascotWanderPreviewBox() {
-  const stage = document.getElementById('settings-mascot-preview-stage');
-  if (stage) stage.style.setProperty('--mascot-range-fr', String(getMascotWanderRangePct() / 100));
-}
-
 function _mascotAnchorCenterPx(gm) {
   const x = parseFloat(String(gm.style.left || '0').replace('px', '')) || 0;
   const y = parseFloat(String(gm.style.top || '0').replace('px', '')) || 0;
@@ -877,13 +900,9 @@ function _mascotDialerContentRect() {
   return r;
 }
 
-/**
- * Hareket alanı: bırakılan noktadan (P) dialer içinde izin verilen merkez aralığına doğrusal ölçek.
- * t=0 → yalnızca P; t=1 → dialer kenarına kadar (kenar payı ile) tam ofset aralığı.
- */
+/** Bırakılan noktadan dialer kutusu içinde kenara kadar (kenar payı ile) tam ofset aralığı. */
 function _mascotWanderBoundsFromViewport(gm) {
-  const rangePct = getMascotWanderRangePct();
-  const t = Math.max(0, Math.min(100, rangePct)) / 100;
+  const t = 1;
   const edge = 12;
   const animPad = 18;
   const bubbleBelow = 58;
@@ -974,7 +993,6 @@ function applyMascotTheme() {
   if (gm) _applyMascotVarsToEl(gm, h, variant, { breakHue, angryHue });
   if (prev) prev.style.setProperty('--mascot-user-scale', String(getMascotUserScaleMul()));
   applyMascotShape();
-  updateMascotWanderPreviewBox();
   applyMascotCosmetics();
   if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
   updateMascotNameLabel();
@@ -1028,14 +1046,16 @@ function loadMascotSettingsForm() {
   const ag = document.getElementById('s-mascot-angry-color');
   const wd = document.getElementById('s-mascot-wander');
   const ws = document.getElementById('s-mascot-wander-speed');
-  const wr = document.getElementById('s-mascot-wander-range');
   const sc = document.getElementById('s-mascot-user-scale');
   const sh = document.getElementById('s-mascot-shape');
   const cosBrow = document.getElementById('s-mascot-cos-brow');
   const cosStache = document.getElementById('s-mascot-cos-stache');
   const cosMouth = document.getElementById('s-mascot-cos-mouth');
+  const cosNose = document.getElementById('s-mascot-cos-nose');
   const cosHat = document.getElementById('s-mascot-cos-hat');
   const cosOutfit = document.getElementById('s-mascot-cos-outfit');
+  const cosEarring = document.getElementById('s-mascot-cos-earring');
+  const cosMakeup = document.getElementById('s-mascot-cos-makeup');
   const coef = document.getElementById('s-mascot-age-coef');
   const coefHint = document.getElementById('s-mascot-age-coef-hint');
   if (!n || !c || !v) return;
@@ -1046,14 +1066,16 @@ function loadMascotSettingsForm() {
   if (ag) ag.value = getMascotPref('mb_mascot_angry_color', '#ff5b55');
   if (wd) wd.value = String(getMascotWanderPct());
   if (ws) ws.value = String(getMascotWanderSpeedPct());
-  if (wr) wr.value = String(getMascotWanderRangePct());
   if (sc) sc.value = String(getMascotUserScalePct());
   if (sh) sh.value = getMascotShape();
-  if (cosBrow) cosBrow.value = getMascotCosmetic('brow');
-  if (cosStache) cosStache.value = getMascotCosmetic('stache');
-  if (cosMouth) cosMouth.value = getMascotCosmetic('mouth');
-  if (cosHat) cosHat.value = getMascotCosmetic('hat');
-  if (cosOutfit) cosOutfit.value = getMascotCosmetic('outfit');
+  if (cosBrow) cosBrow.value = getMascotCosmeticPref('brow');
+  if (cosStache) cosStache.value = getMascotCosmeticPref('stache');
+  if (cosMouth) cosMouth.value = getMascotCosmeticPref('mouth');
+  if (cosNose) cosNose.value = getMascotCosmeticPref('nose');
+  if (cosHat) cosHat.value = getMascotCosmeticPref('hat');
+  if (cosOutfit) cosOutfit.value = getMascotCosmeticPref('outfit');
+  if (cosEarring) cosEarring.value = getMascotCosmeticPref('earring');
+  if (cosMakeup) cosMakeup.value = getMascotCosmeticPref('makeup');
   const role = currentUser?.role || '';
   const adminLike = ['firm_admin', 'admin', 'super_admin'].includes(role);
   if (coef) {
@@ -1104,11 +1126,6 @@ function loadMascotSettingsForm() {
     setMascotPref('mb_mascot_wander_speed', ws.value);
     if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
   });
-  wr?.addEventListener('input', () => {
-    setMascotPref('mb_mascot_wander_range', wr.value);
-    updateMascotWanderPreviewBox();
-    if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
-  });
   sh?.addEventListener('change', () => {
     setMascotPref('mb_mascot_shape', sh.value);
     applyMascotShape();
@@ -1118,14 +1135,18 @@ function loadMascotSettingsForm() {
     if (!el) return;
     el.addEventListener('change', () => {
       setMascotPref(`mb_mascot_cos_${part}`, el.value || 'none');
+      delete _mascotCosRandCache[part];
       applyMascotCosmetics();
     });
   };
   onCos('brow', cosBrow);
   onCos('stache', cosStache);
   onCos('mouth', cosMouth);
+  onCos('nose', cosNose);
   onCos('hat', cosHat);
   onCos('outfit', cosOutfit);
+  onCos('earring', cosEarring);
+  onCos('makeup', cosMakeup);
 }
 
 function saveMascotSettings() {
@@ -1136,14 +1157,16 @@ function saveMascotSettings() {
   const ag = document.getElementById('s-mascot-angry-color');
   const wd = document.getElementById('s-mascot-wander');
   const ws = document.getElementById('s-mascot-wander-speed');
-  const wr = document.getElementById('s-mascot-wander-range');
   const sc = document.getElementById('s-mascot-user-scale');
   const sh = document.getElementById('s-mascot-shape');
   const cosBrow = document.getElementById('s-mascot-cos-brow');
   const cosStache = document.getElementById('s-mascot-cos-stache');
   const cosMouth = document.getElementById('s-mascot-cos-mouth');
+  const cosNose = document.getElementById('s-mascot-cos-nose');
   const cosHat = document.getElementById('s-mascot-cos-hat');
   const cosOutfit = document.getElementById('s-mascot-cos-outfit');
+  const cosEarring = document.getElementById('s-mascot-cos-earring');
+  const cosMakeup = document.getElementById('s-mascot-cos-makeup');
   const coef = document.getElementById('s-mascot-age-coef');
   if (!n || !c || !v) return;
   const name = String(n.value || '')
@@ -1159,14 +1182,16 @@ function saveMascotSettings() {
   if (ag) setMascotPref('mb_mascot_angry_color', ag.value || '#ff5b55');
   if (wd) setMascotPref('mb_mascot_wander_pct', wd.value || '35');
   if (ws) setMascotPref('mb_mascot_wander_speed', ws.value || '22');
-  if (wr) setMascotPref('mb_mascot_wander_range', wr.value || '38');
   if (sc) setMascotPref('mb_mascot_user_scale', sc.value || '100');
   if (sh) setMascotPref('mb_mascot_shape', mascotShapeFromString(sh.value));
   if (cosBrow) setMascotPref('mb_mascot_cos_brow', cosBrow.value || 'none');
   if (cosStache) setMascotPref('mb_mascot_cos_stache', cosStache.value || 'none');
   if (cosMouth) setMascotPref('mb_mascot_cos_mouth', cosMouth.value || 'none');
+  if (cosNose) setMascotPref('mb_mascot_cos_nose', cosNose.value || 'none');
   if (cosHat) setMascotPref('mb_mascot_cos_hat', cosHat.value || 'none');
   if (cosOutfit) setMascotPref('mb_mascot_cos_outfit', cosOutfit.value || 'none');
+  if (cosEarring) setMascotPref('mb_mascot_cos_earring', cosEarring.value || 'none');
+  if (cosMakeup) setMascotPref('mb_mascot_cos_makeup', cosMakeup.value || 'none');
   applyMascotTheme();
   const role = currentUser?.role || '';
   const adminLike = ['firm_admin', 'admin', 'super_admin'].includes(role);
@@ -1718,6 +1743,7 @@ function runGlobalMascotNotifMorph() {
 function reloadMascotStateForUser() {
   _mascotCallAccumSec = Number(getMascotPref('mb_mascot_call_accum_sec', '0')) || 0;
   _lastMascotCheerSec = -1;
+  _mascotCosRandCache = {};
   try {
     refreshGlobalMascotInfoPanel();
     applyMascotTheme();
