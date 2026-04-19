@@ -286,8 +286,8 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 .pill-call   .tb-pill-val { color: var(--accent); }
 .pill-ready  .tb-pill-dot { background: var(--green); }
 .pill-ready  .tb-pill-val { color: var(--green); }
-.pill-break  .tb-pill-dot { background: var(--yellow); }
-.pill-break  .tb-pill-val { color: var(--yellow); }
+.pill-break  .tb-pill-dot { background: var(--text-2); }
+.pill-break  .tb-pill-val { color: var(--text-2); }
 .pill-camp   .tb-pill-val { color: var(--purple); }
 .pill-appt   .tb-pill-val { color: var(--green); }
 @keyframes blink {

@@ -127,6 +127,22 @@ async function initDialer() {
     }).join('');
     // Manuel arama / Telnyx DID vb. için global kampanya listesi (agent kampanyaları)
     campaigns = (myCamps || []).map((ac) => ac.campaigns).filter(Boolean);
+    // Önceki oturumdan seçili kampanya: arama başlatmaz ama hazır/etiket/sağlık paneli doğru olsun
+    (function restoreSelectedCampFromStorage() {
+      const allowedIds = new Set(myCamps.map((x) => String(x.campaign_id)));
+      if (selectedCampId && !allowedIds.has(String(selectedCampId))) selectedCampId = null;
+      const savedSel = _loadSelectedCampId();
+      let pick = null;
+      if (savedSel && allowedIds.has(String(savedSel))) pick = savedSel;
+      else if (!selectedCampId && _activeCampIds.length) {
+        const first = _activeCampIds.find((id) => allowedIds.has(String(id)));
+        if (first) pick = first;
+      }
+      if (pick && !selectedCampId) {
+        const ac = myCamps.find((x) => String(x.campaign_id) === String(pick));
+        selectCamp(pick, ac?.campaigns?.name || pick, { skipActivate: true });
+      }
+    })();
     // kampanya otomatik seçilmez; kullanıcı tıklamalı
     if (!myCamps.length) {
       const notice = document.getElementById('camp-required-notice');
@@ -170,6 +186,8 @@ async function initDialer() {
 function toggleCampActive(campId, checked) {
   if (checked) {
     if (!_activeCampIds.includes(campId)) _activeCampIds.push(campId);
+    const camp = campaigns.find((c) => c.id === campId);
+    selectCamp(campId, camp?.name || '', { skipActivate: true });
   } else {
     _activeCampIds = _activeCampIds.filter(id => id !== campId);
   }
@@ -2902,7 +2920,10 @@ function getDialerHealthState() {
   const checks = [];
   const push = (ok, label) => checks.push({ ok, label });
   push(!!selectedCampId, 'Kampanya seçildi');
-  push(!!_activeCampIds.length, 'Aktif kampanya var');
+  const campActiveOk =
+    !!selectedCampId &&
+    (_activeCampIds.length === 0 || _activeCampIds.includes(selectedCampId));
+  push(campActiveOk, 'Aktif kampanya var');
   push(_testMode || !!telnyxReady, _testMode ? 'Test modu aktif' : 'Hat bağlantısı hazır');
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0];
@@ -2914,7 +2935,7 @@ function getDialerHealthState() {
   const code = firstFail
     ? !selectedCampId
       ? 'DIAL-CAMP'
-      : !_activeCampIds.length
+      : !campActiveOk
         ? 'DIAL-ACTIVE'
         : (!_testMode && !telnyxReady)
           ? 'DIAL-SIP'
@@ -4359,7 +4380,25 @@ async function tickInboundTestSimulation() {
   const readyIds = new Set(sessions.map((x) => x.agent_id));
   if (!readyIds.has(currentUser.id)) return;
 
-  const contacts = await sb(`contacts?firm_id=eq.${fid}&select=id,phone,first_name,last_name,campaign_id&limit=120`).catch(() => []);
+  const autoIds = typeof getAutoDialCampaignIds === 'function' ? getAutoDialCampaignIds() : [];
+  const sc = typeof selectedCampId !== 'undefined' && selectedCampId ? selectedCampId : null;
+  const campIdsForPool = autoIds.length ? autoIds : sc ? [sc] : [];
+  let contacts = [];
+  if (campIdsForPool.length) {
+    const inf =
+      campIdsForPool.length === 1
+        ? `campaign_id=eq.${campIdsForPool[0]}`
+        : `campaign_id=in.(${campIdsForPool.join(',')})`;
+    contacts =
+      (await sb(
+        `contacts?firm_id=eq.${fid}&${inf}&status=eq.pending&select=id,phone,first_name,last_name,campaign_id&limit=80`
+      ).catch(() => [])) || [];
+  }
+  if (!contacts.length) {
+    contacts =
+      (await sb(`contacts?firm_id=eq.${fid}&select=id,phone,first_name,last_name,campaign_id&limit=120`).catch(() => [])) ||
+      [];
+  }
   let phone = '';
   let pickedContact = null;
   _inboundSimTickCount += 1;
@@ -4515,6 +4554,8 @@ function _closeInboundTestRingUI(opts = {}) {
   if (ownBtn) ownBtn.style.display = 'none';
   const addTg = document.getElementById('dialer-incoming-btn-addtoggle');
   if (addTg) addTg.style.display = 'none';
+  const xWrap = document.getElementById('cust-empty-incoming-xfer-wrap');
+  if (xWrap) xWrap.style.display = 'none';
   const knob = document.getElementById('dialer-incoming-knob');
   if (knob) {
     knob.style.transform = '';
@@ -4660,6 +4701,10 @@ function openInboundTestRingUI(ctx) {
       sub.textContent = tr
         ? 'Sağa kaydır — yanıtla · Sola kaydır — reddet · veya sahibine aktarın'
         : 'Rechts annehmen · Links ablehnen oder an Besitzer weiterleiten';
+    } else if (isExternalInbound && typeof _testMode !== 'undefined' && _testMode) {
+      sub.textContent = tr
+        ? 'Sağa kaydır — yanıtla · Sola kaydır — reddet · veya aşağıdan başka temsilciye aktarın (TEST)'
+        : 'Rechts — annehmen · Links — ablehnen · oder unten weiterleiten (TEST)';
     } else {
       sub.textContent = tr
         ? 'Sağa kaydır — yanıtla · Sola kaydır — reddet'
@@ -4687,6 +4732,26 @@ function openInboundTestRingUI(ctx) {
     String(contact.id).startsWith('adhoc-') ||
     contact?.is_inbound_test === true;
   if (addTg) addTg.style.display = unreg ? 'inline-flex' : 'none';
+
+  const xWrap = document.getElementById('cust-empty-incoming-xfer-wrap');
+  const xferSel = document.getElementById('dialer-incoming-xfer-agent');
+  if (xWrap && xferSel && isExternalInbound && typeof _testMode !== 'undefined' && _testMode && currentUser?.firm_id) {
+    xWrap.style.display = '';
+    xferSel.innerHTML = `<option value="">${tr ? 'Temsilci seçin' : 'Agent wählen'}</option>`;
+    void _fetchFirmAgentsForInboundTest(currentUser.firm_id).then((agents) => {
+      const list = (agents || []).filter((a) => a.id && a.id !== currentUser.id);
+      xferSel.innerHTML =
+        `<option value="">${tr ? 'Temsilci seçin' : 'Agent wählen'}</option>` +
+        list
+          .map((a) => {
+            const nm = String(a.name || a.id || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+            return `<option value="${a.id}">${nm}</option>`;
+          })
+          .join('');
+    });
+  } else if (xWrap) {
+    xWrap.style.display = 'none';
+  }
 
   try {
     navigator.vibrate?.(70);
@@ -4786,6 +4851,37 @@ async function inboundTestLinkToContact() {
   } catch (e) {
     toast((tr ? 'Hata: ' : 'Fehler: ') + (e.message || ''), 'err');
   }
+}
+
+function inboundTestTransferToSelectedAgent() {
+  const ctx = _inboundTestCtx;
+  if (!ctx) return;
+  const sel = document.getElementById('dialer-incoming-xfer-agent');
+  const targetId = sel?.value;
+  const tr = currentLang === 'tr';
+  if (!targetId) {
+    toast(tr ? 'Önce bir temsilci seçin' : 'Agent wählen', 'warn');
+    return;
+  }
+  const payload = {
+    phone: ctx.phone,
+    displayName: ctx.displayName,
+    fromAgent: currentUser?.name || '',
+    ts: Date.now(),
+  };
+  try {
+    localStorage.setItem(`mb_test_xfer_${targetId}`, JSON.stringify(payload));
+  } catch (e) {}
+  const nm = sel?.options?.[sel.selectedIndex]?.text || '';
+  toast(
+    tr
+      ? `TEST: ${nm} için kuyruk bildirimi (aynı tarayıcıda o temsilci oturumu açıksa gelen çalar)`
+      : `TEST: Benachrichtigung an ${nm}`,
+    'ok',
+    5200
+  );
+  _closeInboundTestRingUI();
+  restartInboundTestSimulationScheduler();
 }
 
 function inboundTestTransferToOwner() {

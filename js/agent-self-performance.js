@@ -102,10 +102,15 @@ function _aspDaysInMonth(ym) {
   return out;
 }
 
-async function _aspFetchAppointments(fid, uid, start, end) {
+async function _aspFetchAppointments(fid, uid, start, end, mode = 'termin') {
   if (!fid || !uid) return [];
+  if (mode === 'created') {
+    const q =
+      `appointments?select=id,termin_tarih,created_at,durum,nachname,telefonnummer,plz,ortschaft,agent_notu,hausart,baujahr,qm,heizung&firm_id=eq.${fid}&agent_id=eq.${uid}&created_at=gte.${start}T00:00:00.000Z&created_at=lte.${end}T23:59:59.999Z&order=created_at.desc&limit=3000`;
+    return (await sb(q).catch(() => [])) || [];
+  }
   const base =
-    `appointments?select=id,termin_tarih,durum,nachname,telefonnummer,plz,ortschaft,agent_notu,hausart,baujahr,qm,heizung&firm_id=eq.${fid}&agent_id=eq.${uid}&termin_tarih=gte.${start}T00:00:00&termin_tarih=lte.${end}T23:59:59&order=termin_tarih.asc&limit=3000`;
+    `appointments?select=id,termin_tarih,created_at,durum,nachname,telefonnummer,plz,ortschaft,agent_notu,hausart,baujahr,qm,heizung&firm_id=eq.${fid}&agent_id=eq.${uid}&termin_tarih=gte.${start}T00:00:00&termin_tarih=lte.${end}T23:59:59&order=termin_tarih.asc&limit=3000`;
   return (await sb(base).catch(() => [])) || [];
 }
 
@@ -229,15 +234,27 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const { start, end } = _aspMonthBounds(ym);
   if (!start) return;
 
+  const apptMode = window._aspApptMode === 'created' ? 'created' : 'termin';
   host.innerHTML = `<div class="card" style="padding:16px;margin-bottom:14px;">
 <div class="card-title" style="margin-bottom:4px;"><i class="ph ph-chart-line-up"></i> Performansım</div>
-<div class="card-sub" style="margin-bottom:14px;">Seçili ay: <strong id="asp-ym-label"></strong> · Termin ve çağrı özeti (maaş için menüden <strong>Maaşım</strong>)</div>
+<div class="card-sub" style="margin-bottom:10px;">Seçili ay: <strong id="asp-ym-label"></strong> · Termin ve çağrı özeti (maaş için menüden <strong>Maaşım</strong>)</div>
+<div style="display:flex;flex-wrap:wrap;gap:12px 18px;margin-bottom:12px;font-size:12px;align-items:center;">
+<label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+<input type="radio" name="asp-appt-mode" value="termin" ${apptMode === 'termin' ? 'checked' : ''} onchange="window._aspApptMode='termin';loadPerformansimPage();">
+<span data-tr="Bu ay termin tarihli" data-de="Termin im Monat">Bu ay termin tarihli</span>
+</label>
+<label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+<input type="radio" name="asp-appt-mode" value="created" ${apptMode === 'created' ? 'checked' : ''} onchange="window._aspApptMode='created';loadPerformansimPage();">
+<span data-tr="Bu ay kaydettiğim (oluşturma)" data-de="Diesen Monat erfasst">Bu ay kaydettiğim (oluşturma)</span>
+</label>
+</div>
+<p style="font-size:11px;color:var(--text-3);margin:0 0 12px;line-height:1.4;" data-tr="Maaşta genelde «bu ay oluşturduğun» randevular sayılır; termin Nisan’da olsa bile Mayıs’ta kayıt açtıysanız Mayıs performansına düşer." data-de="Für die Abrechnung zählt oft das Erfassungsdatum; ein April-Termin kann in Mai erfasst sein.">Maaşta genelde «bu ay oluşturduğun» randevular sayılır; termin Nisan’da olsa bile Mayıs’ta kayıt açtıysanız Mayıs performansına düşer.</p>
 <div id="asp-body" style="color:var(--text-3);font-size:13px;">Yükleniyor…</div>
 </div>`;
   document.getElementById('asp-ym-label').textContent = ym;
 
   const [appts, calls] = await Promise.all([
-    _aspFetchAppointments(fid, uid, start, end),
+    _aspFetchAppointments(fid, uid, start, end, apptMode),
     _aspFetchCalls(fid, uid, start, end),
   ]);
 
@@ -259,7 +276,8 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const byDay = {};
   dayKeys.forEach((d) => { byDay[d] = { ok: 0, pend: 0, qc: 0, fail: 0, oth: 0 }; });
   appts.forEach((a) => {
-    const d = String(a.termin_tarih || '').slice(0, 10);
+    const raw = apptMode === 'created' ? a.created_at : a.termin_tarih;
+    const d = String(raw || '').slice(0, 10);
     if (!byDay[d]) return;
     const b = _aspApptBucket(a.durum);
     if (b === 'ok') byDay[d].ok++;
@@ -273,7 +291,7 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const body = document.getElementById('asp-body');
   body.innerHTML = `
 <div class="stats-grid" style="margin-bottom:14px;">
-<div class="stat-card"><div class="stat-lbl">Termin (ay)</div><div class="stat-val">${tot}</div><div class="stat-meta">${ok} başarılı · oran %${rate}</div></div>
+<div class="stat-card"><div class="stat-lbl">${apptMode === 'created' ? 'Randevu (oluşturma ayı)' : 'Termin (tarih ayı)'}</div><div class="stat-val">${tot}</div><div class="stat-meta">${ok} başarılı · oran %${rate}</div></div>
 <div class="stat-card stat-green"><div class="stat-lbl">Aramalar</div><div class="stat-val">${cTot}</div></div>
 <div class="stat-card"><div class="stat-lbl">Arama → Termin</div><div class="stat-val">${cAp}</div></div>
 <div class="stat-card"><div class="stat-lbl">Dönüşüm</div><div class="stat-val">${conv}%</div></div>
@@ -291,13 +309,13 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
 </div>
 </div>
 <div style="border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg-2);margin-bottom:14px;">
-<div style="font-weight:800;font-size:13px;margin-bottom:8px;">Günlük terminler</div>
+<div style="font-weight:800;font-size:13px;margin-bottom:8px;">${apptMode === 'created' ? 'Günlük (oluşturma tarihi)' : 'Günlük terminler'}</div>
 <div style="height:240px;position:relative;"><canvas id="asp-chart-day"></canvas></div>
 </div>
 <div style="margin-top:14px;">
 <div class="form-label" style="margin-bottom:6px;">Son terminler</div>
 <div class="tbl-wrap" style="max-height:260px;">
-<table style="font-size:12px;min-width:520px;"><thead><tr><th>Tarih</th><th>Müşteri</th><th>Durum</th><th>PLZ</th></tr></thead>
+<table style="font-size:12px;min-width:520px;"><thead><tr><th>${apptMode === 'created' ? 'Kayıt · termin' : 'Tarih'}</th><th>Müşteri</th><th>Durum</th><th>PLZ</th></tr></thead>
 <tbody id="asp-tbody-ap"></tbody>
 </table>
 </div>
@@ -316,14 +334,29 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
 
   const tbAp = document.getElementById('asp-tbody-ap');
   if (tbAp) {
-    const sorted = [...appts].sort((a, b) => String(b.termin_tarih).localeCompare(String(a.termin_tarih))).slice(0, 25);
+    const sorted = [...appts]
+      .sort((a, b) => {
+        const ka = apptMode === 'created' ? a.created_at : a.termin_tarih;
+        const kb = apptMode === 'created' ? b.created_at : b.termin_tarih;
+        return String(kb || '').localeCompare(String(ka || ''));
+      })
+      .slice(0, 25);
     tbAp.innerHTML = sorted.length ? sorted.map((a) => {
       const d = new Date(a.termin_tarih);
       const ds = isNaN(d.getTime()) ? '—' : d.toLocaleString(loc, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      const dc = a.created_at ? new Date(a.created_at) : null;
+      const dcs =
+        dc && !isNaN(dc.getTime())
+          ? dc.toLocaleString(loc, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+          : '—';
+      const dateCell =
+        apptMode === 'created'
+          ? `<div class="td-mono">${dcs}</div><div style="font-size:10px;color:var(--text-3);margin-top:2px;">Termin: ${_uiEsc(ds)}</div>`
+          : `<span class="td-mono">${ds}</span>`;
       const st = _aspApptBucket(a.durum);
       const badge = st === 'ok' ? 'badge-green' : st === 'pend' ? 'badge-yellow' : st === 'qc' ? '' : 'badge-red';
       const stl = st === 'qc' ? 'background:var(--accent-soft);color:var(--accent);' : '';
-      return `<tr><td class="td-mono">${ds}</td><td>${_uiEsc(a.nachname || '—')}</td><td><span class="badge ${badge}" style="${stl}">${_uiEsc(String(a.durum || '—'))}</span></td><td>${_uiEsc(a.plz || '—')}</td></tr>`;
+      return `<tr><td>${dateCell}</td><td>${_uiEsc(a.nachname || '—')}</td><td><span class="badge ${badge}" style="${stl}">${_uiEsc(String(a.durum || '—'))}</span></td><td>${_uiEsc(a.plz || '—')}</td></tr>`;
     }).join('') : `<tr><td colspan="4" style="text-align:center;padding:16px;">—</td></tr>`;
   }
 

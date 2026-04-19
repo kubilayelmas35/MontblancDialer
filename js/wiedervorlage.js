@@ -218,13 +218,75 @@ async function wvMarkOlumsuz(id) {
   }
 }
 
-function wvCallNow(id) {
-  const w = (wvList||[]).find(x=>x.id===id);
+async function wvCallNow(id) {
+  const w = (wvList || []).find((x) => x.id === id);
   if (!w) return;
   navigate('dialer');
-  setTimeout(() => {
-    if (w.telefon) { window._wvPrefill = w; toast(`${w.nachname} — ${w.telefon}`, 'ok'); }
-  }, 300);
+  if (typeof initDialer === 'function') await initDialer();
+  const fid = currentUser?.firm_id;
+  const tr = currentLang === 'tr';
+  if (!fid || !w.telefon) {
+    toast(tr ? 'Firma veya telefon eksik' : 'Fehlt', 'err');
+    return;
+  }
+  let contact = null;
+  const cid = w.contact_id;
+  if (cid && typeof isValidUUID === 'function' && isValidUUID(cid)) {
+    const rows =
+      (await sb(`contacts?id=eq.${cid}&firm_id=eq.${fid}&select=*&limit=1`).catch(() => [])) || [];
+    contact = rows[0] || null;
+  }
+  if (!contact) {
+    const ph = String(w.telefon).trim();
+    let rows =
+      (await sb(`contacts?firm_id=eq.${fid}&phone=eq.${encodeURIComponent(ph)}&select=*&limit=1`).catch(() => [])) ||
+      [];
+    if (!rows.length) {
+      rows =
+        (await sb(`contacts?firm_id=eq.${fid}&phone2=eq.${encodeURIComponent(ph)}&select=*&limit=1`).catch(() => [])) ||
+        [];
+    }
+    contact = rows[0] || null;
+  }
+  if (contact) {
+    if (contact.campaign_id && typeof selectCamp === 'function') {
+      const camp = typeof campaigns !== 'undefined' && campaigns?.find ? campaigns.find((c) => c.id === contact.campaign_id) : null;
+      selectCamp(contact.campaign_id, camp?.name || '', { skipActivate: true });
+    }
+    currentContact = contact;
+    if (typeof showCustomerCard === 'function') showCustomerCard(contact);
+    if (typeof syncCustomerCardEmptyVisual === 'function') syncCustomerCardEmptyVisual();
+    toast(`${w.nachname || contact.first_name || ''} — ${w.telefon}`, 'ok');
+    return;
+  }
+  const parts = String(w.nachname || '').trim().split(/\s+/);
+  const synthetic = {
+    id: `wv-${w.id}`,
+    phone: String(w.telefon).trim(),
+    phone2: w.telefon2 || '',
+    first_name: parts[0] || '',
+    last_name: parts.slice(1).join(' ') || '',
+    plz: w.plz || '',
+    city: w.ort || '',
+    address: w.strasse || '',
+    notes: w.notiz || '',
+    firm_id: fid,
+    campaign_id: typeof selectedCampId !== 'undefined' ? selectedCampId : null,
+    status: 'pending',
+    attempt_count: 0,
+    _fromWiedervorlageId: w.id,
+  };
+  currentContact = synthetic;
+  if (typeof showCustomerCard === 'function') showCustomerCard(synthetic);
+  if (typeof syncCustomerCardEmptyVisual === 'function') syncCustomerCardEmptyVisual();
+  window._wvPrefill = w;
+  toast(
+    tr
+      ? 'Bu telefonla kayıtlı müşteri yok — WV bilgisiyle kart açıldı; aramayı manuel başlatın'
+      : 'Kein Kontakt — WV-Daten geladen',
+    'warn',
+    4200
+  );
 }
 
 function startWvReminders() {

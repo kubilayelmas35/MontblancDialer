@@ -233,7 +233,7 @@ async function getNextContact(campaignIds = null) {
       `&status=in.(pending,no_answer,callback)` +
       `&or=(callback_at.is.null,callback_at.lte.${nowIso})` +
       `&order=last_called_at.asc.nullsfirst` +
-      `&limit=1&select=*,queues(name,status)`
+      `&limit=12&select=*,queues(name,status)`
     );
     if (!contacts?.length) {
       if (typeof _testMode !== 'undefined' && _testMode && ids.length) {
@@ -244,10 +244,13 @@ async function getNextContact(campaignIds = null) {
       }
       return null;
     }
-    const c = contacts[0];
-    /* queue_id yoksa join gelmez; sadece kuyruk satırı varsa ve aktif değilse ele */
-    if (c.queues && c.queues.status !== 'active') return null;
-    return c;
+    const testRelax = typeof _testMode !== 'undefined' && _testMode;
+    for (let i = 0; i < contacts.length; i++) {
+      const c = contacts[i];
+      if (!c.queues || c.queues.status === 'active') return c;
+      if (testRelax) return c;
+    }
+    return null;
   } catch(e) { console.error(e); return null; }
 }
 
