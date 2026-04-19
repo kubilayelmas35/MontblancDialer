@@ -237,7 +237,10 @@ async function getNextContact(campaignIds = null) {
     );
     if (!contacts?.length) {
       if (typeof _testMode !== 'undefined' && _testMode && ids.length) {
-        return _makeSyntheticTestOutboundContact(ids[0]);
+        const sid = typeof selectedCampId !== 'undefined' ? selectedCampId : null;
+        const pick =
+          sid && ids.some((x) => String(x) === String(sid)) ? sid : ids[0];
+        return _makeSyntheticTestOutboundContact(pick);
       }
       return null;
     }

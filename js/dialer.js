@@ -68,15 +68,8 @@ async function initDialer() {
       }
     }
 
-    // Seçili kampanyayı (kullanıcı bazlı) geri yükle
-    // Not: Eğer aktif kampanya listesi "bilerek boş" kaydedildiyse (savedActive === []), seçim UI için restore edilir ama aktif listeye eklenmez.
-    if (!selectedCampId) {
-      const saved = _loadSelectedCampId();
-      if (saved && myCamps.some((x) => String(x.campaign_id) === String(saved))) {
-        const found = myCamps.find((x) => String(x.campaign_id) === String(saved));
-        selectCamp(found.campaign_id, found.campaigns?.name || '', { skipActivate: true });
-      }
-    }
+    /* Seçili kampanyayı localStorage'tan otomatik yükleme: kullanıcı tıklamadan
+       selectedCampId dolmasın; aksi halde "seçmedim" denmesine rağmen çağrı başlıyordu. */
 
     // A-Z sırala (kampanya adı)
     myCamps = (myCamps || []).slice().sort((a, b) => {
