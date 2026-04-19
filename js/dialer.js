@@ -745,11 +745,11 @@ function getMascotWanderRangePct() {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
-/** 1 = çok yavaş, 100 = hızlı */
+/** 0 = neredeyse duruyor, 100 = hızlı */
 function getMascotWanderSpeedPct() {
-  const n = Number(getMascotPref('mb_mascot_wander_speed', '28'));
-  if (!Number.isFinite(n)) return 28;
-  return Math.max(1, Math.min(100, Math.round(n)));
+  const n = Number(getMascotPref('mb_mascot_wander_speed', '22'));
+  if (!Number.isFinite(n)) return 22;
+  return Math.max(0, Math.min(100, Math.round(n)));
 }
 
 function getMascotShape() {
@@ -778,41 +778,63 @@ function _mascotAnchorCenterPx(gm) {
 function _mascotWanderBoundsFromViewport(gm) {
   const rangePct = getMascotWanderRangePct();
   const t = Math.max(0, Math.min(100, rangePct)) / 100;
-  const margin = 10;
-  let halfW = 36;
-  let halfH = 36;
+  const edge = 12;
+  const animPad = 18;
+  const bubbleBelow = 58;
+  let halfW = 40;
+  let halfH = 44;
   try {
-    const inner = gm.querySelector('.cust-empty-mascot');
-    if (inner) {
-      const r = inner.getBoundingClientRect();
-      if (r.width > 8) halfW = r.width / 2;
-      if (r.height > 8) halfH = r.height / 2;
+    const blob = gm.querySelector('.cust-empty-blob');
+    const el = blob || gm.querySelector('.cust-empty-mascot');
+    if (el) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 8) halfW = (r.width / 2) * 1.12 + animPad * 0.35;
+      if (r.height > 8) halfH = (r.height / 2) * 1.12 + animPad * 0.35 + bubbleBelow * 0.45;
     }
   } catch (e) {}
+  halfW += animPad;
+  halfH += animPad + bubbleBelow * 0.55;
   const { x: cx0, y: cy0 } = _mascotAnchorCenterPx(gm);
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  let minOffX = margin + halfW - cx0;
-  let maxOffX = vw - margin - halfW - cx0;
-  let minOffY = margin + halfH - cy0;
-  let maxOffY = vh - margin - halfH - cy0;
-  if (maxOffX < minOffX) {
-    const m = (minOffX + maxOffX) / 2;
-    minOffX = m - 1;
-    maxOffX = m + 1;
+  const minCx = edge + halfW;
+  const maxCx = vw - edge - halfW;
+  const minCy = edge + halfH;
+  const maxCy = vh - edge - halfH;
+  if (maxCx <= minCx + 4 || maxCy <= minCy + 4) {
+    return { minX: -1, maxX: 1, minY: -1, maxY: 1 };
   }
-  if (maxOffY < minOffY) {
-    const m = (minOffY + maxOffY) / 2;
-    minOffY = m - 1;
-    maxOffY = m + 1;
+  const scx = (minCx + maxCx) / 2;
+  const scy = (minCy + maxCy) / 2;
+  const availHalfX = (maxCx - minCx) / 2;
+  const availHalfY = (maxCy - minCy) / 2;
+  const coreSmall = 18;
+  const effHalfX = Math.min(coreSmall + t * (availHalfX - coreSmall), availHalfX);
+  const effHalfY = Math.min(coreSmall + t * (availHalfY - coreSmall), availHalfY);
+  let mxMin = scx - effHalfX;
+  let mxMax = scx + effHalfX;
+  let myMin = scy - effHalfY;
+  let myMax = scy + effHalfY;
+  mxMin = Math.max(mxMin, minCx);
+  mxMax = Math.min(mxMax, maxCx);
+  myMin = Math.max(myMin, minCy);
+  myMax = Math.min(myMax, maxCy);
+  if (mxMax < mxMin + 2) {
+    const m = (mxMin + mxMax) / 2;
+    mxMin = m - 1;
+    mxMax = m + 1;
   }
-  const fullHalfX = Math.max(0, (maxOffX - minOffX) / 2);
-  const fullHalfY = Math.max(0, (maxOffY - minOffY) / 2);
-  const coreMinX = 12;
-  const coreMinY = 10;
-  const effHalfX = coreMinX + t * (fullHalfX - coreMinX);
-  const effHalfY = coreMinY + t * (fullHalfY - coreMinY);
-  return { minX: -effHalfX, maxX: effHalfX, minY: -effHalfY, maxY: effHalfY };
+  if (myMax < myMin + 2) {
+    const m = (myMin + myMax) / 2;
+    myMin = m - 1;
+    myMax = m + 1;
+  }
+  return {
+    minX: mxMin - cx0,
+    maxX: mxMax - cx0,
+    minY: myMin - cy0,
+    maxY: myMax - cy0,
+  };
 }
 
 function isMimiHidden() {
@@ -1012,7 +1034,7 @@ function saveMascotSettings() {
   if (bk) setMascotPref('mb_mascot_break_color', bk.value || '#4f8cff');
   if (ag) setMascotPref('mb_mascot_angry_color', ag.value || '#ff5b55');
   if (wd) setMascotPref('mb_mascot_wander_pct', wd.value || '35');
-  if (ws) setMascotPref('mb_mascot_wander_speed', ws.value || '28');
+  if (ws) setMascotPref('mb_mascot_wander_speed', ws.value || '22');
   if (wr) setMascotPref('mb_mascot_wander_range', wr.value || '38');
   if (sc) setMascotPref('mb_mascot_user_scale', sc.value || '100');
   if (sh) setMascotPref('mb_mascot_shape', mascotShapeFromString(sh.value));
@@ -1336,15 +1358,31 @@ function _wanderFrame() {
   }
   const bounds = _mascotWanderBoundsFromViewport(gm);
   const speedPct = getMascotWanderSpeedPct();
-  const speedK = 0.06 + (speedPct / 100) * 0.38;
+  const speedT = Math.max(0, speedPct) / 100;
+  const speedK = 0.006 + speedT * 0.14;
   const wanderT = Math.max(0, Math.min(100, pct)) / 100;
-  const step = speedK * (0.22 + wanderT * 0.78) * 0.18;
+  const step = speedK * (0.12 + wanderT * 0.88) * 0.09;
   _wanderCur.x += dx * step;
   _wanderCur.y += dy * step;
   _wanderCur.x = Math.min(bounds.maxX, Math.max(bounds.minX, _wanderCur.x));
   _wanderCur.y = Math.min(bounds.maxY, Math.max(bounds.minY, _wanderCur.y));
   gm.style.setProperty('--gm-wx', `${_wanderCur.x.toFixed(2)}px`);
   gm.style.setProperty('--gm-wy', `${_wanderCur.y.toFixed(2)}px`);
+  const bubble = document.getElementById('cust-empty-bubble');
+  if (bubble && bubble.style.display === 'block') {
+    const pad = 10;
+    let shift = 0;
+    const br = bubble.getBoundingClientRect();
+    if (br.left < pad) shift += pad - br.left;
+    if (br.right > window.innerWidth - pad) shift -= br.right - (window.innerWidth - pad);
+    const maxShift = Math.min(120, Math.max(window.innerWidth, 400) * 0.2);
+    shift = Math.max(-maxShift, Math.min(maxShift, shift));
+    bubble.style.setProperty('--bubble-shift-x', `${Math.round(shift)}px`);
+  }
+  const panel = document.getElementById('global-mascot-info');
+  if (panel && panel.style.display !== 'none') {
+    if (typeof positionGlobalMascotInfoPanel === 'function') positionGlobalMascotInfoPanel();
+  }
   _wanderRaf = requestAnimationFrame(_wanderFrame);
 }
 

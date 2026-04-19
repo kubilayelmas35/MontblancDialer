@@ -481,8 +481,11 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   position: absolute;
   left: 50%;
   top: 50%;
-  margin-top: 52px;
-  transform: translateX(calc(-50% + var(--bubble-shift-x, 0px)));
+  margin-top: 0;
+  transform: translate(
+    calc(-50% + var(--gm-wx, 0px) + var(--bubble-shift-x, 0px)),
+    calc(-50% + var(--gm-wy, 0px) + 52px)
+  );
   /* vw tabanı; genişlik 0×0 kapsayıcıya bağlı kalmasın */
   width: auto;
   min-width: min(200px, calc(100vw - 32px));
@@ -494,6 +497,13 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   padding: 10px 14px;
   z-index: 5;
   text-align: center;
+}
+.global-mascot .cust-empty-bubble.global-mascot-bubble.cust-empty-bubble--pop {
+  opacity: 1;
+  transform: translate(
+    calc(-50% + var(--gm-wx, 0px) + var(--bubble-shift-x, 0px)),
+    calc(-50% + var(--gm-wy, 0px) + 52px)
+  ) scale(1);
 }
 .global-mascot.global-mascot--muted .cust-empty-mascot {
   transform: translate(calc(-50% + var(--gm-wx, 0px)), calc(-50% + var(--gm-wy, 0px))) scale(0.32);
