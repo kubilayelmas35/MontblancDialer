@@ -323,11 +323,8 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   overflow: visible;
   pointer-events: none;
   opacity: 0;
-  /* left/top: süre verme — Dialer sekmesine geçerken “ortaya kayma” hissi oluşmasın */
-  transition:
-    opacity 0.2s ease,
-    --gm-wx 0.9s cubic-bezier(0.25, 0.9, 0.25, 1),
-    --gm-wy 0.9s cubic-bezier(0.25, 0.9, 0.25, 1);
+  /* Konum (--gm-wx/y) anında; süzülme yok */
+  transition: opacity 0.2s ease;
   --mascot-call-heat: 0;
 }
 .global-mascot.global-mascot--dragging {
@@ -357,7 +354,7 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   animation: none;
 }
 .global-mascot.global-mascot--custom {
-  transition: left 0.2s ease, top 0.2s ease;
+  transition: none;
 }
 .global-mascot-info {
   position: absolute;
@@ -939,12 +936,12 @@ padding: 8px 12px; font-size:13px; transition: var(--transition); width:100%;
 }
 .form-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
 .form-input::placeholder { color: var(--text-3); }
-/* Range: yatay padding thumb’u 100’e tam getirmez; maskot gezinme kaydırıcısı */
-#page-settings #s-mascot-user-scale.form-input {
+/* Maskot ayar kaydırıcıları */
+#page-settings .settings-mascot-slider.form-input {
   width: 100%;
   max-width: 280px;
-  height: 8px;
-  padding: 0;
+  height: 28px;
+  padding: 6px 0;
   background: transparent;
   border: none;
   box-shadow: none;
@@ -952,52 +949,14 @@ padding: 8px 12px; font-size:13px; transition: var(--transition); width:100%;
   appearance: none;
   cursor: pointer;
 }
-#page-settings #s-mascot-user-scale.form-input::-webkit-slider-runnable-track {
+#page-settings .settings-mascot-slider.form-input::-webkit-slider-runnable-track {
   height: 6px;
-  border-radius: 999px;
   background: var(--bg-4);
+  border-radius: 999px;
 }
-#page-settings #s-mascot-user-scale.form-input::-webkit-slider-thumb {
+#page-settings .settings-mascot-slider.form-input::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
-  margin-top: -5px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 2px solid var(--bg-2);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-}
-#page-settings #s-mascot-user-scale.form-input::-moz-range-track {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--bg-4);
-}
-#page-settings #s-mascot-user-scale.form-input::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 2px solid var(--bg-2);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-}
-#page-settings #s-mascot-wander.form-input {
-  padding: 6px 0;
-  height: 28px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  cursor: pointer;
-}
-#page-settings #s-mascot-wander.form-input::-webkit-slider-runnable-track {
-  height: 6px;
-  background: var(--bg-4);
-  border-radius: 3px;
-}
-#page-settings #s-mascot-wander.form-input::-webkit-slider-thumb {
-  -webkit-appearance: none;
   width: 18px;
   height: 18px;
   margin-top: -6px;
@@ -1006,18 +965,19 @@ padding: 8px 12px; font-size:13px; transition: var(--transition); width:100%;
   cursor: pointer;
   box-shadow: 0 0 0 2px var(--bg-2);
 }
-#page-settings #s-mascot-wander.form-input::-moz-range-track {
+#page-settings .settings-mascot-slider.form-input::-moz-range-track {
   height: 6px;
   background: var(--bg-4);
-  border-radius: 3px;
+  border-radius: 999px;
 }
-#page-settings #s-mascot-wander.form-input::-moz-range-thumb {
+#page-settings .settings-mascot-slider.form-input::-moz-range-thumb {
   width: 18px;
   height: 18px;
   border: none;
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
+  box-shadow: 0 0 0 2px var(--bg-2);
 }
 .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 @media(max-width:480px) { .form-grid { grid-template-columns:1fr; } }
@@ -1711,8 +1671,8 @@ overflow: hidden;
 }
 .settings-mascot-preview-stage {
   position: relative;
-  width: 118px;
-  height: 118px;
+  width: 140px;
+  height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1723,9 +1683,26 @@ overflow: hidden;
     var(--bg-2)
   );
   border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  --mascot-range-fr: 0.38;
+}
+.settings-mascot-wander-bounds {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(26px + (100% - 34px) * var(--mascot-range-fr, 0.38));
+  height: calc(26px + (100% - 34px) * var(--mascot-range-fr, 0.38));
+  max-width: calc(100% - 6px);
+  max-height: calc(100% - 6px);
+  border: 2px dashed color-mix(in srgb, var(--accent) 70%, transparent);
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 0;
+  box-sizing: border-box;
 }
 .settings-mascot-preview-mascot {
   position: relative;
+  z-index: 1;
   width: 72px;
   height: 72px;
   transform: scale(calc(1.08 * var(--mascot-user-scale, 1)));
@@ -1740,6 +1717,7 @@ overflow: hidden;
   height: 64px;
   margin: 4px auto 0;
   border-radius: 58% 42% 62% 38% / 48% 55% 45% 52%;
+  clip-path: none;
   /* Tonlar --m-* değişkenleriyle (ayarlardan ana renk + gradient) */
   background: linear-gradient(
     145deg,
@@ -1752,7 +1730,77 @@ overflow: hidden;
   box-shadow: inset 0 2px 14px rgba(255, 255, 255, 0.42);
   animation: cust-empty-blob-morph 9s ease-in-out infinite;
   pointer-events: none;
-  transition: background 0.6s ease, filter 0.6s ease;
+  transition: background 0.6s ease, filter 0.6s ease, border-radius 0.35s ease, clip-path 0.35s ease;
+}
+.global-mascot[data-mascot-shape]:not([data-mascot-shape="blob"]) .cust-empty-blob,
+.settings-mascot-preview-wrap[data-mascot-shape]:not([data-mascot-shape="blob"]) .cust-empty-blob {
+  animation: none;
+}
+.global-mascot[data-mascot-shape="circle"] .cust-empty-blob,
+.settings-mascot-preview-wrap[data-mascot-shape="circle"] .cust-empty-blob {
+  border-radius: 50%;
+}
+.global-mascot[data-mascot-shape="square"] .cust-empty-blob,
+.settings-mascot-preview-wrap[data-mascot-shape="square"] .cust-empty-blob {
+  border-radius: 12px;
+}
+.global-mascot[data-mascot-shape="squircle"] .cust-empty-blob,
+.settings-mascot-preview-wrap[data-mascot-shape="squircle"] .cust-empty-blob {
+  border-radius: 28%;
+}
+.global-mascot[data-mascot-shape="pill"] .cust-empty-blob,
+.settings-mascot-preview-wrap[data-mascot-shape="pill"] .cust-empty-blob {
+  border-radius: 999px;
+  width: 52px;
+  height: 70px;
+}
+.global-mascot[data-mascot-shape="hex"] .cust-empty-blob,
+.settings-mascot-preview-wrap[data-mascot-shape="hex"] .cust-empty-blob {
+  border-radius: 0;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.global-mascot[data-mascot-shape="diamond"] .cust-empty-blob,
+.settings-mascot-preview-wrap[data-mascot-shape="diamond"] .cust-empty-blob {
+  border-radius: 2px;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+.global-mascot[data-mascot-shape="star"] .cust-empty-blob,
+.settings-mascot-preview-wrap[data-mascot-shape="star"] .cust-empty-blob {
+  border-radius: 0;
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+}
+.global-mascot[data-mascot-shape="heart"] .cust-empty-blob,
+.settings-mascot-preview-wrap[data-mascot-shape="heart"] .cust-empty-blob {
+  border-radius: 52% 48% 44% 56% / 44% 40% 56% 52%;
+  clip-path: none;
+}
+.global-mascot[data-mascot-shape="droplet"] .cust-empty-blob,
+.settings-mascot-preview-wrap[data-mascot-shape="droplet"] .cust-empty-blob {
+  border-radius: 50% 50% 52% 50% / 38% 38% 62% 62%;
+}
+.global-mascot[data-mascot-shape="ring"] .cust-empty-blob,
+.settings-mascot-preview-wrap[data-mascot-shape="ring"] .cust-empty-blob {
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 5px rgba(255, 255, 255, 0.35),
+    inset 0 2px 12px rgba(255, 255, 255, 0.25);
+  background: conic-gradient(
+    from 120deg,
+    hsl(var(--m-d0, 310), 78%, 62%),
+    hsl(var(--m-d2, 2), 72%, 52%),
+    hsl(var(--m-d0, 310), 78%, 62%)
+  );
 }
 .cust-empty--mascot-bored .cust-empty-blob,
 .global-mascot[data-mood="bored"] .cust-empty-blob {

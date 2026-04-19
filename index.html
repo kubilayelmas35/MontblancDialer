@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=7.44">
+<link rel="stylesheet" href="css/styles.css?v=7.45">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -36,7 +36,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v7.44 — 2026</div>
+<div class="login-version">v7.45 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -361,7 +361,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v7.44</div>
+<div class="sb-ver">MontBlanc v7.45</div>
 </div>
 </nav>
 <main id="main">
@@ -2394,14 +2394,40 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <input type="color" id="s-mascot-angry-color" value="#ff5b55" style="width:52px;height:38px;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);cursor:pointer;">
 </div>
 <div style="grid-column:1 / -1;">
-<label class="form-label" style="font-size:11px;">Gezinme (0-100)</label>
-<input class="form-input" id="s-mascot-wander" type="range" min="0" max="100" step="1" value="35">
-<div style="font-size:10px;color:var(--text-3);margin-top:3px;">0: sabit, 100: daha hareketli</div>
+<label class="form-label" style="font-size:11px;" data-tr="Gezinme (0-100)" data-de="Umherlaufen (0–100)">Gezinme (0-100)</label>
+<input class="form-input settings-mascot-slider" id="s-mascot-wander" type="range" min="0" max="100" step="1" value="35">
+<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="0: durur; yüksek: daha sık hedef değişir." data-de="0: stoppt; höher: wechselt öfter das Ziel.">0: durur; yüksek: daha sık hedef değişir.</div>
+</div>
+<div style="grid-column:1 / -1;">
+<label class="form-label" style="font-size:11px;" data-tr="Hareket hızı (1-100)" data-de="Bewegungsgeschwindigkeit (1–100)">Hareket hızı (1-100)</label>
+<input class="form-input settings-mascot-slider" id="s-mascot-wander-speed" type="range" min="1" max="100" step="1" value="28">
+<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Düşük: yavaş, yüksek: hızlı." data-de="Niedrig: langsam, hoch: schnell.">Düşük: yavaş, yüksek: hızlı.</div>
+</div>
+<div style="grid-column:1 / -1;">
+<label class="form-label" style="font-size:11px;" data-tr="Hareket alanı (0-100)" data-de="Bewegungsbereich (0–100)">Hareket alanı (0-100)</label>
+<input class="form-input settings-mascot-slider" id="s-mascot-wander-range" type="range" min="0" max="100" step="1" value="38">
+<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Küçük karede kalır; 100: tüm ekranda gezer (kenarda kalır)." data-de="Kleines Feld; 100: über den ganzen Bildschirm (bleibt am Rand).">Küçük karede kalır; 100: tüm ekranda gezer (kenarda kalır).</div>
 </div>
 <div style="grid-column:1 / -1;">
 <label class="form-label" style="font-size:11px;" data-tr="Boyut (%)" data-de="Größe (%)">Boyut (%)</label>
-<input class="form-input" id="s-mascot-user-scale" type="range" min="50" max="150" step="1" value="100">
+<input class="form-input settings-mascot-slider" id="s-mascot-user-scale" type="range" min="50" max="150" step="1" value="100">
 <div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Maskotu küçültür veya büyütür; tüm sekmelerde geçerlidir." data-de="Verkleinert oder vergrößert das Maskottchen; gilt app-weit.">Maskotu küçültür veya büyütür; tüm sekmelerde geçerlidir.</div>
+</div>
+<div style="margin-top:12px;">
+<label class="form-label" style="font-size:11px;" data-tr="Şekil" data-de="Form">Şekil</label>
+<select class="form-input" id="s-mascot-shape" style="max-width:280px;margin-top:4px;">
+<option value="blob" data-tr="Organik (varsayılan)" data-de="Organisch (Standard)">Organik (varsayılan)</option>
+<option value="circle">Daire</option>
+<option value="squircle">Süper elips</option>
+<option value="square">Kare</option>
+<option value="pill">Hap</option>
+<option value="hex">Altıgen</option>
+<option value="diamond">Elmas</option>
+<option value="star">Yıldız</option>
+<option value="heart">Kalp</option>
+<option value="droplet">Damla</option>
+<option value="ring">Halka</option>
+</select>
 </div>
 <div style="grid-column:1 / -1;">
 <label class="form-label" style="font-size:11px;">Mimi yaş katsayısı (admin)</label>
@@ -2410,8 +2436,9 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <div id="settings-mascot-preview-wrap" class="settings-mascot-preview-wrap">
-<div class="settings-mascot-preview-label" data-tr="Önizleme" data-de="Vorschau">Önizleme</div>
-<div class="settings-mascot-preview-stage">
+<div class="settings-mascot-preview-label" data-tr="Önizleme (hareket alanı)" data-de="Vorschau (Bewegungsfeld)">Önizleme (hareket alanı)</div>
+<div class="settings-mascot-preview-stage" id="settings-mascot-preview-stage">
+<div class="settings-mascot-wander-bounds" id="settings-mascot-wander-bounds" aria-hidden="true"></div>
 <div class="settings-mascot-preview-mascot">
 <div class="cust-empty-blob">
 <div class="cust-empty-mascot-eyes">
@@ -3332,40 +3359,40 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/config.js?v=7.44"></script>
-<script src="js/state.js?v=7.44"></script>
-<script src="js/api.js?v=7.44"></script>
-<script src="js/auth.js?v=7.44"></script>
-<script src="js/ui.js?v=7.44"></script>
-<script src="js/chat.js?v=7.44"></script>
-<script src="js/chat-settings.js?v=7.44"></script>
-<script src="js/field-settings.js?v=7.44"></script>
-<script src="js/audit.js?v=7.44"></script>
-<script src="js/feature-flags.js?v=7.44"></script>
-<script src="js/notification-center.js?v=7.44"></script>
+<script src="js/config.js?v=7.45"></script>
+<script src="js/state.js?v=7.45"></script>
+<script src="js/api.js?v=7.45"></script>
+<script src="js/auth.js?v=7.45"></script>
+<script src="js/ui.js?v=7.45"></script>
+<script src="js/chat.js?v=7.45"></script>
+<script src="js/chat-settings.js?v=7.45"></script>
+<script src="js/field-settings.js?v=7.45"></script>
+<script src="js/audit.js?v=7.45"></script>
+<script src="js/feature-flags.js?v=7.45"></script>
+<script src="js/notification-center.js?v=7.45"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=7.44"></script>
-<script src="js/job-market.js?v=7.44"></script>
-<script src="js/qc-job-market.js?v=7.44"></script>
-<script src="js/export-admin.js?v=7.44"></script>
-<script src="js/export-termin.js?v=7.44"></script>
-<script src="js/performance.js?v=7.44"></script>
-<script src="js/competition.js?v=7.44"></script>
-<script src="js/dashboard.js?v=7.44"></script>
-<script src="js/campaigns.js?v=7.44"></script>
-<script src="js/contacts.js?v=7.44"></script>
-<script src="js/telnyx.js?v=7.44"></script>
-<script src="js/voice-orb.js?v=7.44"></script>
-<script src="js/dialer.js?v=7.44"></script>
-<script src="js/appointments.js?v=7.44"></script>
-<script src="js/field.js?v=7.44"></script>
-<script src="js/field-ops.js?v=7.44"></script>
-<script src="js/wiedervorlage.js?v=7.44"></script>
-<script src="js/qc.js?v=7.44"></script>
-<script src="js/leave-hr.js?v=7.44"></script>
-<script src="js/muhasebe.js?v=7.44"></script>
-<script src="js/agent-self-performance.js?v=7.44"></script>
-<script src="js/agents.js?v=7.44"></script>
+<script src="js/wallet.js?v=7.45"></script>
+<script src="js/job-market.js?v=7.45"></script>
+<script src="js/qc-job-market.js?v=7.45"></script>
+<script src="js/export-admin.js?v=7.45"></script>
+<script src="js/export-termin.js?v=7.45"></script>
+<script src="js/performance.js?v=7.45"></script>
+<script src="js/competition.js?v=7.45"></script>
+<script src="js/dashboard.js?v=7.45"></script>
+<script src="js/campaigns.js?v=7.45"></script>
+<script src="js/contacts.js?v=7.45"></script>
+<script src="js/telnyx.js?v=7.45"></script>
+<script src="js/voice-orb.js?v=7.45"></script>
+<script src="js/dialer.js?v=7.45"></script>
+<script src="js/appointments.js?v=7.45"></script>
+<script src="js/field.js?v=7.45"></script>
+<script src="js/field-ops.js?v=7.45"></script>
+<script src="js/wiedervorlage.js?v=7.45"></script>
+<script src="js/qc.js?v=7.45"></script>
+<script src="js/leave-hr.js?v=7.45"></script>
+<script src="js/muhasebe.js?v=7.45"></script>
+<script src="js/agent-self-performance.js?v=7.45"></script>
+<script src="js/agents.js?v=7.45"></script>
 </body>
 </html>
 

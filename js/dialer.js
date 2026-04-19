@@ -614,6 +614,25 @@ const MASCOT_VARIANT_OFFSETS = {
   candy: [0, 38, 58, 82],
 };
 
+const MASCOT_SHAPES = new Set([
+  'blob',
+  'circle',
+  'squircle',
+  'square',
+  'pill',
+  'hex',
+  'diamond',
+  'star',
+  'heart',
+  'droplet',
+  'ring',
+]);
+
+function mascotShapeFromString(val) {
+  const s = String(val || 'blob').toLowerCase();
+  return MASCOT_SHAPES.has(s) ? s : 'blob';
+}
+
 function _mascotHexToRgb(hex) {
   const s = String(hex || '')
     .replace('#', '')
@@ -719,6 +738,83 @@ function getMascotUserScaleMul() {
   return getMascotUserScalePct() / 100;
 }
 
+/** 0 = dar alan, 100 = tüm görünür ekran (kenar payı ile) */
+function getMascotWanderRangePct() {
+  const n = Number(getMascotPref('mb_mascot_wander_range', '38'));
+  if (!Number.isFinite(n)) return 38;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+/** 1 = çok yavaş, 100 = hızlı */
+function getMascotWanderSpeedPct() {
+  const n = Number(getMascotPref('mb_mascot_wander_speed', '28'));
+  if (!Number.isFinite(n)) return 28;
+  return Math.max(1, Math.min(100, Math.round(n)));
+}
+
+function getMascotShape() {
+  return mascotShapeFromString(getMascotPref('mb_mascot_shape', 'blob'));
+}
+
+function applyMascotShape() {
+  const s = getMascotShape();
+  const gm = document.getElementById('global-mascot');
+  const wrap = document.getElementById('settings-mascot-preview-wrap');
+  if (gm) gm.setAttribute('data-mascot-shape', s);
+  if (wrap) wrap.setAttribute('data-mascot-shape', s);
+}
+
+function updateMascotWanderPreviewBox() {
+  const stage = document.getElementById('settings-mascot-preview-stage');
+  if (stage) stage.style.setProperty('--mascot-range-fr', String(getMascotWanderRangePct() / 100));
+}
+
+function _mascotAnchorCenterPx(gm) {
+  const x = parseFloat(String(gm.style.left || '0').replace('px', '')) || 0;
+  const y = parseFloat(String(gm.style.top || '0').replace('px', '')) || 0;
+  return { x, y };
+}
+
+function _mascotWanderBoundsFromViewport(gm) {
+  const rangePct = getMascotWanderRangePct();
+  const t = Math.max(0, Math.min(100, rangePct)) / 100;
+  const margin = 10;
+  let halfW = 36;
+  let halfH = 36;
+  try {
+    const inner = gm.querySelector('.cust-empty-mascot');
+    if (inner) {
+      const r = inner.getBoundingClientRect();
+      if (r.width > 8) halfW = r.width / 2;
+      if (r.height > 8) halfH = r.height / 2;
+    }
+  } catch (e) {}
+  const { x: cx0, y: cy0 } = _mascotAnchorCenterPx(gm);
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  let minOffX = margin + halfW - cx0;
+  let maxOffX = vw - margin - halfW - cx0;
+  let minOffY = margin + halfH - cy0;
+  let maxOffY = vh - margin - halfH - cy0;
+  if (maxOffX < minOffX) {
+    const m = (minOffX + maxOffX) / 2;
+    minOffX = m - 1;
+    maxOffX = m + 1;
+  }
+  if (maxOffY < minOffY) {
+    const m = (minOffY + maxOffY) / 2;
+    minOffY = m - 1;
+    maxOffY = m + 1;
+  }
+  const fullHalfX = Math.max(0, (maxOffX - minOffX) / 2);
+  const fullHalfY = Math.max(0, (maxOffY - minOffY) / 2);
+  const coreMinX = 12;
+  const coreMinY = 10;
+  const effHalfX = coreMinX + t * (fullHalfX - coreMinX);
+  const effHalfY = coreMinY + t * (fullHalfY - coreMinY);
+  return { minX: -effHalfX, maxX: effHalfX, minY: -effHalfY, maxY: effHalfY };
+}
+
 function isMimiHidden() {
   return getMascotPref('mb_mascot_hidden', '0') === '1';
 }
@@ -759,6 +855,8 @@ function applyMascotTheme() {
   if (prev) _applyMascotVarsToEl(prev, h, variant, { breakHue, angryHue });
   if (gm) _applyMascotVarsToEl(gm, h, variant, { breakHue, angryHue });
   if (prev) prev.style.setProperty('--mascot-user-scale', String(getMascotUserScaleMul()));
+  applyMascotShape();
+  updateMascotWanderPreviewBox();
   if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
   updateMascotNameLabel();
 }
@@ -768,6 +866,7 @@ function applyMascotThemeLiveFromForm() {
   const v = document.getElementById('s-mascot-variant');
   const bk = document.getElementById('s-mascot-break-color');
   const ag = document.getElementById('s-mascot-angry-color');
+  const sh = document.getElementById('s-mascot-shape');
   if (!c || !v) {
     applyMascotTheme();
     return;
@@ -784,6 +883,11 @@ function applyMascotThemeLiveFromForm() {
   const sc = document.getElementById('s-mascot-user-scale');
   const mul = sc ? Math.max(0.5, Math.min(1.5, Number(sc.value) / 100 || 1)) : getMascotUserScaleMul();
   if (prev) prev.style.setProperty('--mascot-user-scale', String(mul));
+  if (sh && prev) prev.setAttribute('data-mascot-shape', mascotShapeFromString(sh.value));
+  if (sh) {
+    const gmel = document.getElementById('global-mascot');
+    if (gmel) gmel.setAttribute('data-mascot-shape', mascotShapeFromString(sh.value));
+  }
   if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
 }
 
@@ -804,7 +908,10 @@ function loadMascotSettingsForm() {
   const bk = document.getElementById('s-mascot-break-color');
   const ag = document.getElementById('s-mascot-angry-color');
   const wd = document.getElementById('s-mascot-wander');
+  const ws = document.getElementById('s-mascot-wander-speed');
+  const wr = document.getElementById('s-mascot-wander-range');
   const sc = document.getElementById('s-mascot-user-scale');
+  const sh = document.getElementById('s-mascot-shape');
   const coef = document.getElementById('s-mascot-age-coef');
   const coefHint = document.getElementById('s-mascot-age-coef-hint');
   if (!n || !c || !v) return;
@@ -814,7 +921,10 @@ function loadMascotSettingsForm() {
   if (bk) bk.value = getMascotPref('mb_mascot_break_color', '#4f8cff');
   if (ag) ag.value = getMascotPref('mb_mascot_angry_color', '#ff5b55');
   if (wd) wd.value = String(getMascotWanderPct());
+  if (ws) ws.value = String(getMascotWanderSpeedPct());
+  if (wr) wr.value = String(getMascotWanderRangePct());
   if (sc) sc.value = String(getMascotUserScalePct());
+  if (sh) sh.value = getMascotShape();
   const role = currentUser?.role || '';
   const adminLike = ['firm_admin', 'admin', 'super_admin'].includes(role);
   if (coef) {
@@ -861,6 +971,20 @@ function loadMascotSettingsForm() {
     if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
     if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
   });
+  ws?.addEventListener('input', () => {
+    setMascotPref('mb_mascot_wander_speed', ws.value);
+    if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
+  });
+  wr?.addEventListener('input', () => {
+    setMascotPref('mb_mascot_wander_range', wr.value);
+    updateMascotWanderPreviewBox();
+    if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
+  });
+  sh?.addEventListener('change', () => {
+    setMascotPref('mb_mascot_shape', sh.value);
+    applyMascotShape();
+    onLive();
+  });
 }
 
 function saveMascotSettings() {
@@ -870,7 +994,10 @@ function saveMascotSettings() {
   const bk = document.getElementById('s-mascot-break-color');
   const ag = document.getElementById('s-mascot-angry-color');
   const wd = document.getElementById('s-mascot-wander');
+  const ws = document.getElementById('s-mascot-wander-speed');
+  const wr = document.getElementById('s-mascot-wander-range');
   const sc = document.getElementById('s-mascot-user-scale');
+  const sh = document.getElementById('s-mascot-shape');
   const coef = document.getElementById('s-mascot-age-coef');
   if (!n || !c || !v) return;
   const name = String(n.value || '')
@@ -885,7 +1012,10 @@ function saveMascotSettings() {
   if (bk) setMascotPref('mb_mascot_break_color', bk.value || '#4f8cff');
   if (ag) setMascotPref('mb_mascot_angry_color', ag.value || '#ff5b55');
   if (wd) setMascotPref('mb_mascot_wander_pct', wd.value || '35');
+  if (ws) setMascotPref('mb_mascot_wander_speed', ws.value || '28');
+  if (wr) setMascotPref('mb_mascot_wander_range', wr.value || '38');
   if (sc) setMascotPref('mb_mascot_user_scale', sc.value || '100');
+  if (sh) setMascotPref('mb_mascot_shape', mascotShapeFromString(sh.value));
   applyMascotTheme();
   const role = currentUser?.role || '';
   const adminLike = ['firm_admin', 'admin', 'super_admin'].includes(role);
@@ -913,6 +1043,7 @@ try {
   window.saveMascotSettings = saveMascotSettings;
   window.loadMascotSettingsForm = loadMascotSettingsForm;
   window.applyMascotTheme = applyMascotTheme;
+  window.applyMascotShape = applyMascotShape;
   window.switchMimiTab = switchMimiTab;
   window.hideMimi = hideMimi;
   window.showMimi = showMimi;
@@ -1175,12 +1306,12 @@ function _stopGlobalMascotWander() {
   }
 }
 
-function _pickWanderTarget(gm, pct) {
-  const t = Math.max(0, Math.min(100, pct)) / 100;
-  // Eskiden ~2–18px idi; 100’de belirgin gezinti için geniş aralık
-  const r = 6 + Math.round(t * 84);
-  _wanderTgt.x = (Math.random() * 2 - 1) * r;
-  _wanderTgt.y = (Math.random() * 2 - 1) * (r * 0.72);
+function _pickWanderTarget(gm) {
+  const b = _mascotWanderBoundsFromViewport(gm);
+  const w = b.maxX - b.minX;
+  const h = b.maxY - b.minY;
+  _wanderTgt.x = b.minX + Math.random() * w;
+  _wanderTgt.y = b.minY + Math.random() * h;
 }
 
 function _wanderFrame() {
@@ -1200,13 +1331,18 @@ function _wanderFrame() {
   }
   const dx = _wanderTgt.x - _wanderCur.x;
   const dy = _wanderTgt.y - _wanderCur.y;
-  if (Math.abs(dx) < 0.2 && Math.abs(dy) < 0.2) {
-    _pickWanderTarget(gm, pct);
+  if (Math.abs(dx) < 0.35 && Math.abs(dy) < 0.35) {
+    _pickWanderTarget(gm);
   }
-  const t = Math.max(0, Math.min(100, pct)) / 100;
-  const step = 0.052 + t * 0.055;
+  const bounds = _mascotWanderBoundsFromViewport(gm);
+  const speedPct = getMascotWanderSpeedPct();
+  const speedK = 0.06 + (speedPct / 100) * 0.38;
+  const wanderT = Math.max(0, Math.min(100, pct)) / 100;
+  const step = speedK * (0.22 + wanderT * 0.78) * 0.18;
   _wanderCur.x += dx * step;
   _wanderCur.y += dy * step;
+  _wanderCur.x = Math.min(bounds.maxX, Math.max(bounds.minX, _wanderCur.x));
+  _wanderCur.y = Math.min(bounds.maxY, Math.max(bounds.minY, _wanderCur.y));
   gm.style.setProperty('--gm-wx', `${_wanderCur.x.toFixed(2)}px`);
   gm.style.setProperty('--gm-wy', `${_wanderCur.y.toFixed(2)}px`);
   _wanderRaf = requestAnimationFrame(_wanderFrame);
@@ -1223,7 +1359,7 @@ function _startGlobalMascotWander() {
     return;
   }
   _wanderCur = { x: 0, y: 0 };
-  _pickWanderTarget(gm, pct);
+  _pickWanderTarget(gm);
   _wanderRaf = requestAnimationFrame(_wanderFrame);
 }
 
@@ -1280,19 +1416,6 @@ function _syncGlobalMascotDockImpl() {
     gm.classList.remove('global-mascot--dialer');
     return;
   }
-  const dialerActive = document.getElementById('page-dialer')?.classList.contains('active');
-  const custEmpty = document.getElementById('cust-empty');
-  const slot = document.getElementById('cust-empty-mascot-slot');
-  const st = typeof dialerStatus !== 'undefined' ? dialerStatus : '';
-  const busyLine = st === 'on_call' || st === 'wrapping' || st === 'calling';
-  const useSlot =
-    dialerActive &&
-    !busyLine &&
-    custEmpty &&
-    custEmpty.style.display !== 'none' &&
-    (st === 'ready' || st === 'offline' || st === 'break') &&
-    slot &&
-    slot.getBoundingClientRect().width > 1;
   const allowWander =
     getMascotWanderPct() > 0 &&
     !gm.classList.contains('global-mascot--peek-chat') &&
@@ -1300,22 +1423,20 @@ function _syncGlobalMascotDockImpl() {
     !gm.classList.contains('global-mascot--notif-morph');
   if (allowWander) _startGlobalMascotWander();
   else _stopGlobalMascotWander();
-  if (!useSlot) {
-    const custom = _loadMascotCustomPos();
-    if (custom) {
-      gm.style.left = `${custom.x}px`;
-      gm.style.top = `${custom.y}px`;
-      gm.classList.add('global-mascot--custom', 'global-mascot--placed');
-      gm.classList.remove('global-mascot--dialer');
-      gm.classList.add('global-mascot--topbar');
-      return;
-    }
+  const custom = _loadMascotCustomPos();
+  if (custom) {
+    gm.style.left = `${custom.x}px`;
+    gm.style.top = `${custom.y}px`;
+    gm.classList.add('global-mascot--custom', 'global-mascot--placed');
+    gm.classList.remove('global-mascot--dialer');
+    gm.classList.add('global-mascot--topbar');
+    return;
   }
-  const rect = useSlot ? slot.getBoundingClientRect() : anchor.getBoundingClientRect();
+  const rect = anchor.getBoundingClientRect();
   _placeGlobalMascotAtRect(rect);
   gm.classList.remove('global-mascot--custom');
-  gm.classList.toggle('global-mascot--dialer', !!useSlot);
-  gm.classList.toggle('global-mascot--topbar', !useSlot);
+  gm.classList.remove('global-mascot--dialer');
+  gm.classList.add('global-mascot--topbar');
   const info = document.getElementById('global-mascot-info');
   if (info && info.style.display !== 'none') {
     requestAnimationFrame(() => positionGlobalMascotInfoPanel());
