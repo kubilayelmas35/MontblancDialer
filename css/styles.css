@@ -1738,6 +1738,7 @@ overflow: hidden;
 }
 .mascot-theme-root .cust-empty-blob > .cust-empty-mascot-eyes {
   z-index: 6;
+  isolation: isolate;
 }
 
 /* Göz stilleri (yalnız maskot tema kökünde; dialer boş kart vb. etkilenmez) */
@@ -1941,13 +1942,14 @@ overflow: hidden;
 .mascot-theme-root .cust-empty-blob > .mascot-cos-hair {
   position: absolute;
   left: 50%;
-  top: 1px;
+  top: -5px;
   transform: translateX(-50%);
   width: 50px;
   height: 20px;
   border-radius: 50% 50% 42% 42%;
   pointer-events: none;
-  z-index: 4;
+  /* Gözler (6) ve yüz (2) üstte kalsın; saç tepeye otursun */
+  z-index: 1;
   opacity: 0;
   background: linear-gradient(
     185deg,
@@ -1962,27 +1964,27 @@ overflow: hidden;
 .mascot-theme-root[data-mascot-hair='bob'] .mascot-cos-hair {
   width: 52px;
   height: 24px;
-  top: 3px;
+  top: -3px;
   border-radius: 48% 48% 46% 46%;
   animation: mcos-hair-sway 5s ease-in-out infinite;
 }
 .mascot-theme-root[data-mascot-hair='short'] .mascot-cos-hair {
   width: 48px;
   height: 14px;
-  top: 5px;
+  top: 0;
   border-radius: 40% 40% 50% 50%;
 }
 .mascot-theme-root[data-mascot-hair='long'] .mascot-cos-hair {
   width: 46px;
   height: 34px;
-  top: 0;
+  top: -6px;
   border-radius: 44% 44% 38% 38%;
   animation: mcos-hair-sway 6.2s ease-in-out infinite;
 }
 .mascot-theme-root[data-mascot-hair='braid'] .mascot-cos-hair {
   width: 40px;
   height: 38px;
-  top: 2px;
+  top: -4px;
   border-radius: 42% 42% 30% 30%;
   clip-path: polygon(15% 0%, 85% 0%, 92% 55%, 50% 100%, 8% 55%);
   animation: mcos-hair-braid 3.8s ease-in-out infinite;
@@ -1990,54 +1992,55 @@ overflow: hidden;
 .mascot-theme-root[data-mascot-hair='bun'] .mascot-cos-hair {
   width: 22px;
   height: 22px;
-  top: -2px;
+  top: -12px;
   border-radius: 50%;
+  /* Gölgeyi kısalt: göz hizasının üstünde kalsın */
   box-shadow:
-    0 18px 0 -4px color-mix(in srgb, var(--cos-hair-color, #3d3250) 90%, #000),
-    0 10px 0 -1px var(--cos-hair-color, #3d3250);
+    0 9px 0 -3px color-mix(in srgb, var(--cos-hair-color, #3d3250) 90%, #000),
+    0 4px 0 -1px var(--cos-hair-color, #3d3250);
   background: radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--cos-hair-color, #5a4a6e) 70%, #fff), var(--cos-hair-color, #3d3250));
 }
 .mascot-theme-root[data-mascot-hair='pony'] .mascot-cos-hair {
   width: 44px;
   height: 16px;
-  top: 2px;
+  top: -3px;
   border-radius: 50% 50% 35% 35%;
-  box-shadow: 0 22px 0 -6px var(--cos-hair-color, #3d3250);
+  box-shadow: 0 14px 0 -5px var(--cos-hair-color, #3d3250);
 }
 .mascot-theme-root[data-mascot-hair='pixie'] .mascot-cos-hair {
   width: 54px;
   height: 16px;
-  top: 6px;
+  top: 1px;
   clip-path: polygon(8% 0%, 92% 0%, 100% 100%, 0% 100%);
   border-radius: 0;
 }
 .mascot-theme-root[data-mascot-hair='waves'] .mascot-cos-hair {
   width: 52px;
   height: 22px;
-  top: 2px;
+  top: -3px;
   border-radius: 55% 45% 48% 52%;
   animation: mcos-hair-wave 4s ease-in-out infinite;
 }
 .mascot-theme-root[data-mascot-hair='slick'] .mascot-cos-hair {
   width: 50px;
   height: 12px;
-  top: 6px;
+  top: 1px;
   border-radius: 20% 20% 50% 50%;
   filter: saturate(1.1);
 }
 .mascot-theme-root[data-mascot-hair='mohawk'] .mascot-cos-hair {
   width: 14px;
   height: 28px;
-  top: -6px;
+  top: -11px;
   border-radius: 30% 30% 50% 50%;
   box-shadow:
-    -16px 8px 0 -4px var(--cos-hair-color, #3d3250),
-    16px 8px 0 -4px var(--cos-hair-color, #3d3250);
+    -16px 6px 0 -4px var(--cos-hair-color, #3d3250),
+    16px 6px 0 -4px var(--cos-hair-color, #3d3250);
 }
 .mascot-theme-root[data-mascot-hair='afro'] .mascot-cos-hair {
   width: 56px;
   height: 44px;
-  top: -8px;
+  top: -13px;
   border-radius: 48%;
   filter: contrast(1.05);
   animation: mcos-hair-afro 5.5s ease-in-out infinite;
@@ -2045,7 +2048,7 @@ overflow: hidden;
 .mascot-theme-root[data-mascot-hair='spikes'] .mascot-cos-hair {
   width: 48px;
   height: 18px;
-  top: -2px;
+  top: -7px;
   border-radius: 4px;
   clip-path: polygon(
     10% 100%,
@@ -2062,18 +2065,18 @@ overflow: hidden;
 .mascot-theme-root[data-mascot-hair='curly'] .mascot-cos-hair {
   width: 52px;
   height: 26px;
-  top: 0;
+  top: -5px;
   border-radius: 45%;
   animation: mcos-hair-curly 3.2s ease-in-out infinite;
 }
 .mascot-theme-root[data-mascot-hair='side'] .mascot-cos-hair {
   width: 40px;
   height: 22px;
-  top: 4px;
+  top: -1px;
   left: 42%;
   transform: translateX(-50%) rotate(-6deg);
   border-radius: 60% 30% 50% 40%;
-  box-shadow: 12px -4px 0 -2px color-mix(in srgb, var(--cos-hair-color, #3d3250) 85%, #000);
+  box-shadow: 12px -6px 0 -2px color-mix(in srgb, var(--cos-hair-color, #3d3250) 85%, #000);
 }
 
 .mascot-theme-root .mascot-cos-nose {
