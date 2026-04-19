@@ -168,6 +168,7 @@ async function initDialer() {
     _globalMascotResizeWired = true;
     window.addEventListener('resize', () => {
       if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
+      if (typeof positionGlobalMascotInfoPanel === 'function') positionGlobalMascotInfoPanel();
     });
   }
 }
@@ -960,6 +961,49 @@ function refreshGlobalMascotInfoPanel() {
   }
 }
 
+function _resetGlobalMascotInfoPanelPosition() {
+  const panel = document.getElementById('global-mascot-info');
+  if (!panel) return;
+  panel.style.position = '';
+  panel.style.left = '';
+  panel.style.top = '';
+  panel.style.right = '';
+  panel.style.bottom = '';
+  panel.style.transform = '';
+  panel.style.maxWidth = '';
+}
+
+/** Mimi kartı maskot viewport kenarındayken taşmasın — fixed konum + clamp */
+function positionGlobalMascotInfoPanel() {
+  const panel = document.getElementById('global-mascot-info');
+  const gm = document.getElementById('global-mascot');
+  if (!panel || !gm || panel.style.display === 'none') return;
+  const anchor =
+    document.querySelector('#global-mascot .cust-empty-blob') || document.getElementById('cust-empty-mascot');
+  if (!anchor) return;
+  const pad = 10;
+  const maxW = Math.min(420, Math.max(220, window.innerWidth - pad * 2));
+  panel.style.position = 'fixed';
+  panel.style.transform = 'none';
+  panel.style.maxWidth = `${maxW}px`;
+  panel.style.left = '-9999px';
+  panel.style.top = '0';
+  const ar = anchor.getBoundingClientRect();
+  const pw = panel.offsetWidth;
+  const ph = panel.offsetHeight;
+  let left = ar.right + 12;
+  let top = ar.top + ar.height / 2 - ph / 2;
+  if (left + pw > window.innerWidth - pad) {
+    left = ar.left - pw - 12;
+  }
+  if (left < pad) left = pad;
+  if (left + pw > window.innerWidth - pad) left = Math.max(pad, window.innerWidth - pad - pw);
+  if (top + ph > window.innerHeight - pad) top = window.innerHeight - pad - ph;
+  if (top < pad) top = pad;
+  panel.style.left = `${Math.round(left)}px`;
+  panel.style.top = `${Math.round(top)}px`;
+}
+
 function switchMimiTab(tab) {
   _mimiActiveTab = tab || 'profile';
   const map = [
@@ -972,6 +1016,13 @@ function switchMimiTab(tab) {
     document.getElementById(tabId)?.classList.toggle('active', k === _mimiActiveTab);
   });
   refreshGlobalMascotInfoPanel();
+  const panel = document.getElementById('global-mascot-info');
+  if (panel && panel.style.display !== 'none') {
+    requestAnimationFrame(() => {
+      positionGlobalMascotInfoPanel();
+      requestAnimationFrame(() => positionGlobalMascotInfoPanel());
+    });
+  }
 }
 
 function toggleGlobalMascotInfoPanel(forceOpen) {
@@ -980,10 +1031,19 @@ function toggleGlobalMascotInfoPanel(forceOpen) {
   if (!panel || !gm) return;
   if (isMimiHidden()) return;
   const open = forceOpen === undefined ? panel.style.display === 'none' || !panel.style.display : !!forceOpen;
-  if (open) refreshGlobalMascotInfoPanel();
-  panel.style.display = open ? 'block' : 'none';
-  gm.classList.toggle('global-mascot--panel-open', open);
-  if (open) switchMimiTab(_mimiActiveTab || 'profile');
+  if (!open) {
+    _resetGlobalMascotInfoPanelPosition();
+    panel.style.display = 'none';
+    gm.classList.remove('global-mascot--panel-open');
+    return;
+  }
+  panel.style.display = 'block';
+  gm.classList.add('global-mascot--panel-open');
+  switchMimiTab(_mimiActiveTab || 'profile');
+  requestAnimationFrame(() => {
+    positionGlobalMascotInfoPanel();
+    requestAnimationFrame(() => positionGlobalMascotInfoPanel());
+  });
 }
 
 function hideMimi() {
@@ -1088,9 +1148,11 @@ function _stopGlobalMascotWander() {
 }
 
 function _pickWanderTarget(gm, pct) {
-  const r = 2 + Math.round((pct / 100) * 16);
+  const t = Math.max(0, Math.min(100, pct)) / 100;
+  // Eskiden ~2–18px idi; 100’de belirgin gezinti için geniş aralık
+  const r = 6 + Math.round(t * 84);
   _wanderTgt.x = (Math.random() * 2 - 1) * r;
-  _wanderTgt.y = (Math.random() * 2 - 1) * (r * 0.65);
+  _wanderTgt.y = (Math.random() * 2 - 1) * (r * 0.72);
 }
 
 function _wanderFrame() {
@@ -1113,8 +1175,10 @@ function _wanderFrame() {
   if (Math.abs(dx) < 0.2 && Math.abs(dy) < 0.2) {
     _pickWanderTarget(gm, pct);
   }
-  _wanderCur.x += dx * 0.06;
-  _wanderCur.y += dy * 0.06;
+  const t = Math.max(0, Math.min(100, pct)) / 100;
+  const step = 0.052 + t * 0.055;
+  _wanderCur.x += dx * step;
+  _wanderCur.y += dy * step;
   gm.style.setProperty('--gm-wx', `${_wanderCur.x.toFixed(2)}px`);
   gm.style.setProperty('--gm-wy', `${_wanderCur.y.toFixed(2)}px`);
   _wanderRaf = requestAnimationFrame(_wanderFrame);
@@ -1219,6 +1283,10 @@ function _syncGlobalMascotDockImpl() {
   gm.classList.remove('global-mascot--custom');
   gm.classList.toggle('global-mascot--dialer', !!useSlot);
   gm.classList.toggle('global-mascot--topbar', !useSlot);
+  const info = document.getElementById('global-mascot-info');
+  if (info && info.style.display !== 'none') {
+    requestAnimationFrame(() => positionGlobalMascotInfoPanel());
+  }
 }
 
 function syncGlobalMascotMoodFromCustEmpty() {
