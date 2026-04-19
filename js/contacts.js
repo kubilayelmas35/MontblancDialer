@@ -194,6 +194,25 @@ async function uploadQueue() {
 }
 
 // ── Contact manipulation ──────────────────────
+/** Test modunda kuyrukta gerçek kayıt yokken simülasyon kişisi (DB satırı değil). */
+function _makeSyntheticTestOutboundContact(campaignId) {
+  const tr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+  return {
+    id: `test-sim-${Date.now()}`,
+    campaign_id: campaignId,
+    firm_id: typeof currentUser !== 'undefined' ? currentUser?.firm_id : null,
+    first_name: 'Test',
+    last_name: tr ? 'Numara' : 'Anruf',
+    phone: '+4917000000001',
+    phone2: '',
+    status: 'pending',
+    attempt_count: 0,
+    queue_id: null,
+    queues: null,
+    _synthetic_test_outbound: true,
+  };
+}
+
 async function getNextContact(campaignIds = null) {
   // Aktif kampanya listesini kullan (yoksa selectedCampId ile fallback)
   const ids = Array.isArray(campaignIds)
@@ -216,9 +235,15 @@ async function getNextContact(campaignIds = null) {
       `&order=last_called_at.asc.nullsfirst` +
       `&limit=1&select=*,queues(name,status)`
     );
-    if (!contacts?.length) return null;
+    if (!contacts?.length) {
+      if (typeof _testMode !== 'undefined' && _testMode && ids.length) {
+        return _makeSyntheticTestOutboundContact(ids[0]);
+      }
+      return null;
+    }
     const c = contacts[0];
-    if (c.queues?.status !== 'active') return null;
+    /* queue_id yoksa join gelmez; sadece kuyruk satırı varsa ve aktif değilse ele */
+    if (c.queues && c.queues.status !== 'active') return null;
     return c;
   } catch(e) { console.error(e); return null; }
 }

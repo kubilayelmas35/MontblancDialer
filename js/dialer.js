@@ -3757,7 +3757,10 @@ async function submitOutcome(goBreak) {
   const lockedSlotEarly = _bookingSlot?.id || window._selectedBookingSlot?.id;
   const inboundTestContact =
     !!currentContact &&
-    (_testMode && (currentContact.is_inbound_test || String(currentContact.id || '').startsWith('in-')));
+    (_testMode &&
+      (currentContact.is_inbound_test ||
+        String(currentContact.id || '').startsWith('in-') ||
+        currentContact._synthetic_test_outbound));
   if (!isDnc && selectedCampId && typeof getCampSettings === 'function') {
     const camp = campaigns.find((c) => c.id === selectedCampId);
     const cs = camp ? getCampSettings(camp) : {};
@@ -5031,13 +5034,15 @@ async function startTestCall() {
   window.__voiceOrbSimRemote = true;
   currentContact = contact;
   showCustomerCard(contact);
-  // Kontakt durumunu "calling" olarak güncelle
-  try {
-    await sb(`contacts?id=eq.${contact.id}`, {
-      method:'PATCH', prefer:'return=minimal',
-      body: JSON.stringify({ status:'calling', last_called_at: new Date().toISOString() })
-    });
-  } catch(e) {}
+  // Kontakt durumunu "calling" olarak güncelle (sentetik test kişisinde DB yok)
+  if (!contact._synthetic_test_outbound) {
+    try {
+      await sb(`contacts?id=eq.${contact.id}`, {
+        method:'PATCH', prefer:'return=minimal',
+        body: JSON.stringify({ status:'calling', last_called_at: new Date().toISOString() })
+      });
+    } catch(e) {}
+  }
   setDialerStatus('on_call');
   toast(`⚙ TEST: ${contact.first_name||''} ${contact.last_name||''} ${contact.phone}`, 'ok', 3000);
 }
