@@ -738,11 +738,34 @@ function getMascotUserScaleMul() {
   return getMascotUserScalePct() / 100;
 }
 
-/** 0 = dar alan, 100 = tüm görünür ekran (kenar payı ile) */
+/** 0 = sadece bırakılan nokta; 100 = tüm görünür ekran (kenar payı ile), ara değerler P→F doğrusal */
 function getMascotWanderRangePct() {
   const n = Number(getMascotPref('mb_mascot_wander_range', '38'));
   if (!Number.isFinite(n)) return 38;
   return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+const MASCOT_COS_KEYS = ['brow', 'stache', 'mouth', 'hat', 'outfit'];
+
+function getMascotCosmetic(part) {
+  const v = String(getMascotPref(`mb_mascot_cos_${part}`, '') || 'none')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '');
+  return v || 'none';
+}
+
+function applyMascotCosmetics() {
+  const attrs = {};
+  for (const k of MASCOT_COS_KEYS) {
+    const v = getMascotCosmetic(k);
+    attrs[`data-mascot-${k}`] = v;
+  }
+  document.querySelectorAll('.mascot-theme-root').forEach((root) => {
+    for (const [attr, val] of Object.entries(attrs)) {
+      root.setAttribute(attr, val);
+    }
+  });
 }
 
 /** 0 = neredeyse duruyor, 100 = hızlı */
@@ -758,10 +781,9 @@ function getMascotShape() {
 
 function applyMascotShape() {
   const s = getMascotShape();
-  const gm = document.getElementById('global-mascot');
-  const wrap = document.getElementById('settings-mascot-preview-wrap');
-  if (gm) gm.setAttribute('data-mascot-shape', s);
-  if (wrap) wrap.setAttribute('data-mascot-shape', s);
+  document.querySelectorAll('.mascot-theme-root').forEach((el) => {
+    el.setAttribute('data-mascot-shape', s);
+  });
 }
 
 function updateMascotWanderPreviewBox() {
@@ -794,46 +816,44 @@ function _mascotWanderBoundsFromViewport(gm) {
   } catch (e) {}
   halfW += animPad;
   halfH += animPad + bubbleBelow * 0.55;
-  const { x: cx0, y: cy0 } = _mascotAnchorCenterPx(gm);
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
+  const { x: Px, y: Py } = _mascotAnchorCenterPx(gm);
+  const vw = Number(window.innerWidth) || 800;
+  const vh = Number(window.innerHeight) || 600;
   const minCx = edge + halfW;
   const maxCx = vw - edge - halfW;
   const minCy = edge + halfH;
   const maxCy = vh - edge - halfH;
-  if (maxCx <= minCx + 4 || maxCy <= minCy + 4) {
-    return { minX: -1, maxX: 1, minY: -1, maxY: 1 };
+  if (!Number.isFinite(Px) || !Number.isFinite(Py) || maxCx <= minCx + 4 || maxCy <= minCy + 4) {
+    return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
   }
-  const scx = (minCx + maxCx) / 2;
-  const scy = (minCy + maxCy) / 2;
-  const availHalfX = (maxCx - minCx) / 2;
-  const availHalfY = (maxCy - minCy) / 2;
-  const coreSmall = 18;
-  const effHalfX = Math.min(coreSmall + t * (availHalfX - coreSmall), availHalfX);
-  const effHalfY = Math.min(coreSmall + t * (availHalfY - coreSmall), availHalfY);
-  let mxMin = scx - effHalfX;
-  let mxMax = scx + effHalfX;
-  let myMin = scy - effHalfY;
-  let myMax = scy + effHalfY;
-  mxMin = Math.max(mxMin, minCx);
-  mxMax = Math.min(mxMax, maxCx);
-  myMin = Math.max(myMin, minCy);
-  myMax = Math.min(myMax, maxCy);
-  if (mxMax < mxMin + 2) {
-    const m = (mxMin + mxMax) / 2;
-    mxMin = m - 1;
-    mxMax = m + 1;
+  let mxMin = (1 - t) * Px + t * minCx;
+  let mxMax = (1 - t) * Px + t * maxCx;
+  let myMin = (1 - t) * Py + t * minCy;
+  let myMax = (1 - t) * Py + t * maxCy;
+  if (t > 0) {
+    mxMin = Math.max(mxMin, minCx);
+    mxMax = Math.min(mxMax, maxCx);
+    myMin = Math.max(myMin, minCy);
+    myMax = Math.min(myMax, maxCy);
+  } else {
+    mxMin = mxMax = Px;
+    myMin = myMax = Py;
   }
-  if (myMax < myMin + 2) {
-    const m = (myMin + myMax) / 2;
-    myMin = m - 1;
-    myMax = m + 1;
+  if (mxMax < mxMin + 1) {
+    const c = Math.min(Math.max(Px, minCx), maxCx);
+    mxMin = c - 1;
+    mxMax = c + 1;
+  }
+  if (myMax < myMin + 1) {
+    const c = Math.min(Math.max(Py, minCy), maxCy);
+    myMin = c - 1;
+    myMax = c + 1;
   }
   return {
-    minX: mxMin - cx0,
-    maxX: mxMax - cx0,
-    minY: myMin - cy0,
-    maxY: myMax - cy0,
+    minX: mxMin - Px,
+    maxX: mxMax - Px,
+    minY: myMin - Py,
+    maxY: myMax - Py,
   };
 }
 
@@ -879,6 +899,7 @@ function applyMascotTheme() {
   if (prev) prev.style.setProperty('--mascot-user-scale', String(getMascotUserScaleMul()));
   applyMascotShape();
   updateMascotWanderPreviewBox();
+  applyMascotCosmetics();
   if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
   updateMascotNameLabel();
 }
@@ -905,12 +926,12 @@ function applyMascotThemeLiveFromForm() {
   const sc = document.getElementById('s-mascot-user-scale');
   const mul = sc ? Math.max(0.5, Math.min(1.5, Number(sc.value) / 100 || 1)) : getMascotUserScaleMul();
   if (prev) prev.style.setProperty('--mascot-user-scale', String(mul));
-  if (sh && prev) prev.setAttribute('data-mascot-shape', mascotShapeFromString(sh.value));
   if (sh) {
-    const gmel = document.getElementById('global-mascot');
-    if (gmel) gmel.setAttribute('data-mascot-shape', mascotShapeFromString(sh.value));
+    const sVal = mascotShapeFromString(sh.value);
+    document.querySelectorAll('.mascot-theme-root').forEach((el) => el.setAttribute('data-mascot-shape', sVal));
   }
   if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
+  applyMascotCosmetics();
 }
 
 function updateMascotNameLabel() {
@@ -934,6 +955,11 @@ function loadMascotSettingsForm() {
   const wr = document.getElementById('s-mascot-wander-range');
   const sc = document.getElementById('s-mascot-user-scale');
   const sh = document.getElementById('s-mascot-shape');
+  const cosBrow = document.getElementById('s-mascot-cos-brow');
+  const cosStache = document.getElementById('s-mascot-cos-stache');
+  const cosMouth = document.getElementById('s-mascot-cos-mouth');
+  const cosHat = document.getElementById('s-mascot-cos-hat');
+  const cosOutfit = document.getElementById('s-mascot-cos-outfit');
   const coef = document.getElementById('s-mascot-age-coef');
   const coefHint = document.getElementById('s-mascot-age-coef-hint');
   if (!n || !c || !v) return;
@@ -947,6 +973,11 @@ function loadMascotSettingsForm() {
   if (wr) wr.value = String(getMascotWanderRangePct());
   if (sc) sc.value = String(getMascotUserScalePct());
   if (sh) sh.value = getMascotShape();
+  if (cosBrow) cosBrow.value = getMascotCosmetic('brow');
+  if (cosStache) cosStache.value = getMascotCosmetic('stache');
+  if (cosMouth) cosMouth.value = getMascotCosmetic('mouth');
+  if (cosHat) cosHat.value = getMascotCosmetic('hat');
+  if (cosOutfit) cosOutfit.value = getMascotCosmetic('outfit');
   const role = currentUser?.role || '';
   const adminLike = ['firm_admin', 'admin', 'super_admin'].includes(role);
   if (coef) {
@@ -1007,6 +1038,18 @@ function loadMascotSettingsForm() {
     applyMascotShape();
     onLive();
   });
+  const onCos = (part, el) => {
+    if (!el) return;
+    el.addEventListener('change', () => {
+      setMascotPref(`mb_mascot_cos_${part}`, el.value || 'none');
+      applyMascotCosmetics();
+    });
+  };
+  onCos('brow', cosBrow);
+  onCos('stache', cosStache);
+  onCos('mouth', cosMouth);
+  onCos('hat', cosHat);
+  onCos('outfit', cosOutfit);
 }
 
 function saveMascotSettings() {
@@ -1020,6 +1063,11 @@ function saveMascotSettings() {
   const wr = document.getElementById('s-mascot-wander-range');
   const sc = document.getElementById('s-mascot-user-scale');
   const sh = document.getElementById('s-mascot-shape');
+  const cosBrow = document.getElementById('s-mascot-cos-brow');
+  const cosStache = document.getElementById('s-mascot-cos-stache');
+  const cosMouth = document.getElementById('s-mascot-cos-mouth');
+  const cosHat = document.getElementById('s-mascot-cos-hat');
+  const cosOutfit = document.getElementById('s-mascot-cos-outfit');
   const coef = document.getElementById('s-mascot-age-coef');
   if (!n || !c || !v) return;
   const name = String(n.value || '')
@@ -1038,6 +1086,11 @@ function saveMascotSettings() {
   if (wr) setMascotPref('mb_mascot_wander_range', wr.value || '38');
   if (sc) setMascotPref('mb_mascot_user_scale', sc.value || '100');
   if (sh) setMascotPref('mb_mascot_shape', mascotShapeFromString(sh.value));
+  if (cosBrow) setMascotPref('mb_mascot_cos_brow', cosBrow.value || 'none');
+  if (cosStache) setMascotPref('mb_mascot_cos_stache', cosStache.value || 'none');
+  if (cosMouth) setMascotPref('mb_mascot_cos_mouth', cosMouth.value || 'none');
+  if (cosHat) setMascotPref('mb_mascot_cos_hat', cosHat.value || 'none');
+  if (cosOutfit) setMascotPref('mb_mascot_cos_outfit', cosOutfit.value || 'none');
   applyMascotTheme();
   const role = currentUser?.role || '';
   const adminLike = ['firm_admin', 'admin', 'super_admin'].includes(role);
@@ -1066,6 +1119,7 @@ try {
   window.loadMascotSettingsForm = loadMascotSettingsForm;
   window.applyMascotTheme = applyMascotTheme;
   window.applyMascotShape = applyMascotShape;
+  window.applyMascotCosmetics = applyMascotCosmetics;
   window.switchMimiTab = switchMimiTab;
   window.hideMimi = hideMimi;
   window.showMimi = showMimi;
@@ -1332,6 +1386,16 @@ function _pickWanderTarget(gm) {
   const b = _mascotWanderBoundsFromViewport(gm);
   const w = b.maxX - b.minX;
   const h = b.maxY - b.minY;
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w < 0 || h < 0) {
+    _wanderTgt.x = Number.isFinite(_wanderCur.x) ? _wanderCur.x : 0;
+    _wanderTgt.y = Number.isFinite(_wanderCur.y) ? _wanderCur.y : 0;
+    return;
+  }
+  if (w < 1e-4 && h < 1e-4) {
+    _wanderTgt.x = b.minX;
+    _wanderTgt.y = b.minY;
+    return;
+  }
   _wanderTgt.x = b.minX + Math.random() * w;
   _wanderTgt.y = b.minY + Math.random() * h;
 }
@@ -1366,6 +1430,8 @@ function _wanderFrame() {
   _wanderCur.y += dy * step;
   _wanderCur.x = Math.min(bounds.maxX, Math.max(bounds.minX, _wanderCur.x));
   _wanderCur.y = Math.min(bounds.maxY, Math.max(bounds.minY, _wanderCur.y));
+  if (!Number.isFinite(_wanderCur.x)) _wanderCur.x = 0;
+  if (!Number.isFinite(_wanderCur.y)) _wanderCur.y = 0;
   gm.style.setProperty('--gm-wx', `${_wanderCur.x.toFixed(2)}px`);
   gm.style.setProperty('--gm-wy', `${_wanderCur.y.toFixed(2)}px`);
   const bubble = document.getElementById('cust-empty-bubble');
@@ -1403,9 +1469,20 @@ function _startGlobalMascotWander() {
 
 function _placeGlobalMascotAtRect(rect) {
   const gm = document.getElementById('global-mascot');
-  if (!gm || !rect || rect.width < 0.5) return;
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
+  if (!gm || !rect) return;
+  let cx = rect.left + rect.width / 2;
+  let cy = rect.top + rect.height / 2;
+  if (!Number.isFinite(cx) || !Number.isFinite(cy) || rect.width < 0.5) {
+    const ax = document.getElementById('sb-mascot-anchor') || document.getElementById('tb-mascot-anchor');
+    const r2 = ax ? ax.getBoundingClientRect() : null;
+    if (r2 && Number.isFinite(r2.left) && r2.width >= 0.5) {
+      cx = r2.left + r2.width / 2;
+      cy = r2.top + r2.height / 2;
+    } else {
+      cx = Math.max(40, (Number(window.innerWidth) || 800) * 0.5);
+      cy = 36;
+    }
+  }
   gm.style.left = `${cx}px`;
   gm.style.top = `${cy}px`;
   gm.classList.add('global-mascot--placed');
@@ -1454,13 +1531,6 @@ function _syncGlobalMascotDockImpl() {
     gm.classList.remove('global-mascot--dialer');
     return;
   }
-  const allowWander =
-    getMascotWanderPct() > 0 &&
-    !gm.classList.contains('global-mascot--peek-chat') &&
-    !gm.classList.contains('global-mascot--peek-notif') &&
-    !gm.classList.contains('global-mascot--notif-morph');
-  if (allowWander) _startGlobalMascotWander();
-  else _stopGlobalMascotWander();
   const custom = _loadMascotCustomPos();
   if (custom) {
     gm.style.left = `${custom.x}px`;
@@ -1468,13 +1538,20 @@ function _syncGlobalMascotDockImpl() {
     gm.classList.add('global-mascot--custom', 'global-mascot--placed');
     gm.classList.remove('global-mascot--dialer');
     gm.classList.add('global-mascot--topbar');
-    return;
+  } else {
+    const rect = anchor.getBoundingClientRect();
+    _placeGlobalMascotAtRect(rect);
+    gm.classList.remove('global-mascot--custom');
+    gm.classList.remove('global-mascot--dialer');
+    gm.classList.add('global-mascot--topbar');
   }
-  const rect = anchor.getBoundingClientRect();
-  _placeGlobalMascotAtRect(rect);
-  gm.classList.remove('global-mascot--custom');
-  gm.classList.remove('global-mascot--dialer');
-  gm.classList.add('global-mascot--topbar');
+  const allowWander =
+    getMascotWanderPct() > 0 &&
+    !gm.classList.contains('global-mascot--peek-chat') &&
+    !gm.classList.contains('global-mascot--peek-notif') &&
+    !gm.classList.contains('global-mascot--notif-morph');
+  if (allowWander) _startGlobalMascotWander();
+  else _stopGlobalMascotWander();
   const info = document.getElementById('global-mascot-info');
   if (info && info.style.display !== 'none') {
     requestAnimationFrame(() => positionGlobalMascotInfoPanel());
@@ -1838,7 +1915,8 @@ function refreshCustEmptyMascotState() {
 }
 
 function nudgeCustEmptyMascot() {
-  const mascot = document.getElementById('cust-empty-mascot');
+  const mascot =
+    document.getElementById('cust-empty-card-mascot') || document.getElementById('cust-empty-mascot');
   const root = document.getElementById('cust-empty');
   const gm = document.getElementById('global-mascot');
   if (!mascot || !root || root.style.display === 'none' || root.classList.contains('cust-empty--ringing')) return;
