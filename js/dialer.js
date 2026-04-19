@@ -615,6 +615,33 @@ const MASCOT_VARIANT_OFFSETS = {
   midnight: [-18, -6, 14, 46],
   ember: [6, -14, -32, 52],
 };
+let _mascotVariantRandResolved = '';
+
+function resolveMascotVariantKeyFromPref() {
+  const raw = String(getMascotPref('mb_mascot_variant', 'aurora') || 'aurora').toLowerCase();
+  if (raw !== 'random') {
+    _mascotVariantRandResolved = '';
+    return MASCOT_VARIANT_OFFSETS[raw] ? raw : 'aurora';
+  }
+  if (!_mascotVariantRandResolved) {
+    const keys = Object.keys(MASCOT_VARIANT_OFFSETS);
+    _mascotVariantRandResolved = keys[Math.floor(Math.random() * keys.length)];
+  }
+  return _mascotVariantRandResolved;
+}
+
+function resolveMascotVariantKeyFromFormValue(val) {
+  const raw = String(val || 'aurora').toLowerCase();
+  if (raw !== 'random') {
+    _mascotVariantRandResolved = '';
+    return MASCOT_VARIANT_OFFSETS[raw] ? raw : 'aurora';
+  }
+  if (!_mascotVariantRandResolved) {
+    const keys = Object.keys(MASCOT_VARIANT_OFFSETS);
+    _mascotVariantRandResolved = keys[Math.floor(Math.random() * keys.length)];
+  }
+  return _mascotVariantRandResolved;
+}
 
 const MASCOT_SHAPES = new Set([
   'blob',
@@ -762,7 +789,9 @@ function randomizeMascotAppearance() {
   const angryHue = _mascotWrapHue(mainHue - 40 + Math.floor(Math.random() * 80));
   const angryHex = _mascotHslToHex(angryHue, 62 + Math.floor(Math.random() * 30), 44 + Math.floor(Math.random() * 18));
 
-  const variant = _mascotPickRandomSelectValue('s-mascot-variant') || 'aurora';
+  _mascotVariantRandResolved = '';
+  const variant =
+    Math.random() < 0.34 ? 'random' : _mascotPickRandomSelectValue('s-mascot-variant') || 'aurora';
   const shapeRaw = _mascotPickRandomSelectValue('s-mascot-shape') || 'blob';
   const shape = mascotShapeFromString(shapeRaw);
 
@@ -1042,6 +1071,26 @@ function isMimiHidden() {
   return getMascotPref('mb_mascot_hidden', '0') === '1';
 }
 
+function isMimiBubbleMuted() {
+  return getMascotPref('mb_mascot_bubble_mute', '0') === '1';
+}
+
+function toggleMimiBubbleMute() {
+  const next = isMimiBubbleMuted() ? '0' : '1';
+  setMascotPref('mb_mascot_bubble_mute', next);
+  if (next === '1') {
+    stopCustEmptyCoach();
+    const bubble = document.getElementById('cust-empty-bubble');
+    if (bubble) {
+      bubble.style.display = 'none';
+      bubble.classList.remove('cust-empty-bubble--pop');
+    }
+  } else if (!isMimiHidden()) {
+    startCustEmptyCoach();
+  }
+  refreshGlobalMascotInfoPanel();
+}
+
 function _applyMascotVarsToEl(el, baseHue, variantKey, opts = {}) {
   if (!el || !el.style) return;
   const offs = MASCOT_VARIANT_OFFSETS[variantKey] || MASCOT_VARIANT_OFFSETS.aurora;
@@ -1065,7 +1114,7 @@ function formatMascotSpokenLine(msg) {
 
 function applyMascotTheme() {
   const hex = getMascotPref('mb_mascot_color', '#a855f7') || '#a855f7';
-  const variant = getMascotPref('mb_mascot_variant', 'aurora') || 'aurora';
+  const variant = resolveMascotVariantKeyFromPref();
   const breakHex = getMascotPref('mb_mascot_break_color', '#4f8cff') || '#4f8cff';
   const angryHex = getMascotPref('mb_mascot_angry_color', '#ff5b55') || '#ff5b55';
   const h = _mascotHexToHue(hex);
@@ -1101,9 +1150,10 @@ function applyMascotThemeLiveFromForm() {
   const cust = document.getElementById('cust-empty');
   const prev = document.getElementById('settings-mascot-preview-wrap');
   const gm = document.getElementById('global-mascot');
-  if (cust) _applyMascotVarsToEl(cust, h, v.value, { breakHue, angryHue });
-  if (prev) _applyMascotVarsToEl(prev, h, v.value, { breakHue, angryHue });
-  if (gm) _applyMascotVarsToEl(gm, h, v.value, { breakHue, angryHue });
+  const vKey = resolveMascotVariantKeyFromFormValue(v.value);
+  if (cust) _applyMascotVarsToEl(cust, h, vKey, { breakHue, angryHue });
+  if (prev) _applyMascotVarsToEl(prev, h, vKey, { breakHue, angryHue });
+  if (gm) _applyMascotVarsToEl(gm, h, vKey, { breakHue, angryHue });
   const sc = document.getElementById('s-mascot-user-scale');
   const mul = sc ? Math.max(0.5, Math.min(1.5, Number(sc.value) / 100 || 1)) : getMascotUserScaleMul();
   if (prev) prev.style.setProperty('--mascot-user-scale', String(mul));
@@ -1200,7 +1250,10 @@ function loadMascotSettingsForm() {
     refreshGlobalMascotInfoPanel();
   };
   c.addEventListener('input', onLive);
-  v.addEventListener('change', onLive);
+  v.addEventListener('change', () => {
+    if (v.value === 'random') _mascotVariantRandResolved = '';
+    onLive();
+  });
   n.addEventListener('input', onLive);
   bk?.addEventListener('input', onLive);
   ag?.addEventListener('input', onLive);
@@ -1286,10 +1339,12 @@ function saveMascotSettings() {
     .slice(0, 28);
   let hex = String(c.value || '#a855f7').trim();
   if (!/^#[0-9a-fA-F]{6}$/.test(hex)) hex = '#a855f7';
-  const variant = v.value || 'aurora';
+  const vRaw = String(v.value || 'aurora').toLowerCase();
+  const variant = vRaw === 'random' || MASCOT_VARIANT_OFFSETS[vRaw] ? vRaw : 'aurora';
   setMascotPref('mb_mascot_name', name);
   setMascotPref('mb_mascot_color', hex);
   setMascotPref('mb_mascot_variant', variant);
+  if (variant === 'random') _mascotVariantRandResolved = '';
   if (bk) setMascotPref('mb_mascot_break_color', bk.value || '#4f8cff');
   if (ag) setMascotPref('mb_mascot_angry_color', ag.value || '#ff5b55');
   if (wd) setMascotPref('mb_mascot_wander_pct', wd.value || '35');
@@ -1346,6 +1401,7 @@ try {
   window.switchMimiTab = switchMimiTab;
   window.hideMimi = hideMimi;
   window.showMimi = showMimi;
+  window.toggleMimiBubbleMute = toggleMimiBubbleMute;
 } catch (e) {}
 
 let _globalMascotResizeWired = false;
@@ -1381,14 +1437,34 @@ function refreshGlobalMascotInfoPanel() {
   const tApptEl = document.getElementById('global-mascot-info-today-appts');
   const mApptEl = document.getElementById('global-mascot-info-month-appts');
   const statsNoteEl = document.getElementById('global-mascot-info-stats-note');
+  const tr = currentLang === 'tr';
   const n = (getMascotPref('mb_mascot_name', '') || '').trim() || 'Mimi';
-  const v = (getMascotPref('mb_mascot_variant', 'aurora') || 'aurora').trim();
+  const rawVariant = String(getMascotPref('mb_mascot_variant', 'aurora') || 'aurora').toLowerCase();
+  const appliedV = resolveMascotVariantKeyFromPref();
+  const appliedLabel = appliedV.charAt(0).toUpperCase() + appliedV.slice(1);
   const totalCall = Math.max(0, _mascotCallAccumSec + (dialerStatus === 'on_call' ? (Number(callSeconds) || 0) : 0));
   const mimiAge = totalCall * getMascotAgeCoeff();
   if (nameEl) nameEl.textContent = n;
   if (ageEl) ageEl.textContent = _fmtMimiLife(mimiAge);
   if (callsEl) callsEl.textContent = _fmtMimiLife(totalCall);
-  if (variantEl) variantEl.textContent = v.charAt(0).toUpperCase() + v.slice(1);
+  if (variantEl) {
+    variantEl.textContent =
+      rawVariant === 'random'
+        ? (tr ? `Rastgele (${appliedLabel})` : `Zufall (${appliedLabel})`)
+        : appliedLabel;
+  }
+  const muteBtn = document.getElementById('mimi-bubble-mute-btn');
+  const muteLbl = document.getElementById('mimi-bubble-mute-label');
+  if (muteLbl) {
+    muteLbl.textContent = isMimiBubbleMuted()
+      ? tr
+        ? 'Balonları aç'
+        : 'Blasen an'
+      : tr
+        ? 'Balon konuşmasını kapat'
+        : 'Keine Sprechblasen';
+  }
+  if (muteBtn) muteBtn.setAttribute('aria-pressed', isMimiBubbleMuted() ? 'true' : 'false');
   if (noteEl) {
     noteEl.textContent = currentLang === 'tr'
       ? `Çağrı süresinin ${getMascotAgeCoeff().toFixed(1)} katı kadar Mimi yaş alıyor. Ne kadar sakin kalırsan o kadar büyüyor.`
@@ -1398,7 +1474,6 @@ function refreshGlobalMascotInfoPanel() {
   const moodKey = gm?.getAttribute('data-mood') || '';
   const sad = gm?.classList.contains('global-mascot--sad');
   const cel = gm?.classList.contains('global-mascot--celebrate');
-  const tr = currentLang === 'tr';
   const moodLabel = cel ? (tr ? 'Kutlama' : 'Feier') : sad ? (tr ? 'Üzgün' : 'Traurig') : moodKey === 'break' ? (tr ? 'Uykulu' : 'Müde') : moodKey === 'angry' ? (tr ? 'Gergin' : 'Genervt') : moodKey === 'bored' ? (tr ? 'Sıkıldı' : 'Gelngweilt') : moodKey === 'eat' ? (tr ? 'Mutlu' : 'Happy') : (tr ? 'Sakin' : 'Ruhig');
   if (moodEl) moodEl.textContent = moodLabel;
   const heat = Number(document.getElementById('global-mascot')?.style.getPropertyValue('--mascot-call-heat') || '0') || 0;
@@ -1546,6 +1621,9 @@ function _wireGlobalMascotInteractions() {
   mascot.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     e.preventDefault();
+    _stopGlobalMascotWander();
+    gm.style.setProperty('--gm-wx', '0px');
+    gm.style.setProperty('--gm-wy', '0px');
     const r = gm.getBoundingClientRect();
     _mascotDragState = {
       pointerId: e.pointerId,
@@ -1575,19 +1653,26 @@ function _wireGlobalMascotInteractions() {
     const wasMove = _mascotDragState.moved;
     _mascotDragState = null;
     gm.classList.remove('global-mascot--dragging');
-    if (!wasMove) {
+    if (wasMove) {
+      if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
+      else _syncGlobalMascotWanderOnly();
+    } else {
       const bubble = document.getElementById('cust-empty-bubble');
       if (bubble && bubble.style.display !== 'none') {
         bubble.style.display = 'none';
+        _syncGlobalMascotWanderOnly();
         return;
       }
       if (isMimiHidden()) showMimi();
       else toggleGlobalMascotInfoPanel();
+      _syncGlobalMascotWanderOnly();
     }
   });
   mascot.addEventListener('pointercancel', () => {
     _mascotDragState = null;
     gm.classList.remove('global-mascot--dragging');
+    if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
+    else _syncGlobalMascotWanderOnly();
   });
 }
 
@@ -1604,6 +1689,19 @@ function _stopGlobalMascotWander() {
     gm.style.setProperty('--gm-wy', '0px');
     if (!isMimiHidden()) gm.classList.add('global-mascot--placed');
   }
+}
+
+/** Sürükleme bittiğinde veya ayar değişince: gezinmeyi yeniden başlat / durdur (konumu sıfırlamaz). */
+function _syncGlobalMascotWanderOnly() {
+  const gm = document.getElementById('global-mascot');
+  if (!gm || isMimiHidden()) return;
+  const allowWander =
+    getMascotWanderPct() > 0 &&
+    !gm.classList.contains('global-mascot--peek-chat') &&
+    !gm.classList.contains('global-mascot--peek-notif') &&
+    !gm.classList.contains('global-mascot--notif-morph');
+  if (allowWander) _startGlobalMascotWander();
+  else _stopGlobalMascotWander();
 }
 
 function _pickWanderTarget(gm) {
@@ -1779,8 +1877,20 @@ function _syncGlobalMascotDockImpl() {
     gm.style.left = `${custom.x}px`;
     gm.style.top = `${custom.y}px`;
     gm.classList.add('global-mascot--custom', 'global-mascot--placed');
-    gm.classList.remove('global-mascot--dialer');
-    gm.classList.add('global-mascot--topbar');
+    const dr = _mascotDialerContentRect();
+    const inDialer =
+      dr &&
+      custom.x >= dr.left - 6 &&
+      custom.x <= dr.right + 6 &&
+      custom.y >= dr.top - 6 &&
+      custom.y <= dr.bottom + 6;
+    if (inDialer) {
+      gm.classList.add('global-mascot--dialer');
+      gm.classList.remove('global-mascot--topbar');
+    } else {
+      gm.classList.remove('global-mascot--dialer');
+      gm.classList.add('global-mascot--topbar');
+    }
   } else if (anchor) {
     const rect = anchor.getBoundingClientRect();
     _placeGlobalMascotAtRect(rect);
@@ -1882,6 +1992,7 @@ function reloadMascotStateForUser() {
   _mascotCallAccumSec = Number(getMascotPref('mb_mascot_call_accum_sec', '0')) || 0;
   _lastMascotCheerSec = -1;
   _mascotCosRandCache = {};
+  _mascotVariantRandResolved = '';
   try {
     refreshGlobalMascotInfoPanel();
     applyMascotTheme();
@@ -1910,7 +2021,7 @@ function _clearCustEmptyCoachTimer() {
 
 function _showCustEmptyBubbleMsg(msg) {
   const bubble = document.getElementById('cust-empty-bubble');
-  if (!bubble || isMimiHidden()) return;
+  if (!bubble || isMimiHidden() || isMimiBubbleMuted()) return;
   bubble.textContent = formatMascotSpokenLine(msg);
   bubble.style.setProperty('--bubble-shift-x', '0px');
   bubble.style.display = 'block';
@@ -2035,7 +2146,7 @@ function _custEmptyCoachTargetVisible() {
 }
 
 function refreshCustEmptyCoachBubble() {
-  if (isMimiHidden()) return;
+  if (isMimiHidden() || isMimiBubbleMuted()) return;
   const bubble = document.getElementById('cust-empty-bubble');
   const root = document.getElementById('cust-empty');
   const gm = document.getElementById('global-mascot');
@@ -2101,7 +2212,7 @@ function refreshCustEmptyCoachBubble() {
 
 function startCustEmptyCoach() {
   _clearCustEmptyCoachTimer();
-  if (isMimiHidden()) return;
+  if (isMimiHidden() || isMimiBubbleMuted()) return;
   const root = document.getElementById('cust-empty');
   const gm = document.getElementById('global-mascot');
   if (root && (root.classList.contains('cust-empty--peek-chat') || root.classList.contains('cust-empty--peek-notif'))) return;
