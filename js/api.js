@@ -2,17 +2,34 @@
 // API — Supabase REST iletişim katmanı
 // ─────────────────────────────────────────────
 async function sb(path, opts={}) {
-const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
-...opts,
-headers: {
-'apikey': SB_KEY,
-'Authorization': `Bearer ${SB_KEY}`,
-'Content-Type': 'application/json',
-'Prefer': opts.prefer || 'return=representation',
-...(opts.headers||{})
+const ctrl = new AbortController();
+const timeoutMs = Number(opts.timeoutMs || 20000);
+const t = setTimeout(() => ctrl.abort(), timeoutMs);
+let r;
+try {
+  r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    ...opts,
+    signal: opts.signal || ctrl.signal,
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': opts.prefer || 'return=representation',
+      ...(opts.headers||{})
+    }
+  });
+} catch (e) {
+  if (e?.name === 'AbortError') throw new Error(`İstek zaman aşımı (${timeoutMs}ms): ${path}`);
+  throw e;
+} finally {
+  clearTimeout(t);
 }
-});
-if (!r.ok) throw new Error(await r.text());
+if (!r.ok) {
+  let detail = '';
+  try { detail = await r.text(); } catch (_) {}
+  const msg = detail || `${r.status} ${r.statusText || 'HTTP_ERROR'}`;
+  throw new Error(`Supabase error (${r.status}) @ ${path}: ${msg}`);
+}
 if (r.status === 204) return null;
 const txt = await r.text();
 if (!txt || !txt.trim()) return null;

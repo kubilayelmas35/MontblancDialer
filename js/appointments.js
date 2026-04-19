@@ -750,39 +750,39 @@ function showSlotContextMenu(e, slot, appt) {
   const items = [];
   const isMySlot = slot.kilitli_agent_id === currentUser?.id;
   if (slot.durum === 'bos') {
-    if (!isAdmin) items.push({ icon:'', label:'Termin Al', fn:'lockAndBookSlot(_ctxSlot)' });
-    if (isAdmin) items.push({ icon:'', label:'Detay', fn:'openTakvimSlotDetail(_ctxSlot,null)' });
-    if (isAdmin) items.push({ icon:'', label:'Sil', fn:'deleteTakvimSlot(_ctxSlot.id)', danger:true });
+    if (!isAdmin) items.push({ icon:'', label:'Termin Al', onClick: () => lockAndBookSlot(_ctxSlot) });
+    if (isAdmin) items.push({ icon:'', label:'Detay', onClick: () => openTakvimSlotDetail(_ctxSlot, null) });
+    if (isAdmin) items.push({ icon:'', label:'Sil', onClick: () => deleteTakvimSlot(_ctxSlot.id), danger:true });
   }
   if (slot.durum === 'kilitli') {
     // Admin can see who locked and unlock
     if (isAdmin) {
       const agentName = slot.kilitli_agent_id || 'Bilinmiyor';
-      items.push({ icon:'', label:`Kilitleyen: ${agentName}`, fn:'void(0)' });
-      items.push({ icon:'', label:'Kilidi Kaldır', fn:`unlockSlot('${slot.id}')`, yellow:true });
+      items.push({ icon:'', label:`Kilitleyen: ${agentName}`, onClick: null });
+      items.push({ icon:'', label:'Kilidi Kaldır', onClick: () => unlockSlot(slot.id), yellow:true });
     }
     // Agent can cancel their own lock
     if (isMySlot) {
-      items.push({ icon:'', label:'Termini İptal Et', fn:`unlockSlot('${slot.id}')`, danger:true });
+      items.push({ icon:'', label:'Termini İptal Et', onClick: () => unlockSlot(slot.id), danger:true });
     }
   }
   if (isDolu) {
-    items.push({ icon:'', label:'Detaya Git (Dialer)', fn:'openDialerForContact(_ctxAppt.contact_id)' });
-    items.push({ icon:'', label:'Slot Detayı', fn:'openTakvimSlotDetail(_ctxSlot,_ctxAppt)' });
-    if (isAdmin) items.push({ icon:'', label:'Sahaya Ata', fn:"openFieldAssignModal(_ctxAppt.id,_ctxAppt.firm_id)" });
+    items.push({ icon:'', label:'Detaya Git (Dialer)', onClick: () => openDialerForContact(_ctxAppt.contact_id) });
+    items.push({ icon:'', label:'Slot Detayı', onClick: () => openTakvimSlotDetail(_ctxSlot, _ctxAppt) });
+    if (isAdmin) items.push({ icon:'', label:'Sahaya Ata', onClick: () => openFieldAssignModal(_ctxAppt.id, _ctxAppt.firm_id) });
     if (isAdmin) {
       items.push({ sep: true });
-      items.push({ icon:'', label:'Başarılı', fn:"takvimQcUpdate(_ctxAppt.id,'basarili')", green:true });
-      items.push({ icon:'', label:'Başarısız', fn:"takvimQcUpdate(_ctxAppt.id,'basarisiz')", danger:true });
-      items.push({ icon:'', label:'Beklemede', fn:"takvimQcUpdate(_ctxAppt.id,'beklemede')", yellow:true });
+      items.push({ icon:'', label:'Başarılı', onClick: () => takvimQcUpdate(_ctxAppt.id, 'basarili'), green:true });
+      items.push({ icon:'', label:'Başarısız', onClick: () => takvimQcUpdate(_ctxAppt.id, 'basarisiz'), danger:true });
+      items.push({ icon:'', label:'Beklemede', onClick: () => takvimQcUpdate(_ctxAppt.id, 'beklemede'), yellow:true });
       items.push({ sep: true });
-      items.push({ icon:'', label:'Alta Taşı', fn:'slotAltaTasi(_ctxSlot.id)', yellow:true });
-      items.push({ icon:'', label:'Slotu Sil', fn:'deleteTakvimSlot(_ctxSlot.id)', danger:true });
+      items.push({ icon:'', label:'Alta Taşı', onClick: () => slotAltaTasi(_ctxSlot.id), yellow:true });
+      items.push({ icon:'', label:'Slotu Sil', onClick: () => deleteTakvimSlot(_ctxSlot.id), danger:true });
     }
     // Agent can cancel their own appointment if not yet confirmed
     if (!isAdmin && appt?.agent_id === currentUser?.id && appt?.durum === 'qc_bekleniyor') {
       items.push({ sep: true });
-      items.push({ icon:'', label:'Termimi İptal Et', fn:`agentCancelAppt('${slot.id}','${appt.id}')`, danger:true });
+      items.push({ icon:'', label:'Termimi İptal Et', onClick: () => agentCancelAppt(slot.id, appt.id), danger:true });
     }
   }
   if (!items.length) return;
@@ -806,7 +806,11 @@ function showSlotContextMenu(e, slot, appt) {
     btn.innerHTML = `<span style="font-size:14px;">${item.icon}</span><span style="font-weight:600;">${item.label}</span>`;
     btn.onmouseover = () => btn.style.background = 'var(--bg-3)';
     btn.onmouseout  = () => btn.style.background = 'transparent';
-    btn.onclick = (ev) => { ev.stopPropagation(); menu.remove(); eval(item.fn); };
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      menu.remove();
+      if (typeof item.onClick === 'function') item.onClick();
+    };
     menu.appendChild(btn);
   });
   document.body.appendChild(menu);

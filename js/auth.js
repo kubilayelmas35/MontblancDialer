@@ -365,14 +365,37 @@ function stopImpersonation() {
 // API keylerini başta yükle
 _googleApiKey = localStorage.getItem('mb_google_key') || DEFAULT_GOOGLE_KEY;
 
+function _isValidSessionUserShape(u) {
+  if (!u || typeof u !== 'object') return false;
+  const roles = ['agent', 'admin', 'super_admin', 'firm_admin', 'qc', 'field_agent'];
+  if (!u.id || !isValidUUID?.(u.id)) return false;
+  if (!u.email || typeof u.email !== 'string') return false;
+  if (!u.name || typeof u.name !== 'string') return false;
+  if (!u.role || !roles.includes(u.role)) return false;
+  if (u.firm_id && !isValidUUID?.(u.firm_id)) return false;
+  return true;
+}
+
+function _clearSessionStorageSafe() {
+  localStorage.removeItem('mb_session');
+  localStorage.removeItem('mb_base_session');
+  localStorage.removeItem('mb_impersonation');
+}
+
 // Sayfa yenilenince session geri yükle
 (function restoreSession() {
 try {
 const saved = localStorage.getItem('mb_session');
 if (saved) {
 currentUser = JSON.parse(saved);
+if (!_isValidSessionUserShape(currentUser)) {
+_clearSessionStorageSafe();
+currentUser = null;
+return;
+}
 const baseSaved = localStorage.getItem('mb_base_session');
 _baseUser = baseSaved ? JSON.parse(baseSaved) : { ...currentUser };
+if (!_isValidSessionUserShape(_baseUser)) _baseUser = { ...currentUser };
 const impSaved = localStorage.getItem('mb_impersonation');
 _impersonation = impSaved ? JSON.parse(impSaved) : null;
 if (document.readyState === 'loading') {
@@ -387,6 +410,6 @@ document.getElementById('app').style.display = 'flex';
 bootApp();
 }
 }
-} catch(e) { localStorage.removeItem('mb_session'); }
+} catch(e) { _clearSessionStorageSafe(); }
 })();
 
