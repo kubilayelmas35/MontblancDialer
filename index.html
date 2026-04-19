@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=7.37">
+<link rel="stylesheet" href="css/styles.css?v=7.38">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -36,7 +36,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v7.37 — 2026</div>
+<div class="login-version">v7.38 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -361,7 +361,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v7.37</div>
+<div class="sb-ver">MontBlanc v7.38</div>
 </div>
 </nav>
 <main id="main">
@@ -1225,8 +1225,8 @@ TEST MODU
 </div>
 </div>
 <div class="dialer-layout">
-<div style="display:flex;flex-direction:column;gap:12px;">
-<div id="daily-goal-bar" style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:8px;display:none;">
+<div style="display:flex;flex-direction:column;gap:8px;">
+<div id="daily-goal-bar" style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:4px;display:none;">
 <div style="display:flex;gap:2px;margin-bottom:8px;background:var(--bg-2);border-radius:4px;padding:2px;">
 <button id="goal-tab-daily" onclick="setGoalTab('daily')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;">Günlük</button>
 <button id="goal-tab-weekly" onclick="setGoalTab('weekly')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:3px;cursor:pointer;">Haftalık</button>
@@ -1421,7 +1421,7 @@ Son randevu bilgileri indirilebilir.
 <div id="prev-call-body" style="color:var(--text-2);"></div>
 </div>
 <div id="ready-section">
-<div id="dialer-reliability-card" style="display:block;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+<div id="dialer-reliability-card" style="display:block;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:4px;">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
 <div style="font-size:12px;font-weight:800;">Çağrı Sağlık Kontrolü</div>
 <span id="dialer-health-code" style="font-size:10px;color:var(--text-3);font-family:var(--mono);">DIAL-INIT</span>
@@ -3327,40 +3327,40 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/config.js?v=7.37"></script>
-<script src="js/state.js?v=7.37"></script>
-<script src="js/api.js?v=7.37"></script>
-<script src="js/auth.js?v=7.37"></script>
-<script src="js/ui.js?v=7.37"></script>
-<script src="js/chat.js?v=7.37"></script>
-<script src="js/chat-settings.js?v=7.37"></script>
-<script src="js/field-settings.js?v=7.37"></script>
-<script src="js/audit.js?v=7.37"></script>
-<script src="js/feature-flags.js?v=7.37"></script>
-<script src="js/notification-center.js?v=7.37"></script>
+<script src="js/config.js?v=7.38"></script>
+<script src="js/state.js?v=7.38"></script>
+<script src="js/api.js?v=7.38"></script>
+<script src="js/auth.js?v=7.38"></script>
+<script src="js/ui.js?v=7.38"></script>
+<script src="js/chat.js?v=7.38"></script>
+<script src="js/chat-settings.js?v=7.38"></script>
+<script src="js/field-settings.js?v=7.38"></script>
+<script src="js/audit.js?v=7.38"></script>
+<script src="js/feature-flags.js?v=7.38"></script>
+<script src="js/notification-center.js?v=7.38"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=7.37"></script>
-<script src="js/job-market.js?v=7.37"></script>
-<script src="js/qc-job-market.js?v=7.37"></script>
-<script src="js/export-admin.js?v=7.37"></script>
-<script src="js/export-termin.js?v=7.37"></script>
-<script src="js/performance.js?v=7.37"></script>
-<script src="js/competition.js?v=7.37"></script>
-<script src="js/dashboard.js?v=7.37"></script>
-<script src="js/campaigns.js?v=7.37"></script>
-<script src="js/contacts.js?v=7.37"></script>
-<script src="js/telnyx.js?v=7.37"></script>
-<script src="js/voice-orb.js?v=7.37"></script>
-<script src="js/dialer.js?v=7.37"></script>
-<script src="js/appointments.js?v=7.37"></script>
-<script src="js/field.js?v=7.37"></script>
-<script src="js/field-ops.js?v=7.37"></script>
-<script src="js/wiedervorlage.js?v=7.37"></script>
-<script src="js/qc.js?v=7.37"></script>
-<script src="js/leave-hr.js?v=7.37"></script>
-<script src="js/muhasebe.js?v=7.37"></script>
-<script src="js/agent-self-performance.js?v=7.37"></script>
-<script src="js/agents.js?v=7.37"></script>
+<script src="js/wallet.js?v=7.38"></script>
+<script src="js/job-market.js?v=7.38"></script>
+<script src="js/qc-job-market.js?v=7.38"></script>
+<script src="js/export-admin.js?v=7.38"></script>
+<script src="js/export-termin.js?v=7.38"></script>
+<script src="js/performance.js?v=7.38"></script>
+<script src="js/competition.js?v=7.38"></script>
+<script src="js/dashboard.js?v=7.38"></script>
+<script src="js/campaigns.js?v=7.38"></script>
+<script src="js/contacts.js?v=7.38"></script>
+<script src="js/telnyx.js?v=7.38"></script>
+<script src="js/voice-orb.js?v=7.38"></script>
+<script src="js/dialer.js?v=7.38"></script>
+<script src="js/appointments.js?v=7.38"></script>
+<script src="js/field.js?v=7.38"></script>
+<script src="js/field-ops.js?v=7.38"></script>
+<script src="js/wiedervorlage.js?v=7.38"></script>
+<script src="js/qc.js?v=7.38"></script>
+<script src="js/leave-hr.js?v=7.38"></script>
+<script src="js/muhasebe.js?v=7.38"></script>
+<script src="js/agent-self-performance.js?v=7.38"></script>
+<script src="js/agents.js?v=7.38"></script>
 </body>
 </html>
 

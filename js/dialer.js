@@ -386,12 +386,27 @@ let _goalTab = 'daily';
 let _loadMiniStatsTimer = null;
 let _miniStatsReq = 0;
 
-function scheduleLoadMyMiniStats(delayMs = 95) {
+function scheduleLoadMyMiniStats(delayMs = 0) {
   if (_loadMiniStatsTimer) clearTimeout(_loadMiniStatsTimer);
   _loadMiniStatsTimer = setTimeout(() => {
     _loadMiniStatsTimer = null;
     void loadMyMiniStats();
   }, delayMs);
+}
+
+function _syncGoalTabChromeFromPerf() {
+  const goalScope = _perfTab === 'week' ? 'weekly' : _perfTab === 'month' ? 'monthly' : 'daily';
+  _goalTab = goalScope;
+  ['daily', 'weekly', 'monthly'].forEach((t) => {
+    const b = document.getElementById(`goal-tab-${t}`);
+    if (b) {
+      b.style.background = t === goalScope ? 'var(--accent)' : 'transparent';
+      b.style.color = t === goalScope ? '#fff' : 'var(--text-2)';
+    }
+  });
+  const labels = { daily: 'Günlük Hedef', weekly: 'Haftalık Hedef', monthly: 'Aylık Hedef' };
+  const lbl = document.getElementById('goal-tab-label');
+  if (lbl) lbl.textContent = labels[goalScope] || 'Hedef';
 }
 
 function setPerfTab(tab) {
@@ -400,7 +415,8 @@ function setPerfTab(tab) {
     const b = document.getElementById(`perf-tab-${t}`);
     if (b) { b.style.background = t===tab ? 'var(--accent)' : 'transparent'; b.style.color = t===tab ? '#fff' : 'var(--text-2)'; }
   });
-  scheduleLoadMyMiniStats();
+  _syncGoalTabChromeFromPerf();
+  scheduleLoadMyMiniStats(0);
 }
 
 function setGoalTab(tab) {
@@ -411,7 +427,8 @@ function setGoalTab(tab) {
     setPerfTab(nextPerf);
     return;
   }
-  scheduleLoadMyMiniStats();
+  _syncGoalTabChromeFromPerf();
+  scheduleLoadMyMiniStats(0);
 }
 
 async function loadMyMiniStats() {
@@ -462,13 +479,18 @@ async function loadMyMiniStats() {
         : Promise.resolve(null);
 
     const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
-    const [callsRows, apRowsPerf, apMonthRows, dayBundle, resultRows] = await Promise.all([
+    const [callsRows, apRowsPerf, apMonthRows, dayBundle] = await Promise.all([
       qCalls,
       qApDurum,
       qMonth,
       qDay,
-      loadFirmAppointmentResults(fid, false).catch(() => defaultAppointmentResults()),
     ]);
+
+    if (myReq !== _miniStatsReq) return;
+
+    await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
+    const resultRows = await loadFirmAppointmentResults(fid, false).catch(() => defaultAppointmentResults());
 
     if (myReq !== _miniStatsReq) return;
 
@@ -566,9 +588,16 @@ async function loadMyMiniStats() {
 
     if (myReq !== _miniStatsReq) return;
     document.getElementById('my-stats-mini').innerHTML = boxes.join('');
-    loadUpcomingWv();
-    loadUnfinalizedCalls();
-    if (typeof startCustEmptyCoach === 'function') startCustEmptyCoach();
+    const runSide = () => {
+      loadUpcomingWv();
+      loadUnfinalizedCalls();
+      if (typeof startCustEmptyCoach === 'function') startCustEmptyCoach();
+    };
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(runSide, { timeout: 1800 });
+    } else {
+      setTimeout(runSide, 0);
+    }
   } catch (e) {
     console.error('stats err:', e);
     document.getElementById('cust-empty')?.style.setProperty('--mascot-scale', '1');
@@ -865,7 +894,10 @@ let _lastMascotCheerSec = -1;
 let _mascotNotifMorphT = null;
 let _mascotDragState = null;
 let _mascotCallAccumSec = Number(getMascotPref('mb_mascot_call_accum_sec', '0')) || 0;
-let _globalMascotWanderT = null;
+let _wanderRaf = null;
+let _wanderCur = { x: 0, y: 0 };
+let _wanderTgt = { x: 0, y: 0 };
+let _dockRaf = null;
 let _mimiActiveTab = 'profile';
 
 function _fmtMimiLife(sec) {
@@ -1042,10 +1074,12 @@ function _wireGlobalMascotInteractions() {
 }
 
 function _stopGlobalMascotWander() {
-  if (_globalMascotWanderT) {
-    clearInterval(_globalMascotWanderT);
-    _globalMascotWanderT = null;
+  if (_wanderRaf) {
+    cancelAnimationFrame(_wanderRaf);
+    _wanderRaf = null;
   }
+  _wanderCur = { x: 0, y: 0 };
+  _wanderTgt = { x: 0, y: 0 };
   const gm = document.getElementById('global-mascot');
   if (gm) {
     gm.style.setProperty('--gm-wx', '0px');
@@ -1053,25 +1087,52 @@ function _stopGlobalMascotWander() {
   }
 }
 
+function _pickWanderTarget(gm, pct) {
+  const r = 2 + Math.round((pct / 100) * 16);
+  _wanderTgt.x = (Math.random() * 2 - 1) * r;
+  _wanderTgt.y = (Math.random() * 2 - 1) * (r * 0.65);
+}
+
+function _wanderFrame() {
+  const gm = document.getElementById('global-mascot');
+  if (!gm) {
+    _wanderRaf = null;
+    return;
+  }
+  const pct = getMascotWanderPct();
+  if (pct <= 0) {
+    _wanderCur.x = 0;
+    _wanderCur.y = 0;
+    gm.style.setProperty('--gm-wx', '0px');
+    gm.style.setProperty('--gm-wy', '0px');
+    _wanderRaf = null;
+    return;
+  }
+  const dx = _wanderTgt.x - _wanderCur.x;
+  const dy = _wanderTgt.y - _wanderCur.y;
+  if (Math.abs(dx) < 0.2 && Math.abs(dy) < 0.2) {
+    _pickWanderTarget(gm, pct);
+  }
+  _wanderCur.x += dx * 0.06;
+  _wanderCur.y += dy * 0.06;
+  gm.style.setProperty('--gm-wx', `${_wanderCur.x.toFixed(2)}px`);
+  gm.style.setProperty('--gm-wy', `${_wanderCur.y.toFixed(2)}px`);
+  _wanderRaf = requestAnimationFrame(_wanderFrame);
+}
+
 function _startGlobalMascotWander() {
-  if (_globalMascotWanderT) return;
+  if (_wanderRaf) return;
   const gm = document.getElementById('global-mascot');
   if (!gm) return;
-  const step = () => {
-    const pct = getMascotWanderPct();
-    if (pct <= 0) {
-      gm.style.setProperty('--gm-wx', '0px');
-      gm.style.setProperty('--gm-wy', '0px');
-      return;
-    }
-    const r = 3 + Math.round((pct / 100) * 26);
-    const x = Math.round((Math.random() * 2 - 1) * r);
-    const y = Math.round((Math.random() * 2 - 1) * (r * 0.7));
-    gm.style.setProperty('--gm-wx', `${x}px`);
-    gm.style.setProperty('--gm-wy', `${y}px`);
-  };
-  step();
-  _globalMascotWanderT = setInterval(step, 2200);
+  const pct = getMascotWanderPct();
+  if (pct <= 0) {
+    gm.style.setProperty('--gm-wx', '0px');
+    gm.style.setProperty('--gm-wy', '0px');
+    return;
+  }
+  _wanderCur = { x: 0, y: 0 };
+  _pickWanderTarget(gm, pct);
+  _wanderRaf = requestAnimationFrame(_wanderFrame);
 }
 
 function _placeGlobalMascotAtRect(rect) {
@@ -1093,6 +1154,14 @@ function syncCustomerCardEmptyVisual() {
 }
 
 function syncGlobalMascotDock() {
+  if (_dockRaf) cancelAnimationFrame(_dockRaf);
+  _dockRaf = requestAnimationFrame(() => {
+    _dockRaf = null;
+    _syncGlobalMascotDockImpl();
+  });
+}
+
+function _syncGlobalMascotDockImpl() {
   const gm = document.getElementById('global-mascot');
   const anchor = document.getElementById('sb-mascot-anchor') || document.getElementById('tb-mascot-anchor');
   if (!gm || !anchor) return;
