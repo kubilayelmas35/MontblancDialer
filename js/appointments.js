@@ -104,26 +104,12 @@ function _takvimAdjustHex(hex, amt) {
   return `#${out.map((x) => x.toString(16).padStart(2, '0')).join('')}`;
 }
 
-function _takvimRelLum(hex) {
-  const rgb = _takvimHexToRgb(hex);
-  if (!rgb) return 0.25;
-  const lin = rgb.map((c) => {
-    c /= 255;
-    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
-}
-
 function takvimGradientFromAccent(hex) {
   const raw = String(hex || '').trim();
   const base = /^#?[a-f\d]{6}$/i.test(raw) ? (raw.startsWith('#') ? raw : `#${raw}`).toLowerCase() : '#3b82f6';
   const dark = _takvimAdjustHex(base, -0.38);
-  return { gradient: `linear-gradient(135deg,${base},${dark})`, from: base, to: dark };
-}
-
-function takvimTextOnStops(fromHex, toHex) {
-  const L = (_takvimRelLum(fromHex) + _takvimRelLum(toHex)) / 2;
-  return L > 0.48 ? '#0f172a' : '#ffffff';
+  // Koyu uç solda: isim/metin solda beyaz kalır
+  return { gradient: `linear-gradient(135deg,${dark},${base})`, from: dark, to: base };
 }
 
 function getSlotGradientAndText(slot, appt) {
@@ -132,23 +118,23 @@ function getSlotGradientAndText(slot, appt) {
   }
   if (slot.durum === 'bos') {
     const tk = getCampaignTakvimSettings();
-    const { gradient, from, to } = takvimGradientFromAccent(tk.bos_color);
-    return { background: gradient, color: takvimTextOnStops(from, to) };
+    const { gradient } = takvimGradientFromAccent(tk.bos_color);
+    return { background: gradient, color: '#ffffff' };
   }
   const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
   const rows = (fid && window._apptResultsByFirm?.[fid]) || (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
   const key = appt ? _normResultKey(appt.durum) : '';
   const cfg = Array.isArray(rows) ? rows.find((r) => _normResultKey(r.key) === key) : null;
   if (cfg?.color) {
-    const { gradient, from, to } = takvimGradientFromAccent(cfg.color);
-    return { background: gradient, color: takvimTextOnStops(from, to) };
+    const { gradient } = takvimGradientFromAccent(cfg.color);
+    return { background: gradient, color: '#ffffff' };
   }
   const d = (appt?.durum || '').toLowerCase();
-  if (d === 'basarili') return { background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff' };
-  if (d.includes('basarisiz') || d.includes('iptal')) return { background: 'linear-gradient(135deg,#b91c1c,#991b1b)', color: '#fff' };
-  if (d === 'beklemede') return { background: 'linear-gradient(135deg,#f97316,#c2410c)', color: '#fff' };
-  if (d === 'ulasilamadi') return { background: 'linear-gradient(135deg,#ca8a04,#a16207)', color: '#fff' };
-  return { background: 'linear-gradient(135deg,#1e40af,#1d4ed8)', color: '#fff' };
+  if (d === 'basarili') return { background: 'linear-gradient(135deg,#15803d,#16a34a)', color: '#fff' };
+  if (d.includes('basarisiz') || d.includes('iptal')) return { background: 'linear-gradient(135deg,#991b1b,#b91c1c)', color: '#fff' };
+  if (d === 'beklemede') return { background: 'linear-gradient(135deg,#c2410c,#f97316)', color: '#fff' };
+  if (d === 'ulasilamadi') return { background: 'linear-gradient(135deg,#a16207,#ca8a04)', color: '#fff' };
+  return { background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', color: '#fff' };
 }
 
 function takvimSlotDurHours() {
