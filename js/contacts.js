@@ -674,8 +674,18 @@ ${_isFakeRecordingRow(l) ? _fakeRecordingMarkup(l, 'history') : ''}
   } catch(e) { el.innerHTML='Hata'; }
 }
 
+function _logDurationSec(log) {
+  return Math.max(0, Number(log?.duration_sec ?? log?.duration_seconds ?? 0) || 0);
+}
+
 function _isFakeRecordingRow(log) {
-  return !!(_testMode && !String(log?.recording_url || '').trim() && Number(log?.duration_sec || 0) >= 8);
+  const noRealRecording = !String(log?.recording_url || '').trim();
+  const dur = _logDurationSec(log);
+  const explicitTest =
+    log?.is_test === true ||
+    log?.is_inbound_test === true ||
+    String(log?.notes || '').toLowerCase().includes('test');
+  return !!(noRealRecording && (explicitTest || (_testMode && dur >= 8)));
 }
 
 function _formatMMSS(totalSec) {
@@ -728,7 +738,7 @@ function toggleFakeRecording(key, durSec) {
 }
 
 function _fakeRecordingMarkup(log, scopeKey) {
-  const dur = Math.max(8, Number(log?.duration_sec || 0));
+  const dur = Math.max(8, _logDurationSec(log));
   const key = `${scopeKey}-${log?.id || log?.started_at || Math.random().toString(16).slice(2)}`;
   return `<div class="sim-rec-wrap" data-key="${_escHtml(key)}" data-dur="${dur}" style="margin-top:6px;">
 <div style="display:flex;align-items:center;gap:6px;">
@@ -1040,7 +1050,8 @@ function _renderCdrHistory() {
   const colorMap = {appointment:'var(--green)',appointment_done:'var(--green)',negative:'var(--red)',callback:'var(--yellow)',no_answer:'var(--text-3)',dnc:'var(--red)',voicemail:'var(--text-3)'};
   el.innerHTML = _cdrLogs.map(l => {
     const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-    const dur = l.duration_sec ? `${Math.floor(l.duration_sec/60)}:${String(l.duration_sec%60).padStart(2,'0')}` : '—';
+    const sec = _logDurationSec(l);
+    const dur = sec ? `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}` : '—';
     const oc = OM[l.outcome] || l.outcome || '—';
     const oc_color = colorMap[l.outcome] || 'var(--text-3)';
     const camp = l.campaigns?.name || '—';
@@ -1071,7 +1082,8 @@ function _renderCdrRecordings() {
   }
   el.innerHTML = recs.map(l => {
     const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-    const dur = l.duration_sec ? `${Math.floor(l.duration_sec/60)}:${String(l.duration_sec%60).padStart(2,'0')}` : '—';
+    const sec = _logDurationSec(l);
+    const dur = sec ? `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}` : '—';
     return `<div class="cdr-log-row">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
   <span style="font-size:11px;color:var(--text-2);font-family:var(--mono);">${dt}</span>
