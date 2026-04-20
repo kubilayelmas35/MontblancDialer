@@ -213,9 +213,21 @@ async function getNextContact(campaignIds = null) {
       if ((fn === 'yeni' || fn === 'neu') && (ln === 'çağrı' || ln === 'cagri' || ln === 'anruf')) return false;
       return true;
     };
-    const campFilter = ids.length === 1
-      ? `campaign_id=eq.${ids[0]}`
-      : `campaign_id=in.(${ids.join(',')})`;
+    const idList = ids.map((x) => String(x)).filter(Boolean);
+    const qFilter = idList.length === 1 ? `campaign_id=eq.${idList[0]}` : `campaign_id=in.(${idList.join(',')})`;
+    // Eski/karma veride contact.campaign_id boş, sadece queue_id dolu olabilir.
+    let queueIds = [];
+    try {
+      const qRows =
+        (await sb(
+          `queues?${qFilter}&select=id&limit=500`
+        ).catch(() => [])) || [];
+      queueIds = qRows.map((q) => q.id).filter(Boolean);
+    } catch (e) {}
+    const campFilter =
+      queueIds.length
+        ? `or=(campaign_id.in.(${idList.join(',')}),queue_id.in.(${queueIds.join(',')}))`
+        : qFilter;
     const nowIso = new Date().toISOString();
 
     // Test modunda önce kampanyadaki gerçek kişileri doğrudan dene
