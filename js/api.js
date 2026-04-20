@@ -38,6 +38,21 @@ try {
 if (!r.ok) {
   let detail = '';
   try { detail = await r.text(); } catch (_) {}
+  // Temsil modunda bazı RLS-korumalı endpointler 401/403 dönebilir.
+  // Hızlı çözüm: UI'ı kırmamak için bu çağrılarda boş sonuç döndür.
+  try {
+    const inImpersonation = (typeof _impersonation !== 'undefined' && !!_impersonation);
+    const status = Number(r.status || 0);
+    if (inImpersonation && (status === 401 || status === 403)) {
+      const p = String(path || '');
+      const softFailPrefixes = ['chat_group_members', 'payroll_fx_rates'];
+      if (softFailPrefixes.some((x) => p.startsWith(x))) {
+        const method = String(opts?.method || 'GET').toUpperCase();
+        if (method === 'GET') return [];
+        return null;
+      }
+    }
+  } catch (_) {}
   const msg = detail || `${r.status} ${r.statusText || 'HTTP_ERROR'}`;
   throw new Error(`Supabase error (${r.status}) @ ${path}: ${msg}`);
 }
