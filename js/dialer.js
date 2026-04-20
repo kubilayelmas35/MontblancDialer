@@ -4335,8 +4335,8 @@ function restartInboundTestSimulationScheduler() {
   stopInboundTestSimulationScheduler();
   const page = document.getElementById('page-dialer');
   if (!page?.classList.contains('active')) return;
-  /** Gelen (TEST) sadece test modunda; aksi halde boş zamanlayıcı döngüsü olmasın */
-  if (!_testMode) return;
+  /** Kullanıcı akışı: test modunda otomatik "yeni gelen çağrı" simülasyonu çalışmasın. */
+  if (_testMode) return;
   const tick = () => {
     const gap = _testMode
       ? 12000 + Math.floor(Math.random() * 10000)

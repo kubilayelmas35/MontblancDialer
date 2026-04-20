@@ -103,27 +103,50 @@ function _aspDaysInMonth(ym) {
 }
 
 async function _aspFetchAppointments(fid, uid, start, end, mode = 'termin') {
-  if (!fid || !uid) return [];
-  if (mode === 'created') {
-    const q =
-      `appointments?select=id,termin_tarih,created_at,durum,nachname,telefonnummer,plz,ortschaft,agent_notu,hausart,baujahr,qm,heizung&firm_id=eq.${fid}&agent_id=eq.${uid}&created_at=gte.${start}T00:00:00.000Z&created_at=lte.${end}T23:59:59.999Z&order=created_at.desc&limit=3000`;
-    return (await sb(q).catch(() => [])) || [];
+  if (!uid) return [];
+  const baseSelect =
+    'id,termin_tarih,created_at,durum,nachname,telefonnummer,plz,ortschaft,agent_notu,hausart,baujahr,qm,heizung,firm_id,agent_id';
+  // Sunucu filtreleri (timezone/tip farkı nedeniyle) boş dönebildiği için geniş çekip istemcide filtreliyoruz.
+  let rows =
+    (await sb(`appointments?select=${baseSelect}&agent_id=eq.${uid}&order=created_at.desc&limit=6000`).catch(() => [])) ||
+    [];
+  if (!rows.length && fid) {
+    rows =
+      (await sb(`appointments?select=${baseSelect}&firm_id=eq.${fid}&order=created_at.desc&limit=6000`).catch(() => [])) ||
+      [];
+    rows = rows.filter((r) => String(r.agent_id || '') === String(uid));
   }
-  const base =
-    `appointments?select=id,termin_tarih,created_at,durum,nachname,telefonnummer,plz,ortschaft,agent_notu,hausart,baujahr,qm,heizung&firm_id=eq.${fid}&agent_id=eq.${uid}&termin_tarih=gte.${start}T00:00:00&termin_tarih=lte.${end}T23:59:59&order=termin_tarih.asc&limit=3000`;
-  return (await sb(base).catch(() => [])) || [];
+  const s = `${start}T00:00:00`;
+  const e = `${end}T23:59:59`;
+  return rows.filter((r) => {
+    const raw = mode === 'created' ? r.created_at : r.termin_tarih;
+    const t = String(raw || '');
+    return t && t >= s && t <= e;
+  });
 }
 
 async function _aspFetchCalls(fid, uid, start, end) {
-  if (!fid || !uid) return [];
-  const q =
-    `call_logs?select=id,started_at,outcome,duration_sec,duration_seconds,phone,campaigns(name)&firm_id=eq.${fid}&agent_id=eq.${uid}&started_at=gte.${start}T00:00:00&started_at=lte.${end}T23:59:59&order=started_at.desc&limit=8000`;
+  if (!uid) return [];
+  const s = `${start}T00:00:00`;
+  const e = `${end}T23:59:59`;
   try {
-    return (await sb(q)) || [];
-  } catch (e) {
+    const rows =
+      (await sb(
+        `call_logs?select=id,started_at,outcome,duration_sec,duration_seconds,phone,campaigns(name),firm_id,agent_id&agent_id=eq.${uid}&order=started_at.desc&limit=10000`
+      ).catch(() => [])) || [];
+    return rows.filter((r) => {
+      const t = String(r.started_at || '');
+      return t && t >= s && t <= e;
+    });
+  } catch (e1) {
     const simple =
-      `call_logs?select=id,started_at,outcome,duration_sec,duration_seconds,phone&firm_id=eq.${fid}&agent_id=eq.${uid}&started_at=gte.${start}T00:00:00&started_at=lte.${end}T23:59:59&order=started_at.desc&limit=8000`;
-    return (await sb(simple).catch(() => [])) || [];
+      (await sb(
+        `call_logs?select=id,started_at,outcome,duration_sec,duration_seconds,phone,firm_id,agent_id&agent_id=eq.${uid}&order=started_at.desc&limit=10000`
+      ).catch(() => [])) || [];
+    return simple.filter((r) => {
+      const t = String(r.started_at || '');
+      return t && t >= s && t <= e;
+    });
   }
 }
 
