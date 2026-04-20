@@ -177,14 +177,17 @@ async function loadAppointmentResultsSettings() {
   const box = document.getElementById('results-settings-card');
   const wrap = document.getElementById('s-appt-results-rows');
   const selectorHost = document.getElementById('results-firm-selector');
+  const dCard = document.getElementById('default-takvim-firm-card');
   if (!wrap || !box) return;
   const canEdit = ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
   box.style.display = canEdit ? '' : 'none';
+  if (dCard) dCard.style.display = canEdit ? '' : 'none';
   if (!canEdit) return;
   if (selectorHost) {
     renderFirmSelector('results-firm-selector', loadAppointmentResultsSettings);
     selectorHost.style.display = isSuperAdmin() ? '' : 'none';
   }
+  if (typeof loadDefaultTakvimFirmCard === 'function') await loadDefaultTakvimFirmCard();
   const fid = getActiveFirmId() || currentUser?.firm_id;
   if (!fid) {
     wrap.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Termin sonuçlarını görmek için firma seçin.</div>`;
