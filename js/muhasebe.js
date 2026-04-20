@@ -336,12 +336,21 @@ async function loadPerformansimPage() {
   if (noAccess) noAccess.style.display = 'none';
   if (main) main.style.display = 'flex';
   if (sub) sub.textContent = 'Seçili ay termin ve çağrı özeti';
-  const period = _mGetPeriod();
-  const rules = await loadFirmPayrollRules(fid);
-  const liveRate = await _getMonthFxRate(fid, period, Number(rules.exchange_rate || 1), rules);
-  rules.exchange_rate = liveRate;
-  if (typeof loadAgentSelfPerformanceDash === 'function') {
-    loadAgentSelfPerformanceDash(fid, period, rules);
+  try {
+    const period = _mGetPeriod();
+    const rules = await loadFirmPayrollRules(fid);
+    const liveRate = await _getMonthFxRate(fid, period, Number(rules.exchange_rate || 1), rules);
+    rules.exchange_rate = liveRate;
+    if (typeof loadAgentSelfPerformanceDash === 'function') {
+      await loadAgentSelfPerformanceDash(fid, period, rules);
+    }
+  } catch (e) {
+    const host = document.getElementById('muh-agent-perf-wrap');
+    if (host) {
+      host.style.display = '';
+      host.innerHTML = `<div class="card" style="padding:14px;color:var(--red);font-size:13px;">Performans verisi yüklenemedi: ${_uiEsc(e?.message || 'bilinmeyen hata')}</div>`;
+    }
+    if (typeof toast === 'function') toast('Performansım yüklenemedi: ' + (e?.message || ''), 'err');
   }
 }
 

@@ -5147,7 +5147,11 @@ async function testToggleReady() {
 // Test modunda gerçek contact ile simüle edilmiş çağrı başlat
 async function startTestCall() {
   if (_fakeCallActive) return;
-  const contact = await getNextContact(getAutoDialCampaignIds());
+  let campIds = getAutoDialCampaignIds();
+  if (!campIds.length && selectedCampId) campIds = [selectedCampId];
+  if (!campIds.length && _activeCampIds.length) campIds = _activeCampIds.slice();
+  if (!campIds.length && campaigns?.length) campIds = campaigns.map((c) => c.id).filter(Boolean);
+  const contact = await getNextContact(campIds);
   if (!contact) {
     toast('✅ Kuyrukta numara kalmadı', 'ok');
     setDialerStatus('offline'); updateSessionInDB('offline');
