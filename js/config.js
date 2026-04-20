@@ -61,8 +61,8 @@ const NC_DEFAULT_FIELDS = [
 const UQ_TARGET_FIELDS = [
 { key:'phone',      label:'📞 Telefon *', required:true },
 { key:'phone2',     label:'📞 Telefon 2' },
-{ key:'last_name',  label:'👤 Soyad' },
 { key:'first_name', label:'👤 Ad' },
+{ key:'last_name',  label:'👤 Soyad' },
 { key:'plz',        label:'📮 PLZ' },
 { key:'city',       label:'🏙 Şehir' },
 { key:'address',    label:'🏠 Adres' },

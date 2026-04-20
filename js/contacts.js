@@ -214,7 +214,6 @@ async function getNextContact(campaignIds = null) {
       return true;
     };
     const idList = ids.map((x) => String(x)).filter(Boolean);
-    const qFilter = idList.length === 1 ? `campaign_id=eq.${idList[0]}` : `campaign_id=in.(${idList.join(',')})`;
     // Eski/karma veride contact.campaign_id boş, sadece queue_id dolu olabilir.
     let queueIds = [];
     try {
@@ -224,20 +223,41 @@ async function getNextContact(campaignIds = null) {
         ).catch(() => [])) || [];
       queueIds = qRows.map((q) => q.id).filter(Boolean);
     } catch (e) {}
-    const campFilter =
-      queueIds.length
-        ? `or=(campaign_id.in.(${idList.join(',')}),queue_id.in.(${queueIds.join(',')}))`
-        : qFilter;
+    const fetchScopedContacts = async (extraFilters = '', limit = 80) => {
+      let out = [];
+      if (idList.length) {
+        const byCamp =
+          (await sb(
+            `contacts?campaign_id=in.(${idList.join(',')})` +
+            `${extraFilters}` +
+            `&order=last_called_at.asc.nullsfirst` +
+            `&limit=${limit}&select=*`
+          ).catch(() => [])) || [];
+        out = out.concat(byCamp);
+      }
+      if (queueIds.length) {
+        const byQueue =
+          (await sb(
+            `contacts?queue_id=in.(${queueIds.join(',')})` +
+            `${extraFilters}` +
+            `&order=last_called_at.asc.nullsfirst` +
+            `&limit=${limit}&select=*`
+          ).catch(() => [])) || [];
+        out = out.concat(byQueue);
+      }
+      const seen = new Set();
+      return out.filter((r) => {
+        const k = String(r?.id || `${r?.campaign_id || ''}:${r?.queue_id || ''}:${r?.phone || ''}`);
+        if (!k || seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    };
     const nowIso = new Date().toISOString();
 
     // Test modunda önce kampanyadaki gerçek kişileri doğrudan dene
     if (typeof _testMode !== 'undefined' && _testMode) {
-      const allInCamp =
-        (await sb(
-          `contacts?${campFilter}` +
-          `&order=last_called_at.asc.nullsfirst` +
-          `&limit=80&select=*`
-        ).catch(() => [])) || [];
+      const allInCamp = await fetchScopedContacts('', 120);
       if (allInCamp.length) {
         const preferred = allInCamp.find((c) =>
           isUsableRealContact(c) && ['pending', 'no_answer', 'callback'].includes(String(c.status || '').toLowerCase())
@@ -249,21 +269,14 @@ async function getNextContact(campaignIds = null) {
     }
 
     // Normal akış: önce bekleyen / cevap yok / vakti gelen geri aramalar
-    const contacts = await sb(
-      `contacts?${campFilter}` +
-      `&status=in.(pending,no_answer,callback)` +
-      `&or=(callback_at.is.null,callback_at.lte.${nowIso})` +
-      `&order=last_called_at.asc.nullsfirst` +
-      `&limit=12&select=*`
+    const contacts = await fetchScopedContacts(
+      `&status=in.(pending,no_answer,callback)&or=(callback_at.is.null,callback_at.lte.${nowIso})`,
+      50
     );
     if (!contacts?.length) {
       if (typeof _testMode !== 'undefined' && _testMode && ids.length) {
         // Test modunda: uygun statüde kayıt yoksa kampanyadaki gerçek kayıttan devam et.
-        const fallback = await sb(
-          `contacts?${campFilter}` +
-          `&order=last_called_at.asc.nullsfirst` +
-          `&limit=20&select=*`
-        ).catch(() => []);
+        const fallback = await fetchScopedContacts('', 120);
         if (fallback?.length) {
           for (let i = 0; i < fallback.length; i++) {
             const c = fallback[i];
