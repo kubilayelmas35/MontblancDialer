@@ -3846,13 +3846,16 @@ async function submitOutcome(goBreak) {
         });
       }
       if (isDnc) await addToDnc(currentContact.phone, contactId);
+      const logNotes = _testMode
+        ? [note, '__test_sim__'].filter((x) => String(x || '').trim()).join('\n').trim() || '__test_sim__'
+        : note;
       const logData = {
         campaign_id: selectedCampId,
         firm_id: currentUser.firm_id,
         agent_id: currentUser.id,
         phone: currentContact.phone,
         outcome: finalOutcome,   // normalleştirilmiş (appointment_done → appointment)
-        notes: note,
+        notes: logNotes,
         duration_sec: callSeconds,
         started_at: new Date(Date.now()-callSeconds*1000).toISOString(),
         ended_at: new Date().toISOString(),

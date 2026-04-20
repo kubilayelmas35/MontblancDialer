@@ -826,14 +826,21 @@ try {
 } catch (_) {}
 const logDurSec = (l) => Math.max(0, Number(l?.duration_sec ?? l?.duration_seconds ?? 0) || 0);
 const isFakeRec = (l) => {
+  if (typeof _isFakeRecordingRow === 'function') return _isFakeRecordingRow(l);
   const noRec = !String(l?.recording_url || '').trim();
-  const dur = logDurSec(l);
+  if (!noRec) return false;
+  const notesRaw = String(l?.notes || '');
   const explicitTest =
     l?.is_test === true ||
     l?.is_inbound_test === true ||
-    String(l?.notes || '').toLowerCase().includes('test');
-  if (typeof _isFakeRecordingRow === 'function') return _isFakeRecordingRow(l);
-  return !!(noRec && (explicitTest || (_testMode && dur >= 8)));
+    notesRaw.includes('__test_sim__');
+  if (explicitTest) return true;
+  if (typeof _testMode !== 'undefined' && _testMode) {
+    const dur = logDurSec(l);
+    const hasTelnyx = String(l?.telnyx_call_id || '').trim();
+    if (dur >= 1 && dur <= 900 && !hasTelnyx) return true;
+  }
+  return false;
 };
 const recHtmlFor = (l, scope) => {
   if (l.recording_url) {
@@ -942,14 +949,21 @@ try {
 } catch (_) {}
 const logDurSec = (l) => Math.max(0, Number(l?.duration_sec ?? l?.duration_seconds ?? 0) || 0);
 const isFakeRec = (l) => {
+  if (typeof _isFakeRecordingRow === 'function') return _isFakeRecordingRow(l);
   const noRec = !String(l?.recording_url || '').trim();
-  const dur = logDurSec(l);
+  if (!noRec) return false;
+  const notesRaw = String(l?.notes || '');
   const explicitTest =
     l?.is_test === true ||
     l?.is_inbound_test === true ||
-    String(l?.notes || '').toLowerCase().includes('test');
-  if (typeof _isFakeRecordingRow === 'function') return _isFakeRecordingRow(l);
-  return !!(noRec && (explicitTest || (_testMode && dur >= 8)));
+    notesRaw.includes('__test_sim__');
+  if (explicitTest) return true;
+  if (typeof _testMode !== 'undefined' && _testMode) {
+    const dur = logDurSec(l);
+    const hasTelnyx = String(l?.telnyx_call_id || '').trim();
+    if (dur >= 1 && dur <= 900 && !hasTelnyx) return true;
+  }
+  return false;
 };
 const recHtmlFor = (l) => {
   if (l.recording_url) {

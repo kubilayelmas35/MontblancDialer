@@ -666,7 +666,7 @@ async function loadContactHistory(contactId) {
 <div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
 <div>
 <div style="font-weight:700;font-size:11px;">${new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
-${l.notes?`<div style="font-size:11px;color:var(--text-3);">${l.notes}</div>`:''}
+${(() => { const nt = _stripSimCallMarker(l.notes); return nt ? '<div style="font-size:11px;color:var(--text-3);">' + _escHtml(nt) + '</div>' : ''; })()}
 ${_isFakeRecordingRow(l) ? _fakeRecordingMarkup(l, 'history') : ''}
 </div>
 <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:var(--bg-3);">${l.outcome||'—'}</span>
@@ -678,14 +678,30 @@ function _logDurationSec(log) {
   return Math.max(0, Number(log?.duration_sec ?? log?.duration_seconds ?? 0) || 0);
 }
 
+const _SIM_CALL_MARKER = '__test_sim__';
+
+function _stripSimCallMarker(notes) {
+  return String(notes || '')
+    .replace(new RegExp(`(?:^|\\n)\\s*${_SIM_CALL_MARKER}\\s*$`, 'i'), '')
+    .trim();
+}
+
 function _isFakeRecordingRow(log) {
   const noRealRecording = !String(log?.recording_url || '').trim();
-  const dur = _logDurationSec(log);
+  if (!noRealRecording) return false;
+  const notesRaw = String(log?.notes || '');
   const explicitTest =
     log?.is_test === true ||
     log?.is_inbound_test === true ||
-    String(log?.notes || '').toLowerCase().includes('test');
-  return !!(noRealRecording && (explicitTest || (_testMode && dur >= 8)));
+    notesRaw.includes(_SIM_CALL_MARKER);
+  if (explicitTest) return true;
+  // Eski kayıtlar (işaretsiz): yalnızca test oturumunda, Telnyx kaydı yoksa
+  if (typeof _testMode !== 'undefined' && _testMode) {
+    const dur = _logDurationSec(log);
+    const hasTelnyx = String(log?.telnyx_call_id || '').trim();
+    if (dur >= 1 && dur <= 900 && !hasTelnyx) return true;
+  }
+  return false;
 }
 
 function _formatMMSS(totalSec) {
@@ -902,7 +918,7 @@ async function showPrevCallInfo(contact) {
       <span style="color:var(--text-3);">(${contact.attempt_count}. arama)</span>
       <span class="prev-call-agent"><i class="ph ph-user-circle"></i> ${agentLabel}</span>
     </div>
-    ${prev.notes ? `<div style="margin-top:4px;color:var(--text-2);">"${prev.notes}"</div>` : ''}
+    ${(() => { const nt = _stripSimCallMarker(prev.notes); return nt ? '<div style="margin-top:4px;color:var(--text-2);">"' + _escHtml(nt) + '"</div>' : ''; })()}
   </div>
   ${recLog?.recording_url ? `
   <div class="prev-call-audio-wrap">
@@ -1066,7 +1082,7 @@ function _renderCdrHistory() {
   <span><i class="ph ph-megaphone-simple" style="vertical-align:-2px;"></i> ${camp}</span>
   <span><i class="ph ph-clock" style="vertical-align:-2px;"></i> ${dur}</span>
 </div>
-${l.notes ? `<div style="margin-top:4px;font-size:11px;color:var(--text-2);font-style:italic;">"${l.notes}"</div>` : ''}
+${(() => { const nt = _stripSimCallMarker(l.notes); return nt ? '<div style="margin-top:4px;font-size:11px;color:var(--text-2);font-style:italic;">"' + _escHtml(nt) + '"</div>' : ''; })()}
 ${l.recording_url ? `<div style="margin-top:6px;"><audio controls src="${l.recording_url}" style="width:100%;height:28px;" preload="none"></audio></div>` : (_isFakeRecordingRow(l) ? _fakeRecordingMarkup(l, 'cdrhist') : '')}
 </div>`;
   }).join('');
