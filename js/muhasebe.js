@@ -29,11 +29,17 @@ function _mPayrollTableWrap() {
 }
 
 function canViewMaasimPage() {
-  return ['agent', 'qc'].includes(currentUser?.role || '') && typeof userHasPagePerm === 'function' && userHasPagePerm('maasim');
+  const role = currentUser?.role || '';
+  if (!['agent', 'qc', 'admin', 'firm_admin', 'super_admin'].includes(role)) return false;
+  if (typeof userHasPagePerm === 'function') return !!userHasPagePerm('maasim');
+  return true;
 }
 
 function canViewPerformansimPage() {
-  return ['agent', 'qc'].includes(currentUser?.role || '') && typeof userHasPagePerm === 'function' && userHasPagePerm('performansim');
+  const role = currentUser?.role || '';
+  if (!['agent', 'qc', 'admin', 'firm_admin', 'super_admin'].includes(role)) return false;
+  if (typeof userHasPagePerm === 'function') return !!userHasPagePerm('performansim');
+  return true;
 }
 
 function muhasebeFirmId() {
@@ -315,28 +321,28 @@ async function loadMaasimPage() {
 }
 
 async function loadPerformansimPage() {
-  renderFirmSelector('performansim-firm-selector', loadPerformansimPage);
-  const fid = muhasebeFirmId();
-  const noAccess = document.getElementById('performansim-no-access');
-  const main = document.getElementById('performansim-main');
-  const sub = document.getElementById('performansim-sub');
-  if (!canViewPerformansimPage()) {
-    if (noAccess) noAccess.style.display = '';
-    if (main) main.style.display = 'none';
-    return;
-  }
-  if (isSuperAdmin() && !fid) {
-    if (noAccess) {
-      noAccess.style.display = '';
-      noAccess.textContent = 'Firma seçin.';
-    }
-    if (main) main.style.display = 'none';
-    return;
-  }
-  if (noAccess) noAccess.style.display = 'none';
-  if (main) main.style.display = 'flex';
-  if (sub) sub.textContent = 'Seçili ay termin ve çağrı özeti';
   try {
+    renderFirmSelector('performansim-firm-selector', loadPerformansimPage);
+    const fid = muhasebeFirmId();
+    const noAccess = document.getElementById('performansim-no-access');
+    const main = document.getElementById('performansim-main');
+    const sub = document.getElementById('performansim-sub');
+    if (!canViewPerformansimPage()) {
+      if (noAccess) noAccess.style.display = '';
+      if (main) main.style.display = 'none';
+      return;
+    }
+    if (isSuperAdmin() && !fid) {
+      if (noAccess) {
+        noAccess.style.display = '';
+        noAccess.textContent = 'Firma seçin.';
+      }
+      if (main) main.style.display = 'none';
+      return;
+    }
+    if (noAccess) noAccess.style.display = 'none';
+    if (main) main.style.display = 'flex';
+    if (sub) sub.textContent = 'Seçili ay termin ve çağrı özeti';
     const period = _mGetPeriod();
     const rules = await loadFirmPayrollRules(fid);
     const liveRate = await _getMonthFxRate(fid, period, Number(rules.exchange_rate || 1), rules);

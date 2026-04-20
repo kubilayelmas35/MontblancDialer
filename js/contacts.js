@@ -233,7 +233,7 @@ async function getNextContact(campaignIds = null) {
       `&status=in.(pending,no_answer,callback)` +
       `&or=(callback_at.is.null,callback_at.lte.${nowIso})` +
       `&order=last_called_at.asc.nullsfirst` +
-      `&limit=12&select=*,queues(name,status)`
+      `&limit=12&select=*`
     );
     if (!contacts?.length) {
       if (typeof _testMode !== 'undefined' && _testMode && ids.length) {
@@ -241,13 +241,12 @@ async function getNextContact(campaignIds = null) {
         const fallback = await sb(
           `contacts?${campFilter}` +
           `&order=updated_at.desc.nullslast,last_called_at.asc.nullsfirst` +
-          `&limit=20&select=*,queues(name,status)`
+          `&limit=20&select=*`
         ).catch(() => []);
         if (fallback?.length) {
           for (let i = 0; i < fallback.length; i++) {
             const c = fallback[i];
-            if (!c?.phone) continue;
-            if (!c.queues || c.queues.status === 'active') return c;
+            if (c?.phone) return c;
           }
           const any = fallback.find((x) => String(x?.phone || '').trim());
           if (any) return any;
@@ -262,6 +261,7 @@ async function getNextContact(campaignIds = null) {
     const testRelax = typeof _testMode !== 'undefined' && _testMode;
     for (let i = 0; i < contacts.length; i++) {
       const c = contacts[i];
+      if (!c?.phone) continue;
       if (!c.queues || c.queues.status === 'active') return c;
       if (testRelax) return c;
     }
