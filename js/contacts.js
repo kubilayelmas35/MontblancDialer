@@ -194,25 +194,6 @@ async function uploadQueue() {
 }
 
 // ── Contact manipulation ──────────────────────
-/** Test modunda kuyrukta gerçek kayıt yokken simülasyon kişisi (DB satırı değil). */
-function _makeSyntheticTestOutboundContact(campaignId) {
-  const tr = typeof currentLang !== 'undefined' && currentLang === 'tr';
-  return {
-    id: `test-sim-${Date.now()}`,
-    campaign_id: campaignId,
-    firm_id: typeof currentUser !== 'undefined' ? currentUser?.firm_id : null,
-    first_name: 'Test',
-    last_name: tr ? 'Numara' : 'Anruf',
-    phone: '+4917000000001',
-    phone2: '',
-    status: 'pending',
-    attempt_count: 0,
-    queue_id: null,
-    queues: null,
-    _synthetic_test_outbound: true,
-  };
-}
-
 async function getNextContact(campaignIds = null) {
   // Aktif kampanya listesini kullan (yoksa selectedCampId ile fallback)
   const ids = Array.isArray(campaignIds)
@@ -294,10 +275,8 @@ async function getNextContact(campaignIds = null) {
             if (anyFirm) return anyFirm;
           }
         }
-        const sid = typeof selectedCampId !== 'undefined' ? selectedCampId : null;
-        const pick =
-          sid && ids.some((x) => String(x) === String(sid)) ? sid : ids[0];
-        return _makeSyntheticTestOutboundContact(pick);
+        // Test modunda sentetik kişi üretme: veri yoksa boş kuyruk dön.
+        return null;
       }
       return null;
     }
