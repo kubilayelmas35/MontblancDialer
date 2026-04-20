@@ -27,6 +27,9 @@ function _mbScopedUserForRequest(path, method = 'GET') {
   const m = String(method || 'GET').toUpperCase();
   const adminScopedRoots = new Set(['campaigns', 'queues', 'agent_campaigns']);
   if (adminScopedRoots.has(root)) return base;
+  // Temsil modunda agent RLS nedeniyle kontak listesi boş gelebilir;
+  // dialer/test akışları için kontak okumayı base admin scope ile yap.
+  if (root === 'contacts' && m === 'GET') return base;
   // Temsil modunda queue upload vb. yazma işlemlerinde admin bağlamını kullan.
   if (m !== 'GET' && (root === 'contacts' || root === 'queues' || root === 'campaigns')) return base;
   return cur;
