@@ -1012,6 +1012,17 @@ async function openDialerForContact(contactId) {
     navigate('dialer');
     setTimeout(() => {
       if (typeof showCustomerCard === 'function') showCustomerCard(c);
+      if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+      if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
+      if (typeof switchContactTab === 'function') switchContactTab('info');
+      setTimeout(() => {
+        if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+        if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
+      }, 220);
+      setTimeout(() => {
+        if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+        if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
+      }, 650);
     }, 120);
   } catch (e) {
     toast('Dialer açılırken hata: ' + e.message, 'err');
