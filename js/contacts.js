@@ -225,25 +225,29 @@ async function getNextContact(campaignIds = null) {
     } catch (e) {}
     const fetchScopedContacts = async (extraFilters = '', limit = 80) => {
       let out = [];
-      if (idList.length) {
+      // in()/or() kombinasyonlarında PostgREST parse sorunlarını önlemek için
+      // kampanya ve queue bazında tek tek eq sorguları atılır.
+      for (let i = 0; i < idList.length; i++) {
+        const cid = idList[i];
         const byCamp =
           (await sb(
-            `contacts?campaign_id=in.(${idList.join(',')})` +
+            `contacts?campaign_id=eq.${cid}` +
             `${extraFilters}` +
             `&order=last_called_at.asc.nullsfirst` +
             `&limit=${limit}&select=*`
           ).catch(() => [])) || [];
-        out = out.concat(byCamp);
+        if (byCamp.length) out = out.concat(byCamp);
       }
-      if (queueIds.length) {
+      for (let i = 0; i < queueIds.length; i++) {
+        const qid = queueIds[i];
         const byQueue =
           (await sb(
-            `contacts?queue_id=in.(${queueIds.join(',')})` +
+            `contacts?queue_id=eq.${qid}` +
             `${extraFilters}` +
             `&order=last_called_at.asc.nullsfirst` +
             `&limit=${limit}&select=*`
           ).catch(() => [])) || [];
-        out = out.concat(byQueue);
+        if (byQueue.length) out = out.concat(byQueue);
       }
       const seen = new Set();
       return out.filter((r) => {
