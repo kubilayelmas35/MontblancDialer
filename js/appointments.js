@@ -21,6 +21,51 @@ function takvimAddHours(timeStr, hours) {
   return String(Math.floor(total/60)).padStart(2,'0') + ':' + String(total%60).padStart(2,'0');
 }
 
+const TAKVIM_DAY_KEYS = ['pzt', 'sal', 'car', 'per', 'cum', 'cmt', 'paz'];
+
+function takvimDayKeyFromDate(dt) {
+  return TAKVIM_DAY_KEYS[(dt.getDay() + 6) % 7];
+}
+
+function _parseTakvimHour(timeStr, fallback) {
+  const t = String(timeStr || '').trim();
+  if (!t) return fallback;
+  const h = parseInt(t.split(':')[0], 10);
+  return Number.isFinite(h) ? Math.min(23, Math.max(0, h)) : fallback;
+}
+
+function mergeTakvimSettings(raw) {
+  const tk = raw && typeof raw === 'object' ? raw : {};
+  let active = Array.isArray(tk.active_days) ? tk.active_days.map((d) => String(d).toLowerCase()) : [];
+  active = active.filter((d) => TAKVIM_DAY_KEYS.includes(d));
+  if (!active.length) active = ['pzt', 'sal', 'car', 'per', 'cum'];
+  let startH = _parseTakvimHour(tk.start_hour, 8);
+  let endH = _parseTakvimHour(tk.end_hour, 20);
+  if (endH < startH) endH = startH;
+  const slot_dur = Math.min(4, Math.max(1, parseInt(tk.slot_dur, 10) || 2));
+  const max_slots = Math.min(40, Math.max(1, parseInt(tk.max_slots, 10) || 5));
+  return {
+    active_days: active,
+    start_hour: `${String(startH).padStart(2, '0')}:00`,
+    end_hour: `${String(endH).padStart(2, '0')}:00`,
+    startH,
+    endH,
+    slot_dur,
+    max_slots
+  };
+}
+
+function getCampaignTakvimSettings() {
+  const c = typeof campaigns !== 'undefined' && Array.isArray(campaigns) ? campaigns.find((x) => x.id === takvimCampId) : null;
+  return mergeTakvimSettings(c?.settings?.takvim);
+}
+
+function takvimSlotDurHours() {
+  const d = getCampaignTakvimSettings().slot_dur;
+  if (Number.isFinite(d) && d > 0) return d;
+  return typeof SLOT_HOURS !== 'undefined' ? SLOT_HOURS : 2;
+}
+
 async function _loadPayrollRulesFromFirmSettings(fid) {
   try {
     const rows = await sb(`firms?id=eq.${fid}&select=settings`);
@@ -111,7 +156,15 @@ async function loadTakvimPage() {
   if (campWrap) campWrap.style.display = isAdmin ? '' : 'none';
   if (isAdmin) {
     const fid = getActiveFirmId();
-    const camps = await sb(fid ? `campaigns?firm_id=eq.${fid}&status=eq.active&order=name.asc` : `campaigns?status=eq.active&order=name.asc`).catch(()=>[]);
+    const camps = await sb(fid ? `campaigns?firm_id=eq.${fid}&status=eq.active&select=*&order=name.asc` : `campaigns?status=eq.active&select=*&order=name.asc`).catch(()=>[]);
+    if (typeof campaigns !== 'undefined' && Array.isArray(campaigns) && camps?.length) {
+      camps.forEach((row) => {
+        if (!row?.id) return;
+        const i = campaigns.findIndex((c) => c.id === row.id);
+        if (i >= 0) campaigns[i] = { ...campaigns[i], ...row };
+        else campaigns.push(row);
+      });
+    }
     const sel = document.getElementById('takvim-camp-select');
     if (sel) {
       sel.innerHTML = '<option value="">Kampanya seç...</option>' + (camps||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
@@ -189,8 +242,14 @@ async function loadTakvimSlots() {
     startD = endD = takvimFmtD(takvimDate);
   } else if (takvimView==='week') {
     const mon = takvimGetMonday(takvimDate);
-    const fri = new Date(mon); fri.setDate(fri.getDate()+4);
-    startD = takvimFmtD(mon); endD = takvimFmtD(fri);
+    const tset = getCampaignTakvimSettings();
+    const needSat = tset.active_days.includes('cmt');
+    const needSun = tset.active_days.includes('paz');
+    const extra = needSun ? 6 : needSat ? 5 : 4;
+    const last = new Date(mon);
+    last.setDate(last.getDate() + extra);
+    startD = takvimFmtD(mon);
+    endD = takvimFmtD(last);
   } else {
     const y = takvimDate.getFullYear(), m = takvimDate.getMonth();
     startD = `${y}-${String(m+1).padStart(2,'0')}-01`;
@@ -213,18 +272,26 @@ function renderTakvimGrid() {
   if (!grid) return;
   if (takvimView==='month') { renderTakvimMonthGrid(grid); return; }
   const isDay = takvimView==='day';
+  const tset = getCampaignTakvimSettings();
+  const activeSet = new Set(tset.active_days);
   const startDt = isDay ? new Date(takvimDate) : takvimGetMonday(takvimDate);
-  const daysCount = isDay ? 1 : 5;
+  if (isDay) startDt.setHours(0, 0, 0, 0);
+  const needSat = activeSet.has('cmt');
+  const needSun = activeSet.has('paz');
+  const daysCount = isDay ? 1 : needSun ? 7 : needSat ? 6 : 5;
   const locale = currentLang==='de' ? 'de-DE' : 'tr-TR';
-  const dNames = currentLang==='de' ? ['','Mo','Di','Mi','Do','Fr'] : ['','Pzt','Sal','Çar','Per','Cum'];
-  const endDt = new Date(startDt); endDt.setDate(endDt.getDate()+(daysCount-1));
+  const endDt = new Date(startDt);
+  endDt.setDate(endDt.getDate() + (daysCount - 1));
   const lbl = document.getElementById(window._takvimWeekLabelId||'takvim-week-label');
   if (lbl) {
     if (isDay) lbl.textContent = startDt.toLocaleDateString(locale,{weekday:'long',day:'2-digit',month:'short'});
     else lbl.textContent = `${startDt.toLocaleDateString(locale,{day:'2-digit',month:'short'})} – ${endDt.toLocaleDateString(locale,{day:'2-digit',month:'short',year:'numeric'})}`;
   }
   const scroll = document.getElementById(window._takvimScrollId||'takvim-scroll');
-  const rowH = scroll ? Math.max(44, Math.floor((scroll.clientHeight-36)/12)) : 52;
+  const shH = tset.startH;
+  const endH = tset.endH;
+  const numHrs = Math.max(1, endH - shH + 1);
+  const rowH = scroll ? Math.max(44, Math.floor((scroll.clientHeight - 36) / numHrs)) : 52;
   const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
   let h = `<div style="display:grid;grid-template-columns:52px repeat(${daysCount},1fr);">`;
   h += '<div style="background:var(--bg-3);border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 4px;"></div>';
@@ -234,18 +301,23 @@ function renderTakvimGrid() {
     const isToday = dt.toDateString()===new Date().toDateString();
     const isClosed = takvimClosedDays[ds];
     const click = isAdmin ? `onclick="takvimHeaderClick('${ds}')"` : '';
-    h += `<div style="background:${isClosed?'rgba(220,38,38,.08)':isToday?'rgba(37,99,235,.06)':'var(--bg-3)'};border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:6px 4px;text-align:center;font-size:10px;font-weight:800;color:${isClosed?'var(--red)':isToday?'var(--accent)':'var(--text-2)'};cursor:${isAdmin?'pointer':'default'}" ${click}>${dNames[dt.getDay()||7]}<br><span style="font-size:13px;font-weight:900;">${dt.getDate()}</span></div>`;
+    const wdShort = dt.toLocaleDateString(locale, { weekday: 'short' });
+    h += `<div style="background:${isClosed?'rgba(220,38,38,.08)':isToday?'rgba(37,99,235,.06)':'var(--bg-3)'};border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:6px 4px;text-align:center;font-size:10px;font-weight:800;color:${isClosed?'var(--red)':isToday?'var(--accent)':'var(--text-2)'};cursor:${isAdmin?'pointer':'default'}" ${click}>${wdShort}<br><span style="font-size:13px;font-weight:900;">${dt.getDate()}</span></div>`;
   }
-  for (let hr=9; hr<=20; hr++) {
+  for (let hr = shH; hr <= endH; hr++) {
     const hh = String(hr).padStart(2,'0');
     h += `<div style="height:${rowH}px;background:var(--bg-2);border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:9px;font-weight:700;color:var(--text-3);text-align:center;padding-top:4px;font-family:var(--mono);">${hh}:00</div>`;
     for (let d=0; d<daysCount; d++) {
       const dt = new Date(startDt); dt.setDate(dt.getDate()+d);
       const ds = takvimFmtD(dt);
       const isClosed = takvimClosedDays[ds];
-      const click = isAdmin&&!isClosed ? `onclick="takvimCellClick('${ds}','${hh}',event)"` : '';
-      const bg = isClosed ? 'repeating-linear-gradient(-45deg,rgba(220,38,38,.06),rgba(220,38,38,.06) 4px,rgba(220,38,38,.1) 4px,rgba(220,38,38,.1) 8px)' : '';
-      h += `<div id="tc_${ds}_${hh}" style="height:${rowH}px;position:relative;border-bottom:1px solid var(--border);border-right:1px solid var(--border);background:${bg};${isAdmin&&!isClosed?'cursor:pointer;':''}" ${click}></div>`;
+      const dayKey = takvimDayKeyFromDate(dt);
+      const colActive = activeSet.has(dayKey);
+      const canClick = isAdmin && !isClosed && colActive;
+      const click = canClick ? `onclick="takvimCellClick('${ds}','${hh}',event)"` : '';
+      let bg = isClosed ? 'repeating-linear-gradient(-45deg,rgba(220,38,38,.06),rgba(220,38,38,.06) 4px,rgba(220,38,38,.1) 4px,rgba(220,38,38,.1) 8px)' : '';
+      if (!colActive && !isClosed) bg = 'repeating-linear-gradient(-45deg,rgba(100,116,139,.06),rgba(100,116,139,.06) 4px,rgba(100,116,139,.1) 4px,rgba(100,116,139,.1) 8px)';
+      h += `<div id="tc_${ds}_${hh}" style="height:${rowH}px;position:relative;border-bottom:1px solid var(--border);border-right:1px solid var(--border);background:${bg};${canClick?'cursor:pointer;':''}" ${click}></div>`;
     }
   }
   h += '</div>'; grid.innerHTML = h;
@@ -254,21 +326,29 @@ function renderTakvimGrid() {
 
 function renderTakvimMonthGrid(grid) {
   const y=takvimDate.getFullYear(), m=takvimDate.getMonth(), locale=currentLang==='de'?'de-DE':'tr-TR';
-  const dNames = currentLang==='de' ? ['Mo','Di','Mi','Do','Fr'] : ['Pzt','Sal','Çar','Per','Cum'];
-  let h = `<div style="display:grid;grid-template-columns:repeat(5,1fr);">`;
+  const tset = getCampaignTakvimSettings();
+  const showWeekend = tset.active_days.includes('cmt') || tset.active_days.includes('paz');
+  const dNames = showWeekend
+    ? (currentLang==='de' ? ['Mo','Di','Mi','Do','Fr','Sa','So'] : ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'])
+    : (currentLang==='de' ? ['Mo','Di','Mi','Do','Fr'] : ['Pzt','Sal','Çar','Per','Cum']);
+  const cols = showWeekend ? 7 : 5;
+  let h = `<div style="display:grid;grid-template-columns:repeat(${cols},1fr);">`;
   dNames.forEach(d => h += `<div style="background:var(--bg-3);padding:6px;text-align:center;font-size:10px;font-weight:800;color:var(--text-2);border-bottom:1px solid var(--border);">${d}</div>`);
-  let cur = takvimGetMonday(new Date(y,m,1));
-  const last = new Date(y,m+1,0);
-  let end = new Date(last); const ed = end.getDay()||7; end.setDate(end.getDate()+(7-ed));
-  while (cur<=end) {
+  const first = new Date(y, m, 1);
+  let cur = takvimGetMonday(first);
+  const last = new Date(y, m + 1, 0);
+  let end = new Date(last);
+  const edLast = end.getDay() || 7;
+  end.setDate(end.getDate() + (7 - edLast));
+  while (cur <= end) {
     const wd = cur.getDay();
-    if (wd!==0&&wd!==6) {
+    if (showWeekend || (wd !== 0 && wd !== 6)) {
       const ds = takvimFmtD(cur);
-      const other = cur.getMonth()!==m;
-      const today = cur.toDateString()===new Date().toDateString();
+      const other = cur.getMonth() !== m;
+      const today = cur.toDateString() === new Date().toDateString();
       h += `<div id="mc_${ds}" style="min-height:80px;background:${other?'var(--bg)':'var(--bg-2)'};border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:4px;overflow:hidden;"><div style="font-size:11px;font-weight:800;color:${today?'var(--accent)':'var(--text-3)'};text-align:right;">${cur.getDate()}</div><div id="ms_${ds}" style="display:flex;flex-direction:column;gap:2px;overflow:hidden;"></div></div>`;
     }
-    cur.setDate(cur.getDate()+1);
+    cur.setDate(cur.getDate() + 1);
   }
   h += '</div>'; grid.innerHTML = h;
   renderTakvimSlots();
@@ -346,7 +426,7 @@ function getSlotColor(slot, appt) { return slot.durum==='kilitli' ? '#1e40af' : 
 function takvimCellClick(ds, hh, e) {
   if (!takvimCampId) { toast('Önce kampanya seçin','err'); return; }
   const start = `${hh}:00`;
-  openTakvimNewSlotModal(ds, start, takvimAddHours(start, SLOT_HOURS));
+  openTakvimNewSlotModal(ds, start, takvimAddHours(start, takvimSlotDurHours()));
 }
 
 async function takvimHeaderClick(ds) {
@@ -638,14 +718,27 @@ async function submitTakvimBook(slotId) {
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
-function openTakvimSettings() {
+async function openTakvimSettings() {
   if (!takvimCampId) { toast('Önce kampanya seçin','err'); return; }
+  let tk = {};
+  try {
+    const rows = await sb(`campaigns?id=eq.${takvimCampId}&select=settings`);
+    tk = rows?.[0]?.settings?.takvim || {};
+    const idx = (typeof campaigns !== 'undefined' && campaigns) ? campaigns.findIndex((c) => c.id === takvimCampId) : -1;
+    if (idx >= 0) {
+      campaigns[idx].settings = { ...(campaigns[idx].settings || {}), takvim: tk };
+    }
+  } catch (_) {}
+  const cfg = mergeTakvimSettings(tk);
   const old = document.getElementById('m-takvim-settings');
   if (old) old.remove();
   const m = document.createElement('div');
   m.id = 'm-takvim-settings';
   m.className = 'modal-overlay open';
   const dayNames = {pzt:'Pazartesi',sal:'Salı',car:'Çarşamba',per:'Perşembe',cum:'Cuma',cmt:'Cumartesi',paz:'Pazar'};
+  const slotOpts = [1, 2, 3, 4].map((n) =>
+    `<option value="${n}"${cfg.slot_dur === n ? ' selected' : ''}>${n} saat</option>`
+  ).join('');
   m.innerHTML = `<div class="modal" style="max-width:460px;">
 <div class="modal-hdr">
 <div class="modal-title">Takvim Ayarları</div>
@@ -655,32 +748,33 @@ function openTakvimSettings() {
 <div>
 <div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">Çalışma Günleri</div>
 <div style="display:flex;gap:4px;flex-wrap:wrap;" id="ts-days">
-${Object.entries(dayNames).map(([k,v])=>`<button class="btn btn-ghost btn-sm ts-day-btn ${['pzt','sal','car','per','cum'].includes(k)?'active':''}" data-d="${k}"
-style="${['pzt','sal','car','per','cum'].includes(k)?'background:var(--accent);color:#fff;border-color:var(--accent)':''}"
-onclick="this.classList.toggle('active');this.style.background=this.classList.contains('active')?'var(--accent)':'';this.style.color=this.classList.contains('active')?'#fff':'';this.style.borderColor=this.classList.contains('active')?'var(--accent)':'';">${v.slice(0,3)}</button>`).join('')}
+${Object.entries(dayNames).map(([k, v]) => {
+  const on = cfg.active_days.includes(k);
+  const st = on ? 'background:var(--accent);color:#fff;border-color:var(--accent)' : '';
+  return '<button type="button" class="btn btn-ghost btn-sm ts-day-btn' + (on ? ' active' : '') + '" data-d="' + k + '"'
+    + ' style="' + st + '"'
+    + ' onclick="this.classList.toggle(\'active\');this.style.background=this.classList.contains(\'active\')?\'var(--accent)\':\'\';this.style.color=this.classList.contains(\'active\')?\'#fff\':\'\';this.style.borderColor=this.classList.contains(\'active\')?\'var(--accent)\':\'\';">'
+    + v.slice(0, 3) + '</button>';
+}).join('')}
 </div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
 <div class="form-row">
 <label class="form-label">Başlangıç Saati</label>
-<input type="time" class="form-input" id="ts-start" value="08:00">
+<input type="time" class="form-input" id="ts-start" value="${cfg.start_hour}">
 </div>
 <div class="form-row">
 <label class="form-label">Bitiş Saati</label>
-<input type="time" class="form-input" id="ts-end" value="20:00">
+<input type="time" class="form-input" id="ts-end" value="${cfg.end_hour}">
 </div>
 </div>
 <div class="form-row">
 <label class="form-label">Slot Süresi (saat)</label>
-<select class="form-input" id="ts-slot-dur">
-<option value="1">1 saat</option>
-<option value="2" selected>2 saat</option>
-<option value="3">3 saat</option>
-</select>
+<select class="form-input" id="ts-slot-dur">${slotOpts}</select>
 </div>
 <div class="form-row">
 <label class="form-label">Gün başına maks. slot</label>
-<input type="number" class="form-input" id="ts-max-slots" value="5" min="1" max="20" style="width:80px;">
+<input type="number" class="form-input" id="ts-max-slots" value="${cfg.max_slots}" min="1" max="40" style="width:80px;">
 </div>
 </div>
 <div class="modal-footer">
@@ -707,8 +801,13 @@ async function saveTakvimSettings() {
       method: 'PATCH', prefer: 'return=minimal',
       body: JSON.stringify({ settings: { ...existingSettings, takvim: takvimSettings } })
     });
+    const idx = (typeof campaigns !== 'undefined' && campaigns) ? campaigns.findIndex((c) => c.id === takvimCampId) : -1;
+    if (idx >= 0) {
+      campaigns[idx].settings = { ...(campaigns[idx].settings || {}), takvim: takvimSettings };
+    }
     document.getElementById('m-takvim-settings')?.remove();
     toast('Takvim ayarları kaydedildi ✓', 'ok');
+    if (takvimCampId) await loadTakvimSlots();
   } catch(e) { toast('Hata: '+e.message, 'err'); }
 }
 
@@ -729,7 +828,7 @@ async function saveBulkSlots() {
   days.forEach(d=>{
     const dt = new Date(monday); dt.setDate(dt.getDate()+(d-1));
     const ds = takvimFmtD(dt);
-    hours.forEach(h=>slots.push({campaign_id:takvimCampId,firm_id:currentUser.firm_id,tarih:ds,baslangic_saat:h,bitis_saat:takvimAddHours(h,SLOT_HOURS),durum:'bos',gun_kapali:false}));
+    hours.forEach(h=>slots.push({campaign_id:takvimCampId,firm_id:currentUser.firm_id,tarih:ds,baslangic_saat:h,bitis_saat:takvimAddHours(h,takvimSlotDurHours()),durum:'bos',gun_kapali:false}));
   });
   try {
     await sb('takvim_slots',{method:'POST',prefer:'return=minimal',body:JSON.stringify(slots)});
