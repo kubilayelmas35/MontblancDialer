@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=7.94">
+<link rel="stylesheet" href="css/styles.css?v=7.95">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -36,7 +36,7 @@
 <div class="login-feat"><i class="ph ph-calendar-check"></i><span>Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><i class="ph ph-shield-check"></i><span>Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v7.94 — 2026</div>
+<div class="login-version">v7.95 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -377,7 +377,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v7.94</div>
+<div class="sb-ver">MontBlanc v7.95</div>
 </div>
 </nav>
 <main id="main">
@@ -1898,41 +1898,42 @@ Firma Ekle
 <div id="firms-list" style="display:flex;flex-direction:column;gap:12px;"></div>
 </div>
 <div class="page page-takvim" id="page-takvim">
-<div class="page-hdr">
-<div>
-<div class="page-title">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px;"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-Takvim
+<div class="page-hdr takvim-page-hdr">
+<div class="takvim-toolbar" role="toolbar">
+<div class="takvim-toolbar-brand">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+<span>Takvim</span>
 </div>
-<div class="page-sub" id="takvim-camp-label">Kampanya seçin</div>
+<div class="takvim-toolbar-actions">
+<div class="takvim-seg">
+<button type="button" id="tv-day-btn" onclick="setTakvimView('day')">Gün</button>
+<button type="button" id="tv-week-btn" onclick="setTakvimView('week')">Hafta</button>
+<button type="button" id="tv-month-btn" onclick="setTakvimView('month')">Ay</button>
 </div>
-<div style="display:flex;gap:8px;align-items:center;">
-<div style="display:flex;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-xs);overflow:hidden;">
-<button id="tv-day-btn" onclick="setTakvimView('day')" style="padding:5px 11px;font-size:11px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;">Gün</button>
-<button id="tv-week-btn" onclick="setTakvimView('week')" style="padding:5px 11px;font-size:11px;font-weight:700;border:none;background:var(--accent);color:#fff;cursor:pointer;">Hafta</button>
-<button id="tv-month-btn" onclick="setTakvimView('month')" style="padding:5px 11px;font-size:11px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;">Ay</button>
+<div class="takvim-nav">
+<button type="button" class="btn btn-ghost btn-sm" onclick="takvimPrev()">◀</button>
+<span id="takvim-week-label">—</span>
+<button type="button" class="btn btn-ghost btn-sm" onclick="takvimNext()">▶</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="takvimGoToday()">Bugün</button>
 </div>
-<div style="display:flex;align-items:center;gap:4px;">
-<button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="takvimPrev()">◀</button>
-<span id="takvim-week-label" style="font-size:12px;font-weight:700;min-width:120px;text-align:center;">—</span>
-<button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="takvimNext()">▶</button>
-<button class="btn btn-ghost btn-sm" onclick="takvimGoToday()">Bugün</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="openTakvimPlzMeasureModal()" title="PLZ ile tüm terminlere uzaklık">Mesafe ölç</button>
-</div>
+<div id="takvim-page-firm-selector" class="takvim-page-firm-selector"></div>
 <div id="takvim-camp-select-wrap" style="display:none;">
-<select class="form-input" id="takvim-camp-select" onchange="onTakvimCampChange(this.value)" style="font-size:12px;padding:5px 10px;">
+<select class="form-input" id="takvim-camp-select" onchange="onTakvimCampChange(this.value)">
 <option value="">Kampanya seç...</option>
 </select>
 </div>
-<div id="takvim-admin-tools" style="display:none;display:flex;gap:6px;">
-<button class="btn btn-ghost btn-sm" onclick="openBulkSlotModal()">
+<div id="takvim-admin-tools" class="takvim-admin-tools" style="display:none;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="openBulkSlotModal()" title="Toplu slot">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 Toplu Slot
 </button>
-<button class="btn btn-ghost btn-sm" onclick="openTakvimSettings()">
+<button type="button" class="btn btn-ghost btn-sm" onclick="openTakvimSettings()" title="Takvim ayarları">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
 Ayarlar
 </button>
+</div>
+<span id="takvim-camp-label" class="takvim-toolbar-agent-camp">Kampanya seçin</span>
 </div>
 </div>
 </div>
@@ -3277,34 +3278,37 @@ Sütun Eşleştirme
 </div>
 <div id="takvim-popup-overlay" onclick="if(event.target===this)closeTakvimOverlay()">
 <div class="takvim-fs-panel" style="position:absolute;top:16px;left:16px;right:16px;bottom:16px;background:var(--bg-2);border-radius:var(--radius);display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.6);border:1px solid var(--border);overflow:hidden;min-height:0;">
-<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg-3);">
-<div style="font-size:15px;font-weight:800;"><i class="ph ph-calendar-blank"></i> Takvim</div>
-<div style="display:flex;gap:8px;align-items:center;">
-<div id="takvim-overlay-camp-label" style="font-size:12px;color:var(--text-3);font-weight:600;"></div>
-<button onclick="closeTakvimOverlay();navigate('takvim');" style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;color:var(--text);">Tam Ekran ↗</button>
-<button onclick="closeTakvimOverlay()" style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-sm);width:32px;height:32px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:var(--text);">✕</button>
+<div class="takvim-overlay-toolbar-hdr">
+<div class="takvim-toolbar takvim-toolbar--overlay" role="toolbar">
+<div class="takvim-toolbar-brand"><i class="ph ph-calendar-blank"></i><span>Takvim</span></div>
+<div class="takvim-toolbar-actions">
+<div class="takvim-seg">
+<button type="button" id="tvo-day" onclick="setTakvimView('day')">Gün</button>
+<button type="button" id="tvo-week" onclick="setTakvimView('week')">Hafta</button>
+<button type="button" id="tvo-month" onclick="setTakvimView('month')">Ay</button>
 </div>
+<div class="takvim-nav">
+<button type="button" class="btn btn-ghost btn-sm" onclick="takvimPrev()">◀</button>
+<span id="takvim-week-label-ov">—</span>
+<button type="button" class="btn btn-ghost btn-sm" onclick="takvimNext()">▶</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="takvimGoToday()">Bugün</button>
 </div>
-<div id="takvim-overlay-controls" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg-3);">
-<div style="display:flex;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-xs);overflow:hidden;">
-<button id="tvo-day" onclick="setTakvimView('day')" style="padding:5px 11px;font-size:11px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--text-2);">Gün</button>
-<button id="tvo-week" onclick="setTakvimView('week')" style="padding:5px 11px;font-size:11px;font-weight:700;border:none;background:var(--accent);color:#fff;cursor:pointer;">Hafta</button>
-<button id="tvo-month" onclick="setTakvimView('month')" style="padding:5px 11px;font-size:11px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--text-2);">Ay</button>
-</div>
-<div style="display:flex;align-items:center;gap:4px;">
-<button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="takvimPrev()">◀</button>
-<span id="takvim-week-label-ov" style="font-size:12px;font-weight:700;min-width:130px;text-align:center;">—</span>
-<button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="takvimNext()">▶</button>
-<button class="btn btn-ghost btn-sm" onclick="takvimGoToday()">Bugün</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="openTakvimPlzMeasureModal()">Mesafe ölç</button>
-</div>
-<div id="takvim-overlay-admin" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;">
+<div id="takvim-overlay-admin" class="takvim-overlay-admin" style="display:none;">
 <div id="takvim-overlay-firm-selector"></div>
-<select class="form-input" id="takvim-camp-select-ov" onchange="onTakvimCampChange(this.value)" style="font-size:12px;padding:5px 10px;max-width:200px;">
+<select class="form-input" id="takvim-camp-select-ov" onchange="onTakvimCampChange(this.value)">
 <option value="">Kampanya seç...</option>
 </select>
-<div style="display:flex;gap:6px;">
-<button class="btn btn-ghost btn-sm" onclick="openBulkSlotModal()">+ Toplu Slot</button>
+<div class="takvim-admin-tools">
+<button type="button" class="btn btn-ghost btn-sm" onclick="openBulkSlotModal()" title="Toplu slot">Toplu Slot</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="openTakvimSettings()" title="Takvim ayarları">Ayarlar</button>
+</div>
+</div>
+<div id="takvim-overlay-camp-label" class="takvim-overlay-agent-camp"></div>
+<div class="takvim-overlay-toolbar-actions2">
+<button type="button" class="btn btn-ghost btn-sm" onclick="closeTakvimOverlay();navigate('takvim');">Tam Ekran ↗</button>
+<button type="button" class="btn btn-ghost btn-sm takvim-ov-close" onclick="closeTakvimOverlay()" title="Kapat">✕</button>
+</div>
 </div>
 </div>
 </div>
@@ -3608,40 +3612,40 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/config.js?v=7.94"></script>
-<script src="js/state.js?v=7.94"></script>
-<script src="js/api.js?v=7.94"></script>
-<script src="js/auth.js?v=7.94"></script>
-<script src="js/ui.js?v=7.94"></script>
-<script src="js/chat.js?v=7.94"></script>
-<script src="js/chat-settings.js?v=7.94"></script>
-<script src="js/field-settings.js?v=7.94"></script>
-<script src="js/audit.js?v=7.94"></script>
-<script src="js/feature-flags.js?v=7.94"></script>
-<script src="js/notification-center.js?v=7.94"></script>
+<script src="js/config.js?v=7.95"></script>
+<script src="js/state.js?v=7.95"></script>
+<script src="js/api.js?v=7.95"></script>
+<script src="js/auth.js?v=7.95"></script>
+<script src="js/ui.js?v=7.95"></script>
+<script src="js/chat.js?v=7.95"></script>
+<script src="js/chat-settings.js?v=7.95"></script>
+<script src="js/field-settings.js?v=7.95"></script>
+<script src="js/audit.js?v=7.95"></script>
+<script src="js/feature-flags.js?v=7.95"></script>
+<script src="js/notification-center.js?v=7.95"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=7.94"></script>
-<script src="js/job-market.js?v=7.94"></script>
-<script src="js/qc-job-market.js?v=7.94"></script>
-<script src="js/export-admin.js?v=7.94"></script>
-<script src="js/export-termin.js?v=7.94"></script>
-<script src="js/performance.js?v=7.94"></script>
-<script src="js/competition.js?v=7.94"></script>
-<script src="js/dashboard.js?v=7.94"></script>
-<script src="js/campaigns.js?v=7.94"></script>
-<script src="js/contacts.js?v=7.94"></script>
-<script src="js/telnyx.js?v=7.94"></script>
-<script src="js/voice-orb.js?v=7.94"></script>
-<script src="js/dialer.js?v=7.94"></script>
-<script src="js/appointments.js?v=7.94"></script>
-<script src="js/field.js?v=7.94"></script>
-<script src="js/field-ops.js?v=7.94"></script>
-<script src="js/wiedervorlage.js?v=7.94"></script>
-<script src="js/qc.js?v=7.94"></script>
-<script src="js/leave-hr.js?v=7.94"></script>
-<script src="js/muhasebe.js?v=7.94"></script>
-<script src="js/agent-self-performance.js?v=7.94"></script>
-<script src="js/agents.js?v=7.94"></script>
+<script src="js/wallet.js?v=7.95"></script>
+<script src="js/job-market.js?v=7.95"></script>
+<script src="js/qc-job-market.js?v=7.95"></script>
+<script src="js/export-admin.js?v=7.95"></script>
+<script src="js/export-termin.js?v=7.95"></script>
+<script src="js/performance.js?v=7.95"></script>
+<script src="js/competition.js?v=7.95"></script>
+<script src="js/dashboard.js?v=7.95"></script>
+<script src="js/campaigns.js?v=7.95"></script>
+<script src="js/contacts.js?v=7.95"></script>
+<script src="js/telnyx.js?v=7.95"></script>
+<script src="js/voice-orb.js?v=7.95"></script>
+<script src="js/dialer.js?v=7.95"></script>
+<script src="js/appointments.js?v=7.95"></script>
+<script src="js/field.js?v=7.95"></script>
+<script src="js/field-ops.js?v=7.95"></script>
+<script src="js/wiedervorlage.js?v=7.95"></script>
+<script src="js/qc.js?v=7.95"></script>
+<script src="js/leave-hr.js?v=7.95"></script>
+<script src="js/muhasebe.js?v=7.95"></script>
+<script src="js/agent-self-performance.js?v=7.95"></script>
+<script src="js/agents.js?v=7.95"></script>
 </body>
 </html>
 

@@ -4506,6 +4506,120 @@ overflow: hidden;
 .page.page-takvim #takvim-main {
 min-height: 0;
 }
+
+/* Takvim: tek satırlık kompakt araç çubuğu (sayfa + popup ile uyumlu) */
+.page.page-takvim .takvim-page-hdr.page-hdr {
+  align-items: stretch;
+  margin-bottom: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.takvim-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  width: 100%;
+  min-width: 0;
+}
+.takvim-toolbar--overlay {
+  align-items: center;
+}
+.takvim-toolbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.3px;
+  flex-shrink: 0;
+  color: var(--text);
+}
+.takvim-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: flex-end;
+}
+.takvim-toolbar--overlay .takvim-toolbar-actions {
+  justify-content: flex-start;
+}
+.takvim-overlay-toolbar-hdr {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-3);
+  padding: 8px 12px;
+}
+.takvim-overlay-toolbar-actions2 {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.takvim-seg {
+  display: flex;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+}
+.takvim-seg button {
+  padding: 5px 11px;
+  font-size: 11px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.takvim-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.takvim-nav span#takvim-week-label,
+.takvim-nav span#takvim-week-label-ov {
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 100px;
+  text-align: center;
+}
+#takvim-camp-select,
+#takvim-camp-select-ov {
+  font-size: 12px;
+  padding: 5px 10px;
+  max-width: 220px;
+}
+.takvim-toolbar-agent-camp {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 700;
+  display: none;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.takvim-page-firm-selector {
+  display: none;
+}
+.takvim-admin-tools {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.takvim-overlay-admin {
+  display: none;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
 #takvim-scroll,
 #takvim-scroll-ov {
 display: flex;
@@ -5628,13 +5742,13 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   pointer-events: auto;
 }
 .btn-tak-shift {
-  padding: 1px 4px;
+  padding: 1px 3px;
   border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.35);
   background: rgba(0, 0, 0, 0.22);
   color: #fff;
   cursor: pointer;
-  font-size: 7px;
+  font-size: 6px;
   font-weight: 800;
   line-height: 1.15;
   font-family: var(--mono, monospace);
@@ -5694,12 +5808,30 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .takvim-slot-card {
   min-width: 0;
 }
-.takvim-slot-el.takvim-slot-many > div:first-of-type {
-  white-space: normal;
+.tak-slot-card-name,
+.tak-slot-card-addr {
+  min-width: 0;
   overflow: hidden;
+  word-break: break-word;
+}
+.tak-slot-card-name {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-height: 1.2;
+}
+.tak-slot-card-name--dense {
+  -webkit-line-clamp: 2;
+  font-size: 10px;
+}
+.tak-slot-card-addr {
+  white-space: normal;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  font-size: 10px;
   line-height: 1.15;
+}
+.tak-slot-card-addr--dense {
+  -webkit-line-clamp: 2;
 }
