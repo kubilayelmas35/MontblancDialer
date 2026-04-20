@@ -5691,6 +5691,9 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .takvim-slot-el.takvim-slot-many {
   font-size: 9px;
 }
+.takvim-slot-card {
+  min-width: 0;
+}
 .takvim-slot-el.takvim-slot-many > div:first-of-type {
   white-space: normal;
   overflow: hidden;

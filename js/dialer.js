@@ -5261,7 +5261,7 @@ async function openTakvimOverlay() {
   if (!ov) { navigate('takvim'); return; }
   ov.classList.add('open');
 
-  // Overlay içindeki grid ID'lerini ayarla
+  // Overlay içindeki grid ID'lerini ayarla (ana sayfa takvimi ile aynı renderTakvimGrid / slot mantığı)
   window._takvimGridId      = 'takvim-grid-ov';
   window._takvimScrollId    = 'takvim-scroll-ov';
   window._takvimWeekLabelId = 'takvim-week-label-ov';
@@ -5273,18 +5273,31 @@ async function openTakvimOverlay() {
   const isAdmin  = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
   if (ovAdmin) ovAdmin.style.display = isAdmin ? 'flex' : 'none';
 
+  const preferredCamp =
+    (currentContact && currentContact.campaign_id) ||
+    (typeof selectedCampId !== 'undefined' && selectedCampId ? selectedCampId : null) ||
+    null;
+
   if (isAdmin) {
     // Super admin: firma seçici göster, firma değişince kampanyaları yenile
     if (currentUser?.role === 'super_admin') {
       renderFirmSelector('takvim-overlay-firm-selector', () => _loadTakvimOverlayCamps());
     }
     await _loadTakvimOverlayCamps();
+    const selOv = document.getElementById('takvim-camp-select-ov');
+    if (preferredCamp && selOv && [...selOv.options].some((o) => o.value === String(preferredCamp))) {
+      takvimCampId = preferredCamp;
+      selOv.value = preferredCamp;
+      await loadTakvimSlots();
+    }
   } else {
     // Agent: atanmış kampanyaları yükle ve select göster
     try {
       const ac = await sb(`agent_campaigns?agent_id=eq.${currentUser.id}&select=campaign_id,campaigns(id,name,status)`);
       const agentCamps = (ac||[]).map(a=>a.campaigns).filter(Boolean);
-      if (!takvimCampId && agentCamps.length) takvimCampId = agentCamps[0].id;
+      const prefOk = preferredCamp && agentCamps.some((c) => c.id === preferredCamp);
+      if (prefOk) takvimCampId = preferredCamp;
+      else if (!takvimCampId && agentCamps.length) takvimCampId = agentCamps[0].id;
       // Show a simple select for agents too if they have multiple campaigns
       if (agentCamps.length > 1) {
         const agentCampWrap = document.getElementById('takvim-overlay-camp-label');
@@ -5298,9 +5311,17 @@ async function openTakvimOverlay() {
         takvimCampId = agentCamps[0].id;
       }
     } catch(e) {
-      if (selectedCampId) takvimCampId = selectedCampId;
+      if (preferredCamp) takvimCampId = preferredCamp;
+      else if (selectedCampId) takvimCampId = selectedCampId;
     }
   }
+
+  const mainSel = document.getElementById('takvim-camp-select');
+  if (mainSel && takvimCampId && [...mainSel.options].some((o) => o.value === String(takvimCampId))) {
+    mainSel.value = takvimCampId;
+  }
+
+  if (typeof syncTakvimViewButtonStyles === 'function') syncTakvimViewButtonStyles();
 
   if (!takvimDate) takvimDate = new Date();
   // Re-render after layout is ready so clientHeight is correct for row height calc
