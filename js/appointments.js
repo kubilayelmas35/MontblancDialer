@@ -440,7 +440,8 @@ function renderTakvimGrid() {
   const endH = tset.endH;
   const numHrs = Math.max(1, endH - shH + 1);
   const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
-  let h = `<div style="display:grid;grid-template-columns:52px repeat(${daysCount},minmax(0,1fr));grid-template-rows:auto repeat(${numHrs},minmax(0,1fr));height:100%;min-height:0;box-sizing:border-box;">`;
+  const rowMinPx = 48;
+  let h = `<div class="takvim-week-grid-inner" style="display:grid;width:100%;height:100%;min-height:0;box-sizing:border-box;grid-template-columns:52px repeat(${daysCount},minmax(0,1fr));grid-template-rows:auto repeat(${numHrs},minmax(${rowMinPx}px,1fr));">`;
   h += '<div style="background:var(--bg-3);border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 4px;"></div>';
   for (let d=0; d<daysCount; d++) {
     const dt = new Date(startDt); dt.setDate(dt.getDate()+d);

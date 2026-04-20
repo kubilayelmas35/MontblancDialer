@@ -4495,6 +4495,36 @@ padding:5px 12px; border-radius:20px;
 flex:1; border:none; border-radius:0 0 var(--radius) var(--radius);
 }
 
+/* Takvim hafta/gün ızgarası: üst alanı doldur, saat satırları çok ince kalmasın */
+.page.page-takvim.active {
+min-height: 0;
+overflow: hidden;
+}
+.page.page-takvim #takvim-main {
+min-height: 0;
+}
+#takvim-scroll,
+#takvim-scroll-ov {
+display: flex;
+flex-direction: column;
+flex: 1 1 auto;
+min-height: 0;
+overflow-x: hidden;
+overflow-y: auto;
+-webkit-overflow-scrolling: touch;
+position: relative;
+}
+#takvim-grid,
+#takvim-grid-ov {
+flex: 1 1 auto;
+min-height: 0;
+width: 100%;
+align-self: stretch;
+}
+.takvim-fs-panel {
+min-height: 0;
+}
+
 /* ── TICKER ANIMATION ── */
 @keyframes ticker-scroll {
   0% { transform: translateX(100vw); }
