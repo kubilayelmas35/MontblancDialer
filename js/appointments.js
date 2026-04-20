@@ -289,8 +289,10 @@ async function loadTakvimPage() {
   }
   const tools = document.getElementById('takvim-admin-tools');
   const campWrap = document.getElementById('takvim-camp-select-wrap');
+  const pageCampLbl = document.getElementById('takvim-camp-label');
   if (tools) tools.style.display = isAdmin ? 'flex' : 'none';
   if (campWrap) campWrap.style.display = isAdmin ? '' : 'none';
+  if (pageCampLbl) pageCampLbl.style.display = isAdmin ? 'none' : '';
   if (isAdmin) {
     const fid = getActiveFirmId();
     const camps = await sb(fid ? `campaigns?firm_id=eq.${fid}&status=eq.active&select=*&order=name.asc` : `campaigns?status=eq.active&select=*&order=name.asc`).catch(()=>[]);
@@ -313,7 +315,10 @@ async function loadTakvimPage() {
     if (myAc?.length) {
       takvimCampId = myAc[0].campaign_id;
       const lbl = document.getElementById('takvim-camp-label');
-      if (lbl) lbl.textContent = myAc[0].campaigns?.name||'';
+      if (lbl) {
+        lbl.textContent = myAc[0].campaigns?.name || '';
+        lbl.style.display = '';
+      }
     }
   }
   takvimDate = new Date(); takvimDate.setHours(0,0,0,0);
@@ -643,6 +648,7 @@ function renderTakvimSlots() {
 }
 
 function renderTakvimSlotsMonth() {
+  const isAdmin = ['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '');
   takvimSlots.filter(s=>!s.gun_kapali&&!s.alta_tasindi).forEach(s=>{
     const el = document.getElementById(`ms_${s.tarih}`);
     if (!el) return;
@@ -650,7 +656,13 @@ function renderTakvimSlotsMonth() {
     const div = document.createElement('div');
     const vis = getSlotGradientAndText(s, appt);
     div.style.cssText = `font-size:9px;padding:2px 4px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-weight:700;background:${vis.background};color:${vis.color};`;
-    div.textContent = `${s.baslangic_saat.slice(0,5)} ${appt?appt.nachname:'Boş'}`;
+    if (appt) {
+      const show = isAdmin || appt.agent_id === currentUser?.id;
+      const nm = show ? _takvimApptCardName(appt) : '***';
+      div.textContent = `${s.baslangic_saat.slice(0, 5)} ${nm}`;
+    } else {
+      div.textContent = `${s.baslangic_saat.slice(0, 5)} Boş`;
+    }
     div.onclick = () => openTakvimSlotDetail(s, appt);
     el.appendChild(div);
   });
@@ -668,7 +680,20 @@ function takvimSlotMoveMarkup(slotId) {
 }
 
 function takvimSlotQuickAddMarkup(slotId) {
-  return `<button type="button" class="btn-tak-slot-add" title="Bitiş saatine yanaşık boş slot ekle" onmousedown="event.stopPropagation()" onclick="event.stopPropagation();addAdjacentEmptySlot('${slotId}')"><i class="ph ph-plus" style="font-size:13px;font-weight:800;"></i></button>`;
+  return `<button type="button" class="btn-tak-slot-add" title="Aynı başlangıç saatinde yeni boş slot ekle" onmousedown="event.stopPropagation()" onclick="event.stopPropagation();addAdjacentEmptySlot('${slotId}')"><i class="ph ph-plus" style="font-size:13px;font-weight:800;"></i></button>`;
+}
+
+function _takvimApptCardName(appt) {
+  const v = String(appt?.vorname || '').trim();
+  const n = String(appt?.nachname || '').trim();
+  if (v && n) return `${v} ${n}`;
+  return n || v || '—';
+}
+
+function _takvimApptCardAddr(appt) {
+  const parts = [String(appt?.strasse || '').trim(), String(appt?.ortschaft || '').trim()].filter(Boolean);
+  const tail = parts.length ? parts.join(', ') : '—';
+  return `${appt?.plz || '—'} – ${tail}`;
 }
 
 function takvimSlotDistButtons(slotId) {
@@ -730,10 +755,19 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
       const oa = takvimAppts.find((a) => a.id === origin?.appointment_id);
       if (oa?.plz && appt?.plz) {
         const r = _takvimPlzRouteCache[`${oa.plz}_${appt.plz}`];
-        if (r) distAllHtml = `<div style="font-size:8px;font-weight:700;color:#fce7f3;margin-top:2px;">↔ ${r.km} km · ${r.min} dk</div>`;
+        if (r) distAllHtml = `<div style="font-size:7px;font-weight:700;color:#fce7f3;margin-top:1px;">↔ ${r.km} km · ${r.min} dk</div>`;
       }
     }
-    el.innerHTML = `<div style="font-weight:800;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${show?appt.nachname:'***'}</div><div style="font-size:9px;opacity:.85;">${show?appt.plz||'':''} ${slot.baslangic_saat.slice(0,5)}</div>${plzLine}${distAllHtml}<div id="dist-${slot.id}" style="font-size:8px;opacity:.88;min-height:12px;margin-top:2px;"></div>${canShift ? takvimSlotMoveMarkup(slot.id) : ''}${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}${takvimSlotDistButtons(slot.id)}`;
+    const tEnd = (slot.bitis_saat || takvimAddHours(slot.baslangic_saat.slice(0, 5), takvimSlotDurHours())).slice(0, 5);
+    const timeLn = `${slot.baslangic_saat.slice(0, 5)}–${tEnd}`;
+    const nm = show ? _takvimApptCardName(appt) : '***';
+    const adr = show ? _takvimApptCardAddr(appt) : '***';
+    const ag = show ? String(appt.agent_name || '').trim() || '—' : '—';
+    el.innerHTML = `<div style="display:flex;flex-direction:column;gap:1px;line-height:1.15;">
+<div style="font-weight:800;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nm}</div>
+<div style="font-size:8px;font-weight:600;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${adr}</div>
+<div style="font-size:8px;opacity:.88;font-family:var(--mono);">${timeLn}</div>
+<div style="font-size:8px;opacity:.82;">Agent: ${ag}</div></div>${plzLine}${distAllHtml}<div id="dist-${slot.id}" style="font-size:7px;opacity:.88;min-height:10px;margin-top:1px;"></div>${canShift ? takvimSlotMoveMarkup(slot.id) : ''}${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}${takvimSlotDistButtons(slot.id)}`;
     el.onclick = (ev) => {
       ev.stopPropagation();
       openTakvimSlotDetail(slot, appt);
@@ -781,8 +815,74 @@ async function createTakvimSlotDirect(tarih, bas, bit) {
   }
 }
 
+/** Taşıma / tek adım akışları için yeni slot id döndürür (ara reload yok) */
+async function createTakvimSlotAndReturnId(tarih, bas, bit) {
+  if (!takvimCampId) {
+    toast('Önce kampanya seçin', 'err');
+    return null;
+  }
+  if (!currentUser?.firm_id) {
+    toast('Firma bilgisi eksik', 'err');
+    return null;
+  }
+  try {
+    const rows = await sb('takvim_slots', {
+      method: 'POST',
+      prefer: 'return=representation',
+      body: JSON.stringify({
+        campaign_id: takvimCampId,
+        firm_id: currentUser.firm_id,
+        tarih,
+        baslangic_saat: bas,
+        bitis_saat: bit,
+        durum: 'bos',
+        gun_kapali: false
+      })
+    });
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    return row?.id || null;
+  } catch (e) {
+    toast('Slot oluşturulamadı: ' + e.message, 'err');
+    return null;
+  }
+}
+
+async function takvimCellClickMovePick(ds, hh) {
+  const pick = window._takvimMovePick;
+  if (!pick || String(pick.campaignId || '') !== String(takvimCampId || '')) return;
+  if (!['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '')) return;
+  if (takvimClosedDays[ds]) {
+    toast('Bu gün kapalı', 'warn');
+    return;
+  }
+  const start = `${String(hh).padStart(2, '0')}:00`;
+  const end = takvimAddHours(start, takvimSlotDurHours());
+  if (
+    !(await mbConfirm(
+      `${ds} · ${start}–${String(end).slice(0, 5)} için yeni boş slot oluşturulup randevu buraya taşınsın mı?`,
+      'Randevuyu taşı'
+    ))
+  )
+    return;
+  const newId = await createTakvimSlotAndReturnId(ds, start, end);
+  if (!newId) return;
+  const ok = await takvimExecuteMoveAppointment(pick.fromSlotId, newId, pick.apptId);
+  if (!ok) {
+    await loadTakvimSlots();
+    return;
+  }
+  takvimClearMovePickMode();
+  await loadTakvimSlots();
+  toast('Slot oluşturuldu ve randevu taşındı ✓', 'ok');
+}
+
 function takvimCellClick(ds, hh, e) {
   if (e?.target?.closest?.('.takvim-slot-el')) return;
+  const pick = window._takvimMovePick;
+  if (pick && String(pick.campaignId || '') === String(takvimCampId || '')) {
+    void takvimCellClickMovePick(ds, hh);
+    return;
+  }
   if (!takvimCampId) { toast('Önce kampanya seçin','err'); return; }
   const start = `${hh}:00`;
   const end = takvimAddHours(start, takvimSlotDurHours());
@@ -879,14 +979,9 @@ ${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="dele
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">TÜKETİM</div><div style="font-weight:700;">${appt.verbrauch_pro_jahr||'—'}</div></div>
 ${appt.agent_notu?`<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">AGENT NOTU</div><div>${appt.agent_notu}</div></div>`:''}
 </div>`;
-  if (canAssignField) {
-    body.innerHTML += `<div style="margin-top:10px;display:flex;justify-content:flex-end;">
-      <button class="btn btn-primary" onclick="openFieldAssignModal('${appt.id}','${appt.firm_id || currentUser.firm_id}')">Sahaya Ata</button>
-    </div>`;
-  }
   footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">Kapat</button>
 <button class="btn btn-ghost" onclick="closeModal('m-takvim-detail');openDialerForContact('${appt.contact_id||''}')">Dialer'a Git</button>
-${canAssignField ? `<button class="btn btn-ghost" onclick="openFieldAssignModal('${appt.id}','${appt.firm_id || currentUser.firm_id}')">Sahaya Ata</button>` : ''}
+${canAssignField ? `<button class="btn btn-primary" onclick="openFieldAssignModal('${appt.id}','${appt.firm_id || currentUser.firm_id}')">Sahaya Ata</button>` : ''}
 ${canManageAppt ? `
 <select class="form-input" id="appt-status-sel" style="width:auto;font-size:12px;padding:6px 10px;">
 <option value="">Durum değiştir...</option>
@@ -1980,12 +2075,15 @@ async function addAdjacentEmptySlot(slotId) {
   }
   const slot = takvimSlots.find((s) => s.id === slotId);
   if (!slot || slot.gun_kapali) return;
-  const ehRaw = slot.bitis_saat || takvimAddHours((slot.baslangic_saat || '09:00').slice(0, 5), takvimSlotDurHours());
-  const ns = takvimTimeToMinutes(ehRaw);
-  const ne = ns + takvimSlotDurHours() * 60;
+  const bs = (slot.baslangic_saat || '09:00').slice(0, 8);
+  const beRaw = slot.bitis_saat || takvimAddHours(bs.slice(0, 5), takvimSlotDurHours());
+  let durMin = takvimTimeToMinutes(beRaw) - takvimTimeToMinutes(bs);
+  if (durMin <= 0) durMin = takvimSlotDurHours() * 60;
+  const ns = takvimTimeToMinutes(bs);
+  const ne = ns + durMin;
   const tset = getCampaignTakvimSettings();
   if (ne > tset.endH * 60 + 60) {
-    toast('Bu gün için daha fazla slot sığmıyor', 'warn');
+    toast('Bu gün için aynı saatte yeni slot sığmıyor', 'warn');
     return;
   }
   const newStart = takvimMinutesToHHMM(ns);
@@ -2005,7 +2103,7 @@ async function addAdjacentEmptySlot(slotId) {
       })
     });
     await loadTakvimSlots();
-    toast('Yan boş slot eklendi', 'ok');
+    toast('Aynı saatte boş slot eklendi', 'ok');
   } catch (e) {
     toast('Eklenemedi: ' + (e?.message || ''), 'err');
   }

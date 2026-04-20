@@ -5613,9 +5613,10 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   cursor: pointer;
 }
 
-/* Takvim slot: kaydırma + mesafe butonları (hover’da görünür) */
+/* Takvim slot: + / kaydırma / mesafe — hover’da görünür */
 .takvim-slot-el .tak-slot-move,
-.takvim-slot-el .tak-slot-dist {
+.takvim-slot-el .tak-slot-dist,
+.takvim-slot-el .tak-slot-add-wrap {
   opacity: 0;
   transition: opacity 0.12s ease;
   pointer-events: none;
