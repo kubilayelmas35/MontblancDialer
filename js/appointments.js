@@ -1193,6 +1193,189 @@ async function saveBulkSlots() {
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
+function takvimAdminRandevuEkle(slot) {
+  if (!slot || slot.durum !== 'bos' || slot.gun_kapali) return;
+  _bookingSlot = slot;
+  openTakvimBookForm(slot);
+}
+
+async function takvimAdminKilitle(slot) {
+  if (!slot || slot.durum !== 'bos' || slot.gun_kapali) return;
+  if (!['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '')) return;
+  try {
+    await sb(`takvim_slots?id=eq.${slot.id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({
+        durum: 'kilitli',
+        kilitli_agent_id: currentUser.id,
+        kilitli_at: new Date().toISOString()
+      })
+    });
+    await loadTakvimSlots();
+    toast('Slot kilitlendi ✓', 'ok');
+  } catch (e) {
+    toast('Hata: ' + e.message, 'err');
+  }
+}
+
+async function openTakvimChangeCampaignModal(slot, appt) {
+  if (!['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '')) return;
+  document.getElementById('m-takvim-change-campaign')?.remove();
+  const firmId = appt?.firm_id || slot?.firm_id || currentUser?.firm_id;
+  if (!firmId) {
+    toast('Firma bilgisi eksik', 'err');
+    return;
+  }
+  let rows =
+    typeof campaigns !== 'undefined' && Array.isArray(campaigns)
+      ? campaigns.filter(
+          (c) =>
+            String(c.firm_id || '') === String(firmId) &&
+            String(c.status || 'active').toLowerCase() === 'active'
+        )
+      : [];
+  if (!rows.length) {
+    rows = (await sb(`campaigns?firm_id=eq.${firmId}&status=eq.active&select=id,name&order=name.asc`).catch(() => [])) || [];
+  }
+  if (!rows.length) {
+    toast('Aktif kampanya bulunamadı', 'warn');
+    return;
+  }
+  const cur = String(appt?.campaign_id || slot?.campaign_id || takvimCampId || '');
+  const m = document.createElement('div');
+  m.id = 'm-takvim-change-campaign';
+  m.className = 'modal-overlay open';
+  m.innerHTML =
+    '<div class="modal" style="max-width:420px;">' +
+    '<div class="modal-hdr"><div class="modal-title">Kampanya değiştir</div>' +
+    '<button type="button" class="modal-close" onclick="document.getElementById(\'m-takvim-change-campaign\')?.remove()">✕</button></div>' +
+    '<div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;">' +
+    '<div class="form-row"><label class="form-label">Yeni kampanya</label>' +
+    '<select class="form-input" id="tcc-sel">' +
+    rows
+      .map((c) => {
+        const nm = String(c.name || '').replace(/[<>&"']/g, '');
+        return `<option value="${c.id}" ${String(c.id) === cur ? 'selected' : ''}>${nm}</option>`;
+      })
+      .join('') +
+    '</select></div>' +
+    '<div style="font-size:11px;color:var(--text-3);">Randevu ve bu slot aynı kampanyaya bağlanır.</div></div>' +
+    '<div class="modal-footer">' +
+    '<button type="button" class="btn btn-ghost" onclick="document.getElementById(\'m-takvim-change-campaign\')?.remove()">İptal</button>' +
+    `<button type="button" class="btn btn-primary" onclick="takvimSaveChangeCampaign('${slot.id}','${appt.id}')">Kaydet</button>` +
+    '</div></div>';
+  document.body.appendChild(m);
+}
+
+async function takvimSaveChangeCampaign(slotId, apptId) {
+  const sel = document.getElementById('tcc-sel');
+  const newId = sel?.value;
+  if (!newId) {
+    toast('Kampanya seçin', 'warn');
+    return;
+  }
+  try {
+    await sb(`appointments?id=eq.${apptId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ campaign_id: newId })
+    });
+    await sb(`takvim_slots?id=eq.${slotId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ campaign_id: newId })
+    });
+    document.getElementById('m-takvim-change-campaign')?.remove();
+    toast('Kampanya güncellendi ✓', 'ok');
+    await loadTakvimSlots();
+  } catch (e) {
+    toast('Hata: ' + e.message, 'err');
+  }
+}
+
+async function openTakvimMoveAppointmentModal(slot, appt) {
+  if (!['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '')) return;
+  document.getElementById('m-takvim-move-appt')?.remove();
+  const camp = String(slot.campaign_id || '');
+  const targets = takvimSlots
+    .filter(
+      (s) =>
+        s.durum === 'bos' &&
+        !s.gun_kapali &&
+        !s.alta_tasindi &&
+        s.id !== slot.id &&
+        String(s.campaign_id || '') === camp
+    )
+    .sort((a, b) => `${a.tarih} ${a.baslangic_saat}`.localeCompare(`${b.tarih} ${b.baslangic_saat}`));
+  if (!targets.length) {
+    toast('Aynı kampanyada uygun boş slot yok', 'warn');
+    return;
+  }
+  const opts = targets
+    .map(
+      (s) =>
+        `<option value="${s.id}">${s.tarih} · ${String(s.baslangic_saat || '').slice(0, 5)}–${String(s.bitis_saat || '').slice(0, 5)}</option>`
+    )
+    .join('');
+  const m = document.createElement('div');
+  m.id = 'm-takvim-move-appt';
+  m.className = 'modal-overlay open';
+  m.innerHTML =
+    '<div class="modal" style="max-width:440px;">' +
+    '<div class="modal-hdr"><div class="modal-title">Randevuyu taşı</div>' +
+    '<button type="button" class="modal-close" onclick="document.getElementById(\'m-takvim-move-appt\')?.remove()">✕</button></div>' +
+    '<div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;">' +
+    '<div class="form-row"><label class="form-label">Hedef boş slot</label>' +
+    '<select class="form-input" id="tma-sel">' +
+    opts +
+    '</select></div>' +
+    '<div style="font-size:11px;color:var(--text-3);">Aynı kampanyadaki boş slotlardan birini seçin; mevcut slot boşalır.</div></div>' +
+    '<div class="modal-footer">' +
+    '<button type="button" class="btn btn-ghost" onclick="document.getElementById(\'m-takvim-move-appt\')?.remove()">İptal</button>' +
+    `<button type="button" class="btn btn-primary" onclick="takvimSaveMoveAppointment('${slot.id}','${appt.id}')">Taşı</button>` +
+    '</div></div>';
+  document.body.appendChild(m);
+}
+
+async function takvimSaveMoveAppointment(fromSlotId, apptId) {
+  const toId = document.getElementById('tma-sel')?.value;
+  if (!toId) {
+    toast('Hedef slot seçin', 'warn');
+    return;
+  }
+  if (!(await mbConfirm('Randevu seçilen boş slota taşınsın mı?', 'Randevuyu taşı'))) return;
+  try {
+    await sb(`takvim_slots?id=eq.${fromSlotId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({
+        durum: 'bos',
+        appointment_id: null,
+        alta_tasindi: false,
+        kilitli_agent_id: null,
+        kilitli_at: null
+      })
+    });
+    await sb(`takvim_slots?id=eq.${toId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({
+        durum: 'dolu',
+        appointment_id: apptId,
+        alta_tasindi: false,
+        kilitli_agent_id: null,
+        kilitli_at: null
+      })
+    });
+    document.getElementById('m-takvim-move-appt')?.remove();
+    await loadTakvimSlots();
+    toast('Randevu taşındı ✓', 'ok');
+  } catch (e) {
+    toast('Hata: ' + e.message, 'err');
+  }
+}
+
 // ── Context menu ──────────────────────────────
 function showSlotContextMenu(e, slot, appt) {
   e.preventDefault(); e.stopPropagation();
@@ -1206,6 +1389,8 @@ function showSlotContextMenu(e, slot, appt) {
   if (slot.durum === 'bos') {
     if (!isAdmin) items.push({ icon:'', label:'Termin Al', onClick: () => lockAndBookSlot(_ctxSlot) });
     if (isAdmin) items.push({ icon:'', label:'Detay', onClick: () => openTakvimSlotDetail(_ctxSlot, null) });
+    if (isAdmin) items.push({ icon:'', label:'Randevu ekle', onClick: () => takvimAdminRandevuEkle(_ctxSlot) });
+    if (isAdmin) items.push({ icon:'', label:'Kilitle', onClick: () => takvimAdminKilitle(_ctxSlot), yellow:true });
     if (isAdmin) items.push({ icon:'', label:'Sil', onClick: () => deleteTakvimSlot(_ctxSlot.id), danger:true });
   }
   if (slot.durum === 'kilitli') {
@@ -1225,6 +1410,10 @@ function showSlotContextMenu(e, slot, appt) {
     items.push({ icon:'', label:'Detaya Git (Dialer)', onClick: () => openDialerForContact(_ctxAppt.contact_id) });
     items.push({ icon:'', label:'Slot Detayı', onClick: () => openTakvimSlotDetail(_ctxSlot, _ctxAppt) });
     if (isAdmin) items.push({ icon:'', label:'Sahaya Ata', onClick: () => openFieldAssignModal(_ctxAppt.id, _ctxAppt.firm_id) });
+    if (isAdmin) {
+      items.push({ icon:'', label:'Kampanya değiştir', onClick: () => openTakvimChangeCampaignModal(_ctxSlot, _ctxAppt) });
+      items.push({ icon:'', label:'Randevuyu taşı', onClick: () => openTakvimMoveAppointmentModal(_ctxSlot, _ctxAppt) });
+    }
     if (isAdmin || canManageAppt) {
       items.push({ sep: true });
       const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
