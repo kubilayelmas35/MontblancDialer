@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────
 // API — Supabase REST iletişim katmanı
 // ─────────────────────────────────────────────
-function _mbRequestScopeHeaders() {
-  const u = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : null;
+function _mbRequestScopeHeaders(userOverride = null) {
+  const u = userOverride || ((typeof currentUser !== 'undefined' && currentUser) ? currentUser : null);
   if (!u) return {};
   const h = {};
   if (u.id) h['x-mb-user-id'] = String(u.id);
@@ -11,11 +11,34 @@ function _mbRequestScopeHeaders() {
   return h;
 }
 
+function _mbPathRoot(path) {
+  return String(path || '').split('?')[0].trim();
+}
+
+function _mbScopedUserForRequest(path, method = 'GET') {
+  const cur = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : null;
+  const imp = (typeof _impersonation !== 'undefined' && _impersonation) ? _impersonation : null;
+  const base = (typeof _baseUser !== 'undefined' && _baseUser) ? _baseUser : null;
+  if (!cur || !imp || !base) return cur;
+  const baseRole = String(base.role || '').toLowerCase();
+  const isAdminBase = ['admin', 'firm_admin', 'super_admin'].includes(baseRole);
+  if (!isAdminBase) return cur;
+  const root = _mbPathRoot(path);
+  const m = String(method || 'GET').toUpperCase();
+  const adminScopedRoots = new Set(['campaigns', 'queues', 'agent_campaigns']);
+  if (adminScopedRoots.has(root)) return base;
+  // Temsil modunda queue upload vb. yazma işlemlerinde admin bağlamını kullan.
+  if (m !== 'GET' && (root === 'contacts' || root === 'queues' || root === 'campaigns')) return base;
+  return cur;
+}
+
 async function sb(path, opts={}) {
 const ctrl = new AbortController();
 const timeoutMs = Number(opts.timeoutMs || 20000);
 const t = setTimeout(() => ctrl.abort(), timeoutMs);
 let r;
+const method = String(opts?.method || 'GET').toUpperCase();
+const scopedUser = _mbScopedUserForRequest(path, method);
 try {
   r = await fetch(`${SB_URL}/rest/v1/${path}`, {
     ...opts,
@@ -25,7 +48,7 @@ try {
       'Authorization': `Bearer ${SB_KEY}`,
       'Content-Type': 'application/json',
       'Prefer': opts.prefer || 'return=representation',
-      ..._mbRequestScopeHeaders(),
+      ..._mbRequestScopeHeaders(scopedUser),
       ...(opts.headers||{})
     }
   });
@@ -65,7 +88,7 @@ catch(e) { return null; }
 
 async function sbUpsert(table, data, onConflict) {
 try {
-const scopeHeaders = _mbRequestScopeHeaders();
+const scopeHeaders = _mbRequestScopeHeaders(_mbScopedUserForRequest(table, 'POST'));
 const res = await fetch(`${SB_URL}/rest/v1/${table}`, {
 method: 'POST',
 headers: {
