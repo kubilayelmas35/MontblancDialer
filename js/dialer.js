@@ -2841,6 +2841,9 @@ function setDialerStatus(s) {
   if (s === 'break') refreshBreakCustEmpty();
   if (s !== 'on_call' && s !== 'wrapping') _stopMicThresholdGate();
   syncDialerBottomChrome();
+  if ((s === 'ready' || s === 'offline' || s === 'calling') && currentContact) {
+    forceDialerPreCallBar();
+  }
   if (s === 'ready' || s === 'break' || s === 'offline') {
     startCustEmptyMascotLoops();
   } else {
