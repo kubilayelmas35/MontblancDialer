@@ -5588,7 +5588,8 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   pointer-events: none;
 }
 .takvim-slot-el:hover .tak-slot-move,
-.takvim-slot-el:hover .tak-slot-dist {
+.takvim-slot-el:hover .tak-slot-dist,
+.takvim-slot-el:hover .tak-slot-add-wrap {
   opacity: 1;
   pointer-events: auto;
 }
@@ -5625,4 +5626,43 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .btn-tak-dist:hover {
   background: var(--accent);
   color: #fff;
+}
+
+.tak-slot-add-wrap {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 24;
+  transition: opacity 0.12s ease;
+}
+.btn-tak-slot-add {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.35);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 0;
+}
+.btn-tak-slot-add:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.takvim-slot-el.takvim-slot-many {
+  font-size: 9px;
+}
+.takvim-slot-el.takvim-slot-many > div:first-of-type {
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 10px;
+  line-height: 1.15;
 }

@@ -5265,6 +5265,8 @@ async function openTakvimOverlay() {
   window._takvimGridId      = 'takvim-grid-ov';
   window._takvimScrollId    = 'takvim-scroll-ov';
   window._takvimWeekLabelId = 'takvim-week-label-ov';
+  window._takvimFailedSecId = 'takvim-failed-section-ov';
+  window._takvimFailedGridId = 'takvim-failed-grid-ov';
 
   const ovAdmin  = document.getElementById('takvim-overlay-admin');
   const ovCampLbl = document.getElementById('takvim-overlay-camp-label');
@@ -5315,6 +5317,8 @@ function closeTakvimOverlay() {
   window._takvimGridId     = 'takvim-grid';
   window._takvimScrollId   = 'takvim-scroll';
   window._takvimWeekLabelId = 'takvim-week-label';
+  delete window._takvimFailedSecId;
+  delete window._takvimFailedGridId;
 }
 
 // ── Precall mic test ──────────────────────────
