@@ -237,6 +237,21 @@ async function getNextContact(campaignIds = null) {
     );
     if (!contacts?.length) {
       if (typeof _testMode !== 'undefined' && _testMode && ids.length) {
+        // Test modunda: uygun statüde kayıt yoksa kampanyadaki gerçek kayıttan devam et.
+        const fallback = await sb(
+          `contacts?${campFilter}` +
+          `&order=updated_at.desc.nullslast,last_called_at.asc.nullsfirst` +
+          `&limit=20&select=*,queues(name,status)`
+        ).catch(() => []);
+        if (fallback?.length) {
+          for (let i = 0; i < fallback.length; i++) {
+            const c = fallback[i];
+            if (!c?.phone) continue;
+            if (!c.queues || c.queues.status === 'active') return c;
+          }
+          const any = fallback.find((x) => String(x?.phone || '').trim());
+          if (any) return any;
+        }
         const sid = typeof selectedCampId !== 'undefined' ? selectedCampId : null;
         const pick =
           sid && ids.some((x) => String(x) === String(sid)) ? sid : ids[0];

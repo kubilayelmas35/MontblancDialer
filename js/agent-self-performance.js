@@ -181,7 +181,7 @@ function _aspRenderBonusTierTable(success, tiers, rules) {
 function loadAgentSalaryDash(fid, ym, rules, payrollRow, bonusTiersRaw, salaryTiersRaw) {
   const host = document.getElementById('muh-agent-salary-wrap');
   if (!host) return;
-  if (!['agent', 'qc'].includes(currentUser?.role || '')) {
+  if (!['agent', 'qc', 'admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '')) {
     host.style.display = 'none';
     host.innerHTML = '';
     return;
