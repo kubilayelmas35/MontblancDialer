@@ -808,6 +808,22 @@ query += `&started_at=lte.${dateTo}T23:59:59`;
 if (outcome) query += outcome==='appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
 if (agentFilter) query += `&agent_id=eq.${agentFilter}`;
 const logs = await sb(query) || [];
+const contactNameById = {};
+try {
+  const missingIds = [...new Set((logs || [])
+    .filter((l) => l?.contact_id && !(`${l.contacts?.first_name || ''} ${l.contacts?.last_name || ''}`.trim()))
+    .map((l) => l.contact_id)
+  )];
+  for (let i = 0; i < missingIds.length; i += 100) {
+    const chunk = missingIds.slice(i, i + 100);
+    if (!chunk.length) continue;
+    const rows = await sb(`contacts?select=id,first_name,last_name&id=in.(${chunk.join(',')})`).catch(() => []);
+    (rows || []).forEach((r) => {
+      const nm = `${r.first_name || ''} ${r.last_name || ''}`.trim();
+      if (nm) contactNameById[r.id] = nm;
+    });
+  }
+} catch (_) {}
 const logDurSec = (l) => Math.max(0, Number(l?.duration_sec ?? l?.duration_seconds ?? 0) || 0);
 const isFakeRec = (l) => {
   const noRec = !String(l?.recording_url || '').trim();
@@ -870,7 +886,10 @@ tbody.innerHTML = filtered.map(l=>{
 const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
 const sec = logDurSec(l);
 const dur = sec ? `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}` : '—';
-const name = `${l.contacts?.first_name||''} ${l.contacts?.last_name||''}`.trim() || (l.phone || l.contacts?.phone || '—');
+const name =
+  `${l.contacts?.first_name||''} ${l.contacts?.last_name||''}`.trim() ||
+  contactNameById[l.contact_id] ||
+  (l.phone || l.contacts?.phone || '—');
 const phone = l.phone || l.contacts?.phone || '—';
 const agentName = l.users?.name || '—';
 const campName = l.campaigns?.name || '—';
@@ -905,6 +924,22 @@ query += `&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59
 if (outcome) query += outcome === 'appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
 query += '&order=started_at.desc&limit=200';
 const logs = await sb(query) || [];
+const contactNameById = {};
+try {
+  const missingIds = [...new Set((logs || [])
+    .filter((l) => l?.contact_id && !(`${l.contacts?.first_name || ''} ${l.contacts?.last_name || ''}`.trim()))
+    .map((l) => l.contact_id)
+  )];
+  for (let i = 0; i < missingIds.length; i += 100) {
+    const chunk = missingIds.slice(i, i + 100);
+    if (!chunk.length) continue;
+    const rows = await sb(`contacts?select=id,first_name,last_name&id=in.(${chunk.join(',')})`).catch(() => []);
+    (rows || []).forEach((r) => {
+      const nm = `${r.first_name || ''} ${r.last_name || ''}`.trim();
+      if (nm) contactNameById[r.id] = nm;
+    });
+  }
+} catch (_) {}
 const logDurSec = (l) => Math.max(0, Number(l?.duration_sec ?? l?.duration_seconds ?? 0) || 0);
 const isFakeRec = (l) => {
   const noRec = !String(l?.recording_url || '').trim();
@@ -949,7 +984,10 @@ if (!filtered.length) {
 }
 tbody.innerHTML = filtered.map(l=>{
 const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-const name = `${l.contacts?.first_name||''} ${l.contacts?.last_name||''}`.trim() || (l.phone || l.contacts?.phone || '—');
+const name =
+  `${l.contacts?.first_name||''} ${l.contacts?.last_name||''}`.trim() ||
+  contactNameById[l.contact_id] ||
+  (l.phone || l.contacts?.phone || '—');
 const phone = l.phone || l.contacts?.phone || '—';
 const camp = l.campaigns?.name || '—';
 const sec = logDurSec(l);
