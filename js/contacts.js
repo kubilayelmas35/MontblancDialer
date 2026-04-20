@@ -251,6 +251,21 @@ async function getNextContact(campaignIds = null) {
           const any = fallback.find((x) => String(x?.phone || '').trim());
           if (any) return any;
         }
+        // Hala bulunamadıysa firmadaki herhangi bir gerçek kişiyle test et.
+        const fid = typeof currentUser !== 'undefined' ? currentUser?.firm_id : null;
+        if (fid) {
+          const firmWide = await sb(
+            `contacts?firm_id=eq.${fid}` +
+            `&order=updated_at.desc.nullslast,last_called_at.asc.nullsfirst` +
+            `&limit=30&select=*`
+          ).catch(() => []);
+          if (firmWide?.length) {
+            const byCamp = firmWide.find((x) => ids.includes(x?.campaign_id) && String(x?.phone || '').trim());
+            if (byCamp) return byCamp;
+            const anyFirm = firmWide.find((x) => String(x?.phone || '').trim());
+            if (anyFirm) return anyFirm;
+          }
+        }
         const sid = typeof selectedCampId !== 'undefined' ? selectedCampId : null;
         const pick =
           sid && ids.some((x) => String(x) === String(sid)) ? sid : ids[0];

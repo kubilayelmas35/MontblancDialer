@@ -31,14 +31,14 @@ function _mPayrollTableWrap() {
 function canViewMaasimPage() {
   const role = currentUser?.role || '';
   if (!['agent', 'qc', 'admin', 'firm_admin', 'super_admin'].includes(role)) return false;
-  if (typeof userHasPagePerm === 'function') return !!userHasPagePerm('maasim');
+  // Bu sayfalar rol bazlı çalışmalı; eksik permission kaydı ekranı boş bırakmamalı.
   return true;
 }
 
 function canViewPerformansimPage() {
   const role = currentUser?.role || '';
   if (!['agent', 'qc', 'admin', 'firm_admin', 'super_admin'].includes(role)) return false;
-  if (typeof userHasPagePerm === 'function') return !!userHasPagePerm('performansim');
+  // Bu sayfalar rol bazlı çalışmalı; eksik permission kaydı ekranı boş bırakmamalı.
   return true;
 }
 
