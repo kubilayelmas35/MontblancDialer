@@ -196,11 +196,23 @@ async function uploadQueue() {
 // ── Contact manipulation ──────────────────────
 async function getNextContact(campaignIds = null) {
   // Aktif kampanya listesini kullan (yoksa selectedCampId ile fallback)
-  const ids = Array.isArray(campaignIds)
+  let ids = Array.isArray(campaignIds)
     ? campaignIds
     : (typeof _activeCampIds !== 'undefined' && _activeCampIds.length)
       ? _activeCampIds
       : [];
+  if (!ids.length && typeof selectedCampId !== 'undefined' && selectedCampId) {
+    ids = [selectedCampId];
+  }
+  // Agent tarafında aktif/seçili kampanya boşsa atandığı kampanyalardan otomatik çıkar.
+  if (!ids.length && currentUser?.id) {
+    try {
+      const acRows =
+        (await sb(`agent_campaigns?agent_id=eq.${currentUser.id}&select=campaign_id&limit=200`).catch(() => [])) || [];
+      const fromAc = acRows.map((r) => String(r.campaign_id || '')).filter(Boolean);
+      if (fromAc.length) ids = fromAc;
+    } catch (e) {}
+  }
   if (!ids.length) {
     // Agent tarafında bazen kampanya listesi/selection henüz oluşmadan test arama tetiklenebiliyor.
     // Test modunda bu durumda erişilebilir herhangi bir gerçek kişiyi döndür.
