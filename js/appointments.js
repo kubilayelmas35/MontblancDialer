@@ -66,6 +66,21 @@ function takvimSlotDurHours() {
   return typeof SLOT_HOURS !== 'undefined' ? SLOT_HOURS : 2;
 }
 
+let _takvimDistAllOriginId = null;
+const _takvimPlzRouteCache = {};
+
+function takvimTimeToMinutes(t) {
+  const p = String(t || '0:0').split(':');
+  const h = parseInt(p[0], 10) || 0;
+  const m = parseInt(p[1], 10) || 0;
+  return h * 60 + m;
+}
+
+function takvimMinutesToHHMM(total) {
+  const t = ((total % 1440) + 1440) % 1440;
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+}
+
 async function _loadPayrollRulesFromFirmSettings(fid) {
   try {
     const rows = await sb(`firms?id=eq.${fid}&select=settings`);
@@ -383,26 +398,54 @@ function renderTakvimSlotsMonth() {
   });
 }
 
+function takvimSlotMoveMarkup(slotId) {
+  return `<div class="tak-slot-move" onmousedown="event.stopPropagation()" style="position:absolute;top:1px;left:1px;z-index:22;display:flex;flex-direction:column;gap:1px;font-size:7px;line-height:1.05;">
+<button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-120)">-2h</button>
+<button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-60)">-1h</button>
+<button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-30)">-30m</button>
+<button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',30)">+30m</button>
+<button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',60)">+1h</button>
+<button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',120)">+2h</button>
+</div>`;
+}
+
+function takvimSlotDistButtons(slotId) {
+  return `<div class="tak-slot-dist" onmousedown="event.stopPropagation()" style="position:absolute;bottom:2px;right:2px;z-index:22;display:flex;gap:4px;align-items:center;">
+<button type="button" class="btn-tak-dist" title="Mesafe (Dialer müşterisi → bu termin)" onclick="event.stopPropagation();measureSlotDistance('${slotId}')"><i class="ph ph-map-pin" style="font-size:12px;"></i></button>
+<button type="button" class="btn-tak-dist" title="Bu terminden diğer terminlere uzaklık" onclick="event.stopPropagation();toggleTakvimDistAll('${slotId}')"><i class="ph ph-path" style="font-size:12px;"></i></button>
+</div>`;
+}
+
 function makeTakvimSlotEl(slot, appt, isAdmin) {
   const el = document.createElement('div');
+  el.classList.add('takvim-slot-el');
+  el.dataset.slotId = slot.id;
   el.style.cssText = `border-radius:5px;padding:5px 7px;font-size:10px;cursor:pointer;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.15);background:${getSlotBg(slot,appt)};color:#fff;transition:.15s;`;
-  el.onmouseover = () => el.style.transform = 'scale(1.02)';
-  el.onmouseout = () => el.style.transform = '';
-  const distId = `dist-${slot.id}`;
+  el.onmouseover = () => { el.style.transform = 'scale(1.02)'; };
+  el.onmouseout = () => { el.style.transform = ''; };
+  const canShift = isAdmin && slot.durum !== 'kilitli' && !slot.gun_kapali;
   if (slot.durum==='bos') {
-    el.innerHTML = `<div style="font-weight:700;opacity:.9;">+ Boş ${slot.baslangic_saat.slice(0,5)}</div><div id="${distId}" style="font-size:8px;opacity:.8;"></div>`;
+    el.innerHTML = `<div style="font-weight:700;opacity:.9;">+ Boş ${slot.baslangic_saat.slice(0,5)}</div>${canShift ? takvimSlotMoveMarkup(slot.id) : ''}`;
     el.style.color = getSlotColor(slot, appt);
     el.onclick = isAdmin ? () => openTakvimSlotDetail(slot, null) : () => lockAndBookSlot(slot);
-    setTimeout(() => calcAndShowSlotDistance(slot, distId), 100);
   } else if (slot.durum==='kilitli') {
     el.innerHTML = `<div style="font-weight:700;">🔒 ${slot.baslangic_saat.slice(0,5)}</div>`;
     el.style.color = '#1e40af';
   } else if (appt) {
     const show = isAdmin || appt.agent_id===currentUser?.id;
-    el.innerHTML = `<div style="font-weight:800;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${show?appt.nachname:'***'}</div><div style="font-size:9px;opacity:.85;">${show?appt.plz||'':''} ${slot.baslangic_saat.slice(0,5)}</div>`;
+    let distAllHtml = '';
+    if (_takvimDistAllOriginId && _takvimDistAllOriginId !== slot.id && slot.durum === 'dolu') {
+      const origin = takvimSlots.find((x) => x.id === _takvimDistAllOriginId);
+      const oa = takvimAppts.find((a) => a.id === origin?.appointment_id);
+      if (oa?.plz && appt?.plz) {
+        const r = _takvimPlzRouteCache[`${oa.plz}_${appt.plz}`];
+        if (r) distAllHtml = `<div style="font-size:8px;font-weight:700;color:#fce7f3;margin-top:2px;">↔ ${r.km} km · ${r.min} dk</div>`;
+      }
+    }
+    el.innerHTML = `<div style="font-weight:800;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${show?appt.nachname:'***'}</div><div style="font-size:9px;opacity:.85;">${show?appt.plz||'':''} ${slot.baslangic_saat.slice(0,5)}</div>${distAllHtml}<div id="dist-${slot.id}" style="font-size:8px;opacity:.88;min-height:12px;margin-top:2px;"></div>${canShift ? takvimSlotMoveMarkup(slot.id) : ''}${takvimSlotDistButtons(slot.id)}`;
     el.onclick = () => openTakvimSlotDetail(slot, appt);
   } else {
-    el.innerHTML = `<div>${slot.baslangic_saat.slice(0,5)}</div>`;
+    el.innerHTML = `<div>${slot.baslangic_saat.slice(0,5)}</div>${canShift ? takvimSlotMoveMarkup(slot.id) : ''}`;
     el.onclick = () => openTakvimSlotDetail(slot, null);
   }
   el.oncontextmenu = (e) => { e.preventDefault(); showSlotContextMenu(e, slot, appt); };
@@ -938,6 +981,10 @@ function initSlotDrag(el, slot) {
   if (!isAdmin || slot.durum !== 'bos') return;
   el.draggable = true; el.style.cursor = 'grab';
   el.addEventListener('dragstart', e => {
+    if (e.target.closest && e.target.closest('.tak-slot-move')) {
+      e.preventDefault();
+      return;
+    }
     _dragSlot = slot; _dragOrigCell = el.parentElement;
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', slot.id);
@@ -1026,7 +1073,7 @@ ${camp.notif_message?`<div style="font-size:13px;color:var(--text-2);margin-bott
   document.body.appendChild(ov);
 }
 
-// ── TomTom mesafe ─────────────────────────────
+// ── TomTom mesafe / rota ──────────────────────
 async function calcTomTomDistance(from, to) {
   const tk = localStorage.getItem('mb_tomtom_key') || DEFAULT_TOMTOM_KEY;
   if (!tk || !from || !to) return null;
@@ -1042,17 +1089,122 @@ async function calcTomTomDistance(from, to) {
   } catch(e) { return null; }
 }
 
-async function calcAndShowSlotDistance(slot, distElId) {
-  const el = document.getElementById(distElId);
-  if (!el) return;
-  if (!currentContact?.address && !currentContact?.plz) return;
-  const fromAddr = `${currentContact.address||''} ${currentContact.plz||''} Germany`.trim();
-  if (!slot.appointment_id) return;
-  const appt = takvimAppts.find(a => a.id === slot.appointment_id);
-  if (!appt?.strasse) return;
-  const toAddr = `${appt.strasse} ${appt.plz||''} Germany`.trim();
+async function geocodeTomTom(query) {
+  const tk = localStorage.getItem('mb_tomtom_key') || DEFAULT_TOMTOM_KEY;
+  if (!tk || !String(query || '').trim()) return null;
+  try {
+    const url = `https://api.tomtom.com/search/2/geocode/${encodeURIComponent(query)}.json?key=${tk}&countrySet=DE&limit=1`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.results?.[0]?.position || null;
+  } catch (_) { return null; }
+}
+
+async function routeTomTomCoords(p1, p2) {
+  const tk = localStorage.getItem('mb_tomtom_key') || DEFAULT_TOMTOM_KEY;
+  if (!tk || !p1?.lat || !p2?.lat) return null;
+  try {
+    const url = `https://api.tomtom.com/routing/1/calculateRoute/${p1.lat},${p1.lon}:${p2.lat},${p2.lon}/json?key=${tk}&travelMode=car`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const s = data?.routes?.[0]?.summary;
+    if (!s) return null;
+    return { d: s.lengthInMeters, t: s.travelTimeInSeconds };
+  } catch (_) { return null; }
+}
+
+async function measureSlotDistance(slotId) {
+  const slot = takvimSlots.find((s) => s.id === slotId);
+  const appt = takvimAppts.find((a) => a.id === slot?.appointment_id);
+  const el = document.getElementById(`dist-${slotId}`);
+  if (!slot || !appt) {
+    toast('Bu slotta randevu yok', 'warn');
+    return;
+  }
+  if (!currentContact || (!currentContact.address && !currentContact.plz)) {
+    toast('Dialer\'da açık müşteri veya adres/PLZ yok', 'warn');
+    return;
+  }
+  if (el) el.textContent = '…';
+  const fromAddr = [currentContact.address, currentContact.plz, currentContact.city, 'Germany'].filter(Boolean).join(', ');
+  const toAddr = [appt.strasse, appt.plz, appt.ortschaft, 'Germany'].filter(Boolean).join(', ');
   const dist = await calcTomTomDistance(fromAddr, toAddr);
-  if (dist && el) el.textContent = `📍 ${dist}`;
+  if (el) el.textContent = dist ? `📍 ${dist}` : '—';
+  if (!dist) toast('Mesafe alınamadı (TomTom anahtarı veya adres)', 'warn');
+}
+
+async function toggleTakvimDistAll(slotId) {
+  if (_takvimDistAllOriginId === slotId) {
+    _takvimDistAllOriginId = null;
+    renderTakvimSlots();
+    toast('Çoklu uzaklık kapatıldı', 'ok');
+    return;
+  }
+  const slot = takvimSlots.find((s) => s.id === slotId);
+  const appt = takvimAppts.find((a) => a.id === slot?.appointment_id);
+  if (!appt?.plz) {
+    toast('Kaynak randevuda PLZ yok', 'warn');
+    return;
+  }
+  _takvimDistAllOriginId = slotId;
+  renderTakvimSlots();
+  toast('Diğer terminlere uzaklık hesaplanıyor…', 'ok');
+  const others = takvimSlots.filter((s) => s.id !== slotId && s.durum === 'dolu' && s.appointment_id);
+  for (const s of others) {
+    const da = takvimAppts.find((a) => a.id === s.appointment_id);
+    if (!da?.plz) continue;
+    const key = `${appt.plz}_${da.plz}`;
+    if (_takvimPlzRouteCache[key]) continue;
+    try {
+      const g1 = await geocodeTomTom(`${appt.plz}, Germany`);
+      const g2 = await geocodeTomTom(`${da.plz}, Germany`);
+      if (!g1 || !g2) continue;
+      const rt = await routeTomTomCoords(g1, g2);
+      if (rt) _takvimPlzRouteCache[key] = { km: (rt.d / 1000).toFixed(1), min: Math.round(rt.t / 60) };
+    } catch (_) {}
+  }
+  renderTakvimSlots();
+}
+
+async function nudgeTakvimSlot(slotId, deltaMin) {
+  const slot = takvimSlots.find((s) => s.id === slotId);
+  if (!slot || slot.gun_kapali) return;
+  const role = currentUser?.role || '';
+  if (!['admin', 'super_admin', 'firm_admin'].includes(role)) return;
+  const sh = (slot.baslangic_saat || '09:00').slice(0, 5);
+  const eh = (slot.bitis_saat || takvimAddHours(sh, takvimSlotDurHours())).slice(0, 5);
+  const startMin = takvimTimeToMinutes(sh);
+  const endMin = takvimTimeToMinutes(eh);
+  const dur = endMin - startMin;
+  if (dur <= 0) return;
+  let ns = startMin + deltaMin;
+  let ne = ns + dur;
+  const tset = getCampaignTakvimSettings();
+  const dayStart = tset.startH * 60;
+  const dayEnd = tset.endH * 60 + 60;
+  if (ns < dayStart) {
+    toast('Gün başlangıcından önce taşınamaz', 'warn');
+    return;
+  }
+  if (ne > dayEnd) {
+    toast('Gün bitişinden sonra taşınamaz', 'warn');
+    return;
+  }
+  const newStart = takvimMinutesToHHMM(ns);
+  const newEnd = takvimMinutesToHHMM(ne);
+  try {
+    await sb(`takvim_slots?id=eq.${slotId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ baslangic_saat: newStart, bitis_saat: newEnd })
+    });
+    await loadTakvimSlots();
+    toast(`Slot ${deltaMin > 0 ? '+' : ''}${deltaMin} dk kaydırıldı`, 'ok');
+  } catch (e) {
+    toast('Kaydırma hatası: ' + (e?.message || ''), 'err');
+  }
 }
 
 // ── Import Appts ──────────────────────────────
