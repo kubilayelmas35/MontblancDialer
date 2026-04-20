@@ -224,7 +224,7 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const host = document.getElementById('muh-agent-perf-wrap');
   if (!host) return;
   const role = String(currentUser?.role || '').trim().toLowerCase();
-  if (!['agent', 'qc', 'admin', 'firm_admin', 'super_admin'].includes(role)) {
+  if (!['agent', 'qc', 'admin', 'firm_admin', 'super_admin', 'field_agent'].includes(role)) {
     host.style.display = 'none';
     host.innerHTML = '';
     aspDestroyCharts();

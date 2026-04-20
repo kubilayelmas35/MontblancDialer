@@ -4383,6 +4383,22 @@ async function tickInboundTestSimulation() {
   const autoIds = typeof getAutoDialCampaignIds === 'function' ? getAutoDialCampaignIds() : [];
   const sc = typeof selectedCampId !== 'undefined' && selectedCampId ? selectedCampId : null;
   const campIdsForPool = autoIds.length ? autoIds : sc ? [sc] : [];
+  // Kampanyada aranacak gerçek kayıt varsa gelen test simülasyonunu sustur.
+  if (campIdsForPool.length) {
+    const inf =
+      campIdsForPool.length === 1
+        ? `campaign_id=eq.${campIdsForPool[0]}`
+        : `campaign_id=in.(${campIdsForPool.join(',')})`;
+    const nowIso = new Date().toISOString();
+    const outboundPool =
+      (await sb(
+        `contacts?firm_id=eq.${fid}&${inf}` +
+        `&status=in.(pending,no_answer,callback)` +
+        `&or=(callback_at.is.null,callback_at.lte.${nowIso})` +
+        `&select=id&limit=1`
+      ).catch(() => [])) || [];
+    if (outboundPool.length) return;
+  }
   let contacts = [];
   if (campIdsForPool.length) {
     const inf =
