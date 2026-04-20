@@ -4473,6 +4473,9 @@ align-items:center; justify-content:center;
 padding:16px;
 }
 #takvim-popup-overlay.open { display:flex; }
+body.takvim-move-pick #takvim-popup-overlay.open #takvim-popup {
+  box-shadow: 0 20px 60px #00000080, inset 0 0 0 2px var(--yellow, #ca8a04);
+}
 #takvim-popup {
 background:var(--bg-2); border:1px solid var(--border-2);
 border-radius:var(--radius); width:100%; max-width:1100px;

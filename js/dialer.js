@@ -5313,6 +5313,7 @@ async function openTakvimOverlay() {
 function closeTakvimOverlay() {
   const ov = document.getElementById('takvim-popup-overlay');
   if (ov) ov.classList.remove('open');
+  if (typeof takvimClearMovePickMode === 'function') takvimClearMovePickMode();
   // Ana sayfaya geçince grid ID'leri resetle
   window._takvimGridId     = 'takvim-grid';
   window._takvimScrollId   = 'takvim-scroll';

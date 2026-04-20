@@ -274,7 +274,13 @@ async function renderInlineTerminCustomerField(selectedId) {
   wrap.innerHTML = _renderCustomerField(ctx, 'tf2-customer');
 }
 
+function takvimClearMovePickMode() {
+  window._takvimMovePick = null;
+  document.body.classList.remove('takvim-move-pick');
+}
+
 async function loadTakvimPage() {
+  takvimClearMovePickMode();
   const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
   const ovOpen = document.getElementById('takvim-popup-overlay')?.classList.contains('open');
   if (!ovOpen) {
@@ -318,6 +324,7 @@ async function loadTakvimPage() {
 }
 
 function onTakvimCampChange(campId) {
+  takvimClearMovePickMode();
   takvimCampId = campId;
   // Hem ana sayfa select'ini hem overlay select'ini güncelle
   ['takvim-camp-select','takvim-camp-select-ov'].forEach(id => {
@@ -331,6 +338,7 @@ function onTakvimCampChange(campId) {
 }
 
 function setTakvimView(v) {
+  takvimClearMovePickMode();
   takvimView = v;
   ['day','week','month'].forEach(x=>{
     const b = document.getElementById(`tv-${x}-btn`);
@@ -342,6 +350,7 @@ function setTakvimView(v) {
 }
 
 function takvimPrev() {
+  takvimClearMovePickMode();
   if (takvimView==='day') takvimDate.setDate(takvimDate.getDate()-1);
   else if (takvimView==='week') takvimDate.setDate(takvimDate.getDate()-7);
   else takvimDate.setMonth(takvimDate.getMonth()-1);
@@ -351,6 +360,7 @@ function takvimPrev() {
 }
 
 function takvimNext() {
+  takvimClearMovePickMode();
   if (takvimView==='day') takvimDate.setDate(takvimDate.getDate()+1);
   else if (takvimView==='week') takvimDate.setDate(takvimDate.getDate()+7);
   else takvimDate.setMonth(takvimDate.getMonth()+1);
@@ -360,6 +370,7 @@ function takvimNext() {
 }
 
 function takvimGoToday() {
+  takvimClearMovePickMode();
   takvimDate = new Date(); takvimDate.setHours(0,0,0,0);
   takvimSlots=[]; takvimAppts=[];
   renderTakvimGrid();
@@ -680,8 +691,25 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
   const canQuickAdd = canShift;
   if (slot.durum==='bos') {
     el.innerHTML = `<div style="font-weight:700;opacity:.9;">+ Boş ${slot.baslangic_saat.slice(0,5)}</div>${canShift ? takvimSlotMoveMarkup(slot.id) : ''}${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}`;
-    el.onclick = (ev) => {
+    el.onclick = async (ev) => {
       ev.stopPropagation();
+      const pick = window._takvimMovePick;
+      if (
+        pick &&
+        String(slot.campaign_id || '') === String(pick.campaignId || '') &&
+        slot.id !== pick.fromSlotId &&
+        slot.durum === 'bos' &&
+        !slot.gun_kapali &&
+        !slot.alta_tasindi
+      ) {
+        if (!(await mbConfirm('Randevuyu bu slota taşımak istiyor musunuz?', 'Randevuyu taşı'))) return;
+        const ok = await takvimExecuteMoveAppointment(pick.fromSlotId, slot.id, pick.apptId);
+        if (!ok) return;
+        takvimClearMovePickMode();
+        await loadTakvimSlots();
+        toast('Randevu taşındı ✓', 'ok');
+        return;
+      }
       if (isAdmin) openTakvimSlotDetail(slot, null);
       else lockAndBookSlot(slot);
     };
@@ -1294,30 +1322,102 @@ async function takvimSaveChangeCampaign(slotId, apptId) {
   }
 }
 
+function _takvimAddDays(dateObj, deltaDays) {
+  const d = new Date(dateObj);
+  d.setDate(d.getDate() + deltaDays);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** Taşıma hedefi için ekrandaki haftadan bağımsız geniş aralıkta boş slotlar */
+async function takvimFetchEmptySlotsForMove(campaignId, centerDate) {
+  const c = centerDate instanceof Date ? new Date(centerDate) : new Date(centerDate);
+  if (Number.isNaN(c.getTime())) c.setTime(Date.now());
+  c.setHours(0, 0, 0, 0);
+  const startD = takvimFmtD(_takvimAddDays(c, -42));
+  const endD = takvimFmtD(_takvimAddDays(c, 84));
+  const q = `takvim_slots?campaign_id=eq.${campaignId}&durum=eq.bos&gun_kapali=eq.false&tarih=gte.${startD}&tarih=lte.${endD}&order=tarih.asc,baslangic_saat.asc&select=id,tarih,baslangic_saat,bitis_saat,campaign_id,durum,gun_kapali,alta_tasindi,appointment_id`;
+  const rows = await sb(q);
+  const list = Array.isArray(rows) ? rows : [];
+  return list.filter(
+    (s) =>
+      s &&
+      s.durum === 'bos' &&
+      !s.gun_kapali &&
+      !s.alta_tasindi &&
+      (s.appointment_id == null || s.appointment_id === '')
+  );
+}
+
+async function takvimExecuteMoveAppointment(fromSlotId, toSlotId, apptId) {
+  const chk = await sb(`takvim_slots?id=eq.${toSlotId}&select=id,durum,appointment_id&limit=1`);
+  const t = chk?.[0];
+  if (!t || t.durum !== 'bos' || (t.appointment_id != null && String(t.appointment_id) !== '')) {
+    toast('Hedef slot artık uygun değil; takvimi yenileyin.', 'warn');
+    return false;
+  }
+  const srcRows = await sb(`takvim_slots?id=eq.${fromSlotId}&select=id,durum,appointment_id&limit=1`);
+  const s0 = srcRows?.[0];
+  if (!s0 || s0.durum !== 'dolu' || String(s0.appointment_id || '') !== String(apptId)) {
+    toast('Kaynak slot güncellenmiş; takvimi yenileyin.', 'warn');
+    return false;
+  }
+  const emptyPatch = {
+    durum: 'bos',
+    appointment_id: null,
+    alta_tasindi: false,
+    kilitli_agent_id: null,
+    kilitli_at: null
+  };
+  const fillPatch = {
+    durum: 'dolu',
+    appointment_id: apptId,
+    alta_tasindi: false,
+    kilitli_agent_id: null,
+    kilitli_at: null
+  };
+  try {
+    await sb(`takvim_slots?id=eq.${fromSlotId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify(emptyPatch)
+    });
+    await sb(`takvim_slots?id=eq.${toSlotId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify(fillPatch)
+    });
+    return true;
+  } catch (e) {
+    try {
+      await sb(`takvim_slots?id=eq.${fromSlotId}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify(fillPatch)
+      });
+    } catch (_) {}
+    toast('Taşıma hatası: ' + e.message, 'err');
+    return false;
+  }
+}
+
+function takvimStartMovePickFromModal(fromSlotId, apptId, campaignId) {
+  document.getElementById('m-takvim-move-appt')?.remove();
+  window._takvimMovePick = { fromSlotId, apptId, campaignId: String(campaignId || '') };
+  document.body.classList.add('takvim-move-pick');
+  toast('Taşımak için aynı kampanyadaki boş slota tıklayın.', 'ok');
+}
+
 async function openTakvimMoveAppointmentModal(slot, appt) {
   if (!['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '')) return;
   document.getElementById('m-takvim-move-appt')?.remove();
-  const camp = String(slot.campaign_id || '');
-  const targets = takvimSlots
-    .filter(
-      (s) =>
-        s.durum === 'bos' &&
-        !s.gun_kapali &&
-        !s.alta_tasindi &&
-        s.id !== slot.id &&
-        String(s.campaign_id || '') === camp
-    )
-    .sort((a, b) => `${a.tarih} ${a.baslangic_saat}`.localeCompare(`${b.tarih} ${b.baslangic_saat}`));
-  if (!targets.length) {
-    toast('Aynı kampanyada uygun boş slot yok', 'warn');
+  const camp = String(slot.campaign_id || takvimCampId || '');
+  if (!camp) {
+    toast('Kampanya bilgisi yok', 'warn');
     return;
   }
-  const opts = targets
-    .map(
-      (s) =>
-        `<option value="${s.id}">${s.tarih} · ${String(s.baslangic_saat || '').slice(0, 5)}–${String(s.bitis_saat || '').slice(0, 5)}</option>`
-    )
-    .join('');
+  const sid = slot.id;
+  const aid = appt.id;
   const m = document.createElement('div');
   m.id = 'm-takvim-move-appt';
   m.className = 'modal-overlay open';
@@ -1325,17 +1425,66 @@ async function openTakvimMoveAppointmentModal(slot, appt) {
     '<div class="modal" style="max-width:440px;">' +
     '<div class="modal-hdr"><div class="modal-title">Randevuyu taşı</div>' +
     '<button type="button" class="modal-close" onclick="document.getElementById(\'m-takvim-move-appt\')?.remove()">✕</button></div>' +
-    '<div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;">' +
-    '<div class="form-row"><label class="form-label">Hedef boş slot</label>' +
-    '<select class="form-input" id="tma-sel">' +
-    opts +
-    '</select></div>' +
-    '<div style="font-size:11px;color:var(--text-3);">Aynı kampanyadaki boş slotlardan birini seçin; mevcut slot boşalır.</div></div>' +
-    '<div class="modal-footer">' +
+    '<div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;" id="tma-body">' +
+    '<div style="font-size:13px;color:var(--text-2);">Boş slotlar yükleniyor…</div></div>' +
+    '<div class="modal-footer" id="tma-footer" style="display:none;">' +
     '<button type="button" class="btn btn-ghost" onclick="document.getElementById(\'m-takvim-move-appt\')?.remove()">İptal</button>' +
-    `<button type="button" class="btn btn-primary" onclick="takvimSaveMoveAppointment('${slot.id}','${appt.id}')">Taşı</button>` +
+    `<button type="button" class="btn btn-primary" onclick="takvimSaveMoveAppointment('${sid}','${aid}')">Taşı</button>` +
     '</div></div>';
   document.body.appendChild(m);
+  let center = takvimDate;
+  if (slot.tarih && /^\d{4}-\d{2}-\d{2}$/.test(String(slot.tarih))) {
+    const p = String(slot.tarih).split('-').map(Number);
+    center = new Date(p[0], p[1] - 1, p[2]);
+    center.setHours(0, 0, 0, 0);
+  }
+  let targets = [];
+  try {
+    targets = (await takvimFetchEmptySlotsForMove(camp, center)).filter((s) => s.id !== sid);
+  } catch (e) {
+    const body = document.getElementById('tma-body');
+    if (body) body.innerHTML = `<div style="color:var(--red);font-size:13px;">Yüklenemedi: ${String(e.message || e)}</div>`;
+    return;
+  }
+  const body = document.getElementById('tma-body');
+  const footer = document.getElementById('tma-footer');
+  if (!targets.length) {
+    if (body) {
+      body.innerHTML =
+        '<div style="font-size:13px;color:var(--text-2);line-height:1.45;">Bu tarih aralığında uygun boş slot bulunamadı. İsterseniz takvimde bir boş slota tıklayarak taşıyın.</div>' +
+        `<div style="margin-top:12px;"><button type="button" class="btn btn-primary" onclick="takvimStartMovePickFromModal('${sid}','${aid}','${camp}')">Takvimde seç</button></div>`;
+    }
+    if (footer) footer.style.display = 'none';
+    return;
+  }
+  const byDate = new Map();
+  targets.forEach((s) => {
+    const k = s.tarih || '';
+    if (!byDate.has(k)) byDate.set(k, []);
+    byDate.get(k).push(s);
+  });
+  let opts = '';
+  for (const [d, arr] of byDate) {
+    opts +=
+      `<optgroup label="${d}">` +
+      arr
+        .map(
+          (s) =>
+            `<option value="${s.id}">${String(s.baslangic_saat || '').slice(0, 5)}–${String(s.bitis_saat || '').slice(0, 5)}</option>`
+        )
+        .join('') +
+      '</optgroup>';
+  }
+  if (body) {
+    body.innerHTML =
+      '<div class="form-row"><label class="form-label">Hedef boş slot</label>' +
+      '<select class="form-input" id="tma-sel">' +
+      opts +
+      '</select></div>' +
+      '<div style="font-size:11px;color:var(--text-3);">Aynı kampanya; yakın tarihlerdeki boş slotlar (ekrandaki haftadan geniş). Mevcut slot boşalır.</div>' +
+      `<div style="margin-top:10px;"><button type="button" class="btn btn-ghost" onclick="takvimStartMovePickFromModal('${sid}','${aid}','${camp}')">Takvimde tıkla</button></div>`;
+  }
+  if (footer) footer.style.display = '';
 }
 
 async function takvimSaveMoveAppointment(fromSlotId, apptId) {
@@ -1345,35 +1494,12 @@ async function takvimSaveMoveAppointment(fromSlotId, apptId) {
     return;
   }
   if (!(await mbConfirm('Randevu seçilen boş slota taşınsın mı?', 'Randevuyu taşı'))) return;
-  try {
-    await sb(`takvim_slots?id=eq.${fromSlotId}`, {
-      method: 'PATCH',
-      prefer: 'return=minimal',
-      body: JSON.stringify({
-        durum: 'bos',
-        appointment_id: null,
-        alta_tasindi: false,
-        kilitli_agent_id: null,
-        kilitli_at: null
-      })
-    });
-    await sb(`takvim_slots?id=eq.${toId}`, {
-      method: 'PATCH',
-      prefer: 'return=minimal',
-      body: JSON.stringify({
-        durum: 'dolu',
-        appointment_id: apptId,
-        alta_tasindi: false,
-        kilitli_agent_id: null,
-        kilitli_at: null
-      })
-    });
-    document.getElementById('m-takvim-move-appt')?.remove();
-    await loadTakvimSlots();
-    toast('Randevu taşındı ✓', 'ok');
-  } catch (e) {
-    toast('Hata: ' + e.message, 'err');
-  }
+  const ok = await takvimExecuteMoveAppointment(fromSlotId, toId, apptId);
+  if (!ok) return;
+  takvimClearMovePickMode();
+  document.getElementById('m-takvim-move-appt')?.remove();
+  await loadTakvimSlots();
+  toast('Randevu taşındı ✓', 'ok');
 }
 
 // ── Context menu ──────────────────────────────
@@ -1385,6 +1511,10 @@ function showSlotContextMenu(e, slot, appt) {
   const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
   const isDolu = slot.durum === 'dolu' && appt;
   const items = [];
+  if (window._takvimMovePick) {
+    items.push({ icon: '', label: 'Taşımayı iptal', onClick: () => takvimClearMovePickMode(), yellow: true });
+    items.push({ sep: true });
+  }
   const isMySlot = slot.kilitli_agent_id === currentUser?.id;
   if (slot.durum === 'bos') {
     if (!isAdmin) items.push({ icon:'', label:'Termin Al', onClick: () => lockAndBookSlot(_ctxSlot) });
