@@ -116,6 +116,13 @@ async function _aspFetchAppointments(fid, uid, start, end, mode = 'termin') {
       [];
     rows = rows.filter((r) => String(r.agent_id || '') === String(uid));
   }
+  if (!rows.length && fid && currentUser?.name) {
+    const byFirm =
+      (await sb(`appointments?select=${baseSelect},agent_name&firm_id=eq.${fid}&order=created_at.desc&limit=6000`).catch(() => [])) ||
+      [];
+    const nm = String(currentUser.name || '').trim().toLowerCase();
+    rows = byFirm.filter((r) => String(r.agent_name || '').trim().toLowerCase() === nm);
+  }
   const s = `${start}T00:00:00`;
   const e = `${end}T23:59:59`;
   return rows.filter((r) => {
@@ -148,6 +155,22 @@ async function _aspFetchCalls(fid, uid, start, end) {
       return t && t >= s && t <= e;
     });
   }
+}
+
+async function _aspFetchCallsByNameFallback(fid, start, end, name) {
+  if (!fid || !name) return [];
+  const s = `${start}T00:00:00`;
+  const e = `${end}T23:59:59`;
+  const nm = String(name || '').trim().toLowerCase();
+  const rows =
+    (await sb(
+      `call_logs?select=id,started_at,outcome,duration_sec,duration_seconds,phone,campaigns(name),agent_name,firm_id&firm_id=eq.${fid}&order=started_at.desc&limit=10000`
+    ).catch(() => [])) || [];
+  return rows.filter((r) => {
+    const t = String(r.started_at || '');
+    const an = String(r.agent_name || '').trim().toLowerCase();
+    return t && t >= s && t <= e && an === nm;
+  });
 }
 
 function _aspRenderSalaryTierTable(success, tiers, rules) {
@@ -281,17 +304,25 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
     _aspFetchAppointments(fid, uid, start, end, apptMode),
     _aspFetchCalls(fid, uid, start, end),
   ]);
+  let apRows = appts || [];
+  let callRows = calls || [];
+  if (!apRows.length && fid && currentUser?.name) {
+    apRows = await _aspFetchAppointments(fid, uid, start, end, apptMode);
+  }
+  if (!callRows.length && fid && currentUser?.name) {
+    callRows = await _aspFetchCallsByNameFallback(fid, start, end, currentUser.name);
+  }
 
-  const ok = appts.filter((a) => _aspApptBucket(a.durum) === 'ok').length;
-  const pend = appts.filter((a) => _aspApptBucket(a.durum) === 'pend').length;
-  const qcN = appts.filter((a) => _aspApptBucket(a.durum) === 'qc').length;
-  const fail = appts.filter((a) => _aspApptBucket(a.durum) === 'fail').length;
-  const tot = appts.length;
+  const ok = apRows.filter((a) => _aspApptBucket(a.durum) === 'ok').length;
+  const pend = apRows.filter((a) => _aspApptBucket(a.durum) === 'pend').length;
+  const qcN = apRows.filter((a) => _aspApptBucket(a.durum) === 'qc').length;
+  const fail = apRows.filter((a) => _aspApptBucket(a.durum) === 'fail').length;
+  const tot = apRows.length;
   const rate = tot > 0 ? Math.round((ok / tot) * 100) : 0;
 
-  const cTot = calls.length;
-  const cAp = calls.filter((c) => _aspIsApptOutcome(c.outcome)).length;
-  const cAvg = cTot > 0 ? Math.round(calls.reduce((s, c) => s + _aspCallDur(c), 0) / cTot) : 0;
+  const cTot = callRows.length;
+  const cAp = callRows.filter((c) => _aspIsApptOutcome(c.outcome)).length;
+  const cAvg = cTot > 0 ? Math.round(callRows.reduce((s, c) => s + _aspCallDur(c), 0) / cTot) : 0;
   const mm = Math.floor(cAvg / 60);
   const ss = String(cAvg % 60).padStart(2, '0');
   const conv = cTot > 0 ? Math.round((cAp / cTot) * 100) : 0;
@@ -299,7 +330,7 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const dayKeys = _aspDaysInMonth(ym);
   const byDay = {};
   dayKeys.forEach((d) => { byDay[d] = { ok: 0, pend: 0, qc: 0, fail: 0, oth: 0 }; });
-  appts.forEach((a) => {
+  apRows.forEach((a) => {
     const raw = apptMode === 'created' ? a.created_at : a.termin_tarih;
     const d = String(raw || '').slice(0, 10);
     if (!byDay[d]) return;
@@ -358,7 +389,7 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
 
   const tbAp = document.getElementById('asp-tbody-ap');
   if (tbAp) {
-    const sorted = [...appts]
+    const sorted = [...apRows]
       .sort((a, b) => {
         const ka = apptMode === 'created' ? a.created_at : a.termin_tarih;
         const kb = apptMode === 'created' ? b.created_at : b.termin_tarih;
@@ -386,7 +417,7 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
 
   const tbCl = document.getElementById('asp-tbody-cl');
   if (tbCl) {
-    tbCl.innerHTML = calls.length ? calls.slice(0, 25).map((c) => {
+    tbCl.innerHTML = callRows.length ? callRows.slice(0, 25).map((c) => {
       const d = new Date(c.started_at);
       const ds = isNaN(d.getTime()) ? '—' : d.toLocaleString(loc, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
       const dur = _aspCallDur(c);

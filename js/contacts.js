@@ -222,6 +222,13 @@ async function getNextContact(campaignIds = null) {
       : [];
   if (!ids.length) return null;
   try {
+    const isUsableRealContact = (c) => {
+      if (!c) return false;
+      if (!String(c.phone || '').trim()) return false;
+      if (c.is_adhoc === true) return false;
+      if (String(c.id || '').startsWith('adhoc-')) return false;
+      return true;
+    };
     const campFilter = ids.length === 1
       ? `campaign_id=eq.${ids[0]}`
       : `campaign_id=in.(${ids.join(',')})`;
@@ -246,9 +253,9 @@ async function getNextContact(campaignIds = null) {
         if (fallback?.length) {
           for (let i = 0; i < fallback.length; i++) {
             const c = fallback[i];
-            if (c?.phone) return c;
+            if (isUsableRealContact(c)) return c;
           }
-          const any = fallback.find((x) => String(x?.phone || '').trim());
+          const any = fallback.find((x) => isUsableRealContact(x));
           if (any) return any;
         }
         // Hala bulunamadıysa firmadaki herhangi bir gerçek kişiyle test et.
@@ -260,9 +267,9 @@ async function getNextContact(campaignIds = null) {
             `&limit=30&select=*`
           ).catch(() => []);
           if (firmWide?.length) {
-            const byCamp = firmWide.find((x) => ids.includes(x?.campaign_id) && String(x?.phone || '').trim());
+            const byCamp = firmWide.find((x) => ids.includes(x?.campaign_id) && isUsableRealContact(x));
             if (byCamp) return byCamp;
-            const anyFirm = firmWide.find((x) => String(x?.phone || '').trim());
+            const anyFirm = firmWide.find((x) => isUsableRealContact(x));
             if (anyFirm) return anyFirm;
           }
         }
@@ -276,7 +283,7 @@ async function getNextContact(campaignIds = null) {
     const testRelax = typeof _testMode !== 'undefined' && _testMode;
     for (let i = 0; i < contacts.length; i++) {
       const c = contacts[i];
-      if (!c?.phone) continue;
+      if (!isUsableRealContact(c)) continue;
       if (!c.queues || c.queues.status === 'active') return c;
       if (testRelax) return c;
     }
