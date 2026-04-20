@@ -201,7 +201,28 @@ async function getNextContact(campaignIds = null) {
     : (typeof _activeCampIds !== 'undefined' && _activeCampIds.length)
       ? _activeCampIds
       : [];
-  if (!ids.length) return null;
+  if (!ids.length) {
+    // Agent tarafında bazen kampanya listesi/selection henüz oluşmadan test arama tetiklenebiliyor.
+    // Test modunda bu durumda erişilebilir herhangi bir gerçek kişiyi döndür.
+    if (typeof _testMode !== 'undefined' && _testMode) {
+      try {
+        const rows =
+          (await sb(`contacts?order=last_called_at.asc.nullsfirst&limit=120&select=*`).catch(() => [])) || [];
+        const pick = rows.find((c) => {
+          if (!c) return false;
+          if (!String(c.phone || '').trim()) return false;
+          if (c.is_adhoc === true) return false;
+          if (String(c.id || '').startsWith('adhoc-')) return false;
+          const fn = String(c.first_name || '').trim().toLowerCase();
+          const ln = String(c.last_name || '').trim().toLowerCase();
+          if ((fn === 'yeni' || fn === 'neu') && (ln === 'çağrı' || ln === 'cagri' || ln === 'anruf')) return false;
+          return true;
+        });
+        if (pick) return pick;
+      } catch (e) {}
+    }
+    return null;
+  }
   try {
     const isUsableRealContact = (c) => {
       if (!c) return false;
