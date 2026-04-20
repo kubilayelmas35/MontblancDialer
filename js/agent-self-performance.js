@@ -104,24 +104,14 @@ function _aspDaysInMonth(ym) {
 
 async function _aspFetchAppointments(fid, uid, start, end, mode = 'termin') {
   if (!uid) return [];
-  const baseSelect =
-    'id,termin_tarih,created_at,durum,nachname,telefonnummer,plz,ortschaft,agent_notu,hausart,baujahr,qm,heizung,firm_id,agent_id';
-  // Sunucu filtreleri (timezone/tip farkı nedeniyle) boş dönebildiği için geniş çekip istemcide filtreliyoruz.
+  // 400 hatasını engellemek için sadece güvenli kolonlar
+  const safeSelect = 'id,termin_tarih,created_at,durum,nachname,telefonnummer,plz,agent_id,firm_id';
   let rows =
-    (await sb(`appointments?select=${baseSelect}&agent_id=eq.${uid}&order=created_at.desc&limit=6000`).catch(() => [])) ||
+    (await sb(`appointments?select=${safeSelect}&agent_id=eq.${uid}&order=created_at.desc&limit=4000`).catch(() => [])) ||
     [];
-  if (!rows.length && fid) {
-    rows =
-      (await sb(`appointments?select=${baseSelect}&firm_id=eq.${fid}&order=created_at.desc&limit=6000`).catch(() => [])) ||
-      [];
+  if (!rows.length) {
+    rows = (await sb(`appointments?select=${safeSelect}&order=created_at.desc&limit=4000`).catch(() => [])) || [];
     rows = rows.filter((r) => String(r.agent_id || '') === String(uid));
-  }
-  if (!rows.length && fid && currentUser?.name) {
-    const byFirm =
-      (await sb(`appointments?select=${baseSelect},agent_name&firm_id=eq.${fid}&order=created_at.desc&limit=6000`).catch(() => [])) ||
-      [];
-    const nm = String(currentUser.name || '').trim().toLowerCase();
-    rows = byFirm.filter((r) => String(r.agent_name || '').trim().toLowerCase() === nm);
   }
   const s = `${start}T00:00:00`;
   const e = `${end}T23:59:59`;
@@ -136,40 +126,17 @@ async function _aspFetchCalls(fid, uid, start, end) {
   if (!uid) return [];
   const s = `${start}T00:00:00`;
   const e = `${end}T23:59:59`;
-  try {
-    const rows =
-      (await sb(
-        `call_logs?select=id,started_at,outcome,duration_sec,duration_seconds,phone,campaigns(name),firm_id,agent_id&agent_id=eq.${uid}&order=started_at.desc&limit=10000`
-      ).catch(() => [])) || [];
-    return rows.filter((r) => {
-      const t = String(r.started_at || '');
-      return t && t >= s && t <= e;
-    });
-  } catch (e1) {
-    const simple =
-      (await sb(
-        `call_logs?select=id,started_at,outcome,duration_sec,duration_seconds,phone,firm_id,agent_id&agent_id=eq.${uid}&order=started_at.desc&limit=10000`
-      ).catch(() => [])) || [];
-    return simple.filter((r) => {
-      const t = String(r.started_at || '');
-      return t && t >= s && t <= e;
-    });
+  const safeSelect = 'id,started_at,outcome,duration_sec,duration_seconds,phone,agent_id,firm_id,campaign_id';
+  let rows =
+    (await sb(`call_logs?select=${safeSelect}&agent_id=eq.${uid}&order=started_at.desc&limit=8000`).catch(() => [])) ||
+    [];
+  if (!rows.length) {
+    rows = (await sb(`call_logs?select=${safeSelect}&order=started_at.desc&limit=8000`).catch(() => [])) || [];
+    rows = rows.filter((r) => String(r.agent_id || '') === String(uid));
   }
-}
-
-async function _aspFetchCallsByNameFallback(fid, start, end, name) {
-  if (!fid || !name) return [];
-  const s = `${start}T00:00:00`;
-  const e = `${end}T23:59:59`;
-  const nm = String(name || '').trim().toLowerCase();
-  const rows =
-    (await sb(
-      `call_logs?select=id,started_at,outcome,duration_sec,duration_seconds,phone,campaigns(name),agent_name,firm_id&firm_id=eq.${fid}&order=started_at.desc&limit=10000`
-    ).catch(() => [])) || [];
   return rows.filter((r) => {
     const t = String(r.started_at || '');
-    const an = String(r.agent_name || '').trim().toLowerCase();
-    return t && t >= s && t <= e && an === nm;
+    return t && t >= s && t <= e;
   });
 }
 
@@ -304,14 +271,8 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
     _aspFetchAppointments(fid, uid, start, end, apptMode),
     _aspFetchCalls(fid, uid, start, end),
   ]);
-  let apRows = appts || [];
-  let callRows = calls || [];
-  if (!apRows.length && fid && currentUser?.name) {
-    apRows = await _aspFetchAppointments(fid, uid, start, end, apptMode);
-  }
-  if (!callRows.length && fid && currentUser?.name) {
-    callRows = await _aspFetchCallsByNameFallback(fid, start, end, currentUser.name);
-  }
+  const apRows = appts || [];
+  const callRows = calls || [];
 
   const ok = apRows.filter((a) => _aspApptBucket(a.durum) === 'ok').length;
   const pend = apRows.filter((a) => _aspApptBucket(a.durum) === 'pend').length;
@@ -422,7 +383,8 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
       const ds = isNaN(d.getTime()) ? '—' : d.toLocaleString(loc, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
       const dur = _aspCallDur(c);
       const dm = `${Math.floor(dur / 60)}:${String(dur % 60).padStart(2, '0')}`;
-      return `<tr><td class="td-mono">${ds}</td><td class="td-mono">${_uiEsc(c.phone || '—')}</td><td>${_uiEsc(c.campaigns?.name || '—')}</td><td>${_uiEsc(om[c.outcome] || c.outcome || '—')}</td><td class="td-mono">${dm}</td></tr>`;
+      const campName = campaigns?.find?.((x) => String(x.id) === String(c.campaign_id))?.name || '—';
+      return `<tr><td class="td-mono">${ds}</td><td class="td-mono">${_uiEsc(c.phone || '—')}</td><td>${_uiEsc(campName)}</td><td>${_uiEsc(om[c.outcome] || c.outcome || '—')}</td><td class="td-mono">${dm}</td></tr>`;
     }).join('') : `<tr><td colspan="5" style="text-align:center;padding:16px;">—</td></tr>`;
   }
 

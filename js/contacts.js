@@ -227,6 +227,9 @@ async function getNextContact(campaignIds = null) {
       if (!String(c.phone || '').trim()) return false;
       if (c.is_adhoc === true) return false;
       if (String(c.id || '').startsWith('adhoc-')) return false;
+      const fn = String(c.first_name || '').trim().toLowerCase();
+      const ln = String(c.last_name || '').trim().toLowerCase();
+      if ((fn === 'yeni' || fn === 'neu') && (ln === 'çağrı' || ln === 'cagri' || ln === 'anruf')) return false;
       return true;
     };
     const campFilter = ids.length === 1
@@ -234,7 +237,25 @@ async function getNextContact(campaignIds = null) {
       : `campaign_id=in.(${ids.join(',')})`;
     const nowIso = new Date().toISOString();
 
-    // Önce bekleyen / cevap yok / vakti gelen geri aramalar
+    // Test modunda önce kampanyadaki gerçek kişileri doğrudan dene
+    if (typeof _testMode !== 'undefined' && _testMode) {
+      const allInCamp =
+        (await sb(
+          `contacts?${campFilter}` +
+          `&order=last_called_at.asc.nullsfirst` +
+          `&limit=80&select=*`
+        ).catch(() => [])) || [];
+      if (allInCamp.length) {
+        const preferred = allInCamp.find((c) =>
+          isUsableRealContact(c) && ['pending', 'no_answer', 'callback'].includes(String(c.status || '').toLowerCase())
+        );
+        if (preferred) return preferred;
+        const anyReal = allInCamp.find((c) => isUsableRealContact(c));
+        if (anyReal) return anyReal;
+      }
+    }
+
+    // Normal akış: önce bekleyen / cevap yok / vakti gelen geri aramalar
     const contacts = await sb(
       `contacts?${campFilter}` +
       `&status=in.(pending,no_answer,callback)` +
