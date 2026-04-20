@@ -399,7 +399,58 @@ async function loadTakvimSlots() {
     takvimSlots.filter(s=>s.gun_kapali).forEach(s=>{ takvimClosedDays[s.tarih]=true; });
     renderTakvimGrid();
     renderTakvimFailed();
+    requestAnimationFrame(() => {
+      takvimApplyWeekRowHeights();
+      requestAnimationFrame(takvimApplyWeekRowHeights);
+    });
   } catch(e) { toast('Takvim hatası: '+e.message,'err'); }
+}
+
+/** Hafta/gün görünümünde kaydırmasız sığdırmak için scroll alanı yüksekliği (px) */
+function takvimWeekScrollAvailablePx() {
+  const sid = window._takvimScrollId || 'takvim-scroll';
+  const sc = document.getElementById(sid);
+  if (!sc) return Math.max(280, Math.floor(window.innerHeight * 0.48));
+  const h = sc.getBoundingClientRect().height || sc.clientHeight;
+  if (h >= 72) return Math.floor(h);
+  const p = sc.parentElement;
+  if (p && p.children.length) {
+    const ph = p.getBoundingClientRect().height || p.clientHeight;
+    let other = 0;
+    for (const c of p.children) {
+      if (c !== sc) other += c.getBoundingClientRect().height || c.offsetHeight || 0;
+    }
+    const guess = Math.floor(ph - other);
+    if (guess >= 72) return guess;
+  }
+  return Math.max(260, Math.floor(window.innerHeight * 0.42));
+}
+
+function takvimApplyWeekRowHeights() {
+  if (takvimView === 'month') return;
+  const gid = window._takvimGridId || 'takvim-grid';
+  const grid = document.getElementById(gid);
+  const inner = grid?.querySelector('.takvim-week-grid-inner');
+  if (!inner) return;
+  const numHrs = parseInt(inner.dataset.takvimHrs || '0', 10);
+  if (!numHrs) return;
+  const header = parseInt(inner.dataset.takvimHdr || '40', 10);
+  const avail = takvimWeekScrollAvailablePx();
+  const rowH = Math.max(22, Math.floor((avail - header) / numHrs));
+  inner.style.gridTemplateRows = `${header}px repeat(${numHrs}, ${rowH}px)`;
+}
+
+function _ensureTakvimWeekResizeListener() {
+  if (window._takvimWeekResizeBound) return;
+  window._takvimWeekResizeBound = true;
+  window.addEventListener('resize', () => {
+    if (takvimView === 'month') return;
+    const pg = document.getElementById('page-takvim');
+    const ov = document.getElementById('takvim-popup-overlay');
+    if (!pg?.classList.contains('active') && !ov?.classList.contains('open')) return;
+    clearTimeout(window._takvimWeekResizeTimer);
+    window._takvimWeekResizeTimer = setTimeout(takvimApplyWeekRowHeights, 120);
+  });
 }
 
 function renderTakvimGrid() {
@@ -426,8 +477,10 @@ function renderTakvimGrid() {
   const endH = tset.endH;
   const numHrs = Math.max(1, endH - shH + 1);
   const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
-  const rowMinPx = 48;
-  let h = `<div class="takvim-week-grid-inner" style="display:grid;width:100%;height:100%;min-height:0;box-sizing:border-box;grid-template-columns:52px repeat(${daysCount},minmax(0,1fr));grid-template-rows:auto repeat(${numHrs},minmax(${rowMinPx}px,1fr));">`;
+  const headerRowPx = 40;
+  const availPx = takvimWeekScrollAvailablePx();
+  const rowH = Math.max(22, Math.floor((availPx - headerRowPx) / numHrs));
+  let h = `<div class="takvim-week-grid-inner" data-takvim-hrs="${numHrs}" data-takvim-hdr="${headerRowPx}" style="display:grid;width:100%;min-height:0;box-sizing:border-box;grid-template-columns:52px repeat(${daysCount},minmax(0,1fr));grid-template-rows:${headerRowPx}px repeat(${numHrs},${rowH}px);">`;
   h += '<div style="background:var(--bg-3);border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 4px;"></div>';
   for (let d=0; d<daysCount; d++) {
     const dt = new Date(startDt); dt.setDate(dt.getDate()+d);
@@ -456,6 +509,11 @@ function renderTakvimGrid() {
   }
   h += '</div>'; grid.innerHTML = h;
   renderTakvimSlots();
+  _ensureTakvimWeekResizeListener();
+  requestAnimationFrame(() => {
+    takvimApplyWeekRowHeights();
+    requestAnimationFrame(takvimApplyWeekRowHeights);
+  });
 }
 
 function renderTakvimMonthGrid(grid) {
