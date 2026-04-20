@@ -217,11 +217,24 @@ async function getNextContact(campaignIds = null) {
     // Eski/karma veride contact.campaign_id boş, sadece queue_id dolu olabilir.
     let queueIds = [];
     try {
-      const qRows =
-        (await sb(
-          `queues?${qFilter}&select=id&limit=500`
-        ).catch(() => [])) || [];
-      queueIds = qRows.map((q) => q.id).filter(Boolean);
+      let qRows = [];
+      for (let i = 0; i < idList.length; i++) {
+        const cid = idList[i];
+        const rows =
+          (await sb(
+            `queues?campaign_id=eq.${cid}&select=id&limit=500`
+          ).catch(() => [])) || [];
+        if (rows.length) qRows = qRows.concat(rows);
+      }
+      const seenQ = new Set();
+      queueIds = qRows
+        .map((q) => q.id)
+        .filter((id) => {
+          const k = String(id || '');
+          if (!k || seenQ.has(k)) return false;
+          seenQ.add(k);
+          return true;
+        });
     } catch (e) {}
     const fetchScopedContacts = async (extraFilters = '', limit = 80) => {
       let out = [];
@@ -304,6 +317,13 @@ async function getNextContact(campaignIds = null) {
             if (anyFirm) return anyFirm;
           }
         }
+        // Son çare: filtreyi tamamen bırak, erişebildiğimiz gerçek kaydı kullan.
+        const absoluteFallback =
+          (await sb(
+            `contacts?order=last_called_at.asc.nullsfirst&limit=120&select=*`
+          ).catch(() => [])) || [];
+        const anyAbsolute = absoluteFallback.find((x) => isUsableRealContact(x));
+        if (anyAbsolute) return anyAbsolute;
         // Test modunda sentetik kişi üretme: veri yoksa boş kuyruk dön.
         return null;
       }
