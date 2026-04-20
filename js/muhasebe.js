@@ -29,14 +29,14 @@ function _mPayrollTableWrap() {
 }
 
 function canViewMaasimPage() {
-  const role = currentUser?.role || '';
+  const role = String(currentUser?.role || '').trim().toLowerCase();
   if (!['agent', 'qc', 'admin', 'firm_admin', 'super_admin'].includes(role)) return false;
   // Bu sayfalar rol bazlı çalışmalı; eksik permission kaydı ekranı boş bırakmamalı.
   return true;
 }
 
 function canViewPerformansimPage() {
-  const role = currentUser?.role || '';
+  const role = String(currentUser?.role || '').trim().toLowerCase();
   if (!['agent', 'qc', 'admin', 'firm_admin', 'super_admin'].includes(role)) return false;
   // Bu sayfalar rol bazlı çalışmalı; eksik permission kaydı ekranı boş bırakmamalı.
   return true;

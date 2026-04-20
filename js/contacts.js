@@ -240,7 +240,7 @@ async function getNextContact(campaignIds = null) {
         // Test modunda: uygun statüde kayıt yoksa kampanyadaki gerçek kayıttan devam et.
         const fallback = await sb(
           `contacts?${campFilter}` +
-          `&order=updated_at.desc.nullslast,last_called_at.asc.nullsfirst` +
+          `&order=last_called_at.asc.nullsfirst` +
           `&limit=20&select=*`
         ).catch(() => []);
         if (fallback?.length) {
@@ -256,7 +256,7 @@ async function getNextContact(campaignIds = null) {
         if (fid) {
           const firmWide = await sb(
             `contacts?firm_id=eq.${fid}` +
-            `&order=updated_at.desc.nullslast,last_called_at.asc.nullsfirst` +
+            `&order=last_called_at.asc.nullsfirst` +
             `&limit=30&select=*`
           ).catch(() => []);
           if (firmWide?.length) {

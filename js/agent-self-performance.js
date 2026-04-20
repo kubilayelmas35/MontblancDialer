@@ -223,7 +223,8 @@ ${_aspRenderSalaryTierTable(noTermin ? 0 : success, salaryTiersRaw, rules)}
 async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const host = document.getElementById('muh-agent-perf-wrap');
   if (!host) return;
-  if (!['agent', 'qc', 'admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '')) {
+  const role = String(currentUser?.role || '').trim().toLowerCase();
+  if (!['agent', 'qc', 'admin', 'firm_admin', 'super_admin'].includes(role)) {
     host.style.display = 'none';
     host.innerHTML = '';
     aspDestroyCharts();
