@@ -808,6 +808,34 @@ query += `&started_at=lte.${dateTo}T23:59:59`;
 if (outcome) query += outcome==='appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
 if (agentFilter) query += `&agent_id=eq.${agentFilter}`;
 const logs = await sb(query) || [];
+const logDurSec = (l) => Math.max(0, Number(l?.duration_sec ?? l?.duration_seconds ?? 0) || 0);
+const isFakeRec = (l) => {
+  const noRec = !String(l?.recording_url || '').trim();
+  const dur = logDurSec(l);
+  const explicitTest =
+    l?.is_test === true ||
+    l?.is_inbound_test === true ||
+    String(l?.notes || '').toLowerCase().includes('test');
+  if (typeof _isFakeRecordingRow === 'function') return _isFakeRecordingRow(l);
+  return !!(noRec && (explicitTest || (_testMode && dur >= 8)));
+};
+const recHtmlFor = (l, scope) => {
+  if (l.recording_url) {
+    if (scope === 'ch') {
+      return `<div style="display:flex;align-items:center;gap:4px;">
+<audio id="ch-aud-${l.id}" src="${l.recording_url}" preload="none" style="display:none;"></audio>
+<button onclick="toggleAudio('ch-aud-${l.id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--text-2);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;"><i class="ph ph-play"></i></button>
+</div>`;
+    }
+    return `<button onclick="event.stopPropagation();toggleAudio('mh-aud-${l.id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;">
+<audio id="mh-aud-${l.id}" src="${l.recording_url}" preload="none" style="display:none;"></audio>
+<i class="ph ph-play"></i></button>`;
+  }
+  if (isFakeRec(l) && typeof _fakeRecordingMarkup === 'function') {
+    return _fakeRecordingMarkup(l, scope === 'ch' ? 'chhist' : 'myhist');
+  }
+  return '<span style="color:var(--text-3);font-size:11px;">—</span>';
+};
 const OM={
 appointment:'<span class="badge badge-green">Termin</span>',
 negative:'<span class="badge badge-red">Olumsuz</span>',
@@ -840,17 +868,13 @@ return;
 }
 tbody.innerHTML = filtered.map(l=>{
 const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-const dur = l.duration_sec ? `${Math.floor(l.duration_sec/60)}:${String(l.duration_sec%60).padStart(2,'0')}` : '—';
-const name = `${l.contacts?.first_name||''} ${l.contacts?.last_name||''}`.trim() || '—';
+const sec = logDurSec(l);
+const dur = sec ? `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}` : '—';
+const name = `${l.contacts?.first_name||''} ${l.contacts?.last_name||''}`.trim() || (l.phone || l.contacts?.phone || '—');
 const phone = l.phone || l.contacts?.phone || '—';
 const agentName = l.users?.name || '—';
 const campName = l.campaigns?.name || '—';
-const recHtml = l.recording_url
-? `<div style="display:flex;align-items:center;gap:4px;">
-<audio id="ch-aud-${l.id}" src="${l.recording_url}" preload="none" style="display:none;"></audio>
-<button onclick="toggleAudio('ch-aud-${l.id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--text-2);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;"><i class="ph ph-play"></i></button>
-</div>`
-: '<span style="font-size:10px;color:var(--text-3);">—</span>';
+const recHtml = recHtmlFor(l, 'ch');
 const detailBtn = l.contact_id ? `<button class="icon-btn" onclick="openContactDrawer('${l.contact_id}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button>` : '';
 const cbHtml = l.callback_at ? `<div style="font-size:10px;color:var(--yellow);margin-top:2px;"><i class="ph ph-calendar" style="vertical-align:-2px;"></i> ${new Date(l.callback_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>` : '';
 return `<tr>
@@ -881,6 +905,26 @@ query += `&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59
 if (outcome) query += outcome === 'appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
 query += '&order=started_at.desc&limit=200';
 const logs = await sb(query) || [];
+const logDurSec = (l) => Math.max(0, Number(l?.duration_sec ?? l?.duration_seconds ?? 0) || 0);
+const isFakeRec = (l) => {
+  const noRec = !String(l?.recording_url || '').trim();
+  const dur = logDurSec(l);
+  const explicitTest =
+    l?.is_test === true ||
+    l?.is_inbound_test === true ||
+    String(l?.notes || '').toLowerCase().includes('test');
+  if (typeof _isFakeRecordingRow === 'function') return _isFakeRecordingRow(l);
+  return !!(noRec && (explicitTest || (_testMode && dur >= 8)));
+};
+const recHtmlFor = (l) => {
+  if (l.recording_url) {
+    return `<button onclick="event.stopPropagation();toggleAudio('mh-aud-${l.id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;">
+<audio id="mh-aud-${l.id}" src="${l.recording_url}" preload="none" style="display:none;"></audio>
+<i class="ph ph-play"></i></button>`;
+  }
+  if (isFakeRec(l) && typeof _fakeRecordingMarkup === 'function') return _fakeRecordingMarkup(l, 'myhist');
+  return '<span style="color:var(--text-3);font-size:11px;">—</span>';
+};
 const OM={
   appointment:'<span class="badge badge-green">Termin</span>',
   appointment_done:'<span class="badge badge-green">Termin</span>',
@@ -905,16 +949,13 @@ if (!filtered.length) {
 }
 tbody.innerHTML = filtered.map(l=>{
 const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-const name = `${l.contacts?.first_name||''} ${l.contacts?.last_name||''}`.trim()||'—';
+const name = `${l.contacts?.first_name||''} ${l.contacts?.last_name||''}`.trim() || (l.phone || l.contacts?.phone || '—');
 const phone = l.phone || l.contacts?.phone || '—';
 const camp = l.campaigns?.name || '—';
-const dur = l.duration_sec ? `${Math.floor(l.duration_sec/60)}:${String(l.duration_sec%60).padStart(2,'0')}` : '—';
+const sec = logDurSec(l);
+const dur = sec ? `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}` : '—';
 const cbInfo = l.callback_at ? `<div style="font-size:10px;color:var(--yellow);margin-top:2px;"><i class="ph ph-calendar" style="vertical-align:-2px;"></i> ${new Date(l.callback_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>` : '';
-const recHtml = l.recording_url
-  ? `<button onclick="event.stopPropagation();toggleAudio('mh-aud-${l.id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;">
-<audio id="mh-aud-${l.id}" src="${l.recording_url}" preload="none" style="display:none;"></audio>
-<i class="ph ph-play"></i></button>`
-  : '<span style="color:var(--text-3);font-size:11px;">—</span>';
+const recHtml = recHtmlFor(l);
 const detailBtn = l.contact_id ? `<button class="icon-btn" onclick="openContactDrawer('${l.contact_id}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button>` : '';
 return `<tr>
 <td class="td-mono" style="font-size:11px;">${dt}</td>
