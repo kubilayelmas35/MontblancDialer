@@ -748,7 +748,7 @@ function renderTakvimSlotsMonth() {
 }
 
 function takvimSlotMoveMarkup(slotId) {
-  return `<div class="tak-slot-move tak-slot-move--top" onmousedown="event.stopPropagation()" style="position:absolute;left:4px;top:3px;right:30px;z-index:22;display:flex;flex-direction:row;flex-wrap:wrap;gap:2px;align-items:center;justify-content:flex-start;">
+  return `<div class="tak-slot-move" onmousedown="event.stopPropagation()" style="position:absolute;left:2px;top:2px;bottom:28px;width:34px;z-index:22;display:flex;flex-direction:column;flex-wrap:nowrap;gap:3px;align-items:stretch;justify-content:flex-start;overflow-y:auto;box-sizing:border-box;">
 <button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-120)">-2h</button>
 <button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-60)">-1h</button>
 <button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-30)">-30m</button>
@@ -794,8 +794,8 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
   const canShift = isAdmin && slot.durum !== 'kilitli' && !slot.gun_kapali;
   const canQuickAdd = canShift;
   const pr = 30;
-  const pl = dense ? 4 : 6;
-  const pt = canShift ? (dense ? 28 : 32) : dense ? 4 : 6;
+  const pl = canShift ? 40 : dense ? 4 : 6;
+  const pt = dense ? 4 : 6;
   const pb =
     slot.durum === 'dolu' && appt ? 24 : canShift ? 6 : dense ? 4 : 6;
   el.style.cssText = `border-radius:5px;padding:${pt}px ${pr}px ${pb}px ${pl}px;font-size:${fzBase}px;cursor:pointer;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.15);background:${vis.background};color:${vis.color};transition:.15s;`;
@@ -1422,6 +1422,14 @@ function setTakvimSettingsTab(tabId) {
   });
 }
 
+function _objOrEmpty(v) {
+  if (v && typeof v === 'object') return v;
+  if (typeof v === 'string') {
+    try { return JSON.parse(v) || {}; } catch (_) { return {}; }
+  }
+  return {};
+}
+
 async function saveTakvimSettings(applyAll = false) {
   if (!takvimCampId) { toast('Kampanya seçili değil','err'); return; }
   const activeDays = [...document.querySelectorAll('.ts-day-btn.active')].map(b=>b.dataset.d);
@@ -1450,7 +1458,7 @@ async function saveTakvimSettings(applyAll = false) {
       if (!fid) { toast('Firma bilgisi eksik', 'err'); return; }
       const firmCamps = await sb(`campaigns?firm_id=eq.${fid}&select=id,settings`);
       for (const c of (firmCamps || [])) {
-        const st = c?.settings || {};
+        const st = _objOrEmpty(c?.settings);
         await sb(`campaigns?id=eq.${c.id}`, {
           method: 'PATCH',
           prefer: 'return=minimal',
@@ -1461,14 +1469,21 @@ async function saveTakvimSettings(applyAll = false) {
       }
     } else {
       const camps = await sb(`campaigns?id=eq.${takvimCampId}&select=settings`);
-      const existingSettings = camps?.[0]?.settings || {};
+      const existingSettings = _objOrEmpty(camps?.[0]?.settings);
       await sb(`campaigns?id=eq.${takvimCampId}`, {
         method: 'PATCH', prefer: 'return=minimal',
         body: JSON.stringify({ settings: { ...existingSettings, takvim: takvimSettings } })
       });
+      const verifyRows = await sb(`campaigns?id=eq.${takvimCampId}&select=id,settings,firm_id&limit=1`);
+      const savedSettings = _objOrEmpty(verifyRows?.[0]?.settings);
+      const savedTakvim = _objOrEmpty(savedSettings.takvim);
+      if (String(savedTakvim.bos_color || '').toLowerCase() !== String(bosColor || '').toLowerCase()) {
+        throw new Error('Takvim rengi kaydedilemedi (bos_color doğrulaması başarısız)');
+      }
       const idx = (typeof campaigns !== 'undefined' && campaigns) ? campaigns.findIndex((c) => c.id === takvimCampId) : -1;
       if (idx >= 0) {
-        campaigns[idx].settings = { ...(campaigns[idx].settings || {}), takvim: takvimSettings };
+        campaigns[idx].settings = { ...(campaigns[idx].settings || {}), ...savedSettings, takvim: { ...savedTakvim } };
+        if (verifyRows?.[0]?.firm_id) campaigns[idx].firm_id = verifyRows[0].firm_id;
       }
     }
     if (fid && colorInputs.length) {
@@ -1481,7 +1496,7 @@ async function saveTakvimSettings(applyAll = false) {
       });
       const patchedRows = (firmRows || []).map((r) => ({ ...r, color: map[r.key] || r.color }));
       const firms = await sb(`firms?id=eq.${fid}&select=settings`);
-      const existingFirmSettings = firms?.[0]?.settings || {};
+      const existingFirmSettings = _objOrEmpty(firms?.[0]?.settings);
       await sb(`firms?id=eq.${fid}`, {
         method: 'PATCH',
         prefer: 'return=minimal',
