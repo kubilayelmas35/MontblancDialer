@@ -795,8 +795,8 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
   const canShift = isAdmin && slot.durum !== 'kilitli' && !slot.gun_kapali;
   const canQuickAdd = canShift;
   const pr = 30;
-  const pl = dense ? 4 : 6;
-  const pt = canShift ? 84 : dense ? 4 : 6;
+  const pl = canShift ? 34 : dense ? 4 : 6;
+  const pt = dense ? 4 : 6;
   const pb =
     slot.durum === 'dolu' && appt ? 24 : canShift ? 6 : dense ? 4 : 6;
   el.style.cssText = `border-radius:5px;padding:${pt}px ${pr}px ${pb}px ${pl}px;font-size:${fzBase}px;cursor:pointer;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.15);background:${vis.background};color:${vis.color};transition:.15s;text-align:left;`;
