@@ -717,7 +717,7 @@ function renderTakvimSlots() {
         const durHours = eh + em / 60 - (sh + (sm || 0) / 60);
         const topPct = ((sm || 0) / 60) * 100;
         const hPct = durHours * 100;
-        const hExtra = Math.max(0, durHours - 1);
+        const hExtra = Math.max(4, Math.round(durHours * 6));
         el.style.cssText += `;position:absolute;top:calc(${topPct}%);height:calc(${hPct}% + ${hExtra}px);left:calc(${(100 / numCols) * r.col}% + 2px);width:calc(${(100 / numCols) * colspan}% - 4px);z-index:10;box-sizing:border-box;`;
         cell.appendChild(el);
       });
@@ -747,8 +747,9 @@ function renderTakvimSlotsMonth() {
   });
 }
 
-function takvimSlotMoveMarkup(slotId) {
-  return `<div class="tak-slot-move" onmousedown="event.stopPropagation()" style="position:absolute;left:2px;top:2px;bottom:28px;width:34px;z-index:22;display:flex;flex-direction:column;flex-wrap:nowrap;gap:3px;align-items:stretch;justify-content:flex-start;overflow-y:auto;box-sizing:border-box;">
+function takvimSlotMoveMarkup(slotId, reserveBottom = false) {
+  const bottomPx = reserveBottom ? 28 : 2;
+  return `<div class="tak-slot-move" onmousedown="event.stopPropagation()" style="position:absolute;left:2px;top:2px;bottom:${bottomPx}px;width:34px;z-index:22;display:flex;flex-direction:column;flex-wrap:nowrap;gap:3px;align-items:stretch;justify-content:flex-start;overflow-y:auto;box-sizing:border-box;">
 <button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-120)">-2h</button>
 <button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-60)">-1h</button>
 <button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-30)">-30m</button>
@@ -798,11 +799,11 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
   const pt = dense ? 4 : 6;
   const pb =
     slot.durum === 'dolu' && appt ? 24 : canShift ? 6 : dense ? 4 : 6;
-  el.style.cssText = `border-radius:5px;padding:${pt}px ${pr}px ${pb}px ${pl}px;font-size:${fzBase}px;cursor:pointer;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.15);background:${vis.background};color:${vis.color};transition:.15s;`;
+  el.style.cssText = `border-radius:5px;padding:${pt}px ${pr}px ${pb}px ${pl}px;font-size:${fzBase}px;cursor:pointer;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.15);background:${vis.background};color:${vis.color};transition:.15s;text-align:left;`;
   el.onmouseover = () => { el.style.transform = 'scale(1.02)'; };
   el.onmouseout = () => { el.style.transform = ''; };
   if (slot.durum==='bos') {
-    el.innerHTML = `${canShift ? takvimSlotMoveMarkup(slot.id) : ''}<div style="font-weight:700;opacity:.95;font-size:${fzSm}px;">Boş ${slot.baslangic_saat.slice(0,5)}</div>${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}`;
+    el.innerHTML = `${canShift ? takvimSlotMoveMarkup(slot.id, false) : ''}<div style="font-weight:700;opacity:.95;font-size:${fzSm}px;text-align:left;">Boş ${slot.baslangic_saat.slice(0,5)}</div>${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}`;
     el.onclick = async (ev) => {
       ev.stopPropagation();
       const pick = window._takvimMovePick;
@@ -862,7 +863,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
     const fzAg = dense ? 8 : 10;
     const nmWrap = dense ? 'tak-slot-card-name tak-slot-card-name--dense' : 'tak-slot-card-name';
     const addrWrap = dense ? 'tak-slot-card-addr tak-slot-card-addr--dense' : 'tak-slot-card-addr';
-    el.innerHTML = `${canShift ? takvimSlotMoveMarkup(slot.id) : ''}<div class="takvim-slot-card" style="display:flex;flex-direction:column;gap:2px;line-height:1.2;max-width:100%;">
+    el.innerHTML = `${canShift ? takvimSlotMoveMarkup(slot.id, true) : ''}<div class="takvim-slot-card" style="display:flex;flex-direction:column;gap:2px;line-height:1.2;max-width:100%;align-items:flex-start;text-align:left;">
 <div class="${nmWrap}" style="font-weight:800;font-size:${fzName}px;">${nm}</div>
 <div class="${addrWrap}" style="font-size:${fzLine}px;font-weight:600;opacity:.93;">${adr}</div>
 <div style="font-size:${fzMono}px;opacity:.9;font-family:var(--mono);white-space:nowrap;">${timeLn}</div>
@@ -872,7 +873,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
       openTakvimSlotDetail(slot, appt);
     };
   } else {
-    el.innerHTML = `${canShift ? takvimSlotMoveMarkup(slot.id) : ''}<div style="font-size:${fzSm}px;font-weight:700;">${slot.baslangic_saat.slice(0,5)}</div>${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}`;
+    el.innerHTML = `${canShift ? takvimSlotMoveMarkup(slot.id, false) : ''}<div style="font-size:${fzSm}px;font-weight:700;text-align:left;">${slot.baslangic_saat.slice(0,5)}</div>${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}`;
     el.onclick = (ev) => {
       ev.stopPropagation();
       openTakvimSlotDetail(slot, null);
