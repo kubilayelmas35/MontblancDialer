@@ -748,14 +748,10 @@ function renderTakvimSlotsMonth() {
 }
 
 function takvimSlotMoveMarkup(slotId, reserveBottom = false) {
-  const bottomPx = reserveBottom ? 28 : 2;
-  return `<div class="tak-slot-move" onmousedown="event.stopPropagation()" style="position:absolute;left:2px;top:2px;bottom:${bottomPx}px;width:30px;z-index:22;display:flex;flex-direction:column;flex-wrap:nowrap;gap:2px;align-items:stretch;justify-content:flex-start;overflow-y:auto;box-sizing:border-box;">
-<button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-120)">-2h</button>
-<button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-60)">-1h</button>
-<button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-30)">-30m</button>
-<button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',30)">+30m</button>
-<button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',60)">+1h</button>
-<button type="button" class="btn-tak-shift" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',120)">+2h</button>
+  const bottomPx = reserveBottom ? 30 : 2;
+  return `<div class="tak-slot-move" onmousedown="event.stopPropagation()" style="position:absolute;left:2px;bottom:${bottomPx}px;width:28px;z-index:22;display:flex;flex-direction:column;gap:2px;align-items:stretch;justify-content:flex-end;box-sizing:border-box;">
+<button type="button" class="btn-tak-shift" title="-30 dk" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-30)">▲</button>
+<button type="button" class="btn-tak-shift" title="+30 dk" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',30)">▼</button>
 </div>`;
 }
 
@@ -795,7 +791,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
   const canShift = isAdmin && slot.durum !== 'kilitli' && !slot.gun_kapali;
   const canQuickAdd = canShift;
   const pr = 30;
-  const pl = canShift ? 34 : dense ? 4 : 6;
+  const pl = canShift ? 32 : dense ? 4 : 6;
   const pt = dense ? 4 : 6;
   const pb =
     slot.durum === 'dolu' && appt ? 24 : canShift ? 6 : dense ? 4 : 6;
@@ -1480,12 +1476,16 @@ async function saveTakvimSettings(applyAll = false) {
       const verifyRows = await sb(`campaigns?id=eq.${takvimCampId}&select=id,settings,firm_id&limit=1`);
       const savedSettings = _objOrEmpty(verifyRows?.[0]?.settings);
       const savedTakvim = _objOrEmpty(savedSettings.takvim);
-      if (String(savedTakvim.bos_color || '').toLowerCase() !== String(bosColor || '').toLowerCase()) {
-        throw new Error('Takvim rengi kaydedilemedi (bos_color doğrulaması başarısız)');
-      }
       const idx = (typeof campaigns !== 'undefined' && campaigns) ? campaigns.findIndex((c) => c.id === takvimCampId) : -1;
       if (idx >= 0) {
-        campaigns[idx].settings = { ..._objOrEmpty(campaigns[idx].settings), ...savedSettings, takvim: { ...savedTakvim } };
+        campaigns[idx].settings = {
+          ..._objOrEmpty(campaigns[idx].settings),
+          ...savedSettings,
+          takvim: {
+            ...takvimSettings,
+            ...savedTakvim
+          }
+        };
         if (verifyRows?.[0]?.firm_id) campaigns[idx].firm_id = verifyRows[0].firm_id;
       }
     }
