@@ -1275,11 +1275,12 @@ async function submitTakvimBook(slotId) {
 async function openTakvimSettings() {
   if (!takvimCampId) { toast('Önce kampanya seçin','err'); return; }
   const c0 = (typeof campaigns !== 'undefined' && campaigns) ? campaigns.find((c) => c.id === takvimCampId) : null;
-  const fid0 = c0?.firm_id || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
-  await ensureFirmTakvimDefaultsLoaded(fid0);
+  let resolvedFirmId = c0?.firm_id || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
+  await ensureFirmTakvimDefaultsLoaded(resolvedFirmId);
   try {
     const rows = await sb(`campaigns?id=eq.${takvimCampId}&select=settings,firm_id`);
     const tk = rows?.[0]?.settings?.takvim || {};
+    resolvedFirmId = rows?.[0]?.firm_id || resolvedFirmId;
     const idx = (typeof campaigns !== 'undefined' && campaigns) ? campaigns.findIndex((c) => c.id === takvimCampId) : -1;
     if (idx >= 0) {
       campaigns[idx] = { ...campaigns[idx], settings: { ...(campaigns[idx].settings || {}), takvim: tk }, firm_id: rows?.[0]?.firm_id || campaigns[idx].firm_id };
@@ -1363,12 +1364,13 @@ ${Object.entries(dayNames).map(([k, v]) => {
 </div>
 <div class="modal-footer">
 <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">İptal</button>
-<button class="btn btn-primary" onclick="saveTakvimSettings()">Kaydet</button>
+<button class="btn btn-ghost" onclick="saveTakvimSettings(true)">Tümüne Uygula</button>
+<button class="btn btn-primary" onclick="saveTakvimSettings(false)">Kaydet</button>
 </div>
 </div>`;
   document.body.appendChild(m);
   m.style.zIndex = '1205';
-  await renderTakvimSettingsResultColorRows(fid0);
+  await renderTakvimSettingsResultColorRows(resolvedFirmId);
 }
 
 async function renderTakvimSettingsResultColorRows(firmId) {
@@ -1410,9 +1412,10 @@ function setTakvimSettingsTab(tabId) {
   });
 }
 
-async function saveTakvimSettings() {
+async function saveTakvimSettings(applyAll = false) {
   if (!takvimCampId) { toast('Kampanya seçili değil','err'); return; }
   const activeDays = [...document.querySelectorAll('.ts-day-btn.active')].map(b=>b.dataset.d);
+  if (!activeDays.length) { toast('En az bir çalışma günü seçin', 'warn'); return; }
   const start    = document.getElementById('ts-start')?.value    || '08:00';
   const end      = document.getElementById('ts-end')?.value      || '20:00';
   const dur      = parseInt(document.getElementById('ts-slot-dur')?.value||'2');
@@ -1429,20 +1432,35 @@ async function saveTakvimSettings() {
     confirm_new_slot
   };
   try {
-    // Takvim ayarlarını campaigns.settings.takvim altına yaz
-    const camps = await sb(`campaigns?id=eq.${takvimCampId}&select=settings`);
-    const existingSettings = camps?.[0]?.settings || {};
-    await sb(`campaigns?id=eq.${takvimCampId}`, {
-      method: 'PATCH', prefer: 'return=minimal',
-      body: JSON.stringify({ settings: { ...existingSettings, takvim: takvimSettings } })
-    });
-    const idx = (typeof campaigns !== 'undefined' && campaigns) ? campaigns.findIndex((c) => c.id === takvimCampId) : -1;
-    if (idx >= 0) {
-      campaigns[idx].settings = { ...(campaigns[idx].settings || {}), takvim: takvimSettings };
-    }
     const modal = document.getElementById('m-takvim-settings');
     const fid = modal?.dataset?.firmId || getActiveFirmId() || currentUser?.firm_id;
     const colorInputs = [...document.querySelectorAll('#m-takvim-settings .ts-result-color')];
+
+    if (applyAll) {
+      if (!fid) { toast('Firma bilgisi eksik', 'err'); return; }
+      const firmCamps = await sb(`campaigns?firm_id=eq.${fid}&select=id,settings`);
+      for (const c of (firmCamps || [])) {
+        const st = c?.settings || {};
+        await sb(`campaigns?id=eq.${c.id}`, {
+          method: 'PATCH',
+          prefer: 'return=minimal',
+          body: JSON.stringify({ settings: { ...st, takvim: takvimSettings } })
+        });
+        const idx = (typeof campaigns !== 'undefined' && campaigns) ? campaigns.findIndex((x) => x.id === c.id) : -1;
+        if (idx >= 0) campaigns[idx].settings = { ...(campaigns[idx].settings || {}), takvim: takvimSettings };
+      }
+    } else {
+      const camps = await sb(`campaigns?id=eq.${takvimCampId}&select=settings`);
+      const existingSettings = camps?.[0]?.settings || {};
+      await sb(`campaigns?id=eq.${takvimCampId}`, {
+        method: 'PATCH', prefer: 'return=minimal',
+        body: JSON.stringify({ settings: { ...existingSettings, takvim: takvimSettings } })
+      });
+      const idx = (typeof campaigns !== 'undefined' && campaigns) ? campaigns.findIndex((c) => c.id === takvimCampId) : -1;
+      if (idx >= 0) {
+        campaigns[idx].settings = { ...(campaigns[idx].settings || {}), takvim: takvimSettings };
+      }
+    }
     if (fid && colorInputs.length) {
       const firmRows = await loadFirmAppointmentResults(fid, true).catch(() => defaultAppointmentResults());
       const map = {};
@@ -1462,7 +1480,7 @@ async function saveTakvimSettings() {
       window._apptResultsByFirm[fid] = patchedRows;
     }
     document.getElementById('m-takvim-settings')?.remove();
-    toast('Takvim ayarları kaydedildi ✓', 'ok');
+    toast(applyAll ? 'Takvim ayarları tüm kampanyalara uygulandı ✓' : 'Takvim ayarları kaydedildi ✓', 'ok');
     if (takvimCampId) await loadTakvimSlots();
   } catch(e) { toast('Hata: '+e.message, 'err'); }
 }
