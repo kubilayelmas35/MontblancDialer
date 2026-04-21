@@ -1045,7 +1045,7 @@ position:fixed; bottom:20px; right:20px;
 background:var(--bg-2); border:1px solid var(--border-2);
 border-radius:var(--radius-sm); padding:11px 16px;
 font-size:13px; font-weight:500; color:var(--text);
-box-shadow:var(--shadow-md); z-index:300;
+box-shadow:var(--shadow-md); z-index:1405;
 transform:translateY(60px); opacity:0;
 transition:all .25s ease; display:flex; align-items:center; gap:8px;
 max-width:300px; pointer-events:none;
