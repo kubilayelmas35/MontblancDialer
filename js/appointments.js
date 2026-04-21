@@ -791,7 +791,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
   const canShift = isAdmin && slot.durum !== 'kilitli' && !slot.gun_kapali;
   const canQuickAdd = canShift;
   const pr = 30;
-  const pl = canShift ? 32 : dense ? 4 : 6;
+  const pl = dense ? 4 : 6;
   const pt = dense ? 4 : 6;
   const pb =
     slot.durum === 'dolu' && appt ? 24 : canShift ? 6 : dense ? 4 : 6;
@@ -1296,7 +1296,6 @@ async function openTakvimSettings() {
     }
   } catch (_) {}
   const cfg = getCampaignTakvimSettings();
-  const bosDisp = /^#[0-9A-Fa-f]{6}$/i.test(String(cfg.bos_color || '').trim()) ? String(cfg.bos_color).trim() : '#3b82f6';
   const old = document.getElementById('m-takvim-settings');
   if (old) old.remove();
   const m = document.createElement('div');
@@ -1315,7 +1314,7 @@ async function openTakvimSettings() {
 <div style="display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:10px;">
 <button type="button" class="btn btn-ghost btn-sm ts-tab-btn active" data-tab="work" onclick="setTakvimSettingsTab('work')">Çalışma Düzeni</button>
 <button type="button" class="btn btn-ghost btn-sm ts-tab-btn" data-tab="slot" onclick="setTakvimSettingsTab('slot')">Slot Kuralları</button>
-<button type="button" class="btn btn-ghost btn-sm ts-tab-btn" data-tab="view" onclick="setTakvimSettingsTab('view')">Görünüm / Onay</button>
+<button type="button" class="btn btn-ghost btn-sm ts-tab-btn" data-tab="confirm" onclick="setTakvimSettingsTab('confirm')">Onay</button>
 </div>
 
 <div id="ts-tab-work" class="ts-tab-pane" style="display:flex;flex-direction:column;gap:14px;">
@@ -1355,16 +1354,7 @@ ${Object.entries(dayNames).map(([k, v]) => {
 </div>
 </div>
 
-<div id="ts-tab-view" class="ts-tab-pane" style="display:none;flex-direction:column;gap:14px;">
-<div class="form-row">
-<label class="form-label">Boş slot rengi</label>
-<input type="color" class="form-input" id="ts-bos-color" value="${bosDisp}" style="width:72px;height:40px;padding:2px;">
-</div>
-<div>
-<div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">Termin Sonuç Renkleri (Takvim + QC)</div>
-<div id="ts-result-color-rows" style="display:flex;flex-direction:column;gap:8px;"></div>
-<div style="font-size:10px;color:var(--text-3);margin-top:4px;">Buradaki renkler “Termin Sonuçları (Takvim + QC)” ile aynıdır.</div>
-</div>
+<div id="ts-tab-confirm" class="ts-tab-pane" style="display:none;flex-direction:column;gap:14px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
 <input type="checkbox" id="ts-confirm-slot" ${cfg.confirm_new_slot !== false ? 'checked' : ''}> Yeni slot eklerken onay penceresi göster
 </label>
@@ -1379,7 +1369,6 @@ ${Object.entries(dayNames).map(([k, v]) => {
 </div>`;
   document.body.appendChild(m);
   m.style.zIndex = '1205';
-  await renderTakvimSettingsResultColorRows(resolvedFirmId);
 }
 
 async function renderTakvimSettingsResultColorRows(firmId) {
@@ -1431,13 +1420,14 @@ function _objOrEmpty(v) {
 
 async function saveTakvimSettings(applyAll = false) {
   if (!takvimCampId) { toast('Kampanya seçili değil','err'); return; }
+  const prevCfg = getCampaignTakvimSettings();
   const activeDays = [...document.querySelectorAll('.ts-day-btn.active')].map(b=>b.dataset.d);
   if (!activeDays.length) { toast('En az bir çalışma günü seçin', 'warn'); return; }
   const start    = document.getElementById('ts-start')?.value    || '08:00';
   const end      = document.getElementById('ts-end')?.value      || '20:00';
   const dur      = parseInt(document.getElementById('ts-slot-dur')?.value||'2');
   const maxSlots = parseInt(document.getElementById('ts-max-slots')?.value||'5');
-  const bosColor = document.getElementById('ts-bos-color')?.value || '#3b82f6';
+  const bosColor = prevCfg.bos_color || '#3b82f6';
   const confirm_new_slot = !!document.getElementById('ts-confirm-slot')?.checked;
   const takvimSettings = {
     active_days: activeDays,
@@ -1451,7 +1441,6 @@ async function saveTakvimSettings(applyAll = false) {
   try {
     const modal = document.getElementById('m-takvim-settings');
     const fid = modal?.dataset?.firmId || getActiveFirmId() || currentUser?.firm_id;
-    const colorInputs = [...document.querySelectorAll('#m-takvim-settings .ts-result-color')];
 
     if (applyAll) {
       if (!fid) { toast('Firma bilgisi eksik', 'err'); return; }
@@ -1488,25 +1477,6 @@ async function saveTakvimSettings(applyAll = false) {
         };
         if (verifyRows?.[0]?.firm_id) campaigns[idx].firm_id = verifyRows[0].firm_id;
       }
-    }
-    if (fid && colorInputs.length) {
-      const firmRows = await loadFirmAppointmentResults(fid, true).catch(() => defaultAppointmentResults());
-      const map = {};
-      colorInputs.forEach((el) => {
-        const key = String(el.dataset.key || '').trim();
-        const val = String(el.value || '').trim();
-        if (key && /^#[0-9A-Fa-f]{6}$/.test(val)) map[key] = val;
-      });
-      const patchedRows = (firmRows || []).map((r) => ({ ...r, color: map[r.key] || r.color }));
-      const firms = await sb(`firms?id=eq.${fid}&select=settings`);
-      const existingFirmSettings = _objOrEmpty(firms?.[0]?.settings);
-      await sb(`firms?id=eq.${fid}`, {
-        method: 'PATCH',
-        prefer: 'return=minimal',
-        body: JSON.stringify({ settings: { ...existingFirmSettings, appointment_results: patchedRows } })
-      });
-      const reloaded = await loadFirmAppointmentResults(fid, true).catch(() => patchedRows);
-      window._apptResultsByFirm[fid] = reloaded;
     }
     document.getElementById('m-takvim-settings')?.remove();
     toast(applyAll ? 'Takvim ayarları tüm kampanyalara uygulandı ✓' : 'Takvim ayarları kaydedildi ✓', 'ok');
