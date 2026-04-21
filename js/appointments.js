@@ -1296,12 +1296,19 @@ async function openTakvimSettings() {
   const slotOpts = [1, 2, 3, 4].map((n) =>
     `<option value="${n}"${cfg.slot_dur === n ? ' selected' : ''}>${n} saat</option>`
   ).join('');
-  m.innerHTML = `<div class="modal" style="max-width:460px;">
+  m.innerHTML = `<div class="modal" style="max-width:560px;">
 <div class="modal-hdr">
 <div class="modal-title">Takvim Ayarları</div>
 <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
 </div>
-<div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+<div style="padding:16px 20px 10px;display:flex;flex-direction:column;gap:12px;">
+<div style="display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:10px;">
+<button type="button" class="btn btn-ghost btn-sm ts-tab-btn active" data-tab="work" onclick="setTakvimSettingsTab('work')">Çalışma Düzeni</button>
+<button type="button" class="btn btn-ghost btn-sm ts-tab-btn" data-tab="slot" onclick="setTakvimSettingsTab('slot')">Slot Kuralları</button>
+<button type="button" class="btn btn-ghost btn-sm ts-tab-btn" data-tab="view" onclick="setTakvimSettingsTab('view')">Görünüm / Onay</button>
+</div>
+
+<div id="ts-tab-work" class="ts-tab-pane" style="display:flex;flex-direction:column;gap:14px;">
 <div>
 <div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">Çalışma Günleri</div>
 <div style="display:flex;gap:4px;flex-wrap:wrap;" id="ts-days">
@@ -1325,6 +1332,9 @@ ${Object.entries(dayNames).map(([k, v]) => {
 <input type="time" class="form-input" id="ts-end" value="${cfg.end_hour}">
 </div>
 </div>
+</div>
+
+<div id="ts-tab-slot" class="ts-tab-pane" style="display:none;flex-direction:column;gap:14px;">
 <div class="form-row">
 <label class="form-label">Slot Süresi (saat)</label>
 <select class="form-input" id="ts-slot-dur">${slotOpts}</select>
@@ -1333,6 +1343,9 @@ ${Object.entries(dayNames).map(([k, v]) => {
 <label class="form-label">Gün başına maks. slot</label>
 <input type="number" class="form-input" id="ts-max-slots" value="${cfg.max_slots}" min="1" max="40" style="width:80px;">
 </div>
+</div>
+
+<div id="ts-tab-view" class="ts-tab-pane" style="display:none;flex-direction:column;gap:14px;">
 <div class="form-row">
 <label class="form-label">Boş slot rengi</label>
 <input type="color" class="form-input" id="ts-bos-color" value="${bosDisp}" style="width:72px;height:40px;padding:2px;">
@@ -1342,12 +1355,30 @@ ${Object.entries(dayNames).map(([k, v]) => {
 </label>
 <div style="font-size:10px;color:var(--text-3);">Kapalıysa hücreye tıklayınca doğrudan slot oluşturulur. Kullanıcı “Bir daha gösterme” seçtiyse tarayıcıda hızlı mod açılır.</div>
 </div>
+</div>
 <div class="modal-footer">
 <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">İptal</button>
 <button class="btn btn-primary" onclick="saveTakvimSettings()">Kaydet</button>
 </div>
 </div>`;
   document.body.appendChild(m);
+}
+
+function setTakvimSettingsTab(tabId) {
+  const root = document.getElementById('m-takvim-settings');
+  if (!root) return;
+  const panes = root.querySelectorAll('.ts-tab-pane');
+  panes.forEach((pane) => {
+    pane.style.display = pane.id === `ts-tab-${tabId}` ? 'flex' : 'none';
+  });
+  const tabs = root.querySelectorAll('.ts-tab-btn');
+  tabs.forEach((btn) => {
+    const active = btn.dataset.tab === tabId;
+    btn.classList.toggle('active', active);
+    btn.style.background = active ? 'var(--accent)' : '';
+    btn.style.color = active ? '#fff' : '';
+    btn.style.borderColor = active ? 'var(--accent)' : '';
+  });
 }
 
 async function saveTakvimSettings() {
