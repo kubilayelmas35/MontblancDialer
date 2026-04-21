@@ -112,6 +112,16 @@ function takvimGradientFromAccent(hex) {
   return { gradient: `linear-gradient(135deg,${dark},${base})`, from: dark, to: base };
 }
 
+function takvimResolveFirmId(slot, appt) {
+  const fromAppt = appt?.firm_id;
+  const fromSlot = slot?.firm_id;
+  const fromCamp =
+    (typeof campaigns !== 'undefined' && Array.isArray(campaigns)
+      ? campaigns.find((c) => c.id === takvimCampId)?.firm_id
+      : null);
+  return fromAppt || fromSlot || fromCamp || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id || null;
+}
+
 function getSlotGradientAndText(slot, appt) {
   if (slot.durum === 'kilitli') {
     return { background: '#dbeafe', color: '#1e40af' };
@@ -121,7 +131,7 @@ function getSlotGradientAndText(slot, appt) {
     const { gradient } = takvimGradientFromAccent(tk.bos_color);
     return { background: gradient, color: '#ffffff' };
   }
-  const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
+  const fid = takvimResolveFirmId(slot, appt);
   const rows = (fid && window._apptResultsByFirm?.[fid]) || (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
   const key = appt ? _normResultKey(appt.durum) : '';
   const cfg = Array.isArray(rows) ? rows.find((r) => _normResultKey(r.key) === key) : null;
@@ -1477,7 +1487,8 @@ async function saveTakvimSettings(applyAll = false) {
         prefer: 'return=minimal',
         body: JSON.stringify({ settings: { ...existingFirmSettings, appointment_results: patchedRows } })
       });
-      window._apptResultsByFirm[fid] = patchedRows;
+      const reloaded = await loadFirmAppointmentResults(fid, true).catch(() => patchedRows);
+      window._apptResultsByFirm[fid] = reloaded;
     }
     document.getElementById('m-takvim-settings')?.remove();
     toast(applyAll ? 'Takvim ayarları tüm kampanyalara uygulandı ✓' : 'Takvim ayarları kaydedildi ✓', 'ok');
