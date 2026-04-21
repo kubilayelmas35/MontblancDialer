@@ -4635,6 +4635,9 @@ min-height: 0;
   gap: 8px;
   flex-shrink: 0;
 }
+.takvim-overlay-admin .takvim-admin-tools {
+  flex-wrap: nowrap;
+}
 #takvim-scroll,
 #takvim-scroll-ov {
 display: flex;
