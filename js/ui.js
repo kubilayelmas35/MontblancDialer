@@ -74,6 +74,7 @@ if (page==='myhistory')      { initMyHistoryFilters(); loadMyHistory(); }
 if (page==='settings')       { loadSavedSettings(); loadRolesPage(); }
 if (page==='settings')       { if (typeof loadIncomingCallsSettingsPage === 'function') loadIncomingCallsSettingsPage(); }
 if (page==='settings')       { loadAppointmentResultsSettings(); }
+if (page==='settings')       { setTimeout(() => initSettingsTabs(), 0); }
 if (page==='wiedervorlage')  loadWvPage();
 if (page==='qc')             loadQcData();
 if (page==='firms')          loadFirmsPage();
@@ -90,6 +91,41 @@ if (page==='maasim')         loadMaasimPage();
 if (page==='performansim')   loadPerformansimPage();
 if (page==='competition')     loadCompetitionPage();
 if (typeof syncGlobalMascotDock === 'function') setTimeout(() => syncGlobalMascotDock(), 0);
+}
+
+function initSettingsTabs() {
+  const page = document.getElementById('page-settings');
+  if (!page) return;
+  const cards = [...page.querySelectorAll('.settings-layout > .card')];
+  const groups = {
+    general: new Set(['settings-appearance-card', 'settings-api-keys-card', 'settings-goals-card']),
+    communication: new Set(['incoming-calls-settings-card', 'chat-settings-card']),
+    operations: new Set(['field-settings-card', 'mesai-settings-card', 'call-hours-card', 'results-settings-card', 'default-takvim-firm-card']),
+    system: new Set(['feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings']),
+  };
+  cards.forEach((card) => {
+    if (!card.id) return;
+    for (const [key, set] of Object.entries(groups)) {
+      if (set.has(card.id)) {
+        card.dataset.settingsGroup = key;
+        break;
+      }
+    }
+  });
+  setSettingsTab('general');
+}
+
+function setSettingsTab(tabId) {
+  const page = document.getElementById('page-settings');
+  if (!page) return;
+  const cards = [...page.querySelectorAll('.settings-layout > .card')];
+  cards.forEach((card) => {
+    const group = card.dataset.settingsGroup || 'operations';
+    const hide = group !== tabId;
+    card.classList.toggle('settings-card-tab-hidden', hide);
+  });
+  const tabs = page.querySelectorAll('.settings-tab-btn');
+  tabs.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === tabId));
 }
 
 window._apptResultsByFirm = window._apptResultsByFirm || {};

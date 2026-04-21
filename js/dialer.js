@@ -4219,11 +4219,17 @@ function loadApiSettings() {
   const gk = localStorage.getItem('mb_google_key') || DEFAULT_GOOGLE_KEY;
   const tk = localStorage.getItem('mb_tomtom_key') || DEFAULT_TOMTOM_KEY;
   const goal = localStorage.getItem('mb_daily_goal') || '5';
+  const wGoal = localStorage.getItem('mb_weekly_goal') || '25';
+  const mGoal = localStorage.getItem('mb_monthly_goal') || '100';
   _googleApiKey = gk;
   if (document.getElementById('s-google-key')) document.getElementById('s-google-key').value = gk;
   if (document.getElementById('s-tomtom-key')) document.getElementById('s-tomtom-key').value = tk;
   if (document.getElementById('s-daily-goal')) document.getElementById('s-daily-goal').value = goal;
+  if (document.getElementById('s-weekly-goal')) document.getElementById('s-weekly-goal').value = wGoal;
+  if (document.getElementById('s-monthly-goal')) document.getElementById('s-monthly-goal').value = mGoal;
   _dailyGoal = parseInt(goal);
+  window._weeklyGoal = parseInt(wGoal, 10) || 25;
+  window._monthlyGoal = parseInt(mGoal, 10) || 100;
   updateCustEmptyMascotScale();
 }
 
@@ -4231,9 +4237,13 @@ function saveApiSettings() {
   const gk = document.getElementById('s-google-key')?.value?.trim();
   const tk = document.getElementById('s-tomtom-key')?.value?.trim();
   const goal = parseInt(document.getElementById('s-daily-goal')?.value||'5');
+  const wGoal = parseInt(document.getElementById('s-weekly-goal')?.value||'25');
+  const mGoal = parseInt(document.getElementById('s-monthly-goal')?.value||'100');
   if (gk) { _googleApiKey=gk; localStorage.setItem('mb_google_key',gk); }
   if (tk) localStorage.setItem('mb_tomtom_key',tk);
   if (goal>0) { _dailyGoal=goal; localStorage.setItem('mb_daily_goal',String(goal)); }
+  if (wGoal>0) { window._weeklyGoal = wGoal; localStorage.setItem('mb_weekly_goal',String(wGoal)); }
+  if (mGoal>0) { window._monthlyGoal = mGoal; localStorage.setItem('mb_monthly_goal',String(mGoal)); }
   updateCustEmptyMascotScale();
   toast('API ayarları kaydedildi ✓','ok');
 }
