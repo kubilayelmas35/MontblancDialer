@@ -34,6 +34,55 @@ const MB_I18N = {
     'ui.unknown_error': 'Bilinmeyen hata',
     'ui.load_failed': 'Yüklenemedi',
     'ui.no_active_agents': 'Aktif agent yok',
+    'ui.all_agents': 'Tüm agentler',
+    'ui.all_campaigns': 'Tüm kampanyalar',
+    'ui.all_customers': 'Tüm müşteriler',
+    'ui.date_select': 'Tarih seçin',
+    'ui.excel_lib_missing': 'Excel kütüphanesi yok',
+    'ui.excel_downloaded': 'Excel indirildi',
+    'ui.csv_downloaded': 'CSV indirildi',
+    'ui.no_selection': 'Seçim yok',
+    'ui.no_permission': 'Yetki yok',
+    'ui.yes': 'Evet',
+    'ui.no': 'Hayır',
+    'ui.settings_sip_saved': '✓ Kaydedildi, bağlanıyor…',
+    'export.select_firm': 'Önce firma seçin',
+    'export.et_no_customers': 'Kısayol için müşteri yok.',
+    'export.et_shortcut_caption': 'Bu hafta · başarılı · müşteri',
+    'export.date_range': 'Tarih aralığı seçin',
+    'wv.marked_negative': 'Olumsuz olarak işaretlendi — listeden çıktı',
+    'wv.err_firm_phone': 'Firma veya telefon eksik',
+    'wv.no_contact_hint': 'Bu telefonla kayıtlı müşteri yok — WV bilgisiyle kart açıldı; aramayı manuel başlatın',
+    'telnyx.mic_ok': 'Mikrofon izni alındı',
+    'telnyx.mic_denied': 'Mikrofon izni reddedildi! Tarayıcı ayarlarından izin verin.',
+    'telnyx.line_connected': 'Hat bağlantısı kuruldu',
+    'telnyx.mic_on': 'Mikrofon aktif',
+    'telnyx.mic_off': 'Mikrofon izni yok',
+    'telnyx.amd_voicemail': 'Telesekreter — otomatik kapatıldı',
+    'dash.sub_agent_calls': 'Senin çağrıların (seçili aralık)',
+    'dash.chart_calls': 'Çağrı',
+    'dash.chart_termin': 'Termin',
+    'dash.chart_termin_per_call': 'Termin (çağrı)',
+    'dash.chart_tooltip': 'Başarı: {p} (termin/çağrı)',
+    'dash.cumulative_calls': 'Kümülatif çağrı',
+    'dash.donut_no_data': 'Veri yok',
+    'dash.donut_appt_suffix': ' randevu',
+    'dash.donut_tooltip_line': '{lbl}: {v}{s}',
+    'perf.chart_ok': 'Başarılı',
+    'perf.chart_total': 'Toplam termin',
+    'perf.chart_rate': 'Başarı %',
+    'perf.chart_ap_bar': 'Termin sayısı',
+    'comp.note_auto_count': 'Başarılı terminler (sonuç: Termin) otomatik sayılır.',
+    'comp.not_in_list': 'Bu ay listesinde yoksun',
+    'comp.champ_sub_count': 'başarılı termin',
+    'comp.leader': 'Lider',
+    'comp.termin_count': 'termin',
+    'comp.month_progress': "Ayın {p}%'i · {d} gün kaldı",
+    'comp.podium_termin': '{n} termin',
+    'comp.self_line_show': 'Sen: {r}. sıra · {c} termin',
+    'comp.self_line_hide': 'Senin sıran: {r}.',
+    'comp.banner_base': '<strong>Sen:</strong> {r}. sıra',
+    'comp.banner_count': ' · {c} termin',
   },
   de: {
     'login.feat.1': 'Autowähl & WebRTC',
@@ -69,6 +118,55 @@ const MB_I18N = {
     'ui.unknown_error': 'Unbekannter Fehler',
     'ui.load_failed': 'Laden fehlgeschlagen',
     'ui.no_active_agents': 'Keine aktiven Agenten',
+    'ui.all_agents': 'Alle Agenten',
+    'ui.all_campaigns': 'Alle Kampagnen',
+    'ui.all_customers': 'Alle Kunden',
+    'ui.date_select': 'Daten wählen',
+    'ui.excel_lib_missing': 'Excel-Bibliothek fehlt',
+    'ui.excel_downloaded': 'Excel gespeichert',
+    'ui.csv_downloaded': 'CSV gespeichert',
+    'ui.no_selection': 'Keine Auswahl',
+    'ui.no_permission': 'Keine Berechtigung',
+    'ui.yes': 'Ja',
+    'ui.no': 'Nein',
+    'ui.settings_sip_saved': '✓ Gespeichert, verbinde…',
+    'export.select_firm': 'Bitte Firma wählen',
+    'export.et_no_customers': 'Keine Kunden für Schnellwahl.',
+    'export.et_shortcut_caption': 'Diese Woche · erfolgreich · Kunde',
+    'export.date_range': 'Datumsbereich wählen',
+    'wv.marked_negative': 'Als negativ markiert',
+    'wv.err_firm_phone': 'Fehlende Firma oder Telefon',
+    'wv.no_contact_hint': 'Kein Kontakt — WV-Daten geladen',
+    'telnyx.mic_ok': 'Mikrofon erlaubt',
+    'telnyx.mic_denied': 'Mikrofon verweigert! Bitte in den Browser-Einstellungen erlauben.',
+    'telnyx.line_connected': 'Verbindung hergestellt',
+    'telnyx.mic_on': 'Mikrofon aktiv',
+    'telnyx.mic_off': 'Kein Mikrofon-Zugriff',
+    'telnyx.amd_voicemail': 'Anrufbeantworter erkannt',
+    'dash.sub_agent_calls': 'Deine Anrufe (Zeitraum)',
+    'dash.chart_calls': 'Anrufe',
+    'dash.chart_termin': 'Termin',
+    'dash.chart_termin_per_call': 'Termin (Anruf)',
+    'dash.chart_tooltip': 'Quote: {p}',
+    'dash.cumulative_calls': 'Kumulativ',
+    'dash.donut_no_data': 'Keine Daten',
+    'dash.donut_appt_suffix': '',
+    'dash.donut_tooltip_line': '{lbl}: {v}{s}',
+    'perf.chart_ok': 'Erfolgreich',
+    'perf.chart_total': 'Gesamt',
+    'perf.chart_rate': 'Quote %',
+    'perf.chart_ap_bar': 'Termine',
+    'comp.note_auto_count': 'Erfolgreiche Termine (Outcome) werden automatisch gezählt.',
+    'comp.not_in_list': 'Nicht in der Liste',
+    'comp.champ_sub_count': 'Termine',
+    'comp.leader': 'Führend',
+    'comp.termin_count': 'Termine',
+    'comp.month_progress': 'Monat {p}% · {d} Tage',
+    'comp.podium_termin': '{n} Termine',
+    'comp.self_line_show': 'Du: {r}. · {c} Termine',
+    'comp.self_line_hide': 'Dein Rang: {r}.',
+    'comp.banner_base': '<strong>Du:</strong> Rang {r}',
+    'comp.banner_count': ' · {c} Termine',
   },
 };
 
@@ -76,6 +174,22 @@ function t(key) {
   const lang = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'de' : 'tr';
   const row = MB_I18N[lang] || MB_I18N.tr;
   return (row && row[key] !== undefined) ? row[key] : (MB_I18N.tr[key] !== undefined ? MB_I18N.tr[key] : key);
+}
+
+/**
+ * BCP-47 locale for the active UI language.
+ */
+function mbLocale() {
+  return (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'de-DE' : 'tr-TR';
+}
+
+/** "foo {a} bar {b}" with values; unknown placeholders left as-is. */
+function tReplace(template, vars) {
+  let s = t(template);
+  (vars && typeof vars === 'object' ? Object.entries(vars) : []).forEach(([k, v]) => {
+    s = s.split(`{${k}}`).join(String(v));
+  });
+  return s;
 }
 
 /**
@@ -116,6 +230,8 @@ function mbErrorRow(colspan, message) {
 
 try {
   window.t = t;
+  window.tReplace = tReplace;
+  window.mbLocale = mbLocale;
   window.applyDomI18n = applyDomI18n;
   window.mbEmptyRow = mbEmptyRow;
   window.mbLoadingRow = mbLoadingRow;

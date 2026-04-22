@@ -364,8 +364,8 @@ if (typeof _dashGetRange === 'function' && typeof _dashUpdateStatLabels === 'fun
   _dashUpdateStatLabels(rk);
   _dashUpdateCardTitles(rk);
   const subEl = document.getElementById('dash-chart-sub');
-  if (subEl && currentUser?.role === 'agent') {
-    subEl.textContent = currentLang === 'tr' ? 'Senin çağrıların (seçili aralık)' : 'Deine Anrufe (Zeitraum)';
+    if (subEl && currentUser?.role === 'agent') {
+    subEl.textContent = t('dash.sub_agent_calls');
   }
 }
 if (typeof dialerStatus !== 'undefined' && dialerStatus === 'break' && typeof refreshBreakCustEmpty === 'function') {
@@ -421,17 +421,18 @@ document.querySelectorAll('.palette-dot').forEach(d => d.classList.toggle('sel',
 })();
 
 // ── TOAST ────────────────────────────────────
-function toast(msg, type='ok') {
+function toast(msg, type='ok', durationMs) {
 const el=document.getElementById('toast');
 el.textContent=(type==='ok'?'✓ ':'✕ ')+msg;
 el.className=`show ${type}`;
 clearTimeout(toastT);
-toastT=setTimeout(()=>el.classList.remove('show'),3000);
+const d = Number(durationMs) > 0 ? Number(durationMs) : 3000;
+toastT=setTimeout(()=>el.classList.remove('show'), d);
 }
 
 // Alias used in some places
 function showToast(msg, type, duration) {
-toast(msg, type);
+toast(msg, type, duration);
 }
 
 let _systemDialogResolve = null;
@@ -536,7 +537,7 @@ localStorage.setItem('mb-sip-user',   sipUser);
 localStorage.setItem('mb-sip-pass',   sipPass);
 localStorage.setItem('mb-telnyx-key', apiKey);
 localStorage.setItem('mb-conn-id',    connId);
-toast(currentLang==='tr'?'✓ Kaydedildi, bağlanıyor...':'✓ Gespeichert, verbinde...','ok');
+toast(t('ui.settings_sip_saved'),'ok');
 updateConnectionStatus('connecting');
 sendToRTC('MB_DISCONNECT');
 setTimeout(()=>{ sendToRTC('MB_CONNECT',{sipUser,sipPass}); }, 600);

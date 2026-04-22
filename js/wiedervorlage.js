@@ -212,7 +212,7 @@ async function wvMarkOlumsuz(id) {
   try {
     await sb(`wiedervorlage?id=eq.${id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ durum: 'olumsuz' }) });
     await refreshWvList();
-    toast(currentLang === 'tr' ? 'Olumsuz olarak işaretlendi — listeden çıktı' : 'Als negativ markiert', 'ok');
+    toast(t('wv.marked_negative'), 'ok');
   } catch (e) {
     toast('Hata: ' + e.message, 'err');
   }
@@ -224,9 +224,8 @@ async function wvCallNow(id) {
   navigate('dialer');
   if (typeof initDialer === 'function') await initDialer();
   const fid = currentUser?.firm_id;
-  const tr = currentLang === 'tr';
   if (!fid || !w.telefon) {
-    toast(tr ? 'Firma veya telefon eksik' : 'Fehlt', 'err');
+    toast(t('wv.err_firm_phone'), 'err');
     return;
   }
   let contact = null;
@@ -280,13 +279,7 @@ async function wvCallNow(id) {
   if (typeof showCustomerCard === 'function') showCustomerCard(synthetic);
   if (typeof syncCustomerCardEmptyVisual === 'function') syncCustomerCardEmptyVisual();
   window._wvPrefill = w;
-  toast(
-    tr
-      ? 'Bu telefonla kayıtlı müşteri yok — WV bilgisiyle kart açıldı; aramayı manuel başlatın'
-      : 'Kein Kontakt — WV-Daten geladen',
-    'warn',
-    4200
-  );
+  toast(t('wv.no_contact_hint'), 'warn', 4200);
 }
 
 function startWvReminders() {

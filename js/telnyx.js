@@ -115,17 +115,17 @@ switch(d.type) {
 case 'MB_MIC_OK':
 micGranted = true;
 updateMicStatus(true);
-toast('🎤 ' + (currentLang==='tr' ? 'Mikrofon izni alındı' : 'Mikrofon erlaubt'), 'ok');
+toast('🎤 ' + t('telnyx.mic_ok'), 'ok');
 break;
 case 'MB_MIC_ERROR':
 micGranted = false;
 updateMicStatus(false);
-toast('🔇 ' + (currentLang==='tr' ? 'Mikrofon izni reddedildi! Tarayıcı ayarlarından izin verin.' : 'Mikrofon verweigert!'), 'err');
+toast('🔇 ' + t('telnyx.mic_denied'), 'err');
 break;
 case 'MB_READY':
 telnyxReady = true;
 updateConnectionStatus('connected');
-toast('✅ ' + (currentLang==='tr' ? 'Hat bağlantısı kuruldu' : 'Verbindung hergestellt'), 'ok');
+toast('✅ ' + t('telnyx.line_connected'), 'ok');
 break;
 case 'MB_DISCONNECTED':
 telnyxReady = false;
@@ -154,8 +154,8 @@ el.innerHTML = granted
   ? '<i class="ph ph-microphone" style="vertical-align:-3px;font-size:17px;color:var(--green);"></i>'
   : '<i class="ph ph-microphone-slash" style="vertical-align:-3px;font-size:17px;color:var(--red);"></i>';
 el.title = granted
-? (currentLang==='tr' ? 'Mikrofon aktif' : 'Mikrofon aktiv')
-: (currentLang==='tr' ? 'Mikrofon izni yok' : 'Kein Mikrofon-Zugriff');
+? t('telnyx.mic_on')
+: t('telnyx.mic_off');
 }
 
 function updateConnectionStatus(status) {
@@ -189,7 +189,7 @@ label.textContent = subLabels[state][currentLang] || subLabels[state].tr;
 function handleAMD(result) {
 amdResult = result;
 if (result === 'machine') {
-toast('🤖 ' + (currentLang==='tr' ? 'Telesekreter — otomatik kapatıldı' : 'Anrufbeantworter erkannt'), 'ok');
+toast('🤖 ' + t('telnyx.amd_voicemail'), 'ok');
 sendToRTC('MB_HANGUP');
 autoSaveVoicemail();
 }

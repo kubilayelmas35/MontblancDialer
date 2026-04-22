@@ -228,7 +228,7 @@ function perfUpdateHeaderSummary() {
   el('perf-sum-days', String(days.size));
   const ac = new Set([..._perfRawAppts.map((a) => a.agent_id), ..._perfRawCalls.map((c) => c.agent_id)].filter(Boolean));
   el('perf-sum-agents', String(ac.size));
-  const loc = currentLang === 'de' ? 'de-DE' : 'tr-TR';
+  const loc = mbLocale();
   el('perf-sum-date', new Date().toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric' }));
 }
 
@@ -267,7 +267,7 @@ function perfGroupTrend(appts) {
   const tot = [];
   const sorted = [...appts].sort((a, b) => String(a.termin_tarih).localeCompare(String(b.termin_tarih)));
   const map = new Map();
-  const loc = currentLang === 'de' ? 'de-DE' : 'tr-TR';
+  const loc = mbLocale();
   sorted.forEach((a) => {
     const raw = a.termin_tarih;
     if (!raw) return;
@@ -311,12 +311,11 @@ function perfEnsureChart(key, canvasId, factory) {
 }
 
 function perfUpdateCharts() {
-  const tr = currentLang === 'tr';
   const L = {
-    ok: tr ? 'Başarılı' : 'Erfolgreich',
-    tot: tr ? 'Toplam termin' : 'Gesamt',
-    rate: tr ? 'Başarı %' : 'Quote %',
-    apBar: tr ? 'Termin sayısı' : 'Termine',
+    ok: t('perf.chart_ok'),
+    tot: t('perf.chart_total'),
+    rate: t('perf.chart_rate'),
+    apBar: t('perf.chart_ap_bar'),
   };
   const trend = perfGroupTrend(_perfFiltAppts);
   const ChartCtor = window.Chart;
@@ -461,7 +460,7 @@ function perfRenderThisMonth() {
 function perfRenderRecent() {
   const ta = document.getElementById('perf-tbody-appts');
   const tc = document.getElementById('perf-tbody-calls');
-  const loc = currentLang === 'de' ? 'de-DE' : 'tr-TR';
+  const loc = mbLocale();
   if (ta) {
     const ap = [..._perfFiltAppts].sort((a, b) => String(b.termin_tarih).localeCompare(String(a.termin_tarih))).slice(0, 40);
     ta.innerHTML = ap.length ? ap.map((a) => {
@@ -510,7 +509,7 @@ function perfOpenAgentModal(agentId) {
 <div><div style="font-size:10px;color:var(--text-3);">Arama→Termin</div><div style="font-weight:800;">${ctot ? Math.round((cap / ctot) * 100) : 0}%</div></div>
 </div>`;
   }
-  const loc = currentLang === 'de' ? 'de-DE' : 'tr-TR';
+  const loc = mbLocale();
   const sorted = [...ap].sort((a, b) => String(b.termin_tarih).localeCompare(String(a.termin_tarih)));
   tb.innerHTML = sorted.length ? sorted.map((a) => {
     const d = new Date(a.termin_tarih);
@@ -569,7 +568,7 @@ function perfPopulateFilters() {
   if (ag) {
     const cur = ag.value;
     const ids = [...new Set([..._perfRawAppts.map((a) => a.agent_id), ..._perfRawCalls.map((c) => c.agent_id)].filter(Boolean))];
-    ag.innerHTML = `<option value="">${currentLang === 'de' ? 'Alle Agenten' : 'Tüm agentler'}</option>`;
+    ag.innerHTML = `<option value="">${t('ui.all_agents')}</option>`;
     ids.sort((a, b) => perfAgentName(a).localeCompare(perfAgentName(b), 'tr'));
     ids.forEach((id) => {
       ag.innerHTML += `<option value="${id}">${_uiEsc(perfAgentName(id))}</option>`;
@@ -579,7 +578,7 @@ function perfPopulateFilters() {
   if (cm) {
     const cur = cm.value;
     const ids = [...new Set([..._perfRawAppts.map((a) => a.campaign_id), ..._perfRawCalls.map((c) => c.campaign_id)].filter(Boolean))];
-    cm.innerHTML = `<option value="">${currentLang === 'de' ? 'Alle Kampagnen' : 'Tüm kampanyalar'}</option>`;
+    cm.innerHTML = `<option value="">${t('ui.all_campaigns')}</option>`;
     ids.forEach((id) => {
       const row = _perfRawAppts.find((a) => String(a.campaign_id) === String(id));
       const c2 = _perfRawCalls.find((c) => String(c.campaign_id) === String(id));
@@ -662,7 +661,7 @@ async function perfReload() {
   const from = document.getElementById('perf-date-from')?.value;
   const to = document.getElementById('perf-date-to')?.value;
   if (!from || !to) {
-    toast(currentLang === 'de' ? 'Daten wählen' : 'Tarih seçin', 'warn');
+    toast(t('ui.date_select'), 'warn');
     return;
   }
   const ld = document.getElementById('perf-loading');
@@ -720,7 +719,7 @@ function perfMonthSort(k) {
 
 async function loadPerformancePage() {
   if (!canUsePerformancePage()) {
-    toast(currentLang === 'de' ? 'Keine Berechtigung' : 'Yetki yok', 'warn');
+    toast(t('ui.no_permission'), 'warn');
     navigate('dashboard');
     return;
   }

@@ -65,7 +65,7 @@ function _etShowLoading(on, msg) {
 async function _etFetchRows(from, to) {
   const ff = getFirmFilter('&');
   if (isSuperAdmin() && !getActiveFirmId()) {
-    toast(currentLang === 'de' ? 'Bitte Firma wählen' : 'Önce firma seçin', 'warn');
+    toast(t('export.select_firm'), 'warn');
     return [];
   }
   const cols =
@@ -273,7 +273,7 @@ function _etFillAgentSelect() {
     if (e.agentId && e.agentName) byId.set(String(e.agentId), e.agentName);
   });
   const opts = Array.from(byId.entries()).sort((a, b) => a[1].localeCompare(b[1], 'tr'));
-  sel.innerHTML = `<option value="">${currentLang === 'de' ? 'Alle Agenten' : 'Tüm agentler'}</option>`;
+  sel.innerHTML = `<option value="">${t('ui.all_agents')}</option>`;
   opts.forEach(([id, name]) => {
     sel.innerHTML += `<option value="${String(id).replace(/"/g, '')}">${_uiEsc(name)}</option>`;
   });
@@ -298,7 +298,7 @@ async function _etFillCustomerSelect() {
       }
     });
   }
-  sel.innerHTML = `<option value="">${currentLang === 'de' ? 'Alle Kunden' : 'Tüm müşteriler'}</option>`;
+  sel.innerHTML = `<option value="">${t('ui.all_customers')}</option>`;
   Array.from(m.entries())
     .sort((a, b) => a[1].localeCompare(b[1], 'tr'))
     .forEach(([id, label]) => {
@@ -322,10 +322,10 @@ async function _etBuildShortcuts() {
     customers = [];
   }
   if (!customers.length) {
-    host.innerHTML = `<div style="font-size:11px;color:var(--text-3);">${currentLang === 'de' ? 'Keine Kunden für Schnellwahl.' : 'Kısayol için müşteri yok.'}</div>`;
+    host.innerHTML = `<div style="font-size:11px;color:var(--text-3);">${t('export.et_no_customers')}</div>`;
     return;
   }
-  host.innerHTML = `<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">${currentLang === 'de' ? 'Diese Woche · erfolgreich · Kunde' : 'Bu hafta · başarılı · müşteri'}</div>
+  host.innerHTML = `<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">${t('export.et_shortcut_caption')}</div>
 <div style="display:flex;flex-wrap:wrap;gap:8px;">${customers.map((c) => {
   const lab = c.code ? `${c.code} · ${c.name || ''}` : (c.name || c.id);
   return `<button type="button" class="btn btn-ghost btn-sm" style="border-color:var(--accent);color:var(--accent);" onclick="exportTerminShortcutWeekSuccess('${c.id}')">${_uiEsc(lab)}</button>`;
@@ -396,7 +396,7 @@ function etRenderTable() {
     let timeStr = '—';
     let dayStr = '';
     if (e.terminDate && !isNaN(e.terminDate.getTime())) {
-      const loc = currentLang === 'de' ? 'de-DE' : 'tr-TR';
+      const loc = mbLocale();
       timeStr = e.terminDate.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
       dayStr = e.terminDate.toLocaleDateString(loc, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
     }
@@ -516,10 +516,10 @@ async function etReload() {
   const df = document.getElementById('et-date-from')?.value;
   const dt = document.getElementById('et-date-to')?.value;
   if (!df || !dt) {
-    toast(currentLang === 'de' ? 'Datumsbereich wählen' : 'Tarih aralığı seçin', 'warn');
+    toast(t('export.date_range'), 'warn');
     return;
   }
-  _etShowLoading(true, currentLang === 'de' ? 'Laden…' : 'Yükleniyor…');
+  _etShowLoading(true, t('ui.loading'));
   try {
     const rows = await _etFetchRows(df, dt);
     _etProcessed = _etProcess(rows);
@@ -558,7 +558,7 @@ function exportTerminShortcutWeekSuccess(customerId) {
 
 function exportTerminXlsx() {
   if (typeof XLSX === 'undefined') {
-    toast(currentLang === 'de' ? 'Excel fehlt' : 'Excel kütüphanesi yok', 'err');
+    toast(t('ui.excel_lib_missing'), 'err');
     return;
   }
   if (!_etFiltered.length) {
@@ -569,10 +569,10 @@ function exportTerminXlsx() {
     ? _etFiltered.filter((e) => _etSelectedIds.has(e.id))
     : _etFiltered.slice();
   if (!use.length) {
-    toast(currentLang === 'de' ? 'Keine Auswahl' : 'Seçim yok', 'warn');
+    toast(t('ui.no_selection'), 'warn');
     return;
   }
-  const loc = currentLang === 'de' ? 'de-DE' : 'tr-TR';
+  const loc = mbLocale();
   const excelData = use.map((e) => {
     const r = e.raw;
     let tDate = '';
@@ -581,7 +581,7 @@ function exportTerminXlsx() {
       tDate = e.terminDate.toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric' });
       tTime = e.terminDate.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
     }
-    const pv = r.interesse_an_pv === true ? (currentLang === 'de' ? 'Ja' : 'Evet') : r.interesse_an_pv === false ? (currentLang === 'de' ? 'Nein' : 'Hayır') : '';
+    const pv = r.interesse_an_pv === true ? t('ui.yes') : r.interesse_an_pv === false ? t('ui.no') : '';
     return {
       'Termin': `${tDate} ${tTime}`.trim(),
       'Ad Soyad': e.nachname || '',
@@ -612,12 +612,12 @@ function exportTerminXlsx() {
   if (_etKampSel.size === 1) kampagnePart = `_${Array.from(_etKampSel)[0].replace(/\s+/g, '')}`;
   else if (_etKampSel.size > 1) kampagnePart = `_${_etKampSel.size}Kampanya`;
   XLSX.writeFile(wb, `termin_export_${datePart}${kampagnePart}.xlsx`);
-  toast(currentLang === 'de' ? 'Excel gespeichert' : 'Excel indirildi', 'ok');
+  toast(t('ui.excel_downloaded'), 'ok');
 }
 
 async function loadExportTerminPage() {
   if (typeof isExportAdmin === 'function' && !isExportAdmin()) {
-    toast(currentLang === 'de' ? 'Keine Berechtigung' : 'Yetki yok', 'warn');
+    toast(t('ui.no_permission'), 'warn');
     navigate('dashboard');
     return;
   }

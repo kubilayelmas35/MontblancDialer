@@ -105,7 +105,7 @@ function _monthKeysLastN(n) {
   for (let i = n - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const label = d.toLocaleDateString(currentLang === 'tr' ? 'tr-TR' : 'de-DE', { month: 'short', year: '2-digit' });
+    const label = d.toLocaleDateString(mbLocale(), { month: 'short', year: '2-digit' });
     out.push({ key, label });
   }
   return out;
@@ -214,19 +214,19 @@ async function populateDashAgentSelect() {
   wrap.style.display = '';
   const prev = sel.value;
   if (currentUser?.role === 'super_admin' && !getActiveFirmId()) {
-    sel.innerHTML = `<option value="">${currentLang === 'tr' ? 'Önce firma seçin' : 'Firma wählen'}</option>`;
+    sel.innerHTML = `<option value="">${t('ui.select_firm_first')}</option>`;
     sel.disabled = true;
     return;
   }
   sel.disabled = false;
   const fid = getActiveFirmId() || currentUser.firm_id;
   if (!fid) {
-    sel.innerHTML = `<option value="">${currentLang === 'tr' ? 'Tüm agentler' : 'Alle Agenten'}</option>`;
+    sel.innerHTML = `<option value="">${t('ui.all_agents')}</option>`;
     return;
   }
   try {
     const users = await sb(`users?firm_id=eq.${fid}&select=id,name,role&order=name.asc`) || [];
-    const trAll = currentLang === 'tr' ? 'Tüm agentler' : 'Alle Agenten';
+    const trAll = t('ui.all_agents');
     sel.innerHTML = `<option value="">${trAll}</option>` + users.map(u => {
       const nm = String(u.name || u.id.slice(0, 8)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       return `<option value="${u.id}">${nm}</option>`;
@@ -251,14 +251,13 @@ function renderDashChart7d(logsByDay, labels, opts) {
   if (!canvas || typeof Chart === 'undefined') return;
   const accent = _dashCssVar('--accent', '#2563eb');
   const border = _dashCssVar('--border', '#e2e8f0');
-  const tr = currentLang === 'tr';
   if (window._dashChart7d) { window._dashChart7d.destroy(); window._dashChart7d = null; }
   window._dashChart7d = new Chart(canvas, {
     type: 'line',
     data: {
       labels,
       datasets: [{
-        label: opts?.datasetLabel || (tr ? 'Çağrı' : 'Anrufe'),
+        label: opts?.datasetLabel || t('dash.chart_calls'),
         data: logsByDay,
         borderColor: accent,
         backgroundColor: accent.length === 7 ? accent + '22' : 'rgba(37,99,235,0.12)',
@@ -299,7 +298,6 @@ function renderDashHourlyMixed(logs) {
   const accent = _dashCssVar('--accent', '#2563eb');
   const green = _dashCssVar('--green', '#16a34a');
   const border = _dashCssVar('--border', '#e2e8f0');
-  const t = currentLang === 'tr';
   if (window._dashChartHourly) { window._dashChartHourly.destroy(); window._dashChartHourly = null; }
   window._dashChartHourly = new Chart(canvas, {
     type: 'bar',
@@ -308,7 +306,7 @@ function renderDashHourlyMixed(logs) {
       datasets: [
         {
           type: 'bar',
-          label: t ? 'Çağrı' : 'Anrufe',
+          label: t('dash.chart_calls'),
           data: hourly,
           backgroundColor: accent.length === 7 ? accent + '33' : 'rgba(37,99,235,0.2)',
           borderColor: accent,
@@ -318,7 +316,7 @@ function renderDashHourlyMixed(logs) {
         },
         {
           type: 'line',
-          label: t ? 'Termin' : 'Termin',
+          label: t('dash.chart_termin'),
           data: hourlyTermin,
           borderColor: green,
           backgroundColor: 'transparent',
@@ -344,7 +342,7 @@ function renderDashHourlyMixed(logs) {
               const tot = hourly[ctx.dataIndex] || 0;
               const te = hourlyTermin[ctx.dataIndex] || 0;
               if (!tot) return '';
-              return t ? `Başarı: %${((te / tot) * 100).toFixed(0)} (termin/çağrı)` : `Quote: %${((te / tot) * 100).toFixed(0)}`;
+              return tReplace('dash.chart_tooltip', { p: ((te / tot) * 100).toFixed(0) });
             }
           }
         }
@@ -371,7 +369,6 @@ function renderDashPeriodMixed(logs, rangeKey, from, to) {
   const accent = _dashCssVar('--accent', '#2563eb');
   const green = _dashCssVar('--green', '#16a34a');
   const border = _dashCssVar('--border', '#e2e8f0');
-  const t = currentLang === 'tr';
   let labels = [];
   let bar = [];
   let line = [];
@@ -392,7 +389,7 @@ function renderDashPeriodMixed(logs, rangeKey, from, to) {
     const days = _eachDayInRange(from, to);
     labels = days.map(d => {
       const dt = new Date(d + 'T12:00:00');
-      return dt.toLocaleDateString(t ? 'tr-TR' : 'de-DE', { weekday: 'short', day: 'numeric' });
+      return dt.toLocaleDateString(mbLocale(), { weekday: 'short', day: 'numeric' });
     });
     bar = days.map(d => (logs || []).filter(l => _logDayKey(l) === d).length);
     line = days.map(d => (logs || []).filter(l => _logDayKey(l) === d && _isTerminOutcome(l.outcome)).length);
@@ -405,7 +402,7 @@ function renderDashPeriodMixed(logs, rangeKey, from, to) {
       datasets: [
         {
           type: 'bar',
-          label: t ? 'Çağrı' : 'Anrufe',
+          label: t('dash.chart_calls'),
           data: bar,
           backgroundColor: accent.length === 7 ? accent + '33' : 'rgba(37,99,235,0.2)',
           borderColor: accent,
@@ -415,7 +412,7 @@ function renderDashPeriodMixed(logs, rangeKey, from, to) {
         },
         {
           type: 'line',
-          label: t ? 'Termin (çağrı)' : 'Termin (Anruf)',
+          label: t('dash.chart_termin_per_call'),
           data: line,
           borderColor: green,
           backgroundColor: 'transparent',
@@ -441,7 +438,7 @@ function renderDashPeriodMixed(logs, rangeKey, from, to) {
               const tot = bar[ctx.dataIndex] || 0;
               const te = line[ctx.dataIndex] || 0;
               if (!tot) return '';
-              return t ? `Başarı: %${((te / tot) * 100).toFixed(0)} (termin/çağrı)` : `Quote: %${((te / tot) * 100).toFixed(0)}`;
+              return tReplace('dash.chart_tooltip', { p: ((te / tot) * 100).toFixed(0) });
             }
           }
         }
@@ -505,7 +502,7 @@ function renderDashTerminDonut(appts) {
   });
   if (window._dashChartOutcomes) { window._dashChartOutcomes.destroy(); window._dashChartOutcomes = null; }
   if (!data.length) {
-    labels.push(tr ? 'Veri yok' : 'Keine Daten');
+    labels.push(t('dash.donut_no_data'));
     data.push(1);
     colors.push(muted);
   }
@@ -534,7 +531,7 @@ function renderDashTerminDonut(appts) {
             label(ctx) {
               const v = ctx.raw;
               const lbl = ctx.label || '';
-              return tr ? `${lbl}: ${v} randevu` : `${lbl}: ${v}`;
+              return tReplace('dash.donut_tooltip_line', { lbl, v, s: t('dash.donut_appt_suffix') });
             }
           }
         }
@@ -545,7 +542,6 @@ function renderDashTerminDonut(appts) {
 
 /** Üçüncü grafik: aralığa göre trend */
 function renderDashTrendForRange(rangeKey, logs, from, to) {
-  const tr = currentLang === 'tr';
   if (rangeKey === 'today') {
     const hourly = Array(24).fill(0);
     (logs || []).forEach(l => {
@@ -561,7 +557,7 @@ function renderDashTrendForRange(rangeKey, logs, from, to) {
     }
     const labels = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0') + ':00');
     renderDashChart7d(cum, labels, {
-      datasetLabel: tr ? 'Kümülatif çağrı' : 'Kumulativ',
+      datasetLabel: t('dash.cumulative_calls'),
       fill: true,
       maxTicksLimit: 12
     });
@@ -583,7 +579,7 @@ function renderDashTrendForRange(rangeKey, logs, from, to) {
   const counts = days.map(d => (logs || []).filter(l => _logDayKey(l) === d).length);
   const labels = days.map(d => {
     const dt = new Date(d + 'T12:00:00');
-    return dt.toLocaleDateString(tr ? 'tr-TR' : 'de-DE', { weekday: 'short', day: 'numeric' });
+    return dt.toLocaleDateString(mbLocale(), { weekday: 'short', day: 'numeric' });
   });
   renderDashChart7d(counts, labels, { maxTicksLimit: rangeKey === 'month' ? 18 : 10 });
 }
@@ -605,13 +601,12 @@ const { from, to, range: rangeKey } = _dashDateBounds();
 _dashUpdateStatLabels(rangeKey);
 _dashUpdateCardTitles(rangeKey);
 if (onlySelf && subEl) {
-  subEl.textContent =
-    currentLang === 'tr' ? 'Senin çağrıların (seçili aralık)' : 'Deine Anrufe (Zeitraum)';
+  subEl.textContent = t('dash.sub_agent_calls');
 }
 const now = new Date();
 const today = now.toISOString().split('T')[0];
 document.getElementById('dash-date').textContent =
-now.toLocaleDateString(currentLang==='tr'?'tr-TR':'de-DE', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+now.toLocaleDateString(mbLocale(), {weekday:'long',day:'numeric',month:'long',year:'numeric'});
 const tr = currentLang === 'tr';
 const rangeSuffix =
   rangeKey === 'today'

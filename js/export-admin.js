@@ -52,12 +52,12 @@ function exportStatsCsv() {
   }
   const lines = aoa.map((row) => row.map(_escapeCsvCell).join(','));
   _downloadCsvUtf8(`istatistik_${new Date().toISOString().slice(0, 10)}.csv`, lines);
-  toast(currentLang === 'tr' ? 'CSV indirildi' : 'CSV gespeichert', 'ok');
+  toast(t('ui.csv_downloaded'), 'ok');
 }
 
 function exportStatsXlsx() {
   if (typeof XLSX === 'undefined') {
-    toast(currentLang === 'tr' ? 'Excel kütüphanesi yüklenemedi' : 'Excel-Bibliothek fehlt', 'err');
+    toast(t('ui.excel_lib_missing'), 'err');
     return;
   }
   const aoa = _statsTableToAoA();
@@ -69,7 +69,7 @@ function exportStatsXlsx() {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Istatistik');
   XLSX.writeFile(wb, `istatistik_${new Date().toISOString().slice(0, 10)}.xlsx`);
-  toast(currentLang === 'tr' ? 'Excel indirildi' : 'Excel gespeichert', 'ok');
+  toast(t('ui.excel_downloaded'), 'ok');
 }
 
 function _chOutcomeLabel(o) {
@@ -168,7 +168,7 @@ async function exportCallHistoryCsv() {
     const d0 = document.getElementById('ch-date-from')?.value || '';
     const d1 = document.getElementById('ch-date-to')?.value || '';
     _downloadCsvUtf8(`cagri_gecmisi_${d0}_${d1}.csv`, lines);
-    toast(currentLang === 'tr' ? 'CSV indirildi' : 'CSV gespeichert', 'ok');
+    toast(t('ui.csv_downloaded'), 'ok');
   } catch (e) {
     toast('Hata: ' + e.message, 'err');
   }
@@ -177,7 +177,7 @@ async function exportCallHistoryCsv() {
 async function exportCallHistoryXlsx() {
   if (!isExportAdmin()) return;
   if (typeof XLSX === 'undefined') {
-    toast(currentLang === 'tr' ? 'Excel kütüphanesi yüklenemedi' : 'Excel-Bibliothek fehlt', 'err');
+    toast(t('ui.excel_lib_missing'), 'err');
     return;
   }
   try {
@@ -207,7 +207,7 @@ async function exportCallHistoryXlsx() {
     const d0 = document.getElementById('ch-date-from')?.value || '';
     const d1 = document.getElementById('ch-date-to')?.value || '';
     XLSX.writeFile(wb, `cagri_gecmisi_${d0}_${d1}.xlsx`);
-    toast(currentLang === 'tr' ? 'Excel indirildi' : 'Excel gespeichert', 'ok');
+    toast(t('ui.excel_downloaded'), 'ok');
   } catch (e) {
     toast('Hata: ' + e.message, 'err');
   }

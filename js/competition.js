@@ -85,17 +85,14 @@ async function loadDashCompetitionCard() {
   const { start, end } = _compMonthBounds(y, m);
 
   if (periodEl) {
-    periodEl.textContent = new Date(y, m - 1, 1).toLocaleDateString(currentLang === 'tr' ? 'tr-TR' : 'de-DE', {
+    periodEl.textContent = new Date(y, m - 1, 1).toLocaleDateString(mbLocale(), {
       month: 'long',
       year: 'numeric',
     });
   }
   if (noteEl) {
     noteEl.style.display = '';
-    noteEl.textContent =
-      currentLang === 'tr'
-        ? 'Başarılı terminler (sonuç: Termin) otomatik sayılır.'
-        : 'Erfolgreiche Termine (Outcome) werden automatisch gezählt.';
+    noteEl.textContent = t('comp.note_auto_count');
   }
 
   try {
@@ -126,14 +123,13 @@ async function loadDashCompetitionCard() {
         if (me) {
           selfEl.style.display = '';
           if (_compShowCounts()) {
-            selfEl.textContent =
-              (currentLang === 'tr' ? 'Sen: ' : 'Du: ') + `${me.rank}. sıra · ${me.count} termin`;
+            selfEl.textContent = tReplace('comp.self_line_show', { r: me.rank, c: me.count });
           } else {
-            selfEl.textContent = (currentLang === 'tr' ? 'Senin sıran: ' : 'Dein Rang: ') + `${me.rank}.`;
+            selfEl.textContent = tReplace('comp.self_line_hide', { r: me.rank });
           }
         } else {
           selfEl.style.display = '';
-          selfEl.textContent = currentLang === 'tr' ? 'Bu ay listesinde yoksun' : 'Nicht in der Liste';
+          selfEl.textContent = t('comp.not_in_list');
         }
       }
     }
@@ -192,10 +188,8 @@ async function loadCompetitionPage() {
       champName.textContent = curRows[0].name;
       if (champSub) {
         champSub.textContent = showCounts
-          ? `${curRows[0].count} ${currentLang === 'tr' ? 'başarılı termin' : 'Termine'}`
-          : currentLang === 'tr'
-            ? 'Lider'
-            : 'Führend';
+          ? `${curRows[0].count} ${t('comp.champ_sub_count')}`
+          : t('comp.leader');
       }
     } else {
       champName.textContent = '—';
@@ -210,8 +204,8 @@ async function loadCompetitionPage() {
       lastName.textContent = prevRows[0].name;
       if (lastSub)
         lastSub.textContent = showCounts
-          ? `${prevRows[0].count} ${currentLang === 'tr' ? 'termin' : 'Termine'}`
-          : new Date(prev.y, prev.m - 1, 1).toLocaleDateString(currentLang === 'tr' ? 'tr-TR' : 'de-DE', {
+          ? `${prevRows[0].count} ${t('comp.termin_count')}`
+          : new Date(prev.y, prev.m - 1, 1).toLocaleDateString(mbLocale(), {
               month: 'long',
             });
     } else {
@@ -226,7 +220,7 @@ async function loadCompetitionPage() {
     const r = curRows[i];
     if (r) {
       el.innerHTML = showCounts
-        ? `<strong>${_compEsc(r.name)}</strong><div style="font-size:11px;color:var(--text-3);margin-top:4px;">${r.count} termin</div>`
+        ? `<strong>${_compEsc(r.name)}</strong><div style="font-size:11px;color:var(--text-3);margin-top:4px;">${tReplace('comp.podium_termin', { n: r.count })}</div>`
         : `<strong>${_compEsc(r.name)}</strong>`;
     } else {
       el.textContent = '—';
@@ -240,10 +234,7 @@ async function loadCompetitionPage() {
   if (bar) bar.style.width = `${pct}%`;
   const ml = document.getElementById('comp-month-label');
   if (ml)
-    ml.textContent =
-      currentLang === 'tr'
-        ? `Ayın ${pct}%’i · ${daysInMonth - day} gün kaldı`
-        : `Monat ${pct}% · ${daysInMonth - day} Tage`;
+    ml.textContent = tReplace('comp.month_progress', { p: pct, d: daysInMonth - day });
 
   _compRenderRace(curRows.slice(0, 10), showCounts);
   _compRenderTable('comp-lb-month', curRows, showCounts);
@@ -254,10 +245,9 @@ async function loadCompetitionPage() {
   if (banner) {
     if (meRow) {
       banner.style.display = '';
-      banner.innerHTML =
-        currentLang === 'tr'
-          ? `<strong>Sen:</strong> ${meRow.rank}. sıra` + (showCounts ? ` · ${meRow.count} termin` : '')
-          : `<strong>Du:</strong> Rang ${meRow.rank}` + (showCounts ? ` · ${meRow.count} Termine` : '');
+      const base = tReplace('comp.banner_base', { r: meRow.rank });
+      const tail = showCounts ? tReplace('comp.banner_count', { c: meRow.count }) : '';
+      banner.innerHTML = base + tail;
     } else {
       banner.style.display = 'none';
     }
