@@ -109,7 +109,7 @@ function renderWvTable() {
     );
   }
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:32px;">Kayıt yok</td></tr>';
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(7, 'ui.no_records') : `<tr><td colspan="7" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
     return;
   }
   const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);

@@ -6,7 +6,7 @@ async function loadQcData() {
   const qcSel = document.getElementById('qc-firm-selector');
   if (qcSel) { qcSel.style.display = isSuperAdmin() ? '' : 'none'; renderFirmSelector('qc-firm-selector', loadQcData); }
   const tbody = document.getElementById('qc-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>';
+  if (tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(10) : `<tr><td colspan="10" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
   try {
     const fid = getActiveFirmId() || currentUser?.firm_id || null;
     const resultCfg = await loadFirmAppointmentResults(fid);
@@ -79,7 +79,7 @@ function renderQcTable() {
   const cntEl = document.getElementById('qc-cnt-pending');
   if (cntEl) cntEl.textContent = pendingCnt;
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-3);padding:32px;">Kayıt yok</td></tr>';
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(10, 'ui.no_records') : `<tr><td colspan="10" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
     return;
   }
   const customerOptions = (window._qcCustomers || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');

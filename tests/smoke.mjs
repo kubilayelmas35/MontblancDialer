@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 
 const checks = [
-  { file: 'js/i18n.js', includes: ['function t(', 'applyDomI18n'] },
+  { file: 'js/i18n.js', includes: ['function t(', 'applyDomI18n', 'function mbEmptyRow('] },
   { file: 'js/auth.js', includes: ['bootApp', 'refreshUserPagePerms'] },
   { file: 'js/ui.js', includes: ['_NAVIGATE_LOADERS', 'runPageEntry', 'function navigate('] },
   { file: 'js/agents.js', includes: ['saveNewAgent', 'saveAgentEdit'] },

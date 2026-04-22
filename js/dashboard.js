@@ -668,7 +668,7 @@ const sessions = await sb('agent_sessions?select=*');
 const live = document.getElementById('live-agents');
 const active = sessions.filter(s=>s.status!=='offline');
 if (!active.length) {
-live.innerHTML = `<div style="color:var(--text-3);text-align:center;padding:24px;font-size:13px;">${currentLang==='tr'?'Aktif agent yok':'Keine aktiven Agenten'}</div>`;
+live.innerHTML = `<div class="mb-empty-hint" style="font-size:13px;">${t('ui.no_active_agents')}</div>`;
 return;
 }
 const SC = { ready:{c:'var(--green)',l:'Hazır'}, on_call:{c:'var(--accent)',l:'Aramada'}, wrapping:{c:'var(--yellow)',l:'Sonuç giriyor'}, break:{c:'var(--yellow)',l:'Mola'} };
@@ -706,7 +706,7 @@ if (typeof loadJobFinanceSummary === 'function') {
 async function loadStats() {
 renderFirmSelector('stats-firm-selector', loadStats);
 const tbody = document.getElementById('stats-tbody');
-if(tbody) tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>`;
+if(tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(9) : `<tr><td colspan="9" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
 try {
 const ff = getFirmFilter('&');
 const dateFilter = document.getElementById('stats-date-f')?.value || 'today';
@@ -744,7 +744,7 @@ groups[key].logs.push(l);
 });
 const rows = Object.values(groups);
 if (!rows.length) {
-tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:32px;">Bu tarih aralığında veri yok</td></tr>`;
+tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(9, 'ui.no_data_range') : `<tr><td colspan="9" class="mb-empty-hint">${t('ui.no_data_range')}</td></tr>`;
 return;
 }
 let totAll=0,apAll=0,ngAll=0,cbAll=0,naAll=0,secAll=0;
@@ -789,12 +789,12 @@ opt.value = cid; opt.textContent = log?.campaigns?.name || cid.slice(0,8);
 campSel.appendChild(opt);
 });
 }
-} catch(e){ console.error(e); if(tbody) tbody.innerHTML=`<tr><td colspan="9" style="color:var(--red);padding:24px;">Hata: ${escapeHtml(e?.message || 'Bilinmeyen hata')}</td></tr>`; }
+} catch(e){ console.error(e); if(tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(9, t('ui.error_prefix') + (e?.message || t('ui.unknown_error'))) : `<tr><td colspan="9" class="mb-empty-hint" style="color:var(--red);">${escapeHtml(t('ui.error_prefix') + (e?.message || t('ui.unknown_error')))}</td></tr>`; }
 }
 
 async function loadCallHistory() {
 const tbody = document.getElementById('ch-tbody');
-if(tbody) tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>`;
+if(tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(9) : `<tr><td colspan="9" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
 try {
 const ff = getFirmFilter('&');
 const search = document.getElementById('ch-search')?.value?.toLowerCase()||'';
@@ -886,7 +886,7 @@ if (agentSel && agentSel.options.length <= 1 && logs.length) {
   uniqueAgents.forEach(a => { const o=document.createElement('option'); o.value=a.id; o.textContent=a.name; agentSel.appendChild(o); });
 }
 if (!filtered.length) {
-tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:32px;">Kayıt yok</td></tr>`;
+tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(9, 'ui.no_records') : `<tr><td colspan="9" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
 return;
 }
 tbody.innerHTML = filtered.map(l=>{
@@ -915,7 +915,7 @@ return `<tr>
 <td>${detailBtn}</td>
 </tr>`;
 }).join('');
-} catch(e){ console.error(e); if(tbody) tbody.innerHTML=`<tr><td colspan="8" style="color:var(--red);padding:24px;">Hata: ${escapeHtml(e?.message || 'Bilinmeyen hata')}</td></tr>`; }
+} catch(e){ console.error(e); if(tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(8, t('ui.error_prefix') + (e?.message || t('ui.unknown_error'))) : `<tr><td colspan="8" class="mb-empty-hint" style="color:var(--red);">${escapeHtml(t('ui.error_prefix') + (e?.message || t('ui.unknown_error')))}</td></tr>`; }
 }
 
 async function loadMyHistory() {
@@ -993,7 +993,7 @@ if (search) {
 }
 const tbody = document.getElementById('my-tbody');
 if (!filtered.length) {
-  tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Kayıt yok</td></tr>`;
+  tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(8, 'ui.no_records') : `<tr><td colspan="8" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
   return;
 }
 tbody.innerHTML = filtered.map(l=>{

@@ -404,7 +404,7 @@ function perfRenderMainTable(sortKey) {
   else if (sortKey === 'rate') rows.sort((a, b) => b.rate - a.rate);
   else if (sortKey === 'calls') rows.sort((a, b) => b.calls - a.calls);
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:28px;color:var(--text-3);">${currentLang === 'de' ? 'Keine Daten' : 'Veri yok'}</td></tr>`;
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(12, 'ui.no_data') : `<tr><td colspan="12" class="mb-empty-hint">${t('ui.no_data')}</td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map((r) => `
@@ -435,7 +435,7 @@ function perfRenderThisMonth() {
     return !isNaN(d.getTime()) && d.getFullYear() === y && d.getMonth() === m;
   });
   if (!tm.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-3);">${currentLang === 'de' ? 'Keine Termine diesen Monat' : 'Bu ay termin yok'}</td></tr>`;
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(9, 'ui.no_termin_month') : `<tr><td colspan="9" class="mb-empty-hint">${t('ui.no_termin_month')}</td></tr>`;
     return;
   }
     const agg = perfAggregateAppts(tm);
@@ -536,7 +536,7 @@ function perfCloseModal() {
 function perfExportCsv() {
   const rows = perfMergedRows().filter((r) => r.agent_id && r.agent_id !== '_none');
   if (!rows.length) {
-    toast(currentLang === 'de' ? 'Keine Daten' : 'Veri yok', 'warn');
+    toast(t('ui.no_data'), 'warn');
     return;
   }
   const sep = ';';

@@ -57,7 +57,7 @@ function fieldOpsApplyFilters() {
   }
   _fieldOpsRenderKpi(list);
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:24px;">Kayıt yok</td></tr>';
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(6, 'ui.no_records') : `<tr><td colspan="6" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
     return;
   }
   tbody.innerHTML = list.map(r => {
@@ -85,7 +85,7 @@ async function loadFieldOpsPage() {
   const role = currentUser?.role || '';
   const canView = ['admin', 'firm_admin', 'super_admin'].includes(role);
   if (!canView) {
-    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:24px;">Bu sayfaya erişim yok</td></tr>';
+    if (tbody) tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(6, 'ui.no_access_page') : `<tr><td colspan="6" class="mb-empty-hint">${t('ui.no_access_page')}</td></tr>`;
     return;
   }
   const fw = document.getElementById('fieldops-firm-wrap');
@@ -95,12 +95,12 @@ async function loadFieldOpsPage() {
   }
   const fid = getActiveFirmId() || currentUser?.firm_id || null;
   if (role === 'super_admin' && !fid) {
-    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:24px;">Önce firma seçin</td></tr>';
+    if (tbody) tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(6, 'ui.select_firm_first') : `<tr><td colspan="6" class="mb-empty-hint">${t('ui.select_firm_first')}</td></tr>`;
     _fieldOpsRows = [];
     _fieldOpsRenderKpi([]);
     return;
   }
-  if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>';
+  if (tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(6) : `<tr><td colspan="6" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
   try {
     const headers = {
       apikey: SB_KEY,
@@ -141,7 +141,7 @@ async function loadFieldOpsPage() {
     _fieldOpsRows = tasks.map(t => ({ ...t, appointment: apMap[t.appointment_id] || null, assignee: uMap[t.assigned_to] || null }));
     fieldOpsApplyFilters();
   } catch (e) {
-    if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:24px;">Yüklenemedi: ${_foEsc(e.message)}</td></tr>`;
+    if (tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(6, t('ui.load_failed') + ': ' + (e?.message || t('ui.unknown_error'))) : `<tr><td colspan="6" class="mb-empty-hint" style="color:var(--red);">${_foEsc(t('ui.load_failed') + ': ' + (e?.message || t('ui.unknown_error')))}</td></tr>`;
     _fieldOpsRows = [];
     _fieldOpsRenderKpi([]);
   }

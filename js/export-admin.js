@@ -47,7 +47,7 @@ function _statsTableToAoA() {
 function exportStatsCsv() {
   const aoa = _statsTableToAoA();
   if (!aoa || aoa.length < 2) {
-    toast(currentLang === 'tr' ? 'Dışa aktarılacak satır yok' : 'Keine Daten', 'warn');
+    toast(t('ui.no_rows_export'), 'warn');
     return;
   }
   const lines = aoa.map((row) => row.map(_escapeCsvCell).join(','));
@@ -62,7 +62,7 @@ function exportStatsXlsx() {
   }
   const aoa = _statsTableToAoA();
   if (!aoa || aoa.length < 2) {
-    toast(currentLang === 'tr' ? 'Dışa aktarılacak satır yok' : 'Keine Daten', 'warn');
+    toast(t('ui.no_rows_export'), 'warn');
     return;
   }
   const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -145,7 +145,7 @@ async function exportCallHistoryCsv() {
   try {
     const logs = await _fetchCallHistoryExportRows();
     if (!logs.length) {
-      toast(currentLang === 'tr' ? 'Kayıt yok' : 'Keine Daten', 'warn');
+      toast(t('ui.no_row_short'), 'warn');
       return;
     }
     const head = [
@@ -183,7 +183,7 @@ async function exportCallHistoryXlsx() {
   try {
     const logs = await _fetchCallHistoryExportRows();
     if (!logs.length) {
-      toast(currentLang === 'tr' ? 'Kayıt yok' : 'Keine Daten', 'warn');
+      toast(t('ui.no_row_short'), 'warn');
       return;
     }
     const head = [

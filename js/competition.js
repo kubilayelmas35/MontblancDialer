@@ -102,7 +102,7 @@ async function loadDashCompetitionCard() {
     const map = await _compFetchTerminCounts(start, end);
     const rows = await _compRowsFromCounts(map);
     if (!rows.length) {
-      if (nameEl) nameEl.textContent = currentLang === 'tr' ? 'Henüz veri yok' : 'Noch keine Daten';
+      if (nameEl) nameEl.textContent = t('ui.competition_no_data');
       if (av) {
         av.textContent = '—';
         av.style.opacity = '0.4';
@@ -269,7 +269,7 @@ function _compRenderRace(rows, showCounts) {
   if (!box) return;
   box.innerHTML = '';
   if (!rows.length) {
-    box.innerHTML = `<div style="color:var(--text-3);padding:16px;font-size:13px;">${currentLang === 'tr' ? 'Veri yok' : 'Keine Daten'}</div>`;
+    box.innerHTML = `<div class="mb-empty-hint" style="font-size:13px;">${t('ui.no_data')}</div>`;
     return;
   }
   const max = Math.max(...rows.map((r) => r.count), 1);

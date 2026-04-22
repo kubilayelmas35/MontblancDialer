@@ -377,8 +377,7 @@ function etRenderTable() {
   if (!tbody) return;
 
   if (!_etFiltered.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:40px;">
-${currentLang === 'de' ? 'Keine Termine' : 'Kayıt yok'}</td></tr>`;
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(9, 'ui.no_termin') : `<tr><td colspan="9" class="mb-empty-hint" style="padding:40px;">${t('ui.no_termin')}</td></tr>`;
     if (rc) rc.textContent = '0';
     if (sc) sc.textContent = '0';
     if (dl) dl.disabled = true;
@@ -563,7 +562,7 @@ function exportTerminXlsx() {
     return;
   }
   if (!_etFiltered.length) {
-    toast(currentLang === 'de' ? 'Keine Daten' : 'Dışa aktarılacak satır yok', 'warn');
+    toast(t('ui.no_rows_export'), 'warn');
     return;
   }
   const use = _etSelectedIds.size

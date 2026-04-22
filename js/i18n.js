@@ -17,6 +17,23 @@ const MB_I18N = {
     'login.demo': 'Demo: admin@test.com / 1234 | agent@test.com / 1234',
     'login.ph.email': 'kullanici@firma.com',
     'login.ph.pass': '••••••••',
+    'ui.loading': 'Yükleniyor…',
+    'ui.no_records': 'Kayıt yok',
+    'ui.no_data': 'Veri yok',
+    'ui.no_data_range': 'Bu tarih aralığında veri yok',
+    'ui.no_termin_month': 'Bu ay termin yok',
+    'ui.no_termin_export': 'Dışa aktarılacak termin yok',
+    'ui.no_termin': 'Termin yok',
+    'ui.no_rows_export': 'Dışa aktarılacak satır yok',
+    'ui.no_row_short': 'Kayıt yok',
+    'ui.dash': '—',
+    'ui.no_access_page': 'Bu sayfaya erişim yok',
+    'ui.select_firm_first': 'Önce firma seçin',
+    'ui.competition_no_data': 'Henüz veri yok',
+    'ui.error_prefix': 'Hata: ',
+    'ui.unknown_error': 'Bilinmeyen hata',
+    'ui.load_failed': 'Yüklenemedi',
+    'ui.no_active_agents': 'Aktif agent yok',
   },
   de: {
     'login.feat.1': 'Autowähl & WebRTC',
@@ -35,6 +52,23 @@ const MB_I18N = {
     'login.demo': 'Demo: admin@test.com / 1234 | agent@test.com / 1234',
     'login.ph.email': 'benutzer@firma.com',
     'login.ph.pass': '••••••••',
+    'ui.loading': 'Wird geladen…',
+    'ui.no_records': 'Keine Einträge',
+    'ui.no_data': 'Keine Daten',
+    'ui.no_data_range': 'In diesem Zeitraum keine Daten',
+    'ui.no_termin_month': 'Keine Termine in diesem Monat',
+    'ui.no_termin_export': 'Keine Termine zum Export',
+    'ui.no_termin': 'Keine Termine',
+    'ui.no_rows_export': 'Keine Zeilen zum Export',
+    'ui.no_row_short': 'Keine Einträge',
+    'ui.dash': '—',
+    'ui.no_access_page': 'Kein Zugriff auf diese Seite',
+    'ui.select_firm_first': 'Zuerst Firma wählen',
+    'ui.competition_no_data': 'Noch keine Daten',
+    'ui.error_prefix': 'Fehler: ',
+    'ui.unknown_error': 'Unbekannter Fehler',
+    'ui.load_failed': 'Laden fehlgeschlagen',
+    'ui.no_active_agents': 'Keine aktiven Agenten',
   },
 };
 
@@ -60,7 +94,30 @@ function applyDomI18n() {
   });
 }
 
+/** One table row: empty / loading (uses .mb-empty-hint in css/styles.css) */
+function mbTableMessageRow(colspan, className, text) {
+  const safe = typeof escapeHtml === 'function' ? escapeHtml(String(text)) : String(text);
+  return `<tr><td colspan="${String(colspan)}" class="${className}">${safe}</td></tr>`;
+}
+
+function mbEmptyRow(colspan, key) {
+  const s = (typeof t === 'function' ? t(key) : null);
+  return mbTableMessageRow(colspan, 'mb-empty-hint', s != null ? s : String(key));
+}
+
+function mbLoadingRow(colspan) {
+  return mbEmptyRow(colspan, 'ui.loading');
+}
+
+function mbErrorRow(colspan, message) {
+  const s = typeof escapeHtml === 'function' ? escapeHtml(String(message)) : String(message);
+  return `<tr><td colspan="${String(colspan)}" class="mb-empty-hint" style="color:var(--red);">${s}</td></tr>`;
+}
+
 try {
   window.t = t;
   window.applyDomI18n = applyDomI18n;
+  window.mbEmptyRow = mbEmptyRow;
+  window.mbLoadingRow = mbLoadingRow;
+  window.mbErrorRow = mbErrorRow;
 } catch (_) {}
