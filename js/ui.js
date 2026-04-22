@@ -39,6 +39,68 @@ document.getElementById('sidebar').classList.remove('open');
 });
 
 // ── NAVIGATION ───────────────────────────────
+const _NAVIGATE_LOADERS = {
+  dashboard: () => {
+    loadDashboard();
+    if (typeof loadJobMarketKpi === 'function') loadJobMarketKpi();
+  },
+  campaigns: () => { loadCampaigns(); },
+  agents: () => { loadAgents(); },
+  stats: () => { initStatsFilters(); loadStats(); },
+  callhistory: () => { initCallHistoryFilters(); loadCallHistory(); },
+  export: () => { loadExportTerminPage(); },
+  performance: () => { loadPerformancePage(); },
+  dialer: () => {
+    initDialer();
+    if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
+  },
+  field: () => {
+    loadFieldPage();
+    if (typeof loadNotificationCenter === 'function') loadNotificationCenter();
+  },
+  fieldops: () => { loadFieldOpsPage(); },
+  jobmarket: () => {
+    loadJobMarketPage();
+    if (typeof refreshJobMarketMap === 'function') {
+      setTimeout(() => refreshJobMarketMap(), 0);
+      setTimeout(() => refreshJobMarketMap(), 280);
+    }
+  },
+  myhistory: () => { initMyHistoryFilters(); loadMyHistory(); },
+  settings: () => {
+    loadSavedSettings();
+    loadRolesPage();
+    if (typeof loadIncomingCallsSettingsPage === 'function') loadIncomingCallsSettingsPage();
+    loadAppointmentResultsSettings();
+    setTimeout(() => initSettingsTabs(), 0);
+    loadMesaiSettings();
+    loadCallHoursSettings();
+    loadChatSettingsPage();
+    loadFieldSettingsPage();
+    loadFeatureFlagsPage();
+    if (typeof loadAuditEventsPage === 'function') loadAuditEventsPage();
+    if (typeof loadJobPermissionsSettings === 'function') loadJobPermissionsSettings();
+  },
+  wiedervorlage: () => { loadWvPage(); },
+  qc: () => {
+    loadQcData();
+    if (typeof loadJobMarketQcQueue === 'function') loadJobMarketQcQueue();
+  },
+  firms: () => { loadFirmsPage(); },
+  takvim: () => { loadTakvimPage(); },
+  leave: () => { loadLeavePage(); },
+  muhasebe: () => { loadMuhasebePage(); },
+  maasim: () => { loadMaasimPage(); },
+  performansim: () => { loadPerformansimPage(); },
+  competition: () => { loadCompetitionPage(); },
+};
+
+function runPageEntry(page) {
+  const run = _NAVIGATE_LOADERS[page];
+  if (typeof run === 'function') run();
+  if (typeof syncGlobalMascotDock === 'function') setTimeout(() => syncGlobalMascotDock(), 0);
+}
+
 function navigate(page) {
 if (page !== 'dialer') {
   if (typeof closeMicAudioDrawer === 'function') closeMicAudioDrawer();
@@ -52,45 +114,8 @@ if (pg) pg.classList.add('active');
 const btn = document.querySelector(`.sb-item[onclick="navigate('${page}')"]`);
 if (btn) btn.classList.add('active');
 if (window.innerWidth <= 1024) closeSidebar();
-if (page==='dashboard')  loadDashboard();
-if (page==='campaigns')  loadCampaigns();
-if (page==='agents')     loadAgents();
-if (page==='stats')      { initStatsFilters(); loadStats(); }
-if (page==='callhistory'){ initCallHistoryFilters(); loadCallHistory(); }
-if (page==='export')       loadExportTerminPage();
-if (page==='performance') loadPerformancePage();
-if (page==='dialer')         initDialer();
 if (page !== 'dialer' && typeof stopInboundTestSimulationScheduler === 'function') stopInboundTestSimulationScheduler();
-if (page==='field')          loadFieldPage();
-if (page==='fieldops')       loadFieldOpsPage();
-if (page==='jobmarket') {
-  loadJobMarketPage();
-  if (typeof refreshJobMarketMap === 'function') {
-    setTimeout(() => refreshJobMarketMap(), 0);
-    setTimeout(() => refreshJobMarketMap(), 280);
-  }
-}
-if (page==='myhistory')      { initMyHistoryFilters(); loadMyHistory(); }
-if (page==='settings')       { loadSavedSettings(); loadRolesPage(); }
-if (page==='settings')       { if (typeof loadIncomingCallsSettingsPage === 'function') loadIncomingCallsSettingsPage(); }
-if (page==='settings')       { loadAppointmentResultsSettings(); }
-if (page==='settings')       { setTimeout(() => initSettingsTabs(), 0); }
-if (page==='wiedervorlage')  loadWvPage();
-if (page==='qc')             loadQcData();
-if (page==='firms')          loadFirmsPage();
-if (page==='settings')        { loadMesaiSettings(); loadCallHoursSettings(); loadChatSettingsPage(); loadFieldSettingsPage(); loadFeatureFlagsPage(); if (typeof loadAuditEventsPage==='function') loadAuditEventsPage(); }
-if (page==='settings')        { if (typeof loadJobPermissionsSettings==='function') loadJobPermissionsSettings(); }
-if (page==='field')          { if (typeof loadNotificationCenter === 'function') loadNotificationCenter(); }
-if (page==='dialer')         { if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel(); }
-if (page==='qc')             { if (typeof loadJobMarketQcQueue === 'function') loadJobMarketQcQueue(); }
-if (page==='dashboard')      { if (typeof loadJobMarketKpi === 'function') loadJobMarketKpi(); }
-if (page==='takvim')         loadTakvimPage();
-if (page==='leave')          loadLeavePage();
-if (page==='muhasebe')       loadMuhasebePage();
-if (page==='maasim')         loadMaasimPage();
-if (page==='performansim')   loadPerformansimPage();
-if (page==='competition')     loadCompetitionPage();
-if (typeof syncGlobalMascotDock === 'function') setTimeout(() => syncGlobalMascotDock(), 0);
+runPageEntry(page);
 }
 
 function initSettingsTabs() {
@@ -130,11 +155,7 @@ function setSettingsTab(tabId) {
 
 window._apptResultsByFirm = window._apptResultsByFirm || {};
 function _uiEsc(s) {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return typeof escapeHtml === 'function' ? escapeHtml(s) : String(s ?? '');
 }
 
 function defaultAppointmentResults() {
@@ -327,6 +348,7 @@ function setLang(l) {
 currentLang = l;
 document.getElementById('lang-btn').textContent = l.toUpperCase();
 document.documentElement.lang = l;
+if (typeof applyDomI18n === 'function') applyDomI18n();
 document.querySelectorAll(`[data-${l}]`).forEach(el => {
 if (el.tagName==='INPUT'||el.tagName==='TEXTAREA') {
 el.placeholder = el.getAttribute(`data-${l}`)||el.placeholder;

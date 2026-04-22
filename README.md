@@ -1,5 +1,7 @@
 # MontBlanc Dialer
 
+Uygulama sürümü `version.json` içindedir. `index.html` kökü `html/fragments/` parçalarından `npm run build` ile üretilir; `index.html`’i elle düzenlediyseniz tekrar `build` çalıştırın.
+
 ## Smoke Test
 
 Kritik akışları deploy öncesi hızlı doğrulamak için:

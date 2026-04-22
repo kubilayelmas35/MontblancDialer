@@ -1169,13 +1169,6 @@ async function saveNewGroup() {
   selectTeamChatGroup(gid);
 }
 
-function escapeHtml(s) {
-  if (!s) return '';
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
-
 function escapeAttr(s) {
   if (!s) return '';
   return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');

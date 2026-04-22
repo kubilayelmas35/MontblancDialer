@@ -5866,3 +5866,28 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .tak-slot-card-addr--dense {
   -webkit-line-clamp: 2;
 }
+/* —— Shared empty / loading hints (use class="mb-empty-hint" on no-data rows) */
+.mb-empty-hint {
+  text-align: center;
+  padding: 24px 20px;
+  color: var(--text-3);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.mb-skeleton-line {
+  height: 10px;
+  border-radius: 5px;
+  max-width: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--bg-3) 0%,
+    var(--bg-4) 45%,
+    var(--bg-3) 90%
+  );
+  background-size: 200% 100%;
+  animation: mb-skel 1.15s ease-in-out infinite;
+}
+@keyframes mb-skel {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

@@ -1,7 +1,9 @@
 import { readFile } from 'node:fs/promises';
 
 const checks = [
+  { file: 'js/i18n.js', includes: ['function t(', 'applyDomI18n'] },
   { file: 'js/auth.js', includes: ['bootApp', 'refreshUserPagePerms'] },
+  { file: 'js/ui.js', includes: ['_NAVIGATE_LOADERS', 'runPageEntry', 'function navigate('] },
   { file: 'js/agents.js', includes: ['saveNewAgent', 'saveAgentEdit'] },
   { file: 'js/dialer.js', includes: ['refreshDialerHealthPanel', 'checkCallAllowed'] },
   { file: 'js/field.js', includes: ['loadFieldPage', 'renderFieldKpi', 'saveFieldTaskUpdate'] },

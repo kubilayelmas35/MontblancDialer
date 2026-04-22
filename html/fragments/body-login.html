@@ -1,0 +1,69 @@
+<div id="page-login">
+<div class="fluid-aurora fluid-aurora--login" aria-hidden="true"></div>
+<!-- Left branding panel -->
+<div class="login-left">
+<div class="login-brand">
+<div class="login-logo-svg">
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+<rect width="48" height="48" rx="14" fill="white" fill-opacity=".15"/>
+<path d="M10 34V14l14 10L38 14v20" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="24" cy="24" r="4" fill="white"/>
+</svg>
+</div>
+<div class="login-brand-name">Montblanc</div>
+<div class="login-brand-sub">Call Center Platform</div>
+</div>
+<div class="login-features">
+<div class="login-feat"><i class="ph ph-phone-call"></i><span data-i18n="login.feat.1">Otomatik arama &amp; WebRTC</span></div>
+<div class="login-feat"><i class="ph ph-chart-line-up"></i><span data-i18n="login.feat.2">Gerçek zamanlı istatistikler</span></div>
+<div class="login-feat"><i class="ph ph-calendar-check"></i><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
+<div class="login-feat"><i class="ph ph-shield-check"></i><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
+</div>
+<div class="login-version">v__MB_VERSION__ — 2026</div>
+</div>
+<!-- Right form panel -->
+<div class="login-right">
+<div class="login-card">
+<div class="login-card-logo">
+<div class="login-logo-mark">
+<svg width="28" height="28" viewBox="0 0 48 48" fill="none">
+<path d="M10 34V14l14 10L38 14v20" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="24" cy="24" r="4" fill="white"/>
+</svg>
+</div>
+<div>
+<div class="login-title" data-i18n="login.welcome">Hoş geldiniz</div>
+<div class="login-sub" data-i18n="login.subtitle">Hesabınıza giriş yapın</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px;">
+<div class="form-row">
+<label class="form-label" id="lbl-email" data-i18n="login.email">E-posta</label>
+<div style="position:relative;">
+<i class="ph ph-envelope" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--text-3);pointer-events:none;"></i>
+<input class="form-input" type="email" id="login-email" data-i18n-placeholder="login.ph.email" placeholder="kullanici@firma.com" autocomplete="email" style="padding-left:36px;" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+</div>
+</div>
+<div class="form-row">
+<label class="form-label" id="lbl-pass" data-i18n="login.password">Şifre</label>
+<div style="position:relative;">
+<i class="ph ph-lock-simple" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--text-3);pointer-events:none;"></i>
+<input class="form-input" type="password" id="login-pass" data-i18n-placeholder="login.ph.pass" placeholder="••••••••" autocomplete="current-password" style="padding-left:36px;padding-right:40px;" onkeydown="if(event.key==='Enter')doLogin()">
+<button onclick="toggleLoginPass()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;" id="login-eye"><i class="ph ph-eye"></i></button>
+</div>
+</div>
+</div>
+<div id="login-err" class="login-error"></div>
+<div>
+<button class="login-btn" onclick="doLogin()" id="login-submit">
+<i class="ph ph-sign-in" style="vertical-align:-2px;margin-right:5px;"></i><span id="login-btn-label" data-i18n="login.btn">Giriş Yap</span>
+</button>
+<div class="login-demo" id="login-demo-hint" data-i18n="login.demo">Demo: admin@test.com / 1234 &nbsp;|&nbsp; agent@test.com / 1234</div>
+</div>
+<div style="display:flex;justify-content:center;gap:8px;">
+<button class="btn btn-ghost btn-sm" onclick="setLang('tr')">TR</button>
+<button class="btn btn-ghost btn-sm" onclick="setLang('de')">DE</button>
+</div>
+</div>
+</div>
+</div>

@@ -7,12 +7,14 @@ const pass   = document.getElementById('login-pass').value;
 const errEl  = document.getElementById('login-err');
 const btn    = document.getElementById('login-submit');
 if (!email || !pass) {
-errEl.textContent = 'E-posta ve şifre gerekli';
+errEl.textContent = (typeof t === 'function' ? t('login.err.required') : 'E-posta ve şifre gerekli');
 errEl.style.display = 'block';
 return;
 }
 btn.disabled = true;
-btn.textContent = 'Giriş yapılıyor...';
+const _lbl = document.getElementById('login-btn-label');
+if (_lbl) _lbl.textContent = (typeof t === 'function' ? t('login.signingIn') : 'Giriş yapılıyor...');
+else btn.textContent = (typeof t === 'function' ? t('login.signingIn') : 'Giriş yapılıyor...');
 errEl.style.display = 'none';
 try {
 const res = await fetch(`${SB_URL}/rest/v1/rpc/verify_password`, {
@@ -26,10 +28,11 @@ body: JSON.stringify({ p_email: email, p_password: pass })
 });
 const data = await res.json();
 if (!data || !data.length) {
-errEl.textContent = currentLang==='tr' ? 'E-posta veya şifre hatalı' : 'E-Mail oder Passwort falsch';
+errEl.textContent = (typeof t === 'function' ? t('login.err.bad') : (currentLang==='tr' ? 'E-posta veya şifre hatalı' : 'E-Mail oder Passwort falsch'));
 errEl.style.display = 'block';
 btn.disabled = false;
-btn.textContent = 'Giriş Yap';
+if (_lbl) _lbl.textContent = (typeof t === 'function' ? t('login.btn') : 'Giriş Yap');
+else btn.textContent = 'Giriş Yap';
 return;
 }
 const u = data[0];
@@ -57,10 +60,11 @@ document.getElementById('page-login').style.display = 'none';
 document.getElementById('app').style.display = 'flex';
 bootApp();
 } catch(e) {
-errEl.textContent = 'Bağlantı hatası: ' + e.message;
+errEl.textContent = (typeof t === 'function' ? t('login.err.conn') : 'Bağlantı hatası: ') + e.message;
 errEl.style.display = 'block';
 btn.disabled = false;
-btn.textContent = 'Giriş Yap';
+if (_lbl) _lbl.textContent = (typeof t === 'function' ? t('login.btn') : 'Giriş Yap');
+else btn.textContent = 'Giriş Yap';
 }
 }
 
