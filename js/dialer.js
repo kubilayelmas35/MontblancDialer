@@ -1408,6 +1408,8 @@ let _mascotCallAccumSec = Number(getMascotPref('mb_mascot_call_accum_sec', '0'))
 let _wanderRaf = null;
 let _wanderCur = { x: 0, y: 0 };
 let _wanderTgt = { x: 0, y: 0 };
+let _wanderPauseUntil = 0;
+let _wanderSpeedMult = 1;
 let _dockRaf = null;
 let _mimiActiveTab = 'profile';
 
@@ -1617,9 +1619,15 @@ function _wireGlobalMascotInteractions() {
   mascot.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     e.preventDefault();
+    // Wander offsetini baz konuma aktar, mascot tutma anında zıplamasın
+    const absorbX = _wanderCur.x;
+    const absorbY = _wanderCur.y;
+    if (absorbX !== 0 || absorbY !== 0) {
+      const r0 = gm.getBoundingClientRect();
+      gm.style.left = `${r0.left + absorbX}px`;
+      gm.style.top = `${r0.top + absorbY}px`;
+    }
     _stopGlobalMascotWander();
-    gm.style.setProperty('--gm-wx', '0px');
-    gm.style.setProperty('--gm-wy', '0px');
     const r = gm.getBoundingClientRect();
     _mascotDragState = {
       pointerId: e.pointerId,
@@ -1637,8 +1645,9 @@ function _wireGlobalMascotInteractions() {
     const dx = e.clientX - _mascotDragState.sx;
     const dy = e.clientY - _mascotDragState.sy;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) _mascotDragState.moved = true;
-    const x = _mascotDragState.left + dx;
-    const y = _mascotDragState.top + dy;
+    const edge = 24;
+    const x = Math.max(edge, Math.min(window.innerWidth - edge, _mascotDragState.left + dx));
+    const y = Math.max(edge, Math.min(window.innerHeight - edge, _mascotDragState.top + dy));
     gm.style.left = `${x}px`;
     gm.style.top = `${y}px`;
     gm.classList.add('global-mascot--custom');
@@ -1679,6 +1688,8 @@ function _stopGlobalMascotWander() {
   }
   _wanderCur = { x: 0, y: 0 };
   _wanderTgt = { x: 0, y: 0 };
+  _wanderPauseUntil = 0;
+  _wanderSpeedMult = 1;
   const gm = document.getElementById('global-mascot');
   if (gm) {
     gm.style.setProperty('--gm-wx', '0px');
@@ -1723,6 +1734,9 @@ function _pickWanderTarget(gm) {
   const halfHy = h / 2;
   _wanderTgt.x = midX + (Math.random() * 2 - 1) * halfWx * wf;
   _wanderTgt.y = midY + (Math.random() * 2 - 1) * halfHy * wf;
+  // Hedefe vardıktan sonra rastgele bekle (0.8–5 sn) ve rastgele hızla git
+  _wanderPauseUntil = performance.now() + 800 + Math.random() * 4200;
+  _wanderSpeedMult = 0.35 + Math.random() * 1.65;
 }
 
 function _wanderFrame() {
@@ -1744,14 +1758,20 @@ function _wanderFrame() {
   const dx = _wanderTgt.x - _wanderCur.x;
   const dy = _wanderTgt.y - _wanderCur.y;
   if (Math.abs(dx) < 0.35 && Math.abs(dy) < 0.35) {
+    if (performance.now() < _wanderPauseUntil) {
+      _wanderRaf = requestAnimationFrame(_wanderFrame);
+      return;
+    }
     _pickWanderTarget(gm);
   }
+  // Ara sıra rastgele yön değiştir (%0.3 şans / frame)
+  if (Math.random() < 0.003) _pickWanderTarget(gm);
   const bounds = _mascotWanderBoundsFromViewport(gm);
   const speedPct = getMascotWanderSpeedPct();
   const speedT = Math.max(0, speedPct) / 100;
   const speedK = 0.006 + speedT * 0.14;
   const wanderT = Math.max(0, Math.min(100, pct)) / 100;
-  const step = speedK * (0.12 + wanderT * 0.88) * 0.09 * Math.pow(wanderT, 1.35);
+  const step = speedK * (0.12 + wanderT * 0.88) * 0.09 * Math.pow(wanderT, 1.35) * _wanderSpeedMult;
   _wanderCur.x += dx * step;
   _wanderCur.y += dy * step;
   _wanderCur.x = Math.min(bounds.maxX, Math.max(bounds.minX, _wanderCur.x));
