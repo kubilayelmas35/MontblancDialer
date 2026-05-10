@@ -16,6 +16,76 @@
 </head>
 <body>
 
+<div id="page-login">
+<div class="fluid-aurora fluid-aurora--login" aria-hidden="true"></div>
+<!-- Left branding panel -->
+<div class="login-left">
+<div class="login-brand">
+<div class="login-logo-svg">
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+<rect width="48" height="48" rx="14" fill="white" fill-opacity=".15"/>
+<path d="M10 34V14l14 10L38 14v20" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="24" cy="24" r="4" fill="white"/>
+</svg>
+</div>
+<div class="login-brand-name">Montblanc</div>
+<div class="login-brand-sub">Call Center Platform</div>
+</div>
+<div class="login-features">
+<div class="login-feat"><i class="ph ph-phone-call"></i><span data-i18n="login.feat.1">Otomatik arama &amp; WebRTC</span></div>
+<div class="login-feat"><i class="ph ph-chart-line-up"></i><span data-i18n="login.feat.2">Gerçek zamanlı istatistikler</span></div>
+<div class="login-feat"><i class="ph ph-calendar-check"></i><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
+<div class="login-feat"><i class="ph ph-shield-check"></i><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
+</div>
+<div class="login-version">v8.18 — 2026</div>
+</div>
+<!-- Right form panel -->
+<div class="login-right">
+<div class="login-card">
+<div class="login-card-logo">
+<div class="login-logo-mark">
+<svg width="28" height="28" viewBox="0 0 48 48" fill="none">
+<path d="M10 34V14l14 10L38 14v20" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="24" cy="24" r="4" fill="white"/>
+</svg>
+</div>
+<div>
+<div class="login-title" data-i18n="login.welcome">Hoş geldiniz</div>
+<div class="login-sub" data-i18n="login.subtitle">Hesabınıza giriş yapın</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px;">
+<div class="form-row">
+<label class="form-label" id="lbl-email" data-i18n="login.email">E-posta</label>
+<div style="position:relative;">
+<i class="ph ph-envelope" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--text-3);pointer-events:none;"></i>
+<input class="form-input" type="email" id="login-email" data-i18n-placeholder="login.ph.email" placeholder="kullanici@firma.com" autocomplete="email" style="padding-left:36px;" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+</div>
+</div>
+<div class="form-row">
+<label class="form-label" id="lbl-pass" data-i18n="login.password">Şifre</label>
+<div style="position:relative;">
+<i class="ph ph-lock-simple" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--text-3);pointer-events:none;"></i>
+<input class="form-input" type="password" id="login-pass" data-i18n-placeholder="login.ph.pass" placeholder="••••••••" autocomplete="current-password" style="padding-left:36px;padding-right:40px;" onkeydown="if(event.key==='Enter')doLogin()">
+<button onclick="toggleLoginPass()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;" id="login-eye"><i class="ph ph-eye"></i></button>
+</div>
+</div>
+</div>
+<div id="login-err" class="login-error"></div>
+<div>
+<button class="login-btn" onclick="doLogin()" id="login-submit">
+<i class="ph ph-sign-in" style="vertical-align:-2px;margin-right:5px;"></i><span id="login-btn-label" data-i18n="login.btn">Giriş Yap</span>
+</button>
+<div class="login-demo" id="login-demo-hint" data-i18n="login.demo">Demo: admin@test.com / 1234 &nbsp;|&nbsp; agent@test.com / 1234</div>
+</div>
+<div style="display:flex;justify-content:center;gap:8px;">
+<button class="btn btn-ghost btn-sm" onclick="setLang('tr')">TR</button>
+<button class="btn btn-ghost btn-sm" onclick="setLang('de')">DE</button>
+</div>
+</div>
+</div>
+</div>
+
 <div id="app" style="display:none;">
 <div id="topbar">
 <button class="tb-hamburger" onclick="toggleSidebar()" id="hamburger">
@@ -3550,6 +3620,105 @@ QC Detay
 <i class="ph ph-phone"></i> Ara
 </button>
 </div>
+</div>
+
+<div id="team-chat-root" class="team-chat-root" aria-live="polite">
+<div class="team-chat-fab-stack" id="team-chat-fab-stack">
+<button type="button" id="team-chat-fab-pop" class="team-chat-fab-pop" style="display:none;" aria-label="Gelen mesaj önizlemesi">
+<div class="team-chat-fab-pop-inner">
+<div id="team-chat-fab-pop-from" class="team-chat-fab-pop-from"></div>
+<div id="team-chat-fab-pop-text" class="team-chat-fab-pop-text"></div>
+</div>
+</button>
+<button type="button" id="team-chat-fab" class="team-chat-fab" aria-label="Ekip sohbeti" title="Sohbet">
+<div class="team-chat-fab-aurora fluid-aurora fluid-aurora--chat-fab" aria-hidden="true"></div>
+<div class="team-chat-fab-inner">
+<i class="ph ph-chats-circle" style="font-size:22px;"></i>
+<span id="team-chat-badge" class="team-chat-badge" style="display:none;">0</span>
+</div>
+</button>
+</div>
+<div id="team-chat-panel" class="team-chat-panel" style="display:none;">
+<div class="team-chat-panel-head">
+<div class="team-chat-head-left">
+<span class="team-chat-panel-title">Sohbet</span>
+<div id="team-chat-mode-wrap" class="team-chat-mode-wrap" style="display:none;">
+<button type="button" class="team-chat-mode-pill active" data-mode="firm">Firma</button>
+<button type="button" class="team-chat-mode-pill" data-mode="global">Tümü</button>
+</div>
+</div>
+<button type="button" id="team-chat-close" class="team-chat-icon-btn team-chat-close-btn" aria-label="Kapat"><i class="ph ph-x"></i></button>
+</div>
+<div class="team-chat-panel-body">
+<div id="team-chat-firm-layout" class="team-chat-firm-layout">
+<div class="team-chat-groups-col">
+<div class="team-chat-groups-toolbar">
+<button type="button" id="team-chat-quick-dm" class="btn btn-sm btn-secondary team-chat-btn-quick" style="display:none;">Hızlı mesaj</button>
+<button type="button" id="team-chat-new-group" class="btn btn-sm btn-secondary team-chat-btn-new" style="display:none;">+ Grup</button>
+</div>
+<div id="team-chat-group-list" class="team-chat-group-list"></div>
+</div>
+<div class="team-chat-main-col">
+<div id="team-chat-messages" class="team-chat-messages"></div>
+<div id="team-chat-compose-wrap" class="team-chat-compose-wrap">
+<div class="team-chat-compose">
+<input type="file" id="team-chat-file" accept="image/*,audio/*,.pdf,.doc,.docx,.xlsx,.zip" style="display:none"/>
+<button type="button" class="team-chat-icon-btn" onclick="document.getElementById('team-chat-file').click()" title="Dosya / görsel"><i class="ph ph-paperclip"></i></button>
+<button type="button" id="team-chat-mic" class="team-chat-icon-btn" title="Sesli mesaj"><i class="ph ph-microphone"></i></button>
+<input type="text" id="team-chat-input" class="form-input team-chat-input" placeholder="Mesaj yazın…" autocomplete="off"/>
+<button type="button" id="team-chat-send" class="btn btn-primary btn-sm team-chat-send-btn"><i class="ph ph-paper-plane-tilt"></i></button>
+</div>
+</div>
+</div>
+</div>
+<div id="team-chat-global-feed" class="team-chat-global-feed" style="display:none;">
+<div class="team-chat-global-hint"><i class="ph ph-info"></i> Tüm firmalardaki son mesajlar. Yanıtlamak için satıra tıklayın.</div>
+<div id="team-chat-global-list" class="team-chat-global-list"></div>
+</div>
+</div>
+</div>
+<div id="team-chat-quick-modal" class="team-chat-modal" style="display:none;">
+<div class="team-chat-modal-card">
+<h3 style="margin:0 0 8px;font-size:15px;">Hızlı mesaj</h3>
+<p class="team-chat-muted" style="margin:0 0 12px;font-size:12px;">Seçtiğiniz kişiyle birebir sohbet açılır (aynı firma bağlamında).</p>
+<select id="team-chat-quick-user" class="form-input" style="width:100%;margin-bottom:12px;">
+<option value="">Kişi seçin…</option>
+</select>
+<div style="display:flex;gap:8px;justify-content:flex-end;">
+<button type="button" class="btn btn-secondary btn-sm" id="team-chat-quick-cancel">İptal</button>
+<button type="button" class="btn btn-primary btn-sm" id="team-chat-quick-go">Sohbeti aç</button>
+</div>
+</div>
+</div>
+<div id="team-chat-group-modal" class="team-chat-modal" style="display:none;">
+<div class="team-chat-modal-card">
+<h3 style="margin:0 0 12px;font-size:15px;">Yeni grup</h3>
+<input type="text" id="team-chat-group-name" class="form-input" placeholder="Grup adı" style="margin-bottom:12px;width:100%;"/>
+<div id="team-chat-group-members" class="team-chat-member-pick"></div>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+<button type="button" class="btn btn-secondary btn-sm" id="team-chat-group-cancel" onclick="closeNewGroupModal()">İptal</button>
+<button type="button" class="btn btn-primary btn-sm" id="team-chat-save-group">Oluştur</button>
+</div>
+</div>
+</div>
+</div>
+<div id="team-chat-members-modal" class="team-chat-modal" style="display:none;">
+<div class="team-chat-modal-card team-chat-modal-card--wide">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+<h3 id="team-chat-members-title" style="margin:0;font-size:15px;">Grup üyeleri</h3>
+<button type="button" id="team-chat-members-close" class="team-chat-icon-btn" onclick="closeMembersModal()"><i class="ph ph-x"></i></button>
+</div>
+<div id="team-chat-members-list" class="team-chat-members-list"></div>
+<div id="team-chat-members-add"></div>
+</div>
+</div>
+
+<div id="notification-center" style="display:none;position:fixed;top:58px;right:14px;width:min(420px,92vw);max-height:72vh;overflow:auto;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;z-index:260;box-shadow:0 12px 28px rgba(0,0,0,.2);">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);">
+<div style="font-size:13px;font-weight:800;">Bildirim Merkezi</div>
+<button class="btn btn-ghost btn-sm" onclick="toggleNotificationCenter(false)">Kapat</button>
+</div>
+<div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
 
 <script src="js/version.js?v=8.18"></script>
