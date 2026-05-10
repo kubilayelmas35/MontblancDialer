@@ -1934,6 +1934,10 @@ function syncGlobalMascotMoodFromCustEmpty() {
   else if (root.classList.contains('cust-empty--mascot-angry')) gm.setAttribute('data-mood', 'angry');
   else if (root.classList.contains('cust-empty--mascot-bored')) gm.setAttribute('data-mood', 'bored');
   else if (root.classList.contains('cust-empty--mascot-eat')) gm.setAttribute('data-mood', 'eat');
+  else if (root.classList.contains('cust-empty--mascot-drink')) gm.setAttribute('data-mood', 'drink');
+  else if (root.classList.contains('cust-empty--mascot-yawn')) gm.setAttribute('data-mood', 'yawn');
+  else if (root.classList.contains('cust-empty--mascot-stretch')) gm.setAttribute('data-mood', 'stretch');
+  else if (root.classList.contains('cust-empty--mascot-celebrate')) gm.setAttribute('data-mood', 'celebrate');
   else gm.removeAttribute('data-mood');
 }
 
@@ -2999,7 +3003,11 @@ function setDialerStatus(s) {
       'cust-empty--mascot-bored',
       'cust-empty--mascot-angry',
       'cust-empty--break',
-      'cust-empty--mascot-eat'
+      'cust-empty--mascot-eat',
+      'cust-empty--mascot-drink',
+      'cust-empty--mascot-yawn',
+      'cust-empty--mascot-stretch',
+      'cust-empty--mascot-celebrate'
     );
   }
   syncGlobalMascotMoodFromCustEmpty();
@@ -3869,6 +3877,7 @@ function setOutcome(o) {
   if (gm) gm.classList.remove('global-mascot--sad', 'global-mascot--celebrate');
   if (o === 'appointment' || o === 'appointment_done') {
     if (gm && !isMimiHidden()) gm.classList.add('global-mascot--celebrate');
+    if (typeof _mimiCelebrate === 'function') _mimiCelebrate();
     const okPool = tr
       ? [
           'Başardık! Termin adımına geçiyoruz.',
