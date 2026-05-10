@@ -3020,13 +3020,23 @@ function refreshDialerHealthPanel() {
   }
 }
 
-async function updateSessionInDB(status) {
+async function updateSessionInDB(status, extra = {}) {
   if (!currentUser) return;
   try {
-    await upsertAgentSession({
+    const payload = {
       agent_id: currentUser.id, agent_name: currentUser.name,
-      status, last_seen: new Date().toISOString()
-    });
+      firm_id: currentUser.firm_id,
+      status, last_seen: new Date().toISOString(),
+      ...extra,
+    };
+    // on_call dışında çağrı alanlarını temizle
+    if (status !== 'on_call') {
+      payload.current_contact_name  = null;
+      payload.current_contact_phone = null;
+      payload.telnyx_call_control_id = null;
+      payload.call_started_at = null;
+    }
+    await upsertAgentSession(payload);
   } catch(e) {}
 }
 
@@ -3174,7 +3184,11 @@ function redialCurrentContact() {
   setDialerStatus('on_call');
   _outboundDialPending = true;
   sendToRTC('MB_CALL', { destination: currentContact.phone, callerNumber: campaign?.telnyx_did || '' });
-  updateSessionInDB('on_call').catch(() => {});
+  updateSessionInDB('on_call', {
+    current_contact_name: [currentContact.first_name, currentContact.last_name].filter(Boolean).join(' ') || null,
+    current_contact_phone: currentContact.phone || null,
+    call_started_at: new Date().toISOString(),
+  }).catch(() => {});
   if (typeof switchContactTab === 'function') switchContactTab('info');
 }
 
@@ -3201,7 +3215,11 @@ function callSecondaryPhone() {
   setDialerStatus('on_call');
   _outboundDialPending = true;
   sendToRTC('MB_CALL', { destination: p2, callerNumber: campaign?.telnyx_did || '' });
-  updateSessionInDB('on_call').catch(() => {});
+  updateSessionInDB('on_call', {
+    current_contact_name: [currentContact?.first_name, currentContact?.last_name].filter(Boolean).join(' ') || null,
+    current_contact_phone: p2 || null,
+    call_started_at: new Date().toISOString(),
+  }).catch(() => {});
   if (typeof switchContactTab === 'function') switchContactTab('info');
 }
 

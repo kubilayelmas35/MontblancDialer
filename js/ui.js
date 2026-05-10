@@ -86,6 +86,7 @@ const _NAVIGATE_LOADERS = {
     loadQcData();
     if (typeof loadJobMarketQcQueue === 'function') loadJobMarketQcQueue();
   },
+  supervisor: () => { if (typeof loadSupervisorPanel === 'function') loadSupervisorPanel(); },
   firms: () => { loadFirmsPage(); },
   takvim: () => { loadTakvimPage(); },
   leave: () => { loadLeavePage(); },
@@ -102,6 +103,7 @@ function runPageEntry(page) {
 }
 
 function navigate(page) {
+if (page !== 'supervisor' && typeof unloadSupervisorPanel === 'function') unloadSupervisorPanel();
 if (page !== 'dialer') {
   if (typeof closeMicAudioDrawer === 'function') closeMicAudioDrawer();
   if (typeof closeManualDialDrawer === 'function') closeManualDialDrawer();

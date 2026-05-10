@@ -121,6 +121,8 @@ if (fieldNav) fieldNav.style.display = currentUser.role === 'field_agent' ? '' :
 if (dialerNav) dialerNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
 if (adminDialerNav) adminDialerNav.style.display = ['admin','firm_admin','super_admin','qc'].includes(currentUser.role) ? '' : 'none';
 if (fieldOpsNav) fieldOpsNav.style.display = ['admin','firm_admin','super_admin'].includes(currentUser.role) ? '' : 'none';
+const supervisorNav = document.getElementById('nav-supervisor-btn');
+if (supervisorNav) supervisorNav.style.display = ['admin','firm_admin','super_admin'].includes(currentUser.role) ? '' : 'none';
 if (jobsNav) jobsNav.style.display = ['admin','firm_admin','super_admin'].includes(currentUser.role) ? '' : 'none';
 if (myHistoryNav) myHistoryNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
 if (wvNav) wvNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
