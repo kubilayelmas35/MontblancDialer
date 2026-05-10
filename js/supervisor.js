@@ -7,11 +7,11 @@ let _supTickTimer    = null;
 let _supSessions     = [];
 
 const _SUP_STATUS_LABEL = {
-  on_call:  { tr: 'Çağrıda',  de: 'Im Gespräch', cls: 'sup-status--oncall'  },
-  ready:    { tr: 'Hazır',    de: 'Bereit',       cls: 'sup-status--ready'   },
-  wrapping: { tr: 'Kapanış',  de: 'Nachbearb.',   cls: 'sup-status--wrap'    },
-  break:    { tr: 'Mola',     de: 'Pause',        cls: 'sup-status--break'   },
-  offline:  { tr: 'Çevrimdışı', de: 'Offline',    cls: 'sup-status--offline' },
+  on_call:  { tr: 'Çağrıda',     de: 'Im Gespräch', cls: 'sup-status--oncall'  },
+  ready:    { tr: 'Hazır',       de: 'Bereit',       cls: 'sup-status--ready'   },
+  wrapping: { tr: 'Sarılıyor',   de: 'Nachbearb.',   cls: 'sup-status--wrap'    },
+  break:    { tr: 'Mola',        de: 'Pause',        cls: 'sup-status--break'   },
+  offline:  { tr: 'Çevrimdışı',  de: 'Offline',      cls: 'sup-status--offline' },
 };
 
 function _supFmtDuration(isoStart) {
@@ -51,6 +51,12 @@ function _supRenderCards() {
     const agent  = escapeHtml(s.agent_name || s.agent_id?.slice(0, 8) || '?');
     const isCall = s.status === 'on_call';
 
+    const callInfo = isCall && (s.current_contact_name || s.current_contact_phone) ? `
+  <div class="sup-call-info">
+    ${s.current_contact_name ? `<div class="sup-call-row"><span class="sup-call-lbl">${lang === 'tr' ? 'Müşteri' : 'Kontakt'}</span><span class="sup-call-val">${name}</span></div>` : ''}
+    ${s.current_contact_phone ? `<div class="sup-call-row"><span class="sup-call-lbl">${lang === 'tr' ? 'Numara' : 'Nummer'}</span><span class="sup-call-val">${phone}</span></div>` : ''}
+  </div>` : '';
+
     return `
 <div class="sup-card ${isCall ? 'sup-card--active' : ''}">
   <div class="sup-card-top">
@@ -59,19 +65,9 @@ function _supRenderCards() {
       <div class="sup-agent-name">${agent}</div>
       <span class="sup-status ${info.cls}">${label}</span>
     </div>
-    <div class="sup-dur ${isCall ? 'sup-dur--live' : ''}" data-start="${escapeHtml(s.call_started_at || '')}">${dur}</div>
+    ${isCall ? `<div class="sup-dur sup-dur--live" data-start="${escapeHtml(s.call_started_at || '')}">${dur}</div>` : ''}
   </div>
-  ${isCall ? `
-  <div class="sup-call-info">
-    <div class="sup-call-row">
-      <span class="sup-call-lbl">${lang === 'tr' ? 'Müşteri' : 'Kontakt'}</span>
-      <span class="sup-call-val">${name}</span>
-    </div>
-    <div class="sup-call-row">
-      <span class="sup-call-lbl">${lang === 'tr' ? 'Numara' : 'Nummer'}</span>
-      <span class="sup-call-val">${phone}</span>
-    </div>
-  </div>` : ''}
+  ${callInfo}
 </div>`;
   }).join('');
 }
