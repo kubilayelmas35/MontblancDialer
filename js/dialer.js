@@ -2450,6 +2450,126 @@ function _maybeConsumeTestTransferInbox() {
   });
 }
 
+// ── Çağrı Aktarma (Transfer) ──────────────────
+
+let _xferRealtimeSub = null;
+
+async function _startTransferSubscription() {
+  if (_xferRealtimeSub || !currentUser?.id) return;
+  const client = typeof getSupabaseClient === 'function' ? await getSupabaseClient() : null;
+  if (!client) return;
+  _xferRealtimeSub = client
+    .channel(`transfer-inbox-${currentUser.id}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'pending_transfers', filter: `to_agent_id=eq.${currentUser.id}` },
+      (payload) => { if (payload.new) _consumeIncomingTransfer(payload.new); }
+    )
+    .subscribe();
+}
+
+async function _stopTransferSubscription() {
+  if (!_xferRealtimeSub) return;
+  try {
+    const client = typeof getSupabaseClient === 'function' ? await getSupabaseClient() : null;
+    if (client) await client.removeChannel(_xferRealtimeSub);
+  } catch (_) {}
+  _xferRealtimeSub = null;
+}
+
+function _consumeIncomingTransfer(row) {
+  if (dialerStatus !== 'ready' || _fakeCallActive || _inboundTestRingOpen) return;
+  if (Date.now() - new Date(row.created_at).getTime() > 180000) return;
+
+  const tr = currentLang === 'tr';
+  const phone = row.contact_phone || '';
+  const contactName = row.contact_name || phone;
+  const fromAgent = row.from_agent_name || '—';
+  const parts = contactName.split(/\s+/);
+
+  const contact = {
+    id: `xfer-${row.id}`,
+    phone,
+    first_name: parts[0] || (tr ? 'Transfer' : 'Transfer'),
+    last_name: parts.slice(1).join(' ') || '',
+    firm_id: currentUser.firm_id,
+    campaign_id: selectedCampId || campaigns?.[0]?.id || null,
+    status: 'pending',
+    attempt_count: 0,
+    is_inbound_test: true,
+    _testScenario: 'forwarded',
+    _testFromAgentName: fromAgent,
+  };
+
+  sb(`pending_transfers?id=eq.${row.id}`, {
+    method: 'PATCH',
+    prefer: 'return=minimal',
+    body: JSON.stringify({ status: 'accepted' }),
+  }).catch(() => {});
+
+  void beginInboundTestCall({
+    phone,
+    displayName: contactName,
+    contact,
+    routeDetail: tr ? `Aktaran: ${fromAgent}` : `Von: ${fromAgent}`,
+    isExternalInbound: false,
+  });
+}
+
+async function openTransferModal() {
+  if (dialerStatus !== 'on_call') return;
+  const fid = currentUser?.firm_id;
+  if (!fid) return;
+
+  const list = document.getElementById('transfer-agent-list');
+  if (list) list.innerHTML = '<div style="font-size:12px;color:var(--text-3);">Yükleniyor…</div>';
+  openModal('m-transfer');
+
+  const rows = await sb(
+    `agent_sessions?firm_id=eq.${fid}&status=eq.ready&select=agent_id,agent_name&order=agent_name.asc`
+  ).catch(() => []);
+  const agents = (rows || []).filter(a => a.agent_id !== currentUser.id);
+
+  if (!list) return;
+  if (!agents.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--text-3);">Hazır agent bulunamadı.</div>';
+    return;
+  }
+  list.innerHTML = agents.map(a => `
+<button class="transfer-agent-btn" onclick="executeTransfer('${escapeHtml(a.agent_id)}','${escapeHtml(a.agent_name || a.agent_id)}')">
+  <div class="transfer-agent-avatar">${escapeHtml((a.agent_name || '?').charAt(0).toUpperCase())}</div>
+  <div class="transfer-agent-name">${escapeHtml(a.agent_name || a.agent_id)}</div>
+  <span class="transfer-agent-badge">Hazır</span>
+</button>`).join('');
+}
+
+async function executeTransfer(toAgentId, toAgentName) {
+  closeModal('m-transfer');
+  const fid   = currentUser?.firm_id;
+  const phone = currentContact?.phone || '';
+  const name  = `${currentContact?.first_name || ''} ${currentContact?.last_name || ''}`.trim();
+  try {
+    await sb('pending_transfers', {
+      method: 'POST',
+      prefer: 'return=minimal',
+      body: JSON.stringify({
+        firm_id: fid,
+        from_agent_id: currentUser.id,
+        from_agent_name: currentUser.name,
+        to_agent_id: toAgentId,
+        contact_phone: phone,
+        contact_name: name,
+        status: 'pending',
+      }),
+    });
+    const tr = currentLang === 'tr';
+    toast(tr ? `${toAgentName} adlı agenta aktarılıyor…` : `Wird an ${toAgentName} übergeben…`, 'ok', 3000);
+    setTimeout(() => hangup(), 800);
+  } catch (e) {
+    toast('Aktarma hatası: ' + e.message, 'err');
+  }
+}
+
 function _hideInboundExternalFluidCue() {
   if (_inboundExternalCueTimer) {
     clearTimeout(_inboundExternalCueTimer);
@@ -2749,6 +2869,7 @@ function setDialerStatus(s) {
   if (s === 'ready' && prev !== 'ready') {
     _readyEnteredAt = Date.now();
     _custEmptyIdleSince = null;
+    _startTransferSubscription().catch(() => {});
   } else if (s !== 'ready') {
     _readyEnteredAt = null;
   }
@@ -2774,6 +2895,9 @@ function setDialerStatus(s) {
   refreshStatusElapsed();
   const callAct = document.getElementById('call-actions');
   if (callAct) callAct.classList.remove('call-actions--wrapping');
+
+  const xferBtnHide = document.getElementById('btn-transfer');
+  if (xferBtnHide && s !== 'on_call') xferBtnHide.style.display = 'none';
 
   if (s==='offline'||s==='break') {
     if (rdyBtn) rdyBtn.className='btn-ready-big ready';
@@ -2808,6 +2932,8 @@ function setDialerStatus(s) {
       callAct.style.display='';
       callAct.classList.remove('call-actions--wrapping');
     }
+    const xferBtn = document.getElementById('btn-transfer');
+    if (xferBtn) xferBtn.style.display = '';
     const tblk = document.getElementById('dialer-timer-block');
     if (tblk) tblk.style.display = 'flex';
     document.getElementById('customer-card').style.display='';

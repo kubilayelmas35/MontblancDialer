@@ -1352,6 +1352,9 @@ Son randevu bilgileri indirilebilir.
 <button class="call-action-btn" id="btn-hold" onclick="toggleHold()">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> <span data-tr="Beklet" data-de="Halten">Beklet</span>
 </button>
+<button type="button" class="call-action-btn call-action-btn--transfer" id="btn-transfer" onclick="openTransferModal()" title="Çağrıyı başka agenta aktar" style="display:none;">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> <span>Transfer</span>
+</button>
 <button type="button" class="call-action-btn" style="color:var(--red);" id="btn-hangup" onclick="hangup()">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.379 1.85.573 2.81.7A2 2 0 0 1 22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.19 18M1 1l22 22"/></svg> <span id="btn-hangup-label">Kapat</span>
 </button>
@@ -2890,6 +2893,34 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 </div>
 <button class="btn btn-primary" style="align-self:flex-start;" onclick="saveSettings()">
 <i class="ph ph-floppy-disk"></i> <span data-tr="Kaydet" data-de="Speichern">Kaydet</span>
+</button>
+</div>
+</div>
+<div class="card" id="sms-settings-card" style="display:none;">
+<div class="card-title" style="margin-bottom:8px;"><i class="ph ph-chat-dots" style="vertical-align:-3px;margin-right:6px;"></i>SMS Hatırlatma</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:16px;">QC onayında müşteriye randevu hatırlatma SMS'i göndermek için yapılandırın. Telnyx üzerinden gönderilir.</div>
+<div style="display:flex;flex-direction:column;gap:12px;">
+<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+<input type="checkbox" id="sms-enabled-chk" style="width:15px;height:15px;cursor:pointer;">
+<span>SMS hatırlatmayı etkinleştir</span>
+</label>
+<div class="form-row">
+<label class="form-label">Telnyx API Key (SMS için)</label>
+<input type="password" class="form-input" id="sms-telnyx-key" placeholder="KEY_...">
+<div style="font-size:11px;color:var(--text-3);margin-top:3px;">SMS göndermek için Telnyx API anahtarı (voice key ile aynı olabilir)</div>
+</div>
+<div class="form-row">
+<label class="form-label">Gönderen Numara</label>
+<input class="form-input" id="sms-from-number" placeholder="+4915..." style="font-family:var(--mono);">
+<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Telnyx'teki SMS özellikli numara</div>
+</div>
+<div class="form-row">
+<label class="form-label">Mesaj Şablonu</label>
+<textarea class="form-input" id="sms-template" rows="4" placeholder="Sayin {isim}, randevunuz {tarih} tarihinde saat {saat} icin onaylandi." style="resize:vertical;"></textarea>
+<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Değişkenler: <code style="background:var(--bg-3);padding:1px 4px;border-radius:3px;">{isim}</code> <code style="background:var(--bg-3);padding:1px 4px;border-radius:3px;">{tarih}</code> <code style="background:var(--bg-3);padding:1px 4px;border-radius:3px;">{saat}</code></div>
+</div>
+<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveSmsSettings()">
+<i class="ph ph-floppy-disk"></i> SMS Ayarlarını Kaydet
 </button>
 </div>
 </div>

@@ -77,6 +77,7 @@ const _NAVIGATE_LOADERS = {
     loadCallHoursSettings();
     loadChatSettingsPage();
     loadFieldSettingsPage();
+    if (typeof loadSmsSettingsPage === 'function') loadSmsSettingsPage();
     loadFeatureFlagsPage();
     if (typeof loadAuditEventsPage === 'function') loadAuditEventsPage();
     if (typeof loadJobPermissionsSettings === 'function') loadJobPermissionsSettings();

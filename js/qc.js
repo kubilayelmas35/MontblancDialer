@@ -209,6 +209,7 @@ async function quickQcUpdate(logId, status) {
     await sb(`contacts?id=eq.${r.contact_id}`, {method:'PATCH', prefer:'return=minimal',
       body: JSON.stringify({durum: contactStatus, qc_note: note || undefined})});
     const apptRows = fid ? await sb(`appointments?firm_id=eq.${fid}&contact_id=eq.${r.contact_id}&select=id&order=created_at.desc&limit=1`).catch(()=>[]) : [];
+    let apptDate = '', apptTime = '';
     if (apptRows?.length) {
       const cfg = (window._qcResultCfg || []).find(x => x.key === apptStatus);
       await sb(`appointments?id=eq.${apptRows[0].id}`, {
@@ -226,8 +227,24 @@ async function quickQcUpdate(logId, status) {
           }).catch(() => {});
         }
       }
+      // Fetch slot date/time for SMS template
+      const slotRows = await sb(`takvim_slots?appointment_id=eq.${apptRows[0].id}&select=tarih,baslangic_saat&order=created_at.desc&limit=1`).catch(() => []);
+      if (slotRows?.[0]) {
+        apptDate = slotRows[0].tarih || '';
+        apptTime = (slotRows[0].baslangic_saat || '').slice(0, 5);
+      }
     }
     await loadQcData();
     toast(`Durum güncellendi ✓`, 'ok');
+
+    // SMS prompt for successful QC approval
+    if (resultKey === 'basarili' || contactStatus === 'başarılı') {
+      const contact = r.contacts || {};
+      const phone = contact.phone || '';
+      const name  = `${contact.first_name||''} ${contact.last_name||''}`.trim();
+      if (phone && typeof showQcSmsPrompt === 'function') {
+        await showQcSmsPrompt(phone, name, apptDate, apptTime);
+      }
+    }
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
