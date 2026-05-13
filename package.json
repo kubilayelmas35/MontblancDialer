@@ -1,7 +1,7 @@
 {
   "name": "montblanc-dialer",
   "private": true,
-  "version": "8.14.0",
+  "version": "8.19.0",
   "type": "module",
   "scripts": {
     "build": "node scripts/build-index.mjs",
