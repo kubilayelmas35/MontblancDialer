@@ -398,10 +398,10 @@ function showCustomerCard(c) {
   document.getElementById('cust-queue-badge').textContent = c.queues?.name||c.queue_name||'—';
   const allFields = [
     { key:'plz',     l:'PLZ',                                      v:c.plz,    mono:true },
-    { key:'city',    l:currentLang==='tr'?'Şehir':'Stadt',          v:c.city },
-    { key:'address', l:currentLang==='tr'?'Adres':'Adresse',        v:c.address },
-    { key:'phone2',  l:currentLang==='tr'?'2. Telefon':'2. Tel',    v:c.phone2 },
-    { key:'notes',   l:currentLang==='tr'?'Not':'Notiz',            v:c.notes },
+    { key:'city',    l:(typeof t === 'function' ? t('cont.field.city') : 'Şehir'),          v:c.city },
+    { key:'address', l:(typeof t === 'function' ? t('cont.field.address') : 'Adres'),        v:c.address },
+    { key:'phone2',  l:(typeof t === 'function' ? t('cont.field.phone2') : '2. Telefon'),    v:c.phone2 },
+    { key:'notes',   l:(typeof t === 'function' ? t('cont.field.notes') : 'Not'),            v:c.notes },
   ];
   const terminFields = [
     { key:'hausart',             l:'Ev Tipi',      v:c.hausart,             type:'select', opts:['','Einfamilienhaus','Zweifamilienhaus','Reihenhaus','Doppelhaus','Mehrfamilienhaus'], required:true },

@@ -121,11 +121,11 @@ function _logMonthKey(log) {
 }
 
 function _dashUpdateStatLabels(rangeKey) {
-  const tr = currentLang === 'tr';
+  const isTr = currentLang === 'tr';
   const calls = document.getElementById('stat-lbl-calls');
   const costM = document.getElementById('d-cost-m');
   if (calls) {
-    if (tr) {
+    if (isTr) {
       calls.textContent =
         rangeKey === 'today'
           ? 'Bugünkü Aramalar'
@@ -146,12 +146,12 @@ function _dashUpdateStatLabels(rangeKey) {
     }
   }
   if (costM) {
-    costM.textContent = tr ? (rangeKey === 'today' ? 'bugün' : 'seçili aralık') : rangeKey === 'today' ? 'heute' : 'Zeitraum';
+    costM.textContent = isTr ? (rangeKey === 'today' ? 'bugün' : 'seçili aralık') : rangeKey === 'today' ? 'heute' : 'Zeitraum';
   }
 }
 
 function _dashUpdateCardTitles(rangeKey) {
-  const tr = currentLang === 'tr';
+  const isTr = currentLang === 'tr';
   const hourlyTitle = document.getElementById('dash-hourly-title');
   const hourlySub = document.getElementById('dash-hourly-sub');
   const outTitle = document.getElementById('dash-outcome-title');
@@ -160,33 +160,33 @@ function _dashUpdateCardTitles(rangeKey) {
   const trendSub = document.getElementById('dash-chart-sub');
   if (hourlyTitle && hourlySub) {
     if (rangeKey === 'today') {
-      hourlyTitle.textContent = tr ? 'Bugün — saatlik analiz' : 'Heute — Stundenanalyse';
-      hourlySub.textContent = tr ? 'Çağrı hacmi ve termin (saat başı)' : 'Anrufvolumen und Termine pro Stunde';
+      hourlyTitle.textContent = isTr ? 'Bugün — saatlik analiz' : 'Heute — Stundenanalyse';
+      hourlySub.textContent = isTr ? 'Çağrı hacmi ve termin (saat başı)' : 'Anrufvolumen und Termine pro Stunde';
     } else if (rangeKey === 'week') {
-      hourlyTitle.textContent = tr ? 'Bu hafta — günlük analiz' : 'Diese Woche — Tagesanalyse';
-      hourlySub.textContent = tr ? 'Günlük çağrı ve termin' : 'Anrufe und Termine pro Tag';
+      hourlyTitle.textContent = isTr ? 'Bu hafta — günlük analiz' : 'Diese Woche — Tagesanalyse';
+      hourlySub.textContent = isTr ? 'Günlük çağrı ve termin' : 'Anrufe und Termine pro Tag';
     } else if (rangeKey === 'month') {
-      hourlyTitle.textContent = tr ? 'Bu ay — günlük analiz' : 'Dieser Monat — Tagesanalyse';
-      hourlySub.textContent = tr ? 'Günlük çağrı ve termin' : 'Anrufe und Termine pro Tag';
+      hourlyTitle.textContent = isTr ? 'Bu ay — günlük analiz' : 'Dieser Monat — Tagesanalyse';
+      hourlySub.textContent = isTr ? 'Günlük çağrı ve termin' : 'Anrufe und Termine pro Tag';
     } else {
-      hourlyTitle.textContent = tr ? 'Son 24 ay — aylık analiz' : 'Letzte 24 Monate';
-      hourlySub.textContent = tr ? 'Aylık çağrı ve termin' : 'Monatliche Anrufe und Termine';
+      hourlyTitle.textContent = isTr ? 'Son 24 ay — aylık analiz' : 'Letzte 24 Monate';
+      hourlySub.textContent = isTr ? 'Aylık çağrı ve termin' : 'Monatliche Anrufe und Termine';
     }
   }
   if (outTitle && outSub) {
-    outTitle.textContent = tr ? 'Termin sonuçları' : 'Termin-Ergebnisse';
-    outSub.textContent = tr ? 'Randevu durumları (termin tarihine göre)' : 'Terminstatus nach Terminzeit';
+    outTitle.textContent = isTr ? 'Termin sonuçları' : 'Termin-Ergebnisse';
+    outSub.textContent = isTr ? 'Randevu durumları (termin tarihine göre)' : 'Terminstatus nach Terminzeit';
   }
   if (trendTitle && trendSub) {
     if (rangeKey === 'today') {
-      trendTitle.textContent = tr ? 'Bugün — kümülatif çağrı' : 'Heute — kumulativ';
-      trendSub.textContent = tr ? 'Gün içi birikimli çağrı sayısı' : 'Kumulative Anrufe';
+      trendTitle.textContent = isTr ? 'Bugün — kümülatif çağrı' : 'Heute — kumulativ';
+      trendSub.textContent = isTr ? 'Gün içi birikimli çağrı sayısı' : 'Kumulative Anrufe';
     } else if (rangeKey === 'all') {
-      trendTitle.textContent = tr ? 'Son 24 ay — çağrı trendi' : 'Trend (24 Monate)';
-      trendSub.textContent = tr ? 'Aylık toplam çağrı' : 'Monatliche Anrufe';
+      trendTitle.textContent = isTr ? 'Son 24 ay — çağrı trendi' : 'Trend (24 Monate)';
+      trendSub.textContent = isTr ? 'Aylık toplam çağrı' : 'Monatliche Anrufe';
     } else {
-      trendTitle.textContent = tr ? 'Çağrı trendi' : 'Anruf-Trend';
-      trendSub.textContent = tr ? 'Günlük toplam çağrı' : 'Anrufe pro Tag';
+      trendTitle.textContent = isTr ? 'Çağrı trendi' : 'Anruf-Trend';
+      trendSub.textContent = isTr ? 'Günlük toplam çağrı' : 'Anrufe pro Tag';
     }
   }
 }
@@ -462,7 +462,7 @@ function renderDashPeriodMixed(logs, rangeKey, from, to) {
 function renderDashTerminDonut(appts) {
   const canvas = document.getElementById('dash-chart-outcomes');
   if (!canvas || typeof Chart === 'undefined') return;
-  const tr = currentLang === 'tr';
+  const isTr = currentLang === 'tr';
   const cat = {
     basarili: { n: 0, tr: 'Başarılı', de: 'Erfolgreich' },
     basarisiz: { n: 0, tr: 'Başarısız', de: 'Nicht erfolgreich' },
@@ -495,7 +495,7 @@ function renderDashTerminDonut(appts) {
   };
   order.forEach(k => {
     if (cat[k].n > 0) {
-      labels.push(tr ? cat[k].tr : cat[k].de);
+      labels.push(isTr ? cat[k].tr : cat[k].de);
       data.push(cat[k].n);
       colors.push(colorMap[k]);
     }
@@ -607,15 +607,15 @@ const now = new Date();
 const today = now.toISOString().split('T')[0];
 document.getElementById('dash-date').textContent =
 now.toLocaleDateString(mbLocale(), {weekday:'long',day:'numeric',month:'long',year:'numeric'});
-const tr = currentLang === 'tr';
+const isTr = currentLang === 'tr';
 const rangeSuffix =
   rangeKey === 'today'
-    ? (tr ? 'bugün' : 'heute')
+    ? (isTr ? 'bugün' : 'heute')
     : rangeKey === 'week'
-      ? (tr ? 'bu hafta' : 'diese Woche')
+      ? (isTr ? 'bu hafta' : 'diese Woche')
       : rangeKey === 'month'
-        ? (tr ? 'bu ay' : 'diesen Monat')
-        : (tr ? 'seçili aralık' : 'Zeitraum');
+        ? (isTr ? 'bu ay' : 'diesen Monat')
+        : (isTr ? 'seçili aralık' : 'Zeitraum');
 try {
 let qLogs = `call_logs?select=*&started_at=gte.${from}T00:00:00&started_at=lte.${to}T23:59:59`;
 qLogs += ff;

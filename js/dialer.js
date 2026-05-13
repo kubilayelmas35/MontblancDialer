@@ -9,7 +9,7 @@ async function initDialer() {
     const canDial = await isFeatureEnabledForCurrentFirm('dialer_enabled');
     if (!canDial) {
       const list = document.getElementById('agent-camp-list');
-      if (list) list.innerHTML = `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Bu firma için dialer kapalı</div>`;
+      if (list) list.innerHTML = `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${escapeHtml(typeof t === 'function' ? t('dial.init.feature_off') : '')}</div>`;
       refreshDialerHealthPanel();
       return;
     }
@@ -29,7 +29,7 @@ async function initDialer() {
     if (role === 'super_admin' && !firmScopeId) {
       const list = document.getElementById('agent-camp-list');
       if (list) {
-        list.innerHTML = `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Dialer için önce firma seçin</div>`;
+        list.innerHTML = `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${escapeHtml(typeof t === 'function' ? t('dial.init.select_firm') : '')}</div>`;
       }
       return;
     }
@@ -47,7 +47,7 @@ async function initDialer() {
     }
     const list = document.getElementById('agent-camp-list');
     if (!myCamps.length) {
-      list.innerHTML=`<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Kampanya atanmamış<br><small style="font-size:10px;">Admin sizi bir kampanyaya atamalı</small></div>`;
+      list.innerHTML=`<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${typeof t === 'function' ? t('dial.init.no_camp_html') : ''}</div>`;
       return;
     }
 
@@ -84,7 +84,7 @@ async function initDialer() {
         rdyBtn.disabled = true;
         rdyBtn.style.opacity = '0.45';
         rdyBtn.style.cursor = 'not-allowed';
-        rdyBtn.title = 'Önce bir kampanya seçin';
+        rdyBtn.title = typeof t === 'function' ? t('dial.init.pick_camp_title') : '';
       }
       const notice = document.getElementById('camp-required-notice');
       if (notice) notice.style.display = 'flex';
@@ -98,23 +98,30 @@ async function initDialer() {
       const enabledForMe = isAutoDialEnabledForCampaign(ac.campaign_id, canDisableAutoDial);
       const cid = ac.campaign_id;
       const cName = String(ac.campaigns?.name || cid).replace(/'/g, "\\'");
+      const adHint =
+        typeof t === 'function'
+          ? (canDisableAutoDial ? t('dial.camp_auto_hint_on') : t('dial.camp_auto_hint_off'))
+          : '';
+      const autoLbl = typeof t === 'function' ? t('dial.camp_auto_label') : 'Otomatik Arama';
+      const toggOn = typeof t === 'function' ? t('dial.camp_toggle_on') : 'Kapat';
+      const toggOff = typeof t === 'function' ? t('dial.camp_toggle_off') : 'Aktif Et';
       return `<div class="agent-camp-item ${isActive?'active':''}" id="camp-item-${cid}" style="padding:8px 10px;" onclick="selectCamp('${cid}','${cName}')">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
   <div style="flex:1;min-width:0;">
     <div class="agent-camp-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ac.campaigns?.name||cid}</div>
     <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-2);cursor:pointer;opacity:1;"
-        title="${canDisableAutoDial ? 'Bu kampanyada otomatik aramayı kapatabilirsiniz' : 'Bu kampanyada otomatik arama kapatılamaz'}">
+        title="${escapeHtml(adHint)}">
         <input type="checkbox" ${enabledForMe ? 'checked' : ''}
           onchange="toggleCampaignAutoDialForMe('${cid}', this.checked)"
           onclick="event.stopPropagation()"
           style="width:14px;height:14px;accent-color:var(--accent);">
-        Otomatik Arama
+        ${escapeHtml(autoLbl)}
       </label>
     </div>
   </div>
   <!-- Toggle switch -->
-  <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;cursor:pointer;" title="${isActive?'Kapat':'Aktif Et'}">
+  <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;cursor:pointer;" title="${escapeHtml(isActive ? toggOn : toggOff)}">
     <input type="checkbox" ${isActive?'checked':''} onchange="toggleCampActive('${cid}',this.checked)"
       onclick="event.stopPropagation()"
       style="opacity:0;width:0;height:0;">
@@ -204,9 +211,13 @@ function toggleCampActive(campId, checked) {
     // Kullanıcı seçtiği kampanya pasif olduysa seçimi kaldır
     selectedCampId = null;
   }
-  const countStr = _activeCampIds.length === 0 ? 'Hiç kampanya aktif değil' :
-    `${_activeCampIds.length} kampanya aktif`;
-  toast(checked ? `✓ Aktif: ${countStr}` : `Pasif: ${countStr}`, checked ? 'ok' : 'warn', 2000);
+  const countStr =
+    _activeCampIds.length === 0
+      ? (typeof t === 'function' ? t('dial.camp_active_none') : '')
+      : typeof tReplace === 'function'
+        ? tReplace('dial.camp_active_count', { n: _activeCampIds.length })
+        : `${_activeCampIds.length} kampanya aktif`;
+  toast(checked ? `✓ ${countStr}` : countStr, checked ? 'ok' : 'warn', 2000);
   refreshAutoDialUi();
   refreshDialerHealthPanel();
 }
@@ -300,7 +311,7 @@ async function setCampaignAutoDialPermission(campId, allowed) {
   const role = currentUser?.role || '';
   const adminLike = ['admin', 'firm_admin', 'super_admin', 'qc'].includes(role);
   if (!adminLike) {
-    toast('Bu ayarı sadece admin değiştirebilir', 'warn', 2200);
+    toast(typeof t === 'function' ? t('dial.admin_only_setting') : 'Bu ayarı sadece admin değiştirebilir', 'warn', 2200);
     initDialer();
     return;
   }
@@ -316,9 +327,15 @@ async function setCampaignAutoDialPermission(campId, allowed) {
     // local cache refresh (best-effort)
     const idx = campaigns.findIndex((c) => c.id === campId);
     if (idx >= 0) campaigns[idx].settings = merged;
-    toast(allowed ? 'Bu kampanyada otomatik arama kapatma izni açıldı' : 'Bu kampanyada otomatik arama kapatma izni kapatıldı', 'ok', 2200);
+    toast(
+      allowed
+        ? (typeof t === 'function' ? t('dial.auto_perm_on') : '')
+        : (typeof t === 'function' ? t('dial.auto_perm_off') : ''),
+      'ok',
+      2200
+    );
   } catch (e) {
-    toast('Kaydedilemedi: ' + e.message, 'err');
+    toast((typeof t === 'function' ? t('dial.save_failed') : 'Kaydedilemedi: ') + e.message, 'err');
   }
   refreshAutoDialUi();
 }
@@ -381,7 +398,7 @@ function toggleCampaignAutoDialForMe(campId, checked) {
   const s = camp ? (typeof getCampSettings === 'function' ? getCampSettings(camp) : (camp.settings || {})) : {};
   const canDisableAutoDial = (s?.auto_dial !== false);
   if (!canDisableAutoDial && !checked) {
-    toast('Bu kampanyada otomatik arama kapatılamaz', 'warn', 2600);
+    toast(typeof t === 'function' ? t('dial.auto_disable_blocked') : 'Bu kampanyada otomatik arama kapatılamaz', 'warn', 2600);
     initDialer();
     return;
   }
@@ -1383,7 +1400,7 @@ function saveMascotSettings() {
       .then(() => refreshGlobalMascotInfoPanel())
       .catch(() => {});
   }
-  toast(currentLang === 'tr' ? '✓ Maskot kaydedildi' : '✓ Maskottchen gespeichert', 'ok');
+  toast(typeof t === 'function' ? t('dial.mascot_saved') : '✓ Maskot kaydedildi', 'ok');
 }
 
 try {
@@ -1419,6 +1436,7 @@ function _fmtMimiLife(sec) {
   const hour = Math.floor((s % 86400) / 3600);
   const min = Math.floor((s % 3600) / 60);
   const rem = s % 60;
+  if (typeof tReplace === 'function') return tReplace('dial.mimi_age_fmt', { d: day, h: hour, m: min, s: rem });
   return `${day}g ${hour}s ${min}d ${rem}sn`;
 }
 
@@ -1435,7 +1453,7 @@ function refreshGlobalMascotInfoPanel() {
   const tApptEl = document.getElementById('global-mascot-info-today-appts');
   const mApptEl = document.getElementById('global-mascot-info-month-appts');
   const statsNoteEl = document.getElementById('global-mascot-info-stats-note');
-  const tr = currentLang === 'tr';
+  const isDe = typeof currentLang !== 'undefined' && currentLang === 'de';
   const n = (getMascotPref('mb_mascot_name', '') || '').trim() || 'Mimi';
   const rawVariant = String(getMascotPref('mb_mascot_variant', 'aurora') || 'aurora').toLowerCase();
   const appliedV = resolveMascotVariantKeyFromPref();
@@ -1448,47 +1466,58 @@ function refreshGlobalMascotInfoPanel() {
   if (variantEl) {
     variantEl.textContent =
       rawVariant === 'random'
-        ? (tr ? `Rastgele (${appliedLabel})` : `Zufall (${appliedLabel})`)
+        ? (typeof tReplace === 'function' ? tReplace('dial.mimi_variant_random', { label: appliedLabel }) : (isDe ? `Zufall (${appliedLabel})` : `Rastgele (${appliedLabel})`))
         : appliedLabel;
   }
   const muteBtn = document.getElementById('mimi-bubble-mute-btn');
   const muteLbl = document.getElementById('mimi-bubble-mute-label');
   if (muteLbl) {
     muteLbl.textContent = isMimiBubbleMuted()
-      ? tr
-        ? 'Balonları aç'
-        : 'Blasen an'
-      : tr
-        ? 'Balon konuşmasını kapat'
-        : 'Keine Sprechblasen';
+      ? (typeof t === 'function' ? t('dial.mimi_mute_show') : 'Balonları aç')
+      : (typeof t === 'function' ? t('dial.mimi_mute_hide') : 'Balon konuşmasını kapat');
   }
   if (muteBtn) muteBtn.setAttribute('aria-pressed', isMimiBubbleMuted() ? 'true' : 'false');
   if (noteEl) {
-    noteEl.textContent = currentLang === 'tr'
-      ? `Çağrı süresinin ${getMascotAgeCoeff().toFixed(1)} katı kadar Mimi yaş alıyor. Ne kadar sakin kalırsan o kadar büyüyor.`
-      : `Mimi altert mit dem ${getMascotAgeCoeff().toFixed(1)}-fachen deiner Gesprächszeit. Je ruhiger du bleibst, desto stärker wird sie.`;
+    noteEl.textContent =
+      typeof tReplace === 'function'
+        ? tReplace('dial.mimi_note_age', { coef: getMascotAgeCoeff().toFixed(1) })
+        : (isDe
+          ? `Mimi altert mit dem ${getMascotAgeCoeff().toFixed(1)}-fachen deiner Gesprächszeit. Je ruhiger du bleibst, desto stärker wird sie.`
+          : `Çağrı süresinin ${getMascotAgeCoeff().toFixed(1)} katı kadar Mimi yaş alıyor. Ne kadar sakin kalırsan o kadar büyüyor.`);
   }
   const gm = document.getElementById('global-mascot');
   const moodKey = gm?.getAttribute('data-mood') || '';
   const sad = gm?.classList.contains('global-mascot--sad');
   const cel = gm?.classList.contains('global-mascot--celebrate');
-  const moodLabel = cel ? (tr ? 'Kutlama' : 'Feier') : sad ? (tr ? 'Üzgün' : 'Traurig') : moodKey === 'break' ? (tr ? 'Uykulu' : 'Müde') : moodKey === 'angry' ? (tr ? 'Gergin' : 'Genervt') : moodKey === 'bored' ? (tr ? 'Sıkıldı' : 'Gelngweilt') : moodKey === 'eat' ? (tr ? 'Mutlu' : 'Happy') : (tr ? 'Sakin' : 'Ruhig');
+  const moodLabel = cel
+    ? (typeof t === 'function' ? t('dial.mimi_mood_celebrate') : 'Kutlama')
+    : sad
+      ? (typeof t === 'function' ? t('dial.mimi_mood_sad') : 'Üzgün')
+      : moodKey === 'break'
+        ? (typeof t === 'function' ? t('dial.mimi_mood_break') : 'Uykulu')
+        : moodKey === 'angry'
+          ? (typeof t === 'function' ? t('dial.mimi_mood_angry') : 'Gergin')
+          : moodKey === 'bored'
+            ? (typeof t === 'function' ? t('dial.mimi_mood_bored') : 'Sıkıldı')
+            : moodKey === 'eat'
+              ? (typeof t === 'function' ? t('dial.mimi_mood_eat') : 'Mutlu')
+              : (typeof t === 'function' ? t('dial.mimi_mood_calm') : 'Sakin');
   if (moodEl) moodEl.textContent = moodLabel;
   const heat = Number(document.getElementById('global-mascot')?.style.getPropertyValue('--mascot-call-heat') || '0') || 0;
   if (energyEl) energyEl.textContent = `${Math.round(heat * 100)}%`;
   if (moodNoteEl) {
-    moodNoteEl.textContent = tr
-      ? (sad ? 'Bir sonraki arama için minik bir nefes… Hazırsın.' : cel ? 'Bu enerjiyle çok iyi gidiyoruz!' : 'Sakin ve odaklı — en iyi hâlim.')
-      : (sad ? 'Kurz durchatmen… der nächste wird besser.' : cel ? 'Mit dieser Energie läuft’s!' : 'Ruhig und fokussiert.');
+    moodNoteEl.textContent = sad
+      ? (typeof t === 'function' ? t('dial.mimi_mood_note_sad') : (isDe ? 'Kurz durchatmen… der nächste wird besser.' : 'Bir sonraki arama için minik bir nefes… Hazırsın.'))
+      : cel
+        ? (typeof t === 'function' ? t('dial.mimi_mood_note_celebrate') : (isDe ? 'Mit dieser Energie läuft’s!' : 'Bu enerjiyle çok iyi gidiyoruz!'))
+        : (typeof t === 'function' ? t('dial.mimi_mood_note_default') : (isDe ? 'Ruhig und fokussiert.' : 'Sakin ve odaklı — en iyi hâlim.'));
   }
   const p = window._dialerPerfSnapshot || {};
   if (tCallsEl) tCallsEl.textContent = String(Number(p.todayCalls) || 0);
   if (tApptEl) tApptEl.textContent = String(Number(p.todayAppts) || 0);
   if (mApptEl) mApptEl.textContent = String(Number(p.monthlyAppts) || 0);
   if (statsNoteEl) {
-    statsNoteEl.textContent = tr
-      ? 'İstatistikler performans panelinden güncellenir.'
-      : 'Statistiken werden aus dem Performance-Panel aktualisiert.';
+    statsNoteEl.textContent = typeof t === 'function' ? t('dial.mimi_stats_note') : (isDe ? 'Statistiken werden aus dem Performance-Panel aktualisiert.' : 'İstatistikler performans panelinden güncellenir.');
   }
 }
 
@@ -1952,32 +1981,9 @@ function onCallTickForGlobalMascot() {
   if (!hit) return;
   if (isMimiHidden()) return;
   _lastMascotCheerSec = hit;
-  const tr = currentLang === 'tr';
-  const pool = tr
-    ? [
-        'Harika gidiyorsun — böyle devam!',
-        'Süpersin, ritmini koru.',
-        'Ses tonun güven veriyor.',
-        'Uzun arama seni güçlendirir; haydi bitirelim!',
-        'İyi iş çıkarıyorsun — yaklaşıyoruz.',
-        'Müşteri seni dinliyor; net ve sakin.',
-        'Profesyonel duruşun çok iyi.',
-        'Haydi, başarabilirsin — nefes al, devam.',
-        'Zaman uzadıkça sen daha da iyisin; sabır senin gücün.',
-      ]
-    : [
-        'Stark — weiter so!',
-        'Sehr gute Kontrol — ruhig bleiben.',
-        'Das klingt vertrauenswürdig.',
-        'Längere Calls machen Routine — du packst das.',
-        'Du bist nah dran — klasse.',
-        'Bleib klar — der Kunde hört zu.',
-        'Professioneller Auftritt.',
-        'Du schaffst das — tief durchatmen, weiter.',
-        'Je länger das Gespräch, desto ruhiger wirkst du — top.',
-      ];
-  const msg = pool[Math.floor(Math.random() * pool.length)];
-  _showCustEmptyBubbleMsg(msg);
+  const idx = Math.floor(Math.random() * 9);
+  const msg = typeof t === 'function' ? t(`dial.cheer.${idx}`) : '';
+  _showCustEmptyBubbleMsg(msg || '…');
 }
 
 function runGlobalMascotNotifMorph() {
@@ -2078,11 +2084,8 @@ function hintCustEmptyNotifUnread(totalUnread) {
   _clearCustEmptyCoachTimer();
   _clearCustEmptyNotifPeek();
   if (typeof runGlobalMascotNotifMorph === 'function') runGlobalMascotNotifMorph();
-  const tr = currentLang === 'tr';
   _showCustEmptyBubbleMsg(
-    tr
-      ? `Bildirim merkezinde okunmamış öğe var (${n}). Sağ üstteki zile tıkla.`
-      : `Ungelesene Benachrichtigungen (${n}). Glocke oben rechts.`
+    typeof tReplace === 'function' ? tReplace('dial.hint_notif', { n }) : `Bildirim (${n})`
   );
   _custEmptyNotifPeekDelayT = setTimeout(() => {
     _custEmptyNotifPeekDelayT = null;
@@ -2111,12 +2114,17 @@ function hintCustEmptyChatMessage(fromName) {
   gm.classList.remove('global-mascot--peek-notif');
   root?.classList.add('cust-empty--peek-chat');
   gm.classList.add('global-mascot--peek-chat');
-  const tr = currentLang === 'tr';
-  const who = fromName && String(fromName).trim() ? String(fromName).trim() : tr ? 'Ekip' : 'Team';
+  const isDe = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const who =
+    fromName && String(fromName).trim()
+      ? String(fromName).trim()
+      : typeof t === 'function'
+        ? t('dial.hint_chat_team')
+        : isDe
+          ? 'Team'
+          : 'Ekip';
   _showCustEmptyBubbleMsg(
-    tr
-      ? `Sohbette yeni mesaj — ${who} yazdı. Sağ alttaki sohbet ikonuna bak!`
-      : `Neuer Chat — ${who}. Unten rechts das Chat-Symbol!`
+    typeof tReplace === 'function' ? tReplace('dial.hint_chat', { who }) : `Chat: ${who}`
   );
   if (_custEmptyChatPeekTimer) clearTimeout(_custEmptyChatPeekTimer);
   _custEmptyChatPeekTimer = setTimeout(() => clearCustEmptyChatPeek(), 14000);
@@ -2164,7 +2172,6 @@ function refreshCustEmptyCoachBubble() {
   }
   if (root.classList.contains('cust-empty--peek-chat') || root.classList.contains('cust-empty--peek-notif')) return;
   if (gm && (gm.classList.contains('global-mascot--peek-chat') || gm.classList.contains('global-mascot--peek-notif'))) return;
-  const tr = currentLang === 'tr';
   const p = window._dialerPerfSnapshot || {};
   const calls = Number(p.calls) || 0;
   const appts = Number(p.appts) || 0;
@@ -2173,8 +2180,8 @@ function refreshCustEmptyCoachBubble() {
   const tdC = Number(p.todayCalls) || 0;
   const monA = Number(p.monthlyAppts) || 0;
   const scope = p.tab === 'week' ? 'week' : (p.tab === 'month' ? 'month' : 'today');
-  const scopeWordTr = scope === 'week' ? 'Bu hafta' : (scope === 'month' ? 'Bu ay' : 'Bugün');
-  const scopeWordDe = scope === 'week' ? 'Diese Woche' : (scope === 'month' ? 'Diesen Monat' : 'Heute');
+  const scopeKey = scope === 'week' ? 'dial.scope.week' : (scope === 'month' ? 'dial.scope.month' : 'dial.scope.today');
+  const scopeStr = typeof t === 'function' ? t(scopeKey) : '';
   const goalBase = Math.max(1, Number(_dailyGoal) || 5);
   const goalFactor = scope === 'week' ? 5 : (scope === 'month' ? 22 : 1);
   const periodGoal = goalBase * goalFactor;
@@ -2183,39 +2190,24 @@ function refreshCustEmptyCoachBubble() {
   const roll = Math.random();
   let msg = '';
   if (roll < 0.28) {
-    msg = tr
-      ? `Bugün ${tdA} termin, ${tdC} çağrı kaydın var.`
-      : `Heute ${tdA} Termine, ${tdC} Anrufe notiert.`;
+    msg = typeof tReplace === 'function' ? tReplace('dial.coach.today', { tdA, tdC }) : '';
   } else if (roll < 0.36 && monA > 0) {
-    msg = tr
-      ? `Bu ay ${monA} termin — maskotun da büyüyor.`
-      : `Diesen Monat ${monA} Termine — dein Maskottchen wächst mit.`;
+    msg = typeof tReplace === 'function' ? tReplace('dial.coach.month', { monA }) : '';
   } else if (apptRatio >= 1.1 && hasStrongCallVolume) {
-    msg = tr ? `${scopeWordTr} çok tempo var — termin yağmuru!` : `${scopeWordDe} starkes Tempo — viele Termine!`;
+    msg = typeof tReplace === 'function' ? tReplace('dial.coach.tempo', { scope: scopeStr }) : '';
   } else if (calls >= (14 * goalFactor) && posCalls === 0) {
-    msg = tr ? `${scopeWordTr} çok çağrı aldın; birazdan yakalarsın.` : `${scopeWordDe} viele Anrufe — der Treffer kommt.`;
+    msg = typeof tReplace === 'function' ? tReplace('dial.coach.many_calls', { scope: scopeStr }) : '';
   } else if (calls >= (10 * goalFactor) && appts === 0) {
-    msg = tr ? `${scopeWordTr} ritmin iyi, bir termin çok yakın.` : `${scopeWordDe} guter Rhythmus — Termin in Sicht.`;
+    msg = typeof tReplace === 'function' ? tReplace('dial.coach.rhythm', { scope: scopeStr }) : '';
   } else if (apptRatio >= 0.9) {
-    msg = tr ? `${scopeWordTr} mükemmel iş — akış çok güçlü.` : `${scopeWordDe} sehr starke Buchungen!`;
+    msg = typeof tReplace === 'function' ? tReplace('dial.coach.strong90', { scope: scopeStr }) : '';
   } else if (apptRatio >= 0.6) {
-    msg = tr ? `${scopeWordTr} harika gidiyor, böyle devam.` : `${scopeWordDe} tolle Serie — weiter so!`;
+    msg = typeof tReplace === 'function' ? tReplace('dial.coach.strong60', { scope: scopeStr }) : '';
   } else {
-    const pool = tr
-      ? [
-        'Hazır olunca müşteri kartı burada belirir.',
-        'Yeşil düğme aramayı başlatır; kırmızı durdurur.',
-        'Kısayollar: Space sustur, Enter ilerlet.',
-        'Net ton, kısa cümle — güven verir.',
-      ]
-      : [
-        'Die Kundenkarte erscheint, sobald du startest.',
-        'Grün startet, Rot stoppt.',
-        'Kurz und klar klingt professionell.',
-      ];
-    msg = pool[Math.floor(Math.random() * pool.length)];
+    const pi = Math.floor(Math.random() * 4);
+    msg = typeof t === 'function' ? t(`dial.coach.pool.${pi}`) : '';
   }
-  _showCustEmptyBubbleMsg(msg);
+  _showCustEmptyBubbleMsg(msg || '…');
 }
 
 function startCustEmptyCoach() {
@@ -2343,10 +2335,10 @@ async function loadUpcomingWv() {
     const now = new Date();
     const soon = new Date(now.getTime() + 48*60*60*1000).toISOString();
     const list = await sb(`wiedervorlage?agent_id=eq.${currentUser?.id}&durum=eq.bekliyor&termin_zaman=lte.${soon}&order=termin_zaman.asc&limit=5`);
-    if (!list?.length) { el.innerHTML='<div style="color:var(--text-3);text-align:center;padding:6px;font-size:11px;">Yaklaşan arama yok</div>'; return; }
+    if (!list?.length) { el.innerHTML=`<div style="color:var(--text-3);text-align:center;padding:6px;font-size:11px;">${escapeHtml(typeof t === 'function' ? t('dial.wv_empty') : '')}</div>`; return; }
     el.innerHTML = list.map(w => {
       const dt = new Date(w.termin_zaman);
-      const timeStr = dt.toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      const timeStr = dt.toLocaleString(typeof mbLocale === 'function' ? mbLocale() : 'tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
       const isOverdue = dt < now;
       return `<div style="padding:5px 8px;background:var(--bg-3);border-radius:5px;border-left:3px solid ${isOverdue?'var(--red)':'var(--yellow)'};" onclick="navigate('wiedervorlage')">
 <div style="font-weight:700;font-size:11px;color:${isOverdue?'var(--red)':'var(--text)'};">${w.nachname||w.telefon}</div>
@@ -2427,7 +2419,6 @@ function _maybeConsumeTestTransferInbox() {
   try {
     localStorage.removeItem(k);
   } catch (e) {}
-  const tr = currentLang === 'tr';
   const phone = String(p.phone || '').trim();
   if (!phone) return;
   const displayName = String(p.displayName || phone).trim();
@@ -2435,8 +2426,8 @@ function _maybeConsumeTestTransferInbox() {
   const contact = {
     id: `in-${Date.now()}`,
     phone,
-    first_name: parts[0] || (tr ? 'Gelen' : 'Eingehend'),
-    last_name: parts.slice(1).join(' ') || (tr ? 'Test' : 'Test'),
+    first_name: parts[0] || (typeof t === 'function' ? t('dial.contact_inbound') : 'Gelen'),
+    last_name: parts.slice(1).join(' ') || (typeof t === 'function' ? t('dial.contact_test') : 'Test'),
     firm_id: currentUser.firm_id,
     campaign_id: selectedCampId || campaigns?.[0]?.id || null,
     status: 'pending',
@@ -2485,7 +2476,6 @@ function _consumeIncomingTransfer(row) {
   if (dialerStatus !== 'ready' || _fakeCallActive || _inboundTestRingOpen) return;
   if (Date.now() - new Date(row.created_at).getTime() > 180000) return;
 
-  const tr = currentLang === 'tr';
   const phone = row.contact_phone || '';
   const contactName = row.contact_name || phone;
   const fromAgent = row.from_agent_name || '—';
@@ -2494,7 +2484,7 @@ function _consumeIncomingTransfer(row) {
   const contact = {
     id: `xfer-${row.id}`,
     phone,
-    first_name: parts[0] || (tr ? 'Transfer' : 'Transfer'),
+    first_name: parts[0] || (typeof t === 'function' ? t('dial.contact_transfer') : 'Transfer'),
     last_name: parts.slice(1).join(' ') || '',
     firm_id: currentUser.firm_id,
     campaign_id: selectedCampId || campaigns?.[0]?.id || null,
@@ -2515,7 +2505,7 @@ function _consumeIncomingTransfer(row) {
     phone,
     displayName: contactName,
     contact,
-    routeDetail: tr ? `Aktaran: ${fromAgent}` : `Von: ${fromAgent}`,
+    routeDetail: typeof tReplace === 'function' ? tReplace('dial.route_from', { name: fromAgent }) : `Aktaran: ${fromAgent}`,
     isExternalInbound: false,
   });
 }
@@ -2526,7 +2516,7 @@ async function openTransferModal() {
   if (!fid) return;
 
   const list = document.getElementById('transfer-agent-list');
-  if (list) list.innerHTML = '<div style="font-size:12px;color:var(--text-3);">Yükleniyor…</div>';
+  if (list) list.innerHTML = `<div style="font-size:12px;color:var(--text-3);">${escapeHtml(typeof t === 'function' ? t('dial.transfer_loading') : '…')}</div>`;
   openModal('m-transfer');
 
   const rows = await sb(
@@ -2536,14 +2526,14 @@ async function openTransferModal() {
 
   if (!list) return;
   if (!agents.length) {
-    list.innerHTML = '<div style="font-size:12px;color:var(--text-3);">Hazır agent bulunamadı.</div>';
+    list.innerHTML = `<div style="font-size:12px;color:var(--text-3);">${escapeHtml(typeof t === 'function' ? t('dial.transfer_no_agents') : '')}</div>`;
     return;
   }
   list.innerHTML = agents.map(a => `
 <button class="transfer-agent-btn" onclick="executeTransfer('${escapeHtml(a.agent_id)}','${escapeHtml(a.agent_name || a.agent_id)}')">
   <div class="transfer-agent-avatar">${escapeHtml((a.agent_name || '?').charAt(0).toUpperCase())}</div>
   <div class="transfer-agent-name">${escapeHtml(a.agent_name || a.agent_id)}</div>
-  <span class="transfer-agent-badge">Hazır</span>
+  <span class="transfer-agent-badge">${escapeHtml(typeof t === 'function' ? t('dial.transfer_ready_badge') : 'Hazır')}</span>
 </button>`).join('');
 }
 
@@ -2566,11 +2556,10 @@ async function executeTransfer(toAgentId, toAgentName) {
         status: 'pending',
       }),
     });
-    const tr = currentLang === 'tr';
-    toast(tr ? `${toAgentName} adlı agenta aktarılıyor…` : `Wird an ${toAgentName} übergeben…`, 'ok', 3000);
+    toast(typeof tReplace === 'function' ? tReplace('dial.transfer_toast', { name: toAgentName }) : '', 'ok', 3000);
     setTimeout(() => hangup(), 800);
   } catch (e) {
-    toast('Aktarma hatası: ' + e.message, 'err');
+    toast((typeof t === 'function' ? t('dial.transfer_err') : 'Aktarma hatası: ') + e.message, 'err');
   }
 }
 
@@ -2591,7 +2580,7 @@ function _hasLiveCallInProgress() {
 
 function toggleUnfinalizedCallsPanel() {
   if (_hasLiveCallInProgress()) {
-    toast('Önce aktif çağrıyı kapatın', 'err', 2200);
+    toast(typeof t === 'function' ? t('dial.close_active_first') : 'Önce aktif çağrıyı kapatın', 'err', 2200);
     return;
   }
   _unfinalizedCallsOpen = !_unfinalizedCallsOpen;
@@ -2650,7 +2639,7 @@ async function loadUnfinalizedCalls() {
 
 async function openUnfinalizedCall(contactId) {
   if (_hasLiveCallInProgress()) {
-    toast('Önce aktif çağrıyı kapatın', 'err', 2200);
+    toast(typeof t === 'function' ? t('dial.close_active_first') : 'Önce aktif çağrıyı kapatın', 'err', 2200);
     return;
   }
   if (!contactId) return;
@@ -2666,15 +2655,15 @@ async function openUnfinalizedCall(contactId) {
     if (typeof showCustomerCard === 'function') showCustomerCard(c);
     if (typeof switchContactTab === 'function') switchContactTab('outcome');
     setDialerStatus('wrapping');
-    toast('Sonuçsuz çağrı yüklendi — sonucu girin', 'warn', 2200);
+    toast(typeof t === 'function' ? t('dial.wrap_loaded') : 'Sonuçsuz çağrı yüklendi', 'warn', 2200);
   } catch (e) {}
 }
 
 async function toggleReady() {
   refreshDialerHealthPanel();
   if (dialerStatus==='offline' || dialerStatus==='break') {
-    if (!selectedCampId) { toast(currentLang==='tr'?'Önce kampanya seçin':'Kampagne auswählen','err'); return; }
-    if (!telnyxReady && !_testMode) { toast(currentLang==='tr'?'Hat bağlantısı hazırlanıyor, bekleyin...':'Verbindung wird vorbereitet, bitte warten...','err'); return; }
+    if (!selectedCampId) { toast(typeof t === 'function' ? t('dial.pick_camp_first') : 'Önce kampanya seçin', 'err'); return; }
+    if (!telnyxReady && !_testMode) { toast(typeof t === 'function' ? t('dial.line_preparing') : '...', 'err'); return; }
     setDialerStatus('ready');
     try {
       await sb('agent_sessions',{method:'POST',prefer:'resolution=merge-duplicates,return=minimal',
@@ -2698,11 +2687,11 @@ function refreshBreakCustEmpty() {
   const sub = root.querySelector('.cust-empty-sub');
   if (!title || !sub) return;
   const code = String(_breakCode || '').trim();
-  const trTitle = code ? `Mola — ${code}` : 'Mola — tür seçilmedi';
-  const deTitle = code ? `Pause — ${code}` : 'Pause — Typ nicht gewählt';
-  title.textContent = currentLang === 'tr' ? trTitle : deTitle;
+  title.textContent = code
+    ? (typeof tReplace === 'function' ? tReplace('dial.break_title_with', { code }) : `Mola — ${code}`)
+    : (typeof t === 'function' ? t('dial.break_title_none') : 'Mola — tür seçilmedi');
   if (!_breakStartedAt) {
-    sub.textContent = currentLang === 'tr' ? '—' : '—';
+    sub.textContent = typeof t === 'function' ? t('ui.dash') : '—';
     return;
   }
   const sec = Math.max(0, Math.floor((Date.now() - _breakStartedAt) / 1000));
@@ -2750,21 +2739,18 @@ function refreshHangupFinalizeButton() {
   const btn = document.getElementById('btn-hangup');
   if (!lbl || !btn) return;
   const lineUp = !!_telnyxCall || !!_fakeCallActive || !!_outboundDialPending;
-  const tr = currentLang === 'tr';
   btn.disabled = false;
   btn.style.opacity = '';
   btn.style.cursor = 'pointer';
   btn.onclick = hangup;
   if (lineUp) {
-    lbl.textContent = tr ? 'Kapat' : 'Auflegen';
+    lbl.textContent = typeof t === 'function' ? t('dial.hangup_close') : 'Kapat';
     btn.style.color = 'var(--red)';
     btn.title = '';
   } else {
-    lbl.textContent = tr ? 'Bitir' : 'Beenden';
+    lbl.textContent = typeof t === 'function' ? t('dial.hangup_finish') : 'Bitir';
     btn.style.color = 'var(--accent)';
-    btn.title = tr
-      ? 'Sonuçlandırmak için önce çağrıyı kapatın. Hat kapandıysa Bitir ile sonuç ekranına geçin.'
-      : 'Zum Abschließen zuerst auflegen. Wenn die Leitung weg ist: Beenden.';
+    btn.title = typeof t === 'function' ? t('dial.hangup_finish_title') : '';
   }
 }
 
@@ -2783,8 +2769,7 @@ function _isCustDataVisible() {
 function refreshPreCallToolbarUi() {
   const lbl = document.getElementById('btn-hangup-label');
   const btn = document.getElementById('btn-hangup');
-  const tr = currentLang === 'tr';
-  if (lbl) lbl.textContent = tr ? 'Sonuçlandır' : 'Abschließen';
+  if (lbl) lbl.textContent = typeof t === 'function' ? t('dial.pre_outcome') : 'Sonuçlandır';
   if (btn) {
     btn.style.color = 'var(--accent)';
     btn.onclick = () => {
@@ -2812,7 +2797,7 @@ function forceDialerPreCallBar() {
 /** Numara ile ara / WV vb. ön aramadan çık: boş hazır kartına dön (sayfa yenilemeden) */
 function returnToDialerHub() {
   if (dialerStatus === 'on_call' || dialerStatus === 'wrapping' || _fakeCallActive || _outboundDialPending) {
-    toast(currentLang === 'tr' ? 'Önce aktif çağrıyı kapatın' : 'Zuerst Gespräch beenden', 'err', 2200);
+    toast(typeof t === 'function' ? t('dial.close_active_first') : 'Önce aktif çağrıyı kapatın', 'err', 2200);
     return;
   }
   currentContact = null;
@@ -2820,8 +2805,7 @@ function returnToDialerHub() {
   closeManualDialDrawer();
   clearCustomerCard();
   if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
-  const tr = currentLang === 'tr';
-  toast(tr ? 'Dialer hazır ekranına dönüldü' : 'Zurück zur Bereitschaft', 'ok', 2400);
+  toast(typeof t === 'function' ? t('dial.hub_return') : 'Dialer hazır ekranına dönüldü', 'ok', 2400);
 }
 
 function syncDialerBottomChrome() {
@@ -2888,14 +2872,17 @@ function setDialerStatus(s) {
   const rdyIc  = document.getElementById('ready-icon');
   if (dot) { dot.className = `status-dot ${s}`; }
   const labels = {
-    offline: {tr:'Çevrimdışı',de:'Offline'},
-    ready:   {tr:'Hazır — Arama Bekleniyor',de:'Bereit — Warte auf Anruf'},
-    calling: {tr:'Ön arama',de:'Vor Anruf'},
-    on_call: {tr:'Aramada',de:'Im Gespräch'},
-    wrapping:{tr:'Sonuç Giriliyor',de:'Nachbearbeitung'},
-    break:   {tr:'Mola',de:'Pause'},
+    offline: () => (typeof t === 'function' ? t('dial.status.offline') : 'offline'),
+    ready: () => (typeof t === 'function' ? t('dial.status.ready_wait') : 'ready'),
+    calling: () => (typeof t === 'function' ? t('dial.status.calling') : 'calling'),
+    on_call: () => (typeof t === 'function' ? t('dial.status.on_call') : 'on_call'),
+    wrapping: () => (typeof t === 'function' ? t('dial.status.wrapping') : 'wrapping'),
+    break: () => (typeof t === 'function' ? t('dial.status.break') : 'break'),
   };
-  if (label) label.textContent = labels[s]?.[currentLang]||s;
+  if (label) {
+    const fn = labels[s];
+    label.textContent = typeof fn === 'function' ? fn() : s;
+  }
   refreshStatusElapsed();
   const callAct = document.getElementById('call-actions');
   if (callAct) callAct.classList.remove('call-actions--wrapping');
@@ -2907,9 +2894,13 @@ function setDialerStatus(s) {
     if (rdyBtn) rdyBtn.className='btn-ready-big ready';
     if (rdyIc) rdyIc.textContent='▶';
     if (rdyTxt) {
-      rdyTxt.setAttribute('data-tr', 'Hazır — Aramayı Başlat');
-      rdyTxt.setAttribute('data-de', 'Bereit — Start');
-      rdyTxt.textContent = currentLang === 'tr' ? 'Hazır — Aramayı Başlat' : 'Bereit schalten';
+      const rs = typeof tPair === 'function' ? tPair('dial.ready_start') : { tr: 'Hazır — Aramayı Başlat', de: 'Bereit — Start' };
+      rdyTxt.setAttribute('data-tr', rs.tr);
+      rdyTxt.setAttribute('data-de', rs.de);
+      rdyTxt.textContent =
+        typeof currentLang !== 'undefined' && currentLang === 'de'
+          ? (typeof t === 'function' ? t('dial.ready_start_de_btn') : 'Bereit schalten')
+          : (typeof t === 'function' ? t('dial.ready_start') : 'Hazır — Aramayı Başlat');
     }
     document.getElementById('ready-section').style.display='';
     if (callAct) callAct.style.display='none';
@@ -2919,9 +2910,10 @@ function setDialerStatus(s) {
     if (rdyBtn) rdyBtn.className='btn-ready-big stop';
     if (rdyIc) rdyIc.textContent='⏹';
     if (rdyTxt) {
-      rdyTxt.setAttribute('data-tr', 'Durdur');
-      rdyTxt.setAttribute('data-de', 'Stoppen');
-      rdyTxt.textContent = currentLang === 'tr' ? 'Durdur' : 'Stoppen';
+      const stp = typeof tPair === 'function' ? tPair('dial.stop') : { tr: 'Durdur', de: 'Stoppen' };
+      rdyTxt.setAttribute('data-tr', stp.tr);
+      rdyTxt.setAttribute('data-de', stp.de);
+      rdyTxt.textContent = typeof currentLang !== 'undefined' && currentLang === 'de' ? stp.de : stp.tr;
     }
     document.getElementById('ready-section').style.display='';
     if (callAct) callAct.style.display='none';
@@ -3031,7 +3023,7 @@ async function dialNext() {
   refreshDialerHealthPanel();
   if (dialerStatus !== 'ready') return;
   if (!selectedCampId) {
-    toast('Önce kampanya seçin', 'err');
+    toast(typeof t === 'function' ? t('dial.pick_camp_first') : 'Önce kampanya seçin', 'err');
     setDialerStatus('offline');
     updateSessionInDB('offline');
     return;
@@ -3045,19 +3037,19 @@ async function dialNext() {
   }
 
   if (!telnyxReady) {
-    toast(currentLang==='tr' ? 'Hat bağlantısı bekleniyor...' : 'Warte auf Verbindung...', 'err');
+    toast(typeof t === 'function' ? t('dial.line_waiting') : 'Hat bağlantısı bekleniyor...', 'err');
     return;
   }
   const autoCampIds = getAutoDialCampaignIds();
   if (!autoCampIds.length) {
-    toast('Otomatik arama izni olan aktif kampanya yok', 'warn');
+    toast(typeof t === 'function' ? t('dial.no_autodial_camps') : 'Otomatik arama izni olan aktif kampanya yok', 'warn');
     setDialerStatus('offline');
     updateSessionInDB('offline');
     return;
   }
   const contact = await getNextContact(autoCampIds);
   if (!contact) {
-    toast(currentLang==='tr' ? '✅ Kuyrukta numara kalmadı' : '✅ Keine Nummern mehr', 'ok');
+    toast(typeof t === 'function' ? t('dial.queue_empty') : '✅ Kuyrukta numara kalmadı', 'ok');
     setDialerStatus('offline'); updateSessionInDB('offline');
     return;
   }
@@ -3076,18 +3068,18 @@ async function dialNext() {
 function getDialerHealthState() {
   const checks = [];
   const push = (ok, label) => checks.push({ ok, label });
-  push(!!selectedCampId, 'Kampanya seçildi');
+  push(!!selectedCampId, typeof t === 'function' ? t('dial.health.push.camp') : 'Kampanya seçildi');
   const campActiveOk =
     !!selectedCampId &&
     (_activeCampIds.length === 0 || _activeCampIds.includes(selectedCampId));
-  push(campActiveOk, 'Aktif kampanya var');
-  push(_testMode || !!telnyxReady, _testMode ? 'Test modu aktif' : 'Hat bağlantısı hazır');
+  push(campActiveOk, typeof t === 'function' ? t('dial.health.push.active') : 'Aktif kampanya var');
+  push(_testMode || !!telnyxReady, _testMode ? (typeof t === 'function' ? t('dial.health.push.test') : 'Test modu aktif') : (typeof t === 'function' ? t('dial.health.push.line') : 'Hat bağlantısı hazır'));
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0];
   const timeStr = now.toTimeString().slice(0, 8);
   const callWindow = isCallAllowed(dateStr, timeStr).allowed;
-  push(_testMode || callWindow, 'Saat kısıtı uygun');
-  push(typeof micGranted === 'undefined' ? true : !!micGranted, 'Mikrofon izni');
+  push(_testMode || callWindow, typeof t === 'function' ? t('dial.health.push.hours') : 'Saat kısıtı uygun');
+  push(typeof micGranted === 'undefined' ? true : !!micGranted, typeof t === 'function' ? t('dial.health.push.mic') : 'Mikrofon izni');
   const firstFail = checks.find((c) => !c.ok);
   const code = firstFail
     ? !selectedCampId
@@ -3100,7 +3092,9 @@ function getDialerHealthState() {
             ? 'DIAL-HOURS'
             : 'DIAL-MIC'
     : 'DIAL-OK';
-  const msg = firstFail ? `Bekleniyor: ${firstFail.label}` : 'Tüm kontroller geçildi. Arama başlatılabilir.';
+  const msg = firstFail
+    ? (typeof tReplace === 'function' ? tReplace('dial.health.wait', { label: firstFail.label }) : `Bekleniyor: ${firstFail.label}`)
+    : (typeof t === 'function' ? t('dial.health.ok') : 'Tüm kontroller geçildi. Arama başlatılabilir.');
   return { checks, code, msg };
 }
 
@@ -3125,32 +3119,40 @@ function refreshDialerHealthPanel() {
   btn.title = ok ? '' : h.msg;
 
   if (typeof dialerStatus !== 'undefined' && dialerStatus === 'ready') {
-    const why =
-      h.code === 'DIAL-CAMP' ? (currentLang === 'tr' ? 'Kampanya seçin' : 'Kampagne wählen') :
-      h.code === 'DIAL-ACTIVE' ? (currentLang === 'tr' ? 'Aktif kampanya yok' : 'Keine aktive Kampagne') :
-      h.code === 'DIAL-SIP' ? (currentLang === 'tr' ? 'Hat hazır değil' : 'Verbindung nicht bereit') :
-      h.code === 'DIAL-HOURS' ? (currentLang === 'tr' ? 'Saat kısıtı' : 'Zeitfenster') :
-      (currentLang === 'tr' ? 'Mikrofon izni' : 'Mikrofon');
-    txt.setAttribute('data-tr', ok ? 'Durdur' : `Durdur (${why})`);
-    txt.setAttribute('data-de', ok ? 'Stoppen' : `Stoppen (${why})`);
-    txt.textContent = ok
-      ? (currentLang === 'tr' ? 'Durdur' : 'Stoppen')
-      : (currentLang === 'tr' ? `Durdur (${why})` : `Stoppen (${why})`);
+    const whyKey =
+      h.code === 'DIAL-CAMP' ? 'dial.why.camp' :
+      h.code === 'DIAL-ACTIVE' ? 'dial.why.active' :
+      h.code === 'DIAL-SIP' ? 'dial.why.sip_short' :
+      h.code === 'DIAL-HOURS' ? 'dial.why.hours' :
+      'dial.why.mic';
+    const w = typeof tPair === 'function' ? tPair(whyKey) : { tr: '', de: '' };
+    const st = typeof tPair === 'function' ? tPair('dial.stop') : { tr: 'Durdur', de: 'Stoppen' };
+    txt.setAttribute('data-tr', ok ? st.tr : `${st.tr} (${w.tr})`);
+    txt.setAttribute('data-de', ok ? st.de : `${st.de} (${w.de})`);
+    txt.textContent =
+      typeof currentLang !== 'undefined' && currentLang === 'de'
+        ? (ok ? st.de : `${st.de} (${w.de})`)
+        : (ok ? st.tr : `${st.tr} (${w.tr})`);
     return;
   }
 
-  const base = currentLang === 'tr' ? 'Hazır — Aramayı Başlat' : 'Bereit — Start';
-  txt.setAttribute('data-tr', 'Hazır — Aramayı Başlat');
-  txt.setAttribute('data-de', 'Bereit — Start');
-  if (ok) txt.textContent = base;
-  else {
-    const why =
-      h.code === 'DIAL-CAMP' ? (currentLang === 'tr' ? 'Kampanya seçin' : 'Kampagne wählen') :
-      h.code === 'DIAL-ACTIVE' ? (currentLang === 'tr' ? 'Aktif kampanya yok' : 'Keine aktive Kampagne') :
-      h.code === 'DIAL-SIP' ? (currentLang === 'tr' ? 'Hat bağlantısı hazır değil' : 'Verbindung nicht bereit') :
-      h.code === 'DIAL-HOURS' ? (currentLang === 'tr' ? 'Saat kısıtı' : 'Zeitfenster') :
-      (currentLang === 'tr' ? 'Mikrofon izni' : 'Mikrofon');
-    txt.textContent = `${base} (${why})`;
+  const b = typeof tPair === 'function' ? tPair('dial.ready_start') : { tr: 'Hazır — Aramayı Başlat', de: 'Bereit — Start' };
+  txt.setAttribute('data-tr', b.tr);
+  txt.setAttribute('data-de', b.de);
+  if (ok) {
+    txt.textContent = typeof currentLang !== 'undefined' && currentLang === 'de' ? b.de : b.tr;
+  } else {
+    const whyKey =
+      h.code === 'DIAL-CAMP' ? 'dial.why.camp' :
+      h.code === 'DIAL-ACTIVE' ? 'dial.why.active' :
+      h.code === 'DIAL-SIP' ? 'dial.why.sip_long' :
+      h.code === 'DIAL-HOURS' ? 'dial.why.hours' :
+      'dial.why.mic';
+    const w = typeof tPair === 'function' ? tPair(whyKey) : { tr: '', de: '' };
+    txt.textContent =
+      typeof currentLang !== 'undefined' && currentLang === 'de'
+        ? `${b.de} (${w.de})`
+        : `${b.tr} (${w.tr})`;
   }
 }
 
@@ -3223,9 +3225,7 @@ function stopCallTimer() {
     setMascotPref('mb_mascot_call_accum_sec', String(_mascotCallAccumSec));
     if (lastDur < 60 && !isMimiHidden()) {
       _showCustEmptyBubbleMsg(
-        currentLang === 'tr'
-          ? 'Sanırım olmadı; bence diğer çağrıda başaracağız.'
-          : 'Hat wohl nicht gereicht; den nächsten holen wir.'
+        typeof t === 'function' ? t('dial.short_call') : '…'
       );
     }
   }
@@ -3239,7 +3239,7 @@ function stopCallTimer() {
 // ── Call controls ─────────────────────────────
 function toggleMute() {
   if ((_micForcedMute || _micThresholdForcedMute) && !isMuted) {
-    toast(currentLang === 'tr' ? 'Eşik altında mikrofon kapalı (eşiği belirgin geçin)' : 'Unter Schwelle bleibt Mikrofon stumm', 'warn', 1800);
+    toast(typeof t === 'function' ? t('dial.mic_gate') : 'Eşik altında mikrofon kapalı', 'warn', 1800);
     return;
   }
   const pre = document.getElementById('call-actions')?.classList.contains('call-actions--pre-call');
@@ -3252,18 +3252,18 @@ function toggleMute() {
   document.getElementById('btn-mute')?.classList.toggle('active',isMuted);
   if (isMuted) _micThresholdForcedMute = false;
   sendToRTC('MB_MUTE',{muted:isMuted});
-  toast(isMuted?(currentLang==='tr'?'Mikrofon kapatıldı':'Mikrofon stumm'):(currentLang==='tr'?'Mikrofon açıldı':'Mikrofon aktiv'),'ok');
+  toast(isMuted ? (typeof t === 'function' ? t('dial.mic_off') : '') : (typeof t === 'function' ? t('dial.mic_on') : ''), 'ok');
 }
 
 function toggleHold() {
   if (document.getElementById('call-actions')?.classList.contains('call-actions--pre-call') && dialerStatus !== 'on_call') {
-    toast(currentLang === 'tr' ? 'Önce arama başlatın' : 'Zuerst Anruf starten', 'warn');
+    toast(typeof t === 'function' ? t('dial.hold_need_call') : 'Önce arama başlatın', 'warn');
     return;
   }
   isOnHold=!isOnHold;
   document.getElementById('btn-hold')?.classList.toggle('active',isOnHold);
   sendToRTC('MB_HOLD',{hold:isOnHold});
-  toast(isOnHold?(currentLang==='tr'?'Çağrı beklemeye alındı':'Anruf gehalten'):(currentLang==='tr'?'Çağrı devam ediyor':'Anruf fortgesetzt'),'ok');
+  toast(isOnHold ? (typeof t === 'function' ? t('dial.hold_on') : '') : (typeof t === 'function' ? t('dial.hold_off') : ''), 'ok');
 }
 
 function hangup() {
@@ -3298,11 +3298,11 @@ async function refreshDialerCampaignCacheIfEmpty() {
 
 function redialCurrentContact() {
   if (!currentContact?.phone) {
-    toast(currentLang === 'tr' ? 'Önce müşteri / numara yok' : 'Kein Kontakt / Nummer', 'err');
+    toast(typeof t === 'function' ? t('dial.no_contact') : 'Önce müşteri / numara yok', 'err');
     return;
   }
   if (!_testMode && !telnyxReady) {
-    toast(currentLang === 'tr' ? 'Hat bağlantısı yok' : 'Keine Verbindung', 'err');
+    toast(typeof t === 'function' ? t('dial.no_line') : 'Hat bağlantısı yok', 'err');
     return;
   }
   const campId = currentContact.campaign_id || selectedCampId;
@@ -3312,7 +3312,7 @@ function redialCurrentContact() {
     _fakeCallActive = true;
     window.__voiceOrbSimRemote = true;
     setDialerStatus('on_call');
-    toast(currentLang === 'tr' ? 'TEST: Tekrar aranıyor' : 'TEST: erneuter Anruf', 'ok', 2200);
+    toast(typeof t === 'function' ? t('dial.test_redial') : 'TEST: Tekrar aranıyor', 'ok', 2200);
     return;
   }
   setDialerStatus('on_call');
@@ -3329,11 +3329,11 @@ function redialCurrentContact() {
 function callSecondaryPhone() {
   const p2 = String(currentContact?.phone2 || '').trim();
   if (!p2) {
-    toast(currentLang === 'tr' ? '2. telefon numarası yok' : 'Keine zweite Nummer', 'warn');
+    toast(typeof t === 'function' ? t('dial.no_phone2') : '2. telefon numarası yok', 'warn');
     return;
   }
   if (!_testMode && !telnyxReady) {
-    toast(currentLang === 'tr' ? 'Hat bağlantısı yok' : 'Keine Verbindung', 'err');
+    toast(typeof t === 'function' ? t('dial.no_line') : 'Hat bağlantısı yok', 'err');
     return;
   }
   const campId = currentContact?.campaign_id || selectedCampId;
@@ -3343,7 +3343,7 @@ function callSecondaryPhone() {
     _fakeCallActive = true;
     window.__voiceOrbSimRemote = true;
     setDialerStatus('on_call');
-    toast(currentLang === 'tr' ? 'TEST: 2. numara aranıyor' : 'TEST: Zweitnummer wird angerufen', 'ok', 2200);
+    toast(typeof t === 'function' ? t('dial.test_phone2') : 'TEST: 2. numara aranıyor', 'ok', 2200);
     return;
   }
   setDialerStatus('on_call');
@@ -3408,7 +3408,7 @@ function closeManualDialDrawer() {
 
 function toggleManualDialDrawer() {
   if (_hasLiveCallInProgress()) {
-    toast('Aktif çağrı varken numara ile aramaya geçilemez', 'err', 2200);
+    toast(typeof t === 'function' ? t('dial.manual_dial_blocked') : 'Aktif çağrı varken numara ile aramaya geçilemez', 'err', 2200);
     return;
   }
   const el = document.getElementById('manual-dial-drawer');
@@ -3485,7 +3485,7 @@ function _applyMicSensitivityToLiveCall() {
     _micGateOpenUntilMs = 0;
     sendToRTC('MB_MUTE', { muted: true });
     if (dialerStatus === 'on_call') {
-      toast(currentLang === 'tr' ? 'Hassasiyet 0: mikrofon çağrıda kapatıldı' : 'Empfindlichkeit 0: Mikrofon stumm', 'warn', 2200);
+      toast(typeof t === 'function' ? t('dial.mic_gain_zero') : 'Hassasiyet 0', 'warn', 2200);
     }
     return;
   }
@@ -3588,7 +3588,7 @@ function saveMicDrawerPrefs() {
   const trEl = document.getElementById('mic-drawer-in-threshold');
   if (trEl && te) trEl.style.left = `${te.value}%`;
   _applyMicSensitivityToLiveCall();
-  toast(currentLang === 'tr' ? 'Mikrofon ayarları kaydedildi' : 'Mikrofoneinstellungen gespeichert', 'ok', 1800);
+  toast(typeof t === 'function' ? t('dial.mic_saved') : 'Mikrofon ayarları kaydedildi', 'ok', 1800);
 }
 
 function _micDrawerStopAudioCore() {
@@ -3669,15 +3669,19 @@ async function startMicDrawerMonitor() {
     const btn = document.getElementById('mic-drawer-monitor-btn');
     const sp = btn?.querySelector('span');
     if (sp) {
-      sp.textContent = currentLang === 'tr' ? 'Dinlemeyi durdur' : 'Überwachung stoppen';
-      sp.setAttribute('data-tr', 'Dinlemeyi durdur');
-      sp.setAttribute('data-de', 'Überwachung stoppen');
+      const p = typeof tPair === 'function' ? tPair('dial.mic_monitor_stop') : { tr: 'Dinlemeyi durdur', de: 'Überwachung stoppen' };
+      sp.textContent = typeof currentLang !== 'undefined' && currentLang === 'de' ? p.de : p.tr;
+      sp.setAttribute('data-tr', p.tr);
+      sp.setAttribute('data-de', p.de);
     }
     micGranted = true;
     if (typeof updateMicStatus === 'function') updateMicStatus(true);
     _micDrawerTick();
   } catch (e) {
-    toast(currentLang === 'tr' ? 'Mikrofon açılamadı: ' + e.message : 'Mikrofon: ' + e.message, 'err');
+    toast(
+      (typeof t === 'function' ? t('dial.mic_open_err') : 'Mikrofon açılamadı: ') + e.message,
+      'err'
+    );
     _micDrawerStopAudioCore();
   }
 }
@@ -3687,9 +3691,10 @@ function stopMicDrawerMonitor() {
   const btn = document.getElementById('mic-drawer-monitor-btn');
   const sp = btn?.querySelector('span');
   if (sp) {
-    sp.textContent = currentLang === 'tr' ? 'Dinlemeyi başlat' : 'Überwachung starten';
-    sp.setAttribute('data-tr', 'Dinlemeyi başlat');
-    sp.setAttribute('data-de', 'Überwachung starten');
+    const p = typeof tPair === 'function' ? tPair('dial.mic_monitor_start') : { tr: 'Dinlemeyi başlat', de: 'Überwachung starten' };
+    sp.textContent = typeof currentLang !== 'undefined' && currentLang === 'de' ? p.de : p.tr;
+    sp.setAttribute('data-tr', p.tr);
+    sp.setAttribute('data-de', p.de);
   }
 }
 
@@ -3740,7 +3745,7 @@ function toggleMicAudioDrawer() {
 
 async function runManualDialSearch() {
   if (_hasLiveCallInProgress()) {
-    toast('Önce aktif çağrıyı kapatın', 'err', 2200);
+    toast(typeof t === 'function' ? t('dial.close_active_first') : 'Önce aktif çağrıyı kapatın', 'err', 2200);
     return;
   }
   const input = document.getElementById('manual-dial-input');
@@ -3748,15 +3753,14 @@ async function runManualDialSearch() {
   if (!input || !out || !currentUser) return;
   const raw = input.value.trim();
   if (!raw) {
-    toast(currentLang === 'tr' ? 'Numara girin' : 'Nummer eingeben', 'warn');
+    toast(typeof t === 'function' ? t('dial.enter_number') : 'Numara girin', 'warn');
     return;
   }
-  const tr = currentLang === 'tr';
-  out.innerHTML = `<div style="color:var(--text-3);padding:8px;">${tr ? 'Aranıyor…' : 'Suche…'}</div>`;
+  out.innerHTML = `<div style="color:var(--text-3);padding:8px;">${typeof t === 'function' ? escapeHtml(t('dial.manual_searching')) : '…'}</div>`;
   await refreshDialerCampaignCacheIfEmpty();
   const campIds = (campaigns || []).map((c) => c.id).filter(Boolean);
   if (!campIds.length) {
-    out.innerHTML = `<div style="color:var(--red);padding:8px;">${tr ? 'Kampanya yüklenemedi — önce Dialer sayfasını açın veya firma seçin.' : 'Keine Kampagne — Dialer öffnen oder Firma wählen.'}</div>`;
+    out.innerHTML = `<div style="color:var(--red);padding:8px;">${escapeHtml(typeof t === 'function' ? t('dial.manual_no_camps') : '')}</div>`;
     return;
   }
   const variants = _manualDialVariants(raw);
@@ -3769,7 +3773,7 @@ async function runManualDialSearch() {
       window._manualDialLastResults = [saved];
       out.innerHTML = `<button type="button" class="manual-dial-pick" data-idx="0" style="display:block;width:100%;text-align:left;padding:10px 12px;margin-bottom:6px;border:1px solid var(--accent);border-radius:8px;background:var(--accent-soft);cursor:pointer;font-size:12px;">
 <div style="font-weight:800;">${String(saved.phone || raw).replace(/</g, '&lt;')}</div>
-<div style="color:var(--text-2);margin-top:2px;">${tr ? 'Yeni çağrı olarak oluşturuldu — açmak için tıkla' : 'Als neuer Kontakt erstellt — zum Öffnen klicken'}</div>
+        <div style="color:var(--text-2);margin-top:2px;">${escapeHtml(typeof t === 'function' ? t('dial.manual_adhoc_hint') : '')}</div>
 </button>`;
       out.querySelectorAll('.manual-dial-pick').forEach((btn) => {
         btn.onclick = () => pickManualDialContact(0);
@@ -3795,7 +3799,7 @@ async function runManualDialSearch() {
 
 function pickManualDialContact(idx) {
   if (_hasLiveCallInProgress()) {
-    toast('Önce aktif çağrıyı kapatın', 'err', 2200);
+    toast(typeof t === 'function' ? t('dial.close_active_first') : 'Önce aktif çağrıyı kapatın', 'err', 2200);
     return;
   }
   const row = window._manualDialLastResults?.[idx];
@@ -3812,7 +3816,7 @@ function pickManualDialContact(idx) {
   setTimeout(() => { syncDialerBottomChrome(); forceDialerPreCallBar(); }, 220);
   setTimeout(() => { syncDialerBottomChrome(); forceDialerPreCallBar(); }, 650);
   if (typeof switchContactTab === 'function') switchContactTab('info');
-  toast(currentLang === 'tr' ? 'Kişi yüklendi — Ara ile arayın' : 'Kontakt geladen — mit Anrufen wählen', 'ok', 3200);
+  toast(typeof t === 'function' ? t('dial.manual_loaded') : 'Kişi yüklendi', 'ok', 3200);
 }
 
 function _buildAdhocDialContact(phoneRaw) {
@@ -3822,8 +3826,8 @@ function _buildAdhocDialContact(phoneRaw) {
     id: `adhoc-${Date.now()}`,
     firm_id: currentUser?.firm_id || null,
     campaign_id: campId,
-    first_name: currentLang === 'tr' ? 'Yeni' : 'Neu',
-    last_name: currentLang === 'tr' ? 'Çağrı' : 'Anruf',
+    first_name: typeof t === 'function' ? t('dial.adhoc_first') : 'Yeni',
+    last_name: typeof t === 'function' ? t('dial.adhoc_last') : 'Çağrı',
     phone,
     phone2: '',
     city: '',
@@ -3872,58 +3876,27 @@ function setOutcome(o) {
       dtInput.value = def.toISOString().slice(0,16);
     }
   }
-  const tr = currentLang === 'tr';
   const gm = document.getElementById('global-mascot');
   if (gm) gm.classList.remove('global-mascot--sad', 'global-mascot--celebrate');
   if (o === 'appointment' || o === 'appointment_done') {
     if (gm && !isMimiHidden()) gm.classList.add('global-mascot--celebrate');
     if (typeof _mimiCelebrate === 'function') _mimiCelebrate();
-    const okPool = tr
-      ? [
-          'Başardık! Termin adımına geçiyoruz.',
-          'Harikasın, bu müşteri artık bizde.',
-          'Net ve güzel kapattın, süpersin.',
-        ]
-      : [
-          'Geschafft! Wir gehen zum Termin-Schritt.',
-          'Stark abgeschlossen, der Kunde ist drin.',
-          'Sehr sauber geführt, top!',
-        ];
+    const okI = Math.floor(Math.random() * 3);
     if (!isMimiHidden()) {
-      _showCustEmptyBubbleMsg(okPool[Math.floor(Math.random() * okPool.length)]);
+      _showCustEmptyBubbleMsg(typeof t === 'function' ? t(`dial.outcome.app.${okI}`) : '');
       setTimeout(() => gm?.classList.remove('global-mascot--celebrate'), 2300);
     }
   } else if (o === 'negative') {
     if (gm && !isMimiHidden()) gm.classList.add('global-mascot--sad');
-    const negPool = tr
-      ? [
-          'Bu olmadı ama sorun değil; diğerinde alacağız.',
-          'Bir nefes al, sıradaki çağrıda kapanır.',
-          'Ritim sende; bu sadece bir adım.',
-        ]
-      : [
-          'Das war nichts, aber der nächste sitzt.',
-          'Kurz durchatmen, der nächste wird gut.',
-          'Du hast den Rhythmus, weiter.',
-        ];
+    const ni = Math.floor(Math.random() * 3);
     if (!isMimiHidden()) {
-      _showCustEmptyBubbleMsg(negPool[Math.floor(Math.random() * negPool.length)]);
+      _showCustEmptyBubbleMsg(typeof t === 'function' ? t(`dial.outcome.neg.${ni}`) : '');
       setTimeout(() => gm?.classList.remove('global-mascot--sad'), 3600);
     }
   } else if (o === 'callback') {
-    const cbPool = tr
-      ? [
-          'Bence bu müşteri bizde, geri aramada kapanır.',
-          'Bu sıcak lead, geri arama iyi fikir.',
-          'Geri aramada doğru cümleyle alırız.',
-        ]
-      : [
-          'Der Kunde ist nah dran, Rückruf bringt es.',
-          'Warmer Lead, Rückruf passt gut.',
-          'Im Rückruf holen wir ihn.',
-        ];
+    const ci = Math.floor(Math.random() * 3);
     if (!isMimiHidden()) {
-      _showCustEmptyBubbleMsg(cbPool[Math.floor(Math.random() * cbPool.length)]);
+      _showCustEmptyBubbleMsg(typeof t === 'function' ? t(`dial.outcome.cb.${ci}`) : '');
     }
   }
 }
@@ -3960,16 +3933,10 @@ async function _markMatchingWiedervorlageOlumsuz(contact) {
 async function submitOutcome(goBreak) {
   const lineUp = !!_telnyxCall || !!_fakeCallActive || !!_outboundDialPending;
   if (dialerStatus === 'on_call' && lineUp) {
-    toast(
-      currentLang === 'tr'
-        ? 'Önce çağrıyı kapatın. Çağrı kapanmadan sonuçlandırılamaz.'
-        : 'Bitte zuerst auflegen. Abschluss erst nach Gesprächsende.',
-      'warn',
-      2400
-    );
+    toast(typeof t === 'function' ? t('dial.outcome_hangup_first') : 'Önce çağrıyı kapatın', 'warn', 2400);
     return;
   }
-  if (!selectedOutcome) { toast(currentLang==='tr'?'Sonuç seçin':'Ergebnis auswählen','err'); return; }
+  if (!selectedOutcome) { toast(typeof t === 'function' ? t('dial.pick_outcome') : 'Sonuç seçin', 'err'); return; }
   const note   = document.getElementById('outcome-note')?.value.trim()||'';
   const cbTime = document.getElementById('callback-dt')?.value||null;
   const isDnc  = document.getElementById('outcome-dnc')?.checked || false;
@@ -3986,13 +3953,7 @@ async function submitOutcome(goBreak) {
     if (cs.appointment_slot_required && !inboundTestContact) {
       const oc = String(selectedOutcome || '').toLowerCase();
       if ((oc === 'appointment' || oc === 'appointment_done') && !lockedSlotEarly) {
-        toast(
-          currentLang === 'tr'
-            ? 'Bu kampanyada termin için önce takvimden slot seçmelisiniz.'
-            : 'In dieser Kampagne musst du zuerst einen Termin-Slot wählen.',
-          'warn',
-          4200
-        );
+        toast(typeof t === 'function' ? t('dial.slot_required') : 'Slot gerekli', 'warn', 4200);
         return;
       }
     }
@@ -4045,7 +4006,7 @@ async function submitOutcome(goBreak) {
           })).catch(()=>{});
       }
     }
-  } catch(e){ console.error(e); toast('Kayıt hatası: '+e.message,'err'); }
+  } catch(e){ console.error(e); toast((typeof t === 'function' ? t('dial.log_err') : 'Kayıt hatası: ') + e.message,'err'); }
   // Termin dışı sonuç seçilirse kilitli slot serbest bırak
   const lockedSlotId = _bookingSlot?.id || window._selectedBookingSlot?.id;
   if (lockedSlotId && selectedOutcome !== 'appointment' && selectedOutcome !== 'appointment_done') {
@@ -4108,13 +4069,13 @@ async function submitOutcome(goBreak) {
       if (!getAutoDialCampaignIds().length) {
         _autoDial = false;
         refreshAutoDialUi();
-        toast('Bu kampanyalarda otomatik arama pasif', 'warn', 2400);
+        toast(typeof t === 'function' ? t('dial.autodial_off_camps') : 'Bu kampanyalarda otomatik arama pasif', 'warn', 2400);
         return;
       }
       if (!_testMode) {
         const callCheck = isCallAllowed(new Date().toISOString().split('T')[0], new Date().toTimeString().slice(0, 8));
         if (!callCheck.allowed) {
-          toast('⏸ Otomatik arama duraklatıldı: ' + callCheck.reason, 'warn', 6000);
+          toast((typeof t === 'function' ? t('dial.autodial_paused') : '⏸ ') + callCheck.reason, 'warn', 6000);
           _autoDial = false;
           const tog = document.getElementById('auto-dial-toggle');
           if (tog) tog.checked = false;
@@ -4133,7 +4094,7 @@ function handleAppointmentClick() {
   setOutcome('appointment');
   // Takvim overlay'ini aç — agent slot seçer
   openTakvimOverlay();
-  toast('Takvimden uygun bir slot seçin', 'ok', 3500);
+  toast(typeof t === 'function' ? t('dial.cal_pick_slot') : 'Takvimden uygun bir slot seçin', 'ok', 3500);
 }
 
 // Called from appointments.js when agent selects a slot
@@ -4189,7 +4150,7 @@ function onAgentSlotSelected(slot) {
     terminSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 150);
 
-  toast('Slot seçildi — termin bilgilerini doldurun', 'ok', 3000);
+  toast(typeof t === 'function' ? t('dial.slot_picked') : 'Slot seçildi', 'ok', 3000);
 }
 
 // Slot iptal et ve outcome seçimine dön
@@ -4208,7 +4169,7 @@ function cancelSlotAndShowOutcome() {
   if (typeof switchContactTab === 'function') switchContactTab('outcome');
   const cancelBtn = document.getElementById('termin-cancel-slot-btn');
   if (cancelBtn) cancelBtn.remove();
-  toast('Slot iptal edildi', 'warn', 2000);
+  toast(typeof t === 'function' ? t('dial.slot_cancelled') : 'Slot iptal edildi', 'warn', 2000);
 }
 
 async function updateTerminField(key, value) {
@@ -4282,7 +4243,7 @@ function toggleAutoDial() {
   if (!allowedCount) {
     _autoDial = false;
     refreshAutoDialUi();
-    toast('Aktif kampanyalarda otomatik arama izni yok', 'warn', 2200);
+    toast(typeof t === 'function' ? t('dial.autodial_no_perm_camps') : 'Aktif kampanyalarda otomatik arama izni yok', 'warn', 2200);
     return;
   }
   _autoDial = !_autoDial;
@@ -4326,7 +4287,7 @@ function launchConfetti() {
     document.head.appendChild(style);
   }
   setTimeout(() => container.remove(), 5000);
-  toast('🎉 Günlük hedefe ulaştınız!', 'ok', 4000);
+  toast(typeof t === 'function' ? t('dial.daily_goal') : '🎉 Günlük hedefe ulaştınız!', 'ok', 4000);
 }
 
 // ── Hotkeys ───────────────────────────────────
@@ -4418,7 +4379,7 @@ function saveApiSettings() {
   if (wGoal>0) { window._weeklyGoal = wGoal; localStorage.setItem('mb_weekly_goal',String(wGoal)); }
   if (mGoal>0) { window._monthlyGoal = mGoal; localStorage.setItem('mb_monthly_goal',String(mGoal)); }
   updateCustEmptyMascotScale();
-  toast('API ayarları kaydedildi ✓','ok');
+  toast(typeof t === 'function' ? t('dial.api_saved') : 'API ayarları kaydedildi ✓','ok');
 }
 
 // ── Call rules (Ruhezeit) ─────────────────────
@@ -4481,7 +4442,7 @@ function checkCallAllowed() {
   const dateStr = now.toISOString().split('T')[0];
   const timeStr = now.toTimeString().slice(0,8);
   const check = isCallAllowed(dateStr, timeStr);
-  if (!check.allowed) { toast('⚠️ ' + check.reason, 'err', 5000); return false; }
+  if (!check.allowed) { toast(typeof tReplace === 'function' ? tReplace('dial.call_not_allowed', { reason: check.reason }) : ('⚠️ ' + check.reason), 'err', 5000); return false; }
   return true;
 }
 
@@ -4553,7 +4514,6 @@ async function tickInboundTestSimulation() {
   if (_fakeCallActive || dialerStatus === 'on_call' || _inboundTestRingOpen) return;
   if (!currentUser?.firm_id) return;
   const fid = currentUser.firm_id;
-  const tr = currentLang === 'tr';
 
   let sessions = await sb(`agent_sessions?firm_id=eq.${fid}&status=eq.ready&select=agent_id,agent_name,last_seen&order=last_seen.asc`).catch(() => []);
   if ((!sessions?.length || !sessions.some((x) => x.agent_id === currentUser.id)) && dialerStatus === 'ready') {
@@ -4639,31 +4599,32 @@ async function tickInboundTestSimulation() {
   if (_testMode) {
     /** Prod’da sıradaki temsilciye gider; testte aksi halde çoğu zaman başka temsilciye gider ve bu ekranda hiçbir şey olmaz */
     targetId = currentUser.id;
-    routeDetail = tr
-      ? 'TEST: Gelen simülasyon bu oturuma yönlendirildi'
-      : 'TEST: Eingehend-Simulation an diese Session';
+    routeDetail = typeof t === 'function' ? t('dial.inbound_sim_session') : '';
   } else if (preferredId && readyIds.has(preferredId)) {
     targetId = preferredId;
-    routeDetail = tr
-      ? `Yönlendirme: son arayan temsilci${prefName ? ` (${prefName})` : ''} müsait → öncelik`
-      : `Routing: letzter Agent${prefName ? ` (${prefName})` : ''} verfügbar`;
+    routeDetail =
+      typeof tReplace === 'function'
+        ? tReplace('dial.inbound_route_last', { name: prefName ? ` (${prefName})` : '' })
+        : '';
   } else {
     targetId = sessions[0].agent_id;
     const tname = sessions[0].agent_name || '';
     if (preferredId && !readyIds.has(preferredId)) {
-      routeDetail = tr
-        ? `Yönlendirme: son temsilci müsait değil → sıradaki hazır: ${tname || '—'}`
-        : `Routing: letzter Agent nicht frei → nächster: ${tname || '—'}`;
+      routeDetail =
+        typeof tReplace === 'function' ? tReplace('dial.inbound_route_busy', { name: tname || '—' }) : '';
     } else {
-      routeDetail = tr
-        ? `Yönlendirme: müsait temsilci: ${tname || '—'}`
-        : `Routing: verfügbar: ${tname || '—'}`;
+      routeDetail =
+        typeof tReplace === 'function' ? tReplace('dial.inbound_route_next', { name: tname || '—' }) : '';
     }
   }
 
   if (targetId !== currentUser.id) {
     if (_canShowInboundRoutingDetail()) {
-      toast(`📥 ${tr ? 'Gelen (TEST) başka temsilciye giderdi' : 'Eingehend (TEST) geht an anderen'} — ${routeDetail}`, 'warn', 4200);
+      toast(
+        `📥 ${typeof t === 'function' ? t('dial.inbound_other_agent') : ''} — ${routeDetail}`,
+        'warn',
+        4200
+      );
     }
     return;
   }
@@ -4680,8 +4641,8 @@ async function tickInboundTestSimulation() {
     contact = {
       id: `in-${Date.now()}`,
       phone,
-      first_name: tr ? 'Gelen' : 'Eingehend',
-      last_name: tr ? 'Test' : 'Test',
+      first_name: typeof t === 'function' ? t('dial.contact_inbound') : 'Gelen',
+      last_name: typeof t === 'function' ? t('dial.contact_test') : 'Test',
       firm_id: fid,
       campaign_id: campId,
       status: 'pending',
@@ -4821,7 +4782,6 @@ function openInboundTestRingUI(ctx) {
   _stopCustEmptyMascotTimers();
   _inboundTestRingOpen = true;
   _inboundTestCtx = ctx;
-  const tr = currentLang === 'tr';
   const scenario = contact?._testScenario || 'standard';
   const fromNm = contact?._testFromAgentName || '';
   const owner = contact?._testOwner || null;
@@ -4854,15 +4814,18 @@ function openInboundTestRingUI(ctx) {
   if (nm) nm.textContent = displayName || '—';
   if (ph) ph.textContent = phone || '—';
   if (bd) {
-    bd.textContent = isExternalInbound ? (tr ? 'Dış numara' : 'Extern') : tr ? 'Kayıtlı / iç' : 'Intern';
+    bd.textContent = isExternalInbound
+      ? (typeof t === 'function' ? t('dial.inbound_badge_ext') : 'Extern')
+      : (typeof t === 'function' ? t('dial.inbound_badge_int') : 'Intern');
   }
 
   if (fw) {
     fw.style.display = scenario === 'forwarded' ? 'block' : 'none';
     if (scenario === 'forwarded') {
-      fw.textContent = tr
-        ? `${fromNm || 'Temsilci'} size müşterinizi aktarıyor (TEST)`
-        : `${fromNm || 'Agent'} leitet Ihren Kontakt an Sie (TEST)`;
+      fw.textContent =
+        typeof tReplace === 'function'
+          ? tReplace('dial.inbound_fwd', { from: fromNm || (typeof t === 'function' ? t('dial.inbound_fwd_fallback') : 'Agent') })
+          : '';
     }
   }
   if (ow) {
@@ -4875,23 +4838,19 @@ function openInboundTestRingUI(ctx) {
       if (ow) {
         ow.style.display = 'block';
         ow.textContent = ownerOn
-          ? tr
-            ? `Müşteri temsilcisi: ${owner.name} (hazır)`
-            : `Kunde von: ${owner.name} (bereit)`
-          : tr
-            ? `${owner.name} şu an hazır değil / sistemde görünmüyor`
-            : `${owner.name} nicht bereit / nicht im System`;
+          ? (typeof tReplace === 'function' ? tReplace('dial.inbound_owner_ready', { name: owner.name }) : '')
+          : (typeof tReplace === 'function' ? tReplace('dial.inbound_owner_na', { name: owner.name }) : '');
       }
       if (ownBtn) {
         ownBtn.style.display = ownerOn ? 'inline-flex' : 'none';
-        ownBtn.textContent = tr ? `${owner.name}’a aktar` : `An ${owner.name}`;
+        ownBtn.textContent =
+          typeof tReplace === 'function' ? tReplace('dial.inbound_xfer_btn', { name: owner.name }) : '';
       }
     } else if (!owner.id) {
       if (ow) {
         ow.style.display = 'block';
-        ow.textContent = tr
-          ? `${owner.name} şu an hazır değil / sistemde görünmüyor`
-          : `${owner.name} nicht bereit / nicht im System`;
+        ow.textContent =
+          typeof tReplace === 'function' ? tReplace('dial.inbound_owner_na', { name: owner.name }) : '';
       }
       if (ownBtn) ownBtn.style.display = 'none';
     }
@@ -4899,33 +4858,29 @@ function openInboundTestRingUI(ctx) {
 
   if (sub) {
     if (scenario === 'forwarded') {
-      sub.textContent = tr
-        ? 'Sağa kaydır — yanıtla · Sola kaydır — kapat (başkasına aktaramazsınız)'
-        : 'Rechts — annehmen · Links — ablehnen';
+      sub.textContent = typeof t === 'function' ? t('dial.inbound_sub_fwd') : '';
     } else if (scenario === 'owner_other') {
-      sub.textContent = tr
-        ? 'Sağa kaydır — yanıtla · Sola kaydır — reddet · veya sahibine aktarın'
-        : 'Rechts annehmen · Links ablehnen oder an Besitzer weiterleiten';
+      sub.textContent = typeof t === 'function' ? t('dial.inbound_sub_owner') : '';
     } else if (isExternalInbound && typeof _testMode !== 'undefined' && _testMode) {
-      sub.textContent = tr
-        ? 'Sağa kaydır — yanıtla · Sola kaydır — reddet · veya aşağıdan başka temsilciye aktarın (TEST)'
-        : 'Rechts — annehmen · Links — ablehnen · oder unten weiterleiten (TEST)';
+      sub.textContent = typeof t === 'function' ? t('dial.inbound_sub_ext_test') : '';
     } else {
-      sub.textContent = tr
-        ? 'Sağa kaydır — yanıtla · Sola kaydır — reddet'
-        : 'Rechts — annehmen · Links — ablehnen';
+      sub.textContent = typeof t === 'function' ? t('dial.inbound_sub_default') : '';
     }
   }
   if (lblL) {
-    lblL.textContent = tr ? 'Reddet' : 'Ablehnen';
-    if (scenario === 'forwarded') lblL.textContent = tr ? 'Kapat' : 'Schließen';
+    lblL.textContent =
+      scenario === 'forwarded'
+        ? (typeof t === 'function' ? t('dial.inbound_close') : 'Kapat')
+        : (typeof t === 'function' ? t('dial.inbound_decline') : 'Reddet');
   }
-  if (lblR) lblR.textContent = tr ? 'Yanıtla' : 'Annehmen';
+  if (lblR) lblR.textContent = typeof t === 'function' ? t('dial.inbound_accept') : 'Yanıtla';
 
   const decBtn = document.getElementById('dialer-incoming-btn-decline');
   if (decBtn) {
     decBtn.textContent =
-      scenario === 'forwarded' ? (tr ? 'Kapat' : 'Schließen') : tr ? 'Reddet' : 'Ablehnen';
+      scenario === 'forwarded'
+        ? (typeof t === 'function' ? t('dial.inbound_close') : 'Kapat')
+        : (typeof t === 'function' ? t('dial.inbound_decline') : 'Reddet');
   }
 
   const linkIn = document.getElementById('inbound-link-phone');
@@ -4942,11 +4897,12 @@ function openInboundTestRingUI(ctx) {
   const xferSel = document.getElementById('dialer-incoming-xfer-agent');
   if (xWrap && xferSel && isExternalInbound && typeof _testMode !== 'undefined' && _testMode && currentUser?.firm_id) {
     xWrap.style.display = '';
-    xferSel.innerHTML = `<option value="">${tr ? 'Temsilci seçin' : 'Agent wählen'}</option>`;
+    const pickPh = typeof t === 'function' ? escapeHtml(t('dial.inbound_pick_agent')) : '';
+    xferSel.innerHTML = `<option value="">${pickPh}</option>`;
     void _fetchFirmAgentsForInboundTest(currentUser.firm_id).then((agents) => {
       const list = (agents || []).filter((a) => a.id && a.id !== currentUser.id);
       xferSel.innerHTML =
-        `<option value="">${tr ? 'Temsilci seçin' : 'Agent wählen'}</option>` +
+        `<option value="">${pickPh}</option>` +
         list
           .map((a) => {
             const nm = String(a.name || a.id || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -4969,9 +4925,7 @@ function openInboundTestRingUI(ctx) {
   const decline = () => {
     _closeInboundTestRingUI();
     toast(
-      tr
-        ? `↩ Gelen (TEST) reddedildi${routeDetail ? ' — ' + routeDetail : ''}`
-        : `↩ Eingehend (TEST) abgelehnt${routeDetail ? ' — ' + routeDetail : ''}`,
+      (typeof t === 'function' ? t('dial.inbound_declined') : '') + (routeDetail ? ' — ' + routeDetail : ''),
       'warn',
       3600
     );
@@ -4999,11 +4953,10 @@ function inboundTestToggleAddPanel() {
 async function inboundTestLinkToContact() {
   const ctx = _inboundTestCtx;
   if (!ctx?.contact || !currentUser?.firm_id) return;
-  const tr = currentLang === 'tr';
   const incoming = String(ctx.phone || '').trim();
   const targetPhone = document.getElementById('inbound-link-phone')?.value?.trim();
   if (!targetPhone) {
-    toast(tr ? 'Mevcut müşteri telefonunu girin' : 'Telefon eingeben', 'warn');
+    toast(typeof t === 'function' ? t('dial.inbound_link_phone') : 'Telefon girin', 'warn');
     return;
   }
   if (!incoming) return;
@@ -5017,7 +4970,7 @@ async function inboundTestLinkToContact() {
       [];
   }
   if (!rows?.length) {
-    toast(tr ? 'Bu telefonla müşteri bulunamadı' : 'Kein Kontakt', 'err');
+    toast(typeof t === 'function' ? t('dial.inbound_no_contact') : 'Bulunamadı', 'err');
     return;
   }
   const row = rows[0];
@@ -5025,19 +4978,19 @@ async function inboundTestLinkToContact() {
   const p2 = String(row.phone2 || '').trim();
   const p1 = String(row.phone || '').trim();
   if (incoming === p1 || incoming === p2) {
-    toast(tr ? 'Numara zaten bu kayıtta' : 'Schon vorhanden', 'warn');
+    toast(typeof t === 'function' ? t('dial.inbound_dup') : 'Zaten kayıtta', 'warn');
     return;
   }
   if (!p2) {
     patch.phone2 = incoming;
   } else {
     const note = String(row.notes || '').trim();
-    const line = tr ? `\n3. numara: ${incoming}` : `\n3. Nummer: ${incoming}`;
+    const line = typeof tReplace === 'function' ? tReplace('dial.inbound_note3', { num: incoming }) : `\n3. numara: ${incoming}`;
     patch.notes = note ? note + line : line.trim();
   }
   try {
     await sb(`contacts?id=eq.${row.id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(patch) });
-    toast(tr ? 'Numara kayda bağlandı ✓' : 'Gespeichert ✓', 'ok');
+    toast(typeof t === 'function' ? t('dial.inbound_linked') : 'Kaydedildi', 'ok');
     Object.assign(row, patch);
     ctx.contact = row;
     _closeInboundTestRingUI();
@@ -5054,7 +5007,7 @@ async function inboundTestLinkToContact() {
     updateSessionInDB('on_call').catch(() => {});
     if (typeof switchContactTab === 'function') switchContactTab('info');
   } catch (e) {
-    toast((tr ? 'Hata: ' : 'Fehler: ') + (e.message || ''), 'err');
+    toast((typeof t === 'function' ? t('dial.inbound_err') : 'Hata: ') + (e.message || ''), 'err');
   }
 }
 
@@ -5063,9 +5016,8 @@ function inboundTestTransferToSelectedAgent() {
   if (!ctx) return;
   const sel = document.getElementById('dialer-incoming-xfer-agent');
   const targetId = sel?.value;
-  const tr = currentLang === 'tr';
   if (!targetId) {
-    toast(tr ? 'Önce bir temsilci seçin' : 'Agent wählen', 'warn');
+    toast(typeof t === 'function' ? t('dial.inbound_pick_agent_warn') : 'Agent seçin', 'warn');
     return;
   }
   const payload = {
@@ -5079,9 +5031,7 @@ function inboundTestTransferToSelectedAgent() {
   } catch (e) {}
   const nm = sel?.options?.[sel.selectedIndex]?.text || '';
   toast(
-    tr
-      ? `TEST: ${nm} için kuyruk bildirimi (aynı tarayıcıda o temsilci oturumu açıksa gelen çalar)`
-      : `TEST: Benachrichtigung an ${nm}`,
+    typeof tReplace === 'function' ? tReplace('dial.inbound_xfer_toast', { name: nm }) : `TEST: ${nm}`,
     'ok',
     5200
   );
@@ -5093,7 +5043,6 @@ function inboundTestTransferToOwner() {
   const ctx = _inboundTestCtx;
   const owner = ctx?.contact?._testOwner;
   if (!owner?.id) return;
-  const tr = currentLang === 'tr';
   const payload = {
     phone: ctx.phone,
     displayName: ctx.displayName,
@@ -5104,9 +5053,7 @@ function inboundTestTransferToOwner() {
     localStorage.setItem(`mb_test_xfer_${owner.id}`, JSON.stringify(payload));
   } catch (e) {}
   toast(
-    tr
-      ? `TEST: ${owner.name} için kuyruk bildirimi (aynı tarayıcıda ${owner.name} oturumu açıksa gelen çalar)`
-      : `TEST: Benachrichtigung an ${owner.name}`,
+    typeof tReplace === 'function' ? tReplace('dial.inbound_xfer_owner', { name: owner.name }) : `TEST: ${owner.name}`,
     'ok',
     5200
   );
@@ -5118,7 +5065,6 @@ async function beginInboundTestCall({ phone, displayName, contact, routeDetail, 
   if (_fakeCallActive || dialerStatus === 'on_call' || _inboundTestRingOpen) return;
 
   const proceed = async () => {
-    const tr = currentLang === 'tr';
     const campId = contact.campaign_id || selectedCampId || campaigns?.[0]?.id;
     if (campId) {
       const camp = campaigns.find((c) => c.id === campId);
@@ -5137,25 +5083,38 @@ async function beginInboundTestCall({ phone, displayName, contact, routeDetail, 
       ban.style.display = '';
       if (isExternalInbound) {
         ban.classList.add('dialer-inbound-banner--external');
-        ban.textContent = tr
-          ? `Dış arama (TEST) · ${phone} — size aktarılıyor${routeDetail ? ' — ' + routeDetail : ''}`
-          : `Extern (TEST) · ${phone} — wird an Sie durchgestellt${routeDetail ? ' — ' + routeDetail : ''}`;
+        ban.textContent =
+          typeof tReplace === 'function'
+            ? tReplace('dial.inbound_banner_ext', {
+                phone,
+                extra: routeDetail ? ` — ${routeDetail}` : '',
+              })
+            : '';
       } else {
         ban.classList.remove('dialer-inbound-banner--external');
-        ban.textContent = tr
-          ? `Gelen arama (TEST): ${displayName} · ${phone}${routeDetail ? ' — ' + routeDetail : ''}`
-          : `Eingehend (TEST): ${displayName} · ${phone}`;
+        ban.textContent =
+          typeof tReplace === 'function'
+            ? tReplace('dial.inbound_banner_in', {
+                name: displayName,
+                phone,
+                extra: routeDetail ? ` — ${routeDetail}` : '',
+              })
+            : '';
       }
     }
     const extra = _canShowInboundRoutingDetail() ? ` — ${routeDetail}` : '';
     if (isExternalInbound) {
       toast(
-        `${tr ? '📥 Dış arama (TEST) — size aktarılıyor: ' : '📥 Extern (TEST) — wird durchgestellt: '}${phone}${extra}`,
+        `${typeof t === 'function' ? t('dial.inbound_toast_ext') : ''}${phone}${extra}`,
         'ok',
         5600
       );
     } else {
-      toast(`${tr ? '📥 Gelen arama (TEST)' : '📥 Eingehend (TEST)'}: ${displayName} · ${phone}${extra}`, 'ok', 5200);
+      toast(
+        `${typeof t === 'function' ? t('dial.inbound_toast_in') : ''}: ${displayName} · ${phone}${extra}`,
+        'ok',
+        5200
+      );
     }
     if (typeof switchContactTab === 'function') switchContactTab('info');
   };
@@ -5231,7 +5190,7 @@ async function saveIncomingCallsSettings() {
   if (!currentUser?.firm_id) return;
   const role = currentUser?.role || '';
   if (!['firm_admin', 'admin', 'super_admin'].includes(role)) {
-    toast('Yetki yok', 'err');
+    toast(typeof t === 'function' ? t('ui.no_permission') : 'Yetki yok', 'err');
     return;
   }
   try {
@@ -5240,7 +5199,7 @@ async function saveIncomingCallsSettings() {
     const oldDialer = oldSettings.dialer || {};
     const locked = !oldDialer.incoming_super_enabled;
     if (locked) {
-      toast('Süper admin bu özelliği henüz açmadı', 'warn');
+      toast(typeof t === 'function' ? t('dial.superadmin_incoming_locked') : 'Süper admin bu özelliği henüz açmadı', 'warn');
       return;
     }
     const dialer = {
@@ -5255,10 +5214,10 @@ async function saveIncomingCallsSettings() {
       body: JSON.stringify({ settings: { ...oldSettings, dialer } }),
     });
     await loadFirmDialerSettingsCache();
-    toast('Gelen arama ayarları kaydedildi ✓', 'ok');
+    toast(typeof t === 'function' ? t('dial.incoming_saved') : 'Gelen arama ayarları kaydedildi ✓', 'ok');
     restartInboundTestSimulationScheduler();
   } catch (e) {
-    toast('Kayıt hatası: ' + e.message, 'err');
+    toast((typeof t === 'function' ? t('dial.log_err') : 'Kayıt hatası: ') + e.message, 'err');
   }
 }
 
@@ -5274,7 +5233,7 @@ function toggleTestMode() {
   const rdyBtn = document.getElementById('btn-ready');
   if (_testMode) {
     btn.style.cssText += ';background:rgba(234,179,8,.18)!important;color:var(--yellow)!important;border-color:var(--yellow)!important;';
-    btn.textContent = '⚙ TEST AÇIK';
+    btn.textContent = typeof t === 'function' ? t('dial.test_btn_on') : '⚙ TEST AÇIK';
     // Hazır butonunu Telnyx'ten bağımsız hale getir
     if (rdyBtn) {
       const canStart = !!selectedCampId && getAutoDialCampaignIds().length > 0;
@@ -5283,21 +5242,15 @@ function toggleTestMode() {
       rdyBtn.style.cursor = canStart ? 'pointer' : 'not-allowed';
       rdyBtn.onclick = testToggleReady; // Telnyx kontrolsüz versiyon
     }
-    toast('Test modu açık — gerçek arama yapılmaz, veriler DB\'ye kaydedilir', 'ok', 4000);
+    toast(typeof t === 'function' ? t('dial.test_mode_on') : 'Test modu açık', 'ok', 4000);
     void loadFirmDialerSettingsCache().then(() => {
       if (!(window._firmDialerSettings?.incoming_enabled)) {
-        toast(
-          currentLang === 'tr'
-            ? 'Gelen arama simülasyonu için: admin panelinde firma ayarlarında «Gelen aramalar» açık olmalı.'
-            : 'Für eingehende Test-Anrufe: «Eingehend» in den Firmeneinstellungen aktivieren.',
-          'warn',
-          7000
-        );
+        toast(typeof t === 'function' ? t('dial.test_incoming_hint') : 'Gelen arama simülasyonu için ayarlar', 'warn', 7000);
       }
     });
   } else {
     btn.style.cssText = btn.style.cssText.replace(/background[^;]+;|color[^;]+;|border-color[^;]+;/g, '');
-    btn.textContent = 'TEST MODU';
+    btn.textContent = typeof t === 'function' ? t('dial.test_btn_off') : 'TEST MODU';
     if (rdyBtn) {
       rdyBtn.onclick = toggleReady; // Normal versiyona geri dön
       if (!telnyxReady && !selectedCampId) {
@@ -5306,7 +5259,7 @@ function toggleTestMode() {
         rdyBtn.style.cursor = 'not-allowed';
       }
     }
-    toast('Test modu kapatıldı', 'warn', 2000);
+    toast(typeof t === 'function' ? t('dial.test_mode_off') : 'Test modu kapatıldı', 'warn', 2000);
   }
   if (_inboundTestXferPoll) {
     clearInterval(_inboundTestXferPoll);
@@ -5323,8 +5276,8 @@ function toggleTestMode() {
 async function testToggleReady() {
   // Test modunda bile en az bir izinli/aktif kampanya olmadan arama başlamasın.
   const allowed = getAutoDialCampaignIds();
-  if (!selectedCampId) { toast('Önce kampanya seçin', 'err'); return; }
-  if (!allowed.length) { toast('Önce en az bir kampanyayı aktif edin', 'err'); return; }
+  if (!selectedCampId) { toast(typeof t === 'function' ? t('dial.pick_camp_first') : 'Önce kampanya seçin', 'err'); return; }
+  if (!allowed.length) { toast(typeof t === 'function' ? t('dial.activate_camps') : 'Önce en az bir kampanyayı aktif edin', 'err'); return; }
   if (dialerStatus === 'offline' || dialerStatus === 'break') {
     setDialerStatus('ready');
     upsertAgentSession({
@@ -5358,7 +5311,7 @@ async function startTestCall() {
   if (!campIds.length && campaigns?.length) campIds = campaigns.map((c) => c.id).filter(Boolean);
   const contact = await getNextContact(campIds);
   if (!contact) {
-    toast('✅ Kuyrukta numara kalmadı', 'ok');
+    toast(typeof t === 'function' ? t('dial.queue_empty') : '✅ Kuyrukta numara kalmadı', 'ok');
     setDialerStatus('offline'); updateSessionInDB('offline');
     return;
   }

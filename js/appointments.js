@@ -560,7 +560,7 @@ function renderTakvimGrid() {
   const needSat = activeSet.has('cmt');
   const needSun = activeSet.has('paz');
   const daysCount = isDay ? 1 : needSun ? 7 : needSat ? 6 : 5;
-  const locale = currentLang==='de' ? 'de-DE' : 'tr-TR';
+  const locale = typeof mbLocale === 'function' ? mbLocale() : (currentLang==='de' ? 'de-DE' : 'tr-TR');
   const endDt = new Date(startDt);
   endDt.setDate(endDt.getDate() + (daysCount - 1));
   const lbl = document.getElementById(window._takvimWeekLabelId||'takvim-week-label');
@@ -612,12 +612,13 @@ function renderTakvimGrid() {
 }
 
 function renderTakvimMonthGrid(grid) {
-  const y=takvimDate.getFullYear(), m=takvimDate.getMonth(), locale=currentLang==='de'?'de-DE':'tr-TR';
+  const y=takvimDate.getFullYear(), m=takvimDate.getMonth(), locale=typeof mbLocale === 'function' ? mbLocale() : (currentLang==='de'?'de-DE':'tr-TR');
   const tset = getCampaignTakvimSettings();
   const showWeekend = tset.active_days.includes('cmt') || tset.active_days.includes('paz');
-  const dNames = showWeekend
+  const dNamesStr = typeof t === 'function' ? t(showWeekend ? 'cal.dow_short_full' : 'cal.dow_short_week') : '';
+  const dNames = dNamesStr ? dNamesStr.split(',') : (showWeekend
     ? (currentLang==='de' ? ['Mo','Di','Mi','Do','Fr','Sa','So'] : ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'])
-    : (currentLang==='de' ? ['Mo','Di','Mi','Do','Fr'] : ['Pzt','Sal','Çar','Per','Cum']);
+    : (currentLang==='de' ? ['Mo','Di','Mi','Do','Fr'] : ['Pzt','Sal','Çar','Per','Cum']));
   const cols = showWeekend ? 7 : 5;
   let h = `<div style="display:grid;grid-template-columns:repeat(${cols},1fr);">`;
   dNames.forEach(d => h += `<div style="background:var(--bg-3);padding:6px;text-align:center;font-size:10px;font-weight:800;color:var(--text-2);border-bottom:1px solid var(--border);">${d}</div>`);
@@ -2000,7 +2001,7 @@ function renderTakvimFailed() {
     grid.innerHTML = '';
     return;
   }
-  const locale = currentLang === 'de' ? 'de-DE' : 'tr-TR';
+  const locale = typeof mbLocale === 'function' ? mbLocale() : (currentLang === 'de' ? 'de-DE' : 'tr-TR');
   const n = dayKeys.length;
   let h = `<div style="display:grid;grid-template-columns:52px repeat(${n},minmax(0,1fr));width:100%;box-sizing:border-box;">`;
   h += '<div style="border-right:1px solid var(--border);"></div>';
