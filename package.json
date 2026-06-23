@@ -6,6 +6,7 @@
   "scripts": {
     "build": "node scripts/build-index.mjs",
     "smoke": "node tests/smoke.mjs",
+    "promo:render": "node promo/render-promo.mjs",
     "e2e:smoke": "playwright test tests/e2e/smoke.spec.ts"
   },
   "devDependencies": {
