@@ -1,12 +1,14 @@
 {
   "name": "montblanc-dialer",
   "private": true,
-  "version": "8.20.0",
+  "version": "8.21.0",
   "type": "module",
   "scripts": {
     "build": "node scripts/build-index.mjs",
     "smoke": "node tests/smoke.mjs",
-    "promo:render": "node promo/render-promo.mjs",
+    "promo:walkthrough": "node promo/render-walkthrough.mjs",
+    "promo:slides": "node promo/render-promo.mjs",
+    "promo:render": "node promo/render-walkthrough.mjs",
     "e2e:smoke": "playwright test tests/e2e/smoke.spec.ts"
   },
   "devDependencies": {
