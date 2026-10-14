@@ -1,6 +1,16 @@
 // ─────────────────────────────────────────────
 // API — Supabase REST iletişim katmanı
 // ─────────────────────────────────────────────
+function mbAuthHeaders(extra) {
+  return {
+    apikey: SB_KEY,
+    Authorization: `Bearer ${SB_KEY}`,
+    'Content-Type': 'application/json',
+    ..._mbRequestScopeHeaders(),
+    ...(extra || {})
+  };
+}
+
 function _mbRequestScopeHeaders(userOverride = null) {
   const u = userOverride || ((typeof currentUser !== 'undefined' && currentUser) ? currentUser : null);
   if (!u) return {};

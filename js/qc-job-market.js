@@ -37,7 +37,7 @@ async function qcReviewJobSubmission(submissionId, approve) {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/approve_job_submission`, {
       method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      headers: mbAuthHeaders(),
       body: JSON.stringify({ p_submission_id: submissionId, p_approve: !!approve, p_qc_note: note || null })
     });
     if (!res.ok) throw new Error(await res.text());

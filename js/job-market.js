@@ -475,7 +475,7 @@ async function runJobMarketAutoWithdrawals() {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/job_market_run_auto_withdrawals`, {
       method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      headers: mbAuthHeaders(),
       body: '{}'
     });
     const txt = await res.text();
@@ -960,7 +960,7 @@ async function createJobPost() {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/create_job_post`, {
       method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      headers: mbAuthHeaders(),
       body: JSON.stringify({
         p_title: title,
         p_description: description,
@@ -1000,7 +1000,7 @@ async function withdrawJobPost(jobPostId) {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/withdraw_job_post`, {
       method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      headers: mbAuthHeaders(),
       body: JSON.stringify({ p_job_post_id: jobPostId })
     });
     const txt = await res.text();
@@ -1168,7 +1168,7 @@ async function joinJobPost(jobPostId) {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/join_job_post`, {
       method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      headers: mbAuthHeaders(),
       body: JSON.stringify({ p_job_post_id: jobPostId })
     });
     if (!res.ok) throw new Error(await res.text());
@@ -1221,7 +1221,7 @@ async function submitJobSubmission(jobPostId) {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/submit_job_submission`, {
       method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      headers: mbAuthHeaders(),
       body: JSON.stringify({
         p_job_post_id: jobPostId,
         p_submission_type: type,
