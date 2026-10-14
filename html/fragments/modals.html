@@ -332,9 +332,9 @@ Sütun Eşleştirme
 <button type="button" id="tvo-month" onclick="setTakvimView('month')">Ay</button>
 </div>
 <div class="takvim-nav">
-<button type="button" class="btn btn-ghost btn-sm" onclick="takvimPrev()">◀</button>
+<button type="button" class="btn btn-ghost btn-sm tk-nav-btn" onclick="takvimPrev()" aria-label="Önceki"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="15 18 9 12 15 6"/></svg></button>
 <span id="takvim-week-label-ov">—</span>
-<button type="button" class="btn btn-ghost btn-sm" onclick="takvimNext()">▶</button>
+<button type="button" class="btn btn-ghost btn-sm tk-nav-btn" onclick="takvimNext()" aria-label="Sonraki"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="9 18 15 12 9 6"/></svg></button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="takvimGoToday()">Bugün</button>
 </div>
 <button type="button" class="btn btn-ghost btn-sm" onclick="openTakvimPlzMeasureModal()">Mesafe ölç</button>

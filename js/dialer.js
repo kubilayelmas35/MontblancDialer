@@ -429,8 +429,8 @@ function _syncGoalTabChromeFromPerf() {
   ['daily', 'weekly', 'monthly'].forEach((t) => {
     const b = document.getElementById(`goal-tab-${t}`);
     if (b) {
-      b.style.background = t === goalScope ? 'var(--accent)' : 'transparent';
-      b.style.color = t === goalScope ? '#fff' : 'var(--text-2)';
+      b.style.background = t === goalScope ? 'var(--text)' : 'transparent';
+      b.style.color = t === goalScope ? 'var(--bg-2)' : 'var(--text-2)';
     }
   });
   const labels = { daily: 'Günlük Hedef', weekly: 'Haftalık Hedef', monthly: 'Aylık Hedef' };
@@ -442,7 +442,7 @@ function setPerfTab(tab) {
   _perfTab = tab;
   ['today','week','month'].forEach(t => {
     const b = document.getElementById(`perf-tab-${t}`);
-    if (b) { b.style.background = t===tab ? 'var(--accent)' : 'transparent'; b.style.color = t===tab ? '#fff' : 'var(--text-2)'; }
+    if (b) { b.style.background = t===tab ? 'var(--text)' : 'transparent'; b.style.color = t===tab ? 'var(--bg-2)' : 'var(--text-2)'; }
   });
   _syncGoalTabChromeFromPerf();
   scheduleLoadMyMiniStats(0);
@@ -561,8 +561,8 @@ async function loadMyMiniStats() {
     ['daily','weekly','monthly'].forEach((t) => {
       const b = document.getElementById(`goal-tab-${t}`);
       if (b) {
-        b.style.background = t === goalScope ? 'var(--accent)' : 'transparent';
-        b.style.color = t === goalScope ? '#fff' : 'var(--text-2)';
+        b.style.background = t === goalScope ? 'var(--text)' : 'transparent';
+        b.style.color = t === goalScope ? 'var(--bg-2)' : 'var(--text-2)';
       }
     });
     const labels = { daily:'Günlük Hedef', weekly:'Haftalık Hedef', monthly:'Aylık Hedef' };

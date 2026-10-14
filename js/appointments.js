@@ -405,13 +405,13 @@ function syncTakvimViewButtonStyles() {
   ['day', 'week', 'month'].forEach((x) => {
     const b = document.getElementById(`tv-${x}-btn`);
     if (b) {
-      b.style.background = x === v ? 'var(--accent)' : 'transparent';
-      b.style.color = x === v ? '#fff' : 'var(--text-2)';
+      b.style.background = x === v ? 'var(--text)' : 'transparent';
+      b.style.color = x === v ? 'var(--bg-2)' : 'var(--text-2)';
     }
     const bo = document.getElementById(`tvo-${x}`);
     if (bo) {
-      bo.style.background = x === v ? 'var(--accent)' : 'transparent';
-      bo.style.color = x === v ? '#fff' : 'var(--text-2)';
+      bo.style.background = x === v ? 'var(--text)' : 'transparent';
+      bo.style.color = x === v ? 'var(--bg-2)' : 'var(--text-2)';
     }
   });
 }
@@ -577,8 +577,8 @@ function renderTakvimGrid() {
   const headerRowPx = 40;
   const availPx = takvimWeekScrollAvailablePx();
   const rowH = Math.max(22, Math.floor((availPx - headerRowPx) / numHrs));
-  let h = `<div class="takvim-week-grid-inner" data-takvim-hrs="${numHrs}" data-takvim-hdr="${headerRowPx}" style="display:grid;width:100%;min-height:0;box-sizing:border-box;grid-template-columns:52px repeat(${daysCount},minmax(0,1fr));grid-template-rows:${headerRowPx}px repeat(${numHrs},${rowH}px);">`;
-  h += '<div style="background:var(--bg-3);border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 4px;"></div>';
+  let h = `<div class="takvim-week-grid-inner" data-takvim-hrs="${numHrs}" data-takvim-hdr="${headerRowPx}" style="display:grid;width:100%;min-height:0;box-sizing:border-box;grid-template-columns:56px repeat(${daysCount},minmax(0,1fr));grid-template-rows:${headerRowPx}px repeat(${numHrs},${rowH}px);">`;
+  h += '<div class="tk-gutter tk-gutter--corner"></div>';
   for (let d=0; d<daysCount; d++) {
     const dt = new Date(startDt); dt.setDate(dt.getDate()+d);
     const ds = takvimFmtD(dt);
@@ -586,22 +586,23 @@ function renderTakvimGrid() {
     const isClosed = takvimClosedDays[ds];
     const click = isAdmin ? `onclick="takvimHeaderClick('${ds}')"` : '';
     const wdShort = dt.toLocaleDateString(locale, { weekday: 'short' });
-    h += `<div style="background:${isClosed?'rgba(220,38,38,.08)':isToday?'rgba(37,99,235,.06)':'var(--bg-3)'};border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:6px 4px;text-align:center;font-size:10px;font-weight:800;color:${isClosed?'var(--red)':isToday?'var(--accent)':'var(--text-2)'};cursor:${isAdmin?'pointer':'default'}" ${click}>${wdShort}<br><span style="font-size:13px;font-weight:900;">${dt.getDate()}</span></div>`;
+    const cls = `tk-head${isToday ? ' tk-head--today' : ''}${isClosed ? ' tk-head--closed' : ''}${isAdmin ? ' tk-head--click' : ''}`;
+    h += `<div class="${cls}" ${click}><span class="tk-head-wd">${wdShort}</span><span class="tk-head-d">${dt.getDate()}</span></div>`;
   }
   for (let hr = shH; hr <= endH; hr++) {
     const hh = String(hr).padStart(2,'0');
-    h += `<div style="min-height:0;background:var(--bg-2);border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:9px;font-weight:700;color:var(--text-3);text-align:center;padding-top:4px;font-family:var(--mono);display:flex;align-items:flex-start;justify-content:center;">${hh}:00</div>`;
+    h += `<div class="tk-hour">${hh}:00</div>`;
     for (let d=0; d<daysCount; d++) {
       const dt = new Date(startDt); dt.setDate(dt.getDate()+d);
       const ds = takvimFmtD(dt);
       const isClosed = takvimClosedDays[ds];
+      const isToday = dt.toDateString()===new Date().toDateString();
       const dayKey = takvimDayKeyFromDate(dt);
       const colActive = activeSet.has(dayKey);
       const canClick = isAdmin && !isClosed && colActive;
       const click = canClick ? `onclick="takvimCellClick('${ds}','${hh}',event)"` : '';
-      let bg = isClosed ? 'repeating-linear-gradient(-45deg,rgba(220,38,38,.06),rgba(220,38,38,.06) 4px,rgba(220,38,38,.1) 4px,rgba(220,38,38,.1) 8px)' : '';
-      if (!colActive && !isClosed) bg = 'repeating-linear-gradient(-45deg,rgba(100,116,139,.06),rgba(100,116,139,.06) 4px,rgba(100,116,139,.1) 4px,rgba(100,116,139,.1) 8px)';
-      h += `<div id="tc_${ds}_${hh}" style="min-height:0;height:100%;position:relative;border-bottom:1px solid var(--border);border-right:1px solid var(--border);background:${bg};${canClick?'cursor:pointer;':''}" ${click}></div>`;
+      const cls = `tk-cell${isClosed ? ' tk-cell--closed' : ''}${!colActive && !isClosed ? ' tk-cell--off' : ''}${isToday ? ' tk-cell--today' : ''}${canClick ? ' tk-cell--click' : ''}`;
+      h += `<div id="tc_${ds}_${hh}" class="${cls}" ${click}></div>`;
     }
   }
   h += '</div>'; grid.innerHTML = h;
@@ -622,8 +623,8 @@ function renderTakvimMonthGrid(grid) {
     ? (currentLang==='de' ? ['Mo','Di','Mi','Do','Fr','Sa','So'] : ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'])
     : (currentLang==='de' ? ['Mo','Di','Mi','Do','Fr'] : ['Pzt','Sal','Çar','Per','Cum']));
   const cols = showWeekend ? 7 : 5;
-  let h = `<div style="display:grid;grid-template-columns:repeat(${cols},1fr);">`;
-  dNames.forEach(d => h += `<div style="background:var(--bg-3);padding:6px;text-align:center;font-size:10px;font-weight:800;color:var(--text-2);border-bottom:1px solid var(--border);">${d}</div>`);
+  let h = `<div class="tk-month-grid" style="display:grid;grid-template-columns:repeat(${cols},1fr);">`;
+  dNames.forEach(d => h += `<div class="tk-month-head">${d}</div>`);
   const first = new Date(y, m, 1);
   let cur = takvimGetMonday(first);
   const last = new Date(y, m + 1, 0);
@@ -636,7 +637,7 @@ function renderTakvimMonthGrid(grid) {
       const ds = takvimFmtD(cur);
       const other = cur.getMonth() !== m;
       const today = cur.toDateString() === new Date().toDateString();
-      h += `<div id="mc_${ds}" style="min-height:80px;background:${other?'var(--bg)':'var(--bg-2)'};border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:4px;overflow:hidden;"><div style="font-size:11px;font-weight:800;color:${today?'var(--accent)':'var(--text-3)'};text-align:right;">${cur.getDate()}</div><div id="ms_${ds}" style="display:flex;flex-direction:column;gap:2px;overflow:hidden;"></div></div>`;
+      h += `<div id="mc_${ds}" class="tk-month${other ? ' tk-month--other' : ''}${today ? ' tk-month--today' : ''}"><div class="tk-month-d">${cur.getDate()}</div><div id="ms_${ds}" class="tk-month-slots"></div></div>`;
     }
     cur.setDate(cur.getDate() + 1);
   }
@@ -798,9 +799,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
   const pt = dense ? 4 : 6;
   const pb =
     slot.durum === 'dolu' && appt ? 24 : canShift ? 6 : dense ? 4 : 6;
-  el.style.cssText = `border-radius:5px;padding:${pt}px ${pr}px ${pb}px ${pl}px;font-size:${fzBase}px;cursor:pointer;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.15);background:${vis.background};color:${vis.color};transition:.15s;text-align:left;`;
-  el.onmouseover = () => { el.style.transform = 'scale(1.02)'; };
-  el.onmouseout = () => { el.style.transform = ''; };
+  el.style.cssText = `border-radius:4px;padding:${pt}px ${pr}px ${pb}px ${pl}px;font-size:${fzBase}px;cursor:pointer;overflow:hidden;box-shadow:none;background:${vis.background};color:${vis.color};text-align:left;`;
   if (slot.durum==='bos') {
     el.innerHTML = `${canShift ? takvimSlotMoveMarkup(slot.id, false) : ''}<div style="font-weight:700;opacity:.95;font-size:${fzSm}px;text-align:left;">Boş ${slot.baslangic_saat.slice(0,5)}</div>${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}`;
     el.onclick = async (ev) => {
@@ -826,7 +825,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
       else lockAndBookSlot(slot);
     };
   } else if (slot.durum==='kilitli') {
-    el.innerHTML = `<div style="font-weight:700;">🔒 ${slot.baslangic_saat.slice(0,5)}</div>`;
+    el.innerHTML = `<div style="font-weight:650;">Kilitli ${slot.baslangic_saat.slice(0,5)}</div>`;
     el.style.color = '#1e40af';
     el.onclick = (ev) => ev.stopPropagation();
   } else if (appt) {
@@ -834,7 +833,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
     let plzLine = '';
     if (_takvimMeasureFromPlz && appt?.plz) {
       const r = _takvimMeasureCache[`${_takvimMeasureFromPlz}_${appt.plz}`];
-      if (r) plzLine = `<div style="font-size:8px;font-weight:700;color:#dbeafe;margin-top:2px;">📏 ${r.km} km · ${r.min} dk</div>`;
+      if (r) plzLine = `<div class="tk-slot-meta">${r.km} km · ${r.min} dk</div>`;
     }
     let distAllHtml = '';
     if (!plzLine && _takvimDistAllOriginId && _takvimDistAllOriginId !== slot.id && slot.durum === 'dolu') {
@@ -842,7 +841,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
       const oa = takvimAppts.find((a) => a.id === origin?.appointment_id);
       if (oa?.plz && appt?.plz) {
         const r = _takvimPlzRouteCache[`${oa.plz}_${appt.plz}`];
-        if (r) distAllHtml = `<div style="font-size:7px;font-weight:700;color:#fce7f3;margin-top:1px;">↔ ${r.km} km · ${r.min} dk</div>`;
+        if (r) distAllHtml = `<div class="tk-slot-meta">${r.km} km · ${r.min} dk</div>`;
       }
     }
     const tEnd = (slot.bitis_saat || takvimAddHours(slot.baslangic_saat.slice(0, 5), takvimSlotDurHours())).slice(0, 5);
@@ -1196,7 +1195,7 @@ async function openTakvimBookForm(slot) {
 ${_renderCustomerField(custCtx, 'tf-customer')}
 </div>
 <div class="form-row" style="margin-top:8px;"><label class="form-label">Not</label><textarea class="form-input" id="tf-note" rows="2" style="resize:vertical;">${contact.notes||''}</textarea></div>`;
-  document.getElementById('takvim-detail-footer').innerHTML = `<button class="btn btn-ghost" onclick="cancelTakvimBook('${slot.id}')">İptal</button><button class="btn btn-primary" onclick="submitTakvimBook('${slot.id}')">✓ Kaydet</button>`;
+  document.getElementById('takvim-detail-footer').innerHTML = `<button class="btn btn-ghost" onclick="cancelTakvimBook('${slot.id}')">İptal</button><button class="btn btn-primary" onclick="submitTakvimBook('${slot.id}')">Kaydet</button>`;
 }
 
 // Save termin directly from the inline termin-fields-section

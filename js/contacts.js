@@ -539,7 +539,7 @@ function switchContactTab(tab) {
   ['info','map','history','file','outcome'].forEach(t => {
     const btn   = document.getElementById('ctab-'+t);
     const panel = document.getElementById('ctab-'+t+'-panel');
-    if (btn) { btn.style.background=t===tab?'var(--accent)':'transparent'; btn.style.color=t===tab?'#fff':'var(--text-2)'; }
+    if (btn) { btn.style.background=t===tab?'var(--text)':'transparent'; btn.style.color=t===tab?'var(--bg-2)':'var(--text-2)'; }
     if (panel) panel.style.display=t===tab?'':'none';
   });
   if (tab==='map' && currentContact) showContactMap(currentContact.address, currentContact.plz, currentContact.city);
