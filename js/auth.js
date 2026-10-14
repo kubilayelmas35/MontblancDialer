@@ -36,6 +36,14 @@ else btn.textContent = 'Giriş Yap';
 return;
 }
 const u = data[0];
+if (!u.session_token) {
+errEl.textContent = (typeof t === 'function' ? t('login.err.conn') : 'Bağlantı hatası: ') + 'session';
+errEl.style.display = 'block';
+btn.disabled = false;
+if (_lbl) _lbl.textContent = (typeof t === 'function' ? t('login.btn') : 'Giriş Yap');
+else btn.textContent = 'Giriş Yap';
+return;
+}
 currentUser = {
 id:        u.user_id,
 firm_id:   u.firm_id,
@@ -43,7 +51,8 @@ email:     email,
 name:      u.name,
 role:      u.role,
 firm_name: u.firm_name,
-initials:  u.name.charAt(0).toUpperCase()
+initials:  u.name.charAt(0).toUpperCase(),
+session_token: u.session_token
 };
 _baseUser = { ...currentUser };
 _impersonation = null;
@@ -82,6 +91,13 @@ function toggleLoginPass() {
 }
 
 async function doLogout() {
+try {
+await fetch(`${SB_URL}/rest/v1/rpc/end_app_session`, {
+method: 'POST',
+headers: mbAuthHeaders(),
+body: '{}'
+});
+} catch (_) {}
 if (currentUser?.id) {
 await sbUpsert('agent_sessions', {
 agent_id: currentUser.id, status: 'offline',
@@ -160,17 +176,17 @@ if (currentUser.role === 'super_admin') { loadAllFirms(); }
 loadFirmCallHours(); // arama kısıtlamalarını yükle
 if (typeof loadFirmDialerSettingsCache === 'function') void loadFirmDialerSettingsCache();
 if (typeof loadIncomingCallsSettingsPage === 'function') void loadIncomingCallsSettingsPage();
-if (isAdmin) { navigate('dashboard'); }
-else if (currentUser.role === 'qc') { navigate('qc'); }
-else if (currentUser.role === 'field_agent') { navigate('field'); }
-else         { navigate('dialer'); }
+if (typeof applyFeatureFlagsOnBoot === 'function') applyFeatureFlagsOnBoot().catch(() => {});
 if (isAdmin) {
 updateTopbarStats();
 setInterval(updateTopbarStats, 30000);
 }
 loadWvBadge();
 if (typeof refreshUserPagePerms === 'function') refreshUserPagePerms().catch(() => {});
-if (typeof applyFeatureFlagsOnBoot === 'function') applyFeatureFlagsOnBoot().catch(() => {});
+if (isAdmin) { navigate('dashboard'); }
+else if (currentUser.role === 'qc') { navigate('qc'); }
+else if (currentUser.role === 'field_agent') { navigate('field'); }
+else         { navigate('dialer'); }
 if (typeof initChat === 'function') initChat();
 if (typeof initNotificationCenter === 'function') initNotificationCenter();
 initRTCListener();
@@ -350,7 +366,8 @@ async function applyImpersonation() {
     name: u.name || 'Temsil',
     role: u.role || 'agent',
     firm_name: firmName,
-    initials: (u.name || 'T').charAt(0).toUpperCase()
+    initials: (u.name || 'T').charAt(0).toUpperCase(),
+    session_token: _baseUser?.session_token || ''
   };
   persistImpersonationState();
   closeImpersonationModal();
@@ -382,6 +399,10 @@ function _isValidSessionUserShape(u) {
   return true;
 }
 
+function _hasSessionToken(u) {
+  return typeof u?.session_token === 'string' && u.session_token.length >= 32;
+}
+
 function _clearSessionStorageSafe() {
   localStorage.removeItem('mb_session');
   localStorage.removeItem('mb_base_session');
@@ -402,6 +423,14 @@ return;
 const baseSaved = localStorage.getItem('mb_base_session');
 _baseUser = baseSaved ? JSON.parse(baseSaved) : { ...currentUser };
 if (!_isValidSessionUserShape(_baseUser)) _baseUser = { ...currentUser };
+if (!_hasSessionToken(_baseUser) && _hasSessionToken(currentUser)) _baseUser.session_token = currentUser.session_token;
+if (!_hasSessionToken(currentUser) && _hasSessionToken(_baseUser)) currentUser.session_token = _baseUser.session_token;
+if (!_hasSessionToken(currentUser)) {
+_clearSessionStorageSafe();
+currentUser = null;
+_baseUser = null;
+return;
+}
 const impSaved = localStorage.getItem('mb_impersonation');
 _impersonation = impSaved ? JSON.parse(impSaved) : null;
 if (document.readyState === 'loading') {

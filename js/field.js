@@ -84,11 +84,7 @@ async function loadFieldPage() {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/list_field_tasks_for_user`, {
       method: 'POST',
-      headers: {
-        apikey: SB_KEY,
-        Authorization: `Bearer ${SB_KEY}`,
-        'Content-Type': 'application/json'
-      },
+      headers: mbAuthHeaders(),
       body: JSON.stringify({
         p_actor_user_id: currentUser.id,
         p_firm_id: fid || null
@@ -321,11 +317,7 @@ async function createFieldTaskFromAppointment(appointmentId, assignedTo) {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/create_field_task_from_admin`, {
       method: 'POST',
-      headers: {
-        apikey: SB_KEY,
-        Authorization: `Bearer ${SB_KEY}`,
-        'Content-Type': 'application/json'
-      },
+      headers: mbAuthHeaders(),
       body: JSON.stringify({
         p_actor_user_id: currentUser.id,
         p_appointment_id: ap.id,

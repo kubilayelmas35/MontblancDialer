@@ -187,7 +187,7 @@ async function saveNewAgent() {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/create_user_with_password`,{
       method:'POST',
-      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+      headers: mbAuthHeaders(),
       body:JSON.stringify({p_firm_id:firmId,p_email:email,p_password:pass,p_name:name,p_role:role})
     });
     if (!res.ok) throw new Error(await res.text());
@@ -220,7 +220,7 @@ async function saveAgentEdit(userId) {
     if (pass) {
       const r = await fetch(`${SB_URL}/rest/v1/rpc/reset_user_password`,{
         method:'POST',
-        headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+        headers: mbAuthHeaders(),
         body:JSON.stringify({p_user_id:userId,p_new_password:pass})
       });
       if (!r.ok) throw new Error(await r.text());
@@ -415,7 +415,7 @@ async function saveEditUser(userId) {
     if (pass) {
       const r = await fetch(`${SB_URL}/rest/v1/rpc/reset_user_password`,{
         method:'POST',
-        headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+        headers: mbAuthHeaders(),
         body:JSON.stringify({p_user_id:userId,p_new_password:pass})
       });
       if (!r.ok) throw new Error(await r.text());
@@ -578,7 +578,7 @@ async function saveUser() {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/create_user_with_password`,{
       method:'POST',
-      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+      headers: mbAuthHeaders(),
       body:JSON.stringify({p_firm_id:firmId,p_email:email,p_password:pass,p_name:name,p_role:role})
     });
     if (!res.ok) throw new Error(await res.text());
@@ -597,11 +597,12 @@ async function resetUserPass(userId, email) {
   const p = await mbPrompt(`${email} için yeni şifre:`, '', 'Şifre Sıfırla');
   if (!p) return;
   try {
-    await fetch(`${SB_URL}/rest/v1/rpc/reset_user_password`,{
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/reset_user_password`,{
       method:'POST',
-      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+      headers: mbAuthHeaders(),
       body:JSON.stringify({p_user_id:userId,p_new_password:p})
     });
+    if (!r.ok) throw new Error(await r.text());
     toast('Şifre sıfırlandı ✓','ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
@@ -610,8 +611,10 @@ async function resetUserPass(userId, email) {
 const BUILTIN_ROLES = [
   { key:'super_admin', label:'Süper Admin', color:'var(--red)', builtin:true,
     perms:['dashboard','dialer','campaigns','contacts','callhistory','stats','agents','firms','settings','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
+  { key:'admin', label:'Admin', color:'var(--accent)', builtin:true,
+    perms:['dashboard','dialer','campaigns','contacts','callhistory','stats','agents','settings','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
   { key:'firm_admin',  label:'Firma Admin',  color:'var(--accent)', builtin:true,
-    perms:['dashboard','dialer','campaigns','contacts','callhistory','stats','agents','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
+    perms:['dashboard','dialer','campaigns','contacts','callhistory','stats','agents','settings','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
   { key:'agent',       label:'Agent',        color:'var(--green)', builtin:true,
     perms:['dashboard','dialer','myhistory','wiedervorlage','takvim','leave','competition','maasim','performansim'] },
   { key:'qc',          label:'QC',           color:'var(--yellow)', builtin:true,
@@ -850,36 +853,49 @@ async function saveRolePermModal(roleKey, fid) {
 }
 
 function userHasPagePerm(key) {
-  const p = window._userPagePerms;
-  if (!p || !(p instanceof Set) || p.size === 0) {
+  if (window._userPagePermsLoaded !== true) {
     const b = BUILTIN_ROLES.find(r => r.key === currentUser?.role);
-    const arr = b?.perms || [];
+    if (!b) return true;
+    const arr = b.perms || [];
     if (arr.includes(key)) return true;
     if ((key === 'maasim' || key === 'performansim') && arr.includes('muhasebe')) return true;
     return false;
   }
-  if (p.has(key)) return true;
-  if ((key === 'maasim' || key === 'performansim') && p.has('muhasebe')) return true;
+  const p = window._userPagePerms;
+  if (p && p.has(key)) return true;
+  if (p && (key === 'maasim' || key === 'performansim') && p.has('muhasebe')) return true;
   return false;
+}
+
+function _bounceIfPageForbidden() {
+  const active = document.querySelector('.page.active');
+  const page = active?.id?.startsWith('page-') ? active.id.slice(5) : '';
+  if (!page || !ALL_PAGES.some((p) => p.key === page) || userHasPagePerm(page)) return;
+  const fallback = [...(window._userPagePerms || [])].find((k) => ALL_PAGES.some((p) => p.key === k));
+  if (fallback && fallback !== page) navigate(fallback);
 }
 
 async function refreshUserPagePerms() {
   const role = currentUser?.role;
-  let list = [...(BUILTIN_ROLES.find(r => r.key === role)?.perms || [])];
+  const builtin = BUILTIN_ROLES.find(r => r.key === role);
+  let list = [...(builtin?.perms || [])];
   window._userPagePerms = new Set(list);
-  if (typeof applyAgentPayNavVisibility === 'function') applyAgentPayNavVisibility();
+  window._userPagePermsLoaded = !!builtin;
+  applySidebarPermVisibility();
   try {
     if (!currentUser?.firm_id) return;
     const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
     const st = firms?.[0]?.settings || {};
     const ov = st.role_permissions?.[role];
     if (Array.isArray(ov)) list = [...ov];
-    else if (!BUILTIN_ROLES.find(r => r.key === role)) {
+    else if (!builtin) {
       const cr = (st.custom_roles || []).find(r => r.key === role);
       if (cr?.perms) list = [...cr.perms];
     }
     window._userPagePerms = new Set(list);
-    if (typeof applyAgentPayNavVisibility === 'function') applyAgentPayNavVisibility();
+    window._userPagePermsLoaded = true;
+    applySidebarPermVisibility();
+    _bounceIfPageForbidden();
   } catch (e) {}
 }
 
@@ -893,4 +909,21 @@ function applyAgentPayNavVisibility() {
   const peBtn = document.getElementById('nav-performansim-btn');
   if (maBtn) maBtn.style.display = isStaff && ma ? '' : 'none';
   if (peBtn) peBtn.style.display = isStaff && pe ? '' : 'none';
+}
+
+function applySidebarPermVisibility() {
+  applyAgentPayNavVisibility();
+  document.querySelectorAll('.sb-item').forEach((btn) => {
+    const m = String(btn.getAttribute('onclick') || '').match(/navigate\('([a-z0-9_]+)'\)/);
+    if (!m) return;
+    const page = m[1];
+    if (!ALL_PAGES.some((p) => p.key === page)) return;
+    if (btn.id === 'nav-maasim-btn' || btn.id === 'nav-performansim-btn') return;
+    btn.style.display = userHasPagePerm(page) ? '' : 'none';
+  });
+  const allowTakvim = userHasPagePerm('takvim');
+  const top = document.getElementById('takvim-topbar-btn');
+  const overlay = document.getElementById('nav-takvim-overlay-btn');
+  if (top) top.style.display = allowTakvim ? '' : 'none';
+  if (overlay) overlay.style.display = allowTakvim ? '' : 'none';
 }

@@ -5393,6 +5393,10 @@ async function _loadTakvimOverlayCamps() {
 }
 
 async function openTakvimOverlay() {
+  if (typeof userHasPagePerm === 'function' && !userHasPagePerm('takvim')) {
+    if (typeof toast === 'function') toast(typeof t === 'function' ? t('nav.no_perm') : 'Bu sayfa için yetkiniz yok', 'warn');
+    return;
+  }
   const ov = document.getElementById('takvim-popup-overlay');
   if (!ov) { navigate('takvim'); return; }
   ov.classList.add('open');

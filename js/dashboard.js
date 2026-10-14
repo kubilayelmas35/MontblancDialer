@@ -5,7 +5,7 @@
 async function updateTopbarStats() {
 const t0 = Date.now();
 try {
-await fetch(`${SB_URL}/rest/v1/campaigns?limit=1`, { headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`} });
+await fetch(`${SB_URL}/rest/v1/campaigns?limit=1`, { headers: mbAuthHeaders() });
 document.getElementById('pill-ping').textContent = Date.now()-t0;
 } catch(e) { document.getElementById('pill-ping').textContent = '!'; }
 try {

@@ -15,7 +15,9 @@ async function logAuditEvent(eventType, entityType, entityId, payload) {
         payload: payload || {}
       })
     });
-  } catch (e) {}
+  } catch (e) {
+    console.warn('audit event yazılamadı', e?.message || e);
+  }
 }
 
 async function loadAuditEventsPage() {

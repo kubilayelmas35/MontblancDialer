@@ -104,6 +104,10 @@ function runPageEntry(page) {
 }
 
 function navigate(page) {
+if (typeof userHasPagePerm === 'function' && Array.isArray(ALL_PAGES) && ALL_PAGES.some((p) => p.key === page) && !userHasPagePerm(page)) {
+  if (typeof toast === 'function') toast(typeof t === 'function' ? t('nav.no_perm') : 'Bu sayfa için yetkiniz yok', 'warn');
+  return;
+}
 if (page !== 'supervisor' && typeof unloadSupervisorPanel === 'function') unloadSupervisorPanel();
 if (page !== 'dialer') {
   if (typeof closeMicAudioDrawer === 'function') closeMicAudioDrawer();

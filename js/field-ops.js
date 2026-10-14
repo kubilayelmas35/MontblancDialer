@@ -102,11 +102,7 @@ async function loadFieldOpsPage() {
   }
   if (tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(6) : `<tr><td colspan="6" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
   try {
-    const headers = {
-      apikey: SB_KEY,
-      Authorization: `Bearer ${SB_KEY}`,
-      'Content-Type': 'application/json'
-    };
+    const headers = mbAuthHeaders();
     const callRpc = async (payload) => {
       const r = await fetch(`${SB_URL}/rest/v1/rpc/list_field_tasks_for_user`, {
         method: 'POST',
