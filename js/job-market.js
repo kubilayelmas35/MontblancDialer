@@ -767,9 +767,9 @@ async function loadJobPosts() {
     list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:10px;">Önce firma seçin</div>`;
     return;
   }
-  list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:10px;">Yükleniyor...</div>`;
+  list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:10px;">${typeof t === 'function' ? t('ui.loading') : 'Yükleniyor...'}</div>`;
   try {
-    await runJobMarketAutoWithdrawals();
+    void runJobMarketAutoWithdrawals();
     const posts = await sb(`job_posts?order=created_at.desc&limit=220`);
     if (!posts) throw new Error('İlan listesi alınamadı');
     const workers = await sb(`job_post_workers?select=id,job_post_id,worker_firm_id,status`).catch(() => []);
@@ -1257,9 +1257,10 @@ async function loadJobMarketKpi() {
   const wrap = document.getElementById('dash-job-market-kpi');
   if (!wrap) return;
   const canView = ['super_admin', 'admin', 'firm_admin'].includes(currentUser?.role || '');
-  wrap.style.display = canView ? '' : 'none';
-  if (!canView) return;
+  if (!canView) { wrap.style.display = 'none'; return; }
   const jobs = await sb(`job_posts?select=id,status,created_at,first_submission_at,retraction_deadline_at&order=created_at.desc&limit=400`).catch(() => []);
+  if (!jobs?.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
   set('kpi-job-published', (jobs || []).filter((x) => ['published', 'in_progress'].includes(x.status)).length);
   set('kpi-job-qc', (jobs || []).filter((x) => x.status === 'pending_qc').length);
@@ -1280,7 +1281,10 @@ async function loadJobMarketKpi() {
     wrap.appendChild(el);
   }
   const adv = document.getElementById('kpi-job-advanced');
-  if (adv) adv.textContent = `Reject oranı: %${rejectRate} | Ortalama kapanış: ${avgClose} dk`;
+  const isTr = typeof currentLang === 'undefined' || currentLang !== 'de';
+  if (adv) adv.textContent = isTr
+    ? `Red oranı: %${rejectRate} · Ortalama kapanış: ${avgClose} dk`
+    : `Ablehnungsquote: ${rejectRate}% · Ø Abschluss: ${avgClose} Min.`;
   const nowMs = Date.now();
   const retractable = (jobs || []).filter((j) => {
     if (!['published', 'in_progress', 'pending_qc'].includes(j.status)) return false;
@@ -1297,7 +1301,9 @@ async function loadJobMarketKpi() {
     wrap.appendChild(t);
   }
   const tEl = document.getElementById(seriesElId);
-  if (tEl) tEl.textContent = `Geri çekmeye uygun (tahmini): ${retractable} · Otomatik kural + tarih`;
+  if (tEl) tEl.textContent = isTr
+    ? `Geri çekmeye uygun (tahmini): ${retractable} · Otomatik kural + tarih`
+    : `Rückzug möglich (geschätzt): ${retractable} · Automatik + Datum`;
 }
 
 function exportJobPolygon() {

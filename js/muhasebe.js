@@ -312,12 +312,20 @@ async function loadMaasimPage() {
   }
   if (noAccess) noAccess.style.display = 'none';
   if (main) main.style.display = 'flex';
-  if (sub) sub.textContent = 'Bordro özeti, prim ve baz maaş kademeleri';
+  if (sub) {
+    const line = typeof t === 'function' ? t('pay.my_sub') : 'Bordro özeti, prim ve baz maaş kademeleri';
+    sub.textContent = line;
+  }
   const period = _mGetPeriod();
-  const rules = await loadFirmPayrollRules(fid);
-  const liveRate = await _getMonthFxRate(fid, period, Number(rules.exchange_rate || 1), rules);
-  rules.exchange_rate = liveRate;
-  await renderMuhasebePayrollTable(fid, period, rules, { ui: 'maasim' });
+  const table = document.getElementById('maasim-table-wrap');
+  if (table) table.innerHTML = `<div class="mb-empty-hint">${typeof t === 'function' ? t('ui.loading') : 'Yükleniyor…'}</div>`;
+  try {
+    const rules = await loadFirmPayrollRules(fid);
+    await renderMuhasebePayrollTable(fid, period, rules, { ui: 'maasim' });
+  } catch (e) {
+    if (table) table.innerHTML = `<div class="mb-empty-hint" style="color:var(--red);">${_mEsc((typeof t === 'function' ? t('ui.load_failed') : 'Yüklenemedi') + ': ' + (e?.message || ''))}</div>`;
+    if (typeof toast === 'function') toast((typeof t === 'function' ? t('ui.load_failed') : 'Yüklenemedi') + ': ' + (e?.message || ''), 'err');
+  }
 }
 
 async function loadPerformansimPage() {
@@ -618,7 +626,7 @@ async function _fetchFxRateByRules(dateStr, rules) {
   const provider = rules?.fx_api_provider || 'exchangerate_host';
   try {
     if (provider === 'frankfurter') {
-      const res = await fetch(`https://api.frankfurter.app/${dateStr}?from=EUR&to=TRY`);
+      const res = await fetch(`https://api.frankfurter.app/${dateStr}?from=EUR&to=TRY`, { signal: AbortSignal.timeout(2500) });
       if (!res.ok) return null;
       const json = await res.json();
       return Number(json?.rates?.TRY || 0) || null;
@@ -632,12 +640,12 @@ async function _fetchFxRateByRules(dateStr, rules) {
         const joiner = url.includes('?') ? '&' : '?';
         url += `${joiner}apikey=${encodeURIComponent(key)}`;
       }
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: AbortSignal.timeout(2500) });
       if (!res.ok) return null;
       const json = await res.json();
       return Number(json?.rates?.TRY || json?.data?.TRY || json?.TRY || 0) || null;
     }
-    const res = await fetch(`https://api.exchangerate.host/${dateStr}?base=EUR&symbols=TRY`);
+    const res = await fetch(`https://api.exchangerate.host/${dateStr}?base=EUR&symbols=TRY`, { signal: AbortSignal.timeout(2500) });
     if (!res.ok) return null;
     const json = await res.json();
     return Number(json?.rates?.TRY || 0) || null;
@@ -822,7 +830,12 @@ function _mCollectAdjustments(adj, uid, rules) {
 
 async function renderMuhasebePayrollTable(fid, ym, rules, opts = {}) {
   window._muhPayrollUi = opts.ui || 'admin';
-  const users = await _mFetchUsers(fid);
+  let users = await _mFetchUsers(fid);
+  const selfRole = String(currentUser?.role || '');
+  const selfView = window._muhPayrollUi === 'maasim' || ['agent', 'qc', 'field_agent'].includes(selfRole);
+  if (selfView && currentUser?.id && !users.some((u) => u.id === currentUser.id)) {
+    users = [...users, { id: currentUser.id, name: currentUser.name || '—', role: selfRole }];
+  }
   const b = _mMonthBounds(ym);
   const monthRate = await _getMonthFxRate(fid, ym, Number(rules.exchange_rate || 1), rules);
   const data = await _mFetchMonthlyData(fid, ym, b.year, b);

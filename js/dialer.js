@@ -1727,11 +1727,17 @@ function _stopGlobalMascotWander() {
   }
 }
 
+/** Kenar çubuğu ayağına kilitliyken gezinme menünün üstüne biner. Sürüklenen konum gezinmeye devam eder. */
+function _mascotDockedInSidebar(gm) {
+  return !!(gm && gm.classList.contains('global-mascot--topbar') && !gm.classList.contains('global-mascot--custom'));
+}
+
 /** Sürükleme bittiğinde veya ayar değişince: gezinmeyi yeniden başlat / durdur (konumu sıfırlamaz). */
 function _syncGlobalMascotWanderOnly() {
   const gm = document.getElementById('global-mascot');
   if (!gm || isMimiHidden()) return;
   const allowWander =
+    !_mascotDockedInSidebar(gm) &&
     getMascotWanderPct() > 0 &&
     !gm.classList.contains('global-mascot--peek-chat') &&
     !gm.classList.contains('global-mascot--peek-notif') &&
@@ -1938,6 +1944,7 @@ function _syncGlobalMascotDockImpl() {
     gm.classList.add('global-mascot--topbar', 'global-mascot--placed');
   }
   const allowWander =
+    !_mascotDockedInSidebar(gm) &&
     getMascotWanderPct() > 0 &&
     !gm.classList.contains('global-mascot--peek-chat') &&
     !gm.classList.contains('global-mascot--peek-notif') &&

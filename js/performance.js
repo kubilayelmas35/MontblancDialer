@@ -311,6 +311,7 @@ function perfEnsureChart(key, canvasId, factory) {
 }
 
 function perfUpdateCharts() {
+  const isTr = typeof currentLang === 'undefined' || currentLang !== 'de';
   const L = {
     ok: t('perf.chart_ok'),
     tot: t('perf.chart_total'),
@@ -348,7 +349,7 @@ function perfUpdateCharts() {
   perfEnsureChart('status', 'perf-chart-status', (ctx) => new ChartCtor(ctx, {
     type: 'doughnut',
     data: {
-      labels: [L.ok, tr ? 'Beklemede' : 'Ausstehend', 'QC', tr ? 'Başarısız/İptal' : 'Fehlgeschlagen', tr ? 'Diğer' : 'Andere'],
+      labels: [L.ok, isTr ? 'Beklemede' : 'Ausstehend', 'QC', isTr ? 'Başarısız/İptal' : 'Fehlgeschlagen', isTr ? 'Diğer' : 'Andere'],
       datasets: [{ data: [ok, pend, qc, fail, other], backgroundColor: ['#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#94a3b8'], borderWidth: 2, borderColor: '#fff' }],
     },
     options: { responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } },

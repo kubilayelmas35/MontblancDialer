@@ -442,8 +442,9 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   pointer-events: none;
 }
 .global-mascot.global-mascot--topbar .cust-empty-mascot {
+  animation: none;
   transform: translate(calc(-50% + var(--gm-wx, 0px)), calc(-50% + var(--gm-wy, 0px)))
-    scale(calc(var(--mascot-scale, 1) * 0.92));
+    scale(calc(var(--mascot-scale, 1) * 0.72));
 }
 .global-mascot-morph {
   position: absolute;
@@ -506,6 +507,17 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
     calc(-50% + var(--gm-wx, 0px) + var(--bubble-shift-x, 0px)),
     calc(-50% + var(--gm-wy, 0px) + 52px)
   ) scale(1);
+}
+.global-mascot.global-mascot--topbar .cust-empty-bubble.global-mascot-bubble,
+.global-mascot.global-mascot--topbar .cust-empty-bubble.global-mascot-bubble.cust-empty-bubble--pop {
+  left: 34px;
+  top: 0;
+  min-width: 0;
+  width: max-content;
+  max-width: 200px;
+  text-align: left;
+  pointer-events: none;
+  transform: translate(0, -42%) scale(1);
 }
 .global-mascot.global-mascot--muted .cust-empty-mascot {
   transform: translate(calc(-50% + var(--gm-wx, 0px)), calc(-50% + var(--gm-wy, 0px))) scale(0.32);
@@ -736,7 +748,16 @@ border-radius: 10px; font-family: var(--mono);
 }
 .sb-item.active .sb-badge { background: rgba(255,255,255,0.25); }
 .sb-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 4px 10px; }
-.sb-footer { margin-top: auto; padding: 12px 10px; border-top: 1px solid rgba(255,255,255,0.08); }
+.sb-footer {
+  margin-top: auto;
+  padding: 10px 12px 8px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  min-height: 88px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
 .sb-ver { font-size: 10px; color: rgba(255,255,255,0.25); font-family: var(--mono); }
 /* Sidebar header logo */
 /* Sidebar içinde tb-logo olursa (koyu zemin) */
@@ -782,6 +803,7 @@ visibility: visible;
 display: flex; align-items: flex-start; justify-content: space-between;
 gap: 12px; flex-wrap: wrap;
 }
+.page-hdr-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto; }
 .page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.6px; }
 .page-sub { font-size: 13px; color: var(--text-3); margin-top: 3px; }
 /* ============================================================

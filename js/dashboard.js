@@ -642,13 +642,13 @@ document.getElementById('d-cb').textContent     = cbs;
 document.getElementById('d-vm').textContent     = vms;
 document.getElementById('d-cost').textContent   = `$${cost.toFixed(2)}`;
 document.getElementById('d-talk').textContent   = `${Math.floor(talk/60)}dk`;
-document.getElementById('d-calls-m').textContent= tr
+document.getElementById('d-calls-m').textContent= isTr
   ? `${total} çağrı ${rangeSuffix}`
   : `${total} Anrufe ${rangeSuffix}`;
 document.getElementById('d-appt-m').textContent = total > 0
-  ? (tr ? `%${((appts / total) * 100).toFixed(1)} dönüşüm` : `${((appts / total) * 100).toFixed(1)}% Quote`)
-  : (tr ? '%0 dönüşüm' : '0% Quote');
-document.getElementById('d-avg').textContent    = tr
+  ? (isTr ? `%${((appts / total) * 100).toFixed(1)} dönüşüm` : `${((appts / total) * 100).toFixed(1)}% Quote`)
+  : (isTr ? '%0 dönüşüm' : '0% Quote');
+document.getElementById('d-avg').textContent    = isTr
   ? `ort. ${total > 0 ? Math.round(talk / total) : 0}sn/çağrı`
   : `Ø ${total > 0 ? Math.round(talk / total) : 0}s/Anruf`;
 document.getElementById('pill-appt').textContent= appts;
@@ -656,7 +656,7 @@ document.getElementById('pill-appt').textContent= appts;
   console.error(e);
   renderDashHourlyMixed([]);
   renderDashTerminDonut([]);
-  renderDashChart7d([0], [tr ? '—' : '—']);
+  renderDashChart7d([0], ['—']);
 }
 if (showLive) try {
 const sessions = await sb('agent_sessions?select=*');

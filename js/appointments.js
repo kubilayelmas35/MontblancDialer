@@ -379,8 +379,10 @@ async function loadTakvimPage() {
   takvimDate = new Date(); takvimDate.setHours(0,0,0,0);
   renderTakvimGrid();
   if (takvimCampId) loadTakvimSlots();
-  if (!isAdmin) setInterval(checkActiveCampaignNotif, 30000);
-  checkActiveCampaignNotif();
+  if (!isAdmin) {
+    if (!window._campNotifTimer) window._campNotifTimer = setInterval(checkActiveCampaignNotif, 30000);
+    checkActiveCampaignNotif();
+  }
 }
 
 function onTakvimCampChange(campId) {
@@ -2028,30 +2030,42 @@ function renderTakvimFailed() {
 
 async function checkActiveCampaignNotif() {
   if (!currentUser?.firm_id) return;
+  if (['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '')) return;
   try {
     const camps = await sb(`campaigns?firm_id=eq.${currentUser.firm_id}&active_for_agents=eq.true&order=updated_at.desc&limit=1`).catch(()=>[]);
     if (!camps?.length) return;
     const camp = camps[0];
-    const lastTs = parseInt(localStorage.getItem('mb_notif_ts')||'0');
-    if (camp.notif_ts && camp.notif_ts > lastTs) {
-      localStorage.setItem('mb_notif_ts', String(camp.notif_ts));
-      showCampNotif(camp);
+    const lastTs = parseInt(localStorage.getItem('mb_notif_ts')||'0', 10) || 0;
+    const nextTs = Number(camp.notif_ts) || 0;
+    if (nextTs > lastTs) {
+      localStorage.setItem('mb_notif_ts', String(nextTs));
+      const onTakvim = document.getElementById('page-takvim')?.classList.contains('active');
+      if (!onTakvim) showCampNotif(camp);
     }
     if (!takvimCampId && camp.id) takvimCampId = camp.id;
   } catch(e) {}
 }
 
 function showCampNotif(camp) {
+  document.getElementById('mb-camp-notif')?.remove();
+  const esc = (v) => (typeof escapeHtml === 'function' ? escapeHtml(v) : String(v ?? ''));
+  const title = typeof t === 'function' ? t('camp.notif_title') : 'Aktif Kampanya';
+  const go = typeof t === 'function' ? t('camp.notif_go') : 'Takvime Git';
+  const close = typeof t === 'function' ? t('camp.notif_close') : 'Kapat';
   const ov = document.createElement('div');
+  ov.id = 'mb-camp-notif';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
   ov.innerHTML = `<div style="background:var(--bg-2);border:2px solid var(--accent);border-radius:16px;padding:32px 40px;text-align:center;max-width:400px;width:90vw;">
 <div style="font-size:40px;margin-bottom:12px;">📢</div>
-<div style="font-size:18px;font-weight:900;color:var(--accent);margin-bottom:8px;">Aktif Kampanya</div>
-<div style="font-size:16px;font-weight:700;padding:10px 16px;background:var(--bg-3);border-radius:8px;margin-bottom:20px;">${camp.name}</div>
-${camp.notif_message?`<div style="font-size:13px;color:var(--text-2);margin-bottom:16px;">${camp.notif_message}</div>`:''}
-<button onclick="this.closest('[style*=fixed]').remove();navigate('takvim');" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;">📅 Takvime Git</button>
-<button onclick="this.closest('[style*=fixed]').remove();" style="width:100%;padding:10px;background:transparent;color:var(--text-2);border:none;font-size:12px;cursor:pointer;margin-top:8px;">Kapat</button>
+<div style="font-size:18px;font-weight:900;color:var(--accent);margin-bottom:8px;">${esc(title)}</div>
+<div style="font-size:16px;font-weight:700;padding:10px 16px;background:var(--bg-3);border-radius:8px;margin-bottom:20px;">${esc(camp.name)}</div>
+${camp.notif_message?`<div style="font-size:13px;color:var(--text-2);margin-bottom:16px;">${esc(camp.notif_message)}</div>`:''}
+<button type="button" id="mb-camp-notif-go" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;">📅 ${esc(go)}</button>
+<button type="button" id="mb-camp-notif-close" style="width:100%;padding:10px;background:transparent;color:var(--text-2);border:none;font-size:12px;cursor:pointer;margin-top:8px;">${esc(close)}</button>
 </div>`;
+  ov.querySelector('#mb-camp-notif-close').onclick = () => ov.remove();
+  ov.querySelector('#mb-camp-notif-go').onclick = () => { ov.remove(); navigate('takvim'); };
+  ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
   document.body.appendChild(ov);
 }
 

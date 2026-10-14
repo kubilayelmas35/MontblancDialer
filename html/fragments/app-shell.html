@@ -52,7 +52,7 @@
 <div class="tb-pill pill-appt">
 <span><i class="ph ph-calendar" style="font-size:12px;"></i></span>
 <span class="tb-pill-val" id="pill-appt">0</span>
-<span class="tb-pill-lbl" data-tr="termin" data-de="Termin">termin</span>
+<span class="tb-pill-lbl" data-tr="randevu" data-de="Termin">randevu</span>
 </div>
 </div>
 </div>
@@ -426,11 +426,13 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="page-title" data-tr="Kampanyalar" data-de="Kampagnen">Kampanyalar</div>
 <div class="page-sub" data-tr="Kampanya ve kuyruk yönetimi" data-de="Kampagnen- und Warteschlangenverwaltung">Kampanya ve kuyruk yönetimi</div>
 </div>
+<div class="page-hdr-actions">
 <div id="camp-firm-selector" style="display:inline-flex;"></div>
-<button class="btn btn-ghost btn-sm" onclick="openImportApptModal()">📅 Termin İçe Aktar</button>
+<button class="btn btn-ghost btn-sm" onclick="openImportApptModal()">📅 <span data-tr="Termin İçe Aktar" data-de="Termine importieren">Termin İçe Aktar</span></button>
 <button class="btn btn-primary" onclick="openNewCampModal()">
 + <span data-tr="Yeni Kampanya" data-de="Neue Kampagne">Yeni Kampanya</span>
 </button>
+</div>
 </div>
 <div class="camp-grid" id="camp-grid"></div>
 <div class="card" id="camp-detail" style="display:none;">
@@ -1117,7 +1119,7 @@ style="font-size:15px;cursor:pointer;background:transparent;border:none;padding:
 </div>
 </div>
 <div class="dialer-hdr-badges" style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-shrink:0;">
-<span class="badge badge-green" style="font-size:11px;padding:3px 8px;"><span id="my-appt">0</span> termin</span>
+<span class="badge badge-green" style="font-size:11px;padding:3px 8px;"><span id="my-appt">0</span> <span data-tr="randevu" data-de="Termin">randevu</span></span>
 <span class="badge badge-blue" style="font-size:11px;padding:3px 8px;"><span id="my-calls">0</span> çağrı</span>
 <button id="test-mode-btn" onclick="toggleTestMode()" title="Test Modu — gerçek arama yapılmaz"
 style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;border:1.5px dashed var(--text-3);background:transparent;color:var(--text-3);cursor:pointer;transition:.2s;letter-spacing:.3px;">
@@ -1448,8 +1450,8 @@ Sonuçsuz Çağrılar
 <div class="page" id="page-field">
 <div class="page-hdr">
 <div>
-<div class="page-title"><i class="ph ph-briefcase" style="vertical-align:-3px;margin-right:6px;"></i>Saha Operasyon</div>
-<div class="page-sub" id="field-page-sub">Atanmış saha görevleriniz</div>
+<div class="page-title"><i class="ph ph-briefcase" style="vertical-align:-3px;margin-right:6px;"></i><span data-tr="Saha Operasyon" data-de="Feldeinsatz">Saha Operasyon</span></div>
+<div class="page-sub" id="field-page-sub" data-tr="Atanmış saha görevleriniz" data-de="Ihre zugewiesenen Feldaufgaben">Atanmış saha görevleriniz</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
 <button class="btn btn-ghost btn-sm" onclick="loadFieldPage()">↻ Yenile</button>
@@ -1468,8 +1470,8 @@ Sonuçsuz Çağrılar
 <div class="page" id="page-fieldops">
 <div class="page-hdr">
 <div>
-<div class="page-title"><i class="ph ph-map-trifold" style="vertical-align:-3px;margin-right:6px;"></i>Saha Operasyon Takibi</div>
-<div class="page-sub">Hangi randevu hangi saha elemanında ve güncel sonuç durumu</div>
+<div class="page-title"><i class="ph ph-map-trifold" style="vertical-align:-3px;margin-right:6px;"></i><span data-tr="Saha Operasyon Takibi" data-de="Feldübersicht">Saha Operasyon Takibi</span></div>
+<div class="page-sub" data-tr="Hangi randevu hangi saha elemanında ve güncel sonuç durumu" data-de="Welcher Termin bei welchem Feldmitarbeiter liegt">Hangi randevu hangi saha elemanında ve güncel sonuç durumu</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="fieldops-firm-wrap"></div>
@@ -1553,7 +1555,7 @@ Sonuçsuz Çağrılar
 <div class="page" id="page-wiedervorlage">
 <div class="page-hdr">
 <div>
-<div class="page-title" data-tr="Aranacaklar (Wiedervorlage)" data-de="Wiedervorlage">Aranacaklar</div>
+<div class="page-title" data-tr="Aranacaklar" data-de="Wiedervorlage">Aranacaklar</div>
 <div class="page-sub" data-tr="Geri arama hatırlatmaları" data-de="Rückruferinnerungen">Geri arama hatırlatmaları</div>
 </div>
 <div style="display:flex;gap:8px;">
@@ -1601,7 +1603,7 @@ Sonuçsuz Çağrılar
 <div class="page" id="page-qc">
 <div class="page-hdr">
 <div>
-<div class="page-title">QC Paneli</div>
+<div class="page-title" data-tr="QC Paneli" data-de="QC-Panel">QC Paneli</div>
 <div class="page-sub" data-tr="Randevuları onayla veya reddet" data-de="Termine bestätigen oder ablehnen">Randevuları onayla veya reddet</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
@@ -1628,7 +1630,7 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <th>Tarih</th>
 <th>Müşteri</th>
 <th>Telefon</th>
-<th>PLZ</th>
+<th data-tr="Posta kodu" data-de="PLZ">Posta kodu</th>
 <th>Agent</th>
 <th>Kampanya</th>
 <th>Termin Müşterisi</th>
@@ -1672,8 +1674,8 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <div class="page" id="page-jobmarket">
 <div class="page-hdr">
 <div>
-<div class="page-title"><i class="ph ph-briefcase-metal" style="vertical-align:-3px;margin-right:6px;"></i>İş Platformu</div>
-<div class="page-sub">Firmalar arası iş ilanı, çalışma ve teslim akışı</div>
+<div class="page-title"><i class="ph ph-briefcase-metal" style="vertical-align:-3px;margin-right:6px;"></i><span data-tr="İş Platformu" data-de="Job Plattform">İş Platformu</span></div>
+<div class="page-sub" data-tr="Firmalar arası iş ilanı, çalışma ve teslim akışı" data-de="Jobbörse zwischen Firmen">Firmalar arası iş ilanı, çalışma ve teslim akışı</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
 <div id="job-market-firm-selector"></div>
@@ -1808,8 +1810,8 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <div class="page" id="page-firms">
 <div class="page-hdr">
 <div>
-<div class="page-title">Firmalar</div>
-<div class="page-sub">Tüm firmalar ve kullanıcılar</div>
+<div class="page-title" data-tr="Firmalar" data-de="Firmen">Firmalar</div>
+<div class="page-sub" data-tr="Tüm firmalar ve kullanıcılar" data-de="Alle Firmen und Benutzer">Tüm firmalar ve kullanıcılar</div>
 </div>
 <button class="btn btn-primary btn-sm" onclick="openFirmModal()">
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1823,7 +1825,7 @@ Firma Ekle
 <div class="takvim-toolbar" role="toolbar">
 <div class="takvim-toolbar-brand">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-<span>Takvim</span>
+<span data-tr="Takvim" data-de="Kalender">Takvim</span>
 </div>
 <div class="takvim-toolbar-actions">
 <div class="takvim-toolbar-cluster takvim-toolbar-cluster--left">
@@ -2159,8 +2161,8 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="page" id="page-maasim">
 <div class="page-hdr">
 <div>
-<div class="page-title"><i class="ph ph-wallet" style="vertical-align:-3px;"></i> Maaşım</div>
-<div class="page-sub" id="maasim-sub">Bordro özeti ve prim kademeleri</div>
+<div class="page-title"><i class="ph ph-wallet" style="vertical-align:-3px;"></i> <span data-tr="Maaşım" data-de="Mein Gehalt">Maaşım</span></div>
+<div class="page-sub" id="maasim-sub" data-tr="Bordro özeti ve prim kademeleri" data-de="Gehaltsübersicht und Prämienstufen">Bordro özeti ve prim kademeleri</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="maasim-firm-selector"></div>
@@ -2182,8 +2184,8 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="page" id="page-performansim">
 <div class="page-hdr">
 <div>
-<div class="page-title"><i class="ph ph-chart-line-up" style="vertical-align:-3px;"></i> Performansım</div>
-<div class="page-sub" id="performansim-sub">Termin ve çağrı özeti</div>
+<div class="page-title"><i class="ph ph-chart-line-up" style="vertical-align:-3px;"></i> <span data-tr="Performansım" data-de="Meine Performance">Performansım</span></div>
+<div class="page-sub" id="performansim-sub" data-tr="Randevu ve çağrı özeti" data-de="Termin- und Anrufübersicht">Randevu ve çağrı özeti</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="performansim-firm-selector"></div>
@@ -2199,8 +2201,8 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="page" id="page-competition">
 <div class="page-hdr">
 <div>
-<div class="page-title"><i class="ph ph-trophy" style="vertical-align:-3px;"></i> Ayın elemanı</div>
-<div class="page-sub" id="comp-page-sub">Başarılı termin yarışı — otomatik sıralama</div>
+<div class="page-title"><i class="ph ph-trophy" style="vertical-align:-3px;"></i> <span data-tr="Ayın elemanı" data-de="Mitarbeiter des Monats">Ayın elemanı</span></div>
+<div class="page-sub" id="comp-page-sub" data-tr="Başarılı randevu yarışı — otomatik sıralama" data-de="Erfolgreiche Termine — automatische Rangliste">Başarılı randevu yarışı — otomatik sıralama</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="comp-firm-selector"></div>
@@ -2285,10 +2287,10 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <div class="settings-tabs" id="settings-tabs">
-<button type="button" class="btn btn-ghost btn-sm settings-tab-btn active" data-tab="general" onclick="setSettingsTab('general')">Genel</button>
-<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="communication" onclick="setSettingsTab('communication')">Iletisim</button>
-<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="operations" onclick="setSettingsTab('operations')">Operasyon</button>
-<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="system" onclick="setSettingsTab('system')">Sistem</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn active" data-tab="general" onclick="setSettingsTab('general')" data-tr="Genel" data-de="Allgemein">Genel</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="communication" onclick="setSettingsTab('communication')" data-tr="İletişim" data-de="Kommunikation">İletişim</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="operations" onclick="setSettingsTab('operations')" data-tr="Operasyon" data-de="Betrieb">Operasyon</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="system" onclick="setSettingsTab('system')" data-tr="Sistem" data-de="System">Sistem</button>
 </div>
 <div class="settings-layout">
 <div class="card" id="settings-appearance-card">

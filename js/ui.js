@@ -104,6 +104,7 @@ function runPageEntry(page) {
 }
 
 function navigate(page) {
+document.getElementById('mb-camp-notif')?.remove();
 if (typeof userHasPagePerm === 'function' && Array.isArray(ALL_PAGES) && ALL_PAGES.some((p) => p.key === page) && !userHasPagePerm(page)) {
   if (typeof toast === 'function') toast(typeof t === 'function' ? t('nav.no_perm') : 'Bu sayfa için yetkiniz yok', 'warn');
   return;
@@ -131,7 +132,7 @@ function initSettingsTabs() {
   const cards = [...page.querySelectorAll('.settings-layout > .card')];
   const groups = {
     general: new Set(['settings-appearance-card', 'settings-api-keys-card', 'settings-goals-card']),
-    communication: new Set(['incoming-calls-settings-card', 'chat-settings-card']),
+    communication: new Set(['incoming-calls-settings-card', 'chat-settings-card', 'sms-settings-card']),
     operations: new Set(['field-settings-card', 'mesai-settings-card', 'call-hours-card', 'results-settings-card', 'default-takvim-firm-card']),
     system: new Set(['feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings']),
   };
