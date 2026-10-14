@@ -475,7 +475,7 @@ function perfRenderRecent() {
   }
   if (tc) {
     const cl = [..._perfFiltCalls].sort((a, b) => String(b.started_at).localeCompare(String(a.started_at))).slice(0, 40);
-    const om = { appointment: 'Termin', appointment_done: 'Termin', negative: 'Olumsuz', callback: 'Geri Ara', voicemail: 'VM', no_answer: 'Yok', dnc: 'DNC' };
+    const om = { appointment: 'Randevu', appointment_done: 'Randevu', negative: 'Olumsuz', callback: 'Geri Ara', voicemail: 'VM', no_answer: 'Yok', dnc: 'DNC' };
     tc.innerHTML = cl.length ? cl.map((c) => {
       const d = new Date(c.started_at);
       const ds = isNaN(d.getTime()) ? '—' : d.toLocaleString(loc, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -504,10 +504,10 @@ function perfOpenAgentModal(agentId) {
   if (sub) {
     sub.innerHTML = `
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;font-size:12px;">
-<div><div style="font-size:10px;color:var(--text-3);">Termin</div><div style="font-weight:800;">${ap.length}</div></div>
+<div><div style="font-size:10px;color:var(--text-3);">Randevu</div><div style="font-weight:800;">${ap.length}</div></div>
 <div><div style="font-size:10px;color:var(--text-3);">Başarılı</div><div style="font-weight:800;color:var(--green);">${ok}</div></div>
 <div><div style="font-size:10px;color:var(--text-3);">Arama</div><div style="font-weight:800;">${ctot}</div></div>
-<div><div style="font-size:10px;color:var(--text-3);">Arama→Termin</div><div style="font-weight:800;">${ctot ? Math.round((cap / ctot) * 100) : 0}%</div></div>
+<div><div style="font-size:10px;color:var(--text-3);">Arama→Randevu</div><div style="font-weight:800;">${ctot ? Math.round((cap / ctot) * 100) : 0}%</div></div>
 </div>`;
   }
   const loc = mbLocale();
@@ -540,7 +540,7 @@ function perfExportCsv() {
     return;
   }
   const sep = ';';
-  const h = ['Agent', 'Termin', 'Basarili', 'Beklemede', 'QC', 'Basarisiz', 'Oran%', 'Arama', 'AramaTermin', 'Donusum%', 'OrtSureSn'];
+  const h = ['Agent', 'Randevu', 'Basarili', 'Beklemede', 'QC', 'Basarisiz', 'Oran%', 'Arama', 'AramaRandevu', 'Donusum%', 'OrtSureSn'];
   const lines = [h.join(sep)];
   rows.forEach((r) => {
     lines.push([r.name, r.total, r.ok, r.pend, r.qc, r.fail, r.rate, r.calls, r.appt, r.conv, r.avgSec].join(sep));

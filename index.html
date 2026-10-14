@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=8.25">
+<link rel="stylesheet" href="css/styles.css?v=8.26">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
 </head>
@@ -220,9 +220,9 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
     <div class="global-mascot-info-note" id="global-mascot-info-mood-note">—</div>
   </div>
   <div id="mimi-pane-stats" class="global-mascot-pane" role="tabpanel" style="display:none;">
-    <div class="global-mascot-info-row"><span>Bugün çağrı</span><strong id="global-mascot-info-today-calls">0</strong></div>
-    <div class="global-mascot-info-row"><span>Bugün termin</span><strong id="global-mascot-info-today-appts">0</strong></div>
-    <div class="global-mascot-info-row"><span>Bu ay termin</span><strong id="global-mascot-info-month-appts">0</strong></div>
+    <div class="global-mascot-info-row"><span data-tr="Bugün çağrı" data-de="Anrufe heute">Bugün çağrı</span><strong id="global-mascot-info-today-calls">0</strong></div>
+    <div class="global-mascot-info-row"><span data-tr="Bugün randevu" data-de="Termine heute">Bugün randevu</span><strong id="global-mascot-info-today-appts">0</strong></div>
+    <div class="global-mascot-info-row"><span data-tr="Bu ay randevu" data-de="Termine im Monat">Bu ay randevu</span><strong id="global-mascot-info-month-appts">0</strong></div>
     <div class="global-mascot-info-note" id="global-mascot-info-stats-note">—</div>
   </div>
 </div>
@@ -381,7 +381,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v8.25</div>
+<div class="sb-ver">MontBlanc v8.26</div>
 </div>
 </nav>
 <main id="main">
@@ -408,7 +408,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="stat-meta" id="d-calls-m">—</div>
 </div>
 <div class="stat-card stat-green">
-<div class="stat-lbl" data-tr="Terminler" data-de="Termine">Terminler</div>
+<div class="stat-lbl" data-tr="Randevular" data-de="Termine">Randevular</div>
 <div class="stat-val" id="d-appt">0</div>
 <div class="stat-meta" id="d-appt-m">%0 dönüşüm</div>
 </div>
@@ -468,7 +468,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="card-hdr">
 <div>
 <div class="card-title" id="dash-hourly-title">Bugün — saatlik analiz</div>
-<div class="card-sub" id="dash-hourly-sub">Çağrı hacmi ve termin (saat başı)</div>
+<div class="card-sub" id="dash-hourly-sub">Çağrı hacmi ve randevu (saat başı)</div>
 </div>
 </div>
 <div class="dash-chart-box"><canvas id="dash-chart-hourly"></canvas></div>
@@ -476,8 +476,8 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="card" id="dash-outcome-card">
 <div class="card-hdr">
 <div>
-<div class="card-title" id="dash-outcome-title">Termin sonuçları</div>
-<div class="card-sub" id="dash-outcome-sub">Randevu durumları (termin tarihine göre)</div>
+<div class="card-title" id="dash-outcome-title">Randevu sonuçları</div>
+<div class="card-sub" id="dash-outcome-sub">Randevu durumları (randevu tarihine göre)</div>
 </div>
 </div>
 <div class="dash-chart-box"><canvas id="dash-chart-outcomes"></canvas></div>
@@ -514,7 +514,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div class="page-hdr-actions">
 <div id="camp-firm-selector" style="display:inline-flex;"></div>
-<button class="btn btn-ghost btn-sm" onclick="openImportApptModal()">📅 <span data-tr="Termin İçe Aktar" data-de="Termine importieren">Termin İçe Aktar</span></button>
+<button class="btn btn-ghost btn-sm" onclick="openImportApptModal()">📅 <span data-tr="Randevu İçe Aktar" data-de="Termine importieren">Randevu İçe Aktar</span></button>
 <button class="btn btn-primary" onclick="openNewCampModal()">
 + <span data-tr="Yeni Kampanya" data-de="Neue Kampagne">Yeni Kampanya</span>
 </button>
@@ -535,7 +535,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div style="display:flex;gap:0;margin:-4px 0 16px;border-bottom:2px solid var(--border);overflow-x:auto;">
 <button class="cd-tab active" data-tab="genel" onclick="switchCampTab('genel')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--accent);white-space:nowrap;">Genel</button>
 <button class="cd-tab" data-tab="alanlar" onclick="switchCampTab('alanlar')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Alanlar</button>
-<button class="cd-tab" data-tab="termin-form" onclick="switchCampTab('termin-form')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Termin Formu</button>
+<button class="cd-tab" data-tab="termin-form" onclick="switchCampTab('termin-form')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Randevu Formu</button>
 <button class="cd-tab" data-tab="script" onclick="switchCampTab('script')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Script</button>
 <button class="cd-tab" data-tab="arama" onclick="switchCampTab('arama')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Arama</button>
 <button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">QC/Wrapping</button>
@@ -596,8 +596,8 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div>
-<div style="font-size:13px;font-weight:700;"><i class="ph ph-calendar-check"></i> Termin için slot zorunlu</div>
-<div style="font-size:11px;color:var(--text-3);">Açıksa agent takvimden slot seçmeden termin ile sonuçlandıramaz</div>
+<div style="font-size:13px;font-weight:700;"><i class="ph ph-calendar-check"></i> Randevu için slot zorunlu</div>
+<div style="font-size:11px;color:var(--text-3);">Açıksa agent takvimden slot seçmeden randevu ile sonuçlandıramaz</div>
 </div>
 <input type="checkbox" id="cd-appointment-slot-required" style="width:18px;height:18px;">
 </div>
@@ -685,7 +685,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveBroadcastTicker()"><i class="ph ph-paper-plane-tilt"></i> Yayınla</button>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-calendar"></i> Termin Onay Mesajı</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-calendar"></i> Randevu Onay Mesajı</div>
 <div style="display:flex;flex-direction:column;gap:6px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
 <input type="checkbox" id="cd-notif-whatsapp"> WhatsApp gönder
@@ -704,7 +704,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-link"></i> Webhook / API Dışa Aktarım</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Başarılı terminler bu URL'e POST olarak gönderilir</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Başarılı randevular bu URL'e POST olarak gönderilir</div>
 <input class="form-input" id="cd-webhook-url" placeholder="https://hooks.zapier.com/..." style="font-size:12px;">
 <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveCampWebhook()"><i class="ph ph-floppy-disk"></i> Kaydet</button>
 </div>
@@ -712,7 +712,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div id="cd-tab-termin-form" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:10px;">
-<div style="font-size:12px;color:var(--text-3);padding:8px;background:var(--bg-3);border-radius:6px;">Agent termin aldığında hangi ek bilgi alanları sorulsun? Aktif edeceğiniz alanlar termin formunda görünür.</div>
+<div style="font-size:12px;color:var(--text-3);padding:8px;background:var(--bg-3);border-radius:6px;">Agent randevu aldığında hangi ek bilgi alanları sorulsun? Aktif edeceğiniz alanlar randevu formunda görünür.</div>
 <div id="cd-termin-form-fields" style="display:flex;flex-direction:column;gap:6px;"></div>
 <button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampTerminFormSettings()">Kaydet</button>
 </div>
@@ -775,7 +775,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <th data-tr="Agent" data-de="Agent">Agent</th>
 <th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
 <th data-tr="Aramalar" data-de="Anrufe">Aramalar</th>
-<th data-tr="Termin" data-de="Termin">Termin</th>
+<th data-tr="Randevu" data-de="Termin">Randevu</th>
 <th data-tr="Olumsuz" data-de="Negativ">Olumsuz</th>
 <th data-tr="Geri Ara" data-de="Rückruf">Geri Ara</th>
 <th data-tr="Cevap Yok" data-de="Kein Anspr.">Cevap Yok</th>
@@ -801,7 +801,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </select>
 <select class="form-input" style="width:130px;" id="ch-outcome" onchange="loadCallHistory()">
 <option value="">Tüm Sonuçlar</option>
-<option value="appointment">Termin</option>
+<option value="appointment">Randevu</option>
 <option value="negative">Olumsuz</option>
 <option value="callback">Geri Ara</option>
 <option value="voicemail">Telesekreter</option>
@@ -893,7 +893,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <div class="page-hdr">
 <div>
 <div class="page-title" data-tr="Dışa aktarım" data-de="Export">Dışa aktarım</div>
-<div class="page-sub" data-tr="Terminleri filtreleyip Excel olarak indirin" data-de="Termine filtern und als Excel exportieren">Terminleri filtreleyip Excel olarak indirin</div>
+<div class="page-sub" data-tr="Randevuları filtreleyip Excel olarak indirin" data-de="Termine filtern und als Excel exportieren">Randevuları filtreleyip Excel olarak indirin</div>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
 <div id="et-firm-wrap"></div>
@@ -935,7 +935,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 </div>
 <div class="card et-main" style="min-height:420px;display:flex;flex-direction:column;">
 <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
-<div style="font-weight:700;font-size:14px;"><i class="ph ph-calendar-dots"></i> Terminler</div>
+<div style="font-weight:700;font-size:14px;"><i class="ph ph-calendar-dots"></i> Randevular</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
 <span class="badge" style="background:var(--accent);color:#fff;"><span id="et-results-count">0</span> <span data-tr="kayıt" data-de="Einträge">kayıt</span></span>
 <span class="badge" style="background:var(--green);color:#fff;"><span id="et-selected-count">0</span> <span data-tr="seçili" data-de="gewählt">seçili</span></span>
@@ -1031,7 +1031,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <div class="page-hdr">
 <div>
 <div class="page-title" data-tr="Personel performans" data-de="Personal Performance">Personel performans</div>
-<div class="page-sub" data-tr="Termin ve arama metrikleri" data-de="Termin- und Anrufmetriken">Termin ve arama metrikleri</div>
+<div class="page-sub" data-tr="Randevu ve arama metrikleri" data-de="Termin- und Anrufmetriken">Randevu ve arama metrikleri</div>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
 <div id="perf-firm-wrap"></div>
@@ -1046,7 +1046,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <div><label class="form-label" style="font-size:10px;">Agent</label><select class="form-input" id="perf-agent" onchange="perfOnFilterChange()"><option value="">Tümü</option></select></div>
 <div><label class="form-label" style="font-size:10px;">Kampanya</label><select class="form-input" id="perf-campaign" onchange="perfOnFilterChange()"><option value="">Tümü</option></select></div>
 </div>
-<div style="margin-bottom:10px;"><label class="form-label" style="font-size:10px;">Termin durumu</label><select class="form-input" id="perf-status" onchange="perfOnFilterChange()" style="max-width:280px;">
+<div style="margin-bottom:10px;"><label class="form-label" style="font-size:10px;">Randevu durumu</label><select class="form-input" id="perf-status" onchange="perfOnFilterChange()" style="max-width:280px;">
 <option value="">Tümü</option>
 <option value="ok">Başarılı</option>
 <option value="pend">Beklemede</option>
@@ -1063,9 +1063,9 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <button type="button" class="range-btn perf-range-btn" data-perf-range="all" onclick="perfSetQuickRange('all',event)">Tümü</button>
 </div>
 <div class="perf-sum">
-<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-total">0</div><div class="perf-sum-lbl" data-tr="Toplam termin (dönem)" data-de="Termine (Zeitraum)">Toplam termin (dönem)</div></div>
+<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-total">0</div><div class="perf-sum-lbl" data-tr="Toplam randevu (dönem)" data-de="Termine (Zeitraum)">Toplam randevu (dönem)</div></div>
 <div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-rate">0%</div><div class="perf-sum-lbl" data-tr="Başarı oranı" data-de="Erfolgsquote">Başarı oranı</div></div>
-<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-avg">0</div><div class="perf-sum-lbl" data-tr="Ort. termin/agent" data-de="Durchschn. Termine/Agent">Ort. termin/agent</div></div>
+<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-avg">0</div><div class="perf-sum-lbl" data-tr="Ort. randevu/agent" data-de="Durchschn. Termine/Agent">Ort. randevu/agent</div></div>
 <div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-days">0</div><div class="perf-sum-lbl" data-tr="Aktif gün" data-de="Aktive Tage">Aktif gün</div></div>
 <div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-agents">0</div><div class="perf-sum-lbl" data-tr="Aktif agent" data-de="Aktive Agenten">Aktif agent</div></div>
 </div>
@@ -1074,7 +1074,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 </div>
 </div>
 <div class="perf-cards">
-<div class="perf-card perf-card-total"><div class="perf-ct" data-tr="Toplam termin" data-de="Gesamt">Toplam termin</div><div class="perf-cv" id="perf-card-total">0</div></div>
+<div class="perf-card perf-card-total"><div class="perf-ct" data-tr="Toplam randevu" data-de="Gesamt">Toplam randevu</div><div class="perf-cv" id="perf-card-total">0</div></div>
 <div class="perf-card" style="border-color:var(--green);background:rgba(34,197,94,.08);"><div class="perf-ct" style="color:var(--green);">Başarılı</div><div class="perf-cv" id="perf-card-ok" style="color:var(--green);">0</div><div style="font-size:11px;color:var(--text-3);"><span id="perf-card-okpct">0%</span></div></div>
 <div class="perf-card" style="border-color:var(--yellow);"><div class="perf-ct">Beklemede</div><div class="perf-cv" id="perf-card-pend">0</div></div>
 <div class="perf-card" style="border-color:var(--accent);"><div class="perf-ct">QC</div><div class="perf-cv" id="perf-card-qc">0</div></div>
@@ -1082,7 +1082,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 </div>
 <div class="perf-call-row">
 <div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">ARAMA (dönem)</div><div style="font-size:20px;font-weight:900;" id="perf-call-total">0</div></div>
-<div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">Termin sonucu</div><div style="font-size:20px;font-weight:900;color:var(--green);" id="perf-call-appt">0</div></div>
+<div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">Randevu sonucu</div><div style="font-size:20px;font-weight:900;color:var(--green);" id="perf-call-appt">0</div></div>
 <div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">Dönüşüm</div><div style="font-size:20px;font-weight:900;" id="perf-call-conv">0%</div></div>
 <div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">Ort. süre</div><div style="font-size:20px;font-weight:900;" id="perf-call-avg">0:00</div></div>
 </div>
@@ -1110,7 +1110,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
 <span style="font-weight:800;font-size:13px;"><i class="ph ph-users-three"></i> Karşılaştırma</span>
 <div style="display:flex;gap:4px;">
-<button type="button" class="range-btn perf-cmp-btn active" onclick="perfSetCompType('termin',event)">Termin</button>
+<button type="button" class="range-btn perf-cmp-btn active" onclick="perfSetCompType('termin',event)">Randevu</button>
 <button type="button" class="range-btn perf-cmp-btn" onclick="perfSetCompType('success',event)">Oran %</button>
 <button type="button" class="range-btn perf-cmp-btn" onclick="perfSetCompType('efficiency',event)">Verim</button>
 </div>
@@ -1123,7 +1123,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;">
 <span style="font-weight:800;">Personel tablosu</span>
 <div style="display:flex;gap:4px;flex-wrap:wrap;">
-<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('total')">Termin</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('total')">Randevu</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('ok')">Başarılı</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('rate')">Oran</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('calls')">Arama</button>
@@ -1133,7 +1133,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <table style="min-width:980px;">
 <thead><tr>
 <th>Agent</th>
-<th>Termin</th>
+<th>Randevu</th>
 <th>OK</th>
 <th>Bekl.</th>
 <th>QC</th>
@@ -1151,7 +1151,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <div style="border-top:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
 <span style="font-weight:800;">Bu ay (takvim)</span>
 <div style="display:flex;gap:4px;">
-<button type="button" class="btn btn-ghost btn-sm" onclick="perfMonthSort('total')">Termin</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfMonthSort('total')">Randevu</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="perfMonthSort('ok')">Başarılı</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="perfMonthSort('rate')">Oran</button>
 </div>
@@ -1165,7 +1165,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 </div>
 <div style="display:flex;flex-direction:column;gap:12px;">
 <div class="card" style="padding:0;overflow:hidden;">
-<div style="padding:10px 14px;font-weight:800;border-bottom:1px solid var(--border);"><i class="ph ph-calendar-check"></i> Son terminler</div>
+<div style="padding:10px 14px;font-weight:800;border-bottom:1px solid var(--border);"><i class="ph ph-calendar-check"></i> Son randevular</div>
 <div class="tbl-wrap" style="max-height:280px;">
 <table style="min-width:400px;font-size:12px;">
 <thead><tr><th>Tarih</th><th>Agent</th><th>Müşteri</th><th>Kamp.</th><th>Durum</th></tr></thead>
@@ -1256,7 +1256,7 @@ TEST MODU
 </div>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
 <span style="font-size:11px;font-weight:700;color:var(--text-2);" id="goal-tab-label">Günlük Hedef</span>
-<span id="daily-progress-label" style="font-size:11px;font-weight:800;color:var(--accent);">0/5 Termin</span>
+<span id="daily-progress-label" style="font-size:11px;font-weight:800;color:var(--accent);">0/5 Randevu</span>
 </div>
 <div style="background:var(--bg-2);border-radius:4px;height:6px;overflow:hidden;">
 <div id="daily-progress-bar" style="height:100%;width:0%;background:var(--accent);border-radius:4px;transition:width .5s;"></div>
@@ -1383,7 +1383,7 @@ Son randevu bilgileri indirilebilir.
 <div class="outcome-grid">
 <button class="outcome-btn ob-appointment" onclick="handleAppointmentClick()">
 <div class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
-<div class="lbl" data-tr="Termin" data-de="Termin">Termin</div>
+<div class="lbl" data-tr="Randevu" data-de="Termin">Randevu</div>
 </button>
 <button class="outcome-btn ob-negative" onclick="setOutcome('negative')">
 <div class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
@@ -1572,25 +1572,29 @@ Sonuçsuz Çağrılar
 <button class="btn btn-ghost btn-sm" onclick="loadFieldOpsPage()">↻ Yenile</button>
 </div>
 </div>
-<div id="fieldops-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px;">
-<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Toplam</div><div id="fieldops-kpi-total" style="font-size:20px;font-weight:800;">0</div></div>
-<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Atandı</div><div id="fieldops-kpi-assigned" style="font-size:20px;font-weight:800;">0</div></div>
-<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Sahada</div><div id="fieldops-kpi-progress" style="font-size:20px;font-weight:800;">0</div></div>
-<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Tamamlandı</div><div id="fieldops-kpi-done" style="font-size:20px;font-weight:800;">0</div></div>
+<div id="fieldops-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:10px;">
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Toplam" data-de="Gesamt">Toplam</div><div id="fieldops-kpi-total" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Atandı" data-de="Zugewiesen">Atandı</div><div id="fieldops-kpi-assigned" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Sahada" data-de="Im Feld">Sahada</div><div id="fieldops-kpi-progress" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Tamamlandı" data-de="Erledigt">Tamamlandı</div><div id="fieldops-kpi-done" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="İptal" data-de="Storniert">İptal</div><div id="fieldops-kpi-cancelled" style="font-size:20px;font-weight:800;">0</div></div>
 </div>
 <div class="card">
 <div class="tbl-wrap">
 <table>
 <thead><tr>
-<th>Tarih</th>
-<th>Randevu</th>
-<th>Telefon</th>
-<th>Saha Elemanı</th>
-<th>Durum</th>
-<th>Saha Sonucu</th>
+<th data-tr="Kayıt" data-de="Erfasst">Kayıt</th>
+<th data-tr="Randevu" data-de="Termin">Randevu</th>
+<th data-tr="Telefon" data-de="Telefon">Telefon</th>
+<th data-tr="Posta kodu" data-de="PLZ">Posta kodu</th>
+<th data-tr="Şehir" data-de="Ort">Şehir</th>
+<th data-tr="Randevu tarihi" data-de="Terminzeit">Randevu tarihi</th>
+<th data-tr="Saha elemanı" data-de="Feldmitarbeiter">Saha elemanı</th>
+<th data-tr="Durum" data-de="Status">Durum</th>
+<th data-tr="Saha sonucu" data-de="Feldergebnis">Saha sonucu</th>
 </tr></thead>
 <tbody id="fieldops-tbody">
-<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>
+<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>
 </tbody>
 </table>
 </div>
@@ -1605,7 +1609,7 @@ Sonuçsuz Çağrılar
 <input type="text" class="form-input" id="mh-search" placeholder="İsim, numara..." style="width:160px;padding:5px 10px;font-size:12px;" oninput="loadMyHistory()">
 <select class="form-input" id="mh-outcome" style="width:130px;padding:5px 8px;font-size:12px;" onchange="loadMyHistory()">
 <option value="">Tüm Sonuçlar</option>
-<option value="appointment">Termin</option>
+<option value="appointment">Randevu</option>
 <option value="callback">Geri Ara</option>
 <option value="negative">Olumsuz</option>
 <option value="no_answer">Cevap Yok</option>
@@ -1719,7 +1723,7 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <th data-tr="Posta kodu" data-de="PLZ">Posta kodu</th>
 <th>Agent</th>
 <th>Kampanya</th>
-<th>Termin Müşterisi</th>
+<th>Randevu Müşterisi</th>
 <th>Kayıt</th>
 <th>Durum</th>
 <th>İşlem</th>
@@ -1887,6 +1891,7 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <button type="button" class="jm-pill jm-preset" data-preset="this_week" onclick="setJobPreset('this_week')">Bu hafta</button>
 <button type="button" class="jm-pill jm-preset" data-preset="high_budget" onclick="setJobPreset('high_budget')">Yüksek bütçe</button>
 </div>
+<div id="job-market-summary" class="jm-summary"></div>
 <div id="job-market-list" style="display:flex;flex-direction:column;gap:8px;">
 <div style="font-size:12px;color:var(--text-3);padding:8px;">Yükleniyor...</div>
 </div>
@@ -1926,7 +1931,7 @@ Firma Ekle
 <button type="button" class="btn btn-ghost btn-sm tk-nav-btn" onclick="takvimNext()" aria-label="Sonraki"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="9 18 15 12 9 6"/></svg></button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="takvimGoToday()">Bugün</button>
 </div>
-<button type="button" class="btn btn-ghost btn-sm" onclick="openTakvimPlzMeasureModal()" title="PLZ ile tüm terminlere uzaklık">Mesafe ölç</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="openTakvimPlzMeasureModal()" title="PLZ ile tüm randevulara uzaklık">Mesafe ölç</button>
 </div>
 <div class="takvim-toolbar-cluster takvim-toolbar-cluster--right">
 <div id="takvim-page-firm-selector" class="takvim-page-firm-selector"></div>
@@ -2131,6 +2136,14 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </div>
 <div id="muhasebe-no-access" class="card" style="display:none;padding:18px;">Bu sayfayı görüntüleme yetkiniz yok.</div>
 <div id="muhasebe-main" style="display:flex;flex-direction:column;gap:14px;padding-bottom:28px;">
+<div class="card muh-fx-banner" id="muh-fx-banner">
+<div>
+<div class="muh-fx-kicker" data-tr="Canlı kur" data-de="Live-Kurs">Canlı kur</div>
+<div id="muh-fx-rate">1 EUR = — TRY</div>
+<div id="muh-fx-meta" data-tr="Kur yükleniyor" data-de="Kurs wird geladen">Kur yükleniyor</div>
+</div>
+<button class="btn btn-ghost btn-sm" type="button" onclick="testFxRateNow()" data-tr="Kuru yenile" data-de="Kurs aktualisieren">Kuru yenile</button>
+</div>
 <div class="card" style="padding:10px 12px;">
 <div style="display:flex;gap:8px;flex-wrap:wrap;">
 <button class="btn btn-ghost btn-sm muh-tab-btn active" data-muh-tab="ozet" onclick="setMuhasebeTab('ozet')">Özet & Takip</button>
@@ -2148,8 +2161,8 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="form-row"><label class="form-label">Kur (1 EUR = TRY)</label><input class="form-input" id="pr-rate" type="number" step="0.0001" value="1" oninput="updatePayrollPreview()"></div>
 <div class="form-row"><label class="form-label">Kur API</label>
 <select class="form-input" id="pr-fx-provider" onchange="onFxProviderChange()">
-<option value="exchangerate_host">exchangerate.host (varsayılan)</option>
-<option value="frankfurter">frankfurter.app</option>
+<option value="frankfurter">Canlı kur</option>
+<option value="exchangerate_host">exchangerate.host</option>
 <option value="custom">Özel API</option>
 </select>
 </div>
@@ -2159,7 +2172,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="form-row"><label class="form-label">Maaş modu</label><select class="form-input" id="pr-mode"><option value="net">Net</option><option value="gross_minimum">Asgari (brüt)</option></select></div>
 <div class="form-row"><label class="form-label">Baz maaş</label><input class="form-input" id="pr-base" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>
 <div class="form-row"><label class="form-label">Vergi %</label><input class="form-input" id="pr-tax" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>
-<div class="form-row"><label class="form-label">Başarılı termin gelir tutarı</label><input class="form-input" id="pr-rev-success" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>
+<div class="form-row"><label class="form-label">Başarılı randevu gelir tutarı</label><input class="form-input" id="pr-rev-success" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>
 <div class="form-row"><label class="form-label">Geç kalma cezası (olay başı)</label><input class="form-input" id="pr-late" type="number" step="0.01" value="0"></div>
 <div class="form-row"><label class="form-label">İzin aşımı cezası (gün başı)</label><input class="form-input" id="pr-leave-over-amt" type="number" step="0.01" value="0"></div>
 </div>
@@ -2176,7 +2189,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <button class="btn btn-ghost btn-sm" type="button" onclick="addPayrollTierRow('bonus')">+ Prim kademesi ekle</button>
 </div>
 <div>
-<div class="form-label" style="margin-bottom:6px;">Net maaş hakediş kademeleri (başarılı termine göre)</div>
+<div class="form-label" style="margin-bottom:6px;">Net maaş hakediş kademeleri (başarılı randevuya göre)</div>
 <div id="pr-salary-tiers-wrap"></div>
 <button class="btn btn-ghost btn-sm" type="button" onclick="addPayrollTierRow('salary')">+ Maaş kademesi ekle</button>
 </div>
@@ -2184,7 +2197,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div style="margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:8px;background:var(--bg-3);">
 <div class="form-label" style="margin-bottom:6px;">Önizleme (örnek personel)</div>
 <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;align-items:end;">
-<div class="form-row"><label class="form-label">Başarılı termin</label><input class="form-input" id="pr-preview-success" type="number" min="0" value="20" oninput="updatePayrollPreview()"></div>
+<div class="form-row"><label class="form-label">Başarılı randevu</label><input class="form-input" id="pr-preview-success" type="number" min="0" value="20" oninput="updatePayrollPreview()"></div>
 <div id="pr-preview-result" style="font-size:12px;color:var(--text-2);padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);">Hesaplanıyor...</div>
 </div>
 </div>
@@ -2194,7 +2207,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="card-hdr">
 <div>
 <div class="card-title">Müşteriler</div>
-<div class="card-sub">Terminlerde kullanılacak müşteri listesi</div>
+<div class="card-sub">Randevularda kullanılacak müşteri listesi</div>
 </div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 130px 1fr auto;gap:8px;align-items:end;">
@@ -2209,7 +2222,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div id="muh-pane-musteri" class="muh-pane" style="display:none;">
 <div class="card" style="padding:16px;">
 <div class="card-title" style="margin-bottom:8px;">Müşteri bazlı gelir tarifesi</div>
-<div class="card-sub" style="margin-bottom:10px;">Onaylı (başarılı) terminlerde müşteriye göre gelir tutarı uygulanır.</div>
+<div class="card-sub" style="margin-bottom:10px;">Onaylı (başarılı) randevularda müşteriye göre gelir tutarı uygulanır.</div>
 <div id="muh-customer-rate-table"></div>
 <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="savePayrollRules()">Tarifeleri Kaydet</button>
 </div>
@@ -2335,7 +2348,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div class="card" style="padding:16px;">
 <div class="card-title" style="margin-bottom:6px;">Canlı yarış</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Pozisyonlar, bu ayki başarılı termin sayılarına göre hesaplanır. <span class="comp-admin-only" style="display:none;">Admin: her satırda termin sayısı görünür.</span><span class="comp-agent-hint">Agent: sadece sıra ve isim; adetler gizli.</span></div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Pozisyonlar, bu ayki başarılı randevu sayılarına göre hesaplanır. <span class="comp-admin-only" style="display:none;">Admin: her satırda randevu sayısı görünür.</span><span class="comp-agent-hint">Agent: sadece sıra ve isim; adetler gizli.</span></div>
 <div id="comp-race-lanes" class="comp-race-lanes"></div>
 </div>
 <div class="card" style="padding:0;overflow:hidden;">
@@ -2345,7 +2358,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <thead><tr>
 <th style="width:56px;">#</th>
 <th>Agent</th>
-<th class="comp-admin-only td-mono" style="width:90px;text-align:right;">Termin</th>
+<th class="comp-admin-only td-mono" style="width:90px;text-align:right;">Randevu</th>
 </tr></thead>
 <tbody id="comp-lb-month"></tbody>
 </table>
@@ -2358,7 +2371,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <thead><tr>
 <th style="width:56px;">#</th>
 <th>Agent</th>
-<th class="comp-admin-only td-mono" style="width:90px;text-align:right;">Termin</th>
+<th class="comp-admin-only td-mono" style="width:90px;text-align:right;">Randevu</th>
 </tr></thead>
 <tbody id="comp-lb-year"></tbody>
 </table>
@@ -2727,27 +2740,27 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="form-row">
 <label class="form-label">TomTom API Key</label>
 <input class="form-input" id="s-tomtom-key" placeholder="...">
-<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Termin mesafe hesaplama için</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Randevu mesafe hesaplama için</div>
 </div>
 <button class="btn btn-primary" style="align-self:flex-start;" onclick="saveApiSettings()"><i class="ph ph-floppy-disk"></i> API Ayarlarını Kaydet</button>
 </div>
 </div>
 <div class="card" id="settings-goals-card">
-<div class="card-title" style="margin-bottom:16px;">Termin Hedefleri</div>
+<div class="card-title" style="margin-bottom:16px;">Randevu Hedefleri</div>
 <div style="display:flex;flex-direction:column;gap:10px;">
 <div class="form-row">
-<label class="form-label">Günlük Termin Hedefi (Agent)</label>
+<label class="form-label">Günlük Randevu Hedefi (Agent)</label>
 <input class="form-input" id="s-daily-goal" type="number" min="1" max="50" value="5" style="width:120px;">
 </div>
 <div class="form-row">
-<label class="form-label">Haftalık Termin Hedefi (Agent)</label>
+<label class="form-label">Haftalık Randevu Hedefi (Agent)</label>
 <input class="form-input" id="s-weekly-goal" type="number" min="1" max="400" value="25" style="width:120px;">
 </div>
 <div class="form-row">
-<label class="form-label">Aylık Termin Hedefi (Agent)</label>
+<label class="form-label">Aylık Randevu Hedefi (Agent)</label>
 <input class="form-input" id="s-monthly-goal" type="number" min="1" max="1600" value="100" style="width:120px;">
 </div>
-<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveApiSettings()"><i class="ph ph-floppy-disk"></i> Termin Hedeflerini Kaydet</button>
+<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveApiSettings()"><i class="ph ph-floppy-disk"></i> Randevu Hedeflerini Kaydet</button>
 </div>
 </div>
 <div class="card" id="incoming-calls-settings-card" style="display:none;">
@@ -2936,7 +2949,7 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 </div>
 </div>
 <div class="card" id="results-settings-card">
-<div class="card-title" style="margin-bottom:12px;">Termin Sonuçları (Takvim + QC)</div>
+<div class="card-title" style="margin-bottom:12px;">Randevu Sonuçları (Takvim + QC)</div>
 <div id="results-firm-selector" style="margin-bottom:10px;"></div>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Sonuç adını yaz, tipi seç; istersen bu sonuçta slotu otomatik alta taşı.</div>
 <div id="s-appt-results-rows" style="display:flex;flex-direction:column;gap:8px;"></div>
@@ -2945,7 +2958,7 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 </div>
 <div class="card" id="default-takvim-firm-card" style="display:none;">
 <div class="card-title" style="margin-bottom:12px;">Varsayılan takvim (firma)</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Süper admin için firma seçimi üstteki “Termin Sonuçları” kartı ile aynıdır.</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Süper admin için firma seçimi üstteki “Randevu Sonuçları” kartı ile aynıdır.</div>
 <div id="default-takvim-firm-body" style="font-size:12px;color:var(--text-3);">Yükleniyor…</div>
 </div>
 <div class="card" id="telnyx-settings">
@@ -3162,7 +3175,7 @@ Sütun Eşleştirme
 <div class="modal-overlay" id="m-import-appt">
 <div class="modal" style="max-width:680px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;">
 <div class="modal-hdr" style="flex-shrink:0;">
-<div class="modal-title">📅 Eski Termin İçe Aktar</div>
+<div class="modal-title">📅 Eski Randevu İçe Aktar</div>
 <button class="modal-close" onclick="closeModal('m-import-appt')">✕</button>
 </div>
 <div style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
@@ -3179,7 +3192,7 @@ Sütun Eşleştirme
 </div>
 <div id="ia-mapping-section" style="display:none;">
 <div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">2️⃣ Sütun Eşleştir</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Excel sütunlarını termin alanlarıyla eşleştirin. * zorunlu</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Excel sütunlarını randevu alanlarıyla eşleştirin. * zorunlu</div>
 <div id="ia-mapping-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
 </div>
 <div id="ia-options-section" style="display:none;">
@@ -3477,7 +3490,7 @@ QC Detay
 <div class="modal-overlay" id="m-takvim-detail">
 <div class="modal" style="max-width:620px;">
 <div class="modal-hdr">
-<div class="modal-title" id="takvim-detail-title">Termin</div>
+<div class="modal-title" id="takvim-detail-title">Randevu</div>
 <button class="modal-close" onclick="closeModal('m-takvim-detail')">✕</button>
 </div>
 <div id="takvim-detail-body" style="padding:16px 20px;max-height:70vh;overflow-y:auto;"></div>
@@ -3717,44 +3730,44 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/version.js?v=8.25"></script>
-<script src="js/i18n.js?v=8.25"></script>
-<script src="js/config.js?v=8.25"></script>
-<script src="js/state.js?v=8.25"></script>
-<script src="js/api.js?v=8.25"></script>
-<script src="js/auth.js?v=8.25"></script>
-<script src="js/ui.js?v=8.25"></script>
-<script src="js/chat.js?v=8.25"></script>
-<script src="js/chat-settings.js?v=8.25"></script>
-<script src="js/field-settings.js?v=8.25"></script>
-<script src="js/audit.js?v=8.25"></script>
-<script src="js/feature-flags.js?v=8.25"></script>
-<script src="js/notification-center.js?v=8.25"></script>
+<script src="js/version.js?v=8.26"></script>
+<script src="js/i18n.js?v=8.26"></script>
+<script src="js/config.js?v=8.26"></script>
+<script src="js/state.js?v=8.26"></script>
+<script src="js/api.js?v=8.26"></script>
+<script src="js/auth.js?v=8.26"></script>
+<script src="js/ui.js?v=8.26"></script>
+<script src="js/chat.js?v=8.26"></script>
+<script src="js/chat-settings.js?v=8.26"></script>
+<script src="js/field-settings.js?v=8.26"></script>
+<script src="js/audit.js?v=8.26"></script>
+<script src="js/feature-flags.js?v=8.26"></script>
+<script src="js/notification-center.js?v=8.26"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=8.25"></script>
-<script src="js/job-market.js?v=8.25"></script>
-<script src="js/qc-job-market.js?v=8.25"></script>
-<script src="js/export-admin.js?v=8.25"></script>
-<script src="js/export-termin.js?v=8.25"></script>
-<script src="js/performance.js?v=8.25"></script>
-<script src="js/competition.js?v=8.25"></script>
-<script src="js/dashboard.js?v=8.25"></script>
-<script src="js/campaigns.js?v=8.25"></script>
-<script src="js/contacts.js?v=8.25"></script>
-<script src="js/telnyx.js?v=8.25"></script>
-<script src="js/voice-orb.js?v=8.25"></script>
-<script src="js/dialer.js?v=8.25"></script>
-<script src="js/appointments.js?v=8.25"></script>
-<script src="js/field.js?v=8.25"></script>
-<script src="js/field-ops.js?v=8.25"></script>
-<script src="js/wiedervorlage.js?v=8.25"></script>
-<script src="js/qc.js?v=8.25"></script>
-<script src="js/supervisor.js?v=8.25"></script>
-<script src="js/sms-settings.js?v=8.25"></script>
-<script src="js/leave-hr.js?v=8.25"></script>
-<script src="js/muhasebe.js?v=8.25"></script>
-<script src="js/agent-self-performance.js?v=8.25"></script>
-<script src="js/agents.js?v=8.25"></script>
-<script src="js/mimi-brain.js?v=8.25"></script>
+<script src="js/wallet.js?v=8.26"></script>
+<script src="js/job-market.js?v=8.26"></script>
+<script src="js/qc-job-market.js?v=8.26"></script>
+<script src="js/export-admin.js?v=8.26"></script>
+<script src="js/export-termin.js?v=8.26"></script>
+<script src="js/performance.js?v=8.26"></script>
+<script src="js/competition.js?v=8.26"></script>
+<script src="js/dashboard.js?v=8.26"></script>
+<script src="js/campaigns.js?v=8.26"></script>
+<script src="js/contacts.js?v=8.26"></script>
+<script src="js/telnyx.js?v=8.26"></script>
+<script src="js/voice-orb.js?v=8.26"></script>
+<script src="js/dialer.js?v=8.26"></script>
+<script src="js/appointments.js?v=8.26"></script>
+<script src="js/field.js?v=8.26"></script>
+<script src="js/field-ops.js?v=8.26"></script>
+<script src="js/wiedervorlage.js?v=8.26"></script>
+<script src="js/qc.js?v=8.26"></script>
+<script src="js/supervisor.js?v=8.26"></script>
+<script src="js/sms-settings.js?v=8.26"></script>
+<script src="js/leave-hr.js?v=8.26"></script>
+<script src="js/muhasebe.js?v=8.26"></script>
+<script src="js/agent-self-performance.js?v=8.26"></script>
+<script src="js/agents.js?v=8.26"></script>
+<script src="js/mimi-brain.js?v=8.26"></script>
 </body>
 </html>

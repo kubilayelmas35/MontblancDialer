@@ -6009,11 +6009,26 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   letter-spacing: .4px;
   margin-top: 5px;
 }
-.sup-pill--oncall  { border-color: var(--red,  #e05555); }
-.sup-pill--oncall  .sup-pill-num { color: var(--red,  #e05555); }
-.sup-pill--ready   { border-color: var(--green, #4caf50); }
-.sup-pill--ready   .sup-pill-num { color: var(--green, #4caf50); }
-.sup-pill--offline .sup-pill-num { opacity: .4; }
+.sup-pill--offline .sup-pill-num { opacity: .45; }
+.sup-toolbar { margin: -8px 0 16px; max-width: 420px; }
+.sup-live-card { padding: 14px 16px; margin-bottom: 16px; }
+.sup-live-board { margin-top: 10px; overflow-x: auto; }
+.sup-live-empty { color: var(--text-3); font-size: 13px; padding: 8px 0 2px; }
+.sup-live-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sup-live-table th { text-align: left; font-size: 11px; color: var(--text-3); font-weight: 700; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.sup-live-table td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.sup-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text); display: inline-block; margin-right: 8px; }
+.sup-mono { font-family: var(--mono); }
+.muh-fx-banner { padding: 12px 14px; display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+.muh-fx-kicker { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+#muh-fx-rate { font-size: 22px; font-weight: 800; font-family: var(--mono); margin-top: 2px; }
+#muh-fx-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.muh-fx-alt { font-size: 10px; color: var(--text-3); font-weight: 600; margin-top: 2px; }
+.jm-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.jm-sum-card { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; background: var(--bg-2); }
+.jm-sum-lbl { font-size: 11px; color: var(--text-3); }
+.jm-sum-val { font-size: 16px; font-weight: 800; margin-top: 2px; word-break: break-word; }
+.jm-empty { font-size: 12px; color: var(--text-3); padding: 10px; }
 
 .sup-agent-grid {
   display: grid;
@@ -6036,7 +6051,7 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   transition: border-color .18s;
 }
 .sup-card--active {
-  border-color: var(--red, #e05555);
+  border-color: var(--text);
 }
 .sup-card-top {
   display: flex;
@@ -6046,8 +6061,9 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .sup-avatar {
   width: 40px; height: 40px;
   border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
+  background: var(--bg-3);
+  color: var(--text);
+  border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
   font-weight: 800; font-size: 15px;
   flex-shrink: 0;
@@ -6070,10 +6086,10 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   margin-top: 3px;
   letter-spacing: .2px;
 }
-.sup-status--oncall  { background: color-mix(in srgb, var(--red,  #e05555) 12%, transparent); color: var(--red,  #e05555); }
-.sup-status--ready   { background: color-mix(in srgb, var(--green, #4caf50) 12%, transparent); color: var(--green, #4caf50); }
-.sup-status--wrap    { background: color-mix(in srgb, var(--yellow, #f59e0b) 12%, transparent); color: var(--yellow, #f59e0b); }
-.sup-status--break   { background: color-mix(in srgb, var(--yellow, #f59e0b) 12%, transparent); color: var(--yellow, #f59e0b); }
+.sup-status--oncall,
+.sup-status--ready,
+.sup-status--wrap,
+.sup-status--break { background: var(--bg-3); color: var(--text); border: 1px solid var(--border); }
 .sup-status--offline { background: transparent; color: var(--text-3); border: 1px solid var(--border); }
 
 .sup-dur {
@@ -6085,7 +6101,7 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   min-width: 38px;
   text-align: right;
 }
-.sup-dur--live { color: var(--red, #e05555); }
+.sup-dur--live { color: var(--text); }
 
 .sup-call-info {
   margin-top: 10px;

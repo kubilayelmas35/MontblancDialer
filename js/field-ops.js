@@ -12,14 +12,46 @@ function _foEsc(v) {
     .replace(/"/g, '&quot;');
 }
 
+const FIELD_OPS_COLS = 9;
+
+function _fieldOpsLangDe() {
+  return (typeof currentLang !== 'undefined' && currentLang === 'de');
+}
+
 function _fieldOpsStatusLabel(s) {
+  const de = _fieldOpsLangDe();
   const map = {
-    assigned: 'Atandı',
-    in_progress: 'Sahada',
-    completed: 'Tamamlandı',
-    cancelled: 'İptal'
+    assigned: de ? 'Zugewiesen' : 'Atandı',
+    in_progress: de ? 'Im Feld' : 'Sahada',
+    completed: de ? 'Erledigt' : 'Tamamlandı',
+    cancelled: de ? 'Storniert' : 'İptal'
   };
   return map[String(s || '').toLowerCase()] || (s || '—');
+}
+
+function _fieldOpsResultLabel(raw) {
+  const key = String(raw || '').trim();
+  if (!key || key === '—') return '—';
+  const de = _fieldOpsLangDe();
+  const map = {
+    pending: de ? 'Offen' : 'Bekliyor',
+    ok: de ? 'Erledigt' : 'Tamam',
+    cancelled_by_customer: de ? 'Kunde storniert' : 'Müşteri iptal etti',
+    sale: de ? 'Verkauf' : 'Satış',
+    missing_doc: de ? 'Dokument fehlt' : 'Belge eksik',
+  };
+  return map[key] || key.replaceAll('_', ' ');
+}
+
+function _fieldOpsStatusBadge(s) {
+  const key = String(s || '').toLowerCase();
+  const cls = {
+    assigned: 'badge-blue',
+    in_progress: 'badge-yellow',
+    completed: 'badge-green',
+    cancelled: 'badge'
+  }[key] || 'badge';
+  return `<span class="badge ${cls}">${_foEsc(_fieldOpsStatusLabel(key))}</span>`;
 }
 
 function _fieldOpsSetKpi(id, val) {
@@ -32,10 +64,12 @@ function _fieldOpsRenderKpi(rows) {
   const assigned = rows.filter(r => r.status === 'assigned').length;
   const progress = rows.filter(r => r.status === 'in_progress').length;
   const done = rows.filter(r => r.status === 'completed').length;
+  const cancelled = rows.filter(r => r.status === 'cancelled').length;
   _fieldOpsSetKpi('fieldops-kpi-total', total);
   _fieldOpsSetKpi('fieldops-kpi-assigned', assigned);
   _fieldOpsSetKpi('fieldops-kpi-progress', progress);
   _fieldOpsSetKpi('fieldops-kpi-done', done);
+  _fieldOpsSetKpi('fieldops-kpi-cancelled', cancelled);
 }
 
 function fieldOpsApplyFilters() {
@@ -57,24 +91,34 @@ function fieldOpsApplyFilters() {
   }
   _fieldOpsRenderKpi(list);
   if (!list.length) {
-    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(6, 'ui.no_records') : `<tr><td colspan="6" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(FIELD_OPS_COLS, 'ui.no_records') : `<tr><td colspan="${FIELD_OPS_COLS}" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
     return;
   }
+  const loc = typeof mbLocale === 'function' ? mbLocale() : 'tr-TR';
+  const stamp = (iso) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString(loc, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  };
   tbody.innerHTML = list.map(r => {
     const ap = r.appointment || {};
     const asg = r.assignee || {};
-    const dt = r.created_at ? new Date(r.created_at).toLocaleString('tr-TR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
     const cust = _foEsc(ap.nachname || '—');
     const tel = _foEsc(ap.telefonnummer || '—');
+    const plz = _foEsc(ap.plz || '—');
+    const city = _foEsc(ap.ortschaft || '—');
     const saha = _foEsc(asg.name || asg.email || '—');
-    const st = _foEsc(_fieldOpsStatusLabel(r.status));
-    const rs = _foEsc(r.result_key || (r.result_payload?.visit_result || '—'));
+    const rs = _foEsc(_fieldOpsResultLabel(r.result_key || r.result_payload?.visit_result || '—'));
     return `<tr>
-      <td style="font-size:11px;font-family:var(--mono);">${dt}</td>
+      <td style="font-size:11px;font-family:var(--mono);">${stamp(r.created_at)}</td>
       <td style="font-weight:600;">${cust}</td>
       <td style="font-family:var(--mono);">${tel}</td>
+      <td style="font-family:var(--mono);">${plz}</td>
+      <td>${city}</td>
+      <td style="font-size:11px;font-family:var(--mono);">${stamp(ap.termin_tarih)}</td>
       <td>${saha}</td>
-      <td>${st}</td>
+      <td>${_fieldOpsStatusBadge(r.status)}</td>
       <td>${rs}</td>
     </tr>`;
   }).join('');
@@ -85,7 +129,7 @@ async function loadFieldOpsPage() {
   const role = currentUser?.role || '';
   const canView = ['admin', 'firm_admin', 'super_admin'].includes(role);
   if (!canView) {
-    if (tbody) tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(6, 'ui.no_access_page') : `<tr><td colspan="6" class="mb-empty-hint">${t('ui.no_access_page')}</td></tr>`;
+    if (tbody) tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(FIELD_OPS_COLS, 'ui.no_access_page') : `<tr><td colspan="${FIELD_OPS_COLS}" class="mb-empty-hint">${t('ui.no_access_page')}</td></tr>`;
     return;
   }
   const fw = document.getElementById('fieldops-firm-wrap');
@@ -95,12 +139,12 @@ async function loadFieldOpsPage() {
   }
   const fid = getActiveFirmId() || currentUser?.firm_id || null;
   if (role === 'super_admin' && !fid) {
-    if (tbody) tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(6, 'ui.select_firm_first') : `<tr><td colspan="6" class="mb-empty-hint">${t('ui.select_firm_first')}</td></tr>`;
+    if (tbody) tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(FIELD_OPS_COLS, 'ui.select_firm_first') : `<tr><td colspan="${FIELD_OPS_COLS}" class="mb-empty-hint">${t('ui.select_firm_first')}</td></tr>`;
     _fieldOpsRows = [];
     _fieldOpsRenderKpi([]);
     return;
   }
-  if (tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(6) : `<tr><td colspan="6" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
+  if (tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(FIELD_OPS_COLS) : `<tr><td colspan="${FIELD_OPS_COLS}" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
   try {
     const headers = mbAuthHeaders();
     const callRpc = async (payload) => {
@@ -137,7 +181,7 @@ async function loadFieldOpsPage() {
     _fieldOpsRows = tasks.map(t => ({ ...t, appointment: apMap[t.appointment_id] || null, assignee: uMap[t.assigned_to] || null }));
     fieldOpsApplyFilters();
   } catch (e) {
-    if (tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(6, t('ui.load_failed') + ': ' + (e?.message || t('ui.unknown_error'))) : `<tr><td colspan="6" class="mb-empty-hint" style="color:var(--red);">${_foEsc(t('ui.load_failed') + ': ' + (e?.message || t('ui.unknown_error')))}</td></tr>`;
+    if (tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(FIELD_OPS_COLS, t('ui.load_failed') + ': ' + (e?.message || t('ui.unknown_error'))) : `<tr><td colspan="${FIELD_OPS_COLS}" class="mb-empty-hint" style="color:var(--red);">${_foEsc(t('ui.load_failed') + ': ' + (e?.message || t('ui.unknown_error')))}</td></tr>`;
     _fieldOpsRows = [];
     _fieldOpsRenderKpi([]);
   }

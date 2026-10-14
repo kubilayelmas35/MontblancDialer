@@ -597,7 +597,7 @@ async function loadMyMiniStats() {
     boxes.push(`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
 <div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono);">${appts}</div>
-<div style="font-size:10px;color:var(--text-3);">Termin</div>
+<div style="font-size:10px;color:var(--text-3);">${(typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Termin' : 'Randevu'}</div>
 </div>`);
     boxes.push(`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
@@ -2320,7 +2320,7 @@ function startCustEmptyMascotLoops() {
   if (dialerStatus === 'ready' || dialerStatus === 'offline') scheduleMascotEatOnce();
 }
 
-/** Aylık termin / hedefe göre büyüme × kullanıcı boyutu (ayarlar 50–150%) */
+/** Aylık randevu / hedefe göre büyüme × kullanıcı boyutu (ayarlar 50–150%) */
 function updateCustEmptyMascotScale() {
   const root = document.getElementById('cust-empty');
   const gm = document.getElementById('global-mascot');
@@ -4110,7 +4110,7 @@ function onAgentSlotSelected(slot) {
   _bookingSlot = slot;
   setOutcome('appointment');
 
-  // Termin moduna geç: müşteri kartı + bilgi sekmesi
+  // Randevu moduna geç: müşteri kartı + bilgi sekmesi
   document.getElementById('customer-card').style.display = '';
   if (currentContact) showCustomerCard(currentContact);
   if (typeof switchContactTab === 'function') switchContactTab('info');
@@ -4268,7 +4268,8 @@ function updateDailyProgress(apptCount, customGoal) {
   const pct = Math.min(100, Math.round((apptCount/goal)*100));
   el.style.width = pct + '%';
   el.style.background = pct>=100 ? 'var(--green)' : pct>=60 ? 'var(--yellow)' : 'var(--accent)';
-  if (label) label.textContent = `${apptCount}/${goal} Termin`;
+  const apptWord = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Termin' : 'Randevu';
+  if (label) label.textContent = `${apptCount}/${goal} ${apptWord}`;
   if (pct>=100 && !_confettiShown && _goalTab==='daily') { _confettiShown = true; launchConfetti(); }
 }
 

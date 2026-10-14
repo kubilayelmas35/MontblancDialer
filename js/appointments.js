@@ -778,8 +778,8 @@ function _takvimApptCardAddr(appt) {
 
 function takvimSlotDistButtons(slotId) {
   return `<div class="tak-slot-dist" onmousedown="event.stopPropagation()" style="position:absolute;bottom:2px;right:2px;z-index:22;display:flex;gap:4px;align-items:center;">
-<button type="button" class="btn-tak-dist" title="Mesafe: Dialer müşterisi → bu termin" onclick="event.stopPropagation();measureSlotDistance('${slotId}')"><i class="ph ph-map-pin" style="font-size:12px;"></i></button>
-<button type="button" class="btn-tak-dist" title="Bu terminden diğer terminlere uzaklık" onclick="event.stopPropagation();toggleTakvimDistAll('${slotId}')"><i class="ph ph-path" style="font-size:12px;"></i></button>
+<button type="button" class="btn-tak-dist" title="Mesafe: Dialer müşterisi → bu randevu" onclick="event.stopPropagation();measureSlotDistance('${slotId}')"><i class="ph ph-map-pin" style="font-size:12px;"></i></button>
+<button type="button" class="btn-tak-dist" title="Bu randevudan diğer randevulara uzaklık" onclick="event.stopPropagation();toggleTakvimDistAll('${slotId}')"><i class="ph ph-path" style="font-size:12px;"></i></button>
 </div>`;
 }
 
@@ -1059,7 +1059,7 @@ async function openTakvimSlotDetail(slot, appt) {
 ${lockInfo}
 </div>`;
     footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">Kapat</button>
-${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="deleteTakvimSlot('${slot.id}')">Sil</button>${slot.durum==='kilitli'?`<button class="btn btn-ghost" style="color:var(--yellow);" onclick="closeModal('m-takvim-detail');unlockSlot('${slot.id}')">Kilidi Kaldır</button>`:''}`:`<button class="btn btn-primary" onclick="closeModal('m-takvim-detail');lockAndBookSlot(takvimSlots.find(s=>s.id==='${slot.id}'))">Termin Al</button>`}`;
+${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="deleteTakvimSlot('${slot.id}')">Sil</button>${slot.durum==='kilitli'?`<button class="btn btn-ghost" style="color:var(--yellow);" onclick="closeModal('m-takvim-detail');unlockSlot('${slot.id}')">Kilidi Kaldır</button>`:''}`:`<button class="btn btn-primary" onclick="closeModal('m-takvim-detail');lockAndBookSlot(takvimSlots.find(s=>s.id==='${slot.id}'))">${(typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Termin nehmen' : 'Randevu al'}</button>`}`;
     return;
   }
   const statusCfg = resultMap[_normResultKey(appt.durum)] || {};
@@ -1119,7 +1119,7 @@ async function takvimQcUpdate(apptId, status, customerId) {
     }
     closeModal('m-takvim-detail');
     await loadTakvimSlots();
-    toast('Termin güncellendi ✓', 'ok');
+    toast('Randevu güncellendi ✓', 'ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
@@ -1133,12 +1133,12 @@ async function unlockSlot(slotId) {
 }
 
 async function agentCancelAppt(slotId, apptId) {
-  if (!(await mbConfirm('Terminini iptal etmek istediğine emin misin?', 'Termin İptali'))) return;
+  if (!(await mbConfirm('Randevununi iptal etmek istediğine emin misin?', 'Randevu İptali'))) return;
   try {
     await sb(`appointments?id=eq.${apptId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'iptal'})});
     await sb(`takvim_slots?id=eq.${slotId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'bos',appointment_id:null})});
     await loadTakvimSlots();
-    toast('Termin iptal edildi','ok');
+    toast('Randevu iptal edildi','ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
@@ -1156,14 +1156,14 @@ async function lockAndBookSlot(slot) {
     await sb(`takvim_slots?id=eq.${slot.id}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'kilitli',kilitli_agent_id:currentUser.id,kilitli_at:new Date().toISOString()})});
   } catch(e) { toast('Slot kilitlenemiyor: '+e.message,'err'); return; }
   _bookingSlot = slot;
-  // If we're in dialer context, show termin section instead of popup
+  // If we're in dialer context, show randevu section instead of popup
   // Agent, dialer sayfasındayken takvim overlay'inden slot seçti
   const inDialerCtx = typeof onAgentSlotSelected === 'function' && typeof dialerStatus !== 'undefined';
   if (inDialerCtx) {
     // Overlay'i kapat
     const _ov = document.getElementById('takvim-popup-overlay');
     if (_ov) _ov.classList.remove('open');
-    // Termin formunu göster (navigate gereksiz — onAgentSlotSelected UI'yı yönetiyor)
+    // Randevu formunu göster (navigate gereksiz — onAgentSlotSelected UI'yı yönetiyor)
     onAgentSlotSelected(slot);
   } else {
     openTakvimBookForm(slot);
@@ -1173,7 +1173,7 @@ async function lockAndBookSlot(slot) {
 async function openTakvimBookForm(slot) {
   const contact = currentContact||{};
   const custCtx = await _getCustomerCtx(null);
-  document.getElementById('takvim-detail-title').textContent = `Termin — ${slot.tarih} ${slot.baslangic_saat?.slice(0,5)}`;
+  document.getElementById('takvim-detail-title').textContent = `Randevu — ${slot.tarih} ${slot.baslangic_saat?.slice(0,5)}`;
   openModal('m-takvim-detail');
   document.getElementById('takvim-detail-body').innerHTML = `
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;margin-bottom:12px;font-size:12px;font-weight:600;">📅 ${slot.tarih} · ${slot.baslangic_saat?.slice(0,5)}–${slot.bitis_saat?.slice(0,5)}</div>
@@ -1233,7 +1233,7 @@ async function saveTerminFromSection() {
     if (ts) ts.style.display = 'none';
     const badge = document.getElementById('termin-slot-badge');
     if (badge) { badge.textContent = 'Slot seçilmedi'; }
-    toast('Termin kaydedildi ✓','ok');
+    toast('Randevu kaydedildi ✓','ok');
     // Finalize outcome — override to prevent re-opening overlay
     if (typeof submitOutcome === 'function' && selectedOutcome === 'appointment') {
       selectedOutcome = 'appointment_done'; // prevent overlay re-open in submitOutcome
@@ -1277,7 +1277,7 @@ async function submitTakvimBook(slotId) {
     _bookingSlot = null;
     closeModal('m-takvim-detail');
     await loadTakvimSlots();
-    toast('Termin kaydedildi ✓','ok');
+    toast('Randevu kaydedildi ✓','ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
@@ -1809,7 +1809,7 @@ function showSlotContextMenu(e, slot, appt) {
   }
   const isMySlot = slot.kilitli_agent_id === currentUser?.id;
   if (slot.durum === 'bos') {
-    if (!isAdmin) items.push({ icon:'', label:'Termin Al', onClick: () => lockAndBookSlot(_ctxSlot) });
+    if (!isAdmin) items.push({ icon:'', label:'Randevu Al', onClick: () => lockAndBookSlot(_ctxSlot) });
     if (isAdmin) items.push({ icon:'', label:'Detay', onClick: () => openTakvimSlotDetail(_ctxSlot, null) });
     if (isAdmin) items.push({ icon:'', label:'Randevu ekle', onClick: () => takvimAdminRandevuEkle(_ctxSlot) });
     if (isAdmin) items.push({ icon:'', label:'Kilitle', onClick: () => takvimAdminKilitle(_ctxSlot), yellow:true });
@@ -1824,7 +1824,7 @@ function showSlotContextMenu(e, slot, appt) {
     }
     // Agent can cancel their own lock
     if (isMySlot) {
-      items.push({ icon:'', label:'Termini İptal Et', onClick: () => unlockSlot(slot.id), danger:true });
+      items.push({ icon:'', label:'Randevuyu İptal Et', onClick: () => unlockSlot(slot.id), danger:true });
     }
   }
   const canManageAppt = ['admin','super_admin','firm_admin','qc'].includes(currentUser?.role||'');
@@ -2147,7 +2147,7 @@ async function toggleTakvimDistAll(slotId) {
   _takvimMeasureCache = {};
   _takvimDistAllOriginId = slotId;
   renderTakvimSlots();
-  toast('Diğer terminlere uzaklık hesaplanıyor…', 'ok');
+  toast('Diğer randevulara uzaklık hesaplanıyor…', 'ok');
   const others = takvimSlots.filter((s) => s.id !== slotId && s.durum === 'dolu' && s.appointment_id);
   for (const s of others) {
     const da = takvimAppts.find((a) => a.id === s.appointment_id);
@@ -2224,7 +2224,7 @@ function openTakvimPlzMeasureModal() {
     '<input type="text" class="form-input" id="takvim-plz-measure-inp" placeholder="örn. 80331" value="' +
     String(cur).replace(/"/g, '') +
     '"></div>' +
-    '<div style="font-size:11px;color:var(--text-3);">Girilen PLZ\'den takvimdeki tüm terminlere (PLZ bilgisi olan) rota mesafesi yazılır.</div>' +
+    '<div style="font-size:11px;color:var(--text-3);">Girilen PLZ\'den takvimdeki tüm randevulara (PLZ bilgisi olan) rota mesafesi yazılır.</div>' +
     '</div>' +
     '<div class="modal-footer">' +
     '<button type="button" class="btn btn-ghost" onclick="clearTakvimPlzMeasure()">Temizle</button>' +

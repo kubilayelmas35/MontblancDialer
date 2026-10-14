@@ -255,7 +255,7 @@ async function loadAppointmentResultsSettings() {
   if (typeof loadDefaultTakvimFirmCard === 'function') await loadDefaultTakvimFirmCard();
   const fid = getActiveFirmId() || currentUser?.firm_id;
   if (!fid) {
-    wrap.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Termin sonuçlarını görmek için firma seçin.</div>`;
+    wrap.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Randevu sonuçlarını görmek için firma seçin.</div>`;
     return;
   }
   const rows = await loadFirmAppointmentResults(fid, true);
@@ -345,7 +345,7 @@ async function saveAppointmentResultsSettings() {
       body: JSON.stringify({ settings: { ...existing, appointment_results: parsed } }),
     });
     window._apptResultsByFirm[fid] = parsed;
-    toast('Termin sonuçları kaydedildi', 'ok');
+    toast('Randevu sonuçları kaydedildi', 'ok');
   } catch (e) {
     toast('Kaydetme hatası: ' + e.message, 'err');
   }
@@ -570,7 +570,7 @@ window.addEventListener('message', (e) => {
 if (!e.data?.type) return;
 if (e.data.type === 'TAKVIM_BOOKED') {
 closeTakvimPopup();
-toast('🗓️ Termin takvime kaydedildi ✓', 'ok');
+toast('🗓️ Randevu takvime kaydedildi ✓', 'ok');
 if (currentContact && dialerStatus === 'on_call') {
 selectedOutcome = 'appointment';
 const map = {appointment:'.ob-appointment'};

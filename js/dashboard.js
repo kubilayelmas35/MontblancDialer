@@ -161,21 +161,21 @@ function _dashUpdateCardTitles(rangeKey) {
   if (hourlyTitle && hourlySub) {
     if (rangeKey === 'today') {
       hourlyTitle.textContent = isTr ? 'Bugün — saatlik analiz' : 'Heute — Stundenanalyse';
-      hourlySub.textContent = isTr ? 'Çağrı hacmi ve termin (saat başı)' : 'Anrufvolumen und Termine pro Stunde';
+      hourlySub.textContent = isTr ? 'Çağrı hacmi ve randevu (saat başı)' : 'Anrufvolumen und Termine pro Stunde';
     } else if (rangeKey === 'week') {
       hourlyTitle.textContent = isTr ? 'Bu hafta — günlük analiz' : 'Diese Woche — Tagesanalyse';
-      hourlySub.textContent = isTr ? 'Günlük çağrı ve termin' : 'Anrufe und Termine pro Tag';
+      hourlySub.textContent = isTr ? 'Günlük çağrı ve randevu' : 'Anrufe und Termine pro Tag';
     } else if (rangeKey === 'month') {
       hourlyTitle.textContent = isTr ? 'Bu ay — günlük analiz' : 'Dieser Monat — Tagesanalyse';
-      hourlySub.textContent = isTr ? 'Günlük çağrı ve termin' : 'Anrufe und Termine pro Tag';
+      hourlySub.textContent = isTr ? 'Günlük çağrı ve randevu' : 'Anrufe und Termine pro Tag';
     } else {
       hourlyTitle.textContent = isTr ? 'Son 24 ay — aylık analiz' : 'Letzte 24 Monate';
-      hourlySub.textContent = isTr ? 'Aylık çağrı ve termin' : 'Monatliche Anrufe und Termine';
+      hourlySub.textContent = isTr ? 'Aylık çağrı ve randevu' : 'Monatliche Anrufe und Termine';
     }
   }
   if (outTitle && outSub) {
-    outTitle.textContent = isTr ? 'Termin sonuçları' : 'Termin-Ergebnisse';
-    outSub.textContent = isTr ? 'Randevu durumları (termin tarihine göre)' : 'Terminstatus nach Terminzeit';
+    outTitle.textContent = isTr ? 'Randevu sonuçları' : 'Termin-Ergebnisse';
+    outSub.textContent = isTr ? 'Randevu durumları (randevu tarihine göre)' : 'Terminstatus nach Terminzeit';
   }
   if (trendTitle && trendSub) {
     if (rangeKey === 'today') {
@@ -855,7 +855,7 @@ const recHtmlFor = (l, scope) => {
   return '<span style="color:var(--text-3);font-size:11px;">—</span>';
 };
 const OM={
-appointment:'<span class="badge badge-green">Termin</span>',
+appointment:'<span class="badge badge-green">Randevu</span>',
 negative:'<span class="badge badge-red">Olumsuz</span>',
 callback:'<span class="badge badge-yellow">Geri Ara</span>',
 voicemail:'<span class="badge badge-gray">Telesekreter</span>',
@@ -970,8 +970,8 @@ const recHtmlFor = (l) => {
   return '<span style="color:var(--text-3);font-size:11px;">—</span>';
 };
 const OM={
-  appointment:'<span class="badge badge-green">Termin</span>',
-  appointment_done:'<span class="badge badge-green">Termin</span>',
+  appointment:'<span class="badge badge-green">Randevu</span>',
+  appointment_done:'<span class="badge badge-green">Randevu</span>',
   negative:'<span class="badge badge-red">Olumsuz</span>',
   callback:'<span class="badge badge-yellow">Geri Ara</span>',
   voicemail:'<span class="badge badge-gray">Telesekreter</span>',

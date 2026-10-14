@@ -165,7 +165,7 @@ function _aspRenderSalaryTierTable(success, tiers, rules) {
     const rng = `${t.min}–${t.max === 999999 ? '∞' : t.max}`;
     return `<tr style="${active ? 'background:var(--accent-soft);' : ''}"><td class="td-mono">${_uiEsc(rng)}</td><td><strong>${_aspFmt(amt)} ${_uiEsc(cur)}</strong> net baz</td><td>${active ? '<span class="badge badge-green">Bu aralıktasınız</span>' : '—'}</td></tr>`;
   }).join('');
-  return `<div class="tbl-wrap" style="margin-top:8px;"><table style="font-size:12px;min-width:100%;"><thead><tr><th>Başarılı termin aralığı</th><th>Net baz maaş</th><th>Durum</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<div class="tbl-wrap" style="margin-top:8px;"><table style="font-size:12px;min-width:100%;"><thead><tr><th>Başarılı randevu aralığı</th><th>Net baz maaş</th><th>Durum</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function _aspRenderBonusTierTable(success, tiers, rules) {
@@ -178,7 +178,7 @@ function _aspRenderBonusTierTable(success, tiers, rules) {
   }
   const rows = norm.map((t) => {
     const rng = `${t.min}–${t.max === 999999 ? '∞' : t.max}`;
-    const tip = t.calc_type === 'per_appointment' ? 'Termin başına' : 'Sabit (kademeye girince)';
+    const tip = t.calc_type === 'per_appointment' ? 'Randevu başına' : 'Sabit (kademeye girince)';
     const ccy = (t.currency || ruleCcy).toUpperCase();
     const showAmt = Number(t.amount || 0);
     const inPay = _aspConvertCurrency(showAmt, ccy, cur, rate);
@@ -190,15 +190,15 @@ function _aspRenderBonusTierTable(success, tiers, rules) {
     if (active) {
       if (t.calc_type === 'per_appointment') {
         const unit = countInTier > 0 ? portion / countInTier : inPay;
-        buDonem = `${countInTier} termin × ${_aspFmt(unit)} ${cur} = ${_aspFmt(portion)} ${cur}`;
+        buDonem = `${countInTier} randevu × ${_aspFmt(unit)} ${cur} = ${_aspFmt(portion)} ${cur}`;
       } else {
         buDonem = `Sabit prim: ${_aspFmt(portion)} ${cur}`;
       }
     }
     return `<tr style="${active ? 'background:var(--accent-soft);' : ''}"><td class="td-mono">${_uiEsc(rng)}</td><td>${disp}</td><td>${_uiEsc(tip)}</td><td>${_uiEsc(buDonem)}</td></tr>`;
   }).join('');
-  return `<div class="tbl-wrap" style="margin-top:8px;"><table style="font-size:12px;min-width:100%;"><thead><tr><th>Başarılı termin</th><th>Tutar</th><th>Hesap tipi</th><th>Bu ay sizin durumunuz</th></tr></thead><tbody>${rows}</tbody></table></div>
-<p style="font-size:11px;color:var(--text-3);margin:10px 0 0;line-height:1.45;"><strong>Termin başına:</strong> Örneğin 21–25 aralığı ve 46 ${cur} ise, bu aralıktaki her başarılı termin için 46 ${cur} esas alınır (bu ay kaç başarınız bu aralığa düşüyorsa çarpılır). <strong>Sabit:</strong> Başarılı sayınız aralığa girince tek seferde gösterilen prim.</p>`;
+  return `<div class="tbl-wrap" style="margin-top:8px;"><table style="font-size:12px;min-width:100%;"><thead><tr><th>Başarılı randevu</th><th>Tutar</th><th>Hesap tipi</th><th>Bu ay sizin durumunuz</th></tr></thead><tbody>${rows}</tbody></table></div>
+<p style="font-size:11px;color:var(--text-3);margin:10px 0 0;line-height:1.45;"><strong>Randevu başına:</strong> Örneğin 21–25 aralığı ve 46 ${cur} ise, bu aralıktaki her başarılı randevu için 46 ${cur} esas alınır (bu ay kaç başarınız bu aralığa düşüyorsa çarpılır). <strong>Sabit:</strong> Başarılı sayınız aralığa girince tek seferde gösterilen prim.</p>`;
 }
 
 function loadAgentSalaryDash(fid, ym, rules, payrollRow, bonusTiersRaw, salaryTiersRaw) {
@@ -219,7 +219,7 @@ function loadAgentSalaryDash(fid, ym, rules, payrollRow, bonusTiersRaw, salaryTi
   const manLbl = man >= 0 ? `+${_aspFmt(man)}` : _aspFmt(man);
 
   const noteNoTermin = noTermin
-    ? `<div class="card" style="padding:12px;margin-bottom:12px;background:var(--bg-3);border:1px solid var(--border);font-size:13px;">Termin primi hesabı sizin için kapalı (sabit personel). Aşağıdaki kademe tabloları yalnızca firma politikasını gösterir.</div>`
+    ? `<div class="card" style="padding:12px;margin-bottom:12px;background:var(--bg-3);border:1px solid var(--border);font-size:13px;">Randevu primi hesabı sizin için kapalı (sabit personel). Aşağıdaki kademe tabloları yalnızca firma politikasını gösterir.</div>`
     : '';
 
   host.innerHTML = `<div class="card" style="padding:16px;margin-bottom:14px;">
@@ -233,7 +233,7 @@ ${noteNoTermin}
 <div class="stat-card"><div class="stat-lbl">Geç kalma / izin kes.</div><div class="stat-val">${_aspFmt(Number(pr.latePenalty || 0) + Number(pr.leavePenalty || 0))} ${cur}</div></div>
 <div class="stat-card stat-blue"><div class="stat-lbl">Hakediş (${cur})</div><div class="stat-val">${_aspFmt(pr.netPayable)}</div></div>
 <div class="stat-card"><div class="stat-lbl">Ödenen / Kalan</div><div class="stat-val">${_aspFmt(pr.paidAmount)} / ${_aspFmt(pr.remaining)}</div></div>
-<div class="stat-card"><div class="stat-lbl">Başarılı termin</div><div class="stat-val">${noTermin ? '—' : success}</div></div>
+<div class="stat-card"><div class="stat-lbl">Başarılı randevu</div><div class="stat-val">${noTermin ? '—' : success}</div></div>
 </div>
 <div class="form-label" style="margin-bottom:6px;">Prim kademeleri (size uygulanan tarife)</div>
 ${_aspRenderBonusTierTable(noTermin ? 0 : success, bonusTiersRaw, rules)}
@@ -261,18 +261,18 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const apptMode = window._aspApptMode === 'created' ? 'created' : 'termin';
   host.innerHTML = `<div class="card" style="padding:16px;margin-bottom:14px;">
 <div class="card-title" style="margin-bottom:4px;"><i class="ph ph-chart-line-up"></i> Performansım</div>
-<div class="card-sub" style="margin-bottom:10px;">Seçili ay: <strong id="asp-ym-label"></strong> · Termin ve çağrı özeti (maaş için menüden <strong>Maaşım</strong>)</div>
+<div class="card-sub" style="margin-bottom:10px;">Seçili ay: <strong id="asp-ym-label"></strong> · Randevu ve çağrı özeti (maaş için menüden <strong>Maaşım</strong>)</div>
 <div style="display:flex;flex-wrap:wrap;gap:12px 18px;margin-bottom:12px;font-size:12px;align-items:center;">
 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
 <input type="radio" name="asp-appt-mode" value="termin" ${apptMode === 'termin' ? 'checked' : ''} onchange="window._aspApptMode='termin';loadPerformansimPage();">
-<span data-tr="Bu ay termin tarihli" data-de="Termin im Monat">Bu ay termin tarihli</span>
+<span data-tr="Bu ay randevu tarihli" data-de="Termin im Monat">Bu ay randevu tarihli</span>
 </label>
 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
 <input type="radio" name="asp-appt-mode" value="created" ${apptMode === 'created' ? 'checked' : ''} onchange="window._aspApptMode='created';loadPerformansimPage();">
 <span data-tr="Bu ay kaydettiğim (oluşturma)" data-de="Diesen Monat erfasst">Bu ay kaydettiğim (oluşturma)</span>
 </label>
 </div>
-<p style="font-size:11px;color:var(--text-3);margin:0 0 12px;line-height:1.4;" data-tr="Maaşta genelde «bu ay oluşturduğun» randevular sayılır; termin Nisan’da olsa bile Mayıs’ta kayıt açtıysanız Mayıs performansına düşer." data-de="Für die Abrechnung zählt oft das Erfassungsdatum; ein April-Termin kann in Mai erfasst sein.">Maaşta genelde «bu ay oluşturduğun» randevular sayılır; termin Nisan’da olsa bile Mayıs’ta kayıt açtıysanız Mayıs performansına düşer.</p>
+<p style="font-size:11px;color:var(--text-3);margin:0 0 12px;line-height:1.4;" data-tr="Maaşta genelde «bu ay oluşturduğun» randevular sayılır; randevu Nisan’da olsa bile Mayıs’ta kayıt açtıysanız Mayıs performansına düşer." data-de="Für die Abrechnung zählt oft das Erfassungsdatum; ein April-Termin kann in Mai erfasst sein.">Maaşta genelde «bu ay oluşturduğun» randevular sayılır; randevu Nisan’da olsa bile Mayıs’ta kayıt açtıysanız Mayıs performansına düşer.</p>
 <div id="asp-body" style="color:var(--text-3);font-size:13px;">Yükleniyor…</div>
 </div>`;
   document.getElementById('asp-ym-label').textContent = ym;
@@ -317,15 +317,15 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const body = document.getElementById('asp-body');
   body.innerHTML = `
 <div class="stats-grid" style="margin-bottom:14px;">
-<div class="stat-card"><div class="stat-lbl">${apptMode === 'created' ? 'Randevu (oluşturma ayı)' : 'Termin (tarih ayı)'}</div><div class="stat-val">${tot}</div><div class="stat-meta">${ok} başarılı · oran %${rate}</div></div>
+<div class="stat-card"><div class="stat-lbl">${apptMode === 'created' ? 'Randevu (oluşturma ayı)' : 'Randevu (tarih ayı)'}</div><div class="stat-val">${tot}</div><div class="stat-meta">${ok} başarılı · oran %${rate}</div></div>
 <div class="stat-card stat-green"><div class="stat-lbl">Aramalar</div><div class="stat-val">${cTot}</div></div>
-<div class="stat-card"><div class="stat-lbl">Arama → Termin</div><div class="stat-val">${cAp}</div></div>
+<div class="stat-card"><div class="stat-lbl">Arama → Randevu</div><div class="stat-val">${cAp}</div></div>
 <div class="stat-card"><div class="stat-lbl">Dönüşüm</div><div class="stat-val">${conv}%</div></div>
 <div class="stat-card"><div class="stat-lbl">Ort. görüşme</div><div class="stat-val">${mm}:${ss}</div></div>
 </div>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:14px;">
 <div style="border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg-2);">
-<div style="font-weight:800;font-size:13px;margin-bottom:8px;">Termin dağılımı</div>
+<div style="font-weight:800;font-size:13px;margin-bottom:8px;">Randevu dağılımı</div>
 <div style="height:200px;position:relative;"><canvas id="asp-chart-pie"></canvas></div>
 </div>
 <div style="border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg-2);">
@@ -335,13 +335,13 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
 </div>
 </div>
 <div style="border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg-2);margin-bottom:14px;">
-<div style="font-weight:800;font-size:13px;margin-bottom:8px;">${apptMode === 'created' ? 'Günlük (oluşturma tarihi)' : 'Günlük terminler'}</div>
+<div style="font-weight:800;font-size:13px;margin-bottom:8px;">${apptMode === 'created' ? 'Günlük (oluşturma tarihi)' : 'Günlük randevular'}</div>
 <div style="height:240px;position:relative;"><canvas id="asp-chart-day"></canvas></div>
 </div>
 <div style="margin-top:14px;">
-<div class="form-label" style="margin-bottom:6px;">Son terminler</div>
+<div class="form-label" style="margin-bottom:6px;">Son randevular</div>
 <div class="tbl-wrap" style="max-height:260px;">
-<table style="font-size:12px;min-width:520px;"><thead><tr><th>${apptMode === 'created' ? 'Kayıt · termin' : 'Tarih'}</th><th>Müşteri</th><th>Durum</th><th>PLZ</th></tr></thead>
+<table style="font-size:12px;min-width:520px;"><thead><tr><th>${apptMode === 'created' ? 'Kayıt · randevu' : 'Tarih'}</th><th>Müşteri</th><th>Durum</th><th>PLZ</th></tr></thead>
 <tbody id="asp-tbody-ap"></tbody>
 </table>
 </div>
@@ -356,7 +356,7 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
 </div>`;
 
   const loc = currentLang === 'de' ? 'de-DE' : 'tr-TR';
-  const om = { appointment: 'Termin', appointment_done: 'Termin', negative: 'Olumsuz', callback: 'Geri Ara', voicemail: 'VM', no_answer: 'Yok', dnc: 'DNC' };
+  const om = { appointment: 'Randevu', appointment_done: 'Randevu', negative: 'Olumsuz', callback: 'Geri Ara', voicemail: 'VM', no_answer: 'Yok', dnc: 'DNC' };
 
   const tbAp = document.getElementById('asp-tbody-ap');
   if (tbAp) {
@@ -377,7 +377,7 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
           : '—';
       const dateCell =
         apptMode === 'created'
-          ? `<div class="td-mono">${dcs}</div><div style="font-size:10px;color:var(--text-3);margin-top:2px;">Termin: ${_uiEsc(ds)}</div>`
+          ? `<div class="td-mono">${dcs}</div><div style="font-size:10px;color:var(--text-3);margin-top:2px;">Randevu: ${_uiEsc(ds)}</div>`
           : `<span class="td-mono">${ds}</span>`;
       const st = _aspApptBucket(a.durum);
       const badge = st === 'ok' ? 'badge-green' : st === 'pend' ? 'badge-yellow' : st === 'qc' ? '' : 'badge-red';

@@ -811,9 +811,35 @@ function calcJobMatchScore(post, viewerFirmId) {
   return Math.max(0, Math.min(100, scoreBase + byCountry + byCity + quality - (stats.rejected * 2)));
 }
 
+function renderJobMarketSummary() {
+  const el = document.getElementById('job-market-summary');
+  if (!el) return;
+  const de = (typeof currentLang !== 'undefined' && currentLang === 'de');
+  const posts = _jobPosts || [];
+  const open = posts.filter((p) => ['published', 'in_progress'].includes(p.status)).length;
+  const apps = (_jobPostSubs || []).length;
+  const slots = (_jobPostSlots || []).length;
+  const byCur = {};
+  posts.forEach((p) => {
+    const c = String(p.currency || 'EUR').toUpperCase();
+    byCur[c] = (byCur[c] || 0) + Number(p.budget || 0);
+  });
+  const mix = Object.keys(byCur).length
+    ? Object.entries(byCur).map(([c, v]) => (typeof formatMoney === 'function' ? `${formatMoney(v, c)} ${c}` : `${Number(v).toFixed(2)} ${c}`)).join(' · ')
+    : '—';
+  const cells = [
+    [de ? 'Offene Anzeigen' : 'Açık ilan', String(open)],
+    [de ? 'Lieferungen' : 'Teslim', String(apps)],
+    [de ? 'Zeitfenster' : 'Slot', String(slots)],
+    [de ? 'Budget' : 'Bütçe', mix],
+  ];
+  el.innerHTML = cells.map(([lbl, val]) => `<div class="jm-sum-card"><div class="jm-sum-lbl">${_jmEsc(lbl)}</div><div class="jm-sum-val">${_jmEsc(val)}</div></div>`).join('');
+}
+
 function renderJobPostList() {
   const list = document.getElementById('job-market-list');
   if (!list) return;
+  renderJobMarketSummary();
   const q = String(document.getElementById('jm-search')?.value || '').trim().toLowerCase();
   const fid = getActiveFirmId() || currentUser?.firm_id;
    let items = (_jobPosts || []).filter((p) => {
@@ -842,7 +868,8 @@ function renderJobPostList() {
     items = items.filter((p) => Number(p.budget || 0) >= 500);
   }
   if (!items.length) {
-    list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:10px;">Bu görünüm için ilan yok</div>`;
+    const de = (typeof currentLang !== 'undefined' && currentLang === 'de');
+    list.innerHTML = `<div class="jm-empty">${de ? 'In dieser Ansicht keine Anzeigen.' : 'Bu görünüm için ilan yok.'}</div>`;
     syncJobMarketFilterUi();
     return;
   }
@@ -879,7 +906,7 @@ function renderJobPostList() {
 <div>
 <div style="font-size:13px;font-weight:800;">${_jmEsc(p.title || 'İş ilanı')}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_jmEsc(p.job_type || 'custom')}${apptCat ? ` · <span style="color:var(--text-2);font-weight:600;">${_jmEsc(apptCat)}</span>` : ''} · ${_jmEsc(p.city || 'Bölge serbest')} · Son: ${deadline}</div>
-<div style="font-size:11px;color:var(--text-3);margin-top:2px;">İşlem başı: <b>${(typeof formatMoney === 'function') ? formatMoney(Number(p.unit_price || p.budget || 0), p.currency || 'EUR') : `${Number(p.unit_price || p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'EUR')}`}</b> · Adet: <b>${Number(p.quantity || slots.length || 1)}</b> · Toplam: <b>${(typeof formatMoney === 'function') ? formatMoney(Number(p.budget || 0), p.currency || 'EUR') : `${Number(p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'EUR')}`}</b> · Çalışan: <b>${workingCnt}</b> · Eşleşme: <b>${score}</b>/100</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:2px;">İşlem başı: <b>${(typeof formatMoney === 'function') ? formatMoney(Number(p.unit_price || p.budget || 0), p.currency || 'EUR') : Number(p.unit_price || p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'EUR')}</b> · Adet: <b>${Number(p.quantity || slots.length || 1)}</b> · Toplam: <b>${(typeof formatMoney === 'function') ? formatMoney(Number(p.budget || 0), p.currency || 'EUR') : Number(p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'EUR')}</b> · Çalışan: <b>${workingCnt}</b> · Eşleşme: <b>${score}</b>/100</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Bölge: <b>${_jmEsc(p.postal_code || '-')}</b> · Radius: <b>${Number(geo.radius_km || 0).toFixed(1)} km</b></div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Geri çekme: <b>${p.retraction_deadline_at ? new Date(p.retraction_deadline_at).toLocaleString('tr-TR') : 'otomatik kural'}</b>${retractHint}</div>
 </div>

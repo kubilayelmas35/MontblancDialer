@@ -583,7 +583,7 @@ function exportTerminXlsx() {
     }
     const pv = r.interesse_an_pv === true ? t('ui.yes') : r.interesse_an_pv === false ? t('ui.no') : '';
     return {
-      'Termin': `${tDate} ${tTime}`.trim(),
+      'Randevu': `${tDate} ${tTime}`.trim(),
       'Ad Soyad': e.nachname || '',
       'Sokak': r.strasse || '',
       'PLZ': r.plz || '',
