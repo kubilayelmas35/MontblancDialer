@@ -1472,7 +1472,34 @@ tr.live-line td {
 /* ============================================================
 CAMPAIGNS
 ============================================================ */
+.camp-view-seg {
+  display:inline-flex; padding:2px; gap:2px;
+  border:1px solid var(--border); border-radius:999px; background:var(--bg-3);
+}
+.camp-view-btn {
+  border:0; background:transparent; color:var(--text-2);
+  font-size:12px; font-weight:700; padding:5px 11px; border-radius:999px; cursor:pointer;
+}
+.camp-view-btn.is-on { background:var(--accent); color:#fff; }
 .camp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
+.camp-grid--rows { display:block; }
+.camp-rows-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-2); }
+.camp-rows { width:100%; border-collapse:collapse; font-size:12px; }
+.camp-rows th {
+  text-align:left; font-size:11px; font-weight:700; color:var(--text-3);
+  padding:8px 10px; border-bottom:1px solid var(--border); white-space:nowrap; background:var(--bg-3);
+}
+.camp-rows td { padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:middle; white-space:nowrap; }
+.camp-rows tr:last-child td { border-bottom:0; }
+.camp-row { cursor:pointer; }
+.camp-row:hover td { background:var(--bg-3); }
+.camp-row.sel td { background:var(--accent-soft); }
+.camp-row.sel td:first-child { box-shadow:inset 3px 0 0 var(--accent); }
+.camp-row-name { font-weight:800; }
+.camp-row-desc { display:block; max-width:240px; overflow:hidden; text-overflow:ellipsis; font-size:11px; font-weight:500; color:var(--text-3); }
+.camp-rows .num { font-family:var(--mono); font-weight:700; text-align:right; }
+.camp-rows th.num { text-align:right; }
+.camp-row-actions { display:flex; gap:4px; justify-content:flex-end; }
 .camp-card {
 background:var(--bg-2); border:1px solid var(--border);
 border-radius:var(--radius); padding:18px;

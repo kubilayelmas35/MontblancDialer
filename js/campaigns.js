@@ -70,19 +70,73 @@ if (typeof updateTopbarStats === 'function') updateTopbarStats();
 } catch(e){ toast(campT('camp.load.err','Kampanyalar yüklenemedi: ')+e.message,'err'); console.error(e); }
 }
 
+function campViewMode() {
+  try { return localStorage.getItem('mb-camp-view') === 'rows' ? 'rows' : 'cards'; }
+  catch (_) { return 'cards'; }
+}
+
+function paintCampViewToggle() {
+  const mode = campViewMode();
+  document.getElementById('camp-view-cards')?.classList.toggle('is-on', mode === 'cards');
+  document.getElementById('camp-view-rows')?.classList.toggle('is-on', mode === 'rows');
+  document.getElementById('camp-grid')?.classList.toggle('camp-grid--rows', mode === 'rows');
+}
+
+function setCampView(mode) {
+  try { localStorage.setItem('mb-camp-view', mode === 'rows' ? 'rows' : 'cards'); } catch (_) {}
+  paintCampViewToggle();
+  renderCampGrid();
+}
+
+function campStats(c) {
+  const qs = c?.queues || [];
+  const total = qs.reduce((s, q) => s + (q.total_contacts || 0), 0);
+  const dialed = qs.reduce((s, q) => s + (q.dialed_count || 0), 0);
+  return {
+    qs,
+    total,
+    dialed,
+    pct: total > 0 ? Math.round(dialed / total * 100) : 0,
+    agents: (c?._people || c?.agent_campaigns || []).length,
+  };
+}
+
+function campCreatedLabel(iso) {
+  if (!iso) return '—';
+  if (typeof mbFormatWall === 'function') {
+    return mbFormatWall(iso, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+  return String(iso).slice(0, 16).replace('T', ' ');
+}
+
+function paintCampSelection() {
+  const open = document.getElementById('camp-detail')?.style.display === 'block';
+  document.querySelectorAll('.camp-card, .camp-row').forEach((el) => {
+    el.classList.toggle('sel', !!(open && currentCampId && el.dataset.campId === currentCampId));
+  });
+}
+
 function renderCampGrid() {
 const grid = document.getElementById('camp-grid');
+if (!grid) return;
+paintCampViewToggle();
 if (!campaigns.length) {
 grid.innerHTML = `<div style="color:var(--text-3);padding:32px;text-align:center;grid-column:1/-1;font-size:13px;">${campT('camp.empty','Henüz kampanya yok')}</div>`;
 return;
 }
 const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+const detailOpen = document.getElementById('camp-detail')?.style.display === 'block';
+if (campViewMode() === 'rows') {
+  grid.innerHTML = renderCampRows(esc, detailOpen);
+  return;
+}
 grid.innerHTML = campaigns.map(c=>{
-const qs = c.queues||[];
-const tot= qs.reduce((s,q)=>s+(q.total_contacts||0),0);
-const dia= qs.reduce((s,q)=>s+(q.dialed_count||0),0);
-const pct= tot>0?Math.round(dia/tot*100):0;
-const ags= (c._people || c.agent_campaigns || []).length;
+const st = campStats(c);
+const qs = st.qs;
+const tot = st.total;
+const dia = st.dialed;
+const pct = st.pct;
+const ags = st.agents;
 const sb2= c.status==='active'
 ?`<span class="badge badge-green">${esc(campT('camp.status.active','Aktif'))}</span>`
 :c.status==='paused'
@@ -97,7 +151,8 @@ const descLine = String(c.description || '').trim();
 const pauseLabel = c.status==='active'
   ? `<i class="ph ph-pause"></i> ${esc(campT('camp.pause','Duraklat'))}`
   : `<i class="ph ph-play"></i> ${esc(campT('camp.start','Başlat'))}`;
-return `<div class="camp-card" onclick="openCampDetail('${c.id}')">
+const sel = detailOpen && currentCampId === c.id ? ' sel' : '';
+return `<div class="camp-card${sel}" data-camp-id="${esc(c.id)}" onclick="openCampDetail('${c.id}')">
 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
 <div><div class="camp-name">${esc(c.name)}</div><div class="camp-did">${esc(didText)}</div>${descLine ? `<div class="queue-sub">${esc(descLine)}</div>` : ''}</div>
 <div style="display:flex;gap:12px;flex-shrink:0;align-items:center;" onclick="event.stopPropagation()">
@@ -128,11 +183,62 @@ ${pauseLabel}
 }).join('');
 }
 
+function renderCampRows(esc, detailOpen) {
+  const cols = [
+    campT('camp.col.name', 'Ad'),
+    campT('camp.queue.status', 'Durum'),
+    campT('camp.col.did', 'Arayan numara'),
+    campT('camp.kpi.queues', 'Kuyruk'),
+    campT('camp.kpi.total', 'Toplam'),
+    campT('camp.kpi.dialed', 'Aranan'),
+    campT('camp.kpi.progress', 'İlerleme'),
+    campT('camp.speed', 'Hız'),
+    campT('camp.kpi.agent', 'Temsilci'),
+    campT('camp.col.created', 'Oluşturma'),
+    '',
+  ];
+  const numIdx = new Set([3, 4, 5, 6, 7, 8]);
+  const body = campaigns.map((c) => {
+    const st = campStats(c);
+    const didRaw = String(c.telnyx_did || '').trim();
+    const didBad = didRaw && typeof mbIsE164 === 'function' && !mbIsE164(didRaw);
+    const didText = didRaw || campT('camp.did.none', 'DID atanmadı');
+    const desc = String(c.description || '').trim();
+    const status = c.status === 'active'
+      ? `<span class="badge badge-green">${esc(campT('camp.status.active', 'Aktif'))}</span>`
+      : c.status === 'paused'
+        ? `<span class="badge badge-yellow">${esc(campT('camp.status.paused', 'Duraklatıldı'))}</span>`
+        : `<span class="badge badge-gray">${esc(campT('camp.status.done', 'Tamamlandı'))}</span>`;
+    const pauseTitle = c.status === 'active' ? campT('camp.pause', 'Duraklat') : campT('camp.start', 'Başlat');
+    const pauseIcon = c.status === 'active' ? 'ph-pause' : 'ph-play';
+    const sel = detailOpen && currentCampId === c.id ? ' sel' : '';
+    return `<tr class="camp-row${sel}" data-camp-id="${esc(c.id)}" onclick="openCampDetail('${c.id}')">
+<td><span class="camp-row-name">${esc(c.name)}</span>${desc ? `<span class="camp-row-desc">${esc(desc)}</span>` : ''}</td>
+<td>${status}</td>
+<td class="num" style="text-align:left;color:${didBad ? 'var(--yellow)' : 'inherit'};" title="${esc(didBad ? campT('camp.did.invalid', 'DID geçersiz') : didText)}">${esc(didText)}</td>
+<td class="num">${st.qs.length}</td>
+<td class="num">${st.total.toLocaleString()}</td>
+<td class="num">${st.dialed.toLocaleString()}</td>
+<td class="num">${st.pct}%</td>
+<td class="num">${esc(c.dial_speed)} ${esc(campT('camp.speed.unit', 'hat'))}</td>
+<td class="num">${st.agents}</td>
+<td>${esc(campCreatedLabel(c.created_at))}</td>
+<td onclick="event.stopPropagation()"><div class="camp-row-actions">
+<button type="button" class="icon-btn" title="${esc(pauseTitle)}" aria-label="${esc(pauseTitle)}" onclick="toggleCampStatus('${c.id}','${c.status}')"><i class="ph ${pauseIcon}"></i></button>
+<button type="button" class="icon-btn" title="${esc(campT('camp.field.title', 'Alan Ayarları'))}" aria-label="${esc(campT('camp.field.title', 'Alan Ayarları'))}" onclick="openCampFieldSettings('${c.id}')"><i class="ph ph-gear"></i></button>
+<button type="button" class="icon-btn" title="${esc(campT('camp.delete', 'Sil'))}" aria-label="${esc(campT('camp.delete', 'Sil'))}" style="border-color:var(--red);color:var(--red);" onclick="deleteCampaign('${c.id}')"><i class="ph ph-trash"></i></button>
+</div></td>
+</tr>`;
+  }).join('');
+  return `<div class="camp-rows-wrap"><table class="camp-rows"><thead><tr>${cols.map((label, i) => `<th class="${numIdx.has(i) ? 'num' : ''}">${esc(label)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
 function openCampDetail(id, opts) {
 currentCampId = id;
 const c = campaigns.find(x=>x.id===id);
 if (!c) return;
 document.getElementById('camp-detail').style.display = 'block';
+paintCampSelection();
 document.getElementById('cd-name').textContent = c.name;
 const didRaw = String(c.telnyx_did || '').trim();
 const didBad = didRaw && typeof mbIsE164 === 'function' && !mbIsE164(didRaw);
@@ -180,6 +286,7 @@ else {
 
 function closeCampDetail() {
 document.getElementById('camp-detail').style.display='none'; currentCampId=null;
+paintCampSelection();
 }
 
 function fillCampDidList() {
@@ -1847,3 +1954,5 @@ async function deleteQueuePerson(id) {
     await refreshQueuePeople();
   } catch (e) { toast(e.message, 'err'); }
 }
+
+paintCampViewToggle();
