@@ -5436,6 +5436,11 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   .team-chat-fab { width: 44px; height: 44px; }
 }
 [data-theme="dark"] .team-chat-fab-inner { color: #e8eaf2; }
+[data-theme="dark"] .fluid-aurora--chat-fab::before,
+[data-theme="dark"] .fluid-aurora--chat-fab::after {
+  opacity: 0.28;
+  filter: brightness(0.28) saturate(0.4);
+}
 .team-chat-badge {
   position: absolute;
   top: 6px;

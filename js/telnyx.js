@@ -159,6 +159,7 @@ el.title = granted
 }
 
 function updateConnectionStatus(status) {
+window._mbConnStatus = status;
 const el = document.getElementById('rtc-status');
 if (!el) return;
 const map = {

@@ -3166,7 +3166,7 @@ function refreshDialerHealthPanel() {
     const whyKey =
       h.code === 'DIAL-CAMP' ? 'dial.why.camp' :
       h.code === 'DIAL-ACTIVE' ? 'dial.why.active' :
-      h.code === 'DIAL-SIP' ? 'dial.why.sip_long' :
+      h.code === 'DIAL-SIP' ? 'dial.why.sip_short' :
       h.code === 'DIAL-HOURS' ? 'dial.why.hours' :
       'dial.why.mic';
     const w = typeof tPair === 'function' ? tPair(whyKey) : { tr: '', de: '' };
@@ -4349,6 +4349,14 @@ document.addEventListener('keydown', e => {
     case 'Digit4': if (dialerStatus==='wrapping'||dialerStatus==='on_call') { setOutcome('no_answer'); e.preventDefault(); } break;
     case 'KeyS': e.preventDefault(); if (dialerStatus==='wrapping') submitOutcome(); break;
     case 'Escape':
+      if (typeof toggleNotificationCenter === 'function') {
+        const notif = document.getElementById('notification-center');
+        if (notif && notif.style.display === 'block') {
+          toggleNotificationCenter(false);
+          e.preventDefault();
+          break;
+        }
+      }
       document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
       document.querySelectorAll('[class*="modal-overlay"][style*="block"]').forEach(m=>m.style.display='none');
       break;

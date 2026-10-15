@@ -158,9 +158,15 @@ async function loadFieldOpsPage() {
       return { ok: r.ok, status: r.status, body };
     };
     let rpc = await callRpc({ p_actor_user_id: currentUser.id, p_firm_id: fid });
-    // Some PostgREST setups are strict about nullable/default args.
     if (!rpc.ok && fid == null) {
       rpc = await callRpc({ p_actor_user_id: currentUser.id });
+    }
+    if (!rpc.ok && String(rpc.body?.message || '').includes('not_authenticated')) {
+      try {
+        const saved = JSON.parse(localStorage.getItem('mb_session') || '{}');
+        if (saved?.session_token && currentUser) currentUser.session_token = saved.session_token;
+      } catch (_) {}
+      rpc = await callRpc({ p_actor_user_id: currentUser.id, p_firm_id: fid });
     }
     if (!rpc.ok) {
       const msg = rpc.body?.message || rpc.body?.hint || `HTTP ${rpc.status}`;

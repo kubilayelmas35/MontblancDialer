@@ -371,16 +371,16 @@ el.textContent = el.getAttribute(`data-${l}`)||el.textContent;
 el.textContent = el.getAttribute(`data-${l}`)||el.getAttribute('data-tr');
 }
 });
-if (typeof _dashGetRange === 'function' && typeof _dashUpdateStatLabels === 'function' && typeof _dashUpdateCardTitles === 'function' &&
-    document.getElementById('page-dashboard')?.classList.contains('active')) {
-  const rk = _dashGetRange();
-  _dashUpdateStatLabels(rk);
-  _dashUpdateCardTitles(rk);
-  if (typeof renderDashLiveAgents === 'function') renderDashLiveAgents();
-  const subEl = document.getElementById('dash-chart-sub');
-    if (subEl && currentUser?.role === 'agent') {
-    subEl.textContent = t('dash.sub_agent_calls');
-  }
+try { localStorage.setItem('mb-lang', l); } catch (_) {}
+if (typeof window._mbConnStatus === 'string' && typeof updateConnectionStatus === 'function') {
+  updateConnectionStatus(window._mbConnStatus);
+}
+if (typeof renderHotkeyHints === 'function') renderHotkeyHints();
+if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
+const activePage = (document.querySelector('.page.active')?.id || '').replace(/^page-/, '');
+const inCall = typeof dialerStatus !== 'undefined' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping');
+if (currentUser && activePage && activePage !== 'settings' && !(activePage === 'dialer' && inCall) && typeof runPageEntry === 'function') {
+  runPageEntry(activePage);
 }
 if (typeof dialerStatus !== 'undefined' && dialerStatus === 'break' && typeof refreshBreakCustEmpty === 'function') {
   refreshBreakCustEmpty();
@@ -429,8 +429,10 @@ localStorage.setItem('mb-palette', p);
 (()=>{
 const t = localStorage.getItem('mb-theme');
 const p = localStorage.getItem('mb-palette');
+const savedLang = localStorage.getItem('mb-lang');
 if (t) setTheme(t);
 if (p) setPalette(p);
+if (savedLang === 'de' || savedLang === 'tr') setLang(savedLang);
 document.querySelectorAll('.palette-dot').forEach(d => d.classList.toggle('sel', d.dataset.p===(p||'blue')));
 })();
 

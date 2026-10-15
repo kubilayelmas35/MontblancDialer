@@ -708,11 +708,17 @@ dateFrom = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`
 dateFrom = document.getElementById('stats-date-from')?.value || dateFrom;
 dateTo   = document.getElementById('stats-date-to')?.value   || dateTo;
 }
-let query = `call_logs?select=*,users(id,name),campaigns(id,name)${ff}`;
+let query = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,duration_sec,users(id,name),campaigns(id,name)${ff}`;
 query += `&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59`;
 if (campFilter) query += `&campaign_id=eq.${campFilter}`;
 query += '&order=started_at.desc&limit=2000';
-const logs = await sb(query) || [];
+let logs = [];
+try {
+  logs = (await sb(query)) || [];
+} catch (_) {
+  const plain = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,duration_sec${ff}&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59${campFilter ? `&campaign_id=eq.${campFilter}` : ''}&order=started_at.desc&limit=2000`;
+  logs = (await sb(plain)) || [];
+}
 const groups = {};
 logs.forEach(l => {
 const agentId = l.agent_id || 'unknown';
@@ -787,12 +793,21 @@ const outcome = document.getElementById('ch-outcome')?.value||'';
 const agentFilter = document.getElementById('ch-agent-f')?.value||'';
 const dateFrom = document.getElementById('ch-date-from')?.value||new Date().toISOString().split('T')[0];
 const dateTo = document.getElementById('ch-date-to')?.value||new Date().toISOString().split('T')[0];
-let query = `call_logs?select=*,users(id,name),campaigns(name),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=500`;
+let query = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,phone,duration_sec,contact_id,users(id,name),campaigns(name),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=500`;
 query += `&started_at=gte.${dateFrom}T00:00:00`;
 query += `&started_at=lte.${dateTo}T23:59:59`;
 if (outcome) query += outcome==='appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
 if (agentFilter) query += `&agent_id=eq.${agentFilter}`;
-const logs = await sb(query) || [];
+let logs = [];
+try {
+  logs = (await sb(query)) || [];
+} catch (_) {
+  let plain = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,phone,duration_sec,contact_id${ff}&order=started_at.desc&limit=500`;
+  plain += `&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59`;
+  if (outcome) plain += outcome==='appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
+  if (agentFilter) plain += `&agent_id=eq.${agentFilter}`;
+  logs = (await sb(plain)) || [];
+}
 const contactNameById = {};
 try {
   const missingIds = [...new Set((logs || [])
