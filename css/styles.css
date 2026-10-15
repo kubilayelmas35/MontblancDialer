@@ -438,6 +438,8 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   pointer-events: auto;
   cursor: grab;
   animation: mascot-idle-float 3.2s ease-in-out infinite;
+  /* Dialer kartındaki 0.5s transform geçişi balonu geride bırakıyordu. */
+  transition: none;
 }
 .global-mascot.global-mascot--dragging .cust-empty-mascot {
   cursor: grabbing;
@@ -581,6 +583,8 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   left: 50%;
   top: 50%;
   margin-top: 0;
+  /* Gezinirken balon maskotla aynı karede kalsın; transform geçişi geride bırakıyordu. */
+  transition: opacity 0.35s ease;
   transform: translate(
     calc(-50% + var(--gm-wx, 0px) + var(--bubble-shift-x, 0px)),
     calc(-50% + var(--gm-wy, 0px) + 52px)
@@ -613,7 +617,7 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   max-width: 200px;
   text-align: left;
   pointer-events: none;
-  transform: translate(0, -42%) scale(1);
+  transform: translate(var(--gm-wx, 0px), calc(-42% + var(--gm-wy, 0px))) scale(1);
 }
 .global-mascot.global-mascot--sidebar .cust-empty-bubble.global-mascot-bubble,
 .global-mascot.global-mascot--sidebar .cust-empty-bubble.global-mascot-bubble.cust-empty-bubble--pop {
@@ -622,7 +626,7 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   width: 196px;
   max-width: 196px;
   text-align: left;
-  transform: translate(-12px, -100%) scale(1);
+  transform: translate(calc(-12px + var(--gm-wx, 0px)), calc(-100% + var(--gm-wy, 0px))) scale(1);
 }
 .global-mascot.global-mascot--muted .cust-empty-mascot {
   transform: translate(calc(-50% + var(--gm-wx, 0px)), calc(-50% + var(--gm-wy, 0px))) scale(0.32);

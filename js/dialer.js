@@ -890,6 +890,22 @@ function getMascotWanderPct() {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
+/** Varsayılan kapalı. Açıkken mesafe ve hız kaydırıcıları geçerli olur. */
+function isMascotWanderEnabled() {
+  return getMascotPref('mb_mascot_wander_on', '0') === '1';
+}
+
+function _syncMascotWanderControls() {
+  const on = document.getElementById('s-mascot-wander-on');
+  const box = document.getElementById('s-mascot-wander-sliders');
+  if (!box) return;
+  const enabled = !!(on && on.checked);
+  box.style.opacity = enabled ? '' : '0.45';
+  box.querySelectorAll('input').forEach((el) => {
+    el.disabled = !enabled;
+  });
+}
+
 /** Ayarlardan maskot boyutu: 50–150 → 0.5–1.5 (performans büyümesi ile çarpılır) */
 function getMascotUserScalePct() {
   const n = Number(getMascotPref('mb_mascot_user_scale', '100'));
@@ -1195,6 +1211,7 @@ function loadMascotSettingsForm() {
   const v = document.getElementById('s-mascot-variant');
   const bk = document.getElementById('s-mascot-break-color');
   const ag = document.getElementById('s-mascot-angry-color');
+  const won = document.getElementById('s-mascot-wander-on');
   const wd = document.getElementById('s-mascot-wander');
   const ws = document.getElementById('s-mascot-wander-speed');
   const sc = document.getElementById('s-mascot-user-scale');
@@ -1217,8 +1234,10 @@ function loadMascotSettingsForm() {
   v.value = getMascotPref('mb_mascot_variant', 'aurora');
   if (bk) bk.value = getMascotPref('mb_mascot_break_color', '#4f8cff');
   if (ag) ag.value = getMascotPref('mb_mascot_angry_color', '#ff5b55');
+  if (won) won.checked = isMascotWanderEnabled();
   if (wd) wd.value = String(getMascotWanderPct());
   if (ws) ws.value = String(getMascotWanderSpeedPct());
+  _syncMascotWanderControls();
   if (sc) sc.value = String(getMascotUserScalePct());
   if (sh) sh.value = getMascotShape();
   if (cosEye) cosEye.value = getMascotCosmeticPref('eye');
@@ -1270,6 +1289,11 @@ function loadMascotSettingsForm() {
   n.addEventListener('input', onLive);
   bk?.addEventListener('input', onLive);
   ag?.addEventListener('input', onLive);
+  won?.addEventListener('change', () => {
+    setMascotPref('mb_mascot_wander_on', won.checked ? '1' : '0');
+    _syncMascotWanderControls();
+    if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
+  });
   wd?.addEventListener('input', () => {
     setMascotPref('mb_mascot_wander_pct', wd.value);
     if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
@@ -1331,6 +1355,7 @@ function saveMascotSettings() {
   const v = document.getElementById('s-mascot-variant');
   const bk = document.getElementById('s-mascot-break-color');
   const ag = document.getElementById('s-mascot-angry-color');
+  const won = document.getElementById('s-mascot-wander-on');
   const wd = document.getElementById('s-mascot-wander');
   const ws = document.getElementById('s-mascot-wander-speed');
   const sc = document.getElementById('s-mascot-user-scale');
@@ -1360,6 +1385,7 @@ function saveMascotSettings() {
   if (variant === 'random') _mascotVariantRandResolved = '';
   if (bk) setMascotPref('mb_mascot_break_color', bk.value || '#4f8cff');
   if (ag) setMascotPref('mb_mascot_angry_color', ag.value || '#ff5b55');
+  if (won) setMascotPref('mb_mascot_wander_on', won.checked ? '1' : '0');
   if (wd) setMascotPref('mb_mascot_wander_pct', wd.value || '35');
   if (ws) setMascotPref('mb_mascot_wander_speed', ws.value || '22');
   if (sc) setMascotPref('mb_mascot_user_scale', sc.value || '100');
@@ -1401,6 +1427,7 @@ function saveMascotSettings() {
       .catch(() => {});
   }
   toast(typeof t === 'function' ? t('dial.mascot_saved') : '✓ Maskot kaydedildi', 'ok');
+  if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
 }
 
 try {
@@ -1648,14 +1675,6 @@ function _wireGlobalMascotInteractions() {
   mascot.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     e.preventDefault();
-    // Wander offsetini baz konuma aktar, mascot tutma anında zıplamasın
-    const absorbX = _wanderCur.x;
-    const absorbY = _wanderCur.y;
-    if (absorbX !== 0 || absorbY !== 0) {
-      const r0 = gm.getBoundingClientRect();
-      gm.style.left = `${r0.left + absorbX}px`;
-      gm.style.top = `${r0.top + absorbY}px`;
-    }
     _stopGlobalMascotWander();
     const r = gm.getBoundingClientRect();
     _mascotDragState = {
@@ -1715,11 +1734,23 @@ function _stopGlobalMascotWander() {
     cancelAnimationFrame(_wanderRaf);
     _wanderRaf = null;
   }
+  const gm = document.getElementById('global-mascot');
+  const ax = _wanderCur.x;
+  const ay = _wanderCur.y;
+  if (gm && (Math.abs(ax) > 0.5 || Math.abs(ay) > 0.5)) {
+    const left = (parseFloat(String(gm.style.left || '0')) || 0) + ax;
+    const top = (parseFloat(String(gm.style.top || '0')) || 0) + ay;
+    gm.style.left = `${left}px`;
+    gm.style.top = `${top}px`;
+    gm.classList.add('global-mascot--custom', 'global-mascot--placed');
+    try {
+      setMascotPref('mb_mascot_custom_pos', JSON.stringify({ x: left, y: top }));
+    } catch (e) {}
+  }
   _wanderCur = { x: 0, y: 0 };
   _wanderTgt = { x: 0, y: 0 };
   _wanderPauseUntil = 0;
   _wanderSpeedMult = 1;
-  const gm = document.getElementById('global-mascot');
   if (gm) {
     gm.style.setProperty('--gm-wx', '0px');
     gm.style.setProperty('--gm-wy', '0px');
@@ -1727,22 +1758,26 @@ function _stopGlobalMascotWander() {
   }
 }
 
-/** Kenar çubuğu ayağına kilitliyken gezinme menünün üstüne biner. Sürüklenen konum gezinmeye devam eder. */
+/** Kenar çubuğu veya üst çubuk ayağına kilitliyken gezinme menünün üstüne biner. Sürüklenen konum, gezme açıksa devam eder. */
 function _mascotDockedInSidebar(gm) {
   return !!(gm && gm.classList.contains('global-mascot--topbar') && !gm.classList.contains('global-mascot--custom'));
+}
+
+function _mascotWanderAllowed(gm) {
+  if (!gm || isMimiHidden() || !isMascotWanderEnabled()) return false;
+  if (getMascotWanderPct() <= 0) return false;
+  if (_mascotDockedInSidebar(gm)) return false;
+  if (gm.classList.contains('global-mascot--peek-chat')) return false;
+  if (gm.classList.contains('global-mascot--peek-notif')) return false;
+  if (gm.classList.contains('global-mascot--notif-morph')) return false;
+  return true;
 }
 
 /** Sürükleme bittiğinde veya ayar değişince: gezinmeyi yeniden başlat / durdur (konumu sıfırlamaz). */
 function _syncGlobalMascotWanderOnly() {
   const gm = document.getElementById('global-mascot');
   if (!gm || isMimiHidden()) return;
-  const allowWander =
-    !_mascotDockedInSidebar(gm) &&
-    getMascotWanderPct() > 0 &&
-    !gm.classList.contains('global-mascot--peek-chat') &&
-    !gm.classList.contains('global-mascot--peek-notif') &&
-    !gm.classList.contains('global-mascot--notif-morph');
-  if (allowWander) _startGlobalMascotWander();
+  if (_mascotWanderAllowed(gm)) _startGlobalMascotWander();
   else _stopGlobalMascotWander();
 }
 
@@ -1781,13 +1816,8 @@ function _wanderFrame() {
     return;
   }
   const pct = getMascotWanderPct();
-  if (pct <= 0) {
-    _wanderCur.x = 0;
-    _wanderCur.y = 0;
-    gm.style.setProperty('--gm-wx', '0px');
-    gm.style.setProperty('--gm-wy', '0px');
-    _wanderRaf = null;
-    if (!isMimiHidden()) gm.classList.add('global-mascot--placed');
+  if (!isMascotWanderEnabled() || pct <= 0) {
+    _stopGlobalMascotWander();
     return;
   }
   const dx = _wanderTgt.x - _wanderCur.x;
@@ -1838,7 +1868,7 @@ function _startGlobalMascotWander() {
   const gm = document.getElementById('global-mascot');
   if (!gm) return;
   const pct = getMascotWanderPct();
-  if (pct <= 0) {
+  if (!isMascotWanderEnabled() || pct <= 0) {
     gm.style.setProperty('--gm-wx', '0px');
     gm.style.setProperty('--gm-wy', '0px');
     if (!isMimiHidden()) gm.classList.add('global-mascot--placed');
@@ -1955,13 +1985,7 @@ function _syncGlobalMascotDockImpl() {
     gm.classList.remove('global-mascot--dialer');
     gm.classList.add('global-mascot--topbar', 'global-mascot--placed');
   }
-  const allowWander =
-    !_mascotDockedInSidebar(gm) &&
-    getMascotWanderPct() > 0 &&
-    !gm.classList.contains('global-mascot--peek-chat') &&
-    !gm.classList.contains('global-mascot--peek-notif') &&
-    !gm.classList.contains('global-mascot--notif-morph');
-  if (allowWander) _startGlobalMascotWander();
+  if (_mascotWanderAllowed(gm)) _startGlobalMascotWander();
   else _stopGlobalMascotWander();
   if (!isMimiHidden()) gm.classList.add('global-mascot--placed');
   const info = document.getElementById('global-mascot-info');
