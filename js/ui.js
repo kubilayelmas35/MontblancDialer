@@ -171,6 +171,24 @@ function _uiEsc(s) {
   return typeof escapeHtml === 'function' ? escapeHtml(s) : String(s ?? '');
 }
 
+function mbResultLabel(key, storedLabel) {
+  const k = typeof _normResultKey === 'function' ? _normResultKey(key) : String(key || '');
+  const mapKey = {
+    qc_bekleniyor: 'res.qc_bekleniyor',
+    basarili: 'res.basarili',
+    basarisiz: 'res.basarisiz',
+    beklemede: 'res.beklemede',
+    ulasilamadi: 'res.ulasilamadi',
+    iptal: 'res.iptal',
+  }[k];
+  const raw = String(storedLabel || '').trim();
+  if (!mapKey || typeof t !== 'function' || typeof MB_I18N === 'undefined') return raw || key || '';
+  const tr = MB_I18N.tr[mapKey];
+  const de = MB_I18N.de[mapKey];
+  if (!raw || raw === tr || raw === de || raw === k || raw === key) return t(mapKey);
+  return raw;
+}
+
 function defaultAppointmentResults() {
   return [
     { key: 'qc_bekleniyor', label: 'QC Bekleniyor', color: '#2563eb', contact_status: 'qc bekleniyor', auto_move_down: false },
@@ -359,6 +377,10 @@ async function saveAppointmentResultsSettings() {
 // ── LANG ─────────────────────────────────────
 function setLang(l) {
 currentLang = l;
+document.querySelectorAll('.modal-overlay.open').forEach((m) => {
+  if (m.id === 'm-system-dialog') return;
+  m.classList.remove('open');
+});
 document.getElementById('lang-btn').textContent = l.toUpperCase();
 document.documentElement.lang = l;
 if (typeof applyDomI18n === 'function') applyDomI18n();
@@ -376,6 +398,12 @@ if (typeof window._mbConnStatus === 'string' && typeof updateConnectionStatus ==
   updateConnectionStatus(window._mbConnStatus);
 }
 if (typeof renderHotkeyHints === 'function') renderHotkeyHints();
+const testBtn = document.getElementById('test-mode-btn');
+if (testBtn && typeof t === 'function') {
+  testBtn.textContent = (typeof _testMode !== 'undefined' && _testMode) ? t('dial.test_btn_on') : t('dial.test_btn_off');
+}
+if (typeof _syncGoalTabChromeFromPerf === 'function') _syncGoalTabChromeFromPerf();
+if (typeof _mbPaintMonthFaces === 'function') _mbPaintMonthFaces();
 if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
 const activePage = (document.querySelector('.page.active')?.id || '').replace(/^page-/, '');
 const inCall = typeof dialerStatus !== 'undefined' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping');

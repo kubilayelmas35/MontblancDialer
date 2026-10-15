@@ -96,7 +96,7 @@ async function loadLeavePage() {
   if (isSuperAdmin() && !fid) {
     if (noFirmEl) noFirmEl.style.display = '';
     if (mainEl) mainEl.style.display = 'none';
-    if (sub) sub.textContent = 'Firma seçin';
+    if (sub) sub.textContent = t('leave.sub.pick');
     return;
   }
   if (noFirmEl) noFirmEl.style.display = 'none';
@@ -104,7 +104,7 @@ async function loadLeavePage() {
     mainEl.style.display = 'flex';
     mainEl.style.flexDirection = 'column';
   }
-  if (sub) sub.textContent = isLeaveAdmin() ? 'Kurallar, talepler ve geç kalma' : 'İzin talebi ve özet';
+  if (sub) sub.textContent = isLeaveAdmin() ? t('leave.sub.admin') : t('leave.sub.agent');
 
   const adm = document.getElementById('leave-admin-settings');
   const admLate = document.getElementById('leave-admin-late');

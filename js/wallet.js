@@ -74,5 +74,5 @@ async function loadJobFinanceSummary() {
     wrap.appendChild(host);
   }
   const el = document.getElementById('kpi-job-finance');
-  if (el) el.textContent = `Finans · Charge: ${formatMoney(charge, cur)} | Reward: ${formatMoney(reward, cur)} | Reserve: ${formatMoney(reserve, cur)}`;
+  if (el) el.textContent = `${t('fin.prefix')} · ${t('fin.charge')}: ${formatMoney(charge, cur)} | ${t('fin.reward')}: ${formatMoney(reward, cur)} | ${t('fin.reserve')}: ${formatMoney(reserve, cur)}`;
 }

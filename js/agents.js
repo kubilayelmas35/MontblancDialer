@@ -15,10 +15,16 @@ async function loadAgents() {
     campRows.forEach((c) => { if (c?.id) campById[c.id] = c.name || ''; });
     const SC = {ready:'var(--green)',on_call:'var(--accent)',wrapping:'var(--yellow)',break:'var(--yellow)',offline:'var(--text-3)'};
     if (!users.length) {
-      grid.innerHTML = `<div style="color:var(--text-3);padding:32px;font-size:13px;">Henüz kullanıcı yok</div>`;
+      grid.innerHTML = `<div style="color:var(--text-3);padding:32px;font-size:13px;">${t('agent.empty')}</div>`;
       return;
     }
-    const statusLabel = {ready:'Hazır',on_call:'Aramada',wrapping:'Sonuç giriyor',break:'Mola',offline:'Çevrimdışı'};
+    const statusLabel = {
+      ready: t('agent.status.ready'),
+      on_call: t('agent.status.on_call'),
+      wrapping: t('agent.status.wrapping'),
+      break: t('agent.status.break'),
+      offline: t('agent.status.offline'),
+    };
     grid.innerHTML = users.map(u => {
       const myAcs    = acs.filter(a => a.agent_id === u.id);
       const sess     = sessions.find(s => s.agent_id === u.id);
@@ -28,13 +34,13 @@ async function loadAgents() {
         ...myAcs.map((a) => a.campaigns?.name || campById[a.campaign_id] || ''),
         sess?.campaign_id ? (campById[sess.campaign_id] || '') : '',
       ].filter(Boolean))];
-      const roleMap  = {agent:'Agent',qc:'QC',firm_admin:'Firma Admin',field_agent:'Saha Elemanı',super_admin:'Süper Admin'};
+      const roleMap  = {agent:'Agent',qc:'QC',firm_admin:t('agent.role.firm_admin'),field_agent:t('agent.role.field'),super_admin:t('agent.role.super')};
       return `<div class="agent-card-item" style="position:relative;cursor:pointer;" onclick="openEditAgentModal('${u.id}')">
 <div class="agent-av-lg" style="background:${u.is_active?'var(--accent)':'var(--text-3)'};">${u.name.charAt(0)}</div>
 <div class="agent-info-lg" style="flex:1;">
 <div class="name">${u.name}</div>
 <div style="font-size:11px;color:var(--text-3);">${u.email}</div>
-<div class="camps" style="margin-top:3px;">${campNames.length?campNames.join(', '):'Kampanya atanmamış'}</div>
+<div class="camps" style="margin-top:3px;">${campNames.length?campNames.join(', '):t('agent.no_campaign')}</div>
 </div>
 <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
 <span style="font-size:10px;padding:2px 7px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-weight:700;">${roleMap[u.role]||u.role}</span>

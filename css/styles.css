@@ -250,9 +250,9 @@ text-shadow: none;
 margin: 0;
 }
 [data-theme="dark"] .tb-logo {
-border-color: rgba(255, 255, 255, 0.12);
-box-shadow: 0 1px 12px rgba(0, 0, 0, 0.25);
-background: #121826;
+border-color: rgba(255, 255, 255, 0.08);
+box-shadow: none;
+background: #0d0f14;
 }
 [data-theme="dark"] .tb-logo-name { color: #f8fafc; }
 [data-theme="dark"] .tb-uname { color: #f8fafc; }
@@ -5273,10 +5273,46 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   opacity: 0.64;
 }
 [data-theme="dark"] .fluid-aurora--logo::before {
-  opacity: 0.82;
+  background: conic-gradient(from 118deg at 38% 32%,
+    rgba(18, 24, 38, 0.95) 0deg,
+    rgba(28, 36, 54, 0.7) 90deg,
+    rgba(14, 18, 28, 0.9) 180deg,
+    rgba(32, 40, 58, 0.55) 270deg,
+    rgba(18, 24, 38, 0.95) 360deg);
+  opacity: 0.55;
 }
 [data-theme="dark"] .fluid-aurora--logo::after {
-  opacity: 0.65;
+  background: conic-gradient(from 305deg at 62% 58%,
+    rgba(20, 28, 42, 0.5) 0deg,
+    rgba(12, 16, 26, 0.7) 180deg,
+    rgba(20, 28, 42, 0.5) 360deg);
+  opacity: 0.35;
+}
+.form-input.is-invalid { border-color: var(--red); box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.18); }
+.nc-inline-err { font-size: 11px; color: var(--red); margin-top: 4px; }
+.mb-month-wrap { position: relative; display: inline-flex; align-items: center; }
+.mb-month-wrap input[type="month"] { color: transparent; caret-color: transparent; }
+.mb-month-wrap input[type="month"]::-webkit-datetime-edit,
+.mb-month-wrap input[type="month"]::-webkit-datetime-edit-fields-wrapper,
+.mb-month-wrap input[type="month"]::-webkit-datetime-edit-text,
+.mb-month-wrap input[type="month"]::-webkit-datetime-edit-month-field,
+.mb-month-wrap input[type="month"]::-webkit-datetime-edit-year-field {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.mb-month-face {
+  position: absolute;
+  left: 10px;
+  right: 28px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 /* ── Ekip sohbeti (sağ alt FAB + panel) ── */

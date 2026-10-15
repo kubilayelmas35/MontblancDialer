@@ -115,11 +115,45 @@ function _mFmt(n) {
   return Number(n || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function _mbMonthFaceText(ym) {
+  const m = String(ym || '').match(/^(\d{4})-(\d{2})$/);
+  if (!m) return '';
+  const dt = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, 1));
+  const loc = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'de-DE' : 'tr-TR';
+  const label = new Intl.DateTimeFormat(loc, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(dt);
+  return label.charAt(0).toLocaleUpperCase(loc) + label.slice(1);
+}
+
+function _mbPaintMonthFaces() {
+  ['muhasebe-period', 'maasim-period', 'performansim-period'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let wrap = el.parentElement;
+    if (!wrap || !wrap.classList.contains('mb-month-wrap')) {
+      wrap = document.createElement('span');
+      wrap.className = 'mb-month-wrap';
+      el.parentNode.insertBefore(wrap, el);
+      wrap.appendChild(el);
+    }
+    let face = wrap.querySelector(':scope > .mb-month-face');
+    if (!face) {
+      face = document.createElement('span');
+      face.className = 'mb-month-face';
+      face.setAttribute('aria-hidden', 'true');
+      wrap.appendChild(face);
+    }
+    face.textContent = _mbMonthFaceText(el.value);
+  });
+}
+
 function _mGetPeriod() {
   const ids = ['muhasebe-period', 'maasim-period', 'performansim-period'];
   for (const id of ids) {
     const el = document.getElementById(id);
-    if (el?.value) return el.value;
+    if (el?.value) {
+      _mbPaintMonthFaces();
+      return el.value;
+    }
   }
   const now = new Date();
   const v = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -127,6 +161,7 @@ function _mGetPeriod() {
     const el = document.getElementById(id);
     if (el && !el.value) el.value = v;
   });
+  _mbPaintMonthFaces();
   return v;
 }
 
@@ -137,6 +172,7 @@ function _mSyncPayrollPeriodInputs(changedEl) {
     const el = document.getElementById(id);
     if (el && el !== changedEl) el.value = v;
   });
+  _mbPaintMonthFaces();
 }
 
 async function loadFirmPayrollRules(fid, force = false) {

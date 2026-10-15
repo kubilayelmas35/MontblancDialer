@@ -799,7 +799,7 @@ function _fakeRecordingMarkup(log, scopeKey) {
   <button type="button" class="sim-rec-btn" onclick="toggleFakeRecording('${key}',${dur})"
     style="border:1px solid var(--border);background:var(--bg-3);border-radius:6px;padding:2px 8px;cursor:pointer;">▶</button>
   <span class="sim-rec-time" style="font-size:11px;color:var(--text-2);font-family:var(--mono);">00:00 / ${_formatMMSS(dur)}</span>
-  <span style="font-size:10px;color:var(--yellow);font-weight:700;">TEST KAYIT</span>
+  <span style="font-size:10px;color:var(--yellow);font-weight:700;">${typeof t === 'function' ? t('ch.test_rec') : 'TEST KAYIT'}</span>
 </div>
 <div style="height:4px;background:var(--bg-3);border-radius:999px;overflow:hidden;margin-top:4px;">
   <div class="sim-rec-fill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-2,var(--accent)));"></div>

@@ -429,9 +429,13 @@ function _syncGoalTabChromeFromPerf() {
       b.style.color = t === goalScope ? 'var(--bg-2)' : 'var(--text-2)';
     }
   });
-  const labels = { daily: 'Günlük Hedef', weekly: 'Haftalık Hedef', monthly: 'Aylık Hedef' };
+  const labels = {
+    daily: t('dial.goal.daily'),
+    weekly: t('dial.goal.weekly'),
+    monthly: t('dial.goal.monthly'),
+  };
   const lbl = document.getElementById('goal-tab-label');
-  if (lbl) lbl.textContent = labels[goalScope] || 'Hedef';
+  if (lbl) lbl.textContent = labels[goalScope] || t('dial.goal.short');
 }
 
 function setPerfTab(tab) {
@@ -561,9 +565,13 @@ async function loadMyMiniStats() {
         b.style.color = t === goalScope ? 'var(--bg-2)' : 'var(--text-2)';
       }
     });
-    const labels = { daily:'Günlük Hedef', weekly:'Haftalık Hedef', monthly:'Aylık Hedef' };
+    const labels = {
+      daily: t('dial.goal.daily'),
+      weekly: t('dial.goal.weekly'),
+      monthly: t('dial.goal.monthly'),
+    };
     const lbl = document.getElementById('goal-tab-label');
-    if (lbl) lbl.textContent = labels[goalScope] || 'Hedef';
+    if (lbl) lbl.textContent = labels[goalScope] || t('dial.goal.short');
 
     let goalVal = _dailyGoal;
     if (goalScope === 'weekly') goalVal = _dailyGoal * 5;
@@ -593,17 +601,18 @@ async function loadMyMiniStats() {
     boxes.push(`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
 <div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono);">${appts}</div>
-<div style="font-size:10px;color:var(--text-3);">${(typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Termin' : 'Randevu'}</div>
+<div style="font-size:10px;color:var(--text-3);">${typeof t === 'function' ? t('dial.stat.appt') : 'Randevu'}</div>
 </div>`);
     boxes.push(`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
 <div style="font-size:18px;font-weight:800;color:var(--accent);font-family:var(--mono);">${calls}</div>
-<div style="font-size:10px;color:var(--text-3);">Çağrı</div>
+<div style="font-size:10px;color:var(--text-3);">${typeof t === 'function' ? t('dial.stat.call') : 'Çağrı'}</div>
 </div>`);
     (orderedResultRows || []).forEach((r) => {
       const val = counts[r.key] || 0;
       const color = r.color || '#64748b';
-      const lbl = String(r.label || r.key || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const shown = typeof mbResultLabel === 'function' ? mbResultLabel(r.key, r.label) : (r.label || r.key || '');
+      const lbl = String(shown).replace(/</g,'&lt;').replace(/>/g,'&gt;');
       boxes.push(`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
 <div style="font-size:18px;font-weight:800;color:${color};font-family:var(--mono);">${val}</div>
@@ -2379,7 +2388,7 @@ async function loadUpcomingWv() {
       const dt = new Date(w.termin_zaman);
       const timeStr = typeof mbFormatWall === 'function'
         ? mbFormatWall(w.termin_zaman, { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
-        : dt.toLocaleString(typeof mbLocale === 'function' ? mbLocale() : 'tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        : dt.toLocaleString(typeof mbLocale === 'function' ? mbLocale() : 'tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit', timeZone: (typeof MB_BUSINESS_TZ === 'string' ? MB_BUSINESS_TZ : 'Europe/Berlin')});
       const isOverdue = dt < now;
       return `<div style="padding:5px 8px;background:var(--bg-3);border-radius:5px;border-left:3px solid ${isOverdue?'var(--red)':'var(--yellow)'};" onclick="navigate('wiedervorlage')">
 <div style="font-weight:700;font-size:11px;color:${isOverdue?'var(--red)':'var(--text)'};">${w.nachname||w.telefon}</div>
@@ -4090,9 +4099,16 @@ async function submitOutcome(goBreak) {
   // Callback → WV ekle
   if (selectedOutcome==='callback' && cbTime && currentContact) {
     try {
+      const phone = String(currentContact.phone || '').replace(/[\s()-]/g, '');
+      const phone2 = String(currentContact.phone2 || '').replace(/[\s()-]/g, '');
+      const badPhone = typeof mbIsE164 === 'function' && !mbIsE164(phone);
+      const badPhone2 = phone2 && typeof mbIsE164 === 'function' && !mbIsE164(phone2);
+      if (badPhone || badPhone2) {
+        toast(typeof t === 'function' ? t('wv.err_e164') : 'Telefon + ile başlamalı', 'err');
+      } else {
       await sb('wiedervorlage',{method:'POST',prefer:'return=minimal',body:JSON.stringify({
         nachname: `${currentContact.first_name||''} ${currentContact.last_name||''}`.trim() || currentContact.phone,
-        telefon: currentContact.phone, telefon2: currentContact.phone2||'',
+        telefon: phone, telefon2: phone2,
         plz: currentContact.plz||'', ort: currentContact.city||'', strasse: currentContact.address||'',
         termin_zaman: (typeof mbWallToIso === 'function' ? mbWallToIso(cbTime) : new Date(cbTime).toISOString()),
         agent_id: currentUser.id,
@@ -4102,6 +4118,7 @@ async function submitOutcome(goBreak) {
         durum: 'bekliyor',
         notiz: note
       })});
+      }
     } catch(e) {}
   }
   if (selectedOutcome === 'negative' && currentContact) {
@@ -4355,11 +4372,11 @@ function renderHotkeyHints() {
   if (!el) return;
   el.innerHTML = `
 <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:10px;color:var(--text-3);">
-<span><kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:var(--mono);">Space</kbd> Mute</span>
-<span><kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:var(--mono);">Enter</kbd> Kapat/İleri</span>
-<span><kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:var(--mono);">1-4</kbd> Sonuç</span>
-<span><kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:var(--mono);">S</kbd> Kaydet</span>
-<span><kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:var(--mono);">Esc</kbd> Kapat</span>
+<span><kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:var(--mono);">Space</kbd> ${t('dial.hk.mute')}</span>
+<span><kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:var(--mono);">Enter</kbd> ${t('dial.hk.next')}</span>
+<span><kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:var(--mono);">1-4</kbd> ${t('dial.hk.result')}</span>
+<span><kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:var(--mono);">S</kbd> ${t('dial.hk.save')}</span>
+<span><kbd style="background:var(--bg-3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:var(--mono);">Esc</kbd> ${t('dial.hk.close')}</span>
 </div>`;
 }
 
