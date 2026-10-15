@@ -550,8 +550,60 @@ function _ensureTakvimWeekResizeListener() {
   });
 }
 
+function takvimGridEl() {
+  return document.getElementById(window._takvimGridId || 'takvim-grid');
+}
+
+function takvimGridToken() {
+  return String(window._takvimGridId || 'takvim-grid').replace(/[^a-z0-9_-]/gi, '');
+}
+
+/** Saat hücresi yalnızca açık olan ızgarada aranır. İki takvim aynı id'yi taşıyınca getElementById ilkini (gizli sayfa) döndürür. */
+function takvimHourCell(dateStr, hour) {
+  const grid = takvimGridEl();
+  if (!grid || !dateStr) return null;
+  const hh = String(hour == null ? '' : hour).padStart(2, '0');
+  return grid.querySelector(`[data-tk-date="${dateStr}"][data-tk-hour="${hh}"]`);
+}
+
+function takvimMonthSlotHost(dateStr) {
+  const grid = takvimGridEl();
+  if (!grid || !dateStr) return null;
+  return grid.querySelector(`[data-tk-month-slots="${dateStr}"]`);
+}
+
+function takvimHourCells() {
+  const grid = takvimGridEl();
+  return grid ? grid.querySelectorAll('[data-tk-hour]') : [];
+}
+
+function takvimSlotIsPainted(tarih, bas) {
+  if (takvimView === 'month') return !!takvimMonthSlotHost(tarih);
+  const hour = String(bas || '09:00').split(':')[0];
+  return !!takvimHourCell(tarih, hour);
+}
+
+/** Kayıt görünür aralığın dışındaysa o güne kaydır; hafta sonu kapalıysa gün görünümüne geç. */
+async function takvimShowCreatedSlot(tarih, bas) {
+  if (takvimSlotIsPainted(tarih, bas)) return true;
+  const d = new Date(`${tarih}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return false;
+  takvimDate = d;
+  takvimDate.setHours(0, 0, 0, 0);
+  const tset = getCampaignTakvimSettings();
+  const hour = parseInt(String(bas || '09:00').split(':')[0], 10);
+  const hourOk = Number.isFinite(hour) && hour >= tset.startH && hour <= tset.endH;
+  const dayOk = tset.active_days.includes(takvimDayKeyFromDate(d));
+  if (hourOk && !dayOk && takvimView !== 'day') {
+    takvimView = 'day';
+    syncTakvimViewButtonStyles();
+  }
+  await loadTakvimSlots();
+  return takvimSlotIsPainted(tarih, bas);
+}
+
 function renderTakvimGrid() {
-  const grid = document.getElementById(window._takvimGridId || 'takvim-grid');
+  const grid = takvimGridEl();
   if (!grid) return;
   if (takvimView==='month') { renderTakvimMonthGrid(grid); return; }
   const isDay = takvimView==='day';
@@ -602,7 +654,7 @@ function renderTakvimGrid() {
       const canClick = isAdmin && !isClosed && colActive;
       const click = canClick ? `onclick="takvimCellClick('${ds}','${hh}',event)"` : '';
       const cls = `tk-cell${isClosed ? ' tk-cell--closed' : ''}${!colActive && !isClosed ? ' tk-cell--off' : ''}${isToday ? ' tk-cell--today' : ''}${canClick ? ' tk-cell--click' : ''}`;
-      h += `<div id="tc_${ds}_${hh}" class="${cls}" ${click}></div>`;
+      h += `<div id="tc_${takvimGridToken()}_${ds}_${hh}" data-tk-date="${ds}" data-tk-hour="${hh}" class="${cls}" ${click}></div>`;
     }
   }
   h += '</div>'; grid.innerHTML = h;
@@ -637,7 +689,7 @@ function renderTakvimMonthGrid(grid) {
       const ds = takvimFmtD(cur);
       const other = cur.getMonth() !== m;
       const today = cur.toDateString() === new Date().toDateString();
-      h += `<div id="mc_${ds}" class="tk-month${other ? ' tk-month--other' : ''}${today ? ' tk-month--today' : ''}"><div class="tk-month-d">${cur.getDate()}</div><div id="ms_${ds}" class="tk-month-slots"></div></div>`;
+      h += `<div id="mc_${takvimGridToken()}_${ds}" data-tk-month="${ds}" class="tk-month${other ? ' tk-month--other' : ''}${today ? ' tk-month--today' : ''}"><div class="tk-month-d">${cur.getDate()}</div><div data-tk-month-slots="${ds}" class="tk-month-slots"></div></div>`;
     }
     cur.setDate(cur.getDate() + 1);
   }
@@ -712,7 +764,7 @@ function renderTakvimSlots() {
         const sl = r.sl;
         const appt = takvimAppts.find((a) => a.id === sl.appointment_id);
         const hour = String(sl.baslangic_saat || '09:00').split(':')[0].padStart(2, '0');
-        const cell = document.getElementById(`tc_${dateStr}_${hour}`);
+        const cell = takvimHourCell(dateStr, hour);
         if (!cell) return;
         const el = makeTakvimSlotEl(sl, appt, isAdmin, numCols);
         const [sh, sm] = sl.baslangic_saat.split(':').map(Number);
@@ -733,7 +785,7 @@ function renderTakvimSlots() {
 function renderTakvimSlotsMonth() {
   const isAdmin = ['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '');
   takvimSlots.filter(s=>!s.gun_kapali&&!s.alta_tasindi).forEach(s=>{
-    const el = document.getElementById(`ms_${s.tarih}`);
+    const el = takvimMonthSlotHost(s.tarih);
     if (!el) return;
     const appt = takvimAppts.find(a=>a.id===s.appointment_id);
     const div = document.createElement('div');
@@ -905,7 +957,8 @@ async function createTakvimSlotDirect(tarih, bas, bit) {
       })
     });
     await loadTakvimSlots();
-    toast('Slot oluşturuldu ✓', 'ok');
+    const seen = await takvimShowCreatedSlot(tarih, bas);
+    toast(seen ? t('cal.slot.created') : t('cal.slot.hidden'), seen ? 'ok' : 'warn');
     return true;
   } catch (e) {
     toast('Hata: ' + e.message, 'err');
@@ -1034,7 +1087,8 @@ async function saveTakvimSlot(od) {
     })});
     closeModal('m-takvim-detail');
     await loadTakvimSlots();
-    toast('Slot oluşturuldu ✓','ok');
+    const seen = await takvimShowCreatedSlot(tarih, bas);
+    toast(seen ? t('cal.slot.created') : t('cal.slot.hidden'), seen ? 'ok' : 'warn');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
@@ -1943,7 +1997,7 @@ function initSlotDrag(el, slot, appt) {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', slot.id);
     el.style.opacity = '0.4'; _dragGhost = el;
-    document.querySelectorAll('[id^="tc_"]').forEach(cell => { cell.classList.add('drag-target'); });
+    takvimHourCells().forEach(cell => { cell.classList.add('drag-target'); });
   });
   el.addEventListener('dragend', () => {
     el.style.opacity = '1'; el.style.cursor = 'grab';
@@ -1955,7 +2009,7 @@ function initSlotDrag(el, slot, appt) {
 function setupDropZones() {
   const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
   if (!isAdmin) return;
-  document.querySelectorAll('[id^="tc_"]').forEach(cell => {
+  takvimHourCells().forEach(cell => {
     cell.addEventListener('dragover', e => {
       if (!_dragSlot) return;
       e.preventDefault(); e.dataTransfer.dropEffect = 'move';
@@ -1966,9 +2020,9 @@ function setupDropZones() {
     cell.addEventListener('drop', async e => {
       e.preventDefault(); cell.classList.remove('drag-over'); cell.style.background = '';
       if (!_dragSlot) return;
-      const parts = cell.id.replace('tc_','').split('_');
-      const newDate = parts.slice(0,-1).join('_');
-      const newHour = parts[parts.length-1];
+      const newDate = cell.dataset.tkDate;
+      const newHour = cell.dataset.tkHour;
+      if (!newDate || !newHour) return;
       const newStart = `${newHour}:00`;
       const [sh,sm] = _dragSlot.baslangic_saat.split(':').map(Number);
       const [eh,em] = _dragSlot.bitis_saat.split(':').map(Number);

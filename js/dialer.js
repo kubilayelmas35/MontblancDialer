@@ -5601,6 +5601,8 @@ function closeTakvimOverlay() {
   window._takvimWeekLabelId = 'takvim-week-label';
   delete window._takvimFailedSecId;
   delete window._takvimFailedGridId;
+  const pg = document.getElementById('page-takvim');
+  if (pg && pg.classList.contains('active') && typeof loadTakvimSlots === 'function') loadTakvimSlots();
 }
 
 // ── Precall mic test ──────────────────────────
