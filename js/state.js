@@ -106,6 +106,9 @@ let _outboundAnswered = false;    // Karşı taraf açtıysa true
 let _outboundWaitGen = 0;         // Bekleme animasyonunu iptal etmek için
 let _dialNextLock = false;
 let _voicemailAutoLogged = false;
+let _hopper = [];                 // aynı anda çalan / müzikte bekleyen bacaklar
+let _liveCallId = null;           // temsilciye bağlı bacak
+let _hopperSkip = new Map();      // kısa süre tekrar aranmasın
 // Mikrofon çekmecesi (ses göstergesi / hat girişi)
 let _micDrawerStream = null;
 let _micDrawerInputCtx = null;
