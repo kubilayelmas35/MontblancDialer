@@ -631,11 +631,11 @@ async function _perfFetchAppointments(from, to) {
 async function _perfFetchCalls(from, to) {
   const ff = getFirmFilter('&');
   if (isSuperAdmin() && !getActiveFirmId()) return [];
-  const base = `call_logs?select=id,started_at,agent_id,campaign_id,outcome,phone,duration_sec,duration_seconds,users(name),campaigns(name)${ff}&started_at=gte.${from}T00:00:00&started_at=lte.${to}T23:59:59&order=started_at.desc&limit=15000`;
+  const base = `call_logs?select=id,started_at,agent_id,campaign_id,outcome,phone,duration_sec,users(name),campaigns(name)${ff}&started_at=gte.${from}T00:00:00&started_at=lte.${to}T23:59:59&order=started_at.desc&limit=8000`;
   try {
     return (await sb(base)) || [];
   } catch (e) {
-    const simple = `call_logs?select=id,started_at,agent_id,campaign_id,outcome,phone,duration_sec,duration_seconds${ff}&started_at=gte.${from}T00:00:00&started_at=lte.${to}T23:59:59&order=started_at.desc&limit=15000`;
+    const simple = `call_logs?select=id,started_at,agent_id,campaign_id,outcome,phone,duration_sec${ff}&started_at=gte.${from}T00:00:00&started_at=lte.${to}T23:59:59&order=started_at.desc&limit=8000`;
     const rows = (await sb(simple).catch(() => [])) || [];
     if (!rows.length) return [];
     const aIds = [...new Set(rows.map((r) => r.agent_id).filter(Boolean))];

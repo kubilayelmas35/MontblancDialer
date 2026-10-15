@@ -892,13 +892,18 @@ function cancelFieldEdit(fieldKey, inputEl, valEl, btnEl) {
   btnEl.onclick = () => startFieldEdit(fieldKey, '', btnEl);
 }
 
+let _prevCallGen = 0;
 async function showPrevCallInfo(contact) {
+  const gen = ++_prevCallGen;
   const el = document.getElementById('prev-call-info');
   const body = document.getElementById('prev-call-body');
   if (!el || !body) return;
-  if (!contact || (contact.attempt_count || 0) < 1) { el.style.display = 'none'; return; }
+  el.style.display = 'none';
+  body.innerHTML = '';
+  if (!contact?.id || (contact.attempt_count || 0) < 1) return;
   try {
     const logs = await sb(`call_logs?contact_id=eq.${contact.id}&order=started_at.desc&limit=10&select=id,outcome,notes,started_at,duration_sec,recording_url,agent_id,users(name)`);
+    if (gen !== _prevCallGen) return;
     if (!logs?.length) { el.style.display = 'none'; return; }
     const prev = logs[0];
     const recLog = logs.find((l) => String(l?.recording_url || '').trim());

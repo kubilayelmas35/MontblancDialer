@@ -2357,7 +2357,9 @@ async function loadUpcomingWv() {
     if (!list?.length) { el.innerHTML=`<div style="color:var(--text-3);text-align:center;padding:6px;font-size:11px;">${escapeHtml(typeof t === 'function' ? t('dial.wv_empty') : '')}</div>`; return; }
     el.innerHTML = list.map(w => {
       const dt = new Date(w.termin_zaman);
-      const timeStr = dt.toLocaleString(typeof mbLocale === 'function' ? mbLocale() : 'tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      const timeStr = typeof mbFormatWall === 'function'
+        ? mbFormatWall(w.termin_zaman, { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
+        : dt.toLocaleString(typeof mbLocale === 'function' ? mbLocale() : 'tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
       const isOverdue = dt < now;
       return `<div style="padding:5px 8px;background:var(--bg-3);border-radius:5px;border-left:3px solid ${isOverdue?'var(--red)':'var(--yellow)'};" onclick="navigate('wiedervorlage')">
 <div style="font-weight:700;font-size:11px;color:${isOverdue?'var(--red)':'var(--text)'};">${w.nachname||w.telefon}</div>
@@ -3164,7 +3166,7 @@ function refreshDialerHealthPanel() {
     const whyKey =
       h.code === 'DIAL-CAMP' ? 'dial.why.camp' :
       h.code === 'DIAL-ACTIVE' ? 'dial.why.active' :
-      h.code === 'DIAL-SIP' ? 'dial.why.sip_long' :
+      h.code === 'DIAL-SIP' ? 'dial.why.sip_short' :
       h.code === 'DIAL-HOURS' ? 'dial.why.hours' :
       'dial.why.mic';
     const w = typeof tPair === 'function' ? tPair(whyKey) : { tr: '', de: '' };
@@ -3217,13 +3219,14 @@ function resetDialerVoiceVisuals() {
 
 function startCallTimer() {
   clearInterval(callTimerInt);
+  const startedAt = Date.now();
   callSeconds = 0;
   _lastMascotCheerSec = -1;
   refreshStatusElapsed();
   updateDialerVoiceVisuals(0);
   if (typeof startDialerVoiceRings === 'function') startDialerVoiceRings();
-  callTimerInt = setInterval(()=>{
-    callSeconds++;
+  const paint = () => {
+    callSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
     const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
     const s=String(callSeconds%60).padStart(2,'0');
     const el = document.getElementById('dialer-timer');
@@ -3231,7 +3234,9 @@ function startCallTimer() {
     refreshStatusElapsed();
     updateDialerVoiceVisuals(callSeconds);
     if (typeof onCallTickForGlobalMascot === 'function') onCallTickForGlobalMascot();
-  },1000);
+  };
+  paint();
+  callTimerInt = setInterval(paint, 250);
 }
 
 function stopCallTimer() {
@@ -4344,6 +4349,14 @@ document.addEventListener('keydown', e => {
     case 'Digit4': if (dialerStatus==='wrapping'||dialerStatus==='on_call') { setOutcome('no_answer'); e.preventDefault(); } break;
     case 'KeyS': e.preventDefault(); if (dialerStatus==='wrapping') submitOutcome(); break;
     case 'Escape':
+      if (typeof toggleNotificationCenter === 'function') {
+        const notif = document.getElementById('notification-center');
+        if (notif && notif.style.display === 'block') {
+          toggleNotificationCenter(false);
+          e.preventDefault();
+          break;
+        }
+      }
       document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
       document.querySelectorAll('[class*="modal-overlay"][style*="block"]').forEach(m=>m.style.display='none');
       break;
@@ -5251,6 +5264,8 @@ function toggleTestMode() {
   _testMode = !_testMode;
   const btn    = document.getElementById('test-mode-btn');
   const rdyBtn = document.getElementById('btn-ready');
+  const flag   = document.getElementById('tb-test-flag');
+  if (flag) flag.hidden = !_testMode;
   if (_testMode) {
     btn.style.cssText += ';background:rgba(234,179,8,.18)!important;color:var(--yellow)!important;border-color:var(--yellow)!important;';
     btn.textContent = typeof t === 'function' ? t('dial.test_btn_on') : '⚙ TEST AÇIK';

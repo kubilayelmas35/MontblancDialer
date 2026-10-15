@@ -247,10 +247,35 @@ font-weight: 800;
 letter-spacing: -0.4px;
 color: #0f172a;
 text-shadow: none;
+margin: 0;
 }
 [data-theme="dark"] .tb-logo {
 border-color: rgba(255, 255, 255, 0.12);
 box-shadow: 0 1px 12px rgba(0, 0, 0, 0.25);
+background: #121826;
+}
+[data-theme="dark"] .tb-logo-name { color: #f8fafc; }
+[data-theme="dark"] .tb-uname { color: #f8fafc; }
+[data-theme="dark"] .tb-urole { color: #cbd5e1; }
+.tb-test-flag[hidden] { display: none !important; }
+.tb-test-flag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #92400e;
+  background: rgba(234, 179, 8, 0.22);
+  border: 1px solid rgba(234, 179, 8, 0.55);
+  flex-shrink: 0;
+}
+[data-theme="dark"] .tb-test-flag { color: #fde68a; }
+[data-theme="dark"] .tb-logo-mark {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 /* Topbar pills (wrapper .tb-pills-wrap kaydırır) */
 #tb-pills {
@@ -1067,7 +1092,7 @@ box-shadow: var(--shadow);
 table { width:100%; border-collapse:collapse; }
 th {
 text-align:left; font-size:11px; font-weight:700; color:var(--text-3);
-text-transform:uppercase; letter-spacing:.5px;
+letter-spacing:.2px;
 padding: 8px 12px; border-bottom: 1px solid var(--border);
 white-space: nowrap; background: var(--bg-3);
 }
@@ -1204,7 +1229,8 @@ font-size:13px; font-weight:500; color:var(--text);
 box-shadow:var(--shadow-md); z-index:1405;
 transform:translateY(60px); opacity:0;
 transition:all .25s ease; display:flex; align-items:center; gap:8px;
-max-width:300px; pointer-events:none;
+max-width:min(420px, calc(100vw - 24px)); pointer-events:none;
+overflow-wrap:anywhere;
 }
 #toast.show { transform:translateY(0); opacity:1; }
 #toast.ok  { border-left:3px solid var(--green); }
@@ -4649,7 +4675,7 @@ transition:var(--transition);
 /* ============================================================
 AGENTS PAGE
 ============================================================ */
-.agents-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
+.agents-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px; }
 .agent-card-item {
 background:var(--bg-2); border:1px solid var(--border);
 border-radius:var(--radius); padding:16px;
@@ -4662,7 +4688,8 @@ background:var(--accent); color:white;
 display:flex; align-items:center; justify-content:center;
 font-size:16px; font-weight:800; flex-shrink:0;
 }
-.agent-info-lg .name { font-size:14px; font-weight:700; }
+.agent-info-lg { min-width: 0; flex: 1; }
+.agent-info-lg .name { font-size:14px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .agent-info-lg .camps { font-size:11px; color:var(--text-3); margin-top:2px; }
 .agent-status-dot { width:9px; height:9px; border-radius:50%; margin-left:auto; flex-shrink:0; }
 /* ============================================================
@@ -5404,8 +5431,15 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   background: rgba(30, 35, 48, 0.92);
   border-color: rgba(255, 255, 255, 0.1);
 }
-[data-theme="dark"] .team-chat-fab-inner {
-  color: #e8eaf2;
+@media (max-width: 630px) {
+  .global-mascot .cust-empty-bubble { display: none; }
+  .team-chat-fab { width: 44px; height: 44px; }
+}
+[data-theme="dark"] .team-chat-fab-inner { color: #e8eaf2; }
+[data-theme="dark"] .fluid-aurora--chat-fab::before,
+[data-theme="dark"] .fluid-aurora--chat-fab::after {
+  opacity: 0.28;
+  filter: brightness(0.28) saturate(0.4);
 }
 .team-chat-badge {
   position: absolute;
@@ -5620,8 +5654,7 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 .team-chat-daysep span {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   color: var(--text-3);
   padding: 4px 12px;
   border-radius: 999px;
@@ -6534,8 +6567,7 @@ i.ph {
 .tk-head-wd {
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   color: var(--text-3);
 }
 .tk-head-d {
@@ -6593,8 +6625,7 @@ i.ph {
   text-align: center;
   font-size: 10px;
   font-weight: 650;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   color: var(--text-3);
 }
 .tk-month {

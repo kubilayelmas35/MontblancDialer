@@ -14,24 +14,25 @@ function _fmtPillMoney(n) {
 
 async function updateTopbarStats() {
 const t0 = Date.now();
+const ffLive = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
 try {
 await fetch(`${SB_URL}/rest/v1/campaigns?limit=1`, { headers: mbAuthHeaders() });
 document.getElementById('pill-ping').textContent = Date.now()-t0;
 } catch(e) { document.getElementById('pill-ping').textContent = '!'; }
 try {
-const sessions = await sb('agent_sessions?select=*');
+const sessions = await sb(`agent_sessions?select=status${ffLive}`) || [];
 document.getElementById('pill-call').textContent  = sessions.filter(s=>s.status==='on_call').length;
 document.getElementById('pill-ready').textContent = sessions.filter(s=>s.status==='ready').length;
 document.getElementById('pill-break').textContent = sessions.filter(s=>s.status==='break').length;
 } catch(e){}
 try {
-const cs = await sb('campaigns?select=id,status&status=eq.active');
+const cs = await sb(`campaigns?select=id,status&status=eq.active${ffLive}`);
 document.getElementById('pill-camp').textContent = cs.length;
 document.getElementById('sb-badge-camp').textContent = cs.length;
 } catch(e){}
 try {
 const today = new Date().toISOString().split('T')[0];
-const logs  = await sb(`call_logs?select=id&outcome=eq.appointment&started_at=gte.${today}T00:00:00`);
+const logs  = await sb(`call_logs?select=id&outcome=eq.appointment&started_at=gte.${today}T00:00:00${ffLive}`);
 document.getElementById('pill-appt').textContent = logs.length;
 } catch(e){}
 try {
@@ -635,7 +636,7 @@ try {
 let qLogs = `call_logs?select=*&started_at=gte.${from}T00:00:00&started_at=lte.${to}T23:59:59`;
 qLogs += ff;
 qLogs += agentQ;
-qLogs += '&limit=50000';
+qLogs += '&limit=8000';
 const logs  = await sb(qLogs) || [];
 if (rangeKey === 'today') {
   renderDashHourlyMixed(logs);
@@ -707,11 +708,17 @@ dateFrom = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`
 dateFrom = document.getElementById('stats-date-from')?.value || dateFrom;
 dateTo   = document.getElementById('stats-date-to')?.value   || dateTo;
 }
-let query = `call_logs?select=*,users(id,name),campaigns(id,name)${ff}`;
+let query = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,duration_sec,users(id,name),campaigns(id,name)${ff}`;
 query += `&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59`;
 if (campFilter) query += `&campaign_id=eq.${campFilter}`;
 query += '&order=started_at.desc&limit=2000';
-const logs = await sb(query) || [];
+let logs = [];
+try {
+  logs = (await sb(query)) || [];
+} catch (_) {
+  const plain = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,duration_sec${ff}&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59${campFilter ? `&campaign_id=eq.${campFilter}` : ''}&order=started_at.desc&limit=2000`;
+  logs = (await sb(plain)) || [];
+}
 const groups = {};
 logs.forEach(l => {
 const agentId = l.agent_id || 'unknown';
@@ -786,12 +793,21 @@ const outcome = document.getElementById('ch-outcome')?.value||'';
 const agentFilter = document.getElementById('ch-agent-f')?.value||'';
 const dateFrom = document.getElementById('ch-date-from')?.value||new Date().toISOString().split('T')[0];
 const dateTo = document.getElementById('ch-date-to')?.value||new Date().toISOString().split('T')[0];
-let query = `call_logs?select=*,users(id,name),campaigns(name),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=500`;
+let query = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,phone,duration_sec,contact_id,users(id,name),campaigns(name),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=500`;
 query += `&started_at=gte.${dateFrom}T00:00:00`;
 query += `&started_at=lte.${dateTo}T23:59:59`;
 if (outcome) query += outcome==='appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
 if (agentFilter) query += `&agent_id=eq.${agentFilter}`;
-const logs = await sb(query) || [];
+let logs = [];
+try {
+  logs = (await sb(query)) || [];
+} catch (_) {
+  let plain = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,phone,duration_sec,contact_id${ff}&order=started_at.desc&limit=500`;
+  plain += `&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59`;
+  if (outcome) plain += outcome==='appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
+  if (agentFilter) plain += `&agent_id=eq.${agentFilter}`;
+  logs = (await sb(plain)) || [];
+}
 const contactNameById = {};
 try {
   const missingIds = [...new Set((logs || [])
@@ -1088,6 +1104,8 @@ async function renderDashLiveAgents() {
   const campName = {};
   (Array.isArray(camps) ? camps : []).forEach((c) => { if (c?.id) campName[c.id] = c.name || ''; });
   const rows = (Array.isArray(sessions) ? sessions : []).slice().sort((a, b) => {
+    const byName = String(a.agent_name || '').localeCompare(String(b.agent_name || ''), 'tr');
+    if (byName) return byName;
     return (_DASH_LIVE_ORDER[a.status] ?? 9) - (_DASH_LIVE_ORDER[b.status] ?? 9);
   });
   const count = (st) => rows.filter((s) => s.status === st).length;

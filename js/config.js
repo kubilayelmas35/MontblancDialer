@@ -5,8 +5,9 @@ const SB_URL = 'https://gsvvhzyhdhkbozjnlyrn.supabase.co';
 const SB_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdnZoenloZGhrYm96am5seXJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NjYwMTIsImV4cCI6MjA5MTM0MjAxMn0.PzpCpIO_aIg6JxiwRd7PuqGW9tn3qCKfyT31RpSF1go';
 const SB_KEY = SB_ANON_KEY;
 
-const DEFAULT_GOOGLE_KEY = 'AIzaSyDzUsnQG-sKIO6wseQEbfrOOHRvwSyGUoM';
-const DEFAULT_TOMTOM_KEY = 'Ny6ghuTMCaMGRnD3v6vhe67rG7XvqZTX';
+const DEFAULT_GOOGLE_KEY = '';
+const DEFAULT_TOMTOM_KEY = '';
+const MB_BUSINESS_TZ = 'Europe/Berlin';
 
 const TAKVIM_URL = 'https://www.montblanccs.com/kalender';
 
@@ -79,6 +80,61 @@ const GUNLER = [
 ];
 
 const TOMTOM_KEY = () => localStorage.getItem('mb_tomtom_key') || DEFAULT_TOMTOM_KEY;
+
+function mbZonedParts(date, timeZone) {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: timeZone || MB_BUSINESS_TZ,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const parts = {};
+  fmt.formatToParts(date).forEach((p) => {
+    if (p.type !== 'literal') parts[p.type] = p.value;
+  });
+  return parts;
+}
+
+function mbWallToIso(value, timeZone) {
+  const m = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const h = Number(m[4]);
+  const mi = Number(m[5]);
+  let utc = Date.UTC(y, mo - 1, d, h, mi);
+  const gotParts = mbZonedParts(new Date(utc), timeZone || MB_BUSINESS_TZ);
+  const got = Date.UTC(Number(gotParts.year), Number(gotParts.month) - 1, Number(gotParts.day), Number(gotParts.hour), Number(gotParts.minute));
+  if (Number.isFinite(got)) utc -= got - Date.UTC(y, mo - 1, d, h, mi);
+  const out = new Date(utc);
+  return Number.isFinite(out.getTime()) ? out.toISOString() : null;
+}
+
+function mbIsoToWallInput(iso, timeZone) {
+  if (!iso) return '';
+  const p = mbZonedParts(new Date(iso), timeZone || MB_BUSINESS_TZ);
+  if (!p.year) return '';
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+
+function mbFormatWall(iso, opts) {
+  if (!iso) return '—';
+  const dt = new Date(iso);
+  if (!Number.isFinite(dt.getTime())) return '—';
+  return new Intl.DateTimeFormat(typeof mbLocale === 'function' ? mbLocale() : 'tr-TR', {
+    timeZone: MB_BUSINESS_TZ,
+    ...(opts || {}),
+  }).format(dt);
+}
+
+function mbIsE164(value) {
+  const s = String(value || '').replace(/[\s()-]/g, '');
+  return /^\+[1-9]\d{7,14}$/.test(s);
+}
 
 function isValidUUID(id) {
   return !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);

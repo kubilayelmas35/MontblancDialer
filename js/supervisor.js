@@ -172,12 +172,19 @@ function _supUpdateSummary() {
 
 async function _supFetchSessions() {
   if (!currentUser?.firm_id && currentUser?.role !== 'super_admin') return;
-  const isSuper = currentUser.role === 'super_admin';
-  const firmQ = isSuper ? '' : `&firm_id=eq.${currentUser.firm_id}`;
-  const [rows, camps] = await Promise.all([
-    sb(`agent_sessions?select=*&order=status.asc,agent_name.asc${firmQ}`).catch(() => []),
-    sb(`campaigns?select=id,name${firmQ}`).catch(() => []),
-  ]);
+  const firmQ = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
+  let rows = [];
+  let camps = [];
+  try {
+    [rows, camps] = await Promise.all([
+      sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,firm_id,current_contact_name,current_contact_phone,call_started_at,last_seen&order=agent_name.asc${firmQ}`),
+      sb(`campaigns?select=id,name${firmQ}`),
+    ]);
+  } catch (e) {
+    const grid = document.getElementById('sup-agent-grid');
+    if (grid) grid.innerHTML = `<div class="sup-empty">${escapeHtml(e?.message || 'Yüklenemedi')}</div>`;
+    return;
+  }
   _supSessions = Array.isArray(rows) ? rows : [];
   _supCampaigns = {};
   (Array.isArray(camps) ? camps : []).forEach((c) => { if (c?.id) _supCampaigns[c.id] = c.name || c.id; });

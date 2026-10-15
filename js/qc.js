@@ -2,6 +2,16 @@
 // QC PANELİ — kalite kontrol
 // ─────────────────────────────────────────────
 
+function _qcMatchesTab(r, tab) {
+  const o = String(r?.outcome || '');
+  if (tab === 'all') return o === 'appointment' || o === 'appointment_done';
+  if (tab === 'qc bekleniyor') return o === 'appointment';
+  if (tab === 'başarılı') return o === 'appointment_done';
+  if (tab === 'başarısız') return o === 'negative';
+  if (tab === 'beklemede') return o === 'callback' || o === 'callback_requested';
+  return false;
+}
+
 async function loadQcData() {
   const qcSel = document.getElementById('qc-firm-selector');
   if (qcSel) { qcSel.style.display = isSuperAdmin() ? '' : 'none'; renderFirmSelector('qc-firm-selector', loadQcData); }
@@ -14,7 +24,12 @@ async function loadQcData() {
     window._qcResultMap = {};
     (window._qcResultCfg || []).forEach(r => { window._qcResultMap[r.key] = r; });
     const firmFilter = fid ? `&firm_id=eq.${fid}` : '';
-    qcList = await sb(`call_logs?select=*,contacts(*),users(name),campaigns(name)&outcome=in.(appointment,appointment_done)${firmFilter}&order=started_at.desc&limit=500`).catch(()=>[]);
+    const qcSelect = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,contact_id,firm_id,recording_url,duration_sec,phone,contacts(first_name,last_name,phone,plz,status),users(name),campaigns(name)&outcome=in.(appointment,appointment_done)${firmFilter}&order=started_at.desc&limit=500`;
+    try {
+      qcList = await sb(qcSelect);
+    } catch (_) {
+      qcList = await sb(`call_logs?select=id,started_at,outcome,agent_id,campaign_id,contact_id,firm_id,recording_url,duration_sec,phone&outcome=in.(appointment,appointment_done)${firmFilter}&order=started_at.desc&limit=500`).catch(() => []);
+    }
     window._qcCustomers = fid ? await sb(`customers?firm_id=eq.${fid}&is_active=eq.true&select=id,name,code&order=name.asc`).catch(()=>[]) : [];
     const contactIds = [...new Set((qcList || []).map(r => r.contact_id).filter(Boolean))];
     window._qcApptByContact = {};
@@ -26,7 +41,7 @@ async function loadQcData() {
       });
     }
     renderQcTable();
-    const pending = (qcList||[]).filter(r => ['appointment','appointment_done'].includes(r.outcome||'') && (r.contacts?.durum||'qc bekleniyor') === 'qc bekleniyor');
+    const pending = (qcList||[]).filter((r) => _qcMatchesTab(r, 'qc bekleniyor'));
     const badge = document.getElementById('sb-badge-qc');
     if (badge) {
       badge.style.display = pending.length > 0 ? '' : 'none';
@@ -60,13 +75,7 @@ function renderQcTable() {
   const hasCustomers = (window._qcCustomers || []).length > 0;
   const search = (document.getElementById('qc-search')?.value||'').toLowerCase();
   let list = [...(qcList||[])];
-  list = list.filter(r => ['appointment','appointment_done'].includes(r.outcome) || r.contacts?.durum);
-  if (qcTab !== 'all') {
-    list = list.filter(r => {
-      const durum = (r.contacts?.durum || 'qc bekleniyor').toLowerCase();
-      return durum.includes(qcTab.toLowerCase());
-    });
-  }
+  list = list.filter((r) => _qcMatchesTab(r, qcTab));
   if (search) {
     list = list.filter(r =>
       (r.contacts?.last_name||'').toLowerCase().includes(search) ||
@@ -75,7 +84,7 @@ function renderQcTable() {
       (r.agent_id||'').toLowerCase().includes(search)
     );
   }
-  const pendingCnt = (qcList||[]).filter(r => (r.contacts?.durum||'qc bekleniyor') === 'qc bekleniyor' && ['appointment','appointment_done'].includes(r.outcome||'')).length;
+  const pendingCnt = (qcList||[]).filter((r) => _qcMatchesTab(r, 'qc bekleniyor')).length;
   const cntEl = document.getElementById('qc-cnt-pending');
   if (cntEl) cntEl.textContent = pendingCnt;
   if (!list.length) {
@@ -86,7 +95,7 @@ function renderQcTable() {
   tbody.innerHTML = list.map(r => {
     const contact = r.contacts||{};
     const dt = r.started_at ? new Date(r.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
-    const rawDurum = contact.durum || 'qc bekleniyor';
+    const rawDurum = contact.status || (r.outcome === 'appointment' ? 'qc bekleniyor' : (r.outcome || '—'));
     const resultKey = contactStatusToAppointmentResult(rawDurum);
     const resultCfg = window._qcResultMap?.[resultKey];
     const durum = resultCfg?.label || rawDurum;
@@ -172,7 +181,7 @@ ${hasCustomers ? `<div style="margin-top:10px;">
 <div style="margin-top:10px;">
   <label class="form-label">Sonuç</label>
   <select class="form-input" id="qc-status-select" style="width:100%;">
-    ${(window._qcResultCfg || []).map(s => `<option value="${s.key}" ${contactStatusToAppointmentResult(contact.durum||'qc bekleniyor')===s.key?'selected':''}>${s.label}</option>`).join('')}
+    ${(window._qcResultCfg || []).map(s => `<option value="${s.key}" ${contactStatusToAppointmentResult(contact.status|| (r.outcome === 'appointment' ? 'qc bekleniyor' : r.outcome))===s.key?'selected':''}>${s.label}</option>`).join('')}
   </select>
 </div>
 <div style="margin-top:12px;">

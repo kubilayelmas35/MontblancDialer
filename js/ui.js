@@ -124,6 +124,11 @@ if (btn) btn.classList.add('active');
 if (window.innerWidth <= 1024) closeSidebar();
 if (page !== 'dialer' && typeof stopInboundTestSimulationScheduler === 'function') stopInboundTestSimulationScheduler();
 runPageEntry(page);
+const toastEl = document.getElementById('toast');
+if (toastEl) toastEl.classList.remove('show');
+const notif = document.getElementById('notification-center');
+if (notif) notif.style.display = 'none';
+if (typeof toggleTeamChat === 'function') toggleTeamChat(false);
 }
 
 function initSettingsTabs() {
@@ -366,16 +371,16 @@ el.textContent = el.getAttribute(`data-${l}`)||el.textContent;
 el.textContent = el.getAttribute(`data-${l}`)||el.getAttribute('data-tr');
 }
 });
-if (typeof _dashGetRange === 'function' && typeof _dashUpdateStatLabels === 'function' && typeof _dashUpdateCardTitles === 'function' &&
-    document.getElementById('page-dashboard')?.classList.contains('active')) {
-  const rk = _dashGetRange();
-  _dashUpdateStatLabels(rk);
-  _dashUpdateCardTitles(rk);
-  if (typeof renderDashLiveAgents === 'function') renderDashLiveAgents();
-  const subEl = document.getElementById('dash-chart-sub');
-    if (subEl && currentUser?.role === 'agent') {
-    subEl.textContent = t('dash.sub_agent_calls');
-  }
+try { localStorage.setItem('mb-lang', l); } catch (_) {}
+if (typeof window._mbConnStatus === 'string' && typeof updateConnectionStatus === 'function') {
+  updateConnectionStatus(window._mbConnStatus);
+}
+if (typeof renderHotkeyHints === 'function') renderHotkeyHints();
+if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
+const activePage = (document.querySelector('.page.active')?.id || '').replace(/^page-/, '');
+const inCall = typeof dialerStatus !== 'undefined' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping');
+if (currentUser && activePage && activePage !== 'settings' && !(activePage === 'dialer' && inCall) && typeof runPageEntry === 'function') {
+  runPageEntry(activePage);
 }
 if (typeof dialerStatus !== 'undefined' && dialerStatus === 'break' && typeof refreshBreakCustEmpty === 'function') {
   refreshBreakCustEmpty();
@@ -424,8 +429,10 @@ localStorage.setItem('mb-palette', p);
 (()=>{
 const t = localStorage.getItem('mb-theme');
 const p = localStorage.getItem('mb-palette');
+const savedLang = localStorage.getItem('mb-lang');
 if (t) setTheme(t);
 if (p) setPalette(p);
+if (savedLang === 'de' || savedLang === 'tr') setLang(savedLang);
 document.querySelectorAll('.palette-dot').forEach(d => d.classList.toggle('sel', d.dataset.p===(p||'blue')));
 })();
 
@@ -522,6 +529,22 @@ m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
 });
 
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const notif = document.getElementById('notification-center');
+    if (notif && notif.style.display === 'block') {
+      notif.style.display = 'none';
+      e.preventDefault();
+      return;
+    }
+    if (typeof toggleTeamChat === 'function') {
+      const panel = document.getElementById('team-chat-panel');
+      if (panel && panel.classList.contains('team-chat-panel--open')) {
+        toggleTeamChat(false);
+        e.preventDefault();
+        return;
+      }
+    }
+  }
   const ov = document.getElementById('m-system-dialog');
   if (!ov || !ov.classList.contains('open')) return;
   if (e.key === 'Escape') {
@@ -543,7 +566,8 @@ const sipPass = document.getElementById('s-sip-pass')?.value.trim()||'';
 const apiKey  = document.getElementById('s-telnyx-key')?.value.trim()||'';
 const connId  = document.getElementById('s-conn-id')?.value.trim()||'';
 localStorage.setItem('mb-sip-user',   sipUser);
-localStorage.setItem('mb-sip-pass',   sipPass);
+window.__mbSipPass = sipPass;
+localStorage.removeItem('mb-sip-pass');
 localStorage.setItem('mb-telnyx-key', apiKey);
 localStorage.setItem('mb-conn-id',    connId);
 toast(t('ui.settings_sip_saved'),'ok');
@@ -554,7 +578,7 @@ setTimeout(()=>{ sendToRTC('MB_CONNECT',{sipUser,sipPass}); }, 600);
 
 function loadSavedSettings() {
 loadApiSettings();
-const fields = {'s-sip-user':'mb-sip-user','s-sip-pass':'mb-sip-pass','s-telnyx-key':'mb-telnyx-key','s-conn-id':'mb-conn-id'};
+const fields = {'s-sip-user':'mb-sip-user','s-telnyx-key':'mb-telnyx-key','s-conn-id':'mb-conn-id'};
 Object.entries(fields).forEach(([elId,key])=>{
 const el=document.getElementById(elId), val=localStorage.getItem(key);
 if(el&&val) el.value=val;

@@ -17,7 +17,7 @@
 <div id="team-chat-panel" class="team-chat-panel" style="display:none;">
 <div class="team-chat-panel-head">
 <div class="team-chat-head-left">
-<span class="team-chat-panel-title">Sohbet</span>
+<span class="team-chat-panel-title" data-tr="Sohbet" data-de="Chat">Sohbet</span>
 <div id="team-chat-mode-wrap" class="team-chat-mode-wrap" style="display:none;">
 <button type="button" class="team-chat-mode-pill active" data-mode="firm">Firma</button>
 <button type="button" class="team-chat-mode-pill" data-mode="global">Tümü</button>
@@ -39,10 +39,10 @@
 <div id="team-chat-compose-wrap" class="team-chat-compose-wrap">
 <div class="team-chat-compose">
 <input type="file" id="team-chat-file" accept="image/*,audio/*,.pdf,.doc,.docx,.xlsx,.zip" style="display:none"/>
-<button type="button" class="team-chat-icon-btn" onclick="document.getElementById('team-chat-file').click()" title="Dosya / görsel"><i class="ph ph-paperclip"></i></button>
-<button type="button" id="team-chat-mic" class="team-chat-icon-btn" title="Sesli mesaj"><i class="ph ph-microphone"></i></button>
-<input type="text" id="team-chat-input" class="form-input team-chat-input" placeholder="Mesaj yazın…" autocomplete="off"/>
-<button type="button" id="team-chat-send" class="btn btn-primary btn-sm team-chat-send-btn"><i class="ph ph-paper-plane-tilt"></i></button>
+<button type="button" class="team-chat-icon-btn" onclick="document.getElementById('team-chat-file').click()" title="Dosya / görsel" aria-label="Dosya ekle"><i class="ph ph-paperclip"></i></button>
+<button type="button" id="team-chat-mic" class="team-chat-icon-btn" title="Sesli mesaj" aria-label="Sesli mesaj"><i class="ph ph-microphone"></i></button>
+<input type="text" id="team-chat-input" class="form-input team-chat-input" placeholder="Mesaj yazın…" autocomplete="off" aria-label="Mesaj"/>
+<button type="button" id="team-chat-send" class="btn btn-primary btn-sm team-chat-send-btn" aria-label="Gönder"><i class="ph ph-paper-plane-tilt"></i></button>
 </div>
 </div>
 </div>

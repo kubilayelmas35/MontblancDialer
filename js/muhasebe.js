@@ -232,6 +232,8 @@ async function loadMuhasebePage() {
   }
   if (noAccess) noAccess.style.display = 'none';
   if (main) main.style.display = 'flex';
+  const periodInput = document.getElementById('muhasebe-period');
+  if (periodInput) periodInput.lang = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'de' : 'tr';
   if (sub) {
     sub.textContent = 'Maaş, prim, kesinti, müşteri ve bordro yönetimi';
   }

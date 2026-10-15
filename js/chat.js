@@ -804,7 +804,7 @@ async function sendTeamChatFile(inputEl) {
     url = `${SB_URL}/storage/v1/object/public/chat-files/${path}`;
   } catch (e) {
     console.warn(e);
-    toast('Dosya yüklenemedi (storage)', 'err');
+    toast('Dosya kaydedilemedi. Depo izni veya dosya boyutu uygun değil.', 'err');
     return;
   }
   let ctype = 'file';

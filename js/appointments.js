@@ -1005,7 +1005,7 @@ async function takvimHeaderClick(ds) {
 
 function openTakvimNewSlotModal(ds, start, end) {
   openModal('m-takvim-detail');
-  document.getElementById('takvim-detail-title').textContent = 'Yeni Slot';
+  document.getElementById('takvim-detail-title').textContent = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Neuer Slot' : 'Yeni slot';
   document.getElementById('takvim-detail-body').innerHTML = `
 <div style="display:flex;flex-direction:column;gap:10px;">
 <div class="form-row"><label class="form-label">Tarih</label><input type="date" class="form-input" id="ns-date" value="${ds}"></div>
@@ -1058,8 +1058,10 @@ async function openTakvimSlotDetail(slot, appt) {
 <div style="color:var(--text-3);font-size:12px;margin-top:4px;">${slot.durum==='kilitli'?'Kilitli':'Boş'} slot</div>
 ${lockInfo}
 </div>`;
+    const bookLabel = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Termin eintragen' : 'Randevu ekle';
     footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">Kapat</button>
-${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="deleteTakvimSlot('${slot.id}')">Sil</button>${slot.durum==='kilitli'?`<button class="btn btn-ghost" style="color:var(--yellow);" onclick="closeModal('m-takvim-detail');unlockSlot('${slot.id}')">Kilidi Kaldır</button>`:''}`:`<button class="btn btn-primary" onclick="closeModal('m-takvim-detail');lockAndBookSlot(takvimSlots.find(s=>s.id==='${slot.id}'))">${(typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Termin nehmen' : 'Randevu al'}</button>`}`;
+${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="deleteTakvimSlot('${slot.id}')">Sil</button>${slot.durum==='kilitli'?`<button class="btn btn-ghost" style="color:var(--yellow);" onclick="closeModal('m-takvim-detail');unlockSlot('${slot.id}')">Kilidi Kaldır</button>`:''}`:''}
+<button class="btn btn-primary" onclick="closeModal('m-takvim-detail');lockAndBookSlot(takvimSlots.find(s=>s.id==='${slot.id}'))">${bookLabel}</button>`;
     return;
   }
   const statusCfg = resultMap[_normResultKey(appt.durum)] || {};
@@ -2787,4 +2789,72 @@ async function applyDefaultTakvimToFirmCampaigns() {
   } catch (e) {
     toast('Hata: ' + e.message, 'err');
   }
+}
+
+function previewImport() {
+  const map = getImportMapping();
+  const box = document.getElementById('ia-preview-table');
+  const info = document.getElementById('ia-preview-info');
+  const sec = document.getElementById('ia-preview-section');
+  if (!box || !sec) return;
+  const rows = (_iaRows || []).slice(0, 8);
+  const keys = Object.keys(map);
+  box.innerHTML = `<table><thead><tr>${keys.map((k) => `<th>${escapeHtml(k)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${keys.map((k) => `<td>${escapeHtml(row[map[k]] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  if (info) info.textContent = `${(_iaRows || []).length} satır`;
+  sec.style.display = '';
+}
+
+async function startImportAppt() {
+  const camp = document.getElementById('ia-campaign')?.value || '';
+  const agent = document.getElementById('ia-agent')?.value || '';
+  if (!camp || !agent) {
+    toast('Kampanya ve temsilci seçin', 'err');
+    return;
+  }
+  const map = getImportMapping();
+  if (map.nachname == null || map.telefon == null) {
+    toast('Ad ve telefon sütunlarını eşleştirin', 'err');
+    return;
+  }
+  const status = document.getElementById('ia-status')?.value || 'beklemede';
+  const prog = document.getElementById('ia-progress-section');
+  const bar = document.getElementById('ia-progress-bar');
+  const label = document.getElementById('ia-progress-label');
+  if (prog) prog.style.display = '';
+  let ok = 0;
+  const rows = _iaRows || [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const cell = (k) => (map[k] == null ? '' : String(row[map[k]] ?? '').trim());
+    const payload = {
+      firm_id: currentUser?.firm_id,
+      campaign_id: camp,
+      agent_id: agent,
+      nachname: cell('nachname') || '—',
+      telefonnummer: cell('telefon'),
+      telefon2: cell('telefon2') || null,
+      strasse: cell('strasse') || null,
+      plz: cell('plz') || null,
+      ortschaft: cell('ort') || null,
+      agent_notu: cell('notiz') || null,
+      durum: cell('durum') || status,
+    };
+    const tarih = cell('termin_tarih');
+    const saat = (cell('termin_saat') || '10:00').slice(0, 5);
+    if (tarih) {
+      const isoDay = tarih.includes('.') ? tarih.split('.').reverse().join('-') : tarih.slice(0, 10);
+      payload.termin_tarih = typeof mbWallToIso === 'function' ? mbWallToIso(`${isoDay}T${saat}`) : `${isoDay}T${saat}:00`;
+    }
+    try {
+      await sb('appointments', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(payload) });
+      ok++;
+    } catch (e) {
+      if (label) label.textContent = 'Satır kaydedilemedi';
+      toast('İçe aktarma durdu: ' + (e?.message || 'kayıt yazılamadı'), 'err');
+      return;
+    }
+    if (bar) bar.style.width = `${Math.round(((i + 1) / Math.max(rows.length, 1)) * 100)}%`;
+  }
+  if (label) label.textContent = `${ok} randevu yazıldı`;
+  toast(`${ok} randevu içe aktarıldı`, 'ok');
 }

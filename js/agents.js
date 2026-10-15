@@ -8,8 +8,11 @@ async function loadAgents() {
   try {
     const ff = getFirmFilter('&');
     const users    = await sb(`users?select=id,name,email,role,is_active${ff}&role=in.(agent,qc,firm_admin,field_agent,super_admin)&order=name.asc`) || [];
-    const acs      = await sb(`agent_campaigns?select=*,campaigns(id,name)${ff}`) || [];
-    const sessions = await sb('agent_sessions?select=*') || [];
+    const acs      = await sb(`agent_campaigns?select=agent_id,campaign_id,campaigns(id,name)${ff}`) || [];
+    const sessions = await sb(`agent_sessions?select=agent_id,status,campaign_id${ff}`) || [];
+    const campRows = await sb(`campaigns?select=id,name${ff}`) || [];
+    const campById = {};
+    campRows.forEach((c) => { if (c?.id) campById[c.id] = c.name || ''; });
     const SC = {ready:'var(--green)',on_call:'var(--accent)',wrapping:'var(--yellow)',break:'var(--yellow)',offline:'var(--text-3)'};
     if (!users.length) {
       grid.innerHTML = `<div style="color:var(--text-3);padding:32px;font-size:13px;">Henüz kullanıcı yok</div>`;
@@ -21,7 +24,10 @@ async function loadAgents() {
       const sess     = sessions.find(s => s.agent_id === u.id);
       const status   = sess?.status || 'offline';
       const color    = SC[status] || 'var(--text-3)';
-      const campNames = myAcs.map(a=>a.campaigns?.name||'').filter(Boolean);
+      const campNames = [...new Set([
+        ...myAcs.map((a) => a.campaigns?.name || campById[a.campaign_id] || ''),
+        sess?.campaign_id ? (campById[sess.campaign_id] || '') : '',
+      ].filter(Boolean))];
       const roleMap  = {agent:'Agent',qc:'QC',firm_admin:'Firma Admin',field_agent:'Saha Elemanı',super_admin:'Süper Admin'};
       return `<div class="agent-card-item" style="position:relative;cursor:pointer;" onclick="openEditAgentModal('${u.id}')">
 <div class="agent-av-lg" style="background:${u.is_active?'var(--accent)':'var(--text-3)'};">${u.name.charAt(0)}</div>
@@ -138,7 +144,7 @@ ${canAssignSuper ? `<option value="super_admin" ${prefill?.role==='super_admin'?
 ${!isEdit ? `<div class="form-row"><label class="form-label">Firma</label>
 <select class="form-input" id="am-firm">
 ${(_allFirms||[]).map(f=>`<option value="${f.id}">${f.name}</option>`).join('')}
-${!(_allFirms||[]).length ? `<option value="${currentUser.firm_id}">${currentUser.firm_id}</option>` : ''}
+${!(_allFirms||[]).length ? `<option value="${currentUser.firm_id}">${escapeHtml(currentUser.firm_name || 'Firma')}</option>` : ''}
 </select></div>` : ''}
 </div>
 <div class="modal-footer">
