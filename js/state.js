@@ -109,6 +109,9 @@ let _voicemailAutoLogged = false;
 let _hopper = [];                 // aynı anda çalan / müzikte bekleyen bacaklar
 let _liveCallId = null;           // temsilciye bağlı bacak
 let _hopperSkip = new Map();      // kısa süre tekrar aranmasın
+let _poolPlan = null;             // hazır × hız hesabı
+let _poolSyncing = false;
+let _poolTimer = null;
 // Mikrofon çekmecesi (ses göstergesi / hat girişi)
 let _micDrawerStream = null;
 let _micDrawerInputCtx = null;

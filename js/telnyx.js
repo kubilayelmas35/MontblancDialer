@@ -130,6 +130,7 @@ function mbConnectHopperRow(row) {
   _attachLiveAudio(row.call);
   if (typeof handleCallState === 'function') handleCallState('active', row.id);
   if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+  if (typeof mbSyncPool === 'function') mbSyncPool();
 }
 
 function mbTakeHeldCall() {
@@ -221,6 +222,7 @@ function mbOnHopperCall(call) {
       row.answeredAt = row.answeredAt || Date.now();
       try { call.hold(); } catch (e) {}
       if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+      if (typeof mbSyncPool === 'function') mbSyncPool();
       return;
     }
     row.answeredAt = row.answeredAt || Date.now();
@@ -280,12 +282,13 @@ function mbSimOutbound(contact, answerInMs) {
   };
   _rememberHopper(call, contact);
   _outboundDialPending = true;
+  const waitMs = (typeof window !== 'undefined' && window.__mbPoolAnswerMs) || answerInMs || 1200;
   setTimeout(() => {
     if (!_hopper.find((r) => r.call === call)) return;
     if (dialerStatus !== 'calling' && dialerStatus !== 'on_call' && dialerStatus !== 'wrapping') return;
     call.state = 'active';
     mbOnHopperCall(call);
-  }, Math.max(200, answerInMs || 1200));
+  }, Math.max(200, waitMs));
   return call;
 }
 
