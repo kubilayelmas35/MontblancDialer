@@ -31,14 +31,17 @@ async function loadQcData() {
       qcList = await sb(`call_logs?select=id,started_at,outcome,agent_id,campaign_id,contact_id,firm_id,recording_url,duration_sec,phone&outcome=in.(appointment,appointment_done)${firmFilter}&order=started_at.desc&limit=500`).catch(() => []);
     }
     window._qcCustomers = fid ? await sb(`customers?firm_id=eq.${fid}&is_active=eq.true&select=id,name,code&order=name.asc`).catch(()=>[]) : [];
-    const contactIds = [...new Set((qcList || []).map(r => r.contact_id).filter(Boolean))];
+    const contactIds = [...new Set((qcList || []).map(r => r.contact_id).filter((id) => typeof isValidUUID === 'function' && isValidUUID(id)))];
     window._qcApptByContact = {};
     if (fid && contactIds.length) {
-      const ids = contactIds.join(',');
-      const appts = await sb(`appointments?firm_id=eq.${fid}&contact_id=in.(${ids})&select=id,contact_id,customer_id&order=created_at.desc&limit=1000`).catch(()=>[]);
-      (appts || []).forEach(a => {
-        if (!window._qcApptByContact[a.contact_id]) window._qcApptByContact[a.contact_id] = a;
-      });
+      const chunkSize = 40;
+      for (let i = 0; i < contactIds.length; i += chunkSize) {
+        const ids = contactIds.slice(i, i + chunkSize).join(',');
+        const appts = await sb(`appointments?firm_id=eq.${fid}&contact_id=in.(${ids})&select=id,contact_id,customer_id&order=created_at.desc&limit=1000`).catch(()=>[]);
+        (appts || []).forEach(a => {
+          if (!window._qcApptByContact[a.contact_id]) window._qcApptByContact[a.contact_id] = a;
+        });
+      }
     }
     renderQcTable();
     const pending = (qcList||[]).filter((r) => _qcMatchesTab(r, 'qc bekleniyor'));

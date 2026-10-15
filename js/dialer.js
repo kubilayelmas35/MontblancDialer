@@ -40,10 +40,6 @@ async function initDialer() {
       myCamps = allCamps.map(c => ({ campaign_id: c.id, campaigns: c, agent_id: currentUser.id }));
     } else {
       myCamps = await sb(`agent_campaigns?select=*,campaigns(*,queues(*))&agent_id=eq.${currentUser.id}`) || [];
-      if (!myCamps.length) {
-        const allCamps = await sb(`campaigns?select=*,queues(*)&status=eq.active&firm_id=eq.${currentUser.firm_id}&order=created_at.desc`) || [];
-        myCamps = allCamps.map(c => ({ campaign_id: c.id, campaigns: c, agent_id: currentUser.id }));
-      }
     }
     const list = document.getElementById('agent-camp-list');
     if (!myCamps.length) {
@@ -102,7 +98,7 @@ async function initDialer() {
         typeof t === 'function'
           ? (canDisableAutoDial ? t('dial.camp_auto_hint_on') : t('dial.camp_auto_hint_off'))
           : '';
-      const autoLbl = typeof t === 'function' ? t('dial.camp_auto_label') : 'Otomatik Arama';
+      const autoLbl = typeof t === 'function' ? t('dial.camp_auto_label') : 'Bu kampanyada otomatik ara';
       const toggOn = typeof t === 'function' ? t('dial.camp_toggle_on') : 'Kapat';
       const toggOff = typeof t === 'function' ? t('dial.camp_toggle_off') : 'Aktif Et';
       return `<div class="agent-camp-item ${isActive?'active':''}" id="camp-item-${cid}" style="padding:8px 10px;" onclick="selectCamp('${cid}','${cName}')">
@@ -3110,21 +3106,36 @@ async function dialNext() {
   sendToRTC('MB_CALL', { destination: contact.phone, callerNumber: campaign?.telnyx_did || '' });
 }
 
+function dialerHealthLabel(ok, okKey, needKey, okFb, needFb) {
+  const key = ok ? okKey : needKey;
+  const fb = ok ? okFb : needFb;
+  return typeof t === 'function' ? t(key) : fb;
+}
+
+function dialerBusinessClock() {
+  if (typeof mbBusinessNow === 'function') return mbBusinessNow();
+  const now = new Date();
+  return { dateStr: now.toISOString().split('T')[0], timeStr: now.toTimeString().slice(0, 8) };
+}
+
 function getDialerHealthState() {
   const checks = [];
   const push = (ok, label) => checks.push({ ok, label });
-  push(!!selectedCampId, typeof t === 'function' ? t('dial.health.push.camp') : 'Kampanya seçildi');
+  push(!!selectedCampId, dialerHealthLabel(!!selectedCampId, 'dial.health.push.camp', 'dial.health.need.camp', 'Kampanya seçildi', 'Kampanya seçin'));
   const campActiveOk =
     !!selectedCampId &&
     (_activeCampIds.length === 0 || _activeCampIds.includes(selectedCampId));
-  push(campActiveOk, typeof t === 'function' ? t('dial.health.push.active') : 'Aktif kampanya var');
-  push(_testMode || !!telnyxReady, _testMode ? (typeof t === 'function' ? t('dial.health.push.test') : 'Test modu aktif') : (typeof t === 'function' ? t('dial.health.push.line') : 'Hat bağlantısı hazır'));
-  const now = new Date();
-  const dateStr = now.toISOString().split('T')[0];
-  const timeStr = now.toTimeString().slice(0, 8);
-  const callWindow = isCallAllowed(dateStr, timeStr).allowed;
-  push(_testMode || callWindow, typeof t === 'function' ? t('dial.health.push.hours') : 'Saat kısıtı uygun');
-  push(typeof micGranted === 'undefined' ? true : !!micGranted, typeof t === 'function' ? t('dial.health.push.mic') : 'Mikrofon izni');
+  push(campActiveOk, dialerHealthLabel(campActiveOk, 'dial.health.push.active', 'dial.health.need.active', 'Aktif kampanya var', 'Kampanyayı aktif edin'));
+  const lineOk = _testMode || !!telnyxReady;
+  push(lineOk, _testMode
+    ? (typeof t === 'function' ? t('dial.health.push.test') : 'Test modu aktif')
+    : dialerHealthLabel(lineOk, 'dial.health.push.line', 'dial.health.need.line', 'Hat bağlantısı hazır', 'Hat bağlantısını bekleyin'));
+  const clock = dialerBusinessClock();
+  const callWindow = isCallAllowed(clock.dateStr, clock.timeStr).allowed;
+  const hoursOk = _testMode || callWindow;
+  push(hoursOk, dialerHealthLabel(hoursOk, 'dial.health.push.hours', 'dial.health.need.hours', 'Saat kısıtı uygun', 'Arama saati dışında'));
+  const micOk = _testMode || (typeof micGranted === 'undefined' ? true : !!micGranted);
+  push(micOk, dialerHealthLabel(micOk, 'dial.health.push.mic', 'dial.health.need.mic', 'Mikrofon izni', 'Mikrofon izni verin'));
   const firstFail = checks.find((c) => !c.ok);
   const code = firstFail
     ? !selectedCampId
@@ -3336,10 +3347,6 @@ async function refreshDialerCampaignCacheIfEmpty() {
     myCamps = allCamps.map((c) => ({ campaign_id: c.id, campaigns: c, agent_id: currentUser.id }));
   } else {
     myCamps = (await sb(`agent_campaigns?select=*,campaigns(*,queues(*))&agent_id=eq.${currentUser.id}`)) || [];
-    if (!myCamps.length && currentUser.firm_id) {
-      const allCamps = (await sb(`campaigns?select=*,queues(*)&status=eq.active&firm_id=eq.${currentUser.firm_id}&order=created_at.desc`)) || [];
-      myCamps = allCamps.map((c) => ({ campaign_id: c.id, campaigns: c, agent_id: currentUser.id }));
-    }
   }
   campaigns = (myCamps || []).map((ac) => ac.campaigns).filter(Boolean);
 }
@@ -3921,7 +3928,7 @@ function setOutcome(o) {
     const dtInput = document.getElementById('callback-dt');
     if (dtInput && !dtInput.value) {
       const def = new Date(Date.now() + 24*60*60*1000);
-      dtInput.value = def.toISOString().slice(0,16);
+      dtInput.value = typeof mbIsoToWallInput === 'function' ? mbIsoToWallInput(def.toISOString()) : def.toISOString().slice(0,16);
     }
   }
   const gm = document.getElementById('global-mascot');
@@ -4011,7 +4018,9 @@ async function submitOutcome(goBreak) {
       // appointment_done → call_logs'da 'appointment' olarak sakla (QC uyumu için)
       const finalOutcome = isDnc ? 'dnc' : (selectedOutcome === 'appointment_done' ? 'appointment' : selectedOutcome);
       const statusMap = {appointment:'appointment',appointment_done:'appointment',negative:'negative',callback:'callback',no_answer:'no_answer',dnc:'dnc'};
-      const cbAt = (finalOutcome === 'callback' && cbTime) ? new Date(cbTime).toISOString() : null;
+      const cbAt = (finalOutcome === 'callback' && cbTime)
+        ? (typeof mbWallToIso === 'function' ? mbWallToIso(cbTime) : new Date(cbTime).toISOString())
+        : null;
       const contactPatch = {
         status: statusMap[finalOutcome] || finalOutcome,
         attempt_count: (currentContact.attempt_count||0)+1,
@@ -4085,7 +4094,7 @@ async function submitOutcome(goBreak) {
         nachname: `${currentContact.first_name||''} ${currentContact.last_name||''}`.trim() || currentContact.phone,
         telefon: currentContact.phone, telefon2: currentContact.phone2||'',
         plz: currentContact.plz||'', ort: currentContact.city||'', strasse: currentContact.address||'',
-        termin_zaman: new Date(cbTime).toISOString(),
+        termin_zaman: (typeof mbWallToIso === 'function' ? mbWallToIso(cbTime) : new Date(cbTime).toISOString()),
         agent_id: currentUser.id,
         agent_name: currentUser.name,
         firm_id: currentUser.firm_id,
@@ -4121,7 +4130,8 @@ async function submitOutcome(goBreak) {
         return;
       }
       if (!_testMode) {
-        const callCheck = isCallAllowed(new Date().toISOString().split('T')[0], new Date().toTimeString().slice(0, 8));
+        const clock = dialerBusinessClock();
+        const callCheck = isCallAllowed(clock.dateStr, clock.timeStr);
         if (!callCheck.allowed) {
           toast((typeof t === 'function' ? t('dial.autodial_paused') : '⏸ ') + callCheck.reason, 'warn', 6000);
           _autoDial = false;
@@ -4495,9 +4505,9 @@ function isCallAllowed(dateStr, timeStr) {
 }
 
 function checkCallAllowed() {
-  const now = new Date();
-  const dateStr = now.toISOString().split('T')[0];
-  const timeStr = now.toTimeString().slice(0,8);
+  const clock = typeof dialerBusinessClock === 'function' ? dialerBusinessClock() : { dateStr: new Date().toISOString().split('T')[0], timeStr: new Date().toTimeString().slice(0, 8) };
+  const dateStr = clock.dateStr;
+  const timeStr = clock.timeStr;
   const check = isCallAllowed(dateStr, timeStr);
   if (!check.allowed) { toast(typeof tReplace === 'function' ? tReplace('dial.call_not_allowed', { reason: check.reason }) : ('⚠️ ' + check.reason), 'err', 5000); return false; }
   return true;
@@ -5302,11 +5312,6 @@ function toggleTestMode() {
       rdyBtn.onclick = testToggleReady; // Telnyx kontrolsüz versiyon
     }
     toast(typeof t === 'function' ? t('dial.test_mode_on') : 'Test modu açık', 'ok', 4000);
-    void loadFirmDialerSettingsCache().then(() => {
-      if (!(window._firmDialerSettings?.incoming_enabled)) {
-        toast(typeof t === 'function' ? t('dial.test_incoming_hint') : 'Gelen arama simülasyonu için ayarlar', 'warn', 7000);
-      }
-    });
   } else {
     btn.style.cssText = btn.style.cssText.replace(/background[^;]+;|color[^;]+;|border-color[^;]+;/g, '');
     btn.textContent = typeof t === 'function' ? t('dial.test_btn_off') : 'TEST MODU';
@@ -5329,6 +5334,7 @@ function toggleTestMode() {
     _inboundTestXferPoll = setInterval(() => _maybeConsumeTestTransferInbox(), 2000);
   }
   restartInboundTestSimulationScheduler();
+  if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
 }
 
 // Test moduna özel hazır toggle — Telnyx kontrolü yok

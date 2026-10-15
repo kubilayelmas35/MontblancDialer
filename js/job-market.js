@@ -509,17 +509,29 @@ function refreshJobSlotPreview() {
   }
   const t0p = t0.slice(0, 5);
   const t1p = t1.slice(0, 5);
-  const start = new Date(`${date}T${t0p}:00`);
-  const end = new Date(`${date}T${t1p}:00`);
-  let durMs = end.getTime() - start.getTime();
-  if (!Number.isFinite(start.getTime()) || durMs <= 0) durMs = 60 * 60 * 1000;
+  const toMin = (hhmm) => {
+    const [h, m] = String(hhmm || '00:00').split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  const fromMin = (total) => {
+    const day = Math.floor(total / 1440);
+    const mins = ((total % 1440) + 1440) % 1440;
+    return { day, label: `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}` };
+  };
+  const dayLabel = (iso, extra) => {
+    const match = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return iso;
+    const dt = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + extra));
+    return `${String(dt.getUTCDate()).padStart(2, '0')}.${String(dt.getUTCMonth() + 1).padStart(2, '0')}.`;
+  };
+  const startMin = toMin(t0p);
+  let durMin = toMin(t1p) - startMin;
+  if (durMin <= 0) durMin = 60;
   const lines = [];
-  let cur = start.getTime();
   for (let i = 0; i < Math.min(qty, 24); i++) {
-    const a = new Date(cur);
-    const b = new Date(cur + durMs);
-    lines.push(`${i + 1}. ${a.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} – ${b.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`);
-    cur += durMs;
+    const a = fromMin(startMin + i * durMin);
+    const b = fromMin(startMin + i * durMin + durMin);
+    lines.push(`${i + 1}. ${dayLabel(date, a.day)} ${a.label} – ${b.label}`);
   }
   if (qty > 24) lines.push(`… ve ${qty - 24} slot daha (önizleme)`);
   wrap.style.display = '';
@@ -535,8 +547,12 @@ function openJobSlotsModal(jobPostId) {
   const rows = slots.length
     ? slots.map((s) => {
       const st = s.status || 'open';
-      const a = new Date(s.slot_start_at).toLocaleString('tr-TR');
-      const b = new Date(s.slot_end_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+      const a = typeof mbFormatWall === 'function'
+        ? mbFormatWall(s.slot_start_at, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+        : new Date(s.slot_start_at).toLocaleString('tr-TR', { timeZone: 'Europe/Berlin' });
+      const b = typeof mbFormatWall === 'function'
+        ? mbFormatWall(s.slot_end_at, { hour: '2-digit', minute: '2-digit' })
+        : new Date(s.slot_end_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' });
       const act = canManage && st === 'open'
         ? `<button class="btn btn-ghost btn-sm" type="button" style="padding:2px 6px;" onclick="editJobSlot('${s.id}')">Düzenle</button>
            <button class="btn btn-ghost btn-sm" type="button" style="padding:2px 6px;color:var(--red);border-color:var(--red);" onclick="deleteJobSlot('${s.id}','${jobPostId}')">Sil</button>`
@@ -733,6 +749,7 @@ async function loadJobMarketPage() {
   refreshJobSlotPreview();
   await applyJobPermissionUi();
   await refreshWalletInfo();
+  await fillJobCampaignSelect();
   await loadJobPosts();
   setTimeout(refreshJobMarketMap, 60);
   setTimeout(refreshJobMarketMap, 400);
@@ -761,6 +778,23 @@ async function bindJobOwnerFirmSelector() {
   };
 }
 
+async function fillJobCampaignSelect() {
+  const sel = document.getElementById('jm-campaign');
+  if (!sel) return;
+  const prev = sel.value;
+  const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
+  let rows = Array.isArray(campaigns) ? campaigns : [];
+  if (!rows.length && fid) {
+    rows = await sb(`campaigns?select=id,name&firm_id=eq.${fid}&order=name.asc&limit=200`).catch(() => []) || [];
+  }
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  window._jmCampNames = window._jmCampNames || {};
+  (rows || []).forEach((c) => { if (c?.id) window._jmCampNames[c.id] = c.name || ''; });
+  sel.innerHTML = `<option value="">${de ? 'Keine Kampagne' : 'Kampanya bağlama'}</option>` +
+    (rows || []).map((c) => `<option value="${_jmEsc(c.id)}">${_jmEsc(c.name || '')}</option>`).join('');
+  if (prev) sel.value = prev;
+}
+
 async function loadJobPosts() {
   const list = document.getElementById('job-market-list');
   if (!list) return;
@@ -772,12 +806,18 @@ async function loadJobPosts() {
   list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:10px;">${typeof t === 'function' ? t('ui.loading') : 'Yükleniyor...'}</div>`;
   try {
     void runJobMarketAutoWithdrawals();
-    const posts = await sb(`job_posts?order=created_at.desc&limit=220`);
+    const posts = await sb(`job_posts?order=created_at.desc&limit=80`);
     if (!posts) throw new Error('İlan listesi alınamadı');
-    const workers = await sb(`job_post_workers?select=id,job_post_id,worker_firm_id,status`).catch(() => []);
-    const subs = await sb(`job_submissions?select=id,job_post_id,worker_firm_id,status,created_at,appointment_id&order=created_at.desc&limit=400`).catch(() => []);
-    const slots = await sb(`job_post_slots?select=id,job_post_id,status,slot_start_at,slot_end_at&order=slot_start_at.asc&limit=2000`).catch(() => []);
-    const geoRules = await sb(`job_post_geo_rules?select=job_post_id,radius_km,polygon_geojson&limit=2000`).catch(() => []);
+    const ids = (posts || []).map((p) => p.id).filter((id) => typeof isValidUUID !== 'function' || isValidUUID(id));
+    const inList = ids.join(',');
+    const [workers, subs, slots, geoRules] = ids.length
+      ? await Promise.all([
+        sb(`job_post_workers?select=id,job_post_id,worker_firm_id,status&job_post_id=in.(${inList})`).catch(() => []),
+        sb(`job_submissions?select=id,job_post_id,worker_firm_id,status,created_at,appointment_id&job_post_id=in.(${inList})&order=created_at.desc&limit=200`).catch(() => []),
+        sb(`job_post_slots?select=id,job_post_id,status,slot_start_at,slot_end_at&job_post_id=in.(${inList})&order=slot_start_at.asc&limit=400`).catch(() => []),
+        sb(`job_post_geo_rules?select=job_post_id,radius_km,polygon_geojson&job_post_id=in.(${inList})&limit=200`).catch(() => []),
+      ])
+      : [[], [], [], []];
     _jobPosts = posts || [];
     _jobPostWorkers = workers || [];
     _jobPostSubs = subs || [];
@@ -885,7 +925,7 @@ function renderJobPostList() {
     const geo = _jobGeoRules.find((g) => g.job_post_id === p.id) || {};
     const score = calcJobMatchScore(p, fid);
     const apptCat = p.job_type === 'appointment' ? _jmAppointmentCategoryLabelFromRequirements(p.requirements) : '';
-    const deadline = p.deadline_at ? new Date(p.deadline_at).toLocaleString('tr-TR') : '—';
+    const deadline = p.deadline_at ? (typeof mbFormatWall === 'function' ? mbFormatWall(p.deadline_at, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : new Date(p.deadline_at).toLocaleString('tr-TR', { timeZone: 'Europe/Berlin' })) : '—';
     const rdMs = p.retraction_deadline_at ? new Date(p.retraction_deadline_at).getTime() : 0;
     const deadlinePassed = !p.retraction_deadline_at || !!(rdMs && Date.now() >= rdMs);
     const hasApproved = _jobPostSubs.some((s) => s.job_post_id === p.id && s.status === 'approved');
@@ -907,10 +947,11 @@ function renderJobPostList() {
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
 <div>
 <div style="font-size:13px;font-weight:800;">${_jmEsc(p.title || 'İş ilanı')}</div>
+${p.campaign_id && (window._jmCampNames || {})[p.campaign_id] ? `<div style="font-size:11px;color:var(--accent);margin-top:2px;">${_jmEsc((window._jmCampNames || {})[p.campaign_id])}</div>` : ''}
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_jmEsc(p.job_type || 'custom')}${apptCat ? ` · <span style="color:var(--text-2);font-weight:600;">${_jmEsc(apptCat)}</span>` : ''} · ${_jmEsc(p.city || 'Bölge serbest')} · Son: ${deadline}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">İşlem başı: <b>${(typeof formatMoney === 'function') ? formatMoney(Number(p.unit_price || p.budget || 0), p.currency || 'EUR') : Number(p.unit_price || p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'EUR')}</b> · Adet: <b>${Number(p.quantity || slots.length || 1)}</b> · Toplam: <b>${(typeof formatMoney === 'function') ? formatMoney(Number(p.budget || 0), p.currency || 'EUR') : Number(p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'EUR')}</b> · Çalışan: <b>${workingCnt}</b> · Eşleşme: <b>${score}</b>/100</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Bölge: <b>${_jmEsc(p.postal_code || '-')}</b> · Radius: <b>${Number(geo.radius_km || 0).toFixed(1)} km</b></div>
-<div style="font-size:11px;color:var(--text-3);margin-top:2px;">Geri çekme: <b>${p.retraction_deadline_at ? new Date(p.retraction_deadline_at).toLocaleString('tr-TR') : 'otomatik kural'}</b>${retractHint}</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:2px;">Geri çekme: <b>${p.retraction_deadline_at ? (typeof mbFormatWall === 'function' ? mbFormatWall(p.retraction_deadline_at, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : new Date(p.retraction_deadline_at).toLocaleString('tr-TR', { timeZone: 'Europe/Berlin' })) : 'otomatik kural'}</b>${retractHint}</div>
 </div>
 <div><span class="badge badge-blue">${_jmEsc(({published:'Yayında',in_progress:'Sürüyor',pending_qc:'QC bekliyor',completed:'Tamamlandı',cancelled:'İptal',withdrawn:'Geri çekildi'})[p.status] || p.status || 'Yayında')}</span></div>
 </div>
@@ -968,12 +1009,11 @@ async function createJobPost() {
     toast('Geri çekme tarih/saat alanı zorunlu', 'warn');
     return;
   }
-  const retractDt = new Date(retractRaw);
-  if (!Number.isFinite(retractDt.getTime())) {
+  const retractionDeadlineAt = typeof mbWallToIso === 'function' ? mbWallToIso(retractRaw) : new Date(retractRaw).toISOString();
+  if (!retractionDeadlineAt) {
     toast('Geri çekme tarihi geçersiz', 'warn');
     return;
   }
-  const retractionDeadlineAt = retractDt.toISOString();
   if (polygonTxt) {
     try { polygon = JSON.parse(polygonTxt); } catch (e) { toast('Polygon JSON geçersiz', 'warn'); return; }
   }
@@ -1005,7 +1045,7 @@ async function createJobPost() {
         p_radius_km: radiusKm || null,
         p_polygon_geojson: polygon,
         p_requirements: requirementsPayload || null,
-        p_deadline_at: deadline ? new Date(deadline).toISOString() : null,
+        p_deadline_at: deadline ? (typeof mbWallToIso === 'function' ? mbWallToIso(deadline) : new Date(deadline).toISOString()) : null,
         p_qc_mode: qcMode,
         p_slot_date: slotDate || null,
         p_slot_start: slotStart || null,
@@ -1013,8 +1053,16 @@ async function createJobPost() {
         p_retraction_deadline_at: retractionDeadlineAt
       })
     });
-    if (!res.ok) throw new Error(await res.text());
-    if (typeof logAuditEvent === 'function') await logAuditEvent('job_post_created', 'job_post', title, { budget, unit_price: unitPrice, quantity, currency, qc_mode: qcMode, owner_firm_id: ownerFirmId });
+    const raw = await res.text();
+    if (!res.ok) throw new Error(raw.slice(0, 180));
+    let created = null;
+    try { created = JSON.parse(raw); } catch (e) { created = null; }
+    const jobId = (Array.isArray(created) ? created[0] : created)?.job_post_id;
+    const campId = String(document.getElementById('jm-campaign')?.value || '').trim();
+    if (jobId && campId) {
+      await sb(`job_posts?id=eq.${jobId}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ campaign_id: campId }) });
+    }
+    if (typeof logAuditEvent === 'function') await logAuditEvent('job_post_created', 'job_post', title, { budget, unit_price: unitPrice, quantity, currency, qc_mode: qcMode, owner_firm_id: ownerFirmId, campaign_id: campId || null });
     toast('İlan yayınlandı', 'ok');
     ['jm-title','jm-description','jm-city','jm-postal'].forEach((id) => {
       const el = document.getElementById(id);
