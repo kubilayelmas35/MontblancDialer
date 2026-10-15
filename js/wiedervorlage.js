@@ -90,11 +90,11 @@ function renderWvTable() {
   if (!tbody) return;
   const search = (document.getElementById('wv-search')?.value||'').toLowerCase();
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const todayStr = typeof mbBusinessNow === 'function' ? mbBusinessNow().dateStr : now.toISOString().split('T')[0];
   const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate()+7);
   let list = [...(wvList||[])].sort((a,b) => new Date(a.termin_zaman)-new Date(b.termin_zaman));
   if (wvTab === 'today') {
-    list = list.filter(w => w.termin_zaman?.startsWith(todayStr));
+    list = list.filter(w => (typeof mbBerlinDay === 'function' ? mbBerlinDay(w.termin_zaman) : String(w.termin_zaman || '').slice(0, 10)) === todayStr);
   } else if (wvTab === 'overdue') {
     list = list.filter((w) => w.durum === 'bekliyor' && new Date(w.termin_zaman) < now);
   } else if (wvTab === 'week') {
@@ -115,7 +115,9 @@ function renderWvTable() {
   const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);
   tbody.innerHTML = list.map(w => {
     const dt = w.termin_zaman ? new Date(w.termin_zaman) : null;
-    const dtStr = dt ? dt.toLocaleString('tr-TR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+    const dtStr = w.termin_zaman && typeof mbFormatWall === 'function'
+      ? mbFormatWall(w.termin_zaman, { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
+      : (dt ? dt.toLocaleString('tr-TR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Berlin' }) : '—');
     const isOverdue = dt && dt < now && w.durum === 'bekliyor';
     const rowStyle = isOverdue ? 'background:rgba(var(--red-rgb),.06);' : '';
     // Conditionally render agent cell to avoid misalignment for non-admin

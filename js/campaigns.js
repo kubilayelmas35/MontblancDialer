@@ -2,70 +2,134 @@
 // CAMPAIGNS — kampanya yönetimi
 // ─────────────────────────────────────────────
 
+function campT(key, fb) {
+  return typeof t === 'function' ? t(key) : fb;
+}
+
+async function attachCampaignPeople() {
+  const ff = typeof getFirmFilter === 'function' ? getFirmFilter('&') : '';
+  let users = [];
+  let sessions = [];
+  try {
+    [users, sessions] = await Promise.all([
+      sb(`users?select=id,name${ff}&limit=500`),
+      sb(`agent_sessions?select=agent_id,agent_name,campaign_id,status${ff}&limit=500`),
+    ]);
+  } catch (e) {
+    users = [];
+    sessions = [];
+  }
+  const nameById = {};
+  (users || []).forEach((u) => { if (u?.id && u.name) nameById[u.id] = u.name; });
+  (campaigns || []).forEach((c) => {
+    const people = new Map();
+    (c.agent_campaigns || []).forEach((ac) => {
+      const id = ac.agent_id;
+      if (!id) return;
+      people.set(id, { agent_id: id, name: nameById[id] || '', assigned: true, live: false });
+    });
+    (sessions || []).forEach((s) => {
+      if (s.campaign_id !== c.id) return;
+      if (!s.status || s.status === 'offline') return;
+      const id = s.agent_id;
+      if (!id) return;
+      const prev = people.get(id) || { agent_id: id, name: '', assigned: false, live: false };
+      prev.live = true;
+      if (!prev.name) {
+        const sessionName = String(s.agent_name || '');
+        prev.name = nameById[id] || (/^[0-9a-f-]{8}-/i.test(sessionName) ? '' : sessionName);
+      }
+      people.set(id, prev);
+    });
+    c._people = [...people.values()];
+  });
+}
+
+function campPersonLabel(person) {
+  const name = String(person?.name || '').trim();
+  if (name && !/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(name)) return name;
+  return campT('camp.agent.unnamed', 'Temsilci');
+}
+
 async function loadCampaigns() {
 renderFirmSelector('camp-firm-selector', loadCampaigns);
 try {
 const ff = getFirmFilter('&');
 campaigns = await sb(`campaigns?select=*,queues(*),agent_campaigns(*)&order=created_at.desc${ff}`);
 campaigns = campaigns || [];
+await attachCampaignPeople();
 renderCampGrid();
+if (typeof updateTopbarStats === 'function') updateTopbarStats();
 } catch(e){ toast('Kampanyalar yüklenemedi: '+e.message,'err'); console.error(e); }
 }
 
 function renderCampGrid() {
 const grid = document.getElementById('camp-grid');
 if (!campaigns.length) {
-grid.innerHTML = `<div style="color:var(--text-3);padding:32px;text-align:center;grid-column:1/-1;font-size:13px;">Henüz kampanya yok</div>`;
+grid.innerHTML = `<div style="color:var(--text-3);padding:32px;text-align:center;grid-column:1/-1;font-size:13px;">${campT('camp.empty','Henüz kampanya yok')}</div>`;
 return;
 }
+const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
 grid.innerHTML = campaigns.map(c=>{
 const qs = c.queues||[];
 const tot= qs.reduce((s,q)=>s+(q.total_contacts||0),0);
 const dia= qs.reduce((s,q)=>s+(q.dialed_count||0),0);
 const pct= tot>0?Math.round(dia/tot*100):0;
-const ags= c.agent_campaigns?.length||0;
+const ags= (c._people || c.agent_campaigns || []).length;
 const sb2= c.status==='active'
-?'<span class="badge badge-green">Aktif</span>'
+?`<span class="badge badge-green">${esc(campT('camp.status.active','Aktif'))}</span>`
 :c.status==='paused'
-?'<span class="badge badge-yellow">Duraklatıldı</span>'
-:'<span class="badge badge-gray">Tamamlandı</span>';
+?`<span class="badge badge-yellow">${esc(campT('camp.status.paused','Duraklatıldı'))}</span>`
+:`<span class="badge badge-gray">${esc(campT('camp.status.done','Tamamlandı'))}</span>`;
+const didRaw = String(c.telnyx_did || '').trim();
+const didBad = didRaw && typeof mbIsE164 === 'function' && !mbIsE164(didRaw);
+const didText = !didRaw
+  ? campT('camp.did.none','DID atanmadı')
+  : (didBad ? `${didRaw} · ${campT('camp.did.invalid','DID geçersiz')}` : didRaw);
+const pauseLabel = c.status==='active'
+  ? `<i class="ph ph-pause"></i> ${esc(campT('camp.pause','Duraklat'))}`
+  : `<i class="ph ph-play"></i> ${esc(campT('camp.start','Başlat'))}`;
 return `<div class="camp-card" onclick="openCampDetail('${c.id}')">
 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-<div><div class="camp-name">${c.name}</div><div class="camp-did">${c.telnyx_did||'DID atanmadı'}</div></div>
+<div><div class="camp-name">${esc(c.name)}</div><div class="camp-did">${esc(didText)}</div></div>
 <div style="display:flex;gap:4px;flex-shrink:0;" onclick="event.stopPropagation()">
 ${sb2}
-<button class="icon-btn" onclick="openCampFieldSettings('${c.id}')" title="Alan Ayarları"><i class="ph ph-gear"></i></button>
+<button class="icon-btn" onclick="openCampFieldSettings('${c.id}')" title="${esc(campT('camp.field.title','Alan Ayarları'))}"><i class="ph ph-gear"></i></button>
 <button class="icon-btn" onclick="deleteCampaign('${c.id}')" style="border-color:var(--red);color:var(--red);" title="Sil"><i class="ph ph-trash"></i></button>
 </div>
 </div>
 <div class="camp-kpi">
-<div class="camp-kpi-item"><div class="camp-kpi-val">${tot.toLocaleString()}</div><div class="camp-kpi-lbl">Toplam</div></div>
-<div class="camp-kpi-item"><div class="camp-kpi-val" style="color:var(--accent);">${dia.toLocaleString()}</div><div class="camp-kpi-lbl">Aranan</div></div>
-<div class="camp-kpi-item"><div class="camp-kpi-val" style="color:var(--text-2);">${ags}</div><div class="camp-kpi-lbl">Agent</div></div>
+<div class="camp-kpi-item"><div class="camp-kpi-val">${tot.toLocaleString()}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.total','Toplam'))}</div></div>
+<div class="camp-kpi-item"><div class="camp-kpi-val" style="color:var(--accent);">${dia.toLocaleString()}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.dialed','Aranan'))}</div></div>
+<div class="camp-kpi-item"><div class="camp-kpi-val" style="color:var(--text-2);">${ags}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.agent','Temsilci'))}</div></div>
 </div>
 <div>
 <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:4px;">
-<span>İlerleme</span><span style="color:var(--accent);font-weight:700;font-family:var(--mono);">${pct}%</span>
+<span>${esc(campT('camp.kpi.progress','İlerleme'))}</span><span style="color:var(--accent);font-weight:700;font-family:var(--mono);">${pct}%</span>
 </div>
 <div class="prog-wrap"><div class="prog-fill" style="width:${pct}%;"></div></div>
 </div>
 <div style="display:flex;align-items:center;justify-content:space-between;">
-<span style="font-size:12px;color:var(--text-3);">Hız: <strong style="color:var(--accent);font-family:var(--mono);">${c.dial_speed} hat</strong></span>
+<span style="font-size:12px;color:var(--text-3);">${esc(campT('camp.speed','Hız'))}: <strong style="color:var(--accent);font-family:var(--mono);">${esc(c.dial_speed)} ${esc(campT('camp.speed.unit','hat'))}</strong></span>
 <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();toggleCampStatus('${c.id}','${c.status}')">
-${c.status==='active'?'<i class="ph ph-pause"></i> Duraklat':'<i class="ph ph-play"></i> Başlat'}
+${pauseLabel}
 </button>
 </div>
 </div>`;
 }).join('');
 }
 
-function openCampDetail(id) {
+function openCampDetail(id, opts) {
 currentCampId = id;
 const c = campaigns.find(x=>x.id===id);
 if (!c) return;
 document.getElementById('camp-detail').style.display = 'block';
 document.getElementById('cd-name').textContent = c.name;
-document.getElementById('cd-did').textContent  = c.telnyx_did||'DID atanmadı';
+const didRaw = String(c.telnyx_did || '').trim();
+const didBad = didRaw && typeof mbIsE164 === 'function' && !mbIsE164(didRaw);
+document.getElementById('cd-did').textContent = !didRaw
+  ? campT('camp.did.none','DID atanmadı')
+  : (didBad ? `${didRaw} · ${campT('camp.did.invalid','DID geçersiz')}` : didRaw);
 document.getElementById('cd-speed').value = c.dial_speed;
 document.getElementById('cd-speed-v').textContent = c.dial_speed;
 const qs = c.queues||[];
@@ -78,24 +142,65 @@ return `<div class="queue-row" style="gap:8px;">
 <div class="queue-name" style="flex:1;">${q.name}</div>
 <div class="queue-cnt" style="font-size:11px;color:var(--text-3);white-space:nowrap;">${dialed}/${total} <span style="color:var(--accent);">(${p}%)</span></div>
 <div style="width:70px;"><div class="prog-wrap"><div class="prog-fill" style="width:${p}%;"></div></div></div>
-<span class="badge ${q.status==='active'?'badge-green':'badge-gray'}">${q.status==='active'?'Aktif':'Durdu'}</span>
+<span class="badge ${q.status==='active'?'badge-green':'badge-gray'}">${q.status==='active'?campT('camp.queue.active','Aktif'):campT('camp.queue.stopped','Durdu')}</span>
 <button class="icon-btn" onclick="openRequeueModal('${q.id}','${q.name}')" title="Kuyruğu Yönet"><i class="ph ph-sliders"></i> Yönet</button>
 </div>`;}).join('')
-: `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Kuyruk yok — yükle!</div>`;
-const acs = c.agent_campaigns||[];
-document.getElementById('cd-agents').innerHTML = acs.length
-? acs.map(ac=>`<div class="agent-tag">
-<div class="av">${(ac.agent_name||'?').charAt(0)}</div>
-${ac.agent_name||ac.agent_id}
+: `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${campT('camp.queue.none','Kuyruk yok')}</div>`;
+const people = c._people || [];
+const escP = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+document.getElementById('cd-agents').innerHTML = people.length
+? people.map(ac=>{
+const label = campPersonLabel(ac);
+const live = ac.live && !ac.assigned ? ` <span style="font-size:10px;color:var(--text-3);">(${escP(campT('camp.agent.live','şu an bu kampanyada'))})</span>` : '';
+return `<div class="agent-tag">
+<div class="av">${escP(label.charAt(0) || '?')}</div>
+${escP(label)}${live}
 <button class="rm" onclick="removeAgent('${ac.agent_id}','${id}')"><i class="ph ph-x" style="font-size:10px;"></i></button>
-</div>`).join('')
-: `<span style="color:var(--text-3);font-size:12px;">Agent atanmadı</span>`;
+</div>`;
+}).join('')
+: `<span style="color:var(--text-3);font-size:12px;">${campT('camp.agent.none','Temsilci atanmadı')}</span>`;
 document.getElementById('camp-detail').scrollIntoView({behavior:'smooth'});
-switchCampTab('genel');
+if (!opts?.keepTab) switchCampTab('genel');
 }
 
 function closeCampDetail() {
 document.getElementById('camp-detail').style.display='none'; currentCampId=null;
+}
+
+function fillCampDidList() {
+  const list = document.getElementById('nc-did-list');
+  if (!list) return;
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const seen = new Set();
+  const opts = [];
+  (campaigns || []).forEach((c) => {
+    const d = String(c.telnyx_did || '').replace(/[\s()-]/g, '');
+    if (!d || seen.has(d)) return;
+    if (typeof mbIsE164 === 'function' && !mbIsE164(d)) return;
+    seen.add(d);
+    opts.push(`<option value="${esc(d)}"></option>`);
+  });
+  list.innerHTML = opts.join('');
+}
+
+const NC_LABEL_DE = {
+  'Telefon': 'Telefon',
+  'Telefon 2': 'Telefon 2',
+  'Ad / Soyad': 'Name',
+  'PLZ': 'PLZ',
+  'Şehir': 'Stadt',
+  'Adres': 'Adresse',
+  'Arama Sayısı': 'Anrufanzahl',
+  'Notlar': 'Notizen',
+};
+
+function ncLabelShown(label) {
+  const raw = String(label || '');
+  if (typeof currentLang === 'undefined' || currentLang !== 'de') return raw;
+  if (NC_LABEL_DE[raw]) return NC_LABEL_DE[raw];
+  const m = raw.match(/^Özel Alan (\d+)$/);
+  if (m) return `Eigenes Feld ${m[1]}`;
+  return raw;
 }
 
 function openNewCampModal() {
@@ -112,6 +217,7 @@ document.getElementById('nc-did').value = '';
 document.getElementById('nc-desc').value = '';
 document.getElementById('nc-speed').value = 1;
 document.getElementById('nc-sv').textContent = '1';
+fillCampDidList();
 const ncFirmRow = document.getElementById('nc-firm-row');
 const ncFirmSel = document.getElementById('nc-firm-id');
 if (ncFirmRow && ncFirmSel) {
@@ -135,23 +241,26 @@ style="display:flex;align-items:center;gap:5px;padding:5px 7px;background:var(--
 <span style="color:var(--text-3);font-size:14px;cursor:grab;user-select:none;">⠿</span>
 <input type="checkbox" ${f.show?'checked':''} ${f.locked?'disabled':''}
 onchange="_ncFields[${i}].show=this.checked;updateCampPreview()" title="Göster/Gizle">
-<input class="form-input" value="${f.label}" style="flex:1;font-size:12px;padding:3px 7px;"
+<input class="form-input" value="${ncLabelShown(f.label)}" style="flex:1;font-size:12px;padding:3px 7px;"
 oninput="_ncFields[${i}].label=this.value;updateCampPreview()" placeholder="Alan adı">
 <select class="form-input" style="width:85px;font-size:11px;padding:3px;"
 onchange="_ncFields[${i}].type=this.value;updateCampPreview()">
-<option value="text" ${f.type==='text'?'selected':''}>Metin</option>
-<option value="number" ${f.type==='number'?'selected':''}>Sayı</option>
-<option value="date" ${f.type==='date'?'selected':''}>Tarih</option>
-<option value="boolean" ${f.type==='boolean'?'selected':''}>Evet/Hayır</option>
-<option value="select" ${f.type==='select'?'selected':''}>Açılır Menü</option>
-<option value="multiselect" ${f.type==='multiselect'?'selected':''}>Çoktan Seçmeli</option>
-<option value="checkbox" ${f.type==='checkbox'?'selected':''}>Checkbox</option>
+<option value="text" ${f.type==='text'?'selected':''} data-tr="Metin" data-de="Text">Metin</option>
+<option value="number" ${f.type==='number'?'selected':''} data-tr="Sayı" data-de="Zahl">Sayı</option>
+<option value="date" ${f.type==='date'?'selected':''} data-tr="Tarih" data-de="Datum">Tarih</option>
+<option value="boolean" ${f.type==='boolean'?'selected':''} data-tr="Evet/Hayır" data-de="Ja/Nein">Evet/Hayır</option>
+<option value="select" ${f.type==='select'?'selected':''} data-tr="Açılır Menü" data-de="Auswahl">Açılır Menü</option>
+<option value="multiselect" ${f.type==='multiselect'?'selected':''} data-tr="Çoktan Seçmeli" data-de="Mehrfachauswahl">Çoktan Seçmeli</option>
+<option value="checkbox" ${f.type==='checkbox'?'selected':''} data-tr="Checkbox" data-de="Kontrollkästchen">Checkbox</option>
 </select>
 ${f.locked
 ? '<i class="ph ph-lock-simple" style="font-size:13px;color:var(--text-3);"></i>'
 : `<button onclick="ncRemoveField(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;padding:0 2px;display:flex;align-items:center;"><i class="ph ph-x"></i></button>`
 }
 </div>`).join('');
+if (typeof currentLang !== 'undefined' && currentLang === 'de') {
+  el.querySelectorAll('[data-de]').forEach((opt) => { opt.textContent = opt.getAttribute('data-de'); });
+}
 }
 
 function ncDropField(toIdx) {
@@ -253,7 +362,8 @@ if (!visible.length) {
 el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:20px;font-size:12px;">Alan seçilmedi</div>';
 return;
 }
-const sampleVal = t => t==='number'?'123':t==='date'?'01.01.2024':t==='boolean'?'Evet':'Örnek veri';
+const dePrev = typeof currentLang !== 'undefined' && currentLang === 'de';
+const sampleVal = (tp) => tp==='number'?'123':tp==='date'?'01.01.2024':tp==='boolean'?(dePrev?'Ja':'Evet'):(dePrev?'Beispieldaten':'Örnek veri');
 el.innerHTML = `
 <div style="font-size:13px;font-weight:800;padding:8px 10px;background:var(--accent);color:#fff;border-radius:6px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
 <i class="ph ph-phone"></i> +49 176 1234567
@@ -261,7 +371,7 @@ el.innerHTML = `
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
 ${visible.map(f=>`
 <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:5px 7px;">
-<div style="font-size:9px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">${f.label}</div>
+<div style="font-size:9px;color:var(--text-3);font-weight:700;letter-spacing:.4px;">${typeof ncLabelShown==='function'?ncLabelShown(f.label):f.label}</div>
 <div style="font-size:11px;font-weight:600;color:var(--text);margin-top:2px;">${sampleVal(f.type)}</div>
 </div>`).join('')}
 </div>`;
@@ -273,24 +383,35 @@ const did  = document.getElementById('nc-did').value.trim();
 const desc = document.getElementById('nc-desc').value.trim();
 const spd  = parseInt(document.getElementById('nc-speed').value)||1;
 if (!name) { toast('Kampanya adı gerekli','err'); return; }
+const didNorm = did.replace(/[\s()-]/g, '');
+if (did && (typeof mbIsE164 !== 'function' || !mbIsE164(did))) {
+  toast(campT('camp.did.bad','DID + ile başlamalı, örnek +49301234567'), 'err');
+  return;
+}
 const targetFirmId = (isSuperAdmin() ? document.getElementById('nc-firm-id')?.value : null) || getActiveFirmId() || currentUser?.firm_id;
 if (!targetFirmId) { toast('Firma seçin veya yeniden giriş yapın','err'); return; }
+if (didNorm) {
+  const dup = (campaigns || []).some((c) => String(c.firm_id || '') === String(targetFirmId) && String(c.telnyx_did || '').replace(/[\s()-]/g, '') === didNorm);
+  if (dup) { toast(campT('camp.did.dup','Bu numara başka kampanyada kayıtlı'), 'err'); return; }
+}
 const fieldConfig = {};
 _ncFields.forEach(f => {
-fieldConfig[f.key] = {show:f.show, label:f.label, type:f.type, locked:f.locked||false};
+fieldConfig[f.key] = {show:f.show, label:ncLabelShown(f.label), type:f.type, locked:f.locked||false};
 });
 try {
-await sb('campaigns', {
+const created = await sb('campaigns', {
 method:'POST', prefer:'return=representation',
 body: JSON.stringify({
-name, telnyx_did:did||null, description:desc||null,
+name, telnyx_did:didNorm||null, description:desc||null,
 dial_speed:spd, field_config:fieldConfig,
 firm_id: targetFirmId, status:'active'
 })
 });
+const row = Array.isArray(created) ? created[0] : created;
 closeModal('m-new-camp');
 toast('Kampanya oluşturuldu ✓','ok');
-loadCampaigns();
+await loadCampaigns();
+if (row?.id) openCampDetail(row.id);
 } catch(e){ toast('Hata: '+e.message,'err'); console.error(e); }
 }
 
@@ -698,17 +819,36 @@ const el = document.getElementById(`aux-code-${i}`);
 el?.parentElement?.remove();
 }
 
+const OUTCOME_I18N = {
+  appointment: { tr: 'Randevu', de: 'Termin' },
+  negative: { tr: 'Olumsuz', de: 'Negativ' },
+  callback: { tr: 'Geri Ara', de: 'Rückruf' },
+  no_answer: { tr: 'Cevap Yok', de: 'Keine Antwort' },
+  dnc: { tr: 'Kara Liste', de: 'Sperrliste' },
+  voicemail: { tr: 'Telesekreter', de: 'Anrufbeantworter' },
+};
+
+function outcomeDisplayLabel(o) {
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const pack = OUTCOME_I18N[o?.key];
+  const raw = String(o?.label || '').trim();
+  if (!pack) return raw;
+  if (!raw || raw === o.key || raw === pack.tr || raw === pack.de) return de ? pack.de : pack.tr;
+  return raw;
+}
+
 function renderOutcomes(outcomes) {
 const el = document.getElementById('cd-outcomes');
 if (!el) return;
 const cats = ['appointment','negative','callback','neutral'];
 const catLabels = {appointment:'Başarılı', negative:'Negatif', callback:'Geri Ara', neutral:'Nötr'};
+const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
 el.innerHTML = outcomes.map((o,i)=>`
 <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg-2);border-radius:5px;">
 <input type="checkbox" ${o.enabled?'checked':''} id="outcome-enabled-${i}">
-<input class="form-input" value="${o.label}" id="outcome-label-${i}" style="flex:1;font-size:12px;padding:3px 7px;">
+<input class="form-input" value="${esc(outcomeDisplayLabel(o))}" id="outcome-label-${i}" style="flex:1;font-size:12px;padding:3px 7px;">
 ${o.key && ['appointment','negative','callback','no_answer','dnc','voicemail'].includes(o.key)
-? `<span style="font-size:10px;color:var(--text-3);min-width:60px;">${o.key}</span>`
+? ''
 : `<select class="form-input" id="outcome-cat-${i}" style="font-size:11px;padding:2px 4px;width:110px;">
 ${cats.map(c=>`<option value="${c}" ${(o.category||'neutral')===c?'selected':''}>${catLabels[c]}</option>`).join('')}
 </select>`
@@ -745,7 +885,21 @@ document.getElementById('outcome-enabled-'+i)?.closest('div')?.remove();
 }
 
 async function saveCampQcSettings() {
-const auxCodes = [...document.querySelectorAll('[id^="aux-code-"]')].map(el=>el.value).filter(Boolean);
+const auxRaw = [...document.querySelectorAll('[id^="aux-code-"]')].map(el => String(el.value || '').trim());
+if (!auxRaw.length || auxRaw.some((v) => !v)) {
+  toast(campT('camp.aux.empty','Boş mola kodu kaydedilemez'), 'err');
+  return;
+}
+const auxSeen = new Set();
+for (const code of auxRaw) {
+  const key = code.toLocaleLowerCase('tr-TR');
+  if (auxSeen.has(key)) {
+    toast(campT('camp.aux.dup','Aynı mola kodu iki kez yazılamaz'), 'err');
+    return;
+  }
+  auxSeen.add(key);
+}
+const auxCodes = auxRaw;
 const outcomeCodes = [...document.querySelectorAll('[id^="outcome-enabled-"]')].map((cb,i)=>({
 key: DEFAULT_OUTCOMES[i]?.key || 'custom',
 label: document.getElementById(`outcome-label-${i}`)?.value || '',

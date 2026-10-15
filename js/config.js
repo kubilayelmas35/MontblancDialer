@@ -24,6 +24,62 @@ const UQ_AUTO_MAP = {
 'not':'notes','notiz':'notes','anmerkung':'notes',
 };
 
+const UQ_FIELD_KEYWORDS = {
+  phone: ['telefon', 'phone', 'tel', 'handy', 'mobil', 'telefon 1', 'gsm'],
+  phone2: ['telefon 2', 'telefon2', 'phone 2', 'phone2', 'tel2', 'handy 2', 'mobil 2'],
+  first_name: ['ad', 'vorname', 'firstname', 'first name', 'isim'],
+  last_name: ['soyad', 'nachname', 'lastname', 'last name', 'familienname'],
+  name: ['ad soyad', 'ad / soyad', 'vollname', 'full name', 'isim soyisim', 'name'],
+  plz: ['plz', 'posta kodu', 'postleitzahl', 'zip', 'pk'],
+  city: ['şehir', 'sehir', 'stadt', 'ort', 'ortschaft', 'city'],
+  address: ['adres', 'adresse', 'strasse', 'straße', 'street', 'sokak'],
+};
+
+function mbCleanHeader(h) {
+  return String(h ?? '')
+    .replace(/^\uFEFF/, '')
+    .trim()
+    .toLowerCase()
+    .replace(/["'\r*]/g, '')
+    .replace(/[_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function mbAutoMapHeaders(headers) {
+  const cleaned = (headers || []).map(mbCleanHeader);
+  const dict = UQ_FIELD_KEYWORDS || {};
+  const exact = [];
+  const loose = [];
+  Object.keys(dict).forEach((key) => {
+    (dict[key] || []).forEach((kw) => {
+      const n = mbCleanHeader(kw);
+      if (!n) return;
+      cleaned.forEach((h, i) => {
+        if (!h) return;
+        if (h === n) exact.push({ key, i, score: n.length });
+        else if (n.length >= 5 && h.includes(n)) loose.push({ key, i, score: n.length });
+      });
+    });
+  });
+  exact.sort((a, b) => b.score - a.score);
+  loose.sort((a, b) => b.score - a.score);
+  const used = new Set();
+  const out = {};
+  [...exact, ...loose].forEach((c) => {
+    if (out[c.key] != null || used.has(c.i)) return;
+    out[c.key] = c.i;
+    used.add(c.i);
+  });
+  return out;
+}
+
+function mbSplitPersonName(full) {
+  const parts = String(full || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return { first_name: '', last_name: '' };
+  return { first_name: parts[0], last_name: parts.slice(1).join(' ') };
+}
+
 const DEFAULT_AUX_CODES = ['Yemek Molası','Çay Molası','Lavabo','Toplantı','Teknik Sorun'];
 
 const DEFAULT_OUTCOMES = [
@@ -32,7 +88,7 @@ const DEFAULT_OUTCOMES = [
 {key:'callback',    label:'Geri Ara',      enabled:true,  color:'blue'},
 {key:'no_answer',   label:'Cevap Yok',     enabled:true,  color:'gray'},
 {key:'dnc',         label:'Kara Liste',    enabled:true,  color:'red'},
-{key:'voicemail',   label:'Telesekreter',  enabled:false, color:'gray'},
+{key:'voicemail',   label:'Telesekreter',  enabled:true,  color:'gray'},
 ];
 
 const IA_FIELDS = [
@@ -62,6 +118,7 @@ const NC_DEFAULT_FIELDS = [
 const UQ_TARGET_FIELDS = [
 { key:'phone',      label:'📞 Telefon *', required:true },
 { key:'phone2',     label:'📞 Telefon 2' },
+{ key:'name',       label:'👤 Ad / Soyad' },
 { key:'first_name', label:'👤 Ad' },
 { key:'last_name',  label:'👤 Soyad' },
 { key:'plz',        label:'📮 PLZ' },
@@ -129,6 +186,23 @@ function mbFormatWall(iso, opts) {
     timeZone: MB_BUSINESS_TZ,
     ...(opts || {}),
   }).format(dt);
+}
+
+function mbBusinessNow() {
+  const p = mbZonedParts(new Date(), MB_BUSINESS_TZ);
+  return {
+    dateStr: `${p.year}-${p.month}-${p.day}`,
+    timeStr: `${p.hour}:${p.minute}:00`,
+  };
+}
+
+function mbBerlinDay(iso) {
+  if (!iso) return '';
+  const dt = new Date(iso);
+  if (!Number.isFinite(dt.getTime())) return String(iso).slice(0, 10);
+  const p = mbZonedParts(dt, MB_BUSINESS_TZ);
+  if (!p.year) return '';
+  return `${p.year}-${p.month}-${p.day}`;
 }
 
 function mbIsE164(value) {

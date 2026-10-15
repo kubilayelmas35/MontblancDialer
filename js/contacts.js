@@ -21,13 +21,13 @@ async function setFile(f) {
       const ws  = wb.Sheets[wb.SheetNames[0]];
       const raw = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
       if (!raw.length) { toast('Excel boş!','err'); return; }
-      uploadHeaders    = raw[0].map(h => String(h).trim().toLowerCase().replace(/["\r]/g,'').replace(/\s+/g,'_'));
+      uploadHeaders    = raw[0].map(h => mbCleanHeader(h));
       uploadParsedRows = raw.slice(1).filter(r => r.some(c => String(c).trim())).map(r => r.map(c => String(c).trim()));
     } else {
       const text = await f.text();
       const sep  = text.includes(';') ? ';' : text.includes('\t') ? '\t' : ',';
       const allRows = text.trim().split('\n').map(r => r.split(sep));
-      uploadHeaders    = allRows[0].map(h => h.trim().toLowerCase().replace(/["\r]/g,''));
+      uploadHeaders    = allRows[0].map(h => mbCleanHeader(h));
       uploadParsedRows = allRows.slice(1).filter(r => r.some(c => c.trim())).map(r => r.map(c => c.trim().replace(/["\r]/g,'')));
     }
     document.getElementById('uq-row-count').textContent = uploadParsedRows.length.toLocaleString();
@@ -41,20 +41,18 @@ async function setFile(f) {
 
 function renderColumnMapping() {
   const grid = document.getElementById('uq-mapping-grid');
+  const auto = typeof mbAutoMapHeaders === 'function' ? mbAutoMapHeaders(uploadHeaders) : {};
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   grid.innerHTML = UQ_TARGET_FIELDS.map(field => {
-    const autoKeywords = UQ_AUTO_MAP[field.key] || [];
-    let autoMatch = '';
-    for (const kw of autoKeywords) {
-      const found = uploadHeaders.find(h => h === kw || h.includes(kw));
-      if (found) { autoMatch = found; break; }
-    }
+    const autoHeader = auto[field.key] != null ? uploadHeaders[auto[field.key]] : '';
     const options = uploadHeaders.map(h =>
-      `<option value="${h}" ${h === autoMatch ? 'selected' : ''}>${h}</option>`
+      `<option value="${esc(h)}" ${h === autoHeader ? 'selected' : ''}>${esc(h)}</option>`
     ).join('');
+    const placeholder = field.required ? '— Seç (Zorunlu) —' : '— Kullanma —';
     return `<div>
 <div class="form-label" style="margin-bottom:4px;">${field.label}</div>
 <select class="form-input" id="uq-map-${field.key}" onchange="updateUploadPreview()">
-<option value="${field.required ? '— Seç (Zorunlu) —' : '— Kullanma —'}"></option>
+<option value="">${placeholder}</option>
 ${options}
 </select>
 </div>`;
@@ -68,17 +66,11 @@ function updateUploadPreview() {
   const sample = uploadParsedRows.slice(0, 3);
   if (!sample.length) return;
   preview.style.display = '';
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   rows.innerHTML = sample.map((row) => {
-    const mapped = {};
-    UQ_TARGET_FIELDS.forEach(f => {
-      const sel = document.getElementById(`uq-map-${f.key}`)?.value;
-      if (sel) {
-        const idx = uploadHeaders.indexOf(sel);
-        if (idx >= 0) mapped[f.key] = (row[idx]||'').trim().replace(/["\r]/g,'');
-      }
-    });
+    const mapped = mbRowFromMapping(row, getUploadMapping());
     return `<div style="background:var(--bg-2);border-radius:4px;padding:5px 8px;margin-bottom:4px;font-size:10px;display:flex;gap:8px;flex-wrap:wrap;">
-${Object.entries(mapped).filter(([,v])=>v).map(([k,v])=>`<span><b style="color:var(--accent)">${k}:</b> ${v}</span>`).join(' · ')}
+${Object.entries(mapped).filter(([,v])=>v).map(([k,v])=>`<span><b style="color:var(--accent)">${esc(k)}:</b> ${esc(v)}</span>`).join(' · ')}
 </div>`;
   }).join('');
 }
@@ -87,9 +79,45 @@ function getUploadMapping() {
   const map = {};
   UQ_TARGET_FIELDS.forEach(f => {
     const sel = document.getElementById(`uq-map-${f.key}`)?.value;
-    if (sel) map[f.key] = uploadHeaders.indexOf(sel);
+    if (!sel) return;
+    const idx = uploadHeaders.indexOf(sel);
+    if (idx >= 0) map[f.key] = idx;
   });
   return map;
+}
+
+function mbRowFromMapping(row, mapping) {
+  const get = (key) => {
+    const idx = mapping[key];
+    return (idx !== undefined && idx >= 0) ? String(row[idx] || '').trim().replace(/["\r]/g, '') : '';
+  };
+  let first = get('first_name');
+  let last = get('last_name');
+  const full = get('name');
+  if (full && !first && !last && typeof mbSplitPersonName === 'function') {
+    const split = mbSplitPersonName(full);
+    first = split.first_name;
+    last = split.last_name;
+  }
+  return {
+    phone: get('phone'),
+    phone2: get('phone2'),
+    first_name: first,
+    last_name: last,
+    city: get('city'),
+    plz: get('plz'),
+    address: get('address'),
+  };
+}
+
+function mbUploadFailText(err) {
+  const raw = String(err?.message || err || '');
+  const rls = /42501|row-level security|row level security/i.test(raw);
+  const key = rls ? 'uq.err.rls' : 'uq.err.generic';
+  if (typeof t === 'function') return t(key);
+  return rls
+    ? 'Kuyruk oluşturulamadı. Kampanyayı kontrol edip tekrar deneyin.'
+    : 'Yükleme başarısız. Dosyayı kontrol edip tekrar deneyin.';
 }
 
 function getDedupMode() {
@@ -106,33 +134,33 @@ async function uploadQueue() {
   if (uploadParsedRows.length && uploadHeaders.length) {
     const mapping = getUploadMapping();
     if (!mapping.phone && mapping.phone !== 0) { toast('Telefon sütunu seçilmedi!','err'); return; }
-    contacts = uploadParsedRows.map(row => {
-      const get = (key) => {
-        const idx = mapping[key];
-        return (idx !== undefined && idx >= 0) ? (row[idx]||'').trim().replace(/["\r]/g,'') : '';
-      };
-      return {
-        queue_id:'__PH__', campaign_id:currentCampId,
-        phone: get('phone'), phone2: get('phone2'),
-        first_name: get('first_name'), last_name: get('last_name'),
-        city: get('city'), plz: get('plz'), address: get('address'),
-      };
-    }).filter(c => c.phone);
+    contacts = uploadParsedRows.map(row => ({
+      queue_id:'__PH__', campaign_id:currentCampId,
+      ...mbRowFromMapping(row, mapping),
+    })).filter(c => c.phone);
   } else {
     const text = await uploadFile.text();
     const rows = text.trim().split('\n').map(r=>r.split(/[,;]/));
-    const hdrs = rows[0].map(h=>h.trim().toLowerCase().replace(/["\r]/g,''));
+    const hdrs = rows[0].map(h => (typeof mbCleanHeader === 'function' ? mbCleanHeader(h) : h.trim().toLowerCase()));
     contacts = rows.slice(1).filter(r=>r.some(c=>c.trim())).map(row=>{
       const o={};
       hdrs.forEach((h,i)=>{ o[h]=(row[i]||'').trim().replace(/["\r]/g,''); });
+      let first = o.first_name||o.vorname||o.ad||'';
+      let last = o.last_name||o.nachname||o.soyad||'';
+      const full = o['ad soyad'] || o['ad / soyad'] || o.name || o.vollname || '';
+      if (full && !first && !last && typeof mbSplitPersonName === 'function') {
+        const split = mbSplitPersonName(full);
+        first = split.first_name;
+        last = split.last_name;
+      }
       return {
         queue_id:'__PH__', campaign_id:currentCampId,
         phone:o.phone||o.telefon||o.tel||o[hdrs[0]]||'',
-        phone2:o.phone2||o.telefon2||'',
-        first_name:o.first_name||o.vorname||o.ad||'',
-        last_name:o.last_name||o.nachname||o.soyad||'',
-        city:o.city||o.ort||'', plz:o.plz||o.zip||'',
-        address:o.address||o.strasse||'',
+        phone2:o.phone2||o.telefon2||o['telefon 2']||'',
+        first_name:first,
+        last_name:last,
+        city:o.city||o.ort||o.stadt||'', plz:o.plz||o.zip||'',
+        address:o.address||o.strasse||o.adres||'',
       };
     }).filter(c=>c.phone);
   }
@@ -154,9 +182,13 @@ async function uploadQueue() {
   };
   try {
     setProgress(5, 'Kuyruk oluşturuluyor...', `${contacts.length.toLocaleString()} kişi hazırlanıyor`);
+    const campRow = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === currentCampId);
+    const firmId = campRow?.firm_id || currentUser?.firm_id || null;
+    const queueBody = { campaign_id:currentCampId, name, total_contacts:contacts.length };
+    if (firmId) queueBody.firm_id = firmId;
     const queueRes = await sb('queues', {
       method:'POST', prefer: 'return=representation',
-      body: JSON.stringify({ campaign_id:currentCampId, name, total_contacts:contacts.length })
+      body: JSON.stringify(queueBody)
     });
     let queue = Array.isArray(queueRes) ? queueRes[0] : queueRes;
     if (!queue?.id) {
@@ -164,7 +196,11 @@ async function uploadQueue() {
       queue = Array.isArray(found) ? found[0] : found;
     }
     if (!queue?.id) throw new Error('Kuyruk oluşturulamadı — ID alınamadı');
-    const withQ = contacts.map(c=>({...c, queue_id:queue.id}));
+    const withQ = contacts.map(c => {
+      const row = { ...c, queue_id: queue.id };
+      if (firmId) row.firm_id = firmId;
+      return row;
+    });
     const batchSize = 500;
     const totalBatches = Math.ceil(withQ.length / batchSize);
     for (let i=0; i<withQ.length; i+=batchSize) {
@@ -187,9 +223,11 @@ async function uploadQueue() {
     loadCampaigns();
     setTimeout(()=>openCampDetail(currentCampId), 400);
   } catch(e) {
-    setProgress(0, '❌ Hata!', e.message);
+    console.error(e);
+    const friendly = mbUploadFailText(e);
+    setProgress(0, friendly, '');
     submitBtn.disabled = false;
-    toast('Yükleme hatası: ' + e.message, 'err');
+    toast(friendly, 'err');
   }
 }
 

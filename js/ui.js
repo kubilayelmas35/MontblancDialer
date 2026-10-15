@@ -544,6 +544,15 @@ document.addEventListener('keydown', (e) => {
         return;
       }
     }
+    const sysOpen = document.getElementById('m-system-dialog');
+    const openModals = [...document.querySelectorAll('.modal-overlay.open')].filter((m) => m !== sysOpen);
+    const top = openModals.pop();
+    if (top) {
+      e.preventDefault();
+      top.classList.remove('open');
+      if (top.id === 'm-field-settings' || top.id === 'jm-slots-modal' || top.id === 'jm-region-modal') top.remove();
+      return;
+    }
   }
   const ov = document.getElementById('m-system-dialog');
   if (!ov || !ov.classList.contains('open')) return;

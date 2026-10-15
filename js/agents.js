@@ -254,7 +254,7 @@ async function openAssignModal() {
   if (!currentCampId) return;
   const ff = getFirmFilter('&');
   try {
-    const users = await sb(`users?select=id,name,email,role${ff}&role=in.(agent,qc,field_agent)&is_active=eq.true&order=name.asc`) || [];
+    const users = await sb(`users?select=id,name,email,role${ff}&role=eq.agent&is_active=eq.true&order=name.asc`) || [];
     const sel = document.getElementById('assign-sel');
     if (sel) {
       sel.innerHTML = '<option value="">Agent seçin...</option>' +
@@ -277,8 +277,8 @@ async function assignAgent() {
     });
     closeModal('m-assign');
     toast('Agent eklendi ✓','ok');
-    loadCampaigns();
-    setTimeout(()=>openCampDetail(currentCampId), 400);
+    await loadCampaigns();
+    openCampDetail(currentCampId, { keepTab: true });
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
@@ -286,8 +286,8 @@ async function removeAgent(agentId, campId) {
   try {
     await sb(`agent_campaigns?agent_id=eq.${agentId}&campaign_id=eq.${campId}`,{method:'DELETE',prefer:'return=minimal'});
     toast('Agent çıkarıldı','ok');
-    loadCampaigns();
-    setTimeout(()=>openCampDetail(campId), 300);
+    await loadCampaigns();
+    openCampDetail(campId, { keepTab: true });
   } catch(e) {}
 }
 
