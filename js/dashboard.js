@@ -2,6 +2,16 @@
 // DASHBOARD — topbar stats, ana sayfa, istatistikler
 // ─────────────────────────────────────────────
 
+function _fmtPillMoney(n) {
+  const v = Number(n) || 0;
+  const abs = Math.abs(v);
+  const sign = v < 0 ? '-' : '';
+  if (abs >= 1000000) return sign + (abs / 1000000).toFixed(1).replace('.0', '') + 'M';
+  if (abs >= 10000) return sign + (abs / 1000).toFixed(1).replace('.0', '') + 'k';
+  if (abs >= 1000) return sign + Math.round(abs).toLocaleString('tr-TR');
+  return sign + abs.toFixed(2);
+}
+
 async function updateTopbarStats() {
 const t0 = Date.now();
 try {
@@ -31,7 +41,12 @@ if (fid) {
     (typeof getFirmWallet === 'function' ? getFirmWallet(fid) : Promise.resolve({ balance: 0 })),
     (typeof getFirmCurrency === 'function' ? getFirmCurrency(fid) : Promise.resolve('EUR')),
   ]);
-  document.getElementById('pill-bal').textContent = Number(wallet?.balance || 0).toFixed(2);
+  const balEl = document.getElementById('pill-bal');
+  const bal = Number(wallet?.balance || 0);
+  if (balEl) {
+    balEl.textContent = _fmtPillMoney(bal);
+    balEl.title = bal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
   const curEl = document.getElementById('pill-bal-cur');
   if (curEl) curEl.textContent = cur || 'EUR';
 }

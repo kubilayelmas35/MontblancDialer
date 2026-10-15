@@ -1878,6 +1878,17 @@ function syncCustomerCardEmptyVisual() {
   cc.classList.toggle('customer-card--empty', showEmpty);
 }
 
+function _visibleMascotAnchor() {
+  const sb = document.getElementById('sidebar');
+  const side = document.getElementById('sb-mascot-anchor');
+  const top = document.getElementById('tb-mascot-anchor');
+  if (sb && side) {
+    const r = sb.getBoundingClientRect();
+    if (r.width > 40 && r.right > 24 && r.left < (window.innerWidth || 0) - 8) return side;
+  }
+  return top || side;
+}
+
 function syncGlobalMascotDock() {
   if (_dockRaf) cancelAnimationFrame(_dockRaf);
   _dockRaf = requestAnimationFrame(() => {
@@ -1889,7 +1900,8 @@ function syncGlobalMascotDock() {
 function _syncGlobalMascotDockImpl() {
   const gm = document.getElementById('global-mascot');
   if (!gm) return;
-  const anchor = document.getElementById('sb-mascot-anchor') || document.getElementById('tb-mascot-anchor');
+  const anchor = _visibleMascotAnchor();
+  gm.classList.toggle('global-mascot--sidebar', !!(anchor && anchor.id === 'sb-mascot-anchor'));
   gm.classList.toggle('global-mascot--muted', isMimiHidden());
   _wireGlobalMascotInteractions();
   if (gm.classList.contains('global-mascot--peek-chat') || gm.classList.contains('global-mascot--peek-notif')) {
@@ -5513,7 +5525,7 @@ async function startPrecallTest() {
       requestAnimationFrame(check);
     };
     check();
-    if (status) { status.textContent = '🎤 Konuşun — ses seviyesi gösteriliyor'; status.style.color='var(--green)'; }
+    if (status) { status.textContent = 'Konuşun — ses seviyesi gösteriliyor'; status.style.color='var(--green)'; }
   } catch(e) {
     if (status) { status.textContent = '❌ Mikrofon izni reddedildi'; status.style.color='var(--red)'; }
   }
@@ -5524,6 +5536,6 @@ function stopPrecallTest() {
   const status = document.getElementById('precall-status');
   if (status) {
     if (_precallOk) { status.textContent='✅ Mikrofon çalışıyor'; status.style.color='var(--green)'; }
-    else { status.textContent='⚠️ Ses algılanmadı — kontrol edin'; status.style.color='var(--yellow)'; }
+    else { status.textContent='Ses algılanmadı — kontrol edin'; status.style.color='var(--yellow)'; }
   }
 }

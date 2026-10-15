@@ -1,6 +1,7 @@
 // Central UI strings (extend gradually). currentLang: 'tr' | 'de'
 const MB_I18N = {
   tr: {
+    'login.brand.sub': 'Çağrı merkezi platformu',
     'login.feat.1': 'Otomatik arama & WebRTC',
     'login.feat.2': 'Gerçek zamanlı istatistikler',
     'login.feat.3': 'Takvim & randevu yönetimi',
@@ -14,7 +15,7 @@ const MB_I18N = {
     'login.err.required': 'E-posta ve şifre gerekli',
     'login.err.bad': 'E-posta veya şifre hatalı',
     'login.err.conn': 'Bağlantı hatası: ',
-    'login.demo': 'Demo: admin@test.com / 1234 | agent@test.com / 1234',
+    'login.demo': 'Firma hesabınızla giriş yapın',
     'login.ph.email': 'kullanici@firma.com',
     'login.ph.pass': '••••••••',
     'ui.loading': 'Yükleniyor…',
@@ -292,6 +293,7 @@ const MB_I18N = {
     'dial.incoming_saved': 'Gelen arama ayarları kaydedildi ✓',
   },
   de: {
+    'login.brand.sub': 'Callcenter-Plattform',
     'login.feat.1': 'Autowähl & WebRTC',
     'login.feat.2': 'Echtzeit-Statistiken',
     'login.feat.3': 'Kalender & Terminverwaltung',
@@ -305,7 +307,7 @@ const MB_I18N = {
     'login.err.required': 'E-Mail und Passwort erforderlich',
     'login.err.bad': 'E-Mail oder Passwort falsch',
     'login.err.conn': 'Verbindungsfehler: ',
-    'login.demo': 'Demo: admin@test.com / 1234 | agent@test.com / 1234',
+    'login.demo': 'Mit dem Firmenkonto anmelden',
     'login.ph.email': 'benutzer@firma.com',
     'login.ph.pass': '••••••••',
     'ui.loading': 'Wird geladen…',

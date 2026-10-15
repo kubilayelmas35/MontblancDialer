@@ -223,7 +223,7 @@ async function loadSupervisorPanel() {
   page.innerHTML = `
 <div class="page-hdr">
   <div>
-    <div class="page-title">${de ? 'Live-Floor' : 'Canlı kat'}</div>
+    <div class="page-title">${de ? 'Live-Ansicht' : 'Canlı Ekran'}</div>
     <div class="page-sub" id="sup-live-badge">—</div>
   </div>
   <button class="btn btn-sm" onclick="_supFetchSessions()" style="gap:6px;">

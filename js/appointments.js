@@ -1176,7 +1176,7 @@ async function openTakvimBookForm(slot) {
   document.getElementById('takvim-detail-title').textContent = `Randevu — ${slot.tarih} ${slot.baslangic_saat?.slice(0,5)}`;
   openModal('m-takvim-detail');
   document.getElementById('takvim-detail-body').innerHTML = `
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;margin-bottom:12px;font-size:12px;font-weight:600;">📅 ${slot.tarih} · ${slot.baslangic_saat?.slice(0,5)}–${slot.bitis_saat?.slice(0,5)}</div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;margin-bottom:12px;font-size:12px;font-weight:600;">${slot.tarih} · ${slot.baslangic_saat?.slice(0,5)}–${slot.bitis_saat?.slice(0,5)}</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 <div class="form-row" style="grid-column:1/-1;"><label class="form-label">Ad Soyad *</label><input class="form-input" id="tf-name" value="${contact.first_name?contact.first_name+' '+(contact.last_name||''):''}"></div>
 <div class="form-row"><label class="form-label">Telefon *</label><input class="form-input" id="tf-tel" value="${contact.phone||''}"></div>
@@ -2054,12 +2054,11 @@ function showCampNotif(camp) {
   const ov = document.createElement('div');
   ov.id = 'mb-camp-notif';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
-  ov.innerHTML = `<div style="background:var(--bg-2);border:2px solid var(--accent);border-radius:16px;padding:32px 40px;text-align:center;max-width:400px;width:90vw;">
-<div style="font-size:40px;margin-bottom:12px;">📢</div>
-<div style="font-size:18px;font-weight:900;color:var(--accent);margin-bottom:8px;">${esc(title)}</div>
+  ov.innerHTML = `<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;padding:32px 40px;text-align:center;max-width:400px;width:90vw;">
+<div style="font-size:18px;font-weight:800;margin-bottom:8px;">${esc(title)}</div>
 <div style="font-size:16px;font-weight:700;padding:10px 16px;background:var(--bg-3);border-radius:8px;margin-bottom:20px;">${esc(camp.name)}</div>
 ${camp.notif_message?`<div style="font-size:13px;color:var(--text-2);margin-bottom:16px;">${esc(camp.notif_message)}</div>`:''}
-<button type="button" id="mb-camp-notif-go" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;">📅 ${esc(go)}</button>
+<button type="button" id="mb-camp-notif-go" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;">${esc(go)}</button>
 <button type="button" id="mb-camp-notif-close" style="width:100%;padding:10px;background:transparent;color:var(--text-2);border:none;font-size:12px;cursor:pointer;margin-top:8px;">${esc(close)}</button>
 </div>`;
   ov.querySelector('#mb-camp-notif-close').onclick = () => ov.remove();

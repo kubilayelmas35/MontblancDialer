@@ -40,7 +40,7 @@
 </div>
 </div>
 <div id="nc-template-wrap" style="margin-bottom:8px;"></div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">⠿ Sürükle sırala · ✓ Göster/gizle · Ad ve tip değiştir</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;" data-tr="Sürükle sırala · Göster veya gizle · Ad ve tip değiştir" data-de="Ziehen zum Sortieren · Ein- oder ausblenden · Name und Typ ändern">Sürükle sırala · Göster veya gizle · Ad ve tip değiştir</div>
 <div id="nc-field-list" style="display:flex;flex-direction:column;gap:4px;"></div>
 <button class="btn btn-ghost btn-sm" style="margin-top:8px;width:100%;" onclick="ncAddField()">
 + Özel Alan Ekle
@@ -55,7 +55,7 @@
 </div>
 <div class="modal-footer" style="flex-shrink:0;">
 <button class="btn btn-ghost" onclick="closeModal('m-new-camp')">İptal</button>
-<button class="btn btn-primary" onclick="createCampaign()">✓ Kampanya Oluştur</button>
+<button class="btn btn-primary" onclick="createCampaign()" data-tr="Kampanya oluştur" data-de="Kampagne erstellen">Kampanya oluştur</button>
 </div>
 </div>
 </div>
@@ -73,7 +73,7 @@
 ondragover="event.preventDefault();this.classList.add('drag')"
 ondragleave="this.classList.remove('drag')"
 ondrop="handleDrop(event)">
-<div class="upload-icon">📊</div>
+<div class="upload-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8M8 17h5"/></svg></div>
 <div class="upload-text" data-tr="Excel / CSV sürükle veya tıkla" data-de="Excel / CSV ablegen oder klicken">Excel / CSV sürükle veya tıkla</div>
 <div class="upload-sub" id="uq-fname">.xlsx, .csv — maks. 50.000 satır</div>
 <input type="file" id="uq-file" accept=".xlsx,.csv" style="display:none" onchange="handleFileSelect(event)">
@@ -87,7 +87,7 @@ Sütun Eşleştirme
 </div>
 <div id="uq-mapping-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:240px;overflow-y:auto;padding-right:4px;"></div>
 <div id="uq-preview" style="margin-top:10px;background:var(--bg-3);border-radius:var(--radius-sm);padding:10px;font-size:11px;display:none;">
-<div style="font-weight:700;margin-bottom:6px;color:var(--text-2);">👁 İlk 3 satır önizleme:</div>
+<div style="font-weight:700;margin-bottom:6px;color:var(--text-2);" data-tr="İlk 3 satır önizleme" data-de="Vorschau der ersten 3 Zeilen">İlk 3 satır önizleme</div>
 <div id="uq-preview-rows"></div>
 </div>
 </div>
@@ -102,7 +102,7 @@ Sütun Eşleştirme
 <div id="uq-progress-detail" style="font-size:11px;color:var(--text-3);margin-top:5px;text-align:center;">—</div>
 </div>
 <div style="padding:12px 20px 0;">
-<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-2);">🔍 Mükerrer Kayıt Kontrolü</div>
+<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-2);" data-tr="Mükerrer kayıt kontrolü" data-de="Dublettenprüfung">Mükerrer kayıt kontrolü</div>
 <div style="display:flex;flex-direction:column;gap:4px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
 <input type="radio" name="dedup-mode" value="excel" checked> Bu Excel içinde kontrol et
@@ -118,7 +118,7 @@ Sütun Eşleştirme
 </div>
 <div class="modal-footer">
 <button class="btn btn-ghost" onclick="closeModal('m-upload-q')" data-tr="İptal" data-de="Abbrechen">İptal</button>
-<button class="btn btn-primary" id="uq-submit-btn" onclick="uploadQueue()" data-tr="Yükle" data-de="Hochladen">📤 Yükle</button>
+<button class="btn btn-primary" id="uq-submit-btn" onclick="uploadQueue()" data-tr="Yükle" data-de="Hochladen">Yükle</button>
 </div>
 </div>
 </div>
@@ -143,7 +143,7 @@ Sütun Eşleştirme
 <div class="modal-overlay" id="m-import-appt">
 <div class="modal" style="max-width:680px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;">
 <div class="modal-hdr" style="flex-shrink:0;">
-<div class="modal-title">📅 Eski Randevu İçe Aktar</div>
+<div class="modal-title" data-tr="Eski randevu içe aktar" data-de="Alte Termine importieren">Eski randevu içe aktar</div>
 <button class="modal-close" onclick="closeModal('m-import-appt')">✕</button>
 </div>
 <div style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
@@ -159,12 +159,12 @@ Sütun Eşleştirme
 </label>
 </div>
 <div id="ia-mapping-section" style="display:none;">
-<div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">2️⃣ Sütun Eşleştir</div>
+<div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);" data-tr="2. Sütun eşleştir" data-de="2. Spalten zuordnen">2. Sütun eşleştir</div>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Excel sütunlarını randevu alanlarıyla eşleştirin. * zorunlu</div>
 <div id="ia-mapping-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
 </div>
 <div id="ia-options-section" style="display:none;">
-<div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">3️⃣ Ayarlar</div>
+<div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);" data-tr="3. Ayarlar" data-de="3. Einstellungen">3. Ayarlar</div>
 <div style="display:flex;flex-direction:column;gap:10px;">
 <div class="form-row">
 <label class="form-label">Kampanya *</label>
@@ -197,7 +197,7 @@ Sütun Eşleştirme
 </div>
 </div>
 <div id="ia-preview-section" style="display:none;">
-<div style="font-size:12px;font-weight:800;margin-bottom:6px;color:var(--text-2);">4️⃣ Önizleme</div>
+<div style="font-size:12px;font-weight:800;margin-bottom:6px;color:var(--text-2);" data-tr="4. Önizleme" data-de="4. Vorschau">4. Önizleme</div>
 <div id="ia-preview-table" style="overflow-x:auto;max-height:200px;font-size:11px;"></div>
 <div id="ia-preview-info" style="font-size:11px;color:var(--text-3);margin-top:4px;"></div>
 </div>
@@ -210,19 +210,19 @@ Sütun Eşleştirme
 </div>
 <div class="modal-footer" style="flex-shrink:0;">
 <button class="btn btn-ghost" onclick="closeModal('m-import-appt')">İptal</button>
-<button class="btn btn-ghost btn-sm" id="ia-preview-btn" onclick="previewImport()" style="display:none;">👁️ Önizle</button>
-<button class="btn btn-primary" id="ia-submit-btn" onclick="startImportAppt()" style="display:none;">📤 İçe Aktar</button>
+<button class="btn btn-ghost btn-sm" id="ia-preview-btn" onclick="previewImport()" style="display:none;" data-tr="Önizle" data-de="Vorschau">Önizle</button>
+<button class="btn btn-primary" id="ia-submit-btn" onclick="startImportAppt()" style="display:none;" data-tr="İçe aktar" data-de="Importieren">İçe aktar</button>
 </div>
 </div>
 </div>
 <div class="modal-overlay" id="m-precall-test">
 <div class="modal" style="max-width:380px;text-align:center;">
 <div class="modal-hdr">
-<div class="modal-title">🎤 Mikrofon Testi</div>
+<div class="modal-title" data-tr="Mikrofon testi" data-de="Mikrofontest">Mikrofon testi</div>
 <button class="modal-close" onclick="skipPrecallTest()">✕</button>
 </div>
 <div style="padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:16px;">
-<div id="precall-icon" style="width:80px;height:80px;border-radius:50%;background:var(--bg-3);border:3px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:32px;">🎤</div>
+<div id="precall-icon" style="width:80px;height:80px;border-radius:50%;background:var(--bg-3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-2);"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg></div>
 <div id="precall-status" style="font-size:14px;font-weight:700;color:var(--text-2);">Mikrofon kontrol ediliyor...</div>
 <div id="precall-meter-wrap" style="width:100%;height:12px;background:var(--bg-3);border-radius:6px;overflow:hidden;display:none;">
 <div id="precall-meter" style="height:100%;background:var(--green);border-radius:6px;width:0%;transition:width .1s;"></div>
@@ -231,7 +231,7 @@ Sütun Eşleştirme
 </div>
 <div class="modal-footer">
 <button class="btn btn-ghost" onclick="skipPrecallTest()">Atla</button>
-<button class="btn btn-primary" id="precall-ok-btn" onclick="completePrecallTest()" style="display:none;">✓ Test Başarılı — Devam Et</button>
+<button class="btn btn-primary" id="precall-ok-btn" onclick="completePrecallTest()" style="display:none;" data-tr="Test başarılı — devam et" data-de="Test erfolgreich — weiter">Test başarılı — devam et</button>
 </div>
 </div>
 </div>
@@ -508,7 +508,7 @@ QC Detay
 <div class="modal-overlay" id="m-assign">
 <div class="modal" style="max-width:380px;">
 <div class="modal-hdr">
-<div class="modal-title">👤 Agent Ekle</div>
+<div class="modal-title" data-tr="Agent ekle" data-de="Agent hinzufügen">Agent ekle</div>
 <button class="modal-close" onclick="closeModal('m-assign')">✕</button>
 </div>
 <div style="padding:16px 20px;">
