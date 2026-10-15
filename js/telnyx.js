@@ -25,27 +25,47 @@ break;
 }
 }
 
-function _connectTelnyx(sipUser, sipPass) {
-if (typeof TelnyxRTC === 'undefined') {
-setTimeout(() => _connectTelnyx(sipUser, sipPass), 500);
-return;
+function mbTelnyxConstructor() {
+  if (typeof TelnyxRTC === 'function') return TelnyxRTC;
+  if (typeof TelnyxWebRTC !== 'undefined' && typeof TelnyxWebRTC.TelnyxRTC === 'function') return TelnyxWebRTC.TelnyxRTC;
+  return null;
 }
+
+function _connectTelnyx(sipUser, sipPass, attempt) {
+  const n = attempt || 0;
+  const Ctor = mbTelnyxConstructor();
+  if (!Ctor) {
+    if (n < 20) {
+      setTimeout(() => _connectTelnyx(sipUser, sipPass, n + 1), 500);
+      return;
+    }
+    telnyxReady = false;
+    updateConnectionStatus('disconnected');
+    toast(typeof t === 'function' ? t('telnyx.lib_missing') : 'Hat kütüphanesi yüklenmedi. Sayfayı yenileyin.', 'err');
+    return;
+  }
 try {
 if (_telnyxClient) _telnyxClient.disconnect();
-_telnyxClient = new TelnyxRTC({ login: sipUser, password: sipPass });
-_telnyxClient.on('telnyx.ready', () => {
+const client = new Ctor({ login: sipUser, password: sipPass });
+_telnyxClient = client;
+const mine = () => _telnyxClient === client;
+client.on('telnyx.ready', () => {
+if (!mine()) return;
 telnyxReady = true;
 updateConnectionStatus('connected');
 toast('✅ Hat bağlantısı hazır', 'ok');
 });
-_telnyxClient.on('telnyx.error', (err) => {
+client.on('telnyx.error', (err) => {
+if (!mine()) return;
 toast('❌ Hat bağlantı hatası: ' + (err?.message||'bağlantı hatası'), 'err');
 });
-_telnyxClient.on('telnyx.socket.close', () => {
+client.on('telnyx.socket.close', () => {
+if (!mine()) return;
 telnyxReady = false;
 updateConnectionStatus('disconnected');
 });
-_telnyxClient.on('telnyx.notification', (n) => {
+client.on('telnyx.notification', (n) => {
+if (!mine()) return;
 const call = n.call;
 if (n.type === 'callUpdate') {
 const state = call?.state;
@@ -84,8 +104,8 @@ handleCallEnd(dur);
 if (call?.amd_result) handleAMD(call.amd_result);
 }
 });
-_telnyxClient.connect();
 updateConnectionStatus('connecting');
+client.connect();
 } catch(e) {
 toast('❌ Hat hatası: ' + e.message, 'err');
 }
