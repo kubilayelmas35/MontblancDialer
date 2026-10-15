@@ -554,6 +554,9 @@ window.prompt = (msg, def) => { console.warn('Use mbPrompt instead of prompt:', 
 function openModal(id) {
 const el = document.getElementById(id);
 if (!el) { console.warn('openModal: element not found:', id); return; }
+if (id === 'm-upload-q') {
+  el.querySelectorAll('.uq-skip-status').forEach((box) => { box.checked = false; });
+}
 el.style.removeProperty('display');
 el.classList.add('open');
 }

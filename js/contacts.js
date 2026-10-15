@@ -170,9 +170,22 @@ function mbUploadFailText(err) {
     : 'Yükleme başarısız. Dosyayı kontrol edip tekrar deneyin.';
 }
 
+const UQ_OUTCOME_SKIP = [
+  { key: 'appointment', label: 'camp.ops.appointment', fb: 'Randevu' },
+  { key: 'no_answer', label: 'camp.st.no_answer', fb: 'Cevap yok' },
+  { key: 'negative', label: 'camp.st.negative', fb: 'Olumsuz' },
+  { key: 'callback', label: 'camp.st.callback', fb: 'Geri ara' },
+  { key: 'voicemail', label: 'camp.st.voicemail', fb: 'Telesekreter' },
+  { key: 'dnc', label: 'camp.st.dnc', fb: 'Kara liste' },
+];
+
 function getDedupMode() {
   const sel = document.querySelector('input[name="dedup-mode"]:checked');
   return sel?.value || 'excel';
+}
+
+function getUploadOutcomeSkip() {
+  return [...document.querySelectorAll('.uq-skip-status:checked')].map((el) => el.value).filter((key) => UQ_OUTCOME_SKIP.some((row) => row.key === key));
 }
 
 function mbUploadSkipText(skipped) {
@@ -181,6 +194,11 @@ function mbUploadSkipText(skipped) {
   if (skipped.invalid) bits.push(`${skipped.invalid} ${uqSay('uq.skip.invalid', 'geçersiz numara')}`);
   if (skipped.duplicate) bits.push(`${skipped.duplicate} ${uqSay('uq.skip.dup', 'dosyada mükerrer')}`);
   if (skipped.existing) bits.push(`${skipped.existing} ${uqSay('uq.skip.existing', 'zaten kayıtlı')}`);
+  Object.entries(skipped.outcomes || {}).forEach(([key, n]) => {
+    if (!n) return;
+    const spec = UQ_OUTCOME_SKIP.find((row) => row.key === key);
+    bits.push(`${n} ${uqSay(spec?.label || key, spec?.fb || key)}`);
+  });
   return bits.join(', ');
 }
 
@@ -205,13 +223,27 @@ async function uploadQueue() {
     : { accepted: parsed.filter((c) => c.phone), skipped: { empty: 0, invalid: 0, duplicate: 0 } };
   const mode = getDedupMode();
   const existing = await mbFindExistingPhones(classified.accepted.map((c) => c.phone), mode, currentCampId);
+  const outcomeKeys = getUploadOutcomeSkip();
+  let outcomeHits = new Map();
+  if (outcomeKeys.length) {
+    try {
+      const left = classified.accepted.filter((row) => !existing.has(row.phone)).map((row) => row.phone);
+      outcomeHits = await mbFindPhonesWithStatuses(left, outcomeKeys);
+    } catch (e) {
+      toast(e.message || uqSay('uq.err.generic', 'Yükleme başarısız'), 'err');
+      return;
+    }
+  }
   const contacts = [];
   let existingCount = 0;
+  const outcomeCounts = {};
   classified.accepted.forEach((row) => {
     if (existing.has(row.phone)) { existingCount += 1; return; }
+    const st = outcomeHits.get(row.phone);
+    if (st) { outcomeCounts[st] = (outcomeCounts[st] || 0) + 1; return; }
     contacts.push(row);
   });
-  const skipped = { ...classified.skipped, existing: existingCount };
+  const skipped = { ...classified.skipped, existing: existingCount, outcomes: outcomeCounts };
   const why = mbUploadSkipText(skipped);
   if (!contacts.length) {
     toast(uqSay('uq.none', 'Geçerli numara yok. Atlanan: {why}', { why: why || '—' }), 'err');
@@ -983,6 +1015,26 @@ async function mbFindExistingPhones(phones, mode, campaignId) {
         if (n) found.add(n);
       });
     } catch (e) {}
+  }
+  return found;
+}
+
+async function mbFindPhonesWithStatuses(phones, statuses) {
+  const found = new Map();
+  const allowed = (statuses || []).filter((key) => UQ_OUTCOME_SKIP.some((row) => row.key === key));
+  if (!allowed.length) return found;
+  const unique = [...new Set((phones || []).map((p) => mbNormalizeDialPhone(p)).filter(Boolean))];
+  const statusList = allowed.join(',');
+  const chunkSize = 40;
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    const chunk = unique.slice(i, i + chunkSize);
+    const list = chunk.map((p) => encodeURIComponent(p)).join(',');
+    const rows = await sb(`contacts?select=phone,status&phone=in.(${list})&status=in.(${statusList})`) || [];
+    rows.forEach((row) => {
+      const n = mbNormalizeDialPhone(row.phone);
+      if (!n || found.has(n) || !allowed.includes(row.status)) return;
+      found.set(n, row.status);
+    });
   }
   return found;
 }
