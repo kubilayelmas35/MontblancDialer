@@ -2370,14 +2370,23 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <input type="color" id="s-mascot-angry-color" value="#ff5b55" style="width:52px;height:38px;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);cursor:pointer;">
 </div>
 <div style="grid-column:1 / -1;">
-<label class="form-label" style="font-size:11px;" data-tr="Gezinme (0-100)" data-de="Umherlaufen (0–100)">Gezinme (0-100)</label>
-<input class="form-input settings-mascot-slider" id="s-mascot-wander" type="range" min="0" max="100" step="1" value="35">
-<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="0: durur. Yükseldikçe dialer alanı içinde daha uzağa ve daha sık hedef seçer; hız ayrıca aşağıda." data-de="0: still. Höher: weiter im Dialer; Zielwahl häufiger; Tempo separat.">0: durur. Yükseldikçe dialer alanı içinde daha uzağa ve daha sık hedef seçer; hız ayrıca aşağıda.</div>
+<label class="form-label" style="font-size:11px;display:flex;align-items:center;gap:8px;cursor:pointer;">
+<input type="checkbox" id="s-mascot-wander-on" style="width:16px;height:16px;">
+<span data-tr="Ekranda gezsin" data-de="Auf dem Bildschirm umherlaufen">Ekranda gezsin</span>
+</label>
+<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Kapalıyken sabit durur. Tutup istediğin yere bırakabilirsin. Açınca bıraktığın yerden gezer ve balon yanında kalır. Menü ayağındayken yerinde kalır." data-de="Aus: bleibt stehen. Ziehen und ablegen. An: läuft vom abgelegten Platz, die Sprechblase bleibt dabei. Am Menü bleibt es stehen.">Kapalıyken sabit durur. Tutup istediğin yere bırakabilirsin. Açınca bıraktığın yerden gezer ve balon yanında kalır. Menü ayağındayken yerinde kalır.</div>
 </div>
-<div style="grid-column:1 / -1;">
+<div id="s-mascot-wander-sliders" style="grid-column:1 / -1;display:grid;gap:10px;">
+<div>
+<label class="form-label" style="font-size:11px;" data-tr="Gezinme mesafesi (0-100)" data-de="Laufweite (0–100)">Gezinme mesafesi (0-100)</label>
+<input class="form-input settings-mascot-slider" id="s-mascot-wander" type="range" min="0" max="100" step="1" value="35">
+<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Gezme açıkken ne kadar uzağa gideceği. 0: yerinde kalır." data-de="Bei aktivem Umherlaufen: wie weit. 0: bleibt am Platz.">Gezme açıkken ne kadar uzağa gideceği. 0: yerinde kalır.</div>
+</div>
+<div>
 <label class="form-label" style="font-size:11px;" data-tr="Hareket hızı (0-100)" data-de="Bewegungsgeschwindigkeit (0–100)">Hareket hızı (0-100)</label>
 <input class="form-input settings-mascot-slider" id="s-mascot-wander-speed" type="range" min="0" max="100" step="1" value="22">
-<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="0: neredeyse durur; yükseldikçe hızlanır." data-de="0: fast still; höher: schneller.">0: neredeyse durur; yükseldikçe hızlanır.</div>
+<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Gezme açıkken tempo. 0: neredeyse durur." data-de="Tempo bei aktivem Umherlaufen. 0: fast still.">Gezme açıkken tempo. 0: neredeyse durur.</div>
+</div>
 </div>
 <div style="grid-column:1 / -1;">
 <label class="form-label" style="font-size:11px;" data-tr="Boyut (%)" data-de="Größe (%)">Boyut (%)</label>

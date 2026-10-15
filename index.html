@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=8.33">
+<link rel="stylesheet" href="css/styles.css?v=8.34">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -39,7 +39,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v8.33 — 2026</div>
+<div class="login-version">v8.34 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -384,7 +384,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v8.33</div>
+<div class="sb-ver">MontBlanc v8.34</div>
 </div>
 </nav>
 <main id="main">
@@ -2459,14 +2459,23 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <input type="color" id="s-mascot-angry-color" value="#ff5b55" style="width:52px;height:38px;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);cursor:pointer;">
 </div>
 <div style="grid-column:1 / -1;">
-<label class="form-label" style="font-size:11px;" data-tr="Gezinme (0-100)" data-de="Umherlaufen (0–100)">Gezinme (0-100)</label>
-<input class="form-input settings-mascot-slider" id="s-mascot-wander" type="range" min="0" max="100" step="1" value="35">
-<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="0: durur. Yükseldikçe dialer alanı içinde daha uzağa ve daha sık hedef seçer; hız ayrıca aşağıda." data-de="0: still. Höher: weiter im Dialer; Zielwahl häufiger; Tempo separat.">0: durur. Yükseldikçe dialer alanı içinde daha uzağa ve daha sık hedef seçer; hız ayrıca aşağıda.</div>
+<label class="form-label" style="font-size:11px;display:flex;align-items:center;gap:8px;cursor:pointer;">
+<input type="checkbox" id="s-mascot-wander-on" style="width:16px;height:16px;">
+<span data-tr="Ekranda gezsin" data-de="Auf dem Bildschirm umherlaufen">Ekranda gezsin</span>
+</label>
+<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Kapalıyken sabit durur. Tutup istediğin yere bırakabilirsin. Açınca bıraktığın yerden gezer ve balon yanında kalır. Menü ayağındayken yerinde kalır." data-de="Aus: bleibt stehen. Ziehen und ablegen. An: läuft vom abgelegten Platz, die Sprechblase bleibt dabei. Am Menü bleibt es stehen.">Kapalıyken sabit durur. Tutup istediğin yere bırakabilirsin. Açınca bıraktığın yerden gezer ve balon yanında kalır. Menü ayağındayken yerinde kalır.</div>
 </div>
-<div style="grid-column:1 / -1;">
+<div id="s-mascot-wander-sliders" style="grid-column:1 / -1;display:grid;gap:10px;">
+<div>
+<label class="form-label" style="font-size:11px;" data-tr="Gezinme mesafesi (0-100)" data-de="Laufweite (0–100)">Gezinme mesafesi (0-100)</label>
+<input class="form-input settings-mascot-slider" id="s-mascot-wander" type="range" min="0" max="100" step="1" value="35">
+<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Gezme açıkken ne kadar uzağa gideceği. 0: yerinde kalır." data-de="Bei aktivem Umherlaufen: wie weit. 0: bleibt am Platz.">Gezme açıkken ne kadar uzağa gideceği. 0: yerinde kalır.</div>
+</div>
+<div>
 <label class="form-label" style="font-size:11px;" data-tr="Hareket hızı (0-100)" data-de="Bewegungsgeschwindigkeit (0–100)">Hareket hızı (0-100)</label>
 <input class="form-input settings-mascot-slider" id="s-mascot-wander-speed" type="range" min="0" max="100" step="1" value="22">
-<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="0: neredeyse durur; yükseldikçe hızlanır." data-de="0: fast still; höher: schneller.">0: neredeyse durur; yükseldikçe hızlanır.</div>
+<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Gezme açıkken tempo. 0: neredeyse durur." data-de="Tempo bei aktivem Umherlaufen. 0: fast still.">Gezme açıkken tempo. 0: neredeyse durur.</div>
+</div>
 </div>
 <div style="grid-column:1 / -1;">
 <label class="form-label" style="font-size:11px;" data-tr="Boyut (%)" data-de="Größe (%)">Boyut (%)</label>
@@ -3734,44 +3743,44 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/version.js?v=8.33"></script>
-<script src="js/i18n.js?v=8.33"></script>
-<script src="js/config.js?v=8.33"></script>
-<script src="js/state.js?v=8.33"></script>
-<script src="js/api.js?v=8.33"></script>
-<script src="js/auth.js?v=8.33"></script>
-<script src="js/ui.js?v=8.33"></script>
-<script src="js/chat.js?v=8.33"></script>
-<script src="js/chat-settings.js?v=8.33"></script>
-<script src="js/field-settings.js?v=8.33"></script>
-<script src="js/audit.js?v=8.33"></script>
-<script src="js/feature-flags.js?v=8.33"></script>
-<script src="js/notification-center.js?v=8.33"></script>
+<script src="js/version.js?v=8.34"></script>
+<script src="js/i18n.js?v=8.34"></script>
+<script src="js/config.js?v=8.34"></script>
+<script src="js/state.js?v=8.34"></script>
+<script src="js/api.js?v=8.34"></script>
+<script src="js/auth.js?v=8.34"></script>
+<script src="js/ui.js?v=8.34"></script>
+<script src="js/chat.js?v=8.34"></script>
+<script src="js/chat-settings.js?v=8.34"></script>
+<script src="js/field-settings.js?v=8.34"></script>
+<script src="js/audit.js?v=8.34"></script>
+<script src="js/feature-flags.js?v=8.34"></script>
+<script src="js/notification-center.js?v=8.34"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=8.33"></script>
-<script src="js/job-market.js?v=8.33"></script>
-<script src="js/qc-job-market.js?v=8.33"></script>
-<script src="js/export-admin.js?v=8.33"></script>
-<script src="js/export-termin.js?v=8.33"></script>
-<script src="js/performance.js?v=8.33"></script>
-<script src="js/competition.js?v=8.33"></script>
-<script src="js/dashboard.js?v=8.33"></script>
-<script src="js/campaigns.js?v=8.33"></script>
-<script src="js/contacts.js?v=8.33"></script>
-<script src="js/telnyx.js?v=8.33"></script>
-<script src="js/voice-orb.js?v=8.33"></script>
-<script src="js/dialer.js?v=8.33"></script>
-<script src="js/appointments.js?v=8.33"></script>
-<script src="js/field.js?v=8.33"></script>
-<script src="js/field-ops.js?v=8.33"></script>
-<script src="js/wiedervorlage.js?v=8.33"></script>
-<script src="js/qc.js?v=8.33"></script>
-<script src="js/supervisor.js?v=8.33"></script>
-<script src="js/sms-settings.js?v=8.33"></script>
-<script src="js/leave-hr.js?v=8.33"></script>
-<script src="js/muhasebe.js?v=8.33"></script>
-<script src="js/agent-self-performance.js?v=8.33"></script>
-<script src="js/agents.js?v=8.33"></script>
-<script src="js/mimi-brain.js?v=8.33"></script>
+<script src="js/wallet.js?v=8.34"></script>
+<script src="js/job-market.js?v=8.34"></script>
+<script src="js/qc-job-market.js?v=8.34"></script>
+<script src="js/export-admin.js?v=8.34"></script>
+<script src="js/export-termin.js?v=8.34"></script>
+<script src="js/performance.js?v=8.34"></script>
+<script src="js/competition.js?v=8.34"></script>
+<script src="js/dashboard.js?v=8.34"></script>
+<script src="js/campaigns.js?v=8.34"></script>
+<script src="js/contacts.js?v=8.34"></script>
+<script src="js/telnyx.js?v=8.34"></script>
+<script src="js/voice-orb.js?v=8.34"></script>
+<script src="js/dialer.js?v=8.34"></script>
+<script src="js/appointments.js?v=8.34"></script>
+<script src="js/field.js?v=8.34"></script>
+<script src="js/field-ops.js?v=8.34"></script>
+<script src="js/wiedervorlage.js?v=8.34"></script>
+<script src="js/qc.js?v=8.34"></script>
+<script src="js/supervisor.js?v=8.34"></script>
+<script src="js/sms-settings.js?v=8.34"></script>
+<script src="js/leave-hr.js?v=8.34"></script>
+<script src="js/muhasebe.js?v=8.34"></script>
+<script src="js/agent-self-performance.js?v=8.34"></script>
+<script src="js/agents.js?v=8.34"></script>
+<script src="js/mimi-brain.js?v=8.34"></script>
 </body>
 </html>
