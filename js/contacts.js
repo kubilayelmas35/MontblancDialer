@@ -170,9 +170,10 @@ function mbRowFromMapping(row, mapping) {
     first = split.first_name;
     last = split.last_name;
   }
+  const norm = (v) => (typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(v) : v);
   return {
-    phone: get('phone'),
-    phone2: get('phone2'),
+    phone: norm(get('phone')),
+    phone2: norm(get('phone2')),
     first_name: first,
     last_name: last,
     city: get('city'),

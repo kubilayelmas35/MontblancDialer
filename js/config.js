@@ -82,7 +82,10 @@ function mbSplitPersonName(full) {
 }
 
 function mbNormalizeDialPhone(raw) {
-  return String(raw || '').replace(/[\s()-]/g, '').trim();
+  let s = String(raw == null ? '' : raw).replace(/[\s()-]/g, '').trim();
+  if (/^\d+\.0$/.test(s)) s = s.slice(0, -2);
+  if (/^[1-9]\d{7,14}$/.test(s)) s = `+${s}`;
+  return s;
 }
 
 function mbClassifyLeadRows(rows) {
