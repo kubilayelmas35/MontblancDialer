@@ -2,7 +2,9 @@
 <html lang="tr" data-theme="light" data-palette="blue">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Montblanc Dialer çağrı merkezi platformu">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <title>Montblanc Dialer</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -10,11 +12,12 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=8.31">
+<link rel="stylesheet" href="css/styles.css?v=8.32">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@latest/lib/bundle.js"></script>
+<script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
 <body>
+<noscript><p>Montblanc Dialer için JavaScript gerekir.</p></noscript>
 <div id="page-login">
 <div class="fluid-aurora fluid-aurora--login" aria-hidden="true"></div>
 <!-- Left branding panel -->
@@ -36,7 +39,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v8.31 — 2026</div>
+<div class="login-version">v8.32 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -99,7 +102,7 @@
 </svg>
 </div>
 <div class="tb-logo-text">
-<div class="tb-logo-name">MontBlanc</div>
+<h1 class="tb-logo-name">MontBlanc</h1>
 </div>
 </div>
 </div>
@@ -144,15 +147,16 @@
 </div>
 </div>
 <div class="tb-right">
-<button class="tb-icon-btn tb-takvim" id="takvim-topbar-btn" onclick="openTakvimOverlay()" title="Takvim">
+<span id="tb-test-flag" class="tb-test-flag" role="status" hidden>TEST</span>
+<button class="tb-icon-btn tb-takvim" id="takvim-topbar-btn" onclick="openTakvimOverlay()" title="Takvim" aria-label="Takvim">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
 <span data-tr="Takvim" data-de="Kalender">Takvim</span>
 </button>
-<button class="tb-icon-btn" onclick="toggleTheme()" title="Tema">
+<button class="tb-icon-btn" onclick="toggleTheme()" title="Tema" aria-label="Tema">
 <span id="theme-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
 </button>
-<button class="tb-icon-btn" onclick="cycleLang()" id="lang-btn" title="Dil">TR</button>
-<button class="tb-icon-btn" id="tb-notif-btn" onclick="toggleNotificationCenter()" title="Bildirim Merkezi">
+<button class="tb-icon-btn" onclick="cycleLang()" id="lang-btn" title="Dil" aria-label="Dil">TR</button>
+<button class="tb-icon-btn" id="tb-notif-btn" onclick="toggleNotificationCenter()" title="Bildirim Merkezi" data-tr-title="Bildirim Merkezi" data-de-title="Benachrichtigungen" aria-label="Bildirim Merkezi">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
 <span id="tb-notif-badge" class="sb-badge" style="display:none;position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;font-size:10px;padding:0 4px;">0</span>
 </button>
@@ -263,7 +267,7 @@
 </button>
 <button class="sb-item" onclick="navigate('agents')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.82"/></svg></span>
-<span data-tr="Agentler" data-de="Agenten">Agentler</span>
+<span data-tr="Temsilciler" data-de="Agenten">Temsilciler</span>
 </button>
 </div>
 <div class="sb-divider"></div>
@@ -380,7 +384,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v8.31</div>
+<div class="sb-ver">MontBlanc v8.32</div>
 </div>
 </nav>
 <main id="main">
@@ -442,7 +446,7 @@
 <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:220px;">
 <div id="dash-eom-av" style="width:56px;height:56px;border-radius:14px;background:var(--bg-3);color:var(--text);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></div>
 <div style="flex:1;min-width:0;">
-<div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;">Ayın elemanı · Yarış</div>
+<div style="font-size:11px;font-weight:800;color:var(--text-3);letter-spacing:.04em;" data-tr="Ayın elemanı · Yarış" data-de="Mitarbeiter des Monats">Ayın elemanı · Yarış</div>
 <div id="dash-eom-name" style="font-size:22px;font-weight:800;margin-top:4px;line-height:1.2;">—</div>
 <div id="dash-eom-period" style="font-size:12px;color:var(--text-3);margin-top:4px;">—</div>
 <div id="dash-eom-note" style="font-size:11px;margin-top:8px;color:var(--text-3);line-height:1.4;"></div>
@@ -540,7 +544,7 @@
 <button class="cd-tab" data-tab="arama" onclick="switchCampTab('arama')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Arama</button>
 <button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="QC / Sonuç" data-de="QC / Nacharbeit">QC / Sonuç</button>
 <button class="cd-tab" data-tab="bildirim" onclick="switchCampTab('bildirim')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Bildirim</button>
-<button class="cd-tab" data-tab="agentler" onclick="switchCampTab('agentler')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Agentler</button>
+<button class="cd-tab" data-tab="agentler" onclick="switchCampTab('agentler')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Temsilciler" data-de="Agenten">Temsilciler</button>
 </div>
 <div id="cd-tab-genel" class="cd-tab-panel">
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -728,13 +732,13 @@
 <div class="page" id="page-agents">
 <div class="page-hdr">
 <div>
-<div class="page-title" data-tr="Agentler" data-de="Agenten">Agentler</div>
+<div class="page-title" data-tr="Temsilciler" data-de="Agenten">Temsilciler</div>
 <div class="page-sub" data-tr="Ekip ve kampanya atamaları" data-de="Team und Kampagnenzuweisungen">Ekip ve kampanya atamaları</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
 <div id="agents-firm-selector"></div>
 <button class="btn btn-primary btn-sm" onclick="openAddAgentModal()">
-<i class="ph ph-plus"></i> Yeni Agent
+<i class="ph ph-plus"></i> <span data-tr="Yeni temsilci" data-de="Neuer Agent">Yeni temsilci</span>
 </button>
 </div>
 </div>
@@ -797,7 +801,7 @@
 <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
 <input type="text" class="form-input" style="width:150px;" placeholder="İsim, numara..." id="ch-search" oninput="loadCallHistory()">
 <select class="form-input" style="width:130px;" id="ch-agent-f" onchange="loadCallHistory()">
-<option value="">Tüm Agentler</option>
+<option value="" data-tr="Tüm temsilciler" data-de="Alle Agenten">Tüm temsilciler</option>
 </select>
 <select class="form-input" style="width:130px;" id="ch-outcome" onchange="loadCallHistory()">
 <option value="">Tüm Sonuçlar</option>
@@ -1774,7 +1778,7 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 </div>
 <div style="display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:10px;align-items:start;">
 <div class="card">
-<div class="card-title" style="margin-bottom:10px;">Yeni İş İlanı</div>
+<div class="card-title" style="margin-bottom:10px;" data-tr="Yeni İş İlanı" data-de="Neue Stellenanzeige">Yeni İş İlanı</div>
 <div style="display:flex;flex-direction:column;gap:8px;">
 <div id="jm-owner-firm-row" style="display:none;">
 <label class="form-label" style="font-size:11px;color:var(--text-3);margin-bottom:4px;display:block;">Şu firma adına ilan ver (ilan sahibi)</label>
@@ -1813,7 +1817,7 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <input type="hidden" id="jm-slot-end" value="11:00:00">
 <div id="jm-slot-wrap" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
 <button type="button" class="btn btn-primary btn-sm" onclick="openJobMarketSlotCalendarModal()">Takvimden slot oluştur</button>
-<div id="jm-slot-summary" class="jm-hint" style="margin:0;flex:1;min-width:200px;">Henüz seçilmedi — Takvimden slot oluştur’a tıklayın.</div>
+<div id="jm-slot-summary" class="jm-hint" style="margin:0;flex:1;min-width:200px;white-space:normal;overflow:visible;">Henüz seçilmedi — Takvimden slot oluştur’a tıklayın.</div>
 </div>
 <div class="jm-hint" style="margin-top:6px;">Kampanya takvimi benzeri panel açılır; saat satırından seçim yapıp <b>Slotu Uygula</b> ile forma aktarın. Aynı panelden slot adedini artırabilir, Cmt/Paz görünürlüğünü açabilirsiniz.</div>
 </div>
@@ -1823,7 +1827,7 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 </div>
 <div id="jm-slot-preview" class="jm-slot-preview" style="display:none;"></div>
 <div style="display:grid;grid-template-columns:1fr;gap:6px;">
-<label class="form-label" style="font-size:11px;color:var(--text-3);margin:0;">Geri çekme tarihi/saati (otomatik kontrol)</label>
+<label class="form-label" style="font-size:11px;color:var(--text-2);margin:0;">Geri çekme tarihi/saati *</label>
 <input class="form-input" id="jm-retract-by" type="datetime-local" title="Bu zamana kadar teslim girişi yoksa ilan otomatik geri çekilir">
 <div class="jm-hint" style="margin-top:0;">Belirlenen saate kadar teslim (submitted/qc_pending/approved) yoksa ilan otomatik geri çekilir.</div>
 </div>
@@ -3652,7 +3656,7 @@ QC Detay
 <div id="team-chat-panel" class="team-chat-panel" style="display:none;">
 <div class="team-chat-panel-head">
 <div class="team-chat-head-left">
-<span class="team-chat-panel-title">Sohbet</span>
+<span class="team-chat-panel-title" data-tr="Sohbet" data-de="Chat">Sohbet</span>
 <div id="team-chat-mode-wrap" class="team-chat-mode-wrap" style="display:none;">
 <button type="button" class="team-chat-mode-pill active" data-mode="firm">Firma</button>
 <button type="button" class="team-chat-mode-pill" data-mode="global">Tümü</button>
@@ -3674,10 +3678,10 @@ QC Detay
 <div id="team-chat-compose-wrap" class="team-chat-compose-wrap">
 <div class="team-chat-compose">
 <input type="file" id="team-chat-file" accept="image/*,audio/*,.pdf,.doc,.docx,.xlsx,.zip" style="display:none"/>
-<button type="button" class="team-chat-icon-btn" onclick="document.getElementById('team-chat-file').click()" title="Dosya / görsel"><i class="ph ph-paperclip"></i></button>
-<button type="button" id="team-chat-mic" class="team-chat-icon-btn" title="Sesli mesaj"><i class="ph ph-microphone"></i></button>
-<input type="text" id="team-chat-input" class="form-input team-chat-input" placeholder="Mesaj yazın…" autocomplete="off"/>
-<button type="button" id="team-chat-send" class="btn btn-primary btn-sm team-chat-send-btn"><i class="ph ph-paper-plane-tilt"></i></button>
+<button type="button" class="team-chat-icon-btn" onclick="document.getElementById('team-chat-file').click()" title="Dosya / görsel" aria-label="Dosya ekle"><i class="ph ph-paperclip"></i></button>
+<button type="button" id="team-chat-mic" class="team-chat-icon-btn" title="Sesli mesaj" aria-label="Sesli mesaj"><i class="ph ph-microphone"></i></button>
+<input type="text" id="team-chat-input" class="form-input team-chat-input" placeholder="Mesaj yazın…" autocomplete="off" aria-label="Mesaj"/>
+<button type="button" id="team-chat-send" class="btn btn-primary btn-sm team-chat-send-btn" aria-label="Gönder"><i class="ph ph-paper-plane-tilt"></i></button>
 </div>
 </div>
 </div>
@@ -3725,49 +3729,49 @@ QC Detay
 </div>
 <div id="notification-center" style="display:none;position:fixed;top:58px;right:14px;width:min(420px,92vw);max-height:72vh;overflow:auto;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;z-index:260;box-shadow:0 12px 28px rgba(0,0,0,.2);">
 <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);">
-<div style="font-size:13px;font-weight:800;">Bildirim Merkezi</div>
+<div style="font-size:13px;font-weight:800;" data-tr="Bildirim Merkezi" data-de="Benachrichtigungen">Bildirim Merkezi</div>
 <button class="btn btn-ghost btn-sm" onclick="toggleNotificationCenter(false)">Kapat</button>
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/version.js?v=8.31"></script>
-<script src="js/i18n.js?v=8.31"></script>
-<script src="js/config.js?v=8.31"></script>
-<script src="js/state.js?v=8.31"></script>
-<script src="js/api.js?v=8.31"></script>
-<script src="js/auth.js?v=8.31"></script>
-<script src="js/ui.js?v=8.31"></script>
-<script src="js/chat.js?v=8.31"></script>
-<script src="js/chat-settings.js?v=8.31"></script>
-<script src="js/field-settings.js?v=8.31"></script>
-<script src="js/audit.js?v=8.31"></script>
-<script src="js/feature-flags.js?v=8.31"></script>
-<script src="js/notification-center.js?v=8.31"></script>
+<script src="js/version.js?v=8.32"></script>
+<script src="js/i18n.js?v=8.32"></script>
+<script src="js/config.js?v=8.32"></script>
+<script src="js/state.js?v=8.32"></script>
+<script src="js/api.js?v=8.32"></script>
+<script src="js/auth.js?v=8.32"></script>
+<script src="js/ui.js?v=8.32"></script>
+<script src="js/chat.js?v=8.32"></script>
+<script src="js/chat-settings.js?v=8.32"></script>
+<script src="js/field-settings.js?v=8.32"></script>
+<script src="js/audit.js?v=8.32"></script>
+<script src="js/feature-flags.js?v=8.32"></script>
+<script src="js/notification-center.js?v=8.32"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=8.31"></script>
-<script src="js/job-market.js?v=8.31"></script>
-<script src="js/qc-job-market.js?v=8.31"></script>
-<script src="js/export-admin.js?v=8.31"></script>
-<script src="js/export-termin.js?v=8.31"></script>
-<script src="js/performance.js?v=8.31"></script>
-<script src="js/competition.js?v=8.31"></script>
-<script src="js/dashboard.js?v=8.31"></script>
-<script src="js/campaigns.js?v=8.31"></script>
-<script src="js/contacts.js?v=8.31"></script>
-<script src="js/telnyx.js?v=8.31"></script>
-<script src="js/voice-orb.js?v=8.31"></script>
-<script src="js/dialer.js?v=8.31"></script>
-<script src="js/appointments.js?v=8.31"></script>
-<script src="js/field.js?v=8.31"></script>
-<script src="js/field-ops.js?v=8.31"></script>
-<script src="js/wiedervorlage.js?v=8.31"></script>
-<script src="js/qc.js?v=8.31"></script>
-<script src="js/supervisor.js?v=8.31"></script>
-<script src="js/sms-settings.js?v=8.31"></script>
-<script src="js/leave-hr.js?v=8.31"></script>
-<script src="js/muhasebe.js?v=8.31"></script>
-<script src="js/agent-self-performance.js?v=8.31"></script>
-<script src="js/agents.js?v=8.31"></script>
-<script src="js/mimi-brain.js?v=8.31"></script>
+<script src="js/wallet.js?v=8.32"></script>
+<script src="js/job-market.js?v=8.32"></script>
+<script src="js/qc-job-market.js?v=8.32"></script>
+<script src="js/export-admin.js?v=8.32"></script>
+<script src="js/export-termin.js?v=8.32"></script>
+<script src="js/performance.js?v=8.32"></script>
+<script src="js/competition.js?v=8.32"></script>
+<script src="js/dashboard.js?v=8.32"></script>
+<script src="js/campaigns.js?v=8.32"></script>
+<script src="js/contacts.js?v=8.32"></script>
+<script src="js/telnyx.js?v=8.32"></script>
+<script src="js/voice-orb.js?v=8.32"></script>
+<script src="js/dialer.js?v=8.32"></script>
+<script src="js/appointments.js?v=8.32"></script>
+<script src="js/field.js?v=8.32"></script>
+<script src="js/field-ops.js?v=8.32"></script>
+<script src="js/wiedervorlage.js?v=8.32"></script>
+<script src="js/qc.js?v=8.32"></script>
+<script src="js/supervisor.js?v=8.32"></script>
+<script src="js/sms-settings.js?v=8.32"></script>
+<script src="js/leave-hr.js?v=8.32"></script>
+<script src="js/muhasebe.js?v=8.32"></script>
+<script src="js/agent-self-performance.js?v=8.32"></script>
+<script src="js/agents.js?v=8.32"></script>
+<script src="js/mimi-brain.js?v=8.32"></script>
 </body>
 </html>

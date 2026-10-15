@@ -160,7 +160,9 @@ function openJobMarketSlotCalendarModal() {
     _jmCalMonth = n.getMonth();
     _jmCalSelectedYmd = '';
   }
-  _jmCalDate = new Date(_jmCalYear, _jmCalMonth, 1);
+  _jmCalDate = _jmCalSelectedYmd
+    ? new Date(_jmCalYear, _jmCalMonth, Number(String(_jmCalSelectedYmd).slice(8, 10)) || 1)
+    : new Date();
   _jmCalSlotHours = 2;
   _jmCalSelections = [];
   document.getElementById('jm-cal-modal')?.remove();
@@ -910,14 +912,14 @@ function renderJobPostList() {
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Bölge: <b>${_jmEsc(p.postal_code || '-')}</b> · Radius: <b>${Number(geo.radius_km || 0).toFixed(1)} km</b></div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Geri çekme: <b>${p.retraction_deadline_at ? new Date(p.retraction_deadline_at).toLocaleString('tr-TR') : 'otomatik kural'}</b>${retractHint}</div>
 </div>
-<div><span class="badge badge-blue">${_jmEsc(p.status || 'published')}</span></div>
+<div><span class="badge badge-blue">${_jmEsc(({published:'Yayında',in_progress:'Sürüyor',pending_qc:'QC bekliyor',completed:'Tamamlandı',cancelled:'İptal',withdrawn:'Geri çekildi'})[p.status] || p.status || 'Yayında')}</span></div>
 </div>
 ${p.description ? `<div style="font-size:12px;color:var(--text-2);margin-top:8px;">${_jmEsc(p.description)}</div>` : ''}
-${slots.length ? `<div style="font-size:11px;color:var(--text-3);margin-top:6px;">Slotlar: ${slots.slice(0,4).map((s) => `${new Date(s.slot_start_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}-${new Date(s.slot_end_at).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}`).join(' | ')}${slots.length>4?' ...':''}</div>` : ''}
+${slots.length ? `<div style="font-size:11px;color:var(--text-3);margin-top:6px;overflow:visible;white-space:normal;">Slotlar: ${slots.slice(0,4).map((s) => `${typeof mbFormatWall === 'function' ? mbFormatWall(s.slot_start_at,{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : new Date(s.slot_start_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Berlin'})}-${typeof mbFormatWall === 'function' ? mbFormatWall(s.slot_end_at,{hour:'2-digit',minute:'2-digit'}) : new Date(s.slot_end_at).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Berlin'})}`).join(' | ')}${slots.length>4?' ...':''}</div>` : ''}
 <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:10px;">
 ${slots.length && p.job_type === 'appointment' ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openJobSlotsModal('${p.id}')">Takvimi aç (${slots.length})</button>` : ''}
 <button type="button" class="btn btn-ghost btn-sm" onclick="openJobRegionModal('${p.id}')">Bölgeyi Gör</button>
-${!isOwner ? `<button type="button" class="btn btn-ghost btn-sm" onclick="joinJobPost('${p.id}')">${myWorker ? 'Çalışıyorum' : 'Buna çalışacağım'}</button>` : `<span style="font-size:11px;color:var(--text-3);">İlan sahibi sizsiniz</span>`}
+${!isOwner ? `<button type="button" class="btn btn-ghost btn-sm" onclick="joinJobPost('${p.id}')">${myWorker ? 'Çalışıyorum' : 'Buna çalışacağım'}</button>` : `<span style="font-size:11px;color:var(--text);font-weight:700;">İlan sahibi sizsiniz</span>`}
 ${canWithdrawUi ? `<button type="button" class="btn btn-ghost btn-sm" style="border-color:var(--red);color:var(--red);" onclick="withdrawJobPost('${p.id}')">İlanı geri çek</button>` : ''}
 ${!isOwner ? `<button type="button" class="btn btn-primary btn-sm" onclick="openJobSubmissionModal('${p.id}')">Teslim gir</button>` : ''}
 ${mySubs.length ? `<span style="font-size:11px;color:var(--text-3);">${mySubs.length} teslim kaydı</span>` : ''}
@@ -1014,6 +1016,10 @@ async function createJobPost() {
     if (!res.ok) throw new Error(await res.text());
     if (typeof logAuditEvent === 'function') await logAuditEvent('job_post_created', 'job_post', title, { budget, unit_price: unitPrice, quantity, currency, qc_mode: qcMode, owner_firm_id: ownerFirmId });
     toast('İlan yayınlandı', 'ok');
+    ['jm-title','jm-description','jm-city','jm-postal'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
     await refreshWalletInfo();
     await loadJobPosts();
   } catch (e) {

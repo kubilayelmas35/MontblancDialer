@@ -124,6 +124,11 @@ if (btn) btn.classList.add('active');
 if (window.innerWidth <= 1024) closeSidebar();
 if (page !== 'dialer' && typeof stopInboundTestSimulationScheduler === 'function') stopInboundTestSimulationScheduler();
 runPageEntry(page);
+const toastEl = document.getElementById('toast');
+if (toastEl) toastEl.classList.remove('show');
+const notif = document.getElementById('notification-center');
+if (notif) notif.style.display = 'none';
+if (typeof toggleTeamChat === 'function') toggleTeamChat(false);
 }
 
 function initSettingsTabs() {
@@ -522,6 +527,22 @@ m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
 });
 
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const notif = document.getElementById('notification-center');
+    if (notif && notif.style.display === 'block') {
+      notif.style.display = 'none';
+      e.preventDefault();
+      return;
+    }
+    if (typeof toggleTeamChat === 'function') {
+      const panel = document.getElementById('team-chat-panel');
+      if (panel && panel.classList.contains('team-chat-panel--open')) {
+        toggleTeamChat(false);
+        e.preventDefault();
+        return;
+      }
+    }
+  }
   const ov = document.getElementById('m-system-dialog');
   if (!ov || !ov.classList.contains('open')) return;
   if (e.key === 'Escape') {
@@ -543,7 +564,8 @@ const sipPass = document.getElementById('s-sip-pass')?.value.trim()||'';
 const apiKey  = document.getElementById('s-telnyx-key')?.value.trim()||'';
 const connId  = document.getElementById('s-conn-id')?.value.trim()||'';
 localStorage.setItem('mb-sip-user',   sipUser);
-localStorage.setItem('mb-sip-pass',   sipPass);
+window.__mbSipPass = sipPass;
+localStorage.removeItem('mb-sip-pass');
 localStorage.setItem('mb-telnyx-key', apiKey);
 localStorage.setItem('mb-conn-id',    connId);
 toast(t('ui.settings_sip_saved'),'ok');
@@ -554,7 +576,7 @@ setTimeout(()=>{ sendToRTC('MB_CONNECT',{sipUser,sipPass}); }, 600);
 
 function loadSavedSettings() {
 loadApiSettings();
-const fields = {'s-sip-user':'mb-sip-user','s-sip-pass':'mb-sip-pass','s-telnyx-key':'mb-telnyx-key','s-conn-id':'mb-conn-id'};
+const fields = {'s-sip-user':'mb-sip-user','s-telnyx-key':'mb-telnyx-key','s-conn-id':'mb-conn-id'};
 Object.entries(fields).forEach(([elId,key])=>{
 const el=document.getElementById(elId), val=localStorage.getItem(key);
 if(el&&val) el.value=val;

@@ -253,6 +253,10 @@ async function submitLeaveRequest() {
     toast('Tarih aralığını seçin', 'err');
     return;
   }
+  if (to < from) {
+    toast('Bitiş tarihi başlangıçtan önce olamaz', 'err');
+    return;
+  }
   if (!days || days < 0.5) {
     toast('Gün sayısı geçersiz', 'err');
     return;
@@ -275,9 +279,14 @@ async function submitLeaveRequest() {
     toast('İzin talebi gönderildi', 'ok');
     document.getElementById('lr-reason').value = '';
     await loadMyLeaveRequests();
+    await loadAdminLeaveTables(fid);
     await refreshLeaveStats(fid);
   } catch (e) {
-    toast('Hata: ' + e.message, 'err');
+    const raw = String(e?.message || '');
+    const friendly = raw.includes('leave_requests_dates')
+      ? 'Bitiş tarihi başlangıçtan önce olamaz'
+      : (raw.includes('not_authenticated') ? 'Oturum süresi doldu. Yeniden giriş yapın.' : raw);
+    toast(friendly, 'err');
   }
 }
 

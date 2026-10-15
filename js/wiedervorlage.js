@@ -171,7 +171,7 @@ function openWvEditModal(id) {
   document.getElementById('wv-ort').value = w.ort||'';
   document.getElementById('wv-str').value = w.strasse||'';
   document.getElementById('wv-note').value = w.notiz||'';
-  document.getElementById('wv-dt').value = w.termin_zaman ? w.termin_zaman.slice(0,16) : '';
+  document.getElementById('wv-dt').value = w.termin_zaman ? (typeof mbIsoToWallInput === 'function' ? mbIsoToWallInput(w.termin_zaman) : w.termin_zaman.slice(0,16)) : '';
   const sel = document.getElementById('wv-agent-sel');
   if (sel) sel.value = w.agent||'';
   openModal('m-wv-form');
@@ -181,8 +181,19 @@ async function saveWv() {
   const name = document.getElementById('wv-name').value.trim();
   const tel  = document.getElementById('wv-tel').value.trim();
   const dt   = document.getElementById('wv-dt').value;
-  if (!name||!tel||!dt) { toast('Ad, Telefon ve Zaman zorunlu!','err'); return; }
+  if (!name||!tel||!dt) { toast('Ad, telefon ve zaman zorunlu','err'); return; }
+  if (typeof mbIsE164 === 'function' && !mbIsE164(tel)) {
+    toast('Telefon +49 veya +90 ile, ülke koduyla yazılmalı','err');
+    return;
+  }
   const agentSel = document.getElementById('wv-agent-sel');
+  const pickedAgent = String(agentSel?.value || '').trim();
+  if (agentSel && !pickedAgent) {
+    toast('Temsilci seçin','err');
+    return;
+  }
+  const when = typeof mbWallToIso === 'function' ? mbWallToIso(dt) : new Date(dt).toISOString();
+  if (!when) { toast('Zaman geçersiz','err'); return; }
   const data = {
     nachname: name, telefon: tel,
     telefon2: document.getElementById('wv-tel2').value.trim(),
@@ -190,8 +201,8 @@ async function saveWv() {
     ort: document.getElementById('wv-ort').value.trim(),
     strasse: document.getElementById('wv-str').value.trim(),
     notiz: document.getElementById('wv-note').value.trim(),
-    termin_zaman: new Date(dt).toISOString(),
-    agent_id: agentSel?.value || currentUser?.id,
+    termin_zaman: when,
+    agent_id: pickedAgent || currentUser?.id,
     agent_name: currentUser?.name || '',
     firm_id: currentUser?.firm_id,
     durum: 'bekliyor',
@@ -204,7 +215,7 @@ async function saveWv() {
     }
     closeModal('m-wv-form');
     await refreshWvList();
-    toast('WV kaydedildi ✓','ok');
+    toast(currentLang === 'de' ? 'Rückruf gespeichert' : 'Geri arama kaydedildi','ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 

@@ -63,16 +63,18 @@ async function loadNotificationCenter() {
   try {
     const field = await sb(`field_tasks?firm_id=eq.${fid}&status=eq.assigned&order=created_at.desc&limit=5`).catch(() => []);
     (field || []).forEach((t) => {
-      if (t.assigned_to === currentUser.id || ['admin', 'firm_admin', 'super_admin'].includes(currentUser.role)) unread++;
-      out.push(_notifItem('Saha görevi', `Yeni görev atandı · ${t.result_key || 'sonuç bekleniyor'}`, new Date(t.created_at).toLocaleDateString('tr-TR')));
+      const mine = t.assigned_to === currentUser.id;
+      const fresh = Date.now() - new Date(t.created_at).getTime() < 48 * 3600 * 1000;
+      if (mine || (fresh && ['admin', 'firm_admin', 'super_admin'].includes(currentUser.role))) unread++;
+      out.push(_notifItem('Saha görevi', `Yeni görev atandı · ${t.result_key || 'sonuç bekleniyor'}`, new Date(t.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })));
     });
   } catch (e) {}
 
   try {
-    const qcRows = await sb(`appointments?firm_id=eq.${fid}&durum=eq.qc_bekleniyor&select=id,nachname,updated_at&order=updated_at.desc&limit=5`).catch(() => []);
+    const qcRows = await sb(`appointments?firm_id=eq.${fid}&durum=eq.qc_bekleniyor&select=id,nachname,son_guncelleme&order=son_guncelleme.desc&limit=5`).catch(() => []);
     (qcRows || []).forEach((a) => {
       if (['qc', 'admin', 'firm_admin', 'super_admin'].includes(currentUser.role)) unread++;
-      out.push(_notifItem('QC bekleyen', `${a.nachname || 'Müşteri'} için değerlendirme bekleniyor`, new Date(a.updated_at || Date.now()).toLocaleDateString('tr-TR')));
+      out.push(_notifItem('QC bekleyen', `${a.nachname || 'Müşteri'} için değerlendirme bekleniyor`, new Date(a.son_guncelleme || Date.now()).toLocaleDateString('tr-TR')));
     });
   } catch (e) {}
 
@@ -82,14 +84,20 @@ async function loadNotificationCenter() {
       const title = ev?.job_posts?.title || 'İş ilanı';
       const own = ev?.job_posts?.requester_firm_id === fid;
       const isWithdraw = ev.event_type === 'job_withdrawn';
+      const eventLabel = {
+        job_created: 'İlan yayınlandı',
+        job_withdrawn: 'İlan geri çekildi',
+        job_joined: 'İlana katılım',
+        submission_created: 'Teslim geldi',
+      }[ev.event_type] || 'İş güncellemesi';
       const headline = isWithdraw ? 'İlan geri çekildi' : 'İş platformu';
-      const detail = isWithdraw ? `${title} · rezerv iade edildi, ilan iptal` : `${title} · ${ev.event_type}`;
+      const detail = isWithdraw ? `${title} · rezerv iade edildi, ilan iptal` : `${title} · ${eventLabel}`;
       if (own || ['admin', 'firm_admin', 'super_admin', 'qc'].includes(currentUser.role)) unread++;
       out.push(_notifItem(headline, detail, new Date(ev.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })));
     });
   } catch (e) {}
 
-  list.innerHTML = out.length ? out.join('') : _notifItem('Bildirim yok', 'Yeni bildirim bulunmuyor', '');
+  list.innerHTML = out.length ? [...new Set(out)].join('') : _notifItem('Bildirim yok', 'Yeni bildirim bulunmuyor', '');
   if (badge) {
     badge.textContent = unread > 99 ? '99+' : String(unread);
     badge.style.display = unread > 0 ? 'inline-flex' : 'none';

@@ -97,6 +97,7 @@ function fieldOpsApplyFilters() {
   const loc = typeof mbLocale === 'function' ? mbLocale() : 'tr-TR';
   const stamp = (iso) => {
     if (!iso) return '—';
+    if (typeof mbFormatWall === 'function') return mbFormatWall(iso, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '—';
     return d.toLocaleString(loc, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -181,7 +182,9 @@ async function loadFieldOpsPage() {
     _fieldOpsRows = tasks.map(t => ({ ...t, appointment: apMap[t.appointment_id] || null, assignee: uMap[t.assigned_to] || null }));
     fieldOpsApplyFilters();
   } catch (e) {
-    if (tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(FIELD_OPS_COLS, t('ui.load_failed') + ': ' + (e?.message || t('ui.unknown_error'))) : `<tr><td colspan="${FIELD_OPS_COLS}" class="mb-empty-hint" style="color:var(--red);">${_foEsc(t('ui.load_failed') + ': ' + (e?.message || t('ui.unknown_error')))}</td></tr>`;
+    const msg = String(e?.message || t('ui.unknown_error') || '');
+    const friendly = msg.includes('not_authenticated') ? 'Oturum doğrulanamadı. Çıkış yapıp yeniden girin.' : msg;
+    if (tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(FIELD_OPS_COLS, t('ui.load_failed') + ': ' + friendly) : `<tr><td colspan="${FIELD_OPS_COLS}" class="mb-empty-hint" style="color:var(--red);">${_foEsc(t('ui.load_failed') + ': ' + friendly)}</td></tr>`;
     _fieldOpsRows = [];
     _fieldOpsRenderKpi([]);
   }

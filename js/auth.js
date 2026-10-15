@@ -59,12 +59,7 @@ _impersonation = null;
 localStorage.setItem('mb_session', JSON.stringify(currentUser));
 localStorage.setItem('mb_base_session', JSON.stringify(_baseUser));
 localStorage.removeItem('mb_impersonation');
-sbUpsert('agent_sessions', {
-agent_id: currentUser.id,
-agent_name: currentUser.name,
-firm_id: currentUser.firm_id, status: 'offline',
-last_seen: new Date().toISOString()
-}, 'agent_id');
+_syncOwnAgentPresence('offline');
 document.getElementById('page-login').style.display = 'none';
 document.getElementById('app').style.display = 'flex';
 bootApp();
@@ -101,10 +96,7 @@ body: '{}'
 });
 } catch (_) {}
 if (currentUser?.id) {
-await sbUpsert('agent_sessions', {
-agent_id: currentUser.id, status: 'offline',
-last_seen: new Date().toISOString()
-}, 'agent_id').catch(()=>{});
+await _syncOwnAgentPresence('offline');
 }
 localStorage.removeItem('mb_session');
 localStorage.removeItem('mb_base_session');
@@ -192,8 +184,9 @@ else         { navigate('dialer'); }
 if (typeof initChat === 'function') initChat();
 if (typeof initNotificationCenter === 'function') initNotificationCenter();
 initRTCListener();
+localStorage.removeItem('mb-sip-pass');
 const sipUser = localStorage.getItem('mb-sip-user')||'';
-const sipPass = localStorage.getItem('mb-sip-pass')||'';
+const sipPass = window.__mbSipPass || '';
 if (sipUser && sipPass) {
 updateConnectionStatus('connecting');
 setTimeout(()=>{ sendToRTC('MB_CONNECT',{sipUser,sipPass}); }, 1200);
@@ -205,6 +198,27 @@ if (typeof reloadMascotStateForUser === 'function') reloadMascotStateForUser();
 
 // ── Süper Admin Global Firma Seçici ──────────────────
 function isSuperAdmin() { return currentUser?.role === 'super_admin'; }
+
+async function _syncOwnAgentPresence(status) {
+  if (!currentUser?.id) return;
+  const dial = ['agent', 'qc'].includes(currentUser.role || '');
+  if (!dial) {
+    await sb(`agent_sessions?agent_id=eq.${currentUser.id}`, {
+      method: 'DELETE',
+      prefer: 'return=minimal',
+    }).catch(() => {});
+    return;
+  }
+  if (typeof upsertAgentSession === 'function') {
+    await upsertAgentSession({
+      agent_id: currentUser.id,
+      agent_name: currentUser.name,
+      firm_id: currentUser.firm_id,
+      status: status || 'offline',
+      last_seen: new Date().toISOString(),
+    });
+  }
+}
 
 function getActiveFirmId() {
 return isSuperAdmin() ? _selectedFirmId : currentUser?.firm_id;
