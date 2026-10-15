@@ -39,67 +39,78 @@ document.getElementById('sidebar').classList.remove('open');
 });
 
 // ── NAVIGATION ───────────────────────────────
+function _mbPageFn(name) {
+  try {
+    const fn = globalThis[name];
+    return typeof fn === 'function' ? fn : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 const _NAVIGATE_LOADERS = {
   dashboard: () => {
-    loadDashboard();
-    if (typeof loadJobMarketKpi === 'function') loadJobMarketKpi();
+    _mbPageFn('loadDashboard')?.();
+    _mbPageFn('loadJobMarketKpi')?.();
   },
-  campaigns: () => { loadCampaigns(); },
-  agents: () => { loadAgents(); },
-  stats: () => { initStatsFilters(); loadStats(); },
-  callhistory: () => { initCallHistoryFilters(); loadCallHistory(); },
-  export: () => { loadExportTerminPage(); },
-  performance: () => { loadPerformancePage(); },
+  campaigns: () => { _mbPageFn('loadCampaigns')?.(); },
+  agents: () => { _mbPageFn('loadAgents')?.(); },
+  stats: () => { _mbPageFn('initStatsFilters')?.(); _mbPageFn('loadStats')?.(); },
+  callhistory: () => { _mbPageFn('initCallHistoryFilters')?.(); _mbPageFn('loadCallHistory')?.(); },
+  export: () => { _mbPageFn('loadExportTerminPage')?.(); },
+  performance: () => { _mbPageFn('loadPerformancePage')?.(); },
   dialer: () => {
-    initDialer();
-    if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
+    _mbPageFn('initDialer')?.();
+    _mbPageFn('refreshDialerHealthPanel')?.();
   },
   field: () => {
-    loadFieldPage();
-    if (typeof loadNotificationCenter === 'function') loadNotificationCenter();
+    _mbPageFn('loadFieldPage')?.();
+    _mbPageFn('loadNotificationCenter')?.();
   },
-  fieldops: () => { loadFieldOpsPage(); },
+  fieldops: () => { _mbPageFn('loadFieldOpsPage')?.(); },
   jobmarket: () => {
-    loadJobMarketPage();
-    if (typeof refreshJobMarketMap === 'function') {
-      setTimeout(() => refreshJobMarketMap(), 0);
-      setTimeout(() => refreshJobMarketMap(), 280);
+    _mbPageFn('loadJobMarketPage')?.();
+    if (_mbPageFn('refreshJobMarketMap')) {
+      setTimeout(() => _mbPageFn('refreshJobMarketMap')?.(), 0);
+      setTimeout(() => _mbPageFn('refreshJobMarketMap')?.(), 280);
     }
   },
-  myhistory: () => { initMyHistoryFilters(); loadMyHistory(); },
+  myhistory: () => { _mbPageFn('initMyHistoryFilters')?.(); _mbPageFn('loadMyHistory')?.(); },
   settings: () => {
-    loadSavedSettings();
-    loadRolesPage();
-    if (typeof loadIncomingCallsSettingsPage === 'function') loadIncomingCallsSettingsPage();
-    loadAppointmentResultsSettings();
-    setTimeout(() => initSettingsTabs(), 0);
-    loadMesaiSettings();
-    loadCallHoursSettings();
-    loadChatSettingsPage();
-    loadFieldSettingsPage();
-    if (typeof loadSmsSettingsPage === 'function') loadSmsSettingsPage();
-    loadFeatureFlagsPage();
-    if (typeof loadAuditEventsPage === 'function') loadAuditEventsPage();
-    if (typeof loadJobPermissionsSettings === 'function') loadJobPermissionsSettings();
+    _mbPageFn('loadSavedSettings')?.();
+    _mbPageFn('loadRolesPage')?.();
+    _mbPageFn('loadIncomingCallsSettingsPage')?.();
+    _mbPageFn('loadAppointmentResultsSettings')?.();
+    setTimeout(() => _mbPageFn('initSettingsTabs')?.(), 0);
+    _mbPageFn('loadMesaiSettings')?.();
+    _mbPageFn('loadCallHoursSettings')?.();
+    _mbPageFn('loadChatSettingsPage')?.();
+    _mbPageFn('loadFieldSettingsPage')?.();
+    _mbPageFn('loadSmsSettingsPage')?.();
+    _mbPageFn('loadFeatureFlagsPage')?.();
+    _mbPageFn('loadAuditEventsPage')?.();
+    _mbPageFn('loadJobPermissionsSettings')?.();
   },
-  wiedervorlage: () => { loadWvPage(); },
+  wiedervorlage: () => { _mbPageFn('loadWvPage')?.(); },
   qc: () => {
-    loadQcData();
-    if (typeof loadJobMarketQcQueue === 'function') loadJobMarketQcQueue();
+    _mbPageFn('loadQcData')?.();
+    _mbPageFn('loadJobMarketQcQueue')?.();
   },
-  supervisor: () => { if (typeof loadSupervisorPanel === 'function') loadSupervisorPanel(); },
-  firms: () => { loadFirmsPage(); },
-  takvim: () => { loadTakvimPage(); },
-  leave: () => { loadLeavePage(); },
-  muhasebe: () => { loadMuhasebePage(); },
-  maasim: () => { loadMaasimPage(); },
-  performansim: () => { loadPerformansimPage(); },
-  competition: () => { loadCompetitionPage(); },
+  supervisor: () => { _mbPageFn('loadSupervisorPanel')?.(); },
+  firms: () => { _mbPageFn('loadFirmsPage')?.(); },
+  takvim: () => { _mbPageFn('loadTakvimPage')?.(); },
+  leave: () => { _mbPageFn('loadLeavePage')?.(); },
+  muhasebe: () => { _mbPageFn('loadMuhasebePage')?.(); },
+  maasim: () => { _mbPageFn('loadMaasimPage')?.(); },
+  performansim: () => { _mbPageFn('loadPerformansimPage')?.(); },
+  competition: () => { _mbPageFn('loadCompetitionPage')?.(); },
 };
 
 function runPageEntry(page) {
   const run = _NAVIGATE_LOADERS[page];
-  if (typeof run === 'function') run();
+  if (typeof run === 'function') {
+    try { run(); } catch (e) { console.error(e); }
+  }
   if (typeof syncGlobalMascotDock === 'function') setTimeout(() => syncGlobalMascotDock(), 0);
 }
 
@@ -425,6 +436,13 @@ if (typeof dialerStatus !== 'undefined' && dialerStatus === 'on_call' && typeof 
   refreshHangupFinalizeButton();
 }
 if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+if (typeof showCampScript === 'function' && typeof currentContact !== 'undefined' && currentContact) {
+  showCampScript(currentContact);
+}
+const attemptBadge = document.getElementById('cust-attempt-badge');
+if (attemptBadge && typeof currentContact !== 'undefined' && currentContact && typeof uqSay === 'function') {
+  attemptBadge.textContent = uqSay('dial.attempt', '{n}. arama', { n: currentContact.attempt_count || 1 });
+}
   const _ce = document.getElementById('cust-empty');
   if (_ce && _ce.style.display !== 'none' && typeof refreshCustEmptyCoachBubble === 'function') {
     refreshCustEmptyCoachBubble();
@@ -461,6 +479,9 @@ document.querySelectorAll('.palette-dot').forEach(d => d.classList.toggle('sel',
 localStorage.setItem('mb-palette', p);
 }
 
+let _systemDialogResolve = null;
+let _systemDialogType = 'alert';
+
 // Restore theme/palette
 (()=>{
 const t = localStorage.getItem('mb-theme');
@@ -486,9 +507,6 @@ toastT=setTimeout(()=>el.classList.remove('show'), d);
 function showToast(msg, type, duration) {
 toast(msg, type, duration);
 }
-
-let _systemDialogResolve = null;
-let _systemDialogType = 'alert';
 
 function _openSystemDialog({ type = 'alert', title = 'Bildirim', message = '', defaultValue = '', okText = 'Tamam', cancelText = 'İptal' }) {
   return new Promise((resolve) => {
@@ -554,9 +572,7 @@ window.prompt = (msg, def) => { console.warn('Use mbPrompt instead of prompt:', 
 function openModal(id) {
 const el = document.getElementById(id);
 if (!el) { console.warn('openModal: element not found:', id); return; }
-if (id === 'm-upload-q') {
-  el.querySelectorAll('.uq-skip-status').forEach((box) => { box.checked = false; });
-}
+if (id === 'm-upload-q' && typeof resetUploadQueueForm === 'function') resetUploadQueueForm();
 el.style.removeProperty('display');
 el.classList.add('open');
 }

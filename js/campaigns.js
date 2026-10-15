@@ -61,6 +61,7 @@ const ff = getFirmFilter('&');
 campaigns = await sb(`campaigns?select=*,queues(*),agent_campaigns(*)&order=created_at.desc${ff}`);
 campaigns = campaigns || [];
 await attachCampaignPeople();
+await reconcileQueueTotals(campaigns);
 renderCampGrid();
 const detailOpen = document.getElementById('camp-detail')?.style.display === 'block';
 if (detailOpen && currentCampId && campaigns.some((c) => c.id === currentCampId)) {
@@ -1445,6 +1446,43 @@ ticker.style.display = 'none';
 } catch(e) {}
 }
 
+async function mbHeadCountExact(path) {
+  try {
+    const scoped = typeof _mbScopedUserForRequest === 'function' ? _mbScopedUserForRequest(path, 'GET') : null;
+    const headers = typeof mbAuthHeaders === 'function' ? mbAuthHeaders({ Prefer: 'count=exact', Range: '0-0' }) : {};
+    if (scoped && typeof _mbRequestScopeHeaders === 'function') Object.assign(headers, _mbRequestScopeHeaders(scoped));
+    const r = await fetch(`${SB_URL}/rest/v1/${path}`, { method: 'GET', headers });
+    if (!r.ok) return null;
+    try { await r.json(); } catch (_) {}
+    const n = Number((r.headers.get('content-range') || '').split('/')[1]);
+    return Number.isFinite(n) ? n : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function reconcileQueueTotals(list) {
+  const jobs = [];
+  (list || []).forEach((camp) => {
+    (camp.queues || []).forEach((queue) => {
+      if (!queue?.id) return;
+      jobs.push((async () => {
+        const total = await mbHeadCountExact(`contacts?queue_id=eq.${queue.id}&select=id`);
+        if (total == null || total === Number(queue.total_contacts || 0)) return;
+        queue.total_contacts = total;
+        (campaigns || []).forEach((c) => {
+          (c.queues || []).forEach((q) => { if (q.id === queue.id) q.total_contacts = total; });
+        });
+        await sb(`queues?id=eq.${queue.id}`, {
+          method: 'PATCH', prefer: 'return=minimal',
+          body: JSON.stringify({ total_contacts: total }),
+        }).catch(() => {});
+      })());
+    });
+  });
+  if (jobs.length) await Promise.all(jobs);
+}
+
 async function mbHeadCount(path) {
   try {
     const scoped = typeof _mbScopedUserForRequest === 'function' ? _mbScopedUserForRequest(path, 'GET') : null;
@@ -1878,7 +1916,7 @@ async function openQueuePeople(queueId) {
 <div style="display:flex;gap:8px;flex-wrap:wrap;">
 <input class="form-input" id="qp-q" placeholder="${campEsc(campT('camp.people.search','Ara'))}" style="flex:1;min-width:160px;">
 <select class="form-input" id="qp-status" style="width:160px;">
-<option value="">${campEsc(campT('camp.ops.all','Tümü'))}</option>
+<option value="">${campEsc(campT('camp.people.all','Tümü'))}</option>
 ${QUEUE_OPS_ROWS.map((r) => `<option value="${r.key}">${campEsc(campT(r.label, r.fb))}</option>`).join('')}
 </select>
 <button type="button" class="btn btn-ghost btn-sm" onclick="refreshQueuePeople()">${campEsc(campT('camp.ops.apply','Göster'))}</button>
@@ -1914,7 +1952,7 @@ async function refreshQueuePeople() {
 </tr></thead><tbody>${rows.map((r) => `<tr>
 <td><input class="form-input" id="qp-fn-${r.id}" value="${campEsc(r.first_name || '')}" style="margin-bottom:4px;"><input class="form-input" id="qp-ln-${r.id}" value="${campEsc(r.last_name || '')}"></td>
 <td><input class="form-input" id="qp-ph-${r.id}" value="${campEsc(r.phone || '')}"></td>
-<td style="font-family:var(--mono);">${campEsc(r.status || '')}<div style="color:var(--text-3);">${r.attempt_count || 0}</div></td>
+<td>${campEsc(contactStatusLabel(r.status))}<div style="color:var(--text-3);font-family:var(--mono);">${r.attempt_count || 0}</div></td>
 <td style="white-space:nowrap;">
 <button type="button" class="btn btn-primary btn-xs" onclick="saveQueuePerson('${r.id}')">${campEsc(campT('camp.notif.save','Kaydet'))}</button>
 <button type="button" class="btn btn-ghost btn-xs" onclick="dncQueuePerson('${r.id}')">DNC</button>
@@ -1948,10 +1986,25 @@ async function dncQueuePerson(id) {
   } catch (e) { toast(e.message, 'err'); }
 }
 
+function contactStatusLabel(status) {
+  const row = QUEUE_OPS_ROWS.find((r) => r.key === status);
+  return row ? campT(row.label, row.fb) : (status || '');
+}
+
 async function deleteQueuePerson(id) {
+  const ok = await mbConfirm(campT('camp.people.delete.confirm','Bu kişi silinsin mi?'), campT('camp.queue.delete','Sil'));
+  if (!ok) return;
+  const queueId = document.getElementById('m-queue-people')?.dataset.queueId || '';
   try {
     await sb(`contacts?id=eq.${id}`, { method: 'DELETE', prefer: 'return=minimal' });
+    if (queueId) await reconcileQueueTotals([{ queues: [{ id: queueId, total_contacts: -1 }] }]);
+    const found = queueId ? findQueue(queueId) : null;
+    if (found) {
+      renderCampQueues(found.camp);
+      renderCampGrid();
+    }
     await refreshQueuePeople();
+    toast(campT('camp.people.deleted','Kişi silindi'), 'ok');
   } catch (e) { toast(e.message, 'err'); }
 }
 

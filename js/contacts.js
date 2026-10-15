@@ -3,6 +3,27 @@
 // ─────────────────────────────────────────────
 
 // ── Upload Queue ──────────────────────────────
+function resetUploadQueueForm() {
+  uploadFile = null;
+  uploadParsedRows = [];
+  uploadHeaders = [];
+  uploadHeaderLabels = [];
+  _uqWorkbook = null;
+  const file = document.getElementById('uq-file');
+  if (file) file.value = '';
+  const fname = document.getElementById('uq-fname');
+  if (fname) fname.textContent = '.xlsx, .csv — maks. 50.000 satır';
+  const section = document.getElementById('uq-mapping-section');
+  if (section) section.style.display = 'none';
+  const sheet = document.getElementById('uq-sheet-wrap');
+  if (sheet) { sheet.style.display = 'none'; sheet.innerHTML = ''; }
+  const progress = document.getElementById('uq-progress-section');
+  if (progress) progress.style.display = 'none';
+  const submit = document.getElementById('uq-submit-btn');
+  if (submit) submit.disabled = false;
+  document.querySelectorAll('.uq-skip-status').forEach((box) => { box.checked = false; });
+}
+
 function handleFileSelect(e) { if (e.target.files[0]) setFile(e.target.files[0]); }
 function handleDrop(e) {
   e.preventDefault();
