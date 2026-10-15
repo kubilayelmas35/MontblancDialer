@@ -166,11 +166,10 @@ flex-wrap: nowrap;
 .tb-pills-wrap {
   flex: 1 1 auto;
   min-width: 0;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow: hidden;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  -webkit-overflow-scrolling: touch;
 }
 .tb-pills-wrap::-webkit-scrollbar {
   height: 0;
@@ -265,19 +264,25 @@ scrollbar-width: none;
 }
 #tb-pills::-webkit-scrollbar { display: none; }
 .tb-pill {
-display: flex; align-items: center; gap: 4px;
+display: flex; align-items: center; justify-content: center; gap: 5px;
+height: 32px;
+box-sizing: border-box;
 background: var(--bg-3);
 border: 1px solid var(--border);
-border-radius: 20px;
-padding: 3px 8px;
+border-radius: 16px;
+padding: 0 10px;
 white-space: nowrap; flex-shrink: 0;
 font-size: 12px;
-max-width: 148px;
+line-height: 1;
+max-width: 160px;
 }
 .tb-pill-val {
   max-width: 72px;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
 .tb-pill-dot {
 width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
@@ -316,20 +321,23 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 .tb-right {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 8px;
+  gap: 2px;
+  margin-left: 6px;
   flex: 0 0 auto;
   flex-wrap: nowrap;
-  min-width: 0;
+  height: 32px;
 }
-.tb-takvim {
+.tb-icon-btn.tb-takvim {
   width: auto;
-  padding: 0 8px;
-  gap: 5px;
-  font-size: 11px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 700;
+  line-height: 1;
 }
-.tb-takvim span { white-space: nowrap; }
+.tb-takvim span { white-space: nowrap; line-height: 1; }
 .tb-uname, .tb-urole {
   max-width: 120px;
   overflow: hidden;
@@ -337,8 +345,9 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   white-space: nowrap;
 }
 @media (max-width: 1280px) {
-  .tb-logo-name, .tb-takvim span { display: none; }
-  .tb-takvim { width: 32px; padding: 0; }
+  .tb-logo-name { display: none; }
+  .tb-icon-btn.tb-takvim > span { display: none; }
+  .tb-icon-btn.tb-takvim { width: 32px; min-width: 32px; padding: 0; }
   .tb-logo { margin-right: 0; }
   .tb-logo-inner { padding: 4px; gap: 0; }
 }
@@ -351,17 +360,26 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   .pill-ping { display: none; }
 }
 @media (max-width: 900px) {
-  .tb-uname { display: none; }
-  .tb-user { padding: 3px; gap: 0; }
+  .tb-uname, .tb-urole { display: none; }
+  .tb-user {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+    border-radius: 8px;
+  }
   #tb-pills .tb-pill:nth-child(n+6) { display: none; }
 }
 .tb-mascot-anchor {
-  width: 48px;
-  height: 40px;
-  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  align-self: center;
   border-radius: 10px;
   pointer-events: none;
 }
+#tb-notif-btn { position: relative; }
 #tb-notif-btn #tb-notif-badge {
   top: 1px;
   right: 1px;
@@ -684,12 +702,16 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 .tb-icon-btn {
 width: 32px; height: 32px;
 display: flex; align-items: center; justify-content: center;
-border-radius: var(--radius-xs);
+border-radius: 8px;
 color: var(--text-2);
 transition: var(--transition);
 font-size: 12px;
+font-weight: 700;
+font-family: var(--mono);
 line-height: 1;
 padding: 0;
+flex-shrink: 0;
+box-sizing: border-box;
 }
 .tb-icon-btn > span {
   display: flex;
@@ -700,11 +722,14 @@ padding: 0;
 .tb-icon-btn:hover { background: var(--bg-3); color: var(--text); }
 .tb-user {
 display: flex; align-items: center; gap: 7px;
+height: 32px;
+box-sizing: border-box;
 background: var(--bg-3);
 border: 1px solid var(--border);
-border-radius: 20px;
-padding: 4px 12px 4px 5px;
+border-radius: 16px;
+padding: 0 10px 0 3px;
 transition: var(--transition);
+flex-shrink: 0;
 }
 .tb-user:hover { border-color: var(--border-2); }
 .tb-avatar {
@@ -715,8 +740,8 @@ display: flex; align-items: center; justify-content: center;
 font-size: 11px; font-weight: 700; color: var(--text);
 flex-shrink: 0;
 }
-.tb-uname { font-size: 13px; font-weight: 600; }
-.tb-urole { font-size: 10px; color: var(--text-3); }
+.tb-uname { font-size: 12px; font-weight: 600; line-height: 1.15; }
+.tb-urole { font-size: 9px; color: var(--text-3); line-height: 1.15; }
 /* ── BODY ── */
 #body {
   display: flex;
