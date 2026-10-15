@@ -371,6 +371,7 @@ if (typeof _dashGetRange === 'function' && typeof _dashUpdateStatLabels === 'fun
   const rk = _dashGetRange();
   _dashUpdateStatLabels(rk);
   _dashUpdateCardTitles(rk);
+  if (typeof renderDashLiveAgents === 'function') renderDashLiveAgents();
   const subEl = document.getElementById('dash-chart-sub');
     if (subEl && currentUser?.role === 'agent') {
     subEl.textContent = t('dash.sub_agent_calls');

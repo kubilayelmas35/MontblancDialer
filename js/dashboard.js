@@ -674,34 +674,8 @@ document.getElementById('pill-appt').textContent= appts;
   renderDashChart7d([0], ['—']);
 }
 if (showLive) try {
-const sessions = await sb('agent_sessions?select=*');
-const live = document.getElementById('live-agents');
-const active = sessions.filter(s=>s.status!=='offline');
-if (!active.length) {
-live.innerHTML = `<div class="mb-empty-hint" style="font-size:13px;">${t('ui.no_active_agents')}</div>`;
-return;
-}
-const SC = { ready:{c:'var(--green)',l:'Hazır'}, on_call:{c:'var(--accent)',l:'Aramada'}, wrapping:{c:'var(--yellow)',l:'Sonuç giriyor'}, break:{c:'var(--yellow)',l:'Mola'} };
-const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
-live.innerHTML = active.map(s => {
-const st = SC[s.status]||{c:'var(--text-3)',l:s.status};
-return `<div class="live-row">
-<div class="live-av">${s.agent_name.charAt(0)}</div>
-<div style="flex:1;">
-<div class="live-name">${s.agent_name}</div>
-<div style="font-size:10px;color:var(--text-3);">${s.campaign_id?'Kampanyada':'—'}</div>
-</div>
-<span class="badge" style="background:${st.c}18;color:${st.c};">
-<div style="width:6px;height:6px;border-radius:50%;background:${st.c};"></div>${st.l}
-</span>
-${isAdmin ? `<div style="display:flex;gap:2px;margin-left:4px;">
-<button onclick="remoteChangeAgentStatus('${s.agent_id}','ready')" title="Hazır yap" style="background:var(--green);border:none;border-radius:3px;padding:2px 5px;color:#fff;font-size:9px;cursor:pointer;">▶</button>
-<button onclick="remoteChangeAgentStatus('${s.agent_id}','break')" title="Molaya al" style="background:var(--yellow);border:none;border-radius:3px;padding:2px 5px;color:#000;font-size:9px;cursor:pointer;"><i class="ph ph-coffee" style="font-size:10px;"></i></button>
-<button onclick="remoteChangeAgentStatus('${s.agent_id}','offline')" title="Çevrimdışı" style="background:var(--text-3);border:none;border-radius:3px;padding:2px 5px;color:#fff;font-size:9px;cursor:pointer;">⏹</button>
-</div>` : ''}
-</div>`;
-}).join('');
-} catch(e){}
+await renderDashLiveAgents();
+} catch(e){ console.warn('live', e); }
 if (typeof loadDashCompetitionCard === 'function') {
   try { await loadDashCompetitionCard(); } catch (e) { console.warn('comp', e); }
 }
@@ -1064,13 +1038,126 @@ var wrap = document.getElementById("stats-custom-range");
 if (wrap) wrap.style.display = val==="custom" ? "flex" : "none";
 }
 
+const _DASH_LIVE_STATUS = {
+  on_call:  { tr: 'Aramada', de: 'Im Gespräch' },
+  ready:    { tr: 'Hazır', de: 'Bereit' },
+  wrapping: { tr: 'Sonuç', de: 'Nacharbeit' },
+  break:    { tr: 'Mola', de: 'Pause' },
+  offline:  { tr: 'Çevrimdışı', de: 'Offline' },
+};
+const _DASH_LIVE_ORDER = { on_call: 0, wrapping: 1, ready: 2, break: 3, offline: 4 };
+
+function _dashLiveEsc(v) {
+  return typeof escapeHtml === 'function' ? escapeHtml(v ?? '') : String(v ?? '');
+}
+
+function _dashLiveDur(iso) {
+  if (!iso) return '—';
+  const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (!Number.isFinite(sec) || sec < 0) return '—';
+  const m = Math.floor(sec / 60);
+  return `${m}:${String(sec % 60).padStart(2, '0')}`;
+}
+
+function _dashLiveAgo(iso, de) {
+  if (!iso) return '—';
+  const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (!Number.isFinite(sec) || sec < 0) return '—';
+  if (sec < 45) return de ? 'gerade' : 'az önce';
+  const m = Math.floor(sec / 60);
+  if (m < 60) return de ? `vor ${m} Min.` : `${m} dk önce`;
+  const h = Math.floor(m / 60);
+  return de ? `vor ${h} Std.` : `${h} sa önce`;
+}
+
+function _dashLiveTick() {
+  document.querySelectorAll('#live-agents .live-dur[data-start]').forEach((el) => {
+    if (el.dataset.start) el.textContent = _dashLiveDur(el.dataset.start);
+  });
+}
+
+async function renderDashLiveAgents() {
+  const live = document.getElementById('live-agents');
+  if (!live) return;
+  const de = currentLang === 'de';
+  const ff = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
+  const [sessions, camps] = await Promise.all([
+    sb(`agent_sessions?select=*&order=agent_name.asc${ff}`).catch(() => []),
+    sb(`campaigns?select=id,name${ff}`).catch(() => []),
+  ]);
+  const campName = {};
+  (Array.isArray(camps) ? camps : []).forEach((c) => { if (c?.id) campName[c.id] = c.name || ''; });
+  const rows = (Array.isArray(sessions) ? sessions : []).slice().sort((a, b) => {
+    return (_DASH_LIVE_ORDER[a.status] ?? 9) - (_DASH_LIVE_ORDER[b.status] ?? 9);
+  });
+  const count = (st) => rows.filter((s) => s.status === st).length;
+  const sub = document.getElementById('dash-live-sub');
+  if (sub) {
+    const n = count('on_call');
+    sub.textContent = de
+      ? (n === 1 ? '1 aktives Gespräch' : `${n} aktive Gespräche`)
+      : `${n} kişi görüşmede`;
+  }
+  if (!rows.length) {
+    live.innerHTML = `<div class="mb-empty-hint" style="font-size:13px;">${t('ui.no_active_agents')}</div>`;
+    return;
+  }
+  const chips = ['on_call', 'ready', 'wrapping', 'break', 'offline'].map((st) => {
+    const info = _DASH_LIVE_STATUS[st];
+    const label = de ? info.de : info.tr;
+    return `<span class="live-count live-count--${st}">${count(st)} ${label}</span>`;
+  }).join('');
+  const isAdmin = ['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '');
+  const cards = rows.map((s) => {
+    const st = _DASH_LIVE_STATUS[s.status] ? s.status : 'offline';
+    const info = _DASH_LIVE_STATUS[st];
+    const label = de ? info.de : info.tr;
+    const name = _dashLiveEsc(s.agent_name || '—');
+    const initial = _dashLiveEsc((s.agent_name || '?').trim().charAt(0).toUpperCase());
+    const camp = _dashLiveEsc(campName[s.campaign_id] || '—');
+    const who = _dashLiveEsc(s.current_contact_name || '—');
+    const phone = _dashLiveEsc(s.current_contact_phone || '—');
+    const onCall = st === 'on_call';
+    const dur = onCall ? _dashLiveDur(s.call_started_at) : _dashLiveAgo(s.last_seen, de);
+    const facts = onCall
+      ? `<div><dt>${de ? 'Kontakt' : 'Müşteri'}</dt><dd>${who}</dd></div>
+         <div><dt>${de ? 'Nummer' : 'Numara'}</dt><dd>${phone}</dd></div>
+         <div><dt>${de ? 'Kampagne' : 'Kampanya'}</dt><dd>${camp}</dd></div>`
+      : `<div><dt>${de ? 'Kampagne' : 'Kampanya'}</dt><dd>${camp}</dd></div>
+         <div><dt>${de ? 'Zuletzt' : 'Son görülme'}</dt><dd>${_dashLiveEsc(_dashLiveAgo(s.last_seen, de))}</dd></div>`;
+    const aid = _dashLiveEsc(s.agent_id || '');
+    const actions = isAdmin ? `<div class="live-actions">
+      <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','ready')">${de ? 'Bereit' : 'Hazır'}</button>
+      <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','break')">${de ? 'Pause' : 'Mola'}</button>
+      <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','offline')">${de ? 'Offline' : 'Çıkış'}</button>
+    </div>` : '';
+    return `<article class="live-card live-card--${st}">
+      <div class="live-card-top">
+        <div class="live-av">${initial}</div>
+        <div style="min-width:0;flex:1;"><div class="live-name">${name}</div><div class="live-status">${label}</div></div>
+        <div class="live-dur"${onCall ? ` data-start="${_dashLiveEsc(s.call_started_at || '')}"` : ''}>${_dashLiveEsc(dur)}</div>
+      </div>
+      <dl class="live-facts">${facts}</dl>
+      ${actions}
+    </article>`;
+  }).join('');
+  live.innerHTML = `<div class="live-counts">${chips}</div><div class="live-grid">${cards}</div>`;
+  if (window._dashLiveTimer) clearInterval(window._dashLiveTimer);
+  window._dashLiveTimer = setInterval(() => {
+    if (!document.getElementById('page-dashboard')?.classList.contains('active')) return;
+    _dashLiveTick();
+  }, 1000);
+}
+
 async function remoteChangeAgentStatus(agentId, newStatus) {
 try {
 await sb(`agent_sessions?agent_id=eq.${agentId}`,{
 method:'PATCH', prefer:'return=minimal',
 body: JSON.stringify({status:newStatus, updated_at:new Date().toISOString()})
 });
-toast(`Agent durumu: ${newStatus} ✓`, 'ok');
+const _st = _DASH_LIVE_STATUS[newStatus];
+const _lbl = _st ? (currentLang === 'de' ? _st.de : _st.tr) : newStatus;
+toast(currentLang === 'de' ? `Status: ${_lbl}` : `Durum: ${_lbl}`, 'ok');
 loadDashboard();
 } catch(e) { toast('Hata: '+e.message,'err'); }
 }

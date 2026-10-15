@@ -411,10 +411,11 @@
 <div class="card-hdr">
 <div>
 <div class="card-title" data-tr="Canlı Agent Durumu" data-de="Live-Agentenstatus">Canlı Agent Durumu</div>
-<div class="card-sub" data-tr="Gerçek zamanlı" data-de="Echtzeit">Gerçek zamanlı</div>
+<div class="card-sub" id="dash-live-sub">Kim görüşmede, kim hazır, kim molada</div>
 </div>
+<button type="button" class="btn btn-ghost btn-sm" onclick="navigate('supervisor')"><span data-tr="Canlı Ekran" data-de="Live-Ansicht">Canlı Ekran</span></button>
 </div>
-<div id="live-agents" style="display:flex;flex-direction:column;gap:6px;">
+<div id="live-agents">
 <div style="color:var(--text-3);text-align:center;padding:24px;font-size:13px;">Veri yükleniyor...</div>
 </div>
 </div>
