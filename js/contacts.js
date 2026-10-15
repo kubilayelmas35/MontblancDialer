@@ -360,10 +360,22 @@ async function getNextContact(campaignIds = null) {
     }
 
     // Normal akış: önce bekleyen / cevap yok / vakti gelen geri aramalar
-    const contacts = await fetchScopedContacts(
+    let contacts = await fetchScopedContacts(
       `&status=in.(pending,no_answer,callback)&or=(callback_at.is.null,callback_at.lte.${nowIso})`,
       50
-    );
+    ) || [];
+    if (!(typeof _testMode !== 'undefined' && _testMode) && typeof campRecyclePolicy === 'function') {
+      for (let i = 0; i < idList.length; i++) {
+        const pol = campRecyclePolicy(idList[i]);
+        if (!pol?.on) continue;
+        const extraSt = pol.statuses.filter((st) => !['pending', 'no_answer', 'callback'].includes(st));
+        if (!extraSt.length) continue;
+        const rows = (await sb(
+          `contacts?campaign_id=eq.${idList[i]}&status=in.(${extraSt.join(',')})&order=last_called_at.asc.nullsfirst&limit=40&select=*`
+        ).catch(() => [])) || [];
+        if (rows.length) contacts = contacts.concat(rows);
+      }
+    }
     if (!contacts?.length) {
       if (typeof _testMode !== 'undefined' && _testMode && ids.length) {
         // Test modunda: uygun statüde kayıt yoksa kampanyadaki gerçek kayıttan devam et.
@@ -428,6 +440,7 @@ async function getNextContact(campaignIds = null) {
       if (qid && pausedQueueIds.has(qid) && !testRelax) continue;
       const prefs = typeof queueDialPrefs === 'function' ? queueDialPrefs(c.campaign_id, c.queue_id) : { priority: 0, maxAttempts: 0 };
       if (!testRelax && prefs.maxAttempts > 0 && (Number(c.attempt_count) || 0) >= prefs.maxAttempts) continue;
+      if (typeof contactEligibleForRecycle === 'function' && !contactEligibleForRecycle(c, testRelax)) continue;
       c._qPri = prefs.priority || 0;
       usable.push(c);
     }

@@ -511,6 +511,37 @@ function queueDialPrefs(campaignId, queueId) {
   return { priority: meta.priority, maxAttempts: meta.maxAttempts };
 }
 
+const RECYCLE_STATUS_KEYS = ['no_answer', 'voicemail', 'negative', 'callback'];
+
+function campRecyclePolicy(campaignId) {
+  const camp = (campaigns || []).find((c) => c.id === campaignId);
+  if (!camp) return null;
+  const s = getCampSettings(camp);
+  if (!s || !s.recycle_configured) return null;
+  const statuses = (Array.isArray(s.recycle_statuses) ? s.recycle_statuses : [])
+    .map((x) => String(x || ''))
+    .filter((x) => RECYCLE_STATUS_KEYS.includes(x));
+  const max = Math.max(1, Math.min(5, parseInt(s.recycle_max, 10) || 1));
+  const delayMin = Math.max(0, Math.min(1440, parseInt(s.recycle_delay, 10) || 0));
+  return { on: !!s.recycle && statuses.length > 0, statuses, max, delayMin };
+}
+
+function contactEligibleForRecycle(c, testRelax) {
+  if (testRelax || !c) return true;
+  const pol = campRecyclePolicy(c.campaign_id);
+  if (!pol) return true;
+  const st = String(c.status || '').toLowerCase();
+  if (!st || st === 'pending' || st === 'calling') return true;
+  const dueCb = st === 'callback' && c.callback_at && Date.parse(c.callback_at) <= Date.now();
+  if (dueCb) return true;
+  if (!pol.on || !pol.statuses.includes(st)) return false;
+  if ((Number(c.attempt_count) || 0) >= pol.max) return false;
+  if (pol.delayMin > 0 && c.last_called_at) {
+    if (Date.parse(c.last_called_at) + pol.delayMin * 60000 > Date.now()) return false;
+  }
+  return true;
+}
+
 function renderCampQueues(c) {
   const host = document.getElementById('cd-queues');
   if (!host) return;
@@ -983,6 +1014,28 @@ await saveCampSettingsPatch({script, script_enabled: enabled});
 toast(campT('camp.script.saved','Konuşma metni kaydedildi'), 'ok');
 }
 
+function renderRecycleControls(s) {
+  const host = document.getElementById('cd-recycle-statuses');
+  const maxEl = document.getElementById('cd-recycle-max');
+  const selected = new Set(Array.isArray(s?.recycle_statuses)
+    ? s.recycle_statuses
+    : (s?.recycle ? ['no_answer'] : []));
+  if (host) {
+    host.innerHTML = RECYCLE_STATUS_KEYS.map((key) => `
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+<input type="checkbox" id="cd-recycle-st-${key}" ${selected.has(key) ? 'checked' : ''} style="width:16px;height:16px;">
+<span>${campEsc(campT('camp.st.' + key, key))}</span>
+</label>`).join('');
+  }
+  if (maxEl) {
+    const current = Math.max(1, Math.min(5, parseInt(s?.recycle_max, 10) || 2));
+    maxEl.innerHTML = [1, 2, 3, 4, 5].map((n) => {
+      const label = campT('camp.arama.recycle.times', '{n} kez').replace('{n}', String(n));
+      return `<option value="${n}" ${n === current ? 'selected' : ''}>${campEsc(label)}</option>`;
+    }).join('');
+  }
+}
+
 function loadCampAramaTab() {
 const camp = campaigns.find(c=>c.id===currentCampId);
 if (!camp) return;
@@ -995,19 +1048,32 @@ setCheck('cd-cooldown', s.cooldown || false);
 setCheck('cd-precall-test', s.precall_test || false);
 setVal('cd-recycle-delay', s.recycle_delay || 60);
 setVal('cd-cooldown-min', s.cooldown_min || 30);
+renderRecycleControls(s);
 }
 
 async function saveCampAramaSettings() {
+const ticks = RECYCLE_STATUS_KEYS.filter((key) => getCheck('cd-recycle-st-' + key));
+const master = getCheck('cd-recycle');
+if (master && !ticks.length) {
+  toast(campT('camp.arama.recycle.need','Yeniden arama açıkken en az bir sonuç seçin'), 'err');
+  return;
+}
+const camp = campaigns.find((c) => c.id === currentCampId);
+const prev = camp ? getCampSettings(camp) : {};
+const configured = !!prev.recycle_configured || master;
 const s = {
 auto_dial: getCheck('cd-auto-dial'),
 agent_edit: getCheck('cd-agent-edit'),
 appointment_slot_required: getCheck('cd-appointment-slot-required'),
-recycle: getCheck('cd-recycle'),
+recycle: master,
 recycle_delay: parseInt(getVal('cd-recycle-delay')||'60'),
+recycle_max: Math.max(1, Math.min(5, parseInt(getVal('cd-recycle-max') || '2', 10) || 2)),
+recycle_statuses: ticks,
 cooldown: getCheck('cd-cooldown'),
 cooldown_min: parseInt(getVal('cd-cooldown-min')||'30'),
 precall_test: getCheck('cd-precall-test'),
 };
+if (configured) s.recycle_configured = true;
 await saveCampSettingsPatch(s);
 toast(campT('camp.arama.saved','Arama ayarları kaydedildi'), 'ok');
 }
@@ -1306,7 +1372,7 @@ async function openRequeueModal(queueId) {
   if (!found) return;
   const meta = queueMetaFor(found.camp, queueId);
   try {
-    const statuses = ['pending', 'no_answer', 'negative', 'callback', 'dnc'];
+    const statuses = ['pending', 'no_answer', 'voicemail', 'negative', 'callback', 'dnc'];
     const nums = await Promise.all(statuses.map((st) => mbHeadCount(`contacts?queue_id=eq.${queueId}&status=eq.${st}&select=id`)));
     const counts = {};
     statuses.forEach((st, i) => { counts[st] = nums[i]; });
@@ -1316,6 +1382,7 @@ async function openRequeueModal(queueId) {
       negative: campT('camp.st.negative','Olumsuz'),
       callback: campT('camp.st.callback','Geri ara'),
       dnc: campT('camp.st.dnc','Kara liste'),
+      voicemail: campT('camp.st.voicemail','Telesekreter'),
     };
     document.getElementById('m-requeue')?.remove();
     const modal = document.createElement('div');
@@ -1362,7 +1429,7 @@ ${statuses.map((k) => `
 </div>
 <div style="font-size:12px;font-weight:700;color:var(--text-2);">${campEsc(campT('camp.queue.requeue','Tekrar kuyruğa al'))}</div>
 <div style="display:flex;flex-direction:column;gap:6px;">
-${['no_answer','negative','callback'].map((k) => `
+${['no_answer','voicemail','negative','callback'].map((k) => `
 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;background:var(--bg-3);border-radius:6px;border:1px solid var(--border);">
 <input type="checkbox" id="rq-${k}" style="width:15px;height:15px;">
 <span style="font-size:12px;">${campEsc(labels[k])} <span style="color:var(--text-3);">(${counts[k]} ${campEsc(campT('camp.queue.people','kişi'))})</span></span>
@@ -1384,7 +1451,7 @@ ${['no_answer','negative','callback'].map((k) => `
 }
 
 async function doRequeue(queueId) {
-  const statuses = ['no_answer','negative','callback'].filter(s => document.getElementById('rq-'+s)?.checked);
+  const statuses = ['no_answer','voicemail','negative','callback'].filter(s => document.getElementById('rq-'+s)?.checked);
   if (!statuses.length) { toast(campT('camp.queue.pick_status','En az bir durum seçin'),'warn'); return; }
   const resetAttempts = document.getElementById('rq-reset-attempts')?.checked;
   try {

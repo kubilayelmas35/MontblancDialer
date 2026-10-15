@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=8.40">
+<link rel="stylesheet" href="css/styles.css?v=8.41">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -39,7 +39,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v8.40 — 2026</div>
+<div class="login-version">v8.41 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -399,7 +399,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v8.40</div>
+<div class="sb-ver">MontBlanc v8.41</div>
 </div>
 </nav>
 <main id="main">
@@ -649,9 +649,13 @@
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-arrows-clockwise"></i> <span data-tr="Akıllı yeniden arama" data-de="Erneutes Anwählen">Akıllı yeniden arama</span></div>
 <div style="display:flex;gap:8px;align-items:center;">
 <input type="checkbox" id="cd-recycle" style="width:16px;height:16px;">
-<label for="cd-recycle" style="font-size:12px;" data-tr="Cevapsız aramaları otomatik yeniden kuyruğa al" data-de="Nicht erreichte Anrufe wieder einreihen">Cevapsız aramaları otomatik yeniden kuyruğa al</label>
+<label for="cd-recycle" style="font-size:12px;" data-tr="Seçilen sonuçları yeniden ara" data-de="Gewählte Ergebnisse erneut anrufen">Seçilen sonuçları yeniden ara</label>
 </div>
-<div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+<div style="font-size:12px;font-weight:700;margin:10px 0 6px;" data-tr="Yeniden aranacak sonuçlar" data-de="Ergebnisse für erneutes Anwählen">Yeniden aranacak sonuçlar</div>
+<div id="cd-recycle-statuses" style="display:flex;flex-direction:column;gap:6px;"></div>
+<div style="display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap;">
+<label style="font-size:12px;color:var(--text-3);" data-tr="En fazla deneme" data-de="Max. Versuche">En fazla deneme</label>
+<select class="form-input" id="cd-recycle-max" style="width:110px;font-size:12px;padding:4px 8px;"></select>
 <label style="font-size:12px;color:var(--text-3);" data-tr="Bekleme süresi" data-de="Wartezeit">Bekleme süresi</label>
 <select class="form-input" id="cd-recycle-delay" style="width:140px;font-size:12px;padding:4px 8px;">
 <option value="30" data-tr="30 dakika" data-de="30 Minuten">30 dakika</option>
@@ -661,6 +665,7 @@
 <option value="1440" data-tr="1 gün" data-de="1 Tag">1 gün</option>
 </select>
 </div>
+<div style="font-size:11px;color:var(--text-3);margin-top:8px;" data-tr="İşaretlenen sonuç, bekleme bitince ve deneme dolmadan yeniden aranır. Geri ara saati geldiyse yine aranır." data-de="Markierte Ergebnisse werden nach der Wartezeit erneut angerufen, bis das Limit voll ist. Ein fälliger Rückruf wird trotzdem angerufen.">İşaretlenen sonuç, bekleme bitince ve deneme dolmadan yeniden aranır. Geri ara saati geldiyse yine aranır.</div>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-shield"></i> <span data-tr="Tekrar arama koruması" data-de="Wiederholschutz">Tekrar arama koruması</span></div>
@@ -3789,44 +3794,44 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/version.js?v=8.40"></script>
-<script src="js/i18n.js?v=8.40"></script>
-<script src="js/config.js?v=8.40"></script>
-<script src="js/state.js?v=8.40"></script>
-<script src="js/api.js?v=8.40"></script>
-<script src="js/auth.js?v=8.40"></script>
-<script src="js/ui.js?v=8.40"></script>
-<script src="js/chat.js?v=8.40"></script>
-<script src="js/chat-settings.js?v=8.40"></script>
-<script src="js/field-settings.js?v=8.40"></script>
-<script src="js/audit.js?v=8.40"></script>
-<script src="js/feature-flags.js?v=8.40"></script>
-<script src="js/notification-center.js?v=8.40"></script>
+<script src="js/version.js?v=8.41"></script>
+<script src="js/i18n.js?v=8.41"></script>
+<script src="js/config.js?v=8.41"></script>
+<script src="js/state.js?v=8.41"></script>
+<script src="js/api.js?v=8.41"></script>
+<script src="js/auth.js?v=8.41"></script>
+<script src="js/ui.js?v=8.41"></script>
+<script src="js/chat.js?v=8.41"></script>
+<script src="js/chat-settings.js?v=8.41"></script>
+<script src="js/field-settings.js?v=8.41"></script>
+<script src="js/audit.js?v=8.41"></script>
+<script src="js/feature-flags.js?v=8.41"></script>
+<script src="js/notification-center.js?v=8.41"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=8.40"></script>
-<script src="js/job-market.js?v=8.40"></script>
-<script src="js/qc-job-market.js?v=8.40"></script>
-<script src="js/export-admin.js?v=8.40"></script>
-<script src="js/export-termin.js?v=8.40"></script>
-<script src="js/performance.js?v=8.40"></script>
-<script src="js/competition.js?v=8.40"></script>
-<script src="js/dashboard.js?v=8.40"></script>
-<script src="js/campaigns.js?v=8.40"></script>
-<script src="js/contacts.js?v=8.40"></script>
-<script src="js/telnyx.js?v=8.40"></script>
-<script src="js/voice-orb.js?v=8.40"></script>
-<script src="js/dialer.js?v=8.40"></script>
-<script src="js/appointments.js?v=8.40"></script>
-<script src="js/field.js?v=8.40"></script>
-<script src="js/field-ops.js?v=8.40"></script>
-<script src="js/wiedervorlage.js?v=8.40"></script>
-<script src="js/qc.js?v=8.40"></script>
-<script src="js/supervisor.js?v=8.40"></script>
-<script src="js/sms-settings.js?v=8.40"></script>
-<script src="js/leave-hr.js?v=8.40"></script>
-<script src="js/muhasebe.js?v=8.40"></script>
-<script src="js/agent-self-performance.js?v=8.40"></script>
-<script src="js/agents.js?v=8.40"></script>
-<script src="js/mimi-brain.js?v=8.40"></script>
+<script src="js/wallet.js?v=8.41"></script>
+<script src="js/job-market.js?v=8.41"></script>
+<script src="js/qc-job-market.js?v=8.41"></script>
+<script src="js/export-admin.js?v=8.41"></script>
+<script src="js/export-termin.js?v=8.41"></script>
+<script src="js/performance.js?v=8.41"></script>
+<script src="js/competition.js?v=8.41"></script>
+<script src="js/dashboard.js?v=8.41"></script>
+<script src="js/campaigns.js?v=8.41"></script>
+<script src="js/contacts.js?v=8.41"></script>
+<script src="js/telnyx.js?v=8.41"></script>
+<script src="js/voice-orb.js?v=8.41"></script>
+<script src="js/dialer.js?v=8.41"></script>
+<script src="js/appointments.js?v=8.41"></script>
+<script src="js/field.js?v=8.41"></script>
+<script src="js/field-ops.js?v=8.41"></script>
+<script src="js/wiedervorlage.js?v=8.41"></script>
+<script src="js/qc.js?v=8.41"></script>
+<script src="js/supervisor.js?v=8.41"></script>
+<script src="js/sms-settings.js?v=8.41"></script>
+<script src="js/leave-hr.js?v=8.41"></script>
+<script src="js/muhasebe.js?v=8.41"></script>
+<script src="js/agent-self-performance.js?v=8.41"></script>
+<script src="js/agents.js?v=8.41"></script>
+<script src="js/mimi-brain.js?v=8.41"></script>
 </body>
 </html>

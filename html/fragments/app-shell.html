@@ -560,9 +560,13 @@
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-arrows-clockwise"></i> <span data-tr="Akıllı yeniden arama" data-de="Erneutes Anwählen">Akıllı yeniden arama</span></div>
 <div style="display:flex;gap:8px;align-items:center;">
 <input type="checkbox" id="cd-recycle" style="width:16px;height:16px;">
-<label for="cd-recycle" style="font-size:12px;" data-tr="Cevapsız aramaları otomatik yeniden kuyruğa al" data-de="Nicht erreichte Anrufe wieder einreihen">Cevapsız aramaları otomatik yeniden kuyruğa al</label>
+<label for="cd-recycle" style="font-size:12px;" data-tr="Seçilen sonuçları yeniden ara" data-de="Gewählte Ergebnisse erneut anrufen">Seçilen sonuçları yeniden ara</label>
 </div>
-<div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+<div style="font-size:12px;font-weight:700;margin:10px 0 6px;" data-tr="Yeniden aranacak sonuçlar" data-de="Ergebnisse für erneutes Anwählen">Yeniden aranacak sonuçlar</div>
+<div id="cd-recycle-statuses" style="display:flex;flex-direction:column;gap:6px;"></div>
+<div style="display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap;">
+<label style="font-size:12px;color:var(--text-3);" data-tr="En fazla deneme" data-de="Max. Versuche">En fazla deneme</label>
+<select class="form-input" id="cd-recycle-max" style="width:110px;font-size:12px;padding:4px 8px;"></select>
 <label style="font-size:12px;color:var(--text-3);" data-tr="Bekleme süresi" data-de="Wartezeit">Bekleme süresi</label>
 <select class="form-input" id="cd-recycle-delay" style="width:140px;font-size:12px;padding:4px 8px;">
 <option value="30" data-tr="30 dakika" data-de="30 Minuten">30 dakika</option>
@@ -572,6 +576,7 @@
 <option value="1440" data-tr="1 gün" data-de="1 Tag">1 gün</option>
 </select>
 </div>
+<div style="font-size:11px;color:var(--text-3);margin-top:8px;" data-tr="İşaretlenen sonuç, bekleme bitince ve deneme dolmadan yeniden aranır. Geri ara saati geldiyse yine aranır." data-de="Markierte Ergebnisse werden nach der Wartezeit erneut angerufen, bis das Limit voll ist. Ein fälliger Rückruf wird trotzdem angerufen.">İşaretlenen sonuç, bekleme bitince ve deneme dolmadan yeniden aranır. Geri ara saati geldiyse yine aranır.</div>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-shield"></i> <span data-tr="Tekrar arama koruması" data-de="Wiederholschutz">Tekrar arama koruması</span></div>
