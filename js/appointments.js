@@ -1207,7 +1207,9 @@ async function saveTerminFromSection() {
   const custCtx = await _getCustomerCtx(null);
   if (!_validateCustomerSelection(custCtx, 'tf2-customer')) return;
   const g = id => document.getElementById(id)?.value?.trim()||'';
-  if (!g('tf2-hausart')||!g('tf2-baujahr')||!g('tf2-qm')||!g('tf2-heizung')||!g('tf2-alter_der_heizung')) {
+  const requiredKeys = [...document.querySelectorAll('#termin-fields-section [data-required="1"]')].map((el) => el.getAttribute('data-tf-key')).filter(Boolean);
+  const must = requiredKeys.length ? requiredKeys : ['hausart','baujahr','qm','heizung','alter_der_heizung'];
+  if (must.some((k) => !g('tf2-' + k))) {
     toast('Zorunlu alanları doldurun (*)','err'); return;
   }
   const contact = currentContact || {};
@@ -1222,6 +1224,7 @@ async function saveTerminFromSection() {
       hausart: g('tf2-hausart'), baujahr: g('tf2-baujahr'), qm: g('tf2-qm'),
       heizung: g('tf2-heizung'), alter_der_heizung: g('tf2-alter_der_heizung'),
       verbrauch_pro_jahr: g('tf2-verbrauch_pro_jahr'), personen: g('tf2-personen'),
+      ...(document.getElementById('tf2-interesse_an_pv') ? { interesse_an_pv: g('tf2-interesse_an_pv') === 'true' } : {}),
       agent_notu: g('tf2-note'), durum: 'qc_bekleniyor',
       customer_id: _selectedCustomerId('tf2-customer'),
       termin_tarih: `${slot.tarih}T${saatNorm(slot.baslangic_saat)}:00`

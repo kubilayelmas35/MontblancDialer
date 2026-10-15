@@ -58,6 +58,10 @@ campaigns = await sb(`campaigns?select=*,queues(*),agent_campaigns(*)&order=crea
 campaigns = campaigns || [];
 await attachCampaignPeople();
 renderCampGrid();
+const detailOpen = document.getElementById('camp-detail')?.style.display === 'block';
+if (detailOpen && currentCampId && campaigns.some((c) => c.id === currentCampId)) {
+  openCampDetail(currentCampId, { keepTab: true, silent: true });
+}
 if (typeof updateTopbarStats === 'function') updateTopbarStats();
 } catch(e){ toast('Kampanyalar yüklenemedi: '+e.message,'err'); console.error(e); }
 }
@@ -85,12 +89,13 @@ const didBad = didRaw && typeof mbIsE164 === 'function' && !mbIsE164(didRaw);
 const didText = !didRaw
   ? campT('camp.did.none','DID atanmadı')
   : (didBad ? `${didRaw} · ${campT('camp.did.invalid','DID geçersiz')}` : didRaw);
+const descLine = String(c.description || '').trim();
 const pauseLabel = c.status==='active'
   ? `<i class="ph ph-pause"></i> ${esc(campT('camp.pause','Duraklat'))}`
   : `<i class="ph ph-play"></i> ${esc(campT('camp.start','Başlat'))}`;
 return `<div class="camp-card" onclick="openCampDetail('${c.id}')">
 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-<div><div class="camp-name">${esc(c.name)}</div><div class="camp-did">${esc(didText)}</div></div>
+<div><div class="camp-name">${esc(c.name)}</div><div class="camp-did">${esc(didText)}</div>${descLine ? `<div class="queue-sub">${esc(descLine)}</div>` : ''}</div>
 <div style="display:flex;gap:12px;flex-shrink:0;align-items:center;" onclick="event.stopPropagation()">
 ${sb2}
 <button class="icon-btn" onclick="openCampFieldSettings('${c.id}')" title="${esc(campT('camp.field.title','Alan Ayarları'))}" aria-label="${esc(campT('camp.field.title','Alan Ayarları'))}"><i class="ph ph-gear" aria-hidden="true"></i></button>
@@ -129,22 +134,24 @@ const didBad = didRaw && typeof mbIsE164 === 'function' && !mbIsE164(didRaw);
 document.getElementById('cd-did').textContent = !didRaw
   ? campT('camp.did.none','DID atanmadı')
   : (didBad ? `${didRaw} · ${campT('camp.did.invalid','DID geçersiz')}` : didRaw);
+const nameInput = document.getElementById('cd-edit-name');
+const descInput = document.getElementById('cd-edit-desc');
+const didInput = document.getElementById('cd-edit-did');
+if (nameInput) nameInput.value = c.name || '';
+if (descInput) descInput.value = c.description || '';
+if (didInput) didInput.value = didRaw;
+const nameErr = document.getElementById('cd-edit-name-err');
+const didErr = document.getElementById('cd-edit-did-err');
+if (nameInput) nameInput.classList.remove('is-invalid');
+if (nameErr) nameErr.hidden = true;
+if (didInput) didInput.classList.toggle('is-invalid', !!didBad);
+if (didErr) {
+  didErr.hidden = !didBad;
+  if (didBad) didErr.textContent = campT('camp.did.invalid','DID geçersiz');
+}
 document.getElementById('cd-speed').value = c.dial_speed;
 document.getElementById('cd-speed-v').textContent = c.dial_speed;
-const qs = c.queues||[];
-document.getElementById('cd-queues').innerHTML = qs.length
-? qs.map(q=>{
-const dialed = q.dialed_count||0;
-const total  = q.total_contacts||0;
-const p = total>0 ? Math.round(dialed/total*100) : 0;
-return `<div class="queue-row" style="gap:8px;">
-<div class="queue-name" style="flex:1;">${q.name}</div>
-<div class="queue-cnt" style="font-size:11px;color:var(--text-3);white-space:nowrap;">${dialed}/${total} <span style="color:var(--accent);">(${p}%)</span></div>
-<div style="width:70px;"><div class="prog-wrap"><div class="prog-fill" style="width:${p}%;"></div></div></div>
-<span class="badge ${q.status==='active'?'badge-green':'badge-gray'}">${q.status==='active'?campT('camp.queue.active','Aktif'):campT('camp.queue.stopped','Durdu')}</span>
-<button class="icon-btn" onclick="openRequeueModal('${q.id}','${q.name}')" title="Kuyruğu Yönet"><i class="ph ph-sliders"></i> Yönet</button>
-</div>`;}).join('')
-: `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${campT('camp.queue.none','Kuyruk yok')}</div>`;
+renderCampQueues(c);
 const people = c._people || [];
 const escP = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
 document.getElementById('cd-agents').innerHTML = people.length
@@ -158,8 +165,12 @@ ${escP(label)}${live}
 </div>`;
 }).join('')
 : `<span style="color:var(--text-3);font-size:12px;">${campT('camp.agent.none','Temsilci atanmadı')}</span>`;
-document.getElementById('camp-detail').scrollIntoView({behavior:'smooth'});
+if (!opts?.silent) document.getElementById('camp-detail').scrollIntoView({behavior:'smooth'});
 if (!opts?.keepTab) switchCampTab('genel');
+else {
+  const activeTab = document.querySelector('.cd-tab.active')?.dataset.tab;
+  if (activeTab && activeTab !== 'genel') switchCampTab(activeTab);
+}
 }
 
 function closeCampDetail() {
@@ -461,10 +472,191 @@ toast('Silindi','ok'); closeCampDetail(); loadCampaigns();
 
 async function saveSpeed(v) {
 if (!currentCampId) return;
+const speed = parseInt(v, 10);
+if (!speed) return;
 try {
-await sb(`campaigns?id=eq.${currentCampId}`,{method:'PATCH',body:JSON.stringify({dial_speed:parseInt(v)})});
-toast(`Hız ${v} olarak kaydedildi`,'ok');
-} catch(e){}
+await sb(`campaigns?id=eq.${currentCampId}`,{method:'PATCH',body:JSON.stringify({dial_speed:speed})});
+const camp = campaigns.find((c) => c.id === currentCampId);
+if (camp) camp.dial_speed = speed;
+toast(campT('camp.speed.saved','Hız {v} olarak kaydedildi').replace('{v}', String(speed)),'ok');
+} catch(e){ toast(e.message,'err'); }
+}
+
+function campEsc(v) {
+  return typeof escapeHtml === 'function' ? escapeHtml(v) : String(v ?? '');
+}
+
+function findQueue(queueId) {
+  for (const camp of campaigns || []) {
+    const queue = (camp.queues || []).find((q) => q.id === queueId);
+    if (queue) return { camp, queue };
+  }
+  return null;
+}
+
+function queueMetaFor(camp, queueId) {
+  const map = getCampSettings(camp).queue_meta || {};
+  const meta = map[queueId] || {};
+  return {
+    priority: Math.max(0, Math.min(100, parseInt(meta.priority, 10) || 0)),
+    maxAttempts: Math.max(0, Math.min(50, parseInt(meta.max_attempts, 10) || 0)),
+    notes: String(meta.notes || '').slice(0, 500),
+  };
+}
+
+function queueDialPrefs(campaignId, queueId) {
+  const camp = (campaigns || []).find((c) => c.id === campaignId);
+  if (!camp || !queueId) return { priority: 0, maxAttempts: 0 };
+  const meta = queueMetaFor(camp, queueId);
+  return { priority: meta.priority, maxAttempts: meta.maxAttempts };
+}
+
+function renderCampQueues(c) {
+  const host = document.getElementById('cd-queues');
+  if (!host) return;
+  const qs = c?.queues || [];
+  if (!qs.length) {
+    host.innerHTML = `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${campEsc(campT('camp.queue.none','Kuyruk yok'))}</div>`;
+    return;
+  }
+  host.innerHTML = qs.map((q) => {
+    const dialed = q.dialed_count || 0;
+    const total = q.total_contacts || 0;
+    const p = total > 0 ? Math.round(dialed / total * 100) : 0;
+    const active = q.status === 'active';
+    const meta = queueMetaFor(c, q.id);
+    const bits = [];
+    if (meta.priority > 0) bits.push(`${campT('camp.queue.priority','Öncelik')} ${meta.priority}`);
+    if (meta.maxAttempts > 0) bits.push(`${campT('camp.queue.max','En fazla deneme')} ${meta.maxAttempts}`);
+    if (meta.notes) bits.push(meta.notes);
+    return `<div class="queue-row" data-queue-id="${campEsc(q.id)}">
+<div style="flex:1;min-width:140px;">
+<div class="queue-name">${campEsc(q.name)}</div>
+${bits.length ? `<div class="queue-sub">${campEsc(bits.join(' · '))}</div>` : ''}
+</div>
+<div class="queue-cnt" style="white-space:nowrap;">${dialed}/${total} <span style="color:var(--accent);">(${p}%)</span></div>
+<div style="width:70px;"><div class="prog-wrap"><div class="prog-fill" style="width:${p}%;"></div></div></div>
+<span class="badge ${active ? 'badge-green' : 'badge-gray'}">${campEsc(active ? campT('camp.queue.active','Aktif') : campT('camp.queue.stopped','Durdu'))}</span>
+<div class="queue-actions">
+<button type="button" class="btn btn-ghost btn-xs" onclick="startQueueRename('${q.id}')">${campEsc(campT('camp.queue.rename','Adı değiştir'))}</button>
+<button type="button" class="btn btn-ghost btn-xs" onclick="toggleQueueStatus('${q.id}')">${campEsc(active ? campT('camp.queue.pause','Duraklat') : campT('camp.queue.resume','Sürdür'))}</button>
+<button type="button" class="btn btn-ghost btn-xs" onclick="openRequeueModal('${q.id}')">${campEsc(campT('camp.queue.manage','Ayarlar'))}</button>
+</div>
+</div>`;
+  }).join('');
+}
+
+function startQueueRename(queueId) {
+  const found = findQueue(queueId);
+  const host = document.querySelector(`[data-queue-id="${queueId}"] .queue-name`);
+  if (!found || !host) return;
+  host.innerHTML = `<div class="queue-name-edit">
+<input class="form-input queue-rename-input" id="queue-rename-${queueId}" value="${campEsc(found.queue.name || '')}" maxlength="120">
+<button type="button" class="btn btn-primary btn-xs" onclick="commitQueueRename('${queueId}')">${campEsc(campT('camp.notif.save','Kaydet'))}</button>
+</div>`;
+  const input = document.getElementById(`queue-rename-${queueId}`);
+  input?.focus();
+  input?.select();
+  input?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') commitQueueRename(queueId);
+    if (e.key === 'Escape' && currentCampId) openCampDetail(currentCampId, { keepTab: true, silent: true });
+  });
+}
+
+function queueNameTaken(camp, queueId, name) {
+  const key = String(name || '').trim().toLocaleLowerCase('tr-TR');
+  return (camp.queues || []).some((q) => q.id !== queueId && String(q.name || '').trim().toLocaleLowerCase('tr-TR') === key);
+}
+
+async function commitQueueRename(queueId) {
+  const found = findQueue(queueId);
+  const input = document.getElementById(`queue-rename-${queueId}`);
+  const name = String(input?.value || '').trim();
+  if (!found) return;
+  if (!name) {
+    toast(campT('camp.queue.name.required','Kuyruk adı gerekli'), 'err');
+    input?.focus();
+    return;
+  }
+  if (queueNameTaken(found.camp, queueId, name)) {
+    toast(campT('camp.queue.name.dup','Bu kampanyada aynı kuyruk adı var'), 'err');
+    return;
+  }
+  if (name === found.queue.name) {
+    renderCampQueues(found.camp);
+    return;
+  }
+  try {
+    await sb(`queues?id=eq.${queueId}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ name }) });
+    found.queue.name = name;
+    toast(campT('camp.queue.saved','Kuyruk ayarları kaydedildi'), 'ok');
+    renderCampQueues(found.camp);
+  } catch (e) {
+    toast(e.message, 'err');
+  }
+}
+
+async function toggleQueueStatus(queueId) {
+  const found = findQueue(queueId);
+  if (!found) return;
+  const next = found.queue.status === 'active' ? 'paused' : 'active';
+  try {
+    await sb(`queues?id=eq.${queueId}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ status: next }) });
+    found.queue.status = next;
+    renderCampQueues(found.camp);
+  } catch (e) {
+    toast(e.message, 'err');
+  }
+}
+
+async function saveCampIdentity() {
+  const camp = campaigns.find((c) => c.id === currentCampId);
+  if (!camp) return;
+  const nameEl = document.getElementById('cd-edit-name');
+  const nameErr = document.getElementById('cd-edit-name-err');
+  const didEl = document.getElementById('cd-edit-did');
+  const didErr = document.getElementById('cd-edit-did-err');
+  const name = String(nameEl?.value || '').trim();
+  const desc = String(document.getElementById('cd-edit-desc')?.value || '').trim();
+  const didRaw = String(didEl?.value || '').trim();
+  if (!name) {
+    if (nameEl) { nameEl.classList.add('is-invalid'); nameEl.focus(); }
+    if (nameErr) { nameErr.hidden = false; nameErr.textContent = campT('camp.name.required','Kampanya adı gerekli'); }
+    toast(campT('camp.name.required','Kampanya adı gerekli'), 'err');
+    return;
+  }
+  if (nameEl) nameEl.classList.remove('is-invalid');
+  if (nameErr) nameErr.hidden = true;
+  const prev = String(camp.telnyx_did || '').trim();
+  const prevNorm = prev.replace(/[\s()-]/g, '');
+  const nextNorm = didRaw.replace(/[\s()-]/g, '');
+  if (nextNorm !== prevNorm) {
+    if (nextNorm && (typeof mbIsE164 !== 'function' || !mbIsE164(nextNorm))) {
+      if (didEl) didEl.classList.add('is-invalid');
+      if (didErr) { didErr.hidden = false; didErr.textContent = campT('camp.did.bad','DID + ile başlamalı, örnek +49301234567'); }
+      toast(campT('camp.did.bad','DID + ile başlamalı, örnek +49301234567'), 'err');
+      return;
+    }
+    const dup = (campaigns || []).some((c) => c.id !== camp.id && String(c.firm_id || '') === String(camp.firm_id || '') && String(c.telnyx_did || '').replace(/[\s()-]/g, '') === nextNorm && nextNorm);
+    if (dup) {
+      toast(campT('camp.did.dup','Bu numara başka kampanyada kayıtlı'), 'err');
+      return;
+    }
+  }
+  const telnyx_did = nextNorm === prevNorm ? (prev || null) : (nextNorm || null);
+  try {
+    await sb(`campaigns?id=eq.${camp.id}`, {
+      method: 'PATCH', prefer: 'return=minimal',
+      body: JSON.stringify({ name, description: desc || null, telnyx_did })
+    });
+    camp.name = name;
+    camp.description = desc || null;
+    camp.telnyx_did = telnyx_did;
+    toast(campT('camp.identity.saved','Kampanya kaydedildi'), 'ok');
+    await loadCampaigns();
+  } catch (e) {
+    toast(e.message, 'err');
+  }
 }
 
 // ── Alan ayarları ──────────────────────────────
@@ -594,7 +786,7 @@ method:'PATCH', prefer:'return=minimal',
 body: JSON.stringify({ field_config: fc })
 });
 document.getElementById('m-field-settings')?.remove();
-toast('Alan ayarları kaydedildi ✓','ok');
+toast(campT('camp.fields.saved','Alan ayarları kaydedildi'),'ok');
 loadCampaigns();
 } catch(e) { toast('Hata: '+e.message,'err'); }
 }
@@ -623,7 +815,11 @@ const el = document.getElementById('cd-termin-form-fields');
 if (!el) return;
 const camp = campaigns.find(c=>c.id===currentCampId);
 let tf = {};
-try { tf = camp?.termin_form_config ? (typeof camp.termin_form_config==='string'?JSON.parse(camp.termin_form_config):camp.termin_form_config) : {}; } catch(e) {}
+try {
+  const fromSettings = getCampSettings(camp).termin_form;
+  const legacy = camp?.termin_form_config;
+  tf = fromSettings && typeof fromSettings === 'object' ? fromSettings : (typeof legacy === 'string' ? JSON.parse(legacy) : (legacy || {}));
+} catch(e) {}
 const DEFAULT_TF = [
   {key:'hausart',label:'Ev Tipi',type:'select',opts:'Einfamilienhaus,Zweifamilienhaus,Reihenhaus,Doppelhaus,Mehrfamilienhaus',enabled:true,required:true},
   {key:'baujahr',label:'Yapım Yılı',type:'text',enabled:true,required:true},
@@ -638,16 +834,16 @@ const fields = DEFAULT_TF.map(f=>({...f, enabled:tf[f.key]?.enabled??f.enabled, 
 el.innerHTML = fields.map((f,i)=>`
 <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg-3);border-radius:6px;" data-key="${f.key}">
 <input type="checkbox" id="tf-en-${i}" ${f.enabled?'checked':''} style="width:15px;height:15px;">
-<input class="form-input" id="tf-lbl-${i}" value="${f.label}" style="flex:1;font-size:12px;padding:3px 7px;">
-<select class="form-input" id="tf-type-${i}" style="width:80px;font-size:11px;padding:3px;">
-<option value="text" ${f.type==='text'?'selected':''}>Metin</option>
-<option value="number" ${f.type==='number'?'selected':''}>Sayı</option>
-<option value="select" ${f.type==='select'?'selected':''}>Açılır Menü</option>
-<option value="boolean" ${f.type==='boolean'?'selected':''}>Evet/Hayır</option>
+<input class="form-input" id="tf-lbl-${i}" value="${campEsc(f.label)}" style="flex:1;font-size:12px;padding:3px 7px;">
+<select class="form-input" id="tf-type-${i}" style="width:110px;font-size:11px;padding:3px;">
+<option value="text" ${f.type==='text'?'selected':''}>${campEsc(campT('camp.tf.text','Metin'))}</option>
+<option value="number" ${f.type==='number'?'selected':''}>${campEsc(campT('camp.tf.number','Sayı'))}</option>
+<option value="select" ${f.type==='select'?'selected':''}>${campEsc(campT('camp.tf.select','Açılır menü'))}</option>
+<option value="boolean" ${f.type==='boolean'?'selected':''}>${campEsc(campT('camp.tf.bool','Evet/Hayır'))}</option>
 </select>
-<label style="font-size:11px;display:flex;align-items:center;gap:4px;"><input type="checkbox" id="tf-req-${i}" ${f.required?'checked':''}>Zorunlu</label>
+<label style="font-size:11px;display:flex;align-items:center;gap:4px;white-space:nowrap;"><input type="checkbox" id="tf-req-${i}" ${f.required?'checked':''}>${campEsc(campT('camp.tf.required','Zorunlu'))}</label>
 </div>
-${['select'].includes(f.type)?`<div style="padding:3px 10px 6px;"><input class="form-input" id="tf-opts-${i}" style="font-size:10px;padding:2px 6px;width:100%;" placeholder="Seçenekler (virgülle)" value="${f.opts||''}"></div>`:''}
+${['select'].includes(f.type)?`<div style="padding:3px 10px 6px;"><input class="form-input" id="tf-opts-${i}" style="font-size:10px;padding:2px 6px;width:100%;" value="${campEsc(f.opts||'')}"></div>`:''}
 `).join('');
 el.dataset.count = fields.length;
 }
@@ -670,10 +866,9 @@ for (let i=0;i<n;i++) {
   };
 }
 try {
-  await sb(`campaigns?id=eq.${currentCampId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({termin_form_config:cfg})});
-  toast('Randevu form ayarları kaydedildi ✓','ok');
-  loadCampaigns();
-} catch(e) { toast('Hata: '+e.message,'err'); }
+  await saveCampSettingsPatch({ termin_form: cfg });
+  toast(campT('camp.tf.saved','Randevu formu kaydedildi'), 'ok');
+} catch(e) { toast(e.message,'err'); }
 }
 
 function loadCampFieldsTab() {
@@ -701,13 +896,13 @@ _fsFields = DEFAULT_FIELDS.map(f=>({...f,show:fc[f.key]?.show!==undefined?fc[f.k
 container.innerHTML = `
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
 <div>
-<div style="font-size:12px;font-weight:700;margin-bottom:8px;">Alan Listesi</div>
+<div style="font-size:12px;font-weight:700;margin-bottom:8px;">${campEsc(campT('camp.fields.list','Alan listesi'))}</div>
 <div id="cd-fs-field-list" style="display:flex;flex-direction:column;gap:4px;"></div>
-<button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="addFsField()">+ Özel Alan Ekle</button>
-<button class="btn btn-primary btn-sm" style="margin-top:8px;margin-left:4px;" onclick="saveCampFieldSettings('${currentCampId}')"><i class="ph ph-floppy-disk"></i> Kaydet</button>
+<button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="addFsField()">+ ${campEsc(campT('camp.fields.add','Özel alan ekle'))}</button>
+<button class="btn btn-primary btn-sm" style="margin-top:8px;margin-left:4px;" onclick="saveCampFieldSettings('${currentCampId}')"><i class="ph ph-floppy-disk"></i> ${campEsc(campT('camp.fields.save','Kaydet'))}</button>
 </div>
 <div>
-<div style="font-size:12px;font-weight:700;margin-bottom:8px;text-align:center;color:var(--text-3);">ÖNIZLEME</div>
+<div style="font-size:12px;font-weight:700;margin-bottom:8px;text-align:center;color:var(--text-3);">${campEsc(campT('camp.fields.preview','Önizleme'))}</div>
 <div id="cd-fs-preview" style="background:var(--bg-3);border-radius:8px;padding:10px;"></div>
 </div>
 </div>`;
@@ -785,7 +980,7 @@ async function saveCampScript() {
 const script = document.getElementById('cd-script')?.value || '';
 const enabled = document.getElementById('cd-script-enabled')?.checked || false;
 await saveCampSettingsPatch({script, script_enabled: enabled});
-toast('Script kaydedildi ✓', 'ok');
+toast(campT('camp.script.saved','Konuşma metni kaydedildi'), 'ok');
 }
 
 function loadCampAramaTab() {
@@ -814,7 +1009,7 @@ cooldown_min: parseInt(getVal('cd-cooldown-min')||'30'),
 precall_test: getCheck('cd-precall-test'),
 };
 await saveCampSettingsPatch(s);
-toast('Arama ayarları kaydedildi ✓', 'ok');
+toast(campT('camp.arama.saved','Arama ayarları kaydedildi'), 'ok');
 }
 
 function loadCampQcTab() {
@@ -948,7 +1143,7 @@ aux_codes: auxCodes,
 outcomes: outcomeCodes,
 };
 await saveCampSettingsPatch(s);
-toast('QC ayarları kaydedildi ✓', 'ok');
+toast(campT('camp.qc.saved','QC ayarları kaydedildi'), 'ok');
 }
 
 function loadCampBildirimTab() {
@@ -972,13 +1167,13 @@ notif_email: getCheck('cd-notif-email'),
 notif_auto: getCheck('cd-notif-auto'),
 };
 await saveCampSettingsPatch(s);
-toast('Bildirim ayarları kaydedildi ✓', 'ok');
+toast(campT('camp.notif.saved','Bildirim ayarları kaydedildi'), 'ok');
 }
 
 async function saveCampWebhook() {
 const url = getVal('cd-webhook-url');
 await saveCampSettingsPatch({webhook_url: url});
-toast('Webhook kaydedildi ✓', 'ok');
+toast(campT('camp.notif.hook.saved','Webhook kaydedildi'), 'ok');
 }
 
 async function saveBroadcastTicker() {
@@ -987,7 +1182,7 @@ const enabled = getCheck('cd-ticker-enabled');
 await saveCampSettingsPatch({ticker_enabled: enabled, ticker_text: text});
 await sb(`campaigns?id=eq.${currentCampId}`,{method:'PATCH',prefer:'return=minimal',
 body:JSON.stringify({notif_ts:Date.now(), notif_message:text, active_for_agents:true})});
-toast('Kayan yazı yayınlandı ✓', 'ok');
+toast(campT('camp.notif.published','Kayan yazı yayınlandı'), 'ok');
 }
 
 async function activateCampaignForAgents() {
@@ -1052,68 +1247,145 @@ ticker.style.display = 'none';
 } catch(e) {}
 }
 
-// ── Kuyruk Yönetim Modalı ─────────────────────
-async function openRequeueModal(queueId, queueName) {
+async function mbHeadCount(path) {
   try {
-    const [pending, no_answer, negative, callback_c, dnc] = await Promise.all([
-      sb(`contacts?queue_id=eq.${queueId}&status=eq.pending&select=id`),
-      sb(`contacts?queue_id=eq.${queueId}&status=eq.no_answer&select=id`),
-      sb(`contacts?queue_id=eq.${queueId}&status=eq.negative&select=id`),
-      sb(`contacts?queue_id=eq.${queueId}&status=eq.callback&select=id`),
-      sb(`contacts?queue_id=eq.${queueId}&status=eq.dnc&select=id`),
-    ]);
-    const counts = {
-      pending: (pending||[]).length,
-      no_answer: (no_answer||[]).length,
-      negative: (negative||[]).length,
-      callback: (callback_c||[]).length,
-      dnc: (dnc||[]).length,
+    const scoped = typeof _mbScopedUserForRequest === 'function' ? _mbScopedUserForRequest(path, 'GET') : null;
+    const headers = typeof mbAuthHeaders === 'function' ? mbAuthHeaders({ Prefer: 'count=exact', Range: '0-0' }) : {};
+    if (scoped && typeof _mbRequestScopeHeaders === 'function') Object.assign(headers, _mbRequestScopeHeaders(scoped));
+    const r = await fetch(`${SB_URL}/rest/v1/${path}`, { method: 'GET', headers });
+    if (r.ok) {
+      try { await r.json(); } catch (_) {}
+      const cr = r.headers.get('content-range') || '';
+      if (cr.includes('/')) {
+        const n = Number(cr.split('/')[1]);
+        if (Number.isFinite(n)) return n;
+      }
+    }
+  } catch (_) {}
+  const rows = await sb(`${path}&limit=2000`);
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
+async function saveQueueSettings(queueId) {
+  const found = findQueue(queueId);
+  if (!found) return;
+  const name = String(document.getElementById('rq-name')?.value || '').trim();
+  if (!name) {
+    toast(campT('camp.queue.name.required','Kuyruk adı gerekli'), 'err');
+    return;
+  }
+  if (queueNameTaken(found.camp, queueId, name)) {
+    toast(campT('camp.queue.name.dup','Bu kampanyada aynı kuyruk adı var'), 'err');
+    return;
+  }
+  const priority = Math.max(0, Math.min(100, parseInt(document.getElementById('rq-priority')?.value, 10) || 0));
+  const maxAttempts = Math.max(0, Math.min(50, parseInt(document.getElementById('rq-max')?.value, 10) || 0));
+  const notes = String(document.getElementById('rq-notes')?.value || '').slice(0, 500);
+  const status = document.getElementById('rq-status')?.value === 'paused' ? 'paused' : 'active';
+  try {
+    await sb(`queues?id=eq.${queueId}`, {
+      method: 'PATCH', prefer: 'return=minimal',
+      body: JSON.stringify({ name, status })
+    });
+    const prev = getCampSettings(found.camp).queue_meta || {};
+    currentCampId = found.camp.id;
+    await saveCampSettingsPatch({ queue_meta: { ...prev, [queueId]: { priority, max_attempts: maxAttempts, notes } } });
+    found.queue.name = name;
+    found.queue.status = status;
+    document.getElementById('m-requeue')?.remove();
+    toast(campT('camp.queue.saved','Kuyruk ayarları kaydedildi'), 'ok');
+    renderCampQueues(found.camp);
+  } catch (e) {
+    toast(e.message, 'err');
+  }
+}
+
+// ── Kuyruk Yönetim Modalı ─────────────────────
+async function openRequeueModal(queueId) {
+  const found = findQueue(queueId);
+  if (!found) return;
+  const meta = queueMetaFor(found.camp, queueId);
+  try {
+    const statuses = ['pending', 'no_answer', 'negative', 'callback', 'dnc'];
+    const nums = await Promise.all(statuses.map((st) => mbHeadCount(`contacts?queue_id=eq.${queueId}&status=eq.${st}&select=id`)));
+    const counts = {};
+    statuses.forEach((st, i) => { counts[st] = nums[i]; });
+    const labels = {
+      pending: campT('camp.st.pending','Bekliyor'),
+      no_answer: campT('camp.st.no_answer','Cevap yok'),
+      negative: campT('camp.st.negative','Olumsuz'),
+      callback: campT('camp.st.callback','Geri ara'),
+      dnc: campT('camp.st.dnc','Kara liste'),
     };
     document.getElementById('m-requeue')?.remove();
     const modal = document.createElement('div');
     modal.id = 'm-requeue'; modal.className = 'modal-overlay open';
     modal.innerHTML = `
-<div class="modal" style="max-width:460px;">
+<div class="modal" style="max-width:520px;">
 <div class="modal-hdr">
-<div class="modal-title"><i class="ph ph-arrows-clockwise"></i> Kuyruk Yönet — ${queueName}</div>
+<div class="modal-title">${campEsc(campT('camp.queue.settings','Kuyruk ayarları'))}</div>
 <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
 </div>
-<div style="padding:16px 20px;">
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-${Object.entries({pending:'Bekliyor',no_answer:'Cevap Yok',negative:'Olumsuz',callback:'Geri Ara',dnc:'Kara Liste'}).map(([k,l])=>`
+<div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+<label class="form-label" for="rq-name">${campEsc(campT('camp.queue.rename','Adı değiştir'))}</label>
+<input class="form-input" id="rq-name" maxlength="120" value="${campEsc(found.queue.name || '')}">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<div>
+<label class="form-label" for="rq-status">${campEsc(campT('camp.queue.status','Durum'))}</label>
+<select class="form-input" id="rq-status">
+<option value="active" ${found.queue.status === 'active' ? 'selected' : ''}>${campEsc(campT('camp.queue.active','Aktif'))}</option>
+<option value="paused" ${found.queue.status !== 'active' ? 'selected' : ''}>${campEsc(campT('camp.queue.stopped','Durdu'))}</option>
+</select>
+</div>
+<div>
+<label class="form-label" for="rq-priority">${campEsc(campT('camp.queue.priority','Öncelik'))}</label>
+<input class="form-input" id="rq-priority" type="number" min="0" max="100" value="${meta.priority}">
+</div>
+</div>
+<div style="font-size:11px;color:var(--text-3);">${campEsc(campT('camp.queue.priority.hint','Yüksek sayı önce aranır. 0 hepsi eşit.'))}</div>
+<div>
+<label class="form-label" for="rq-max">${campEsc(campT('camp.queue.max','En fazla deneme'))}</label>
+<input class="form-input" id="rq-max" type="number" min="0" max="50" value="${meta.maxAttempts}">
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;">${campEsc(campT('camp.queue.max.hint','0 sınırsız. Dolunca numara atlanır.'))}</div>
+</div>
+<div>
+<label class="form-label" for="rq-notes">${campEsc(campT('camp.queue.notes','Not'))}</label>
+<textarea class="form-input" id="rq-notes" rows="2" maxlength="500">${campEsc(meta.notes)}</textarea>
+</div>
+<button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveQueueSettings('${queueId}')">${campEsc(campT('camp.notif.save','Kaydet'))}</button>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+${statuses.map((k) => `
 <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
-<span style="font-size:12px;color:var(--text-2);">${l}</span>
+<span style="font-size:12px;color:var(--text-2);">${campEsc(labels[k])}</span>
 <span style="font-size:18px;font-weight:800;font-family:var(--mono);">${counts[k]}</span>
 </div>`).join('')}
 </div>
-<div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:8px;">Tekrar Kuyruğa Al:</div>
+<div style="font-size:12px;font-weight:700;color:var(--text-2);">${campEsc(campT('camp.queue.requeue','Tekrar kuyruğa al'))}</div>
 <div style="display:flex;flex-direction:column;gap:6px;">
-${['no_answer','negative','callback'].map(k=>`
+${['no_answer','negative','callback'].map((k) => `
 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;background:var(--bg-3);border-radius:6px;border:1px solid var(--border);">
 <input type="checkbox" id="rq-${k}" style="width:15px;height:15px;">
-<span style="font-size:12px;">${{no_answer:'Cevap Yok',negative:'Olumsuz',callback:'Geri Ara'}[k]} <span style="color:var(--text-3);">(${counts[k]} kişi)</span></span>
+<span style="font-size:12px;">${campEsc(labels[k])} <span style="color:var(--text-3);">(${counts[k]} ${campEsc(campT('camp.queue.people','kişi'))})</span></span>
 </label>`).join('')}
 </div>
-<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;margin-top:8px;background:var(--bg-3);border-radius:6px;border:1px solid var(--border);">
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 10px;background:var(--bg-3);border-radius:6px;border:1px solid var(--border);">
 <input type="checkbox" id="rq-reset-attempts" style="width:15px;height:15px;">
-<span style="font-size:12px;">Deneme sayılarını sıfırla</span>
+<span style="font-size:12px;">${campEsc(campT('camp.queue.reset_attempts','Deneme sayılarını sıfırla'))}</span>
 </label>
 </div>
 <div class="modal-footer">
-<button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">İptal</button>
-<button class="btn btn-primary" onclick="doRequeue('${queueId}')">
-<i class="ph ph-arrows-clockwise"></i> Kuyruğa Al
-</button>
+<button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">${campEsc(campT('camp.queue.cancel','İptal'))}</button>
+<button class="btn btn-primary" onclick="doRequeue('${queueId}')">${campEsc(campT('camp.queue.requeue.do','Kuyruğa al'))}</button>
 </div>
 </div>`;
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
     document.body.appendChild(modal);
-  } catch(e) { toast('Kuyruk yüklenemedi: ' + e.message, 'err'); }
+  } catch(e) { toast(e.message, 'err'); }
 }
 
 async function doRequeue(queueId) {
   const statuses = ['no_answer','negative','callback'].filter(s => document.getElementById('rq-'+s)?.checked);
-  if (!statuses.length) { toast('En az bir durum seçin','warn'); return; }
+  if (!statuses.length) { toast(campT('camp.queue.pick_status','En az bir durum seçin'),'warn'); return; }
   const resetAttempts = document.getElementById('rq-reset-attempts')?.checked;
   try {
     for (const status of statuses) {

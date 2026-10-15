@@ -287,25 +287,28 @@ async function getNextContact(campaignIds = null) {
     const idList = ids.map((x) => String(x)).filter(Boolean);
     // Eski/karma veride contact.campaign_id boş, sadece queue_id dolu olabilir.
     let queueIds = [];
+    const pausedQueueIds = new Set();
+    let queueRows = [];
     try {
-      let qRows = [];
       for (let i = 0; i < idList.length; i++) {
         const cid = idList[i];
         const rows =
           (await sb(
-            `queues?campaign_id=eq.${cid}&select=id&limit=500`
+            `queues?campaign_id=eq.${cid}&select=id,status,campaign_id&limit=500`
           ).catch(() => [])) || [];
-        if (rows.length) qRows = qRows.concat(rows);
+        if (rows.length) queueRows = queueRows.concat(rows);
       }
       const seenQ = new Set();
-      queueIds = qRows
-        .map((q) => q.id)
-        .filter((id) => {
-          const k = String(id || '');
-          if (!k || seenQ.has(k)) return false;
-          seenQ.add(k);
-          return true;
-        });
+      queueRows.forEach((q) => {
+        const k = String(q?.id || '');
+        if (!k || seenQ.has(k)) return;
+        seenQ.add(k);
+        if (q.status && q.status !== 'active') pausedQueueIds.add(k);
+      });
+      const testRelaxEarly = typeof _testMode !== 'undefined' && _testMode;
+      queueIds = queueRows
+        .map((q) => String(q?.id || ''))
+        .filter((id, idx, arr) => id && arr.indexOf(id) === idx && (testRelaxEarly || !pausedQueueIds.has(id)));
     } catch (e) {}
     const fetchScopedContacts = async (extraFilters = '', limit = 80) => {
       let out = [];
@@ -401,13 +404,35 @@ async function getNextContact(campaignIds = null) {
       return null;
     }
     const testRelax = typeof _testMode !== 'undefined' && _testMode;
+    if (!testRelax) {
+      const hot = queueRows
+        .filter((q) => q?.id && !pausedQueueIds.has(String(q.id)) && typeof queueDialPrefs === 'function' && queueDialPrefs(q.campaign_id, q.id).priority > 0)
+        .sort((a, b) => queueDialPrefs(b.campaign_id, b.id).priority - queueDialPrefs(a.campaign_id, a.id).priority)
+        .slice(0, 5);
+      for (let i = 0; i < hot.length; i++) {
+        const extra = (await sb(
+          `contacts?queue_id=eq.${hot[i].id}&status=in.(pending,no_answer,callback)&or=(callback_at.is.null,callback_at.lte.${nowIso})&order=last_called_at.asc.nullsfirst&limit=20&select=*`
+        ).catch(() => [])) || [];
+        extra.forEach((row) => contacts.unshift(row));
+      }
+    }
+    const seenPick = new Set();
+    const usable = [];
     for (let i = 0; i < contacts.length; i++) {
       const c = contacts[i];
+      const key = String(c?.id || '');
+      if (key && seenPick.has(key)) continue;
+      if (key) seenPick.add(key);
       if (!isUsableRealContact(c)) continue;
-      if (!c.queues || c.queues.status === 'active') return c;
-      if (testRelax) return c;
+      const qid = String(c.queue_id || '');
+      if (qid && pausedQueueIds.has(qid) && !testRelax) continue;
+      const prefs = typeof queueDialPrefs === 'function' ? queueDialPrefs(c.campaign_id, c.queue_id) : { priority: 0, maxAttempts: 0 };
+      if (!testRelax && prefs.maxAttempts > 0 && (Number(c.attempt_count) || 0) >= prefs.maxAttempts) continue;
+      c._qPri = prefs.priority || 0;
+      usable.push(c);
     }
-    return null;
+    usable.sort((a, b) => (b._qPri - a._qPri) || ((Date.parse(a.last_called_at || '') || 0) - (Date.parse(b.last_called_at || '') || 0)));
+    return usable[0] || null;
   } catch(e) { console.error(e); return null; }
 }
 
@@ -441,15 +466,30 @@ function showCustomerCard(c) {
     { key:'phone2',  l:(typeof t === 'function' ? t('cont.field.phone2') : '2. Telefon'),    v:c.phone2 },
     { key:'notes',   l:(typeof t === 'function' ? t('cont.field.notes') : 'Not'),            v:c.notes },
   ];
-  const terminFields = [
-    { key:'hausart',             l:'Ev Tipi',      v:c.hausart,             type:'select', opts:['','Einfamilienhaus','Zweifamilienhaus','Reihenhaus','Doppelhaus','Mehrfamilienhaus'], required:true },
-    { key:'baujahr',             l:'Yapım Yılı',   v:c.baujahr,             required:true },
-    { key:'qm',                  l:'m²',           v:c.qm,                  required:true },
-    { key:'heizung',             l:'Isıtma',       v:c.heizung,             type:'select', opts:['','Gas','Öl','Pellet','WP','Fernwärme'], required:true },
-    { key:'alter_der_heizung',   l:'Isıtma Yaşı', v:c.alter_der_heizung,   required:true },
-    { key:'verbrauch_pro_jahr',  l:'Tüketim/Yıl', v:c.verbrauch_pro_jahr },
-    { key:'personen',            l:'Kişi Sayısı', v:c.personen },
+  const terminDefaults = [
+    { key:'hausart',             l:'Ev Tipi',      v:c.hausart,             type:'select', opts:['','Einfamilienhaus','Zweifamilienhaus','Reihenhaus','Doppelhaus','Mehrfamilienhaus'], required:true, enabled:true },
+    { key:'baujahr',             l:'Yapım Yılı',   v:c.baujahr,             required:true, enabled:true },
+    { key:'qm',                  l:'m²',           v:c.qm,                  required:true, enabled:true },
+    { key:'heizung',             l:'Isıtma',       v:c.heizung,             type:'select', opts:['','Gas','Öl','Pellet','WP','Fernwärme'], required:true, enabled:true },
+    { key:'alter_der_heizung',   l:'Isıtma Yaşı', v:c.alter_der_heizung,   required:true, enabled:true },
+    { key:'verbrauch_pro_jahr',  l:'Tüketim/Yıl', v:c.verbrauch_pro_jahr, enabled:true },
+    { key:'personen',            l:'Kişi Sayısı', v:c.personen, enabled:true },
+    { key:'interesse_an_pv',     l:'PV İlgisi',   v:c.interesse_an_pv,     type:'boolean', enabled:false },
   ];
+  const terminSaved = (typeof getCampSettings === 'function' ? getCampSettings(camp) : {}).termin_form || {};
+  const hasTerminSaved = terminSaved && typeof terminSaved === 'object' && Object.keys(terminSaved).length > 0;
+  const terminFields = terminDefaults.map((f) => {
+    if (!hasTerminSaved) return f.enabled === false ? null : f;
+    const saved = terminSaved[f.key];
+    if (!saved || saved.enabled === false) return null;
+    const next = { ...f, l: saved.label || f.l, required: !!saved.required, enabled: true };
+    if (saved.type) next.type = saved.type;
+    if (saved.type === 'select' && saved.opts) {
+      next.opts = [''].concat(String(saved.opts).split(',').map((s) => s.trim()).filter(Boolean));
+    }
+    if (saved.type === 'boolean') next.type = 'boolean';
+    return next;
+  }).filter(Boolean);
   const visibleFields = allFields.filter(f => show(f.key));
   document.getElementById('cust-fields').innerHTML = visibleFields.map(f=>{
     const canCallSecondary = f.key === 'phone2' && String(f.v || '').trim().length > 0;
@@ -499,16 +539,22 @@ onmouseout="this.style.opacity='.6';this.style.color='var(--text-3)'">
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 ${terminFields.map(f => `
-<div style="background:var(--bg-3);border:1px solid ${f.required?'rgba(37,99,235,.3)':'var(--border)'};border-radius:8px;padding:7px 10px;">
+<div data-tf-key="${_escHtml(f.key)}" data-required="${f.required ? '1' : '0'}" style="background:var(--bg-3);border:1px solid ${f.required?'rgba(37,99,235,.3)':'var(--border)'};border-radius:8px;padding:7px 10px;">
 <div style="font-size:10px;font-weight:700;color:${f.required?'var(--accent-text)':'var(--text-3)'};text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;">
-${f.l}${f.required?'<span style="color:var(--red);margin-left:2px;">*</span>':''}
+${_escHtml(f.l)}${f.required?'<span style="color:var(--red);margin-left:2px;">*</span>':''}
 </div>
 ${f.type==='select'
 ? `<select id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;" onchange="updateTerminField('${f.key}',this.value)">
-${f.opts.map(o=>`<option value="${o}" ${o===f.v?'selected':''}>${o||'Seçin...'}</option>`).join('')}
+${(f.opts||['']).map(o=>`<option value="${_escHtml(o)}" ${o===f.v?'selected':''}>${_escHtml(o||'…')}</option>`).join('')}
 </select>`
-: `<input id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;"
-value="${f.v||''}" placeholder="${f.l}..."
+: f.type==='boolean'
+? `<select id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;" onchange="updateTerminField('${f.key}',this.value)">
+<option value="" ${!f.v?'selected':''}>…</option>
+<option value="true" ${String(f.v)==='true'?'selected':''}>${typeof currentLang!=='undefined'&&currentLang==='de'?'Ja':'Evet'}</option>
+<option value="false" ${String(f.v)==='false'?'selected':''}>${typeof currentLang!=='undefined'&&currentLang==='de'?'Nein':'Hayır'}</option>
+</select>`
+: `<input id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;" type="${f.type==='number'?'number':'text'}"
+value="${_escHtml(f.v||'')}" placeholder="${_escHtml(f.l)}..."
 oninput="updateTerminField('${f.key}',this.value)">`
 }
 </div>`).join('')}

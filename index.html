@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=8.39">
+<link rel="stylesheet" href="css/styles.css?v=8.40">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -39,7 +39,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v8.39 — 2026</div>
+<div class="login-version">v8.40 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -399,7 +399,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v8.39</div>
+<div class="sb-ver">MontBlanc v8.40</div>
 </div>
 </nav>
 <main id="main">
@@ -568,21 +568,40 @@
 <button class="cd-tab" data-tab="agentler" onclick="switchCampTab('agentler')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Temsilciler" data-de="Agenten">Temsilciler</button>
 </div>
 <div id="cd-tab-genel" class="cd-tab-panel">
+<div class="cd-identity">
+<div>
+<label class="form-label" for="cd-edit-name" data-tr="Kampanya adı" data-de="Kampagnenname">Kampanya adı</label>
+<input class="form-input" id="cd-edit-name" maxlength="120" autocomplete="off">
+<div id="cd-edit-name-err" class="nc-inline-err" hidden></div>
+</div>
+<div>
+<label class="form-label" for="cd-edit-did" data-tr="Arayan numara (DID)" data-de="Anrufernummer (DID)">Arayan numara (DID)</label>
+<input class="form-input" id="cd-edit-did" maxlength="20" placeholder="+49301234567" autocomplete="off">
+<div id="cd-edit-did-err" class="nc-inline-err" hidden></div>
+</div>
+<div class="cd-identity-wide">
+<label class="form-label" for="cd-edit-desc" data-tr="Açıklama" data-de="Beschreibung">Açıklama</label>
+<textarea class="form-input" id="cd-edit-desc" rows="2" maxlength="500"></textarea>
+</div>
+<div>
+<button type="button" class="btn btn-primary btn-sm" onclick="saveCampIdentity()"><span data-tr="Kampanyayı kaydet" data-de="Kampagne speichern">Kampanyayı kaydet</span></button>
+</div>
+</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
 <div>
-<div class="form-label" style="margin-bottom:6px;">Arama Hızı (eş zamanlı hat)</div>
+<div class="form-label" style="margin-bottom:6px;" data-tr="Arama hızı (eş zamanlı hat)" data-de="Wähltempo (gleichzeitige Leitungen)">Arama hızı (eş zamanlı hat)</div>
 <div class="speed-row">
 <input type="range" min="1" max="10" value="2" id="cd-speed" oninput="document.getElementById('cd-speed-v').textContent=this.value" onchange="saveSpeed(this.value)">
 <div class="speed-val" id="cd-speed-v">2</div>
 </div>
 </div>
 <div>
-<div class="form-label" style="margin-bottom:6px;">Aktif Kampanya (Agentlere Bildir)</div>
+<div class="form-label" style="margin-bottom:6px;" data-tr="Temsilcilere bildir" data-de="Agenten benachrichtigen">Temsilcilere bildir</div>
 <button class="btn btn-primary btn-sm" onclick="activateCampaignForAgents()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l18-5v12L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg> <span data-tr="Aktif et ve bildir" data-de="Aktivieren und melden">Aktif et ve bildir</span></button>
 </div>
 </div>
 <div style="margin-top:16px;">
-<div class="card-title" style="margin-bottom:10px;">Kuyruklar</div>
+<div class="card-title" style="margin-bottom:10px;" data-tr="Kuyruklar" data-de="Warteschlangen">Kuyruklar</div>
 <div id="cd-queues" style="display:flex;flex-direction:column;gap:6px;"></div>
 </div>
 </div>
@@ -592,54 +611,54 @@
 <div id="cd-tab-script" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:12px;">
 <div>
-<div class="form-label" style="margin-bottom:4px;">Konuşma Metni (Script)</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Kullanılabilir değişkenler: [Ad] [Soyad] [PLZ] [Şehir] [Telefon]</div>
+<div class="form-label" style="margin-bottom:4px;" data-tr="Konuşma metni" data-de="Gesprächsleitfaden">Konuşma metni</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;" data-tr="Kullanılabilir değişkenler: [Ad] [Soyad] [PLZ] [Şehir] [Telefon]" data-de="Variablen: [Ad] [Soyad] [PLZ] [Şehir] [Telefon]">Kullanılabilir değişkenler: [Ad] [Soyad] [PLZ] [Şehir] [Telefon]</div>
 <textarea class="form-input" id="cd-script" rows="8" style="resize:vertical;font-family:var(--font);line-height:1.6;" placeholder="Guten Tag, spreche ich mit [Ad] [Soyad]? Ich rufe an wegen..."></textarea>
 </div>
 <div style="display:flex;align-items:center;gap:8px;">
 <input type="checkbox" id="cd-script-enabled">
-<label for="cd-script-enabled" style="font-size:12px;font-weight:600;">Script'i agent ekranında göster</label>
+<label for="cd-script-enabled" style="font-size:12px;font-weight:600;" data-tr="Metni temsilci ekranında göster" data-de="Leitfaden im Agentenbildschirm zeigen">Metni temsilci ekranında göster</label>
 </div>
-<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampScript()"><i class="ph ph-floppy-disk"></i> Script Kaydet</button>
+<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampScript()"><i class="ph ph-floppy-disk"></i> <span data-tr="Metni kaydet" data-de="Leitfaden speichern">Metni kaydet</span></button>
 </div>
 </div>
 <div id="cd-tab-arama" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:14px;">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div>
-<div style="font-size:13px;font-weight:700;"><i class="ph ph-lightning"></i> Otomatik Arama</div>
-<div style="font-size:11px;color:var(--text-3);">Agentlerin otomatik aramayı kullanabilmesi</div>
+<div style="font-size:13px;font-weight:700;"><i class="ph ph-lightning"></i> <span data-tr="Otomatik arama" data-de="Automatisches Wählen">Otomatik arama</span></div>
+<div style="font-size:11px;color:var(--text-3);" data-tr="Temsilcilerin otomatik aramayı kullanabilmesi" data-de="Agenten dürfen automatisch wählen">Temsilcilerin otomatik aramayı kullanabilmesi</div>
 </div>
 <input type="checkbox" id="cd-auto-dial" style="width:18px;height:18px;">
 </div>
 <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div>
-<div style="font-size:13px;font-weight:700;"><i class="ph ph-pencil-simple"></i> Agent Veri Düzenleyebilir</div>
-<div style="font-size:11px;color:var(--text-3);">Müşteri isim/adres/PLZ güncelleme</div>
+<div style="font-size:13px;font-weight:700;"><i class="ph ph-pencil-simple"></i> <span data-tr="Temsilci veriyi düzenleyebilir" data-de="Agent darf Daten ändern">Temsilci veriyi düzenleyebilir</span></div>
+<div style="font-size:11px;color:var(--text-3);" data-tr="İsim, adres ve posta kodu" data-de="Name, Adresse und PLZ">İsim, adres ve posta kodu</div>
 </div>
 <input type="checkbox" id="cd-agent-edit" style="width:18px;height:18px;">
 </div>
 <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div>
-<div style="font-size:13px;font-weight:700;"><i class="ph ph-calendar-check"></i> Randevu için slot zorunlu</div>
-<div style="font-size:11px;color:var(--text-3);">Açıksa agent takvimden slot seçmeden randevu ile sonuçlandıramaz</div>
+<div style="font-size:13px;font-weight:700;"><i class="ph ph-calendar-check"></i> <span data-tr="Randevu için slot zorunlu" data-de="Termin braucht einen Slot">Randevu için slot zorunlu</span></div>
+<div style="font-size:11px;color:var(--text-3);" data-tr="Açıksa takvimden slot seçmeden randevu kapanmaz" data-de="Ohne Slot kein Termin">Açıksa takvimden slot seçmeden randevu kapanmaz</div>
 </div>
 <input type="checkbox" id="cd-appointment-slot-required" style="width:18px;height:18px;">
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-arrows-clockwise"></i> Akıllı Yeniden Arama</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-arrows-clockwise"></i> <span data-tr="Akıllı yeniden arama" data-de="Erneutes Anwählen">Akıllı yeniden arama</span></div>
 <div style="display:flex;gap:8px;align-items:center;">
 <input type="checkbox" id="cd-recycle" style="width:16px;height:16px;">
-<label for="cd-recycle" style="font-size:12px;">Cevapsız aramaları otomatik yeniden kuyruğa al</label>
+<label for="cd-recycle" style="font-size:12px;" data-tr="Cevapsız aramaları otomatik yeniden kuyruğa al" data-de="Nicht erreichte Anrufe wieder einreihen">Cevapsız aramaları otomatik yeniden kuyruğa al</label>
 </div>
 <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-<label style="font-size:12px;color:var(--text-3);">Bekleme süresi:</label>
+<label style="font-size:12px;color:var(--text-3);" data-tr="Bekleme süresi" data-de="Wartezeit">Bekleme süresi</label>
 <select class="form-input" id="cd-recycle-delay" style="width:140px;font-size:12px;padding:4px 8px;">
-<option value="30">30 dakika</option>
-<option value="60" selected>1 saat</option>
-<option value="120">2 saat</option>
-<option value="240">4 saat</option>
-<option value="1440">1 gün</option>
+<option value="30" data-tr="30 dakika" data-de="30 Minuten">30 dakika</option>
+<option value="60" selected data-tr="1 saat" data-de="1 Stunde">1 saat</option>
+<option value="120" data-tr="2 saat" data-de="2 Stunden">2 saat</option>
+<option value="240" data-tr="4 saat" data-de="4 Stunden">4 saat</option>
+<option value="1440" data-tr="1 gün" data-de="1 Tag">1 gün</option>
 </select>
 </div>
 </div>
@@ -647,10 +666,10 @@
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-shield"></i> <span data-tr="Tekrar arama koruması" data-de="Wiederholschutz">Tekrar arama koruması</span></div>
 <div style="display:flex;gap:8px;align-items:center;">
 <input type="checkbox" id="cd-cooldown" style="width:16px;height:16px;">
-<label for="cd-cooldown" style="font-size:12px;">İki arama arası bekleme süresi</label>
+<label for="cd-cooldown" style="font-size:12px;" data-tr="İki arama arası bekleme süresi" data-de="Wartezeit zwischen zwei Anrufen">İki arama arası bekleme süresi</label>
 </div>
 <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-<label style="font-size:12px;color:var(--text-3);">Bekleme (dakika):</label>
+<label style="font-size:12px;color:var(--text-3);" data-tr="Bekleme (dakika)" data-de="Wartezeit (Minuten)">Bekleme (dakika)</label>
 <input type="number" class="form-input" id="cd-cooldown-min" value="30" min="1" max="1440" style="width:80px;font-size:12px;padding:4px 8px;">
 </div>
 </div>
@@ -658,10 +677,10 @@
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-speaker-high"></i> <span data-tr="Arama öncesi ses testi" data-de="Audio-Test vor dem Anruf">Arama öncesi ses testi</span></div>
 <div style="display:flex;gap:8px;align-items:center;">
 <input type="checkbox" id="cd-precall-test" style="width:16px;height:16px;">
-<label for="cd-precall-test" style="font-size:12px;">Hazır olmadan önce mikrofon testi zorunlu</label>
+<label for="cd-precall-test" style="font-size:12px;" data-tr="Hazır olmadan önce mikrofon testi zorunlu" data-de="Mikrofontest vor Bereit">Hazır olmadan önce mikrofon testi zorunlu</label>
 </div>
 </div>
-<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampAramaSettings()"><i class="ph ph-floppy-disk"></i> Arama Ayarlarını Kaydet</button>
+<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampAramaSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Arama ayarlarını kaydet" data-de="Anrufeinstellungen speichern">Arama ayarlarını kaydet</span></button>
 </div>
 </div>
 <div id="cd-tab-qc" class="cd-tab-panel" style="display:none;">
@@ -673,7 +692,7 @@
 <label for="cd-acw-enabled" style="font-size:12px;" data-tr="Sonuç girme süresi kısıtla" data-de="Nacharbeit begrenzen">Sonuç girme süresi kısıtla</label>
 </div>
 <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
-<label style="font-size:12px;color:var(--text-3);">Süre (saniye):</label>
+<label style="font-size:12px;color:var(--text-3);" data-tr="Süre (saniye)" data-de="Dauer (Sekunden)">Süre (saniye)</label>
 <input type="number" class="form-input" id="cd-acw-seconds" value="60" min="10" max="300" style="width:80px;font-size:12px;padding:4px 8px;">
 <select class="form-input" id="cd-acw-action" style="font-size:12px;padding:4px 8px;">
 <option value="warn" data-tr="Yöneticiye uyar" data-de="Leitung warnen">Yöneticiye uyar</option>
@@ -684,7 +703,7 @@
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-coffee"></i> <span data-tr="Mola kodları" data-de="Pausencodes">Mola kodları</span></div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Agentlerin seçeceği mola türleri</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Temsilcilerin seçeceği mola türleri" data-de="Pausenarten für Agenten">Temsilcilerin seçeceği mola türleri</div>
 <div id="cd-aux-codes" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">
 </div>
 <button class="btn btn-ghost btn-sm" onclick="addAuxCode()" data-tr="+ Kod Ekle" data-de="+ Code">+ Kod Ekle</button>
@@ -695,7 +714,7 @@
 <div id="cd-outcomes" style="display:flex;flex-direction:column;gap:4px;">
 </div>
 </div>
-<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampQcSettings()"><i class="ph ph-floppy-disk"></i> QC Ayarlarını Kaydet</button>
+<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampQcSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="QC ayarlarını kaydet" data-de="QC-Einstellungen speichern">QC ayarlarını kaydet</span></button>
 </div>
 </div>
 <div id="cd-tab-bildirim" class="cd-tab-panel" style="display:none;">
@@ -704,47 +723,47 @@
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-megaphone"></i> <span data-tr="Yönetici kayan yazı" data-de="Lauftext der Leitung">Yönetici kayan yazı</span></div>
 <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
 <input type="checkbox" id="cd-ticker-enabled" style="width:16px;height:16px;">
-<label for="cd-ticker-enabled" style="font-size:12px;">Kayan yazıyı aktif et</label>
+<label for="cd-ticker-enabled" style="font-size:12px;" data-tr="Kayan yazıyı aç" data-de="Lauftext einschalten">Kayan yazıyı aç</label>
 </div>
-<input class="form-input" id="cd-ticker-text" placeholder="Tüm agentlere duyuru metni..." style="font-size:12px;">
-<button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveBroadcastTicker()"><i class="ph ph-paper-plane-tilt"></i> Yayınla</button>
+<input class="form-input" id="cd-ticker-text" data-tr="Tüm temsilcilere duyuru..." data-de="Hinweis an alle Agenten..." placeholder="Tüm temsilcilere duyuru..." style="font-size:12px;">
+<button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveBroadcastTicker()"><i class="ph ph-paper-plane-tilt"></i> <span data-tr="Yayınla" data-de="Veröffentlichen">Yayınla</span></button>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-calendar"></i> Randevu Onay Mesajı</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-calendar"></i> <span data-tr="Randevu onay mesajı" data-de="Terminbestätigung">Randevu onay mesajı</span></div>
 <div style="display:flex;flex-direction:column;gap:6px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="cd-notif-whatsapp"> WhatsApp gönder
+<input type="checkbox" id="cd-notif-whatsapp"> <span data-tr="WhatsApp gönder" data-de="WhatsApp senden">WhatsApp gönder</span>
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="cd-notif-sms"> SMS gönder
+<input type="checkbox" id="cd-notif-sms"> <span data-tr="SMS gönder" data-de="SMS senden">SMS gönder</span>
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="cd-notif-email"> E-posta gönder (.ics takvim linki)
+<input type="checkbox" id="cd-notif-email"> <span data-tr="E-posta gönder (.ics)" data-de="E-Mail senden (.ics)">E-posta gönder (.ics)</span>
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="cd-notif-auto"> Otomatik gönder (agent onayı gerekmez)
+<input type="checkbox" id="cd-notif-auto"> <span data-tr="Otomatik gönder" data-de="Automatisch senden">Otomatik gönder</span>
 </label>
 </div>
-<button class="btn btn-primary btn-sm" style="margin-top:8px;align-self:flex-start;" onclick="saveCampNotifSettings()"><i class="ph ph-floppy-disk"></i> Kaydet</button>
+<button class="btn btn-primary btn-sm" style="margin-top:8px;align-self:flex-start;" onclick="saveCampNotifSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Kaydet" data-de="Speichern">Kaydet</span></button>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-link"></i> Webhook / API Dışa Aktarım</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Başarılı randevular bu URL'e POST olarak gönderilir</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-link"></i> <span data-tr="Webhook / dışa aktarım" data-de="Webhook / Export">Webhook / dışa aktarım</span></div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;" data-tr="Başarılı randevular bu adrese POST edilir" data-de="Erfolgreiche Termine werden per POST gesendet">Başarılı randevular bu adrese POST edilir</div>
 <input class="form-input" id="cd-webhook-url" placeholder="https://hooks.zapier.com/..." style="font-size:12px;">
-<button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveCampWebhook()"><i class="ph ph-floppy-disk"></i> Kaydet</button>
+<button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveCampWebhook()"><i class="ph ph-floppy-disk"></i> <span data-tr="Kaydet" data-de="Speichern">Kaydet</span></button>
 </div>
 </div>
 </div>
 <div id="cd-tab-termin-form" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:10px;">
-<div style="font-size:12px;color:var(--text-3);padding:8px;background:var(--bg-3);border-radius:6px;">Agent randevu aldığında hangi ek bilgi alanları sorulsun? Aktif edeceğiniz alanlar randevu formunda görünür.</div>
+<div style="font-size:12px;color:var(--text-3);padding:8px;background:var(--bg-3);border-radius:6px;" data-tr="Temsilci randevu aldığında hangi ek alanlar sorulsun?" data-de="Welche Zusatzfelder fragt der Agent beim Termin?">Temsilci randevu aldığında hangi ek alanlar sorulsun?</div>
 <div id="cd-termin-form-fields" style="display:flex;flex-direction:column;gap:6px;"></div>
-<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampTerminFormSettings()">Kaydet</button>
+<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampTerminFormSettings()"><span data-tr="Formu kaydet" data-de="Formular speichern">Formu kaydet</span></button>
 </div>
 </div>
 <div id="cd-tab-agentler" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
-<button class="btn btn-ghost btn-sm" onclick="openAssignModal()">+ Agent Ekle</button>
+<button class="btn btn-ghost btn-sm" onclick="openAssignModal()">+ <span data-tr="Temsilci ekle" data-de="Agent hinzufügen">Temsilci ekle</span></button>
 </div>
 <div id="cd-agents" style="display:flex;flex-direction:column;gap:6px;"></div>
 </div>
@@ -3770,44 +3789,44 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/version.js?v=8.39"></script>
-<script src="js/i18n.js?v=8.39"></script>
-<script src="js/config.js?v=8.39"></script>
-<script src="js/state.js?v=8.39"></script>
-<script src="js/api.js?v=8.39"></script>
-<script src="js/auth.js?v=8.39"></script>
-<script src="js/ui.js?v=8.39"></script>
-<script src="js/chat.js?v=8.39"></script>
-<script src="js/chat-settings.js?v=8.39"></script>
-<script src="js/field-settings.js?v=8.39"></script>
-<script src="js/audit.js?v=8.39"></script>
-<script src="js/feature-flags.js?v=8.39"></script>
-<script src="js/notification-center.js?v=8.39"></script>
+<script src="js/version.js?v=8.40"></script>
+<script src="js/i18n.js?v=8.40"></script>
+<script src="js/config.js?v=8.40"></script>
+<script src="js/state.js?v=8.40"></script>
+<script src="js/api.js?v=8.40"></script>
+<script src="js/auth.js?v=8.40"></script>
+<script src="js/ui.js?v=8.40"></script>
+<script src="js/chat.js?v=8.40"></script>
+<script src="js/chat-settings.js?v=8.40"></script>
+<script src="js/field-settings.js?v=8.40"></script>
+<script src="js/audit.js?v=8.40"></script>
+<script src="js/feature-flags.js?v=8.40"></script>
+<script src="js/notification-center.js?v=8.40"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=8.39"></script>
-<script src="js/job-market.js?v=8.39"></script>
-<script src="js/qc-job-market.js?v=8.39"></script>
-<script src="js/export-admin.js?v=8.39"></script>
-<script src="js/export-termin.js?v=8.39"></script>
-<script src="js/performance.js?v=8.39"></script>
-<script src="js/competition.js?v=8.39"></script>
-<script src="js/dashboard.js?v=8.39"></script>
-<script src="js/campaigns.js?v=8.39"></script>
-<script src="js/contacts.js?v=8.39"></script>
-<script src="js/telnyx.js?v=8.39"></script>
-<script src="js/voice-orb.js?v=8.39"></script>
-<script src="js/dialer.js?v=8.39"></script>
-<script src="js/appointments.js?v=8.39"></script>
-<script src="js/field.js?v=8.39"></script>
-<script src="js/field-ops.js?v=8.39"></script>
-<script src="js/wiedervorlage.js?v=8.39"></script>
-<script src="js/qc.js?v=8.39"></script>
-<script src="js/supervisor.js?v=8.39"></script>
-<script src="js/sms-settings.js?v=8.39"></script>
-<script src="js/leave-hr.js?v=8.39"></script>
-<script src="js/muhasebe.js?v=8.39"></script>
-<script src="js/agent-self-performance.js?v=8.39"></script>
-<script src="js/agents.js?v=8.39"></script>
-<script src="js/mimi-brain.js?v=8.39"></script>
+<script src="js/wallet.js?v=8.40"></script>
+<script src="js/job-market.js?v=8.40"></script>
+<script src="js/qc-job-market.js?v=8.40"></script>
+<script src="js/export-admin.js?v=8.40"></script>
+<script src="js/export-termin.js?v=8.40"></script>
+<script src="js/performance.js?v=8.40"></script>
+<script src="js/competition.js?v=8.40"></script>
+<script src="js/dashboard.js?v=8.40"></script>
+<script src="js/campaigns.js?v=8.40"></script>
+<script src="js/contacts.js?v=8.40"></script>
+<script src="js/telnyx.js?v=8.40"></script>
+<script src="js/voice-orb.js?v=8.40"></script>
+<script src="js/dialer.js?v=8.40"></script>
+<script src="js/appointments.js?v=8.40"></script>
+<script src="js/field.js?v=8.40"></script>
+<script src="js/field-ops.js?v=8.40"></script>
+<script src="js/wiedervorlage.js?v=8.40"></script>
+<script src="js/qc.js?v=8.40"></script>
+<script src="js/supervisor.js?v=8.40"></script>
+<script src="js/sms-settings.js?v=8.40"></script>
+<script src="js/leave-hr.js?v=8.40"></script>
+<script src="js/muhasebe.js?v=8.40"></script>
+<script src="js/agent-self-performance.js?v=8.40"></script>
+<script src="js/agents.js?v=8.40"></script>
+<script src="js/mimi-brain.js?v=8.40"></script>
 </body>
 </html>
