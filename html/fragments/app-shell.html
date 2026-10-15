@@ -414,7 +414,13 @@
 <div class="card-title" data-tr="Canlı Agent Durumu" data-de="Live-Agentenstatus">Canlı Agent Durumu</div>
 <div class="card-sub" id="dash-live-sub">Kim görüşmede, kim hazır, kim molada</div>
 </div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+<div class="live-layout-seg" role="group" aria-label="Görünüm">
+<button type="button" class="live-layout-btn is-on" data-live-layout="grid" onclick="setLiveFloorLayout('grid')"><span data-tr="Kart" data-de="Karten">Kart</span></button>
+<button type="button" class="live-layout-btn" data-live-layout="strip" onclick="setLiveFloorLayout('strip')"><span data-tr="Yatay" data-de="Quer">Yatay</span></button>
+</div>
 <button type="button" class="btn btn-ghost btn-sm" onclick="navigate('supervisor')"><span data-tr="Canlı Ekran" data-de="Live-Ansicht">Canlı Ekran</span></button>
+</div>
 </div>
 <div id="live-agents">
 <div style="color:var(--text-3);text-align:center;padding:24px;font-size:13px;">Veri yükleniyor...</div>

@@ -53,12 +53,14 @@ function _supCampaignName(id) {
 
 function _supFiltered() {
   const q = _supQuery;
+  const on = typeof liveFloorFilter === 'function' ? liveFloorFilter() : null;
   const rows = [..._supSessions].sort((a, b) => {
     const order = { on_call: 0, wrapping: 1, ready: 2, break: 3, offline: 4 };
     return (order[a.status] ?? 9) - (order[b.status] ?? 9);
   });
-  if (!q) return rows;
   return rows.filter((s) => {
+    if (on && on[s.status] === false) return false;
+    if (!q) return true;
     const camp = _supCampaignName(s.campaign_id);
     return [
       s.agent_name, s.status, s.current_contact_name, s.current_contact_phone, camp
@@ -107,12 +109,14 @@ function _supRenderCards() {
     }
   }
 
-  if (!sorted.length) {
-    grid.innerHTML = `<div class="sup-empty">${de ? 'Keine passende Sitzung.' : 'Eşleşen oturum yok.'}</div>`;
-    return;
-  }
-
-  grid.innerHTML = sorted.map((s) => {
+  const layout = typeof liveFloorLayout === 'function' ? liveFloorLayout() : 'grid';
+  const paint = () => {
+    grid.classList.toggle('sup-agent-grid--strip', layout === 'strip');
+    if (!sorted.length) {
+      grid.innerHTML = `<div class="sup-empty">${de ? 'Keine passende Sitzung.' : 'Eşleşen oturum yok.'}</div>`;
+      return;
+    }
+    grid.innerHTML = sorted.map((s) => {
     const info = _supStatusInfo(s.status);
     const label = de ? info.de : info.tr;
     const isCall = s.status === 'on_call';
@@ -132,8 +136,10 @@ function _supRenderCards() {
     <div class="sup-call-row"><span class="sup-call-lbl">${de ? 'Kampagne' : 'Kampanya'}</span><span class="sup-call-val">${camp}</span></div>
   </div>`;
 
+    const tone = _SUP_STATUS_LABEL[s.status] ? s.status : 'offline';
+    const sid = escapeHtml(s.agent_id || '');
     return `
-<div class="sup-card ${isCall ? 'sup-card--active' : ''}">
+<div class="sup-card sup-card--${tone} ${isCall ? 'sup-card--active' : ''}" data-live-id="${sid}">
   <div class="sup-card-top">
     <div class="sup-avatar">${agent.charAt(0).toUpperCase()}</div>
     <div class="sup-agent-info">
@@ -144,7 +150,10 @@ function _supRenderCards() {
   </div>
   ${callInfo}
 </div>`;
-  }).join('');
+    }).join('');
+  };
+  if (typeof _liveFlip === 'function') _liveFlip(grid, paint);
+  else paint();
 }
 
 function _supTickDurations() {
@@ -166,6 +175,16 @@ function _supUpdateSummary() {
   set('sup-pill-wrap', count('wrapping'));
   set('sup-pill-break', count('break'));
   set('sup-pill-offline', count('offline'));
+  const on = typeof liveFloorFilter === 'function' ? liveFloorFilter() : {};
+  const mark = (id, st) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('inactive', on[st] === false);
+  };
+  mark('sup-filter-on_call', 'on_call');
+  mark('sup-filter-ready', 'ready');
+  mark('sup-filter-wrap', 'wrapping');
+  mark('sup-filter-break', 'break');
+  mark('sup-filter-offline', 'offline');
   const statusEl = document.getElementById('sup-live-badge');
   if (statusEl) statusEl.textContent = lang === 'tr' ? `${onCall} aktif görüşme` : `${onCall} aktive Gespräche`;
 }
@@ -233,19 +252,25 @@ async function loadSupervisorPanel() {
     <div class="page-title">${de ? 'Live-Ansicht' : 'Canlı Ekran'}</div>
     <div class="page-sub" id="sup-live-badge">—</div>
   </div>
-  <button class="btn btn-sm" onclick="_supFetchSessions()" style="gap:6px;">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-    ${de ? 'Aktualisieren' : 'Yenile'}
-  </button>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <div class="live-layout-seg" role="group" aria-label="${de ? 'Ansicht' : 'Görünüm'}">
+      <button type="button" class="live-layout-btn" data-live-layout="grid" onclick="setLiveFloorLayout('grid')">${de ? 'Karten' : 'Kart'}</button>
+      <button type="button" class="live-layout-btn" data-live-layout="strip" onclick="setLiveFloorLayout('strip')">${de ? 'Quer' : 'Yatay'}</button>
+    </div>
+    <button class="btn btn-sm" onclick="_supFetchSessions()" style="gap:6px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      ${de ? 'Aktualisieren' : 'Yenile'}
+    </button>
+  </div>
 </div>
 
 <div class="sup-pills">
-  <div class="sup-pill"><span class="sup-pill-num" id="sup-pill-total">—</span><span class="sup-pill-lbl">${de ? 'Gesamt' : 'Toplam'}</span></div>
-  <div class="sup-pill"><span class="sup-pill-num" id="sup-pill-oncall">—</span><span class="sup-pill-lbl">${de ? 'Im Gespräch' : 'Çağrıda'}</span></div>
-  <div class="sup-pill"><span class="sup-pill-num" id="sup-pill-ready">—</span><span class="sup-pill-lbl">${de ? 'Bereit' : 'Hazır'}</span></div>
-  <div class="sup-pill"><span class="sup-pill-num" id="sup-pill-wrap">—</span><span class="sup-pill-lbl">${de ? 'Nacharbeit' : 'Sonuç'}</span></div>
-  <div class="sup-pill"><span class="sup-pill-num" id="sup-pill-break">—</span><span class="sup-pill-lbl">${de ? 'Pause' : 'Mola'}</span></div>
-  <div class="sup-pill"><span class="sup-pill-num" id="sup-pill-offline">—</span><span class="sup-pill-lbl">${de ? 'Offline' : 'Çevrimdışı'}</span></div>
+  <button type="button" class="sup-pill" onclick="toggleLiveFloorStatus('*')"><span class="sup-pill-num" id="sup-pill-total">—</span><span class="sup-pill-lbl">${de ? 'Alle' : 'Tümü'}</span></button>
+  <button type="button" class="sup-pill sup-pill--oncall" id="sup-filter-on_call" onclick="toggleLiveFloorStatus('on_call')"><span class="sup-pill-num" id="sup-pill-oncall">—</span><span class="sup-pill-lbl">${de ? 'Im Gespräch' : 'Çağrıda'}</span></button>
+  <button type="button" class="sup-pill sup-pill--ready" id="sup-filter-ready" onclick="toggleLiveFloorStatus('ready')"><span class="sup-pill-num" id="sup-pill-ready">—</span><span class="sup-pill-lbl">${de ? 'Bereit' : 'Hazır'}</span></button>
+  <button type="button" class="sup-pill sup-pill--wrap" id="sup-filter-wrap" onclick="toggleLiveFloorStatus('wrapping')"><span class="sup-pill-num" id="sup-pill-wrap">—</span><span class="sup-pill-lbl">${de ? 'Nacharbeit' : 'Sonuç'}</span></button>
+  <button type="button" class="sup-pill sup-pill--break" id="sup-filter-break" onclick="toggleLiveFloorStatus('break')"><span class="sup-pill-num" id="sup-pill-break">—</span><span class="sup-pill-lbl">${de ? 'Pause' : 'Mola'}</span></button>
+  <button type="button" class="sup-pill sup-pill--offline" id="sup-filter-offline" onclick="toggleLiveFloorStatus('offline')"><span class="sup-pill-num" id="sup-pill-offline">—</span><span class="sup-pill-lbl">${de ? 'Offline' : 'Çevrimdışı'}</span></button>
 </div>
 
 <div class="sup-toolbar">

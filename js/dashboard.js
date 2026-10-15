@@ -1092,6 +1092,93 @@ function _dashLiveTick() {
   });
 }
 
+const _LIVE_DOT = {
+  on_call: '#2196F3',
+  ready: '#4CAF50',
+  wrapping: '#FF6D00',
+  break: '#FFA500',
+  offline: '#696666',
+};
+
+function liveFloorStatuses() {
+  return ['on_call', 'ready', 'wrapping', 'break', 'offline'];
+}
+
+function liveFloorFilter() {
+  if (!window._liveFloorOn) {
+    window._liveFloorOn = { on_call: true, ready: true, wrapping: true, break: true, offline: true };
+  }
+  return window._liveFloorOn;
+}
+
+function liveFloorLayout() {
+  try {
+    return localStorage.getItem('mb-live-layout') === 'strip' ? 'strip' : 'grid';
+  } catch (_) {
+    return 'grid';
+  }
+}
+
+function _syncLiveLayoutButtons() {
+  const strip = liveFloorLayout() === 'strip';
+  document.querySelectorAll('[data-live-layout]').forEach((btn) => {
+    btn.classList.toggle('is-on', btn.dataset.liveLayout === (strip ? 'strip' : 'grid'));
+  });
+}
+
+function _liveFlip(root, render) {
+  if (!root) {
+    render();
+    return;
+  }
+  const prev = new Map();
+  root.querySelectorAll('[data-live-id]').forEach((el) => {
+    prev.set(el.dataset.liveId, el.getBoundingClientRect());
+  });
+  render();
+  root.querySelectorAll('[data-live-id]').forEach((el) => {
+    const before = prev.get(el.dataset.liveId);
+    if (!before) {
+      el.classList.add('live-card--enter');
+      return;
+    }
+    const after = el.getBoundingClientRect();
+    const dx = before.left - after.left;
+    const dy = before.top - after.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    el.style.transform = `translate(${dx}px, ${dy}px)`;
+    el.style.transition = 'none';
+    requestAnimationFrame(() => {
+      el.style.transition = 'transform .45s cubic-bezier(.33,1,.68,1)';
+      el.style.transform = '';
+      el.addEventListener('transitionend', () => {
+        el.style.transition = '';
+        el.style.transform = '';
+      }, { once: true });
+    });
+  });
+  _syncLiveLayoutButtons();
+}
+
+function setLiveFloorLayout(mode) {
+  try { localStorage.setItem('mb-live-layout', mode === 'strip' ? 'strip' : 'grid'); } catch (_) {}
+  _syncLiveLayoutButtons();
+  if (typeof _paintDashLive === 'function') _paintDashLive();
+  if (typeof _supRenderCards === 'function') _supRenderCards();
+}
+
+function toggleLiveFloorStatus(st) {
+  const on = liveFloorFilter();
+  if (st === '*') liveFloorStatuses().forEach((k) => { on[k] = true; });
+  else if (Object.prototype.hasOwnProperty.call(on, st)) on[st] = !on[st];
+  if (typeof _paintDashLive === 'function') _paintDashLive();
+  if (typeof _supRenderCards === 'function') _supRenderCards();
+  if (typeof _supUpdateSummary === 'function') _supUpdateSummary();
+}
+
+let _dashLiveCache = [];
+let _dashLiveCamps = {};
+
 async function renderDashLiveAgents() {
   const live = document.getElementById('live-agents');
   if (!live) return;
@@ -1101,13 +1188,21 @@ async function renderDashLiveAgents() {
     sb(`agent_sessions?select=*&order=agent_name.asc${ff}`).catch(() => []),
     sb(`campaigns?select=id,name${ff}`).catch(() => []),
   ]);
-  const campName = {};
-  (Array.isArray(camps) ? camps : []).forEach((c) => { if (c?.id) campName[c.id] = c.name || ''; });
-  const rows = (Array.isArray(sessions) ? sessions : []).slice().sort((a, b) => {
+  _dashLiveCamps = {};
+  (Array.isArray(camps) ? camps : []).forEach((c) => { if (c?.id) _dashLiveCamps[c.id] = c.name || ''; });
+  _dashLiveCache = (Array.isArray(sessions) ? sessions : []).slice().sort((a, b) => {
     const byName = String(a.agent_name || '').localeCompare(String(b.agent_name || ''), 'tr');
     if (byName) return byName;
     return (_DASH_LIVE_ORDER[a.status] ?? 9) - (_DASH_LIVE_ORDER[b.status] ?? 9);
   });
+  _paintDashLive();
+}
+
+function _paintDashLive() {
+  const live = document.getElementById('live-agents');
+  if (!live) return;
+  const de = currentLang === 'de';
+  const rows = _dashLiveCache;
   const count = (st) => rows.filter((s) => s.status === st).length;
   const sub = document.getElementById('dash-live-sub');
   if (sub) {
@@ -1120,19 +1215,24 @@ async function renderDashLiveAgents() {
     live.innerHTML = `<div class="mb-empty-hint" style="font-size:13px;">${t('ui.no_active_agents')}</div>`;
     return;
   }
-  const chips = ['on_call', 'ready', 'wrapping', 'break', 'offline'].map((st) => {
-    const info = _DASH_LIVE_STATUS[st];
-    const label = de ? info.de : info.tr;
-    return `<span class="live-count live-count--${st}">${count(st)} ${label}</span>`;
-  }).join('');
+  const filter = liveFloorFilter();
+  const allLabel = de ? 'Alle' : 'Tümü';
+  const chips = `<button type="button" class="live-filter live-filter--all" onclick="toggleLiveFloorStatus('*')">${allLabel}</button>`
+    + liveFloorStatuses().map((st) => {
+      const info = _DASH_LIVE_STATUS[st];
+      const label = de ? info.de : info.tr;
+      const off = filter[st] === false ? ' inactive' : '';
+      return `<button type="button" class="live-filter${off}" style="--dot:${_LIVE_DOT[st]}" onclick="toggleLiveFloorStatus('${st}')"><span class="dot"></span><span class="label">${count(st)} ${label}</span></button>`;
+    }).join('');
+  const visible = rows.filter((s) => filter[s.status] !== false);
   const isAdmin = ['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '');
-  const cards = rows.map((s) => {
+  const cards = visible.map((s) => {
     const st = _DASH_LIVE_STATUS[s.status] ? s.status : 'offline';
     const info = _DASH_LIVE_STATUS[st];
     const label = de ? info.de : info.tr;
     const name = _dashLiveEsc(s.agent_name || '—');
     const initial = _dashLiveEsc((s.agent_name || '?').trim().charAt(0).toUpperCase());
-    const camp = _dashLiveEsc(campName[s.campaign_id] || '—');
+    const camp = _dashLiveEsc(_dashLiveCamps[s.campaign_id] || '—');
     const who = _dashLiveEsc(s.current_contact_name || '—');
     const phone = _dashLiveEsc(s.current_contact_phone || '—');
     const onCall = st === 'on_call';
@@ -1149,7 +1249,7 @@ async function renderDashLiveAgents() {
       <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','break')">${de ? 'Pause' : 'Mola'}</button>
       <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','offline')">${de ? 'Offline' : 'Çıkış'}</button>
     </div>` : '';
-    return `<article class="live-card live-card--${st}">
+    return `<article class="live-card live-card--${st}" data-live-id="${aid}">
       <div class="live-card-top">
         <div class="live-av">${initial}</div>
         <div style="min-width:0;flex:1;"><div class="live-name">${name}</div><div class="live-status">${label}</div></div>
@@ -1159,7 +1259,13 @@ async function renderDashLiveAgents() {
       ${actions}
     </article>`;
   }).join('');
-  live.innerHTML = `<div class="live-counts">${chips}</div><div class="live-grid">${cards}</div>`;
+  const boardCls = liveFloorLayout() === 'strip' ? 'live-strip' : 'live-grid';
+  const board = visible.length
+    ? `<div class="${boardCls}">${cards}</div>`
+    : `<div class="mb-empty-hint" style="font-size:13px;">${de ? 'Keine Agenten in dieser Auswahl.' : 'Bu seçimde temsilci yok.'}</div>`;
+  _liveFlip(live, () => {
+    live.innerHTML = `<div class="live-filters">${chips}</div>${board}`;
+  });
   if (window._dashLiveTimer) clearInterval(window._dashLiveTimer);
   window._dashLiveTimer = setInterval(() => {
     if (!document.getElementById('page-dashboard')?.classList.contains('active')) return;
@@ -1179,3 +1285,11 @@ toast(currentLang === 'de' ? `Status: ${_lbl}` : `Durum: ${_lbl}`, 'ok');
 loadDashboard();
 } catch(e) { toast('Hata: '+e.message,'err'); }
 }
+
+try {
+  window.setLiveFloorLayout = setLiveFloorLayout;
+  window.toggleLiveFloorStatus = toggleLiveFloorStatus;
+  window._liveFlip = _liveFlip;
+  window.liveFloorLayout = liveFloorLayout;
+  window.liveFloorFilter = liveFloorFilter;
+} catch (_) {}
