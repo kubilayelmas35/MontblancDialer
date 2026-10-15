@@ -95,13 +95,13 @@ window._telnyxRemoteStream = call.remoteStream || null;
 handleCallState('active', call.id);
 }
 if (state === 'ringing') { _telnyxCall = call; handleCallState('ringing', call.id); }
+if (call?.amd_result) handleAMD(call.amd_result);
 if (state === 'done' || state === 'destroy' || state === 'hangup') {
 const dur = callStart ? Math.round((Date.now()-callStart)/1000) : 0;
 _telnyxCall = null; callStart = null;
 window._telnyxRemoteStream = null;
 handleCallEnd(dur);
 }
-if (call?.amd_result) handleAMD(call.amd_result);
 }
 });
 updateConnectionStatus('connecting');
@@ -199,9 +199,18 @@ dialing: { tr:'📞 Aranıyor...', de:'Wählt...' },
 ringing: { tr:'🔔 Çalıyor...', de:'Klingelt...' },
 active:  { tr:'Aramada', de:'Im Gespräch' },
 };
-if (state === 'active' && dialerStatus !== 'on_call') {
+if (state === 'active') {
+_outboundAnswered = true;
+if (currentContact && typeof showCustomerCard === 'function') showCustomerCard(currentContact);
+if (dialerStatus !== 'on_call') {
 setDialerStatus('on_call');
-updateSessionInDB('on_call');
+const nm = [currentContact?.first_name, currentContact?.last_name].filter(Boolean).join(' ') || null;
+updateSessionInDB('on_call', {
+  current_contact_name: nm,
+  current_contact_phone: currentContact?.phone || null,
+  call_started_at: new Date().toISOString(),
+});
+}
 } else if (subLabels[state] && label) {
 label.textContent = subLabels[state][currentLang] || subLabels[state].tr;
 }
@@ -209,7 +218,7 @@ label.textContent = subLabels[state][currentLang] || subLabels[state].tr;
 
 function handleAMD(result) {
 amdResult = result;
-if (result === 'machine') {
+if (result === 'machine' && !_outboundAnswered) {
 toast('🤖 ' + t('telnyx.amd_voicemail'), 'ok');
 sendToRTC('MB_HANGUP');
 autoSaveVoicemail();
@@ -233,24 +242,26 @@ await sb(`contacts?id=eq.${currentContact.id}`, { method:'PATCH', prefer:'return
 body:JSON.stringify({ status:'voicemail', last_called_at:new Date().toISOString() })
 });
 } catch(e) { console.error(e); }
-currentContact = null;
-clearCustomerCard();
-if (dialerStatus === 'on_call' || dialerStatus === 'ready') {
-setDialerStatus('ready');
-updateSessionInDB('ready');
-setTimeout(() => dialNext(), 1500);
+_voicemailAutoLogged = true;
+if (dialerStatus === 'on_call' || dialerStatus === 'calling') {
+setDialerStatus('wrapping');
+updateSessionInDB('wrapping');
 }
 }
 
 function handleCallEnd(duration) {
-if (amdResult === 'machine') return;
+_outboundWaitGen++;
 _outboundDialPending = false;
+const wasAttempt = dialerStatus === 'on_call' || dialerStatus === 'calling';
 callSeconds  = duration || callSeconds;
 activeCallId = null;
-if (dialerStatus === 'on_call') {
+if (wasAttempt) {
+if (currentContact && typeof showCustomerCard === 'function') showCustomerCard(currentContact);
 setDialerStatus('wrapping');
 updateSessionInDB('wrapping');
 }
+_outboundAnswered = false;
+if (amdResult === 'machine') amdResult = null;
 }
 
 async function handleTelnyxWebhook(data) {

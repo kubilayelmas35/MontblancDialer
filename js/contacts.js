@@ -564,6 +564,7 @@ async function getNextContact(campaignIds = null) {
 }
 
 function showCustomerCard(c) {
+  if (typeof hideOutboundWait === 'function') hideOutboundWait();
   if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
   document.getElementById('customer-card')?.classList.remove('customer-card--empty');
   document.getElementById('cust-empty').style.display='none';
@@ -739,6 +740,7 @@ async function saveContactEdits() {
 }
 
 function clearCustomerCard() {
+  if (typeof hideOutboundWait === 'function') hideOutboundWait();
   document.getElementById('customer-card')?.classList.add('customer-card--empty');
   document.getElementById('cust-empty').style.display='';
   document.getElementById('cust-data').style.display='none';

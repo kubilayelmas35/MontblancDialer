@@ -96,12 +96,16 @@ let _precallOk       = false;
 let _precallDone     = false;
 
 // Dialer state
-let dialerStatus    = 'offline'; // offline|ready|on_call|wrapping|break
+let dialerStatus    = 'offline'; // offline|ready|calling|on_call|wrapping|break
 let _breakStartedAt = null;      // Date.now() when entering break
 let _breakCode      = null;      // aux / mola türü (modalden)
 let _breakCardTick  = null;      // setInterval id — boş kartta süre
 let _hangupUiTick   = null;      // Kapat / Sonuçlandır etiketi (hat düştüyse)
 let _outboundDialPending = false; // MB_CALL sonrası Telnyx henüz ringing vermeden
+let _outboundAnswered = false;    // Karşı taraf açtıysa true
+let _outboundWaitGen = 0;         // Bekleme animasyonunu iptal etmek için
+let _dialNextLock = false;
+let _voicemailAutoLogged = false;
 // Mikrofon çekmecesi (ses göstergesi / hat girişi)
 let _micDrawerStream = null;
 let _micDrawerInputCtx = null;

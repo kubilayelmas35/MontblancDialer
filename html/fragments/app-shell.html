@@ -504,11 +504,12 @@
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
 <div>
-<div class="form-label" style="margin-bottom:6px;" data-tr="Arama hızı (eş zamanlı hat)" data-de="Wähltempo (gleichzeitige Leitungen)">Arama hızı (eş zamanlı hat)</div>
+<div class="form-label" style="margin-bottom:6px;" data-tr="Arama hızı" data-de="Wähltempo">Arama hızı</div>
 <div class="speed-row">
 <input type="range" min="1" max="10" value="2" id="cd-speed" oninput="document.getElementById('cd-speed-v').textContent=this.value" onchange="saveSpeed(this.value)">
 <div class="speed-val" id="cd-speed-v">2</div>
 </div>
+<div style="font-size:11px;color:var(--text-3);margin-top:6px;line-height:1.4;" data-tr="Her temsilci aynı anda tek numarayı arar. Hız artsa da ikinci hat açılmaz." data-de="Jeder Agent ruft gleichzeitig nur eine Nummer an. Ein höheres Tempo öffnet keine zweite Leitung.">Her temsilci aynı anda tek numarayı arar. Hız artsa da ikinci hat açılmaz.</div>
 </div>
 <div>
 <div class="form-label" style="margin-bottom:6px;" data-tr="Temsilcilere bildir" data-de="Agenten benachrichtigen">Temsilcilere bildir</div>
@@ -1239,7 +1240,7 @@ TEST MODU
 </div>
 <div class="cust-empty-copy">
 <div class="cust-empty-text" data-tr="Hazır ol — müşteri bilgileri burada görünecek" data-de="Bereit schalten — Kundeninformationen erscheinen hier">Hazır ol — müşteri bilgileri burada görünecek</div>
-<div class="cust-empty-sub" data-tr="Arama başladığında kart otomatik dolacak" data-de="Die Karte wird automatisch ausgefüllt">Arama başladığında kart otomatik dolacak</div>
+<div class="cust-empty-sub" data-tr="Karşı taraf açınca müşteri bilgileri burada açılır" data-de="Kundendaten erscheinen, sobald abgenommen wird">Karşı taraf açınca müşteri bilgileri burada açılır</div>
 <div id="cust-empty-inbound-cue" class="cust-empty-inbound-cue" style="display:none;" role="alert" aria-live="assertive">
 <div class="cust-empty-inbound-cue__inner">
 <span class="cust-empty-inbound-cue__pulse" aria-hidden="true"></span>
@@ -1290,6 +1291,12 @@ TEST MODU
 <button type="button" class="btn btn-ghost btn-sm" id="dialer-incoming-btn-owner" style="display:none;" onclick="inboundTestTransferToOwner()">—</button>
 <button type="button" class="btn btn-ghost btn-sm" id="dialer-incoming-btn-addtoggle" style="display:none;" onclick="inboundTestToggleAddPanel()" data-tr="Kayıtlıya ekle" data-de="Zu Kontakt">Kayıtlıya ekle</button>
 </div>
+</div>
+</div>
+<div id="cust-empty-outbound-wait" class="cust-outbound-wait" style="display:none;" aria-hidden="true">
+<div class="cust-outbound-wait__rings" aria-hidden="true"><span></span><span></span><span></span><i class="ph ph-phone-outgoing"></i></div>
+<div class="cust-outbound-wait__title" data-tr="Telefonun açılması bekleniyor" data-de="Warten auf Annahme">Telefonun açılması bekleniyor</div>
+<div class="cust-outbound-wait__sub" data-tr="Karşı taraf açınca müşteri kartı burada açılır" data-de="Die Kundenkarte öffnet sich, sobald abgenommen wird">Karşı taraf açınca müşteri kartı burada açılır</div>
 </div>
 </div>
 <div id="cust-data" style="display:none;">
