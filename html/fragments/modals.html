@@ -14,7 +14,8 @@
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Kampanya Adı *" data-de="Kampagnenname *">Kampanya Adı *</label>
-<input class="form-input" id="nc-name" placeholder="Wärmepumpe Q2">
+<input class="form-input" id="nc-name" placeholder="Isı pompası Q2" data-tr="Isı pompası Q2" data-de="Wärmepumpe Q2" oninput="this.classList.remove('is-invalid');const e=document.getElementById('nc-name-err');if(e)e.hidden=true;">
+<div id="nc-name-err" class="nc-inline-err" hidden></div>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Hat DID (+49...)" data-de="Anschluss-DID (+49...)">Hat DID (+49...)</label>

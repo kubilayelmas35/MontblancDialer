@@ -525,7 +525,7 @@ function renderDashTerminDonut(appts) {
   if (!data.length) {
     labels.push(t('dash.donut_no_data'));
     data.push(1);
-    colors.push(muted);
+    colors.push('#e5e7eb');
   }
   const sliceBorder = _dashCssVar('--bg-2', '#ffffff');
   window._dashChartOutcomes = new Chart(canvas, {
@@ -662,10 +662,10 @@ document.getElementById('d-appt').textContent   = appts;
 document.getElementById('d-cb').textContent     = cbs;
 document.getElementById('d-vm').textContent     = vms;
 document.getElementById('d-cost').textContent   = `$${cost.toFixed(2)}`;
-document.getElementById('d-talk').textContent   = `${Math.floor(talk/60)}dk`;
-document.getElementById('d-calls-m').textContent= isTr
-  ? `${total} çağrı ${rangeSuffix}`
-  : `${total} Anrufe ${rangeSuffix}`;
+const talkMin = Math.floor(talk/60);
+document.getElementById('d-talk').textContent   = isTr ? `${talkMin}dk` : `${talkMin} Min`;
+const callWord = isTr ? 'çağrı' : (total === 1 ? 'Anruf' : 'Anrufe');
+document.getElementById('d-calls-m').textContent= `${total} ${callWord} ${rangeSuffix}`;
 document.getElementById('d-appt-m').textContent = total > 0
   ? (isTr ? `%${((appts / total) * 100).toFixed(1)} dönüşüm` : `${((appts / total) * 100).toFixed(1)}% Quote`)
   : (isTr ? '%0 dönüşüm' : '0% Quote');
@@ -766,7 +766,7 @@ return `<tr>
 <td><span style="font-weight:800;color:${convPct>=20?'var(--green)':convPct>=10?'var(--yellow)':'var(--red)'};">${convPct}%</span></td>
 </tr>`;
 }).join('') + `<tr style="background:var(--bg-3);font-weight:800;border-top:2px solid var(--border);">
-<td colspan="2" style="font-size:12px;font-weight:800;">TOPLAM</td>
+<td colspan="2" style="font-size:12px;font-weight:800;">${typeof t === 'function' ? t('stats.total') : 'TOPLAM'}</td>
 <td class="td-mono">${totAll}</td>
 <td><span class="badge badge-green">${apAll}</span></td>
 <td><span class="badge badge-red">${ngAll}</span></td>

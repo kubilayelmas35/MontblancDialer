@@ -30,11 +30,10 @@ async function attachCampaignPeople() {
     });
     (sessions || []).forEach((s) => {
       if (s.campaign_id !== c.id) return;
-      if (!s.status || s.status === 'offline') return;
       const id = s.agent_id;
       if (!id) return;
       const prev = people.get(id) || { agent_id: id, name: '', assigned: false, live: false };
-      prev.live = true;
+      if (s.status && s.status !== 'offline') prev.live = true;
       if (!prev.name) {
         const sessionName = String(s.agent_name || '');
         prev.name = nameById[id] || (/^[0-9a-f-]{8}-/i.test(sessionName) ? '' : sessionName);
@@ -92,10 +91,10 @@ const pauseLabel = c.status==='active'
 return `<div class="camp-card" onclick="openCampDetail('${c.id}')">
 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
 <div><div class="camp-name">${esc(c.name)}</div><div class="camp-did">${esc(didText)}</div></div>
-<div style="display:flex;gap:4px;flex-shrink:0;" onclick="event.stopPropagation()">
+<div style="display:flex;gap:12px;flex-shrink:0;align-items:center;" onclick="event.stopPropagation()">
 ${sb2}
-<button class="icon-btn" onclick="openCampFieldSettings('${c.id}')" title="${esc(campT('camp.field.title','Alan Ayarları'))}"><i class="ph ph-gear"></i></button>
-<button class="icon-btn" onclick="deleteCampaign('${c.id}')" style="border-color:var(--red);color:var(--red);" title="Sil"><i class="ph ph-trash"></i></button>
+<button class="icon-btn" onclick="openCampFieldSettings('${c.id}')" title="${esc(campT('camp.field.title','Alan Ayarları'))}" aria-label="${esc(campT('camp.field.title','Alan Ayarları'))}"><i class="ph ph-gear" aria-hidden="true"></i></button>
+<button class="icon-btn" onclick="deleteCampaign('${c.id}')" style="border-color:var(--red);color:var(--red);margin-left:4px;" title="${esc(campT('camp.delete','Sil'))}" aria-label="${esc(campT('camp.delete','Sil'))}"><i class="ph ph-trash" aria-hidden="true"></i></button>
 </div>
 </div>
 <div class="camp-kpi">
@@ -193,14 +192,31 @@ const NC_LABEL_DE = {
   'Arama Sayısı': 'Anrufanzahl',
   'Notlar': 'Notizen',
 };
+const NC_LABEL_TR = {
+  'PLZ': 'Posta kodu',
+};
 
 function ncLabelShown(label) {
   const raw = String(label || '');
-  if (typeof currentLang === 'undefined' || currentLang !== 'de') return raw;
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  if (!de) {
+    if (NC_LABEL_TR[raw]) return NC_LABEL_TR[raw];
+    return raw;
+  }
   if (NC_LABEL_DE[raw]) return NC_LABEL_DE[raw];
   const m = raw.match(/^Özel Alan (\d+)$/);
   if (m) return `Eigenes Feld ${m[1]}`;
   return raw;
+}
+
+function ncLabelCanonical(shown) {
+  const s = String(shown || '').trim();
+  if (s === 'Posta kodu') return 'PLZ';
+  const hit = Object.entries(NC_LABEL_DE).find(([, de]) => de === s);
+  if (hit) return hit[0];
+  const m = s.match(/^Eigenes Feld (\d+)$/);
+  if (m) return `Özel Alan ${m[1]}`;
+  return s;
 }
 
 function openNewCampModal() {
@@ -213,6 +229,9 @@ updateCampPreview();
 openModal('m-new-camp');
 setTimeout(renderNcTemplateSelect, 50);
 document.getElementById('nc-name').value = '';
+document.getElementById('nc-name')?.classList.remove('is-invalid');
+const ncNameErr = document.getElementById('nc-name-err');
+if (ncNameErr) ncNameErr.hidden = true;
 document.getElementById('nc-did').value = '';
 document.getElementById('nc-desc').value = '';
 document.getElementById('nc-speed').value = 1;
@@ -242,8 +261,8 @@ style="display:flex;align-items:center;gap:5px;padding:5px 7px;background:var(--
 <input type="checkbox" ${f.show?'checked':''} ${f.locked?'disabled':''}
 onchange="_ncFields[${i}].show=this.checked;updateCampPreview()" title="Göster/Gizle">
 <input class="form-input" value="${ncLabelShown(f.label)}" style="flex:1;font-size:12px;padding:3px 7px;"
-oninput="_ncFields[${i}].label=this.value;updateCampPreview()" placeholder="Alan adı">
-<select class="form-input" style="width:85px;font-size:11px;padding:3px;"
+oninput="_ncFields[${i}].label=ncLabelCanonical(this.value);updateCampPreview()" placeholder="Alan adı">
+<select class="form-input" style="width:152px;flex-shrink:0;font-size:11px;padding:3px;"
 onchange="_ncFields[${i}].type=this.value;updateCampPreview()">
 <option value="text" ${f.type==='text'?'selected':''} data-tr="Metin" data-de="Text">Metin</option>
 <option value="number" ${f.type==='number'?'selected':''} data-tr="Sayı" data-de="Zahl">Sayı</option>
@@ -251,7 +270,7 @@ onchange="_ncFields[${i}].type=this.value;updateCampPreview()">
 <option value="boolean" ${f.type==='boolean'?'selected':''} data-tr="Evet/Hayır" data-de="Ja/Nein">Evet/Hayır</option>
 <option value="select" ${f.type==='select'?'selected':''} data-tr="Açılır Menü" data-de="Auswahl">Açılır Menü</option>
 <option value="multiselect" ${f.type==='multiselect'?'selected':''} data-tr="Çoktan Seçmeli" data-de="Mehrfachauswahl">Çoktan Seçmeli</option>
-<option value="checkbox" ${f.type==='checkbox'?'selected':''} data-tr="Checkbox" data-de="Kontrollkästchen">Checkbox</option>
+<option value="checkbox" ${f.type==='checkbox'?'selected':''} data-tr="Onay kutusu" data-de="Kontrollkästchen">Onay kutusu</option>
 </select>
 ${f.locked
 ? '<i class="ph ph-lock-simple" style="font-size:13px;color:var(--text-3);"></i>'
@@ -382,7 +401,16 @@ const name = document.getElementById('nc-name').value.trim();
 const did  = document.getElementById('nc-did').value.trim();
 const desc = document.getElementById('nc-desc').value.trim();
 const spd  = parseInt(document.getElementById('nc-speed').value)||1;
-if (!name) { toast('Kampanya adı gerekli','err'); return; }
+const nameEl = document.getElementById('nc-name');
+const nameErr = document.getElementById('nc-name-err');
+if (!name) {
+  if (nameEl) { nameEl.classList.add('is-invalid'); nameEl.focus(); }
+  if (nameErr) { nameErr.hidden = false; nameErr.textContent = campT('camp.name.required','Kampanya adı gerekli'); }
+  toast(campT('camp.name.required','Kampanya adı gerekli'),'err');
+  return;
+}
+if (nameEl) nameEl.classList.remove('is-invalid');
+if (nameErr) nameErr.hidden = true;
 const didNorm = did.replace(/[\s()-]/g, '');
 if (did && (typeof mbIsE164 !== 'function' || !mbIsE164(did))) {
   toast(campT('camp.did.bad','DID + ile başlamalı, örnek +49301234567'), 'err');
@@ -396,7 +424,7 @@ if (didNorm) {
 }
 const fieldConfig = {};
 _ncFields.forEach(f => {
-fieldConfig[f.key] = {show:f.show, label:ncLabelShown(f.label), type:f.type, locked:f.locked||false};
+fieldConfig[f.key] = {show:f.show, label:f.label, type:f.type, locked:f.locked||false};
 });
 try {
 const created = await sb('campaigns', {
@@ -514,22 +542,25 @@ return `<div style="padding:6px 8px;background:var(--bg-2);border:1px solid var(
 <div style="display:flex;align-items:center;gap:6px;">
 <input type="checkbox" ${f.show?'checked':''} ${f.locked?'disabled':''}
 onchange="_fsFields[${i}].show=this.checked;updateFsPreview()">
-<input class="form-input" value="${f.label||''}" style="flex:1;font-size:12px;padding:3px 7px;"
-oninput="_fsFields[${i}].label=this.value;updateFsPreview()" placeholder="Alan adı">
-<select class="form-input" style="width:80px;font-size:11px;padding:3px;"
+<input class="form-input" value="${typeof ncLabelShown==='function'?ncLabelShown(f.label||''):(f.label||'')}" style="flex:1;font-size:12px;padding:3px 7px;min-width:0;"
+oninput="_fsFields[${i}].label=ncLabelCanonical(this.value);updateFsPreview()" placeholder="Alan adı">
+<select class="form-input" style="width:118px;flex-shrink:0;font-size:11px;padding:3px;"
 onchange="_fsFields[${i}].type=this.value;renderFsFieldList();updateFsPreview()">
-<option value="text" ${f.type==='text'?'selected':''}>Metin</option>
-<option value="number" ${f.type==='number'?'selected':''}>Sayı</option>
-<option value="date" ${f.type==='date'?'selected':''}>Tarih</option>
-<option value="boolean" ${f.type==='boolean'?'selected':''}>Evet/Hayır</option>
-<option value="select" ${f.type==='select'?'selected':''}>Açılır Menü</option>
-<option value="multiselect" ${f.type==='multiselect'?'selected':''}>Çoktan Seçmeli</option>
-<option value="checkbox" ${f.type==='checkbox'?'selected':''}>Checkbox</option>
+<option value="text" ${f.type==='text'?'selected':''} data-tr="Metin" data-de="Text">Metin</option>
+<option value="number" ${f.type==='number'?'selected':''} data-tr="Sayı" data-de="Zahl">Sayı</option>
+<option value="date" ${f.type==='date'?'selected':''} data-tr="Tarih" data-de="Datum">Tarih</option>
+<option value="boolean" ${f.type==='boolean'?'selected':''} data-tr="Evet/Hayır" data-de="Ja/Nein">Evet/Hayır</option>
+<option value="select" ${f.type==='select'?'selected':''} data-tr="Açılır Menü" data-de="Auswahl">Açılır Menü</option>
+<option value="multiselect" ${f.type==='multiselect'?'selected':''} data-tr="Çoktan Seçmeli" data-de="Mehrfachauswahl">Çoktan Seçmeli</option>
+<option value="checkbox" ${f.type==='checkbox'?'selected':''} data-tr="Onay kutusu" data-de="Kontrollkästchen">Onay kutusu</option>
 </select>
-${f.locked?'<span style="font-size:10px;color:var(--text-3);">Kilitli</span>':''}
+${f.locked?`<span style="flex-shrink:0;white-space:nowrap;font-size:10px;color:var(--text-3);">${typeof currentLang!=='undefined'&&currentLang==='de'?'Gesperrt':'Kilitli'}</span>`:''}
 </div>${optHtml}
 </div>`;
 }).join('');
+if (typeof currentLang !== 'undefined' && currentLang === 'de') {
+  el.querySelectorAll('[data-de]').forEach((opt) => { opt.textContent = opt.getAttribute('data-de'); });
+}
 }
 
 function updateFsPreview() {
@@ -541,7 +572,7 @@ el.innerHTML = `
 <div style="font-size:12px;font-weight:800;padding:7px 10px;background:var(--accent);color:#fff;border-radius:6px;margin-bottom:8px;">📞 +49 176 1234567</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
 ${vis.map(f=>`<div style="background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:5px 7px;">
-<div style="font-size:9px;color:var(--text-3);font-weight:700;text-transform:uppercase;">${f.label}</div>
+<div style="font-size:9px;color:var(--text-3);font-weight:700;">${typeof ncLabelShown==='function'?ncLabelShown(f.label):f.label}</div>
 <div style="font-size:11px;font-weight:600;margin-top:1px;">${sv(f.type)}</div>
 </div>`).join('')}
 </div>`;
@@ -701,22 +732,25 @@ return `<div style="padding:5px 7px;background:var(--bg-2);border:1px solid var(
 <div style="display:flex;align-items:center;gap:5px;">
 <input type="checkbox" ${f.show?'checked':''} ${f.locked?'disabled':''}
 onchange="_fsFields[${i}].show=this.checked;updateCdFsPreview()">
-<input class="form-input" value="${f.label||''}" style="flex:1;font-size:11px;padding:2px 6px;"
-oninput="_fsFields[${i}].label=this.value;updateCdFsPreview()">
-<select class="form-input" style="width:80px;font-size:10px;padding:2px;"
+<input class="form-input" value="${typeof ncLabelShown==='function'?ncLabelShown(f.label||''):(f.label||'')}" style="flex:1;font-size:11px;padding:2px 6px;min-width:0;"
+oninput="_fsFields[${i}].label=ncLabelCanonical(this.value);updateCdFsPreview()">
+<select class="form-input" style="width:118px;flex-shrink:0;font-size:10px;padding:2px;"
 onchange="_fsFields[${i}].type=this.value;renderCdFsFieldList();updateCdFsPreview()">
-<option value="text" ${f.type==='text'?'selected':''}>Metin</option>
-<option value="number" ${f.type==='number'?'selected':''}>Sayı</option>
-<option value="date" ${f.type==='date'?'selected':''}>Tarih</option>
-<option value="boolean" ${f.type==='boolean'?'selected':''}>Evet/Hayır</option>
-<option value="select" ${f.type==='select'?'selected':''}>Açılır Menü</option>
-<option value="multiselect" ${f.type==='multiselect'?'selected':''}>Çoktan Seçmeli</option>
-<option value="checkbox" ${f.type==='checkbox'?'selected':''}>Checkbox</option>
+<option value="text" ${f.type==='text'?'selected':''} data-tr="Metin" data-de="Text">Metin</option>
+<option value="number" ${f.type==='number'?'selected':''} data-tr="Sayı" data-de="Zahl">Sayı</option>
+<option value="date" ${f.type==='date'?'selected':''} data-tr="Tarih" data-de="Datum">Tarih</option>
+<option value="boolean" ${f.type==='boolean'?'selected':''} data-tr="Evet/Hayır" data-de="Ja/Nein">Evet/Hayır</option>
+<option value="select" ${f.type==='select'?'selected':''} data-tr="Açılır Menü" data-de="Auswahl">Açılır Menü</option>
+<option value="multiselect" ${f.type==='multiselect'?'selected':''} data-tr="Çoktan Seçmeli" data-de="Mehrfachauswahl">Çoktan Seçmeli</option>
+<option value="checkbox" ${f.type==='checkbox'?'selected':''} data-tr="Onay kutusu" data-de="Kontrollkästchen">Onay kutusu</option>
 </select>
-${f.locked?'<span style="font-size:9px;color:var(--text-3);">Kilitli</span>':`<button onclick="_fsFields.splice(${i},1);renderCdFsFieldList();updateCdFsPreview()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`}
+${f.locked?`<span style="flex-shrink:0;white-space:nowrap;font-size:10px;color:var(--text-3);">${typeof currentLang!=='undefined'&&currentLang==='de'?'Gesperrt':'Kilitli'}</span>`:`<button onclick="_fsFields.splice(${i},1);renderCdFsFieldList();updateCdFsPreview()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;flex-shrink:0;">✕</button>`}
 </div>${optHtml}
 </div>`;
 }).join('');
+if (typeof currentLang !== 'undefined' && currentLang === 'de') {
+  el.querySelectorAll('[data-de]').forEach((opt) => { opt.textContent = opt.getAttribute('data-de'); });
+}
 }
 
 function addFsField() {
@@ -732,7 +766,7 @@ const sv = t=>t==='number'?'123':t==='date'?'01.01.2024':t==='boolean'?'Evet':'�
 el.innerHTML = `<div style="font-size:11px;font-weight:800;padding:5px 8px;background:var(--accent);color:#fff;border-radius:5px;margin-bottom:6px;"><i class="ph ph-phone"></i> +49 176 1234567</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
 ${vis.map(f=>`<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;">
-<div style="font-size:8px;color:var(--text-3);text-transform:uppercase;">${f.label}</div>
+<div style="font-size:8px;color:var(--text-3);">${typeof ncLabelShown==='function'?ncLabelShown(f.label):f.label}</div>
 <div style="font-size:11px;font-weight:600;">${sv(f.type)}</div></div>`).join('')}
 </div>`;
 }

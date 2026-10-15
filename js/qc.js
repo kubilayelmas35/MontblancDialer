@@ -71,6 +71,34 @@ function setQcTab(tab) {
 
 function filterQcTable() { renderQcTable(); }
 
+const QC_CALL_STATE = new Set(['negative', 'no_answer', 'calling', 'callback', 'callback_requested', 'voicemail', 'dnc', 'pending', 'new']);
+
+function qcDurumView(contact, outcome) {
+  const status = String(contact?.status || '').trim();
+  const statusKey = status.toLowerCase().replace(/\s+/g, '_');
+  const ignore = !status || QC_CALL_STATE.has(statusKey) || QC_CALL_STATE.has(status.toLowerCase());
+  let raw = status;
+  if (outcome === 'appointment' && ignore) raw = 'qc bekleniyor';
+  else if (outcome === 'appointment_done' && ignore) raw = 'başarılı';
+  const resultKey = typeof contactStatusToAppointmentResult === 'function' ? contactStatusToAppointmentResult(raw) : raw;
+  const resultCfg = window._qcResultMap?.[resultKey];
+  if (resultCfg) {
+    const text = typeof mbResultLabel === 'function' ? mbResultLabel(resultCfg.key, resultCfg.label) : (resultCfg.label || raw);
+    return { text, color: resultCfg.color || 'var(--text-3)', key: resultKey };
+  }
+  const keyMap = {
+    negative: 'qc.status.negative',
+    no_answer: 'qc.status.no_answer',
+    calling: 'qc.status.calling',
+    callback: 'qc.status.callback',
+    voicemail: 'qc.status.voicemail',
+    dnc: 'qc.status.dnc',
+  };
+  const i18nKey = keyMap[statusKey] || keyMap[String(raw || '').toLowerCase()] || '';
+  if (i18nKey && typeof t === 'function') return { text: t(i18nKey), color: 'var(--text-3)', key: resultKey };
+  return { text: raw || '—', color: 'var(--text-3)', key: resultKey };
+}
+
 function renderQcTable() {
   const tbody = document.getElementById('qc-tbody');
   if (!tbody) return;
@@ -98,11 +126,9 @@ function renderQcTable() {
   tbody.innerHTML = list.map(r => {
     const contact = r.contacts||{};
     const dt = r.started_at ? new Date(r.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
-    const rawDurum = contact.status || (r.outcome === 'appointment' ? 'qc bekleniyor' : (r.outcome || '—'));
-    const resultKey = contactStatusToAppointmentResult(rawDurum);
-    const resultCfg = window._qcResultMap?.[resultKey];
-    const durum = resultCfg?.label || rawDurum;
-    const durumColor = resultCfg?.color || 'var(--text-3)';
+    const durumView = qcDurumView(contact, r.outcome);
+    const durum = durumView.text;
+    const durumColor = durumView.color;
     const name = `${contact.first_name||''} ${contact.last_name||''}`.trim()||'—';
     const agentName = r.users?.name || r.agent_id?.slice(0,8)||'—';
     const campName = r.campaigns?.name || r.campaign_id?.slice(0,8)||'—';
@@ -184,7 +210,7 @@ ${hasCustomers ? `<div style="margin-top:10px;">
 <div style="margin-top:10px;">
   <label class="form-label">Sonuç</label>
   <select class="form-input" id="qc-status-select" style="width:100%;">
-    ${(window._qcResultCfg || []).map(s => `<option value="${s.key}" ${contactStatusToAppointmentResult(contact.status|| (r.outcome === 'appointment' ? 'qc bekleniyor' : r.outcome))===s.key?'selected':''}>${s.label}</option>`).join('')}
+    ${(window._qcResultCfg || []).map(s => `<option value="${s.key}" ${qcDurumView(contact, r.outcome).key===s.key?'selected':''}>${typeof mbResultLabel==='function'?mbResultLabel(s.key, s.label):s.label}</option>`).join('')}
   </select>
 </div>
 <div style="margin-top:12px;">

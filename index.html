@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=8.37">
+<link rel="stylesheet" href="css/styles.css?v=8.38">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -39,7 +39,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v8.37 — 2026</div>
+<div class="login-version">v8.38 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -319,7 +319,7 @@
 </button>
 <button class="sb-item" onclick="navigate('wiedervorlage')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
-<span data-tr="Tüm aranacaklar" data-de="Alle Rückrufe">Tüm aranacaklar</span>
+<span data-tr="Aranacaklar" data-de="Wiedervorlage">Aranacaklar</span>
 <span class="sb-badge" id="sb-badge-wv" style="display:none;background:var(--yellow);color:#000;">0</span>
 </button>
 <button class="sb-item" onclick="navigate('takvim')">
@@ -399,7 +399,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v8.37</div>
+<div class="sb-ver">MontBlanc v8.38</div>
 </div>
 </nav>
 <main id="main">
@@ -472,13 +472,13 @@
 </div>
 <div class="card" id="dash-job-market-kpi" style="display:none;padding:12px;">
 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
-<div style="font-size:13px;font-weight:800;">İş Platformu KPI</div>
-<button class="btn btn-ghost btn-sm" onclick="navigate('jobmarket')">Detay</button>
+<div style="font-size:13px;font-weight:800;" data-tr="İş Platformu KPI" data-de="Auftragsplattform-KPI">İş Platformu KPI</div>
+<button class="btn btn-ghost btn-sm" onclick="navigate('jobmarket')" data-tr="Detay" data-de="Details">Detay</button>
 </div>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">
-<div style="padding:8px;background:var(--bg-3);border-radius:8px;"><div style="font-size:11px;color:var(--text-3);">Yayınlanan</div><div id="kpi-job-published" style="font-size:18px;font-weight:800;">0</div></div>
-<div style="padding:8px;background:var(--bg-3);border-radius:8px;"><div style="font-size:11px;color:var(--text-3);">QC Bekleyen</div><div id="kpi-job-qc" style="font-size:18px;font-weight:800;">0</div></div>
-<div style="padding:8px;background:var(--bg-3);border-radius:8px;"><div style="font-size:11px;color:var(--text-3);">Tamamlanan</div><div id="kpi-job-done" style="font-size:18px;font-weight:800;">0</div></div>
+<div style="padding:8px;background:var(--bg-3);border-radius:8px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Yayınlanan" data-de="Veröffentlicht">Yayınlanan</div><div id="kpi-job-published" style="font-size:18px;font-weight:800;">0</div></div>
+<div style="padding:8px;background:var(--bg-3);border-radius:8px;"><div style="font-size:11px;color:var(--text-3);" data-tr="QC Bekleyen" data-de="QC ausstehend">QC Bekleyen</div><div id="kpi-job-qc" style="font-size:18px;font-weight:800;">0</div></div>
+<div style="padding:8px;background:var(--bg-3);border-radius:8px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Tamamlanan" data-de="Abgeschlossen">Tamamlanan</div><div id="kpi-job-done" style="font-size:18px;font-weight:800;">0</div></div>
 </div>
 </div>
 <div class="dash-analytics-grid">
@@ -558,13 +558,13 @@
 </div>
 </div>
 <div style="display:flex;gap:0;margin:-4px 0 16px;border-bottom:2px solid var(--border);overflow-x:auto;">
-<button class="cd-tab active" data-tab="genel" onclick="switchCampTab('genel')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--accent);white-space:nowrap;">Genel</button>
-<button class="cd-tab" data-tab="alanlar" onclick="switchCampTab('alanlar')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Alanlar</button>
-<button class="cd-tab" data-tab="termin-form" onclick="switchCampTab('termin-form')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Randevu Formu</button>
-<button class="cd-tab" data-tab="script" onclick="switchCampTab('script')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Script</button>
-<button class="cd-tab" data-tab="arama" onclick="switchCampTab('arama')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Arama</button>
+<button class="cd-tab active" data-tab="genel" onclick="switchCampTab('genel')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--accent);white-space:nowrap;" data-tr="Genel" data-de="Allgemein">Genel</button>
+<button class="cd-tab" data-tab="alanlar" onclick="switchCampTab('alanlar')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Alanlar" data-de="Felder">Alanlar</button>
+<button class="cd-tab" data-tab="termin-form" onclick="switchCampTab('termin-form')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Randevu Formu" data-de="Terminformular">Randevu Formu</button>
+<button class="cd-tab" data-tab="script" onclick="switchCampTab('script')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Script" data-de="Skript">Script</button>
+<button class="cd-tab" data-tab="arama" onclick="switchCampTab('arama')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Arama" data-de="Anruf">Arama</button>
 <button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="QC / Sonuç" data-de="QC / Prüfung">QC / Sonuç</button>
-<button class="cd-tab" data-tab="bildirim" onclick="switchCampTab('bildirim')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Bildirim</button>
+<button class="cd-tab" data-tab="bildirim" onclick="switchCampTab('bildirim')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Bildirim" data-de="Hinweis">Bildirim</button>
 <button class="cd-tab" data-tab="agentler" onclick="switchCampTab('agentler')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Temsilciler" data-de="Agenten">Temsilciler</button>
 </div>
 <div id="cd-tab-genel" class="cd-tab-panel">
@@ -670,15 +670,15 @@
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-timer"></i> <span data-tr="Sonuç süresi" data-de="Nacharbeit">Sonuç süresi</span></div>
 <div style="display:flex;gap:8px;align-items:center;">
 <input type="checkbox" id="cd-acw-enabled" style="width:16px;height:16px;">
-<label for="cd-acw-enabled" style="font-size:12px;">Sonuç girme süresi kısıtla</label>
+<label for="cd-acw-enabled" style="font-size:12px;" data-tr="Sonuç girme süresi kısıtla" data-de="Nacharbeit begrenzen">Sonuç girme süresi kısıtla</label>
 </div>
 <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
 <label style="font-size:12px;color:var(--text-3);">Süre (saniye):</label>
 <input type="number" class="form-input" id="cd-acw-seconds" value="60" min="10" max="300" style="width:80px;font-size:12px;padding:4px 8px;">
 <select class="form-input" id="cd-acw-action" style="font-size:12px;padding:4px 8px;">
-<option value="warn">Yöneticiye uyar</option>
-<option value="auto">Otomatik sonuçlandır</option>
-<option value="ready">Hazır'a döndür</option>
+<option value="warn" data-tr="Yöneticiye uyar" data-de="Leitung warnen">Yöneticiye uyar</option>
+<option value="auto" data-tr="Otomatik sonuçlandır" data-de="Automatisch abschließen">Otomatik sonuçlandır</option>
+<option value="ready" data-tr="Hazır'a döndür" data-de="Auf Bereit setzen">Hazır'a döndür</option>
 </select>
 </div>
 </div>
@@ -687,11 +687,11 @@
 <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Agentlerin seçeceği mola türleri</div>
 <div id="cd-aux-codes" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">
 </div>
-<button class="btn btn-ghost btn-sm" onclick="addAuxCode()">+ Kod Ekle</button>
+<button class="btn btn-ghost btn-sm" onclick="addAuxCode()" data-tr="+ Kod Ekle" data-de="+ Code">+ Kod Ekle</button>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-phone"></i> Çağrı Sonuçları</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Agent ekranında görünecek sonuç seçenekleri</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-phone"></i> <span data-tr="Çağrı Sonuçları" data-de="Anrufergebnisse">Çağrı Sonuçları</span></div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Agent ekranında görünecek sonuç seçenekleri" data-de="Ergebnisoptionen auf dem Agentenbildschirm">Agent ekranında görünecek sonuç seçenekleri</div>
 <div id="cd-outcomes" style="display:flex;flex-direction:column;gap:4px;">
 </div>
 </div>
@@ -824,14 +824,14 @@
 <select class="form-input" style="width:130px;" id="ch-agent-f" onchange="loadCallHistory()">
 <option value="" data-tr="Tüm temsilciler" data-de="Alle Agenten">Tüm temsilciler</option>
 </select>
-<select class="form-input" style="width:130px;" id="ch-outcome" onchange="loadCallHistory()">
-<option value="">Tüm Sonuçlar</option>
-<option value="appointment">Randevu</option>
-<option value="negative">Olumsuz</option>
-<option value="callback">Geri Ara</option>
-<option value="voicemail">Telesekreter</option>
-<option value="no_answer">Cevap Yok</option>
-<option value="dnc">Kara Liste</option>
+<select class="form-input" style="width:150px;" id="ch-outcome" onchange="loadCallHistory()">
+<option value="" data-tr="Tüm Sonuçlar" data-de="Alle Ergebnisse">Tüm Sonuçlar</option>
+<option value="appointment" data-tr="Randevu" data-de="Termin">Randevu</option>
+<option value="negative" data-tr="Olumsuz" data-de="Negativ">Olumsuz</option>
+<option value="callback" data-tr="Geri Ara" data-de="Rückruf">Geri Ara</option>
+<option value="voicemail" data-tr="Telesekreter" data-de="Anrufbeantworter">Telesekreter</option>
+<option value="no_answer" data-tr="Cevap Yok" data-de="Keine Antwort">Cevap Yok</option>
+<option value="dnc" data-tr="Kara Liste" data-de="Sperrliste">Kara Liste</option>
 </select>
 <input type="date" class="form-input" id="ch-date-from" style="width:135px;" onchange="loadCallHistory()">
 <span style="font-size:12px;color:var(--text-3);">—</span>
@@ -845,19 +845,19 @@
 </div>
 <div class="card">
 <div id="ch-export-hint" style="display:none;font-size:11px;color:var(--text-3);margin:-4px 0 10px 0;padding:0 2px;">
-Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8000 satır).
+<span data-tr="Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8000 satır)." data-de="Admin: Datum, Agent und Ergebnis gelten für den Export (höchstens 8000 Zeilen).">Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8000 satır).</span>
 </div>
 <div class="tbl-wrap">
 <table>
 <thead><tr>
-<th>Tarih/Saat</th>
-<th>Müşteri</th>
-<th>Numara</th>
-<th>Agent</th>
-<th>Kampanya</th>
-<th>Süre</th>
-<th>Kayıt</th>
-<th>Sonuç</th>
+<th data-tr="Tarih/Saat" data-de="Datum/Zeit">Tarih/Saat</th>
+<th data-tr="Müşteri" data-de="Kunde">Müşteri</th>
+<th data-tr="Numara" data-de="Nummer">Numara</th>
+<th data-tr="Agent" data-de="Agent">Agent</th>
+<th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
+<th data-tr="Süre" data-de="Dauer">Süre</th>
+<th data-tr="Kayıt" data-de="Aufnahme">Kayıt</th>
+<th data-tr="Sonuç" data-de="Ergebnis">Sonuç</th>
 <th></th>
 </tr></thead>
 <tbody id="ch-tbody">
@@ -1231,7 +1231,7 @@ style="font-size:15px;cursor:pointer;background:transparent;border:none;padding:
 </div>
 <div class="dialer-hdr-badges" style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-shrink:0;">
 <span class="badge badge-green" style="font-size:11px;padding:3px 8px;"><span id="my-appt">0</span> <span data-tr="randevu" data-de="Termin">randevu</span></span>
-<span class="badge badge-blue" style="font-size:11px;padding:3px 8px;"><span id="my-calls">0</span> çağrı</span>
+<span class="badge badge-blue" style="font-size:11px;padding:3px 8px;"><span id="my-calls">0</span> <span data-tr="çağrı" data-de="Anruf">çağrı</span></span>
 <button type="button" id="test-mode-btn" onclick="toggleTestMode()" title="Test Modu — gerçek arama yapılmaz"
 style="position:relative;z-index:3;pointer-events:auto;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;border:1.5px dashed var(--text-3);background:transparent;color:var(--text-3);cursor:pointer;transition:.2s;letter-spacing:.3px;">
 TEST MODU
@@ -1275,9 +1275,9 @@ TEST MODU
 <div style="display:flex;flex-direction:column;gap:8px;">
 <div id="daily-goal-bar" style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:4px;display:none;">
 <div style="display:flex;gap:2px;margin-bottom:8px;background:var(--bg-2);border-radius:4px;padding:2px;">
-<button id="goal-tab-daily" onclick="setGoalTab('daily')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:var(--text);color:var(--bg-2);border-radius:3px;cursor:pointer;">Günlük</button>
-<button id="goal-tab-weekly" onclick="setGoalTab('weekly')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:3px;cursor:pointer;">Haftalık</button>
-<button id="goal-tab-monthly" onclick="setGoalTab('monthly')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:3px;cursor:pointer;">Aylık</button>
+<button id="goal-tab-daily" onclick="setGoalTab('daily')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:var(--text);color:var(--bg-2);border-radius:3px;cursor:pointer;" data-tr="Günlük" data-de="Täglich">Günlük</button>
+<button id="goal-tab-weekly" onclick="setGoalTab('weekly')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:3px;cursor:pointer;" data-tr="Haftalık" data-de="Wöchentlich">Haftalık</button>
+<button id="goal-tab-monthly" onclick="setGoalTab('monthly')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:3px;cursor:pointer;" data-tr="Aylık" data-de="Monatlich">Aylık</button>
 </div>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
 <span style="font-size:11px;font-weight:700;color:var(--text-2);" id="goal-tab-label">Günlük Hedef</span>
@@ -1530,16 +1530,16 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="sb-divider" style="margin:8px 0;"></div>
 <!-- Performans sekmeleri -->
 <div style="display:flex;gap:2px;margin-bottom:8px;background:var(--bg-3);border-radius:var(--radius-sm);padding:2px;">
-<button id="perf-tab-today" onclick="setPerfTab('today')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:var(--text);color:var(--bg-2);border-radius:4px;cursor:pointer;">Bugün</button>
-<button id="perf-tab-week" onclick="setPerfTab('week')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:4px;cursor:pointer;">Hafta</button>
-<button id="perf-tab-month" onclick="setPerfTab('month')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:4px;cursor:pointer;">Ay</button>
+<button id="perf-tab-today" onclick="setPerfTab('today')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:var(--text);color:var(--bg-2);border-radius:4px;cursor:pointer;" data-tr="Bugün" data-de="Heute">Bugün</button>
+<button id="perf-tab-week" onclick="setPerfTab('week')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:4px;cursor:pointer;" data-tr="Hafta" data-de="Woche">Hafta</button>
+<button id="perf-tab-month" onclick="setPerfTab('month')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:4px;cursor:pointer;" data-tr="Ay" data-de="Monat">Ay</button>
 </div>
 <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;" id="my-stats-mini"></div>
 <div class="sb-divider" style="margin:8px 0;"></div>
 <!-- Yaklaşan WV'ler -->
 <div style="font-size:11px;font-weight:800;color:var(--text-2);margin-bottom:6px;display:flex;align-items:center;gap:5px;">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-Yaklaşan Aramalar
+<span data-tr="Yaklaşan Aramalar" data-de="Anstehende Anrufe">Yaklaşan Aramalar</span>
 </div>
 <div id="upcoming-wv-list" style="display:flex;flex-direction:column;gap:4px;font-size:11px;">
 <div style="color:var(--text-3);text-align:center;padding:8px;">Yükleniyor...</div>
@@ -1806,19 +1806,19 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <select class="form-input" id="jm-owner-firm"></select>
 <div class="jm-hint">Süper admin: ilanı hangi firmanın cüzdanından rezerve edeceğinizi buradan seçin.</div>
 </div>
-<input class="form-input" id="jm-title" placeholder="İlan başlığı">
+<input class="form-input" id="jm-title" placeholder="İlan başlığı" data-tr="İlan başlığı" data-de="Anzeigentitel">
 <label class="form-label" style="font-size:11px;color:var(--text-3);margin:0;" data-tr="Kampanya" data-de="Kampagne">Kampanya</label>
 <select class="form-input" id="jm-campaign">
 <option value="" data-tr="Kampanya bağlama" data-de="Keine Kampagne">Kampanya bağlama</option>
 </select>
-<textarea class="form-input" id="jm-description" rows="3" placeholder="Açıklama / şartlar"></textarea>
+<textarea class="form-input" id="jm-description" rows="3" placeholder="Açıklama / şartlar" data-tr="Açıklama / şartlar" data-de="Beschreibung / Bedingungen"></textarea>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 <select class="form-input" id="jm-type" onchange="onJobTypeChange()">
-<option value="appointment">Randevu</option>
+<option value="appointment" data-tr="Randevu" data-de="Termin">Randevu</option>
 <option value="lead">Lead</option>
-<option value="field_task">Saha işi</option>
-<option value="call_capacity">Çağrı kapasitesi</option>
-<option value="custom">Diğer</option>
+<option value="field_task" data-tr="Saha işi" data-de="Außendienst">Saha işi</option>
+<option value="call_capacity" data-tr="Çağrı kapasitesi" data-de="Anrufkapazität">Çağrı kapasitesi</option>
+<option value="custom" data-tr="Diğer" data-de="Sonstiges">Diğer</option>
 </select>
 <input class="form-input" id="jm-unit-price" type="number" min="1" placeholder="İşlem başı ücret" oninput="updateJobPricePreview()">
 </div>
@@ -1841,7 +1841,7 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <input type="hidden" id="jm-slot-start" value="10:00:00">
 <input type="hidden" id="jm-slot-end" value="11:00:00">
 <div id="jm-slot-wrap" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-<button type="button" class="btn btn-primary btn-sm" onclick="openJobMarketSlotCalendarModal()">Takvimden slot oluştur</button>
+<button type="button" class="btn btn-primary btn-sm" onclick="openJobMarketSlotCalendarModal()" data-tr="Takvimden slot oluştur" data-de="Termine aus Kalender">Takvimden slot oluştur</button>
 <div id="jm-slot-summary" class="jm-hint" style="margin:0;flex:1;min-width:200px;white-space:normal;overflow:visible;">Henüz seçilmedi — Takvimden slot oluştur’a tıklayın.</div>
 </div>
 <div class="jm-hint" style="margin-top:6px;">Kampanya takvimi benzeri panel açılır; saat satırından seçim yapıp <b>Slotu Uygula</b> ile forma aktarın. Aynı panelden slot adedini artırabilir, Cmt/Paz görünürlüğünü açabilirsiniz.</div>
@@ -1858,9 +1858,9 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 <select class="form-input" id="jm-qc-mode">
-<option value="required">QC zorunlu</option>
-<option value="optional">QC opsiyonel</option>
-<option value="none">QC istemiyorum</option>
+<option value="required" data-tr="QC zorunlu" data-de="QC erforderlich">QC zorunlu</option>
+<option value="optional" data-tr="QC opsiyonel" data-de="QC optional">QC opsiyonel</option>
+<option value="none" data-tr="QC istemiyorum" data-de="Kein QC">QC istemiyorum</option>
 </select>
 <select class="form-input" id="jm-currency" title="Firma ayarından otomatik doldurulur; gerekirse değiştirin.">
 <option value="EUR">EUR</option>
@@ -2012,23 +2012,23 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div id="leave-main" style="display:flex;flex-direction:column;gap:16px;padding-bottom:24px;">
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
 <div class="card" style="padding:14px;">
-<div style="font-size:11px;color:var(--text-3);font-weight:700;">Bu yıl kullanılan izin (gün)</div>
+<div style="font-size:11px;color:var(--text-3);font-weight:700;" data-tr="Bu yıl kullanılan izin (gün)" data-de="Genutzter Urlaub (Tage)">Bu yıl kullanılan izin (gün)</div>
 <div id="leave-stat-used" style="font-size:22px;font-weight:800;margin-top:4px;">—</div>
 </div>
 <div class="card" style="padding:14px;">
-<div style="font-size:11px;color:var(--text-3);font-weight:700;">Ek hak (gün)</div>
+<div style="font-size:11px;color:var(--text-3);font-weight:700;" data-tr="Ek hak (gün)" data-de="Zusatzanspruch (Tage)">Ek hak (gün)</div>
 <div id="leave-stat-extra" style="font-size:22px;font-weight:800;margin-top:4px;">—</div>
 </div>
 <div class="card" style="padding:14px;">
-<div style="font-size:11px;color:var(--text-3);font-weight:700;">Kalan (tahmini)</div>
+<div style="font-size:11px;color:var(--text-3);font-weight:700;" data-tr="Kalan (tahmini)" data-de="Rest (geschätzt)">Kalan (tahmini)</div>
 <div id="leave-stat-remaining" style="font-size:22px;font-weight:800;margin-top:4px;">—</div>
 </div>
 <div class="card" style="padding:14px;">
-<div style="font-size:11px;color:var(--text-3);font-weight:700;">Geç kalma (adet)</div>
+<div style="font-size:11px;color:var(--text-3);font-weight:700;" data-tr="Geç kalma (adet)" data-de="Verspätung (Anzahl)">Geç kalma (adet)</div>
 <div id="leave-stat-late-n" style="font-size:22px;font-weight:800;margin-top:4px;">—</div>
 </div>
 <div class="card" style="padding:14px;">
-<div style="font-size:11px;color:var(--text-3);font-weight:700;">Geç kalma (dk)</div>
+<div style="font-size:11px;color:var(--text-3);font-weight:700;" data-tr="Geç kalma (dk)" data-de="Verspätung (Min)">Geç kalma (dk)</div>
 <div id="leave-stat-late-m" style="font-size:22px;font-weight:800;margin-top:4px;">—</div>
 </div>
 </div>
@@ -2036,35 +2036,35 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div style="font-size:12px;color:var(--text-3);" id="leave-salary-hint">—</div>
 </div>
 <div class="card" id="leave-request-card" style="padding:16px;">
-<div class="card-title" style="margin-bottom:12px;">Yeni izin talebi</div>
+<div class="card-title" style="margin-bottom:12px;" data-tr="Yeni izin talebi" data-de="Neuer Urlaubsantrag">Yeni izin talebi</div>
 <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
 <div class="form-row">
-<label class="form-label">Başlangıç</label>
+<label class="form-label" data-tr="Başlangıç" data-de="Beginn">Başlangıç</label>
 <input type="date" class="form-input" id="lr-from" onchange="onLeaveDatesChange()">
 </div>
 <div class="form-row">
-<label class="form-label">Bitiş</label>
+<label class="form-label" data-tr="Bitiş" data-de="Ende">Bitiş</label>
 <input type="date" class="form-input" id="lr-to" onchange="onLeaveDatesChange()">
 </div>
 </div>
 <div class="form-row" style="margin-top:10px;">
-<label class="form-label">Gün sayısı</label>
+<label class="form-label" data-tr="Gün sayısı" data-de="Tage">Gün sayısı</label>
 <input type="number" class="form-input" id="lr-days" min="0.5" step="0.5" value="1" style="max-width:120px;">
 </div>
 <div class="form-row" style="margin-top:10px;">
-<label class="form-label">Tür</label>
+<label class="form-label" data-tr="Tür" data-de="Art">Tür</label>
 <select class="form-input" id="lr-kind" style="max-width:220px;">
-<option value="annual">Yıllık</option>
-<option value="sick">Hastalık</option>
-<option value="unpaid">Ücretsiz</option>
-<option value="other">Diğer</option>
+<option value="annual" data-tr="Yıllık" data-de="Jahresurlaub">Yıllık</option>
+<option value="sick" data-tr="Hastalık" data-de="Krankheit">Hastalık</option>
+<option value="unpaid" data-tr="Ücretsiz" data-de="Unbezahlt">Ücretsiz</option>
+<option value="other" data-tr="Diğer" data-de="Sonstiges">Diğer</option>
 </select>
 </div>
 <div class="form-row" style="margin-top:10px;">
 <label class="form-label">Açıklama</label>
 <textarea class="form-input" id="lr-reason" rows="2" placeholder="İsteğe bağlı"></textarea>
 </div>
-<button type="button" class="btn btn-primary" onclick="submitLeaveRequest()">Talep gönder</button>
+<button type="button" class="btn btn-primary" onclick="submitLeaveRequest()" data-tr="Talep gönder" data-de="Antrag senden">Talep gönder</button>
 </div>
 <div class="card" id="leave-admin-settings" style="padding:16px;display:none;">
 <div class="card-title" style="margin-bottom:12px;">Firma İK kuralları</div>
@@ -2453,18 +2453,18 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="font-size:11px;color:var(--text-3);margin-bottom:10px;line-height:1.45;" data-tr="İsim ve ana renk kişiseldir; sıkılma / sinir / mola renkleri aynı tonda devam eder." data-de="Name und Grundfarbe sind persönlich; Langeweile/Wut/Pause bleiben im gleichen Farbton.">İsim ve ana renk kişiseldir; sıkılma / sinir / mola renkleri aynı tonda devam eder.</div>
 <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
 <div style="flex:1;min-width:140px;">
-<label class="form-label" style="font-size:11px;">İsim</label>
+<label class="form-label" style="font-size:11px;" data-tr="İsim" data-de="Name">İsim</label>
 <input class="form-input" id="s-mascot-name" maxlength="28" placeholder="örn. Piko" autocomplete="off">
 </div>
 <div>
-<label class="form-label" style="font-size:11px;">Ana renk</label>
+<label class="form-label" style="font-size:11px;" data-tr="Ana renk" data-de="Grundfarbe">Ana renk</label>
 <input type="color" id="s-mascot-color" value="#a855f7" style="width:52px;height:38px;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);cursor:pointer;">
 </div>
 </div>
 <div style="margin-top:12px;">
 <label class="form-label" style="font-size:11px;" data-tr="Gradient stili" data-de="Verlauf-Stil">Gradient stili</label>
 <select class="form-input" id="s-mascot-variant" style="max-width:280px;margin-top:4px;">
-<option value="random">Rastgele (oturum başına bir kez)</option>
+<option value="random" data-tr="Rastgele (oturum başına bir kez)" data-de="Zufällig (einmal pro Sitzung)">Rastgele (oturum başına bir kez)</option>
 <option value="aurora">Aurora (varsayılan)</option>
 <option value="sunset">Günbatımı</option>
 <option value="ocean">Okyanus</option>
@@ -2476,7 +2476,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
 <div>
-<label class="form-label" style="font-size:11px;">Mola rengi</label>
+<label class="form-label" style="font-size:11px;" data-tr="Mola rengi" data-de="Pausenfarbe">Mola rengi</label>
 <input type="color" id="s-mascot-break-color" value="#4f8cff" style="width:52px;height:38px;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);cursor:pointer;">
 </div>
 <div>
@@ -2515,7 +2515,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-eye" style="font-size:12px;">
 <option value="none">Varsayılan</option>
-<option value="random">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
 <option value="sparkle">Işıltılı</option>
 <option value="anime">Anime</option>
 <option value="sleepy">Uykulu</option>
@@ -2534,7 +2534,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-brow" style="font-size:12px;">
 <option value="none">Yok</option>
-<option value="random">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
 <option value="thin">İnce</option>
 <option value="soft">Yumuşak</option>
 <option value="arch">Kavisli</option>
@@ -2553,7 +2553,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-stache" style="font-size:12px;">
 <option value="none">Yok</option>
-<option value="random">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
 <option value="silk">İpek çizgi</option>
 <option value="gentle">Yumuşak gölge</option>
 <option value="twirl">Uçları kıvrık</option>
@@ -2572,7 +2572,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-mouth" style="font-size:12px;">
 <option value="none">Yok</option>
-<option value="random">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
 <option value="beam">Parlak gülümseme</option>
 <option value="soft">Yumuşak gülüm</option>
 <option value="laugh">Kahkaha</option>
@@ -2591,7 +2591,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-nose" style="font-size:12px;">
 <option value="none">Yok</option>
-<option value="random">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
 <option value="dot">Nokta</option>
 <option value="oval">Oval</option>
 <option value="button">Düğme</option>
@@ -2607,7 +2607,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-hat" style="font-size:12px;">
 <option value="none">Yok</option>
-<option value="random">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
 <option value="cap">Kep</option>
 <option value="beanie">Bere</option>
 <option value="tophat">Silindir</option>
@@ -2625,7 +2625,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-earring" style="font-size:12px;">
 <option value="none">Yok</option>
-<option value="random">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
 <option value="stud">Pim</option>
 <option value="hoop">Halka</option>
 <option value="pearl">İnci</option>
@@ -2641,7 +2641,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-outfit" style="font-size:12px;max-width:100%;">
 <option value="none">Yok</option>
-<option value="random">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
 <option value="bowtie">Papyon</option>
 <option value="necktie">Kravat</option>
 <option value="scarf">Atkı</option>
@@ -2659,7 +2659,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-makeup" style="font-size:12px;max-width:100%;">
 <option value="none">Yok</option>
-<option value="random">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
 <option value="blush">Allık</option>
 <option value="glow">Parlama</option>
 <option value="freckles">Çiller</option>
@@ -2675,7 +2675,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-hair" style="font-size:12px;max-width:100%;">
 <option value="none">Yok</option>
-<option value="random">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
 <option value="bob">Bob</option>
 <option value="short">Kısa</option>
 <option value="long">Uzun</option>
@@ -3084,7 +3084,8 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Kampanya Adı *" data-de="Kampagnenname *">Kampanya Adı *</label>
-<input class="form-input" id="nc-name" placeholder="Wärmepumpe Q2">
+<input class="form-input" id="nc-name" placeholder="Isı pompası Q2" data-tr="Isı pompası Q2" data-de="Wärmepumpe Q2" oninput="this.classList.remove('is-invalid');const e=document.getElementById('nc-name-err');if(e)e.hidden=true;">
+<div id="nc-name-err" class="nc-inline-err" hidden></div>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Hat DID (+49...)" data-de="Anschluss-DID (+49...)">Hat DID (+49...)</label>
@@ -3769,44 +3770,44 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/version.js?v=8.37"></script>
-<script src="js/i18n.js?v=8.37"></script>
-<script src="js/config.js?v=8.37"></script>
-<script src="js/state.js?v=8.37"></script>
-<script src="js/api.js?v=8.37"></script>
-<script src="js/auth.js?v=8.37"></script>
-<script src="js/ui.js?v=8.37"></script>
-<script src="js/chat.js?v=8.37"></script>
-<script src="js/chat-settings.js?v=8.37"></script>
-<script src="js/field-settings.js?v=8.37"></script>
-<script src="js/audit.js?v=8.37"></script>
-<script src="js/feature-flags.js?v=8.37"></script>
-<script src="js/notification-center.js?v=8.37"></script>
+<script src="js/version.js?v=8.38"></script>
+<script src="js/i18n.js?v=8.38"></script>
+<script src="js/config.js?v=8.38"></script>
+<script src="js/state.js?v=8.38"></script>
+<script src="js/api.js?v=8.38"></script>
+<script src="js/auth.js?v=8.38"></script>
+<script src="js/ui.js?v=8.38"></script>
+<script src="js/chat.js?v=8.38"></script>
+<script src="js/chat-settings.js?v=8.38"></script>
+<script src="js/field-settings.js?v=8.38"></script>
+<script src="js/audit.js?v=8.38"></script>
+<script src="js/feature-flags.js?v=8.38"></script>
+<script src="js/notification-center.js?v=8.38"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=8.37"></script>
-<script src="js/job-market.js?v=8.37"></script>
-<script src="js/qc-job-market.js?v=8.37"></script>
-<script src="js/export-admin.js?v=8.37"></script>
-<script src="js/export-termin.js?v=8.37"></script>
-<script src="js/performance.js?v=8.37"></script>
-<script src="js/competition.js?v=8.37"></script>
-<script src="js/dashboard.js?v=8.37"></script>
-<script src="js/campaigns.js?v=8.37"></script>
-<script src="js/contacts.js?v=8.37"></script>
-<script src="js/telnyx.js?v=8.37"></script>
-<script src="js/voice-orb.js?v=8.37"></script>
-<script src="js/dialer.js?v=8.37"></script>
-<script src="js/appointments.js?v=8.37"></script>
-<script src="js/field.js?v=8.37"></script>
-<script src="js/field-ops.js?v=8.37"></script>
-<script src="js/wiedervorlage.js?v=8.37"></script>
-<script src="js/qc.js?v=8.37"></script>
-<script src="js/supervisor.js?v=8.37"></script>
-<script src="js/sms-settings.js?v=8.37"></script>
-<script src="js/leave-hr.js?v=8.37"></script>
-<script src="js/muhasebe.js?v=8.37"></script>
-<script src="js/agent-self-performance.js?v=8.37"></script>
-<script src="js/agents.js?v=8.37"></script>
-<script src="js/mimi-brain.js?v=8.37"></script>
+<script src="js/wallet.js?v=8.38"></script>
+<script src="js/job-market.js?v=8.38"></script>
+<script src="js/qc-job-market.js?v=8.38"></script>
+<script src="js/export-admin.js?v=8.38"></script>
+<script src="js/export-termin.js?v=8.38"></script>
+<script src="js/performance.js?v=8.38"></script>
+<script src="js/competition.js?v=8.38"></script>
+<script src="js/dashboard.js?v=8.38"></script>
+<script src="js/campaigns.js?v=8.38"></script>
+<script src="js/contacts.js?v=8.38"></script>
+<script src="js/telnyx.js?v=8.38"></script>
+<script src="js/voice-orb.js?v=8.38"></script>
+<script src="js/dialer.js?v=8.38"></script>
+<script src="js/appointments.js?v=8.38"></script>
+<script src="js/field.js?v=8.38"></script>
+<script src="js/field-ops.js?v=8.38"></script>
+<script src="js/wiedervorlage.js?v=8.38"></script>
+<script src="js/qc.js?v=8.38"></script>
+<script src="js/supervisor.js?v=8.38"></script>
+<script src="js/sms-settings.js?v=8.38"></script>
+<script src="js/leave-hr.js?v=8.38"></script>
+<script src="js/muhasebe.js?v=8.38"></script>
+<script src="js/agent-self-performance.js?v=8.38"></script>
+<script src="js/agents.js?v=8.38"></script>
+<script src="js/mimi-brain.js?v=8.38"></script>
 </body>
 </html>
