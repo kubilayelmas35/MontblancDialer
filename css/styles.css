@@ -1205,6 +1205,7 @@ background:#00000055; backdrop-filter:blur(4px);
 z-index:1300; align-items:center; justify-content:center; padding:16px;
 }
 .modal-overlay.open { display:flex; }
+#m-system-dialog { z-index: 4000; }
 .modal {
 background:var(--bg-2); border:1px solid var(--border-2);
 border-radius:var(--radius); padding:24px;
@@ -1496,6 +1497,12 @@ background:var(--bg-3); border:1px solid var(--border);
 .queue-sub { font-size:11px; color:var(--text-3); margin-top:2px; }
 .queue-actions { display:flex; gap:4px; flex-shrink:0; flex-wrap:wrap; }
 .queue-rename-input { flex:1; min-width:0; font-size:12px; padding:3px 7px; }
+.qops { width:100%; border-collapse:collapse; }
+.qops th, .qops td { padding:8px 6px; border-bottom:1px solid var(--border); font-size:12px; vertical-align:middle; }
+.qops th { font-size:11px; color:var(--text-3); font-weight:700; text-align:left; }
+.qops tr.is-queue td { background:var(--accent-soft); }
+.qops input[type=range] { width:88px; vertical-align:middle; }
+.qops-filters { display:flex; gap:8px; flex-wrap:wrap; align-items:end; margin-bottom:12px; }
 .cd-identity { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
 .cd-identity-wide { grid-column:1 / -1; }
 @media (max-width: 720px) {
