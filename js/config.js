@@ -77,7 +77,27 @@ function mbAutoMapHeaders(headers) {
 function mbSplitPersonName(full) {
   const parts = String(full || '').trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return { first_name: '', last_name: '' };
-  return { first_name: parts[0], last_name: parts.slice(1).join(' ') };
+  if (parts.length === 1) return { first_name: parts[0], last_name: '' };
+  return { first_name: parts.slice(0, -1).join(' '), last_name: parts[parts.length - 1] };
+}
+
+function mbNormalizeDialPhone(raw) {
+  return String(raw || '').replace(/[\s()-]/g, '').trim();
+}
+
+function mbClassifyLeadRows(rows) {
+  const seen = new Set();
+  const accepted = [];
+  const skipped = { empty: 0, invalid: 0, duplicate: 0 };
+  (rows || []).forEach((row) => {
+    const phone = mbNormalizeDialPhone(row?.phone);
+    if (!phone) { skipped.empty += 1; return; }
+    if (typeof mbIsE164 !== 'function' || !mbIsE164(phone)) { skipped.invalid += 1; return; }
+    if (seen.has(phone)) { skipped.duplicate += 1; return; }
+    seen.add(phone);
+    accepted.push({ ...row, phone });
+  });
+  return { accepted, skipped };
 }
 
 const DEFAULT_AUX_CODES = ['Yemek Molası','Çay Molası','Lavabo','Toplantı','Teknik Sorun'];
@@ -116,14 +136,14 @@ const NC_DEFAULT_FIELDS = [
 ];
 
 const UQ_TARGET_FIELDS = [
-{ key:'phone',      label:'📞 Telefon *', required:true },
-{ key:'phone2',     label:'📞 Telefon 2' },
-{ key:'name',       label:'👤 Ad / Soyad' },
-{ key:'first_name', label:'👤 Ad' },
-{ key:'last_name',  label:'👤 Soyad' },
-{ key:'plz',        label:'📮 PLZ' },
-{ key:'city',       label:'🏙 Şehir' },
-{ key:'address',    label:'🏠 Adres' },
+{ key:'phone',      labelKey:'uq.field.phone', required:true },
+{ key:'phone2',     labelKey:'uq.field.phone2' },
+{ key:'name',       labelKey:'uq.field.name' },
+{ key:'first_name', labelKey:'uq.field.first' },
+{ key:'last_name',  labelKey:'uq.field.last' },
+{ key:'plz',        labelKey:'uq.field.plz' },
+{ key:'city',       labelKey:'uq.field.city' },
+{ key:'address',    labelKey:'uq.field.address' },
 ];
 
 const GUNLER = [

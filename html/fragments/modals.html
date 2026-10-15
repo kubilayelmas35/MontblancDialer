@@ -80,13 +80,10 @@ ondrop="handleDrop(event)">
 <div class="upload-sub" id="uq-fname">.xlsx, .csv — maks. 50.000 satır</div>
 <input type="file" id="uq-file" accept=".xlsx,.csv" style="display:none" onchange="handleFileSelect(event)">
 </div>
+<div id="uq-sheet-wrap" style="display:none;margin-top:10px;"></div>
 <div id="uq-mapping-section" style="display:none;">
-<div class="form-label" style="margin-bottom:8px;font-size:13px;font-weight:700;">
-Sütun Eşleştirme
-<span style="font-size:11px;color:var(--text-3);font-weight:400;margin-left:6px;">
-(<span id="uq-row-count">0</span> satır tespit edildi)
-</span>
-</div>
+<div class="form-label" id="uq-map-title" style="margin-bottom:4px;font-size:13px;font-weight:700;" data-tr="Sütun eşleştirme" data-de="Spaltenzuordnung">Sütun eşleştirme</div>
+<div id="uq-row-count" style="font-size:11px;color:var(--text-3);font-weight:400;margin-bottom:8px;"></div>
 <div id="uq-mapping-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:240px;overflow-y:auto;padding-right:4px;"></div>
 <div id="uq-preview" style="margin-top:10px;background:var(--bg-3);border-radius:var(--radius-sm);padding:10px;font-size:11px;display:none;">
 <div style="font-weight:700;margin-bottom:6px;color:var(--text-2);" data-tr="İlk 3 satır önizleme" data-de="Vorschau der ersten 3 Zeilen">İlk 3 satır önizleme</div>
@@ -107,13 +104,13 @@ Sütun Eşleştirme
 <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-2);" data-tr="Mükerrer kayıt kontrolü" data-de="Dublettenprüfung">Mükerrer kayıt kontrolü</div>
 <div style="display:flex;flex-direction:column;gap:4px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
-<input type="radio" name="dedup-mode" value="excel" checked> Bu Excel içinde kontrol et
+<input type="radio" name="dedup-mode" value="excel" checked> <span data-tr="Bu dosyada kontrol et" data-de="In dieser Datei prüfen">Bu dosyada kontrol et</span>
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
-<input type="radio" name="dedup-mode" value="campaign"> Bu Kampanyada kontrol et
+<input type="radio" name="dedup-mode" value="campaign"> <span data-tr="Bu kampanyada kontrol et" data-de="In dieser Kampagne prüfen">Bu kampanyada kontrol et</span>
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
-<input type="radio" name="dedup-mode" value="system"> Tüm Sistemde kontrol et
+<input type="radio" name="dedup-mode" value="system"> <span data-tr="Tüm sistemde kontrol et" data-de="Im gesamten System prüfen">Tüm sistemde kontrol et</span>
 </label>
 </div>
 <div id="dedup-result" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:5px;font-size:11px;color:var(--yellow);font-weight:700;"></div>
@@ -582,9 +579,9 @@ QC Detay
 </button>
 </div>
 <div class="contact-drawer-tabs">
-<button class="contact-drawer-tab active" id="cdr-tab-info" onclick="setCdrTab('info')">Bilgi</button>
-<button class="contact-drawer-tab" id="cdr-tab-history" onclick="setCdrTab('history')">Geçmiş</button>
-<button class="contact-drawer-tab" id="cdr-tab-recordings" onclick="setCdrTab('recordings')">Kayıtlar</button>
+<button class="contact-drawer-tab active" id="cdr-tab-info" onclick="setCdrTab('info')" data-tr="Bilgi" data-de="Info">Bilgi</button>
+<button class="contact-drawer-tab" id="cdr-tab-history" onclick="setCdrTab('history')" data-tr="Geçmiş" data-de="Verlauf">Geçmiş</button>
+<button class="contact-drawer-tab" id="cdr-tab-recordings" onclick="setCdrTab('recordings')" data-tr="Kayıtlar" data-de="Aufnahmen">Kayıtlar</button>
 </div>
 <div class="contact-drawer-body">
 <div id="cdr-panel-info">

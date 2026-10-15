@@ -15,6 +15,7 @@ let _ncFields   = [];
 
 let uploadParsedRows = [];
 let uploadHeaders    = [];
+let uploadHeaderLabels = [];
 
 // Telnyx / WebRTC
 let telnyxReady  = false;

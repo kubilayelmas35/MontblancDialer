@@ -515,7 +515,10 @@ function queueMetaFor(camp, queueId) {
   const map = getCampSettings(camp).queue_meta || {};
   const meta = map[queueId] || {};
   return {
-    priority: Math.max(0, Math.min(100, parseInt(meta.priority, 10) || 0)),
+    priority: (() => {
+      const raw = parseInt(meta.priority, 10);
+      return Number.isFinite(raw) ? Math.max(-100, Math.min(100, raw)) : 0;
+    })(),
     maxAttempts: Math.max(0, Math.min(50, parseInt(meta.max_attempts, 10) || 0)),
     notes: String(meta.notes || '').slice(0, 500),
   };
@@ -576,7 +579,7 @@ function renderCampQueues(c) {
     const active = q.status === 'active';
     const meta = queueMetaFor(c, q.id);
     const bits = [];
-    if (meta.priority > 0) bits.push(`${campT('camp.queue.priority','Öncelik')} ${meta.priority}`);
+    if (meta.priority) bits.push(`${campT('camp.queue.priority','Öncelik')} ${meta.priority}`);
     if (meta.maxAttempts > 0) bits.push(`${campT('camp.queue.max','En fazla deneme')} ${meta.maxAttempts}`);
     if (meta.notes) bits.push(meta.notes);
     return `<div class="queue-row" data-queue-id="${campEsc(q.id)}">
@@ -592,6 +595,8 @@ ${bits.length ? `<div class="queue-sub">${campEsc(bits.join(' · '))}</div>` : '
 <button type="button" class="btn btn-ghost btn-xs" onclick="startQueueRename('${q.id}')">${campEsc(campT('camp.queue.rename','Adı değiştir'))}</button>
 <button type="button" class="btn btn-ghost btn-xs" onclick="toggleQueueStatus('${q.id}')">${campEsc(active ? campT('camp.queue.pause','Duraklat') : campT('camp.queue.resume','Sürdür'))}</button>
 <button type="button" class="btn btn-ghost btn-xs" onclick="openRequeueModal('${q.id}')">${campEsc(campT('camp.queue.manage','Ayarlar'))}</button>
+<button type="button" class="btn btn-ghost btn-xs" onclick="openQueuePeople('${q.id}')">${campEsc(campT('camp.queue.contacts','Kişiler'))}</button>
+<button type="button" class="btn btn-ghost btn-xs" onclick="deleteQueue('${q.id}')">${campEsc(campT('camp.queue.delete','Sil'))}</button>
 </div>
 </div>`;
   }).join('');
@@ -1364,7 +1369,8 @@ async function saveQueueSettings(queueId) {
     toast(campT('camp.queue.name.dup','Bu kampanyada aynı kuyruk adı var'), 'err');
     return;
   }
-  const priority = Math.max(0, Math.min(100, parseInt(document.getElementById('rq-priority')?.value, 10) || 0));
+  const rawPri = Number.parseInt(document.getElementById('rq-priority')?.value, 10);
+  const priority = Number.isFinite(rawPri) ? Math.max(-100, Math.min(100, rawPri)) : 0;
   const maxAttempts = Math.max(0, Math.min(50, parseInt(document.getElementById('rq-max')?.value, 10) || 0));
   const notes = String(document.getElementById('rq-notes')?.value || '').slice(0, 500);
   const status = document.getElementById('rq-status')?.value === 'paused' ? 'paused' : 'active';
@@ -1398,6 +1404,16 @@ const QUEUE_OPS_ROWS = [
   { key: 'dnc', requeue: false, pull: false, label: 'camp.st.dnc', fb: 'Kara liste' },
 ];
 
+function opsDatesOk() {
+  const from = document.getElementById('ops-from')?.value || '';
+  const to = document.getElementById('ops-to')?.value || '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(from) && /^\d{4}-\d{2}-\d{2}$/.test(to) && from > to) {
+    toast(campT('camp.ops.bad_range','Başlangıç, bitişten sonra olamaz'), 'warn');
+    return false;
+  }
+  return true;
+}
+
 function opsRangeQuery() {
   const from = document.getElementById('ops-from')?.value || '';
   const to = document.getElementById('ops-to')?.value || '';
@@ -1408,9 +1424,14 @@ function opsRangeQuery() {
 }
 
 function opsSliceCount(key) {
-  const n = Number(document.querySelector(`#qops-body tr[data-ops="${key}"]`)?.dataset.n || 0);
-  const pct = Number(document.getElementById(`ops-pct-${key}`)?.value || 0);
-  return Math.min(n, Math.max(0, Math.round(n * pct / 100)));
+  const modal = document.getElementById('m-queue-ops');
+  const row = modal?.querySelector(`tr[data-ops="${key}"]`);
+  const n = Number(row?.getAttribute('data-count') || 0);
+  const slider = document.getElementById(`ops-pct-${key}`);
+  const raw = slider ? slider.value : '100';
+  const pct = raw === '' ? 100 : Number(raw);
+  const safe = Number.isFinite(pct) ? pct : 100;
+  return Math.min(n, Math.max(0, Math.round(n * safe / 100)));
 }
 
 function opsPaintTake(key) {
@@ -1477,6 +1498,7 @@ async function refreshQueueOps() {
   const body = document.getElementById('qops-body');
   const queueId = modal?.dataset.queueId;
   if (!body || !queueId) return;
+  if (!opsDatesOk()) return;
   const range = opsRangeQuery();
   const nums = await Promise.all(QUEUE_OPS_ROWS.map((row) => mbHeadCount(`contacts?queue_id=eq.${queueId}&status=eq.${row.key}&select=id${range}`)));
   const total = nums.reduce((s, n) => s + n, 0);
@@ -1485,7 +1507,7 @@ async function refreshQueueOps() {
     const share = total > 0 ? Math.round(n / total * 1000) / 10 : 0;
     const sliced = row.requeue || row.pull;
     const take = n;
-    return `<tr data-ops="${row.key}" data-n="${n}" class="${row.key === 'pending' ? 'is-queue' : ''}">
+    return `<tr data-ops="${row.key}" data-count="${n}" class="${row.key === 'pending' ? 'is-queue' : ''}">
 <td>${campEsc(campT(row.label, row.fb))}</td>
 <td style="font-family:var(--mono);font-weight:800;">${n}</td>
 <td>${share}%</td>
@@ -1503,6 +1525,7 @@ ${row.requeue ? `<button type="button" class="btn btn-primary btn-xs" ${n ? '' :
 async function requeueOpsSlice(queueId, status) {
   const row = QUEUE_OPS_ROWS.find((r) => r.key === status);
   if (!row?.requeue) return;
+  if (!opsDatesOk()) return;
   const n = opsSliceCount(status);
   if (!n) {
     toast(campT('camp.ops.zero','Alınacak kişi yok'), 'warn');
@@ -1531,6 +1554,7 @@ async function requeueOpsSlice(queueId, status) {
 async function pullOpsSlice(queueId, status) {
   const row = QUEUE_OPS_ROWS.find((r) => r.key === status);
   if (!row?.pull) return;
+  if (!opsDatesOk()) return;
   const n = opsSliceCount(status);
   if (!n) {
     toast(campT('camp.ops.zero','Alınacak kişi yok'), 'warn');
@@ -1571,6 +1595,7 @@ async function syncQueueDialed(queueId) {
 }
 
 async function downloadOpsContacts(queueId, status) {
+  if (!opsDatesOk()) return;
   const st = status && status !== 'all' ? `&status=eq.${status}` : '';
   const cap = 2000;
   try {
@@ -1633,7 +1658,7 @@ async function openRequeueModal(queueId) {
 </div>
 <div>
 <label class="form-label" for="rq-priority">${campEsc(campT('camp.queue.priority','Öncelik'))}</label>
-<input class="form-input" id="rq-priority" type="number" min="0" max="100" value="${meta.priority}">
+<input class="form-input" id="rq-priority" type="number" min="-100" max="100" value="${meta.priority}">
 </div>
 </div>
 <div style="font-size:11px;color:var(--text-3);">${campEsc(campT('camp.queue.priority.hint','Yüksek sayı önce aranır. 0 hepsi eşit.'))}</div>
@@ -1682,18 +1707,143 @@ async function doRequeue(queueId) {
   if (!statuses.length) { toast(campT('camp.queue.pick_status','En az bir durum seçin'),'warn'); return; }
   const resetAttempts = document.getElementById('rq-reset-attempts')?.checked;
   try {
+    let moved = 0;
     for (const status of statuses) {
+      const rows = await sb(`contacts?queue_id=eq.${queueId}&status=eq.${status}&select=id&limit=2000`) || [];
+      const ids = rows.map((r) => r.id).filter(Boolean);
       const patch = { status: 'pending', last_called_at: null };
       if (resetAttempts) patch.attempt_count = 0;
-      await sb(`contacts?queue_id=eq.${queueId}&status=eq.${status}`, {
-        method: 'PATCH', prefer: 'return=minimal',
-        body: JSON.stringify(patch)
-      });
+      for (let i = 0; i < ids.length; i += 60) {
+        const chunk = ids.slice(i, i + 60);
+        await sb(`contacts?id=in.(${chunk.join(',')})`, {
+          method: 'PATCH', prefer: 'return=minimal',
+          body: JSON.stringify(patch),
+        });
+      }
+      moved += ids.length;
     }
-    // Dialed count'u yeniden hesapla
+    if (!moved) {
+      toast(campT('camp.ops.requeue_zero','Kuyruğa alınacak kişi yok'), 'warn');
+      return;
+    }
     await syncQueueDialed(queueId);
     document.getElementById('m-requeue')?.remove();
-    toast(`Kuyruğa alındı ✓ (${statuses.length} durum)`, 'ok');
-    if (currentCampId) { loadCampaigns(); setTimeout(()=>openCampDetail(currentCampId), 400); }
-  } catch(e) { toast('Hata: ' + e.message, 'err'); }
+    toast(campT('camp.ops.done','{n} kişi kuyruğa alındı').replace('{n}', String(moved)), 'ok');
+    if (currentCampId) await loadCampaigns();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function deleteQueue(queueId) {
+  const found = findQueue(queueId);
+  if (!found) return;
+  const ok = await mbConfirm(campT('camp.queue.delete.confirm','Bu kuyruk ve içindeki kişiler silinsin mi?'), found.queue.name || '');
+  if (!ok) return;
+  try {
+    await sb(`contacts?queue_id=eq.${queueId}`, { method: 'DELETE', prefer: 'return=minimal' });
+    await sb(`queues?id=eq.${queueId}`, { method: 'DELETE', prefer: 'return=minimal' });
+    found.camp.queues = (found.camp.queues || []).filter((q) => q.id !== queueId);
+    const meta = { ...(getCampSettings(found.camp).queue_meta || {}) };
+    delete meta[queueId];
+    currentCampId = found.camp.id;
+    await saveCampSettingsPatch({ queue_meta: meta }).catch(() => {});
+    renderCampQueues(found.camp);
+    renderCampGrid();
+    toast(campT('camp.queue.deleted','Kuyruk silindi'), 'ok');
+  } catch (e) {
+    toast(e.message, 'err');
+  }
+}
+
+async function openQueuePeople(queueId) {
+  const found = findQueue(queueId);
+  if (!found) return;
+  document.getElementById('m-queue-people')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'm-queue-people';
+  modal.className = 'modal-overlay open';
+  modal.dataset.queueId = queueId;
+  modal.innerHTML = `<div class="modal" style="max-width:860px;max-height:88vh;overflow:auto;">
+<div class="modal-hdr">
+<div class="modal-title">${campEsc(campT('camp.queue.contacts','Kişiler'))} — ${campEsc(found.queue.name || '')}</div>
+<button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+</div>
+<div style="padding:16px 20px;display:flex;flex-direction:column;gap:8px;">
+<div style="display:flex;gap:8px;flex-wrap:wrap;">
+<input class="form-input" id="qp-q" placeholder="${campEsc(campT('camp.people.search','Ara'))}" style="flex:1;min-width:160px;">
+<select class="form-input" id="qp-status" style="width:160px;">
+<option value="">${campEsc(campT('camp.ops.all','Tümü'))}</option>
+${QUEUE_OPS_ROWS.map((r) => `<option value="${r.key}">${campEsc(campT(r.label, r.fb))}</option>`).join('')}
+</select>
+<button type="button" class="btn btn-ghost btn-sm" onclick="refreshQueuePeople()">${campEsc(campT('camp.ops.apply','Göster'))}</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="downloadOpsContacts('${queueId}','all')">${campEsc(campT('camp.ops.download','İndir'))}</button>
+</div>
+<div id="qp-body" style="font-size:12px;color:var(--text-3);">…</div>
+</div>
+<div class="modal-footer"><button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">${campEsc(campT('camp.ops.close','Kapat'))}</button></div>
+</div>`;
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+  document.getElementById('qp-q')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') refreshQueuePeople(); });
+  await refreshQueuePeople();
+}
+
+async function refreshQueuePeople() {
+  const modal = document.getElementById('m-queue-people');
+  const host = document.getElementById('qp-body');
+  const queueId = modal?.dataset.queueId;
+  if (!host || !queueId) return;
+  const q = String(document.getElementById('qp-q')?.value || '').trim();
+  const st = document.getElementById('qp-status')?.value || '';
+  const statusQ = st ? `&status=eq.${st}` : '';
+  const search = q ? `&or=(phone.ilike.*${encodeURIComponent(q)}*,first_name.ilike.*${encodeURIComponent(q)}*,last_name.ilike.*${encodeURIComponent(q)}*)` : '';
+  try {
+    const rows = await sb(`contacts?queue_id=eq.${queueId}${statusQ}${search}&select=id,phone,first_name,last_name,status,attempt_count&order=created_at.asc&limit=200`) || [];
+    if (!rows.length) {
+      host.innerHTML = campEsc(campT('camp.people.empty','Kişi yok'));
+      return;
+    }
+    host.innerHTML = `<table class="qops"><thead><tr>
+<th>${campEsc(campT('camp.ops.name','Adı'))}</th><th>${campEsc(campT('uq.field.phone','Telefon').replace(/\s*\*$/, ''))}</th><th>${campEsc(campT('camp.queue.status','Durum'))}</th><th></th>
+</tr></thead><tbody>${rows.map((r) => `<tr>
+<td><input class="form-input" id="qp-fn-${r.id}" value="${campEsc(r.first_name || '')}" style="margin-bottom:4px;"><input class="form-input" id="qp-ln-${r.id}" value="${campEsc(r.last_name || '')}"></td>
+<td><input class="form-input" id="qp-ph-${r.id}" value="${campEsc(r.phone || '')}"></td>
+<td style="font-family:var(--mono);">${campEsc(r.status || '')}<div style="color:var(--text-3);">${r.attempt_count || 0}</div></td>
+<td style="white-space:nowrap;">
+<button type="button" class="btn btn-primary btn-xs" onclick="saveQueuePerson('${r.id}')">${campEsc(campT('camp.notif.save','Kaydet'))}</button>
+<button type="button" class="btn btn-ghost btn-xs" onclick="dncQueuePerson('${r.id}')">DNC</button>
+<button type="button" class="btn btn-ghost btn-xs" onclick="deleteQueuePerson('${r.id}')">${campEsc(campT('camp.queue.delete','Sil'))}</button>
+</td></tr>`).join('')}</tbody></table>`;
+  } catch (e) {
+    host.textContent = e.message;
+  }
+}
+
+async function saveQueuePerson(id) {
+  const phone = mbNormalizeDialPhone(document.getElementById(`qp-ph-${id}`)?.value || '');
+  if (phone && !mbIsE164(phone)) { toast(campT('camp.did.bad','DID + ile başlamalı, örnek +49301234567'), 'err'); return; }
+  try {
+    await sb(`contacts?id=eq.${id}`, {
+      method: 'PATCH', prefer: 'return=minimal',
+      body: JSON.stringify({
+        first_name: document.getElementById(`qp-fn-${id}`)?.value?.trim() || '',
+        last_name: document.getElementById(`qp-ln-${id}`)?.value?.trim() || '',
+        phone,
+      }),
+    });
+    toast(campT('camp.people.saved','Kişi güncellendi'), 'ok');
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function dncQueuePerson(id) {
+  try {
+    await sb(`contacts?id=eq.${id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ status: 'dnc' }) });
+    await refreshQueuePeople();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function deleteQueuePerson(id) {
+  try {
+    await sb(`contacts?id=eq.${id}`, { method: 'DELETE', prefer: 'return=minimal' });
+    await refreshQueuePeople();
+  } catch (e) { toast(e.message, 'err'); }
 }

@@ -393,6 +393,14 @@ el.textContent = el.getAttribute(`data-${l}`)||el.textContent;
 el.textContent = el.getAttribute(`data-${l}`)||el.getAttribute('data-tr');
 }
 });
+document.querySelectorAll('[data-tr-title]').forEach((el) => {
+  const v = el.getAttribute(l === 'de' ? 'data-de-title' : 'data-tr-title');
+  if (v) el.setAttribute('title', v);
+});
+document.querySelectorAll('[data-tr-aria]').forEach((el) => {
+  const v = el.getAttribute(l === 'de' ? 'data-de-aria' : 'data-tr-aria');
+  if (v) el.setAttribute('aria-label', v);
+});
 try { localStorage.setItem('mb-lang', l); } catch (_) {}
 if (typeof window._mbConnStatus === 'string' && typeof updateConnectionStatus === 'function') {
   updateConnectionStatus(window._mbConnStatus);

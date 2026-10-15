@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=8.44">
+<link rel="stylesheet" href="css/styles.css?v=8.45">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -39,7 +39,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v8.44 — 2026</div>
+<div class="login-version">v8.45 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -163,15 +163,15 @@
 </div>
 <div class="tb-right">
 <span id="tb-test-flag" class="tb-test-flag" role="status" hidden>TEST</span>
-<button class="tb-icon-btn tb-takvim" id="takvim-topbar-btn" onclick="openTakvimOverlay()" title="Takvim" aria-label="Takvim">
+<button class="tb-icon-btn tb-takvim" id="takvim-topbar-btn" onclick="openTakvimOverlay()" title="Takvim" data-tr-title="Takvim" data-de-title="Kalender" aria-label="Takvim" data-tr-aria="Takvim" data-de-aria="Kalender">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
 <span data-tr="Takvim" data-de="Kalender">Takvim</span>
 </button>
-<button class="tb-icon-btn" onclick="toggleTheme()" title="Tema" aria-label="Tema">
+<button class="tb-icon-btn" onclick="toggleTheme()" title="Tema" data-tr-title="Tema" data-de-title="Thema" aria-label="Tema" data-tr-aria="Tema" data-de-aria="Thema">
 <span id="theme-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
 </button>
-<button class="tb-icon-btn" onclick="cycleLang()" id="lang-btn" title="Dil" aria-label="Dil">TR</button>
-<button class="tb-icon-btn" id="tb-notif-btn" onclick="toggleNotificationCenter()" title="Bildirim Merkezi" data-tr-title="Bildirim Merkezi" data-de-title="Benachrichtigungen" aria-label="Bildirim Merkezi">
+<button class="tb-icon-btn" onclick="cycleLang()" id="lang-btn" title="Dil" data-tr-title="Dil" data-de-title="Sprache" aria-label="Dil" data-tr-aria="Dil" data-de-aria="Sprache">TR</button>
+<button class="tb-icon-btn" id="tb-notif-btn" onclick="toggleNotificationCenter()" title="Bildirim Merkezi" data-tr-title="Bildirim Merkezi" data-de-title="Benachrichtigungen" aria-label="Bildirim Merkezi" data-tr-aria="Bildirim Merkezi" data-de-aria="Benachrichtigungen">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
 <span id="tb-notif-badge" class="sb-badge" style="display:none;position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;font-size:10px;padding:0 4px;">0</span>
 </button>
@@ -399,7 +399,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v8.44</div>
+<div class="sb-ver">MontBlanc v8.45</div>
 </div>
 </nav>
 <main id="main">
@@ -631,13 +631,13 @@
 </div>
 <input type="checkbox" id="cd-auto-dial" style="width:18px;height:18px;">
 </div>
-<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-3);border-radius:8px;">
+<label style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-3);border-radius:8px;cursor:pointer;">
 <div>
 <div style="font-size:13px;font-weight:700;"><i class="ph ph-pencil-simple"></i> <span data-tr="Temsilci veriyi düzenleyebilir" data-de="Agent darf Daten ändern">Temsilci veriyi düzenleyebilir</span></div>
 <div style="font-size:11px;color:var(--text-3);" data-tr="İsim, adres ve posta kodu" data-de="Name, Adresse und PLZ">İsim, adres ve posta kodu</div>
 </div>
 <input type="checkbox" id="cd-agent-edit" style="width:18px;height:18px;">
-</div>
+</label>
 <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div>
 <div style="font-size:13px;font-weight:700;"><i class="ph ph-calendar-check"></i> <span data-tr="Randevu için slot zorunlu" data-de="Termin braucht einen Slot">Randevu için slot zorunlu</span></div>
@@ -666,6 +666,7 @@
 </select>
 </div>
 <div style="font-size:11px;color:var(--text-3);margin-top:8px;" data-tr="İşaretlenen sonuç, bekleme bitince ve deneme dolmadan yeniden aranır. Geri ara saati geldiyse yine aranır." data-de="Markierte Ergebnisse werden nach der Wartezeit erneut angerufen, bis das Limit voll ist. Ein fälliger Rückruf wird trotzdem angerufen.">İşaretlenen sonuç, bekleme bitince ve deneme dolmadan yeniden aranır. Geri ara saati geldiyse yine aranır.</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Kuyruk sınırı her numarayı keser. Kampanya sınırı yalnız yeniden aranan sonuçlar içindir. İkisi de doluysa önce dolan sınır geçerlidir." data-de="Das Listenlimit gilt für jede Nummer. Das Kampagnenlimit gilt nur für erneutes Anwählen. Sind beide gesetzt, gilt das früher erreichte Limit.">Kuyruk sınırı her numarayı keser. Kampanya sınırı yalnız yeniden aranan sonuçlar içindir. İkisi de doluysa önce dolan sınır geçerlidir.</div>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-shield"></i> <span data-tr="Tekrar arama koruması" data-de="Wiederholschutz">Tekrar arama koruması</span></div>
@@ -1378,10 +1379,10 @@ TEST MODU
 </div>
 <div id="cust-data" style="display:none;">
 <div style="display:flex;margin:-8px -8px 12px;border-bottom:2px solid var(--border);">
-<button id="ctab-info" onclick="switchContactTab('info')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:var(--text);color:var(--bg-2);cursor:pointer;border-radius:var(--radius) 0 0 0;transition:.15s;">Müşteri</button>
-<button id="ctab-map" onclick="switchContactTab('map')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:.15s;">Harita</button>
-<button id="ctab-history" onclick="switchContactTab('history')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:.15s;">Geçmiş</button>
-<button id="ctab-file" onclick="switchContactTab('file')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;border-radius:0;transition:.15s;">Dosya</button>
+<button id="ctab-info" onclick="switchContactTab('info')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:var(--text);color:var(--bg-2);cursor:pointer;border-radius:var(--radius) 0 0 0;transition:.15s;" data-tr="Müşteri" data-de="Kunde">Müşteri</button>
+<button id="ctab-map" onclick="switchContactTab('map')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:.15s;" data-tr="Harita" data-de="Karte">Harita</button>
+<button id="ctab-history" onclick="switchContactTab('history')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:.15s;" data-tr="Geçmiş" data-de="Verlauf">Geçmiş</button>
+<button id="ctab-file" onclick="switchContactTab('file')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;border-radius:0;transition:.15s;" data-tr="Dosya" data-de="Datei">Dosya</button>
 <button id="ctab-outcome" onclick="switchContactTab('outcome')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;border-radius:0 var(--radius) 0 0;transition:.15s;"><span data-tr="Sonuç" data-de="Ergebnis">Sonuç</span></button>
 </div>
 <div id="ctab-info-panel">
@@ -1405,10 +1406,11 @@ TEST MODU
 </div>
 </div>
 <div class="cust-fields" id="cust-fields"></div>
+<div id="camp-script-box" style="display:none;margin:8px 0;padding:10px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;"></div>
 </div>
 <div id="ctab-map-panel" style="display:none;margin:-10px -8px -8px;">
 <div id="contact-map-container" style="position:relative;height:calc(100vh - 350px);min-height:420px;background:var(--bg-3);border-radius:var(--radius-sm);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:12px;margin:-4px;">
-Müşteri seçilince harita gösterilecek
+<span data-tr="Müşteri seçilince harita gösterilecek" data-de="Karte erscheint nach Kundenauswahl">Müşteri seçilince harita gösterilecek</span>
 </div>
 </div>
 <div id="ctab-history-panel" style="display:none;">
@@ -1446,10 +1448,14 @@ Son randevu bilgileri indirilebilir.
 <div class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 5a10.94 10.94 0 0 0-1.28 5.39 11 11 0 0 0 6.29 9.83M10.5 5.09a10.88 10.88 0 0 1 3.29.72M14 13a5 5 0 0 1-5-5"/></svg></div>
 <div class="lbl" data-tr="Cevap Yok" data-de="Keine Antwort">Cevap Yok</div>
 </button>
+<button class="outcome-btn ob-voicemail" onclick="setOutcome('voicemail')">
+<div class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/></svg></div>
+<div class="lbl" data-tr="Telesekreter" data-de="Anrufbeantworter">Telesekreter</div>
+</button>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Not" data-de="Notiz">Not</label>
-<textarea class="form-input" id="outcome-note" rows="2" placeholder="Opsiyonel not..." style="resize:vertical;"></textarea>
+<textarea class="form-input" id="outcome-note" rows="2" placeholder="Opsiyonel not…" data-tr="Opsiyonel not…" data-de="Optionale Notiz…" style="resize:vertical;"></textarea>
 </div>
 <div id="callback-time-row" style="display:none;">
 <div class="form-row">
@@ -1460,7 +1466,7 @@ Son randevu bilgileri indirilebilir.
 <div style="margin-bottom:6px;">
 <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;padding:7px 10px;background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:6px;">
 <input type="checkbox" id="outcome-dnc" style="accent-color:var(--red);">
-<span style="color:var(--red);font-weight:700;"><i class="ph ph-prohibit"></i> Kara Listeye Ekle (Bir Daha Arama)</span>
+<span style="color:var(--red);font-weight:700;"><i class="ph ph-prohibit"></i> <span data-tr="Kara listeye ekle (bir daha arama)" data-de="Auf die Sperrliste (nicht mehr anrufen)">Kara listeye ekle (bir daha arama)</span></span>
 </label>
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
@@ -1572,9 +1578,9 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div style="font-size:11px;font-weight:800;color:var(--text-2);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:6px;position:relative;z-index:260;padding-right:70px;">
 <span style="display:flex;align-items:center;gap:5px;">
 <i class="ph ph-warning-circle" style="font-size:12px;color:var(--yellow);"></i>
-Sonuçsuz Çağrılar
+<span data-tr="Sonuçsuz çağrılar" data-de="Offene Anrufe">Sonuçsuz çağrılar</span>
 </span>
-<button type="button" class="btn btn-ghost btn-sm" id="unfinalized-calls-toggle" style="padding:2px 8px;font-size:10px;" onclick="toggleUnfinalizedCallsPanel()">Aç</button>
+<button type="button" class="btn btn-ghost btn-sm" id="unfinalized-calls-toggle" style="padding:2px 8px;font-size:10px;" onclick="toggleUnfinalizedCallsPanel()" data-tr="Aç" data-de="Öffnen">Aç</button>
 </div>
 <div id="unfinalized-calls-list" style="display:none;flex-direction:column;gap:4px;font-size:11px;position:relative;z-index:260;">
 <div style="color:var(--text-3);text-align:center;padding:8px;">Yükleniyor...</div>
@@ -2489,13 +2495,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" style="font-size:11px;" data-tr="Gradient stili" data-de="Verlauf-Stil">Gradient stili</label>
 <select class="form-input" id="s-mascot-variant" style="max-width:280px;margin-top:4px;">
 <option value="random" data-tr="Rastgele (oturum başına bir kez)" data-de="Zufällig (einmal pro Sitzung)">Rastgele (oturum başına bir kez)</option>
-<option value="aurora">Aurora (varsayılan)</option>
-<option value="sunset">Günbatımı</option>
-<option value="ocean">Okyanus</option>
-<option value="forest">Yeşil / orman</option>
-<option value="candy">Şeker (canlı)</option>
-<option value="midnight">Gece (koyu ton)</option>
-<option value="ember">Kıvılcım (sıcak)</option>
+<option value="aurora" data-tr="Aurora (varsayılan)" data-de="Aurora (Standard)">Aurora (varsayılan)</option>
+<option value="sunset" data-tr="Günbatımı" data-de="Sonnenuntergang">Günbatımı</option>
+<option value="ocean" data-tr="Okyanus" data-de="Ozean">Okyanus</option>
+<option value="forest" data-tr="Yeşil / orman" data-de="Wald">Yeşil / orman</option>
+<option value="candy" data-tr="Şeker (canlı)" data-de="Bonbon">Şeker (canlı)</option>
+<option value="midnight" data-tr="Gece (koyu ton)" data-de="Nacht">Gece (koyu ton)</option>
+<option value="ember" data-tr="Kıvılcım (sıcak)" data-de="Glut">Kıvılcım (sıcak)</option>
 </select>
 </div>
 <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
@@ -2504,7 +2510,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <input type="color" id="s-mascot-break-color" value="#4f8cff" style="width:52px;height:38px;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);cursor:pointer;">
 </div>
 <div>
-<label class="form-label" style="font-size:11px;">Olumsuz rengi</label>
+<label class="form-label" style="font-size:11px;" data-tr="Olumsuz rengi" data-de="Farbe bei Ablehnung">Olumsuz rengi</label>
 <input type="color" id="s-mascot-angry-color" value="#ff5b55" style="width:52px;height:38px;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);cursor:pointer;">
 </div>
 <div style="grid-column:1 / -1;">
@@ -2808,21 +2814,21 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <div class="card" id="settings-goals-card">
-<div class="card-title" style="margin-bottom:16px;">Randevu Hedefleri</div>
+<div class="card-title" style="margin-bottom:16px;" data-tr="Randevu hedefleri" data-de="Terminziele">Randevu hedefleri</div>
 <div style="display:flex;flex-direction:column;gap:10px;">
 <div class="form-row">
-<label class="form-label">Günlük Randevu Hedefi (Agent)</label>
+<label class="form-label" data-tr="Günlük randevu hedefi (temsilci)" data-de="Tägliches Terminziel (Agent)">Günlük randevu hedefi (temsilci)</label>
 <input class="form-input" id="s-daily-goal" type="number" min="1" max="50" value="5" style="width:120px;">
 </div>
 <div class="form-row">
-<label class="form-label">Haftalık Randevu Hedefi (Agent)</label>
+<label class="form-label" data-tr="Haftalık randevu hedefi (temsilci)" data-de="Wöchentliches Terminziel (Agent)">Haftalık randevu hedefi (temsilci)</label>
 <input class="form-input" id="s-weekly-goal" type="number" min="1" max="400" value="25" style="width:120px;">
 </div>
 <div class="form-row">
-<label class="form-label">Aylık Randevu Hedefi (Agent)</label>
+<label class="form-label" data-tr="Aylık randevu hedefi (temsilci)" data-de="Monatliches Terminziel (Agent)">Aylık randevu hedefi (temsilci)</label>
 <input class="form-input" id="s-monthly-goal" type="number" min="1" max="1600" value="100" style="width:120px;">
 </div>
-<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveApiSettings()"><i class="ph ph-floppy-disk"></i> Randevu Hedeflerini Kaydet</button>
+<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveApiSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Randevu hedeflerini kaydet" data-de="Terminziele speichern">Randevu hedeflerini kaydet</span></button>
 </div>
 </div>
 <div class="card" id="incoming-calls-settings-card" style="display:none;">
@@ -3174,13 +3180,10 @@ ondrop="handleDrop(event)">
 <div class="upload-sub" id="uq-fname">.xlsx, .csv — maks. 50.000 satır</div>
 <input type="file" id="uq-file" accept=".xlsx,.csv" style="display:none" onchange="handleFileSelect(event)">
 </div>
+<div id="uq-sheet-wrap" style="display:none;margin-top:10px;"></div>
 <div id="uq-mapping-section" style="display:none;">
-<div class="form-label" style="margin-bottom:8px;font-size:13px;font-weight:700;">
-Sütun Eşleştirme
-<span style="font-size:11px;color:var(--text-3);font-weight:400;margin-left:6px;">
-(<span id="uq-row-count">0</span> satır tespit edildi)
-</span>
-</div>
+<div class="form-label" id="uq-map-title" style="margin-bottom:4px;font-size:13px;font-weight:700;" data-tr="Sütun eşleştirme" data-de="Spaltenzuordnung">Sütun eşleştirme</div>
+<div id="uq-row-count" style="font-size:11px;color:var(--text-3);font-weight:400;margin-bottom:8px;"></div>
 <div id="uq-mapping-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:240px;overflow-y:auto;padding-right:4px;"></div>
 <div id="uq-preview" style="margin-top:10px;background:var(--bg-3);border-radius:var(--radius-sm);padding:10px;font-size:11px;display:none;">
 <div style="font-weight:700;margin-bottom:6px;color:var(--text-2);" data-tr="İlk 3 satır önizleme" data-de="Vorschau der ersten 3 Zeilen">İlk 3 satır önizleme</div>
@@ -3201,13 +3204,13 @@ Sütun Eşleştirme
 <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-2);" data-tr="Mükerrer kayıt kontrolü" data-de="Dublettenprüfung">Mükerrer kayıt kontrolü</div>
 <div style="display:flex;flex-direction:column;gap:4px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
-<input type="radio" name="dedup-mode" value="excel" checked> Bu Excel içinde kontrol et
+<input type="radio" name="dedup-mode" value="excel" checked> <span data-tr="Bu dosyada kontrol et" data-de="In dieser Datei prüfen">Bu dosyada kontrol et</span>
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
-<input type="radio" name="dedup-mode" value="campaign"> Bu Kampanyada kontrol et
+<input type="radio" name="dedup-mode" value="campaign"> <span data-tr="Bu kampanyada kontrol et" data-de="In dieser Kampagne prüfen">Bu kampanyada kontrol et</span>
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
-<input type="radio" name="dedup-mode" value="system"> Tüm Sistemde kontrol et
+<input type="radio" name="dedup-mode" value="system"> <span data-tr="Tüm sistemde kontrol et" data-de="Im gesamten System prüfen">Tüm sistemde kontrol et</span>
 </label>
 </div>
 <div id="dedup-result" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:5px;font-size:11px;color:var(--yellow);font-weight:700;"></div>
@@ -3676,9 +3679,9 @@ QC Detay
 </button>
 </div>
 <div class="contact-drawer-tabs">
-<button class="contact-drawer-tab active" id="cdr-tab-info" onclick="setCdrTab('info')">Bilgi</button>
-<button class="contact-drawer-tab" id="cdr-tab-history" onclick="setCdrTab('history')">Geçmiş</button>
-<button class="contact-drawer-tab" id="cdr-tab-recordings" onclick="setCdrTab('recordings')">Kayıtlar</button>
+<button class="contact-drawer-tab active" id="cdr-tab-info" onclick="setCdrTab('info')" data-tr="Bilgi" data-de="Info">Bilgi</button>
+<button class="contact-drawer-tab" id="cdr-tab-history" onclick="setCdrTab('history')" data-tr="Geçmiş" data-de="Verlauf">Geçmiş</button>
+<button class="contact-drawer-tab" id="cdr-tab-recordings" onclick="setCdrTab('recordings')" data-tr="Kayıtlar" data-de="Aufnahmen">Kayıtlar</button>
 </div>
 <div class="contact-drawer-body">
 <div id="cdr-panel-info">
@@ -3794,44 +3797,44 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/version.js?v=8.44"></script>
-<script src="js/i18n.js?v=8.44"></script>
-<script src="js/config.js?v=8.44"></script>
-<script src="js/state.js?v=8.44"></script>
-<script src="js/api.js?v=8.44"></script>
-<script src="js/auth.js?v=8.44"></script>
-<script src="js/ui.js?v=8.44"></script>
-<script src="js/chat.js?v=8.44"></script>
-<script src="js/chat-settings.js?v=8.44"></script>
-<script src="js/field-settings.js?v=8.44"></script>
-<script src="js/audit.js?v=8.44"></script>
-<script src="js/feature-flags.js?v=8.44"></script>
-<script src="js/notification-center.js?v=8.44"></script>
+<script src="js/version.js?v=8.45"></script>
+<script src="js/i18n.js?v=8.45"></script>
+<script src="js/config.js?v=8.45"></script>
+<script src="js/state.js?v=8.45"></script>
+<script src="js/api.js?v=8.45"></script>
+<script src="js/auth.js?v=8.45"></script>
+<script src="js/ui.js?v=8.45"></script>
+<script src="js/chat.js?v=8.45"></script>
+<script src="js/chat-settings.js?v=8.45"></script>
+<script src="js/field-settings.js?v=8.45"></script>
+<script src="js/audit.js?v=8.45"></script>
+<script src="js/feature-flags.js?v=8.45"></script>
+<script src="js/notification-center.js?v=8.45"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=8.44"></script>
-<script src="js/job-market.js?v=8.44"></script>
-<script src="js/qc-job-market.js?v=8.44"></script>
-<script src="js/export-admin.js?v=8.44"></script>
-<script src="js/export-termin.js?v=8.44"></script>
-<script src="js/performance.js?v=8.44"></script>
-<script src="js/competition.js?v=8.44"></script>
-<script src="js/dashboard.js?v=8.44"></script>
-<script src="js/campaigns.js?v=8.44"></script>
-<script src="js/contacts.js?v=8.44"></script>
-<script src="js/telnyx.js?v=8.44"></script>
-<script src="js/voice-orb.js?v=8.44"></script>
-<script src="js/dialer.js?v=8.44"></script>
-<script src="js/appointments.js?v=8.44"></script>
-<script src="js/field.js?v=8.44"></script>
-<script src="js/field-ops.js?v=8.44"></script>
-<script src="js/wiedervorlage.js?v=8.44"></script>
-<script src="js/qc.js?v=8.44"></script>
-<script src="js/supervisor.js?v=8.44"></script>
-<script src="js/sms-settings.js?v=8.44"></script>
-<script src="js/leave-hr.js?v=8.44"></script>
-<script src="js/muhasebe.js?v=8.44"></script>
-<script src="js/agent-self-performance.js?v=8.44"></script>
-<script src="js/agents.js?v=8.44"></script>
-<script src="js/mimi-brain.js?v=8.44"></script>
+<script src="js/wallet.js?v=8.45"></script>
+<script src="js/job-market.js?v=8.45"></script>
+<script src="js/qc-job-market.js?v=8.45"></script>
+<script src="js/export-admin.js?v=8.45"></script>
+<script src="js/export-termin.js?v=8.45"></script>
+<script src="js/performance.js?v=8.45"></script>
+<script src="js/competition.js?v=8.45"></script>
+<script src="js/dashboard.js?v=8.45"></script>
+<script src="js/campaigns.js?v=8.45"></script>
+<script src="js/contacts.js?v=8.45"></script>
+<script src="js/telnyx.js?v=8.45"></script>
+<script src="js/voice-orb.js?v=8.45"></script>
+<script src="js/dialer.js?v=8.45"></script>
+<script src="js/appointments.js?v=8.45"></script>
+<script src="js/field.js?v=8.45"></script>
+<script src="js/field-ops.js?v=8.45"></script>
+<script src="js/wiedervorlage.js?v=8.45"></script>
+<script src="js/qc.js?v=8.45"></script>
+<script src="js/supervisor.js?v=8.45"></script>
+<script src="js/sms-settings.js?v=8.45"></script>
+<script src="js/leave-hr.js?v=8.45"></script>
+<script src="js/muhasebe.js?v=8.45"></script>
+<script src="js/agent-self-performance.js?v=8.45"></script>
+<script src="js/agents.js?v=8.45"></script>
+<script src="js/mimi-brain.js?v=8.45"></script>
 </body>
 </html>

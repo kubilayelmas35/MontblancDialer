@@ -10,49 +10,99 @@ function handleDrop(e) {
   if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
 }
 
+let _uqWorkbook = null;
+
+function uqSay(key, fb, vars) {
+  let text = typeof t === 'function' ? t(key) : fb;
+  if (!text || text === key) text = fb;
+  Object.entries(vars || {}).forEach(([k, v]) => { text = text.replaceAll(`{${k}}`, String(v)); });
+  return text;
+}
+
+function uqApplyMatrix(headerCells, dataRows) {
+  uploadHeaderLabels = headerCells.map((h) => String(h ?? '').replace(/^\uFEFF/, '').trim());
+  uploadHeaders = uploadHeaderLabels.map((h) => mbCleanHeader(h));
+  uploadParsedRows = dataRows
+    .filter((r) => (r || []).some((c) => String(c ?? '').trim()))
+    .map((r) => uploadHeaders.map((_, i) => String(r[i] ?? '').trim().replace(/^"|"$/g, '')));
+  const countEl = document.getElementById('uq-row-count');
+  if (countEl) countEl.textContent = uqSay('uq.map.rows', '{n} satır tespit edildi', { n: uploadParsedRows.length.toLocaleString() });
+  const section = document.getElementById('uq-mapping-section');
+  if (section) section.style.display = '';
+  renderColumnMapping();
+}
+
+function uqUseSheet(name) {
+  if (!_uqWorkbook || !name || !_uqWorkbook.Sheets[name]) return;
+  const raw = XLSX.utils.sheet_to_json(_uqWorkbook.Sheets[name], { header: 1, defval: '' });
+  if (!raw.length) { toast(uqSay('uq.err.generic', 'Yükleme başarısız. Dosyayı kontrol edip tekrar deneyin.'), 'err'); return; }
+  uqApplyMatrix(raw[0], raw.slice(1));
+}
+
 async function setFile(f) {
   uploadFile = f;
+  _uqWorkbook = null;
   document.getElementById('uq-fname').textContent = `✓ ${f.name} (${(f.size/1024).toFixed(1)} KB)`;
   try {
     const isXlsx = f.name.toLowerCase().endsWith('.xlsx') || f.name.toLowerCase().endsWith('.xls');
+    const sheetHost = document.getElementById('uq-sheet-wrap');
     if (isXlsx) {
       const buf = await f.arrayBuffer();
-      const wb  = XLSX.read(buf, { type:'array', cellText:true, cellDates:false });
-      const ws  = wb.Sheets[wb.SheetNames[0]];
-      const raw = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
-      if (!raw.length) { toast('Excel boş!','err'); return; }
-      uploadHeaders    = raw[0].map(h => mbCleanHeader(h));
-      uploadParsedRows = raw.slice(1).filter(r => r.some(c => String(c).trim())).map(r => r.map(c => String(c).trim()));
+      _uqWorkbook = XLSX.read(buf, { type: 'array', cellText: true, cellDates: false });
+      const names = _uqWorkbook.SheetNames || [];
+      if (!names.length) { toast(uqSay('uq.err.generic', 'Yükleme başarısız. Dosyayı kontrol edip tekrar deneyin.'), 'err'); return; }
+      if (sheetHost) {
+        sheetHost.style.display = names.length > 1 ? '' : 'none';
+        sheetHost.innerHTML = names.length > 1 ? `<label class="form-label" for="uq-sheet">${uqSay('uq.sheet', 'Sayfa')}</label>
+<select class="form-input" id="uq-sheet" onchange="uqUseSheet(this.value)">${names.map((n) => `<option value="${typeof escapeHtml === 'function' ? escapeHtml(n) : n}">${typeof escapeHtml === 'function' ? escapeHtml(n) : n}</option>`).join('')}</select>` : '';
+      }
+      uqUseSheet(names[0]);
     } else {
+      if (sheetHost) { sheetHost.style.display = 'none'; sheetHost.innerHTML = ''; }
       const text = await f.text();
-      const sep  = text.includes(';') ? ';' : text.includes('\t') ? '\t' : ',';
-      const allRows = text.trim().split('\n').map(r => r.split(sep));
-      uploadHeaders    = allRows[0].map(h => mbCleanHeader(h));
-      uploadParsedRows = allRows.slice(1).filter(r => r.some(c => c.trim())).map(r => r.map(c => c.trim().replace(/["\r]/g,'')));
+      const sep = text.includes(';') ? ';' : text.includes('\t') ? '\t' : ',';
+      const allRows = text.replace(/^\uFEFF/, '').trim().split(/\r?\n/).map((line) => {
+        const out = [];
+        let cur = '';
+        let q = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') { q = !q; continue; }
+          if (ch === sep && !q) { out.push(cur); cur = ''; continue; }
+          cur += ch;
+        }
+        out.push(cur);
+        return out;
+      });
+      uqApplyMatrix(allRows[0] || [], allRows.slice(1));
     }
-    document.getElementById('uq-row-count').textContent = uploadParsedRows.length.toLocaleString();
-    document.getElementById('uq-mapping-section').style.display = '';
-    renderColumnMapping();
-  } catch(e) {
+  } catch (e) {
     console.error('Dosya parse hatası:', e);
-    toast('Dosya okunamadı: ' + e.message, 'err');
+    toast(uqSay('uq.err.generic', 'Yükleme başarısız. Dosyayı kontrol edip tekrar deneyin.'), 'err');
   }
 }
 
 function renderColumnMapping() {
   const grid = document.getElementById('uq-mapping-grid');
+  if (!grid) return;
   const auto = typeof mbAutoMapHeaders === 'function' ? mbAutoMapHeaders(uploadHeaders) : {};
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
-  grid.innerHTML = UQ_TARGET_FIELDS.map(field => {
-    const autoHeader = auto[field.key] != null ? uploadHeaders[auto[field.key]] : '';
-    const options = uploadHeaders.map(h =>
-      `<option value="${esc(h)}" ${h === autoHeader ? 'selected' : ''}>${esc(h)}</option>`
-    ).join('');
-    const placeholder = field.required ? '— Seç (Zorunlu) —' : '— Kullanma —';
+  const title = document.getElementById('uq-map-title');
+  if (title) title.textContent = uqSay('uq.map.title', 'Sütun eşleştirme');
+  grid.innerHTML = UQ_TARGET_FIELDS.map((field) => {
+    const picked = auto[field.key];
+    const options = uploadHeaders.map((h, i) => {
+      const label = (uploadHeaderLabels && uploadHeaderLabels[i]) || h;
+      return `<option value="${i}" ${picked === i ? 'selected' : ''}>${esc(label)}</option>`;
+    }).join('');
+    const placeholder = field.required
+      ? uqSay('uq.map.required', '— Seç (Zorunlu) —')
+      : uqSay('uq.map.skip', '— Kullanma —');
+    const fieldLabel = uqSay(field.labelKey, field.key);
     return `<div>
-<div class="form-label" style="margin-bottom:4px;">${field.label}</div>
+<div class="form-label" style="margin-bottom:4px;">${esc(fieldLabel)}</div>
 <select class="form-input" id="uq-map-${field.key}" onchange="updateUploadPreview()">
-<option value="">${placeholder}</option>
+<option value="">${esc(placeholder)}</option>
 ${options}
 </select>
 </div>`;
@@ -77,11 +127,11 @@ ${Object.entries(mapped).filter(([,v])=>v).map(([k,v])=>`<span><b style="color:v
 
 function getUploadMapping() {
   const map = {};
-  UQ_TARGET_FIELDS.forEach(f => {
+  UQ_TARGET_FIELDS.forEach((f) => {
     const sel = document.getElementById(`uq-map-${f.key}`)?.value;
-    if (!sel) return;
-    const idx = uploadHeaders.indexOf(sel);
-    if (idx >= 0) map[f.key] = idx;
+    if (sel === '' || sel == null) return;
+    const idx = Number(sel);
+    if (Number.isInteger(idx) && idx >= 0 && idx < uploadHeaders.length) map[f.key] = idx;
   });
   return map;
 }
@@ -125,46 +175,48 @@ function getDedupMode() {
   return sel?.value || 'excel';
 }
 
+function mbUploadSkipText(skipped) {
+  const bits = [];
+  if (skipped.empty) bits.push(`${skipped.empty} ${uqSay('uq.skip.empty', 'boş numara')}`);
+  if (skipped.invalid) bits.push(`${skipped.invalid} ${uqSay('uq.skip.invalid', 'geçersiz numara')}`);
+  if (skipped.duplicate) bits.push(`${skipped.duplicate} ${uqSay('uq.skip.dup', 'dosyada mükerrer')}`);
+  if (skipped.existing) bits.push(`${skipped.existing} ${uqSay('uq.skip.existing', 'zaten kayıtlı')}`);
+  return bits.join(', ');
+}
+
 async function uploadQueue() {
   const name = document.getElementById('uq-name').value.trim();
-  if (!name)          { toast('Kuyruk adı gerekli','err'); return; }
-  if (!uploadFile)    { toast('Dosya seçin','err'); return; }
-  if (!currentCampId) { toast('Önce kampanya seçin','err'); return; }
-  let contacts;
-  if (uploadParsedRows.length && uploadHeaders.length) {
-    const mapping = getUploadMapping();
-    if (!mapping.phone && mapping.phone !== 0) { toast('Telefon sütunu seçilmedi!','err'); return; }
-    contacts = uploadParsedRows.map(row => ({
-      queue_id:'__PH__', campaign_id:currentCampId,
-      ...mbRowFromMapping(row, mapping),
-    })).filter(c => c.phone);
-  } else {
-    const text = await uploadFile.text();
-    const rows = text.trim().split('\n').map(r=>r.split(/[,;]/));
-    const hdrs = rows[0].map(h => (typeof mbCleanHeader === 'function' ? mbCleanHeader(h) : h.trim().toLowerCase()));
-    contacts = rows.slice(1).filter(r=>r.some(c=>c.trim())).map(row=>{
-      const o={};
-      hdrs.forEach((h,i)=>{ o[h]=(row[i]||'').trim().replace(/["\r]/g,''); });
-      let first = o.first_name||o.vorname||o.ad||'';
-      let last = o.last_name||o.nachname||o.soyad||'';
-      const full = o['ad soyad'] || o['ad / soyad'] || o.name || o.vollname || '';
-      if (full && !first && !last && typeof mbSplitPersonName === 'function') {
-        const split = mbSplitPersonName(full);
-        first = split.first_name;
-        last = split.last_name;
-      }
-      return {
-        queue_id:'__PH__', campaign_id:currentCampId,
-        phone:o.phone||o.telefon||o.tel||o[hdrs[0]]||'',
-        phone2:o.phone2||o.telefon2||o['telefon 2']||'',
-        first_name:first,
-        last_name:last,
-        city:o.city||o.ort||o.stadt||'', plz:o.plz||o.zip||'',
-        address:o.address||o.strasse||o.adres||'',
-      };
-    }).filter(c=>c.phone);
+  if (!name)          { toast(campT('camp.queue.name.required', 'Kuyruk adı gerekli'), 'err'); return; }
+  if (!uploadFile)    { toast(uqSay('uq.need.file', 'Dosya seçin'), 'err'); return; }
+  if (!currentCampId) { toast(uqSay('uq.need.camp', 'Önce kampanya seçin'), 'err'); return; }
+  if (!(uploadParsedRows.length && uploadHeaders.length)) {
+    toast(uqSay('uq.need.rows', 'Dosya okunamadı'), 'err');
+    return;
   }
-  if (!contacts.length) { toast('Geçerli numara bulunamadı!','err'); return; }
+  const mapping = getUploadMapping();
+  if (!mapping.phone && mapping.phone !== 0) { toast(uqSay('uq.need.phone', 'Telefon sütunu seçilmedi'), 'err'); return; }
+  const parsed = uploadParsedRows.map((row) => ({
+    queue_id: '__PH__',
+    campaign_id: currentCampId,
+    ...mbRowFromMapping(row, mapping),
+  }));
+  const classified = typeof mbClassifyLeadRows === 'function'
+    ? mbClassifyLeadRows(parsed)
+    : { accepted: parsed.filter((c) => c.phone), skipped: { empty: 0, invalid: 0, duplicate: 0 } };
+  const mode = getDedupMode();
+  const existing = await mbFindExistingPhones(classified.accepted.map((c) => c.phone), mode, currentCampId);
+  const contacts = [];
+  let existingCount = 0;
+  classified.accepted.forEach((row) => {
+    if (existing.has(row.phone)) { existingCount += 1; return; }
+    contacts.push(row);
+  });
+  const skipped = { ...classified.skipped, existing: existingCount };
+  const why = mbUploadSkipText(skipped);
+  if (!contacts.length) {
+    toast(uqSay('uq.none', 'Geçerli numara yok. Atlanan: {why}', { why: why || '—' }), 'err');
+    return;
+  }
 
   const submitBtn = document.getElementById('uq-submit-btn');
   const progressSection = document.getElementById('uq-progress-section');
@@ -210,18 +262,26 @@ async function uploadQueue() {
       setProgress(pct, `Yükleniyor... (${batchNum}/${totalBatches} batch)`, `${uploaded.toLocaleString()} / ${withQ.length.toLocaleString()} kişi`);
       await sb('contacts', { method:'POST', body: JSON.stringify(withQ.slice(i, i+batchSize)), prefer:'return=minimal' });
     }
-    setProgress(100, '✅ Tamamlandı!', `${contacts.length.toLocaleString()} kişi başarıyla yüklendi`);
-    await new Promise(r => setTimeout(r, 800));
+    const done = uqSay('uq.done', '{n} kişi yüklendi', { n: contacts.length.toLocaleString() });
+    const summary = why ? uqSay('uq.summary', '{done}. Atlanan: {why}', { done, why }) : done;
+    setProgress(100, done, summary);
+    await new Promise(r => setTimeout(r, 500));
     closeModal('m-upload-q');
-    uploadFile = null; uploadParsedRows = []; uploadHeaders = [];
+    uploadFile = null; uploadParsedRows = []; uploadHeaders = []; uploadHeaderLabels = [];
+    _uqWorkbook = null;
     document.getElementById('uq-fname').textContent = '.xlsx, .csv — maks. 50.000 satır';
     document.getElementById('uq-name').value = '';
     document.getElementById('uq-mapping-section').style.display = 'none';
     progressSection.style.display = 'none';
     submitBtn.disabled = false;
-    toast(`✅ ${contacts.length.toLocaleString()} kişi yüklendi`, 'ok');
-    loadCampaigns();
-    setTimeout(()=>openCampDetail(currentCampId), 400);
+    toast(summary, 'ok', 4200);
+    const campMem = (campaigns || []).find((c) => c.id === currentCampId);
+    if (campMem) {
+      campMem.queues = [{ id: queue.id, name, total_contacts: contacts.length, dialed_count: 0, status: 'active', campaign_id: currentCampId, firm_id: firmId }, ...(campMem.queues || [])];
+      if (typeof renderCampGrid === 'function') renderCampGrid();
+      if (typeof renderCampQueues === 'function') renderCampQueues(campMem);
+    }
+    if (typeof loadCampaigns === 'function') await loadCampaigns();
   } catch(e) {
     console.error(e);
     const friendly = mbUploadFailText(e);
@@ -469,7 +529,7 @@ function showCustomerCard(c) {
   document.getElementById('cust-name').textContent  = name;
   document.getElementById('cust-phone').textContent = c.phone;
   document.getElementById('cust-attempt-badge').style.display = show('attempt') ? '' : 'none';
-  document.getElementById('cust-attempt-badge').textContent = `${c.attempt_count||1}. arama`;
+  document.getElementById('cust-attempt-badge').textContent = uqSay('dial.attempt', '{n}. arama', { n: c.attempt_count || 1 });
   document.getElementById('cust-camp-badge').textContent  = camp?.name||'—';
   document.getElementById('cust-queue-badge').textContent = c.queues?.name||c.queue_name||'—';
   const allFields = [
@@ -907,29 +967,31 @@ async function addToDnc(phone, contactId) {
   } catch(e) { console.error('DNC error:', e); }
 }
 
-async function deduplicateContacts(contacts, mode, campaignId) {
-  const phones = contacts.map(c => c.phone).filter(Boolean);
-  if (!phones.length) return contacts;
-  let existingPhones = new Set();
-  const excelDups = new Set();
-  const seen = new Set();
-  phones.forEach(p => { if (seen.has(p)) excelDups.add(p); seen.add(p); });
-  existingPhones = new Set([...excelDups]);
-  if (mode === 'campaign' || mode === 'system') {
-    const firmFilter = mode === 'system' ? '' : `&campaign_id=eq.${campaignId}`;
-    const chunkSize = 100;
-    for (let i = 0; i < phones.length; i += chunkSize) {
-      const chunk = phones.slice(i, i+chunkSize);
-      const query = `contacts?phone=in.(${chunk.map(p=>`"${p}"`).join(',')})&select=phone${firmFilter}`;
-      try {
-        const existing = await sb(query) || [];
-        existing.forEach(e => existingPhones.add(e.phone));
-      } catch(e) {}
-    }
+async function mbFindExistingPhones(phones, mode, campaignId) {
+  const found = new Set();
+  if (mode !== 'campaign' && mode !== 'system') return found;
+  const unique = [...new Set((phones || []).map((p) => mbNormalizeDialPhone(p)).filter(Boolean))];
+  const chunkSize = 40;
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    const chunk = unique.slice(i, i + chunkSize);
+    const list = chunk.map((p) => encodeURIComponent(p)).join(',');
+    const scope = mode === 'campaign' && campaignId ? `&campaign_id=eq.${campaignId}` : '';
+    try {
+      const existing = await sb(`contacts?select=phone&phone=in.(${list})${scope}`) || [];
+      existing.forEach((e) => {
+        const n = mbNormalizeDialPhone(e.phone);
+        if (n) found.add(n);
+      });
+    } catch (e) {}
   }
-  const filtered = contacts.filter(c => !existingPhones.has(c.phone));
-  const dupCount = contacts.length - filtered.length;
-  return { filtered, dupCount, existingPhones };
+  return found;
+}
+
+async function deduplicateContacts(contacts, mode, campaignId) {
+  const classified = mbClassifyLeadRows(contacts);
+  const existing = await mbFindExistingPhones(classified.accepted.map((c) => c.phone), mode, campaignId);
+  const filtered = classified.accepted.filter((c) => !existing.has(c.phone));
+  return { filtered, dupCount: contacts.length - filtered.length, existingPhones: existing };
 }
 
 // ── Inline field edit ─────────────────────────
@@ -975,7 +1037,7 @@ async function saveFieldEdit(fieldKey, fieldLabel, inputEl, valEl, btnEl) {
     btnEl.innerHTML = '<i class="ph ph-pencil-simple" style="font-size:14px;"></i>';
     btnEl.title = 'Düzenle'; btnEl.style.color = 'var(--text-3)'; btnEl.style.opacity = '.6';
     btnEl.onclick = () => startFieldEdit(fieldKey, fieldLabel, btnEl);
-    toast(`${fieldLabel} güncellendi ✓`, 'ok', 1500);
+    toast(uqSay('dial.field_saved', '{label} güncellendi', { label: fieldLabel }), 'ok', 1500);
   } catch(e) {
     toast('Güncelleme hatası: ' + e.message, 'err');
     cancelFieldEdit(fieldKey, inputEl, valEl, btnEl);
@@ -1017,7 +1079,7 @@ async function showPrevCallInfo(contact) {
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <span style="font-weight:700;">${outcomeMap[prev.outcome]||prev.outcome}</span>
       <span style="color:var(--text-3);">${dt}</span>
-      <span style="color:var(--text-3);">(${contact.attempt_count}. arama)</span>
+      <span style="color:var(--text-3);">(${uqSay('dial.attempt', '{n}. arama', { n: contact.attempt_count || 1 })})</span>
       <span class="prev-call-agent"><i class="ph ph-user-circle"></i> ${agentLabel}</span>
     </div>
     ${(() => { const nt = _stripSimCallMarker(prev.notes); return nt ? '<div style="margin-top:4px;color:var(--text-2);">"' + _escHtml(nt) + '"</div>' : ''; })()}
@@ -1036,15 +1098,31 @@ async function showPrevCallInfo(contact) {
   } catch(e) { el.style.display = 'none'; }
 }
 
+function mbFillScript(text, contact) {
+  const c = contact || {};
+  const map = {
+    Ad: c.first_name || '',
+    Soyad: c.last_name || '',
+    Vorname: c.first_name || '',
+    Nachname: c.last_name || '',
+    PLZ: c.plz || '',
+    Şehir: c.city || '',
+    Ort: c.city || '',
+    Telefon: c.phone || '',
+  };
+  return String(text || '').replace(/\[(Ad|Soyad|Vorname|Nachname|PLZ|Şehir|Ort|Telefon)\]/g, (_, key) => map[key] ?? '');
+}
+
 function showCampScript(contact) {
   const camp = campaigns.find(c => c.id === (contact?.campaign_id || selectedCampId));
   const settings = getCampSettings(camp||{});
   const el = document.getElementById('camp-script-box');
   if (!el) return;
   if (settings.script_enabled && settings.script) {
+    const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
     el.style.display = '';
-    el.innerHTML = `<div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:6px;">📝 Script</div>
-<div style="font-size:12px;color:var(--text);white-space:pre-wrap;max-height:120px;overflow-y:auto;">${settings.script}</div>`;
+    el.innerHTML = `<div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:6px;">${esc(uqSay('dial.script', 'Metin'))}</div>
+<div style="font-size:12px;color:var(--text);white-space:pre-wrap;max-height:120px;overflow-y:auto;">${esc(mbFillScript(settings.script, contact))}</div>`;
   } else {
     el.style.display = 'none';
   }

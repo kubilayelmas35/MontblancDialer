@@ -2736,7 +2736,7 @@ function refreshBreakCustEmpty() {
   const title = root.querySelector('.cust-empty-text');
   const sub = root.querySelector('.cust-empty-sub');
   if (!title || !sub) return;
-  const code = String(_breakCode || '').trim();
+  const code = auxDisplay(String(_breakCode || '').trim());
   title.textContent = code
     ? (typeof tReplace === 'function' ? tReplace('dial.break_title_with', { code }) : `Mola — ${code}`)
     : (typeof t === 'function' ? t('dial.break_title_none') : 'Mola — tür seçilmedi');
@@ -2988,6 +2988,14 @@ function setDialerStatus(s) {
     _applyMicSensitivityToLiveCall();
     _startMicThresholdGate();
   } else if (s==='wrapping') {
+    const keepWrap = prev === 'on_call';
+    const keptOutcome = keepWrap ? selectedOutcome : null;
+    const noteEl = document.getElementById('outcome-note');
+    const keptNote = keepWrap && noteEl ? noteEl.value : '';
+    const dncEl = document.getElementById('outcome-dnc');
+    const keptDnc = !!(keepWrap && dncEl?.checked);
+    const cbDt = document.getElementById('callback-dt');
+    const keptCb = keepWrap && cbDt ? cbDt.value : '';
     if (typeof startAcwTimer === 'function') startAcwTimer();
     document.getElementById('ready-section').style.display='none';
     if (callAct) {
@@ -2996,22 +3004,29 @@ function setDialerStatus(s) {
     }
     stopCallTimer();
     _clearHangupUiTick();
-    // Önceki sonuç seçimini temizle
-    selectedOutcome = null;
-    document.querySelectorAll('.outcome-btn').forEach(b => b.classList.remove('active'));
-    const cbRow2 = document.getElementById('callback-time-row');
-    if (cbRow2) cbRow2.style.display = 'none';
-    const cbDt = document.getElementById('callback-dt');
-    if (cbDt) cbDt.value = '';
-    const noteEl = document.getElementById('outcome-note');
-    if (noteEl) noteEl.value = '';
-    const dncEl = document.getElementById('outcome-dnc');
-    if (dncEl) dncEl.checked = false;
+    if (!keepWrap) {
+      selectedOutcome = null;
+      document.querySelectorAll('.outcome-btn').forEach(b => b.classList.remove('active'));
+      const cbRow2 = document.getElementById('callback-time-row');
+      if (cbRow2) cbRow2.style.display = 'none';
+      if (cbDt) cbDt.value = '';
+      if (noteEl) noteEl.value = '';
+      if (dncEl) dncEl.checked = false;
+    }
     const hasSlot = _bookingSlot || window._selectedBookingSlot;
     document.getElementById('customer-card').style.display='';
     if (currentContact && typeof showCustomerCard === 'function') showCustomerCard(currentContact);
     if (typeof switchContactTab === 'function') {
       switchContactTab(hasSlot ? 'info' : 'outcome');
+    }
+    if (keepWrap) {
+      if (keptOutcome && typeof setOutcome === 'function') setOutcome(keptOutcome);
+      const noteAgain = document.getElementById('outcome-note');
+      if (noteAgain) noteAgain.value = keptNote;
+      const dncAgain = document.getElementById('outcome-dnc');
+      if (dncAgain) dncAgain.checked = keptDnc;
+      const cbAgain = document.getElementById('callback-dt');
+      if (cbAgain && keptCb) cbAgain.value = keptCb;
     }
     _stopMicThresholdGate();
   }
@@ -4022,11 +4037,12 @@ async function submitOutcome(goBreak) {
       }
     }
   }
+  let outcomeSaved = !currentContact;
   try {
     if (currentContact) {
       // appointment_done → call_logs'da 'appointment' olarak sakla (QC uyumu için)
       const finalOutcome = isDnc ? 'dnc' : (selectedOutcome === 'appointment_done' ? 'appointment' : selectedOutcome);
-      const statusMap = {appointment:'appointment',appointment_done:'appointment',negative:'negative',callback:'callback',no_answer:'no_answer',dnc:'dnc'};
+      const statusMap = {appointment:'appointment',appointment_done:'appointment',negative:'negative',callback:'callback',no_answer:'no_answer',voicemail:'voicemail',dnc:'dnc'};
       const cbAt = (finalOutcome === 'callback' && cbTime)
         ? (typeof mbWallToIso === 'function' ? mbWallToIso(cbTime) : new Date(cbTime).toISOString())
         : null;
@@ -4072,6 +4088,7 @@ async function submitOutcome(goBreak) {
           })).catch(()=>{});
       }
     }
+    outcomeSaved = true;
   } catch(e){ console.error(e); toast((typeof t === 'function' ? t('dial.log_err') : 'Kayıt hatası: ') + e.message,'err'); }
   // Termin dışı sonuç seçilirse kilitli slot serbest bırak
   const lockedSlotId = _bookingSlot?.id || window._selectedBookingSlot?.id;
@@ -4126,7 +4143,6 @@ async function submitOutcome(goBreak) {
       await _markMatchingWiedervorlageOlumsuz(currentContact);
     } catch (e) {}
   }
-  // ACW timer başlat
   setDialerStatus('wrapping');
   selectedOutcome = null;
   currentContact = null;
@@ -4144,9 +4160,7 @@ async function submitOutcome(goBreak) {
         _autoDial = false;
         refreshAutoDialUi();
         toast(typeof t === 'function' ? t('dial.autodial_off_camps') : 'Bu kampanyalarda otomatik arama pasif', 'warn', 2400);
-        return;
-      }
-      if (!_testMode) {
+      } else if (!_testMode) {
         const clock = dialerBusinessClock();
         const callCheck = isCallAllowed(clock.dateStr, clock.timeStr);
         if (!callCheck.allowed) {
@@ -4162,6 +4176,9 @@ async function submitOutcome(goBreak) {
         setTimeout(() => dialNext(), 1200);
       }
     }
+  }
+  if (outcomeSaved) {
+    toast(typeof t === 'function' ? t('dial.outcome_saved') : 'Sonuç kaydedildi', 'ok', 2200);
   }
 }
 
@@ -4286,21 +4303,41 @@ function validateTerminFields() {
 }
 
 // ── Break / Mola modal ────────────────────────
+const AUX_LABEL_KEY = {
+  'Yemek Molası': 'dial.break.meal',
+  'Çay Molası': 'dial.break.tea',
+  'Lavabo': 'dial.break.wc',
+  'Toplantı': 'dial.break.meet',
+  'Teknik Sorun': 'dial.break.tech',
+};
+
+function auxDisplay(code) {
+  const raw = String(code || '');
+  const key = AUX_LABEL_KEY[raw];
+  if (!key || typeof t !== 'function') return raw;
+  const label = t(key);
+  return label && label !== key ? label : raw;
+}
+
 function openBreakModal() {
   const auxCodes = window._campAuxCodes || DEFAULT_AUX_CODES;
   const old = document.getElementById('m-break-select');
   if (old) old.remove();
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   const m = document.createElement('div');
   m.id = 'm-break-select';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;';
   m.innerHTML = `<div style="background:var(--bg-2);border-radius:var(--radius);padding:20px;width:280px;box-shadow:0 16px 48px rgba(0,0,0,.3);">
-<div style="font-size:14px;font-weight:800;margin-bottom:12px;">Mola Türü Seç</div>
+<div style="font-size:14px;font-weight:800;margin-bottom:12px;">${esc(typeof t === 'function' ? t('dial.break.title') : 'Mola türü seç')}</div>
 <div style="display:flex;flex-direction:column;gap:6px;">
-${auxCodes.map(c=>`<button onclick="selectBreakCode('${c}');this.closest('#m-break-select').remove();"
-style="padding:10px 14px;border:1px solid var(--border);background:var(--bg-3);border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;text-align:left;color:var(--text);">${c}</button>`).join('')}
+${auxCodes.map((c) => {
+  const raw = String(c).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return `<button onclick="selectBreakCode('${raw}');this.closest('#m-break-select').remove();"
+style="padding:10px 14px;border:1px solid var(--border);background:var(--bg-3);border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;text-align:left;color:var(--text);">${esc(auxDisplay(c))}</button>`;
+}).join('')}
 </div>
 <button onclick="this.closest('#m-break-select').remove();"
-style="margin-top:10px;width:100%;padding:8px;background:transparent;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;color:var(--text-3);">Kapat</button>
+style="margin-top:10px;width:100%;padding:8px;background:transparent;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;color:var(--text-3);">${esc(typeof t === 'function' ? t('dial.break.close') : 'Kapat')}</button>
 </div>`;
   document.body.appendChild(m);
 }
@@ -4308,7 +4345,7 @@ style="margin-top:10px;width:100%;padding:8px;background:transparent;border:1px 
 async function selectBreakCode(code) {
   _breakCode = code;
   refreshBreakCustEmpty();
-  toast(`☕ Mola: ${code}`, 'ok', 2000);
+  toast(`☕ ${auxDisplay(code)}`, 'ok', 2000);
   upsertAgentSession({agent_id:currentUser.id,status:'break',break_code:code,last_seen:new Date().toISOString()}).catch(()=>{});
 }
 
@@ -4398,6 +4435,7 @@ document.addEventListener('keydown', e => {
     case 'Digit2': if (dialerStatus==='wrapping'||dialerStatus==='on_call') { setOutcome('negative'); e.preventDefault(); } break;
     case 'Digit3': if (dialerStatus==='wrapping'||dialerStatus==='on_call') { setOutcome('callback'); e.preventDefault(); } break;
     case 'Digit4': if (dialerStatus==='wrapping'||dialerStatus==='on_call') { setOutcome('no_answer'); e.preventDefault(); } break;
+    case 'Digit5': if (dialerStatus==='wrapping'||dialerStatus==='on_call') { setOutcome('voicemail'); e.preventDefault(); } break;
     case 'KeyS': e.preventDefault(); if (dialerStatus==='wrapping') submitOutcome(); break;
     case 'Escape':
       if (typeof toggleNotificationCenter === 'function') {
