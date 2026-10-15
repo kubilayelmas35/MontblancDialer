@@ -104,6 +104,11 @@ function runPageEntry(page) {
 }
 
 function navigate(page) {
+document.getElementById('mb-camp-notif')?.remove();
+if (typeof userHasPagePerm === 'function' && Array.isArray(ALL_PAGES) && ALL_PAGES.some((p) => p.key === page) && !userHasPagePerm(page)) {
+  if (typeof toast === 'function') toast(typeof t === 'function' ? t('nav.no_perm') : 'Bu sayfa için yetkiniz yok', 'warn');
+  return;
+}
 if (page !== 'supervisor' && typeof unloadSupervisorPanel === 'function') unloadSupervisorPanel();
 if (page !== 'dialer') {
   if (typeof closeMicAudioDrawer === 'function') closeMicAudioDrawer();
@@ -127,7 +132,7 @@ function initSettingsTabs() {
   const cards = [...page.querySelectorAll('.settings-layout > .card')];
   const groups = {
     general: new Set(['settings-appearance-card', 'settings-api-keys-card', 'settings-goals-card']),
-    communication: new Set(['incoming-calls-settings-card', 'chat-settings-card']),
+    communication: new Set(['incoming-calls-settings-card', 'chat-settings-card', 'sms-settings-card']),
     operations: new Set(['field-settings-card', 'mesai-settings-card', 'call-hours-card', 'results-settings-card', 'default-takvim-firm-card']),
     system: new Set(['feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings']),
   };
@@ -250,7 +255,7 @@ async function loadAppointmentResultsSettings() {
   if (typeof loadDefaultTakvimFirmCard === 'function') await loadDefaultTakvimFirmCard();
   const fid = getActiveFirmId() || currentUser?.firm_id;
   if (!fid) {
-    wrap.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Termin sonuçlarını görmek için firma seçin.</div>`;
+    wrap.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Randevu sonuçlarını görmek için firma seçin.</div>`;
     return;
   }
   const rows = await loadFirmAppointmentResults(fid, true);
@@ -340,7 +345,7 @@ async function saveAppointmentResultsSettings() {
       body: JSON.stringify({ settings: { ...existing, appointment_results: parsed } }),
     });
     window._apptResultsByFirm[fid] = parsed;
-    toast('Termin sonuçları kaydedildi', 'ok');
+    toast('Randevu sonuçları kaydedildi', 'ok');
   } catch (e) {
     toast('Kaydetme hatası: ' + e.message, 'err');
   }
@@ -366,6 +371,7 @@ if (typeof _dashGetRange === 'function' && typeof _dashUpdateStatLabels === 'fun
   const rk = _dashGetRange();
   _dashUpdateStatLabels(rk);
   _dashUpdateCardTitles(rk);
+  if (typeof renderDashLiveAgents === 'function') renderDashLiveAgents();
   const subEl = document.getElementById('dash-chart-sub');
     if (subEl && currentUser?.role === 'agent') {
     subEl.textContent = t('dash.sub_agent_calls');
@@ -398,8 +404,8 @@ currentTheme = t;
 document.documentElement.setAttribute('data-theme', t);
 const icon = document.getElementById('theme-icon');
 if (icon) icon.innerHTML = t==='light'
-  ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
-  : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+  ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+  : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3.5v2M12 18.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3.5 12h2M18.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 localStorage.setItem('mb-theme', t);
 }
 
@@ -565,7 +571,7 @@ window.addEventListener('message', (e) => {
 if (!e.data?.type) return;
 if (e.data.type === 'TAKVIM_BOOKED') {
 closeTakvimPopup();
-toast('🗓️ Termin takvime kaydedildi ✓', 'ok');
+toast('🗓️ Randevu takvime kaydedildi ✓', 'ok');
 if (currentContact && dialerStatus === 'on_call') {
 selectedOutcome = 'appointment';
 const map = {appointment:'.ob-appointment'};

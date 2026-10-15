@@ -36,6 +36,14 @@ else btn.textContent = 'Giriş Yap';
 return;
 }
 const u = data[0];
+if (!u.session_token) {
+errEl.textContent = (typeof t === 'function' ? t('login.err.conn') : 'Bağlantı hatası: ') + 'session';
+errEl.style.display = 'block';
+btn.disabled = false;
+if (_lbl) _lbl.textContent = (typeof t === 'function' ? t('login.btn') : 'Giriş Yap');
+else btn.textContent = 'Giriş Yap';
+return;
+}
 currentUser = {
 id:        u.user_id,
 firm_id:   u.firm_id,
@@ -43,7 +51,8 @@ email:     email,
 name:      u.name,
 role:      u.role,
 firm_name: u.firm_name,
-initials:  u.name.charAt(0).toUpperCase()
+initials:  u.name.charAt(0).toUpperCase(),
+session_token: u.session_token
 };
 _baseUser = { ...currentUser };
 _impersonation = null;
@@ -72,16 +81,25 @@ function toggleLoginPass() {
   const inp = document.getElementById('login-pass');
   const eye = document.getElementById('login-eye');
   if (!inp) return;
+  const eyeOpen = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const eyeOff = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>';
   if (inp.type === 'password') {
     inp.type = 'text';
-    if (eye) eye.innerHTML = '<i class="ph ph-eye-slash"></i>';
+    if (eye) eye.innerHTML = eyeOff;
   } else {
     inp.type = 'password';
-    if (eye) eye.innerHTML = '<i class="ph ph-eye"></i>';
+    if (eye) eye.innerHTML = eyeOpen;
   }
 }
 
 async function doLogout() {
+try {
+await fetch(`${SB_URL}/rest/v1/rpc/end_app_session`, {
+method: 'POST',
+headers: mbAuthHeaders(),
+body: '{}'
+});
+} catch (_) {}
 if (currentUser?.id) {
 await sbUpsert('agent_sessions', {
 agent_id: currentUser.id, status: 'offline',
@@ -160,17 +178,17 @@ if (currentUser.role === 'super_admin') { loadAllFirms(); }
 loadFirmCallHours(); // arama kısıtlamalarını yükle
 if (typeof loadFirmDialerSettingsCache === 'function') void loadFirmDialerSettingsCache();
 if (typeof loadIncomingCallsSettingsPage === 'function') void loadIncomingCallsSettingsPage();
-if (isAdmin) { navigate('dashboard'); }
-else if (currentUser.role === 'qc') { navigate('qc'); }
-else if (currentUser.role === 'field_agent') { navigate('field'); }
-else         { navigate('dialer'); }
+if (typeof applyFeatureFlagsOnBoot === 'function') applyFeatureFlagsOnBoot().catch(() => {});
 if (isAdmin) {
 updateTopbarStats();
 setInterval(updateTopbarStats, 30000);
 }
 loadWvBadge();
 if (typeof refreshUserPagePerms === 'function') refreshUserPagePerms().catch(() => {});
-if (typeof applyFeatureFlagsOnBoot === 'function') applyFeatureFlagsOnBoot().catch(() => {});
+if (isAdmin) { navigate('dashboard'); }
+else if (currentUser.role === 'qc') { navigate('qc'); }
+else if (currentUser.role === 'field_agent') { navigate('field'); }
+else         { navigate('dialer'); }
 if (typeof initChat === 'function') initChat();
 if (typeof initNotificationCenter === 'function') initNotificationCenter();
 initRTCListener();
@@ -350,7 +368,8 @@ async function applyImpersonation() {
     name: u.name || 'Temsil',
     role: u.role || 'agent',
     firm_name: firmName,
-    initials: (u.name || 'T').charAt(0).toUpperCase()
+    initials: (u.name || 'T').charAt(0).toUpperCase(),
+    session_token: _baseUser?.session_token || ''
   };
   persistImpersonationState();
   closeImpersonationModal();
@@ -382,6 +401,10 @@ function _isValidSessionUserShape(u) {
   return true;
 }
 
+function _hasSessionToken(u) {
+  return typeof u?.session_token === 'string' && u.session_token.length >= 32;
+}
+
 function _clearSessionStorageSafe() {
   localStorage.removeItem('mb_session');
   localStorage.removeItem('mb_base_session');
@@ -402,6 +425,14 @@ return;
 const baseSaved = localStorage.getItem('mb_base_session');
 _baseUser = baseSaved ? JSON.parse(baseSaved) : { ...currentUser };
 if (!_isValidSessionUserShape(_baseUser)) _baseUser = { ...currentUser };
+if (!_hasSessionToken(_baseUser) && _hasSessionToken(currentUser)) _baseUser.session_token = currentUser.session_token;
+if (!_hasSessionToken(currentUser) && _hasSessionToken(_baseUser)) currentUser.session_token = _baseUser.session_token;
+if (!_hasSessionToken(currentUser)) {
+_clearSessionStorageSafe();
+currentUser = null;
+_baseUser = null;
+return;
+}
 const impSaved = localStorage.getItem('mb_impersonation');
 _impersonation = impSaved ? JSON.parse(impSaved) : null;
 if (document.readyState === 'loading') {

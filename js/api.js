@@ -1,10 +1,29 @@
 // ─────────────────────────────────────────────
 // API — Supabase REST iletişim katmanı
 // ─────────────────────────────────────────────
+function mbAuthHeaders(extra) {
+  return {
+    apikey: SB_KEY,
+    Authorization: `Bearer ${SB_KEY}`,
+    'Content-Type': 'application/json',
+    ..._mbRequestScopeHeaders(),
+    ...(extra || {})
+  };
+}
+
+function _mbSessionToken() {
+  const base = (typeof _baseUser !== 'undefined' && _baseUser) ? _baseUser : null;
+  const cur = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : null;
+  const token = base?.session_token || cur?.session_token || '';
+  return token ? String(token) : '';
+}
+
 function _mbRequestScopeHeaders(userOverride = null) {
   const u = userOverride || ((typeof currentUser !== 'undefined' && currentUser) ? currentUser : null);
-  if (!u) return {};
   const h = {};
+  const token = _mbSessionToken();
+  if (token) h['x-mb-session'] = token;
+  if (!u) return h;
   if (u.id) h['x-mb-user-id'] = String(u.id);
   if (u.firm_id) h['x-mb-firm-id'] = String(u.firm_id);
   if (u.role) h['x-mb-role'] = String(u.role);

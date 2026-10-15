@@ -429,8 +429,8 @@ function _syncGoalTabChromeFromPerf() {
   ['daily', 'weekly', 'monthly'].forEach((t) => {
     const b = document.getElementById(`goal-tab-${t}`);
     if (b) {
-      b.style.background = t === goalScope ? 'var(--accent)' : 'transparent';
-      b.style.color = t === goalScope ? '#fff' : 'var(--text-2)';
+      b.style.background = t === goalScope ? 'var(--text)' : 'transparent';
+      b.style.color = t === goalScope ? 'var(--bg-2)' : 'var(--text-2)';
     }
   });
   const labels = { daily: 'Günlük Hedef', weekly: 'Haftalık Hedef', monthly: 'Aylık Hedef' };
@@ -442,7 +442,7 @@ function setPerfTab(tab) {
   _perfTab = tab;
   ['today','week','month'].forEach(t => {
     const b = document.getElementById(`perf-tab-${t}`);
-    if (b) { b.style.background = t===tab ? 'var(--accent)' : 'transparent'; b.style.color = t===tab ? '#fff' : 'var(--text-2)'; }
+    if (b) { b.style.background = t===tab ? 'var(--text)' : 'transparent'; b.style.color = t===tab ? 'var(--bg-2)' : 'var(--text-2)'; }
   });
   _syncGoalTabChromeFromPerf();
   scheduleLoadMyMiniStats(0);
@@ -561,8 +561,8 @@ async function loadMyMiniStats() {
     ['daily','weekly','monthly'].forEach((t) => {
       const b = document.getElementById(`goal-tab-${t}`);
       if (b) {
-        b.style.background = t === goalScope ? 'var(--accent)' : 'transparent';
-        b.style.color = t === goalScope ? '#fff' : 'var(--text-2)';
+        b.style.background = t === goalScope ? 'var(--text)' : 'transparent';
+        b.style.color = t === goalScope ? 'var(--bg-2)' : 'var(--text-2)';
       }
     });
     const labels = { daily:'Günlük Hedef', weekly:'Haftalık Hedef', monthly:'Aylık Hedef' };
@@ -597,7 +597,7 @@ async function loadMyMiniStats() {
     boxes.push(`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
 <div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono);">${appts}</div>
-<div style="font-size:10px;color:var(--text-3);">Termin</div>
+<div style="font-size:10px;color:var(--text-3);">${(typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Termin' : 'Randevu'}</div>
 </div>`);
     boxes.push(`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
@@ -1727,11 +1727,17 @@ function _stopGlobalMascotWander() {
   }
 }
 
+/** Kenar çubuğu ayağına kilitliyken gezinme menünün üstüne biner. Sürüklenen konum gezinmeye devam eder. */
+function _mascotDockedInSidebar(gm) {
+  return !!(gm && gm.classList.contains('global-mascot--topbar') && !gm.classList.contains('global-mascot--custom'));
+}
+
 /** Sürükleme bittiğinde veya ayar değişince: gezinmeyi yeniden başlat / durdur (konumu sıfırlamaz). */
 function _syncGlobalMascotWanderOnly() {
   const gm = document.getElementById('global-mascot');
   if (!gm || isMimiHidden()) return;
   const allowWander =
+    !_mascotDockedInSidebar(gm) &&
     getMascotWanderPct() > 0 &&
     !gm.classList.contains('global-mascot--peek-chat') &&
     !gm.classList.contains('global-mascot--peek-notif') &&
@@ -1872,6 +1878,17 @@ function syncCustomerCardEmptyVisual() {
   cc.classList.toggle('customer-card--empty', showEmpty);
 }
 
+function _visibleMascotAnchor() {
+  const sb = document.getElementById('sidebar');
+  const side = document.getElementById('sb-mascot-anchor');
+  const top = document.getElementById('tb-mascot-anchor');
+  if (sb && side) {
+    const r = sb.getBoundingClientRect();
+    if (r.width > 40 && r.right > 24 && r.left < (window.innerWidth || 0) - 8) return side;
+  }
+  return top || side;
+}
+
 function syncGlobalMascotDock() {
   if (_dockRaf) cancelAnimationFrame(_dockRaf);
   _dockRaf = requestAnimationFrame(() => {
@@ -1883,7 +1900,8 @@ function syncGlobalMascotDock() {
 function _syncGlobalMascotDockImpl() {
   const gm = document.getElementById('global-mascot');
   if (!gm) return;
-  const anchor = document.getElementById('sb-mascot-anchor') || document.getElementById('tb-mascot-anchor');
+  const anchor = _visibleMascotAnchor();
+  gm.classList.toggle('global-mascot--sidebar', !!(anchor && anchor.id === 'sb-mascot-anchor'));
   gm.classList.toggle('global-mascot--muted', isMimiHidden());
   _wireGlobalMascotInteractions();
   if (gm.classList.contains('global-mascot--peek-chat') || gm.classList.contains('global-mascot--peek-notif')) {
@@ -1938,6 +1956,7 @@ function _syncGlobalMascotDockImpl() {
     gm.classList.add('global-mascot--topbar', 'global-mascot--placed');
   }
   const allowWander =
+    !_mascotDockedInSidebar(gm) &&
     getMascotWanderPct() > 0 &&
     !gm.classList.contains('global-mascot--peek-chat') &&
     !gm.classList.contains('global-mascot--peek-notif') &&
@@ -2313,7 +2332,7 @@ function startCustEmptyMascotLoops() {
   if (dialerStatus === 'ready' || dialerStatus === 'offline') scheduleMascotEatOnce();
 }
 
-/** Aylık termin / hedefe göre büyüme × kullanıcı boyutu (ayarlar 50–150%) */
+/** Aylık randevu / hedefe göre büyüme × kullanıcı boyutu (ayarlar 50–150%) */
 function updateCustEmptyMascotScale() {
   const root = document.getElementById('cust-empty');
   const gm = document.getElementById('global-mascot');
@@ -4103,7 +4122,7 @@ function onAgentSlotSelected(slot) {
   _bookingSlot = slot;
   setOutcome('appointment');
 
-  // Termin moduna geç: müşteri kartı + bilgi sekmesi
+  // Randevu moduna geç: müşteri kartı + bilgi sekmesi
   document.getElementById('customer-card').style.display = '';
   if (currentContact) showCustomerCard(currentContact);
   if (typeof switchContactTab === 'function') switchContactTab('info');
@@ -4261,7 +4280,8 @@ function updateDailyProgress(apptCount, customGoal) {
   const pct = Math.min(100, Math.round((apptCount/goal)*100));
   el.style.width = pct + '%';
   el.style.background = pct>=100 ? 'var(--green)' : pct>=60 ? 'var(--yellow)' : 'var(--accent)';
-  if (label) label.textContent = `${apptCount}/${goal} Termin`;
+  const apptWord = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Termin' : 'Randevu';
+  if (label) label.textContent = `${apptCount}/${goal} ${apptWord}`;
   if (pct>=100 && !_confettiShown && _goalTab==='daily') { _confettiShown = true; launchConfetti(); }
 }
 
@@ -5393,6 +5413,10 @@ async function _loadTakvimOverlayCamps() {
 }
 
 async function openTakvimOverlay() {
+  if (typeof userHasPagePerm === 'function' && !userHasPagePerm('takvim')) {
+    if (typeof toast === 'function') toast(typeof t === 'function' ? t('nav.no_perm') : 'Bu sayfa için yetkiniz yok', 'warn');
+    return;
+  }
   const ov = document.getElementById('takvim-popup-overlay');
   if (!ov) { navigate('takvim'); return; }
   ov.classList.add('open');
@@ -5501,7 +5525,7 @@ async function startPrecallTest() {
       requestAnimationFrame(check);
     };
     check();
-    if (status) { status.textContent = '🎤 Konuşun — ses seviyesi gösteriliyor'; status.style.color='var(--green)'; }
+    if (status) { status.textContent = 'Konuşun — ses seviyesi gösteriliyor'; status.style.color='var(--green)'; }
   } catch(e) {
     if (status) { status.textContent = '❌ Mikrofon izni reddedildi'; status.style.color='var(--red)'; }
   }
@@ -5512,6 +5536,6 @@ function stopPrecallTest() {
   const status = document.getElementById('precall-status');
   if (status) {
     if (_precallOk) { status.textContent='✅ Mikrofon çalışıyor'; status.style.color='var(--green)'; }
-    else { status.textContent='⚠️ Ses algılanmadı — kontrol edin'; status.style.color='var(--yellow)'; }
+    else { status.textContent='Ses algılanmadı — kontrol edin'; status.style.color='var(--yellow)'; }
   }
 }

@@ -34,7 +34,7 @@ function _downloadCsvUtf8(filename, lineStrings) {
 function _statsTableToAoA() {
   const table = document.querySelector('#stats-tbody');
   if (!table) return null;
-  const header = ['Agent', 'Kampanya', 'Toplam', 'Termin', 'Olumsuz', 'Geri Ara', 'Cevap Yok', 'Ort. Süre', 'Dönüşüm'];
+  const header = ['Agent', 'Kampanya', 'Toplam', 'Randevu', 'Olumsuz', 'Geri Ara', 'Cevap Yok', 'Ort. Süre', 'Dönüşüm'];
   const aoa = [header];
   table.querySelectorAll('tr').forEach((tr) => {
     const tds = tr.querySelectorAll('td');
@@ -74,8 +74,8 @@ function exportStatsXlsx() {
 
 function _chOutcomeLabel(o) {
   const tr = {
-    appointment: 'Termin',
-    appointment_done: 'Termin',
+    appointment: 'Randevu',
+    appointment_done: 'Randevu',
     negative: 'Olumsuz',
     callback: 'Geri Ara',
     voicemail: 'Telesekreter',

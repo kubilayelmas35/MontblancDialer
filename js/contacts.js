@@ -455,7 +455,7 @@ onmouseout="this.style.opacity='.6';this.style.color='var(--text-3)'">
   terminContainer.innerHTML = `
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
 <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:5px;" class="termin-slot-hdr">
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Termin Bilgileri
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Randevu Bilgileri
 </div>
 <span id="termin-slot-badge" style="font-size:9px;color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;">Slot seçilmedi</span>
 </div>
@@ -481,7 +481,7 @@ oninput="updateTerminField('${f.key}',this.value)">`
 <textarea id="tf2-note" class="form-input" rows="2" style="font-size:12px;resize:vertical;margin-top:3px;" placeholder="Agent notu..."></textarea>
 </div>
 <button onclick="saveTerminFromSection()" style="margin-top:8px;width:100%;padding:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2,var(--accent)));color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer;">
-Termini Kaydet
+Randevuyu Kaydet
 </button>`;
   if (typeof renderInlineTerminCustomerField === 'function') {
     renderInlineTerminCustomerField();
@@ -539,7 +539,7 @@ function switchContactTab(tab) {
   ['info','map','history','file','outcome'].forEach(t => {
     const btn   = document.getElementById('ctab-'+t);
     const panel = document.getElementById('ctab-'+t+'-panel');
-    if (btn) { btn.style.background=t===tab?'var(--accent)':'transparent'; btn.style.color=t===tab?'#fff':'var(--text-2)'; }
+    if (btn) { btn.style.background=t===tab?'var(--text)':'transparent'; btn.style.color=t===tab?'var(--bg-2)':'var(--text-2)'; }
     if (panel) panel.style.display=t===tab?'':'none';
   });
   if (tab==='map' && currentContact) showContactMap(currentContact.address, currentContact.plz, currentContact.city);
@@ -903,7 +903,7 @@ async function showPrevCallInfo(contact) {
     const prev = logs[0];
     const recLog = logs.find((l) => String(l?.recording_url || '').trim());
     const dt = new Date(prev.started_at).toLocaleString('tr-TR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    const outcomeMap = {appointment:'Termin',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',dnc:'Kara Liste'};
+    const outcomeMap = {appointment:'Randevu',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',dnc:'Kara Liste'};
     const rawAgent = prev?.users?.name || '';
     const own = !!currentUser?.id && prev?.agent_id === currentUser.id;
     const agentLabel = own
@@ -988,7 +988,7 @@ async function openContactDrawer(contactId) {
     document.getElementById('cdr-name').textContent = fullName;
     document.getElementById('cdr-phone').textContent = c.phone || '—';
     // Info tab
-    const statusMap = {pending:'Bekliyor',no_answer:'Cevap Yok',callback:'Geri Ara',negative:'Olumsuz',appointment:'Termin',dnc:'Kara Liste',done:'Tamamlandı'};
+    const statusMap = {pending:'Bekliyor',no_answer:'Cevap Yok',callback:'Geri Ara',negative:'Olumsuz',appointment:'Randevu',dnc:'Kara Liste',done:'Tamamlandı'};
     const fields = [
       {l:'Telefon',    v:c.phone,      mono:true, copy:true},
       {l:'2. Tel',     v:c.phone2,     mono:true, copy:true},
@@ -1062,7 +1062,7 @@ function _renderCdrHistory() {
     el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:20px;font-size:12px;">Arama geçmişi yok</div>';
     return;
   }
-  const OM = {appointment:'Termin',appointment_done:'Termin',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',voicemail:'Telesekreter',dnc:'Kara Liste'};
+  const OM = {appointment:'Randevu',appointment_done:'Randevu',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',voicemail:'Telesekreter',dnc:'Kara Liste'};
   const colorMap = {appointment:'var(--green)',appointment_done:'var(--green)',negative:'var(--red)',callback:'var(--yellow)',no_answer:'var(--text-3)',dnc:'var(--red)',voicemail:'var(--text-3)'};
   el.innerHTML = _cdrLogs.map(l => {
     const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});

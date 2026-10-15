@@ -17,6 +17,7 @@
 </div>
 </div>
 </div>
+<div class="tb-mascot-anchor" id="tb-mascot-anchor" aria-hidden="true" title="Maskot"></div>
 <div class="tb-pills-wrap">
 <div id="tb-pills" style="display:none;">
 <div class="tb-pill pill-ping">
@@ -25,7 +26,7 @@
 <span class="tb-pill-lbl">ms</span>
 </div>
 <div class="tb-pill pill-bal">
-<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+<span class="tb-pill-ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M18 7.5a6 6 0 1 0 0 9"/><path d="M6 10.25h9"/><path d="M6 13.75h8"/></svg></span>
 <span class="tb-pill-val" id="pill-bal">--</span>
 <span class="tb-pill-lbl" id="pill-bal-cur">EUR</span>
 </div>
@@ -45,30 +46,28 @@
 <span class="tb-pill-lbl" data-tr="mola" data-de="Pause">mola</span>
 </div>
 <div class="tb-pill pill-camp">
-<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span>
+<span class="tb-pill-ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span>
 <span class="tb-pill-val" id="pill-camp">0</span>
 <span class="tb-pill-lbl" data-tr="kampanya" data-de="Kampagne">kampanya</span>
 </div>
 <div class="tb-pill pill-appt">
-<span><i class="ph ph-calendar" style="font-size:12px;"></i></span>
+<span class="tb-pill-ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
 <span class="tb-pill-val" id="pill-appt">0</span>
-<span class="tb-pill-lbl" data-tr="termin" data-de="Termin">termin</span>
+<span class="tb-pill-lbl" data-tr="randevu" data-de="Termin">randevu</span>
 </div>
 </div>
 </div>
 <div class="tb-right">
-<button class="tb-icon-btn" id="takvim-topbar-btn" onclick="openTakvimOverlay()" title="Takvim"
-style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid var(--border);border-radius:var(--radius-xs);gap:5px;display:flex;align-items:center;">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-<span style="font-size:11px;">Takvim</span>
+<button class="tb-icon-btn tb-takvim" id="takvim-topbar-btn" onclick="openTakvimOverlay()" title="Takvim">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+<span data-tr="Takvim" data-de="Kalender">Takvim</span>
 </button>
 <button class="tb-icon-btn" onclick="toggleTheme()" title="Tema">
-<span id="theme-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+<span id="theme-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
 </button>
-<button class="tb-icon-btn" onclick="cycleLang()" id="lang-btn" title="Dil" style="font-size:12px;font-weight:700;font-family:var(--mono);">TR</button>
-<div class="tb-mascot-anchor" id="tb-mascot-anchor" aria-hidden="true" title="Maskot"></div>
-<button class="tb-icon-btn" id="tb-notif-btn" onclick="toggleNotificationCenter()" title="Bildirim Merkezi" style="position:relative;">
-<i class="ph ph-bell" style="font-size:15px;"></i>
+<button class="tb-icon-btn" onclick="cycleLang()" id="lang-btn" title="Dil">TR</button>
+<button class="tb-icon-btn" id="tb-notif-btn" onclick="toggleNotificationCenter()" title="Bildirim Merkezi">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
 <span id="tb-notif-badge" class="sb-badge" style="display:none;position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;font-size:10px;padding:0 4px;">0</span>
 </button>
 <button class="tb-user" onclick="handleTopbarUserClick()">
@@ -134,9 +133,9 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
     <div class="global-mascot-info-note" id="global-mascot-info-mood-note">—</div>
   </div>
   <div id="mimi-pane-stats" class="global-mascot-pane" role="tabpanel" style="display:none;">
-    <div class="global-mascot-info-row"><span>Bugün çağrı</span><strong id="global-mascot-info-today-calls">0</strong></div>
-    <div class="global-mascot-info-row"><span>Bugün termin</span><strong id="global-mascot-info-today-appts">0</strong></div>
-    <div class="global-mascot-info-row"><span>Bu ay termin</span><strong id="global-mascot-info-month-appts">0</strong></div>
+    <div class="global-mascot-info-row"><span data-tr="Bugün çağrı" data-de="Anrufe heute">Bugün çağrı</span><strong id="global-mascot-info-today-calls">0</strong></div>
+    <div class="global-mascot-info-row"><span data-tr="Bugün randevu" data-de="Termine heute">Bugün randevu</span><strong id="global-mascot-info-today-appts">0</strong></div>
+    <div class="global-mascot-info-row"><span data-tr="Bu ay randevu" data-de="Termine im Monat">Bu ay randevu</span><strong id="global-mascot-info-month-appts">0</strong></div>
     <div class="global-mascot-info-note" id="global-mascot-info-stats-note">—</div>
   </div>
 </div>
@@ -155,9 +154,13 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
 <span data-tr="Özet" data-de="Übersicht">Özet</span>
 </button>
+<button class="sb-item" id="nav-supervisor-btn" style="display:none;" onclick="navigate('supervisor')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="12" cy="10" r="1.5" fill="currentColor" stroke="none"/></svg></span>
+<span data-tr="Canlı Ekran" data-de="Live-Ansicht">Canlı Ekran</span>
+</button>
 <button class="sb-item" id="nav-firms-btn" style="display:none;" onclick="navigate('firms')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></span>
-<span>Firmalar</span>
+<span data-tr="Firmalar" data-de="Firmen">Firmalar</span>
 </button>
 <button class="sb-item" onclick="navigate('campaigns')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></span>
@@ -165,12 +168,12 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span class="sb-badge" id="sb-badge-camp">0</span>
 </button>
 <button class="sb-item" id="nav-admin-dialer-btn" onclick="navigate('dialer')">
-<span class="sb-item-icon"><i class="ph ph-phone-call" style="font-size:17px;"></i></span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
 <span data-tr="Dialer" data-de="Dialer">Dialer</span>
 </button>
 <button class="sb-item" id="nav-jobs-btn" onclick="navigate('jobmarket')">
-<span class="sb-item-icon"><i class="ph ph-briefcase-metal" style="font-size:17px;"></i></span>
-<span data-tr="İş Platformu" data-de="Job Plattform">İş Platformu</span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></span>
+<span data-tr="İş Platformu" data-de="Auftragsplattform">İş Platformu</span>
 </button>
 <button class="sb-item" onclick="navigate('agents')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.82"/></svg></span>
@@ -185,37 +188,33 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span data-tr="İstatistikler" data-de="Statistiken">İstatistikler</span>
 </button>
 <button class="sb-item" id="nav-performance-btn" style="display:none;" onclick="navigate('performance')">
-<span class="sb-item-icon"><i class="ph ph-chart-line-up" style="font-size:17px;"></i></span>
-<span data-tr="Personel performans" data-de="Personal Performance">Personel performans</span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
+<span data-tr="Personel performans" data-de="Mitarbeiterleistung">Personel performans</span>
 </button>
 <button class="sb-item" onclick="navigate('callhistory')">
-<span class="sb-item-icon"><i class="ph ph-phone-list" style="font-size:17px;"></i></span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M8 6h13M8 12h13M8 18h13M4 6h.01M4 12h.01M4 18h.01"/></svg></span>
 <span data-tr="Çağrı Geçmişi" data-de="Anrufliste">Çağrı Geçmişi</span>
 </button>
 <button class="sb-item" onclick="navigate('export')">
-<span class="sb-item-icon"><i class="ph ph-table" style="font-size:17px;"></i></span>
-<span data-tr="Dışa aktarım" data-de="Export">Dışa aktarım</span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg></span>
+<span data-tr="Dışa aktarım" data-de="Datenexport">Dışa aktarım</span>
 </button>
 </div>
 <div class="sb-divider"></div>
 <div class="sb-section">
-<div class="sb-label" data-tr="Araçlar" data-de="Tools">Araçlar</div>
+<div class="sb-label" data-tr="Araçlar" data-de="Werkzeuge">Araçlar</div>
 <button class="sb-item" onclick="navigate('qc')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
 <span data-tr="QC Paneli" data-de="QC-Panel">QC Paneli</span>
 <span class="sb-badge" id="sb-badge-qc" style="display:none;background:var(--accent);">0</span>
 </button>
-<button class="sb-item" id="nav-supervisor-btn" style="display:none;" onclick="navigate('supervisor')">
-<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M2 20c0-4 4-7 10-7s10 3 10 7"/><circle cx="19" cy="6" r="2" fill="currentColor" stroke="none"/><path d="M19 4v4M17 6h4" stroke="currentColor" stroke-width="1.5"/></svg></span>
-<span data-tr="Supervisor" data-de="Supervisor">Supervisor</span>
-</button>
 <button class="sb-item" id="nav-fieldops-btn" style="display:none;" onclick="navigate('fieldops')">
-<span class="sb-item-icon"><i class="ph ph-map-trifold" style="font-size:17px;"></i></span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21"/><line x1="8" y1="3" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="21"/></svg></span>
 <span data-tr="Saha Operasyon" data-de="Feldoperationen">Saha Operasyon</span>
 </button>
 <button class="sb-item" onclick="navigate('wiedervorlage')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
-<span data-tr="Tüm WV'ler" data-de="Alle WV">Tüm WV'ler</span>
+<span data-tr="Tüm aranacaklar" data-de="Alle Rückrufe">Tüm aranacaklar</span>
 <span class="sb-badge" id="sb-badge-wv" style="display:none;background:var(--yellow);color:#000;">0</span>
 </button>
 <button class="sb-item" onclick="navigate('takvim')">
@@ -223,15 +222,15 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span data-tr="Takvim" data-de="Kalender">Takvim</span>
 </button>
 <button class="sb-item" onclick="navigate('leave')">
-<span class="sb-item-icon"><i class="ph ph-calendar-check" style="font-size:17px;"></i></span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg></span>
 <span data-tr="İzin &amp; Devam" data-de="Urlaub &amp; Anwesenheit">İzin &amp; Devam</span>
 </button>
 <button class="sb-item" onclick="navigate('muhasebe')">
-<span class="sb-item-icon"><i class="ph ph-calculator" style="font-size:17px;"></i></span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 12h8M8 16h5"/></svg></span>
 <span data-tr="Muhasebe" data-de="Buchhaltung">Muhasebe</span>
 </button>
 <button class="sb-item" onclick="navigate('competition')">
-<span class="sb-item-icon"><i class="ph ph-trophy" style="font-size:17px;"></i></span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 19V5M4 19h16"/><path d="M8 19v-6M12 19V8M16 19v-3"/></svg></span>
 <span data-tr="Ayın elemanı" data-de="Mitarbeiter des Monats">Ayın elemanı</span>
 </button>
 </div>
@@ -243,11 +242,11 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span data-tr="Özet" data-de="Übersicht">Özet</span>
 </button>
 <button class="sb-item active" id="nav-dialer-btn" onclick="navigate('dialer')">
-<span class="sb-item-icon"><i class="ph ph-phone-call" style="font-size:17px;"></i></span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
 <span data-tr="Dialer" data-de="Dialer">Dialer</span>
 </button>
 <button class="sb-item" id="nav-field-btn" style="display:none;" onclick="navigate('field')">
-<span class="sb-item-icon"><i class="ph ph-briefcase" style="font-size:17px;"></i></span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></span>
 <span data-tr="Saha Operasyon" data-de="Feldeinsatz">Saha Operasyon</span>
 </button>
 <button class="sb-item" id="nav-myhistory-btn" onclick="navigate('myhistory')">
@@ -264,19 +263,19 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <span data-tr="Takvim" data-de="Kalender">Takvim</span>
 </button>
 <button class="sb-item" onclick="navigate('leave')">
-<span class="sb-item-icon"><i class="ph ph-calendar-check" style="font-size:17px;"></i></span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg></span>
 <span data-tr="İzin &amp; Devam" data-de="Urlaub &amp; Anwesenheit">İzin &amp; Devam</span>
 </button>
 <button class="sb-item" id="nav-maasim-btn" style="display:none;" onclick="navigate('maasim')">
-<span class="sb-item-icon"><i class="ph ph-wallet" style="font-size:17px;"></i></span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M3 7h15a2 2 0 0 1 2 2v3h-4a2 2 0 0 0 0 4h4"/></svg></span>
 <span data-tr="Maaşım" data-de="Mein Gehalt">Maaşım</span>
 </button>
 <button class="sb-item" id="nav-performansim-btn" style="display:none;" onclick="navigate('performansim')">
-<span class="sb-item-icon"><i class="ph ph-chart-line-up" style="font-size:17px;"></i></span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
 <span data-tr="Performansım" data-de="Meine Performance">Performansım</span>
 </button>
 <button class="sb-item" onclick="navigate('competition')">
-<span class="sb-item-icon"><i class="ph ph-trophy" style="font-size:17px;"></i></span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 19V5M4 19h16"/><path d="M8 19v-6M12 19V8M16 19v-3"/></svg></span>
 <span data-tr="Ayın elemanı" data-de="Mitarbeiter des Monats">Ayın elemanı</span>
 </button>
 </div>
@@ -312,7 +311,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <option value="" data-tr="Tüm agentler" data-de="Alle Agenten">Tüm agentler</option>
 </select>
 </div>
-<button class="btn btn-ghost btn-sm" onclick="loadDashboard()">↻ <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
+<button class="btn btn-ghost btn-sm" onclick="loadDashboard()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
 </div>
 </div>
 <div class="stats-grid">
@@ -322,7 +321,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="stat-meta" id="d-calls-m">—</div>
 </div>
 <div class="stat-card stat-green">
-<div class="stat-lbl" data-tr="Terminler" data-de="Termine">Terminler</div>
+<div class="stat-lbl" data-tr="Randevular" data-de="Termine">Randevular</div>
 <div class="stat-val" id="d-appt">0</div>
 <div class="stat-meta" id="d-appt-m">%0 dönüşüm</div>
 </div>
@@ -355,14 +354,14 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div class="card" id="dash-eom-card" style="display:flex;flex-wrap:wrap;align-items:stretch;gap:16px;padding:18px 20px;margin-bottom:4px;background:linear-gradient(135deg,rgba(37,99,235,.08),transparent);border:1px solid var(--border);">
 <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:220px;">
-<div id="dash-eom-av" style="width:56px;height:56px;border-radius:14px;background:var(--accent-soft);color:var(--accent);font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">★</div>
+<div id="dash-eom-av" style="width:56px;height:56px;border-radius:14px;background:var(--bg-3);color:var(--text);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></div>
 <div style="flex:1;min-width:0;">
 <div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;">Ayın elemanı · Yarış</div>
 <div id="dash-eom-name" style="font-size:22px;font-weight:800;margin-top:4px;line-height:1.2;">—</div>
 <div id="dash-eom-period" style="font-size:12px;color:var(--text-3);margin-top:4px;">—</div>
 <div id="dash-eom-note" style="font-size:11px;margin-top:8px;color:var(--text-3);line-height:1.4;"></div>
 <div id="dash-comp-self" style="font-size:13px;margin-top:8px;color:var(--text-2);font-weight:600;display:none;"></div>
-<button type="button" class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="navigate('competition')"><i class="ph ph-trophy"></i> Yarış sayfası</button>
+<button type="button" class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="navigate('competition')"><span data-tr="Yarış sayfası" data-de="Rangliste">Yarış sayfası</span></button>
 </div>
 </div>
 </div>
@@ -382,7 +381,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="card-hdr">
 <div>
 <div class="card-title" id="dash-hourly-title">Bugün — saatlik analiz</div>
-<div class="card-sub" id="dash-hourly-sub">Çağrı hacmi ve termin (saat başı)</div>
+<div class="card-sub" id="dash-hourly-sub">Çağrı hacmi ve randevu (saat başı)</div>
 </div>
 </div>
 <div class="dash-chart-box"><canvas id="dash-chart-hourly"></canvas></div>
@@ -390,8 +389,8 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="card" id="dash-outcome-card">
 <div class="card-hdr">
 <div>
-<div class="card-title" id="dash-outcome-title">Termin sonuçları</div>
-<div class="card-sub" id="dash-outcome-sub">Randevu durumları (termin tarihine göre)</div>
+<div class="card-title" id="dash-outcome-title">Randevu sonuçları</div>
+<div class="card-sub" id="dash-outcome-sub">Randevu durumları (randevu tarihine göre)</div>
 </div>
 </div>
 <div class="dash-chart-box"><canvas id="dash-chart-outcomes"></canvas></div>
@@ -412,10 +411,11 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="card-hdr">
 <div>
 <div class="card-title" data-tr="Canlı Agent Durumu" data-de="Live-Agentenstatus">Canlı Agent Durumu</div>
-<div class="card-sub" data-tr="Gerçek zamanlı" data-de="Echtzeit">Gerçek zamanlı</div>
+<div class="card-sub" id="dash-live-sub">Kim görüşmede, kim hazır, kim molada</div>
 </div>
+<button type="button" class="btn btn-ghost btn-sm" onclick="navigate('supervisor')"><span data-tr="Canlı Ekran" data-de="Live-Ansicht">Canlı Ekran</span></button>
 </div>
-<div id="live-agents" style="display:flex;flex-direction:column;gap:6px;">
+<div id="live-agents">
 <div style="color:var(--text-3);text-align:center;padding:24px;font-size:13px;">Veri yükleniyor...</div>
 </div>
 </div>
@@ -426,11 +426,13 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="page-title" data-tr="Kampanyalar" data-de="Kampagnen">Kampanyalar</div>
 <div class="page-sub" data-tr="Kampanya ve kuyruk yönetimi" data-de="Kampagnen- und Warteschlangenverwaltung">Kampanya ve kuyruk yönetimi</div>
 </div>
+<div class="page-hdr-actions">
 <div id="camp-firm-selector" style="display:inline-flex;"></div>
-<button class="btn btn-ghost btn-sm" onclick="openImportApptModal()">📅 Termin İçe Aktar</button>
+<button class="btn btn-ghost btn-sm" onclick="openImportApptModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> <span data-tr="Randevu İçe Aktar" data-de="Termine importieren">Randevu İçe Aktar</span></button>
 <button class="btn btn-primary" onclick="openNewCampModal()">
 + <span data-tr="Yeni Kampanya" data-de="Neue Kampagne">Yeni Kampanya</span>
 </button>
+</div>
 </div>
 <div class="camp-grid" id="camp-grid"></div>
 <div class="card" id="camp-detail" style="display:none;">
@@ -440,17 +442,17 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div class="card-sub" id="cd-did">—</div>
 </div>
 <div style="display:flex;gap:6px;">
-<button class="btn btn-ghost btn-sm" onclick="openModal('m-upload-q')">📁 Kuyruk Yükle</button>
+<button class="btn btn-ghost btn-sm" onclick="openModal('m-upload-q')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> <span data-tr="Kuyruk Yükle" data-de="Liste laden">Kuyruk Yükle</span></button>
 <button class="btn-icon" onclick="closeCampDetail()">✕</button>
 </div>
 </div>
 <div style="display:flex;gap:0;margin:-4px 0 16px;border-bottom:2px solid var(--border);overflow-x:auto;">
 <button class="cd-tab active" data-tab="genel" onclick="switchCampTab('genel')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--accent);white-space:nowrap;">Genel</button>
 <button class="cd-tab" data-tab="alanlar" onclick="switchCampTab('alanlar')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Alanlar</button>
-<button class="cd-tab" data-tab="termin-form" onclick="switchCampTab('termin-form')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Termin Formu</button>
+<button class="cd-tab" data-tab="termin-form" onclick="switchCampTab('termin-form')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Randevu Formu</button>
 <button class="cd-tab" data-tab="script" onclick="switchCampTab('script')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Script</button>
 <button class="cd-tab" data-tab="arama" onclick="switchCampTab('arama')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Arama</button>
-<button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">QC/Wrapping</button>
+<button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="QC / Sonuç" data-de="QC / Nacharbeit">QC / Sonuç</button>
 <button class="cd-tab" data-tab="bildirim" onclick="switchCampTab('bildirim')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Bildirim</button>
 <button class="cd-tab" data-tab="agentler" onclick="switchCampTab('agentler')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;">Agentler</button>
 </div>
@@ -465,7 +467,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div>
 <div class="form-label" style="margin-bottom:6px;">Aktif Kampanya (Agentlere Bildir)</div>
-<button class="btn btn-primary btn-sm" onclick="activateCampaignForAgents()">📢 Aktif Et & Bildir</button>
+<button class="btn btn-primary btn-sm" onclick="activateCampaignForAgents()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l18-5v12L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg> <span data-tr="Aktif et ve bildir" data-de="Aktivieren und melden">Aktif et ve bildir</span></button>
 </div>
 </div>
 <div style="margin-top:16px;">
@@ -508,8 +510,8 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div>
-<div style="font-size:13px;font-weight:700;"><i class="ph ph-calendar-check"></i> Termin için slot zorunlu</div>
-<div style="font-size:11px;color:var(--text-3);">Açıksa agent takvimden slot seçmeden termin ile sonuçlandıramaz</div>
+<div style="font-size:13px;font-weight:700;"><i class="ph ph-calendar-check"></i> Randevu için slot zorunlu</div>
+<div style="font-size:11px;color:var(--text-3);">Açıksa agent takvimden slot seçmeden randevu ile sonuçlandıramaz</div>
 </div>
 <input type="checkbox" id="cd-appointment-slot-required" style="width:18px;height:18px;">
 </div>
@@ -531,7 +533,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-shield"></i> Anti-Spam (Cool-down)</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-shield"></i> <span data-tr="Tekrar arama koruması" data-de="Wiederholschutz">Tekrar arama koruması</span></div>
 <div style="display:flex;gap:8px;align-items:center;">
 <input type="checkbox" id="cd-cooldown" style="width:16px;height:16px;">
 <label for="cd-cooldown" style="font-size:12px;">İki arama arası bekleme süresi</label>
@@ -542,7 +544,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-speaker-high"></i> Pre-call Ses Testi</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-speaker-high"></i> <span data-tr="Arama öncesi ses testi" data-de="Audio-Test vor dem Anruf">Arama öncesi ses testi</span></div>
 <div style="display:flex;gap:8px;align-items:center;">
 <input type="checkbox" id="cd-precall-test" style="width:16px;height:16px;">
 <label for="cd-precall-test" style="font-size:12px;">Hazır olmadan önce mikrofon testi zorunlu</label>
@@ -554,7 +556,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div id="cd-tab-qc" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:14px;">
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-timer"></i> Wrap-up (ACW) Süresi</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-timer"></i> <span data-tr="Sonuç süresi" data-de="Nacharbeit">Sonuç süresi</span></div>
 <div style="display:flex;gap:8px;align-items:center;">
 <input type="checkbox" id="cd-acw-enabled" style="width:16px;height:16px;">
 <label for="cd-acw-enabled" style="font-size:12px;">Sonuç girme süresi kısıtla</label>
@@ -570,7 +572,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-coffee"></i> Mola (AUX) Kodları</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-coffee"></i> <span data-tr="Mola kodları" data-de="Pausencodes">Mola kodları</span></div>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Agentlerin seçeceği mola türleri</div>
 <div id="cd-aux-codes" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">
 </div>
@@ -588,7 +590,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <div id="cd-tab-bildirim" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:14px;">
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-megaphone"></i> Yönetici Kayan Yazı (Broadcast Ticker)</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-megaphone"></i> <span data-tr="Yönetici kayan yazı" data-de="Lauftext der Leitung">Yönetici kayan yazı</span></div>
 <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
 <input type="checkbox" id="cd-ticker-enabled" style="width:16px;height:16px;">
 <label for="cd-ticker-enabled" style="font-size:12px;">Kayan yazıyı aktif et</label>
@@ -597,7 +599,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveBroadcastTicker()"><i class="ph ph-paper-plane-tilt"></i> Yayınla</button>
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-calendar"></i> Termin Onay Mesajı</div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-calendar"></i> Randevu Onay Mesajı</div>
 <div style="display:flex;flex-direction:column;gap:6px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
 <input type="checkbox" id="cd-notif-whatsapp"> WhatsApp gönder
@@ -616,7 +618,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-link"></i> Webhook / API Dışa Aktarım</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Başarılı terminler bu URL'e POST olarak gönderilir</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Başarılı randevular bu URL'e POST olarak gönderilir</div>
 <input class="form-input" id="cd-webhook-url" placeholder="https://hooks.zapier.com/..." style="font-size:12px;">
 <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveCampWebhook()"><i class="ph ph-floppy-disk"></i> Kaydet</button>
 </div>
@@ -624,7 +626,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </div>
 <div id="cd-tab-termin-form" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:10px;">
-<div style="font-size:12px;color:var(--text-3);padding:8px;background:var(--bg-3);border-radius:6px;">Agent termin aldığında hangi ek bilgi alanları sorulsun? Aktif edeceğiniz alanlar termin formunda görünür.</div>
+<div style="font-size:12px;color:var(--text-3);padding:8px;background:var(--bg-3);border-radius:6px;">Agent randevu aldığında hangi ek bilgi alanları sorulsun? Aktif edeceğiniz alanlar randevu formunda görünür.</div>
 <div id="cd-termin-form-fields" style="display:flex;flex-direction:column;gap:6px;"></div>
 <button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampTerminFormSettings()">Kaydet</button>
 </div>
@@ -687,7 +689,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 <th data-tr="Agent" data-de="Agent">Agent</th>
 <th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
 <th data-tr="Aramalar" data-de="Anrufe">Aramalar</th>
-<th data-tr="Termin" data-de="Termin">Termin</th>
+<th data-tr="Randevu" data-de="Termin">Randevu</th>
 <th data-tr="Olumsuz" data-de="Negativ">Olumsuz</th>
 <th data-tr="Geri Ara" data-de="Rückruf">Geri Ara</th>
 <th data-tr="Cevap Yok" data-de="Kein Anspr.">Cevap Yok</th>
@@ -713,7 +715,7 @@ style="font-size:12px;font-weight:700;padding:0 10px;width:auto;border:1px solid
 </select>
 <select class="form-input" style="width:130px;" id="ch-outcome" onchange="loadCallHistory()">
 <option value="">Tüm Sonuçlar</option>
-<option value="appointment">Termin</option>
+<option value="appointment">Randevu</option>
 <option value="negative">Olumsuz</option>
 <option value="callback">Geri Ara</option>
 <option value="voicemail">Telesekreter</option>
@@ -804,8 +806,8 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <div id="et-loading" class="et-loading"><div class="et-loading-inner"><div class="et-spin"></div><div id="et-loading-text" style="font-weight:600;">…</div></div></div>
 <div class="page-hdr">
 <div>
-<div class="page-title" data-tr="Dışa aktarım" data-de="Export">Dışa aktarım</div>
-<div class="page-sub" data-tr="Terminleri filtreleyip Excel olarak indirin" data-de="Termine filtern und als Excel exportieren">Terminleri filtreleyip Excel olarak indirin</div>
+<div class="page-title" data-tr="Dışa aktarım" data-de="Datenexport">Dışa aktarım</div>
+<div class="page-sub" data-tr="Randevuları filtreleyip Excel olarak indirin" data-de="Termine filtern und als Excel exportieren">Randevuları filtreleyip Excel olarak indirin</div>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
 <div id="et-firm-wrap"></div>
@@ -847,7 +849,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 </div>
 <div class="card et-main" style="min-height:420px;display:flex;flex-direction:column;">
 <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
-<div style="font-weight:700;font-size:14px;"><i class="ph ph-calendar-dots"></i> Terminler</div>
+<div style="font-weight:700;font-size:14px;"><i class="ph ph-calendar-dots"></i> Randevular</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
 <span class="badge" style="background:var(--accent);color:#fff;"><span id="et-results-count">0</span> <span data-tr="kayıt" data-de="Einträge">kayıt</span></span>
 <span class="badge" style="background:var(--green);color:#fff;"><span id="et-selected-count">0</span> <span data-tr="seçili" data-de="gewählt">seçili</span></span>
@@ -942,8 +944,8 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 </div>
 <div class="page-hdr">
 <div>
-<div class="page-title" data-tr="Personel performans" data-de="Personal Performance">Personel performans</div>
-<div class="page-sub" data-tr="Termin ve arama metrikleri" data-de="Termin- und Anrufmetriken">Termin ve arama metrikleri</div>
+<div class="page-title" data-tr="Personel performans" data-de="Mitarbeiterleistung">Personel performans</div>
+<div class="page-sub" data-tr="Randevu ve arama metrikleri" data-de="Termin- und Anrufmetriken">Randevu ve arama metrikleri</div>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
 <div id="perf-firm-wrap"></div>
@@ -958,7 +960,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <div><label class="form-label" style="font-size:10px;">Agent</label><select class="form-input" id="perf-agent" onchange="perfOnFilterChange()"><option value="">Tümü</option></select></div>
 <div><label class="form-label" style="font-size:10px;">Kampanya</label><select class="form-input" id="perf-campaign" onchange="perfOnFilterChange()"><option value="">Tümü</option></select></div>
 </div>
-<div style="margin-bottom:10px;"><label class="form-label" style="font-size:10px;">Termin durumu</label><select class="form-input" id="perf-status" onchange="perfOnFilterChange()" style="max-width:280px;">
+<div style="margin-bottom:10px;"><label class="form-label" style="font-size:10px;">Randevu durumu</label><select class="form-input" id="perf-status" onchange="perfOnFilterChange()" style="max-width:280px;">
 <option value="">Tümü</option>
 <option value="ok">Başarılı</option>
 <option value="pend">Beklemede</option>
@@ -975,9 +977,9 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <button type="button" class="range-btn perf-range-btn" data-perf-range="all" onclick="perfSetQuickRange('all',event)">Tümü</button>
 </div>
 <div class="perf-sum">
-<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-total">0</div><div class="perf-sum-lbl" data-tr="Toplam termin (dönem)" data-de="Termine (Zeitraum)">Toplam termin (dönem)</div></div>
+<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-total">0</div><div class="perf-sum-lbl" data-tr="Toplam randevu (dönem)" data-de="Termine (Zeitraum)">Toplam randevu (dönem)</div></div>
 <div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-rate">0%</div><div class="perf-sum-lbl" data-tr="Başarı oranı" data-de="Erfolgsquote">Başarı oranı</div></div>
-<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-avg">0</div><div class="perf-sum-lbl" data-tr="Ort. termin/agent" data-de="Durchschn. Termine/Agent">Ort. termin/agent</div></div>
+<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-avg">0</div><div class="perf-sum-lbl" data-tr="Ort. randevu/agent" data-de="Durchschn. Termine/Agent">Ort. randevu/agent</div></div>
 <div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-days">0</div><div class="perf-sum-lbl" data-tr="Aktif gün" data-de="Aktive Tage">Aktif gün</div></div>
 <div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-agents">0</div><div class="perf-sum-lbl" data-tr="Aktif agent" data-de="Aktive Agenten">Aktif agent</div></div>
 </div>
@@ -986,7 +988,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 </div>
 </div>
 <div class="perf-cards">
-<div class="perf-card perf-card-total"><div class="perf-ct" data-tr="Toplam termin" data-de="Gesamt">Toplam termin</div><div class="perf-cv" id="perf-card-total">0</div></div>
+<div class="perf-card perf-card-total"><div class="perf-ct" data-tr="Toplam randevu" data-de="Gesamt">Toplam randevu</div><div class="perf-cv" id="perf-card-total">0</div></div>
 <div class="perf-card" style="border-color:var(--green);background:rgba(34,197,94,.08);"><div class="perf-ct" style="color:var(--green);">Başarılı</div><div class="perf-cv" id="perf-card-ok" style="color:var(--green);">0</div><div style="font-size:11px;color:var(--text-3);"><span id="perf-card-okpct">0%</span></div></div>
 <div class="perf-card" style="border-color:var(--yellow);"><div class="perf-ct">Beklemede</div><div class="perf-cv" id="perf-card-pend">0</div></div>
 <div class="perf-card" style="border-color:var(--accent);"><div class="perf-ct">QC</div><div class="perf-cv" id="perf-card-qc">0</div></div>
@@ -994,7 +996,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 </div>
 <div class="perf-call-row">
 <div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">ARAMA (dönem)</div><div style="font-size:20px;font-weight:900;" id="perf-call-total">0</div></div>
-<div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">Termin sonucu</div><div style="font-size:20px;font-weight:900;color:var(--green);" id="perf-call-appt">0</div></div>
+<div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">Randevu sonucu</div><div style="font-size:20px;font-weight:900;color:var(--green);" id="perf-call-appt">0</div></div>
 <div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">Dönüşüm</div><div style="font-size:20px;font-weight:900;" id="perf-call-conv">0%</div></div>
 <div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">Ort. süre</div><div style="font-size:20px;font-weight:900;" id="perf-call-avg">0:00</div></div>
 </div>
@@ -1022,7 +1024,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
 <span style="font-weight:800;font-size:13px;"><i class="ph ph-users-three"></i> Karşılaştırma</span>
 <div style="display:flex;gap:4px;">
-<button type="button" class="range-btn perf-cmp-btn active" onclick="perfSetCompType('termin',event)">Termin</button>
+<button type="button" class="range-btn perf-cmp-btn active" onclick="perfSetCompType('termin',event)">Randevu</button>
 <button type="button" class="range-btn perf-cmp-btn" onclick="perfSetCompType('success',event)">Oran %</button>
 <button type="button" class="range-btn perf-cmp-btn" onclick="perfSetCompType('efficiency',event)">Verim</button>
 </div>
@@ -1035,7 +1037,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;">
 <span style="font-weight:800;">Personel tablosu</span>
 <div style="display:flex;gap:4px;flex-wrap:wrap;">
-<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('total')">Termin</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('total')">Randevu</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('ok')">Başarılı</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('rate')">Oran</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('calls')">Arama</button>
@@ -1045,7 +1047,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <table style="min-width:980px;">
 <thead><tr>
 <th>Agent</th>
-<th>Termin</th>
+<th>Randevu</th>
 <th>OK</th>
 <th>Bekl.</th>
 <th>QC</th>
@@ -1063,7 +1065,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 <div style="border-top:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
 <span style="font-weight:800;">Bu ay (takvim)</span>
 <div style="display:flex;gap:4px;">
-<button type="button" class="btn btn-ghost btn-sm" onclick="perfMonthSort('total')">Termin</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfMonthSort('total')">Randevu</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="perfMonthSort('ok')">Başarılı</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="perfMonthSort('rate')">Oran</button>
 </div>
@@ -1077,7 +1079,7 @@ Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8
 </div>
 <div style="display:flex;flex-direction:column;gap:12px;">
 <div class="card" style="padding:0;overflow:hidden;">
-<div style="padding:10px 14px;font-weight:800;border-bottom:1px solid var(--border);"><i class="ph ph-calendar-check"></i> Son terminler</div>
+<div style="padding:10px 14px;font-weight:800;border-bottom:1px solid var(--border);"><i class="ph ph-calendar-check"></i> Son randevular</div>
 <div class="tbl-wrap" style="max-height:280px;">
 <table style="min-width:400px;font-size:12px;">
 <thead><tr><th>Tarih</th><th>Agent</th><th>Müşteri</th><th>Kamp.</th><th>Durum</th></tr></thead>
@@ -1117,7 +1119,7 @@ style="font-size:15px;cursor:pointer;background:transparent;border:none;padding:
 </div>
 </div>
 <div class="dialer-hdr-badges" style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-shrink:0;">
-<span class="badge badge-green" style="font-size:11px;padding:3px 8px;"><span id="my-appt">0</span> termin</span>
+<span class="badge badge-green" style="font-size:11px;padding:3px 8px;"><span id="my-appt">0</span> <span data-tr="randevu" data-de="Termin">randevu</span></span>
 <span class="badge badge-blue" style="font-size:11px;padding:3px 8px;"><span id="my-calls">0</span> çağrı</span>
 <button id="test-mode-btn" onclick="toggleTestMode()" title="Test Modu — gerçek arama yapılmaz"
 style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;border:1.5px dashed var(--text-3);background:transparent;color:var(--text-3);cursor:pointer;transition:.2s;letter-spacing:.3px;">
@@ -1162,13 +1164,13 @@ TEST MODU
 <div style="display:flex;flex-direction:column;gap:8px;">
 <div id="daily-goal-bar" style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:4px;display:none;">
 <div style="display:flex;gap:2px;margin-bottom:8px;background:var(--bg-2);border-radius:4px;padding:2px;">
-<button id="goal-tab-daily" onclick="setGoalTab('daily')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;">Günlük</button>
+<button id="goal-tab-daily" onclick="setGoalTab('daily')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:var(--text);color:var(--bg-2);border-radius:3px;cursor:pointer;">Günlük</button>
 <button id="goal-tab-weekly" onclick="setGoalTab('weekly')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:3px;cursor:pointer;">Haftalık</button>
 <button id="goal-tab-monthly" onclick="setGoalTab('monthly')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:3px;cursor:pointer;">Aylık</button>
 </div>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
 <span style="font-size:11px;font-weight:700;color:var(--text-2);" id="goal-tab-label">Günlük Hedef</span>
-<span id="daily-progress-label" style="font-size:11px;font-weight:800;color:var(--accent);">0/5 Termin</span>
+<span id="daily-progress-label" style="font-size:11px;font-weight:800;color:var(--accent);">0/5 Randevu</span>
 </div>
 <div style="background:var(--bg-2);border-radius:4px;height:6px;overflow:hidden;">
 <div id="daily-progress-bar" style="height:100%;width:0%;background:var(--accent);border-radius:4px;transition:width .5s;"></div>
@@ -1241,11 +1243,11 @@ TEST MODU
 </div>
 <div id="cust-data" style="display:none;">
 <div style="display:flex;margin:-8px -8px 12px;border-bottom:2px solid var(--border);">
-<button id="ctab-info" onclick="switchContactTab('info')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:var(--accent);color:#fff;cursor:pointer;border-radius:var(--radius) 0 0 0;transition:.15s;"><i class="ph ph-user" style="margin-right:5px;"></i>Müşteri</button>
-<button id="ctab-map" onclick="switchContactTab('map')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:.15s;"><i class="ph ph-map-pin" style="margin-right:5px;"></i>Harita</button>
-<button id="ctab-history" onclick="switchContactTab('history')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:.15s;"><i class="ph ph-clock-clockwise" style="margin-right:5px;"></i>Geçmiş</button>
-<button id="ctab-file" onclick="switchContactTab('file')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;border-radius:0;transition:.15s;"><i class="ph ph-file-arrow-down" style="margin-right:5px;"></i>Dosya</button>
-<button id="ctab-outcome" onclick="switchContactTab('outcome')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;border-radius:0 var(--radius) 0 0;transition:.15s;"><i class="ph ph-check-square" style="margin-right:5px;"></i><span data-tr="Sonuç" data-de="Ergebnis">Sonuç</span></button>
+<button id="ctab-info" onclick="switchContactTab('info')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:var(--text);color:var(--bg-2);cursor:pointer;border-radius:var(--radius) 0 0 0;transition:.15s;">Müşteri</button>
+<button id="ctab-map" onclick="switchContactTab('map')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:.15s;">Harita</button>
+<button id="ctab-history" onclick="switchContactTab('history')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;transition:.15s;">Geçmiş</button>
+<button id="ctab-file" onclick="switchContactTab('file')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;border-radius:0;transition:.15s;">Dosya</button>
+<button id="ctab-outcome" onclick="switchContactTab('outcome')" style="flex:1;padding:10px 4px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text-2);cursor:pointer;border-radius:0 var(--radius) 0 0;transition:.15s;"><span data-tr="Sonuç" data-de="Ergebnis">Sonuç</span></button>
 </div>
 <div id="ctab-info-panel">
 <div class="cust-header">
@@ -1295,7 +1297,7 @@ Son randevu bilgileri indirilebilir.
 <div class="outcome-grid">
 <button class="outcome-btn ob-appointment" onclick="handleAppointmentClick()">
 <div class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
-<div class="lbl" data-tr="Termin" data-de="Termin">Termin</div>
+<div class="lbl" data-tr="Randevu" data-de="Termin">Randevu</div>
 </button>
 <button class="outcome-btn ob-negative" onclick="setOutcome('negative')">
 <div class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
@@ -1328,10 +1330,10 @@ Son randevu bilgileri indirilebilir.
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
 <button class="btn btn-primary" style="flex:1;" onclick="submitOutcome(false)">
-✓ <span data-tr="Sonuçlandır" data-de="Abschließen">Sonuçlandır</span>
+<span data-tr="Sonuçlandır" data-de="Abschließen">Sonuçlandır</span>
 </button>
 <button class="btn btn-ghost" onclick="submitOutcome(true)">
-☕ <span data-tr="Mola" data-de="Pause">Mola</span>
+<span data-tr="Mola" data-de="Pause">Mola</span>
 </button>
 </div>
 </div>
@@ -1417,7 +1419,7 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="sb-divider" style="margin:8px 0;"></div>
 <!-- Performans sekmeleri -->
 <div style="display:flex;gap:2px;margin-bottom:8px;background:var(--bg-3);border-radius:var(--radius-sm);padding:2px;">
-<button id="perf-tab-today" onclick="setPerfTab('today')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:var(--accent);color:#fff;border-radius:4px;cursor:pointer;">Bugün</button>
+<button id="perf-tab-today" onclick="setPerfTab('today')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:var(--text);color:var(--bg-2);border-radius:4px;cursor:pointer;">Bugün</button>
 <button id="perf-tab-week" onclick="setPerfTab('week')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:4px;cursor:pointer;">Hafta</button>
 <button id="perf-tab-month" onclick="setPerfTab('month')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:4px;cursor:pointer;">Ay</button>
 </div>
@@ -1448,11 +1450,11 @@ Sonuçsuz Çağrılar
 <div class="page" id="page-field">
 <div class="page-hdr">
 <div>
-<div class="page-title"><i class="ph ph-briefcase" style="vertical-align:-3px;margin-right:6px;"></i>Saha Operasyon</div>
-<div class="page-sub" id="field-page-sub">Atanmış saha görevleriniz</div>
+<div class="page-title"><span data-tr="Saha Operasyon" data-de="Feldeinsatz">Saha Operasyon</span></div>
+<div class="page-sub" id="field-page-sub" data-tr="Atanmış saha görevleriniz" data-de="Ihre zugewiesenen Feldaufgaben">Atanmış saha görevleriniz</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
-<button class="btn btn-ghost btn-sm" onclick="loadFieldPage()">↻ Yenile</button>
+<button class="btn btn-ghost btn-sm" onclick="loadFieldPage()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
 </div>
 </div>
 <div id="field-kpi-wrap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px;">
@@ -1468,8 +1470,8 @@ Sonuçsuz Çağrılar
 <div class="page" id="page-fieldops">
 <div class="page-hdr">
 <div>
-<div class="page-title"><i class="ph ph-map-trifold" style="vertical-align:-3px;margin-right:6px;"></i>Saha Operasyon Takibi</div>
-<div class="page-sub">Hangi randevu hangi saha elemanında ve güncel sonuç durumu</div>
+<div class="page-title"><span data-tr="Saha Operasyon Takibi" data-de="Feldübersicht">Saha Operasyon Takibi</span></div>
+<div class="page-sub" data-tr="Hangi randevu hangi saha elemanında ve güncel sonuç durumu" data-de="Welcher Termin bei welchem Feldmitarbeiter liegt">Hangi randevu hangi saha elemanında ve güncel sonuç durumu</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="fieldops-firm-wrap"></div>
@@ -1481,28 +1483,32 @@ Sonuçsuz Çağrılar
 <option value="cancelled">İptal</option>
 </select>
 <input class="form-input" id="fieldops-search" placeholder="Randevu, telefon, saha..." style="min-width:180px;font-size:12px;" oninput="fieldOpsApplyFilters()">
-<button class="btn btn-ghost btn-sm" onclick="loadFieldOpsPage()">↻ Yenile</button>
+<button class="btn btn-ghost btn-sm" onclick="loadFieldOpsPage()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
 </div>
 </div>
-<div id="fieldops-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px;">
-<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Toplam</div><div id="fieldops-kpi-total" style="font-size:20px;font-weight:800;">0</div></div>
-<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Atandı</div><div id="fieldops-kpi-assigned" style="font-size:20px;font-weight:800;">0</div></div>
-<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Sahada</div><div id="fieldops-kpi-progress" style="font-size:20px;font-weight:800;">0</div></div>
-<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Tamamlandı</div><div id="fieldops-kpi-done" style="font-size:20px;font-weight:800;">0</div></div>
+<div id="fieldops-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:10px;">
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Toplam" data-de="Gesamt">Toplam</div><div id="fieldops-kpi-total" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Atandı" data-de="Zugewiesen">Atandı</div><div id="fieldops-kpi-assigned" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Sahada" data-de="Im Feld">Sahada</div><div id="fieldops-kpi-progress" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Tamamlandı" data-de="Erledigt">Tamamlandı</div><div id="fieldops-kpi-done" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="İptal" data-de="Storniert">İptal</div><div id="fieldops-kpi-cancelled" style="font-size:20px;font-weight:800;">0</div></div>
 </div>
 <div class="card">
 <div class="tbl-wrap">
 <table>
 <thead><tr>
-<th>Tarih</th>
-<th>Randevu</th>
-<th>Telefon</th>
-<th>Saha Elemanı</th>
-<th>Durum</th>
-<th>Saha Sonucu</th>
+<th data-tr="Kayıt" data-de="Erfasst">Kayıt</th>
+<th data-tr="Randevu" data-de="Termin">Randevu</th>
+<th data-tr="Telefon" data-de="Telefon">Telefon</th>
+<th data-tr="Posta kodu" data-de="PLZ">Posta kodu</th>
+<th data-tr="Şehir" data-de="Ort">Şehir</th>
+<th data-tr="Randevu tarihi" data-de="Terminzeit">Randevu tarihi</th>
+<th data-tr="Saha elemanı" data-de="Feldmitarbeiter">Saha elemanı</th>
+<th data-tr="Durum" data-de="Status">Durum</th>
+<th data-tr="Saha sonucu" data-de="Feldergebnis">Saha sonucu</th>
 </tr></thead>
 <tbody id="fieldops-tbody">
-<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>
+<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>
 </tbody>
 </table>
 </div>
@@ -1517,7 +1523,7 @@ Sonuçsuz Çağrılar
 <input type="text" class="form-input" id="mh-search" placeholder="İsim, numara..." style="width:160px;padding:5px 10px;font-size:12px;" oninput="loadMyHistory()">
 <select class="form-input" id="mh-outcome" style="width:130px;padding:5px 8px;font-size:12px;" onchange="loadMyHistory()">
 <option value="">Tüm Sonuçlar</option>
-<option value="appointment">Termin</option>
+<option value="appointment">Randevu</option>
 <option value="callback">Geri Ara</option>
 <option value="negative">Olumsuz</option>
 <option value="no_answer">Cevap Yok</option>
@@ -1553,7 +1559,7 @@ Sonuçsuz Çağrılar
 <div class="page" id="page-wiedervorlage">
 <div class="page-hdr">
 <div>
-<div class="page-title" data-tr="Aranacaklar (Wiedervorlage)" data-de="Wiedervorlage">Aranacaklar</div>
+<div class="page-title" data-tr="Aranacaklar" data-de="Wiedervorlage">Aranacaklar</div>
 <div class="page-sub" data-tr="Geri arama hatırlatmaları" data-de="Rückruferinnerungen">Geri arama hatırlatmaları</div>
 </div>
 <div style="display:flex;gap:8px;">
@@ -1601,7 +1607,7 @@ Sonuçsuz Çağrılar
 <div class="page" id="page-qc">
 <div class="page-hdr">
 <div>
-<div class="page-title">QC Paneli</div>
+<div class="page-title" data-tr="QC Paneli" data-de="QC-Panel">QC Paneli</div>
 <div class="page-sub" data-tr="Randevuları onayla veya reddet" data-de="Termine bestätigen oder ablehnen">Randevuları onayla veya reddet</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
@@ -1628,10 +1634,10 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <th>Tarih</th>
 <th>Müşteri</th>
 <th>Telefon</th>
-<th>PLZ</th>
+<th data-tr="Posta kodu" data-de="PLZ">Posta kodu</th>
 <th>Agent</th>
 <th>Kampanya</th>
-<th>Termin Müşterisi</th>
+<th>Randevu Müşterisi</th>
 <th>Kayıt</th>
 <th>Durum</th>
 <th>İşlem</th>
@@ -1672,12 +1678,12 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <div class="page" id="page-jobmarket">
 <div class="page-hdr">
 <div>
-<div class="page-title"><i class="ph ph-briefcase-metal" style="vertical-align:-3px;margin-right:6px;"></i>İş Platformu</div>
-<div class="page-sub">Firmalar arası iş ilanı, çalışma ve teslim akışı</div>
+<div class="page-title"><span data-tr="İş Platformu" data-de="Auftragsplattform">İş Platformu</span></div>
+<div class="page-sub" data-tr="Firmalar arası iş ilanı, çalışma ve teslim akışı" data-de="Jobbörse zwischen Firmen">Firmalar arası iş ilanı, çalışma ve teslim akışı</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
 <div id="job-market-firm-selector"></div>
-<button class="btn btn-ghost btn-sm" onclick="loadJobMarketPage()">↻ Yenile</button>
+<button class="btn btn-ghost btn-sm" onclick="loadJobMarketPage()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
 </div>
 </div>
 <div style="display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:10px;align-items:start;">
@@ -1799,6 +1805,7 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <button type="button" class="jm-pill jm-preset" data-preset="this_week" onclick="setJobPreset('this_week')">Bu hafta</button>
 <button type="button" class="jm-pill jm-preset" data-preset="high_budget" onclick="setJobPreset('high_budget')">Yüksek bütçe</button>
 </div>
+<div id="job-market-summary" class="jm-summary"></div>
 <div id="job-market-list" style="display:flex;flex-direction:column;gap:8px;">
 <div style="font-size:12px;color:var(--text-3);padding:8px;">Yükleniyor...</div>
 </div>
@@ -1808,8 +1815,8 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <div class="page" id="page-firms">
 <div class="page-hdr">
 <div>
-<div class="page-title">Firmalar</div>
-<div class="page-sub">Tüm firmalar ve kullanıcılar</div>
+<div class="page-title" data-tr="Firmalar" data-de="Firmen">Firmalar</div>
+<div class="page-sub" data-tr="Tüm firmalar ve kullanıcılar" data-de="Alle Firmen und Benutzer">Tüm firmalar ve kullanıcılar</div>
 </div>
 <button class="btn btn-primary btn-sm" onclick="openFirmModal()">
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1823,7 +1830,7 @@ Firma Ekle
 <div class="takvim-toolbar" role="toolbar">
 <div class="takvim-toolbar-brand">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-<span>Takvim</span>
+<span data-tr="Takvim" data-de="Kalender">Takvim</span>
 </div>
 <div class="takvim-toolbar-actions">
 <div class="takvim-toolbar-cluster takvim-toolbar-cluster--left">
@@ -1833,12 +1840,12 @@ Firma Ekle
 <button type="button" id="tv-month-btn" onclick="setTakvimView('month')">Ay</button>
 </div>
 <div class="takvim-nav">
-<button type="button" class="btn btn-ghost btn-sm" onclick="takvimPrev()">◀</button>
+<button type="button" class="btn btn-ghost btn-sm tk-nav-btn" onclick="takvimPrev()" aria-label="Önceki"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="15 18 9 12 15 6"/></svg></button>
 <span id="takvim-week-label">—</span>
-<button type="button" class="btn btn-ghost btn-sm" onclick="takvimNext()">▶</button>
+<button type="button" class="btn btn-ghost btn-sm tk-nav-btn" onclick="takvimNext()" aria-label="Sonraki"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="9 18 15 12 9 6"/></svg></button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="takvimGoToday()">Bugün</button>
 </div>
-<button type="button" class="btn btn-ghost btn-sm" onclick="openTakvimPlzMeasureModal()" title="PLZ ile tüm terminlere uzaklık">Mesafe ölç</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="openTakvimPlzMeasureModal()" title="PLZ ile tüm randevulara uzaklık">Mesafe ölç</button>
 </div>
 <div class="takvim-toolbar-cluster takvim-toolbar-cluster--right">
 <div id="takvim-page-firm-selector" class="takvim-page-firm-selector"></div>
@@ -2043,6 +2050,14 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </div>
 <div id="muhasebe-no-access" class="card" style="display:none;padding:18px;">Bu sayfayı görüntüleme yetkiniz yok.</div>
 <div id="muhasebe-main" style="display:flex;flex-direction:column;gap:14px;padding-bottom:28px;">
+<div class="card muh-fx-banner" id="muh-fx-banner">
+<div>
+<div class="muh-fx-kicker" data-tr="Canlı kur" data-de="Live-Kurs">Canlı kur</div>
+<div id="muh-fx-rate">1 EUR = — TRY</div>
+<div id="muh-fx-meta" data-tr="Kur yükleniyor" data-de="Kurs wird geladen">Kur yükleniyor</div>
+</div>
+<button class="btn btn-ghost btn-sm" type="button" onclick="testFxRateNow()" data-tr="Kuru yenile" data-de="Kurs aktualisieren">Kuru yenile</button>
+</div>
 <div class="card" style="padding:10px 12px;">
 <div style="display:flex;gap:8px;flex-wrap:wrap;">
 <button class="btn btn-ghost btn-sm muh-tab-btn active" data-muh-tab="ozet" onclick="setMuhasebeTab('ozet')">Özet & Takip</button>
@@ -2060,8 +2075,8 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="form-row"><label class="form-label">Kur (1 EUR = TRY)</label><input class="form-input" id="pr-rate" type="number" step="0.0001" value="1" oninput="updatePayrollPreview()"></div>
 <div class="form-row"><label class="form-label">Kur API</label>
 <select class="form-input" id="pr-fx-provider" onchange="onFxProviderChange()">
-<option value="exchangerate_host">exchangerate.host (varsayılan)</option>
-<option value="frankfurter">frankfurter.app</option>
+<option value="frankfurter">Canlı kur</option>
+<option value="exchangerate_host">exchangerate.host</option>
 <option value="custom">Özel API</option>
 </select>
 </div>
@@ -2071,7 +2086,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="form-row"><label class="form-label">Maaş modu</label><select class="form-input" id="pr-mode"><option value="net">Net</option><option value="gross_minimum">Asgari (brüt)</option></select></div>
 <div class="form-row"><label class="form-label">Baz maaş</label><input class="form-input" id="pr-base" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>
 <div class="form-row"><label class="form-label">Vergi %</label><input class="form-input" id="pr-tax" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>
-<div class="form-row"><label class="form-label">Başarılı termin gelir tutarı</label><input class="form-input" id="pr-rev-success" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>
+<div class="form-row"><label class="form-label">Başarılı randevu gelir tutarı</label><input class="form-input" id="pr-rev-success" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>
 <div class="form-row"><label class="form-label">Geç kalma cezası (olay başı)</label><input class="form-input" id="pr-late" type="number" step="0.01" value="0"></div>
 <div class="form-row"><label class="form-label">İzin aşımı cezası (gün başı)</label><input class="form-input" id="pr-leave-over-amt" type="number" step="0.01" value="0"></div>
 </div>
@@ -2088,7 +2103,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <button class="btn btn-ghost btn-sm" type="button" onclick="addPayrollTierRow('bonus')">+ Prim kademesi ekle</button>
 </div>
 <div>
-<div class="form-label" style="margin-bottom:6px;">Net maaş hakediş kademeleri (başarılı termine göre)</div>
+<div class="form-label" style="margin-bottom:6px;">Net maaş hakediş kademeleri (başarılı randevuya göre)</div>
 <div id="pr-salary-tiers-wrap"></div>
 <button class="btn btn-ghost btn-sm" type="button" onclick="addPayrollTierRow('salary')">+ Maaş kademesi ekle</button>
 </div>
@@ -2096,7 +2111,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div style="margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:8px;background:var(--bg-3);">
 <div class="form-label" style="margin-bottom:6px;">Önizleme (örnek personel)</div>
 <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;align-items:end;">
-<div class="form-row"><label class="form-label">Başarılı termin</label><input class="form-input" id="pr-preview-success" type="number" min="0" value="20" oninput="updatePayrollPreview()"></div>
+<div class="form-row"><label class="form-label">Başarılı randevu</label><input class="form-input" id="pr-preview-success" type="number" min="0" value="20" oninput="updatePayrollPreview()"></div>
 <div id="pr-preview-result" style="font-size:12px;color:var(--text-2);padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);">Hesaplanıyor...</div>
 </div>
 </div>
@@ -2106,7 +2121,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="card-hdr">
 <div>
 <div class="card-title">Müşteriler</div>
-<div class="card-sub">Terminlerde kullanılacak müşteri listesi</div>
+<div class="card-sub">Randevularda kullanılacak müşteri listesi</div>
 </div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 130px 1fr auto;gap:8px;align-items:end;">
@@ -2121,7 +2136,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div id="muh-pane-musteri" class="muh-pane" style="display:none;">
 <div class="card" style="padding:16px;">
 <div class="card-title" style="margin-bottom:8px;">Müşteri bazlı gelir tarifesi</div>
-<div class="card-sub" style="margin-bottom:10px;">Onaylı (başarılı) terminlerde müşteriye göre gelir tutarı uygulanır.</div>
+<div class="card-sub" style="margin-bottom:10px;">Onaylı (başarılı) randevularda müşteriye göre gelir tutarı uygulanır.</div>
 <div id="muh-customer-rate-table"></div>
 <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="savePayrollRules()">Tarifeleri Kaydet</button>
 </div>
@@ -2159,8 +2174,8 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="page" id="page-maasim">
 <div class="page-hdr">
 <div>
-<div class="page-title"><i class="ph ph-wallet" style="vertical-align:-3px;"></i> Maaşım</div>
-<div class="page-sub" id="maasim-sub">Bordro özeti ve prim kademeleri</div>
+<div class="page-title"><span data-tr="Maaşım" data-de="Mein Gehalt">Maaşım</span></div>
+<div class="page-sub" id="maasim-sub" data-tr="Bordro özeti ve prim kademeleri" data-de="Gehaltsübersicht und Prämienstufen">Bordro özeti ve prim kademeleri</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="maasim-firm-selector"></div>
@@ -2182,8 +2197,8 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="page" id="page-performansim">
 <div class="page-hdr">
 <div>
-<div class="page-title"><i class="ph ph-chart-line-up" style="vertical-align:-3px;"></i> Performansım</div>
-<div class="page-sub" id="performansim-sub">Termin ve çağrı özeti</div>
+<div class="page-title"><span data-tr="Performansım" data-de="Meine Performance">Performansım</span></div>
+<div class="page-sub" id="performansim-sub" data-tr="Randevu ve çağrı özeti" data-de="Termin- und Anrufübersicht">Randevu ve çağrı özeti</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="performansim-firm-selector"></div>
@@ -2199,8 +2214,8 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="page" id="page-competition">
 <div class="page-hdr">
 <div>
-<div class="page-title"><i class="ph ph-trophy" style="vertical-align:-3px;"></i> Ayın elemanı</div>
-<div class="page-sub" id="comp-page-sub">Başarılı termin yarışı — otomatik sıralama</div>
+<div class="page-title"><span data-tr="Ayın elemanı" data-de="Mitarbeiter des Monats">Ayın elemanı</span></div>
+<div class="page-sub" id="comp-page-sub" data-tr="Başarılı randevu yarışı — otomatik sıralama" data-de="Erfolgreiche Termine — automatische Rangliste">Başarılı randevu yarışı — otomatik sıralama</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="comp-firm-selector"></div>
@@ -2232,22 +2247,22 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <div class="comp-podium-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-<div class="card" style="padding:14px;text-align:center;border-top:3px solid #eab308;">
-<div style="font-size:22px;">🥇</div>
+<div class="card rank-card" style="padding:14px;text-align:center;">
+<div class="rank-mark">1</div>
 <div id="comp-podium-1" style="font-size:13px;margin-top:6px;font-weight:700;">—</div>
 </div>
-<div class="card" style="padding:14px;text-align:center;border-top:3px solid #94a3b8;">
-<div style="font-size:22px;">🥈</div>
+<div class="card rank-card" style="padding:14px;text-align:center;">
+<div class="rank-mark">2</div>
 <div id="comp-podium-2" style="font-size:13px;margin-top:6px;font-weight:700;">—</div>
 </div>
-<div class="card" style="padding:14px;text-align:center;border-top:3px solid #b45309;">
-<div style="font-size:22px;">🥉</div>
+<div class="card rank-card" style="padding:14px;text-align:center;">
+<div class="rank-mark">3</div>
 <div id="comp-podium-3" style="font-size:13px;margin-top:6px;font-weight:700;">—</div>
 </div>
 </div>
 <div class="card" style="padding:16px;">
 <div class="card-title" style="margin-bottom:6px;">Canlı yarış</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Pozisyonlar, bu ayki başarılı termin sayılarına göre hesaplanır. <span class="comp-admin-only" style="display:none;">Admin: her satırda termin sayısı görünür.</span><span class="comp-agent-hint">Agent: sadece sıra ve isim; adetler gizli.</span></div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Pozisyonlar, bu ayki başarılı randevu sayılarına göre hesaplanır. <span class="comp-admin-only" style="display:none;">Admin: her satırda randevu sayısı görünür.</span><span class="comp-agent-hint">Agent: sadece sıra ve isim; adetler gizli.</span></div>
 <div id="comp-race-lanes" class="comp-race-lanes"></div>
 </div>
 <div class="card" style="padding:0;overflow:hidden;">
@@ -2257,7 +2272,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <thead><tr>
 <th style="width:56px;">#</th>
 <th>Agent</th>
-<th class="comp-admin-only td-mono" style="width:90px;text-align:right;">Termin</th>
+<th class="comp-admin-only td-mono" style="width:90px;text-align:right;">Randevu</th>
 </tr></thead>
 <tbody id="comp-lb-month"></tbody>
 </table>
@@ -2270,7 +2285,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <thead><tr>
 <th style="width:56px;">#</th>
 <th>Agent</th>
-<th class="comp-admin-only td-mono" style="width:90px;text-align:right;">Termin</th>
+<th class="comp-admin-only td-mono" style="width:90px;text-align:right;">Randevu</th>
 </tr></thead>
 <tbody id="comp-lb-year"></tbody>
 </table>
@@ -2285,10 +2300,10 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <div class="settings-tabs" id="settings-tabs">
-<button type="button" class="btn btn-ghost btn-sm settings-tab-btn active" data-tab="general" onclick="setSettingsTab('general')">Genel</button>
-<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="communication" onclick="setSettingsTab('communication')">Iletisim</button>
-<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="operations" onclick="setSettingsTab('operations')">Operasyon</button>
-<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="system" onclick="setSettingsTab('system')">Sistem</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn active" data-tab="general" onclick="setSettingsTab('general')" data-tr="Genel" data-de="Allgemein">Genel</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="communication" onclick="setSettingsTab('communication')" data-tr="İletişim" data-de="Kommunikation">İletişim</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="operations" onclick="setSettingsTab('operations')" data-tr="Operasyon" data-de="Betrieb">Operasyon</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="system" onclick="setSettingsTab('system')" data-tr="Sistem" data-de="System">Sistem</button>
 </div>
 <div class="settings-layout">
 <div class="card" id="settings-appearance-card">
@@ -2297,8 +2312,8 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="form-row">
 <label class="form-label" data-tr="Tema" data-de="Thema">Tema</label>
 <div style="display:flex;gap:8px;margin-top:4px;">
-<button class="btn btn-ghost btn-sm" onclick="setTheme('light')" id="btn-theme-light">☀️ <span data-tr="Açık" data-de="Hell">Açık</span></button>
-<button class="btn btn-ghost btn-sm" onclick="setTheme('dark')"  id="btn-theme-dark">🌙 <span data-tr="Koyu" data-de="Dunkel">Koyu</span></button>
+<button class="btn btn-ghost btn-sm" onclick="setTheme('light')" id="btn-theme-light"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg> <span data-tr="Açık" data-de="Hell">Açık</span></button>
+<button class="btn btn-ghost btn-sm" onclick="setTheme('dark')"  id="btn-theme-dark"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> <span data-tr="Koyu" data-de="Dunkel">Koyu</span></button>
 </div>
 </div>
 <div class="form-row">
@@ -2639,27 +2654,27 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="form-row">
 <label class="form-label">TomTom API Key</label>
 <input class="form-input" id="s-tomtom-key" placeholder="...">
-<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Termin mesafe hesaplama için</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Randevu mesafe hesaplama için</div>
 </div>
 <button class="btn btn-primary" style="align-self:flex-start;" onclick="saveApiSettings()"><i class="ph ph-floppy-disk"></i> API Ayarlarını Kaydet</button>
 </div>
 </div>
 <div class="card" id="settings-goals-card">
-<div class="card-title" style="margin-bottom:16px;">Termin Hedefleri</div>
+<div class="card-title" style="margin-bottom:16px;">Randevu Hedefleri</div>
 <div style="display:flex;flex-direction:column;gap:10px;">
 <div class="form-row">
-<label class="form-label">Günlük Termin Hedefi (Agent)</label>
+<label class="form-label">Günlük Randevu Hedefi (Agent)</label>
 <input class="form-input" id="s-daily-goal" type="number" min="1" max="50" value="5" style="width:120px;">
 </div>
 <div class="form-row">
-<label class="form-label">Haftalık Termin Hedefi (Agent)</label>
+<label class="form-label">Haftalık Randevu Hedefi (Agent)</label>
 <input class="form-input" id="s-weekly-goal" type="number" min="1" max="400" value="25" style="width:120px;">
 </div>
 <div class="form-row">
-<label class="form-label">Aylık Termin Hedefi (Agent)</label>
+<label class="form-label">Aylık Randevu Hedefi (Agent)</label>
 <input class="form-input" id="s-monthly-goal" type="number" min="1" max="1600" value="100" style="width:120px;">
 </div>
-<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveApiSettings()"><i class="ph ph-floppy-disk"></i> Termin Hedeflerini Kaydet</button>
+<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveApiSettings()"><i class="ph ph-floppy-disk"></i> Randevu Hedeflerini Kaydet</button>
 </div>
 </div>
 <div class="card" id="incoming-calls-settings-card" style="display:none;">
@@ -2848,7 +2863,7 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 </div>
 </div>
 <div class="card" id="results-settings-card">
-<div class="card-title" style="margin-bottom:12px;">Termin Sonuçları (Takvim + QC)</div>
+<div class="card-title" style="margin-bottom:12px;">Randevu Sonuçları (Takvim + QC)</div>
 <div id="results-firm-selector" style="margin-bottom:10px;"></div>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Sonuç adını yaz, tipi seç; istersen bu sonuçta slotu otomatik alta taşı.</div>
 <div id="s-appt-results-rows" style="display:flex;flex-direction:column;gap:8px;"></div>
@@ -2857,7 +2872,7 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 </div>
 <div class="card" id="default-takvim-firm-card" style="display:none;">
 <div class="card-title" style="margin-bottom:12px;">Varsayılan takvim (firma)</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Süper admin için firma seçimi üstteki “Termin Sonuçları” kartı ile aynıdır.</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Süper admin için firma seçimi üstteki “Randevu Sonuçları” kartı ile aynıdır.</div>
 <div id="default-takvim-firm-body" style="font-size:12px;color:var(--text-3);">Yükleniyor…</div>
 </div>
 <div class="card" id="telnyx-settings">

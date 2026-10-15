@@ -379,8 +379,10 @@ async function loadTakvimPage() {
   takvimDate = new Date(); takvimDate.setHours(0,0,0,0);
   renderTakvimGrid();
   if (takvimCampId) loadTakvimSlots();
-  if (!isAdmin) setInterval(checkActiveCampaignNotif, 30000);
-  checkActiveCampaignNotif();
+  if (!isAdmin) {
+    if (!window._campNotifTimer) window._campNotifTimer = setInterval(checkActiveCampaignNotif, 30000);
+    checkActiveCampaignNotif();
+  }
 }
 
 function onTakvimCampChange(campId) {
@@ -403,13 +405,13 @@ function syncTakvimViewButtonStyles() {
   ['day', 'week', 'month'].forEach((x) => {
     const b = document.getElementById(`tv-${x}-btn`);
     if (b) {
-      b.style.background = x === v ? 'var(--accent)' : 'transparent';
-      b.style.color = x === v ? '#fff' : 'var(--text-2)';
+      b.style.background = x === v ? 'var(--text)' : 'transparent';
+      b.style.color = x === v ? 'var(--bg-2)' : 'var(--text-2)';
     }
     const bo = document.getElementById(`tvo-${x}`);
     if (bo) {
-      bo.style.background = x === v ? 'var(--accent)' : 'transparent';
-      bo.style.color = x === v ? '#fff' : 'var(--text-2)';
+      bo.style.background = x === v ? 'var(--text)' : 'transparent';
+      bo.style.color = x === v ? 'var(--bg-2)' : 'var(--text-2)';
     }
   });
 }
@@ -575,8 +577,8 @@ function renderTakvimGrid() {
   const headerRowPx = 40;
   const availPx = takvimWeekScrollAvailablePx();
   const rowH = Math.max(22, Math.floor((availPx - headerRowPx) / numHrs));
-  let h = `<div class="takvim-week-grid-inner" data-takvim-hrs="${numHrs}" data-takvim-hdr="${headerRowPx}" style="display:grid;width:100%;min-height:0;box-sizing:border-box;grid-template-columns:52px repeat(${daysCount},minmax(0,1fr));grid-template-rows:${headerRowPx}px repeat(${numHrs},${rowH}px);">`;
-  h += '<div style="background:var(--bg-3);border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:8px 4px;"></div>';
+  let h = `<div class="takvim-week-grid-inner" data-takvim-hrs="${numHrs}" data-takvim-hdr="${headerRowPx}" style="display:grid;width:100%;min-height:0;box-sizing:border-box;grid-template-columns:56px repeat(${daysCount},minmax(0,1fr));grid-template-rows:${headerRowPx}px repeat(${numHrs},${rowH}px);">`;
+  h += '<div class="tk-gutter tk-gutter--corner"></div>';
   for (let d=0; d<daysCount; d++) {
     const dt = new Date(startDt); dt.setDate(dt.getDate()+d);
     const ds = takvimFmtD(dt);
@@ -584,22 +586,23 @@ function renderTakvimGrid() {
     const isClosed = takvimClosedDays[ds];
     const click = isAdmin ? `onclick="takvimHeaderClick('${ds}')"` : '';
     const wdShort = dt.toLocaleDateString(locale, { weekday: 'short' });
-    h += `<div style="background:${isClosed?'rgba(220,38,38,.08)':isToday?'rgba(37,99,235,.06)':'var(--bg-3)'};border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:6px 4px;text-align:center;font-size:10px;font-weight:800;color:${isClosed?'var(--red)':isToday?'var(--accent)':'var(--text-2)'};cursor:${isAdmin?'pointer':'default'}" ${click}>${wdShort}<br><span style="font-size:13px;font-weight:900;">${dt.getDate()}</span></div>`;
+    const cls = `tk-head${isToday ? ' tk-head--today' : ''}${isClosed ? ' tk-head--closed' : ''}${isAdmin ? ' tk-head--click' : ''}`;
+    h += `<div class="${cls}" ${click}><span class="tk-head-wd">${wdShort}</span><span class="tk-head-d">${dt.getDate()}</span></div>`;
   }
   for (let hr = shH; hr <= endH; hr++) {
     const hh = String(hr).padStart(2,'0');
-    h += `<div style="min-height:0;background:var(--bg-2);border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:9px;font-weight:700;color:var(--text-3);text-align:center;padding-top:4px;font-family:var(--mono);display:flex;align-items:flex-start;justify-content:center;">${hh}:00</div>`;
+    h += `<div class="tk-hour">${hh}:00</div>`;
     for (let d=0; d<daysCount; d++) {
       const dt = new Date(startDt); dt.setDate(dt.getDate()+d);
       const ds = takvimFmtD(dt);
       const isClosed = takvimClosedDays[ds];
+      const isToday = dt.toDateString()===new Date().toDateString();
       const dayKey = takvimDayKeyFromDate(dt);
       const colActive = activeSet.has(dayKey);
       const canClick = isAdmin && !isClosed && colActive;
       const click = canClick ? `onclick="takvimCellClick('${ds}','${hh}',event)"` : '';
-      let bg = isClosed ? 'repeating-linear-gradient(-45deg,rgba(220,38,38,.06),rgba(220,38,38,.06) 4px,rgba(220,38,38,.1) 4px,rgba(220,38,38,.1) 8px)' : '';
-      if (!colActive && !isClosed) bg = 'repeating-linear-gradient(-45deg,rgba(100,116,139,.06),rgba(100,116,139,.06) 4px,rgba(100,116,139,.1) 4px,rgba(100,116,139,.1) 8px)';
-      h += `<div id="tc_${ds}_${hh}" style="min-height:0;height:100%;position:relative;border-bottom:1px solid var(--border);border-right:1px solid var(--border);background:${bg};${canClick?'cursor:pointer;':''}" ${click}></div>`;
+      const cls = `tk-cell${isClosed ? ' tk-cell--closed' : ''}${!colActive && !isClosed ? ' tk-cell--off' : ''}${isToday ? ' tk-cell--today' : ''}${canClick ? ' tk-cell--click' : ''}`;
+      h += `<div id="tc_${ds}_${hh}" class="${cls}" ${click}></div>`;
     }
   }
   h += '</div>'; grid.innerHTML = h;
@@ -620,8 +623,8 @@ function renderTakvimMonthGrid(grid) {
     ? (currentLang==='de' ? ['Mo','Di','Mi','Do','Fr','Sa','So'] : ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'])
     : (currentLang==='de' ? ['Mo','Di','Mi','Do','Fr'] : ['Pzt','Sal','Çar','Per','Cum']));
   const cols = showWeekend ? 7 : 5;
-  let h = `<div style="display:grid;grid-template-columns:repeat(${cols},1fr);">`;
-  dNames.forEach(d => h += `<div style="background:var(--bg-3);padding:6px;text-align:center;font-size:10px;font-weight:800;color:var(--text-2);border-bottom:1px solid var(--border);">${d}</div>`);
+  let h = `<div class="tk-month-grid" style="display:grid;grid-template-columns:repeat(${cols},1fr);">`;
+  dNames.forEach(d => h += `<div class="tk-month-head">${d}</div>`);
   const first = new Date(y, m, 1);
   let cur = takvimGetMonday(first);
   const last = new Date(y, m + 1, 0);
@@ -634,7 +637,7 @@ function renderTakvimMonthGrid(grid) {
       const ds = takvimFmtD(cur);
       const other = cur.getMonth() !== m;
       const today = cur.toDateString() === new Date().toDateString();
-      h += `<div id="mc_${ds}" style="min-height:80px;background:${other?'var(--bg)':'var(--bg-2)'};border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:4px;overflow:hidden;"><div style="font-size:11px;font-weight:800;color:${today?'var(--accent)':'var(--text-3)'};text-align:right;">${cur.getDate()}</div><div id="ms_${ds}" style="display:flex;flex-direction:column;gap:2px;overflow:hidden;"></div></div>`;
+      h += `<div id="mc_${ds}" class="tk-month${other ? ' tk-month--other' : ''}${today ? ' tk-month--today' : ''}"><div class="tk-month-d">${cur.getDate()}</div><div id="ms_${ds}" class="tk-month-slots"></div></div>`;
     }
     cur.setDate(cur.getDate() + 1);
   }
@@ -775,8 +778,8 @@ function _takvimApptCardAddr(appt) {
 
 function takvimSlotDistButtons(slotId) {
   return `<div class="tak-slot-dist" onmousedown="event.stopPropagation()" style="position:absolute;bottom:2px;right:2px;z-index:22;display:flex;gap:4px;align-items:center;">
-<button type="button" class="btn-tak-dist" title="Mesafe: Dialer müşterisi → bu termin" onclick="event.stopPropagation();measureSlotDistance('${slotId}')"><i class="ph ph-map-pin" style="font-size:12px;"></i></button>
-<button type="button" class="btn-tak-dist" title="Bu terminden diğer terminlere uzaklık" onclick="event.stopPropagation();toggleTakvimDistAll('${slotId}')"><i class="ph ph-path" style="font-size:12px;"></i></button>
+<button type="button" class="btn-tak-dist" title="Mesafe: Dialer müşterisi → bu randevu" onclick="event.stopPropagation();measureSlotDistance('${slotId}')"><i class="ph ph-map-pin" style="font-size:12px;"></i></button>
+<button type="button" class="btn-tak-dist" title="Bu randevudan diğer randevulara uzaklık" onclick="event.stopPropagation();toggleTakvimDistAll('${slotId}')"><i class="ph ph-path" style="font-size:12px;"></i></button>
 </div>`;
 }
 
@@ -796,9 +799,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
   const pt = dense ? 4 : 6;
   const pb =
     slot.durum === 'dolu' && appt ? 24 : canShift ? 6 : dense ? 4 : 6;
-  el.style.cssText = `border-radius:5px;padding:${pt}px ${pr}px ${pb}px ${pl}px;font-size:${fzBase}px;cursor:pointer;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.15);background:${vis.background};color:${vis.color};transition:.15s;text-align:left;`;
-  el.onmouseover = () => { el.style.transform = 'scale(1.02)'; };
-  el.onmouseout = () => { el.style.transform = ''; };
+  el.style.cssText = `border-radius:4px;padding:${pt}px ${pr}px ${pb}px ${pl}px;font-size:${fzBase}px;cursor:pointer;overflow:hidden;box-shadow:none;background:${vis.background};color:${vis.color};text-align:left;`;
   if (slot.durum==='bos') {
     el.innerHTML = `${canShift ? takvimSlotMoveMarkup(slot.id, false) : ''}<div style="font-weight:700;opacity:.95;font-size:${fzSm}px;text-align:left;">Boş ${slot.baslangic_saat.slice(0,5)}</div>${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}`;
     el.onclick = async (ev) => {
@@ -824,7 +825,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
       else lockAndBookSlot(slot);
     };
   } else if (slot.durum==='kilitli') {
-    el.innerHTML = `<div style="font-weight:700;">🔒 ${slot.baslangic_saat.slice(0,5)}</div>`;
+    el.innerHTML = `<div style="font-weight:650;">Kilitli ${slot.baslangic_saat.slice(0,5)}</div>`;
     el.style.color = '#1e40af';
     el.onclick = (ev) => ev.stopPropagation();
   } else if (appt) {
@@ -832,7 +833,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
     let plzLine = '';
     if (_takvimMeasureFromPlz && appt?.plz) {
       const r = _takvimMeasureCache[`${_takvimMeasureFromPlz}_${appt.plz}`];
-      if (r) plzLine = `<div style="font-size:8px;font-weight:700;color:#dbeafe;margin-top:2px;">📏 ${r.km} km · ${r.min} dk</div>`;
+      if (r) plzLine = `<div class="tk-slot-meta">${r.km} km · ${r.min} dk</div>`;
     }
     let distAllHtml = '';
     if (!plzLine && _takvimDistAllOriginId && _takvimDistAllOriginId !== slot.id && slot.durum === 'dolu') {
@@ -840,7 +841,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
       const oa = takvimAppts.find((a) => a.id === origin?.appointment_id);
       if (oa?.plz && appt?.plz) {
         const r = _takvimPlzRouteCache[`${oa.plz}_${appt.plz}`];
-        if (r) distAllHtml = `<div style="font-size:7px;font-weight:700;color:#fce7f3;margin-top:1px;">↔ ${r.km} km · ${r.min} dk</div>`;
+        if (r) distAllHtml = `<div class="tk-slot-meta">${r.km} km · ${r.min} dk</div>`;
       }
     }
     const tEnd = (slot.bitis_saat || takvimAddHours(slot.baslangic_saat.slice(0, 5), takvimSlotDurHours())).slice(0, 5);
@@ -1058,7 +1059,7 @@ async function openTakvimSlotDetail(slot, appt) {
 ${lockInfo}
 </div>`;
     footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">Kapat</button>
-${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="deleteTakvimSlot('${slot.id}')">Sil</button>${slot.durum==='kilitli'?`<button class="btn btn-ghost" style="color:var(--yellow);" onclick="closeModal('m-takvim-detail');unlockSlot('${slot.id}')">Kilidi Kaldır</button>`:''}`:`<button class="btn btn-primary" onclick="closeModal('m-takvim-detail');lockAndBookSlot(takvimSlots.find(s=>s.id==='${slot.id}'))">Termin Al</button>`}`;
+${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="deleteTakvimSlot('${slot.id}')">Sil</button>${slot.durum==='kilitli'?`<button class="btn btn-ghost" style="color:var(--yellow);" onclick="closeModal('m-takvim-detail');unlockSlot('${slot.id}')">Kilidi Kaldır</button>`:''}`:`<button class="btn btn-primary" onclick="closeModal('m-takvim-detail');lockAndBookSlot(takvimSlots.find(s=>s.id==='${slot.id}'))">${(typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Termin nehmen' : 'Randevu al'}</button>`}`;
     return;
   }
   const statusCfg = resultMap[_normResultKey(appt.durum)] || {};
@@ -1118,7 +1119,7 @@ async function takvimQcUpdate(apptId, status, customerId) {
     }
     closeModal('m-takvim-detail');
     await loadTakvimSlots();
-    toast('Termin güncellendi ✓', 'ok');
+    toast('Randevu güncellendi ✓', 'ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
@@ -1132,12 +1133,12 @@ async function unlockSlot(slotId) {
 }
 
 async function agentCancelAppt(slotId, apptId) {
-  if (!(await mbConfirm('Terminini iptal etmek istediğine emin misin?', 'Termin İptali'))) return;
+  if (!(await mbConfirm('Randevununi iptal etmek istediğine emin misin?', 'Randevu İptali'))) return;
   try {
     await sb(`appointments?id=eq.${apptId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'iptal'})});
     await sb(`takvim_slots?id=eq.${slotId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'bos',appointment_id:null})});
     await loadTakvimSlots();
-    toast('Termin iptal edildi','ok');
+    toast('Randevu iptal edildi','ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
@@ -1155,14 +1156,14 @@ async function lockAndBookSlot(slot) {
     await sb(`takvim_slots?id=eq.${slot.id}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'kilitli',kilitli_agent_id:currentUser.id,kilitli_at:new Date().toISOString()})});
   } catch(e) { toast('Slot kilitlenemiyor: '+e.message,'err'); return; }
   _bookingSlot = slot;
-  // If we're in dialer context, show termin section instead of popup
+  // If we're in dialer context, show randevu section instead of popup
   // Agent, dialer sayfasındayken takvim overlay'inden slot seçti
   const inDialerCtx = typeof onAgentSlotSelected === 'function' && typeof dialerStatus !== 'undefined';
   if (inDialerCtx) {
     // Overlay'i kapat
     const _ov = document.getElementById('takvim-popup-overlay');
     if (_ov) _ov.classList.remove('open');
-    // Termin formunu göster (navigate gereksiz — onAgentSlotSelected UI'yı yönetiyor)
+    // Randevu formunu göster (navigate gereksiz — onAgentSlotSelected UI'yı yönetiyor)
     onAgentSlotSelected(slot);
   } else {
     openTakvimBookForm(slot);
@@ -1172,10 +1173,10 @@ async function lockAndBookSlot(slot) {
 async function openTakvimBookForm(slot) {
   const contact = currentContact||{};
   const custCtx = await _getCustomerCtx(null);
-  document.getElementById('takvim-detail-title').textContent = `Termin — ${slot.tarih} ${slot.baslangic_saat?.slice(0,5)}`;
+  document.getElementById('takvim-detail-title').textContent = `Randevu — ${slot.tarih} ${slot.baslangic_saat?.slice(0,5)}`;
   openModal('m-takvim-detail');
   document.getElementById('takvim-detail-body').innerHTML = `
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;margin-bottom:12px;font-size:12px;font-weight:600;">📅 ${slot.tarih} · ${slot.baslangic_saat?.slice(0,5)}–${slot.bitis_saat?.slice(0,5)}</div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;margin-bottom:12px;font-size:12px;font-weight:600;">${slot.tarih} · ${slot.baslangic_saat?.slice(0,5)}–${slot.bitis_saat?.slice(0,5)}</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 <div class="form-row" style="grid-column:1/-1;"><label class="form-label">Ad Soyad *</label><input class="form-input" id="tf-name" value="${contact.first_name?contact.first_name+' '+(contact.last_name||''):''}"></div>
 <div class="form-row"><label class="form-label">Telefon *</label><input class="form-input" id="tf-tel" value="${contact.phone||''}"></div>
@@ -1194,7 +1195,7 @@ async function openTakvimBookForm(slot) {
 ${_renderCustomerField(custCtx, 'tf-customer')}
 </div>
 <div class="form-row" style="margin-top:8px;"><label class="form-label">Not</label><textarea class="form-input" id="tf-note" rows="2" style="resize:vertical;">${contact.notes||''}</textarea></div>`;
-  document.getElementById('takvim-detail-footer').innerHTML = `<button class="btn btn-ghost" onclick="cancelTakvimBook('${slot.id}')">İptal</button><button class="btn btn-primary" onclick="submitTakvimBook('${slot.id}')">✓ Kaydet</button>`;
+  document.getElementById('takvim-detail-footer').innerHTML = `<button class="btn btn-ghost" onclick="cancelTakvimBook('${slot.id}')">İptal</button><button class="btn btn-primary" onclick="submitTakvimBook('${slot.id}')">Kaydet</button>`;
 }
 
 // Save termin directly from the inline termin-fields-section
@@ -1232,7 +1233,7 @@ async function saveTerminFromSection() {
     if (ts) ts.style.display = 'none';
     const badge = document.getElementById('termin-slot-badge');
     if (badge) { badge.textContent = 'Slot seçilmedi'; }
-    toast('Termin kaydedildi ✓','ok');
+    toast('Randevu kaydedildi ✓','ok');
     // Finalize outcome — override to prevent re-opening overlay
     if (typeof submitOutcome === 'function' && selectedOutcome === 'appointment') {
       selectedOutcome = 'appointment_done'; // prevent overlay re-open in submitOutcome
@@ -1276,7 +1277,7 @@ async function submitTakvimBook(slotId) {
     _bookingSlot = null;
     closeModal('m-takvim-detail');
     await loadTakvimSlots();
-    toast('Termin kaydedildi ✓','ok');
+    toast('Randevu kaydedildi ✓','ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
@@ -1808,7 +1809,7 @@ function showSlotContextMenu(e, slot, appt) {
   }
   const isMySlot = slot.kilitli_agent_id === currentUser?.id;
   if (slot.durum === 'bos') {
-    if (!isAdmin) items.push({ icon:'', label:'Termin Al', onClick: () => lockAndBookSlot(_ctxSlot) });
+    if (!isAdmin) items.push({ icon:'', label:'Randevu Al', onClick: () => lockAndBookSlot(_ctxSlot) });
     if (isAdmin) items.push({ icon:'', label:'Detay', onClick: () => openTakvimSlotDetail(_ctxSlot, null) });
     if (isAdmin) items.push({ icon:'', label:'Randevu ekle', onClick: () => takvimAdminRandevuEkle(_ctxSlot) });
     if (isAdmin) items.push({ icon:'', label:'Kilitle', onClick: () => takvimAdminKilitle(_ctxSlot), yellow:true });
@@ -1823,7 +1824,7 @@ function showSlotContextMenu(e, slot, appt) {
     }
     // Agent can cancel their own lock
     if (isMySlot) {
-      items.push({ icon:'', label:'Termini İptal Et', onClick: () => unlockSlot(slot.id), danger:true });
+      items.push({ icon:'', label:'Randevuyu İptal Et', onClick: () => unlockSlot(slot.id), danger:true });
     }
   }
   const canManageAppt = ['admin','super_admin','firm_admin','qc'].includes(currentUser?.role||'');
@@ -2028,30 +2029,41 @@ function renderTakvimFailed() {
 
 async function checkActiveCampaignNotif() {
   if (!currentUser?.firm_id) return;
+  if (['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '')) return;
   try {
     const camps = await sb(`campaigns?firm_id=eq.${currentUser.firm_id}&active_for_agents=eq.true&order=updated_at.desc&limit=1`).catch(()=>[]);
     if (!camps?.length) return;
     const camp = camps[0];
-    const lastTs = parseInt(localStorage.getItem('mb_notif_ts')||'0');
-    if (camp.notif_ts && camp.notif_ts > lastTs) {
-      localStorage.setItem('mb_notif_ts', String(camp.notif_ts));
-      showCampNotif(camp);
+    const lastTs = parseInt(localStorage.getItem('mb_notif_ts')||'0', 10) || 0;
+    const nextTs = Number(camp.notif_ts) || 0;
+    if (nextTs > lastTs) {
+      localStorage.setItem('mb_notif_ts', String(nextTs));
+      const onTakvim = document.getElementById('page-takvim')?.classList.contains('active');
+      if (!onTakvim) showCampNotif(camp);
     }
     if (!takvimCampId && camp.id) takvimCampId = camp.id;
   } catch(e) {}
 }
 
 function showCampNotif(camp) {
+  document.getElementById('mb-camp-notif')?.remove();
+  const esc = (v) => (typeof escapeHtml === 'function' ? escapeHtml(v) : String(v ?? ''));
+  const title = typeof t === 'function' ? t('camp.notif_title') : 'Aktif Kampanya';
+  const go = typeof t === 'function' ? t('camp.notif_go') : 'Takvime Git';
+  const close = typeof t === 'function' ? t('camp.notif_close') : 'Kapat';
   const ov = document.createElement('div');
+  ov.id = 'mb-camp-notif';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
-  ov.innerHTML = `<div style="background:var(--bg-2);border:2px solid var(--accent);border-radius:16px;padding:32px 40px;text-align:center;max-width:400px;width:90vw;">
-<div style="font-size:40px;margin-bottom:12px;">📢</div>
-<div style="font-size:18px;font-weight:900;color:var(--accent);margin-bottom:8px;">Aktif Kampanya</div>
-<div style="font-size:16px;font-weight:700;padding:10px 16px;background:var(--bg-3);border-radius:8px;margin-bottom:20px;">${camp.name}</div>
-${camp.notif_message?`<div style="font-size:13px;color:var(--text-2);margin-bottom:16px;">${camp.notif_message}</div>`:''}
-<button onclick="this.closest('[style*=fixed]').remove();navigate('takvim');" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;">📅 Takvime Git</button>
-<button onclick="this.closest('[style*=fixed]').remove();" style="width:100%;padding:10px;background:transparent;color:var(--text-2);border:none;font-size:12px;cursor:pointer;margin-top:8px;">Kapat</button>
+  ov.innerHTML = `<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;padding:32px 40px;text-align:center;max-width:400px;width:90vw;">
+<div style="font-size:18px;font-weight:800;margin-bottom:8px;">${esc(title)}</div>
+<div style="font-size:16px;font-weight:700;padding:10px 16px;background:var(--bg-3);border-radius:8px;margin-bottom:20px;">${esc(camp.name)}</div>
+${camp.notif_message?`<div style="font-size:13px;color:var(--text-2);margin-bottom:16px;">${esc(camp.notif_message)}</div>`:''}
+<button type="button" id="mb-camp-notif-go" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;">${esc(go)}</button>
+<button type="button" id="mb-camp-notif-close" style="width:100%;padding:10px;background:transparent;color:var(--text-2);border:none;font-size:12px;cursor:pointer;margin-top:8px;">${esc(close)}</button>
 </div>`;
+  ov.querySelector('#mb-camp-notif-close').onclick = () => ov.remove();
+  ov.querySelector('#mb-camp-notif-go').onclick = () => { ov.remove(); navigate('takvim'); };
+  ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
   document.body.appendChild(ov);
 }
 
@@ -2134,7 +2146,7 @@ async function toggleTakvimDistAll(slotId) {
   _takvimMeasureCache = {};
   _takvimDistAllOriginId = slotId;
   renderTakvimSlots();
-  toast('Diğer terminlere uzaklık hesaplanıyor…', 'ok');
+  toast('Diğer randevulara uzaklık hesaplanıyor…', 'ok');
   const others = takvimSlots.filter((s) => s.id !== slotId && s.durum === 'dolu' && s.appointment_id);
   for (const s of others) {
     const da = takvimAppts.find((a) => a.id === s.appointment_id);
@@ -2211,7 +2223,7 @@ function openTakvimPlzMeasureModal() {
     '<input type="text" class="form-input" id="takvim-plz-measure-inp" placeholder="örn. 80331" value="' +
     String(cur).replace(/"/g, '') +
     '"></div>' +
-    '<div style="font-size:11px;color:var(--text-3);">Girilen PLZ\'den takvimdeki tüm terminlere (PLZ bilgisi olan) rota mesafesi yazılır.</div>' +
+    '<div style="font-size:11px;color:var(--text-3);">Girilen PLZ\'den takvimdeki tüm randevulara (PLZ bilgisi olan) rota mesafesi yazılır.</div>' +
     '</div>' +
     '<div class="modal-footer">' +
     '<button type="button" class="btn btn-ghost" onclick="clearTakvimPlzMeasure()">Temizle</button>' +

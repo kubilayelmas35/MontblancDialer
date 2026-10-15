@@ -56,7 +56,7 @@
   const _PAGE_MSGS = {
     dialer: {
       tr: [
-        'Hazır mısın? Bir termin seni bekliyor!',
+        'Hazır mısın? Bir randevu seni bekliyor!',
         'Bugün harika bir gün — başlayalım!',
         'Her çağrı yeni bir şans.',
         'Ritmin çok güzel, böyle devam!',
@@ -148,21 +148,21 @@
     },
     supervisor: {
       tr: [
-        'Takımı izliyorum, güçlüler bugün!',
-        'Her ajan için buradayım.',
-        'Süpervizör gözüyle her şey görünür.',
+        'Canlı kat açık: kim konuşuyor, ne kadar sürdü, kiminle.',
+        'Süreler her saniye ilerliyor.',
+        'Mola ve sonuç satırları da bu ekranda.',
       ],
       de: [
-        'Ich beobachte das Team — sie sind heute stark!',
-        'Ich bin für jeden Agenten da.',
-        'Mit Supervisor-Augen sieht man alles.',
+        'Live-Floor: wer spricht, wie lange, mit wem.',
+        'Die Dauer läuft jede Sekunde weiter.',
+        'Pause und Nacharbeit siehst du hier auch.',
       ],
     },
     wiedervorlage: {
       tr: [
         'Geri aramalar bekliyor — hazır mısın?',
         'Sıcak leadler burada saklı 🔥',
-        'Bir geri arama bir termin olabilir!',
+        'Bir geri arama bir randevu olabilir!',
       ],
       de: [
         'Rückrufe warten — bist du bereit?',
@@ -184,14 +184,26 @@
     },
     field: {
       tr: [
-        'Saha ekibi — en cesur ajanlar!',
-        'Dışarıda güçlü bir ekip var.',
-        'Saha operasyonları tam hızda!',
+        'Saha ekibi yolda. Posta kodu ve şehir tabloda.',
+        'İptal edilen görevler ayrı sayılır.',
+        'Randevu tarihi ile saha sonucu yan yana.',
       ],
       de: [
-        'Außendienst — die mutigsten Agenten!',
-        'Da draußen ist ein starkes Team.',
-        'Außendienstoperationen auf Hochtouren!',
+        'Außendienst unterwegs. PLZ und Ort stehen in der Tabelle.',
+        'Stornierte Aufgaben zählen extra.',
+        'Terminzeit und Feldergebnis nebeneinander.',
+      ],
+    },
+    fieldops: {
+      tr: [
+        'Saha takibi: kimde hangi randevu var.',
+        'Posta kodu, şehir ve randevu tarihi burada.',
+        'İptal edilenler de sayıya dahil.',
+      ],
+      de: [
+        'Feldübersicht: welcher Termin bei wem liegt.',
+        'PLZ, Ort und Terminzeit auf einen Blick.',
+        'Stornos zählen mit.',
       ],
     },
     jobmarket: {
@@ -218,12 +230,14 @@
     },
     muhasebe: {
       tr: [
-        'Muhasebe şeffaf olunca her şey güzel.',
-        'Sayılar doğruysa kafam rahat 🧮',
+        'Euro maaşın altında lira karşılığı da duruyor.',
+        'Kur canlı geliyor. Yenile dersen tazelenir.',
+        'Muhasebe şeffaf olunca herkes aynı sayıyı görür.',
       ],
       de: [
-        'Buchhaltung transparent — alles gut.',
-        'Zahlen stimmen — Kopf ist frei 🧮',
+        'Unter dem Euro-Lohn steht auch der Lira-Gegenwert.',
+        'Der Kurs kommt live. Aktualisieren holt ihn neu.',
+        'Transparente Buchhaltung, gleiche Zahlen für alle.',
       ],
     },
     competition: {
@@ -432,8 +446,8 @@
     if (typeof _wanderPauseUntil !== 'undefined') window._wanderPauseUntil = 0;
     const tr = _lang() === 'tr';
     const msgs = tr
-      ? ['TERMİN! 🎉 Mükemmelsin!', '🥳 Yaptık! Harika bir kapanış!', '🎊 Süpersin — termin tamam!', '✨ Bu benim favorim — termin geldi!']
-      : ['TERMIN! 🎉 Du bist großartig!', '🥳 Geschafft! Tolles Abschluss!', '🎊 Spitze — Termin bestätigt!', '✨ Das ist mein Liebling — Termin da!'];
+      ? ['Randevu! Mükemmelsin!', 'Yaptık! Harika bir kapanış!', 'Süpersin — randevu tamam!', 'Bu benim favorim — randevu geldi!']
+      : ['TERMIN! Du bist großartig!', 'Geschafft! Tolles Abschluss!', 'Spitze — Termin bestätigt!', 'Das ist mein Liebling — Termin da!'];
     _bubble(_pick(msgs));
     setTimeout(() => {
       _clearMood();

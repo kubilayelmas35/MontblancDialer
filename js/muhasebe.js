@@ -55,7 +55,7 @@ function defaultPayrollRules() {
     revenue_per_success: 0,
     government_supported: false,
     exchange_rate: 1,
-    fx_api_provider: 'exchangerate_host',
+    fx_api_provider: 'frankfurter',
     fx_api_url: '',
     fx_api_key: '',
     late_penalty_enabled: false,
@@ -256,7 +256,7 @@ async function testFxRateNow() {
   const rules = {
     ...defaultPayrollRules(),
     exchange_rate: Number(document.getElementById('pr-rate')?.value || 1),
-    fx_api_provider: document.getElementById('pr-fx-provider')?.value || 'exchangerate_host',
+    fx_api_provider: document.getElementById('pr-fx-provider')?.value || 'frankfurter',
     fx_api_url: document.getElementById('pr-fx-url')?.value?.trim() || '',
     fx_api_key: document.getElementById('pr-fx-key')?.value?.trim() || '',
   };
@@ -312,12 +312,21 @@ async function loadMaasimPage() {
   }
   if (noAccess) noAccess.style.display = 'none';
   if (main) main.style.display = 'flex';
-  if (sub) sub.textContent = 'Bordro özeti, prim ve baz maaş kademeleri';
+  if (sub) {
+    const line = typeof t === 'function' ? t('pay.my_sub') : 'Bordro özeti, prim ve baz maaş kademeleri';
+    sub.textContent = line;
+    sub.dataset.base = line;
+  }
   const period = _mGetPeriod();
-  const rules = await loadFirmPayrollRules(fid);
-  const liveRate = await _getMonthFxRate(fid, period, Number(rules.exchange_rate || 1), rules);
-  rules.exchange_rate = liveRate;
-  await renderMuhasebePayrollTable(fid, period, rules, { ui: 'maasim' });
+  const table = document.getElementById('maasim-table-wrap');
+  if (table) table.innerHTML = `<div class="mb-empty-hint">${typeof t === 'function' ? t('ui.loading') : 'Yükleniyor…'}</div>`;
+  try {
+    const rules = await loadFirmPayrollRules(fid);
+    await renderMuhasebePayrollTable(fid, period, rules, { ui: 'maasim' });
+  } catch (e) {
+    if (table) table.innerHTML = `<div class="mb-empty-hint" style="color:var(--red);">${_mEsc((typeof t === 'function' ? t('ui.load_failed') : 'Yüklenemedi') + ': ' + (e?.message || ''))}</div>`;
+    if (typeof toast === 'function') toast((typeof t === 'function' ? t('ui.load_failed') : 'Yüklenemedi') + ': ' + (e?.message || ''), 'err');
+  }
 }
 
 async function loadPerformansimPage() {
@@ -342,11 +351,15 @@ async function loadPerformansimPage() {
     }
     if (noAccess) noAccess.style.display = 'none';
     if (main) main.style.display = 'flex';
-    if (sub) sub.textContent = 'Seçili ay termin ve çağrı özeti';
+    if (sub) sub.textContent = 'Seçili ay randevu ve çağrı özeti';
     const period = _mGetPeriod();
     const rules = await loadFirmPayrollRules(fid);
     const liveRate = await _getMonthFxRate(fid, period, Number(rules.exchange_rate || 1), rules);
     rules.exchange_rate = liveRate;
+    if (sub && Number(liveRate) > 1) {
+      const base = sub.dataset.base || sub.textContent;
+      sub.textContent = `${base} · 1 EUR = ${_mFmt(liveRate)} TRY`;
+    }
     if (typeof loadAgentSelfPerformanceDash === 'function') {
       await loadAgentSelfPerformanceDash(fid, period, rules);
     }
@@ -369,7 +382,7 @@ function renderPayrollRulesForm(r) {
   };
   set('pr-currency', r.currency || 'EUR');
   set('pr-rate', Number(r.exchange_rate || 1));
-  set('pr-fx-provider', r.fx_api_provider || 'exchangerate_host');
+  set('pr-fx-provider', r.fx_api_provider || 'frankfurter');
   set('pr-fx-url', r.fx_api_url || '');
   set('pr-fx-key', r.fx_api_key || '');
   set('pr-mode', r.base_salary_mode || 'net');
@@ -394,7 +407,7 @@ function renderPayrollRulesForm(r) {
 }
 
 function onFxProviderChange() {
-  const p = document.getElementById('pr-fx-provider')?.value || 'exchangerate_host';
+  const p = document.getElementById('pr-fx-provider')?.value || 'frankfurter';
   const urlRow = document.getElementById('pr-fx-url-row');
   const keyRow = document.getElementById('pr-fx-key-row');
   const isCustom = p === 'custom';
@@ -414,7 +427,7 @@ function renderPayrollTierRows(type, rows) {
       ${type==='bonus' ? `<div><label class="form-label">Prim tipi</label>
         <select class="form-input" id="pr-${type}-calc-${i}" onchange="updatePayrollPreview()">
           <option value="fixed" ${(r.calc_type||'fixed')==='fixed'?'selected':''}>Sabit</option>
-          <option value="per_appointment" ${(r.calc_type||'fixed')==='per_appointment'?'selected':''}>Termin Başı</option>
+          <option value="per_appointment" ${(r.calc_type||'fixed')==='per_appointment'?'selected':''}>Randevu Başı</option>
         </select>
       </div>` : ''}
       <div><label class="form-label">Para</label>
@@ -480,7 +493,7 @@ function updatePayrollPreview() {
   const revenue = success * revenuePerSuccess;
   const matrah = Math.max(0, revenue - net);
   const companyTax = gov ? 0 : matrah * (taxRate / 100);
-  out.innerHTML = `Başarılı: <b>${success}</b> · Baz(Net): <b>${_mFmt(salary)} ${currency}</b> · Prim: <b>${_mFmt(bonus)} ${currency}</b> · Personel Hakedişi: <b>${_mFmt(net)} ${currency}</b> · Şirket Geliri: <b>${_mFmt(revenue)} ${currency}</b> · Şirket Vergisi: <b>${_mFmt(companyTax)} ${currency}</b><div style="margin-top:4px;font-size:11px;color:var(--text-3);">Prim tipi: Sabit = kademeye girince tek tutar, Termin Başı = aralıktaki her termin için tutar.</div>`;
+  out.innerHTML = `Başarılı: <b>${success}</b> · Baz(Net): <b>${_mFmt(salary)} ${currency}</b> · Prim: <b>${_mFmt(bonus)} ${currency}</b> · Personel Hakedişi: <b>${_mFmt(net)} ${currency}</b> · Şirket Geliri: <b>${_mFmt(revenue)} ${currency}</b> · Şirket Vergisi: <b>${_mFmt(companyTax)} ${currency}</b><div style="margin-top:4px;font-size:11px;color:var(--text-3);">Prim tipi: Sabit = kademeye girince tek tutar, Randevu Başı = aralıktaki her randevu için tutar.</div>`;
 }
 
 async function savePayrollRules() {
@@ -491,7 +504,7 @@ async function savePayrollRules() {
     firm_id: fid,
     currency: document.getElementById('pr-currency')?.value || 'EUR',
     exchange_rate: Number(document.getElementById('pr-rate')?.value) || 1,
-    fx_api_provider: document.getElementById('pr-fx-provider')?.value || 'exchangerate_host',
+    fx_api_provider: document.getElementById('pr-fx-provider')?.value || 'frankfurter',
     fx_api_url: document.getElementById('pr-fx-url')?.value?.trim() || '',
     fx_api_key: document.getElementById('pr-fx-key')?.value?.trim() || '',
     base_salary_mode: document.getElementById('pr-mode')?.value || 'net',
@@ -570,12 +583,12 @@ function renderCustomerRateTable(rules) {
             ${customers.map(c => `<option value="${c.id}" ${c.id === r.customer_id ? 'selected' : ''}>${_mEsc(c.name)}</option>`).join('')}
           </select>
         </div>
-        <div class="form-row"><label class="form-label">Onaylı Termin Geliri</label><input class="form-input" id="mcr-amount-${i}" type="number" step="0.01" value="${Number(r.amount || 0)}"></div>
+        <div class="form-row"><label class="form-label">Onaylı Randevu Geliri</label><input class="form-input" id="mcr-amount-${i}" type="number" step="0.01" value="${Number(r.amount || 0)}"></div>
         <div class="form-row"><label class="form-label">Para</label><select class="form-input" id="mcr-currency-${i}"><option value="EUR" ${String(r.currency || 'EUR').toUpperCase() === 'EUR' ? 'selected' : ''}>EUR</option><option value="TRY" ${String(r.currency || '').toUpperCase() === 'TRY' ? 'selected' : ''}>TRY</option></select></div>
         <button class="btn btn-ghost btn-sm" type="button" onclick="removeCustomerRateRow(${i})">Sil</button>
       </div>
     `).join('')}
-    <div style="font-size:11px;color:var(--text-3);">Müşteriye özel satır yoksa genel "Başarılı termin gelir tutarı" kullanılır.</div>
+    <div style="font-size:11px;color:var(--text-3);">Müşteriye özel satır yoksa genel "Başarılı randevu gelir tutarı" kullanılır.</div>
     <div><button class="btn btn-ghost btn-sm" type="button" onclick="addCustomerRateRow()">+ Tarife ekle</button></div>
   </div>`;
   box.dataset.count = String(rows.length);
@@ -610,66 +623,118 @@ function _mSalaryForSuccess(baseSalary, successCount, salaryTiers, ruleCurrency,
   return salary;
 }
 
-async function _fetchEurTryRateAt(dateStr) {
-  return await _fetchFxRateByRules(dateStr, defaultPayrollRules());
+function _mFxQuoteDate(ym) {
+  const end = _mMonthBounds(ym).end;
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return today < end ? today : end;
 }
 
-async function _fetchFxRateByRules(dateStr, rules) {
-  const provider = rules?.fx_api_provider || 'exchangerate_host';
-  try {
-    if (provider === 'frankfurter') {
-      const res = await fetch(`https://api.frankfurter.app/${dateStr}?from=EUR&to=TRY`);
-      if (!res.ok) return null;
-      const json = await res.json();
-      return Number(json?.rates?.TRY || 0) || null;
-    }
-    if (provider === 'custom') {
-      const tpl = rules?.fx_api_url || '';
-      if (!tpl) return null;
-      let url = tpl.replaceAll('{date}', dateStr).replaceAll('{base}', 'EUR').replaceAll('{quote}', 'TRY');
-      const key = rules?.fx_api_key || '';
-      if (key) {
-        const joiner = url.includes('?') ? '&' : '?';
-        url += `${joiner}apikey=${encodeURIComponent(key)}`;
-      }
-      const res = await fetch(url);
-      if (!res.ok) return null;
-      const json = await res.json();
-      return Number(json?.rates?.TRY || json?.data?.TRY || json?.TRY || 0) || null;
-    }
-    const res = await fetch(`https://api.exchangerate.host/${dateStr}?base=EUR&symbols=TRY`);
-    if (!res.ok) return null;
-    const json = await res.json();
-    return Number(json?.rates?.TRY || 0) || null;
-  } catch (e) {
-    return null;
+function _muhPaintFxBanner(rate, source, dateStr) {
+  const n = Number(rate || 0);
+  window._muhFxLive = { rate: n, source: source || '', date: dateStr || '' };
+  const de = (typeof currentLang !== 'undefined' && currentLang === 'de');
+  const rateEl = document.getElementById('muh-fx-rate');
+  const metaEl = document.getElementById('muh-fx-meta');
+  if (rateEl) rateEl.textContent = n > 0 ? `1 EUR = ${_mFmt(n)} TRY` : '1 EUR = — TRY';
+  if (metaEl) {
+    const raw = source || '';
+    const src = raw === 'live' ? (de ? 'Live-Kurs' : 'canlı kur') : (raw || (de ? 'manuell' : 'manuel'));
+    metaEl.textContent = `${src} · ${dateStr || '—'}`;
   }
 }
 
+function _mAltAmount(amount, cur, rate) {
+  const c = String(cur || 'EUR').toUpperCase();
+  const r = Number(rate || 0);
+  if (!(r > 1)) return '';
+  if (c === 'EUR') return `<div class="muh-fx-alt">${_mFmt(_mConvertCurrency(amount, 'EUR', 'TRY', r))} TRY</div>`;
+  if (c === 'TRY') return `<div class="muh-fx-alt">${_mFmt(_mConvertCurrency(amount, 'TRY', 'EUR', r))} EUR</div>`;
+  return '';
+}
+
+async function _fetchEurTryRateAt(dateStr) {
+  const got = await _fetchFxRateByRules(dateStr, defaultPayrollRules());
+  return got?.rate || null;
+}
+
+async function _readFxJson(url) {
+  const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+  if (!res.ok) return null;
+  const json = await res.json();
+  const n = Number(json?.rates?.TRY || json?.data?.TRY || json?.TRY || 0);
+  return n > 0 ? n : null;
+}
+
+async function _fetchFxRateByRules(dateStr, rules) {
+  const provider = rules?.fx_api_provider || 'frankfurter';
+  const openEr = async () => {
+    const n = await _readFxJson('https://open.er-api.com/v6/latest/EUR');
+    return n ? { rate: n, source: 'live' } : null;
+  };
+  const host = async () => {
+    const n = await _readFxJson(`https://api.exchangerate.host/${dateStr}?base=EUR&symbols=TRY`);
+    return n ? { rate: n, source: 'exchangerate.host' } : null;
+  };
+  const custom = async () => {
+    const tpl = rules?.fx_api_url || '';
+    if (!tpl) return null;
+    let url = tpl.replaceAll('{date}', dateStr).replaceAll('{base}', 'EUR').replaceAll('{quote}', 'TRY');
+    const key = rules?.fx_api_key || '';
+    if (key) url += `${url.includes('?') ? '&' : '?'}apikey=${encodeURIComponent(key)}`;
+    const n = await _readFxJson(url);
+    return n ? { rate: n, source: 'özel API' } : null;
+  };
+  const chain = [];
+  if (provider === 'custom') chain.push(custom);
+  if (provider === 'exchangerate_host') chain.push(host);
+  chain.push(openEr);
+  if (provider !== 'exchangerate_host') chain.push(host);
+  for (const step of chain) {
+    try {
+      const got = await step();
+      if (got?.rate) return got;
+    } catch (_) {}
+  }
+  return null;
+}
+
 async function _getMonthFxRate(fid, ym, fallbackRate, rules) {
-  const b = _mMonthBounds(ym);
-  const rateDate = b.end;
+  const quoteDate = _mFxQuoteDate(ym);
+  let cached = null;
   try {
-    const ex = await sb(`payroll_fx_rates?firm_id=eq.${fid}&rate_date=eq.${rateDate}&base_currency=eq.EUR&quote_currency=eq.TRY&select=rate&limit=1`);
-    if (ex?.length && Number(ex[0].rate) > 0) return Number(ex[0].rate);
-  } catch (e) {}
-  const apiRate = await _fetchFxRateByRules(rateDate, rules || {});
-  const rate = apiRate || Number(fallbackRate || 1) || 1;
-  try {
-    await sb('payroll_fx_rates', {
-      method: 'POST',
-      prefer: 'return=minimal',
-      body: JSON.stringify({
-        firm_id: fid,
-        period_ym: ym,
-        rate_date: rateDate,
-        base_currency: 'EUR',
-        quote_currency: 'TRY',
-        rate,
-        source: apiRate ? 'exchangerate.host' : 'manual_fallback',
-      }),
-    });
-  } catch (e) {}
+    const ex = await sb(`payroll_fx_rates?firm_id=eq.${fid}&rate_date=eq.${quoteDate}&base_currency=eq.EUR&quote_currency=eq.TRY&select=rate,source&limit=1`);
+    if (ex?.length && Number(ex[0].rate) > 0) cached = ex[0];
+  } catch (_) {}
+  const fetched = await _fetchFxRateByRules(quoteDate, rules || {});
+  const rate = Number(fetched?.rate || cached?.rate || fallbackRate || 1) || 1;
+  const source = fetched?.source || cached?.source || 'manuel';
+  _muhPaintFxBanner(rate, source, quoteDate);
+  if (fetched?.rate) {
+    const body = {
+      firm_id: fid,
+      period_ym: ym,
+      rate_date: quoteDate,
+      base_currency: 'EUR',
+      quote_currency: 'TRY',
+      rate: fetched.rate,
+      source: fetched.source,
+    };
+    try {
+      const patched = await sb(`payroll_fx_rates?firm_id=eq.${fid}&rate_date=eq.${quoteDate}&base_currency=eq.EUR&quote_currency=eq.TRY`, {
+        method: 'PATCH',
+        prefer: 'return=representation',
+        body: JSON.stringify({ rate: fetched.rate, source: fetched.source, period_ym: ym }),
+      });
+      if (!patched?.length) {
+        await sb('payroll_fx_rates', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(body) });
+      }
+    } catch (_) {
+      try {
+        await sb('payroll_fx_rates', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(body) });
+      } catch (__) {}
+    }
+  }
   return rate;
 }
 
@@ -822,7 +887,12 @@ function _mCollectAdjustments(adj, uid, rules) {
 
 async function renderMuhasebePayrollTable(fid, ym, rules, opts = {}) {
   window._muhPayrollUi = opts.ui || 'admin';
-  const users = await _mFetchUsers(fid);
+  let users = await _mFetchUsers(fid);
+  const selfRole = String(currentUser?.role || '');
+  const selfView = window._muhPayrollUi === 'maasim' || ['agent', 'qc', 'field_agent'].includes(selfRole);
+  if (selfView && currentUser?.id && !users.some((u) => u.id === currentUser.id)) {
+    users = [...users, { id: currentUser.id, name: currentUser.name || '—', role: selfRole }];
+  }
   const b = _mMonthBounds(ym);
   const monthRate = await _getMonthFxRate(fid, ym, Number(rules.exchange_rate || 1), rules);
   const data = await _mFetchMonthlyData(fid, ym, b.year, b);
@@ -950,12 +1020,12 @@ function renderMuhasebeSummaryCards(rows, rules) {
   const netProfit = totalRevenue - sum.pay - companyTax;
   const cur = _mEsc(rules.currency || 'EUR');
   box.innerHTML = `
-    <div class="stat-card"><div class="stat-lbl">Gelir (${cur})</div><div class="stat-val">${_mFmt(totalRevenue)}</div><div class="stat-meta">${sum.success} başarılı termin</div></div>
+    <div class="stat-card"><div class="stat-lbl">Gelir (${cur})</div><div class="stat-val">${_mFmt(totalRevenue)}</div><div class="stat-meta">${sum.success} başarılı randevu</div></div>
     <div class="stat-card"><div class="stat-lbl">Baz Maaş (${cur})</div><div class="stat-val">${_mFmt(sum.base)}</div></div>
     <div class="stat-card stat-green"><div class="stat-lbl">Prim (${cur})</div><div class="stat-val">${_mFmt(sum.bonus)}</div></div>
     <div class="stat-card stat-red"><div class="stat-lbl">Toplam Kesinti (${cur})</div><div class="stat-val">${_mFmt(sum.pen)}</div></div>
     <div class="stat-card"><div class="stat-lbl">Şirket Vergisi (${cur})</div><div class="stat-val">${_mFmt(companyTax)}</div><div class="stat-meta">Matrah: ${_mFmt(taxBase)} ${cur}</div></div>
-    <div class="stat-card stat-blue"><div class="stat-lbl">Hakediş (${cur})</div><div class="stat-val">${_mFmt(sum.pay)}</div></div>
+    <div class="stat-card stat-blue"><div class="stat-lbl">Hakediş (${cur})</div><div class="stat-val">${_mFmt(sum.pay)}</div>${_mAltAmount(sum.pay, cur, rules.exchange_rate)}</div>
     <div class="stat-card stat-purple"><div class="stat-lbl">Kalan (${cur})</div><div class="stat-val">${_mFmt(sum.rem)}</div><div class="stat-meta">Ödenen: ${_mFmt(sum.paid)} ${cur}</div></div>
     <div class="stat-card"><div class="stat-lbl">Net Kar (${cur})</div><div class="stat-val" style="color:${netProfit>=0?'var(--green)':'var(--red)'}">${_mFmt(netProfit)}</div></div>
   `;
@@ -1014,7 +1084,7 @@ function renderMuhasebeRowsTable(rows, rules) {
         <td>${_mFmt(r.leavePenalty)} ${cur}<div style="font-size:10px;color:var(--text-3);">${_mFmt(r.leaveOverflow)} gün</div></td>
         <td><span class="muh-badge ${manualClass}">${manualNet >= 0 ? '+' : ''}${_mFmt(manualNet)} ${cur}</span></td>
         <td><span style="font-size:11px;color:var(--text-3);">Şirket matrahında</span></td>
-        <td style="font-weight:800;">${_mFmt(r.netPayable)} ${cur}</td>
+        <td style="font-weight:800;">${_mFmt(r.netPayable)} ${cur}${_mAltAmount(r.netPayable, cur, rules.exchange_rate)}</td>
         <td>${_mFmt(r.paidAmount)} ${cur}</td>
         <td style="font-weight:800;color:${r.remaining > 0 ? 'var(--red)' : 'var(--green)'};">${_mFmt(r.remaining)} ${cur}</td>
         ${admin ? `<td>
@@ -1032,7 +1102,7 @@ async function openPayrollOverride(uid) {
   const fid = muhasebeFirmId();
   const rows = await sb(`payroll_employee_overrides?firm_id=eq.${fid}&user_id=eq.${uid}&select=*`).catch(() => []);
   const cur = rows?.[0] || {};
-  const noTermin = await mbConfirm('Bu personel termin yapmıyor olarak işaretlensin mi?', 'Personel Tipi');
+  const noTermin = await mbConfirm('Bu personel randevu yapmıyor olarak işaretlensin mi?', 'Personel Tipi');
   const base = await mbPrompt('Baz maaş özel ayarı (boş bırak = varsayılan)', cur.base_salary_amount ?? '', 'Kişiye Özel Ayar');
   if (base === null) return;
   const tax = await mbPrompt('Vergi % özel ayarı (boş bırak = varsayılan)', cur.tax_rate_percent ?? '', 'Kişiye Özel Ayar');

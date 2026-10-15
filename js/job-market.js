@@ -475,7 +475,7 @@ async function runJobMarketAutoWithdrawals() {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/job_market_run_auto_withdrawals`, {
       method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      headers: mbAuthHeaders(),
       body: '{}'
     });
     const txt = await res.text();
@@ -767,9 +767,9 @@ async function loadJobPosts() {
     list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:10px;">Önce firma seçin</div>`;
     return;
   }
-  list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:10px;">Yükleniyor...</div>`;
+  list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:10px;">${typeof t === 'function' ? t('ui.loading') : 'Yükleniyor...'}</div>`;
   try {
-    await runJobMarketAutoWithdrawals();
+    void runJobMarketAutoWithdrawals();
     const posts = await sb(`job_posts?order=created_at.desc&limit=220`);
     if (!posts) throw new Error('İlan listesi alınamadı');
     const workers = await sb(`job_post_workers?select=id,job_post_id,worker_firm_id,status`).catch(() => []);
@@ -811,9 +811,35 @@ function calcJobMatchScore(post, viewerFirmId) {
   return Math.max(0, Math.min(100, scoreBase + byCountry + byCity + quality - (stats.rejected * 2)));
 }
 
+function renderJobMarketSummary() {
+  const el = document.getElementById('job-market-summary');
+  if (!el) return;
+  const de = (typeof currentLang !== 'undefined' && currentLang === 'de');
+  const posts = _jobPosts || [];
+  const open = posts.filter((p) => ['published', 'in_progress'].includes(p.status)).length;
+  const apps = (_jobPostSubs || []).length;
+  const slots = (_jobPostSlots || []).length;
+  const byCur = {};
+  posts.forEach((p) => {
+    const c = String(p.currency || 'EUR').toUpperCase();
+    byCur[c] = (byCur[c] || 0) + Number(p.budget || 0);
+  });
+  const mix = Object.keys(byCur).length
+    ? Object.entries(byCur).map(([c, v]) => (typeof formatMoney === 'function' ? `${formatMoney(v, c)} ${c}` : `${Number(v).toFixed(2)} ${c}`)).join(' · ')
+    : '—';
+  const cells = [
+    [de ? 'Offene Anzeigen' : 'Açık ilan', String(open)],
+    [de ? 'Lieferungen' : 'Teslim', String(apps)],
+    [de ? 'Zeitfenster' : 'Slot', String(slots)],
+    [de ? 'Budget' : 'Bütçe', mix],
+  ];
+  el.innerHTML = cells.map(([lbl, val]) => `<div class="jm-sum-card"><div class="jm-sum-lbl">${_jmEsc(lbl)}</div><div class="jm-sum-val">${_jmEsc(val)}</div></div>`).join('');
+}
+
 function renderJobPostList() {
   const list = document.getElementById('job-market-list');
   if (!list) return;
+  renderJobMarketSummary();
   const q = String(document.getElementById('jm-search')?.value || '').trim().toLowerCase();
   const fid = getActiveFirmId() || currentUser?.firm_id;
    let items = (_jobPosts || []).filter((p) => {
@@ -842,7 +868,8 @@ function renderJobPostList() {
     items = items.filter((p) => Number(p.budget || 0) >= 500);
   }
   if (!items.length) {
-    list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:10px;">Bu görünüm için ilan yok</div>`;
+    const de = (typeof currentLang !== 'undefined' && currentLang === 'de');
+    list.innerHTML = `<div class="jm-empty">${de ? 'In dieser Ansicht keine Anzeigen.' : 'Bu görünüm için ilan yok.'}</div>`;
     syncJobMarketFilterUi();
     return;
   }
@@ -879,7 +906,7 @@ function renderJobPostList() {
 <div>
 <div style="font-size:13px;font-weight:800;">${_jmEsc(p.title || 'İş ilanı')}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_jmEsc(p.job_type || 'custom')}${apptCat ? ` · <span style="color:var(--text-2);font-weight:600;">${_jmEsc(apptCat)}</span>` : ''} · ${_jmEsc(p.city || 'Bölge serbest')} · Son: ${deadline}</div>
-<div style="font-size:11px;color:var(--text-3);margin-top:2px;">İşlem başı: <b>${(typeof formatMoney === 'function') ? formatMoney(Number(p.unit_price || p.budget || 0), p.currency || 'EUR') : `${Number(p.unit_price || p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'EUR')}`}</b> · Adet: <b>${Number(p.quantity || slots.length || 1)}</b> · Toplam: <b>${(typeof formatMoney === 'function') ? formatMoney(Number(p.budget || 0), p.currency || 'EUR') : `${Number(p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'EUR')}`}</b> · Çalışan: <b>${workingCnt}</b> · Eşleşme: <b>${score}</b>/100</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:2px;">İşlem başı: <b>${(typeof formatMoney === 'function') ? formatMoney(Number(p.unit_price || p.budget || 0), p.currency || 'EUR') : Number(p.unit_price || p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'EUR')}</b> · Adet: <b>${Number(p.quantity || slots.length || 1)}</b> · Toplam: <b>${(typeof formatMoney === 'function') ? formatMoney(Number(p.budget || 0), p.currency || 'EUR') : Number(p.budget || 0).toFixed(2)} ${_jmEsc(p.currency || 'EUR')}</b> · Çalışan: <b>${workingCnt}</b> · Eşleşme: <b>${score}</b>/100</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Bölge: <b>${_jmEsc(p.postal_code || '-')}</b> · Radius: <b>${Number(geo.radius_km || 0).toFixed(1)} km</b></div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Geri çekme: <b>${p.retraction_deadline_at ? new Date(p.retraction_deadline_at).toLocaleString('tr-TR') : 'otomatik kural'}</b>${retractHint}</div>
 </div>
@@ -960,7 +987,7 @@ async function createJobPost() {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/create_job_post`, {
       method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      headers: mbAuthHeaders(),
       body: JSON.stringify({
         p_title: title,
         p_description: description,
@@ -1000,7 +1027,7 @@ async function withdrawJobPost(jobPostId) {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/withdraw_job_post`, {
       method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      headers: mbAuthHeaders(),
       body: JSON.stringify({ p_job_post_id: jobPostId })
     });
     const txt = await res.text();
@@ -1168,7 +1195,7 @@ async function joinJobPost(jobPostId) {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/join_job_post`, {
       method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      headers: mbAuthHeaders(),
       body: JSON.stringify({ p_job_post_id: jobPostId })
     });
     if (!res.ok) throw new Error(await res.text());
@@ -1221,7 +1248,7 @@ async function submitJobSubmission(jobPostId) {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/rpc/submit_job_submission`, {
       method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      headers: mbAuthHeaders(),
       body: JSON.stringify({
         p_job_post_id: jobPostId,
         p_submission_type: type,
@@ -1257,9 +1284,10 @@ async function loadJobMarketKpi() {
   const wrap = document.getElementById('dash-job-market-kpi');
   if (!wrap) return;
   const canView = ['super_admin', 'admin', 'firm_admin'].includes(currentUser?.role || '');
-  wrap.style.display = canView ? '' : 'none';
-  if (!canView) return;
+  if (!canView) { wrap.style.display = 'none'; return; }
   const jobs = await sb(`job_posts?select=id,status,created_at,first_submission_at,retraction_deadline_at&order=created_at.desc&limit=400`).catch(() => []);
+  if (!jobs?.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
   set('kpi-job-published', (jobs || []).filter((x) => ['published', 'in_progress'].includes(x.status)).length);
   set('kpi-job-qc', (jobs || []).filter((x) => x.status === 'pending_qc').length);
@@ -1280,7 +1308,10 @@ async function loadJobMarketKpi() {
     wrap.appendChild(el);
   }
   const adv = document.getElementById('kpi-job-advanced');
-  if (adv) adv.textContent = `Reject oranı: %${rejectRate} | Ortalama kapanış: ${avgClose} dk`;
+  const isTr = typeof currentLang === 'undefined' || currentLang !== 'de';
+  if (adv) adv.textContent = isTr
+    ? `Red oranı: %${rejectRate} · Ortalama kapanış: ${avgClose} dk`
+    : `Ablehnungsquote: ${rejectRate}% · Ø Abschluss: ${avgClose} Min.`;
   const nowMs = Date.now();
   const retractable = (jobs || []).filter((j) => {
     if (!['published', 'in_progress', 'pending_qc'].includes(j.status)) return false;
@@ -1297,7 +1328,9 @@ async function loadJobMarketKpi() {
     wrap.appendChild(t);
   }
   const tEl = document.getElementById(seriesElId);
-  if (tEl) tEl.textContent = `Geri çekmeye uygun (tahmini): ${retractable} · Otomatik kural + tarih`;
+  if (tEl) tEl.textContent = isTr
+    ? `Geri çekmeye uygun (tahmini): ${retractable} · Otomatik kural + tarih`
+    : `Rückzug möglich (geschätzt): ${retractable} · Automatik + Datum`;
 }
 
 function exportJobPolygon() {

@@ -14,7 +14,8 @@ const v = String(version || '0.0').trim();
 
 const head = (await readFile(join(root, 'html/fragments/head.html'), 'utf8'))
   .replaceAll('__MB_VERSION__', v);
-const bodyLogin = await readFile(join(root, 'html/fragments/body-login.html'), 'utf8');
+const bodyLogin = (await readFile(join(root, 'html/fragments/body-login.html'), 'utf8'))
+  .replaceAll('__MB_VERSION__', v);
 const appShell = (await readFile(join(root, 'html/fragments/app-shell.html'), 'utf8'))
   .replaceAll('__MB_VERSION__', v);
 const modals = await readFile(join(root, 'html/fragments/modals.html'), 'utf8');

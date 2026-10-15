@@ -26,7 +26,7 @@ const UQ_AUTO_MAP = {
 const DEFAULT_AUX_CODES = ['Yemek Molası','Çay Molası','Lavabo','Toplantı','Teknik Sorun'];
 
 const DEFAULT_OUTCOMES = [
-{key:'appointment', label:'Termin',        enabled:true,  color:'green'},
+{key:'appointment', label:'Randevu',        enabled:true,  color:'green'},
 {key:'negative',    label:'Olumsuz',       enabled:true,  color:'red'},
 {key:'callback',    label:'Geri Ara',      enabled:true,  color:'blue'},
 {key:'no_answer',   label:'Cevap Yok',     enabled:true,  color:'gray'},
@@ -41,8 +41,8 @@ const IA_FIELDS = [
 {key:'strasse',      label:'Adres/Sokak',      required:false},
 {key:'plz',          label:'PLZ',              required:false},
 {key:'ort',          label:'Şehir',            required:false},
-{key:'termin_tarih', label:'Termin Tarihi *',  required:true},
-{key:'termin_saat',  label:'Termin Saati',     required:false},
+{key:'termin_tarih', label:'Randevu Tarihi *',  required:true},
+{key:'termin_saat',  label:'Randevu Saati',     required:false},
 {key:'notiz',        label:'Not',              required:false},
 {key:'durum',        label:'Durum',            required:false},
 ];

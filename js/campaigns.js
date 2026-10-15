@@ -519,7 +519,7 @@ for (let i=0;i<n;i++) {
 }
 try {
   await sb(`campaigns?id=eq.${currentCampId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({termin_form_config:cfg})});
-  toast('Termin form ayarları kaydedildi ✓','ok');
+  toast('Randevu form ayarları kaydedildi ✓','ok');
   loadCampaigns();
 } catch(e) { toast('Hata: '+e.message,'err'); }
 }
