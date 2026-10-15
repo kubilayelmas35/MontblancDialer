@@ -105,6 +105,7 @@ ${sb2}
 <div class="camp-kpi">
 <div class="camp-kpi-item"><div class="camp-kpi-val">${tot.toLocaleString()}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.total','Toplam'))}</div></div>
 <div class="camp-kpi-item"><div class="camp-kpi-val" style="color:var(--accent);">${dia.toLocaleString()}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.dialed','Aranan'))}</div></div>
+<div class="camp-kpi-item"><div class="camp-kpi-val">${qs.length}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.queues','Kuyruk'))}</div></div>
 <div class="camp-kpi-item"><div class="camp-kpi-val" style="color:var(--text-2);">${ags}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.agent','Temsilci'))}</div></div>
 </div>
 <div>
@@ -546,6 +547,8 @@ function renderCampQueues(c) {
   const host = document.getElementById('cd-queues');
   if (!host) return;
   const qs = c?.queues || [];
+  const countEl = document.getElementById('cd-queue-count');
+  if (countEl) countEl.textContent = ` · ${qs.length}`;
   if (!qs.length) {
     host.innerHTML = `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${campEsc(campT('camp.queue.none','Kuyruk yok'))}</div>`;
     return;
@@ -1368,14 +1371,15 @@ async function saveQueueSettings(queueId) {
 }
 
 const QUEUE_OPS_ROWS = [
-  { key: 'pending', requeue: false, label: 'camp.ops.pending', fb: 'Kuyrukta' },
-  { key: 'calling', requeue: false, label: 'camp.ops.calling', fb: 'Aranıyor' },
-  { key: 'no_answer', requeue: true, label: 'camp.st.no_answer', fb: 'Cevap yok' },
-  { key: 'voicemail', requeue: true, label: 'camp.st.voicemail', fb: 'Telesekreter' },
-  { key: 'negative', requeue: true, label: 'camp.st.negative', fb: 'Olumsuz' },
-  { key: 'callback', requeue: true, label: 'camp.st.callback', fb: 'Geri ara' },
-  { key: 'appointment', requeue: false, label: 'camp.ops.appointment', fb: 'Randevu' },
-  { key: 'dnc', requeue: false, label: 'camp.st.dnc', fb: 'Kara liste' },
+  { key: 'pending', requeue: false, pull: true, label: 'camp.ops.pending', fb: 'Kuyrukta' },
+  { key: 'removed', requeue: true, pull: false, label: 'camp.ops.removed', fb: 'Kuyruktan çıkan' },
+  { key: 'calling', requeue: false, pull: false, label: 'camp.ops.calling', fb: 'Aranıyor' },
+  { key: 'no_answer', requeue: true, pull: false, label: 'camp.st.no_answer', fb: 'Cevap yok' },
+  { key: 'voicemail', requeue: true, pull: false, label: 'camp.st.voicemail', fb: 'Telesekreter' },
+  { key: 'negative', requeue: true, pull: false, label: 'camp.st.negative', fb: 'Olumsuz' },
+  { key: 'callback', requeue: true, pull: false, label: 'camp.st.callback', fb: 'Geri ara' },
+  { key: 'appointment', requeue: false, pull: false, label: 'camp.ops.appointment', fb: 'Randevu' },
+  { key: 'dnc', requeue: false, pull: false, label: 'camp.st.dnc', fb: 'Kara liste' },
 ];
 
 function opsRangeQuery() {
@@ -1463,14 +1467,16 @@ async function refreshQueueOps() {
   body.innerHTML = QUEUE_OPS_ROWS.map((row, i) => {
     const n = nums[i];
     const share = total > 0 ? Math.round(n / total * 1000) / 10 : 0;
+    const sliced = row.requeue || row.pull;
     const take = n;
     return `<tr data-ops="${row.key}" data-n="${n}" class="${row.key === 'pending' ? 'is-queue' : ''}">
 <td>${campEsc(campT(row.label, row.fb))}</td>
 <td style="font-family:var(--mono);font-weight:800;">${n}</td>
 <td>${share}%</td>
-<td>${row.requeue ? `<input type="range" id="ops-pct-${row.key}" min="0" max="100" value="100" oninput="opsPaintTake('${row.key}')">` : ''}</td>
-<td id="ops-take-${row.key}">${row.requeue ? take : ''}</td>
+<td>${sliced ? `<input type="range" id="ops-pct-${row.key}" min="0" max="100" value="100" oninput="opsPaintTake('${row.key}')">` : ''}</td>
+<td id="ops-take-${row.key}">${sliced ? take : ''}</td>
 <td style="white-space:nowrap;">
+${row.pull ? `<button type="button" class="btn btn-ghost btn-xs" ${n ? '' : 'disabled'} title="${campEsc(campT('camp.ops.pull','Kuyruktan çıkar'))}" onclick="pullOpsSlice('${queueId}','${row.key}')"><i class="ph ph-arrow-square-out"></i></button>` : ''}
 ${row.requeue ? `<button type="button" class="btn btn-primary btn-xs" ${n ? '' : 'disabled'} title="${campEsc(campT('camp.queue.requeue.do','Kuyruğa al'))}" onclick="requeueOpsSlice('${queueId}','${row.key}')"><i class="ph ph-arrow-clockwise"></i></button>` : ''}
 <button type="button" class="btn btn-ghost btn-xs" ${n ? '' : 'disabled'} title="${campEsc(campT('camp.ops.download','İndir'))}" onclick="downloadOpsContacts('${queueId}','${row.key}')"><i class="ph ph-download-simple"></i></button>
 </td>
@@ -1498,21 +1504,54 @@ async function requeueOpsSlice(queueId, status) {
         body: JSON.stringify({ status: 'pending', last_called_at: null }),
       });
     }
-    const dialed = await mbHeadCount(`contacts?queue_id=eq.${queueId}&status=neq.pending&select=id`);
-    await sb(`queues?id=eq.${queueId}`, {
-      method: 'PATCH', prefer: 'return=minimal',
-      body: JSON.stringify({ dialed_count: dialed }),
-    }).catch(() => {});
-    const found = findQueue(queueId);
-    if (found) {
-      found.queue.dialed_count = dialed;
-      renderCampQueues(found.camp);
-    }
+    await syncQueueDialed(queueId);
     toast(campT('camp.ops.done','{n} kişi kuyruğa alındı').replace('{n}', String(ids.length)), 'ok');
     await refreshQueueOps();
   } catch (e) {
     toast(e.message, 'err');
   }
+}
+
+async function pullOpsSlice(queueId, status) {
+  const row = QUEUE_OPS_ROWS.find((r) => r.key === status);
+  if (!row?.pull) return;
+  const n = opsSliceCount(status);
+  if (!n) {
+    toast(campT('camp.ops.zero','Alınacak kişi yok'), 'warn');
+    return;
+  }
+  const ok = await mbConfirm(campT('camp.ops.pull.confirm','{n} kişi kuyruktan çıkarılsın').replace('{n}', String(n)), campT('camp.ops.title','İşlemler'));
+  if (!ok) return;
+  try {
+    const rows = await sb(`contacts?queue_id=eq.${queueId}&status=eq.${status}${opsRangeQuery()}&select=id&order=created_at.asc&limit=${n}`);
+    const ids = (rows || []).map((r) => r.id).filter(Boolean);
+    for (let i = 0; i < ids.length; i += 60) {
+      const chunk = ids.slice(i, i + 60);
+      await sb(`contacts?id=in.(${chunk.join(',')})`, {
+        method: 'PATCH', prefer: 'return=minimal',
+        body: JSON.stringify({ status: 'removed' }),
+      });
+    }
+    await syncQueueDialed(queueId);
+    toast(campT('camp.ops.pull.done','{n} kişi kuyruktan çıkarıldı').replace('{n}', String(ids.length)), 'ok');
+    await refreshQueueOps();
+  } catch (e) {
+    toast(e.message, 'err');
+  }
+}
+
+async function syncQueueDialed(queueId) {
+  const dialed = await mbHeadCount(`contacts?queue_id=eq.${queueId}&status=not.in.(pending,calling,removed)&select=id`);
+  await sb(`queues?id=eq.${queueId}`, {
+    method: 'PATCH', prefer: 'return=minimal',
+    body: JSON.stringify({ dialed_count: dialed }),
+  }).catch(() => {});
+  const found = findQueue(queueId);
+  if (found) {
+    found.queue.dialed_count = dialed;
+    renderCampQueues(found.camp);
+  }
+  return dialed;
 }
 
 async function downloadOpsContacts(queueId, status) {
@@ -1636,12 +1675,7 @@ async function doRequeue(queueId) {
       });
     }
     // Dialed count'u yeniden hesapla
-    const notPending = await sb(`contacts?queue_id=eq.${queueId}&status=neq.pending&select=id`);
-    const dialedCount = (notPending||[]).length;
-    await sb(`queues?id=eq.${queueId}`, {
-      method: 'PATCH', prefer: 'return=minimal',
-      body: JSON.stringify({ dialed_count: dialedCount })
-    }).catch(()=>{});
+    await syncQueueDialed(queueId);
     document.getElementById('m-requeue')?.remove();
     toast(`Kuyruğa alındı ✓ (${statuses.length} durum)`, 'ok');
     if (currentCampId) { loadCampaigns(); setTimeout(()=>openCampDetail(currentCampId), 400); }

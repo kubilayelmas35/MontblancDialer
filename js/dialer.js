@@ -4066,7 +4066,7 @@ async function submitOutcome(goBreak) {
       await sb('call_logs',{method:'POST',prefer:'return=minimal',body:JSON.stringify(logData)});
       if (contactId && currentContact.queue_id) {
         // dialed_count'u contacts tablosundan dinamik hesapla
-        sb(`contacts?queue_id=eq.${currentContact.queue_id}&status=not.in.(pending,calling)&select=id`)
+        sb(`contacts?queue_id=eq.${currentContact.queue_id}&status=not.in.(pending,calling,removed)&select=id`)
           .then(rows => sb(`queues?id=eq.${currentContact.queue_id}`,{method:'PATCH',prefer:'return=minimal',
             body:JSON.stringify({dialed_count:(rows||[]).length})
           })).catch(()=>{});
