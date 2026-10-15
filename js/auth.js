@@ -108,7 +108,93 @@ document.getElementById('page-login').style.display = 'flex';
 document.getElementById('app').style.display = 'none';
 }
 
-function bootApp() {
+let _mbWhoamiAt = 0;
+
+function mbDropDeadSession() {
+  _mbWhoamiAt = 0;
+  localStorage.removeItem('mb_session');
+  localStorage.removeItem('mb_base_session');
+  localStorage.removeItem('mb_impersonation');
+  currentUser = null;
+  _baseUser = null;
+  _impersonation = null;
+  const app = document.getElementById('app');
+  const login = document.getElementById('page-login');
+  if (app) app.style.display = 'none';
+  if (login) login.style.display = 'flex';
+  const errEl = document.getElementById('login-err');
+  if (errEl) {
+    errEl.textContent = (typeof t === 'function' ? t('login.err.session') : 'Oturum sona erdi. Tekrar giriş yapın.');
+    errEl.style.display = 'block';
+  }
+}
+
+function mbApplyWhoami(me) {
+  if (!me?.user_id || !currentUser) return;
+  if (_impersonation && String(me.user_id) !== String(currentUser.id)) return;
+  const firmChanged = String(me.firm_id || '') !== String(currentUser.firm_id || '');
+  currentUser.firm_id = me.firm_id || currentUser.firm_id;
+  currentUser.role = me.role || currentUser.role;
+  currentUser.name = me.name || currentUser.name;
+  currentUser.email = me.email || currentUser.email;
+  currentUser.firm_name = me.firm_name || currentUser.firm_name;
+  if (_baseUser && String(_baseUser.id) === String(currentUser.id)) {
+    _baseUser.firm_id = currentUser.firm_id;
+    _baseUser.role = currentUser.role;
+    _baseUser.name = currentUser.name;
+    _baseUser.firm_name = currentUser.firm_name;
+    _baseUser.session_token = currentUser.session_token || _baseUser.session_token;
+    localStorage.setItem('mb_base_session', JSON.stringify(_baseUser));
+  }
+  localStorage.setItem('mb_session', JSON.stringify(currentUser));
+  if (firmChanged) {
+    const roleEl = document.getElementById('tb-urole');
+    if (roleEl && currentUser.firm_name) {
+      const suffix = ` · ${currentUser.firm_name}`;
+      if (!String(roleEl.textContent || '').includes(currentUser.firm_name)) {
+        roleEl.textContent = String(roleEl.textContent || currentUser.role || '').replace(/\s·\s.*$/, '') + suffix;
+      }
+    }
+  }
+}
+
+async function mbWhoami() {
+  try {
+    const rows = await sb('rpc/mb_whoami', { method: 'POST', body: '{}' });
+    if (Array.isArray(rows)) return rows[0] || null;
+    return rows || null;
+  } catch (_) {
+    return { _error: true };
+  }
+}
+
+async function mbEnsureSession(opts = {}) {
+  if (!currentUser?.id) return false;
+  if (!opts.force && Date.now() - _mbWhoamiAt < 15000 && currentUser.firm_id) return true;
+  let me = await mbWhoami();
+  if (me?._error) return true;
+  if (!me?.user_id) {
+    const baseTok = _baseUser?.session_token;
+    const curTok = currentUser.session_token;
+    const sameUser = _baseUser && String(_baseUser.id) === String(currentUser.id);
+    if (sameUser && baseTok && baseTok !== curTok) {
+      currentUser.session_token = baseTok;
+      me = await mbWhoami();
+      if (me?._error) return true;
+    }
+  }
+  if (!me?.user_id) {
+    mbDropDeadSession();
+    return false;
+  }
+  mbApplyWhoami(me);
+  _mbWhoamiAt = Date.now();
+  return true;
+}
+
+async function bootApp() {
+if (!(await mbEnsureSession({ force: true }))) return;
+if (!currentUser) return;
 if (!currentUser.initials) currentUser.initials = (currentUser.name||'?').charAt(0).toUpperCase();
 document.getElementById('tb-av').textContent = currentUser.initials.charAt(0);
 document.getElementById('tb-uname').textContent = currentUser.name;
@@ -441,6 +527,9 @@ _baseUser = baseSaved ? JSON.parse(baseSaved) : { ...currentUser };
 if (!_isValidSessionUserShape(_baseUser)) _baseUser = { ...currentUser };
 if (!_hasSessionToken(_baseUser) && _hasSessionToken(currentUser)) _baseUser.session_token = currentUser.session_token;
 if (!_hasSessionToken(currentUser) && _hasSessionToken(_baseUser)) currentUser.session_token = _baseUser.session_token;
+if (String(_baseUser?.id || '') === String(currentUser?.id || '') && _hasSessionToken(currentUser)) {
+  _baseUser.session_token = currentUser.session_token;
+}
 if (!_hasSessionToken(currentUser)) {
 _clearSessionStorageSafe();
 currentUser = null;

@@ -14,8 +14,38 @@ function mbAuthHeaders(extra) {
 function _mbSessionToken() {
   const base = (typeof _baseUser !== 'undefined' && _baseUser) ? _baseUser : null;
   const cur = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : null;
-  const token = base?.session_token || cur?.session_token || '';
+  const impersonating = !!(base && cur && base.id && cur.id && String(base.id) !== String(cur.id));
+  if (impersonating && base.session_token) return String(base.session_token);
+  const token = cur?.session_token || base?.session_token || '';
   return token ? String(token) : '';
+}
+
+function mbHumanDbError(status, detail) {
+  let code = '';
+  let message = '';
+  const raw = String(detail || '');
+  try {
+    const parsed = JSON.parse(raw);
+    code = String(parsed.code || '');
+    message = String(parsed.message || '');
+  } catch (_) {
+    message = raw;
+  }
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const say = (key, tr, deText) => {
+    if (typeof t === 'function') {
+      const translated = t(key);
+      if (translated && translated !== key) return translated;
+    }
+    return de ? deText : tr;
+  };
+  if (code === '42501' || /row-level security/i.test(message)) {
+    return say('api.err.rls', 'Bu işlem için yetkin yok. Çıkış yapıp tekrar gir.', 'Keine Berechtigung für diesen Vorgang. Bitte abmelden und erneut anmelden.');
+  }
+  if (Number(status) === 401 || Number(status) === 403 || /JWT|not_authenticated/i.test(message)) {
+    return say('api.err.auth', 'Oturum geçersiz. Tekrar giriş yapın.', 'Sitzung ungültig. Bitte erneut anmelden.');
+  }
+  return say('api.err.generic', 'İşlem tamamlanamadı. Tekrar deneyin.', 'Vorgang fehlgeschlagen. Bitte erneut versuchen.');
 }
 
 function _mbRequestScopeHeaders(userOverride = null) {
@@ -98,8 +128,12 @@ if (!r.ok) {
       }
     }
   } catch (_) {}
-  const msg = detail || `${r.status} ${r.statusText || 'HTTP_ERROR'}`;
-  throw new Error(`Supabase error (${r.status}) @ ${path}: ${msg}`);
+  console.error(`Supabase error (${r.status}) @ ${path}: ${detail || r.statusText || 'HTTP_ERROR'}`);
+  const authFail = /42501|row-level security/i.test(detail || '') || Number(r.status) === 401 || Number(r.status) === 403;
+  if (authFail && !String(path || '').includes('mb_whoami') && typeof mbEnsureSession === 'function') {
+    mbEnsureSession({ force: true }).catch(() => {});
+  }
+  throw new Error(mbHumanDbError(r.status, detail));
 }
 if (r.status === 204) return null;
 const txt = await r.text();

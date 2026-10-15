@@ -51,6 +51,10 @@ function campPersonLabel(person) {
 }
 
 async function loadCampaigns() {
+if (typeof mbEnsureSession === 'function') {
+  const ok = await mbEnsureSession();
+  if (!ok) return;
+}
 renderFirmSelector('camp-firm-selector', loadCampaigns);
 try {
 const ff = getFirmFilter('&');
@@ -63,7 +67,7 @@ if (detailOpen && currentCampId && campaigns.some((c) => c.id === currentCampId)
   openCampDetail(currentCampId, { keepTab: true, silent: true });
 }
 if (typeof updateTopbarStats === 'function') updateTopbarStats();
-} catch(e){ toast('Kampanyalar yüklenemedi: '+e.message,'err'); console.error(e); }
+} catch(e){ toast(campT('camp.load.err','Kampanyalar yüklenemedi: ')+e.message,'err'); console.error(e); }
 }
 
 function renderCampGrid() {
@@ -409,6 +413,10 @@ ${visible.map(f=>`
 }
 
 async function createCampaign() {
+if (typeof mbEnsureSession === 'function') {
+  const ok = await mbEnsureSession();
+  if (!ok) return;
+}
 const name = document.getElementById('nc-name').value.trim();
 const did  = document.getElementById('nc-did').value.trim();
 const desc = document.getElementById('nc-desc').value.trim();
@@ -416,12 +424,20 @@ const spd  = parseInt(document.getElementById('nc-speed').value)||1;
 const nameEl = document.getElementById('nc-name');
 const nameErr = document.getElementById('nc-name-err');
 if (!name) {
-  if (nameEl) { nameEl.classList.add('is-invalid'); nameEl.focus(); }
+  if (nameEl) {
+    nameEl.classList.add('is-invalid');
+    nameEl.setAttribute('aria-invalid', 'true');
+    nameEl.focus();
+    nameEl.scrollIntoView({ block: 'nearest' });
+  }
   if (nameErr) { nameErr.hidden = false; nameErr.textContent = campT('camp.name.required','Kampanya adı gerekli'); }
   toast(campT('camp.name.required','Kampanya adı gerekli'),'err');
   return;
 }
-if (nameEl) nameEl.classList.remove('is-invalid');
+if (nameEl) {
+  nameEl.classList.remove('is-invalid');
+  nameEl.removeAttribute('aria-invalid');
+}
 if (nameErr) nameErr.hidden = true;
 const didNorm = did.replace(/[\s()-]/g, '');
 if (did && (typeof mbIsE164 !== 'function' || !mbIsE164(did))) {
@@ -452,7 +468,7 @@ closeModal('m-new-camp');
 toast('Kampanya oluşturuldu ✓','ok');
 await loadCampaigns();
 if (row?.id) openCampDetail(row.id);
-} catch(e){ toast('Hata: '+e.message,'err'); console.error(e); }
+} catch(e){ toast(e.message || campT('api.err.generic','İşlem tamamlanamadı. Tekrar deneyin.'),'err'); console.error(e); }
 }
 
 async function toggleCampStatus(id, status) {
