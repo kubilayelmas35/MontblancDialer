@@ -40,10 +40,25 @@
 <span class="tb-pill-val" id="pill-ready">0</span>
 <span class="tb-pill-lbl" data-tr="hazır" data-de="bereit">hazır</span>
 </div>
+<div class="tb-pill pill-wrap">
+<div class="tb-pill-dot"></div>
+<span class="tb-pill-val" id="pill-wrap">0</span>
+<span class="tb-pill-lbl" data-tr="sonuç" data-de="Nacharbeit">sonuç</span>
+</div>
 <div class="tb-pill pill-break">
 <div class="tb-pill-dot"></div>
 <span class="tb-pill-val" id="pill-break">0</span>
 <span class="tb-pill-lbl" data-tr="mola" data-de="Pause">mola</span>
+</div>
+<div class="tb-pill pill-off">
+<div class="tb-pill-dot"></div>
+<span class="tb-pill-val" id="pill-off">0</span>
+<span class="tb-pill-lbl" data-tr="çevrimdışı" data-de="offline">çevrimdışı</span>
+</div>
+<div class="tb-pill pill-total">
+<div class="tb-pill-dot"></div>
+<span class="tb-pill-val" id="pill-total">0</span>
+<span class="tb-pill-lbl" data-tr="toplam" data-de="gesamt">toplam</span>
 </div>
 <div class="tb-pill pill-camp">
 <span class="tb-pill-ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span>
@@ -417,7 +432,7 @@
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div class="live-layout-seg" role="group" aria-label="Görünüm">
 <button type="button" class="live-layout-btn is-on" data-live-layout="grid" onclick="setLiveFloorLayout('grid')"><span data-tr="Kart" data-de="Karten">Kart</span></button>
-<button type="button" class="live-layout-btn" data-live-layout="strip" onclick="setLiveFloorLayout('strip')"><span data-tr="Yatay" data-de="Quer">Yatay</span></button>
+<button type="button" class="live-layout-btn" data-live-layout="rows" onclick="setLiveFloorLayout('rows')"><span data-tr="Satır" data-de="Zeile">Satır</span></button>
 </div>
 <button type="button" class="btn btn-ghost btn-sm" onclick="navigate('supervisor')"><span data-tr="Canlı Ekran" data-de="Live-Ansicht">Canlı Ekran</span></button>
 </div>

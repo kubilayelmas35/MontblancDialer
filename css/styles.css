@@ -332,15 +332,23 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 }
 .pill-ping .tb-pill-dot { background: var(--green); box-shadow: 0 0 5px var(--green); }
 .pill-ping .tb-pill-val { color: var(--green); }
-.pill-call .tb-pill-dot { background: var(--accent); animation: blink 2s infinite; }
-.pill-call .tb-pill-val { color: var(--accent); }
-.pill-ready .tb-pill-dot { background: var(--green); }
-.pill-ready .tb-pill-val { color: var(--green); }
-.pill-break .tb-pill-dot { background: var(--yellow); }
-.pill-break .tb-pill-val { color: var(--yellow); }
+.pill-call .tb-pill-dot { background: #16a34a; animation: blink 2s infinite; }
+.pill-call .tb-pill-val { color: #16a34a; }
+.pill-ready .tb-pill-dot { background: #eab308; }
+.pill-ready .tb-pill-val { color: #a16207; }
+.pill-wrap .tb-pill-dot { background: #2563eb; }
+.pill-wrap .tb-pill-val { color: #2563eb; }
+.pill-break .tb-pill-dot { background: #8b5a2b; }
+.pill-break .tb-pill-val { color: #8b5a2b; }
+.pill-off .tb-pill-dot { background: #78716c; }
+.pill-off .tb-pill-val { color: #57534e; }
+.pill-total .tb-pill-dot { background: var(--text-2); }
+.pill-total .tb-pill-val { color: var(--text); }
+[data-theme="dark"] .pill-ready .tb-pill-val { color: #facc15; }
+[data-theme="dark"] .pill-off .tb-pill-val { color: #d6d3d1; }
 @keyframes blink {
-0%,100% { opacity:1; box-shadow:0 0 4px var(--accent); }
-50%      { opacity:.5; box-shadow:0 0 10px var(--accent); }
+0%,100% { opacity:1; box-shadow:0 0 4px #16a34a; }
+50%      { opacity:.5; box-shadow:0 0 10px #16a34a; }
 }
 /* Topbar right */
 .tb-right {
@@ -385,7 +393,7 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   .pill-ping { display: none; }
 }
 @media (max-width: 900px) {
-  #tb-pills .tb-pill:nth-child(n+6) { display: none; }
+  .pill-camp, .pill-appt { display: none; }
 }
 .tb-mascot-anchor {
   width: 36px;
@@ -1382,28 +1390,30 @@ DASHBOARD
 .live-filter.inactive { opacity:0.42; }
 .live-filter--all { background:var(--accent); color:#fff; border-color:var(--accent); }
 .live-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:8px; }
-.live-strip {
-  display:flex; flex-wrap:nowrap; gap:8px; overflow-x:auto;
-  padding-bottom:8px; scroll-snap-type:x proximity;
+.live-card,
+.live-line,
+.sup-card {
+  --tone-a: #e7e5e4;
+  --tone-b: #44403c;
+  --ink: #1c1917;
+  --live-age: 0;
+  background: color-mix(in srgb, var(--tone-b) calc(var(--live-age) * 100%), var(--tone-a));
+  color: var(--ink);
+  border-color: transparent;
+  transition: background-color .6s linear, color .6s linear;
 }
-.live-strip .live-card { flex:0 0 240px; scroll-snap-align:start; }
+.live-card--on_call, .live-line--on_call, .sup-card--on_call { --tone-a: #bbf7d0; --tone-b: #14532d; }
+.live-card--ready, .live-line--ready, .sup-card--ready { --tone-a: #fef3c7; --tone-b: #854d0e; }
+.live-card--wrapping, .live-line--wrapping, .sup-card--wrapping { --tone-a: #dbeafe; --tone-b: #1e3a8a; }
+.live-card--break, .live-line--break, .sup-card--break { --tone-a: #f3e4c8; --tone-b: #4a2c0a; }
+.live-card--offline, .live-line--offline, .sup-card--offline { --tone-a: #e7e5e4; --tone-b: #44403c; }
+.live-tone--deep { --ink: #fff; }
 .live-card {
   border:1px solid transparent; border-radius:12px; padding:12px;
   display:flex; flex-direction:column; gap:8px; min-width:0;
-  background:linear-gradient(135deg, #64748b, #334155);
-  color:#fff;
   box-shadow:0 8px 18px rgba(40, 30, 10, 0.08);
 }
 .live-card:hover { box-shadow:0 12px 24px rgba(40, 30, 10, 0.16); }
-.live-card--on_call { background:linear-gradient(135deg, #2196F3, #0D47A1); color:#fff; animation:live-call-glow 1.8s ease-in-out infinite; }
-.live-card--ready { background:linear-gradient(135deg, #4CAF50, #1B5E20); color:#fff; }
-.live-card--wrapping { background:linear-gradient(135deg, #FF9800, #FF6D00); color:#fff; }
-.live-card--break { background:linear-gradient(135deg, #FFD700, #FFA500); color:#3a2500; }
-.live-card--offline { background:linear-gradient(135deg, #696666, #8a8686); color:#fff; }
-@keyframes live-call-glow {
-  0%, 100% { box-shadow:0 8px 18px rgba(13, 71, 161, 0.2); }
-  50% { box-shadow:0 12px 26px rgba(33, 150, 243, 0.42); }
-}
 .live-card--enter { animation:live-card-in 0.35s cubic-bezier(0.33, 1, 0.68, 1); }
 @keyframes live-card-in {
   from { opacity:0; transform:translateY(8px) scale(0.96); }
@@ -1412,12 +1422,11 @@ DASHBOARD
 .live-card-top { display:flex; align-items:center; gap:10px; min-width:0; }
 .live-av {
   width:34px; height:34px; border-radius:50%;
-  background:rgba(255,255,255,0.2);
-  color:inherit; border:1px solid rgba(255,255,255,0.28);
+  background:color-mix(in srgb, var(--ink) 12%, transparent);
+  color:inherit; border:1px solid transparent;
   display:flex; align-items:center; justify-content:center;
   font-size:13px; font-weight:700; flex-shrink:0;
 }
-.live-card--break .live-av { background:rgba(58,37,0,0.12); border-color:rgba(58,37,0,0.22); }
 .live-name { font-size:13px; font-weight:700; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:inherit; }
 .live-status { font-size:11px; font-weight:700; color:inherit; opacity:0.92; margin-top:2px; }
 .live-dur { margin-left:auto; font-family:var(--mono); font-size:12px; font-weight:700; color:inherit; white-space:nowrap; }
@@ -1428,17 +1437,35 @@ DASHBOARD
 .live-actions { display:flex; gap:4px; }
 .live-act {
   flex:1; height:26px; border-radius:7px; cursor:pointer;
-  border:1px solid rgba(255,255,255,0.28);
-  background:rgba(255,255,255,0.16);
+  border:1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  background:color-mix(in srgb, var(--ink) 8%, transparent);
   color:inherit; font-size:11px; font-weight:700;
 }
-.live-card--break .live-act { border-color:rgba(58,37,0,0.22); background:rgba(255,255,255,0.35); }
 .live-act:hover { filter:brightness(1.08); }
-.live-row {
-display:flex; align-items:center; gap:10px;
-padding:9px 12px; border-radius:var(--radius-sm);
-background:var(--bg-3); border:1px solid var(--border);
+.live-rows { display:flex; flex-direction:column; gap:4px; min-width:760px; }
+.live-rows-head, .live-line {
+  display:grid;
+  grid-template-columns: 1.3fr .8fr .75fr 1.15fr 1fr 1fr;
+  gap:8px; align-items:center; padding:8px 10px;
 }
+.live-rows--act .live-rows-head,
+.live-rows--act .live-line,
+.live-rows-head--act {
+  grid-template-columns: 1.15fr .7fr .7fr 1fr .9fr .9fr auto;
+}
+.live-rows-head { font-size:11px; font-weight:700; color:var(--text-3); padding-bottom:2px; }
+.live-line { border-radius:8px; min-width:0; }
+.live-line .live-status { margin-top:0; }
+.live-line .live-dur { margin-left:0; }
+.live-line-who { display:flex; align-items:center; gap:8px; min-width:0; }
+.live-line-clip { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:600; }
+tr.live-line { display:table-row; border-radius:0; }
+tr.live-line td {
+  color: inherit;
+  background: color-mix(in srgb, var(--tone-b) calc(var(--live-age) * 100%), var(--tone-a));
+  border-bottom-color: color-mix(in srgb, var(--ink) 16%, transparent);
+}
+#live-agents { overflow-x: auto; }
 /* ============================================================
 CAMPAIGNS
 ============================================================ */
@@ -4736,7 +4763,7 @@ MOBILE / RESPONSIVE
 .agents-grid { grid-template-columns:1fr; }
 .stats-grid { grid-template-columns:repeat(2,1fr); }
 .page-hdr { flex-direction:column; align-items:stretch; }
-#tb-pills .tb-pill:nth-child(n+5) { display:none; }
+.pill-bal, .pill-camp, .pill-appt { display:none; }
 .settings-layout { grid-template-columns:1fr; }
 .outcome-grid { grid-template-columns:repeat(4,1fr); }
 .outcome-btn { padding:10px 4px; }
@@ -6240,7 +6267,7 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   letter-spacing: .4px;
   margin-top: 5px;
 }
-.sup-pill--offline .sup-pill-num { opacity: .45; }
+.sup-pill--offline .sup-pill-num { opacity: 1; }
 .sup-toolbar { margin: -8px 0 16px; max-width: 420px; }
 .sup-live-card { padding: 14px 16px; margin-bottom: 16px; }
 .sup-live-board { margin-top: 10px; overflow-x: auto; }
@@ -6274,91 +6301,36 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   font-size: 14px;
 }
 .sup-card {
-  background: var(--bg-2);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius);
   padding: 14px 16px;
   box-shadow: var(--shadow);
-  transition: border-color .18s;
 }
-.sup-card--active { border-color: transparent; }
-.sup-card--on_call,
-.sup-card--ready,
-.sup-card--wrapping,
-.sup-card--offline { color: #fff; }
-.sup-card--on_call { background: linear-gradient(135deg, #2196F3, #0D47A1); animation: live-call-glow 1.8s ease-in-out infinite; }
-.sup-card--ready { background: linear-gradient(135deg, #4CAF50, #1B5E20); }
-.sup-card--wrapping { background: linear-gradient(135deg, #FF9800, #FF6D00); }
-.sup-card--break { background: linear-gradient(135deg, #FFD700, #FFA500); color: #3a2500; }
-.sup-card--offline { background: linear-gradient(135deg, #696666, #8a8686); }
-.sup-card--on_call .sup-agent-name,
-.sup-card--ready .sup-agent-name,
-.sup-card--wrapping .sup-agent-name,
-.sup-card--offline .sup-agent-name,
-.sup-card--on_call .sup-dur,
-.sup-card--ready .sup-dur,
-.sup-card--wrapping .sup-dur,
-.sup-card--offline .sup-dur,
-.sup-card--on_call .sup-call-val,
-.sup-card--ready .sup-call-val,
-.sup-card--wrapping .sup-call-val,
-.sup-card--offline .sup-call-val,
-.sup-card--on_call .sup-status,
-.sup-card--ready .sup-status,
-.sup-card--wrapping .sup-status,
-.sup-card--offline .sup-status { color: #fff; }
-.sup-card--break .sup-agent-name,
-.sup-card--break .sup-dur,
-.sup-card--break .sup-call-val,
-.sup-card--break .sup-status,
-.sup-card--break .sup-call-lbl { color: #3a2500; }
-.sup-card--on_call .sup-call-lbl,
-.sup-card--ready .sup-call-lbl,
-.sup-card--wrapping .sup-call-lbl,
-.sup-card--offline .sup-call-lbl { color: rgba(255,255,255,0.82); }
-.sup-card--on_call .sup-call-info,
-.sup-card--ready .sup-call-info,
-.sup-card--wrapping .sup-call-info,
-.sup-card--offline .sup-call-info { border-top-color: rgba(255,255,255,0.28); }
-.sup-card--break .sup-call-info { border-top-color: rgba(58,37,0,0.2); }
-.sup-card--on_call .sup-avatar,
-.sup-card--ready .sup-avatar,
-.sup-card--wrapping .sup-avatar,
-.sup-card--offline .sup-avatar {
-  background: rgba(255,255,255,0.18);
-  color: #fff;
+.sup-card .sup-agent-name,
+.sup-card .sup-dur,
+.sup-card .sup-call-val,
+.sup-card .sup-status,
+.sup-card .sup-call-lbl,
+.sup-card .sup-avatar { color: inherit; }
+.sup-card .sup-call-lbl { opacity: 0.75; }
+.sup-card .sup-call-info { border-top-color: color-mix(in srgb, var(--ink) 18%, transparent); }
+.sup-card .sup-avatar {
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
   border-color: transparent;
 }
-.sup-card--break .sup-avatar {
-  background: rgba(58,37,0,0.12);
-  color: #3a2500;
+.sup-card .sup-status {
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
   border-color: transparent;
 }
-.sup-card--on_call .sup-status,
-.sup-card--ready .sup-status,
-.sup-card--wrapping .sup-status,
-.sup-card--offline .sup-status {
-  background: rgba(255,255,255,0.16);
-  border-color: transparent;
-}
-.sup-card--break .sup-status { background: rgba(255,255,255,0.35); border-color: transparent; color: #3a2500; }
 button.sup-pill { font: inherit; text-align: center; cursor: pointer; width: 100%; color: inherit; }
 button.sup-pill.inactive { opacity: 0.42; }
-.sup-pill--oncall .sup-pill-num { color: #1565C0; }
-.sup-pill--ready .sup-pill-num { color: #1B5E20; }
-.sup-pill--wrap .sup-pill-num { color: #E65100; }
-.sup-pill--break .sup-pill-num { color: #B45309; }
-.sup-pill--offline .sup-pill-num { color: #696666; opacity: 1; }
-.sup-agent-grid--strip {
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  gap: 10px;
-  padding-bottom: 8px;
-  scroll-snap-type: x proximity;
-}
-.sup-agent-grid--strip .sup-card { flex: 0 0 260px; scroll-snap-align: start; }
-.sup-live-dot { background: #2196F3; }
+.sup-pill--oncall .sup-pill-num { color: #16a34a; }
+.sup-pill--ready .sup-pill-num { color: #a16207; }
+.sup-pill--wrap .sup-pill-num { color: #2563eb; }
+.sup-pill--break .sup-pill-num { color: #8b5a2b; }
+.sup-pill--offline .sup-pill-num { color: #78716c; opacity: 1; }
+.sup-agent-grid--rows { display: block; overflow-x: auto; }
+.sup-live-dot { background: #16a34a; }
 .sup-card-top {
   display: flex;
   align-items: center;

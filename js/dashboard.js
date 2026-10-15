@@ -21,9 +21,14 @@ document.getElementById('pill-ping').textContent = Date.now()-t0;
 } catch(e) { document.getElementById('pill-ping').textContent = '!'; }
 try {
 const sessions = await sb(`agent_sessions?select=status${ffLive}`) || [];
-document.getElementById('pill-call').textContent  = sessions.filter(s=>s.status==='on_call').length;
-document.getElementById('pill-ready').textContent = sessions.filter(s=>s.status==='ready').length;
-document.getElementById('pill-break').textContent = sessions.filter(s=>s.status==='break').length;
+const setPill = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = String(n); };
+const countSt = (st) => sessions.filter(s => s.status === st).length;
+setPill('pill-call', countSt('on_call'));
+setPill('pill-ready', countSt('ready'));
+setPill('pill-wrap', countSt('wrapping'));
+setPill('pill-break', countSt('break'));
+setPill('pill-off', countSt('offline'));
+setPill('pill-total', sessions.length);
 } catch(e){}
 try {
 const cs = await sb(`campaigns?select=id,status&status=eq.active${ffLive}`);
@@ -1067,37 +1072,70 @@ function _dashLiveEsc(v) {
   return typeof escapeHtml === 'function' ? escapeHtml(v ?? '') : String(v ?? '');
 }
 
-function _dashLiveDur(iso) {
-  if (!iso) return '—';
-  const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (!Number.isFinite(sec) || sec < 0) return '—';
-  const m = Math.floor(sec / 60);
-  return `${m}:${String(sec % 60).padStart(2, '0')}`;
+const LIVE_AGE_FULL_SEC = 20 * 60;
+
+function liveStateSinceIso(s) {
+  if (!s) return '';
+  if (typeof s === 'string') return s;
+  const st = s.status;
+  if (st === 'on_call') return s.call_started_at || s.call_start || s.updated_at || s.last_seen || '';
+  if (st === 'break') return s.break_start || s.updated_at || s.last_seen || '';
+  return s.updated_at || s.last_seen || '';
 }
 
-function _dashLiveAgo(iso, de) {
+function liveStateAgeSec(s) {
+  const iso = liveStateSinceIso(s);
+  if (!iso) return 0;
+  const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  return Number.isFinite(sec) && sec > 0 ? sec : 0;
+}
+
+function liveAgeUnit(s) {
+  return Math.max(0, Math.min(1, liveStateAgeSec(s) / LIVE_AGE_FULL_SEC));
+}
+
+function liveClock(iso, de) {
   if (!iso) return '—';
   const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (!Number.isFinite(sec) || sec < 0) return '—';
-  if (sec < 45) return de ? 'gerade' : 'az önce';
-  const m = Math.floor(sec / 60);
-  if (m < 60) return de ? `vor ${m} Min.` : `${m} dk önce`;
-  const h = Math.floor(m / 60);
-  return de ? `vor ${h} Std.` : `${h} sa önce`;
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (d > 0) return de ? `${d} T ${h} Std` : `${d}g ${h}sa`;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function compareLiveAgents(a, b) {
+  const ra = _DASH_LIVE_ORDER[a.status] ?? 9;
+  const rb = _DASH_LIVE_ORDER[b.status] ?? 9;
+  if (ra !== rb) return ra - rb;
+  const byAge = liveStateAgeSec(b) - liveStateAgeSec(a);
+  if (byAge) return byAge;
+  return String(a.agent_name || '').localeCompare(String(b.agent_name || ''), 'tr');
+}
+
+function livePaintAge(el) {
+  if (!el) return;
+  const iso = el.dataset.since || '';
+  const age = iso ? Math.max(0, Math.min(1, liveStateAgeSec(iso) / LIVE_AGE_FULL_SEC)) : 0;
+  el.style.setProperty('--live-age', age.toFixed(3));
+  el.classList.toggle('live-tone--deep', age >= 0.55);
+  const clock = el.querySelector('[data-clock]');
+  if (clock) clock.textContent = liveClock(iso, (typeof currentLang !== 'undefined' && currentLang === 'de'));
 }
 
 function _dashLiveTick() {
-  document.querySelectorAll('#live-agents .live-dur[data-start]').forEach((el) => {
-    if (el.dataset.start) el.textContent = _dashLiveDur(el.dataset.start);
-  });
+  document.querySelectorAll('#live-agents [data-since]').forEach(livePaintAge);
 }
 
 const _LIVE_DOT = {
-  on_call: '#2196F3',
-  ready: '#4CAF50',
-  wrapping: '#FF6D00',
-  break: '#FFA500',
-  offline: '#696666',
+  on_call: '#16a34a',
+  ready: '#eab308',
+  wrapping: '#2563eb',
+  break: '#8b5a2b',
+  offline: '#78716c',
 };
 
 function liveFloorStatuses() {
@@ -1113,16 +1151,18 @@ function liveFloorFilter() {
 
 function liveFloorLayout() {
   try {
-    return localStorage.getItem('mb-live-layout') === 'strip' ? 'strip' : 'grid';
+    const v = localStorage.getItem('mb-live-layout');
+    return (v === 'rows' || v === 'strip') ? 'rows' : 'grid';
   } catch (_) {
     return 'grid';
   }
 }
 
 function _syncLiveLayoutButtons() {
-  const strip = liveFloorLayout() === 'strip';
+  const rows = liveFloorLayout() === 'rows';
   document.querySelectorAll('[data-live-layout]').forEach((btn) => {
-    btn.classList.toggle('is-on', btn.dataset.liveLayout === (strip ? 'strip' : 'grid'));
+    const mode = (btn.dataset.liveLayout === 'rows' || btn.dataset.liveLayout === 'strip') ? 'rows' : 'grid';
+    btn.classList.toggle('is-on', rows ? mode === 'rows' : mode === 'grid');
   });
 }
 
@@ -1161,7 +1201,8 @@ function _liveFlip(root, render) {
 }
 
 function setLiveFloorLayout(mode) {
-  try { localStorage.setItem('mb-live-layout', mode === 'strip' ? 'strip' : 'grid'); } catch (_) {}
+  const next = (mode === 'rows' || mode === 'strip') ? 'rows' : 'grid';
+  try { localStorage.setItem('mb-live-layout', next); } catch (_) {}
   _syncLiveLayoutButtons();
   if (typeof _paintDashLive === 'function') _paintDashLive();
   if (typeof _supRenderCards === 'function') _supRenderCards();
@@ -1190,11 +1231,7 @@ async function renderDashLiveAgents() {
   ]);
   _dashLiveCamps = {};
   (Array.isArray(camps) ? camps : []).forEach((c) => { if (c?.id) _dashLiveCamps[c.id] = c.name || ''; });
-  _dashLiveCache = (Array.isArray(sessions) ? sessions : []).slice().sort((a, b) => {
-    const byName = String(a.agent_name || '').localeCompare(String(b.agent_name || ''), 'tr');
-    if (byName) return byName;
-    return (_DASH_LIVE_ORDER[a.status] ?? 9) - (_DASH_LIVE_ORDER[b.status] ?? 9);
-  });
+  _dashLiveCache = (Array.isArray(sessions) ? sessions : []).slice().sort(compareLiveAgents);
   _paintDashLive();
 }
 
@@ -1226,7 +1263,8 @@ function _paintDashLive() {
     }).join('');
   const visible = rows.filter((s) => filter[s.status] !== false);
   const isAdmin = ['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '');
-  const cards = visible.map((s) => {
+  const asRows = liveFloorLayout() === 'rows';
+  const people = visible.map((s) => {
     const st = _DASH_LIVE_STATUS[s.status] ? s.status : 'offline';
     const info = _DASH_LIVE_STATUS[st];
     const label = de ? info.de : info.tr;
@@ -1235,33 +1273,54 @@ function _paintDashLive() {
     const camp = _dashLiveEsc(_dashLiveCamps[s.campaign_id] || '—');
     const who = _dashLiveEsc(s.current_contact_name || '—');
     const phone = _dashLiveEsc(s.current_contact_phone || '—');
-    const onCall = st === 'on_call';
-    const dur = onCall ? _dashLiveDur(s.call_started_at) : _dashLiveAgo(s.last_seen, de);
-    const facts = onCall
-      ? `<div><dt>${de ? 'Kontakt' : 'Müşteri'}</dt><dd>${who}</dd></div>
-         <div><dt>${de ? 'Nummer' : 'Numara'}</dt><dd>${phone}</dd></div>
-         <div><dt>${de ? 'Kampagne' : 'Kampanya'}</dt><dd>${camp}</dd></div>`
-      : `<div><dt>${de ? 'Kampagne' : 'Kampanya'}</dt><dd>${camp}</dd></div>
-         <div><dt>${de ? 'Zuletzt' : 'Son görülme'}</dt><dd>${_dashLiveEsc(_dashLiveAgo(s.last_seen, de))}</dd></div>`;
+    const since = liveStateSinceIso(s);
+    const age = liveAgeUnit(s);
+    const deep = age >= 0.55 ? ' live-tone--deep' : '';
+    const dur = liveClock(since, de);
     const aid = _dashLiveEsc(s.agent_id || '');
+    const sinceAttr = _dashLiveEsc(since);
     const actions = isAdmin ? `<div class="live-actions">
       <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','ready')">${de ? 'Bereit' : 'Hazır'}</button>
       <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','break')">${de ? 'Pause' : 'Mola'}</button>
       <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','offline')">${de ? 'Offline' : 'Çıkış'}</button>
     </div>` : '';
-    return `<article class="live-card live-card--${st}" data-live-id="${aid}">
+    if (asRows) {
+      return `<div class="live-line live-line--${st}${deep}" data-live-id="${aid}" data-since="${sinceAttr}" style="--live-age:${age.toFixed(3)}">
+        <div class="live-line-who"><span class="live-av">${initial}</span><span class="live-name">${name}</span></div>
+        <div class="live-status">${label}</div>
+        <div class="live-dur" data-clock>${_dashLiveEsc(dur)}</div>
+        <div class="live-line-clip">${who}</div>
+        <div class="live-line-clip">${phone}</div>
+        <div class="live-line-clip">${camp}</div>
+        ${isAdmin ? `<div>${actions}</div>` : ''}
+      </div>`;
+    }
+    const facts = `<div><dt>${de ? 'Kontakt' : 'Müşteri'}</dt><dd>${who}</dd></div>
+         <div><dt>${de ? 'Nummer' : 'Numara'}</dt><dd>${phone}</dd></div>
+         <div><dt>${de ? 'Kampagne' : 'Kampanya'}</dt><dd>${camp}</dd></div>`;
+    return `<article class="live-card live-card--${st}${deep}" data-live-id="${aid}" data-since="${sinceAttr}" style="--live-age:${age.toFixed(3)}">
       <div class="live-card-top">
         <div class="live-av">${initial}</div>
         <div style="min-width:0;flex:1;"><div class="live-name">${name}</div><div class="live-status">${label}</div></div>
-        <div class="live-dur"${onCall ? ` data-start="${_dashLiveEsc(s.call_started_at || '')}"` : ''}>${_dashLiveEsc(dur)}</div>
+        <div class="live-dur" data-clock>${_dashLiveEsc(dur)}</div>
       </div>
       <dl class="live-facts">${facts}</dl>
       ${actions}
     </article>`;
   }).join('');
-  const boardCls = liveFloorLayout() === 'strip' ? 'live-strip' : 'live-grid';
+  const head = asRows ? `<div class="live-rows-head${isAdmin ? ' live-rows-head--act' : ''}">
+      <span>${de ? 'Agent' : 'Temsilci'}</span>
+      <span>${de ? 'Status' : 'Durum'}</span>
+      <span>${de ? 'Dauer' : 'Süre'}</span>
+      <span>${de ? 'Kontakt' : 'Müşteri'}</span>
+      <span>${de ? 'Nummer' : 'Numara'}</span>
+      <span>${de ? 'Kampagne' : 'Kampanya'}</span>
+      ${isAdmin ? `<span>${de ? 'Aktion' : 'İşlem'}</span>` : ''}
+    </div>` : '';
   const board = visible.length
-    ? `<div class="${boardCls}">${cards}</div>`
+    ? (asRows
+      ? `<div class="live-rows${isAdmin ? ' live-rows--act' : ''}">${head}${people}</div>`
+      : `<div class="live-grid">${people}</div>`)
     : `<div class="mb-empty-hint" style="font-size:13px;">${de ? 'Keine Agenten in dieser Auswahl.' : 'Bu seçimde temsilci yok.'}</div>`;
   _liveFlip(live, () => {
     live.innerHTML = `<div class="live-filters">${chips}</div>${board}`;
@@ -1292,4 +1351,10 @@ try {
   window._liveFlip = _liveFlip;
   window.liveFloorLayout = liveFloorLayout;
   window.liveFloorFilter = liveFloorFilter;
+  window.compareLiveAgents = compareLiveAgents;
+  window.liveStateSinceIso = liveStateSinceIso;
+  window.liveStateAgeSec = liveStateAgeSec;
+  window.liveAgeUnit = liveAgeUnit;
+  window.liveClock = liveClock;
+  window.livePaintAge = livePaintAge;
 } catch (_) {}
