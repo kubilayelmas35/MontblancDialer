@@ -1072,7 +1072,13 @@ function _dashLiveEsc(v) {
   return typeof escapeHtml === 'function' ? escapeHtml(v ?? '') : String(v ?? '');
 }
 
-const LIVE_AGE_FULL_SEC = 20 * 60;
+const LIVE_AGE_HOLD_SEC = 30;
+const LIVE_AGE_TAU_SEC = 220;
+
+function liveAgeFromSec(sec) {
+  const held = Math.max(0, (Number(sec) || 0) - LIVE_AGE_HOLD_SEC);
+  return Math.max(0, Math.min(1, 1 - Math.exp(-held / LIVE_AGE_TAU_SEC)));
+}
 
 function liveStateSinceIso(s) {
   if (!s) return '';
@@ -1091,7 +1097,7 @@ function liveStateAgeSec(s) {
 }
 
 function liveAgeUnit(s) {
-  return Math.max(0, Math.min(1, liveStateAgeSec(s) / LIVE_AGE_FULL_SEC));
+  return liveAgeFromSec(liveStateAgeSec(s));
 }
 
 function liveClock(iso, de) {
@@ -1119,7 +1125,7 @@ function compareLiveAgents(a, b) {
 function livePaintAge(el) {
   if (!el) return;
   const iso = el.dataset.since || '';
-  const age = iso ? Math.max(0, Math.min(1, liveStateAgeSec(iso) / LIVE_AGE_FULL_SEC)) : 0;
+  const age = iso ? liveAgeFromSec(liveStateAgeSec(iso)) : 0;
   el.style.setProperty('--live-age', age.toFixed(3));
   el.classList.toggle('live-tone--deep', age >= 0.55);
   const clock = el.querySelector('[data-clock]');
@@ -1131,11 +1137,11 @@ function _dashLiveTick() {
 }
 
 const _LIVE_DOT = {
-  on_call: '#16a34a',
-  ready: '#eab308',
-  wrapping: '#2563eb',
-  break: '#8b5a2b',
-  offline: '#78716c',
+  on_call: '#4CAF50',
+  ready: '#FFB74D',
+  wrapping: '#00BCD4',
+  break: '#7E57C2',
+  offline: '#9E9E9E',
 };
 
 function liveFloorStatuses() {
