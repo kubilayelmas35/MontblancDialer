@@ -147,10 +147,12 @@ function initSettingsTabs() {
   if (!page) return;
   const cards = [...page.querySelectorAll('.settings-layout > .card')];
   const groups = {
-    general: new Set(['settings-appearance-card', 'settings-api-keys-card', 'settings-goals-card']),
+    general: new Set(['settings-appearance-card']),
+    mascot: new Set(['settings-mascot-card']),
     communication: new Set(['incoming-calls-settings-card', 'chat-settings-card', 'sms-settings-card']),
-    operations: new Set(['field-settings-card', 'mesai-settings-card', 'call-hours-card', 'results-settings-card', 'default-takvim-firm-card']),
-    system: new Set(['feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings']),
+    operations: new Set(['mesai-settings-card', 'call-hours-card', 'results-settings-card', 'default-takvim-firm-card', 'settings-goals-card']),
+    field: new Set(['field-settings-card']),
+    system: new Set(['settings-api-keys-card', 'feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings']),
   };
   cards.forEach((card) => {
     if (!card.id) return;

@@ -2339,9 +2339,11 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <div class="settings-tabs" id="settings-tabs">
-<button type="button" class="btn btn-ghost btn-sm settings-tab-btn active" data-tab="general" onclick="setSettingsTab('general')" data-tr="Genel" data-de="Allgemein">Genel</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn active" data-tab="general" onclick="setSettingsTab('general')" data-tr="Görünüm" data-de="Darstellung">Görünüm</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="mascot" onclick="setSettingsTab('mascot')" data-tr="Maskot" data-de="Maskottchen">Maskot</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="communication" onclick="setSettingsTab('communication')" data-tr="İletişim" data-de="Kommunikation">İletişim</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="operations" onclick="setSettingsTab('operations')" data-tr="Operasyon" data-de="Betrieb">Operasyon</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="field" onclick="setSettingsTab('field')" data-tr="Saha" data-de="Feld">Saha</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="system" onclick="setSettingsTab('system')" data-tr="Sistem" data-de="System">Sistem</button>
 </div>
 <div class="settings-layout">
@@ -2372,7 +2374,12 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button class="btn btn-ghost btn-sm" onclick="setLang('de')">🇩🇪 Deutsch</button>
 </div>
 </div>
-<div class="form-row" style="margin-top:8px;padding-top:16px;border-top:1px solid var(--border);">
+</div>
+</div>
+<div class="card" id="settings-mascot-card">
+<div class="card-title" data-tr="Maskot" data-de="Maskottchen">Maskot</div>
+<div style="display:flex;flex-direction:column;gap:12px;">
+<div class="form-row">
 <label class="form-label" data-tr="Dialer maskotu" data-de="Dialer-Maskottchen">Dialer maskotu</label>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:10px;line-height:1.45;" data-tr="İsim ve ana renk kişiseldir; sıkılma / sinir / mola renkleri aynı tonda devam eder." data-de="Name und Grundfarbe sind persönlich; Langeweile/Wut/Pause bleiben im gleichen Farbton.">İsim ve ana renk kişiseldir; sıkılma / sinir / mola renkleri aynı tonda devam eder.</div>
 <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
