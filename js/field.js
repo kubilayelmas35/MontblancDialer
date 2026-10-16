@@ -93,7 +93,7 @@ async function loadFieldPage() {
     if (res.ok) _fieldTasks = (await res.json().catch(() => [])) || [];
   } catch (e) {}
   const fs = await getFirmFieldSettings(fid);
-  if (!fs.enabled && currentUser.role !== 'super_admin' && !_fieldTasks.length) {
+  if (!fs.enabled && !mbIsSuperAdmin() && !_fieldTasks.length) {
     listEl.innerHTML = '<div class="card" style="padding:20px;color:var(--text-3);font-size:12px;text-align:center;">Bu firma için saha modülü aktif değil</div>';
     return;
   }

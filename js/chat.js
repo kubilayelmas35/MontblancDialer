@@ -70,8 +70,7 @@ function _chatFirmId() {
 }
 
 function _canManageChatGroups() {
-  const r = currentUser?.role || '';
-  return ['super_admin', 'admin', 'firm_admin'].includes(r);
+  return mbIsFirmAdmin();
 }
 
 function _chatSuperSeesAll() {
@@ -80,9 +79,8 @@ function _chatSuperSeesAll() {
 
 /** Grup / DM üye seçiminde tüm firmalar (süper admin + firmasız global admin) */
 function _chatPickUsersGlobally() {
-  const r = currentUser?.role || '';
-  if (r === 'super_admin') return true;
-  if (r === 'admin' && !currentUser?.firm_id) return true;
+  if (mbIsSuperAdmin()) return true;
+  if ((currentUser?.role || '') === 'admin' && !currentUser?.firm_id) return true;
   return false;
 }
 

@@ -323,7 +323,7 @@ buildSelect();
 }
 
 function canUseImpersonation() {
-  return (_baseUser?.role || currentUser?.role) === 'super_admin';
+  return mbIsSuperAdmin(_baseUser?.role || currentUser?.role);
 }
 
 function handleTopbarUserClick() {
