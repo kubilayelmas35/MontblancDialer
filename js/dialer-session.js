@@ -640,12 +640,7 @@ function setDialerStatus(s) {
 
 function updateDialerNavCallIndicator() {
   const onCall = dialerStatus === 'on_call' || !!_fakeCallActive;
-  const btn1 = document.getElementById('nav-dialer-btn');
-  const btn2 = document.getElementById('nav-admin-dialer-btn');
-  [btn1, btn2].forEach((b) => {
-    if (!b) return;
-    b.classList.toggle('dialer-calling', onCall);
-  });
+  document.getElementById('nav-dialer-btn')?.classList.toggle('dialer-calling', onCall);
 }
 
 function showOutboundWait() {

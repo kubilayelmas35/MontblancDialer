@@ -30,7 +30,7 @@ async function loadAuditEventsPage() {
   const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id || '';
   const filter = String(document.getElementById('audit-log-filter')?.value || '').trim();
   let query = `audit_events?order=created_at.desc&limit=60`;
-  if (currentUser?.role !== 'super_admin' && fid) query += `&firm_id=eq.${fid}`;
+  if (!mbIsSuperAdmin() && fid) query += `&firm_id=eq.${fid}`;
   if (filter) query += `&event_type=ilike.*${encodeURIComponent(filter)}*`;
   const rows = await sb(query).catch(() => []);
   if (!rows?.length) {

@@ -158,7 +158,7 @@ async function loadFieldSettingsPage() {
   const card = document.getElementById('field-settings-card');
   if (!card) return;
   const role = currentUser?.role || '';
-  const isSuper = role === 'super_admin';
+  const isSuper = mbIsSuperAdmin(role);
   const canView = ['super_admin', 'admin', 'firm_admin'].includes(role);
   card.style.display = canView ? '' : 'none';
   if (!canView) return;

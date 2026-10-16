@@ -278,7 +278,7 @@ async function loadAppointmentResultsSettings() {
   const selectorHost = document.getElementById('results-firm-selector');
   const dCard = document.getElementById('default-takvim-firm-card');
   if (!wrap || !box) return;
-  const canEdit = ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+  const canEdit = mbIsFirmAdmin();
   box.style.display = canEdit ? '' : 'none';
   if (dCard) dCard.style.display = canEdit ? '' : 'none';
   if (!canEdit) return;

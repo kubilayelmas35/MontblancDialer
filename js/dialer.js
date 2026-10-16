@@ -20,13 +20,13 @@ async function initDialer() {
     const firmScopeId = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser.firm_id;
     const firmSelWrap = document.getElementById('dialer-firm-selector');
     if (firmSelWrap) {
-      if (role === 'super_admin' && typeof renderFirmSelector === 'function') {
+      if (mbIsSuperAdmin(role) && typeof renderFirmSelector === 'function') {
         renderFirmSelector('dialer-firm-selector', initDialer);
       } else {
         firmSelWrap.innerHTML = '';
       }
     }
-    if (role === 'super_admin' && !firmScopeId) {
+    if (mbIsSuperAdmin(role) && !firmScopeId) {
       const list = document.getElementById('agent-camp-list');
       if (list) {
         list.innerHTML = `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${escapeHtml(typeof t === 'function' ? t('dial.init.select_firm') : '')}</div>`;

@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────
 
 async function loadWvPage() {
-  const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);
+  const isAdminRole = mbIsFirmAdmin();
   const col = document.getElementById('wv-agent-col');
   if (col) col.style.display = isAdminRole ? '' : 'none';
   const agentRow = document.getElementById('wv-agent-row');
@@ -26,7 +26,7 @@ async function loadWvPage() {
 
 async function refreshWvList() {
   try {
-    const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);
+    const isAdminRole = mbIsFirmAdmin();
     const sel = document.getElementById('wv-agent-sel');
     const selectedAgentId = sel?.value || '';
     let url;
@@ -45,7 +45,7 @@ async function refreshWvList() {
 
 function loadWvBadge() {
   if (!currentUser) return;
-  const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);
+  const isAdminRole = mbIsFirmAdmin();
   const url = isAdminRole
     ? 'wiedervorlage?select=id,termin_zaman,durum&durum=eq.bekliyor&order=termin_zaman.asc'
     : `wiedervorlage?select=id,termin_zaman,durum&agent_id=eq.${currentUser.id}&durum=eq.bekliyor`;
@@ -112,7 +112,7 @@ function renderWvTable() {
     tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(7, 'ui.no_records') : `<tr><td colspan="7" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
     return;
   }
-  const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);
+  const isAdminRole = mbIsFirmAdmin();
   tbody.innerHTML = list.map(w => {
     const dt = w.termin_zaman ? new Date(w.termin_zaman) : null;
     const dtStr = w.termin_zaman && typeof mbFormatWall === 'function'

@@ -108,7 +108,7 @@ async function refreshDialerCampaignCacheIfEmpty() {
   const role = currentUser?.role || '';
   const adminLike = ['admin', 'firm_admin', 'super_admin', 'qc'].includes(role);
   const firmScopeId = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser.firm_id;
-  if (adminLike && role === 'super_admin' && !firmScopeId) return;
+  if (adminLike && mbIsSuperAdmin(role) && !firmScopeId) return;
   let myCamps = [];
   if (adminLike && firmScopeId) {
     const allCamps = (await sb(`campaigns?select=*,queues(*)&status=eq.active&firm_id=eq.${firmScopeId}&order=created_at.desc`)) || [];

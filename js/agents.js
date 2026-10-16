@@ -55,7 +55,7 @@ ${statusLabel[status]||status}
 }
 
 async function canManageFieldAgents(targetFirmId) {
-  if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin') return true;
+  if (mbIsSuperAdmin() || currentUser?.role === 'admin') return true;
   if (currentUser?.role !== 'firm_admin') return false;
   const fid = targetFirmId || currentUser?.firm_id;
   if (!fid) return false;
@@ -113,8 +113,8 @@ function _agentModal(userId, prefill) {
   document.getElementById('m-agent-mgr')?.remove();
   const modal = document.createElement('div');
   modal.id = 'm-agent-mgr'; modal.className = 'modal-overlay open';
-  const showFieldOpt = currentUser?.role === 'super_admin' || currentUser?.role === 'admin';
-  const canAssignSuper = currentUser?.role === 'super_admin';
+  const showFieldOpt = mbIsSuperAdmin() || currentUser?.role === 'admin';
+  const canAssignSuper = mbIsSuperAdmin();
   modal.innerHTML = `
 <div class="modal" style="max-width:460px;">
 <div class="modal-hdr">
@@ -192,7 +192,7 @@ async function saveNewAgent() {
     toast('Saha elemanı ekleme yetkiniz yok','err');
     return;
   }
-  if (role === 'super_admin' && currentUser?.role !== 'super_admin') {
+  if (mbIsSuperAdmin(role) && !mbIsSuperAdmin()) {
     toast('Süper Admin rolünü sadece Süper Admin verebilir','err');
     return;
   }
@@ -222,7 +222,7 @@ async function saveAgentEdit(userId) {
     toast('Saha elemanı rolü için yetkiniz yok','err');
     return;
   }
-  if (role === 'super_admin' && currentUser?.role !== 'super_admin') {
+  if (mbIsSuperAdmin(role) && !mbIsSuperAdmin()) {
     toast('Süper Admin rolünü sadece Süper Admin verebilir','err');
     return;
   }
@@ -358,7 +358,7 @@ async function openEditUserModal(userId) {
   document.getElementById('m-edit-user')?.remove();
   const modal = document.createElement('div');
   modal.id = 'm-edit-user'; modal.className = 'modal-overlay open'; modal.style.zIndex='3001';
-  const canAssignSuper = currentUser?.role === 'super_admin';
+  const canAssignSuper = mbIsSuperAdmin();
   modal.innerHTML = `
 <div class="modal" style="max-width:440px;">
 <div class="modal-hdr">
@@ -417,7 +417,7 @@ async function saveEditUser(userId) {
     toast('Saha elemanı rolü için yetkiniz yok','err');
     return;
   }
-  if (role === 'super_admin' && currentUser?.role !== 'super_admin') {
+  if (mbIsSuperAdmin(role) && !mbIsSuperAdmin()) {
     toast('Süper Admin rolünü sadece Süper Admin verebilir','err');
     return;
   }
@@ -495,7 +495,7 @@ function openFirmModal() {
   document.getElementById('firm-currency').value = 'EUR';
   const incRow = document.getElementById('firm-incoming-super-row');
   const incChk = document.getElementById('firm-incoming-super');
-  if (incRow) incRow.style.display = currentUser?.role === 'super_admin' ? '' : 'none';
+  if (incRow) incRow.style.display = mbIsSuperAdmin() ? '' : 'none';
   if (incChk) incChk.checked = false;
   openModal('m-firm');
 }
@@ -513,7 +513,7 @@ async function editFirm(id) {
     document.getElementById('firm-currency').value = ['EUR','USD','TRY'].includes(cur) ? cur : 'EUR';
     const incRow = document.getElementById('firm-incoming-super-row');
     const incChk = document.getElementById('firm-incoming-super');
-    if (incRow) incRow.style.display = currentUser?.role === 'super_admin' ? '' : 'none';
+    if (incRow) incRow.style.display = mbIsSuperAdmin() ? '' : 'none';
     if (incChk) incChk.checked = !!(f.settings?.dialer?.incoming_super_enabled);
   } catch (e) {}
   openModal('m-firm');
@@ -533,7 +533,7 @@ async function saveFirm() {
       const incomingSuper = document.getElementById('firm-incoming-super')?.checked;
       const dialer = {
         ...oldDialer,
-        ...(currentUser?.role === 'super_admin'
+        ...(mbIsSuperAdmin()
           ? { incoming_super_enabled: !!incomingSuper }
           : {}),
       };
@@ -544,7 +544,7 @@ async function saveFirm() {
       });
     } else {
       const incomingSuperNew = document.getElementById('firm-incoming-super')?.checked;
-      const dialerNew = { incoming_super_enabled: currentUser?.role === 'super_admin' ? !!incomingSuperNew : false };
+      const dialerNew = { incoming_super_enabled: mbIsSuperAdmin() ? !!incomingSuperNew : false };
       await sb('firms',{method:'POST',prefer:'return=minimal',body:JSON.stringify({name,slug,plan,currency,settings:{currency,dialer:dialerNew}})});
     }
     closeModal('m-firm');
@@ -560,7 +560,7 @@ function openUserModal(firmId, firmName) {
   ['user-name','user-email','user-pass'].forEach(id => document.getElementById(id).value='');
   const roleSel = document.getElementById('user-role');
   if (roleSel) {
-    const canAssignSuper = currentUser?.role === 'super_admin';
+    const canAssignSuper = mbIsSuperAdmin();
     const hasSuper = [...roleSel.options].some((o) => o.value === 'super_admin');
     if (!canAssignSuper && hasSuper) {
       [...roleSel.options].forEach((o) => { if (o.value === 'super_admin') o.remove(); });
@@ -583,7 +583,7 @@ async function saveUser() {
   const role   = document.getElementById('user-role').value;
   const firmId = document.getElementById('user-firm-id').value;
   if (!name||!email||!pass) { toast('Tüm alanlar zorunlu','err'); return; }
-  if (role === 'super_admin' && currentUser?.role !== 'super_admin') {
+  if (mbIsSuperAdmin(role) && !mbIsSuperAdmin()) {
     toast('Süper Admin rolünü sadece Süper Admin verebilir','err');
     return;
   }
@@ -734,6 +734,7 @@ async function toggleRolePerm(roleKey, pageKey, enabled) {
       }
       overrides[roleKey] = perms;
       existing.role_permissions = overrides;
+      existing.role_permissions_rev = 2;
     }
     await sb(`firms?id=eq.${fid}`,{method:'PATCH',prefer:'return=minimal',
       body:JSON.stringify({settings:{...existing,custom_roles:roles}})});
@@ -813,6 +814,7 @@ async function saveRolePermModal(roleKey, fid) {
       const overrides = { ...(settings.role_permissions || {}) };
       overrides[roleKey] = selected;
       settings.role_permissions = overrides;
+      settings.role_permissions_rev = 2;
     }
     await sb(`firms?id=eq.${fid}`, {
       method:'PATCH',
@@ -863,7 +865,7 @@ async function refreshUserPagePerms() {
     const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
     const st = firms?.[0]?.settings || {};
     const ov = st.role_permissions?.[role];
-    if (Array.isArray(ov)) list = [...ov];
+    if (Array.isArray(ov)) list = mbMergeStoredPerms([...ov], role, st);
     else if (!builtin) {
       const cr = (st.custom_roles || []).find(r => r.key === role);
       if (cr?.perms) list = [...cr.perms];

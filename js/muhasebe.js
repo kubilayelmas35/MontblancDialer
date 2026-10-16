@@ -7,7 +7,7 @@ window._payrollRulesCacheByFirm = window._payrollRulesCacheByFirm || {};
 window._customersCacheByFirm = window._customersCacheByFirm || {};
 
 function isMuhasebeAdmin() {
-  return ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+  return mbIsFirmAdmin();
 }
 
 function canViewMuhasebe() {

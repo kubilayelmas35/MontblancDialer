@@ -128,18 +128,18 @@ function fieldOpsApplyFilters() {
 async function loadFieldOpsPage() {
   const tbody = document.getElementById('fieldops-tbody');
   const role = currentUser?.role || '';
-  const canView = ['admin', 'firm_admin', 'super_admin'].includes(role);
+  const canView = mbIsFirmAdmin(role);
   if (!canView) {
     if (tbody) tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(FIELD_OPS_COLS, 'ui.no_access_page') : `<tr><td colspan="${FIELD_OPS_COLS}" class="mb-empty-hint">${t('ui.no_access_page')}</td></tr>`;
     return;
   }
   const fw = document.getElementById('fieldops-firm-wrap');
   if (fw) {
-    if (role === 'super_admin') renderFirmSelector('fieldops-firm-wrap', loadFieldOpsPage);
+    if (mbIsSuperAdmin(role)) renderFirmSelector('fieldops-firm-wrap', loadFieldOpsPage);
     else fw.innerHTML = '';
   }
   const fid = getActiveFirmId() || currentUser?.firm_id || null;
-  if (role === 'super_admin' && !fid) {
+  if (mbIsSuperAdmin(role) && !fid) {
     if (tbody) tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(FIELD_OPS_COLS, 'ui.select_firm_first') : `<tr><td colspan="${FIELD_OPS_COLS}" class="mb-empty-hint">${t('ui.select_firm_first')}</td></tr>`;
     _fieldOpsRows = [];
     _fieldOpsRenderKpi([]);

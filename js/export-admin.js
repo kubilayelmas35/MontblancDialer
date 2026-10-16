@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────
 
 function isExportAdmin() {
-  return ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+  return mbIsFirmAdmin();
 }
 
 function updateCallHistoryExportVisibility() {

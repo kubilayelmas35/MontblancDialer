@@ -60,7 +60,7 @@ if (fid) {
 }
 
 function _dashCanUseAgentFilter() {
-  return ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+  return mbIsFirmAdmin();
 }
 
 function _dashLogFilter() {
@@ -75,7 +75,7 @@ function _dashLogFilter() {
     const aid = sel && !sel.disabled ? String(sel.value || '').trim() : '';
     if (aid) agentQ = `&agent_id=eq.${aid}`;
   }
-  return { ff, agentQ, onlySelf, isAdmin: ['admin', 'super_admin', 'firm_admin'].includes(role) };
+  return { ff, agentQ, onlySelf, isAdmin: mbIsFirmAdmin(role) };
 }
 
 window._dashRange = window._dashRange || 'today';
@@ -234,7 +234,7 @@ async function populateDashAgentSelect() {
   }
   wrap.style.display = '';
   const prev = sel.value;
-  if (currentUser?.role === 'super_admin' && !getActiveFirmId()) {
+  if (mbIsSuperAdmin() && !getActiveFirmId()) {
     sel.innerHTML = `<option value="">${t('ui.select_firm_first')}</option>`;
     sel.disabled = true;
     return;
@@ -1268,7 +1268,7 @@ function _paintDashLive() {
       return `<button type="button" class="live-filter${off}" style="--dot:${_LIVE_DOT[st]}" onclick="toggleLiveFloorStatus('${st}')"><span class="dot"></span><span class="label">${count(st)} ${label}</span></button>`;
     }).join('');
   const visible = rows.filter((s) => filter[s.status] !== false);
-  const isAdmin = ['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '');
+  const isAdmin = mbIsFirmAdmin();
   const asRows = liveFloorLayout() === 'rows';
   const people = visible.map((s) => {
     const st = _DASH_LIVE_STATUS[s.status] ? s.status : 'offline';

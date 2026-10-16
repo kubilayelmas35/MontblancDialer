@@ -8,7 +8,7 @@ async function loadJobMarketQcQueue() {
   }
   const fid = getActiveFirmId() || currentUser?.firm_id;
   const rows = await sb(`job_submissions?status=eq.qc_pending&select=id,job_post_id,worker_firm_id,worker_user_id,submission_type,payload,created_at,job_posts(id,title,requester_firm_id,budget,currency)&order=created_at.asc&limit=120`).catch(() => []);
-  const filtered = (rows || []).filter((r) => !fid || r?.job_posts?.requester_firm_id === fid || currentUser?.role === 'super_admin');
+  const filtered = (rows || []).filter((r) => !fid || r?.job_posts?.requester_firm_id === fid || mbIsSuperAdmin());
   if (!filtered.length) {
     list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:8px;">QC bekleyen iş teslimi yok</div>`;
     return;

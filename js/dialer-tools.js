@@ -1201,7 +1201,7 @@ async function openTakvimOverlay() {
 
   const ovAdmin  = document.getElementById('takvim-overlay-admin');
   const ovCampLbl = document.getElementById('takvim-overlay-camp-label');
-  const isAdmin  = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
+  const isAdmin  = mbIsFirmAdmin();
   if (ovAdmin) ovAdmin.style.display = isAdmin ? 'flex' : 'none';
 
   const preferredCamp =
@@ -1211,7 +1211,7 @@ async function openTakvimOverlay() {
 
   if (isAdmin) {
     // Super admin: firma seçici göster, firma değişince kampanyaları yenile
-    if (currentUser?.role === 'super_admin') {
+    if (mbIsSuperAdmin()) {
       renderFirmSelector('takvim-overlay-firm-selector', () => _loadTakvimOverlayCamps());
     }
     await _loadTakvimOverlayCamps();

@@ -102,7 +102,7 @@ function qcDurumView(contact, outcome) {
 function renderQcTable() {
   const tbody = document.getElementById('qc-tbody');
   if (!tbody) return;
-  const canAssignField = ['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '');
+  const canAssignField = mbIsFirmAdmin();
   const hasCustomers = (window._qcCustomers || []).length > 0;
   const search = (document.getElementById('qc-search')?.value||'').toLowerCase();
   let list = [...(qcList||[])];
@@ -179,7 +179,7 @@ function openQcDetail(logId) {
   const r = (qcList||[]).find(x => x.id === logId);
   if (!r) return;
   const role = currentUser?.role || '';
-  const canAssignField = ['admin','super_admin','firm_admin'].includes(role);
+  const canAssignField = mbIsFirmAdmin(role);
   qcDetailId = logId;
   const contact = r.contacts||{};
   const name = `${contact.first_name||''} ${contact.last_name||''}`.trim()||'—';

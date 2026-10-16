@@ -215,7 +215,7 @@ function _supUpdateSummary() {
 }
 
 async function _supFetchSessions() {
-  if (!currentUser?.firm_id && currentUser?.role !== 'super_admin') return;
+  if (!currentUser?.firm_id && !mbIsSuperAdmin()) return;
   const firmQ = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
   let rows = [];
   let camps = [];

@@ -58,7 +58,7 @@ async function loadFeatureFlagsPage() {
 
   const row = document.getElementById('feature-flags-firm-row');
   const sel = document.getElementById('feature-flags-firm-select');
-  if (role === 'super_admin') {
+  if (mbIsSuperAdmin(role)) {
     if (row) row.style.display = '';
     if (sel && !sel.options.length) {
       const firms = await sb('firms?is_active=eq.true&select=id,name&order=name').catch(() => []);

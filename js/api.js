@@ -70,7 +70,7 @@ function _mbScopedUserForRequest(path, method = 'GET') {
   const base = (typeof _baseUser !== 'undefined' && _baseUser) ? _baseUser : null;
   if (!cur || !imp || !base) return cur;
   const baseRole = String(base.role || '').toLowerCase();
-  const isAdminBase = ['admin', 'firm_admin', 'super_admin'].includes(baseRole);
+  const isAdminBase = mbIsFirmAdmin(baseRole);
   if (!isAdminBase) return cur;
   const root = _mbPathRoot(path);
   const m = String(method || 'GET').toUpperCase();

@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────
 
 function canUsePerformancePage() {
-  return ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+  return mbIsFirmAdmin();
 }
 
 /** Chart.js canvas CSS değişkenlerini okuyamaz; siyah çubuk önlemek için gerçek renk. */

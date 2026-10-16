@@ -5,7 +5,7 @@ function showSlotContextMenu(e, slot, appt) {
   _ctxSlot = slot; _ctxAppt = appt;
   const old = document.getElementById('slot-ctx-menu');
   if (old) old.remove();
-  const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
+  const isAdmin = mbIsFirmAdmin();
   const isDolu = slot.durum === 'dolu' && appt;
   const items = [];
   if (window._takvimMovePick) {
@@ -125,7 +125,7 @@ async function slotAltaTasi(slotId) {
 
 // ── Drag & Drop ───────────────────────────────
 function initSlotDrag(el, slot, appt) {
-  const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
+  const isAdmin = mbIsFirmAdmin();
   const canDrag = isAdmin && (slot.durum === 'bos' || (slot.durum === 'dolu' && appt));
   if (!canDrag) return;
   el.draggable = true; el.style.cursor = 'grab';
@@ -153,7 +153,7 @@ function initSlotDrag(el, slot, appt) {
 }
 
 function setupDropZones() {
-  const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser?.role||'');
+  const isAdmin = mbIsFirmAdmin();
   if (!isAdmin) return;
   takvimHourCells().forEach(cell => {
     cell.addEventListener('dragover', e => {
@@ -234,7 +234,7 @@ function renderTakvimFailed() {
 
 async function checkActiveCampaignNotif() {
   if (!currentUser?.firm_id) return;
-  if (['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '')) return;
+  if (mbIsFirmAdmin()) return;
   try {
     const camps = await sb(`campaigns?firm_id=eq.${currentUser.firm_id}&active_for_agents=eq.true&order=updated_at.desc&limit=1`).catch(()=>[]);
     if (!camps?.length) return;
@@ -373,7 +373,7 @@ async function nudgeTakvimSlot(slotId, deltaMin) {
   const slot = takvimSlots.find((s) => s.id === slotId);
   if (!slot || slot.gun_kapali) return;
   const role = currentUser?.role || '';
-  if (!['admin', 'super_admin', 'firm_admin'].includes(role)) return;
+  if (!mbIsFirmAdmin(role)) return;
   const sh = (slot.baslangic_saat || '09:00').slice(0, 5);
   const eh = (slot.bitis_saat || takvimAddHours(sh, takvimSlotDurHours())).slice(0, 5);
   const startMin = takvimTimeToMinutes(sh);
@@ -481,7 +481,7 @@ function clearTakvimPlzMeasure() {
 
 async function addAdjacentEmptySlot(slotId) {
   const role = currentUser?.role || '';
-  if (!['admin', 'super_admin', 'firm_admin'].includes(role)) return;
+  if (!mbIsFirmAdmin(role)) return;
   if (!takvimCampId) {
     toast('Kampanya yok', 'err');
     return;
@@ -607,7 +607,7 @@ async function loadMesaiSettings() {
   if (!card) return;
 
   const role = currentUser?.role || '';
-  const isSuperAdmin  = role === 'super_admin';
+  const isSuperAdmin  = mbIsSuperAdmin(role);
   const isAdminLevel  = ['admin','firm_admin'].includes(role);
   const canView = isSuperAdmin || isAdminLevel;
 
@@ -653,7 +653,7 @@ async function _renderMesaiGrid() {
   if (!grid) return;
 
   const role         = currentUser?.role || '';
-  const isSuperAdmin = role === 'super_admin';
+  const isSuperAdmin = mbIsSuperAdmin(role);
   const firmId       = _mesaiFirmId;
 
   if (!firmId) {
@@ -710,7 +710,7 @@ async function onMesaiFirmChange() {
 
 // Süper admin: adminin düzenleme iznini kaydet
 async function saveAdminMesaiPermission() {
-  if (currentUser?.role !== 'super_admin') return;
+  if (!mbIsSuperAdmin()) return;
   const firmId = _mesaiFirmId;
   if (!firmId) { toast('Önce firma seçin', 'err'); return; }
   const perm = !!document.getElementById('mesai-admin-perm-chk')?.checked;
@@ -730,7 +730,7 @@ async function saveAdminMesaiPermission() {
 
 async function saveMesaiSaatleri() {
   const role = currentUser?.role || '';
-  const isSuperAdmin = role === 'super_admin';
+  const isSuperAdmin = mbIsSuperAdmin(role);
 
   // Yetki kontrolü
   if (!isSuperAdmin && !_mesaiFirmSettings?.admin_can_edit_mesai) {
@@ -765,7 +765,7 @@ async function saveMesaiSaatleri() {
 async function loadCallHoursSettings() {
   const card = document.getElementById('call-hours-card');
   if (!card) return;
-  const isSuperAdmin = currentUser?.role === 'super_admin';
+  const isSuperAdmin = mbIsSuperAdmin();
   card.style.display = isSuperAdmin ? '' : 'none';
   if (!isSuperAdmin) return;
 
@@ -819,7 +819,7 @@ async function onCallHoursFirmChange() {
 }
 
 async function saveCallHoursSettings() {
-  if (currentUser?.role !== 'super_admin') return;
+  if (!mbIsSuperAdmin()) return;
   const firmId = _callHoursFirmId;
   if (!firmId) { toast('Önce firma seçin', 'err'); return; }
 

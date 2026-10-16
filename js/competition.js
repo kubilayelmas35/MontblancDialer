@@ -13,7 +13,7 @@ function _compFirmId() {
 }
 
 function _compShowCounts() {
-  return ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+  return mbIsFirmAdmin();
 }
 
 function _compMonthBounds(y, m) {

@@ -30,9 +30,9 @@ const MB_PAGES = [
   { key: 'performansim', label: 'Performansım', roles: ['agent', 'qc', 'field_agent'] },
   { key: 'export', label: 'Dışa aktarım', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'performance', label: 'Personel performans', roles: ['super_admin', 'admin', 'firm_admin'] },
-  { key: 'supervisor', label: 'Canlı Ekran', roles: ['super_admin', 'admin', 'firm_admin'], inPerms: false },
-  { key: 'jobmarket', label: 'İş Platformu', roles: ['super_admin', 'admin', 'firm_admin'], inPerms: false },
-  { key: 'fieldops', label: 'Saha Operasyon', roles: ['super_admin', 'admin', 'firm_admin'], inPerms: false },
+  { key: 'supervisor', label: 'Canlı Ekran', roles: ['super_admin', 'admin', 'firm_admin'] },
+  { key: 'jobmarket', label: 'İş Platformu', roles: ['super_admin', 'admin', 'firm_admin'] },
+  { key: 'fieldops', label: 'Saha Operasyon', roles: ['super_admin', 'admin', 'firm_admin'] },
 ];
 
 const MB_CHROME = [
@@ -48,8 +48,6 @@ const MB_CHROME = [
 ];
 
 const MB_NAV_FLAGS = [
-  { id: 'nav-admin-dialer-btn', roles: ['admin', 'firm_admin', 'super_admin'], flag: 'admin_dialer_enabled' },
-  { id: 'nav-dialer-btn', roles: ['qc'], flag: 'qc_dialer_enabled' },
   { id: 'nav-field-btn', roles: ['field_agent'], flag: 'field_module_enabled' },
   { id: 'nav-jobs-btn', roles: ['admin', 'firm_admin', 'super_admin'], flag: 'job_market_enabled' },
   { id: 'tb-notif-btn', flag: 'notification_center_enabled' },
@@ -76,14 +74,31 @@ function mbKnownRoles() {
 }
 
 function mbHomePage(role) {
-  if (['admin', 'super_admin', 'firm_admin'].includes(role)) return 'dashboard';
+  if (mbIsFirmAdmin(role)) return 'dashboard';
   if (role === 'qc') return 'qc';
   if (role === 'field_agent') return 'field';
   return 'dialer';
 }
 
-function mbNavShell(role) {
-  return ['admin', 'super_admin', 'firm_admin', 'qc'].includes(role) ? 'admin' : 'agent';
+function mbIsSuperAdmin(role) {
+  const r = arguments.length ? role : currentUser?.role;
+  return r === 'super_admin';
+}
+
+function mbIsFirmAdmin(role) {
+  const r = arguments.length ? role : currentUser?.role;
+  return ['admin', 'firm_admin', 'super_admin'].includes(r || '');
+}
+
+const MB_PERM_REV = 2;
+const MB_PERMS_SINCE_REV2 = ['supervisor', 'jobmarket', 'fieldops'];
+
+function mbMergeStoredPerms(list, role, settings) {
+  const saved = Array.isArray(list) ? [...list] : [];
+  if (Number(settings?.role_permissions_rev || 0) >= MB_PERM_REV) return saved;
+  const extra = (BUILTIN_ROLES.find((item) => item.key === role)?.perms || [])
+    .filter((key) => MB_PERMS_SINCE_REV2.includes(key) && !saved.includes(key));
+  return [...saved, ...extra];
 }
 
 function mbFlagAllows(flagKey) {
@@ -102,19 +117,22 @@ function mbPageVisible(page, role) {
   return true;
 }
 
+function openNavTakvim() {
+  if ((currentUser?.role || '') === 'agent' && typeof openTakvimOverlay === 'function') {
+    openTakvimOverlay();
+    return;
+  }
+  navigate('takvim');
+}
+
 function mbApplyNavAccess() {
   const role = currentUser?.role || '';
-  const shell = mbNavShell(role);
-  const navAdmin = document.getElementById('nav-admin');
-  const navAgent = document.getElementById('nav-agent');
-  if (navAdmin) navAdmin.style.display = shell === 'admin' ? '' : 'none';
-  if (navAgent) navAgent.style.display = shell === 'agent' ? '' : 'none';
 
   document.querySelectorAll('.sb-item').forEach((btn) => {
     const action = String(btn.getAttribute('onclick') || '');
     if (action.includes('doLogout')) return;
     const match = action.match(/navigate\('([a-z0-9_]+)'\)/);
-    const pageKey = match ? match[1] : (btn.id === 'nav-takvim-overlay-btn' ? 'takvim' : '');
+    const pageKey = match ? match[1] : (action.includes('openNavTakvim') ? 'takvim' : '');
     if (!pageKey) return;
     const page = MB_PAGES.find((item) => item.key === pageKey);
     if (!page) return;
@@ -135,6 +153,12 @@ function mbApplyNavAccess() {
     if (rule.roles && !rule.roles.includes(role)) return;
     if (!mbFlagAllows(rule.flag)) el.style.display = 'none';
   });
+
+  const dialerBtn = document.getElementById('nav-dialer-btn');
+  if (dialerBtn && dialerBtn.style.display !== 'none') {
+    const dialerFlag = mbIsFirmAdmin(role) ? 'admin_dialer_enabled' : (role === 'qc' ? 'qc_dialer_enabled' : '');
+    if (dialerFlag && !mbFlagAllows(dialerFlag)) dialerBtn.style.display = 'none';
+  }
 
   const allowTakvim = mbPageVisible(MB_PAGES.find((page) => page.key === 'takvim'), role);
   const topTakvim = document.getElementById('takvim-topbar-btn');

@@ -23,7 +23,7 @@ async function loadChatSettingsPage() {
   if (!card) return;
 
   const role = currentUser?.role || '';
-  const isSuper = role === 'super_admin';
+  const isSuper = mbIsSuperAdmin(role);
   const isFirmLevel = ['admin', 'firm_admin'].includes(role);
   const canView = isSuper || isFirmLevel;
 

@@ -12,7 +12,7 @@ function _leaveEsc(s) {
 }
 
 function isLeaveAdmin() {
-  return ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+  return mbIsFirmAdmin();
 }
 
 function _leaveFirmId() {

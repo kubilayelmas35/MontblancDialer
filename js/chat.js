@@ -75,7 +75,7 @@ function _canManageChatGroups() {
 }
 
 function _chatSuperSeesAll() {
-  return currentUser?.role === 'super_admin';
+  return mbIsSuperAdmin();
 }
 
 /** Grup / DM üye seçiminde tüm firmalar (süper admin + firmasız global admin) */
@@ -100,7 +100,7 @@ async function fetchUsersForChatPicker(fid) {
     if (fid) {
       const settings = await getFirmChatSettings(fid);
       rows = rows.filter((u) => {
-        if (u.role === 'super_admin') return true;
+        if (mbIsSuperAdmin(u.role)) return true;
         if (!u.firm_id || u.firm_id === fid) return true;
         return false;
       });

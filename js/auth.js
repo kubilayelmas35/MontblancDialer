@@ -198,7 +198,7 @@ if (!currentUser) return;
 if (!currentUser.initials) currentUser.initials = (currentUser.name||'?').charAt(0).toUpperCase();
 document.getElementById('tb-av').textContent = currentUser.initials.charAt(0);
 document.getElementById('tb-uname').textContent = currentUser.name;
-const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser.role);
+const isAdmin = mbIsFirmAdmin();
 if (typeof mbApplyNavAccess === 'function') mbApplyNavAccess();
 const roleEl = document.getElementById('tb-urole');
 if (roleEl) {
@@ -207,7 +207,7 @@ if (roleEl) {
   const roleName = typeof mbRoleLabel === 'function' ? mbRoleLabel(currentUser.role) : currentUser.role;
   roleEl.textContent = roleName + suffix + imp;
 }
-if (currentUser.role === 'super_admin') { loadAllFirms(); }
+if (mbIsSuperAdmin()) { loadAllFirms(); }
 loadFirmCallHours(); // arama kısıtlamalarını yükle
 if (typeof loadFirmDialerSettingsCache === 'function') void loadFirmDialerSettingsCache();
 if (typeof loadIncomingCallsSettingsPage === 'function') void loadIncomingCallsSettingsPage();
@@ -235,7 +235,7 @@ if (typeof reloadMascotStateForUser === 'function') reloadMascotStateForUser();
 }
 
 // ── Süper Admin Global Firma Seçici ──────────────────
-function isSuperAdmin() { return currentUser?.role === 'super_admin'; }
+function isSuperAdmin() { return mbIsSuperAdmin(); }
 
 async function _syncOwnAgentPresence(status) {
   if (!currentUser?.id) return;
@@ -264,7 +264,7 @@ return isSuperAdmin() ? _selectedFirmId : currentUser?.firm_id;
 
 /** Süper admin firma seçimini kod tarafında günceller (ör. sohbetten atlama) */
 function setSuperAdminFirmSelection(firmId) {
-  if (currentUser?.role !== 'super_admin' || !firmId) return;
+  if (!mbIsSuperAdmin() || !firmId) return;
   _selectedFirmId = firmId;
   document.querySelectorAll('select[id$="-sel"]').forEach((sel) => {
     const opt = [...sel.options].find((o) => o.value === firmId);
