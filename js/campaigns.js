@@ -174,8 +174,8 @@ const pauseLabel = c.status==='active'
   : `<i class="ph ph-play"></i> ${esc(campT('camp.start','Başlat'))}`;
 const sel = detailOpen && currentCampId === c.id ? ' sel' : '';
 return `<div class="camp-card${sel}" data-camp-id="${esc(c.id)}" onclick="openCampDetail('${c.id}')">
-<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-<div><div class="camp-name">${esc(c.name)}</div>${didText ? `<div class="camp-did">${esc(didText)}</div>` : ''}${descLine ? `<div class="queue-sub">${esc(descLine)}</div>` : ''}</div>
+<div class="camp-card-head">
+<div class="camp-card-main"><div class="camp-name" title="${esc(c.name)}">${esc(c.name)}</div>${didText ? `<div class="camp-did">${esc(didText)}</div>` : ''}${descLine ? `<div class="queue-sub" title="${esc(descLine)}">${esc(descLine)}</div>` : ''}</div>
 <div style="display:flex;gap:12px;flex-shrink:0;align-items:center;" onclick="event.stopPropagation()">
 ${sb2}
 <button class="icon-btn" onclick="openCampFieldSettings('${c.id}')" title="${esc(campT('camp.field.title','Alan Ayarları'))}" aria-label="${esc(campT('camp.field.title','Alan Ayarları'))}"><i class="ph ph-gear" aria-hidden="true"></i></button>
@@ -234,7 +234,7 @@ function renderCampRows(esc, detailOpen) {
     const pauseIcon = c.status === 'active' ? 'ph-pause' : 'ph-play';
     const sel = detailOpen && currentCampId === c.id ? ' sel' : '';
     return `<tr class="camp-row${sel}" data-camp-id="${esc(c.id)}" onclick="openCampDetail('${c.id}')">
-<td><span class="camp-row-name">${esc(c.name)}</span>${desc ? `<span class="camp-row-desc">${esc(desc)}</span>` : ''}</td>
+<td><span class="camp-row-name" title="${esc(c.name)}">${esc(c.name)}</span>${desc ? `<span class="camp-row-desc">${esc(desc)}</span>` : ''}</td>
 <td>${status}</td>
 <td class="num" style="text-align:left;color:${didBad ? 'var(--yellow)' : 'inherit'};" title="${esc(didBad ? campT('camp.did.invalid', 'DID geçersiz') : didText)}">${esc(didText)}</td>
 <td class="num">${st.qs.length}</td>
