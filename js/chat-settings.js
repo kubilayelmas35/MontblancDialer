@@ -113,7 +113,7 @@ async function saveChatSettings() {
     return;
   }
   const role = currentUser?.role || '';
-  if (!['super_admin', 'admin', 'firm_admin'].includes(role)) return;
+  if (!mbIsFirmAdmin(role)) return;
 
   const peerChk = document.getElementById('chat-set-peer-dm');
   const superChk = document.getElementById('chat-set-firmadmin-super');

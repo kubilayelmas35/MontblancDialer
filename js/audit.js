@@ -24,7 +24,7 @@ async function loadAuditEventsPage() {
   const card = document.getElementById('audit-log-card');
   const list = document.getElementById('audit-log-list');
   if (!card || !list) return;
-  const canView = ['super_admin', 'admin', 'firm_admin'].includes(currentUser?.role || '');
+  const canView = mbIsFirmAdmin();
   card.style.display = canView ? '' : 'none';
   if (!canView) return;
   const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id || '';

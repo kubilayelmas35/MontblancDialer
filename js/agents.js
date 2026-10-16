@@ -627,7 +627,7 @@ async function loadRolesPage() {
   const el   = document.getElementById('roles-list');
   const addBtn = card?.querySelector('button[onclick="openAddRoleModal()"]');
   if (!card || !el) return;
-  const canManage = ['super_admin', 'admin', 'firm_admin'].includes(currentUser?.role || '');
+  const canManage = mbIsFirmAdmin();
   if (!canManage) { card.style.display='none'; return; }
   card.style.display = '';
   let targetFirmId = getActiveFirmId() || currentUser.firm_id;

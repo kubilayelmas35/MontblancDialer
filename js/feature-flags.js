@@ -52,7 +52,7 @@ async function loadFeatureFlagsPage() {
   const list = document.getElementById('feature-flags-list');
   if (!card || !list) return;
   const role = currentUser?.role || '';
-  const canView = ['super_admin', 'admin', 'firm_admin'].includes(role);
+  const canView = mbIsFirmAdmin(role);
   card.style.display = canView ? '' : 'none';
   if (!canView) return;
 

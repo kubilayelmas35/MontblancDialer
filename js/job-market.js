@@ -22,7 +22,7 @@ function _jmEsc(s) {
 }
 
 function _jmCanManage() {
-  return ['super_admin', 'admin', 'firm_admin'].includes(currentUser?.role || '');
+  return mbIsFirmAdmin();
 }
 
 function defaultJobPermissions() {
@@ -668,7 +668,7 @@ async function loadJobPermissionsSettings() {
   if (!card || !list) return;
   list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:6px 2px;">Yükleniyor...</div>`;
   const role = currentUser?.role || '';
-  const canView = ['super_admin', 'admin', 'firm_admin'].includes(role);
+  const canView = mbIsFirmAdmin(role);
   card.style.display = canView ? '' : 'none';
   if (!canView) return;
   const row = document.getElementById('job-permissions-firm-row');
@@ -1337,7 +1337,7 @@ function setJobPreset(preset) {
 async function loadJobMarketKpi() {
   const wrap = document.getElementById('dash-job-market-kpi');
   if (!wrap) return;
-  const canView = ['super_admin', 'admin', 'firm_admin'].includes(currentUser?.role || '');
+  const canView = mbIsFirmAdmin();
   if (!canView) { wrap.style.display = 'none'; return; }
   const jobs = await sb(`job_posts?select=id,status,created_at,first_submission_at,retraction_deadline_at&order=created_at.desc&limit=400`).catch(() => []);
   if (!jobs?.length) { wrap.style.display = 'none'; return; }
