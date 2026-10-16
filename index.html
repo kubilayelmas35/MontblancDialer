@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=8.58">
+<link rel="stylesheet" href="css/styles.css?v=8.59">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -39,7 +39,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v8.58 — 2026</div>
+<div class="login-version">v8.59 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -399,7 +399,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v8.58</div>
+<div class="sb-ver">MontBlanc v8.59</div>
 </div>
 </nav>
 <main id="main">
@@ -1243,20 +1243,21 @@
 <div class="page" id="page-dialer">
 <div class="page-hdr dialer-page-hdr" id="dialer-page-hdr" style="padding:8px 16px;min-height:0;width:100%;box-sizing:border-box;">
 <div class="dialer-hdr-main" style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0;">
-<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1;min-width:0;">
+<div class="dialer-status-row">
 <div id="dialer-firm-selector"></div>
-<div class="status-indicator" style="gap:6px;">
+<div class="status-indicator dialer-live-chip">
 <div class="status-dot offline" id="status-dot"></div>
-<div class="status-label" id="status-label" style="font-size:12px;font-weight:700;" data-tr="Çevrimdışı" data-de="Offline">Çevrimdışı</div>
-<span id="status-elapsed" style="display:none;font-size:11px;font-weight:700;font-family:var(--mono);color:var(--text-3);">00:00</span>
+<div class="status-label" id="status-label" data-tr="Çevrimdışı" data-de="Offline">Çevrimdışı</div>
+<span id="status-elapsed" style="display:none;">00:00</span>
 </div>
-<button type="button" id="mic-status" title="Mikrofon ve ses" onclick="toggleMicAudioDrawer()"
-style="font-size:15px;cursor:pointer;background:transparent;border:none;padding:2px 4px;border-radius:8px;line-height:1;">
-<i class="ph ph-microphone-slash" style="vertical-align:-3px;font-size:17px;color:var(--text-3);"></i>
+<button type="button" id="mic-status" class="dialer-mic-chip is-off" title="Mikrofon ve ses ayarları" onclick="toggleMicAudioDrawer()">
+<i class="ph ph-microphone-slash"></i>
+<span class="dialer-mic-chip__text">
+<span class="dialer-mic-chip__kicker" data-tr="Mikrofon" data-de="Mikrofon">Mikrofon</span>
+<span class="dialer-mic-chip__hint" data-tr="Ayarlar için tıkla" data-de="Tippen für Einstellungen">Ayarlar için tıkla</span>
+</span>
 </button>
-<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-<span id="rtc-status" style="font-size:11px;color:var(--text-3);"><i class="ph ph-dot" style="vertical-align:-1px;"></i> Bağlantı yok</span>
-</div>
+<div id="rtc-status" class="dialer-conn-chip"><i class="ph ph-x-circle"></i> Bağlantı yok</div>
 </div>
 </div>
 <div class="dialer-hdr-badges" style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-shrink:0;">
@@ -1520,19 +1521,6 @@ Son randevu bilgileri indirilebilir.
 <div id="prev-call-body" style="color:var(--text-2);"></div>
 </div>
 <div id="ready-section">
-<div class="ready-aurora">
-<div class="ready-aurora__wash" aria-hidden="true"></div>
-<button class="btn-ready-big ready" id="btn-ready" onclick="toggleReady()" disabled title="Önce kampanya seçin">
-<span id="ready-icon">
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
-</span>
-<span id="ready-text" data-tr="Kampanya Seç → Aramayı Başlat" data-de="Kampagne wählen → Anruf starten">Kampanya Seç → Aramayı Başlat</span>
-</button>
-<div id="camp-required-notice">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-<span data-tr="Aramaya başlamadan önce sağdan bir kampanya seçin" data-de="Wählen Sie rechts eine Kampagne bevor Sie starten">Aramaya başlamadan önce sağdan bir kampanya seçin</span>
-</div>
-</div>
 <div id="dialer-reliability-card">
 <div class="dialer-health-hd">
 <div data-tr="Çağrı Sağlık Kontrolü" data-de="Anruf-Check">Çağrı Sağlık Kontrolü</div>
@@ -1541,6 +1529,16 @@ Son randevu bilgileri indirilebilir.
 <div id="dialer-health-msg" data-tr="Kontrol ediliyor…" data-de="Prüfung läuft…">Kontrol ediliyor…</div>
 <div id="dialer-health-checks"></div>
 </div>
+<div id="camp-required-notice">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+<span data-tr="Aramaya başlamadan önce sağdan bir kampanya seçin" data-de="Wählen Sie rechts eine Kampagne bevor Sie starten">Aramaya başlamadan önce sağdan bir kampanya seçin</span>
+</div>
+<button class="btn-ready-big ready" id="btn-ready" onclick="toggleReady()" disabled title="Önce kampanya seçin">
+<span id="ready-icon">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
+</span>
+<span id="ready-text" data-tr="Kampanya Seç → Aramayı Başlat" data-de="Kampagne wählen → Anruf starten">Kampanya Seç → Aramayı Başlat</span>
+</button>
 </div>
 <div class="agent-camps-panel" id="agent-camps-panel">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -3833,44 +3831,44 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/version.js?v=8.58"></script>
-<script src="js/i18n.js?v=8.58"></script>
-<script src="js/config.js?v=8.58"></script>
-<script src="js/state.js?v=8.58"></script>
-<script src="js/api.js?v=8.58"></script>
-<script src="js/auth.js?v=8.58"></script>
-<script src="js/ui.js?v=8.58"></script>
-<script src="js/chat.js?v=8.58"></script>
-<script src="js/chat-settings.js?v=8.58"></script>
-<script src="js/field-settings.js?v=8.58"></script>
-<script src="js/audit.js?v=8.58"></script>
-<script src="js/feature-flags.js?v=8.58"></script>
-<script src="js/notification-center.js?v=8.58"></script>
+<script src="js/version.js?v=8.59"></script>
+<script src="js/i18n.js?v=8.59"></script>
+<script src="js/config.js?v=8.59"></script>
+<script src="js/state.js?v=8.59"></script>
+<script src="js/api.js?v=8.59"></script>
+<script src="js/auth.js?v=8.59"></script>
+<script src="js/ui.js?v=8.59"></script>
+<script src="js/chat.js?v=8.59"></script>
+<script src="js/chat-settings.js?v=8.59"></script>
+<script src="js/field-settings.js?v=8.59"></script>
+<script src="js/audit.js?v=8.59"></script>
+<script src="js/feature-flags.js?v=8.59"></script>
+<script src="js/notification-center.js?v=8.59"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=8.58"></script>
-<script src="js/job-market.js?v=8.58"></script>
-<script src="js/qc-job-market.js?v=8.58"></script>
-<script src="js/export-admin.js?v=8.58"></script>
-<script src="js/export-termin.js?v=8.58"></script>
-<script src="js/performance.js?v=8.58"></script>
-<script src="js/competition.js?v=8.58"></script>
-<script src="js/dashboard.js?v=8.58"></script>
-<script src="js/campaigns.js?v=8.58"></script>
-<script src="js/contacts.js?v=8.58"></script>
-<script src="js/telnyx.js?v=8.58"></script>
-<script src="js/voice-orb.js?v=8.58"></script>
-<script src="js/dialer.js?v=8.58"></script>
-<script src="js/appointments.js?v=8.58"></script>
-<script src="js/field.js?v=8.58"></script>
-<script src="js/field-ops.js?v=8.58"></script>
-<script src="js/wiedervorlage.js?v=8.58"></script>
-<script src="js/qc.js?v=8.58"></script>
-<script src="js/supervisor.js?v=8.58"></script>
-<script src="js/sms-settings.js?v=8.58"></script>
-<script src="js/leave-hr.js?v=8.58"></script>
-<script src="js/muhasebe.js?v=8.58"></script>
-<script src="js/agent-self-performance.js?v=8.58"></script>
-<script src="js/agents.js?v=8.58"></script>
-<script src="js/mimi-brain.js?v=8.58"></script>
+<script src="js/wallet.js?v=8.59"></script>
+<script src="js/job-market.js?v=8.59"></script>
+<script src="js/qc-job-market.js?v=8.59"></script>
+<script src="js/export-admin.js?v=8.59"></script>
+<script src="js/export-termin.js?v=8.59"></script>
+<script src="js/performance.js?v=8.59"></script>
+<script src="js/competition.js?v=8.59"></script>
+<script src="js/dashboard.js?v=8.59"></script>
+<script src="js/campaigns.js?v=8.59"></script>
+<script src="js/contacts.js?v=8.59"></script>
+<script src="js/telnyx.js?v=8.59"></script>
+<script src="js/voice-orb.js?v=8.59"></script>
+<script src="js/dialer.js?v=8.59"></script>
+<script src="js/appointments.js?v=8.59"></script>
+<script src="js/field.js?v=8.59"></script>
+<script src="js/field-ops.js?v=8.59"></script>
+<script src="js/wiedervorlage.js?v=8.59"></script>
+<script src="js/qc.js?v=8.59"></script>
+<script src="js/supervisor.js?v=8.59"></script>
+<script src="js/sms-settings.js?v=8.59"></script>
+<script src="js/leave-hr.js?v=8.59"></script>
+<script src="js/muhasebe.js?v=8.59"></script>
+<script src="js/agent-self-performance.js?v=8.59"></script>
+<script src="js/agents.js?v=8.59"></script>
+<script src="js/mimi-brain.js?v=8.59"></script>
 </body>
 </html>

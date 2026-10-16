@@ -1154,20 +1154,21 @@
 <div class="page" id="page-dialer">
 <div class="page-hdr dialer-page-hdr" id="dialer-page-hdr" style="padding:8px 16px;min-height:0;width:100%;box-sizing:border-box;">
 <div class="dialer-hdr-main" style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0;">
-<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1;min-width:0;">
+<div class="dialer-status-row">
 <div id="dialer-firm-selector"></div>
-<div class="status-indicator" style="gap:6px;">
+<div class="status-indicator dialer-live-chip">
 <div class="status-dot offline" id="status-dot"></div>
-<div class="status-label" id="status-label" style="font-size:12px;font-weight:700;" data-tr="Çevrimdışı" data-de="Offline">Çevrimdışı</div>
-<span id="status-elapsed" style="display:none;font-size:11px;font-weight:700;font-family:var(--mono);color:var(--text-3);">00:00</span>
+<div class="status-label" id="status-label" data-tr="Çevrimdışı" data-de="Offline">Çevrimdışı</div>
+<span id="status-elapsed" style="display:none;">00:00</span>
 </div>
-<button type="button" id="mic-status" title="Mikrofon ve ses" onclick="toggleMicAudioDrawer()"
-style="font-size:15px;cursor:pointer;background:transparent;border:none;padding:2px 4px;border-radius:8px;line-height:1;">
-<i class="ph ph-microphone-slash" style="vertical-align:-3px;font-size:17px;color:var(--text-3);"></i>
+<button type="button" id="mic-status" class="dialer-mic-chip is-off" title="Mikrofon ve ses ayarları" onclick="toggleMicAudioDrawer()">
+<i class="ph ph-microphone-slash"></i>
+<span class="dialer-mic-chip__text">
+<span class="dialer-mic-chip__kicker" data-tr="Mikrofon" data-de="Mikrofon">Mikrofon</span>
+<span class="dialer-mic-chip__hint" data-tr="Ayarlar için tıkla" data-de="Tippen für Einstellungen">Ayarlar için tıkla</span>
+</span>
 </button>
-<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-<span id="rtc-status" style="font-size:11px;color:var(--text-3);"><i class="ph ph-dot" style="vertical-align:-1px;"></i> Bağlantı yok</span>
-</div>
+<div id="rtc-status" class="dialer-conn-chip"><i class="ph ph-x-circle"></i> Bağlantı yok</div>
 </div>
 </div>
 <div class="dialer-hdr-badges" style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-shrink:0;">
@@ -1431,19 +1432,6 @@ Son randevu bilgileri indirilebilir.
 <div id="prev-call-body" style="color:var(--text-2);"></div>
 </div>
 <div id="ready-section">
-<div class="ready-aurora">
-<div class="ready-aurora__wash" aria-hidden="true"></div>
-<button class="btn-ready-big ready" id="btn-ready" onclick="toggleReady()" disabled title="Önce kampanya seçin">
-<span id="ready-icon">
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
-</span>
-<span id="ready-text" data-tr="Kampanya Seç → Aramayı Başlat" data-de="Kampagne wählen → Anruf starten">Kampanya Seç → Aramayı Başlat</span>
-</button>
-<div id="camp-required-notice">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-<span data-tr="Aramaya başlamadan önce sağdan bir kampanya seçin" data-de="Wählen Sie rechts eine Kampagne bevor Sie starten">Aramaya başlamadan önce sağdan bir kampanya seçin</span>
-</div>
-</div>
 <div id="dialer-reliability-card">
 <div class="dialer-health-hd">
 <div data-tr="Çağrı Sağlık Kontrolü" data-de="Anruf-Check">Çağrı Sağlık Kontrolü</div>
@@ -1452,6 +1440,16 @@ Son randevu bilgileri indirilebilir.
 <div id="dialer-health-msg" data-tr="Kontrol ediliyor…" data-de="Prüfung läuft…">Kontrol ediliyor…</div>
 <div id="dialer-health-checks"></div>
 </div>
+<div id="camp-required-notice">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+<span data-tr="Aramaya başlamadan önce sağdan bir kampanya seçin" data-de="Wählen Sie rechts eine Kampagne bevor Sie starten">Aramaya başlamadan önce sağdan bir kampanya seçin</span>
+</div>
+<button class="btn-ready-big ready" id="btn-ready" onclick="toggleReady()" disabled title="Önce kampanya seçin">
+<span id="ready-icon">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
+</span>
+<span id="ready-text" data-tr="Kampanya Seç → Aramayı Başlat" data-de="Kampagne wählen → Anruf starten">Kampanya Seç → Aramayı Başlat</span>
+</button>
 </div>
 <div class="agent-camps-panel" id="agent-camps-panel">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">

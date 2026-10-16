@@ -83,7 +83,7 @@ async function initDialer() {
         rdyBtn.title = typeof t === 'function' ? t('dial.init.pick_camp_title') : '';
       }
       const notice = document.getElementById('camp-required-notice');
-      if (notice) notice.classList.remove('is-hidden');
+      if (notice) notice.style.display = 'flex';
     }
     list.innerHTML = myCamps.map(ac=>{
       const isActive = _activeCampIds.includes(ac.campaign_id);
@@ -149,7 +149,7 @@ async function initDialer() {
     // kampanya otomatik seçilmez; kullanıcı tıklamalı
     if (!myCamps.length) {
       const notice = document.getElementById('camp-required-notice');
-      if (notice) notice.classList.remove('is-hidden');
+      if (notice) notice.style.display = 'flex';
     }
   } catch(e){ console.error('initDialer err:', e); }
   refreshDialerHealthPanel();
@@ -260,7 +260,7 @@ function selectCamp(id, name, opts = {}) {
     }
     applyLang();
   }
-  if (notice) notice.classList.add('is-hidden');
+  if (notice) notice.style.display = 'none';
   refreshAutoDialUi();
   refreshDialerHealthPanel();
 }

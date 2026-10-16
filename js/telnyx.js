@@ -335,12 +335,13 @@ break;
 function updateMicStatus(granted) {
 const el = document.getElementById('mic-status');
 if (!el) return;
-el.innerHTML = granted
-  ? '<i class="ph ph-microphone" style="vertical-align:-3px;font-size:17px;color:var(--green);"></i>'
-  : '<i class="ph ph-microphone-slash" style="vertical-align:-3px;font-size:17px;color:var(--red);"></i>';
-el.title = granted
-? t('telnyx.mic_on')
-: t('telnyx.mic_off');
+const icon = granted ? 'ph-microphone' : 'ph-microphone-slash';
+const kicker = typeof t === 'function' ? t('dial.mic_chip') : 'Mikrofon';
+const hint = typeof t === 'function' ? t('dial.mic_chip_hint') : 'Ayarlar için tıkla';
+el.classList.toggle('is-on', !!granted);
+el.classList.toggle('is-off', !granted);
+el.innerHTML = `<i class="ph ${icon}"></i><span class="dialer-mic-chip__text"><span class="dialer-mic-chip__kicker">${kicker}</span><span class="dialer-mic-chip__hint">${hint}</span></span>`;
+el.title = granted ? t('telnyx.mic_on') : t('telnyx.mic_off');
 }
 
 function updateConnectionStatus(status) {
