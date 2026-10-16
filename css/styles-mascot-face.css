@@ -14,86 +14,256 @@
 .mascot-theme-root .mascot-cos-hat {
   position: absolute;
   left: 50%;
-  bottom: calc(100% - 8px);
+  bottom: calc(100% - 10px);
   transform: translateX(-50%);
-  width: 44px;
+  width: 40px;
   height: 14px;
-  border-radius: 10px 10px 4px 4px;
-  background: var(--cos-hat-color, rgba(42, 36, 58, 0.88));
+  border-radius: 12px 12px 4px 4px;
+  --hat: var(--cos-hat-color, #3d3550);
+  background: var(--hat);
   opacity: 0;
   z-index: 5;
   pointer-events: none;
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: none;
+  overflow: visible;
+}
+.mascot-theme-root .mascot-cos-hat::before,
+.mascot-theme-root .mascot-cos-hat::after {
+  content: none;
+  position: absolute;
+  pointer-events: none;
 }
 .mascot-theme-root[data-mascot-hat]:not([data-mascot-hat="none"]) .mascot-cos-hat {
   opacity: 1;
   animation: mcos-hat-float 5.5s ease-in-out infinite;
 }
 .mascot-theme-root[data-mascot-hat="cap"] .mascot-cos-hat {
-  width: 52px;
-  height: 12px;
-  border-radius: 8px 8px 4px 4px;
-  clip-path: polygon(8% 0%, 92% 0%, 100% 100%, 0% 100%);
+  --hat: var(--cos-hat-color, #1e3a5f);
+  width: 34px;
+  height: 13px;
+  border-radius: 12px 12px 4px 4px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--hat) 72%, #fff), var(--hat));
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--hat) 55%, #000);
+}
+.mascot-theme-root[data-mascot-hat="cap"] .mascot-cos-hat::before {
+  content: "";
+  left: 50%;
+  top: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: color-mix(in srgb, var(--hat) 45%, #fff);
+}
+.mascot-theme-root[data-mascot-hat="cap"] .mascot-cos-hat::after {
+  content: "";
+  left: 62%;
+  top: 7px;
+  width: 18px;
+  height: 5px;
+  border-radius: 0 6px 5px 0;
+  background: color-mix(in srgb, var(--hat) 78%, #000);
+  transform: rotate(-7deg);
 }
 .mascot-theme-root[data-mascot-hat="beanie"] .mascot-cos-hat {
-  height: 22px;
-  width: 48px;
-  border-radius: 50% 50% 40% 40%;
-  bottom: calc(100% - 4px);
-  background: linear-gradient(180deg, #6b5ce6, #4c3fb5);
+  --hat: var(--cos-hat-color, #3f3d56);
+  width: 40px;
+  height: 16px;
+  bottom: calc(100% - 8px);
+  border-radius: 16px 16px 6px 6px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--hat) 78%, #fff), var(--hat));
+}
+.mascot-theme-root[data-mascot-hat="beanie"] .mascot-cos-hat::before {
+  content: "";
+  left: 50%;
+  top: -7px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--hat) 40%, #fff), var(--hat));
+}
+.mascot-theme-root[data-mascot-hat="beanie"] .mascot-cos-hat::after {
+  content: "";
+  left: -1px;
+  right: -1px;
+  bottom: 0;
+  height: 5px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--hat) 70%, #000) 0 3px,
+    color-mix(in srgb, var(--hat) 85%, #fff) 3px 6px
+  );
 }
 .mascot-theme-root[data-mascot-hat="tophat"] .mascot-cos-hat {
-  width: 36px;
-  height: 28px;
-  border-radius: 4px 4px 2px 2px;
-  bottom: calc(100% - 6px);
-  background: linear-gradient(90deg, #2a2438, #1a1524);
-  box-shadow: 0 4px 0 #f5e6c8;
+  --hat: var(--cos-hat-color, #1c1917);
+  width: 24px;
+  height: 20px;
+  bottom: calc(100% - 8px);
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--hat) 55%, #000),
+    var(--hat) 42%,
+    color-mix(in srgb, var(--hat) 70%, #000)
+  );
+}
+.mascot-theme-root[data-mascot-hat="tophat"] .mascot-cos-hat::before {
+  content: "";
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  height: 4px;
+  background: color-mix(in srgb, var(--hat) 28%, #e7d3a1);
+}
+.mascot-theme-root[data-mascot-hat="tophat"] .mascot-cos-hat::after {
+  content: "";
+  left: 50%;
+  bottom: -3px;
+  width: 42px;
+  height: 6px;
+  border-radius: 2px;
+  transform: translateX(-50%);
+  background: color-mix(in srgb, var(--hat) 72%, #000);
 }
 .mascot-theme-root[data-mascot-hat="crown"] .mascot-cos-hat {
-  width: 0;
-  height: 0;
-  background: transparent;
-  border-left: 22px solid transparent;
-  border-right: 22px solid transparent;
-  border-bottom: 18px solid #d4af37;
+  --hat: var(--cos-hat-color, #c4a35a);
+  width: 40px;
+  height: 16px;
+  bottom: calc(100% - 8px);
   border-radius: 0;
-  bottom: calc(100% - 2px);
-  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.2));
+  background:
+    radial-gradient(circle at 20% 78%, color-mix(in srgb, var(--hat) 20%, #fff) 0 1.4px, transparent 1.8px),
+    radial-gradient(circle at 50% 82%, color-mix(in srgb, var(--hat) 15%, #fff) 0 1.6px, transparent 2px),
+    radial-gradient(circle at 80% 78%, color-mix(in srgb, var(--hat) 20%, #fff) 0 1.4px, transparent 1.8px),
+    linear-gradient(180deg, color-mix(in srgb, var(--hat) 62%, #fff), var(--hat));
+  clip-path: polygon(
+    0% 100%,
+    0% 58%,
+    14% 58%,
+    20% 6%,
+    30% 58%,
+    40% 58%,
+    50% 0%,
+    60% 58%,
+    70% 58%,
+    80% 6%,
+    86% 58%,
+    100% 58%,
+    100% 100%
+  );
 }
 .mascot-theme-root[data-mascot-hat="headband"] .mascot-cos-hat {
-  width: 54px;
-  height: 8px;
-  border-radius: 6px;
-  bottom: calc(100% - 18px);
-  background: linear-gradient(90deg, #ec4899, #8b5cf6);
+  --hat: var(--cos-hat-color, #9f1239);
+  width: 48px;
+  height: 6px;
+  bottom: calc(100% - 20px);
+  border-radius: 4px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--hat) 75%, #fff), var(--hat));
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.16);
+}
+.mascot-theme-root[data-mascot-hat="headband"] .mascot-cos-hat::before {
+  content: "";
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: var(--hat);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--hat) 40%, #fff);
 }
 .mascot-theme-root[data-mascot-hat="cat"] .mascot-cos-hat {
-  width: 38px;
-  height: 10px;
-  border-radius: 6px;
-  bottom: calc(100% - 10px);
-  background: rgba(42, 36, 58, 0.75);
-  box-shadow:
-    -16px -10px 0 -2px rgba(42, 36, 58, 0.85),
-    16px -10px 0 -2px rgba(42, 36, 58, 0.85);
+  --hat: var(--cos-hat-color, #292524);
+  width: 46px;
+  height: 16px;
+  bottom: calc(100% - 6px);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.mascot-theme-root[data-mascot-hat="cat"] .mascot-cos-hat::before,
+.mascot-theme-root[data-mascot-hat="cat"] .mascot-cos-hat::after {
+  content: "";
+  bottom: 0;
+  width: 14px;
+  height: 16px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--hat) 48%, #fff) 0 38%,
+    var(--hat) 38%
+  );
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.mascot-theme-root[data-mascot-hat="cat"] .mascot-cos-hat::before {
+  left: 3px;
+}
+.mascot-theme-root[data-mascot-hat="cat"] .mascot-cos-hat::after {
+  right: 3px;
 }
 .mascot-theme-root[data-mascot-hat="party"] .mascot-cos-hat {
-  width: 8px;
-  height: 22px;
-  border-radius: 2px 2px 0 0;
-  bottom: calc(100% + 2px);
-  background: linear-gradient(180deg, #f472b6, #60a5fa);
-  transform: translateX(-50%) rotate(-8deg);
+  --hat: var(--cos-hat-color, #be123c);
+  width: 22px;
+  height: 30px;
+  bottom: calc(100% - 4px);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: translateX(-50%) rotate(-10deg);
+}
+.mascot-theme-root[data-mascot-hat="party"] .mascot-cos-hat::before {
+  content: "";
+  left: 2px;
+  top: 6px;
+  width: 18px;
+  height: 24px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  background: repeating-linear-gradient(
+    118deg,
+    var(--hat) 0 4px,
+    color-mix(in srgb, var(--hat) 42%, #fff) 4px 7px
+  );
+}
+.mascot-theme-root[data-mascot-hat="party"] .mascot-cos-hat::after {
+  content: "";
+  left: 50%;
+  top: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 35% 35%, #fff, color-mix(in srgb, var(--hat) 35%, #fff));
 }
 .mascot-theme-root[data-mascot-hat="wizard"] .mascot-cos-hat {
-  width: 34px;
-  height: 34px;
-  border-radius: 4px 4px 2px 2px;
-  bottom: calc(100% - 4px);
-  background: linear-gradient(165deg, #4c1d95, #1e1b4b);
-  box-shadow: 0 3px 0 #fbbf24;
-  clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%);
+  --hat: var(--cos-hat-color, #312e81);
+  width: 40px;
+  height: 32px;
+  bottom: calc(100% - 6px);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.mascot-theme-root[data-mascot-hat="wizard"] .mascot-cos-hat::before {
+  content: "";
+  left: 50%;
+  top: 0;
+  width: 24px;
+  height: 26px;
+  transform: translateX(-50%);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  background:
+    linear-gradient(180deg, transparent 0 68%, color-mix(in srgb, var(--hat) 22%, #e7d3a1) 68% 80%, transparent 80%),
+    linear-gradient(180deg, color-mix(in srgb, var(--hat) 70%, #fff), var(--hat));
+}
+.mascot-theme-root[data-mascot-hat="wizard"] .mascot-cos-hat::after {
+  content: "";
+  left: 0;
+  bottom: 0;
+  width: 40px;
+  height: 7px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--hat) 72%, #000);
 }
 
 .mascot-theme-root .mascot-cos-outfit {
@@ -103,8 +273,18 @@
   transform: translateX(-50%);
   width: 36px;
   height: 10px;
+  --fit: var(--cos-outfit-color, #334155);
+  background: transparent;
+  border: 0;
   opacity: 0;
   z-index: 3;
+  pointer-events: none;
+  overflow: visible;
+}
+.mascot-theme-root .mascot-cos-outfit::before,
+.mascot-theme-root .mascot-cos-outfit::after {
+  content: none;
+  position: absolute;
   pointer-events: none;
 }
 .mascot-theme-root[data-mascot-outfit]:not([data-mascot-outfit="none"]) .mascot-cos-outfit {
@@ -112,96 +292,192 @@
   animation: mcos-outfit-sway 6s ease-in-out infinite;
 }
 .mascot-theme-root[data-mascot-outfit="bowtie"] .mascot-cos-outfit {
-  width: 0;
-  height: 0;
-  border-left: 10px solid #5b21b6;
-  border-right: 10px solid #5b21b6;
-  border-top: 7px solid #7c3aed;
-  border-bottom: 7px solid #7c3aed;
-  background: transparent;
-  top: calc(100% + 2px);
+  --fit: var(--cos-outfit-color, #1e1b4b);
+  width: 6px;
+  height: 6px;
+  top: calc(100% + 1px);
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--fit) 75%, #000);
+}
+.mascot-theme-root[data-mascot-outfit="bowtie"] .mascot-cos-outfit::before,
+.mascot-theme-root[data-mascot-outfit="bowtie"] .mascot-cos-outfit::after {
+  content: "";
+  top: 50%;
+  width: 11px;
+  height: 8px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fit) 68%, #fff), var(--fit));
+}
+.mascot-theme-root[data-mascot-outfit="bowtie"] .mascot-cos-outfit::before {
+  right: 5px;
+  transform: translateY(-50%);
+  clip-path: polygon(0 0, 100% 26%, 100% 74%, 0 100%);
+}
+.mascot-theme-root[data-mascot-outfit="bowtie"] .mascot-cos-outfit::after {
+  left: 5px;
+  transform: translateY(-50%);
+  clip-path: polygon(0 26%, 100% 0, 100% 100%, 0 74%);
 }
 .mascot-theme-root[data-mascot-outfit="necktie"] .mascot-cos-outfit {
-  width: 10px;
-  height: 22px;
-  border-radius: 2px 2px 6px 6px;
-  background: linear-gradient(180deg, #1e3a5f, #0f172a);
+  --fit: var(--cos-outfit-color, #1e3a5f);
+  width: 14px;
+  height: 26px;
   top: calc(100% - 2px);
+  border-radius: 0;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--fit) 45%, #000) 0%,
+    color-mix(in srgb, var(--fit) 78%, #fff) 46%,
+    var(--fit) 54%,
+    color-mix(in srgb, var(--fit) 40%, #000) 100%
+  );
+  clip-path: polygon(24% 0, 76% 0, 100% 18%, 64% 18%, 70% 100%, 30% 100%, 36% 18%, 0 18%);
 }
 .mascot-theme-root[data-mascot-outfit="scarf"] .mascot-cos-outfit {
-  width: 48px;
-  height: 9px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #b91c1c, #ea580c, #b91c1c);
-  top: calc(100% - 2px);
-}
-.mascot-theme-root[data-mascot-outfit="badge"] .mascot-cos-outfit {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #fde68a, #ca8a04);
-  top: calc(100% + 4px);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
-}
-.mascot-theme-root[data-mascot-outfit="collar"] .mascot-cos-outfit {
-  width: 44px;
+  --fit: var(--cos-outfit-color, #9f1239);
+  width: 46px;
   height: 8px;
-  border-radius: 0 0 12px 12px;
-  background: #f8fafc;
-  box-shadow: inset 0 -2px 0 #cbd5e1;
-  top: calc(100% - 6px);
-}
-.mascot-theme-root[data-mascot-outfit="pearls"] .mascot-cos-outfit {
-  width: 40px;
-  height: 6px;
-  border-radius: 999px;
+  top: calc(100% - 4px);
+  border-radius: 3px;
   background: repeating-linear-gradient(
     90deg,
-    #fef3c7 0px,
-    #fef3c7 6px,
-    transparent 6px,
-    transparent 10px
+    var(--fit) 0 7px,
+    color-mix(in srgb, var(--fit) 62%, #000) 7px 9px
   );
-  top: calc(100% + 2px);
 }
-.mascot-theme-root[data-mascot-outfit="ribbon"] .mascot-cos-outfit {
+.mascot-theme-root[data-mascot-outfit="scarf"] .mascot-cos-outfit::after {
+  content: "";
+  right: 7px;
+  top: 5px;
+  width: 8px;
+  height: 14px;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(180deg, var(--fit), color-mix(in srgb, var(--fit) 48%, #000));
+}
+.mascot-theme-root[data-mascot-outfit="badge"] .mascot-cos-outfit {
+  --fit: var(--cos-outfit-color, #b45309);
   width: 14px;
   height: 14px;
-  background: #fb7185;
-  clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+  top: calc(100% + 3px);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 36% 32%, color-mix(in srgb, var(--fit) 20%, #fff) 0 2px, transparent 2.6px),
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--fit) 45%, #fff) 0 3px, var(--fit) 3.5px 6px, color-mix(in srgb, var(--fit) 40%, #000) 6.5px);
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--fit) 25%, #fff),
+    0 1px 2px rgba(0, 0, 0, 0.22);
+}
+.mascot-theme-root[data-mascot-outfit="badge"] .mascot-cos-outfit::before {
+  content: "";
+  left: 50%;
+  bottom: 11px;
+  width: 10px;
+  height: 5px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--fit) 65%, #000) 0 42%,
+    color-mix(in srgb, var(--fit) 18%, #fff) 42% 58%,
+    color-mix(in srgb, var(--fit) 65%, #000) 58%
+  );
+  clip-path: polygon(0 0, 100% 0, 82% 100%, 18% 100%);
+}
+.mascot-theme-root[data-mascot-outfit="collar"] .mascot-cos-outfit {
+  --fit: var(--cos-outfit-color, #f8fafc);
+  width: 38px;
+  height: 11px;
+  top: calc(100% - 6px);
+  background: transparent;
+  box-shadow: none;
+}
+.mascot-theme-root[data-mascot-outfit="collar"] .mascot-cos-outfit::before,
+.mascot-theme-root[data-mascot-outfit="collar"] .mascot-cos-outfit::after {
+  content: "";
+  top: 0;
+  width: 18px;
+  height: 11px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fit) 30%, #fff), var(--fit));
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--fit) 55%, #94a3b8);
+}
+.mascot-theme-root[data-mascot-outfit="collar"] .mascot-cos-outfit::before {
+  left: 0;
+  clip-path: polygon(0 0, 100% 0, 58% 100%, 0 72%);
+}
+.mascot-theme-root[data-mascot-outfit="collar"] .mascot-cos-outfit::after {
+  right: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 72%, 42% 100%);
+}
+.mascot-theme-root[data-mascot-outfit="pearls"] .mascot-cos-outfit {
+  --fit: var(--cos-outfit-color, #e7d3b0);
+  width: 42px;
+  height: 8px;
+  top: calc(100% + 1px);
+  border-radius: 0;
+  background-color: transparent;
+  background-image: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--fit) 22%, #fff) 0 2px,
+    var(--fit) 2.2px 3.1px,
+    transparent 3.4px
+  );
+  background-size: 8px 8px;
+  background-repeat: repeat-x;
+  background-position: center;
+}
+.mascot-theme-root[data-mascot-outfit="ribbon"] .mascot-cos-outfit {
+  --fit: var(--cos-outfit-color, #9f1239);
+  width: 22px;
+  height: 16px;
   top: calc(100% - 2px);
+  background:
+    radial-gradient(ellipse 7px 5px at 5px 5px, var(--fit) 68%, transparent 71%),
+    radial-gradient(ellipse 7px 5px at 17px 5px, var(--fit) 68%, transparent 71%);
+}
+.mascot-theme-root[data-mascot-outfit="ribbon"] .mascot-cos-outfit::before {
+  content: "";
+  left: 50%;
+  top: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: color-mix(in srgb, var(--fit) 62%, #000);
+}
+.mascot-theme-root[data-mascot-outfit="ribbon"] .mascot-cos-outfit::after {
+  content: "";
+  left: 50%;
+  top: 7px;
+  width: 12px;
+  height: 9px;
+  transform: translateX(-50%);
+  background: var(--fit);
+  clip-path: polygon(38% 0, 62% 0, 100% 100%, 68% 100%, 50% 32%, 32% 100%, 0 100%);
 }
 .mascot-theme-root[data-mascot-outfit="vest"] .mascot-cos-outfit {
-  width: 40px;
-  height: 14px;
-  border-radius: 6px 6px 2px 2px;
-  bottom: auto;
-  top: calc(100% + 2px);
-  background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
-  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
-}
-.mascot-theme-root[style*='--cos-outfit-color'][data-mascot-outfit='necktie'] .mascot-cos-outfit {
+  --fit: var(--cos-outfit-color, #334155);
+  width: 38px;
+  height: 16px;
+  top: calc(100% - 1px);
+  border-radius: 5px 5px 3px 3px;
   background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--cos-outfit-color) 70%, #000),
-    color-mix(in srgb, var(--cos-outfit-color) 35%, #000)
-  ) !important;
+    90deg,
+    var(--fit) 0 40%,
+    color-mix(in srgb, var(--fit) 28%, #0f172a) 40% 60%,
+    var(--fit) 60% 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--fit) 35%, #fff),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.22);
 }
-.mascot-theme-root[style*='--cos-outfit-color'][data-mascot-outfit='vest'] .mascot-cos-outfit {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--cos-outfit-color) 55%, #334155),
-    color-mix(in srgb, var(--cos-outfit-color) 25%, #0f172a)
-  ) !important;
-}
-.mascot-theme-root[style*='--cos-outfit-color'][data-mascot-outfit='ribbon'] .mascot-cos-outfit {
-  background: var(--cos-outfit-color) !important;
-}
-.mascot-theme-root[style*='--cos-outfit-color'][data-mascot-outfit='bowtie'] .mascot-cos-outfit {
-  border-left-color: color-mix(in srgb, var(--cos-outfit-color) 80%, #000) !important;
-  border-right-color: color-mix(in srgb, var(--cos-outfit-color) 80%, #000) !important;
-  border-top-color: color-mix(in srgb, var(--cos-outfit-color) 65%, #fff) !important;
-  border-bottom-color: color-mix(in srgb, var(--cos-outfit-color) 65%, #fff) !important;
+.mascot-theme-root[data-mascot-outfit="vest"] .mascot-cos-outfit::before {
+  content: "";
+  left: 50%;
+  top: 3px;
+  width: 3px;
+  height: 3px;
+  margin-left: -1.5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--fit) 15%, #f8fafc);
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--fit) 15%, #f8fafc);
 }
 
 /* ——— Kozmetik animasyonları ——— */
@@ -689,10 +965,10 @@
 
 @keyframes mcos-hat-float {
   0%, 100% {
-    filter: brightness(1) drop-shadow(0 0 0 transparent);
+    translate: 0 0;
   }
   50% {
-    filter: brightness(1.1) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12));
+    translate: 0 -1px;
   }
 }
 @keyframes mcos-outfit-sway {
