@@ -1570,6 +1570,21 @@ AGENT DIALER EKRANI
 display:grid;
 grid-template-columns:1fr 320px;
 gap:16px; height:100%;
+align-items:stretch;
+}
+.dialer-side {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+#page-dialer .dialer-side > :not(.agent-camps-panel) { flex: 0 0 auto; }
+#page-dialer .dialer-side > .agent-camps-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
 .dialer-layout > div:first-child {
   min-height: 0;
@@ -1578,11 +1593,14 @@ gap:16px; height:100%;
   gap: 8px;
 }
 #page-dialer.page.active {
+  position: absolute;
+  inset: 0;
   min-height: 0;
 }
 #page-dialer > .dialer-layout {
   flex: 1 1 auto;
   min-height: 0;
+  height: auto;
 }
 #page-dialer .dialer-layout > div:first-child {
   overflow-x: hidden;

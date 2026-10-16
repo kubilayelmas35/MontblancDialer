@@ -833,7 +833,7 @@
 #page-export .et-stat-lbl{flex:1;}
 #page-export .et-stat-n{font-size:10px;background:var(--border);padding:2px 7px;border-radius:10px;font-weight:700;}
 #page-export .et-stat-sel .et-stat-n{background:var(--accent);color:#fff;}
-#page-export .et-loading{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9999;display:none;align-items:center;justify-content:center;}
+#page-export .et-loading{position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:30;display:none;align-items:center;justify-content:center;}
 #page-export .et-loading-inner{background:var(--bg-2);padding:24px 32px;border-radius:12px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2);}
 #page-export .et-spin{border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;width:36px;height:36px;margin:0 auto 12px;animation:etspin .8s linear infinite;}
 @keyframes etspin{to{transform:rotate(360deg);}}
@@ -1403,6 +1403,7 @@ Son randevu bilgileri indirilebilir.
 </div>
 </div>
 </div>
+<div class="dialer-side">
 <div id="call-actions" style="display:none;">
 <div class="call-action-row">
 <button type="button" class="call-action-btn" id="btn-redial" onclick="redialCurrentContact()" title="Tekrar ara">
@@ -1449,7 +1450,6 @@ style="opacity:0.45;cursor:not-allowed;" title="Önce kampanya seçin">
 </span>
 <span id="ready-text" data-tr="Kampanya Seç → Aramayı Başlat" data-de="Kampagne wählen → Anruf starten">Kampanya Seç → Aramayı Başlat</span>
 </button>
-</div>
 </div>
 <div class="agent-camps-panel" id="agent-camps-panel">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -1506,6 +1506,8 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </div>
 <div id="unfinalized-calls-list" style="display:none;flex-direction:column;gap:4px;font-size:11px;position:relative;z-index:260;">
 <div style="color:var(--text-3);text-align:center;padding:8px;">Yükleniyor...</div>
+</div>
+</div>
 </div>
 </div>
 </div>

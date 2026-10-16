@@ -332,11 +332,14 @@ _allFirms = await sb('firms?select=id,name,slug&order=name.asc') || [];
 } catch(e) { _allFirms = []; }
 }
 
+let _firmSelectorLock = 0;
 function renderFirmSelector(containerId, callbackFn) {
 const el = document.getElementById(containerId);
 if (!el) return;
 if (!isSuperAdmin()) { el.innerHTML = ''; return; }
 const buildSelect = () => {
+_firmSelectorLock++;
+try {
 el.innerHTML = `
 <div style="display:flex;align-items:center;gap:6px;">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-3);flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
@@ -348,10 +351,14 @@ ${_allFirms.map(f=>`<option value="${f.id}" ${f.id===(_selectedFirmId||'')?'sele
 const sel = document.getElementById(containerId+'-sel');
 if (sel) {
 sel.onchange = function() {
-_selectedFirmId = this.value || null;
+if (_firmSelectorLock) return;
+const next = this.value || null;
+if (next === (_selectedFirmId || null)) return;
+_selectedFirmId = next;
 if (typeof callbackFn === 'function') callbackFn();
 };
 }
+} finally { _firmSelectorLock--; }
 };
 if (!_allFirms.length) {
 sb('firms?select=id,name,slug&order=name.asc').then(firms => {
