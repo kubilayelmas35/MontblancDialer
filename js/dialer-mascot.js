@@ -323,7 +323,7 @@ const MASCOT_COS_LEGACY = {
 
 /** Rastgele seçenek: sayfa yükünde bir kez çözülür (yenilemede yeniden). */
 const MASCOT_COS_RANDOM_POOLS = {
-  eye: ['none', 'sparkle', 'anime', 'sleepy', 'wink', 'shy', 'big', 'star', 'glow', 'retro'],
+  eye: ['none', 'sparkle', 'anime', 'sleepy', 'wink', 'shy', 'big', 'star', 'glow', 'retro', 'softsquare'],
   brow: ['none', 'thin', 'soft', 'arch', 'thick', 'wispy', 'bold', 'angry', 'straight', 'curved'],
   stache: ['none', 'silk', 'gentle', 'twirl', 'dapper', 'velvet', 'painter', 'crescent', 'film', 'sombrero'],
   mouth: ['none', 'beam', 'soft', 'laugh', 'smitten', 'playful', 'tiny', 'pout', 'cool', 'dreamy'],
