@@ -254,6 +254,7 @@ function _wireGlobalMascotInteractions() {
     gm.style.top = `${y}px`;
     gm.classList.add('global-mascot--custom');
     setMascotPref('mb_mascot_custom_pos', JSON.stringify({ x, y }));
+    placeGlobalMascotBubble();
   });
   mascot.addEventListener('pointerup', (e) => {
     if (!_mascotDragState || _mascotDragState.pointerId !== e.pointerId) return;
@@ -399,17 +400,6 @@ function _wanderFrame() {
   if (!Number.isFinite(_wanderCur.y)) _wanderCur.y = 0;
   gm.style.setProperty('--gm-wx', `${_wanderCur.x.toFixed(2)}px`);
   gm.style.setProperty('--gm-wy', `${_wanderCur.y.toFixed(2)}px`);
-  const bubble = document.getElementById('cust-empty-bubble');
-  if (bubble && bubble.style.display === 'block') {
-    const pad = 10;
-    let shift = 0;
-    const br = bubble.getBoundingClientRect();
-    if (br.left < pad) shift += pad - br.left;
-    if (br.right > window.innerWidth - pad) shift -= br.right - (window.innerWidth - pad);
-    const maxShift = Math.min(120, Math.max(window.innerWidth, 400) * 0.2);
-    shift = Math.max(-maxShift, Math.min(maxShift, shift));
-    bubble.style.setProperty('--bubble-shift-x', `${Math.round(shift)}px`);
-  }
   const panel = document.getElementById('global-mascot-info');
   if (panel && panel.style.display !== 'none') {
     if (typeof positionGlobalMascotInfoPanel === 'function') positionGlobalMascotInfoPanel();
@@ -630,28 +620,81 @@ function _clearCustEmptyCoachTimer() {
   }
 }
 
+let _bubblePlaceRaf = 0;
+
+function placeGlobalMascotBubble() {
+  const bubble = document.getElementById('cust-empty-bubble');
+  const mascot = document.querySelector('#global-mascot .cust-empty-mascot');
+  if (!bubble || !mascot || bubble.style.display === 'none') return;
+  const pad = 8;
+  const gap = 12;
+  bubble.classList.add('cust-empty-bubble--docked');
+  const mr = mascot.getBoundingClientRect();
+  if (mr.width < 2 || mr.height < 2) return;
+  const cx = mr.left + mr.width / 2;
+  const cy = mr.top + mr.height / 2;
+  const roomLeft = mr.left - pad - gap;
+  const roomRight = window.innerWidth - pad - gap - mr.right;
+  const roomUp = mr.top - pad - gap;
+  const roomDown = window.innerHeight - pad - gap - mr.bottom;
+  let toLeft = cx >= window.innerWidth / 2;
+  let above = cy >= window.innerHeight / 2;
+  if (toLeft && roomLeft < 120 && roomRight > roomLeft) toLeft = false;
+  if (!toLeft && roomRight < 120 && roomLeft > roomRight) toLeft = true;
+  if (above && roomUp < 44 && roomDown > roomUp) above = false;
+  if (!above && roomDown < 44 && roomUp > roomDown) above = true;
+  const roomX = Math.max(80, toLeft ? roomLeft : roomRight);
+  const maxW = Math.min(260, roomX);
+  bubble.style.setProperty('--bubble-max-w', `${Math.round(maxW)}px`);
+  const bw = Math.min(bubble.offsetWidth || maxW, maxW);
+  const bh = bubble.offsetHeight || 36;
+  let left = toLeft ? mr.left - gap - bw : mr.right + gap;
+  let top = above ? mr.top - gap - bh : mr.bottom + gap;
+  if (left < pad) left = mr.right + gap;
+  if (left + bw > window.innerWidth - pad) left = mr.left - gap - bw;
+  if (top < pad) top = mr.bottom + gap;
+  if (top + bh > window.innerHeight - pad) top = mr.top - gap - bh;
+  left = Math.max(pad, Math.min(left, window.innerWidth - pad - bw));
+  top = Math.max(pad, Math.min(top, window.innerHeight - pad - bh));
+  const overlaps =
+    left < mr.right - 1 &&
+    left + bw > mr.left + 1 &&
+    top < mr.bottom - 1 &&
+    top + bh > mr.top + 1;
+  if (overlaps) {
+    left = toLeft ? Math.max(pad, mr.left - gap - bw) : Math.min(window.innerWidth - pad - bw, mr.right + gap);
+    top = above ? Math.max(pad, mr.top - gap - bh) : Math.min(window.innerHeight - pad - bh, mr.bottom + gap);
+    left = Math.max(pad, Math.min(left, window.innerWidth - pad - bw));
+    top = Math.max(pad, Math.min(top, window.innerHeight - pad - bh));
+  }
+  bubble.style.setProperty('--bubble-left', `${Math.round(left)}px`);
+  bubble.style.setProperty('--bubble-top', `${Math.round(top)}px`);
+}
+
+function _ensureBubblePlacer() {
+  if (_bubblePlaceRaf) return;
+  const tick = () => {
+    const bubble = document.getElementById('cust-empty-bubble');
+    if (!bubble || bubble.style.display === 'none') {
+      _bubblePlaceRaf = 0;
+      return;
+    }
+    placeGlobalMascotBubble();
+    _bubblePlaceRaf = requestAnimationFrame(tick);
+  };
+  _bubblePlaceRaf = requestAnimationFrame(tick);
+}
+
 function _showCustEmptyBubbleMsg(msg) {
   const bubble = document.getElementById('cust-empty-bubble');
   if (!bubble || isMimiHidden() || isMimiBubbleMuted()) return;
   bubble.textContent = formatMascotSpokenLine(msg);
-  bubble.style.setProperty('--bubble-shift-x', '0px');
   bubble.style.display = 'block';
   bubble.classList.remove('cust-empty-bubble--pop');
   void bubble.offsetWidth;
   bubble.classList.add('cust-empty-bubble--pop');
-  const clampBubble = () => {
-    const r = bubble.getBoundingClientRect();
-    const pad = 10;
-    let shift = 0;
-    if (r.left < pad) shift += pad - r.left;
-    if (r.right > window.innerWidth - pad) shift -= r.right - (window.innerWidth - pad);
-    const maxShift = Math.min(120, Math.max(window.innerWidth, 400) * 0.2);
-    shift = Math.max(-maxShift, Math.min(maxShift, shift));
-    bubble.style.setProperty('--bubble-shift-x', `${Math.round(shift)}px`);
-  };
-  requestAnimationFrame(() => {
-    requestAnimationFrame(clampBubble);
-  });
+  placeGlobalMascotBubble();
+  _ensureBubblePlacer();
 }
 
 function _clearCustEmptyNotifPeek() {

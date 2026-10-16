@@ -681,6 +681,27 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 .global-mascot.global-mascot--muted .cust-empty-bubble {
   display: none !important;
 }
+/* Balon maskotun açık tarafında durur; kenarda kesilmez, maskotun üstünü kapatmaz. */
+.global-mascot .cust-empty-bubble.global-mascot-bubble.cust-empty-bubble--docked,
+.global-mascot.global-mascot--topbar .cust-empty-bubble.global-mascot-bubble.cust-empty-bubble--docked,
+.global-mascot.global-mascot--sidebar .cust-empty-bubble.global-mascot-bubble.cust-empty-bubble--docked,
+.global-mascot .cust-empty-bubble.global-mascot-bubble.cust-empty-bubble--docked.cust-empty-bubble--pop,
+.global-mascot.global-mascot--topbar .cust-empty-bubble.global-mascot-bubble.cust-empty-bubble--docked.cust-empty-bubble--pop,
+.global-mascot.global-mascot--sidebar .cust-empty-bubble.global-mascot-bubble.cust-empty-bubble--docked.cust-empty-bubble--pop {
+  position: fixed;
+  left: var(--bubble-left, 8px);
+  top: var(--bubble-top, 8px);
+  right: auto;
+  bottom: auto;
+  margin: 0;
+  width: max-content;
+  min-width: 0;
+  max-width: var(--bubble-max-w, 240px);
+  transform: none;
+  text-align: left;
+  pointer-events: none;
+  z-index: 6;
+}
 .global-mascot.global-mascot--peek-chat {
   left: auto !important;
   top: auto !important;
