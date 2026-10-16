@@ -489,13 +489,13 @@ function _syncGlobalMascotDockImpl() {
   }
   if (isMimiHidden()) {
     const logo = document.querySelector('.tb-logo');
-    const fallback = { left: 80, top: 28, width: 36, height: 34 };
-    const lr = logo
-      ? logo.getBoundingClientRect()
-      : anchor
-        ? anchor.getBoundingClientRect()
-        : fallback;
-    _placeGlobalMascotAtRect({ left: lr.left + lr.width + 22, top: lr.top + 16, width: 18, height: 18 });
+    const bar = document.getElementById('topbar');
+    const lr = logo ? logo.getBoundingClientRect() : null;
+    const br = bar ? bar.getBoundingClientRect() : null;
+    const size = 34;
+    const left = lr && lr.width > 1 ? lr.right + 8 : (br ? br.left + 56 : 88);
+    const top = br && br.height > 1 ? br.top + (br.height - size) / 2 : 10;
+    _placeGlobalMascotAtRect({ left, top, width: size, height: size });
     gm.classList.remove('global-mascot--dialer');
     gm.classList.add('global-mascot--topbar');
     _stopGlobalMascotWander();

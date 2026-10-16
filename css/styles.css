@@ -235,8 +235,8 @@ align-items: center;
 line-height: 1.2;
 }
 .tb-logo-mark {
-width: 28px;
-height: 28px;
+width: 32px;
+height: 32px;
 flex-shrink: 0;
 background: rgba(255, 255, 255, 0.55);
 border: 1px solid rgba(15, 23, 42, 0.12);
@@ -256,9 +256,9 @@ text-shadow: none;
 margin: 0;
 }
 [data-theme="dark"] .tb-logo {
-border-color: rgba(255, 255, 255, 0.08);
+border-color: rgba(255, 255, 255, 0.22);
 box-shadow: none;
-background: #0d0f14;
+background: rgba(255, 255, 255, 0.06);
 }
 [data-theme="dark"] .tb-logo-name { color: #f8fafc; }
 [data-theme="dark"] .tb-uname { color: #f8fafc; }
@@ -280,8 +280,9 @@ background: #0d0f14;
 }
 [data-theme="dark"] .tb-test-flag { color: #fde68a; }
 [data-theme="dark"] .tb-logo-mark {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.16);
+  background: #f8fafc;
+  border-color: transparent;
+  color: #0f172a;
 }
 /* Topbar pills (wrapper .tb-pills-wrap kaydırır) */
 #tb-pills {
@@ -673,9 +674,9 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   transform: translate(calc(-12px + var(--gm-wx, 0px)), calc(-100% + var(--gm-wy, 0px))) scale(1);
 }
 .global-mascot.global-mascot--muted .cust-empty-mascot {
-  transform: translate(calc(-50% + var(--gm-wx, 0px)), calc(-50% + var(--gm-wy, 0px))) scale(0.32);
+  transform: translate(calc(-50% + var(--gm-wx, 0px)), calc(-50% + var(--gm-wy, 0px))) scale(0.5);
   animation: none !important;
-  opacity: 0.78;
+  opacity: 1;
 }
 .global-mascot.global-mascot--muted .global-mascot-info,
 .global-mascot.global-mascot--muted .cust-empty-bubble {
