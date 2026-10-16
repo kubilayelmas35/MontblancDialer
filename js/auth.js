@@ -199,59 +199,14 @@ if (!currentUser.initials) currentUser.initials = (currentUser.name||'?').charAt
 document.getElementById('tb-av').textContent = currentUser.initials.charAt(0);
 document.getElementById('tb-uname').textContent = currentUser.name;
 const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser.role);
-const isBackoffice = isAdmin || currentUser.role === 'qc';
-document.getElementById('nav-admin').style.display = isBackoffice ? '' : 'none';
-document.getElementById('nav-agent').style.display = isBackoffice ? 'none' : '';
-document.getElementById('tb-pills').style.display  = isAdmin ? '' : 'none';
-document.getElementById('sb-settings').style.display = isAdmin ? '' : 'none';
-document.getElementById('telnyx-settings').style.display = currentUser.role === 'super_admin' ? '' : 'none';
-const fieldNav = document.getElementById('nav-field-btn');
-const dialerNav = document.getElementById('nav-dialer-btn');
-const adminDialerNav = document.getElementById('nav-admin-dialer-btn');
-const fieldOpsNav = document.getElementById('nav-fieldops-btn');
-const jobsNav = document.getElementById('nav-jobs-btn');
-const myHistoryNav = document.getElementById('nav-myhistory-btn');
-const wvNav = document.getElementById('nav-wv-btn');
-const takvimOverlayNav = document.getElementById('nav-takvim-overlay-btn');
-if (fieldNav) fieldNav.style.display = currentUser.role === 'field_agent' ? '' : 'none';
-if (dialerNav) dialerNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
-if (adminDialerNav) adminDialerNav.style.display = ['admin','firm_admin','super_admin','qc'].includes(currentUser.role) ? '' : 'none';
-if (fieldOpsNav) fieldOpsNav.style.display = ['admin','firm_admin','super_admin'].includes(currentUser.role) ? '' : 'none';
-const supervisorNav = document.getElementById('nav-supervisor-btn');
-if (supervisorNav) supervisorNav.style.display = ['admin','firm_admin','super_admin'].includes(currentUser.role) ? '' : 'none';
-if (jobsNav) jobsNav.style.display = ['admin','firm_admin','super_admin'].includes(currentUser.role) ? '' : 'none';
-if (myHistoryNav) myHistoryNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
-if (wvNav) wvNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
-if (takvimOverlayNav) takvimOverlayNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
-// API keys (Google, TomTom, daily goal) — super_admin only
-const apiCard = document.querySelector('#page-settings .card:has(#s-google-key)') ||
-  [...document.querySelectorAll('#page-settings .card')].find(c=>c.querySelector('#s-google-key'));
-if (apiCard) apiCard.style.display = currentUser.role === 'super_admin' ? '' : 'none';
-// Mesai settings — admin+ (not agents)
-const mesaiCard = document.getElementById('mesai-settings-card');
-if (mesaiCard) mesaiCard.style.display = isAdmin ? '' : 'none';
-const chatSetCard = document.getElementById('chat-settings-card');
-if (chatSetCard) chatSetCard.style.display = isAdmin ? '' : 'none';
-const fieldSetCard = document.getElementById('field-settings-card');
-if (fieldSetCard) fieldSetCard.style.display = isAdmin ? '' : 'none';
-const featCard = document.getElementById('feature-flags-card');
-if (featCard) featCard.style.display = isAdmin ? '' : 'none';
-const jobPermCard = document.getElementById('job-permissions-card');
-if (jobPermCard) jobPermCard.style.display = isAdmin ? '' : 'none';
-const roleMap = {
-'super_admin':'Süper Admin','firm_admin':'Firma Admin',
-'admin':'Admin','agent':'Agent','qc':'QC','field_agent':'Saha Elemanı'
-};
+if (typeof mbApplyNavAccess === 'function') mbApplyNavAccess();
 const roleEl = document.getElementById('tb-urole');
 if (roleEl) {
   const suffix = currentUser.firm_name ? ` · ${currentUser.firm_name}` : '';
   const imp = _impersonation ? ' · Temsil Modu' : '';
-  roleEl.textContent = (roleMap[currentUser.role]||currentUser.role) + suffix + imp;
+  const roleName = typeof mbRoleLabel === 'function' ? mbRoleLabel(currentUser.role) : currentUser.role;
+  roleEl.textContent = roleName + suffix + imp;
 }
-const firmsBtn = document.getElementById('nav-firms-btn');
-if (firmsBtn) firmsBtn.style.display = currentUser.role === 'super_admin' ? '' : 'none';
-const perfNav = document.getElementById('nav-performance-btn');
-if (perfNav) perfNav.style.display = ['admin', 'firm_admin', 'super_admin'].includes(currentUser.role) ? '' : 'none';
 if (currentUser.role === 'super_admin') { loadAllFirms(); }
 loadFirmCallHours(); // arama kısıtlamalarını yükle
 if (typeof loadFirmDialerSettingsCache === 'function') void loadFirmDialerSettingsCache();
@@ -263,10 +218,7 @@ setInterval(updateTopbarStats, 30000);
 }
 loadWvBadge();
 if (typeof refreshUserPagePerms === 'function') refreshUserPagePerms().catch(() => {});
-if (isAdmin) { navigate('dashboard'); }
-else if (currentUser.role === 'qc') { navigate('qc'); }
-else if (currentUser.role === 'field_agent') { navigate('field'); }
-else         { navigate('dialer'); }
+navigate(typeof mbHomePage === 'function' ? mbHomePage(currentUser.role) : 'dialer');
 if (typeof initChat === 'function') initChat();
 if (typeof initNotificationCenter === 'function') initNotificationCenter();
 initRTCListener();
@@ -499,7 +451,7 @@ _googleApiKey = localStorage.getItem('mb_google_key') || DEFAULT_GOOGLE_KEY;
 
 function _isValidSessionUserShape(u) {
   if (!u || typeof u !== 'object') return false;
-  const roles = ['agent', 'admin', 'super_admin', 'firm_admin', 'qc', 'field_agent'];
+  const roles = typeof mbKnownRoles === 'function' ? mbKnownRoles() : [];
   if (!u.id || !isValidUUID?.(u.id)) return false;
   if (!u.email || typeof u.email !== 'string') return false;
   if (!u.name || typeof u.name !== 'string') return false;

@@ -620,43 +620,7 @@ async function resetUserPass(userId, email) {
 }
 
 // ── Roller & İzinler ──────────────────────────
-const BUILTIN_ROLES = [
-  { key:'super_admin', label:'Süper Admin', color:'var(--red)', builtin:true,
-    perms:['dashboard','dialer','campaigns','contacts','callhistory','stats','agents','firms','settings','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
-  { key:'admin', label:'Admin', color:'var(--accent)', builtin:true,
-    perms:['dashboard','dialer','campaigns','contacts','callhistory','stats','agents','settings','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
-  { key:'firm_admin',  label:'Firma Admin',  color:'var(--accent)', builtin:true,
-    perms:['dashboard','dialer','campaigns','contacts','callhistory','stats','agents','settings','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
-  { key:'agent',       label:'Agent',        color:'var(--green)', builtin:true,
-    perms:['dashboard','dialer','myhistory','wiedervorlage','takvim','leave','competition','maasim','performansim'] },
-  { key:'qc',          label:'QC',           color:'var(--yellow)', builtin:true,
-    perms:['dashboard','dialer','qc','callhistory','wiedervorlage','leave','competition','maasim','performansim'] },
-  { key:'field_agent', label:'Saha Elemanı', color:'var(--accent-2)', builtin:true,
-    perms:['dashboard','field','leave','competition','maasim','performansim'] },
-];
-const ALL_PAGES = [
-  {key:'dashboard',    label:'Özet'},
-  {key:'campaigns',    label:'Kampanyalar'},
-  {key:'contacts',     label:'Kişiler/Kuyruk'},
-  {key:'callhistory',  label:'Çağrı Geçmişi'},
-  {key:'stats',        label:'İstatistikler'},
-  {key:'agents',       label:'Agentler'},
-  {key:'firms',        label:'Firmalar'},
-  {key:'settings',     label:'Ayarlar'},
-  {key:'takvim',       label:'Takvim'},
-  {key:'qc',           label:'QC Paneli'},
-  {key:'wiedervorlage',label:'Aranacaklar'},
-  {key:'dialer',       label:'Dialer'},
-  {key:'field',        label:'Saha Operasyon'},
-  {key:'myhistory',    label:'Geçmişim'},
-  {key:'leave',        label:'İzin & Devam'},
-  {key:'competition',  label:'Ayın elemanı'},
-  {key:'muhasebe',     label:'Muhasebe'},
-  {key:'maasim',       label:'Maaşım'},
-  {key:'performansim', label:'Performansım'},
-  {key:'export',       label:'Dışa aktarım'},
-  {key:'performance',  label:'Personel performans'},
-];
+// BUILTIN_ROLES ve ALL_PAGES js/access.js içinden gelir.
 
 async function loadRolesPage() {
   const card = document.getElementById('roles-card');
@@ -911,31 +875,6 @@ async function refreshUserPagePerms() {
   } catch (e) {}
 }
 
-function applyAgentPayNavVisibility() {
-  const isStaff = ['agent', 'qc', 'field_agent'].includes(currentUser?.role || '');
-  const p = window._userPagePerms || new Set();
-  const legacy = p.has('muhasebe');
-  const ma = p.has('maasim') || legacy;
-  const pe = p.has('performansim') || legacy;
-  const maBtn = document.getElementById('nav-maasim-btn');
-  const peBtn = document.getElementById('nav-performansim-btn');
-  if (maBtn) maBtn.style.display = isStaff && ma ? '' : 'none';
-  if (peBtn) peBtn.style.display = isStaff && pe ? '' : 'none';
-}
-
 function applySidebarPermVisibility() {
-  applyAgentPayNavVisibility();
-  document.querySelectorAll('.sb-item').forEach((btn) => {
-    const m = String(btn.getAttribute('onclick') || '').match(/navigate\('([a-z0-9_]+)'\)/);
-    if (!m) return;
-    const page = m[1];
-    if (!ALL_PAGES.some((p) => p.key === page)) return;
-    if (btn.id === 'nav-maasim-btn' || btn.id === 'nav-performansim-btn') return;
-    btn.style.display = userHasPagePerm(page) ? '' : 'none';
-  });
-  const allowTakvim = userHasPagePerm('takvim');
-  const top = document.getElementById('takvim-topbar-btn');
-  const overlay = document.getElementById('nav-takvim-overlay-btn');
-  if (top) top.style.display = allowTakvim ? '' : 'none';
-  if (overlay) overlay.style.display = allowTakvim ? '' : 'none';
+  if (typeof mbApplyNavAccess === 'function') mbApplyNavAccess();
 }
