@@ -1,0 +1,801 @@
+/* Maskot makyaj */
+/* Makyaj nefes */
+.mascot-theme-root[data-mascot-makeup="blush"] .mascot-cos-makeup,
+.mascot-theme-root[data-mascot-makeup="cute"] .mascot-cos-makeup {
+  animation: mcos-makeup-pulse 5s ease-in-out infinite;
+}
+.mascot-theme-root[data-mascot-makeup="glow"] .mascot-cos-makeup {
+  animation: mcos-makeup-glow 4.5s ease-in-out infinite;
+}
+.mascot-theme-root[data-mascot-makeup="sparkle"] .mascot-cos-makeup {
+  animation: mcos-makeup-sparkle 3.2s ease-in-out infinite;
+}
+
+.mascot-theme-root .mascot-cos-hat {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - 8px);
+  transform: translateX(-50%);
+  width: 44px;
+  height: 14px;
+  border-radius: 10px 10px 4px 4px;
+  background: var(--cos-hat-color, rgba(42, 36, 58, 0.88));
+  opacity: 0;
+  z-index: 5;
+  pointer-events: none;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12);
+}
+.mascot-theme-root[data-mascot-hat]:not([data-mascot-hat="none"]) .mascot-cos-hat {
+  opacity: 1;
+  animation: mcos-hat-float 5.5s ease-in-out infinite;
+}
+.mascot-theme-root[data-mascot-hat="cap"] .mascot-cos-hat {
+  width: 52px;
+  height: 12px;
+  border-radius: 8px 8px 4px 4px;
+  clip-path: polygon(8% 0%, 92% 0%, 100% 100%, 0% 100%);
+}
+.mascot-theme-root[data-mascot-hat="beanie"] .mascot-cos-hat {
+  height: 22px;
+  width: 48px;
+  border-radius: 50% 50% 40% 40%;
+  bottom: calc(100% - 4px);
+  background: linear-gradient(180deg, #6b5ce6, #4c3fb5);
+}
+.mascot-theme-root[data-mascot-hat="tophat"] .mascot-cos-hat {
+  width: 36px;
+  height: 28px;
+  border-radius: 4px 4px 2px 2px;
+  bottom: calc(100% - 6px);
+  background: linear-gradient(90deg, #2a2438, #1a1524);
+  box-shadow: 0 4px 0 #f5e6c8;
+}
+.mascot-theme-root[data-mascot-hat="crown"] .mascot-cos-hat {
+  width: 0;
+  height: 0;
+  background: transparent;
+  border-left: 22px solid transparent;
+  border-right: 22px solid transparent;
+  border-bottom: 18px solid #d4af37;
+  border-radius: 0;
+  bottom: calc(100% - 2px);
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.2));
+}
+.mascot-theme-root[data-mascot-hat="headband"] .mascot-cos-hat {
+  width: 54px;
+  height: 8px;
+  border-radius: 6px;
+  bottom: calc(100% - 18px);
+  background: linear-gradient(90deg, #ec4899, #8b5cf6);
+}
+.mascot-theme-root[data-mascot-hat="cat"] .mascot-cos-hat {
+  width: 38px;
+  height: 10px;
+  border-radius: 6px;
+  bottom: calc(100% - 10px);
+  background: rgba(42, 36, 58, 0.75);
+  box-shadow:
+    -16px -10px 0 -2px rgba(42, 36, 58, 0.85),
+    16px -10px 0 -2px rgba(42, 36, 58, 0.85);
+}
+.mascot-theme-root[data-mascot-hat="party"] .mascot-cos-hat {
+  width: 8px;
+  height: 22px;
+  border-radius: 2px 2px 0 0;
+  bottom: calc(100% + 2px);
+  background: linear-gradient(180deg, #f472b6, #60a5fa);
+  transform: translateX(-50%) rotate(-8deg);
+}
+.mascot-theme-root[data-mascot-hat="wizard"] .mascot-cos-hat {
+  width: 34px;
+  height: 34px;
+  border-radius: 4px 4px 2px 2px;
+  bottom: calc(100% - 4px);
+  background: linear-gradient(165deg, #4c1d95, #1e1b4b);
+  box-shadow: 0 3px 0 #fbbf24;
+  clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%);
+}
+
+.mascot-theme-root .mascot-cos-outfit {
+  position: absolute;
+  left: 50%;
+  top: calc(100% - 4px);
+  transform: translateX(-50%);
+  width: 36px;
+  height: 10px;
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.mascot-theme-root[data-mascot-outfit]:not([data-mascot-outfit="none"]) .mascot-cos-outfit {
+  opacity: 1;
+  animation: mcos-outfit-sway 6s ease-in-out infinite;
+}
+.mascot-theme-root[data-mascot-outfit="bowtie"] .mascot-cos-outfit {
+  width: 0;
+  height: 0;
+  border-left: 10px solid #5b21b6;
+  border-right: 10px solid #5b21b6;
+  border-top: 7px solid #7c3aed;
+  border-bottom: 7px solid #7c3aed;
+  background: transparent;
+  top: calc(100% + 2px);
+}
+.mascot-theme-root[data-mascot-outfit="necktie"] .mascot-cos-outfit {
+  width: 10px;
+  height: 22px;
+  border-radius: 2px 2px 6px 6px;
+  background: linear-gradient(180deg, #1e3a5f, #0f172a);
+  top: calc(100% - 2px);
+}
+.mascot-theme-root[data-mascot-outfit="scarf"] .mascot-cos-outfit {
+  width: 48px;
+  height: 9px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #b91c1c, #ea580c, #b91c1c);
+  top: calc(100% - 2px);
+}
+.mascot-theme-root[data-mascot-outfit="badge"] .mascot-cos-outfit {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fde68a, #ca8a04);
+  top: calc(100% + 4px);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.mascot-theme-root[data-mascot-outfit="collar"] .mascot-cos-outfit {
+  width: 44px;
+  height: 8px;
+  border-radius: 0 0 12px 12px;
+  background: #f8fafc;
+  box-shadow: inset 0 -2px 0 #cbd5e1;
+  top: calc(100% - 6px);
+}
+.mascot-theme-root[data-mascot-outfit="pearls"] .mascot-cos-outfit {
+  width: 40px;
+  height: 6px;
+  border-radius: 999px;
+  background: repeating-linear-gradient(
+    90deg,
+    #fef3c7 0px,
+    #fef3c7 6px,
+    transparent 6px,
+    transparent 10px
+  );
+  top: calc(100% + 2px);
+}
+.mascot-theme-root[data-mascot-outfit="ribbon"] .mascot-cos-outfit {
+  width: 14px;
+  height: 14px;
+  background: #fb7185;
+  clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+  top: calc(100% - 2px);
+}
+.mascot-theme-root[data-mascot-outfit="vest"] .mascot-cos-outfit {
+  width: 40px;
+  height: 14px;
+  border-radius: 6px 6px 2px 2px;
+  bottom: auto;
+  top: calc(100% + 2px);
+  background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+}
+.mascot-theme-root[style*='--cos-outfit-color'][data-mascot-outfit='necktie'] .mascot-cos-outfit {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--cos-outfit-color) 70%, #000),
+    color-mix(in srgb, var(--cos-outfit-color) 35%, #000)
+  ) !important;
+}
+.mascot-theme-root[style*='--cos-outfit-color'][data-mascot-outfit='vest'] .mascot-cos-outfit {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--cos-outfit-color) 55%, #334155),
+    color-mix(in srgb, var(--cos-outfit-color) 25%, #0f172a)
+  ) !important;
+}
+.mascot-theme-root[style*='--cos-outfit-color'][data-mascot-outfit='ribbon'] .mascot-cos-outfit {
+  background: var(--cos-outfit-color) !important;
+}
+.mascot-theme-root[style*='--cos-outfit-color'][data-mascot-outfit='bowtie'] .mascot-cos-outfit {
+  border-left-color: color-mix(in srgb, var(--cos-outfit-color) 80%, #000) !important;
+  border-right-color: color-mix(in srgb, var(--cos-outfit-color) 80%, #000) !important;
+  border-top-color: color-mix(in srgb, var(--cos-outfit-color) 65%, #fff) !important;
+  border-bottom-color: color-mix(in srgb, var(--cos-outfit-color) 65%, #fff) !important;
+}
+
+/* ——— Kozmetik animasyonları ——— */
+@keyframes mcos-eye-soft-blink {
+  0%, 44%, 48%, 100% {
+    opacity: 1;
+  }
+  46%, 47% {
+    opacity: 0.08;
+  }
+}
+@keyframes mcos-eye-sparkle {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.15);
+  }
+}
+@keyframes mcos-eye-anime {
+  0%, 100% {
+    filter: saturate(1.05);
+  }
+  50% {
+    filter: saturate(1.2) brightness(1.05);
+  }
+}
+@keyframes mcos-eye-sleepy {
+  0%, 100% {
+    transform: scaleY(0.55);
+  }
+  50% {
+    transform: scaleY(0.48);
+  }
+}
+@keyframes mcos-eye-wink-r {
+  0%, 40%, 45%, 100% {
+    transform: scaleY(1);
+  }
+  42%, 43% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes mcos-eye-shy {
+  0%, 100% {
+    transform: scaleX(0.78) translateX(0);
+    opacity: 1;
+  }
+  50% {
+    transform: scaleX(0.72) translateX(0.5px);
+    opacity: 0.88;
+  }
+}
+@keyframes mcos-eye-big {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.08);
+  }
+}
+@keyframes mcos-eye-star {
+  0%, 100% {
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(12deg);
+  }
+}
+@keyframes mcos-eye-glow {
+  0%, 100% {
+    box-shadow:
+      inset 0 -1px 1px rgba(0, 0, 0, 0.1),
+      0 0 8px rgba(255, 255, 255, 0.85),
+      0 0 14px rgba(168, 85, 247, 0.35);
+  }
+  50% {
+    box-shadow:
+      inset 0 -1px 1px rgba(0, 0, 0, 0.1),
+      0 0 12px rgba(255, 255, 255, 0.95),
+      0 0 20px rgba(168, 85, 247, 0.5);
+  }
+}
+@keyframes mcos-eye-retro {
+  0%, 40%, 44%, 100% {
+    opacity: 1;
+  }
+  42%, 43% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes mcos-brow-lift-l {
+  0%, 100% {
+    transform: rotate(-4deg) translateY(0);
+  }
+  50% {
+    transform: rotate(-4deg) translateY(-2px);
+  }
+}
+@keyframes mcos-brow-lift-r {
+  0%, 100% {
+    transform: rotate(4deg) translateY(0);
+  }
+  50% {
+    transform: rotate(4deg) translateY(-2px);
+  }
+}
+@keyframes mcos-brow-soft {
+  0%, 100% {
+    opacity: 0.75;
+    filter: blur(0.4px);
+  }
+  50% {
+    opacity: 0.9;
+    filter: blur(0.2px);
+  }
+}
+@keyframes mcos-brow-arch-l {
+  0%, 100% {
+    transform: rotate(-6deg) translateY(0);
+  }
+  50% {
+    transform: rotate(-4deg) translateY(-1.5px);
+  }
+}
+@keyframes mcos-brow-arch-r {
+  0%, 100% {
+    transform: rotate(6deg) translateY(0);
+  }
+  50% {
+    transform: rotate(4deg) translateY(-1.5px);
+  }
+}
+@keyframes mcos-brow-thick {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.12);
+  }
+}
+@keyframes mcos-brow-wispy-l {
+  0%, 100% {
+    transform: rotate(-10deg) translateY(0);
+  }
+  50% {
+    transform: rotate(-12deg) translateY(-1px);
+  }
+}
+@keyframes mcos-brow-wispy-r {
+  0%, 100% {
+    transform: rotate(10deg) translateY(0);
+  }
+  50% {
+    transform: rotate(12deg) translateY(-1px);
+  }
+}
+@keyframes mcos-brow-bold {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.15);
+  }
+}
+@keyframes mcos-brow-angry-l {
+  0%, 100% {
+    transform: rotate(-18deg) translateY(1px);
+  }
+  50% {
+    transform: rotate(-20deg) translateY(0);
+  }
+}
+@keyframes mcos-brow-angry-r {
+  0%, 100% {
+    transform: rotate(18deg) translateY(1px);
+  }
+  50% {
+    transform: rotate(20deg) translateY(0);
+  }
+}
+@keyframes mcos-brow-straight {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.08);
+  }
+}
+@keyframes mcos-brow-curved {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.1);
+  }
+}
+
+@keyframes mcos-nose-wiggle {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  25% {
+    transform: translateX(calc(-50% + 0.8px)) translateY(0.5px);
+  }
+  75% {
+    transform: translateX(calc(-50% - 0.8px)) translateY(0.5px);
+  }
+}
+@keyframes mcos-nose-bounce {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.06);
+  }
+}
+@keyframes mcos-nose-tilt {
+  0%, 100% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  50% {
+    transform: translateX(-50%) rotate(-3deg);
+  }
+}
+
+@keyframes mcos-ear-sway {
+  0%, 100% {
+    transform: translateY(-50%) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-50%) rotate(8deg);
+  }
+}
+@keyframes mcos-ear-hoop {
+  0%, 100% {
+    transform: translateY(-50%) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-50%) rotate(-14deg);
+  }
+}
+@keyframes mcos-ear-drop {
+  0%, 100% {
+    transform: translateY(-50%) translateY(0);
+  }
+  50% {
+    transform: translateY(-50%) translateY(2px);
+  }
+}
+@keyframes mcos-ear-heart {
+  0%, 100% {
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    transform: translateY(-50%) scale(1.08);
+  }
+}
+
+@keyframes mcos-makeup-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.88;
+  }
+}
+@keyframes mcos-makeup-glow {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.12);
+  }
+}
+@keyframes mcos-makeup-sparkle {
+  0%, 100% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.85;
+  }
+  60% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes mcos-stache-silk {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0) scaleX(1);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-0.5px) scaleX(1.04);
+  }
+}
+@keyframes mcos-stache-gentle {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.05);
+    opacity: 0.92;
+  }
+}
+@keyframes mcos-stache-twirl {
+  0%, 100% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  50% {
+    transform: translateX(-50%) rotate(-2.5deg);
+  }
+}
+@keyframes mcos-stache-dapper {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-1px);
+  }
+}
+@keyframes mcos-stache-velvet {
+  0%, 100% {
+    transform: translateX(-50%) scaleY(1);
+  }
+  50% {
+    transform: translateX(-50%) scaleY(1.08);
+  }
+}
+@keyframes mcos-stache-painter {
+  0%, 100% {
+    transform: translateX(-50%) rotate(-4deg) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) rotate(-6deg) translateY(-1px);
+  }
+}
+@keyframes mcos-stache-crescent {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(1px);
+  }
+}
+@keyframes mcos-stache-film {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.1);
+  }
+}
+@keyframes mcos-stache-sombrero {
+  0%, 100% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  50% {
+    transform: translateX(-50%) rotate(1.5deg);
+  }
+}
+
+@keyframes mcos-mouth-beam {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.08);
+  }
+}
+@keyframes mcos-mouth-soft {
+  0%, 100% {
+    transform: translateX(-50%) scaleX(1);
+  }
+  50% {
+    transform: translateX(-50%) scaleX(1.06);
+  }
+}
+@keyframes mcos-mouth-laugh {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.05, 1.12);
+  }
+}
+@keyframes mcos-mouth-smitten {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.08);
+  }
+}
+@keyframes mcos-mouth-playful {
+  0%, 100% {
+    transform: translateX(-48%) rotate(-10deg);
+  }
+  50% {
+    transform: translateX(-48%) rotate(-14deg) translateY(0.5px);
+  }
+}
+@keyframes mcos-mouth-tiny {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.1);
+  }
+}
+@keyframes mcos-mouth-pout {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(1px);
+  }
+}
+@keyframes mcos-mouth-cool {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-0.5px);
+  }
+}
+@keyframes mcos-mouth-dreamy {
+  0%, 100% {
+    filter: brightness(1) blur(0);
+  }
+  50% {
+    filter: brightness(1.06) blur(0.2px);
+  }
+}
+
+@keyframes mcos-hair-sway {
+  0%,
+  100% {
+    transform: translateX(-50%) rotate(-0.8deg) scaleX(1);
+  }
+  50% {
+    transform: translateX(-50%) rotate(0.8deg) scaleX(1.02);
+  }
+}
+@keyframes mcos-hair-braid {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(0.6px);
+  }
+}
+@keyframes mcos-hair-wave {
+  0%,
+  100% {
+    border-radius: 55% 45% 48% 52%;
+  }
+  50% {
+    border-radius: 48% 52% 52% 48%;
+  }
+}
+@keyframes mcos-hair-afro {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.03);
+  }
+}
+@keyframes mcos-hair-curly {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.08);
+  }
+}
+
+@keyframes mcos-hat-float {
+  0%, 100% {
+    filter: brightness(1) drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    filter: brightness(1.1) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12));
+  }
+}
+@keyframes mcos-outfit-sway {
+  0%, 100% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  50% {
+    transform: translateX(-50%) rotate(-2deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot-theme-root .cust-empty-eye,
+  .mascot-theme-root .mascot-cos-brow,
+  .mascot-theme-root .mascot-cos-stache,
+  .mascot-theme-root .mascot-cos-mouth,
+  .mascot-theme-root .mascot-cos-nose,
+  .mascot-theme-root .mascot-cos-ear,
+  .mascot-theme-root .mascot-cos-hat,
+  .mascot-theme-root .mascot-cos-outfit,
+  .mascot-theme-root .mascot-cos-makeup,
+  .mascot-theme-root .mascot-cos-hair {
+    animation: none !important;
+  }
+}
+
+.cust-empty-blob {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  margin: 4px auto 0;
+  border-radius: 58% 42% 62% 38% / 48% 55% 45% 52%;
+  clip-path: none;
+  /* Tonlar --m-* değişkenleriyle (ayarlardan ana renk + gradient) */
+  background: linear-gradient(
+    145deg,
+    hsl(var(--m-d0, 310), 88%, 94%) 0%,
+    hsl(var(--m-d1, 334), 82%, 72%) 32%,
+    hsl(var(--m-d2, 2), 78%, 58%) 62%,
+    hsl(var(--m-d3, 28), 74%, 48%) 100%
+  );
+  /* Dış hale / glow yok — düz disk görünümü */
+  box-shadow: inset 0 2px 14px rgba(255, 255, 255, 0.42);
+  animation: cust-empty-blob-morph 9s ease-in-out infinite;
+  pointer-events: none;
+  transition: background 0.6s ease, filter 0.6s ease, border-radius 0.35s ease, clip-path 0.35s ease;
+}
+.mascot-theme-root[data-mascot-shape]:not([data-mascot-shape="blob"]) .cust-empty-blob {
+  animation: none;
+}
+.mascot-theme-root[data-mascot-shape="circle"] .cust-empty-blob {
+  border-radius: 50%;
+}
+.mascot-theme-root[data-mascot-shape="square"] .cust-empty-blob {
+  border-radius: 12px;
+}
+.mascot-theme-root[data-mascot-shape="squircle"] .cust-empty-blob {
+  border-radius: 28%;
+}
+.mascot-theme-root[data-mascot-shape="pill"] .cust-empty-blob {
+  border-radius: 999px;
+  width: 52px;
+  height: 70px;
+}
+.mascot-theme-root[data-mascot-shape="hex"] .cust-empty-blob {
+  border-radius: 0;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.mascot-theme-root[data-mascot-shape="diamond"] .cust-empty-blob {
+  border-radius: 2px;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+.mascot-theme-root[data-mascot-shape="star"] .cust-empty-blob {
+  border-radius: 0;
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+}
+.mascot-theme-root[data-mascot-shape="heart"] .cust-empty-blob {
+  border-radius: 52% 48% 44% 56% / 44% 40% 56% 52%;
+  clip-path: none;
+}
+.mascot-theme-root[data-mascot-shape="droplet"] .cust-empty-blob {
+  border-radius: 50% 50% 52% 50% / 38% 38% 62% 62%;
+}
+.mascot-theme-root[data-mascot-shape="ring"] .cust-empty-blob {
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 5px rgba(255, 255, 255, 0.35),
+    inset 0 2px 12px rgba(255, 255, 255, 0.25);
+  background: conic-gradient(
+    from 120deg,
+    hsl(var(--m-d0, 310), 78%, 62%),
+    hsl(var(--m-d2, 2), 72%, 52%),
+    hsl(var(--m-d0, 310), 78%, 62%)
+  );
+}
