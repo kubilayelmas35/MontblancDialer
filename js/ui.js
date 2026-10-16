@@ -130,8 +130,12 @@ document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
 document.querySelectorAll('.sb-item').forEach(s => s.classList.remove('active'));
 const pg = document.getElementById(`page-${page}`);
 if (pg) pg.classList.add('active');
-const btn = document.querySelector(`.sb-item[onclick="navigate('${page}')"]`);
-if (btn) btn.classList.add('active');
+const btn = document.querySelector(`.sb-item[onclick="navigate('${page}')"]`)
+  || (page === 'takvim' ? document.getElementById('nav-takvim-btn') : null);
+if (btn) {
+  btn.classList.add('active');
+  btn.closest('.sb-group')?.classList.remove('is-collapsed');
+}
 if (window.innerWidth <= 1024) closeSidebar();
 if (page !== 'dialer' && typeof stopInboundTestSimulationScheduler === 'function') stopInboundTestSimulationScheduler();
 runPageEntry(page);

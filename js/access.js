@@ -14,7 +14,7 @@ const MB_PAGES = [
   { key: 'contacts', label: 'Kişiler/Kuyruk', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'callhistory', label: 'Çağrı Geçmişi', roles: ['super_admin', 'admin', 'firm_admin', 'qc'] },
   { key: 'stats', label: 'İstatistikler', roles: ['super_admin', 'admin', 'firm_admin'] },
-  { key: 'agents', label: 'Agentler', roles: ['super_admin', 'admin', 'firm_admin'] },
+  { key: 'agents', label: 'Personeller', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'firms', label: 'Firmalar', roles: ['super_admin'] },
   { key: 'settings', label: 'Ayarlar', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'takvim', label: 'Takvim', roles: ['super_admin', 'admin', 'firm_admin', 'agent'] },
@@ -163,4 +163,40 @@ function mbApplyNavAccess() {
   const allowTakvim = mbPageVisible(MB_PAGES.find((page) => page.key === 'takvim'), role);
   const topTakvim = document.getElementById('takvim-topbar-btn');
   if (topTakvim) topTakvim.style.display = allowTakvim ? '' : 'none';
+  mbRestoreSbGroups();
 }
+
+function mbSbGroupState() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('mb_sb_groups') || '{}');
+    return raw && typeof raw === 'object' ? raw : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function mbRestoreSbGroups() {
+  const saved = mbSbGroupState();
+  document.querySelectorAll('.sb-group').forEach((group) => {
+    const key = group.getAttribute('data-sb-group') || '';
+    const items = [...group.querySelectorAll('.sb-sub > .sb-item')];
+    const visible = items.filter((el) => el.style.display !== 'none');
+    group.classList.toggle('is-empty', visible.length === 0);
+    const hasActive = visible.some((el) => el.classList.contains('active'));
+    const stored = saved[key];
+    const open = hasActive || stored === true || (stored !== false && key === 'work');
+    group.classList.toggle('is-collapsed', !open);
+  });
+}
+
+function toggleSbGroup(btn) {
+  const group = btn?.closest?.('.sb-group');
+  if (!group) return;
+  group.classList.toggle('is-collapsed');
+  const key = group.getAttribute('data-sb-group') || '';
+  const saved = mbSbGroupState();
+  saved[key] = !group.classList.contains('is-collapsed');
+  try { localStorage.setItem('mb_sb_groups', JSON.stringify(saved)); } catch (e) {}
+}
+
+try { window.toggleSbGroup = toggleSbGroup; } catch (e) {}
