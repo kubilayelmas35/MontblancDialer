@@ -161,6 +161,21 @@ ${_renderCustomerField(custCtx, 'tf-customer')}
   document.getElementById('takvim-detail-footer').innerHTML = `<button class="btn btn-ghost" onclick="cancelTakvimBook('${slot.id}')">İptal</button><button class="btn btn-primary" onclick="submitTakvimBook('${slot.id}')">Kaydet</button>`;
 }
 
+function terminNoteWithExtras(noteId) {
+  const note = document.getElementById(noteId)?.value?.trim() || '';
+  const known = new Set(['hausart','baujahr','qm','heizung','alter_der_heizung','verbrauch_pro_jahr','personen','interesse_an_pv']);
+  const extra = [];
+  document.querySelectorAll('#termin-fields-section [data-tf-key]').forEach((el) => {
+    const key = el.getAttribute('data-tf-key');
+    if (!key || known.has(key)) return;
+    const val = document.getElementById('tf2-' + key)?.value?.trim() || '';
+    if (!val) return;
+    const label = el.querySelector('div')?.textContent?.replace('*', '').trim() || key;
+    extra.push(`${label}: ${val}`);
+  });
+  return [note, ...extra].filter(Boolean).join('\n');
+}
+
 // Save termin directly from the inline termin-fields-section
 async function saveTerminFromSection() {
   const slot = _bookingSlot || window._selectedBookingSlot;
@@ -186,7 +201,7 @@ async function saveTerminFromSection() {
       heizung: g('tf2-heizung'), alter_der_heizung: g('tf2-alter_der_heizung'),
       verbrauch_pro_jahr: g('tf2-verbrauch_pro_jahr'), personen: g('tf2-personen'),
       ...(document.getElementById('tf2-interesse_an_pv') ? { interesse_an_pv: g('tf2-interesse_an_pv') === 'true' } : {}),
-      agent_notu: g('tf2-note'), durum: 'qc_bekleniyor',
+      agent_notu: terminNoteWithExtras('tf2-note'), durum: 'qc_bekleniyor',
       customer_id: _selectedCustomerId('tf2-customer'),
       termin_tarih: `${slot.tarih}T${saatNorm(slot.baslangic_saat)}:00`
     };
@@ -199,12 +214,10 @@ async function saveTerminFromSection() {
     if (ts) ts.style.display = 'none';
     const badge = document.getElementById('termin-slot-badge');
     if (badge) { badge.textContent = 'Slot seçilmedi'; }
-    toast('Randevu kaydedildi ✓','ok');
-    // Finalize outcome — override to prevent re-opening overlay
-    if (typeof submitOutcome === 'function' && selectedOutcome === 'appointment') {
-      selectedOutcome = 'appointment_done'; // prevent overlay re-open in submitOutcome
-      submitOutcome(false);
-    }
+    toast('Randevu kaydedildi. Sonuçlandır sıradakine geçer, Mola seni beklemeye alır.', 'ok', 4200);
+    if (typeof setOutcome === 'function') setOutcome('appointment');
+    selectedOutcome = 'appointment_done';
+    if (typeof switchContactTab === 'function') switchContactTab('outcome');
   } catch(e) { toast('Hata: '+e.message,'err'); console.error(e); }
 }
 

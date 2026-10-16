@@ -470,6 +470,7 @@
 <button class="cd-tab" data-tab="arama" onclick="switchCampTab('arama')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Arama" data-de="Anruf">Arama</button>
 <button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="QC / Sonuç" data-de="QC / Prüfung">QC / Sonuç</button>
 <button class="cd-tab" data-tab="bildirim" onclick="switchCampTab('bildirim')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Bildirim" data-de="Hinweis">Bildirim</button>
+<button class="cd-tab" data-tab="kurallar" onclick="switchCampTab('kurallar')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Kurallar" data-de="Regeln">Kurallar</button>
 <button class="cd-tab" data-tab="agentler" onclick="switchCampTab('agentler')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Temsilciler" data-de="Agenten">Temsilciler</button>
 </div>
 <div id="cd-tab-genel" class="cd-tab-panel">
@@ -479,7 +480,7 @@
 <input class="form-input" id="cd-edit-name" maxlength="120" autocomplete="off">
 <div id="cd-edit-name-err" class="nc-inline-err" hidden></div>
 </div>
-<div>
+<div id="cd-did-row">
 <label class="form-label" for="cd-edit-did" data-tr="Arayan numara (DID)" data-de="Anrufernummer (DID)">Arayan numara (DID)</label>
 <input class="form-input" id="cd-edit-did" maxlength="20" placeholder="+49301234567" autocomplete="off">
 <div id="cd-edit-did-err" class="nc-inline-err" hidden></div>
@@ -668,9 +669,19 @@
 </div>
 <div id="cd-tab-termin-form" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:10px;">
-<div style="font-size:12px;color:var(--text-3);padding:8px;background:var(--bg-3);border-radius:6px;" data-tr="Temsilci randevu aldığında hangi ek alanlar sorulsun?" data-de="Welche Zusatzfelder fragt der Agent beim Termin?">Temsilci randevu aldığında hangi ek alanlar sorulsun?</div>
+<div style="font-size:12px;color:var(--text-3);padding:8px;background:var(--bg-3);border-radius:6px;" data-tr="Soruları aç, kapat, yeniden adlandır. Oklarla sırayı değiştir, alttan yeni soru ekle." data-de="Fragen ein- oder ausblenden und umbenennen. Mit den Pfeilen sortieren, unten eine neue Frage hinzufügen.">Soruları aç, kapat, yeniden adlandır. Oklarla sırayı değiştir, alttan yeni soru ekle.</div>
 <div id="cd-termin-form-fields" style="display:flex;flex-direction:column;gap:6px;"></div>
-<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampTerminFormSettings()"><span data-tr="Formu kaydet" data-de="Formular speichern">Formu kaydet</span></button>
+<div style="display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="addCampTerminField()" data-tr="+ Yeni soru" data-de="+ Neue Frage">+ Yeni soru</button>
+<button type="button" class="btn btn-primary btn-sm" onclick="saveCampTerminFormSettings()"><span data-tr="Formu kaydet" data-de="Formular speichern">Formu kaydet</span></button>
+</div>
+</div>
+</div>
+<div id="cd-tab-kurallar" class="cd-tab-panel" style="display:none;">
+<div style="display:flex;flex-direction:column;gap:10px;">
+<div style="font-size:12px;color:var(--text-3);" data-tr="Buraya yazılan metin, dialerde kampanya adının yanında Kurallar olarak açılır. Boşsa buton görünmez." data-de="Dieser Text öffnet sich im Dialer neben dem Kampagnennamen. Leer: kein Button.">Buraya yazılan metin, dialerde kampanya adının yanında Kurallar olarak açılır. Boşsa buton görünmez.</div>
+<textarea class="form-input" id="cd-rules" rows="8" maxlength="4000" style="resize:vertical;" placeholder="Örn. Isıtma yaşı 15 üstüyse randevu al."></textarea>
+<button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampRules()"><span data-tr="Kuralları kaydet" data-de="Regeln speichern">Kuralları kaydet</span></button>
 </div>
 </div>
 <div id="cd-tab-agentler" class="cd-tab-panel" style="display:none;">
@@ -2806,9 +2817,9 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <input type="checkbox" id="chat-set-peer-dm" checked style="width:15px;height:15px;cursor:pointer;">
 <span>Personel / QC birbirine hızlı mesaj atabilsin</span>
 </label>
-<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+<label id="chat-set-firmadmin-super-row" style="display:none;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
 <input type="checkbox" id="chat-set-firmadmin-super" checked style="width:15px;height:15px;cursor:pointer;">
-<span>Firma admini süper admin ile mesajlaşabilsin (listede görünsün)</span>
+<span data-tr="Firma admini süper admin ile mesajlaşabilsin (listede görünsün)" data-de="Firmenadmin darf mit dem Superadmin schreiben (in der Liste sichtbar)">Firma admini süper admin ile mesajlaşabilsin (listede görünsün)</span>
 </label>
 </div>
 <div style="margin-bottom:8px;">
@@ -3009,8 +3020,12 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 </div>
 </div>
 <div class="card" id="sms-settings-card" style="display:none;">
-<div class="card-title" style="margin-bottom:8px;"><i class="ph ph-chat-dots" style="vertical-align:-3px;margin-right:6px;"></i>SMS Hatırlatma</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:16px;">QC onayında müşteriye randevu hatırlatma SMS'i göndermek için yapılandırın. Telnyx üzerinden gönderilir.</div>
+<div class="card-title" style="margin-bottom:8px;"><i class="ph ph-chat-dots" style="vertical-align:-3px;margin-right:6px;"></i><span data-tr="SMS hatırlatma" data-de="SMS-Erinnerung">SMS hatırlatma</span></div>
+<div id="sms-settings-firm-row" style="display:none;margin-bottom:12px;">
+<label class="form-label" style="font-size:11px;">Firma</label>
+<select class="form-input" id="sms-settings-firm-select" onchange="onSmsSettingsFirmChange()"></select>
+</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:16px;" data-tr="QC onayında müşteriye randevu hatırlatması gider. Bunu yalnızca dialer sahibi firma için açar." data-de="Bei QC-Freigabe geht eine Terminerinnerung an den Kunden. Nur der Dialer-Inhaber schaltet das je Firma frei.">QC onayında müşteriye randevu hatırlatması gider. Bunu yalnızca dialer sahibi firma için açar.</div>
 <div style="display:flex;flex-direction:column;gap:12px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
 <input type="checkbox" id="sms-enabled-chk" style="width:15px;height:15px;cursor:pointer;">

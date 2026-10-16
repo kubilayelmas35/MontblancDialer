@@ -153,10 +153,10 @@ function initSettingsTabs() {
   const groups = {
     general: new Set(['settings-appearance-card']),
     mascot: new Set(['settings-mascot-card']),
-    communication: new Set(['incoming-calls-settings-card', 'chat-settings-card', 'sms-settings-card']),
+    communication: new Set(['incoming-calls-settings-card', 'chat-settings-card']),
     operations: new Set(['mesai-settings-card', 'call-hours-card', 'results-settings-card', 'default-takvim-firm-card', 'settings-goals-card']),
     field: new Set(['field-settings-card']),
-    system: new Set(['settings-api-keys-card', 'feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings']),
+    system: new Set(['settings-api-keys-card', 'feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings', 'sms-settings-card']),
   };
   cards.forEach((card) => {
     if (!card.id) return;
@@ -167,7 +167,19 @@ function initSettingsTabs() {
       }
     }
   });
+  mbSyncSettingsTabs();
   setSettingsTab('general');
+}
+
+function mbSyncSettingsTabs() {
+  const superOnly = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+  document.querySelectorAll('#settings-tabs .settings-tab-btn').forEach((btn) => {
+    const tab = btn.dataset.tab;
+    const ownerTab = tab === 'system' || tab === 'operations';
+    btn.style.display = !superOnly && ownerTab ? 'none' : '';
+  });
+  const active = document.querySelector('#settings-tabs .settings-tab-btn.active');
+  if (active && active.style.display === 'none') setSettingsTab('general');
 }
 
 function setSettingsTab(tabId) {

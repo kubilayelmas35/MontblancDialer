@@ -4,7 +4,7 @@ SETTINGS PAGE
 ============================================================ */
 #page-settings .settings-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  grid-template-columns: minmax(0, 720px);
   gap: 12px;
   align-items: start;
 }

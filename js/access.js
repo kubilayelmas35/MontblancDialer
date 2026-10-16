@@ -37,7 +37,7 @@ const MB_PAGES = [
 
 const MB_CHROME = [
   { id: 'tb-pills', roles: ['admin', 'super_admin', 'firm_admin'] },
-  { id: 'sb-settings', roles: ['admin', 'super_admin', 'firm_admin'] },
+  { id: 'sb-settings', roles: ['super_admin'] },
   { id: 'telnyx-settings', roles: ['super_admin'] },
   { id: 'mesai-settings-card', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'chat-settings-card', roles: ['admin', 'super_admin', 'firm_admin'] },
@@ -163,6 +163,8 @@ function mbApplyNavAccess() {
   const allowTakvim = mbPageVisible(MB_PAGES.find((page) => page.key === 'takvim'), role);
   const topTakvim = document.getElementById('takvim-topbar-btn');
   if (topTakvim) topTakvim.style.display = allowTakvim ? '' : 'none';
+  if (typeof mbSyncSettingsTabs === 'function') mbSyncSettingsTabs();
+  if (typeof syncDidVisibility === 'function') syncDidVisibility();
   mbRestoreSbGroups();
 }
 

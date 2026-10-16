@@ -1013,6 +1013,8 @@ function cancelSlotAndShowOutcome() {
 
 async function updateTerminField(key, value) {
   if (!currentContact?.id) return;
+  const known = ['hausart','baujahr','qm','heizung','alter_der_heizung','verbrauch_pro_jahr','personen','interesse_an_pv'];
+  if (!known.includes(key)) return;
   currentContact[key] = value;
   try {
     await sb(`contacts?id=eq.${currentContact.id}`, {

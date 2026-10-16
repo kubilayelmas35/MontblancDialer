@@ -17,7 +17,7 @@
 <input class="form-input" id="nc-name" placeholder="Isı pompası Q2" data-tr="Isı pompası Q2" data-de="Wärmepumpe Q2" oninput="this.classList.remove('is-invalid');const e=document.getElementById('nc-name-err');if(e)e.hidden=true;">
 <div id="nc-name-err" class="nc-inline-err" role="alert" hidden></div>
 </div>
-<div class="form-row">
+<div class="form-row" id="nc-did-row">
 <label class="form-label" data-tr="Hat DID (+49...)" data-de="Anschluss-DID (+49...)">Hat DID (+49...)</label>
 <input class="form-input" id="nc-did" list="nc-did-list" placeholder="+49301234567" inputmode="tel" autocomplete="off">
 <datalist id="nc-did-list"></datalist>
@@ -275,6 +275,18 @@ ondrop="handleDrop(event)">
 </div>
 </div>
 </div>
+<div class="modal-overlay" id="m-camp-rules">
+<div class="modal" style="max-width:520px;">
+<div class="modal-hdr">
+<div class="modal-title" id="camp-rules-title" data-tr="Kampanya kuralları" data-de="Kampagnenregeln">Kampanya kuralları</div>
+<button class="modal-close" onclick="closeModal('m-camp-rules')">✕</button>
+</div>
+<div id="camp-rules-body" style="padding:4px 2px 8px;white-space:pre-wrap;font-size:13px;line-height:1.5;"></div>
+<div class="modal-footer">
+<button class="btn btn-primary btn-sm" onclick="closeModal('m-camp-rules')" data-tr="Kapat" data-de="Schließen">Kapat</button>
+</div>
+</div>
+</div>
 <div class="modal-overlay" id="m-firm">
 <div class="modal" style="max-width:480px;">
 <div class="modal-hdr">
@@ -298,6 +310,11 @@ ondrop="handleDrop(event)">
 <option value="USD">USD ($)</option>
 <option value="TRY">TRY (₺)</option>
 </select></div>
+<div class="form-row" id="firm-did-row" style="display:none;">
+<label class="form-label" data-tr="Firma hattı (DID)" data-de="Firmenanschluss (DID)">Firma hattı (DID)</label>
+<input class="form-input" id="firm-outbound-did" placeholder="+49301234567" inputmode="tel" autocomplete="off">
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Bu numara firmanın bütün kampanyalarına yazılır. Firma bunu değiştirmez." data-de="Diese Nummer gilt für alle Kampagnen der Firma. Die Firma ändert sie nicht.">Bu numara firmanın bütün kampanyalarına yazılır. Firma bunu değiştirmez.</div>
+</div>
 <div class="form-row" id="firm-incoming-super-row" style="display:none;">
 <label class="form-label">Gelen arama</label>
 <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;cursor:pointer;line-height:1.35;">

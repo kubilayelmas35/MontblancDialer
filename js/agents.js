@@ -495,8 +495,12 @@ function openFirmModal() {
   document.getElementById('firm-currency').value = 'EUR';
   const incRow = document.getElementById('firm-incoming-super-row');
   const incChk = document.getElementById('firm-incoming-super');
+  const didRow = document.getElementById('firm-did-row');
+  const didEl = document.getElementById('firm-outbound-did');
   if (incRow) incRow.style.display = mbIsSuperAdmin() ? '' : 'none';
   if (incChk) incChk.checked = false;
+  if (didRow) didRow.style.display = mbIsSuperAdmin() ? '' : 'none';
+  if (didEl) didEl.value = '';
   openModal('m-firm');
 }
 
@@ -515,6 +519,10 @@ async function editFirm(id) {
     const incChk = document.getElementById('firm-incoming-super');
     if (incRow) incRow.style.display = mbIsSuperAdmin() ? '' : 'none';
     if (incChk) incChk.checked = !!(f.settings?.dialer?.incoming_super_enabled);
+    const didRow = document.getElementById('firm-did-row');
+    const didEl = document.getElementById('firm-outbound-did');
+    if (didRow) didRow.style.display = mbIsSuperAdmin() ? '' : 'none';
+    if (didEl) didEl.value = f.settings?.dialer?.outbound_did || '';
   } catch (e) {}
   openModal('m-firm');
 }
@@ -531,10 +539,15 @@ async function saveFirm() {
       const oldSettings = rows?.[0]?.settings || {};
       const oldDialer = oldSettings.dialer || {};
       const incomingSuper = document.getElementById('firm-incoming-super')?.checked;
+      const didRaw = String(document.getElementById('firm-outbound-did')?.value || '').replace(/[\s()-]/g, '');
+      if (mbIsSuperAdmin() && didRaw && (typeof mbIsE164 !== 'function' || !mbIsE164(didRaw))) {
+        toast('Firma hattı + ile başlamalı, örnek +49301234567', 'err');
+        return;
+      }
       const dialer = {
         ...oldDialer,
         ...(mbIsSuperAdmin()
-          ? { incoming_super_enabled: !!incomingSuper }
+          ? { incoming_super_enabled: !!incomingSuper, outbound_did: didRaw }
           : {}),
       };
       await sb(`firms?id=eq.${firmEditId}`,{
@@ -542,9 +555,21 @@ async function saveFirm() {
         prefer:'return=minimal',
         body:JSON.stringify({name,slug,plan,currency,settings:{...oldSettings,currency,dialer}})
       });
+      if (mbIsSuperAdmin() && dialer.outbound_did) {
+        await sb(`campaigns?firm_id=eq.${firmEditId}`, {
+          method: 'PATCH',
+          prefer: 'return=minimal',
+          body: JSON.stringify({ telnyx_did: dialer.outbound_did }),
+        }).catch(() => {});
+      }
     } else {
       const incomingSuperNew = document.getElementById('firm-incoming-super')?.checked;
-      const dialerNew = { incoming_super_enabled: mbIsSuperAdmin() ? !!incomingSuperNew : false };
+      const didNew = mbIsSuperAdmin() ? String(document.getElementById('firm-outbound-did')?.value || '').replace(/[\s()-]/g, '') : '';
+      if (didNew && (typeof mbIsE164 !== 'function' || !mbIsE164(didNew))) {
+        toast('Firma hattı + ile başlamalı, örnek +49301234567', 'err');
+        return;
+      }
+      const dialerNew = { incoming_super_enabled: mbIsSuperAdmin() ? !!incomingSuperNew : false, outbound_did: didNew };
       await sb('firms',{method:'POST',prefer:'return=minimal',body:JSON.stringify({name,slug,plan,currency,settings:{currency,dialer:dialerNew}})});
     }
     closeModal('m-firm');

@@ -148,67 +148,158 @@ if (tab === 'script' && currentCampId) loadCampScriptTab();
 if (tab === 'arama' && currentCampId) loadCampAramaTab();
 if (tab === 'bildirim' && currentCampId) loadCampBildirimTab();
 if (tab === 'termin-form' && currentCampId) loadCampTerminFormTab();
+if (tab === 'kurallar' && currentCampId) loadCampRulesTab();
+}
+
+const TERMIN_FORM_DEFAULTS = [
+  {key:'hausart',label:'Ev Tipi',type:'select',opts:'Einfamilienhaus,Zweifamilienhaus,Reihenhaus,Doppelhaus,Mehrfamilienhaus',enabled:true,required:true},
+  {key:'baujahr',label:'Yapım Yılı',type:'text',opts:'',enabled:true,required:true},
+  {key:'qm',label:'m²',type:'number',opts:'',enabled:true,required:true},
+  {key:'heizung',label:'Isıtma',type:'select',opts:'Gas,Öl,Pellet,WP,Fernwärme',enabled:true,required:true},
+  {key:'alter_der_heizung',label:'Isıtma Yaşı',type:'text',opts:'',enabled:true,required:true},
+  {key:'verbrauch_pro_jahr',label:'Tüketim/Yıl',type:'text',opts:'',enabled:true,required:false},
+  {key:'personen',label:'Kişi Sayısı',type:'number',opts:'',enabled:true,required:false},
+  {key:'interesse_an_pv',label:'PV İlgisi',type:'boolean',opts:'',enabled:false,required:false},
+];
+let _terminFormDraft = [];
+
+function terminFormListFromSaved(tf) {
+  const saved = tf && typeof tf === 'object' ? tf : {};
+  if (Array.isArray(saved.fields) && saved.fields.length) {
+    return saved.fields.map((f) => ({
+      key: String(f.key || ''),
+      label: f.label || f.key || 'Soru',
+      type: f.type || 'text',
+      opts: f.opts || '',
+      enabled: f.enabled !== false,
+      required: !!f.required,
+    })).filter((f) => f.key);
+  }
+  return TERMIN_FORM_DEFAULTS.map((f) => ({
+    ...f,
+    enabled: saved[f.key]?.enabled ?? f.enabled,
+    required: saved[f.key]?.required ?? f.required,
+    label: saved[f.key]?.label || f.label,
+    type: saved[f.key]?.type || f.type,
+    opts: saved[f.key]?.opts || f.opts || '',
+  }));
+}
+
+function readTerminFormDraftFromDom() {
+  return _terminFormDraft.map((f, i) => ({
+    ...f,
+    enabled: document.getElementById(`tf-en-${i}`)?.checked ?? f.enabled,
+    label: document.getElementById(`tf-lbl-${i}`)?.value || f.label,
+    type: document.getElementById(`tf-type-${i}`)?.value || f.type,
+    required: document.getElementById(`tf-req-${i}`)?.checked ?? f.required,
+    opts: document.getElementById(`tf-opts-${i}`)?.value ?? f.opts ?? '',
+  }));
+}
+
+function renderTerminFormDraft() {
+  const el = document.getElementById('cd-termin-form-fields');
+  if (!el) return;
+  const last = _terminFormDraft.length - 1;
+  el.innerHTML = _terminFormDraft.map((f, i) => `
+<div style="padding:7px 10px;background:var(--bg-3);border-radius:6px;" data-key="${campEsc(f.key)}">
+<div style="display:flex;align-items:center;gap:8px;">
+<button type="button" class="btn btn-ghost btn-sm" style="padding:2px 6px;" ${i === 0 ? 'disabled' : ''} onclick="moveCampTerminField(${i},-1)" aria-label="Yukarı">↑</button>
+<button type="button" class="btn btn-ghost btn-sm" style="padding:2px 6px;" ${i === last ? 'disabled' : ''} onclick="moveCampTerminField(${i},1)" aria-label="Aşağı">↓</button>
+<input type="checkbox" id="tf-en-${i}" ${f.enabled ? 'checked' : ''} style="width:15px;height:15px;" title="Sor">
+<input class="form-input" id="tf-lbl-${i}" value="${campEsc(f.label)}" style="flex:1;font-size:12px;padding:3px 7px;">
+<select class="form-input" id="tf-type-${i}" style="width:110px;font-size:11px;padding:3px;" onchange="rememberTerminFormDraft();_terminFormDraft[${i}].type=this.value;renderTerminFormDraft()">
+<option value="text" ${f.type === 'text' ? 'selected' : ''}>${campEsc(campT('camp.tf.text','Metin'))}</option>
+<option value="number" ${f.type === 'number' ? 'selected' : ''}>${campEsc(campT('camp.tf.number','Sayı'))}</option>
+<option value="select" ${f.type === 'select' ? 'selected' : ''}>${campEsc(campT('camp.tf.select','Açılır menü'))}</option>
+<option value="boolean" ${f.type === 'boolean' ? 'selected' : ''}>${campEsc(campT('camp.tf.bool','Evet/Hayır'))}</option>
+</select>
+<label style="font-size:11px;display:flex;align-items:center;gap:4px;white-space:nowrap;"><input type="checkbox" id="tf-req-${i}" ${f.required ? 'checked' : ''}>${campEsc(campT('camp.tf.required','Zorunlu'))}</label>
+${String(f.key).startsWith('custom_') ? `<button type="button" onclick="removeCampTerminField(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;">✕</button>` : ''}
+</div>
+${f.type === 'select' ? `<div style="padding:6px 0 0 68px;"><input class="form-input" id="tf-opts-${i}" style="font-size:10px;padding:2px 6px;width:100%;" value="${campEsc(f.opts || '')}" placeholder="Seçenek 1, Seçenek 2"></div>` : ''}
+</div>`).join('');
+}
+
+function rememberTerminFormDraft() {
+  _terminFormDraft = readTerminFormDraftFromDom();
 }
 
 function loadCampTerminFormTab() {
-const el = document.getElementById('cd-termin-form-fields');
-if (!el) return;
-const camp = campaigns.find(c=>c.id===currentCampId);
-let tf = {};
-try {
-  const fromSettings = getCampSettings(camp).termin_form;
-  const legacy = camp?.termin_form_config;
-  tf = fromSettings && typeof fromSettings === 'object' ? fromSettings : (typeof legacy === 'string' ? JSON.parse(legacy) : (legacy || {}));
-} catch(e) {}
-const DEFAULT_TF = [
-  {key:'hausart',label:'Ev Tipi',type:'select',opts:'Einfamilienhaus,Zweifamilienhaus,Reihenhaus,Doppelhaus,Mehrfamilienhaus',enabled:true,required:true},
-  {key:'baujahr',label:'Yapım Yılı',type:'text',enabled:true,required:true},
-  {key:'qm',label:'m²',type:'number',enabled:true,required:true},
-  {key:'heizung',label:'Isıtma',type:'select',opts:'Gas,Öl,Pellet,WP,Fernwärme',enabled:true,required:true},
-  {key:'alter_der_heizung',label:'Isıtma Yaşı',type:'text',enabled:true,required:true},
-  {key:'verbrauch_pro_jahr',label:'Tüketim/Yıl',type:'text',enabled:true,required:false},
-  {key:'personen',label:'Kişi Sayısı',type:'number',enabled:true,required:false},
-  {key:'interesse_an_pv',label:'PV İlgisi',type:'boolean',enabled:false,required:false},
-];
-const fields = DEFAULT_TF.map(f=>({...f, enabled:tf[f.key]?.enabled??f.enabled, required:tf[f.key]?.required??f.required, label:tf[f.key]?.label||f.label, opts:tf[f.key]?.opts||f.opts||''}));
-el.innerHTML = fields.map((f,i)=>`
-<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg-3);border-radius:6px;" data-key="${f.key}">
-<input type="checkbox" id="tf-en-${i}" ${f.enabled?'checked':''} style="width:15px;height:15px;">
-<input class="form-input" id="tf-lbl-${i}" value="${campEsc(f.label)}" style="flex:1;font-size:12px;padding:3px 7px;">
-<select class="form-input" id="tf-type-${i}" style="width:110px;font-size:11px;padding:3px;">
-<option value="text" ${f.type==='text'?'selected':''}>${campEsc(campT('camp.tf.text','Metin'))}</option>
-<option value="number" ${f.type==='number'?'selected':''}>${campEsc(campT('camp.tf.number','Sayı'))}</option>
-<option value="select" ${f.type==='select'?'selected':''}>${campEsc(campT('camp.tf.select','Açılır menü'))}</option>
-<option value="boolean" ${f.type==='boolean'?'selected':''}>${campEsc(campT('camp.tf.bool','Evet/Hayır'))}</option>
-</select>
-<label style="font-size:11px;display:flex;align-items:center;gap:4px;white-space:nowrap;"><input type="checkbox" id="tf-req-${i}" ${f.required?'checked':''}>${campEsc(campT('camp.tf.required','Zorunlu'))}</label>
-</div>
-${['select'].includes(f.type)?`<div style="padding:3px 10px 6px;"><input class="form-input" id="tf-opts-${i}" style="font-size:10px;padding:2px 6px;width:100%;" value="${campEsc(f.opts||'')}"></div>`:''}
-`).join('');
-el.dataset.count = fields.length;
+  const camp = campaigns.find((c) => c.id === currentCampId);
+  let tf = {};
+  try {
+    const fromSettings = getCampSettings(camp).termin_form;
+    const legacy = camp?.termin_form_config;
+    tf = fromSettings && typeof fromSettings === 'object' ? fromSettings : (typeof legacy === 'string' ? JSON.parse(legacy) : (legacy || {}));
+  } catch (e) {}
+  _terminFormDraft = terminFormListFromSaved(tf);
+  renderTerminFormDraft();
+}
+
+function moveCampTerminField(index, dir) {
+  rememberTerminFormDraft();
+  const next = index + dir;
+  if (next < 0 || next >= _terminFormDraft.length) return;
+  const [row] = _terminFormDraft.splice(index, 1);
+  _terminFormDraft.splice(next, 0, row);
+  renderTerminFormDraft();
+}
+
+function addCampTerminField() {
+  rememberTerminFormDraft();
+  _terminFormDraft.push({
+    key: `custom_${Date.now()}`,
+    label: 'Yeni soru',
+    type: 'text',
+    opts: '',
+    enabled: true,
+    required: false,
+  });
+  renderTerminFormDraft();
+}
+
+function removeCampTerminField(index) {
+  rememberTerminFormDraft();
+  _terminFormDraft.splice(index, 1);
+  renderTerminFormDraft();
 }
 
 async function saveCampTerminFormSettings() {
-const el = document.getElementById('cd-termin-form-fields');
-if (!el) return;
-const n = parseInt(el.dataset.count||'0');
-const keys = ['hausart','baujahr','qm','heizung','alter_der_heizung','verbrauch_pro_jahr','personen','interesse_an_pv'];
-const cfg = {};
-for (let i=0;i<n;i++) {
-  const key = keys[i];
-  if (!key) continue;
-  cfg[key] = {
-    enabled: document.getElementById(`tf-en-${i}`)?.checked||false,
-    label: document.getElementById(`tf-lbl-${i}`)?.value||key,
-    type: document.getElementById(`tf-type-${i}`)?.value||'text',
-    required: document.getElementById(`tf-req-${i}`)?.checked||false,
-    opts: document.getElementById(`tf-opts-${i}`)?.value||''
-  };
+  rememberTerminFormDraft();
+  const fields = _terminFormDraft.filter((f) => f.key && f.label);
+  const cfg = { fields };
+  fields.forEach((f) => {
+    cfg[f.key] = { enabled: f.enabled !== false, label: f.label, type: f.type || 'text', required: !!f.required, opts: f.opts || '' };
+  });
+  try {
+    await saveCampSettingsPatch({ termin_form: cfg });
+    toast(campT('camp.tf.saved','Randevu formu kaydedildi'), 'ok');
+  } catch (e) { toast(e.message, 'err'); }
 }
-try {
-  await saveCampSettingsPatch({ termin_form: cfg });
-  toast(campT('camp.tf.saved','Randevu formu kaydedildi'), 'ok');
-} catch(e) { toast(e.message,'err'); }
+
+function loadCampRulesTab() {
+  const camp = campaigns.find((c) => c.id === currentCampId);
+  const el = document.getElementById('cd-rules');
+  if (el) el.value = String(getCampSettings(camp).rules || '');
+}
+
+async function saveCampRules() {
+  const rules = String(document.getElementById('cd-rules')?.value || '').trim();
+  try {
+    await saveCampSettingsPatch({ rules });
+    toast('Kurallar kaydedildi', 'ok');
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+function openCampRules(campId) {
+  const camp = (campaigns || []).find((c) => String(c.id) === String(campId));
+  const rules = String((typeof getCampSettings === 'function' ? getCampSettings(camp) : camp?.settings)?.rules || '').trim();
+  if (!rules) return;
+  const title = document.getElementById('camp-rules-title');
+  const body = document.getElementById('camp-rules-body');
+  if (title) title.textContent = camp?.name ? `${camp.name} — Kurallar` : 'Kampanya kuralları';
+  if (body) body.textContent = rules;
+  if (typeof openModal === 'function') openModal('m-camp-rules');
 }
 
 function loadCampFieldsTab() {

@@ -94,6 +94,10 @@ async function initDialer() {
       const enabledForMe = isAutoDialEnabledForCampaign(ac.campaign_id, canDisableAutoDial);
       const cid = ac.campaign_id;
       const cName = String(ac.campaigns?.name || cid).replace(/'/g, "\\'");
+      const rulesText = String(campSettings?.rules || '').trim();
+      const rulesBtn = rulesText
+        ? `<button type="button" class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;" onclick="event.stopPropagation();openCampRules('${cid}')">${typeof currentLang !== 'undefined' && currentLang === 'de' ? 'Regeln' : 'Kurallar'}</button>`
+        : '';
       const adHint =
         typeof t === 'function'
           ? (canDisableAutoDial ? t('dial.camp_auto_hint_on') : t('dial.camp_auto_hint_off'))
@@ -104,7 +108,10 @@ async function initDialer() {
       return `<div class="agent-camp-item ${isActive?'active':''}" id="camp-item-${cid}" style="padding:8px 10px;" onclick="selectCamp('${cid}','${cName}')">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
   <div style="flex:1;min-width:0;">
-    <div class="agent-camp-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ac.campaigns?.name||cid}</div>
+    <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+      <div class="agent-camp-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ac.campaigns?.name||cid}</div>
+      ${rulesBtn}
+    </div>
     <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-2);cursor:pointer;opacity:1;"
         title="${escapeHtml(adHint)}">

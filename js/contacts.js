@@ -247,30 +247,7 @@ function showCustomerCard(c) {
     { key:'phone2',  l:(typeof t === 'function' ? t('cont.field.phone2') : '2. Telefon'),    v:c.phone2 },
     { key:'notes',   l:(typeof t === 'function' ? t('cont.field.notes') : 'Not'),            v:c.notes },
   ];
-  const terminDefaults = [
-    { key:'hausart',             l:'Ev Tipi',      v:c.hausart,             type:'select', opts:['','Einfamilienhaus','Zweifamilienhaus','Reihenhaus','Doppelhaus','Mehrfamilienhaus'], required:true, enabled:true },
-    { key:'baujahr',             l:'Yapım Yılı',   v:c.baujahr,             required:true, enabled:true },
-    { key:'qm',                  l:'m²',           v:c.qm,                  required:true, enabled:true },
-    { key:'heizung',             l:'Isıtma',       v:c.heizung,             type:'select', opts:['','Gas','Öl','Pellet','WP','Fernwärme'], required:true, enabled:true },
-    { key:'alter_der_heizung',   l:'Isıtma Yaşı', v:c.alter_der_heizung,   required:true, enabled:true },
-    { key:'verbrauch_pro_jahr',  l:'Tüketim/Yıl', v:c.verbrauch_pro_jahr, enabled:true },
-    { key:'personen',            l:'Kişi Sayısı', v:c.personen, enabled:true },
-    { key:'interesse_an_pv',     l:'PV İlgisi',   v:c.interesse_an_pv,     type:'boolean', enabled:false },
-  ];
-  const terminSaved = (typeof getCampSettings === 'function' ? getCampSettings(camp) : {}).termin_form || {};
-  const hasTerminSaved = terminSaved && typeof terminSaved === 'object' && Object.keys(terminSaved).length > 0;
-  const terminFields = terminDefaults.map((f) => {
-    if (!hasTerminSaved) return f.enabled === false ? null : f;
-    const saved = terminSaved[f.key];
-    if (!saved || saved.enabled === false) return null;
-    const next = { ...f, l: saved.label || f.l, required: !!saved.required, enabled: true };
-    if (saved.type) next.type = saved.type;
-    if (saved.type === 'select' && saved.opts) {
-      next.opts = [''].concat(String(saved.opts).split(',').map((s) => s.trim()).filter(Boolean));
-    }
-    if (saved.type === 'boolean') next.type = 'boolean';
-    return next;
-  }).filter(Boolean);
+  const terminFields = dialerTerminFields(camp, c);
   const visibleFields = allFields.filter(f => show(f.key));
   document.getElementById('cust-fields').innerHTML = visibleFields.map(f=>{
     const canCallSecondary = f.key === 'phone2' && String(f.v || '').trim().length > 0;
@@ -343,7 +320,7 @@ oninput="updateTerminField('${f.key}',this.value)">`
 <div id="tf2-customer-wrap" style="margin-top:8px;"></div>
 <div id="tf-note-row" style="margin-top:8px;">
 <label style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;">Not</label>
-<textarea id="tf2-note" class="form-input" rows="2" style="font-size:12px;resize:vertical;margin-top:3px;" placeholder="Agent notu..."></textarea>
+<textarea id="tf2-note" class="form-input" rows="2" style="font-size:12px;resize:vertical;margin-top:3px;" placeholder="Agent notu...">${_escHtml(c.notes || '')}</textarea>
 </div>
 <button onclick="saveTerminFromSection()" style="margin-top:8px;width:100%;padding:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2,var(--accent)));color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer;">
 Randevuyu Kaydet
@@ -365,6 +342,49 @@ Randevuyu Kaydet
     if (typeof switchContactTab === 'function') switchContactTab('info');
   }
   if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+  syncDialerNotes(c.notes || '');
+}
+
+function dialerTerminFields(camp, contact) {
+  const defaults = [
+    { key:'hausart', l:'Ev Tipi', type:'select', opts:['','Einfamilienhaus','Zweifamilienhaus','Reihenhaus','Doppelhaus','Mehrfamilienhaus'], required:true, enabled:true },
+    { key:'baujahr', l:'Yapım Yılı', required:true, enabled:true },
+    { key:'qm', l:'m²', required:true, enabled:true },
+    { key:'heizung', l:'Isıtma', type:'select', opts:['','Gas','Öl','Pellet','WP','Fernwärme'], required:true, enabled:true },
+    { key:'alter_der_heizung', l:'Isıtma Yaşı', required:true, enabled:true },
+    { key:'verbrauch_pro_jahr', l:'Tüketim/Yıl', enabled:true },
+    { key:'personen', l:'Kişi Sayısı', enabled:true },
+    { key:'interesse_an_pv', l:'PV İlgisi', type:'boolean', enabled:false },
+  ];
+  const saved = (typeof getCampSettings === 'function' ? getCampSettings(camp) : {}).termin_form || {};
+  const source = Array.isArray(saved.fields) && saved.fields.length
+    ? saved.fields
+    : defaults.map((f) => ({ ...f, ...(saved[f.key] || {}), label: saved[f.key]?.label || f.l }));
+  return source.map((f) => {
+    const base = defaults.find((d) => d.key === f.key) || {};
+    if (f.enabled === false) return null;
+    const next = {
+      key: f.key,
+      l: f.label || f.l || base.l || f.key,
+      v: contact?.[f.key] || '',
+      type: f.type || base.type || 'text',
+      required: !!(f.required ?? base.required),
+    };
+    if (next.type === 'select') {
+      const raw = f.opts || (base.opts || []).slice(1).join(',');
+      next.opts = [''].concat(String(raw || '').split(',').map((s) => s.trim()).filter(Boolean));
+    }
+    return next;
+  }).filter(Boolean);
+}
+
+function syncDialerNotes(note) {
+  const text = String(note || '').trim();
+  if (!text) return;
+  const out = document.getElementById('outcome-note');
+  const tf = document.getElementById('tf2-note');
+  if (out) out.value = text;
+  if (tf) tf.value = text;
 }
 
 function markContactDirty() {

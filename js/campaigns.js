@@ -6,6 +6,26 @@ function campT(key, fb) {
   return typeof t === 'function' ? t(key) : fb;
 }
 
+function mbCanEditDid() {
+  return typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+}
+
+function syncDidVisibility() {
+  const show = mbCanEditDid();
+  const nc = document.getElementById('nc-did-row');
+  const cd = document.getElementById('cd-did-row');
+  const sub = document.getElementById('cd-did');
+  if (nc) nc.style.display = show ? '' : 'none';
+  if (cd) cd.style.display = show ? '' : 'none';
+  if (sub && !show) sub.style.display = 'none';
+}
+
+async function firmOutboundDid(firmId) {
+  if (!firmId) return '';
+  const rows = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
+  return String(rows?.[0]?.settings?.dialer?.outbound_did || '').replace(/[\s()-]/g, '');
+}
+
 async function attachCampaignPeople() {
   const ff = typeof getFirmFilter === 'function' ? getFirmFilter('&') : '';
   let users = [];
@@ -145,9 +165,9 @@ const sb2= c.status==='active'
 :`<span class="badge badge-gray">${esc(campT('camp.status.done','Tamamlandı'))}</span>`;
 const didRaw = String(c.telnyx_did || '').trim();
 const didBad = didRaw && typeof mbIsE164 === 'function' && !mbIsE164(didRaw);
-const didText = !didRaw
+const didText = !mbCanEditDid() ? '' : (!didRaw
   ? campT('camp.did.none','DID atanmadı')
-  : (didBad ? `${didRaw} · ${campT('camp.did.invalid','DID geçersiz')}` : didRaw);
+  : (didBad ? `${didRaw} · ${campT('camp.did.invalid','DID geçersiz')}` : didRaw));
 const descLine = String(c.description || '').trim();
 const pauseLabel = c.status==='active'
   ? `<i class="ph ph-pause"></i> ${esc(campT('camp.pause','Duraklat'))}`
@@ -155,7 +175,7 @@ const pauseLabel = c.status==='active'
 const sel = detailOpen && currentCampId === c.id ? ' sel' : '';
 return `<div class="camp-card${sel}" data-camp-id="${esc(c.id)}" onclick="openCampDetail('${c.id}')">
 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-<div><div class="camp-name">${esc(c.name)}</div><div class="camp-did">${esc(didText)}</div>${descLine ? `<div class="queue-sub">${esc(descLine)}</div>` : ''}</div>
+<div><div class="camp-name">${esc(c.name)}</div>${didText ? `<div class="camp-did">${esc(didText)}</div>` : ''}${descLine ? `<div class="queue-sub">${esc(descLine)}</div>` : ''}</div>
 <div style="display:flex;gap:12px;flex-shrink:0;align-items:center;" onclick="event.stopPropagation()">
 ${sb2}
 <button class="icon-btn" onclick="openCampFieldSettings('${c.id}')" title="${esc(campT('camp.field.title','Alan Ayarları'))}" aria-label="${esc(campT('camp.field.title','Alan Ayarları'))}"><i class="ph ph-gear" aria-hidden="true"></i></button>
@@ -188,7 +208,7 @@ function renderCampRows(esc, detailOpen) {
   const cols = [
     campT('camp.col.name', 'Ad'),
     campT('camp.queue.status', 'Durum'),
-    campT('camp.col.did', 'Arayan numara'),
+    mbCanEditDid() ? campT('camp.col.did', 'Arayan numara') : '',
     campT('camp.kpi.queues', 'Kuyruk'),
     campT('camp.kpi.total', 'Toplam'),
     campT('camp.kpi.dialed', 'Aranan'),
@@ -203,7 +223,7 @@ function renderCampRows(esc, detailOpen) {
     const st = campStats(c);
     const didRaw = String(c.telnyx_did || '').trim();
     const didBad = didRaw && typeof mbIsE164 === 'function' && !mbIsE164(didRaw);
-    const didText = didRaw || campT('camp.did.none', 'DID atanmadı');
+    const didText = mbCanEditDid() ? (didRaw || campT('camp.did.none', 'DID atanmadı')) : '';
     const desc = String(c.description || '').trim();
     const status = c.status === 'active'
       ? `<span class="badge badge-green">${esc(campT('camp.status.active', 'Aktif'))}</span>`
@@ -243,9 +263,14 @@ paintCampSelection();
 document.getElementById('cd-name').textContent = c.name;
 const didRaw = String(c.telnyx_did || '').trim();
 const didBad = didRaw && typeof mbIsE164 === 'function' && !mbIsE164(didRaw);
-document.getElementById('cd-did').textContent = !didRaw
-  ? campT('camp.did.none','DID atanmadı')
-  : (didBad ? `${didRaw} · ${campT('camp.did.invalid','DID geçersiz')}` : didRaw);
+const didEl = document.getElementById('cd-did');
+if (didEl) {
+  didEl.style.display = mbCanEditDid() ? '' : 'none';
+  didEl.textContent = !mbCanEditDid() ? '' : (!didRaw
+    ? campT('camp.did.none','DID atanmadı')
+    : (didBad ? `${didRaw} · ${campT('camp.did.invalid','DID geçersiz')}` : didRaw));
+}
+syncDidVisibility();
 const nameInput = document.getElementById('cd-edit-name');
 const descInput = document.getElementById('cd-edit-desc');
 const didInput = document.getElementById('cd-edit-did');
@@ -361,6 +386,7 @@ document.getElementById('nc-desc').value = '';
 document.getElementById('nc-speed').value = 1;
 document.getElementById('nc-sv').textContent = '1';
 fillCampDidList();
+syncDidVisibility();
 const ncFirmRow = document.getElementById('nc-firm-row');
 const ncFirmSel = document.getElementById('nc-firm-id');
 if (ncFirmRow && ncFirmSel) {
@@ -526,7 +552,7 @@ if (typeof mbEnsureSession === 'function') {
   if (!ok) return;
 }
 const name = document.getElementById('nc-name').value.trim();
-const did  = document.getElementById('nc-did').value.trim();
+const did  = mbCanEditDid() ? document.getElementById('nc-did').value.trim() : '';
 const desc = document.getElementById('nc-desc').value.trim();
 const spd  = parseInt(document.getElementById('nc-speed').value)||1;
 const nameEl = document.getElementById('nc-name');
@@ -547,17 +573,14 @@ if (nameEl) {
   nameEl.removeAttribute('aria-invalid');
 }
 if (nameErr) nameErr.hidden = true;
-const didNorm = did.replace(/[\s()-]/g, '');
-if (did && (typeof mbIsE164 !== 'function' || !mbIsE164(did))) {
+let didNorm = did.replace(/[\s()-]/g, '');
+if (didNorm && (typeof mbIsE164 !== 'function' || !mbIsE164(didNorm))) {
   toast(campT('camp.did.bad','DID + ile başlamalı, örnek +49301234567'), 'err');
   return;
 }
 const targetFirmId = (isSuperAdmin() ? document.getElementById('nc-firm-id')?.value : null) || getActiveFirmId() || currentUser?.firm_id;
 if (!targetFirmId) { toast('Firma seçin veya yeniden giriş yapın','err'); return; }
-if (didNorm) {
-  const dup = (campaigns || []).some((c) => String(c.firm_id || '') === String(targetFirmId) && String(c.telnyx_did || '').replace(/[\s()-]/g, '') === didNorm);
-  if (dup) { toast(campT('camp.did.dup','Bu numara başka kampanyada kayıtlı'), 'err'); return; }
-}
+if (!didNorm) didNorm = await firmOutboundDid(targetFirmId);
 const fieldConfig = {};
 _ncFields.forEach(f => {
 fieldConfig[f.key] = {show:f.show, label:f.label, type:f.type, locked:f.locked||false};
@@ -792,22 +815,20 @@ async function saveCampIdentity() {
   if (nameEl) nameEl.classList.remove('is-invalid');
   if (nameErr) nameErr.hidden = true;
   const prev = String(camp.telnyx_did || '').trim();
-  const prevNorm = prev.replace(/[\s()-]/g, '');
-  const nextNorm = didRaw.replace(/[\s()-]/g, '');
-  if (nextNorm !== prevNorm) {
+  let telnyx_did = prev || null;
+  if (mbCanEditDid()) {
+    const nextNorm = didRaw.replace(/[\s()-]/g, '');
     if (nextNorm && (typeof mbIsE164 !== 'function' || !mbIsE164(nextNorm))) {
       if (didEl) didEl.classList.add('is-invalid');
       if (didErr) { didErr.hidden = false; didErr.textContent = campT('camp.did.bad','DID + ile başlamalı, örnek +49301234567'); }
       toast(campT('camp.did.bad','DID + ile başlamalı, örnek +49301234567'), 'err');
       return;
     }
-    const dup = (campaigns || []).some((c) => c.id !== camp.id && String(c.firm_id || '') === String(camp.firm_id || '') && String(c.telnyx_did || '').replace(/[\s()-]/g, '') === nextNorm && nextNorm);
-    if (dup) {
-      toast(campT('camp.did.dup','Bu numara başka kampanyada kayıtlı'), 'err');
-      return;
-    }
+    telnyx_did = nextNorm || null;
+  } else {
+    const firmDid = await firmOutboundDid(camp.firm_id);
+    if (firmDid) telnyx_did = firmDid;
   }
-  const telnyx_did = nextNorm === prevNorm ? (prev || null) : (nextNorm || null);
   try {
     await sb(`campaigns?id=eq.${camp.id}`, {
       method: 'PATCH', prefer: 'return=minimal',

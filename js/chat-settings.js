@@ -77,6 +77,9 @@ async function renderChatSettingsForm() {
     if (!Array.isArray(settings.hidden_from_picker_ids)) settings.hidden_from_picker_ids = [];
   } catch (e) {}
 
+  const isSuper = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+  const superRow = document.getElementById('chat-set-firmadmin-super-row');
+  if (superRow) superRow.style.display = isSuper ? 'flex' : 'none';
   if (peerChk) peerChk.checked = !!settings.allow_peer_dm;
   if (superChk) superChk.checked = settings.firm_admin_can_dm_super !== false;
 
@@ -94,7 +97,8 @@ async function renderChatSettingsForm() {
     return;
   }
 
-  listEl.innerHTML = users
+  const visibleUsers = isSuper ? users : users.filter((u) => u.role !== 'super_admin');
+  listEl.innerHTML = visibleUsers
     .map((u) => {
       const isHidden = hidden.has(u.id);
       return `<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg-2);border-radius:6px;cursor:pointer;font-size:12px;">
@@ -126,9 +130,23 @@ async function saveChatSettings() {
     });
   }
 
+  const isSuper = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+  let firmAdminCanDmSuper = !!superChk?.checked;
+  if (!isSuper) {
+    const firmsNow = await sb(`firms?id=eq.${fid}&select=settings`).catch(() => []);
+    const prev = firmsNow?.[0]?.settings?.chat || {};
+    firmAdminCanDmSuper = prev.firm_admin_can_dm_super !== false;
+    const superIds = new Set(
+      ((await sb(`users?firm_id=eq.${fid}&role=eq.super_admin&select=id`).catch(() => [])) || []).map((u) => u.id)
+    );
+    const prevHidden = new Set(Array.isArray(prev.hidden_from_picker_ids) ? prev.hidden_from_picker_ids : []);
+    superIds.forEach((id) => {
+      if (prevHidden.has(id)) hidden.push(id);
+    });
+  }
   const chat = {
     allow_peer_dm: !!peerChk?.checked,
-    firm_admin_can_dm_super: !!superChk?.checked,
+    firm_admin_can_dm_super: firmAdminCanDmSuper,
     hidden_from_picker_ids: hidden
   };
 
