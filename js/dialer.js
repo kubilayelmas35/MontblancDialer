@@ -3217,7 +3217,7 @@ function mbRefreshHopperUi() {
       : (typeof t === 'function' ? t('dial.wait_answer') : 'Telefonun açılması bekleniyor');
   }
   if (sub && dialerStatus === 'calling') {
-    if (held) {
+    if (held > 1) {
       sub.textContent = typeof tReplace === 'function' ? tReplace('dial.hopper.hold', { n: held }) : `Müzikte: ${held}`;
     } else if (plan) {
       sub.textContent = typeof tReplace === 'function'
@@ -3237,7 +3237,7 @@ function mbRefreshHopperUi() {
   }
   if (note) {
     const parts = [];
-    if (held) parts.push(typeof tReplace === 'function' ? tReplace('dial.hopper.hold', { n: held }) : `Müzikte: ${held}`);
+    if (held > 1) parts.push(typeof tReplace === 'function' ? tReplace('dial.hopper.hold', { n: held }) : `Müzikte: ${held}`);
     if (ringing && dialerStatus === 'on_call') parts.push(typeof tReplace === 'function' ? tReplace('dial.hopper.ringing', { n: ringing }) : `${ringing} kişi aranıyor`);
     note.style.display = parts.length ? '' : 'none';
     note.textContent = parts.join(' · ');

@@ -301,7 +301,7 @@ function renderAppointmentResultRows(rows) {
   if (!wrap) return;
   const safe = rows?.length ? rows : [defaultAppointmentResults()[0]];
   wrap.innerHTML = safe.map((r, i) => `
-    <div style="display:grid;grid-template-columns:180px 1fr 140px 170px auto;gap:8px;align-items:end;">
+    <div class="ar-row">
       <div class="form-row">
         <label class="form-label">Sonuç tipi</label>
         <select class="form-input" id="ar-type-${i}" onchange="syncAppointmentResultLabel(${i})">
@@ -315,7 +315,7 @@ function renderAppointmentResultRows(rows) {
       </div>
       <div class="form-row"><label class="form-label">Görünen ad</label><input class="form-input" id="ar-label-${i}" value="${_uiEsc(r.label||'')}"></div>
       <div class="form-row"><label class="form-label">Renk</label><input class="form-input" id="ar-color-${i}" type="color" value="${_uiEsc(_normalizeResultColor(r.color))}"></div>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;padding-bottom:8px;"><input type="checkbox" id="ar-move-${i}" ${r.auto_move_down?'checked':''}> Otomatik alta taşı</label>
+      <label class="ar-move"><input type="checkbox" id="ar-move-${i}" ${r.auto_move_down?'checked':''}> Otomatik alta taşı</label>
       <button class="btn btn-ghost btn-sm" type="button" onclick="removeAppointmentResultRow(${i})">Sil</button>
     </div>
   `).join('');
@@ -379,6 +379,7 @@ async function saveAppointmentResultsSettings() {
       body: JSON.stringify({ settings: { ...existing, appointment_results: parsed } }),
     });
     window._apptResultsByFirm[fid] = parsed;
+    if (typeof loadMyMiniStats === 'function') loadMyMiniStats();
     toast('Randevu sonuçları kaydedildi', 'ok');
   } catch (e) {
     toast('Kaydetme hatası: ' + e.message, 'err');

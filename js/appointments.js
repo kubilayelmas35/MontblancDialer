@@ -2544,12 +2544,12 @@ async function _renderMesaiGrid() {
   grid.innerHTML = GUNLER.map(g => {
     const r = existing[g.key] || {};
     const aktif = !r.calismiyor;
-    return `<div class="mesai-row" data-gun="${g.key}" style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg-3);border-radius:6px;">
-<input type="checkbox" class="mesai-aktif" ${aktif?'checked':''} ${dis} style="width:15px;height:15px;${dis?'cursor:not-allowed;opacity:.5;':''}">
-<span style="font-size:12px;font-weight:600;min-width:90px;">${g.label}</span>
-<input type="time" class="form-input mesai-bas" value="${r.mesai_baslangic||'09:00'}" ${dis} style="width:90px;font-size:12px;padding:4px 6px;${dis?'opacity:.5;':''}">
-<span style="font-size:11px;color:var(--text-3);">—</span>
-<input type="time" class="form-input mesai-bit" value="${r.mesai_bitis||'18:00'}" ${dis} style="width:90px;font-size:12px;padding:4px 6px;${dis?'opacity:.5;':''}">
+    return `<div class="mesai-row" data-gun="${g.key}">
+<input type="checkbox" class="mesai-aktif" ${aktif?'checked':''} ${dis} style="width:15px;height:15px;flex:0 0 auto;${dis?'cursor:not-allowed;opacity:.5;':''}">
+<span class="mesai-gun">${g.label}</span>
+<input type="time" class="form-input mesai-bas" value="${r.mesai_baslangic||'09:00'}" ${dis} ${dis?'style="opacity:.5;"':''}>
+<span class="mesai-sep">—</span>
+<input type="time" class="form-input mesai-bit" value="${r.mesai_bitis||'18:00'}" ${dis} ${dis?'style="opacity:.5;"':''}>
 </div>`;
   }).join('');
 }

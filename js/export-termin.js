@@ -65,10 +65,6 @@ function _etShowLoading(on, msg) {
 
 async function _etFetchRows(from, to) {
   const ff = getFirmFilter('&');
-  if (isSuperAdmin() && !getActiveFirmId()) {
-    toast(t('export.select_firm'), 'warn');
-    return [];
-  }
   const cols =
     'id,termin_tarih,durum,nachname,telefonnummer,telefon2,strasse,plz,ortschaft,hausart,baujahr,qm,heizung,alter_der_heizung,verbrauch_pro_jahr,personen,interesse_an_pv,agent_notu,agent_id,campaign_id,customer_id,firm_id';
   let q = `appointments?select=${cols},users(name),campaigns(name),customers(name,code)${ff}`;
