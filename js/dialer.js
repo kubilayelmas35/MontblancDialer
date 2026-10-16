@@ -260,9 +260,34 @@ function selectCamp(id, name, opts = {}) {
     }
     applyLang();
   }
-  if (notice) notice.style.display = 'none';
   refreshAutoDialUi();
   refreshDialerHealthPanel();
+}
+
+function mbApplyCampWarning() {
+  const notice = document.getElementById('camp-required-notice');
+  const readySec = document.getElementById('ready-section');
+  const btn = document.getElementById('btn-ready');
+  const span = notice?.querySelector('span[data-tr]');
+  const onLive = typeof dialerStatus !== 'undefined' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping' || dialerStatus === 'calling');
+  const selected = !!selectedCampId;
+  const active = selected && mbCampaignIsActive(selectedCampId);
+  const bad = !active;
+  if (span) {
+    if (!selected) {
+      span.setAttribute('data-tr', 'Aramaya başlamadan önce sağdan bir kampanya seçin');
+      span.setAttribute('data-de', 'Wählen Sie rechts eine Kampagne bevor Sie starten');
+    } else if (!active) {
+      span.setAttribute('data-tr', 'Kampanya seçili ama aktif değil. Sağdaki anahtarı açın.');
+      span.setAttribute('data-de', 'Kampagne ist gewählt, aber nicht aktiv. Schalter rechts einschalten.');
+    }
+    const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+    span.textContent = de ? span.getAttribute('data-de') : span.getAttribute('data-tr');
+  }
+  if (notice) notice.style.display = bad ? 'flex' : 'none';
+  if (btn && onLive) btn.style.display = 'none';
+  else if (btn) btn.style.display = '';
+  if (bad && readySec && readySec.style.display === 'none') readySec.style.display = '';
 }
 
 function _selectedCampLsKey() {
@@ -346,8 +371,25 @@ function isCampaignAutoDialAllowed(campId) {
 }
 
 function getAutoDialCampaignIds() {
-  const base = _activeCampIds.length ? _activeCampIds : (selectedCampId ? [selectedCampId] : []);
-  return base.filter((cid) => isCampaignAutoDialAllowed(cid));
+  const base = Array.isArray(_activeCampIds) ? _activeCampIds : [];
+  return base.filter((cid) => cid && isCampaignAutoDialAllowed(cid));
+}
+
+function mbCampaignIsActive(id) {
+  if (!id) return false;
+  return (Array.isArray(_activeCampIds) ? _activeCampIds : []).some((cid) => String(cid) === String(id));
+}
+
+let _noActiveCampWarnAt = 0;
+function mbWarnNoActiveCampaign() {
+  const now = Date.now();
+  if (now - _noActiveCampWarnAt < 8000) return;
+  _noActiveCampWarnAt = now;
+  const msg = !selectedCampId
+    ? (typeof t === 'function' ? t('dial.pick_camp_first') : 'Önce kampanya seçin')
+    : (typeof t === 'function' ? t('dial.camp_active_none') : 'Hiç kampanya aktif değil');
+  toast(msg, 'warn', 3200);
+  if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
 }
 
 function refreshAutoDialUi() {
@@ -2878,6 +2920,7 @@ function syncDialerBottomChrome() {
       }
     }
     if (dialerStatus === 'on_call' || outboundRing) resetHold();
+    if (typeof mbApplyCampWarning === 'function') mbApplyCampWarning();
     return;
   }
 
@@ -2895,6 +2938,7 @@ function syncDialerBottomChrome() {
     }
     refreshPreCallToolbarUi();
     _clearHangupUiTick();
+    if (typeof mbApplyCampWarning === 'function') mbApplyCampWarning();
     return;
   }
 
@@ -2907,6 +2951,7 @@ function syncDialerBottomChrome() {
   if (readySec && (dialerStatus === 'offline' || dialerStatus === 'ready' || dialerStatus === 'break')) {
     readySec.style.display = '';
   }
+  if (typeof mbApplyCampWarning === 'function') mbApplyCampWarning();
 }
 
 function setDialerStatus(s) {
@@ -3312,8 +3357,17 @@ async function mbSyncPool() {
   if (dialerStatus === 'offline' || dialerStatus === 'break') return;
   if (!_autoDial && dialerStatus !== 'calling' && dialerStatus !== 'ready' && dialerStatus !== 'on_call' && dialerStatus !== 'wrapping') return;
   const campIds = typeof getAutoDialCampaignIds === 'function' ? getAutoDialCampaignIds() : [];
-  const ids = campIds.length ? campIds : (selectedCampId ? [selectedCampId] : []);
-  if (!ids.length) return;
+  const ids = campIds;
+  if (!ids.length) {
+    if (dialerStatus === 'ready' || dialerStatus === 'calling') {
+      mbWarnNoActiveCampaign();
+      if (dialerStatus === 'ready' && !_liveCallId && !_fakeCallActive && !_telnyxCall) {
+        setDialerStatus('offline');
+        updateSessionInDB('offline');
+      }
+    }
+    return;
+  }
   _poolSyncing = true;
   try {
     const ready = await mbCountReadyAgents();
@@ -3360,8 +3414,8 @@ async function dialNext() {
   if (_dialNextLock) return;
   if (dialerStatus !== 'ready') return;
   if (_outboundDialPending || _telnyxCall || _fakeCallActive) return;
-  if (!selectedCampId) {
-    toast(typeof t === 'function' ? t('dial.pick_camp_first') : 'Önce kampanya seçin', 'err');
+  if (!selectedCampId || !mbCampaignIsActive(selectedCampId)) {
+    mbWarnNoActiveCampaign();
     setDialerStatus('offline');
     updateSessionInDB('offline');
     return;
@@ -3391,8 +3445,8 @@ async function dialNext() {
 async function _dialNextPlaced() {
   if (dialerStatus !== 'ready' && dialerStatus !== 'calling') return;
   const autoCampIds = getAutoDialCampaignIds();
-  if (!autoCampIds.length && !selectedCampId) {
-    toast(typeof t === 'function' ? t('dial.no_autodial_camps') : 'Otomatik arama izni olan aktif kampanya yok', 'warn');
+  if (!autoCampIds.length || !mbCampaignIsActive(selectedCampId)) {
+    mbWarnNoActiveCampaign();
     setDialerStatus('offline');
     updateSessionInDB('offline');
     return;
@@ -3416,9 +3470,7 @@ function getDialerHealthState() {
   const checks = [];
   const push = (ok, label) => checks.push({ ok, label });
   push(!!selectedCampId, dialerHealthLabel(!!selectedCampId, 'dial.health.push.camp', 'dial.health.need.camp', 'Kampanya seçildi', 'Kampanya seçin'));
-  const campActiveOk =
-    !!selectedCampId &&
-    (_activeCampIds.length === 0 || _activeCampIds.includes(selectedCampId));
+  const campActiveOk = !!selectedCampId && mbCampaignIsActive(selectedCampId);
   push(campActiveOk, dialerHealthLabel(campActiveOk, 'dial.health.push.active', 'dial.health.need.active', 'Aktif kampanya var', 'Kampanyayı aktif edin'));
   const lineOk = _testMode || !!telnyxReady;
   push(lineOk, _testMode
@@ -3483,6 +3535,7 @@ function refreshDialerHealthPanel() {
       typeof currentLang !== 'undefined' && currentLang === 'de'
         ? (ok ? st.de : `${st.de} (${w.de})`)
         : (ok ? st.tr : `${st.tr} (${w.tr})`);
+    mbApplyCampWarning();
     return;
   }
 
@@ -3504,6 +3557,7 @@ function refreshDialerHealthPanel() {
         ? `${b.de} (${w.de})`
         : `${b.tr} (${w.tr})`;
   }
+  mbApplyCampWarning();
 }
 
 async function updateSessionInDB(status, extra = {}) {

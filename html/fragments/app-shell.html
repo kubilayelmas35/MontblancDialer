@@ -1230,6 +1230,32 @@ TEST MODU
 </div>
 </div>
 <div id="hotkey-hints" style="margin-bottom:6px;"></div>
+<div id="call-actions" style="display:none;">
+<div class="call-action-row">
+<button type="button" class="call-action-btn" id="btn-redial" onclick="redialCurrentContact()" title="Tekrar ara">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> <span data-tr="Ara" data-de="Anrufen">Ara</span>
+</button>
+<button type="button" class="call-action-btn call-action-btn--dialer-hub" id="btn-dialer-hub-back" onclick="returnToDialerHub()" title="Boş hazır ekranına dön">
+<i class="ph ph-arrow-u-up-left" aria-hidden="true"></i> <span data-tr="Dialera dön" data-de="Zum Dialer">Dialera dön</span>
+</button>
+<button class="call-action-btn" id="btn-mute" onclick="toggleMute()">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg> <span data-tr="Mikrofon" data-de="Mikrofon">Mikrofon</span>
+</button>
+<button class="call-action-btn" id="btn-hold" onclick="toggleHold()">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> <span data-tr="Beklet" data-de="Halten">Beklet</span>
+</button>
+<button type="button" class="call-action-btn call-action-btn--transfer" id="btn-transfer" onclick="openTransferModal()" title="Çağrıyı başka agenta aktar" style="display:none;">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> <span>Transfer</span>
+</button>
+<button type="button" class="call-action-btn" style="color:var(--red);" id="btn-hangup" onclick="hangup()">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.379 1.85.573 2.81.7A2 2 0 0 1 22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.19 18M1 1l22 22"/></svg> <span id="btn-hangup-label">Kapat</span>
+</button>
+</div>
+</div>
+<div id="prev-call-info" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;">
+<div style="font-weight:700;color:var(--yellow);margin-bottom:4px;"><i class="ph ph-clock-counter-clockwise"></i> Önceki Arama</div>
+<div id="prev-call-body" style="color:var(--text-2);"></div>
+</div>
 <div class="customer-card" id="customer-card">
 <div class="cust-empty" id="cust-empty">
 <div class="cust-empty-default" id="cust-empty-default">
@@ -1298,7 +1324,6 @@ TEST MODU
 <div class="cust-outbound-wait__rings" aria-hidden="true"><span></span><span></span><span></span><i class="ph ph-phone-outgoing"></i></div>
 <div class="cust-outbound-wait__title" data-tr="Telefonun açılması bekleniyor" data-de="Warten auf Annahme">Telefonun açılması bekleniyor</div>
 <div class="cust-outbound-wait__sub" data-tr="Karşı taraf açınca müşteri kartı burada açılır" data-de="Die Kundenkarte öffnet sich, sobald abgenommen wird">Karşı taraf açınca müşteri kartı burada açılır</div>
-</div>
 </div>
 <div id="cust-data" style="display:none;">
 <div style="display:flex;margin:-8px -8px 12px;border-bottom:2px solid var(--border);">
@@ -1403,6 +1428,7 @@ Son randevu bilgileri indirilebilir.
 </div>
 </div>
 </div>
+</div>
 <div id="ready-section">
 <div id="dialer-reliability-card">
 <div class="dialer-health-hd">
@@ -1425,32 +1451,6 @@ Son randevu bilgileri indirilebilir.
 </div>
 </div>
 <div class="dialer-side">
-<div id="call-actions" style="display:none;">
-<div class="call-action-row">
-<button type="button" class="call-action-btn" id="btn-redial" onclick="redialCurrentContact()" title="Tekrar ara">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> <span data-tr="Ara" data-de="Anrufen">Ara</span>
-</button>
-<button type="button" class="call-action-btn call-action-btn--dialer-hub" id="btn-dialer-hub-back" onclick="returnToDialerHub()" title="Boş hazır ekranına dön">
-<i class="ph ph-arrow-u-up-left" aria-hidden="true"></i> <span data-tr="Dialera dön" data-de="Zum Dialer">Dialera dön</span>
-</button>
-<button class="call-action-btn" id="btn-mute" onclick="toggleMute()">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg> <span data-tr="Mikrofon" data-de="Mikrofon">Mikrofon</span>
-</button>
-<button class="call-action-btn" id="btn-hold" onclick="toggleHold()">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> <span data-tr="Beklet" data-de="Halten">Beklet</span>
-</button>
-<button type="button" class="call-action-btn call-action-btn--transfer" id="btn-transfer" onclick="openTransferModal()" title="Çağrıyı başka agenta aktar" style="display:none;">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> <span>Transfer</span>
-</button>
-<button type="button" class="call-action-btn" style="color:var(--red);" id="btn-hangup" onclick="hangup()">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.379 1.85.573 2.81.7A2 2 0 0 1 22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.19 18M1 1l22 22"/></svg> <span id="btn-hangup-label">Kapat</span>
-</button>
-</div>
-</div>
-<div id="prev-call-info" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;font-size:12px;">
-<div style="font-weight:700;color:var(--yellow);margin-bottom:4px;"><i class="ph ph-clock-counter-clockwise"></i> Önceki Arama</div>
-<div id="prev-call-body" style="color:var(--text-2);"></div>
-</div>
 <div class="agent-camps-panel" id="agent-camps-panel">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
 <div class="card-title" data-tr="Kampanyalarım" data-de="Meine Kampagnen">Kampanyalarım</div>

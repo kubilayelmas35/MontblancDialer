@@ -1607,9 +1607,35 @@ align-items:stretch;
   overflow-y: auto;
   min-height: 0;
 }
-#page-dialer .dialer-layout > div:first-child > #customer-card {
+#page-dialer .dialer-layout > div:first-child > #customer-card.customer-card--empty {
   flex: 1 1 auto;
   min-height: 240px;
+  min-width: 0;
+}
+#page-dialer .dialer-layout > div:first-child > #customer-card:not(.customer-card--empty) {
+  flex: 0 0 auto;
+  min-height: min-content;
+  min-width: 0;
+  height: auto;
+  overflow: visible;
+  justify-content: flex-start;
+}
+#page-dialer #customer-card:not(.customer-card--empty) > #cust-empty {
+  display: none !important;
+  flex: none !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+}
+#page-dialer #call-actions,
+#page-dialer #prev-call-info {
+  flex: 0 0 auto;
+}
+#page-dialer .call-action-row {
+  flex-wrap: wrap;
+}
+#page-dialer .call-action-btn {
+  flex: 1 1 140px;
   min-width: 0;
 }
 #page-dialer #ready-section {
