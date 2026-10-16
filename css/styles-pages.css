@@ -80,7 +80,6 @@ MOBILE / RESPONSIVE
 .agents-grid { grid-template-columns:1fr; }
 .stats-grid { grid-template-columns:repeat(2,1fr); }
 .page-hdr { flex-direction:column; align-items:stretch; }
-.pill-bal, .pill-camp, .pill-appt { display:none; }
 .settings-layout { grid-template-columns:1fr; }
 .outcome-grid { grid-template-columns:repeat(3,1fr); }
 .outcome-btn { padding:10px 4px; }

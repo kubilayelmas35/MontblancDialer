@@ -182,8 +182,8 @@ max-width: 100%;
   overflow-y: hidden;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  scrollbar-width: none;
+  justify-content: flex-start;
+  scrollbar-width: thin;
   container-type: inline-size;
   container-name: tbpills;
 }
@@ -191,11 +191,8 @@ max-width: 100%;
   .tb-pill-lbl { display: none; }
   .tb-pill { padding: 0 8px; max-width: none; }
 }
-@container tbpills (max-width: 520px) {
-  .pill-ping, .pill-off, .pill-total { display: none; }
-}
 .tb-pills-wrap::-webkit-scrollbar {
-  height: 0;
+  height: 4px;
 }
 #topbar > * {
 position: relative;
@@ -306,12 +303,12 @@ background: rgba(255, 255, 255, 0.06);
 display: flex;
 align-items: center;
 gap: 4px;
-flex: 0 1 auto;
-min-width: 0;
+flex: none;
+width: max-content;
+min-width: max-content;
+margin-left: auto;
 flex-wrap: nowrap;
-scrollbar-width: none;
 }
-#tb-pills::-webkit-scrollbar { display: none; }
 .tb-pill {
 display: flex; align-items: center; justify-content: center; gap: 5px;
 height: 32px;
@@ -441,10 +438,6 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 @media (max-width: 1100px) {
   .tb-urole { display: none; }
   .tb-uname { max-width: 88px; }
-  .pill-ping { display: none; }
-}
-@media (max-width: 900px) {
-  .pill-camp, .pill-appt { display: none; }
 }
 .tb-mascot-anchor {
   width: 44px;
