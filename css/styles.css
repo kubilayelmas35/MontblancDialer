@@ -4743,6 +4743,29 @@ transition:var(--transition);
 .call-action-btn i.ph { font-size: 16px; line-height: 1; }
 .call-action-btn--hangup { color: var(--red); }
 .call-action-btn--hangup:hover { color: var(--red); background: color-mix(in srgb, var(--red) 12%, var(--bg-3)); }
+#btn-redial.is-go {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+#btn-redial.is-go:hover { color: #fff; filter: brightness(1.06); }
+#btn-redial:disabled,
+#btn-redial.is-passive,
+#btn-redial.is-passive:hover {
+  background: var(--bg-3);
+  color: var(--text-3);
+  border-color: var(--border);
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
+}
+#btn-mute.is-muted,
+#btn-mute.is-muted.active,
+#btn-mute.is-muted:hover {
+  background: color-mix(in srgb, var(--red) 16%, var(--bg-2));
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 48%, var(--border));
+}
 #page-dialer #call-actions { margin-top: 10px; }
 #page-dialer #prev-call-info { margin-top: 8px; }
 .call-action-btn.active { background:var(--yellow-soft); color:var(--yellow); border-color:#d9770625; }

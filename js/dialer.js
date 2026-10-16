@@ -2884,6 +2884,7 @@ function forceDialerPreCallBar() {
     callAct.classList.remove('call-actions--wrapping');
   }
   refreshPreCallToolbarUi();
+  paintCallActionButtons();
 }
 
 /** Numara ile ara / WV vb. ön aramadan çık: boş hazır kartına dön (sayfa yenilemeden) */
@@ -2898,6 +2899,46 @@ function returnToDialerHub() {
   clearCustomerCard();
   if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
   toast(typeof t === 'function' ? t('dial.hub_return') : 'Dialer hazır ekranına dönüldü', 'ok', 2400);
+}
+
+function _callLineIsLive() {
+  return dialerStatus === 'on_call' || (dialerStatus === 'calling' && (_outboundDialPending || _telnyxCall || _fakeCallActive));
+}
+
+function paintCallActionButtons() {
+  const redial = document.getElementById('btn-redial');
+  if (redial) {
+    const live = _callLineIsLive();
+    redial.disabled = live;
+    redial.classList.toggle('is-passive', live);
+    redial.classList.toggle('is-go', !live);
+    redial.setAttribute('aria-disabled', live ? 'true' : 'false');
+  }
+  const mute = document.getElementById('btn-mute');
+  if (!mute) return;
+  const off = !!isMuted;
+  mute.classList.toggle('is-muted', off);
+  mute.classList.toggle('active', off);
+  mute.setAttribute('aria-pressed', off ? 'true' : 'false');
+  const icon = mute.querySelector('i.ph');
+  if (icon) icon.className = off ? 'ph ph-microphone-slash' : 'ph ph-microphone';
+  const span = mute.querySelector('span');
+  const label = off
+    ? (typeof t === 'function' ? t('dial.mic_btn_off') : 'Kapalı')
+    : (typeof t === 'function' ? t('dial.mic_chip') : 'Mikrofon');
+  if (span) {
+    span.textContent = label;
+    if (off) {
+      span.setAttribute('data-tr', 'Kapalı');
+      span.setAttribute('data-de', 'Stumm');
+    } else {
+      span.setAttribute('data-tr', 'Mikrofon');
+      span.setAttribute('data-de', 'Mikrofon');
+    }
+  }
+  mute.title = off
+    ? (typeof t === 'function' ? t('dial.mic_off') : 'Mikrofon kapatıldı')
+    : (typeof t === 'function' ? t('dial.mic_chip') : 'Mikrofon');
 }
 
 function syncDialerBottomChrome() {
@@ -2921,6 +2962,7 @@ function syncDialerBottomChrome() {
     }
     if (dialerStatus === 'on_call' || outboundRing) resetHold();
     if (typeof mbApplyCampWarning === 'function') mbApplyCampWarning();
+    paintCallActionButtons();
     return;
   }
 
@@ -2939,6 +2981,7 @@ function syncDialerBottomChrome() {
     refreshPreCallToolbarUi();
     _clearHangupUiTick();
     if (typeof mbApplyCampWarning === 'function') mbApplyCampWarning();
+    paintCallActionButtons();
     return;
   }
 
@@ -2952,6 +2995,7 @@ function syncDialerBottomChrome() {
     readySec.style.display = '';
   }
   if (typeof mbApplyCampWarning === 'function') mbApplyCampWarning();
+  paintCallActionButtons();
 }
 
 function setDialerStatus(s) {
@@ -3207,7 +3251,6 @@ function mbPoolPlan(ready, speed, ringing) {
 
 function mbRefreshHopperUi() {
   const ringing = _hopper.filter((r) => r.phase === 'dialing' || r.phase === 'ringing').length;
-  const held = _hopper.filter((r) => r.phase === 'hold').length;
   const title = document.querySelector('#cust-empty-outbound-wait .cust-outbound-wait__title');
   const sub = document.querySelector('#cust-empty-outbound-wait .cust-outbound-wait__sub');
   const plan = _poolPlan;
@@ -3217,9 +3260,7 @@ function mbRefreshHopperUi() {
       : (typeof t === 'function' ? t('dial.wait_answer') : 'Telefonun açılması bekleniyor');
   }
   if (sub && dialerStatus === 'calling') {
-    if (held > 1) {
-      sub.textContent = typeof tReplace === 'function' ? tReplace('dial.hopper.hold', { n: held }) : `Müzikte: ${held}`;
-    } else if (plan) {
+    if (plan) {
       sub.textContent = typeof tReplace === 'function'
         ? tReplace('dial.hopper.ratio', { ready: plan.ready, speed: plan.speed, target: plan.target })
         : `Hazır ${plan.ready} × hız ${plan.speed} = ${plan.target}`;
@@ -3237,7 +3278,6 @@ function mbRefreshHopperUi() {
   }
   if (note) {
     const parts = [];
-    if (held > 1) parts.push(typeof tReplace === 'function' ? tReplace('dial.hopper.hold', { n: held }) : `Müzikte: ${held}`);
     if (ringing && dialerStatus === 'on_call') parts.push(typeof tReplace === 'function' ? tReplace('dial.hopper.ringing', { n: ringing }) : `${ringing} kişi aranıyor`);
     note.style.display = parts.length ? '' : 'none';
     note.textContent = parts.join(' · ');
@@ -3656,9 +3696,9 @@ function toggleMute() {
     return;
   }
   isMuted=!isMuted;
-  document.getElementById('btn-mute')?.classList.toggle('active',isMuted);
   if (isMuted) _micThresholdForcedMute = false;
   sendToRTC('MB_MUTE',{muted:isMuted});
+  paintCallActionButtons();
   toast(isMuted ? (typeof t === 'function' ? t('dial.mic_off') : '') : (typeof t === 'function' ? t('dial.mic_on') : ''), 'ok');
 }
 
@@ -3705,6 +3745,7 @@ async function refreshDialerCampaignCacheIfEmpty() {
 }
 
 function redialCurrentContact() {
+  if (_callLineIsLive()) return;
   if (!currentContact?.phone) {
     toast(typeof t === 'function' ? t('dial.no_contact') : 'Önce müşteri / numara yok', 'err');
     return;
