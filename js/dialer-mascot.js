@@ -2,12 +2,20 @@
 // ── Maskot tema (isim, ana renk, gradient) — localStorage ─────────
 const MASCOT_VARIANT_OFFSETS = {
   aurora: [0, 24, 50, 78],
-  sunset: [0, 14, -22, -38],
-  ocean: [-10, 8, 28, 48],
-  forest: [28, 72, 98, 118],
-  candy: [0, 38, 58, 82],
-  midnight: [-18, -6, 14, 46],
-  ember: [6, -14, -32, 52],
+  sunset: [0, 14, 28, 42],
+  ocean: [0, -12, -26, 16],
+  forest: [0, 12, 26, 40],
+  candy: [0, 16, 32, 48],
+  midnight: [0, -10, 14, 28],
+  ember: [0, 12, 24, 40],
+};
+const MASCOT_VARIANT_ANCHOR = {
+  sunset: 16,
+  ocean: 204,
+  forest: 128,
+  candy: 326,
+  midnight: 236,
+  ember: 8,
 };
 let _mascotVariantRandResolved = '';
 
@@ -488,11 +496,13 @@ function toggleMimiBubbleMute() {
 
 function _applyMascotVarsToEl(el, baseHue, variantKey, opts = {}) {
   if (!el || !el.style) return;
+  const anchor = MASCOT_VARIANT_ANCHOR[variantKey];
+  const hue = anchor == null ? baseHue : anchor;
   const offs = MASCOT_VARIANT_OFFSETS[variantKey] || MASCOT_VARIANT_OFFSETS.aurora;
-  const d = offs.map((o) => _mascotWrapHue(baseHue + o));
+  const d = offs.map((o) => _mascotWrapHue(hue + o));
   d.forEach((v, i) => el.style.setProperty(`--m-d${i}`, String(v)));
   const bored = [18, 8, -4, -16];
-  bored.forEach((o, i) => el.style.setProperty(`--m-b${i}`, String(_mascotWrapHue(baseHue + o))));
+  bored.forEach((o, i) => el.style.setProperty(`--m-b${i}`, String(_mascotWrapHue(hue + o))));
   const angryHue = Number(opts.angryHue);
   const breakHue = Number(opts.breakHue);
   const angryAnc = Number.isFinite(angryHue) ? _mascotWrapHue(angryHue) : _mascotWrapHue(baseHue * 0.26 + 11 * 0.74);

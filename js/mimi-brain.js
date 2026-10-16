@@ -443,7 +443,7 @@
     _currentPage = page;
     _resetActivity();
     // 40% chance to show page bubble on nav
-    if (Math.random() > 0.4 || _hidden() || _bubbleMuted()) return;
+    if (page === 'settings' || Math.random() > 0.4 || _hidden() || _bubbleMuted()) return;
     const pool = _PAGE_MSGS[page];
     const lang = _lang();
     const msgs = pool ? (pool[lang] || pool.tr) : (_DEFAULT_MSGS[lang] || _DEFAULT_MSGS.tr);
