@@ -3685,10 +3685,6 @@ function stopCallTimer() {
 
 // ── Call controls ─────────────────────────────
 function toggleMute() {
-  if ((_micForcedMute || _micThresholdForcedMute) && !isMuted) {
-    toast(typeof t === 'function' ? t('dial.mic_gate') : 'Eşik altında mikrofon kapalı', 'warn', 1800);
-    return;
-  }
   const pre = document.getElementById('call-actions')?.classList.contains('call-actions--pre-call');
   const lineUp = !!_telnyxCall || !!_fakeCallActive || !!_outboundDialPending;
   if (pre && !lineUp && dialerStatus !== 'on_call') {
