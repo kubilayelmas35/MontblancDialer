@@ -514,11 +514,11 @@
   }
 }
 @keyframes mcos-eye-wink-r {
-  0%, 40%, 45%, 100% {
-    transform: scaleY(1);
+  0%, 78%, 100% {
+    transform: scaleY(0.12);
   }
-  42%, 43% {
-    transform: scaleY(0.1);
+  86%, 92% {
+    transform: scaleY(1);
   }
 }
 @keyframes mcos-eye-shy {
@@ -625,18 +625,18 @@
 }
 @keyframes mcos-brow-wispy-l {
   0%, 100% {
-    transform: rotate(-10deg) translateY(0);
+    transform: rotate(-16deg) translateY(0);
   }
   50% {
-    transform: rotate(-12deg) translateY(-1px);
+    transform: rotate(-18deg) translateY(-1px);
   }
 }
 @keyframes mcos-brow-wispy-r {
   0%, 100% {
-    transform: rotate(10deg) translateY(0);
+    transform: rotate(16deg) translateY(0);
   }
   50% {
-    transform: rotate(12deg) translateY(-1px);
+    transform: rotate(18deg) translateY(-1px);
   }
 }
 @keyframes mcos-brow-bold {
@@ -649,18 +649,18 @@
 }
 @keyframes mcos-brow-angry-l {
   0%, 100% {
-    transform: rotate(-18deg) translateY(1px);
+    transform: rotate(-26deg) translateY(2px);
   }
   50% {
-    transform: rotate(-20deg) translateY(0);
+    transform: rotate(-30deg) translateY(1px);
   }
 }
 @keyframes mcos-brow-angry-r {
   0%, 100% {
-    transform: rotate(18deg) translateY(1px);
+    transform: rotate(26deg) translateY(2px);
   }
   50% {
-    transform: rotate(20deg) translateY(0);
+    transform: rotate(30deg) translateY(1px);
   }
 }
 @keyframes mcos-brow-straight {
@@ -1057,11 +1057,12 @@
   );
 }
 .mascot-theme-root[data-mascot-shape="heart"] .cust-empty-blob {
-  border-radius: 52% 48% 44% 56% / 44% 40% 56% 52%;
-  clip-path: none;
+  border-radius: 0;
+  clip-path: polygon(50% 92%, 6% 42%, 8% 22%, 24% 8%, 40% 8%, 50% 22%, 60% 8%, 76% 8%, 92% 22%, 94% 42%);
 }
 .mascot-theme-root[data-mascot-shape="droplet"] .cust-empty-blob {
-  border-radius: 50% 50% 52% 50% / 38% 38% 62% 62%;
+  border-radius: 0;
+  clip-path: polygon(50% 0%, 82% 32%, 100% 58%, 80% 100%, 20% 100%, 0% 58%, 18% 32%);
 }
 .mascot-theme-root[data-mascot-shape="ring"] .cust-empty-blob {
   border-radius: 50%;
