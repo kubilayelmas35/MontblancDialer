@@ -161,14 +161,14 @@ gap: 8px;
 z-index: 100;
 box-shadow: 0 1px 0 var(--border);
 position: relative;
-overflow: hidden;
+overflow: visible;
 flex-wrap: nowrap;
 }
 #topbar::-webkit-scrollbar {
   height: 0;
 }
 .tb-pills-wrap {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
@@ -421,9 +421,6 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   .tb-logo { margin-right: 0; }
   .tb-logo-inner { padding: 4px; gap: 0; }
 }
-@media (min-width: 1025px) {
-  #tb-mascot-anchor { display: none; }
-}
 @media (max-width: 1100px) {
   .tb-urole { display: none; }
   .tb-uname { max-width: 88px; }
@@ -433,12 +430,19 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   .pill-camp, .pill-appt { display: none; }
 }
 .tb-mascot-anchor {
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
   align-self: center;
-  border-radius: 10px;
+  border-radius: 12px;
   pointer-events: none;
+}
+.tb-mascot-anchor.is-off {
+  width: 0;
+  height: 0;
+  flex-basis: 0;
+  margin: 0;
+  overflow: hidden;
 }
 #tb-notif-btn { position: relative; }
 #tb-notif-btn #tb-notif-badge {

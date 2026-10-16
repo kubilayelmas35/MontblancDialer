@@ -428,21 +428,38 @@ function _startGlobalMascotWander() {
   _wanderRaf = requestAnimationFrame(_wanderFrame);
 }
 
+function _topbarMascotRect() {
+  const slot = document.getElementById('tb-mascot-anchor');
+  const slotStyle = slot ? getComputedStyle(slot) : null;
+  const r = slot && slotStyle && slotStyle.display !== 'none' && !slot.classList.contains('is-off')
+    ? slot.getBoundingClientRect()
+    : null;
+  if (r && r.width > 8 && r.height > 8) return r;
+  const logo = document.querySelector('.tb-logo');
+  const bar = document.getElementById('topbar');
+  const lr = logo ? logo.getBoundingClientRect() : null;
+  const br = bar ? bar.getBoundingClientRect() : null;
+  const size = 40;
+  if (lr && lr.width > 1 && br && br.height > 1) {
+    return {
+      left: lr.right + 6,
+      top: br.top + (br.height - size) / 2,
+      width: size,
+      height: size,
+    };
+  }
+  return { left: 56, top: 7, width: size, height: size };
+}
+
 function _placeGlobalMascotAtRect(rect) {
   const gm = document.getElementById('global-mascot');
   if (!gm || !rect) return;
   let cx = rect.left + rect.width / 2;
   let cy = rect.top + rect.height / 2;
   if (!Number.isFinite(cx) || !Number.isFinite(cy) || rect.width < 0.5) {
-    const ax = document.getElementById('sb-mascot-anchor') || document.getElementById('tb-mascot-anchor');
-    const r2 = ax ? ax.getBoundingClientRect() : null;
-    if (r2 && Number.isFinite(r2.left) && r2.width >= 0.5) {
-      cx = r2.left + r2.width / 2;
-      cy = r2.top + r2.height / 2;
-    } else {
-      cx = Math.max(40, (Number(window.innerWidth) || 800) * 0.5);
-      cy = 36;
-    }
+    const slot = _topbarMascotRect();
+    cx = slot.left + slot.width / 2;
+    cy = slot.top + slot.height / 2;
   }
   gm.style.left = `${cx}px`;
   gm.style.top = `${cy}px`;
@@ -480,7 +497,10 @@ function _syncGlobalMascotDockImpl() {
   const gm = document.getElementById('global-mascot');
   if (!gm) return;
   const anchor = _visibleMascotAnchor();
-  gm.classList.toggle('global-mascot--sidebar', !!(anchor && anchor.id === 'sb-mascot-anchor'));
+  const inSidebar = !!(anchor && anchor.id === 'sb-mascot-anchor' && !isMimiHidden());
+  const slot = document.getElementById('tb-mascot-anchor');
+  if (slot) slot.classList.toggle('is-off', inSidebar);
+  gm.classList.toggle('global-mascot--sidebar', inSidebar);
   gm.classList.toggle('global-mascot--muted', isMimiHidden());
   _wireGlobalMascotInteractions();
   if (gm.classList.contains('global-mascot--peek-chat') || gm.classList.contains('global-mascot--peek-notif')) {
@@ -488,15 +508,8 @@ function _syncGlobalMascotDockImpl() {
     return;
   }
   if (isMimiHidden()) {
-    const logo = document.querySelector('.tb-logo');
-    const bar = document.getElementById('topbar');
-    const lr = logo ? logo.getBoundingClientRect() : null;
-    const br = bar ? bar.getBoundingClientRect() : null;
-    const size = 34;
-    const left = lr && lr.width > 1 ? lr.right + 8 : (br ? br.left + 56 : 88);
-    const top = br && br.height > 1 ? br.top + (br.height - size) / 2 : 10;
-    _placeGlobalMascotAtRect({ left, top, width: size, height: size });
-    gm.classList.remove('global-mascot--dialer');
+    _placeGlobalMascotAtRect(_topbarMascotRect());
+    gm.classList.remove('global-mascot--dialer', 'global-mascot--custom');
     gm.classList.add('global-mascot--topbar');
     _stopGlobalMascotWander();
     return;
@@ -515,24 +528,23 @@ function _syncGlobalMascotDockImpl() {
     return;
   }
   const custom = _loadMascotCustomPos();
-  if (custom) {
+  const barBottom = document.getElementById('topbar')?.getBoundingClientRect().bottom || 54;
+  const draggedDown = !!(custom && custom.y > barBottom + 12);
+  if (draggedDown) {
     gm.style.left = `${custom.x}px`;
     gm.style.top = `${custom.y}px`;
     gm.classList.add('global-mascot--custom', 'global-mascot--placed');
     gm.classList.remove('global-mascot--dialer');
     gm.classList.add('global-mascot--topbar');
-  } else if (anchor) {
-    const rect = anchor.getBoundingClientRect();
-    _placeGlobalMascotAtRect(rect);
-    gm.classList.remove('global-mascot--custom');
-    gm.classList.remove('global-mascot--dialer');
+    if (slot) slot.classList.add('is-off');
+  } else if (inSidebar && anchor) {
+    _placeGlobalMascotAtRect(anchor.getBoundingClientRect());
+    gm.classList.remove('global-mascot--custom', 'global-mascot--dialer');
     gm.classList.add('global-mascot--topbar');
   } else {
-    const vw = Number(window.innerWidth) || 800;
-    _placeGlobalMascotAtRect({ left: vw * 0.5 - 18, top: 52, width: 36, height: 34 });
-    gm.classList.remove('global-mascot--custom');
-    gm.classList.remove('global-mascot--dialer');
-    gm.classList.add('global-mascot--topbar', 'global-mascot--placed');
+    _placeGlobalMascotAtRect(_topbarMascotRect());
+    gm.classList.remove('global-mascot--custom', 'global-mascot--dialer');
+    gm.classList.add('global-mascot--topbar');
   }
   if (_mascotWanderAllowed(gm)) _startGlobalMascotWander();
   else _stopGlobalMascotWander();
@@ -610,6 +622,14 @@ try {
   window.syncGlobalMascotDock = syncGlobalMascotDock;
   window.runGlobalMascotNotifMorph = runGlobalMascotNotifMorph;
   window.reloadMascotStateForUser = reloadMascotStateForUser;
+  if (!window._mbMascotResizeWired) {
+    window._mbMascotResizeWired = true;
+    window.addEventListener('resize', () => syncGlobalMascotDock());
+    const bar = document.getElementById('topbar');
+    if (bar && typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(() => syncGlobalMascotDock()).observe(bar);
+    }
+  }
 } catch (e) {}
 
 let _custEmptyCoachTimer = null;

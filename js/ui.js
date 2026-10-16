@@ -24,6 +24,7 @@ else       { sb.classList.add('open');   ov.classList.add('show'); }
 } else {
 sb.classList.toggle('collapsed');
 }
+if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
 }
 
 function closeSidebar() {
