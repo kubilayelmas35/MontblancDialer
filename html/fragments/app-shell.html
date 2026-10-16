@@ -1403,6 +1403,26 @@ Son randevu bilgileri indirilebilir.
 </div>
 </div>
 </div>
+<div id="ready-section">
+<div id="dialer-reliability-card">
+<div class="dialer-health-hd">
+<div data-tr="Çağrı Sağlık Kontrolü" data-de="Anruf-Check">Çağrı Sağlık Kontrolü</div>
+<span id="dialer-health-code">DIAL-INIT</span>
+</div>
+<div id="dialer-health-msg" data-tr="Kontrol ediliyor…" data-de="Prüfung läuft…">Kontrol ediliyor…</div>
+<div id="dialer-health-checks"></div>
+</div>
+<div id="camp-required-notice">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+<span data-tr="Aramaya başlamadan önce sağdan bir kampanya seçin" data-de="Wählen Sie rechts eine Kampagne bevor Sie starten">Aramaya başlamadan önce sağdan bir kampanya seçin</span>
+</div>
+<button class="btn-ready-big ready" id="btn-ready" onclick="toggleReady()" disabled title="Önce kampanya seçin">
+<span id="ready-icon">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
+</span>
+<span id="ready-text" data-tr="Kampanya Seç → Aramayı Başlat" data-de="Kampagne wählen → Anruf starten">Kampanya Seç → Aramayı Başlat</span>
+</button>
+</div>
 </div>
 <div class="dialer-side">
 <div id="call-actions" style="display:none;">
@@ -1430,26 +1450,6 @@ Son randevu bilgileri indirilebilir.
 <div id="prev-call-info" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;font-size:12px;">
 <div style="font-weight:700;color:var(--yellow);margin-bottom:4px;"><i class="ph ph-clock-counter-clockwise"></i> Önceki Arama</div>
 <div id="prev-call-body" style="color:var(--text-2);"></div>
-</div>
-<div id="ready-section">
-<div id="dialer-reliability-card">
-<div class="dialer-health-hd">
-<div data-tr="Çağrı Sağlık Kontrolü" data-de="Anruf-Check">Çağrı Sağlık Kontrolü</div>
-<span id="dialer-health-code">DIAL-INIT</span>
-</div>
-<div id="dialer-health-msg" data-tr="Kontrol ediliyor…" data-de="Prüfung läuft…">Kontrol ediliyor…</div>
-<div id="dialer-health-checks"></div>
-</div>
-<div id="camp-required-notice">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-<span data-tr="Aramaya başlamadan önce sağdan bir kampanya seçin" data-de="Wählen Sie rechts eine Kampagne bevor Sie starten">Aramaya başlamadan önce sağdan bir kampanya seçin</span>
-</div>
-<button class="btn-ready-big ready" id="btn-ready" onclick="toggleReady()" disabled title="Önce kampanya seçin">
-<span id="ready-icon">
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
-</span>
-<span id="ready-text" data-tr="Kampanya Seç → Aramayı Başlat" data-de="Kampagne wählen → Anruf starten">Kampanya Seç → Aramayı Başlat</span>
-</button>
 </div>
 <div class="agent-camps-panel" id="agent-camps-panel">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
