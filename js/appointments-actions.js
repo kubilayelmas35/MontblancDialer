@@ -177,16 +177,32 @@ function terminNoteWithExtras(noteId) {
 }
 
 // Save termin directly from the inline termin-fields-section
+function _markMissingTerminFields(keys) {
+  document.querySelectorAll('#termin-fields-section [data-tf-key]').forEach((el) => {
+    const key = el.getAttribute('data-tf-key');
+    const bad = keys.includes(key);
+    el.style.borderColor = bad ? 'var(--red)' : '';
+  });
+}
+
 async function saveTerminFromSection() {
   const slot = _bookingSlot || window._selectedBookingSlot;
   if (!slot) { toast('Önce takvimden bir slot seçin','err'); return; }
-  const custCtx = await _getCustomerCtx(null);
-  if (!_validateCustomerSelection(custCtx, 'tf2-customer')) return;
   const g = id => document.getElementById(id)?.value?.trim()||'';
   const requiredKeys = [...document.querySelectorAll('#termin-fields-section [data-required="1"]')].map((el) => el.getAttribute('data-tf-key')).filter(Boolean);
   const must = requiredKeys.length ? requiredKeys : ['hausart','baujahr','qm','heizung','alter_der_heizung'];
-  if (must.some((k) => !g('tf2-' + k))) {
-    toast('Zorunlu alanları doldurun (*)','err'); return;
+  const missing = must.filter((k) => !g('tf2-' + k));
+  let needCustomer = false;
+  try {
+    const custCtx = await _getCustomerCtx(null);
+    needCustomer = !!(custCtx?.mustSelect && typeof _selectedCustomerId === 'function' && !_selectedCustomerId('tf2-customer'));
+    const custEl = document.getElementById('tf2-customer');
+    if (custEl) custEl.style.borderColor = needCustomer ? 'var(--red)' : '';
+  } catch (e) {}
+  _markMissingTerminFields(missing);
+  if (missing.length || needCustomer) {
+    toast('Randevu için zorunlu alanları doldurmalısınız', 'err', 4200);
+    return;
   }
   const contact = currentContact || {};
   const saatNorm = (t) => t ? t.slice(0,5) : '10:00';
@@ -208,17 +224,32 @@ async function saveTerminFromSection() {
     const created = await _createAppointmentWithCustomerFallback(data);
     const aid = Array.isArray(created) ? created[0]?.id : created?.id;
     await sb(`takvim_slots?id=eq.${slot.id}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'dolu',appointment_id:aid,kilitli_agent_id:null,kilitli_at:null})});
-    _bookingSlot = null; window._selectedBookingSlot = null;
-    // Hide the termin section
     const ts = document.getElementById('termin-fields-section');
     if (ts) ts.style.display = 'none';
     const badge = document.getElementById('termin-slot-badge');
-    if (badge) { badge.textContent = 'Slot seçilmedi'; }
-    toast('Randevu kaydedildi. Sonuçlandır sıradakine geçer, Mola seni beklemeye alır.', 'ok', 4200);
-    if (typeof setOutcome === 'function') setOutcome('appointment');
+    if (badge) badge.textContent = 'Slot seçilmedi';
     selectedOutcome = 'appointment_done';
-    if (typeof switchContactTab === 'function') switchContactTab('outcome');
-  } catch(e) { toast('Hata: '+e.message,'err'); console.error(e); }
+    const lineUp = (typeof _telnyxCall !== 'undefined' && !!_telnyxCall)
+      || (typeof _fakeCallActive !== 'undefined' && !!_fakeCallActive)
+      || (typeof _outboundDialPending !== 'undefined' && !!_outboundDialPending);
+    if (typeof dialerStatus !== 'undefined' && dialerStatus === 'on_call' && lineUp) {
+      toast('Randevu kaydedildi. Çağrıyı kapat, sıradaki arama açılır.', 'ok', 4200);
+      if (typeof switchContactTab === 'function') switchContactTab('outcome');
+      return;
+    }
+    toast('Randevu kaydedildi', 'ok', 1800);
+    if (typeof submitOutcome === 'function') await submitOutcome(false);
+    _bookingSlot = null;
+    window._selectedBookingSlot = null;
+  } catch(e) {
+    const msg = String(e?.message || e || '');
+    if (/null value|not-null|23502/i.test(msg)) {
+      toast('Randevu için zorunlu alanları doldurmalısınız', 'err', 4200);
+      return;
+    }
+    toast('Hata: ' + msg, 'err');
+    console.error(e);
+  }
 }
 
 async function cancelTakvimBook(slotId) {

@@ -320,7 +320,7 @@ oninput="updateTerminField('${f.key}',this.value)">`
 <div id="tf2-customer-wrap" style="margin-top:8px;"></div>
 <div id="tf-note-row" style="margin-top:8px;">
 <label style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;">Not</label>
-<textarea id="tf2-note" class="form-input" rows="2" style="font-size:12px;resize:vertical;margin-top:3px;" placeholder="Agent notu...">${_escHtml(c.notes || '')}</textarea>
+<textarea id="tf2-note" class="form-input" rows="2" style="font-size:12px;resize:vertical;margin-top:3px;" placeholder="Agent notu..." oninput="onDialerNoteInput(this.value,'tf2')">${_escHtml(c.notes || '')}</textarea>
 </div>
 <button onclick="saveTerminFromSection()" style="margin-top:8px;width:100%;padding:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2,var(--accent)));color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer;">
 Randevuyu Kaydet
@@ -342,7 +342,8 @@ Randevuyu Kaydet
     if (typeof switchContactTab === 'function') switchContactTab('info');
   }
   if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
-  syncDialerNotes(c.notes || '');
+  syncDialerNotes(c.notes || '', 'load');
+  bindDialerNoteSync();
 }
 
 function dialerTerminFields(camp, contact) {
@@ -378,13 +379,52 @@ function dialerTerminFields(camp, contact) {
   }).filter(Boolean);
 }
 
-function syncDialerNotes(note) {
-  const text = String(note || '').trim();
-  if (!text) return;
+let _noteSyncLock = false;
+let _noteSaveTimer = 0;
+
+function syncDialerNotes(note, source) {
+  const text = String(note ?? '');
+  if (_noteSyncLock) return;
+  _noteSyncLock = true;
+  try {
+    const out = document.getElementById('outcome-note');
+    const tf = document.getElementById('tf2-note');
+    const top = document.getElementById('cval-notes');
+    const editing = document.getElementById('cedit-notes');
+    if (source !== 'outcome' && out && out.value !== text) out.value = text;
+    if (source !== 'tf2' && tf && tf.value !== text) tf.value = text;
+    if (source !== 'top' && editing && editing.value !== text) editing.value = text;
+    if (source !== 'top' && top && top.style.display !== 'none') top.textContent = text.trim() ? text : '—';
+    if (typeof currentContact !== 'undefined' && currentContact) currentContact.notes = text;
+  } finally {
+    _noteSyncLock = false;
+  }
+}
+
+function onDialerNoteInput(value, source) {
+  syncDialerNotes(value, source);
+  queueContactNoteSave(value);
+}
+
+function bindDialerNoteSync() {
   const out = document.getElementById('outcome-note');
-  const tf = document.getElementById('tf2-note');
-  if (out) out.value = text;
-  if (tf) tf.value = text;
+  if (out && out.dataset.noteSync !== '1') {
+    out.dataset.noteSync = '1';
+    out.addEventListener('input', () => onDialerNoteInput(out.value, 'outcome'));
+  }
+}
+
+function queueContactNoteSave(text) {
+  const id = currentContact?.id;
+  if (!id || typeof isValidUUID !== 'function' || !isValidUUID(id)) return;
+  clearTimeout(_noteSaveTimer);
+  _noteSaveTimer = setTimeout(() => {
+    if (currentContact?.id !== id) return;
+    sb(`contacts?id=eq.${id}`, {
+      method: 'PATCH', prefer: 'return=minimal',
+      body: JSON.stringify({ notes: text })
+    }).catch(() => {});
+  }, 400);
 }
 
 function markContactDirty() {

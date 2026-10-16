@@ -11,6 +11,12 @@ function startFieldEdit(fieldKey, fieldLabel, btnEl) {
   input.placeholder = fieldLabel + '...';
   valEl.style.display = 'none';
   parent.insertBefore(input, valEl);
+  if (fieldKey === 'notes') {
+    input.id = 'cedit-notes';
+    input.addEventListener('input', () => {
+      if (typeof onDialerNoteInput === 'function') onDialerNoteInput(input.value, 'top');
+    });
+  }
   input.focus(); input.select();
   btnEl.innerHTML = '<i class="ph ph-check" style="font-size:14px;"></i>';
   btnEl.title = 'Kaydet'; btnEl.style.color = 'var(--green)'; btnEl.style.opacity = '1';
@@ -36,6 +42,7 @@ async function saveFieldEdit(fieldKey, fieldLabel, inputEl, valEl, btnEl) {
       body: JSON.stringify(updateData)
     });
     currentContact[fieldKey] = newVal;
+    if (fieldKey === 'notes' && typeof syncDialerNotes === 'function') syncDialerNotes(newVal, 'top');
     valEl.textContent = newVal || '—';
     inputEl.remove(); valEl.style.display = '';
     btnEl.innerHTML = '<i class="ph ph-pencil-simple" style="font-size:14px;"></i>';
