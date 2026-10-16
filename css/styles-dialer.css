@@ -576,7 +576,7 @@ overflow: hidden;
   border-radius: 14px;
   background: linear-gradient(
     155deg,
-    color-mix(in srgb, hsl(var(--m-d0, 310), 62%, 88%) 35%, var(--bg-2)),
+    color-mix(in srgb, var(--m-c0, hsl(var(--m-d0, 310), 62%, 88%)) 35%, var(--bg-2)),
     var(--bg-2)
   );
   border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);

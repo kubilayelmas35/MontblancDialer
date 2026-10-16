@@ -45,10 +45,15 @@ function refreshGlobalMascotInfoPanel() {
   if (ageEl) ageEl.textContent = _fmtMimiLife(mimiAge);
   if (callsEl) callsEl.textContent = _fmtMimiLife(totalCall);
   if (variantEl) {
+    const opt = document.querySelector(`#s-mascot-variant option[value="${CSS.escape(appliedV)}"]`);
+    const named = opt
+      ? (isDe ? (opt.getAttribute('data-de') || opt.textContent) : (opt.getAttribute('data-tr') || opt.textContent))
+      : appliedLabel;
+    const label = String(named || appliedLabel).trim();
     variantEl.textContent =
       rawVariant === 'random'
-        ? (typeof tReplace === 'function' ? tReplace('dial.mimi_variant_random', { label: appliedLabel }) : (isDe ? `Zufall (${appliedLabel})` : `Rastgele (${appliedLabel})`))
-        : appliedLabel;
+        ? (typeof tReplace === 'function' ? tReplace('dial.mimi_variant_random', { label }) : (isDe ? `Zufall (${label})` : `Rastgele (${label})`))
+        : label;
   }
   const muteBtn = document.getElementById('mimi-bubble-mute-btn');
   const muteLbl = document.getElementById('mimi-bubble-mute-label');

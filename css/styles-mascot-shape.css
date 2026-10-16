@@ -45,9 +45,9 @@
   height: 40px;
   margin-top: 14px;
   box-shadow:
-    -16px 6px 0 -2px color-mix(in srgb, hsl(var(--m-d1, 334), 82%, 72%) 88%, #fff),
-    16px 8px 0 -1px color-mix(in srgb, hsl(var(--m-d2, 2), 78%, 58%) 90%, #fff),
-    0 -10px 0 -6px color-mix(in srgb, hsl(var(--m-d0, 310), 88%, 94%) 80%, #fff);
+    -16px 6px 0 -2px color-mix(in srgb, var(--m-c1, hsl(var(--m-d1, 334), 82%, 72%)) 88%, #fff),
+    16px 8px 0 -1px color-mix(in srgb, var(--m-c2, hsl(var(--m-d2, 2), 78%, 58%)) 90%, #fff),
+    0 -10px 0 -6px color-mix(in srgb, var(--m-c0, hsl(var(--m-d0, 310), 88%, 94%)) 80%, #fff);
 }
 .mascot-theme-root[data-mascot-shape='egg'] .cust-empty-blob {
   width: 52px;
@@ -67,10 +67,10 @@
   border-radius: 50%;
   clip-path: none;
   box-shadow:
-    -14px -8px 0 0 color-mix(in srgb, hsl(var(--m-d1, 334), 82%, 72%) 90%, #fff),
-    14px -8px 0 0 color-mix(in srgb, hsl(var(--m-d2, 2), 78%, 58%) 90%, #fff),
-    -12px 14px 0 0 color-mix(in srgb, hsl(var(--m-d2, 2), 78%, 58%) 88%, #fff),
-    12px 14px 0 0 color-mix(in srgb, hsl(var(--m-d3, 28), 74%, 48%) 90%, #fff);
+    -14px -8px 0 0 color-mix(in srgb, var(--m-c1, hsl(var(--m-d1, 334), 82%, 72%)) 90%, #fff),
+    14px -8px 0 0 color-mix(in srgb, var(--m-c2, hsl(var(--m-d2, 2), 78%, 58%)) 90%, #fff),
+    -12px 14px 0 0 color-mix(in srgb, var(--m-c2, hsl(var(--m-d2, 2), 78%, 58%)) 88%, #fff),
+    12px 14px 0 0 color-mix(in srgb, var(--m-c3, hsl(var(--m-d3, 28), 74%, 48%)) 90%, #fff);
 }
 .mascot-theme-root[data-mascot-shape='leaf'] .cust-empty-blob {
   border-radius: 0;
@@ -86,14 +86,14 @@
 .mascot-theme-root[data-mascot-shape='sun'] .cust-empty-blob {
   border-radius: 50%;
   box-shadow:
-    0 -22px 0 -12px color-mix(in srgb, hsl(var(--m-d1, 334), 82%, 72%) 80%, #fff),
-    0 22px 0 -12px color-mix(in srgb, hsl(var(--m-d1, 334), 82%, 72%) 80%, #fff),
-    -22px 0 0 -12px color-mix(in srgb, hsl(var(--m-d1, 334), 82%, 72%) 80%, #fff),
-    22px 0 0 -12px color-mix(in srgb, hsl(var(--m-d1, 334), 82%, 72%) 80%, #fff),
-    16px -16px 0 -13px color-mix(in srgb, hsl(var(--m-d2, 2), 78%, 58%) 75%, #fff),
-    -16px -16px 0 -13px color-mix(in srgb, hsl(var(--m-d2, 2), 78%, 58%) 75%, #fff),
-    16px 16px 0 -13px color-mix(in srgb, hsl(var(--m-d2, 2), 78%, 58%) 75%, #fff),
-    -16px 16px 0 -13px color-mix(in srgb, hsl(var(--m-d2, 2), 78%, 58%) 75%, #fff);
+    0 -22px 0 -12px color-mix(in srgb, var(--m-c1, hsl(var(--m-d1, 334), 82%, 72%)) 80%, #fff),
+    0 22px 0 -12px color-mix(in srgb, var(--m-c1, hsl(var(--m-d1, 334), 82%, 72%)) 80%, #fff),
+    -22px 0 0 -12px color-mix(in srgb, var(--m-c1, hsl(var(--m-d1, 334), 82%, 72%)) 80%, #fff),
+    22px 0 0 -12px color-mix(in srgb, var(--m-c1, hsl(var(--m-d1, 334), 82%, 72%)) 80%, #fff),
+    16px -16px 0 -13px color-mix(in srgb, var(--m-c2, hsl(var(--m-d2, 2), 78%, 58%)) 75%, #fff),
+    -16px -16px 0 -13px color-mix(in srgb, var(--m-c2, hsl(var(--m-d2, 2), 78%, 58%)) 75%, #fff),
+    16px 16px 0 -13px color-mix(in srgb, var(--m-c2, hsl(var(--m-d2, 2), 78%, 58%)) 75%, #fff),
+    -16px 16px 0 -13px color-mix(in srgb, var(--m-c2, hsl(var(--m-d2, 2), 78%, 58%)) 75%, #fff);
 }
 .mascot-theme-root[data-mascot-shape='bolt'] .cust-empty-blob {
   border-radius: 0;

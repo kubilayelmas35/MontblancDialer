@@ -8,6 +8,15 @@ const MASCOT_VARIANT_OFFSETS = {
   candy: [0, 16, 32, 48],
   midnight: [0, -10, 14, 28],
   ember: [0, 12, 24, 40],
+  gold: [0, 10, 18, 28],
+  rose: [0, 12, 24, 36],
+  sky: [0, -10, -22, 12],
+  lavender: [0, 14, 28, 42],
+  mint: [0, 12, 24, 36],
+  sand: [0, 8, 16, 24],
+  ink: [0, 0, 0, 0],
+  snow: [0, 0, 0, 0],
+  custom: [0, 0, 0, 0],
 };
 const MASCOT_VARIANT_ANCHOR = {
   sunset: 16,
@@ -16,7 +25,24 @@ const MASCOT_VARIANT_ANCHOR = {
   candy: 326,
   midnight: 236,
   ember: 8,
+  gold: 44,
+  rose: 346,
+  sky: 200,
+  lavender: 274,
+  mint: 158,
+  sand: 38,
 };
+const MASCOT_GLOSS_TONE = { s: [88, 82, 78, 74], l: [94, 72, 58, 48] };
+const MASCOT_VARIANT_TONE = {
+  gold: { s: [62, 74, 82, 78], l: [86, 64, 48, 38] },
+  sand: { s: [22, 26, 30, 34], l: [96, 86, 74, 62] },
+  midnight: { s: [42, 48, 52, 46], l: [28, 18, 12, 8] },
+};
+const MASCOT_VARIANT_STOPS = {
+  ink: ['#2c2c32', '#16161a', '#0a0a0c', '#000000'],
+  snow: ['#ffffff', '#f6f6f8', '#e8e8ee', '#d8d8e2'],
+};
+const MASCOT_CUSTOM_GRAD_DEFAULT = ['#f5d0fe', '#c084fc', '#7c3aed', '#4c1d95'];
 let _mascotVariantRandResolved = '';
 
 function resolveMascotVariantKeyFromPref() {
@@ -25,10 +51,7 @@ function resolveMascotVariantKeyFromPref() {
     _mascotVariantRandResolved = '';
     return MASCOT_VARIANT_OFFSETS[raw] ? raw : 'aurora';
   }
-  if (!_mascotVariantRandResolved) {
-    const keys = Object.keys(MASCOT_VARIANT_OFFSETS);
-    _mascotVariantRandResolved = keys[Math.floor(Math.random() * keys.length)];
-  }
+  if (!_mascotVariantRandResolved) _mascotVariantRandResolved = _mascotRandomVariantKey();
   return _mascotVariantRandResolved;
 }
 
@@ -38,11 +61,59 @@ function resolveMascotVariantKeyFromFormValue(val) {
     _mascotVariantRandResolved = '';
     return MASCOT_VARIANT_OFFSETS[raw] ? raw : 'aurora';
   }
-  if (!_mascotVariantRandResolved) {
-    const keys = Object.keys(MASCOT_VARIANT_OFFSETS);
-    _mascotVariantRandResolved = keys[Math.floor(Math.random() * keys.length)];
-  }
+  if (!_mascotVariantRandResolved) _mascotVariantRandResolved = _mascotRandomVariantKey();
   return _mascotVariantRandResolved;
+}
+
+function _mascotRandomVariantKey() {
+  const keys = Object.keys(MASCOT_VARIANT_OFFSETS).filter((k) => k !== 'custom');
+  return keys[Math.floor(Math.random() * keys.length)] || 'aurora';
+}
+
+function _mascotNormalizeHex(hex, fallback) {
+  const s = String(hex || '').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(s) ? s.toLowerCase() : fallback;
+}
+
+function getMascotCustomStops() {
+  return MASCOT_CUSTOM_GRAD_DEFAULT.map((fb, i) =>
+    _mascotNormalizeHex(getMascotPref(`mb_mascot_grad_${i}`, fb), fb)
+  );
+}
+
+function _mascotCustomStopsFromForm() {
+  return MASCOT_CUSTOM_GRAD_DEFAULT.map((fb, i) => {
+    const el = document.getElementById(`s-mascot-grad-${i}`);
+    return _mascotNormalizeHex(el?.value, fb);
+  });
+}
+
+function _mascotBodyStops(variantKey, baseHue, customStops) {
+  if (variantKey === 'custom') {
+    const src = customStops && customStops.length === 4 ? customStops : getMascotCustomStops();
+    return src.map((c, i) => _mascotNormalizeHex(c, MASCOT_CUSTOM_GRAD_DEFAULT[i]));
+  }
+  if (MASCOT_VARIANT_STOPS[variantKey]) return MASCOT_VARIANT_STOPS[variantKey].slice();
+  const anchor = MASCOT_VARIANT_ANCHOR[variantKey];
+  const hue = anchor == null ? baseHue : anchor;
+  const offs = MASCOT_VARIANT_OFFSETS[variantKey] || MASCOT_VARIANT_OFFSETS.aurora;
+  const tone = MASCOT_VARIANT_TONE[variantKey] || MASCOT_GLOSS_TONE;
+  return offs.map((o, i) => _mascotHslToHex(_mascotWrapHue(hue + o), tone.s[i], tone.l[i]));
+}
+
+function _paintMascotCustomGradPreview() {
+  const bar = document.getElementById('s-mascot-grad-preview');
+  if (!bar) return;
+  const stops = _mascotCustomStopsFromForm();
+  bar.style.background = `linear-gradient(90deg, ${stops[0]} 0%, ${stops[1]} 34%, ${stops[2]} 66%, ${stops[3]} 100%)`;
+}
+
+function _syncMascotCustomGradPanel() {
+  const v = document.getElementById('s-mascot-variant');
+  const box = document.getElementById('s-mascot-custom-grad');
+  if (!box || !v) return;
+  box.style.display = v.value === 'custom' ? '' : 'none';
+  if (v.value === 'custom') _paintMascotCustomGradPreview();
 }
 
 const MASCOT_SHAPES = new Set([
@@ -501,6 +572,8 @@ function _applyMascotVarsToEl(el, baseHue, variantKey, opts = {}) {
   const offs = MASCOT_VARIANT_OFFSETS[variantKey] || MASCOT_VARIANT_OFFSETS.aurora;
   const d = offs.map((o) => _mascotWrapHue(hue + o));
   d.forEach((v, i) => el.style.setProperty(`--m-d${i}`, String(v)));
+  const stops = _mascotBodyStops(variantKey, baseHue, opts.stops);
+  stops.forEach((c, i) => el.style.setProperty(`--m-c${i}`, c));
   const bored = [18, 8, -4, -16];
   bored.forEach((o, i) => el.style.setProperty(`--m-b${i}`, String(_mascotWrapHue(hue + o))));
   const angryHue = Number(opts.angryHue);
@@ -525,12 +598,13 @@ function applyMascotTheme() {
   const h = _mascotHexToHue(hex);
   const breakHue = _mascotHexToHue(breakHex);
   const angryHue = _mascotHexToHue(angryHex);
+  const stops = getMascotCustomStops();
   const cust = document.getElementById('cust-empty');
   const prev = document.getElementById('settings-mascot-preview-wrap');
   const gm = document.getElementById('global-mascot');
-  if (cust) _applyMascotVarsToEl(cust, h, variant, { breakHue, angryHue });
-  if (prev) _applyMascotVarsToEl(prev, h, variant, { breakHue, angryHue });
-  if (gm) _applyMascotVarsToEl(gm, h, variant, { breakHue, angryHue });
+  if (cust) _applyMascotVarsToEl(cust, h, variant, { breakHue, angryHue, stops });
+  if (prev) _applyMascotVarsToEl(prev, h, variant, { breakHue, angryHue, stops });
+  if (gm) _applyMascotVarsToEl(gm, h, variant, { breakHue, angryHue, stops });
   if (prev) prev.style.setProperty('--mascot-user-scale', String(getMascotUserScaleMul()));
   applyMascotShape();
   applyMascotCosmetics();
@@ -556,9 +630,10 @@ function applyMascotThemeLiveFromForm() {
   const prev = document.getElementById('settings-mascot-preview-wrap');
   const gm = document.getElementById('global-mascot');
   const vKey = resolveMascotVariantKeyFromFormValue(v.value);
-  if (cust) _applyMascotVarsToEl(cust, h, vKey, { breakHue, angryHue });
-  if (prev) _applyMascotVarsToEl(prev, h, vKey, { breakHue, angryHue });
-  if (gm) _applyMascotVarsToEl(gm, h, vKey, { breakHue, angryHue });
+  const stops = _mascotCustomStopsFromForm();
+  if (cust) _applyMascotVarsToEl(cust, h, vKey, { breakHue, angryHue, stops });
+  if (prev) _applyMascotVarsToEl(prev, h, vKey, { breakHue, angryHue, stops });
+  if (gm) _applyMascotVarsToEl(gm, h, vKey, { breakHue, angryHue, stops });
   const sc = document.getElementById('s-mascot-user-scale');
   const mul = sc ? Math.max(0.5, Math.min(1.5, Number(sc.value) / 100 || 1)) : getMascotUserScaleMul();
   if (prev) prev.style.setProperty('--mascot-user-scale', String(mul));
@@ -608,6 +683,11 @@ function loadMascotSettingsForm() {
   n.value = getMascotPref('mb_mascot_name', '');
   c.value = getMascotPref('mb_mascot_color', '#a855f7');
   v.value = getMascotPref('mb_mascot_variant', 'aurora');
+  getMascotCustomStops().forEach((hexStop, i) => {
+    const gel = document.getElementById(`s-mascot-grad-${i}`);
+    if (gel) gel.value = hexStop;
+  });
+  _syncMascotCustomGradPanel();
   if (bk) bk.value = getMascotPref('mb_mascot_break_color', '#4f8cff');
   if (ag) ag.value = getMascotPref('mb_mascot_angry_color', '#ff5b55');
   if (won) won.checked = isMascotWanderEnabled();
@@ -660,8 +740,16 @@ function loadMascotSettingsForm() {
   c.addEventListener('input', onLive);
   v.addEventListener('change', () => {
     if (v.value === 'random') _mascotVariantRandResolved = '';
+    _syncMascotCustomGradPanel();
     onLive();
   });
+  for (let gi = 0; gi < 4; gi += 1) {
+    const gel = document.getElementById(`s-mascot-grad-${gi}`);
+    gel?.addEventListener('input', () => {
+      _paintMascotCustomGradPreview();
+      onLive();
+    });
+  }
   n.addEventListener('input', onLive);
   bk?.addEventListener('input', onLive);
   ag?.addEventListener('input', onLive);
@@ -759,6 +847,9 @@ function saveMascotSettings() {
   setMascotPref('mb_mascot_color', hex);
   setMascotPref('mb_mascot_variant', variant);
   if (variant === 'random') _mascotVariantRandResolved = '';
+  _mascotCustomStopsFromForm().forEach((hexStop, i) => {
+    setMascotPref(`mb_mascot_grad_${i}`, hexStop);
+  });
   if (bk) setMascotPref('mb_mascot_break_color', bk.value || '#4f8cff');
   if (ag) setMascotPref('mb_mascot_angry_color', ag.value || '#ff5b55');
   if (won) setMascotPref('mb_mascot_wander_on', won.checked ? '1' : '0');
