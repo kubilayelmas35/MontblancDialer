@@ -78,12 +78,12 @@ async function initDialer() {
       const rdyBtn = document.getElementById('btn-ready');
       if (rdyBtn) {
         rdyBtn.disabled = true;
-        rdyBtn.style.opacity = '0.45';
-        rdyBtn.style.cursor = 'not-allowed';
+        rdyBtn.style.opacity = '';
+        rdyBtn.style.cursor = '';
         rdyBtn.title = typeof t === 'function' ? t('dial.init.pick_camp_title') : '';
       }
       const notice = document.getElementById('camp-required-notice');
-      if (notice) notice.style.display = 'flex';
+      if (notice) notice.classList.remove('is-hidden');
     }
     list.innerHTML = myCamps.map(ac=>{
       const isActive = _activeCampIds.includes(ac.campaign_id);
@@ -149,7 +149,7 @@ async function initDialer() {
     // kampanya otomatik seçilmez; kullanıcı tıklamalı
     if (!myCamps.length) {
       const notice = document.getElementById('camp-required-notice');
-      if (notice) notice.style.display = 'flex';
+      if (notice) notice.classList.remove('is-hidden');
     }
   } catch(e){ console.error('initDialer err:', e); }
   refreshDialerHealthPanel();
@@ -260,7 +260,7 @@ function selectCamp(id, name, opts = {}) {
     }
     applyLang();
   }
-  if (notice) notice.style.display = 'none';
+  if (notice) notice.classList.add('is-hidden');
   refreshAutoDialUi();
   refreshDialerHealthPanel();
 }
