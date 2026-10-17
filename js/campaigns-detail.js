@@ -541,6 +541,38 @@ function updateCdFsPreview() {
   mbPaintDialerPreview(document.getElementById('cd-fs-preview'));
 }
 
+function mbScriptTokens(camp) {
+  const fc = mbParseFieldConfig(camp);
+  const seen = new Set();
+  const out = [];
+  mbDialerLayoutFields(fc).forEach((f) => {
+    const label = String(f.label || f.defaultLabel || f.key || '').trim().replace(/[\[\]]/g, '');
+    if (!label || seen.has(label)) return;
+    seen.add(label);
+    out.push({ key: f.key, label, token: `[${label}]` });
+  });
+  return out;
+}
+
+function paintCampScriptVars(camp) {
+  const host = document.getElementById('cd-script-vars');
+  if (!host) return;
+  host.innerHTML = mbScriptTokens(camp).map((v) =>
+    `<button type="button" class="btn btn-ghost btn-xs" data-token="${campEsc(v.token)}" onclick="insertCampScriptVar(this.getAttribute('data-token'))">${campEsc(v.token)}</button>`
+  ).join('');
+}
+
+function insertCampScriptVar(token) {
+  const el = document.getElementById('cd-script');
+  if (!el || !token) return;
+  const start = el.selectionStart ?? el.value.length;
+  const end = el.selectionEnd ?? start;
+  el.value = el.value.slice(0, start) + token + el.value.slice(end);
+  const pos = start + token.length;
+  el.focus();
+  try { el.setSelectionRange(pos, pos); } catch (e) {}
+}
+
 function loadCampScriptTab() {
 const camp = campaigns.find(c=>c.id===currentCampId);
 if (!camp) return;
@@ -549,6 +581,7 @@ const el = document.getElementById('cd-script');
 const cb = document.getElementById('cd-script-enabled');
 if (el) el.value = settings.script || '';
 if (cb) cb.checked = settings.script_enabled || false;
+paintCampScriptVars(camp);
 }
 
 async function saveCampScript() {

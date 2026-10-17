@@ -117,7 +117,17 @@ async function showPrevCallInfo(contact) {
 
 function mbFillScript(text, contact) {
   const c = contact || {};
-  const map = {
+  const camp = (typeof campaigns !== 'undefined' && Array.isArray(campaigns))
+    ? campaigns.find((x) => String(x.id) === String(c.campaign_id || (typeof selectedCampId !== 'undefined' ? selectedCampId : '')))
+    : null;
+  let out = String(text || '');
+  const tokens = typeof mbScriptTokens === 'function' ? mbScriptTokens(camp) : [];
+  tokens.sort((a, b) => b.token.length - a.token.length);
+  tokens.forEach((v) => {
+    const value = typeof mbContactFieldText === 'function' ? mbContactFieldText(c, v.key) : '';
+    out = out.split(v.token).join(value);
+  });
+  const legacy = {
     Ad: c.first_name || '',
     Soyad: c.last_name || '',
     Vorname: c.first_name || '',
@@ -126,8 +136,9 @@ function mbFillScript(text, contact) {
     Şehir: c.city || '',
     Ort: c.city || '',
     Telefon: c.phone || '',
+    Adres: c.address || '',
   };
-  return String(text || '').replace(/\[(Ad|Soyad|Vorname|Nachname|PLZ|Şehir|Ort|Telefon)\]/g, (_, key) => map[key] ?? '');
+  return out.replace(/\[(Ad|Soyad|Vorname|Nachname|PLZ|Şehir|Ort|Telefon|Adres)\]/g, (_, key) => legacy[key] ?? '');
 }
 
 function showCampScript(contact) {
