@@ -1105,6 +1105,32 @@ box-shadow: var(--shadow);
 .stat-lbl { font-size: 11px; color: var(--text-3); font-weight: 600; text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
 .stat-val { font-size: 26px; font-weight: 800; font-family: var(--mono); line-height:1; }
 .stat-meta { font-size: 11px; color: var(--text-3); margin-top:4px; }
+.stat-delta { font-size:11px; font-weight:700; margin-top:2px; min-height:14px; }
+.stat-delta.up { color:#15803d; }
+.stat-delta.down { color:#b91c1c; }
+.stat-delta.flat { color:var(--text-3); font-weight:600; }
+#page-dashboard[data-dash-role="field"] .stats-grid,
+#page-dashboard[data-dash-role="field"] .dash-row[data-dash-row="analytics"],
+#page-dashboard[data-dash-role="field"] .dash-row[data-dash-row="trend"],
+#page-dashboard[data-dash-role="field"] .dash-row[data-dash-row="live"],
+#page-dashboard[data-dash-role="field"] .dash-row[data-dash-row="jobs"],
+#page-dashboard[data-dash-role="agent"] .dash-row[data-dash-row="live"],
+#page-dashboard[data-dash-role="qc"] .dash-row[data-dash-row="live"],
+#page-dashboard[data-dash-role="qc"] #dash-stat-cost { display:none !important; }
+.dash-brief { display:flex; flex-direction:column; gap:12px; min-width:0; }
+.dash-brief-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
+.dash-brief-scope { font-size:12px; color:var(--text-3); margin:0 0 2px; }
+.dash-goal-line { display:flex; justify-content:space-between; gap:8px; font-size:12px; font-weight:700; margin-bottom:4px; }
+.dash-goal { height:8px; border-radius:99px; background:var(--bg-3); overflow:hidden; margin-bottom:10px; }
+.dash-goal > span { display:block; height:100%; background:var(--accent); border-radius:99px; }
+.dash-mini-row { display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:12px; padding:7px 0; border-bottom:1px solid var(--border); }
+.dash-mini-row > span:first-child { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dash-mini-row:last-child { border-bottom:0; }
+.dash-mini-row b { font-variant-numeric:tabular-nums; }
+.dash-bar { height:8px; border-radius:99px; background:var(--bg-3); overflow:hidden; flex:1; min-width:48px; }
+.dash-bar > span { display:block; height:100%; background:var(--accent); }
+.dash-pace { display:flex; flex-wrap:wrap; gap:8px; }
+.dash-pace span { padding:6px 10px; border-radius:999px; background:var(--bg-3); font-size:12px; font-weight:700; }
 .stat-blue .stat-val   { color: var(--accent); }
 .stat-green .stat-val  { color: var(--green); }
 .stat-yellow .stat-val { color: var(--yellow); }

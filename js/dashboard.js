@@ -608,7 +608,7 @@ function renderDashTrendForRange(rangeKey, logs, from, to) {
   renderDashChart7d(counts, labels, { maxTicksLimit: rangeKey === 'month' ? 18 : 10 });
 }
 
-const MB_DASH_ROWS = ['eom', 'jobs', 'analytics', 'trend', 'live'];
+const MB_DASH_ROWS = ['brief', 'eom', 'jobs', 'analytics', 'trend', 'live'];
 let _dashDragKey = '';
 
 function mbDashRowKey() {
@@ -625,6 +625,7 @@ function mbApplyDashRowOrder() {
     const saved = JSON.parse(localStorage.getItem(mbDashRowKey()) || '[]');
     if (Array.isArray(saved)) {
       const known = saved.filter((key) => MB_DASH_ROWS.includes(key));
+      if (!known.includes('brief')) known.unshift('brief');
       order = known.concat(MB_DASH_ROWS.filter((key) => !known.includes(key)));
     }
   } catch (e) {}
@@ -714,14 +715,18 @@ function mbInitDashRows() {
 async function loadDashboard() {
 mbInitDashRows();
 mbApplyDashRowOrder();
+const dashRole = typeof mbDashRole === 'function' ? mbDashRole() : 'agent';
+const pageDash = document.getElementById('page-dashboard');
+if (pageDash) pageDash.dataset.dashRole = dashRole;
 renderFirmSelector('dash-firm-selector', loadDashboard);
 await populateDashAgentSelect();
 const { ff, agentQ, onlySelf } = _dashLogFilter();
+let dashLogs = [];
 const costEl = document.getElementById('dash-stat-cost');
 const liveWrap = document.getElementById('dash-live-wrap');
 const subEl = document.getElementById('dash-chart-sub');
 if (costEl) costEl.style.display = onlySelf ? 'none' : '';
-const showLive = ['admin', 'super_admin', 'firm_admin', 'qc'].includes(currentUser?.role || '');
+const showLive = ['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '');
 if (liveWrap) liveWrap.style.display = showLive ? '' : 'none';
 document.querySelectorAll('.dash-range-btn').forEach(b => {
   b.classList.toggle('active', b.dataset.dashRange === _dashGetRange());
@@ -753,6 +758,10 @@ qLogs += ff;
 qLogs += agentQ;
 qLogs += '&limit=8000';
 const logs  = await sb(qLogs) || [];
+if (dashRole === 'qc') {
+  logs.splice(0, logs.length, ...logs.filter((l) => l.outcome === 'appointment' || l.outcome === 'appointment_done'));
+}
+dashLogs = logs;
 if (rangeKey === 'today') {
   renderDashHourlyMixed(logs);
 } else {
@@ -802,6 +811,9 @@ if (typeof loadJobMarketKpi === 'function') {
 }
 if (typeof loadJobFinanceSummary === 'function') {
   try { await loadJobFinanceSummary(); } catch (e) {}
+}
+if (typeof loadDashBrief === 'function') {
+  try { await loadDashBrief({ logs: dashLogs, ff, agentQ, rangeKey, from, to }); } catch (e) { console.warn('brief', e); }
 }
 if (typeof mbSyncDashRows === 'function') mbSyncDashRows();
 }

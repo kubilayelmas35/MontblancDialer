@@ -325,21 +325,25 @@
 <div class="stat-lbl" id="stat-lbl-calls">Bugünkü Aramalar</div>
 <div class="stat-val" id="d-calls">0</div>
 <div class="stat-meta" id="d-calls-m">—</div>
+<div class="stat-delta" id="d-calls-delta"></div>
 </div>
 <div class="stat-card stat-green">
 <div class="stat-lbl" data-tr="Randevular" data-de="Termine">Randevular</div>
 <div class="stat-val" id="d-appt">0</div>
 <div class="stat-meta" id="d-appt-m">%0 dönüşüm</div>
+<div class="stat-delta" id="d-appt-delta"></div>
 </div>
 <div class="stat-card stat-yellow">
 <div class="stat-lbl" data-tr="Geri Aramalar" data-de="Rückrufe">Geri Aramalar</div>
 <div class="stat-val" id="d-cb">0</div>
 <div class="stat-meta" data-tr="bekliyor" data-de="ausstehend">bekliyor</div>
+<div class="stat-delta" id="d-cb-delta"></div>
 </div>
 <div class="stat-card stat-red">
 <div class="stat-lbl" data-tr="Telesekreter" data-de="Mailbox">Telesekreter</div>
 <div class="stat-val" id="d-vm">0</div>
 <div class="stat-meta" data-tr="AMD yakaladı" data-de="AMD erkannt">AMD yakaladı</div>
+<div class="stat-delta" id="d-vm-delta"></div>
 </div>
 <div class="stat-card" id="dash-stat-cost">
 <div class="stat-lbl" data-tr="Harcanan Bakiye" data-de="Kosten heute">Harcanan Bakiye</div>
@@ -350,6 +354,7 @@
 <div class="stat-lbl" data-tr="Konuşma Süresi" data-de="Gesprächszeit">Konuşma Süresi</div>
 <div class="stat-val" id="d-talk">0dk</div>
 <div class="stat-meta" id="d-avg">ort. 0sn/çağrı</div>
+<div class="stat-delta" id="d-talk-delta"></div>
 </div>
 </div>
 <div class="dash-range-tabs" id="dash-range-tabs" role="tablist" aria-label="Özet zaman aralığı">
@@ -358,6 +363,10 @@
 <button type="button" class="dash-range-btn" data-dash-range="month" data-tr="Bu ay" data-de="Dieser Monat" onclick="setDashRange('month')">Bu ay</button>
 <button type="button" class="dash-range-btn" data-dash-range="all" data-tr="Tüm zamanlar" data-de="Gesamt" onclick="setDashRange('all')">Tüm zamanlar</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="mbResetDashRows()"><span data-tr="Varsayılan sıra" data-de="Standardreihenfolge">Varsayılan sıra</span></button>
+</div>
+<div class="dash-row" data-dash-row="brief">
+<button type="button" class="dash-row-handle" draggable="true" data-tr-aria="Satırı taşı" data-de-aria="Zeile verschieben" data-tr-title="Satırı taşı" data-de-title="Zeile verschieben" aria-label="Satırı taşı" title="Satırı taşı"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg></button>
+<div id="dash-brief"></div>
 </div>
 <div class="dash-row" data-dash-row="eom">
 <button type="button" class="dash-row-handle" draggable="true" data-tr-aria="Satırı taşı" data-de-aria="Zeile verschieben" data-tr-title="Satırı taşı" data-de-title="Zeile verschieben" aria-label="Satırı taşı" title="Satırı taşı"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg></button>
