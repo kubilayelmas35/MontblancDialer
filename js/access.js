@@ -21,7 +21,7 @@ const MB_PAGES = [
   { key: 'qc', label: 'QC Paneli', roles: ['super_admin', 'admin', 'firm_admin', 'qc'] },
   { key: 'wiedervorlage', label: 'Aranacaklar', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc'] },
   { key: 'dialer', label: 'Dialer', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc'] },
-  { key: 'field', label: 'Saha Operasyon', roles: ['field_agent'] },
+  { key: 'field', label: 'Saha görevlerim', roles: ['field_agent'] },
   { key: 'myhistory', label: 'Geçmişim', roles: ['agent'] },
   { key: 'leave', label: 'İzin & Devam', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc', 'field_agent'] },
   { key: 'competition', label: 'Ayın elemanı', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc', 'field_agent'] },

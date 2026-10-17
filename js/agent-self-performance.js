@@ -120,17 +120,36 @@ async function _aspFetchAppointments(fid, uid, start, end, mode = 'termin') {
   });
   const s = `${start}T00:00:00`;
   const e = `${end}T23:59:59`;
+  const fromMs = _aspBerlinStartMs(start);
+  const toMs = _aspBerlinEndMs(end);
   return rows.filter((r) => {
     const raw = mode === 'created' ? (r.kayit_tarihi || r.created_at) : r.termin_tarih;
-    const t = String(raw || '');
-    return t && t >= s && t <= e;
+    if (!raw) return false;
+    if (mode === 'created') {
+      const ms = new Date(raw).getTime();
+      return Number.isFinite(ms) && Number.isFinite(fromMs) && Number.isFinite(toMs) && ms >= fromMs && ms <= toMs;
+    }
+    const t = String(raw);
+    return t >= s && t <= e;
   });
+}
+
+function _aspBerlinStartMs(day) {
+  const iso = typeof mbWallToIso === 'function' ? mbWallToIso(`${day}T00:00`) : null;
+  const ms = iso ? new Date(iso).getTime() : NaN;
+  return ms;
+}
+
+function _aspBerlinEndMs(day) {
+  const iso = typeof mbWallToIso === 'function' ? mbWallToIso(`${day}T23:59`) : null;
+  const ms = iso ? new Date(iso).getTime() : NaN;
+  return Number.isFinite(ms) ? ms + 59999 : ms;
 }
 
 async function _aspFetchCalls(fid, uid, start, end) {
   if (!uid) return [];
-  const s = `${start}T00:00:00`;
-  const e = `${end}T23:59:59`;
+  const fromMs = _aspBerlinStartMs(start);
+  const toMs = _aspBerlinEndMs(end);
   let rows = (await sb(`call_logs?select=*&limit=10000`).catch(() => [])) || [];
   const meId = String(uid || '');
   const meName = String(currentUser?.name || '').trim().toLowerCase();
@@ -145,8 +164,8 @@ async function _aspFetchCalls(fid, uid, start, end) {
     return false;
   });
   return rows.filter((r) => {
-    const t = String(r.started_at || '');
-    return t && t >= s && t <= e;
+    const ms = new Date(r.started_at || '').getTime();
+    return Number.isFinite(ms) && Number.isFinite(fromMs) && Number.isFinite(toMs) && ms >= fromMs && ms <= toMs;
   });
 }
 

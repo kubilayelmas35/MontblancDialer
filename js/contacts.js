@@ -513,7 +513,7 @@ async function saveCustomerNameEdit() {
 async function _getLatestAppointmentForContact(contactId) {
   if (!contactId) return null;
   try {
-    const rows = await sb(`appointments?contact_id=eq.${contactId}&select=*&order=created_at.desc&limit=1`);
+    const rows = await sb(`appointments?contact_id=eq.${contactId}&select=*&order=kayit_tarihi.desc&limit=1`);
     return rows?.[0] || null;
   } catch (e) {
     return null;
@@ -528,7 +528,22 @@ async function updateContactFileHint() {
     hint.textContent = 'Henüz randevu bulunamadı. Müşteri ve çağrı bilgileri indirilecek.';
     return;
   }
-  hint.textContent = `Son randevu: ${new Date(appt.created_at || Date.now()).toLocaleString('tr-TR')} · Durum: ${appt.durum || '—'}`;
+  const bookedAt = appt.kayit_tarihi || appt.termin_tarih;
+  hint.textContent = `Son randevu: ${bookedAt ? new Date(bookedAt).toLocaleString('tr-TR') : '—'} · Durum: ${appt.durum || '—'}`;
+}
+
+function _apptWallDate(raw) {
+  if (!raw) return '—';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('tr-TR');
+}
+
+function _apptWallTime(raw) {
+  if (!raw) return '—';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 }
 
 async function _buildContactExportRows() {
@@ -542,9 +557,9 @@ async function _buildContactExportRows() {
     adres: currentContact.address || '—',
     kampanya: campaigns.find((x) => x.id === currentContact.campaign_id)?.name || currentContact.campaign_id || '—',
     randevu_durum: appt?.durum || '—',
-    randevu_tarih: appt?.tarih || '—',
-    randevu_saat: appt?.saat || '—',
-    not: appt?.notiz || currentContact.notes || '—'
+    randevu_tarih: _apptWallDate(appt?.termin_tarih),
+    randevu_saat: _apptWallTime(appt?.termin_tarih),
+    not: appt?.agent_notu || currentContact.notes || '—'
   }];
 }
 

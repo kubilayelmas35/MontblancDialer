@@ -37,7 +37,7 @@ async function loadQcData() {
       const chunkSize = 40;
       for (let i = 0; i < contactIds.length; i += chunkSize) {
         const ids = contactIds.slice(i, i + chunkSize).join(',');
-        const appts = await sb(`appointments?firm_id=eq.${fid}&contact_id=in.(${ids})&select=id,contact_id,customer_id&order=created_at.desc&limit=1000`).catch(()=>[]);
+        const appts = await sb(`appointments?firm_id=eq.${fid}&contact_id=in.(${ids})&select=id,contact_id,customer_id&order=kayit_tarihi.desc&limit=1000`).catch(()=>[]);
         (appts || []).forEach(a => {
           if (!window._qcApptByContact[a.contact_id]) window._qcApptByContact[a.contact_id] = a;
         });
@@ -246,7 +246,7 @@ async function quickQcUpdate(logId, status) {
     const fid = getActiveFirmId() || currentUser?.firm_id || null;
     await sb(`contacts?id=eq.${r.contact_id}`, {method:'PATCH', prefer:'return=minimal',
       body: JSON.stringify({durum: contactStatus, qc_note: note || undefined})});
-    const apptRows = fid ? await sb(`appointments?firm_id=eq.${fid}&contact_id=eq.${r.contact_id}&select=id&order=created_at.desc&limit=1`).catch(()=>[]) : [];
+    const apptRows = fid ? await sb(`appointments?firm_id=eq.${fid}&contact_id=eq.${r.contact_id}&select=id&order=kayit_tarihi.desc&limit=1`).catch(()=>[]) : [];
     let apptDate = '', apptTime = '';
     if (apptRows?.length) {
       const cfg = (window._qcResultCfg || []).find(x => x.key === apptStatus);
