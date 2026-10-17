@@ -104,6 +104,7 @@ function _rememberHopper(call, contact) {
 }
 
 function _agentBusy() {
+  if (typeof dialerStatus !== 'undefined' && dialerStatus === 'wrapping') return true;
   return !!_liveCallId && _hopper.some((r) => r.id === _liveCallId && r.phase === 'live');
 }
 
@@ -284,8 +285,17 @@ function mbSimOutbound(contact, answerInMs) {
   _outboundDialPending = true;
   const waitMs = (typeof window !== 'undefined' && window.__mbPoolAnswerMs) || answerInMs || 1200;
   setTimeout(() => {
-    if (!_hopper.find((r) => r.call === call)) return;
-    if (dialerStatus !== 'calling' && dialerStatus !== 'on_call' && dialerStatus !== 'wrapping') return;
+    const row = _hopper.find((r) => r.call === call);
+    if (!row) return;
+    if (dialerStatus === 'wrapping') {
+      call.state = 'held';
+      call.held = true;
+      row.phase = 'hold';
+      row.answeredAt = row.answeredAt || Date.now();
+      if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+      return;
+    }
+    if (dialerStatus !== 'calling' && dialerStatus !== 'on_call') return;
     call.state = 'active';
     mbOnHopperCall(call);
   }, Math.max(200, waitMs));

@@ -851,7 +851,7 @@ function mbEnsurePoolTimer() {
 
 async function mbSyncPool() {
   if (_poolSyncing) return;
-  if (dialerStatus === 'offline' || dialerStatus === 'break') return;
+  if (dialerStatus === 'offline' || dialerStatus === 'break' || dialerStatus === 'wrapping') return;
   if (!_autoDial && dialerStatus !== 'calling' && dialerStatus !== 'ready' && dialerStatus !== 'on_call' && dialerStatus !== 'wrapping') return;
   const campIds = typeof getAutoDialCampaignIds === 'function' ? getAutoDialCampaignIds() : [];
   const ids = campIds;
