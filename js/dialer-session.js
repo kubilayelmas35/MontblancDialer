@@ -686,11 +686,15 @@ function hideOutboundWait() {
   if (def && root && !root.classList.contains('cust-empty--ringing')) def.style.display = '';
 }
 
-function mbDialSpeed() {
-  const camp = (campaigns || []).find((c) => c.id === selectedCampId);
+function mbCampaignDialSpeed(campId) {
+  const camp = (campaigns || []).find((c) => String(c.id) === String(campId));
   const n = parseInt(camp?.dial_speed, 10);
   if (!n || n < 1) return 1;
   return Math.min(10, n);
+}
+
+function mbDialSpeed() {
+  return mbCampaignDialSpeed(selectedCampId);
 }
 
 function mbPoolPlan(ready, speed, ringing) {
@@ -719,7 +723,11 @@ function mbRefreshHopperUi() {
       : (typeof t === 'function' ? t('dial.wait_answer') : 'Telefonun açılması bekleniyor');
   }
   if (sub && dialerStatus === 'calling') {
-    if (plan) {
+    if (plan && plan.multi) {
+      sub.textContent = typeof tReplace === 'function'
+        ? tReplace('dial.hopper.ratio_multi', { ready: plan.ready, target: plan.target })
+        : `Hazır ${plan.ready} · her kampanya kendi hızı · hedef ${plan.target}`;
+    } else if (plan) {
       sub.textContent = typeof tReplace === 'function'
         ? tReplace('dial.hopper.ratio', { ready: plan.ready, speed: plan.speed, target: plan.target })
         : `Hazır ${plan.ready} × hız ${plan.speed} = ${plan.target}`;
@@ -779,16 +787,28 @@ async function mbCountReadyAgents() {
   return ids.size;
 }
 
-async function mbRemoteRinging(campIds) {
-  if (typeof window.__mbPoolRemoteRinging === 'number') return Math.max(0, window.__mbPoolRemoteRinging);
-  if (!campIds?.length || typeof sb !== 'function') return 0;
+async function mbRemoteRingingByCampaign(campIds) {
+  const counts = {};
+  (campIds || []).forEach((id) => { counts[String(id)] = 0; });
+  if (typeof window.__mbPoolRemoteRinging === 'number') {
+    const first = (campIds || [])[0];
+    if (first) counts[String(first)] = Math.max(0, window.__mbPoolRemoteRinging);
+    return counts;
+  }
+  if (!campIds?.length || typeof sb !== 'function') return counts;
   const since = new Date(Date.now() - 90000).toISOString();
   const filter = campIds.map((id) => encodeURIComponent(id)).join(',');
   const rows = await sb(
-    `contacts?status=eq.calling&campaign_id=in.(${filter})&last_called_at=gte.${encodeURIComponent(since)}&select=id,locked_by&limit=500`
+    `contacts?status=eq.calling&campaign_id=in.(${filter})&last_called_at=gte.${encodeURIComponent(since)}&select=id,campaign_id&limit=500`
   ).catch(() => []);
   const mine = new Set(_hopper.map((r) => r.contact?.id).filter(Boolean));
-  return (rows || []).filter((r) => r?.id && !mine.has(r.id)).length;
+  (rows || []).forEach((r) => {
+    if (!r?.id || mine.has(r.id)) return;
+    const key = String(r.campaign_id || '');
+    if (!key || counts[key] == null) return;
+    counts[key] += 1;
+  });
+  return counts;
 }
 
 async function mbNextPoolContact(campIds) {
@@ -822,7 +842,9 @@ async function mbNextPoolContact(campIds) {
 }
 
 async function mbPlacePoolCall(contact) {
-  const campaign = (campaigns || []).find((c) => c.id === selectedCampId);
+  const own = (campaigns || []).find((c) => String(c.id) === String(contact?.campaign_id));
+  const selected = (campaigns || []).find((c) => String(c.id) === String(selectedCampId));
+  const campaign = own || selected;
   const caller = campaign?.telnyx_did || '';
   if (!_liveCallId) {
     _outboundAnswered = false;
@@ -870,28 +892,48 @@ async function mbSyncPool() {
   _poolSyncing = true;
   try {
     const ready = await mbCountReadyAgents();
-    const local = _hopper.filter((r) => r.phase === 'dialing' || r.phase === 'ringing');
-    const remote = await mbRemoteRinging(ids);
-    const plan = mbPoolPlan(ready, mbDialSpeed(), local.length + remote);
-    _poolPlan = plan;
-    if (plan.drop > 0) {
-      const victims = local.slice(-plan.drop);
-      victims.forEach((row) => {
+    const remoteMap = await mbRemoteRingingByCampaign(ids);
+    const ringingLocal = (cid) => _hopper.filter((r) => (r.phase === 'dialing' || r.phase === 'ringing') && String(r.contact?.campaign_id || '') === String(cid));
+    const plans = ids.map((cid) => {
+      const local = ringingLocal(cid);
+      const remote = remoteMap[String(cid)] || 0;
+      const plan = mbPoolPlan(ready, mbCampaignDialSpeed(cid), local.length + remote);
+      plan.campId = cid;
+      plan.local = local;
+      return plan;
+    });
+    const totalTarget = plans.reduce((sum, plan) => sum + plan.target, 0);
+    _poolPlan = {
+      ready,
+      speed: plans.length === 1 ? plans[0].speed : null,
+      target: totalTarget,
+      multi: plans.length > 1,
+    };
+    plans.forEach((plan) => {
+      if (plan.drop <= 0) return;
+      plan.local.slice(-plan.drop).forEach((row) => {
         if (row.contact?.id) _hopperSkip.set(String(row.contact.id), Date.now() + 20000);
         if (row.contact && typeof mbReleaseUnanswered === 'function') mbReleaseUnanswered(row.contact, 'pending');
         _hopper = _hopper.filter((r) => r !== row);
         try { row.call.hangup(); } catch (e) {}
       });
-    } else if (plan.dial > 0 && (_testMode || window.__mbPoolSimulate || telnyxReady)) {
+    });
+    const canDial = _testMode || window.__mbPoolSimulate || telnyxReady;
+    if (canDial && plans.some((plan) => plan.dial > 0)) {
       let placed = 0;
-      while (placed < plan.dial) {
-        if (dialerStatus === 'offline' || dialerStatus === 'break') break;
-        const ringingNow = _hopper.filter((r) => r.phase === 'dialing' || r.phase === 'ringing').length + remote;
-        if (ringingNow >= plan.target) break;
-        const contact = await mbNextPoolContact(ids);
-        if (!contact) break;
-        await mbPlacePoolCall(contact);
-        placed++;
+      for (let i = 0; i < plans.length; i++) {
+        const plan = plans[i];
+        let left = plan.dial;
+        while (left > 0) {
+          if (dialerStatus === 'offline' || dialerStatus === 'break') break;
+          const liveNow = ringingLocal(plan.campId).length + (remoteMap[String(plan.campId)] || 0);
+          if (liveNow >= plan.target) break;
+          const contact = await mbNextPoolContact([plan.campId]);
+          if (!contact) break;
+          await mbPlacePoolCall(contact);
+          placed++;
+          left--;
+        }
       }
       if (!placed && !_hopper.length && !_liveCallId && dialerStatus === 'ready') {
         toast(typeof t === 'function' ? t('dial.queue_empty') : '✅ Kuyrukta numara kalmadı', 'ok');
