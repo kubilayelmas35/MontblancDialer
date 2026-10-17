@@ -956,11 +956,14 @@
 #page-performance .perf-cv{font-size:22px;font-weight:900;}
 #page-performance .perf-call-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
 @media(max-width:900px){#page-performance .perf-call-row{grid-template-columns:repeat(2,1fr);}}
-#page-performance .perf-charts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
-@media(max-width:1200px){#page-performance .perf-charts{grid-template-columns:1fr 1fr;}}
-@media(max-width:700px){#page-performance .perf-charts{grid-template-columns:1fr;}}
-#page-performance .perf-chart-box{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg-2);}
-#page-performance .perf-chart-t{height:220px;position:relative;}
+#page-performance .perf-charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px;min-width:0;width:100%;}
+@media(max-width:1200px){#page-performance .perf-charts{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:700px){#page-performance .perf-charts{grid-template-columns:minmax(0,1fr);}}
+#page-performance .perf-chart-box{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg-2);min-width:0;max-width:100%;overflow:hidden;}
+#page-performance .perf-chart-t{height:220px;position:relative;min-width:0;width:100%;}
+#page-performance .perf-chart-t canvas{max-width:100%;}
+#page-performance .perf-chart-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;margin-bottom:8px;}
+#page-performance .perf-chart-tools{display:flex;gap:4px;flex-wrap:wrap;min-width:0;}
 #page-performance .perf-chart-wide{grid-column:1/-1;}
 #page-performance .perf-chart-t-lg{height:260px;}
 #page-performance .perf-tables{display:grid;grid-template-columns:1.2fr 0.8fr;gap:12px;}
@@ -1057,9 +1060,9 @@
 </div>
 <div class="perf-charts">
 <div class="perf-chart-box">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+<div class="perf-chart-head">
 <span style="font-weight:800;font-size:13px;"><i class="ph ph-trend-up"></i> Trend</span>
-<div style="display:flex;gap:4px;">
+<div class="perf-chart-tools">
 <button type="button" class="range-btn perf-cperiod-btn active" onclick="perfSetChartPeriod('daily',event)">Gün</button>
 <button type="button" class="range-btn perf-cperiod-btn" onclick="perfSetChartPeriod('weekly',event)">Hafta</button>
 <button type="button" class="range-btn perf-cperiod-btn" onclick="perfSetChartPeriod('monthly',event)">Ay</button>
@@ -1076,9 +1079,9 @@
 <div class="perf-chart-t"><canvas id="perf-chart-rate"></canvas></div>
 </div>
 <div class="perf-chart-box perf-chart-wide">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+<div class="perf-chart-head">
 <span style="font-weight:800;font-size:13px;"><i class="ph ph-users-three"></i> Karşılaştırma</span>
-<div style="display:flex;gap:4px;">
+<div class="perf-chart-tools">
 <button type="button" class="range-btn perf-cmp-btn active" onclick="perfSetCompType('termin',event)">Randevu</button>
 <button type="button" class="range-btn perf-cmp-btn" onclick="perfSetCompType('success',event)">Oran %</button>
 <button type="button" class="range-btn perf-cmp-btn" onclick="perfSetCompType('efficiency',event)">Verim</button>
