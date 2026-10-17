@@ -82,6 +82,7 @@ campaigns = await sb(`campaigns?select=*,queues(*),agent_campaigns(*)&order=crea
 campaigns = campaigns || [];
 await attachCampaignPeople();
 await reconcileQueueTotals(campaigns);
+await attachCampaignDialCounts();
 renderCampGrid();
 const detailOpen = document.getElementById('camp-detail')?.style.display === 'block';
 if (detailOpen && currentCampId && campaigns.some((c) => c.id === currentCampId)) {
@@ -127,6 +128,65 @@ function campStats(c) {
   };
 }
 
+let _campSearch = '';
+
+function setCampSearch(value) {
+  _campSearch = String(value || '').trim();
+  renderCampGrid();
+}
+
+function campShowFirm() {
+  return typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin()
+    && !(typeof getActiveFirmId === 'function' && getActiveFirmId());
+}
+
+function campFirmName(firmId) {
+  const row = (typeof _allFirms !== 'undefined' ? _allFirms : []).find((f) => String(f.id) === String(firmId));
+  return String(row?.name || '').trim();
+}
+
+function campVisibleList() {
+  const q = _campSearch.toLocaleLowerCase('tr-TR');
+  const list = campaigns || [];
+  if (!q) return list;
+  return list.filter((c) => {
+    const name = String(c.name || '').toLocaleLowerCase('tr-TR');
+    const firm = campFirmName(c.firm_id).toLocaleLowerCase('tr-TR');
+    return name.includes(q) || firm.includes(q);
+  });
+}
+
+async function attachCampaignDialCounts() {
+  const ids = (campaigns || []).map((c) => c.id).filter(Boolean);
+  const left = {};
+  const stuck = {};
+  const chunk = 6;
+  for (let i = 0; i < ids.length; i += chunk) {
+    const slice = ids.slice(i, i + chunk);
+    await Promise.all(slice.map(async (id) => {
+      const [remain, calling] = await Promise.all([
+        typeof mbDashCount === 'function'
+          ? mbDashCount(`contacts?select=id&campaign_id=eq.${id}&status=in.(pending,no_answer,callback)`)
+          : null,
+        typeof mbDashCount === 'function'
+          ? mbDashCount(`contacts?select=id&campaign_id=eq.${id}&status=eq.calling`)
+          : null,
+      ]);
+      left[id] = remain;
+      stuck[id] = calling;
+    }));
+  }
+  (campaigns || []).forEach((c) => {
+    c._left = Object.prototype.hasOwnProperty.call(left, c.id) ? left[c.id] : null;
+    c._stuck = Object.prototype.hasOwnProperty.call(stuck, c.id) ? stuck[c.id] : null;
+  });
+}
+
+function campCountText(n) {
+  if (n == null) return '—';
+  return Number(n).toLocaleString('tr-TR');
+}
+
 function campCreatedLabel(iso) {
   if (!iso) return '—';
   if (typeof mbFormatWall === 'function') {
@@ -150,13 +210,19 @@ if (!campaigns.length) {
 grid.innerHTML = `<div style="color:var(--text-3);padding:32px;text-align:center;grid-column:1/-1;font-size:13px;">${campT('camp.empty','Henüz kampanya yok')}</div>`;
 return;
 }
+const visible = campVisibleList();
+if (!visible.length) {
+grid.innerHTML = `<div style="color:var(--text-3);padding:32px;text-align:center;grid-column:1/-1;font-size:13px;">${campT('camp.search.empty','Eşleşen kampanya yok')}</div>`;
+return;
+}
 const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
 const detailOpen = document.getElementById('camp-detail')?.style.display === 'block';
+const showFirm = campShowFirm();
 if (campViewMode() === 'rows') {
-  grid.innerHTML = renderCampRows(esc, detailOpen);
+  grid.innerHTML = renderCampRows(esc, detailOpen, visible, showFirm);
   return;
 }
-grid.innerHTML = campaigns.map(c=>{
+grid.innerHTML = visible.map(c=>{
 const st = campStats(c);
 const qs = st.qs;
 const tot = st.total;
@@ -174,13 +240,16 @@ const didText = !mbCanEditDid() ? '' : (!didRaw
   ? campT('camp.did.none','DID atanmadı')
   : (didBad ? `${didRaw} · ${campT('camp.did.invalid','DID geçersiz')}` : didRaw));
 const descLine = String(c.description || '').trim();
+const firmLine = showFirm ? campFirmName(c.firm_id) : '';
+const empty = c._left === 0;
+const stuckHot = c._stuck > 0;
 const pauseLabel = c.status==='active'
   ? `<i class="ph ph-pause"></i> ${esc(campT('camp.pause','Duraklat'))}`
   : `<i class="ph ph-play"></i> ${esc(campT('camp.start','Başlat'))}`;
 const sel = detailOpen && currentCampId === c.id ? ' sel' : '';
-return `<div class="camp-card${sel}" data-camp-id="${esc(c.id)}" onclick="openCampDetail('${c.id}')">
+return `<div class="camp-card${sel}${empty ? ' is-empty' : ''}" data-camp-id="${esc(c.id)}" onclick="openCampDetail('${c.id}')">
 <div class="camp-card-head">
-<div class="camp-card-main"><div class="camp-name" title="${esc(c.name)}">${esc(c.name)}</div>${didText ? `<div class="camp-did">${esc(didText)}</div>` : ''}${descLine ? `<div class="queue-sub" title="${esc(descLine)}">${esc(descLine)}</div>` : ''}</div>
+<div class="camp-card-main"><div class="camp-name" title="${esc(c.name)}">${esc(c.name)}</div>${firmLine ? `<div class="camp-firm">${esc(firmLine)}</div>` : ''}${didText ? `<div class="camp-did">${esc(didText)}</div>` : ''}${descLine ? `<div class="queue-sub" title="${esc(descLine)}">${esc(descLine)}</div>` : ''}</div>
 <div style="display:flex;gap:12px;flex-shrink:0;align-items:center;" onclick="event.stopPropagation()">
 ${sb2}
 <button class="icon-btn" onclick="openCampFieldSettings('${c.id}')" title="${esc(campT('camp.field.title','Alan Ayarları'))}" aria-label="${esc(campT('camp.field.title','Alan Ayarları'))}"><i class="ph ph-gear" aria-hidden="true"></i></button>
@@ -190,8 +259,10 @@ ${sb2}
 <div class="camp-kpi">
 <div class="camp-kpi-item"><div class="camp-kpi-val">${tot.toLocaleString()}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.total','Toplam'))}</div></div>
 <div class="camp-kpi-item"><div class="camp-kpi-val" style="color:var(--accent);">${dia.toLocaleString()}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.dialed','Aranan'))}</div></div>
+<div class="camp-kpi-item"><div class="camp-kpi-val${empty ? ' is-hot' : ''}">${campCountText(c._left)}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.left','Kalan'))}</div></div>
 <div class="camp-kpi-item"><div class="camp-kpi-val">${qs.length}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.queues','Kuyruk'))}</div></div>
 <div class="camp-kpi-item"><div class="camp-kpi-val" style="color:var(--text-2);">${ags}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.agent','Temsilci'))}</div></div>
+<div class="camp-kpi-item"><div class="camp-kpi-val${stuckHot ? ' is-hot' : ''}">${campCountText(c._stuck)}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.stuck','Takılı'))}</div></div>
 </div>
 <div>
 <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:4px;">
@@ -209,7 +280,7 @@ ${pauseLabel}
 }).join('');
 }
 
-function renderCampRows(esc, detailOpen) {
+function renderCampRows(esc, detailOpen, visible, showFirm) {
   const cols = [
     campT('camp.col.name', 'Ad'),
     campT('camp.queue.status', 'Durum'),
@@ -217,14 +288,16 @@ function renderCampRows(esc, detailOpen) {
     campT('camp.kpi.queues', 'Kuyruk'),
     campT('camp.kpi.total', 'Toplam'),
     campT('camp.kpi.dialed', 'Aranan'),
+    campT('camp.kpi.left', 'Kalan'),
+    campT('camp.kpi.stuck', 'Takılı'),
     campT('camp.kpi.progress', 'İlerleme'),
     campT('camp.speed', 'Hız'),
     campT('camp.kpi.agent', 'Temsilci'),
     campT('camp.col.created', 'Oluşturma'),
     '',
   ];
-  const numIdx = new Set([3, 4, 5, 6, 7, 8]);
-  const body = campaigns.map((c) => {
+  const numIdx = new Set([3, 4, 5, 6, 7, 8, 9, 10]);
+  const body = (visible || campaigns).map((c) => {
     const st = campStats(c);
     const didRaw = String(c.telnyx_did || '').trim();
     const didBad = didRaw && typeof mbIsE164 === 'function' && !mbIsE164(didRaw);
@@ -238,13 +311,17 @@ function renderCampRows(esc, detailOpen) {
     const pauseTitle = c.status === 'active' ? campT('camp.pause', 'Duraklat') : campT('camp.start', 'Başlat');
     const pauseIcon = c.status === 'active' ? 'ph-pause' : 'ph-play';
     const sel = detailOpen && currentCampId === c.id ? ' sel' : '';
-    return `<tr class="camp-row${sel}" data-camp-id="${esc(c.id)}" onclick="openCampDetail('${c.id}')">
-<td><span class="camp-row-name" title="${esc(c.name)}">${esc(c.name)}</span>${desc ? `<span class="camp-row-desc">${esc(desc)}</span>` : ''}</td>
+    const firmLine = showFirm ? campFirmName(c.firm_id) : '';
+    const empty = c._left === 0;
+    return `<tr class="camp-row${sel}${empty ? ' is-empty' : ''}" data-camp-id="${esc(c.id)}" onclick="openCampDetail('${c.id}')">
+<td><span class="camp-row-name" title="${esc(c.name)}">${esc(c.name)}</span>${firmLine ? `<span class="camp-row-desc">${esc(firmLine)}</span>` : ''}${desc ? `<span class="camp-row-desc">${esc(desc)}</span>` : ''}</td>
 <td>${status}</td>
 <td class="num" style="text-align:left;color:${didBad ? 'var(--yellow)' : 'inherit'};" title="${esc(didBad ? campT('camp.did.invalid', 'DID geçersiz') : didText)}">${esc(didText)}</td>
 <td class="num">${st.qs.length}</td>
 <td class="num">${st.total.toLocaleString()}</td>
 <td class="num">${st.dialed.toLocaleString()}</td>
+<td class="num${empty ? ' is-hot' : ''}">${campCountText(c._left)}</td>
+<td class="num${c._stuck > 0 ? ' is-hot' : ''}">${campCountText(c._stuck)}</td>
 <td class="num">${st.pct}%</td>
 <td class="num">${esc(c.dial_speed)} ${esc(campT('camp.speed.unit', 'hat'))}</td>
 <td class="num">${st.agents}</td>
