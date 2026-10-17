@@ -129,10 +129,36 @@ function campStats(c) {
 }
 
 let _campSearch = '';
+let _campColFilters = {};
 
 function setCampSearch(value) {
   _campSearch = String(value || '').trim();
   renderCampGrid();
+}
+
+function setCampColFilter(key, value) {
+  _campColFilters[key] = String(value || '');
+  if (campViewMode() === 'rows') {
+    const tbody = document.querySelector('#camp-grid .camp-rows tbody');
+    if (tbody) {
+      tbody.innerHTML = campRowsBody();
+      return;
+    }
+  }
+  renderCampGrid();
+}
+
+function campFold(value) {
+  return String(value || '').toLocaleLowerCase('tr-TR');
+}
+
+function campMatch(text, query) {
+  const q = campFold(query).trim();
+  if (!q) return true;
+  const hay = campFold(text);
+  if (hay.includes(q)) return true;
+  const digits = q.replace(/[^\d]/g, '');
+  return !!digits && hay.replace(/[^\d]/g, '').includes(digits);
 }
 
 function campShowFirm() {
@@ -147,13 +173,67 @@ function campFirmName(firmId) {
 
 function campVisibleList() {
   const q = _campSearch.toLocaleLowerCase('tr-TR');
-  const list = campaigns || [];
-  if (!q) return list;
-  return list.filter((c) => {
-    const name = String(c.name || '').toLocaleLowerCase('tr-TR');
-    const firm = campFirmName(c.firm_id).toLocaleLowerCase('tr-TR');
-    return name.includes(q) || firm.includes(q);
+  return (campaigns || []).filter((c) => {
+    if (q) {
+      const name = String(c.name || '').toLocaleLowerCase('tr-TR');
+      const firm = campFirmName(c.firm_id).toLocaleLowerCase('tr-TR');
+      if (!name.includes(q) && !firm.includes(q)) return false;
+    }
+    const text = campRowFields(c, campShowFirm()).text;
+    return Object.entries(_campColFilters).every(([key, raw]) => !key || campMatch(text[key] || '', raw));
   });
+}
+
+function campColDefs() {
+  const defs = [
+    { key: 'name', label: campT('camp.col.name', 'Ad') },
+    { key: 'status', label: campT('camp.queue.status', 'Durum') },
+  ];
+  if (mbCanEditDid()) defs.push({ key: 'did', label: campT('camp.col.did', 'Arayan numara') });
+  defs.push(
+    { key: 'queues', label: campT('camp.kpi.queues', 'Kuyruk'), num: true },
+    { key: 'total', label: campT('camp.kpi.total', 'Toplam'), num: true },
+    { key: 'dialed', label: campT('camp.kpi.dialed', 'Aranan'), num: true },
+    { key: 'left', label: campT('camp.kpi.left', 'Kalan'), num: true },
+    { key: 'stuck', label: campT('camp.kpi.stuck', 'Sonuçsuz'), num: true },
+    { key: 'pct', label: campT('camp.kpi.progress', 'İlerleme'), num: true },
+    { key: 'speed', label: campT('camp.speed', 'Hız'), num: true },
+    { key: 'agents', label: campT('camp.kpi.agent', 'Temsilci'), num: true },
+    { key: 'created', label: campT('camp.col.created', 'Oluşturma') },
+    { key: '', label: '' },
+  );
+  return defs;
+}
+
+function campRowFields(c, showFirm) {
+  const st = campStats(c);
+  const didRaw = String(c.telnyx_did || '').trim();
+  const didBad = didRaw && typeof mbIsE164 === 'function' && !mbIsE164(didRaw);
+  const didText = didRaw || campT('camp.did.none', 'DID atanmadı');
+  const statusLabel = c.status === 'active'
+    ? campT('camp.status.active', 'Aktif')
+    : c.status === 'paused'
+      ? campT('camp.status.paused', 'Duraklatıldı')
+      : campT('camp.status.done', 'Tamamlandı');
+  const firmLine = showFirm ? campFirmName(c.firm_id) : '';
+  const desc = String(c.description || '').trim();
+  return {
+    st, didBad, didText, statusLabel, firmLine, desc,
+    text: {
+      name: [c.name, firmLine, desc].filter(Boolean).join(' '),
+      status: statusLabel,
+      did: didBad ? `${didText} ${campT('camp.did.invalid', 'DID geçersiz')}` : didText,
+      queues: String(st.qs.length),
+      total: st.total.toLocaleString('tr-TR'),
+      dialed: st.dialed.toLocaleString('tr-TR'),
+      left: campCountText(c._left),
+      stuck: campCountText(c._stuck),
+      pct: `${st.pct}%`,
+      speed: `${c.dial_speed} ${campT('camp.speed.unit', 'hat')}`,
+      agents: String(st.agents),
+      created: campCreatedLabel(c.created_at),
+    },
+  };
 }
 
 async function attachCampaignDialCounts() {
@@ -211,16 +291,16 @@ grid.innerHTML = `<div style="color:var(--text-3);padding:32px;text-align:center
 return;
 }
 const visible = campVisibleList();
-if (!visible.length) {
-grid.innerHTML = `<div style="color:var(--text-3);padding:32px;text-align:center;grid-column:1/-1;font-size:13px;">${campT('camp.search.empty','Eşleşen kampanya yok')}</div>`;
-return;
-}
 const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
 const detailOpen = document.getElementById('camp-detail')?.style.display === 'block';
 const showFirm = campShowFirm();
 if (campViewMode() === 'rows') {
   grid.innerHTML = renderCampRows(esc, detailOpen, visible, showFirm);
   return;
+}
+if (!visible.length) {
+grid.innerHTML = `<div style="color:var(--text-3);padding:32px;text-align:center;grid-column:1/-1;font-size:13px;">${campT('camp.search.empty','Eşleşen kampanya yok')}</div>`;
+return;
 }
 grid.innerHTML = visible.map(c=>{
 const st = campStats(c);
@@ -262,7 +342,7 @@ ${sb2}
 <div class="camp-kpi-item"><div class="camp-kpi-val${empty ? ' is-hot' : ''}">${campCountText(c._left)}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.left','Kalan'))}</div></div>
 <div class="camp-kpi-item"><div class="camp-kpi-val">${qs.length}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.queues','Kuyruk'))}</div></div>
 <div class="camp-kpi-item"><div class="camp-kpi-val" style="color:var(--text-2);">${ags}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.agent','Temsilci'))}</div></div>
-<div class="camp-kpi-item"><div class="camp-kpi-val${stuckHot ? ' is-hot' : ''}">${campCountText(c._stuck)}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.stuck','Takılı'))}</div></div>
+<div class="camp-kpi-item"><div class="camp-kpi-val${stuckHot ? ' is-hot' : ''}">${campCountText(c._stuck)}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.stuck','Sonuçsuz'))}</div></div>
 </div>
 <div>
 <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:4px;">
@@ -280,60 +360,58 @@ ${pauseLabel}
 }).join('');
 }
 
-function renderCampRows(esc, detailOpen, visible, showFirm) {
-  const cols = [
-    campT('camp.col.name', 'Ad'),
-    campT('camp.queue.status', 'Durum'),
-    mbCanEditDid() ? campT('camp.col.did', 'Arayan numara') : '',
-    campT('camp.kpi.queues', 'Kuyruk'),
-    campT('camp.kpi.total', 'Toplam'),
-    campT('camp.kpi.dialed', 'Aranan'),
-    campT('camp.kpi.left', 'Kalan'),
-    campT('camp.kpi.stuck', 'Takılı'),
-    campT('camp.kpi.progress', 'İlerleme'),
-    campT('camp.speed', 'Hız'),
-    campT('camp.kpi.agent', 'Temsilci'),
-    campT('camp.col.created', 'Oluşturma'),
-    '',
-  ];
-  const numIdx = new Set([3, 4, 5, 6, 7, 8, 9, 10]);
-  const body = (visible || campaigns).map((c) => {
-    const st = campStats(c);
-    const didRaw = String(c.telnyx_did || '').trim();
-    const didBad = didRaw && typeof mbIsE164 === 'function' && !mbIsE164(didRaw);
-    const didText = mbCanEditDid() ? (didRaw || campT('camp.did.none', 'DID atanmadı')) : '';
-    const desc = String(c.description || '').trim();
+function campRowsBody() {
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const detailOpen = document.getElementById('camp-detail')?.style.display === 'block';
+  const showFirm = campShowFirm();
+  const defs = campColDefs();
+  const visible = campVisibleList();
+  if (!visible.length) {
+    return `<tr class="camp-filter-empty"><td colspan="${defs.length}">${esc(campT('camp.search.empty', 'Eşleşen kampanya yok'))}</td></tr>`;
+  }
+  return visible.map((c) => {
+    const f = campRowFields(c, showFirm);
     const status = c.status === 'active'
-      ? `<span class="badge badge-green">${esc(campT('camp.status.active', 'Aktif'))}</span>`
+      ? `<span class="badge badge-green">${esc(f.statusLabel)}</span>`
       : c.status === 'paused'
-        ? `<span class="badge badge-yellow">${esc(campT('camp.status.paused', 'Duraklatıldı'))}</span>`
-        : `<span class="badge badge-gray">${esc(campT('camp.status.done', 'Tamamlandı'))}</span>`;
+        ? `<span class="badge badge-yellow">${esc(f.statusLabel)}</span>`
+        : `<span class="badge badge-gray">${esc(f.statusLabel)}</span>`;
     const pauseTitle = c.status === 'active' ? campT('camp.pause', 'Duraklat') : campT('camp.start', 'Başlat');
     const pauseIcon = c.status === 'active' ? 'ph-pause' : 'ph-play';
     const sel = detailOpen && currentCampId === c.id ? ' sel' : '';
-    const firmLine = showFirm ? campFirmName(c.firm_id) : '';
     const empty = c._left === 0;
-    return `<tr class="camp-row${sel}${empty ? ' is-empty' : ''}" data-camp-id="${esc(c.id)}" onclick="openCampDetail('${c.id}')">
-<td><span class="camp-row-name" title="${esc(c.name)}">${esc(c.name)}</span>${firmLine ? `<span class="camp-row-desc">${esc(firmLine)}</span>` : ''}${desc ? `<span class="camp-row-desc">${esc(desc)}</span>` : ''}</td>
-<td>${status}</td>
-<td class="num" style="text-align:left;color:${didBad ? 'var(--yellow)' : 'inherit'};" title="${esc(didBad ? campT('camp.did.invalid', 'DID geçersiz') : didText)}">${esc(didText)}</td>
-<td class="num">${st.qs.length}</td>
-<td class="num">${st.total.toLocaleString()}</td>
-<td class="num">${st.dialed.toLocaleString()}</td>
-<td class="num${empty ? ' is-hot' : ''}">${campCountText(c._left)}</td>
-<td class="num${c._stuck > 0 ? ' is-hot' : ''}">${campCountText(c._stuck)}</td>
-<td class="num">${st.pct}%</td>
-<td class="num">${esc(c.dial_speed)} ${esc(campT('camp.speed.unit', 'hat'))}</td>
-<td class="num">${st.agents}</td>
-<td>${esc(campCreatedLabel(c.created_at))}</td>
-<td onclick="event.stopPropagation()"><div class="camp-row-actions">
+    const cells = {
+      name: `<td><span class="camp-row-name" title="${esc(c.name)}">${esc(c.name)}</span>${f.firmLine ? `<span class="camp-row-desc">${esc(f.firmLine)}</span>` : ''}${f.desc ? `<span class="camp-row-desc">${esc(f.desc)}</span>` : ''}</td>`,
+      status: `<td>${status}</td>`,
+      did: `<td class="num" style="text-align:left;color:${f.didBad ? 'var(--yellow)' : 'inherit'};" title="${esc(f.didBad ? campT('camp.did.invalid', 'DID geçersiz') : f.didText)}">${esc(f.didText)}</td>`,
+      queues: `<td class="num">${f.st.qs.length}</td>`,
+      total: `<td class="num">${f.text.total}</td>`,
+      dialed: `<td class="num">${f.text.dialed}</td>`,
+      left: `<td class="num${empty ? ' is-hot' : ''}">${esc(f.text.left)}</td>`,
+      stuck: `<td class="num${c._stuck > 0 ? ' is-hot' : ''}">${esc(f.text.stuck)}</td>`,
+      pct: `<td class="num">${f.st.pct}%</td>`,
+      speed: `<td class="num">${esc(c.dial_speed)} ${esc(campT('camp.speed.unit', 'hat'))}</td>`,
+      agents: `<td class="num">${f.st.agents}</td>`,
+      created: `<td>${esc(f.text.created)}</td>`,
+      '': `<td onclick="event.stopPropagation()"><div class="camp-row-actions">
 <button type="button" class="icon-btn" title="${esc(pauseTitle)}" aria-label="${esc(pauseTitle)}" onclick="toggleCampStatus('${c.id}','${c.status}')"><i class="ph ${pauseIcon}"></i></button>
 <button type="button" class="icon-btn" title="${esc(campT('camp.field.title', 'Alan Ayarları'))}" aria-label="${esc(campT('camp.field.title', 'Alan Ayarları'))}" onclick="openCampFieldSettings('${c.id}')"><i class="ph ph-gear"></i></button>
 <button type="button" class="icon-btn" title="${esc(campT('camp.delete', 'Sil'))}" aria-label="${esc(campT('camp.delete', 'Sil'))}" style="border-color:var(--red);color:var(--red);" onclick="deleteCampaign('${c.id}')"><i class="ph ph-trash"></i></button>
-</div></td>
-</tr>`;
+</div></td>`,
+    };
+    return `<tr class="camp-row${sel}${empty ? ' is-empty' : ''}" data-camp-id="${esc(c.id)}" onclick="openCampDetail('${c.id}')">${defs.map((col) => cells[col.key] || '').join('')}</tr>`;
   }).join('');
-  return `<div class="camp-rows-wrap"><table class="camp-rows"><thead><tr>${cols.map((label, i) => `<th class="${numIdx.has(i) ? 'num' : ''}">${esc(label)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function renderCampRows(esc) {
+  const defs = campColDefs();
+  const head = defs.map((col) => {
+    const filter = col.key
+      ? `<input class="camp-col-filter" value="${esc(_campColFilters[col.key] || '')}" oninput="setCampColFilter('${col.key}', this.value)" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">`
+      : '';
+    return `<th class="${col.num ? 'num' : ''}">${esc(col.label)}${filter}</th>`;
+  }).join('');
+  return `<div class="camp-rows-wrap"><table class="camp-rows"><thead><tr>${head}</tr></thead><tbody>${campRowsBody()}</tbody></table></div>`;
 }
 
 function openCampDetail(id, opts) {
