@@ -144,12 +144,7 @@ function _supRenderCards() {
         <div class="live-line-clip">${name}</div>
         <div class="live-line-clip">${phone}</div>
         <div class="live-line-clip">${camp}</div>
-        <div class="live-actions">
-          ${typeof mbLiveCoachHtml === 'function' ? mbLiveCoachHtml(s) : ''}
-          <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${sid}','ready')">${de ? 'Bereit' : 'Hazır'}</button>
-          <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${sid}','break')">${de ? 'Pause' : 'Mola'}</button>
-          <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${sid}','offline')">${de ? 'Offline' : 'Çıkış'}</button>
-        </div>
+        ${typeof mbLiveActionsHtml === 'function' ? mbLiveActionsHtml(s) : ''}
       </div>`;
     }
     const callInfo = `
@@ -167,14 +162,9 @@ function _supRenderCards() {
       <span class="sup-status ${info.cls}">${label}</span>
     </div>
     <div class="sup-dur" data-clock>${dur}</div>
+    ${typeof mbLiveActionsHtml === 'function' ? mbLiveActionsHtml(s) : ''}
   </div>
   ${callInfo}
-  <div class="live-actions">
-    ${typeof mbLiveCoachHtml === 'function' ? mbLiveCoachHtml(s) : ''}
-    <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${sid}','ready')">${de ? 'Bereit' : 'Hazır'}</button>
-    <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${sid}','break')">${de ? 'Pause' : 'Mola'}</button>
-    <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${sid}','offline')">${de ? 'Offline' : 'Çıkış'}</button>
-  </div>
 </div>`;
     }).join('');
     grid.innerHTML = asRows

@@ -1409,13 +1409,7 @@ function _paintDashLive() {
     const dur = liveClock(since, de);
     const aid = _dashLiveEsc(s.agent_id || '');
     const sinceAttr = _dashLiveEsc(since);
-    const coach = (isAdmin && typeof mbLiveCoachHtml === 'function') ? mbLiveCoachHtml(s) : '';
-    const actions = isAdmin ? `<div class="live-actions">
-      ${coach}
-      <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','ready')">${de ? 'Bereit' : 'Hazır'}</button>
-      <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','break')">${de ? 'Pause' : 'Mola'}</button>
-      <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','offline')">${de ? 'Offline' : 'Çıkış'}</button>
-    </div>` : '';
+    const actions = (isAdmin && typeof mbLiveActionsHtml === 'function') ? mbLiveActionsHtml(s) : '';
     if (asRows) {
       return `<div class="live-line live-line--${st}${deep}" data-live-id="${aid}" data-since="${sinceAttr}" style="--live-age:${age.toFixed(3)}">
         <div class="live-line-who"><span class="live-av">${initial}</span><span class="live-name">${name}</span></div>
@@ -1424,7 +1418,7 @@ function _paintDashLive() {
         <div class="live-line-clip">${who}</div>
         <div class="live-line-clip">${phone}</div>
         <div class="live-line-clip">${camp}</div>
-        ${isAdmin ? `<div>${actions}</div>` : ''}
+        ${actions}
       </div>`;
     }
     const facts = `<div><dt>${de ? 'Kontakt' : 'Müşteri'}</dt><dd>${who}</dd></div>
@@ -1435,9 +1429,9 @@ function _paintDashLive() {
         <div class="live-av">${initial}</div>
         <div style="min-width:0;flex:1;"><div class="live-name">${name}</div><div class="live-status">${label}</div></div>
         <div class="live-dur" data-clock>${_dashLiveEsc(dur)}</div>
+        ${actions}
       </div>
       <dl class="live-facts">${facts}</dl>
-      ${actions}
     </article>`;
   }).join('');
   const head = asRows ? `<div class="live-rows-head${isAdmin ? ' live-rows-head--act' : ''}">

@@ -1560,14 +1560,27 @@ DASHBOARD
 .live-facts div { display:flex; justify-content:space-between; gap:10px; font-size:12px; min-width:0; }
 .live-facts dt { color:inherit; opacity:0.78; font-weight:600; flex-shrink:0; }
 .live-facts dd { margin:0; color:inherit; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.live-actions { display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
-.live-act {
-  flex:0 0 auto; height:26px; padding:0 8px; border-radius:7px; cursor:pointer;
-  border:1px solid color-mix(in srgb, var(--ink) 22%, transparent);
-  background:color-mix(in srgb, var(--ink) 8%, transparent);
-  color:inherit; font-size:11px; font-weight:700;
+.live-actions { display:flex; justify-content:flex-end; align-items:center; }
+.live-more {
+  width:28px; height:28px; padding:0; border-radius:8px; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid color-mix(in srgb, var(--ink) 28%, transparent);
+  background:color-mix(in srgb, var(--ink) 12%, transparent);
+  color:inherit;
 }
-.live-act:hover { filter:brightness(1.08); }
+.live-more:hover, .live-more.is-on { background:color-mix(in srgb, var(--ink) 24%, transparent); }
+.live-menu {
+  position:fixed; z-index:420; min-width:168px; padding:6px;
+  border-radius:12px; background:var(--bg); color:var(--text);
+  border:1px solid var(--border); box-shadow:0 14px 32px rgba(20, 16, 8, 0.18);
+  display:flex; flex-direction:column; gap:2px;
+}
+.live-menu button {
+  height:32px; border:0; background:transparent; color:inherit; cursor:pointer;
+  text-align:left; padding:0 10px; border-radius:8px; font-size:13px; font-weight:700;
+}
+.live-menu button:hover { background:var(--bg-2); }
+.live-menu-gap { height:1px; margin:4px 6px; background:var(--border); }
 .live-rows { display:flex; flex-direction:column; gap:6px; min-width:760px; }
 .live-rows-head, .live-line {
   display:grid;

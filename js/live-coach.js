@@ -10,19 +10,95 @@ function mbSupervisorHeader(call) {
   return '';
 }
 
-function mbLiveCoachHtml(session) {
+function mbLiveAgentId(session) {
+  return String(session?.agent_id || '').replace(/[^0-9a-f-]/gi, '');
+}
+
+function mbFindLiveSession(agentId) {
+  const id = String(agentId || '');
+  const lists = [];
+  if (typeof _dashLiveCache !== 'undefined') lists.push(_dashLiveCache);
+  if (typeof _supSessions !== 'undefined') lists.push(_supSessions);
+  for (let i = 0; i < lists.length; i++) {
+    const hit = (lists[i] || []).find((s) => String(s.agent_id) === id);
+    if (hit) return hit;
+  }
+  return { agent_id: id, status: '' };
+}
+
+function mbLiveActionsHtml(session) {
+  const aid = mbLiveAgentId(session);
+  if (!aid) return '';
   const de = typeof currentLang !== 'undefined' && currentLang === 'de';
-  const aid = String(session?.agent_id || '');
-  if (!aid || (currentUser?.id && aid === String(currentUser.id))) return '';
+  const title = de ? 'Aktionen' : 'İşlemler';
+  return `<div class="live-actions"><button type="button" class="live-more" title="${title}" aria-label="${title}" onclick="mbToggleLiveMenu(event,'${aid}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></div>`;
+}
+
+function mbCloseLiveMenu() {
+  const menu = document.getElementById('mb-live-menu');
+  if (menu) menu.remove();
+  document.querySelectorAll('.live-more.is-on').forEach((btn) => btn.classList.remove('is-on'));
+}
+
+function mbBindLiveMenu() {
+  if (window._mbLiveMenuBound) return;
+  window._mbLiveMenuBound = true;
+  document.addEventListener('click', (ev) => {
+    const menu = document.getElementById('mb-live-menu');
+    if (!menu) return;
+    if (menu.contains(ev.target) || ev.target.closest?.('.live-more')) return;
+    mbCloseLiveMenu();
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') mbCloseLiveMenu();
+  });
+  window.addEventListener('resize', mbCloseLiveMenu);
+  window.addEventListener('scroll', mbCloseLiveMenu, true);
+}
+
+function mbToggleLiveMenu(ev, agentId) {
+  if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+  mbBindLiveMenu();
+  const btn = ev?.currentTarget;
+  const open = document.getElementById('mb-live-menu');
+  const same = open && open.dataset.agent === String(agentId || '');
+  mbCloseLiveMenu();
+  if (same || !btn) return;
+  const session = mbFindLiveSession(agentId);
+  const aid = mbLiveAgentId(session);
+  if (!aid) return;
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const say = (tr, ger) => (de ? ger : tr);
   const live = session.status === 'on_call' || session.status === 'calling';
-  if (!live) return '';
-  const say = (tr, en) => (de ? en : tr);
-  const btn = (role, label, title) =>
-    `<button type="button" class="live-act" title="${title}" onclick="mbCoachCall('${aid}','${role}')">${label}</button>`;
-  return `${btn('monitor', say('Dinle', 'Hören'), say('Çağrıyı dinle', 'Anruf mithören'))}
-    ${btn('whisper', say('Fısılda', 'Flüstern'), say('Yalnız temsilci duyar', 'Nur der Agent hört'))}
-    ${btn('barge', say('Katıl', 'Beitreten'), say('Çağrıya katıl', 'Anruf beitreten'))}
-    <button type="button" class="live-act" title="${say('Çağrıyı göster', 'Anruf zeigen')}" onclick="mbShowLiveCall('${aid}')">${say('Göster', 'Zeigen')}</button>`;
+  const self = currentUser?.id && aid === String(currentUser.id);
+  const item = (label, title, code) =>
+    `<button type="button" title="${title}" onclick="${code} mbCloseLiveMenu()">${label}</button>`;
+  const coach = (live && !self) ? `
+    ${item(say('Dinle', 'Hören'), say('Çağrıyı dinle', 'Anruf mithören'), `mbCoachCall('${aid}','monitor');`)}
+    ${item(say('Fısılda', 'Flüstern'), say('Yalnız temsilci duyar', 'Nur der Agent hört'), `mbCoachCall('${aid}','whisper');`)}
+    ${item(say('Katıl', 'Beitreten'), say('Çağrıya katıl', 'Anruf beitreten'), `mbCoachCall('${aid}','barge');`)}
+    ${item(say('Göster', 'Zeigen'), say('Çağrıyı göster', 'Anruf zeigen'), `mbShowLiveCall('${aid}');`)}
+    <div class="live-menu-gap"></div>` : '';
+  const menu = document.createElement('div');
+  menu.id = 'mb-live-menu';
+  menu.className = 'live-menu';
+  menu.dataset.agent = aid;
+  menu.innerHTML = `${coach}
+    ${item(say('Hazır', 'Bereit'), say('Hazır yap', 'Bereit setzen'), `remoteChangeAgentStatus('${aid}','ready');`)}
+    ${item(say('Mola', 'Pause'), say('Molaya al', 'Pause setzen'), `remoteChangeAgentStatus('${aid}','break');`)}
+    ${item(say('Çıkış', 'Offline'), say('Çıkış yap', 'Offline setzen'), `remoteChangeAgentStatus('${aid}','offline');`)}`;
+  document.body.appendChild(menu);
+  const rect = btn.getBoundingClientRect();
+  const width = menu.offsetWidth;
+  const height = menu.offsetHeight;
+  let left = rect.right - width;
+  let top = rect.bottom + 6;
+  if (left < 8) left = 8;
+  if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
+  if (top + height > window.innerHeight - 8) top = Math.max(8, rect.top - height - 6);
+  menu.style.left = `${Math.round(left)}px`;
+  menu.style.top = `${Math.round(top)}px`;
+  btn.classList.add('is-on');
 }
 
 function mbPublishLiveLeg(row) {
