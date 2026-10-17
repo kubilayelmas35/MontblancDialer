@@ -162,6 +162,7 @@ async function initDialer() {
   refreshDialerHealthPanel();
   _dailyGoal = parseInt(localStorage.getItem('mb_daily_goal') || '5', 10);
   loadMyMiniStats();
+  if (typeof loadUnfinalizedCalls === 'function') void loadUnfinalizedCalls();
   loadWvBadge();
   startTickerPoll();
   const goalBar = document.getElementById('daily-goal-bar');

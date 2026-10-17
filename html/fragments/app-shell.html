@@ -1533,10 +1533,11 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div style="color:var(--text-3);text-align:center;padding:8px;">Yükleniyor...</div>
 </div>
 <div class="sb-divider" style="margin:8px 0;"></div>
-<div style="font-size:11px;font-weight:800;color:var(--text-2);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:6px;position:relative;z-index:260;padding-right:70px;">
+<div id="unfinalized-calls-head" class="unfinalized-head" style="font-size:11px;font-weight:800;color:var(--text-2);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:6px;position:relative;z-index:260;padding-right:70px;">
 <span style="display:flex;align-items:center;gap:5px;">
 <i class="ph ph-warning-circle" style="font-size:12px;color:var(--yellow);"></i>
 <span data-tr="Sonuçsuz çağrılar" data-de="Offene Anrufe">Sonuçsuz çağrılar</span>
+<b id="unfinalized-calls-count">0</b>
 </span>
 <button type="button" class="btn btn-ghost btn-sm" id="unfinalized-calls-toggle" style="padding:2px 8px;font-size:10px;" onclick="toggleUnfinalizedCallsPanel()" data-tr="Aç" data-de="Öffnen">Aç</button>
 </div>

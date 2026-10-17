@@ -1007,9 +1007,10 @@ async function loadUpcomingWv() {
         ? mbFormatWall(w.termin_zaman, { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
         : dt.toLocaleString(typeof mbLocale === 'function' ? mbLocale() : 'tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit', timeZone: (typeof MB_BUSINESS_TZ === 'string' ? MB_BUSINESS_TZ : 'Europe/Berlin')});
       const isOverdue = dt < now;
-      return `<div style="padding:5px 8px;background:var(--bg-3);border-radius:5px;border-left:3px solid ${isOverdue?'var(--red)':'var(--yellow)'};" onclick="navigate('wiedervorlage')">
-<div style="font-weight:700;font-size:11px;color:${isOverdue?'var(--red)':'var(--text)'};">${w.nachname||w.telefon}</div>
-<div style="font-size:10px;color:var(--text-3);">${timeStr}</div>
+      const who = escapeHtml(w.nachname || w.telefon || '—');
+      return `<div style="padding:5px 8px;background:var(--bg-3);border-radius:5px;border-left:3px solid ${isOverdue?'var(--red)':'var(--yellow)'};cursor:pointer;" onclick="openUpcomingCallback('${w.id}')">
+<div style="font-weight:700;font-size:11px;color:${isOverdue?'var(--red)':'var(--text)'};">${who}</div>
+<div style="font-size:10px;color:var(--text-3);">${escapeHtml(timeStr)}</div>
 </div>`;
     }).join('');
   } catch(e) { el.innerHTML='<div style="color:var(--text-3);text-align:center;padding:6px;font-size:11px;">—</div>'; }

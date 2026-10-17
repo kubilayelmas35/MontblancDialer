@@ -159,23 +159,28 @@ async function loadUnfinalizedCalls() {
       const rows = await sb(`agent_campaigns?agent_id=eq.${currentUser.id}&select=campaign_id`).catch(() => []);
       campIds = (rows || []).map((r) => r.campaign_id).filter(Boolean);
     }
+    const setBtnText = (count) => {
+      mbPaintUnfinalizedCount(count);
+      if (!btn) return;
+      btn.textContent = _unfinalizedCallsOpen ? 'Kapat' : 'Aç';
+    };
     if (!campIds.length) {
+      setBtnText(0);
       el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:8px;">Kampanya yok</div>';
       return;
     }
-    const query = `contacts?campaign_id=in.(${campIds.join(',')})&status=eq.calling&select=id,first_name,last_name,phone,last_called_at,attempt_count,campaign_id&order=last_called_at.desc&limit=25`;
-    const rows = await sb(query).catch(() => []);
-    const setBtnText = (count) => {
-      if (!btn) return;
-      const base = _unfinalizedCallsOpen ? 'Kapat' : 'Aç';
-      btn.textContent = count > 0 ? `${base} (${count})` : base;
-    };
+    const filter = `campaign_id=in.(${campIds.join(',')})&status=eq.calling`;
+    const query = `contacts?${filter}&select=id,first_name,last_name,phone,last_called_at,attempt_count,campaign_id&order=last_called_at.desc&limit=25`;
+    const [rows, counted] = await Promise.all([
+      sb(query).catch(() => []),
+      typeof mbDashCount === 'function' ? mbDashCount(`contacts?select=id&${filter}`) : Promise.resolve(null),
+    ]);
     if (!rows?.length) {
       setBtnText(0);
       el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:8px;">Sonuçsuz çağrı yok</div>';
       return;
     }
-    setBtnText(rows.length);
+    setBtnText(counted == null ? rows.length : counted);
     el.innerHTML = rows.map((r) => {
       const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || r.phone || '—';
       const dt = r.last_called_at ? new Date(r.last_called_at).toLocaleString('tr-TR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
@@ -210,6 +215,71 @@ async function openUnfinalizedCall(contactId) {
     if (typeof switchContactTab === 'function') switchContactTab('outcome');
     setDialerStatus('wrapping');
     toast(typeof t === 'function' ? t('dial.wrap_loaded') : 'Sonuçsuz çağrı yüklendi', 'warn', 2200);
+  } catch (e) {}
+}
+
+function mbPaintUnfinalizedCount(count) {
+  const n = Math.max(0, Number(count) || 0);
+  const badge = document.getElementById('unfinalized-calls-count');
+  const head = document.getElementById('unfinalized-calls-head');
+  if (badge) badge.textContent = String(n);
+  if (head) head.classList.toggle('is-hot', n > 0);
+}
+
+function mbWvCard(row, contact) {
+  if (contact) return contact;
+  const name = String(row?.nachname || '').trim();
+  return {
+    id: null,
+    first_name: '',
+    last_name: name || row?.telefon || '',
+    phone: row?.telefon || '',
+    phone2: row?.telefon2 || '',
+    plz: row?.plz || '',
+    city: row?.ort || '',
+    address: row?.strasse || '',
+    notes: row?.notiz || '',
+    campaign_id: selectedCampId || null,
+    attempt_count: 0,
+  };
+}
+
+async function openUpcomingCallback(wvId) {
+  const busy = (typeof _callLineIsLive === 'function' && _callLineIsLive())
+    || dialerStatus === 'on_call'
+    || dialerStatus === 'calling'
+    || dialerStatus === 'wrapping'
+    || _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
+  if (busy) {
+    toast(typeof t === 'function' ? t('dial.preview_busy') : 'Süren arama var. Önce onu bitir.', 'err', 2400);
+    return;
+  }
+  if (!wvId) return;
+  try {
+    const rows = await sb(`wiedervorlage?id=eq.${wvId}&select=id,contact_id,nachname,telefon,telefon2,plz,ort,strasse,notiz&limit=1`);
+    const row = rows?.[0];
+    if (!row) return;
+    let contact = null;
+    if (row.contact_id) {
+      const found = await sb(`contacts?id=eq.${row.contact_id}&select=*,queues(name,status)&limit=1`).catch(() => []);
+      contact = found?.[0] || null;
+    }
+    if (!contact && row.telefon && currentUser?.firm_id) {
+      const phone = encodeURIComponent(String(row.telefon).trim());
+      const found = await sb(`contacts?firm_id=eq.${currentUser.firm_id}&phone=eq.${phone}&select=*,queues(name,status)&limit=1`).catch(() => []);
+      contact = found?.[0] || null;
+    }
+    const card = mbWvCard(row, contact);
+    if (!card.phone) {
+      toast(typeof t === 'function' ? t('dial.no_contact') : 'Önce müşteri / numara yok', 'err');
+      return;
+    }
+    window._mbDialerPreview = true;
+    currentContact = card;
+    if (typeof showCustomerCard === 'function') showCustomerCard(card);
+    if (typeof switchContactTab === 'function') switchContactTab('info');
+    forceDialerPreCallBar();
+    toast(typeof t === 'function' ? t('dial.wv_opened') : 'Kişi kartı açıldı. Aramak için Ara’ya bas.', 'ok', 2400);
   } catch (e) {}
 }
 
@@ -355,6 +425,7 @@ function returnToDialerHub() {
     toast(typeof t === 'function' ? t('dial.close_active_first') : 'Önce aktif çağrıyı kapatın', 'err', 2200);
     return;
   }
+  window._mbDialerPreview = false;
   currentContact = null;
   window._manualDialLastResults = null;
   closeManualDialDrawer();
@@ -880,6 +951,7 @@ function mbEnsurePoolTimer() {
 }
 
 async function mbSyncPool() {
+  if (window._mbDialerPreview) return;
   if (_poolSyncing) return;
   if (dialerStatus === 'offline' || dialerStatus === 'break' || dialerStatus === 'wrapping') return;
   if (!_autoDial && dialerStatus !== 'calling' && dialerStatus !== 'ready' && dialerStatus !== 'on_call' && dialerStatus !== 'wrapping') return;

@@ -140,6 +140,7 @@ async function refreshDialerCampaignCacheIfEmpty() {
 
 function redialCurrentContact() {
   if (_callLineIsLive()) return;
+  window._mbDialerPreview = false;
   if (!currentContact?.phone) {
     toast(typeof t === 'function' ? t('dial.no_contact') : 'Önce müşteri / numara yok', 'err');
     return;
@@ -723,12 +724,12 @@ function setOutcome(o) {
   if (map[o]) document.querySelector(map[o])?.classList.add('active');
   const cbRow = document.getElementById('callback-time-row') || document.getElementById('callback-row');
   if (cbRow) cbRow.style.display = o==='callback' ? '' : 'none';
-  // Geri ara seçildiğinde varsayılan zaman: yarın aynı saat
+  // Geri ara seçildiğinde varsayılan: Berlin saatine göre iki saat sonra
   if (o === 'callback') {
     const dtInput = document.getElementById('callback-dt');
     if (dtInput && !dtInput.value) {
-      const def = new Date(Date.now() + 24*60*60*1000);
-      dtInput.value = typeof mbIsoToWallInput === 'function' ? mbIsoToWallInput(def.toISOString()) : def.toISOString().slice(0,16);
+      const def = new Date(Date.now() + 2 * 60 * 60 * 1000);
+      dtInput.value = typeof mbIsoToWallInput === 'function' ? mbIsoToWallInput(def.toISOString()) : def.toISOString().slice(0, 16);
     }
   }
   const gm = document.getElementById('global-mascot');
