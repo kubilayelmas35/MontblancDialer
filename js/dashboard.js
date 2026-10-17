@@ -1389,7 +1389,8 @@ function _paintDashLive() {
       const info = _DASH_LIVE_STATUS[st];
       const label = de ? info.de : info.tr;
       const off = filter[st] === false ? ' inactive' : '';
-      return `<button type="button" class="live-filter${off}" style="--dot:${_LIVE_DOT[st]}" onclick="toggleLiveFloorStatus('${st}')"><span class="dot"></span><span class="label">${count(st)} ${label}</span></button>`;
+      const dot = typeof mbLiveDot === 'function' ? mbLiveDot(st) : _LIVE_DOT[st];
+      return `<button type="button" class="live-filter${off}" data-live-status="${st}" style="--dot:${dot}" onclick="toggleLiveFloorStatus('${st}')"><span class="dot"></span><span class="label">${count(st)} ${label}</span></button>`;
     }).join('');
   const visible = rows.filter((s) => filter[s.status] !== false);
   const isAdmin = mbIsFirmAdmin();

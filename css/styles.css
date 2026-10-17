@@ -1514,6 +1514,15 @@ DASHBOARD
 .live-filter .dot { width:9px; height:9px; border-radius:50%; background:var(--dot, #64748b); flex:0 0 auto; }
 .live-filter.inactive { opacity:0.42; }
 .live-filter--all { background:var(--accent); color:#fff; border-color:var(--accent); }
+.live-grad-hint { font-size:11px; color:var(--text-3); line-height:1.45; margin-top:4px; }
+.live-grad-list { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+.live-grad-row { display:grid; grid-template-columns:108px 42px 42px minmax(80px,1fr); gap:8px; align-items:center; }
+.live-grad-row > span:first-child { font-size:12px; font-weight:700; }
+.live-grad-row input[type="color"] {
+  width:42px; height:32px; padding:2px; border:1px solid var(--border);
+  border-radius:8px; background:var(--bg-2); cursor:pointer;
+}
+.live-grad-preview { height:28px; border-radius:8px; }
 .live-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:8px; }
 .live-card,
 .live-line,

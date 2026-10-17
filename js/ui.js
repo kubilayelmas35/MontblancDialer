@@ -488,6 +488,7 @@ if (icon) icon.innerHTML = t==='light'
   : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3.5v2M12 18.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3.5 12h2M18.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 localStorage.setItem('mb-theme', t);
 mbApplyChartTheme();
+if (typeof mbPaintLiveGradForm === 'function') mbPaintLiveGradForm();
 if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 }
 

@@ -2423,6 +2423,43 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <div class="form-row">
+<label class="form-label" data-tr="Canlı renk geçişleri" data-de="Live-Verläufe">Canlı renk geçişleri</label>
+<div class="live-grad-hint" data-tr="Soldaki renk duruma girince görünür. Sağdaki renk süre uzadıkça karışır. Özet ve Canlı Ekran aynı geçişi kullanır." data-de="Die linke Farbe gilt beim Statuswechsel. Die rechte mischt sich mit der Zeit. Übersicht und Live-Monitor nutzen denselben Verlauf.">Soldaki renk duruma girince görünür. Sağdaki renk süre uzadıkça karışır. Özet ve Canlı Ekran aynı geçişi kullanır.</div>
+<div class="live-grad-list" id="live-grad-list">
+<div class="live-grad-row" data-status="on_call">
+<span data-tr="Aramada" data-de="Im Gespräch">Aramada</span>
+<input type="color" data-end="a" aria-label="Aramada başlangıç" data-tr-aria="Aramada başlangıç" data-de-aria="Gespräch Start" oninput="mbSetLiveGrad('on_call','a',this.value)">
+<input type="color" data-end="b" aria-label="Aramada süre" data-tr-aria="Aramada süre" data-de-aria="Gespräch Zeit" oninput="mbSetLiveGrad('on_call','b',this.value)">
+<span class="live-grad-preview"></span>
+</div>
+<div class="live-grad-row" data-status="ready">
+<span data-tr="Hazır" data-de="Bereit">Hazır</span>
+<input type="color" data-end="a" aria-label="Hazır başlangıç" data-tr-aria="Hazır başlangıç" data-de-aria="Bereit Start" oninput="mbSetLiveGrad('ready','a',this.value)">
+<input type="color" data-end="b" aria-label="Hazır süre" data-tr-aria="Hazır süre" data-de-aria="Bereit Zeit" oninput="mbSetLiveGrad('ready','b',this.value)">
+<span class="live-grad-preview"></span>
+</div>
+<div class="live-grad-row" data-status="wrapping">
+<span data-tr="Sonuç" data-de="Nacharbeit">Sonuç</span>
+<input type="color" data-end="a" aria-label="Sonuç başlangıç" data-tr-aria="Sonuç başlangıç" data-de-aria="Nacharbeit Start" oninput="mbSetLiveGrad('wrapping','a',this.value)">
+<input type="color" data-end="b" aria-label="Sonuç süre" data-tr-aria="Sonuç süre" data-de-aria="Nacharbeit Zeit" oninput="mbSetLiveGrad('wrapping','b',this.value)">
+<span class="live-grad-preview"></span>
+</div>
+<div class="live-grad-row" data-status="break">
+<span data-tr="Mola" data-de="Pause">Mola</span>
+<input type="color" data-end="a" aria-label="Mola başlangıç" data-tr-aria="Mola başlangıç" data-de-aria="Pause Start" oninput="mbSetLiveGrad('break','a',this.value)">
+<input type="color" data-end="b" aria-label="Mola süre" data-tr-aria="Mola süre" data-de-aria="Pause Zeit" oninput="mbSetLiveGrad('break','b',this.value)">
+<span class="live-grad-preview"></span>
+</div>
+<div class="live-grad-row" data-status="offline">
+<span data-tr="Çevrimdışı" data-de="Offline">Çevrimdışı</span>
+<input type="color" data-end="a" aria-label="Çevrimdışı başlangıç" data-tr-aria="Çevrimdışı başlangıç" data-de-aria="Offline Start" oninput="mbSetLiveGrad('offline','a',this.value)">
+<input type="color" data-end="b" aria-label="Çevrimdışı süre" data-tr-aria="Çevrimdışı süre" data-de-aria="Offline Zeit" oninput="mbSetLiveGrad('offline','b',this.value)">
+<span class="live-grad-preview"></span>
+</div>
+</div>
+<button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="mbResetLiveGrads()" data-tr="Varsayılan renkler" data-de="Standardfarben">Varsayılan renkler</button>
+</div>
+<div class="form-row">
 <label class="form-label" data-tr="Dil" data-de="Sprache">Dil</label>
 <div style="display:flex;gap:8px;margin-top:4px;">
 <button class="btn btn-ghost btn-sm" onclick="setLang('tr')">🇹🇷 Türkçe</button>
