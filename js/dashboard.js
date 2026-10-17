@@ -642,12 +642,14 @@ function mbSaveDashRowOrder() {
     .map((row) => row.dataset.dashRow)
     .filter(Boolean);
   try { localStorage.setItem(mbDashRowKey(), JSON.stringify(keys)); } catch (e) {}
+  if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 }
 
 function mbResetDashRows() {
   try { localStorage.removeItem(mbDashRowKey()); } catch (e) {}
   mbApplyDashRowOrder();
   mbSyncDashRows();
+  if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 }
 
 function mbSyncDashRows() {
@@ -1330,6 +1332,7 @@ function _liveFlip(root, render) {
 function setLiveFloorLayout(mode) {
   const next = (mode === 'rows' || mode === 'strip') ? 'rows' : 'grid';
   try { localStorage.setItem('mb-live-layout', next); } catch (_) {}
+  if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
   _syncLiveLayoutButtons();
   if (typeof _paintDashLive === 'function') _paintDashLive();
   if (typeof _supRenderCards === 'function') _supRenderCards();

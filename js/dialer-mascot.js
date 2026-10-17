@@ -321,6 +321,7 @@ function getMascotPref(base, fallback = '') {
 
 function setMascotPref(base, value) {
   localStorage.setItem(_mascotLsKey(base), String(value ?? ''));
+  if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 }
 
 function getMascotAgeCoeff() {

@@ -105,6 +105,7 @@ function paintCampViewToggle() {
 
 function setCampView(mode) {
   try { localStorage.setItem('mb-camp-view', mode === 'rows' ? 'rows' : 'cards'); } catch (_) {}
+  if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
   paintCampViewToggle();
   renderCampGrid();
 }

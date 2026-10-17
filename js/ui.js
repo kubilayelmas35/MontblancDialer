@@ -433,6 +433,7 @@ document.querySelectorAll('[data-tr-aria]').forEach((el) => {
   if (v) el.setAttribute('aria-label', v);
 });
 try { localStorage.setItem('mb-lang', l); } catch (_) {}
+if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 if (typeof window._mbConnStatus === 'string' && typeof updateConnectionStatus === 'function') {
   updateConnectionStatus(window._mbConnStatus);
 }
@@ -446,7 +447,7 @@ if (typeof _mbPaintMonthFaces === 'function') _mbPaintMonthFaces();
 if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
 const activePage = (document.querySelector('.page.active')?.id || '').replace(/^page-/, '');
 const inCall = typeof dialerStatus !== 'undefined' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping');
-if (currentUser && activePage && activePage !== 'settings' && !(activePage === 'dialer' && inCall) && typeof runPageEntry === 'function') {
+if (!(typeof _mbPrefsApplying !== 'undefined' && _mbPrefsApplying) && currentUser && activePage && activePage !== 'settings' && !(activePage === 'dialer' && inCall) && typeof runPageEntry === 'function') {
   runPageEntry(activePage);
 }
 if (typeof dialerStatus !== 'undefined' && dialerStatus === 'break' && typeof refreshBreakCustEmpty === 'function') {
@@ -487,6 +488,7 @@ if (icon) icon.innerHTML = t==='light'
   : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3.5v2M12 18.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3.5 12h2M18.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 localStorage.setItem('mb-theme', t);
 mbApplyChartTheme();
+if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 }
 
 function mbApplyChartTheme() {
@@ -507,6 +509,7 @@ currentPalette = p;
 document.documentElement.setAttribute('data-palette', p);
 document.querySelectorAll('.palette-dot').forEach(d => d.classList.toggle('sel', d.dataset.p===p));
 localStorage.setItem('mb-palette', p);
+if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 }
 
 let _systemDialogResolve = null;

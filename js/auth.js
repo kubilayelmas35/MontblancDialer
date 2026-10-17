@@ -218,6 +218,7 @@ setInterval(updateTopbarStats, 30000);
 }
 loadWvBadge();
 if (typeof refreshUserPagePerms === 'function') refreshUserPagePerms().catch(() => {});
+if (typeof mbLoadUiPrefs === 'function') await mbLoadUiPrefs();
 navigate(typeof mbHomePage === 'function' ? mbHomePage(currentUser.role) : 'dialer');
 if (typeof initChat === 'function') initChat();
 if (typeof initNotificationCenter === 'function') initNotificationCenter();
