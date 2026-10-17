@@ -227,34 +227,31 @@ function showCustomerCard(c) {
   const camp = campaigns.find(x=>x.id===c.campaign_id);
   const fc = typeof mbParseFieldConfig === 'function' ? mbParseFieldConfig(camp) : {};
   const show = (key, def=true) => (typeof mbFieldShown === 'function' ? mbFieldShown(fc, key, def) : def);
-  const name = show('name') ? `${c.first_name||''} ${c.last_name||''}`.trim()||c.phone : c.phone;
+  const layout = typeof mbDialerLayoutFields === 'function' ? mbDialerLayoutFields(fc) : [];
+  const head = layout.slice(0, 2);
+  const headText = (field) => (field && typeof mbContactFieldText === 'function' ? (mbContactFieldText(c, field.key) || '—') : '');
+  const titleText = headText(head[0]) || c.phone || '—';
+  const subText = head[1] ? headText(head[1]) : '';
   const avEl = document.getElementById('cust-av');
-  const avLetter = (c.first_name||c.phone||'?').charAt(0).toUpperCase();
+  const avLetter = String(titleText || c.phone || '?').trim().charAt(0).toUpperCase();
   const avInner = avEl?.querySelector('.cust-av-inner');
   if (avInner) avInner.textContent = avLetter;
   else if (avEl) avEl.textContent = avLetter;
-  document.getElementById('cust-name').textContent  = name;
-  document.getElementById('cust-phone').textContent = c.phone;
+  document.getElementById('cust-name').textContent  = titleText;
+  document.getElementById('cust-phone').textContent = subText;
   document.getElementById('cust-attempt-badge').style.display = show('attempt') ? '' : 'none';
   document.getElementById('cust-attempt-badge').textContent = uqSay('dial.attempt', '{n}. arama', { n: c.attempt_count || 1 });
   document.getElementById('cust-camp-badge').textContent  = camp?.name||'—';
   document.getElementById('cust-queue-badge').textContent = c.queues?.name||c.queue_name||'—';
   const labelOf = (key, fallback) => (typeof mbFieldLabel === 'function' ? mbFieldLabel(fc, key, fallback) : fallback);
-  const allFields = [
-    { key:'plz',     l:labelOf('plz', 'PLZ'),                                      v:c.plz,    mono:true },
-    { key:'city',    l:labelOf('city', (typeof t === 'function' ? t('cont.field.city') : 'Şehir')),          v:c.city },
-    { key:'address', l:labelOf('address', (typeof t === 'function' ? t('cont.field.address') : 'Adres')),        v:c.address },
-    { key:'phone2',  l:labelOf('phone2', (typeof t === 'function' ? t('cont.field.phone2') : '2. Telefon')),    v:c.phone2 },
-    { key:'notes',   l:labelOf('notes', (typeof t === 'function' ? t('cont.field.notes') : 'Not')),            v:c.notes },
-  ];
-  const extraBag = c.extra && typeof c.extra === 'object' ? c.extra : {};
-  const builtin = new Set(['phone', 'phone2', 'name', 'plz', 'city', 'address', 'attempt', 'notes']);
-  Object.entries(fc).forEach(([key, spec]) => {
-    if (!spec || typeof spec !== 'object' || builtin.has(key) || !show(key, false)) return;
-    allFields.push({ key, l: labelOf(key, key), v: extraBag[key] || '', extra: true });
-  });
+  const textOf = (key) => (typeof mbContactFieldText === 'function' ? mbContactFieldText(c, key) : '');
+  const visibleFields = layout.slice(2).map((field) => ({
+    key: field.key,
+    l: labelOf(field.key, field.label || field.key),
+    v: textOf(field.key),
+    mono: field.key === 'plz' || field.key === 'phone' || field.key === 'phone2',
+  }));
   const terminFields = dialerTerminFields(camp, c);
-  const visibleFields = allFields.filter(f => show(f.key));
   document.getElementById('cust-fields').innerHTML = visibleFields.map(f=>{
     const canCallSecondary = f.key === 'phone2' && String(f.v || '').trim().length > 0;
     const quickCallBtn = canCallSecondary
@@ -336,14 +333,23 @@ Randevuyu Kaydet
   }
   const nameEl = document.getElementById('cust-name');
   if (nameEl) {
-    const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim();
-    nameEl.innerHTML = `<span>${_escHtml(name || '—')}</span><button onclick="startCustomerNameEdit(this)" style="margin-left:6px;background:transparent;border:none;cursor:pointer;color:var(--text-3);vertical-align:middle;" title="İsim düzenle"><i class="ph ph-pencil-simple"></i></button>`;
+    const headKey = head[0]?.key;
+    if (headKey === 'name') {
+      nameEl.innerHTML = `<span>${_escHtml(titleText || '—')}</span><button onclick="startCustomerNameEdit(this)" style="margin-left:6px;background:transparent;border:none;cursor:pointer;color:var(--text-3);vertical-align:middle;" title="İsim düzenle"><i class="ph ph-pencil-simple"></i></button>`;
+    } else {
+      nameEl.textContent = titleText || '—';
+    }
     nameEl.style.cursor = 'default';
-    nameEl.title = fullName ? '' : 'İsim yok';
+    nameEl.title = '';
     nameEl.onclick = null;
   }
   const phoneEl = document.getElementById('cust-phone');
-  if (phoneEl) { phoneEl.style.cursor='pointer'; phoneEl.title='Kopyala'; phoneEl.onclick=()=>copyToClipboard(phoneEl.textContent,'Telefon kopyalandı'); }
+  if (phoneEl) {
+    const subLabel = head[1] ? labelOf(head[1].key, head[1].label || '') : '';
+    phoneEl.style.cursor = subText ? 'pointer' : 'default';
+    phoneEl.title = subText ? 'Kopyala' : '';
+    phoneEl.onclick = subText ? () => copyToClipboard(phoneEl.textContent, `${subLabel} kopyalandı`) : null;
+  }
   if (typeof dialerStatus === 'undefined' || dialerStatus !== 'wrapping') {
     if (typeof switchContactTab === 'function') switchContactTab('info');
   }

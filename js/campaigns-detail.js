@@ -60,7 +60,96 @@ function mbMergeCampFields(fc) {
       options: Array.isArray(spec.options) ? spec.options : [],
     });
   });
-  return fields;
+  const rank = (key, index) => {
+    const saved = Number(fc?.[key]?.order);
+    if (Number.isFinite(saved)) return saved;
+    const at = ['name', 'phone', 'plz', 'city', 'address', 'phone2', 'notes', 'custom1', 'custom2', 'custom3'].indexOf(key);
+    return at >= 0 ? at : 100 + index;
+  };
+  const cards = fields.filter((f) => f.key !== 'attempt');
+  cards.forEach((f, i) => { f.order = rank(f.key, i); });
+  cards.sort((a, b) => a.order - b.order);
+  const attempt = fields.find((f) => f.key === 'attempt');
+  const ordered = attempt ? cards.concat([attempt]) : cards;
+  ordered.forEach((f, i) => { f.order = i; });
+  return ordered;
+}
+
+function mbDialerLayoutFields(fc) {
+  return mbMergeCampFields(fc).filter((f) => f.show && f.key !== 'attempt');
+}
+
+function mbContactFieldText(contact, key) {
+  if (!contact || !key) return '';
+  if (key === 'name') return `${contact.first_name || ''} ${contact.last_name || ''}`.trim();
+  if (key === 'phone') return contact.phone || '';
+  if (key === 'phone2') return contact.phone2 || '';
+  if (key === 'plz') return contact.plz || '';
+  if (key === 'city') return contact.city || '';
+  if (key === 'address') return contact.address || '';
+  if (key === 'notes') return contact.notes || '';
+  const extra = contact.extra && typeof contact.extra === 'object' ? contact.extra : {};
+  return extra[key] == null ? '' : String(extra[key]);
+}
+
+function mbFieldSample(field) {
+  const samples = {
+    name: 'Stefanie und Robert Waldau',
+    phone: '4984248850231',
+    plz: '85111',
+    city: 'Adelschlag',
+    address: 'Unterer See 16',
+    phone2: '—',
+    notes: 'Not',
+  };
+  if (samples[field?.key]) return samples[field.key];
+  if (field?.type === 'number') return '42';
+  if (field?.type === 'date') return '01.01.2024';
+  if (field?.type === 'boolean') return 'Evet';
+  return 'Örnek';
+}
+
+function moveFsField(index, dir) {
+  const next = index + dir;
+  if (!_fsFields || next < 0 || next >= _fsFields.length) return;
+  if (_fsFields[index]?.key === 'attempt' || _fsFields[next]?.key === 'attempt') return;
+  const row = _fsFields.splice(index, 1)[0];
+  _fsFields.splice(next, 0, row);
+  _fsFields.forEach((f, i) => { f.order = i; });
+  if (document.getElementById('fs-field-list')) { renderFsFieldList(); updateFsPreview(); }
+  if (document.getElementById('cd-fs-field-list')) { renderCdFsFieldList(); updateCdFsPreview(); }
+}
+
+function mbPaintDialerPreview(el) {
+  if (!el) return;
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const labelOf = (f) => (typeof ncLabelShown === 'function' ? ncLabelShown(f.label || '') : (f.label || ''));
+  const layout = (_fsFields || []).filter((f) => f.show && f.key !== 'attempt');
+  const head = layout.slice(0, 2);
+  const boxes = layout.slice(2);
+  const title = head[0] ? mbFieldSample(head[0]) : '—';
+  const sub = head[1] ? mbFieldSample(head[1]) : '';
+  const letter = String(title || '?').trim().charAt(0).toUpperCase() || '?';
+  const attemptOn = (_fsFields || []).some((f) => f.key === 'attempt' && f.show);
+  el.innerHTML = `<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:12px;">
+<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
+<div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;">${esc(letter)}</div>
+<div style="min-width:0;">
+<div style="font-size:15px;font-weight:800;line-height:1.2;">${esc(title)}</div>
+<div style="font-size:13px;color:var(--text-2);margin-top:2px;">${esc(sub)}</div>
+<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;">
+<span class="badge badge-gray">85</span>
+${attemptOn ? '<span class="badge badge-yellow">1. arama</span>' : ''}
+</div>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+${boxes.map((f) => `<div style="background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:7px 8px;">
+<div style="font-size:9px;font-weight:700;color:var(--text-3);letter-spacing:.4px;text-transform:uppercase;">${esc(labelOf(f))}</div>
+<div style="font-size:13px;font-weight:700;margin-top:2px;">${esc(mbFieldSample(f))}</div>
+</div>`).join('')}
+</div>
+</div>`;
 }
 
 // ── Alan ayarları ──────────────────────────────
@@ -83,7 +172,7 @@ modal.innerHTML = `
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden;min-height:0;">
 <div style="padding:16px;overflow-y:auto;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:8px;">
-<div style="font-size:11px;color:var(--text-3);margin-bottom:4px;">✓ Göster/gizle · Ad ve tip değiştir</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:4px;">${campEsc(campT('camp.fields.order','İlk iki alan üstte durur. Oklarla yer değiştir. Altındakiler kutu olur.'))}</div>
 <div id="fs-field-list" style="display:flex;flex-direction:column;gap:5px;"></div>
 </div>
 <div style="padding:16px;overflow-y:auto;background:var(--bg-3);">
@@ -115,8 +204,13 @@ placeholder="Seçenek 1, Seçenek 2"
 value="${(f.options||[]).join(', ')}"
 oninput="_fsFields[${i}].options=this.value.split(',').map(s=>s.trim()).filter(Boolean)">
 </div>` : '';
+const move = f.key === 'attempt' ? '' : `<span style="display:flex;flex-direction:column;flex-shrink:0;">
+<button type="button" title="${campEsc(campT('camp.fields.up','Yukarı'))}" onclick="moveFsField(${i},-1)" style="border:0;background:transparent;color:var(--text-2);cursor:pointer;line-height:1;padding:0 2px;">↑</button>
+<button type="button" title="${campEsc(campT('camp.fields.down','Aşağı'))}" onclick="moveFsField(${i},1)" style="border:0;background:transparent;color:var(--text-2);cursor:pointer;line-height:1;padding:0 2px;">↓</button>
+</span>`;
 return `<div style="padding:6px 8px;background:var(--bg-2);border:1px solid var(--border);border-radius:6px;">
 <div style="display:flex;align-items:center;gap:6px;">
+${move}
 <input type="checkbox" ${f.show?'checked':''} ${f.locked?'disabled':''}
 onchange="_fsFields[${i}].show=this.checked;updateFsPreview()">
 <input class="form-input" value="${typeof ncLabelShown==='function'?ncLabelShown(f.label||''):(f.label||'')}" style="flex:1;font-size:12px;padding:3px 7px;min-width:0;"
@@ -141,28 +235,18 @@ if (typeof currentLang !== 'undefined' && currentLang === 'de') {
 }
 
 function updateFsPreview() {
-const el = document.getElementById('fs-preview');
-if (!el) return;
-const vis = _fsFields.filter(f=>f.show);
-const sv = t=>t==='number'?'123':t==='date'?'01.01.2024':t==='boolean'?'Evet':'Örnek';
-el.innerHTML = `
-<div style="font-size:12px;font-weight:800;padding:7px 10px;background:var(--accent);color:#fff;border-radius:6px;margin-bottom:8px;">📞 +49 176 1234567</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
-${vis.map(f=>`<div style="background:var(--bg-3);border:1px solid var(--border);border-radius:5px;padding:5px 7px;">
-<div style="font-size:9px;color:var(--text-3);font-weight:700;">${typeof ncLabelShown==='function'?ncLabelShown(f.label):f.label}</div>
-<div style="font-size:11px;font-weight:600;margin-top:1px;">${sv(f.type)}</div>
-</div>`).join('')}
-</div>`;
+  mbPaintDialerPreview(document.getElementById('fs-preview'));
 }
 
 async function saveCampFieldSettings(campId) {
 const fc = {};
-_fsFields.forEach(f => {
+_fsFields.forEach((f, i) => {
 fc[f.key || f.defaultKey] = {
 show:  f.show,
 label: f.label,
 type:  f.type,
 options: Array.isArray(f.options) ? f.options : [],
+order: i,
 };
 });
 try {
@@ -358,7 +442,8 @@ _fsFields = mbMergeCampFields(fc);
 container.innerHTML = `
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
 <div>
-<div style="font-size:12px;font-weight:700;margin-bottom:8px;">${campEsc(campT('camp.fields.list','Alan listesi'))}</div>
+<div style="font-size:12px;font-weight:700;margin-bottom:4px;">${campEsc(campT('camp.fields.list','Alan listesi'))}</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">${campEsc(campT('camp.fields.order','İlk iki alan üstte durur. Oklarla yer değiştir. Altındakiler kutu olur.'))}</div>
 <div id="cd-fs-field-list" style="display:flex;flex-direction:column;gap:4px;"></div>
 <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="addFsField()">+ ${campEsc(campT('camp.fields.add','Özel alan ekle'))}</button>
 <button class="btn btn-primary btn-sm" style="margin-top:8px;margin-left:4px;" onclick="saveCampFieldSettings('${currentCampId}')"><i class="ph ph-floppy-disk"></i> ${campEsc(campT('camp.fields.save','Kaydet'))}</button>
@@ -385,8 +470,13 @@ placeholder="Seçenek 1,Seçenek 2,Seçenek 3"
 value="${(f.options||[]).join(',')}"
 oninput="_fsFields[${i}].options=this.value.split(',').map(s=>s.trim()).filter(Boolean)">
 </div>` : '';
+const move = f.key === 'attempt' ? '' : `<span style="display:flex;flex-direction:column;flex-shrink:0;">
+<button type="button" title="${campEsc(campT('camp.fields.up','Yukarı'))}" onclick="moveFsField(${i},-1)" style="border:0;background:transparent;color:var(--text-2);cursor:pointer;line-height:1;padding:0 2px;">↑</button>
+<button type="button" title="${campEsc(campT('camp.fields.down','Aşağı'))}" onclick="moveFsField(${i},1)" style="border:0;background:transparent;color:var(--text-2);cursor:pointer;line-height:1;padding:0 2px;">↓</button>
+</span>`;
 return `<div style="padding:5px 7px;background:var(--bg-2);border:1px solid var(--border);border-radius:5px;">
 <div style="display:flex;align-items:center;gap:5px;">
+${move}
 <input type="checkbox" ${f.show?'checked':''} ${f.locked?'disabled':''}
 onchange="_fsFields[${i}].show=this.checked;updateCdFsPreview()">
 <input class="form-input" value="${typeof ncLabelShown==='function'?ncLabelShown(f.label||''):(f.label||'')}" style="flex:1;font-size:11px;padding:2px 6px;min-width:0;"
@@ -411,21 +501,16 @@ if (typeof currentLang !== 'undefined' && currentLang === 'de') {
 }
 
 function addFsField() {
-_fsFields.push({key:'custom_'+Date.now(),label:'Yeni Alan',type:'text',show:true,locked:false});
-renderCdFsFieldList(); updateCdFsPreview();
+  const row = { key: 'custom_' + Date.now(), label: 'Yeni Alan', type: 'text', show: true, locked: false };
+  const at = (_fsFields || []).findIndex((f) => f.key === 'attempt');
+  if (at >= 0) _fsFields.splice(at, 0, row);
+  else (_fsFields || []).push(row);
+  if (document.getElementById('fs-field-list')) { renderFsFieldList(); updateFsPreview(); }
+  if (document.getElementById('cd-fs-field-list')) { renderCdFsFieldList(); updateCdFsPreview(); }
 }
 
 function updateCdFsPreview() {
-const el = document.getElementById('cd-fs-preview');
-if (!el) return;
-const vis = _fsFields.filter(f=>f.show);
-const sv = t=>t==='number'?'123':t==='date'?'01.01.2024':t==='boolean'?'Evet':'Örnek';
-el.innerHTML = `<div style="font-size:11px;font-weight:800;padding:5px 8px;background:var(--accent);color:#fff;border-radius:5px;margin-bottom:6px;"><i class="ph ph-phone"></i> +49 176 1234567</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
-${vis.map(f=>`<div style="background:var(--bg-2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;">
-<div style="font-size:8px;color:var(--text-3);">${typeof ncLabelShown==='function'?ncLabelShown(f.label):f.label}</div>
-<div style="font-size:11px;font-weight:600;">${sv(f.type)}</div></div>`).join('')}
-</div>`;
+  mbPaintDialerPreview(document.getElementById('cd-fs-preview'));
 }
 
 function loadCampScriptTab() {
