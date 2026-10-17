@@ -1730,6 +1730,16 @@ background:var(--bg-3); border:1px solid var(--border);
   .cd-identity { grid-template-columns:1fr; }
 }
 .queue-cnt  { font-size:12px; color:var(--text-3); font-family:var(--mono); }
+.mb-euro-date { position:relative; display:inline-flex; max-width:100%; vertical-align:middle; min-width:0; }
+.mb-euro-date > input[type="date"],
+.mb-euro-date > input[type="time"],
+.mb-euro-date > input[type="datetime-local"] { color:transparent; }
+.mb-euro-date__face {
+  position:absolute; inset:1px 2.1rem 1px 0.55rem; z-index:1;
+  border:0; margin:0; padding:0; background:transparent; color:var(--text);
+  font:inherit; font-size:inherit; min-width:0;
+}
+.mb-euro-date > input::-webkit-calendar-picker-indicator { position:relative; z-index:2; cursor:pointer; }
 .unfinalized-head.is-hot {
   background: rgba(245, 158, 11, .2);
   border-radius: 8px;

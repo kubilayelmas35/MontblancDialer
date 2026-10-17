@@ -237,15 +237,193 @@ function mbIsoToWallInput(iso, timeZone) {
   return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
 }
 
-function mbFormatWall(iso, opts) {
-  if (!iso) return '—';
-  const dt = new Date(iso);
-  if (!Number.isFinite(dt.getTime())) return '—';
-  return new Intl.DateTimeFormat(typeof mbLocale === 'function' ? mbLocale() : 'tr-TR', {
-    timeZone: MB_BUSINESS_TZ,
-    ...(opts || {}),
-  }).format(dt);
+function mbStampParts(value) {
+  if (value instanceof Date) {
+    if (!Number.isFinite(value.getTime())) return null;
+    const p = mbZonedParts(value, MB_BUSINESS_TZ);
+    return p.year ? p : null;
+  }
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const zoned = /[zZ]$|[+-]\d\d:?\d\d$/.test(raw);
+  if (!zoned && /^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
+    if (!m) return null;
+    return { year: m[1], month: m[2], day: m[3], hour: m[4] || '', minute: m[5] || '' };
+  }
+  const dt = new Date(raw);
+  if (!Number.isFinite(dt.getTime())) return null;
+  const p = mbZonedParts(dt, MB_BUSINESS_TZ);
+  return p.year ? p : null;
 }
+
+function mbFormatWall(iso, opts, kind) {
+  const p = mbStampParts(iso);
+  if (!p) return '—';
+  const o = opts || {};
+  const names = Object.keys(o);
+  const has = (k) => Object.prototype.hasOwnProperty.call(o, k);
+  let date = kind !== 'time';
+  let time = kind !== 'date';
+  if (!kind || kind === 'both') {
+    if (names.length) {
+      date = has('day') || has('month') || has('year') || has('weekday');
+      time = has('hour') || has('minute') || has('second');
+      if (!date && !time) { date = true; time = true; }
+    }
+  }
+  const loc = typeof mbLocale === 'function' ? mbLocale() : 'tr-TR';
+  const dayNum = String(p.day || '').padStart(2, '0');
+  const monthNum = String(p.month || '').padStart(2, '0');
+  let hourNum = String(p.hour || '').padStart(2, '0');
+  if (hourNum === '24') hourNum = '00';
+  const minuteNum = String(p.minute || '00').padStart(2, '0');
+  const clock = p.hour === '' || p.hour == null ? '' : `${hourNum}:${minuteNum}`;
+  if ((o.month === 'short' || o.month === 'long') && !has('day') && !has('weekday')) {
+    const dt = new Date(Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day) || 1));
+    return new Intl.DateTimeFormat(loc, { month: o.month, year: o.year || 'numeric', timeZone: 'UTC' }).format(dt);
+  }
+  const bits = [];
+  if (date) {
+    let stamp = `${dayNum}.${monthNum}.${p.year}`;
+    if (o.weekday) {
+      const dt = new Date(Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day)));
+      const wd = new Intl.DateTimeFormat(loc, { weekday: o.weekday, timeZone: 'UTC' }).format(dt);
+      stamp = `${wd} ${stamp}`;
+    }
+    bits.push(stamp);
+  }
+  if (time && clock) bits.push(clock);
+  return bits.join(' ') || '—';
+}
+
+function mbEuroFaceText(el) {
+  const v = String(el?.value || '');
+  if (!v) return '';
+  if (el.type === 'time') {
+    const m = v.match(/^(\d{2}):(\d{2})/);
+    return m ? `${m[1]}:${m[2]}` : v.slice(0, 5);
+  }
+  if (el.type === 'date') {
+    const m = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}.${m[2]}.${m[1]}` : v;
+  }
+  const m = v.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  return m ? `${m[3]}.${m[2]}.${m[1]} ${m[4]}:${m[5]}` : v;
+}
+
+function mbEuroParseFace(el, text) {
+  const s = String(text || '').trim();
+  if (!s) return '';
+  if (el.type === 'time') {
+    const m = s.match(/^(\d{1,2})[:.](\d{2})$/);
+    if (!m) return null;
+    return `${String(m[1]).padStart(2, '0')}:${m[2]}`;
+  }
+  const m = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})(?:[ T](\d{1,2})[:.](\d{2}))?$/);
+  if (!m) return null;
+  const day = `${m[3]}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+  if (el.type === 'date') return day;
+  const hh = String(m[4] || '0').padStart(2, '0');
+  const mm = m[5] || '00';
+  return `${day}T${hh}:${mm}`;
+}
+
+function mbAttachEuroDate(el) {
+  if (!el || el.dataset.mbEuro === '1') return;
+  if (!['date', 'time', 'datetime-local'].includes(el.type)) return;
+  const parent = el.parentNode;
+  if (!parent) return;
+  el.dataset.mbEuro = '1';
+  const wrap = document.createElement('span');
+  wrap.className = 'mb-euro-date';
+  if (el.style.width) wrap.style.width = el.style.width;
+  if (el.style.flex) wrap.style.flex = el.style.flex;
+  if (el.style.minWidth) wrap.style.minWidth = el.style.minWidth;
+  parent.insertBefore(wrap, el);
+  wrap.appendChild(el);
+  el.style.width = '100%';
+  const face = document.createElement('input');
+  face.type = 'text';
+  face.className = 'mb-euro-date__face';
+  face.autocomplete = 'off';
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  face.placeholder = el.type === 'time' ? 'ss:dd' : (el.type === 'date' ? (de ? 'tt.mm.jjjj' : 'gg.aa.yyyy') : (de ? 'tt.mm.jjjj ss:mm' : 'gg.aa.yyyy ss:dd'));
+  face.value = mbEuroFaceText(el);
+  el._mbEuroFace = face;
+  wrap.appendChild(face);
+  const commit = () => {
+    const next = mbEuroParseFace(el, face.value);
+    if (next == null) {
+      face.value = mbEuroFaceText(el);
+      return;
+    }
+    if (el.value !== next) {
+      const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+      desc.set.call(el, next);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    face.value = mbEuroFaceText(el);
+  };
+  face.addEventListener('change', commit);
+  face.addEventListener('blur', commit);
+  face.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      commit();
+    }
+  });
+  el.addEventListener('change', () => {
+    if (document.activeElement !== face) face.value = mbEuroFaceText(el);
+  });
+}
+
+function mbScanEuroDates(root) {
+  const scope = root && root.querySelectorAll ? root : document;
+  scope.querySelectorAll('input[type="date"],input[type="time"],input[type="datetime-local"]').forEach(mbAttachEuroDate);
+}
+
+function mbBootEuroDates() {
+  if (window._mbEuroDates) return;
+  window._mbEuroDates = true;
+  const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+  if (desc?.set && desc?.get) {
+    Object.defineProperty(HTMLInputElement.prototype, 'value', {
+      configurable: true,
+      enumerable: desc.enumerable,
+      get() { return desc.get.call(this); },
+      set(v) {
+        desc.set.call(this, v);
+        if (this._mbEuroFace && document.activeElement !== this._mbEuroFace) {
+          this._mbEuroFace.value = mbEuroFaceText(this);
+        }
+      },
+    });
+  }
+  const paint = (node) => {
+    if (!node || node.nodeType !== 1) return;
+    if (node.matches && node.matches('input[type="date"],input[type="time"],input[type="datetime-local"]')) mbAttachEuroDate(node);
+    else if (node.querySelectorAll) mbScanEuroDates(node);
+  };
+  mbScanEuroDates(document);
+  if (!document.body) return;
+  new MutationObserver((list) => {
+    list.forEach((rec) => rec.addedNodes.forEach(paint));
+  }).observe(document.body, { childList: true, subtree: true });
+}
+
+(function mbInstallDateFormat() {
+  const paint = (kind) => function mbLocalePaint(loc, opts) {
+    if (!Number.isFinite(this.getTime())) return '';
+    return mbFormatWall(this, opts || {}, kind);
+  };
+  Date.prototype.toLocaleString = paint('both');
+  Date.prototype.toLocaleDateString = paint('date');
+  Date.prototype.toLocaleTimeString = paint('time');
+  if (document.body) mbBootEuroDates();
+  else document.addEventListener('DOMContentLoaded', mbBootEuroDates);
+})();
 
 function mbBusinessNow() {
   const p = mbZonedParts(new Date(), MB_BUSINESS_TZ);

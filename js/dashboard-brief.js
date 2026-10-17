@@ -115,13 +115,11 @@ function mbDashOutcomeHtml(logs) {
 }
 
 function mbDashWhen(value) {
-  const raw = String(value || '');
-  if (!raw) return '—';
-  if (!/[zZ]|[+-]\d\d:?\d\d$/.test(raw)) return raw.replace('T', ' ').slice(0, 16);
+  if (!value) return '—';
   if (typeof mbFormatWall === 'function') {
-    return mbFormatWall(raw, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return mbFormatWall(value, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
-  return raw.replace('T', ' ').slice(0, 16);
+  return '—';
 }
 
 async function mbDashGoalsBlock(ff, agentQ, role) {

@@ -311,8 +311,8 @@ async function loadMyLeaveRequests() {
 ${rows
   .map(
     (r) => `<tr>
-<td>${_leaveEsc(r.date_from)}</td>
-<td>${_leaveEsc(r.date_to)}</td>
+<td>${_leaveEsc(typeof mbFormatWall === 'function' ? mbFormatWall(r.date_from, { day: '2-digit', month: '2-digit', year: 'numeric' }) : r.date_from)}</td>
+<td>${_leaveEsc(typeof mbFormatWall === 'function' ? mbFormatWall(r.date_to, { day: '2-digit', month: '2-digit', year: 'numeric' }) : r.date_to)}</td>
 <td>${_leaveEsc(r.days_used)}</td>
 <td>${_leaveEsc(leaveKindLabel(r.kind))}</td>
 <td>${_leaveEsc(leaveStatusLabel(r.status))}</td>
@@ -350,8 +350,8 @@ ${pendingRows
   .map(
     (r) => `<tr>
 <td>${_leaveEsc(pendU[r.user_id]?.name || pendU[r.user_id]?.email || '—')}</td>
-<td>${_leaveEsc(r.date_from)}</td>
-<td>${_leaveEsc(r.date_to)}</td>
+<td>${_leaveEsc(typeof mbFormatWall === 'function' ? mbFormatWall(r.date_from, { day: '2-digit', month: '2-digit', year: 'numeric' }) : r.date_from)}</td>
+<td>${_leaveEsc(typeof mbFormatWall === 'function' ? mbFormatWall(r.date_to, { day: '2-digit', month: '2-digit', year: 'numeric' }) : r.date_to)}</td>
 <td>${_leaveEsc(r.days_used)}</td>
 <td>${_leaveEsc(leaveKindLabel(r.kind))}</td>
 <td style="max-width:120px;">${_leaveEsc(r.reason || '—')}</td>
@@ -383,11 +383,11 @@ ${allRows
   .map(
     (r) => `<tr>
 <td>${_leaveEsc(allU[r.user_id]?.name || allU[r.user_id]?.email || '—')}</td>
-<td>${_leaveEsc(r.date_from)}</td>
-<td>${_leaveEsc(r.date_to)}</td>
+<td>${_leaveEsc(typeof mbFormatWall === 'function' ? mbFormatWall(r.date_from, { day: '2-digit', month: '2-digit', year: 'numeric' }) : r.date_from)}</td>
+<td>${_leaveEsc(typeof mbFormatWall === 'function' ? mbFormatWall(r.date_to, { day: '2-digit', month: '2-digit', year: 'numeric' }) : r.date_to)}</td>
 <td>${_leaveEsc(r.days_used)}</td>
 <td>${_leaveEsc(leaveStatusLabel(r.status))}</td>
-<td>${_leaveEsc((r.created_at || '').slice(0, 16).replace('T', ' '))}</td>
+<td>${_leaveEsc(typeof mbFormatWall === 'function' ? mbFormatWall(r.created_at, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '')}</td>
 </tr>`
   )
   .join('')}

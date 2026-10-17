@@ -757,8 +757,8 @@ function setOutcome(o) {
   }
 }
 
-/** Aranacaklar (WV) listesindeki bekleyen kayıtları olumsuz sonuçla eşleştir — listeden düşer. */
-async function _markMatchingWiedervorlageOlumsuz(contact) {
+/** Bekleyen geri aramayı listeden düşür. Randevu ayrı durum, olumsuz ayrı. Cevap yok dokunmaz. */
+async function _markMatchingWiedervorlage(contact, durum) {
   if (!contact || !currentUser?.firm_id || !currentUser?.id) return;
   const fid = currentUser.firm_id;
   const aid = currentUser.id;
@@ -778,12 +778,17 @@ async function _markMatchingWiedervorlageOlumsuz(contact) {
       sb(`wiedervorlage?id=eq.${r.id}`, {
         method: 'PATCH',
         prefer: 'return=minimal',
-        body: JSON.stringify({ durum: 'olumsuz' }),
+        body: JSON.stringify({ durum: durum || 'olumsuz' }),
       })
     )
   );
   if (typeof refreshWvList === 'function') void refreshWvList();
   if (typeof loadWvBadge === 'function') loadWvBadge();
+  if (typeof loadUpcomingWv === 'function') void loadUpcomingWv();
+}
+
+async function _markMatchingWiedervorlageOlumsuz(contact) {
+  return _markMatchingWiedervorlage(contact, 'olumsuz');
 }
 
 async function submitOutcome(goBreak) {
@@ -919,9 +924,10 @@ async function submitOutcome(goBreak) {
       }
     } catch(e) {}
   }
-  if (selectedOutcome === 'negative' && currentContact) {
+  if (currentContact && (selectedOutcome === 'negative' || selectedOutcome === 'appointment' || selectedOutcome === 'appointment_done')) {
     try {
-      await _markMatchingWiedervorlageOlumsuz(currentContact);
+      const durum = selectedOutcome === 'negative' ? 'olumsuz' : 'randevu';
+      await _markMatchingWiedervorlage(currentContact, durum);
     } catch (e) {}
   }
   setDialerStatus('wrapping');
