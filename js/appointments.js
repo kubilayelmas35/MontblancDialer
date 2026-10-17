@@ -27,6 +27,18 @@ function takvimDayKeyFromDate(dt) {
   return TAKVIM_DAY_KEYS[(dt.getDay() + 6) % 7];
 }
 
+function takvimWeekdayName(dt, style) {
+  const civil = new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()));
+  const loc = typeof mbLocale === 'function' ? mbLocale() : 'tr-TR';
+  return new Intl.DateTimeFormat(loc, { weekday: style || 'short', timeZone: 'UTC' }).format(civil);
+}
+
+function takvimCivilStamp(dt) {
+  const iso = `${takvimFmtD(dt)}T12:00:00`;
+  if (typeof mbFormatWall === 'function') return mbFormatWall(iso, { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return takvimFmtD(dt);
+}
+
 function _parseTakvimHour(timeStr, fallback) {
   const t = String(timeStr || '').trim();
   if (!t) return fallback;
@@ -614,13 +626,12 @@ function renderTakvimGrid() {
   const needSat = activeSet.has('cmt');
   const needSun = activeSet.has('paz');
   const daysCount = isDay ? 1 : needSun ? 7 : needSat ? 6 : 5;
-  const locale = typeof mbLocale === 'function' ? mbLocale() : (currentLang==='de' ? 'de-DE' : 'tr-TR');
   const endDt = new Date(startDt);
   endDt.setDate(endDt.getDate() + (daysCount - 1));
   const lbl = document.getElementById(window._takvimWeekLabelId||'takvim-week-label');
   if (lbl) {
-    if (isDay) lbl.textContent = startDt.toLocaleDateString(locale,{weekday:'long',day:'2-digit',month:'short'});
-    else lbl.textContent = `${startDt.toLocaleDateString(locale,{day:'2-digit',month:'short'})} – ${endDt.toLocaleDateString(locale,{day:'2-digit',month:'short',year:'numeric'})}`;
+    if (isDay) lbl.textContent = `${takvimWeekdayName(startDt, 'long')} ${takvimCivilStamp(startDt)}`;
+    else lbl.textContent = `${takvimCivilStamp(startDt)} – ${takvimCivilStamp(endDt)}`;
   }
   const shH = tset.startH;
   const endH = tset.endH;
@@ -637,7 +648,7 @@ function renderTakvimGrid() {
     const isToday = dt.toDateString()===new Date().toDateString();
     const isClosed = takvimClosedDays[ds];
     const click = isAdmin ? `onclick="takvimHeaderClick('${ds}')"` : '';
-    const wdShort = dt.toLocaleDateString(locale, { weekday: 'short' });
+    const wdShort = takvimWeekdayName(dt, 'short');
     const cls = `tk-head${isToday ? ' tk-head--today' : ''}${isClosed ? ' tk-head--closed' : ''}${isAdmin ? ' tk-head--click' : ''}`;
     h += `<div class="${cls}" ${click}><span class="tk-head-wd">${wdShort}</span><span class="tk-head-d">${dt.getDate()}</span></div>`;
   }

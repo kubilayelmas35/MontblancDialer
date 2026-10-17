@@ -413,17 +413,8 @@ function mbBootEuroDates() {
   }).observe(document.body, { childList: true, subtree: true });
 }
 
-(function mbInstallDateFormat() {
-  const paint = (kind) => function mbLocalePaint(loc, opts) {
-    if (!Number.isFinite(this.getTime())) return '';
-    return mbFormatWall(this, opts || {}, kind);
-  };
-  Date.prototype.toLocaleString = paint('both');
-  Date.prototype.toLocaleDateString = paint('date');
-  Date.prototype.toLocaleTimeString = paint('time');
-  if (document.body) mbBootEuroDates();
-  else document.addEventListener('DOMContentLoaded', mbBootEuroDates);
-})();
+if (document.body) mbBootEuroDates();
+else document.addEventListener('DOMContentLoaded', mbBootEuroDates);
 
 function mbBusinessNow() {
   const p = mbZonedParts(new Date(), MB_BUSINESS_TZ);

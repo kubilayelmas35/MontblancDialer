@@ -207,13 +207,12 @@ function renderTakvimFailed() {
     grid.innerHTML = '';
     return;
   }
-  const locale = typeof mbLocale === 'function' ? mbLocale() : (currentLang === 'de' ? 'de-DE' : 'tr-TR');
   const n = dayKeys.length;
   let h = `<div style="display:grid;grid-template-columns:52px repeat(${n},minmax(0,1fr));width:100%;box-sizing:border-box;">`;
   h += '<div style="border-right:1px solid var(--border);"></div>';
   dayKeys.forEach((ds) => {
     const dt = new Date(ds + 'T12:00:00');
-    const head = dt.toLocaleDateString(locale, { weekday: 'short', day: 'numeric' });
+    const head = `${typeof takvimWeekdayName === 'function' ? takvimWeekdayName(dt, 'short') : ''} ${dt.getDate()}`;
     h += `<div style="font-size:9px;font-weight:800;color:var(--text-3);text-align:center;padding:0 4px 4px;border-right:1px solid var(--border);">${head}</div>`;
   });
   h += '<div style="border-right:1px solid var(--border);"></div>';
