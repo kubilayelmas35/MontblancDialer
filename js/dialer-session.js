@@ -998,6 +998,7 @@ function getDialerHealthState() {
 }
 
 function refreshDialerHealthPanel() {
+  if (typeof mbRetargetSelectedCamp === 'function') mbRetargetSelectedCamp();
   const codeEl = document.getElementById('dialer-health-code');
   const msgEl = document.getElementById('dialer-health-msg');
   const checksEl = document.getElementById('dialer-health-checks');

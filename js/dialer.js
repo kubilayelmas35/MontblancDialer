@@ -124,7 +124,7 @@ async function initDialer() {
     </div>
   </div>
   <!-- Toggle switch -->
-  <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;cursor:pointer;" title="${escapeHtml(isActive ? toggOn : toggOff)}">
+  <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;cursor:pointer;" title="${escapeHtml(isActive ? toggOn : toggOff)}" onclick="event.stopPropagation()">
     <input type="checkbox" ${isActive?'checked':''} onchange="toggleCampActive('${cid}',this.checked)"
       onclick="event.stopPropagation()"
       style="opacity:0;width:0;height:0;">
@@ -192,14 +192,38 @@ async function initDialer() {
   }
 }
 
+function _campIdsMatch(a, b) {
+  return String(a || '') === String(b || '');
+}
+
+function mbRetargetSelectedCamp() {
+  const active = (Array.isArray(_activeCampIds) ? _activeCampIds : []).filter(Boolean);
+  const busy = typeof dialerStatus !== 'undefined' && (dialerStatus === 'on_call' || dialerStatus === 'calling' || dialerStatus === 'wrapping');
+  if (busy) return;
+  if (selectedCampId && active.some((id) => _campIdsMatch(id, selectedCampId))) return;
+  if (!active.length) {
+    if (selectedCampId) {
+      selectedCampId = null;
+      _saveSelectedCampId(null);
+    }
+    return;
+  }
+  const next = active[0];
+  const camp = (campaigns || []).find((c) => _campIdsMatch(c.id, next));
+  selectedCampId = next;
+  _saveSelectedCampId(next);
+  const lbl = document.getElementById('dialer-camp-label');
+  if (lbl && camp?.name) lbl.textContent = camp.name;
+}
+
 // Kampanya aktif/pasif toggle
 function toggleCampActive(campId, checked) {
   if (checked) {
-    if (!_activeCampIds.includes(campId)) _activeCampIds.push(campId);
-    const camp = campaigns.find((c) => c.id === campId);
+    if (!_activeCampIds.some((id) => _campIdsMatch(id, campId))) _activeCampIds.push(campId);
+    const camp = campaigns.find((c) => _campIdsMatch(c.id, campId));
     selectCamp(campId, camp?.name || '', { skipActivate: true });
   } else {
-    _activeCampIds = _activeCampIds.filter(id => id !== campId);
+    _activeCampIds = _activeCampIds.filter((id) => !_campIdsMatch(id, campId));
   }
   _saveActiveCampIds(_activeCampIds);
   // Görsel güncelle
@@ -209,11 +233,7 @@ function toggleCampActive(campId, checked) {
   if (item)   item.classList.toggle('active', checked);
   if (slider) slider.style.background = checked ? 'var(--accent)' : 'var(--border)';
   if (knob)   knob.style.left = checked ? '19px' : '3px';
-  // selectedCampId'yi güncelle: aktif kampanya yoksa ilkini seç
-  if (!_activeCampIds.includes(selectedCampId)) {
-    // Kullanıcı seçtiği kampanya pasif olduysa seçimi kaldır
-    selectedCampId = null;
-  }
+  mbRetargetSelectedCamp();
   const countStr =
     _activeCampIds.length === 0
       ? (typeof t === 'function' ? t('dial.camp_active_none') : '')
@@ -272,6 +292,7 @@ function selectCamp(id, name, opts = {}) {
 }
 
 function mbApplyCampWarning() {
+  if (typeof mbRetargetSelectedCamp === 'function') mbRetargetSelectedCamp();
   const notice = document.getElementById('camp-required-notice');
   const readySec = document.getElementById('ready-section');
   const btn = document.getElementById('btn-ready');
@@ -384,7 +405,7 @@ function getAutoDialCampaignIds() {
 
 function mbCampaignIsActive(id) {
   if (!id) return false;
-  return (Array.isArray(_activeCampIds) ? _activeCampIds : []).some((cid) => String(cid) === String(id));
+  return (Array.isArray(_activeCampIds) ? _activeCampIds : []).some((cid) => _campIdsMatch(cid, id));
 }
 
 let _noActiveCampWarnAt = 0;
