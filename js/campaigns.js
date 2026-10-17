@@ -920,6 +920,7 @@ function queueRowsBody(camp) {
       created: `<td>${campEsc(text.created)}</td>`,
       '': `<td onclick="event.stopPropagation()"><div class="queue-actions">
 <button type="button" class="btn btn-primary btn-xs" onclick="openQueueOps('${q.id}')">${campEsc(campT('camp.queue.ops', 'İşlemler'))}</button>
+<button type="button" class="btn btn-ghost btn-xs" onclick="openQueueUpload('${q.id}')">${campEsc(campT('camp.queue.upload', 'Yükle'))}</button>
 <button type="button" class="btn btn-ghost btn-xs" onclick="startQueueRename('${q.id}')">${campEsc(campT('camp.queue.rename', 'Adı değiştir'))}</button>
 <button type="button" class="btn btn-ghost btn-xs" onclick="toggleQueueStatus('${q.id}')">${campEsc(text.active ? campT('camp.queue.pause', 'Duraklat') : campT('camp.queue.resume', 'Sürdür'))}</button>
 <button type="button" class="btn btn-ghost btn-xs" onclick="openRequeueModal('${q.id}')">${campEsc(campT('camp.queue.manage', 'Ayarlar'))}</button>

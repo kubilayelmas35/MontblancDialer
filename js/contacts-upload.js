@@ -3,6 +3,43 @@
 // ─────────────────────────────────────────────
 
 // ── Upload Queue ──────────────────────────────
+let _uqTargetQueueId = '';
+
+function openFreshQueueUpload() {
+  _uqTargetQueueId = '';
+  openModal('m-upload-q');
+  paintUploadTarget();
+}
+
+function openQueueUpload(queueId) {
+  const found = typeof findQueue === 'function' ? findQueue(queueId) : null;
+  if (!found) {
+    toast(uqSay('uq.missing', 'Kuyruk bulunamadı'), 'err');
+    return;
+  }
+  if (found.camp?.id) currentCampId = found.camp.id;
+  _uqTargetQueueId = queueId;
+  openModal('m-upload-q');
+  paintUploadTarget();
+}
+
+function paintUploadTarget() {
+  const nameEl = document.getElementById('uq-name');
+  const note = document.getElementById('uq-target-note');
+  const found = _uqTargetQueueId && typeof findQueue === 'function' ? findQueue(_uqTargetQueueId) : null;
+  if (found && nameEl) {
+    nameEl.value = found.queue.name || '';
+    nameEl.readOnly = true;
+    if (note) {
+      note.hidden = false;
+      note.textContent = uqSay('uq.into.note', 'Yeni kuyruk açılmaz. Kişiler «{name}» kuyruğuna eklenir.', { name: found.queue.name || '' });
+    }
+    return;
+  }
+  if (nameEl) nameEl.readOnly = false;
+  if (note) { note.hidden = true; note.textContent = ''; }
+}
+
 function resetUploadQueueForm() {
   uploadFile = null;
   uploadParsedRows = [];
@@ -21,6 +58,10 @@ function resetUploadQueueForm() {
   if (progress) progress.style.display = 'none';
   const submit = document.getElementById('uq-submit-btn');
   if (submit) submit.disabled = false;
+  const nameEl = document.getElementById('uq-name');
+  if (nameEl) { nameEl.value = ''; nameEl.readOnly = false; }
+  const note = document.getElementById('uq-target-note');
+  if (note) { note.hidden = true; note.textContent = ''; }
   document.querySelectorAll('.uq-skip-status').forEach((box) => { box.checked = false; });
 }
 
@@ -225,7 +266,10 @@ function mbUploadSkipText(skipped) {
 }
 
 async function uploadQueue() {
-  const name = document.getElementById('uq-name').value.trim();
+  const targetId = String(_uqTargetQueueId || '');
+  const foundTarget = targetId && typeof findQueue === 'function' ? findQueue(targetId) : null;
+  if (targetId && !foundTarget) { toast(uqSay('uq.missing', 'Kuyruk bulunamadı'), 'err'); return; }
+  const name = foundTarget ? String(foundTarget.queue.name || '').trim() : document.getElementById('uq-name').value.trim();
   if (!name)          { toast(campT('camp.queue.name.required', 'Kuyruk adı gerekli'), 'err'); return; }
   if (!uploadFile)    { toast(uqSay('uq.need.file', 'Dosya seçin'), 'err'); return; }
   if (!currentCampId) { toast(uqSay('uq.need.camp', 'Önce kampanya seçin'), 'err'); return; }
@@ -287,21 +331,26 @@ async function uploadQueue() {
     if (detail) progressDetail.textContent = detail;
   };
   try {
-    setProgress(5, 'Kuyruk oluşturuluyor...', `${contacts.length.toLocaleString()} kişi hazırlanıyor`);
     const campRow = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === currentCampId);
     const firmId = campRow?.firm_id || currentUser?.firm_id || null;
-    const queueBody = { campaign_id:currentCampId, name, total_contacts:contacts.length };
-    if (firmId) queueBody.firm_id = firmId;
-    const queueRes = await sb('queues', {
-      method:'POST', prefer: 'return=representation',
-      body: JSON.stringify(queueBody)
-    });
-    let queue = Array.isArray(queueRes) ? queueRes[0] : queueRes;
-    if (!queue?.id) {
-      const found = await sb(`queues?campaign_id=eq.${currentCampId}&name=eq.${encodeURIComponent(name)}&order=created_at.desc&limit=1`);
-      queue = Array.isArray(found) ? found[0] : found;
+    let queue = foundTarget ? foundTarget.queue : null;
+    if (queue) {
+      setProgress(5, uqSay('uq.adding', 'Kuyruğa ekleniyor...'), `${contacts.length.toLocaleString()} kişi hazırlanıyor`);
+    } else {
+      setProgress(5, 'Kuyruk oluşturuluyor...', `${contacts.length.toLocaleString()} kişi hazırlanıyor`);
+      const queueBody = { campaign_id:currentCampId, name, total_contacts:contacts.length };
+      if (firmId) queueBody.firm_id = firmId;
+      const queueRes = await sb('queues', {
+        method:'POST', prefer: 'return=representation',
+        body: JSON.stringify(queueBody)
+      });
+      queue = Array.isArray(queueRes) ? queueRes[0] : queueRes;
+      if (!queue?.id) {
+        const found = await sb(`queues?campaign_id=eq.${currentCampId}&name=eq.${encodeURIComponent(name)}&order=created_at.desc&limit=1`);
+        queue = Array.isArray(found) ? found[0] : found;
+      }
+      if (!queue?.id) throw new Error('Kuyruk oluşturulamadı — ID alınamadı');
     }
-    if (!queue?.id) throw new Error('Kuyruk oluşturulamadı — ID alınamadı');
     const withQ = contacts.map(c => {
       const row = { ...c, queue_id: queue.id };
       if (firmId) row.firm_id = firmId;
@@ -316,6 +365,16 @@ async function uploadQueue() {
       setProgress(pct, `Yükleniyor... (${batchNum}/${totalBatches} batch)`, `${uploaded.toLocaleString()} / ${withQ.length.toLocaleString()} kişi`);
       await sb('contacts', { method:'POST', body: JSON.stringify(withQ.slice(i, i+batchSize)), prefer:'return=minimal' });
     }
+    if (foundTarget) {
+      const nextTotal = Number(foundTarget.queue.total_contacts || 0) + contacts.length;
+      await sb(`queues?id=eq.${foundTarget.queue.id}`, {
+        method: 'PATCH', prefer: 'return=minimal',
+        body: JSON.stringify({ total_contacts: nextTotal }),
+      });
+      foundTarget.queue.total_contacts = nextTotal;
+      foundTarget.queue._left = null;
+      foundTarget.queue._sales = null;
+    }
     const done = uqSay('uq.done', '{n} kişi yüklendi', { n: contacts.length.toLocaleString() });
     const summary = why ? uqSay('uq.summary', '{done}. Atlanan: {why}', { done, why }) : done;
     setProgress(100, done, summary);
@@ -325,13 +384,18 @@ async function uploadQueue() {
     _uqWorkbook = null;
     document.getElementById('uq-fname').textContent = '.xlsx, .csv — maks. 50.000 satır';
     document.getElementById('uq-name').value = '';
+    document.getElementById('uq-name').readOnly = false;
+    _uqTargetQueueId = '';
+    paintUploadTarget();
     document.getElementById('uq-mapping-section').style.display = 'none';
     progressSection.style.display = 'none';
     submitBtn.disabled = false;
     toast(summary, 'ok', 4200);
     const campMem = (campaigns || []).find((c) => c.id === currentCampId);
     if (campMem) {
-      campMem.queues = [{ id: queue.id, name, total_contacts: contacts.length, dialed_count: 0, status: 'active', campaign_id: currentCampId, firm_id: firmId }, ...(campMem.queues || [])];
+      if (!foundTarget) {
+        campMem.queues = [{ id: queue.id, name, total_contacts: contacts.length, dialed_count: 0, status: 'active', campaign_id: currentCampId, firm_id: firmId }, ...(campMem.queues || [])];
+      }
       if (typeof renderCampGrid === 'function') renderCampGrid();
       if (typeof renderCampQueues === 'function') renderCampQueues(campMem);
     }
