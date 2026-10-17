@@ -224,13 +224,15 @@ if (typeof initChat === 'function') initChat();
 if (typeof initNotificationCenter === 'function') initNotificationCenter();
 initRTCListener();
 localStorage.removeItem('mb-sip-pass');
-const sipUser = localStorage.getItem('mb-sip-user')||'';
-const sipPass = window.__mbSipPass || '';
-if (sipUser && sipPass) {
-updateConnectionStatus('connecting');
-setTimeout(()=>{ sendToRTC('MB_CONNECT',{sipUser,sipPass}); }, 1200);
-} else {
-updateConnectionStatus('disconnected');
+try {
+  if (typeof mbBootFirmIntegrations === 'function') {
+    const line = await mbBootFirmIntegrations();
+    if (!line?.sip_username || !line?.sip_password) updateConnectionStatus('disconnected');
+  } else {
+    updateConnectionStatus('disconnected');
+  }
+} catch (e) {
+  updateConnectionStatus('disconnected');
 }
 if (typeof reloadMascotStateForUser === 'function') reloadMascotStateForUser();
 }

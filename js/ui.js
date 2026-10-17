@@ -657,29 +657,37 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ── SETTINGS — SIP bilgilerini kaydet ve bağlan ──
-function saveSettings() {
+async function saveSettings() {
+if (!(typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin())) return;
+const fid = (typeof _mbIntegFirmId !== 'undefined' && _mbIntegFirmId) || currentUser?.firm_id;
+if (!fid || typeof mbSaveFirmIntegrations !== 'function') return;
 const sipUser = document.getElementById('s-sip-user')?.value.trim()||'';
 const sipPass = document.getElementById('s-sip-pass')?.value.trim()||'';
 const apiKey  = document.getElementById('s-telnyx-key')?.value.trim()||'';
 const connId  = document.getElementById('s-conn-id')?.value.trim()||'';
-localStorage.setItem('mb-sip-user',   sipUser);
-window.__mbSipPass = sipPass;
-localStorage.removeItem('mb-sip-pass');
-localStorage.setItem('mb-telnyx-key', apiKey);
-localStorage.setItem('mb-conn-id',    connId);
-toast(t('ui.settings_sip_saved'),'ok');
-updateConnectionStatus('connecting');
-sendToRTC('MB_DISCONNECT');
-setTimeout(()=>{ sendToRTC('MB_CONNECT',{sipUser,sipPass}); }, 600);
+try {
+  const prev = await mbLoadFirmIntegrations(fid);
+  const saved = await mbSaveFirmIntegrations(fid, {
+    telnyx_api_key: apiKey,
+    sip_connection_id: connId,
+    sip_username: sipUser,
+    sip_password: sipPass || prev.sip_password,
+  });
+  if (String(fid) === String(currentUser?.firm_id)) mbApplyFirmIntegrationsLocal(saved, true);
+  else if (typeof mbFillIntegForms === 'function') mbFillIntegForms(saved);
+  toast(t('ui.settings_sip_saved'),'ok');
+} catch (e) {
+  toast((typeof t === 'function' ? t('dial.log_err') : 'Kayıt hatası: ') + e.message, 'err');
+}
 }
 
-function loadSavedSettings() {
+async function loadSavedSettings() {
 loadApiSettings();
-const fields = {'s-sip-user':'mb-sip-user','s-telnyx-key':'mb-telnyx-key','s-conn-id':'mb-conn-id'};
-Object.entries(fields).forEach(([elId,key])=>{
-const el=document.getElementById(elId), val=localStorage.getItem(key);
-if(el&&val) el.value=val;
-});
+if (typeof mbPrepareIntegFirmSelects === 'function') await mbPrepareIntegFirmSelects();
+const fid = (typeof _mbIntegFirmId !== 'undefined' && _mbIntegFirmId) || currentUser?.firm_id;
+if (fid && typeof mbLoadFirmIntegrations === 'function' && typeof mbFillIntegForms === 'function') {
+  mbFillIntegForms(await mbLoadFirmIntegrations(fid));
+}
 if (typeof loadMascotSettingsForm === 'function') loadMascotSettingsForm();
 }
 

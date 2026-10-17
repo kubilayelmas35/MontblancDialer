@@ -2776,7 +2776,12 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div class="card" id="settings-api-keys-card">
 <div class="card-title" style="margin-bottom:16px;">API Anahtarları</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;" data-tr="Süper admin firmaya bir kez yazar. Temsilci her girişte yeniden girmez." data-de="Der Super-Admin speichert das einmal pro Firma. Mitarbeiter tragen es nicht bei jedem Login neu ein.">Süper admin firmaya bir kez yazar. Temsilci her girişte yeniden girmez.</div>
 <div style="display:flex;flex-direction:column;gap:10px;">
+<div class="form-row" id="integ-api-firm-row">
+<label class="form-label" data-tr="Firma" data-de="Firma">Firma</label>
+<select class="form-input" id="integ-api-firm" onchange="mbIntegFirmChanged('api')"></select>
+</div>
 <div class="form-row">
 <label class="form-label">Google Maps API Key</label>
 <input class="form-input" id="s-google-key" placeholder="AIza...">
@@ -3008,7 +3013,12 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 </div>
 <div class="card" id="telnyx-settings">
 <div class="card-title" style="margin-bottom:16px;">Hat Bağlantısı</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;" data-tr="Hat bilgisi firmada durur. Girişte kendiliğinden bağlanır." data-de="Die Leitungsdaten bleiben bei der Firma und verbinden sich beim Login von selbst.">Hat bilgisi firmada durur. Girişte kendiliğinden bağlanır.</div>
 <div style="display:flex;flex-direction:column;gap:12px;">
+<div class="form-row" id="integ-line-firm-row">
+<label class="form-label" data-tr="Firma" data-de="Firma">Firma</label>
+<select class="form-input" id="integ-line-firm" onchange="mbIntegFirmChanged('line')"></select>
+</div>
 <div class="form-row">
 <label class="form-label">API Key</label>
 <input type="password" class="form-input" id="s-telnyx-key" placeholder="KEY_...">

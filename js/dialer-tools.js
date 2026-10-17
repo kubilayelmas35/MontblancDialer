@@ -186,18 +186,152 @@ function loadApiSettings() {
   updateCustEmptyMascotScale();
 }
 
-function saveApiSettings() {
-  const gk = document.getElementById('s-google-key')?.value?.trim();
-  const tk = document.getElementById('s-tomtom-key')?.value?.trim();
+let _mbIntegFirmId = null;
+
+function mbIntegEmpty() {
+  return {
+    google_key: '',
+    tomtom_key: '',
+    telnyx_api_key: '',
+    sip_connection_id: '',
+    sip_username: '',
+    sip_password: '',
+  };
+}
+
+function mbNormalizeFirmIntegrations(raw) {
+  const d = raw && typeof raw === 'object' ? raw : {};
+  const out = mbIntegEmpty();
+  Object.keys(out).forEach((key) => { out[key] = String(d[key] || '').trim(); });
+  return out;
+}
+
+async function mbLoadFirmIntegrations(firmId) {
+  if (!firmId || typeof sb !== 'function') return mbIntegEmpty();
+  const rows = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
+  return mbNormalizeFirmIntegrations(rows?.[0]?.settings?.integrations);
+}
+
+async function mbSaveFirmIntegrations(firmId, patch) {
+  const rows = await sb(`firms?id=eq.${firmId}&select=settings`);
+  const existing = rows?.[0]?.settings || {};
+  const integrations = mbNormalizeFirmIntegrations({ ...(existing.integrations || {}), ...(patch || {}) });
+  await sb(`firms?id=eq.${firmId}`, {
+    method: 'PATCH',
+    prefer: 'return=minimal',
+    body: JSON.stringify({ settings: { ...existing, integrations } }),
+  });
+  return integrations;
+}
+
+function mbApplyFirmIntegrationsLocal(cfg, connect) {
+  const line = mbNormalizeFirmIntegrations(cfg);
+  if (line.google_key) {
+    _googleApiKey = line.google_key;
+    try { localStorage.setItem('mb_google_key', line.google_key); } catch (e) {}
+  }
+  if (line.tomtom_key) {
+    try { localStorage.setItem('mb_tomtom_key', line.tomtom_key); } catch (e) {}
+  }
+  if (line.telnyx_api_key) {
+    try { localStorage.setItem('mb-telnyx-key', line.telnyx_api_key); } catch (e) {}
+  }
+  if (line.sip_connection_id) {
+    try { localStorage.setItem('mb-conn-id', line.sip_connection_id); } catch (e) {}
+  }
+  if (line.sip_username) {
+    try { localStorage.setItem('mb-sip-user', line.sip_username); } catch (e) {}
+  }
+  if (line.sip_password) window.__mbSipPass = line.sip_password;
+  try { localStorage.removeItem('mb-sip-pass'); } catch (e) {}
+  if (connect && line.sip_username && line.sip_password && typeof sendToRTC === 'function') {
+    if (typeof updateConnectionStatus === 'function') updateConnectionStatus('connecting');
+    if (typeof sendToRTC === 'function') sendToRTC('MB_DISCONNECT');
+    setTimeout(() => sendToRTC('MB_CONNECT', { sipUser: line.sip_username, sipPass: line.sip_password }), 600);
+  }
+  return line;
+}
+
+async function mbBootFirmIntegrations() {
+  const fid = currentUser?.firm_id;
+  if (!fid) return mbIntegEmpty();
+  let cfg = await mbLoadFirmIntegrations(fid);
+  const blank = !Object.values(cfg).some(Boolean);
+  const ownAccount = !(typeof _impersonation !== 'undefined' && _impersonation);
+  if (blank && ownAccount && typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin()) {
+    const seed = mbNormalizeFirmIntegrations({
+      google_key: localStorage.getItem('mb_google_key') || '',
+      tomtom_key: localStorage.getItem('mb_tomtom_key') || '',
+      telnyx_api_key: localStorage.getItem('mb-telnyx-key') || '',
+      sip_connection_id: localStorage.getItem('mb-conn-id') || '',
+      sip_username: localStorage.getItem('mb-sip-user') || '',
+      sip_password: window.__mbSipPass || localStorage.getItem('mb-sip-pass') || '',
+    });
+    if (Object.values(seed).some(Boolean)) cfg = await mbSaveFirmIntegrations(fid, seed);
+  }
+  return mbApplyFirmIntegrationsLocal(cfg, true);
+}
+
+async function mbPrepareIntegFirmSelects() {
+  if (!(typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin())) return;
+  let firms = (typeof _allFirms !== 'undefined' && _allFirms?.length) ? _allFirms : [];
+  if (!firms.length && typeof sb === 'function') {
+    firms = await sb('firms?select=id,name&order=name.asc').catch(() => []) || [];
+  }
+  const html = firms.map((f) => `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name || '')}</option>`).join('');
+  const preferred = _mbIntegFirmId || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id || '';
+  ['integ-api-firm', 'integ-line-firm'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = html;
+    if (preferred && [...el.options].some((opt) => opt.value === String(preferred))) el.value = String(preferred);
+  });
+  _mbIntegFirmId = document.getElementById('integ-api-firm')?.value || preferred || currentUser?.firm_id || null;
+}
+
+function mbFillIntegForms(cfg) {
+  const line = mbNormalizeFirmIntegrations(cfg);
+  const set = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value || '';
+  };
+  set('s-google-key', line.google_key);
+  set('s-tomtom-key', line.tomtom_key);
+  set('s-telnyx-key', line.telnyx_api_key);
+  set('s-conn-id', line.sip_connection_id);
+  set('s-sip-user', line.sip_username);
+  set('s-sip-pass', line.sip_password);
+}
+
+async function mbIntegFirmChanged(from) {
+  const id = from === 'line' ? 'integ-line-firm' : 'integ-api-firm';
+  _mbIntegFirmId = document.getElementById(id)?.value || null;
+  const other = document.getElementById(from === 'line' ? 'integ-api-firm' : 'integ-line-firm');
+  if (other && _mbIntegFirmId) other.value = _mbIntegFirmId;
+  mbFillIntegForms(await mbLoadFirmIntegrations(_mbIntegFirmId));
+}
+
+async function saveApiSettings() {
+  const gk = document.getElementById('s-google-key')?.value?.trim() || '';
+  const tk = document.getElementById('s-tomtom-key')?.value?.trim() || '';
   const goal = parseInt(document.getElementById('s-daily-goal')?.value||'5');
   const wGoal = parseInt(document.getElementById('s-weekly-goal')?.value||'25');
   const mGoal = parseInt(document.getElementById('s-monthly-goal')?.value||'100');
-  if (gk) { _googleApiKey=gk; localStorage.setItem('mb_google_key',gk); }
-  if (tk) localStorage.setItem('mb_tomtom_key',tk);
   if (goal>0) { _dailyGoal=goal; localStorage.setItem('mb_daily_goal',String(goal)); }
   if (wGoal>0) { window._weeklyGoal = wGoal; localStorage.setItem('mb_weekly_goal',String(wGoal)); }
   if (mGoal>0) { window._monthlyGoal = mGoal; localStorage.setItem('mb_monthly_goal',String(mGoal)); }
   updateCustEmptyMascotScale();
+  if (typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin()) {
+    const fid = _mbIntegFirmId || currentUser?.firm_id;
+    if (fid) {
+      const prev = await mbLoadFirmIntegrations(fid);
+      const saved = await mbSaveFirmIntegrations(fid, {
+        google_key: gk || prev.google_key,
+        tomtom_key: tk || prev.tomtom_key,
+      });
+      if (String(fid) === String(currentUser?.firm_id)) mbApplyFirmIntegrationsLocal(saved, false);
+    }
+  }
   toast(typeof t === 'function' ? t('dial.api_saved') : 'API ayarları kaydedildi ✓','ok');
 }
 
