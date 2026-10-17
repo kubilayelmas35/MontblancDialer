@@ -81,43 +81,51 @@ function perfFmtDateInput(d) {
   return `${y}-${m}-${day}`;
 }
 
+function _perfBerlinToday() {
+  return typeof mbBusinessToday === 'function' ? mbBusinessToday() : perfFmtDateInput(new Date());
+}
+
+function _perfShift(day, delta) {
+  return typeof mbShiftDate === 'function' ? mbShiftDate(day, delta) : day;
+}
+
+function _perfWeekday(day) {
+  const m = String(day || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return new Date().getDay();
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))).getUTCDay();
+}
+
+function _perfMonthEnd(day) {
+  const y = Number(String(day).slice(0, 4));
+  const mo = Number(String(day).slice(5, 7));
+  const last = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+  return `${String(day).slice(0, 7)}-${String(last).padStart(2, '0')}`;
+}
+
 function perfSetQuickRange(key, ev) {
-  const today = new Date();
-  let s;
-  let e;
-  if (key === 'today') {
-    s = new Date(today);
-    e = new Date(today);
-  } else if (key === 'week') {
-    const dow = today.getDay();
-    const diff = dow === 0 ? -6 : 1 - dow;
-    s = new Date(today);
-    s.setDate(today.getDate() + diff);
-    e = new Date(s);
-    e.setDate(s.getDate() + 6);
+  const today = _perfBerlinToday();
+  let s = today;
+  let e = today;
+  if (key === 'week' || key === 'lastweek') {
+    const anchor = key === 'lastweek' ? _perfShift(today, -7) : today;
+    const diff = _perfWeekday(anchor) === 0 ? -6 : 1 - _perfWeekday(anchor);
+    s = _perfShift(anchor, diff);
+    e = _perfShift(s, 6);
   } else if (key === 'month') {
-    s = new Date(today.getFullYear(), today.getMonth(), 1);
-    e = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  } else if (key === 'lastweek') {
-    const lw = new Date(today);
-    lw.setDate(today.getDate() - 7);
-    const dow = lw.getDay();
-    const diff = dow === 0 ? -6 : 1 - dow;
-    s = new Date(lw);
-    s.setDate(lw.getDate() + diff);
-    e = new Date(s);
-    e.setDate(s.getDate() + 6);
+    s = `${today.slice(0, 8)}01`;
+    e = _perfMonthEnd(today);
   } else if (key === 'lastmonth') {
-    s = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    e = new Date(today.getFullYear(), today.getMonth(), 0);
-  } else {
-    s = new Date(2020, 0, 1);
-    e = new Date(today.getFullYear() + 1, 11, 31);
+    const prev = _perfShift(`${today.slice(0, 8)}01`, -1);
+    s = `${prev.slice(0, 8)}01`;
+    e = prev;
+  } else if (key !== 'today') {
+    s = '2020-01-01';
+    e = `${Number(today.slice(0, 4)) + 1}-12-31`;
   }
   const fs = document.getElementById('perf-date-from');
   const fe = document.getElementById('perf-date-to');
-  if (fs) fs.value = perfFmtDateInput(s);
-  if (fe) fe.value = perfFmtDateInput(e);
+  if (fs) fs.value = s;
+  if (fe) fe.value = e;
   document.querySelectorAll('.perf-range-btn').forEach((b) => b.classList.remove('active'));
   const rb = ev?.currentTarget || ev?.target?.closest?.('.perf-range-btn') || document.querySelector(`.perf-range-btn[data-perf-range="${key}"]`);
   rb?.classList?.add('active');
@@ -631,11 +639,13 @@ async function _perfFetchAppointments(from, to) {
 async function _perfFetchCalls(from, to) {
   const ff = getFirmFilter('&');
   if (isSuperAdmin() && !getActiveFirmId()) return [];
-  const base = `call_logs?select=id,started_at,agent_id,campaign_id,outcome,phone,duration_sec,users(name),campaigns(name)${ff}&started_at=gte.${from}T00:00:00&started_at=lte.${to}T23:59:59&order=started_at.desc&limit=8000`;
+  const gte = typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
+  const lte = typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
+  const base = `call_logs?select=id,started_at,agent_id,campaign_id,outcome,phone,duration_sec,users(name),campaigns(name)${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=started_at.desc&limit=8000`;
   try {
     return (await sb(base)) || [];
   } catch (e) {
-    const simple = `call_logs?select=id,started_at,agent_id,campaign_id,outcome,phone,duration_sec${ff}&started_at=gte.${from}T00:00:00&started_at=lte.${to}T23:59:59&order=started_at.desc&limit=8000`;
+    const simple = `call_logs?select=id,started_at,agent_id,campaign_id,outcome,phone,duration_sec${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=started_at.desc&limit=8000`;
     const rows = (await sb(simple).catch(() => [])) || [];
     if (!rows.length) return [];
     const aIds = [...new Set(rows.map((r) => r.agent_id).filter(Boolean))];

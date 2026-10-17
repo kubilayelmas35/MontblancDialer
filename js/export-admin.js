@@ -100,11 +100,14 @@ function _buildCallHistoryQueryForExport() {
   const search = document.getElementById('ch-search')?.value?.toLowerCase() || '';
   const outcome = document.getElementById('ch-outcome')?.value || '';
   const agentFilter = document.getElementById('ch-agent-f')?.value || '';
-  const dateFrom = document.getElementById('ch-date-from')?.value || new Date().toISOString().split('T')[0];
-  const dateTo = document.getElementById('ch-date-to')?.value || new Date().toISOString().split('T')[0];
+  const chToday = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
+  const dateFrom = document.getElementById('ch-date-from')?.value || chToday;
+  const dateTo = document.getElementById('ch-date-to')?.value || chToday;
+  const gte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
+  const lte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
   let query = `call_logs?select=*,users(id,name),campaigns(name),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=8000`;
-  query += `&started_at=gte.${dateFrom}T00:00:00`;
-  query += `&started_at=lte.${dateTo}T23:59:59`;
+  query += `&started_at=gte.${gte}`;
+  query += `&started_at=lte.${lte}`;
   if (outcome) query += outcome === 'appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
   if (agentFilter) query += `&agent_id=eq.${agentFilter}`;
   return { query, search };

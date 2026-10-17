@@ -36,8 +36,10 @@ document.getElementById('pill-camp').textContent = cs.length;
 document.getElementById('sb-badge-camp').textContent = cs.length;
 } catch(e){}
 try {
-const today = new Date().toISOString().split('T')[0];
-const logs  = await sb(`call_logs?select=id&outcome=eq.appointment&started_at=gte.${today}T00:00:00${ffLive}`);
+const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
+const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
+const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
+const logs  = await sb(`call_logs?select=id&outcome=eq.appointment&started_at=gte.${gte}&started_at=lte.${lte}${ffLive}`);
 document.getElementById('pill-appt').textContent = logs.length;
 } catch(e){}
 try {
@@ -94,16 +96,14 @@ function _dashGetRange() {
 
 function _dashDateBounds() {
   const range = _dashGetRange();
-  const now = new Date();
-  const today = now.toISOString().split('T')[0];
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
   if (range === 'today') return { from: today, to: today, range };
   if (range === 'week') {
-    const d = new Date(now);
-    d.setDate(d.getDate() - 6);
-    return { from: d.toISOString().split('T')[0], to: today, range };
+    const from = typeof mbShiftDate === 'function' ? mbShiftDate(today, -6) : today;
+    return { from, to: today, range };
   }
   if (range === 'month') {
-    const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const from = `${String(today).slice(0, 8)}01`;
     return { from, to: today, range };
   }
   return { from: '2000-01-01', to: today, range };
@@ -111,11 +111,13 @@ function _dashDateBounds() {
 
 function _eachDayInRange(fromStr, toStr) {
   const out = [];
-  const d = new Date(fromStr + 'T12:00:00');
-  const end = new Date(toStr + 'T12:00:00');
-  while (d <= end) {
-    out.push(d.toISOString().split('T')[0]);
-    d.setDate(d.getDate() + 1);
+  let cur = String(fromStr || '');
+  let guard = 0;
+  while (cur && cur <= String(toStr || '') && guard < 4000) {
+    out.push(cur);
+    cur = typeof mbShiftDate === 'function' ? mbShiftDate(cur, 1) : cur;
+    if (typeof mbShiftDate !== 'function') break;
+    guard++;
   }
   return out;
 }
@@ -133,12 +135,13 @@ function _monthKeysLastN(n) {
 }
 
 function _logDayKey(log) {
+  if (typeof mbBerlinDay === 'function') return mbBerlinDay(log.started_at);
   return String(log.started_at || '').slice(0, 10);
 }
 
 function _logMonthKey(log) {
-  const s = String(log.started_at || '');
-  return s.length >= 7 ? s.slice(0, 7) : '';
+  const day = _logDayKey(log);
+  return day.length >= 7 ? day.slice(0, 7) : '';
 }
 
 function _dashUpdateStatLabels(rangeKey) {
@@ -310,7 +313,7 @@ function renderDashHourlyMixed(logs) {
   const hourlyTermin = Array(24).fill(0);
   (logs || []).forEach(l => {
     if (!l.started_at) return;
-    const h = new Date(l.started_at).getHours();
+    const h = typeof mbBerlinHour === 'function' ? mbBerlinHour(l.started_at) : new Date(l.started_at).getHours();
     if (h < 0 || h > 23) return;
     hourly[h]++;
     if (_isTerminOutcome(l.outcome)) hourlyTermin[h]++;
@@ -567,7 +570,7 @@ function renderDashTrendForRange(rangeKey, logs, from, to) {
     const hourly = Array(24).fill(0);
     (logs || []).forEach(l => {
       if (!l.started_at) return;
-      const h = new Date(l.started_at).getHours();
+      const h = typeof mbBerlinHour === 'function' ? mbBerlinHour(l.started_at) : new Date(l.started_at).getHours();
       if (h >= 0 && h <= 23) hourly[h]++;
     });
     const cum = [];
@@ -638,7 +641,9 @@ const rangeSuffix =
         ? (isTr ? 'bu ay' : 'diesen Monat')
         : (isTr ? 'seçili aralık' : 'Zeitraum');
 try {
-let qLogs = `call_logs?select=*&started_at=gte.${from}T00:00:00&started_at=lte.${to}T23:59:59`;
+const logGte = typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
+const logLte = typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
+let qLogs = `call_logs?select=*&started_at=gte.${logGte}&started_at=lte.${logLte}`;
 qLogs += ff;
 qLogs += agentQ;
 qLogs += '&limit=8000';
@@ -678,6 +683,8 @@ document.getElementById('pill-appt').textContent= appts;
   renderDashHourlyMixed([]);
   renderDashTerminDonut([]);
   renderDashChart7d([0], ['—']);
+  const errSub = document.getElementById('dash-chart-sub');
+  if (errSub) errSub.textContent = (typeof t === 'function' ? t('ui.error_prefix') : 'Hata: ') + (e?.message || '');
 }
 if (showLive) try {
 await renderDashLiveAgents();
@@ -701,27 +708,28 @@ try {
 const ff = getFirmFilter('&');
 const dateFilter = document.getElementById('stats-date-f')?.value || 'today';
 const campFilter = document.getElementById('stats-camp-f')?.value || '';
-const now = new Date();
-let dateFrom = now.toISOString().split('T')[0];
-let dateTo = now.toISOString().split('T')[0];
+const todayBiz = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
+let dateFrom = todayBiz;
+let dateTo = todayBiz;
 if (dateFilter === 'week') {
-const d = new Date(now); d.setDate(d.getDate() - 6);
-dateFrom = d.toISOString().split('T')[0];
+dateFrom = typeof mbShiftDate === 'function' ? mbShiftDate(todayBiz, -6) : todayBiz;
 } else if (dateFilter === 'month') {
-dateFrom = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+dateFrom = `${String(todayBiz).slice(0, 8)}01`;
 } else if (dateFilter === 'custom') {
 dateFrom = document.getElementById('stats-date-from')?.value || dateFrom;
 dateTo   = document.getElementById('stats-date-to')?.value   || dateTo;
 }
+const statsGte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
+const statsLte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
 let query = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,duration_sec,users(id,name),campaigns(id,name)${ff}`;
-query += `&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59`;
+query += `&started_at=gte.${statsGte}&started_at=lte.${statsLte}`;
 if (campFilter) query += `&campaign_id=eq.${campFilter}`;
 query += '&order=started_at.desc&limit=2000';
 let logs = [];
 try {
   logs = (await sb(query)) || [];
 } catch (_) {
-  const plain = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,duration_sec${ff}&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59${campFilter ? `&campaign_id=eq.${campFilter}` : ''}&order=started_at.desc&limit=2000`;
+  const plain = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,duration_sec${ff}&started_at=gte.${statsGte}&started_at=lte.${statsLte}${campFilter ? `&campaign_id=eq.${campFilter}` : ''}&order=started_at.desc&limit=2000`;
   logs = (await sb(plain)) || [];
 }
 const groups = {};
@@ -796,11 +804,14 @@ const ff = getFirmFilter('&');
 const search = document.getElementById('ch-search')?.value?.toLowerCase()||'';
 const outcome = document.getElementById('ch-outcome')?.value||'';
 const agentFilter = document.getElementById('ch-agent-f')?.value||'';
-const dateFrom = document.getElementById('ch-date-from')?.value||new Date().toISOString().split('T')[0];
-const dateTo = document.getElementById('ch-date-to')?.value||new Date().toISOString().split('T')[0];
+const chToday = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
+const dateFrom = document.getElementById('ch-date-from')?.value||chToday;
+const dateTo = document.getElementById('ch-date-to')?.value||chToday;
+const chGte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
+const chLte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
 let query = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,phone,duration_sec,contact_id,users(id,name),campaigns(name),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=500`;
-query += `&started_at=gte.${dateFrom}T00:00:00`;
-query += `&started_at=lte.${dateTo}T23:59:59`;
+query += `&started_at=gte.${chGte}`;
+query += `&started_at=lte.${chLte}`;
 if (outcome) query += outcome==='appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
 if (agentFilter) query += `&agent_id=eq.${agentFilter}`;
 let logs = [];
@@ -808,7 +819,7 @@ try {
   logs = (await sb(query)) || [];
 } catch (_) {
   let plain = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,phone,duration_sec,contact_id${ff}&order=started_at.desc&limit=500`;
-  plain += `&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59`;
+  plain += `&started_at=gte.${chGte}&started_at=lte.${chLte}`;
   if (outcome) plain += outcome==='appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
   if (agentFilter) plain += `&agent_id=eq.${agentFilter}`;
   logs = (await sb(plain)) || [];
@@ -926,13 +937,15 @@ return `<tr>
 async function loadMyHistory() {
 if (!currentUser) return;
 try {
-const today = new Date().toISOString().split('T')[0];
+const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
 const dateFrom = document.getElementById('mh-date-from')?.value || today;
 const dateTo   = document.getElementById('mh-date-to')?.value   || today;
+const mhGte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
+const mhLte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
 const search   = (document.getElementById('mh-search')?.value||'').toLowerCase();
 const outcome  = document.getElementById('mh-outcome')?.value||'';
 let query = `call_logs?select=*,contacts(first_name,last_name,phone),campaigns(name)&agent_id=eq.${currentUser.id}`;
-query += `&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59`;
+query += `&started_at=gte.${mhGte}&started_at=lte.${mhLte}`;
 if (outcome) query += outcome === 'appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
 query += '&order=started_at.desc&limit=200';
 const logs = await sb(query) || [];
@@ -1025,11 +1038,15 @@ return `<tr>
 <td>${detailBtn}</td>
 </tr>`;
 }).join('');
-} catch(e){ console.error(e); }
+} catch(e){
+  console.error(e);
+  const tbody = document.getElementById('my-tbody');
+  if (tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(8, (e?.message || 'Hata')) : `<tr><td colspan="8" class="mb-empty-hint">${e?.message || 'Hata'}</td></tr>`;
+}
 }
 
 function initStatsFilters() {
-const today = new Date().toISOString().split('T')[0];
+const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
 const from = document.getElementById('stats-date-from');
 const to   = document.getElementById('stats-date-to');
 if (from) from.value = today;
@@ -1037,7 +1054,7 @@ if (to)   to.value   = today;
 }
 
 function initCallHistoryFilters() {
-const today = new Date().toISOString().split('T')[0];
+const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
 const from = document.getElementById('ch-date-from');
 const to   = document.getElementById('ch-date-to');
 if (from && !from.value) from.value = today;
@@ -1046,7 +1063,7 @@ if (typeof updateCallHistoryExportVisibility === 'function') updateCallHistoryEx
 }
 
 function initMyHistoryFilters() {
-const today = new Date().toISOString().split('T')[0];
+const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
 const from = document.getElementById('mh-date-from');
 const to   = document.getElementById('mh-date-to');
 if (from && !from.value) from.value = today;

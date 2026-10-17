@@ -612,7 +612,7 @@ ${_isFakeRecordingRow(l) ? _fakeRecordingMarkup(l, 'history') : ''}
 </div>
 <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:var(--bg-3);">${l.outcome||'—'}</span>
 </div>`).join('');
-  } catch(e) { el.innerHTML='Hata'; }
+  } catch(e) { el.innerHTML='<div style="color:var(--text-3);padding:12px;text-align:center;">Geçmiş okunamadı</div>'; }
 }
 
 function _logDurationSec(log) {

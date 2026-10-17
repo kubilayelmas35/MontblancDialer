@@ -194,6 +194,42 @@ function mbWallToIso(value, timeZone) {
   return Number.isFinite(out.getTime()) ? out.toISOString() : null;
 }
 
+function mbBusinessToday() {
+  if (typeof mbBusinessNow === 'function') {
+    const day = mbBusinessNow().dateStr;
+    if (day) return day;
+  }
+  return new Date().toISOString().split('T')[0];
+}
+
+function mbShiftDate(day, deltaDays) {
+  const m = String(day || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return String(day || '');
+  const dt = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + Number(deltaDays || 0)));
+  const y = dt.getUTCFullYear();
+  const mo = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(dt.getUTCDate()).padStart(2, '0');
+  return `${y}-${mo}-${d}`;
+}
+
+function mbInstantGte(day) {
+  return mbWallToIso(`${day}T00:00`) || `${day}T00:00:00`;
+}
+
+function mbInstantLte(day) {
+  const iso = mbWallToIso(`${day}T23:59`);
+  if (!iso) return `${day}T23:59:59`;
+  return new Date(new Date(iso).getTime() + 59999).toISOString();
+}
+
+function mbBerlinHour(iso) {
+  const dt = new Date(iso);
+  if (!Number.isFinite(dt.getTime())) return 0;
+  const p = mbZonedParts(dt, MB_BUSINESS_TZ);
+  const h = Number(p.hour);
+  return Number.isFinite(h) ? h : dt.getHours();
+}
+
 function mbIsoToWallInput(iso, timeZone) {
   if (!iso) return '';
   const p = mbZonedParts(new Date(iso), timeZone || MB_BUSINESS_TZ);

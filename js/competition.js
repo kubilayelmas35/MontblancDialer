@@ -36,7 +36,9 @@ async function _compFetchTerminCounts(dateFrom, dateTo) {
   const fid = _compFirmId();
   if (!fid) return {};
   const ff = `&firm_id=eq.${fid}`;
-  const q = `call_logs?select=agent_id${ff}&outcome=in.(appointment,appointment_done)&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59&limit=15000`;
+  const gte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
+  const lte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
+  const q = `call_logs?select=agent_id${ff}&outcome=in.(appointment,appointment_done)&started_at=gte.${gte}&started_at=lte.${lte}&limit=15000`;
   const logs = (await sb(q).catch(() => [])) || [];
   const map = {};
   for (const l of logs) {
@@ -79,9 +81,9 @@ async function loadDashCompetitionCard() {
   }
   card.style.display = '';
 
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth() + 1;
+  const nowParts = typeof mbBusinessToday === 'function' ? mbBusinessToday() : '';
+  const y = nowParts ? Number(nowParts.slice(0, 4)) : new Date().getFullYear();
+  const m = nowParts ? Number(nowParts.slice(5, 7)) : new Date().getMonth() + 1;
   const { start, end } = _compMonthBounds(y, m);
 
   if (periodEl) {
@@ -164,9 +166,9 @@ async function loadCompetitionPage() {
     el.style.display = showCounts ? 'none' : 'inline';
   });
 
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth() + 1;
+  const nowParts = typeof mbBusinessToday === 'function' ? mbBusinessToday() : '';
+  const y = nowParts ? Number(nowParts.slice(0, 4)) : new Date().getFullYear();
+  const m = nowParts ? Number(nowParts.slice(5, 7)) : new Date().getMonth() + 1;
   const { start, end } = _compMonthBounds(y, m);
   const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
   const pm = _compMonthBounds(prev.y, prev.m);
