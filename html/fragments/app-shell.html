@@ -1490,6 +1490,10 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <button id="perf-tab-month" onclick="setPerfTab('month')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:4px;cursor:pointer;" data-tr="Ay" data-de="Monat">Ay</button>
 </div>
 <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;" id="my-stats-mini"></div>
+<div id="appt-basis-tabs" style="display:flex;gap:2px;margin-top:8px;background:var(--bg-3);border-radius:var(--radius-sm);padding:2px;">
+<button type="button" id="appt-basis-booked" onclick="setApptBasis('booked')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:var(--text);color:var(--bg-2);border-radius:4px;cursor:pointer;" data-tr="Alındığı gün" data-de="Aufnahmetag" title="Randevunun kayda geçtiği gün">Alındığı gün</button>
+<button type="button" id="appt-basis-slot" onclick="setApptBasis('slot')" style="flex:1;padding:4px 4px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:4px;cursor:pointer;" data-tr="Randevu günü" data-de="Termintag" title="Randevunun takvimdeki günü">Randevu günü</button>
+</div>
 <div class="sb-divider" style="margin:8px 0;"></div>
 <!-- Yaklaşan WV'ler -->
 <div style="font-size:11px;font-weight:800;color:var(--text-2);margin-bottom:6px;display:flex;align-items:center;gap:5px;">

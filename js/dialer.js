@@ -478,6 +478,7 @@ function toggleCampaignAutoDialForMe(campId, checked) {
 
 let _perfTab = 'today';
 let _goalTab = 'daily';
+let _apptBasis = 'booked';
 let _loadMiniStatsTimer = null;
 let _miniStatsReq = 0;
 
@@ -506,6 +507,42 @@ function _syncGoalTabChromeFromPerf() {
   };
   const lbl = document.getElementById('goal-tab-label');
   if (lbl) lbl.textContent = labels[goalScope] || t('dial.goal.short');
+}
+
+function _apptBasisKey() {
+  return 'mb_appt_basis_' + (currentUser?.id || 'local');
+}
+
+function _readApptBasis() {
+  try {
+    const v = localStorage.getItem(_apptBasisKey());
+    if (v === 'slot' || v === 'booked') _apptBasis = v;
+  } catch (e) {}
+  return _apptBasis === 'slot' ? 'slot' : 'booked';
+}
+
+function _paintApptBasis() {
+  const basis = _apptBasis === 'slot' ? 'slot' : 'booked';
+  const hints = {
+    booked: { tr: 'Randevunun kayda geçtiği gün', de: 'Tag der Erfassung' },
+    slot: { tr: 'Randevunun takvimdeki günü', de: 'Tag im Kalender' },
+  };
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  ['booked', 'slot'].forEach((k) => {
+    const b = document.getElementById('appt-basis-' + k);
+    if (!b) return;
+    const on = basis === k;
+    b.style.background = on ? 'var(--text)' : 'transparent';
+    b.style.color = on ? 'var(--bg-2)' : 'var(--text-2)';
+    b.title = de ? hints[k].de : hints[k].tr;
+  });
+}
+
+function setApptBasis(basis) {
+  _apptBasis = basis === 'slot' ? 'slot' : 'booked';
+  try { localStorage.setItem(_apptBasisKey(), _apptBasis); } catch (e) {}
+  _paintApptBasis();
+  scheduleLoadMyMiniStats(0);
 }
 
 function setPerfTab(tab) {
@@ -573,14 +610,10 @@ async function _loadAgentAppointments(uid, start, end, basis) {
   const bookedEnd = (typeof mbWallToIso === 'function' && mbWallToIso(String(end).slice(0, 16))) || end;
   const base = `appointments?select=durum&agent_id=eq.${uid}`;
   const createdQ = `${base}&created_at=gte.${bookedStart}&created_at=lte.${bookedEnd}`;
-  if (basis === 'created') return sb(createdQ).catch(() => []);
-  try {
-    return await sb(
-      `${base}&or=(and(termin_tarih.gte.${start},termin_tarih.lte.${end}),and(created_at.gte.${bookedStart},created_at.lte.${bookedEnd}))`
-    );
-  } catch (e) {
-    return sb(createdQ).catch(() => []);
+  if (basis === 'slot') {
+    return sb(`${base}&termin_tarih=gte.${start}&termin_tarih=lte.${end}`).catch(() => []);
   }
+  return sb(createdQ).catch(() => []);
 }
 
 async function loadMyMiniStats() {
@@ -589,21 +622,22 @@ async function loadMyMiniStats() {
     const win = _dialerStatWindows();
     const since = win.start;
     const uid = currentUser?.id;
+    const basis = _readApptBasis() === 'slot' ? 'slot' : 'created';
+    _paintApptBasis();
 
     const qCalls = sb(
       `call_logs?select=outcome&agent_id=eq.${uid}` +
       `&started_at=gte.${win.callSince}&started_at=lte.${win.nowIso}`
     );
-    const periodBasis = _perfTab === 'today' ? 'created' : 'either';
-    const qApDurum = _loadAgentAppointments(uid, win.start, win.end, periodBasis);
+    const qApDurum = _loadAgentAppointments(uid, win.start, win.end, basis);
     const qMonth =
       _perfTab !== 'month'
-        ? _loadAgentAppointments(uid, win.monthStart, win.monthEnd, 'either').catch(() => [])
+        ? _loadAgentAppointments(uid, win.monthStart, win.monthEnd, basis).catch(() => [])
         : Promise.resolve(null);
     const qDay =
       _perfTab !== 'today'
         ? Promise.all([
-            _loadAgentAppointments(uid, win.dayStart, win.dayEnd, 'created').catch(() => []),
+            _loadAgentAppointments(uid, win.dayStart, win.dayEnd, basis).catch(() => []),
             sb(
               `call_logs?select=id&agent_id=eq.${uid}` +
                 `&started_at=gte.${win.callDaySince}&started_at=lte.${win.nowIso}`
