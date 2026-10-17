@@ -1730,6 +1730,8 @@ background:var(--bg-3); border:1px solid var(--border);
 .queue-name { flex:1; font-size:13px; font-weight:600; min-width:120px; }
 .queue-sub { font-size:11px; color:var(--text-3); margin-top:2px; }
 .queue-actions { display:flex; gap:4px; flex-shrink:0; flex-wrap:wrap; }
+#cd-queues .camp-rows-wrap { margin-top:2px; }
+#cd-queues .queue-actions { max-width:460px; }
 .queue-rename-input { flex:1; min-width:0; font-size:12px; padding:3px 7px; }
 .qops { width:100%; border-collapse:collapse; }
 .qops th, .qops td { padding:8px 6px; border-bottom:1px solid var(--border); font-size:12px; vertical-align:middle; }

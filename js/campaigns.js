@@ -853,44 +853,134 @@ function contactEligibleForRecycle(c, testRelax) {
   return true;
 }
 
-function renderCampQueues(c) {
+let _queueColFilters = {};
+let _queuePaint = 0;
+
+function setQueueColFilter(key, value) {
+  _queueColFilters[key] = String(value || '');
+  const camp = (campaigns || []).find((c) => c.id === currentCampId);
+  const tbody = document.querySelector('#cd-queues .camp-rows tbody');
+  if (tbody && camp) {
+    tbody.innerHTML = queueRowsBody(camp);
+    return;
+  }
+  if (camp) renderCampQueues(camp);
+}
+
+function queueColDefs() {
+  return [
+    { key: 'name', label: campT('camp.queue.col.name', 'Adı') },
+    { key: 'status', label: campT('camp.queue.status', 'Durum') },
+    { key: 'ratio', label: campT('camp.queue.col.ratio', 'Aranacak/Toplam'), num: true },
+    { key: 'dialed', label: campT('camp.queue.col.dialed', 'Aranan'), num: true },
+    { key: 'sales', label: campT('camp.queue.col.sales', 'Satışlar'), num: true },
+    { key: 'created', label: campT('camp.queue.col.created', 'Oluşturma Tarihi') },
+    { key: '', label: '' },
+  ];
+}
+
+function queueFieldText(camp, q) {
+  const meta = queueMetaFor(camp, q.id);
+  const bits = [];
+  if (meta.priority) bits.push(`${campT('camp.queue.priority', 'Öncelik')} ${meta.priority}`);
+  if (meta.maxAttempts > 0) bits.push(`${campT('camp.queue.max', 'En fazla deneme')} ${meta.maxAttempts}`);
+  if (meta.notes) bits.push(meta.notes);
+  const active = q.status === 'active';
+  const left = q._left == null ? '—' : campCountText(q._left);
+  const sales = q._sales == null ? '—' : campCountText(q._sales);
+  return {
+    bits,
+    active,
+    status: active ? campT('camp.queue.active', 'Aktif') : campT('camp.queue.stopped', 'Durdu'),
+    ratio: `${left}/${campCountText(q.total_contacts || 0)}`,
+    dialed: campCountText(q.dialed_count || 0),
+    sales,
+    created: campCreatedLabel(q.created_at),
+    name: [q.name, ...bits].filter(Boolean).join(' '),
+  };
+}
+
+function queueRowsBody(camp) {
+  const defs = queueColDefs();
+  const rows = (camp?.queues || []).filter((q) => {
+    const text = queueFieldText(camp, q);
+    return Object.entries(_queueColFilters).every(([key, raw]) => !key || campMatch(text[key] || '', raw));
+  });
+  if (!rows.length) {
+    return `<tr class="camp-filter-empty"><td colspan="${defs.length}">${campEsc(campT('camp.queue.search.empty', 'Eşleşen kuyruk yok'))}</td></tr>`;
+  }
+  return rows.map((q) => {
+    const text = queueFieldText(camp, q);
+    const cells = {
+      name: `<td><div class="queue-name">${campEsc(q.name)}</div>${text.bits.length ? `<div class="queue-sub">${campEsc(text.bits.join(' · '))}</div>` : ''}</td>`,
+      status: `<td><span class="badge ${text.active ? 'badge-green' : 'badge-gray'}">${campEsc(text.status)}</span></td>`,
+      ratio: `<td class="num">${campEsc(text.ratio)}</td>`,
+      dialed: `<td class="num">${campEsc(text.dialed)}</td>`,
+      sales: `<td class="num">${campEsc(text.sales)}</td>`,
+      created: `<td>${campEsc(text.created)}</td>`,
+      '': `<td onclick="event.stopPropagation()"><div class="queue-actions">
+<button type="button" class="btn btn-primary btn-xs" onclick="openQueueOps('${q.id}')">${campEsc(campT('camp.queue.ops', 'İşlemler'))}</button>
+<button type="button" class="btn btn-ghost btn-xs" onclick="startQueueRename('${q.id}')">${campEsc(campT('camp.queue.rename', 'Adı değiştir'))}</button>
+<button type="button" class="btn btn-ghost btn-xs" onclick="toggleQueueStatus('${q.id}')">${campEsc(text.active ? campT('camp.queue.pause', 'Duraklat') : campT('camp.queue.resume', 'Sürdür'))}</button>
+<button type="button" class="btn btn-ghost btn-xs" onclick="openRequeueModal('${q.id}')">${campEsc(campT('camp.queue.manage', 'Ayarlar'))}</button>
+<button type="button" class="btn btn-ghost btn-xs" onclick="openQueuePeople('${q.id}')">${campEsc(campT('camp.queue.contacts', 'Kişiler'))}</button>
+<button type="button" class="btn btn-ghost btn-xs" onclick="deleteQueue('${q.id}')">${campEsc(campT('camp.queue.delete', 'Sil'))}</button>
+</div></td>`,
+    };
+    return `<tr class="camp-row" data-queue-id="${campEsc(q.id)}">${defs.map((col) => cells[col.key] || '').join('')}</tr>`;
+  }).join('');
+}
+
+async function attachQueueColumnStats(camp) {
+  const queues = camp?.queues || [];
+  const count = typeof mbDashCount === 'function' ? mbDashCount : null;
+  const chunk = 4;
+  for (let i = 0; i < queues.length; i += chunk) {
+    const slice = queues.slice(i, i + chunk);
+    await Promise.all(slice.map(async (q) => {
+      if (!count || !q.id) return;
+      const [left, sales] = await Promise.all([
+        count(`contacts?select=id&queue_id=eq.${q.id}&status=in.(pending,no_answer,callback)`),
+        count(`contacts?select=id&queue_id=eq.${q.id}&status=eq.appointment`),
+      ]);
+      q._left = left;
+      q._sales = sales;
+    }));
+  }
+}
+
+function paintQueueTable(c) {
   const host = document.getElementById('cd-queues');
   if (!host) return;
+  host.style.display = 'block';
   const qs = c?.queues || [];
   const countEl = document.getElementById('cd-queue-count');
   if (countEl) countEl.textContent = ` · ${qs.length}`;
   if (!qs.length) {
-    host.innerHTML = `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${campEsc(campT('camp.queue.none','Kuyruk yok'))}</div>`;
+    host.innerHTML = `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${campEsc(campT('camp.queue.none', 'Kuyruk yok'))}</div>`;
     return;
   }
-  host.innerHTML = qs.map((q) => {
-    const dialed = q.dialed_count || 0;
-    const total = q.total_contacts || 0;
-    const p = total > 0 ? Math.round(dialed / total * 100) : 0;
-    const active = q.status === 'active';
-    const meta = queueMetaFor(c, q.id);
-    const bits = [];
-    if (meta.priority) bits.push(`${campT('camp.queue.priority','Öncelik')} ${meta.priority}`);
-    if (meta.maxAttempts > 0) bits.push(`${campT('camp.queue.max','En fazla deneme')} ${meta.maxAttempts}`);
-    if (meta.notes) bits.push(meta.notes);
-    return `<div class="queue-row" data-queue-id="${campEsc(q.id)}">
-<div style="flex:1;min-width:140px;">
-<div class="queue-name">${campEsc(q.name)}</div>
-${bits.length ? `<div class="queue-sub">${campEsc(bits.join(' · '))}</div>` : ''}
-</div>
-<div class="queue-cnt" style="white-space:nowrap;">${dialed}/${total} <span style="color:var(--accent);">(${p}%)</span></div>
-<div style="width:70px;"><div class="prog-wrap"><div class="prog-fill" style="width:${p}%;"></div></div></div>
-<span class="badge ${active ? 'badge-green' : 'badge-gray'}">${campEsc(active ? campT('camp.queue.active','Aktif') : campT('camp.queue.stopped','Durdu'))}</span>
-<div class="queue-actions">
-<button type="button" class="btn btn-primary btn-xs" onclick="openQueueOps('${q.id}')">${campEsc(campT('camp.queue.ops','İşlemler'))}</button>
-<button type="button" class="btn btn-ghost btn-xs" onclick="startQueueRename('${q.id}')">${campEsc(campT('camp.queue.rename','Adı değiştir'))}</button>
-<button type="button" class="btn btn-ghost btn-xs" onclick="toggleQueueStatus('${q.id}')">${campEsc(active ? campT('camp.queue.pause','Duraklat') : campT('camp.queue.resume','Sürdür'))}</button>
-<button type="button" class="btn btn-ghost btn-xs" onclick="openRequeueModal('${q.id}')">${campEsc(campT('camp.queue.manage','Ayarlar'))}</button>
-<button type="button" class="btn btn-ghost btn-xs" onclick="openQueuePeople('${q.id}')">${campEsc(campT('camp.queue.contacts','Kişiler'))}</button>
-<button type="button" class="btn btn-ghost btn-xs" onclick="deleteQueue('${q.id}')">${campEsc(campT('camp.queue.delete','Sil'))}</button>
-</div>
-</div>`;
+  const defs = queueColDefs();
+  const head = defs.map((col) => {
+    const filter = col.key
+      ? `<input class="camp-col-filter" value="${campEsc(_queueColFilters[col.key] || '')}" oninput="setQueueColFilter('${col.key}', this.value)" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">`
+      : '';
+    return `<th class="${col.num ? 'num' : ''}">${campEsc(col.label)}${filter}</th>`;
   }).join('');
+  host.innerHTML = `<div class="camp-rows-wrap"><table class="camp-rows"><thead><tr>${head}</tr></thead><tbody>${queueRowsBody(c)}</tbody></table></div>`;
+}
+
+async function renderCampQueues(c) {
+  const host = document.getElementById('cd-queues');
+  if (!host) return;
+  const gen = ++_queuePaint;
+  paintQueueTable(c);
+  if (!(c?.queues || []).length) return;
+  await attachQueueColumnStats(c);
+  if (gen !== _queuePaint) return;
+  if (host.querySelector('.queue-rename-input')) return;
+  const tbody = host.querySelector('.camp-rows tbody');
+  if (tbody) tbody.innerHTML = queueRowsBody(c);
 }
 
 function startQueueRename(queueId) {
