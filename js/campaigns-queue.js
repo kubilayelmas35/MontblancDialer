@@ -192,7 +192,7 @@ async function refreshQueuePeople() {
 <td style="white-space:nowrap;">
 <button type="button" class="btn btn-primary btn-xs" onclick="saveQueuePerson('${r.id}')">${campEsc(campT('camp.notif.save','Kaydet'))}</button>
 <button type="button" class="btn btn-ghost btn-xs" onclick="dncQueuePerson('${r.id}')">DNC</button>
-<button type="button" class="btn btn-ghost btn-xs" onclick="deleteQueuePerson('${r.id}')">${campEsc(campT('camp.queue.delete','Sil'))}</button>
+<button type="button" class="btn btn-danger btn-xs" onclick="deleteQueuePerson('${r.id}')">${campEsc(campT('camp.queue.delete','Sil'))}</button>
 </td></tr>`).join('')}</tbody></table>`;
   } catch (e) {
     host.textContent = e.message;

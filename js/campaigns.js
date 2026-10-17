@@ -925,7 +925,7 @@ function queueRowsBody(camp) {
 <button type="button" class="btn btn-ghost btn-xs" onclick="toggleQueueStatus('${q.id}')">${campEsc(text.active ? campT('camp.queue.pause', 'Duraklat') : campT('camp.queue.resume', 'Sürdür'))}</button>
 <button type="button" class="btn btn-ghost btn-xs" onclick="openRequeueModal('${q.id}')">${campEsc(campT('camp.queue.manage', 'Ayarlar'))}</button>
 <button type="button" class="btn btn-ghost btn-xs" onclick="openQueuePeople('${q.id}')">${campEsc(campT('camp.queue.contacts', 'Kişiler'))}</button>
-<button type="button" class="btn btn-ghost btn-xs" onclick="deleteQueue('${q.id}')">${campEsc(campT('camp.queue.delete', 'Sil'))}</button>
+<button type="button" class="btn btn-danger btn-xs" onclick="deleteQueue('${q.id}')">${campEsc(campT('camp.queue.delete', 'Sil'))}</button>
 </div></td>`,
     };
     return `<tr class="camp-row" data-queue-id="${campEsc(q.id)}">${defs.map((col) => cells[col.key] || '').join('')}</tr>`;
