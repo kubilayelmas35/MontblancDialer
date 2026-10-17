@@ -306,7 +306,7 @@ ${_escHtml(f.l)}${f.required?'<span style="color:var(--red);margin-left:2px;">*<
 </div>
 ${f.type==='select'
 ? `<select id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;" onchange="updateTerminField('${f.key}',this.value)">
-${(f.opts||['']).map(o=>`<option value="${_escHtml(o)}" ${o===f.v?'selected':''}>${_escHtml(o||'…')}</option>`).join('')}
+${(f.opts||['']).map(o=>`<option value="${_escHtml(o)}" ${o===f.v?'selected':''}>${_escHtml(o||f.placeholder||'…')}</option>`).join('')}
 </select>`
 : f.type==='boolean'
 ? `<select id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;" onchange="updateTerminField('${f.key}',this.value)">
@@ -315,8 +315,9 @@ ${(f.opts||['']).map(o=>`<option value="${_escHtml(o)}" ${o===f.v?'selected':''}
 <option value="false" ${String(f.v)==='false'?'selected':''}>${typeof currentLang!=='undefined'&&currentLang==='de'?'Nein':'Hayır'}</option>
 </select>`
 : `<input id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;" type="${f.type==='number'?'number':'text'}"
-value="${_escHtml(f.v||'')}" placeholder="${_escHtml(f.l)}..."
-oninput="updateTerminField('${f.key}',this.value)">`
+value="${_escHtml(f.v||'')}" placeholder="${_escHtml(f.placeholder||'')}"${f.type==='number'?` data-tf-min="${_escHtml(f.min??'')}" data-tf-max="${_escHtml(f.max??'')}"`:''}
+oninput="updateTerminField('${f.key}',this.value);mbMarkTerminRange(this)">
+${f.type==='number'?`<div data-tf-warn style="display:none;font-size:10px;color:var(--red);margin-top:3px;font-weight:700;"></div>`:''}`
 }
 </div>`).join('')}
 </div>
@@ -331,6 +332,7 @@ Randevuyu Kaydet
   if (typeof renderInlineTerminCustomerField === 'function') {
     renderInlineTerminCustomerField();
   }
+  terminContainer.querySelectorAll('input[data-tf-min], input[data-tf-max]').forEach((el) => mbMarkTerminRange(el));
   const nameEl = document.getElementById('cust-name');
   if (nameEl) {
     const headKey = head[0]?.key;
@@ -358,16 +360,47 @@ Randevuyu Kaydet
   bindDialerNoteSync();
 }
 
+function mbTerminBound(raw) {
+  const s = String(raw ?? '').trim().replace(',', '.');
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function mbMarkTerminRange(input) {
+  if (!input) return;
+  const min = mbTerminBound(input.getAttribute('data-tf-min'));
+  const max = mbTerminBound(input.getAttribute('data-tf-max'));
+  const warn = input.parentElement?.querySelector('[data-tf-warn]');
+  const raw = String(input.value || '').trim().replace(',', '.');
+  const n = raw === '' ? null : Number(raw);
+  const bad = n != null && Number.isFinite(n) && ((min != null && n < min) || (max != null && n > max));
+  input.style.borderColor = bad ? 'var(--red)' : '';
+  input.style.boxShadow = bad ? '0 0 0 2px rgba(220,38,38,.15)' : '';
+  if (!warn) return;
+  if (!bad) {
+    warn.style.display = 'none';
+    warn.textContent = '';
+    return;
+  }
+  let msg = '';
+  if (min != null && max != null) msg = typeof tReplace === 'function' ? tReplace('camp.tf.range.both', { min, max }) : `${min}–${max} dışında`;
+  else if (min != null) msg = typeof tReplace === 'function' ? tReplace('camp.tf.range.min', { n: min }) : `En az ${min}`;
+  else msg = typeof tReplace === 'function' ? tReplace('camp.tf.range.max', { n: max }) : `En fazla ${max}`;
+  warn.textContent = msg;
+  warn.style.display = '';
+}
+
 function dialerTerminFields(camp, contact) {
   const defaults = [
-    { key:'hausart', l:'Ev Tipi', type:'select', opts:['','Einfamilienhaus','Zweifamilienhaus','Reihenhaus','Doppelhaus','Mehrfamilienhaus'], required:true, enabled:true },
-    { key:'baujahr', l:'Yapım Yılı', required:true, enabled:true },
-    { key:'qm', l:'m²', required:true, enabled:true },
-    { key:'heizung', l:'Isıtma', type:'select', opts:['','Gas','Öl','Pellet','WP','Fernwärme'], required:true, enabled:true },
-    { key:'alter_der_heizung', l:'Isıtma Yaşı', required:true, enabled:true },
-    { key:'verbrauch_pro_jahr', l:'Tüketim/Yıl', enabled:true },
-    { key:'personen', l:'Kişi Sayısı', enabled:true },
-    { key:'interesse_an_pv', l:'PV İlgisi', type:'boolean', enabled:false },
+    { key:'hausart', l:'Ev Tipi', type:'select', opts:['','Einfamilienhaus','Zweifamilienhaus','Reihenhaus','Doppelhaus','Mehrfamilienhaus'], required:true, enabled:true, placeholder:'' },
+    { key:'baujahr', l:'Yapım Yılı', required:true, enabled:true, placeholder:'1998' },
+    { key:'qm', l:'m²', type:'number', required:true, enabled:true, placeholder:'140' },
+    { key:'heizung', l:'Isıtma', type:'select', opts:['','Gas','Öl','Pellet','WP','Fernwärme'], required:true, enabled:true, placeholder:'' },
+    { key:'alter_der_heizung', l:'Isıtma Yaşı', required:true, enabled:true, placeholder:'15' },
+    { key:'verbrauch_pro_jahr', l:'Tüketim/Yıl', enabled:true, placeholder:'18000' },
+    { key:'personen', l:'Kişi Sayısı', type:'number', enabled:true, placeholder:'4' },
+    { key:'interesse_an_pv', l:'PV İlgisi', type:'boolean', enabled:false, placeholder:'' },
   ];
   const saved = (typeof getCampSettings === 'function' ? getCampSettings(camp) : {}).termin_form || {};
   const source = Array.isArray(saved.fields) && saved.fields.length
@@ -382,6 +415,9 @@ function dialerTerminFields(camp, contact) {
       v: contact?.[f.key] || '',
       type: f.type || base.type || 'text',
       required: !!(f.required ?? base.required),
+      placeholder: f.placeholder ?? base.placeholder ?? '',
+      min: f.min ?? base.min ?? '',
+      max: f.max ?? base.max ?? '',
     };
     if (next.type === 'select') {
       const raw = f.opts || (base.opts || []).slice(1).join(',');

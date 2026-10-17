@@ -281,14 +281,14 @@ if (tab === 'kurallar' && currentCampId) loadCampRulesTab();
 }
 
 const TERMIN_FORM_DEFAULTS = [
-  {key:'hausart',label:'Ev Tipi',type:'select',opts:'Einfamilienhaus,Zweifamilienhaus,Reihenhaus,Doppelhaus,Mehrfamilienhaus',enabled:true,required:true},
-  {key:'baujahr',label:'Yapım Yılı',type:'text',opts:'',enabled:true,required:true},
-  {key:'qm',label:'m²',type:'number',opts:'',enabled:true,required:true},
-  {key:'heizung',label:'Isıtma',type:'select',opts:'Gas,Öl,Pellet,WP,Fernwärme',enabled:true,required:true},
-  {key:'alter_der_heizung',label:'Isıtma Yaşı',type:'text',opts:'',enabled:true,required:true},
-  {key:'verbrauch_pro_jahr',label:'Tüketim/Yıl',type:'text',opts:'',enabled:true,required:false},
-  {key:'personen',label:'Kişi Sayısı',type:'number',opts:'',enabled:true,required:false},
-  {key:'interesse_an_pv',label:'PV İlgisi',type:'boolean',opts:'',enabled:false,required:false},
+  {key:'hausart',label:'Ev Tipi',type:'select',opts:'Einfamilienhaus,Zweifamilienhaus,Reihenhaus,Doppelhaus,Mehrfamilienhaus',enabled:true,required:true,placeholder:'',min:'',max:''},
+  {key:'baujahr',label:'Yapım Yılı',type:'text',opts:'',enabled:true,required:true,placeholder:'1998',min:'',max:''},
+  {key:'qm',label:'m²',type:'number',opts:'',enabled:true,required:true,placeholder:'140',min:'',max:''},
+  {key:'heizung',label:'Isıtma',type:'select',opts:'Gas,Öl,Pellet,WP,Fernwärme',enabled:true,required:true,placeholder:'',min:'',max:''},
+  {key:'alter_der_heizung',label:'Isıtma Yaşı',type:'text',opts:'',enabled:true,required:true,placeholder:'15',min:'',max:''},
+  {key:'verbrauch_pro_jahr',label:'Tüketim/Yıl',type:'text',opts:'',enabled:true,required:false,placeholder:'18000',min:'',max:''},
+  {key:'personen',label:'Kişi Sayısı',type:'number',opts:'',enabled:true,required:false,placeholder:'4',min:'',max:''},
+  {key:'interesse_an_pv',label:'PV İlgisi',type:'boolean',opts:'',enabled:false,required:false,placeholder:'',min:'',max:''},
 ];
 let _terminFormDraft = [];
 
@@ -302,6 +302,9 @@ function terminFormListFromSaved(tf) {
       opts: f.opts || '',
       enabled: f.enabled !== false,
       required: !!f.required,
+      placeholder: f.placeholder || '',
+      min: f.min == null ? '' : String(f.min),
+      max: f.max == null ? '' : String(f.max),
     })).filter((f) => f.key);
   }
   return TERMIN_FORM_DEFAULTS.map((f) => ({
@@ -311,6 +314,9 @@ function terminFormListFromSaved(tf) {
     label: saved[f.key]?.label || f.label,
     type: saved[f.key]?.type || f.type,
     opts: saved[f.key]?.opts || f.opts || '',
+    placeholder: saved[f.key]?.placeholder ?? f.placeholder ?? '',
+    min: saved[f.key]?.min ?? f.min ?? '',
+    max: saved[f.key]?.max ?? f.max ?? '',
   }));
 }
 
@@ -322,6 +328,9 @@ function readTerminFormDraftFromDom() {
     type: document.getElementById(`tf-type-${i}`)?.value || f.type,
     required: document.getElementById(`tf-req-${i}`)?.checked ?? f.required,
     opts: document.getElementById(`tf-opts-${i}`)?.value ?? f.opts ?? '',
+    placeholder: document.getElementById(`tf-ph-${i}`)?.value ?? f.placeholder ?? '',
+    min: document.getElementById(`tf-min-${i}`)?.value ?? f.min ?? '',
+    max: document.getElementById(`tf-max-${i}`)?.value ?? f.max ?? '',
   }));
 }
 
@@ -345,7 +354,14 @@ function renderTerminFormDraft() {
 <label style="font-size:11px;display:flex;align-items:center;gap:4px;white-space:nowrap;"><input type="checkbox" id="tf-req-${i}" ${f.required ? 'checked' : ''}>${campEsc(campT('camp.tf.required','Zorunlu'))}</label>
 ${String(f.key).startsWith('custom_') ? `<button type="button" onclick="removeCampTerminField(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;">✕</button>` : ''}
 </div>
-${f.type === 'select' ? `<div style="padding:6px 0 0 68px;"><input class="form-input" id="tf-opts-${i}" style="font-size:10px;padding:2px 6px;width:100%;" value="${campEsc(f.opts || '')}" placeholder="Seçenek 1, Seçenek 2"></div>` : ''}
+${f.type === 'boolean' ? '' : `<div style="padding:6px 0 0 68px;display:flex;flex-direction:column;gap:4px;">
+<input class="form-input" id="tf-ph-${i}" value="${campEsc(f.placeholder || '')}" placeholder="${campEsc(campT('camp.tf.ph','Yer tutucu'))}" style="font-size:11px;padding:3px 7px;">
+${f.type === 'number' ? `<div style="display:flex;gap:6px;">
+<input class="form-input" id="tf-min-${i}" value="${campEsc(f.min ?? '')}" placeholder="${campEsc(campT('camp.tf.min','Alt'))}" inputmode="decimal" style="font-size:11px;padding:3px 7px;width:90px;">
+<input class="form-input" id="tf-max-${i}" value="${campEsc(f.max ?? '')}" placeholder="${campEsc(campT('camp.tf.max','Üst'))}" inputmode="decimal" style="font-size:11px;padding:3px 7px;width:90px;">
+</div>` : ''}
+${f.type === 'select' ? `<input class="form-input" id="tf-opts-${i}" style="font-size:10px;padding:2px 6px;width:100%;" value="${campEsc(f.opts || '')}" placeholder="Seçenek 1, Seçenek 2">` : ''}
+</div>`}
 </div>`).join('');
 }
 
@@ -383,6 +399,9 @@ function addCampTerminField() {
     opts: '',
     enabled: true,
     required: false,
+    placeholder: '',
+    min: '',
+    max: '',
   });
   renderTerminFormDraft();
 }
@@ -398,7 +417,16 @@ async function saveCampTerminFormSettings() {
   const fields = _terminFormDraft.filter((f) => f.key && f.label);
   const cfg = { fields };
   fields.forEach((f) => {
-    cfg[f.key] = { enabled: f.enabled !== false, label: f.label, type: f.type || 'text', required: !!f.required, opts: f.opts || '' };
+    cfg[f.key] = {
+      enabled: f.enabled !== false,
+      label: f.label,
+      type: f.type || 'text',
+      required: !!f.required,
+      opts: f.opts || '',
+      placeholder: String(f.placeholder || '').trim(),
+      min: String(f.min ?? '').trim(),
+      max: String(f.max ?? '').trim(),
+    };
   });
   try {
     await saveCampSettingsPatch({ termin_form: cfg });
