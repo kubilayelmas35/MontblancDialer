@@ -74,6 +74,7 @@ function toggleMute() {
   if (isMuted) _micThresholdForcedMute = false;
   sendToRTC('MB_MUTE',{muted:isMuted});
   paintCallActionButtons();
+  mbPlayCue(isMuted ? 'mute' : 'unmute');
   toast(isMuted ? (typeof t === 'function' ? t('dial.mic_off') : '') : (typeof t === 'function' ? t('dial.mic_on') : ''), 'ok');
 }
 
@@ -102,6 +103,7 @@ function toggleHold() {
   const sim = String(call.id || '').startsWith('sim-');
   if (sim && typeof mbOnHopperCall === 'function') mbOnHopperCall(call);
   else if (typeof mbMarkLiveHold === 'function') mbMarkLiveHold(next);
+  mbPlayCue(isOnHold ? 'hold' : 'resume');
   toast(isOnHold ? (typeof t === 'function' ? t('dial.hold_on') : '') : (typeof t === 'function' ? t('dial.hold_off') : ''), 'ok');
 }
 
@@ -541,23 +543,39 @@ function toggleMicDrawerMonitor() {
 }
 
 function playMicDrawerBeep() {
+  mbPlayCue('connect');
+}
+
+function mbPlayCue(kind) {
+  const notes = {
+    connect: [[660, 0, 0.07], [880, 0.09, 0.1]],
+    hangup: [[494, 0, 0.07], [330, 0.09, 0.13]],
+    hold: [[392, 0, 0.05], [392, 0.1, 0.05]],
+    resume: [[523, 0, 0.06], [698, 0.08, 0.09]],
+    mute: [[247, 0, 0.11]],
+    unmute: [[698, 0, 0.08]],
+  }[kind];
+  if (!notes) return;
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
-    const ctx = new Ctx();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = 'sine';
-    o.frequency.value = 880;
-    g.gain.value = 0.1;
-    o.connect(g).connect(ctx.destination);
-    o.start();
-    setTimeout(() => {
-      try { o.stop(); } catch (e) {}
-      ctx.close();
-    }, 280);
-  } catch (e) {
-    toast('Beep: ' + (e.message || 'err'), 'err');
-  }
+    if (!Ctx) return;
+    if (!window._mbCueCtx || window._mbCueCtx.state === 'closed') window._mbCueCtx = new Ctx();
+    const ctx = window._mbCueCtx;
+    if (ctx.state === 'suspended') ctx.resume();
+    const now = ctx.currentTime;
+    notes.forEach(([freq, at, dur]) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, now + at);
+      g.gain.exponentialRampToValueAtTime(0.06, now + at + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + at + dur);
+      o.connect(g).connect(ctx.destination);
+      o.start(now + at);
+      o.stop(now + at + dur + 0.02);
+    });
+  } catch (e) {}
 }
 
 function closeMicAudioDrawer() {

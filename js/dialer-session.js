@@ -474,6 +474,8 @@ function setDialerStatus(s) {
     _custEmptyIdleSince = Date.now();
   }
   updateDialerNavCallIndicator();
+  if (s === 'on_call' && prev !== 'on_call' && typeof mbPlayCue === 'function') mbPlayCue('connect');
+  if (s === 'wrapping' && (prev === 'on_call' || prev === 'calling') && typeof mbPlayCue === 'function') mbPlayCue('hangup');
   const dot    = document.getElementById('status-dot');
   const label  = document.getElementById('status-label');
   const rdyBtn = document.getElementById('btn-ready');
