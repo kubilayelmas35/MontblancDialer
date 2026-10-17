@@ -1409,7 +1409,9 @@ function _paintDashLive() {
     const dur = liveClock(since, de);
     const aid = _dashLiveEsc(s.agent_id || '');
     const sinceAttr = _dashLiveEsc(since);
+    const coach = (isAdmin && typeof mbLiveCoachHtml === 'function') ? mbLiveCoachHtml(s) : '';
     const actions = isAdmin ? `<div class="live-actions">
+      ${coach}
       <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','ready')">${de ? 'Bereit' : 'Hazır'}</button>
       <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','break')">${de ? 'Pause' : 'Mola'}</button>
       <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','offline')">${de ? 'Offline' : 'Çıkış'}</button>

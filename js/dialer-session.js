@@ -1123,6 +1123,7 @@ async function updateSessionInDB(status, extra = {}) {
     if (status !== 'on_call') {
       payload.current_contact_name  = null;
       payload.current_contact_phone = null;
+      payload.current_contact_id = null;
       payload.telnyx_call_control_id = null;
       payload.call_started_at = null;
     }

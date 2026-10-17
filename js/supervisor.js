@@ -144,6 +144,12 @@ function _supRenderCards() {
         <div class="live-line-clip">${name}</div>
         <div class="live-line-clip">${phone}</div>
         <div class="live-line-clip">${camp}</div>
+        <div class="live-actions">
+          ${typeof mbLiveCoachHtml === 'function' ? mbLiveCoachHtml(s) : ''}
+          <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${sid}','ready')">${de ? 'Bereit' : 'Hazır'}</button>
+          <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${sid}','break')">${de ? 'Pause' : 'Mola'}</button>
+          <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${sid}','offline')">${de ? 'Offline' : 'Çıkış'}</button>
+        </div>
       </div>`;
     }
     const callInfo = `
@@ -163,16 +169,23 @@ function _supRenderCards() {
     <div class="sup-dur" data-clock>${dur}</div>
   </div>
   ${callInfo}
+  <div class="live-actions">
+    ${typeof mbLiveCoachHtml === 'function' ? mbLiveCoachHtml(s) : ''}
+    <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${sid}','ready')">${de ? 'Bereit' : 'Hazır'}</button>
+    <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${sid}','break')">${de ? 'Pause' : 'Mola'}</button>
+    <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${sid}','offline')">${de ? 'Offline' : 'Çıkış'}</button>
+  </div>
 </div>`;
     }).join('');
     grid.innerHTML = asRows
-      ? `<div class="live-rows">${`<div class="live-rows-head">
+      ? `<div class="live-rows live-rows--act">${`<div class="live-rows-head live-rows-head--act">
           <span>${de ? 'Agent' : 'Temsilci'}</span>
           <span>${de ? 'Status' : 'Durum'}</span>
           <span>${de ? 'Dauer' : 'Süre'}</span>
           <span>${de ? 'Kontakt' : 'Müşteri'}</span>
           <span>${de ? 'Nummer' : 'Numara'}</span>
           <span>${de ? 'Kampagne' : 'Kampanya'}</span>
+          <span>${de ? 'Aktion' : 'İşlem'}</span>
         </div>`}${lines}</div>`
       : lines;
   };
@@ -221,7 +234,7 @@ async function _supFetchSessions() {
   let camps = [];
   try {
     [rows, camps] = await Promise.all([
-      sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,firm_id,current_contact_name,current_contact_phone,call_started_at,call_start,break_start,updated_at,last_seen&order=agent_name.asc${firmQ}`),
+      sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,firm_id,current_contact_id,current_contact_name,current_contact_phone,telnyx_call_control_id,call_started_at,call_start,break_start,updated_at,last_seen&order=agent_name.asc${firmQ}`),
       sb(`campaigns?select=id,name${firmQ}`),
     ]);
   } catch (e) {

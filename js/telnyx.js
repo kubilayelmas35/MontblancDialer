@@ -79,6 +79,24 @@ if (n.type === 'callUpdate') {
 const state = call?.state;
 const isInbound = call?.direction === 'inbound';
 if (state === 'ringing' && isInbound) {
+  const supFor = typeof mbSupervisorHeader === 'function' ? mbSupervisorHeader(call) : '';
+  const expect = window._mbCoachExpect && Date.now() < window._mbCoachExpect.until;
+  const forMe = supFor && String(supFor) === String(currentUser?.id || '');
+  if (supFor && !forMe) {
+    try { call.hangup(); } catch (e) {}
+    return;
+  }
+  if ((forMe || expect) && typeof call.answer === 'function') {
+    call.__mbSupervisor = true;
+    call.__mbSupervisorRole = window._mbCoachExpect?.role || 'monitor';
+    window._mbCoachExpect = null;
+    try { call.answer(); } catch (e) {}
+    return;
+  }
+  if (_liveCallId || dialerStatus === 'on_call') {
+    try { call.hangup(); } catch (e) {}
+    return;
+  }
   if (typeof window.isIncomingDialerEnabled === 'function' && !window.isIncomingDialerEnabled()) {
     try { call.hangup(); } catch (e) {}
     if (typeof toast === 'function') toast('Gelen arama bu firma için kapalı', 'warn', 3200);
@@ -164,6 +182,7 @@ function mbConnectHopperRow(row) {
   if (row.contact) currentContact = row.contact;
   _attachLiveAudio(row.call);
   if (typeof handleCallState === 'function') handleCallState('active', row.id);
+  if (typeof mbPublishLiveLeg === 'function') mbPublishLiveLeg(row);
   if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
   if (typeof mbSyncPool === 'function') mbSyncPool();
 }
@@ -225,6 +244,19 @@ function mbHangupLiveOrWave() {
 function mbOnHopperCall(call) {
   if (!call) return;
   const state = String(call.state || '');
+  if (call.__mbSupervisor || (typeof mbSupervisorHeader === 'function' && mbSupervisorHeader(call))) {
+    const dead = state === 'hangup' || state === 'destroy' || state === 'done' || state === 'purge';
+    if (state === 'active') {
+      window._mbCoachCall = call;
+      _attachLiveAudio(call);
+      const role = call.__mbSupervisorRole;
+      const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+      const label = role === 'whisper' ? (de ? 'Flüstern' : 'Fısıltı') : role === 'barge' ? (de ? 'Beigetreten' : 'Katıldın') : (de ? 'Zuhören' : 'Dinliyorsun');
+      if (typeof toast === 'function') toast(label, 'ok', 2200);
+    }
+    if (dead && window._mbCoachCall === call) window._mbCoachCall = null;
+    return;
+  }
   const dead = state === 'hangup' || state === 'destroy' || state === 'done' || state === 'purge';
   let row = _hopperRowFor(call);
   if (!row) {
