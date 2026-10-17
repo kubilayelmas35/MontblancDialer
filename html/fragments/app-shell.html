@@ -562,15 +562,15 @@
 <div style="display:flex;flex-direction:column;gap:14px;">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div>
-<div style="font-size:13px;font-weight:700;"><i class="ph ph-lightning"></i> <span data-tr="Otomatik arama" data-de="Automatisches Wählen">Otomatik arama</span></div>
-<div style="font-size:11px;color:var(--text-3);" data-tr="Temsilcilerin otomatik aramayı kullanabilmesi" data-de="Agenten dürfen automatisch wählen">Temsilcilerin otomatik aramayı kullanabilmesi</div>
+<div style="font-size:13px;font-weight:700;"><i class="ph ph-lightning"></i> <span data-tr="Temsilci otomatik aramayı kapatabilir" data-de="Agent darf Autowähl ausschalten">Temsilci otomatik aramayı kapatabilir</span></div>
+<div style="font-size:11px;color:var(--text-3);" data-tr="İşaretliyken temsilci bu kampanyayı kendi ekranında kapatır. Kapatınca numara kendiliğinden gitmez, aramayı elle başlatır. İşaret yoksa otomatik arama açık kalır." data-de="Ist es an, kann der Agent diese Kampagne bei sich ausschalten. Dann geht keine Nummer von selbst raus, er wählt von Hand. Ist es aus, bleibt Autowähl an.">İşaretliyken temsilci bu kampanyayı kendi ekranında kapatır. Kapatınca numara kendiliğinden gitmez, aramayı elle başlatır. İşaret yoksa otomatik arama açık kalır.</div>
 </div>
 <input type="checkbox" id="cd-auto-dial" style="width:18px;height:18px;">
 </div>
 <label style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-3);border-radius:8px;cursor:pointer;">
 <div>
 <div style="font-size:13px;font-weight:700;"><i class="ph ph-pencil-simple"></i> <span data-tr="Temsilci veriyi düzenleyebilir" data-de="Agent darf Daten ändern">Temsilci veriyi düzenleyebilir</span></div>
-<div style="font-size:11px;color:var(--text-3);" data-tr="İsim, adres ve posta kodu" data-de="Name, Adresse und PLZ">İsim, adres ve posta kodu</div>
+<div id="cd-agent-edit-hint" style="font-size:11px;color:var(--text-3);"></div>
 </div>
 <input type="checkbox" id="cd-agent-edit" style="width:18px;height:18px;">
 </label>
@@ -582,12 +582,12 @@
 <input type="checkbox" id="cd-appointment-slot-required" style="width:18px;height:18px;">
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-arrows-clockwise"></i> <span data-tr="Akıllı yeniden arama" data-de="Erneutes Anwählen">Akıllı yeniden arama</span></div>
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-arrows-clockwise"></i> <span data-tr="Akıllı yeniden kuyruğa al" data-de="Wieder in die Warteschlange">Akıllı yeniden kuyruğa al</span></div>
 <div style="display:flex;gap:8px;align-items:center;">
 <input type="checkbox" id="cd-recycle" style="width:16px;height:16px;">
-<label for="cd-recycle" style="font-size:12px;" data-tr="Seçilen sonuçları yeniden ara" data-de="Gewählte Ergebnisse erneut anrufen">Seçilen sonuçları yeniden ara</label>
+<label for="cd-recycle" style="font-size:12px;" data-tr="Seçilen sonuçları bekleyince kuyruğa al" data-de="Gewählte Ergebnisse nach der Wartezeit wieder einreihen">Seçilen sonuçları bekleyince kuyruğa al</label>
 </div>
-<div style="font-size:12px;font-weight:700;margin:10px 0 6px;" data-tr="Yeniden aranacak sonuçlar" data-de="Ergebnisse für erneutes Anwählen">Yeniden aranacak sonuçlar</div>
+<div style="font-size:12px;font-weight:700;margin:10px 0 6px;" data-tr="Kuyruğa alınacak sonuçlar" data-de="Ergebnisse für die Warteschlange">Kuyruğa alınacak sonuçlar</div>
 <div id="cd-recycle-statuses" style="display:flex;flex-direction:column;gap:6px;"></div>
 <div style="display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap;">
 <label style="font-size:12px;color:var(--text-3);" data-tr="En fazla deneme" data-de="Max. Versuche">En fazla deneme</label>
@@ -601,26 +601,7 @@
 <option value="1440" data-tr="1 gün" data-de="1 Tag">1 gün</option>
 </select>
 </div>
-<div style="font-size:11px;color:var(--text-3);margin-top:8px;" data-tr="İşaretlenen sonuç, bekleme bitince ve deneme dolmadan yeniden aranır. Geri ara saati geldiyse yine aranır." data-de="Markierte Ergebnisse werden nach der Wartezeit erneut angerufen, bis das Limit voll ist. Ein fälliger Rückruf wird trotzdem angerufen.">İşaretlenen sonuç, bekleme bitince ve deneme dolmadan yeniden aranır. Geri ara saati geldiyse yine aranır.</div>
-<div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Kuyruk sınırı her numarayı keser. Kampanya sınırı yalnız yeniden aranan sonuçlar içindir. İkisi de doluysa önce dolan sınır geçerlidir." data-de="Das Listenlimit gilt für jede Nummer. Das Kampagnenlimit gilt nur für erneutes Anwählen. Sind beide gesetzt, gilt das früher erreichte Limit.">Kuyruk sınırı her numarayı keser. Kampanya sınırı yalnız yeniden aranan sonuçlar içindir. İkisi de doluysa önce dolan sınır geçerlidir.</div>
-</div>
-<div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-shield"></i> <span data-tr="Tekrar arama koruması" data-de="Wiederholschutz">Tekrar arama koruması</span></div>
-<div style="display:flex;gap:8px;align-items:center;">
-<input type="checkbox" id="cd-cooldown" style="width:16px;height:16px;">
-<label for="cd-cooldown" style="font-size:12px;" data-tr="İki arama arası bekleme süresi" data-de="Wartezeit zwischen zwei Anrufen">İki arama arası bekleme süresi</label>
-</div>
-<div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-<label style="font-size:12px;color:var(--text-3);" data-tr="Bekleme (dakika)" data-de="Wartezeit (Minuten)">Bekleme (dakika)</label>
-<input type="number" class="form-input" id="cd-cooldown-min" value="30" min="1" max="1440" style="width:80px;font-size:12px;padding:4px 8px;">
-</div>
-</div>
-<div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
-<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-speaker-high"></i> <span data-tr="Arama öncesi ses testi" data-de="Audio-Test vor dem Anruf">Arama öncesi ses testi</span></div>
-<div style="display:flex;gap:8px;align-items:center;">
-<input type="checkbox" id="cd-precall-test" style="width:16px;height:16px;">
-<label for="cd-precall-test" style="font-size:12px;" data-tr="Hazır olmadan önce mikrofon testi zorunlu" data-de="Mikrofontest vor Bereit">Hazır olmadan önce mikrofon testi zorunlu</label>
-</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:8px;" data-tr="Seçilen sonuç, bekleme bitince yeniden aranır. Deneme dolunca bir daha kuyruğa girmez. Geri ara saati geldiyse bekleme dolmasa da aranır. Kuyruk sınırı her numarayı keser." data-de="Gewählte Ergebnisse werden nach der Wartezeit wieder angerufen. Ist das Limit voll, kommen sie nicht zurück. Ein fälliger Rückruf wird trotzdem angerufen. Das Listenlimit gilt für jede Nummer.">Seçilen sonuç, bekleme bitince yeniden aranır. Deneme dolunca bir daha kuyruğa girmez. Geri ara saati geldiyse bekleme dolmasa da aranır. Kuyruk sınırı her numarayı keser.</div>
 </div>
 <button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampAramaSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Arama ayarlarını kaydet" data-de="Anrufeinstellungen speichern">Arama ayarlarını kaydet</span></button>
 </div>

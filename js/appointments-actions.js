@@ -217,7 +217,8 @@ function _releaseBookedContact(contact) {
 
 async function saveTerminFromSection() {
   const slot = _bookingSlot || window._selectedBookingSlot;
-  if (!slot) { toast('Önce takvimden bir slot seçin','err'); return; }
+  const slotRequired = typeof mbAppointmentSlotRequired === 'function' && mbAppointmentSlotRequired();
+  if (!slot && slotRequired) { toast('Önce takvimden bir slot seçin','err'); return; }
   const g = id => document.getElementById(id)?.value?.trim()||'';
   const requiredKeys = [...document.querySelectorAll('#termin-fields-section [data-required="1"]')].map((el) => el.getAttribute('data-tf-key')).filter(Boolean);
   const must = requiredKeys.length ? requiredKeys : ['hausart','baujahr','qm','heizung','alter_der_heizung'];
@@ -232,6 +233,17 @@ async function saveTerminFromSection() {
   _markMissingTerminFields(missing);
   if (missing.length || needCustomer) {
     toast('Randevu için zorunlu alanları doldurmalısınız', 'err', 4200);
+    return;
+  }
+  if (!slot) {
+    const packed = typeof terminNoteWithExtras === 'function' ? terminNoteWithExtras('tf2-note') : (document.getElementById('tf2-note')?.value || '');
+    const out = document.getElementById('outcome-note');
+    if (out) out.value = packed;
+    if (currentContact) currentContact.notes = packed;
+    selectedOutcome = 'appointment_done';
+    const ts = document.getElementById('termin-fields-section');
+    if (ts) ts.style.display = 'none';
+    if (typeof submitOutcome === 'function') await submitOutcome(false);
     return;
   }
   const contact = currentContact || {};

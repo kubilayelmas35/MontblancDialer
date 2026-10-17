@@ -591,17 +591,39 @@ await saveCampSettingsPatch({script, script_enabled: enabled});
 toast(campT('camp.script.saved','Konuşma metni kaydedildi'), 'ok');
 }
 
-function renderRecycleControls(s) {
+function mbAgentCanEditFields(camp) {
+  const s = typeof getCampSettings === 'function' ? getCampSettings(camp || {}) : {};
+  return s.agent_edit !== false;
+}
+
+function mbAgentEditFieldLabels(camp) {
+  const fc = typeof mbParseFieldConfig === 'function' ? mbParseFieldConfig(camp) : {};
+  const fields = typeof mbDialerLayoutFields === 'function' ? mbDialerLayoutFields(fc) : [];
+  return fields.map((f) => String(f.label || f.defaultLabel || f.key || '').trim()).filter(Boolean);
+}
+
+function paintAgentEditHint(camp) {
+  const el = document.getElementById('cd-agent-edit-hint');
+  if (!el) return;
+  const names = mbAgentEditFieldLabels(camp);
+  const hint = campT('camp.arama.edit.hint', 'Kapalıyken karttaki alanlar kilitlenir. Randevu formu açık kalır.');
+  el.textContent = names.length ? `${names.join(', ')}. ${hint}` : hint;
+}
+
+function renderRecycleControls(camp, s) {
   const host = document.getElementById('cd-recycle-statuses');
   const maxEl = document.getElementById('cd-recycle-max');
   const selected = new Set(Array.isArray(s?.recycle_statuses)
     ? s.recycle_statuses
     : (s?.recycle ? ['no_answer'] : []));
+  const choices = typeof campRecycleChoiceList === 'function'
+    ? campRecycleChoiceList(camp)
+    : RECYCLE_STATUS_KEYS.map((key) => ({ key, label: key }));
   if (host) {
-    host.innerHTML = RECYCLE_STATUS_KEYS.map((key) => `
+    host.innerHTML = choices.map((row) => `
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="cd-recycle-st-${key}" ${selected.has(key) ? 'checked' : ''} style="width:16px;height:16px;">
-<span>${campEsc(campT('camp.st.' + key, key))}</span>
+<input type="checkbox" id="cd-recycle-st-${campEsc(row.key)}" ${selected.has(row.key) ? 'checked' : ''} style="width:16px;height:16px;">
+<span>${campEsc(row.label)}</span>
 </label>`).join('');
   }
   if (maxEl) {
@@ -618,18 +640,17 @@ const camp = campaigns.find(c=>c.id===currentCampId);
 if (!camp) return;
 const s = getCampSettings(camp);
 setCheck('cd-auto-dial', s.auto_dial !== false);
-setCheck('cd-agent-edit', s.agent_edit || false);
+setCheck('cd-agent-edit', s.agent_edit !== false);
 setCheck('cd-appointment-slot-required', s.appointment_slot_required || false);
 setCheck('cd-recycle', s.recycle || false);
-setCheck('cd-cooldown', s.cooldown || false);
-setCheck('cd-precall-test', s.precall_test || false);
 setVal('cd-recycle-delay', s.recycle_delay || 60);
-setVal('cd-cooldown-min', s.cooldown_min || 30);
-renderRecycleControls(s);
+renderRecycleControls(camp, s);
+paintAgentEditHint(camp);
 }
 
 async function saveCampAramaSettings() {
-const ticks = RECYCLE_STATUS_KEYS.filter((key) => getCheck('cd-recycle-st-' + key));
+const choiceKeys = [...document.querySelectorAll('#cd-recycle-statuses input[id^="cd-recycle-st-"]')].map((el) => el.id.slice('cd-recycle-st-'.length));
+const ticks = choiceKeys.filter((key) => getCheck('cd-recycle-st-' + key));
 const master = getCheck('cd-recycle');
 if (master && !ticks.length) {
   toast(campT('camp.arama.recycle.need','Yeniden arama açıkken en az bir sonuç seçin'), 'err');
@@ -646,9 +667,6 @@ recycle: master,
 recycle_delay: parseInt(getVal('cd-recycle-delay')||'60'),
 recycle_max: Math.max(1, Math.min(5, parseInt(getVal('cd-recycle-max') || '2', 10) || 2)),
 recycle_statuses: ticks,
-cooldown: getCheck('cd-cooldown'),
-cooldown_min: parseInt(getVal('cd-cooldown-min')||'30'),
-precall_test: getCheck('cd-precall-test'),
 };
 if (configured) s.recycle_configured = true;
 await saveCampSettingsPatch(s);
@@ -715,29 +733,34 @@ if (!el) return;
 const cats = ['appointment','negative','callback','neutral'];
 const catLabels = {appointment:'Başarılı', negative:'Negatif', callback:'Geri Ara', neutral:'Nötr'};
 const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
-el.innerHTML = outcomes.map((o,i)=>`
-<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg-2);border-radius:5px;">
+const builtin = ['appointment','negative','callback','no_answer','dnc','voicemail'];
+const used = new Set();
+el.innerHTML = outcomes.map((o,i)=>{
+  let key = String(o.key || '').trim();
+  if (!key || used.has(key)) key = builtin[i] || (`custom_${Date.now()}_${i}`);
+  used.add(key);
+  const locked = builtin.includes(key);
+  return `
+<div data-outcome-row data-key="${esc(key)}" style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg-2);border-radius:5px;">
 <input type="checkbox" ${o.enabled?'checked':''} id="outcome-enabled-${i}">
 <input class="form-input" value="${esc(outcomeDisplayLabel(o))}" id="outcome-label-${i}" style="flex:1;font-size:12px;padding:3px 7px;">
-${o.key && ['appointment','negative','callback','no_answer','dnc','voicemail'].includes(o.key)
-? ''
-: `<select class="form-input" id="outcome-cat-${i}" style="font-size:11px;padding:2px 4px;width:110px;">
+${locked ? '' : `<select class="form-input" id="outcome-cat-${i}" style="font-size:11px;padding:2px 4px;width:110px;">
 ${cats.map(c=>`<option value="${c}" ${(o.category||'neutral')===c?'selected':''}>${catLabels[c]}</option>`).join('')}
-</select>`
-}
-${o.key && ['appointment','negative','callback','no_answer','dnc','voicemail'].includes(o.key)
-? ''
-: `<button onclick="removeCustomOutcome(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`
-}
-</div>`).join('') +
+</select>
+<button type="button" onclick="this.closest('[data-outcome-row]').remove()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`}
+</div>`;
+}).join('') +
 `<button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="addCustomOutcome()">+ Sonuç Ekle</button>`;
 }
 
 function addCustomOutcome() {
 const el = document.getElementById('cd-outcomes');
 if (!el) return;
-const idx = el.querySelectorAll('[id^="outcome-enabled-"]').length;
+const idx = el.querySelectorAll('[data-outcome-row]').length;
+const key = `custom_${Date.now()}`;
 const div = document.createElement('div');
+div.dataset.outcomeRow = '1';
+div.dataset.key = key;
 div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg-2);border-radius:5px;';
 div.innerHTML = `
 <input type="checkbox" checked id="outcome-enabled-${idx}">
@@ -748,7 +771,7 @@ div.innerHTML = `
 <option value="callback">Geri Ara</option>
 <option value="neutral" selected>Nötr</option>
 </select>
-<button onclick="this.closest('div').remove()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`;
+<button type="button" onclick="this.closest('[data-outcome-row]').remove()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`;
 el.insertBefore(div, el.lastElementChild);
 }
 
@@ -772,12 +795,20 @@ for (const code of auxRaw) {
   auxSeen.add(key);
 }
 const auxCodes = auxRaw;
-const outcomeCodes = [...document.querySelectorAll('[id^="outcome-enabled-"]')].map((cb,i)=>({
-key: DEFAULT_OUTCOMES[i]?.key || 'custom',
-label: document.getElementById(`outcome-label-${i}`)?.value || '',
-enabled: cb.checked,
-color: DEFAULT_OUTCOMES[i]?.color || 'gray'
-}));
+const outcomeCodes = [...document.querySelectorAll('#cd-outcomes [data-outcome-row]')].map((row)=>{
+  const cb = row.querySelector('[id^="outcome-enabled-"]');
+  const labelEl = row.querySelector('[id^="outcome-label-"]');
+  const catEl = row.querySelector('[id^="outcome-cat-"]');
+  const idx = cb ? Number(String(cb.id).replace('outcome-enabled-', '')) : -1;
+  const builtin = DEFAULT_OUTCOMES[idx];
+  return {
+    key: row.dataset.key || builtin?.key || `custom_${Date.now()}`,
+    label: labelEl?.value || '',
+    enabled: !!cb?.checked,
+    color: builtin?.color || 'gray',
+    category: catEl?.value || undefined,
+  };
+});
 const s = {
 acw_enabled: getCheck('cd-acw-enabled'),
 acw_seconds: parseInt(getVal('cd-acw-seconds')||'60'),

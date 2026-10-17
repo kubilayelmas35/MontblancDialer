@@ -1,5 +1,10 @@
 // ── Inline field edit ─────────────────────────
 function startFieldEdit(fieldKey, fieldLabel, btnEl) {
+  const camp = (campaigns || []).find((c) => c.id === currentContact?.campaign_id);
+  if (typeof mbAgentCanEditFields === 'function' && !mbAgentCanEditFields(camp)) {
+    toast(typeof t === 'function' ? t('camp.arama.edit.locked') : 'Bu kampanyada alanlar kilitli', 'warn');
+    return;
+  }
   const valEl = document.getElementById('cval-' + fieldKey);
   if (!valEl) return;
   const parent = valEl.parentElement;

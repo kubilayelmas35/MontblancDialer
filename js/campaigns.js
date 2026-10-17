@@ -824,14 +824,35 @@ function queueDialPrefs(campaignId, queueId) {
 
 const RECYCLE_STATUS_KEYS = ['no_answer', 'voicemail', 'negative', 'callback'];
 
+function campRecycleChoiceList(camp) {
+  const base = [
+    { key: 'no_answer', label: campT('camp.st.no_answer', 'Cevap yok') },
+    { key: 'voicemail', label: campT('camp.st.voicemail', 'Telesekreter') },
+    { key: 'negative', label: campT('camp.st.negative', 'Olumsuz') },
+    { key: 'callback', label: campT('camp.st.callback', 'Geri ara') },
+  ];
+  const seen = new Set(base.map((row) => row.key));
+  const builtin = new Set(['appointment', 'negative', 'callback', 'no_answer', 'dnc', 'voicemail']);
+  const outcomes = (typeof getCampSettings === 'function' ? getCampSettings(camp) : {})?.outcomes || [];
+  outcomes.forEach((row) => {
+    const key = String(row?.key || '').trim();
+    if (!key || builtin.has(key) || seen.has(key) || row.enabled === false) return;
+    if (!/^[a-z0-9_]+$/i.test(key)) return;
+    seen.add(key);
+    base.push({ key, label: String(row.label || key) });
+  });
+  return base;
+}
+
 function campRecyclePolicy(campaignId) {
   const camp = (campaigns || []).find((c) => c.id === campaignId);
   if (!camp) return null;
   const s = getCampSettings(camp);
   if (!s || !s.recycle_configured) return null;
+  const allowed = new Set(campRecycleChoiceList(camp).map((row) => row.key));
   const statuses = (Array.isArray(s.recycle_statuses) ? s.recycle_statuses : [])
     .map((x) => String(x || ''))
-    .filter((x) => RECYCLE_STATUS_KEYS.includes(x));
+    .filter((x) => allowed.has(x));
   const max = Math.max(1, Math.min(5, parseInt(s.recycle_max, 10) || 1));
   const delayMin = Math.max(0, Math.min(1440, parseInt(s.recycle_delay, 10) || 0));
   return { on: !!s.recycle && statuses.length > 0, statuses, max, delayMin };

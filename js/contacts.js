@@ -253,6 +253,7 @@ function showCustomerCard(c) {
   }));
   const terminFields = dialerTerminFields(camp, c);
   document.getElementById('cust-fields').innerHTML = visibleFields.map(f=>{
+    const canEditFields = typeof mbAgentCanEditFields !== 'function' || mbAgentCanEditFields(camp);
     const canCallSecondary = f.key === 'phone2' && String(f.v || '').trim().length > 0;
     const quickCallBtn = canCallSecondary
       ? `<button type="button" onclick="callSecondaryPhone()"
@@ -272,13 +273,13 @@ style="flex:1;font-size:14px;font-weight:600;cursor:pointer;min-height:20px;"
 onclick="copyToClipboard('${(f.v||'').replace(/'/g,"\\'")}','${f.l} kopyalandı')"
 title="Kopyala (tıkla) — düzenlemek için kalem ikonuna bas">${f.v||'—'}</div>
 ${quickCallBtn}
-<button onclick="startFieldEdit('${f.key}','${f.l}',this)"
+${canEditFields ? `<button onclick="startFieldEdit('${f.key}','${f.l}',this)"
 style="flex-shrink:0;background:transparent;border:none;cursor:pointer;color:var(--text-3);padding:2px;border-radius:4px;opacity:.6;transition:.15s;"
 title="Düzenle"
 onmouseover="this.style.opacity='1';this.style.color='var(--accent)'"
 onmouseout="this.style.opacity='.6';this.style.color='var(--text-3)'">
 <i class="ph ph-pencil-simple" style="font-size:14px;"></i>
-</button>
+</button>` : ''}
 </div>
 </div>`;
   }).join('');
@@ -336,7 +337,8 @@ Randevuyu Kaydet
   const nameEl = document.getElementById('cust-name');
   if (nameEl) {
     const headKey = head[0]?.key;
-    if (headKey === 'name') {
+    const canEditFields = typeof mbAgentCanEditFields !== 'function' || mbAgentCanEditFields(camp);
+    if (headKey === 'name' && canEditFields) {
       nameEl.innerHTML = `<span>${_escHtml(titleText || '—')}</span><button onclick="startCustomerNameEdit(this)" style="margin-left:6px;background:transparent;border:none;cursor:pointer;color:var(--text-3);vertical-align:middle;" title="İsim düzenle"><i class="ph ph-pencil-simple"></i></button>`;
     } else {
       nameEl.textContent = titleText || '—';
@@ -527,6 +529,11 @@ function _escHtml(v) {
 
 async function startCustomerNameEdit(btnEl) {
   if (!currentContact?.id) return;
+  const camp = (campaigns || []).find((c) => c.id === currentContact.campaign_id);
+  if (typeof mbAgentCanEditFields === 'function' && !mbAgentCanEditFields(camp)) {
+    toast(typeof t === 'function' ? t('camp.arama.edit.locked') : 'Bu kampanyada alanlar kilitli', 'warn');
+    return;
+  }
   const nameEl = document.getElementById('cust-name');
   if (!nameEl) return;
   const curFirst = currentContact.first_name || '';

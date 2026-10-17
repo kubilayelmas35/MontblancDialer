@@ -1408,6 +1408,7 @@ function closeTakvimOverlay() {
   delete window._takvimFailedGridId;
   const pg = document.getElementById('page-takvim');
   if (pg && pg.classList.contains('active') && typeof loadTakvimSlots === 'function') loadTakvimSlots();
+  if (typeof mbOfferTerminWithoutSlot === 'function') mbOfferTerminWithoutSlot();
 }
 
 // ── Precall mic test ──────────────────────────
