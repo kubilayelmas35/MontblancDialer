@@ -121,7 +121,7 @@ async function _aspFetchAppointments(fid, uid, start, end, mode = 'termin') {
   const s = `${start}T00:00:00`;
   const e = `${end}T23:59:59`;
   return rows.filter((r) => {
-    const raw = mode === 'created' ? r.created_at : r.termin_tarih;
+    const raw = mode === 'created' ? (r.kayit_tarihi || r.created_at) : r.termin_tarih;
     const t = String(raw || '');
     return t && t >= s && t <= e;
   });
@@ -302,7 +302,7 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const byDay = {};
   dayKeys.forEach((d) => { byDay[d] = { ok: 0, pend: 0, qc: 0, fail: 0, oth: 0 }; });
   apRows.forEach((a) => {
-    const raw = apptMode === 'created' ? a.created_at : a.termin_tarih;
+    const raw = apptMode === 'created' ? (a.kayit_tarihi || a.created_at) : a.termin_tarih;
     const d = String(raw || '').slice(0, 10);
     if (!byDay[d]) return;
     const b = _aspApptBucket(a.durum);
@@ -362,15 +362,16 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   if (tbAp) {
     const sorted = [...apRows]
       .sort((a, b) => {
-        const ka = apptMode === 'created' ? a.created_at : a.termin_tarih;
-        const kb = apptMode === 'created' ? b.created_at : b.termin_tarih;
+        const ka = apptMode === 'created' ? (a.kayit_tarihi || a.created_at) : a.termin_tarih;
+        const kb = apptMode === 'created' ? (b.kayit_tarihi || b.created_at) : b.termin_tarih;
         return String(kb || '').localeCompare(String(ka || ''));
       })
       .slice(0, 25);
     tbAp.innerHTML = sorted.length ? sorted.map((a) => {
       const d = new Date(a.termin_tarih);
       const ds = isNaN(d.getTime()) ? '—' : d.toLocaleString(loc, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-      const dc = a.created_at ? new Date(a.created_at) : null;
+      const bookedRaw = a.kayit_tarihi || a.created_at;
+      const dc = bookedRaw ? new Date(bookedRaw) : null;
       const dcs =
         dc && !isNaN(dc.getTime())
           ? dc.toLocaleString(loc, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })

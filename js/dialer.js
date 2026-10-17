@@ -609,11 +609,10 @@ async function _loadAgentAppointments(uid, start, end, basis) {
   const bookedStart = (typeof mbWallToIso === 'function' && mbWallToIso(String(start).slice(0, 16))) || start;
   const bookedEnd = (typeof mbWallToIso === 'function' && mbWallToIso(String(end).slice(0, 16))) || end;
   const base = `appointments?select=durum&agent_id=eq.${uid}`;
-  const createdQ = `${base}&created_at=gte.${bookedStart}&created_at=lte.${bookedEnd}`;
   if (basis === 'slot') {
     return sb(`${base}&termin_tarih=gte.${start}&termin_tarih=lte.${end}`).catch(() => []);
   }
-  return sb(createdQ).catch(() => []);
+  return sb(`${base}&kayit_tarihi=gte.${bookedStart}&kayit_tarihi=lte.${bookedEnd}`).catch(() => []);
 }
 
 async function loadMyMiniStats() {
