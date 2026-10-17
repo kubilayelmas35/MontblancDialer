@@ -141,6 +141,26 @@ function mbFillScript(text, contact) {
   return out.replace(/\[(Ad|Soyad|Vorname|Nachname|PLZ|Şehir|Ort|Telefon|Adres)\]/g, (_, key) => legacy[key] ?? '');
 }
 
+function mbScriptOpen() {
+  try { return localStorage.getItem('mb-script-open') !== '0'; } catch (e) { return true; }
+}
+
+function mbApplyScriptOpen(open) {
+  const body = document.getElementById('camp-script-body');
+  const chev = document.getElementById('camp-script-chev');
+  const btn = document.getElementById('camp-script-toggle');
+  if (body) body.style.display = open ? '' : 'none';
+  if (chev) chev.style.transform = open ? '' : 'rotate(-90deg)';
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function toggleCampScript() {
+  const open = !mbScriptOpen();
+  try { localStorage.setItem('mb-script-open', open ? '1' : '0'); } catch (e) {}
+  mbApplyScriptOpen(open);
+  if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
 function showCampScript(contact) {
   const camp = campaigns.find(c => c.id === (contact?.campaign_id || selectedCampId));
   const settings = getCampSettings(camp||{});
@@ -148,9 +168,13 @@ function showCampScript(contact) {
   if (!el) return;
   if (settings.script_enabled && settings.script) {
     const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+    const open = mbScriptOpen();
     el.style.display = '';
-    el.innerHTML = `<div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:6px;">${esc(uqSay('dial.script', 'Metin'))}</div>
-<div style="font-size:12px;color:var(--text);white-space:pre-wrap;max-height:120px;overflow-y:auto;">${esc(mbFillScript(settings.script, contact))}</div>`;
+    el.innerHTML = `<button type="button" id="camp-script-toggle" aria-expanded="${open ? 'true' : 'false'}" onclick="toggleCampScript()" style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;background:transparent;border:none;padding:0;cursor:pointer;color:var(--accent);font-size:11px;font-weight:800;">
+<span>${esc(uqSay('dial.script', 'Konuşma metni'))}</span>
+<i id="camp-script-chev" class="ph ph-caret-down" style="font-size:14px;transition:transform .15s;${open ? '' : 'transform:rotate(-90deg);'}"></i>
+</button>
+<div id="camp-script-body" style="font-size:12px;color:var(--text);white-space:pre-wrap;max-height:120px;overflow-y:auto;margin-top:6px;${open ? '' : 'display:none;'}">${esc(mbFillScript(settings.script, contact))}</div>`;
   } else {
     el.style.display = 'none';
   }

@@ -43,6 +43,7 @@ function mbCollectUiPrefs() {
   if (['blue', 'gold', 'green', 'rose', 'violet'].includes(palette)) prefs.palette = palette;
   if (live === 'rows' || live === 'grid') prefs.live_layout = live;
   if (camp === 'rows' || camp === 'cards') prefs.camp_view = camp;
+  prefs.script_open = localStorage.getItem('mb-script-open') !== '0';
   const grads = mbReadLiveGrads();
   if (Object.keys(grads).length) prefs.live_grads = grads;
   if (Array.isArray(rows) && typeof MB_DASH_ROWS !== 'undefined') {
@@ -90,6 +91,10 @@ function mbApplyUiPrefs(remote) {
     }
     if (remote.camp_view === 'rows' || remote.camp_view === 'cards') {
       try { localStorage.setItem('mb-camp-view', remote.camp_view); } catch (e) {}
+    }
+    if (remote.script_open === true || remote.script_open === false) {
+      try { localStorage.setItem('mb-script-open', remote.script_open ? '1' : '0'); } catch (e) {}
+      if (typeof mbApplyScriptOpen === 'function') mbApplyScriptOpen(remote.script_open);
     }
     if (Array.isArray(remote.dash_rows) && typeof mbDashRowKey === 'function' && typeof MB_DASH_ROWS !== 'undefined') {
       const keys = remote.dash_rows.filter((key) => MB_DASH_ROWS.includes(key));
