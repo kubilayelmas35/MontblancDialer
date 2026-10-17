@@ -530,49 +530,80 @@ function setGoalTab(tab) {
   scheduleLoadMyMiniStats(0);
 }
 
+function _dialerStatWindows() {
+  const pad = (n) => String(n).padStart(2, '0');
+  const today = (typeof mbBusinessNow === 'function' ? mbBusinessNow().dateStr : new Date().toISOString().slice(0, 10));
+  const [y, m, d] = today.split('-').map(Number);
+  const dayStart = `${today}T00:00:00`;
+  const dayEnd = `${today}T23:59:59`;
+  let start = dayStart;
+  let end = dayEnd;
+  if (_perfTab === 'week') {
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    const dow = dt.getUTCDay() || 7;
+    dt.setUTCDate(dt.getUTCDate() - dow + 1);
+    start = `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}T00:00:00`;
+    const sun = new Date(dt);
+    sun.setUTCDate(dt.getUTCDate() + 6);
+    end = `${sun.getUTCFullYear()}-${pad(sun.getUTCMonth() + 1)}-${pad(sun.getUTCDate())}T23:59:59`;
+  } else if (_perfTab === 'month') {
+    start = `${today.slice(0, 8)}01T00:00:00`;
+    const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    end = `${today.slice(0, 8)}${pad(last)}T23:59:59`;
+  }
+  const monthLast = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const monthStart = `${today.slice(0, 8)}01T00:00:00`;
+  const monthEnd = `${today.slice(0, 8)}${pad(monthLast)}T23:59:59`;
+  const wall = (stamp) => (typeof mbWallToIso === 'function' ? mbWallToIso(String(stamp).slice(0, 16)) : null);
+  return {
+    start,
+    end,
+    dayStart,
+    dayEnd,
+    monthStart,
+    monthEnd,
+    callSince: wall(start) || new Date().toISOString(),
+    callDaySince: wall(dayStart) || new Date().toISOString(),
+    nowIso: new Date().toISOString(),
+  };
+}
+
+async function _loadAgentAppointments(uid, start, end) {
+  const bookedStart = (typeof mbWallToIso === 'function' && mbWallToIso(String(start).slice(0, 16))) || start;
+  const bookedEnd = (typeof mbWallToIso === 'function' && mbWallToIso(String(end).slice(0, 16))) || end;
+  const base = `appointments?select=durum&agent_id=eq.${uid}`;
+  try {
+    return await sb(
+      `${base}&or=(and(termin_tarih.gte.${start},termin_tarih.lte.${end}),and(created_at.gte.${bookedStart},created_at.lte.${bookedEnd}))`
+    );
+  } catch (e) {
+    return sb(`${base}&termin_tarih=gte.${start}&termin_tarih=lte.${end}`).catch(() => []);
+  }
+}
+
 async function loadMyMiniStats() {
   const myReq = ++_miniStatsReq;
   try {
-    const now = new Date();
-    let since;
-    if (_perfTab === 'today') {
-      since = now.toISOString().split('T')[0] + 'T00:00:00';
-    } else if (_perfTab === 'week') {
-      const mon = new Date(now); mon.setDate(now.getDate() - (now.getDay()||7) + 1); mon.setHours(0,0,0,0);
-      since = mon.toISOString();
-    } else {
-      since = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01T00:00:00`;
-    }
-    const nowIso = now.toISOString();
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00`;
-    const dayStart = now.toISOString().split('T')[0] + 'T00:00:00';
+    const win = _dialerStatWindows();
+    const since = win.start;
     const uid = currentUser?.id;
 
     const qCalls = sb(
       `call_logs?select=outcome&agent_id=eq.${uid}` +
-      `&started_at=gte.${since}&started_at=lte.${nowIso}`
+      `&started_at=gte.${win.callSince}&started_at=lte.${win.nowIso}`
     );
-    const qApDurum = sb(
-      `appointments?select=durum&agent_id=eq.${uid}` +
-      `&termin_tarih=gte.${since}&termin_tarih=lte.${nowIso}`
-    );
+    const qApDurum = _loadAgentAppointments(uid, win.start, win.end);
     const qMonth =
       _perfTab !== 'month'
-        ? sb(
-            `appointments?select=id&agent_id=eq.${uid}` +
-              `&termin_tarih=gte.${monthStart}&termin_tarih=lte.${nowIso}`
-          ).catch(() => [])
+        ? _loadAgentAppointments(uid, win.monthStart, win.monthEnd).catch(() => [])
         : Promise.resolve(null);
     const qDay =
       _perfTab !== 'today'
         ? Promise.all([
-            sb(
-              `appointments?select=id&agent_id=eq.${uid}` +
-                `&termin_tarih=gte.${dayStart}&termin_tarih=lte.${nowIso}`
-            ).catch(() => []),
+            _loadAgentAppointments(uid, win.dayStart, win.dayEnd).catch(() => []),
             sb(
               `call_logs?select=id&agent_id=eq.${uid}` +
-                `&started_at=gte.${dayStart}&started_at=lte.${nowIso}`
+                `&started_at=gte.${win.callDaySince}&started_at=lte.${win.nowIso}`
             ).catch(() => []),
           ])
         : Promise.resolve(null);

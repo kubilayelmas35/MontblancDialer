@@ -610,11 +610,17 @@ cursor:pointer; transition:var(--transition);
 #page-dialer #dialer-page-hdr.dialer-page-hdr,
 #page-dialer .dialer-page-hdr.page-hdr {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 10px 12px;
   width: 100%;
   box-sizing: border-box;
+}
+@media (max-width: 720px) {
+  #page-dialer #dialer-page-hdr.dialer-page-hdr,
+  #page-dialer .dialer-page-hdr.page-hdr {
+    flex-wrap: wrap;
+  }
 }
 #page-dialer .dialer-hdr-main {
   flex: 1;

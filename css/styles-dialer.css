@@ -32,6 +32,13 @@ align-items:stretch;
   position: absolute;
   inset: 0;
   min-height: 0;
+  overflow: hidden;
+}
+#page-dialer > #dialer-page-hdr,
+#page-dialer > #dialer-inbound-banner {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 6;
 }
 #page-dialer > .dialer-layout {
   flex: 1 1 auto;
