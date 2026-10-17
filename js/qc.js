@@ -246,6 +246,8 @@ async function quickQcUpdate(logId, status) {
     const fid = getActiveFirmId() || currentUser?.firm_id || null;
     await sb(`contacts?id=eq.${r.contact_id}`, {method:'PATCH', prefer:'return=minimal',
       body: JSON.stringify({durum: contactStatus, qc_note: note || undefined})});
+    await sb(`call_logs?id=eq.${logId}`, {method:'PATCH', prefer:'return=minimal',
+      body: JSON.stringify({ qc_by: currentUser?.id || null, qc_at: new Date().toISOString(), qc_result: resultKey || null })}).catch(() => {});
     const apptRows = fid ? await sb(`appointments?firm_id=eq.${fid}&contact_id=eq.${r.contact_id}&select=id&order=kayit_tarihi.desc&limit=1`).catch(()=>[]) : [];
     let apptDate = '', apptTime = '';
     if (apptRows?.length) {

@@ -87,6 +87,10 @@ const detailOpen = document.getElementById('camp-detail')?.style.display === 'bl
 if (detailOpen && currentCampId && campaigns.some((c) => c.id === currentCampId)) {
   openCampDetail(currentCampId, { keepTab: true, silent: true });
 }
+if (window._mbOpenCampId && campaigns.some((c) => c.id === window._mbOpenCampId)) {
+  openCampDetail(window._mbOpenCampId);
+  window._mbOpenCampId = '';
+}
 if (typeof updateTopbarStats === 'function') updateTopbarStats();
 } catch(e){ toast(campT('camp.load.err','Kampanyalar yüklenemedi: ')+e.message,'err'); console.error(e); }
 }

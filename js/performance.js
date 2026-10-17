@@ -582,7 +582,12 @@ function perfPopulateFilters() {
     ids.forEach((id) => {
       ag.innerHTML += `<option value="${id}">${_uiEsc(perfAgentName(id))}</option>`;
     });
-    if (cur && ids.some((id) => String(id) === String(cur))) ag.value = cur;
+    const want = window._mbPerfAgent || cur;
+    if (want && !ids.some((id) => String(id) === String(want))) {
+      ag.innerHTML += `<option value="${want}">${_uiEsc(perfAgentName(want))}</option>`;
+    }
+    if (want && [...ag.options].some((opt) => opt.value === String(want))) ag.value = String(want);
+    if (window._mbPerfAgent) window._mbPerfAgent = '';
   }
   if (cm) {
     const cur = cm.value;

@@ -154,14 +154,106 @@ async function mbDashGoalsBlock(ff, agentQ, role) {
   );
 }
 
-async function mbDashCampaignBlock(logs, ff) {
-  const camps = await sb(`campaigns?select=id,name,dial_speed,firm_id&status=eq.active${ff}&order=name.asc&limit=8`).catch(() => []) || [];
+function mbDashOpenCamp(id) {
+  window._mbOpenCampId = id;
+  if (typeof navigate === 'function') navigate('campaigns');
+}
+
+function mbDashOpenAgent(id) {
+  window._mbPerfAgent = id;
+  if (typeof navigate === 'function') navigate('performance');
+}
+
+function mbDashOpenPage(page) {
+  if (typeof navigate === 'function') navigate(page);
+}
+
+async function mbDashOps(ff) {
+  const since = new Date(Date.now() - 90000).toISOString();
+  const [camps, readyRows, ringing, firms] = await Promise.all([
+    sb(`campaigns?select=id,name,dial_speed,firm_id&status=eq.active${ff}&order=name.asc&limit=40`).catch(() => []),
+    sb(`agent_sessions?select=agent_id,firm_id&status=eq.ready${ff}&limit=300`).catch(() => []),
+    mbDashCount(`contacts?select=id&status=eq.calling&last_called_at=gte.${encodeURIComponent(since)}${ff}`),
+    sb(`firms?select=id,name&limit=100`).catch(() => []),
+  ]);
+  const list = camps || [];
+  const readyByFirm = {};
+  (readyRows || []).forEach((row) => {
+    const key = row.firm_id || '_';
+    readyByFirm[key] = (readyByFirm[key] || 0) + 1;
+  });
+  const campsByFirm = {};
+  list.forEach((camp) => {
+    const key = camp.firm_id || '_';
+    if (!campsByFirm[key]) campsByFirm[key] = [];
+    campsByFirm[key].push(camp);
+  });
+  let target = 0;
+  Object.keys(campsByFirm).forEach((key) => {
+    const group = campsByFirm[key];
+    const ready = readyByFirm[key] || 0;
+    const speed = typeof mbSharedDialSpeed === 'function'
+      ? group.reduce((sum, camp) => sum + mbSharedDialSpeed(camp.dial_speed, group.length), 0)
+      : group.length;
+    target += ready * speed;
+  });
+  const shown = list.slice(0, 8);
+  const left = await Promise.all(shown.map((camp) => mbDashCount(
+    `contacts?select=id&campaign_id=eq.${camp.id}&status=in.(pending,no_answer,callback)`
+  )));
+  const ids = list.map((camp) => camp.id).filter(Boolean);
+  const pool = ids.length
+    ? await mbDashCount(`contacts?select=id&status=in.(pending,no_answer,callback)&campaign_id=in.(${ids.join(',')})`)
+    : 0;
+  const firmName = {};
+  (firms || []).forEach((firm) => { firmName[firm.id] = firm.name || ''; });
+  return {
+    camps: shown.map((camp, i) => ({ ...camp, left: left[i] })),
+    ready: (readyRows || []).length,
+    open: list.length,
+    target,
+    ringing: ringing == null ? 0 : ringing,
+    pool: pool == null ? 0 : pool,
+    firmName,
+  };
+}
+
+function mbDashPaintPills(ops) {
+  const host = document.getElementById('dash-live-pace');
+  if (!host) return;
+  const pill = (cls, label, value) => `<span class="dash-live-pill dash-live-pill--${cls}">${label}: <b>${value}</b></span>`;
+  host.innerHTML = [
+    pill('open', mbDashTr('Açık kampanya', 'Offene Kampagne'), ops.open),
+    pill('ring', mbDashTr('Çalıyor', 'Klingelt'), ops.ringing),
+    pill('target', mbDashTr('Hedef hat', 'Zielleitung'), ops.target),
+    pill('wait', mbDashTr('Sıra bekliyor', 'Wartet'), ops.ready),
+    pill('pool', mbDashTr('Havuzda bekleyen', 'Im Pool'), ops.pool),
+  ].join('');
+}
+
+function mbDashAlertHtml(ops, goals, todayAppts) {
+  const items = [];
+  ops.camps.filter((camp) => camp.left === 0).forEach((camp) => {
+    const firm = ops.firmName[camp.firm_id] ? ` · ${ops.firmName[camp.firm_id]}` : '';
+    items.push(`<button type="button" class="dash-alert" onclick="mbDashOpenCamp('${camp.id}')">${mbDashEsc(camp.name || '—')}${mbDashEsc(firm)}: ${mbDashTr('aranacak kalmadı', 'keine Kontakte mehr')}</button>`);
+  });
+  if (ops.ready > 0 && ops.target === 0) {
+    items.push(`<button type="button" class="dash-alert" onclick="mbDashOpenPage('campaigns')">${mbDashTr('Hazır temsilci var, hedef hat 0', 'Agenten bereit, Zielleitung 0')}</button>`);
+  }
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
+  if (hour >= 14 && goals.daily > 0 && todayAppts < goals.daily * 0.4) {
+    items.push(`<div class="dash-alert">${mbDashTr('Gün hedefinin gerisinde', 'Tagesziel liegt zurück')} · ${todayAppts} / ${goals.daily}</div>`);
+  }
+  if (!items.length) return '';
+  return `<div class="dash-alerts">${items.join('')}</div>`;
+}
+
+async function mbDashCampaignBlock(logs, ops) {
+  const camps = ops.camps || [];
   if (!camps.length) {
     return mbDashCard(mbDashTr('Açık kampanyalar', 'Offene Kampagnen'), `<div class="dash-mini-row">${mbDashTr('Açık kampanya yok', 'Keine offene Kampagne')}</div>`);
   }
-  const left = await Promise.all(camps.map((camp) => mbDashCount(
-    `contacts?select=id&campaign_id=eq.${camp.id}&status=in.(pending,no_answer,callback)`
-  )));
+  const showFirm = mbDashRole() === 'super' && !(typeof getActiveFirmId === 'function' && getActiveFirmId());
   const byCamp = {};
   (logs || []).forEach((log) => {
     const id = log.campaign_id;
@@ -171,11 +263,12 @@ async function mbDashCampaignBlock(logs, ff) {
     const key = mbDashOutcomeKey(log);
     if (key !== 'no_answer' && key !== 'machine') byCamp[id].hit += 1;
   });
-  const rows = camps.map((camp, i) => {
+  const rows = camps.map((camp) => {
     const stat = byCamp[camp.id] || { total: 0, hit: 0 };
     const rate = stat.total ? Math.round((stat.hit / stat.total) * 100) : 0;
-    const remain = left[i] == null ? '—' : left[i];
-    return `<div class="dash-mini-row"><span>${mbDashEsc(camp.name || '—')}</span><b>${mbDashTr('kalan', 'offen')} ${remain} · ${mbDashTr('hız', 'Tempo')} ${camp.dial_speed || 1} · %${rate}</b></div>`;
+    const remain = camp.left == null ? '—' : camp.left;
+    const firm = showFirm && ops.firmName[camp.firm_id] ? ` · ${ops.firmName[camp.firm_id]}` : '';
+    return `<div class="dash-mini-row is-link" onclick="mbDashOpenCamp('${camp.id}')"><span>${mbDashEsc(camp.name || '—')}${mbDashEsc(firm)}</span><b>${mbDashTr('kalan', 'offen')} ${remain} · ${mbDashTr('hız', 'Tempo')} ${camp.dial_speed || 1} · %${rate}</b></div>`;
   }).join('');
   return mbDashCard(mbDashTr('Açık kampanyalar', 'Offene Kampagnen'), rows);
 }
@@ -202,7 +295,7 @@ async function mbDashRankBlock(logs, ff) {
   const body = rows.map((row) => {
     const rate = row.calls ? Math.round((row.appt / row.calls) * 100) : 0;
     const min = Math.floor(row.talk / 60);
-    return `<div class="dash-mini-row"><span>${mbDashEsc(names[row.id] || row.id.slice(0, 8))}</span><b>${row.calls} ${mbDashTr('arama', 'Anrufe')} · ${row.appt} ${mbDashTr('randevu', 'Termine')} · ${min}dk · %${rate}</b></div>`;
+    return `<div class="dash-mini-row is-link" onclick="mbDashOpenAgent('${row.id}')"><span>${mbDashEsc(names[row.id] || row.id.slice(0, 8))}</span><b>${row.calls} ${mbDashTr('arama', 'Anrufe')} · ${row.appt} ${mbDashTr('randevu', 'Termine')} · ${min}dk · %${rate}</b></div>`;
   }).join('');
   return mbDashCard(mbDashTr('Temsilci sırası', 'Agentenliste'), body);
 }
@@ -213,66 +306,48 @@ async function mbDashNextBlock(ff, agentQ) {
     sb(`wiedervorlage?select=id,nachname,telefon,termin_zaman&durum=eq.bekliyor&order=termin_zaman.asc&limit=5${ff}${agentQ}`).catch(() => []),
     sb(`appointments?select=id,nachname,telefonnummer,termin_tarih&termin_tarih=gte.${today}T00:00:00&order=termin_tarih.asc&limit=5${ff}${agentQ}`).catch(() => []),
   ]);
-  const cbRows = (callbacks || []).map((row) => `<div class="dash-mini-row"><span>${mbDashEsc(row.nachname || row.telefon || '—')}</span><b>${mbDashWhen(row.termin_zaman)}</b></div>`).join('')
+  const cbRows = (callbacks || []).map((row) => `<div class="dash-mini-row is-link" onclick="mbDashOpenPage('wiedervorlage')"><span>${mbDashEsc(row.nachname || row.telefon || '—')}</span><b>${mbDashWhen(row.termin_zaman)}</b></div>`).join('')
     || `<div class="dash-mini-row">${mbDashTr('Bekleyen geri arama yok', 'Keine Rückrufe')}</div>`;
-  const apRows = (appts || []).map((row) => `<div class="dash-mini-row"><span>${mbDashEsc(row.nachname || row.telefonnummer || '—')}</span><b>${mbDashWhen(row.termin_tarih)}</b></div>`).join('')
+  const apRows = (appts || []).map((row) => `<div class="dash-mini-row is-link" onclick="mbDashOpenPage('takvim')"><span>${mbDashEsc(row.nachname || row.telefonnummer || '—')}</span><b>${mbDashWhen(row.termin_tarih)}</b></div>`).join('')
     || `<div class="dash-mini-row">${mbDashTr('Yaklaşan randevu yok', 'Keine anstehenden Termine')}</div>`;
-  return mbDashCard(mbDashTr('Sıradaki geri aramalar', 'Nächste Rückrufe'), cbRows)
-    + mbDashCard(mbDashTr('Sıradaki randevular', 'Nächste Termine'), apRows);
+  return mbDashCard(
+    mbDashTr('Sıradaki iş', 'Als Nächstes'),
+    `<div class="dash-next-split"><div><div class="dash-goal-line"><span>${mbDashTr('Geri aramalar', 'Rückrufe')}</span></div>${cbRows}</div><div><div class="dash-goal-line"><span>${mbDashTr('Randevular', 'Termine')}</span></div>${apRows}</div></div>`
+  );
 }
 
-async function mbDashPaceBlock(ff) {
-  const since = new Date(Date.now() - 90000).toISOString();
-  const [readyRows, camps, ringing] = await Promise.all([
-    sb(`agent_sessions?select=agent_id,firm_id&status=eq.ready&last_seen=gte.${encodeURIComponent(since)}${ff}&limit=300`).catch(() => []),
-    sb(`campaigns?select=id,dial_speed,firm_id&status=eq.active${ff}&limit=40`).catch(() => []),
-    mbDashCount(`contacts?select=id&status=eq.calling&last_called_at=gte.${encodeURIComponent(since)}${ff}`),
-  ]);
-  const readyByFirm = {};
-  (readyRows || []).forEach((row) => {
-    const key = row.firm_id || '_';
-    readyByFirm[key] = (readyByFirm[key] || 0) + 1;
+async function mbDashMyRank(ff) {
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
+  const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
+  const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
+  const rows = await sb(`call_logs?select=agent_id&outcome=in.(appointment,appointment_done)&started_at=gte.${gte}&started_at=lte.${lte}${ff}&limit=8000`).catch(() => []) || [];
+  const bag = {};
+  rows.forEach((row) => {
+    if (!row.agent_id) return;
+    bag[row.agent_id] = (bag[row.agent_id] || 0) + 1;
   });
-  const campsByFirm = {};
-  (camps || []).forEach((camp) => {
-    const key = camp.firm_id || '_';
-    if (!campsByFirm[key]) campsByFirm[key] = [];
-    campsByFirm[key].push(camp);
-  });
-  let target = 0;
-  Object.keys(campsByFirm).forEach((key) => {
-    const list = campsByFirm[key];
-    const ready = readyByFirm[key] || 0;
-    const speed = typeof mbSharedDialSpeed === 'function'
-      ? list.reduce((sum, camp) => sum + mbSharedDialSpeed(camp.dial_speed, list.length), 0)
-      : list.length;
-    target += ready * speed;
-  });
-  const ready = (readyRows || []).length;
-  const open = (camps || []).length;
-  const ringText = ringing == null ? '—' : ringing;
-  return mbDashCard(
-    mbDashTr('Hat durumu', 'Leitung'),
-    `<div class="dash-pace">
-      <span>${mbDashTr('Hazır', 'Bereit')} ${ready}</span>
-      <span>${mbDashTr('Açık kampanya', 'Offene Kampagnen')} ${open}</span>
-      <span>${mbDashTr('Hedef hat', 'Zielleitungen')} ${target}</span>
-      <span>${mbDashTr('Çalıyor', 'Klingelt')} ${ringText}</span>
-    </div>`
-  );
+  const mine = bag[currentUser?.id] || 0;
+  if (!mine) {
+    return mbDashCard(mbDashTr('Senin sıran', 'Dein Platz'), `<div class="dash-mini-row">${mbDashTr('Bugün henüz randevun yok', 'Heute noch kein Termin')}</div>`);
+  }
+  const higher = Object.values(bag).filter((n) => n > mine).length;
+  const place = higher + 1;
+  return mbDashCard(mbDashTr('Senin sıran', 'Dein Platz'), `<div class="dash-mini-row"><span>${mbDashTr('Bugün randevuda', 'Heute bei Terminen')}</span><b>${place}. ${mbDashTr('sıradasın', 'Platz')}</b></div>`);
 }
 
 async function mbDashQcBlock(ff) {
-  const [pending, rows] = await Promise.all([
-    mbDashCount(`call_logs?select=id&outcome=eq.appointment${ff}`),
-    sb(`call_logs?select=id,phone,started_at&outcome=eq.appointment&order=started_at.desc&limit=5${ff}`).catch(() => []),
+  const mine = currentUser?.id ? `&qc_by=eq.${currentUser.id}` : '';
+  const [pending, waiting, closed] = await Promise.all([
+    mbDashCount(`call_logs?select=id&outcome=eq.appointment&qc_by=is.null${ff}`),
+    sb(`call_logs?select=id,phone,started_at&outcome=eq.appointment&qc_by=is.null&order=started_at.desc&limit=5${ff}`).catch(() => []),
+    sb(`call_logs?select=id,phone,qc_at,qc_result&qc_at=not.is.null${mine}&order=qc_at.desc&limit=5${ff}`).catch(() => []),
   ]);
-  const list = (rows || []).map((row) => `<div class="dash-mini-row"><span>${mbDashEsc(row.phone || '—')}</span><b>${mbDashWhen(row.started_at)}</b></div>`).join('')
+  const waitRows = (waiting || []).map((row) => `<div class="dash-mini-row is-link" onclick="mbDashOpenPage('qc')"><span>${mbDashEsc(row.phone || '—')}</span><b>${mbDashWhen(row.started_at)}</b></div>`).join('')
     || `<div class="dash-mini-row">${mbDashTr('Bekleyen QC yok', 'Keine offene QC')}</div>`;
-  return mbDashCard(
-    `${mbDashTr('Bekleyen QC', 'Offene QC')} · ${pending == null ? '—' : pending}`,
-    list
-  );
+  const doneRows = (closed || []).map((row) => `<div class="dash-mini-row is-link" onclick="mbDashOpenPage('qc')"><span>${mbDashEsc(row.phone || '—')}</span><b>${mbDashEsc(row.qc_result || '—')} · ${mbDashWhen(row.qc_at)}</b></div>`).join('')
+    || `<div class="dash-mini-row">${mbDashTr('Henüz kapattığın QC yok', 'Noch keine abgeschlossene QC')}</div>`;
+  return mbDashCard(`${mbDashTr('Bekleyen QC', 'Offene QC')} · ${pending == null ? '—' : pending}`, waitRows)
+    + mbDashCard(mbDashTr('Senin kapattıkların', 'Von dir abgeschlossen'), doneRows);
 }
 
 async function mbDashFieldBlock(rangeKey, from, to) {
@@ -355,23 +430,43 @@ async function loadDashBrief(ctx) {
   }
   host.innerHTML = `<div class="dash-brief-scope">${mbDashEsc(mbDashScopeLine(role))}</div><div class="mb-empty-hint">${mbDashTr('Yükleniyor...', 'Laden...')}</div>`;
   const parts = [];
+  const ops = (role === 'super' || role === 'firm') ? await mbDashOps(ff) : null;
+  if (ops) mbDashPaintPills(ops);
+  else {
+    const pace = document.getElementById('dash-live-pace');
+    if (pace) pace.innerHTML = '';
+  }
   if (role === 'field') {
     parts.push(await mbDashFieldBlock(rangeKey, from, to));
     host.innerHTML = `<div class="dash-brief"><div class="dash-brief-scope">${mbDashEsc(mbDashScopeLine(role))}</div><div class="dash-brief-grid">${parts.join('')}</div></div>`;
     ['d-calls-delta', 'd-appt-delta', 'd-cb-delta', 'd-vm-delta', 'd-talk-delta'].forEach((id) => mbDashPaintDelta(id, 0, null));
     return;
   }
+  let alerts = '';
   if (role === 'super' || role === 'firm' || role === 'agent') {
+    const goals = mbDashGoalNums();
+    const people = role === 'agent' ? 1 : Math.max(1, (await mbDashCount(`users?select=id&role=eq.agent&is_active=eq.true${ff}`)) || 1);
+    const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
+    const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
+    const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
+    const todayAppts = (await mbDashCount(`call_logs?select=id&outcome=in.(appointment,appointment_done)&started_at=gte.${gte}&started_at=lte.${lte}${ff}${agentQ}`)) || 0;
+    if (ops) alerts = mbDashAlertHtml(ops, { daily: goals.daily * people }, todayAppts);
+    else if (role === 'agent') {
+      const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
+      if (hour >= 14 && goals.daily > 0 && todayAppts < goals.daily * 0.4) {
+        alerts = `<div class="dash-alert">${mbDashTr('Gün hedefinin gerisinde', 'Tagesziel liegt zurück')} · ${todayAppts} / ${goals.daily}</div>`;
+      }
+    }
     parts.push(await mbDashGoalsBlock(ff, agentQ, role));
   }
-  if (role === 'super' || role === 'firm') {
-    parts.push(await mbDashPaceBlock(ff));
-    parts.push(await mbDashCampaignBlock(logs, ff));
+  if (role === 'agent') parts.push(await mbDashMyRank(ff));
+  if (ops) {
+    parts.push(await mbDashCampaignBlock(logs, ops));
     parts.push(await mbDashRankBlock(logs, ff));
   }
   if (role === 'qc') parts.push(await mbDashQcBlock(ff));
   parts.push(mbDashCard(role === 'qc' ? mbDashTr('QC sonuçları', 'QC-Ergebnisse') : mbDashTr('Arama sonuçları', 'Anrufergebnisse'), mbDashOutcomeHtml(logs)));
   if (role !== 'qc') parts.push(await mbDashNextBlock(ff, agentQ));
-  host.innerHTML = `<div class="dash-brief"><div class="dash-brief-scope">${mbDashEsc(mbDashScopeLine(role))}</div><div class="dash-brief-grid">${parts.join('')}</div></div>`;
+  host.innerHTML = `<div class="dash-brief"><div class="dash-brief-scope">${mbDashEsc(mbDashScopeLine(role))}</div>${alerts}<div class="dash-brief-grid">${parts.join('')}</div></div>`;
   await mbDashDeltas(logs, ff, agentQ, rangeKey, from, to);
 }
