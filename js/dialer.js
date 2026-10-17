@@ -568,16 +568,18 @@ function _dialerStatWindows() {
   };
 }
 
-async function _loadAgentAppointments(uid, start, end) {
+async function _loadAgentAppointments(uid, start, end, basis) {
   const bookedStart = (typeof mbWallToIso === 'function' && mbWallToIso(String(start).slice(0, 16))) || start;
   const bookedEnd = (typeof mbWallToIso === 'function' && mbWallToIso(String(end).slice(0, 16))) || end;
   const base = `appointments?select=durum&agent_id=eq.${uid}`;
+  const createdQ = `${base}&created_at=gte.${bookedStart}&created_at=lte.${bookedEnd}`;
+  if (basis === 'created') return sb(createdQ).catch(() => []);
   try {
     return await sb(
       `${base}&or=(and(termin_tarih.gte.${start},termin_tarih.lte.${end}),and(created_at.gte.${bookedStart},created_at.lte.${bookedEnd}))`
     );
   } catch (e) {
-    return sb(`${base}&termin_tarih=gte.${start}&termin_tarih=lte.${end}`).catch(() => []);
+    return sb(createdQ).catch(() => []);
   }
 }
 
@@ -592,15 +594,16 @@ async function loadMyMiniStats() {
       `call_logs?select=outcome&agent_id=eq.${uid}` +
       `&started_at=gte.${win.callSince}&started_at=lte.${win.nowIso}`
     );
-    const qApDurum = _loadAgentAppointments(uid, win.start, win.end);
+    const periodBasis = _perfTab === 'today' ? 'created' : 'either';
+    const qApDurum = _loadAgentAppointments(uid, win.start, win.end, periodBasis);
     const qMonth =
       _perfTab !== 'month'
-        ? _loadAgentAppointments(uid, win.monthStart, win.monthEnd).catch(() => [])
+        ? _loadAgentAppointments(uid, win.monthStart, win.monthEnd, 'either').catch(() => [])
         : Promise.resolve(null);
     const qDay =
       _perfTab !== 'today'
         ? Promise.all([
-            _loadAgentAppointments(uid, win.dayStart, win.dayEnd).catch(() => []),
+            _loadAgentAppointments(uid, win.dayStart, win.dayEnd, 'created').catch(() => []),
             sb(
               `call_logs?select=id&agent_id=eq.${uid}` +
                 `&started_at=gte.${win.callDaySince}&started_at=lte.${win.nowIso}`

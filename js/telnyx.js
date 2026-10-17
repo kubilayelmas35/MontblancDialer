@@ -16,9 +16,17 @@ break;
 case 'MB_MUTE':
 if (_telnyxCall) { try { data.muted ? _telnyxCall.muteAudio() : _telnyxCall.unmuteAudio(); } catch(e) {} }
 break;
-case 'MB_HOLD':
-if (_telnyxCall) { try { data.hold ? _telnyxCall.hold() : _telnyxCall.unhold(); } catch(e) {} }
-break;
+case 'MB_HOLD': {
+  const live = _liveCallId ? _hopper.find((r) => r.id === _liveCallId) : null;
+  const call = live?.call || _telnyxCall;
+  const want = !!data.hold;
+  if (call && typeof call.hold === 'function') {
+    try { want ? call.hold() : call.unhold(); } catch (e) {}
+  }
+  if (live && !want) live.agentHold = false;
+  if (typeof mbMarkLiveHold === 'function') mbMarkLiveHold(want);
+  break;
+}
 case 'MB_DISCONNECT':
 if (_telnyxClient) { try { _telnyxClient.disconnect(); } catch(e) {} _telnyxClient = null; }
 break;
@@ -105,7 +113,33 @@ function _rememberHopper(call, contact) {
 
 function _agentBusy() {
   if (typeof dialerStatus !== 'undefined' && dialerStatus === 'wrapping') return true;
-  return !!_liveCallId && _hopper.some((r) => r.id === _liveCallId && r.phase === 'live');
+  if (typeof isOnHold !== 'undefined' && isOnHold && _liveCallId) return true;
+  return !!_liveCallId && _hopper.some((r) => r.id === _liveCallId && (r.phase === 'live' || r.agentHold));
+}
+
+function _setHoldButton(on) {
+  const hold = document.getElementById('btn-hold');
+  if (hold) hold.classList.toggle('active', !!on);
+}
+
+function _pauseLiveAudio(paused) {
+  const audio = document.getElementById('_telnyx_audio');
+  if (!audio) return;
+  try {
+    if (paused) audio.pause();
+    else if (audio.srcObject) audio.play();
+  } catch (e) {}
+}
+
+function mbMarkLiveHold(on) {
+  isOnHold = !!on;
+  const row = _liveCallId ? _hopper.find((r) => r.id === _liveCallId) : null;
+  if (row) {
+    row.agentHold = !!on;
+    if (on) row.phase = 'live';
+  }
+  _setHoldButton(on);
+  _pauseLiveAudio(on);
 }
 
 function _attachLiveAudio(call) {
@@ -212,11 +246,27 @@ function mbOnHopperCall(call) {
     return;
   }
   if (state === 'held' || state === 'hold') {
+    if (row.id === _liveCallId) {
+      row.agentHold = true;
+      row.phase = 'live';
+      isOnHold = true;
+      _setHoldButton(true);
+      _pauseLiveAudio(true);
+      if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+      return;
+    }
     row.phase = 'hold';
     if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
     return;
   }
   if (state === 'active') {
+    if (row.id === _liveCallId && row.phase === 'live') {
+      if (row.agentHold || isOnHold) return;
+      _setHoldButton(false);
+      _pauseLiveAudio(false);
+      _attachLiveAudio(row.call);
+      return;
+    }
     if (row.phase === 'hold') return;
     if (_agentBusy() && row.id !== _liveCallId) {
       row.phase = 'hold';
@@ -427,6 +477,7 @@ updateSessionInDB('wrapping');
 }
 
 function handleCallEnd(duration) {
+if (typeof mbMarkLiveHold === 'function') mbMarkLiveHold(false);
 _outboundWaitGen++;
 _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
 const wasAttempt = dialerStatus === 'on_call' || (dialerStatus === 'calling' && !_hopper.length);

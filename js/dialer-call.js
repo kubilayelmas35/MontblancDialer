@@ -78,13 +78,30 @@ function toggleMute() {
 }
 
 function toggleHold() {
-  if (document.getElementById('call-actions')?.classList.contains('call-actions--pre-call') && dialerStatus !== 'on_call') {
+  const row = (typeof _hopper !== 'undefined' && _liveCallId)
+    ? _hopper.find((r) => r.id === _liveCallId && r.call)
+    : null;
+  const call = row?.call || _telnyxCall || null;
+  const onLive = dialerStatus === 'on_call' && !!call && typeof call.hold === 'function';
+  if (!onLive) {
     toast(typeof t === 'function' ? t('dial.hold_need_call') : 'Önce arama başlatın', 'warn');
     return;
   }
-  isOnHold=!isOnHold;
-  document.getElementById('btn-hold')?.classList.toggle('active',isOnHold);
-  sendToRTC('MB_HOLD',{hold:isOnHold});
+  const next = !isOnHold;
+  try {
+    if (next) call.hold();
+    else {
+      if (row) row.agentHold = false;
+      isOnHold = false;
+      call.unhold();
+    }
+  } catch (e) {
+    toast(typeof t === 'function' ? t('dial.hold_fail') : 'Bekletme uygulanamadı', 'err');
+    return;
+  }
+  const sim = String(call.id || '').startsWith('sim-');
+  if (sim && typeof mbOnHopperCall === 'function') mbOnHopperCall(call);
+  else if (typeof mbMarkLiveHold === 'function') mbMarkLiveHold(next);
   toast(isOnHold ? (typeof t === 'function' ? t('dial.hold_on') : '') : (typeof t === 'function' ? t('dial.hold_off') : ''), 'ok');
 }
 
