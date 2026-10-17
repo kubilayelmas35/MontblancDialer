@@ -208,7 +208,7 @@
   font-size: 14px;
 }
 .sup-card {
-  border: 1px solid transparent;
+  border: 0;
   border-radius: var(--radius);
   padding: 14px 16px;
   box-shadow: var(--shadow);

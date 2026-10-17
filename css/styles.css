@@ -1526,7 +1526,7 @@ DASHBOARD
     linear-gradient(105deg, color-mix(in srgb, #fff 22%, transparent), transparent 58%),
     linear-gradient(90deg, var(--tone-a), color-mix(in srgb, var(--tone-b) calc(var(--live-age) * 100%), var(--tone-a)));
   color: #fff;
-  border-color: transparent;
+  border: 0;
   transition: background-color .6s linear, color .6s linear;
 }
 .live-card--on_call, .live-line--on_call, .sup-card--on_call { --tone-a: #81C784; --tone-b: #1B5E20; }
@@ -1535,7 +1535,7 @@ DASHBOARD
 .live-card--break, .live-line--break, .sup-card--break { --tone-a: #7E57C2; --tone-b: #311B92; }
 .live-card--offline, .live-line--offline, .sup-card--offline { --tone-a: #BDBDBD; --tone-b: #424242; }
 .live-card {
-  border:1px solid transparent; border-radius:12px; padding:12px;
+  border:0; border-radius:12px; padding:12px;
   display:flex; flex-direction:column; gap:8px; min-width:0;
   box-shadow:0 8px 18px rgba(40, 30, 10, 0.08);
 }
