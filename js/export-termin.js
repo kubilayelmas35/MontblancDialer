@@ -2,6 +2,7 @@
 // Termin dışa aktarım — filtre, çoklu seçim, XLSX
 // ─────────────────────────────────────────────
 
+let _etPageBusy = false;
 let _etProcessed = [];
 let _etFiltered = [];
 let _etSelectedIds = new Set();
@@ -64,10 +65,6 @@ function _etShowLoading(on, msg) {
 
 async function _etFetchRows(from, to) {
   const ff = getFirmFilter('&');
-  if (isSuperAdmin() && !getActiveFirmId()) {
-    toast(t('export.select_firm'), 'warn');
-    return [];
-  }
   const cols =
     'id,termin_tarih,durum,nachname,telefonnummer,telefon2,strasse,plz,ortschaft,hausart,baujahr,qm,heizung,alter_der_heizung,verbrauch_pro_jahr,personen,interesse_an_pv,agent_notu,agent_id,campaign_id,customer_id,firm_id';
   let q = `appointments?select=${cols},users(name),campaigns(name),customers(name,code)${ff}`;
@@ -512,6 +509,7 @@ function etResetFilters(reload) {
   else etApplyFilter();
 }
 
+let _etReloadGen = 0;
 async function etReload() {
   const df = document.getElementById('et-date-from')?.value;
   const dt = document.getElementById('et-date-to')?.value;
@@ -519,18 +517,21 @@ async function etReload() {
     toast(t('export.date_range'), 'warn');
     return;
   }
+  const gen = ++_etReloadGen;
   _etShowLoading(true, t('ui.loading'));
   try {
     const rows = await _etFetchRows(df, dt);
+    if (gen !== _etReloadGen) return;
     _etProcessed = _etProcess(rows);
     _etSelectedIds.clear();
     _etFillAgentSelect();
     await _etFillCustomerSelect();
+    if (gen !== _etReloadGen) return;
     _etBuildKampagneList();
     _etBuildStatusGrid();
     etApplyFilter();
   } finally {
-    _etShowLoading(false);
+    if (gen === _etReloadGen) _etShowLoading(false);
   }
 }
 
@@ -616,11 +617,21 @@ function exportTerminXlsx() {
 }
 
 async function loadExportTerminPage() {
+  if (_etPageBusy) return;
   if (typeof isExportAdmin === 'function' && !isExportAdmin()) {
     toast(t('ui.no_permission'), 'warn');
     navigate('dashboard');
     return;
   }
+  _etPageBusy = true;
+  try {
+  await _loadExportTerminPageBody();
+  } finally {
+    _etPageBusy = false;
+  }
+}
+
+async function _loadExportTerminPageBody() {
   const firmHost = document.getElementById('et-firm-wrap');
   if (firmHost && typeof renderFirmSelector === 'function') {
     renderFirmSelector('et-firm-wrap', loadExportTerminPage);

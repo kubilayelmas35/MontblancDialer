@@ -37,7 +37,7 @@ async function loadQcData() {
       const chunkSize = 40;
       for (let i = 0; i < contactIds.length; i += chunkSize) {
         const ids = contactIds.slice(i, i + chunkSize).join(',');
-        const appts = await sb(`appointments?firm_id=eq.${fid}&contact_id=in.(${ids})&select=id,contact_id,customer_id&order=created_at.desc&limit=1000`).catch(()=>[]);
+        const appts = await sb(`appointments?firm_id=eq.${fid}&contact_id=in.(${ids})&select=id,contact_id,customer_id&order=kayit_tarihi.desc&limit=1000`).catch(()=>[]);
         (appts || []).forEach(a => {
           if (!window._qcApptByContact[a.contact_id]) window._qcApptByContact[a.contact_id] = a;
         });
@@ -102,7 +102,7 @@ function qcDurumView(contact, outcome) {
 function renderQcTable() {
   const tbody = document.getElementById('qc-tbody');
   if (!tbody) return;
-  const canAssignField = ['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '');
+  const canAssignField = mbIsFirmAdmin();
   const hasCustomers = (window._qcCustomers || []).length > 0;
   const search = (document.getElementById('qc-search')?.value||'').toLowerCase();
   let list = [...(qcList||[])];
@@ -179,7 +179,7 @@ function openQcDetail(logId) {
   const r = (qcList||[]).find(x => x.id === logId);
   if (!r) return;
   const role = currentUser?.role || '';
-  const canAssignField = ['admin','super_admin','firm_admin'].includes(role);
+  const canAssignField = mbIsFirmAdmin(role);
   qcDetailId = logId;
   const contact = r.contacts||{};
   const name = `${contact.first_name||''} ${contact.last_name||''}`.trim()||'—';
@@ -246,7 +246,9 @@ async function quickQcUpdate(logId, status) {
     const fid = getActiveFirmId() || currentUser?.firm_id || null;
     await sb(`contacts?id=eq.${r.contact_id}`, {method:'PATCH', prefer:'return=minimal',
       body: JSON.stringify({durum: contactStatus, qc_note: note || undefined})});
-    const apptRows = fid ? await sb(`appointments?firm_id=eq.${fid}&contact_id=eq.${r.contact_id}&select=id&order=created_at.desc&limit=1`).catch(()=>[]) : [];
+    await sb(`call_logs?id=eq.${logId}`, {method:'PATCH', prefer:'return=minimal',
+      body: JSON.stringify({ qc_by: currentUser?.id || null, qc_at: new Date().toISOString(), qc_result: resultKey || null })}).catch(() => {});
+    const apptRows = fid ? await sb(`appointments?firm_id=eq.${fid}&contact_id=eq.${r.contact_id}&select=id&order=kayit_tarihi.desc&limit=1`).catch(()=>[]) : [];
     let apptDate = '', apptTime = '';
     if (apptRows?.length) {
       const cfg = (window._qcResultCfg || []).find(x => x.key === apptStatus);

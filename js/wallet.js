@@ -43,7 +43,7 @@ async function getFirmCurrency(fid) {
 async function refreshWalletInfo() {
   const el = document.getElementById('jm-wallet-info');
   if (!el) return;
-  const ownerFirmId = currentUser?.role === 'super_admin'
+  const ownerFirmId = mbIsSuperAdmin()
     ? (document.getElementById('jm-owner-firm')?.value || currentUser?.firm_id)
     : (getActiveFirmId() || currentUser?.firm_id);
   const w = await getFirmWallet(ownerFirmId);

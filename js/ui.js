@@ -24,6 +24,7 @@ else       { sb.classList.add('open');   ov.classList.add('show'); }
 } else {
 sb.classList.toggle('collapsed');
 }
+if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
 }
 
 function closeSidebar() {
@@ -39,67 +40,78 @@ document.getElementById('sidebar').classList.remove('open');
 });
 
 // ── NAVIGATION ───────────────────────────────
+function _mbPageFn(name) {
+  try {
+    const fn = globalThis[name];
+    return typeof fn === 'function' ? fn : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 const _NAVIGATE_LOADERS = {
   dashboard: () => {
-    loadDashboard();
-    if (typeof loadJobMarketKpi === 'function') loadJobMarketKpi();
+    _mbPageFn('loadDashboard')?.();
+    _mbPageFn('loadJobMarketKpi')?.();
   },
-  campaigns: () => { loadCampaigns(); },
-  agents: () => { loadAgents(); },
-  stats: () => { initStatsFilters(); loadStats(); },
-  callhistory: () => { initCallHistoryFilters(); loadCallHistory(); },
-  export: () => { loadExportTerminPage(); },
-  performance: () => { loadPerformancePage(); },
+  campaigns: () => { _mbPageFn('loadCampaigns')?.(); },
+  agents: () => { _mbPageFn('loadAgents')?.(); },
+  stats: () => { _mbPageFn('initStatsFilters')?.(); _mbPageFn('loadStats')?.(); },
+  callhistory: () => { _mbPageFn('initCallHistoryFilters')?.(); _mbPageFn('loadCallHistory')?.(); },
+  export: () => { _mbPageFn('loadExportTerminPage')?.(); },
+  performance: () => { _mbPageFn('loadPerformancePage')?.(); },
   dialer: () => {
-    initDialer();
-    if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
+    _mbPageFn('initDialer')?.();
+    _mbPageFn('refreshDialerHealthPanel')?.();
   },
   field: () => {
-    loadFieldPage();
-    if (typeof loadNotificationCenter === 'function') loadNotificationCenter();
+    _mbPageFn('loadFieldPage')?.();
+    _mbPageFn('loadNotificationCenter')?.();
   },
-  fieldops: () => { loadFieldOpsPage(); },
+  fieldops: () => { _mbPageFn('loadFieldOpsPage')?.(); },
   jobmarket: () => {
-    loadJobMarketPage();
-    if (typeof refreshJobMarketMap === 'function') {
-      setTimeout(() => refreshJobMarketMap(), 0);
-      setTimeout(() => refreshJobMarketMap(), 280);
+    _mbPageFn('loadJobMarketPage')?.();
+    if (_mbPageFn('refreshJobMarketMap')) {
+      setTimeout(() => _mbPageFn('refreshJobMarketMap')?.(), 0);
+      setTimeout(() => _mbPageFn('refreshJobMarketMap')?.(), 280);
     }
   },
-  myhistory: () => { initMyHistoryFilters(); loadMyHistory(); },
+  myhistory: () => { _mbPageFn('initMyHistoryFilters')?.(); _mbPageFn('loadMyHistory')?.(); },
   settings: () => {
-    loadSavedSettings();
-    loadRolesPage();
-    if (typeof loadIncomingCallsSettingsPage === 'function') loadIncomingCallsSettingsPage();
-    loadAppointmentResultsSettings();
-    setTimeout(() => initSettingsTabs(), 0);
-    loadMesaiSettings();
-    loadCallHoursSettings();
-    loadChatSettingsPage();
-    loadFieldSettingsPage();
-    if (typeof loadSmsSettingsPage === 'function') loadSmsSettingsPage();
-    loadFeatureFlagsPage();
-    if (typeof loadAuditEventsPage === 'function') loadAuditEventsPage();
-    if (typeof loadJobPermissionsSettings === 'function') loadJobPermissionsSettings();
+    _mbPageFn('loadSavedSettings')?.();
+    _mbPageFn('loadRolesPage')?.();
+    _mbPageFn('loadIncomingCallsSettingsPage')?.();
+    _mbPageFn('loadAppointmentResultsSettings')?.();
+    setTimeout(() => _mbPageFn('initSettingsTabs')?.(), 0);
+    _mbPageFn('loadMesaiSettings')?.();
+    _mbPageFn('loadCallHoursSettings')?.();
+    _mbPageFn('loadChatSettingsPage')?.();
+    _mbPageFn('loadFieldSettingsPage')?.();
+    _mbPageFn('loadSmsSettingsPage')?.();
+    _mbPageFn('loadFeatureFlagsPage')?.();
+    _mbPageFn('loadAuditEventsPage')?.();
+    _mbPageFn('loadJobPermissionsSettings')?.();
   },
-  wiedervorlage: () => { loadWvPage(); },
+  wiedervorlage: () => { _mbPageFn('loadWvPage')?.(); },
   qc: () => {
-    loadQcData();
-    if (typeof loadJobMarketQcQueue === 'function') loadJobMarketQcQueue();
+    _mbPageFn('loadQcData')?.();
+    _mbPageFn('loadJobMarketQcQueue')?.();
   },
-  supervisor: () => { if (typeof loadSupervisorPanel === 'function') loadSupervisorPanel(); },
-  firms: () => { loadFirmsPage(); },
-  takvim: () => { loadTakvimPage(); },
-  leave: () => { loadLeavePage(); },
-  muhasebe: () => { loadMuhasebePage(); },
-  maasim: () => { loadMaasimPage(); },
-  performansim: () => { loadPerformansimPage(); },
-  competition: () => { loadCompetitionPage(); },
+  supervisor: () => { _mbPageFn('loadSupervisorPanel')?.(); },
+  firms: () => { _mbPageFn('loadFirmsPage')?.(); },
+  takvim: () => { _mbPageFn('loadTakvimPage')?.(); },
+  leave: () => { _mbPageFn('loadLeavePage')?.(); },
+  muhasebe: () => { _mbPageFn('loadMuhasebePage')?.(); },
+  maasim: () => { _mbPageFn('loadMaasimPage')?.(); },
+  performansim: () => { _mbPageFn('loadPerformansimPage')?.(); },
+  competition: () => { _mbPageFn('loadCompetitionPage')?.(); },
 };
 
 function runPageEntry(page) {
   const run = _NAVIGATE_LOADERS[page];
-  if (typeof run === 'function') run();
+  if (typeof run === 'function') {
+    try { run(); } catch (e) { console.error(e); }
+  }
   if (typeof syncGlobalMascotDock === 'function') setTimeout(() => syncGlobalMascotDock(), 0);
 }
 
@@ -119,8 +131,12 @@ document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
 document.querySelectorAll('.sb-item').forEach(s => s.classList.remove('active'));
 const pg = document.getElementById(`page-${page}`);
 if (pg) pg.classList.add('active');
-const btn = document.querySelector(`.sb-item[onclick="navigate('${page}')"]`);
-if (btn) btn.classList.add('active');
+const btn = document.querySelector(`.sb-item[onclick="navigate('${page}')"]`)
+  || (page === 'takvim' ? document.getElementById('nav-takvim-btn') : null);
+if (btn) {
+  btn.classList.add('active');
+  btn.closest('.sb-group')?.classList.remove('is-collapsed');
+}
 if (window.innerWidth <= 1024) closeSidebar();
 if (page !== 'dialer' && typeof stopInboundTestSimulationScheduler === 'function') stopInboundTestSimulationScheduler();
 runPageEntry(page);
@@ -136,10 +152,12 @@ function initSettingsTabs() {
   if (!page) return;
   const cards = [...page.querySelectorAll('.settings-layout > .card')];
   const groups = {
-    general: new Set(['settings-appearance-card', 'settings-api-keys-card', 'settings-goals-card']),
-    communication: new Set(['incoming-calls-settings-card', 'chat-settings-card', 'sms-settings-card']),
-    operations: new Set(['field-settings-card', 'mesai-settings-card', 'call-hours-card', 'results-settings-card', 'default-takvim-firm-card']),
-    system: new Set(['feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings']),
+    general: new Set(['settings-appearance-card']),
+    mascot: new Set(['settings-mascot-card']),
+    communication: new Set(['incoming-calls-settings-card', 'chat-settings-card']),
+    operations: new Set(['mesai-settings-card', 'call-hours-card', 'results-settings-card', 'default-takvim-firm-card', 'settings-goals-card']),
+    field: new Set(['field-settings-card']),
+    system: new Set(['settings-api-keys-card', 'feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings', 'sms-settings-card']),
   };
   cards.forEach((card) => {
     if (!card.id) return;
@@ -150,7 +168,19 @@ function initSettingsTabs() {
       }
     }
   });
+  mbSyncSettingsTabs();
   setSettingsTab('general');
+}
+
+function mbSyncSettingsTabs() {
+  const superOnly = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+  document.querySelectorAll('#settings-tabs .settings-tab-btn').forEach((btn) => {
+    const tab = btn.dataset.tab;
+    const ownerTab = tab === 'system' || tab === 'operations';
+    btn.style.display = !superOnly && ownerTab ? 'none' : '';
+  });
+  const active = document.querySelector('#settings-tabs .settings-tab-btn.active');
+  if (active && active.style.display === 'none') setSettingsTab('general');
 }
 
 function setSettingsTab(tabId) {
@@ -267,7 +297,7 @@ async function loadAppointmentResultsSettings() {
   const selectorHost = document.getElementById('results-firm-selector');
   const dCard = document.getElementById('default-takvim-firm-card');
   if (!wrap || !box) return;
-  const canEdit = ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+  const canEdit = mbIsFirmAdmin();
   box.style.display = canEdit ? '' : 'none';
   if (dCard) dCard.style.display = canEdit ? '' : 'none';
   if (!canEdit) return;
@@ -290,7 +320,7 @@ function renderAppointmentResultRows(rows) {
   if (!wrap) return;
   const safe = rows?.length ? rows : [defaultAppointmentResults()[0]];
   wrap.innerHTML = safe.map((r, i) => `
-    <div style="display:grid;grid-template-columns:180px 1fr 140px 170px auto;gap:8px;align-items:end;">
+    <div class="ar-row">
       <div class="form-row">
         <label class="form-label">Sonuç tipi</label>
         <select class="form-input" id="ar-type-${i}" onchange="syncAppointmentResultLabel(${i})">
@@ -304,7 +334,7 @@ function renderAppointmentResultRows(rows) {
       </div>
       <div class="form-row"><label class="form-label">Görünen ad</label><input class="form-input" id="ar-label-${i}" value="${_uiEsc(r.label||'')}"></div>
       <div class="form-row"><label class="form-label">Renk</label><input class="form-input" id="ar-color-${i}" type="color" value="${_uiEsc(_normalizeResultColor(r.color))}"></div>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;padding-bottom:8px;"><input type="checkbox" id="ar-move-${i}" ${r.auto_move_down?'checked':''}> Otomatik alta taşı</label>
+      <label class="ar-move"><input type="checkbox" id="ar-move-${i}" ${r.auto_move_down?'checked':''}> Otomatik alta taşı</label>
       <button class="btn btn-ghost btn-sm" type="button" onclick="removeAppointmentResultRow(${i})">Sil</button>
     </div>
   `).join('');
@@ -368,6 +398,7 @@ async function saveAppointmentResultsSettings() {
       body: JSON.stringify({ settings: { ...existing, appointment_results: parsed } }),
     });
     window._apptResultsByFirm[fid] = parsed;
+    if (typeof loadMyMiniStats === 'function') loadMyMiniStats();
     toast('Randevu sonuçları kaydedildi', 'ok');
   } catch (e) {
     toast('Kaydetme hatası: ' + e.message, 'err');
@@ -393,7 +424,16 @@ el.textContent = el.getAttribute(`data-${l}`)||el.textContent;
 el.textContent = el.getAttribute(`data-${l}`)||el.getAttribute('data-tr');
 }
 });
+document.querySelectorAll('[data-tr-title]').forEach((el) => {
+  const v = el.getAttribute(l === 'de' ? 'data-de-title' : 'data-tr-title');
+  if (v) el.setAttribute('title', v);
+});
+document.querySelectorAll('[data-tr-aria]').forEach((el) => {
+  const v = el.getAttribute(l === 'de' ? 'data-de-aria' : 'data-tr-aria');
+  if (v) el.setAttribute('aria-label', v);
+});
 try { localStorage.setItem('mb-lang', l); } catch (_) {}
+if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 if (typeof window._mbConnStatus === 'string' && typeof updateConnectionStatus === 'function') {
   updateConnectionStatus(window._mbConnStatus);
 }
@@ -407,7 +447,7 @@ if (typeof _mbPaintMonthFaces === 'function') _mbPaintMonthFaces();
 if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
 const activePage = (document.querySelector('.page.active')?.id || '').replace(/^page-/, '');
 const inCall = typeof dialerStatus !== 'undefined' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping');
-if (currentUser && activePage && activePage !== 'settings' && !(activePage === 'dialer' && inCall) && typeof runPageEntry === 'function') {
+if (!(typeof _mbPrefsApplying !== 'undefined' && _mbPrefsApplying) && currentUser && activePage && activePage !== 'settings' && !(activePage === 'dialer' && inCall) && typeof runPageEntry === 'function') {
   runPageEntry(activePage);
 }
 if (typeof dialerStatus !== 'undefined' && dialerStatus === 'break' && typeof refreshBreakCustEmpty === 'function') {
@@ -417,6 +457,13 @@ if (typeof dialerStatus !== 'undefined' && dialerStatus === 'on_call' && typeof 
   refreshHangupFinalizeButton();
 }
 if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+if (typeof showCampScript === 'function' && typeof currentContact !== 'undefined' && currentContact) {
+  showCampScript(currentContact);
+}
+const attemptBadge = document.getElementById('cust-attempt-badge');
+if (attemptBadge && typeof currentContact !== 'undefined' && currentContact && typeof uqSay === 'function') {
+  attemptBadge.textContent = uqSay('dial.attempt', '{n}. arama', { n: currentContact.attempt_count || 1 });
+}
   const _ce = document.getElementById('cust-empty');
   if (_ce && _ce.style.display !== 'none' && typeof refreshCustEmptyCoachBubble === 'function') {
     refreshCustEmptyCoachBubble();
@@ -440,6 +487,18 @@ if (icon) icon.innerHTML = t==='light'
   ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
   : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3.5v2M12 18.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3.5 12h2M18.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 localStorage.setItem('mb-theme', t);
+mbApplyChartTheme();
+if (typeof mbPaintLiveGradForm === 'function') mbPaintLiveGradForm();
+if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+function mbApplyChartTheme() {
+  if (typeof Chart === 'undefined') return;
+  const cs = getComputedStyle(document.documentElement);
+  const text = cs.getPropertyValue('--text-2').trim() || '#d5dcec';
+  const grid = cs.getPropertyValue('--border-2').trim() || 'rgba(255,255,255,0.18)';
+  Chart.defaults.color = text;
+  Chart.defaults.borderColor = grid;
 }
 
 function toggleTheme() {
@@ -451,7 +510,11 @@ currentPalette = p;
 document.documentElement.setAttribute('data-palette', p);
 document.querySelectorAll('.palette-dot').forEach(d => d.classList.toggle('sel', d.dataset.p===p));
 localStorage.setItem('mb-palette', p);
+if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 }
+
+let _systemDialogResolve = null;
+let _systemDialogType = 'alert';
 
 // Restore theme/palette
 (()=>{
@@ -478,9 +541,6 @@ toastT=setTimeout(()=>el.classList.remove('show'), d);
 function showToast(msg, type, duration) {
 toast(msg, type, duration);
 }
-
-let _systemDialogResolve = null;
-let _systemDialogType = 'alert';
 
 function _openSystemDialog({ type = 'alert', title = 'Bildirim', message = '', defaultValue = '', okText = 'Tamam', cancelText = 'İptal' }) {
   return new Promise((resolve) => {
@@ -546,6 +606,7 @@ window.prompt = (msg, def) => { console.warn('Use mbPrompt instead of prompt:', 
 function openModal(id) {
 const el = document.getElementById(id);
 if (!el) { console.warn('openModal: element not found:', id); return; }
+if (id === 'm-upload-q' && typeof resetUploadQueueForm === 'function') resetUploadQueueForm();
 el.style.removeProperty('display');
 el.classList.add('open');
 }
@@ -597,29 +658,37 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ── SETTINGS — SIP bilgilerini kaydet ve bağlan ──
-function saveSettings() {
+async function saveSettings() {
+if (!(typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin())) return;
+const fid = (typeof _mbIntegFirmId !== 'undefined' && _mbIntegFirmId) || currentUser?.firm_id;
+if (!fid || typeof mbSaveFirmIntegrations !== 'function') return;
 const sipUser = document.getElementById('s-sip-user')?.value.trim()||'';
 const sipPass = document.getElementById('s-sip-pass')?.value.trim()||'';
 const apiKey  = document.getElementById('s-telnyx-key')?.value.trim()||'';
 const connId  = document.getElementById('s-conn-id')?.value.trim()||'';
-localStorage.setItem('mb-sip-user',   sipUser);
-window.__mbSipPass = sipPass;
-localStorage.removeItem('mb-sip-pass');
-localStorage.setItem('mb-telnyx-key', apiKey);
-localStorage.setItem('mb-conn-id',    connId);
-toast(t('ui.settings_sip_saved'),'ok');
-updateConnectionStatus('connecting');
-sendToRTC('MB_DISCONNECT');
-setTimeout(()=>{ sendToRTC('MB_CONNECT',{sipUser,sipPass}); }, 600);
+try {
+  const prev = await mbLoadFirmIntegrations(fid);
+  const saved = await mbSaveFirmIntegrations(fid, {
+    telnyx_api_key: apiKey,
+    sip_connection_id: connId,
+    sip_username: sipUser,
+    sip_password: sipPass || prev.sip_password,
+  });
+  if (String(fid) === String(currentUser?.firm_id)) mbApplyFirmIntegrationsLocal(saved, true);
+  else if (typeof mbFillIntegForms === 'function') mbFillIntegForms(saved);
+  toast(t('ui.settings_sip_saved'),'ok');
+} catch (e) {
+  toast((typeof t === 'function' ? t('dial.log_err') : 'Kayıt hatası: ') + e.message, 'err');
+}
 }
 
-function loadSavedSettings() {
+async function loadSavedSettings() {
 loadApiSettings();
-const fields = {'s-sip-user':'mb-sip-user','s-telnyx-key':'mb-telnyx-key','s-conn-id':'mb-conn-id'};
-Object.entries(fields).forEach(([elId,key])=>{
-const el=document.getElementById(elId), val=localStorage.getItem(key);
-if(el&&val) el.value=val;
-});
+if (typeof mbPrepareIntegFirmSelects === 'function') await mbPrepareIntegFirmSelects();
+const fid = (typeof _mbIntegFirmId !== 'undefined' && _mbIntegFirmId) || currentUser?.firm_id;
+if (fid && typeof mbLoadFirmIntegrations === 'function' && typeof mbFillIntegForms === 'function') {
+  mbFillIntegForms(await mbLoadFirmIntegrations(fid));
+}
 if (typeof loadMascotSettingsForm === 'function') loadMascotSettingsForm();
 }
 

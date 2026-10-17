@@ -55,7 +55,7 @@ ${statusLabel[status]||status}
 }
 
 async function canManageFieldAgents(targetFirmId) {
-  if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin') return true;
+  if (mbIsSuperAdmin() || currentUser?.role === 'admin') return true;
   if (currentUser?.role !== 'firm_admin') return false;
   const fid = targetFirmId || currentUser?.firm_id;
   if (!fid) return false;
@@ -113,8 +113,8 @@ function _agentModal(userId, prefill) {
   document.getElementById('m-agent-mgr')?.remove();
   const modal = document.createElement('div');
   modal.id = 'm-agent-mgr'; modal.className = 'modal-overlay open';
-  const showFieldOpt = currentUser?.role === 'super_admin' || currentUser?.role === 'admin';
-  const canAssignSuper = currentUser?.role === 'super_admin';
+  const showFieldOpt = mbIsSuperAdmin() || currentUser?.role === 'admin';
+  const canAssignSuper = mbIsSuperAdmin();
   modal.innerHTML = `
 <div class="modal" style="max-width:460px;">
 <div class="modal-hdr">
@@ -192,7 +192,7 @@ async function saveNewAgent() {
     toast('Saha elemanı ekleme yetkiniz yok','err');
     return;
   }
-  if (role === 'super_admin' && currentUser?.role !== 'super_admin') {
+  if (mbIsSuperAdmin(role) && !mbIsSuperAdmin()) {
     toast('Süper Admin rolünü sadece Süper Admin verebilir','err');
     return;
   }
@@ -222,7 +222,7 @@ async function saveAgentEdit(userId) {
     toast('Saha elemanı rolü için yetkiniz yok','err');
     return;
   }
-  if (role === 'super_admin' && currentUser?.role !== 'super_admin') {
+  if (mbIsSuperAdmin(role) && !mbIsSuperAdmin()) {
     toast('Süper Admin rolünü sadece Süper Admin verebilir','err');
     return;
   }
@@ -358,7 +358,7 @@ async function openEditUserModal(userId) {
   document.getElementById('m-edit-user')?.remove();
   const modal = document.createElement('div');
   modal.id = 'm-edit-user'; modal.className = 'modal-overlay open'; modal.style.zIndex='3001';
-  const canAssignSuper = currentUser?.role === 'super_admin';
+  const canAssignSuper = mbIsSuperAdmin();
   modal.innerHTML = `
 <div class="modal" style="max-width:440px;">
 <div class="modal-hdr">
@@ -417,7 +417,7 @@ async function saveEditUser(userId) {
     toast('Saha elemanı rolü için yetkiniz yok','err');
     return;
   }
-  if (role === 'super_admin' && currentUser?.role !== 'super_admin') {
+  if (mbIsSuperAdmin(role) && !mbIsSuperAdmin()) {
     toast('Süper Admin rolünü sadece Süper Admin verebilir','err');
     return;
   }
@@ -495,8 +495,12 @@ function openFirmModal() {
   document.getElementById('firm-currency').value = 'EUR';
   const incRow = document.getElementById('firm-incoming-super-row');
   const incChk = document.getElementById('firm-incoming-super');
-  if (incRow) incRow.style.display = currentUser?.role === 'super_admin' ? '' : 'none';
+  const didRow = document.getElementById('firm-did-row');
+  const didEl = document.getElementById('firm-outbound-did');
+  if (incRow) incRow.style.display = mbIsSuperAdmin() ? '' : 'none';
   if (incChk) incChk.checked = false;
+  if (didRow) didRow.style.display = mbIsSuperAdmin() ? '' : 'none';
+  if (didEl) didEl.value = '';
   openModal('m-firm');
 }
 
@@ -513,8 +517,12 @@ async function editFirm(id) {
     document.getElementById('firm-currency').value = ['EUR','USD','TRY'].includes(cur) ? cur : 'EUR';
     const incRow = document.getElementById('firm-incoming-super-row');
     const incChk = document.getElementById('firm-incoming-super');
-    if (incRow) incRow.style.display = currentUser?.role === 'super_admin' ? '' : 'none';
+    if (incRow) incRow.style.display = mbIsSuperAdmin() ? '' : 'none';
     if (incChk) incChk.checked = !!(f.settings?.dialer?.incoming_super_enabled);
+    const didRow = document.getElementById('firm-did-row');
+    const didEl = document.getElementById('firm-outbound-did');
+    if (didRow) didRow.style.display = mbIsSuperAdmin() ? '' : 'none';
+    if (didEl) didEl.value = f.settings?.dialer?.outbound_did || '';
   } catch (e) {}
   openModal('m-firm');
 }
@@ -531,10 +539,15 @@ async function saveFirm() {
       const oldSettings = rows?.[0]?.settings || {};
       const oldDialer = oldSettings.dialer || {};
       const incomingSuper = document.getElementById('firm-incoming-super')?.checked;
+      const didRaw = String(document.getElementById('firm-outbound-did')?.value || '').replace(/[\s()-]/g, '');
+      if (mbIsSuperAdmin() && didRaw && (typeof mbIsE164 !== 'function' || !mbIsE164(didRaw))) {
+        toast('Firma hattı + ile başlamalı, örnek +49301234567', 'err');
+        return;
+      }
       const dialer = {
         ...oldDialer,
-        ...(currentUser?.role === 'super_admin'
-          ? { incoming_super_enabled: !!incomingSuper }
+        ...(mbIsSuperAdmin()
+          ? { incoming_super_enabled: !!incomingSuper, outbound_did: didRaw }
           : {}),
       };
       await sb(`firms?id=eq.${firmEditId}`,{
@@ -542,9 +555,21 @@ async function saveFirm() {
         prefer:'return=minimal',
         body:JSON.stringify({name,slug,plan,currency,settings:{...oldSettings,currency,dialer}})
       });
+      if (mbIsSuperAdmin() && dialer.outbound_did) {
+        await sb(`campaigns?firm_id=eq.${firmEditId}`, {
+          method: 'PATCH',
+          prefer: 'return=minimal',
+          body: JSON.stringify({ telnyx_did: dialer.outbound_did }),
+        }).catch(() => {});
+      }
     } else {
       const incomingSuperNew = document.getElementById('firm-incoming-super')?.checked;
-      const dialerNew = { incoming_super_enabled: currentUser?.role === 'super_admin' ? !!incomingSuperNew : false };
+      const didNew = mbIsSuperAdmin() ? String(document.getElementById('firm-outbound-did')?.value || '').replace(/[\s()-]/g, '') : '';
+      if (didNew && (typeof mbIsE164 !== 'function' || !mbIsE164(didNew))) {
+        toast('Firma hattı + ile başlamalı, örnek +49301234567', 'err');
+        return;
+      }
+      const dialerNew = { incoming_super_enabled: mbIsSuperAdmin() ? !!incomingSuperNew : false, outbound_did: didNew };
       await sb('firms',{method:'POST',prefer:'return=minimal',body:JSON.stringify({name,slug,plan,currency,settings:{currency,dialer:dialerNew}})});
     }
     closeModal('m-firm');
@@ -560,7 +585,7 @@ function openUserModal(firmId, firmName) {
   ['user-name','user-email','user-pass'].forEach(id => document.getElementById(id).value='');
   const roleSel = document.getElementById('user-role');
   if (roleSel) {
-    const canAssignSuper = currentUser?.role === 'super_admin';
+    const canAssignSuper = mbIsSuperAdmin();
     const hasSuper = [...roleSel.options].some((o) => o.value === 'super_admin');
     if (!canAssignSuper && hasSuper) {
       [...roleSel.options].forEach((o) => { if (o.value === 'super_admin') o.remove(); });
@@ -583,7 +608,7 @@ async function saveUser() {
   const role   = document.getElementById('user-role').value;
   const firmId = document.getElementById('user-firm-id').value;
   if (!name||!email||!pass) { toast('Tüm alanlar zorunlu','err'); return; }
-  if (role === 'super_admin' && currentUser?.role !== 'super_admin') {
+  if (mbIsSuperAdmin(role) && !mbIsSuperAdmin()) {
     toast('Süper Admin rolünü sadece Süper Admin verebilir','err');
     return;
   }
@@ -620,50 +645,14 @@ async function resetUserPass(userId, email) {
 }
 
 // ── Roller & İzinler ──────────────────────────
-const BUILTIN_ROLES = [
-  { key:'super_admin', label:'Süper Admin', color:'var(--red)', builtin:true,
-    perms:['dashboard','dialer','campaigns','contacts','callhistory','stats','agents','firms','settings','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
-  { key:'admin', label:'Admin', color:'var(--accent)', builtin:true,
-    perms:['dashboard','dialer','campaigns','contacts','callhistory','stats','agents','settings','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
-  { key:'firm_admin',  label:'Firma Admin',  color:'var(--accent)', builtin:true,
-    perms:['dashboard','dialer','campaigns','contacts','callhistory','stats','agents','settings','takvim','qc','wiedervorlage','leave','competition','muhasebe','export','performance'] },
-  { key:'agent',       label:'Agent',        color:'var(--green)', builtin:true,
-    perms:['dashboard','dialer','myhistory','wiedervorlage','takvim','leave','competition','maasim','performansim'] },
-  { key:'qc',          label:'QC',           color:'var(--yellow)', builtin:true,
-    perms:['dashboard','dialer','qc','callhistory','wiedervorlage','leave','competition','maasim','performansim'] },
-  { key:'field_agent', label:'Saha Elemanı', color:'var(--accent-2)', builtin:true,
-    perms:['dashboard','field','leave','competition','maasim','performansim'] },
-];
-const ALL_PAGES = [
-  {key:'dashboard',    label:'Özet'},
-  {key:'campaigns',    label:'Kampanyalar'},
-  {key:'contacts',     label:'Kişiler/Kuyruk'},
-  {key:'callhistory',  label:'Çağrı Geçmişi'},
-  {key:'stats',        label:'İstatistikler'},
-  {key:'agents',       label:'Agentler'},
-  {key:'firms',        label:'Firmalar'},
-  {key:'settings',     label:'Ayarlar'},
-  {key:'takvim',       label:'Takvim'},
-  {key:'qc',           label:'QC Paneli'},
-  {key:'wiedervorlage',label:'Aranacaklar'},
-  {key:'dialer',       label:'Dialer'},
-  {key:'field',        label:'Saha Operasyon'},
-  {key:'myhistory',    label:'Geçmişim'},
-  {key:'leave',        label:'İzin & Devam'},
-  {key:'competition',  label:'Ayın elemanı'},
-  {key:'muhasebe',     label:'Muhasebe'},
-  {key:'maasim',       label:'Maaşım'},
-  {key:'performansim', label:'Performansım'},
-  {key:'export',       label:'Dışa aktarım'},
-  {key:'performance',  label:'Personel performans'},
-];
+// BUILTIN_ROLES ve ALL_PAGES js/access.js içinden gelir.
 
 async function loadRolesPage() {
   const card = document.getElementById('roles-card');
   const el   = document.getElementById('roles-list');
   const addBtn = card?.querySelector('button[onclick="openAddRoleModal()"]');
   if (!card || !el) return;
-  const canManage = ['super_admin', 'admin', 'firm_admin'].includes(currentUser?.role || '');
+  const canManage = mbIsFirmAdmin();
   if (!canManage) { card.style.display='none'; return; }
   card.style.display = '';
   let targetFirmId = getActiveFirmId() || currentUser.firm_id;
@@ -770,6 +759,7 @@ async function toggleRolePerm(roleKey, pageKey, enabled) {
       }
       overrides[roleKey] = perms;
       existing.role_permissions = overrides;
+      existing.role_permissions_rev = 2;
     }
     await sb(`firms?id=eq.${fid}`,{method:'PATCH',prefer:'return=minimal',
       body:JSON.stringify({settings:{...existing,custom_roles:roles}})});
@@ -849,6 +839,7 @@ async function saveRolePermModal(roleKey, fid) {
       const overrides = { ...(settings.role_permissions || {}) };
       overrides[roleKey] = selected;
       settings.role_permissions = overrides;
+      settings.role_permissions_rev = 2;
     }
     await sb(`firms?id=eq.${fid}`, {
       method:'PATCH',
@@ -899,7 +890,7 @@ async function refreshUserPagePerms() {
     const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`);
     const st = firms?.[0]?.settings || {};
     const ov = st.role_permissions?.[role];
-    if (Array.isArray(ov)) list = [...ov];
+    if (Array.isArray(ov)) list = mbMergeStoredPerms([...ov], role, st);
     else if (!builtin) {
       const cr = (st.custom_roles || []).find(r => r.key === role);
       if (cr?.perms) list = [...cr.perms];
@@ -911,31 +902,6 @@ async function refreshUserPagePerms() {
   } catch (e) {}
 }
 
-function applyAgentPayNavVisibility() {
-  const isStaff = ['agent', 'qc', 'field_agent'].includes(currentUser?.role || '');
-  const p = window._userPagePerms || new Set();
-  const legacy = p.has('muhasebe');
-  const ma = p.has('maasim') || legacy;
-  const pe = p.has('performansim') || legacy;
-  const maBtn = document.getElementById('nav-maasim-btn');
-  const peBtn = document.getElementById('nav-performansim-btn');
-  if (maBtn) maBtn.style.display = isStaff && ma ? '' : 'none';
-  if (peBtn) peBtn.style.display = isStaff && pe ? '' : 'none';
-}
-
 function applySidebarPermVisibility() {
-  applyAgentPayNavVisibility();
-  document.querySelectorAll('.sb-item').forEach((btn) => {
-    const m = String(btn.getAttribute('onclick') || '').match(/navigate\('([a-z0-9_]+)'\)/);
-    if (!m) return;
-    const page = m[1];
-    if (!ALL_PAGES.some((p) => p.key === page)) return;
-    if (btn.id === 'nav-maasim-btn' || btn.id === 'nav-performansim-btn') return;
-    btn.style.display = userHasPagePerm(page) ? '' : 'none';
-  });
-  const allowTakvim = userHasPagePerm('takvim');
-  const top = document.getElementById('takvim-topbar-btn');
-  const overlay = document.getElementById('nav-takvim-overlay-btn');
-  if (top) top.style.display = allowTakvim ? '' : 'none';
-  if (overlay) overlay.style.display = allowTakvim ? '' : 'none';
+  if (typeof mbApplyNavAccess === 'function') mbApplyNavAccess();
 }

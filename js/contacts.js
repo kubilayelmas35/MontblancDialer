@@ -1,236 +1,3 @@
-// ─────────────────────────────────────────────
-// CONTACTS — kişi yönetimi ve kuyruk yükleme
-// ─────────────────────────────────────────────
-
-// ── Upload Queue ──────────────────────────────
-function handleFileSelect(e) { if (e.target.files[0]) setFile(e.target.files[0]); }
-function handleDrop(e) {
-  e.preventDefault();
-  document.getElementById('uq-area').classList.remove('drag');
-  if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
-}
-
-async function setFile(f) {
-  uploadFile = f;
-  document.getElementById('uq-fname').textContent = `✓ ${f.name} (${(f.size/1024).toFixed(1)} KB)`;
-  try {
-    const isXlsx = f.name.toLowerCase().endsWith('.xlsx') || f.name.toLowerCase().endsWith('.xls');
-    if (isXlsx) {
-      const buf = await f.arrayBuffer();
-      const wb  = XLSX.read(buf, { type:'array', cellText:true, cellDates:false });
-      const ws  = wb.Sheets[wb.SheetNames[0]];
-      const raw = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
-      if (!raw.length) { toast('Excel boş!','err'); return; }
-      uploadHeaders    = raw[0].map(h => mbCleanHeader(h));
-      uploadParsedRows = raw.slice(1).filter(r => r.some(c => String(c).trim())).map(r => r.map(c => String(c).trim()));
-    } else {
-      const text = await f.text();
-      const sep  = text.includes(';') ? ';' : text.includes('\t') ? '\t' : ',';
-      const allRows = text.trim().split('\n').map(r => r.split(sep));
-      uploadHeaders    = allRows[0].map(h => mbCleanHeader(h));
-      uploadParsedRows = allRows.slice(1).filter(r => r.some(c => c.trim())).map(r => r.map(c => c.trim().replace(/["\r]/g,'')));
-    }
-    document.getElementById('uq-row-count').textContent = uploadParsedRows.length.toLocaleString();
-    document.getElementById('uq-mapping-section').style.display = '';
-    renderColumnMapping();
-  } catch(e) {
-    console.error('Dosya parse hatası:', e);
-    toast('Dosya okunamadı: ' + e.message, 'err');
-  }
-}
-
-function renderColumnMapping() {
-  const grid = document.getElementById('uq-mapping-grid');
-  const auto = typeof mbAutoMapHeaders === 'function' ? mbAutoMapHeaders(uploadHeaders) : {};
-  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
-  grid.innerHTML = UQ_TARGET_FIELDS.map(field => {
-    const autoHeader = auto[field.key] != null ? uploadHeaders[auto[field.key]] : '';
-    const options = uploadHeaders.map(h =>
-      `<option value="${esc(h)}" ${h === autoHeader ? 'selected' : ''}>${esc(h)}</option>`
-    ).join('');
-    const placeholder = field.required ? '— Seç (Zorunlu) —' : '— Kullanma —';
-    return `<div>
-<div class="form-label" style="margin-bottom:4px;">${field.label}</div>
-<select class="form-input" id="uq-map-${field.key}" onchange="updateUploadPreview()">
-<option value="">${placeholder}</option>
-${options}
-</select>
-</div>`;
-  }).join('');
-  updateUploadPreview();
-}
-
-function updateUploadPreview() {
-  const preview = document.getElementById('uq-preview');
-  const rows = document.getElementById('uq-preview-rows');
-  const sample = uploadParsedRows.slice(0, 3);
-  if (!sample.length) return;
-  preview.style.display = '';
-  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
-  rows.innerHTML = sample.map((row) => {
-    const mapped = mbRowFromMapping(row, getUploadMapping());
-    return `<div style="background:var(--bg-2);border-radius:4px;padding:5px 8px;margin-bottom:4px;font-size:10px;display:flex;gap:8px;flex-wrap:wrap;">
-${Object.entries(mapped).filter(([,v])=>v).map(([k,v])=>`<span><b style="color:var(--accent)">${esc(k)}:</b> ${esc(v)}</span>`).join(' · ')}
-</div>`;
-  }).join('');
-}
-
-function getUploadMapping() {
-  const map = {};
-  UQ_TARGET_FIELDS.forEach(f => {
-    const sel = document.getElementById(`uq-map-${f.key}`)?.value;
-    if (!sel) return;
-    const idx = uploadHeaders.indexOf(sel);
-    if (idx >= 0) map[f.key] = idx;
-  });
-  return map;
-}
-
-function mbRowFromMapping(row, mapping) {
-  const get = (key) => {
-    const idx = mapping[key];
-    return (idx !== undefined && idx >= 0) ? String(row[idx] || '').trim().replace(/["\r]/g, '') : '';
-  };
-  let first = get('first_name');
-  let last = get('last_name');
-  const full = get('name');
-  if (full && !first && !last && typeof mbSplitPersonName === 'function') {
-    const split = mbSplitPersonName(full);
-    first = split.first_name;
-    last = split.last_name;
-  }
-  return {
-    phone: get('phone'),
-    phone2: get('phone2'),
-    first_name: first,
-    last_name: last,
-    city: get('city'),
-    plz: get('plz'),
-    address: get('address'),
-  };
-}
-
-function mbUploadFailText(err) {
-  const raw = String(err?.message || err || '');
-  const rls = /42501|row-level security|row level security/i.test(raw);
-  const key = rls ? 'uq.err.rls' : 'uq.err.generic';
-  if (typeof t === 'function') return t(key);
-  return rls
-    ? 'Kuyruk oluşturulamadı. Kampanyayı kontrol edip tekrar deneyin.'
-    : 'Yükleme başarısız. Dosyayı kontrol edip tekrar deneyin.';
-}
-
-function getDedupMode() {
-  const sel = document.querySelector('input[name="dedup-mode"]:checked');
-  return sel?.value || 'excel';
-}
-
-async function uploadQueue() {
-  const name = document.getElementById('uq-name').value.trim();
-  if (!name)          { toast('Kuyruk adı gerekli','err'); return; }
-  if (!uploadFile)    { toast('Dosya seçin','err'); return; }
-  if (!currentCampId) { toast('Önce kampanya seçin','err'); return; }
-  let contacts;
-  if (uploadParsedRows.length && uploadHeaders.length) {
-    const mapping = getUploadMapping();
-    if (!mapping.phone && mapping.phone !== 0) { toast('Telefon sütunu seçilmedi!','err'); return; }
-    contacts = uploadParsedRows.map(row => ({
-      queue_id:'__PH__', campaign_id:currentCampId,
-      ...mbRowFromMapping(row, mapping),
-    })).filter(c => c.phone);
-  } else {
-    const text = await uploadFile.text();
-    const rows = text.trim().split('\n').map(r=>r.split(/[,;]/));
-    const hdrs = rows[0].map(h => (typeof mbCleanHeader === 'function' ? mbCleanHeader(h) : h.trim().toLowerCase()));
-    contacts = rows.slice(1).filter(r=>r.some(c=>c.trim())).map(row=>{
-      const o={};
-      hdrs.forEach((h,i)=>{ o[h]=(row[i]||'').trim().replace(/["\r]/g,''); });
-      let first = o.first_name||o.vorname||o.ad||'';
-      let last = o.last_name||o.nachname||o.soyad||'';
-      const full = o['ad soyad'] || o['ad / soyad'] || o.name || o.vollname || '';
-      if (full && !first && !last && typeof mbSplitPersonName === 'function') {
-        const split = mbSplitPersonName(full);
-        first = split.first_name;
-        last = split.last_name;
-      }
-      return {
-        queue_id:'__PH__', campaign_id:currentCampId,
-        phone:o.phone||o.telefon||o.tel||o[hdrs[0]]||'',
-        phone2:o.phone2||o.telefon2||o['telefon 2']||'',
-        first_name:first,
-        last_name:last,
-        city:o.city||o.ort||o.stadt||'', plz:o.plz||o.zip||'',
-        address:o.address||o.strasse||o.adres||'',
-      };
-    }).filter(c=>c.phone);
-  }
-  if (!contacts.length) { toast('Geçerli numara bulunamadı!','err'); return; }
-
-  const submitBtn = document.getElementById('uq-submit-btn');
-  const progressSection = document.getElementById('uq-progress-section');
-  const progressFill = document.getElementById('uq-progress-fill');
-  const progressPct = document.getElementById('uq-progress-pct');
-  const progressLabel = document.getElementById('uq-progress-label');
-  const progressDetail = document.getElementById('uq-progress-detail');
-  submitBtn.disabled = true;
-  progressSection.style.display = '';
-  const setProgress = (pct, label, detail) => {
-    progressFill.style.width = pct + '%';
-    progressPct.textContent = pct + '%';
-    if (label) progressLabel.textContent = label;
-    if (detail) progressDetail.textContent = detail;
-  };
-  try {
-    setProgress(5, 'Kuyruk oluşturuluyor...', `${contacts.length.toLocaleString()} kişi hazırlanıyor`);
-    const campRow = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === currentCampId);
-    const firmId = campRow?.firm_id || currentUser?.firm_id || null;
-    const queueBody = { campaign_id:currentCampId, name, total_contacts:contacts.length };
-    if (firmId) queueBody.firm_id = firmId;
-    const queueRes = await sb('queues', {
-      method:'POST', prefer: 'return=representation',
-      body: JSON.stringify(queueBody)
-    });
-    let queue = Array.isArray(queueRes) ? queueRes[0] : queueRes;
-    if (!queue?.id) {
-      const found = await sb(`queues?campaign_id=eq.${currentCampId}&name=eq.${encodeURIComponent(name)}&order=created_at.desc&limit=1`);
-      queue = Array.isArray(found) ? found[0] : found;
-    }
-    if (!queue?.id) throw new Error('Kuyruk oluşturulamadı — ID alınamadı');
-    const withQ = contacts.map(c => {
-      const row = { ...c, queue_id: queue.id };
-      if (firmId) row.firm_id = firmId;
-      return row;
-    });
-    const batchSize = 500;
-    const totalBatches = Math.ceil(withQ.length / batchSize);
-    for (let i=0; i<withQ.length; i+=batchSize) {
-      const batchNum = Math.floor(i/batchSize) + 1;
-      const uploaded = Math.min(i+batchSize, withQ.length);
-      const pct = Math.round(5 + (i/withQ.length)*90);
-      setProgress(pct, `Yükleniyor... (${batchNum}/${totalBatches} batch)`, `${uploaded.toLocaleString()} / ${withQ.length.toLocaleString()} kişi`);
-      await sb('contacts', { method:'POST', body: JSON.stringify(withQ.slice(i, i+batchSize)), prefer:'return=minimal' });
-    }
-    setProgress(100, '✅ Tamamlandı!', `${contacts.length.toLocaleString()} kişi başarıyla yüklendi`);
-    await new Promise(r => setTimeout(r, 800));
-    closeModal('m-upload-q');
-    uploadFile = null; uploadParsedRows = []; uploadHeaders = [];
-    document.getElementById('uq-fname').textContent = '.xlsx, .csv — maks. 50.000 satır';
-    document.getElementById('uq-name').value = '';
-    document.getElementById('uq-mapping-section').style.display = 'none';
-    progressSection.style.display = 'none';
-    submitBtn.disabled = false;
-    toast(`✅ ${contacts.length.toLocaleString()} kişi yüklendi`, 'ok');
-    loadCampaigns();
-    setTimeout(()=>openCampDetail(currentCampId), 400);
-  } catch(e) {
-    console.error(e);
-    const friendly = mbUploadFailText(e);
-    setProgress(0, friendly, '');
-    submitBtn.disabled = false;
-    toast(friendly, 'err');
-  }
-}
-
 // ── Contact manipulation ──────────────────────
 async function getNextContact(campaignIds = null) {
   // Aktif kampanya listesini kullan (yoksa selectedCampId ile fallback)
@@ -287,25 +54,28 @@ async function getNextContact(campaignIds = null) {
     const idList = ids.map((x) => String(x)).filter(Boolean);
     // Eski/karma veride contact.campaign_id boş, sadece queue_id dolu olabilir.
     let queueIds = [];
+    const pausedQueueIds = new Set();
+    let queueRows = [];
     try {
-      let qRows = [];
       for (let i = 0; i < idList.length; i++) {
         const cid = idList[i];
         const rows =
           (await sb(
-            `queues?campaign_id=eq.${cid}&select=id&limit=500`
+            `queues?campaign_id=eq.${cid}&select=id,status,campaign_id&limit=500`
           ).catch(() => [])) || [];
-        if (rows.length) qRows = qRows.concat(rows);
+        if (rows.length) queueRows = queueRows.concat(rows);
       }
       const seenQ = new Set();
-      queueIds = qRows
-        .map((q) => q.id)
-        .filter((id) => {
-          const k = String(id || '');
-          if (!k || seenQ.has(k)) return false;
-          seenQ.add(k);
-          return true;
-        });
+      queueRows.forEach((q) => {
+        const k = String(q?.id || '');
+        if (!k || seenQ.has(k)) return;
+        seenQ.add(k);
+        if (q.status && q.status !== 'active') pausedQueueIds.add(k);
+      });
+      const testRelaxEarly = typeof _testMode !== 'undefined' && _testMode;
+      queueIds = queueRows
+        .map((q) => String(q?.id || ''))
+        .filter((id, idx, arr) => id && arr.indexOf(id) === idx && (testRelaxEarly || !pausedQueueIds.has(id)));
     } catch (e) {}
     const fetchScopedContacts = async (extraFilters = '', limit = 80) => {
       let out = [];
@@ -357,10 +127,22 @@ async function getNextContact(campaignIds = null) {
     }
 
     // Normal akış: önce bekleyen / cevap yok / vakti gelen geri aramalar
-    const contacts = await fetchScopedContacts(
+    let contacts = await fetchScopedContacts(
       `&status=in.(pending,no_answer,callback)&or=(callback_at.is.null,callback_at.lte.${nowIso})`,
       50
-    );
+    ) || [];
+    if (!(typeof _testMode !== 'undefined' && _testMode) && typeof campRecyclePolicy === 'function') {
+      for (let i = 0; i < idList.length; i++) {
+        const pol = campRecyclePolicy(idList[i]);
+        if (!pol?.on) continue;
+        const extraSt = pol.statuses.filter((st) => !['pending', 'no_answer', 'callback'].includes(st));
+        if (!extraSt.length) continue;
+        const rows = (await sb(
+          `contacts?campaign_id=eq.${idList[i]}&status=in.(${extraSt.join(',')})&order=last_called_at.asc.nullsfirst&limit=40&select=*`
+        ).catch(() => [])) || [];
+        if (rows.length) contacts = contacts.concat(rows);
+      }
+    }
     if (!contacts?.length) {
       if (typeof _testMode !== 'undefined' && _testMode && ids.length) {
         // Test modunda: uygun statüde kayıt yoksa kampanyadaki gerçek kayıttan devam et.
@@ -401,17 +183,41 @@ async function getNextContact(campaignIds = null) {
       return null;
     }
     const testRelax = typeof _testMode !== 'undefined' && _testMode;
+    if (!testRelax) {
+      const hot = queueRows
+        .filter((q) => q?.id && !pausedQueueIds.has(String(q.id)) && typeof queueDialPrefs === 'function' && queueDialPrefs(q.campaign_id, q.id).priority > 0)
+        .sort((a, b) => queueDialPrefs(b.campaign_id, b.id).priority - queueDialPrefs(a.campaign_id, a.id).priority)
+        .slice(0, 5);
+      for (let i = 0; i < hot.length; i++) {
+        const extra = (await sb(
+          `contacts?queue_id=eq.${hot[i].id}&status=in.(pending,no_answer,callback)&or=(callback_at.is.null,callback_at.lte.${nowIso})&order=last_called_at.asc.nullsfirst&limit=20&select=*`
+        ).catch(() => [])) || [];
+        extra.forEach((row) => contacts.unshift(row));
+      }
+    }
+    const seenPick = new Set();
+    const usable = [];
     for (let i = 0; i < contacts.length; i++) {
       const c = contacts[i];
+      const key = String(c?.id || '');
+      if (key && seenPick.has(key)) continue;
+      if (key) seenPick.add(key);
       if (!isUsableRealContact(c)) continue;
-      if (!c.queues || c.queues.status === 'active') return c;
-      if (testRelax) return c;
+      const qid = String(c.queue_id || '');
+      if (qid && pausedQueueIds.has(qid) && !testRelax) continue;
+      const prefs = typeof queueDialPrefs === 'function' ? queueDialPrefs(c.campaign_id, c.queue_id) : { priority: 0, maxAttempts: 0 };
+      if (!testRelax && prefs.maxAttempts > 0 && (Number(c.attempt_count) || 0) >= prefs.maxAttempts) continue;
+      if (typeof contactEligibleForRecycle === 'function' && !contactEligibleForRecycle(c, testRelax)) continue;
+      c._qPri = prefs.priority || 0;
+      usable.push(c);
     }
-    return null;
+    usable.sort((a, b) => (b._qPri - a._qPri) || ((Date.parse(a.last_called_at || '') || 0) - (Date.parse(b.last_called_at || '') || 0)));
+    return usable[0] || null;
   } catch(e) { console.error(e); return null; }
 }
 
 function showCustomerCard(c) {
+  if (typeof hideOutboundWait === 'function') hideOutboundWait();
   if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
   document.getElementById('customer-card')?.classList.remove('customer-card--empty');
   document.getElementById('cust-empty').style.display='none';
@@ -431,7 +237,7 @@ function showCustomerCard(c) {
   document.getElementById('cust-name').textContent  = name;
   document.getElementById('cust-phone').textContent = c.phone;
   document.getElementById('cust-attempt-badge').style.display = show('attempt') ? '' : 'none';
-  document.getElementById('cust-attempt-badge').textContent = `${c.attempt_count||1}. arama`;
+  document.getElementById('cust-attempt-badge').textContent = uqSay('dial.attempt', '{n}. arama', { n: c.attempt_count || 1 });
   document.getElementById('cust-camp-badge').textContent  = camp?.name||'—';
   document.getElementById('cust-queue-badge').textContent = c.queues?.name||c.queue_name||'—';
   const allFields = [
@@ -441,15 +247,7 @@ function showCustomerCard(c) {
     { key:'phone2',  l:(typeof t === 'function' ? t('cont.field.phone2') : '2. Telefon'),    v:c.phone2 },
     { key:'notes',   l:(typeof t === 'function' ? t('cont.field.notes') : 'Not'),            v:c.notes },
   ];
-  const terminFields = [
-    { key:'hausart',             l:'Ev Tipi',      v:c.hausart,             type:'select', opts:['','Einfamilienhaus','Zweifamilienhaus','Reihenhaus','Doppelhaus','Mehrfamilienhaus'], required:true },
-    { key:'baujahr',             l:'Yapım Yılı',   v:c.baujahr,             required:true },
-    { key:'qm',                  l:'m²',           v:c.qm,                  required:true },
-    { key:'heizung',             l:'Isıtma',       v:c.heizung,             type:'select', opts:['','Gas','Öl','Pellet','WP','Fernwärme'], required:true },
-    { key:'alter_der_heizung',   l:'Isıtma Yaşı', v:c.alter_der_heizung,   required:true },
-    { key:'verbrauch_pro_jahr',  l:'Tüketim/Yıl', v:c.verbrauch_pro_jahr },
-    { key:'personen',            l:'Kişi Sayısı', v:c.personen },
-  ];
+  const terminFields = dialerTerminFields(camp, c);
   const visibleFields = allFields.filter(f => show(f.key));
   document.getElementById('cust-fields').innerHTML = visibleFields.map(f=>{
     const canCallSecondary = f.key === 'phone2' && String(f.v || '').trim().length > 0;
@@ -499,16 +297,22 @@ onmouseout="this.style.opacity='.6';this.style.color='var(--text-3)'">
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 ${terminFields.map(f => `
-<div style="background:var(--bg-3);border:1px solid ${f.required?'rgba(37,99,235,.3)':'var(--border)'};border-radius:8px;padding:7px 10px;">
+<div data-tf-key="${_escHtml(f.key)}" data-required="${f.required ? '1' : '0'}" style="background:var(--bg-3);border:1px solid ${f.required?'rgba(37,99,235,.3)':'var(--border)'};border-radius:8px;padding:7px 10px;">
 <div style="font-size:10px;font-weight:700;color:${f.required?'var(--accent-text)':'var(--text-3)'};text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;">
-${f.l}${f.required?'<span style="color:var(--red);margin-left:2px;">*</span>':''}
+${_escHtml(f.l)}${f.required?'<span style="color:var(--red);margin-left:2px;">*</span>':''}
 </div>
 ${f.type==='select'
 ? `<select id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;" onchange="updateTerminField('${f.key}',this.value)">
-${f.opts.map(o=>`<option value="${o}" ${o===f.v?'selected':''}>${o||'Seçin...'}</option>`).join('')}
+${(f.opts||['']).map(o=>`<option value="${_escHtml(o)}" ${o===f.v?'selected':''}>${_escHtml(o||'…')}</option>`).join('')}
 </select>`
-: `<input id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;"
-value="${f.v||''}" placeholder="${f.l}..."
+: f.type==='boolean'
+? `<select id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;" onchange="updateTerminField('${f.key}',this.value)">
+<option value="" ${!f.v?'selected':''}>…</option>
+<option value="true" ${String(f.v)==='true'?'selected':''}>${typeof currentLang!=='undefined'&&currentLang==='de'?'Ja':'Evet'}</option>
+<option value="false" ${String(f.v)==='false'?'selected':''}>${typeof currentLang!=='undefined'&&currentLang==='de'?'Nein':'Hayır'}</option>
+</select>`
+: `<input id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;" type="${f.type==='number'?'number':'text'}"
+value="${_escHtml(f.v||'')}" placeholder="${_escHtml(f.l)}..."
 oninput="updateTerminField('${f.key}',this.value)">`
 }
 </div>`).join('')}
@@ -516,7 +320,7 @@ oninput="updateTerminField('${f.key}',this.value)">`
 <div id="tf2-customer-wrap" style="margin-top:8px;"></div>
 <div id="tf-note-row" style="margin-top:8px;">
 <label style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;">Not</label>
-<textarea id="tf2-note" class="form-input" rows="2" style="font-size:12px;resize:vertical;margin-top:3px;" placeholder="Agent notu..."></textarea>
+<textarea id="tf2-note" class="form-input" rows="2" style="font-size:12px;resize:vertical;margin-top:3px;" placeholder="Agent notu..." oninput="onDialerNoteInput(this.value,'tf2')">${_escHtml(c.notes || '')}</textarea>
 </div>
 <button onclick="saveTerminFromSection()" style="margin-top:8px;width:100%;padding:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2,var(--accent)));color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer;">
 Randevuyu Kaydet
@@ -538,6 +342,89 @@ Randevuyu Kaydet
     if (typeof switchContactTab === 'function') switchContactTab('info');
   }
   if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+  syncDialerNotes(c.notes || '', 'load');
+  bindDialerNoteSync();
+}
+
+function dialerTerminFields(camp, contact) {
+  const defaults = [
+    { key:'hausart', l:'Ev Tipi', type:'select', opts:['','Einfamilienhaus','Zweifamilienhaus','Reihenhaus','Doppelhaus','Mehrfamilienhaus'], required:true, enabled:true },
+    { key:'baujahr', l:'Yapım Yılı', required:true, enabled:true },
+    { key:'qm', l:'m²', required:true, enabled:true },
+    { key:'heizung', l:'Isıtma', type:'select', opts:['','Gas','Öl','Pellet','WP','Fernwärme'], required:true, enabled:true },
+    { key:'alter_der_heizung', l:'Isıtma Yaşı', required:true, enabled:true },
+    { key:'verbrauch_pro_jahr', l:'Tüketim/Yıl', enabled:true },
+    { key:'personen', l:'Kişi Sayısı', enabled:true },
+    { key:'interesse_an_pv', l:'PV İlgisi', type:'boolean', enabled:false },
+  ];
+  const saved = (typeof getCampSettings === 'function' ? getCampSettings(camp) : {}).termin_form || {};
+  const source = Array.isArray(saved.fields) && saved.fields.length
+    ? saved.fields
+    : defaults.map((f) => ({ ...f, ...(saved[f.key] || {}), label: saved[f.key]?.label || f.l }));
+  return source.map((f) => {
+    const base = defaults.find((d) => d.key === f.key) || {};
+    if (f.enabled === false) return null;
+    const next = {
+      key: f.key,
+      l: f.label || f.l || base.l || f.key,
+      v: contact?.[f.key] || '',
+      type: f.type || base.type || 'text',
+      required: !!(f.required ?? base.required),
+    };
+    if (next.type === 'select') {
+      const raw = f.opts || (base.opts || []).slice(1).join(',');
+      next.opts = [''].concat(String(raw || '').split(',').map((s) => s.trim()).filter(Boolean));
+    }
+    return next;
+  }).filter(Boolean);
+}
+
+let _noteSyncLock = false;
+let _noteSaveTimer = 0;
+
+function syncDialerNotes(note, source) {
+  const text = String(note ?? '');
+  if (_noteSyncLock) return;
+  _noteSyncLock = true;
+  try {
+    const out = document.getElementById('outcome-note');
+    const tf = document.getElementById('tf2-note');
+    const top = document.getElementById('cval-notes');
+    const editing = document.getElementById('cedit-notes');
+    if (source !== 'outcome' && out && out.value !== text) out.value = text;
+    if (source !== 'tf2' && tf && tf.value !== text) tf.value = text;
+    if (source !== 'top' && editing && editing.value !== text) editing.value = text;
+    if (source !== 'top' && top && top.style.display !== 'none') top.textContent = text.trim() ? text : '—';
+    if (typeof currentContact !== 'undefined' && currentContact) currentContact.notes = text;
+  } finally {
+    _noteSyncLock = false;
+  }
+}
+
+function onDialerNoteInput(value, source) {
+  syncDialerNotes(value, source);
+  queueContactNoteSave(value);
+}
+
+function bindDialerNoteSync() {
+  const out = document.getElementById('outcome-note');
+  if (out && out.dataset.noteSync !== '1') {
+    out.dataset.noteSync = '1';
+    out.addEventListener('input', () => onDialerNoteInput(out.value, 'outcome'));
+  }
+}
+
+function queueContactNoteSave(text) {
+  const id = currentContact?.id;
+  if (!id || typeof isValidUUID !== 'function' || !isValidUUID(id)) return;
+  clearTimeout(_noteSaveTimer);
+  _noteSaveTimer = setTimeout(() => {
+    if (currentContact?.id !== id) return;
+    sb(`contacts?id=eq.${id}`, {
+      method: 'PATCH', prefer: 'return=minimal',
+      body: JSON.stringify({ notes: text })
+    }).catch(() => {});
+  }, 400);
 }
 
 function markContactDirty() {
@@ -566,6 +453,7 @@ async function saveContactEdits() {
 }
 
 function clearCustomerCard() {
+  if (typeof hideOutboundWait === 'function') hideOutboundWait();
   document.getElementById('customer-card')?.classList.add('customer-card--empty');
   document.getElementById('cust-empty').style.display='';
   document.getElementById('cust-data').style.display='none';
@@ -625,7 +513,7 @@ async function saveCustomerNameEdit() {
 async function _getLatestAppointmentForContact(contactId) {
   if (!contactId) return null;
   try {
-    const rows = await sb(`appointments?contact_id=eq.${contactId}&select=*&order=created_at.desc&limit=1`);
+    const rows = await sb(`appointments?contact_id=eq.${contactId}&select=*&order=kayit_tarihi.desc&limit=1`);
     return rows?.[0] || null;
   } catch (e) {
     return null;
@@ -640,7 +528,22 @@ async function updateContactFileHint() {
     hint.textContent = 'Henüz randevu bulunamadı. Müşteri ve çağrı bilgileri indirilecek.';
     return;
   }
-  hint.textContent = `Son randevu: ${new Date(appt.created_at || Date.now()).toLocaleString('tr-TR')} · Durum: ${appt.durum || '—'}`;
+  const bookedAt = appt.kayit_tarihi || appt.termin_tarih;
+  hint.textContent = `Son randevu: ${bookedAt ? new Date(bookedAt).toLocaleString('tr-TR') : '—'} · Durum: ${appt.durum || '—'}`;
+}
+
+function _apptWallDate(raw) {
+  if (!raw) return '—';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('tr-TR');
+}
+
+function _apptWallTime(raw) {
+  if (!raw) return '—';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 }
 
 async function _buildContactExportRows() {
@@ -654,9 +557,9 @@ async function _buildContactExportRows() {
     adres: currentContact.address || '—',
     kampanya: campaigns.find((x) => x.id === currentContact.campaign_id)?.name || currentContact.campaign_id || '—',
     randevu_durum: appt?.durum || '—',
-    randevu_tarih: appt?.tarih || '—',
-    randevu_saat: appt?.saat || '—',
-    not: appt?.notiz || currentContact.notes || '—'
+    randevu_tarih: _apptWallDate(appt?.termin_tarih),
+    randevu_saat: _apptWallTime(appt?.termin_tarih),
+    not: appt?.agent_notu || currentContact.notes || '—'
   }];
 }
 
@@ -709,7 +612,7 @@ ${_isFakeRecordingRow(l) ? _fakeRecordingMarkup(l, 'history') : ''}
 </div>
 <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:var(--bg-3);">${l.outcome||'—'}</span>
 </div>`).join('');
-  } catch(e) { el.innerHTML='Hata'; }
+  } catch(e) { el.innerHTML='<div style="color:var(--text-3);padding:12px;text-align:center;">Geçmiş okunamadı</div>'; }
 }
 
 function _logDurationSec(log) {
@@ -848,602 +751,49 @@ async function addToDnc(phone, contactId) {
   } catch(e) { console.error('DNC error:', e); }
 }
 
-async function deduplicateContacts(contacts, mode, campaignId) {
-  const phones = contacts.map(c => c.phone).filter(Boolean);
-  if (!phones.length) return contacts;
-  let existingPhones = new Set();
-  const excelDups = new Set();
-  const seen = new Set();
-  phones.forEach(p => { if (seen.has(p)) excelDups.add(p); seen.add(p); });
-  existingPhones = new Set([...excelDups]);
-  if (mode === 'campaign' || mode === 'system') {
-    const firmFilter = mode === 'system' ? '' : `&campaign_id=eq.${campaignId}`;
-    const chunkSize = 100;
-    for (let i = 0; i < phones.length; i += chunkSize) {
-      const chunk = phones.slice(i, i+chunkSize);
-      const query = `contacts?phone=in.(${chunk.map(p=>`"${p}"`).join(',')})&select=phone${firmFilter}`;
-      try {
-        const existing = await sb(query) || [];
-        existing.forEach(e => existingPhones.add(e.phone));
-      } catch(e) {}
-    }
-  }
-  const filtered = contacts.filter(c => !existingPhones.has(c.phone));
-  const dupCount = contacts.length - filtered.length;
-  return { filtered, dupCount, existingPhones };
-}
-
-// ── Inline field edit ─────────────────────────
-function startFieldEdit(fieldKey, fieldLabel, btnEl) {
-  const valEl = document.getElementById('cval-' + fieldKey);
-  if (!valEl) return;
-  const parent = valEl.parentElement;
-  const currentVal = valEl.textContent === '—' ? '' : valEl.textContent;
-  const input = document.createElement('input');
-  input.className = 'form-input';
-  input.value = currentVal;
-  input.style.cssText = 'flex:1;font-size:13px;padding:3px 8px;height:28px;';
-  input.placeholder = fieldLabel + '...';
-  valEl.style.display = 'none';
-  parent.insertBefore(input, valEl);
-  input.focus(); input.select();
-  btnEl.innerHTML = '<i class="ph ph-check" style="font-size:14px;"></i>';
-  btnEl.title = 'Kaydet'; btnEl.style.color = 'var(--green)'; btnEl.style.opacity = '1';
-  btnEl.onclick = () => saveFieldEdit(fieldKey, fieldLabel, input, valEl, btnEl);
-  input.onkeydown = (e) => {
-    if (e.key === 'Enter') saveFieldEdit(fieldKey, fieldLabel, input, valEl, btnEl);
-    if (e.key === 'Escape') cancelFieldEdit(fieldKey, input, valEl, btnEl);
-  };
-}
-
-async function saveFieldEdit(fieldKey, fieldLabel, inputEl, valEl, btnEl) {
-  const newVal = inputEl.value.trim();
-  if (!currentContact?.id) { cancelFieldEdit(fieldKey, inputEl, valEl, btnEl); return; }
-  try {
-    const updateData = {};
-    if (fieldKey === 'plz') updateData.plz = newVal;
-    else if (fieldKey === 'city') updateData.city = newVal;
-    else if (fieldKey === 'address') updateData.address = newVal;
-    else if (fieldKey === 'phone2') updateData.phone2 = newVal;
-    else if (fieldKey === 'notes') updateData.notes = newVal;
-    await sb(`contacts?id=eq.${currentContact.id}`, {
-      method: 'PATCH', prefer: 'return=minimal',
-      body: JSON.stringify(updateData)
-    });
-    currentContact[fieldKey] = newVal;
-    valEl.textContent = newVal || '—';
-    inputEl.remove(); valEl.style.display = '';
-    btnEl.innerHTML = '<i class="ph ph-pencil-simple" style="font-size:14px;"></i>';
-    btnEl.title = 'Düzenle'; btnEl.style.color = 'var(--text-3)'; btnEl.style.opacity = '.6';
-    btnEl.onclick = () => startFieldEdit(fieldKey, fieldLabel, btnEl);
-    toast(`${fieldLabel} güncellendi ✓`, 'ok', 1500);
-  } catch(e) {
-    toast('Güncelleme hatası: ' + e.message, 'err');
-    cancelFieldEdit(fieldKey, inputEl, valEl, btnEl);
-  }
-}
-
-function cancelFieldEdit(fieldKey, inputEl, valEl, btnEl) {
-  inputEl.remove(); valEl.style.display = '';
-  btnEl.innerHTML = '<i class="ph ph-pencil-simple" style="font-size:14px;"></i>';
-  btnEl.title = 'Düzenle'; btnEl.style.color = 'var(--text-3)'; btnEl.style.opacity = '.6';
-  btnEl.onclick = () => startFieldEdit(fieldKey, '', btnEl);
-}
-
-let _prevCallGen = 0;
-async function showPrevCallInfo(contact) {
-  const gen = ++_prevCallGen;
-  const el = document.getElementById('prev-call-info');
-  const body = document.getElementById('prev-call-body');
-  if (!el || !body) return;
-  el.style.display = 'none';
-  body.innerHTML = '';
-  if (!contact?.id || (contact.attempt_count || 0) < 1) return;
-  try {
-    const logs = await sb(`call_logs?contact_id=eq.${contact.id}&order=started_at.desc&limit=10&select=id,outcome,notes,started_at,duration_sec,recording_url,agent_id,users(name)`);
-    if (gen !== _prevCallGen) return;
-    if (!logs?.length) { el.style.display = 'none'; return; }
-    const prev = logs[0];
-    const recLog = logs.find((l) => String(l?.recording_url || '').trim());
-    const dt = new Date(prev.started_at).toLocaleString('tr-TR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    const outcomeMap = {appointment:'Randevu',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',dnc:'Kara Liste'};
-    const rawAgent = prev?.users?.name || '';
-    const own = !!currentUser?.id && prev?.agent_id === currentUser.id;
-    const agentLabel = own
-      ? `Sen${rawAgent ? ` · ${rawAgent}` : ''}`
-      : (rawAgent || '—');
-    body.innerHTML = `
-<div class="prev-call-row">
-  <div class="prev-call-main">
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <span style="font-weight:700;">${outcomeMap[prev.outcome]||prev.outcome}</span>
-      <span style="color:var(--text-3);">${dt}</span>
-      <span style="color:var(--text-3);">(${contact.attempt_count}. arama)</span>
-      <span class="prev-call-agent"><i class="ph ph-user-circle"></i> ${agentLabel}</span>
-    </div>
-    ${(() => { const nt = _stripSimCallMarker(prev.notes); return nt ? '<div style="margin-top:4px;color:var(--text-2);">"' + _escHtml(nt) + '"</div>' : ''; })()}
-  </div>
-  ${recLog?.recording_url ? `
-  <div class="prev-call-audio-wrap">
-    <span class="prev-call-audio-lbl">Ses kaydı</span>
-    <audio controls src="${recLog.recording_url}" preload="none" class="prev-call-audio"></audio>
-  </div>` : (_isFakeRecordingRow(prev) ? `
-  <div class="prev-call-audio-wrap">
-    <span class="prev-call-audio-lbl">Test kaydı</span>
-    ${_fakeRecordingMarkup(prev, 'prev')}
-  </div>` : '')}
-</div>`;
-    el.style.display = '';
-  } catch(e) { el.style.display = 'none'; }
-}
-
-function showCampScript(contact) {
-  const camp = campaigns.find(c => c.id === (contact?.campaign_id || selectedCampId));
-  const settings = getCampSettings(camp||{});
-  const el = document.getElementById('camp-script-box');
-  if (!el) return;
-  if (settings.script_enabled && settings.script) {
-    el.style.display = '';
-    el.innerHTML = `<div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:6px;">📝 Script</div>
-<div style="font-size:12px;color:var(--text);white-space:pre-wrap;max-height:120px;overflow-y:auto;">${settings.script}</div>`;
-  } else {
-    el.style.display = 'none';
-  }
-}
-
-function showCampScript2(contact) { showCampScript(contact); }
-
-// ── Contact Drawer ─────────────────────────────
-let _cdrContactId = null;
-let _cdrContact   = null;
-let _cdrTab = 'info';
-let _cdrLogs = [];
-
-async function openContactDrawer(contactId) {
-  if (!contactId) return;
-  _cdrContactId = contactId;
-  _cdrTab = 'info';
-  // Show drawer immediately with loading state
-  const overlay = document.getElementById('contact-drawer-overlay');
-  const drawer  = document.getElementById('contact-drawer');
-  if (!overlay || !drawer) return;
-  overlay.classList.add('open');
-  drawer.classList.add('open');
-  document.getElementById('cdr-av').textContent = '…';
-  document.getElementById('cdr-name').textContent = 'Yükleniyor…';
-  document.getElementById('cdr-phone').textContent = '';
-  document.getElementById('cdr-fields-grid').innerHTML = '<div style="color:var(--text-3);text-align:center;padding:20px;font-size:12px;">Yükleniyor...</div>';
-  document.getElementById('cdr-history-list').innerHTML = '<div style="color:var(--text-3);text-align:center;padding:20px;font-size:12px;">Yükleniyor...</div>';
-  document.getElementById('cdr-recordings-list').innerHTML = '<div style="color:var(--text-3);text-align:center;padding:20px;font-size:12px;">Yükleniyor...</div>';
-  // Reset tabs
-  setCdrTab('info');
-  try {
-    const [contacts, logs] = await Promise.all([
-      sb(`contacts?id=eq.${contactId}&select=*,queues(name,status),campaigns:campaign_id(name)`),
-      sb(`call_logs?contact_id=eq.${contactId}&select=*,users(name),campaigns:campaign_id(name)&order=started_at.desc&limit=50`)
-    ]);
-    const c = Array.isArray(contacts) ? contacts[0] : contacts;
-    _cdrLogs = Array.isArray(logs) ? logs : [];
-    _cdrContact = c || null;
-    if (!c) { toast('Kişi bulunamadı','warn'); closeContactDrawer(); return; }
-    const fullName = `${c.first_name||''} ${c.last_name||''}`.trim() || c.phone || '?';
-    document.getElementById('cdr-av').textContent = (fullName.charAt(0)||'?').toUpperCase();
-    document.getElementById('cdr-name').textContent = fullName;
-    document.getElementById('cdr-phone').textContent = c.phone || '—';
-    // Info tab
-    const statusMap = {pending:'Bekliyor',no_answer:'Cevap Yok',callback:'Geri Ara',negative:'Olumsuz',appointment:'Randevu',dnc:'Kara Liste',done:'Tamamlandı'};
-    const fields = [
-      {l:'Telefon',    v:c.phone,      mono:true, copy:true},
-      {l:'2. Tel',     v:c.phone2,     mono:true, copy:true},
-      {l:'Ad Soyad',   v:fullName},
-      {l:'PLZ',        v:c.plz,        mono:true},
-      {l:'Şehir',      v:c.city},
-      {l:'Adres',      v:c.address},
-      {l:'Kampanya',   v:c.campaigns?.name || c.campaign_id?.slice(0,8)},
-      {l:'Kuyruk',     v:c.queues?.name},
-      {l:'Durum',      v:statusMap[c.status]||c.status},
-      {l:'Deneme',     v:c.attempt_count ? `${c.attempt_count}. arama` : '—'},
-      {l:'Geri Ara',   v:c.callback_at ? new Date(c.callback_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : null},
-      {l:'Not',        v:c.notes},
-    ].filter(f => f.v);
-    document.getElementById('cdr-fields-grid').innerHTML = fields.map(f => `
-<div class="cdr-field">
-  <div class="cdr-field-label">${f.l}</div>
-  <div class="cdr-field-val${f.mono?' mono':''}"
-    ${f.copy?`style="cursor:pointer;" onclick="copyToClipboard('${(f.v||'').replace(/'/g,"\\'")}','${f.l} kopyalandı')" title="Kopyala"`:''}
-  >${f.v}</div>
-</div>`).join('');
-    // History tab
-    _renderCdrHistory();
-    // Recordings tab
-    _renderCdrRecordings();
-    // Show call button for agents and qc users
-    const footer = document.getElementById('cdr-footer');
-    if (footer) {
-      const canCall = ['agent','qc'].includes(currentUser?.role);
-      footer.style.display = canCall ? '' : 'none';
-      const btn = document.getElementById('cdr-call-btn');
-      if (btn) btn.setAttribute('data-phone', c.phone||'');
-    }
-  } catch(e) {
-    toast('Drawer yüklenemedi: ' + e.message, 'err');
-    closeContactDrawer();
-  }
-}
-
-async function openDialerForContact(contactId) {
-  if (!contactId) return;
-  try {
-    const rows = await sb(`contacts?id=eq.${contactId}&select=*`);
-    const c = rows?.[0];
-    if (!c) { toast('Kişi bulunamadı', 'warn'); return; }
-    currentContact = c;
-    navigate('dialer');
-    setTimeout(() => {
-      if (typeof showCustomerCard === 'function') showCustomerCard(c);
-      if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
-      if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
-      if (typeof switchContactTab === 'function') switchContactTab('info');
-      setTimeout(() => {
-        if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
-        if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
-      }, 220);
-      setTimeout(() => {
-        if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
-        if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
-      }, 650);
-    }, 120);
-  } catch (e) {
-    toast('Dialer açılırken hata: ' + e.message, 'err');
-  }
-}
-
-function _renderCdrHistory() {
-  const el = document.getElementById('cdr-history-list');
-  if (!el) return;
-  if (!_cdrLogs.length) {
-    el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:20px;font-size:12px;">Arama geçmişi yok</div>';
-    return;
-  }
-  const OM = {appointment:'Randevu',appointment_done:'Randevu',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',voicemail:'Telesekreter',dnc:'Kara Liste'};
-  const colorMap = {appointment:'var(--green)',appointment_done:'var(--green)',negative:'var(--red)',callback:'var(--yellow)',no_answer:'var(--text-3)',dnc:'var(--red)',voicemail:'var(--text-3)'};
-  el.innerHTML = _cdrLogs.map(l => {
-    const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-    const sec = _logDurationSec(l);
-    const dur = sec ? `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}` : '—';
-    const oc = OM[l.outcome] || l.outcome || '—';
-    const oc_color = colorMap[l.outcome] || 'var(--text-3)';
-    const camp = l.campaigns?.name || '—';
-    const agent = l.users?.name || '—';
-    return `<div class="cdr-log-row">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-  <div style="font-size:11px;font-family:var(--mono);color:var(--text-2);">${dt}</div>
-  <span style="font-size:11px;font-weight:700;color:${oc_color};background:${oc_color}18;padding:2px 8px;border-radius:10px;">${oc}</span>
-</div>
-<div style="display:flex;gap:12px;font-size:11px;color:var(--text-3);">
-  <span><i class="ph ph-user" style="vertical-align:-2px;"></i> ${agent}</span>
-  <span><i class="ph ph-megaphone-simple" style="vertical-align:-2px;"></i> ${camp}</span>
-  <span><i class="ph ph-clock" style="vertical-align:-2px;"></i> ${dur}</span>
-</div>
-${(() => { const nt = _stripSimCallMarker(l.notes); return nt ? '<div style="margin-top:4px;font-size:11px;color:var(--text-2);font-style:italic;">"' + _escHtml(nt) + '"</div>' : ''; })()}
-${l.recording_url ? `<div style="margin-top:6px;"><audio controls src="${l.recording_url}" style="width:100%;height:28px;" preload="none"></audio></div>` : (_isFakeRecordingRow(l) ? _fakeRecordingMarkup(l, 'cdrhist') : '')}
-</div>`;
-  }).join('');
-}
-
-function _renderCdrRecordings() {
-  const el = document.getElementById('cdr-recordings-list');
-  if (!el) return;
-  const recs = _cdrLogs.filter(l => l.recording_url || _isFakeRecordingRow(l));
-  if (!recs.length) {
-    el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:20px;font-size:12px;">Ses kaydı yok</div>';
-    return;
-  }
-  el.innerHTML = recs.map(l => {
-    const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-    const sec = _logDurationSec(l);
-    const dur = sec ? `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}` : '—';
-    return `<div class="cdr-log-row">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-  <span style="font-size:11px;color:var(--text-2);font-family:var(--mono);">${dt}</span>
-  <span style="font-size:11px;color:var(--text-3);">${dur}</span>
-</div>
-${l.recording_url
-  ? `<audio controls src="${l.recording_url}" style="width:100%;height:32px;" preload="none"></audio>`
-  : _fakeRecordingMarkup(l, 'cdrrec')}
-</div>`;
-  }).join('');
-}
-
-function setCdrTab(tab) {
-  _cdrTab = tab;
-  ['info','history','recordings'].forEach(t => {
-    const btn   = document.getElementById('cdr-tab-' + t);
-    const panel = document.getElementById('cdr-panel-' + t);
-    if (btn)   btn.classList.toggle('active', t === tab);
-    if (panel) panel.style.display = t === tab ? '' : 'none';
-  });
-}
-
-function closeContactDrawer() {
-  document.getElementById('contact-drawer-overlay')?.classList.remove('open');
-  document.getElementById('contact-drawer')?.classList.remove('open');
-  _cdrContactId = null;
-}
-
-function drawerCallContact() {
-  const c = _cdrContact;
-  if (!c?.phone) { toast('Telefon numarası yok', 'warn'); return; }
-  closeContactDrawer();
-  // Set as current contact and open dialer
-  currentContact = c;
-  navigate('dialer');
-  // Small delay to let dialer UI render
-  setTimeout(() => {
-    if (typeof showCustomerCard === 'function') showCustomerCard(c);
-    if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
-    if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
-    setTimeout(() => {
-      if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
-      if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
-    }, 220);
-    setTimeout(() => {
-      if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
-      if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
-    }, 650);
-    if (typeof switchContactTab === 'function') switchContactTab('info');
-  }, 150);
-}
-
-let _contactMap = null;
-let _contactMapMarker = null;
-let _contactMapMeasureMode = false;
-let _contactMapMeasurePath = [];
-let _contactMapMeasurePolyline = null;
-let _contactMapMeasurePolygon = null;
-let _contactMapMeasureInfo = null;
-let _contactMapMeasureClickListener = null;
-let _contactMapMeasureType = 'distance';
-
-function _fmtMeters(m) {
-  const n = Number(m || 0);
-  if (n >= 1000) return `${(n / 1000).toFixed(2)} km`;
-  return `${Math.round(n)} m`;
-}
-
-function _fmtAreaM2(m2) {
-  const n = Math.max(0, Number(m2) || 0);
-  if (n >= 1000000) return `${(n / 1000000).toFixed(2)} km²`;
-  if (n >= 10000) return `${Math.round(n).toLocaleString('tr-TR')} m²`;
-  return `${n.toFixed(1)} m²`;
-}
-
-function _haversineMeters(a, b) {
-  const R = 6371000;
-  const toRad = (d) => d * Math.PI / 180;
-  const dLat = toRad(b.lat() - a.lat());
-  const dLng = toRad(b.lng() - a.lng());
-  const la1 = toRad(a.lat());
-  const la2 = toRad(b.lat());
-  const x = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
-}
-
-function _measureTotalMeters(path) {
-  if (!Array.isArray(path) || path.length < 2) return 0;
-  let total = 0;
-  for (let i = 1; i < path.length; i++) {
-    const a = path[i - 1];
-    const b = path[i];
-    if (window.google?.maps?.geometry?.spherical?.computeDistanceBetween) {
-      total += google.maps.geometry.spherical.computeDistanceBetween(a, b);
-    } else {
-      total += _haversineMeters(a, b);
-    }
-  }
-  return total;
-}
-
-function _measureAreaM2(path) {
-  if (!Array.isArray(path) || path.length < 3) return 0;
-  if (window.google?.maps?.geometry?.spherical?.computeArea) {
-    return google.maps.geometry.spherical.computeArea(path);
-  }
-  return 0;
-}
-
-function _contactMapResetMeasure() {
-  _contactMapMeasurePath = [];
-  if (_contactMapMeasurePolyline) {
-    _contactMapMeasurePolyline.setMap(null);
-    _contactMapMeasurePolyline = null;
-  }
-  if (_contactMapMeasurePolygon) {
-    _contactMapMeasurePolygon.setMap(null);
-    _contactMapMeasurePolygon = null;
-  }
-  if (_contactMapMeasureInfo) {
-    _contactMapMeasureInfo.close();
-    _contactMapMeasureInfo = null;
-  }
-}
-
-function _contactMapRenderMeasure() {
-  if (!_contactMap) return;
-  if (_contactMapMeasureType === 'area') {
-    if (_contactMapMeasurePolyline) {
-      _contactMapMeasurePolyline.setMap(null);
-      _contactMapMeasurePolyline = null;
-    }
-    if (!_contactMapMeasurePolygon) {
-      _contactMapMeasurePolygon = new google.maps.Polygon({
-        map: _contactMap,
-        paths: [],
-        strokeColor: '#f59e0b',
-        strokeOpacity: 0.95,
-        strokeWeight: 2,
-        fillColor: '#f59e0b',
-        fillOpacity: 0.2,
-        clickable: false,
+async function mbFindExistingPhones(phones, mode, campaignId) {
+  const found = new Set();
+  if (mode !== 'campaign' && mode !== 'system') return found;
+  const unique = [...new Set((phones || []).map((p) => mbNormalizeDialPhone(p)).filter(Boolean))];
+  const chunkSize = 40;
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    const chunk = unique.slice(i, i + chunkSize);
+    const list = chunk.map((p) => encodeURIComponent(p)).join(',');
+    const scope = mode === 'campaign' && campaignId ? `&campaign_id=eq.${campaignId}` : '';
+    try {
+      const existing = await sb(`contacts?select=phone&phone=in.(${list})${scope}`) || [];
+      existing.forEach((e) => {
+        const n = mbNormalizeDialPhone(e.phone);
+        if (n) found.add(n);
       });
-    }
-    _contactMapMeasurePolygon.setPath(_contactMapMeasurePath);
-    if (_contactMapMeasurePath.length < 3) return;
-    const area = _measureAreaM2(_contactMapMeasurePath);
-    const last = _contactMapMeasurePath[_contactMapMeasurePath.length - 1];
-    if (!_contactMapMeasureInfo) _contactMapMeasureInfo = new google.maps.InfoWindow();
-    _contactMapMeasureInfo.setContent(`<div style="font-size:12px;font-weight:700;">Alan: ${_fmtAreaM2(area)}</div>`);
-    _contactMapMeasureInfo.setPosition(last);
-    _contactMapMeasureInfo.open({ map: _contactMap });
-    return;
+    } catch (e) {}
   }
-  if (_contactMapMeasurePolygon) {
-    _contactMapMeasurePolygon.setMap(null);
-    _contactMapMeasurePolygon = null;
-  }
-  if (!_contactMapMeasurePolyline) {
-    _contactMapMeasurePolyline = new google.maps.Polyline({
-      map: _contactMap,
-      path: [],
-      strokeColor: '#ef4444',
-      strokeOpacity: 0.95,
-      strokeWeight: 3,
-      clickable: false,
+  return found;
+}
+
+async function mbFindPhonesWithStatuses(phones, statuses) {
+  const found = new Map();
+  const allowed = (statuses || []).filter((key) => UQ_OUTCOME_SKIP.some((row) => row.key === key));
+  if (!allowed.length) return found;
+  const unique = [...new Set((phones || []).map((p) => mbNormalizeDialPhone(p)).filter(Boolean))];
+  const statusList = allowed.join(',');
+  const chunkSize = 40;
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    const chunk = unique.slice(i, i + chunkSize);
+    const list = chunk.map((p) => encodeURIComponent(p)).join(',');
+    const rows = await sb(`contacts?select=phone,status&phone=in.(${list})&status=in.(${statusList})`) || [];
+    rows.forEach((row) => {
+      const n = mbNormalizeDialPhone(row.phone);
+      if (!n || found.has(n) || !allowed.includes(row.status)) return;
+      found.set(n, row.status);
     });
   }
-  _contactMapMeasurePolyline.setPath(_contactMapMeasurePath);
-  if (_contactMapMeasurePath.length < 2) return;
-  const total = _measureTotalMeters(_contactMapMeasurePath);
-  const last = _contactMapMeasurePath[_contactMapMeasurePath.length - 1];
-  if (!_contactMapMeasureInfo) _contactMapMeasureInfo = new google.maps.InfoWindow();
-  _contactMapMeasureInfo.setContent(`<div style="font-size:12px;font-weight:700;">Mesafe: ${_fmtMeters(total)}</div>`);
-  _contactMapMeasureInfo.setPosition(last);
-  _contactMapMeasureInfo.open({ map: _contactMap });
+  return found;
 }
 
-function _setContactMapMeasureMode(on) {
-  _contactMapMeasureMode = !!on;
-  if (!_contactMap) return;
-  if (_contactMapMeasureClickListener) {
-    google.maps.event.removeListener(_contactMapMeasureClickListener);
-    _contactMapMeasureClickListener = null;
-  }
-  if (_contactMapMeasureMode) {
-    _contactMapMeasureClickListener = _contactMap.addListener('click', (ev) => {
-      _contactMapMeasurePath.push(ev.latLng);
-      _contactMapRenderMeasure();
-    });
-  }
-}
-
-function _setContactMapMeasureType(type) {
-  _contactMapMeasureType = type === 'area' ? 'area' : 'distance';
-  _contactMapResetMeasure();
-}
-
-function _ensureContactMapScript(apiKey) {
-  if (window.google?.maps) return Promise.resolve();
-  if (window.__contactMapScriptPromise) return window.__contactMapScriptPromise;
-  window.__contactMapScriptPromise = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=geometry`;
-    s.async = true;
-    s.defer = true;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('Google Maps yüklenemedi'));
-    document.head.appendChild(s);
-  });
-  return window.__contactMapScriptPromise;
-}
-
-function _buildContactMapToolbar(container) {
-  const existing = document.getElementById('contact-map-toolbar');
-  if (existing) existing.remove();
-  const bar = document.createElement('div');
-  bar.id = 'contact-map-toolbar';
-  bar.style.cssText = 'position:absolute;bottom:12px;left:10px;z-index:8;display:flex;gap:6px;flex-wrap:wrap;';
-  const btnStyle = 'background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;color:var(--text);';
-  bar.innerHTML = `
-    <button id="cm-btn-dist" type="button" style="${btnStyle}">Mesafe</button>
-    <button id="cm-btn-area" type="button" style="${btnStyle}">Alan (m²)</button>
-    <button id="cm-btn-clear" type="button" style="${btnStyle}">Temizle</button>
-  `;
-  container.appendChild(bar);
-  const btnDist = document.getElementById('cm-btn-dist');
-  const btnArea = document.getElementById('cm-btn-area');
-  const btnClear = document.getElementById('cm-btn-clear');
-  const refreshMeasureUi = () => {
-    if (btnDist) {
-      btnDist.style.background = _contactMapMeasureMode && _contactMapMeasureType === 'distance' ? 'var(--accent-soft)' : 'var(--bg-2)';
-      btnDist.style.borderColor = _contactMapMeasureMode && _contactMapMeasureType === 'distance' ? 'var(--accent)' : 'var(--border)';
-    }
-    if (btnArea) {
-      btnArea.style.background = _contactMapMeasureMode && _contactMapMeasureType === 'area' ? 'var(--accent-soft)' : 'var(--bg-2)';
-      btnArea.style.borderColor = _contactMapMeasureMode && _contactMapMeasureType === 'area' ? 'var(--accent)' : 'var(--border)';
-    }
-  };
-  if (btnDist) {
-    btnDist.onclick = () => {
-      _setContactMapMeasureType('distance');
-      _setContactMapMeasureMode(!_contactMapMeasureMode);
-      refreshMeasureUi();
-    };
-  }
-  if (btnArea) {
-    btnArea.onclick = () => {
-      _setContactMapMeasureType('area');
-      _setContactMapMeasureMode(!_contactMapMeasureMode);
-      refreshMeasureUi();
-    };
-  }
-  if (btnClear) btnClear.onclick = () => _contactMapResetMeasure();
-  refreshMeasureUi();
-}
-
-async function showContactMap(address, plz, city) {
-  const container = document.getElementById('contact-map-container');
-  if (!container) return;
-  const key = _googleApiKey || localStorage.getItem('mb_google_key') || '';
-  if (!key) {
-    container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-3);font-size:12px;">Google Maps API anahtarı gerekli<br><small>Ayarlar → Google API Key</small></div>';
-    return;
-  }
-  try {
-    await _ensureContactMapScript(key);
-  } catch (e) {
-    container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--red);font-size:12px;">${escapeHtml(e?.message || 'Map error')}</div>`;
-    return;
-  }
-  container.innerHTML = '<div id="contact-map-canvas" style="width:100%;height:100%;min-height:460px;"></div>';
-  _buildContactMapToolbar(container);
-  const mapEl = document.getElementById('contact-map-canvas');
-  if (!mapEl) return;
-  const mapOpts = {
-    center: { lat: 52.52, lng: 13.405 },
-    zoom: 17,
-    mapTypeId: 'satellite',
-    streetViewControl: true, // Pegman
-    fullscreenControl: true,
-    rotateControl: true,
-    gestureHandling: 'greedy', // Ctrl zorunlu olmasın
-    tilt: 67.5,
-    heading: 35,
-    headingInteractionEnabled: true,
-    tiltInteractionEnabled: true,
-  };
-  _contactMap = new google.maps.Map(mapEl, mapOpts);
-  _contactMap.setOptions({ minZoom: 3, maxZoom: 22 });
-  _setContactMapMeasureMode(false);
-  _contactMapResetMeasure();
-  const q = `${address || ''} ${plz || ''} ${city || ''} Germany`.trim();
-  const geocoder = new google.maps.Geocoder();
-  geocoder.geocode({ address: q }, (results, status) => {
-    if (status === 'OK' && results?.[0]?.geometry?.location) {
-      const loc = results[0].geometry.location;
-      _contactMap.setCenter(loc);
-      _contactMap.setZoom(20);
-      if (_contactMapMarker) _contactMapMarker.setMap(null);
-      _contactMapMarker = new google.maps.Marker({ map: _contactMap, position: loc, title: q || 'Konum' });
-    }
-  });
+async function deduplicateContacts(contacts, mode, campaignId) {
+  const classified = mbClassifyLeadRows(contacts);
+  const existing = await mbFindExistingPhones(classified.accepted.map((c) => c.phone), mode, campaignId);
+  const filtered = classified.accepted.filter((c) => !existing.has(c.phone));
+  return { filtered, dupCount: contacts.length - filtered.length, existingPhones: existing };
 }

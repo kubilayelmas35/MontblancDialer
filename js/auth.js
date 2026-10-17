@@ -108,65 +108,106 @@ document.getElementById('page-login').style.display = 'flex';
 document.getElementById('app').style.display = 'none';
 }
 
-function bootApp() {
+let _mbWhoamiAt = 0;
+
+function mbDropDeadSession() {
+  _mbWhoamiAt = 0;
+  localStorage.removeItem('mb_session');
+  localStorage.removeItem('mb_base_session');
+  localStorage.removeItem('mb_impersonation');
+  currentUser = null;
+  _baseUser = null;
+  _impersonation = null;
+  const app = document.getElementById('app');
+  const login = document.getElementById('page-login');
+  if (app) app.style.display = 'none';
+  if (login) login.style.display = 'flex';
+  const errEl = document.getElementById('login-err');
+  if (errEl) {
+    errEl.textContent = (typeof t === 'function' ? t('login.err.session') : 'Oturum sona erdi. Tekrar giriş yapın.');
+    errEl.style.display = 'block';
+  }
+}
+
+function mbApplyWhoami(me) {
+  if (!me?.user_id || !currentUser) return;
+  if (_impersonation && String(me.user_id) !== String(currentUser.id)) return;
+  const firmChanged = String(me.firm_id || '') !== String(currentUser.firm_id || '');
+  currentUser.firm_id = me.firm_id || currentUser.firm_id;
+  currentUser.role = me.role || currentUser.role;
+  currentUser.name = me.name || currentUser.name;
+  currentUser.email = me.email || currentUser.email;
+  currentUser.firm_name = me.firm_name || currentUser.firm_name;
+  if (_baseUser && String(_baseUser.id) === String(currentUser.id)) {
+    _baseUser.firm_id = currentUser.firm_id;
+    _baseUser.role = currentUser.role;
+    _baseUser.name = currentUser.name;
+    _baseUser.firm_name = currentUser.firm_name;
+    _baseUser.session_token = currentUser.session_token || _baseUser.session_token;
+    localStorage.setItem('mb_base_session', JSON.stringify(_baseUser));
+  }
+  localStorage.setItem('mb_session', JSON.stringify(currentUser));
+  if (firmChanged) {
+    const roleEl = document.getElementById('tb-urole');
+    if (roleEl && currentUser.firm_name) {
+      const suffix = ` · ${currentUser.firm_name}`;
+      if (!String(roleEl.textContent || '').includes(currentUser.firm_name)) {
+        roleEl.textContent = String(roleEl.textContent || currentUser.role || '').replace(/\s·\s.*$/, '') + suffix;
+      }
+    }
+  }
+}
+
+async function mbWhoami() {
+  try {
+    const rows = await sb('rpc/mb_whoami', { method: 'POST', body: '{}' });
+    if (Array.isArray(rows)) return rows[0] || null;
+    return rows || null;
+  } catch (_) {
+    return { _error: true };
+  }
+}
+
+async function mbEnsureSession(opts = {}) {
+  if (!currentUser?.id) return false;
+  if (!opts.force && Date.now() - _mbWhoamiAt < 15000 && currentUser.firm_id) return true;
+  let me = await mbWhoami();
+  if (me?._error) return true;
+  if (!me?.user_id) {
+    const baseTok = _baseUser?.session_token;
+    const curTok = currentUser.session_token;
+    const sameUser = _baseUser && String(_baseUser.id) === String(currentUser.id);
+    if (sameUser && baseTok && baseTok !== curTok) {
+      currentUser.session_token = baseTok;
+      me = await mbWhoami();
+      if (me?._error) return true;
+    }
+  }
+  if (!me?.user_id) {
+    mbDropDeadSession();
+    return false;
+  }
+  mbApplyWhoami(me);
+  _mbWhoamiAt = Date.now();
+  return true;
+}
+
+async function bootApp() {
+if (!(await mbEnsureSession({ force: true }))) return;
+if (!currentUser) return;
 if (!currentUser.initials) currentUser.initials = (currentUser.name||'?').charAt(0).toUpperCase();
 document.getElementById('tb-av').textContent = currentUser.initials.charAt(0);
 document.getElementById('tb-uname').textContent = currentUser.name;
-const isAdmin = ['admin','super_admin','firm_admin'].includes(currentUser.role);
-const isBackoffice = isAdmin || currentUser.role === 'qc';
-document.getElementById('nav-admin').style.display = isBackoffice ? '' : 'none';
-document.getElementById('nav-agent').style.display = isBackoffice ? 'none' : '';
-document.getElementById('tb-pills').style.display  = isAdmin ? '' : 'none';
-document.getElementById('sb-settings').style.display = isAdmin ? '' : 'none';
-document.getElementById('telnyx-settings').style.display = currentUser.role === 'super_admin' ? '' : 'none';
-const fieldNav = document.getElementById('nav-field-btn');
-const dialerNav = document.getElementById('nav-dialer-btn');
-const adminDialerNav = document.getElementById('nav-admin-dialer-btn');
-const fieldOpsNav = document.getElementById('nav-fieldops-btn');
-const jobsNav = document.getElementById('nav-jobs-btn');
-const myHistoryNav = document.getElementById('nav-myhistory-btn');
-const wvNav = document.getElementById('nav-wv-btn');
-const takvimOverlayNav = document.getElementById('nav-takvim-overlay-btn');
-if (fieldNav) fieldNav.style.display = currentUser.role === 'field_agent' ? '' : 'none';
-if (dialerNav) dialerNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
-if (adminDialerNav) adminDialerNav.style.display = ['admin','firm_admin','super_admin','qc'].includes(currentUser.role) ? '' : 'none';
-if (fieldOpsNav) fieldOpsNav.style.display = ['admin','firm_admin','super_admin'].includes(currentUser.role) ? '' : 'none';
-const supervisorNav = document.getElementById('nav-supervisor-btn');
-if (supervisorNav) supervisorNav.style.display = ['admin','firm_admin','super_admin'].includes(currentUser.role) ? '' : 'none';
-if (jobsNav) jobsNav.style.display = ['admin','firm_admin','super_admin'].includes(currentUser.role) ? '' : 'none';
-if (myHistoryNav) myHistoryNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
-if (wvNav) wvNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
-if (takvimOverlayNav) takvimOverlayNav.style.display = currentUser.role === 'field_agent' ? 'none' : '';
-// API keys (Google, TomTom, daily goal) — super_admin only
-const apiCard = document.querySelector('#page-settings .card:has(#s-google-key)') ||
-  [...document.querySelectorAll('#page-settings .card')].find(c=>c.querySelector('#s-google-key'));
-if (apiCard) apiCard.style.display = currentUser.role === 'super_admin' ? '' : 'none';
-// Mesai settings — admin+ (not agents)
-const mesaiCard = document.getElementById('mesai-settings-card');
-if (mesaiCard) mesaiCard.style.display = isAdmin ? '' : 'none';
-const chatSetCard = document.getElementById('chat-settings-card');
-if (chatSetCard) chatSetCard.style.display = isAdmin ? '' : 'none';
-const fieldSetCard = document.getElementById('field-settings-card');
-if (fieldSetCard) fieldSetCard.style.display = isAdmin ? '' : 'none';
-const featCard = document.getElementById('feature-flags-card');
-if (featCard) featCard.style.display = isAdmin ? '' : 'none';
-const jobPermCard = document.getElementById('job-permissions-card');
-if (jobPermCard) jobPermCard.style.display = isAdmin ? '' : 'none';
-const roleMap = {
-'super_admin':'Süper Admin','firm_admin':'Firma Admin',
-'admin':'Admin','agent':'Agent','qc':'QC','field_agent':'Saha Elemanı'
-};
+const isAdmin = mbIsFirmAdmin();
+if (typeof mbApplyNavAccess === 'function') mbApplyNavAccess();
 const roleEl = document.getElementById('tb-urole');
 if (roleEl) {
   const suffix = currentUser.firm_name ? ` · ${currentUser.firm_name}` : '';
   const imp = _impersonation ? ' · Temsil Modu' : '';
-  roleEl.textContent = (roleMap[currentUser.role]||currentUser.role) + suffix + imp;
+  const roleName = typeof mbRoleLabel === 'function' ? mbRoleLabel(currentUser.role) : currentUser.role;
+  roleEl.textContent = roleName + suffix + imp;
 }
-const firmsBtn = document.getElementById('nav-firms-btn');
-if (firmsBtn) firmsBtn.style.display = currentUser.role === 'super_admin' ? '' : 'none';
-const perfNav = document.getElementById('nav-performance-btn');
-if (perfNav) perfNav.style.display = ['admin', 'firm_admin', 'super_admin'].includes(currentUser.role) ? '' : 'none';
-if (currentUser.role === 'super_admin') { loadAllFirms(); }
+if (mbIsSuperAdmin()) { loadAllFirms(); }
 loadFirmCallHours(); // arama kısıtlamalarını yükle
 if (typeof loadFirmDialerSettingsCache === 'function') void loadFirmDialerSettingsCache();
 if (typeof loadIncomingCallsSettingsPage === 'function') void loadIncomingCallsSettingsPage();
@@ -177,27 +218,27 @@ setInterval(updateTopbarStats, 30000);
 }
 loadWvBadge();
 if (typeof refreshUserPagePerms === 'function') refreshUserPagePerms().catch(() => {});
-if (isAdmin) { navigate('dashboard'); }
-else if (currentUser.role === 'qc') { navigate('qc'); }
-else if (currentUser.role === 'field_agent') { navigate('field'); }
-else         { navigate('dialer'); }
+if (typeof mbLoadUiPrefs === 'function') await mbLoadUiPrefs();
+navigate(typeof mbHomePage === 'function' ? mbHomePage(currentUser.role) : 'dialer');
 if (typeof initChat === 'function') initChat();
 if (typeof initNotificationCenter === 'function') initNotificationCenter();
 initRTCListener();
 localStorage.removeItem('mb-sip-pass');
-const sipUser = localStorage.getItem('mb-sip-user')||'';
-const sipPass = window.__mbSipPass || '';
-if (sipUser && sipPass) {
-updateConnectionStatus('connecting');
-setTimeout(()=>{ sendToRTC('MB_CONNECT',{sipUser,sipPass}); }, 1200);
-} else {
-updateConnectionStatus('disconnected');
+try {
+  if (typeof mbBootFirmIntegrations === 'function') {
+    const line = await mbBootFirmIntegrations();
+    if (!line?.sip_username || !line?.sip_password) updateConnectionStatus('disconnected');
+  } else {
+    updateConnectionStatus('disconnected');
+  }
+} catch (e) {
+  updateConnectionStatus('disconnected');
 }
 if (typeof reloadMascotStateForUser === 'function') reloadMascotStateForUser();
 }
 
 // ── Süper Admin Global Firma Seçici ──────────────────
-function isSuperAdmin() { return currentUser?.role === 'super_admin'; }
+function isSuperAdmin() { return mbIsSuperAdmin(); }
 
 async function _syncOwnAgentPresence(status) {
   if (!currentUser?.id) return;
@@ -226,7 +267,7 @@ return isSuperAdmin() ? _selectedFirmId : currentUser?.firm_id;
 
 /** Süper admin firma seçimini kod tarafında günceller (ör. sohbetten atlama) */
 function setSuperAdminFirmSelection(firmId) {
-  if (currentUser?.role !== 'super_admin' || !firmId) return;
+  if (!mbIsSuperAdmin() || !firmId) return;
   _selectedFirmId = firmId;
   document.querySelectorAll('select[id$="-sel"]').forEach((sel) => {
     const opt = [...sel.options].find((o) => o.value === firmId);
@@ -246,11 +287,14 @@ _allFirms = await sb('firms?select=id,name,slug&order=name.asc') || [];
 } catch(e) { _allFirms = []; }
 }
 
+let _firmSelectorLock = 0;
 function renderFirmSelector(containerId, callbackFn) {
 const el = document.getElementById(containerId);
 if (!el) return;
 if (!isSuperAdmin()) { el.innerHTML = ''; return; }
 const buildSelect = () => {
+_firmSelectorLock++;
+try {
 el.innerHTML = `
 <div style="display:flex;align-items:center;gap:6px;">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-3);flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
@@ -262,10 +306,14 @@ ${_allFirms.map(f=>`<option value="${f.id}" ${f.id===(_selectedFirmId||'')?'sele
 const sel = document.getElementById(containerId+'-sel');
 if (sel) {
 sel.onchange = function() {
-_selectedFirmId = this.value || null;
+if (_firmSelectorLock) return;
+const next = this.value || null;
+if (next === (_selectedFirmId || null)) return;
+_selectedFirmId = next;
 if (typeof callbackFn === 'function') callbackFn();
 };
 }
+} finally { _firmSelectorLock--; }
 };
 if (!_allFirms.length) {
 sb('firms?select=id,name,slug&order=name.asc').then(firms => {
@@ -278,7 +326,7 @@ buildSelect();
 }
 
 function canUseImpersonation() {
-  return (_baseUser?.role || currentUser?.role) === 'super_admin';
+  return mbIsSuperAdmin(_baseUser?.role || currentUser?.role);
 }
 
 function handleTopbarUserClick() {
@@ -406,7 +454,7 @@ _googleApiKey = localStorage.getItem('mb_google_key') || DEFAULT_GOOGLE_KEY;
 
 function _isValidSessionUserShape(u) {
   if (!u || typeof u !== 'object') return false;
-  const roles = ['agent', 'admin', 'super_admin', 'firm_admin', 'qc', 'field_agent'];
+  const roles = typeof mbKnownRoles === 'function' ? mbKnownRoles() : [];
   if (!u.id || !isValidUUID?.(u.id)) return false;
   if (!u.email || typeof u.email !== 'string') return false;
   if (!u.name || typeof u.name !== 'string') return false;
@@ -441,6 +489,9 @@ _baseUser = baseSaved ? JSON.parse(baseSaved) : { ...currentUser };
 if (!_isValidSessionUserShape(_baseUser)) _baseUser = { ...currentUser };
 if (!_hasSessionToken(_baseUser) && _hasSessionToken(currentUser)) _baseUser.session_token = currentUser.session_token;
 if (!_hasSessionToken(currentUser) && _hasSessionToken(_baseUser)) currentUser.session_token = _baseUser.session_token;
+if (String(_baseUser?.id || '') === String(currentUser?.id || '') && _hasSessionToken(currentUser)) {
+  _baseUser.session_token = currentUser.session_token;
+}
 if (!_hasSessionToken(currentUser)) {
 _clearSessionStorageSafe();
 currentUser = null;

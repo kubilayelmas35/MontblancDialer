@@ -10,12 +10,24 @@ let _smsCachedConfig   = null; // { enabled, telnyx_api_key, from_number, templa
 async function loadSmsSettingsPage() {
   const card = document.getElementById('sms-settings-card');
   if (!card) return;
-  const role = currentUser?.role || '';
-  const canView = ['admin', 'firm_admin', 'super_admin'].includes(role);
+  const canView = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
   card.style.display = canView ? '' : 'none';
   if (!canView) return;
 
-  _smsSettingsFirmId = currentUser.firm_id || null;
+  const firmRow = document.getElementById('sms-settings-firm-row');
+  const firmSel = document.getElementById('sms-settings-firm-select');
+  if (firmRow) firmRow.style.display = '';
+  if (firmSel && !firmSel.options.length) {
+    const firms = await sb('firms?is_active=eq.true&select=id,name&order=name').catch(() => []);
+    firmSel.innerHTML = (firms || []).map((f) => `<option value="${f.id}">${f.name}</option>`).join('');
+  }
+  _smsSettingsFirmId = firmSel?.value || currentUser?.firm_id || null;
+  await _renderSmsSettingsForm();
+}
+
+async function onSmsSettingsFirmChange() {
+  _smsSettingsFirmId = document.getElementById('sms-settings-firm-select')?.value || null;
+  _smsCachedConfig = null;
   await _renderSmsSettingsForm();
 }
 
@@ -38,6 +50,7 @@ async function _renderSmsSettingsForm() {
 }
 
 async function saveSmsSettings() {
+  if (!(typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin())) return;
   const fid = _smsSettingsFirmId || currentUser?.firm_id;
   if (!fid) { toast('Firma bulunamadi', 'err'); return; }
 

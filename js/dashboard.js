@@ -36,8 +36,10 @@ document.getElementById('pill-camp').textContent = cs.length;
 document.getElementById('sb-badge-camp').textContent = cs.length;
 } catch(e){}
 try {
-const today = new Date().toISOString().split('T')[0];
-const logs  = await sb(`call_logs?select=id&outcome=eq.appointment&started_at=gte.${today}T00:00:00${ffLive}`);
+const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
+const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
+const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
+const logs  = await sb(`call_logs?select=id&outcome=eq.appointment&started_at=gte.${gte}&started_at=lte.${lte}${ffLive}`);
 document.getElementById('pill-appt').textContent = logs.length;
 } catch(e){}
 try {
@@ -60,7 +62,7 @@ if (fid) {
 }
 
 function _dashCanUseAgentFilter() {
-  return ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+  return mbIsFirmAdmin();
 }
 
 function _dashLogFilter() {
@@ -75,7 +77,7 @@ function _dashLogFilter() {
     const aid = sel && !sel.disabled ? String(sel.value || '').trim() : '';
     if (aid) agentQ = `&agent_id=eq.${aid}`;
   }
-  return { ff, agentQ, onlySelf, isAdmin: ['admin', 'super_admin', 'firm_admin'].includes(role) };
+  return { ff, agentQ, onlySelf, isAdmin: mbIsFirmAdmin(role) };
 }
 
 window._dashRange = window._dashRange || 'today';
@@ -94,16 +96,14 @@ function _dashGetRange() {
 
 function _dashDateBounds() {
   const range = _dashGetRange();
-  const now = new Date();
-  const today = now.toISOString().split('T')[0];
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
   if (range === 'today') return { from: today, to: today, range };
   if (range === 'week') {
-    const d = new Date(now);
-    d.setDate(d.getDate() - 6);
-    return { from: d.toISOString().split('T')[0], to: today, range };
+    const from = typeof mbShiftDate === 'function' ? mbShiftDate(today, -6) : today;
+    return { from, to: today, range };
   }
   if (range === 'month') {
-    const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const from = `${String(today).slice(0, 8)}01`;
     return { from, to: today, range };
   }
   return { from: '2000-01-01', to: today, range };
@@ -111,11 +111,13 @@ function _dashDateBounds() {
 
 function _eachDayInRange(fromStr, toStr) {
   const out = [];
-  const d = new Date(fromStr + 'T12:00:00');
-  const end = new Date(toStr + 'T12:00:00');
-  while (d <= end) {
-    out.push(d.toISOString().split('T')[0]);
-    d.setDate(d.getDate() + 1);
+  let cur = String(fromStr || '');
+  let guard = 0;
+  while (cur && cur <= String(toStr || '') && guard < 4000) {
+    out.push(cur);
+    cur = typeof mbShiftDate === 'function' ? mbShiftDate(cur, 1) : cur;
+    if (typeof mbShiftDate !== 'function') break;
+    guard++;
   }
   return out;
 }
@@ -133,12 +135,13 @@ function _monthKeysLastN(n) {
 }
 
 function _logDayKey(log) {
+  if (typeof mbBerlinDay === 'function') return mbBerlinDay(log.started_at);
   return String(log.started_at || '').slice(0, 10);
 }
 
 function _logMonthKey(log) {
-  const s = String(log.started_at || '');
-  return s.length >= 7 ? s.slice(0, 7) : '';
+  const day = _logDayKey(log);
+  return day.length >= 7 ? day.slice(0, 7) : '';
 }
 
 function _dashUpdateStatLabels(rangeKey) {
@@ -234,7 +237,7 @@ async function populateDashAgentSelect() {
   }
   wrap.style.display = '';
   const prev = sel.value;
-  if (currentUser?.role === 'super_admin' && !getActiveFirmId()) {
+  if (mbIsSuperAdmin() && !getActiveFirmId()) {
     sel.innerHTML = `<option value="">${t('ui.select_firm_first')}</option>`;
     sel.disabled = true;
     return;
@@ -310,7 +313,7 @@ function renderDashHourlyMixed(logs) {
   const hourlyTermin = Array(24).fill(0);
   (logs || []).forEach(l => {
     if (!l.started_at) return;
-    const h = new Date(l.started_at).getHours();
+    const h = typeof mbBerlinHour === 'function' ? mbBerlinHour(l.started_at) : new Date(l.started_at).getHours();
     if (h < 0 || h > 23) return;
     hourly[h]++;
     if (_isTerminOutcome(l.outcome)) hourlyTermin[h]++;
@@ -567,7 +570,7 @@ function renderDashTrendForRange(rangeKey, logs, from, to) {
     const hourly = Array(24).fill(0);
     (logs || []).forEach(l => {
       if (!l.started_at) return;
-      const h = new Date(l.started_at).getHours();
+      const h = typeof mbBerlinHour === 'function' ? mbBerlinHour(l.started_at) : new Date(l.started_at).getHours();
       if (h >= 0 && h <= 23) hourly[h]++;
     });
     const cum = [];
@@ -605,15 +608,125 @@ function renderDashTrendForRange(rangeKey, logs, from, to) {
   renderDashChart7d(counts, labels, { maxTicksLimit: rangeKey === 'month' ? 18 : 10 });
 }
 
+const MB_DASH_ROWS = ['brief', 'eom', 'jobs', 'analytics', 'trend', 'live'];
+let _dashDragKey = '';
+
+function mbDashRowKey() {
+  const id = (typeof currentUser !== 'undefined' && currentUser?.id) ? currentUser.id : 'local';
+  return `mb_dash_rows_${id}`;
+}
+
+function mbApplyDashRowOrder() {
+  const page = document.getElementById('page-dashboard');
+  const anchor = document.getElementById('dash-range-tabs');
+  if (!page || !anchor) return;
+  let order = MB_DASH_ROWS.slice();
+  try {
+    const saved = JSON.parse(localStorage.getItem(mbDashRowKey()) || '[]');
+    if (Array.isArray(saved)) {
+      const known = saved.filter((key) => MB_DASH_ROWS.includes(key));
+      if (!known.includes('brief')) known.unshift('brief');
+      order = known.concat(MB_DASH_ROWS.filter((key) => !known.includes(key)));
+    }
+  } catch (e) {}
+  let after = anchor;
+  order.forEach((key) => {
+    const row = page.querySelector(`.dash-row[data-dash-row="${key}"]`);
+    if (!row) return;
+    after.after(row);
+    after = row;
+  });
+}
+
+function mbSaveDashRowOrder() {
+  const keys = [...document.querySelectorAll('#page-dashboard .dash-row')]
+    .map((row) => row.dataset.dashRow)
+    .filter(Boolean);
+  try { localStorage.setItem(mbDashRowKey(), JSON.stringify(keys)); } catch (e) {}
+  if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+function mbResetDashRows() {
+  try { localStorage.removeItem(mbDashRowKey()); } catch (e) {}
+  mbApplyDashRowOrder();
+  mbSyncDashRows();
+  if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+function mbSyncDashRows() {
+  document.querySelectorAll('#page-dashboard .dash-row').forEach((row) => {
+    const body = [...row.children].find((el) => !el.classList.contains('dash-row-handle'));
+    const hidden = !!body && body.style.display === 'none';
+    row.classList.toggle('is-off', hidden);
+  });
+}
+
+function mbInitDashRows() {
+  const page = document.getElementById('page-dashboard');
+  if (!page || page.dataset.dashRowsReady === '1') return;
+  page.dataset.dashRowsReady = '1';
+  page.addEventListener('dragstart', (e) => {
+    const handle = e.target.closest?.('.dash-row-handle');
+    if (!handle || !page.contains(handle)) return;
+    const row = handle.closest('.dash-row');
+    if (!row) return;
+    _dashDragKey = row.dataset.dashRow || '';
+    row.classList.add('is-dragging');
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', _dashDragKey);
+    }
+  });
+  page.addEventListener('dragend', () => {
+    _dashDragKey = '';
+    page.querySelectorAll('.dash-row').forEach((row) => row.classList.remove('is-dragging', 'is-drop'));
+  });
+  page.addEventListener('dragover', (e) => {
+    if (!_dashDragKey) return;
+    const row = e.target.closest?.('.dash-row');
+    if (!row || row.classList.contains('is-off') || row.dataset.dashRow === _dashDragKey) return;
+    e.preventDefault();
+    page.querySelectorAll('.dash-row.is-drop').forEach((item) => {
+      if (item !== row) item.classList.remove('is-drop');
+    });
+    row.classList.add('is-drop');
+  });
+  page.addEventListener('drop', (e) => {
+    const row = e.target.closest?.('.dash-row');
+    if (!row || !_dashDragKey || row.dataset.dashRow === _dashDragKey) return;
+    e.preventDefault();
+    const from = page.querySelector(`.dash-row[data-dash-row="${_dashDragKey}"]`);
+    if (!from) return;
+    const rect = row.getBoundingClientRect();
+    if (e.clientY > rect.top + rect.height / 2) row.after(from);
+    else row.before(from);
+    row.classList.remove('is-drop');
+    mbSaveDashRowOrder();
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  });
+  const watch = ['dash-eom-card', 'dash-job-market-kpi', 'dash-live-wrap'];
+  const obs = new MutationObserver(() => mbSyncDashRows());
+  watch.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) obs.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+  });
+}
+
 async function loadDashboard() {
+mbInitDashRows();
+mbApplyDashRowOrder();
+const dashRole = typeof mbDashRole === 'function' ? mbDashRole() : 'agent';
+const pageDash = document.getElementById('page-dashboard');
+if (pageDash) pageDash.dataset.dashRole = dashRole;
 renderFirmSelector('dash-firm-selector', loadDashboard);
 await populateDashAgentSelect();
 const { ff, agentQ, onlySelf } = _dashLogFilter();
+let dashLogs = [];
 const costEl = document.getElementById('dash-stat-cost');
 const liveWrap = document.getElementById('dash-live-wrap');
 const subEl = document.getElementById('dash-chart-sub');
 if (costEl) costEl.style.display = onlySelf ? 'none' : '';
-const showLive = ['admin', 'super_admin', 'firm_admin', 'qc'].includes(currentUser?.role || '');
+const showLive = ['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '');
 if (liveWrap) liveWrap.style.display = showLive ? '' : 'none';
 document.querySelectorAll('.dash-range-btn').forEach(b => {
   b.classList.toggle('active', b.dataset.dashRange === _dashGetRange());
@@ -638,11 +751,17 @@ const rangeSuffix =
         ? (isTr ? 'bu ay' : 'diesen Monat')
         : (isTr ? 'seçili aralık' : 'Zeitraum');
 try {
-let qLogs = `call_logs?select=*&started_at=gte.${from}T00:00:00&started_at=lte.${to}T23:59:59`;
+const logGte = typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
+const logLte = typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
+let qLogs = `call_logs?select=*&started_at=gte.${logGte}&started_at=lte.${logLte}`;
 qLogs += ff;
 qLogs += agentQ;
 qLogs += '&limit=8000';
 const logs  = await sb(qLogs) || [];
+if (dashRole === 'qc') {
+  logs.splice(0, logs.length, ...logs.filter((l) => l.outcome === 'appointment' || l.outcome === 'appointment_done'));
+}
+dashLogs = logs;
 if (rangeKey === 'today') {
   renderDashHourlyMixed(logs);
 } else {
@@ -678,6 +797,8 @@ document.getElementById('pill-appt').textContent= appts;
   renderDashHourlyMixed([]);
   renderDashTerminDonut([]);
   renderDashChart7d([0], ['—']);
+  const errSub = document.getElementById('dash-chart-sub');
+  if (errSub) errSub.textContent = (typeof t === 'function' ? t('ui.error_prefix') : 'Hata: ') + (e?.message || '');
 }
 if (showLive) try {
 await renderDashLiveAgents();
@@ -691,6 +812,10 @@ if (typeof loadJobMarketKpi === 'function') {
 if (typeof loadJobFinanceSummary === 'function') {
   try { await loadJobFinanceSummary(); } catch (e) {}
 }
+if (typeof loadDashBrief === 'function') {
+  try { await loadDashBrief({ logs: dashLogs, ff, agentQ, rangeKey, from, to }); } catch (e) { console.warn('brief', e); }
+}
+if (typeof mbSyncDashRows === 'function') mbSyncDashRows();
 }
 
 async function loadStats() {
@@ -701,27 +826,28 @@ try {
 const ff = getFirmFilter('&');
 const dateFilter = document.getElementById('stats-date-f')?.value || 'today';
 const campFilter = document.getElementById('stats-camp-f')?.value || '';
-const now = new Date();
-let dateFrom = now.toISOString().split('T')[0];
-let dateTo = now.toISOString().split('T')[0];
+const todayBiz = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
+let dateFrom = todayBiz;
+let dateTo = todayBiz;
 if (dateFilter === 'week') {
-const d = new Date(now); d.setDate(d.getDate() - 6);
-dateFrom = d.toISOString().split('T')[0];
+dateFrom = typeof mbShiftDate === 'function' ? mbShiftDate(todayBiz, -6) : todayBiz;
 } else if (dateFilter === 'month') {
-dateFrom = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+dateFrom = `${String(todayBiz).slice(0, 8)}01`;
 } else if (dateFilter === 'custom') {
 dateFrom = document.getElementById('stats-date-from')?.value || dateFrom;
 dateTo   = document.getElementById('stats-date-to')?.value   || dateTo;
 }
+const statsGte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
+const statsLte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
 let query = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,duration_sec,users(id,name),campaigns(id,name)${ff}`;
-query += `&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59`;
+query += `&started_at=gte.${statsGte}&started_at=lte.${statsLte}`;
 if (campFilter) query += `&campaign_id=eq.${campFilter}`;
 query += '&order=started_at.desc&limit=2000';
 let logs = [];
 try {
   logs = (await sb(query)) || [];
 } catch (_) {
-  const plain = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,duration_sec${ff}&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59${campFilter ? `&campaign_id=eq.${campFilter}` : ''}&order=started_at.desc&limit=2000`;
+  const plain = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,duration_sec${ff}&started_at=gte.${statsGte}&started_at=lte.${statsLte}${campFilter ? `&campaign_id=eq.${campFilter}` : ''}&order=started_at.desc&limit=2000`;
   logs = (await sb(plain)) || [];
 }
 const groups = {};
@@ -796,11 +922,14 @@ const ff = getFirmFilter('&');
 const search = document.getElementById('ch-search')?.value?.toLowerCase()||'';
 const outcome = document.getElementById('ch-outcome')?.value||'';
 const agentFilter = document.getElementById('ch-agent-f')?.value||'';
-const dateFrom = document.getElementById('ch-date-from')?.value||new Date().toISOString().split('T')[0];
-const dateTo = document.getElementById('ch-date-to')?.value||new Date().toISOString().split('T')[0];
+const chToday = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
+const dateFrom = document.getElementById('ch-date-from')?.value||chToday;
+const dateTo = document.getElementById('ch-date-to')?.value||chToday;
+const chGte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
+const chLte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
 let query = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,phone,duration_sec,contact_id,users(id,name),campaigns(name),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=500`;
-query += `&started_at=gte.${dateFrom}T00:00:00`;
-query += `&started_at=lte.${dateTo}T23:59:59`;
+query += `&started_at=gte.${chGte}`;
+query += `&started_at=lte.${chLte}`;
 if (outcome) query += outcome==='appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
 if (agentFilter) query += `&agent_id=eq.${agentFilter}`;
 let logs = [];
@@ -808,7 +937,7 @@ try {
   logs = (await sb(query)) || [];
 } catch (_) {
   let plain = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,phone,duration_sec,contact_id${ff}&order=started_at.desc&limit=500`;
-  plain += `&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59`;
+  plain += `&started_at=gte.${chGte}&started_at=lte.${chLte}`;
   if (outcome) plain += outcome==='appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
   if (agentFilter) plain += `&agent_id=eq.${agentFilter}`;
   logs = (await sb(plain)) || [];
@@ -926,13 +1055,15 @@ return `<tr>
 async function loadMyHistory() {
 if (!currentUser) return;
 try {
-const today = new Date().toISOString().split('T')[0];
+const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
 const dateFrom = document.getElementById('mh-date-from')?.value || today;
 const dateTo   = document.getElementById('mh-date-to')?.value   || today;
+const mhGte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
+const mhLte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
 const search   = (document.getElementById('mh-search')?.value||'').toLowerCase();
 const outcome  = document.getElementById('mh-outcome')?.value||'';
 let query = `call_logs?select=*,contacts(first_name,last_name,phone),campaigns(name)&agent_id=eq.${currentUser.id}`;
-query += `&started_at=gte.${dateFrom}T00:00:00&started_at=lte.${dateTo}T23:59:59`;
+query += `&started_at=gte.${mhGte}&started_at=lte.${mhLte}`;
 if (outcome) query += outcome === 'appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
 query += '&order=started_at.desc&limit=200';
 const logs = await sb(query) || [];
@@ -1025,11 +1156,15 @@ return `<tr>
 <td>${detailBtn}</td>
 </tr>`;
 }).join('');
-} catch(e){ console.error(e); }
+} catch(e){
+  console.error(e);
+  const tbody = document.getElementById('my-tbody');
+  if (tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(8, (e?.message || 'Hata')) : `<tr><td colspan="8" class="mb-empty-hint">${e?.message || 'Hata'}</td></tr>`;
+}
 }
 
 function initStatsFilters() {
-const today = new Date().toISOString().split('T')[0];
+const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
 const from = document.getElementById('stats-date-from');
 const to   = document.getElementById('stats-date-to');
 if (from) from.value = today;
@@ -1037,7 +1172,7 @@ if (to)   to.value   = today;
 }
 
 function initCallHistoryFilters() {
-const today = new Date().toISOString().split('T')[0];
+const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
 const from = document.getElementById('ch-date-from');
 const to   = document.getElementById('ch-date-to');
 if (from && !from.value) from.value = today;
@@ -1046,7 +1181,7 @@ if (typeof updateCallHistoryExportVisibility === 'function') updateCallHistoryEx
 }
 
 function initMyHistoryFilters() {
-const today = new Date().toISOString().split('T')[0];
+const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
 const from = document.getElementById('mh-date-from');
 const to   = document.getElementById('mh-date-to');
 if (from && !from.value) from.value = today;
@@ -1209,6 +1344,7 @@ function _liveFlip(root, render) {
 function setLiveFloorLayout(mode) {
   const next = (mode === 'rows' || mode === 'strip') ? 'rows' : 'grid';
   try { localStorage.setItem('mb-live-layout', next); } catch (_) {}
+  if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
   _syncLiveLayoutButtons();
   if (typeof _paintDashLive === 'function') _paintDashLive();
   if (typeof _supRenderCards === 'function') _supRenderCards();
@@ -1265,10 +1401,11 @@ function _paintDashLive() {
       const info = _DASH_LIVE_STATUS[st];
       const label = de ? info.de : info.tr;
       const off = filter[st] === false ? ' inactive' : '';
-      return `<button type="button" class="live-filter${off}" style="--dot:${_LIVE_DOT[st]}" onclick="toggleLiveFloorStatus('${st}')"><span class="dot"></span><span class="label">${count(st)} ${label}</span></button>`;
+      const dot = typeof mbLiveDot === 'function' ? mbLiveDot(st) : _LIVE_DOT[st];
+      return `<button type="button" class="live-filter${off}" data-live-status="${st}" style="--dot:${dot}" onclick="toggleLiveFloorStatus('${st}')"><span class="dot"></span><span class="label">${count(st)} ${label}</span></button>`;
     }).join('');
   const visible = rows.filter((s) => filter[s.status] !== false);
-  const isAdmin = ['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '');
+  const isAdmin = mbIsFirmAdmin();
   const asRows = liveFloorLayout() === 'rows';
   const people = visible.map((s) => {
     const st = _DASH_LIVE_STATUS[s.status] ? s.status : 'offline';
@@ -1285,11 +1422,7 @@ function _paintDashLive() {
     const dur = liveClock(since, de);
     const aid = _dashLiveEsc(s.agent_id || '');
     const sinceAttr = _dashLiveEsc(since);
-    const actions = isAdmin ? `<div class="live-actions">
-      <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','ready')">${de ? 'Bereit' : 'Hazır'}</button>
-      <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','break')">${de ? 'Pause' : 'Mola'}</button>
-      <button type="button" class="live-act" onclick="remoteChangeAgentStatus('${aid}','offline')">${de ? 'Offline' : 'Çıkış'}</button>
-    </div>` : '';
+    const actions = (isAdmin && typeof mbLiveActionsHtml === 'function') ? mbLiveActionsHtml(s) : '';
     if (asRows) {
       return `<div class="live-line live-line--${st}${deep}" data-live-id="${aid}" data-since="${sinceAttr}" style="--live-age:${age.toFixed(3)}">
         <div class="live-line-who"><span class="live-av">${initial}</span><span class="live-name">${name}</span></div>
@@ -1298,7 +1431,7 @@ function _paintDashLive() {
         <div class="live-line-clip">${who}</div>
         <div class="live-line-clip">${phone}</div>
         <div class="live-line-clip">${camp}</div>
-        ${isAdmin ? `<div>${actions}</div>` : ''}
+        ${actions}
       </div>`;
     }
     const facts = `<div><dt>${de ? 'Kontakt' : 'Müşteri'}</dt><dd>${who}</dd></div>
@@ -1309,9 +1442,9 @@ function _paintDashLive() {
         <div class="live-av">${initial}</div>
         <div style="min-width:0;flex:1;"><div class="live-name">${name}</div><div class="live-status">${label}</div></div>
         <div class="live-dur" data-clock>${_dashLiveEsc(dur)}</div>
+        ${actions}
       </div>
       <dl class="live-facts">${facts}</dl>
-      ${actions}
     </article>`;
   }).join('');
   const head = asRows ? `<div class="live-rows-head${isAdmin ? ' live-rows-head--act' : ''}">

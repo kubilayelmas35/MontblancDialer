@@ -22,7 +22,7 @@ function _jmEsc(s) {
 }
 
 function _jmCanManage() {
-  return ['super_admin', 'admin', 'firm_admin'].includes(currentUser?.role || '');
+  return mbIsFirmAdmin();
 }
 
 function defaultJobPermissions() {
@@ -70,7 +70,7 @@ function syncJobMarketFilterUi() {
 }
 
 async function applyJobFormDefaultsFromFirm() {
-  const ownerFirmId = currentUser?.role === 'super_admin'
+  const ownerFirmId = mbIsSuperAdmin()
     ? (document.getElementById('jm-owner-firm')?.value || currentUser?.firm_id)
     : (getActiveFirmId() || currentUser?.firm_id);
   if (!ownerFirmId) return;
@@ -543,7 +543,7 @@ function openJobSlotsModal(jobPostId) {
   const post = (_jobPosts || []).find((p) => p.id === jobPostId);
   const slots = (_jobPostSlots || []).filter((s) => s.job_post_id === jobPostId).sort((a, b) => new Date(a.slot_start_at) - new Date(b.slot_start_at));
   const title = post?.title || 'Müsait slotlar';
-  const canManage = post && (post.requester_firm_id === (getActiveFirmId() || currentUser?.firm_id) || currentUser?.role === 'super_admin');
+  const canManage = post && (post.requester_firm_id === (getActiveFirmId() || currentUser?.firm_id) || mbIsSuperAdmin());
   const rows = slots.length
     ? slots.map((s) => {
       const st = s.status || 'open';
@@ -668,12 +668,12 @@ async function loadJobPermissionsSettings() {
   if (!card || !list) return;
   list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:6px 2px;">Yükleniyor...</div>`;
   const role = currentUser?.role || '';
-  const canView = ['super_admin', 'admin', 'firm_admin'].includes(role);
+  const canView = mbIsFirmAdmin(role);
   card.style.display = canView ? '' : 'none';
   if (!canView) return;
   const row = document.getElementById('job-permissions-firm-row');
   const sel = document.getElementById('job-permissions-firm-select');
-  if (role === 'super_admin') {
+  if (mbIsSuperAdmin(role)) {
     if (row) row.style.display = '';
     if (sel && !sel.options.length) {
       const firms = await sb('firms?select=id,name&order=name.asc').catch(() => []);
@@ -765,7 +765,7 @@ async function bindJobOwnerFirmSelector() {
   const row = document.getElementById('jm-owner-firm-row');
   const sel = document.getElementById('jm-owner-firm');
   if (!row || !sel) return;
-  const isSuper = currentUser?.role === 'super_admin';
+  const isSuper = mbIsSuperAdmin();
   row.style.display = isSuper ? '' : 'none';
   if (!isSuper) return;
   if (sel.options.length) return;
@@ -931,7 +931,7 @@ function renderJobPostList() {
     const hasApproved = _jobPostSubs.some((s) => s.job_post_id === p.id && s.status === 'approved');
     const hasApptLinkBlock = p.job_type === 'appointment' && p.status !== 'pending_qc' && _jobPostSubs.some((s) => s.job_post_id === p.id && s.appointment_id && ['submitted', 'qc_pending', 'approved'].includes(s.status));
     const autoPath = p.status === 'pending_qc' || (p.job_type === 'appointment' && !hasApptLinkBlock);
-    const canManagePost = isOwner || currentUser?.role === 'super_admin';
+    const canManagePost = isOwner || mbIsSuperAdmin();
     const canWithdrawUi = canManagePost && ['published', 'in_progress', 'pending_qc'].includes(p.status) && !hasApproved && (autoPath || deadlinePassed) && !hasApptLinkBlock;
     let retractHint = '';
     if (p.status === 'pending_qc') retractHint = ' · QC bekliyor — otomatik geri çekme kuralına uygun';
@@ -974,7 +974,7 @@ ${timeline ? `<div style="font-size:11px;color:var(--text-3);margin-top:6px;">Ti
 async function createJobPost() {
   const perms = await getJobPermissions();
   if (!perms.can_publish_job) { toast('İlan yayınlama yetkiniz yok', 'err'); return; }
-  const ownerFirmId = currentUser?.role === 'super_admin'
+  const ownerFirmId = mbIsSuperAdmin()
     ? (document.getElementById('jm-owner-firm')?.value || currentUser?.firm_id)
     : (getActiveFirmId() || currentUser?.firm_id);
   const title = String(document.getElementById('jm-title')?.value || '').trim();
@@ -1337,7 +1337,7 @@ function setJobPreset(preset) {
 async function loadJobMarketKpi() {
   const wrap = document.getElementById('dash-job-market-kpi');
   if (!wrap) return;
-  const canView = ['super_admin', 'admin', 'firm_admin'].includes(currentUser?.role || '');
+  const canView = mbIsFirmAdmin();
   if (!canView) { wrap.style.display = 'none'; return; }
   const jobs = await sb(`job_posts?select=id,status,created_at,first_submission_at,retraction_deadline_at&order=created_at.desc&limit=400`).catch(() => []);
   if (!jobs?.length) { wrap.style.display = 'none'; return; }

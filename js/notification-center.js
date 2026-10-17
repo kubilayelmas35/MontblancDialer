@@ -65,7 +65,7 @@ async function loadNotificationCenter() {
     (field || []).forEach((t) => {
       const mine = t.assigned_to === currentUser.id;
       const fresh = Date.now() - new Date(t.created_at).getTime() < 48 * 3600 * 1000;
-      if (mine || (fresh && ['admin', 'firm_admin', 'super_admin'].includes(currentUser.role))) unread++;
+      if (mine || (fresh && mbIsFirmAdmin())) unread++;
       out.push(_notifItem('Saha görevi', `Yeni görev atandı · ${t.result_key || 'sonuç bekleniyor'}`, new Date(t.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })));
     });
   } catch (e) {}

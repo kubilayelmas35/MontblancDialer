@@ -24,13 +24,13 @@ async function loadAuditEventsPage() {
   const card = document.getElementById('audit-log-card');
   const list = document.getElementById('audit-log-list');
   if (!card || !list) return;
-  const canView = ['super_admin', 'admin', 'firm_admin'].includes(currentUser?.role || '');
+  const canView = mbIsFirmAdmin();
   card.style.display = canView ? '' : 'none';
   if (!canView) return;
   const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id || '';
   const filter = String(document.getElementById('audit-log-filter')?.value || '').trim();
   let query = `audit_events?order=created_at.desc&limit=60`;
-  if (currentUser?.role !== 'super_admin' && fid) query += `&firm_id=eq.${fid}`;
+  if (!mbIsSuperAdmin() && fid) query += `&firm_id=eq.${fid}`;
   if (filter) query += `&event_type=ilike.*${encodeURIComponent(filter)}*`;
   const rows = await sb(query).catch(() => []);
   if (!rows?.length) {
