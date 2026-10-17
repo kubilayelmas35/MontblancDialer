@@ -144,6 +144,31 @@ async function setFile(f) {
   }
 }
 
+function uqExtraUploadFields() {
+  const camp = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === currentCampId);
+  const fc = typeof mbParseFieldConfig === 'function' ? mbParseFieldConfig(camp) : {};
+  const builtin = new Set(['phone', 'phone2', 'name', 'first_name', 'last_name', 'plz', 'city', 'address', 'attempt']);
+  const extra = [];
+  Object.entries(fc).forEach(([key, spec]) => {
+    if (!spec || typeof spec !== 'object' || builtin.has(key)) return;
+    if (typeof mbFieldShown === 'function' && !mbFieldShown(fc, key, false)) return;
+    if (!/^[A-Za-z0-9_-]+$/.test(key)) return;
+    const label = typeof mbFieldLabel === 'function' ? mbFieldLabel(fc, key, key) : (spec.label || key);
+    extra.push({ key, label, store: key === 'notes' ? 'notes' : 'extra' });
+  });
+  return extra;
+}
+
+function uqGuessHeader(label) {
+  const fold = (value) => String(value || '').toLocaleLowerCase('tr-TR').replace(/[^a-z0-9ğüşöçı]/gi, '');
+  const want = fold(label);
+  if (!want) return -1;
+  return (uploadHeaders || []).findIndex((header, i) => {
+    const got = fold((uploadHeaderLabels && uploadHeaderLabels[i]) || header);
+    return got && (got === want || got.includes(want) || want.includes(got));
+  });
+}
+
 function renderColumnMapping() {
   const grid = document.getElementById('uq-mapping-grid');
   if (!grid) return;
@@ -151,18 +176,22 @@ function renderColumnMapping() {
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   const title = document.getElementById('uq-map-title');
   if (title) title.textContent = uqSay('uq.map.title', 'Sütun eşleştirme');
-  grid.innerHTML = UQ_TARGET_FIELDS.map((field) => {
-    const picked = auto[field.key];
+  const fields = [
+    ...UQ_TARGET_FIELDS.map((field) => ({ ...field, label: uqSay(field.labelKey, field.key), store: 'column' })),
+    ...uqExtraUploadFields(),
+  ];
+  grid.innerHTML = fields.map((field) => {
+    const guessed = field.store === 'column' ? auto[field.key] : uqGuessHeader(field.label);
+    const picked = guessed == null || guessed < 0 ? '' : String(guessed);
     const options = uploadHeaders.map((h, i) => {
       const label = (uploadHeaderLabels && uploadHeaderLabels[i]) || h;
-      return `<option value="${i}" ${picked === i ? 'selected' : ''}>${esc(label)}</option>`;
+      return `<option value="${i}" ${picked === String(i) ? 'selected' : ''}>${esc(label)}</option>`;
     }).join('');
     const placeholder = field.required
       ? uqSay('uq.map.required', '— Seç (Zorunlu) —')
       : uqSay('uq.map.skip', '— Kullanma —');
-    const fieldLabel = uqSay(field.labelKey, field.key);
     return `<div>
-<div class="form-label" style="margin-bottom:4px;">${esc(fieldLabel)}</div>
+<div class="form-label" style="margin-bottom:4px;">${esc(field.label)}</div>
 <select class="form-input" id="uq-map-${field.key}" onchange="updateUploadPreview()">
 <option value="">${esc(placeholder)}</option>
 ${options}
@@ -179,17 +208,23 @@ function updateUploadPreview() {
   if (!sample.length) return;
   preview.style.display = '';
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const labels = {};
+  uqExtraUploadFields().forEach((field) => { labels[field.key] = field.label; });
   rows.innerHTML = sample.map((row) => {
     const mapped = mbRowFromMapping(row, getUploadMapping());
+    const view = { ...mapped };
+    delete view.extra;
+    Object.entries(mapped.extra || {}).forEach(([key, value]) => { view[labels[key] || key] = value; });
     return `<div style="background:var(--bg-2);border-radius:4px;padding:5px 8px;margin-bottom:4px;font-size:10px;display:flex;gap:8px;flex-wrap:wrap;">
-${Object.entries(mapped).filter(([,v])=>v).map(([k,v])=>`<span><b style="color:var(--accent)">${esc(k)}:</b> ${esc(v)}</span>`).join(' · ')}
+${Object.entries(view).filter(([,v]) => v && typeof v !== 'object').map(([k,v]) => `<span><b style="color:var(--accent)">${esc(k)}:</b> ${esc(v)}</span>`).join(' · ')}
 </div>`;
   }).join('');
 }
 
 function getUploadMapping() {
   const map = {};
-  UQ_TARGET_FIELDS.forEach((f) => {
+  const fields = [...UQ_TARGET_FIELDS, ...uqExtraUploadFields()];
+  fields.forEach((f) => {
     const sel = document.getElementById(`uq-map-${f.key}`)?.value;
     if (sel === '' || sel == null) return;
     const idx = Number(sel);
@@ -212,7 +247,13 @@ function mbRowFromMapping(row, mapping) {
     last = split.last_name;
   }
   const norm = (v) => (typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(v) : v);
-  return {
+  const extra = {};
+  uqExtraUploadFields().forEach((field) => {
+    if (field.store !== 'extra') return;
+    const value = get(field.key);
+    if (value) extra[field.key] = value;
+  });
+  const rowOut = {
     phone: norm(get('phone')),
     phone2: norm(get('phone2')),
     first_name: first,
@@ -221,6 +262,10 @@ function mbRowFromMapping(row, mapping) {
     plz: get('plz'),
     address: get('address'),
   };
+  const notes = get('notes');
+  if (notes) rowOut.notes = notes;
+  if (Object.keys(extra).length) rowOut.extra = extra;
+  return rowOut;
 }
 
 function mbUploadFailText(err) {

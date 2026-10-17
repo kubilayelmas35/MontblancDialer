@@ -225,9 +225,8 @@ function showCustomerCard(c) {
   showPrevCallInfo(c);
   showCampScript(c);
   const camp = campaigns.find(x=>x.id===c.campaign_id);
-  let fc = {};
-  try { fc = camp?.field_config ? JSON.parse(camp.field_config) : {}; } catch(e) {}
-  const show = (key, def=true) => fc[key] !== undefined ? fc[key] : def;
+  const fc = typeof mbParseFieldConfig === 'function' ? mbParseFieldConfig(camp) : {};
+  const show = (key, def=true) => (typeof mbFieldShown === 'function' ? mbFieldShown(fc, key, def) : def);
   const name = show('name') ? `${c.first_name||''} ${c.last_name||''}`.trim()||c.phone : c.phone;
   const avEl = document.getElementById('cust-av');
   const avLetter = (c.first_name||c.phone||'?').charAt(0).toUpperCase();
@@ -240,13 +239,20 @@ function showCustomerCard(c) {
   document.getElementById('cust-attempt-badge').textContent = uqSay('dial.attempt', '{n}. arama', { n: c.attempt_count || 1 });
   document.getElementById('cust-camp-badge').textContent  = camp?.name||'—';
   document.getElementById('cust-queue-badge').textContent = c.queues?.name||c.queue_name||'—';
+  const labelOf = (key, fallback) => (typeof mbFieldLabel === 'function' ? mbFieldLabel(fc, key, fallback) : fallback);
   const allFields = [
-    { key:'plz',     l:'PLZ',                                      v:c.plz,    mono:true },
-    { key:'city',    l:(typeof t === 'function' ? t('cont.field.city') : 'Şehir'),          v:c.city },
-    { key:'address', l:(typeof t === 'function' ? t('cont.field.address') : 'Adres'),        v:c.address },
-    { key:'phone2',  l:(typeof t === 'function' ? t('cont.field.phone2') : '2. Telefon'),    v:c.phone2 },
-    { key:'notes',   l:(typeof t === 'function' ? t('cont.field.notes') : 'Not'),            v:c.notes },
+    { key:'plz',     l:labelOf('plz', 'PLZ'),                                      v:c.plz,    mono:true },
+    { key:'city',    l:labelOf('city', (typeof t === 'function' ? t('cont.field.city') : 'Şehir')),          v:c.city },
+    { key:'address', l:labelOf('address', (typeof t === 'function' ? t('cont.field.address') : 'Adres')),        v:c.address },
+    { key:'phone2',  l:labelOf('phone2', (typeof t === 'function' ? t('cont.field.phone2') : '2. Telefon')),    v:c.phone2 },
+    { key:'notes',   l:labelOf('notes', (typeof t === 'function' ? t('cont.field.notes') : 'Not')),            v:c.notes },
   ];
+  const extraBag = c.extra && typeof c.extra === 'object' ? c.extra : {};
+  const builtin = new Set(['phone', 'phone2', 'name', 'plz', 'city', 'address', 'attempt', 'notes']);
+  Object.entries(fc).forEach(([key, spec]) => {
+    if (!spec || typeof spec !== 'object' || builtin.has(key) || !show(key, false)) return;
+    allFields.push({ key, l: labelOf(key, key), v: extraBag[key] || '', extra: true });
+  });
   const terminFields = dialerTerminFields(camp, c);
   const visibleFields = allFields.filter(f => show(f.key));
   document.getElementById('cust-fields').innerHTML = visibleFields.map(f=>{

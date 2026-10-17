@@ -37,6 +37,12 @@ async function saveFieldEdit(fieldKey, fieldLabel, inputEl, valEl, btnEl) {
     else if (fieldKey === 'address') updateData.address = newVal;
     else if (fieldKey === 'phone2') updateData.phone2 = newVal;
     else if (fieldKey === 'notes') updateData.notes = newVal;
+    else {
+      const extra = { ...(currentContact.extra && typeof currentContact.extra === 'object' ? currentContact.extra : {}) };
+      extra[fieldKey] = newVal;
+      updateData.extra = extra;
+      currentContact.extra = extra;
+    }
     await sb(`contacts?id=eq.${currentContact.id}`, {
       method: 'PATCH', prefer: 'return=minimal',
       body: JSON.stringify(updateData)

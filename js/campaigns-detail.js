@@ -1,30 +1,75 @@
 // Kampanya alanları ve detay sekmeleri — campaigns.js ile aynı kapsam
+function mbParseFieldConfig(camp) {
+  let fc = camp?.field_config;
+  if (!fc) return {};
+  if (typeof fc === 'string') {
+    try { fc = JSON.parse(fc); } catch (e) { return {}; }
+  }
+  return fc && typeof fc === 'object' ? fc : {};
+}
+
+function mbFieldShown(fc, key, fallback) {
+  const spec = fc?.[key];
+  if (spec == null) return !!fallback;
+  if (typeof spec === 'boolean') return spec;
+  if (typeof spec.show === 'boolean') return spec.show;
+  return !!fallback;
+}
+
+function mbFieldLabel(fc, key, fallback) {
+  const spec = fc?.[key];
+  if (spec && typeof spec === 'object' && spec.label) return String(spec.label);
+  return fallback;
+}
+
+function mbDefaultCampFields() {
+  return [
+    { key: 'phone', defaultLabel: 'Telefon', type: 'text', show: true, locked: true },
+    { key: 'phone2', defaultLabel: 'Telefon 2', type: 'text', show: true, locked: false },
+    { key: 'name', defaultLabel: 'Ad / Soyad', type: 'text', show: true, locked: false },
+    { key: 'plz', defaultLabel: 'PLZ', type: 'text', show: true, locked: false },
+    { key: 'city', defaultLabel: 'Şehir', type: 'text', show: true, locked: false },
+    { key: 'address', defaultLabel: 'Adres', type: 'text', show: true, locked: false },
+    { key: 'attempt', defaultLabel: 'Arama Sayısı', type: 'number', show: true, locked: false },
+    { key: 'notes', defaultLabel: 'Notlar', type: 'text', show: false, locked: false },
+    { key: 'custom1', defaultLabel: 'Özel Alan 1', type: 'text', show: false, locked: false },
+    { key: 'custom2', defaultLabel: 'Özel Alan 2', type: 'text', show: false, locked: false },
+    { key: 'custom3', defaultLabel: 'Özel Alan 3', type: 'number', show: false, locked: false },
+  ];
+}
+
+function mbMergeCampFields(fc) {
+  const defaults = mbDefaultCampFields();
+  const known = new Set(defaults.map((f) => f.key));
+  const fields = defaults.map((f) => ({
+    ...f,
+    show: fc?.[f.key]?.show !== undefined ? fc[f.key].show : (typeof fc?.[f.key] === 'boolean' ? fc[f.key] : f.show),
+    label: fc?.[f.key]?.label || f.defaultLabel,
+    type: fc?.[f.key]?.type || f.type,
+    options: Array.isArray(fc?.[f.key]?.options) ? fc[f.key].options : [],
+  }));
+  Object.entries(fc || {}).forEach(([key, spec]) => {
+    if (known.has(key) || !spec || typeof spec !== 'object') return;
+    fields.push({
+      key,
+      defaultLabel: spec.label || key,
+      label: spec.label || key,
+      type: spec.type || 'text',
+      show: spec.show !== false,
+      locked: false,
+      options: Array.isArray(spec.options) ? spec.options : [],
+    });
+  });
+  return fields;
+}
+
 // ── Alan ayarları ──────────────────────────────
 function openCampFieldSettings(campId) {
 const camp = campaigns.find(c => c.id === campId);
 if (!camp) { toast('Kampanya bulunamadı','err'); return; }
 _fsCampId = campId;
-let fc = {};
-try { fc = camp.field_config ? (typeof camp.field_config==='string'?JSON.parse(camp.field_config):camp.field_config) : {}; } catch(e) {}
-const DEFAULT_FIELDS = [
-{key:'phone',   defaultLabel:'Telefon',      type:'text',   show:true,  locked:true},
-{key:'phone2',  defaultLabel:'Telefon 2',    type:'text',   show:true,  locked:false},
-{key:'name',    defaultLabel:'Ad / Soyad',   type:'text',   show:true,  locked:false},
-{key:'plz',     defaultLabel:'PLZ',          type:'text',   show:true,  locked:false},
-{key:'city',    defaultLabel:'Şehir',        type:'text',   show:true,  locked:false},
-{key:'address', defaultLabel:'Adres',        type:'text',   show:true,  locked:false},
-{key:'attempt', defaultLabel:'Arama Sayısı', type:'number', show:true,  locked:false},
-{key:'notes',   defaultLabel:'Notlar',       type:'text',   show:false, locked:false},
-{key:'custom1', defaultLabel:'Özel Alan 1',  type:'text',   show:false, locked:false},
-{key:'custom2', defaultLabel:'Özel Alan 2',  type:'text',   show:false, locked:false},
-{key:'custom3', defaultLabel:'Özel Alan 3',  type:'number', show:false, locked:false},
-];
-_fsFields = DEFAULT_FIELDS.map(f => ({
-...f,
-show:  fc[f.key]?.show  !== undefined ? fc[f.key].show  : f.show,
-label: fc[f.key]?.label || f.defaultLabel,
-type:  fc[f.key]?.type  || f.type,
-}));
+const fc = mbParseFieldConfig(camp);
+_fsFields = mbMergeCampFields(fc);
 document.getElementById('m-field-settings')?.remove();
 const modal = document.createElement('div');
 modal.id = 'm-field-settings';
@@ -111,13 +156,13 @@ ${vis.map(f=>`<div style="background:var(--bg-3);border:1px solid var(--border);
 }
 
 async function saveCampFieldSettings(campId) {
-const KEYS = ['name','phone','phone2','plz','city','address','attempt','notes','custom1','custom2','custom3'];
 const fc = {};
 _fsFields.forEach(f => {
 fc[f.key || f.defaultKey] = {
 show:  f.show,
 label: f.label,
 type:  f.type,
+options: Array.isArray(f.options) ? f.options : [],
 };
 });
 try {
@@ -308,22 +353,8 @@ if (!container) return;
 const camp = campaigns.find(c=>c.id===currentCampId);
 if (!camp) return;
 _fsCampId = currentCampId;
-let fc = {};
-try { fc = camp.field_config ? (typeof camp.field_config==='string'?JSON.parse(camp.field_config):camp.field_config) : {}; } catch(e) {}
-const DEFAULT_FIELDS = [
-{key:'phone',defaultLabel:'Telefon',type:'text',show:true,locked:true},
-{key:'phone2',defaultLabel:'Telefon 2',type:'text',show:true,locked:false},
-{key:'name',defaultLabel:'Ad / Soyad',type:'text',show:true,locked:false},
-{key:'plz',defaultLabel:'PLZ',type:'text',show:true,locked:false},
-{key:'city',defaultLabel:'Şehir',type:'text',show:true,locked:false},
-{key:'address',defaultLabel:'Adres',type:'text',show:true,locked:false},
-{key:'attempt',defaultLabel:'Arama Sayısı',type:'number',show:true,locked:false},
-{key:'notes',defaultLabel:'Notlar',type:'text',show:false,locked:false},
-{key:'custom1',defaultLabel:'Özel Alan 1',type:'text',show:false,locked:false},
-{key:'custom2',defaultLabel:'Özel Alan 2',type:'text',show:false,locked:false},
-{key:'custom3',defaultLabel:'Özel Alan 3',type:'number',show:false,locked:false},
-];
-_fsFields = DEFAULT_FIELDS.map(f=>({...f,show:fc[f.key]?.show!==undefined?fc[f.key].show:f.show,label:fc[f.key]?.label||f.defaultLabel,type:fc[f.key]?.type||f.type}));
+const fc = mbParseFieldConfig(camp);
+_fsFields = mbMergeCampFields(fc);
 container.innerHTML = `
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
 <div>
