@@ -387,6 +387,7 @@ updateSessionInDB('on_call', {
   call_started_at: new Date().toISOString(),
 });
 }
+if (typeof switchContactTab === 'function') switchContactTab('info');
 } else if (subLabels[state] && label) {
 label.textContent = subLabels[state][currentLang] || subLabels[state].tr;
 }

@@ -656,7 +656,7 @@ function showOutboundWait() {
   }
   if (data) data.style.display = 'none';
   if (root) {
-    root.style.display = '';
+    root.style.display = 'none';
     root.classList.add('cust-empty--outbound-wait');
     root.classList.remove('cust-empty--ringing');
   }

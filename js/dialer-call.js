@@ -917,9 +917,11 @@ async function submitOutcome(goBreak) {
           if (tog) tog.checked = false;
           refreshAutoDialUi();
         } else {
+          if (typeof showOutboundWait === 'function') showOutboundWait();
           setTimeout(() => dialNext(), 1200);
         }
       } else {
+        if (typeof showOutboundWait === 'function') showOutboundWait();
         setTimeout(() => dialNext(), 1200);
       }
     }
