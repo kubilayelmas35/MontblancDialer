@@ -697,6 +697,12 @@ function mbDialSpeed() {
   return mbCampaignDialSpeed(selectedCampId);
 }
 
+function mbSharedDialSpeed(speed, openCount) {
+  const s = Math.min(10, Math.max(1, Number(speed) || 1));
+  const n = Math.max(1, Number(openCount) || 1);
+  return Math.max(1, Math.floor(s / n));
+}
+
 function mbPoolPlan(ready, speed, ringing) {
   const r = Math.max(0, Number(ready) || 0);
   const s = Math.min(10, Math.max(1, Number(speed) || 1));
@@ -725,8 +731,8 @@ function mbRefreshHopperUi() {
   if (sub && dialerStatus === 'calling') {
     if (plan && plan.multi) {
       sub.textContent = typeof tReplace === 'function'
-        ? tReplace('dial.hopper.ratio_multi', { ready: plan.ready, target: plan.target })
-        : `Hazır ${plan.ready} · her kampanya kendi hızı · hedef ${plan.target}`;
+        ? tReplace('dial.hopper.ratio_multi', { ready: plan.ready, open: plan.open, target: plan.target })
+        : `Hazır ${plan.ready} · hız ${plan.open} kampanyaya bölünür · hedef ${plan.target}`;
     } else if (plan) {
       sub.textContent = typeof tReplace === 'function'
         ? tReplace('dial.hopper.ratio', { ready: plan.ready, speed: plan.speed, target: plan.target })
@@ -894,10 +900,11 @@ async function mbSyncPool() {
     const ready = await mbCountReadyAgents();
     const remoteMap = await mbRemoteRingingByCampaign(ids);
     const ringingLocal = (cid) => _hopper.filter((r) => (r.phase === 'dialing' || r.phase === 'ringing') && String(r.contact?.campaign_id || '') === String(cid));
+    const openCount = ids.length;
     const plans = ids.map((cid) => {
       const local = ringingLocal(cid);
       const remote = remoteMap[String(cid)] || 0;
-      const plan = mbPoolPlan(ready, mbCampaignDialSpeed(cid), local.length + remote);
+      const plan = mbPoolPlan(ready, mbSharedDialSpeed(mbCampaignDialSpeed(cid), openCount), local.length + remote);
       plan.campId = cid;
       plan.local = local;
       return plan;
@@ -906,6 +913,7 @@ async function mbSyncPool() {
     _poolPlan = {
       ready,
       speed: plans.length === 1 ? plans[0].speed : null,
+      open: openCount,
       target: totalTarget,
       multi: plans.length > 1,
     };
