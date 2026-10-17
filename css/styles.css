@@ -1566,7 +1566,7 @@ DASHBOARD
   color:inherit; font-size:11px; font-weight:700;
 }
 .live-act:hover { filter:brightness(1.08); }
-.live-rows { display:flex; flex-direction:column; gap:2px; min-width:760px; }
+.live-rows { display:flex; flex-direction:column; gap:6px; min-width:760px; }
 .live-rows-head, .live-line {
   display:grid;
   grid-template-columns: 1.3fr .8fr .75fr 1.15fr 1fr 1fr;
@@ -1578,7 +1578,13 @@ DASHBOARD
   grid-template-columns: 1.15fr .7fr .7fr 1fr .9fr .9fr auto;
 }
 .live-rows-head { font-size:11px; font-weight:700; color:var(--text-3); padding-bottom:2px; }
-.live-line { border-radius:3px; min-width:0; }
+.live-line {
+  border-radius:10px;
+  min-width:0;
+  background:
+    linear-gradient(105deg, color-mix(in srgb, #fff 22%, transparent), transparent 58%),
+    linear-gradient(90deg, var(--tone-a), color-mix(in srgb, var(--tone-b) calc(var(--live-age) * 100%), var(--tone-a)));
+}
 .live-line .live-status { margin-top:0; }
 .live-line .live-dur { margin-left:0; }
 .live-line-who { display:flex; align-items:center; gap:8px; min-width:0; }
