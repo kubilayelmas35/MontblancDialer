@@ -1522,7 +1522,9 @@ DASHBOARD
   --tone-b: #424242;
   --ink: #fff;
   --live-age: 0;
-  background: color-mix(in srgb, var(--tone-b) calc(var(--live-age) * 100%), var(--tone-a));
+  background:
+    linear-gradient(105deg, color-mix(in srgb, #fff 22%, transparent), transparent 58%),
+    linear-gradient(90deg, var(--tone-a), color-mix(in srgb, var(--tone-b) calc(var(--live-age) * 100%), var(--tone-a)));
   color: #fff;
   border-color: transparent;
   transition: background-color .6s linear, color .6s linear;
@@ -1578,13 +1580,7 @@ DASHBOARD
   grid-template-columns: 1.15fr .7fr .7fr 1fr .9fr .9fr auto;
 }
 .live-rows-head { font-size:11px; font-weight:700; color:var(--text-3); padding-bottom:2px; }
-.live-line {
-  border-radius:10px;
-  min-width:0;
-  background:
-    linear-gradient(105deg, color-mix(in srgb, #fff 22%, transparent), transparent 58%),
-    linear-gradient(90deg, var(--tone-a), color-mix(in srgb, var(--tone-b) calc(var(--live-age) * 100%), var(--tone-a)));
-}
+.live-line { border-radius:10px; min-width:0; }
 .live-line .live-status { margin-top:0; }
 .live-line .live-dur { margin-left:0; }
 .live-line-who { display:flex; align-items:center; gap:8px; min-width:0; }
