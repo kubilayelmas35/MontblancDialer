@@ -56,12 +56,12 @@ align-items:stretch;
   min-width: 0;
 }
 #page-dialer .dialer-layout > div:first-child > #customer-card:not(.customer-card--empty) {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   min-height: min-content;
   min-width: 0;
   height: auto;
   overflow: visible;
-  justify-content: safe center;
+  justify-content: flex-start;
 }
 #page-dialer #customer-card:not(.customer-card--empty) > #cust-empty {
   display: none !important;
