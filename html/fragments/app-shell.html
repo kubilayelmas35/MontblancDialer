@@ -352,12 +352,15 @@
 <div class="stat-meta" id="d-avg">ort. 0sn/çağrı</div>
 </div>
 </div>
-<div class="dash-range-tabs" role="tablist" aria-label="Özet zaman aralığı">
+<div class="dash-range-tabs" id="dash-range-tabs" role="tablist" aria-label="Özet zaman aralığı">
 <button type="button" class="dash-range-btn active" data-dash-range="today" data-tr="Bugün" data-de="Heute" onclick="setDashRange('today')">Bugün</button>
 <button type="button" class="dash-range-btn" data-dash-range="week" data-tr="Bu hafta" data-de="Diese Woche" onclick="setDashRange('week')">Bu hafta</button>
 <button type="button" class="dash-range-btn" data-dash-range="month" data-tr="Bu ay" data-de="Dieser Monat" onclick="setDashRange('month')">Bu ay</button>
 <button type="button" class="dash-range-btn" data-dash-range="all" data-tr="Tüm zamanlar" data-de="Gesamt" onclick="setDashRange('all')">Tüm zamanlar</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbResetDashRows()"><span data-tr="Varsayılan sıra" data-de="Standardreihenfolge">Varsayılan sıra</span></button>
 </div>
+<div class="dash-row" data-dash-row="eom">
+<button type="button" class="dash-row-handle" draggable="true" data-tr-aria="Satırı taşı" data-de-aria="Zeile verschieben" data-tr-title="Satırı taşı" data-de-title="Zeile verschieben" aria-label="Satırı taşı" title="Satırı taşı"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg></button>
 <div class="card" id="dash-eom-card" style="display:flex;flex-wrap:wrap;align-items:stretch;gap:16px;padding:18px 20px;margin-bottom:4px;background:linear-gradient(135deg,rgba(37,99,235,.08),transparent);border:1px solid var(--border);">
 <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:220px;">
 <div id="dash-eom-av" style="width:56px;height:56px;border-radius:14px;background:var(--bg-3);color:var(--text);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></div>
@@ -371,6 +374,9 @@
 </div>
 </div>
 </div>
+</div>
+<div class="dash-row is-off" data-dash-row="jobs">
+<button type="button" class="dash-row-handle" draggable="true" data-tr-aria="Satırı taşı" data-de-aria="Zeile verschieben" data-tr-title="Satırı taşı" data-de-title="Zeile verschieben" aria-label="Satırı taşı" title="Satırı taşı"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg></button>
 <div class="card" id="dash-job-market-kpi" style="display:none;padding:12px;">
 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
 <div style="font-size:13px;font-weight:800;" data-tr="İş Platformu KPI" data-de="Auftragsplattform-KPI">İş Platformu KPI</div>
@@ -382,6 +388,9 @@
 <div style="padding:8px;background:var(--bg-3);border-radius:8px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Tamamlanan" data-de="Abgeschlossen">Tamamlanan</div><div id="kpi-job-done" style="font-size:18px;font-weight:800;">0</div></div>
 </div>
 </div>
+</div>
+<div class="dash-row" data-dash-row="analytics">
+<button type="button" class="dash-row-handle" draggable="true" data-tr-aria="Satırı taşı" data-de-aria="Zeile verschieben" data-tr-title="Satırı taşı" data-de-title="Zeile verschieben" aria-label="Satırı taşı" title="Satırı taşı"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg></button>
 <div class="dash-analytics-grid">
 <div class="card" id="dash-hourly-card">
 <div class="card-hdr">
@@ -402,6 +411,9 @@
 <div class="dash-chart-box"><canvas id="dash-chart-outcomes"></canvas></div>
 </div>
 </div>
+</div>
+<div class="dash-row" data-dash-row="trend">
+<button type="button" class="dash-row-handle" draggable="true" data-tr-aria="Satırı taşı" data-de-aria="Zeile verschieben" data-tr-title="Satırı taşı" data-de-title="Zeile verschieben" aria-label="Satırı taşı" title="Satırı taşı"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg></button>
 <div class="card" id="dash-chart-card">
 <div class="card-hdr">
 <div>
@@ -413,6 +425,9 @@
 <canvas id="dash-chart-7d"></canvas>
 </div>
 </div>
+</div>
+<div class="dash-row" data-dash-row="live">
+<button type="button" class="dash-row-handle" draggable="true" data-tr-aria="Satırı taşı" data-de-aria="Zeile verschieben" data-tr-title="Satırı taşı" data-de-title="Zeile verschieben" aria-label="Satırı taşı" title="Satırı taşı"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg></button>
 <div class="card" id="dash-live-wrap">
 <div class="card-hdr">
 <div>
@@ -429,6 +444,7 @@
 </div>
 <div id="live-agents">
 <div style="color:var(--text-3);text-align:center;padding:24px;font-size:13px;">Veri yükleniyor...</div>
+</div>
 </div>
 </div>
 </div>

@@ -608,7 +608,110 @@ function renderDashTrendForRange(rangeKey, logs, from, to) {
   renderDashChart7d(counts, labels, { maxTicksLimit: rangeKey === 'month' ? 18 : 10 });
 }
 
+const MB_DASH_ROWS = ['eom', 'jobs', 'analytics', 'trend', 'live'];
+let _dashDragKey = '';
+
+function mbDashRowKey() {
+  const id = (typeof currentUser !== 'undefined' && currentUser?.id) ? currentUser.id : 'local';
+  return `mb_dash_rows_${id}`;
+}
+
+function mbApplyDashRowOrder() {
+  const page = document.getElementById('page-dashboard');
+  const anchor = document.getElementById('dash-range-tabs');
+  if (!page || !anchor) return;
+  let order = MB_DASH_ROWS.slice();
+  try {
+    const saved = JSON.parse(localStorage.getItem(mbDashRowKey()) || '[]');
+    if (Array.isArray(saved)) {
+      const known = saved.filter((key) => MB_DASH_ROWS.includes(key));
+      order = known.concat(MB_DASH_ROWS.filter((key) => !known.includes(key)));
+    }
+  } catch (e) {}
+  let after = anchor;
+  order.forEach((key) => {
+    const row = page.querySelector(`.dash-row[data-dash-row="${key}"]`);
+    if (!row) return;
+    after.after(row);
+    after = row;
+  });
+}
+
+function mbSaveDashRowOrder() {
+  const keys = [...document.querySelectorAll('#page-dashboard .dash-row')]
+    .map((row) => row.dataset.dashRow)
+    .filter(Boolean);
+  try { localStorage.setItem(mbDashRowKey(), JSON.stringify(keys)); } catch (e) {}
+}
+
+function mbResetDashRows() {
+  try { localStorage.removeItem(mbDashRowKey()); } catch (e) {}
+  mbApplyDashRowOrder();
+  mbSyncDashRows();
+}
+
+function mbSyncDashRows() {
+  document.querySelectorAll('#page-dashboard .dash-row').forEach((row) => {
+    const body = [...row.children].find((el) => !el.classList.contains('dash-row-handle'));
+    const hidden = !!body && body.style.display === 'none';
+    row.classList.toggle('is-off', hidden);
+  });
+}
+
+function mbInitDashRows() {
+  const page = document.getElementById('page-dashboard');
+  if (!page || page.dataset.dashRowsReady === '1') return;
+  page.dataset.dashRowsReady = '1';
+  page.addEventListener('dragstart', (e) => {
+    const handle = e.target.closest?.('.dash-row-handle');
+    if (!handle || !page.contains(handle)) return;
+    const row = handle.closest('.dash-row');
+    if (!row) return;
+    _dashDragKey = row.dataset.dashRow || '';
+    row.classList.add('is-dragging');
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', _dashDragKey);
+    }
+  });
+  page.addEventListener('dragend', () => {
+    _dashDragKey = '';
+    page.querySelectorAll('.dash-row').forEach((row) => row.classList.remove('is-dragging', 'is-drop'));
+  });
+  page.addEventListener('dragover', (e) => {
+    if (!_dashDragKey) return;
+    const row = e.target.closest?.('.dash-row');
+    if (!row || row.classList.contains('is-off') || row.dataset.dashRow === _dashDragKey) return;
+    e.preventDefault();
+    page.querySelectorAll('.dash-row.is-drop').forEach((item) => {
+      if (item !== row) item.classList.remove('is-drop');
+    });
+    row.classList.add('is-drop');
+  });
+  page.addEventListener('drop', (e) => {
+    const row = e.target.closest?.('.dash-row');
+    if (!row || !_dashDragKey || row.dataset.dashRow === _dashDragKey) return;
+    e.preventDefault();
+    const from = page.querySelector(`.dash-row[data-dash-row="${_dashDragKey}"]`);
+    if (!from) return;
+    const rect = row.getBoundingClientRect();
+    if (e.clientY > rect.top + rect.height / 2) row.after(from);
+    else row.before(from);
+    row.classList.remove('is-drop');
+    mbSaveDashRowOrder();
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  });
+  const watch = ['dash-eom-card', 'dash-job-market-kpi', 'dash-live-wrap'];
+  const obs = new MutationObserver(() => mbSyncDashRows());
+  watch.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) obs.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+  });
+}
+
 async function loadDashboard() {
+mbInitDashRows();
+mbApplyDashRowOrder();
 renderFirmSelector('dash-firm-selector', loadDashboard);
 await populateDashAgentSelect();
 const { ff, agentQ, onlySelf } = _dashLogFilter();
@@ -698,6 +801,7 @@ if (typeof loadJobMarketKpi === 'function') {
 if (typeof loadJobFinanceSummary === 'function') {
   try { await loadJobFinanceSummary(); } catch (e) {}
 }
+if (typeof mbSyncDashRows === 'function') mbSyncDashRows();
 }
 
 async function loadStats() {
