@@ -185,6 +185,36 @@ function _markMissingTerminFields(keys) {
   });
 }
 
+function _releaseBookedContact(contact) {
+  const id = contact?.id ? String(contact.id) : '';
+  if (id && typeof _hopperSkip !== 'undefined' && _hopperSkip && typeof _hopperSkip.set === 'function') {
+    _hopperSkip.set(id, Date.now() + 10 * 60 * 1000);
+  }
+  if (id && typeof _hopper !== 'undefined' && Array.isArray(_hopper)) {
+    _hopper = _hopper.filter((row) => {
+      if (String(row?.contact?.id || '') !== id) return true;
+      try { row.call?.hangup(); } catch (e) {}
+      if (typeof _liveCallId !== 'undefined' && row.id === _liveCallId) _liveCallId = null;
+      return false;
+    });
+    if (typeof _outboundDialPending !== 'undefined') {
+      _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
+    }
+  }
+  const otherStillUp = typeof _hopper !== 'undefined' && Array.isArray(_hopper) && _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'live' || r.phase === 'hold');
+  if (otherStillUp) return;
+  try {
+    if (typeof sendToRTC === 'function' && (_telnyxCall || _outboundDialPending || _fakeCallActive)) sendToRTC('MB_HANGUP');
+  } catch (e) {}
+  if (typeof _telnyxCall !== 'undefined') _telnyxCall = null;
+  if (typeof _fakeCallActive !== 'undefined') _fakeCallActive = false;
+  if (typeof _outboundDialPending !== 'undefined') _outboundDialPending = false;
+  if (typeof dialerStatus !== 'undefined' && (dialerStatus === 'on_call' || dialerStatus === 'calling')) {
+    if (typeof handleCallEnd === 'function') handleCallEnd(Math.floor(typeof callSeconds === 'number' ? callSeconds : 0) || 0);
+    else if (typeof setDialerStatus === 'function') setDialerStatus('wrapping');
+  }
+}
+
 async function saveTerminFromSection() {
   const slot = _bookingSlot || window._selectedBookingSlot;
   if (!slot) { toast('Önce takvimden bir slot seçin','err'); return; }
@@ -229,18 +259,19 @@ async function saveTerminFromSection() {
     const badge = document.getElementById('termin-slot-badge');
     if (badge) badge.textContent = 'Slot seçilmedi';
     selectedOutcome = 'appointment_done';
-    const lineUp = (typeof _telnyxCall !== 'undefined' && !!_telnyxCall)
-      || (typeof _fakeCallActive !== 'undefined' && !!_fakeCallActive)
-      || (typeof _outboundDialPending !== 'undefined' && !!_outboundDialPending);
-    if (typeof dialerStatus !== 'undefined' && dialerStatus === 'on_call' && lineUp) {
-      toast('Randevu kaydedildi. Çağrıyı kapat, sıradaki arama açılır.', 'ok', 4200);
-      if (typeof switchContactTab === 'function') switchContactTab('outcome');
-      return;
+    if (isValidUUID(contact.id) && typeof sb === 'function') {
+      await sb(`contacts?id=eq.${contact.id}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ status: 'appointment', locked_by: null, locked_at: null, last_called_at: new Date().toISOString() }),
+      }).catch(() => {});
     }
+    _releaseBookedContact(contact);
     toast('Randevu kaydedildi', 'ok', 1800);
     if (typeof submitOutcome === 'function') await submitOutcome(false);
     _bookingSlot = null;
     window._selectedBookingSlot = null;
+    if (typeof switchContactTab === 'function') switchContactTab('info');
   } catch(e) {
     const msg = String(e?.message || e || '');
     if (/null value|not-null|23502/i.test(msg)) {
