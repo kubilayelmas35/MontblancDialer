@@ -5,7 +5,7 @@ let _opsDirective = { ids: [], at: '', by: '' };
 let _opsAlerts = {
   callMin: 4, goldAfter: 1, waitMin: 1,
   roles: ['agent', 'field_agent'], effect: 'aurora', appt: true, campaign: true,
-  sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, call: true, wait: true, ok: true, bad: true, pick: true, drop: true, clear: true, move: true, qc_ok: true, qc_no: true, qc_miss: true, qc_hold: true, qc_other: true },
+  sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, call: true, wait: true, pick: true, drop: true, clear: true, move: true, results: {} },
 };
 let _opsNotifPrimed = false;
 let _opsWrongSig = '';
@@ -68,8 +68,12 @@ function opsSay(key, fallback) {
 const OPS_TONE_IDS = ['chime', 'bell', 'soft', 'glass', 'pop', 'alert', 'win', 'spark', 'fall', 'lose'];
 const OPS_TONE_LABELS = { chime: 'Çan', bell: 'Zil', soft: 'Yumuşak', glass: 'Cam', pop: 'Kısa', alert: 'Uyarı', win: 'Kazanç', spark: 'Parıltı', fall: 'Düşüş', lose: 'Kayıp' };
 const OPS_TONE_DEFAULT = {
-  due: 'chime', soon: 'soft', hour: 'bell', slot: 'glass', wrong: 'pop', call: 'bell', wait: 'soft', ok: 'chime', bad: 'pop',
-  pick: 'alert', drop: 'soft', clear: 'lose', move: 'bell', qc_ok: 'win', qc_no: 'lose', qc_miss: 'alert', qc_hold: 'soft', qc_other: 'chime',
+  due: 'chime', soon: 'soft', hour: 'bell', slot: 'glass', wrong: 'pop', call: 'bell', wait: 'soft',
+  pick: 'alert', drop: 'soft', clear: 'lose', move: 'bell',
+};
+const OPS_MOOD_DEFAULT = {
+  due: 'neutral', soon: 'neutral', hour: 'neutral', slot: 'good', wrong: 'bad', call: 'neutral', wait: 'neutral',
+  pick: 'good', drop: 'neutral', clear: 'bad', move: 'neutral',
 };
 const OPS_TONE_NOTES = {
   chime: [[523, 0], [659, 0.13], [784, 0.26]],
@@ -90,13 +94,45 @@ function opsSoundKey(kind) {
   return kind;
 }
 
+function opsMood(value, fallback) {
+  return value === 'good' || value === 'bad' || value === 'neutral' ? value : (fallback || 'neutral');
+}
+
 function opsSoundEntry(key) {
   const raw = _opsAlerts.sounds?.[key];
   const tone = OPS_TONE_DEFAULT[key] || 'chime';
+  const mood = OPS_MOOD_DEFAULT[key] || 'neutral';
   if (raw && typeof raw === 'object') {
-    return { on: raw.on !== false, tone: OPS_TONE_IDS.includes(raw.tone) ? raw.tone : tone };
+    return { on: raw.on !== false, tone: OPS_TONE_IDS.includes(raw.tone) ? raw.tone : tone, mood: opsMood(raw.mood, mood) };
   }
-  return { on: raw !== false, tone };
+  return { on: raw !== false, tone, mood };
+}
+
+function opsResultToneDefault(key) {
+  const k = String(key || '');
+  if (k === 'basarili') return 'win';
+  if (k === 'basarisiz' || k === 'iptal') return 'lose';
+  if (k === 'ulasilamadi') return 'alert';
+  if (k === 'beklemede') return 'soft';
+  if (k === 'qc_bekleniyor') return 'chime';
+  return 'soft';
+}
+
+function opsResultMoodDefault(key) {
+  const k = String(key || '');
+  if (k === 'basarili') return 'good';
+  if (k === 'basarisiz' || k === 'iptal' || k.includes('olumsuz')) return 'bad';
+  return 'neutral';
+}
+
+function opsResultEntry(key) {
+  const raw = _opsAlerts.sounds?.results?.[key];
+  const tone = opsResultToneDefault(key);
+  const mood = opsResultMoodDefault(key);
+  if (raw && typeof raw === 'object') {
+    return { on: raw.on !== false, tone: OPS_TONE_IDS.includes(raw.tone) ? raw.tone : tone, mood: opsMood(raw.mood, mood) };
+  }
+  return { on: true, tone, mood };
 }
 
 function opsSoundOn(kind) {
@@ -138,7 +174,8 @@ function opsCue(kind) {
 
 function opsPreviewSound(kind) {
   const picked = document.querySelector(`[data-tone="${kind}"]`)?.value;
-  const tone = OPS_TONE_IDS.includes(picked) ? picked : opsSoundEntry(opsSoundKey(kind)).tone;
+  const entry = String(kind).startsWith('result:') ? opsResultEntry(kind.slice(7)) : opsSoundEntry(opsSoundKey(kind));
+  const tone = OPS_TONE_IDS.includes(picked) ? picked : entry.tone;
   const vol = Number(document.getElementById('ops-sound-vol')?.value);
   opsPlayTone(tone, Number.isFinite(vol) ? vol : _opsAlerts.sounds?.volume);
 }
@@ -247,10 +284,21 @@ function opsReadSounds(raw) {
     const item = src[key];
     const tone = OPS_TONE_DEFAULT[key];
     if (item && typeof item === 'object') {
-      sounds[key] = { on: item.on !== false, tone: OPS_TONE_IDS.includes(item.tone) ? item.tone : tone };
+      sounds[key] = { on: item.on !== false, tone: OPS_TONE_IDS.includes(item.tone) ? item.tone : tone, mood: opsMood(item.mood, OPS_MOOD_DEFAULT[key]) };
     } else {
-      sounds[key] = { on: item !== false, tone };
+      sounds[key] = { on: item !== false, tone, mood: OPS_MOOD_DEFAULT[key] || 'neutral' };
     }
+  });
+  sounds.results = {};
+  const results = src.results && typeof src.results === 'object' ? src.results : {};
+  Object.keys(results).forEach((key) => {
+    const item = results[key];
+    if (!item || typeof item !== 'object') return;
+    sounds.results[key] = {
+      on: item.on !== false,
+      tone: OPS_TONE_IDS.includes(item.tone) ? item.tone : opsResultToneDefault(key),
+      mood: opsMood(item.mood, opsResultMoodDefault(key)),
+    };
   });
   return sounds;
 }
@@ -472,28 +520,120 @@ function opsFillNotifSettings() {
   card.querySelectorAll('[data-sound]').forEach((box) => {
     const entry = opsSoundEntry(box.dataset.sound);
     box.checked = entry.on;
-    const sel = card.querySelector(`[data-tone="${box.dataset.sound}"]`);
-    if (!sel) return;
-    const picked = OPS_TONE_IDS.includes(entry.tone) ? entry.tone : (OPS_TONE_DEFAULT[box.dataset.sound] || 'chime');
-    sel.replaceChildren();
+    const row = box.closest('.ops-note-row');
+    const sel = row?.querySelector(`[data-tone="${box.dataset.sound}"]`);
+    if (sel) {
+      const picked = OPS_TONE_IDS.includes(entry.tone) ? entry.tone : (OPS_TONE_DEFAULT[box.dataset.sound] || 'chime');
+      sel.replaceChildren();
+      OPS_TONE_IDS.forEach((id) => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = OPS_TONE_LABELS[id] || id;
+        sel.appendChild(opt);
+      });
+      sel.value = picked;
+    }
+    if (row) opsPaintMood(row, box.dataset.sound, entry.mood);
+  });
+  opsPickEffect(_opsAlerts.effect || 'aurora');
+  opsFillResultRows();
+}
+
+function opsPaintMood(row, key, mood, attr) {
+  const name = attr || 'moodKey';
+  let sel = row.querySelector('select[data-mood-key], select[data-mood-result]');
+  if (!sel) {
+    sel = document.createElement('select');
+    sel.dataset[name] = key;
+    const tone = row.querySelector('select[data-tone]');
+    if (tone) row.insertBefore(sel, tone);
+    else row.appendChild(sel);
+  }
+  sel.replaceChildren();
+  [['good', 'Olumlu'], ['neutral', 'Nötr'], ['bad', 'Olumsuz']].forEach(([id, label]) => {
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  });
+  sel.value = opsMood(mood, 'neutral');
+  sel.classList.toggle('is-good', sel.value === 'good');
+  sel.classList.toggle('is-bad', sel.value === 'bad');
+  sel.onchange = () => {
+    sel.classList.toggle('is-good', sel.value === 'good');
+    sel.classList.toggle('is-bad', sel.value === 'bad');
+  };
+}
+
+async function opsFillResultRows() {
+  const host = document.getElementById('ops-qc-rows');
+  if (!host) return;
+  let rows = [];
+  try {
+    if (typeof loadFirmAppointmentResults === 'function') {
+      rows = await loadFirmAppointmentResults(opsFirmId());
+    }
+  } catch (e) {}
+  if (!rows?.length && typeof defaultAppointmentResults === 'function') rows = defaultAppointmentResults();
+  host.replaceChildren();
+  (rows || []).forEach((r) => {
+    const key = typeof _normResultKey === 'function' ? _normResultKey(r.key) : String(r.key || '');
+    if (!key) return;
+    const entry = opsResultEntry(key);
+    const label = document.createElement('label');
+    label.className = 'ops-note-row';
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.dataset.result = key;
+    box.checked = entry.on;
+    const text = document.createElement('span');
+    const title = document.createElement('b');
+    title.textContent = r.label || key;
+    const hint = document.createElement('small');
+    hint.textContent = 'Bu sonuç girilince kart ve ses.';
+    text.append(title, hint);
+    const tone = document.createElement('select');
+    tone.dataset.tone = `result:${key}`;
     OPS_TONE_IDS.forEach((id) => {
       const opt = document.createElement('option');
       opt.value = id;
       opt.textContent = OPS_TONE_LABELS[id] || id;
-      sel.appendChild(opt);
+      tone.appendChild(opt);
     });
-    sel.value = picked;
+    tone.value = entry.tone;
+    const listen = document.createElement('button');
+    listen.type = 'button';
+    listen.textContent = 'Dinle';
+    listen.onclick = () => opsPreviewSound(`result:${key}`);
+    const sample = document.createElement('button');
+    sample.type = 'button';
+    sample.textContent = 'Örnek';
+    sample.onclick = () => opsShowSample(`result:${key}`);
+    label.append(box, text, tone, listen, sample);
+    opsPaintMood(label, key, entry.mood, 'moodResult');
+    host.appendChild(label);
   });
-  opsPickEffect(_opsAlerts.effect || 'aurora');
 }
 
 function opsCollectSounds(card) {
-  const sounds = { volume: opsClamp(document.getElementById('ops-sound-vol')?.value, 70, 0, 100) };
+  const sounds = { volume: opsClamp(document.getElementById('ops-sound-vol')?.value, 70, 0, 100), results: {} };
   Object.keys(OPS_TONE_DEFAULT).forEach((key) => {
     const tone = card.querySelector(`[data-tone="${key}"]`)?.value;
+    const mood = card.querySelector(`[data-mood-key="${key}"]`)?.value;
     sounds[key] = {
       on: !!card.querySelector(`[data-sound="${key}"]`)?.checked,
       tone: OPS_TONE_IDS.includes(tone) ? tone : OPS_TONE_DEFAULT[key],
+      mood: opsMood(mood, OPS_MOOD_DEFAULT[key]),
+    };
+  });
+  card.querySelectorAll('[data-result]').forEach((box) => {
+    const key = box.dataset.result;
+    const tone = card.querySelector(`[data-tone="result:${key}"]`)?.value;
+    const mood = card.querySelector(`[data-mood-result="${key}"]`)?.value;
+    sounds.results[key] = {
+      on: !!box.checked,
+      tone: OPS_TONE_IDS.includes(tone) ? tone : opsResultToneDefault(key),
+      mood: opsMood(mood, opsResultMoodDefault(key)),
     };
   });
   return sounds;
@@ -504,21 +644,28 @@ function opsShowSample(kind) {
   opsPreviewSound(kind);
   document.getElementById('ops-sample-host')?.remove();
   if (_opsSampleTimer) clearTimeout(_opsSampleTimer);
+  if (String(kind).startsWith('result:')) {
+    const key = kind.slice(7);
+    const entry = opsResultEntry(key);
+    const label = document.querySelector(`#ops-qc-rows [data-result="${key}"]`)?.closest('.ops-note-row')?.querySelector('b')?.textContent || opsResultLabel(key);
+    opsFloorPush(kind, 'qc', opsFloorText('qc', {
+      actor: currentUser?.name || 'Kubilay', who: 'Ziya', camp: '69', when: '20.10 saat 16:00', result: label,
+    }), true, false, entry);
+    return;
+  }
   const floorDemo = {
     pick: { kind: 'pick', actor: 'Gökhan', camp: '69', when: '20.10 saat 16:00' },
     drop: { kind: 'drop', actor: 'Gökhan', camp: '69', when: '20.10 saat 16:00' },
     slot: { kind: 'book', actor: 'Gökhan', who: 'Ziya', camp: '69', when: '20.10 saat 16:00' },
     clear: { kind: 'clear', who: 'Ziya', camp: '69', when: '20.10 saat 16:00' },
     move: { kind: 'move', who: 'Ziya', camp: '69', from: '20.10 saat 16:00', to: '21.10 saat 10:00' },
-    qc_ok: { kind: 'qc', actor: 'Kubilay', who: 'Ziya', camp: '69', when: '20.10 saat 16:00', result: 'Başarılı' },
-    qc_no: { kind: 'qc', actor: 'Kubilay', who: 'Ziya', camp: '69', when: '20.10 saat 16:00', result: 'Başarısız' },
-    qc_miss: { kind: 'qc', actor: 'Kubilay', who: 'Ziya', camp: '69', when: '20.10 saat 16:00', result: 'Ulaşılamadı' },
-    qc_hold: { kind: 'qc', actor: 'Kubilay', who: 'Ziya', camp: '69', when: '20.10 saat 16:00', result: 'Beklemede' },
-    qc_other: { kind: 'qc', actor: 'Kubilay', who: 'Ziya', camp: '69', when: '20.10 saat 16:00', result: 'Yeni sonuç' },
   };
   if (floorDemo[kind]) {
     const demo = floorDemo[kind];
-    opsFloorPush(kind, demo.kind === 'book' ? 'book' : (demo.kind === 'qc' ? 'qc' : demo.kind), opsFloorText(demo.kind, demo), true);
+    const entry = opsSoundEntry(kind);
+    const picked = document.querySelector(`[data-mood-key="${kind}"]`)?.value;
+    if (picked) entry.mood = opsMood(picked, entry.mood);
+    opsFloorPush(kind, demo.kind === 'book' ? 'book' : demo.kind, opsFloorText(demo.kind, demo), true, false, entry);
     return;
   }
   if (kind === 'soon' || kind === 'slot' || kind === 'ok' || kind === 'bad') {
@@ -830,13 +977,16 @@ function opsFloorText(kind, bits) {
     : opsJoin([`${opsPoss(who)}`, atCamp, when, 'randevusu', result, 'olarak güncellendi']);
 }
 
-function opsFloorPush(soundKind, titleKind, text, force, quiet) {
+function opsFloorPush(soundKind, titleKind, text, force, quiet, entry, self) {
   if (!text) return;
-  if (!force && (!opsRoleSeesWarn() || !opsSoundOn(soundKind))) return;
+  const cfg = entry || (String(soundKind).startsWith('result:') ? opsResultEntry(soundKind.slice(7)) : opsSoundEntry(soundKind));
+  if (!force && cfg.on === false) return;
+  if (!force && !self && !opsRoleSeesWarn()) return;
   const host = document.getElementById('ops-floor-feed');
   if (!host) return;
   const card = document.createElement('article');
-  card.className = 'ops-live-card ops-floor-card';
+  const mood = opsMood(cfg.mood, 'neutral');
+  card.className = `ops-live-card ops-floor-card is-${mood}`;
   const head = document.createElement('div');
   head.className = 'ops-live-head';
   const title = document.createElement('strong');
@@ -852,7 +1002,7 @@ function opsFloorPush(soundKind, titleKind, text, force, quiet) {
   card.append(head, body);
   host.appendChild(card);
   while (host.children.length > 4) host.firstElementChild?.remove();
-  if (!force && !quiet && !document.hidden) opsCue(soundKind);
+  if (!force && !quiet && !document.hidden) opsPlayTone(cfg.tone, _opsAlerts.sounds?.volume);
   setTimeout(() => card.remove(), 12000);
 }
 
@@ -893,12 +1043,25 @@ function opsResultLabel(key) {
 }
 
 function opsQcKind(key) {
-  const k = String(key || '').toLowerCase();
-  if (k.includes('basarili') && !k.includes('basarisiz')) return 'qc_ok';
-  if (k.includes('basarisiz') || k === 'iptal' || k.includes('olumsuz')) return 'qc_no';
-  if (k.includes('ulasil')) return 'qc_miss';
-  if (k.includes('bekle') || k.includes('qc')) return 'qc_hold';
-  return 'qc_other';
+  return typeof _normResultKey === 'function' ? _normResultKey(key) : String(key || '').toLowerCase();
+}
+
+const _opsAnnounced = new Set();
+function opsAnnounceQc(appt, status) {
+  const key = opsQcKind(status);
+  if (!key || !appt?.id) return;
+  const entry = opsResultEntry(key);
+  if (!entry.on) return;
+  _opsAnnounced.add(`${appt.id}:${key}`);
+  _opsAnnounced.add(`${appt.id}:${String(status || '')}`);
+  const text = opsFloorText('qc', {
+    actor: currentUser?.name || '',
+    who: appt.nachname || '',
+    camp: opsCampName(appt.campaign_id),
+    when: opsWhenFromIso(appt.termin_tarih) || opsWhenFromSlot(appt.tarih, appt.saat || appt.baslangic_saat),
+    result: opsResultLabel(key),
+  });
+  opsFloorPush(`result:${key}`, 'qc', text, false, false, entry, true);
 }
 
 const _opsNames = {};
@@ -934,8 +1097,10 @@ const _opsFloor = { slots: null, appts: null };
 let _opsFloorBusy = false;
 async function opsTickFloor() {
   if (_opsFloorBusy || !currentUser || typeof sb !== 'function' || !opsRoleSeesWarn()) return;
-  const keys = ['pick', 'drop', 'clear', 'move', 'slot', 'qc_ok', 'qc_no', 'qc_miss', 'qc_hold', 'qc_other'];
-  if (!keys.some((key) => opsSoundOn(key))) return;
+  const keys = ['pick', 'drop', 'clear', 'move', 'slot'];
+  const savedResults = _opsAlerts.sounds?.results || {};
+  const resultOn = !Object.keys(savedResults).length || Object.values(savedResults).some((row) => row?.on !== false);
+  if (!keys.some((key) => opsSoundOn(key)) && !resultOn) return;
   const fid = opsFirmId();
   if (!fid) return;
   _opsFloorBusy = true;
@@ -1009,8 +1174,14 @@ async function opsTickFloor() {
       if (String(old.durum || '') !== String(a.durum || '')) qcRows.push(a);
     });
     for (const a of qcRows.slice(0, 6)) {
+      const key = opsQcKind(a.durum);
+      if (_opsAnnounced.has(`${a.id}:${key}`) || _opsAnnounced.has(`${a.id}:${a.durum}`)) continue;
+      const entry = opsResultEntry(key);
+      if (!entry.on) continue;
+      _opsAnnounced.add(`${a.id}:${key}`);
       events.push({
-        sound: opsQcKind(a.durum), title: 'qc', kind: 'qc', actor: await opsQcActor(a.contact_id),
+        sound: `result:${key}`, title: 'qc', kind: 'qc', entry,
+        actor: await opsQcActor(a.contact_id),
         who: a.nachname || '', camp: opsCampName(a.campaign_id), when: opsWhenFromIso(a.termin_tarih),
         result: opsResultLabel(a.durum),
       });
@@ -1018,7 +1189,7 @@ async function opsTickFloor() {
     _opsFloor.slots = slotMap;
     _opsFloor.appts = apptMap;
     events.slice(0, 6).forEach((ev) => {
-      opsFloorPush(ev.sound, ev.title, opsFloorText(ev.kind, ev), false, !!ev.quiet);
+      opsFloorPush(ev.sound, ev.title, opsFloorText(ev.kind, ev), false, !!ev.quiet, ev.entry);
     });
   } catch (e) {} finally {
     _opsFloorBusy = false;

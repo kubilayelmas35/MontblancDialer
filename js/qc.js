@@ -275,6 +275,16 @@ async function quickQcUpdate(logId, status) {
       }
     }
     await loadQcData();
+    if (apptRows?.length && apptStatus && typeof opsAnnounceQc === 'function') {
+      const contact = r.contacts || {};
+      opsAnnounceQc({
+        id: apptRows[0].id,
+        nachname: `${contact.first_name || ''} ${contact.last_name || ''}`.trim(),
+        campaign_id: r.campaign_id,
+        tarih: apptDate,
+        baslangic_saat: apptTime,
+      }, apptStatus);
+    }
     toast(`Durum güncellendi ✓`, 'ok');
 
     // SMS prompt for successful QC approval

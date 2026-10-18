@@ -65,6 +65,7 @@ ${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="dele
   }
   footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">Kapat</button>
 <button class="btn btn-ghost" onclick="closeModal('m-takvim-detail');openDialerForContact('${appt.contact_id||''}')">Dialer'a Git</button>
+${slot?.alta_tasindi && isAdmin ? `<button class="btn btn-primary" onclick="closeModal('m-takvim-detail');slotUsteCikar('${slot.id}')">${typeof t === 'function' ? t('cal.up') : 'Üste al'}</button>` : ''}
 ${canAssignField ? `<button class="btn btn-primary" onclick="openFieldAssignModal('${appt.id}','${appt.firm_id || currentUser.firm_id}')">Sahaya Ata</button>` : ''}
 ${canManageAppt ? `
 <select class="form-input" id="appt-status-sel" style="width:auto;font-size:12px;padding:6px 10px;">
@@ -121,6 +122,15 @@ async function takvimQcUpdate(apptId, status, customerId, note, noteSet) {
       }
     }
     closeModal('m-takvim-detail');
+    const known = (typeof takvimAppts !== 'undefined' ? takvimAppts : []).find((a) => a.id === apptId) || {};
+    if (status && typeof opsAnnounceQc === 'function') {
+      opsAnnounceQc({
+        ...known,
+        id: apptId,
+        durum: status,
+        campaign_id: known.campaign_id || (typeof takvimCampId !== 'undefined' ? takvimCampId : ''),
+      }, status);
+    }
     await loadTakvimSlots();
     toast(typeof t === 'function' ? t('cal.detail.saved') : 'Randevu güncellendi ✓', 'ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }

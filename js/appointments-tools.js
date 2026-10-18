@@ -59,7 +59,8 @@ function showSlotContextMenu(e, slot, appt) {
     }
     if (isAdmin) {
       items.push({ sep: true });
-      items.push({ icon:'', label:'Alta Taşı', onClick: () => slotAltaTasi(_ctxSlot.id), yellow:true });
+      if (slot.alta_tasindi) items.push({ icon:'', label: (typeof t === 'function' ? t('cal.up') : 'Üste al'), onClick: () => slotUsteCikar(_ctxSlot.id), green:true });
+      else items.push({ icon:'', label:'Alta Taşı', onClick: () => slotAltaTasi(_ctxSlot.id), yellow:true });
       items.push({ icon:'', label:'Slotu Sil', onClick: () => deleteTakvimSlot(_ctxSlot.id), danger:true });
     }
     // Agent can cancel their own appointment if not yet confirmed
@@ -199,6 +200,14 @@ async function slotAltaTasi(slotId) {
   } catch(e) { toast('Hata: '+e.message, 'err'); }
 }
 
+async function slotUsteCikar(slotId) {
+  try {
+    await sb(`takvim_slots?id=eq.${slotId}`, {method:'PATCH', prefer:'return=minimal', body: JSON.stringify({alta_tasindi: false, durum: 'dolu'})});
+    await loadTakvimSlots();
+    toast(typeof t === 'function' ? t('cal.up.done') : 'Randevu üste alındı', 'ok');
+  } catch (e) { toast('Hata: ' + (e.message || ''), 'err'); }
+}
+
 // ── Drag & Drop ───────────────────────────────
 function initSlotDrag(el, slot, appt) {
   const isAdmin = mbIsFirmAdmin();
@@ -300,12 +309,33 @@ function renderTakvimFailed() {
       const appt = takvimAppts.find((a) => a.id === s.appointment_id);
       const nm = appt ? appt.nachname : '—';
       const fv = getSlotGradientAndText(s, appt);
-      h += `<div onclick="openTakvimSlotDetail(takvimSlots.find(x=>x.id==='${s.id}'),takvimAppts.find(a=>a.id==='${s.appointment_id}'))" style="font-size:9px;font-weight:700;padding:4px 6px;border-radius:4px;cursor:pointer;background:${fv.background};color:${fv.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">⬆ ${nm}</div>`;
+      h += `<div data-failed="${s.id}" style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:700;padding:4px 6px;border-radius:4px;cursor:pointer;background:${fv.background};color:${fv.color};">
+<button type="button" data-up="${s.id}" style="border:0;border-radius:4px;background:#14532d;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;cursor:pointer;">${typeof t === 'function' ? t('cal.up') : 'Üste al'}</button>
+<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nm}</span>
+</div>`;
     });
     h += `</div>`;
   });
   h += '</div>';
   grid.innerHTML = h;
+  grid.querySelectorAll('[data-up]').forEach((btn) => {
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      slotUsteCikar(btn.dataset.up);
+    };
+  });
+  grid.querySelectorAll('[data-failed]').forEach((el) => {
+    el.onclick = () => {
+      const slot = takvimSlots.find((x) => x.id === el.dataset.failed);
+      const appt = takvimAppts.find((a) => a.id === slot?.appointment_id);
+      openTakvimSlotDetail(slot, appt);
+    };
+    el.oncontextmenu = (ev) => {
+      const slot = takvimSlots.find((x) => x.id === el.dataset.failed);
+      const appt = takvimAppts.find((a) => a.id === slot?.appointment_id);
+      if (slot) showSlotContextMenu(ev, slot, appt);
+    };
+  });
 }
 
 async function checkActiveCampaignNotif() {
