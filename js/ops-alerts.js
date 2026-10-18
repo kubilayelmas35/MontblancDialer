@@ -1,0 +1,357 @@
+// Üst çubuk kampanya bildirimi ve canlı görüşme / bekleme kartları.
+// Personelin açık kampanyası tarayıcıda durur; uyarı o listeyi firmanın bildirimiyle karşılaştırır.
+
+let _opsDirective = { ids: [], at: '', by: '' };
+let _opsCampNames = {};
+let _opsDirectiveTimer = null;
+const _opsSeen = {};
+const _opsDismiss = new Set();
+const _opsBeeped = new Set();
+const OPS_SEEN_MS = 90000;
+const OPS_CALL_SEC = 240;
+const OPS_GOLD_SEC = 300;
+const OPS_WAIT_SEC = 60;
+
+function opsEsc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[ch]));
+}
+
+function opsFirmId() {
+  const id = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id || '';
+  return id ? String(id) : '';
+}
+
+function opsActiveIds() {
+  const ids = (typeof _activeCampIds !== 'undefined' && Array.isArray(_activeCampIds)) ? _activeCampIds : [];
+  return ids.map((id) => String(id || '')).filter(Boolean);
+}
+
+function opsCampName(id) {
+  const key = String(id || '');
+  if (_opsCampNames[key]) return _opsCampNames[key];
+  const row = (typeof campaigns !== 'undefined' && Array.isArray(campaigns))
+    ? campaigns.find((c) => String(c?.id) === key)
+    : null;
+  return row?.name || key.slice(0, 8);
+}
+
+function opsSay(key, fallback) {
+  return typeof t === 'function' ? t(key) : fallback;
+}
+
+function opsBeep(kind) {
+  if (window.__opsMute) return;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const times = kind === 'wait' || kind === 'wv' ? 3 : 1;
+    const hz = kind === 'gold' ? 880 : kind === 'wait' ? 660 : kind === 'wv' ? 740 : 520;
+    for (let i = 0; i < times; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = hz;
+      osc.type = kind === 'wait' ? 'square' : 'sine';
+      gain.gain.value = 0.045;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const start = ctx.currentTime + i * 0.2;
+      osc.start(start);
+      osc.stop(start + 0.12);
+    }
+    setTimeout(() => { try { ctx.close(); } catch (e) {} }, 1400);
+  } catch (e) {}
+}
+
+function opsMismatch() {
+  const required = (_opsDirective.ids || []).map(String).filter(Boolean);
+  if (!required.length) return { missing: [], extra: [] };
+  const active = new Set(opsActiveIds());
+  const need = new Set(required);
+  return {
+    missing: required.filter((id) => !active.has(id)),
+    extra: [...active].filter((id) => !need.has(id)),
+  };
+}
+
+function opsPreviewWarn(required, active) {
+  const prevD = _opsDirective;
+  const prevA = (typeof _activeCampIds !== 'undefined') ? _activeCampIds.slice() : null;
+  try {
+    _opsDirective = { ids: (required || []).map(String), at: prevD.at, by: prevD.by };
+    if (typeof _activeCampIds !== 'undefined') _activeCampIds = (active || []).slice();
+    opsPaintCampWarn();
+    return document.getElementById('ops-camp-warn')?.textContent || '';
+  } finally {
+    _opsDirective = prevD;
+    if (prevA && typeof _activeCampIds !== 'undefined') _activeCampIds = prevA;
+    opsPaintCampWarn();
+  }
+}
+
+function opsPaintCampWarn() {
+  const bar = document.getElementById('ops-camp-warn');
+  if (!bar) return;
+  const { missing, extra } = opsMismatch();
+  if (!missing.length && !extra.length) {
+    bar.hidden = true;
+    bar.textContent = '';
+    return;
+  }
+  const parts = [opsSay('ops.warn.wrong', 'Yanlış kampanyadasın.')];
+  if (missing.length) parts.push(`${opsSay('ops.warn.pick', 'Seçmelisin:')} ${missing.map(opsCampName).join(', ')}.`);
+  if (extra.length) parts.push(`${opsSay('ops.warn.close', 'Kapatmalısın:')} ${extra.map(opsCampName).join(', ')}.`);
+  bar.textContent = parts.join(' ');
+  bar.hidden = false;
+}
+
+async function opsLoadDirective() {
+  const fid = opsFirmId();
+  if (!fid || typeof sb !== 'function' || !currentUser) return;
+  try {
+    const rows = await sb(`firms?id=eq.${fid}&select=settings`);
+    const raw = rows?.[0]?.settings?.work_directive || {};
+    const nextAt = raw.at || '';
+    const prevAt = _opsDirective.at;
+    _opsDirective = {
+      ids: Array.isArray(raw.ids) ? raw.ids.map(String) : [],
+      at: nextAt,
+      by: raw.by || '',
+    };
+    if (prevAt && nextAt && prevAt !== nextAt) {
+      toast(opsSay('ops.panel.sent', 'Personelle bildirildi'), 'ok', 4000);
+    }
+  } catch (e) {}
+  opsPaintCampWarn();
+}
+
+function opsCloseCampPanel() {
+  document.getElementById('ops-camp-panel')?.remove();
+}
+
+async function opsOpenCampPanel() {
+  const fid = opsFirmId();
+  if (!fid) { toast(opsSay('ops.panel.needfirm', 'Önce firma seçin'), 'warn'); return; }
+  let camps = [];
+  try {
+    camps = await sb(`campaigns?firm_id=eq.${fid}&status=in.(active,paused)&select=id,name,status&order=name.asc`) || [];
+  } catch (e) {
+    toast(opsSay('ops.panel.fail', 'Bildirim kaydedilemedi: ') + (e.message || ''), 'err');
+    return;
+  }
+  camps.forEach((c) => { if (c?.id) _opsCampNames[c.id] = c.name || c.id; });
+  const picked = new Set((_opsDirective.ids || []).map(String));
+  const panel = document.createElement('div');
+  panel.id = 'ops-camp-panel';
+  panel.className = 'ops-camp-panel';
+  const title = document.createElement('div');
+  title.className = 'ops-camp-panel-title';
+  title.textContent = opsSay('ops.panel.title', 'Çalışılacak kampanyalar');
+  const list = document.createElement('div');
+  list.className = 'ops-camp-panel-list';
+  camps.forEach((c) => {
+    const row = document.createElement('label');
+    row.className = 'ops-camp-panel-row';
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.value = c.id;
+    box.checked = picked.has(String(c.id));
+    const name = document.createElement('span');
+    const paused = c.status === 'paused' ? ` (${opsSay('cal.paused', 'duraklatıldı')})` : '';
+    name.textContent = `${c.name || '—'}${paused}`;
+    row.append(box, name);
+    list.appendChild(row);
+  });
+  const actions = document.createElement('div');
+  actions.className = 'ops-camp-panel-actions';
+  const notify = document.createElement('button');
+  notify.type = 'button';
+  notify.className = 'btn btn-primary';
+  notify.textContent = opsSay('ops.panel.notify', 'Bildir');
+  notify.onclick = () => opsNotifyWorkCamps(panel);
+  actions.appendChild(notify);
+  panel.append(title, list, actions);
+  document.body.appendChild(panel);
+  const anchor = document.getElementById('pill-camp-btn');
+  if (anchor) {
+    const rect = anchor.getBoundingClientRect();
+    panel.style.top = `${Math.round(rect.bottom + 8)}px`;
+    panel.style.left = `${Math.max(8, Math.round(rect.left))}px`;
+  }
+}
+
+async function opsNotifyWorkCamps(panel) {
+  const fid = opsFirmId();
+  if (!fid) { toast(opsSay('ops.panel.needfirm', 'Önce firma seçin'), 'warn'); return; }
+  const ids = [...panel.querySelectorAll('input[type="checkbox"]:checked')].map((el) => el.value).filter(Boolean);
+  try {
+    const firms = await sb(`firms?id=eq.${fid}&select=settings`);
+    const existing = firms?.[0]?.settings || {};
+    const work_directive = {
+      ids,
+      at: new Date().toISOString(),
+      by: currentUser?.name || '',
+    };
+    await sb(`firms?id=eq.${fid}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings: { ...existing, work_directive } }),
+    });
+    _opsDirective = work_directive;
+    opsPaintCampWarn();
+    opsCloseCampPanel();
+    toast(opsSay('ops.panel.sent', 'Personelle bildirildi'), 'ok');
+  } catch (e) {
+    toast(opsSay('ops.panel.fail', 'Bildirim kaydedilemedi: ') + (e.message || ''), 'err');
+  }
+}
+
+function opsCampPillClick(ev) {
+  if (ev) ev.stopPropagation();
+  if (typeof mbIsFirmAdmin !== 'function' || !mbIsFirmAdmin()) return;
+  if (document.getElementById('ops-camp-panel')) { opsCloseCampPanel(); return; }
+  opsOpenCampPanel();
+}
+
+function opsSinceMs(row) {
+  const id = String(row.agent_id || '');
+  const status = row.status || '';
+  if (status === 'on_call') {
+    const iso = row.call_started_at || row.call_start || '';
+    const ms = iso ? new Date(iso).getTime() : NaN;
+    if (Number.isFinite(ms)) return ms;
+  }
+  const prev = _opsSeen[id];
+  if (prev && prev.status === status) return prev.since;
+  return Date.now();
+}
+
+function opsDismissLive(id, kind) {
+  _opsDismiss.add(`${id}:${kind}`);
+  opsPaintLive();
+}
+
+function opsClock(sec) {
+  const safe = Math.max(0, Number(sec) || 0);
+  const m = Math.floor(safe / 60);
+  const s = safe % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function opsPaintLive(rows) {
+  const host = document.getElementById('ops-live-alerts');
+  if (!host) return;
+  if (!Array.isArray(rows)) {
+    host.replaceChildren();
+    return;
+  }
+  const now = Date.now();
+  const cards = [];
+  const alive = new Set();
+  rows.forEach((row) => {
+    const id = String(row?.agent_id || '');
+    if (!id) return;
+    const seenAt = new Date(row.last_seen || row.updated_at || 0).getTime();
+    if (!Number.isFinite(seenAt) || now - seenAt > OPS_SEEN_MS) return;
+    alive.add(id);
+    const status = row.status || '';
+    const prev = _opsSeen[id];
+    if (!prev || prev.status !== status) {
+      ['call', 'wait', 'gold'].forEach((kind) => {
+        _opsDismiss.delete(`${id}:${kind}`);
+        _opsBeeped.delete(`${id}:${kind}`);
+      });
+    }
+    const since = opsSinceMs(row);
+    _opsSeen[id] = { status, since: prev && prev.status === status ? prev.since : since };
+    if (status === 'on_call' && Number.isFinite(since)) _opsSeen[id].since = since;
+    const age = Math.floor((now - _opsSeen[id].since) / 1000);
+    let kind = '';
+    if (status === 'on_call' && age >= OPS_CALL_SEC) kind = age >= OPS_GOLD_SEC ? 'gold' : 'call';
+    else if (status === 'calling' && age >= OPS_WAIT_SEC) kind = 'wait';
+    if (!kind) return;
+    const dismissKind = kind === 'gold' ? 'call' : kind;
+    if (_opsDismiss.has(`${id}:${dismissKind}`)) return;
+    cards.push({ id, kind, age, name: row.agent_name || '—', who: row.current_contact_name || '', camp: opsCampName(row.campaign_id) });
+    const beepKey = `${id}:${kind}`;
+    if (!_opsBeeped.has(beepKey) && !document.hidden) {
+      _opsBeeped.add(beepKey);
+      opsBeep(kind === 'gold' ? 'gold' : kind);
+    }
+  });
+  Object.keys(_opsSeen).forEach((id) => {
+    if (!alive.has(id)) {
+      delete _opsSeen[id];
+      ['call', 'wait', 'gold'].forEach((kind) => {
+        _opsDismiss.delete(`${id}:${kind}`);
+        _opsBeeped.delete(`${id}:${kind}`);
+      });
+    }
+  });
+  host.replaceChildren();
+  cards.forEach((card) => {
+    const el = document.createElement('article');
+    el.className = `ops-live-card${card.kind === 'gold' ? ' is-gold' : ''}${card.kind === 'wait' ? ' is-wait' : ''}`;
+    const head = document.createElement('div');
+    head.className = 'ops-live-head';
+    const title = document.createElement('strong');
+    title.textContent = card.kind === 'wait'
+      ? opsSay('ops.live.wait', 'Uzun süredir çağrı bekliyor')
+      : opsSay('ops.live.long', 'Uzun görüşme');
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'ops-live-x';
+    close.textContent = '×';
+    close.onclick = () => opsDismissLive(card.id, card.kind === 'gold' ? 'call' : card.kind);
+    head.append(title, close);
+    const name = document.createElement('div');
+    name.className = 'ops-live-name';
+    name.textContent = `${card.name} · ${opsClock(card.age)}`;
+    el.append(head, name);
+    if (card.who || card.camp) {
+      const sub = document.createElement('div');
+      sub.className = 'ops-live-sub';
+      sub.textContent = [card.who, card.camp].filter(Boolean).join(' · ');
+      el.appendChild(sub);
+    }
+    host.appendChild(el);
+  });
+}
+
+async function opsTickLive() {
+  if (!currentUser || typeof mbIsFirmAdmin !== 'function' || !mbIsFirmAdmin() || typeof sb !== 'function') {
+    opsPaintLive([]);
+    return;
+  }
+  const ff = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
+  try {
+    const rows = await sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,current_contact_name,call_started_at,call_start,updated_at,last_seen${ff}`) || [];
+    opsPaintLive(rows);
+  } catch (e) {}
+}
+
+function opsBoot() {
+  if (_opsDirectiveTimer) clearInterval(_opsDirectiveTimer);
+  _opsDirectiveTimer = setInterval(() => {
+    if (!currentUser) return;
+    opsLoadDirective();
+    opsTickLive();
+  }, 15000);
+  if (currentUser) {
+    opsLoadDirective();
+    opsTickLive();
+  }
+}
+
+document.addEventListener('click', (ev) => {
+  const panel = document.getElementById('ops-camp-panel');
+  if (!panel) return;
+  if (panel.contains(ev.target)) return;
+  if (ev.target.closest && ev.target.closest('#pill-camp-btn')) return;
+  opsCloseCampPanel();
+});
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', opsBoot);
+else opsBoot();

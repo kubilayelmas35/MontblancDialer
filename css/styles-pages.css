@@ -497,3 +497,110 @@ min-height: 0;
   font-size:13px; font-weight:900; font-family:var(--mono);
   color:var(--accent); flex-shrink:0;
 }
+button.tb-pill.pill-camp {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.ops-camp-warn {
+  padding: 8px 16px;
+  background: #7f1d1d;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+.ops-camp-warn[hidden] { display: none !important; }
+.ops-camp-panel {
+  position: fixed;
+  z-index: 80;
+  width: min(360px, calc(100vw - 16px));
+  max-height: min(70vh, 520px);
+  overflow: auto;
+  background: var(--surface, #fff);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.18);
+  padding: 12px;
+}
+.ops-camp-panel-title { font-weight: 750; margin-bottom: 8px; }
+.ops-camp-panel-list { display: flex; flex-direction: column; gap: 6px; }
+.ops-camp-panel-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.ops-camp-panel-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+.ops-live-alerts {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 40;
+  width: min(300px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.ops-live-card {
+  pointer-events: auto;
+  background: var(--surface, #fff);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-left: 4px solid #b45309;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.16);
+  padding: 10px 12px;
+}
+.ops-live-card.is-gold { background: #f6e27a; color: #3f2d04; border-color: #d4af37; }
+.ops-live-card.is-wait { border-left-color: #0369a1; }
+.ops-live-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ops-live-name { font-weight: 750; margin-top: 4px; }
+.ops-live-sub { font-size: 12px; opacity: .85; margin-top: 2px; }
+.ops-live-x { border: 0; background: transparent; color: inherit; font-size: 18px; cursor: pointer; line-height: 1; }
+.wv-due-pop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,.35);
+}
+.wv-due-card {
+  width: min(420px, calc(100vw - 24px));
+  background: var(--surface, #fff);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 16px 48px rgba(0,0,0,.24);
+}
+.wv-due-card h3 { margin: 0 0 8px; font-size: 16px; }
+.wv-due-card p { margin: 4px 0; font-size: 14px; }
+.takvim-bind-pop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,.35);
+}
+.takvim-bind-card {
+  width: min(440px, calc(100vw - 24px));
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  background: var(--surface, #fff);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 14px;
+}
+.takvim-bind-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}

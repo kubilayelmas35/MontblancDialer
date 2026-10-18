@@ -241,6 +241,7 @@ function toggleCampActive(campId, checked) {
   toast(checked ? `✓ ${countStr}` : countStr, checked ? 'ok' : 'warn', 2000);
   refreshAutoDialUi();
   refreshDialerHealthPanel();
+  if (typeof opsPaintCampWarn === 'function') opsPaintCampWarn();
 }
 
 function selectCamp(id, name, opts = {}) {
@@ -283,6 +284,7 @@ function selectCamp(id, name, opts = {}) {
   }
   refreshAutoDialUi();
   refreshDialerHealthPanel();
+  if (typeof opsPaintCampWarn === 'function') opsPaintCampWarn();
 }
 
 function mbApplyCampWarning() {

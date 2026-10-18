@@ -403,19 +403,82 @@ function startWvReminders() {
   wvReminderTimer = setInterval(checkWvReminders, 60000);
 }
 
+const _wvSnooze = new Set();
+try {
+  JSON.parse(sessionStorage.getItem('mb_wv_snooze') || '[]').forEach((id) => { if (id) _wvSnooze.add(id); });
+} catch (e) {}
+
+function wvPlace(w) {
+  return [w?.plz, w?.ort].map((x) => String(x || '').trim()).filter(Boolean).join(' ');
+}
+
+function showWvDuePopup(w) {
+  if (!w?.id) return;
+  const open = document.getElementById('wv-due-pop');
+  if (open && open.dataset.id === String(w.id)) return;
+  open?.remove();
+  if (typeof opsBeep === 'function') opsBeep('wv');
+  const pop = document.createElement('div');
+  pop.id = 'wv-due-pop';
+  pop.className = 'wv-due-pop';
+  pop.dataset.id = String(w.id);
+  const card = document.createElement('div');
+  card.className = 'wv-due-card';
+  const title = document.createElement('h3');
+  title.textContent = typeof t === 'function' ? t('wv.due.title') : 'Arama vakti geldi';
+  const who = document.createElement('p');
+  who.textContent = w.nachname || '—';
+  const phone = document.createElement('p');
+  phone.textContent = `${typeof t === 'function' ? t('wv.due.phone') : 'Telefon'}: ${w.telefon || '—'}`;
+  const place = document.createElement('p');
+  place.textContent = `${typeof t === 'function' ? t('wv.due.place') : 'Yer'}: ${wvPlace(w) || '—'}`;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn btn-primary';
+  btn.textContent = typeof t === 'function' ? t('wv.due.snooze') : 'Tamam';
+  btn.onclick = () => wvSnoozeDue(w.id);
+  card.append(title, who, phone, place, btn);
+  pop.appendChild(card);
+  document.body.appendChild(pop);
+}
+
+async function wvSnoozeDue(id) {
+  if (!id) return;
+  _wvSnooze.add(id);
+  try {
+    const cur = JSON.parse(sessionStorage.getItem('mb_wv_snooze') || '[]');
+    if (!cur.includes(id)) cur.push(id);
+    sessionStorage.setItem('mb_wv_snooze', JSON.stringify(cur.slice(-200)));
+  } catch (e) {}
+  document.getElementById('wv-due-pop')?.remove();
+  try {
+    await sb(`wiedervorlage?id=eq.${id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ hatirlatildi: true }),
+    });
+  } catch (e) {}
+}
+
 function checkWvReminders() {
   if (!wvList?.length) return;
   const now = new Date();
   const in15 = new Date(now.getTime() + 15*60*1000);
-  const overdue = wvList.filter(w => {
-    if (w.durum !== 'bekliyor') return false;
-    const t = new Date(w.termin_zaman);
-    return t <= in15 && t >= new Date(now.getTime()-5*60*1000);
+  const soon = [];
+  let due = null;
+  wvList.forEach((w) => {
+    if (w.durum !== 'bekliyor' || w.hatirlatildi || _wvSnooze.has(w.id)) return;
+    const when = new Date(w.termin_zaman);
+    if (Number.isNaN(when.getTime())) return;
+    if (when <= now && when >= new Date(now.getTime() - 5 * 60 * 1000)) {
+      if (!due || when < new Date(due.termin_zaman)) due = w;
+      return;
+    }
+    if (when <= in15 && when > now) soon.push(w);
   });
-  overdue.forEach(w => {
-    const t = new Date(w.termin_zaman);
-    const diff = Math.round((t-now)/60000);
-    const msg = diff <= 0 ? `${w.nachname||'?'} — ŞIMDI aranmalı!` : `${w.nachname||'?'} — ${diff} dk sonra aranacak`;
-    toast(msg, diff<=0 ? 'err' : 'ok', 6000);
+  soon.forEach((w) => {
+    const diff = Math.max(1, Math.round((new Date(w.termin_zaman) - now) / 60000));
+    toast(`${w.nachname || '?'} — ${diff} dk sonra aranacak`, 'ok', 6000);
   });
+  if (due) showWvDuePopup(due);
 }

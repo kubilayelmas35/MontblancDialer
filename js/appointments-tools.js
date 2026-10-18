@@ -18,6 +18,7 @@ function showSlotContextMenu(e, slot, appt) {
     if (!isAdmin) items.push({ icon:'', label:'Randevu Al', onClick: () => lockAndBookSlot(_ctxSlot) });
     if (isAdmin) items.push({ icon:'', label:'Detay', onClick: () => openTakvimSlotDetail(_ctxSlot, null) });
     if (isAdmin) items.push({ icon:'', label:'Randevu ekle', onClick: () => takvimAdminRandevuEkle(_ctxSlot) });
+    if (isAdmin) items.push({ icon:'', label: (typeof t === 'function' ? t('cal.bind') : 'Atanmamış randevu bağla'), onClick: () => openTakvimBindUnassigned(_ctxSlot) });
     if (isAdmin) items.push({ icon:'', label:'Kilitle', onClick: () => takvimAdminKilitle(_ctxSlot), yellow:true });
     if (isAdmin) items.push({ icon:'', label:'Sil', onClick: () => deleteTakvimSlot(_ctxSlot.id), danger:true });
   }
@@ -114,6 +115,80 @@ function showSlotContextMenu(e, slot, appt) {
     document.addEventListener('click', () => menu.remove(), { once: true });
     document.addEventListener('contextmenu', () => menu.remove(), { once: true });
   }, 50);
+}
+
+async function openTakvimBindUnassigned(slot) {
+  const campId = slot?.campaign_id || (typeof takvimCampId !== 'undefined' ? takvimCampId : '');
+  if (!slot?.id || !campId) {
+    toast(typeof t === 'function' ? t('ops.panel.needfirm') : 'Önce firma seçin', 'warn');
+    return;
+  }
+  document.getElementById('takvim-bind-pop')?.remove();
+  let appts = [];
+  let used = [];
+  try {
+    [appts, used] = await Promise.all([
+      sb(`appointments?campaign_id=eq.${campId}&slot_id=is.null&select=id,nachname,telefonnummer,plz,ortschaft,termin_tarih&order=kayit_tarihi.desc&limit=120`),
+      sb(`takvim_slots?campaign_id=eq.${campId}&appointment_id=not.is.null&select=appointment_id&limit=500`),
+    ]);
+  } catch (e) {
+    toast((typeof t === 'function' ? t('cal.bind.fail') : 'Bağlama hatası: ') + (e.message || ''), 'err');
+    return;
+  }
+  const taken = new Set((used || []).map((row) => String(row.appointment_id || '')));
+  const free = (appts || []).filter((row) => row?.id && !taken.has(String(row.id)));
+  const pop = document.createElement('div');
+  pop.id = 'takvim-bind-pop';
+  pop.className = 'takvim-bind-pop';
+  const card = document.createElement('div');
+  card.className = 'takvim-bind-card';
+  const title = document.createElement('h3');
+  title.textContent = typeof t === 'function' ? t('cal.bind.title') : 'Atanmamış randevu';
+  card.appendChild(title);
+  if (!free.length) {
+    const empty = document.createElement('p');
+    empty.textContent = typeof t === 'function' ? t('cal.bind.empty') : 'Bu kampanyada slota bağlı olmayan randevu yok';
+    card.appendChild(empty);
+  }
+  free.forEach((row) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'takvim-bind-row';
+    const who = String(row.nachname || '').trim() || '—';
+    const place = [row.plz, row.ortschaft].map((x) => String(x || '').trim()).filter(Boolean).join(' ');
+    btn.textContent = [who, row.telefonnummer || '', place, row.termin_tarih || ''].filter(Boolean).join(' · ');
+    btn.onclick = () => bindTakvimUnassigned(slot.id, row.id, pop);
+    card.appendChild(btn);
+  });
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'takvim-bind-row';
+  close.textContent = typeof t === 'function' ? t('wv.due.snooze') : 'Tamam';
+  close.onclick = () => pop.remove();
+  card.appendChild(close);
+  pop.appendChild(card);
+  pop.addEventListener('click', (ev) => { if (ev.target === pop) pop.remove(); });
+  document.body.appendChild(pop);
+}
+
+async function bindTakvimUnassigned(slotId, apptId, pop) {
+  try {
+    await sb(`takvim_slots?id=eq.${slotId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ durum: 'dolu', appointment_id: apptId }),
+    });
+    await sb(`appointments?id=eq.${apptId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ slot_id: slotId }),
+    });
+    pop?.remove();
+    if (typeof loadTakvimSlots === 'function') await loadTakvimSlots();
+    toast(typeof t === 'function' ? t('cal.bind.done') : 'Randevu slota bağlandı', 'ok');
+  } catch (e) {
+    toast((typeof t === 'function' ? t('cal.bind.fail') : 'Bağlama hatası: ') + (e.message || ''), 'err');
+  }
 }
 
 async function slotAltaTasi(slotId) {

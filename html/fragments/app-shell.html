@@ -60,11 +60,11 @@
 <span class="tb-pill-val" id="pill-total">0</span>
 <span class="tb-pill-lbl" data-tr="toplam" data-de="gesamt">toplam</span>
 </div>
-<div class="tb-pill pill-camp">
+<button type="button" class="tb-pill pill-camp" id="pill-camp-btn" onclick="opsCampPillClick(event)">
 <span class="tb-pill-ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span>
 <span class="tb-pill-val" id="pill-camp">0</span>
 <span class="tb-pill-lbl" data-tr="kampanya" data-de="Kampagne">kampanya</span>
-</div>
+</button>
 <div class="tb-pill pill-appt">
 <span class="tb-pill-ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
 <span class="tb-pill-val" id="pill-appt">0</span>
@@ -95,6 +95,8 @@
 </button>
 </div>
 </div>
+<div id="ops-camp-warn" class="ops-camp-warn" role="status" hidden></div>
+<div id="ops-live-alerts" class="ops-live-alerts" aria-live="polite"></div>
 <div id="global-mascot" class="global-mascot mascot-theme-root" aria-hidden="true">
 <div id="cust-empty-mascot" class="cust-empty-mascot">
 <div class="cust-empty-blob">
