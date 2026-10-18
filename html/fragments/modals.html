@@ -409,7 +409,7 @@ ondrop="handleDrop(event)">
 <div style="display:inline-block;animation:ticker-scroll 22s linear infinite;" id="ticker-text">
 Duyuru metni burada görünecek
 </div>
-<button onclick="document.getElementById('broadcast-ticker').style.display='none'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;border-radius:4px;color:#fff;cursor:pointer;padding:2px 7px;font-size:12px;">✕</button>
+<button type="button" onclick="mbDismissTicker()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;border-radius:4px;color:#fff;cursor:pointer;padding:2px 7px;font-size:12px;">✕</button>
 </div>
 <div class="modal-overlay" id="m-wv-form">
 <div class="modal" style="max-width:520px;">

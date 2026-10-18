@@ -282,7 +282,17 @@ async function quickQcUpdate(logId, status) {
       const contact = r.contacts || {};
       const phone = contact.phone || '';
       const name  = `${contact.first_name||''} ${contact.last_name||''}`.trim();
-      if (phone && typeof showQcSmsPrompt === 'function') {
+      let explicit = false;
+      if (r.campaign_id && typeof getCampSettings === 'function') {
+        let camp = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => String(c.id) === String(r.campaign_id));
+        if (!camp) {
+          const rows = await sb(`campaigns?id=eq.${r.campaign_id}&select=settings`).catch(() => []);
+          camp = rows?.[0];
+        }
+        const cs = getCampSettings(camp || {});
+        explicit = typeof cs.notif_sms === 'boolean' || typeof cs.notif_whatsapp === 'boolean' || typeof cs.notif_email === 'boolean';
+      }
+      if (!explicit && phone && typeof showQcSmsPrompt === 'function') {
         await showQcSmsPrompt(phone, name, apptDate, apptTime);
       }
     }

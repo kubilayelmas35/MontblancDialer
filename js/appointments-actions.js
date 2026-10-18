@@ -244,6 +244,27 @@ async function saveTerminFromSection() {
     const ts = document.getElementById('termin-fields-section');
     if (ts) ts.style.display = 'none';
     if (typeof submitOutcome === 'function') await submitOutcome(false);
+    if (typeof mbDeliverApptNotice === 'function') {
+      mbDeliverApptNotice({
+        campaignId: currentContact?.campaign_id || selectedCampId,
+        phone: currentContact?.phone || '',
+        name: `${currentContact?.first_name || ''} ${currentContact?.last_name || ''}`.trim(),
+        firmId: currentUser?.firm_id,
+        payload: {
+          contact: {
+            name: `${currentContact?.first_name || ''} ${currentContact?.last_name || ''}`.trim(),
+            phone: currentContact?.phone || '',
+            phone2: currentContact?.phone2 || '',
+            address: currentContact?.address || '',
+            plz: currentContact?.plz || '',
+            city: currentContact?.city || '',
+          },
+          slot: null,
+          notes: String(packed || '').slice(0, 2000),
+          agent_name: currentUser?.name || '',
+        },
+      }).catch(() => {});
+    }
     return;
   }
   const contact = currentContact || {};
@@ -280,6 +301,23 @@ async function saveTerminFromSection() {
     }
     _releaseBookedContact(contact);
     toast('Randevu kaydedildi', 'ok', 1800);
+    if (typeof mbDeliverApptNotice === 'function') {
+      mbDeliverApptNotice({
+        campaignId: data.campaign_id,
+        phone: contact.phone || '',
+        name: data.nachname,
+        date: slot.tarih || '',
+        time: saatNorm(slot.baslangic_saat),
+        firmId: currentUser?.firm_id,
+        payload: {
+          appointment_id: aid || null,
+          contact: { name: data.nachname, phone: contact.phone || '', phone2: contact.phone2 || '', address: contact.address || '', plz: contact.plz || '', city: contact.city || '' },
+          slot: { date: slot.tarih || '', time: saatNorm(slot.baslangic_saat) },
+          notes: String(data.agent_notu || '').slice(0, 2000),
+          agent_name: currentUser?.name || '',
+        },
+      }).catch(() => {});
+    }
     if (typeof submitOutcome === 'function') await submitOutcome(false);
     _bookingSlot = null;
     window._selectedBookingSlot = null;
@@ -331,6 +369,23 @@ async function submitTakvimBook(slotId) {
     closeModal('m-takvim-detail');
     await loadTakvimSlots();
     toast('Randevu kaydedildi ✓','ok');
+    if (typeof mbDeliverApptNotice === 'function') {
+      mbDeliverApptNotice({
+        campaignId: data.campaign_id,
+        phone: data.telefonnummer,
+        name: data.nachname,
+        date: slot?.tarih || '',
+        time: slot ? saatNorm(slot.baslangic_saat) : '',
+        firmId: currentUser?.firm_id,
+        payload: {
+          appointment_id: aid || null,
+          contact: { name: data.nachname, phone: data.telefonnummer, phone2: data.telefon2 || '', address: data.strasse || '', plz: data.plz || '', city: data.ortschaft || '' },
+          slot: slot ? { date: slot.tarih || '', time: saatNorm(slot.baslangic_saat) } : null,
+          notes: String(data.agent_notu || '').slice(0, 2000),
+          agent_name: currentUser?.name || '',
+        },
+      }).catch(() => {});
+    }
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 

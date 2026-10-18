@@ -628,6 +628,7 @@
 <div style="display:flex;flex-direction:column;gap:14px;">
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-megaphone"></i> <span data-tr="Yönetici kayan yazı" data-de="Lauftext der Leitung">Yönetici kayan yazı</span></div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Yazı, dialerde açık kampanyaların altında kayar. İkisinde de yazı varsa aynı şeritte, kampanya adıyla görünür. Kapatınca metin değişene kadar gizlenir. Bu düğme kampanyayı aktif etmez." data-de="Der Text läuft unten bei den offenen Kampagnen. Haben zwei einen Text, stehen beide im selben Band, mit Kampagnennamen. Schließen gilt, bis sich der Text ändert. Die Kampagne wird davon nicht aktiv.">Yazı, dialerde açık kampanyaların altında kayar. İkisinde de yazı varsa aynı şeritte, kampanya adıyla görünür. Kapatınca metin değişene kadar gizlenir. Bu düğme kampanyayı aktif etmez.</div>
 <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
 <input type="checkbox" id="cd-ticker-enabled" style="width:16px;height:16px;">
 <label for="cd-ticker-enabled" style="font-size:12px;" data-tr="Kayan yazıyı aç" data-de="Lauftext einschalten">Kayan yazıyı aç</label>
@@ -637,6 +638,7 @@
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-calendar"></i> <span data-tr="Randevu onay mesajı" data-de="Terminbestätigung">Randevu onay mesajı</span></div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="SMS ve WhatsApp, Ayarlar’daki Telnyx numarasıyla randevu kaydolunca gider. Otomatik kapalıysa temsilci onaylar. Takvim dosyası müşteriye posta olarak gitmez, iner." data-de="SMS und WhatsApp gehen mit der Telnyx-Nummer aus den Einstellungen, sobald der Termin steht. Ohne Automatik bestätigt der Agent. Die Kalenderdatei wird heruntergeladen, nicht per Post gesendet.">SMS ve WhatsApp, Ayarlar’daki Telnyx numarasıyla randevu kaydolunca gider. Otomatik kapalıysa temsilci onaylar. Takvim dosyası müşteriye posta olarak gitmez, iner.</div>
 <div style="display:flex;flex-direction:column;gap:6px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
 <input type="checkbox" id="cd-notif-whatsapp"> <span data-tr="WhatsApp gönder" data-de="WhatsApp senden">WhatsApp gönder</span>
@@ -645,7 +647,7 @@
 <input type="checkbox" id="cd-notif-sms"> <span data-tr="SMS gönder" data-de="SMS senden">SMS gönder</span>
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="cd-notif-email"> <span data-tr="E-posta gönder (.ics)" data-de="E-Mail senden (.ics)">E-posta gönder (.ics)</span>
+<input type="checkbox" id="cd-notif-email"> <span data-tr="Takvim dosyası indir (.ics)" data-de="Kalenderdatei laden (.ics)">Takvim dosyası indir (.ics)</span>
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
 <input type="checkbox" id="cd-notif-auto"> <span data-tr="Otomatik gönder" data-de="Automatisch senden">Otomatik gönder</span>
@@ -655,7 +657,7 @@
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-link"></i> <span data-tr="Webhook / dışa aktarım" data-de="Webhook / Export">Webhook / dışa aktarım</span></div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;" data-tr="Başarılı randevular bu adrese POST edilir" data-de="Erfolgreiche Termine werden per POST gesendet">Başarılı randevular bu adrese POST edilir</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;" data-tr="Randevu kaydolunca bu https adresine POST edilir." data-de="Steht der Termin, geht ein POST an diese https-Adresse.">Randevu kaydolunca bu https adresine POST edilir.</div>
 <input class="form-input" id="cd-webhook-url" placeholder="https://hooks.zapier.com/..." style="font-size:12px;">
 <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveCampWebhook()"><i class="ph ph-floppy-disk"></i> <span data-tr="Kaydet" data-de="Speichern">Kaydet</span></button>
 </div>

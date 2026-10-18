@@ -982,7 +982,11 @@ toast(campT('camp.notif.saved','Bildirim ayarları kaydedildi'), 'ok');
 }
 
 async function saveCampWebhook() {
-const url = getVal('cd-webhook-url');
+const url = getVal('cd-webhook-url').trim();
+if (url && !/^https:\/\//i.test(url)) {
+  toast('Adres https ile başlamalı', 'err');
+  return;
+}
 await saveCampSettingsPatch({webhook_url: url});
 toast(campT('camp.notif.hook.saved','Webhook kaydedildi'), 'ok');
 }
@@ -991,8 +995,6 @@ async function saveBroadcastTicker() {
 const text = getVal('cd-ticker-text');
 const enabled = getCheck('cd-ticker-enabled');
 await saveCampSettingsPatch({ticker_enabled: enabled, ticker_text: text});
-await sb(`campaigns?id=eq.${currentCampId}`,{method:'PATCH',prefer:'return=minimal',
-body:JSON.stringify({notif_ts:Date.now(), notif_message:text, active_for_agents:true})});
 toast(campT('camp.notif.published','Kayan yazı yayınlandı'), 'ok');
 }
 
@@ -1039,22 +1041,54 @@ _tickerInterval = setInterval(checkBroadcastTicker, 30000);
 checkBroadcastTicker();
 }
 
+function mbTickerSignature(parts) {
+  return parts.map((p) => `${p.id}\n${p.text}`).join('\n---\n');
+}
+
+function mbDismissTicker() {
+  const sig = window._mbTickerSig || '';
+  if (sig) {
+    try { localStorage.setItem('mb-ticker-dismiss', sig); } catch (e) {}
+  }
+  const ticker = document.getElementById('broadcast-ticker');
+  if (ticker) ticker.style.display = 'none';
+}
+
 async function checkBroadcastTicker() {
-if (!selectedCampId) return;
 try {
-const camps = await sb(`campaigns?id=eq.${selectedCampId}&select=settings,notif_ts,notif_message,active_for_agents`);
-const camp = camps?.[0];
-if (!camp) return;
-const s = getCampSettings(camp);
-const ticker = document.getElementById('broadcast-ticker');
-if (ticker) {
-if (s.ticker_enabled && s.ticker_text) {
-ticker.style.display = '';
-document.getElementById('ticker-text').textContent = s.ticker_text;
-} else {
-ticker.style.display = 'none';
-}
-}
+  const active = (typeof _activeCampIds !== 'undefined' && Array.isArray(_activeCampIds)) ? _activeCampIds.filter(Boolean) : [];
+  const look = active.length ? active : ((typeof selectedCampId !== 'undefined' && selectedCampId) ? [selectedCampId] : []);
+  const ticker = document.getElementById('broadcast-ticker');
+  const label = document.getElementById('ticker-text');
+  if (!ticker || !label) return;
+  if (!look.length) {
+    ticker.style.display = 'none';
+    window._mbTickerSig = '';
+    return;
+  }
+  const camps = await sb(`campaigns?id=in.(${look.join(',')})&select=id,name,settings`);
+  const order = new Map(look.map((id, i) => [String(id), i]));
+  const parts = (camps || []).map((camp) => {
+    const s = getCampSettings(camp);
+    const text = String(s.ticker_text || '').trim();
+    if (!s.ticker_enabled || !text) return null;
+    return { id: String(camp.id), name: String(camp.name || '').trim(), text };
+  }).filter(Boolean).sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+  if (!parts.length) {
+    ticker.style.display = 'none';
+    window._mbTickerSig = '';
+    return;
+  }
+  const sig = mbTickerSignature(parts);
+  window._mbTickerSig = sig;
+  let dismissed = '';
+  try { dismissed = localStorage.getItem('mb-ticker-dismiss') || ''; } catch (e) {}
+  if (dismissed === sig) {
+    ticker.style.display = 'none';
+    return;
+  }
+  label.textContent = parts.map((p) => (p.name ? `${p.name}: ${p.text}` : p.text)).join('    ·    ');
+  ticker.style.display = '';
 } catch(e) {}
 }
 
