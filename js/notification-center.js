@@ -5,13 +5,43 @@
 let _notifTimer = null;
 /** Maskot bildirim ipucu: ilk yüklemede tetikleme yok */
 let _notifLastUnreadForMascot = null;
-const ZERO_UUID = '00000000-0000-0000-0000-000000000001';
-
 function _isValidFirmId(fid) {
   const v = String(fid || '').trim();
-  if (!v) return false;
-  if (v === ZERO_UUID) return false;
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+  if (!v || v === 'all') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+}
+
+async function notifPickFirm() {
+  const sel = document.getElementById('notif-firm-sel');
+  const mine = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id || '';
+  const superUser = typeof isSuperAdmin === 'function' && isSuperAdmin();
+  if (!sel || !superUser) {
+    if (sel) sel.hidden = true;
+    return mine;
+  }
+  sel.hidden = false;
+  if (sel.dataset.ready !== '1') {
+    let firms = (typeof _allFirms !== 'undefined' && Array.isArray(_allFirms) && _allFirms.length) ? _allFirms : [];
+    if (!firms.length && typeof sb === 'function') {
+      firms = await sb('firms?select=id,name&order=name.asc').catch(() => []) || [];
+    }
+    const preferred = _isValidFirmId(mine) ? mine : 'all';
+    sel.replaceChildren();
+    const allOpt = document.createElement('option');
+    allOpt.value = 'all';
+    allOpt.textContent = typeof t === 'function' ? t('notif.allfirms') : 'Tümü';
+    sel.appendChild(allOpt);
+    firms.forEach((f) => {
+      if (!_isValidFirmId(f?.id)) return;
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.name || f.id;
+      sel.appendChild(opt);
+    });
+    sel.value = [...sel.options].some((o) => o.value === preferred) ? preferred : 'all';
+    sel.dataset.ready = '1';
+  }
+  return sel.value || 'all';
 }
 
 function toggleNotificationCenter(forceOpen) {
@@ -37,18 +67,20 @@ async function loadNotificationCenter() {
   const list = document.getElementById('notification-center-list');
   const badge = document.getElementById('tb-notif-badge');
   if (!list || !currentUser) return;
-  const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
-  if (!_isValidFirmId(fid)) {
-    list.innerHTML = _notifItem('Bildirim yok', 'Önce firma seçin', '');
+  const picked = await notifPickFirm();
+  const fid = picked === 'all' ? 'all' : picked;
+  if (fid !== 'all' && !_isValidFirmId(fid)) {
+    list.innerHTML = _notifItem(typeof t === 'function' ? t('notif.empty') : 'Bildirim yok', typeof t === 'function' ? t('ops.panel.needfirm') : 'Önce firma seçin', '');
     if (badge) badge.style.display = 'none';
     return;
   }
+  const ff = fid === 'all' ? '' : `firm_id=eq.${fid}&`;
 
   const out = (typeof opsNoticeRows === 'function' ? opsNoticeRows() : []).map((row) => opsNoticeHtml(row));
   let unread = typeof opsUnseenNoticeCount === 'function' ? opsUnseenNoticeCount() : 0;
 
   try {
-    const chat = await sb(`chat_messages?firm_id=eq.${fid}&order=created_at.desc&limit=5`).catch(() => []);
+    const chat = await sb(`chat_messages?${ff}order=created_at.desc&limit=5`).catch(() => []);
     const senderIds = [...new Set((chat || []).map((x) => x.sender_id).filter(Boolean))];
     let names = {};
     if (senderIds.length) {
@@ -62,7 +94,7 @@ async function loadNotificationCenter() {
   } catch (e) {}
 
   try {
-    const field = await sb(`field_tasks?firm_id=eq.${fid}&status=eq.assigned&order=created_at.desc&limit=5`).catch(() => []);
+    const field = await sb(`field_tasks?${ff}status=eq.assigned&order=created_at.desc&limit=5`).catch(() => []);
     (field || []).forEach((t) => {
       const mine = t.assigned_to === currentUser.id;
       const fresh = Date.now() - new Date(t.created_at).getTime() < 48 * 3600 * 1000;
@@ -72,7 +104,7 @@ async function loadNotificationCenter() {
   } catch (e) {}
 
   try {
-    const qcRows = await sb(`appointments?firm_id=eq.${fid}&durum=eq.qc_bekleniyor&select=id,nachname,son_guncelleme&order=son_guncelleme.desc&limit=5`).catch(() => []);
+    const qcRows = await sb(`appointments?${ff}durum=eq.qc_bekleniyor&select=id,nachname,son_guncelleme&order=son_guncelleme.desc&limit=5`).catch(() => []);
     (qcRows || []).forEach((a) => {
       if (['qc', 'admin', 'firm_admin', 'super_admin'].includes(currentUser.role)) unread++;
       out.push(_notifItem('QC bekleyen', `${a.nachname || 'Müşteri'} için değerlendirme bekleniyor`, new Date(a.son_guncelleme || Date.now()).toLocaleDateString('tr-TR')));
@@ -102,7 +134,7 @@ async function loadNotificationCenter() {
     const prefs = typeof opsNotifyPrefs === 'function' ? opsNotifyPrefs() : null;
     if (prefs?.appt !== false && currentUser?.id) {
       const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
-      const appts = await sb(`appointments?firm_id=eq.${fid}&agent_id=eq.${currentUser.id}&termin_tarih=gte.${today}&select=id,nachname,telefonnummer,termin_tarih&order=termin_tarih.asc&limit=5`).catch(() => []);
+      const appts = await sb(`appointments?${ff}agent_id=eq.${currentUser.id}&termin_tarih=gte.${today}&select=id,nachname,telefonnummer,termin_tarih&order=termin_tarih.asc&limit=5`).catch(() => []);
       (appts || []).forEach((a) => {
         unread++;
         const title = typeof t === 'function' ? t('ops.notice.appt') : 'Randevun';

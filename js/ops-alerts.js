@@ -555,7 +555,17 @@ function opsFillNotifSettings() {
     if (row) opsPaintColor(row, box.dataset.sound, entry.color);
   });
   opsPickEffect(_opsAlerts.effect || 'aurora');
+  opsSyncRoleChipVisibility();
   opsFillResultRows();
+}
+
+function opsSyncRoleChipVisibility() {
+  const role = String(currentUser?.role || '');
+  const platform = role === 'super_admin' || role === 'admin';
+  document.querySelectorAll('#notif-settings-card [data-role="admin"], #notif-settings-card [data-role="super_admin"]').forEach((box) => {
+    const chip = box.closest('label');
+    if (chip) chip.hidden = !platform;
+  });
 }
 
 function opsPaintColor(row, key, color, which) {
