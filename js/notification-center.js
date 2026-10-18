@@ -19,6 +19,7 @@ function toggleNotificationCenter(forceOpen) {
   if (!el) return;
   const open = forceOpen === undefined ? el.style.display === 'none' || !el.style.display : !!forceOpen;
   el.style.display = open ? 'block' : 'none';
+  if (open && typeof opsMarkNoticesSeen === 'function') opsMarkNoticesSeen();
   if (open) loadNotificationCenter();
 }
 
@@ -43,8 +44,8 @@ async function loadNotificationCenter() {
     return;
   }
 
-  const out = [];
-  let unread = 0;
+  const out = (typeof opsNoticeRows === 'function' ? opsNoticeRows() : []).map((row) => opsNoticeHtml(row));
+  let unread = typeof opsUnseenNoticeCount === 'function' ? opsUnseenNoticeCount() : 0;
 
   try {
     const chat = await sb(`chat_messages?firm_id=eq.${fid}&order=created_at.desc&limit=5`).catch(() => []);

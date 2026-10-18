@@ -98,14 +98,32 @@ function opsMood(value, fallback) {
   return value === 'good' || value === 'bad' || value === 'neutral' ? value : (fallback || 'neutral');
 }
 
+function opsHex(value, fallback) {
+  const s = String(value || '').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(s) ? s : (fallback || '#64748b');
+}
+
+function opsEntryColor(raw, moodFallback) {
+  const mood = opsMood(moodFallback, 'neutral');
+  const fromMood = mood === 'good' ? '#16a34a' : mood === 'bad' ? '#dc2626' : '#64748b';
+  if (raw && typeof raw === 'object') return opsHex(raw.color, fromMood);
+  return fromMood;
+}
+
+function opsTint(hex) {
+  const n = parseInt(String(hex || '#64748b').slice(1), 16);
+  const mix = (c) => Math.round(c * 0.18 + 255 * 0.82);
+  return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
+}
+
 function opsSoundEntry(key) {
   const raw = _opsAlerts.sounds?.[key];
   const tone = OPS_TONE_DEFAULT[key] || 'chime';
   const mood = OPS_MOOD_DEFAULT[key] || 'neutral';
   if (raw && typeof raw === 'object') {
-    return { on: raw.on !== false, tone: OPS_TONE_IDS.includes(raw.tone) ? raw.tone : tone, mood: opsMood(raw.mood, mood) };
+    return { on: raw.on !== false, tone: OPS_TONE_IDS.includes(raw.tone) ? raw.tone : tone, mood: opsMood(raw.mood, mood), color: opsEntryColor(raw, mood) };
   }
-  return { on: raw !== false, tone, mood };
+  return { on: raw !== false, tone, mood, color: opsEntryColor(raw, mood) };
 }
 
 function opsResultToneDefault(key) {
@@ -130,9 +148,9 @@ function opsResultEntry(key) {
   const tone = opsResultToneDefault(key);
   const mood = opsResultMoodDefault(key);
   if (raw && typeof raw === 'object') {
-    return { on: raw.on !== false, tone: OPS_TONE_IDS.includes(raw.tone) ? raw.tone : tone, mood: opsMood(raw.mood, mood) };
+    return { on: raw.on !== false, tone: OPS_TONE_IDS.includes(raw.tone) ? raw.tone : tone, mood: opsMood(raw.mood, mood), color: opsEntryColor(raw, mood) };
   }
-  return { on: true, tone, mood };
+  return { on: true, tone, mood, color: opsEntryColor(null, mood) };
 }
 
 function opsSoundOn(kind) {
@@ -284,9 +302,9 @@ function opsReadSounds(raw) {
     const item = src[key];
     const tone = OPS_TONE_DEFAULT[key];
     if (item && typeof item === 'object') {
-      sounds[key] = { on: item.on !== false, tone: OPS_TONE_IDS.includes(item.tone) ? item.tone : tone, mood: opsMood(item.mood, OPS_MOOD_DEFAULT[key]) };
+      sounds[key] = { on: item.on !== false, tone: OPS_TONE_IDS.includes(item.tone) ? item.tone : tone, mood: opsMood(item.mood, OPS_MOOD_DEFAULT[key]), color: opsEntryColor(item, OPS_MOOD_DEFAULT[key]) };
     } else {
-      sounds[key] = { on: item !== false, tone, mood: OPS_MOOD_DEFAULT[key] || 'neutral' };
+      sounds[key] = { on: item !== false, tone, mood: OPS_MOOD_DEFAULT[key] || 'neutral', color: opsEntryColor(null, OPS_MOOD_DEFAULT[key]) };
     }
   });
   sounds.results = {};
@@ -298,6 +316,7 @@ function opsReadSounds(raw) {
       on: item.on !== false,
       tone: OPS_TONE_IDS.includes(item.tone) ? item.tone : opsResultToneDefault(key),
       mood: opsMood(item.mood, opsResultMoodDefault(key)),
+      color: opsEntryColor(item, opsResultMoodDefault(key)),
     };
   });
   return sounds;
@@ -533,36 +552,26 @@ function opsFillNotifSettings() {
       });
       sel.value = picked;
     }
-    if (row) opsPaintMood(row, box.dataset.sound, entry.mood);
+    if (row) opsPaintColor(row, box.dataset.sound, entry.color);
   });
   opsPickEffect(_opsAlerts.effect || 'aurora');
   opsFillResultRows();
 }
 
-function opsPaintMood(row, key, mood, attr) {
-  const name = attr || 'moodKey';
-  let sel = row.querySelector('select[data-mood-key], select[data-mood-result]');
-  if (!sel) {
-    sel = document.createElement('select');
-    sel.dataset[name] = key;
+function opsPaintColor(row, key, color, which) {
+  row.querySelectorAll('select[data-mood-key], select[data-mood-result]').forEach((el) => el.remove());
+  let input = row.querySelector('input[type="color"]');
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'color';
+    input.className = 'ops-color';
+    input.title = typeof t === 'function' ? t('ops.color') : 'Renk';
     const tone = row.querySelector('select[data-tone]');
-    if (tone) row.insertBefore(sel, tone);
-    else row.appendChild(sel);
+    if (tone) row.insertBefore(input, tone);
+    else row.appendChild(input);
   }
-  sel.replaceChildren();
-  [['good', 'Olumlu'], ['neutral', 'Nötr'], ['bad', 'Olumsuz']].forEach(([id, label]) => {
-    const opt = document.createElement('option');
-    opt.value = id;
-    opt.textContent = label;
-    sel.appendChild(opt);
-  });
-  sel.value = opsMood(mood, 'neutral');
-  sel.classList.toggle('is-good', sel.value === 'good');
-  sel.classList.toggle('is-bad', sel.value === 'bad');
-  sel.onchange = () => {
-    sel.classList.toggle('is-good', sel.value === 'good');
-    sel.classList.toggle('is-bad', sel.value === 'bad');
-  };
+  input.dataset[which === 'result' ? 'colorResult' : 'colorKey'] = key;
+  input.value = opsHex(color, '#64748b');
 }
 
 async function opsFillResultRows() {
@@ -610,7 +619,7 @@ async function opsFillResultRows() {
     sample.textContent = 'Örnek';
     sample.onclick = () => opsShowSample(`result:${key}`);
     label.append(box, text, tone, listen, sample);
-    opsPaintMood(label, key, entry.mood, 'moodResult');
+    opsPaintColor(label, key, entry.color, 'result');
     host.appendChild(label);
   });
 }
@@ -619,21 +628,23 @@ function opsCollectSounds(card) {
   const sounds = { volume: opsClamp(document.getElementById('ops-sound-vol')?.value, 70, 0, 100), results: {} };
   Object.keys(OPS_TONE_DEFAULT).forEach((key) => {
     const tone = card.querySelector(`[data-tone="${key}"]`)?.value;
-    const mood = card.querySelector(`[data-mood-key="${key}"]`)?.value;
+    const color = card.querySelector(`[data-color-key="${key}"]`)?.value;
     sounds[key] = {
       on: !!card.querySelector(`[data-sound="${key}"]`)?.checked,
       tone: OPS_TONE_IDS.includes(tone) ? tone : OPS_TONE_DEFAULT[key],
-      mood: opsMood(mood, OPS_MOOD_DEFAULT[key]),
+      mood: OPS_MOOD_DEFAULT[key] || 'neutral',
+      color: opsHex(color, opsEntryColor(null, OPS_MOOD_DEFAULT[key])),
     };
   });
   card.querySelectorAll('[data-result]').forEach((box) => {
     const key = box.dataset.result;
     const tone = card.querySelector(`[data-tone="result:${key}"]`)?.value;
-    const mood = card.querySelector(`[data-mood-result="${key}"]`)?.value;
+    const color = card.querySelector(`[data-color-result="${key}"]`)?.value;
     sounds.results[key] = {
       on: !!box.checked,
       tone: OPS_TONE_IDS.includes(tone) ? tone : opsResultToneDefault(key),
-      mood: opsMood(mood, opsResultMoodDefault(key)),
+      mood: opsResultMoodDefault(key),
+      color: opsHex(color, opsEntryColor(null, opsResultMoodDefault(key))),
     };
   });
   return sounds;
@@ -647,6 +658,8 @@ function opsShowSample(kind) {
   if (String(kind).startsWith('result:')) {
     const key = kind.slice(7);
     const entry = opsResultEntry(key);
+    const picked = document.querySelector(`[data-color-result="${key}"]`)?.value;
+    if (picked) entry.color = opsHex(picked, entry.color);
     const label = document.querySelector(`#ops-qc-rows [data-result="${key}"]`)?.closest('.ops-note-row')?.querySelector('b')?.textContent || opsResultLabel(key);
     opsFloorPush(kind, 'qc', opsFloorText('qc', {
       actor: currentUser?.name || 'Kubilay', who: 'Ziya', camp: '69', when: '20.10 saat 16:00', result: label,
@@ -663,8 +676,8 @@ function opsShowSample(kind) {
   if (floorDemo[kind]) {
     const demo = floorDemo[kind];
     const entry = opsSoundEntry(kind);
-    const picked = document.querySelector(`[data-mood-key="${kind}"]`)?.value;
-    if (picked) entry.mood = opsMood(picked, entry.mood);
+    const picked = document.querySelector(`[data-color-key="${kind}"]`)?.value;
+    if (picked) entry.color = opsHex(picked, entry.color);
     opsFloorPush(kind, demo.kind === 'book' ? 'book' : demo.kind, opsFloorText(demo.kind, demo), true, false, entry);
     return;
   }
@@ -977,6 +990,63 @@ function opsFloorText(kind, bits) {
     : opsJoin([`${opsPoss(who)}`, atCamp, when, 'randevusu', result, 'olarak güncellendi']);
 }
 
+function opsNoticeKey() {
+  return `mb_ops_notice_${currentUser?.id || '0'}`;
+}
+
+function opsNoticeWhen(iso) {
+  const d = new Date(iso || '');
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('tr-TR', {
+    timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function opsNoticeRows() {
+  try {
+    const rows = JSON.parse(localStorage.getItem(opsNoticeKey()) || '[]');
+    return Array.isArray(rows) ? rows : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function opsNoticeHtml(row) {
+  const color = opsHex(row?.color, '#64748b');
+  const title = opsEsc(row?.title || 'Bildirim');
+  const body = opsEsc(row?.text || '');
+  const when = opsEsc(opsNoticeWhen(row?.at));
+  return `<div style="padding:8px 10px;background:${opsTint(color)};border-radius:8px;border-left:4px solid ${color};color:#1f2937;">
+<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+<div style="font-size:12px;font-weight:700;">${title}</div>
+<div style="font-size:10px;color:#64748b;white-space:nowrap;">${when}</div>
+</div>
+<div style="font-size:11px;margin-top:3px;">${body}</div>
+</div>`;
+}
+
+function opsRememberNotice(title, text, color) {
+  if (!currentUser?.id || !text) return;
+  const rows = opsNoticeRows();
+  rows.unshift({ title: title || 'Bildirim', text, color: opsHex(color, '#64748b'), at: new Date().toISOString() });
+  try {
+    localStorage.setItem(opsNoticeKey(), JSON.stringify(rows.slice(0, 40)));
+  } catch (e) {}
+  if (typeof loadNotificationCenter === 'function') loadNotificationCenter();
+}
+
+function opsMarkNoticesSeen() {
+  if (!currentUser?.id) return;
+  try { localStorage.setItem(`mb_ops_notice_seen_${currentUser.id}`, new Date().toISOString()); } catch (e) {}
+}
+
+function opsUnseenNoticeCount() {
+  let seen = '';
+  try { seen = localStorage.getItem(`mb_ops_notice_seen_${currentUser?.id || ''}`) || ''; } catch (e) {}
+  const seenAt = seen ? new Date(seen).getTime() : 0;
+  return opsNoticeRows().filter((row) => new Date(row.at || 0).getTime() > seenAt).length;
+}
+
 function opsFloorPush(soundKind, titleKind, text, force, quiet, entry, self) {
   if (!text) return;
   const cfg = entry || (String(soundKind).startsWith('result:') ? opsResultEntry(soundKind.slice(7)) : opsSoundEntry(soundKind));
@@ -985,8 +1055,11 @@ function opsFloorPush(soundKind, titleKind, text, force, quiet, entry, self) {
   const host = document.getElementById('ops-floor-feed');
   if (!host) return;
   const card = document.createElement('article');
-  const mood = opsMood(cfg.mood, 'neutral');
-  card.className = `ops-live-card ops-floor-card is-${mood}`;
+  const color = opsHex(cfg.color, '#64748b');
+  card.className = 'ops-live-card ops-floor-card';
+  card.style.borderLeftColor = color;
+  card.style.background = opsTint(color);
+  card.style.color = '#1f2937';
   const head = document.createElement('div');
   head.className = 'ops-live-head';
   const title = document.createElement('strong');
@@ -1002,6 +1075,7 @@ function opsFloorPush(soundKind, titleKind, text, force, quiet, entry, self) {
   card.append(head, body);
   host.appendChild(card);
   while (host.children.length > 4) host.firstElementChild?.remove();
+  if (!force) opsRememberNotice(title.textContent, text, color);
   if (!force && !quiet && !document.hidden) opsPlayTone(cfg.tone, _opsAlerts.sounds?.volume);
   setTimeout(() => card.remove(), 12000);
 }
