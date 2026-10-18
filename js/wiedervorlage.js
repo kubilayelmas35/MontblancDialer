@@ -31,28 +31,22 @@ function wvAgentLabel(sel, id) {
 
 async function wvFillAgents() {
   const isAdminRole = mbIsFirmAdmin();
-  const filter = document.getElementById('wv-agent-filter');
   const sel = document.getElementById('wv-agent-sel');
   const col = document.getElementById('wv-agent-col');
   const agentRow = document.getElementById('wv-agent-row');
   if (col) col.style.display = isAdminRole ? '' : 'none';
   if (agentRow) agentRow.style.display = isAdminRole ? '' : 'none';
-  if (filter) filter.style.display = isAdminRole ? '' : 'none';
-  if (!isAdminRole) return;
+  if (!isAdminRole || !sel) return;
   const fid = wvFirmId();
   const firmQ = fid ? `&firm_id=eq.${fid}` : '';
   const agents = await sb(`users?role=in.(agent,firm_admin,admin)&is_active=eq.true&select=id,name&order=name.asc${firmQ}`).catch(() => []);
-  const keepFilter = filter?.value || '';
-  const opts = `<option value="">${wvEsc(wvSay('wv.all_agents', 'Tüm temsilciler'))}</option>` +
+  const keep = sel.value || '';
+  sel.innerHTML = `<option value="">${wvEsc(wvSay('wv.all_agents', 'Tüm temsilciler'))}</option>` +
     `<option value="${wvEsc(currentUser.id)}">${wvEsc(currentUser.name)} (Ben)</option>` +
     (agents || []).filter((a) => a.id !== currentUser.id).map((a) =>
       `<option value="${wvEsc(a.id)}">${wvEsc(a.name || a.id)}</option>`
     ).join('');
-  if (filter) {
-    filter.innerHTML = opts;
-    if ([...filter.options].some((o) => o.value === keepFilter)) filter.value = keepFilter;
-  }
-  if (sel) sel.innerHTML = opts;
+  if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
 }
 
 async function wvFillCamps(selectedId) {
@@ -65,14 +59,6 @@ async function wvFillCamps(selectedId) {
     list = [];
   }
   _wvCamps = list;
-  const campFilter = document.getElementById('wv-camp-filter');
-  if (campFilter) {
-    const keep = campFilter.value || '';
-    campFilter.innerHTML = `<option value="">${wvEsc(wvSay('wv.filter.allcamps', 'Tüm kampanyalar'))}</option>` +
-      `<option value="none">${wvEsc(wvSay('wv.filter.nocamp', 'Kampanyası yok'))}</option>` +
-      list.map((c) => `<option value="${wvEsc(c.id)}">${wvEsc(c.name || c.id)}</option>`).join('');
-    if ([...campFilter.options].some((o) => o.value === keep)) campFilter.value = keep;
-  }
   if (!sel) return;
   const uid = currentUser?.id;
   const choices = typeof mbUserSeesCampaign === 'function' && uid
@@ -96,16 +82,9 @@ async function loadWvPage() {
 async function refreshWvList() {
   try {
     const isAdminRole = mbIsFirmAdmin();
-    const sel = document.getElementById('wv-agent-filter');
-    const selectedAgentId = sel?.value || '';
-    let url;
-    if (isAdminRole && !selectedAgentId) {
-      url = 'wiedervorlage?select=*&durum=eq.bekliyor&order=termin_zaman.asc';
-    } else if (isAdminRole && selectedAgentId) {
-      url = `wiedervorlage?select=*&agent_id=eq.${selectedAgentId}&durum=eq.bekliyor&order=termin_zaman.asc`;
-    } else {
-      url = `wiedervorlage?select=*&agent_id=eq.${currentUser?.id}&durum=eq.bekliyor&order=termin_zaman.asc`;
-    }
+    const url = isAdminRole
+      ? 'wiedervorlage?select=*&durum=eq.bekliyor&order=termin_zaman.asc'
+      : `wiedervorlage?select=*&agent_id=eq.${currentUser?.id}&durum=eq.bekliyor&order=termin_zaman.asc`;
     wvList = await sb(url).catch(() => []);
     renderWvTable();
     updateWvBadge();
@@ -152,6 +131,16 @@ function setWvTab(tab) {
   renderWvTable();
 }
 
+function wvWhenLabel(w) {
+  if (!w?.termin_zaman) return '—';
+  if (typeof mbFormatWall === 'function') {
+    return mbFormatWall(w.termin_zaman, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+  const dt = new Date(w.termin_zaman);
+  if (!Number.isFinite(dt.getTime())) return '—';
+  return dt.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' });
+}
+
 function filterWvTable() { renderWvTable(); }
 
 function renderWvTable() {
@@ -169,9 +158,29 @@ function renderWvTable() {
   } else if (wvTab === 'week') {
     list = list.filter(w => new Date(w.termin_zaman) <= weekEnd && new Date(w.termin_zaman) >= now);
   }
-  const campF = document.getElementById('wv-camp-filter')?.value || '';
-  if (campF === 'none') list = list.filter((w) => !w.campaign_id);
-  else if (campF) list = list.filter((w) => String(w.campaign_id || '') === campF);
+  const col = (id) => String(document.getElementById(id)?.value || '').trim().toLocaleLowerCase('tr-TR');
+  const fTime = col('wv-f-time');
+  const fName = col('wv-f-name');
+  const fTel = col('wv-f-tel');
+  const fPlace = col('wv-f-place');
+  const fAgent = col('wv-f-agent');
+  const fCamp = col('wv-f-camp');
+  const fNote = col('wv-f-note');
+  if (fTime || fName || fTel || fPlace || fAgent || fCamp || fNote) {
+    list = list.filter((w) => {
+      const when = wvWhenLabel(w);
+      const place = `${w.plz || ''} ${w.ort || ''}`.toLocaleLowerCase('tr-TR');
+      const phone = `${w.telefon || ''} ${w.telefon2 || ''}`.toLocaleLowerCase('tr-TR');
+      if (fTime && !when.toLocaleLowerCase('tr-TR').includes(fTime)) return false;
+      if (fName && !String(w.nachname || '').toLocaleLowerCase('tr-TR').includes(fName)) return false;
+      if (fTel && !phone.includes(fTel)) return false;
+      if (fPlace && !place.includes(fPlace)) return false;
+      if (fAgent && !String(w.agent_name || w.agent || '').toLocaleLowerCase('tr-TR').includes(fAgent)) return false;
+      if (fCamp && !wvCampName(w.campaign_id).toLocaleLowerCase('tr-TR').includes(fCamp)) return false;
+      if (fNote && !String(w.notiz || '').toLocaleLowerCase('tr-TR').includes(fNote)) return false;
+      return true;
+    });
+  }
   if (search) {
     list = list.filter(w =>
       (w.nachname||'').toLowerCase().includes(search) ||
@@ -188,9 +197,7 @@ function renderWvTable() {
   const isAdminRole = mbIsFirmAdmin();
   tbody.innerHTML = list.map(w => {
     const dt = w.termin_zaman ? new Date(w.termin_zaman) : null;
-    const dtStr = w.termin_zaman && typeof mbFormatWall === 'function'
-      ? mbFormatWall(w.termin_zaman, { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
-      : (dt ? dt.toLocaleString('tr-TR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Berlin' }) : '—');
+    const dtStr = wvWhenLabel(w);
     const isOverdue = dt && dt < now && w.durum === 'bekliyor';
     const rowStyle = isOverdue ? 'background:rgba(var(--red-rgb),.06);' : '';
     // Conditionally render agent cell to avoid misalignment for non-admin

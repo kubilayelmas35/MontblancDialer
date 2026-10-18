@@ -1632,11 +1632,6 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </button>
 </div>
 </div>
-<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
-<span style="font-size:11px;font-weight:700;color:var(--text-3);" data-tr="Filtreler" data-de="Filter">Filtreler</span>
-<select class="form-input" id="wv-camp-filter" onchange="filterWvTable()" style="width:200px;padding:6px 10px;font-size:12px;"></select>
-<select class="form-input" id="wv-agent-filter" onchange="refreshWvList()" style="display:none;width:180px;padding:6px 10px;font-size:12px;"></select>
-</div>
 <div style="display:flex;gap:4px;margin-bottom:12px;background:var(--bg-3);border-radius:var(--radius-sm);padding:3px;width:fit-content;">
 <button class="btn btn-sm" id="wv-tab-all" onclick="setWvTab('all')" style="background:var(--accent);color:#fff;font-size:11px;padding:4px 12px;">
 <span data-tr="Tümü" data-de="Alle">Tümü</span>
@@ -1656,13 +1651,13 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="tbl-wrap">
 <table>
 <thead><tr>
-<th data-tr="Zaman" data-de="Zeit">Zaman</th>
-<th data-tr="İsim" data-de="Name">İsim</th>
-<th data-tr="Telefon" data-de="Telefon">Telefon</th>
-<th data-tr="PLZ / Şehir" data-de="PLZ / Ort">PLZ / Şehir</th>
-<th id="wv-agent-col" data-tr="Agent" data-de="Agent">Agent</th>
-<th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
-<th data-tr="Not" data-de="Notiz">Not</th>
+<th><span data-tr="Zaman" data-de="Zeit">Zaman</span><input class="camp-col-filter" id="wv-f-time" oninput="filterWvTable()"></th>
+<th><span data-tr="İsim" data-de="Name">İsim</span><input class="camp-col-filter" id="wv-f-name" oninput="filterWvTable()"></th>
+<th><span data-tr="Telefon" data-de="Telefon">Telefon</span><input class="camp-col-filter" id="wv-f-tel" oninput="filterWvTable()"></th>
+<th><span data-tr="PLZ / Şehir" data-de="PLZ / Ort">PLZ / Şehir</span><input class="camp-col-filter" id="wv-f-place" oninput="filterWvTable()"></th>
+<th id="wv-agent-col"><span data-tr="Agent" data-de="Agent">Agent</span><input class="camp-col-filter" id="wv-f-agent" oninput="filterWvTable()"></th>
+<th><span data-tr="Kampanya" data-de="Kampagne">Kampanya</span><input class="camp-col-filter" id="wv-f-camp" oninput="filterWvTable()"></th>
+<th><span data-tr="Not" data-de="Notiz">Not</span><input class="camp-col-filter" id="wv-f-note" oninput="filterWvTable()"></th>
 <th data-tr="İşlem" data-de="Aktion">İşlem</th>
 </tr></thead>
 <tbody id="wv-tbody">
