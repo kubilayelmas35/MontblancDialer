@@ -2,6 +2,7 @@
 // Personelin açık kampanyası tarayıcıda durur; uyarı o listeyi firmanın bildirimiyle karşılaştırır.
 
 let _opsDirective = { ids: [], at: '', by: '' };
+let _opsAlerts = { callMin: 4, goldAfter: 1, waitMin: 1 };
 let _opsCampNames = {};
 let _opsDirectiveTimer = null;
 const _opsSeen = {};
@@ -123,8 +124,41 @@ async function opsLoadDirective() {
     if (prevAt && nextAt && prevAt !== nextAt) {
       toast(opsSay('ops.panel.sent', 'Personelle bildirildi'), 'ok', 4000);
     }
+    opsReadAlerts(rows?.[0]?.settings?.ops_alerts);
   } catch (e) {}
   opsPaintCampWarn();
+}
+
+function opsClamp(n, fallback, min, max) {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return fallback;
+  return Math.min(max, Math.max(min, v));
+}
+
+function opsReadAlerts(raw) {
+  const src = raw && typeof raw === 'object' ? raw : {};
+  _opsAlerts = {
+    callMin: opsClamp(src.call_min, 4, 1, 60),
+    goldAfter: opsClamp(src.gold_after_min, 1, 0, 30),
+    waitMin: opsClamp(src.wait_min, 1, 1, 30),
+  };
+}
+
+function opsPanelSync(panel) {
+  const n = panel.querySelectorAll('.ops-camp-pick input:checked').length;
+  const el = panel.querySelector('.ops-camp-count');
+  if (el) el.textContent = `${n} ${opsSay('ops.panel.selected', 'seçili')}`;
+}
+
+function opsSetPicked(panel, on, onlyVisible) {
+  panel.querySelectorAll('.ops-camp-pick').forEach((row) => {
+    if (onlyVisible && row.hidden) return;
+    const box = row.querySelector('input');
+    if (!box) return;
+    box.checked = on;
+    row.classList.toggle('is-on', on);
+  });
+  opsPanelSync(panel);
 }
 
 function opsCloseCampPanel() {
@@ -146,39 +180,170 @@ async function opsOpenCampPanel() {
   const panel = document.createElement('div');
   panel.id = 'ops-camp-panel';
   panel.className = 'ops-camp-panel';
+
+  const head = document.createElement('div');
+  head.className = 'ops-camp-head';
+  const headText = document.createElement('div');
   const title = document.createElement('div');
   title.className = 'ops-camp-panel-title';
   title.textContent = opsSay('ops.panel.title', 'Çalışılacak kampanyalar');
+  const sub = document.createElement('div');
+  sub.className = 'ops-camp-sub';
+  sub.textContent = opsSay('ops.panel.sub', 'İşaretle, Bildir ile personele gönder.');
+  headText.append(title, sub);
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'ops-live-x';
+  close.textContent = '×';
+  close.onclick = () => opsCloseCampPanel();
+  head.append(headText, close);
+
+  const search = document.createElement('input');
+  search.type = 'search';
+  search.className = 'form-input ops-camp-search';
+  search.placeholder = opsSay('ops.panel.search', 'Kampanya ara');
+  search.oninput = () => {
+    const q = search.value.trim().toLocaleLowerCase('tr-TR');
+    panel.querySelectorAll('.ops-camp-pick').forEach((row) => {
+      row.hidden = !!q && !String(row.dataset.name || '').includes(q);
+    });
+  };
+
   const list = document.createElement('div');
   list.className = 'ops-camp-panel-list';
+  if (!camps.length) {
+    const empty = document.createElement('div');
+    empty.className = 'ops-camp-empty';
+    empty.textContent = opsSay('ops.panel.empty', 'Açık veya duraklatılmış kampanya yok');
+    list.appendChild(empty);
+  }
   camps.forEach((c) => {
+    const on = picked.has(String(c.id));
     const row = document.createElement('label');
-    row.className = 'ops-camp-panel-row';
+    row.className = `ops-camp-pick${on ? ' is-on' : ''}`;
+    row.dataset.name = String(c.name || '').toLocaleLowerCase('tr-TR');
     const box = document.createElement('input');
     box.type = 'checkbox';
     box.value = c.id;
-    box.checked = picked.has(String(c.id));
+    box.checked = on;
+    const mark = document.createElement('span');
+    mark.className = 'ops-camp-mark';
+    mark.setAttribute('aria-hidden', 'true');
     const name = document.createElement('span');
-    const paused = c.status === 'paused' ? ` (${opsSay('cal.paused', 'duraklatıldı')})` : '';
-    name.textContent = `${c.name || '—'}${paused}`;
-    row.append(box, name);
+    name.className = 'ops-camp-name';
+    name.textContent = c.name || '—';
+    const state = document.createElement('span');
+    const paused = c.status === 'paused';
+    state.className = `ops-camp-state${paused ? ' is-paused' : ''}`;
+    state.textContent = paused ? opsSay('cal.paused', 'duraklatıldı') : opsSay('ops.panel.active', 'Açık');
+    box.addEventListener('change', () => {
+      row.classList.toggle('is-on', box.checked);
+      opsPanelSync(panel);
+    });
+    row.append(box, mark, name, state);
     list.appendChild(row);
   });
-  const actions = document.createElement('div');
-  actions.className = 'ops-camp-panel-actions';
+
+  const foot = document.createElement('div');
+  foot.className = 'ops-camp-foot';
+  const count = document.createElement('span');
+  count.className = 'ops-camp-count';
+  const tools = document.createElement('div');
+  tools.className = 'ops-camp-tools';
+  const all = document.createElement('button');
+  all.type = 'button';
+  all.className = 'btn btn-ghost btn-sm';
+  all.textContent = opsSay('ops.panel.all', 'Tümü');
+  all.onclick = () => opsSetPicked(panel, true, true);
+  const none = document.createElement('button');
+  none.type = 'button';
+  none.className = 'btn btn-ghost btn-sm';
+  none.textContent = opsSay('ops.panel.none', 'Temizle');
+  none.onclick = () => opsSetPicked(panel, false, false);
   const notify = document.createElement('button');
   notify.type = 'button';
   notify.className = 'btn btn-primary';
   notify.textContent = opsSay('ops.panel.notify', 'Bildir');
   notify.onclick = () => opsNotifyWorkCamps(panel);
-  actions.appendChild(notify);
-  panel.append(title, list, actions);
+  tools.append(all, none, notify);
+  foot.append(count, tools);
+
+  const times = document.createElement('div');
+  times.className = 'ops-camp-times';
+  const timesTitle = document.createElement('div');
+  timesTitle.className = 'ops-camp-times-title';
+  timesTitle.textContent = opsSay('ops.panel.times', 'Kart süreleri');
+  const hint = document.createElement('div');
+  hint.className = 'ops-camp-hint';
+  hint.textContent = opsSay('ops.panel.hint', 'Uzun görüşme, altın renk ve bekleme süreleri buradan kaydedilir.');
+  const grid = document.createElement('div');
+  grid.className = 'ops-camp-time-grid';
+  [
+    ['ops-time-call', 'ops.panel.call', 'Uzun görüşme', _opsAlerts.callMin, 1, 60],
+    ['ops-time-gold', 'ops.panel.gold', 'Altın renk', _opsAlerts.goldAfter, 0, 30],
+    ['ops-time-wait', 'ops.panel.wait', 'Çalan arama', _opsAlerts.waitMin, 1, 30],
+  ].forEach(([id, key, fallback, value, min, max]) => {
+    const field = document.createElement('label');
+    field.className = 'ops-camp-time';
+    const lab = document.createElement('span');
+    lab.textContent = opsSay(key, fallback);
+    const input = document.createElement('input');
+    input.id = id;
+    input.type = 'number';
+    input.min = String(min);
+    input.max = String(max);
+    input.value = String(value);
+    input.className = 'form-input';
+    const unit = document.createElement('span');
+    unit.className = 'ops-camp-unit';
+    unit.textContent = opsSay('ops.panel.min', 'dk');
+    const row = document.createElement('span');
+    row.className = 'ops-camp-time-row';
+    row.append(input, unit);
+    field.append(lab, row);
+    grid.appendChild(field);
+  });
+  const save = document.createElement('button');
+  save.type = 'button';
+  save.className = 'btn btn-ghost';
+  save.textContent = opsSay('ops.panel.save', 'Süreleri kaydet');
+  save.onclick = () => opsSaveAlertTimes(panel);
+  times.append(timesTitle, hint, grid, save);
+
+  panel.append(head, search, list, foot, times);
+  opsPanelSync(panel);
   document.body.appendChild(panel);
   const anchor = document.getElementById('pill-camp-btn');
   if (anchor) {
     const rect = anchor.getBoundingClientRect();
+    const width = panel.offsetWidth || 400;
+    const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - width - 8));
     panel.style.top = `${Math.round(rect.bottom + 8)}px`;
-    panel.style.left = `${Math.max(8, Math.round(rect.left))}px`;
+    panel.style.left = `${Math.round(left)}px`;
+  }
+  search.focus();
+}
+
+async function opsSaveAlertTimes(panel) {
+  const fid = opsFirmId();
+  if (!fid) { toast(opsSay('ops.panel.needfirm', 'Önce firma seçin'), 'warn'); return; }
+  const ops_alerts = {
+    call_min: opsClamp(panel.querySelector('#ops-time-call')?.value, 4, 1, 60),
+    gold_after_min: opsClamp(panel.querySelector('#ops-time-gold')?.value, 1, 0, 30),
+    wait_min: opsClamp(panel.querySelector('#ops-time-wait')?.value, 1, 1, 30),
+  };
+  try {
+    const firms = await sb(`firms?id=eq.${fid}&select=settings`);
+    const existing = firms?.[0]?.settings || {};
+    await sb(`firms?id=eq.${fid}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings: { ...existing, ops_alerts } }),
+    });
+    opsReadAlerts(ops_alerts);
+    toast(opsSay('ops.panel.saved', 'Süreler kaydedildi'), 'ok');
+  } catch (e) {
+    toast(opsSay('ops.panel.fail', 'Bildirim kaydedilemedi: ') + (e.message || ''), 'err');
   }
 }
 
@@ -269,8 +434,11 @@ function opsPaintLive(rows) {
     if (status === 'on_call' && Number.isFinite(since)) _opsSeen[id].since = since;
     const age = Math.floor((now - _opsSeen[id].since) / 1000);
     let kind = '';
-    if (status === 'on_call' && age >= OPS_CALL_SEC) kind = age >= OPS_GOLD_SEC ? 'gold' : 'call';
-    else if (status === 'calling' && age >= OPS_WAIT_SEC) kind = 'wait';
+    const callSec = _opsAlerts.callMin * 60;
+    const goldSec = (_opsAlerts.callMin + _opsAlerts.goldAfter) * 60;
+    const waitSec = _opsAlerts.waitMin * 60;
+    if (status === 'on_call' && age >= callSec) kind = age >= goldSec ? 'gold' : 'call';
+    else if (status === 'calling' && age >= waitSec) kind = 'wait';
     if (!kind) return;
     const dismissKind = kind === 'gold' ? 'call' : kind;
     if (_opsDismiss.has(`${id}:${dismissKind}`)) return;

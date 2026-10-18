@@ -514,20 +514,113 @@ button.tb-pill.pill-camp {
 .ops-camp-panel {
   position: fixed;
   z-index: 80;
-  width: min(360px, calc(100vw - 16px));
-  max-height: min(70vh, 520px);
-  overflow: auto;
-  background: var(--surface, #fff);
+  width: min(420px, calc(100vw - 16px));
+  max-height: min(78vh, 640px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-2);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(0,0,0,.18);
-  padding: 12px;
+  border-radius: 18px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.22);
+  padding: 14px;
 }
-.ops-camp-panel-title { font-weight: 750; margin-bottom: 8px; }
-.ops-camp-panel-list { display: flex; flex-direction: column; gap: 6px; }
-.ops-camp-panel-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-.ops-camp-panel-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+.ops-camp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.ops-camp-panel-title { font-size: 16px; font-weight: 800; letter-spacing: -0.3px; }
+.ops-camp-sub { margin-top: 3px; font-size: 12px; color: var(--text-3); line-height: 1.35; }
+.ops-camp-search { width: 100%; margin: 12px 0 8px; }
+.ops-camp-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: auto;
+  min-height: 72px;
+  max-height: 280px;
+  padding-right: 2px;
+}
+.ops-camp-empty { padding: 18px 8px; text-align: center; color: var(--text-3); font-size: 13px; }
+.ops-camp-pick {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-2);
+  cursor: pointer;
+}
+.ops-camp-pick input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.ops-camp-pick.is-on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+}
+.ops-camp-mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-2, var(--border));
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--bg-2);
+}
+.ops-camp-pick.is-on .ops-camp-mark {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.ops-camp-pick.is-on .ops-camp-mark::after {
+  content: '✓';
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+}
+.ops-camp-name {
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ops-camp-state {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green);
+}
+.ops-camp-state.is-paused { background: var(--bg-3); color: var(--text-3); }
+.ops-camp-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+}
+.ops-camp-count { font-size: 12px; font-weight: 700; color: var(--text-2); }
+.ops-camp-tools { display: flex; align-items: center; gap: 6px; }
+.ops-camp-times {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.ops-camp-times-title { font-size: 13px; font-weight: 800; }
+.ops-camp-hint { margin: 4px 0 10px; font-size: 12px; color: var(--text-3); line-height: 1.35; }
+.ops-camp-time-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ops-camp-time { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; color: var(--text-2); }
+.ops-camp-time-row { display: flex; align-items: center; gap: 6px; }
+.ops-camp-time .form-input { width: 100%; min-width: 0; }
+.ops-camp-unit { font-weight: 600; color: var(--text-3); }
+.ops-camp-times .btn { margin-top: 10px; }
 .ops-live-alerts {
   position: fixed;
   right: 16px;
