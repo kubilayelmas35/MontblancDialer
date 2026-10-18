@@ -503,14 +503,67 @@ button.tb-pill.pill-camp {
   cursor: pointer;
 }
 .ops-camp-warn {
-  padding: 8px 16px;
-  background: #7f1d1d;
+  position: relative;
+  overflow: hidden;
+  width: fit-content;
+  max-width: min(880px, calc(100% - 24px));
+  margin: 8px auto;
+  padding: 9px 18px;
+  border-radius: 999px;
+  text-align: center;
   color: #fff;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 750;
   line-height: 1.35;
+  background: #7f1d1d;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
 }
 .ops-camp-warn[hidden] { display: none !important; }
+.ops-camp-warn-text { position: relative; z-index: 1; }
+.ops-camp-warn.is-blink { animation: ops-warn-blink 1.6s ease-in-out infinite; }
+.ops-camp-warn.is-gradient {
+  background: linear-gradient(100deg, #7f1d1d, #c2410c, #7c3aed, #0f766e, #7f1d1d);
+  background-size: 240% 100%;
+  animation: ops-warn-shift 7s linear infinite;
+}
+.ops-camp-warn.is-aurora { background: #160b24; }
+.ops-camp-warn.is-aurora::before {
+  content: '';
+  position: absolute;
+  inset: -80% -20%;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(251,113,133,.95), transparent 42%),
+    radial-gradient(circle at 55% 40%, rgba(251,191,36,.8), transparent 40%),
+    radial-gradient(circle at 80% 60%, rgba(129,140,248,.9), transparent 46%);
+  animation: ops-warn-aurora 9s ease-in-out infinite;
+  pointer-events: none;
+}
+.ops-warn-preview { margin: 4px auto 14px; }
+.ops-set-lead { margin: 6px 0 12px; font-size: 13px; color: var(--text-2); line-height: 1.4; }
+.ops-role-picks, .ops-effect-picks { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
+.ops-role-chip, .ops-effect-picks button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--bg-3);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+.ops-effect-picks button.is-on,
+.ops-role-chip:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-2));
+}
+.ops-set-checks { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; font-size: 13px; }
+.ops-camp-settings { align-self: flex-end; margin-top: 10px; }
+@keyframes ops-warn-blink { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+@keyframes ops-warn-shift { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+@keyframes ops-warn-aurora { 0%, 100% { transform: translateX(-6%) rotate(0deg); } 50% { transform: translateX(6%) rotate(8deg); } }
 .ops-camp-panel {
   position: fixed;
   z-index: 80;

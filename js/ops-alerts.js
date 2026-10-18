@@ -2,7 +2,8 @@
 // Personelin açık kampanyası tarayıcıda durur; uyarı o listeyi firmanın bildirimiyle karşılaştırır.
 
 let _opsDirective = { ids: [], at: '', by: '' };
-let _opsAlerts = { callMin: 4, goldAfter: 1, waitMin: 1 };
+let _opsAlerts = { callMin: 4, goldAfter: 1, waitMin: 1, roles: ['agent', 'field_agent'], effect: 'aurora', appt: true, campaign: true };
+let _opsNotifPrimed = false;
 let _opsCampNames = {};
 let _opsDirectiveTimer = null;
 const _opsSeen = {};
@@ -92,22 +93,6 @@ function opsPreviewWarn(required, active) {
   }
 }
 
-function opsPaintCampWarn() {
-  const bar = document.getElementById('ops-camp-warn');
-  if (!bar) return;
-  const { missing, extra } = opsMismatch();
-  if (!missing.length && !extra.length) {
-    bar.hidden = true;
-    bar.textContent = '';
-    return;
-  }
-  const parts = [opsSay('ops.warn.wrong', 'Yanlış kampanyadasın.')];
-  if (missing.length) parts.push(`${opsSay('ops.warn.pick', 'Seçmelisin:')} ${missing.map(opsCampName).join(', ')}.`);
-  if (extra.length) parts.push(`${opsSay('ops.warn.close', 'Kapatmalısın:')} ${extra.map(opsCampName).join(', ')}.`);
-  bar.textContent = parts.join(' ');
-  bar.hidden = false;
-}
-
 async function opsLoadDirective() {
   const fid = opsFirmId();
   if (!fid || typeof sb !== 'function' || !currentUser) return;
@@ -121,12 +106,16 @@ async function opsLoadDirective() {
       at: nextAt,
       by: raw.by || '',
     };
-    if (prevAt && nextAt && prevAt !== nextAt) {
-      toast(opsSay('ops.panel.sent', 'Personelle bildirildi'), 'ok', 4000);
-    }
     opsReadAlerts(rows?.[0]?.settings?.ops_alerts);
+    if (prevAt && nextAt && prevAt !== nextAt && _opsAlerts.campaign && opsRoleSeesWarn()) {
+      toast(opsSay('ops.notice.campaign', 'Yeni kampanya bildirimi geldi'), 'ok', 5000);
+    }
   } catch (e) {}
   opsPaintCampWarn();
+  if (!_opsNotifPrimed && typeof loadNotificationCenter === 'function') {
+    _opsNotifPrimed = true;
+    loadNotificationCenter();
+  }
 }
 
 function opsClamp(n, fallback, min, max) {
@@ -137,11 +126,47 @@ function opsClamp(n, fallback, min, max) {
 
 function opsReadAlerts(raw) {
   const src = raw && typeof raw === 'object' ? raw : {};
+  const roles = Array.isArray(src.warn_roles) ? src.warn_roles.map(String) : ['agent', 'field_agent'];
+  const effect = ['aurora', 'gradient', 'blink', 'solid'].includes(src.bar_effect) ? src.bar_effect : 'aurora';
   _opsAlerts = {
     callMin: opsClamp(src.call_min, 4, 1, 60),
     goldAfter: opsClamp(src.gold_after_min, 1, 0, 30),
     waitMin: opsClamp(src.wait_min, 1, 1, 30),
+    roles,
+    effect,
+    appt: src.notify_appt !== false,
+    campaign: src.notify_campaign !== false,
   };
+}
+
+function opsRoleSeesWarn() {
+  const role = String(currentUser?.role || '');
+  return !!role && (_opsAlerts.roles || []).includes(role);
+}
+
+function opsNotifyPrefs() {
+  return _opsAlerts;
+}
+
+function opsPaintCampWarn() {
+  const bar = document.getElementById('ops-camp-warn');
+  if (!bar) return;
+  const { missing, extra } = opsMismatch();
+  const show = opsRoleSeesWarn() && (missing.length || extra.length);
+  bar.className = `ops-camp-warn is-${_opsAlerts.effect || 'aurora'}`;
+  if (!show) {
+    bar.hidden = true;
+    bar.replaceChildren();
+    return;
+  }
+  const parts = [opsSay('ops.warn.wrong', 'Yanlış kampanyadasın.')];
+  if (missing.length) parts.push(`${opsSay('ops.warn.pick', 'Seçmelisin:')} ${missing.map(opsCampName).join(', ')}.`);
+  if (extra.length) parts.push(`${opsSay('ops.warn.close', 'Kapatmalısın:')} ${extra.map(opsCampName).join(', ')}.`);
+  const text = document.createElement('span');
+  text.className = 'ops-camp-warn-text';
+  text.textContent = parts.join(' ');
+  bar.replaceChildren(text);
+  bar.hidden = false;
 }
 
 function opsPanelSync(panel) {
@@ -267,50 +292,17 @@ async function opsOpenCampPanel() {
   notify.onclick = () => opsNotifyWorkCamps(panel);
   tools.append(all, none, notify);
   foot.append(count, tools);
+  const jump = document.createElement('button');
+  jump.type = 'button';
+  jump.className = 'btn btn-ghost btn-sm ops-camp-settings';
+  jump.textContent = opsSay('ops.panel.settings', 'Bildirim ayarları');
+  jump.onclick = () => {
+    opsCloseCampPanel();
+    window.__settingsTab = 'notifications';
+    if (typeof navigate === 'function') navigate('settings');
+  };
 
-  const times = document.createElement('div');
-  times.className = 'ops-camp-times';
-  const timesTitle = document.createElement('div');
-  timesTitle.className = 'ops-camp-times-title';
-  timesTitle.textContent = opsSay('ops.panel.times', 'Kart süreleri');
-  const hint = document.createElement('div');
-  hint.className = 'ops-camp-hint';
-  hint.textContent = opsSay('ops.panel.hint', 'Uzun görüşme, altın renk ve bekleme süreleri buradan kaydedilir.');
-  const grid = document.createElement('div');
-  grid.className = 'ops-camp-time-grid';
-  [
-    ['ops-time-call', 'ops.panel.call', 'Uzun görüşme', _opsAlerts.callMin, 1, 60],
-    ['ops-time-gold', 'ops.panel.gold', 'Altın renk', _opsAlerts.goldAfter, 0, 30],
-    ['ops-time-wait', 'ops.panel.wait', 'Çalan arama', _opsAlerts.waitMin, 1, 30],
-  ].forEach(([id, key, fallback, value, min, max]) => {
-    const field = document.createElement('label');
-    field.className = 'ops-camp-time';
-    const lab = document.createElement('span');
-    lab.textContent = opsSay(key, fallback);
-    const input = document.createElement('input');
-    input.id = id;
-    input.type = 'number';
-    input.min = String(min);
-    input.max = String(max);
-    input.value = String(value);
-    input.className = 'form-input';
-    const unit = document.createElement('span');
-    unit.className = 'ops-camp-unit';
-    unit.textContent = opsSay('ops.panel.min', 'dk');
-    const row = document.createElement('span');
-    row.className = 'ops-camp-time-row';
-    row.append(input, unit);
-    field.append(lab, row);
-    grid.appendChild(field);
-  });
-  const save = document.createElement('button');
-  save.type = 'button';
-  save.className = 'btn btn-ghost';
-  save.textContent = opsSay('ops.panel.save', 'Süreleri kaydet');
-  save.onclick = () => opsSaveAlertTimes(panel);
-  times.append(timesTitle, hint, grid, save);
-
-  panel.append(head, search, list, foot, times);
+  panel.append(head, search, list, foot, jump);
   opsPanelSync(panel);
   document.body.appendChild(panel);
   const anchor = document.getElementById('pill-camp-btn');
@@ -324,13 +316,48 @@ async function opsOpenCampPanel() {
   search.focus();
 }
 
-async function opsSaveAlertTimes(panel) {
+function opsPickEffect(effect) {
+  const card = document.getElementById('notif-settings-card');
+  const next = ['aurora', 'gradient', 'blink', 'solid'].includes(effect) ? effect : 'aurora';
+  if (card) card.dataset.effect = next;
+  document.querySelectorAll('#ops-effect-picks button').forEach((btn) => {
+    btn.classList.toggle('is-on', btn.dataset.effect === next);
+  });
+  const preview = document.getElementById('ops-warn-preview');
+  if (preview) preview.className = `ops-camp-warn is-${next} ops-warn-preview`;
+}
+
+function opsFillNotifSettings() {
+  const card = document.getElementById('notif-settings-card');
+  if (!card) return;
+  card.querySelectorAll('[data-role]').forEach((box) => {
+    box.checked = (_opsAlerts.roles || []).includes(box.dataset.role);
+  });
+  const call = document.getElementById('ops-set-call');
+  const gold = document.getElementById('ops-set-gold');
+  const wait = document.getElementById('ops-set-wait');
+  if (call) call.value = String(_opsAlerts.callMin);
+  if (gold) gold.value = String(_opsAlerts.goldAfter);
+  if (wait) wait.value = String(_opsAlerts.waitMin);
+  const appt = document.getElementById('ops-notify-appt');
+  const camp = document.getElementById('ops-notify-camp');
+  if (appt) appt.checked = _opsAlerts.appt !== false;
+  if (camp) camp.checked = _opsAlerts.campaign !== false;
+  opsPickEffect(_opsAlerts.effect || 'aurora');
+}
+
+async function opsSaveNotifSettings() {
   const fid = opsFirmId();
-  if (!fid) { toast(opsSay('ops.panel.needfirm', 'Önce firma seçin'), 'warn'); return; }
+  const card = document.getElementById('notif-settings-card');
+  if (!fid || !card) { toast(opsSay('ops.panel.needfirm', 'Önce firma seçin'), 'warn'); return; }
   const ops_alerts = {
-    call_min: opsClamp(panel.querySelector('#ops-time-call')?.value, 4, 1, 60),
-    gold_after_min: opsClamp(panel.querySelector('#ops-time-gold')?.value, 1, 0, 30),
-    wait_min: opsClamp(panel.querySelector('#ops-time-wait')?.value, 1, 1, 30),
+    call_min: opsClamp(document.getElementById('ops-set-call')?.value, 4, 1, 60),
+    gold_after_min: opsClamp(document.getElementById('ops-set-gold')?.value, 1, 0, 30),
+    wait_min: opsClamp(document.getElementById('ops-set-wait')?.value, 1, 1, 30),
+    warn_roles: [...card.querySelectorAll('[data-role]:checked')].map((el) => el.dataset.role),
+    bar_effect: card.dataset.effect || 'aurora',
+    notify_appt: !!document.getElementById('ops-notify-appt')?.checked,
+    notify_campaign: !!document.getElementById('ops-notify-camp')?.checked,
   };
   try {
     const firms = await sb(`firms?id=eq.${fid}&select=settings`);
@@ -341,7 +368,8 @@ async function opsSaveAlertTimes(panel) {
       body: JSON.stringify({ settings: { ...existing, ops_alerts } }),
     });
     opsReadAlerts(ops_alerts);
-    toast(opsSay('ops.panel.saved', 'Süreler kaydedildi'), 'ok');
+    opsPaintCampWarn();
+    toast(opsSay('ops.panel.saved', 'Bildirim ayarları kaydedildi'), 'ok');
   } catch (e) {
     toast(opsSay('ops.panel.fail', 'Bildirim kaydedilemedi: ') + (e.message || ''), 'err');
   }

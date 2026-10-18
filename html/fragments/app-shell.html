@@ -2377,11 +2377,43 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn active" data-tab="general" onclick="setSettingsTab('general')" data-tr="Görünüm" data-de="Darstellung">Görünüm</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="mascot" onclick="setSettingsTab('mascot')" data-tr="Maskot" data-de="Maskottchen">Maskot</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="communication" onclick="setSettingsTab('communication')" data-tr="İletişim" data-de="Kommunikation">İletişim</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="notifications" onclick="setSettingsTab('notifications'); if (typeof opsFillNotifSettings==='function') opsFillNotifSettings();" data-tr="Bildirim" data-de="Hinweis">Bildirim</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="operations" onclick="setSettingsTab('operations')" data-tr="Operasyon" data-de="Betrieb">Operasyon</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="field" onclick="setSettingsTab('field')" data-tr="Saha" data-de="Feld">Saha</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="system" onclick="setSettingsTab('system')" data-tr="Sistem" data-de="System">Sistem</button>
 </div>
 <div class="settings-layout">
+<div class="card" id="notif-settings-card">
+<div class="card-title" data-tr="Bildirim" data-de="Hinweis">Bildirim</div>
+<p class="ops-set-lead" data-tr="Agent kendi randevusunu ve kampanya bildirimini alır. Yanlış kampanya şeridi yalnız işaretlenen rollerde çıkar." data-de="Agenten erhalten eigene Termine und Kampagnenmeldungen. Der Kampagnenstreifen gilt nur für die markierten Rollen.">Agent kendi randevusunu ve kampanya bildirimini alır. Yanlış kampanya şeridi yalnız işaretlenen rollerde çıkar.</p>
+<div class="form-label" data-tr="Şeridi gören roller" data-de="Rollen für den Streifen">Şeridi gören roller</div>
+<div class="ops-role-picks">
+<label class="ops-role-chip"><input type="checkbox" data-role="agent" checked> <span>Agent</span></label>
+<label class="ops-role-chip"><input type="checkbox" data-role="field_agent" checked> <span data-tr="Saha" data-de="Feld">Saha</span></label>
+<label class="ops-role-chip"><input type="checkbox" data-role="qc"> <span>QC</span></label>
+<label class="ops-role-chip"><input type="checkbox" data-role="firm_admin"> <span data-tr="Firma admin" data-de="Firmenadmin">Firma admin</span></label>
+<label class="ops-role-chip"><input type="checkbox" data-role="admin"> <span>Admin</span></label>
+<label class="ops-role-chip"><input type="checkbox" data-role="super_admin"> <span data-tr="Süper admin" data-de="Superadmin">Süper admin</span></label>
+</div>
+<div class="form-label" data-tr="Şerit efekti" data-de="Streifeneffekt">Şerit efekti</div>
+<div class="ops-effect-picks" id="ops-effect-picks">
+<button type="button" data-effect="aurora" onclick="opsPickEffect('aurora')">Aurora</button>
+<button type="button" data-effect="gradient" onclick="opsPickEffect('gradient')" data-tr="Geçiş" data-de="Verlauf">Geçiş</button>
+<button type="button" data-effect="blink" onclick="opsPickEffect('blink')" data-tr="Yanıp sönme" data-de="Blinken">Yanıp sönme</button>
+<button type="button" data-effect="solid" onclick="opsPickEffect('solid')" data-tr="Düz" data-de="Einfarbig">Düz</button>
+</div>
+<div id="ops-warn-preview" class="ops-camp-warn is-aurora ops-warn-preview"><span class="ops-camp-warn-text" data-tr="Yanlış kampanyadasın. Seçmelisin: örnek." data-de="Falsche Kampagne. Einschalten: Beispiel.">Yanlış kampanyadasın. Seçmelisin: örnek.</span></div>
+<div class="ops-camp-time-grid">
+<label class="ops-camp-time"><span data-tr="Uzun görüşme" data-de="Langes Gespräch">Uzun görüşme</span><span class="ops-camp-time-row"><input id="ops-set-call" class="form-input" type="number" min="1" max="60" value="4"><span class="ops-camp-unit" data-tr="dk" data-de="Min.">dk</span></span></label>
+<label class="ops-camp-time"><span data-tr="Altın, sonra" data-de="Gold danach">Altın, sonra</span><span class="ops-camp-time-row"><input id="ops-set-gold" class="form-input" type="number" min="0" max="30" value="1"><span class="ops-camp-unit" data-tr="dk" data-de="Min.">dk</span></span></label>
+<label class="ops-camp-time"><span data-tr="Çalan arama" data-de="Klingeln">Çalan arama</span><span class="ops-camp-time-row"><input id="ops-set-wait" class="form-input" type="number" min="1" max="30" value="1"><span class="ops-camp-unit" data-tr="dk" data-de="Min.">dk</span></span></label>
+</div>
+<div class="ops-set-checks">
+<label><input type="checkbox" id="ops-notify-appt" checked> <span data-tr="Agent kendi randevu bildirimini alsın" data-de="Agent erhält Hinweise zu eigenen Terminen">Agent kendi randevu bildirimini alsın</span></label>
+<label><input type="checkbox" id="ops-notify-camp" checked> <span data-tr="Kampanya bildirimi işaretli rollere gitsin" data-de="Kampagnenmeldung geht an die markierten Rollen">Kampanya bildirimi işaretli rollere gitsin</span></label>
+</div>
+<button type="button" class="btn btn-primary" onclick="opsSaveNotifSettings()" data-tr="Kaydet" data-de="Speichern">Kaydet</button>
+</div>
 <div class="card" id="settings-appearance-card">
 <div class="card-title" style="margin-bottom:16px;" data-tr="Görünüm" data-de="Erscheinungsbild">Görünüm</div>
 <div style="display:flex;flex-direction:column;gap:16px;">

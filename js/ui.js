@@ -82,7 +82,7 @@ const _NAVIGATE_LOADERS = {
     _mbPageFn('loadRolesPage')?.();
     _mbPageFn('loadIncomingCallsSettingsPage')?.();
     _mbPageFn('loadAppointmentResultsSettings')?.();
-    setTimeout(() => _mbPageFn('initSettingsTabs')?.(), 0);
+    setTimeout(() => _mbPageFn('initSettingsTabs')?.(window.__settingsTab || 'general'), 0);
     _mbPageFn('loadMesaiSettings')?.();
     _mbPageFn('loadCallHoursSettings')?.();
     _mbPageFn('loadChatSettingsPage')?.();
@@ -147,7 +147,7 @@ if (notif) notif.style.display = 'none';
 if (typeof toggleTeamChat === 'function') toggleTeamChat(false);
 }
 
-function initSettingsTabs() {
+function initSettingsTabs(preferTab) {
   const page = document.getElementById('page-settings');
   if (!page) return;
   const cards = [...page.querySelectorAll('.settings-layout > .card')];
@@ -155,6 +155,7 @@ function initSettingsTabs() {
     general: new Set(['settings-appearance-card']),
     mascot: new Set(['settings-mascot-card']),
     communication: new Set(['incoming-calls-settings-card', 'chat-settings-card']),
+    notifications: new Set(['notif-settings-card']),
     operations: new Set(['mesai-settings-card', 'call-hours-card', 'results-settings-card', 'default-takvim-firm-card', 'settings-goals-card']),
     field: new Set(['field-settings-card']),
     system: new Set(['settings-api-keys-card', 'feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings', 'sms-settings-card']),
@@ -169,7 +170,10 @@ function initSettingsTabs() {
     }
   });
   mbSyncSettingsTabs();
-  setSettingsTab('general');
+  const tab = preferTab || 'general';
+  window.__settingsTab = '';
+  setSettingsTab(tab);
+  if (tab === 'notifications' && typeof opsFillNotifSettings === 'function') opsFillNotifSettings();
 }
 
 function mbSyncSettingsTabs() {

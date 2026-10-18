@@ -97,6 +97,28 @@ async function loadNotificationCenter() {
     });
   } catch (e) {}
 
+  try {
+    const prefs = typeof opsNotifyPrefs === 'function' ? opsNotifyPrefs() : null;
+    if (prefs?.appt !== false && currentUser?.id) {
+      const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
+      const appts = await sb(`appointments?firm_id=eq.${fid}&agent_id=eq.${currentUser.id}&termin_tarih=gte.${today}&select=id,nachname,telefonnummer,termin_tarih&order=termin_tarih.asc&limit=5`).catch(() => []);
+      (appts || []).forEach((a) => {
+        unread++;
+        const title = typeof t === 'function' ? t('ops.notice.appt') : 'Randevun';
+        out.push(_notifItem(title, `${a.nachname || '—'} · ${a.termin_tarih || ''} · ${a.telefonnummer || ''}`, ''));
+      });
+    }
+    if (prefs?.campaign !== false && typeof opsRoleSeesWarn === 'function' && opsRoleSeesWarn()) {
+      const ids = (typeof _opsDirective !== 'undefined' && Array.isArray(_opsDirective.ids)) ? _opsDirective.ids : [];
+      if (ids.length) {
+        const names = ids.map((id) => (typeof opsCampName === 'function' ? opsCampName(id) : id)).join(', ');
+        const title = typeof t === 'function' ? t('ops.notice.camps') : 'Çalışılacak kampanyalar';
+        unread++;
+        out.push(_notifItem(title, names, ''));
+      }
+    }
+  } catch (e) {}
+
   list.innerHTML = out.length ? [...new Set(out)].join('') : _notifItem('Bildirim yok', 'Yeni bildirim bulunmuyor', '');
   if (badge) {
     badge.textContent = unread > 99 ? '99+' : String(unread);

@@ -42,6 +42,7 @@ const MB_CHROME = [
   { id: 'mesai-settings-card', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'chat-settings-card', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'field-settings-card', roles: ['admin', 'super_admin', 'firm_admin'] },
+  { id: 'notif-settings-card', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'feature-flags-card', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'job-permissions-card', roles: ['admin', 'super_admin', 'firm_admin'] },
   { selector: '#page-settings .card:has(#s-google-key)', roles: ['super_admin'] },
