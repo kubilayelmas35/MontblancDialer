@@ -228,6 +228,16 @@ function notifDismiss(id, src) {
   notifPaint();
 }
 
+function notifClearAll() {
+  if (typeof opsNoticeKey === 'function') {
+    try { localStorage.setItem(opsNoticeKey(), '[]'); } catch (e) {}
+  }
+  notifRememberHide(_notifItems.filter((item) => item.src !== 'store').map((item) => item.id));
+  _notifItems = [];
+  _notifFilter = 'all';
+  notifPaint();
+}
+
 function notifClearCat(cat) {
   const gone = _notifItems.filter((item) => item.cat === cat);
   if (!gone.length) return;

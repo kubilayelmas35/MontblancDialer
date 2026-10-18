@@ -699,6 +699,7 @@ function opsShowSample(kind) {
       bad: 'Örnek: olumsuz sonuç',
     }[kind];
     toast(msg, kind === 'bad' ? 'err' : 'ok', 4000);
+    opsKeepSample(kind === 'soon' ? '15 dk kala' : 'Örnek', msg, opsSoundEntry(kind).color);
     return;
   }
   const host = document.createElement('div');
@@ -724,12 +725,14 @@ function opsShowSample(kind) {
     card.append(title, who, phone, place, btn);
     host.appendChild(card);
     host.addEventListener('click', (ev) => { if (ev.target === host) close(); });
+    opsKeepSample(title.textContent, 'Örnek Müşteri · +49 170 000 · 10115 Berlin', opsSoundEntry('due').color);
   } else if (kind === 'hour') {
     host.className = 'ops-sample-host';
     const bar = document.createElement('div');
     bar.className = 'ops-appt-strip';
     bar.textContent = 'Aranacaklar · Örnek Müşteri · 45 dk';
     host.appendChild(bar);
+    opsKeepSample('Aranacaklar', bar.textContent, opsSoundEntry('hour').color);
   } else if (kind === 'wrong') {
     host.className = 'ops-sample-host';
     const bar = document.createElement('div');
@@ -739,6 +742,7 @@ function opsShowSample(kind) {
     text.textContent = 'Yanlış kampanyadasın. Seçmelisin: Örnek Kampanya. Kapatmalısın: Eski Kampanya.';
     bar.appendChild(text);
     host.appendChild(bar);
+    opsKeepSample('Yanlış kampanya', text.textContent, opsSoundEntry('wrong').color);
   } else {
     host.className = 'ops-sample-host';
     const card = document.createElement('article');
@@ -750,6 +754,7 @@ function opsShowSample(kind) {
     name.textContent = 'Örnek Agent · 5:10';
     card.append(title, name);
     host.appendChild(card);
+    opsKeepSample(title.textContent, name.textContent, opsSoundEntry(kind).color);
   }
   document.body.appendChild(host);
   _opsSampleTimer = setTimeout(close, 4500);
@@ -1051,6 +1056,12 @@ function opsRememberNotice(title, text, color) {
   if (typeof loadNotificationCenter === 'function') loadNotificationCenter();
 }
 
+function opsKeepSample(title, text, color) {
+  opsRememberNotice(title, text, color);
+  const el = document.getElementById('notification-center');
+  if (el) el.style.display = 'block';
+}
+
 function opsMarkNoticesSeen() {
   if (!currentUser?.id) return;
   try { localStorage.setItem(`mb_ops_notice_seen_${currentUser.id}`, new Date().toISOString()); } catch (e) {}
@@ -1068,10 +1079,13 @@ function opsFloorPush(soundKind, titleKind, text, force, quiet, entry, self) {
   const cfg = entry || (String(soundKind).startsWith('result:') ? opsResultEntry(soundKind.slice(7)) : opsSoundEntry(soundKind));
   if (!force && cfg.on === false) return;
   if (!force && !self && !opsRoleSeesWarn()) return;
+  const color = opsHex(cfg.color, '#64748b');
+  const titleText = opsSay(`ops.floor.${titleKind}`, 'Bildirim');
+  if (force) opsKeepSample(titleText, text, color);
+  else opsRememberNotice(titleText, text, color);
   const host = document.getElementById('ops-floor-feed');
   if (!host) return;
   const card = document.createElement('article');
-  const color = opsHex(cfg.color, '#64748b');
   card.className = 'ops-live-card ops-floor-card';
   card.style.borderLeftColor = color;
   card.style.background = opsTint(color);
@@ -1079,7 +1093,7 @@ function opsFloorPush(soundKind, titleKind, text, force, quiet, entry, self) {
   const head = document.createElement('div');
   head.className = 'ops-live-head';
   const title = document.createElement('strong');
-  title.textContent = opsSay(`ops.floor.${titleKind}`, 'Bildirim');
+  title.textContent = titleText;
   const close = document.createElement('button');
   close.type = 'button';
   close.className = 'ops-live-x';
@@ -1091,7 +1105,6 @@ function opsFloorPush(soundKind, titleKind, text, force, quiet, entry, self) {
   card.append(head, body);
   host.appendChild(card);
   while (host.children.length > 4) host.firstElementChild?.remove();
-  if (!force) opsRememberNotice(title.textContent, text, color);
   if (!force && !quiet && !document.hidden) opsPlayTone(cfg.tone, _opsAlerts.sounds?.volume);
   setTimeout(() => card.remove(), 12000);
 }
