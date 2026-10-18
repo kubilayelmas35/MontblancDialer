@@ -166,6 +166,46 @@ function toggleCampScript() {
   if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 }
 
+function mbRulesOpen() {
+  try { return localStorage.getItem('mb-rules-open') !== '0'; } catch (e) { return true; }
+}
+
+function mbApplyRulesOpen(open) {
+  const body = document.getElementById('camp-rules-body-dial');
+  const chev = document.getElementById('camp-rules-chev');
+  const btn = document.getElementById('camp-rules-toggle');
+  if (body) body.style.display = open ? '' : 'none';
+  if (chev) chev.style.transform = open ? '' : 'rotate(-90deg)';
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function toggleCampRules() {
+  const open = !mbRulesOpen();
+  try { localStorage.setItem('mb-rules-open', open ? '1' : '0'); } catch (e) {}
+  mbApplyRulesOpen(open);
+  if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+function showCampRules(contact) {
+  const camp = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === (contact?.campaign_id || (typeof selectedCampId !== 'undefined' ? selectedCampId : null)));
+  const rules = String((typeof getCampSettings === 'function' ? getCampSettings(camp || {}) : {})?.rules || '').trim();
+  const el = document.getElementById('camp-rules-box');
+  if (!el) return;
+  if (!rules) {
+    el.style.display = 'none';
+    el.innerHTML = '';
+    return;
+  }
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const open = mbRulesOpen();
+  el.style.display = '';
+  el.innerHTML = `<button type="button" id="camp-rules-toggle" aria-expanded="${open ? 'true' : 'false'}" onclick="toggleCampRules()" style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;background:transparent;border:none;padding:0;cursor:pointer;color:var(--accent);font-size:11px;font-weight:800;">
+<span>${esc(typeof uqSay === 'function' ? uqSay('dial.rules', 'Kurallar') : 'Kurallar')}</span>
+<i id="camp-rules-chev" class="ph ph-caret-down" style="font-size:14px;transition:transform .15s;${open ? '' : 'transform:rotate(-90deg);'}"></i>
+</button>
+<div id="camp-rules-body-dial" style="font-size:12px;color:var(--text);white-space:pre-wrap;max-height:120px;overflow-y:auto;margin-top:6px;${open ? '' : 'display:none;'}">${esc(rules)}</div>`;
+}
+
 function showCampScript(contact) {
   const camp = campaigns.find(c => c.id === (contact?.campaign_id || selectedCampId));
   const settings = getCampSettings(camp||{});
@@ -183,6 +223,7 @@ function showCampScript(contact) {
   } else {
     el.style.display = 'none';
   }
+  if (typeof showCampRules === 'function') showCampRules(contact);
 }
 
 function showCampScript2(contact) { showCampScript(contact); }

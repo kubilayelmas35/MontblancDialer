@@ -452,9 +452,10 @@ function openCampRules(campId) {
   const camp = (campaigns || []).find((c) => String(c.id) === String(campId));
   const rules = String((typeof getCampSettings === 'function' ? getCampSettings(camp) : camp?.settings)?.rules || '').trim();
   if (!rules) return;
+  const label = typeof campT === 'function' ? campT('dial.rules', 'Kurallar') : 'Kurallar';
   const title = document.getElementById('camp-rules-title');
   const body = document.getElementById('camp-rules-body');
-  if (title) title.textContent = camp?.name ? `${camp.name} — Kurallar` : 'Kampanya kuralları';
+  if (title) title.textContent = camp?.name ? `${camp.name} — ${label}` : label;
   if (body) body.textContent = rules;
   if (typeof openModal === 'function') openModal('m-camp-rules');
 }
