@@ -124,7 +124,16 @@ const IA_FIELDS = [
 {key:'termin_tarih', label:'Randevu Tarihi *',  required:true},
 {key:'termin_saat',  label:'Randevu Saati',     required:false},
 {key:'notiz',        label:'Not',              required:false},
-{key:'durum',        label:'Durum',            required:false},
+{key:'durum',        label:'QC sonucu',        required:false},
+{key:'kampanya',     label:'Kampanya',         required:false},
+{key:'personel',     label:'Personel',         required:false},
+{key:'hausart',      label:'Ev tipi',          required:false},
+{key:'baujahr',      label:'Yapım yılı',       required:false},
+{key:'qm',           label:'m²',               required:false},
+{key:'heizung',      label:'Isıtma',           required:false},
+{key:'alter_der_heizung', label:'Isıtma yaşı', required:false},
+{key:'verbrauch_pro_jahr', label:'Tüketim/yıl', required:false},
+{key:'personen',     label:'Kişi sayısı',      required:false},
 ];
 
 const NC_DEFAULT_FIELDS = [

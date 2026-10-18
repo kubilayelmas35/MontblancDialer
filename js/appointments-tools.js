@@ -522,26 +522,105 @@ async function addAdjacentEmptySlot(slotId) {
 }
 
 // ── Import Appts ──────────────────────────────
+let _iaUsers = [];
+let _iaResults = [];
+
+function iaSay(key, fb, vars) {
+  let s = typeof t === 'function' ? t(key) : fb;
+  if (!s || s === key) s = fb;
+  Object.entries(vars || {}).forEach(([k, v]) => { s = s.replace(`{${k}}`, String(v)); });
+  return s;
+}
+
+function iaEsc(v) {
+  return typeof escapeHtml === 'function' ? escapeHtml(v) : String(v ?? '');
+}
+
+function iaFold(v) {
+  return String(v || '').trim().toLocaleLowerCase('tr-TR')
+    .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c');
+}
+
+function iaParseDay(raw, fmt) {
+  if (raw instanceof Date && !isNaN(raw.getTime())) {
+    const y = raw.getFullYear();
+    const m = String(raw.getMonth() + 1).padStart(2, '0');
+    const d = String(raw.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  if (typeof raw === 'number' && raw > 20000 && raw < 80000) {
+    const dt = new Date(Date.UTC(1899, 11, 30) + Math.floor(raw) * 86400000);
+    if (!isNaN(dt.getTime())) return dt.toISOString().slice(0, 10);
+  }
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  let d;
+  let m;
+  let y;
+  if (fmt === 'yyyy-mm-dd' || /^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const p = s.slice(0, 10).split('-');
+    y = p[0]; m = p[1]; d = p[2];
+  } else if (fmt === 'dd/mm/yyyy') {
+    const p = s.split(/[/.\-]/);
+    d = p[0]; m = p[1]; y = p[2];
+  } else {
+    const p = s.split(/[/.\-]/);
+    d = p[0]; m = p[1]; y = p[2];
+  }
+  if (!y || !m || !d || y.length < 4) return '';
+  const iso = `${y.padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const check = new Date(`${iso}T12:00:00`);
+  if (isNaN(check.getTime())) return '';
+  return iso;
+}
+
+function iaFirmId() {
+  return (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id || '';
+}
+
+async function iaFillStatusSelect() {
+  const sel = document.getElementById('ia-status');
+  if (!sel) return;
+  const keep = sel.value;
+  let rows = [];
+  try {
+    rows = typeof loadFirmAppointmentResults === 'function' ? await loadFirmAppointmentResults(iaFirmId(), true) : [];
+  } catch (e) {
+    rows = [];
+  }
+  if (!rows?.length && typeof defaultAppointmentResults === 'function') rows = defaultAppointmentResults();
+  _iaResults = rows || [];
+  sel.innerHTML = _iaResults.map((r) => `<option value="${iaEsc(r.key)}">${iaEsc(r.label || r.key)}</option>`).join('');
+  if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
+  else if ([...sel.options].some((o) => o.value === 'qc_bekleniyor')) sel.value = 'qc_bekleniyor';
+}
+
 function openImportApptModal() {
   const campSel = document.getElementById('ia-campaign');
   const agentSel = document.getElementById('ia-agent');
   if (campSel) {
     campSel.innerHTML = '<option value="">Kampanya seçin...</option>' +
-      (campaigns||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+      (campaigns||[]).map(c=>`<option value="${iaEsc(c.id)}">${iaEsc(c.name)}</option>`).join('');
   }
   const ff = getFirmFilter('&');
-  sb(`users?select=id,name,role${ff}&role=in.(agent,firm_admin)&is_active=eq.true&order=name.asc`)
+  const roles = (typeof MB_PERSONNEL_ROLES !== 'undefined' ? MB_PERSONNEL_ROLES : ['agent', 'qc', 'firm_admin', 'field_agent', 'admin']).join(',');
+  sb(`users?select=id,name,role${ff}&role=in.(${roles})&is_active=eq.true&order=name.asc`)
     .then(users => {
-      if (agentSel) agentSel.innerHTML = '<option value="">Agent seçin...</option>' +
-        (users||[]).map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
-    }).catch(()=>{});
+      _iaUsers = users || [];
+      if (agentSel) agentSel.innerHTML = '<option value="">Personel seçin...</option>' +
+        _iaUsers.map(u=>`<option value="${iaEsc(u.id)}">${iaEsc(u.name)}</option>`).join('');
+    }).catch(()=>{ _iaUsers = []; });
+  iaFillStatusSelect();
   _iaRows=[]; _iaHeaders=[];
   document.getElementById('ia-file').value='';
   document.getElementById('ia-file-name').textContent='Dosya seçmek için tıkla';
-  ['ia-mapping-section','ia-options-section','ia-preview-section','ia-progress-section'].forEach(id=>{
+  ['ia-mapping-section','ia-options-section','ia-preview-section','ia-progress-section','ia-questions'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.style.display='none';
   });
+  const q = document.getElementById('ia-questions');
+  if (q) q.innerHTML = '';
   document.getElementById('ia-preview-btn').style.display='none';
+  document.getElementById('ia-match-btn').style.display='none';
   document.getElementById('ia-submit-btn').style.display='none';
   openModal('m-import-appt');
 }
@@ -569,7 +648,10 @@ ${_iaHeaders.map((h,i)=>`<option value="${i}" ${autoMatchImport(h,f.key)?'select
   document.getElementById('ia-mapping-section').style.display='';
   document.getElementById('ia-options-section').style.display='';
   document.getElementById('ia-preview-btn').style.display='';
+  document.getElementById('ia-match-btn').style.display='';
   document.getElementById('ia-submit-btn').style.display='';
+  const q = document.getElementById('ia-questions');
+  if (q) { q.innerHTML = ''; q.style.display = 'none'; }
   toast(`${_iaRows.length} satır okundu ✓`, 'ok');
 }
 
@@ -585,7 +667,16 @@ function autoMatchImport(header, fieldKey) {
     termin_tarih: ['tarih','datum','termin','date'],
     termin_saat:  ['saat','uhrzeit','time'],
     notiz:    ['not','notiz','note'],
-    durum:    ['durum','status','ergebnis'],
+    durum:    ['durum','status','ergebnis','qc'],
+    kampanya: ['kampanya','kampagne','campaign'],
+    personel: ['personel','agent','temsilci','mitarbeiter'],
+    hausart:  ['hausart','ev tipi','evtip'],
+    baujahr:  ['baujahr','yapım','yapim'],
+    qm:       ['m2','qm','m²'],
+    heizung:  ['heizung','isitma','ısıtma'],
+    alter_der_heizung: ['ısıtma yaşı','isitma yasi','heizung alter'],
+    verbrauch_pro_jahr: ['verbrauch','tüketim','tuketim'],
+    personen: ['personen','kişi','kisi'],
   };
   return (matches[fieldKey]||[]).some(kw=>h.includes(kw));
 }
@@ -993,6 +1084,177 @@ async function applyDefaultTakvimToFirmCampaigns() {
   }
 }
 
+function iaDistinct(idx) {
+  const counts = new Map();
+  (_iaRows || []).forEach((row) => {
+    const raw = row?.[idx];
+    if (raw instanceof Date || typeof raw === 'number') return;
+    const s = String(raw ?? '').trim();
+    if (!s) return;
+    counts.set(s, (counts.get(s) || 0) + 1);
+  });
+  return [...counts.entries()];
+}
+
+function iaGuessId(list, value, labelOf, keyOf) {
+  const n = iaFold(value);
+  const hit = (list || []).find((item) => iaFold(labelOf(item)) === n || (keyOf && iaFold(keyOf(item)) === n));
+  return hit ? String(keyOf ? keyOf(hit) : hit.id) : '';
+}
+
+function iaQuestionRow(kind, value, optionsHtml, createLabel, titleText) {
+  const fallback = { campaign: 'Kampanya: {v} — hangisi?', agent: 'Personel: {v} — kim?', durum: 'QC sonucu: {v} — bu nedir?' }[kind] || kind;
+  const title = titleText || iaSay(`ia.q.${kind}`, fallback, { v: value });
+  const create = createLabel ? `<option value="__create__">${iaEsc(createLabel)}</option>` : '';
+  const extra = kind === 'agent'
+    ? `<div class="ia-create" style="display:none;gap:6px;margin-top:6px;">
+<input class="form-input ia-q-email" placeholder="${iaEsc(iaSay('ia.q.email', 'E-posta'))}" style="font-size:12px;">
+<input class="form-input ia-q-pass" type="password" placeholder="${iaEsc(iaSay('ia.q.pass', 'Şifre'))}" style="font-size:12px;">
+</div>`
+    : '';
+  return `<div data-ia-kind="${iaEsc(kind)}" data-ia-value="${iaEsc(value)}" style="padding:8px 10px;background:var(--bg-3);border-radius:8px;">
+<div style="font-size:12px;font-weight:700;margin-bottom:6px;">${iaEsc(title)}</div>
+<select class="form-input ia-q-pick" style="font-size:12px;" onchange="iaToggleCreate(this)">${optionsHtml}${create}</select>
+${extra}
+</div>`;
+}
+
+function iaToggleCreate(sel) {
+  const box = sel.parentElement?.querySelector('.ia-create');
+  if (box) box.style.display = sel.value === '__create__' ? 'flex' : 'none';
+}
+
+function iaReadAnswers() {
+  const out = { campaign: {}, agent: {}, durum: {}, extra: {} };
+  document.querySelectorAll('#ia-questions [data-ia-kind]').forEach((row) => {
+    const kind = row.dataset.iaKind;
+    const value = row.dataset.iaValue;
+    const pick = row.querySelector('.ia-q-pick')?.value || '';
+    if (!out[kind]) return;
+    out[kind][value] = {
+      pick,
+      email: row.querySelector('.ia-q-email')?.value?.trim() || '',
+      pass: row.querySelector('.ia-q-pass')?.value || '',
+    };
+  });
+  return out;
+}
+
+function iaBuildQuestions() {
+  const host = document.getElementById('ia-questions');
+  if (!host) return false;
+  const map = getImportMapping();
+  const used = new Set(Object.values(map).filter((n) => n != null && !Number.isNaN(n)));
+  const parts = [];
+  const askKind = (kind, idx, list, labelOf, keyOf, createLabel) => {
+    if (idx == null || Number.isNaN(idx)) return false;
+    const values = iaDistinct(idx);
+    if (values.length > 30) {
+      toast(iaSay('ia.q.many', 'Bu sütunda çok fazla farklı değer var. Tek seçim kullanılacak.'), 'warn');
+      return false;
+    }
+    values.forEach(([value]) => {
+      const guessed = iaGuessId(list, value, labelOf, keyOf);
+      const opts = [`<option value="">${iaEsc(iaSay('ia.q.pick', 'Seçin'))}</option>`]
+        .concat(list.map((item) => {
+          const id = String(keyOf(item));
+          const label = labelOf(item);
+          return `<option value="${iaEsc(id)}" ${id === guessed ? 'selected' : ''}>${iaEsc(label)}</option>`;
+        })).join('');
+      parts.push(iaQuestionRow(kind, value, opts, createLabel));
+    });
+    return values.length > 0;
+  };
+  askKind('campaign', map.kampanya, campaigns || [], (c) => c.name || '', (c) => c.id, iaSay('ia.q.create.camp', 'Yeni kampanya oluştur'));
+  askKind('agent', map.personel, _iaUsers || [], (u) => u.name || '', (u) => u.id, iaSay('ia.q.create.agent', 'Bu personeli oluştur'));
+  askKind('durum', map.durum, _iaResults || [], (r) => r.label || r.key, (r) => r.key, iaSay('ia.q.create.durum', 'Yeni QC sonucu oluştur'));
+  (_iaHeaders || []).forEach((header, idx) => {
+    if (used.has(idx) || !String(header || '').trim()) return;
+    const opts = [`<option value="">${iaEsc(iaSay('ia.q.skip', 'Atla'))}</option>`, `<option value="__note__">${iaEsc(iaSay('ia.q.note', 'Notun içine yaz'))}</option>`]
+      .concat(IA_FIELDS.filter((f) => map[f.key] == null).map((f) => `<option value="${iaEsc(f.key)}">${iaEsc(f.label)}</option>`)).join('');
+    parts.push(iaQuestionRow('extra', String(idx), opts, '', iaSay('ia.q.field', 'Sütun: {v} — nereye gelsin?', { v: header })));
+  });
+  host.innerHTML = parts.join('') || `<div style="font-size:12px;color:var(--text-3);">${iaEsc(iaSay('ia.q.ready', 'Eşleşmeler hazır'))}</div>`;
+  host.style.display = 'flex';
+  host.querySelectorAll('.ia-q-pick').forEach((sel) => { if (sel.value === '__create__') iaToggleCreate(sel); });
+  toast(iaSay('ia.q.ready', 'Eşleşmeler hazır'), 'ok');
+  return true;
+}
+
+function iaAnswerProblem(answers) {
+  const need = (kind, label) => {
+    const bag = answers[kind] || {};
+    const missing = Object.entries(bag).find(([, ans]) => !ans.pick);
+    if (missing) return `${label}: ${missing[0]}`;
+    if (kind === 'agent') {
+      const bad = Object.entries(bag).find(([, ans]) => ans.pick === '__create__' && (!String(ans.email || '').includes('@') || String(ans.pass || '').length < 6));
+      if (bad) return `${bad[0]}: ${iaSay('ia.q.email', 'E-posta')} / ${iaSay('ia.q.pass', 'Şifre')}`;
+    }
+    return '';
+  };
+  const campFallback = document.getElementById('ia-campaign')?.value || '';
+  const agentFallback = document.getElementById('ia-agent')?.value || '';
+  return need('campaign', 'Kampanya') || need('agent', 'Personel') || need('durum', 'QC')
+    || (!Object.keys(answers.campaign || {}).length && !campFallback ? 'Kampanya' : '')
+    || (!Object.keys(answers.agent || {}).length && !agentFallback ? 'Personel' : '');
+}
+
+async function iaEnsureCreates(answers, firmId) {
+  const campIds = {};
+  const agentIds = {};
+  const durumIds = {};
+  for (const [name, ans] of Object.entries(answers.campaign || {})) {
+    if (ans.pick !== '__create__') { campIds[name] = ans.pick; continue; }
+    const created = await sb('campaigns', {
+      method: 'POST', prefer: 'return=representation',
+      body: JSON.stringify({ name, firm_id: firmId, status: 'paused', dial_speed: 1, settings: { customer_qc: true } }),
+    });
+    const row = Array.isArray(created) ? created[0] : created;
+    if (!row?.id) throw new Error(name);
+    campIds[name] = row.id;
+    if (Array.isArray(campaigns)) campaigns.push(row);
+  }
+  for (const [name, ans] of Object.entries(answers.agent || {})) {
+    if (ans.pick !== '__create__') { agentIds[name] = ans.pick; continue; }
+    const res = await fetch(`${SB_URL}/rest/v1/rpc/create_user_with_password`, {
+      method: 'POST',
+      headers: mbAuthHeaders(),
+      body: JSON.stringify({ p_firm_id: firmId, p_email: ans.email, p_password: ans.pass, p_name: name, p_role: 'agent' }),
+    });
+    if (!res.ok) throw new Error(name);
+    const found = await sb(`users?email=eq.${encodeURIComponent(ans.email)}&select=id,name&limit=1`);
+    const id = found?.[0]?.id;
+    if (!id) throw new Error(name);
+    agentIds[name] = id;
+    _iaUsers.push({ id, name });
+  }
+  const fresh = Object.entries(answers.durum || {}).filter(([, ans]) => ans.pick === '__create__');
+  if (fresh.length) {
+    const firms = await sb(`firms?id=eq.${firmId}&select=settings`);
+    const existing = firms?.[0]?.settings || {};
+    const rows = Array.isArray(existing.appointment_results) && existing.appointment_results.length
+      ? existing.appointment_results.slice()
+      : (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
+    fresh.forEach(([name]) => {
+      const key = typeof _normResultKey === 'function' ? _normResultKey(name) : iaFold(name).replace(/[^a-z0-9_]+/g, '_');
+      if (!rows.some((r) => r.key === key)) {
+        rows.push({ key, label: name, color: '#64748b', contact_status: name, auto_move_down: false });
+      }
+      durumIds[name] = key;
+    });
+    await sb(`firms?id=eq.${firmId}`, {
+      method: 'PATCH', prefer: 'return=minimal',
+      body: JSON.stringify({ settings: { ...existing, appointment_results: rows } }),
+    });
+    if (window._apptResultsByFirm) window._apptResultsByFirm[firmId] = rows;
+    _iaResults = rows;
+  }
+  Object.entries(answers.durum || {}).forEach(([name, ans]) => {
+    if (ans.pick !== '__create__') durumIds[name] = ans.pick;
+  });
+  return { campIds, agentIds, durumIds };
+}
+
 function previewImport() {
   const map = getImportMapping();
   const box = document.getElementById('ia-preview-table');
@@ -1007,57 +1269,104 @@ function previewImport() {
 }
 
 async function startImportAppt() {
-  const camp = document.getElementById('ia-campaign')?.value || '';
-  const agent = document.getElementById('ia-agent')?.value || '';
-  if (!camp || !agent) {
-    toast('Kampanya ve temsilci seçin', 'err');
-    return;
-  }
   const map = getImportMapping();
   if (map.nachname == null || map.telefon == null) {
     toast('Ad ve telefon sütunlarını eşleştirin', 'err');
     return;
   }
-  const status = document.getElementById('ia-status')?.value || 'beklemede';
+  if (!document.querySelector('#ia-questions [data-ia-kind]') && (map.kampanya != null || map.personel != null || map.durum != null)) iaBuildQuestions();
+  const answers = iaReadAnswers();
+  const problem = iaAnswerProblem(answers);
+  if (problem) {
+    toast(iaSay('ia.q.need', 'Önce eşleşmeyenleri seçin') + ' — ' + problem, 'err');
+    const host = document.getElementById('ia-questions');
+    if (host) host.style.display = 'flex';
+    return;
+  }
+  const fallbackCamp = document.getElementById('ia-campaign')?.value || '';
+  const fallbackAgent = document.getElementById('ia-agent')?.value || '';
+  const fallbackStatus = document.getElementById('ia-status')?.value || 'qc_bekleniyor';
+  const fmt = document.getElementById('ia-date-fmt')?.value || 'dd.mm.yyyy';
+  const firmId = iaFirmId();
+  let made;
+  try {
+    made = await iaEnsureCreates(answers, firmId);
+  } catch (e) {
+    toast(e?.message || 'Oluşturulamadı', 'err');
+    return;
+  }
+  Object.entries(answers.extra || {}).forEach(([idx, ans]) => {
+    if (ans.pick && ans.pick !== '__note__' && map[ans.pick] == null) map[ans.pick] = parseInt(idx, 10);
+  });
   const prog = document.getElementById('ia-progress-section');
   const bar = document.getElementById('ia-progress-bar');
   const label = document.getElementById('ia-progress-label');
   if (prog) prog.style.display = '';
   let ok = 0;
+  let skip = 0;
   const rows = _iaRows || [];
+  const text = (row, key) => {
+    const idx = map[key];
+    if (idx == null || Number.isNaN(idx)) return '';
+    const raw = row[idx];
+    if (raw == null || raw instanceof Date) return '';
+    return String(raw).trim();
+  };
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const cell = (k) => (map[k] == null ? '' : String(row[map[k]] ?? '').trim());
+    const phone = text(row, 'telefon');
+    const day = iaParseDay(map.termin_tarih == null ? '' : row[map.termin_tarih], fmt);
+    const campName = text(row, 'kampanya');
+    const agentName = text(row, 'personel');
+    const durumName = text(row, 'durum');
+    const campId = (campName && made.campIds[campName]) || fallbackCamp;
+    const agentId = (agentName && made.agentIds[agentName]) || fallbackAgent;
+    const durum = (durumName && made.durumIds[durumName]) || fallbackStatus;
+    const saat = (text(row, 'termin_saat') || '10:00').slice(0, 5);
+    if (!phone || !day || !campId || !agentId || !durum) { skip++; continue; }
+    const camp = (campaigns || []).find((c) => String(c.id) === String(campId));
+    const custId = camp && typeof mbCampDefaultCustomerId === 'function' ? mbCampDefaultCustomerId(camp) : null;
+    const notes = [];
+    const baseNote = text(row, 'notiz');
+    if (baseNote) notes.push(baseNote);
+    Object.entries(answers.extra || {}).forEach(([idx, ans]) => {
+      if (ans.pick !== '__note__') return;
+      const val = String(row[idx] ?? '').trim();
+      if (!val) return;
+      notes.push(`${_iaHeaders[idx] || 'Alan'}: ${val}`);
+    });
     const payload = {
-      firm_id: currentUser?.firm_id,
-      campaign_id: camp,
-      agent_id: agent,
-      nachname: cell('nachname') || '—',
-      telefonnummer: cell('telefon'),
-      telefon2: cell('telefon2') || null,
-      strasse: cell('strasse') || null,
-      plz: cell('plz') || null,
-      ortschaft: cell('ort') || null,
-      agent_notu: cell('notiz') || null,
-      durum: cell('durum') || status,
+      firm_id: camp?.firm_id || firmId,
+      campaign_id: campId,
+      agent_id: agentId,
+      nachname: text(row, 'nachname') || '—',
+      telefonnummer: phone,
+      telefon2: text(row, 'telefon2') || null,
+      strasse: text(row, 'strasse') || null,
+      plz: text(row, 'plz') || null,
+      ortschaft: text(row, 'ort') || null,
+      hausart: text(row, 'hausart') || null,
+      baujahr: text(row, 'baujahr') || null,
+      qm: text(row, 'qm') || null,
+      heizung: text(row, 'heizung') || null,
+      alter_der_heizung: text(row, 'alter_der_heizung') || null,
+      verbrauch_pro_jahr: text(row, 'verbrauch_pro_jahr') || null,
+      personen: text(row, 'personen') || null,
+      agent_notu: notes.join('\n') || null,
+      durum,
+      customer_id: custId || null,
+      termin_tarih: typeof mbWallToIso === 'function' ? (mbWallToIso(`${day}T${saat}`) || `${day}T${saat}:00`) : `${day}T${saat}:00`,
     };
-    const tarih = cell('termin_tarih');
-    const saat = (cell('termin_saat') || '10:00').slice(0, 5);
-    if (tarih) {
-      const isoDay = tarih.includes('.') ? tarih.split('.').reverse().join('-') : tarih.slice(0, 10);
-      payload.termin_tarih = typeof mbWallToIso === 'function' ? mbWallToIso(`${isoDay}T${saat}`) : `${isoDay}T${saat}:00`;
-    }
     try {
       await sb('appointments', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(payload) });
       ok++;
     } catch (e) {
-      if (label) label.textContent = 'Satır kaydedilemedi';
-      toast('İçe aktarma durdu: ' + (e?.message || 'kayıt yazılamadı'), 'err');
-      return;
+      skip++;
     }
     if (bar) bar.style.width = `${Math.round(((i + 1) / Math.max(rows.length, 1)) * 100)}%`;
   }
-  if (label) label.textContent = `${ok} randevu yazıldı`;
-  toast(`${ok} randevu içe aktarıldı`, 'ok');
+  const done = iaSay('ia.done', '{ok} randevu yazıldı, {skip} satır atlandı', { ok, skip });
+  if (label) label.textContent = done;
+  toast(done, skip ? 'warn' : 'ok');
 }
 
