@@ -12,16 +12,16 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=9.27">
-<link rel="stylesheet" href="css/styles-dialer.css?v=9.27">
-<link rel="stylesheet" href="css/styles-mascot.css?v=9.27">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=9.27">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=9.27">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=9.27">
-<link rel="stylesheet" href="css/styles-pages.css?v=9.27">
-<link rel="stylesheet" href="css/styles-aurora.css?v=9.27">
-<link rel="stylesheet" href="css/styles-chat.css?v=9.27">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=9.27">
+<link rel="stylesheet" href="css/styles.css?v=9.28">
+<link rel="stylesheet" href="css/styles-dialer.css?v=9.28">
+<link rel="stylesheet" href="css/styles-mascot.css?v=9.28">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=9.28">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=9.28">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=9.28">
+<link rel="stylesheet" href="css/styles-pages.css?v=9.28">
+<link rel="stylesheet" href="css/styles-aurora.css?v=9.28">
+<link rel="stylesheet" href="css/styles-chat.css?v=9.28">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=9.28">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -48,7 +48,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v9.27 — 2026</div>
+<div class="login-version">v9.28 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -398,7 +398,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v9.27</div>
+<div class="sb-ver">MontBlanc v9.28</div>
 </div>
 </nav>
 <main id="main">
@@ -593,7 +593,7 @@
 <button class="cd-tab" data-tab="termin-form" onclick="switchCampTab('termin-form')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Randevu Formu" data-de="Terminformular">Randevu Formu</button>
 <button class="cd-tab" data-tab="script" onclick="switchCampTab('script')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Konuşma metni" data-de="Gesprächsleitfaden">Konuşma metni</button>
 <button class="cd-tab" data-tab="arama" onclick="switchCampTab('arama')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Arama" data-de="Anruf">Arama</button>
-<button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="QC / Sonuç" data-de="QC / Prüfung">QC / Sonuç</button>
+<button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Mola/Sonuç" data-de="Pause/Ergebnis">Mola/Sonuç</button>
 <button class="cd-tab" data-tab="bildirim" onclick="switchCampTab('bildirim')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Bildirim" data-de="Hinweis">Bildirim</button>
 <button class="cd-tab" data-tab="kurallar" onclick="switchCampTab('kurallar')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Kurallar" data-de="Regeln">Kurallar</button>
 <button class="cd-tab" data-tab="agentler" onclick="switchCampTab('agentler')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Temsilciler" data-de="Agenten">Temsilciler</button>
@@ -715,11 +715,11 @@
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-phone"></i> <span data-tr="Çağrı Sonuçları" data-de="Anrufergebnisse">Çağrı Sonuçları</span></div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="İşareti açık olanlar dialerde düğme olur. Varsayılan tür değişmez. Kara liste alttaki ayrı kutudur." data-de="Aktive Ergebnisse werden im Dialer zu Schaltflächen. Die Standardart bleibt fest. Die Sperrliste bleibt das eigene Kästchen.">İşareti açık olanlar dialerde düğme olur. Varsayılan tür değişmez. Kara liste alttaki ayrı kutudur.</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="İşareti açık olanlar dialerde düğme olur. Varsayılan tür değişmez. Simgeye tıklayınca değişir. Kara liste alttaki ayrı kutudur." data-de="Aktive Ergebnisse werden im Dialer zu Schaltflächen. Die Standardart bleibt fest. Ein Klick auf das Symbol ändert es. Die Sperrliste bleibt das eigene Kästchen.">İşareti açık olanlar dialerde düğme olur. Varsayılan tür değişmez. Simgeye tıklayınca değişir. Kara liste alttaki ayrı kutudur.</div>
 <div id="cd-outcomes" style="display:flex;flex-direction:column;gap:4px;">
 </div>
 </div>
-<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampQcSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="QC ayarlarını kaydet" data-de="QC-Einstellungen speichern">QC ayarlarını kaydet</span></button>
+<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampQcSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Mola ve sonuçları kaydet" data-de="Pause und Ergebnisse speichern">Mola ve sonuçları kaydet</span></button>
 </div>
 </div>
 <div id="cd-tab-bildirim" class="cd-tab-panel" style="display:none;">
@@ -3921,59 +3921,59 @@ QC Detay
 </div>
 <div id="notification-center-list" style="padding:10px;display:flex;flex-direction:column;gap:8px;"></div>
 </div>
-<script src="js/version.js?v=9.27"></script>
-<script src="js/i18n.js?v=9.27"></script>
-<script src="js/config.js?v=9.27"></script>
-<script src="js/state.js?v=9.27"></script>
-<script src="js/api.js?v=9.27"></script>
-<script src="js/access.js?v=9.27"></script>
-<script src="js/auth.js?v=9.27"></script>
-<script src="js/ui.js?v=9.27"></script>
-<script src="js/chat.js?v=9.27"></script>
-<script src="js/chat-settings.js?v=9.27"></script>
-<script src="js/field-settings.js?v=9.27"></script>
-<script src="js/audit.js?v=9.27"></script>
-<script src="js/feature-flags.js?v=9.27"></script>
-<script src="js/notification-center.js?v=9.27"></script>
+<script src="js/version.js?v=9.28"></script>
+<script src="js/i18n.js?v=9.28"></script>
+<script src="js/config.js?v=9.28"></script>
+<script src="js/state.js?v=9.28"></script>
+<script src="js/api.js?v=9.28"></script>
+<script src="js/access.js?v=9.28"></script>
+<script src="js/auth.js?v=9.28"></script>
+<script src="js/ui.js?v=9.28"></script>
+<script src="js/chat.js?v=9.28"></script>
+<script src="js/chat-settings.js?v=9.28"></script>
+<script src="js/field-settings.js?v=9.28"></script>
+<script src="js/audit.js?v=9.28"></script>
+<script src="js/feature-flags.js?v=9.28"></script>
+<script src="js/notification-center.js?v=9.28"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=9.27"></script>
-<script src="js/job-market.js?v=9.27"></script>
-<script src="js/qc-job-market.js?v=9.27"></script>
-<script src="js/export-admin.js?v=9.27"></script>
-<script src="js/export-termin.js?v=9.27"></script>
-<script src="js/performance.js?v=9.27"></script>
-<script src="js/competition.js?v=9.27"></script>
-<script src="js/dashboard.js?v=9.27"></script>
-<script src="js/dashboard-brief.js?v=9.27"></script>
-<script src="js/campaigns.js?v=9.27"></script>
-<script src="js/campaigns-detail.js?v=9.27"></script>
-<script src="js/campaigns-queue.js?v=9.27"></script>
-<script src="js/contacts-upload.js?v=9.27"></script>
-<script src="js/contacts.js?v=9.27"></script>
-<script src="js/contacts-drawer.js?v=9.27"></script>
-<script src="js/telnyx.js?v=9.27"></script>
-<script src="js/voice-orb.js?v=9.27"></script>
-<script src="js/dialer.js?v=9.27"></script>
-<script src="js/dialer-mascot.js?v=9.27"></script>
-<script src="js/dialer-mascot-live.js?v=9.27"></script>
-<script src="js/ui-prefs.js?v=9.27"></script>
-<script src="js/dialer-session.js?v=9.27"></script>
-<script src="js/dialer-call.js?v=9.27"></script>
-<script src="js/dialer-tools.js?v=9.27"></script>
-<script src="js/appointments.js?v=9.27"></script>
-<script src="js/appointments-actions.js?v=9.27"></script>
-<script src="js/appointments-tools.js?v=9.27"></script>
-<script src="js/field.js?v=9.27"></script>
-<script src="js/field-ops.js?v=9.27"></script>
-<script src="js/wiedervorlage.js?v=9.27"></script>
-<script src="js/qc.js?v=9.27"></script>
-<script src="js/supervisor.js?v=9.27"></script>
-<script src="js/live-coach.js?v=9.27"></script>
-<script src="js/sms-settings.js?v=9.27"></script>
-<script src="js/leave-hr.js?v=9.27"></script>
-<script src="js/muhasebe.js?v=9.27"></script>
-<script src="js/agent-self-performance.js?v=9.27"></script>
-<script src="js/agents.js?v=9.27"></script>
-<script src="js/mimi-brain.js?v=9.27"></script>
+<script src="js/wallet.js?v=9.28"></script>
+<script src="js/job-market.js?v=9.28"></script>
+<script src="js/qc-job-market.js?v=9.28"></script>
+<script src="js/export-admin.js?v=9.28"></script>
+<script src="js/export-termin.js?v=9.28"></script>
+<script src="js/performance.js?v=9.28"></script>
+<script src="js/competition.js?v=9.28"></script>
+<script src="js/dashboard.js?v=9.28"></script>
+<script src="js/dashboard-brief.js?v=9.28"></script>
+<script src="js/campaigns.js?v=9.28"></script>
+<script src="js/campaigns-detail.js?v=9.28"></script>
+<script src="js/campaigns-queue.js?v=9.28"></script>
+<script src="js/contacts-upload.js?v=9.28"></script>
+<script src="js/contacts.js?v=9.28"></script>
+<script src="js/contacts-drawer.js?v=9.28"></script>
+<script src="js/telnyx.js?v=9.28"></script>
+<script src="js/voice-orb.js?v=9.28"></script>
+<script src="js/dialer.js?v=9.28"></script>
+<script src="js/dialer-mascot.js?v=9.28"></script>
+<script src="js/dialer-mascot-live.js?v=9.28"></script>
+<script src="js/ui-prefs.js?v=9.28"></script>
+<script src="js/dialer-session.js?v=9.28"></script>
+<script src="js/dialer-call.js?v=9.28"></script>
+<script src="js/dialer-tools.js?v=9.28"></script>
+<script src="js/appointments.js?v=9.28"></script>
+<script src="js/appointments-actions.js?v=9.28"></script>
+<script src="js/appointments-tools.js?v=9.28"></script>
+<script src="js/field.js?v=9.28"></script>
+<script src="js/field-ops.js?v=9.28"></script>
+<script src="js/wiedervorlage.js?v=9.28"></script>
+<script src="js/qc.js?v=9.28"></script>
+<script src="js/supervisor.js?v=9.28"></script>
+<script src="js/live-coach.js?v=9.28"></script>
+<script src="js/sms-settings.js?v=9.28"></script>
+<script src="js/leave-hr.js?v=9.28"></script>
+<script src="js/muhasebe.js?v=9.28"></script>
+<script src="js/agent-self-performance.js?v=9.28"></script>
+<script src="js/agents.js?v=9.28"></script>
+<script src="js/mimi-brain.js?v=9.28"></script>
 </body>
 </html>

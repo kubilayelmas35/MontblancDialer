@@ -731,6 +731,13 @@ const MB_OUTCOME_ICON = {
   voicemail: 'ph-voicemail',
   dnc: 'ph-prohibit',
 };
+const MB_OUTCOME_ICONS = [
+  'ph-calendar-check', 'ph-x-circle', 'ph-phone-incoming', 'ph-phone-slash', 'ph-voicemail', 'ph-prohibit',
+  'ph-circle', 'ph-check-circle', 'ph-phone', 'ph-phone-x', 'ph-phone-outgoing', 'ph-clock',
+  'ph-star', 'ph-thumbs-up', 'ph-thumbs-down', 'ph-smiley', 'ph-smiley-sad', 'ph-house',
+  'ph-map-pin', 'ph-user', 'ph-warning', 'ph-handshake', 'ph-currency-eur', 'ph-chat-circle',
+  'ph-envelope', 'ph-coffee', 'ph-flag', 'ph-heart', 'ph-lightning', 'ph-bell',
+];
 
 function mbOutcomeCategory(row) {
   const key = String(row?.key || '');
@@ -741,10 +748,49 @@ function mbOutcomeCategory(row) {
 }
 
 function mbOutcomeIcon(row) {
+  const saved = String(row?.icon || '').trim();
+  if (MB_OUTCOME_ICONS.includes(saved)) return saved;
   const key = String(row?.key || '');
   if (key === 'voicemail') return MB_OUTCOME_ICON.voicemail;
   if (key === 'no_answer') return MB_OUTCOME_ICON.neutral;
   return MB_OUTCOME_ICON[mbOutcomeCategory(row)] || 'ph-circle';
+}
+
+function mbOutcomeIconBtn(icon) {
+  const ic = mbOutcomeIcon({ icon });
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const title = esc(campT('camp.oc.icon', 'Simgeyi değiştir'));
+  return `<button type="button" data-outcome-icon="${esc(ic)}" onclick="openOutcomeIconPicker(this)" title="${title}" style="width:28px;height:28px;flex-shrink:0;border:1px solid var(--border);background:var(--bg-3);border-radius:6px;cursor:pointer;color:var(--text-2);display:flex;align-items:center;justify-content:center;"><i class="ph ${esc(ic)}" style="font-size:16px;"></i></button>`;
+}
+
+function openOutcomeIconPicker(btn) {
+  document.getElementById('outcome-icon-picker')?.remove();
+  if (!btn) return;
+  const current = mbOutcomeIcon({ icon: btn.dataset.outcomeIcon });
+  const pop = document.createElement('div');
+  pop.id = 'outcome-icon-picker';
+  pop.style.cssText = 'position:fixed;z-index:9000;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px;display:grid;grid-template-columns:repeat(6,32px);gap:4px;box-shadow:0 8px 24px rgba(0,0,0,.25);';
+  const rect = btn.getBoundingClientRect();
+  pop.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 230)) + 'px';
+  const below = rect.bottom + 6;
+  pop.style.top = (below + 180 > window.innerHeight ? Math.max(8, rect.top - 186) : below) + 'px';
+  pop.innerHTML = MB_OUTCOME_ICONS.map((ic) => `<button type="button" data-icon="${ic}" style="width:32px;height:32px;border-radius:6px;border:1px solid ${ic === current ? 'var(--accent)' : 'var(--border)'};background:var(--bg-3);cursor:pointer;color:var(--text);"><i class="ph ${ic}"></i></button>`).join('');
+  pop.addEventListener('click', (e) => {
+    const pick = e.target.closest('[data-icon]');
+    if (!pick || !MB_OUTCOME_ICONS.includes(pick.dataset.icon)) return;
+    const ic = pick.dataset.icon;
+    btn.dataset.outcomeIcon = ic;
+    const mark = btn.querySelector('i');
+    if (mark) mark.className = `ph ${ic}`;
+    pop.remove();
+  });
+  document.body.appendChild(pop);
+  const close = (ev) => {
+    if (pop.contains(ev.target) || btn.contains(ev.target)) return;
+    pop.remove();
+    document.removeEventListener('mousedown', close, true);
+  };
+  setTimeout(() => document.addEventListener('mousedown', close, true), 0);
 }
 
 function mbOutcomeCatLabel(cat) {
@@ -785,7 +831,7 @@ function mbCampOutcomeRows(camp) {
       category: mbOutcomeCategory({ key, category: row?.category }),
       color: row?.color || 'gray',
       locked,
-      icon: mbOutcomeIcon({ key, category: row?.category }),
+      icon: mbOutcomeIcon({ key, category: row?.category, icon: row?.icon }),
     };
   }).filter((row) => row.key);
 }
@@ -835,7 +881,7 @@ ${cats.map(c=>`<option value="${c}" ${cat===c?'selected':''}>${esc(mbOutcomeCatL
   return `
 <div data-outcome-row data-key="${esc(o.key)}" style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg-2);border-radius:5px;">
 <input type="checkbox" ${o.enabled?'checked':''} ${o.key==='dnc'?'disabled':''} id="outcome-enabled-${i}">
-<i class="ph ${esc(o.icon)}" style="font-size:16px;color:var(--text-2);"></i>
+${mbOutcomeIconBtn(o.icon)}
 <input class="form-input" value="${esc(o.label)}" id="outcome-label-${i}" style="flex:1;font-size:12px;padding:3px 7px;">
 ${catUi}
 </div>`;
@@ -854,7 +900,7 @@ div.dataset.key = key;
 div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg-2);border-radius:5px;';
 div.innerHTML = `
 <input type="checkbox" checked id="outcome-enabled-${idx}">
-<i class="ph ph-circle" style="font-size:16px;color:var(--text-2);"></i>
+${mbOutcomeIconBtn('ph-circle')}
 <input class="form-input" value="Yeni Sonuç" id="outcome-label-${idx}" style="flex:1;font-size:12px;padding:3px 7px;">
 <select class="form-input" id="outcome-cat-${idx}" style="font-size:11px;padding:2px 4px;width:110px;">
 <option value="appointment">${campEsc(mbOutcomeCatLabel('appointment'))}</option>
@@ -890,14 +936,17 @@ const outcomeCodes = [...document.querySelectorAll('#cd-outcomes [data-outcome-r
   const cb = row.querySelector('[id^="outcome-enabled-"]');
   const labelEl = row.querySelector('[id^="outcome-label-"]');
   const catEl = row.querySelector('[id^="outcome-cat-"]');
+  const iconBtn = row.querySelector('[data-outcome-icon]');
   const idx = cb ? Number(String(cb.id).replace('outcome-enabled-', '')) : -1;
   const builtin = DEFAULT_OUTCOMES[idx];
+  const key = row.dataset.key || builtin?.key || `custom_${Date.now()}`;
   return {
-    key: row.dataset.key || builtin?.key || `custom_${Date.now()}`,
+    key,
     label: labelEl?.value || '',
     enabled: !!cb?.checked,
     color: builtin?.color || 'gray',
-    category: mbOutcomeCategory({ key: row.dataset.key || builtin?.key, category: catEl?.value }),
+    category: mbOutcomeCategory({ key, category: catEl?.value }),
+    icon: mbOutcomeIcon({ key, category: catEl?.value, icon: iconBtn?.dataset.outcomeIcon }),
   };
 });
 const s = {
@@ -905,7 +954,7 @@ aux_codes: auxCodes,
 outcomes: outcomeCodes,
 };
 await saveCampSettingsPatch(s);
-toast(campT('camp.qc.saved','QC ayarları kaydedildi'), 'ok');
+toast(campT('camp.qc.saved','Mola ve sonuçlar kaydedildi'), 'ok');
 }
 
 function loadCampBildirimTab() {

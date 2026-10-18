@@ -495,7 +495,7 @@
 <button class="cd-tab" data-tab="termin-form" onclick="switchCampTab('termin-form')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Randevu Formu" data-de="Terminformular">Randevu Formu</button>
 <button class="cd-tab" data-tab="script" onclick="switchCampTab('script')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Konuşma metni" data-de="Gesprächsleitfaden">Konuşma metni</button>
 <button class="cd-tab" data-tab="arama" onclick="switchCampTab('arama')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Arama" data-de="Anruf">Arama</button>
-<button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="QC / Sonuç" data-de="QC / Prüfung">QC / Sonuç</button>
+<button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Mola/Sonuç" data-de="Pause/Ergebnis">Mola/Sonuç</button>
 <button class="cd-tab" data-tab="bildirim" onclick="switchCampTab('bildirim')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Bildirim" data-de="Hinweis">Bildirim</button>
 <button class="cd-tab" data-tab="kurallar" onclick="switchCampTab('kurallar')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Kurallar" data-de="Regeln">Kurallar</button>
 <button class="cd-tab" data-tab="agentler" onclick="switchCampTab('agentler')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Temsilciler" data-de="Agenten">Temsilciler</button>
@@ -617,11 +617,11 @@
 </div>
 <div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
 <div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-phone"></i> <span data-tr="Çağrı Sonuçları" data-de="Anrufergebnisse">Çağrı Sonuçları</span></div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="İşareti açık olanlar dialerde düğme olur. Varsayılan tür değişmez. Kara liste alttaki ayrı kutudur." data-de="Aktive Ergebnisse werden im Dialer zu Schaltflächen. Die Standardart bleibt fest. Die Sperrliste bleibt das eigene Kästchen.">İşareti açık olanlar dialerde düğme olur. Varsayılan tür değişmez. Kara liste alttaki ayrı kutudur.</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="İşareti açık olanlar dialerde düğme olur. Varsayılan tür değişmez. Simgeye tıklayınca değişir. Kara liste alttaki ayrı kutudur." data-de="Aktive Ergebnisse werden im Dialer zu Schaltflächen. Die Standardart bleibt fest. Ein Klick auf das Symbol ändert es. Die Sperrliste bleibt das eigene Kästchen.">İşareti açık olanlar dialerde düğme olur. Varsayılan tür değişmez. Simgeye tıklayınca değişir. Kara liste alttaki ayrı kutudur.</div>
 <div id="cd-outcomes" style="display:flex;flex-direction:column;gap:4px;">
 </div>
 </div>
-<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampQcSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="QC ayarlarını kaydet" data-de="QC-Einstellungen speichern">QC ayarlarını kaydet</span></button>
+<button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampQcSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Mola ve sonuçları kaydet" data-de="Pause und Ergebnisse speichern">Mola ve sonuçları kaydet</span></button>
 </div>
 </div>
 <div id="cd-tab-bildirim" class="cd-tab-panel" style="display:none;">
