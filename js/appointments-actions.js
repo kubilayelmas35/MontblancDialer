@@ -344,6 +344,7 @@ async function saveTerminFromSection() {
     }
     _releaseBookedContact(contact);
     toast('Randevu kaydedildi', 'ok', 1800);
+    if (typeof opsCue === 'function') opsCue('slot');
     if (typeof mbDeliverApptNotice === 'function') {
       mbDeliverApptNotice({
         campaignId: data.campaign_id,
@@ -412,6 +413,7 @@ async function submitTakvimBook(slotId) {
     closeModal('m-takvim-detail');
     await loadTakvimSlots();
     toast('Randevu kaydedildi ✓','ok');
+    if (typeof opsCue === 'function') opsCue('slot');
     if (typeof mbDeliverApptNotice === 'function') {
       mbDeliverApptNotice({
         campaignId: data.campaign_id,

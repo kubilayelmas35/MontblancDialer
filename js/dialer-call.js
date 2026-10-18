@@ -1064,6 +1064,10 @@ async function submitOutcome(goBreak) {
       await _markMatchingWiedervorlage(currentContact, durum);
     } catch (e) {}
   }
+  if (outcomeSaved && typeof opsCue === 'function') {
+    if (submitCat === 'appointment') opsCue('ok');
+    else if (submitCat === 'negative') opsCue('bad');
+  }
   setDialerStatus('wrapping');
   selectedOutcome = null;
   currentContact = null;

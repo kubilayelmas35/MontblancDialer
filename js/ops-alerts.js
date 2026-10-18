@@ -2,8 +2,13 @@
 // Personelin açık kampanyası tarayıcıda durur; uyarı o listeyi firmanın bildirimiyle karşılaştırır.
 
 let _opsDirective = { ids: [], at: '', by: '' };
-let _opsAlerts = { callMin: 4, goldAfter: 1, waitMin: 1, roles: ['agent', 'field_agent'], effect: 'aurora', appt: true, campaign: true };
+let _opsAlerts = {
+  callMin: 4, goldAfter: 1, waitMin: 1,
+  roles: ['agent', 'field_agent'], effect: 'aurora', appt: true, campaign: true,
+  sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, call: true, wait: true, ok: true, bad: true },
+};
 let _opsNotifPrimed = false;
+let _opsWrongSig = '';
 let _opsCampNames = {};
 let _opsDirectiveTimer = null;
 const _opsSeen = {};
@@ -43,28 +48,72 @@ function opsSay(key, fallback) {
   return typeof t === 'function' ? t(key) : fallback;
 }
 
-function opsBeep(kind) {
+function opsSoundOn(kind) {
+  const key = kind === 'wv' || kind === 'due' ? 'due'
+    : kind === 'gold' || kind === 'call' ? 'call'
+    : kind;
+  return _opsAlerts.sounds?.[key] !== false;
+}
+
+function opsBeep(kind, force) {
   if (window.__opsMute) return;
+  if (!force && !opsSoundOn(kind)) return;
+  const volume = opsClamp(_opsAlerts.sounds?.volume, 70, 0, 100);
+  if (!volume) return;
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return;
     const ctx = new Ctx();
-    const times = kind === 'wait' || kind === 'wv' ? 3 : 1;
-    const hz = kind === 'gold' ? 880 : kind === 'wait' ? 660 : kind === 'wv' ? 740 : 520;
+    const tone = kind === 'gold' ? 'call' : kind === 'wv' ? 'due' : kind;
+    const times = tone === 'wait' || tone === 'due' || tone === 'wrong' || tone === 'bad' ? 3 : tone === 'slot' || tone === 'hour' ? 2 : 1;
+    const hz = { gold: 880, call: 520, wait: 660, due: 740, soon: 620, hour: 580, slot: 880, wrong: 880, ok: 880, bad: 420 }[tone] || 520;
+    const type = tone === 'wait' || tone === 'wrong' ? 'square' : tone === 'bad' ? 'sawtooth' : 'sine';
+    const peak = 0.012 + (volume / 100) * 0.05;
     for (let i = 0; i < times; i++) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.frequency.value = hz;
-      osc.type = kind === 'wait' ? 'square' : 'sine';
-      gain.gain.value = 0.045;
+      osc.type = type;
+      gain.gain.value = peak;
       osc.connect(gain);
       gain.connect(ctx.destination);
       const start = ctx.currentTime + i * 0.2;
       osc.start(start);
       osc.stop(start + 0.12);
     }
-    setTimeout(() => { try { ctx.close(); } catch (e) {} }, 1400);
+    setTimeout(() => { try { ctx.close(); } catch (e) {} }, 1600);
   } catch (e) {}
+}
+
+function opsCue(kind) {
+  opsBeep(kind, false);
+}
+
+const _opsHourSeen = new Set();
+function opsPaintApptStrip(items) {
+  const bar = document.getElementById('ops-appt-strip');
+  if (!bar) return;
+  const rows = Array.isArray(items) ? items : [];
+  if (!rows.length) {
+    bar.hidden = true;
+    bar.textContent = '';
+    return;
+  }
+  bar.textContent = rows.map(({ w, min }) => `${w?.nachname || '—'} · ${min} dk`).join('   ·   ');
+  bar.hidden = false;
+  let fresh = false;
+  rows.forEach(({ w, min }) => {
+    const bucket = min <= 30 ? '30' : '60';
+    const key = `${w?.id}:${bucket}`;
+    if (!w?.id || _opsHourSeen.has(key)) return;
+    _opsHourSeen.add(key);
+    fresh = true;
+  });
+  if (fresh) opsCue('hour');
+}
+
+function opsPreviewSound(kind) {
+  opsBeep(kind, true);
 }
 
 function opsMismatch() {
@@ -136,7 +185,17 @@ function opsReadAlerts(raw) {
     effect,
     appt: src.notify_appt !== false,
     campaign: src.notify_campaign !== false,
+    sounds: opsReadSounds(src.sounds),
   };
+}
+
+function opsReadSounds(raw) {
+  const src = raw && typeof raw === 'object' ? raw : {};
+  const sounds = { volume: opsClamp(src.volume, 70, 0, 100) };
+  ['due', 'soon', 'hour', 'slot', 'wrong', 'call', 'wait', 'ok', 'bad'].forEach((key) => {
+    sounds[key] = src[key] !== false;
+  });
+  return sounds;
 }
 
 function opsRoleSeesWarn() {
@@ -157,14 +216,20 @@ function opsPaintCampWarn() {
   if (!show) {
     bar.hidden = true;
     bar.replaceChildren();
+    _opsWrongSig = '';
     return;
   }
   const parts = [opsSay('ops.warn.wrong', 'Yanlış kampanyadasın.')];
   if (missing.length) parts.push(`${opsSay('ops.warn.pick', 'Seçmelisin:')} ${missing.map(opsCampName).join(', ')}.`);
   if (extra.length) parts.push(`${opsSay('ops.warn.close', 'Kapatmalısın:')} ${extra.map(opsCampName).join(', ')}.`);
+  const sentence = parts.join(' ');
+  if (sentence !== _opsWrongSig) {
+    _opsWrongSig = sentence;
+    opsCue('wrong');
+  }
   const text = document.createElement('span');
   text.className = 'ops-camp-warn-text';
-  text.textContent = parts.join(' ');
+  text.textContent = sentence;
   bar.replaceChildren(text);
   bar.hidden = false;
 }
@@ -343,6 +408,11 @@ function opsFillNotifSettings() {
   const camp = document.getElementById('ops-notify-camp');
   if (appt) appt.checked = _opsAlerts.appt !== false;
   if (camp) camp.checked = _opsAlerts.campaign !== false;
+  const vol = document.getElementById('ops-sound-vol');
+  if (vol) vol.value = String(_opsAlerts.sounds?.volume ?? 70);
+  card.querySelectorAll('[data-sound]').forEach((box) => {
+    box.checked = _opsAlerts.sounds?.[box.dataset.sound] !== false;
+  });
   opsPickEffect(_opsAlerts.effect || 'aurora');
 }
 
@@ -358,6 +428,18 @@ async function opsSaveNotifSettings() {
     bar_effect: card.dataset.effect || 'aurora',
     notify_appt: !!document.getElementById('ops-notify-appt')?.checked,
     notify_campaign: !!document.getElementById('ops-notify-camp')?.checked,
+    sounds: {
+      volume: opsClamp(document.getElementById('ops-sound-vol')?.value, 70, 0, 100),
+      due: !!card.querySelector('[data-sound="due"]')?.checked,
+      soon: !!card.querySelector('[data-sound="soon"]')?.checked,
+      hour: !!card.querySelector('[data-sound="hour"]')?.checked,
+      slot: !!card.querySelector('[data-sound="slot"]')?.checked,
+      wrong: !!card.querySelector('[data-sound="wrong"]')?.checked,
+      call: !!card.querySelector('[data-sound="call"]')?.checked,
+      wait: !!card.querySelector('[data-sound="wait"]')?.checked,
+      ok: !!card.querySelector('[data-sound="ok"]')?.checked,
+      bad: !!card.querySelector('[data-sound="bad"]')?.checked,
+    },
   };
   try {
     const firms = await sb(`firms?id=eq.${fid}&select=settings`);

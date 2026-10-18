@@ -404,6 +404,7 @@ function startWvReminders() {
 }
 
 const _wvSnooze = new Set();
+const _wvPing = new Set();
 try {
   JSON.parse(sessionStorage.getItem('mb_wv_snooze') || '[]').forEach((id) => { if (id) _wvSnooze.add(id); });
 } catch (e) {}
@@ -417,7 +418,7 @@ function showWvDuePopup(w) {
   const open = document.getElementById('wv-due-pop');
   if (open && open.dataset.id === String(w.id)) return;
   open?.remove();
-  if (typeof opsBeep === 'function') opsBeep('wv');
+  if (typeof opsBeep === 'function') opsBeep('due');
   const pop = document.createElement('div');
   pop.id = 'wv-due-pop';
   pop.className = 'wv-due-pop';
@@ -463,22 +464,35 @@ async function wvSnoozeDue(id) {
 function checkWvReminders() {
   if (!wvList?.length) return;
   const now = new Date();
-  const in15 = new Date(now.getTime() + 15*60*1000);
+  const sounds = (typeof opsNotifyPrefs === 'function' ? opsNotifyPrefs().sounds : null) || {};
+  const on = (key) => sounds[key] !== false;
   const soon = [];
+  const hour = [];
   let due = null;
   wvList.forEach((w) => {
     if (w.durum !== 'bekliyor' || w.hatirlatildi || _wvSnooze.has(w.id)) return;
     const when = new Date(w.termin_zaman);
     if (Number.isNaN(when.getTime())) return;
-    if (when <= now && when >= new Date(now.getTime() - 5 * 60 * 1000)) {
+    const diff = when - now;
+    if (diff <= 0 && diff >= -5 * 60 * 1000) {
       if (!due || when < new Date(due.termin_zaman)) due = w;
       return;
     }
-    if (when <= in15 && when > now) soon.push(w);
+    const min = Math.round(diff / 60000);
+    if (min > 0 && min <= 15) soon.push({ w, min });
+    else if (min > 15 && min <= 60) hour.push({ w, min });
   });
-  soon.forEach((w) => {
-    const diff = Math.max(1, Math.round((new Date(w.termin_zaman) - now) / 60000));
-    toast(`${w.nachname || '?'} — ${diff} dk sonra aranacak`, 'ok', 6000);
-  });
-  if (due) showWvDuePopup(due);
+  if (on('soon')) {
+    soon.forEach(({ w, min }) => {
+      const key = `${w.id}:15`;
+      if (_wvPing.has(key)) return;
+      _wvPing.add(key);
+      toast(`${w.nachname || '?'} — ${min} dk sonra aranacak`, 'ok', 6000);
+      if (typeof opsCue === 'function') opsCue('soon');
+    });
+  }
+  if (on('hour') && typeof opsPaintApptStrip === 'function') opsPaintApptStrip(hour);
+  else if (typeof opsPaintApptStrip === 'function') opsPaintApptStrip([]);
+  if (due && on('due')) showWvDuePopup(due);
+  else document.getElementById('wv-due-pop')?.remove();
 }
