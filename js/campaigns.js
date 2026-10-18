@@ -6,6 +6,68 @@ function campT(key, fb) {
   return typeof t === 'function' ? t(key) : fb;
 }
 
+let _mbFieldTpl = null;
+let _ncCopySettings = null;
+
+function mbSanitizeFieldTemplates(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  Object.keys(raw).slice(0, 30).forEach((name) => {
+    const key = String(name || '').trim().slice(0, 60);
+    const rows = raw[name];
+    if (!key || !Array.isArray(rows)) return;
+    const fields = rows.slice(0, 40).map((f) => {
+      const fieldKey = String(f?.key || '').trim().slice(0, 40);
+      if (!fieldKey) return null;
+      const row = {
+        key: fieldKey,
+        label: String(f?.label || fieldKey).slice(0, 80),
+        type: String(f?.type || 'text').slice(0, 20),
+        show: f?.show !== false,
+        locked: !!f?.locked,
+      };
+      if (Array.isArray(f?.options) && f.options.length) {
+        row.options = f.options.slice(0, 30).map((o) => String(o).slice(0, 40)).filter(Boolean);
+      }
+      return row;
+    }).filter(Boolean);
+    if (fields.length) out[key] = fields;
+  });
+  return out;
+}
+
+function mbFieldTemplates() {
+  if (_mbFieldTpl) return _mbFieldTpl;
+  try {
+    _mbFieldTpl = mbSanitizeFieldTemplates(JSON.parse(localStorage.getItem('mb_field_templates') || '{}'));
+  } catch (e) {
+    _mbFieldTpl = {};
+  }
+  return _mbFieldTpl;
+}
+
+function mbSaveFieldTemplates(tpls) {
+  _mbFieldTpl = mbSanitizeFieldTemplates(tpls);
+  try { localStorage.setItem('mb_field_templates', JSON.stringify(_mbFieldTpl)); } catch (e) {}
+  if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+function mbAdoptFieldTemplates(remoteRaw, migrateLocal) {
+  const remoteTpl = mbSanitizeFieldTemplates(remoteRaw);
+  if (Object.keys(remoteTpl).length || !migrateLocal) {
+    _mbFieldTpl = remoteTpl;
+    try { localStorage.setItem('mb_field_templates', JSON.stringify(_mbFieldTpl)); } catch (e) {}
+  } else {
+    let local = {};
+    try { local = mbSanitizeFieldTemplates(JSON.parse(localStorage.getItem('mb_field_templates') || '{}')); } catch (e) {}
+    _mbFieldTpl = local;
+    if (Object.keys(local).length && typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+  }
+  if (typeof renderNcTemplateSelect === 'function' && document.getElementById('m-new-camp')?.classList.contains('open')) {
+    renderNcTemplateSelect();
+  }
+}
+
 function mbCanEditDid() {
   return typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
 }
@@ -547,6 +609,11 @@ document.getElementById('nc-did').value = '';
 document.getElementById('nc-desc').value = '';
 document.getElementById('nc-speed').value = 1;
 document.getElementById('nc-sv').textContent = '1';
+_ncCopySettings = null;
+const copySel = document.getElementById('nc-copy-from');
+if (copySel) copySel.value = '';
+const custSel = document.getElementById('nc-customer');
+if (custSel) custSel.value = '';
 fillCampDidList();
 syncDidVisibility();
 const ncFirmRow = document.getElementById('nc-firm-row');
@@ -560,6 +627,119 @@ _allFirms.map(f=>`<option value="${f.id}" ${f.id===(_selectedFirmId||'')?'select
 ncFirmRow.style.display = 'none';
 }
 }
+ncFillCopySelect();
+ncFillCustomers(ncTargetFirmId());
+}
+
+function ncTargetFirmId() {
+  const picked = (typeof isSuperAdmin === 'function' && isSuperAdmin()) ? document.getElementById('nc-firm-id')?.value : '';
+  return picked || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id || '';
+}
+
+function ncFillCopySelect() {
+  const sel = document.getElementById('nc-copy-from');
+  if (!sel) return;
+  const firmId = String(ncTargetFirmId() || '');
+  const rows = (campaigns || []).filter((c) => c?.id && (!firmId || String(c.firm_id) === firmId));
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">${campEsc(campT('camp.new.copy.none', 'Kopyalama'))}</option>` +
+    rows.map((c) => `<option value="${campEsc(c.id)}">${campEsc(c.name || '')}</option>`).join('');
+  if ([...sel.options].some((o) => o.value === cur)) sel.value = cur;
+}
+
+async function ncOnFirmChange() {
+  _ncCopySettings = null;
+  const copySel = document.getElementById('nc-copy-from');
+  if (copySel) copySel.value = '';
+  const custSel = document.getElementById('nc-customer');
+  if (custSel) custSel.value = '';
+  ncFillCopySelect();
+  await ncFillCustomers(ncTargetFirmId());
+}
+
+async function ncFillCustomers(firmId) {
+  const sel = document.getElementById('nc-customer');
+  if (!sel) return;
+  const keep = sel.value;
+  sel.innerHTML = `<option value="">${campEsc(campT('camp.customer.none', 'Tümü'))}</option>`;
+  if (!firmId || typeof sb !== 'function') return;
+  let rows = [];
+  try {
+    rows = await sb(`customers?firm_id=eq.${firmId}&is_active=eq.true&select=id,name,code&order=name.asc`) || [];
+  } catch (e) {
+    rows = [];
+  }
+  (rows || []).forEach((c) => {
+    if (!c?.id) return;
+    const opt = document.createElement('option');
+    opt.value = String(c.id);
+    opt.textContent = `${c.code ? c.code + ' · ' : ''}${c.name || ''}`.trim() || String(c.id);
+    sel.appendChild(opt);
+  });
+  if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
+}
+
+function ncFieldsFromCamp(camp) {
+  const fc = typeof mbParseFieldConfig === 'function' ? mbParseFieldConfig(camp) : (camp?.field_config || {});
+  if (typeof mbMergeCampFields !== 'function') return NC_DEFAULT_FIELDS.map((f) => ({ ...f }));
+  return mbMergeCampFields(fc).map((f) => ({
+    key: f.key,
+    label: f.label || f.defaultLabel || f.key,
+    type: f.type || 'text',
+    show: f.show !== false,
+    locked: f.key === 'phone' ? true : !!f.locked,
+    options: Array.isArray(f.options) ? f.options.slice() : [],
+  }));
+}
+
+function ncApplyCopy(id) {
+  if (!id) {
+    _ncCopySettings = null;
+    return;
+  }
+  const camp = (campaigns || []).find((c) => String(c.id) === String(id));
+  if (!camp) return;
+  const src = typeof getCampSettings === 'function' ? getCampSettings(camp) : (camp.settings || {});
+  const clone = { ...(src || {}) };
+  delete clone.notif_ts;
+  delete clone.notif_message;
+  _ncCopySettings = clone;
+  const desc = document.getElementById('nc-desc');
+  if (desc) desc.value = camp.description || '';
+  const speed = document.getElementById('nc-speed');
+  const speedV = document.getElementById('nc-sv');
+  const spd = parseInt(camp.dial_speed, 10) || 1;
+  if (speed) speed.value = String(spd);
+  if (speedV) speedV.textContent = String(spd);
+  _ncFields = ncFieldsFromCamp(camp);
+  if (typeof renderNcFieldList === 'function') renderNcFieldList();
+  if (typeof updateCampPreview === 'function') updateCampPreview();
+  const cust = document.getElementById('nc-customer');
+  const cid = typeof mbCampDefaultCustomerId === 'function' ? (mbCampDefaultCustomerId(camp) || '') : '';
+  if (cust && [...cust.options].some((o) => o.value === cid)) cust.value = cid;
+  else if (cust) cust.value = '';
+  toast(campT('camp.new.copied', 'Ayarlar kopyalandı'), 'ok');
+}
+
+function ncBuildFieldConfig() {
+  const fieldConfig = {};
+  (_ncFields || []).forEach((f, i) => {
+    if (!f?.key) return;
+    const row = { show: !!f.show, label: f.label, type: f.type || 'text', locked: !!f.locked, order: i };
+    if (Array.isArray(f.options) && f.options.length) row.options = f.options;
+    fieldConfig[f.key] = row;
+  });
+  return fieldConfig;
+}
+
+function ncBuildSettings() {
+  const settings = { ...(_ncCopySettings || {}) };
+  delete settings.notif_ts;
+  delete settings.notif_message;
+  const cust = String(document.getElementById('nc-customer')?.value || '').trim();
+  if (cust) settings.default_customer_id = cust;
+  else delete settings.default_customer_id;
+  return settings;
 }
 
 function renderNcFieldList() {
@@ -621,11 +801,11 @@ updateCampPreview();
 }
 
 function getFieldTemplates() {
-try { return JSON.parse(localStorage.getItem('mb_field_templates')||'{}'); } catch(e) { return {}; }
+return mbFieldTemplates();
 }
 
 function saveFieldTemplates(tpls) {
-localStorage.setItem('mb_field_templates', JSON.stringify(tpls));
+mbSaveFieldTemplates(tpls);
 }
 
 async function ncSaveTemplate() {
@@ -743,22 +923,20 @@ if (didNorm && (typeof mbIsE164 !== 'function' || !mbIsE164(didNorm))) {
 const targetFirmId = (isSuperAdmin() ? document.getElementById('nc-firm-id')?.value : null) || getActiveFirmId() || currentUser?.firm_id;
 if (!targetFirmId) { toast('Firma seçin veya yeniden giriş yapın','err'); return; }
 if (!didNorm) didNorm = await firmOutboundDid(targetFirmId);
-const fieldConfig = {};
-_ncFields.forEach(f => {
-fieldConfig[f.key] = {show:f.show, label:f.label, type:f.type, locked:f.locked||false};
-});
+const fieldConfig = ncBuildFieldConfig();
+const settings = ncBuildSettings();
 try {
 const created = await sb('campaigns', {
 method:'POST', prefer:'return=representation',
 body: JSON.stringify({
 name, telnyx_did:didNorm||null, description:desc||null,
-dial_speed:spd, field_config:fieldConfig,
-firm_id: targetFirmId, status:'active'
+dial_speed:spd, field_config:fieldConfig, settings,
+firm_id: targetFirmId, status:'paused'
 })
 });
 const row = Array.isArray(created) ? created[0] : created;
 closeModal('m-new-camp');
-toast('Kampanya oluşturuldu ✓','ok');
+toast(campT('camp.created.paused','Kampanya duraklatılmış olarak açıldı'),'ok');
 await loadCampaigns();
 if (row?.id) openCampDetail(row.id);
 } catch(e){ toast(e.message || campT('api.err.generic','İşlem tamamlanamadı. Tekrar deneyin.'),'err'); console.error(e); }

@@ -45,6 +45,7 @@ function mbCollectUiPrefs() {
   if (camp === 'rows' || camp === 'cards') prefs.camp_view = camp;
   prefs.script_open = localStorage.getItem('mb-script-open') !== '0';
   prefs.rules_open = localStorage.getItem('mb-rules-open') !== '0';
+  if (typeof mbFieldTemplates === 'function') prefs.field_templates = mbFieldTemplates();
   const grads = mbReadLiveGrads();
   if (Object.keys(grads).length) prefs.live_grads = grads;
   if (Array.isArray(rows) && typeof MB_DASH_ROWS !== 'undefined') {
@@ -100,6 +101,9 @@ function mbApplyUiPrefs(remote) {
     if (remote.rules_open === true || remote.rules_open === false) {
       try { localStorage.setItem('mb-rules-open', remote.rules_open ? '1' : '0'); } catch (e) {}
       if (typeof mbApplyRulesOpen === 'function') mbApplyRulesOpen(remote.rules_open);
+    }
+    if (typeof mbAdoptFieldTemplates === 'function') {
+      mbAdoptFieldTemplates(remote.field_templates, !Object.prototype.hasOwnProperty.call(remote, 'field_templates'));
     }
     if (Array.isArray(remote.dash_rows) && typeof mbDashRowKey === 'function' && typeof MB_DASH_ROWS !== 'undefined') {
       const keys = remote.dash_rows.filter((key) => MB_DASH_ROWS.includes(key));

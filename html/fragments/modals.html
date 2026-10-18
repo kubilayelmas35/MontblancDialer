@@ -8,7 +8,7 @@
 <div style="padding:16px 20px;border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;gap:12px;">
 <div id="nc-firm-row" style="display:none;" class="form-row">
 <label class="form-label">Firma *</label>
-<select class="form-input" id="nc-firm-id" style="font-size:12px;">
+<select class="form-input" id="nc-firm-id" style="font-size:12px;" onchange="ncOnFirmChange()">
 <option value="">Firma seçin...</option>
 </select>
 </div>
@@ -25,6 +25,20 @@
 <div class="form-row">
 <label class="form-label" data-tr="Açıklama" data-de="Beschreibung">Açıklama</label>
 <input class="form-input" id="nc-desc" placeholder="Kısa açıklama..." data-tr="Kısa açıklama..." data-de="Kurze Beschreibung...">
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Ayarları kopyala" data-de="Einstellungen kopieren">Ayarları kopyala</label>
+<select class="form-input" id="nc-copy-from" onchange="ncApplyCopy(this.value)">
+<option value="" data-tr="Kopyalama" data-de="Nicht kopieren">Kopyalama</option>
+</select>
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Alanlar, hız, metin, kurallar, sonuçlar ve müşteri gelir. Kişiler gelmez." data-de="Felder, Tempo, Text, Regeln, Ergebnisse und Kunde kommen mit. Kontakte nicht.">Alanlar, hız, metin, kurallar, sonuçlar ve müşteri gelir. Kişiler gelmez.</div>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Müşteri" data-de="Kunde">Müşteri</label>
+<select class="form-input" id="nc-customer">
+<option value="" data-tr="Tümü" data-de="Alle">Tümü</option>
+</select>
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Tümü: randevu müşterisiz kalır, QC yazar. Bir müşteri seçilirse yeni randevular ona gider." data-de="Alle: Termin ohne Kunde, QC trägt ihn ein. Ein Kunde erhält die nächsten Termine.">Tümü: randevu müşterisiz kalır, QC yazar. Bir müşteri seçilirse yeni randevular ona gider.</div>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Arama Hızı" data-de="Wahlgeschwindigkeit">Arama Hızı</label>
