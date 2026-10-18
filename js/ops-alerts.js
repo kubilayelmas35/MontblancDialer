@@ -5,7 +5,7 @@ let _opsDirective = { ids: [], at: '', by: '' };
 let _opsAlerts = {
   callMin: 4, goldAfter: 1, waitMin: 1,
   roles: ['agent', 'field_agent'], effect: 'aurora', appt: true, campaign: true,
-  sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, call: true, wait: true, ok: true, bad: true },
+  sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, call: true, wait: true, ok: true, bad: true, pick: true, drop: true, clear: true, move: true, qc_ok: true, qc_no: true, qc_miss: true, qc_hold: true, qc_other: true },
 };
 let _opsNotifPrimed = false;
 let _opsWrongSig = '';
@@ -65,14 +65,23 @@ function opsSay(key, fallback) {
   return typeof t === 'function' ? t(key) : fallback;
 }
 
-const OPS_TONE_IDS = ['chime', 'bell', 'soft', 'glass', 'pop'];
-const OPS_TONE_DEFAULT = { due: 'chime', soon: 'soft', hour: 'bell', slot: 'glass', wrong: 'pop', call: 'bell', wait: 'soft', ok: 'chime', bad: 'pop' };
+const OPS_TONE_IDS = ['chime', 'bell', 'soft', 'glass', 'pop', 'alert', 'win', 'spark', 'fall', 'lose'];
+const OPS_TONE_LABELS = { chime: 'Çan', bell: 'Zil', soft: 'Yumuşak', glass: 'Cam', pop: 'Kısa', alert: 'Uyarı', win: 'Kazanç', spark: 'Parıltı', fall: 'Düşüş', lose: 'Kayıp' };
+const OPS_TONE_DEFAULT = {
+  due: 'chime', soon: 'soft', hour: 'bell', slot: 'glass', wrong: 'pop', call: 'bell', wait: 'soft', ok: 'chime', bad: 'pop',
+  pick: 'alert', drop: 'soft', clear: 'lose', move: 'bell', qc_ok: 'win', qc_no: 'lose', qc_miss: 'alert', qc_hold: 'soft', qc_other: 'chime',
+};
 const OPS_TONE_NOTES = {
   chime: [[523, 0], [659, 0.13], [784, 0.26]],
   bell: [[880, 0], [1175, 0.04]],
   soft: [[440, 0], [554, 0.18]],
   glass: [[1047, 0], [1568, 0.1]],
   pop: [[392, 0], [523, 0.08]],
+  alert: [[660, 0], [880, 0.12], [660, 0.24]],
+  win: [[523, 0], [659, 0.1], [784, 0.2], [1046, 0.32]],
+  spark: [[784, 0], [988, 0.08], [1175, 0.16], [1568, 0.28]],
+  fall: [[660, 0], [554, 0.14], [440, 0.28]],
+  lose: [[392, 0], [330, 0.16], [262, 0.34]],
 };
 
 function opsSoundKey(kind) {
@@ -112,13 +121,13 @@ function opsPlayTone(tone, volume) {
       const start = ctx.currentTime + at;
       gain.gain.setValueAtTime(0.0001, start);
       gain.gain.exponentialRampToValueAtTime(peak, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.28);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.42);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(start);
-      osc.stop(start + 0.3);
+      osc.stop(start + 0.46);
     });
-    setTimeout(() => { try { ctx.close(); } catch (e) {} }, 900);
+    setTimeout(() => { try { ctx.close(); } catch (e) {} }, 1400);
   } catch (e) {}
 }
 
@@ -464,7 +473,16 @@ function opsFillNotifSettings() {
     const entry = opsSoundEntry(box.dataset.sound);
     box.checked = entry.on;
     const sel = card.querySelector(`[data-tone="${box.dataset.sound}"]`);
-    if (sel) sel.value = entry.tone;
+    if (!sel) return;
+    const picked = OPS_TONE_IDS.includes(entry.tone) ? entry.tone : (OPS_TONE_DEFAULT[box.dataset.sound] || 'chime');
+    sel.replaceChildren();
+    OPS_TONE_IDS.forEach((id) => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = OPS_TONE_LABELS[id] || id;
+      sel.appendChild(opt);
+    });
+    sel.value = picked;
   });
   opsPickEffect(_opsAlerts.effect || 'aurora');
 }
@@ -486,6 +504,23 @@ function opsShowSample(kind) {
   opsPreviewSound(kind);
   document.getElementById('ops-sample-host')?.remove();
   if (_opsSampleTimer) clearTimeout(_opsSampleTimer);
+  const floorDemo = {
+    pick: { kind: 'pick', actor: 'Gökhan', camp: '69', when: '20.10 saat 16:00' },
+    drop: { kind: 'drop', actor: 'Gökhan', camp: '69', when: '20.10 saat 16:00' },
+    slot: { kind: 'book', actor: 'Gökhan', who: 'Ziya', camp: '69', when: '20.10 saat 16:00' },
+    clear: { kind: 'clear', who: 'Ziya', camp: '69', when: '20.10 saat 16:00' },
+    move: { kind: 'move', who: 'Ziya', camp: '69', from: '20.10 saat 16:00', to: '21.10 saat 10:00' },
+    qc_ok: { kind: 'qc', actor: 'Kubilay', who: 'Ziya', camp: '69', when: '20.10 saat 16:00', result: 'Başarılı' },
+    qc_no: { kind: 'qc', actor: 'Kubilay', who: 'Ziya', camp: '69', when: '20.10 saat 16:00', result: 'Başarısız' },
+    qc_miss: { kind: 'qc', actor: 'Kubilay', who: 'Ziya', camp: '69', when: '20.10 saat 16:00', result: 'Ulaşılamadı' },
+    qc_hold: { kind: 'qc', actor: 'Kubilay', who: 'Ziya', camp: '69', when: '20.10 saat 16:00', result: 'Beklemede' },
+    qc_other: { kind: 'qc', actor: 'Kubilay', who: 'Ziya', camp: '69', when: '20.10 saat 16:00', result: 'Yeni sonuç' },
+  };
+  if (floorDemo[kind]) {
+    const demo = floorDemo[kind];
+    opsFloorPush(kind, demo.kind === 'book' ? 'book' : (demo.kind === 'qc' ? 'qc' : demo.kind), opsFloorText(demo.kind, demo), true);
+    return;
+  }
   if (kind === 'soon' || kind === 'slot' || kind === 'ok' || kind === 'bad') {
     const msg = {
       soon: 'Örnek Müşteri — 15 dk sonra aranacak',
@@ -733,16 +768,275 @@ async function opsTickLive() {
   } catch (e) {}
 }
 
+function opsDe() {
+  return typeof currentLang !== 'undefined' && currentLang === 'de';
+}
+
+function opsJoin(parts) {
+  return parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+}
+
+function opsPoss(name) {
+  const n = String(name || '').trim() || (opsDe() ? 'Kunde' : 'Müşteri');
+  if (opsDe()) return n;
+  const last = n.slice(-1).toLocaleLowerCase('tr-TR');
+  if ('aıou'.includes(last)) return `${n}'nın`;
+  if ('eiöü'.includes(last)) return `${n}'nin`;
+  return `${n}'ın`;
+}
+
+function opsFloorText(kind, bits) {
+  const de = opsDe();
+  const actor = String(bits.actor || '').trim();
+  const who = String(bits.who || '').trim() || (de ? 'Kunde' : 'Müşteri');
+  const when = String(bits.when || '').trim();
+  const camp = String(bits.camp || '').trim();
+  const result = String(bits.result || '').trim() || (de ? 'Ergebnis' : 'sonuç');
+  const ofCamp = camp ? (de ? `in Kampagne ${camp}` : `${camp} kampanyasının`) : '';
+  const inCamp = camp ? (de ? `in Kampagne ${camp}` : `${camp} kampanyasında`) : '';
+  const atCamp = camp ? (de ? `in Kampagne ${camp}` : `${camp} kampanyasındaki`) : '';
+  if (kind === 'pick') {
+    return de
+      ? opsJoin([actor || 'Jemand', 'hat', when, 'einen Slot', ofCamp, 'gewählt'])
+      : opsJoin([`${actor || 'Bir kişi'},`, ofCamp, when, 'slotunu seçti']);
+  }
+  if (kind === 'drop') {
+    return de
+      ? opsJoin([actor || 'Jemand', 'hat die Slotwahl', when, ofCamp, 'aufgehoben'])
+      : opsJoin([`${actor || 'Bir kişi'},`, ofCamp, when, 'slot seçimini iptal etti']);
+  }
+  if (kind === 'book') {
+    return de
+      ? opsJoin([actor || 'Jemand', 'hat für', who, when, inCamp, 'einen Termin gespeichert'])
+      : opsJoin([`${actor || 'Bir kişi'},`, `${who} için`, inCamp, when, 'randevusunu kaydetti']);
+  }
+  if (kind === 'clear') {
+    return de
+      ? opsJoin(['Der Termin von', who, when, atCamp, 'wurde gelöscht'])
+      : opsJoin([`${who} için`, atCamp, when, 'randevusu silindi']);
+  }
+  if (kind === 'move') {
+    return de
+      ? opsJoin(['Der Termin von', who, atCamp, 'wurde von', bits.from, 'auf', bits.to, 'gelegt'])
+      : opsJoin([`${opsPoss(who)}`, atCamp, 'randevusu', bits.from, 'yerine', bits.to, 'alındı']);
+  }
+  if (actor) {
+    return de
+      ? opsJoin([actor, 'hat den Termin von', who, when, atCamp, 'auf', result, 'gesetzt'])
+      : opsJoin([`${actor},`, `${opsPoss(who)}`, atCamp, when, 'randevusunu', result, 'olarak güncelledi']);
+  }
+  return de
+    ? opsJoin(['Der Termin von', who, when, atCamp, 'wurde auf', result, 'gesetzt'])
+    : opsJoin([`${opsPoss(who)}`, atCamp, when, 'randevusu', result, 'olarak güncellendi']);
+}
+
+function opsFloorPush(soundKind, titleKind, text, force, quiet) {
+  if (!text) return;
+  if (!force && (!opsRoleSeesWarn() || !opsSoundOn(soundKind))) return;
+  const host = document.getElementById('ops-floor-feed');
+  if (!host) return;
+  const card = document.createElement('article');
+  card.className = 'ops-live-card ops-floor-card';
+  const head = document.createElement('div');
+  head.className = 'ops-live-head';
+  const title = document.createElement('strong');
+  title.textContent = opsSay(`ops.floor.${titleKind}`, 'Bildirim');
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'ops-live-x';
+  close.textContent = '×';
+  close.onclick = () => card.remove();
+  head.append(title, close);
+  const body = document.createElement('p');
+  body.textContent = text;
+  card.append(head, body);
+  host.appendChild(card);
+  while (host.children.length > 4) host.firstElementChild?.remove();
+  if (!force && !quiet && !document.hidden) opsCue(soundKind);
+  setTimeout(() => card.remove(), 12000);
+}
+
+function opsBerlinDay(add) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const y = Number(parts.find((p) => p.type === 'year')?.value);
+  const m = Number(parts.find((p) => p.type === 'month')?.value);
+  const d = Number(parts.find((p) => p.type === 'day')?.value);
+  return new Date(Date.UTC(y, m - 1, d + add)).toISOString().slice(0, 10);
+}
+
+function opsWhenFromIso(iso) {
+  const d = new Date(iso || '');
+  if (Number.isNaN(d.getTime())) return '';
+  const parts = new Intl.DateTimeFormat('tr-TR', {
+    timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(d);
+  const get = (type) => parts.find((p) => p.type === type)?.value || '';
+  return `${get('day')}.${get('month')} saat ${get('hour')}:${get('minute')}`;
+}
+
+function opsWhenFromSlot(tarih, saat) {
+  const bits = String(tarih || '').split('-');
+  const hm = String(saat || '').slice(0, 5) || '00:00';
+  if (bits.length < 3) return `saat ${hm}`;
+  return `${bits[2]}.${bits[1]} saat ${hm}`;
+}
+
+function opsResultLabel(key) {
+  const norm = String(key || '').toLowerCase();
+  const deMap = { basarili: 'Erfolgreich', basarisiz: 'Nicht erfolgreich', beklemede: 'Wartend', ulasilamadi: 'Nicht erreicht', iptal: 'Storniert', qc_bekleniyor: 'QC ausstehend' };
+  if (opsDe() && deMap[norm]) return deMap[norm];
+  const list = window._apptResultsByFirm?.[opsFirmId()] || [];
+  const hit = list.find((r) => String(r.key) === norm);
+  if (hit?.label) return hit.label;
+  const map = { basarili: 'Başarılı', basarisiz: 'Başarısız', beklemede: 'Beklemede', ulasilamadi: 'Ulaşılamadı', iptal: 'İptal', qc_bekleniyor: 'QC bekleniyor' };
+  return map[norm] || String(key || '').trim() || (opsDe() ? 'Ergebnis' : 'sonuç');
+}
+
+function opsQcKind(key) {
+  const k = String(key || '').toLowerCase();
+  if (k.includes('basarili') && !k.includes('basarisiz')) return 'qc_ok';
+  if (k.includes('basarisiz') || k === 'iptal' || k.includes('olumsuz')) return 'qc_no';
+  if (k.includes('ulasil')) return 'qc_miss';
+  if (k.includes('bekle') || k.includes('qc')) return 'qc_hold';
+  return 'qc_other';
+}
+
+const _opsNames = {};
+async function opsNames(ids) {
+  const missing = [...new Set((ids || []).map((id) => String(id || '')).filter(Boolean))].filter((id) => _opsNames[id] == null);
+  if (!missing.length || typeof sb !== 'function') return;
+  try {
+    const rows = await sb(`users?id=in.(${missing.join(',')})&select=id,name`) || [];
+    rows.forEach((u) => { if (u?.id) _opsNames[u.id] = String(u.name || '').trim(); });
+  } catch (e) {}
+  missing.forEach((id) => { if (_opsNames[id] == null) _opsNames[id] = ''; });
+}
+
+function opsPerson(id) {
+  return _opsNames[String(id || '')] || '';
+}
+
+async function opsQcActor(contactId) {
+  if (!contactId || typeof sb !== 'function') return '';
+  try {
+    const rows = await sb(`call_logs?contact_id=eq.${contactId}&qc_at=not.is.null&select=qc_by,qc_at&order=qc_at.desc&limit=1`) || [];
+    const row = rows[0];
+    const at = new Date(row?.qc_at || '').getTime();
+    if (!row?.qc_by || !Number.isFinite(at) || Date.now() - at > 180000) return '';
+    await opsNames([row.qc_by]);
+    return opsPerson(row.qc_by);
+  } catch (e) {
+    return '';
+  }
+}
+
+const _opsFloor = { slots: null, appts: null };
+let _opsFloorBusy = false;
+async function opsTickFloor() {
+  if (_opsFloorBusy || !currentUser || typeof sb !== 'function' || !opsRoleSeesWarn()) return;
+  const keys = ['pick', 'drop', 'clear', 'move', 'slot', 'qc_ok', 'qc_no', 'qc_miss', 'qc_hold', 'qc_other'];
+  if (!keys.some((key) => opsSoundOn(key))) return;
+  const fid = opsFirmId();
+  if (!fid) return;
+  _opsFloorBusy = true;
+  try {
+    const from = opsBerlinDay(-1);
+    const to = opsBerlinDay(14);
+    const [slots, appts] = await Promise.all([
+      sb(`takvim_slots?firm_id=eq.${fid}&gun_kapali=eq.false&tarih=gte.${from}&tarih=lte.${to}&select=id,durum,kilitli_agent_id,appointment_id,campaign_id,tarih,baslangic_saat&limit=800`).catch(() => null),
+      sb(`appointments?firm_id=eq.${fid}&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&select=id,nachname,durum,agent_id,campaign_id,termin_tarih,slot_id,contact_id&limit=800`).catch(() => null),
+    ]);
+    if (!Array.isArray(slots) || !Array.isArray(appts)) return;
+    const slotMap = {};
+    slots.forEach((s) => { if (s?.id) slotMap[s.id] = s; });
+    const apptMap = {};
+    appts.forEach((a) => { if (a?.id) apptMap[a.id] = a; });
+    if (!_opsFloor.slots) {
+      _opsFloor.slots = slotMap;
+      _opsFloor.appts = apptMap;
+      return;
+    }
+    const prevS = _opsFloor.slots;
+    const prevA = _opsFloor.appts;
+    const campIds = [];
+    const userIds = [];
+    Object.values(slotMap).concat(Object.values(prevS)).forEach((s) => {
+      campIds.push(s.campaign_id);
+      userIds.push(s.kilitli_agent_id);
+    });
+    Object.values(apptMap).forEach((a) => {
+      campIds.push(a.campaign_id);
+      userIds.push(a.agent_id);
+    });
+    await opsEnsureCampNames(campIds);
+    await opsNames(userIds);
+    const events = [];
+    Object.values(slotMap).forEach((s) => {
+      const old = prevS[s.id];
+      if (!old) return;
+      const when = opsWhenFromSlot(s.tarih, s.baslangic_saat);
+      const camp = opsCampName(s.campaign_id);
+      if (old.durum === 'bos' && s.durum === 'kilitli') {
+        events.push({ sound: 'pick', title: 'pick', kind: 'pick', actor: opsPerson(s.kilitli_agent_id), camp, when });
+      } else if ((old.durum === 'kilitli' || old.durum === 'admin-kilitli') && s.durum === 'bos') {
+        events.push({ sound: 'drop', title: 'drop', kind: 'drop', actor: opsPerson(old.kilitli_agent_id), camp, when });
+      } else if (old.durum !== 'dolu' && s.durum === 'dolu') {
+        const ap = apptMap[s.appointment_id] || Object.values(apptMap).find((a) => a.slot_id === s.id);
+        const actorId = old.kilitli_agent_id || ap?.agent_id || '';
+        events.push({
+          sound: 'slot', title: 'book', kind: 'book', quiet: actorId && actorId === currentUser?.id,
+          actor: opsPerson(actorId), who: ap?.nachname || '', camp: opsCampName(ap?.campaign_id || s.campaign_id),
+          when: (ap && opsWhenFromIso(ap.termin_tarih)) || when,
+        });
+      } else if (old.durum === 'dolu' && s.durum === 'bos') {
+        const ap = prevA[old.appointment_id];
+        events.push({
+          sound: 'clear', title: 'clear', kind: 'clear', who: ap?.nachname || '',
+          camp: opsCampName(ap?.campaign_id || s.campaign_id), when,
+        });
+      }
+    });
+    const qcRows = [];
+    Object.values(apptMap).forEach((a) => {
+      const old = prevA[a.id];
+      if (!old) return;
+      if (String(old.termin_tarih || '') !== String(a.termin_tarih || '')) {
+        events.push({
+          sound: 'move', title: 'move', kind: 'move', who: a.nachname || '', camp: opsCampName(a.campaign_id),
+          from: opsWhenFromIso(old.termin_tarih), to: opsWhenFromIso(a.termin_tarih),
+        });
+      }
+      if (String(old.durum || '') !== String(a.durum || '')) qcRows.push(a);
+    });
+    for (const a of qcRows.slice(0, 6)) {
+      events.push({
+        sound: opsQcKind(a.durum), title: 'qc', kind: 'qc', actor: await opsQcActor(a.contact_id),
+        who: a.nachname || '', camp: opsCampName(a.campaign_id), when: opsWhenFromIso(a.termin_tarih),
+        result: opsResultLabel(a.durum),
+      });
+    }
+    _opsFloor.slots = slotMap;
+    _opsFloor.appts = apptMap;
+    events.slice(0, 6).forEach((ev) => {
+      opsFloorPush(ev.sound, ev.title, opsFloorText(ev.kind, ev), false, !!ev.quiet);
+    });
+  } catch (e) {} finally {
+    _opsFloorBusy = false;
+  }
+}
+
 function opsBoot() {
   if (_opsDirectiveTimer) clearInterval(_opsDirectiveTimer);
   _opsDirectiveTimer = setInterval(() => {
     if (!currentUser) return;
     opsLoadDirective();
     opsTickLive();
+    opsTickFloor();
   }, 15000);
   if (currentUser) {
     opsLoadDirective();
     opsTickLive();
+    opsTickFloor();
   }
 }
 

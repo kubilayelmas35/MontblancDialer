@@ -604,7 +604,7 @@ button.tb-pill.pill-camp {
 .ops-sound-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .ops-note-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) 108px auto auto;
+  grid-template-columns: auto minmax(0, 1fr) 146px auto auto;
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
@@ -619,10 +619,11 @@ button.tb-pill.pill-camp {
   background: var(--bg-3);
   color: var(--text);
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 4px 8px;
   font-size: 12px;
   font-weight: 700;
 }
+.ops-note-row select { width: 100%; }
 .ops-note-row button { cursor: pointer; }
 .ops-sample-host { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
 .ops-sample-host.is-modal {
@@ -785,6 +786,19 @@ button.tb-pill.pill-camp {
 .ops-camp-time .form-input { width: 100%; min-width: 0; }
 .ops-camp-unit { font-weight: 600; color: var(--text-3); }
 .ops-camp-times .btn { margin-top: 10px; }
+.ops-floor-feed {
+  position: fixed;
+  top: 72px;
+  right: 16px;
+  z-index: 55;
+  width: min(380px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.ops-floor-card { pointer-events: auto; }
+.ops-floor-card p { margin: 4px 0 0; font-size: 13px; line-height: 1.35; }
 .ops-live-alerts {
   position: fixed;
   right: 16px;

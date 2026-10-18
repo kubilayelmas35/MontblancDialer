@@ -464,8 +464,7 @@ async function wvSnoozeDue(id) {
 function checkWvReminders() {
   if (!wvList?.length) return;
   const now = new Date();
-  const sounds = (typeof opsNotifyPrefs === 'function' ? opsNotifyPrefs().sounds : null) || {};
-  const on = (key) => sounds[key] !== false;
+  const on = (key) => (typeof opsSoundOn === 'function' ? opsSoundOn(key) : true);
   const soon = [];
   const hour = [];
   let due = null;
