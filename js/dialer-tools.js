@@ -1309,10 +1309,11 @@ async function _loadTakvimOverlayCamps() {
   if (!sel) return;
   try {
     const fid = getActiveFirmId();
-    const q = fid ? `campaigns?firm_id=eq.${fid}&status=eq.active&order=name.asc` : `campaigns?status=eq.active&order=name.asc`;
-    const camps = await sb(q) || [];
-    sel.innerHTML = '<option value="">Kampanya seç...</option>' + camps.map(c=>`<option value="${c.id}" ${c.id===takvimCampId?'selected':''}>${c.name}</option>`).join('');
-    if (!takvimCampId && camps.length === 1) { takvimCampId = camps[0].id; sel.value = takvimCampId; }
+    const camps = typeof takvimCampChoices === 'function' ? await takvimCampChoices(fid) : ((await sb(fid ? `campaigns?firm_id=eq.${fid}&status=in.(active,paused)&select=id,name,status,settings,firm_id&order=name.asc` : `campaigns?status=in.(active,paused)&select=id,name,status,settings,firm_id&order=name.asc`)) || []);
+    if (typeof takvimFillCampSelect === 'function') takvimFillCampSelect(sel, camps, takvimCampId);
+    else sel.innerHTML = '<option value="">Kampanya seç...</option>' + camps.map(c=>`<option value="${c.id}" ${c.id===takvimCampId?'selected':''}>${c.name}</option>`).join('');
+    if (sel.value) takvimCampId = sel.value;
+    else if (!camps.some((c) => c.id === takvimCampId)) takvimCampId = null;
     if (takvimCampId) loadTakvimSlots();
   } catch(e) {}
 }
@@ -1359,8 +1360,9 @@ async function openTakvimOverlay() {
     // Agent: atanmış kampanyaları yükle ve select göster
     try {
       const firmId = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser.firm_id;
-      const rows = firmId ? (await sb(`campaigns?select=id,name,status,settings,firm_id&status=eq.active&firm_id=eq.${firmId}`)) || [] : [];
-      const agentCamps = rows.filter((c) => typeof mbUserSeesCampaign !== 'function' || mbUserSeesCampaign(c, currentUser.id));
+      const agentCamps = typeof takvimAgentCamps === 'function'
+        ? await takvimAgentCamps(firmId)
+        : ((firmId ? (await sb(`campaigns?select=id,name,status,settings,firm_id&status=eq.active&firm_id=eq.${firmId}&order=name.asc`)) || [] : []).filter((c) => typeof mbUserSeesCampaign !== 'function' || mbUserSeesCampaign(c, currentUser.id)));
       const prefOk = preferredCamp && agentCamps.some((c) => c.id === preferredCamp);
       if (prefOk) takvimCampId = preferredCamp;
       else if (!takvimCampId && agentCamps.length) takvimCampId = agentCamps[0].id;
@@ -1389,7 +1391,7 @@ async function openTakvimOverlay() {
 
   if (typeof syncTakvimViewButtonStyles === 'function') syncTakvimViewButtonStyles();
 
-  if (!takvimDate) takvimDate = new Date();
+  if (!takvimDate) takvimDate = typeof takvimBerlinDate === 'function' ? takvimBerlinDate() : new Date();
   // Re-render after layout is ready so clientHeight is correct for row height calc
   requestAnimationFrame(() => {
     renderTakvimGrid();
@@ -1398,6 +1400,7 @@ async function openTakvimOverlay() {
 }
 
 function closeTakvimOverlay() {
+  if (typeof takvimHideTip === 'function') takvimHideTip();
   const ov = document.getElementById('takvim-popup-overlay');
   if (ov) ov.classList.remove('open');
   if (typeof takvimClearMovePickMode === 'function') takvimClearMovePickMode();

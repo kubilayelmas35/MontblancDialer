@@ -427,6 +427,11 @@ ondrop="handleDrop(event)">
 </div>
 </div>
 </div>
+<div class="takvim-filters" id="takvim-filters-ov">
+<input type="search" id="takvim-search-ov" class="takvim-search" data-i18n-placeholder="cal.filter.search" placeholder="İsim, telefon, PLZ" oninput="takvimSetSearch(this.value)" autocomplete="off">
+<div id="takvim-status-chips-ov" class="takvim-chip-row" hidden></div>
+<div id="takvim-customer-chips-ov" class="takvim-chip-row" hidden></div>
+</div>
 <div id="takvim-scroll-ov" style="flex:1;min-height:0;position:relative;">
 <div id="takvim-grid-ov"></div>
 </div>

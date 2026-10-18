@@ -38,8 +38,31 @@ ${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="dele
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">BAUJAHR / m²</div><div style="font-weight:700;">${appt.baujahr||'—'} / ${appt.qm||'—'}m²</div></div>
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">ISITMA</div><div style="font-weight:700;">${appt.heizung||'—'} (${appt.alter_der_heizung||'—'} yaş)</div></div>
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">TÜKETİM</div><div style="font-weight:700;">${appt.verbrauch_pro_jahr||'—'}</div></div>
-${appt.agent_notu?`<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">AGENT NOTU</div><div>${appt.agent_notu}</div></div>`:''}
 </div>`;
+  const canEditNote = canManageAppt || appt.agent_id === currentUser?.id;
+  if (canEditNote || appt.agent_notu) {
+    const noteWrap = document.createElement('div');
+    noteWrap.style.cssText = 'margin-top:8px;';
+    const noteLab = document.createElement('div');
+    noteLab.style.cssText = 'font-size:10px;color:var(--text-3);font-weight:700;';
+    noteLab.textContent = typeof t === 'function' ? t('cal.detail.note') : 'Not';
+    noteWrap.appendChild(noteLab);
+    if (canEditNote) {
+      const note = document.createElement('textarea');
+      note.id = 'takvim-detail-note';
+      note.className = 'form-input';
+      note.rows = 3;
+      note.style.marginTop = '4px';
+      note.value = appt.agent_notu || '';
+      noteWrap.appendChild(note);
+    } else {
+      const noteText = document.createElement('div');
+      noteText.style.cssText = 'margin-top:4px;font-size:12px;white-space:pre-wrap;';
+      noteText.textContent = appt.agent_notu || '';
+      noteWrap.appendChild(noteText);
+    }
+    body.appendChild(noteWrap);
+  }
   footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">Kapat</button>
 <button class="btn btn-ghost" onclick="closeModal('m-takvim-detail');openDialerForContact('${appt.contact_id||''}')">Dialer'a Git</button>
 ${canAssignField ? `<button class="btn btn-primary" onclick="openFieldAssignModal('${appt.id}','${appt.firm_id || currentUser.firm_id}')">Sahaya Ata</button>` : ''}
@@ -47,8 +70,8 @@ ${canManageAppt ? `
 <select class="form-input" id="appt-status-sel" style="width:auto;font-size:12px;padding:6px 10px;">
 <option value="">Durum değiştir...</option>
 ${(resultCfg||[]).map(r=>`<option value="${r.key}">${r.label}</option>`).join('')}
-</select>
-<button class="btn btn-primary" onclick="takvimQcUpdate('${appt.id}',document.getElementById('appt-status-sel').value,document.getElementById('appt-customer-sel')?.value)">Kaydet</button>` : ''}`;
+</select>` : ''}
+${canEditNote ? `<button class="btn btn-primary" onclick="takvimSaveSlotDetail('${appt.id}')">Kaydet</button>` : ''}`;
   if (canManageAppt) {
     _getCustomerCtx(appt.customer_id).then(ctx => {
       if (!ctx?.customers?.length) return;
@@ -65,12 +88,29 @@ ${(resultCfg||[]).map(r=>`<option value="${r.key}">${r.label}</option>`).join(''
   }
 }
 
-async function takvimQcUpdate(apptId, status, customerId) {
-  if (!status && !customerId) { toast('Durum veya müşteri seçin','err'); return; }
+async function takvimSaveSlotDetail(apptId) {
+  const statusEl = document.getElementById('appt-status-sel');
+  const custEl = document.getElementById('appt-customer-sel');
+  const noteEl = document.getElementById('takvim-detail-note');
+  const status = statusEl ? statusEl.value : '';
+  const body = {};
+  if (status) body.durum = status;
+  if (custEl) body.customer_id = custEl.value || null;
+  if (noteEl) body.agent_notu = noteEl.value.trim() || null;
+  if (!Object.keys(body).length) {
+    toast(typeof t === 'function' ? t('cal.detail.need') : 'Kaydedilecek bir şey yok', 'err');
+    return;
+  }
+  await takvimQcUpdate(apptId, status, custEl ? (custEl.value || null) : undefined, body.agent_notu, !!noteEl);
+}
+
+async function takvimQcUpdate(apptId, status, customerId, note, noteSet) {
+  if (!status && customerId === undefined && !noteSet) { toast(typeof t === 'function' ? t('cal.detail.need') : 'Durum veya müşteri seçin','err'); return; }
   try {
     const body = {};
     if (status) body.durum = status;
     if (customerId !== undefined) body.customer_id = customerId || null;
+    if (noteSet) body.agent_notu = note || null;
     await sb(`appointments?id=eq.${apptId}`, {method:'PATCH', prefer:'return=minimal', body: JSON.stringify(body)});
     if (status) {
       const resultCfg = await loadFirmAppointmentResults(getActiveFirmId() || currentUser?.firm_id);
@@ -82,7 +122,7 @@ async function takvimQcUpdate(apptId, status, customerId) {
     }
     closeModal('m-takvim-detail');
     await loadTakvimSlots();
-    toast('Randevu güncellendi ✓', 'ok');
+    toast(typeof t === 'function' ? t('cal.detail.saved') : 'Randevu güncellendi ✓', 'ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 

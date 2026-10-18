@@ -7,6 +7,24 @@ function takvimFmtD(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+function takvimBerlinDate() {
+  const day = typeof mbBusinessToday === 'function' ? mbBusinessToday() : '';
+  const m = String(day).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function takvimIsBerlinToday(dt) {
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : takvimFmtD(new Date());
+  return takvimFmtD(dt) === today;
+}
+
 function takvimGetMonday(d) {
   const dt = new Date(d);
   const day = dt.getDay() || 7;
@@ -311,35 +329,63 @@ function takvimClearMovePickMode() {
   document.body.classList.remove('takvim-move-pick');
 }
 
+function takvimMergeCamps(rows) {
+  if (typeof campaigns === 'undefined' || !Array.isArray(campaigns)) return;
+  (rows || []).forEach((row) => {
+    if (!row?.id) return;
+    const i = campaigns.findIndex((c) => c.id === row.id);
+    if (i >= 0) campaigns[i] = { ...campaigns[i], ...row };
+    else campaigns.push(row);
+  });
+}
+
+async function takvimCampChoices(fid) {
+  const q = fid
+    ? `campaigns?firm_id=eq.${fid}&status=in.(active,paused)&select=id,name,status,settings,firm_id&order=name.asc`
+    : `campaigns?status=in.(active,paused)&select=id,name,status,settings,firm_id&order=name.asc`;
+  const rows = (await sb(q).catch(() => [])) || [];
+  takvimMergeCamps(rows);
+  return rows;
+}
+
+async function takvimAgentCamps(firmId) {
+  if (!firmId) return [];
+  const rows = (await sb(`campaigns?select=id,name,status,settings,firm_id&status=eq.active&firm_id=eq.${firmId}&order=name.asc`).catch(() => [])) || [];
+  takvimMergeCamps(rows);
+  const uid = currentUser?.id;
+  return rows.filter((c) => typeof mbUserSeesCampaign !== 'function' || mbUserSeesCampaign(c, uid));
+}
+
+function takvimCampLabel(c) {
+  const name = String(c?.name || '');
+  if (c?.status === 'paused') {
+    const tag = typeof t === 'function' ? t('cal.paused') : 'duraklatıldı';
+    return `${name} (${tag})`;
+  }
+  return name;
+}
+
+function takvimFillCampSelect(sel, camps, selectedId) {
+  if (!sel) return;
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (s) => String(s ?? '');
+  const list = Array.isArray(camps) ? camps : [];
+  sel.innerHTML = `<option value="">Kampanya seç...</option>${list.map((c) => `<option value="${esc(c.id)}">${esc(takvimCampLabel(c))}</option>`).join('')}`;
+  if (selectedId && [...sel.options].some((o) => o.value === String(selectedId))) sel.value = selectedId;
+  else if (list.length === 1) sel.value = list[0].id;
+}
+
 /** Süper admin takvim sayfasında firma değişince kampanya listesini yenile (tarih sıfırlanmaz) */
 async function takvimPageFirmChanged() {
   const isAdmin = mbIsFirmAdmin();
   if (!isAdmin) return;
   const fid = getActiveFirmId();
-  const camps =
-    (await sb(
-      fid
-        ? `campaigns?firm_id=eq.${fid}&status=eq.active&select=id,name&order=name.asc`
-        : `campaigns?status=eq.active&select=id,name&order=name.asc`
-    ).catch(() => [])) || [];
+  const camps = await takvimCampChoices(fid);
   const sel = document.getElementById('takvim-camp-select');
   const prev = takvimCampId;
-  if (sel) {
-    const esc =
-      typeof window.escapeHtml === 'function' ? window.escapeHtml : (s) => String(s ?? '');
-    sel.innerHTML =
-      '<option value="">Kampanya seç...</option>' +
-      camps.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
-    if (prev && [...sel.options].some((o) => o.value === String(prev))) {
-      takvimCampId = prev;
-      sel.value = prev;
-    } else if (camps.length === 1) {
-      takvimCampId = camps[0].id;
-      sel.value = takvimCampId;
-    } else {
-      takvimCampId = sel.value || null;
-    }
-  }
+  takvimFillCampSelect(sel, camps, prev);
+  if (sel && prev && [...sel.options].some((o) => o.value === String(prev))) takvimCampId = prev;
+  else if (camps.length === 1) takvimCampId = camps[0].id;
+  else takvimCampId = sel?.value || null;
   takvimSlots = [];
   takvimAppts = [];
   renderTakvimGrid();
@@ -372,33 +418,29 @@ async function loadTakvimPage() {
   }
   if (isAdmin) {
     const fid = getActiveFirmId();
-    const camps = await sb(fid ? `campaigns?firm_id=eq.${fid}&status=eq.active&select=*&order=name.asc` : `campaigns?status=eq.active&select=*&order=name.asc`).catch(()=>[]);
-    if (typeof campaigns !== 'undefined' && Array.isArray(campaigns) && camps?.length) {
-      camps.forEach((row) => {
-        if (!row?.id) return;
-        const i = campaigns.findIndex((c) => c.id === row.id);
-        if (i >= 0) campaigns[i] = { ...campaigns[i], ...row };
-        else campaigns.push(row);
-      });
-    }
+    const camps = await takvimCampChoices(fid);
     const sel = document.getElementById('takvim-camp-select');
-    if (sel) {
-      sel.innerHTML = '<option value="">Kampanya seç...</option>' + (camps||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-      if (takvimCampId) sel.value = takvimCampId;
-      else if (camps?.length===1) { takvimCampId = camps[0].id; sel.value = takvimCampId; }
-    }
+    takvimFillCampSelect(sel, camps, takvimCampId);
+    if (sel?.value) takvimCampId = sel.value;
+    else if (!camps.some((c) => c.id === takvimCampId)) takvimCampId = null;
   } else {
-    const myAc = await sb(`agent_campaigns?agent_id=eq.${currentUser.id}&select=campaign_id,campaigns(id,name)&limit=1`).catch(()=>[]);
-    if (myAc?.length) {
-      takvimCampId = myAc[0].campaign_id;
-      const lbl = document.getElementById('takvim-camp-label');
-      if (lbl) {
-        lbl.textContent = myAc[0].campaigns?.name || '';
-        lbl.style.display = '';
+    const firmId = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
+    const agentCamps = await takvimAgentCamps(firmId);
+    const lbl = document.getElementById('takvim-camp-label');
+    const esc = typeof escapeHtml === 'function' ? escapeHtml : (s) => String(s ?? '');
+    if (!takvimCampId || !agentCamps.some((c) => c.id === takvimCampId)) {
+      takvimCampId = agentCamps[0]?.id || null;
+    }
+    if (lbl) {
+      lbl.style.display = '';
+      if (agentCamps.length > 1) {
+        lbl.innerHTML = `<select class="form-input" id="takvim-camp-select-agent" style="font-size:12px;padding:5px 10px;max-width:220px;" onchange="onTakvimCampChange(this.value)">${agentCamps.map((c) => `<option value="${esc(c.id)}"${c.id === takvimCampId ? ' selected' : ''}>${esc(c.name || '')}</option>`).join('')}</select>`;
+      } else {
+        lbl.textContent = agentCamps[0]?.name || 'Kampanya seçin';
       }
     }
   }
-  takvimDate = new Date(); takvimDate.setHours(0,0,0,0);
+  takvimDate = takvimBerlinDate();
   renderTakvimGrid();
   if (takvimCampId) loadTakvimSlots();
   if (!isAdmin) {
@@ -411,13 +453,13 @@ function onTakvimCampChange(campId) {
   takvimClearMovePickMode();
   takvimCampId = campId;
   // Hem ana sayfa select'ini hem overlay select'ini güncelle
-  ['takvim-camp-select','takvim-camp-select-ov'].forEach(id => {
+  ['takvim-camp-select','takvim-camp-select-ov','takvim-camp-select-agent','takvim-camp-select-agent-ov'].forEach(id => {
     const sel = document.getElementById(id);
-    if (sel) sel.value = campId;
+    if (sel && [...sel.options].some((o) => o.value === String(campId))) sel.value = campId;
   });
   const lbl = document.getElementById('takvim-camp-label');
   const selRef = document.getElementById('takvim-camp-select') || document.getElementById('takvim-camp-select-ov');
-  if (lbl && selRef) lbl.textContent = selRef.options[selRef.selectedIndex]?.text||campId;
+  if (lbl && selRef && !document.getElementById('takvim-camp-select-agent')) lbl.textContent = selRef.options[selRef.selectedIndex]?.text||campId;
   if (campId) loadTakvimSlots();
 }
 
@@ -469,7 +511,7 @@ function takvimNext() {
 
 function takvimGoToday() {
   takvimClearMovePickMode();
-  takvimDate = new Date(); takvimDate.setHours(0,0,0,0);
+  takvimDate = takvimBerlinDate();
   takvimSlots=[]; takvimAppts=[];
   renderTakvimGrid();
   if (takvimCampId) loadTakvimSlots();
@@ -504,6 +546,7 @@ async function loadTakvimSlots() {
     takvimSlots = slots||[];
     const ids = takvimSlots.filter(s=>s.appointment_id).map(s=>s.appointment_id);
     takvimAppts = ids.length ? await sb(`appointments?id=in.(${ids.join(',')})`) || [] : [];
+    await takvimLoadCustomerNames(takvimAppts);
     const agentIds = [...new Set(takvimAppts.map((a) => a.agent_id).filter(Boolean))];
     window._takvimAgentNameById = window._takvimAgentNameById || {};
     if (agentIds.length) {
@@ -655,7 +698,7 @@ function renderTakvimGrid() {
   for (let d=0; d<daysCount; d++) {
     const dt = new Date(startDt); dt.setDate(dt.getDate()+d);
     const ds = takvimFmtD(dt);
-    const isToday = dt.toDateString()===new Date().toDateString();
+    const isToday = takvimIsBerlinToday(dt);
     const isClosed = takvimClosedDays[ds];
     const click = isAdmin ? `onclick="takvimHeaderClick('${ds}')"` : '';
     const wdShort = takvimWeekdayName(dt, 'short');
@@ -669,7 +712,7 @@ function renderTakvimGrid() {
       const dt = new Date(startDt); dt.setDate(dt.getDate()+d);
       const ds = takvimFmtD(dt);
       const isClosed = takvimClosedDays[ds];
-      const isToday = dt.toDateString()===new Date().toDateString();
+      const isToday = takvimIsBerlinToday(dt);
       const dayKey = takvimDayKeyFromDate(dt);
       const colActive = activeSet.has(dayKey);
       const canClick = isAdmin && !isClosed && colActive;
@@ -680,6 +723,7 @@ function renderTakvimGrid() {
   }
   h += '</div>'; grid.innerHTML = h;
   renderTakvimSlots();
+  renderTakvimFilterBar();
   _ensureTakvimWeekResizeListener();
   requestAnimationFrame(() => {
     takvimApplyWeekRowHeights();
@@ -709,13 +753,14 @@ function renderTakvimMonthGrid(grid) {
     if (showWeekend || (wd !== 0 && wd !== 6)) {
       const ds = takvimFmtD(cur);
       const other = cur.getMonth() !== m;
-      const today = cur.toDateString() === new Date().toDateString();
+      const today = takvimIsBerlinToday(cur);
       h += `<div id="mc_${takvimGridToken()}_${ds}" data-tk-month="${ds}" class="tk-month${other ? ' tk-month--other' : ''}${today ? ' tk-month--today' : ''}"><div class="tk-month-d">${cur.getDate()}</div><div data-tk-month-slots="${ds}" class="tk-month-slots"></div></div>`;
     }
     cur.setDate(cur.getDate() + 1);
   }
   h += '</div>'; grid.innerHTML = h;
   renderTakvimSlots();
+  renderTakvimFilterBar();
 }
 
 function renderTakvimSlots() {
@@ -724,7 +769,7 @@ function renderTakvimSlots() {
     return;
   }
   const isAdmin = mbIsFirmAdmin();
-  const visible = takvimSlots.filter((s) => !s.gun_kapali && !s.alta_tasindi);
+  const visible = takvimSlots.filter((s) => takvimSlotListed(s) && takvimSlotPasses(s, takvimApptOf(s)));
   const byDate = {};
   visible.forEach((s) => {
     const d = s.tarih;
@@ -805,7 +850,7 @@ function renderTakvimSlots() {
 
 function renderTakvimSlotsMonth() {
   const isAdmin = mbIsFirmAdmin();
-  takvimSlots.filter(s=>!s.gun_kapali&&!s.alta_tasindi).forEach(s=>{
+  takvimSlots.filter((s) => takvimSlotListed(s) && takvimSlotPasses(s, takvimApptOf(s))).forEach(s=>{
     const el = takvimMonthSlotHost(s.tarih);
     if (!el) return;
     const appt = takvimAppts.find(a=>a.id===s.appointment_id);
@@ -820,6 +865,14 @@ function renderTakvimSlotsMonth() {
       div.textContent = `${s.baslangic_saat.slice(0, 5)} Boş`;
     }
     div.onclick = () => openTakvimSlotDetail(s, appt);
+    div.oncontextmenu = (e) => { e.preventDefault(); takvimHideTip(); showSlotContextMenu(e, s, appt); };
+    if (appt && (isAdmin || appt.agent_id === currentUser?.id)) {
+      div.addEventListener('mouseenter', () => {
+        clearTimeout(window._takvimTipTimer);
+        window._takvimTipTimer = setTimeout(() => takvimShowTip(div, appt), 280);
+      });
+      div.addEventListener('mouseleave', () => takvimHideTip());
+    }
     el.appendChild(div);
   });
 }
@@ -950,10 +1003,308 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
       openTakvimSlotDetail(slot, null);
     };
   }
-  el.oncontextmenu = (e) => { e.preventDefault(); showSlotContextMenu(e, slot, appt); };
+  el.oncontextmenu = (e) => { e.preventDefault(); if (typeof takvimHideTip === 'function') takvimHideTip(); showSlotContextMenu(e, slot, appt); };
+  if (slot.durum === 'dolu' && appt && (isAdmin || appt.agent_id === currentUser?.id)) {
+    el.addEventListener('mouseenter', () => {
+      clearTimeout(window._takvimTipTimer);
+      window._takvimTipTimer = setTimeout(() => takvimShowTip(el, appt), 280);
+    });
+    el.addEventListener('mouseleave', () => takvimHideTip());
+  }
   if (slot.durum === 'bos' || (slot.durum === 'dolu' && appt)) initSlotDrag(el, slot, appt);
   return el;
 }
+
+let _takvimStatusOn = new Set();
+let _takvimStatusSeen = new Set();
+let _takvimCustomerOn = new Set();
+let _takvimCustomerSeen = new Set();
+let _takvimFiltersReady = false;
+let _takvimSearch = '';
+let _takvimChipTimer = 0;
+
+function takvimSlotListed(slot) {
+  return !!(slot && !slot.gun_kapali && !slot.alta_tasindi);
+}
+
+function takvimApptOf(slot) {
+  if (!slot?.appointment_id) return null;
+  return (takvimAppts || []).find((a) => a.id === slot.appointment_id) || null;
+}
+
+function takvimSlotStatusKey(slot, appt) {
+  if (slot?.durum === 'bos') return 'bos';
+  if (slot?.durum === 'kilitli') return 'kilitli';
+  if (appt) return (typeof _normResultKey === 'function' ? _normResultKey(appt.durum) : String(appt.durum || '')) || 'dolu';
+  return 'dolu';
+}
+
+function takvimSlotCustomerKey(appt) {
+  return String(appt?.customer_id || '') || '__none__';
+}
+
+function takvimResultRows() {
+  const camp = typeof campaigns !== 'undefined' && Array.isArray(campaigns) ? campaigns.find((c) => c.id === takvimCampId) : null;
+  const fid = camp?.firm_id || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
+  const rows = (fid && window._apptResultsByFirm?.[fid]) || (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
+  return Array.isArray(rows) ? rows : [];
+}
+
+function takvimStatusMeta(key) {
+  const say = typeof t === 'function' ? t : (k) => k;
+  if (key === 'bos') return { label: say('cal.filter.empty'), color: getCampaignTakvimSettings().bos_color || '#3b82f6' };
+  if (key === 'kilitli') return { label: say('cal.filter.locked'), color: '#1d4ed8' };
+  const cfg = takvimResultRows().find((r) => (typeof _normResultKey === 'function' ? _normResultKey(r.key) : r.key) === key);
+  if (cfg) {
+    const label = typeof mbResultLabel === 'function' ? mbResultLabel(cfg.key, cfg.label) : (cfg.label || key);
+    return { label, color: cfg.color || '#64748b' };
+  }
+  return { label: key, color: '#64748b' };
+}
+
+function takvimCustomerChipLabel(key) {
+  if (key === '__none__') return typeof t === 'function' ? t('cal.filter.nocust') : 'Müşterisiz';
+  return window._takvimCustomerNameById?.[key] || 'Müşteri';
+}
+
+async function takvimLoadCustomerNames(appts) {
+  window._takvimCustomerNameById = window._takvimCustomerNameById || {};
+  const ids = [...new Set((appts || []).map((a) => a.customer_id).filter(Boolean))].filter((id) => !window._takvimCustomerNameById[id]);
+  if (!ids.length) return;
+  const rows = await sb(`customers?id=in.(${ids.join(',')})&select=id,name,code`).catch(() => []);
+  (rows || []).forEach((c) => {
+    if (!c?.id) return;
+    const name = String(c.name || '').trim();
+    window._takvimCustomerNameById[c.id] = c.code ? `${c.code} · ${name}` : (name || 'Müşteri');
+  });
+}
+
+function takvimOrderedStatusKeys(statusCount) {
+  const keys = [];
+  ['bos', 'kilitli'].forEach((k) => { if (statusCount[k]) keys.push(k); });
+  takvimResultRows().forEach((r) => {
+    const k = typeof _normResultKey === 'function' ? _normResultKey(r.key) : String(r.key || '');
+    if (k && statusCount[k] && !keys.includes(k)) keys.push(k);
+  });
+  Object.keys(statusCount).forEach((k) => { if (!keys.includes(k)) keys.push(k); });
+  return keys;
+}
+
+function takvimSyncFilters(statusKeys, customerKeys) {
+  if (!_takvimFiltersReady && (statusKeys.length || customerKeys.length)) _takvimFiltersReady = true;
+  statusKeys.forEach((k) => {
+    if (!_takvimStatusSeen.has(k)) {
+      _takvimStatusSeen.add(k);
+      _takvimStatusOn.add(k);
+    }
+  });
+  customerKeys.forEach((k) => {
+    if (!_takvimCustomerSeen.has(k)) {
+      _takvimCustomerSeen.add(k);
+      _takvimCustomerOn.add(k);
+    }
+  });
+}
+
+function takvimSlotPasses(slot, appt) {
+  const sk = takvimSlotStatusKey(slot, appt);
+  if (_takvimStatusSeen.has(sk) && !_takvimStatusOn.has(sk)) return false;
+  if (appt) {
+    const ck = takvimSlotCustomerKey(appt);
+    if (_takvimCustomerSeen.has(ck) && !_takvimCustomerOn.has(ck)) return false;
+  } else if (_takvimCustomerSeen.size > 1 && _takvimCustomerOn.size === 1) {
+    return false;
+  }
+  const q = String(_takvimSearch || '').trim().toLocaleLowerCase('tr-TR');
+  if (!q) return true;
+  if (!appt) return false;
+  const show = mbIsFirmAdmin() || appt.agent_id === currentUser?.id;
+  if (!show) return false;
+  const blob = [appt.nachname, appt.vorname, appt.telefonnummer, appt.telefon2, appt.plz, appt.ortschaft, appt.strasse]
+    .join(' ')
+    .toLocaleLowerCase('tr-TR');
+  if (blob.includes(q)) return true;
+  const digits = q.replace(/\D/g, '');
+  if (digits.length >= 3) {
+    const phones = `${appt.telefonnummer || ''}${appt.telefon2 || ''}`.replace(/\D/g, '');
+    if (phones.includes(digits)) return true;
+  }
+  return false;
+}
+
+function takvimFilterCatalog() {
+  const statusCount = {};
+  const customerCount = {};
+  takvimListedSlots().forEach((slot) => {
+    const appt = takvimApptOf(slot);
+    const sk = takvimSlotStatusKey(slot, appt);
+    statusCount[sk] = (statusCount[sk] || 0) + 1;
+    if (appt) {
+      const ck = takvimSlotCustomerKey(appt);
+      customerCount[ck] = (customerCount[ck] || 0) + 1;
+    }
+  });
+  return { statusCount, customerCount };
+}
+
+function takvimListedSlots() {
+  return (takvimSlots || []).filter(takvimSlotListed);
+}
+
+function takvimRepaintSlots() {
+  takvimHideTip();
+  const grid = takvimGridEl();
+  if (grid) {
+    grid.querySelectorAll('.takvim-slot-el').forEach((el) => el.remove());
+    grid.querySelectorAll('[data-tk-month-slots]').forEach((el) => { el.innerHTML = ''; });
+    renderTakvimSlots();
+  }
+  renderTakvimFilterBar();
+}
+
+function takvimFilterShowAll() {
+  clearTimeout(_takvimChipTimer);
+  _takvimStatusSeen.forEach((k) => _takvimStatusOn.add(k));
+  _takvimCustomerSeen.forEach((k) => _takvimCustomerOn.add(k));
+  takvimRepaintSlots();
+}
+
+function takvimChipAct(kind, key, mode) {
+  clearTimeout(_takvimChipTimer);
+  const set = kind === 'status' ? _takvimStatusOn : _takvimCustomerOn;
+  if (mode === 'dbl') {
+    set.clear();
+    set.add(key);
+    takvimRepaintSlots();
+    return;
+  }
+  _takvimChipTimer = setTimeout(() => {
+    if (set.has(key)) set.delete(key);
+    else set.add(key);
+    takvimRepaintSlots();
+  }, 220);
+}
+
+function takvimPaintChipRow(host, kind, keys, counts) {
+  if (!host) return;
+  host.replaceChildren();
+  if (!keys.length) {
+    host.hidden = true;
+    return;
+  }
+  host.hidden = false;
+  const say = typeof t === 'function' ? t : (k) => k;
+  if (kind === 'status') {
+    const all = document.createElement('button');
+    all.type = 'button';
+    all.className = 'takvim-chip takvim-chip-all';
+    all.textContent = say('cal.filter.all');
+    all.addEventListener('click', () => takvimFilterShowAll());
+    host.appendChild(all);
+  }
+  const onSet = kind === 'status' ? _takvimStatusOn : _takvimCustomerOn;
+  keys.forEach((key) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'takvim-chip' + (onSet.has(key) ? '' : ' is-off');
+    btn.title = say('cal.filter.hint');
+    if (kind === 'status') {
+      const meta = takvimStatusMeta(key);
+      const dot = document.createElement('span');
+      dot.className = 'takvim-chip-dot';
+      dot.style.background = meta.color;
+      const label = document.createElement('span');
+      label.textContent = `${meta.label} (${counts[key] || 0})`;
+      btn.append(dot, label);
+    } else {
+      btn.textContent = `${takvimCustomerChipLabel(key)} (${counts[key] || 0})`;
+    }
+    btn.addEventListener('click', () => takvimChipAct(kind, key, 'click'));
+    btn.addEventListener('dblclick', (ev) => {
+      ev.preventDefault();
+      takvimChipAct(kind, key, 'dbl');
+    });
+    host.appendChild(btn);
+  });
+}
+
+function renderTakvimFilterBar() {
+  const { statusCount, customerCount } = takvimFilterCatalog();
+  const statusKeys = takvimOrderedStatusKeys(statusCount);
+  const customerKeys = Object.keys(customerCount).sort((a, b) => takvimCustomerChipLabel(a).localeCompare(takvimCustomerChipLabel(b), 'tr'));
+  takvimSyncFilters(statusKeys, customerKeys);
+  takvimPaintChipRow(document.getElementById('takvim-status-chips'), 'status', statusKeys, statusCount);
+  takvimPaintChipRow(document.getElementById('takvim-status-chips-ov'), 'status', statusKeys, statusCount);
+  takvimPaintChipRow(document.getElementById('takvim-customer-chips'), 'customer', customerKeys, customerCount);
+  takvimPaintChipRow(document.getElementById('takvim-customer-chips-ov'), 'customer', customerKeys, customerCount);
+}
+
+function takvimSetSearch(value) {
+  _takvimSearch = String(value || '');
+  ['takvim-search', 'takvim-search-ov'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && document.activeElement !== el && el.value !== _takvimSearch) el.value = _takvimSearch;
+  });
+  clearTimeout(window._takvimSearchTimer);
+  window._takvimSearchTimer = setTimeout(takvimRepaintSlots, 80);
+}
+
+function takvimHideTip() {
+  clearTimeout(window._takvimTipTimer);
+  document.getElementById('takvim-tip')?.remove();
+}
+
+function takvimTipRow(label, value) {
+  const text = String(value || '').trim();
+  if (!text) return null;
+  const row = document.createElement('div');
+  row.className = 'takvim-tip-row';
+  const k = document.createElement('span');
+  k.textContent = label;
+  const v = document.createElement('div');
+  v.textContent = text;
+  row.append(k, v);
+  return row;
+}
+
+function takvimShowTip(anchor, appt) {
+  if (!anchor || !appt) return;
+  if (!(mbIsFirmAdmin() || appt.agent_id === currentUser?.id)) return;
+  takvimHideTip();
+  const say = typeof t === 'function' ? t : (k) => k;
+  const tip = document.createElement('div');
+  tip.id = 'takvim-tip';
+  tip.className = 'takvim-tip';
+  const title = document.createElement('b');
+  title.textContent = _takvimApptCardName(appt);
+  tip.appendChild(title);
+  const phone = [appt.telefonnummer, appt.telefon2].map((x) => String(x || '').trim()).filter(Boolean).join(' · ');
+  [takvimTipRow(say('cal.tip.phone'), phone), takvimTipRow(say('cal.tip.address'), _takvimApptCardAddr(appt))].forEach((row) => {
+    if (row) tip.appendChild(row);
+  });
+  const note = String(appt.agent_notu || '').trim();
+  if (note) {
+    const block = document.createElement('div');
+    block.className = 'takvim-tip-note';
+    block.textContent = note;
+    tip.appendChild(block);
+  }
+  document.body.appendChild(tip);
+  const rect = anchor.getBoundingClientRect();
+  let left = rect.left;
+  let top = rect.bottom + 8;
+  if (left + tip.offsetWidth > window.innerWidth - 8) left = window.innerWidth - tip.offsetWidth - 8;
+  if (top + tip.offsetHeight > window.innerHeight - 8) top = rect.top - tip.offsetHeight - 8;
+  tip.style.left = `${Math.max(8, left)}px`;
+  tip.style.top = `${Math.max(8, top)}px`;
+}
+
+function _ensureTakvimTipScroll() {
+  if (window._takvimTipScrollBound) return;
+  window._takvimTipScrollBound = true;
+  document.addEventListener('scroll', () => takvimHideTip(), true);
+}
+_ensureTakvimTipScroll();
 
 function takvimCellClickNeedsConfirm() {
   if (localStorage.getItem('mb_takvim_skip_new_slot_confirm') === '1') return false;

@@ -1937,6 +1937,11 @@ Ayarlar
 </div>
 </div>
 <div id="takvim-main" style="flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);min-height:0;">
+<div class="takvim-filters" id="takvim-filters">
+<input type="search" id="takvim-search" class="takvim-search" data-i18n-placeholder="cal.filter.search" placeholder="İsim, telefon, PLZ" oninput="takvimSetSearch(this.value)" autocomplete="off">
+<div id="takvim-status-chips" class="takvim-chip-row" hidden></div>
+<div id="takvim-customer-chips" class="takvim-chip-row" hidden></div>
+</div>
 <div id="takvim-scroll" style="flex:1;min-height:0;position:relative;">
 <div id="takvim-grid"></div>
 </div>

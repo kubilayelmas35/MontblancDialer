@@ -2,6 +2,7 @@
 // ── Context menu ──────────────────────────────
 function showSlotContextMenu(e, slot, appt) {
   e.preventDefault(); e.stopPropagation();
+  if (typeof takvimHideTip === 'function') takvimHideTip();
   _ctxSlot = slot; _ctxAppt = appt;
   const old = document.getElementById('slot-ctx-menu');
   if (old) old.remove();
@@ -130,6 +131,7 @@ function initSlotDrag(el, slot, appt) {
   if (!canDrag) return;
   el.draggable = true; el.style.cursor = 'grab';
   el.addEventListener('dragstart', e => {
+    if (typeof takvimHideTip === 'function') takvimHideTip();
     if (
       e.target.closest &&
       (e.target.closest('.tak-slot-move') ||
