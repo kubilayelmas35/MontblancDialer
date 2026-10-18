@@ -524,6 +524,98 @@ async function addAdjacentEmptySlot(slotId) {
 // ── Import Appts ──────────────────────────────
 let _iaUsers = [];
 let _iaResults = [];
+let _iaCustomers = [];
+let _iaReviewed = false;
+
+const IA_MATCH = {
+  nachname: ['nachname', 'soyad', 'ad soyad', 'name'],
+  telefon: ['telefon', 'telefonnummer', 'phone', 'handy', 'tel'],
+  telefon2: ['telefon2', 'telefon 2', 'phone2', 'tel2'],
+  strasse: ['strasse', 'straße', 'adresse', 'adres', 'sokak'],
+  plz: ['postleitzahl', 'plz', 'posta'],
+  ort: ['ortschaft', 'şehir', 'sehir', 'stadt', 'city', 'ort'],
+  termin_tarih: ['termin tarihi', 'randevu tarihi', 'datum', 'tarih', 'date'],
+  termin_saat: ['uhrzeit', 'termin saati', 'saat', 'time'],
+  notiz: ['notiz', 'notu', 'note', 'not'],
+  durum: ['ergebnis', 'qc sonucu', 'durum', 'status', 'qc'],
+  kampanya: ['kampagne', 'kampanya', 'campaign'],
+  personel: ['mitarbeiter', 'personel', 'temsilci', 'agent'],
+  hausart: ['hausart', 'ev tipi', 'evtipi'],
+  baujahr: ['baujahr', 'yapım yılı', 'yapim yili'],
+  qm: ['m²', 'qm', 'm2'],
+  heizung: ['heizung', 'ısıtma', 'isitma'],
+  alter_der_heizung: ['alter der heizung', 'ısıtma yaşı', 'isitma yasi'],
+  verbrauch_pro_jahr: ['verbrauch', 'tüketim', 'tuketim'],
+  personen: ['personen', 'kişi sayısı', 'kisi sayisi', 'kişi', 'kisi'],
+};
+
+function iaMatchScore(header, fieldKey) {
+  const h = iaFold(header);
+  const tokens = h.split(/[^a-z0-9]+/).filter(Boolean);
+  let best = 0;
+  (IA_MATCH[fieldKey] || []).forEach((raw) => {
+    const kw = iaFold(raw);
+    if (!kw) return;
+    if (h === kw) best = Math.max(best, 200 + kw.length);
+    else if (tokens.includes(kw)) best = Math.max(best, 100 + kw.length);
+    else if (kw.length >= 5 && h.includes(kw)) best = Math.max(best, kw.length);
+  });
+  return best;
+}
+
+function iaAutoAssign(headers) {
+  const pairs = [];
+  IA_FIELDS.forEach((f) => {
+    (headers || []).forEach((h, i) => {
+      const score = iaMatchScore(h, f.key);
+      if (score) pairs.push({ key: f.key, i, score });
+    });
+  });
+  pairs.sort((a, b) => b.score - a.score);
+  const chosen = {};
+  const taken = new Set();
+  pairs.forEach((p) => {
+    if (chosen[p.key] != null || taken.has(p.i)) return;
+    chosen[p.key] = p.i;
+    taken.add(p.i);
+  });
+  return chosen;
+}
+
+function iaDirty() {
+  _iaReviewed = false;
+  const q = document.getElementById('ia-questions');
+  if (q) { q.innerHTML = ''; q.style.display = 'none'; }
+}
+
+function iaCustomerOptions(selectedId) {
+  const id = String(selectedId || '');
+  const qc = !id;
+  const rows = (_iaCustomers || []).map((c) => {
+    const label = `${c.code ? c.code + ' · ' : ''}${c.name || ''}`.trim();
+    return `<option value="${iaEsc(c.id)}" ${String(c.id) === id ? 'selected' : ''}>${iaEsc(label || c.id)}</option>`;
+  }).join('');
+  return `<option value="qc" ${qc ? 'selected' : ''}>${iaEsc(iaSay('camp.customer.qc', 'Tümü — QC seçer'))}</option>${rows}`;
+}
+
+function iaSyncFallbackCustomer() {
+  const sel = document.getElementById('ia-customer');
+  if (!sel) return;
+  const campId = document.getElementById('ia-campaign')?.value || '';
+  const camp = (campaigns || []).find((c) => String(c.id) === String(campId));
+  const id = camp && typeof mbCampDefaultCustomerId === 'function' ? (mbCampDefaultCustomerId(camp) || '') : '';
+  sel.innerHTML = iaCustomerOptions(id);
+}
+
+async function iaFillCustomers() {
+  const fid = iaFirmId();
+  try {
+    _iaCustomers = fid ? (await sb(`customers?firm_id=eq.${fid}&is_active=eq.true&select=id,name,code&order=name.asc`)) || [] : [];
+  } catch (e) {
+    _iaCustomers = [];
+  }
+  iaSyncFallbackCustomer();
+}
 
 function iaSay(key, fb, vars) {
   let s = typeof t === 'function' ? t(key) : fb;
@@ -611,6 +703,8 @@ function openImportApptModal() {
         _iaUsers.map(u=>`<option value="${iaEsc(u.id)}">${iaEsc(u.name)}</option>`).join('');
     }).catch(()=>{ _iaUsers = []; });
   iaFillStatusSelect();
+  iaFillCustomers();
+  _iaReviewed = false;
   _iaRows=[]; _iaHeaders=[];
   document.getElementById('ia-file').value='';
   document.getElementById('ia-file-name').textContent='Dosya seçmek için tıkla';
@@ -636,13 +730,14 @@ async function onImportFileChange(input) {
   if (!data.length) { toast('Dosya boş','err'); return; }
   _iaHeaders = data[0].map(h=>String(h).trim());
   _iaRows = data.slice(1).filter(row=>row.some(cell=>cell!==''));
+  const chosen = iaAutoAssign(_iaHeaders);
   const grid = document.getElementById('ia-mapping-grid');
   grid.innerHTML = IA_FIELDS.map(f=>`
 <div style="display:flex;align-items:center;gap:6px;">
-<label style="font-size:11px;font-weight:700;min-width:110px;color:${f.required?'var(--text)':'var(--text-3)'};">${f.label}</label>
-<select class="form-input" id="ia-map-${f.key}" style="flex:1;font-size:11px;padding:4px 6px;">
+<label style="font-size:11px;font-weight:700;min-width:110px;color:${f.required?'var(--text)':'var(--text-3)'};">${iaEsc(f.label)}</label>
+<select class="form-input" id="ia-map-${f.key}" onchange="iaDirty()" style="flex:1;font-size:11px;padding:4px 6px;">
 <option value="">— Seç —</option>
-${_iaHeaders.map((h,i)=>`<option value="${i}" ${autoMatchImport(h,f.key)?'selected':''}>${h}</option>`).join('')}
+${_iaHeaders.map((h,i)=>`<option value="${i}" ${chosen[f.key]===i?'selected':''}>${iaEsc(h)}</option>`).join('')}
 </select>
 </div>`).join('');
   document.getElementById('ia-mapping-section').style.display='';
@@ -650,35 +745,17 @@ ${_iaHeaders.map((h,i)=>`<option value="${i}" ${autoMatchImport(h,f.key)?'select
   document.getElementById('ia-preview-btn').style.display='';
   document.getElementById('ia-match-btn').style.display='';
   document.getElementById('ia-submit-btn').style.display='';
-  const q = document.getElementById('ia-questions');
-  if (q) { q.innerHTML = ''; q.style.display = 'none'; }
+  iaDirty();
   toast(`${_iaRows.length} satır okundu ✓`, 'ok');
 }
 
-function autoMatchImport(header, fieldKey) {
-  const h = header.toLowerCase();
-  const matches = {
-    nachname: ['name','ad','soyad','müşteri','nachname'],
-    telefon:  ['tel','telefon','phone','handy'],
-    telefon2: ['tel2','telefon2','phone2'],
-    strasse:  ['adres','adresse','strasse','sokak'],
-    plz:      ['plz','posta','postleitzahl'],
-    ort:      ['şehir','stadt','ort','city'],
-    termin_tarih: ['tarih','datum','termin','date'],
-    termin_saat:  ['saat','uhrzeit','time'],
-    notiz:    ['not','notiz','note'],
-    durum:    ['durum','status','ergebnis','qc'],
-    kampanya: ['kampanya','kampagne','campaign'],
-    personel: ['personel','agent','temsilci','mitarbeiter'],
-    hausart:  ['hausart','ev tipi','evtip'],
-    baujahr:  ['baujahr','yapım','yapim'],
-    qm:       ['m2','qm','m²'],
-    heizung:  ['heizung','isitma','ısıtma'],
-    alter_der_heizung: ['ısıtma yaşı','isitma yasi','heizung alter'],
-    verbrauch_pro_jahr: ['verbrauch','tüketim','tuketim'],
-    personen: ['personen','kişi','kisi'],
-  };
-  return (matches[fieldKey]||[]).some(kw=>h.includes(kw));
+function iaParseTime(raw) {
+  if (raw instanceof Date && !isNaN(raw.getTime())) {
+    return `${String(raw.getHours()).padStart(2, '0')}:${String(raw.getMinutes()).padStart(2, '0')}`;
+  }
+  const m = String(raw || '').trim().match(/(\d{1,2})[:.](\d{2})/);
+  if (!m) return '10:00';
+  return `${String(m[1]).padStart(2, '0')}:${m[2]}`;
 }
 
 function getImportMapping() {
@@ -1112,9 +1189,16 @@ function iaQuestionRow(kind, value, optionsHtml, createLabel, titleText) {
 <input class="form-input ia-q-pass" type="password" placeholder="${iaEsc(iaSay('ia.q.pass', 'Şifre'))}" style="font-size:12px;">
 </div>`
     : '';
+  let customer = '';
+  if (kind === 'campaign') {
+    const camp = (campaigns || []).find((c) => iaFold(c.name) === iaFold(value));
+    const preset = camp && typeof mbCampDefaultCustomerId === 'function' ? (mbCampDefaultCustomerId(camp) || '') : '';
+    customer = `<div style="font-size:11px;color:var(--text-3);margin-top:6px;">${iaEsc(iaSay('ia.q.customer', 'Müşteri'))}</div><select class="form-input ia-q-customer" style="font-size:12px;margin-top:4px;">${iaCustomerOptions(preset)}</select>`;
+  }
   return `<div data-ia-kind="${iaEsc(kind)}" data-ia-value="${iaEsc(value)}" style="padding:8px 10px;background:var(--bg-3);border-radius:8px;">
 <div style="font-size:12px;font-weight:700;margin-bottom:6px;">${iaEsc(title)}</div>
 <select class="form-input ia-q-pick" style="font-size:12px;" onchange="iaToggleCreate(this)">${optionsHtml}${create}</select>
+${customer}
 ${extra}
 </div>`;
 }
@@ -1122,6 +1206,15 @@ ${extra}
 function iaToggleCreate(sel) {
   const box = sel.parentElement?.querySelector('.ia-create');
   if (box) box.style.display = sel.value === '__create__' ? 'flex' : 'none';
+  const cust = sel.parentElement?.querySelector('.ia-q-customer');
+  if (!cust) return;
+  if (!sel.value || sel.value === '__create__') {
+    cust.innerHTML = iaCustomerOptions('');
+    return;
+  }
+  const camp = (campaigns || []).find((c) => String(c.id) === sel.value);
+  const id = camp && typeof mbCampDefaultCustomerId === 'function' ? (mbCampDefaultCustomerId(camp) || '') : '';
+  cust.innerHTML = iaCustomerOptions(id);
 }
 
 function iaReadAnswers() {
@@ -1133,6 +1226,7 @@ function iaReadAnswers() {
     if (!out[kind]) return;
     out[kind][value] = {
       pick,
+      customer: row.querySelector('.ia-q-customer')?.value || '',
       email: row.querySelector('.ia-q-email')?.value?.trim() || '',
       pass: row.querySelector('.ia-q-pass')?.value || '',
     };
@@ -1177,6 +1271,7 @@ function iaBuildQuestions() {
   host.innerHTML = parts.join('') || `<div style="font-size:12px;color:var(--text-3);">${iaEsc(iaSay('ia.q.ready', 'Eşleşmeler hazır'))}</div>`;
   host.style.display = 'flex';
   host.querySelectorAll('.ia-q-pick').forEach((sel) => { if (sel.value === '__create__') iaToggleCreate(sel); });
+  _iaReviewed = true;
   toast(iaSay('ia.q.ready', 'Eşleşmeler hazır'), 'ok');
   return true;
 }
@@ -1221,7 +1316,11 @@ async function iaEnsureCreates(answers, firmId) {
       headers: mbAuthHeaders(),
       body: JSON.stringify({ p_firm_id: firmId, p_email: ans.email, p_password: ans.pass, p_name: name, p_role: 'agent' }),
     });
-    if (!res.ok) throw new Error(name);
+    if (!res.ok) {
+      let detail = '';
+      try { detail = (await res.text()).slice(0, 180); } catch (e) { detail = ''; }
+      throw new Error(detail ? `${name}: ${detail}` : name);
+    }
     const found = await sb(`users?email=eq.${encodeURIComponent(ans.email)}&select=id,name&limit=1`);
     const id = found?.[0]?.id;
     if (!id) throw new Error(name);
@@ -1238,7 +1337,8 @@ async function iaEnsureCreates(answers, firmId) {
     fresh.forEach(([name]) => {
       const key = typeof _normResultKey === 'function' ? _normResultKey(name) : iaFold(name).replace(/[^a-z0-9_]+/g, '_');
       if (!rows.some((r) => r.key === key)) {
-        rows.push({ key, label: name, color: '#64748b', contact_status: name, auto_move_down: false });
+        const contact = typeof appointmentResultToContactStatus === 'function' ? appointmentResultToContactStatus(key) : name;
+        rows.push({ key, label: name, color: '#64748b', contact_status: contact, auto_move_down: false });
       }
       durumIds[name] = key;
     });
@@ -1274,7 +1374,17 @@ async function startImportAppt() {
     toast('Ad ve telefon sütunlarını eşleştirin', 'err');
     return;
   }
-  if (!document.querySelector('#ia-questions [data-ia-kind]') && (map.kampanya != null || map.personel != null || map.durum != null)) iaBuildQuestions();
+  if (map.termin_tarih == null || Number.isNaN(map.termin_tarih)) {
+    toast(iaSay('ia.q.needdate', 'Randevu tarihi sütununu eşleştirin'), 'err');
+    return;
+  }
+  if (!_iaReviewed) {
+    iaBuildQuestions();
+    if (document.querySelector('#ia-questions [data-ia-kind]')) {
+      toast(iaSay('ia.q.review', 'Eşleşmeleri kontrol et. Doğruysa İçe aktar’a tekrar bas.'), 'ok');
+      return;
+    }
+  }
   const answers = iaReadAnswers();
   const problem = iaAnswerProblem(answers);
   if (problem) {
@@ -1304,6 +1414,7 @@ async function startImportAppt() {
   if (prog) prog.style.display = '';
   let ok = 0;
   let skip = 0;
+  const seen = new Set();
   const rows = _iaRows || [];
   const text = (row, key) => {
     const idx = map[key];
@@ -1322,10 +1433,15 @@ async function startImportAppt() {
     const campId = (campName && made.campIds[campName]) || fallbackCamp;
     const agentId = (agentName && made.agentIds[agentName]) || fallbackAgent;
     const durum = (durumName && made.durumIds[durumName]) || fallbackStatus;
-    const saat = (text(row, 'termin_saat') || '10:00').slice(0, 5);
+    const saat = iaParseTime(map.termin_saat == null ? '' : row[map.termin_saat]);
     if (!phone || !day || !campId || !agentId || !durum) { skip++; continue; }
+    const sig = `${campId}|${phone}|${day}|${saat}`;
+    if (seen.has(sig)) { skip++; continue; }
+    seen.add(sig);
     const camp = (campaigns || []).find((c) => String(c.id) === String(campId));
-    const custId = camp && typeof mbCampDefaultCustomerId === 'function' ? mbCampDefaultCustomerId(camp) : null;
+    const fromRow = campName && answers.campaign[campName] ? answers.campaign[campName].customer : '';
+    const custPick = fromRow || document.getElementById('ia-customer')?.value || 'qc';
+    const custId = custPick && custPick !== 'qc' ? custPick : null;
     const notes = [];
     const baseNote = text(row, 'notiz');
     if (baseNote) notes.push(baseNote);

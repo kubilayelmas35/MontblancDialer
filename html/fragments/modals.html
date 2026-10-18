@@ -214,9 +214,16 @@ ondrop="handleDrop(event)">
 <div style="display:flex;flex-direction:column;gap:10px;">
 <div class="form-row">
 <label class="form-label" data-tr="Kampanya (sütun yoksa)" data-de="Kampagne (ohne Spalte)">Kampanya (sütun yoksa)</label>
-<select class="form-input" id="ia-campaign">
+<select class="form-input" id="ia-campaign" onchange="iaSyncFallbackCustomer()">
 <option value="">Kampanya seçin...</option>
 </select>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Müşteri (sütun yoksa)" data-de="Kunde (ohne Spalte)">Müşteri (sütun yoksa)</label>
+<select class="form-input" id="ia-customer">
+<option value="qc">Tümü — QC seçer</option>
+</select>
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Kampanyadaki müşteri hazır gelir. Tümü dersen bu dosyada müşteriyi QC yazar." data-de="Der Kampagnenkunde steht bereit. Alle: QC trägt den Kunden für diese Datei ein.">Kampanyadaki müşteri hazır gelir. Tümü dersen bu dosyada müşteriyi QC yazar.</div>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Personel (sütun yoksa)" data-de="Personal (ohne Spalte)">Personel (sütun yoksa)</label>
