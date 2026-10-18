@@ -629,6 +629,8 @@ ncFirmRow.style.display = 'none';
 }
 ncFillCopySelect();
 ncFillCustomers(ncTargetFirmId());
+ncFillPersonnel(ncTargetFirmId());
+ncCustomerNote();
 }
 
 function ncTargetFirmId() {
@@ -655,13 +657,15 @@ async function ncOnFirmChange() {
   if (custSel) custSel.value = '';
   ncFillCopySelect();
   await ncFillCustomers(ncTargetFirmId());
+  await ncFillPersonnel(ncTargetFirmId());
+  ncCustomerNote();
 }
 
 async function ncFillCustomers(firmId) {
   const sel = document.getElementById('nc-customer');
   if (!sel) return;
   const keep = sel.value;
-  sel.innerHTML = `<option value="">${campEsc(campT('camp.customer.none', 'Tümü'))}</option>`;
+  sel.innerHTML = `<option value="">${campEsc(campT('camp.customer.pick', 'Seçin'))}</option><option value="qc">${campEsc(campT('camp.customer.qc', 'Tümü — QC seçer'))}</option>`;
   if (!firmId || typeof sb !== 'function') return;
   let rows = [];
   try {
@@ -716,9 +720,63 @@ function ncApplyCopy(id) {
   if (typeof updateCampPreview === 'function') updateCampPreview();
   const cust = document.getElementById('nc-customer');
   const cid = typeof mbCampDefaultCustomerId === 'function' ? (mbCampDefaultCustomerId(camp) || '') : '';
-  if (cust && [...cust.options].some((o) => o.value === cid)) cust.value = cid;
-  else if (cust) cust.value = '';
+  if (cust && cid && [...cust.options].some((o) => o.value === cid)) cust.value = cid;
+  else if (cust) cust.value = 'qc';
+  ncSyncPersonnelChecks();
+  ncCustomerNote();
   toast(campT('camp.new.copied', 'Ayarlar kopyalandı'), 'ok');
+}
+
+function ncCustomerNote() {
+  const note = document.getElementById('nc-customer-note');
+  const val = String(document.getElementById('nc-customer')?.value || '').trim();
+  if (!note) return;
+  const text = val === 'qc'
+    ? campT('camp.customer.note.qc', 'Seçim QC\'de. Randevu müşterisiz açılır, QC müşteriyi yazar.')
+    : val
+      ? campT('camp.customer.note.one', 'Yeni randevular bu müşteriye yazılır. Öncekiler durur. QC tek kaydı değiştirebilir.')
+      : campT('camp.customer.note.pick', 'Bir müşteri seçin ya da Tümü deyip seçimi QC\'ye bırakın.');
+  note.textContent = text;
+}
+
+async function ncFillPersonnel(firmId) {
+  const el = document.getElementById('nc-personnel');
+  if (!el) return;
+  el.innerHTML = `<span style="color:var(--text-3);font-size:12px;">...</span>`;
+  const roles = (typeof MB_PERSONNEL_ROLES !== 'undefined' ? MB_PERSONNEL_ROLES : ['agent', 'qc', 'firm_admin', 'field_agent', 'admin', 'super_admin']).join(',');
+  let rows = [];
+  try {
+    rows = firmId && typeof sb === 'function'
+      ? await sb(`users?select=id,name,role&is_active=eq.true&role=in.(${roles})&firm_id=eq.${firmId}&order=name.asc`)
+      : [];
+  } catch (e) {
+    rows = [];
+  }
+  rows = (rows || []).filter((u) => u?.id);
+  if (!rows.length) {
+    el.innerHTML = `<span style="color:var(--text-3);font-size:12px;">${campEsc(campT('camp.personnel.empty', 'Bu firmada personel yok'))}</span>`;
+    return;
+  }
+  const off = new Set(((_ncCopySettings && _ncCopySettings.personnel_off) || []).map(String));
+  el.innerHTML = rows.map((u) => {
+    const on = !off.has(String(u.id));
+    const name = String(u.name || '').trim() || campT('camp.agent.unnamed', 'Personel');
+    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg-3);border-radius:8px;cursor:pointer;">
+<input type="checkbox" data-nc-personnel-id="${campEsc(u.id)}" ${on ? 'checked' : ''} style="width:16px;height:16px;">
+<span style="font-size:12px;font-weight:700;">${campEsc(name)}</span>
+</label>`;
+  }).join('');
+}
+
+function ncSyncPersonnelChecks() {
+  const off = new Set(((_ncCopySettings && _ncCopySettings.personnel_off) || []).map(String));
+  document.querySelectorAll('#nc-personnel [data-nc-personnel-id]').forEach((el) => {
+    el.checked = !off.has(String(el.dataset.ncPersonnelId));
+  });
+}
+
+function ncPersonnelAll(on) {
+  document.querySelectorAll('#nc-personnel [data-nc-personnel-id]').forEach((el) => { el.checked = !!on; });
 }
 
 function ncBuildFieldConfig() {
@@ -737,8 +795,15 @@ function ncBuildSettings() {
   delete settings.notif_ts;
   delete settings.notif_message;
   const cust = String(document.getElementById('nc-customer')?.value || '').trim();
-  if (cust) settings.default_customer_id = cust;
-  else delete settings.default_customer_id;
+  if (cust && cust !== 'qc') {
+    settings.default_customer_id = cust;
+    settings.customer_qc = false;
+  } else if (cust === 'qc') {
+    delete settings.default_customer_id;
+    settings.customer_qc = true;
+  }
+  const boxes = [...document.querySelectorAll('#nc-personnel [data-nc-personnel-id]')];
+  if (boxes.length) settings.personnel_off = boxes.filter((el) => !el.checked).map((el) => String(el.dataset.ncPersonnelId || '')).filter(Boolean);
   return settings;
 }
 
@@ -915,6 +980,12 @@ if (nameEl) {
   nameEl.removeAttribute('aria-invalid');
 }
 if (nameErr) nameErr.hidden = true;
+const custPick = String(document.getElementById('nc-customer')?.value || '').trim();
+if (!custPick) {
+  toast(campT('camp.customer.need', 'Bir müşteri seçin veya seçimi QC\'ye bırakın'), 'err');
+  document.getElementById('nc-customer')?.focus();
+  return;
+}
 let didNorm = did.replace(/[\s()-]/g, '');
 if (didNorm && (typeof mbIsE164 !== 'function' || !mbIsE164(didNorm))) {
   toast(campT('camp.did.bad','DID + ile başlamalı, örnek +49301234567'), 'err');

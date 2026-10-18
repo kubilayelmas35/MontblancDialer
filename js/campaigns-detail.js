@@ -522,19 +522,23 @@ async function loadCampCustomer() {
     return;
   }
   const current = mbCampDefaultCustomerId(camp) || '';
-  const opts = [`<option value="">${esc(campT('camp.customer.none', 'Seçilmedi'))}</option>`].concat(rows.map((c) => {
+  const qcOn = !current;
+  const opts = [`<option value="qc" ${qcOn ? 'selected' : ''}>${esc(campT('camp.customer.qc', 'Tümü — QC seçer'))}</option>`].concat(rows.map((c) => {
     const label = `${c.code ? c.code + ' · ' : ''}${c.name || ''}`.trim();
     return `<option value="${esc(c.id)}" ${String(c.id) === String(current) ? 'selected' : ''}>${esc(label || c.id)}</option>`;
   }));
-  el.innerHTML = `<select class="form-input" id="cd-customer-sel" onchange="campCustomerPick(this.value)" style="max-width:420px;">${opts.join('')}</select>`;
+  el.innerHTML = `<select class="form-input" id="cd-customer-sel" onchange="campCustomerPick(this.value)" style="max-width:420px;">${opts.join('')}</select>
+<div style="font-size:11px;color:var(--text-3);margin-top:6px;">${esc(qcOn ? campT('camp.customer.note.qc', 'Seçim QC\'de. Randevu müşterisiz açılır, QC müşteriyi yazar.') : campT('camp.customer.note.one', 'Yeni randevular bu müşteriye yazılır. Öncekiler durur. QC tek kaydı değiştirebilir.'))}</div>`;
 }
 
 async function campCustomerPick(id) {
   const camp = (campaigns || []).find((c) => c.id === currentCampId);
   if (!camp) return;
   try {
-    await saveCampSettingsPatch({ default_customer_id: String(id || '').trim() });
-    toast(campT('camp.customer.saved', 'Müşteri kaydedildi'), 'ok');
+    const qc = !id || id === 'qc';
+    await saveCampSettingsPatch({ default_customer_id: qc ? '' : String(id).trim(), customer_qc: qc });
+    toast(campT(qc ? 'camp.customer.note.qc' : 'camp.customer.saved', qc ? 'Seçim QC\'de. Randevu müşterisiz açılır, QC müşteriyi yazar.' : 'Müşteri kaydedildi'), 'ok');
+    await loadCampCustomer();
   } catch (e) {
     toast(e.message || 'Hata', 'err');
     loadCampCustomer();
