@@ -266,13 +266,21 @@ function _selectedCustomerId(selectId) {
   return String(document.getElementById(selectId)?.value || '').trim() || null;
 }
 
-function _validateCustomerSelection(ctx, selectId) {
+function mbResolveApptCustomerId(selectId, campaignId) {
+  const picked = _selectedCustomerId(selectId);
+  if (picked) return picked;
+  const id = campaignId
+    || (typeof currentContact !== 'undefined' ? currentContact?.campaign_id : null)
+    || (typeof selectedCampId !== 'undefined' ? selectedCampId : null)
+    || (typeof takvimCampId !== 'undefined' ? takvimCampId : null);
+  return typeof mbCampDefaultCustomerId === 'function' ? mbCampDefaultCustomerId(id) : null;
+}
+
+function _validateCustomerSelection(ctx, selectId, campaignId) {
   if (!ctx.mustSelect) return true;
-  if (!_selectedCustomerId(selectId)) {
-    toast('Müşteri seçin', 'err');
-    return false;
-  }
-  return true;
+  if (mbResolveApptCustomerId(selectId, campaignId)) return true;
+  toast('Müşteri seçin', 'err');
+  return false;
 }
 
 async function _createAppointmentWithCustomerFallback(data) {
@@ -292,7 +300,9 @@ async function _createAppointmentWithCustomerFallback(data) {
 async function renderInlineTerminCustomerField(selectedId) {
   const wrap = document.getElementById('tf2-customer-wrap');
   if (!wrap) return;
-  const ctx = await _getCustomerCtx(selectedId || null);
+  const campId = (typeof currentContact !== 'undefined' && currentContact?.campaign_id) || (typeof selectedCampId !== 'undefined' ? selectedCampId : null);
+  const preset = selectedId || (typeof mbCampDefaultCustomerId === 'function' ? mbCampDefaultCustomerId(campId) : null);
+  const ctx = await _getCustomerCtx(preset || null);
   wrap.innerHTML = _renderCustomerField(ctx, 'tf2-customer');
 }
 

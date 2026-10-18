@@ -68,6 +68,15 @@ function mbUserSeesCampaign(camp, userId) {
   return !mbPersonnelOff(camp).includes(String(userId));
 }
 
+function mbCampDefaultCustomerId(campOrId) {
+  const camp = campOrId && typeof campOrId === 'object'
+    ? campOrId
+    : (typeof campaigns !== 'undefined' ? (campaigns || []).find((c) => String(c.id) === String(campOrId || '')) : null);
+  const raw = (typeof getCampSettings === 'function' ? getCampSettings(camp || {}) : camp?.settings)?.default_customer_id;
+  const id = String(raw || '').trim();
+  return id || null;
+}
+
 function campPersonLabel(person) {
   const name = String(person?.name || '').trim();
   if (name && !/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(name)) return name;

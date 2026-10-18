@@ -279,6 +279,7 @@ if (tab === 'bildirim' && currentCampId) loadCampBildirimTab();
 if (tab === 'termin-form' && currentCampId) loadCampTerminFormTab();
 if (tab === 'kurallar' && currentCampId) loadCampRulesTab();
 if (tab === 'agentler' && currentCampId) loadCampPersonnel();
+if (tab === 'musteri' && currentCampId) loadCampCustomer();
 }
 
 const TERMIN_FORM_DEFAULTS = [
@@ -499,6 +500,45 @@ async function loadCampPersonnel() {
 <span style="font-size:13px;font-weight:700;">${esc(name)}</span>${online}
 </label>`;
   }).join('');
+}
+
+async function loadCampCustomer() {
+  const el = document.getElementById('cd-customer');
+  const camp = (campaigns || []).find((c) => c.id === currentCampId);
+  if (!el || !camp) return;
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  el.innerHTML = `<span style="color:var(--text-3);font-size:12px;">...</span>`;
+  let rows = [];
+  try {
+    rows = camp.firm_id
+      ? await sb(`customers?firm_id=eq.${camp.firm_id}&is_active=eq.true&select=id,name,code&order=name.asc`)
+      : [];
+  } catch (e) {
+    rows = [];
+  }
+  rows = (rows || []).filter((c) => c?.id);
+  if (!rows.length) {
+    el.innerHTML = `<span style="color:var(--text-3);font-size:12px;">${esc(campT('camp.customer.empty', 'Bu firmada müşteri yok'))}</span>`;
+    return;
+  }
+  const current = mbCampDefaultCustomerId(camp) || '';
+  const opts = [`<option value="">${esc(campT('camp.customer.none', 'Seçilmedi'))}</option>`].concat(rows.map((c) => {
+    const label = `${c.code ? c.code + ' · ' : ''}${c.name || ''}`.trim();
+    return `<option value="${esc(c.id)}" ${String(c.id) === String(current) ? 'selected' : ''}>${esc(label || c.id)}</option>`;
+  }));
+  el.innerHTML = `<select class="form-input" id="cd-customer-sel" onchange="campCustomerPick(this.value)" style="max-width:420px;">${opts.join('')}</select>`;
+}
+
+async function campCustomerPick(id) {
+  const camp = (campaigns || []).find((c) => c.id === currentCampId);
+  if (!camp) return;
+  try {
+    await saveCampSettingsPatch({ default_customer_id: String(id || '').trim() });
+    toast(campT('camp.customer.saved', 'Müşteri kaydedildi'), 'ok');
+  } catch (e) {
+    toast(e.message || 'Hata', 'err');
+    loadCampCustomer();
+  }
 }
 
 async function campPersonnelToggle(userId, on) {

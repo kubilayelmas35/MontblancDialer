@@ -135,7 +135,9 @@ async function lockAndBookSlot(slot) {
 
 async function openTakvimBookForm(slot) {
   const contact = currentContact||{};
-  const custCtx = await _getCustomerCtx(null);
+  const campId = (typeof takvimCampId !== 'undefined' && takvimCampId) || (typeof selectedCampId !== 'undefined' ? selectedCampId : null) || contact.campaign_id;
+  const preset = typeof mbCampDefaultCustomerId === 'function' ? mbCampDefaultCustomerId(campId) : null;
+  const custCtx = await _getCustomerCtx(preset);
   document.getElementById('takvim-detail-title').textContent = `Randevu — ${slot.tarih} ${slot.baslangic_saat?.slice(0,5)}`;
   openModal('m-takvim-detail');
   document.getElementById('takvim-detail-body').innerHTML = `
@@ -226,7 +228,8 @@ async function saveTerminFromSection() {
   let needCustomer = false;
   try {
     const custCtx = await _getCustomerCtx(null);
-    needCustomer = !!(custCtx?.mustSelect && typeof _selectedCustomerId === 'function' && !_selectedCustomerId('tf2-customer'));
+    const apptCampId = currentContact?.campaign_id || (typeof selectedCampId !== 'undefined' ? selectedCampId : null);
+    needCustomer = !!(custCtx?.mustSelect && typeof mbResolveApptCustomerId === 'function' && !mbResolveApptCustomerId('tf2-customer', apptCampId));
     const custEl = document.getElementById('tf2-customer');
     if (custEl) custEl.style.borderColor = needCustomer ? 'var(--red)' : '';
   } catch (e) {}
@@ -281,7 +284,7 @@ async function saveTerminFromSection() {
       verbrauch_pro_jahr: g('tf2-verbrauch_pro_jahr'), personen: g('tf2-personen'),
       ...(document.getElementById('tf2-interesse_an_pv') ? { interesse_an_pv: g('tf2-interesse_an_pv') === 'true' } : {}),
       agent_notu: terminNoteWithExtras('tf2-note'), durum: 'qc_bekleniyor',
-      customer_id: _selectedCustomerId('tf2-customer'),
+      customer_id: mbResolveApptCustomerId('tf2-customer', takvimCampId||selectedCampId||contact.campaign_id),
       termin_tarih: `${slot.tarih}T${saatNorm(slot.baslangic_saat)}:00`
     };
     const created = await _createAppointmentWithCustomerFallback(data);
@@ -341,7 +344,7 @@ async function cancelTakvimBook(slotId) {
 
 async function submitTakvimBook(slotId) {
   const custCtx = await _getCustomerCtx(null);
-  if (!_validateCustomerSelection(custCtx, 'tf-customer')) return;
+  if (!_validateCustomerSelection(custCtx, 'tf-customer', takvimCampId||selectedCampId||currentContact?.campaign_id)) return;
   const g = id => document.getElementById(id)?.value?.trim()||'';
   if (!g('tf-name')||!g('tf-tel')||!g('tf-plz')||!g('tf-hausart')||!g('tf-bj')||!g('tf-qm')||!g('tf-hz')||!g('tf-ah')) {
     toast('Zorunlu alanları doldurun!','err'); return;
@@ -359,7 +362,7 @@ async function submitTakvimBook(slotId) {
       heizung:g('tf-hz'), alter_der_heizung:g('tf-ah'), verbrauch_pro_jahr:g('tf-vj'),
       personen:g('tf-pe'), interesse_an_pv:g('tf-pv')==='true',
       agent_notu:g('tf-note'), durum:'qc_bekleniyor',
-      customer_id:_selectedCustomerId('tf-customer'),
+      customer_id: mbResolveApptCustomerId('tf-customer', takvimCampId||selectedCampId||currentContact?.campaign_id),
       termin_tarih: slot ? `${slot.tarih}T${saatNorm(slot.baslangic_saat)}:00` : new Date().toISOString()
     };
     const created = await _createAppointmentWithCustomerFallback(data);
