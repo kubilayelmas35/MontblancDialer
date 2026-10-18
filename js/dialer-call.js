@@ -863,6 +863,58 @@ function setOutcome(o) {
   }
 }
 
+async function _findPendingWv(contact) {
+  if (!contact || !currentUser?.firm_id || !currentUser?.id) return [];
+  const fid = currentUser.firm_id;
+  const aid = currentUser.id;
+  const raw = String(contact.phone || '').trim();
+  const phone = raw.replace(/[\s()-]/g, '');
+  const cid = typeof isValidUUID === 'function' && isValidUUID(contact.id) ? contact.id : null;
+  let rows = [];
+  if (cid) {
+    rows = await sb(`wiedervorlage?firm_id=eq.${fid}&agent_id=eq.${aid}&contact_id=eq.${cid}&durum=eq.bekliyor&select=id&order=created_at.desc`).catch(() => []);
+  }
+  if ((!rows || !rows.length) && phone) {
+    rows = await sb(`wiedervorlage?firm_id=eq.${fid}&agent_id=eq.${aid}&telefon=eq.${encodeURIComponent(phone)}&durum=eq.bekliyor&select=id&order=created_at.desc`).catch(() => []);
+  }
+  if ((!rows || !rows.length) && raw && raw !== phone) {
+    rows = await sb(`wiedervorlage?firm_id=eq.${fid}&agent_id=eq.${aid}&telefon=eq.${encodeURIComponent(raw)}&durum=eq.bekliyor&select=id&order=created_at.desc`).catch(() => []);
+  }
+  return rows || [];
+}
+
+async function _upsertCallbackWiedervorlage(contact, cbTime, note) {
+  const phone = String(contact.phone || '').replace(/[\s()-]/g, '');
+  const phone2 = String(contact.phone2 || '').replace(/[\s()-]/g, '');
+  const when = typeof mbWallToIso === 'function' ? mbWallToIso(cbTime) : new Date(cbTime).toISOString();
+  const campId = typeof selectedCampId !== 'undefined' && typeof isValidUUID === 'function' && isValidUUID(selectedCampId) ? selectedCampId : null;
+  const payload = {
+    nachname: `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || phone,
+    telefon: phone,
+    telefon2: phone2,
+    plz: contact.plz || '',
+    ort: contact.city || '',
+    strasse: contact.address || '',
+    termin_zaman: when,
+    agent_id: currentUser.id,
+    agent_name: currentUser.name,
+    firm_id: currentUser.firm_id,
+    contact_id: typeof isValidUUID === 'function' && isValidUUID(contact.id) ? contact.id : null,
+    campaign_id: campId,
+    durum: 'bekliyor',
+    notiz: note || '',
+  };
+  const existing = await _findPendingWv(contact);
+  if (existing.length) {
+    await sb(`wiedervorlage?id=eq.${existing[0].id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(payload) });
+    await Promise.all(existing.slice(1).map((r) => sb(`wiedervorlage?id=eq.${r.id}`, {
+      method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ durum: 'yenilendi' }),
+    })));
+    return;
+  }
+  await sb('wiedervorlage', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(payload) });
+}
+
 /** Bekleyen geri aramayı listeden düşür. Randevu ayrı durum, olumsuz ayrı. Cevap yok dokunmaz. */
 async function _markMatchingWiedervorlage(contact, durum) {
   if (!contact || !currentUser?.firm_id || !currentUser?.id) return;
@@ -1002,18 +1054,7 @@ async function submitOutcome(goBreak) {
       if (badPhone || badPhone2) {
         toast(typeof t === 'function' ? t('wv.err_e164') : 'Telefon + ile başlamalı', 'err');
       } else {
-      await sb('wiedervorlage',{method:'POST',prefer:'return=minimal',body:JSON.stringify({
-        nachname: `${currentContact.first_name||''} ${currentContact.last_name||''}`.trim() || currentContact.phone,
-        telefon: phone, telefon2: phone2,
-        plz: currentContact.plz||'', ort: currentContact.city||'', strasse: currentContact.address||'',
-        termin_zaman: (typeof mbWallToIso === 'function' ? mbWallToIso(cbTime) : new Date(cbTime).toISOString()),
-        agent_id: currentUser.id,
-        agent_name: currentUser.name,
-        firm_id: currentUser.firm_id,
-        contact_id: isValidUUID(currentContact.id) ? currentContact.id : null,
-        durum: 'bekliyor',
-        notiz: note
-      })});
+        await _upsertCallbackWiedervorlage(currentContact, cbTime, note);
       }
     } catch(e) {}
   }

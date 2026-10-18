@@ -1624,7 +1624,8 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="page-title" data-tr="Aranacaklar" data-de="Wiedervorlage">Aranacaklar</div>
 <div class="page-sub" data-tr="Geri arama hatırlatmaları" data-de="Rückruferinnerungen">Geri arama hatırlatmaları</div>
 </div>
-<div style="display:flex;gap:8px;">
+<div style="display:flex;gap:8px;align-items:center;">
+<select class="form-input" id="wv-agent-filter" onchange="refreshWvList()" style="display:none;width:180px;padding:6px 10px;font-size:12px;"></select>
 <input type="text" class="form-input" id="wv-search" placeholder="İsim, numara, PLZ..." style="width:200px;padding:6px 10px;font-size:12px;" oninput="filterWvTable()">
 <button class="btn btn-primary btn-sm" onclick="openWvModal()">
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1656,11 +1657,12 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <th data-tr="Telefon" data-de="Telefon">Telefon</th>
 <th data-tr="PLZ / Şehir" data-de="PLZ / Ort">PLZ / Şehir</th>
 <th id="wv-agent-col" data-tr="Agent" data-de="Agent">Agent</th>
+<th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
 <th data-tr="Not" data-de="Notiz">Not</th>
 <th data-tr="İşlem" data-de="Aktion">İşlem</th>
 </tr></thead>
 <tbody id="wv-tbody">
-<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
+<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
 </tbody>
 </table>
 </div>

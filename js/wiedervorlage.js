@@ -2,24 +2,85 @@
 // WİEDERVORLAGE — geri arama yönetimi
 // ─────────────────────────────────────────────
 
-async function loadWvPage() {
+let _wvCamps = [];
+
+function wvEsc(v) {
+  return typeof escapeHtml === 'function' ? escapeHtml(v) : String(v ?? '');
+}
+
+function wvSay(key, fb) {
+  const s = typeof t === 'function' ? t(key) : fb;
+  return !s || s === key ? fb : s;
+}
+
+function wvFirmId() {
+  return (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id || '';
+}
+
+function wvCampName(id) {
+  if (!id) return '—';
+  const hit = [...(_wvCamps || []), ...(typeof campaigns !== 'undefined' ? campaigns || [] : [])]
+    .find((c) => String(c.id) === String(id));
+  return hit?.name || '—';
+}
+
+function wvAgentLabel(sel, id) {
+  const opt = [...(sel?.options || [])].find((o) => o.value === id);
+  return String(opt?.textContent || '').replace(/\s*\(Ben\)\s*$/, '').trim();
+}
+
+async function wvFillAgents() {
   const isAdminRole = mbIsFirmAdmin();
+  const filter = document.getElementById('wv-agent-filter');
+  const sel = document.getElementById('wv-agent-sel');
   const col = document.getElementById('wv-agent-col');
-  if (col) col.style.display = isAdminRole ? '' : 'none';
   const agentRow = document.getElementById('wv-agent-row');
+  if (col) col.style.display = isAdminRole ? '' : 'none';
   if (agentRow) agentRow.style.display = isAdminRole ? '' : 'none';
-  if (isAdminRole) {
-    const sel = document.getElementById('wv-agent-sel');
-    if (sel) {
-      // Değer olarak agent_id (UUID) kullan — güvenilir filtre
-      const agents = await sb('users?role=in.(agent,firm_admin,admin)&select=id,name&is_active=eq.true&order=name.asc').catch(() => []);
-      sel.innerHTML = `<option value="">Tümü</option>` +
-        `<option value="${currentUser.id}">${currentUser.name} (Ben)</option>` +
-        (agents||[]).filter(a => a.id !== currentUser.id).map(a =>
-          `<option value="${a.id}">${a.name||a.id}</option>`
-        ).join('');
-    }
+  if (filter) filter.style.display = isAdminRole ? '' : 'none';
+  if (!isAdminRole) return;
+  const fid = wvFirmId();
+  const firmQ = fid ? `&firm_id=eq.${fid}` : '';
+  const agents = await sb(`users?role=in.(agent,firm_admin,admin)&is_active=eq.true&select=id,name&order=name.asc${firmQ}`).catch(() => []);
+  const keepFilter = filter?.value || '';
+  const opts = `<option value="">${wvEsc(wvSay('wv.all_agents', 'Tüm temsilciler'))}</option>` +
+    `<option value="${wvEsc(currentUser.id)}">${wvEsc(currentUser.name)} (Ben)</option>` +
+    (agents || []).filter((a) => a.id !== currentUser.id).map((a) =>
+      `<option value="${wvEsc(a.id)}">${wvEsc(a.name || a.id)}</option>`
+    ).join('');
+  if (filter) {
+    filter.innerHTML = opts;
+    if ([...filter.options].some((o) => o.value === keepFilter)) filter.value = keepFilter;
   }
+  if (sel) sel.innerHTML = opts;
+}
+
+async function wvFillCamps(selectedId) {
+  const sel = document.getElementById('wv-camp');
+  const fid = wvFirmId();
+  let list = [];
+  try {
+    list = fid ? (await sb(`campaigns?firm_id=eq.${fid}&select=id,name,settings&order=name.asc`)) || [] : [];
+  } catch (e) {
+    list = [];
+  }
+  _wvCamps = list;
+  if (!sel) return;
+  const uid = currentUser?.id;
+  const choices = typeof mbUserSeesCampaign === 'function' && uid
+    ? list.filter((c) => mbUserSeesCampaign(c, uid))
+    : list;
+  const cur = String(selectedId || '');
+  sel.innerHTML = `<option value="">${wvEsc(wvSay('wv.no_camp', 'Kampanya yok'))}</option>` +
+    choices.map((c) => `<option value="${wvEsc(c.id)}" ${String(c.id) === cur ? 'selected' : ''}>${wvEsc(c.name || c.id)}</option>`).join('');
+  if (cur && ![...sel.options].some((o) => o.value === cur)) {
+    sel.insertAdjacentHTML('beforeend', `<option value="${wvEsc(cur)}" selected>${wvEsc(wvCampName(cur))}</option>`);
+  }
+}
+
+async function loadWvPage() {
+  await wvFillAgents();
+  await wvFillCamps();
   await refreshWvList();
   startWvReminders();
 }
@@ -27,7 +88,7 @@ async function loadWvPage() {
 async function refreshWvList() {
   try {
     const isAdminRole = mbIsFirmAdmin();
-    const sel = document.getElementById('wv-agent-sel');
+    const sel = document.getElementById('wv-agent-filter');
     const selectedAgentId = sel?.value || '';
     let url;
     if (isAdminRole && !selectedAgentId) {
@@ -109,7 +170,7 @@ function renderWvTable() {
     );
   }
   if (!list.length) {
-    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(7, 'ui.no_records') : `<tr><td colspan="7" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(8, 'ui.no_records') : `<tr><td colspan="8" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
     return;
   }
   const isAdminRole = mbIsFirmAdmin();
@@ -132,11 +193,13 @@ ${w.telefon2?`<br><a href="tel:${w.telefon2}" style="color:var(--text-3);font-fa
 </td>
 <td style="font-family:var(--mono);font-size:12px;">${w.plz||''} ${w.ort||''}</td>
 ${agentCell}
-<td style="font-size:11px;color:var(--text-2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(w.notiz||'').replace(/"/g,'')}">${w.notiz||'—'}</td>
+<td style="font-size:12px;">${wvEsc(wvCampName(w.campaign_id))}</td>
+<td style="font-size:11px;color:var(--text-2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${wvEsc(w.notiz || '')}">${wvEsc(w.notiz || '—')}</td>
 <td>
 <div style="display:flex;gap:4px;align-items:center;">
 <button class="icon-btn" onclick="openWvEditModal('${w.id}')" title="Düzenle"><i class="ph ph-pencil-simple"></i></button>
-<button class="icon-btn" style="border-color:var(--red);color:var(--red);" onclick="wvMarkOlumsuz('${w.id}')" title="Sil (olumsuz)"><i class="ph ph-trash"></i></button>
+<button class="icon-btn" style="border-color:var(--green);color:var(--green);" onclick="wvMarkDone('${w.id}')" title="${wvEsc(wvSay('wv.called', 'Arandı'))}"><i class="ph ph-check"></i></button>
+<button class="icon-btn" style="border-color:var(--red);color:var(--red);" onclick="wvMarkOlumsuz('${w.id}')" title="Olumsuz"><i class="ph ph-trash"></i></button>
 <button class="icon-btn" style="border-color:var(--accent);color:var(--accent);" onclick="wvCallNow('${w.id}')" title="Ara"><i class="ph ph-phone"></i></button>
 </div>
 </td>
@@ -154,10 +217,12 @@ function openWvModal(prefill) {
   document.getElementById('wv-ort').value = prefill?.city||prefill?.ort||'';
   document.getElementById('wv-str').value = prefill?.address||prefill?.strasse||'';
   document.getElementById('wv-note').value = prefill?.notiz||'';
-  const def = new Date(); def.setDate(def.getDate()+1); def.setHours(10,0,0,0);
-  document.getElementById('wv-dt').value = def.toISOString().slice(0,16);
+  const today = typeof mbBusinessNow === 'function' ? mbBusinessNow().dateStr : '';
+  const tomorrow = today && typeof mbShiftDate === 'function' ? mbShiftDate(today, 1) : '';
+  document.getElementById('wv-dt').value = tomorrow ? `${tomorrow}T10:00` : '';
   const sel = document.getElementById('wv-agent-sel');
-  if (sel && prefill?.agent) sel.value = prefill.agent;
+  if (sel) sel.value = prefill?.agent_id || currentUser?.id || '';
+  wvFillCamps(prefill?.campaign_id || '');
   openModal('m-wv-form');
 }
 
@@ -175,7 +240,8 @@ function openWvEditModal(id) {
   document.getElementById('wv-note').value = w.notiz||'';
   document.getElementById('wv-dt').value = w.termin_zaman ? (typeof mbIsoToWallInput === 'function' ? mbIsoToWallInput(w.termin_zaman) : w.termin_zaman.slice(0,16)) : '';
   const sel = document.getElementById('wv-agent-sel');
-  if (sel) sel.value = w.agent||'';
+  if (sel) sel.value = w.agent_id || '';
+  wvFillCamps(w.campaign_id || '');
   openModal('m-wv-form');
 }
 
@@ -188,14 +254,18 @@ async function saveWv() {
     toast('Telefon +49 veya +90 ile, ülke koduyla yazılmalı','err');
     return;
   }
+  const agentRow = document.getElementById('wv-agent-row');
   const agentSel = document.getElementById('wv-agent-sel');
+  const adminPick = agentRow && agentRow.style.display !== 'none';
   const pickedAgent = String(agentSel?.value || '').trim();
-  if (agentSel && !pickedAgent) {
+  if (adminPick && !pickedAgent) {
     toast('Temsilci seçin','err');
     return;
   }
   const when = typeof mbWallToIso === 'function' ? mbWallToIso(dt) : new Date(dt).toISOString();
   if (!when) { toast('Zaman geçersiz','err'); return; }
+  const agentId = pickedAgent || currentUser?.id;
+  const campId = document.getElementById('wv-camp')?.value || '';
   const data = {
     nachname: name, telefon: tel,
     telefon2: document.getElementById('wv-tel2').value.trim(),
@@ -204,9 +274,10 @@ async function saveWv() {
     strasse: document.getElementById('wv-str').value.trim(),
     notiz: document.getElementById('wv-note').value.trim(),
     termin_zaman: when,
-    agent_id: pickedAgent || currentUser?.id,
-    agent_name: currentUser?.name || '',
-    firm_id: currentUser?.firm_id,
+    agent_id: agentId,
+    agent_name: wvAgentLabel(agentSel, agentId) || currentUser?.name || '',
+    firm_id: wvFirmId() || currentUser?.firm_id,
+    campaign_id: campId || null,
     durum: 'bekliyor',
   };
   try {
@@ -222,10 +293,21 @@ async function saveWv() {
 }
 
 async function wvMarkOlumsuz(id) {
+  if (!window.confirm(wvSay('wv.confirm_negative', 'Bu kayıt olumsuz işaretlensin mi?'))) return;
   try {
     await sb(`wiedervorlage?id=eq.${id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ durum: 'olumsuz' }) });
     await refreshWvList();
     toast(t('wv.marked_negative'), 'ok');
+  } catch (e) {
+    toast('Hata: ' + e.message, 'err');
+  }
+}
+
+async function wvMarkDone(id) {
+  try {
+    await sb(`wiedervorlage?id=eq.${id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ durum: 'arandi' }) });
+    await refreshWvList();
+    toast(wvSay('wv.marked_done', 'Arandı — listeden çıktı'), 'ok');
   } catch (e) {
     toast('Hata: ' + e.message, 'err');
   }
@@ -260,11 +342,12 @@ async function wvCallNow(id) {
     }
     contact = rows[0] || null;
   }
+  const campId = w.campaign_id || contact?.campaign_id || '';
+  if (campId && typeof selectCamp === 'function') {
+    const campLabel = wvCampName(campId);
+    selectCamp(campId, campLabel === '—' ? '' : campLabel, { skipActivate: true });
+  }
   if (contact) {
-    if (contact.campaign_id && typeof selectCamp === 'function') {
-      const camp = typeof campaigns !== 'undefined' && campaigns?.find ? campaigns.find((c) => c.id === contact.campaign_id) : null;
-      selectCamp(contact.campaign_id, camp?.name || '', { skipActivate: true });
-    }
     currentContact = contact;
     if (typeof showCustomerCard === 'function') showCustomerCard(contact);
     if (typeof syncCustomerCardEmptyVisual === 'function') syncCustomerCardEmptyVisual();
@@ -283,7 +366,7 @@ async function wvCallNow(id) {
     address: w.strasse || '',
     notes: w.notiz || '',
     firm_id: fid,
-    campaign_id: typeof selectedCampId !== 'undefined' ? selectedCampId : null,
+    campaign_id: campId || null,
     status: 'pending',
     attempt_count: 0,
     _fromWiedervorlageId: w.id,
