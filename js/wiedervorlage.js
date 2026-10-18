@@ -65,6 +65,14 @@ async function wvFillCamps(selectedId) {
     list = [];
   }
   _wvCamps = list;
+  const campFilter = document.getElementById('wv-camp-filter');
+  if (campFilter) {
+    const keep = campFilter.value || '';
+    campFilter.innerHTML = `<option value="">${wvEsc(wvSay('wv.filter.allcamps', 'Tüm kampanyalar'))}</option>` +
+      `<option value="none">${wvEsc(wvSay('wv.filter.nocamp', 'Kampanyası yok'))}</option>` +
+      list.map((c) => `<option value="${wvEsc(c.id)}">${wvEsc(c.name || c.id)}</option>`).join('');
+    if ([...campFilter.options].some((o) => o.value === keep)) campFilter.value = keep;
+  }
   if (!sel) return;
   const uid = currentUser?.id;
   const choices = typeof mbUserSeesCampaign === 'function' && uid
@@ -161,12 +169,16 @@ function renderWvTable() {
   } else if (wvTab === 'week') {
     list = list.filter(w => new Date(w.termin_zaman) <= weekEnd && new Date(w.termin_zaman) >= now);
   }
+  const campF = document.getElementById('wv-camp-filter')?.value || '';
+  if (campF === 'none') list = list.filter((w) => !w.campaign_id);
+  else if (campF) list = list.filter((w) => String(w.campaign_id || '') === campF);
   if (search) {
     list = list.filter(w =>
       (w.nachname||'').toLowerCase().includes(search) ||
       (w.telefon||'').includes(search) ||
       (w.plz||'').includes(search) ||
-      (w.agent||'').toLowerCase().includes(search)
+      (w.agent_name||w.agent||'').toLowerCase().includes(search) ||
+      wvCampName(w.campaign_id).toLowerCase().includes(search)
     );
   }
   if (!list.length) {
