@@ -540,6 +540,7 @@ const IA_MATCH = {
   durum: ['ergebnis', 'qc sonucu', 'durum', 'status', 'qc'],
   kampanya: ['kampagne', 'kampanya', 'campaign'],
   personel: ['mitarbeiter', 'personel', 'temsilci', 'agent'],
+  musteri: ['kunde', 'musteri', 'müşteri', 'customer'],
   hausart: ['hausart', 'ev tipi', 'evtipi'],
   baujahr: ['baujahr', 'yapım yılı', 'yapim yili'],
   qm: ['m²', 'qm', 'm2'],
@@ -563,12 +564,52 @@ function iaMatchScore(header, fieldKey) {
   return best;
 }
 
-function iaAutoAssign(headers) {
+function iaCellText(raw) {
+  if (raw == null) return '';
+  if (raw instanceof Date) return isNaN(raw.getTime()) ? '' : '1';
+  return String(raw).trim();
+}
+
+function iaColumnFill(rows, idx) {
+  let n = 0;
+  (rows || []).forEach((row) => { if (iaCellText(row?.[idx])) n++; });
+  return n;
+}
+
+function iaIsMetaDate(header) {
+  const h = iaFold(header);
+  return /(created|updated|publish|unpublish|kayit|songuncelleme|owner)/.test(h);
+}
+
+function iaAllPublish(rows, idx) {
+  const vals = new Set();
+  (rows || []).forEach((row) => {
+    const s = iaFold(iaCellText(row?.[idx]));
+    if (s && s !== '1') vals.add(s);
+  });
+  if (!vals.size) return false;
+  return [...vals].every((v) => v === 'published' || v === 'draft' || v === 'unpublished' || v === 'archived');
+}
+
+function iaNoiseHeader(header) {
+  const h = iaFold(String(header || '').replace(/^\uFEFF/, '')).replace(/[^a-z0-9]+/g, '');
+  return ['id', 'owner', 'slotid', 'bitrix', 'createddate', 'updateddate', 'publishdate', 'unpublishdate', 'songuncelleme', 'kayittarihi', 'kundemanuel'].includes(h);
+}
+
+function iaNoteHeader(header) {
+  const h = iaFold(header);
+  return /zusatz|bilgi|information|qcnot|qcstatus|interesse|pv/.test(h);
+}
+
+function iaAutoAssign(headers, rows) {
   const pairs = [];
   IA_FIELDS.forEach((f) => {
     (headers || []).forEach((h, i) => {
       const score = iaMatchScore(h, f.key);
-      if (score) pairs.push({ key: f.key, i, score });
+      if (!score) return;
+      if ((f.key === 'termin_tarih' || f.key === 'termin_saat') && iaIsMetaDate(h)) return;
+      if (f.key === 'durum' && iaAllPublish(rows, i)) return;
+      pairs.push({ key: f.key, i, score });
     });
   });
   pairs.sort((a, b) => b.score - a.score);
@@ -579,7 +620,42 @@ function iaAutoAssign(headers) {
     chosen[p.key] = p.i;
     taken.add(p.i);
   });
+  Object.keys(chosen).forEach((key) => {
+    if (iaColumnFill(rows, chosen[key]) > 0) return;
+    const alt = pairs
+      .filter((p) => p.key === key && !taken.has(p.i) && iaColumnFill(rows, p.i) > 0)
+      .sort((a, b) => b.score - a.score)[0];
+    if (!alt) return;
+    taken.delete(chosen[key]);
+    taken.add(alt.i);
+    chosen[key] = alt.i;
+  });
   return chosen;
+}
+
+function iaBerlinStamp(raw) {
+  let d = null;
+  if (raw instanceof Date && !isNaN(raw.getTime())) d = raw;
+  else if (typeof raw === 'string' && /T\d{2}:\d{2}/.test(raw)) {
+    const parsed = new Date(raw);
+    if (!isNaN(parsed.getTime())) d = parsed;
+  } else if (typeof raw === 'number') return null;
+  if (!d) return null;
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(d);
+  const g = (type) => parts.find((p) => p.type === type)?.value || '';
+  let hour = g('hour');
+  if (hour === '24') hour = '00';
+  return { day: `${g('year')}-${g('month')}-${g('day')}`, time: `${hour.padStart(2, '0')}:${g('minute').padStart(2, '0')}` };
+}
+
+function iaPlz(raw) {
+  const s = String(raw || '').trim();
+  if (/^\d{1,4}$/.test(s)) return s.padStart(5, '0');
+  return s;
 }
 
 function iaDirty() {
@@ -588,14 +664,16 @@ function iaDirty() {
   if (q) { q.innerHTML = ''; q.style.display = 'none'; }
 }
 
-function iaCustomerOptions(selectedId) {
+function iaCustomerOptions(selectedId, withBlank) {
   const id = String(selectedId || '');
-  const qc = !id;
+  const qc = id === 'qc' || (!withBlank && !id);
+  const blank = withBlank && !id ? 'selected' : '';
   const rows = (_iaCustomers || []).map((c) => {
     const label = `${c.code ? c.code + ' · ' : ''}${c.name || ''}`.trim();
     return `<option value="${iaEsc(c.id)}" ${String(c.id) === id ? 'selected' : ''}>${iaEsc(label || c.id)}</option>`;
   }).join('');
-  return `<option value="qc" ${qc ? 'selected' : ''}>${iaEsc(iaSay('camp.customer.qc', 'Tümü — QC seçer'))}</option>${rows}`;
+  const choose = withBlank ? `<option value="" ${blank}>${iaEsc(iaSay('ia.q.pick', 'Seçin'))}</option>` : '';
+  return `${choose}<option value="qc" ${qc ? 'selected' : ''}>${iaEsc(iaSay('camp.customer.qc', 'Tümü — QC seçer'))}</option>${rows}`;
 }
 
 function iaSyncFallbackCustomer() {
@@ -728,9 +806,9 @@ async function onImportFileChange(input) {
   const ws = wb.Sheets[wb.SheetNames[0]];
   const data = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
   if (!data.length) { toast('Dosya boş','err'); return; }
-  _iaHeaders = data[0].map(h=>String(h).trim());
+  _iaHeaders = data[0].map(h=>String(h).replace(/^\uFEFF/, '').trim());
   _iaRows = data.slice(1).filter(row=>row.some(cell=>cell!==''));
-  const chosen = iaAutoAssign(_iaHeaders);
+  const chosen = iaAutoAssign(_iaHeaders, _iaRows);
   const grid = document.getElementById('ia-mapping-grid');
   grid.innerHTML = IA_FIELDS.map(f=>`
 <div style="display:flex;align-items:center;gap:6px;">
@@ -1190,7 +1268,7 @@ function iaQuestionRow(kind, value, optionsHtml, createLabel, titleText) {
 </div>`
     : '';
   let customer = '';
-  if (kind === 'campaign') {
+  if (kind === 'campaign' && getImportMapping().musteri == null) {
     const camp = (campaigns || []).find((c) => iaFold(c.name) === iaFold(value));
     const preset = camp && typeof mbCampDefaultCustomerId === 'function' ? (mbCampDefaultCustomerId(camp) || '') : '';
     customer = `<div style="font-size:11px;color:var(--text-3);margin-top:6px;">${iaEsc(iaSay('ia.q.customer', 'Müşteri'))}</div><select class="form-input ia-q-customer" style="font-size:12px;margin-top:4px;">${iaCustomerOptions(preset)}</select>`;
@@ -1218,7 +1296,7 @@ function iaToggleCreate(sel) {
 }
 
 function iaReadAnswers() {
-  const out = { campaign: {}, agent: {}, durum: {}, extra: {} };
+  const out = { campaign: {}, agent: {}, durum: {}, musteri: {}, extra: {} };
   document.querySelectorAll('#ia-questions [data-ia-kind]').forEach((row) => {
     const kind = row.dataset.iaKind;
     const value = row.dataset.iaValue;
@@ -1262,9 +1340,22 @@ function iaBuildQuestions() {
   askKind('campaign', map.kampanya, campaigns || [], (c) => c.name || '', (c) => c.id, iaSay('ia.q.create.camp', 'Yeni kampanya oluştur'));
   askKind('agent', map.personel, _iaUsers || [], (u) => u.name || '', (u) => u.id, iaSay('ia.q.create.agent', 'Bu personeli oluştur'));
   askKind('durum', map.durum, _iaResults || [], (r) => r.label || r.key, (r) => r.key, iaSay('ia.q.create.durum', 'Yeni QC sonucu oluştur'));
+  if (map.musteri != null && !Number.isNaN(map.musteri)) {
+    const values = iaDistinct(map.musteri);
+    if (values.length > 30) toast(iaSay('ia.q.many', 'Bu sütunda çok fazla farklı değer var. Tek seçim kullanılacak.'), 'warn');
+    else values.forEach(([value]) => {
+      const folded = iaFold(value);
+      const blankName = ['bos', 'leer', 'yok', 'none', 'null', '-'].includes(folded);
+      const guessed = blankName ? 'qc' : (iaGuessId(_iaCustomers, value, (c) => c.name || '', (c) => c.id) || '');
+      const opts = iaCustomerOptions(guessed, !guessed);
+      parts.push(iaQuestionRow('musteri', value, opts, '', iaSay('ia.q.musteri', 'Müşteri: {v} — hangisi?', { v: value })));
+    });
+  }
   (_iaHeaders || []).forEach((header, idx) => {
     if (used.has(idx) || !String(header || '').trim()) return;
-    const opts = [`<option value="">${iaEsc(iaSay('ia.q.skip', 'Atla'))}</option>`, `<option value="__note__">${iaEsc(iaSay('ia.q.note', 'Notun içine yaz'))}</option>`]
+    if (iaNoiseHeader(header) || iaAllPublish(_iaRows, idx) || !iaDistinct(idx).length) return;
+    const note = iaNoteHeader(header);
+    const opts = [`<option value="" ${note ? '' : 'selected'}>${iaEsc(iaSay('ia.q.skip', 'Atla'))}</option>`, `<option value="__note__" ${note ? 'selected' : ''}>${iaEsc(iaSay('ia.q.note', 'Notun içine yaz'))}</option>`]
       .concat(IA_FIELDS.filter((f) => map[f.key] == null).map((f) => `<option value="${iaEsc(f.key)}">${iaEsc(f.label)}</option>`)).join('');
     parts.push(iaQuestionRow('extra', String(idx), opts, '', iaSay('ia.q.field', 'Sütun: {v} — nereye gelsin?', { v: header })));
   });
@@ -1289,7 +1380,7 @@ function iaAnswerProblem(answers) {
   };
   const campFallback = document.getElementById('ia-campaign')?.value || '';
   const agentFallback = document.getElementById('ia-agent')?.value || '';
-  return need('campaign', 'Kampanya') || need('agent', 'Personel') || need('durum', 'QC')
+  return need('campaign', 'Kampanya') || need('agent', 'Personel') || need('durum', 'QC') || need('musteri', 'Müşteri')
     || (!Object.keys(answers.campaign || {}).length && !campFallback ? 'Kampanya' : '')
     || (!Object.keys(answers.agent || {}).length && !agentFallback ? 'Personel' : '');
 }
@@ -1425,22 +1516,33 @@ async function startImportAppt() {
   };
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const phone = text(row, 'telefon');
-    const day = iaParseDay(map.termin_tarih == null ? '' : row[map.termin_tarih], fmt);
+    let phone = text(row, 'telefon');
+    let phone2 = text(row, 'telefon2');
+    if (phone && !phone2) {
+      const parts = phone.split(/\s+-\s+/).map((s) => s.trim()).filter(Boolean);
+      if (parts.length >= 2) { phone = parts[0]; phone2 = parts.slice(1).join(' - '); }
+    }
+    const rawDay = map.termin_tarih == null ? '' : row[map.termin_tarih];
+    const rawSaat = map.termin_saat == null ? '' : row[map.termin_saat];
+    const berlin = (map.termin_saat == null || iaCellText(rawSaat) === '') ? iaBerlinStamp(rawDay) : null;
+    const day = berlin ? berlin.day : iaParseDay(rawDay, fmt);
+    const saat = berlin ? berlin.time : iaParseTime(rawSaat);
     const campName = text(row, 'kampanya');
     const agentName = text(row, 'personel');
     const durumName = text(row, 'durum');
+    const custName = text(row, 'musteri');
     const campId = (campName && made.campIds[campName]) || fallbackCamp;
     const agentId = (agentName && made.agentIds[agentName]) || fallbackAgent;
     const durum = (durumName && made.durumIds[durumName]) || fallbackStatus;
-    const saat = iaParseTime(map.termin_saat == null ? '' : row[map.termin_saat]);
     if (!phone || !day || !campId || !agentId || !durum) { skip++; continue; }
     const sig = `${campId}|${phone}|${day}|${saat}`;
     if (seen.has(sig)) { skip++; continue; }
     seen.add(sig);
     const camp = (campaigns || []).find((c) => String(c.id) === String(campId));
-    const fromRow = campName && answers.campaign[campName] ? answers.campaign[campName].customer : '';
-    const custPick = fromRow || document.getElementById('ia-customer')?.value || 'qc';
+    let custPick = '';
+    if (custName && answers.musteri?.[custName]) custPick = answers.musteri[custName].pick;
+    else if (campName && answers.campaign[campName]?.customer) custPick = answers.campaign[campName].customer;
+    else custPick = document.getElementById('ia-customer')?.value || 'qc';
     const custId = custPick && custPick !== 'qc' ? custPick : null;
     const notes = [];
     const baseNote = text(row, 'notiz');
@@ -1457,9 +1559,9 @@ async function startImportAppt() {
       agent_id: agentId,
       nachname: text(row, 'nachname') || '—',
       telefonnummer: phone,
-      telefon2: text(row, 'telefon2') || null,
+      telefon2: phone2 || null,
       strasse: text(row, 'strasse') || null,
-      plz: text(row, 'plz') || null,
+      plz: iaPlz(text(row, 'plz')) || null,
       ortschaft: text(row, 'ort') || null,
       hausart: text(row, 'hausart') || null,
       baujahr: text(row, 'baujahr') || null,

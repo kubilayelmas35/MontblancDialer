@@ -127,6 +127,7 @@ const IA_FIELDS = [
 {key:'durum',        label:'QC sonucu',        required:false},
 {key:'kampanya',     label:'Kampanya',         required:false},
 {key:'personel',     label:'Personel',         required:false},
+{key:'musteri',      label:'Müşteri',          required:false},
 {key:'hausart',      label:'Ev tipi',          required:false},
 {key:'baujahr',      label:'Yapım yılı',       required:false},
 {key:'qm',           label:'m²',               required:false},
