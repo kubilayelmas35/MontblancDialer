@@ -1176,9 +1176,19 @@ function opsQcKind(key) {
 }
 
 const _opsAnnounced = new Set();
+function opsAgentSeesFloor(ev, role, userId) {
+  if (String(role || '') !== 'agent') return true;
+  const kind = ev?.kind;
+  if (kind === 'clear' || kind === 'move' || kind === 'qc') {
+    return !!userId && String(ev.ownerId || '') === String(userId);
+  }
+  return false;
+}
+
 function opsAnnounceQc(appt, status) {
   const key = opsQcKind(status);
   if (!key || !appt?.id) return;
+  if (!opsAgentSeesFloor({ kind: 'qc', ownerId: appt.agent_id }, currentUser?.role, currentUser?.id)) return;
   const entry = opsResultEntry(key);
   if (!entry.on) return;
   _opsAnnounced.add(`${appt.id}:${key}`);
@@ -1285,7 +1295,7 @@ async function opsTickFloor() {
       } else if (old.durum === 'dolu' && s.durum === 'bos') {
         const ap = prevA[old.appointment_id];
         events.push({
-          sound: 'clear', title: 'clear', kind: 'clear', who: ap?.nachname || '',
+          sound: 'clear', title: 'clear', kind: 'clear', ownerId: ap?.agent_id || '', who: ap?.nachname || '',
           camp: opsCampName(ap?.campaign_id || s.campaign_id), when,
         });
       }
@@ -1296,7 +1306,7 @@ async function opsTickFloor() {
       if (!old) return;
       if (String(old.termin_tarih || '') !== String(a.termin_tarih || '')) {
         events.push({
-          sound: 'move', title: 'move', kind: 'move', who: a.nachname || '', camp: opsCampName(a.campaign_id),
+          sound: 'move', title: 'move', kind: 'move', ownerId: a.agent_id || '', who: a.nachname || '', camp: opsCampName(a.campaign_id),
           from: opsWhenFromIso(old.termin_tarih), to: opsWhenFromIso(a.termin_tarih),
         });
       }
@@ -1309,7 +1319,7 @@ async function opsTickFloor() {
       if (!entry.on) continue;
       _opsAnnounced.add(`${a.id}:${key}`);
       events.push({
-        sound: `result:${key}`, title: 'qc', kind: 'qc', entry,
+        sound: `result:${key}`, title: 'qc', kind: 'qc', entry, ownerId: a.agent_id || '',
         actor: await opsQcActor(a.contact_id),
         who: a.nachname || '', camp: opsCampName(a.campaign_id), when: opsWhenFromIso(a.termin_tarih),
         result: opsResultLabel(a.durum),
@@ -1317,7 +1327,7 @@ async function opsTickFloor() {
     }
     _opsFloor.slots = slotMap;
     _opsFloor.appts = apptMap;
-    events.slice(0, 6).forEach((ev) => {
+    events.filter((ev) => opsAgentSeesFloor(ev, currentUser?.role, currentUser?.id)).slice(0, 6).forEach((ev) => {
       opsFloorPush(ev.sound, ev.title, opsFloorText(ev.kind, ev), false, !!ev.quiet, ev.entry);
     });
   } catch (e) {} finally {
