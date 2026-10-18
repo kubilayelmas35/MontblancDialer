@@ -1038,7 +1038,13 @@ function opsNoticeHtml(row) {
 function opsRememberNotice(title, text, color) {
   if (!currentUser?.id || !text) return;
   const rows = opsNoticeRows();
-  rows.unshift({ title: title || 'Bildirim', text, color: opsHex(color, '#64748b'), at: new Date().toISOString() });
+  rows.unshift({
+    id: `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    title: title || 'Bildirim',
+    text,
+    color: opsHex(color, '#64748b'),
+    at: new Date().toISOString(),
+  });
   try {
     localStorage.setItem(opsNoticeKey(), JSON.stringify(rows.slice(0, 40)));
   } catch (e) {}
