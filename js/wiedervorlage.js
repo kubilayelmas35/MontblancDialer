@@ -419,6 +419,12 @@ function showWvDuePopup(w) {
   if (open && open.dataset.id === String(w.id)) return;
   open?.remove();
   if (typeof opsCue === 'function') opsCue('due');
+  if (typeof opsRememberNotice === 'function') {
+    const dueTitle = typeof t === 'function' ? t('wv.due.title') : 'Arama vakti geldi';
+    const dueBody = [w.nachname || '—', w.telefon || '', wvPlace(w)].filter(Boolean).join(' · ');
+    const dueColor = typeof opsSoundEntry === 'function' ? opsSoundEntry('due').color : '#64748b';
+    opsRememberNotice(dueTitle, dueBody, dueColor, 'wv');
+  }
   const pop = document.createElement('div');
   pop.id = 'wv-due-pop';
   pop.className = 'wv-due-pop';
@@ -486,8 +492,13 @@ function checkWvReminders() {
       const key = `${w.id}:15`;
       if (_wvPing.has(key)) return;
       _wvPing.add(key);
-      toast(`${w.nachname || '?'} — ${min} dk sonra aranacak`, 'ok', 6000);
+      const soonText = `${w.nachname || '?'} — ${min} dk sonra aranacak`;
+      toast(soonText, 'ok', 6000);
       if (typeof opsCue === 'function') opsCue('soon');
+      if (typeof opsRememberNotice === 'function') {
+        const soonColor = typeof opsSoundEntry === 'function' ? opsSoundEntry('soon').color : '#64748b';
+        opsRememberNotice('15 dk kala', soonText, soonColor, 'wv');
+      }
     });
   }
   if (on('hour') && typeof opsPaintApptStrip === 'function') opsPaintApptStrip(hour);

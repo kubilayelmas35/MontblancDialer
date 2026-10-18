@@ -498,6 +498,18 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   letter-spacing: .03em;
 }
 #notif-clear-all { color: #dc2626; white-space: nowrap; }
+.notif-sec-tools { display: flex; align-items: center; gap: 2px; }
+.notif-move {
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0 3px;
+}
+.notif-move:disabled { opacity: .35; cursor: default; }
+.notif-move:not(:disabled):hover { color: var(--text, #111); }
 .notif-clear, .notif-del {
   border: 0;
   background: transparent;

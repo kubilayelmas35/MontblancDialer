@@ -55,7 +55,9 @@ function toggleNotificationCenter(forceOpen) {
 
 const NOTIF_CATS = [
   ['live', 'notif.cat.live', 'Canlı'],
+  ['wv', 'notif.cat.wv', 'Aranacaklar'],
   ['appt', 'notif.cat.appt', 'Randevu'],
+  ['cal', 'notif.cat.cal', 'Takvim'],
   ['camp', 'notif.cat.camp', 'Kampanya'],
   ['qc', 'notif.cat.qc', 'QC'],
   ['field', 'notif.cat.field', 'Saha'],
@@ -65,6 +67,44 @@ const NOTIF_CATS = [
 let _notifFilter = 'all';
 let _notifItems = [];
 let _notifGen = 0;
+
+function notifOrderKey() {
+  return `mb_notif_order_${currentUser?.id || '0'}`;
+}
+
+function notifCatIds() {
+  return NOTIF_CATS.map((row) => row[0]);
+}
+
+function notifCatOrder() {
+  const base = notifCatIds();
+  let saved = [];
+  try { saved = JSON.parse(localStorage.getItem(notifOrderKey()) || '[]'); } catch (e) {}
+  const known = new Set(base);
+  const order = (Array.isArray(saved) ? saved : []).filter((id) => known.has(id));
+  base.forEach((id) => { if (!order.includes(id)) order.push(id); });
+  return order;
+}
+
+function notifOrderedCats() {
+  const order = notifCatOrder();
+  return [...NOTIF_CATS].sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
+}
+
+function notifMoveCat(id, dir) {
+  const order = notifCatOrder();
+  const visible = order.filter((cat) => _notifItems.some((item) => item.cat === cat));
+  const from = visible.indexOf(id);
+  const to = from + dir;
+  if (from < 0 || to < 0 || to >= visible.length) return;
+  const a = order.indexOf(visible[from]);
+  const b = order.indexOf(visible[to]);
+  const swap = order[a];
+  order[a] = order[b];
+  order[b] = swap;
+  try { localStorage.setItem(notifOrderKey(), JSON.stringify(order)); } catch (e) {}
+  notifPaint();
+}
 
 function notifSay(key, fallback) {
   return typeof t === 'function' ? t(key) : fallback;
@@ -158,7 +198,7 @@ function notifPaint() {
   const badge = document.getElementById('tb-notif-badge');
   if (!list) return;
   const items = _notifItems;
-  const groups = NOTIF_CATS.map(([id, key, fb]) => ({
+  const groups = notifOrderedCats().map(([id, key, fb]) => ({
     id,
     label: notifSay(key, fb),
     items: items.filter((item) => item.cat === id),
@@ -191,16 +231,36 @@ function notifPaint() {
     shown.forEach((group) => {
       const sec = document.createElement('section');
       sec.className = 'notif-sec';
+      const index = groups.findIndex((row) => row.id === group.id);
       const head = document.createElement('div');
       head.className = 'notif-sec-h';
       const name = document.createElement('span');
       name.textContent = group.label;
+      const tools = document.createElement('div');
+      tools.className = 'notif-sec-tools';
+      const up = document.createElement('button');
+      up.type = 'button';
+      up.className = 'notif-move';
+      up.dataset.notifMove = 'up';
+      up.dataset.notifMoveId = group.id;
+      up.disabled = index <= 0;
+      up.setAttribute('aria-label', notifSay('notif.up', 'Yukarı'));
+      up.textContent = '↑';
+      const down = document.createElement('button');
+      down.type = 'button';
+      down.className = 'notif-move';
+      down.dataset.notifMove = 'down';
+      down.dataset.notifMoveId = group.id;
+      down.disabled = index < 0 || index >= groups.length - 1;
+      down.setAttribute('aria-label', notifSay('notif.down', 'Aşağı'));
+      down.textContent = '↓';
       const clear = document.createElement('button');
       clear.type = 'button';
       clear.className = 'notif-clear';
       clear.dataset.notifClear = group.id;
       clear.textContent = notifSay('notif.clear', 'Temizle');
-      head.append(name, clear);
+      tools.append(up, down, clear);
+      head.append(name, tools);
       sec.appendChild(head);
       group.items.forEach((item) => sec.appendChild(notifCard(item)));
       list.appendChild(sec);
@@ -259,6 +319,11 @@ function notifBind() {
         notifDismiss(del.dataset.notifDel, del.dataset.notifSrc);
         return;
       }
+      const move = ev.target.closest('[data-notif-move]');
+      if (move && !move.disabled) {
+        notifMoveCat(move.dataset.notifMoveId, move.dataset.notifMove === 'down' ? 1 : -1);
+        return;
+      }
       const clear = ev.target.closest('[data-notif-clear]');
       if (clear) notifClearCat(clear.dataset.notifClear);
     });
@@ -303,7 +368,7 @@ async function loadNotificationCenter() {
     opsNoticeRows().forEach((row) => {
       const id = notifStoreId(row);
       notifPush(out, hidden, {
-        cat: 'live',
+        cat: notifCatIds().includes(row?.cat) ? row.cat : 'live',
         src: 'store',
         id,
         title: row?.title || 'Bildirim',

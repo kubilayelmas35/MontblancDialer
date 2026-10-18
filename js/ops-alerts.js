@@ -217,6 +217,7 @@ function opsPaintApptStrip(items) {
     if (!w?.id || _opsHourSeen.has(key)) return;
     _opsHourSeen.add(key);
     fresh = true;
+    opsRememberNotice('Aranacaklar', `${w?.nachname || '—'} · ${min} dk`, opsSoundEntry('hour').color, 'wv');
   });
   if (fresh) opsCue('hour');
 }
@@ -263,7 +264,10 @@ async function opsLoadDirective() {
     opsReadAlerts(rows?.[0]?.settings?.ops_alerts);
     await opsEnsureCampNames(_opsDirective.ids);
     if (prevAt && nextAt && prevAt !== nextAt && _opsAlerts.campaign && opsRoleSeesWarn()) {
-      toast(opsSay('ops.notice.campaign', 'Yeni kampanya bildirimi geldi'), 'ok', 5000);
+      const title = opsSay('ops.notice.campaign', 'Yeni kampanya bildirimi geldi');
+      toast(title, 'ok', 5000);
+      const names = opsNamedCamps(_opsDirective.ids).join(', ');
+      opsRememberNotice(title, names || title, '#64748b', 'camp');
     }
   } catch (e) {}
   opsPaintCampWarn();
@@ -352,6 +356,7 @@ function opsPaintCampWarn() {
   if (sentence !== _opsWrongSig) {
     _opsWrongSig = sentence;
     opsCue('wrong');
+    if (opsSoundOn('wrong')) opsRememberNotice('Yanlış kampanya', sentence, opsSoundEntry('wrong').color, 'camp');
   }
   const text = document.createElement('span');
   text.className = 'ops-camp-warn-text';
@@ -699,7 +704,7 @@ function opsShowSample(kind) {
       bad: 'Örnek: olumsuz sonuç',
     }[kind];
     toast(msg, kind === 'bad' ? 'err' : 'ok', 4000);
-    opsKeepSample(kind === 'soon' ? '15 dk kala' : 'Örnek', msg, opsSoundEntry(kind).color);
+    opsKeepSample(kind === 'soon' ? '15 dk kala' : 'Örnek', msg, opsSoundEntry(kind).color, opsNoticeCat(kind));
     return;
   }
   const host = document.createElement('div');
@@ -725,14 +730,14 @@ function opsShowSample(kind) {
     card.append(title, who, phone, place, btn);
     host.appendChild(card);
     host.addEventListener('click', (ev) => { if (ev.target === host) close(); });
-    opsKeepSample(title.textContent, 'Örnek Müşteri · +49 170 000 · 10115 Berlin', opsSoundEntry('due').color);
+    opsKeepSample(title.textContent, 'Örnek Müşteri · +49 170 000 · 10115 Berlin', opsSoundEntry('due').color, 'wv');
   } else if (kind === 'hour') {
     host.className = 'ops-sample-host';
     const bar = document.createElement('div');
     bar.className = 'ops-appt-strip';
     bar.textContent = 'Aranacaklar · Örnek Müşteri · 45 dk';
     host.appendChild(bar);
-    opsKeepSample('Aranacaklar', bar.textContent, opsSoundEntry('hour').color);
+    opsKeepSample('Aranacaklar', bar.textContent, opsSoundEntry('hour').color, 'wv');
   } else if (kind === 'wrong') {
     host.className = 'ops-sample-host';
     const bar = document.createElement('div');
@@ -742,7 +747,7 @@ function opsShowSample(kind) {
     text.textContent = 'Yanlış kampanyadasın. Seçmelisin: Örnek Kampanya. Kapatmalısın: Eski Kampanya.';
     bar.appendChild(text);
     host.appendChild(bar);
-    opsKeepSample('Yanlış kampanya', text.textContent, opsSoundEntry('wrong').color);
+    opsKeepSample('Yanlış kampanya', text.textContent, opsSoundEntry('wrong').color, 'camp');
   } else {
     host.className = 'ops-sample-host';
     const card = document.createElement('article');
@@ -754,7 +759,7 @@ function opsShowSample(kind) {
     name.textContent = 'Örnek Agent · 5:10';
     card.append(title, name);
     host.appendChild(card);
-    opsKeepSample(title.textContent, name.textContent, opsSoundEntry(kind).color);
+    opsKeepSample(title.textContent, name.textContent, opsSoundEntry(kind).color, 'live');
   }
   document.body.appendChild(host);
   _opsSampleTimer = setTimeout(close, 4500);
@@ -890,6 +895,13 @@ function opsPaintLive(rows) {
     if (!_opsBeeped.has(beepKey) && !document.hidden) {
       _opsBeeped.add(beepKey);
       opsCue(kind === 'gold' ? 'gold' : kind);
+      if (opsSoundOn(kind === 'wait' ? 'wait' : 'call')) {
+        const liveTitle = kind === 'wait'
+          ? opsSay('ops.live.wait', 'Uzun süredir çağrı bekliyor')
+          : opsSay('ops.live.long', 'Uzun görüşme');
+        const liveBody = [row.agent_name || '—', opsClock(age), row.current_contact_name || '', opsCampName(row.campaign_id)].filter(Boolean).join(' · ');
+        opsRememberNotice(liveTitle, liveBody, opsSoundEntry(kind === 'wait' ? 'wait' : 'call').color, 'live');
+      }
     }
   });
   Object.keys(_opsSeen).forEach((id) => {
@@ -1040,15 +1052,28 @@ function opsNoticeHtml(row) {
 </div>`;
 }
 
-function opsRememberNotice(title, text, color) {
+function opsNoticeCat(soundKind, titleKind) {
+  const kind = String(soundKind || '');
+  const title = String(titleKind || '');
+  if (kind.startsWith('result:') || title === 'qc') return 'qc';
+  if (kind === 'pick' || kind === 'drop' || kind === 'clear' || kind === 'move') return 'cal';
+  if (kind === 'slot' || title === 'book') return 'appt';
+  if (kind === 'wrong') return 'camp';
+  if (kind === 'due' || kind === 'soon' || kind === 'hour') return 'wv';
+  return 'live';
+}
+
+function opsRememberNotice(title, text, color, cat) {
   if (!currentUser?.id || !text) return;
   const rows = opsNoticeRows();
+  const ids = typeof notifCatIds === 'function' ? notifCatIds() : [];
   rows.unshift({
     id: `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     title: title || 'Bildirim',
     text,
     color: opsHex(color, '#64748b'),
     at: new Date().toISOString(),
+    cat: ids.includes(cat) ? cat : 'live',
   });
   try {
     localStorage.setItem(opsNoticeKey(), JSON.stringify(rows.slice(0, 40)));
@@ -1056,8 +1081,8 @@ function opsRememberNotice(title, text, color) {
   if (typeof loadNotificationCenter === 'function') loadNotificationCenter();
 }
 
-function opsKeepSample(title, text, color) {
-  opsRememberNotice(title, text, color);
+function opsKeepSample(title, text, color, cat) {
+  opsRememberNotice(title, text, color, cat);
   const el = document.getElementById('notification-center');
   if (el) el.style.display = 'block';
 }
@@ -1081,8 +1106,9 @@ function opsFloorPush(soundKind, titleKind, text, force, quiet, entry, self) {
   if (!force && !self && !opsRoleSeesWarn()) return;
   const color = opsHex(cfg.color, '#64748b');
   const titleText = opsSay(`ops.floor.${titleKind}`, 'Bildirim');
-  if (force) opsKeepSample(titleText, text, color);
-  else opsRememberNotice(titleText, text, color);
+  const cat = opsNoticeCat(soundKind, titleKind);
+  if (force) opsKeepSample(titleText, text, color, cat);
+  else opsRememberNotice(titleText, text, color, cat);
   const host = document.getElementById('ops-floor-feed');
   if (!host) return;
   const card = document.createElement('article');
