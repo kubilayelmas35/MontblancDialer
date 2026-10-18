@@ -418,7 +418,7 @@ function showWvDuePopup(w) {
   const open = document.getElementById('wv-due-pop');
   if (open && open.dataset.id === String(w.id)) return;
   open?.remove();
-  if (typeof opsBeep === 'function') opsBeep('due');
+  if (typeof opsCue === 'function') opsCue('due');
   const pop = document.createElement('div');
   pop.id = 'wv-due-pop';
   pop.className = 'wv-due-pop';
