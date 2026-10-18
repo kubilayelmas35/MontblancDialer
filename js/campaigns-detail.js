@@ -677,9 +677,6 @@ function loadCampQcTab() {
 const camp = campaigns.find(c=>c.id===currentCampId);
 if (!camp) return;
 const s = getCampSettings(camp);
-setCheck('cd-acw-enabled', s.acw_enabled || false);
-setVal('cd-acw-seconds', s.acw_seconds || 60);
-setVal('cd-acw-action', s.acw_action || 'warn');
 renderAuxCodes(s.aux_codes || DEFAULT_AUX_CODES);
 renderOutcomes(s.outcomes || DEFAULT_OUTCOMES);
 }
@@ -718,6 +715,98 @@ const OUTCOME_I18N = {
   voicemail: { tr: 'Telesekreter', de: 'Anrufbeantworter' },
 };
 
+const MB_OUTCOME_LOCK = {
+  appointment: 'appointment',
+  negative: 'negative',
+  callback: 'callback',
+  no_answer: 'neutral',
+  voicemail: 'neutral',
+  dnc: 'dnc',
+};
+const MB_OUTCOME_ICON = {
+  appointment: 'ph-calendar-check',
+  negative: 'ph-x-circle',
+  callback: 'ph-phone-incoming',
+  neutral: 'ph-phone-slash',
+  voicemail: 'ph-voicemail',
+  dnc: 'ph-prohibit',
+};
+
+function mbOutcomeCategory(row) {
+  const key = String(row?.key || '');
+  if (key === 'appointment_done') return 'appointment';
+  if (MB_OUTCOME_LOCK[key]) return MB_OUTCOME_LOCK[key];
+  const cat = String(row?.category || 'neutral');
+  return ['appointment', 'negative', 'callback', 'neutral'].includes(cat) ? cat : 'neutral';
+}
+
+function mbOutcomeIcon(row) {
+  const key = String(row?.key || '');
+  if (key === 'voicemail') return MB_OUTCOME_ICON.voicemail;
+  if (key === 'no_answer') return MB_OUTCOME_ICON.neutral;
+  return MB_OUTCOME_ICON[mbOutcomeCategory(row)] || 'ph-circle';
+}
+
+function mbOutcomeCatLabel(cat) {
+  const key = {
+    appointment: 'camp.oc.success',
+    negative: 'camp.oc.negative',
+    callback: 'camp.oc.callback',
+    dnc: 'camp.oc.dnc',
+  }[cat] || 'camp.oc.neutral';
+  const fb = { appointment: 'Başarılı', negative: 'Negatif', callback: 'Geri Ara', dnc: 'Kara liste', neutral: 'Nötr' }[cat] || 'Nötr';
+  return campT(key, fb);
+}
+
+function mbOutcomeBtnClass(row) {
+  const key = String(row?.key || '');
+  if (key === 'voicemail') return 'ob-voicemail';
+  const cat = mbOutcomeCategory(row);
+  if (cat === 'appointment') return 'ob-appointment';
+  if (cat === 'negative') return 'ob-negative';
+  if (cat === 'callback') return 'ob-callback';
+  return 'ob-noanswer';
+}
+
+function mbCampOutcomeRows(camp) {
+  const saved = camp && typeof getCampSettings === 'function' ? getCampSettings(camp).outcomes : null;
+  const source = Array.isArray(saved) && saved.length ? saved : (typeof DEFAULT_OUTCOMES !== 'undefined' ? DEFAULT_OUTCOMES : []);
+  const used = new Set();
+  return source.map((row, i) => {
+    let key = String(row?.key || '').trim();
+    const builtin = typeof DEFAULT_OUTCOMES !== 'undefined' ? DEFAULT_OUTCOMES[i]?.key : '';
+    if (!key || used.has(key)) key = builtin || `custom_${i}`;
+    used.add(key);
+    const locked = !!MB_OUTCOME_LOCK[key];
+    return {
+      key,
+      label: (typeof outcomeDisplayLabel === 'function' ? outcomeDisplayLabel(row) : '') || row?.label || key,
+      enabled: key === 'dnc' ? true : row?.enabled !== false,
+      category: mbOutcomeCategory({ key, category: row?.category }),
+      color: row?.color || 'gray',
+      locked,
+      icon: mbOutcomeIcon({ key, category: row?.category }),
+    };
+  }).filter((row) => row.key);
+}
+
+function mbFindOutcome(key) {
+  const id = (typeof selectedCampId !== 'undefined' && selectedCampId) || (typeof currentContact !== 'undefined' && currentContact?.campaign_id);
+  const camp = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === id);
+  const hit = mbCampOutcomeRows(camp).find((row) => row.key === key);
+  return hit || { key, category: mbOutcomeCategory({ key }), label: key, icon: mbOutcomeIcon({ key }) };
+}
+
+function mbOutcomeStatus(key) {
+  if (key === 'dnc') return 'dnc';
+  if (key === 'appointment_done') return 'appointment';
+  const cat = mbOutcomeCategory(mbFindOutcome(key));
+  if (cat === 'appointment') return 'appointment';
+  if (cat === 'negative') return 'negative';
+  if (cat === 'callback') return 'callback';
+  return key || 'no_answer';
+}
+
 function outcomeDisplayLabel(o) {
   const de = typeof currentLang !== 'undefined' && currentLang === 'de';
   const pack = OUTCOME_I18N[o?.key];
@@ -733,21 +822,22 @@ if (!el) return;
 const cats = ['appointment','negative','callback','neutral'];
 const catLabels = {appointment:'Başarılı', negative:'Negatif', callback:'Geri Ara', neutral:'Nötr'};
 const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
-const builtin = ['appointment','negative','callback','no_answer','dnc','voicemail'];
-const used = new Set();
-el.innerHTML = outcomes.map((o,i)=>{
-  let key = String(o.key || '').trim();
-  if (!key || used.has(key)) key = builtin[i] || (`custom_${Date.now()}_${i}`);
-  used.add(key);
-  const locked = builtin.includes(key);
-  return `
-<div data-outcome-row data-key="${esc(key)}" style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg-2);border-radius:5px;">
-<input type="checkbox" ${o.enabled?'checked':''} id="outcome-enabled-${i}">
-<input class="form-input" value="${esc(outcomeDisplayLabel(o))}" id="outcome-label-${i}" style="flex:1;font-size:12px;padding:3px 7px;">
-${locked ? '' : `<select class="form-input" id="outcome-cat-${i}" style="font-size:11px;padding:2px 4px;width:110px;">
-${cats.map(c=>`<option value="${c}" ${(o.category||'neutral')===c?'selected':''}>${catLabels[c]}</option>`).join('')}
+const rows = mbCampOutcomeRows({ settings: { outcomes } });
+el.innerHTML = rows.map((o,i)=>{
+  const cat = mbOutcomeCategory(o);
+  const catText = esc(mbOutcomeCatLabel(cat));
+  const catUi = o.locked
+    ? `<span style="flex-shrink:0;font-size:10px;font-weight:800;padding:3px 8px;border-radius:99px;background:var(--bg-3);color:var(--text-2);">${catText}</span>`
+    : `<select class="form-input" id="outcome-cat-${i}" style="font-size:11px;padding:2px 4px;width:110px;">
+${cats.map(c=>`<option value="${c}" ${cat===c?'selected':''}>${esc(mbOutcomeCatLabel(c))}</option>`).join('')}
 </select>
-<button type="button" onclick="this.closest('[data-outcome-row]').remove()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`}
+<button type="button" onclick="this.closest('[data-outcome-row]').remove()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`;
+  return `
+<div data-outcome-row data-key="${esc(o.key)}" style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg-2);border-radius:5px;">
+<input type="checkbox" ${o.enabled?'checked':''} ${o.key==='dnc'?'disabled':''} id="outcome-enabled-${i}">
+<i class="ph ${esc(o.icon)}" style="font-size:16px;color:var(--text-2);"></i>
+<input class="form-input" value="${esc(o.label)}" id="outcome-label-${i}" style="flex:1;font-size:12px;padding:3px 7px;">
+${catUi}
 </div>`;
 }).join('') +
 `<button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="addCustomOutcome()">+ Sonuç Ekle</button>`;
@@ -764,12 +854,13 @@ div.dataset.key = key;
 div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg-2);border-radius:5px;';
 div.innerHTML = `
 <input type="checkbox" checked id="outcome-enabled-${idx}">
+<i class="ph ph-circle" style="font-size:16px;color:var(--text-2);"></i>
 <input class="form-input" value="Yeni Sonuç" id="outcome-label-${idx}" style="flex:1;font-size:12px;padding:3px 7px;">
 <select class="form-input" id="outcome-cat-${idx}" style="font-size:11px;padding:2px 4px;width:110px;">
-<option value="appointment">Başarılı</option>
-<option value="negative">Negatif</option>
-<option value="callback">Geri Ara</option>
-<option value="neutral" selected>Nötr</option>
+<option value="appointment">${campEsc(mbOutcomeCatLabel('appointment'))}</option>
+<option value="negative">${campEsc(mbOutcomeCatLabel('negative'))}</option>
+<option value="callback">${campEsc(mbOutcomeCatLabel('callback'))}</option>
+<option value="neutral" selected>${campEsc(mbOutcomeCatLabel('neutral'))}</option>
 </select>
 <button type="button" onclick="this.closest('[data-outcome-row]').remove()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">✕</button>`;
 el.insertBefore(div, el.lastElementChild);
@@ -806,13 +897,10 @@ const outcomeCodes = [...document.querySelectorAll('#cd-outcomes [data-outcome-r
     label: labelEl?.value || '',
     enabled: !!cb?.checked,
     color: builtin?.color || 'gray',
-    category: catEl?.value || undefined,
+    category: mbOutcomeCategory({ key: row.dataset.key || builtin?.key, category: catEl?.value }),
   };
 });
 const s = {
-acw_enabled: getCheck('cd-acw-enabled'),
-acw_seconds: parseInt(getVal('cd-acw-seconds')||'60'),
-acw_action: getVal('cd-acw-action') || 'warn',
 aux_codes: auxCodes,
 outcomes: outcomeCodes,
 };

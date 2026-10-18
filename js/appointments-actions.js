@@ -240,7 +240,7 @@ async function saveTerminFromSection() {
     const out = document.getElementById('outcome-note');
     if (out) out.value = packed;
     if (currentContact) currentContact.notes = packed;
-    selectedOutcome = 'appointment_done';
+    if (typeof mbOutcomeCategory !== 'function' || mbOutcomeCategory(typeof mbFindOutcome === 'function' ? mbFindOutcome(selectedOutcome) : { key: selectedOutcome }) !== 'appointment') selectedOutcome = 'appointment';
     const ts = document.getElementById('termin-fields-section');
     if (ts) ts.style.display = 'none';
     if (typeof submitOutcome === 'function') await submitOutcome(false);
@@ -270,7 +270,7 @@ async function saveTerminFromSection() {
     if (ts) ts.style.display = 'none';
     const badge = document.getElementById('termin-slot-badge');
     if (badge) badge.textContent = 'Slot seçilmedi';
-    selectedOutcome = 'appointment_done';
+    if (typeof mbOutcomeCategory !== 'function' || mbOutcomeCategory(typeof mbFindOutcome === 'function' ? mbFindOutcome(selectedOutcome) : { key: selectedOutcome }) !== 'appointment') selectedOutcome = 'appointment';
     if (isValidUUID(contact.id) && typeof sb === 'function') {
       await sb(`contacts?id=eq.${contact.id}`, {
         method: 'PATCH',

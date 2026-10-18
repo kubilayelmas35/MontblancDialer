@@ -791,18 +791,47 @@ function mbOfferTerminWithoutSlot() {
   mbShowTerminForm(null);
 }
 
+function paintDialerOutcomes() {
+  const grid = document.getElementById('outcome-grid');
+  if (!grid || typeof mbCampOutcomeRows !== 'function') return;
+  const id = (typeof selectedCampId !== 'undefined' && selectedCampId) || (typeof currentContact !== 'undefined' && currentContact?.campaign_id);
+  const camp = (campaigns || []).find((c) => c.id === id);
+  const rows = mbCampOutcomeRows(camp).filter((row) => row.enabled && row.key !== 'dnc');
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  grid.innerHTML = rows.map((row) => {
+    const cls = mbOutcomeBtnClass(row);
+    return `<button type="button" class="outcome-btn ${cls}" data-outcome="${esc(row.key)}" onclick="pickOutcome('${row.key}')">
+<div class="icon"><i class="ph ${esc(row.icon)}"></i></div>
+<div class="lbl">${esc(row.label)}</div>
+</button>`;
+  }).join('');
+  if (typeof selectedOutcome === 'string' && selectedOutcome) {
+    grid.querySelector(`[data-outcome="${selectedOutcome}"]`)?.classList.add('active');
+  }
+}
+
+function pickOutcome(key) {
+  setOutcome(key);
+  const cat = typeof mbOutcomeCategory === 'function' ? mbOutcomeCategory(mbFindOutcome(key)) : '';
+  if (cat === 'appointment') {
+    if (typeof openTakvimOverlay === 'function') openTakvimOverlay();
+    toast(typeof t === 'function' ? t('dial.cal_pick_slot') : 'Takvimden uygun bir slot seçin', 'ok', 3500);
+  }
+}
+
 function setOutcome(o) {
-  if (o !== 'appointment' && o !== 'appointment_done' && (selectedOutcome === 'appointment' || selectedOutcome === 'appointment_done' || _bookingSlot || window._selectedBookingSlot)) {
+  const nextCat = typeof mbOutcomeCategory === 'function' ? mbOutcomeCategory(typeof mbFindOutcome === 'function' ? mbFindOutcome(o) : { key: o }) : (o === 'appointment' || o === 'appointment_done' ? 'appointment' : o);
+  const prevCat = typeof mbOutcomeCategory === 'function' ? mbOutcomeCategory(typeof mbFindOutcome === 'function' ? mbFindOutcome(selectedOutcome) : { key: selectedOutcome }) : '';
+  if (nextCat !== 'appointment' && (prevCat === 'appointment' || _bookingSlot || window._selectedBookingSlot)) {
     mbReleaseBookingSlot();
   }
   selectedOutcome = o;
   document.querySelectorAll('.outcome-btn').forEach(b => b.classList.remove('active'));
-  const map = {appointment:'.ob-appointment',negative:'.ob-negative',callback:'.ob-callback',no_answer:'.ob-noanswer',voicemail:'.ob-voicemail'};
-  if (map[o]) document.querySelector(map[o])?.classList.add('active');
+  document.querySelector(`#outcome-grid [data-outcome="${o}"]`)?.classList.add('active');
   const cbRow = document.getElementById('callback-time-row') || document.getElementById('callback-row');
-  if (cbRow) cbRow.style.display = o==='callback' ? '' : 'none';
+  if (cbRow) cbRow.style.display = nextCat === 'callback' ? '' : 'none';
   // Geri ara seçildiğinde varsayılan: Berlin saatine göre iki saat sonra
-  if (o === 'callback') {
+  if (nextCat === 'callback') {
     const dtInput = document.getElementById('callback-dt');
     if (dtInput && !dtInput.value) {
       const def = new Date(Date.now() + 2 * 60 * 60 * 1000);
@@ -811,7 +840,7 @@ function setOutcome(o) {
   }
   const gm = document.getElementById('global-mascot');
   if (gm) gm.classList.remove('global-mascot--sad', 'global-mascot--celebrate');
-  if (o === 'appointment' || o === 'appointment_done') {
+  if (nextCat === 'appointment') {
     if (gm && !isMimiHidden()) gm.classList.add('global-mascot--celebrate');
     if (typeof _mimiCelebrate === 'function') _mimiCelebrate();
     const okI = Math.floor(Math.random() * 3);
@@ -819,14 +848,14 @@ function setOutcome(o) {
       _showCustEmptyBubbleMsg(typeof t === 'function' ? t(`dial.outcome.app.${okI}`) : '');
       setTimeout(() => gm?.classList.remove('global-mascot--celebrate'), 2300);
     }
-  } else if (o === 'negative') {
+  } else if (nextCat === 'negative') {
     if (gm && !isMimiHidden()) gm.classList.add('global-mascot--sad');
     const ni = Math.floor(Math.random() * 3);
     if (!isMimiHidden()) {
       _showCustEmptyBubbleMsg(typeof t === 'function' ? t(`dial.outcome.neg.${ni}`) : '');
       setTimeout(() => gm?.classList.remove('global-mascot--sad'), 3600);
     }
-  } else if (o === 'callback') {
+  } else if (nextCat === 'callback') {
     const ci = Math.floor(Math.random() * 3);
     if (!isMimiHidden()) {
       _showCustEmptyBubbleMsg(typeof t === 'function' ? t(`dial.outcome.cb.${ci}`) : '');
@@ -889,8 +918,8 @@ async function submitOutcome(goBreak) {
     const camp = campaigns.find((c) => c.id === selectedCampId);
     const cs = camp ? getCampSettings(camp) : {};
     if (cs.appointment_slot_required && !inboundTestContact) {
-      const oc = String(selectedOutcome || '').toLowerCase();
-      if ((oc === 'appointment' || oc === 'appointment_done') && !lockedSlotEarly) {
+      const cat = typeof mbOutcomeCategory === 'function' ? mbOutcomeCategory(typeof mbFindOutcome === 'function' ? mbFindOutcome(selectedOutcome) : { key: selectedOutcome }) : '';
+      if (cat === 'appointment' && !lockedSlotEarly) {
         toast(typeof t === 'function' ? t('dial.slot_required') : 'Slot gerekli', 'warn', 4200);
         return;
       }
@@ -901,12 +930,13 @@ async function submitOutcome(goBreak) {
     if (currentContact) {
       // appointment_done → call_logs'da 'appointment' olarak sakla (QC uyumu için)
       const finalOutcome = isDnc ? 'dnc' : (selectedOutcome === 'appointment_done' ? 'appointment' : selectedOutcome);
+      const outcomeCat = typeof mbOutcomeCategory === 'function' ? mbOutcomeCategory(typeof mbFindOutcome === 'function' ? mbFindOutcome(finalOutcome) : { key: finalOutcome }) : '';
       const statusMap = {appointment:'appointment',appointment_done:'appointment',negative:'negative',callback:'callback',no_answer:'no_answer',voicemail:'voicemail',dnc:'dnc'};
-      const cbAt = (finalOutcome === 'callback' && cbTime)
+      const cbAt = (outcomeCat === 'callback' && cbTime)
         ? (typeof mbWallToIso === 'function' ? mbWallToIso(cbTime) : new Date(cbTime).toISOString())
         : null;
       const contactPatch = {
-        status: statusMap[finalOutcome] || finalOutcome,
+        status: typeof mbOutcomeStatus === 'function' ? mbOutcomeStatus(finalOutcome) : (statusMap[finalOutcome] || finalOutcome),
         attempt_count: (currentContact.attempt_count||0)+1,
         last_called_at: new Date().toISOString(),
         locked_by: null,
@@ -955,29 +985,15 @@ async function submitOutcome(goBreak) {
   } catch(e){ console.error(e); toast((typeof t === 'function' ? t('dial.log_err') : 'Kayıt hatası: ') + e.message,'err'); }
   // Termin dışı sonuç seçilirse kilitli slot serbest bırak
   const lockedSlotId = _bookingSlot?.id || window._selectedBookingSlot?.id;
-  if (lockedSlotId && selectedOutcome !== 'appointment' && selectedOutcome !== 'appointment_done') {
+  const submitCat = typeof mbOutcomeCategory === 'function' ? mbOutcomeCategory(typeof mbFindOutcome === 'function' ? mbFindOutcome(selectedOutcome) : { key: selectedOutcome }) : '';
+  if (lockedSlotId && submitCat !== 'appointment') {
     sb(`takvim_slots?id=eq.${lockedSlotId}`,{method:'PATCH',prefer:'return=minimal',
       body:JSON.stringify({durum:'bos',kilitli_agent_id:null,kilitli_at:null})
     }).catch(()=>{});
     _bookingSlot = null; window._selectedBookingSlot = null;
   }
-  // Termin → Takvim aç (sadece slot henüz seçilmemişse; appointment_done slot zaten kaydedildi)
-  if (selectedOutcome==='appointment' && !isDnc) {
-    openTakvimOverlay();
-    if (currentContact) {
-      setTimeout(() => {
-        const wvPrefill = {
-          phone: currentContact.phone, phone2: currentContact.phone2||'',
-          first_name: currentContact.first_name||'', last_name: currentContact.last_name||'',
-          plz: currentContact.plz||'', city: currentContact.city||'',
-          address: currentContact.address||''
-        };
-        window._wvPrefill = wvPrefill;
-      }, 500);
-    }
-  }
   // Callback → WV ekle
-  if (selectedOutcome==='callback' && cbTime && currentContact) {
+  if (submitCat === 'callback' && cbTime && currentContact) {
     try {
       const phone = String(currentContact.phone || '').replace(/[\s()-]/g, '');
       const phone2 = String(currentContact.phone2 || '').replace(/[\s()-]/g, '');
@@ -1001,9 +1017,9 @@ async function submitOutcome(goBreak) {
       }
     } catch(e) {}
   }
-  if (currentContact && (selectedOutcome === 'negative' || selectedOutcome === 'appointment' || selectedOutcome === 'appointment_done')) {
+  if (currentContact && (submitCat === 'negative' || submitCat === 'appointment')) {
     try {
-      const durum = selectedOutcome === 'negative' ? 'olumsuz' : 'randevu';
+      const durum = submitCat === 'negative' ? 'olumsuz' : 'randevu';
       await _markMatchingWiedervorlage(currentContact, durum);
     } catch (e) {}
   }
@@ -1051,10 +1067,7 @@ async function submitOutcome(goBreak) {
 }
 
 function handleAppointmentClick() {
-  setOutcome('appointment');
-  // Takvim overlay'ini aç — agent slot seçer
-  openTakvimOverlay();
-  toast(typeof t === 'function' ? t('dial.cal_pick_slot') : 'Takvimden uygun bir slot seçin', 'ok', 3500);
+  pickOutcome('appointment');
 }
 
 // Called from appointments.js when agent selects a slot
@@ -1115,3 +1128,5 @@ function validateTerminFields() {
   });
   return missing;
 }
+
+if (document.getElementById('outcome-grid')) paintDialerOutcomes();

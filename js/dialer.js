@@ -258,14 +258,10 @@ function selectCamp(id, name, opts = {}) {
   }
   const lbl = document.getElementById('dialer-camp-label');
   if (lbl) lbl.textContent = name || id;
-  // Store aux codes from campaign settings
   const camp = campaigns.find(c=>c.id===id);
-  if (camp?.qc_settings) {
-    try {
-      const qs = typeof camp.qc_settings==='string' ? JSON.parse(camp.qc_settings) : camp.qc_settings;
-      if (qs.aux_codes?.length) window._campAuxCodes = qs.aux_codes;
-    } catch(e){}
-  }
+  const aux = camp && typeof getCampSettings === 'function' ? getCampSettings(camp).aux_codes : null;
+  window._campAuxCodes = Array.isArray(aux) && aux.length ? aux : (typeof DEFAULT_AUX_CODES !== 'undefined' ? DEFAULT_AUX_CODES.slice() : []);
+  if (typeof paintDialerOutcomes === 'function') paintDialerOutcomes();
   // Re-render camp list to reflect active state
   document.querySelectorAll('.agent-camp-item').forEach(el => {
     el.classList.toggle('active', el.querySelector('[onclick]')?.getAttribute('onclick')?.includes(id)||false);

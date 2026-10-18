@@ -521,6 +521,7 @@ function switchContactTab(tab) {
   if (tab==='map' && currentContact) showContactMap(currentContact.address, currentContact.plz, currentContact.city);
   if (tab==='history' && currentContact) loadContactHistory(currentContact.id);
   if (tab==='file' && currentContact) updateContactFileHint();
+  if (tab==='outcome' && typeof paintDialerOutcomes === 'function') paintDialerOutcomes();
 }
 
 function _escHtml(v) {
