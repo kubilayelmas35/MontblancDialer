@@ -129,11 +129,11 @@ async function refreshDialerCampaignCacheIfEmpty() {
   const firmScopeId = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser.firm_id;
   if (adminLike && mbIsSuperAdmin(role) && !firmScopeId) return;
   let myCamps = [];
-  if (adminLike && firmScopeId) {
+  if (firmScopeId) {
     const allCamps = (await sb(`campaigns?select=*,queues(*)&status=eq.active&firm_id=eq.${firmScopeId}&order=created_at.desc`)) || [];
-    myCamps = allCamps.map((c) => ({ campaign_id: c.id, campaigns: c, agent_id: currentUser.id }));
-  } else {
-    myCamps = (await sb(`agent_campaigns?select=*,campaigns(*,queues(*))&agent_id=eq.${currentUser.id}`)) || [];
+    myCamps = allCamps
+      .filter((c) => typeof mbUserSeesCampaign !== 'function' || mbUserSeesCampaign(c, currentUser.id))
+      .map((c) => ({ campaign_id: c.id, campaigns: c, agent_id: currentUser.id }));
   }
   campaigns = (myCamps || []).map((ac) => ac.campaigns).filter(Boolean);
 }

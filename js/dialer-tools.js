@@ -1358,8 +1358,9 @@ async function openTakvimOverlay() {
   } else {
     // Agent: atanmış kampanyaları yükle ve select göster
     try {
-      const ac = await sb(`agent_campaigns?agent_id=eq.${currentUser.id}&select=campaign_id,campaigns(id,name,status)`);
-      const agentCamps = (ac||[]).map(a=>a.campaigns).filter(Boolean);
+      const firmId = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser.firm_id;
+      const rows = firmId ? (await sb(`campaigns?select=id,name,status,settings,firm_id&status=eq.active&firm_id=eq.${firmId}`)) || [] : [];
+      const agentCamps = rows.filter((c) => typeof mbUserSeesCampaign !== 'function' || mbUserSeesCampaign(c, currentUser.id));
       const prefOk = preferredCamp && agentCamps.some((c) => c.id === preferredCamp);
       if (prefOk) takvimCampId = preferredCamp;
       else if (!takvimCampId && agentCamps.length) takvimCampId = agentCamps[0].id;

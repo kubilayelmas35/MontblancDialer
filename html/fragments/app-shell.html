@@ -498,7 +498,7 @@
 <button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Mola/Sonuç" data-de="Pause/Ergebnis">Mola/Sonuç</button>
 <button class="cd-tab" data-tab="bildirim" onclick="switchCampTab('bildirim')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Bildirim" data-de="Hinweis">Bildirim</button>
 <button class="cd-tab" data-tab="kurallar" onclick="switchCampTab('kurallar')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Kurallar" data-de="Regeln">Kurallar</button>
-<button class="cd-tab" data-tab="agentler" onclick="switchCampTab('agentler')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Temsilciler" data-de="Agenten">Temsilciler</button>
+<button class="cd-tab" data-tab="agentler" onclick="switchCampTab('agentler')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Personeller" data-de="Personal">Personeller</button>
 </div>
 <div id="cd-tab-genel" class="cd-tab-panel">
 <div class="cd-identity">
@@ -681,10 +681,14 @@
 </div>
 </div>
 <div id="cd-tab-agentler" class="cd-tab-panel" style="display:none;">
-<div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
-<button class="btn btn-ghost btn-sm" onclick="openAssignModal()">+ <span data-tr="Temsilci ekle" data-de="Agent hinzufügen">Temsilci ekle</span></button>
+<div style="display:flex;flex-direction:column;gap:10px;">
+<div style="font-size:12px;color:var(--text-3);" data-tr="İşaretli personel dialerde bu kampanyanın kutusunu görür. İşaret yoksa o kutu onda çıkmaz. Varsayılan herkes işaretlidir." data-de="Markiertes Personal sieht diese Kampagne im Dialer. Ohne Haken fehlt die Kachel. Standard: alle markiert.">İşaretli personel dialerde bu kampanyanın kutusunu görür. İşaret yoksa o kutu onda çıkmaz. Varsayılan herkes işaretlidir.</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="campPersonnelAll(true)" data-tr="Tümünü ekle" data-de="Alle hinzufügen">Tümünü ekle</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="campPersonnelAll(false)" data-tr="Tümünü çıkar" data-de="Alle entfernen">Tümünü çıkar</button>
 </div>
 <div id="cd-agents" style="display:flex;flex-direction:column;gap:6px;"></div>
+</div>
 </div>
 </div>
 </div>

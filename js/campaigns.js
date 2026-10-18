@@ -50,18 +50,22 @@ async function attachCampaignPeople() {
     });
     (sessions || []).forEach((s) => {
       if (s.campaign_id !== c.id) return;
-      const id = s.agent_id;
-      if (!id) return;
-      const prev = people.get(id) || { agent_id: id, name: '', assigned: false, live: false };
+      const prev = people.get(s.agent_id);
+      if (!prev) return;
       if (s.status && s.status !== 'offline') prev.live = true;
-      if (!prev.name) {
-        const sessionName = String(s.agent_name || '');
-        prev.name = nameById[id] || (/^[0-9a-f-]{8}-/i.test(sessionName) ? '' : sessionName);
-      }
-      people.set(id, prev);
     });
     c._people = [...people.values()];
   });
+}
+
+function mbPersonnelOff(camp) {
+  const raw = (typeof getCampSettings === 'function' ? getCampSettings(camp || {}) : camp?.settings)?.personnel_off;
+  return Array.isArray(raw) ? raw.map(String) : [];
+}
+
+function mbUserSeesCampaign(camp, userId) {
+  if (!userId) return false;
+  return !mbPersonnelOff(camp).includes(String(userId));
 }
 
 function campPersonLabel(person) {
@@ -449,19 +453,8 @@ if (didErr) {
 document.getElementById('cd-speed').value = c.dial_speed;
 document.getElementById('cd-speed-v').textContent = c.dial_speed;
 renderCampQueues(c);
-const people = c._people || [];
-const escP = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
-document.getElementById('cd-agents').innerHTML = people.length
-? people.map(ac=>{
-const label = campPersonLabel(ac);
-const live = ac.live && !ac.assigned ? ` <span style="font-size:10px;color:var(--text-3);">(${escP(campT('camp.agent.live','şu an bu kampanyada'))})</span>` : '';
-return `<div class="agent-tag">
-<div class="av">${escP(label.charAt(0) || '?')}</div>
-${escP(label)}${live}
-<button class="rm" onclick="removeAgent('${ac.agent_id}','${id}')"><i class="ph ph-x" style="font-size:10px;"></i></button>
-</div>`;
-}).join('')
-: `<span style="color:var(--text-3);font-size:12px;">${campT('camp.agent.none','Temsilci atanmadı')}</span>`;
+const agentsEl = document.getElementById('cd-agents');
+if (agentsEl && document.querySelector('.cd-tab.active')?.dataset.tab !== 'agentler') agentsEl.innerHTML = '';
 if (!opts?.silent) document.getElementById('camp-detail').scrollIntoView({behavior:'smooth'});
 if (!opts?.keepTab) switchCampTab('genel');
 else {

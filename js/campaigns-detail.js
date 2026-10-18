@@ -278,6 +278,7 @@ if (tab === 'arama' && currentCampId) loadCampAramaTab();
 if (tab === 'bildirim' && currentCampId) loadCampBildirimTab();
 if (tab === 'termin-form' && currentCampId) loadCampTerminFormTab();
 if (tab === 'kurallar' && currentCampId) loadCampRulesTab();
+if (tab === 'agentler' && currentCampId) loadCampPersonnel();
 }
 
 const TERMIN_FORM_DEFAULTS = [
@@ -458,6 +459,92 @@ function openCampRules(campId) {
   if (title) title.textContent = camp?.name ? `${camp.name} — ${label}` : label;
   if (body) body.textContent = rules;
   if (typeof openModal === 'function') openModal('m-camp-rules');
+}
+
+const MB_PERSONNEL_ROLES = ['agent', 'qc', 'firm_admin', 'field_agent', 'admin', 'super_admin'];
+
+async function loadCampPersonnel() {
+  const el = document.getElementById('cd-agents');
+  const camp = (campaigns || []).find((c) => c.id === currentCampId);
+  if (!el || !camp) return;
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  el.innerHTML = `<span style="color:var(--text-3);font-size:12px;">...</span>`;
+  const firmId = camp.firm_id;
+  const roleIn = MB_PERSONNEL_ROLES.join(',');
+  const firmQ = firmId ? `&firm_id=eq.${firmId}` : '';
+  let users = [];
+  let sessions = [];
+  try {
+    [users, sessions] = await Promise.all([
+      sb(`users?select=id,name,role&is_active=eq.true&role=in.(${roleIn})${firmQ}&order=name.asc`),
+      sb(`agent_sessions?select=agent_id,status,campaign_id&campaign_id=eq.${camp.id}`),
+    ]);
+  } catch (e) {
+    users = [];
+    sessions = [];
+  }
+  const off = new Set(typeof mbPersonnelOff === 'function' ? mbPersonnelOff(camp) : []);
+  const live = new Set((sessions || []).filter((s) => s.status && s.status !== 'offline').map((s) => String(s.agent_id)));
+  const rows = (users || []).filter((u) => u?.id);
+  if (!rows.length) {
+    el.innerHTML = `<span style="color:var(--text-3);font-size:12px;">${esc(campT('camp.personnel.empty', 'Bu firmada personel yok'))}</span>`;
+    return;
+  }
+  el.innerHTML = rows.map((u) => {
+    const on = !off.has(String(u.id));
+    const name = String(u.name || '').trim() || campT('camp.agent.unnamed', 'Personel');
+    const online = live.has(String(u.id)) ? ` <span style="font-size:10px;color:var(--text-3);">(${esc(campT('camp.agent.live', 'çevrimiçi'))})</span>` : '';
+    return `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-3);border-radius:8px;cursor:pointer;">
+<input type="checkbox" data-personnel-id="${esc(u.id)}" ${on ? 'checked' : ''} onchange="campPersonnelToggle(this.dataset.personnelId, this.checked)" style="width:16px;height:16px;">
+<span style="font-size:13px;font-weight:700;">${esc(name)}</span>${online}
+</label>`;
+  }).join('');
+}
+
+async function campPersonnelToggle(userId, on) {
+  const camp = (campaigns || []).find((c) => c.id === currentCampId);
+  if (!camp || !userId) return;
+  const off = new Set(mbPersonnelOff(camp));
+  if (on) off.delete(String(userId));
+  else off.add(String(userId));
+  try {
+    await saveCampSettingsPatch({ personnel_off: [...off] });
+    if (on) {
+      await sb('agent_campaigns', {
+        method: 'POST', prefer: 'return=minimal',
+        body: JSON.stringify({ agent_id: userId, campaign_id: camp.id, firm_id: camp.firm_id || currentUser?.firm_id }),
+      }).catch(() => {});
+    } else {
+      await sb(`agent_campaigns?agent_id=eq.${userId}&campaign_id=eq.${camp.id}`, { method: 'DELETE', prefer: 'return=minimal' }).catch(() => {});
+    }
+    toast(campT('camp.personnel.saved', 'Personel kaydedildi'), 'ok');
+  } catch (e) {
+    toast(e.message || 'Hata', 'err');
+    loadCampPersonnel();
+  }
+}
+
+async function campPersonnelAll(on) {
+  const camp = (campaigns || []).find((c) => c.id === currentCampId);
+  const el = document.getElementById('cd-agents');
+  if (!camp || !el) return;
+  const ids = [...el.querySelectorAll('[data-personnel-id]')].map((box) => box.dataset.personnelId).filter(Boolean);
+  if (!ids.length) return;
+  try {
+    await saveCampSettingsPatch({ personnel_off: on ? [] : ids });
+    if (on) {
+      await Promise.all(ids.map((id) => sb('agent_campaigns', {
+        method: 'POST', prefer: 'return=minimal',
+        body: JSON.stringify({ agent_id: id, campaign_id: camp.id, firm_id: camp.firm_id || currentUser?.firm_id }),
+      }).catch(() => {})));
+    } else {
+      await sb(`agent_campaigns?campaign_id=eq.${camp.id}`, { method: 'DELETE', prefer: 'return=minimal' }).catch(() => {});
+    }
+    toast(campT(on ? 'camp.personnel.added' : 'camp.personnel.removed', on ? 'Herkes eklendi' : 'Herkes çıkarıldı'), 'ok');
+    await loadCampPersonnel();
+  } catch (e) {
+    toast(e.message || 'Hata', 'err');
+  }
 }
 
 function loadCampFieldsTab() {

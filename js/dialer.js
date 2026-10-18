@@ -16,7 +16,6 @@ async function initDialer() {
   }
   try {
     const role = currentUser?.role || '';
-    const adminLike = ['admin', 'firm_admin', 'super_admin', 'qc'].includes(role);
     const firmScopeId = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser.firm_id;
     const firmSelWrap = document.getElementById('dialer-firm-selector');
     if (firmSelWrap) {
@@ -35,12 +34,10 @@ async function initDialer() {
     }
 
     let myCamps = [];
-    if (adminLike) {
-      const allCamps = await sb(`campaigns?select=*,queues(*)&status=eq.active&firm_id=eq.${firmScopeId}&order=created_at.desc`) || [];
-      myCamps = allCamps.map(c => ({ campaign_id: c.id, campaigns: c, agent_id: currentUser.id }));
-    } else {
-      myCamps = await sb(`agent_campaigns?select=*,campaigns(*,queues(*))&agent_id=eq.${currentUser.id}`) || [];
-    }
+    const allCamps = await sb(`campaigns?select=*,queues(*)&status=eq.active&firm_id=eq.${firmScopeId}&order=created_at.desc`) || [];
+    myCamps = allCamps
+      .filter((c) => typeof mbUserSeesCampaign !== 'function' || mbUserSeesCampaign(c, currentUser.id))
+      .map((c) => ({ campaign_id: c.id, campaigns: c, agent_id: currentUser.id }));
     const list = document.getElementById('agent-camp-list');
     if (!myCamps.length) {
       list.innerHTML=`<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${typeof t === 'function' ? t('dial.init.no_camp_html') : ''}</div>`;

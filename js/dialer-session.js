@@ -150,14 +150,11 @@ async function loadUnfinalizedCalls() {
   const btn = document.getElementById('unfinalized-calls-toggle');
   if (!el || !currentUser) return;
   try {
-    const role = currentUser?.role || '';
-    const adminLike = ['admin', 'firm_admin', 'super_admin', 'qc'].includes(role);
+    const firmId = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser.firm_id;
     let campIds = [];
-    if (adminLike) {
-      campIds = (campaigns || []).map((c) => c.id).filter(Boolean);
-    } else {
-      const rows = await sb(`agent_campaigns?agent_id=eq.${currentUser.id}&select=campaign_id`).catch(() => []);
-      campIds = (rows || []).map((r) => r.campaign_id).filter(Boolean);
+    if (firmId) {
+      const rows = await sb(`campaigns?select=id,settings,firm_id&status=eq.active&firm_id=eq.${firmId}`).catch(() => []);
+      campIds = (rows || []).filter((c) => typeof mbUserSeesCampaign !== 'function' || mbUserSeesCampaign(c, currentUser.id)).map((c) => c.id);
     }
     const setBtnText = (count) => {
       mbPaintUnfinalizedCount(count);
