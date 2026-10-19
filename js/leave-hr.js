@@ -218,12 +218,12 @@ async function loadLeavePage() {
   const sub = document.getElementById('leave-sub');
   renderFirmSelector('leave-firm-selector', loadLeavePage);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const lf = document.getElementById('lr-from');
-  const lt = document.getElementById('lr-to');
-  if (lf && !lf.value) lf.value = today;
-  if (lt && !lt.value) lt.value = today;
-  onLeaveDatesChange();
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
+  if (!_leaveCal) {
+    const p = String(today).split('-').map(Number);
+    _leaveCal = { y: p[0], m: p[1] };
+  }
+  leaveRefreshPick();
   const ld = document.getElementById('late-date');
   if (ld && !ld.value) ld.value = today;
 
@@ -336,6 +336,30 @@ async function saveHrSettings() {
 }
 
 let _leaveSnap = null;
+let _leavePick = new Set();
+let _leaveCal = null;
+let _leaveMarks = { paid: new Set(), unpaid: new Set(), other: new Set(), late: new Set() };
+let _leaveMyTab = 'pending';
+let _leaveFor = null;
+let _leaveMyRows = [];
+
+function leaveDe() {
+  return typeof currentLang !== 'undefined' && currentLang === 'de';
+}
+
+const LEAVE_MONTHS_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+const LEAVE_MONTHS_DE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+
+function leaveFmtDay(iso) {
+  const p = String(iso || '').slice(0, 10).split('-');
+  if (p.length < 3) return iso || '';
+  return `${p[2]}.${p[1]}`;
+}
+
+function leaveActiveContext() {
+  if (_leaveFor && _leaveFor.uid && _leaveFor.uid !== currentUser?.id) return _leaveFor;
+  return _leaveSnap;
+}
 
 function leaveUsesBalance(kind, rules) {
   if (kind === 'unpaid') return false;
@@ -363,8 +387,9 @@ function leaveLateSaturdayDays(lates, rules) {
   return Object.values(byMonth).reduce((sum, n) => sum + Math.floor(n / step), 0);
 }
 
-function leavePlan(from, to, kind, duration, rules, remaining, existingSet) {
-  const span = leaveEachDay(from, to).filter((iso) => leaveDayCounts(iso, rules));
+function leavePlanDays(selected, kind, duration, rules, remaining, existingSet) {
+  const picked = [...new Set(selected || [])].filter(Boolean).sort();
+  const span = picked.filter((iso) => leaveDayCounts(iso, rules) && !(existingSet && existingSet.has(iso)));
   const forced = leaveRequiredSaturdays(span, existingSet, rules);
   const days = span.concat(forced.filter((d) => !span.includes(d))).sort();
   const unit = duration === 'half' && rules.half_day_enabled ? 0.5 : 1;
@@ -380,19 +405,26 @@ function leavePlan(from, to, kind, duration, rules, remaining, existingSet) {
   let unpaidMoney = 0;
   const fullAmt = Number(rules.unpaid_full_amount) || 0;
   const halfAmt = Number(rules.unpaid_half_amount) || 0;
+  const charge = uses || kind === 'unpaid';
+  const dayUnits = [];
   days.forEach((iso) => {
     const u = forcedSet.has(iso) ? 1 : unit;
-    const paidHere = Math.min(u, paidLeft);
-    paidLeft -= paidHere;
-    const unpaidHere = u - paidHere;
-    paidUnits += paidHere;
-    unpaidUnits += unpaidHere;
-    const charge = uses || kind === 'unpaid';
-    if (charge && unpaidHere >= 0.999) unpaidMoney += fullAmt;
-    else if (charge && unpaidHere >= 0.499) unpaidMoney += halfAmt;
+    if (uses && paidLeft + 0.001 >= u) {
+      paidLeft -= u;
+      paidUnits += u;
+      dayUnits.push({ iso, unit: u, bucket: 'paid' });
+      return;
+    }
+    unpaidUnits += u;
+    if (charge && rules?.deduct_currency !== 'NONE' && u >= 0.999) unpaidMoney += fullAmt;
+    else if (charge && rules?.deduct_currency !== 'NONE' && u >= 0.499) unpaidMoney += halfAmt;
+    dayUnits.push({ iso, unit: u, bucket: uses ? 'unpaid' : 'plain' });
   });
-  if (!rules || rules.deduct_currency === 'NONE') unpaidMoney = 0;
-  return { days, forced, unit, adding, paidUnits, unpaidUnits, unpaidMoney, uses };
+  return { days, forced, unit, adding, paidUnits, unpaidUnits, unpaidMoney, uses, dayUnits };
+}
+
+function leavePlan(from, to, kind, duration, rules, remaining, existingSet) {
+  return leavePlanDays(leaveEachDay(from, to), kind, duration, rules, remaining, existingSet);
 }
 
 function leaveMoneyLabel(amount, rules) {
@@ -455,7 +487,7 @@ async function refreshLeaveStats(fid) {
   const remaining = Math.max(0, earned - paidUsed - lateDays);
   const unpaidMoney = leaveMoney(unpaidUsed, 1, hr) + leaveMoney(lateUnpaid, 1, hr);
 
-  _leaveSnap = { hr, remaining, existing, earned, paidUsed, unpaidUsed, lateDays };
+  _leaveSnap = { hr, remaining, existing, earned, paidUsed, unpaidUsed, lateDays, ownRows: rows };
 
   const setTxt = (id, v) => {
     const el = document.getElementById(id);
@@ -495,40 +527,199 @@ async function refreshLeaveStats(fid) {
     if (money) bits.push(de ? `Geschätzter Abzug: ${money}.` : `Tahmini kesinti: ${money}.`);
     hint.textContent = bits.join(' ');
   }
-  onLeaveDatesChange();
+  await leaveLoadMarks(fid);
+  leaveRefreshPick();
 }
 
-function onLeaveDatesChange() {
-  const from = document.getElementById('lr-from')?.value;
-  const to = document.getElementById('lr-to')?.value;
-  const daysEl = document.getElementById('lr-days');
-  const preview = document.getElementById('lr-preview');
-  const durWrap = document.getElementById('lr-duration-wrap');
-  const rules = _leaveSnap?.hr || defaultHrSettings();
-  if (durWrap) durWrap.style.display = rules.half_day_enabled ? '' : 'none';
-  if (!from || !to || !daysEl) return;
+function leaveSetMode(mode) {
+  const delay = mode === 'gecikme';
+  const dur = document.getElementById('lr-duration-wrap');
+  const kind = document.getElementById('lr-kind')?.closest('.form-row');
+  const mins = document.getElementById('lr-delay-wrap');
+  const daysRow = document.getElementById('lr-days')?.closest('.form-row');
+  if (dur) dur.style.display = delay ? 'none' : '';
+  if (kind) kind.style.display = delay ? 'none' : '';
+  if (mins) mins.style.display = delay ? '' : 'none';
+  if (daysRow) daysRow.style.display = delay ? 'none' : '';
+  if (delay && _leavePick.size > 1) {
+    const one = [..._leavePick].sort().slice(-1);
+    _leavePick = new Set(one);
+  }
+  leaveRefreshPick();
+}
+
+function leaveCalShift(delta) {
+  if (!_leaveCal) {
+    const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
+    const p = today.split('-').map(Number);
+    _leaveCal = { y: p[0], m: p[1] };
+  }
+  let m = _leaveCal.m + delta;
+  let y = _leaveCal.y;
+  while (m < 1) { m += 12; y -= 1; }
+  while (m > 12) { m -= 12; y += 1; }
+  _leaveCal = { y, m };
+  const fid = _leaveFirmId();
+  if (fid) leaveLoadMarks(fid).then(() => leaveRenderCalendar());
+  else leaveRenderCalendar();
+}
+
+function leaveCalToday() {
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
+  const p = String(today).split('-').map(Number);
+  _leaveCal = { y: p[0], m: p[1] };
+  const fid = _leaveFirmId();
+  if (fid) leaveLoadMarks(fid).then(() => leaveRenderCalendar());
+  else leaveRenderCalendar();
+}
+
+function leaveToggleDay(iso) {
+  const rules = leaveActiveContext()?.hr || _leaveSnap?.hr || defaultHrSettings();
+  if (!rules.count_sunday && leaveDow(iso) === 0) return;
+  const existing = leaveActiveContext()?.existing;
+  if (existing && existing.has(iso)) {
+    toast(leaveDe() ? 'Dieser Tag ist schon erfasst.' : 'Bu gün zaten kayıtlı', 'warn');
+    return;
+  }
+  const mode = document.getElementById('lr-mode')?.value || 'izin';
+  if (mode === 'gecikme') {
+    _leavePick = new Set([iso]);
+  } else if (_leavePick.has(iso)) {
+    _leavePick.delete(iso);
+  } else {
+    _leavePick.add(iso);
+  }
+  leaveRefreshPick();
+}
+
+async function leaveLoadMarks(fid) {
+  if (!_leaveCal || !fid) return;
+  const from = `${_leaveCal.y}-${String(_leaveCal.m).padStart(2, '0')}-01`;
+  const to = leaveAddIso(leaveAddIso(from, 32).slice(0, 7) + '-01', -1);
+  const paid = new Set();
+  const unpaid = new Set();
+  const other = new Set();
+  const late = new Set();
+  try {
+    const rows = await sb('rpc/leave_calendar_marks', {
+      method: 'POST',
+      body: JSON.stringify({ p_firm: fid, p_from: from, p_to: to }),
+    });
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const day = String(row.day || '').slice(0, 10);
+      if (!day) return;
+      if (row.mark === 'own_unpaid') unpaid.add(day);
+      else if (row.mark === 'own_paid') paid.add(day);
+      else if (row.mark === 'other') other.add(day);
+      else if (row.mark === 'own_late' || row.mark === 'late') late.add(day);
+    });
+  } catch (e) {
+    (_leaveSnap?.ownRows || []).forEach((row) => {
+      if (row.status !== 'pending' && row.status !== 'approved') return;
+      leaveDatesOfRow(row).forEach((day) => {
+        if (row.kind === 'unpaid') unpaid.add(day);
+        else paid.add(day);
+      });
+    });
+  }
+  _leaveMarks = { paid, unpaid, other, late };
+}
+
+function leaveRenderCalendar() {
+  const grid = document.getElementById('leave-cal-grid');
+  const label = document.getElementById('leave-cal-label');
+  const week = document.getElementById('leave-cal-week');
+  if (!grid) return;
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
+  if (!_leaveCal) {
+    const p = String(today).split('-').map(Number);
+    _leaveCal = { y: p[0], m: p[1] };
+  }
+  const de = leaveDe();
+  const names = de ? LEAVE_MONTHS_DE : LEAVE_MONTHS_TR;
+  if (label) label.textContent = `${names[_leaveCal.m - 1]} ${_leaveCal.y}`;
+  if (week) {
+    const heads = de ? ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] : ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+    week.innerHTML = heads.map((x) => `<div class="leave-cal-w">${x}</div>`).join('');
+  }
+  const rules = leaveActiveContext()?.hr || _leaveSnap?.hr || defaultHrSettings();
+  const ctx = leaveActiveContext();
   const kind = document.getElementById('lr-kind')?.value || 'annual';
   const duration = document.getElementById('lr-duration')?.value || 'full';
-  const plan = leavePlan(from, to, kind, duration, rules, _leaveSnap?.remaining ?? 0, _leaveSnap?.existing || new Set());
+  const mode = document.getElementById('lr-mode')?.value || 'izin';
+  const plan = leavePlanDays(mode === 'gecikme' ? [] : [..._leavePick], kind, duration, rules, ctx?.remaining ?? 0, ctx?.existing || new Set());
+  const forced = new Set(plan.forced);
+  const first = `${_leaveCal.y}-${String(_leaveCal.m).padStart(2, '0')}-01`;
+  const dow = leaveDow(first);
+  const lead = dow === 0 ? 6 : dow - 1;
+  const start = leaveAddIso(first, -lead);
+  const cells = [];
+  for (let i = 0; i < 42; i += 1) {
+    const iso = leaveAddIso(start, i);
+    const inMonth = Number(iso.slice(5, 7)) === _leaveCal.m;
+    const cls = ['leave-day'];
+    if (!inMonth) cls.push('out');
+    if (iso === today) cls.push('today');
+    if (_leaveMarks.unpaid.has(iso)) cls.push('unpaid');
+    else if (_leaveMarks.paid.has(iso)) cls.push('paid');
+    else if (_leaveMarks.late.has(iso)) cls.push('late');
+    else if (_leaveMarks.other.has(iso)) cls.push('team');
+    if (_leavePick.has(iso)) cls.push('picked');
+    else if (forced.has(iso)) cls.push('forced');
+    if (!rules.count_sunday && leaveDow(iso) === 0) cls.push('off');
+    cells.push(`<button type="button" class="${cls.join(' ')}" onclick="leaveToggleDay('${iso}')">${Number(iso.slice(8, 10))}</button>`);
+  }
+  grid.innerHTML = cells.join('');
+  const chips = document.getElementById('leave-pick-chips');
+  if (chips) {
+    const picked = [..._leavePick].sort().map((iso) => `<span class="leave-chip">${leaveFmtDay(iso)}</span>`);
+    const extra = plan.forced.map((iso) => `<span class="leave-chip forced">${leaveFmtDay(iso)}</span>`);
+    chips.innerHTML = picked.concat(extra).join('');
+  }
+  return plan;
+}
+
+function leaveRefreshPick() {
+  const rules = leaveActiveContext()?.hr || _leaveSnap?.hr || defaultHrSettings();
+  const durWrap = document.getElementById('lr-duration-wrap');
+  const mode = document.getElementById('lr-mode')?.value || 'izin';
+  if (durWrap && mode !== 'gecikme') durWrap.style.display = rules.half_day_enabled ? '' : 'none';
+  const forWrap = document.getElementById('lr-for-wrap');
+  if (forWrap) forWrap.style.display = isLeaveAdmin() ? '' : 'none';
+  const modeSel = document.getElementById('lr-mode');
+  if (modeSel) {
+    const lateOpt = modeSel.querySelector('option[value="gecikme"]');
+    if (lateOpt) lateOpt.hidden = !isLeaveAdmin();
+    if (!isLeaveAdmin() && modeSel.value === 'gecikme') modeSel.value = 'izin';
+  }
+  const plan = leaveRenderCalendar();
+  const daysEl = document.getElementById('lr-days');
+  const preview = document.getElementById('lr-preview');
+  if (!plan || !daysEl || !preview) return;
+  const de = leaveDe();
+  if (mode === 'gecikme') {
+    const day = [..._leavePick][0];
+    preview.textContent = day
+      ? (de ? `Verspätung am ${leaveFmtDay(day)}` : `Geç kalma: ${leaveFmtDay(day)}`)
+      : (de ? 'Tag im Kalender wählen.' : 'Takvimden gün seç.');
+    return;
+  }
   daysEl.value = String(Math.round(plan.adding * 100) / 100);
-  if (!preview) return;
-  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
   if (!plan.days.length) {
-    preview.textContent = de ? 'Keine zählenden Tage in diesem Zeitraum.' : 'Bu aralıkta sayılan gün yok.';
+    preview.textContent = _leavePick.size
+      ? (de ? 'Keine zählenden Tage.' : 'Seçilen günler sayılmıyor.')
+      : (de ? 'Tage im Kalender antippen.' : 'Takvimden günlere bas.');
     return;
   }
   const parts = [];
   if (plan.forced.length) {
-    parts.push(de
-      ? `Samstag ergänzt: ${plan.forced.join(', ')}`
-      : `Cumartesi eklendi: ${plan.forced.join(', ')}`);
+    parts.push(de ? `Samstag ergänzt: ${plan.forced.map(leaveFmtDay).join(', ')}` : `Cumartesi eklendi: ${plan.forced.map(leaveFmtDay).join(', ')}`);
   }
+  const kind = document.getElementById('lr-kind')?.value || 'annual';
   if (!plan.uses && kind !== 'unpaid') {
     parts.push(de ? `${plan.adding} Tage, Anspruch bleibt` : `${plan.adding} gün, yıllık haktan düşmez`);
   } else if (plan.uses && plan.unpaidUnits > 0.001 && plan.paidUnits > 0.001) {
-    parts.push(de
-      ? `${plan.paidUnits} bezahlt + ${plan.unpaidUnits} unbezahlt`
-      : `${plan.paidUnits} gün ücretli, ${plan.unpaidUnits} gün ücretsiz`);
+    parts.push(de ? `${plan.paidUnits} bezahlt + ${plan.unpaidUnits} unbezahlt` : `${plan.paidUnits} gün ücretli, ${plan.unpaidUnits} gün ücretsiz`);
   } else if (!plan.uses || plan.paidUnits <= 0.001) {
     parts.push(de ? `${plan.unpaidUnits} unbezahlt` : `${plan.unpaidUnits} gün ücretsiz`);
   } else {
@@ -539,64 +730,146 @@ function onLeaveDatesChange() {
   preview.textContent = parts.join(' · ');
 }
 
+function onLeaveDatesChange() {
+  leaveRefreshPick();
+}
+
+async function leaveForChanged() {
+  const fid = _leaveFirmId();
+  const uid = document.getElementById('lr-for')?.value || '';
+  if (!fid || !uid || uid === currentUser?.id) {
+    _leaveFor = null;
+    leaveRefreshPick();
+    return;
+  }
+  const y = currentYear();
+  const b = yearBoundsQuery(y);
+  const hr = _leaveSnap?.hr || await getHrSettings(fid);
+  let rows = [];
+  let extra = 0;
+  let hireIso = '';
+  try {
+    rows = (await sb(`leave_requests?user_id=eq.${uid}&date_from=lte.${b.lte}&date_to=gte.${b.gte}&select=days_used,date_from,date_to,kind,status`).catch(() => [])) || [];
+    const ent = await sb(`user_leave_entitlements?user_id=eq.${uid}&year=eq.${y}&select=extra_days_granted`).catch(() => []);
+    extra = Number(ent?.[0]?.extra_days_granted) || 0;
+    const me = await sb(`users?id=eq.${uid}&select=created_at`).catch(() => []);
+    hireIso = String(me?.[0]?.created_at || '').slice(0, 10);
+  } catch (e) {
+    console.warn('leave target', e);
+  }
+  const active = leaveActiveRows(rows);
+  let paidUsed = 0;
+  const existing = new Set();
+  active.forEach((r) => {
+    const n = Number(r.days_used) || 0;
+    if (!(r.kind === 'unpaid' || (r.kind === 'sick' && !hr.sick_uses_balance))) paidUsed += n;
+    if (r.kind !== 'unpaid') leaveDatesOfRow(r).forEach((d) => existing.add(d));
+  });
+  const earned = leaveYearEntitlement(hireIso, y, hr.annual_leave_days_default, hr) + extra;
+  _leaveFor = { uid, hr, remaining: Math.max(0, earned - paidUsed), existing };
+  leaveRefreshPick();
+}
+
 async function submitLeaveRequest() {
   const fid = _leaveFirmId();
   if (!fid) {
     toast('Firma bulunamadı', 'err');
     return;
   }
-  const from = document.getElementById('lr-from')?.value;
-  const to = document.getElementById('lr-to')?.value;
+  const mode = document.getElementById('lr-mode')?.value || 'izin';
   const kind = document.getElementById('lr-kind')?.value || 'annual';
   const duration = document.getElementById('lr-duration')?.value || 'full';
   const reason = document.getElementById('lr-reason')?.value?.trim() || '';
-  if (!from || !to) {
-    toast('Tarih aralığını seçin', 'err');
+  const target = (isLeaveAdmin() && document.getElementById('lr-for')?.value) || currentUser.id;
+  if (mode === 'gecikme') {
+    if (!isLeaveAdmin()) {
+      toast('Geç kalmayı yönetici kaydeder', 'err');
+      return;
+    }
+    const day = [..._leavePick][0];
+    const mins = Number(document.getElementById('lr-mins')?.value);
+    if (!day || !target) {
+      toast('Gün ve kişi seçin', 'err');
+      return;
+    }
+    if (!Number.isFinite(mins) || mins < 1) {
+      toast('Dakika geçersiz', 'err');
+      return;
+    }
+    try {
+      await sb('late_arrivals', {
+        method: 'POST',
+        prefer: 'return=minimal',
+        body: JSON.stringify({
+          firm_id: fid,
+          user_id: target,
+          day_date: day,
+          minutes_late: mins,
+          note: reason || null,
+          recorded_by: currentUser.id,
+        }),
+      });
+      toast('Geç kalma kaydedildi', 'ok');
+      _leavePick = new Set();
+      document.getElementById('lr-reason').value = '';
+      await loadLateAdminTable(fid);
+      await refreshLeaveStats(fid);
+    } catch (e) {
+      toast('Hata: ' + e.message, 'err');
+    }
     return;
   }
-  if (to < from) {
-    toast('Bitiş tarihi başlangıçtan önce olamaz', 'err');
+  if (!_leavePick.size) {
+    toast('Takvimden gün seçin', 'err');
     return;
   }
-  const hr = _leaveSnap?.hr || await getHrSettings(fid);
-  const plan = leavePlan(from, to, kind, duration, hr, _leaveSnap?.remaining ?? 0, _leaveSnap?.existing || new Set());
+  const hr = leaveActiveContext()?.hr || _leaveSnap?.hr || await getHrSettings(fid);
+  const ctx = leaveActiveContext();
+  const plan = leavePlanDays([..._leavePick], kind, duration, hr, ctx?.remaining ?? 0, ctx?.existing || new Set());
   if (!plan.adding) {
-    toast('Bu aralıkta sayılan gün yok', 'err');
+    toast('Seçilen günler sayılmıyor', 'err');
     return;
   }
-  const chunks = [];
-  const noteBits = [reason];
-  if (plan.forced.length) noteBits.push(`Cumartesi zorunlu: ${plan.forced.join(', ')}`);
-  if (!plan.uses) {
-    chunks.push({ kind, days: plan.adding, tag: '' });
-  } else {
-    if (plan.paidUnits > 0.001) chunks.push({ kind, days: plan.paidUnits, tag: 'Ücretli kısım' });
-    if (plan.unpaidUnits > 0.001) chunks.push({ kind: 'unpaid', days: plan.unpaidUnits, tag: 'Ücretsiz kısım' });
-  }
-  if (!chunks.length) {
+  const groups = [];
+  (plan.dayUnits || []).forEach((d) => {
+    const last = groups[groups.length - 1];
+    const storeKind = d.bucket === 'unpaid' ? 'unpaid' : kind;
+    if (last && last.kind === storeKind && leaveAddIso(last.to, 1) === d.iso) {
+      last.to = d.iso;
+      last.units += d.unit;
+    } else {
+      groups.push({ from: d.iso, to: d.iso, units: d.unit, kind: storeKind });
+    }
+  });
+  if (!groups.length) {
     toast('Gün sayısı geçersiz', 'err');
     return;
   }
+  const noteBits = [reason];
+  if (plan.forced.length) noteBits.push(`Cumartesi zorunlu: ${plan.forced.join(', ')}`);
   try {
-    for (const chunk of chunks) {
-      const note = [noteBits.filter(Boolean).join(' | '), chunks.length > 1 ? chunk.tag : ''].filter(Boolean).join(' | ');
+    for (const group of groups) {
+      const tag = groups.length > 1 ? (group.kind === 'unpaid' ? 'Ücretsiz kısım' : 'Ücretli kısım') : '';
+      const note = [noteBits.filter(Boolean).join(' | '), tag].filter(Boolean).join(' | ');
       await sb('leave_requests', {
         method: 'POST',
         prefer: 'return=minimal',
         body: JSON.stringify({
           firm_id: fid,
-          user_id: currentUser.id,
-          date_from: plan.days[0],
-          date_to: plan.days[plan.days.length - 1],
-          days_used: Math.round(chunk.days * 100) / 100,
-          kind: chunk.kind,
+          user_id: target,
+          date_from: group.from,
+          date_to: group.to,
+          days_used: Math.round(group.units * 100) / 100,
+          kind: group.kind,
           reason: note || null,
           status: 'pending',
         }),
       });
     }
+    _leavePick = new Set();
     const de = typeof currentLang !== 'undefined' && currentLang === 'de';
-    toast(chunks.length > 1
+    const split = groups.some((g) => g.kind === 'unpaid') && groups.some((g) => g.kind !== 'unpaid');
+    toast(split
       ? (de ? 'Antrag geteilt: bezahlt und unbezahlt.' : 'Talep bölündü: ücretli ve ücretsiz.')
       : (de ? 'Antrag gesendet.' : 'İzin talebi gönderildi'), 'ok');
     document.getElementById('lr-reason').value = '';
@@ -616,18 +889,22 @@ async function loadMyLeaveRequests() {
   const box = document.getElementById('leave-my-table');
   if (!box || !currentUser?.id) return;
   try {
-    const rows =
-      (await sb(
-        `leave_requests?user_id=eq.${currentUser.id}&order=created_at.desc&limit=50&select=*`
-      ).catch(() => null)) || [];
+    _leaveMyRows = (await sb(
+      `leave_requests?user_id=eq.${currentUser.id}&order=created_at.desc&limit=80&select=*`
+    ).catch(() => null)) || [];
+    ['pending', 'approved', 'rejected'].forEach((key) => {
+      const btn = document.getElementById(`leave-tab-${key}`);
+      if (btn) btn.classList.toggle('btn-primary', _leaveMyTab === key);
+    });
+    const rows = _leaveMyRows.filter((r) => r.status === _leaveMyTab);
     if (!rows.length) {
-      box.innerHTML = '<div style="color:var(--text-3);font-size:12px;">Henüz talep yok</div>';
+      box.innerHTML = '<div style="color:var(--text-3);font-size:12px;">Bu sekmede kayıt yok</div>';
       return;
     }
     box.innerHTML = `
 <table class="data-table" style="width:100%;font-size:12px;border-collapse:collapse;">
 <thead><tr style="text-align:left;color:var(--text-3);">
-<th>Başlangıç</th><th>Bitiş</th><th>Gün</th><th>Tür</th><th>Durum</th><th>Not</th>
+<th>Başlangıç</th><th>Bitiş</th><th>Gün</th><th>Tür</th><th>Durum</th><th>Not</th><th></th>
 </tr></thead>
 <tbody>
 ${rows
@@ -639,6 +916,7 @@ ${rows
 <td>${_leaveEsc(leaveKindLabel(r.kind))}</td>
 <td>${_leaveEsc(leaveStatusLabel(r.status))}</td>
 <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;">${_leaveEsc(r.admin_comment || r.reason || '—')}</td>
+<td>${r.status === 'pending' ? `<button type="button" class="btn btn-ghost btn-sm" onclick="leaveCancelRequest('${r.id}')">Sil</button>` : ''}</td>
 </tr>`
   )
   .join('')}
@@ -767,15 +1045,42 @@ async function rejectLeaveRequest(id) {
   }
 }
 
+function leaveSetMyTab(tab) {
+  _leaveMyTab = tab || 'pending';
+  loadMyLeaveRequests();
+}
+
+async function leaveCancelRequest(id) {
+  const ok = await mbConfirm('Bekleyen kayıt silinsin mi?', 'Kaydı sil');
+  if (!ok) return;
+  const fid = _leaveFirmId();
+  try {
+    await sb(`leave_requests?id=eq.${id}&status=eq.pending`, {
+      method: 'DELETE',
+      prefer: 'return=minimal',
+    });
+    toast('Kayıt silindi', 'ok');
+    await loadMyLeaveRequests();
+    if (fid) {
+      await loadAdminLeaveTables(fid);
+      await refreshLeaveStats(fid);
+    }
+  } catch (e) {
+    toast('Hata: ' + e.message, 'err');
+  }
+}
+
 async function fillLateUserSelect(fid) {
   const sel = document.getElementById('late-user');
   const ent = document.getElementById('ent-user');
+  const who = document.getElementById('lr-for');
   if (!isLeaveAdmin() || !fid) return;
   try {
-    const users = await sb(`users?firm_id=eq.${fid}&role=in.(agent,qc,firm_admin)&select=id,name,email&order=name.asc`).catch(() => []);
+    const users = await sb(`users?firm_id=eq.${fid}&role=in.(agent,qc,firm_admin,admin)&select=id,name,email&order=name.asc`).catch(() => []);
     const opts = (users || []).map((u) => `<option value="${u.id}">${_leaveEsc(u.name || u.email)}</option>`).join('');
     if (sel) sel.innerHTML = `<option value="">Agent seç…</option>` + opts;
     if (ent) ent.innerHTML = `<option value="">Kullanıcı seç…</option>` + opts;
+    if (who) who.innerHTML = `<option value="">Kendim</option>` + opts;
   } catch (e) {
     if (sel) sel.innerHTML = '<option value="">Yüklenemedi</option>';
   }

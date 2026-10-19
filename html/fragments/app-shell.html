@@ -2056,27 +2056,54 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div style="font-size:12px;color:var(--text-3);" id="leave-salary-hint">—</div>
 </div>
 <div class="card" id="leave-request-card" style="padding:16px;">
-<div class="card-title" style="margin-bottom:12px;" data-tr="Yeni izin talebi" data-de="Neuer Urlaubsantrag">Yeni izin talebi</div>
+<div class="card-title" style="margin-bottom:12px;" data-tr="Yeni talep" data-de="Neuer Antrag">Yeni talep</div>
+<div class="form-row" id="lr-for-wrap" style="display:none;margin-bottom:10px;">
+<label class="form-label" data-tr="Kimin adına" data-de="Für wen">Kimin adına</label>
+<select class="form-input" id="lr-for" style="max-width:320px;" onchange="leaveForChanged()"></select>
+</div>
 <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
 <div class="form-row">
-<label class="form-label" data-tr="Başlangıç" data-de="Beginn">Başlangıç</label>
-<input type="date" class="form-input" id="lr-from" onchange="onLeaveDatesChange()">
+<label class="form-label" data-tr="Kayıt türü" data-de="Eintragstyp">Kayıt türü</label>
+<select class="form-input" id="lr-mode" onchange="leaveSetMode(this.value)">
+<option value="izin" data-tr="İzin" data-de="Urlaub">İzin</option>
+<option value="gecikme" data-tr="Geç kalma" data-de="Verspätung">Geç kalma</option>
+</select>
 </div>
-<div class="form-row">
-<label class="form-label" data-tr="Bitiş" data-de="Ende">Bitiş</label>
-<input type="date" class="form-input" id="lr-to" onchange="onLeaveDatesChange()">
-</div>
-</div>
-<div id="lr-duration-wrap" class="form-row" style="margin-top:10px;">
+<div class="form-row" id="lr-duration-wrap">
 <label class="form-label" data-tr="Süre" data-de="Dauer">Süre</label>
-<select class="form-input" id="lr-duration" style="max-width:220px;" onchange="onLeaveDatesChange()">
+<select class="form-input" id="lr-duration" onchange="leaveRefreshPick()">
 <option value="full" data-tr="Tam gün" data-de="Ganzer Tag">Tam gün</option>
 <option value="half" data-tr="Yarım gün" data-de="Halber Tag">Yarım gün</option>
 </select>
 </div>
+</div>
+<div id="leave-cal-tools" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;">
+<div style="display:flex;gap:6px;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="leaveCalShift(-1)" aria-label="Önceki ay">‹</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="leaveCalToday()" data-tr="Bugün" data-de="Heute">Bugün</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="leaveCalShift(1)" aria-label="Sonraki ay">›</button>
+</div>
+<strong id="leave-cal-label" style="font-size:14px;">—</strong>
+</div>
+<div class="leave-cal-week" id="leave-cal-week"></div>
+<div class="leave-cal-grid" id="leave-cal-grid"></div>
+<div class="leave-cal-legend">
+<span><i class="leave-sw paid"></i> <span data-tr="Ücretli iznin" data-de="Dein bezahlter Urlaub">Ücretli iznin</span></span>
+<span><i class="leave-sw unpaid"></i> <span data-tr="Ücretsiz iznin" data-de="Dein unbezahlter Urlaub">Ücretsiz iznin</span></span>
+<span><i class="leave-sw team"></i> <span data-tr="Başkasının izni" data-de="Urlaub anderer">Başkasının izni</span></span>
+<span><i class="leave-sw late"></i> <span data-tr="Geç kalma" data-de="Verspätung">Geç kalma</span></span>
+<span><i class="leave-sw picked"></i> <span data-tr="Seçtiğin gün" data-de="Gewählter Tag">Seçtiğin gün</span></span>
+<span><i class="leave-sw forced"></i> <span data-tr="Zorunlu Cumartesi" data-de="Pflicht-Samstag">Zorunlu Cumartesi</span></span>
+</div>
+<div style="font-size:11px;color:var(--text-3);font-weight:600;margin-top:8px;line-height:1.45;" data-tr="Günlere tek tek bas. Aralık olmak zorunda değil. İki tatil birleşirse Cuma’dan sonraki Cumartesi eklenir. Hak yetmezse ücretli ve ücretsiz bölünür." data-de="Tage einzeln antippen. Freitag plus folgender Montag ergänzt den Samstag. Reicht der Anspruch nicht, wird geteilt.">Günlere tek tek bas. Aralık olmak zorunda değil. İki tatil birleşirse Cuma’dan sonraki Cumartesi eklenir. Hak yetmezse ücretli ve ücretsiz bölünür.</div>
+<div id="leave-pick-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+<div id="lr-delay-wrap" class="form-row" style="display:none;margin-top:10px;max-width:160px;">
+<label class="form-label" data-tr="Dakika" data-de="Minuten">Dakika</label>
+<input type="number" class="form-input" id="lr-mins" min="1" max="480" value="15">
+</div>
 <div class="form-row" style="margin-top:10px;">
 <label class="form-label" data-tr="Sayılan gün" data-de="Gezählte Tage">Sayılan gün</label>
-<input type="number" class="form-input" id="lr-days" min="0" step="0.5" value="1" style="max-width:120px;" readonly>
+<input type="number" class="form-input" id="lr-days" min="0" step="0.5" value="0" style="max-width:120px;" readonly>
 </div>
 <div id="lr-preview" style="margin-top:8px;font-size:12px;font-weight:700;color:var(--text-2);"></div>
 <div class="form-row" style="margin-top:10px;">
@@ -2189,7 +2216,14 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div id="leave-pending-table"></div>
 </div>
 <div class="card" style="padding:16px;">
-<div class="card-title" style="margin-bottom:12px;">Taleplerim</div>
+<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+<div class="card-title" style="margin:0;" data-tr="Kayıtlarım" data-de="Meine Einträge">Kayıtlarım</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;">
+<button type="button" class="btn btn-ghost btn-sm" id="leave-tab-pending" onclick="leaveSetMyTab('pending')" data-tr="Bekleyen" data-de="Offen">Bekleyen</button>
+<button type="button" class="btn btn-ghost btn-sm" id="leave-tab-approved" onclick="leaveSetMyTab('approved')" data-tr="Onaylanan" data-de="Genehmigt">Onaylanan</button>
+<button type="button" class="btn btn-ghost btn-sm" id="leave-tab-rejected" onclick="leaveSetMyTab('rejected')" data-tr="Reddedilen" data-de="Abgelehnt">Reddedilen</button>
+</div>
+</div>
 <div id="leave-my-table"></div>
 </div>
 <div class="card" id="leave-admin-all" style="padding:16px;display:none;">
