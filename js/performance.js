@@ -744,7 +744,6 @@ async function perfReload() {
        perfRenderMainTable('total');
     perfRenderThisMonth();
     perfRenderRecent();
-    if (typeof applyLang === 'function') applyLang();
   } catch (e) {
     console.error(e);
     toast(String(e.message || e), 'err');
