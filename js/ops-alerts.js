@@ -5,7 +5,7 @@ let _opsDirective = { ids: [], at: '', by: '' };
 let _opsAlerts = {
   callMin: 4, goldAfter: 1, waitMin: 1,
   roles: ['agent', 'field_agent'], effect: 'aurora', appt: true, campaign: true,
-  sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, call: true, wait: true, pick: true, drop: true, clear: true, move: true, results: {} },
+  sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, camp: true, call: true, wait: true, pick: true, drop: true, clear: true, move: true, results: {} },
 };
 let _opsNotifPrimed = false;
 let _opsWrongSig = '';
@@ -68,11 +68,11 @@ function opsSay(key, fallback) {
 const OPS_TONE_IDS = ['chime', 'bell', 'soft', 'glass', 'pop', 'alert', 'win', 'spark', 'fall', 'lose'];
 const OPS_TONE_LABELS = { chime: 'Çan', bell: 'Zil', soft: 'Yumuşak', glass: 'Cam', pop: 'Kısa', alert: 'Uyarı', win: 'Kazanç', spark: 'Parıltı', fall: 'Düşüş', lose: 'Kayıp' };
 const OPS_TONE_DEFAULT = {
-  due: 'chime', soon: 'soft', hour: 'bell', slot: 'glass', wrong: 'pop', call: 'bell', wait: 'soft',
+  due: 'chime', soon: 'soft', hour: 'bell', slot: 'glass', wrong: 'pop', camp: 'chime', call: 'bell', wait: 'soft',
   pick: 'alert', drop: 'soft', clear: 'lose', move: 'bell',
 };
 const OPS_MOOD_DEFAULT = {
-  due: 'neutral', soon: 'neutral', hour: 'neutral', slot: 'good', wrong: 'bad', call: 'neutral', wait: 'neutral',
+  due: 'neutral', soon: 'neutral', hour: 'neutral', slot: 'good', wrong: 'bad', camp: 'neutral', call: 'neutral', wait: 'neutral',
   pick: 'good', drop: 'neutral', clear: 'bad', move: 'neutral',
 };
 const OPS_TONE_NOTES = {
@@ -116,7 +116,7 @@ function opsTint(hex) {
   return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
 }
 
-const OPS_AGENT_SOUNDS = ['due', 'soon', 'hour', 'wrong', 'clear', 'move'];
+const OPS_AGENT_SOUNDS = ['due', 'soon', 'hour', 'wrong', 'camp', 'clear', 'move'];
 
 function opsIsAgentNotif() {
   return String(currentUser?.role || '') === 'agent';
@@ -323,11 +323,13 @@ async function opsLoadDirective() {
     };
     opsReadAlerts(rows?.[0]?.settings?.ops_alerts);
     await opsEnsureCampNames(_opsDirective.ids);
-    if (prevAt && nextAt && prevAt !== nextAt && _opsAlerts.campaign && opsRoleSeesWarn()) {
+    if (prevAt && nextAt && prevAt !== nextAt && _opsAlerts.campaign && opsRoleSeesWarn() && opsSoundOn('camp')) {
       const title = opsSay('ops.notice.campaign', 'Yeni kampanya bildirimi geldi');
-      toast(title, 'ok', 5000);
       const names = opsNamedCamps(_opsDirective.ids).join(', ');
-      opsRememberNotice(title, names || title, '#64748b', 'camp');
+      const body = names ? `${opsSay('ops.notice.camps', 'Çalışılacak kampanyalar')}: ${names}` : title;
+      toast(title, 'ok', 5000);
+      opsCue('camp');
+      opsRememberNotice(title, body, opsSoundEntry('camp').color, 'camp');
     }
   } catch (e) {}
   opsPaintCampWarn();
@@ -787,6 +789,29 @@ function opsShowSample(kind) {
     opsKeepSample(opsSay('wv.due.title', 'Arama vakti geldi'), typeof wvDueNotice === 'function' ? wvDueNotice(sample) : sample.nachname, opsPickedColor('due', opsSoundEntry('due').color), 'wv');
     return;
   }
+  if (kind === 'camp') {
+    const title = opsSay('ops.notice.campaign', 'Yeni kampanya bildirimi geldi');
+    const body = [
+      `${opsSay('ops.notice.camps', 'Çalışılacak kampanyalar')}: 85, 96`,
+      `${opsSay('ops.warn.pick', 'Seçmelisin:')} 85, 96.`,
+      `${opsSay('ops.warn.close', 'Kapatmalısın:')} Eski Kampanya.`,
+    ].join('\n');
+    opsKeepSample(title, body, opsPickedColor('camp', opsSoundEntry('camp').color), 'camp');
+    const host = document.createElement('div');
+    host.id = 'ops-sample-host';
+    host.className = 'ops-sample-host';
+    const bar = document.createElement('div');
+    bar.className = `ops-camp-warn is-${document.getElementById('notif-settings-card')?.dataset.effect || _opsAlerts.effect || 'aurora'}`;
+    const text = document.createElement('span');
+    text.className = 'ops-camp-warn-text';
+    text.textContent = 'Yanlış kampanyadasın. Seçmelisin: 85, 96. Kapatmalısın: Eski Kampanya.';
+    bar.appendChild(text);
+    host.appendChild(bar);
+    document.body.appendChild(host);
+    if (_opsSampleTimer) clearTimeout(_opsSampleTimer);
+    _opsSampleTimer = setTimeout(() => host.remove(), 4500);
+    return;
+  }
   const host = document.createElement('div');
   host.id = 'ops-sample-host';
   const close = () => host.remove();
@@ -1118,7 +1143,7 @@ function opsNoticeCat(soundKind, titleKind) {
   if (kind.startsWith('result:') || title === 'qc') return 'qc';
   if (kind === 'pick' || kind === 'drop' || kind === 'clear' || kind === 'move') return 'cal';
   if (kind === 'slot' || title === 'book') return 'appt';
-  if (kind === 'wrong') return 'camp';
+  if (kind === 'wrong' || kind === 'camp') return 'camp';
   if (kind === 'due' || kind === 'soon' || kind === 'hour') return 'wv';
   return 'live';
 }
