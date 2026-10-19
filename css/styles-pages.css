@@ -62,6 +62,14 @@ font-size:16px; font-weight:800; flex-shrink:0;
 .agent-info-lg { min-width: 0; flex: 1; }
 .agent-info-lg .name { font-size:14px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .agent-info-lg .camps { font-size:11px; color:var(--text-3); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+button.agent-camps-hit {
+  display:block; width:100%; max-width:100%; margin-top:3px; padding:0;
+  border:0; background:transparent; text-align:left; cursor:pointer;
+  font-size:11px; font-weight:600; color:var(--accent-text);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+button.agent-camps-hit:hover { text-decoration:underline; }
+.agents-grid--rows .agent-camps-cell { cursor:pointer; color:var(--accent-text); font-weight:600; }
 .agent-status-dot { width:9px; height:9px; border-radius:50%; margin-left:auto; flex-shrink:0; }
 .agents-filters { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
 .agents-filters .form-input { width:auto; min-width:140px; font-size:12px; padding:6px 8px; }

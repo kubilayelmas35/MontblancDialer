@@ -259,12 +259,12 @@ function agentCardMarkup(user) {
   const color = agentStatusColor(status);
   const camps = text.camps || t('agent.no_campaign');
   const initial = String(user.name || '?').charAt(0);
-  return `<div class="agent-card-item${user.is_active === false ? ' is-off' : ''}" style="position:relative;cursor:pointer;" onclick="openEditAgentModal('${user.id}')">
+  return `<div class="agent-card-item${user.is_active === false ? ' is-off' : ''}" style="position:relative;cursor:pointer;" onclick="if (event.target.closest('button')) return; openEditAgentModal('${user.id}')">
 <div class="agent-av-lg" style="background:${user.is_active === false ? 'var(--text-3)' : 'var(--accent)'};">${agentEsc(initial)}</div>
 <div class="agent-info-lg" style="flex:1;">
 <div class="name">${agentEsc(user.name || '')}</div>
 <div style="font-size:11px;color:var(--text-3);">${agentEsc(user.email || '')}</div>
-<div class="camps" style="margin-top:3px;" title="${agentEsc(camps)}">${agentEsc(camps)}</div>
+<button type="button" class="agent-camps-hit" title="${agentEsc(t('agent.camp.title'))}" onclick="event.stopPropagation();openAgentCampaigns('${user.id}')">${agentEsc(camps)}</button>
 <div class="agent-today" title="${agentEsc(t('agent.today.hint'))}">${agentEsc(agentTodayLine(user))}</div>
 <button type="button" class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="event.stopPropagation();openAgentCampaigns('${user.id}')">${agentEsc(t('agent.campaigns'))}</button>
 </div>
@@ -295,7 +295,7 @@ function agentRowsBody() {
       email: `<td>${agentEsc(u.email || '')}</td>`,
       role: `<td>${agentEsc(text.role)}</td>`,
       status: `<td style="color:${color};">${agentEsc(text.status)}</td>`,
-      camps: `<td class="agent-camps-cell" title="${agentEsc(camps)}">${agentEsc(camps)}</td>`,
+      camps: `<td class="agent-camps-cell" title="${agentEsc(t('agent.camp.title'))}" onclick="event.stopPropagation();openAgentCampaigns('${u.id}')">${agentEsc(camps)}</td>`,
       calls: `<td class="num" title="${agentEsc(t('agent.today.hint'))}">${agentEsc(text.calls)}</td>`,
       appts: `<td class="num" title="${agentEsc(t('agent.today.hint'))}">${agentEsc(text.appts)}</td>`,
       active: `<td>${agentEsc(text.active)}</td>`,
@@ -303,7 +303,7 @@ function agentRowsBody() {
 <button type="button" class="btn btn-ghost btn-sm" onclick="openAgentCampaigns('${u.id}')">${agentEsc(t('agent.campaigns'))}</button>
 </div></td>`,
     };
-    return `<tr class="camp-row${u.is_active === false ? ' is-off' : ''}" onclick="openEditAgentModal('${u.id}')">${defs.map((col) => cells[col.key] || '').join('')}</tr>`;
+    return `<tr class="camp-row${u.is_active === false ? ' is-off' : ''}" onclick="if (event.target.closest('button, .agent-camps-cell')) return; openEditAgentModal('${u.id}')">${defs.map((col) => cells[col.key] || '').join('')}</tr>`;
   }).join('');
 }
 
@@ -415,7 +415,7 @@ async function loadAgents() {
 }
 
 function paintAgentCampaignList(userId) {
-  const box = document.getElementById('agent-camp-list');
+  const box = document.querySelector('#m-agent-camps #agent-page-camp-list');
   const user = (_agentUsers || []).find((u) => String(u.id) === String(userId));
   if (!box || !user) return;
   const camps = agentFirmCamps(user);
@@ -434,11 +434,15 @@ function paintAgentCampaignList(userId) {
 
 function openAgentCampaigns(userId) {
   const user = (_agentUsers || []).find((u) => String(u.id) === String(userId));
-  if (!user) return;
+  if (!user) {
+    if (typeof toast === 'function') toast(t('agent.camp.empty'), 'err');
+    return;
+  }
   document.getElementById('m-agent-camps')?.remove();
   const modal = document.createElement('div');
   modal.id = 'm-agent-camps';
   modal.className = 'modal-overlay open';
+  modal.style.zIndex = '1400';
   modal.innerHTML = `<div class="modal" style="max-width:460px;">
 <div class="modal-hdr">
 <div class="modal-title"><i class="ph ph-megaphone"></i> ${agentEsc(t('agent.camp.title'))}</div>
@@ -446,7 +450,7 @@ function openAgentCampaigns(userId) {
 </div>
 <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
 <div style="font-size:13px;font-weight:700;">${agentEsc(user.name || '')}</div>
-<div id="agent-camp-list" style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow:auto;"></div>
+<div id="agent-page-camp-list" style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow:auto;"></div>
 </div>
 </div>`;
   modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
