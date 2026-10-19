@@ -4,14 +4,20 @@
 let _opsDirective = { ids: [], at: '', by: '' };
 let _opsAlerts = {
   callMin: 4, goldAfter: 1, waitMin: 1,
-  roles: ['agent', 'field_agent'], effect: 'aurora', appt: true, campaign: true, wrongAfter: 2,
-  sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, camp: true, call: true, wait: true, pick: true, drop: true, clear: true, move: true, results: {} },
+  roles: ['agent', 'field_agent'], effect: 'aurora', campRoles: ['agent', 'field_agent'], campEffect: 'aurora',
+  appt: true, campaign: true, wrongAfter: 2, dataMin: 1000,
+  sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, camp: true, data: true, call: true, wait: true, pick: true, drop: true, clear: true, move: true, results: {} },
 };
 let _opsNotifPrimed = false;
 let _opsWrongSig = '';
 let _opsCampNames = {};
 let _opsDirectiveTimer = null;
 let _opsWrongTimer = null;
+let _opsCampStripTimer = null;
+let _opsCampShownAt = '';
+let _opsDataAt = 0;
+let _opsBootAt = Date.now();
+const _opsDataLow = new Set();
 const _opsSeen = {};
 const _opsDismiss = new Set();
 const _opsBeeped = new Set();
@@ -69,11 +75,11 @@ function opsSay(key, fallback) {
 const OPS_TONE_IDS = ['chime', 'bell', 'soft', 'glass', 'pop', 'alert', 'win', 'spark', 'fall', 'lose'];
 const OPS_TONE_LABELS = { chime: 'Çan', bell: 'Zil', soft: 'Yumuşak', glass: 'Cam', pop: 'Kısa', alert: 'Uyarı', win: 'Kazanç', spark: 'Parıltı', fall: 'Düşüş', lose: 'Kayıp' };
 const OPS_TONE_DEFAULT = {
-  due: 'chime', soon: 'soft', hour: 'bell', slot: 'glass', wrong: 'pop', camp: 'chime', call: 'bell', wait: 'soft',
+  due: 'chime', soon: 'soft', hour: 'bell', slot: 'glass', wrong: 'pop', camp: 'chime', data: 'alert', call: 'bell', wait: 'soft',
   pick: 'alert', drop: 'soft', clear: 'lose', move: 'bell',
 };
 const OPS_MOOD_DEFAULT = {
-  due: 'neutral', soon: 'neutral', hour: 'neutral', slot: 'good', wrong: 'bad', camp: 'neutral', call: 'neutral', wait: 'neutral',
+  due: 'neutral', soon: 'neutral', hour: 'neutral', slot: 'good', wrong: 'bad', camp: 'neutral', data: 'bad', call: 'neutral', wait: 'neutral',
   pick: 'good', drop: 'neutral', clear: 'bad', move: 'neutral',
 };
 const OPS_TONE_NOTES = {
@@ -324,11 +330,15 @@ async function opsLoadDirective() {
     };
     opsReadAlerts(rows?.[0]?.settings?.ops_alerts);
     await opsEnsureCampNames(_opsDirective.ids);
-    if (prevAt && nextAt && prevAt !== nextAt && _opsAlerts.campaign && opsRoleSeesWarn() && opsSoundOn('camp')) {
+    const age = Date.parse(nextAt);
+    const fresh = !!(prevAt && nextAt && prevAt !== nextAt);
+    const recent = !prevAt && Number.isFinite(age) && Date.now() - age >= 0 && Date.now() - age < 20000;
+    if ((fresh || recent) && nextAt !== _opsCampShownAt && _opsAlerts.campaign && opsRoleSeesCamp() && opsSoundOn('camp')) {
+      _opsCampShownAt = nextAt;
       const title = opsSay('ops.notice.campaign', 'Yeni kampanya bildirimi geldi');
       const names = opsNamedCamps(_opsDirective.ids).join(', ');
-      const body = names ? `${opsSay('ops.notice.camps', 'Çalışılacak kampanyalar')}: ${names}` : title;
-      toast(title, 'ok', 5000);
+      const body = names ? `${title}. ${opsSay('ops.notice.camps', 'Çalışılacak kampanyalar')}: ${names}` : title;
+      opsShowCampStrip(body);
       opsCue('camp');
       opsRememberNotice(title, body, opsSoundEntry('camp').color, 'camp');
     }
@@ -356,9 +366,12 @@ function opsReadAlerts(raw) {
     waitMin: opsClamp(src.wait_min, 1, 1, 30),
     roles,
     effect,
+    campRoles: Array.isArray(src.camp_roles) ? src.camp_roles.map(String) : roles.slice(),
+    campEffect: ['aurora', 'gradient', 'blink', 'solid'].includes(src.camp_effect) ? src.camp_effect : effect,
     appt: src.notify_appt !== false,
     campaign: src.notify_campaign !== false,
     wrongAfter: opsClamp(src.wrong_after_min, 2, 1, 30),
+    dataMin: opsClamp(src.data_min, 1000, 1, 100000),
     sounds: opsReadSounds(src.sounds),
   };
 }
@@ -411,9 +424,38 @@ function opsReadSounds(raw) {
   return sounds;
 }
 
-function opsRoleSeesWarn() {
+function opsRoleIn(list) {
   const role = String(currentUser?.role || '');
-  return !!role && (_opsAlerts.roles || []).includes(role);
+  return !!role && (list || []).includes(role);
+}
+
+function opsRoleSeesWarn() {
+  return opsRoleIn(_opsAlerts.roles);
+}
+
+function opsRoleSeesCamp() {
+  return opsRoleIn(_opsAlerts.campRoles);
+}
+
+function opsRoleSeesData() {
+  const role = String(currentUser?.role || '');
+  return role === 'firm_admin' || role === 'admin' || role === 'super_admin';
+}
+
+function opsShowCampStrip(sentence) {
+  const bar = document.getElementById('ops-camp-new');
+  if (!bar || !sentence) return;
+  bar.className = `ops-camp-warn is-new is-${_opsAlerts.campEffect || _opsAlerts.effect || 'aurora'}`;
+  const text = document.createElement('span');
+  text.className = 'ops-camp-warn-text';
+  text.textContent = sentence;
+  bar.replaceChildren(text);
+  bar.hidden = false;
+  if (_opsCampStripTimer) clearTimeout(_opsCampStripTimer);
+  _opsCampStripTimer = setTimeout(() => {
+    bar.hidden = true;
+    bar.replaceChildren();
+  }, 12000);
 }
 
 function opsNotifyPrefs() {
@@ -604,15 +646,19 @@ async function opsOpenCampPanel() {
   search.focus();
 }
 
-function opsPickEffect(effect) {
+function opsPickEffect(effect, which) {
   const card = document.getElementById('notif-settings-card');
   const next = ['aurora', 'gradient', 'blink', 'solid'].includes(effect) ? effect : 'aurora';
-  if (card) card.dataset.effect = next;
-  document.querySelectorAll('#ops-effect-picks button').forEach((btn) => {
+  const camp = which === 'camp';
+  if (card) {
+    if (camp) card.dataset.campEffect = next;
+    else card.dataset.effect = next;
+  }
+  document.querySelectorAll(`${camp ? '#ops-camp-effect-picks' : '#ops-effect-picks'} button`).forEach((btn) => {
     btn.classList.toggle('is-on', btn.dataset.effect === next);
   });
-  const preview = document.getElementById('ops-warn-preview');
-  if (preview) preview.className = `ops-camp-warn is-${next} ops-warn-preview ops-firm-only`;
+  const preview = document.getElementById(camp ? 'ops-camp-preview' : 'ops-warn-preview');
+  if (preview) preview.className = `ops-camp-warn${camp ? ' is-new' : ''} is-${next} ops-warn-preview ops-firm-only`;
 }
 
 function opsFillNotifSettings() {
@@ -620,6 +666,9 @@ function opsFillNotifSettings() {
   if (!card) return;
   card.querySelectorAll('[data-role]').forEach((box) => {
     box.checked = (_opsAlerts.roles || []).includes(box.dataset.role);
+  });
+  card.querySelectorAll('[data-camp-role]').forEach((box) => {
+    box.checked = (_opsAlerts.campRoles || []).includes(box.dataset.campRole);
   });
   const call = document.getElementById('ops-set-call');
   const gold = document.getElementById('ops-set-gold');
@@ -629,6 +678,8 @@ function opsFillNotifSettings() {
   if (wait) wait.value = String(_opsAlerts.waitMin);
   const wrongAfter = document.getElementById('ops-set-wrong-after');
   if (wrongAfter) wrongAfter.value = String(opsWrongAfterMin());
+  const dataMin = document.getElementById('ops-set-data-min');
+  if (dataMin) dataMin.value = String(opsClamp(_opsAlerts.dataMin, 1000, 1, 100000));
   const appt = document.getElementById('ops-notify-appt');
   const camp = document.getElementById('ops-notify-camp');
   if (appt) appt.checked = _opsAlerts.appt !== false;
@@ -654,6 +705,7 @@ function opsFillNotifSettings() {
     if (row) opsPaintColor(row, box.dataset.sound, entry.color);
   });
   opsPickEffect(_opsAlerts.effect || 'aurora');
+  opsPickEffect(_opsAlerts.campEffect || _opsAlerts.effect || 'aurora', 'camp');
   opsSyncRoleChipVisibility();
   opsPaintAgentNotif();
   opsFillResultRows();
@@ -662,7 +714,7 @@ function opsFillNotifSettings() {
 function opsSyncRoleChipVisibility() {
   const role = String(currentUser?.role || '');
   const platform = role === 'super_admin' || role === 'admin';
-  document.querySelectorAll('#notif-settings-card [data-role="admin"], #notif-settings-card [data-role="super_admin"]').forEach((box) => {
+  document.querySelectorAll('#notif-settings-card [data-role="admin"], #notif-settings-card [data-role="super_admin"], #notif-settings-card [data-camp-role="admin"], #notif-settings-card [data-camp-role="super_admin"]').forEach((box) => {
     const chip = box.closest('label');
     if (chip) chip.hidden = !platform;
   });
@@ -763,14 +815,14 @@ function opsCollectSounds(card) {
 
 let _opsSampleTimer = null;
 let _opsSampleWrongTimer = null;
-function opsMountWrongSample(sentence) {
+function opsMountStripSample(sentence, effect, isNew) {
   document.getElementById('ops-sample-host')?.remove();
   if (_opsSampleTimer) clearTimeout(_opsSampleTimer);
   const host = document.createElement('div');
   host.id = 'ops-sample-host';
   host.className = 'ops-sample-host';
   const bar = document.createElement('div');
-  bar.className = `ops-camp-warn is-${document.getElementById('notif-settings-card')?.dataset.effect || _opsAlerts.effect || 'aurora'}`;
+  bar.className = `ops-camp-warn${isNew ? ' is-new' : ''} is-${effect || 'aurora'}`;
   const text = document.createElement('span');
   text.className = 'ops-camp-warn-text';
   text.textContent = sentence;
@@ -778,6 +830,10 @@ function opsMountWrongSample(sentence) {
   host.appendChild(bar);
   document.body.appendChild(host);
   _opsSampleTimer = setTimeout(() => host.remove(), 4500);
+}
+function opsMountWrongSample(sentence) {
+  const effect = document.getElementById('notif-settings-card')?.dataset.effect || _opsAlerts.effect || 'aurora';
+  opsMountStripSample(sentence, effect, false);
 }
 function opsShowSample(kind) {
   opsPreviewSound(kind);
@@ -841,8 +897,9 @@ function opsShowSample(kind) {
   }
   if (kind === 'camp') {
     const title = opsSay('ops.notice.campaign', 'Yeni kampanya bildirimi geldi');
-    const body = `${opsSay('ops.notice.camps', 'Çalışılacak kampanyalar')}: 85, 96`;
-    toast(title, 'ok', 5000);
+    const body = `${title}. ${opsSay('ops.notice.camps', 'Çalışılacak kampanyalar')}: 85, 96`;
+    const effect = document.getElementById('notif-settings-card')?.dataset.campEffect || _opsAlerts.campEffect || 'aurora';
+    opsMountStripSample(body, effect, true);
     opsRememberNotice(title, body, opsPickedColor('camp', opsSoundEntry('camp').color), 'camp');
     _opsSampleWrongTimer = setTimeout(() => {
       _opsSampleWrongTimer = null;
@@ -850,6 +907,13 @@ function opsShowSample(kind) {
       opsMountWrongSample(sentence);
       opsRememberNotice('Yanlış kampanya', sentence, opsPickedColor('wrong', opsSoundEntry('wrong').color), 'camp');
     }, 8000);
+    return;
+  }
+  if (kind === 'data') {
+    const min = opsClamp(document.getElementById('ops-set-data-min')?.value, 1000, 1, 100000);
+    const text = opsDataText('85', 640, min);
+    toast(`${opsSay('ops.data.title', 'Veri azaldı')}. ${text}`, 'warn', 4000);
+    opsRememberNotice(opsSay('ops.data.title', 'Veri azaldı'), text, opsPickedColor('data', opsSoundEntry('data').color), 'camp');
     return;
   }
   if (kind === 'wrong') {
@@ -899,6 +963,9 @@ async function opsSaveNotifSettings() {
     notify_appt: !!document.getElementById('ops-notify-appt')?.checked,
     notify_campaign: !!document.getElementById('ops-notify-camp')?.checked,
     wrong_after_min: opsClamp(document.getElementById('ops-set-wrong-after')?.value, 2, 1, 30),
+    camp_roles: [...card.querySelectorAll('[data-camp-role]:checked')].map((el) => el.dataset.campRole),
+    camp_effect: card.dataset.campEffect || card.dataset.effect || 'aurora',
+    data_min: opsClamp(document.getElementById('ops-set-data-min')?.value, 1000, 1, 100000),
     sounds: opsCollectSounds(card),
   };
   try {
@@ -1180,7 +1247,7 @@ function opsNoticeCat(soundKind, titleKind) {
   if (kind.startsWith('result:') || title === 'qc') return 'qc';
   if (kind === 'pick' || kind === 'drop' || kind === 'clear' || kind === 'move') return 'cal';
   if (kind === 'slot' || title === 'book') return 'appt';
-  if (kind === 'wrong' || kind === 'camp') return 'camp';
+  if (kind === 'wrong' || kind === 'camp' || kind === 'data') return 'camp';
   if (kind === 'due' || kind === 'soon' || kind === 'hour') return 'wv';
   return 'live';
 }
@@ -1455,6 +1522,41 @@ async function opsTickFloor() {
   }
 }
 
+function opsDataText(name, n, min) {
+  return `${name}: ${opsSay('ops.data.queue', 'kuyrukta')} ${n} ${opsSay('ops.data.rows', 'kayıt')}, ${opsSay('ops.data.limit', 'sınır')} ${min}.`;
+}
+
+async function opsTickData() {
+  if (window.__opsHoldData) return;
+  if (Date.now() - _opsBootAt < 20000) return;
+  if (Date.now() - _opsDataAt < 60000) return;
+  if (!opsRoleSeesData() || !opsSoundOn('data') || typeof sb !== 'function' || typeof mbHeadCountExact !== 'function') return;
+  const fid = opsFirmId();
+  if (!fid) return;
+  _opsDataAt = Date.now();
+  const min = opsClamp(_opsAlerts.dataMin, 1000, 1, 100000);
+  try {
+    const camps = await sb(`campaigns?firm_id=eq.${fid}&status=eq.active&select=id,name&limit=30`) || [];
+    for (const camp of camps) {
+      if (!camp?.id) continue;
+      const n = await mbHeadCountExact(`contacts?campaign_id=eq.${camp.id}&status=in.(pending,no_answer,callback)&select=id`);
+      if (n == null) continue;
+      const id = String(camp.id);
+      if (n < min) {
+        if (_opsDataLow.has(id)) continue;
+        _opsDataLow.add(id);
+        const title = opsSay('ops.data.title', 'Veri azaldı');
+        const text = opsDataText(String(camp.name || '').trim() || 'Kampanya', n, min);
+        toast(`${title}. ${text}`, 'warn', 5000);
+        opsCue('data');
+        opsRememberNotice(title, text, opsSoundEntry('data').color, 'camp');
+      } else {
+        _opsDataLow.delete(id);
+      }
+    }
+  } catch (e) {}
+}
+
 function opsBoot() {
   if (_opsDirectiveTimer) clearInterval(_opsDirectiveTimer);
   _opsDirectiveTimer = setInterval(() => {
@@ -1462,11 +1564,13 @@ function opsBoot() {
     opsLoadDirective();
     opsTickLive();
     opsTickFloor();
+    opsTickData();
   }, 15000);
   if (currentUser) {
     opsLoadDirective();
     opsTickLive();
     opsTickFloor();
+    opsTickData();
   }
 }
 
