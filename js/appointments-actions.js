@@ -28,17 +28,39 @@ ${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="dele
   const statusCfg = resultMap[_normResultKey(appt.durum)] || {};
   const dc = statusCfg.color || 'var(--accent)';
   const statusLabel = statusCfg.label || (appt.durum || '').replace('_', ' ').toUpperCase();
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const cell = (label, value) => `<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">${label}</div><div style="font-weight:700;">${esc(value || '—')}</div></div>`;
+  const agentName = String(appt.agent_name || window._takvimAgentNameById?.[appt.agent_id] || '').trim();
+  const when = slot
+    ? `${slot.tarih || ''} ${String(slot.baslangic_saat || '').slice(0, 5)}${slot.bitis_saat ? '–' + String(slot.bitis_saat).slice(0, 5) : ''}`
+    : (appt.termin_tarih || '');
+  const created = appt.kayit_tarihi
+    ? (typeof mbFormatWall === 'function'
+      ? mbFormatWall(appt.kayit_tarihi, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : new Date(appt.kayit_tarihi).toLocaleString('tr-TR', { timeZone: 'Europe/Berlin' }))
+    : '';
+  const pv = appt.interesse_an_pv === true ? 'Evet' : appt.interesse_an_pv === false ? 'Hayır' : '';
   body.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">DURUM</div><div style="font-weight:800;font-size:14px;color:${dc};">${statusLabel}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">MÜŞTERİ</div><div style="font-weight:700;">${appt.nachname||'—'}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">TELEFON</div><div style="font-weight:700;font-family:var(--mono);">${appt.telefonnummer||'—'}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">PLZ / ŞEHİR</div><div style="font-weight:700;">${appt.plz||'—'} ${appt.ortschaft||''}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">ADRES</div><div style="font-weight:700;">${appt.strasse||'—'}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">EV TİPİ</div><div style="font-weight:700;">${appt.hausart||'—'}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">BAUJAHR / m²</div><div style="font-weight:700;">${appt.baujahr||'—'} / ${appt.qm||'—'}m²</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">ISITMA</div><div style="font-weight:700;">${appt.heizung||'—'} (${appt.alter_der_heizung||'—'} yaş)</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">TÜKETİM</div><div style="font-weight:700;">${appt.verbrauch_pro_jahr||'—'}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">DURUM</div><div style="font-weight:800;font-size:14px;color:${dc};">${esc(statusLabel)}</div></div>
+${cell('MÜŞTERİ', appt.nachname)}
+${cell('TELEFON', appt.telefonnummer)}
+${cell('TELEFON 2', appt.telefon2)}
+${cell('PLZ / ŞEHİR', `${appt.plz || '—'} ${appt.ortschaft || ''}`.trim())}
+${cell('ADRES', appt.strasse)}
+${cell('EV TİPİ', appt.hausart)}
+${cell('YAPIM YILI', appt.baujahr)}
+${cell('m²', appt.qm)}
+${cell('ISITMA', appt.heizung)}
+${cell('ISITMA YAŞI', appt.alter_der_heizung)}
+${cell('TÜKETİM / YIL', appt.verbrauch_pro_jahr)}
+${cell('KİŞİ SAYISI', appt.personen)}
+${cell('PV İLGİSİ', pv)}
+${cell('PERSONEL', agentName)}
+${cell('RANDEVU TARİHİ / SAATİ', when)}
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">RANDEVUNUN OLUŞTURULMA TARİHİ / SAATİ</div><div style="font-weight:700;">${esc(created || '—')}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">KOMŞU RANDEVULARA MESAFE</div><div id="takvim-neighbor-dist" style="font-weight:700;">Hesaplanıyor…</div></div>
 </div>`;
+  takvimFillNeighborDist(slot, appt);
   const canEditNote = canManageAppt || appt.agent_id === currentUser?.id;
   if (canEditNote || appt.agent_notu) {
     const noteWrap = document.createElement('div');
@@ -63,14 +85,33 @@ ${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="dele
     }
     body.appendChild(noteWrap);
   }
+  if (canManageAppt) {
+    const qcWrap = document.createElement('div');
+    qcWrap.id = 'takvim-qc-note-wrap';
+    qcWrap.style.marginTop = '8px';
+    if (!String(appt.qc_notu || '').trim()) qcWrap.hidden = true;
+    const qcLab = document.createElement('div');
+    qcLab.style.cssText = 'font-size:10px;color:var(--text-3);font-weight:700;';
+    qcLab.textContent = 'Kalite Kontrol Notu';
+    const qc = document.createElement('textarea');
+    qc.id = 'takvim-qc-note';
+    qc.className = 'form-input';
+    qc.rows = 3;
+    qc.style.marginTop = '4px';
+    qc.value = appt.qc_notu || '';
+    qcWrap.append(qcLab, qc);
+    body.appendChild(qcWrap);
+  }
   footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">Kapat</button>
 <button class="btn btn-ghost" onclick="closeModal('m-takvim-detail');openDialerForContact('${appt.contact_id||''}')">Dialer'a Git</button>
+${isAdmin && slot?.id && !slot.alta_tasindi ? `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail');slotAltaTasi('${slot.id}')">Alta taşı</button>` : ''}
 ${slot?.alta_tasindi && isAdmin ? `<button class="btn btn-primary" onclick="closeModal('m-takvim-detail');slotUsteCikar('${slot.id}')">${typeof t === 'function' ? t('cal.up') : 'Üste al'}</button>` : ''}
+${isAdmin ? `<button class="btn btn-ghost" onclick="openTakvimApptEdit('${appt.id}')">Düzenle</button>` : ''}
 ${canAssignField ? `<button class="btn btn-primary" onclick="openFieldAssignModal('${appt.id}','${appt.firm_id || currentUser.firm_id}')">Sahaya Ata</button>` : ''}
 ${canManageAppt ? `
-<select class="form-input" id="appt-status-sel" style="width:auto;font-size:12px;padding:6px 10px;">
+<select class="form-input" id="appt-status-sel" style="width:auto;font-size:12px;padding:6px 10px;" onchange="takvimStatusOpensQcNote(this.value)">
 <option value="">Durum değiştir...</option>
-${(resultCfg||[]).map(r=>`<option value="${r.key}">${r.label}</option>`).join('')}
+${(resultCfg||[]).map(r=>`<option value="${esc(r.key)}">${esc(r.label)}</option>`).join('')}
 </select>` : ''}
 ${canEditNote ? `<button class="btn btn-primary" onclick="takvimSaveSlotDetail('${appt.id}')">Kaydet</button>` : ''}`;
   if (canManageAppt) {
@@ -93,25 +134,158 @@ async function takvimSaveSlotDetail(apptId) {
   const statusEl = document.getElementById('appt-status-sel');
   const custEl = document.getElementById('appt-customer-sel');
   const noteEl = document.getElementById('takvim-detail-note');
+  const qcEl = document.getElementById('takvim-qc-note');
   const status = statusEl ? statusEl.value : '';
   const body = {};
   if (status) body.durum = status;
   if (custEl) body.customer_id = custEl.value || null;
   if (noteEl) body.agent_notu = noteEl.value.trim() || null;
+  if (qcEl && !document.getElementById('takvim-qc-note-wrap')?.hidden) body.qc_notu = qcEl.value.trim() || null;
   if (!Object.keys(body).length) {
     toast(typeof t === 'function' ? t('cal.detail.need') : 'Kaydedilecek bir şey yok', 'err');
     return;
   }
-  await takvimQcUpdate(apptId, status, custEl ? (custEl.value || null) : undefined, body.agent_notu, !!noteEl);
+  await takvimQcUpdate(apptId, status, custEl ? (custEl.value || null) : undefined, body.agent_notu, !!noteEl, body.qc_notu, Object.prototype.hasOwnProperty.call(body, 'qc_notu'));
 }
 
-async function takvimQcUpdate(apptId, status, customerId, note, noteSet) {
-  if (!status && customerId === undefined && !noteSet) { toast(typeof t === 'function' ? t('cal.detail.need') : 'Durum veya müşteri seçin','err'); return; }
+function takvimStatusOpensQcNote(value) {
+  const wrap = document.getElementById('takvim-qc-note-wrap');
+  if (!wrap) return;
+  if (value) wrap.hidden = false;
+}
+
+async function takvimFillNeighborDist(slot, appt) {
+  const host = document.getElementById('takvim-neighbor-dist');
+  if (!host) return;
+  if (!slot || !appt?.plz) {
+    host.textContent = '—';
+    return;
+  }
+  const day = (takvimSlots || [])
+    .filter((s) => s.durum === 'dolu' && s.appointment_id && s.tarih === slot.tarih)
+    .slice()
+    .sort((a, b) => String(a.baslangic_saat || '').localeCompare(String(b.baslangic_saat || '')));
+  const idx = day.findIndex((s) => s.id === slot.id);
+  const prev = idx > 0 ? day[idx - 1] : null;
+  const next = idx >= 0 && idx < day.length - 1 ? day[idx + 1] : null;
+  if (!prev && !next) {
+    host.textContent = 'Aynı günde komşu randevu yok';
+    return;
+  }
+  const line = async (other, label) => {
+    if (!other) return '';
+    const otherAppt = (takvimAppts || []).find((a) => a.id === other.appointment_id);
+    if (!otherAppt?.plz || typeof geocodeTomTom !== 'function') return `${label}: —`;
+    const from = typeof takvimNormalizePlz === 'function' ? takvimNormalizePlz(appt.plz) : String(appt.plz);
+    const dest = typeof takvimNormalizePlz === 'function' ? takvimNormalizePlz(otherAppt.plz) : String(otherAppt.plz);
+    const key = `${from}_${dest}`;
+    let row = (typeof _takvimPlzRouteCache !== 'undefined' && _takvimPlzRouteCache[key]) || null;
+    if (!row) {
+      try {
+        const g1 = await geocodeTomTom(`${from}, Germany`);
+        const g2 = await geocodeTomTom(`${dest}, Germany`);
+        const rt = g1 && g2 && typeof routeTomTomCoords === 'function' ? await routeTomTomCoords(g1, g2) : null;
+        if (rt && typeof _takvimPlzRouteCache !== 'undefined') {
+          row = { km: (rt.d / 1000).toFixed(1), min: Math.round(rt.t / 60) };
+          _takvimPlzRouteCache[key] = row;
+        }
+      } catch (_) {}
+    }
+    return row ? `${label}: ${row.km} km · ${row.min} dk` : `${label}: —`;
+  };
+  const parts = [await line(prev, 'Üstteki termin'), await line(next, 'Alttaki termin')].filter(Boolean);
+  if (document.getElementById('takvim-neighbor-dist') === host) host.textContent = parts.join(' · ');
+}
+
+function takvimEditSelect(id, label, value, options) {
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const cur = String(value || '');
+  const opts = options.map((opt) => `<option value="${esc(opt)}"${opt === cur ? ' selected' : ''}>${esc(opt || 'Seçin')}</option>`).join('');
+  return `<div class="form-row"><label class="form-label">${label}</label><select class="form-input" id="${id}">${opts}</select></div>`;
+}
+
+async function openTakvimApptEdit(apptId) {
+  const appt = (takvimAppts || []).find((a) => a.id === apptId);
+  if (!appt || !mbIsFirmAdmin()) return;
+  const slot = (takvimSlots || []).find((s) => s.appointment_id === apptId) || null;
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const val = (v) => esc(v || '');
+  const ctx = await _getCustomerCtx(appt.customer_id).catch(() => null);
+  document.getElementById('takvim-detail-title').textContent = 'Randevuyu düzenle';
+  const when = slot ? `${slot.tarih || ''} ${String(slot.baslangic_saat || '').slice(0, 5)}` : '';
+  document.getElementById('takvim-detail-body').innerHTML = `
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;margin-bottom:12px;font-size:12px;font-weight:600;">${esc(when)}</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<div class="form-row" style="grid-column:1/-1;"><label class="form-label">Ad Soyad *</label><input class="form-input" id="te-name" value="${val(appt.nachname)}"></div>
+<div class="form-row"><label class="form-label">Telefon *</label><input class="form-input" id="te-tel" value="${val(appt.telefonnummer)}"></div>
+<div class="form-row"><label class="form-label">Telefon 2</label><input class="form-input" id="te-tel2" value="${val(appt.telefon2)}"></div>
+<div class="form-row" style="grid-column:1/-1;"><label class="form-label">Adres</label><input class="form-input" id="te-str" value="${val(appt.strasse)}"></div>
+<div class="form-row"><label class="form-label">PLZ</label><input class="form-input" id="te-plz" value="${val(appt.plz)}"></div>
+<div class="form-row"><label class="form-label">Şehir</label><input class="form-input" id="te-ort" value="${val(appt.ortschaft)}"></div>
+${takvimEditSelect('te-hausart', 'Ev Tipi', appt.hausart, ['', 'Einfamilienhaus', 'Zweifamilienhaus', 'Reihenhaus', 'Doppelhaus', 'Mehrfamilienhaus'])}
+<div class="form-row"><label class="form-label">Yapım Yılı</label><input class="form-input" id="te-bj" value="${val(appt.baujahr)}"></div>
+<div class="form-row"><label class="form-label">m²</label><input class="form-input" id="te-qm" value="${val(appt.qm)}"></div>
+${takvimEditSelect('te-hz', 'Isıtma', appt.heizung, ['', 'Gas', 'Öl', 'Pellet', 'WP', 'Fernwärme'])}
+<div class="form-row"><label class="form-label">Isıtma Yaşı</label><input class="form-input" id="te-ah" value="${val(appt.alter_der_heizung)}"></div>
+<div class="form-row"><label class="form-label">Tüketim/Yıl</label><input class="form-input" id="te-vj" value="${val(appt.verbrauch_pro_jahr)}"></div>
+<div class="form-row"><label class="form-label">Kişi Sayısı</label><input class="form-input" id="te-pe" value="${val(appt.personen)}"></div>
+${takvimEditSelect('te-pv', 'PV İlgisi', appt.interesse_an_pv ? 'true' : 'false', ['false', 'true'])}
+${ctx ? _renderCustomerField({ ...ctx, selectedId: appt.customer_id || '' }, 'te-customer') : ''}
+</div>
+<div class="form-row" style="margin-top:8px;"><label class="form-label">Not</label><textarea class="form-input" id="te-note" rows="2" style="resize:vertical;">${val(appt.agent_notu)}</textarea></div>`;
+  const pv = document.getElementById('te-pv');
+  if (pv) {
+    [...pv.options].forEach((opt) => {
+      opt.textContent = opt.value === 'true' ? 'Evet' : 'Hayır';
+    });
+  }
+  document.getElementById('takvim-detail-footer').innerHTML = `<button class="btn btn-ghost" onclick="openTakvimSlotDetail(takvimSlots.find(s=>s.appointment_id==='${apptId}'), takvimAppts.find(a=>a.id==='${apptId}'))">Vazgeç</button><button class="btn btn-primary" onclick="saveTakvimApptEdit('${apptId}')">Kaydet</button>`;
+}
+
+async function saveTakvimApptEdit(apptId) {
+  if (!mbIsFirmAdmin()) return;
+  const g = (id) => document.getElementById(id)?.value?.trim() || '';
+  if (!g('te-name') || !g('te-tel')) {
+    toast('Ad ve telefon gerekli', 'err');
+    return;
+  }
+  const body = {
+    nachname: g('te-name'),
+    telefonnummer: g('te-tel'),
+    telefon2: g('te-tel2') || null,
+    strasse: g('te-str') || null,
+    plz: g('te-plz') || null,
+    ortschaft: g('te-ort') || null,
+    hausart: g('te-hausart') || null,
+    baujahr: g('te-bj') || null,
+    qm: g('te-qm') || null,
+    heizung: g('te-hz') || null,
+    alter_der_heizung: g('te-ah') || null,
+    verbrauch_pro_jahr: g('te-vj') || null,
+    personen: g('te-pe') || null,
+    interesse_an_pv: g('te-pv') === 'true',
+    agent_notu: g('te-note') || null,
+  };
+  const cust = document.getElementById('te-customer');
+  if (cust) body.customer_id = cust.value || null;
+  try {
+    await sb(`appointments?id=eq.${apptId}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(body) });
+    closeModal('m-takvim-detail');
+    await loadTakvimSlots();
+    toast('Randevu güncellendi ✓', 'ok');
+  } catch (e) {
+    toast('Hata: ' + (e.message || ''), 'err');
+  }
+}
+
+async function takvimQcUpdate(apptId, status, customerId, note, noteSet, qcNote, qcSet) {
+  if (!status && customerId === undefined && !noteSet && !qcSet) { toast(typeof t === 'function' ? t('cal.detail.need') : 'Durum veya müşteri seçin','err'); return; }
   try {
     const body = {};
     if (status) body.durum = status;
     if (customerId !== undefined) body.customer_id = customerId || null;
     if (noteSet) body.agent_notu = note || null;
+    if (qcSet) body.qc_notu = qcNote || null;
     await sb(`appointments?id=eq.${apptId}`, {method:'PATCH', prefer:'return=minimal', body: JSON.stringify(body)});
     if (status) {
       const resultCfg = await loadFirmAppointmentResults(getActiveFirmId() || currentUser?.firm_id);

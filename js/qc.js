@@ -214,12 +214,20 @@ ${hasCustomers ? `<div style="margin-top:10px;">
   </select>
 </div>
 <div style="margin-top:12px;">
+<div style="font-size:10px;color:var(--text-3);font-weight:700;margin-bottom:4px;">Kalite Kontrol Notu</div>
 <textarea id="qc-note-input" class="form-input" rows="2" placeholder="QC notu..." style="width:100%;resize:vertical;"></textarea>
 </div>
 ${canAssignField ? `<div style="margin-top:10px;display:flex;justify-content:flex-end;">
   <button class="btn btn-primary" onclick="(function(){ const ap = window._qcApptByContact?.['${r.contact_id || ''}']; if (!ap?.id) { toast('Bu kayda bağlı randevu bulunamadı','warn'); return; } openFieldAssignModal(ap.id, '${r.firm_id || currentUser?.firm_id || ''}'); })()">Sahaya Ata</button>
 </div>` : ''}`;
   openModal('m-qc-detail');
+  if (r.contact_id && typeof sb === 'function') {
+    sb(`appointments?contact_id=eq.${r.contact_id}&select=qc_notu&order=kayit_tarihi.desc&limit=1`).then((rows) => {
+      const note = String(rows?.[0]?.qc_notu || '').trim();
+      const ta = document.getElementById('qc-note-input');
+      if (ta && note && !ta.value && qcDetailId === logId) ta.value = note;
+    }).catch(() => {});
+  }
 }
 
 async function qcUpdateStatus(status) {
@@ -252,10 +260,12 @@ async function quickQcUpdate(logId, status) {
     let apptDate = '', apptTime = '';
     if (apptRows?.length) {
       const cfg = (window._qcResultCfg || []).find(x => x.key === apptStatus);
+      const apptPatch = { customer_id: hasCustomers ? (customerId || null) : null, durum: apptStatus };
+      if (note) apptPatch.qc_notu = note;
       await sb(`appointments?id=eq.${apptRows[0].id}`, {
         method: 'PATCH',
         prefer: 'return=minimal',
-        body: JSON.stringify({ customer_id: hasCustomers ? (customerId || null) : null, durum: apptStatus }),
+        body: JSON.stringify(apptPatch),
       });
       if (cfg?.auto_move_down) {
         const slots = await sb(`takvim_slots?appointment_id=eq.${apptRows[0].id}&select=id&limit=1`).catch(() => []);

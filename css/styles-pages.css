@@ -200,6 +200,23 @@ min-height: 0;
   pointer-events: none;
   box-shadow: 0 1px 4px rgba(0,0,0,.16);
 }
+.tak-slot-cust {
+  position: absolute;
+  right: 4px;
+  bottom: 3px;
+  z-index: 8;
+  max-width: 48%;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
 .tk-plz-badge.is-ok { background: rgba(22, 101, 52, 0.72); }
 .tk-plz-badge.is-warn { background: rgba(161, 98, 7, 0.72); }
 .tk-plz-badge.is-bad { background: rgba(153, 27, 27, 0.72); }
