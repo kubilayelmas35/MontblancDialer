@@ -2036,7 +2036,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div id="leave-stat-used" style="font-size:22px;font-weight:800;margin-top:4px;">—</div>
 </div>
 <div class="card" style="padding:14px;">
-<div style="font-size:11px;color:var(--text-3);font-weight:700;" data-tr="Ek hak (gün)" data-de="Zusatzanspruch (Tage)">Ek hak (gün)</div>
+<div style="font-size:11px;color:var(--text-3);font-weight:700;" data-tr="Bu yıl hak (gün)" data-de="Anspruch dieses Jahr">Bu yıl hak (gün)</div>
 <div id="leave-stat-extra" style="font-size:22px;font-weight:800;margin-top:4px;">—</div>
 </div>
 <div class="card" style="padding:14px;">
@@ -2067,13 +2067,21 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <input type="date" class="form-input" id="lr-to" onchange="onLeaveDatesChange()">
 </div>
 </div>
-<div class="form-row" style="margin-top:10px;">
-<label class="form-label" data-tr="Gün sayısı" data-de="Tage">Gün sayısı</label>
-<input type="number" class="form-input" id="lr-days" min="0.5" step="0.5" value="1" style="max-width:120px;">
+<div id="lr-duration-wrap" class="form-row" style="margin-top:10px;">
+<label class="form-label" data-tr="Süre" data-de="Dauer">Süre</label>
+<select class="form-input" id="lr-duration" style="max-width:220px;" onchange="onLeaveDatesChange()">
+<option value="full" data-tr="Tam gün" data-de="Ganzer Tag">Tam gün</option>
+<option value="half" data-tr="Yarım gün" data-de="Halber Tag">Yarım gün</option>
+</select>
 </div>
 <div class="form-row" style="margin-top:10px;">
+<label class="form-label" data-tr="Sayılan gün" data-de="Gezählte Tage">Sayılan gün</label>
+<input type="number" class="form-input" id="lr-days" min="0" step="0.5" value="1" style="max-width:120px;" readonly>
+</div>
+<div id="lr-preview" style="margin-top:8px;font-size:12px;font-weight:700;color:var(--text-2);"></div>
+<div class="form-row" style="margin-top:10px;">
 <label class="form-label" data-tr="Tür" data-de="Art">Tür</label>
-<select class="form-input" id="lr-kind" style="max-width:220px;">
+<select class="form-input" id="lr-kind" style="max-width:220px;" onchange="onLeaveDatesChange()">
 <option value="annual" data-tr="Yıllık" data-de="Jahresurlaub">Yıllık</option>
 <option value="sick" data-tr="Hastalık" data-de="Krankheit">Hastalık</option>
 <option value="unpaid" data-tr="Ücretsiz" data-de="Unbezahlt">Ücretsiz</option>
@@ -2087,33 +2095,52 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <button type="button" class="btn btn-primary" onclick="submitLeaveRequest()" data-tr="Talep gönder" data-de="Antrag senden">Talep gönder</button>
 </div>
 <div class="card" id="leave-admin-settings" style="padding:16px;display:none;">
-<div class="card-title" style="margin-bottom:12px;">Firma İK kuralları</div>
-<div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+<div class="card-title" style="margin-bottom:6px;" data-tr="Firma izin kuralları" data-de="Firmenregeln Urlaub">Firma izin kuralları</div>
+<div style="font-size:12px;color:var(--text-3);margin-bottom:12px;" data-tr="Her firmanın kendi hakkı, gün sayımı ve kesintisi vardır. Kesinti euro, lira veya kapalı olabilir." data-de="Jede Firma hat eigenen Anspruch, Zähltage und Abzug. Abzug in Euro, Lira oder aus.">Her firmanın kendi hakkı, gün sayımı ve kesintisi vardır. Kesinti euro, lira veya kapalı olabilir.</div>
+<div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
 <div class="form-row">
-<label class="form-label">Varsayılan yıllık izin (gün)</label>
+<label class="form-label" data-tr="Yıllık ücretli hak (gün)" data-de="Bezahlter Jahresanspruch">Yıllık ücretli hak (gün)</label>
 <input type="number" class="form-input" id="hr-annual-days" min="0" step="0.5" value="14">
 </div>
 <div class="form-row">
-<label class="form-label">İzin — günlük maaş etkisi (%)</label>
-<input type="number" class="form-input" id="hr-leave-pct" min="0" step="0.01" value="0">
-<div style="font-size:10px;color:var(--text-3);margin-top:4px;">Tanınan yıllık izin günü için örnek oran.</div>
+<label class="form-label" data-tr="Kesinti para birimi" data-de="Abzugswährung">Kesinti para birimi</label>
+<select class="form-input" id="hr-deduct-currency">
+<option value="NONE" data-tr="Kesinti yok" data-de="Kein Abzug">Kesinti yok</option>
+<option value="EUR">EUR</option>
+<option value="TRY">TL</option>
+</select>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Giriş yılı hesabı" data-de="Eintrittsjahr">Giriş yılı hesabı</label>
+<select class="form-input" id="hr-prorata-mode">
+<option value="day_fraction" data-tr="Giriş ayı güne göre" data-de="Eintrittsmonat anteilig">Giriş ayı güne göre</option>
+<option value="full_month" data-tr="Giriş ayı tam ay" data-de="Eintrittsmonat voll">Giriş ayı tam ay</option>
+</select>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Ücretsiz tam gün kesinti" data-de="Unbezahlt ganzer Tag">Ücretsiz tam gün kesinti</label>
+<input type="number" class="form-input" id="hr-unpaid-full" min="0" step="0.01" value="40">
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Ücretsiz yarım gün kesinti" data-de="Unbezahlt halber Tag">Ücretsiz yarım gün kesinti</label>
+<input type="number" class="form-input" id="hr-unpaid-half" min="0" step="0.01" value="20">
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Ayda kaç geç kalma = 1 Cumartesi" data-de="Verspätungen je Samstag">Ayda kaç geç kalma = 1 Cumartesi</label>
+<input type="number" class="form-input" id="hr-late-threshold" min="0" step="1" value="3">
+<div style="font-size:10px;color:var(--text-3);margin-top:4px;" data-tr="0 yazılırsa geç kalma izne dönmez." data-de="0 = Verspätung wird kein Urlaub.">0 yazılırsa geç kalma izne dönmez.</div>
 </div>
 </div>
-<div class="form-row" style="margin-top:10px;">
-<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="hr-leave-affects"> İzin kullanımı maaşa yansısın
-</label>
+<div style="display:flex;flex-wrap:wrap;gap:14px;margin:12px 0;">
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" id="hr-count-sunday"> <span data-tr="Pazar da sayılsın" data-de="Sonntag zählt">Pazar da sayılsın</span></label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" id="hr-count-saturday" checked> <span data-tr="Cumartesi sayılsın" data-de="Samstag zählt">Cumartesi sayılsın</span></label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" id="hr-saturday-bridge" checked> <span data-tr="İki tatil birleşince Cumartesi zorunlu" data-de="Samstag Pflicht bei verbundenen Wochenenden">İki tatil birleşince Cumartesi zorunlu</span></label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" id="hr-half-day" checked> <span data-tr="Yarım gün aç" data-de="Halber Tag">Yarım gün aç</span></label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" id="hr-prorata" checked> <span data-tr="Yıl içinde girene kırpılmış hak" data-de="Anteil bei unterjährigem Eintritt">Yıl içinde girene kırpılmış hak</span></label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" id="hr-late-saturday" checked> <span data-tr="Geç kalma Cumartesi iznine dönsün" data-de="Verspätung wird Samstag">Geç kalma Cumartesi iznine dönsün</span></label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" id="hr-sick-balance"> <span data-tr="Hastalık yıllık haktan düşsün" data-de="Krankheit vom Anspruch">Hastalık yıllık haktan düşsün</span></label>
 </div>
-<div class="form-row" style="margin-top:10px;">
-<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="hr-late-affects"> Geç kalmalar maaşa yansısın
-</label>
-</div>
-<div class="form-row" style="margin-top:10px;">
-<label class="form-label">Geç kalma — olay başına (EUR)</label>
-<input type="number" class="form-input" id="hr-late-penalty" min="0" step="0.01" value="0" style="max-width:160px;">
-</div>
-<button type="button" class="btn btn-primary" onclick="saveHrSettings()">Kuralları kaydet</button>
+<button type="button" class="btn btn-primary" onclick="saveHrSettings()" data-tr="Kuralları kaydet" data-de="Regeln speichern">Kuralları kaydet</button>
 </div>
 <div class="card" id="leave-admin-late" style="padding:16px;display:none;">
 <div class="card-title" style="margin-bottom:12px;">Geç kalma kaydı</div>
