@@ -899,6 +899,15 @@ function takvimSlotCustomerMarkup(appt) {
   return `<div class="tak-slot-cust" title="${esc(name)}">${esc(name)}</div>`;
 }
 
+function takvimSlotCallMarkup(appt) {
+  const id = String(appt?.contact_id || '').trim();
+  if (!id || (typeof isValidUUID === 'function' && !isValidUUID(id))) return '';
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  return `<div class="tak-slot-dist" onmousedown="event.stopPropagation()" style="position:absolute;bottom:2px;right:2px;z-index:22;">
+<button type="button" class="btn-tak-dist" title="Ara" onclick="event.stopPropagation();openDialerForContact('${esc(id)}')"><i class="ph ph-phone" style="font-size:12px;"></i></button>
+</div>`;
+}
+
 function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
   const el = document.createElement('div');
   el.classList.add('takvim-slot-el');
@@ -914,6 +923,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
   const pl = dense ? 4 : 6;
   const pt = dense ? 4 : 6;
   const custChip = slot.durum === 'dolu' && appt && (isAdmin || appt.agent_id === currentUser?.id) ? takvimSlotCustomerMarkup(appt) : '';
+  const callBtn = slot.durum === 'dolu' && appt && (isAdmin || appt.agent_id === currentUser?.id) ? takvimSlotCallMarkup(appt) : '';
   const pb =
     custChip ? 18 : canShift ? 6 : dense ? 4 : 6;
   el.style.cssText = `border-radius:4px;padding:${pt}px ${pr}px ${pb}px ${pl}px;font-size:${fzBase}px;cursor:pointer;overflow:hidden;box-shadow:none;background:${vis.background};color:${vis.color};text-align:left;`;
@@ -978,7 +988,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
 <div class="${nmWrap}" style="font-weight:800;font-size:${fzName}px;">${nm}</div>
 <div class="${addrWrap}" style="font-size:${fzLine}px;font-weight:600;opacity:.93;">${adr}</div>
 <div style="font-size:${fzMono}px;opacity:.9;font-family:var(--mono);white-space:nowrap;">${timeLn}</div>
-<div style="font-size:${fzAg}px;opacity:.84;word-break:break-word;">Agent: ${ag}</div></div>${distAllHtml}${custChip}${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}`;
+<div style="font-size:${fzAg}px;opacity:.84;word-break:break-word;">Agent: ${ag}</div></div>${distAllHtml}${custChip}${callBtn}${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}`;
     el.onclick = (ev) => {
       ev.stopPropagation();
       openTakvimSlotDetail(slot, appt);
