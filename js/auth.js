@@ -287,33 +287,44 @@ _allFirms = await sb('firms?select=id,name,slug&order=name.asc') || [];
 } catch(e) { _allFirms = []; }
 }
 
-let _firmSelectorLock = 0;
 function renderFirmSelector(containerId, callbackFn) {
 const el = document.getElementById(containerId);
 if (!el) return;
 if (!isSuperAdmin()) { el.innerHTML = ''; return; }
+const onChange = function() {
+  const next = this.value || null;
+  if (next === (_selectedFirmId || null)) return;
+  _selectedFirmId = next;
+  if (typeof callbackFn === 'function') callbackFn();
+};
 const buildSelect = () => {
-_firmSelectorLock++;
-try {
-el.innerHTML = `
+  const selId = `${containerId}-sel`;
+  const sig = (_allFirms || []).map((f) => f.id).join(',');
+  const existing = document.getElementById(selId);
+  if (existing && existing.dataset.firms === sig) {
+    existing.onchange = onChange;
+    if (document.activeElement !== existing) {
+      const want = _selectedFirmId || '';
+      if (existing.value !== want) existing.value = want;
+    }
+    return;
+  }
+  const names = (_allFirms || []).map((f) => {
+    const label = String(f.name || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const id = String(f.id || '').replace(/"/g, '');
+    const selected = String(f.id) === String(_selectedFirmId || '') ? ' selected' : '';
+    return `<option value="${id}"${selected}>${label}</option>`;
+  }).join('');
+  el.innerHTML = `
 <div style="display:flex;align-items:center;gap:6px;">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-3);flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-<select class="form-input" id="${containerId}-sel" style="font-size:12px;padding:4px 10px;min-width:160px;">
+<select class="form-input" id="${selId}" data-firms="${sig}" style="font-size:12px;padding:4px 10px;min-width:160px;">
 <option value="">Tüm Firmalar</option>
-${_allFirms.map(f=>`<option value="${f.id}" ${f.id===(_selectedFirmId||'')?'selected':''}>${f.name}</option>`).join('')}
+${names}
 </select>
 </div>`;
-const sel = document.getElementById(containerId+'-sel');
-if (sel) {
-sel.onchange = function() {
-if (_firmSelectorLock) return;
-const next = this.value || null;
-if (next === (_selectedFirmId || null)) return;
-_selectedFirmId = next;
-if (typeof callbackFn === 'function') callbackFn();
-};
-}
-} finally { _firmSelectorLock--; }
+  const sel = document.getElementById(selId);
+  if (sel) sel.onchange = onChange;
 };
 if (!_allFirms.length) {
 sb('firms?select=id,name,slug&order=name.asc').then(firms => {

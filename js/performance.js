@@ -170,10 +170,14 @@ function perfApplyClientFilters() {
 function perfAgentName(id, fallback) {
   if (!id) return fallback || '—';
   const row = _perfRawAppts.find((a) => String(a.agent_id) === String(id));
-  if (row?.users?.name) return row.users.name;
   const c = _perfRawCalls.find((x) => String(x.agent_id) === String(id));
-  if (c?.users?.name) return c.users.name;
-  return fallback || String(id).slice(0, 8);
+  let name = row?.users?.name || c?.users?.name || fallback || String(id).slice(0, 8);
+  if (!getActiveFirmId()) {
+    const firmId = row?.firm_id || c?.firm_id;
+    const firm = (_allFirms || []).find((f) => String(f.id) === String(firmId));
+    if (firm?.name) name = `${name} · ${firm.name}`;
+  }
+  return name;
 }
 
 function perfAggregateAppts(appts) {
@@ -646,7 +650,6 @@ function perfPopulateFilters() {
 
 async function _perfFetchAppointments(from, to) {
   const ff = getFirmFilter('&');
-  if (isSuperAdmin() && !getActiveFirmId()) return [];
   const cols = 'id,termin_tarih,kayit_tarihi,durum,nachname,telefonnummer,plz,ortschaft,agent_id,campaign_id,customer_id,agent_notu,firm_id';
   const created = _perfApptMode === 'created';
   const gte = created && typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
@@ -688,14 +691,13 @@ async function _perfFetchAppointments(from, to) {
 
 async function _perfFetchCalls(from, to) {
   const ff = getFirmFilter('&');
-  if (isSuperAdmin() && !getActiveFirmId()) return [];
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
-  const base = `call_logs?select=id,started_at,agent_id,campaign_id,outcome,phone,duration_sec,users(name),campaigns(name)${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=started_at.desc&limit=8000`;
+  const base = `call_logs?select=id,started_at,agent_id,campaign_id,firm_id,outcome,phone,duration_sec,users(name),campaigns(name)${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=started_at.desc&limit=8000`;
   try {
     return (await sb(base)) || [];
   } catch (e) {
-    const simple = `call_logs?select=id,started_at,agent_id,campaign_id,outcome,phone,duration_sec${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=started_at.desc&limit=8000`;
+    const simple = `call_logs?select=id,started_at,agent_id,campaign_id,firm_id,outcome,phone,duration_sec${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=started_at.desc&limit=8000`;
     const rows = (await sb(simple).catch(() => [])) || [];
     if (!rows.length) return [];
     const aIds = [...new Set(rows.map((r) => r.agent_id).filter(Boolean))];
