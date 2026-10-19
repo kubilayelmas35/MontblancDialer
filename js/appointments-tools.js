@@ -1422,8 +1422,8 @@ function mesaiPlanRender() {
 <button type="button" class="btn btn-ghost btn-sm" onclick="mesaiPlanRemoveBreak(${index})" aria-label="Sil">✕</button>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-<div class="form-row"><label class="form-label">${t('mesai.plan.start')}</label><input type="time" class="form-input mp-bstart" value="${item.start || ''}"></div>
-<div class="form-row"><label class="form-label">${t('mesai.plan.end')}</label><input type="time" class="form-input mp-bend" value="${item.end || ''}"></div>
+<div class="form-row"><label class="form-label">${t('mesai.plan.start')}</label><input type="text" inputmode="numeric" maxlength="5" placeholder="08:00" class="form-input mp-bstart" value="${item.start || ''}" onblur="this.value=opsHm(this.value, this.value)"></div>
+<div class="form-row"><label class="form-label">${t('mesai.plan.end')}</label><input type="text" inputmode="numeric" maxlength="5" placeholder="18:30" class="form-input mp-bend" value="${item.end || ''}" onblur="this.value=opsHm(this.value, this.value)"></div>
 </div>
 </div>`).join('');
   const superAdmin = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
@@ -1441,8 +1441,8 @@ function mesaiPlanRender() {
 </label>
 <div style="${day.off ? 'display:none;' : ''}">
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-<div class="form-row"><label class="form-label">${t('mesai.plan.start')}</label><input type="time" class="form-input" id="mp-start" value="${day.start || '08:00'}"></div>
-<div class="form-row"><label class="form-label">${t('mesai.plan.end')}</label><input type="time" class="form-input" id="mp-end" value="${day.end || '20:00'}"></div>
+<div class="form-row"><label class="form-label">${t('mesai.plan.start')}</label><input type="text" inputmode="numeric" maxlength="5" placeholder="08:00" class="form-input" id="mp-start" value="${day.start || '08:00'}" onblur="this.value=opsHm(this.value,'08:00')"></div>
+<div class="form-row"><label class="form-label">${t('mesai.plan.end')}</label><input type="text" inputmode="numeric" maxlength="5" placeholder="20:00" class="form-input" id="mp-end" value="${day.end || '20:00'}" onblur="this.value=opsHm(this.value,'20:00')"></div>
 </div>
 <div class="form-label">${t('ops.mesai.breaks')}</div>
 ${breakHtml || `<div style="font-size:12px;color:var(--text-3);margin-bottom:8px;">${t('ops.mesai.noBreak')}</div>`}

@@ -1575,6 +1575,7 @@ async function opsTickData() {
 const OPS_GUN_LABEL = { pzt: 'Pazartesi', sal: 'Salı', car: 'Çarşamba', per: 'Perşembe', cum: 'Cuma', cmt: 'Cumartesi', paz: 'Pazar' };
 const OPS_GUN_ORDER = ['pzt', 'sal', 'car', 'per', 'cum', 'cmt', 'paz'];
 let _opsMesaiPlan = null;
+let _opsMesaiPaintTimer = 0;
 let _opsMesaiTz = 'Europe/Berlin';
 let _opsMesaiAt = 0;
 const _opsShiftTold = new Set();
@@ -1664,37 +1665,94 @@ function opsMesaiWindow() {
   };
 }
 
-function opsMesaiBarText(win) {
-  if (!win || win.off) return opsSay('ops.mesai.none', 'Mesai yok');
+function opsMesaiPrev(now, start, breaks) {
+  let prev = start;
+  (breaks || []).forEach((item) => {
+    const end = opsHmMins(item.end);
+    if (end != null && end <= now && end > prev) prev = end;
+  });
+  return prev;
+}
+
+function opsMesaiPhase(win) {
+  const none = opsSay('ops.mesai.none', 'Mesai yok');
+  if (!win || win.off) return { range: none, short: none, detail: none, pct: 0, due: false };
   const now = win.clock.mins;
   const start = opsHmMins(win.start);
   const end = opsHmMins(win.end);
-  const span = `${win.start}–${win.end}`;
-  if (start == null || end == null) return span;
-  if (now >= end) return opsSay('ops.mesai.over', 'Mesai bitti');
-  if (now < start) return `${span} · ${opsSay('ops.mesai.toStart', 'başlamaya')} ${opsLeftText(start - now)}`;
-  const live = (win.breaks || []).find((item) => {
+  const range = `${win.start}–${win.end}`;
+  if (start == null || end == null) return { range, short: range, detail: range, pct: 0, due: false };
+  const chip = (key, fallback, left) => `${opsSay(key, fallback)} ${opsLeftText(left)}`;
+  if (now >= end) {
+    const over = opsSay('ops.mesai.chipOver', 'Bitti');
+    return { range, short: over, detail: opsSay('ops.mesai.over', 'Mesai bitti'), pct: 100, due: now - end <= 1 };
+  }
+  if (now < start) {
+    const left = start - now;
+    return {
+      range,
+      short: chip('ops.mesai.chipStart', 'Başlama', left),
+      detail: `${opsSay('ops.mesai.toStart', 'başlamaya')} ${opsLeftText(left)}`,
+      pct: start > 0 ? Math.max(0, Math.min(100, (now / start) * 100)) : 0,
+      due: left <= 1,
+    };
+  }
+  const breaks = win.breaks || [];
+  const live = breaks.find((item) => {
     const a = opsHmMins(item.start);
     const z = opsHmMins(item.end);
     return a != null && z != null && now >= a && now < z;
   });
-  if (live) return `${span} · ${opsSay('ops.mesai.inBreak', 'molada')} ${opsLeftText(opsHmMins(live.end) - now)}`;
-  const next = (win.breaks || []).find((item) => {
+  if (live) {
+    const a = opsHmMins(live.start);
+    const z = opsHmMins(live.end);
+    return {
+      range,
+      short: chip('ops.mesai.chipIn', 'Molada', z - now),
+      detail: `${opsSay('ops.mesai.inBreak', 'molada')} ${opsLeftText(z - now)}`,
+      pct: Math.max(0, Math.min(100, ((now - a) / Math.max(1, z - a)) * 100)),
+      due: now - a <= 1,
+    };
+  }
+  const next = breaks.find((item) => {
     const a = opsHmMins(item.start);
     return a != null && a > now && a < end;
   });
-  if (next) return `${span} · ${opsSay('ops.mesai.toBreak', 'molaya')} ${opsLeftText(opsHmMins(next.start) - now)}`;
-  return `${span} · ${opsSay('ops.mesai.toEnd', 'bitişe')} ${opsLeftText(end - now)}`;
+  if (next) {
+    const a = opsHmMins(next.start);
+    const prev = opsMesaiPrev(now, start, breaks);
+    return {
+      range,
+      short: chip('ops.mesai.chipBreak', 'Mola', a - now),
+      detail: `${opsSay('ops.mesai.toBreak', 'molaya')} ${opsLeftText(a - now)}`,
+      pct: Math.max(0, Math.min(100, ((now - prev) / Math.max(1, a - prev)) * 100)),
+      due: a - now <= 1,
+    };
+  }
+  const prev = opsMesaiPrev(now, start, breaks);
+  const left = end - now;
+  return {
+    range,
+    short: chip('ops.mesai.chipEnd', 'Bitiş', left),
+    detail: `${opsSay('ops.mesai.toEnd', 'bitişe')} ${opsLeftText(left)}`,
+    pct: Math.max(0, Math.min(100, ((now - prev) / Math.max(1, end - prev)) * 100)),
+    due: left <= 1,
+  };
 }
 
 function opsPaintMesaiBar() {
   const label = document.getElementById('tb-mesai-label');
-  if (!label) return;
-  const win = opsMesaiWindow();
-  const text = opsMesaiBarText(win);
-  label.textContent = text;
   const btn = document.getElementById('tb-mesai-btn');
-  if (btn) btn.title = text;
+  if (!label || !btn) return;
+  const win = opsMesaiWindow();
+  const phase = opsMesaiPhase(win);
+  const showRange = Math.floor(Date.now() / 5000) % 2 === 0;
+  const text = phase.short === phase.range ? phase.range : (showRange ? phase.range : phase.short);
+  label.textContent = text;
+  btn.title = `${phase.range} · ${phase.detail}`;
+  btn.classList.toggle('is-due', !!phase.due);
+  const fill = document.getElementById('tb-mesai-fill');
+  if (fill) fill.style.width = `${Math.round(phase.pct)}%`;
   const pop = document.getElementById('tb-mesai-pop');
   if (pop && !pop.hidden) opsFillMesaiPop(pop);
 }
@@ -1741,7 +1799,8 @@ function opsFillMesaiPop(pop) {
   const sub = document.createElement('div');
   sub.className = 'tb-mesai-sub';
   const zone = _opsMesaiTz === 'Europe/Istanbul' ? opsSay('mesai.tz.tr', 'Türkiye') : opsSay('mesai.tz.berlin', 'Berlin');
-  sub.textContent = `${opsMesaiBarText(win)} · ${zone}`;
+  const phase = opsMesaiPhase(win);
+  sub.textContent = `${phase.detail} · ${zone}`;
   pop.appendChild(sub);
   const kicker = document.createElement('div');
   kicker.className = 'tb-mesai-kicker';
@@ -1865,6 +1924,11 @@ function opsTickShift() {
 
 function opsBoot() {
   if (_opsDirectiveTimer) clearInterval(_opsDirectiveTimer);
+  if (_opsMesaiPaintTimer) clearInterval(_opsMesaiPaintTimer);
+  _opsMesaiPaintTimer = setInterval(() => {
+    if (!currentUser) return;
+    opsPaintMesaiBar();
+  }, 1000);
   _opsDirectiveTimer = setInterval(() => {
     if (!currentUser) return;
     opsLoadDirective();
