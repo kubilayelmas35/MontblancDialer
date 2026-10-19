@@ -310,7 +310,7 @@ function renderTakvimFailed() {
       const nm = appt ? appt.nachname : '—';
       const fv = getSlotGradientAndText(s, appt);
       const badge = appt && typeof takvimPlzBadge === 'function' ? takvimPlzBadge(appt) : '';
-      h += `<div data-failed="${s.id}" style="position:relative;display:flex;align-items:center;gap:4px;font-size:9px;font-weight:700;padding:${badge ? '20px' : '4px'} 6px 4px;border-radius:4px;cursor:pointer;background:${fv.background};color:${fv.color};">
+      h += `<div data-failed="${s.id}" style="position:relative;display:flex;align-items:center;gap:4px;font-size:9px;font-weight:700;padding:4px 6px;border-radius:4px;cursor:pointer;background:${fv.background};color:${fv.color};">
 ${badge}
 <button type="button" data-up="${s.id}" style="border:0;border-radius:4px;background:#14532d;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;cursor:pointer;">${typeof t === 'function' ? t('cal.up') : 'Üste al'}</button>
 <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nm}</span>
@@ -533,6 +533,9 @@ function takvimToggleFilters() {
   ['takvim-filter-btn', 'takvim-filter-btn-ov'].forEach((id) => {
     const btn = document.getElementById(id);
     if (btn) btn.classList.toggle('is-on', open);
+  });
+  requestAnimationFrame(() => {
+    if (typeof takvimApplyWeekRowHeights === 'function') takvimApplyWeekRowHeights();
   });
 }
 function takvimPlzMeasureOpen() {
