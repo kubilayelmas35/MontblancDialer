@@ -343,9 +343,15 @@ Randevuyu Kaydet
     } else {
       nameEl.textContent = titleText || '—';
     }
-    nameEl.style.cursor = 'default';
-    nameEl.title = '';
-    nameEl.onclick = null;
+    const nameLabel = head[0] ? labelOf(head[0].key, head[0].label || 'Ad') : 'Ad';
+    nameEl.style.cursor = 'pointer';
+    nameEl.title = 'Kopyala';
+    nameEl.onclick = (ev) => {
+      if (ev.target.closest('button, input')) return;
+      const text = (nameEl.querySelector('span')?.textContent || (nameEl.querySelector('input') ? '' : nameEl.textContent) || '').trim();
+      if (!text || text === '—') return;
+      copyToClipboard(text, `${nameLabel} kopyalandı`);
+    };
   }
   const phoneEl = document.getElementById('cust-phone');
   if (phoneEl) {
