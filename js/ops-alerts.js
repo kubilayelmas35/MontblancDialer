@@ -123,7 +123,7 @@ function opsTint(hex) {
   return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
 }
 
-const OPS_AGENT_SOUNDS = ['due', 'soon', 'hour', 'wrong', 'camp', 'shift', 'clear', 'move'];
+const OPS_AGENT_SOUNDS = ['due', 'soon', 'hour', 'wrong', 'camp', 'break', 'shift', 'clear', 'move'];
 
 function opsIsAgentNotif() {
   return String(currentUser?.role || '') === 'agent';
@@ -919,7 +919,7 @@ function opsShowSample(kind) {
     return;
   }
   if (kind === 'break') {
-    const text = 'Gökhan: Çay molası';
+    const text = '11:30–11:45';
     toast(`${opsSay('ops.break.title', 'Mola')}. ${text}`, 'ok', 4000);
     opsRememberNotice(opsSay('ops.break.title', 'Mola'), text, opsPickedColor('break', opsSoundEntry('break').color), 'live');
     return;
@@ -1146,18 +1146,6 @@ function opsPaintLive(rows) {
   });
 }
 
-let _opsBreakPrev = null;
-function opsRememberBreak(name, code, self) {
-  const label = typeof auxDisplay === 'function' ? auxDisplay(code) : (String(code || '').trim() || 'Mola');
-  const title = self ? opsSay('ops.break.mine', 'Moladasın') : opsSay('ops.break.title', 'Mola');
-  const text = self ? label : `${name || 'Personel'}: ${label}`;
-  if (!self && !opsSoundOn('break')) return;
-  if (!self && !opsRoleSeesData()) return;
-  if (!self) opsCue('break');
-  opsRememberNotice(title, text, opsSoundEntry('break').color, 'live');
-  if (!self) toast(`${title}. ${text}`, 'ok', 4000);
-}
-
 async function opsTickLive() {
   if (!currentUser || typeof mbIsFirmAdmin !== 'function' || !mbIsFirmAdmin() || typeof sb !== 'function') {
     opsPaintLive([]);
@@ -1165,18 +1153,7 @@ async function opsTickLive() {
   }
   const ff = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
   try {
-    const rows = await sb(`agent_sessions?select=agent_id,agent_name,status,break_code,campaign_id,current_contact_name,call_started_at,call_start,updated_at,last_seen${ff}`) || [];
-    const prev = _opsBreakPrev;
-    const next = {};
-    rows.forEach((row) => {
-      const id = String(row.agent_id || '');
-      if (!id) return;
-      next[id] = row.status || '';
-      if (prev && prev[id] !== 'break' && row.status === 'break' && id !== String(currentUser.id || '')) {
-        opsRememberBreak(row.agent_name, row.break_code, false);
-      }
-    });
-    _opsBreakPrev = next;
+    const rows = await sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,current_contact_name,call_started_at,call_start,updated_at,last_seen${ff}`) || [];
     opsPaintLive(rows);
   } catch (e) {}
 }
@@ -1596,7 +1573,8 @@ async function opsTickData() {
 }
 
 const OPS_GUN_LABEL = { pzt: 'Pazartesi', sal: 'Salı', car: 'Çarşamba', per: 'Perşembe', cum: 'Cuma', cmt: 'Cumartesi', paz: 'Pazar' };
-let _opsMesaiRows = null;
+const OPS_GUN_ORDER = ['pzt', 'sal', 'car', 'per', 'cum', 'cmt', 'paz'];
+let _opsMesaiPlan = null;
 let _opsMesaiAt = 0;
 const _opsShiftTold = new Set();
 
@@ -1625,52 +1603,96 @@ function opsHmMins(value) {
   return h * 60 + m;
 }
 
-function opsMesaiWindow() {
-  const berlin = opsBerlinClock();
-  const rows = Array.isArray(_opsMesaiRows) ? _opsMesaiRows : [];
-  const byGun = {};
-  rows.forEach((row) => { if (row?.gun) byGun[row.gun] = row; });
-  if (rows.length) {
-    const row = byGun[berlin.gun];
-    const days = Object.keys(OPS_GUN_LABEL).map((gun) => {
-      const item = byGun[gun];
-      if (!item || item.calismiyor) return { gun, label: OPS_GUN_LABEL[gun], text: 'Kapalı' };
-      return { gun, label: OPS_GUN_LABEL[gun], text: `${opsHm(item.mesai_baslangic, '09:00')}–${opsHm(item.mesai_bitis, '18:00')}` };
-    });
-    if (!row || row.calismiyor) return { off: true, berlin, days };
-    return { off: false, start: opsHm(row.mesai_baslangic, '09:00'), end: opsHm(row.mesai_bitis, '18:00'), berlin, days };
-  }
+function opsNormalizeMesaiPlan(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const plan = {};
+  let any = false;
+  OPS_GUN_ORDER.forEach((gun) => {
+    const row = raw[gun];
+    if (!row || typeof row !== 'object') return;
+    any = true;
+    const breaks = (Array.isArray(row.breaks) ? row.breaks : []).map((item) => ({
+      start: opsHm(item?.start, ''),
+      end: opsHm(item?.end, ''),
+    })).filter((item) => item.start && item.end && opsHmMins(item.start) < opsHmMins(item.end));
+    breaks.sort((a, b) => opsHmMins(a.start) - opsHmMins(b.start));
+    plan[gun] = { off: !!row.off, start: opsHm(row.start, '08:00'), end: opsHm(row.end, '20:00'), breaks };
+  });
+  return any ? plan : null;
+}
+
+function opsMesaiFallbackDay(gun) {
   const fid = opsFirmId();
   const raw = fid && window._firmDefaultTakvimByFirm ? window._firmDefaultTakvimByFirm[fid] : {};
   const cfg = typeof mergeTakvimSettings === 'function'
     ? mergeTakvimSettings(raw)
     : { active_days: ['pzt', 'sal', 'car', 'per', 'cum'], start_hour: '08:00', end_hour: '20:00' };
-  const days = Object.keys(OPS_GUN_LABEL).map((gun) => ({
-    gun,
-    label: OPS_GUN_LABEL[gun],
-    text: cfg.active_days.includes(gun) ? `${String(cfg.start_hour).slice(0, 5)}–${String(cfg.end_hour).slice(0, 5)}` : 'Kapalı',
-  }));
-  if (!cfg.active_days.includes(berlin.gun)) return { off: true, berlin, days };
-  return { off: false, start: String(cfg.start_hour).slice(0, 5), end: String(cfg.end_hour).slice(0, 5), berlin, days };
+  return {
+    off: !cfg.active_days.includes(gun),
+    start: String(cfg.start_hour || '08:00').slice(0, 5),
+    end: String(cfg.end_hour || '20:00').slice(0, 5),
+    breaks: [],
+  };
+}
+
+function opsLeftText(mins) {
+  const left = Math.max(0, Math.round(Number(mins) || 0));
+  const hour = Math.floor(left / 60);
+  const minute = left % 60;
+  if (hour && minute) return `${hour}s ${minute}dk`;
+  if (hour) return `${hour}s`;
+  return `${minute}dk`;
+}
+
+function opsMesaiWindow() {
+  const berlin = opsBerlinClock();
+  const row = _opsMesaiPlan?.[berlin.gun] || opsMesaiFallbackDay(berlin.gun);
+  if (!row || row.off) return { off: true, breaks: [], label: OPS_GUN_LABEL[berlin.gun], berlin };
+  return {
+    off: false,
+    start: row.start,
+    end: row.end,
+    breaks: Array.isArray(row.breaks) ? row.breaks : [],
+    label: OPS_GUN_LABEL[berlin.gun],
+    berlin,
+  };
+}
+
+function opsMesaiBarText(win) {
+  if (!win || win.off) return opsSay('ops.mesai.none', 'Mesai yok');
+  const now = win.berlin.mins;
+  const start = opsHmMins(win.start);
+  const end = opsHmMins(win.end);
+  const span = `${win.start}–${win.end}`;
+  if (start == null || end == null) return span;
+  if (now >= end) return opsSay('ops.mesai.over', 'Mesai bitti');
+  if (now < start) return `${span} · ${opsSay('ops.mesai.toStart', 'başlamaya')} ${opsLeftText(start - now)}`;
+  const live = (win.breaks || []).find((item) => {
+    const a = opsHmMins(item.start);
+    const z = opsHmMins(item.end);
+    return a != null && z != null && now >= a && now < z;
+  });
+  if (live) return `${span} · ${opsSay('ops.mesai.inBreak', 'molada')} ${opsLeftText(opsHmMins(live.end) - now)}`;
+  const next = (win.breaks || []).find((item) => {
+    const a = opsHmMins(item.start);
+    return a != null && a > now && a < end;
+  });
+  if (next) return `${span} · ${opsSay('ops.mesai.toBreak', 'molaya')} ${opsLeftText(opsHmMins(next.start) - now)}`;
+  return `${span} · ${opsSay('ops.mesai.toEnd', 'bitişe')} ${opsLeftText(end - now)}`;
 }
 
 function opsPaintMesaiBar() {
   const label = document.getElementById('tb-mesai-label');
   if (!label) return;
   const win = opsMesaiWindow();
-  if (win.off) {
-    label.textContent = 'Mesai yok';
-    return;
-  }
-  const end = opsHmMins(win.end);
-  const start = opsHmMins(win.start);
-  if (end != null && win.berlin.mins >= end) label.textContent = 'Mesai bitti';
-  else if (start != null && win.berlin.mins < start) label.textContent = `Mesai ${win.start}`;
-  else label.textContent = `Mesai ${win.start}–${win.end}`;
+  const text = opsMesaiBarText(win);
+  label.textContent = text;
+  const btn = document.getElementById('tb-mesai-btn');
+  if (btn) btn.title = text;
 }
 
 function opsToggleMesaiInfo(ev) {
-  if (ev) ev.stopPropagation();
+  if (ev && ev.stopPropagation) ev.stopPropagation();
   const pop = document.getElementById('tb-mesai-pop');
   if (!pop) return;
   const open = pop.hidden;
@@ -1680,23 +1702,53 @@ function opsToggleMesaiInfo(ev) {
   pop.replaceChildren();
   const title = document.createElement('div');
   title.className = 'tb-mesai-title';
-  title.textContent = 'Mesai saatleri';
+  title.textContent = win.label || opsSay('ops.mesai.today', 'Bugün');
   pop.appendChild(title);
-  win.days.forEach((day) => {
+  const clock = document.createElement('div');
+  clock.className = 'tb-mesai-clock';
+  clock.textContent = win.off ? opsSay('ops.mesai.none', 'Mesai yok') : `${win.start} – ${win.end}`;
+  pop.appendChild(clock);
+  const sub = document.createElement('div');
+  sub.className = 'tb-mesai-sub';
+  sub.textContent = opsMesaiBarText(win);
+  pop.appendChild(sub);
+  const kicker = document.createElement('div');
+  kicker.className = 'tb-mesai-kicker';
+  kicker.textContent = opsSay('ops.mesai.breaks', 'Molalar');
+  pop.appendChild(kicker);
+  const breaks = win.off ? [] : (win.breaks || []);
+  if (!breaks.length) {
+    const empty = document.createElement('div');
+    empty.className = 'tb-mesai-row';
+    empty.textContent = opsSay('ops.mesai.noBreak', 'Mola yok');
+    pop.appendChild(empty);
+    return;
+  }
+  breaks.forEach((item, index) => {
     const row = document.createElement('div');
     row.className = 'tb-mesai-row';
-    if (day.gun === win.berlin.gun) row.classList.add('is-today');
     const name = document.createElement('span');
-    name.textContent = day.label;
+    name.textContent = `${index + 1}. ${opsSay('ops.break.title', 'Mola')}`;
     const time = document.createElement('b');
-    time.textContent = day.text;
+    time.textContent = `${item.start} – ${item.end}`;
     row.append(name, time);
     pop.appendChild(row);
   });
 }
 
+function opsApplyMesaiPlan(raw) {
+  _opsMesaiPlan = opsNormalizeMesaiPlan(raw);
+  _opsMesaiAt = Date.now();
+  opsPaintMesaiBar();
+  const pop = document.getElementById('tb-mesai-pop');
+  if (pop && !pop.hidden) {
+    pop.hidden = true;
+    opsToggleMesaiInfo();
+  }
+}
+
 async function opsLoadMesai() {
-  if (Date.now() - _opsMesaiAt < 60000 && _opsMesaiRows) {
+  if (Date.now() - _opsMesaiAt < 60000) {
     opsPaintMesaiBar();
     return;
   }
@@ -1707,23 +1759,39 @@ async function opsLoadMesai() {
     return;
   }
   try {
-    _opsMesaiRows = await sb(`mesai_saatleri?firm_id=eq.${fid}&select=gun,calismiyor,mesai_baslangic,mesai_bitis`) || [];
+    const rows = await sb(`firms?id=eq.${fid}&select=settings`);
+    _opsMesaiPlan = opsNormalizeMesaiPlan(rows?.[0]?.settings?.mesai_plan);
   } catch (e) {
-    _opsMesaiRows = [];
+    _opsMesaiPlan = null;
   }
   if (typeof ensureFirmTakvimDefaultsLoaded === 'function') await ensureFirmTakvimDefaultsLoaded(fid);
   opsPaintMesaiBar();
 }
 
 function opsTickShift() {
-  if (window.__opsHoldShift) return;
-  if (!opsSoundOn('shift') || !currentUser) return;
+  if (window.__opsHoldShift || !currentUser) return;
   const win = opsMesaiWindow();
   if (win.off || !win.end) return;
+  const now = win.berlin.mins;
+  const day = win.berlin.date;
+  if (opsSoundOn('break')) {
+    (win.breaks || []).forEach((item) => {
+      const start = opsHmMins(item.start);
+      if (start == null) return;
+      const into = now - start;
+      const key = `brk:${day}:${item.start}`;
+      if (into < 0 || into > 2 || _opsShiftTold.has(key)) return;
+      _opsShiftTold.add(key);
+      const text = `${item.start}–${item.end}`;
+      toast(`${opsSay('ops.break.title', 'Mola')}. ${text}`, 'ok', 5000);
+      opsCue('break');
+      opsRememberNotice(opsSay('ops.break.title', 'Mola'), text, opsSoundEntry('break').color, 'live');
+    });
+  }
+  if (!opsSoundOn('shift')) return;
   const end = opsHmMins(win.end);
   if (end == null) return;
-  const left = end - win.berlin.mins;
-  const day = win.berlin.date;
+  const left = end - now;
   if (left > 0 && left <= 15 && !_opsShiftTold.has(`soon:${day}`)) {
     _opsShiftTold.add(`soon:${day}`);
     const text = `${opsSay('ops.shift.soon', 'Mesai bitiyor')}. ${win.end}`;

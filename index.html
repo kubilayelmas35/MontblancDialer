@@ -12,16 +12,16 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=9.61">
-<link rel="stylesheet" href="css/styles-dialer.css?v=9.61">
-<link rel="stylesheet" href="css/styles-mascot.css?v=9.61">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=9.61">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=9.61">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=9.61">
-<link rel="stylesheet" href="css/styles-pages.css?v=9.61">
-<link rel="stylesheet" href="css/styles-aurora.css?v=9.61">
-<link rel="stylesheet" href="css/styles-chat.css?v=9.61">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=9.61">
+<link rel="stylesheet" href="css/styles.css?v=9.63">
+<link rel="stylesheet" href="css/styles-dialer.css?v=9.63">
+<link rel="stylesheet" href="css/styles-mascot.css?v=9.63">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=9.63">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=9.63">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=9.63">
+<link rel="stylesheet" href="css/styles-pages.css?v=9.63">
+<link rel="stylesheet" href="css/styles-aurora.css?v=9.63">
+<link rel="stylesheet" href="css/styles-chat.css?v=9.63">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=9.63">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -48,7 +48,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v9.61 — 2026</div>
+<div class="login-version">v9.63 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -408,7 +408,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v9.61</div>
+<div class="sb-ver">MontBlanc v9.63</div>
 </div>
 </nav>
 <main id="main">
@@ -2485,7 +2485,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="communication" onclick="setSettingsTab('communication')" data-tr="İletişim" data-de="Kommunikation">İletişim</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="notifications" onclick="setSettingsTab('notifications'); if (typeof opsFillNotifSettings==='function') opsFillNotifSettings();" data-tr="Bildirim" data-de="Hinweis">Bildirim</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="operations" onclick="setSettingsTab('operations')" data-tr="Operasyon" data-de="Betrieb">Operasyon</button>
-<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="mesai" onclick="setSettingsTab('mesai'); if (typeof loadMesaiSettings==='function') loadMesaiSettings(); if (typeof loadDefaultTakvimFirmCard==='function') loadDefaultTakvimFirmCard();" data-tr="Mesai" data-de="Schicht">Mesai</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="mesai" onclick="setSettingsTab('mesai'); if (typeof loadMesaiPlanCard==='function') loadMesaiPlanCard();" data-tr="Mesai" data-de="Schicht">Mesai</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="field" onclick="setSettingsTab('field')" data-tr="Saha" data-de="Feld">Saha</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="system" onclick="setSettingsTab('system')" data-tr="Sistem" data-de="System">Sistem</button>
 </div>
@@ -2567,7 +2567,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div class="form-label" data-tr="Mesai" data-de="Schicht">Mesai</div>
 <div class="ops-sound-list">
-<label class="ops-note-row ops-agent-row-hide"><input type="checkbox" data-sound="break" checked><span><b data-tr="Mola" data-de="Pause">Mola</b><small data-tr="Bir personel molaya çıkınca admin görür." data-de="Admins sehen, wenn jemand Pause macht.">Bir personel molaya çıkınca admin görür.</small></span><select data-tone="break"><option value="soft" selected>Yumuşak</option></select><button type="button" onclick="opsPreviewSound('break')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('break')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row"><input type="checkbox" data-sound="break" checked><span><b data-tr="Mola" data-de="Pause">Mola</b><small data-tr="Planlanan mola başlayınca." data-de="Wenn eine geplante Pause beginnt.">Planlanan mola başlayınca.</small></span><select data-tone="break"><option value="soft" selected>Yumuşak</option></select><button type="button" onclick="opsPreviewSound('break')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('break')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
 <label class="ops-note-row"><input type="checkbox" data-sound="shift" checked><span><b data-tr="Mesai bitişi" data-de="Schichtende">Mesai bitişi</b><small data-tr="Bitişten 15 dakika önce ve bitince." data-de="15 Minuten vorher und zum Ende.">Bitişten 15 dakika önce ve bitince.</small></span><select data-tone="shift"><option value="bell" selected>Zil</option></select><button type="button" onclick="opsPreviewSound('shift')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('shift')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
 </div>
 <div class="form-label ops-firm-only" data-tr="Canlı ekran" data-de="Live">Canlı ekran</div>
@@ -3153,8 +3153,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div id="audit-log-list" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow:auto;"></div>
 </div>
+<div class="card" id="mesai-plan-card">
+<div class="card-title" style="margin-bottom:6px;" data-tr="Mesai saatlerini ayarla" data-de="Schichtzeiten einstellen">Mesai saatlerini ayarla</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;" data-tr="Günün başlangıcı, bitişi ve aradaki molalar. Üst çubuk ile mola ve mesai bitiş bildirimleri bu saatleri kullanır." data-de="Beginn, Ende und die Pausen des Tages. Die Leiste und die Hinweise nutzen diese Zeiten.">Günün başlangıcı, bitişi ve aradaki molalar. Üst çubuk ile mola ve mesai bitiş bildirimleri bu saatleri kullanır.</div>
+<div id="mesai-plan-body" style="font-size:12px;color:var(--text-3);">Yükleniyor…</div>
+</div>
 <div class="card" id="mesai-settings-card">
-<div class="card-title" style="margin-bottom:12px;" data-tr="Gün gün mesai" data-de="Schicht je Tag">Gün gün mesai</div>
+<div class="card-title" style="margin-bottom:12px;">Çalışma Saatleri &amp; Günler</div>
 <!-- Sadece süper admin görür: firma seçici -->
 <div id="mesai-firm-row" style="display:none;margin-bottom:12px;">
 <label class="form-label" style="font-size:11px;color:var(--text-3);margin-bottom:4px;display:block;">Firma</label>
@@ -3233,9 +3238,9 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="addAppointmentResultRow()">+ Sonuç Ekle</button>
 <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="saveAppointmentResultsSettings()">Sonuçları Kaydet</button>
 </div>
-<div class="card" id="default-takvim-firm-card">
-<div class="card-title" style="margin-bottom:12px;" data-tr="Mesai saatleri" data-de="Schichtzeiten">Mesai saatleri</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Takvimdeki çalışma günü, başlangıç ve bitiş. Üst çubuk ve mesai bitiş bildirimi bu saatleri kullanır. Gün gün kayıt varsa o saat geçerli olur." data-de="Arbeitstage, Beginn und Ende wie im Kalender. Die Leiste und der Schichtende-Hinweis nutzen diese Zeiten.">Takvimdeki çalışma günü, başlangıç ve bitiş. Üst çubuk ve mesai bitiş bildirimi bu saatleri kullanır. Gün gün kayıt varsa o saat geçerli olur.</div>
+<div class="card" id="default-takvim-firm-card" style="display:none;">
+<div class="card-title" style="margin-bottom:12px;">Varsayılan takvim (firma)</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Süper admin için firma seçimi üstteki “Randevu Sonuçları” kartı ile aynıdır.</div>
 <div id="default-takvim-firm-body" style="font-size:12px;color:var(--text-3);">Yükleniyor…</div>
 </div>
 <div class="card" id="telnyx-settings">
@@ -4100,60 +4105,60 @@ QC Detay
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=9.61"></script>
-<script src="js/i18n.js?v=9.61"></script>
-<script src="js/config.js?v=9.61"></script>
-<script src="js/state.js?v=9.61"></script>
-<script src="js/api.js?v=9.61"></script>
-<script src="js/access.js?v=9.61"></script>
-<script src="js/auth.js?v=9.61"></script>
-<script src="js/ui.js?v=9.61"></script>
-<script src="js/chat.js?v=9.61"></script>
-<script src="js/chat-settings.js?v=9.61"></script>
-<script src="js/field-settings.js?v=9.61"></script>
-<script src="js/audit.js?v=9.61"></script>
-<script src="js/feature-flags.js?v=9.61"></script>
-<script src="js/notification-center.js?v=9.61"></script>
+<script src="js/version.js?v=9.63"></script>
+<script src="js/i18n.js?v=9.63"></script>
+<script src="js/config.js?v=9.63"></script>
+<script src="js/state.js?v=9.63"></script>
+<script src="js/api.js?v=9.63"></script>
+<script src="js/access.js?v=9.63"></script>
+<script src="js/auth.js?v=9.63"></script>
+<script src="js/ui.js?v=9.63"></script>
+<script src="js/chat.js?v=9.63"></script>
+<script src="js/chat-settings.js?v=9.63"></script>
+<script src="js/field-settings.js?v=9.63"></script>
+<script src="js/audit.js?v=9.63"></script>
+<script src="js/feature-flags.js?v=9.63"></script>
+<script src="js/notification-center.js?v=9.63"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=9.61"></script>
-<script src="js/job-market.js?v=9.61"></script>
-<script src="js/qc-job-market.js?v=9.61"></script>
-<script src="js/export-admin.js?v=9.61"></script>
-<script src="js/export-termin.js?v=9.61"></script>
-<script src="js/performance.js?v=9.61"></script>
-<script src="js/competition.js?v=9.61"></script>
-<script src="js/dashboard.js?v=9.61"></script>
-<script src="js/dashboard-brief.js?v=9.61"></script>
-<script src="js/campaigns.js?v=9.61"></script>
-<script src="js/campaigns-detail.js?v=9.61"></script>
-<script src="js/campaigns-queue.js?v=9.61"></script>
-<script src="js/contacts-upload.js?v=9.61"></script>
-<script src="js/contacts.js?v=9.61"></script>
-<script src="js/contacts-drawer.js?v=9.61"></script>
-<script src="js/telnyx.js?v=9.61"></script>
-<script src="js/voice-orb.js?v=9.61"></script>
-<script src="js/dialer.js?v=9.61"></script>
-<script src="js/ops-alerts.js?v=9.61"></script>
-<script src="js/dialer-mascot.js?v=9.61"></script>
-<script src="js/dialer-mascot-live.js?v=9.61"></script>
-<script src="js/ui-prefs.js?v=9.61"></script>
-<script src="js/dialer-session.js?v=9.61"></script>
-<script src="js/dialer-call.js?v=9.61"></script>
-<script src="js/dialer-tools.js?v=9.61"></script>
-<script src="js/appointments.js?v=9.61"></script>
-<script src="js/appointments-actions.js?v=9.61"></script>
-<script src="js/appointments-tools.js?v=9.61"></script>
-<script src="js/field.js?v=9.61"></script>
-<script src="js/field-ops.js?v=9.61"></script>
-<script src="js/wiedervorlage.js?v=9.61"></script>
-<script src="js/qc.js?v=9.61"></script>
-<script src="js/supervisor.js?v=9.61"></script>
-<script src="js/live-coach.js?v=9.61"></script>
-<script src="js/sms-settings.js?v=9.61"></script>
-<script src="js/leave-hr.js?v=9.61"></script>
-<script src="js/muhasebe.js?v=9.61"></script>
-<script src="js/agent-self-performance.js?v=9.61"></script>
-<script src="js/agents.js?v=9.61"></script>
-<script src="js/mimi-brain.js?v=9.61"></script>
+<script src="js/wallet.js?v=9.63"></script>
+<script src="js/job-market.js?v=9.63"></script>
+<script src="js/qc-job-market.js?v=9.63"></script>
+<script src="js/export-admin.js?v=9.63"></script>
+<script src="js/export-termin.js?v=9.63"></script>
+<script src="js/performance.js?v=9.63"></script>
+<script src="js/competition.js?v=9.63"></script>
+<script src="js/dashboard.js?v=9.63"></script>
+<script src="js/dashboard-brief.js?v=9.63"></script>
+<script src="js/campaigns.js?v=9.63"></script>
+<script src="js/campaigns-detail.js?v=9.63"></script>
+<script src="js/campaigns-queue.js?v=9.63"></script>
+<script src="js/contacts-upload.js?v=9.63"></script>
+<script src="js/contacts.js?v=9.63"></script>
+<script src="js/contacts-drawer.js?v=9.63"></script>
+<script src="js/telnyx.js?v=9.63"></script>
+<script src="js/voice-orb.js?v=9.63"></script>
+<script src="js/dialer.js?v=9.63"></script>
+<script src="js/ops-alerts.js?v=9.63"></script>
+<script src="js/dialer-mascot.js?v=9.63"></script>
+<script src="js/dialer-mascot-live.js?v=9.63"></script>
+<script src="js/ui-prefs.js?v=9.63"></script>
+<script src="js/dialer-session.js?v=9.63"></script>
+<script src="js/dialer-call.js?v=9.63"></script>
+<script src="js/dialer-tools.js?v=9.63"></script>
+<script src="js/appointments.js?v=9.63"></script>
+<script src="js/appointments-actions.js?v=9.63"></script>
+<script src="js/appointments-tools.js?v=9.63"></script>
+<script src="js/field.js?v=9.63"></script>
+<script src="js/field-ops.js?v=9.63"></script>
+<script src="js/wiedervorlage.js?v=9.63"></script>
+<script src="js/qc.js?v=9.63"></script>
+<script src="js/supervisor.js?v=9.63"></script>
+<script src="js/live-coach.js?v=9.63"></script>
+<script src="js/sms-settings.js?v=9.63"></script>
+<script src="js/leave-hr.js?v=9.63"></script>
+<script src="js/muhasebe.js?v=9.63"></script>
+<script src="js/agent-self-performance.js?v=9.63"></script>
+<script src="js/agents.js?v=9.63"></script>
+<script src="js/mimi-brain.js?v=9.63"></script>
 </body>
 </html>

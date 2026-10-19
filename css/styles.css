@@ -425,18 +425,24 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 .tb-mesai-pop {
   position: absolute;
   top: 40px;
-  right: 8px;
+  left: 0;
   z-index: 80;
-  min-width: 220px;
-  padding: 10px 12px;
+  width: 280px;
+  padding: 14px 16px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--bg-2);
-  box-shadow: 0 12px 28px rgba(0,0,0,.16);
+  box-shadow: 0 16px 36px rgba(0,0,0,.18);
 }
-.tb-mesai-title { font-size: 13px; font-weight: 800; margin-bottom: 8px; }
-.tb-mesai-row { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; padding: 4px 0; color: var(--text-2); }
-.tb-mesai-row.is-today { color: var(--text); font-weight: 800; }
+.tb-mesai-title { font-size: 12px; font-weight: 800; color: var(--text-3); letter-spacing: .04em; text-transform: uppercase; }
+.tb-mesai-clock { font-size: 22px; font-weight: 800; margin: 4px 0 2px; }
+.tb-mesai-sub { font-size: 12px; color: var(--text-2); margin-bottom: 8px; }
+.tb-mesai-kicker { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); margin-top: 6px; }
+.tb-mesai-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 6px 0; color: var(--text-2); }
+.mesai-plan-days { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.mesai-plan-day { min-width: 46px; }
+.mesai-plan-day.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.mesai-plan-break { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; background: var(--bg-3); }
 .tb-icon-btn.tb-takvim {
   width: auto;
   min-width: 32px;
@@ -456,8 +462,7 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 }
 @media (max-width: 1280px) {
   .tb-logo-name { display: none; }
-  .tb-icon-btn.tb-takvim > span, .tb-icon-btn.tb-mesai > span { display: none; }
-  .tb-icon-btn.tb-mesai { width: 32px; min-width: 32px; padding: 0; }
+  .tb-icon-btn.tb-takvim > span { display: none; }
   .tb-icon-btn.tb-takvim { width: 32px; min-width: 32px; padding: 0; }
   .tb-logo { margin-right: 0; }
   .tb-logo-inner { padding: 4px; gap: 0; }

@@ -1346,6 +1346,168 @@ async function applyDefaultTakvimToFirmCampaigns() {
   }
 }
 
+let _mesaiPlanDraft = null;
+let _mesaiPlanGun = 'pzt';
+let _mesaiPlanFirm = '';
+const MESAI_GUN_ORDER = ['pzt', 'sal', 'car', 'per', 'cum', 'cmt', 'paz'];
+const MESAI_GUN_LABEL = { pzt: 'Pazartesi', sal: 'Salı', car: 'Çarşamba', per: 'Perşembe', cum: 'Cuma', cmt: 'Cumartesi', paz: 'Pazar' };
+
+function mesaiPlanFallback() {
+  const plan = {};
+  MESAI_GUN_ORDER.forEach((gun) => {
+    const day = opsMesaiFallbackDay(gun);
+    plan[gun] = { off: day.off, start: day.start, end: day.end, breaks: [] };
+  });
+  return plan;
+}
+
+function mesaiPlanFlush() {
+  if (!_mesaiPlanDraft || !_mesaiPlanGun) return;
+  const on = document.getElementById('mp-on');
+  const start = document.getElementById('mp-start');
+  const end = document.getElementById('mp-end');
+  if (!on) return;
+  const breaks = [...document.querySelectorAll('#mesai-plan-body .mp-break')].map((row) => ({
+    start: row.querySelector('.mp-bstart')?.value || '',
+    end: row.querySelector('.mp-bend')?.value || '',
+  }));
+  _mesaiPlanDraft[_mesaiPlanGun] = {
+    off: !on.checked,
+    start: start?.value || '08:00',
+    end: end?.value || '20:00',
+    breaks,
+  };
+}
+
+function mesaiPlanPick(gun) {
+  mesaiPlanFlush();
+  _mesaiPlanGun = gun;
+  mesaiPlanRender();
+}
+
+function mesaiPlanAddBreak() {
+  mesaiPlanFlush();
+  const day = _mesaiPlanDraft?.[_mesaiPlanGun];
+  if (!day) return;
+  day.breaks = Array.isArray(day.breaks) ? day.breaks : [];
+  day.breaks.push({ start: '12:00', end: '12:30' });
+  mesaiPlanRender();
+}
+
+function mesaiPlanRemoveBreak(index) {
+  mesaiPlanFlush();
+  const day = _mesaiPlanDraft?.[_mesaiPlanGun];
+  if (!day || !Array.isArray(day.breaks)) return;
+  day.breaks.splice(index, 1);
+  mesaiPlanRender();
+}
+
+function mesaiPlanRender() {
+  const host = document.getElementById('mesai-plan-body');
+  if (!host || !_mesaiPlanDraft) return;
+  const gun = _mesaiPlanGun || 'pzt';
+  const day = _mesaiPlanDraft[gun] || { off: false, start: '08:00', end: '20:00', breaks: [] };
+  const shorts = { pzt: 'Pzt', sal: 'Sal', car: 'Çar', per: 'Per', cum: 'Cum', cmt: 'Cmt', paz: 'Paz' };
+  const pills = MESAI_GUN_ORDER.map((key) =>
+    `<button type="button" class="btn btn-ghost btn-sm mesai-plan-day${key === gun ? ' active' : ''}" onclick="mesaiPlanPick('${key}')">${shorts[key]}</button>`
+  ).join('');
+  const breaks = Array.isArray(day.breaks) ? day.breaks : [];
+  const breakHtml = day.off ? '' : breaks.map((item, index) => `<div class="mesai-plan-break mp-break">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+<b>${index + 1}. ${t('ops.break.title')}</b>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mesaiPlanRemoveBreak(${index})" aria-label="Sil">✕</button>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div class="form-row"><label class="form-label">${t('mesai.plan.start')}</label><input type="time" class="form-input mp-bstart" value="${item.start || ''}"></div>
+<div class="form-row"><label class="form-label">${t('mesai.plan.end')}</label><input type="time" class="form-input mp-bend" value="${item.end || ''}"></div>
+</div>
+</div>`).join('');
+  host.innerHTML = `<div class="form-label">${t('mesai.plan.day')}</div>
+<div class="mesai-plan-days">${pills}</div>
+<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin-bottom:12px;">
+<input type="checkbox" id="mp-on" ${day.off ? '' : 'checked'} onchange="mesaiPlanFlush();mesaiPlanRender();"> ${t('mesai.plan.on')}
+</label>
+<div style="${day.off ? 'display:none;' : ''}">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+<div class="form-row"><label class="form-label">${t('mesai.plan.start')}</label><input type="time" class="form-input" id="mp-start" value="${day.start || '08:00'}"></div>
+<div class="form-row"><label class="form-label">${t('mesai.plan.end')}</label><input type="time" class="form-input" id="mp-end" value="${day.end || '20:00'}"></div>
+</div>
+<div class="form-label">${t('ops.mesai.breaks')}</div>
+${breakHtml || `<div style="font-size:12px;color:var(--text-3);margin-bottom:8px;">${t('ops.mesai.noBreak')}</div>`}
+<button type="button" class="btn btn-ghost btn-sm" onclick="mesaiPlanAddBreak()">+ ${t('mesai.plan.add')}</button>
+</div>
+<div style="margin-top:14px;"><button type="button" class="btn btn-primary btn-sm" onclick="saveMesaiPlan()">${t('mesai.plan.save')}</button></div>`;
+}
+
+async function loadMesaiPlanCard() {
+  const host = document.getElementById('mesai-plan-body');
+  if (!host) return;
+  const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id || '';
+  if (!fid) {
+    host.textContent = 'Firma seçin';
+    return;
+  }
+  _mesaiPlanFirm = String(fid);
+  if (typeof ensureFirmTakvimDefaultsLoaded === 'function') await ensureFirmTakvimDefaultsLoaded(fid);
+  let saved = null;
+  try {
+    const rows = await sb(`firms?id=eq.${fid}&select=settings`);
+    saved = typeof opsNormalizeMesaiPlan === 'function' ? opsNormalizeMesaiPlan(rows?.[0]?.settings?.mesai_plan) : null;
+  } catch (e) {}
+  _mesaiPlanDraft = saved || mesaiPlanFallback();
+  const berlin = typeof opsBerlinClock === 'function' ? opsBerlinClock() : null;
+  _mesaiPlanGun = berlin?.gun || 'pzt';
+  mesaiPlanRender();
+}
+
+async function saveMesaiPlan() {
+  mesaiPlanFlush();
+  const fid = _mesaiPlanFirm || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id;
+  if (!fid || !_mesaiPlanDraft) {
+    toast('Önce firma seçin', 'warn');
+    return;
+  }
+  const plan = {};
+  for (const gun of MESAI_GUN_ORDER) {
+    const day = _mesaiPlanDraft[gun] || { off: true, start: '08:00', end: '20:00', breaks: [] };
+    const start = opsHm(day.start, '08:00');
+    const end = opsHm(day.end, '20:00');
+    if (!day.off && opsHmMins(start) >= opsHmMins(end)) {
+      toast(`${MESAI_GUN_LABEL[gun]}: ${t('mesai.plan.order')}`, 'warn');
+      return;
+    }
+    const breaks = [];
+    for (const item of (day.breaks || [])) {
+      const b0 = opsHm(item.start, '');
+      const b1 = opsHm(item.end, '');
+      if (!b0 || !b1) continue;
+      const a = opsHmMins(b0);
+      const z = opsHmMins(b1);
+      if (a >= z || (!day.off && (a < opsHmMins(start) || z > opsHmMins(end)))) {
+        toast(`${MESAI_GUN_LABEL[gun]}: ${t('mesai.plan.bad')}`, 'warn');
+        return;
+      }
+      breaks.push({ start: b0, end: b1 });
+    }
+    breaks.sort((a, b) => opsHmMins(a.start) - opsHmMins(b.start));
+    plan[gun] = { off: !!day.off, start, end, breaks };
+  }
+  try {
+    const firms = await sb(`firms?id=eq.${fid}&select=settings`);
+    const existing = firms?.[0]?.settings || {};
+    await sb(`firms?id=eq.${fid}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings: { ...existing, mesai_plan: plan } }),
+    });
+    _mesaiPlanDraft = plan;
+    if (typeof opsApplyMesaiPlan === 'function') opsApplyMesaiPlan(plan);
+    toast(t('mesai.plan.saved'), 'ok');
+  } catch (e) {
+    toast('Hata: ' + e.message, 'err');
+  }
+}
+
 function iaDistinct(idx) {
   const counts = new Map();
   (_iaRows || []).forEach((row) => {
