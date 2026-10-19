@@ -30,6 +30,7 @@ let _perfCharts = {};
 let _perfChartPeriod = 'daily';
 let _perfCompType = 'termin';
 let _perfTmSort = 'total';
+let _perfApptMode = 'termin';
 
 function _perfDurKey(raw) {
   const s = String(raw || '').trim();
@@ -100,6 +101,18 @@ function _perfMonthEnd(day) {
   const mo = Number(String(day).slice(5, 7));
   const last = new Date(Date.UTC(y, mo, 0)).getUTCDate();
   return `${String(day).slice(0, 7)}-${String(last).padStart(2, '0')}`;
+}
+
+function perfSetApptMode(mode, ev) {
+  _perfApptMode = mode === 'created' ? 'created' : 'termin';
+  document.querySelectorAll('.perf-mode-btn').forEach((b) => b.classList.toggle('active', b.dataset.perfMode === _perfApptMode));
+  if (ev?.currentTarget) ev.currentTarget.classList.add('active');
+  perfReload();
+}
+
+function perfApptWhen(row) {
+  if (_perfApptMode === 'created') return row?.kayit_tarihi || row?.created_at || '';
+  return row?.termin_tarih || '';
 }
 
 function perfSetQuickRange(key, ev) {
@@ -225,7 +238,17 @@ function perfUpdateHeaderSummary() {
   const rate = total > 0 ? Math.round((ok / total) * 100) : 0;
   const agents = new Set(all.map((a) => a.agent_id).filter(Boolean));
   const avg = agents.size > 0 ? Math.round(total / agents.size) : 0;
-  const days = new Set(all.map((a) => String(a.termin_tarih || '').slice(0, 10)).filter(Boolean));
+  const days = new Set(all.map((a) => String(perfApptWhen(a) || '').slice(0, 10)).filter(Boolean));
+  const sumLbl = document.querySelector('#perf-sum-total')?.parentElement?.querySelector('.perf-sum-lbl');
+  if (sumLbl) {
+    const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+    const pair = _perfApptMode === 'created'
+      ? { tr: 'Kayıt tarihi (dönem)', de: 'Erfasst im Zeitraum' }
+      : { tr: 'Randevu günü (dönem)', de: 'Termin im Zeitraum' };
+    sumLbl.textContent = de ? pair.de : pair.tr;
+    sumLbl.setAttribute('data-tr', pair.tr);
+    sumLbl.setAttribute('data-de', pair.de);
+  }
   const el = (id, v) => {
     const n = document.getElementById(id);
     if (n) n.textContent = v;
@@ -251,6 +274,16 @@ function perfUpdateCards() {
     const n = document.getElementById(id);
     if (n) n.textContent = v;
   };
+  const totalLbl = document.getElementById('perf-card-total-lbl');
+  if (totalLbl) {
+    const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+    const pair = _perfApptMode === 'created'
+      ? { tr: 'Bu aralıkta kaydedilen', de: 'Im Zeitraum erfasst' }
+      : { tr: 'Randevu günü bu aralıkta', de: 'Termin im Zeitraum' };
+    totalLbl.textContent = de ? pair.de : pair.tr;
+    totalLbl.setAttribute('data-tr', pair.tr);
+    totalLbl.setAttribute('data-de', pair.de);
+  }
   set('perf-card-total', String(total));
   set('perf-card-ok', String(ok));
   set('perf-card-pend', String(pend));
@@ -277,7 +310,7 @@ function perfGroupTrend(appts) {
   const map = new Map();
   const loc = mbLocale();
   sorted.forEach((a) => {
-    const raw = a.termin_tarih;
+    const raw = perfApptWhen(a);
     if (!raw) return;
     const d = new Date(raw);
     if (isNaN(d.getTime())) return;
@@ -438,13 +471,18 @@ function perfRenderMainTable(sortKey) {
 function perfRenderThisMonth() {
   const tbody = document.getElementById('perf-tbody-month');
   if (!tbody) return;
+  const monthTitle = document.getElementById('perf-month-title');
+  if (monthTitle) {
+    const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+    monthTitle.textContent = _perfApptMode === 'created'
+      ? (de ? 'Diesen Monat erfasst' : 'Bu ay kaydedilen')
+      : (de ? 'Termin diesen Monat' : 'Bu ay randevu günü');
+  }
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
-  const tm = _perfRawAppts.filter((a) => {
-    const d = new Date(a.termin_tarih);
-    return !isNaN(d.getTime()) && d.getFullYear() === y && d.getMonth() === m;
-  });
+  const monthKey = `${y}-${String(m + 1).padStart(2, '0')}`;
+  const tm = _perfRawAppts.filter((a) => String(perfApptWhen(a) || '').slice(0, 7) === monthKey);
   if (!tm.length) {
     tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(8, 'ui.no_termin_month') : `<tr><td colspan="8" class="mb-empty-hint">${t('ui.no_termin_month')}</td></tr>`;
     return;
@@ -609,12 +647,16 @@ function perfPopulateFilters() {
 async function _perfFetchAppointments(from, to) {
   const ff = getFirmFilter('&');
   if (isSuperAdmin() && !getActiveFirmId()) return [];
-  const cols = 'id,termin_tarih,durum,nachname,telefonnummer,plz,ortschaft,agent_id,campaign_id,customer_id,agent_notu,firm_id';
-  let q = `appointments?select=${cols},users(name),campaigns(name),customers(name,code)${ff}&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&order=termin_tarih.asc&limit=15000`;
+  const cols = 'id,termin_tarih,kayit_tarihi,durum,nachname,telefonnummer,plz,ortschaft,agent_id,campaign_id,customer_id,agent_notu,firm_id';
+  const created = _perfApptMode === 'created';
+  const gte = created && typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
+  const lte = created && typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
+  const dateCol = created ? 'kayit_tarihi' : 'termin_tarih';
+  let q = `appointments?select=${cols},users(name),campaigns(name),customers(name,code)${ff}&${dateCol}=gte.${gte}&${dateCol}=lte.${lte}&order=${dateCol}.asc&limit=15000`;
   try {
     return (await sb(q)) || [];
   } catch (e) {
-    q = `appointments?select=${cols}${ff}&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&order=termin_tarih.asc&limit=15000`;
+    q = `appointments?select=${cols}${ff}&${dateCol}=gte.${gte}&${dateCol}=lte.${lte}&order=${dateCol}.asc&limit=15000`;
     const rows = (await sb(q).catch(() => [])) || [];
     if (!rows.length) return [];
     const aIds = [...new Set(rows.map((r) => r.agent_id).filter(Boolean))];
