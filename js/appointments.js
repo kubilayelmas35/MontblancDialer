@@ -305,10 +305,14 @@ async function _createAppointmentWithCustomerFallback(data) {
   try {
     return await sb('appointments',{method:'POST',prefer:'return=representation',body:JSON.stringify(data)});
   } catch (e) {
-    if (String(e.message || '').includes('customer_id')) {
+    const msg = String(e.message || '');
+    if (msg.includes('customer_id') || msg.includes('form_ek')) {
       const clone = { ...data };
-      delete clone.customer_id;
-      toast('Not: customer_id migration bekliyor, müşteri bilgisi geçici kaydedilemedi.', 'warn');
+      if (msg.includes('customer_id')) {
+        delete clone.customer_id;
+        toast('Not: customer_id migration bekliyor, müşteri bilgisi geçici kaydedilemedi.', 'warn');
+      }
+      if (msg.includes('form_ek')) delete clone.form_ek;
       return await sb('appointments',{method:'POST',prefer:'return=representation',body:JSON.stringify(clone)});
     }
     throw e;

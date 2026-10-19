@@ -1,4 +1,289 @@
 // Takvim slot işlemleri — appointments.js ile aynı kapsam
+const TAKVIM_APPT_COL = {
+  name: 'nachname',
+  phone: 'telefonnummer',
+  phone2: 'telefon2',
+  address: 'strasse',
+  plz: 'plz',
+  city: 'ortschaft',
+  hausart: 'hausart',
+  baujahr: 'baujahr',
+  qm: 'qm',
+  heizung: 'heizung',
+  alter_der_heizung: 'alter_der_heizung',
+  verbrauch_pro_jahr: 'verbrauch_pro_jahr',
+  personen: 'personen',
+  interesse_an_pv: 'interesse_an_pv',
+};
+
+const TAKVIM_BOOK_ID = {
+  name: 'tf-name',
+  phone: 'tf-tel',
+  phone2: 'tf-tel2',
+  address: 'tf-str',
+  plz: 'tf-plz',
+  city: 'tf-ort',
+  hausart: 'tf-hausart',
+  baujahr: 'tf-bj',
+  qm: 'tf-qm',
+  heizung: 'tf-hz',
+  alter_der_heizung: 'tf-ah',
+  verbrauch_pro_jahr: 'tf-vj',
+  personen: 'tf-pe',
+  interesse_an_pv: 'tf-pv',
+};
+
+function takvimEsc(v) {
+  return typeof escapeHtml === 'function' ? escapeHtml(v) : String(v ?? '');
+}
+
+async function takvimEnsureCamp(apptOrId) {
+  let camp = takvimCampOf(apptOrId);
+  const id = typeof apptOrId === 'string'
+    ? apptOrId
+    : (apptOrId?.campaign_id || (typeof takvimCampId !== 'undefined' ? takvimCampId : '') || (typeof selectedCampId !== 'undefined' ? selectedCampId : ''));
+  if (!id || typeof sb !== 'function') return camp;
+  try {
+    const rows = await sb(`campaigns?id=eq.${id}&select=id,name,field_config,settings,firm_id&limit=1`);
+    if (rows?.[0]) {
+      if (typeof takvimMergeCamps === 'function') takvimMergeCamps(rows);
+      camp = takvimCampOf(id) || rows[0];
+    }
+  } catch (e) {}
+  return camp;
+}
+
+function takvimCampOf(apptOrId) {
+  const id = typeof apptOrId === 'string'
+    ? apptOrId
+    : (apptOrId?.campaign_id || (typeof takvimCampId !== 'undefined' ? takvimCampId : '') || (typeof selectedCampId !== 'undefined' ? selectedCampId : ''));
+  return (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === id) || null;
+}
+
+function takvimFormEkObject(appt) {
+  const raw = appt?.form_ek;
+  if (!raw) return {};
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (e) { return {}; }
+  }
+  return typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+}
+
+function takvimLayout(camp) {
+  const fc = typeof mbParseFieldConfig === 'function' ? mbParseFieldConfig(camp) : {};
+  const cards = (typeof mbMergeCampFields === 'function' ? mbMergeCampFields(fc) : []).filter((f) => f.show && f.key !== 'notes');
+  let forms = [];
+  try {
+    forms = typeof dialerTerminFields === 'function' ? dialerTerminFields(camp) : [];
+  } catch (e) { forms = []; }
+  return { cards, forms };
+}
+
+function takvimNoteFallback(note, forms) {
+  const map = {};
+  const lines = String(note || '').split('\n');
+  (forms || []).forEach((f) => {
+    if (TAKVIM_APPT_COL[f.key]) return;
+    const label = String(f.l || f.label || '').trim();
+    if (!label) return;
+    const hit = lines.find((line) => line.startsWith(`${label}: `));
+    if (hit) map[f.key] = hit.slice(label.length + 2).trim();
+  });
+  return map;
+}
+
+function takvimYesNo(v) {
+  if (v === true || v === 'true' || v === 'Evet' || v === 'evet' || v === 'Ja') return 'Evet';
+  if (v === false || v === 'false' || v === 'Hayır' || v === 'hayır' || v === 'Nein') return 'Hayır';
+  return v == null ? '' : String(v);
+}
+
+function takvimFieldRaw(appt, contact, key, forms) {
+  const col = TAKVIM_APPT_COL[key];
+  if (appt && col && appt[col] != null && appt[col] !== '') return appt[col];
+  const ek = takvimFormEkObject(appt);
+  if (ek[key] != null && ek[key] !== '') return ek[key];
+  if (key === 'attempt') return contact?.attempt_count ?? '';
+  if (key === 'name') {
+    if (appt?.nachname) return appt.nachname;
+    return `${contact?.first_name || ''} ${contact?.last_name || ''}`.trim();
+  }
+  if (contact && typeof mbContactFieldText === 'function') {
+    const text = mbContactFieldText(contact, key);
+    if (text) return text;
+  }
+  if (contact && contact[key] != null && contact[key] !== '') return contact[key];
+  return takvimNoteFallback(appt?.agent_notu, forms)[key] || '';
+}
+
+function takvimShowValue(appt, contact, field, forms) {
+  const raw = takvimFieldRaw(appt, contact, field.key, forms);
+  if (field.type === 'boolean' || field.key === 'interesse_an_pv') {
+    if (raw === '' || raw == null) return '';
+    return takvimYesNo(raw);
+  }
+  if (field.key === 'attempt' && raw !== '' && raw != null) return `${raw}. arama`;
+  return raw == null ? '' : String(raw);
+}
+
+function takvimLabel(text) {
+  const raw = text || '';
+  return typeof ncLabelShown === 'function' ? ncLabelShown(raw) : raw;
+}
+
+async function takvimLoadContact(appt) {
+  const id = appt?.contact_id;
+  if (!id || typeof sb !== 'function' || (typeof isValidUUID === 'function' && !isValidUUID(id))) return null;
+  try {
+    const rows = await sb(`contacts?id=eq.${id}&select=extra,attempt_count,notes,first_name,last_name,phone,phone2,plz,city,address&limit=1`);
+    return rows?.[0] || null;
+  } catch (e) { return null; }
+}
+
+function takvimDetailCells(camp, appt, contact) {
+  const { cards, forms } = takvimLayout(camp);
+  const seen = new Set();
+  const cells = [];
+  const cell = (label, value, wide) => `<div style="background:var(--bg-3);padding:8px;border-radius:6px;${wide ? 'grid-column:1/-1;' : ''}"><div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.3px;">${takvimEsc(label)}</div><div style="font-weight:700;">${takvimEsc(value || '—')}</div></div>`;
+  const push = (field) => {
+    if (!field?.key || seen.has(field.key)) return;
+    seen.add(field.key);
+    cells.push(cell(takvimLabel(field.label || field.l || field.defaultLabel || field.key), takvimShowValue(appt, contact, field, forms), field.key === 'address'));
+  };
+  cards.forEach(push);
+  forms.forEach((field) => push({ ...field, label: field.l }));
+  return cells.join('');
+}
+
+function takvimControlId(mode, key) {
+  if (mode === 'book' && TAKVIM_BOOK_ID[key]) return TAKVIM_BOOK_ID[key];
+  return `${mode === 'book' ? 'tf-x-' : 'te-'}${String(key).replace(/[^a-zA-Z0-9_-]/g, '')}`;
+}
+
+function takvimControl(field, value, mode, contactField) {
+  const key = field.key;
+  const id = takvimControlId(mode, key);
+  const label = takvimLabel(field.label || field.l || field.defaultLabel || key);
+  const required = mode === 'book'
+    ? !!(field.required || key === 'name' || key === 'phone' || key === 'plz')
+    : (key === 'name' || key === 'phone');
+  const wide = key === 'name' || key === 'address';
+  const isBool = field.type === 'boolean' || key === 'interesse_an_pv';
+  const col = TAKVIM_APPT_COL[key] || '';
+  const readOnly = key === 'attempt';
+  const esc = takvimEsc;
+  const attrs = `id="${esc(id)}" data-takvim-key="${esc(key)}"${col ? ` data-takvim-col="${col}"` : ' data-takvim-ek="1"'}${contactField ? ' data-takvim-contact="1"' : ''}${isBool ? ' data-takvim-bool="1"' : ''}${required ? ' data-takvim-required="1"' : ''}`;
+  let control;
+  if (readOnly) {
+    control = `<input class="form-input" ${attrs} value="${esc(value ?? '')}" readonly>`;
+  } else if (field.type === 'select') {
+    let options = Array.isArray(field.opts) ? field.opts.slice() : [''].concat(field.options || []);
+    if (value != null && value !== '' && !options.map(String).includes(String(value))) options = options.concat([String(value)]);
+    const cur = String(value ?? '');
+    control = `<select class="form-input" ${attrs}>${options.map((opt) => `<option value="${esc(opt)}"${String(opt) === cur ? ' selected' : ''}>${esc(opt || 'Seçin')}</option>`).join('')}</select>`;
+  } else if (isBool) {
+    const cur = value === true || value === 'true' || value === 'Evet' ? 'true' : (value === false || value === 'false' || value === 'Hayır' ? 'false' : '');
+    control = `<select class="form-input" ${attrs}><option value="">Seçin</option><option value="true"${cur === 'true' ? ' selected' : ''}>Evet</option><option value="false"${cur === 'false' ? ' selected' : ''}>Hayır</option></select>`;
+  } else {
+    const inputType = field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text';
+    const min = field.min != null && field.min !== '' ? ` min="${esc(field.min)}"` : '';
+    const max = field.max != null && field.max !== '' ? ` max="${esc(field.max)}"` : '';
+    control = `<input class="form-input" type="${inputType}" ${attrs}${min}${max} value="${esc(value ?? '')}">`;
+  }
+  return `<div class="form-row"${wide ? ' style="grid-column:1/-1;"' : ''}><label class="form-label">${esc(label)}${required ? ' *' : ''}</label>${control}</div>`;
+}
+
+function takvimFieldsMarkup(camp, appt, contact, mode) {
+  const { cards, forms } = takvimLayout(camp);
+  const seen = new Set();
+  const rows = [];
+  const push = (field, contactField) => {
+    if (!field?.key || seen.has(field.key)) return;
+    seen.add(field.key);
+    rows.push(takvimControl(field, takvimFieldRaw(appt, contact, field.key, forms), mode, contactField));
+  };
+  cards.forEach((field) => push(field, !TAKVIM_APPT_COL[field.key] && field.key !== 'attempt'));
+  forms.forEach((field) => push({ ...field, label: field.l }, false));
+  return rows.join('');
+}
+
+function takvimCollectPatch(root, appt) {
+  const body = {};
+  const ek = { ...takvimFormEkObject(appt) };
+  const contactExtra = {};
+  if (!root) return { body, ek, contactExtra };
+  root.querySelectorAll('[data-takvim-key]').forEach((el) => {
+    if (el.hasAttribute('readonly')) return;
+    const key = el.getAttribute('data-takvim-key');
+    const col = el.getAttribute('data-takvim-col');
+    const val = String(el.value || '').trim();
+    const isBool = el.getAttribute('data-takvim-bool') === '1';
+    if (col) {
+      body[col] = isBool ? (val === '' ? null : val === 'true') : (val || null);
+      return;
+    }
+    if (el.getAttribute('data-takvim-contact') === '1') contactExtra[key] = val;
+    if (val) ek[key] = isBool ? (val === 'true' ? 'Evet' : 'Hayır') : val;
+    else delete ek[key];
+  });
+  return { body, ek, contactExtra };
+}
+
+async function takvimSaveContactExtras(contactId, contactExtra) {
+  const keys = Object.keys(contactExtra || {});
+  if (!contactId || !keys.length || typeof sb !== 'function') return;
+  try {
+    const rows = await sb(`contacts?id=eq.${contactId}&select=extra&limit=1`);
+    const extra = { ...(rows?.[0]?.extra && typeof rows[0].extra === 'object' ? rows[0].extra : {}) };
+    keys.forEach((key) => { extra[key] = contactExtra[key]; });
+    await sb(`contacts?id=eq.${contactId}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ extra }) });
+  } catch (e) {}
+}
+
+function terminColumnValues() {
+  const out = {};
+  Object.entries(TAKVIM_APPT_COL).forEach(([key, col]) => {
+    if (['name', 'phone', 'phone2', 'address', 'plz', 'city'].includes(key)) return;
+    const el = document.getElementById(`tf2-${key}`);
+    if (!el) return;
+    const val = String(el.value || '').trim();
+    const choices = el.tagName === 'SELECT' ? [...el.options].map((opt) => opt.value) : [];
+    const isBool = key === 'interesse_an_pv' || (choices.includes('true') && choices.includes('false') && choices.length <= 3);
+    out[col] = isBool ? (val === '' ? null : val === 'true') : (val || null);
+  });
+  return out;
+}
+
+function terminFormEk() {
+  const extra = {};
+  document.querySelectorAll('#termin-fields-section [data-tf-key]').forEach((el) => {
+    const key = el.getAttribute('data-tf-key');
+    if (!key || TAKVIM_APPT_COL[key]) return;
+    const input = document.getElementById(`tf2-${key}`);
+    if (!input) return;
+    const val = String(input.value || '').trim();
+    if (!val) return;
+    const choices = input.tagName === 'SELECT' ? [...input.options].map((opt) => opt.value) : [];
+    const isBool = choices.includes('true') && choices.includes('false') && choices.length <= 3;
+    extra[key] = isBool ? (val === 'true' ? 'Evet' : val === 'false' ? 'Hayır' : val) : val;
+  });
+  return extra;
+}
+
+function takvimCardExtras(contact, camp) {
+  const { cards } = takvimLayout(camp);
+  const ek = {};
+  cards.forEach((field) => {
+    if (TAKVIM_APPT_COL[field.key] || field.key === 'attempt') return;
+    const val = takvimFieldRaw(null, contact, field.key, []);
+    if (val) ek[field.key] = String(val);
+  });
+  return ek;
+}
+
 async function openTakvimSlotDetail(slot, appt) {
   const role = currentUser?.role || '';
   const isAdmin = mbIsFirmAdmin(role);
@@ -39,22 +324,11 @@ ${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="dele
       ? mbFormatWall(appt.kayit_tarihi, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
       : new Date(appt.kayit_tarihi).toLocaleString('tr-TR', { timeZone: 'Europe/Berlin' }))
     : '';
-  const pv = appt.interesse_an_pv === true ? 'Evet' : appt.interesse_an_pv === false ? 'Hayır' : '';
+  const camp = await takvimEnsureCamp(appt);
+  const contact = await takvimLoadContact(appt);
   body.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">DURUM</div><div style="font-weight:800;font-size:14px;color:${dc};">${esc(statusLabel)}</div></div>
-${cell('MÜŞTERİ', appt.nachname)}
-${cell('TELEFON', appt.telefonnummer)}
-${cell('TELEFON 2', appt.telefon2)}
-${cell('PLZ / ŞEHİR', `${appt.plz || '—'} ${appt.ortschaft || ''}`.trim())}
-${cell('ADRES', appt.strasse)}
-${cell('EV TİPİ', appt.hausart)}
-${cell('YAPIM YILI', appt.baujahr)}
-${cell('m²', appt.qm)}
-${cell('ISITMA', appt.heizung)}
-${cell('ISITMA YAŞI', appt.alter_der_heizung)}
-${cell('TÜKETİM / YIL', appt.verbrauch_pro_jahr)}
-${cell('KİŞİ SAYISI', appt.personen)}
-${cell('PV İLGİSİ', pv)}
+${takvimDetailCells(camp, appt, contact)}
 ${cell('PERSONEL', agentName)}
 ${cell('RANDEVU TARİHİ / SAATİ', when)}
 ${cell('OLUŞTURULMA TARİHİ / SAATİ', created)}
@@ -209,67 +483,38 @@ async function openTakvimApptEdit(apptId) {
   if (!appt || !mbIsFirmAdmin()) return;
   const slot = (takvimSlots || []).find((s) => s.appointment_id === apptId) || null;
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
-  const val = (v) => esc(v || '');
   const ctx = await _getCustomerCtx(appt.customer_id).catch(() => null);
+  const contact = await takvimLoadContact(appt);
+  const camp = await takvimEnsureCamp(appt);
   document.getElementById('takvim-detail-title').textContent = 'Randevuyu düzenle';
   const when = slot ? `${slot.tarih || ''} ${String(slot.baslangic_saat || '').slice(0, 5)}` : '';
   document.getElementById('takvim-detail-body').innerHTML = `
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;margin-bottom:12px;font-size:12px;font-weight:600;">${esc(when)}</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<div class="form-row" style="grid-column:1/-1;"><label class="form-label">Ad Soyad *</label><input class="form-input" id="te-name" value="${val(appt.nachname)}"></div>
-<div class="form-row"><label class="form-label">Telefon *</label><input class="form-input" id="te-tel" value="${val(appt.telefonnummer)}"></div>
-<div class="form-row"><label class="form-label">Telefon 2</label><input class="form-input" id="te-tel2" value="${val(appt.telefon2)}"></div>
-<div class="form-row" style="grid-column:1/-1;"><label class="form-label">Adres</label><input class="form-input" id="te-str" value="${val(appt.strasse)}"></div>
-<div class="form-row"><label class="form-label">PLZ</label><input class="form-input" id="te-plz" value="${val(appt.plz)}"></div>
-<div class="form-row"><label class="form-label">Şehir</label><input class="form-input" id="te-ort" value="${val(appt.ortschaft)}"></div>
-${takvimEditSelect('te-hausart', 'Ev Tipi', appt.hausart, ['', 'Einfamilienhaus', 'Zweifamilienhaus', 'Reihenhaus', 'Doppelhaus', 'Mehrfamilienhaus'])}
-<div class="form-row"><label class="form-label">Yapım Yılı</label><input class="form-input" id="te-bj" value="${val(appt.baujahr)}"></div>
-<div class="form-row"><label class="form-label">m²</label><input class="form-input" id="te-qm" value="${val(appt.qm)}"></div>
-${takvimEditSelect('te-hz', 'Isıtma', appt.heizung, ['', 'Gas', 'Öl', 'Pellet', 'WP', 'Fernwärme'])}
-<div class="form-row"><label class="form-label">Isıtma Yaşı</label><input class="form-input" id="te-ah" value="${val(appt.alter_der_heizung)}"></div>
-<div class="form-row"><label class="form-label">Tüketim/Yıl</label><input class="form-input" id="te-vj" value="${val(appt.verbrauch_pro_jahr)}"></div>
-<div class="form-row"><label class="form-label">Kişi Sayısı</label><input class="form-input" id="te-pe" value="${val(appt.personen)}"></div>
-${takvimEditSelect('te-pv', 'PV İlgisi', appt.interesse_an_pv ? 'true' : 'false', ['false', 'true'])}
+${takvimFieldsMarkup(camp, appt, contact, 'edit')}
 ${ctx ? _renderCustomerField({ ...ctx, selectedId: appt.customer_id || '' }, 'te-customer') : ''}
 </div>
-<div class="form-row" style="margin-top:8px;"><label class="form-label">Not</label><textarea class="form-input" id="te-note" rows="2" style="resize:vertical;">${val(appt.agent_notu)}</textarea></div>`;
-  const pv = document.getElementById('te-pv');
-  if (pv) {
-    [...pv.options].forEach((opt) => {
-      opt.textContent = opt.value === 'true' ? 'Evet' : 'Hayır';
-    });
-  }
+<div class="form-row" style="margin-top:8px;"><label class="form-label">Not</label><textarea class="form-input" id="te-note" rows="2" style="resize:vertical;">${esc(appt.agent_notu || '')}</textarea></div>`;
   document.getElementById('takvim-detail-footer').innerHTML = `<button class="btn btn-ghost" onclick="openTakvimSlotDetail(takvimSlots.find(s=>s.appointment_id==='${apptId}'), takvimAppts.find(a=>a.id==='${apptId}'))">Vazgeç</button><button class="btn btn-primary" onclick="saveTakvimApptEdit('${apptId}')">Kaydet</button>`;
 }
 
 async function saveTakvimApptEdit(apptId) {
   if (!mbIsFirmAdmin()) return;
-  const g = (id) => document.getElementById(id)?.value?.trim() || '';
-  if (!g('te-name') || !g('te-tel')) {
+  const appt = (takvimAppts || []).find((a) => a.id === apptId) || {};
+  const root = document.getElementById('takvim-detail-body');
+  const missing = [...(root?.querySelectorAll('[data-takvim-required="1"]') || [])].filter((el) => !String(el.value || '').trim());
+  if (missing.length) {
     toast('Ad ve telefon gerekli', 'err');
     return;
   }
-  const body = {
-    nachname: g('te-name'),
-    telefonnummer: g('te-tel'),
-    telefon2: g('te-tel2') || null,
-    strasse: g('te-str') || null,
-    plz: g('te-plz') || null,
-    ortschaft: g('te-ort') || null,
-    hausart: g('te-hausart') || null,
-    baujahr: g('te-bj') || null,
-    qm: g('te-qm') || null,
-    heizung: g('te-hz') || null,
-    alter_der_heizung: g('te-ah') || null,
-    verbrauch_pro_jahr: g('te-vj') || null,
-    personen: g('te-pe') || null,
-    interesse_an_pv: g('te-pv') === 'true',
-    agent_notu: g('te-note') || null,
-  };
+  const { body, ek, contactExtra } = takvimCollectPatch(root, appt);
+  body.form_ek = ek;
+  body.agent_notu = (document.getElementById('te-note')?.value || '').trim() || null;
   const cust = document.getElementById('te-customer');
   if (cust) body.customer_id = cust.value || null;
   try {
     await sb(`appointments?id=eq.${apptId}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(body) });
+    await takvimSaveContactExtras(appt.contact_id, contactExtra);
     closeModal('m-takvim-detail');
     await loadTakvimSlots();
     toast('Randevu güncellendi ✓', 'ok');
@@ -364,26 +609,15 @@ async function openTakvimBookForm(slot) {
   const custCtx = await _getCustomerCtx(preset);
   document.getElementById('takvim-detail-title').textContent = `Randevu — ${slot.tarih} ${slot.baslangic_saat?.slice(0,5)}`;
   openModal('m-takvim-detail');
+  const bookCamp = await takvimEnsureCamp(campId);
+  const escBook = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   document.getElementById('takvim-detail-body').innerHTML = `
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;margin-bottom:12px;font-size:12px;font-weight:600;">${slot.tarih} · ${slot.baslangic_saat?.slice(0,5)}–${slot.bitis_saat?.slice(0,5)}</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<div class="form-row" style="grid-column:1/-1;"><label class="form-label">Ad Soyad *</label><input class="form-input" id="tf-name" value="${contact.first_name?contact.first_name+' '+(contact.last_name||''):''}"></div>
-<div class="form-row"><label class="form-label">Telefon *</label><input class="form-input" id="tf-tel" value="${contact.phone||''}"></div>
-<div class="form-row"><label class="form-label">Telefon 2</label><input class="form-input" id="tf-tel2" value="${contact.phone2||''}"></div>
-<div class="form-row" style="grid-column:1/-1;"><label class="form-label">Adres *</label><input class="form-input" id="tf-str" value="${contact.address||''}"></div>
-<div class="form-row"><label class="form-label">PLZ *</label><input class="form-input" id="tf-plz" value="${contact.plz||''}"></div>
-<div class="form-row"><label class="form-label">Şehir</label><input class="form-input" id="tf-ort" value="${contact.city||''}"></div>
-<div class="form-row"><label class="form-label">Ev Tipi *</label><select class="form-input" id="tf-hausart"><option value="">Seçin</option><option>Einfamilienhaus</option><option>Zweifamilienhaus</option><option>Reihenhaus</option><option>Doppelhaus</option><option>Mehrfamilienhaus</option></select></div>
-<div class="form-row"><label class="form-label">Yapım Yılı *</label><input class="form-input" id="tf-bj" value="${contact.baujahr||''}"></div>
-<div class="form-row"><label class="form-label">m² *</label><input class="form-input" id="tf-qm" value="${contact.qm||''}"></div>
-<div class="form-row"><label class="form-label">Isıtma *</label><select class="form-input" id="tf-hz"><option value="">Seçin</option><option>Gas</option><option>Öl</option><option>Pellet</option><option>WP</option><option>Fernwärme</option></select></div>
-<div class="form-row"><label class="form-label">Isıtma Yaşı *</label><input class="form-input" id="tf-ah" value="${contact.alter_der_heizung||''}"></div>
-<div class="form-row"><label class="form-label">Tüketim/Yıl *</label><input class="form-input" id="tf-vj" value="${contact.verbrauch_pro_jahr||''}"></div>
-<div class="form-row"><label class="form-label">Kişi *</label><input class="form-input" id="tf-pe" value="${contact.personen||''}"></div>
-<div class="form-row"><label class="form-label">PV İlgisi</label><select class="form-input" id="tf-pv"><option value="false">Hayır</option><option value="true">Evet</option></select></div>
+${takvimFieldsMarkup(bookCamp, null, contact, 'book')}
 ${_renderCustomerField(custCtx, 'tf-customer')}
 </div>
-<div class="form-row" style="margin-top:8px;"><label class="form-label">Not</label><textarea class="form-input" id="tf-note" rows="2" style="resize:vertical;">${contact.notes||''}</textarea></div>`;
+<div class="form-row" style="margin-top:8px;"><label class="form-label">Not</label><textarea class="form-input" id="tf-note" rows="2" style="resize:vertical;">${escBook(contact.notes || '')}</textarea></div>`;
   document.getElementById('takvim-detail-footer').innerHTML = `<button class="btn btn-ghost" onclick="cancelTakvimBook('${slot.id}')">İptal</button><button class="btn btn-primary" onclick="submitTakvimBook('${slot.id}')">Kaydet</button>`;
 }
 
@@ -503,11 +737,9 @@ async function saveTerminFromSection() {
       nachname: `${contact.first_name||''} ${contact.last_name||''}`.trim() || contact.phone || '—',
       telefonnummer: contact.phone||'', telefon2: contact.phone2||'',
       strasse: contact.address||'', plz: contact.plz||'', ortschaft: contact.city||'',
-      hausart: g('tf2-hausart'), baujahr: g('tf2-baujahr'), qm: g('tf2-qm'),
-      heizung: g('tf2-heizung'), alter_der_heizung: g('tf2-alter_der_heizung'),
-      verbrauch_pro_jahr: g('tf2-verbrauch_pro_jahr'), personen: g('tf2-personen'),
-      ...(document.getElementById('tf2-interesse_an_pv') ? { interesse_an_pv: g('tf2-interesse_an_pv') === 'true' } : {}),
-      agent_notu: terminNoteWithExtras('tf2-note'), durum: 'qc_bekleniyor',
+      ...terminColumnValues(),
+      form_ek: { ...takvimCardExtras(contact, takvimCampOf(contact.campaign_id || takvimCampId || selectedCampId)), ...terminFormEk() },
+      agent_notu: (document.getElementById('tf2-note')?.value || '').trim() || null, durum: 'qc_bekleniyor',
       customer_id: mbResolveApptCustomerId('tf2-customer', takvimCampId||selectedCampId||contact.campaign_id),
       termin_tarih: `${slot.tarih}T${saatNorm(slot.baslangic_saat)}:00`
     };
@@ -570,28 +802,30 @@ async function cancelTakvimBook(slotId) {
 async function submitTakvimBook(slotId) {
   const custCtx = await _getCustomerCtx(null);
   if (!_validateCustomerSelection(custCtx, 'tf-customer', takvimCampId||selectedCampId||currentContact?.campaign_id)) return;
-  const g = id => document.getElementById(id)?.value?.trim()||'';
-  if (!g('tf-name')||!g('tf-tel')||!g('tf-plz')||!g('tf-hausart')||!g('tf-bj')||!g('tf-qm')||!g('tf-hz')||!g('tf-ah')) {
+  const root = document.getElementById('takvim-detail-body');
+  const missing = [...(root?.querySelectorAll('[data-takvim-required="1"]') || [])].filter((el) => !String(el.value || '').trim());
+  if (missing.length) {
     toast('Zorunlu alanları doldurun!','err'); return;
   }
   const slot = _bookingSlot || takvimSlots.find(s=>s.id===slotId);
   try {
     // Fix 22007: baslangic_saat may be 'HH:MM:SS' from DB — normalize to 'HH:MM'
     const saatNorm = (t) => t ? t.slice(0,5) : '10:00';
+    const { body, ek, contactExtra } = takvimCollectPatch(root, null);
     const data = {
       slot_id:slotId, contact_id:isValidUUID(currentContact?.id) ? currentContact.id : null,
       agent_id:currentUser.id, campaign_id:takvimCampId||selectedCampId, firm_id:currentUser.firm_id,
-      nachname:g('tf-name'), telefonnummer:g('tf-tel'), telefon2:g('tf-tel2'),
-      strasse:g('tf-str'), plz:g('tf-plz'), ortschaft:g('tf-ort'),
-      hausart:g('tf-hausart'), baujahr:g('tf-bj'), qm:g('tf-qm'),
-      heizung:g('tf-hz'), alter_der_heizung:g('tf-ah'), verbrauch_pro_jahr:g('tf-vj'),
-      personen:g('tf-pe'), interesse_an_pv:g('tf-pv')==='true',
-      agent_notu:g('tf-note'), durum:'qc_bekleniyor',
+      ...body,
+      nachname: body.nachname || `${currentContact?.first_name || ''} ${currentContact?.last_name || ''}`.trim() || currentContact?.phone || '—',
+      telefonnummer: body.telefonnummer || currentContact?.phone || '',
+      form_ek: ek,
+      agent_notu:(document.getElementById('tf-note')?.value || '').trim() || null, durum:'qc_bekleniyor',
       customer_id: mbResolveApptCustomerId('tf-customer', takvimCampId||selectedCampId||currentContact?.campaign_id),
       termin_tarih: slot ? `${slot.tarih}T${saatNorm(slot.baslangic_saat)}:00` : new Date().toISOString()
     };
     const created = await _createAppointmentWithCustomerFallback(data);
     const aid = Array.isArray(created) ? created[0]?.id : created?.id;
+    await takvimSaveContactExtras(currentContact?.id, contactExtra);
     await sb(`takvim_slots?id=eq.${slotId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'dolu',appointment_id:aid,kilitli_agent_id:null,kilitli_at:null})});
     _bookingSlot = null;
     closeModal('m-takvim-detail');
