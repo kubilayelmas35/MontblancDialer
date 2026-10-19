@@ -856,6 +856,7 @@ async function saveRolePermModal(roleKey, fid) {
 }
 
 function userHasPagePerm(key) {
+  if (key === 'settings' && currentUser?.role === 'agent') return true;
   if (window._userPagePermsLoaded !== true) {
     const b = BUILTIN_ROLES.find(r => r.key === currentUser?.role);
     if (!b) return true;

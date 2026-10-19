@@ -116,14 +116,74 @@ function opsTint(hex) {
   return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
 }
 
+const OPS_AGENT_SOUNDS = ['due', 'soon', 'hour', 'wrong', 'clear', 'move'];
+
+function opsIsAgentNotif() {
+  return String(currentUser?.role || '') === 'agent';
+}
+
+function opsMineKey() {
+  return `mb_ops_mine_${currentUser?.id || '0'}`;
+}
+
+function opsMinePrefs() {
+  if (!opsIsAgentNotif()) return null;
+  try {
+    const raw = JSON.parse(localStorage.getItem(opsMineKey()) || 'null');
+    return raw && typeof raw === 'object' ? raw : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function opsApplyMineEntry(base, mine) {
+  if (!mine || typeof mine !== 'object') return base;
+  return {
+    on: mine.on !== false,
+    tone: OPS_TONE_IDS.includes(mine.tone) ? mine.tone : base.tone,
+    mood: base.mood,
+    color: opsHex(mine.color, base.color),
+  };
+}
+
+function opsHeardVolume() {
+  const mine = opsMinePrefs();
+  if (mine && mine.volume != null && mine.volume !== '') return opsClamp(mine.volume, 70, 0, 100);
+  return _opsAlerts.sounds?.volume;
+}
+
+function opsPickedColor(key, fallback) {
+  const el = document.querySelector(`[data-color-key="${key}"]`);
+  return el?.value ? opsHex(el.value, fallback) : fallback;
+}
+
+function opsPaintAgentNotif(force) {
+  const card = document.getElementById('notif-settings-card');
+  if (!card) return;
+  const agent = force === true || (force !== false && opsIsAgentNotif());
+  card.classList.toggle('is-agent', agent);
+}
+
+function opsSaveMineNotif() {
+  const card = document.getElementById('notif-settings-card');
+  if (!card) return;
+  const all = opsCollectSounds(card);
+  const sounds = {};
+  OPS_AGENT_SOUNDS.forEach((key) => { if (all[key]) sounds[key] = all[key]; });
+  try {
+    localStorage.setItem(opsMineKey(), JSON.stringify({ volume: all.volume, sounds, results: all.results || {} }));
+  } catch (e) {}
+  toast(opsSay('ops.panel.saved', 'Bildirim ayarları kaydedildi'), 'ok');
+}
+
 function opsSoundEntry(key) {
   const raw = _opsAlerts.sounds?.[key];
   const tone = OPS_TONE_DEFAULT[key] || 'chime';
   const mood = OPS_MOOD_DEFAULT[key] || 'neutral';
-  if (raw && typeof raw === 'object') {
-    return { on: raw.on !== false, tone: OPS_TONE_IDS.includes(raw.tone) ? raw.tone : tone, mood: opsMood(raw.mood, mood), color: opsEntryColor(raw, mood) };
-  }
-  return { on: raw !== false, tone, mood, color: opsEntryColor(raw, mood) };
+  const firm = raw && typeof raw === 'object'
+    ? { on: raw.on !== false, tone: OPS_TONE_IDS.includes(raw.tone) ? raw.tone : tone, mood: opsMood(raw.mood, mood), color: opsEntryColor(raw, mood) }
+    : { on: raw !== false, tone, mood, color: opsEntryColor(raw, mood) };
+  return opsApplyMineEntry(firm, opsMinePrefs()?.sounds?.[key]);
 }
 
 function opsResultToneDefault(key) {
@@ -147,10 +207,10 @@ function opsResultEntry(key) {
   const raw = _opsAlerts.sounds?.results?.[key];
   const tone = opsResultToneDefault(key);
   const mood = opsResultMoodDefault(key);
-  if (raw && typeof raw === 'object') {
-    return { on: raw.on !== false, tone: OPS_TONE_IDS.includes(raw.tone) ? raw.tone : tone, mood: opsMood(raw.mood, mood), color: opsEntryColor(raw, mood) };
-  }
-  return { on: true, tone, mood, color: opsEntryColor(null, mood) };
+  const firm = raw && typeof raw === 'object'
+    ? { on: raw.on !== false, tone: OPS_TONE_IDS.includes(raw.tone) ? raw.tone : tone, mood: opsMood(raw.mood, mood), color: opsEntryColor(raw, mood) }
+    : { on: true, tone, mood, color: opsEntryColor(null, mood) };
+  return opsApplyMineEntry(firm, opsMinePrefs()?.results?.[key]);
 }
 
 function opsSoundOn(kind) {
@@ -187,7 +247,7 @@ function opsPlayTone(tone, volume) {
 
 function opsCue(kind) {
   if (!opsSoundOn(kind)) return;
-  opsPlayTone(opsSoundEntry(opsSoundKey(kind)).tone, _opsAlerts.sounds?.volume);
+  opsPlayTone(opsSoundEntry(opsSoundKey(kind)).tone, opsHeardVolume());
 }
 
 function opsPreviewSound(kind) {
@@ -195,7 +255,7 @@ function opsPreviewSound(kind) {
   const entry = String(kind).startsWith('result:') ? opsResultEntry(kind.slice(7)) : opsSoundEntry(opsSoundKey(kind));
   const tone = OPS_TONE_IDS.includes(picked) ? picked : entry.tone;
   const vol = Number(document.getElementById('ops-sound-vol')?.value);
-  opsPlayTone(tone, Number.isFinite(vol) ? vol : _opsAlerts.sounds?.volume);
+  opsPlayTone(tone, Number.isFinite(vol) ? vol : opsHeardVolume());
 }
 
 const _opsHourSeen = new Set();
@@ -520,7 +580,7 @@ function opsPickEffect(effect) {
     btn.classList.toggle('is-on', btn.dataset.effect === next);
   });
   const preview = document.getElementById('ops-warn-preview');
-  if (preview) preview.className = `ops-camp-warn is-${next} ops-warn-preview`;
+  if (preview) preview.className = `ops-camp-warn is-${next} ops-warn-preview ops-firm-only`;
 }
 
 function opsFillNotifSettings() {
@@ -540,7 +600,7 @@ function opsFillNotifSettings() {
   if (appt) appt.checked = _opsAlerts.appt !== false;
   if (camp) camp.checked = _opsAlerts.campaign !== false;
   const vol = document.getElementById('ops-sound-vol');
-  if (vol) vol.value = String(_opsAlerts.sounds?.volume ?? 70);
+  if (vol) vol.value = String(opsHeardVolume() ?? 70);
   card.querySelectorAll('[data-sound]').forEach((box) => {
     const entry = opsSoundEntry(box.dataset.sound);
     box.checked = entry.on;
@@ -561,6 +621,7 @@ function opsFillNotifSettings() {
   });
   opsPickEffect(_opsAlerts.effect || 'aurora');
   opsSyncRoleChipVisibility();
+  opsPaintAgentNotif();
   opsFillResultRows();
 }
 
@@ -637,6 +698,7 @@ async function opsFillResultRows() {
     opsPaintColor(label, key, entry.color, 'result');
     host.appendChild(label);
   });
+  opsPaintAgentNotif();
 }
 
 function opsCollectSounds(card) {
@@ -704,7 +766,7 @@ function opsShowSample(kind) {
       bad: 'Örnek: olumsuz sonuç',
     }[kind];
     toast(msg, kind === 'bad' ? 'err' : 'ok', 4000);
-    opsKeepSample(kind === 'soon' ? '15 dk kala' : 'Örnek', msg, opsSoundEntry(kind).color, opsNoticeCat(kind));
+    opsKeepSample(kind === 'soon' ? '15 dk kala' : 'Örnek', msg, opsPickedColor(kind, opsSoundEntry(kind).color), opsNoticeCat(kind));
     return;
   }
   const host = document.createElement('div');
@@ -730,14 +792,14 @@ function opsShowSample(kind) {
     card.append(title, who, phone, place, btn);
     host.appendChild(card);
     host.addEventListener('click', (ev) => { if (ev.target === host) close(); });
-    opsKeepSample(title.textContent, 'Örnek Müşteri · +49 170 000 · 10115 Berlin', opsSoundEntry('due').color, 'wv');
+    opsKeepSample(title.textContent, 'Örnek Müşteri · +49 170 000 · 10115 Berlin', opsPickedColor('due', opsSoundEntry('due').color), 'wv');
   } else if (kind === 'hour') {
     host.className = 'ops-sample-host';
     const bar = document.createElement('div');
     bar.className = 'ops-appt-strip';
     bar.textContent = 'Aranacaklar · Örnek Müşteri · 45 dk';
     host.appendChild(bar);
-    opsKeepSample('Aranacaklar', bar.textContent, opsSoundEntry('hour').color, 'wv');
+    opsKeepSample('Aranacaklar', bar.textContent, opsPickedColor('hour', opsSoundEntry('hour').color), 'wv');
   } else if (kind === 'wrong') {
     host.className = 'ops-sample-host';
     const bar = document.createElement('div');
@@ -747,7 +809,7 @@ function opsShowSample(kind) {
     text.textContent = 'Yanlış kampanyadasın. Seçmelisin: Örnek Kampanya. Kapatmalısın: Eski Kampanya.';
     bar.appendChild(text);
     host.appendChild(bar);
-    opsKeepSample('Yanlış kampanya', text.textContent, opsSoundEntry('wrong').color, 'camp');
+    opsKeepSample('Yanlış kampanya', text.textContent, opsPickedColor('wrong', opsSoundEntry('wrong').color), 'camp');
   } else {
     host.className = 'ops-sample-host';
     const card = document.createElement('article');
@@ -766,6 +828,7 @@ function opsShowSample(kind) {
 }
 
 async function opsSaveNotifSettings() {
+  if (opsIsAgentNotif()) { opsSaveMineNotif(); return; }
   const fid = opsFirmId();
   const card = document.getElementById('notif-settings-card');
   if (!fid || !card) { toast(opsSay('ops.panel.needfirm', 'Önce firma seçin'), 'warn'); return; }
@@ -1131,7 +1194,7 @@ function opsFloorPush(soundKind, titleKind, text, force, quiet, entry, self) {
   card.append(head, body);
   host.appendChild(card);
   while (host.children.length > 4) host.firstElementChild?.remove();
-  if (!force && !quiet && !document.hidden) opsPlayTone(cfg.tone, _opsAlerts.sounds?.volume);
+  if (!force && !quiet && !document.hidden) opsPlayTone(cfg.tone, opsHeardVolume());
   setTimeout(() => card.remove(), 12000);
 }
 

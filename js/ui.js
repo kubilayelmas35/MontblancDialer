@@ -170,7 +170,8 @@ function initSettingsTabs(preferTab) {
     }
   });
   mbSyncSettingsTabs();
-  const tab = preferTab || 'general';
+  const agent = String(currentUser?.role || '') === 'agent';
+  const tab = agent ? 'notifications' : (preferTab || 'general');
   window.__settingsTab = '';
   setSettingsTab(tab);
   if (tab === 'notifications' && typeof opsFillNotifSettings === 'function') opsFillNotifSettings();
@@ -178,11 +179,21 @@ function initSettingsTabs(preferTab) {
 
 function mbSyncSettingsTabs() {
   const superOnly = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+  const agent = String(currentUser?.role || '') === 'agent';
   document.querySelectorAll('#settings-tabs .settings-tab-btn').forEach((btn) => {
     const tab = btn.dataset.tab;
+    if (agent) {
+      btn.style.display = tab === 'notifications' ? '' : 'none';
+      return;
+    }
     const ownerTab = tab === 'system' || tab === 'operations';
     btn.style.display = !superOnly && ownerTab ? 'none' : '';
   });
+  if (agent) {
+    setSettingsTab('notifications');
+    if (typeof opsFillNotifSettings === 'function') opsFillNotifSettings();
+    return;
+  }
   const active = document.querySelector('#settings-tabs .settings-tab-btn.active');
   if (active && active.style.display === 'none') setSettingsTab('general');
 }
