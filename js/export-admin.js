@@ -32,11 +32,11 @@ function _downloadCsvUtf8(filename, lineStrings) {
 }
 
 function _statsTableToAoA() {
-  const table = document.querySelector('#stats-tbody');
+  const table = document.querySelector('#page-stats table');
   if (!table) return null;
-  const header = ['Agent', 'Kampanya', 'Toplam', 'Randevu', 'Olumsuz', 'Geri Ara', 'Cevap Yok', 'Ort. Süre', 'Dönüşüm'];
+  const header = [...table.querySelectorAll('thead th')].map((th) => th.textContent.trim());
   const aoa = [header];
-  table.querySelectorAll('tr').forEach((tr) => {
+  table.querySelectorAll('tbody tr').forEach((tr) => {
     const tds = tr.querySelectorAll('td');
     if (!tds.length) return;
     aoa.push(Array.from(tds).map((td) => td.textContent.trim()));

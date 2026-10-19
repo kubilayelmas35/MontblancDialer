@@ -818,37 +818,126 @@ if (typeof loadDashBrief === 'function') {
 if (typeof mbSyncDashRows === 'function') mbSyncDashRows();
 }
 
+const STATS_COL = 12;
+const STATS_CAP = 5000;
+
+function statsEsc(v) {
+  return typeof escapeHtml === 'function' ? escapeHtml(v ?? '') : String(v ?? '');
+}
+
+function statsClock(sec) {
+  const n = Math.max(0, Math.round(Number(sec) || 0));
+  return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`;
+}
+
+function statsMonday(iso) {
+  const p = String(iso || '').split('-').map(Number);
+  if (p.length < 3 || !p[0]) return iso;
+  const dow = new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay();
+  const back = dow === 0 ? 6 : dow - 1;
+  return typeof mbShiftDate === 'function' ? mbShiftDate(iso, -back) : iso;
+}
+
+function statsFirmSuffix(firmId) {
+  if (getActiveFirmId() || !firmId) return '';
+  const firm = (typeof _allFirms !== 'undefined' ? _allFirms : []).find((f) => f.id === firmId);
+  return firm?.name ? ` · ${firm.name}` : '';
+}
+
+async function statsFillSelect(id, sig, rows, trLabel, deLabel) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  if (sel.dataset.sig === sig && sel.options.length > 1) return;
+  const prev = sel.value;
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const opts = (rows || []).map((row) => `<option value="${statsEsc(row.id)}">${statsEsc(row.name)}</option>`).join('');
+  sel.innerHTML = `<option value="" data-tr="${statsEsc(trLabel)}" data-de="${statsEsc(deLabel)}">${statsEsc(de ? deLabel : trLabel)}</option>${opts}`;
+  sel.dataset.sig = sig;
+  if (prev && [...sel.options].some((o) => o.value === prev)) sel.value = prev;
+  else sel.value = '';
+}
+
+async function statsFillFilters(fid) {
+  const sig = fid || 'all';
+  try {
+    let cq = 'campaigns?select=id,name,firm_id&order=name.asc&limit=500';
+    if (fid) cq += `&firm_id=eq.${fid}`;
+    const camps = (await sb(cq).catch(() => [])) || [];
+    await statsFillSelect('stats-camp-f', `c:${sig}:${camps.length}`, camps.map((c) => ({
+      id: c.id,
+      name: `${c.name || '—'}${statsFirmSuffix(c.firm_id)}`,
+    })), 'Tüm Kampanyalar', 'Alle Kampagnen');
+  } catch (e) { console.warn('stats camps', e); }
+  try {
+    let uq = 'users?select=id,name,firm_id&order=name.asc&limit=400';
+    if (fid) uq += `&firm_id=eq.${fid}`;
+    const users = (await sb(uq).catch(() => [])) || [];
+    await statsFillSelect('stats-agent-f', `u:${sig}:${users.length}`, users.map((u) => ({
+      id: u.id,
+      name: `${u.name || '—'}${statsFirmSuffix(u.firm_id)}`,
+    })), 'Tüm temsilciler', 'Alle Agenten');
+  } catch (e) { console.warn('stats agents', e); }
+}
+
+async function statsPullLogs(ff, gte, lte, camp, agent) {
+  const tail = `${ff}&started_at=gte.${gte}&started_at=lte.${lte}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}&order=started_at.desc`;
+  const rich = `call_logs?select=id,outcome,agent_id,campaign_id,firm_id,duration_sec,users(id,name),campaigns(id,name)${tail}`;
+  const plain = `call_logs?select=id,outcome,agent_id,campaign_id,firm_id,duration_sec${tail}`;
+  let usePlain = false;
+  const all = [];
+  let off = 0;
+  while (off < STATS_CAP) {
+    const size = Math.min(1000, STATS_CAP - off);
+    const q = `${usePlain ? plain : rich}&limit=${size}&offset=${off}`;
+    let rows;
+    try {
+      rows = (await sb(q)) || [];
+    } catch (e) {
+      if (!usePlain && off === 0) { usePlain = true; continue; }
+      throw e;
+    }
+    all.push(...rows);
+    if (rows.length < size) return { rows: all, capped: false };
+    off += rows.length;
+  }
+  return { rows: all, capped: true };
+}
+
 async function loadStats() {
 renderFirmSelector('stats-firm-selector', loadStats);
 const tbody = document.getElementById('stats-tbody');
-if(tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(9) : `<tr><td colspan="9" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
+if (tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(STATS_COL) : `<tr><td colspan="${STATS_COL}" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
+const setSum = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
 try {
+const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : null;
+await statsFillFilters(fid);
 const ff = getFirmFilter('&');
 const dateFilter = document.getElementById('stats-date-f')?.value || 'today';
 const campFilter = document.getElementById('stats-camp-f')?.value || '';
+const agentFilter = document.getElementById('stats-agent-f')?.value || '';
 const todayBiz = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
 let dateFrom = todayBiz;
 let dateTo = todayBiz;
 if (dateFilter === 'week') {
-dateFrom = typeof mbShiftDate === 'function' ? mbShiftDate(todayBiz, -6) : todayBiz;
+dateFrom = statsMonday(todayBiz);
 } else if (dateFilter === 'month') {
 dateFrom = `${String(todayBiz).slice(0, 8)}01`;
 } else if (dateFilter === 'custom') {
 dateFrom = document.getElementById('stats-date-from')?.value || dateFrom;
-dateTo   = document.getElementById('stats-date-to')?.value   || dateTo;
+dateTo = document.getElementById('stats-date-to')?.value || dateTo;
 }
+if (dateTo < dateFrom) { const swap = dateFrom; dateFrom = dateTo; dateTo = swap; }
 const statsGte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
 const statsLte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
-let query = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,duration_sec,users(id,name),campaigns(id,name)${ff}`;
-query += `&started_at=gte.${statsGte}&started_at=lte.${statsLte}`;
-if (campFilter) query += `&campaign_id=eq.${campFilter}`;
-query += '&order=started_at.desc&limit=2000';
-let logs = [];
-try {
-  logs = (await sb(query)) || [];
-} catch (_) {
-  const plain = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,duration_sec${ff}&started_at=gte.${statsGte}&started_at=lte.${statsLte}${campFilter ? `&campaign_id=eq.${campFilter}` : ''}&order=started_at.desc&limit=2000`;
-  logs = (await sb(plain)) || [];
+const pulled = await statsPullLogs(ff, statsGte, statsLte, campFilter, agentFilter);
+const logs = pulled.rows || [];
+const capEl = document.getElementById('stats-cap');
+if (capEl) {
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  capEl.style.display = pulled.capped ? '' : 'none';
+  capEl.textContent = pulled.capped
+    ? (de ? `Nur die letzten ${STATS_CAP} Anrufe. Zeitraum eingrenzen.` : `Son ${STATS_CAP} arama gösteriliyor. Aralığı daralt.`)
+    : '';
 }
 const groups = {};
 logs.forEach(l => {
@@ -857,38 +946,57 @@ const campId  = l.campaign_id || 'unknown';
 const key = `${agentId}__${campId}`;
 if (!groups[key]) groups[key] = {
 agent_id: agentId,
-agent_name: l.users?.name || agentId.slice(0,8),
+agent_name: l.users?.name || '',
 campaign_id: campId,
-campaign_name: l.campaigns?.name || '—',
+campaign_name: l.campaigns?.name || '',
+firm_id: l.firm_id || null,
 logs: []
 };
+if (!groups[key].agent_name && l.users?.name) groups[key].agent_name = l.users.name;
+if (!groups[key].campaign_name && l.campaigns?.name) groups[key].campaign_name = l.campaigns.name;
 groups[key].logs.push(l);
 });
-const rows = Object.values(groups);
+const rows = Object.values(groups).sort((a, b) => (b.logs.length - a.logs.length) || String(a.agent_name).localeCompare(String(b.agent_name), 'tr'));
+const paintSums = (tot, ap, ng, sec) => {
+  setSum('stats-sum-calls', String(tot));
+  setSum('stats-sum-appt', String(ap));
+  setSum('stats-sum-neg', String(ng));
+  setSum('stats-sum-conv', tot ? `${Math.round(ap / tot * 100)}%` : '0%');
+  setSum('stats-sum-avg', statsClock(tot ? sec / tot : 0));
+};
 if (!rows.length) {
-tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(9, 'ui.no_data_range') : `<tr><td colspan="9" class="mb-empty-hint">${t('ui.no_data_range')}</td></tr>`;
+tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(STATS_COL, 'ui.no_data_range') : `<tr><td colspan="${STATS_COL}" class="mb-empty-hint">${t('ui.no_data_range')}</td></tr>`;
+paintSums(0, 0, 0, 0);
 return;
 }
-let totAll=0,apAll=0,ngAll=0,cbAll=0,naAll=0,secAll=0;
+let totAll=0,apAll=0,ngAll=0,cbAll=0,naAll=0,vmAll=0,dncAll=0,otAll=0,secAll=0;
 tbody.innerHTML = rows.map(r => {
 const ls = r.logs, tot = ls.length;
-const ap = ls.filter(l=>l.outcome==='appointment').length;
+const ap = ls.filter(l => typeof _isTerminOutcome === 'function' ? _isTerminOutcome(l.outcome) : (l.outcome === 'appointment' || l.outcome === 'appointment_done')).length;
 const ng = ls.filter(l=>l.outcome==='negative').length;
 const cb = ls.filter(l=>l.outcome==='callback').length;
 const na = ls.filter(l=>l.outcome==='no_answer').length;
+const vm = ls.filter(l=>l.outcome==='voicemail').length;
+const dnc = ls.filter(l=>l.outcome==='dnc').length;
+const other = Math.max(0, tot - ap - ng - cb - na - vm - dnc);
 const totalSec = ls.reduce((s,l)=>s+(l.duration_sec||l.duration_seconds||0),0);
 const avgSec = tot ? Math.round(totalSec/tot) : 0;
 const convPct = tot ? Math.round(ap/tot*100) : 0;
-totAll+=tot; apAll+=ap; ngAll+=ng; cbAll+=cb; naAll+=na; secAll+=totalSec;
+totAll+=tot; apAll+=ap; ngAll+=ng; cbAll+=cb; naAll+=na; vmAll+=vm; dncAll+=dnc; otAll+=other; secAll+=totalSec;
+const agentName = `${r.agent_name || String(r.agent_id).slice(0, 8)}${statsFirmSuffix(r.firm_id)}`;
+const campName = r.campaign_name || (r.campaign_id === 'unknown' ? '—' : String(r.campaign_id).slice(0, 8));
 return `<tr>
-<td style="font-weight:700;">${r.agent_name}</td>
-<td style="font-size:11px;">${r.campaign_name}</td>
+<td style="font-weight:700;">${statsEsc(agentName)}</td>
+<td style="font-size:11px;">${statsEsc(campName)}</td>
 <td class="td-mono">${tot}</td>
 <td><span class="badge badge-green" style="font-size:12px;font-weight:800;">${ap}</span></td>
 <td><span class="badge badge-red">${ng}</span></td>
 <td><span class="badge badge-yellow">${cb}</span></td>
 <td><span class="badge badge-gray">${na}</span></td>
-<td class="td-mono">${Math.floor(avgSec/60)}:${String(avgSec%60).padStart(2,'0')}</td>
+<td><span class="badge badge-gray">${vm}</span></td>
+<td><span class="badge badge-red">${dnc}</span></td>
+<td class="td-mono">${other}</td>
+<td class="td-mono">${statsClock(avgSec)}</td>
 <td><span style="font-weight:800;color:${convPct>=20?'var(--green)':convPct>=10?'var(--yellow)':'var(--red)'};">${convPct}%</span></td>
 </tr>`;
 }).join('') + `<tr style="background:var(--bg-3);font-weight:800;border-top:2px solid var(--border);">
@@ -898,20 +1006,14 @@ return `<tr>
 <td><span class="badge badge-red">${ngAll}</span></td>
 <td><span class="badge badge-yellow">${cbAll}</span></td>
 <td><span class="badge badge-gray">${naAll}</span></td>
-<td class="td-mono">${Math.floor(secAll/totAll/60||0)}:${String(Math.round(secAll/totAll%60||0)).padStart(2,'0')}</td>
+<td><span class="badge badge-gray">${vmAll}</span></td>
+<td><span class="badge badge-red">${dncAll}</span></td>
+<td class="td-mono">${otAll}</td>
+<td class="td-mono">${statsClock(totAll ? secAll / totAll : 0)}</td>
 <td><span style="font-weight:800;color:var(--accent);">${totAll?Math.round(apAll/totAll*100):0}%</span></td>
 </tr>`;
-const campSel = document.getElementById('stats-camp-f');
-if (campSel && campSel.options.length <= 1) {
-const uniqueCamps = [...new Set(logs.map(l=>l.campaign_id).filter(Boolean))];
-uniqueCamps.forEach(cid => {
-const log = logs.find(l=>l.campaign_id===cid);
-const opt = document.createElement('option');
-opt.value = cid; opt.textContent = log?.campaigns?.name || cid.slice(0,8);
-campSel.appendChild(opt);
-});
-}
-} catch(e){ console.error(e); if(tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(9, t('ui.error_prefix') + (e?.message || t('ui.unknown_error'))) : `<tr><td colspan="9" class="mb-empty-hint" style="color:var(--red);">${escapeHtml(t('ui.error_prefix') + (e?.message || t('ui.unknown_error')))}</td></tr>`; }
+paintSums(totAll, apAll, ngAll, secAll);
+} catch(e){ console.error(e); if(tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(STATS_COL, t('ui.error_prefix') + (e?.message || t('ui.unknown_error'))) : `<tr><td colspan="${STATS_COL}" class="mb-empty-hint" style="color:var(--red);">${escapeHtml(t('ui.error_prefix') + (e?.message || t('ui.unknown_error')))}</td></tr>`; }
 }
 
 async function loadCallHistory() {
@@ -1167,8 +1269,9 @@ function initStatsFilters() {
 const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
 const from = document.getElementById('stats-date-from');
 const to   = document.getElementById('stats-date-to');
-if (from) from.value = today;
-if (to)   to.value   = today;
+if (from && !from.value) from.value = today;
+if (to && !to.value) to.value = today;
+toggleCustomDateRange();
 }
 
 function initCallHistoryFilters() {

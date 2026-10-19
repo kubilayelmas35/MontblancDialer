@@ -735,10 +735,14 @@
 <div class="page-hdr">
 <div>
 <div class="page-title" data-tr="İstatistikler" data-de="Statistiken">İstatistikler</div>
+<div class="page-sub" data-tr="Arama sonucu. Randevu, agentin aramada yazdığı sonuçtur. QC sonrası durum Personel performansta." data-de="Anrufergebnis. Termin ist das Ergebnis des Agenten. Der Stand nach QC steht unter Mitarbeiterleistung.">Arama sonucu. Randevu, agentin aramada yazdığı sonuçtur. QC sonrası durum Personel performansta.</div>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto;">
 <div id="stats-firm-selector"></div>
-<select class="form-input" style="width:auto;" id="stats-camp-f">
+<select class="form-input" style="width:auto;" id="stats-agent-f" onchange="loadStats()">
+<option value="" data-tr="Tüm temsilciler" data-de="Alle Agenten">Tüm temsilciler</option>
+</select>
+<select class="form-input" style="width:auto;" id="stats-camp-f" onchange="loadStats()">
 <option value="" data-tr="Tüm Kampanyalar" data-de="Alle Kampagnen">Tüm Kampanyalar</option>
 </select>
 <select class="form-input" style="width:auto;" id="stats-date-f" onchange="toggleCustomDateRange();loadStats()">
@@ -747,7 +751,7 @@
 <option value="month" data-tr="Bu Ay" data-de="Dieser Monat">Bu Ay</option>
 <option value="custom" data-tr="Özel Aralık" data-de="Benutzerdefiniert">Özel Aralık</option>
 </select>
-<div id="stats-custom-range" style="display:none;display:flex;gap:4px;">
+<div id="stats-custom-range" style="display:none;gap:4px;align-items:center;">
 <input type="date" class="form-input" id="stats-date-from" style="width:130px;" onchange="loadStats()">
 <span style="align-self:center;color:var(--text-3);">—</span>
 <input type="date" class="form-input" id="stats-date-to" style="width:130px;" onchange="loadStats()">
@@ -758,8 +762,16 @@
 </div>
 </div>
 </div>
+<div id="stats-sum" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:12px;">
+<div class="card" style="padding:14px;"><div style="font-size:11px;color:var(--text-3);font-weight:700;" data-tr="Arama" data-de="Anrufe">Arama</div><div id="stats-sum-calls" style="font-size:22px;font-weight:800;margin-top:4px;">—</div></div>
+<div class="card" style="padding:14px;"><div style="font-size:11px;color:var(--text-3);font-weight:700;" data-tr="Randevu" data-de="Termin">Randevu</div><div id="stats-sum-appt" style="font-size:22px;font-weight:800;margin-top:4px;">—</div></div>
+<div class="card" style="padding:14px;"><div style="font-size:11px;color:var(--text-3);font-weight:700;" data-tr="Dönüşüm" data-de="Konversion">Dönüşüm</div><div id="stats-sum-conv" style="font-size:22px;font-weight:800;margin-top:4px;">—</div></div>
+<div class="card" style="padding:14px;"><div style="font-size:11px;color:var(--text-3);font-weight:700;" data-tr="Ort. süre" data-de="Ø Dauer">Ort. süre</div><div id="stats-sum-avg" style="font-size:22px;font-weight:800;margin-top:4px;">—</div></div>
+<div class="card" style="padding:14px;"><div style="font-size:11px;color:var(--text-3);font-weight:700;" data-tr="Olumsuz" data-de="Negativ">Olumsuz</div><div id="stats-sum-neg" style="font-size:22px;font-weight:800;margin-top:4px;">—</div></div>
+</div>
+<div id="stats-cap" style="display:none;font-size:12px;font-weight:700;color:var(--yellow);"></div>
 <div class="card">
-<div class="card-title" style="margin-bottom:14px;" data-tr="Agent Performansı" data-de="Agentenleistung">Agent Performansı</div>
+<div class="card-title" style="margin-bottom:14px;" data-tr="Agent performansı" data-de="Agentenleistung">Agent performansı</div>
 <div class="tbl-wrap">
 <table>
 <thead><tr>
@@ -770,11 +782,14 @@
 <th data-tr="Olumsuz" data-de="Negativ">Olumsuz</th>
 <th data-tr="Geri Ara" data-de="Rückruf">Geri Ara</th>
 <th data-tr="Cevap Yok" data-de="Kein Anspr.">Cevap Yok</th>
+<th data-tr="Telesekreter" data-de="Mailbox">Telesekreter</th>
+<th data-tr="Kara liste" data-de="Sperrliste">Kara liste</th>
+<th data-tr="Diğer" data-de="Sonstige">Diğer</th>
 <th data-tr="Ort. Süre" data-de="Ø Dauer">Ort. Süre</th>
 <th data-tr="Dönüşüm" data-de="Konversion">Dönüşüm</th>
 </tr></thead>
 <tbody id="stats-tbody">
-<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
+<tr><td colspan="12" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
 </tbody>
 </table>
 </div>
