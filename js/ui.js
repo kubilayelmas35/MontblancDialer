@@ -122,6 +122,7 @@ if (typeof userHasPagePerm === 'function' && Array.isArray(ALL_PAGES) && ALL_PAG
   return;
 }
 if (page !== 'supervisor' && typeof unloadSupervisorPanel === 'function') unloadSupervisorPanel();
+if (page !== 'agents' && typeof agentsStopPoll === 'function') agentsStopPoll();
 if (page !== 'dialer') {
   if (typeof closeMicAudioDrawer === 'function') closeMicAudioDrawer();
   if (typeof closeManualDialDrawer === 'function') closeManualDialDrawer();

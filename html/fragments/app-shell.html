@@ -716,13 +716,19 @@
 <div class="page-title" data-tr="Personeller" data-de="Personal">Personeller</div>
 <div class="page-sub" data-tr="Ekip ve kampanya atamaları" data-de="Team und Kampagnenzuweisungen">Ekip ve kampanya atamaları</div>
 </div>
-<div style="display:flex;gap:8px;align-items:center;">
+<div class="page-hdr-actions">
+<input type="search" id="agents-search" class="form-input camp-search" placeholder="İsim veya e-posta" data-tr="İsim veya e-posta" data-de="Name oder E-Mail" oninput="setAgentSearch(this.value)">
+<div class="camp-view-seg" role="group" aria-label="Personel görünümü" data-tr-aria="Personel görünümü" data-de-aria="Personalansicht">
+<button type="button" class="camp-view-btn is-on" id="agent-view-cards" onclick="setAgentView('cards')" data-tr="Kartlar" data-de="Karten">Kartlar</button>
+<button type="button" class="camp-view-btn" id="agent-view-rows" onclick="setAgentView('rows')" data-tr="Satırlar" data-de="Zeilen">Satırlar</button>
+</div>
 <div id="agents-firm-selector"></div>
 <button class="btn btn-primary btn-sm" onclick="openAddAgentModal()">
 <i class="ph ph-plus"></i> <span data-tr="Yeni temsilci" data-de="Neuer Agent">Yeni temsilci</span>
 </button>
 </div>
 </div>
+<div class="agents-filters" id="agents-filters"></div>
 <div class="agents-grid" id="agents-grid"></div>
 </div>
 <div class="page" id="page-stats">
