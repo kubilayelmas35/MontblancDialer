@@ -823,8 +823,10 @@ i.ph {
   border: 1px solid var(--border);
 }
 .leave-chip.forced { border-style: dashed; }
-#page-stats thead th { vertical-align: top; }
-#page-stats .stats-sort {
+#page-stats thead th,
+#page-callhistory thead th { vertical-align: top; }
+#page-stats .stats-sort,
+#page-callhistory .stats-sort {
   background: none;
   border: none;
   padding: 0;
@@ -839,5 +841,15 @@ i.ph {
   align-items: center;
   gap: 4px;
 }
-#page-stats .stats-sort.is-on { color: var(--text-1); }
+#page-stats .stats-sort.is-on,
+#page-callhistory .stats-sort.is-on { color: var(--text-1); }
 #page-stats .camp-col-filter { min-width: 88px; }
+#page-callhistory .ch-note {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--text-2);
+}
+#page-callhistory .ch-cb { font-size: 10px; color: var(--yellow); margin-top: 2px; }

@@ -799,23 +799,35 @@
 <div>
 <div class="page-title" data-tr="Çağrı Geçmişi" data-de="Anrufliste">Çağrı Geçmişi</div>
 </div>
-<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-<input type="text" class="form-input" style="width:150px;" placeholder="İsim, numara..." id="ch-search" oninput="loadCallHistory()">
-<select class="form-input" style="width:130px;" id="ch-agent-f" onchange="loadCallHistory()">
+<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:auto;">
+<div id="ch-firm-selector"></div>
+<input type="text" class="form-input" style="width:150px;" placeholder="İsim, numara..." id="ch-search" oninput="chPaint()">
+<select class="form-input" style="width:auto;" id="ch-agent-f" onchange="loadCallHistory()">
 <option value="" data-tr="Tüm temsilciler" data-de="Alle Agenten">Tüm temsilciler</option>
 </select>
-<select class="form-input" style="width:150px;" id="ch-outcome" onchange="loadCallHistory()">
+<select class="form-input" style="width:auto;" id="ch-camp-f" onchange="loadCallHistory()">
+<option value="" data-tr="Tüm Kampanyalar" data-de="Alle Kampagnen">Tüm Kampanyalar</option>
+</select>
+<select class="form-input" style="width:auto;" id="ch-outcome" onchange="loadCallHistory()">
 <option value="" data-tr="Tüm Sonuçlar" data-de="Alle Ergebnisse">Tüm Sonuçlar</option>
 <option value="appointment" data-tr="Randevu" data-de="Termin">Randevu</option>
 <option value="negative" data-tr="Olumsuz" data-de="Negativ">Olumsuz</option>
 <option value="callback" data-tr="Geri Ara" data-de="Rückruf">Geri Ara</option>
-<option value="voicemail" data-tr="Telesekreter" data-de="Anrufbeantworter">Telesekreter</option>
+<option value="voicemail" data-tr="Telesekreter" data-de="Mailbox">Telesekreter</option>
 <option value="no_answer" data-tr="Cevap Yok" data-de="Keine Antwort">Cevap Yok</option>
 <option value="dnc" data-tr="Kara Liste" data-de="Sperrliste">Kara Liste</option>
 </select>
+<select class="form-input" style="width:auto;" id="ch-date-f" onchange="toggleCallHistoryRange();loadCallHistory()">
+<option value="today" data-tr="Bugün" data-de="Heute">Bugün</option>
+<option value="week" selected data-tr="Bu Hafta" data-de="Diese Woche">Bu Hafta</option>
+<option value="month" data-tr="Bu Ay" data-de="Dieser Monat">Bu Ay</option>
+<option value="custom" data-tr="Özel Aralık" data-de="Benutzerdefiniert">Özel Aralık</option>
+</select>
+<div id="ch-custom-range" style="display:none;gap:4px;align-items:center;">
 <input type="date" class="form-input" id="ch-date-from" style="width:135px;" onchange="loadCallHistory()">
 <span style="font-size:12px;color:var(--text-3);">—</span>
 <input type="date" class="form-input" id="ch-date-to" style="width:135px;" onchange="loadCallHistory()">
+</div>
 <button class="btn btn-ghost btn-sm" onclick="loadCallHistory()"><i class="ph ph-arrow-clockwise"></i></button>
 <div id="ch-export-btns" style="display:none;align-items:center;gap:4px;margin-left:4px;padding-left:10px;border-left:1px solid var(--border);">
 <button type="button" class="btn btn-primary btn-sm" onclick="exportCallHistoryCsv()" title="Filtrelere göre, en fazla 8000 satır"><i class="ph ph-download-simple"></i> CSV</button>
@@ -823,25 +835,27 @@
 </div>
 </div>
 </div>
+<div id="ch-cap" style="display:none;font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:8px;"></div>
 <div class="card">
 <div id="ch-export-hint" style="display:none;font-size:11px;color:var(--text-3);margin:-4px 0 10px 0;padding:0 2px;">
-<span data-tr="Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8000 satır)." data-de="Admin: Datum, Agent und Ergebnis gelten für den Export (höchstens 8000 Zeilen).">Admin: Tarih, agent ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8000 satır).</span>
+<span data-tr="Admin: Tarih, temsilci, kampanya ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8000 satır)." data-de="Admin: Datum, Agent, Kampagne und Ergebnis gelten für den Export (höchstens 8000 Zeilen).">Admin: Tarih, temsilci, kampanya ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8000 satır).</span>
 </div>
 <div class="tbl-wrap">
 <table>
 <thead><tr>
-<th data-tr="Tarih/Saat" data-de="Datum/Zeit">Tarih/Saat</th>
-<th data-tr="Müşteri" data-de="Kunde">Müşteri</th>
-<th data-tr="Numara" data-de="Nummer">Numara</th>
-<th data-tr="Agent" data-de="Agent">Agent</th>
-<th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
-<th data-tr="Süre" data-de="Dauer">Süre</th>
-<th data-tr="Kayıt" data-de="Aufnahme">Kayıt</th>
-<th data-tr="Sonuç" data-de="Ergebnis">Sonuç</th>
+<th>Tarih/Saat</th>
+<th>Müşteri</th>
+<th>Numara</th>
+<th>Agent</th>
+<th>Kampanya</th>
+<th>Süre</th>
+<th>Kayıt</th>
+<th>Sonuç</th>
+<th>Not</th>
 <th></th>
 </tr></thead>
 <tbody id="ch-tbody">
-<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
+<tr><td colspan="10" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
 </tbody>
 </table>
 </div>

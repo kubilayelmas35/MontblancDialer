@@ -108,8 +108,10 @@ function _buildCallHistoryQueryForExport() {
   let query = `call_logs?select=*,users(id,name),campaigns(name),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=8000`;
   query += `&started_at=gte.${gte}`;
   query += `&started_at=lte.${lte}`;
-  if (outcome) query += outcome === 'appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
+  const camp = document.getElementById('ch-camp-f')?.value || '';
+  if (outcome) query += outcome === 'appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${encodeURIComponent(outcome)}`;
   if (agentFilter) query += `&agent_id=eq.${agentFilter}`;
+  if (camp) query += `&campaign_id=eq.${camp}`;
   return { query, search };
 }
 
@@ -121,14 +123,27 @@ async function _fetchCallHistoryExportRows() {
       const name = `${l.contacts?.first_name || ''} ${l.contacts?.last_name || ''}`.toLowerCase();
       const phone = l.phone || l.contacts?.phone || '';
       const agent = l.users?.name?.toLowerCase() || '';
-      return name.includes(search) || String(phone).includes(search) || agent.includes(search);
+      const note = String(l.notes || '').toLowerCase();
+      return name.includes(search) || String(phone).includes(search) || agent.includes(search) || note.includes(search);
     });
   }
+  const map = typeof statsOutcomeLabels === 'function' ? await statsOutcomeLabels(logs.map((l) => l.campaign_id)) : {};
+  logs.forEach((l) => {
+    l._ocLabel = typeof chOutcomeText === 'function' ? chOutcomeText(l.outcome, map) : _chOutcomeLabel(l.outcome);
+  });
   return logs;
 }
 
+function _chWall(iso) {
+  if (!iso) return '';
+  if (typeof mbFormatWall === 'function') {
+    return mbFormatWall(iso, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+  return new Date(iso).toLocaleString('tr-TR', { timeZone: 'Europe/Berlin' });
+}
+
 function _logToExportRow(l) {
-  const dt = l.started_at ? new Date(l.started_at).toLocaleString('tr-TR') : '';
+  const dt = _chWall(l.started_at);
   const name = `${l.contacts?.first_name || ''} ${l.contacts?.last_name || ''}`.trim() || '—';
   const phone = l.phone || l.contacts?.phone || '—';
   const agent = l.users?.name || '—';
@@ -136,9 +151,9 @@ function _logToExportRow(l) {
   const durSec = l.duration_sec != null ? l.duration_sec : '';
   const durStr =
     l.duration_sec != null ? `${Math.floor(l.duration_sec / 60)}:${String(l.duration_sec % 60).padStart(2, '0')}` : '';
-  const oc = _chOutcomeLabel(l.outcome);
-  const notes = (l.notes || '').replace(/\r?\n/g, ' ');
-  const cb = l.callback_at ? new Date(l.callback_at).toLocaleString('tr-TR') : '';
+  const oc = l._ocLabel || _chOutcomeLabel(l.outcome);
+  const notes = (l.notes || '').replace(/__test_sim__/g, ' ').replace(/\s+/g, ' ').trim();
+  const cb = _chWall(l.callback_at);
   const rec = l.recording_url || '';
   return [dt, name, phone, agent, camp, durStr, durSec, oc, notes, cb, rec];
 }

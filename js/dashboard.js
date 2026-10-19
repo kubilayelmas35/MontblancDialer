@@ -1194,142 +1194,357 @@ statsPaintBody();
 } catch(e){ console.error(e); if(tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(STATS_COL, t('ui.error_prefix') + (e?.message || t('ui.unknown_error'))) : `<tr><td colspan="${STATS_COL}" class="mb-empty-hint" style="color:var(--red);">${typeof escapeHtml === 'function' ? escapeHtml(t('ui.error_prefix') + (e?.message || t('ui.unknown_error'))) : ''}</td></tr>`; }
 }
 
-async function loadCallHistory() {
-const tbody = document.getElementById('ch-tbody');
-if(tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(9) : `<tr><td colspan="9" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
-try {
-const ff = getFirmFilter('&');
-const search = document.getElementById('ch-search')?.value?.toLowerCase()||'';
-const outcome = document.getElementById('ch-outcome')?.value||'';
-const agentFilter = document.getElementById('ch-agent-f')?.value||'';
-const chToday = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
-const dateFrom = document.getElementById('ch-date-from')?.value||chToday;
-const dateTo = document.getElementById('ch-date-to')?.value||chToday;
-const chGte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
-const chLte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
-let query = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,phone,duration_sec,contact_id,users(id,name),campaigns(name),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=500`;
-query += `&started_at=gte.${chGte}`;
-query += `&started_at=lte.${chLte}`;
-if (outcome) query += outcome==='appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
-if (agentFilter) query += `&agent_id=eq.${agentFilter}`;
-let logs = [];
-try {
-  logs = (await sb(query)) || [];
-} catch (_) {
-  let plain = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,phone,duration_sec,contact_id${ff}&order=started_at.desc&limit=500`;
-  plain += `&started_at=gte.${chGte}&started_at=lte.${chLte}`;
-  if (outcome) plain += outcome==='appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
-  if (agentFilter) plain += `&agent_id=eq.${agentFilter}`;
-  logs = (await sb(plain)) || [];
-}
-const contactNameById = {};
-try {
-  const missingIds = [...new Set((logs || [])
-    .filter((l) => l?.contact_id && !(`${l.contacts?.first_name || ''} ${l.contacts?.last_name || ''}`.trim()))
-    .map((l) => l.contact_id)
-  )];
-  for (let i = 0; i < missingIds.length; i += 100) {
-    const chunk = missingIds.slice(i, i + 100);
-    if (!chunk.length) continue;
-    const rows = await sb(`contacts?select=id,first_name,last_name&id=in.(${chunk.join(',')})`).catch(() => []);
-    (rows || []).forEach((r) => {
-      const nm = `${r.first_name || ''} ${r.last_name || ''}`.trim();
-      if (nm) contactNameById[r.id] = nm;
-    });
+const CH_CAP = 5000;
+let _chRows = [];
+let _chSort = { key: 'when', dir: 'desc' };
+let _chFilters = {};
+let _chLabelMap = {};
+let _chLoadGen = 0;
+
+function chWhen(iso) {
+  if (!iso) return '—';
+  if (typeof mbFormatWall === 'function') {
+    return mbFormatWall(iso, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
-} catch (_) {}
-const logDurSec = (l) => Math.max(0, Number(l?.duration_sec ?? l?.duration_seconds ?? 0) || 0);
-const isFakeRec = (l) => {
+  return new Date(iso).toLocaleString('tr-TR', { timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function chStdOutcome(key) {
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const tr = { appointment: 'Randevu', negative: 'Olumsuz', callback: 'Geri Ara', voicemail: 'Telesekreter', no_answer: 'Cevap Yok', dnc: 'Kara Liste' };
+  const deMap = { appointment: 'Termin', negative: 'Negativ', callback: 'Rückruf', voicemail: 'Mailbox', no_answer: 'Keine Antwort', dnc: 'Sperrliste' };
+  return (de ? deMap : tr)[statsOutcomeKey(key)] || '';
+}
+
+function chOutcomeText(key, labelMap) {
+  const std = chStdOutcome(key);
+  if (std) return std;
+  return statsExtraLabel(statsOutcomeKey(key), labelMap || _chLabelMap);
+}
+
+function chNoteText(raw) {
+  return String(raw || '').replace(/__test_sim__/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function chDurSec(l) {
+  return Math.max(0, Number(l?.duration_sec ?? l?.duration_seconds ?? 0) || 0);
+}
+
+function chIsFakeRec(l) {
   if (typeof _isFakeRecordingRow === 'function') return _isFakeRecordingRow(l);
-  const noRec = !String(l?.recording_url || '').trim();
-  if (!noRec) return false;
+  if (String(l?.recording_url || '').trim()) return false;
   const notesRaw = String(l?.notes || '');
-  const explicitTest =
-    l?.is_test === true ||
-    l?.is_inbound_test === true ||
-    notesRaw.includes('__test_sim__');
-  if (explicitTest) return true;
+  if (l?.is_test === true || l?.is_inbound_test === true || notesRaw.includes('__test_sim__')) return true;
   if (typeof _testMode !== 'undefined' && _testMode) {
-    const dur = logDurSec(l);
-    const hasTelnyx = String(l?.telnyx_call_id || '').trim();
-    if (dur >= 1 && dur <= 900 && !hasTelnyx) return true;
+    const dur = chDurSec(l);
+    if (dur >= 1 && dur <= 900 && !String(l?.telnyx_call_id || '').trim()) return true;
   }
   return false;
-};
-const recHtmlFor = (l, scope) => {
+}
+
+function chRecHtml(l) {
+  const id = statsEsc(l.id);
   if (l.recording_url) {
-    if (scope === 'ch') {
-      return `<div style="display:flex;align-items:center;gap:4px;">
-<audio id="ch-aud-${l.id}" src="${l.recording_url}" preload="none" style="display:none;"></audio>
-<button onclick="toggleAudio('ch-aud-${l.id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--text-2);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;"><i class="ph ph-play"></i></button>
-</div>`;
-    }
-    return `<button onclick="event.stopPropagation();toggleAudio('mh-aud-${l.id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;">
-<audio id="mh-aud-${l.id}" src="${l.recording_url}" preload="none" style="display:none;"></audio>
-<i class="ph ph-play"></i></button>`;
+    const src = statsEsc(l.recording_url);
+    return `<div style="display:flex;align-items:center;gap:4px;"><audio id="ch-aud-${id}" src="${src}" preload="none" style="display:none;"></audio><button type="button" onclick="toggleAudio('ch-aud-${id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--text-2);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;"><i class="ph ph-play"></i></button></div>`;
   }
-  if (isFakeRec(l) && typeof _fakeRecordingMarkup === 'function') {
-    return _fakeRecordingMarkup(l, scope === 'ch' ? 'chhist' : 'myhist');
-  }
+  if (chIsFakeRec(l) && typeof _fakeRecordingMarkup === 'function') return _fakeRecordingMarkup(l, 'chhist');
   return '<span style="color:var(--text-3);font-size:11px;">—</span>';
-};
-const OM={
-appointment:'<span class="badge badge-green">Randevu</span>',
-negative:'<span class="badge badge-red">Olumsuz</span>',
-callback:'<span class="badge badge-yellow">Geri Ara</span>',
-voicemail:'<span class="badge badge-gray">Telesekreter</span>',
-no_answer:'<span class="badge badge-gray">Cevap Yok</span>',
-dnc:'<span class="badge badge-red">🚫 DNC</span>',
-};
-let filtered = logs;
-if (search) {
-filtered = logs.filter(l => {
-const name = `${l.contacts?.first_name||''} ${l.contacts?.last_name||''}`.toLowerCase();
-const phone = l.phone||l.contacts?.phone||'';
-const agent = l.users?.name?.toLowerCase()||'';
-return name.includes(search) || phone.includes(search) || agent.includes(search);
-});
 }
-// Populate agent filter dropdown from unique agents in results
-const agentSel = document.getElementById('ch-agent-f');
-if (agentSel && agentSel.options.length <= 1 && logs.length) {
-  const uniqueAgents = [];
-  const seen = new Set();
-  logs.forEach(l => { if (l.agent_id && !seen.has(l.agent_id)) { seen.add(l.agent_id); uniqueAgents.push({id:l.agent_id, name:l.users?.name||l.agent_id.slice(0,8)}); }});
-  uniqueAgents.sort((a,b)=>a.name.localeCompare(b.name));
-  uniqueAgents.forEach(a => { const o=document.createElement('option'); o.value=a.id; o.textContent=a.name; agentSel.appendChild(o); });
+
+function chCopyPhone(el) {
+  const phone = el?.getAttribute('data-phone') || '';
+  if (phone && phone !== '—' && typeof copyToClipboard === 'function') copyToClipboard(phone, 'Numara kopyalandı');
 }
-if (!filtered.length) {
-tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(9, 'ui.no_records') : `<tr><td colspan="9" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
-return;
+
+function chBadge(key) {
+  const k = statsOutcomeKey(key);
+  const label = statsEsc(chOutcomeText(key));
+  const cls = k === 'appointment' ? 'badge-green' : (k === 'negative' || k === 'dnc') ? 'badge-red' : k === 'callback' ? 'badge-yellow' : 'badge-gray';
+  return `<span class="badge ${cls}">${label}</span>`;
 }
-tbody.innerHTML = filtered.map(l=>{
-const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-const sec = logDurSec(l);
-const dur = sec ? `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}` : '—';
-const name =
-  `${l.contacts?.first_name||''} ${l.contacts?.last_name||''}`.trim() ||
-  contactNameById[l.contact_id] ||
-  (l.phone || l.contacts?.phone || '—');
-const phone = l.phone || l.contacts?.phone || '—';
-const agentName = l.users?.name || '—';
-const campName = l.campaigns?.name || '—';
-const recHtml = recHtmlFor(l, 'ch');
-const detailBtn = l.contact_id ? `<button class="icon-btn" onclick="openContactDrawer('${l.contact_id}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button>` : '';
-const cbHtml = l.callback_at ? `<div style="font-size:10px;color:var(--yellow);margin-top:2px;"><i class="ph ph-calendar" style="vertical-align:-2px;"></i> ${new Date(l.callback_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>` : '';
-return `<tr>
-<td class="td-mono" style="font-size:11px;">${dt}</td>
-<td style="font-weight:600;">${name}</td>
-<td class="td-mono" style="font-size:11px;cursor:pointer;" onclick="copyToClipboard('${phone}','Numara kopyalandı')" title="Kopyala">${phone}</td>
-<td style="font-size:12px;">${agentName}</td>
-<td style="font-size:11px;">${campName}</td>
-<td class="td-mono" style="font-size:11px;">${dur}</td>
-<td>${recHtml}</td>
-<td>${OM[l.outcome]||`<span class="badge badge-gray">${l.outcome||'—'}</span>`}${cbHtml}</td>
-<td>${detailBtn}</td>
+
+function toggleCallHistoryRange() {
+  const val = document.getElementById('ch-date-f')?.value || 'week';
+  const wrap = document.getElementById('ch-custom-range');
+  if (wrap) wrap.style.display = val === 'custom' ? 'flex' : 'none';
+}
+
+function chSyncRange() {
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
+  const mode = document.getElementById('ch-date-f')?.value || 'week';
+  let from = today;
+  let to = today;
+  if (mode === 'week') from = statsMonday(today);
+  else if (mode === 'month') from = `${String(today).slice(0, 8)}01`;
+  else if (mode === 'custom') {
+    from = document.getElementById('ch-date-from')?.value || today;
+    to = document.getElementById('ch-date-to')?.value || today;
+  }
+  if (to < from) { const swap = from; from = to; to = swap; }
+  const df = document.getElementById('ch-date-from');
+  const dt = document.getElementById('ch-date-to');
+  if (df) df.value = from;
+  if (dt) dt.value = to;
+  return { from, to };
+}
+
+function chColumns() {
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const pair = (key, tr, deLabel, type) => ({ key, tr, de: deLabel, label: de ? deLabel : tr, type });
+  return [
+    pair('when', 'Tarih/Saat', 'Datum/Zeit', 'time'),
+    pair('name', 'Müşteri', 'Kunde', 'text'),
+    pair('phone', 'Numara', 'Nummer', 'text'),
+    pair('agent', 'Agent', 'Agent', 'text'),
+    pair('camp', 'Kampanya', 'Kampagne', 'text'),
+    pair('dur', 'Süre', 'Dauer', 'num'),
+    pair('rec', 'Kayıt', 'Aufnahme', 'text'),
+    pair('outcome', 'Sonuç', 'Ergebnis', 'text'),
+    pair('note', 'Not', 'Notiz', 'text'),
+  ];
+}
+
+async function chFillFilters(fid) {
+  const sig = fid || 'all';
+  try {
+    let cq = 'campaigns?select=id,name,firm_id&order=name.asc&limit=500';
+    if (fid) cq += `&firm_id=eq.${fid}`;
+    const camps = (await sb(cq).catch(() => [])) || [];
+    await statsFillSelect('ch-camp-f', `c:${sig}:${camps.length}`, camps.map((c) => ({
+      id: c.id,
+      name: `${c.name || '—'}${statsFirmSuffix(c.firm_id)}`,
+    })), 'Tüm Kampanyalar', 'Alle Kampagnen');
+  } catch (e) { console.warn('ch camps', e); }
+  try {
+    let uq = 'users?select=id,name,firm_id&order=name.asc&limit=400';
+    if (fid) uq += `&firm_id=eq.${fid}`;
+    const users = (await sb(uq).catch(() => [])) || [];
+    await statsFillSelect('ch-agent-f', `u:${sig}:${users.length}`, users.map((u) => ({
+      id: u.id,
+      name: `${u.name || '—'}${statsFirmSuffix(u.firm_id)}`,
+    })), 'Tüm temsilciler', 'Alle Agenten');
+  } catch (e) { console.warn('ch agents', e); }
+}
+
+function chFillOutcomeSelect(labelMap, logs, campId) {
+  const sel = document.getElementById('ch-outcome');
+  if (!sel) return;
+  const prev = sel.value;
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const std = [
+    ['appointment', 'Randevu', 'Termin'],
+    ['negative', 'Olumsuz', 'Negativ'],
+    ['callback', 'Geri Ara', 'Rückruf'],
+    ['no_answer', 'Cevap Yok', 'Keine Antwort'],
+    ['voicemail', 'Telesekreter', 'Mailbox'],
+    ['dnc', 'Kara Liste', 'Sperrliste'],
+  ];
+  const extraKeys = new Set();
+  (logs || []).forEach((l) => {
+    const k = statsOutcomeKey(l.outcome);
+    if (k && !STATS_STD.includes(k)) extraKeys.add(k);
+  });
+  if (campId) {
+    Object.keys(labelMap || {}).forEach((k) => {
+      if (k && !STATS_STD.includes(k)) extraKeys.add(k);
+    });
+  }
+  if (prev && prev !== 'appointment' && !STATS_STD.includes(prev)) extraKeys.add(prev);
+  const extras = [...extraKeys].sort((a, b) => statsExtraLabel(a, labelMap).localeCompare(statsExtraLabel(b, labelMap), 'tr'));
+  const opt = (value, tr, deLabel) => `<option value="${statsEsc(value)}" data-tr="${statsEsc(tr)}" data-de="${statsEsc(deLabel)}">${statsEsc(de ? deLabel : tr)}</option>`;
+  sel.innerHTML = opt('', 'Tüm Sonuçlar', 'Alle Ergebnisse')
+    + std.map(([k, tr, d]) => opt(k, tr, d)).join('')
+    + extras.map((k) => { const label = statsExtraLabel(k, labelMap); return opt(k, label, label); }).join('');
+  if (prev && [...sel.options].some((o) => o.value === prev)) sel.value = prev;
+}
+
+async function chPullLogs(ff, gte, lte, camp, agent, outcome) {
+  const outcomeQ = !outcome ? ''
+    : outcome === 'appointment' ? '&outcome=in.(appointment,appointment_done)'
+    : `&outcome=eq.${encodeURIComponent(outcome)}`;
+  const tail = `${ff}&started_at=gte.${gte}&started_at=lte.${lte}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}${outcomeQ}&order=started_at.desc`;
+  const fields = 'id,started_at,outcome,agent_id,campaign_id,firm_id,phone,duration_sec,contact_id,recording_url,notes,callback_at,telnyx_call_id';
+  const rich = `call_logs?select=${fields},users(id,name),campaigns(name),contacts(first_name,last_name,phone)${tail}`;
+  const plain = `call_logs?select=${fields}${tail}`;
+  let usePlain = false;
+  const all = [];
+  let off = 0;
+  while (off < CH_CAP) {
+    const size = Math.min(1000, CH_CAP - off);
+    const q = `${usePlain ? plain : rich}&limit=${size}&offset=${off}`;
+    let rows;
+    try {
+      rows = (await sb(q)) || [];
+    } catch (e) {
+      if (!usePlain && off === 0) { usePlain = true; continue; }
+      throw e;
+    }
+    all.push(...rows);
+    if (rows.length < size) return { rows: all, capped: false };
+    off += rows.length;
+  }
+  return { rows: all, capped: true };
+}
+
+function chRenderHead() {
+  const head = document.querySelector('#page-callhistory thead');
+  if (!head) return;
+  const cells = chColumns().map((col) => {
+    const on = _chSort.key === col.key;
+    const mark = on ? (_chSort.dir === 'desc' ? '▼' : '▲') : '';
+    const val = statsEsc(_chFilters[col.key] || '');
+    return `<th data-label="${statsEsc(col.label)}">
+<button type="button" class="stats-sort${on ? ' is-on' : ''}" data-sort="${statsEsc(col.key)}"><span data-tr="${statsEsc(col.tr)}" data-de="${statsEsc(col.de)}">${statsEsc(col.label)}</span> <span class="stats-sort-mark">${mark}</span></button>
+<input class="camp-col-filter" data-filter="${statsEsc(col.key)}" value="${val}" aria-label="${statsEsc(col.label)}">
+</th>`;
+  }).join('');
+  head.innerHTML = `<tr>${cells}<th></th></tr>`;
+  head.querySelectorAll('[data-sort]').forEach((btn) => { btn.onclick = () => chSortBy(btn.dataset.sort); });
+  head.querySelectorAll('[data-filter]').forEach((inp) => {
+    inp.oninput = () => { _chFilters[inp.dataset.filter] = inp.value; chPaint(); };
+  });
+}
+
+function chSortBy(key) {
+  if (_chSort.key === key && _chSort.dir === 'desc') _chSort = { key, dir: 'asc' };
+  else _chSort = { key, dir: 'desc' };
+  document.querySelectorAll('#page-callhistory [data-sort]').forEach((btn) => {
+    const on = btn.dataset.sort === _chSort.key;
+    btn.classList.toggle('is-on', on);
+    const mark = btn.querySelector('.stats-sort-mark');
+    if (mark) mark.textContent = on ? (_chSort.dir === 'desc' ? '▼' : '▲') : '';
+  });
+  chPaint();
+}
+
+function chPaint() {
+  const tbody = document.getElementById('ch-tbody');
+  if (!tbody) return;
+  const cols = chColumns();
+  const search = String(document.getElementById('ch-search')?.value || '').trim().toLocaleLowerCase('tr');
+  const filtered = _chRows.filter((row) => {
+    if (search) {
+      const blob = [row.name, row.phone, row.agent, row.camp, row.outcomeText, row.note].join(' ').toLocaleLowerCase('tr');
+      if (!blob.includes(search)) return false;
+    }
+    return cols.every((col) => {
+      const q = String(_chFilters[col.key] || '').trim().toLocaleLowerCase('tr');
+      if (!q) return true;
+      const text = col.key === 'dur' ? row.durText : col.key === 'when' ? row.whenText : col.key === 'rec' ? row.recText : col.key === 'outcome' ? row.outcomeText : String(row[col.key] || '');
+      return String(text).toLocaleLowerCase('tr').includes(q);
+    });
+  });
+  const dir = _chSort.dir === 'asc' ? 1 : -1;
+  const key = _chSort.key;
+  filtered.sort((a, b) => {
+    if (key === 'when' || key === 'dur') return ((a[key] || 0) - (b[key] || 0)) * dir;
+    const av = key === 'outcome' ? a.outcomeText : key === 'rec' ? a.recText : String(a[key] || '');
+    const bv = key === 'outcome' ? b.outcomeText : key === 'rec' ? b.recText : String(b[key] || '');
+    return av.localeCompare(bv, 'tr', { numeric: true, sensitivity: 'base' }) * dir;
+  });
+  if (!filtered.length) {
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(10, 'ui.no_records') : `<tr><td colspan="10" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map((row) => {
+    const l = row.raw;
+    const cb = l.callback_at ? `<div class="ch-cb"><i class="ph ph-calendar"></i> ${statsEsc(chWhen(l.callback_at))}</div>` : '';
+    const detail = l.contact_id ? `<button type="button" class="icon-btn" onclick="openContactDrawer('${statsEsc(l.contact_id)}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button>` : '';
+    const note = row.note ? `<div class="ch-note" title="${statsEsc(row.note)}">${statsEsc(row.note)}</div>` : '<span style="color:var(--text-3);">—</span>';
+    return `<tr>
+<td class="td-mono" style="font-size:11px;">${statsEsc(row.whenText)}</td>
+<td style="font-weight:600;">${statsEsc(row.name)}</td>
+<td class="td-mono" style="font-size:11px;cursor:pointer;" data-phone="${statsEsc(row.phone)}" onclick="chCopyPhone(this)" title="Kopyala">${statsEsc(row.phone)}</td>
+<td style="font-size:12px;">${statsEsc(row.agent)}</td>
+<td style="font-size:11px;">${statsEsc(row.camp)}</td>
+<td class="td-mono" style="font-size:11px;">${statsEsc(row.durText)}</td>
+<td>${chRecHtml(l)}</td>
+<td>${chBadge(l.outcome)}${cb}</td>
+<td>${note}</td>
+<td>${detail}</td>
 </tr>`;
-}).join('');
-} catch(e){ console.error(e); if(tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(8, t('ui.error_prefix') + (e?.message || t('ui.unknown_error'))) : `<tr><td colspan="8" class="mb-empty-hint" style="color:var(--red);">${escapeHtml(t('ui.error_prefix') + (e?.message || t('ui.unknown_error')))}</td></tr>`; }
+  }).join('');
+}
+
+async function loadCallHistory() {
+  const gen = ++_chLoadGen;
+  const tbody = document.getElementById('ch-tbody');
+  if (tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(10) : `<tr><td colspan="10" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
+  try {
+    if (typeof renderFirmSelector === 'function') renderFirmSelector('ch-firm-selector', loadCallHistory);
+    const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : null;
+    await chFillFilters(fid);
+    if (gen !== _chLoadGen) return;
+    toggleCallHistoryRange();
+    const range = chSyncRange();
+    const ff = getFirmFilter('&');
+    const outcome = document.getElementById('ch-outcome')?.value || '';
+    const agentFilter = document.getElementById('ch-agent-f')?.value || '';
+    const campFilter = document.getElementById('ch-camp-f')?.value || '';
+    const gte = typeof mbInstantGte === 'function' ? mbInstantGte(range.from) : `${range.from}T00:00:00`;
+    const lte = typeof mbInstantLte === 'function' ? mbInstantLte(range.to) : `${range.to}T23:59:59`;
+    const pulled = await chPullLogs(ff, gte, lte, campFilter, agentFilter, outcome);
+    if (gen !== _chLoadGen) return;
+    const logs = pulled.rows || [];
+    const capEl = document.getElementById('ch-cap');
+    if (capEl) {
+      const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+      capEl.style.display = pulled.capped ? '' : 'none';
+      capEl.textContent = pulled.capped
+        ? (de ? `Nur die letzten ${CH_CAP} Anrufe. Zeitraum eingrenzen.` : `Son ${CH_CAP} arama gösteriliyor. Aralığı daralt.`)
+        : '';
+    }
+    _chLabelMap = await statsOutcomeLabels(campFilter ? [campFilter] : logs.map((l) => l.campaign_id));
+    if (gen !== _chLoadGen) return;
+    chFillOutcomeSelect(_chLabelMap, logs, campFilter);
+    const contactNameById = {};
+    try {
+      const missingIds = [...new Set(logs
+        .filter((l) => l?.contact_id && !(`${l.contacts?.first_name || ''} ${l.contacts?.last_name || ''}`.trim()))
+        .map((l) => l.contact_id))];
+      for (let i = 0; i < missingIds.length; i += 100) {
+        const chunk = missingIds.slice(i, i + 100);
+        if (!chunk.length) continue;
+        const rows = await sb(`contacts?select=id,first_name,last_name&id=in.(${chunk.join(',')})`).catch(() => []);
+        (rows || []).forEach((r) => {
+          const nm = `${r.first_name || ''} ${r.last_name || ''}`.trim();
+          if (nm) contactNameById[r.id] = nm;
+        });
+      }
+    } catch (_) {}
+    if (gen !== _chLoadGen) return;
+    _chRows = logs.map((l) => {
+      const sec = chDurSec(l);
+      const phone = l.phone || l.contacts?.phone || '—';
+      const name = `${l.contacts?.first_name || ''} ${l.contacts?.last_name || ''}`.trim() || contactNameById[l.contact_id] || phone;
+      return {
+        raw: l,
+        when: new Date(l.started_at).getTime() || 0,
+        whenText: chWhen(l.started_at),
+        name,
+        phone,
+        agent: `${l.users?.name || '—'}${statsFirmSuffix(l.firm_id)}`,
+        camp: l.campaigns?.name || '—',
+        dur: sec,
+        durText: sec ? statsClock(sec) : '—',
+        recText: l.recording_url ? 'Kayıt' : '—',
+        outcomeText: chOutcomeText(l.outcome, _chLabelMap),
+        note: chNoteText(l.notes),
+      };
+    });
+    chRenderHead();
+    chPaint();
+  } catch (e) {
+    console.error(e);
+    if (gen !== _chLoadGen) return;
+    if (tbody) {
+      const msg = t('ui.error_prefix') + (e?.message || t('ui.unknown_error'));
+      tbody.innerHTML = typeof mbErrorRow === 'function'
+        ? mbErrorRow(10, msg)
+        : `<tr><td colspan="10" class="mb-empty-hint" style="color:var(--red);">${statsEsc(msg)}</td></tr>`;
+    }
+  }
 }
 
 async function loadMyHistory() {
@@ -1452,13 +1667,13 @@ if (to && !to.value) to.value = today;
 toggleCustomDateRange();
 }
 
+
 function initCallHistoryFilters() {
-const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
-const from = document.getElementById('ch-date-from');
-const to   = document.getElementById('ch-date-to');
-if (from && !from.value) from.value = today;
-if (to   && !to.value)   to.value   = today;
-if (typeof updateCallHistoryExportVisibility === 'function') updateCallHistoryExportVisibility();
+  const sel = document.getElementById('ch-date-f');
+  if (sel && !sel.value) sel.value = 'week';
+  toggleCallHistoryRange();
+  chSyncRange();
+  if (typeof updateCallHistoryExportVisibility === 'function') updateCallHistoryExportVisibility();
 }
 
 function initMyHistoryFilters() {
