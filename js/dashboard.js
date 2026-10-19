@@ -818,7 +818,8 @@ if (typeof loadDashBrief === 'function') {
 if (typeof mbSyncDashRows === 'function') mbSyncDashRows();
 }
 
-const STATS_COL = 12;
+const STATS_COL = 11;
+const STATS_STD = ['appointment', 'negative', 'callback', 'no_answer', 'voicemail', 'dnc'];
 const STATS_CAP = 5000;
 
 function statsEsc(v) {
@@ -903,6 +904,65 @@ async function statsPullLogs(ff, gte, lte, camp, agent) {
   return { rows: all, capped: true };
 }
 
+function statsOutcomeKey(outcome) {
+  const key = String(outcome || '').trim();
+  if (key === 'appointment_done') return 'appointment';
+  return key;
+}
+
+async function statsOutcomeLabels(campIds) {
+  const map = {};
+  const ids = [...new Set((campIds || []).filter(Boolean))];
+  for (let i = 0; i < ids.length; i += 80) {
+    const chunk = ids.slice(i, i + 80);
+    const rows = (await sb(`campaigns?select=id,settings&id=in.(${chunk.join(',')})`).catch(() => [])) || [];
+    rows.forEach((camp) => {
+      let settings = camp.settings;
+      if (typeof settings === 'string') {
+        try { settings = JSON.parse(settings); } catch (e) { settings = {}; }
+      }
+      (settings?.outcomes || []).forEach((row) => {
+        const key = statsOutcomeKey(row?.key);
+        const label = String(row?.label || '').trim();
+        if (!key || !label) return;
+        if (!map[key]) map[key] = [];
+        if (!map[key].includes(label)) map[key].push(label);
+      });
+    });
+  }
+  return map;
+}
+
+function statsExtraLabel(key, labelMap) {
+  const labels = labelMap?.[key] || [];
+  if (labels.length) return labels.join(' / ');
+  if (!key) return (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Ohne Ergebnis' : 'Sonuç yok';
+  return key;
+}
+
+function statsRenderHead(extras) {
+  const head = document.querySelector('#page-stats thead');
+  if (!head) return;
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const fixed = [
+    ['Agent', 'Agent'],
+    ['Kampanya', 'Kampagne'],
+    ['Aramalar', 'Anrufe'],
+    ['Randevu', 'Termin'],
+    ['Olumsuz', 'Negativ'],
+    ['Geri Ara', 'Rückruf'],
+    ['Cevap Yok', 'Kein Anspr.'],
+    ['Telesekreter', 'Mailbox'],
+    ['Kara liste', 'Sperrliste'],
+  ];
+  const tail = [
+    ['Ort. Süre', 'Ø Dauer'],
+    ['Dönüşüm', 'Konversion'],
+  ];
+  const cells = fixed.concat((extras || []).map((col) => [col.label, col.label])).concat(tail);
+  head.innerHTML = `<tr>${cells.map(([tr, deLabel]) => `<th data-tr="${statsEsc(tr)}" data-de="${statsEsc(deLabel)}">${statsEsc(de ? deLabel : tr)}</th>`).join('')}</tr>`;
+}
+
 async function loadStats() {
 renderFirmSelector('stats-firm-selector', loadStats);
 const tbody = document.getElementById('stats-tbody');
@@ -957,6 +1017,23 @@ if (!groups[key].campaign_name && l.campaigns?.name) groups[key].campaign_name =
 groups[key].logs.push(l);
 });
 const rows = Object.values(groups).sort((a, b) => (b.logs.length - a.logs.length) || String(a.agent_name).localeCompare(String(b.agent_name), 'tr'));
+const labelMap = await statsOutcomeLabels(logs.map((l) => l.campaign_id));
+const extraCounts = {};
+logs.forEach((l) => {
+  const key = statsOutcomeKey(l.outcome);
+  if (STATS_STD.includes(key)) return;
+  extraCounts[key] = (extraCounts[key] || 0) + 1;
+});
+if (campFilter) {
+  Object.keys(labelMap).forEach((key) => {
+    if (!STATS_STD.includes(key) && extraCounts[key] == null) extraCounts[key] = 0;
+  });
+}
+const extras = Object.keys(extraCounts)
+  .sort((a, b) => (extraCounts[b] - extraCounts[a]) || statsExtraLabel(a, labelMap).localeCompare(statsExtraLabel(b, labelMap), 'tr'))
+  .map((key) => ({ key, label: statsExtraLabel(key, labelMap) }));
+const colCount = STATS_COL + extras.length;
+statsRenderHead(extras);
 const paintSums = (tot, ap, ng, sec) => {
   setSum('stats-sum-calls', String(tot));
   setSum('stats-sum-appt', String(ap));
@@ -965,24 +1042,31 @@ const paintSums = (tot, ap, ng, sec) => {
   setSum('stats-sum-avg', statsClock(tot ? sec / tot : 0));
 };
 if (!rows.length) {
-tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(STATS_COL, 'ui.no_data_range') : `<tr><td colspan="${STATS_COL}" class="mb-empty-hint">${t('ui.no_data_range')}</td></tr>`;
+tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(colCount, 'ui.no_data_range') : `<tr><td colspan="${colCount}" class="mb-empty-hint">${t('ui.no_data_range')}</td></tr>`;
 paintSums(0, 0, 0, 0);
 return;
 }
-let totAll=0,apAll=0,ngAll=0,cbAll=0,naAll=0,vmAll=0,dncAll=0,otAll=0,secAll=0;
+let totAll=0,apAll=0,ngAll=0,cbAll=0,naAll=0,vmAll=0,dncAll=0,secAll=0;
+const extraAll = {};
+extras.forEach((col) => { extraAll[col.key] = 0; });
+const countOf = (ls, key) => ls.filter((l) => statsOutcomeKey(l.outcome) === key).length;
 tbody.innerHTML = rows.map(r => {
 const ls = r.logs, tot = ls.length;
-const ap = ls.filter(l => typeof _isTerminOutcome === 'function' ? _isTerminOutcome(l.outcome) : (l.outcome === 'appointment' || l.outcome === 'appointment_done')).length;
-const ng = ls.filter(l=>l.outcome==='negative').length;
-const cb = ls.filter(l=>l.outcome==='callback').length;
-const na = ls.filter(l=>l.outcome==='no_answer').length;
-const vm = ls.filter(l=>l.outcome==='voicemail').length;
-const dnc = ls.filter(l=>l.outcome==='dnc').length;
-const other = Math.max(0, tot - ap - ng - cb - na - vm - dnc);
+const ap = countOf(ls, 'appointment');
+const ng = countOf(ls, 'negative');
+const cb = countOf(ls, 'callback');
+const na = countOf(ls, 'no_answer');
+const vm = countOf(ls, 'voicemail');
+const dnc = countOf(ls, 'dnc');
 const totalSec = ls.reduce((s,l)=>s+(l.duration_sec||l.duration_seconds||0),0);
 const avgSec = tot ? Math.round(totalSec/tot) : 0;
 const convPct = tot ? Math.round(ap/tot*100) : 0;
-totAll+=tot; apAll+=ap; ngAll+=ng; cbAll+=cb; naAll+=na; vmAll+=vm; dncAll+=dnc; otAll+=other; secAll+=totalSec;
+totAll+=tot; apAll+=ap; ngAll+=ng; cbAll+=cb; naAll+=na; vmAll+=vm; dncAll+=dnc; secAll+=totalSec;
+const extraCells = extras.map((col) => {
+  const n = countOf(ls, col.key);
+  extraAll[col.key] += n;
+  return `<td class="td-mono">${n}</td>`;
+}).join('');
 const agentName = `${r.agent_name || String(r.agent_id).slice(0, 8)}${statsFirmSuffix(r.firm_id)}`;
 const campName = r.campaign_name || (r.campaign_id === 'unknown' ? '—' : String(r.campaign_id).slice(0, 8));
 return `<tr>
@@ -995,7 +1079,7 @@ return `<tr>
 <td><span class="badge badge-gray">${na}</span></td>
 <td><span class="badge badge-gray">${vm}</span></td>
 <td><span class="badge badge-red">${dnc}</span></td>
-<td class="td-mono">${other}</td>
+${extraCells}
 <td class="td-mono">${statsClock(avgSec)}</td>
 <td><span style="font-weight:800;color:${convPct>=20?'var(--green)':convPct>=10?'var(--yellow)':'var(--red)'};">${convPct}%</span></td>
 </tr>`;
@@ -1008,12 +1092,12 @@ return `<tr>
 <td><span class="badge badge-gray">${naAll}</span></td>
 <td><span class="badge badge-gray">${vmAll}</span></td>
 <td><span class="badge badge-red">${dncAll}</span></td>
-<td class="td-mono">${otAll}</td>
+${extras.map((col) => `<td class="td-mono">${extraAll[col.key] || 0}</td>`).join('')}
 <td class="td-mono">${statsClock(totAll ? secAll / totAll : 0)}</td>
 <td><span style="font-weight:800;color:var(--accent);">${totAll?Math.round(apAll/totAll*100):0}%</span></td>
 </tr>`;
 paintSums(totAll, apAll, ngAll, secAll);
-} catch(e){ console.error(e); if(tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(STATS_COL, t('ui.error_prefix') + (e?.message || t('ui.unknown_error'))) : `<tr><td colspan="${STATS_COL}" class="mb-empty-hint" style="color:var(--red);">${escapeHtml(t('ui.error_prefix') + (e?.message || t('ui.unknown_error')))}</td></tr>`; }
+} catch(e){ console.error(e); if(tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(STATS_COL, t('ui.error_prefix') + (e?.message || t('ui.unknown_error'))) : `<tr><td colspan="${STATS_COL}" class="mb-empty-hint" style="color:var(--red);">${typeof escapeHtml === 'function' ? escapeHtml(t('ui.error_prefix') + (e?.message || t('ui.unknown_error'))) : ''}</td></tr>`; }
 }
 
 async function loadCallHistory() {
