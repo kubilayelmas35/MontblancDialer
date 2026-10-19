@@ -899,12 +899,16 @@ function takvimSlotCustomerMarkup(appt) {
   return `<div class="tak-slot-cust" title="${esc(name)}">${esc(name)}</div>`;
 }
 
-function takvimSlotCallMarkup(appt) {
-  const id = String(appt?.contact_id || '').trim();
-  if (!id || (typeof isValidUUID === 'function' && !isValidUUID(id))) return '';
+function takvimSlotCallMarkup(slot, appt) {
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
-  return `<div class="tak-slot-dist" onmousedown="event.stopPropagation()" style="position:absolute;bottom:2px;right:2px;z-index:22;">
-<button type="button" class="btn-tak-dist" title="Ara" onclick="event.stopPropagation();openDialerForContact('${esc(id)}')"><i class="ph ph-phone" style="font-size:12px;"></i></button>
+  const id = String(appt?.contact_id || '').trim();
+  const canCall = id && (typeof isValidUUID !== 'function' || isValidUUID(id));
+  const call = canCall
+    ? `<button type="button" class="btn-tak-dist" title="Ara" onclick="event.stopPropagation();openDialerForContact('${esc(id)}')"><i class="ph ph-phone" style="font-size:12px;"></i></button>`
+    : '';
+  const dist = `<button type="button" class="btn-tak-dist" title="Bu randevudan diğer randevulara uzaklık" onclick="event.stopPropagation();toggleTakvimDistAll('${esc(slot?.id || '')}')"><i class="ph ph-path" style="font-size:12px;"></i></button>`;
+  return `<div class="tak-slot-dist" onmousedown="event.stopPropagation()" style="position:absolute;bottom:2px;right:2px;z-index:22;display:flex;gap:4px;align-items:center;">
+${call}${dist}
 </div>`;
 }
 
@@ -923,7 +927,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
   const pl = dense ? 4 : 6;
   const pt = dense ? 4 : 6;
   const custChip = slot.durum === 'dolu' && appt && (isAdmin || appt.agent_id === currentUser?.id) ? takvimSlotCustomerMarkup(appt) : '';
-  const callBtn = slot.durum === 'dolu' && appt && (isAdmin || appt.agent_id === currentUser?.id) ? takvimSlotCallMarkup(appt) : '';
+  const callBtn = slot.durum === 'dolu' && appt && (isAdmin || appt.agent_id === currentUser?.id) ? takvimSlotCallMarkup(slot, appt) : '';
   const pb =
     custChip ? 18 : canShift ? 6 : dense ? 4 : 6;
   el.style.cssText = `border-radius:4px;padding:${pt}px ${pr}px ${pb}px ${pl}px;font-size:${fzBase}px;cursor:pointer;overflow:hidden;box-shadow:none;background:${vis.background};color:${vis.color};text-align:left;`;
