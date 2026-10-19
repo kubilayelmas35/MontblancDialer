@@ -994,7 +994,7 @@ function statsRenderHead(extras) {
     const val = statsEsc(_statsFilters[col.key] || '');
     return `<th data-label="${statsEsc(col.label)}" data-tr="${statsEsc(col.tr)}" data-de="${statsEsc(col.de)}">
 <button type="button" class="stats-sort${on ? ' is-on' : ''}" data-sort="${statsEsc(col.key)}">${statsEsc(col.label)} <span class="stats-sort-mark">${mark}</span></button>
-<input class="stats-col-filter" data-filter="${statsEsc(col.key)}" value="${val}" placeholder="…" aria-label="${statsEsc(col.label)}">
+<input class="camp-col-filter" data-filter="${statsEsc(col.key)}" value="${val}" aria-label="${statsEsc(col.label)}">
 </th>`;
   }).join('')}</tr>`;
   head.querySelectorAll('[data-sort]').forEach((btn) => {

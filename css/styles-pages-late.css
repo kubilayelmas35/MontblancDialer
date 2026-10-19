@@ -823,14 +823,16 @@ i.ph {
   border: 1px solid var(--border);
 }
 .leave-chip.forced { border-style: dashed; }
-#page-stats th { vertical-align: top; white-space: nowrap; }
+#page-stats thead th { vertical-align: top; }
 #page-stats .stats-sort {
   background: none;
   border: none;
   padding: 0;
+  margin: 0;
   font: inherit;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: .2px;
   color: var(--text-3);
   cursor: pointer;
   display: inline-flex;
@@ -838,12 +840,4 @@ i.ph {
   gap: 4px;
 }
 #page-stats .stats-sort.is-on { color: var(--text-1); }
-#page-stats .stats-col-filter {
-  display: block;
-  width: 100%;
-  min-width: 72px;
-  margin-top: 6px;
-  box-sizing: border-box;
-  font-size: 11px;
-  padding: 3px 6px;
-}
+#page-stats .camp-col-filter { min-width: 88px; }
