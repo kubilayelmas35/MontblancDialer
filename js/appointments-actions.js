@@ -333,8 +333,10 @@ ${cell('PERSONEL', agentName)}
 ${cell('RANDEVU TARİHİ / SAATİ', when)}
 ${cell('OLUŞTURULMA TARİHİ / SAATİ', created)}
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">KOMŞU RANDEVULARA MESAFE</div><div id="takvim-neighbor-dist" style="font-weight:700;">Hesaplanıyor…</div></div>
+<div id="takvim-appt-recs" style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">${typeof t === 'function' ? t('cal.recs.title') : 'Görüşme kayıtları'}</div><div style="margin-top:6px;font-size:12px;color:var(--text-3);">${typeof t === 'function' ? t('cal.recs.loading') : 'Yükleniyor…'}</div></div>
 </div>`;
   takvimFillNeighborDist(slot, appt);
+  takvimFillApptRecordings(appt);
   const canEditNote = canManageAppt || appt.agent_id === currentUser?.id;
   if (canEditNote || appt.agent_notu) {
     const noteWrap = document.createElement('div');
@@ -469,6 +471,70 @@ async function takvimFillNeighborDist(slot, appt) {
   };
   const parts = [await line(prev, 'Üstteki termin'), await line(next, 'Alttaki termin')].filter(Boolean);
   if (document.getElementById('takvim-neighbor-dist') === host) host.textContent = parts.join(' · ');
+}
+
+function takvimRecordingVisible(log, appt) {
+  const role = currentUser?.role || '';
+  const mine = String(log?.agent_id || '') === String(currentUser?.id || '');
+  if (typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin(role)) return true;
+  if (role === 'qc') return mine || String(log?.agent_id || '') === String(appt?.agent_id || '');
+  return mine;
+}
+
+async function takvimFillApptRecordings(appt) {
+  const host = document.getElementById('takvim-appt-recs');
+  if (!host || !appt) return;
+  const say = typeof t === 'function' ? t : (k) => ({ 'cal.recs.title': 'Görüşme kayıtları', 'cal.recs.empty': 'Kayıt yok' }[k] || k);
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const title = say('cal.recs.title');
+  const paint = (inner) => {
+    if (document.getElementById('takvim-appt-recs') !== host) return;
+    host.innerHTML = `<div style="font-size:10px;color:var(--text-3);font-weight:700;">${esc(title)}</div>${inner}`;
+  };
+  const fid = appt.firm_id || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
+  const select = 'id,started_at,duration_sec,recording_url,agent_id,firm_id,users(name)';
+  let rows = [];
+  try {
+    if (appt.contact_id && (typeof isValidUUID !== 'function' || isValidUUID(appt.contact_id))) {
+      const firmQ = fid ? `&firm_id=eq.${fid}` : '';
+      rows = await sb(`call_logs?contact_id=eq.${appt.contact_id}${firmQ}&select=${select}&order=started_at.desc&limit=30`) || [];
+    } else if (appt.call_log_id) {
+      rows = await sb(`call_logs?id=eq.${appt.call_log_id}&select=${select}&limit=1`) || [];
+    }
+  } catch (e) {
+    try {
+      const bare = 'id,started_at,duration_sec,recording_url,agent_id,firm_id';
+      if (appt.contact_id) {
+        const firmQ = fid ? `&firm_id=eq.${fid}` : '';
+        rows = await sb(`call_logs?contact_id=eq.${appt.contact_id}${firmQ}&select=${bare}&order=started_at.desc&limit=30`) || [];
+      }
+    } catch (_) { rows = []; }
+  }
+  const visible = (rows || []).filter((log) => {
+    if (fid && log.firm_id && String(log.firm_id) !== String(fid)) return false;
+    return String(log.recording_url || '').trim() && takvimRecordingVisible(log, appt);
+  });
+  if (!visible.length) {
+    paint(`<div style="margin-top:6px;font-size:12px;color:var(--text-3);">${esc(say('cal.recs.empty'))}</div>`);
+    return;
+  }
+  const showWho = (typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin()) || currentUser?.role === 'qc';
+  const html = visible.map((log) => {
+    const when = log.started_at
+      ? (typeof mbFormatWall === 'function'
+        ? mbFormatWall(log.started_at, { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+        : new Date(log.started_at).toLocaleString('tr-TR', { timeZone: 'Europe/Berlin' }))
+      : '';
+    const sec = typeof _logDurationSec === 'function' ? _logDurationSec(log) : (Number(log.duration_sec) || 0);
+    const dur = sec ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : '';
+    const who = Array.isArray(log.users) ? log.users[0]?.name : log.users?.name;
+    const meta = [when, dur, showWho ? who : ''].filter(Boolean).join(' · ');
+    return `<div style="margin-top:8px;">
+<div style="font-size:11px;color:var(--text-2);margin-bottom:4px;">${esc(meta)}</div>
+<audio controls preload="none" src="${esc(log.recording_url)}" style="width:100%;height:32px;"></audio>
+</div>`;
+  }).join('');
+  paint(html);
 }
 
 function takvimEditSelect(id, label, value, options) {
