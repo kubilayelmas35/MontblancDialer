@@ -410,7 +410,33 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   flex: 0 0 auto;
   flex-wrap: nowrap;
   height: 32px;
+  position: relative;
 }
+.tb-icon-btn.tb-mesai {
+  width: auto;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.tb-mesai span { white-space: nowrap; line-height: 1; }
+.tb-mesai-pop {
+  position: absolute;
+  top: 40px;
+  right: 8px;
+  z-index: 80;
+  min-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-2);
+  box-shadow: 0 12px 28px rgba(0,0,0,.16);
+}
+.tb-mesai-title { font-size: 13px; font-weight: 800; margin-bottom: 8px; }
+.tb-mesai-row { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; padding: 4px 0; color: var(--text-2); }
+.tb-mesai-row.is-today { color: var(--text); font-weight: 800; }
 .tb-icon-btn.tb-takvim {
   width: auto;
   min-width: 32px;
@@ -430,7 +456,8 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 }
 @media (max-width: 1280px) {
   .tb-logo-name { display: none; }
-  .tb-icon-btn.tb-takvim > span { display: none; }
+  .tb-icon-btn.tb-takvim > span, .tb-icon-btn.tb-mesai > span { display: none; }
+  .tb-icon-btn.tb-mesai { width: 32px; min-width: 32px; padding: 0; }
   .tb-icon-btn.tb-takvim { width: 32px; min-width: 32px; padding: 0; }
   .tb-logo { margin-right: 0; }
   .tb-logo-inner { padding: 4px; gap: 0; }

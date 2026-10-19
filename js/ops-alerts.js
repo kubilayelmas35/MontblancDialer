@@ -6,7 +6,7 @@ let _opsAlerts = {
   callMin: 4, goldAfter: 1, waitMin: 1,
   roles: ['agent', 'field_agent'], effect: 'aurora', campRoles: ['agent', 'field_agent'], campEffect: 'aurora',
   appt: true, campaign: true, wrongAfter: 2, dataMin: 1000,
-  sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, camp: true, data: true, call: true, wait: true, pick: true, drop: true, clear: true, move: true, results: {} },
+  sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, camp: true, data: true, break: true, shift: true, call: true, wait: true, pick: true, drop: true, clear: true, move: true, results: {} },
 };
 let _opsNotifPrimed = false;
 let _opsWrongSig = '';
@@ -75,11 +75,11 @@ function opsSay(key, fallback) {
 const OPS_TONE_IDS = ['chime', 'bell', 'soft', 'glass', 'pop', 'alert', 'win', 'spark', 'fall', 'lose'];
 const OPS_TONE_LABELS = { chime: 'Çan', bell: 'Zil', soft: 'Yumuşak', glass: 'Cam', pop: 'Kısa', alert: 'Uyarı', win: 'Kazanç', spark: 'Parıltı', fall: 'Düşüş', lose: 'Kayıp' };
 const OPS_TONE_DEFAULT = {
-  due: 'chime', soon: 'soft', hour: 'bell', slot: 'glass', wrong: 'pop', camp: 'chime', data: 'alert', call: 'bell', wait: 'soft',
+  due: 'chime', soon: 'soft', hour: 'bell', slot: 'glass', wrong: 'pop', camp: 'chime', data: 'alert', break: 'soft', shift: 'bell', call: 'bell', wait: 'soft',
   pick: 'alert', drop: 'soft', clear: 'lose', move: 'bell',
 };
 const OPS_MOOD_DEFAULT = {
-  due: 'neutral', soon: 'neutral', hour: 'neutral', slot: 'good', wrong: 'bad', camp: 'neutral', data: 'bad', call: 'neutral', wait: 'neutral',
+  due: 'neutral', soon: 'neutral', hour: 'neutral', slot: 'good', wrong: 'bad', camp: 'neutral', data: 'bad', break: 'neutral', shift: 'neutral', call: 'neutral', wait: 'neutral',
   pick: 'good', drop: 'neutral', clear: 'bad', move: 'neutral',
 };
 const OPS_TONE_NOTES = {
@@ -123,7 +123,7 @@ function opsTint(hex) {
   return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
 }
 
-const OPS_AGENT_SOUNDS = ['due', 'soon', 'hour', 'wrong', 'camp', 'clear', 'move'];
+const OPS_AGENT_SOUNDS = ['due', 'soon', 'hour', 'wrong', 'camp', 'shift', 'clear', 'move'];
 
 function opsIsAgentNotif() {
   return String(currentUser?.role || '') === 'agent';
@@ -377,6 +377,8 @@ function opsReadAlerts(raw) {
 }
 
 function opsWrongAfterMin() {
+  const input = document.getElementById('ops-set-wrong-after');
+  if (input && String(input.value || '').trim() !== '') return opsClamp(input.value, 2, 1, 30);
   return opsClamp(_opsAlerts.wrongAfter, 2, 1, 30);
 }
 
@@ -906,7 +908,7 @@ function opsShowSample(kind) {
       const sentence = 'Yanlış kampanyadasın. Seçmelisin: 85, 96. Kapatmalısın: Eski Kampanya.';
       opsMountWrongSample(sentence);
       opsRememberNotice('Yanlış kampanya', sentence, opsPickedColor('wrong', opsSoundEntry('wrong').color), 'camp');
-    }, 8000);
+    }, opsWrongAfterMin() * 60000);
     return;
   }
   if (kind === 'data') {
@@ -914,6 +916,18 @@ function opsShowSample(kind) {
     const text = opsDataText('85', 640, min);
     toast(`${opsSay('ops.data.title', 'Veri azaldı')}. ${text}`, 'warn', 4000);
     opsRememberNotice(opsSay('ops.data.title', 'Veri azaldı'), text, opsPickedColor('data', opsSoundEntry('data').color), 'camp');
+    return;
+  }
+  if (kind === 'break') {
+    const text = 'Gökhan: Çay molası';
+    toast(`${opsSay('ops.break.title', 'Mola')}. ${text}`, 'ok', 4000);
+    opsRememberNotice(opsSay('ops.break.title', 'Mola'), text, opsPickedColor('break', opsSoundEntry('break').color), 'live');
+    return;
+  }
+  if (kind === 'shift') {
+    const text = opsSay('ops.shift.end', 'Mesai bitti');
+    toast(text, 'warn', 4000);
+    opsRememberNotice(text, '18:00', opsPickedColor('shift', opsSoundEntry('shift').color), 'live');
     return;
   }
   if (kind === 'wrong') {
@@ -1132,6 +1146,18 @@ function opsPaintLive(rows) {
   });
 }
 
+let _opsBreakPrev = null;
+function opsRememberBreak(name, code, self) {
+  const label = typeof auxDisplay === 'function' ? auxDisplay(code) : (String(code || '').trim() || 'Mola');
+  const title = self ? opsSay('ops.break.mine', 'Moladasın') : opsSay('ops.break.title', 'Mola');
+  const text = self ? label : `${name || 'Personel'}: ${label}`;
+  if (!self && !opsSoundOn('break')) return;
+  if (!self && !opsRoleSeesData()) return;
+  if (!self) opsCue('break');
+  opsRememberNotice(title, text, opsSoundEntry('break').color, 'live');
+  if (!self) toast(`${title}. ${text}`, 'ok', 4000);
+}
+
 async function opsTickLive() {
   if (!currentUser || typeof mbIsFirmAdmin !== 'function' || !mbIsFirmAdmin() || typeof sb !== 'function') {
     opsPaintLive([]);
@@ -1139,7 +1165,18 @@ async function opsTickLive() {
   }
   const ff = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
   try {
-    const rows = await sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,current_contact_name,call_started_at,call_start,updated_at,last_seen${ff}`) || [];
+    const rows = await sb(`agent_sessions?select=agent_id,agent_name,status,break_code,campaign_id,current_contact_name,call_started_at,call_start,updated_at,last_seen${ff}`) || [];
+    const prev = _opsBreakPrev;
+    const next = {};
+    rows.forEach((row) => {
+      const id = String(row.agent_id || '');
+      if (!id) return;
+      next[id] = row.status || '';
+      if (prev && prev[id] !== 'break' && row.status === 'break' && id !== String(currentUser.id || '')) {
+        opsRememberBreak(row.agent_name, row.break_code, false);
+      }
+    });
+    _opsBreakPrev = next;
     opsPaintLive(rows);
   } catch (e) {}
 }
@@ -1248,6 +1285,7 @@ function opsNoticeCat(soundKind, titleKind) {
   if (kind === 'pick' || kind === 'drop' || kind === 'clear' || kind === 'move') return 'cal';
   if (kind === 'slot' || title === 'book') return 'appt';
   if (kind === 'wrong' || kind === 'camp' || kind === 'data') return 'camp';
+  if (kind === 'break' || kind === 'shift') return 'live';
   if (kind === 'due' || kind === 'soon' || kind === 'hour') return 'wv';
   return 'live';
 }
@@ -1557,6 +1595,151 @@ async function opsTickData() {
   } catch (e) {}
 }
 
+const OPS_GUN_LABEL = { pzt: 'Pazartesi', sal: 'Salı', car: 'Çarşamba', per: 'Perşembe', cum: 'Cuma', cmt: 'Cumartesi', paz: 'Pazar' };
+let _opsMesaiRows = null;
+let _opsMesaiAt = 0;
+const _opsShiftTold = new Set();
+
+function opsBerlinClock() {
+  const parts = {};
+  new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Berlin', hourCycle: 'h23', weekday: 'short', hour: '2-digit', minute: '2-digit',
+  }).formatToParts(new Date()).forEach((part) => { parts[part.type] = part.value; });
+  const gun = { Mon: 'pzt', Tue: 'sal', Wed: 'car', Thu: 'per', Fri: 'cum', Sat: 'cmt', Sun: 'paz' }[parts.weekday] || 'pzt';
+  const hour = Number(parts.hour);
+  const minute = Number(parts.minute);
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date());
+  return { gun, hour, minute, mins: hour * 60 + minute, date };
+}
+
+function opsHm(value, fallback) {
+  const m = String(value || '').match(/(\d{1,2}):(\d{2})/);
+  if (!m) return fallback;
+  return `${String(m[1]).padStart(2, '0')}:${m[2]}`;
+}
+
+function opsHmMins(value) {
+  const hm = opsHm(value, '');
+  if (!hm) return null;
+  const [h, m] = hm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function opsMesaiWindow() {
+  const berlin = opsBerlinClock();
+  const rows = Array.isArray(_opsMesaiRows) ? _opsMesaiRows : [];
+  const byGun = {};
+  rows.forEach((row) => { if (row?.gun) byGun[row.gun] = row; });
+  if (rows.length) {
+    const row = byGun[berlin.gun];
+    const days = Object.keys(OPS_GUN_LABEL).map((gun) => {
+      const item = byGun[gun];
+      if (!item || item.calismiyor) return { gun, label: OPS_GUN_LABEL[gun], text: 'Kapalı' };
+      return { gun, label: OPS_GUN_LABEL[gun], text: `${opsHm(item.mesai_baslangic, '09:00')}–${opsHm(item.mesai_bitis, '18:00')}` };
+    });
+    if (!row || row.calismiyor) return { off: true, berlin, days };
+    return { off: false, start: opsHm(row.mesai_baslangic, '09:00'), end: opsHm(row.mesai_bitis, '18:00'), berlin, days };
+  }
+  const fid = opsFirmId();
+  const raw = fid && window._firmDefaultTakvimByFirm ? window._firmDefaultTakvimByFirm[fid] : {};
+  const cfg = typeof mergeTakvimSettings === 'function'
+    ? mergeTakvimSettings(raw)
+    : { active_days: ['pzt', 'sal', 'car', 'per', 'cum'], start_hour: '08:00', end_hour: '20:00' };
+  const days = Object.keys(OPS_GUN_LABEL).map((gun) => ({
+    gun,
+    label: OPS_GUN_LABEL[gun],
+    text: cfg.active_days.includes(gun) ? `${String(cfg.start_hour).slice(0, 5)}–${String(cfg.end_hour).slice(0, 5)}` : 'Kapalı',
+  }));
+  if (!cfg.active_days.includes(berlin.gun)) return { off: true, berlin, days };
+  return { off: false, start: String(cfg.start_hour).slice(0, 5), end: String(cfg.end_hour).slice(0, 5), berlin, days };
+}
+
+function opsPaintMesaiBar() {
+  const label = document.getElementById('tb-mesai-label');
+  if (!label) return;
+  const win = opsMesaiWindow();
+  if (win.off) {
+    label.textContent = 'Mesai yok';
+    return;
+  }
+  const end = opsHmMins(win.end);
+  const start = opsHmMins(win.start);
+  if (end != null && win.berlin.mins >= end) label.textContent = 'Mesai bitti';
+  else if (start != null && win.berlin.mins < start) label.textContent = `Mesai ${win.start}`;
+  else label.textContent = `Mesai ${win.start}–${win.end}`;
+}
+
+function opsToggleMesaiInfo(ev) {
+  if (ev) ev.stopPropagation();
+  const pop = document.getElementById('tb-mesai-pop');
+  if (!pop) return;
+  const open = pop.hidden;
+  pop.hidden = !open;
+  if (!open) return;
+  const win = opsMesaiWindow();
+  pop.replaceChildren();
+  const title = document.createElement('div');
+  title.className = 'tb-mesai-title';
+  title.textContent = 'Mesai saatleri';
+  pop.appendChild(title);
+  win.days.forEach((day) => {
+    const row = document.createElement('div');
+    row.className = 'tb-mesai-row';
+    if (day.gun === win.berlin.gun) row.classList.add('is-today');
+    const name = document.createElement('span');
+    name.textContent = day.label;
+    const time = document.createElement('b');
+    time.textContent = day.text;
+    row.append(name, time);
+    pop.appendChild(row);
+  });
+}
+
+async function opsLoadMesai() {
+  if (Date.now() - _opsMesaiAt < 60000 && _opsMesaiRows) {
+    opsPaintMesaiBar();
+    return;
+  }
+  _opsMesaiAt = Date.now();
+  const fid = opsFirmId();
+  if (!fid || typeof sb !== 'function') {
+    opsPaintMesaiBar();
+    return;
+  }
+  try {
+    _opsMesaiRows = await sb(`mesai_saatleri?firm_id=eq.${fid}&select=gun,calismiyor,mesai_baslangic,mesai_bitis`) || [];
+  } catch (e) {
+    _opsMesaiRows = [];
+  }
+  if (typeof ensureFirmTakvimDefaultsLoaded === 'function') await ensureFirmTakvimDefaultsLoaded(fid);
+  opsPaintMesaiBar();
+}
+
+function opsTickShift() {
+  if (window.__opsHoldShift) return;
+  if (!opsSoundOn('shift') || !currentUser) return;
+  const win = opsMesaiWindow();
+  if (win.off || !win.end) return;
+  const end = opsHmMins(win.end);
+  if (end == null) return;
+  const left = end - win.berlin.mins;
+  const day = win.berlin.date;
+  if (left > 0 && left <= 15 && !_opsShiftTold.has(`soon:${day}`)) {
+    _opsShiftTold.add(`soon:${day}`);
+    const text = `${opsSay('ops.shift.soon', 'Mesai bitiyor')}. ${win.end}`;
+    toast(text, 'warn', 5000);
+    opsCue('shift');
+    opsRememberNotice(opsSay('ops.shift.soon', 'Mesai bitiyor'), text, opsSoundEntry('shift').color, 'live');
+  }
+  if (left <= 0 && left > -20 && !_opsShiftTold.has(`end:${day}`)) {
+    _opsShiftTold.add(`end:${day}`);
+    const text = `${opsSay('ops.shift.end', 'Mesai bitti')}. ${win.end}`;
+    toast(text, 'warn', 5000);
+    opsCue('shift');
+    opsRememberNotice(opsSay('ops.shift.end', 'Mesai bitti'), text, opsSoundEntry('shift').color, 'live');
+  }
+}
+
 function opsBoot() {
   if (_opsDirectiveTimer) clearInterval(_opsDirectiveTimer);
   _opsDirectiveTimer = setInterval(() => {
@@ -1565,14 +1748,25 @@ function opsBoot() {
     opsTickLive();
     opsTickFloor();
     opsTickData();
+    opsLoadMesai();
+    opsTickShift();
   }, 15000);
   if (currentUser) {
     opsLoadDirective();
     opsTickLive();
     opsTickFloor();
     opsTickData();
+    opsLoadMesai();
+    opsPaintMesaiBar();
   }
 }
+
+document.addEventListener('click', (ev) => {
+  const pop = document.getElementById('tb-mesai-pop');
+  if (!pop || pop.hidden) return;
+  if (ev.target.closest && ev.target.closest('#tb-mesai-btn, #tb-mesai-pop')) return;
+  pop.hidden = true;
+});
 
 document.addEventListener('click', (ev) => {
   const panel = document.getElementById('ops-camp-panel');

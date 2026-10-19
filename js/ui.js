@@ -156,7 +156,8 @@ function initSettingsTabs(preferTab) {
     mascot: new Set(['settings-mascot-card']),
     communication: new Set(['incoming-calls-settings-card', 'chat-settings-card']),
     notifications: new Set(['notif-settings-card']),
-    operations: new Set(['mesai-settings-card', 'call-hours-card', 'results-settings-card', 'default-takvim-firm-card', 'settings-goals-card']),
+    operations: new Set(['call-hours-card', 'results-settings-card', 'settings-goals-card']),
+    mesai: new Set(['default-takvim-firm-card', 'mesai-settings-card']),
     field: new Set(['field-settings-card']),
     system: new Set(['settings-api-keys-card', 'feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings', 'sms-settings-card']),
   };

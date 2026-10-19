@@ -43,6 +43,7 @@ async function selectBreakCode(code) {
   _breakCode = code;
   refreshBreakCustEmpty();
   toast(`☕ ${auxDisplay(code)}`, 'ok', 2000);
+  if (typeof opsRememberBreak === 'function') opsRememberBreak(currentUser?.name, code, true);
   upsertAgentSession({agent_id:currentUser.id,status:'break',break_code:code,last_seen:new Date().toISOString()}).catch(()=>{});
 }
 
