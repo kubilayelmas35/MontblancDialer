@@ -4,9 +4,9 @@
 let _opsDirective = { ids: [], at: '', by: '' };
 let _opsAlerts = {
   callMin: 4, goldAfter: 1, waitMin: 1,
-  roles: ['agent', 'field_agent'], effect: 'aurora', campRoles: ['agent', 'field_agent'], campEffect: 'aurora',
+  roles: ['agent', 'field_agent'], effect: 'aurora', campRoles: ['agent', 'field_agent'], campEffect: 'aurora', mesaiEffect: 'aurora',
   appt: true, campaign: true, wrongAfter: 2, dataMin: 1000,
-  sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, camp: true, data: true, break: true, shift: true, call: true, wait: true, pick: true, drop: true, clear: true, move: true, results: {} },
+  sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, camp: true, data: true, shift_on: true, break: true, break_end: true, shift: true, call: true, wait: true, pick: true, drop: true, clear: true, move: true, results: {} },
 };
 let _opsNotifPrimed = false;
 let _opsWrongSig = '';
@@ -75,11 +75,11 @@ function opsSay(key, fallback) {
 const OPS_TONE_IDS = ['chime', 'bell', 'soft', 'glass', 'pop', 'alert', 'win', 'spark', 'fall', 'lose'];
 const OPS_TONE_LABELS = { chime: 'Çan', bell: 'Zil', soft: 'Yumuşak', glass: 'Cam', pop: 'Kısa', alert: 'Uyarı', win: 'Kazanç', spark: 'Parıltı', fall: 'Düşüş', lose: 'Kayıp' };
 const OPS_TONE_DEFAULT = {
-  due: 'chime', soon: 'soft', hour: 'bell', slot: 'glass', wrong: 'pop', camp: 'chime', data: 'alert', break: 'soft', shift: 'bell', call: 'bell', wait: 'soft',
+  due: 'chime', soon: 'soft', hour: 'bell', slot: 'glass', wrong: 'pop', camp: 'chime', data: 'alert', shift_on: 'bell', break: 'soft', break_end: 'soft', shift: 'bell', call: 'bell', wait: 'soft',
   pick: 'alert', drop: 'soft', clear: 'lose', move: 'bell',
 };
 const OPS_MOOD_DEFAULT = {
-  due: 'neutral', soon: 'neutral', hour: 'neutral', slot: 'good', wrong: 'bad', camp: 'neutral', data: 'bad', break: 'neutral', shift: 'neutral', call: 'neutral', wait: 'neutral',
+  due: 'neutral', soon: 'neutral', hour: 'neutral', slot: 'good', wrong: 'bad', camp: 'neutral', data: 'bad', shift_on: 'neutral', break: 'neutral', break_end: 'neutral', shift: 'neutral', call: 'neutral', wait: 'neutral',
   pick: 'good', drop: 'neutral', clear: 'bad', move: 'neutral',
 };
 const OPS_TONE_NOTES = {
@@ -123,7 +123,7 @@ function opsTint(hex) {
   return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
 }
 
-const OPS_AGENT_SOUNDS = ['due', 'soon', 'hour', 'wrong', 'camp', 'break', 'shift', 'clear', 'move'];
+const OPS_AGENT_SOUNDS = ['due', 'soon', 'hour', 'wrong', 'camp', 'shift_on', 'break', 'break_end', 'shift', 'clear', 'move'];
 
 function opsIsAgentNotif() {
   return String(currentUser?.role || '') === 'agent';
@@ -368,6 +368,7 @@ function opsReadAlerts(raw) {
     effect,
     campRoles: Array.isArray(src.camp_roles) ? src.camp_roles.map(String) : roles.slice(),
     campEffect: ['aurora', 'gradient', 'blink', 'solid'].includes(src.camp_effect) ? src.camp_effect : effect,
+    mesaiEffect: ['aurora', 'gradient', 'blink', 'solid'].includes(src.mesai_effect) ? src.mesai_effect : 'aurora',
     appt: src.notify_appt !== false,
     campaign: src.notify_campaign !== false,
     wrongAfter: opsClamp(src.wrong_after_min, 2, 1, 30),
@@ -651,16 +652,34 @@ async function opsOpenCampPanel() {
 function opsPickEffect(effect, which) {
   const card = document.getElementById('notif-settings-card');
   const next = ['aurora', 'gradient', 'blink', 'solid'].includes(effect) ? effect : 'aurora';
-  const camp = which === 'camp';
+  const kind = which === 'camp' ? 'camp' : which === 'mesai' ? 'mesai' : 'warn';
   if (card) {
-    if (camp) card.dataset.campEffect = next;
+    if (kind === 'camp') card.dataset.campEffect = next;
+    else if (kind === 'mesai') card.dataset.mesaiEffect = next;
     else card.dataset.effect = next;
   }
-  document.querySelectorAll(`${camp ? '#ops-camp-effect-picks' : '#ops-effect-picks'} button`).forEach((btn) => {
+  const root = kind === 'camp' ? '#ops-camp-effect-picks' : kind === 'mesai' ? '#ops-mesai-effect-picks' : '#ops-effect-picks';
+  document.querySelectorAll(`${root} button`).forEach((btn) => {
     btn.classList.toggle('is-on', btn.dataset.effect === next);
   });
-  const preview = document.getElementById(camp ? 'ops-camp-preview' : 'ops-warn-preview');
-  if (preview) preview.className = `ops-camp-warn${camp ? ' is-new' : ''} is-${next} ops-warn-preview ops-firm-only`;
+  const preview = document.getElementById(kind === 'camp' ? 'ops-camp-preview' : kind === 'mesai' ? 'ops-mesai-preview' : 'ops-warn-preview');
+  if (!preview) return;
+  const flag = kind === 'camp' ? ' is-new' : kind === 'mesai' ? ' is-mesai' : '';
+  preview.className = `ops-camp-warn${flag} is-${next} ops-warn-preview ops-firm-only`;
+}
+
+function opsNotifSub(id) {
+  const card = document.getElementById('notif-settings-card');
+  if (!card) return;
+  const agent = card.classList.contains('is-agent');
+  const buttons = [...card.querySelectorAll('.ops-subnav button')];
+  const allowed = (btn) => !(agent && btn.classList.contains('ops-firm-only'));
+  const picked = buttons.some((btn) => btn.dataset.sub === id && allowed(btn)) ? id : 'wv';
+  card.dataset.sub = picked;
+  card.querySelectorAll('.ops-subpane').forEach((pane) => {
+    pane.hidden = pane.dataset.sub !== picked;
+  });
+  buttons.forEach((btn) => btn.classList.toggle('is-on', btn.dataset.sub === picked));
 }
 
 function opsFillNotifSettings() {
@@ -708,8 +727,10 @@ function opsFillNotifSettings() {
   });
   opsPickEffect(_opsAlerts.effect || 'aurora');
   opsPickEffect(_opsAlerts.campEffect || _opsAlerts.effect || 'aurora', 'camp');
+  opsPickEffect(_opsAlerts.mesaiEffect || 'aurora', 'mesai');
   opsSyncRoleChipVisibility();
   opsPaintAgentNotif();
+  opsNotifSub(card.dataset.sub || 'wv');
   opsFillResultRows();
 }
 
@@ -817,21 +838,34 @@ function opsCollectSounds(card) {
 
 let _opsSampleTimer = null;
 let _opsSampleWrongTimer = null;
-function opsMountStripSample(sentence, effect, isNew) {
+function opsMountStripSample(sentence, effect, mode) {
   document.getElementById('ops-sample-host')?.remove();
   if (_opsSampleTimer) clearTimeout(_opsSampleTimer);
   const host = document.createElement('div');
   host.id = 'ops-sample-host';
   host.className = 'ops-sample-host';
+  const extra = mode === 'mesai' ? ' is-mesai' : mode ? ' is-new' : '';
   const bar = document.createElement('div');
-  bar.className = `ops-camp-warn${isNew ? ' is-new' : ''} is-${effect || 'aurora'}`;
+  bar.className = `ops-camp-warn${extra} is-${effect || 'aurora'}`;
   const text = document.createElement('span');
   text.className = 'ops-camp-warn-text';
   text.textContent = sentence;
   bar.appendChild(text);
   host.appendChild(bar);
   document.body.appendChild(host);
-  _opsSampleTimer = setTimeout(() => host.remove(), 4500);
+  _opsSampleTimer = setTimeout(() => host.remove(), mode === 'mesai' ? 8000 : 4500);
+}
+function opsMesaiEffect() {
+  const picked = document.getElementById('notif-settings-card')?.dataset.mesaiEffect || _opsAlerts.mesaiEffect || 'aurora';
+  return ['aurora', 'gradient', 'blink', 'solid'].includes(picked) ? picked : 'aurora';
+}
+function opsMountMesaiStrip(sentence) {
+  opsMountStripSample(sentence, opsMesaiEffect(), 'mesai');
+}
+let _opsMesaiFlash = null;
+function opsFlashMesaiChip(text) {
+  _opsMesaiFlash = { text: String(text || ''), until: Date.now() + 8000 };
+  opsPaintMesaiBar();
 }
 function opsMountWrongSample(sentence) {
   const effect = document.getElementById('notif-settings-card')?.dataset.effect || _opsAlerts.effect || 'aurora';
@@ -918,16 +952,19 @@ function opsShowSample(kind) {
     opsRememberNotice(opsSay('ops.data.title', 'Veri azaldı'), text, opsPickedColor('data', opsSoundEntry('data').color), 'camp');
     return;
   }
-  if (kind === 'break') {
-    const text = '11:30–11:45';
-    toast(`${opsSay('ops.break.title', 'Mola')}. ${text}`, 'ok', 4000);
-    opsRememberNotice(opsSay('ops.break.title', 'Mola'), text, opsPickedColor('break', opsSoundEntry('break').color), 'live');
-    return;
-  }
-  if (kind === 'shift') {
-    const text = opsSay('ops.shift.end', 'Mesai bitti');
-    toast(text, 'warn', 4000);
-    opsRememberNotice(text, '18:00', opsPickedColor('shift', opsSoundEntry('shift').color), 'live');
+  const mesaiSample = {
+    shift_on: ['ops.mesai.started', 'Mesai başladı', '10:30'],
+    break: ['ops.mesai.breakOn', 'Mola başladı', '11:30–11:45'],
+    break_end: ['ops.mesai.breakOff', 'Mola bitti', '11:45'],
+    shift: ['ops.mesai.ended', 'Mesai bitti', '18:30'],
+  };
+  if (mesaiSample[kind]) {
+    const [key, fallback, body] = mesaiSample[kind];
+    const title = opsSay(key, fallback);
+    opsMountMesaiStrip(`${title}. ${body}`);
+    opsFlashMesaiChip(title);
+    toast(`${title}. ${body}`, kind === 'shift' ? 'warn' : 'ok', 5000);
+    opsRememberNotice(title, body, opsPickedColor(kind, opsSoundEntry(kind).color), 'live');
     return;
   }
   if (kind === 'wrong') {
@@ -979,6 +1016,7 @@ async function opsSaveNotifSettings() {
     wrong_after_min: opsClamp(document.getElementById('ops-set-wrong-after')?.value, 2, 1, 30),
     camp_roles: [...card.querySelectorAll('[data-camp-role]:checked')].map((el) => el.dataset.campRole),
     camp_effect: card.dataset.campEffect || card.dataset.effect || 'aurora',
+    mesai_effect: card.dataset.mesaiEffect || 'aurora',
     data_min: opsClamp(document.getElementById('ops-set-data-min')?.value, 1000, 1, 100000),
     sounds: opsCollectSounds(card),
   };
@@ -1262,7 +1300,7 @@ function opsNoticeCat(soundKind, titleKind) {
   if (kind === 'pick' || kind === 'drop' || kind === 'clear' || kind === 'move') return 'cal';
   if (kind === 'slot' || title === 'book') return 'appt';
   if (kind === 'wrong' || kind === 'camp' || kind === 'data') return 'camp';
-  if (kind === 'break' || kind === 'shift') return 'live';
+  if (kind === 'break' || kind === 'break_end' || kind === 'shift' || kind === 'shift_on') return 'live';
   if (kind === 'due' || kind === 'soon' || kind === 'hour') return 'wv';
   return 'live';
 }
@@ -1684,9 +1722,14 @@ function opsMesaiPhase(win) {
   const range = `${win.start}–${win.end}`;
   if (start == null || end == null) return { range, short: range, detail: range, pct: 0, due: false };
   const chip = (key, fallback, left) => `${opsSay(key, fallback)} ${opsLeftText(left)}`;
+  const moment = (key, fallback, pct) => {
+    const text = opsSay(key, fallback);
+    return { range, short: text, detail: text, pct, due: true, hold: true };
+  };
   if (now >= end) {
+    if (now - end <= 1) return moment('ops.mesai.ended', 'Mesai bitti', 100);
     const over = opsSay('ops.mesai.chipOver', 'Bitti');
-    return { range, short: over, detail: opsSay('ops.mesai.over', 'Mesai bitti'), pct: 100, due: now - end <= 1 };
+    return { range, short: over, detail: opsSay('ops.mesai.over', 'Mesai bitti'), pct: 100, due: false };
   }
   if (now < start) {
     const left = start - now;
@@ -1707,13 +1750,23 @@ function opsMesaiPhase(win) {
   if (live) {
     const a = opsHmMins(live.start);
     const z = opsHmMins(live.end);
+    const pct = Math.max(0, Math.min(100, ((now - a) / Math.max(1, z - a)) * 100));
+    if (now - a <= 1) return moment('ops.mesai.breakOn', 'Mola başladı', pct);
     return {
       range,
       short: chip('ops.mesai.chipIn', 'Molada', z - now),
       detail: `${opsSay('ops.mesai.inBreak', 'molada')} ${opsLeftText(z - now)}`,
-      pct: Math.max(0, Math.min(100, ((now - a) / Math.max(1, z - a)) * 100)),
-      due: now - a <= 1,
+      pct,
+      due: false,
     };
+  }
+  const ended = breaks.find((item) => {
+    const z = opsHmMins(item.end);
+    return z != null && now >= z && now - z <= 1;
+  });
+  if (ended) return moment('ops.mesai.breakOff', 'Mola bitti', 8);
+  if (now - start <= 1) {
+    return moment('ops.mesai.started', 'Mesai başladı', 12);
   }
   const next = breaks.find((item) => {
     const a = opsHmMins(item.start);
@@ -1747,11 +1800,14 @@ function opsPaintMesaiBar() {
   if (!label || !btn) return;
   const win = opsMesaiWindow();
   const phase = opsMesaiPhase(win);
+  const flashed = _opsMesaiFlash && _opsMesaiFlash.until > Date.now();
   const showRange = Math.floor(Date.now() / 5000) % 2 === 0;
-  const text = phase.short === phase.range ? phase.range : (showRange ? phase.range : phase.short);
+  const text = flashed
+    ? _opsMesaiFlash.text
+    : (phase.hold || phase.short === phase.range ? phase.short : (showRange ? phase.range : phase.short));
   label.textContent = text;
   btn.title = `${phase.range} · ${phase.detail}`;
-  btn.classList.toggle('is-due', !!phase.due);
+  btn.classList.toggle('is-due', flashed || !!phase.due);
   const fill = document.getElementById('tb-mesai-fill');
   if (fill) fill.style.width = `${Math.round(phase.pct)}%`;
   const pop = document.getElementById('tb-mesai-pop');
@@ -1949,40 +2005,38 @@ async function opsLoadMesai() {
 function opsTickShift() {
   if (window.__opsHoldShift || !currentUser) return;
   const win = opsMesaiWindow();
-  if (win.off || !win.end) return;
+  if (win.off || !win.start || !win.end) return;
   const now = win.clock.mins;
   const day = win.clock.date;
-  if (opsSoundOn('break')) {
-    (win.breaks || []).forEach((item) => {
-      const start = opsHmMins(item.start);
-      if (start == null) return;
-      const into = now - start;
-      const key = `brk:${day}:${item.start}`;
-      if (into < 0 || into > 2 || _opsShiftTold.has(key)) return;
-      _opsShiftTold.add(key);
-      const text = `${item.start}–${item.end}`;
-      toast(`${opsSay('ops.break.title', 'Mola')}. ${text}`, 'ok', 5000);
-      opsCue('break');
-      opsRememberNotice(opsSay('ops.break.title', 'Mola'), text, opsSoundEntry('break').color, 'live');
-    });
+  const fire = (sound, key, title, body) => {
+    if (_opsShiftTold.has(key)) return;
+    _opsShiftTold.add(key);
+    if (!opsSoundOn(sound)) return;
+    const sentence = body ? `${title}. ${body}` : title;
+    toast(sentence, sound === 'shift' ? 'warn' : 'ok', 5000);
+    opsCue(sound);
+    opsRememberNotice(title, body || title, opsSoundEntry(sound).color, 'live');
+    opsMountMesaiStrip(sentence);
+    opsFlashMesaiChip(title);
+  };
+  const start = opsHmMins(win.start);
+  if (start != null && now - start >= 0 && now - start <= 2) {
+    fire('shift_on', `on:${day}`, opsSay('ops.mesai.started', 'Mesai başladı'), win.start);
   }
-  if (!opsSoundOn('shift')) return;
+  (win.breaks || []).forEach((item) => {
+    const a = opsHmMins(item.start);
+    const z = opsHmMins(item.end);
+    const span = item.start && item.end ? `${item.start}–${item.end}` : '';
+    if (a != null && now - a >= 0 && now - a <= 2) {
+      fire('break', `brk:${day}:${item.start}`, opsSay('ops.mesai.breakOn', 'Mola başladı'), span);
+    }
+    if (z != null && now - z >= 0 && now - z <= 2) {
+      fire('break_end', `brkEnd:${day}:${item.end}`, opsSay('ops.mesai.breakOff', 'Mola bitti'), span);
+    }
+  });
   const end = opsHmMins(win.end);
-  if (end == null) return;
-  const left = end - now;
-  if (left > 0 && left <= 15 && !_opsShiftTold.has(`soon:${day}`)) {
-    _opsShiftTold.add(`soon:${day}`);
-    const text = `${opsSay('ops.shift.soon', 'Mesai bitiyor')}. ${win.end}`;
-    toast(text, 'warn', 5000);
-    opsCue('shift');
-    opsRememberNotice(opsSay('ops.shift.soon', 'Mesai bitiyor'), text, opsSoundEntry('shift').color, 'live');
-  }
-  if (left <= 0 && left > -20 && !_opsShiftTold.has(`end:${day}`)) {
-    _opsShiftTold.add(`end:${day}`);
-    const text = `${opsSay('ops.shift.end', 'Mesai bitti')}. ${win.end}`;
-    toast(text, 'warn', 5000);
-    opsCue('shift');
-    opsRememberNotice(opsSay('ops.shift.end', 'Mesai bitti'), text, opsSoundEntry('shift').color, 'live');
+  if (end != null && now - end >= 0 && now - end <= 2) {
+    fire('shift', `end:${day}`, opsSay('ops.mesai.ended', 'Mesai bitti'), win.end);
   }
 }
 
