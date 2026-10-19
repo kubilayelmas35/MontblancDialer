@@ -1576,6 +1576,7 @@ const OPS_GUN_LABEL = { pzt: 'Pazartesi', sal: 'Salı', car: 'Çarşamba', per: 
 const OPS_GUN_ORDER = ['pzt', 'sal', 'car', 'per', 'cum', 'cmt', 'paz'];
 let _opsMesaiPlan = null;
 let _opsMesaiPaintTimer = 0;
+let _opsMesaiPopGun = '';
 let _opsMesaiTz = 'Europe/Berlin';
 let _opsMesaiAt = 0;
 const _opsShiftTold = new Set();
@@ -1757,72 +1758,134 @@ function opsPaintMesaiBar() {
   if (pop && !pop.hidden) opsFillMesaiPop(pop);
 }
 
-function opsMesaiTimeline(win) {
-  const row = document.createElement('div');
-  row.className = 'tb-mesai-line';
-  const name = document.createElement('span');
-  name.textContent = win.label || '';
+function opsMesaiDay(gun) {
+  const row = _opsMesaiPlan?.[gun] || opsMesaiFallbackDay(gun);
+  const shorts = opsDe()
+    ? { pzt: 'Mo', sal: 'Di', car: 'Mi', per: 'Do', cum: 'Fr', cmt: 'Sa', paz: 'So' }
+    : { pzt: 'Pzt', sal: 'Sal', car: 'Çar', per: 'Per', cum: 'Cum', cmt: 'Cmt', paz: 'Paz' };
+  return {
+    gun,
+    short: shorts[gun] || gun,
+    label: OPS_GUN_LABEL[gun] || gun,
+    off: !row || !!row.off,
+    start: row?.start || '',
+    end: row?.end || '',
+    breaks: Array.isArray(row?.breaks) ? row.breaks : [],
+  };
+}
+
+function opsMesaiTrack(day, clock, isToday) {
   const track = document.createElement('div');
   track.className = 'tb-mesai-track';
-  if (!win.off) {
-    const start = opsHmMins(win.start);
-    const end = opsHmMins(win.end);
-    const span = Math.max(1, (end || 0) - (start || 0));
-    (win.breaks || []).forEach((item) => {
-      const a = opsHmMins(item.start);
-      const z = opsHmMins(item.end);
-      if (a == null || z == null || start == null || z <= a) return;
-      const gap = document.createElement('i');
-      gap.className = 'tb-mesai-gap';
-      gap.style.left = `${Math.max(0, ((a - start) / span) * 100)}%`;
-      gap.style.width = `${Math.max(0, ((z - a) / span) * 100)}%`;
-      track.appendChild(gap);
-    });
-    const now = win.clock?.mins;
-    if (start != null && end != null && now >= start && now <= end) {
-      const dot = document.createElement('b');
-      dot.className = 'tb-mesai-now';
-      dot.style.left = `${((now - start) / span) * 100}%`;
-      track.appendChild(dot);
+  const start = opsHmMins(day.start);
+  const end = opsHmMins(day.end);
+  if (day.off || start == null || end == null || end <= start) return track;
+  const span = end - start;
+  const marks = (day.breaks || []).map((item) => ({
+    a: opsHmMins(item.start),
+    z: opsHmMins(item.end),
+  })).filter((item) => item.a != null && item.z != null && item.z > item.a && item.z > start && item.a < end);
+  let cursor = start;
+  marks.forEach((item) => {
+    const a = Math.max(item.a, start);
+    const z = Math.min(item.z, end);
+    if (a > cursor) {
+      const work = document.createElement('i');
+      work.className = 'tb-mesai-work';
+      work.style.left = `${((cursor - start) / span) * 100}%`;
+      work.style.width = `${((a - cursor) / span) * 100}%`;
+      track.appendChild(work);
     }
+    const gap = document.createElement('i');
+    gap.className = 'tb-mesai-gap';
+    gap.style.left = `${((a - start) / span) * 100}%`;
+    gap.style.width = `${Math.max(1.5, ((z - a) / span) * 100)}%`;
+    track.appendChild(gap);
+    cursor = Math.max(cursor, z);
+  });
+  if (end > cursor) {
+    const work = document.createElement('i');
+    work.className = 'tb-mesai-work';
+    work.style.left = `${((cursor - start) / span) * 100}%`;
+    work.style.width = `${((end - cursor) / span) * 100}%`;
+    track.appendChild(work);
   }
-  const time = document.createElement('span');
-  time.textContent = win.off ? '—' : `${win.start}–${win.end}`;
-  row.append(name, track, time);
-  return row;
+  if (isToday && clock && clock.mins >= start && clock.mins <= end) {
+    const dot = document.createElement('b');
+    dot.className = 'tb-mesai-now';
+    dot.style.left = `${((clock.mins - start) / span) * 100}%`;
+    track.appendChild(dot);
+  }
+  return track;
+}
+
+function opsMesaiPickDay(gun, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  _opsMesaiPopGun = gun;
+  const pop = document.getElementById('tb-mesai-pop');
+  if (pop) opsFillMesaiPop(pop);
 }
 
 function opsFillMesaiPop(pop) {
-  const win = opsMesaiWindow();
+  const today = opsMesaiWindow();
+  const gun = OPS_GUN_ORDER.includes(_opsMesaiPopGun) ? _opsMesaiPopGun : today.clock.gun;
+  const day = opsMesaiDay(gun);
+  const isToday = gun === today.clock.gun;
   pop.replaceChildren();
-  pop.appendChild(opsMesaiTimeline(win));
+  const days = document.createElement('div');
+  days.className = 'tb-mesai-days';
+  OPS_GUN_ORDER.forEach((key) => {
+    const item = opsMesaiDay(key);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tb-mesai-day';
+    if (!item.off) btn.classList.add('is-on');
+    if (key === today.clock.gun) btn.classList.add('is-today');
+    if (key === gun) btn.classList.add('is-pick');
+    btn.textContent = item.short;
+    btn.onclick = (ev) => opsMesaiPickDay(key, ev);
+    days.appendChild(btn);
+  });
+  pop.appendChild(days);
+  const head = document.createElement('div');
+  head.className = 'tb-mesai-head';
+  const name = document.createElement('b');
+  name.textContent = day.label;
+  const time = document.createElement('span');
+  time.textContent = day.off ? opsSay('ops.mesai.none', 'Mesai yok') : `${day.start}–${day.end}`;
+  head.append(name, time);
+  pop.appendChild(head);
+  pop.appendChild(opsMesaiTrack(day, today.clock, isToday));
   const sub = document.createElement('div');
   sub.className = 'tb-mesai-sub';
   const zone = _opsMesaiTz === 'Europe/Istanbul' ? opsSay('mesai.tz.tr', 'Türkiye') : opsSay('mesai.tz.berlin', 'Berlin');
-  const phase = opsMesaiPhase(win);
-  sub.textContent = `${phase.detail} · ${zone}`;
-  pop.appendChild(sub);
+  if (isToday) sub.textContent = `${opsMesaiPhase(today).detail} · ${zone}`;
+  else if (day.off) sub.textContent = opsSay('ops.mesai.none', 'Mesai yok');
+  else sub.textContent = day.breaks.length ? '' : opsSay('ops.mesai.noBreak', 'Mola yok');
+  if (sub.textContent) pop.appendChild(sub);
   const kicker = document.createElement('div');
   kicker.className = 'tb-mesai-kicker';
   kicker.textContent = opsSay('ops.mesai.breaks', 'Molalar');
   pop.appendChild(kicker);
-  const breaks = win.off ? [] : (win.breaks || []);
+  const breaks = day.off ? [] : day.breaks;
   if (!breaks.length) {
     const empty = document.createElement('div');
-    empty.className = 'tb-mesai-row';
+    empty.className = 'tb-mesai-empty';
     empty.textContent = opsSay('ops.mesai.noBreak', 'Mola yok');
     pop.appendChild(empty);
     return;
   }
   breaks.forEach((item, index) => {
-    const line = document.createElement('div');
-    line.className = 'tb-mesai-row';
+    const card = document.createElement('div');
+    card.className = 'tb-mesai-card';
+    const badge = document.createElement('i');
+    badge.textContent = String(index + 1);
     const label = document.createElement('span');
-    label.textContent = `${index + 1}. ${opsSay('ops.break.title', 'Mola')}`;
+    label.textContent = opsSay('ops.break.title', 'Mola');
     const when = document.createElement('b');
-    when.textContent = `${item.start} – ${item.end}`;
-    line.append(label, when);
-    pop.appendChild(line);
+    when.textContent = `${item.start}–${item.end}`;
+    card.append(badge, label, when);
+    pop.appendChild(card);
   });
 }
 
@@ -1831,7 +1894,7 @@ function opsPlaceMesaiPop(pop) {
   if (!btn || !pop) return;
   if (pop.parentElement !== document.body) document.body.appendChild(pop);
   const rect = btn.getBoundingClientRect();
-  const width = 340;
+  const width = 380;
   let left = rect.left;
   if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
   if (left < 8) left = 8;
@@ -1845,6 +1908,7 @@ function opsToggleMesaiInfo(ev) {
   if (!pop) return;
   if (!pop.hidden) {
     pop.hidden = true;
+    _opsMesaiPopGun = '';
     return;
   }
   opsFillMesaiPop(pop);
