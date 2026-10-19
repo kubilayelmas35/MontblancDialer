@@ -1436,7 +1436,27 @@ function mesaiPlanRender() {
 ${breakHtml || `<div style="font-size:12px;color:var(--text-3);margin-bottom:8px;">${t('ops.mesai.noBreak')}</div>`}
 <button type="button" class="btn btn-ghost btn-sm" onclick="mesaiPlanAddBreak()">+ ${t('mesai.plan.add')}</button>
 </div>
-<div style="margin-top:14px;"><button type="button" class="btn btn-primary btn-sm" onclick="saveMesaiPlan()">${t('mesai.plan.save')}</button></div>`;
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="mesaiPlanCopyMonday()">${t('mesai.plan.copy')}</button>
+<button type="button" class="btn btn-primary btn-sm" onclick="saveMesaiPlan()">${t('mesai.plan.save')}</button>
+</div>`;
+}
+
+function mesaiPlanCopyMonday() {
+  mesaiPlanFlush();
+  const monday = _mesaiPlanDraft?.pzt;
+  if (!monday) return;
+  MESAI_GUN_ORDER.forEach((gun) => {
+    if (gun === 'pzt') return;
+    _mesaiPlanDraft[gun] = {
+      off: !!monday.off,
+      start: monday.start || '08:00',
+      end: monday.end || '20:00',
+      breaks: (monday.breaks || []).map((item) => ({ start: item.start || '', end: item.end || '' })),
+    };
+  });
+  mesaiPlanRender();
+  toast(t('mesai.plan.copied'), 'ok');
 }
 
 async function loadMesaiPlanCard() {

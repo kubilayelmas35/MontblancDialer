@@ -1691,13 +1691,27 @@ function opsPaintMesaiBar() {
   if (btn) btn.title = text;
 }
 
+function opsPlaceMesaiPop(pop) {
+  const btn = document.getElementById('tb-mesai-btn');
+  if (!btn || !pop) return;
+  if (pop.parentElement !== document.body) document.body.appendChild(pop);
+  const rect = btn.getBoundingClientRect();
+  const width = 280;
+  let left = rect.left;
+  if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
+  if (left < 8) left = 8;
+  pop.style.top = `${Math.round(rect.bottom + 8)}px`;
+  pop.style.left = `${Math.round(left)}px`;
+}
+
 function opsToggleMesaiInfo(ev) {
   if (ev && ev.stopPropagation) ev.stopPropagation();
   const pop = document.getElementById('tb-mesai-pop');
   if (!pop) return;
-  const open = pop.hidden;
-  pop.hidden = !open;
-  if (!open) return;
+  if (!pop.hidden) {
+    pop.hidden = true;
+    return;
+  }
   const win = opsMesaiWindow();
   pop.replaceChildren();
   const title = document.createElement('div');
@@ -1722,18 +1736,20 @@ function opsToggleMesaiInfo(ev) {
     empty.className = 'tb-mesai-row';
     empty.textContent = opsSay('ops.mesai.noBreak', 'Mola yok');
     pop.appendChild(empty);
-    return;
+  } else {
+    breaks.forEach((item, index) => {
+      const row = document.createElement('div');
+      row.className = 'tb-mesai-row';
+      const name = document.createElement('span');
+      name.textContent = `${index + 1}. ${opsSay('ops.break.title', 'Mola')}`;
+      const time = document.createElement('b');
+      time.textContent = `${item.start} – ${item.end}`;
+      row.append(name, time);
+      pop.appendChild(row);
+    });
   }
-  breaks.forEach((item, index) => {
-    const row = document.createElement('div');
-    row.className = 'tb-mesai-row';
-    const name = document.createElement('span');
-    name.textContent = `${index + 1}. ${opsSay('ops.break.title', 'Mola')}`;
-    const time = document.createElement('b');
-    time.textContent = `${item.start} – ${item.end}`;
-    row.append(name, time);
-    pop.appendChild(row);
-  });
+  pop.hidden = false;
+  opsPlaceMesaiPop(pop);
 }
 
 function opsApplyMesaiPlan(raw) {

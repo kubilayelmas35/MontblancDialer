@@ -423,10 +423,8 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 }
 .tb-mesai span { white-space: nowrap; line-height: 1; }
 .tb-mesai-pop {
-  position: absolute;
-  top: 40px;
-  left: 0;
-  z-index: 80;
+  position: fixed;
+  z-index: 400;
   width: 280px;
   padding: 14px 16px;
   border: 1px solid var(--border);
