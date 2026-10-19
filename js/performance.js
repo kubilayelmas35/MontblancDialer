@@ -315,6 +315,9 @@ function perfEnsureChart(key, canvasId, factory) {
   }
   const ctx = canvas.getContext('2d');
   _perfCharts[key] = factory(ctx);
+  requestAnimationFrame(() => {
+    try { _perfCharts[key]?.resize(); } catch (e) {}
+  });
   return _perfCharts[key];
 }
 
@@ -443,7 +446,7 @@ function perfRenderThisMonth() {
     return !isNaN(d.getTime()) && d.getFullYear() === y && d.getMonth() === m;
   });
   if (!tm.length) {
-    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(9, 'ui.no_termin_month') : `<tr><td colspan="9" class="mb-empty-hint">${t('ui.no_termin_month')}</td></tr>`;
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(8, 'ui.no_termin_month') : `<tr><td colspan="8" class="mb-empty-hint">${t('ui.no_termin_month')}</td></tr>`;
     return;
   }
     const agg = perfAggregateAppts(tm);

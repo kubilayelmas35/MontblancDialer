@@ -12,16 +12,16 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=9.89">
-<link rel="stylesheet" href="css/styles-dialer.css?v=9.89">
-<link rel="stylesheet" href="css/styles-mascot.css?v=9.89">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=9.89">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=9.89">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=9.89">
-<link rel="stylesheet" href="css/styles-pages.css?v=9.89">
-<link rel="stylesheet" href="css/styles-aurora.css?v=9.89">
-<link rel="stylesheet" href="css/styles-chat.css?v=9.89">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=9.89">
+<link rel="stylesheet" href="css/styles.css?v=9.90">
+<link rel="stylesheet" href="css/styles-dialer.css?v=9.90">
+<link rel="stylesheet" href="css/styles-mascot.css?v=9.90">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=9.90">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=9.90">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=9.90">
+<link rel="stylesheet" href="css/styles-pages.css?v=9.90">
+<link rel="stylesheet" href="css/styles-aurora.css?v=9.90">
+<link rel="stylesheet" href="css/styles-chat.css?v=9.90">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=9.90">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -48,7 +48,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v9.89 — 2026</div>
+<div class="login-version">v9.90 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -409,7 +409,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v9.89</div>
+<div class="sb-ver">MontBlanc v9.90</div>
 </div>
 </nav>
 <main id="main">
@@ -1062,38 +1062,48 @@
 </div>
 <div class="page" id="page-performance">
 <style>
-#page-performance .perf-hdr{background:linear-gradient(135deg,var(--bg-3) 0%,var(--bg-2) 100%);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:14px;}
-#page-performance .perf-sum{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px;}
-@media(max-width:900px){#page-performance .perf-sum{grid-template-columns:repeat(2,1fr);}}
-#page-performance .perf-sum-box{background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;}
-#page-performance .perf-sum-val{font-size:17px;font-weight:800;color:var(--accent);}
-#page-performance .perf-sum-lbl{font-size:10px;color:var(--text-3);font-weight:600;}
-#page-performance .perf-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:10px;}
-@media(max-width:1100px){#page-performance .perf-cards{grid-template-columns:repeat(3,1fr);}}
-@media(max-width:600px){#page-performance .perf-cards{grid-template-columns:repeat(2,1fr);}}
-#page-performance .perf-card{border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;background:var(--bg-2);}
+#page-performance .perf-hdr{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow);}
+#page-performance .perf-filters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:12px;}
+#page-performance .perf-filters .form-input{width:100%;max-width:none;}
+#page-performance .perf-filters .form-label{font-size:11px;margin-bottom:4px;}
+@media(max-width:1100px){#page-performance .perf-filters{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:560px){#page-performance .perf-filters{grid-template-columns:1fr;}}
+#page-performance .perf-ranges{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+#page-performance .perf-today{margin-left:auto;font-size:12px;color:var(--text-3);display:inline-flex;align-items:center;gap:6px;}
+#page-performance .perf-sum{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px;}
+@media(max-width:900px){#page-performance .perf-sum{grid-template-columns:repeat(2,minmax(0,1fr));}}
+#page-performance .perf-sum-box{background:var(--bg-3);border:1px solid var(--border);border-radius:10px;padding:8px 10px;text-align:left;min-width:0;}
+#page-performance .perf-sum-val{font-size:16px;font-weight:800;color:var(--text);line-height:1.2;}
+#page-performance .perf-sum-lbl{font-size:10px;color:var(--text-3);font-weight:650;margin-top:2px;}
+#page-performance .perf-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:10px;}
+@media(max-width:1100px){#page-performance .perf-cards{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media(max-width:600px){#page-performance .perf-cards{grid-template-columns:repeat(2,minmax(0,1fr));}}
+#page-performance .perf-card{border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;text-align:center;background:var(--bg-2);min-width:0;box-shadow:var(--shadow);}
 #page-performance .perf-card-total{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;}
 #page-performance .perf-card-total .perf-ct{color:rgba(255,255,255,.85);}
-#page-performance .perf-ct{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-3);margin-bottom:4px;}
-#page-performance .perf-cv{font-size:22px;font-weight:900;}
-#page-performance .perf-call-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
-@media(max-width:900px){#page-performance .perf-call-row{grid-template-columns:repeat(2,1fr);}}
+#page-performance .perf-ct{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--text-3);margin-bottom:4px;}
+#page-performance .perf-cv{font-size:22px;font-weight:900;line-height:1.1;}
+#page-performance .perf-call-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px;}
+@media(max-width:900px){#page-performance .perf-call-row{grid-template-columns:repeat(2,minmax(0,1fr));}}
 #page-performance .perf-charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px;min-width:0;width:100%;}
 @media(max-width:1200px){#page-performance .perf-charts{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:700px){#page-performance .perf-charts{grid-template-columns:minmax(0,1fr);}}
-#page-performance .perf-chart-box{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg-2);min-width:0;max-width:100%;overflow:hidden;}
+#page-performance .perf-chart-box{border:1px solid var(--border);border-radius:var(--radius);padding:12px;background:var(--bg-2);min-width:0;max-width:100%;overflow:hidden;box-shadow:var(--shadow);}
 #page-performance .perf-chart-t{height:220px;position:relative;min-width:0;width:100%;}
-#page-performance .perf-chart-t canvas{max-width:100%;}
+#page-performance .perf-chart-t canvas{position:absolute;inset:0;width:100% !important;height:100% !important;max-width:none;}
 #page-performance .perf-chart-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;margin-bottom:8px;}
 #page-performance .perf-chart-tools{display:flex;gap:4px;flex-wrap:wrap;min-width:0;}
 #page-performance .perf-chart-wide{grid-column:1/-1;}
 #page-performance .perf-chart-t-lg{height:260px;}
-#page-performance .perf-tables{display:grid;grid-template-columns:1.2fr 0.8fr;gap:12px;}
+#page-performance .perf-tables{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,0.75fr);gap:12px;align-items:start;}
+#page-performance .perf-table-stack{display:flex;flex-direction:column;gap:12px;min-width:0;}
 @media(max-width:1100px){#page-performance .perf-tables{grid-template-columns:1fr;}}
+#page-performance .perf-section{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;}
+#page-performance .perf-section h3{margin:0;font-size:13px;font-weight:800;}
 #page-performance .perf-loading{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9998;display:none;align-items:center;justify-content:center;}
 #page-performance .perf-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:none;align-items:center;justify-content:center;padding:16px;}
-#page-performance .perf-modal-inner{background:var(--bg-2);border-radius:14px;max-width:920px;width:100%;max-height:88vh;overflow:hidden;border:1px solid var(--border);display:flex;flex-direction:column;}
-#page-performance .range-btn{padding:6px 10px;font-size:11px;border-radius:6px;border:1px solid var(--border);background:var(--bg-2);cursor:pointer;font-weight:600;}
+#page-performance .perf-modal-inner{background:var(--bg-2);border-radius:var(--radius);max-width:920px;width:100%;max-height:88vh;overflow:hidden;border:1px solid var(--border);display:flex;flex-direction:column;box-shadow:var(--shadow-md);}
+#page-performance .range-btn{padding:6px 12px;font-size:11px;border-radius:999px;border:1px solid var(--border);background:var(--bg-3);color:var(--text-2);cursor:pointer;font-weight:700;line-height:1.2;}
 #page-performance .range-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 @keyframes perfspin{to{transform:rotate(360deg);}}
 #page-performance .perf-spin{animation:perfspin 0.8s linear infinite;}
@@ -1134,13 +1144,12 @@
 </div>
 </div>
 <div class="perf-hdr">
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">
-<div><label class="form-label" style="font-size:10px;">Başlangıç</label><input type="date" class="form-input" id="perf-date-from" onchange="perfReload()"/></div>
-<div><label class="form-label" style="font-size:10px;">Bitiş</label><input type="date" class="form-input" id="perf-date-to" onchange="perfReload()"/></div>
-<div><label class="form-label" style="font-size:10px;">Agent</label><select class="form-input" id="perf-agent" onchange="perfOnFilterChange()"><option value="">Tümü</option></select></div>
-<div><label class="form-label" style="font-size:10px;">Kampanya</label><select class="form-input" id="perf-campaign" onchange="perfOnFilterChange()"><option value="">Tümü</option></select></div>
-</div>
-<div style="margin-bottom:10px;"><label class="form-label" style="font-size:10px;">Randevu durumu</label><select class="form-input" id="perf-status" onchange="perfOnFilterChange()" style="max-width:280px;">
+<div class="perf-filters">
+<div><label class="form-label">Başlangıç</label><input type="date" class="form-input" id="perf-date-from" onchange="perfReload()"/></div>
+<div><label class="form-label">Bitiş</label><input type="date" class="form-input" id="perf-date-to" onchange="perfReload()"/></div>
+<div><label class="form-label">Agent</label><select class="form-input" id="perf-agent" onchange="perfOnFilterChange()"><option value="">Tümü</option></select></div>
+<div><label class="form-label">Kampanya</label><select class="form-input" id="perf-campaign" onchange="perfOnFilterChange()"><option value="">Tümü</option></select></div>
+<div><label class="form-label">Randevu durumu</label><select class="form-input" id="perf-status" onchange="perfOnFilterChange()">
 <option value="">Tümü</option>
 <option value="ok">Başarılı</option>
 <option value="pend">Beklemede</option>
@@ -1148,13 +1157,15 @@
 <option value="fail">Başarısız / İptal</option>
 <option value="other">Diğer</option>
 </select></div>
-<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+</div>
+<div class="perf-ranges">
 <button type="button" class="range-btn perf-range-btn" data-perf-range="today" onclick="perfSetQuickRange('today',event)">Bugün</button>
 <button type="button" class="range-btn perf-range-btn active" data-perf-range="week" onclick="perfSetQuickRange('week',event)">Bu hafta</button>
 <button type="button" class="range-btn perf-range-btn" data-perf-range="month" onclick="perfSetQuickRange('month',event)">Bu ay</button>
 <button type="button" class="range-btn perf-range-btn" data-perf-range="lastweek" onclick="perfSetQuickRange('lastweek',event)">Geçen hafta</button>
 <button type="button" class="range-btn perf-range-btn" data-perf-range="lastmonth" onclick="perfSetQuickRange('lastmonth',event)">Geçen ay</button>
 <button type="button" class="range-btn perf-range-btn" data-perf-range="all" onclick="perfSetQuickRange('all',event)">Tümü</button>
+<span class="perf-today"><i class="ph ph-calendar-dots"></i> <span data-tr="Bugün" data-de="Heute">Bugün</span>: <strong id="perf-sum-date">—</strong></span>
 </div>
 <div class="perf-sum">
 <div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-total">0</div><div class="perf-sum-lbl" data-tr="Toplam randevu (dönem)" data-de="Termine (Zeitraum)">Toplam randevu (dönem)</div></div>
@@ -1162,9 +1173,6 @@
 <div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-avg">0</div><div class="perf-sum-lbl" data-tr="Ort. randevu/agent" data-de="Durchschn. Termine/Agent">Ort. randevu/agent</div></div>
 <div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-days">0</div><div class="perf-sum-lbl" data-tr="Aktif gün" data-de="Aktive Tage">Aktif gün</div></div>
 <div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-agents">0</div><div class="perf-sum-lbl" data-tr="Aktif agent" data-de="Aktive Agenten">Aktif agent</div></div>
-</div>
-<div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:12px;color:var(--text-3);">
-<span><i class="ph ph-calendar-dots"></i> <span data-tr="Bugün" data-de="Heute">Bugün</span>: <strong id="perf-sum-date">—</strong></span>
 </div>
 </div>
 <div class="perf-cards">
@@ -1175,10 +1183,10 @@
 <div class="perf-card" style="border-color:var(--red);"><div class="perf-ct">Başarısız</div><div class="perf-cv" id="perf-card-fail">0</div></div>
 </div>
 <div class="perf-call-row">
-<div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">ARAMA (dönem)</div><div style="font-size:20px;font-weight:900;" id="perf-call-total">0</div></div>
-<div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">Randevu sonucu</div><div style="font-size:20px;font-weight:900;color:var(--green);" id="perf-call-appt">0</div></div>
-<div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">Dönüşüm</div><div style="font-size:20px;font-weight:900;" id="perf-call-conv">0%</div></div>
-<div class="card" style="padding:12px;text-align:center;margin:0;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">Ort. süre</div><div style="font-size:20px;font-weight:900;" id="perf-call-avg">0:00</div></div>
+<div class="perf-card"><div class="perf-ct">Arama (dönem)</div><div class="perf-cv" id="perf-call-total">0</div></div>
+<div class="perf-card"><div class="perf-ct">Randevu sonucu</div><div class="perf-cv" id="perf-call-appt" style="color:var(--green);">0</div></div>
+<div class="perf-card"><div class="perf-ct">Dönüşüm</div><div class="perf-cv" id="perf-call-conv">0%</div></div>
+<div class="perf-card"><div class="perf-ct">Ort. süre</div><div class="perf-cv" id="perf-call-avg">0:00</div></div>
 </div>
 <div class="perf-charts">
 <div class="perf-chart-box">
@@ -1213,9 +1221,10 @@
 </div>
 </div>
 <div class="perf-tables">
+<div class="perf-table-stack">
 <div class="card" style="padding:0;overflow:hidden;">
-<div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;">
-<span style="font-weight:800;">Personel tablosu</span>
+<div class="perf-section">
+<h3>Personel tablosu</h3>
 <div style="display:flex;gap:4px;flex-wrap:wrap;">
 <button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('total')">Randevu</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('ok')">Başarılı</button>
@@ -1224,7 +1233,7 @@
 </div>
 </div>
 <div class="tbl-wrap">
-<table style="min-width:980px;">
+<table style="min-width:860px;">
 <thead><tr>
 <th>Agent</th>
 <th>Randevu</th>
@@ -1234,16 +1243,18 @@
 <th>Kötü</th>
 <th>Oran</th>
 <th>Arama</th>
-<th>A→T</th>
-<th>Dön.</th>
+<th title="Aramadan randevu">A→T</th>
+<th title="Dönüşüm">Dön.</th>
 <th>Ort.sn</th>
 <th></th>
 </tr></thead>
 <tbody id="perf-tbody-main"><tr><td colspan="12" style="text-align:center;padding:28px;color:var(--text-3);">—</td></tr></tbody>
 </table>
 </div>
-<div style="border-top:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-<span style="font-weight:800;">Bu ay (takvim)</span>
+</div>
+<div class="card" style="padding:0;overflow:hidden;">
+<div class="perf-section">
+<h3>Bu ay (takvim)</h3>
 <div style="display:flex;gap:4px;">
 <button type="button" class="btn btn-ghost btn-sm" onclick="perfMonthSort('total')">Randevu</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="perfMonthSort('ok')">Başarılı</button>
@@ -1251,15 +1262,16 @@
 </div>
 </div>
 <div class="tbl-wrap">
-<table style="min-width:720px;">
+<table style="min-width:640px;">
 <thead><tr><th>Agent</th><th>Top.</th><th>OK</th><th>Bekl.</th><th>QC</th><th>Kötü</th><th>Oran</th><th></th></tr></thead>
 <tbody id="perf-tbody-month"><tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-3);">—</td></tr></tbody>
 </table>
 </div>
 </div>
-<div style="display:flex;flex-direction:column;gap:12px;">
+</div>
+<div class="perf-table-stack">
 <div class="card" style="padding:0;overflow:hidden;">
-<div style="padding:10px 14px;font-weight:800;border-bottom:1px solid var(--border);"><i class="ph ph-calendar-check"></i> Son randevular</div>
+<div class="perf-section"><h3><i class="ph ph-calendar-check"></i> Son randevular</h3></div>
 <div class="tbl-wrap" style="max-height:280px;">
 <table style="min-width:400px;font-size:12px;">
 <thead><tr><th>Tarih</th><th>Agent</th><th>Müşteri</th><th>Kamp.</th><th>Durum</th></tr></thead>
@@ -1268,7 +1280,7 @@
 </div>
 </div>
 <div class="card" style="padding:0;overflow:hidden;">
-<div style="padding:10px 14px;font-weight:800;border-bottom:1px solid var(--border);"><i class="ph ph-phone-call"></i> Son aramalar</div>
+<div class="perf-section"><h3><i class="ph ph-phone-call"></i> Son aramalar</h3></div>
 <div class="tbl-wrap" style="max-height:280px;">
 <table style="min-width:400px;font-size:12px;">
 <thead><tr><th>Tarih</th><th>Agent</th><th>Numara</th><th>Kamp.</th><th>Sonuç</th><th>Süre</th></tr></thead>
@@ -4177,60 +4189,60 @@ QC Detay
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=9.89"></script>
-<script src="js/i18n.js?v=9.89"></script>
-<script src="js/config.js?v=9.89"></script>
-<script src="js/state.js?v=9.89"></script>
-<script src="js/api.js?v=9.89"></script>
-<script src="js/access.js?v=9.89"></script>
-<script src="js/auth.js?v=9.89"></script>
-<script src="js/ui.js?v=9.89"></script>
-<script src="js/chat.js?v=9.89"></script>
-<script src="js/chat-settings.js?v=9.89"></script>
-<script src="js/field-settings.js?v=9.89"></script>
-<script src="js/audit.js?v=9.89"></script>
-<script src="js/feature-flags.js?v=9.89"></script>
-<script src="js/notification-center.js?v=9.89"></script>
+<script src="js/version.js?v=9.90"></script>
+<script src="js/i18n.js?v=9.90"></script>
+<script src="js/config.js?v=9.90"></script>
+<script src="js/state.js?v=9.90"></script>
+<script src="js/api.js?v=9.90"></script>
+<script src="js/access.js?v=9.90"></script>
+<script src="js/auth.js?v=9.90"></script>
+<script src="js/ui.js?v=9.90"></script>
+<script src="js/chat.js?v=9.90"></script>
+<script src="js/chat-settings.js?v=9.90"></script>
+<script src="js/field-settings.js?v=9.90"></script>
+<script src="js/audit.js?v=9.90"></script>
+<script src="js/feature-flags.js?v=9.90"></script>
+<script src="js/notification-center.js?v=9.90"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=9.89"></script>
-<script src="js/job-market.js?v=9.89"></script>
-<script src="js/qc-job-market.js?v=9.89"></script>
-<script src="js/export-admin.js?v=9.89"></script>
-<script src="js/export-termin.js?v=9.89"></script>
-<script src="js/performance.js?v=9.89"></script>
-<script src="js/competition.js?v=9.89"></script>
-<script src="js/dashboard.js?v=9.89"></script>
-<script src="js/dashboard-brief.js?v=9.89"></script>
-<script src="js/campaigns.js?v=9.89"></script>
-<script src="js/campaigns-detail.js?v=9.89"></script>
-<script src="js/campaigns-queue.js?v=9.89"></script>
-<script src="js/contacts-upload.js?v=9.89"></script>
-<script src="js/contacts.js?v=9.89"></script>
-<script src="js/contacts-drawer.js?v=9.89"></script>
-<script src="js/telnyx.js?v=9.89"></script>
-<script src="js/voice-orb.js?v=9.89"></script>
-<script src="js/dialer.js?v=9.89"></script>
-<script src="js/ops-alerts.js?v=9.89"></script>
-<script src="js/dialer-mascot.js?v=9.89"></script>
-<script src="js/dialer-mascot-live.js?v=9.89"></script>
-<script src="js/ui-prefs.js?v=9.89"></script>
-<script src="js/dialer-session.js?v=9.89"></script>
-<script src="js/dialer-call.js?v=9.89"></script>
-<script src="js/dialer-tools.js?v=9.89"></script>
-<script src="js/appointments.js?v=9.89"></script>
-<script src="js/appointments-actions.js?v=9.89"></script>
-<script src="js/appointments-tools.js?v=9.89"></script>
-<script src="js/field.js?v=9.89"></script>
-<script src="js/field-ops.js?v=9.89"></script>
-<script src="js/wiedervorlage.js?v=9.89"></script>
-<script src="js/qc.js?v=9.89"></script>
-<script src="js/supervisor.js?v=9.89"></script>
-<script src="js/live-coach.js?v=9.89"></script>
-<script src="js/sms-settings.js?v=9.89"></script>
-<script src="js/leave-hr.js?v=9.89"></script>
-<script src="js/muhasebe.js?v=9.89"></script>
-<script src="js/agent-self-performance.js?v=9.89"></script>
-<script src="js/agents.js?v=9.89"></script>
-<script src="js/mimi-brain.js?v=9.89"></script>
+<script src="js/wallet.js?v=9.90"></script>
+<script src="js/job-market.js?v=9.90"></script>
+<script src="js/qc-job-market.js?v=9.90"></script>
+<script src="js/export-admin.js?v=9.90"></script>
+<script src="js/export-termin.js?v=9.90"></script>
+<script src="js/performance.js?v=9.90"></script>
+<script src="js/competition.js?v=9.90"></script>
+<script src="js/dashboard.js?v=9.90"></script>
+<script src="js/dashboard-brief.js?v=9.90"></script>
+<script src="js/campaigns.js?v=9.90"></script>
+<script src="js/campaigns-detail.js?v=9.90"></script>
+<script src="js/campaigns-queue.js?v=9.90"></script>
+<script src="js/contacts-upload.js?v=9.90"></script>
+<script src="js/contacts.js?v=9.90"></script>
+<script src="js/contacts-drawer.js?v=9.90"></script>
+<script src="js/telnyx.js?v=9.90"></script>
+<script src="js/voice-orb.js?v=9.90"></script>
+<script src="js/dialer.js?v=9.90"></script>
+<script src="js/ops-alerts.js?v=9.90"></script>
+<script src="js/dialer-mascot.js?v=9.90"></script>
+<script src="js/dialer-mascot-live.js?v=9.90"></script>
+<script src="js/ui-prefs.js?v=9.90"></script>
+<script src="js/dialer-session.js?v=9.90"></script>
+<script src="js/dialer-call.js?v=9.90"></script>
+<script src="js/dialer-tools.js?v=9.90"></script>
+<script src="js/appointments.js?v=9.90"></script>
+<script src="js/appointments-actions.js?v=9.90"></script>
+<script src="js/appointments-tools.js?v=9.90"></script>
+<script src="js/field.js?v=9.90"></script>
+<script src="js/field-ops.js?v=9.90"></script>
+<script src="js/wiedervorlage.js?v=9.90"></script>
+<script src="js/qc.js?v=9.90"></script>
+<script src="js/supervisor.js?v=9.90"></script>
+<script src="js/live-coach.js?v=9.90"></script>
+<script src="js/sms-settings.js?v=9.90"></script>
+<script src="js/leave-hr.js?v=9.90"></script>
+<script src="js/muhasebe.js?v=9.90"></script>
+<script src="js/agent-self-performance.js?v=9.90"></script>
+<script src="js/agents.js?v=9.90"></script>
+<script src="js/mimi-brain.js?v=9.90"></script>
 </body>
 </html>
