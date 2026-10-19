@@ -527,7 +527,7 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 .notif-card-top { display: flex; gap: 8px; align-items: flex-start; }
 .notif-card-title { flex: 1; font-size: 12px; font-weight: 700; }
 .notif-card-meta { font-size: 10px; color: var(--text-3); white-space: nowrap; }
-.notif-card-body { font-size: 11px; margin-top: 3px; color: inherit; }
+.notif-card-body { font-size: 11px; margin-top: 3px; color: inherit; white-space: pre-line; }
 .notif-del { font-size: 16px; line-height: 1; padding: 0 2px; }
 /* Üst bar + dialer slot arasında gezen global maskot */
 .global-mascot {

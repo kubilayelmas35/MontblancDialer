@@ -95,8 +95,8 @@ function loadWvBadge() {
   if (!currentUser) return;
   const isAdminRole = mbIsFirmAdmin();
   const url = isAdminRole
-    ? 'wiedervorlage?select=id,termin_zaman,durum&durum=eq.bekliyor&order=termin_zaman.asc'
-    : `wiedervorlage?select=id,termin_zaman,durum&agent_id=eq.${currentUser.id}&durum=eq.bekliyor`;
+    ? 'wiedervorlage?select=id,termin_zaman,durum,hatirlatildi,nachname,telefon,telefon2,plz,ort,strasse,notiz,campaign_id,agent_name&durum=eq.bekliyor&order=termin_zaman.asc'
+    : `wiedervorlage?select=id,termin_zaman,durum,hatirlatildi,nachname,telefon,telefon2,plz,ort,strasse,notiz,campaign_id,agent_name&agent_id=eq.${currentUser.id}&durum=eq.bekliyor`;
   sb(url).then(list => {
     wvList = list || [];
     updateWvBadge();
@@ -413,39 +413,124 @@ function wvPlace(w) {
   return [w?.plz, w?.ort].map((x) => String(x || '').trim()).filter(Boolean).join(' ');
 }
 
-function showWvDuePopup(w) {
-  if (!w?.id) return;
+function wvDueWhen(iso) {
+  if (typeof opsNoticeWhen === 'function') return opsNoticeWhen(iso);
+  const d = new Date(iso || '');
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('tr-TR', {
+    timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function wvDueLate(iso) {
+  const ms = Date.now() - new Date(iso || '').getTime();
+  if (!Number.isFinite(ms) || ms < 60000) return wvSay('wv.due.now', 'Şimdi');
+  return `${Math.max(1, Math.round(ms / 60000))} ${wvSay('wv.due.late', 'dk geçti')}`;
+}
+
+function wvDueCamp(w) {
+  if (w?.campLabel) return String(w.campLabel);
+  const name = w?.campaign_id ? wvCampName(w.campaign_id) : '';
+  return name && name !== '—' ? name : '';
+}
+
+function wvDueNotice(w) {
+  const place = [w?.strasse, [w?.plz, w?.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const camp = wvDueCamp(w);
+  return [
+    w?.nachname || '—',
+    [w?.telefon, w?.telefon2].filter(Boolean).join(' · '),
+    place,
+    camp ? `${wvSay('wv.due.camp', 'Kampanya')}: ${camp}` : '',
+    `${wvSay('wv.due.when', 'Saat')}: ${wvDueWhen(w?.termin_zaman)}`,
+    w?.notiz ? `${wvSay('wv.due.note', 'Not')}: ${w.notiz}` : '',
+  ].filter(Boolean).join('\n');
+}
+
+function wvDueRow(label, value, href) {
+  const text = String(value || '').trim();
+  if (!text) return null;
+  const row = document.createElement('div');
+  row.className = 'wv-due-row';
+  const name = document.createElement('span');
+  name.textContent = label;
+  const val = href ? document.createElement('a') : document.createElement('strong');
+  if (href) val.href = href;
+  val.textContent = text;
+  row.append(name, val);
+  return row;
+}
+
+function showWvDuePopup(w, sample) {
+  if (!w?.id && !sample) return;
   const open = document.getElementById('wv-due-pop');
-  if (open && open.dataset.id === String(w.id)) return;
+  if (!sample && open && open.dataset.id === String(w.id)) return;
   open?.remove();
-  if (typeof opsCue === 'function') opsCue('due');
-  if (typeof opsRememberNotice === 'function') {
-    const dueTitle = typeof t === 'function' ? t('wv.due.title') : 'Arama vakti geldi';
-    const dueBody = [w.nachname || '—', w.telefon || '', wvPlace(w)].filter(Boolean).join(' · ');
-    const dueColor = typeof opsSoundEntry === 'function' ? opsSoundEntry('due').color : '#64748b';
-    opsRememberNotice(dueTitle, dueBody, dueColor, 'wv');
+  if (!sample && typeof opsCue === 'function') opsCue('due');
+  if (!sample && typeof opsRememberNotice === 'function') {
+    const dueTitle = wvSay('wv.due.title', 'Arama vakti geldi');
+    const dueColor = typeof opsSoundEntry === 'function' ? opsSoundEntry('due').color : '#0f766e';
+    opsRememberNotice(dueTitle, wvDueNotice(w), dueColor, 'wv');
   }
   const pop = document.createElement('div');
   pop.id = 'wv-due-pop';
   pop.className = 'wv-due-pop';
-  pop.dataset.id = String(w.id);
+  pop.dataset.id = String(w?.id || 'sample');
   const card = document.createElement('div');
   card.className = 'wv-due-card';
+  const color = typeof opsSoundEntry === 'function' ? opsSoundEntry('due').color : '#0f766e';
+  card.style.borderTopColor = color;
+  const kicker = document.createElement('div');
+  kicker.className = 'wv-due-kicker';
+  const kind = document.createElement('span');
+  kind.textContent = wvSay('notif.cat.wv', 'Aranacaklar');
+  const when = document.createElement('span');
+  when.textContent = wvDueWhen(w?.termin_zaman);
+  kicker.append(kind, when);
   const title = document.createElement('h3');
-  title.textContent = typeof t === 'function' ? t('wv.due.title') : 'Arama vakti geldi';
-  const who = document.createElement('p');
-  who.textContent = w.nachname || '—';
-  const phone = document.createElement('p');
-  phone.textContent = `${typeof t === 'function' ? t('wv.due.phone') : 'Telefon'}: ${w.telefon || '—'}`;
-  const place = document.createElement('p');
-  place.textContent = `${typeof t === 'function' ? t('wv.due.place') : 'Yer'}: ${wvPlace(w) || '—'}`;
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'btn btn-primary';
-  btn.textContent = typeof t === 'function' ? t('wv.due.snooze') : 'Tamam';
-  btn.onclick = () => wvSnoozeDue(w.id);
-  card.append(title, who, phone, place, btn);
+  title.textContent = wvSay('wv.due.title', 'Arama vakti geldi');
+  const name = document.createElement('p');
+  name.className = 'wv-due-name';
+  name.textContent = w?.nachname || '—';
+  const late = document.createElement('p');
+  late.className = 'wv-due-late';
+  late.textContent = wvDueLate(w?.termin_zaman);
+  card.append(kicker, title, name, late);
+  [
+    wvDueRow(wvSay('wv.due.phone', 'Telefon'), w?.telefon, w?.telefon ? `tel:${w.telefon}` : ''),
+    wvDueRow(wvSay('wv.due.phone', 'Telefon') + ' 2', w?.telefon2, w?.telefon2 ? `tel:${w.telefon2}` : ''),
+    wvDueRow(wvSay('wv.due.addr', 'Adres'), [w?.strasse, [w?.plz, w?.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ')),
+    wvDueRow(wvSay('wv.due.camp', 'Kampanya'), wvDueCamp(w)),
+    wvDueRow(wvSay('wv.due.agent', 'Temsilci'), w?.agent_name),
+  ].forEach((row) => { if (row) card.appendChild(row); });
+  if (w?.notiz) {
+    const note = document.createElement('div');
+    note.className = 'wv-due-note';
+    note.textContent = w.notiz;
+    card.appendChild(note);
+  }
+  const actions = document.createElement('div');
+  actions.className = 'wv-due-actions';
+  const call = document.createElement('button');
+  call.type = 'button';
+  call.className = 'btn btn-primary';
+  call.textContent = wvSay('wv.due.call', 'Ara');
+  call.onclick = () => {
+    pop.remove();
+    if (!sample && typeof wvCallNow === 'function') wvCallNow(w.id);
+  };
+  const ok = document.createElement('button');
+  ok.type = 'button';
+  ok.className = 'btn btn-ghost';
+  ok.textContent = wvSay('wv.due.snooze', 'Tamam');
+  ok.onclick = () => {
+    if (sample) { pop.remove(); return; }
+    wvSnoozeDue(w.id);
+  };
+  actions.append(call, ok);
+  card.appendChild(actions);
   pop.appendChild(card);
+  if (sample) pop.addEventListener('click', (ev) => { if (ev.target === pop) pop.remove(); });
   document.body.appendChild(pop);
 }
 

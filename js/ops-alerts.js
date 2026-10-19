@@ -769,31 +769,28 @@ function opsShowSample(kind) {
     opsKeepSample(kind === 'soon' ? '15 dk kala' : 'Örnek', msg, opsPickedColor(kind, opsSoundEntry(kind).color), opsNoticeCat(kind));
     return;
   }
+  if (kind === 'due') {
+    const sample = {
+      id: 'sample-due',
+      nachname: 'Ziya Yılmaz',
+      telefon: '+49 170 000000',
+      telefon2: '+49 170 111111',
+      strasse: 'Musterstraße 4',
+      plz: '10115',
+      ort: 'Berlin',
+      campLabel: '69',
+      agent_name: 'Gökhan',
+      notiz: 'Akşam tekrar ara.',
+      termin_zaman: new Date().toISOString(),
+    };
+    if (typeof showWvDuePopup === 'function') showWvDuePopup(sample, true);
+    opsKeepSample(opsSay('wv.due.title', 'Arama vakti geldi'), typeof wvDueNotice === 'function' ? wvDueNotice(sample) : sample.nachname, opsPickedColor('due', opsSoundEntry('due').color), 'wv');
+    return;
+  }
   const host = document.createElement('div');
   host.id = 'ops-sample-host';
   const close = () => host.remove();
-  if (kind === 'due') {
-    host.className = 'ops-sample-host is-modal';
-    const card = document.createElement('div');
-    card.className = 'wv-due-card';
-    const title = document.createElement('h3');
-    title.textContent = opsSay('wv.due.title', 'Arama vakti geldi');
-    const who = document.createElement('p');
-    who.textContent = 'Örnek Müşteri';
-    const phone = document.createElement('p');
-    phone.textContent = 'Telefon: +49 170 000';
-    const place = document.createElement('p');
-    place.textContent = 'Yer: 10115 Berlin';
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn btn-primary';
-    btn.textContent = opsSay('wv.due.snooze', 'Tamam');
-    btn.onclick = close;
-    card.append(title, who, phone, place, btn);
-    host.appendChild(card);
-    host.addEventListener('click', (ev) => { if (ev.target === host) close(); });
-    opsKeepSample(title.textContent, 'Örnek Müşteri · +49 170 000 · 10115 Berlin', opsPickedColor('due', opsSoundEntry('due').color), 'wv');
-  } else if (kind === 'hour') {
+  if (kind === 'hour') {
     host.className = 'ops-sample-host';
     const bar = document.createElement('div');
     bar.className = 'ops-appt-strip';
