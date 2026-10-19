@@ -51,8 +51,16 @@ function _compMonthKey(y, m) {
   return `${y}-${String(m).padStart(2, '0')}`;
 }
 
+function _compMonthName(m) {
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const names = de
+    ? ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
+    : ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+  return names[m - 1] || '';
+}
+
 function _compMonthLabel(y, m) {
-  return new Date(y, m - 1, 1).toLocaleDateString(mbLocale(), { month: 'long', year: 'numeric' });
+  return `${_compMonthName(m)} ${y}`;
 }
 
 /** Seçilen ay. Gelecek ay yok; boşsa Berlin'deki bu ay. */
@@ -136,10 +144,7 @@ async function loadDashCompetitionCard() {
   const { start, end } = _compMonthBounds(y, m);
 
   if (periodEl) {
-    periodEl.textContent = new Date(y, m - 1, 1).toLocaleDateString(mbLocale(), {
-      month: 'long',
-      year: 'numeric',
-    });
+    periodEl.textContent = _compMonthLabel(y, m);
   }
   if (noteEl) {
     noteEl.style.display = '';
@@ -256,9 +261,7 @@ async function loadCompetitionPage() {
       if (lastSub)
         lastSub.textContent = showCounts
           ? `${prevRows[0].count} ${t('comp.termin_count')}`
-          : new Date(prev.y, prev.m - 1, 1).toLocaleDateString(mbLocale(), {
-              month: 'long',
-            });
+          : _compMonthName(prev.m);
     } else {
       lastName.textContent = '—';
       if (lastSub) lastSub.textContent = '';
@@ -278,6 +281,8 @@ async function loadCompetitionPage() {
     }
   }
 
+  const periodLabel = document.getElementById('comp-period-label');
+  if (periodLabel) periodLabel.textContent = _compMonthLabel(y, m);
   const monthTitle = _compMonthLabel(y, m);
   const leaderTitle = document.getElementById('comp-leader-title');
   if (leaderTitle) leaderTitle.textContent = picked.isCurrent ? (currentLang === 'de' ? 'Führend diesen Monat' : 'Bu ay lider') : monthTitle;
@@ -285,8 +290,8 @@ async function loadCompetitionPage() {
   if (monthTableTitle) monthTableTitle.textContent = picked.isCurrent ? (currentLang === 'de' ? 'Rangliste diesen Monat' : 'Bu ay sıralaması') : monthTitle;
   const yearTitle = document.getElementById('comp-year-title');
   if (yearTitle) {
-    const fromName = new Date(y, 0, 1).toLocaleDateString(mbLocale(), { month: 'long' });
-    const toName = new Date(y, m - 1, 1).toLocaleDateString(mbLocale(), { month: 'long' });
+    const fromName = _compMonthName(1);
+    const toName = _compMonthName(m);
     yearTitle.textContent = `${y} · ${fromName} — ${toName}`;
   }
   const prevTitle = document.getElementById('comp-prev-title');

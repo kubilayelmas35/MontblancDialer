@@ -2355,7 +2355,8 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="comp-firm-selector"></div>
 <button type="button" class="btn btn-ghost btn-sm" onclick="compShiftMonth(-1)" aria-label="Önceki ay">‹</button>
-<input type="month" class="form-input" id="comp-period" style="width:160px;" onchange="loadCompetitionPage()">
+<span id="comp-period-label" style="min-width:128px;text-align:center;font-weight:800;font-size:13px;">—</span>
+<input type="hidden" id="comp-period">
 <button type="button" class="btn btn-ghost btn-sm" onclick="compShiftMonth(1)" aria-label="Sonraki ay">›</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="loadCompetitionPage()"><i class="ph ph-arrow-clockwise"></i> Yenile</button>
 </div>
