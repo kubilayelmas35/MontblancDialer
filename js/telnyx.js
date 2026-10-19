@@ -56,6 +56,7 @@ try {
 if (_telnyxClient) _telnyxClient.disconnect();
 const client = new Ctor({ login: sipUser, password: sipPass });
 _telnyxClient = client;
+if (typeof applySavedMicToTelnyx === 'function') applySavedMicToTelnyx();
 const mine = () => _telnyxClient === client;
 client.on('telnyx.ready', () => {
 if (!mine()) return;

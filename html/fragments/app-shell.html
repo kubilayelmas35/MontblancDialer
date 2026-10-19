@@ -1212,34 +1212,48 @@ TEST MODU
 </div>
 <div id="dialer-inbound-banner" style="display:none;width:100%;box-sizing:border-box;padding:6px 14px;background:rgba(234,179,8,.14);border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text);"></div>
 <div id="mic-audio-drawer" class="dialer-hdr-drawer" style="display:none;">
-<div style="max-width:520px;">
-<div style="font-size:12px;font-weight:800;margin-bottom:10px;color:var(--text);" data-tr="Mikrofon ve ses" data-de="Mikrofon und Audio">Mikrofon ve ses</div>
-<div style="display:grid;gap:12px;">
+<div class="mic-drawer">
+<div class="mic-drawer__head">
+<div class="mic-drawer__title" data-tr="Mikrofon ve ses" data-de="Mikrofon und Audio">Mikrofon ve ses</div>
+<button type="button" class="btn btn-ghost btn-sm" onclick="closeMicAudioDrawer()" data-tr="Kapat" data-de="Schließen">Kapat</button>
+</div>
+<div class="mic-drawer__grid">
+<label class="mic-drawer__field">
+<span class="mic-drawer__label" data-tr="Mikrofon" data-de="Mikrofon">Mikrofon</span>
+<select id="mic-drawer-input" class="form-input" aria-label="Mikrofon"></select>
+</label>
+<label class="mic-drawer__field">
+<span class="mic-drawer__label" data-tr="Hoparlör" data-de="Lautsprecher">Hoparlör</span>
+<select id="mic-drawer-output" class="form-input" aria-label="Hoparlör"></select>
+</label>
+</div>
+<div class="mic-drawer__checks">
+<label><input type="checkbox" id="mic-drawer-echo" checked> <span data-tr="Yankı engelle" data-de="Echo unterdrücken">Yankı engelle</span></label>
+<label><input type="checkbox" id="mic-drawer-ns" checked> <span data-tr="Arka plan gürültüsünü kes" data-de="Hintergrund dämpfen">Arka plan gürültüsünü kes</span></label>
+</div>
 <div>
-<div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;" data-tr="Giriş (mikrofon)" data-de="Eingang (Mikrofon)">Giriş (mikrofon)</div>
+<div class="mic-drawer__label" data-tr="Giriş (mikrofon)" data-de="Eingang (Mikrofon)">Giriş (mikrofon)</div>
 <div class="hdr-meter-track"><div id="mic-drawer-in-meter" class="hdr-meter-fill hdr-meter-fill--in"></div><div id="mic-drawer-in-threshold" class="hdr-meter-threshold"></div></div>
-<div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap;">
-<label style="font-size:10px;color:var(--text-2);display:flex;align-items:center;gap:6px;flex:1;min-width:140px;">
-<span data-tr="Hassasiyet" data-de="Empfindlichkeit">Hassasiyet</span>
-<input type="range" id="mic-drawer-gain" min="0" max="4" step="0.05" value="1" style="flex:1;accent-color:var(--accent);">
+<div class="mic-drawer__sliders">
+<label class="mic-drawer__slider">
+<span class="mic-drawer__slider-top"><span data-tr="Hassasiyet" data-de="Empfindlichkeit">Hassasiyet</span><span class="mic-drawer__val" id="mic-drawer-gain-val">1.00</span></span>
+<input type="range" id="mic-drawer-gain" min="0" max="4" step="0.05" value="1">
 </label>
-<label style="font-size:10px;color:var(--text-2);display:flex;align-items:center;gap:6px;flex:1;min-width:140px;">
-<span data-tr="Eşik" data-de="Schwelle">Eşik</span>
-<input type="range" id="mic-drawer-threshold" min="0" max="100" step="1" value="18" style="flex:1;accent-color:var(--yellow);">
+<label class="mic-drawer__slider">
+<span class="mic-drawer__slider-top"><span data-tr="Eşik" data-de="Schwelle">Eşik</span><span class="mic-drawer__val" id="mic-drawer-thr-val">18</span></span>
+<input type="range" id="mic-drawer-threshold" min="0" max="100" step="1" value="18">
 </label>
 </div>
 </div>
 <div>
-<div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;" data-tr="Gelen ses (hat)" data-de="Eingehend (Leitung)">Gelen ses (hat)</div>
+<div class="mic-drawer__label" data-tr="Gelen ses (hat)" data-de="Eingehend (Leitung)">Gelen ses (hat)</div>
 <div class="hdr-meter-track"><div id="mic-drawer-out-meter" class="hdr-meter-fill hdr-meter-fill--out"></div></div>
-<div style="font-size:10px;color:var(--text-3);margin-top:4px;" data-tr="Çağrı yokken çubuk boş kalır." data-de="Ohne aktiven Anruf bleibt der Balken leer.">Çağrı yokken çubuk boş kalır.</div>
+<div class="mic-drawer__hint" data-tr="Çağrı yokken çubuk boş kalır. Cihaz seçimi bir sonraki aramada kullanılır." data-de="Ohne aktiven Anruf bleibt der Balken leer. Das Gerät gilt ab dem nächsten Anruf.">Çağrı yokken çubuk boş kalır. Cihaz seçimi bir sonraki aramada kullanılır.</div>
 </div>
-</div>
-<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+<div class="mic-drawer__actions">
 <button type="button" class="btn btn-ghost btn-sm" id="mic-drawer-beep-btn" onclick="playMicDrawerBeep()"><i class="ph ph-speaker-high"></i> <span data-tr="Hoparlör testi" data-de="Lautsprechertest">Hoparlör testi</span></button>
 <button type="button" class="btn btn-primary btn-sm" id="mic-drawer-monitor-btn" onclick="toggleMicDrawerMonitor()"><span data-tr="Dinlemeyi başlat" data-de="Überwachung starten">Dinlemeyi başlat</span></button>
 <button type="button" class="btn btn-ghost btn-sm" id="mic-drawer-save-btn" onclick="saveMicDrawerPrefs()"><i class="ph ph-floppy-disk"></i> <span data-tr="Ayarları kaydet" data-de="Einstellungen speichern">Ayarları kaydet</span></button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="closeMicAudioDrawer()"><span data-tr="Kapat" data-de="Schließen">Kapat</span></button>
 </div>
 </div>
 </div>

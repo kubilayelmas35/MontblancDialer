@@ -265,6 +265,83 @@ function toggleManualDialDrawer() {
   setTimeout(() => document.getElementById('manual-dial-input')?.focus(), 40);
 }
 
+function _micDrawerPaintValues() {
+  const g = document.getElementById('mic-drawer-gain');
+  const t = document.getElementById('mic-drawer-threshold');
+  const gv = document.getElementById('mic-drawer-gain-val');
+  const tv = document.getElementById('mic-drawer-thr-val');
+  if (gv && g) gv.textContent = (parseFloat(g.value) || 0).toFixed(2);
+  if (tv && t) tv.textContent = String(Math.round(parseFloat(t.value) || 0));
+}
+
+function _micAudioFlag(key, fallback) {
+  const raw = localStorage.getItem(key);
+  if (raw == null || raw === '') return fallback;
+  return raw !== '0';
+}
+
+function _micInputConstraints() {
+  const id = localStorage.getItem('mb_mic_device') || '';
+  const audio = {
+    echoCancellation: _micAudioFlag('mb_mic_echo', true),
+    noiseSuppression: _micAudioFlag('mb_mic_ns', true),
+    autoGainControl: false,
+  };
+  if (id) audio.deviceId = { ideal: id };
+  return { audio, video: false };
+}
+
+function applySavedMicToTelnyx() {
+  const client = typeof _telnyxClient !== 'undefined' ? _telnyxClient : null;
+  if (!client || typeof client.setAudioSettings !== 'function') return;
+  const micId = localStorage.getItem('mb_mic_device') || '';
+  const speakerId = localStorage.getItem('mb_spk_device') || '';
+  const micLabel = document.querySelector('#mic-drawer-input option:checked')?.textContent || '';
+  const speakerLabel = document.querySelector('#mic-drawer-output option:checked')?.textContent || '';
+  try {
+    client.setAudioSettings({
+      micId: micId || undefined,
+      micLabel: micId ? micLabel : undefined,
+      speakerId: speakerId || undefined,
+      speakerLabel: speakerId ? speakerLabel : undefined,
+      echoCancellation: _micAudioFlag('mb_mic_echo', true),
+      noiseSuppression: _micAudioFlag('mb_mic_ns', true),
+      autoGainControl: false,
+    });
+  } catch (e) {}
+}
+
+function _fillAudioDeviceSelect(id, devices, saved, unnamedKey) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const def = typeof t === 'function' ? t('dial.mic.default') : 'Varsayılan';
+  const unnamed = typeof t === 'function' ? t(unnamedKey) : 'Cihaz';
+  const cur = saved || '';
+  const opts = [`<option value="">${def}</option>`];
+  devices.forEach((d, i) => {
+    const label = String(d.label || '').trim() || `${unnamed} ${i + 1}`;
+    const safe = label.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const value = String(d.deviceId || '').replace(/"/g, '&quot;');
+    opts.push(`<option value="${value}">${safe}</option>`);
+  });
+  el.innerHTML = opts.join('');
+  el.value = cur && [...el.options].some((o) => o.value === cur) ? cur : '';
+}
+
+async function refreshMicDeviceLists() {
+  if (!navigator.mediaDevices?.enumerateDevices) return;
+  let list = [];
+  try { list = await navigator.mediaDevices.enumerateDevices(); } catch (e) { return; }
+  _fillAudioDeviceSelect('mic-drawer-input', list.filter((d) => d.kind === 'audioinput'), localStorage.getItem('mb_mic_device') || '', 'dial.mic.unnamed_in');
+  _fillAudioDeviceSelect('mic-drawer-output', list.filter((d) => d.kind === 'audiooutput'), localStorage.getItem('mb_spk_device') || '', 'dial.mic.unnamed_out');
+}
+
+function _restartMicDrawerMonitor() {
+  if (!_micDrawerMonitoring) return;
+  _micDrawerMonitoring = false;
+  void startMicDrawerMonitor();
+}
+
 function _micDrawerWireControlsOnce() {
   if (window._micDrawerControlsWired) return;
   window._micDrawerControlsWired = true;
@@ -272,6 +349,7 @@ function _micDrawerWireControlsOnce() {
   const thrEl = document.getElementById('mic-drawer-threshold');
   gainEl?.addEventListener('input', () => {
     localStorage.setItem('mb_mic_drawer_gain', gainEl.value);
+    _micDrawerPaintValues();
     const g = parseFloat(gainEl.value);
     if (_micDrawerInputGain) _micDrawerInputGain.gain.value = Number.isFinite(g) ? g : 1;
     _applyMicSensitivityToLiveCall();
@@ -279,9 +357,29 @@ function _micDrawerWireControlsOnce() {
   });
   thrEl?.addEventListener('input', () => {
     localStorage.setItem('mb_mic_drawer_thresh', thrEl.value);
+    _micDrawerPaintValues();
     const t = document.getElementById('mic-drawer-in-threshold');
     if (t) t.style.left = `${thrEl.value}%`;
     if (_micGateAnalyser) _runMicThresholdGateTick();
+  });
+  document.getElementById('mic-drawer-input')?.addEventListener('change', (ev) => {
+    localStorage.setItem('mb_mic_device', ev.target.value || '');
+    applySavedMicToTelnyx();
+    _restartMicDrawerMonitor();
+  });
+  document.getElementById('mic-drawer-output')?.addEventListener('change', (ev) => {
+    localStorage.setItem('mb_spk_device', ev.target.value || '');
+    applySavedMicToTelnyx();
+  });
+  document.getElementById('mic-drawer-echo')?.addEventListener('change', (ev) => {
+    localStorage.setItem('mb_mic_echo', ev.target.checked ? '1' : '0');
+    applySavedMicToTelnyx();
+    _restartMicDrawerMonitor();
+  });
+  document.getElementById('mic-drawer-ns')?.addEventListener('change', (ev) => {
+    localStorage.setItem('mb_mic_ns', ev.target.checked ? '1' : '0');
+    applySavedMicToTelnyx();
+    _restartMicDrawerMonitor();
   });
 }
 
@@ -292,9 +390,14 @@ function _micDrawerLoadPrefs() {
   const te = document.getElementById('mic-drawer-threshold');
   if (ge && g) ge.value = g;
   if (te && t) te.value = t;
+  const echo = document.getElementById('mic-drawer-echo');
+  const ns = document.getElementById('mic-drawer-ns');
+  if (echo) echo.checked = _micAudioFlag('mb_mic_echo', true);
+  if (ns) ns.checked = _micAudioFlag('mb_mic_ns', true);
   if (_micDrawerInputGain && ge) _micDrawerInputGain.gain.value = parseFloat(ge.value) || 1;
   const trEl = document.getElementById('mic-drawer-in-threshold');
   if (trEl && te) trEl.style.left = `${te.value}%`;
+  _micDrawerPaintValues();
   _applyMicSensitivityToLiveCall();
 }
 
@@ -403,7 +506,11 @@ async function _startMicThresholdGate() {
   if (dialerStatus !== 'on_call') return;
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
-    _micGateStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    try {
+      _micGateStream = await navigator.mediaDevices.getUserMedia(_micInputConstraints());
+    } catch (err) {
+      _micGateStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    }
     _micGateCtx = new Ctx();
     const src = _micGateCtx.createMediaStreamSource(_micGateStream);
     _micGateAnalyser = _micGateCtx.createAnalyser();
@@ -421,6 +528,15 @@ function saveMicDrawerPrefs() {
   const te = document.getElementById('mic-drawer-threshold');
   if (ge) localStorage.setItem('mb_mic_drawer_gain', ge.value);
   if (te) localStorage.setItem('mb_mic_drawer_thresh', te.value);
+  const input = document.getElementById('mic-drawer-input');
+  const output = document.getElementById('mic-drawer-output');
+  const echo = document.getElementById('mic-drawer-echo');
+  const ns = document.getElementById('mic-drawer-ns');
+  if (input) localStorage.setItem('mb_mic_device', input.value || '');
+  if (output) localStorage.setItem('mb_spk_device', output.value || '');
+  if (echo) localStorage.setItem('mb_mic_echo', echo.checked ? '1' : '0');
+  if (ns) localStorage.setItem('mb_mic_ns', ns.checked ? '1' : '0');
+  applySavedMicToTelnyx();
   if (_micDrawerInputGain && ge) {
     const g = parseFloat(ge.value);
     _micDrawerInputGain.gain.value = Number.isFinite(g) ? g : 1;
@@ -486,7 +602,11 @@ async function startMicDrawerMonitor() {
   _micDrawerStopAudioCore();
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
-    _micDrawerStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    try {
+      _micDrawerStream = await navigator.mediaDevices.getUserMedia(_micInputConstraints());
+    } catch (err) {
+      _micDrawerStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    }
     _micDrawerInputCtx = new Ctx();
     const src = _micDrawerInputCtx.createMediaStreamSource(_micDrawerStream);
     _micDrawerInputGain = _micDrawerInputCtx.createGain();
@@ -516,6 +636,7 @@ async function startMicDrawerMonitor() {
     }
     micGranted = true;
     if (typeof updateMicStatus === 'function') updateMicStatus(true);
+    void refreshMicDeviceLists();
     _micDrawerTick();
   } catch (e) {
     toast(
@@ -543,8 +664,40 @@ function toggleMicDrawerMonitor() {
   else void startMicDrawerMonitor();
 }
 
-function playMicDrawerBeep() {
-  mbPlayCue('connect');
+async function playMicDrawerBeep() {
+  const speakerId = localStorage.getItem('mb_spk_device') || '';
+  const canSink = speakerId && typeof HTMLMediaElement !== 'undefined' && typeof HTMLMediaElement.prototype.setSinkId === 'function';
+  if (!canSink) {
+    mbPlayCue('connect');
+    return;
+  }
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx();
+    const dest = ctx.createMediaStreamDestination();
+    const now = ctx.currentTime;
+    [[660, 0, 0.07], [880, 0.09, 0.1]].forEach(([freq, at, dur]) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, now + at);
+      g.gain.exponentialRampToValueAtTime(0.08, now + at + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + at + dur);
+      o.connect(g).connect(dest);
+      o.start(now + at);
+      o.stop(now + at + dur + 0.02);
+    });
+    const audio = new Audio();
+    audio.srcObject = dest.stream;
+    await audio.setSinkId(speakerId);
+    await audio.play();
+    setTimeout(() => {
+      try { audio.pause(); audio.srcObject = null; ctx.close(); } catch (e) {}
+    }, 700);
+  } catch (e) {
+    mbPlayCue('connect');
+  }
 }
 
 function mbPlayCue(kind) {
@@ -597,6 +750,8 @@ function toggleMicAudioDrawer() {
   _micDrawerWireControlsOnce();
   _micDrawerLoadPrefs();
   el.style.display = 'block';
+  void refreshMicDeviceLists();
+  if (!_micDrawerMonitoring) void startMicDrawerMonitor();
 }
 
 async function runManualDialSearch() {

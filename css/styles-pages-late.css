@@ -448,7 +448,9 @@ i.ph {
 }
 .dialer-page-hdr {
   background: var(--bg-2);
-  border-bottom: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 #page-dialer .dialer-status-row {
   display: flex;
