@@ -1349,6 +1349,8 @@ async function applyDefaultTakvimToFirmCampaigns() {
 let _mesaiPlanDraft = null;
 let _mesaiPlanGun = 'pzt';
 let _mesaiPlanFirm = '';
+let _mesaiPlanTz = 'Europe/Berlin';
+let _mesaiPlanFirms = [];
 const MESAI_GUN_ORDER = ['pzt', 'sal', 'car', 'per', 'cum', 'cmt', 'paz'];
 const MESAI_GUN_LABEL = { pzt: 'Pazartesi', sal: 'Salı', car: 'Çarşamba', per: 'Perşembe', cum: 'Cuma', cmt: 'Cumartesi', paz: 'Pazar' };
 
@@ -1362,6 +1364,8 @@ function mesaiPlanFallback() {
 }
 
 function mesaiPlanFlush() {
+  const tz = document.getElementById('mp-tz');
+  if (tz) _mesaiPlanTz = tz.checked ? 'Europe/Istanbul' : 'Europe/Berlin';
   if (!_mesaiPlanDraft || !_mesaiPlanGun) return;
   const on = document.getElementById('mp-on');
   const start = document.getElementById('mp-start');
@@ -1422,7 +1426,15 @@ function mesaiPlanRender() {
 <div class="form-row"><label class="form-label">${t('mesai.plan.end')}</label><input type="time" class="form-input mp-bend" value="${item.end || ''}"></div>
 </div>
 </div>`).join('');
-  host.innerHTML = `<div class="form-label">${t('mesai.plan.day')}</div>
+  const superAdmin = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+  const firmPick = superAdmin ? `<div class="form-row" style="margin-bottom:12px;"><label class="form-label">${t('mesai.plan.firm')}</label>
+<select class="form-input" id="mp-firm" onchange="mesaiPlanFirmChanged(this.value)">${_mesaiPlanFirms.map((firm) => `<option value="${String(firm.id).replace(/"/g, '')}"${String(firm.id) === String(_mesaiPlanFirm) ? ' selected' : ''}>${String(firm.name || '').replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]))}</option>`).join('')}</select></div>` : '';
+  host.innerHTML = `${firmPick}
+<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;font-weight:700;margin-bottom:4px;">
+<input type="checkbox" id="mp-tz" ${_mesaiPlanTz === 'Europe/Istanbul' ? 'checked' : ''}> ${t('mesai.plan.tz')}
+</label>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">${t('mesai.plan.tzHint')}</div>
+<div class="form-label">${t('mesai.plan.day')}</div>
 <div class="mesai-plan-days">${pills}</div>
 <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin-bottom:12px;">
 <input type="checkbox" id="mp-on" ${day.off ? '' : 'checked'} onchange="mesaiPlanFlush();mesaiPlanRender();"> ${t('mesai.plan.on')}
@@ -1459,30 +1471,58 @@ function mesaiPlanCopyMonday() {
   toast(t('mesai.plan.copied'), 'ok');
 }
 
-async function loadMesaiPlanCard() {
+async function mesaiPlanFirmChanged(id) {
+  if (!id || String(id) === String(_mesaiPlanFirm)) return;
+  _mesaiPlanFirm = String(id);
+  await mesaiPlanLoadFirm(id);
+}
+
+async function mesaiPlanLoadFirm(fid) {
   const host = document.getElementById('mesai-plan-body');
   if (!host) return;
-  const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id || '';
   if (!fid) {
-    host.textContent = 'Firma seçin';
+    host.textContent = t('mesai.plan.pick');
     return;
   }
   _mesaiPlanFirm = String(fid);
   if (typeof ensureFirmTakvimDefaultsLoaded === 'function') await ensureFirmTakvimDefaultsLoaded(fid);
-  let saved = null;
+  let raw = null;
   try {
     const rows = await sb(`firms?id=eq.${fid}&select=settings`);
-    saved = typeof opsNormalizeMesaiPlan === 'function' ? opsNormalizeMesaiPlan(rows?.[0]?.settings?.mesai_plan) : null;
+    raw = rows?.[0]?.settings?.mesai_plan || null;
   } catch (e) {}
+  _mesaiPlanTz = typeof opsMesaiTzOf === 'function' ? opsMesaiTzOf(raw) : 'Europe/Berlin';
+  const saved = typeof opsNormalizeMesaiPlan === 'function' ? opsNormalizeMesaiPlan(raw) : null;
   _mesaiPlanDraft = saved || mesaiPlanFallback();
-  const berlin = typeof opsBerlinClock === 'function' ? opsBerlinClock() : null;
-  _mesaiPlanGun = berlin?.gun || 'pzt';
+  const clock = typeof opsBerlinClock === 'function' ? opsBerlinClock(_mesaiPlanTz) : null;
+  _mesaiPlanGun = clock?.gun || 'pzt';
   mesaiPlanRender();
+}
+
+async function loadMesaiPlanCard() {
+  const host = document.getElementById('mesai-plan-body');
+  if (!host) return;
+  const superAdmin = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+  if (superAdmin) {
+    try {
+      _mesaiPlanFirms = await sb('firms?is_active=eq.true&select=id,name&order=name.asc') || [];
+    } catch (e) {
+      _mesaiPlanFirms = [];
+    }
+    const current = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id || '';
+    const known = _mesaiPlanFirms.some((firm) => String(firm.id) === String(_mesaiPlanFirm));
+    if (!known) _mesaiPlanFirm = current && _mesaiPlanFirms.some((firm) => String(firm.id) === String(current)) ? String(current) : String(_mesaiPlanFirms[0]?.id || '');
+  } else {
+    _mesaiPlanFirms = [];
+    _mesaiPlanFirm = String(currentUser?.firm_id || '');
+  }
+  await mesaiPlanLoadFirm(_mesaiPlanFirm);
 }
 
 async function saveMesaiPlan() {
   mesaiPlanFlush();
-  const fid = _mesaiPlanFirm || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id;
+  const superAdmin = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+  const fid = superAdmin ? _mesaiPlanFirm : (currentUser?.firm_id || '');
   if (!fid || !_mesaiPlanDraft) {
     toast('Önce firma seçin', 'warn');
     return;
@@ -1518,10 +1558,12 @@ async function saveMesaiPlan() {
     await sb(`firms?id=eq.${fid}`, {
       method: 'PATCH',
       prefer: 'return=minimal',
-      body: JSON.stringify({ settings: { ...existing, mesai_plan: plan } }),
+      body: JSON.stringify({ settings: { ...existing, mesai_plan: { tz: _mesaiPlanTz, ...plan } } }),
     });
     _mesaiPlanDraft = plan;
-    if (typeof opsApplyMesaiPlan === 'function') opsApplyMesaiPlan(plan);
+    if (String(fid) === String(typeof opsFirmId === 'function' ? opsFirmId() : '') && typeof opsApplyMesaiPlan === 'function') {
+      opsApplyMesaiPlan({ tz: _mesaiPlanTz, ...plan });
+    }
     toast(t('mesai.plan.saved'), 'ok');
   } catch (e) {
     toast('Hata: ' + e.message, 'err');

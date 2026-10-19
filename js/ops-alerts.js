@@ -1575,19 +1575,25 @@ async function opsTickData() {
 const OPS_GUN_LABEL = { pzt: 'Pazartesi', sal: 'Salı', car: 'Çarşamba', per: 'Perşembe', cum: 'Cuma', cmt: 'Cumartesi', paz: 'Pazar' };
 const OPS_GUN_ORDER = ['pzt', 'sal', 'car', 'per', 'cum', 'cmt', 'paz'];
 let _opsMesaiPlan = null;
+let _opsMesaiTz = 'Europe/Berlin';
 let _opsMesaiAt = 0;
 const _opsShiftTold = new Set();
 
-function opsBerlinClock() {
+function opsBerlinClock(zone) {
+  const timeZone = zone === 'Europe/Istanbul' ? 'Europe/Istanbul' : 'Europe/Berlin';
   const parts = {};
   new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/Berlin', hourCycle: 'h23', weekday: 'short', hour: '2-digit', minute: '2-digit',
+    timeZone, hourCycle: 'h23', weekday: 'short', hour: '2-digit', minute: '2-digit',
   }).formatToParts(new Date()).forEach((part) => { parts[part.type] = part.value; });
   const gun = { Mon: 'pzt', Tue: 'sal', Wed: 'car', Thu: 'per', Fri: 'cum', Sat: 'cmt', Sun: 'paz' }[parts.weekday] || 'pzt';
   const hour = Number(parts.hour);
   const minute = Number(parts.minute);
-  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date());
-  return { gun, hour, minute, mins: hour * 60 + minute, date };
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date());
+  return { gun, hour, minute, mins: hour * 60 + minute, date, zone: timeZone };
+}
+
+function opsMesaiTzOf(raw) {
+  return raw && raw.tz === 'Europe/Istanbul' ? 'Europe/Istanbul' : 'Europe/Berlin';
 }
 
 function opsHm(value, fallback) {
@@ -1645,22 +1651,22 @@ function opsLeftText(mins) {
 }
 
 function opsMesaiWindow() {
-  const berlin = opsBerlinClock();
-  const row = _opsMesaiPlan?.[berlin.gun] || opsMesaiFallbackDay(berlin.gun);
-  if (!row || row.off) return { off: true, breaks: [], label: OPS_GUN_LABEL[berlin.gun], berlin };
+  const clock = opsBerlinClock(_opsMesaiTz);
+  const row = _opsMesaiPlan?.[clock.gun] || opsMesaiFallbackDay(clock.gun);
+  if (!row || row.off) return { off: true, breaks: [], label: OPS_GUN_LABEL[clock.gun], clock };
   return {
     off: false,
     start: row.start,
     end: row.end,
     breaks: Array.isArray(row.breaks) ? row.breaks : [],
-    label: OPS_GUN_LABEL[berlin.gun],
-    berlin,
+    label: OPS_GUN_LABEL[clock.gun],
+    clock,
   };
 }
 
 function opsMesaiBarText(win) {
   if (!win || win.off) return opsSay('ops.mesai.none', 'Mesai yok');
-  const now = win.berlin.mins;
+  const now = win.clock.mins;
   const start = opsHmMins(win.start);
   const end = opsHmMins(win.end);
   const span = `${win.start}–${win.end}`;
@@ -1689,6 +1695,76 @@ function opsPaintMesaiBar() {
   label.textContent = text;
   const btn = document.getElementById('tb-mesai-btn');
   if (btn) btn.title = text;
+  const pop = document.getElementById('tb-mesai-pop');
+  if (pop && !pop.hidden) opsFillMesaiPop(pop);
+}
+
+function opsMesaiTimeline(win) {
+  const row = document.createElement('div');
+  row.className = 'tb-mesai-line';
+  const name = document.createElement('span');
+  name.textContent = win.label || '';
+  const track = document.createElement('div');
+  track.className = 'tb-mesai-track';
+  if (!win.off) {
+    const start = opsHmMins(win.start);
+    const end = opsHmMins(win.end);
+    const span = Math.max(1, (end || 0) - (start || 0));
+    (win.breaks || []).forEach((item) => {
+      const a = opsHmMins(item.start);
+      const z = opsHmMins(item.end);
+      if (a == null || z == null || start == null || z <= a) return;
+      const gap = document.createElement('i');
+      gap.className = 'tb-mesai-gap';
+      gap.style.left = `${Math.max(0, ((a - start) / span) * 100)}%`;
+      gap.style.width = `${Math.max(0, ((z - a) / span) * 100)}%`;
+      track.appendChild(gap);
+    });
+    const now = win.clock?.mins;
+    if (start != null && end != null && now >= start && now <= end) {
+      const dot = document.createElement('b');
+      dot.className = 'tb-mesai-now';
+      dot.style.left = `${((now - start) / span) * 100}%`;
+      track.appendChild(dot);
+    }
+  }
+  const time = document.createElement('span');
+  time.textContent = win.off ? '—' : `${win.start}–${win.end}`;
+  row.append(name, track, time);
+  return row;
+}
+
+function opsFillMesaiPop(pop) {
+  const win = opsMesaiWindow();
+  pop.replaceChildren();
+  pop.appendChild(opsMesaiTimeline(win));
+  const sub = document.createElement('div');
+  sub.className = 'tb-mesai-sub';
+  const zone = _opsMesaiTz === 'Europe/Istanbul' ? opsSay('mesai.tz.tr', 'Türkiye') : opsSay('mesai.tz.berlin', 'Berlin');
+  sub.textContent = `${opsMesaiBarText(win)} · ${zone}`;
+  pop.appendChild(sub);
+  const kicker = document.createElement('div');
+  kicker.className = 'tb-mesai-kicker';
+  kicker.textContent = opsSay('ops.mesai.breaks', 'Molalar');
+  pop.appendChild(kicker);
+  const breaks = win.off ? [] : (win.breaks || []);
+  if (!breaks.length) {
+    const empty = document.createElement('div');
+    empty.className = 'tb-mesai-row';
+    empty.textContent = opsSay('ops.mesai.noBreak', 'Mola yok');
+    pop.appendChild(empty);
+    return;
+  }
+  breaks.forEach((item, index) => {
+    const line = document.createElement('div');
+    line.className = 'tb-mesai-row';
+    const label = document.createElement('span');
+    label.textContent = `${index + 1}. ${opsSay('ops.break.title', 'Mola')}`;
+    const when = document.createElement('b');
+    when.textContent = `${item.start} – ${item.end}`;
+    line.append(label, when);
+    pop.appendChild(line);
+  });
 }
 
 function opsPlaceMesaiPop(pop) {
@@ -1696,7 +1772,7 @@ function opsPlaceMesaiPop(pop) {
   if (!btn || !pop) return;
   if (pop.parentElement !== document.body) document.body.appendChild(pop);
   const rect = btn.getBoundingClientRect();
-  const width = 280;
+  const width = 340;
   let left = rect.left;
   if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
   if (left < 8) left = 8;
@@ -1712,55 +1788,16 @@ function opsToggleMesaiInfo(ev) {
     pop.hidden = true;
     return;
   }
-  const win = opsMesaiWindow();
-  pop.replaceChildren();
-  const title = document.createElement('div');
-  title.className = 'tb-mesai-title';
-  title.textContent = win.label || opsSay('ops.mesai.today', 'Bugün');
-  pop.appendChild(title);
-  const clock = document.createElement('div');
-  clock.className = 'tb-mesai-clock';
-  clock.textContent = win.off ? opsSay('ops.mesai.none', 'Mesai yok') : `${win.start} – ${win.end}`;
-  pop.appendChild(clock);
-  const sub = document.createElement('div');
-  sub.className = 'tb-mesai-sub';
-  sub.textContent = opsMesaiBarText(win);
-  pop.appendChild(sub);
-  const kicker = document.createElement('div');
-  kicker.className = 'tb-mesai-kicker';
-  kicker.textContent = opsSay('ops.mesai.breaks', 'Molalar');
-  pop.appendChild(kicker);
-  const breaks = win.off ? [] : (win.breaks || []);
-  if (!breaks.length) {
-    const empty = document.createElement('div');
-    empty.className = 'tb-mesai-row';
-    empty.textContent = opsSay('ops.mesai.noBreak', 'Mola yok');
-    pop.appendChild(empty);
-  } else {
-    breaks.forEach((item, index) => {
-      const row = document.createElement('div');
-      row.className = 'tb-mesai-row';
-      const name = document.createElement('span');
-      name.textContent = `${index + 1}. ${opsSay('ops.break.title', 'Mola')}`;
-      const time = document.createElement('b');
-      time.textContent = `${item.start} – ${item.end}`;
-      row.append(name, time);
-      pop.appendChild(row);
-    });
-  }
+  opsFillMesaiPop(pop);
   pop.hidden = false;
   opsPlaceMesaiPop(pop);
 }
 
 function opsApplyMesaiPlan(raw) {
   _opsMesaiPlan = opsNormalizeMesaiPlan(raw);
+  _opsMesaiTz = opsMesaiTzOf(raw);
   _opsMesaiAt = Date.now();
   opsPaintMesaiBar();
-  const pop = document.getElementById('tb-mesai-pop');
-  if (pop && !pop.hidden) {
-    pop.hidden = true;
-    opsToggleMesaiInfo();
-  }
 }
 
 async function opsLoadMesai() {
@@ -1776,7 +1813,9 @@ async function opsLoadMesai() {
   }
   try {
     const rows = await sb(`firms?id=eq.${fid}&select=settings`);
-    _opsMesaiPlan = opsNormalizeMesaiPlan(rows?.[0]?.settings?.mesai_plan);
+    const raw = rows?.[0]?.settings?.mesai_plan;
+    _opsMesaiPlan = opsNormalizeMesaiPlan(raw);
+    _opsMesaiTz = opsMesaiTzOf(raw);
   } catch (e) {
     _opsMesaiPlan = null;
   }
@@ -1788,8 +1827,8 @@ function opsTickShift() {
   if (window.__opsHoldShift || !currentUser) return;
   const win = opsMesaiWindow();
   if (win.off || !win.end) return;
-  const now = win.berlin.mins;
-  const day = win.berlin.date;
+  const now = win.clock.mins;
+  const day = win.clock.date;
   if (opsSoundOn('break')) {
     (win.breaks || []).forEach((item) => {
       const start = opsHmMins(item.start);
