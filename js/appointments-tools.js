@@ -309,7 +309,9 @@ function renderTakvimFailed() {
       const appt = takvimAppts.find((a) => a.id === s.appointment_id);
       const nm = appt ? appt.nachname : '—';
       const fv = getSlotGradientAndText(s, appt);
-      h += `<div data-failed="${s.id}" style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:700;padding:4px 6px;border-radius:4px;cursor:pointer;background:${fv.background};color:${fv.color};">
+      const badge = appt && typeof takvimPlzBadge === 'function' ? takvimPlzBadge(appt) : '';
+      h += `<div data-failed="${s.id}" style="position:relative;display:flex;align-items:center;gap:4px;font-size:9px;font-weight:700;padding:${badge ? '20px' : '4px'} 6px 4px;border-radius:4px;cursor:pointer;background:${fv.background};color:${fv.color};">
+${badge}
 <button type="button" data-up="${s.id}" style="border:0;border-radius:4px;background:#14532d;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;cursor:pointer;">${typeof t === 'function' ? t('cal.up') : 'Üste al'}</button>
 <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nm}</span>
 </div>`;
@@ -514,34 +516,105 @@ async function nudgeTakvimSlot(slotId, deltaMin) {
   }
 }
 
-function openTakvimPlzMeasureModal() {
-  if (!takvimCampId) {
-    toast('Önce kampanya seçin', 'err');
+let _takvimPlzTimer = null;
+function takvimNormalizePlz(value) {
+  let p = String(value || '').replace(/\D/g, '');
+  if (p.length === 4) p = `0${p}`;
+  if (p.length > 5) p = p.slice(0, 5);
+  return p;
+}
+function takvimToggleFilters() {
+  const box = document.getElementById('takvim-filters');
+  const open = !box || box.hidden;
+  ['takvim-filters', 'takvim-filters-ov'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = !open;
+  });
+  ['takvim-filter-btn', 'takvim-filter-btn-ov'].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.toggle('is-on', open);
+  });
+}
+function takvimPlzMeasureOpen() {
+  ['takvim-plz-btn', 'takvim-plz-btn-ov'].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.hidden = true;
+  });
+  ['takvim-plz-inp', 'takvim-plz-inp-ov'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.hidden = false;
+    if (_takvimMeasureFromPlz && !el.value) el.value = _takvimMeasureFromPlz;
+  });
+  (document.getElementById('takvim-plz-inp') || document.getElementById('takvim-plz-inp-ov'))?.focus();
+}
+function takvimPlzMeasureClose() {
+  clearTimeout(_takvimPlzTimer);
+  _takvimMeasureFromPlz = null;
+  _takvimMeasureCache = {};
+  ['takvim-plz-inp', 'takvim-plz-inp-ov'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = '';
+    el.hidden = true;
+  });
+  ['takvim-plz-btn', 'takvim-plz-btn-ov'].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.hidden = false;
+  });
+  if (typeof renderTakvimSlots === 'function') renderTakvimSlots();
+  if (typeof renderTakvimFailed === 'function') renderTakvimFailed();
+}
+function takvimPlzMeasureKey(ev) {
+  if (ev.key === 'Escape') takvimPlzMeasureClose();
+}
+function takvimPlzMeasureInput(value) {
+  ['takvim-plz-inp', 'takvim-plz-inp-ov'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && document.activeElement !== el && el.value !== value) el.value = value;
+  });
+  clearTimeout(_takvimPlzTimer);
+  const raw = String(value || '').trim();
+  if (!raw) {
+    _takvimMeasureFromPlz = null;
+    _takvimMeasureCache = {};
+    renderTakvimSlots();
+    if (typeof renderTakvimFailed === 'function') renderTakvimFailed();
     return;
   }
-  const old = document.getElementById('m-takvim-plz-measure');
-  if (old) old.remove();
-  const m = document.createElement('div');
-  m.id = 'm-takvim-plz-measure';
-  m.className = 'modal-overlay open';
-  const cur = _takvimMeasureFromPlz || '';
-  m.innerHTML =
-    '<div class="modal" style="max-width:400px;">' +
-    '<div class="modal-hdr"><div class="modal-title">Mesafe ölç (PLZ)</div>' +
-    '<button type="button" class="modal-close" onclick="document.getElementById(\'m-takvim-plz-measure\')?.remove()">✕</button></div>' +
-    '<div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;">' +
-    '<div class="form-row"><label class="form-label">Başlangıç PLZ</label>' +
-    '<input type="text" class="form-input" id="takvim-plz-measure-inp" placeholder="örn. 80331" value="' +
-    String(cur).replace(/"/g, '') +
-    '"></div>' +
-    '<div style="font-size:11px;color:var(--text-3);">Girilen PLZ\'den takvimdeki tüm randevulara (PLZ bilgisi olan) rota mesafesi yazılır.</div>' +
-    '</div>' +
-    '<div class="modal-footer">' +
-    '<button type="button" class="btn btn-ghost" onclick="clearTakvimPlzMeasure()">Temizle</button>' +
-    '<button type="button" class="btn btn-ghost" onclick="document.getElementById(\'m-takvim-plz-measure\')?.remove()">Kapat</button>' +
-    '<button type="button" class="btn btn-primary" onclick="runPlzMeasureFromModal()">Ölç</button>' +
-    '</div></div>';
-  document.body.appendChild(m);
+  const plz = takvimNormalizePlz(raw);
+  if (plz.length < 5) return;
+  _takvimPlzTimer = setTimeout(() => runTakvimPlzMeasure(plz), 450);
+}
+async function runTakvimPlzMeasure(plz) {
+  if (!takvimCampId) { toast('Önce kampanya seçin', 'err'); return; }
+  _takvimDistAllOriginId = null;
+  _takvimMeasureFromPlz = plz;
+  _takvimMeasureCache = {};
+  const targets = (takvimSlots || []).filter((s) => s.durum === 'dolu' && s.appointment_id);
+  for (const s of targets) {
+    if (_takvimMeasureFromPlz !== plz) return;
+    const da = takvimAppts.find((a) => a.id === s.appointment_id);
+    if (!da?.plz) continue;
+    const dest = takvimNormalizePlz(da.plz);
+    if (dest.length < 4) continue;
+    const key = `${plz}_${dest}`;
+    if (_takvimMeasureCache[key]) continue;
+    try {
+      const g1 = await geocodeTomTom(`${plz}, Germany`);
+      const g2 = await geocodeTomTom(`${dest}, Germany`);
+      if (!g1 || !g2) continue;
+      const rt = await routeTomTomCoords(g1, g2);
+      if (rt) _takvimMeasureCache[key] = { km: (rt.d / 1000).toFixed(1), min: Math.round(rt.t / 60) };
+    } catch (_) {}
+  }
+  if (_takvimMeasureFromPlz === plz && typeof renderTakvimSlots === 'function') {
+    renderTakvimSlots();
+    if (typeof renderTakvimFailed === 'function') renderTakvimFailed();
+  }
+}
+function openTakvimPlzMeasureModal() {
+  takvimPlzMeasureOpen();
 }
 
 async function runPlzMeasureFromModal() {

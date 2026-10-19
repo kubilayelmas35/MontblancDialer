@@ -171,6 +171,38 @@ min-height: 0;
   border-bottom: 1px solid var(--border);
   background: var(--bg-2);
 }
+.takvim-filters[hidden] { display: none !important; }
+#takvim-filter-btn.is-on,
+#takvim-filter-btn-ov.is-on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-2));
+}
+.takvim-plz-measure { display: inline-flex; align-items: center; }
+.takvim-plz-inp { width: 148px; height: 28px; font-size: 12px; padding: 4px 8px; }
+.takvim-plz-inp[hidden],
+#takvim-plz-btn[hidden],
+#takvim-plz-btn-ov[hidden] { display: none !important; }
+.takvim-slot-el { position: relative; }
+.tk-plz-badge {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  max-width: calc(100% - 12px);
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+.tk-plz-badge.is-ok { background: #166534; }
+.tk-plz-badge.is-warn { background: #a16207; }
+.tk-plz-badge.is-bad { background: #991b1b; }
 .takvim-search {
   width: min(280px, 100%);
   font-size: 12px;

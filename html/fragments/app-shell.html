@@ -1923,7 +1923,10 @@ Firma Ekle
 <button type="button" class="btn btn-ghost btn-sm tk-nav-btn" onclick="takvimNext()" aria-label="Sonraki"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="9 18 15 12 9 6"/></svg></button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="takvimGoToday()">Bugün</button>
 </div>
-<button type="button" class="btn btn-ghost btn-sm" onclick="openTakvimPlzMeasureModal()" title="PLZ ile tüm randevulara uzaklık">Mesafe ölç</button>
+<span class="takvim-plz-measure">
+<button type="button" class="btn btn-ghost btn-sm" id="takvim-plz-btn" onclick="takvimPlzMeasureOpen()">Mesafe ölç</button>
+<input type="text" class="form-input takvim-plz-inp" id="takvim-plz-inp" hidden data-i18n-placeholder="cal.plz.ph" placeholder="Posta kodu girin" autocomplete="off" inputmode="numeric" oninput="takvimPlzMeasureInput(this.value)" onkeydown="takvimPlzMeasureKey(event)">
+</span>
 </div>
 <div class="takvim-toolbar-cluster takvim-toolbar-cluster--right">
 <div id="takvim-page-firm-selector" class="takvim-page-firm-selector"></div>
@@ -1932,6 +1935,7 @@ Firma Ekle
 <option value="">Kampanya seç...</option>
 </select>
 </div>
+<button type="button" class="btn btn-ghost btn-sm" id="takvim-filter-btn" onclick="takvimToggleFilters()" data-tr="Filtreler" data-de="Filter">Filtreler</button>
 <div id="takvim-admin-tools" class="takvim-admin-tools" style="display:none;">
 <button type="button" class="btn btn-ghost btn-sm" onclick="openBulkSlotModal()" title="Toplu slot">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1948,7 +1952,7 @@ Ayarlar
 </div>
 </div>
 <div id="takvim-main" style="flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);min-height:0;">
-<div class="takvim-filters" id="takvim-filters">
+<div class="takvim-filters" id="takvim-filters" hidden>
 <input type="search" id="takvim-search" class="takvim-search" data-i18n-placeholder="cal.filter.search" placeholder="İsim, telefon, PLZ" oninput="takvimSetSearch(this.value)" autocomplete="off">
 <div id="takvim-status-chips" class="takvim-chip-row" hidden></div>
 <div id="takvim-customer-chips" class="takvim-chip-row" hidden></div>

@@ -407,9 +407,13 @@ ondrop="handleDrop(event)">
 <button type="button" class="btn btn-ghost btn-sm tk-nav-btn" onclick="takvimNext()" aria-label="Sonraki"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="9 18 15 12 9 6"/></svg></button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="takvimGoToday()">Bugün</button>
 </div>
-<button type="button" class="btn btn-ghost btn-sm" onclick="openTakvimPlzMeasureModal()">Mesafe ölç</button>
+<span class="takvim-plz-measure">
+<button type="button" class="btn btn-ghost btn-sm" id="takvim-plz-btn-ov" onclick="takvimPlzMeasureOpen()">Mesafe ölç</button>
+<input type="text" class="form-input takvim-plz-inp" id="takvim-plz-inp-ov" hidden data-i18n-placeholder="cal.plz.ph" placeholder="Posta kodu girin" autocomplete="off" inputmode="numeric" oninput="takvimPlzMeasureInput(this.value)" onkeydown="takvimPlzMeasureKey(event)">
+</span>
 </div>
 <div class="takvim-toolbar-cluster takvim-toolbar-cluster--right">
+<button type="button" class="btn btn-ghost btn-sm" id="takvim-filter-btn-ov" onclick="takvimToggleFilters()" data-tr="Filtreler" data-de="Filter">Filtreler</button>
 <div id="takvim-overlay-admin" class="takvim-overlay-admin" style="display:none;">
 <div id="takvim-overlay-firm-selector"></div>
 <select class="form-input" id="takvim-camp-select-ov" onchange="onTakvimCampChange(this.value)">
@@ -427,7 +431,7 @@ ondrop="handleDrop(event)">
 </div>
 </div>
 </div>
-<div class="takvim-filters" id="takvim-filters-ov">
+<div class="takvim-filters" id="takvim-filters-ov" hidden>
 <input type="search" id="takvim-search-ov" class="takvim-search" data-i18n-placeholder="cal.filter.search" placeholder="İsim, telefon, PLZ" oninput="takvimSetSearch(this.value)" autocomplete="off">
 <div id="takvim-status-chips-ov" class="takvim-chip-row" hidden></div>
 <div id="takvim-customer-chips-ov" class="takvim-chip-row" hidden></div>

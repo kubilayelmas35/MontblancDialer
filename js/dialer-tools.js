@@ -296,7 +296,7 @@ function mbFillIntegForms(cfg) {
     if (el) el.value = value || '';
   };
   set('s-google-key', line.google_key);
-  set('s-tomtom-key', line.tomtom_key);
+  set('s-tomtom-key', line.tomtom_key || (typeof DEFAULT_TOMTOM_KEY !== 'undefined' ? DEFAULT_TOMTOM_KEY : ''));
   set('s-telnyx-key', line.telnyx_api_key);
   set('s-conn-id', line.sip_connection_id);
   set('s-sip-user', line.sip_username);

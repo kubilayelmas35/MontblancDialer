@@ -6,7 +6,7 @@ const SB_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const SB_KEY = SB_ANON_KEY;
 
 const DEFAULT_GOOGLE_KEY = '';
-const DEFAULT_TOMTOM_KEY = '';
+const DEFAULT_TOMTOM_KEY = '0Qr9jgM8qfMzocWF9rhOsI6oHjebH59Y';
 const MB_BUSINESS_TZ = 'Europe/Berlin';
 
 const TAKVIM_URL = 'https://www.montblanccs.com/kalender';

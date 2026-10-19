@@ -187,7 +187,7 @@ let _takvimDistAllOriginId = null;
 const _takvimPlzRouteCache = {};
 /** Üst araç çubuğundan girilen PLZ → tüm terminlere uzaklık */
 let _takvimMeasureFromPlz = null;
-const _takvimMeasureCache = {};
+let _takvimMeasureCache = {};
 
 function takvimTimeToMinutes(t) {
   const p = String(t || '0:0').split(':');
@@ -860,7 +860,14 @@ function renderTakvimSlotsMonth() {
     if (appt) {
       const show = isAdmin || appt.agent_id === currentUser?.id;
       const nm = show ? _takvimApptCardName(appt) : '***';
+      const badge = takvimPlzBadge(appt);
       div.textContent = `${s.baslangic_saat.slice(0, 5)} ${nm}`;
+      if (badge) {
+        div.style.position = 'relative';
+        div.style.overflow = 'visible';
+        div.style.paddingTop = '16px';
+        div.insertAdjacentHTML('afterbegin', badge);
+      }
     } else {
       div.textContent = `${s.baslangic_saat.slice(0, 5)} Boş`;
     }
@@ -956,11 +963,8 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
     el.onclick = (ev) => ev.stopPropagation();
   } else if (appt) {
     const show = isAdmin || appt.agent_id===currentUser?.id;
-    let plzLine = '';
-    if (_takvimMeasureFromPlz && appt?.plz) {
-      const r = _takvimMeasureCache[`${_takvimMeasureFromPlz}_${appt.plz}`];
-      if (r) plzLine = `<div class="tk-slot-meta">${r.km} km · ${r.min} dk</div>`;
-    }
+    const plzLine = takvimPlzBadge(appt);
+    if (plzLine) el.style.paddingTop = '22px';
     let distAllHtml = '';
     if (!plzLine && _takvimDistAllOriginId && _takvimDistAllOriginId !== slot.id && slot.durum === 'dolu') {
       const origin = takvimSlots.find((x) => x.id === _takvimDistAllOriginId);
@@ -987,11 +991,11 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
     const fzAg = dense ? 8 : 10;
     const nmWrap = dense ? 'tak-slot-card-name tak-slot-card-name--dense' : 'tak-slot-card-name';
     const addrWrap = dense ? 'tak-slot-card-addr tak-slot-card-addr--dense' : 'tak-slot-card-addr';
-    el.innerHTML = `${canShift ? takvimSlotMoveMarkup(slot.id, true) : ''}<div class="takvim-slot-card" style="display:flex;flex-direction:column;gap:2px;line-height:1.2;max-width:100%;align-items:flex-start;text-align:left;">
+    el.innerHTML = `${plzLine}${canShift ? takvimSlotMoveMarkup(slot.id, true) : ''}<div class="takvim-slot-card" style="display:flex;flex-direction:column;gap:2px;line-height:1.2;max-width:100%;align-items:flex-start;text-align:left;">
 <div class="${nmWrap}" style="font-weight:800;font-size:${fzName}px;">${nm}</div>
 <div class="${addrWrap}" style="font-size:${fzLine}px;font-weight:600;opacity:.93;">${adr}</div>
 <div style="font-size:${fzMono}px;opacity:.9;font-family:var(--mono);white-space:nowrap;">${timeLn}</div>
-<div style="font-size:${fzAg}px;opacity:.84;word-break:break-word;">Agent: ${ag}</div></div>${plzLine}${distAllHtml}<div id="dist-${slot.id}" style="font-size:${dense ? 7 : 9}px;opacity:.88;margin-top:0;"></div>${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}${takvimSlotDistButtons(slot.id)}`;
+<div style="font-size:${fzAg}px;opacity:.84;word-break:break-word;">Agent: ${ag}</div></div>${distAllHtml}<div id="dist-${slot.id}" style="font-size:${dense ? 7 : 9}px;opacity:.88;margin-top:0;"></div>${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}${takvimSlotDistButtons(slot.id)}`;
     el.onclick = (ev) => {
       ev.stopPropagation();
       openTakvimSlotDetail(slot, appt);
@@ -1226,6 +1230,17 @@ function takvimPaintChipRow(host, kind, keys, counts) {
     });
     host.appendChild(btn);
   });
+}
+
+function takvimPlzBadge(appt) {
+  if (!_takvimMeasureFromPlz || !appt?.plz) return '';
+  const digits = String(appt.plz).replace(/\D/g, '');
+  const dest = digits.length === 4 ? `0${digits}` : digits.slice(0, 5);
+  const row = _takvimMeasureCache[`${_takvimMeasureFromPlz}_${dest}`] || _takvimMeasureCache[`${_takvimMeasureFromPlz}_${appt.plz}`];
+  if (!row) return '';
+  const min = Number(row.min) || 0;
+  const tone = min <= 30 ? 'is-ok' : min <= 45 ? 'is-warn' : 'is-bad';
+  return `<div class="tk-plz-badge ${tone}">${row.km} km · ${row.min} dk</div>`;
 }
 
 function renderTakvimFilterBar() {
