@@ -1,9 +1,11 @@
 <div id="notification-center" style="display:none;position:fixed;top:58px;right:14px;width:min(420px,92vw);max-height:72vh;overflow:auto;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;z-index:260;box-shadow:0 12px 28px rgba(0,0,0,.2);">
-<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);">
-<div style="font-size:13px;font-weight:800;" data-tr="Bildirim Merkezi" data-de="Benachrichtigungen">Bildirim Merkezi</div>
-<select id="notif-firm-sel" class="form-input" hidden style="width:auto;max-width:160px;font-size:12px;padding:4px 8px;" onchange="loadNotificationCenter()"></select>
+<div class="notif-center-head">
+<div class="notif-center-title" data-tr="Bildirim Merkezi" data-de="Benachrichtigungen">Bildirim Merkezi</div>
+<div class="notif-center-tools">
+<select id="notif-firm-sel" class="form-input" hidden style="width:auto;font-size:12px;padding:4px 8px;" onchange="loadNotificationCenter()"></select>
 <button type="button" id="notif-clear-all" class="btn btn-ghost btn-sm" onclick="notifClearAll()" data-tr="Tümünü sil" data-de="Alle löschen">Tümünü sil</button>
 <button class="btn btn-ghost btn-sm" onclick="toggleNotificationCenter(false)">Kapat</button>
+</div>
 </div>
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>

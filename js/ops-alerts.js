@@ -4,13 +4,14 @@
 let _opsDirective = { ids: [], at: '', by: '' };
 let _opsAlerts = {
   callMin: 4, goldAfter: 1, waitMin: 1,
-  roles: ['agent', 'field_agent'], effect: 'aurora', appt: true, campaign: true,
+  roles: ['agent', 'field_agent'], effect: 'aurora', appt: true, campaign: true, wrongAfter: 2,
   sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, camp: true, call: true, wait: true, pick: true, drop: true, clear: true, move: true, results: {} },
 };
 let _opsNotifPrimed = false;
 let _opsWrongSig = '';
 let _opsCampNames = {};
 let _opsDirectiveTimer = null;
+let _opsWrongTimer = null;
 const _opsSeen = {};
 const _opsDismiss = new Set();
 const _opsBeeped = new Set();
@@ -357,8 +358,30 @@ function opsReadAlerts(raw) {
     effect,
     appt: src.notify_appt !== false,
     campaign: src.notify_campaign !== false,
+    wrongAfter: opsClamp(src.wrong_after_min, 2, 1, 30),
     sounds: opsReadSounds(src.sounds),
   };
+}
+
+function opsWrongAfterMin() {
+  return opsClamp(_opsAlerts.wrongAfter, 2, 1, 30);
+}
+
+function opsWrongHoldUntil() {
+  const at = Date.parse(_opsDirective.at || '');
+  if (!Number.isFinite(at) || at <= 0) return 0;
+  return at + opsWrongAfterMin() * 60000;
+}
+
+function opsScheduleWrongHold() {
+  if (_opsWrongTimer) clearTimeout(_opsWrongTimer);
+  _opsWrongTimer = null;
+  const left = opsWrongHoldUntil() - Date.now();
+  if (left <= 0) return;
+  _opsWrongTimer = setTimeout(() => {
+    _opsWrongTimer = null;
+    opsPaintCampWarn();
+  }, Math.min(left, 2147483647));
 }
 
 function opsReadSounds(raw) {
@@ -400,6 +423,13 @@ function opsNotifyPrefs() {
 function opsPaintCampWarn() {
   const bar = document.getElementById('ops-camp-warn');
   if (!bar) return;
+  if (Date.now() < opsWrongHoldUntil()) {
+    bar.hidden = true;
+    bar.replaceChildren();
+    _opsWrongSig = '';
+    opsScheduleWrongHold();
+    return;
+  }
   const { missing, extra } = opsMismatch();
   const show = opsRoleSeesWarn() && (missing.length || extra.length);
   bar.className = `ops-camp-warn is-${_opsAlerts.effect || 'aurora'}`;
@@ -597,6 +627,8 @@ function opsFillNotifSettings() {
   if (call) call.value = String(_opsAlerts.callMin);
   if (gold) gold.value = String(_opsAlerts.goldAfter);
   if (wait) wait.value = String(_opsAlerts.waitMin);
+  const wrongAfter = document.getElementById('ops-set-wrong-after');
+  if (wrongAfter) wrongAfter.value = String(opsWrongAfterMin());
   const appt = document.getElementById('ops-notify-appt');
   const camp = document.getElementById('ops-notify-camp');
   if (appt) appt.checked = _opsAlerts.appt !== false;
@@ -730,10 +762,28 @@ function opsCollectSounds(card) {
 }
 
 let _opsSampleTimer = null;
+let _opsSampleWrongTimer = null;
+function opsMountWrongSample(sentence) {
+  document.getElementById('ops-sample-host')?.remove();
+  if (_opsSampleTimer) clearTimeout(_opsSampleTimer);
+  const host = document.createElement('div');
+  host.id = 'ops-sample-host';
+  host.className = 'ops-sample-host';
+  const bar = document.createElement('div');
+  bar.className = `ops-camp-warn is-${document.getElementById('notif-settings-card')?.dataset.effect || _opsAlerts.effect || 'aurora'}`;
+  const text = document.createElement('span');
+  text.className = 'ops-camp-warn-text';
+  text.textContent = sentence;
+  bar.appendChild(text);
+  host.appendChild(bar);
+  document.body.appendChild(host);
+  _opsSampleTimer = setTimeout(() => host.remove(), 4500);
+}
 function opsShowSample(kind) {
   opsPreviewSound(kind);
   document.getElementById('ops-sample-host')?.remove();
   if (_opsSampleTimer) clearTimeout(_opsSampleTimer);
+  if (_opsSampleWrongTimer) { clearTimeout(_opsSampleWrongTimer); _opsSampleWrongTimer = null; }
   if (String(kind).startsWith('result:')) {
     const key = kind.slice(7);
     const entry = opsResultEntry(key);
@@ -791,25 +841,21 @@ function opsShowSample(kind) {
   }
   if (kind === 'camp') {
     const title = opsSay('ops.notice.campaign', 'Yeni kampanya bildirimi geldi');
-    const body = [
-      `${opsSay('ops.notice.camps', 'Çalışılacak kampanyalar')}: 85, 96`,
-      `${opsSay('ops.warn.pick', 'Seçmelisin:')} 85, 96.`,
-      `${opsSay('ops.warn.close', 'Kapatmalısın:')} Eski Kampanya.`,
-    ].join('\n');
-    opsKeepSample(title, body, opsPickedColor('camp', opsSoundEntry('camp').color), 'camp');
-    const host = document.createElement('div');
-    host.id = 'ops-sample-host';
-    host.className = 'ops-sample-host';
-    const bar = document.createElement('div');
-    bar.className = `ops-camp-warn is-${document.getElementById('notif-settings-card')?.dataset.effect || _opsAlerts.effect || 'aurora'}`;
-    const text = document.createElement('span');
-    text.className = 'ops-camp-warn-text';
-    text.textContent = 'Yanlış kampanyadasın. Seçmelisin: 85, 96. Kapatmalısın: Eski Kampanya.';
-    bar.appendChild(text);
-    host.appendChild(bar);
-    document.body.appendChild(host);
-    if (_opsSampleTimer) clearTimeout(_opsSampleTimer);
-    _opsSampleTimer = setTimeout(() => host.remove(), 4500);
+    const body = `${opsSay('ops.notice.camps', 'Çalışılacak kampanyalar')}: 85, 96`;
+    toast(title, 'ok', 5000);
+    opsRememberNotice(title, body, opsPickedColor('camp', opsSoundEntry('camp').color), 'camp');
+    _opsSampleWrongTimer = setTimeout(() => {
+      _opsSampleWrongTimer = null;
+      const sentence = 'Yanlış kampanyadasın. Seçmelisin: 85, 96. Kapatmalısın: Eski Kampanya.';
+      opsMountWrongSample(sentence);
+      opsRememberNotice('Yanlış kampanya', sentence, opsPickedColor('wrong', opsSoundEntry('wrong').color), 'camp');
+    }, 8000);
+    return;
+  }
+  if (kind === 'wrong') {
+    const sentence = 'Yanlış kampanyadasın. Seçmelisin: Örnek Kampanya. Kapatmalısın: Eski Kampanya.';
+    opsMountWrongSample(sentence);
+    opsRememberNotice('Yanlış kampanya', sentence, opsPickedColor('wrong', opsSoundEntry('wrong').color), 'camp');
     return;
   }
   const host = document.createElement('div');
@@ -822,16 +868,6 @@ function opsShowSample(kind) {
     bar.textContent = 'Aranacaklar · Örnek Müşteri · 45 dk';
     host.appendChild(bar);
     opsKeepSample('Aranacaklar', bar.textContent, opsPickedColor('hour', opsSoundEntry('hour').color), 'wv');
-  } else if (kind === 'wrong') {
-    host.className = 'ops-sample-host';
-    const bar = document.createElement('div');
-    bar.className = `ops-camp-warn is-${document.getElementById('notif-settings-card')?.dataset.effect || _opsAlerts.effect || 'aurora'}`;
-    const text = document.createElement('span');
-    text.className = 'ops-camp-warn-text';
-    text.textContent = 'Yanlış kampanyadasın. Seçmelisin: Örnek Kampanya. Kapatmalısın: Eski Kampanya.';
-    bar.appendChild(text);
-    host.appendChild(bar);
-    opsKeepSample('Yanlış kampanya', text.textContent, opsPickedColor('wrong', opsSoundEntry('wrong').color), 'camp');
   } else {
     host.className = 'ops-sample-host';
     const card = document.createElement('article');
@@ -862,6 +898,7 @@ async function opsSaveNotifSettings() {
     bar_effect: card.dataset.effect || 'aurora',
     notify_appt: !!document.getElementById('ops-notify-appt')?.checked,
     notify_campaign: !!document.getElementById('ops-notify-camp')?.checked,
+    wrong_after_min: opsClamp(document.getElementById('ops-set-wrong-after')?.value, 2, 1, 30),
     sounds: opsCollectSounds(card),
   };
   try {
@@ -1168,8 +1205,6 @@ function opsRememberNotice(title, text, color, cat) {
 
 function opsKeepSample(title, text, color, cat) {
   opsRememberNotice(title, text, color, cat);
-  const el = document.getElementById('notification-center');
-  if (el) el.style.display = 'block';
 }
 
 function opsMarkNoticesSeen() {
