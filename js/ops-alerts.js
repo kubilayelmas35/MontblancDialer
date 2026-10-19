@@ -1884,25 +1884,29 @@ function opsMesaiPickDay(gun, ev) {
 
 function opsFillMesaiPop(pop) {
   const today = opsMesaiWindow();
-  const gun = OPS_GUN_ORDER.includes(_opsMesaiPopGun) ? _opsMesaiPopGun : today.clock.gun;
+  const open = OPS_GUN_ORDER.filter((key) => !opsMesaiDay(key).off);
+  let gun = OPS_GUN_ORDER.includes(_opsMesaiPopGun) ? _opsMesaiPopGun : today.clock.gun;
+  if (!open.includes(gun)) gun = open.includes(today.clock.gun) ? today.clock.gun : (open[0] || gun);
+  _opsMesaiPopGun = gun;
   const day = opsMesaiDay(gun);
   const isToday = gun === today.clock.gun;
   pop.replaceChildren();
-  const days = document.createElement('div');
-  days.className = 'tb-mesai-days';
-  OPS_GUN_ORDER.forEach((key) => {
-    const item = opsMesaiDay(key);
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'tb-mesai-day';
-    if (!item.off) btn.classList.add('is-on');
-    if (key === today.clock.gun) btn.classList.add('is-today');
-    if (key === gun) btn.classList.add('is-pick');
-    btn.textContent = item.short;
-    btn.onclick = (ev) => opsMesaiPickDay(key, ev);
-    days.appendChild(btn);
-  });
-  pop.appendChild(days);
+  if (open.length) {
+    const days = document.createElement('div');
+    days.className = 'tb-mesai-days';
+    open.forEach((key) => {
+      const item = opsMesaiDay(key);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'tb-mesai-day is-on';
+      if (key === today.clock.gun) btn.classList.add('is-today');
+      if (key === gun) btn.classList.add('is-pick');
+      btn.textContent = item.short;
+      btn.onclick = (ev) => opsMesaiPickDay(key, ev);
+      days.appendChild(btn);
+    });
+    pop.appendChild(days);
+  }
   const head = document.createElement('div');
   head.className = 'tb-mesai-head';
   const name = document.createElement('b');
