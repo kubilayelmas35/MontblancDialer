@@ -18,7 +18,7 @@ async function loadJobMarketQcQueue() {
 <div>
 <div style="font-size:12px;font-weight:800;">${r.job_posts?.title || 'İş ilanı'}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Teslim tipi: ${r.submission_type || 'custom'} · ${new Date(r.created_at).toLocaleString('tr-TR')}</div>
-<div style="font-size:11px;color:var(--text-2);margin-top:4px;">${(r.payload && Object.keys(r.payload).length) ? _jmEsc(JSON.stringify(r.payload).slice(0, 180)) : 'Payload yok'}</div>
+<div style="font-size:11px;color:var(--text-2);margin-top:4px;">${_jmEsc(r.payload?.note || (r.payload && Object.keys(r.payload).length ? JSON.stringify(r.payload).slice(0, 180) : 'Not yok'))}</div>
 </div>
 <div style="display:flex;gap:6px;align-items:center;">
 <button class="btn btn-ghost btn-sm" onclick="qcReviewJobSubmission('${r.id}', false)">Reddet</button>

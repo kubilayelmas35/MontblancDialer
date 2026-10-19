@@ -12,16 +12,16 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=9.88">
-<link rel="stylesheet" href="css/styles-dialer.css?v=9.88">
-<link rel="stylesheet" href="css/styles-mascot.css?v=9.88">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=9.88">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=9.88">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=9.88">
-<link rel="stylesheet" href="css/styles-pages.css?v=9.88">
-<link rel="stylesheet" href="css/styles-aurora.css?v=9.88">
-<link rel="stylesheet" href="css/styles-chat.css?v=9.88">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=9.88">
+<link rel="stylesheet" href="css/styles.css?v=9.89">
+<link rel="stylesheet" href="css/styles-dialer.css?v=9.89">
+<link rel="stylesheet" href="css/styles-mascot.css?v=9.89">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=9.89">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=9.89">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=9.89">
+<link rel="stylesheet" href="css/styles-pages.css?v=9.89">
+<link rel="stylesheet" href="css/styles-aurora.css?v=9.89">
+<link rel="stylesheet" href="css/styles-chat.css?v=9.89">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=9.89">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -48,7 +48,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v9.88 — 2026</div>
+<div class="login-version">v9.89 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -409,7 +409,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v9.88</div>
+<div class="sb-ver">MontBlanc v9.89</div>
 </div>
 </nav>
 <main id="main">
@@ -1860,6 +1860,10 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
   background:var(--accent);color:#fff;border-color:var(--accent);
   box-shadow:0 2px 10px rgba(0,0,0,.12);
 }
+#page-jobmarket .jm-flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+#page-jobmarket .jm-flow > div{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--text-2);line-height:1.45;}
+#page-jobmarket .jm-flow b{color:var(--text);margin-right:4px;}
+@media(max-width:800px){#page-jobmarket .jm-flow{grid-template-columns:1fr;}}
 #page-jobmarket .jm-hint{font-size:11px;color:var(--text-3);line-height:1.45;margin-top:4px;}
 #page-jobmarket .jm-slot-preview{
   font-size:11px;color:var(--text-2);background:var(--bg-3);border:1px solid var(--border);
@@ -1877,6 +1881,11 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <div id="job-market-firm-selector"></div>
 <button class="btn btn-ghost btn-sm" onclick="loadJobMarketPage()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
 </div>
+</div>
+<div class="jm-flow">
+<div><b>1.</b> <span data-tr="İlan açın. Tutar firma bakiyesinden rezerve edilir, harcanmaz." data-de="Anzeige erstellen. Der Betrag wird reserviert, nicht abgebucht.">İlan açın. Tutar firma bakiyesinden rezerve edilir, harcanmaz.</span></div>
+<div><b>2.</b> <span data-tr="Başka firma katılır ve not ya da randevu ile teslim girer." data-de="Eine andere Firma nimmt teil und liefert mit Notiz oder Termin ab.">Başka firma katılır ve not ya da randevu ile teslim girer.</span></div>
+<div><b>3.</b> <span data-tr="QC onayı tutarın tamamını çalışan firmaya geçirir. Ret ilanı yeniden açar." data-de="QC-Freigabe überweist den ganzen Betrag. Ablehnung öffnet die Anzeige wieder.">QC onayı tutarın tamamını çalışan firmaya geçirir. Ret ilanı yeniden açar.</span></div>
 </div>
 <div style="display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:10px;align-items:start;">
 <div class="card">
@@ -1914,7 +1923,7 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <option value="energy_audit">Enerji danışmanlığı / keşif</option>
 <option value="other">Diğer</option>
 </select>
-<div class="jm-hint">Tür, ilan metninde ve listede görünür. Aşağıdaki <b>Takvimden slot oluştur</b> ile açılan pencerede gün ve saat aralığını seçin; slotlar aynı gün içinde bu aralıktan başlayıp arka arkaya <b>işlem adedi</b> kadar üretilir.</div>
+<div class="jm-hint">Tür, ilan metninde ve listede görünür. Takvimde tıkladığınız saatler ayrı slot olarak kaydedilir. Adet, seçilen slot sayısıdır.</div>
 </div>
 <div id="jm-calendar-section">
 <label class="form-label" style="font-size:11px;color:var(--text-3);margin:0;">Randevu takvimi</label>
@@ -1925,10 +1934,10 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <button type="button" class="btn btn-primary btn-sm" onclick="openJobMarketSlotCalendarModal()" data-tr="Takvimden slot oluştur" data-de="Termine aus Kalender">Takvimden slot oluştur</button>
 <div id="jm-slot-summary" class="jm-hint" style="margin:0;flex:1;min-width:200px;white-space:normal;overflow:visible;">Henüz seçilmedi — Takvimden slot oluştur’a tıklayın.</div>
 </div>
-<div class="jm-hint" style="margin-top:6px;">Kampanya takvimi benzeri panel açılır; saat satırından seçim yapıp <b>Slotu Uygula</b> ile forma aktarın. Aynı panelden slot adedini artırabilir, Cmt/Paz görünürlüğünü açabilirsiniz.</div>
+<div class="jm-hint" style="margin-top:6px;">Saat satırına tıklayın, <b>Slotu Uygula</b> deyin. Seçtiğiniz her saat kendi gününde durur; art arda üretilmez.</div>
 </div>
 <div id="jm-qty-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<input class="form-input" id="jm-quantity" type="number" min="1" value="1" placeholder="İşlem adedi" oninput="updateJobPricePreview();refreshJobSlotPreview();">
+<input class="form-input" id="jm-quantity" type="number" min="1" value="1" placeholder="İşlem adedi" oninput="onJobQuantityInput()">
 <div id="jm-price-preview" style="font-size:12px;color:var(--text-3);display:flex;align-items:center;">Toplam ücret: 0</div>
 </div>
 <div id="jm-slot-preview" class="jm-slot-preview" style="display:none;"></div>
@@ -4168,60 +4177,60 @@ QC Detay
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=9.88"></script>
-<script src="js/i18n.js?v=9.88"></script>
-<script src="js/config.js?v=9.88"></script>
-<script src="js/state.js?v=9.88"></script>
-<script src="js/api.js?v=9.88"></script>
-<script src="js/access.js?v=9.88"></script>
-<script src="js/auth.js?v=9.88"></script>
-<script src="js/ui.js?v=9.88"></script>
-<script src="js/chat.js?v=9.88"></script>
-<script src="js/chat-settings.js?v=9.88"></script>
-<script src="js/field-settings.js?v=9.88"></script>
-<script src="js/audit.js?v=9.88"></script>
-<script src="js/feature-flags.js?v=9.88"></script>
-<script src="js/notification-center.js?v=9.88"></script>
+<script src="js/version.js?v=9.89"></script>
+<script src="js/i18n.js?v=9.89"></script>
+<script src="js/config.js?v=9.89"></script>
+<script src="js/state.js?v=9.89"></script>
+<script src="js/api.js?v=9.89"></script>
+<script src="js/access.js?v=9.89"></script>
+<script src="js/auth.js?v=9.89"></script>
+<script src="js/ui.js?v=9.89"></script>
+<script src="js/chat.js?v=9.89"></script>
+<script src="js/chat-settings.js?v=9.89"></script>
+<script src="js/field-settings.js?v=9.89"></script>
+<script src="js/audit.js?v=9.89"></script>
+<script src="js/feature-flags.js?v=9.89"></script>
+<script src="js/notification-center.js?v=9.89"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=9.88"></script>
-<script src="js/job-market.js?v=9.88"></script>
-<script src="js/qc-job-market.js?v=9.88"></script>
-<script src="js/export-admin.js?v=9.88"></script>
-<script src="js/export-termin.js?v=9.88"></script>
-<script src="js/performance.js?v=9.88"></script>
-<script src="js/competition.js?v=9.88"></script>
-<script src="js/dashboard.js?v=9.88"></script>
-<script src="js/dashboard-brief.js?v=9.88"></script>
-<script src="js/campaigns.js?v=9.88"></script>
-<script src="js/campaigns-detail.js?v=9.88"></script>
-<script src="js/campaigns-queue.js?v=9.88"></script>
-<script src="js/contacts-upload.js?v=9.88"></script>
-<script src="js/contacts.js?v=9.88"></script>
-<script src="js/contacts-drawer.js?v=9.88"></script>
-<script src="js/telnyx.js?v=9.88"></script>
-<script src="js/voice-orb.js?v=9.88"></script>
-<script src="js/dialer.js?v=9.88"></script>
-<script src="js/ops-alerts.js?v=9.88"></script>
-<script src="js/dialer-mascot.js?v=9.88"></script>
-<script src="js/dialer-mascot-live.js?v=9.88"></script>
-<script src="js/ui-prefs.js?v=9.88"></script>
-<script src="js/dialer-session.js?v=9.88"></script>
-<script src="js/dialer-call.js?v=9.88"></script>
-<script src="js/dialer-tools.js?v=9.88"></script>
-<script src="js/appointments.js?v=9.88"></script>
-<script src="js/appointments-actions.js?v=9.88"></script>
-<script src="js/appointments-tools.js?v=9.88"></script>
-<script src="js/field.js?v=9.88"></script>
-<script src="js/field-ops.js?v=9.88"></script>
-<script src="js/wiedervorlage.js?v=9.88"></script>
-<script src="js/qc.js?v=9.88"></script>
-<script src="js/supervisor.js?v=9.88"></script>
-<script src="js/live-coach.js?v=9.88"></script>
-<script src="js/sms-settings.js?v=9.88"></script>
-<script src="js/leave-hr.js?v=9.88"></script>
-<script src="js/muhasebe.js?v=9.88"></script>
-<script src="js/agent-self-performance.js?v=9.88"></script>
-<script src="js/agents.js?v=9.88"></script>
-<script src="js/mimi-brain.js?v=9.88"></script>
+<script src="js/wallet.js?v=9.89"></script>
+<script src="js/job-market.js?v=9.89"></script>
+<script src="js/qc-job-market.js?v=9.89"></script>
+<script src="js/export-admin.js?v=9.89"></script>
+<script src="js/export-termin.js?v=9.89"></script>
+<script src="js/performance.js?v=9.89"></script>
+<script src="js/competition.js?v=9.89"></script>
+<script src="js/dashboard.js?v=9.89"></script>
+<script src="js/dashboard-brief.js?v=9.89"></script>
+<script src="js/campaigns.js?v=9.89"></script>
+<script src="js/campaigns-detail.js?v=9.89"></script>
+<script src="js/campaigns-queue.js?v=9.89"></script>
+<script src="js/contacts-upload.js?v=9.89"></script>
+<script src="js/contacts.js?v=9.89"></script>
+<script src="js/contacts-drawer.js?v=9.89"></script>
+<script src="js/telnyx.js?v=9.89"></script>
+<script src="js/voice-orb.js?v=9.89"></script>
+<script src="js/dialer.js?v=9.89"></script>
+<script src="js/ops-alerts.js?v=9.89"></script>
+<script src="js/dialer-mascot.js?v=9.89"></script>
+<script src="js/dialer-mascot-live.js?v=9.89"></script>
+<script src="js/ui-prefs.js?v=9.89"></script>
+<script src="js/dialer-session.js?v=9.89"></script>
+<script src="js/dialer-call.js?v=9.89"></script>
+<script src="js/dialer-tools.js?v=9.89"></script>
+<script src="js/appointments.js?v=9.89"></script>
+<script src="js/appointments-actions.js?v=9.89"></script>
+<script src="js/appointments-tools.js?v=9.89"></script>
+<script src="js/field.js?v=9.89"></script>
+<script src="js/field-ops.js?v=9.89"></script>
+<script src="js/wiedervorlage.js?v=9.89"></script>
+<script src="js/qc.js?v=9.89"></script>
+<script src="js/supervisor.js?v=9.89"></script>
+<script src="js/live-coach.js?v=9.89"></script>
+<script src="js/sms-settings.js?v=9.89"></script>
+<script src="js/leave-hr.js?v=9.89"></script>
+<script src="js/muhasebe.js?v=9.89"></script>
+<script src="js/agent-self-performance.js?v=9.89"></script>
+<script src="js/agents.js?v=9.89"></script>
+<script src="js/mimi-brain.js?v=9.89"></script>
 </body>
 </html>

@@ -1762,6 +1762,10 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
   background:var(--accent);color:#fff;border-color:var(--accent);
   box-shadow:0 2px 10px rgba(0,0,0,.12);
 }
+#page-jobmarket .jm-flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+#page-jobmarket .jm-flow > div{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--text-2);line-height:1.45;}
+#page-jobmarket .jm-flow b{color:var(--text);margin-right:4px;}
+@media(max-width:800px){#page-jobmarket .jm-flow{grid-template-columns:1fr;}}
 #page-jobmarket .jm-hint{font-size:11px;color:var(--text-3);line-height:1.45;margin-top:4px;}
 #page-jobmarket .jm-slot-preview{
   font-size:11px;color:var(--text-2);background:var(--bg-3);border:1px solid var(--border);
@@ -1779,6 +1783,11 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <div id="job-market-firm-selector"></div>
 <button class="btn btn-ghost btn-sm" onclick="loadJobMarketPage()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
 </div>
+</div>
+<div class="jm-flow">
+<div><b>1.</b> <span data-tr="İlan açın. Tutar firma bakiyesinden rezerve edilir, harcanmaz." data-de="Anzeige erstellen. Der Betrag wird reserviert, nicht abgebucht.">İlan açın. Tutar firma bakiyesinden rezerve edilir, harcanmaz.</span></div>
+<div><b>2.</b> <span data-tr="Başka firma katılır ve not ya da randevu ile teslim girer." data-de="Eine andere Firma nimmt teil und liefert mit Notiz oder Termin ab.">Başka firma katılır ve not ya da randevu ile teslim girer.</span></div>
+<div><b>3.</b> <span data-tr="QC onayı tutarın tamamını çalışan firmaya geçirir. Ret ilanı yeniden açar." data-de="QC-Freigabe überweist den ganzen Betrag. Ablehnung öffnet die Anzeige wieder.">QC onayı tutarın tamamını çalışan firmaya geçirir. Ret ilanı yeniden açar.</span></div>
 </div>
 <div style="display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:10px;align-items:start;">
 <div class="card">
@@ -1816,7 +1825,7 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <option value="energy_audit">Enerji danışmanlığı / keşif</option>
 <option value="other">Diğer</option>
 </select>
-<div class="jm-hint">Tür, ilan metninde ve listede görünür. Aşağıdaki <b>Takvimden slot oluştur</b> ile açılan pencerede gün ve saat aralığını seçin; slotlar aynı gün içinde bu aralıktan başlayıp arka arkaya <b>işlem adedi</b> kadar üretilir.</div>
+<div class="jm-hint">Tür, ilan metninde ve listede görünür. Takvimde tıkladığınız saatler ayrı slot olarak kaydedilir. Adet, seçilen slot sayısıdır.</div>
 </div>
 <div id="jm-calendar-section">
 <label class="form-label" style="font-size:11px;color:var(--text-3);margin:0;">Randevu takvimi</label>
@@ -1827,10 +1836,10 @@ QC Bekliyor <span id="qc-cnt-pending" style="background:rgba(255,255,255,.25);pa
 <button type="button" class="btn btn-primary btn-sm" onclick="openJobMarketSlotCalendarModal()" data-tr="Takvimden slot oluştur" data-de="Termine aus Kalender">Takvimden slot oluştur</button>
 <div id="jm-slot-summary" class="jm-hint" style="margin:0;flex:1;min-width:200px;white-space:normal;overflow:visible;">Henüz seçilmedi — Takvimden slot oluştur’a tıklayın.</div>
 </div>
-<div class="jm-hint" style="margin-top:6px;">Kampanya takvimi benzeri panel açılır; saat satırından seçim yapıp <b>Slotu Uygula</b> ile forma aktarın. Aynı panelden slot adedini artırabilir, Cmt/Paz görünürlüğünü açabilirsiniz.</div>
+<div class="jm-hint" style="margin-top:6px;">Saat satırına tıklayın, <b>Slotu Uygula</b> deyin. Seçtiğiniz her saat kendi gününde durur; art arda üretilmez.</div>
 </div>
 <div id="jm-qty-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<input class="form-input" id="jm-quantity" type="number" min="1" value="1" placeholder="İşlem adedi" oninput="updateJobPricePreview();refreshJobSlotPreview();">
+<input class="form-input" id="jm-quantity" type="number" min="1" value="1" placeholder="İşlem adedi" oninput="onJobQuantityInput()">
 <div id="jm-price-preview" style="font-size:12px;color:var(--text-3);display:flex;align-items:center;">Toplam ücret: 0</div>
 </div>
 <div id="jm-slot-preview" class="jm-slot-preview" style="display:none;"></div>
