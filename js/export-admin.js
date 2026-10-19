@@ -34,7 +34,7 @@ function _downloadCsvUtf8(filename, lineStrings) {
 function _statsTableToAoA() {
   const table = document.querySelector('#page-stats table');
   if (!table) return null;
-  const header = [...table.querySelectorAll('thead th')].map((th) => th.textContent.trim());
+  const header = [...table.querySelectorAll('thead th')].map((th) => String(th.dataset.label || th.textContent || '').trim());
   const aoa = [header];
   table.querySelectorAll('tbody tr').forEach((tr) => {
     const tds = tr.querySelectorAll('td');

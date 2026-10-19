@@ -940,34 +940,167 @@ function statsExtraLabel(key, labelMap) {
   return key;
 }
 
+let _statsRows = [];
+let _statsExtras = [];
+let _statsSort = { key: 'calls', dir: 'desc' };
+let _statsFilters = {};
+
+function statsColumns(extras) {
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const pair = (key, tr, deLabel, type) => ({ key, tr, de: deLabel, label: de ? deLabel : tr, type });
+  return [
+    pair('agent', 'Agent', 'Agent', 'text'),
+    pair('camp', 'Kampanya', 'Kampagne', 'text'),
+    pair('calls', 'Aramalar', 'Anrufe', 'num'),
+    pair('appointment', 'Randevu', 'Termin', 'num'),
+    pair('negative', 'Olumsuz', 'Negativ', 'num'),
+    pair('callback', 'Geri Ara', 'Rückruf', 'num'),
+    pair('no_answer', 'Cevap Yok', 'Kein Anspr.', 'num'),
+    pair('voicemail', 'Telesekreter', 'Mailbox', 'num'),
+    pair('dnc', 'Kara liste', 'Sperrliste', 'num'),
+  ].concat((extras || []).map((col) => ({
+    key: `x:${col.key}`,
+    extra: col.key,
+    tr: col.label,
+    de: col.label,
+    label: col.label,
+    type: 'num',
+  }))).concat([
+    pair('avg', 'Ort. Süre', 'Ø Dauer', 'num'),
+    pair('conv', 'Dönüşüm', 'Konversion', 'num'),
+  ]);
+}
+
+function statsCellText(row, col) {
+  if (col.key === 'avg') return statsClock(row.avg);
+  if (col.key === 'conv') return `${row.conv}%`;
+  if (col.extra) return String(row.extra[col.extra] || 0);
+  const v = row[col.key];
+  return v == null ? '' : String(v);
+}
+
+function statsCellNum(row, col) {
+  if (col.extra) return Number(row.extra[col.extra] || 0);
+  return Number(row[col.key] || 0);
+}
+
 function statsRenderHead(extras) {
   const head = document.querySelector('#page-stats thead');
   if (!head) return;
-  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
-  const fixed = [
-    ['Agent', 'Agent'],
-    ['Kampanya', 'Kampagne'],
-    ['Aramalar', 'Anrufe'],
-    ['Randevu', 'Termin'],
-    ['Olumsuz', 'Negativ'],
-    ['Geri Ara', 'Rückruf'],
-    ['Cevap Yok', 'Kein Anspr.'],
-    ['Telesekreter', 'Mailbox'],
-    ['Kara liste', 'Sperrliste'],
-  ];
-  const tail = [
-    ['Ort. Süre', 'Ø Dauer'],
-    ['Dönüşüm', 'Konversion'],
-  ];
-  const cells = fixed.concat((extras || []).map((col) => [col.label, col.label])).concat(tail);
-  head.innerHTML = `<tr>${cells.map(([tr, deLabel]) => `<th data-tr="${statsEsc(tr)}" data-de="${statsEsc(deLabel)}">${statsEsc(de ? deLabel : tr)}</th>`).join('')}</tr>`;
+  const cols = statsColumns(extras);
+  head.innerHTML = `<tr>${cols.map((col) => {
+    const on = _statsSort.key === col.key;
+    const mark = on ? (_statsSort.dir === 'desc' ? '▼' : '▲') : '';
+    const val = statsEsc(_statsFilters[col.key] || '');
+    return `<th data-label="${statsEsc(col.label)}" data-tr="${statsEsc(col.tr)}" data-de="${statsEsc(col.de)}">
+<button type="button" class="stats-sort${on ? ' is-on' : ''}" data-sort="${statsEsc(col.key)}">${statsEsc(col.label)} <span class="stats-sort-mark">${mark}</span></button>
+<input class="stats-col-filter" data-filter="${statsEsc(col.key)}" value="${val}" placeholder="…" aria-label="${statsEsc(col.label)}">
+</th>`;
+  }).join('')}</tr>`;
+  head.querySelectorAll('[data-sort]').forEach((btn) => {
+    btn.onclick = () => statsSortBy(btn.dataset.sort);
+  });
+  head.querySelectorAll('[data-filter]').forEach((inp) => {
+    inp.oninput = () => {
+      _statsFilters[inp.dataset.filter] = inp.value;
+      statsPaintBody();
+    };
+  });
+}
+
+function statsSortBy(key) {
+  if (_statsSort.key === key && _statsSort.dir === 'desc') _statsSort = { key, dir: 'asc' };
+  else _statsSort = { key, dir: 'desc' };
+  document.querySelectorAll('#page-stats [data-sort]').forEach((btn) => {
+    const on = btn.dataset.sort === _statsSort.key;
+    btn.classList.toggle('is-on', on);
+    const mark = btn.querySelector('.stats-sort-mark');
+    if (mark) mark.textContent = on ? (_statsSort.dir === 'desc' ? '▼' : '▲') : '';
+  });
+  statsPaintBody();
+}
+
+function statsPaintBody() {
+  const tbody = document.getElementById('stats-tbody');
+  if (!tbody) return;
+  const cols = statsColumns(_statsExtras);
+  const colCount = cols.length;
+  const filtered = _statsRows.filter((row) => cols.every((col) => {
+    const q = String(_statsFilters[col.key] || '').trim().toLocaleLowerCase('tr');
+    if (!q) return true;
+    return statsCellText(row, col).toLocaleLowerCase('tr').includes(q);
+  }));
+  const dir = _statsSort.dir === 'asc' ? 1 : -1;
+  const sortCol = cols.find((col) => col.key === _statsSort.key) || cols.find((col) => col.key === 'calls');
+  filtered.sort((a, b) => {
+    if (!sortCol) return 0;
+    if (sortCol.type === 'num') return (statsCellNum(a, sortCol) - statsCellNum(b, sortCol)) * dir;
+    return statsCellText(a, sortCol).localeCompare(statsCellText(b, sortCol), 'tr') * dir;
+  });
+  const setSum = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  if (!filtered.length) {
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(colCount, 'ui.no_data_range') : `<tr><td colspan="${colCount}" class="mb-empty-hint">${t('ui.no_data_range')}</td></tr>`;
+    setSum('stats-sum-calls', '0');
+    setSum('stats-sum-appt', '0');
+    setSum('stats-sum-neg', '0');
+    setSum('stats-sum-conv', '0%');
+    setSum('stats-sum-avg', '0:00');
+    return;
+  }
+  const tot = { calls: 0, appointment: 0, negative: 0, callback: 0, no_answer: 0, voicemail: 0, dnc: 0, sec: 0, extra: {} };
+  _statsExtras.forEach((col) => { tot.extra[col.key] = 0; });
+  const body = filtered.map((row) => {
+    tot.calls += row.calls;
+    tot.appointment += row.appointment;
+    tot.negative += row.negative;
+    tot.callback += row.callback;
+    tot.no_answer += row.no_answer;
+    tot.voicemail += row.voicemail;
+    tot.dnc += row.dnc;
+    tot.sec += row.sec;
+    _statsExtras.forEach((col) => { tot.extra[col.key] += Number(row.extra[col.key] || 0); });
+    const num = (n, badge) => badge ? `<td><span class="badge ${badge}">${n}</span></td>` : `<td class="td-mono">${n}</td>`;
+    return `<tr>
+<td style="font-weight:700;">${statsEsc(row.agent)}</td>
+<td style="font-size:11px;">${statsEsc(row.camp)}</td>
+${num(row.calls)}
+${num(row.appointment, 'badge-green')}
+${num(row.negative, 'badge-red')}
+${num(row.callback, 'badge-yellow')}
+${num(row.no_answer, 'badge-gray')}
+${num(row.voicemail, 'badge-gray')}
+${num(row.dnc, 'badge-red')}
+${_statsExtras.map((col) => num(row.extra[col.key] || 0)).join('')}
+<td class="td-mono">${statsClock(row.avg)}</td>
+<td><span style="font-weight:800;color:${row.conv >= 20 ? 'var(--green)' : row.conv >= 10 ? 'var(--yellow)' : 'var(--red)'};">${row.conv}%</span></td>
+</tr>`;
+  }).join('');
+  const avgAll = tot.calls ? tot.sec / tot.calls : 0;
+  const convAll = tot.calls ? Math.round(tot.appointment / tot.calls * 100) : 0;
+  tbody.innerHTML = body + `<tr style="background:var(--bg-3);font-weight:800;border-top:2px solid var(--border);">
+<td colspan="2" style="font-size:12px;font-weight:800;">${typeof t === 'function' ? t('stats.total') : 'TOPLAM'}</td>
+<td class="td-mono">${tot.calls}</td>
+<td><span class="badge badge-green">${tot.appointment}</span></td>
+<td><span class="badge badge-red">${tot.negative}</span></td>
+<td><span class="badge badge-yellow">${tot.callback}</span></td>
+<td><span class="badge badge-gray">${tot.no_answer}</span></td>
+<td><span class="badge badge-gray">${tot.voicemail}</span></td>
+<td><span class="badge badge-red">${tot.dnc}</span></td>
+${_statsExtras.map((col) => `<td class="td-mono">${tot.extra[col.key] || 0}</td>`).join('')}
+<td class="td-mono">${statsClock(avgAll)}</td>
+<td><span style="font-weight:800;color:var(--accent);">${convAll}%</span></td>
+</tr>`;
+  setSum('stats-sum-calls', String(tot.calls));
+  setSum('stats-sum-appt', String(tot.appointment));
+  setSum('stats-sum-neg', String(tot.negative));
+  setSum('stats-sum-conv', `${convAll}%`);
+  setSum('stats-sum-avg', statsClock(avgAll));
 }
 
 async function loadStats() {
 renderFirmSelector('stats-firm-selector', loadStats);
 const tbody = document.getElementById('stats-tbody');
 if (tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(STATS_COL) : `<tr><td colspan="${STATS_COL}" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
-const setSum = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
 try {
 const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : null;
 await statsFillFilters(fid);
@@ -1032,71 +1165,32 @@ if (campFilter) {
 const extras = Object.keys(extraCounts)
   .sort((a, b) => (extraCounts[b] - extraCounts[a]) || statsExtraLabel(a, labelMap).localeCompare(statsExtraLabel(b, labelMap), 'tr'))
   .map((key) => ({ key, label: statsExtraLabel(key, labelMap) }));
-const colCount = STATS_COL + extras.length;
-statsRenderHead(extras);
-const paintSums = (tot, ap, ng, sec) => {
-  setSum('stats-sum-calls', String(tot));
-  setSum('stats-sum-appt', String(ap));
-  setSum('stats-sum-neg', String(ng));
-  setSum('stats-sum-conv', tot ? `${Math.round(ap / tot * 100)}%` : '0%');
-  setSum('stats-sum-avg', statsClock(tot ? sec / tot : 0));
-};
-if (!rows.length) {
-tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(colCount, 'ui.no_data_range') : `<tr><td colspan="${colCount}" class="mb-empty-hint">${t('ui.no_data_range')}</td></tr>`;
-paintSums(0, 0, 0, 0);
-return;
-}
-let totAll=0,apAll=0,ngAll=0,cbAll=0,naAll=0,vmAll=0,dncAll=0,secAll=0;
-const extraAll = {};
-extras.forEach((col) => { extraAll[col.key] = 0; });
 const countOf = (ls, key) => ls.filter((l) => statsOutcomeKey(l.outcome) === key).length;
-tbody.innerHTML = rows.map(r => {
-const ls = r.logs, tot = ls.length;
-const ap = countOf(ls, 'appointment');
-const ng = countOf(ls, 'negative');
-const cb = countOf(ls, 'callback');
-const na = countOf(ls, 'no_answer');
-const vm = countOf(ls, 'voicemail');
-const dnc = countOf(ls, 'dnc');
-const totalSec = ls.reduce((s,l)=>s+(l.duration_sec||l.duration_seconds||0),0);
-const avgSec = tot ? Math.round(totalSec/tot) : 0;
-const convPct = tot ? Math.round(ap/tot*100) : 0;
-totAll+=tot; apAll+=ap; ngAll+=ng; cbAll+=cb; naAll+=na; vmAll+=vm; dncAll+=dnc; secAll+=totalSec;
-const extraCells = extras.map((col) => {
-  const n = countOf(ls, col.key);
-  extraAll[col.key] += n;
-  return `<td class="td-mono">${n}</td>`;
-}).join('');
-const agentName = `${r.agent_name || String(r.agent_id).slice(0, 8)}${statsFirmSuffix(r.firm_id)}`;
-const campName = r.campaign_name || (r.campaign_id === 'unknown' ? '—' : String(r.campaign_id).slice(0, 8));
-return `<tr>
-<td style="font-weight:700;">${statsEsc(agentName)}</td>
-<td style="font-size:11px;">${statsEsc(campName)}</td>
-<td class="td-mono">${tot}</td>
-<td><span class="badge badge-green" style="font-size:12px;font-weight:800;">${ap}</span></td>
-<td><span class="badge badge-red">${ng}</span></td>
-<td><span class="badge badge-yellow">${cb}</span></td>
-<td><span class="badge badge-gray">${na}</span></td>
-<td><span class="badge badge-gray">${vm}</span></td>
-<td><span class="badge badge-red">${dnc}</span></td>
-${extraCells}
-<td class="td-mono">${statsClock(avgSec)}</td>
-<td><span style="font-weight:800;color:${convPct>=20?'var(--green)':convPct>=10?'var(--yellow)':'var(--red)'};">${convPct}%</span></td>
-</tr>`;
-}).join('') + `<tr style="background:var(--bg-3);font-weight:800;border-top:2px solid var(--border);">
-<td colspan="2" style="font-size:12px;font-weight:800;">${typeof t === 'function' ? t('stats.total') : 'TOPLAM'}</td>
-<td class="td-mono">${totAll}</td>
-<td><span class="badge badge-green">${apAll}</span></td>
-<td><span class="badge badge-red">${ngAll}</span></td>
-<td><span class="badge badge-yellow">${cbAll}</span></td>
-<td><span class="badge badge-gray">${naAll}</span></td>
-<td><span class="badge badge-gray">${vmAll}</span></td>
-<td><span class="badge badge-red">${dncAll}</span></td>
-${extras.map((col) => `<td class="td-mono">${extraAll[col.key] || 0}</td>`).join('')}
-<td class="td-mono">${statsClock(totAll ? secAll / totAll : 0)}</td>
-<td><span style="font-weight:800;color:var(--accent);">${totAll?Math.round(apAll/totAll*100):0}%</span></td>
-</tr>`;
-paintSums(totAll, apAll, ngAll, secAll);
+_statsExtras = extras;
+_statsRows = rows.map((r) => {
+  const ls = r.logs;
+  const calls = ls.length;
+  const sec = ls.reduce((s, l) => s + (l.duration_sec || l.duration_seconds || 0), 0);
+  const extra = {};
+  extras.forEach((col) => { extra[col.key] = countOf(ls, col.key); });
+  return {
+    agent: `${r.agent_name || String(r.agent_id).slice(0, 8)}${statsFirmSuffix(r.firm_id)}`,
+    camp: r.campaign_name || (r.campaign_id === 'unknown' ? '—' : String(r.campaign_id).slice(0, 8)),
+    calls,
+    appointment: countOf(ls, 'appointment'),
+    negative: countOf(ls, 'negative'),
+    callback: countOf(ls, 'callback'),
+    no_answer: countOf(ls, 'no_answer'),
+    voicemail: countOf(ls, 'voicemail'),
+    dnc: countOf(ls, 'dnc'),
+    sec,
+    avg: calls ? Math.round(sec / calls) : 0,
+    conv: calls ? Math.round(countOf(ls, 'appointment') / calls * 100) : 0,
+    extra,
+  };
+});
+statsRenderHead(extras);
+statsPaintBody();
 } catch(e){ console.error(e); if(tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(STATS_COL, t('ui.error_prefix') + (e?.message || t('ui.unknown_error'))) : `<tr><td colspan="${STATS_COL}" class="mb-empty-hint" style="color:var(--red);">${typeof escapeHtml === 'function' ? escapeHtml(t('ui.error_prefix') + (e?.message || t('ui.unknown_error'))) : ''}</td></tr>`; }
 }
 
