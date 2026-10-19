@@ -2354,6 +2354,9 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="comp-firm-selector"></div>
+<button type="button" class="btn btn-ghost btn-sm" onclick="compShiftMonth(-1)" aria-label="Önceki ay">‹</button>
+<input type="month" class="form-input" id="comp-period" style="width:160px;" onchange="loadCompetitionPage()">
+<button type="button" class="btn btn-ghost btn-sm" onclick="compShiftMonth(1)" aria-label="Sonraki ay">›</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="loadCompetitionPage()"><i class="ph ph-arrow-clockwise"></i> Yenile</button>
 </div>
 </div>
@@ -2371,12 +2374,12 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div class="comp-top-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
 <div class="card" style="padding:16px;">
-<div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;">Bu ay lider</div>
+<div id="comp-leader-title" style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;">Bu ay lider</div>
 <div id="comp-champ-name" style="font-size:22px;font-weight:800;margin-top:6px;">—</div>
 <div id="comp-champ-sub" style="font-size:12px;color:var(--text-3);margin-top:4px;"></div>
 </div>
 <div class="card" style="padding:16px;">
-<div style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;">Geçen ay birincisi</div>
+<div id="comp-prev-title" style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;">Geçen ay</div>
 <div id="comp-last-name" style="font-size:20px;font-weight:800;margin-top:6px;">—</div>
 <div id="comp-last-sub" style="font-size:12px;color:var(--text-3);margin-top:4px;"></div>
 </div>
@@ -2397,11 +2400,11 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div class="card" style="padding:16px;">
 <div class="card-title" style="margin-bottom:6px;">Canlı yarış</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Pozisyonlar, bu ayki başarılı randevu sayılarına göre hesaplanır. <span class="comp-admin-only" style="display:none;">Admin: her satırda randevu sayısı görünür.</span><span class="comp-agent-hint">Agent: sadece sıra ve isim; adetler gizli.</span></div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;"><span data-tr="Sıra, randevu günü seçilen aya denk gelen terminlere göre. İptal ve başarısız sayılmaz." data-de="Rang nach Termintag im gewählten Monat. Stornierte und fehlgeschlagene zählen nicht.">Sıra, randevu günü seçilen aya denk gelen terminlere göre. İptal ve başarısız sayılmaz.</span> <span class="comp-admin-only" style="display:none;">Admin: her satırda randevu sayısı görünür.</span><span class="comp-agent-hint">Agent: sadece sıra ve isim; adetler gizli.</span></div>
 <div id="comp-race-lanes" class="comp-race-lanes"></div>
 </div>
 <div class="card" style="padding:0;overflow:hidden;">
-<div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;">Bu ay sıralaması</div>
+<div id="comp-month-table-title" style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;">Bu ay sıralaması</div>
 <div class="tbl-wrap">
 <table>
 <thead><tr>
@@ -2414,7 +2417,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <div class="card" style="padding:0;overflow:hidden;">
-<div style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;">Bu yıl (Ocak — bugün)</div>
+<div id="comp-year-title" style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;">Bu yıl</div>
 <div class="tbl-wrap">
 <table>
 <thead><tr>

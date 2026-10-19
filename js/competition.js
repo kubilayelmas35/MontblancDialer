@@ -32,18 +32,67 @@ function _compEsc(s) {
     .replace(/"/g, '&quot;');
 }
 
+function _compTodayParts() {
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(today)) {
+    return {
+      y: Number(today.slice(0, 4)),
+      m: Number(today.slice(5, 7)),
+      d: Number(today.slice(8, 10)),
+      key: today.slice(0, 7),
+    };
+  }
+  const n = new Date();
+  const m = n.getMonth() + 1;
+  return { y: n.getFullYear(), m, d: n.getDate(), key: `${n.getFullYear()}-${String(m).padStart(2, '0')}` };
+}
+
+function _compMonthKey(y, m) {
+  return `${y}-${String(m).padStart(2, '0')}`;
+}
+
+function _compMonthLabel(y, m) {
+  return new Date(y, m - 1, 1).toLocaleDateString(mbLocale(), { month: 'long', year: 'numeric' });
+}
+
+/** Seçilen ay. Gelecek ay yok; boşsa Berlin'deki bu ay. */
+function _compResolveMonth() {
+  const today = _compTodayParts();
+  const el = document.getElementById('comp-period');
+  let key = el?.value || today.key;
+  if (!/^\d{4}-\d{2}$/.test(key) || key > today.key) key = today.key;
+  if (el && el.value !== key) el.value = key;
+  const y = Number(key.slice(0, 4));
+  const m = Number(key.slice(5, 7));
+  return { y, m, key, isCurrent: key === today.key, today };
+}
+
+function compShiftMonth(delta) {
+  const cur = _compResolveMonth();
+  let y = cur.y;
+  let m = cur.m + delta;
+  if (m < 1) { m = 12; y -= 1; }
+  if (m > 12) { m = 1; y += 1; }
+  const key = _compMonthKey(y, m);
+  if (key > cur.today.key) return;
+  const el = document.getElementById('comp-period');
+  if (el) el.value = key;
+  loadCompetitionPage();
+}
+
 async function _compFetchTerminCounts(dateFrom, dateTo) {
   const fid = _compFirmId();
   if (!fid) return {};
   const ff = `&firm_id=eq.${fid}`;
-  const gte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
-  const lte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
-  const q = `call_logs?select=agent_id${ff}&outcome=in.(appointment,appointment_done)&started_at=gte.${gte}&started_at=lte.${lte}&limit=15000`;
-  const logs = (await sb(q).catch(() => [])) || [];
+  const q = `appointments?select=agent_id,durum${ff}&termin_tarih=gte.${dateFrom}T00:00:00&termin_tarih=lte.${dateTo}T23:59:59&limit=15000`;
+  const rows = (await sb(q).catch(() => [])) || [];
+  const skip = new Set(['iptal', 'basarisiz', 'ulasilamadi']);
   const map = {};
-  for (const l of logs) {
-    if (!l.agent_id) continue;
-    map[l.agent_id] = (map[l.agent_id] || 0) + 1;
+  for (const row of rows) {
+    if (!row.agent_id) continue;
+    const durum = String(row.durum || '').trim().toLowerCase();
+    if (skip.has(durum)) continue;
+    map[row.agent_id] = (map[row.agent_id] || 0) + 1;
   }
   return map;
 }
@@ -166,9 +215,9 @@ async function loadCompetitionPage() {
     el.style.display = showCounts ? 'none' : 'inline';
   });
 
-  const nowParts = typeof mbBusinessToday === 'function' ? mbBusinessToday() : '';
-  const y = nowParts ? Number(nowParts.slice(0, 4)) : new Date().getFullYear();
-  const m = nowParts ? Number(nowParts.slice(5, 7)) : new Date().getMonth() + 1;
+  const picked = _compResolveMonth();
+  const y = picked.y;
+  const m = picked.m;
   const { start, end } = _compMonthBounds(y, m);
   const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
   const pm = _compMonthBounds(prev.y, prev.m);
@@ -229,14 +278,31 @@ async function loadCompetitionPage() {
     }
   }
 
+  const monthTitle = _compMonthLabel(y, m);
+  const leaderTitle = document.getElementById('comp-leader-title');
+  if (leaderTitle) leaderTitle.textContent = picked.isCurrent ? (currentLang === 'de' ? 'Führend diesen Monat' : 'Bu ay lider') : monthTitle;
+  const monthTableTitle = document.getElementById('comp-month-table-title');
+  if (monthTableTitle) monthTableTitle.textContent = picked.isCurrent ? (currentLang === 'de' ? 'Rangliste diesen Monat' : 'Bu ay sıralaması') : monthTitle;
+  const yearTitle = document.getElementById('comp-year-title');
+  if (yearTitle) {
+    const fromName = new Date(y, 0, 1).toLocaleDateString(mbLocale(), { month: 'long' });
+    const toName = new Date(y, m - 1, 1).toLocaleDateString(mbLocale(), { month: 'long' });
+    yearTitle.textContent = `${y} · ${fromName} — ${toName}`;
+  }
+  const prevTitle = document.getElementById('comp-prev-title');
+  if (prevTitle) prevTitle.textContent = _compMonthLabel(prev.y, prev.m);
+
   const daysInMonth = new Date(y, m, 0).getDate();
-  const day = now.getDate();
+  const day = picked.isCurrent ? picked.today.d : daysInMonth;
   const pct = Math.min(100, Math.round((day / daysInMonth) * 100));
   const bar = document.getElementById('comp-month-bar');
   if (bar) bar.style.width = `${pct}%`;
   const ml = document.getElementById('comp-month-label');
-  if (ml)
-    ml.textContent = tReplace('comp.month_progress', { p: pct, d: daysInMonth - day });
+  if (ml) {
+    ml.textContent = picked.isCurrent
+      ? tReplace('comp.month_progress', { p: pct, d: Math.max(0, daysInMonth - day) })
+      : t('comp.month_done');
+  }
 
   _compRenderRace(curRows.slice(0, 10), showCounts);
   _compRenderTable('comp-lb-month', curRows, showCounts);
