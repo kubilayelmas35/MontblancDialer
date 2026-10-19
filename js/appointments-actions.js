@@ -57,7 +57,7 @@ ${cell('KİŞİ SAYISI', appt.personen)}
 ${cell('PV İLGİSİ', pv)}
 ${cell('PERSONEL', agentName)}
 ${cell('RANDEVU TARİHİ / SAATİ', when)}
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">RANDEVUNUN OLUŞTURULMA TARİHİ / SAATİ</div><div style="font-weight:700;">${esc(created || '—')}</div></div>
+${cell('OLUŞTURULMA TARİHİ / SAATİ', created)}
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">KOMŞU RANDEVULARA MESAFE</div><div id="takvim-neighbor-dist" style="font-weight:700;">Hesaplanıyor…</div></div>
 </div>`;
   takvimFillNeighborDist(slot, appt);

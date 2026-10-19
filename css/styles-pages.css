@@ -200,6 +200,25 @@ min-height: 0;
   pointer-events: none;
   box-shadow: 0 1px 4px rgba(0,0,0,.16);
 }
+#m-takvim-detail .modal { max-width: 680px; }
+#takvim-detail-footer {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+#takvim-detail-footer .btn {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+#takvim-detail-footer .form-input {
+  width: auto;
+  max-width: 150px;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+}
 .tak-slot-cust {
   position: absolute;
   right: 4px;
