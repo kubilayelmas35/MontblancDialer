@@ -27,9 +27,14 @@ function startFieldEdit(fieldKey, fieldLabel, btnEl) {
   btnEl.title = 'Kaydet'; btnEl.style.color = 'var(--green)'; btnEl.style.opacity = '1';
   btnEl.onclick = () => saveFieldEdit(fieldKey, fieldLabel, input, valEl, btnEl);
   input.onkeydown = (e) => {
-    if (e.key === 'Enter') saveFieldEdit(fieldKey, fieldLabel, input, valEl, btnEl);
+    if (e.key === 'Enter') {
+      const pick = fieldKey === 'address' ? input.closest('.cust-field')?.querySelector('.addr-suggest button') : null;
+      if (pick) { e.preventDefault(); pick.click(); return; }
+      saveFieldEdit(fieldKey, fieldLabel, input, valEl, btnEl);
+    }
     if (e.key === 'Escape') cancelFieldEdit(fieldKey, input, valEl, btnEl);
   };
+  if (fieldKey === 'address') bindAddressSuggest(input, valEl, btnEl);
 }
 
 async function saveFieldEdit(fieldKey, fieldLabel, inputEl, valEl, btnEl) {
@@ -39,7 +44,10 @@ async function saveFieldEdit(fieldKey, fieldLabel, inputEl, valEl, btnEl) {
     const updateData = {};
     if (fieldKey === 'plz') updateData.plz = newVal;
     else if (fieldKey === 'city') updateData.city = newVal;
-    else if (fieldKey === 'address') updateData.address = newVal;
+    else if (fieldKey === 'address') {
+      updateData.address = newVal;
+      if (currentContact._addrCity) updateData.city = currentContact._addrCity;
+    }
     else if (fieldKey === 'phone2') updateData.phone2 = newVal;
     else if (fieldKey === 'notes') updateData.notes = newVal;
     else {
@@ -53,20 +61,96 @@ async function saveFieldEdit(fieldKey, fieldLabel, inputEl, valEl, btnEl) {
       body: JSON.stringify(updateData)
     });
     currentContact[fieldKey] = newVal;
+    if (fieldKey === 'address' && currentContact._addrCity) {
+      currentContact.city = currentContact._addrCity;
+      delete currentContact._addrCity;
+      const cityVal = document.getElementById('cval-city');
+      if (cityVal && cityVal.style.display !== 'none') cityVal.textContent = currentContact.city;
+    }
     if (fieldKey === 'notes' && typeof syncDialerNotes === 'function') syncDialerNotes(newVal, 'top');
     valEl.textContent = newVal || '—';
+    clearAddressSuggest(inputEl.closest('.cust-field'));
     inputEl.remove(); valEl.style.display = '';
     btnEl.innerHTML = '<i class="ph ph-pencil-simple" style="font-size:14px;"></i>';
     btnEl.title = 'Düzenle'; btnEl.style.color = 'var(--text-3)'; btnEl.style.opacity = '.6';
     btnEl.onclick = () => startFieldEdit(fieldKey, fieldLabel, btnEl);
     toast(uqSay('dial.field_saved', '{label} güncellendi', { label: fieldLabel }), 'ok', 1500);
   } catch(e) {
+    if (currentContact) delete currentContact._addrCity;
     toast('Güncelleme hatası: ' + e.message, 'err');
     cancelFieldEdit(fieldKey, inputEl, valEl, btnEl);
   }
 }
 
+function clearAddressSuggest(box) {
+  if (box) box.style.zIndex = '';
+  box?.querySelector('.addr-suggest')?.remove();
+}
+
+let _addrSuggestTimer = 0;
+let _addrSuggestGen = 0;
+
+function bindAddressSuggest(input, valEl, btnEl) {
+  const ph = typeof t === 'function' ? t('dial.addr.ph') : '';
+  input.placeholder = ph && ph !== 'dial.addr.ph' ? ph : 'Sokak ve kapı no — yanlış yazsan da bulur';
+  input.addEventListener('input', () => {
+    clearTimeout(_addrSuggestTimer);
+    const box = input.closest('.cust-field');
+    if (input.value.trim().length < 3) { clearAddressSuggest(box); return; }
+    _addrSuggestTimer = setTimeout(() => paintAddressSuggest(input, valEl, btnEl), 280);
+  });
+}
+
+function addrEsc(value) {
+  return typeof escapeHtml === 'function' ? escapeHtml(value ?? '') : String(value ?? '');
+}
+
+async function paintAddressSuggest(input, valEl, btnEl) {
+  const box = input.closest('.cust-field');
+  if (!box || !input.isConnected) return;
+  const gen = ++_addrSuggestGen;
+  const typed = input.value.trim();
+  let rows = [];
+  try {
+    rows = typeof searchTomTomAddresses === 'function'
+      ? await searchTomTomAddresses(typed, { plz: currentContact?.plz, city: currentContact?.city })
+      : [];
+  } catch (_) { rows = []; }
+  if (gen !== _addrSuggestGen || !input.isConnected) return;
+  clearAddressSuggest(box);
+  const list = document.createElement('div');
+  list.className = 'addr-suggest';
+  if (!rows.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = typeof t === 'function' && t('dial.addr.empty') !== 'dial.addr.empty' ? t('dial.addr.empty') : 'Adres bulunamadı';
+    list.appendChild(empty);
+  } else {
+    rows.forEach((row) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.innerHTML = `<span>${addrEsc(row.line)}</span><span class="sub">${addrEsc([row.plz, row.city].filter(Boolean).join(' '))}</span>`;
+      b.onmousedown = (ev) => ev.preventDefault();
+      b.onclick = () => applyDialerAddressSuggestion(row, input, valEl, btnEl);
+      list.appendChild(b);
+    });
+  }
+  box.style.zIndex = '6';
+  box.appendChild(list);
+}
+
+async function applyDialerAddressSuggestion(row, input, valEl, btnEl) {
+  if (!row?.line || !input?.isConnected) return;
+  input.value = row.line;
+  const cityNow = String(currentContact?.city || '').trim();
+  if (!cityNow && row.city) currentContact._addrCity = row.city;
+  else if (currentContact) delete currentContact._addrCity;
+  const label = typeof t === 'function' ? t('uq.field.address') : 'Adres';
+  await saveFieldEdit('address', label && label !== 'uq.field.address' ? label : 'Adres', input, valEl, btnEl);
+}
+
 function cancelFieldEdit(fieldKey, inputEl, valEl, btnEl) {
+  clearAddressSuggest(inputEl.closest('.cust-field'));
   inputEl.remove(); valEl.style.display = '';
   btnEl.innerHTML = '<i class="ph ph-pencil-simple" style="font-size:14px;"></i>';
   btnEl.title = 'Düzenle'; btnEl.style.color = 'var(--text-3)'; btnEl.style.opacity = '.6';

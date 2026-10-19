@@ -292,7 +292,22 @@ opacity: 0.38;
 .cust-fields {
 display:grid; grid-template-columns:1fr 1fr; gap:12px;
 }
-.cust-field { display:flex; flex-direction:column; gap:2px; }
+.cust-field { display:flex; flex-direction:column; gap:2px; overflow:visible; }
+.addr-suggest {
+  position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:30;
+  background:var(--bg-2); border:1px solid var(--border); border-radius:8px;
+  box-shadow:var(--shadow-md); overflow:hidden;
+}
+.addr-suggest button {
+  display:flex; flex-direction:column; align-items:flex-start; gap:1px;
+  width:100%; text-align:left; padding:8px 10px; border:0;
+  border-bottom:1px solid var(--border); background:transparent;
+  color:var(--text); font-size:12px; font-weight:700; cursor:pointer;
+}
+.addr-suggest button:last-child { border-bottom:0; }
+.addr-suggest button:hover { background:var(--bg-3); }
+.addr-suggest .sub { font-size:10px; font-weight:600; color:var(--text-3); }
+.addr-suggest .empty { padding:8px 10px; font-size:11px; color:var(--text-3); }
 .cust-field-lbl { font-size:11px; color:var(--text-3); font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
 .cust-field-val { font-size:14px; font-weight:600; color:var(--text); }
 .cust-field-val.mono { font-family:var(--mono); }

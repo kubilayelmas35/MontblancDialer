@@ -408,6 +408,44 @@ async function geocodeTomTom(query) {
   } catch (_) { return null; }
 }
 
+async function searchTomTomAddresses(query, bias) {
+  const tk = localStorage.getItem('mb_tomtom_key') || DEFAULT_TOMTOM_KEY;
+  const q = String(query || '').trim();
+  if (!tk || q.length < 3) return [];
+  const plz = String(bias?.plz || '').replace(/\s+/g, '');
+  const city = String(bias?.city || '').trim();
+  const full = [q, plz, city].filter(Boolean).join(' ');
+  try {
+    const url = `https://api.tomtom.com/search/2/search/${encodeURIComponent(full)}.json?key=${encodeURIComponent(tk)}&countrySet=DE&limit=6&idxSet=PAD,Str,Addr&typeahead=true&minFuzzyLevel=1&language=de-DE`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const seen = new Set();
+    const rows = [];
+    (data?.results || []).forEach((r) => {
+      const a = r?.address || {};
+      const street = [a.streetName, a.streetNumber].filter(Boolean).join(' ').trim();
+      const line = street || String(a.freeformAddress || '').split(',')[0].trim();
+      if (!line) return;
+      const row = {
+        line,
+        plz: String(a.postalCode || '').trim(),
+        city: String(a.municipality || a.municipalitySubdivision || '').trim(),
+      };
+      row.label = [row.line, [row.plz, row.city].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+      const key = row.label.toLocaleLowerCase('de-DE');
+      if (seen.has(key)) return;
+      seen.add(key);
+      rows.push(row);
+    });
+    if (plz) {
+      const same = rows.filter((row) => row.plz === plz);
+      if (same.length) return same.slice(0, 5);
+    }
+    return rows.slice(0, 5);
+  } catch (_) { return []; }
+}
+
 async function routeTomTomCoords(p1, p2) {
   const tk = localStorage.getItem('mb_tomtom_key') || DEFAULT_TOMTOM_KEY;
   if (!tk || !p1?.lat || !p2?.lat) return null;
