@@ -1319,6 +1319,7 @@ async function _loadTakvimOverlayCamps() {
 }
 
 async function openTakvimOverlay() {
+  if (typeof takvimArmDialerPlz === 'function') takvimArmDialerPlz();
   if (typeof userHasPagePerm === 'function' && !userHasPagePerm('takvim')) {
     if (typeof toast === 'function') toast(typeof t === 'function' ? t('nav.no_perm') : 'Bu sayfa için yetkiniz yok', 'warn');
     return;

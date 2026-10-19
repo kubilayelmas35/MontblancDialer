@@ -393,6 +393,7 @@ async function takvimPageFirmChanged() {
 }
 
 async function loadTakvimPage() {
+  if (typeof takvimArmDialerPlz === 'function') takvimArmDialerPlz();
   takvimClearMovePickMode();
   const isAdmin = mbIsFirmAdmin();
   const ovOpen = document.getElementById('takvim-popup-overlay')?.classList.contains('open');
@@ -565,6 +566,7 @@ async function loadTakvimSlots() {
       takvimApplyWeekRowHeights();
       requestAnimationFrame(takvimApplyWeekRowHeights);
     });
+    if (typeof takvimContinuePlzMeasure === 'function') takvimContinuePlzMeasure();
   } catch(e) { toast('Takvim hatası: '+e.message,'err'); }
 }
 

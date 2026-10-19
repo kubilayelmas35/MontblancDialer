@@ -517,6 +517,29 @@ async function nudgeTakvimSlot(slotId, deltaMin) {
 }
 
 let _takvimPlzTimer = null;
+let _takvimPlzRun = 0;
+let _takvimAutoPlzWanted = false;
+function takvimDialerPlz() {
+  const contact = typeof currentContact !== 'undefined' ? currentContact : null;
+  const plz = takvimNormalizePlz(contact?.plz || '');
+  return plz.length >= 5 ? plz : '';
+}
+function takvimArmDialerPlz() {
+  _takvimAutoPlzWanted = !!takvimDialerPlz();
+}
+function takvimContinuePlzMeasure() {
+  if (!takvimCampId) return;
+  const active = takvimNormalizePlz(_takvimMeasureFromPlz || '');
+  const plz = active.length >= 5 ? active : (_takvimAutoPlzWanted ? takvimDialerPlz() : '');
+  if (plz.length < 5) return;
+  _takvimAutoPlzWanted = false;
+  takvimPlzMeasureOpen({ silent: true });
+  ['takvim-plz-inp', 'takvim-plz-inp-ov'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = plz;
+  });
+  runTakvimPlzMeasure(plz);
+}
 function takvimNormalizePlz(value) {
   let p = String(value || '').replace(/\D/g, '');
   if (p.length === 4) p = `0${p}`;
@@ -538,7 +561,7 @@ function takvimToggleFilters() {
     if (typeof takvimApplyWeekRowHeights === 'function') takvimApplyWeekRowHeights();
   });
 }
-function takvimPlzMeasureOpen() {
+function takvimPlzMeasureOpen(opts) {
   ['takvim-plz-btn', 'takvim-plz-btn-ov'].forEach((id) => {
     const btn = document.getElementById(id);
     if (btn) btn.hidden = true;
@@ -549,9 +572,12 @@ function takvimPlzMeasureOpen() {
     el.hidden = false;
     if (_takvimMeasureFromPlz && !el.value) el.value = _takvimMeasureFromPlz;
   });
-  (document.getElementById('takvim-plz-inp') || document.getElementById('takvim-plz-inp-ov'))?.focus();
+  if (!opts || !opts.silent) {
+    (document.getElementById('takvim-plz-inp') || document.getElementById('takvim-plz-inp-ov'))?.focus();
+  }
 }
 function takvimPlzMeasureClose() {
+  _takvimAutoPlzWanted = false;
   clearTimeout(_takvimPlzTimer);
   _takvimMeasureFromPlz = null;
   _takvimMeasureCache = {};
@@ -579,6 +605,7 @@ function takvimPlzMeasureInput(value) {
   clearTimeout(_takvimPlzTimer);
   const raw = String(value || '').trim();
   if (!raw) {
+    _takvimAutoPlzWanted = false;
     _takvimMeasureFromPlz = null;
     _takvimMeasureCache = {};
     renderTakvimSlots();
@@ -591,12 +618,13 @@ function takvimPlzMeasureInput(value) {
 }
 async function runTakvimPlzMeasure(plz) {
   if (!takvimCampId) { toast('Önce kampanya seçin', 'err'); return; }
+  const run = ++_takvimPlzRun;
   _takvimDistAllOriginId = null;
   _takvimMeasureFromPlz = plz;
   _takvimMeasureCache = {};
   const targets = (takvimSlots || []).filter((s) => s.durum === 'dolu' && s.appointment_id);
   for (const s of targets) {
-    if (_takvimMeasureFromPlz !== plz) return;
+    if (run !== _takvimPlzRun || _takvimMeasureFromPlz !== plz) return;
     const da = takvimAppts.find((a) => a.id === s.appointment_id);
     if (!da?.plz) continue;
     const dest = takvimNormalizePlz(da.plz);
@@ -611,7 +639,7 @@ async function runTakvimPlzMeasure(plz) {
       if (rt) _takvimMeasureCache[key] = { km: (rt.d / 1000).toFixed(1), min: Math.round(rt.t / 60) };
     } catch (_) {}
   }
-  if (_takvimMeasureFromPlz === plz && typeof renderTakvimSlots === 'function') {
+  if (run === _takvimPlzRun && _takvimMeasureFromPlz === plz && typeof renderTakvimSlots === 'function') {
     renderTakvimSlots();
     if (typeof renderTakvimFailed === 'function') renderTakvimFailed();
   }
