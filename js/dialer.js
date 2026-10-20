@@ -707,8 +707,8 @@ async function loadMyMiniStats() {
     if (lbl) lbl.textContent = labels[goalScope] || t('dial.goal.short');
 
     let goalVal = _dailyGoal;
-    if (goalScope === 'weekly') goalVal = _dailyGoal * 5;
-    else if (goalScope === 'monthly') goalVal = _dailyGoal * 22;
+    if (goalScope === 'weekly') goalVal = Number(window._weeklyGoal) || _dailyGoal * 5;
+    else if (goalScope === 'monthly') goalVal = Number(window._monthlyGoal) || _dailyGoal * 22;
     updateDailyProgress(appts, goalVal);
     const orderedResultRows = (() => {
       const primary = ['basarili', 'basarisiz'];

@@ -2705,7 +2705,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button type="button" data-sub="mesai" onclick="opsNotifSub('mesai')" data-tr="Mesai" data-de="Schicht">Mesai</button>
 <button type="button" class="ops-firm-only" data-sub="live" onclick="opsNotifSub('live')" data-tr="Canlı" data-de="Live">Canlı</button>
 <button type="button" data-sub="cal" onclick="opsNotifSub('cal')" data-tr="Takvim" data-de="Kalender">Takvim</button>
-<button type="button" data-sub="qc" onclick="opsNotifSub('qc')">QC</button>
+<button type="button" data-sub="qc" onclick="opsNotifSub('qc')" data-tr="Kalite kontrol" data-de="Qualitätskontrolle">Kalite kontrol</button>
 </div>
 <div class="ops-subpane" data-sub="wv">
 <div class="form-label" data-tr="Aranacaklar" data-de="Rückrufe">Aranacaklar</div>
@@ -3276,6 +3276,11 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="card" id="settings-goals-card">
 <div class="card-title" style="margin-bottom:16px;" data-tr="Randevu hedefleri" data-de="Terminziele">Randevu hedefleri</div>
 <div style="display:flex;flex-direction:column;gap:10px;">
+<div style="font-size:11px;color:var(--text-3);" data-tr="Günlük, haftalık ve aylık hedef ayrıdır. Kayıt, seçilen firmanın temsilcilerine uygulanır." data-de="Tages-, Wochen- und Monatsziel stehen getrennt. Die Speicherung gilt für die Agenten der gewählten Firma.">Günlük, haftalık ve aylık hedef ayrıdır. Kayıt, seçilen firmanın temsilcilerine uygulanır.</div>
+<div class="form-row" id="goal-firm-row" style="display:none;">
+<label class="form-label" data-tr="Firma" data-de="Firma">Firma</label>
+<select class="form-input" id="goal-firm-select" onchange="onGoalFirmChange()"></select>
+</div>
 <div class="form-row">
 <label class="form-label" data-tr="Günlük randevu hedefi (temsilci)" data-de="Tägliches Terminziel (Agent)">Günlük randevu hedefi (temsilci)</label>
 <input class="form-input" id="s-daily-goal" type="number" min="1" max="50" value="5" style="width:120px;">
@@ -3288,7 +3293,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" data-tr="Aylık randevu hedefi (temsilci)" data-de="Monatliches Terminziel (Agent)">Aylık randevu hedefi (temsilci)</label>
 <input class="form-input" id="s-monthly-goal" type="number" min="1" max="1600" value="100" style="width:120px;">
 </div>
-<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveApiSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Randevu hedeflerini kaydet" data-de="Terminziele speichern">Randevu hedeflerini kaydet</span></button>
+<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveGoalSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Randevu hedeflerini kaydet" data-de="Terminziele speichern">Randevu hedeflerini kaydet</span></button>
 </div>
 </div>
 <div class="card" id="incoming-calls-settings-card" style="display:none;">
@@ -3477,7 +3482,7 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <span><i class="ph ph-shield-check" style="vertical-align:-3px;margin-right:6px;"></i>Roller & İzinler</span>
 <button class="btn btn-primary btn-sm" onclick="openAddRoleModal()"><i class="ph ph-plus"></i> Yeni Rol</button>
 </div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:14px;">Hangi rolün hangi bölümlere erişebileceğini belirleyin. Yerleşik roller düzenlenemez.</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:14px;" data-tr="Hangi rolün hangi sayfayı göreceğini seçin. Yerleşik rol silinmez, izinleri değişir." data-de="Welche Rolle welche Seite sieht. Eingebaute Rollen bleiben, ihre Rechte ändern sich.">Hangi rolün hangi sayfayı göreceğini seçin. Yerleşik rol silinmez, izinleri değişir.</div>
 <div id="roles-list" style="display:flex;flex-direction:column;gap:8px;">
 <div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Yükleniyor...</div>
 </div>
@@ -3533,15 +3538,11 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 </div>
 </div>
 <div class="card" id="sb-settings" style="display:none;">
-<div class="card-title" style="margin-bottom:16px;">Supabase (Sadece Bilgi)</div>
-<div style="display:flex;flex-direction:column;gap:12px;">
+<div class="card-title" style="margin-bottom:16px;" data-tr="Veritabanı adresi" data-de="Datenbankadresse">Veritabanı adresi</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;" data-tr="Bu adres bilgi içindir. Hat kaydı buradan değişmez." data-de="Diese Adresse ist nur zur Ansicht. Die Leitung ändert sich hier nicht.">Bu adres bilgi içindir. Hat kaydı buradan değişmez.</div>
 <div class="form-row">
 <label class="form-label">URL</label>
-<input type="text" class="form-input" id="s-sb-url" value="https://gsvvhzyhdhkbozjnlyrn.supabase.co">
-</div>
-<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveSettings()">
-<i class="ph ph-floppy-disk"></i> <span data-tr="Kaydet" data-de="Speichern">Kaydet</span>
-</button>
+<input type="text" class="form-input" id="s-sb-url" value="https://gsvvhzyhdhkbozjnlyrn.supabase.co" readonly>
 </div>
 </div>
 <div class="card" id="sms-settings-card" style="display:none;">

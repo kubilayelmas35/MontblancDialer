@@ -849,7 +849,9 @@ function refreshCustEmptyCoachBubble() {
   const scopeStr = typeof t === 'function' ? t(scopeKey) : '';
   const goalBase = Math.max(1, Number(_dailyGoal) || 5);
   const goalFactor = scope === 'week' ? 5 : (scope === 'month' ? 22 : 1);
-  const periodGoal = goalBase * goalFactor;
+  const periodGoal = scope === 'week'
+    ? (Number(window._weeklyGoal) || goalBase * 5)
+    : (scope === 'month' ? (Number(window._monthlyGoal) || goalBase * 22) : goalBase);
   const apptRatio = appts / periodGoal;
   const hasStrongCallVolume = calls >= (12 * goalFactor);
   const roll = Math.random();
@@ -982,7 +984,7 @@ function startCustEmptyMascotLoops() {
 function updateCustEmptyMascotScale() {
   const root = document.getElementById('cust-empty');
   const gm = document.getElementById('global-mascot');
-  const monthlyGoal = Math.max(1, Number(_dailyGoal) || 5) * 22;
+  const monthlyGoal = Math.max(1, Number(window._monthlyGoal) || (Number(_dailyGoal) || 5) * 22);
   const n = Number(window._dialerPerfSnapshot?.monthlyAppts ?? 0);
   const t = Math.min(Math.max(n / monthlyGoal, 0), 2.2);
   const perf = 1 + 0.28 * t;

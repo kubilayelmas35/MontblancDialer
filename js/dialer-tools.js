@@ -346,16 +346,106 @@ async function mbIntegFirmChanged(from) {
   mbFillIntegForms(await mbLoadFirmIntegrations(_mbIntegFirmId));
 }
 
+function readGoalInputs() {
+  const clamp = (v, fallback, max) => {
+    const n = parseInt(v, 10);
+    if (!n || n < 1) return fallback;
+    return Math.min(max, n);
+  };
+  return {
+    daily: clamp(document.getElementById('s-daily-goal')?.value, 5, 50),
+    weekly: clamp(document.getElementById('s-weekly-goal')?.value, 25, 400),
+    monthly: clamp(document.getElementById('s-monthly-goal')?.value, 100, 1600),
+  };
+}
+
+function applyGoalNumbers(daily, weekly, monthly) {
+  const nums = {
+    daily: Math.min(50, Math.max(1, parseInt(daily, 10) || 5)),
+    weekly: Math.min(400, Math.max(1, parseInt(weekly, 10) || 25)),
+    monthly: Math.min(1600, Math.max(1, parseInt(monthly, 10) || 100)),
+  };
+  _dailyGoal = nums.daily;
+  window._weeklyGoal = nums.weekly;
+  window._monthlyGoal = nums.monthly;
+  localStorage.setItem('mb_daily_goal', String(nums.daily));
+  localStorage.setItem('mb_weekly_goal', String(nums.weekly));
+  localStorage.setItem('mb_monthly_goal', String(nums.monthly));
+  if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
+  return nums;
+}
+
+async function loadFirmAppointmentGoals() {
+  const fid = currentUser?.firm_id;
+  if (!fid || typeof sb !== 'function') return;
+  try {
+    const rows = await sb(`firms?id=eq.${fid}&select=settings`);
+    const g = rows?.[0]?.settings?.goals;
+    if (!g || g.daily == null) return;
+    applyGoalNumbers(g.daily, g.weekly, g.monthly);
+  } catch (_) {}
+}
+
+let _goalFirmId = null;
+
+async function loadGoalSettingsForm() {
+  const row = document.getElementById('goal-firm-row');
+  const sel = document.getElementById('goal-firm-select');
+  if (!row && !document.getElementById('s-daily-goal')) return;
+  const superAdmin = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+  if (row) row.style.display = superAdmin ? '' : 'none';
+  let fid = currentUser?.firm_id || '';
+  if (superAdmin && sel) {
+    if (!sel.options.length) {
+      const firms = await sb('firms?select=id,name&order=name.asc').catch(() => []);
+      sel.innerHTML = (firms || []).map((f) => `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name || '')}</option>`).join('');
+    }
+    if (!_goalFirmId) _goalFirmId = sel.value || fid;
+    if (_goalFirmId) sel.value = _goalFirmId;
+    fid = sel.value || fid;
+  }
+  _goalFirmId = fid;
+  let g = {};
+  if (fid) {
+    const rows = await sb(`firms?id=eq.${fid}&select=settings`).catch(() => []);
+    g = rows?.[0]?.settings?.goals || {};
+  }
+  const daily = document.getElementById('s-daily-goal');
+  const weekly = document.getElementById('s-weekly-goal');
+  const monthly = document.getElementById('s-monthly-goal');
+  if (daily) daily.value = g.daily || localStorage.getItem('mb_daily_goal') || '5';
+  if (weekly) weekly.value = g.weekly || localStorage.getItem('mb_weekly_goal') || '25';
+  if (monthly) monthly.value = g.monthly || localStorage.getItem('mb_monthly_goal') || '100';
+}
+
+async function onGoalFirmChange() {
+  _goalFirmId = document.getElementById('goal-firm-select')?.value || null;
+  await loadGoalSettingsForm();
+}
+
+async function saveGoalSettings() {
+  const superAdmin = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+  const fid = (superAdmin ? document.getElementById('goal-firm-select')?.value : currentUser?.firm_id) || '';
+  if (!fid) { toast(t('goal.need'), 'err'); return; }
+  const nums = readGoalInputs();
+  try {
+    const rows = await sb(`firms?id=eq.${fid}&select=settings`);
+    const settings = rows?.[0]?.settings && typeof rows[0].settings === 'object' ? rows[0].settings : {};
+    await sb(`firms?id=eq.${fid}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings: { ...settings, goals: nums } }),
+    });
+    if (String(fid) === String(currentUser?.firm_id || '')) applyGoalNumbers(nums.daily, nums.weekly, nums.monthly);
+    toast(t('goal.saved'), 'ok');
+  } catch (e) {
+    toast(t('goal.fail'), 'err');
+  }
+}
+
 async function saveApiSettings() {
   const gk = document.getElementById('s-google-key')?.value?.trim() || '';
   const tk = document.getElementById('s-tomtom-key')?.value?.trim() || '';
-  const goal = parseInt(document.getElementById('s-daily-goal')?.value||'5');
-  const wGoal = parseInt(document.getElementById('s-weekly-goal')?.value||'25');
-  const mGoal = parseInt(document.getElementById('s-monthly-goal')?.value||'100');
-  if (goal>0) { _dailyGoal=goal; localStorage.setItem('mb_daily_goal',String(goal)); }
-  if (wGoal>0) { window._weeklyGoal = wGoal; localStorage.setItem('mb_weekly_goal',String(wGoal)); }
-  if (mGoal>0) { window._monthlyGoal = mGoal; localStorage.setItem('mb_monthly_goal',String(mGoal)); }
-  updateCustEmptyMascotScale();
   if (typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin()) {
     const fid = _mbIntegFirmId || currentUser?.firm_id;
     if (fid) {

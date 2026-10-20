@@ -209,6 +209,7 @@ if (roleEl) {
 }
 if (mbIsSuperAdmin()) { loadAllFirms(); }
 loadFirmCallHours(); // arama kısıtlamalarını yükle
+if (typeof loadFirmAppointmentGoals === 'function') void loadFirmAppointmentGoals();
 if (typeof loadFirmDialerSettingsCache === 'function') void loadFirmDialerSettingsCache();
 if (typeof loadIncomingCallsSettingsPage === 'function') void loadIncomingCallsSettingsPage();
 if (typeof applyFeatureFlagsOnBoot === 'function') applyFeatureFlagsOnBoot().catch(() => {});

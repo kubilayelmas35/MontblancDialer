@@ -1213,6 +1213,9 @@ const MB_I18N = {
     'firm.led.empty': 'Kayıt yok. Yeni yüklemeler notuyla burada durur. Harcama, iş platformunda kesilen tutardır. Bu sürümden önceki yüklemelerin kaydı yok.',
     'firm.led.fail': 'Geçmiş yüklenemedi',
     'firm.led.cap': 'Son {n} hareket',
+    'goal.saved': 'Randevu hedefleri kaydedildi',
+    'goal.need': 'Önce firma seçin',
+    'goal.fail': 'Hedef kaydedilemedi',
   },
   de: {
     'login.brand.sub': 'Callcenter-Plattform',
@@ -2427,6 +2430,9 @@ const MB_I18N = {
     'firm.led.empty': 'Kein Eintrag. Neue Aufladungen stehen hier mit Notiz. Ausgaben sind Abzüge vom Jobmarkt. Aufladungen vor dieser Version wurden nicht protokolliert.',
     'firm.led.fail': 'Verlauf nicht geladen',
     'firm.led.cap': 'Letzte {n} Bewegungen',
+    'goal.saved': 'Terminziele gespeichert',
+    'goal.need': 'Zuerst eine Firma wählen',
+    'goal.fail': 'Ziele nicht gespeichert',
   },
 };
 

@@ -86,6 +86,7 @@ const _NAVIGATE_LOADERS = {
     setTimeout(() => _mbPageFn('initSettingsTabs')?.(window.__settingsTab || 'general'), 0);
     _mbPageFn('loadMesaiSettings')?.();
     _mbPageFn('loadCallHoursSettings')?.();
+    _mbPageFn('loadGoalSettingsForm')?.();
     _mbPageFn('loadChatSettingsPage')?.();
     _mbPageFn('loadFieldSettingsPage')?.();
     _mbPageFn('loadSmsSettingsPage')?.();
@@ -161,10 +162,10 @@ function initSettingsTabs(preferTab) {
     mascot: new Set(['settings-mascot-card']),
     communication: new Set(['incoming-calls-settings-card', 'chat-settings-card']),
     notifications: new Set(['notif-settings-card']),
-    operations: new Set(['call-hours-card', 'settings-goals-card', 'mesai-settings-card']),
+    operations: new Set(['settings-goals-card']),
     quality: new Set(['results-settings-card', 'qc-scope-card']),
     takvim: new Set(['default-takvim-firm-card']),
-    mesai: new Set(['mesai-plan-card']),
+    mesai: new Set(['mesai-plan-card', 'mesai-settings-card', 'call-hours-card']),
     field: new Set(['field-settings-card']),
     system: new Set(['settings-api-keys-card', 'feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings', 'sms-settings-card']),
   };
@@ -198,7 +199,7 @@ function mbSyncSettingsTabs() {
       btn.style.display = 'none';
       return;
     }
-    const ownerTab = tab === 'system' || tab === 'operations';
+    const ownerTab = tab === 'system';
     btn.style.display = !superOnly && ownerTab ? 'none' : '';
   });
   if (agent) {
