@@ -43,12 +43,12 @@ function renderFieldResultsRows() {
     ? rows
         .map(
           (v, idx) => `<div style="display:flex;gap:6px;align-items:center;">
-<input class="form-input" data-field-result-index="${idx}" value="${_fieldSetEsc(v)}" placeholder="Örn: satış" style="flex:1;">
-<button type="button" class="btn btn-ghost btn-sm" onclick="removeFieldResultOptionRow(${idx})">Sil</button>
+<input class="form-input" data-field-result-index="${idx}" value="${_fieldSetEsc(v)}" placeholder="${_fieldSetEsc(t('field.set.ph_result'))}" style="flex:1;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="removeFieldResultOptionRow(${idx})">${_fieldSetEsc(t('field.set.remove'))}</button>
 </div>`
         )
         .join('')
-    : '<div style="color:var(--text-3);font-size:11px;padding:8px;background:var(--bg-3);border-radius:6px;">Henüz sonuç seçeneği yok</div>';
+    : `<div style="color:var(--text-3);font-size:11px;padding:8px;background:var(--bg-3);border-radius:6px;">${_fieldSetEsc(t('field.set.no_results'))}</div>`;
 }
 
 function renderFieldDocRows() {
@@ -59,12 +59,12 @@ function renderFieldDocRows() {
     ? rows
         .map(
           (v, idx) => `<div style="display:flex;gap:6px;align-items:center;">
-<input class="form-input" data-field-doc-index="${idx}" value="${_fieldSetEsc(v)}" placeholder="Örn: sözleşme" style="flex:1;">
-<button type="button" class="btn btn-ghost btn-sm" onclick="removeFieldDocTypeRow(${idx})">Sil</button>
+<input class="form-input" data-field-doc-index="${idx}" value="${_fieldSetEsc(v)}" placeholder="${_fieldSetEsc(t('field.set.ph_doc'))}" style="flex:1;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="removeFieldDocTypeRow(${idx})">${_fieldSetEsc(t('field.set.remove'))}</button>
 </div>`
         )
         .join('')
-    : '<div style="color:var(--text-3);font-size:11px;padding:8px;background:var(--bg-3);border-radius:6px;">Belge tipi ekleyin</div>';
+    : `<div style="color:var(--text-3);font-size:11px;padding:8px;background:var(--bg-3);border-radius:6px;">${_fieldSetEsc(t('field.set.no_docs'))}</div>`;
 }
 
 function renderFieldSchemaRows() {
@@ -76,32 +76,32 @@ function renderFieldSchemaRows() {
         .map((r, idx) => {
           const rr = _normalizeFieldSchemaRow(r);
           return `<div style="padding:8px;background:var(--bg-3);border-radius:8px;display:grid;grid-template-columns:1fr 1fr 120px auto;gap:6px;align-items:center;">
-<input class="form-input" data-field-schema-key-index="${idx}" value="${_fieldSetEsc(rr.key)}" placeholder="Anahtar (örn: roof_type)">
-<input class="form-input" data-field-schema-label-index="${idx}" value="${_fieldSetEsc(rr.label)}" placeholder="Etiket (örn: Çatı tipi)">
+<input class="form-input" data-field-schema-key-index="${idx}" value="${_fieldSetEsc(rr.key)}" placeholder="${_fieldSetEsc(t('field.set.ph_key'))}">
+<input class="form-input" data-field-schema-label-index="${idx}" value="${_fieldSetEsc(rr.label)}" placeholder="${_fieldSetEsc(t('field.set.ph_label'))}">
 <select class="form-input" data-field-schema-type-index="${idx}" onchange="onFieldSchemaTypeChange(${idx}, this.value)">
-<option value="text" ${rr.type === 'text' ? 'selected' : ''}>Metin</option>
-<option value="number" ${rr.type === 'number' ? 'selected' : ''}>Sayı</option>
-<option value="date" ${rr.type === 'date' ? 'selected' : ''}>Tarih</option>
-<option value="select" ${rr.type === 'select' ? 'selected' : ''}>Seçim</option>
+<option value="text" ${rr.type === 'text' ? 'selected' : ''}>${_fieldSetEsc(t('field.set.type.text'))}</option>
+<option value="number" ${rr.type === 'number' ? 'selected' : ''}>${_fieldSetEsc(t('field.set.type.number'))}</option>
+<option value="date" ${rr.type === 'date' ? 'selected' : ''}>${_fieldSetEsc(t('field.set.type.date'))}</option>
+<option value="select" ${rr.type === 'select' ? 'selected' : ''}>${_fieldSetEsc(t('field.set.type.select'))}</option>
 </select>
 <div style="display:flex;gap:4px;justify-content:flex-end;">
 <button type="button" class="btn btn-ghost btn-sm" onclick="moveFieldSchemaRow(${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>↑</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="moveFieldSchemaRow(${idx}, 1)" ${idx === rows.length - 1 ? 'disabled' : ''}>↓</button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="removeFieldSchemaRow(${idx})">Sil</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="removeFieldSchemaRow(${idx})">${_fieldSetEsc(t('field.set.remove'))}</button>
 </div>
 <div style="grid-column:1/-1;display:grid;grid-template-columns:140px 1fr 1fr 1fr;gap:6px;align-items:center;">
-<label style="font-size:11px;display:flex;align-items:center;gap:6px;"><input type="checkbox" data-field-schema-required-index="${idx}" ${rr.required ? 'checked' : ''}> Zorunlu</label>
-<input class="form-input" data-field-schema-min-index="${idx}" value="${_fieldSetEsc(rr.min)}" placeholder="Min (opsiyonel)">
-<input class="form-input" data-field-schema-max-index="${idx}" value="${_fieldSetEsc(rr.max)}" placeholder="Max (opsiyonel)">
-<input class="form-input" data-field-schema-show-result-index="${idx}" value="${_fieldSetEsc(rr.show_when_result)}" placeholder="Koşul: sonuç anahtarı">
+<label style="font-size:11px;display:flex;align-items:center;gap:6px;"><input type="checkbox" data-field-schema-required-index="${idx}" ${rr.required ? 'checked' : ''}> ${_fieldSetEsc(t('field.set.required'))}</label>
+<input class="form-input" data-field-schema-min-index="${idx}" value="${_fieldSetEsc(rr.min)}" placeholder="${_fieldSetEsc(t('field.set.ph_min'))}">
+<input class="form-input" data-field-schema-max-index="${idx}" value="${_fieldSetEsc(rr.max)}" placeholder="${_fieldSetEsc(t('field.set.ph_max'))}">
+<input class="form-input" data-field-schema-show-result-index="${idx}" value="${_fieldSetEsc(rr.show_when_result)}" placeholder="${_fieldSetEsc(t('field.set.ph_when'))}">
 </div>
 ${rr.type === 'select' ? `<div style="grid-column:1/-1;display:flex;gap:6px;align-items:center;">
-<input class="form-input" data-field-schema-options-index="${idx}" value="${_fieldSetEsc(rr.options.join(', '))}" placeholder="Seçenekler (virgülle): örn. düşük, orta, yüksek">
+<input class="form-input" data-field-schema-options-index="${idx}" value="${_fieldSetEsc(rr.options.join(', '))}" placeholder="${_fieldSetEsc(t('field.set.ph_options'))}">
 </div>` : ''}
 </div>`
         })
         .join('')
-    : '<div style="color:var(--text-3);font-size:11px;padding:8px;background:var(--bg-3);border-radius:6px;">Ek alan yok</div>';
+    : `<div style="color:var(--text-3);font-size:11px;padding:8px;background:var(--bg-3);border-radius:6px;">${_fieldSetEsc(t('field.set.no_fields'))}</div>`;
 }
 
 function addFieldResultOptionRow() {
@@ -213,7 +213,7 @@ async function renderFieldSettingsForm() {
 async function saveFieldSettings() {
   const fid = _fieldSettingsFirmId;
   if (!fid) {
-    toast('Firma bulunamadı', 'warn');
+    toast(t('field.set.no_firm'), 'warn');
     return;
   }
   const enabled = !!document.getElementById('field-set-enabled')?.checked;
@@ -232,7 +232,7 @@ async function saveFieldSettings() {
     const label = String(labels[i]?.value || '').trim();
     if (!key && !label) continue;
     if (!key || !label) {
-      toast('Ek alanlarda anahtar ve etiket birlikte doldurulmalı', 'warn');
+      toast(t('field.set.need_pair'), 'warn');
       return;
     }
     const type = String(document.querySelector(`[data-field-schema-type-index="${i}"]`)?.value || 'text');
@@ -246,7 +246,7 @@ async function saveFieldSettings() {
     const max = String(document.querySelector(`[data-field-schema-max-index="${i}"]`)?.value || '').trim();
     const showWhenResult = String(document.querySelector(`[data-field-schema-show-result-index="${i}"]`)?.value || '').trim();
     if (type === 'select' && !options.length) {
-      toast('Seçim tipinde en az 1 seçenek girilmeli', 'warn');
+      toast(t('field.set.need_option'), 'warn');
       return;
     }
     schema.push({ key, label, type, options, required, min, max, show_when_result: showWhenResult });
@@ -271,8 +271,8 @@ async function saveFieldSettings() {
     });
     if (typeof logAuditEvent === 'function') await logAuditEvent('field_settings_updated', 'firm', fid, { fieldService });
     if (typeof invalidateFieldSettingsCache === 'function') invalidateFieldSettingsCache(fid);
-    toast('Saha ayarları kaydedildi', 'ok');
+    toast(t('field.set.saved'), 'ok');
   } catch (e) {
-    toast('Saha ayarları kaydedilemedi', 'err');
+    toast(t('field.set.save_fail'), 'err');
   }
 }

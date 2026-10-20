@@ -411,7 +411,7 @@ async function loadNotificationCenter() {
         src: 'hide',
         id: `field:${task.id || task.created_at}`,
         title: 'Saha görevi',
-        body: `Yeni görev atandı · ${task.result_key || 'sonuç bekleniyor'}`,
+        body: `${typeof t === 'function' ? t('field.status.assigned') : 'Atandı'} · ${task.result_key && typeof fieldResultLabel === 'function' ? fieldResultLabel(task.result_key) : (typeof t === 'function' ? t('field.result.pending') : '')}`,
         meta: new Date(task.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
         unread: mine || (fresh && mbIsFirmAdmin()),
       });

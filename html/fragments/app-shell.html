@@ -1611,13 +1611,13 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </div>
 </div>
 <div id="field-kpi-wrap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px;">
-<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Toplam Görev</div><div id="field-kpi-total" style="font-size:20px;font-weight:800;">0</div></div>
-<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Tamamlanan</div><div id="field-kpi-done" style="font-size:20px;font-weight:800;">0</div></div>
-<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Satış</div><div id="field-kpi-sales" style="font-size:20px;font-weight:800;">0</div></div>
-<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);">Belge Eksik</div><div id="field-kpi-missing-doc" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Toplam görev" data-de="Aufgaben gesamt">Toplam görev</div><div id="field-kpi-total" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Tamamlanan" data-de="Erledigt">Tamamlanan</div><div id="field-kpi-done" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Satış" data-de="Verkauf">Satış</div><div id="field-kpi-sales" style="font-size:20px;font-weight:800;">0</div></div>
+<div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Belge eksik" data-de="Dokument fehlt">Belge eksik</div><div id="field-kpi-missing-doc" style="font-size:20px;font-weight:800;">0</div></div>
 </div>
 <div id="field-task-list" style="display:flex;flex-direction:column;gap:10px;">
-<div class="card" style="padding:20px;color:var(--text-3);font-size:12px;text-align:center;">Yükleniyor...</div>
+<div class="card" style="padding:20px;color:var(--text-3);font-size:12px;text-align:center;" data-tr="Yükleniyor..." data-de="Wird geladen...">Yükleniyor...</div>
 </div>
 </div>
 <div class="page" id="page-fieldops">
@@ -1629,13 +1629,13 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="fieldops-firm-wrap"></div>
 <select class="form-input" id="fieldops-status-filter" style="min-width:140px;font-size:12px;" onchange="fieldOpsApplyFilters()">
-<option value="">Tüm durumlar</option>
-<option value="assigned">Atandı</option>
-<option value="in_progress">Sahada</option>
-<option value="completed">Tamamlandı</option>
-<option value="cancelled">İptal</option>
+<option value="" data-tr="Tüm durumlar" data-de="Alle Status">Tüm durumlar</option>
+<option value="assigned" data-tr="Atandı" data-de="Zugewiesen">Atandı</option>
+<option value="in_progress" data-tr="Sahada" data-de="Im Feld">Sahada</option>
+<option value="completed" data-tr="Tamamlandı" data-de="Erledigt">Tamamlandı</option>
+<option value="cancelled" data-tr="İptal" data-de="Storniert">İptal</option>
 </select>
-<input class="form-input" id="fieldops-search" placeholder="Randevu, telefon, saha..." style="min-width:180px;font-size:12px;" oninput="fieldOpsApplyFilters()">
+<input class="form-input" id="fieldops-search" data-tr="Randevu, telefon, adres, saha..." data-de="Termin, Telefon, Adresse, Feld..." placeholder="Randevu, telefon, adres, saha..." style="min-width:180px;font-size:12px;" oninput="fieldOpsApplyFilters()">
 <button class="btn btn-ghost btn-sm" onclick="loadFieldOpsPage()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
 </div>
 </div>
@@ -1659,9 +1659,10 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <th data-tr="Saha elemanı" data-de="Feldmitarbeiter">Saha elemanı</th>
 <th data-tr="Durum" data-de="Status">Durum</th>
 <th data-tr="Saha sonucu" data-de="Feldergebnis">Saha sonucu</th>
+<th data-tr="Detay" data-de="Detail">Detay</th>
 </tr></thead>
 <tbody id="fieldops-tbody">
-<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:24px;">Yükleniyor...</td></tr>
+<tr><td colspan="10" style="text-align:center;color:var(--text-3);padding:24px;" data-tr="Yükleniyor..." data-de="Wird geladen...">Yükleniyor...</td></tr>
 </tbody>
 </table>
 </div>
@@ -3199,45 +3200,45 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button type="button" class="btn btn-primary btn-sm" onclick="saveChatSettings()"><i class="ph ph-floppy-disk"></i> Sohbet ayarlarını kaydet</button>
 </div>
 <div class="card" id="field-settings-card" style="display:none;">
-<div class="card-title" style="margin-bottom:12px;"><i class="ph ph-briefcase" style="vertical-align:-3px;margin-right:6px;"></i>Saha modülü ayarları</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Saha görevlerinin aktifliği, saha elemanı yönetimi ve firma bazlı form ayarları.</div>
+<div class="card-title" style="margin-bottom:12px;"><i class="ph ph-briefcase" style="vertical-align:-3px;margin-right:6px;"></i><span data-tr="Saha modülü ayarları" data-de="Feldmodul-Einstellungen">Saha modülü ayarları</span></div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;" data-tr="Saha görevlerinin aktifliği, saha elemanı yönetimi ve firma bazlı form ayarları." data-de="Aktivierung, Feldmitarbeiter und firmenbezogene Formulare.">Saha görevlerinin aktifliği, saha elemanı yönetimi ve firma bazlı form ayarları.</div>
 <div id="field-settings-firm-row" style="display:none;margin-bottom:12px;">
-<label class="form-label" style="font-size:11px;color:var(--text-3);margin-bottom:4px;display:block;">Firma</label>
+<label class="form-label" style="font-size:11px;color:var(--text-3);margin-bottom:4px;display:block;" data-tr="Firma" data-de="Firma">Firma</label>
 <select class="form-input" id="field-settings-firm-select" style="width:100%;" onchange="onFieldSettingsFirmChange()"></select>
 </div>
 <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
 <input type="checkbox" id="field-set-enabled" style="width:15px;height:15px;cursor:pointer;">
-<span>Saha modülü firma için aktif</span>
+<span data-tr="Saha modülü firma için aktif" data-de="Feldmodul für die Firma aktiv">Saha modülü firma için aktif</span>
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
 <input type="checkbox" id="field-set-manage-agents" style="width:15px;height:15px;cursor:pointer;">
-<span>Firma admini saha elemanı ekleyebilsin</span>
+<span data-tr="Firma admini saha elemanı ekleyebilsin" data-de="Firmenadmin darf Feldmitarbeiter anlegen">Firma admini saha elemanı ekleyebilsin</span>
 </label>
 </div>
 <div style="margin-bottom:10px;">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
-<label class="form-label" style="margin:0;">Saha sonuç seçenekleri</label>
-<button type="button" class="btn btn-ghost btn-sm" onclick="addFieldResultOptionRow()">+ Sonuç</button>
+<label class="form-label" style="margin:0;" data-tr="Saha sonuç seçenekleri" data-de="Ergebnisoptionen">Saha sonuç seçenekleri</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="addFieldResultOptionRow()" data-tr="+ Sonuç" data-de="+ Ergebnis">+ Sonuç</button>
 </div>
 <div id="field-set-results-list" style="display:flex;flex-direction:column;gap:6px;"></div>
 </div>
 <div style="margin-bottom:10px;">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
-<label class="form-label" style="margin:0;">Belge tipleri</label>
-<button type="button" class="btn btn-ghost btn-sm" onclick="addFieldDocTypeRow()">+ Belge tipi</button>
+<label class="form-label" style="margin:0;" data-tr="Belge tipleri" data-de="Dokumenttypen">Belge tipleri</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="addFieldDocTypeRow()" data-tr="+ Belge tipi" data-de="+ Dokumenttyp">+ Belge tipi</button>
 </div>
 <div id="field-set-doc-types-list" style="display:flex;flex-direction:column;gap:6px;"></div>
 </div>
 <div style="margin-bottom:12px;">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
-<label class="form-label" style="margin:0;">Ek form alanları</label>
-<button type="button" class="btn btn-ghost btn-sm" onclick="addFieldSchemaRow()">+ Alan</button>
+<label class="form-label" style="margin:0;" data-tr="Ek form alanları" data-de="Zusätzliche Formularfelder">Ek form alanları</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="addFieldSchemaRow()" data-tr="+ Alan" data-de="+ Feld">+ Alan</button>
 </div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Her alan için anahtar ve görünen etiket tanımlayın.</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;" data-tr="Her alan için anahtar ve görünen etiket tanımlayın." data-de="Für jedes Feld einen Schlüssel und eine Bezeichnung angeben.">Her alan için anahtar ve görünen etiket tanımlayın.</div>
 <div id="field-set-form-schema-list" style="display:flex;flex-direction:column;gap:6px;"></div>
 </div>
-<button type="button" class="btn btn-primary btn-sm" onclick="saveFieldSettings()"><i class="ph ph-floppy-disk"></i> Saha ayarlarını kaydet</button>
+<button type="button" class="btn btn-primary btn-sm" onclick="saveFieldSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Saha ayarlarını kaydet" data-de="Feldeinstellungen speichern">Saha ayarlarını kaydet</span></button>
 </div>
 <div class="card" id="feature-flags-card" style="display:none;">
 <div class="card-title" style="margin-bottom:12px;"><i class="ph ph-sliders-horizontal" style="vertical-align:-3px;margin-right:6px;"></i>Özellik Aç/Kapa</div>

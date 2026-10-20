@@ -903,3 +903,5 @@ i.ph {
 .qc-scope-picks[hidden] { display: none !important; }
 .agent-qc-scope { margin-top: 4px; font-size: 11px; color: var(--text-2); }
 #am-qc-scope[hidden] { display: none !important; }
+#fieldops-tbody tr.fieldops-row { cursor: pointer; }
+#fieldops-tbody tr.fieldops-row:hover td { background: var(--bg-3); }
