@@ -408,42 +408,105 @@ function fieldKeepApptMap(map) {
   window._fieldApptMap = map || {};
 }
 
+let _fieldRouteDay = null;
+const _fieldGeoCache = {};
+
+function fieldShiftIso(day, delta) {
+  const [y, m, d] = String(day || '').split('-').map(Number);
+  if (!y || !m || !d) return typeof fieldBerlinToday === 'function' ? fieldBerlinToday() : '';
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + delta);
+  return dt.toISOString().slice(0, 10);
+}
+
+function fieldRouteActiveDay() {
+  return _fieldRouteDay || (typeof fieldBerlinToday === 'function' ? fieldBerlinToday() : '');
+}
+
+function fieldRouteShift(delta) {
+  _fieldRouteDay = fieldShiftIso(fieldRouteActiveDay(), delta);
+  _fieldDay = 'route';
+  if (typeof loadFieldPage === 'function') loadFieldPage();
+}
+
+function fieldRouteToday() {
+  _fieldRouteDay = typeof fieldBerlinToday === 'function' ? fieldBerlinToday() : null;
+  _fieldDay = 'route';
+  if (typeof loadFieldPage === 'function') loadFieldPage();
+}
+
+function fieldFocusTask(taskId) {
+  document.getElementById(`field-card-${taskId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function fieldRouteKicker(day) {
+  const today = typeof fieldBerlinToday === 'function' ? fieldBerlinToday() : '';
+  if (day === today) return t('field.route.today');
+  if (day === fieldShiftIso(today, -1)) return t('field.route.yesterday');
+  if (day === fieldShiftIso(today, 1)) return t('field.route.tomorrow');
+  return t('field.route.day');
+}
+
+function fieldRouteTitle(day) {
+  const [y, m, d] = String(day || '').split('-').map(Number);
+  if (!y) return '—';
+  const dt = new Date(Date.UTC(y, m - 1, d, 12));
+  const locale = typeof mbLocale === 'function' ? mbLocale() : 'tr-TR';
+  return new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(dt);
+}
+
 async function fieldRefreshRoute(tasks, apptMap) {
   fieldKeepApptMap(apptMap);
   const card = document.getElementById('field-route-card');
   const stopsEl = document.getElementById('field-route-stops');
   const open = document.getElementById('field-route-open');
+  const kicker = document.getElementById('field-route-kicker');
+  const title = document.getElementById('field-route-title');
+  const stats = document.getElementById('field-route-stats');
   if (!card || !stopsEl) return;
-  const today = typeof fieldBerlinToday === 'function' ? fieldBerlinToday() : '';
+  card.style.display = '';
+  const day = fieldRouteActiveDay();
+  if (kicker) kicker.textContent = fieldRouteKicker(day);
+  if (title) title.textContent = fieldRouteTitle(day);
   const stops = (tasks || []).map((task) => {
     const ap = apptMap?.[task.appointment_id] || {};
     const slot = typeof fieldSlotOf === 'function' ? fieldSlotOf(ap) : null;
-    const day = slot?.tarih || String(ap.termin_tarih || '').slice(0, 10);
-    if (!day || day !== today) return null;
-    const addr = [ap.strasse, ap.plz, ap.ortschaft].filter(Boolean).join(' ');
+    const whenDay = typeof fieldTaskDay === 'function' ? fieldTaskDay(ap) : (slot?.tarih || '');
+    if (!whenDay || whenDay !== day) return null;
+    const addr = [ap.strasse, ap.plz, ap.ortschaft].filter(Boolean).join(', ');
     if (!addr) return null;
     return {
       name: ap.nachname || t('field.customer'),
       addr,
       time: String(slot?.baslangic_saat || '').slice(0, 5),
-      taskId: task.id
+      end: String(slot?.bitis_saat || '').slice(0, 5),
+      status: task.status,
+      taskId: task.id,
+      house: [ap.hausart, ap.qm ? `${ap.qm} m²` : ''].filter(Boolean).join(' · ')
     };
   }).filter(Boolean).sort((a, b) => String(a.time).localeCompare(String(b.time)));
   if (!stops.length) {
-    card.style.display = 'none';
+    if (open) open.href = '#';
+    if (stats) stats.textContent = t('field.route.empty');
+    stopsEl.innerHTML = '';
+    fieldPaintRoute([], []);
     return;
   }
-  card.style.display = '';
   const dir = `https://www.google.com/maps/dir/${stops.map((stop) => encodeURIComponent(stop.addr)).join('/')}`;
   if (open) open.href = dir;
-  stopsEl.innerHTML = `<div style="color:var(--text-3);">${_fEsc(t('field.route.loading'))}</div>`;
+  if (stats) stats.textContent = t('field.route.loading');
+  stopsEl.innerHTML = stops.map((stop, index) => fieldRouteStopHtml(stop, index, null)).join('');
   const token = ++_fieldRouteToken;
   const points = [];
   for (const stop of stops) {
-    let pos = null;
-    if (typeof geocodeTomTom === 'function') pos = await geocodeTomTom(`${stop.addr}, Germany`);
+    let pos = _fieldGeoCache[stop.addr];
+    if (!pos && typeof geocodeTomTom === 'function') {
+      const hit = await geocodeTomTom(`${stop.addr}, Germany`);
+      pos = hit?.lat ? { lat: hit.lat, lng: hit.lon } : null;
+      if (pos) _fieldGeoCache[stop.addr] = pos;
+    }
     if (token !== _fieldRouteToken) return;
-    points.push({ ...stop, lat: pos?.lat, lng: pos?.lon });
+    points.push({ ...stop, lat: pos?.lat, lng: pos?.lng });
   }
   const located = points.filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
   let line = located;
@@ -458,7 +521,7 @@ async function fieldRefreshRoute(tasks, apptMap) {
         const route = data?.routes?.[0];
         const drawn = [];
         (route?.legs || []).forEach((leg) => {
-          legs.push(leg?.summary?.lengthInMeters || 0);
+          legs.push(leg?.summary || {});
           (leg?.points || []).forEach((point) => drawn.push({ lat: point.latitude, lng: point.longitude }));
         });
         if (drawn.length) line = drawn;
@@ -466,11 +529,34 @@ async function fieldRefreshRoute(tasks, apptMap) {
     } catch (e) {}
   }
   if (token !== _fieldRouteToken) return;
+  const meters = legs.reduce((sum, leg) => sum + (Number(leg.lengthInMeters) || 0), 0);
+  const seconds = legs.reduce((sum, leg) => sum + (Number(leg.travelTimeInSeconds) || 0), 0);
+  if (stats) {
+    const km = meters ? `${(meters / 1000).toFixed(1)} km` : '—';
+    const min = seconds ? `${Math.round(seconds / 60)} ${t('field.route.min')}` : '—';
+    stats.textContent = `${stops.length} ${t('field.route.stops')} · ${km} · ${min} ${t('field.route.drive')}`;
+  }
   fieldPaintRoute(located, line);
-  stopsEl.innerHTML = points.map((stop, index) => {
-    const km = index > 0 && legs[index - 1] ? ` · ${(legs[index - 1] / 1000).toFixed(1)} km` : '';
-    return `<div><b>${index + 1}. ${ _fEsc(stop.time || '—') }</b> ${_fEsc(stop.name)} · ${_fEsc(stop.addr)}${_fEsc(km)}</div>`;
-  }).join('');
+  stopsEl.innerHTML = points.map((stop, index) => fieldRouteStopHtml(stop, index, legs[index - 1] || null)).join('');
+}
+
+function fieldRouteStopHtml(stop, index, leg) {
+  const windowText = [stop.time, stop.end].filter(Boolean).join('–') || '—';
+  const km = leg?.lengthInMeters ? `${(leg.lengthInMeters / 1000).toFixed(1)} km` : '';
+  const min = leg?.travelTimeInSeconds ? `${Math.round(leg.travelTimeInSeconds / 60)} ${t('field.route.min')}` : '';
+  const hop = index > 0 && (km || min) ? `${t('field.route.from_prev')} ${[min, km].filter(Boolean).join(' · ')}` : (index === 0 ? t('field.route.first') : '');
+  const status = typeof fieldStatusLabel === 'function' ? fieldStatusLabel(stop.status) : (stop.status || '');
+  return `<button type="button" class="field-stop" onclick="fieldFocusTask('${stop.taskId}')">
+<span class="field-stop-no">${index + 1}</span>
+<span class="field-stop-body">
+<span class="field-stop-time">${_fEsc(windowText)}</span>
+<span class="field-stop-name">${_fEsc(stop.name)}</span>
+<span class="field-stop-addr">${_fEsc(stop.addr)}</span>
+${stop.house ? `<span class="field-stop-meta">${_fEsc(stop.house)}</span>` : ''}
+${hop ? `<span class="field-stop-hop">${_fEsc(hop)}</span>` : ''}
+</span>
+<span class="field-stop-status">${_fEsc(status)}</span>
+</button>`;
 }
 
 function fieldPaintRoute(stops, line) {

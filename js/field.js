@@ -371,20 +371,22 @@ function renderFieldKpi(tasks, files, fs) {
   set('field-kpi-missing-doc', missing);
 }
 
-let _fieldDay = 'open';
+let _fieldDay = 'route';
 
 function fieldBerlinToday() {
   if (typeof mbBerlinDay === 'function') return mbBerlinDay(new Date().toISOString());
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 }
 
+function fieldTaskDay(appointment) {
+  const slot = fieldSlotOf(appointment);
+  return slot?.tarih || String(appointment?.termin_tarih || '').slice(0, 10);
+}
+
 function fieldTaskVisible(task, appointment) {
   if (_fieldDay === 'all') return true;
-  if (_fieldDay === 'today') {
-    const slot = fieldSlotOf(appointment);
-    const day = slot?.tarih || String(appointment?.termin_tarih || '').slice(0, 10);
-    return day === fieldBerlinToday();
-  }
+  if (_fieldDay === 'today') return fieldTaskDay(appointment) === fieldBerlinToday();
+  if (_fieldDay === 'route') return fieldTaskDay(appointment) === (typeof fieldRouteActiveDay === 'function' ? fieldRouteActiveDay() : fieldBerlinToday());
   return task.status === 'assigned' || task.status === 'in_progress';
 }
 
@@ -471,7 +473,7 @@ async function loadFieldPage() {
       const docSelect = docTypes.length
         ? `<select class="form-input" id="field-doctype-${task.id}" style="min-width:140px;font-size:12px;"><option value="">${_fEsc(t('field.doc_type'))}</option>${docTypes.map((key) => `<option value="${_fEsc(key)}">${_fEsc(fieldDocLabel(key))}</option>`).join('')}</select>`
         : '';
-      return `<div class="card" style="padding:12px;">
+      return `<div class="card" id="field-card-${task.id}" style="padding:12px;">
 <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
 <div>
 <div style="font-size:14px;font-weight:800;">${_fEsc(ap.nachname || t('field.customer'))}${sample}</div>
