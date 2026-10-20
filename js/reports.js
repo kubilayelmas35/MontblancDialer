@@ -89,8 +89,9 @@ async function repLoadBundle(range) {
   } catch (e) {
     appts = [];
   }
+  const allAppts = appts;
   if (range.agent) appts = appts.filter((a) => String(a.agent_id) === String(range.agent));
-  return { logs, appts, capped: pulled.capped };
+  return { logs, appts, allAppts, capped: pulled.capped };
 }
 
 function repByOutcome(logs) {
@@ -116,16 +117,16 @@ async function loadStatsReport() {
     if (typeof statsFillFilters === 'function') await statsFillFilters(range.fid);
     const fresh = statsCurrentRange();
     const pack = await repLoadBundle(fresh);
-    const users = fresh.fid
-      ? ((await sb(`users?select=id,name,role,firm_id&firm_id=eq.${fresh.fid}&order=name.asc&limit=400`).catch(() => [])) || [])
-      : [];
-    const sessions = fresh.fid
-      ? ((await sb(`agent_sessions?select=agent_id,status,last_seen,break_code&firm_id=eq.${fresh.fid}&limit=400`).catch(() => [])) || [])
-      : [];
+    const firmQ = fresh.fid ? `&firm_id=eq.${fresh.fid}` : '';
+    const users = (await sb(`users?select=id,name,role,firm_id${firmQ}&order=name.asc&limit=400`).catch(() => [])) || [];
+    let sessions = await sb(`agent_sessions?select=agent_id,status,last_seen,break_code,break_start,campaign_id,login_at${firmQ}&order=last_seen.desc.nullslast&limit=400`).catch(() => null);
+    if (!sessions) sessions = (await sb(`agent_sessions?select=agent_id,status,last_seen,break_start,campaign_id,login_at${firmQ}&order=last_seen.desc.nullslast&limit=400`).catch(() => [])) || [];
+    if (!sessions) sessions = (await sb(`agent_sessions?select=agent_id,status,last_seen,campaign_id${firmQ}&order=last_seen.desc.nullslast&limit=400`).catch(() => [])) || [];
     const userById = {};
     users.forEach((u) => { userById[u.id] = u; });
     const sessById = {};
     sessions.forEach((s) => { sessById[s.agent_id] = s; });
+    if (view === 'operator') await repLoadOperatorExtra(pack, fresh);
     host.innerHTML = repPaint(view, pack, fresh, userById, sessById);
     if (view === 'credit') host.innerHTML += await repCreditExtra(pack.logs, fresh);
   } catch (e) {
@@ -148,7 +149,7 @@ function repPaint(view, pack, range, userById, sessById) {
     repCard(t('rep.create'), repHours(appts.map((a) => a.kayit_tarihi))),
     repCard(t('rep.call'), repHours(logs.filter((l) => statsOutcomeKey(l.outcome) === 'appointment').map((l) => l.started_at))),
   ].join('');
-  if (view === 'operator') return repOperator(logs, appts, userById, sessById);
+  if (view === 'operator') return repOperator(logs, pack.allAppts || appts, userById, sessById, pack);
   if (view === 'perf' || view === 'group' || view === 'rank') return repPeople(view, logs, appts, userById);
   return '';
 }
@@ -167,39 +168,208 @@ function repResult(logs) {
   return repCard(repOutcomeLabel(key), repHours(rows.map((l) => l.started_at)));
 }
 
-function repOperator(logs, appts, userById, sessById) {
+const REP_COLORS = ['#16a34a', '#2563eb', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#db2777', '#64748b'];
+
+function repDay(iso) {
+  if (!iso) return '';
+  if (typeof mbBerlinDay === 'function') return mbBerlinDay(iso);
+  return String(iso).slice(0, 10);
+}
+
+function repDonut(parts, center) {
+  const total = parts.reduce((sum, part) => sum + part.n, 0);
+  if (!total) {
+    return `<div class="rep-donut" style="background:var(--bg-3)"><div class="rep-donut-hole">—</div></div>`;
+  }
+  let acc = 0;
+  const stops = parts.map((part, i) => {
+    const start = acc / total * 100;
+    acc += part.n;
+    return `${REP_COLORS[i % REP_COLORS.length]} ${start}% ${acc / total * 100}%`;
+  }).join(',');
+  const legend = parts.map((part, i) => `<div class="rep-legend-row"><i style="background:${REP_COLORS[i % REP_COLORS.length]}"></i><span>${statsEsc(part.label)}</span><b>${statsEsc(part.text)}</b></div>`).join('');
+  return `<div class="rep-donut-wrap"><div class="rep-donut" style="background:conic-gradient(${stops})"><div class="rep-donut-hole">${statsEsc(center)}</div></div><div class="rep-legend">${legend}</div></div>`;
+}
+
+function repSaleBucket(durum) {
+  const key = String(durum || '');
+  if (key === 'qc_bekleniyor' || key === 'beklemede') return 'new';
+  if (key === 'basarili' || key === 'onaylandi' || key === 'onay') return 'ok';
+  if (key === 'iptal' || key === 'basarisiz') return 'cancel';
+  if (key === 'ulasilamadi') return 'miss';
+  return key || 'other';
+}
+
+function repLoggedToday(sess, today) {
+  if (!sess) return false;
+  if (sess.login_at && repDay(sess.login_at) === today) return true;
+  if (sess.status && sess.status !== 'offline' && repDay(sess.last_seen) === today) return true;
+  return false;
+}
+
+async function repLoadOperatorExtra(pack, range) {
+  pack.statusLogs = [];
+  pack.campMap = {};
+  pack.todayLogs = pack.logs || [];
   const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : '';
-  const outcomes = repTable(
-    [t('stats.col.result'), t('stats.col.count'), t('stats.col.time')],
-    repByOutcome(logs).map((row) => `<tr><td>${statsEsc(repOutcomeLabel(row.key))}</td><td>${row.n}</td><td>${statsEsc(statsHms(row.sec))}</td></tr>`)
-  );
-  const durum = {};
-  appts.forEach((a) => {
-    const key = String(a.durum || '—');
-    durum[key] = (durum[key] || 0) + 1;
-  });
-  const sales = repTable(
-    [t('stats.col.result'), t('stats.col.count')],
-    Object.keys(durum).sort((a, b) => durum[b] - durum[a]).map((key) => `<tr><td>${statsEsc(repDurumLabel(key))}</td><td>${durum[key]}</td></tr>`)
-  );
-  const absent = Object.values(userById).filter((u) => u.role === 'agent' || u.role === 'qc').filter((u) => {
-    const seen = sessById[u.id]?.last_seen;
-    const day = seen && typeof mbBerlinDay === 'function' ? mbBerlinDay(seen) : String(seen || '').slice(0, 10);
-    return day !== today;
-  });
-  const absentRows = absent.map((u) => {
-    const sess = sessById[u.id];
-    return `<tr><td>${statsEsc(u.name || '')}</td><td>${statsEsc(repRole(u.role))}</td><td>${statsEsc(repStatusLabel(sess?.status))}</td><td>${statsEsc(repWhen(sess?.last_seen))}</td></tr>`;
-  });
+  const firmQ = range.fid ? `&firm_id=eq.${range.fid}` : '';
+  const camps = await sb(`campaigns?select=id,name${firmQ}&limit=300`).catch(() => []);
+  (camps || []).forEach((camp) => { pack.campMap[camp.id] = camp.name || ''; });
+  pack.statusLogs = (await sb(`agent_status_log?select=agent_id,status,break_code,campaign_id,started_at,ended_at,duration_sec${firmQ}&started_at=gte.${range.gte}&started_at=lte.${range.lte}&order=started_at.desc&limit=200`).catch(() => [])) || [];
+  const sameDay = range.dateFrom === today && range.dateTo === today && !range.agent && !range.camp;
+  if (!sameDay && today) {
+    const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
+    const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
+    const pulled = await statsPullLogs(range.ff, gte, lte, '', '');
+    pack.todayLogs = pulled.rows || [];
+  } else if (range.agent || range.camp) {
+    const pulled = await statsPullLogs(range.ff, range.gte, range.lte, '', '');
+    pack.todayLogs = range.dateFrom === today ? (pulled.rows || []) : pack.todayLogs;
+  }
+}
+
+function repOperator(logs, appts, userById, sessById, pack) {
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : '';
+  const agentId = document.getElementById('stats-agent-f')?.value || '';
+  const user = userById[agentId] || null;
+  const sess = agentId ? sessById[agentId] : null;
+  const outcomes = repByOutcome(logs);
+  const countParts = outcomes.map((row) => ({ n: row.n, label: repOutcomeLabel(row.key), text: String(row.n) }));
+  const timeParts = outcomes.filter((row) => row.sec > 0).map((row) => ({ n: row.sec, label: repOutcomeLabel(row.key), text: statsHms(row.sec) }));
+  const totalSec = outcomes.reduce((sum, row) => sum + row.sec, 0);
+  const loginAt = sess?.login_at || '';
+  const lastAct = (pack.statusLogs || []).find((row) => !agentId || String(row.agent_id) === String(agentId))?.started_at || sess?.last_seen || '';
+  const card = `<div class="card rep-person">
+<div class="rep-person-name">${statsEsc(user?.name || t('rep.pick_person'))}</div>
+<div class="firm-none">${statsEsc(user ? repRole(user.role) : t('rep.pick'))}</div>
+<div class="rep-person-meta"><span>${statsEsc(t('rep.login'))}</span><b>${statsEsc(loginAt ? repWhen(loginAt) : '—')}</b></div>
+<div class="rep-person-meta"><span>${statsEsc(t('rep.last_act'))}</span><b>${statsEsc(lastAct ? repWhen(lastAct) : '—')}</b></div>
+<div class="rep-person-meta"><span>${statsEsc(t('rep.now'))}</span><b>${statsEsc(sess ? repStatusLabel(sess.status) : '—')}${sess?.status === 'break' && sess.break_code ? ` · ${statsEsc(sess.break_code)}` : ''}</b></div>
+</div>`;
+  const rings = `<div class="rep-op-grid">${card}
+${repCard(t('rep.count_ring'), repDonut(countParts, String(logs.length)))}
+${repCard(t('rep.time_ring'), repDonut(timeParts, statsHms(totalSec)))}
+</div>`;
+  const staff = Object.values(userById).filter((u) => u.role === 'agent' || u.role === 'qc');
+  const absent = staff.filter((u) => !repLoggedToday(sessById[u.id], today));
   const absentTable = absent.length
-    ? repTable([t('rep.person'), t('stats.col.role'), t('rep.now'), t('rep.last')], absentRows)
+    ? repTable([t('rep.person'), t('rep.last')], absent.map((u) => {
+      const row = sessById[u.id];
+      return `<tr><td>${statsEsc(u.name || '')}</td><td>${statsEsc(repWhen(row?.login_at || row?.last_seen))}</td></tr>`;
+    }))
     : `<div class="firm-none">${statsEsc(t('rep.absent_none'))}</div>`;
+  const history = repStatusTable(agentId, userById, sessById, pack);
+  const sales = repSalesTable(appts, userById);
+  const breaks = repBreakTable(pack.statusLogs || [], userById, sessById);
+  const breakLive = Object.values(sessById).some((row) => row.status === 'break') || (pack.statusLogs || []).some((row) => row.status === 'break');
+  const queues = repQueueTable(pack.todayLogs || [], pack.campMap || {});
   return [
-    `<div class="firm-none">${statsEsc(t('rep.pick'))}</div>`,
-    repCard(t('stats.out_title'), outcomes),
-    repCard(t('rep.sales'), sales),
+    rings,
     repCard(t('rep.absent'), absentTable),
+    repCard(t('rep.status_log'), history, (pack.statusLogs || []).length ? '' : t('rep.status_empty')),
+    repCard(t('rep.sales_rank'), sales),
+    repCard(t('rep.breaks'), breaks, breakLive ? '' : t('rep.breaks_empty')),
+    repCard(t('rep.queue_today'), queues),
   ].join('');
+}
+
+function repStatusTable(agentId, userById, sessById, pack) {
+  const campMap = pack.campMap || {};
+  const rows = (pack.statusLogs || []).filter((row) => !agentId || String(row.agent_id) === String(agentId));
+  const live = agentId ? [sessById[agentId]].filter(Boolean) : Object.values(sessById).filter((row) => row.status && row.status !== 'offline').slice(0, 40);
+  const liveRows = live.map((row) => `<tr><td>${statsEsc(userById[row.agent_id]?.name || '—')}</td><td>${statsEsc(campMap[row.campaign_id] || '—')}</td><td>${statsEsc(t('rep.now_row'))} · ${statsEsc(repStatusLabel(row.status))}</td><td>${statsEsc(row.break_code || '—')}</td><td>—</td><td>${statsEsc(repWhen(row.last_seen))}</td></tr>`);
+  const histRows = rows.map((row) => {
+    const open = !row.ended_at;
+    const sec = open ? Math.max(0, Math.round((Date.now() - new Date(row.started_at).getTime()) / 1000)) : (Number(row.duration_sec) || 0);
+    return `<tr><td>${statsEsc(userById[row.agent_id]?.name || '—')}</td><td>${statsEsc(campMap[row.campaign_id] || '—')}</td><td>${statsEsc(repStatusLabel(row.status))}</td><td>${statsEsc(row.break_code || '—')}</td><td>${statsEsc(statsHms(sec))}${open ? ' ·' : ''}</td><td>${statsEsc(repWhen(row.started_at))}</td></tr>`;
+  });
+  return repTable([t('rep.person'), t('rep.queue'), t('rep.status_col'), t('rep.break_col'), t('stats.col.time'), t('rep.last_act')], liveRows.concat(histRows));
+}
+
+function repSalesTable(appts, userById) {
+  const bag = {};
+  const extras = new Set();
+  (appts || []).forEach((row) => {
+    const id = row.agent_id || '—';
+    if (!bag[id]) bag[id] = { id, name: userById[id]?.name || '—', neu: 0, ok: 0, cancel: 0, miss: 0, extra: {}, total: 0 };
+    const bucket = repSaleBucket(row.durum);
+    bag[id].total += 1;
+    if (bucket === 'new') bag[id].neu += 1;
+    else if (bucket === 'ok') bag[id].ok += 1;
+    else if (bucket === 'cancel') bag[id].cancel += 1;
+    else if (bucket === 'miss') bag[id].miss += 1;
+    else {
+      extras.add(bucket);
+      bag[id].extra[bucket] = (bag[id].extra[bucket] || 0) + 1;
+    }
+  });
+  const extraKeys = [...extras];
+  const list = Object.values(bag).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, 'tr'));
+  const sum = { neu: 0, ok: 0, cancel: 0, miss: 0, extra: {}, total: 0 };
+  list.forEach((row) => {
+    sum.neu += row.neu; sum.ok += row.ok; sum.cancel += row.cancel; sum.miss += row.miss; sum.total += row.total;
+    extraKeys.forEach((key) => { sum.extra[key] = (sum.extra[key] || 0) + (row.extra[key] || 0); });
+  });
+  const heads = [t('rep.person'), t('rep.sale_new'), t('rep.sale_ok'), t('rep.sale_cancel'), t('rep.sale_miss')].concat(extraKeys.map((key) => repDurumLabel(key)), [t('rep.total')]);
+  const cells = (row) => `<tr><td>${statsEsc(row.name || t('rep.total'))}</td><td>${row.neu}</td><td>${row.ok}</td><td>${row.cancel}</td><td>${row.miss}</td>${extraKeys.map((key) => `<td>${row.extra[key] || 0}</td>`).join('')}<td>${row.total}</td></tr>`;
+  const body = list.map(cells);
+  if (list.length) body.push(cells({ ...sum, name: t('rep.total') }));
+  return repTable(heads, body);
+}
+
+function repBreakTable(statusLogs, userById, sessById) {
+  const openLogged = new Set((statusLogs || []).filter((row) => row.status === 'break' && !row.ended_at).map((row) => String(row.agent_id)));
+  const sessionBreaks = Object.values(sessById || {}).filter((row) => row.status === 'break' && !openLogged.has(String(row.agent_id)));
+  const codes = [...new Set([...(typeof DEFAULT_AUX_CODES !== 'undefined' ? DEFAULT_AUX_CODES : []), ...(statusLogs || []).filter((row) => row.status === 'break').map((row) => row.break_code || '—'), ...sessionBreaks.map((row) => row.break_code || '—')])];
+  const bag = {};
+  const add = (id, code, sec) => {
+    if (!bag[id]) bag[id] = { name: userById[id]?.name || '—', sec: {} };
+    bag[id].sec[code] = (bag[id].sec[code] || 0) + sec;
+  };
+  (statusLogs || []).filter((row) => row.status === 'break').forEach((row) => {
+    const sec = row.ended_at ? (Number(row.duration_sec) || 0) : Math.max(0, Math.round((Date.now() - new Date(row.started_at).getTime()) / 1000));
+    add(row.agent_id || '—', row.break_code || '—', sec);
+  });
+  sessionBreaks.forEach((row) => {
+    const sec = row.break_start ? Math.max(0, Math.round((Date.now() - new Date(row.break_start).getTime()) / 1000)) : 0;
+    add(row.agent_id || '—', row.break_code || '—', sec);
+  });
+  const list = Object.values(bag).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+  if (!list.length) {
+    return repTable([t('rep.person')].concat(codes, [t('rep.total')]), []);
+  }
+  const totals = {};
+  const rows = list.map((row) => {
+    let sum = 0;
+    const tds = codes.map((code) => {
+      const sec = row.sec[code] || 0;
+      sum += sec;
+      totals[code] = (totals[code] || 0) + sec;
+      return `<td>${statsEsc(statsHms(sec))}</td>`;
+    }).join('');
+    totals._sum = (totals._sum || 0) + sum;
+    return `<tr><td>${statsEsc(row.name)}</td>${tds}<td>${statsEsc(statsHms(sum))}</td></tr>`;
+  });
+  rows.push(`<tr><td>${statsEsc(t('rep.total'))}</td>${codes.map((code) => `<td>${statsEsc(statsHms(totals[code] || 0))}</td>`).join('')}<td>${statsEsc(statsHms(totals._sum || 0))}</td></tr>`);
+  return repTable([t('rep.person')].concat(codes, [t('rep.total')]), rows);
+}
+
+function repQueueTable(logs, campMap) {
+  const bag = {};
+  (logs || []).forEach((log) => {
+    const id = log.campaign_id || '—';
+    if (!bag[id]) bag[id] = { name: log.campaigns?.name || campMap[id] || '—', ok: 0, miss: 0, drop: 0 };
+    const key = statsOutcomeKey(log.outcome);
+    const sec = Number(log.duration_sec) || 0;
+    if (key === 'no_answer' || key === 'voicemail') bag[id].miss += 1;
+    else if (sec > 0) bag[id].ok += 1;
+    else bag[id].drop += 1;
+  });
+  const list = Object.values(bag).sort((a, b) => (b.ok + b.miss + b.drop) - (a.ok + a.miss + a.drop));
+  return repTable(
+    [t('rep.queue'), t('rep.answered'), t('rep.unreached'), t('rep.dropped')],
+    list.map((row) => `<tr><td>${statsEsc(row.name)}</td><td>${row.ok}</td><td>${row.miss}</td><td>${row.drop}</td></tr>`)
+  );
 }
 
 function repPeople(view, logs, appts, userById) {
