@@ -964,12 +964,34 @@ i.ph {
   border-color: var(--text);
   box-shadow: 0 6px 14px rgba(15, 23, 42, .18);
 }
+#page-muhasebe .stats-grid,
+#page-maasim .stats-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
 #page-muhasebe .stat-card,
 #page-maasim .stat-card {
   position: relative;
   overflow: hidden;
+  min-width: 0;
   border-radius: 16px;
   padding: 18px 16px 16px 18px;
+}
+#page-muhasebe .stat-lbl,
+#page-maasim .stat-lbl,
+#page-muhasebe .stat-meta,
+#page-maasim .stat-meta,
+#page-muhasebe .muh-fx-alt,
+#page-maasim .muh-fx-alt {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+#page-muhasebe .stat-val,
+#page-maasim .stat-val {
+  max-width: 100%;
+  font-size: 22px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 #page-muhasebe .stat-card::before,
 #page-maasim .stat-card::before {
