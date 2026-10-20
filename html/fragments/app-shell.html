@@ -865,7 +865,9 @@
 <style>
 #page-export .et-layout{display:grid;grid-template-columns:minmax(280px,320px) minmax(0,1fr);gap:16px;align-items:start;}
 #page-export .et-side{min-width:0;}
-#page-export .et-dates{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-bottom:12px;}
+#page-export .et-dates{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-bottom:12px;}
+#page-export .et-date-field{display:flex;flex-direction:column;gap:6px;}
+#page-export .et-date-field .form-label{display:block;margin:0;}
 #page-export .et-dates .form-input{width:100%;min-width:0;max-width:100%;box-sizing:border-box;}
 #page-export .et-main{min-width:0;}
 #page-export .et-main .tbl-wrap{max-width:100%;overflow-x:auto;}
@@ -880,12 +882,13 @@
 #page-export .et-kamp-lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 #page-export .et-camp{display:inline-block;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;}
 #page-export .et-cols{margin-bottom:10px;}
-#page-export .et-col-row{display:flex;flex-wrap:wrap;gap:6px;}
-#page-export .et-col-chip{display:inline-flex;align-items:center;gap:4px;max-width:240px;padding:3px 8px;border:1px solid var(--border);border-radius:999px;background:var(--bg-3);font-size:11px;}
+#page-export .et-col-row{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;padding-bottom:4px;}
+#page-export .et-col-chip{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;max-width:220px;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg-3);font-size:12px;}
 #page-export .et-col-chip.is-on{background:var(--accent-soft);border-color:var(--accent);}
-#page-export .et-col-chip button{border:0;background:transparent;cursor:pointer;color:var(--text-2);padding:0 2px;line-height:1;}
-#page-export .et-col-chip label{display:inline-flex;align-items:center;gap:4px;min-width:0;cursor:pointer;}
-#page-export .et-col-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#page-export .et-col-chip.is-over{outline:2px solid var(--accent);outline-offset:1px;}
+#page-export .et-grip{display:inline-flex;cursor:grab;color:var(--text-3);font-size:14px;line-height:1;flex-shrink:0;}
+#page-export .et-col-chip .et-col-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+#page-export .et-col-chip input{margin:0;flex-shrink:0;cursor:pointer;}
 #page-export .et-down{display:inline-flex;align-items:center;margin-left:6px;padding:1px 7px;border-radius:999px;background:#b91c1c;color:#fff;font-size:10px;font-weight:800;letter-spacing:.02em;white-space:nowrap;}
 #page-export .et-kamp-n{font-size:10px;background:var(--border);padding:2px 7px;border-radius:10px;font-weight:700;}
 #page-export .et-kamp-sel .et-kamp-n{background:var(--accent);color:#fff;}
@@ -935,8 +938,8 @@
 <div class="card">
 <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--accent);"><i class="ph ph-funnel"></i> <span data-tr="Filtreler" data-de="Filter">Filtreler</span></div>
 <div class="et-dates">
-<div><label class="form-label" style="font-size:10px;" data-tr="Başlangıç" data-de="Beginn">Başlangıç</label><input type="date" class="form-input" id="et-date-from" onchange="etReload()"/></div>
-<div><label class="form-label" style="font-size:10px;" data-tr="Bitiş" data-de="Ende">Bitiş</label><input type="date" class="form-input" id="et-date-to" onchange="etReload()"/></div>
+<div class="et-date-field"><label class="form-label" style="font-size:10px;" data-tr="Başlangıç" data-de="Beginn">Başlangıç</label><input type="date" class="form-input" id="et-date-from" onchange="etReload()"/></div>
+<div class="et-date-field"><label class="form-label" style="font-size:10px;" data-tr="Bitiş" data-de="Ende">Bitiş</label><input type="date" class="form-input" id="et-date-to" onchange="etReload()"/></div>
 </div>
 <div style="margin-bottom:12px;"><label class="form-label" style="font-size:10px;">Agent</label>
 <select class="form-input" id="et-agent" onchange="etApplyFilter()"><option value="">Tüm agentler</option></select></div>

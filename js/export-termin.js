@@ -849,7 +849,6 @@ function etComposeCols() {
 function etPaintCols() {
   const host = document.getElementById('et-cols');
   if (!host) return;
-  const last = _etCols.length - 1;
   host.innerHTML = `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
 <select id="et-layout-pick" class="form-input" style="width:auto;max-width:220px;"></select>
 <input id="et-layout-name" class="form-input" style="width:180px;" maxlength="60" placeholder="${_uiEsc(t('export.layout_ph'))}" value="${_uiEsc(_etLayoutName)}">
@@ -857,10 +856,10 @@ function etPaintCols() {
 <button type="button" class="btn btn-ghost btn-sm" id="et-layout-del">${_uiEsc(t('export.layout_delete'))}</button>
 </div>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">${_uiEsc(t('export.cols_title'))} · ${_uiEsc(t('export.col_hint'))}</div>
-<div class="et-col-row">${_etCols.map((col, i) => `<div class="et-col-chip${col.on ? ' is-on' : ''}" data-key="${_uiEsc(col.key)}">
-<button type="button" data-move="-1" ${i === 0 ? 'disabled' : ''} aria-label="↑">↑</button>
-<button type="button" data-move="1" ${i === last ? 'disabled' : ''} aria-label="↓">↓</button>
-<label><input type="checkbox" ${col.on ? 'checked' : ''}><span title="${_uiEsc(col.label)}">${_uiEsc(col.label)}</span></label>
+<div class="et-col-row">${_etCols.map((col) => `<div class="et-col-chip${col.on ? ' is-on' : ''}" data-key="${_uiEsc(col.key)}">
+<span class="et-grip" draggable="true" title="${_uiEsc(t('export.col_hint'))}"><i class="ph ph-dots-six-vertical"></i></span>
+<span class="et-col-name" title="${_uiEsc(col.label)}">${_uiEsc(col.label)}</span>
+<input type="checkbox" ${col.on ? 'checked' : ''} aria-label="${_uiEsc(col.label)}">
 </div>`).join('')}</div>`;
   const pick = document.getElementById('et-layout-pick');
   if (pick) {
@@ -874,20 +873,37 @@ function etPaintCols() {
   if (del) del.onclick = () => { etDeleteLayout(); };
   host.querySelectorAll('.et-col-chip').forEach((chip) => {
     const key = chip.getAttribute('data-key');
-    chip.querySelectorAll('[data-move]').forEach((btn) => {
-      btn.onclick = () => etMoveCol(key, Number(btn.getAttribute('data-move')));
+    const grip = chip.querySelector('.et-grip');
+    if (grip) {
+      grip.addEventListener('dragstart', (ev) => {
+        ev.dataTransfer.setData('text/plain', key);
+        ev.dataTransfer.effectAllowed = 'move';
+        chip.classList.add('is-drag');
+      });
+      grip.addEventListener('dragend', () => chip.classList.remove('is-drag'));
+    }
+    chip.addEventListener('dragover', (ev) => {
+      ev.preventDefault();
+      chip.classList.add('is-over');
+    });
+    chip.addEventListener('dragleave', () => chip.classList.remove('is-over'));
+    chip.addEventListener('drop', (ev) => {
+      ev.preventDefault();
+      chip.classList.remove('is-over');
+      etMoveColTo(ev.dataTransfer.getData('text/plain'), key);
     });
     const box = chip.querySelector('input[type=checkbox]');
     if (box) box.onchange = () => etToggleCol(key, box.checked);
   });
 }
 
-function etMoveCol(key, dir) {
-  const index = _etCols.findIndex((col) => col.key === key);
-  const next = index + dir;
-  if (index < 0 || next < 0 || next >= _etCols.length) return;
-  const [row] = _etCols.splice(index, 1);
-  _etCols.splice(next, 0, row);
+function etMoveColTo(fromKey, toKey) {
+  if (!fromKey || fromKey === toKey) return;
+  const from = _etCols.findIndex((col) => col.key === fromKey);
+  const to = _etCols.findIndex((col) => col.key === toKey);
+  if (from < 0 || to < 0) return;
+  const [row] = _etCols.splice(from, 1);
+  _etCols.splice(to, 0, row);
   _etColsTouched = true;
   etPaintCols();
   etRenderTable();
