@@ -222,6 +222,7 @@ function renderQcTable() {
 <td>${recHtml}</td>
 <td><span style="font-size:11px;font-weight:700;color:${_uiEsc(color)};">${_uiEsc(_qcResultLabel(key))}</span></td>
 <td><div style="display:flex;gap:3px;align-items:center;">
+<button type="button" class="icon-btn" onclick="qcOpenPersonCard('${_uiEsc(row.id)}')" title="${_uiEsc(t('qc.card'))}"><i class="ph ph-user"></i></button>
 <button type="button" class="icon-btn" onclick="openQcDetail('${_uiEsc(row.id)}')" title="${_uiEsc(t('qc.detail'))}"><i class="ph ph-magnifying-glass"></i></button>
 ${assignBtn}${okBtn}${noBtn}
 </div></td>
@@ -251,17 +252,18 @@ function openQcDetail(id) {
   const rec = row.contact_id ? window._qcRecByContact?.[row.contact_id] : null;
   const moved = _qcMoved(row) ? `<span class="qc-down">! ${_uiEsc(t('export.moved_short'))}</span>` : '';
   const campName = row.campaigns?.name || window._qcCampById?.[row.campaign_id]?.name || '—';
+  const camp = window._qcCampById?.[row.campaign_id] || {};
+  const fields = typeof takvimFieldsMarkup === 'function' ? takvimFieldsMarkup(camp, row, null, 'edit') : '';
   if (body) body.innerHTML = `
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.when'))}</div><div style="font-weight:700;">${_uiEsc(wall.time || '—')}</div><div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_uiEsc(wall.day || '')}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.name'))}</div><div style="font-weight:700;">${_uiEsc(row.nachname || '—')}${moved}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.phone'))}</div><div style="font-weight:700;font-family:var(--mono);">${_uiEsc(row.telefonnummer || '—')}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">PLZ</div><div style="font-weight:700;">${_uiEsc(row.plz || '—')} ${_uiEsc(row.ortschaft || '')}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.address'))}</div><div style="font-weight:700;">${_uiEsc(row.strasse || '—')}</div></div>
+<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px;">
+<div style="font-size:12px;color:var(--text-3);">${_uiEsc(wall.time || '—')} · ${_uiEsc(wall.day || '')} ${moved}</div>
+<button type="button" class="btn btn-ghost btn-sm" onclick="qcOpenPersonCard('${_uiEsc(row.id)}')">${_uiEsc(t('qc.card'))}</button>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">${fields}</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-top:8px;">
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.agent'))}</div><div style="font-weight:700;">${_uiEsc(row.users?.name || '—')}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.camp'))}</div><div style="font-weight:700;" class="qc-camp">${_uiEsc(campName)}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.camp'))}</div><div class="qc-camp" style="font-weight:700;" title="${_uiEsc(campName)}">${_uiEsc(campName)}</div></div>
 ${row.agent_notu ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.agent_note'))}</div><div>${_uiEsc(row.agent_notu)}</div></div>` : ''}
-${_qcFormHtml(row)}
 ${rec?.recording_url ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:6px;">${_uiEsc(t('qc.rec'))}</div><audio controls src="${_uiEsc(rec.recording_url)}" style="width:100%;"></audio></div>` : ''}
 </div>
 ${hasCustomers ? `<div style="margin-top:10px;">
@@ -285,8 +287,19 @@ ${canAssignField ? `<div style="margin-top:10px;display:flex;justify-content:fle
   if (typeof openModal === 'function') openModal('m-qc-detail');
 }
 
+async function qcOpenPersonCard(apptId) {
+  const row = (qcList || []).find((x) => x.id === apptId);
+  if (!row?.contact_id) { toast(t('qc.no_contact'), 'warn'); return; }
+  window._qcReviewApptId = apptId;
+  if (typeof closeModal === 'function') closeModal('m-qc-detail');
+  if (typeof openDialerForContact === 'function') await openDialerForContact(row.contact_id);
+}
+
 async function qcUpdateStatus(status) {
   if (!qcDetailId) return;
+  const root = document.getElementById('qc-detail-body');
+  const row = (qcList || []).find((x) => x.id === qcDetailId);
+  if (root && row && typeof takvimCollectPatch === 'function') window._qcDetailPatch = takvimCollectPatch(root, row);
   const selected = document.getElementById('qc-status-select')?.value || '';
   const ok = await quickQcUpdate(qcDetailId, selected || status);
   if (ok && typeof closeModal === 'function') closeModal('m-qc-detail');
@@ -300,14 +313,25 @@ async function quickQcUpdate(apptId, status) {
   if (!resultKey || !resultCfg) { toast(t('qc.missing'), 'err'); return false; }
   const contactStatus = resultCfg.contact_status || (typeof appointmentResultToContactStatus === 'function' ? appointmentResultToContactStatus(resultKey) : resultKey);
   const detailOpen = qcDetailId === apptId && document.getElementById('qc-note-input');
-  const note = detailOpen ? String(document.getElementById('qc-note-input').value || '') : null;
+  const reviewNote = window._qcReviewNote;
+  const note = reviewNote != null ? String(reviewNote) : (detailOpen ? String(document.getElementById('qc-note-input').value || '') : null);
   const custEl = document.getElementById(`qc-customer-select-${apptId}`) || (detailOpen ? document.getElementById('qc-detail-customer') : null);
   const customerId = custEl ? String(custEl.value || '') : '';
   try {
     const apptPatch = { durum: resultKey };
+    const extra = window._qcDetailPatch;
+    window._qcDetailPatch = null;
+    if (extra && qcDetailId === apptId) {
+      Object.assign(apptPatch, extra.body || {});
+      apptPatch.durum = resultKey;
+      if (extra.ek && Object.keys(extra.ek).length) apptPatch.form_ek = extra.ek;
+    }
     if (customerId) apptPatch.customer_id = customerId;
     if (note !== null) apptPatch.qc_notu = note;
     await sb(`appointments?id=eq.${apptId}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(apptPatch) });
+    if (extra?.contactExtra && row.contact_id && typeof takvimSaveContactExtras === 'function') {
+      await takvimSaveContactExtras(row.contact_id, extra.contactExtra).catch(() => {});
+    }
     if (row.contact_id && contactStatus) {
       await sb(`contacts?id=eq.${row.contact_id}`, {
         method: 'PATCH',

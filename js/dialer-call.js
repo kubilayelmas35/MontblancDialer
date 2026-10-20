@@ -948,7 +948,13 @@ function mbOfferTerminWithoutSlot() {
 
 function paintDialerOutcomes() {
   const grid = document.getElementById('outcome-grid');
-  if (!grid || typeof mbCampOutcomeRows !== 'function') return;
+  if (!grid) return;
+  if (window._qcReviewApptId) {
+    _paintQcReviewOutcomes(grid);
+    return;
+  }
+  if (typeof _qcRestoreOutcomeChrome === 'function') _qcRestoreOutcomeChrome();
+  if (typeof mbCampOutcomeRows !== 'function') return;
   const id = (typeof selectedCampId !== 'undefined' && selectedCampId) || (typeof currentContact !== 'undefined' && currentContact?.campaign_id);
   const camp = (campaigns || []).find((c) => c.id === id);
   const rows = mbCampOutcomeRows(camp).filter((row) => row.enabled && row.key !== 'dnc');
@@ -966,6 +972,12 @@ function paintDialerOutcomes() {
 }
 
 function pickOutcome(key) {
+  if (window._qcReviewApptId) {
+    selectedOutcome = key;
+    document.querySelectorAll('#outcome-grid .outcome-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelector(`#outcome-grid [data-outcome="${key}"]`)?.classList.add('active');
+    return;
+  }
   setOutcome(key);
   const cat = typeof mbOutcomeCategory === 'function' ? mbOutcomeCategory(mbFindOutcome(key)) : '';
   if (cat === 'appointment') {
@@ -1105,6 +1117,10 @@ async function _markMatchingWiedervorlageOlumsuz(contact) {
 }
 
 async function submitOutcome(goBreak) {
+  if (window._qcReviewApptId) {
+    await _submitQcReview();
+    return;
+  }
   const lineUp = !!_telnyxCall || !!_fakeCallActive || !!_outboundDialPending;
   if (dialerStatus === 'on_call' && lineUp) {
     toast(typeof t === 'function' ? t('dial.outcome_hangup_first') : 'Önce çağrıyı kapatın', 'warn', 2400);
@@ -1260,6 +1276,55 @@ async function submitOutcome(goBreak) {
   if (outcomeSaved) {
     toast(typeof t === 'function' ? t('dial.outcome_saved') : 'Sonuç kaydedildi', 'ok', 2200);
   }
+}
+
+function _paintQcReviewOutcomes(grid) {
+  const title = document.querySelector('#ctab-outcome-panel .outcome-form-title');
+  if (title) title.textContent = typeof t === 'function' ? t('qc.review_title') : 'Kalite Kontrol';
+  const dnc = document.getElementById('outcome-dnc')?.closest('div');
+  if (dnc) dnc.style.display = 'none';
+  const cb = document.getElementById('callback-time-row');
+  if (cb) cb.style.display = 'none';
+  const br = document.querySelector('#ctab-outcome-panel [onclick="submitOutcome(true)"]');
+  if (br) br.style.display = 'none';
+  const defs = window._qcResultCfg || [];
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const label = (def) => (typeof mbResultLabel === 'function' ? mbResultLabel(def.key, def.label) : (def.label || def.key));
+  grid.innerHTML = defs.map((def) => `<button type="button" class="outcome-btn" data-outcome="${esc(def.key)}" onclick="pickOutcome('${esc(def.key)}')" style="border-color:${esc(def.color || 'var(--border)')}">
+<div class="icon" style="color:${esc(def.color || 'var(--accent)')}"><i class="ph ph-check-circle"></i></div>
+<div class="lbl">${esc(label(def))}</div>
+</button>`).join('');
+  if (typeof selectedOutcome === 'string' && selectedOutcome) {
+    grid.querySelector(`[data-outcome="${selectedOutcome}"]`)?.classList.add('active');
+  }
+}
+
+function _qcRestoreOutcomeChrome() {
+  const title = document.querySelector('#ctab-outcome-panel .outcome-form-title');
+  if (title) {
+    const lang = typeof currentLang !== 'undefined' ? currentLang : 'tr';
+    title.textContent = title.getAttribute(lang === 'de' ? 'data-de' : 'data-tr') || 'ÇAĞRI SONUCU';
+  }
+  const dnc = document.getElementById('outcome-dnc')?.closest('div');
+  if (dnc) dnc.style.display = '';
+  const br = document.querySelector('#ctab-outcome-panel [onclick="submitOutcome(true)"]');
+  if (br) br.style.display = '';
+}
+
+async function _submitQcReview() {
+  if (!selectedOutcome) {
+    toast(typeof t === 'function' ? t('dial.pick_outcome') : 'Sonuç seçin', 'err');
+    return;
+  }
+  const id = window._qcReviewApptId;
+  window._qcReviewNote = document.getElementById('outcome-note')?.value || '';
+  const ok = typeof quickQcUpdate === 'function' ? await quickQcUpdate(id, selectedOutcome) : false;
+  window._qcReviewNote = null;
+  if (!ok) return;
+  window._qcReviewApptId = null;
+  selectedOutcome = null;
+  _qcRestoreOutcomeChrome();
+  if (typeof navigate === 'function') navigate('qc');
 }
 
 function handleAppointmentClick() {

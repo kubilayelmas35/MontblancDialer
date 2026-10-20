@@ -272,7 +272,7 @@
 <div class="sb-sub">
 <button class="sb-item" onclick="navigate('qc')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-<span data-tr="KK" data-de="QC-Panel">KK</span>
+<span data-tr="Kalite Kontrol" data-de="Qualitätskontrolle">Kalite Kontrol</span>
 <span class="sb-badge" id="sb-badge-qc" style="display:none;background:var(--accent);">0</span>
 </button>
 <button class="sb-item" id="nav-fieldops-btn" style="display:none;" onclick="navigate('fieldops')">
@@ -404,7 +404,7 @@
 </div>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">
 <div style="padding:8px;background:var(--bg-3);border-radius:8px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Yayınlanan" data-de="Veröffentlicht">Yayınlanan</div><div id="kpi-job-published" style="font-size:18px;font-weight:800;">0</div></div>
-<div style="padding:8px;background:var(--bg-3);border-radius:8px;"><div style="font-size:11px;color:var(--text-3);" data-tr="KK Bekleyen" data-de="QC ausstehend">KK Bekleyen</div><div id="kpi-job-qc" style="font-size:18px;font-weight:800;">0</div></div>
+<div style="padding:8px;background:var(--bg-3);border-radius:8px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Kalite kontrol bekleyen" data-de="QC ausstehend">Kalite kontrol bekleyen</div><div id="kpi-job-qc" style="font-size:18px;font-weight:800;">0</div></div>
 <div style="padding:8px;background:var(--bg-3);border-radius:8px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Tamamlanan" data-de="Abgeschlossen">Tamamlanan</div><div id="kpi-job-done" style="font-size:18px;font-weight:800;">0</div></div>
 </div>
 </div>
@@ -704,7 +704,7 @@
 </div>
 <div id="cd-tab-musteri" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:10px;">
-<div style="font-size:12px;color:var(--text-3);" data-tr="Bir müşteri seçilirse yeni randevular ona yazılır. Tümü — KK seçer derseniz randevu müşterisiz kalır ve müşteriyi KK yazar. Önceki randevular durur." data-de="Ein gewählter Kunde erhält die nächsten Termine. Alle — QC wählt: der Termin bleibt ohne Kunde, QC trägt ihn ein. Bisherige Termine bleiben.">Bir müşteri seçilirse yeni randevular ona yazılır. Tümü — KK seçer derseniz randevu müşterisiz kalır ve müşteriyi KK yazar. Önceki randevular durur.</div>
+<div style="font-size:12px;color:var(--text-3);" data-tr="Bir müşteri seçilirse yeni randevular ona yazılır. Tümü — Kalite kontrol seçer derseniz randevu müşterisiz kalır ve müşteriyi Kalite kontrol yazar. Önceki randevular durur." data-de="Ein gewählter Kunde erhält die nächsten Termine. Alle — QC wählt: der Termin bleibt ohne Kunde, QC trägt ihn ein. Bisherige Termine bleiben.">Bir müşteri seçilirse yeni randevular ona yazılır. Tümü — Kalite kontrol seçer derseniz randevu müşterisiz kalır ve müşteriyi Kalite kontrol yazar. Önceki randevular durur.</div>
 <div id="cd-customer"></div>
 </div>
 </div>
@@ -735,7 +735,7 @@
 <div class="page-hdr">
 <div>
 <div class="page-title" data-tr="İstatistikler" data-de="Statistiken">İstatistikler</div>
-<div class="page-sub" data-tr="Arama sonucu. Randevu, agentin aramada yazdığı sonuçtur. KK sonrası durum Personel performansta." data-de="Anrufergebnis. Termin ist das Ergebnis des Agenten. Der Stand nach QC steht unter Mitarbeiterleistung.">Arama sonucu. Randevu, agentin aramada yazdığı sonuçtur. KK sonrası durum Personel performansta.</div>
+<div class="page-sub" data-tr="Arama sonucu. Randevu, agentin aramada yazdığı sonuçtur. Kalite kontrol sonrası durum Personel performansta." data-de="Anrufergebnis. Termin ist das Ergebnis des Agenten. Der Stand nach QC steht unter Mitarbeiterleistung.">Arama sonucu. Randevu, agentin aramada yazdığı sonuçtur. Kalite kontrol sonrası durum Personel performansta.</div>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto;">
 <div id="stats-firm-selector"></div>
@@ -1123,7 +1123,7 @@
 <div class="perf-mode">
 <button type="button" class="range-btn perf-mode-btn active" data-perf-mode="termin" onclick="perfSetApptMode('termin',event)" data-tr="Randevu günü" data-de="Termintag">Randevu günü</button>
 <button type="button" class="range-btn perf-mode-btn" data-perf-mode="created" onclick="perfSetApptMode('created',event)" data-tr="Kayıt tarihi" data-de="Erfasst am">Kayıt tarihi</button>
-<span class="perf-mode-hint" data-tr="Başarılı, beklemede, KK ve başarısız kutuları güncel KK kararıdır. KK sonucu değiştirilirse bu sayılar değişir. Toplam, seçilen tarihe göre kayıt adedidir." data-de="Erfolg, Wartend, QC und Fehlschlag sind der aktuelle QC-Stand. Ändert QC das Ergebnis, ändern sich diese Zahlen. Die Summe zählt die Termine im gewählten Datum.">Başarılı, beklemede, KK ve başarısız kutuları güncel KK kararıdır. KK sonucu değiştirilirse bu sayılar değişir. Toplam, seçilen tarihe göre kayıt adedidir.</span>
+<span class="perf-mode-hint" data-tr="Başarılı, beklemede, Kalite kontrol ve başarısız kutuları güncel Kalite kontrol kararıdır. Kalite kontrol sonucu değiştirilirse bu sayılar değişir. Toplam, seçilen tarihe göre kayıt adedidir." data-de="Erfolg, Wartend, QC und Fehlschlag sind der aktuelle QC-Stand. Ändert QC das Ergebnis, ändern sich diese Zahlen. Die Summe zählt die Termine im gewählten Datum.">Başarılı, beklemede, Kalite kontrol ve başarısız kutuları güncel Kalite kontrol kararıdır. Kalite kontrol sonucu değiştirilirse bu sayılar değişir. Toplam, seçilen tarihe göre kayıt adedidir.</span>
 </div>
 <div class="perf-cards">
 <div class="perf-card perf-card-total"><div class="perf-ct" id="perf-card-total-lbl" data-tr="Toplam randevu" data-de="Gesamt">Toplam randevu</div><div class="perf-cv" id="perf-card-total">0</div></div>
@@ -1774,8 +1774,8 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </style>
 <div class="page-hdr">
 <div>
-<div class="page-title" data-tr="KK" data-de="QC-Panel">KK</div>
-<div class="page-sub" data-tr="Kalite Kontrol" data-de="Qualitätskontrolle">Kalite Kontrol</div>
+<div class="page-title" data-tr="Kalite Kontrol" data-de="Qualitätskontrolle">Kalite Kontrol</div>
+<div class="page-sub" data-tr="Randevu sonucunu buradan verin" data-de="Terminergebnis hier vergeben">Randevu sonucunu buradan verin</div>
 </div>
 <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
 <div id="qc-firm-selector"></div>
@@ -1814,7 +1814,7 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </div>
 </div>
 <div class="card" style="margin-top:10px;">
-<div class="card-title" style="margin-bottom:8px;" data-tr="İş Platformu KK Kuyruğu" data-de="Auftragsplattform QC-Warteschlange">İş Platformu KK Kuyruğu</div>
+<div class="card-title" style="margin-bottom:8px;" data-tr="İş Platformu Kalite Kontrol Kuyruğu" data-de="Auftragsplattform QC-Warteschlange">İş Platformu Kalite Kontrol Kuyruğu</div>
 <div id="qc-job-market-queue" style="display:flex;flex-direction:column;gap:8px;">
 <div style="font-size:12px;color:var(--text-3);padding:8px;">Yükleniyor...</div>
 </div>
@@ -1858,7 +1858,7 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="jm-flow">
 <div><b>1.</b> <span data-tr="İlan açın. Tutar firma bakiyesinden rezerve edilir, harcanmaz." data-de="Anzeige erstellen. Der Betrag wird reserviert, nicht abgebucht.">İlan açın. Tutar firma bakiyesinden rezerve edilir, harcanmaz.</span></div>
 <div><b>2.</b> <span data-tr="Başka firma katılır ve not ya da randevu ile teslim girer." data-de="Eine andere Firma nimmt teil und liefert mit Notiz oder Termin ab.">Başka firma katılır ve not ya da randevu ile teslim girer.</span></div>
-<div><b>3.</b> <span data-tr="KK onayı tutarın tamamını çalışan firmaya geçirir. Ret ilanı yeniden açar." data-de="QC-Freigabe überweist den ganzen Betrag. Ablehnung öffnet die Anzeige wieder.">KK onayı tutarın tamamını çalışan firmaya geçirir. Ret ilanı yeniden açar.</span></div>
+<div><b>3.</b> <span data-tr="Kalite kontrol onayı tutarın tamamını çalışan firmaya geçirir. Ret ilanı yeniden açar." data-de="QC-Freigabe überweist den ganzen Betrag. Ablehnung öffnet die Anzeige wieder.">Kalite kontrol onayı tutarın tamamını çalışan firmaya geçirir. Ret ilanı yeniden açar.</span></div>
 </div>
 <div style="display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:10px;align-items:start;">
 <div class="card">
@@ -1921,9 +1921,9 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 <select class="form-input" id="jm-qc-mode">
-<option value="required" data-tr="KK zorunlu" data-de="QC erforderlich">KK zorunlu</option>
-<option value="optional" data-tr="KK opsiyonel" data-de="QC optional">KK opsiyonel</option>
-<option value="none" data-tr="KK istemiyorum" data-de="Kein QC">KK istemiyorum</option>
+<option value="required" data-tr="Kalite kontrol zorunlu" data-de="QC erforderlich">Kalite kontrol zorunlu</option>
+<option value="optional" data-tr="Kalite kontrol opsiyonel" data-de="QC optional">Kalite kontrol opsiyonel</option>
+<option value="none" data-tr="Kalite kontrol istemiyorum" data-de="Kein QC">Kalite kontrol istemiyorum</option>
 </select>
 <select class="form-input" id="jm-currency" title="Firma ayarından otomatik doldurulur; gerekirse değiştirin.">
 <option value="EUR">EUR</option>
@@ -1972,7 +1972,7 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </div>
 <div class="jm-pillbar">
 <button type="button" class="jm-pill jm-tab-btn" data-tab="active" onclick="setJobListTab('active')">Aktif</button>
-<button type="button" class="jm-pill jm-tab-btn" data-tab="pending_qc" onclick="setJobListTab('pending_qc')" data-tr="KK Bekleyen" data-de="QC ausstehend">KK Bekleyen</button>
+<button type="button" class="jm-pill jm-tab-btn" data-tab="pending_qc" onclick="setJobListTab('pending_qc')" data-tr="Kalite kontrol bekleyen" data-de="QC ausstehend">Kalite kontrol bekleyen</button>
 <button type="button" class="jm-pill jm-tab-btn" data-tab="completed" onclick="setJobListTab('completed')">Biten</button>
 <button type="button" class="jm-pill jm-tab-btn" data-tab="rejected" onclick="setJobListTab('rejected')">Red</button>
 <button type="button" class="jm-pill jm-tab-btn" data-tab="cancelled" onclick="setJobListTab('cancelled')">İptal</button>
@@ -2556,6 +2556,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="mascot" onclick="setSettingsTab('mascot')" data-tr="Maskot" data-de="Maskottchen">Maskot</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="communication" onclick="setSettingsTab('communication')" data-tr="İletişim" data-de="Kommunikation">İletişim</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="notifications" onclick="setSettingsTab('notifications'); if (typeof opsFillNotifSettings==='function') opsFillNotifSettings();" data-tr="Bildirim" data-de="Hinweis">Bildirim</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="quality" onclick="setSettingsTab('quality'); if (typeof loadAppointmentResultsSettings==='function') loadAppointmentResultsSettings();" data-tr="Kalite Kontrol" data-de="Qualitätskontrolle">Kalite Kontrol</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="operations" onclick="setSettingsTab('operations')" data-tr="Operasyon" data-de="Betrieb">Operasyon</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="mesai" onclick="setSettingsTab('mesai'); if (typeof loadMesaiPlanCard==='function') loadMesaiPlanCard();" data-tr="Mesai" data-de="Schicht">Mesai</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="field" onclick="setSettingsTab('field')" data-tr="Saha" data-de="Feld">Saha</button>
@@ -2692,7 +2693,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <div class="ops-subpane" data-sub="qc" hidden>
-<div class="form-label" data-tr="KK sonuçları" data-de="QC-Ergebnisse">KK sonuçları</div>
+<div class="form-label" data-tr="Kalite kontrol sonuçları" data-de="QC-Ergebnisse">Kalite kontrol sonuçları</div>
 <p class="ops-camp-hint" data-tr="Her sonucun rengini sen seçersin. Gelen bildirim, saatiyle bildirim merkezinde durur." data-de="Du wählst die Farbe. Die Meldung steht mit Uhrzeit im Zentrum.">Her sonucun rengini sen seçersin. Gelen bildirim, saatiyle bildirim merkezinde durur.</p>
 <div class="ops-sound-list" id="ops-qc-rows"></div>
 </div>
@@ -3337,7 +3338,7 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 </div>
 </div>
 <div class="card" id="results-settings-card">
-<div class="card-title" style="margin-bottom:12px;" data-tr="Randevu Sonuçları (Takvim + KK)" data-de="Terminergebnisse (Kalender + QC)">Randevu Sonuçları (Takvim + KK)</div>
+<div class="card-title" style="margin-bottom:12px;" data-tr="Kalite Kontrol sonuçları" data-de="QC-Ergebnisse">Kalite Kontrol sonuçları</div>
 <div id="results-firm-selector" style="margin-bottom:10px;"></div>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Sonuç adını yaz, tipi seç. Listede olmayan bir ad için Özel ad seç. İstersen bu sonuçta slotu otomatik alta taşı." data-de="Namen schreiben und Typ wählen. Für einen eigenen Namen Sondername wählen. Der Slot kann automatisch nach unten wandern.">Sonuç adını yaz, tipi seç. Listede olmayan bir ad için Özel ad seç. İstersen bu sonuçta slotu otomatik alta taşı.</div>
 <div id="s-appt-results-rows" style="display:flex;flex-direction:column;gap:8px;"></div>
@@ -3396,7 +3397,7 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <label class="form-label" style="font-size:11px;">Firma</label>
 <select class="form-input" id="sms-settings-firm-select" onchange="onSmsSettingsFirmChange()"></select>
 </div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:16px;" data-tr="KK onayında müşteriye randevu hatırlatması gider. Bunu yalnızca dialer sahibi firma için açar." data-de="Bei QC-Freigabe geht eine Terminerinnerung an den Kunden. Nur der Dialer-Inhaber schaltet das je Firma frei.">KK onayında müşteriye randevu hatırlatması gider. Bunu yalnızca dialer sahibi firma için açar.</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:16px;" data-tr="Kalite kontrol onayında müşteriye randevu hatırlatması gider. Bunu yalnızca dialer sahibi firma için açar." data-de="Bei QC-Freigabe geht eine Terminerinnerung an den Kunden. Nur der Dialer-Inhaber schaltet das je Firma frei.">Kalite kontrol onayında müşteriye randevu hatırlatması gider. Bunu yalnızca dialer sahibi firma için açar.</div>
 <div style="display:flex;flex-direction:column;gap:12px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
 <input type="checkbox" id="sms-enabled-chk" style="width:15px;height:15px;cursor:pointer;">

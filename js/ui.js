@@ -124,6 +124,8 @@ if (typeof userHasPagePerm === 'function' && Array.isArray(ALL_PAGES) && ALL_PAG
 if (page !== 'supervisor' && typeof unloadSupervisorPanel === 'function') unloadSupervisorPanel();
 if (page !== 'agents' && typeof agentsStopPoll === 'function') agentsStopPoll();
 if (page !== 'dialer') {
+  window._qcReviewApptId = null;
+  if (typeof _qcRestoreOutcomeChrome === 'function') _qcRestoreOutcomeChrome();
   if (typeof closeMicAudioDrawer === 'function') closeMicAudioDrawer();
   if (typeof closeManualDialDrawer === 'function') closeManualDialDrawer();
   if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
@@ -157,7 +159,8 @@ function initSettingsTabs(preferTab) {
     mascot: new Set(['settings-mascot-card']),
     communication: new Set(['incoming-calls-settings-card', 'chat-settings-card']),
     notifications: new Set(['notif-settings-card']),
-    operations: new Set(['call-hours-card', 'results-settings-card', 'settings-goals-card', 'mesai-settings-card', 'default-takvim-firm-card']),
+    operations: new Set(['call-hours-card', 'settings-goals-card', 'mesai-settings-card']),
+    quality: new Set(['results-settings-card', 'default-takvim-firm-card']),
     mesai: new Set(['mesai-plan-card']),
     field: new Set(['field-settings-card']),
     system: new Set(['settings-api-keys-card', 'feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings', 'sms-settings-card']),
@@ -232,14 +235,14 @@ function mbResultLabel(key, storedLabel) {
   if (!mapKey || typeof t !== 'function' || typeof MB_I18N === 'undefined') return raw || key || '';
   const tr = MB_I18N.tr[mapKey];
   const de = MB_I18N.de[mapKey];
-  const legacy = k === 'qc_bekleniyor' && (raw === 'QC Bekleniyor' || raw === 'QC ausstehend');
+  const legacy = k === 'qc_bekleniyor' && (raw === 'QC Bekleniyor' || raw === 'QC ausstehend' || raw === 'KK Bekleniyor');
   if (!raw || raw === tr || raw === de || raw === k || raw === key || legacy) return t(mapKey);
   return raw;
 }
 
 function defaultAppointmentResults() {
   return [
-    { key: 'qc_bekleniyor', label: 'KK Bekleniyor', color: '#2563eb', contact_status: 'qc bekleniyor', auto_move_down: false },
+    { key: 'qc_bekleniyor', label: 'Kalite kontrol bekliyor', color: '#2563eb', contact_status: 'qc bekleniyor', auto_move_down: false },
     { key: 'basarili', label: 'Başarılı', color: '#16a34a', contact_status: 'başarılı', auto_move_down: false },
     { key: 'basarisiz', label: 'Başarısız', color: '#dc2626', contact_status: 'başarısız', auto_move_down: true },
     { key: 'beklemede', label: 'Beklemede', color: '#f59e0b', contact_status: 'beklemede', auto_move_down: true },
@@ -342,7 +345,7 @@ function renderAppointmentResultRows(rows) {
       <div class="form-row">
         <label class="form-label">Sonuç tipi</label>
         <select class="form-input" id="ar-type-${i}" onchange="syncAppointmentResultLabel(${i})">
-          <option value="qc_bekleniyor" ${r.key==='qc_bekleniyor'?'selected':''}>KK Bekleniyor</option>
+          <option value="qc_bekleniyor" ${r.key==='qc_bekleniyor'?'selected':''}>Kalite kontrol bekliyor</option>
           <option value="basarili" ${r.key==='basarili'?'selected':''}>Başarılı</option>
           <option value="basarisiz" ${r.key==='basarisiz'?'selected':''}>Başarısız</option>
           <option value="beklemede" ${r.key==='beklemede'?'selected':''}>Beklemede</option>
@@ -365,7 +368,7 @@ function syncAppointmentResultLabel(idx) {
   const l = document.getElementById(`ar-label-${idx}`);
   if (!l) return;
   const map = {
-    qc_bekleniyor: 'KK Bekleniyor',
+    qc_bekleniyor: 'Kalite kontrol bekliyor',
     basarili: 'Başarılı',
     basarisiz: 'Başarısız',
     beklemede: 'Beklemede',

@@ -83,7 +83,7 @@ function mbDashScopeLine(role) {
     return firm?.name || mbDashTr('Seçili firma', 'Gewählte Firma');
   }
   if (role === 'firm') return mbDashTr('Kendi firman', 'Eigene Firma');
-  if (role === 'qc') return mbDashTr('Firmanın KK kuyruğu', 'QC-Warteschlange der Firma');
+  if (role === 'qc') return mbDashTr('Firmanın Kalite Kontrol kuyruğu', 'QC-Warteschlange der Firma');
   if (role === 'field') return mbDashTr('Sana atanan saha görevleri', 'Dir zugewiesene Außentermine');
   return mbDashTr('Kendi aramaların', 'Eigene Anrufe');
 }
@@ -341,10 +341,10 @@ async function mbDashQcBlock(ff) {
     sb(`call_logs?select=id,phone,qc_at,qc_result&qc_at=not.is.null${mine}&order=qc_at.desc&limit=5${ff}`).catch(() => []),
   ]);
   const waitRows = (waiting || []).map((row) => `<div class="dash-mini-row is-link" onclick="mbDashOpenPage('qc')"><span>${mbDashEsc(row.nachname || row.telefonnummer || '—')}</span><b>${mbDashWhen(row.termin_tarih)}</b></div>`).join('')
-    || `<div class="dash-mini-row">${mbDashTr('Bekleyen KK yok', 'Keine offene QC')}</div>`;
+    || `<div class="dash-mini-row">${mbDashTr('Bekleyen Kalite Kontrol yok', 'Keine offene QC')}</div>`;
   const doneRows = (closed || []).map((row) => `<div class="dash-mini-row is-link" onclick="mbDashOpenPage('qc')"><span>${mbDashEsc(row.phone || '—')}</span><b>${mbDashEsc(row.qc_result || '—')} · ${mbDashWhen(row.qc_at)}</b></div>`).join('')
-    || `<div class="dash-mini-row">${mbDashTr('Henüz kapattığın KK yok', 'Noch keine abgeschlossene QC')}</div>`;
-  return mbDashCard(`${mbDashTr('Bekleyen KK', 'Offene QC')} · ${pending == null ? '—' : pending}`, waitRows)
+    || `<div class="dash-mini-row">${mbDashTr('Henüz kapattığın Kalite Kontrol yok', 'Noch keine abgeschlossene QC')}</div>`;
+  return mbDashCard(`${mbDashTr('Bekleyen Kalite Kontrol', 'Offene QC')} · ${pending == null ? '—' : pending}`, waitRows)
     + mbDashCard(mbDashTr('Senin kapattıkların', 'Von dir abgeschlossen'), doneRows);
 }
 
@@ -422,9 +422,9 @@ async function loadDashBrief(ctx) {
   const to = ctx?.to;
   if (role === 'qc') {
     const calls = document.getElementById('stat-lbl-calls');
-    if (calls) calls.textContent = mbDashTr('KK kayıtları', 'QC-Einträge');
+    if (calls) calls.textContent = mbDashTr('Kalite Kontrol kayıtları', 'QC-Einträge');
     const apptLbl = document.getElementById('d-appt')?.closest('.stat-card')?.querySelector('.stat-lbl');
-    if (apptLbl) apptLbl.textContent = mbDashTr('Kapanan KK', 'Abgeschlossene QC');
+    if (apptLbl) apptLbl.textContent = mbDashTr('Kapanan Kalite Kontrol', 'Abgeschlossene QC');
   }
   host.innerHTML = `<div class="dash-brief-scope">${mbDashEsc(mbDashScopeLine(role))}</div><div class="mb-empty-hint">${mbDashTr('Yükleniyor...', 'Laden...')}</div>`;
   const parts = [];
@@ -463,7 +463,7 @@ async function loadDashBrief(ctx) {
     parts.push(await mbDashRankBlock(logs, ff));
   }
   if (role === 'qc') parts.push(await mbDashQcBlock(ff));
-  parts.push(mbDashCard(role === 'qc' ? mbDashTr('KK sonuçları', 'QC-Ergebnisse') : mbDashTr('Arama sonuçları', 'Anrufergebnisse'), mbDashOutcomeHtml(logs)));
+  parts.push(mbDashCard(role === 'qc' ? mbDashTr('Kalite Kontrol sonuçları', 'QC-Ergebnisse') : mbDashTr('Arama sonuçları', 'Anrufergebnisse'), mbDashOutcomeHtml(logs)));
   if (role !== 'qc') parts.push(await mbDashNextBlock(ff, agentQ));
   host.innerHTML = `<div class="dash-brief"><div class="dash-brief-scope">${mbDashEsc(mbDashScopeLine(role))}</div>${alerts}<div class="dash-brief-grid">${parts.join('')}</div></div>`;
   await mbDashDeltas(logs, ff, agentQ, rangeKey, from, to);

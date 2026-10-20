@@ -37,9 +37,9 @@
 <label class="form-label" data-tr="Müşteri" data-de="Kunde">Müşteri</label>
 <select class="form-input" id="nc-customer" onchange="ncCustomerNote()">
 <option value="" data-tr="Seçin" data-de="Wählen">Seçin</option>
-<option value="qc" data-tr="Tümü — KK seçer" data-de="Alle — QC wählt">Tümü — KK seçer</option>
+<option value="qc" data-tr="Tümü — Kalite kontrol seçer" data-de="Alle — QC wählt">Tümü — Kalite kontrol seçer</option>
 </select>
-<div id="nc-customer-note" style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Bir müşteri seçin. Tümü derseniz randevu müşterisiz açılır ve müşteriyi KK yazar." data-de="Einen Kunden wählen. Alle: der Termin bleibt ohne Kunde, QC trägt ihn ein.">Bir müşteri seçin. Tümü derseniz randevu müşterisiz açılır ve müşteriyi KK yazar.</div>
+<div id="nc-customer-note" style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Bir müşteri seçin. Tümü derseniz randevu müşterisiz açılır ve müşteriyi Kalite kontrol yazar." data-de="Einen Kunden wählen. Alle: der Termin bleibt ohne Kunde, QC trägt ihn ein.">Bir müşteri seçin. Tümü derseniz randevu müşterisiz açılır ve müşteriyi Kalite kontrol yazar.</div>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Personeller" data-de="Personal">Personeller</label>
@@ -206,7 +206,7 @@ ondrop="handleDrop(event)">
 </div>
 <div id="ia-mapping-section" style="display:none;">
 <div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);" data-tr="2. Sütun eşleştir" data-de="2. Spalten zuordnen">2. Sütun eşleştir</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Excel sütunlarını randevu alanlarıyla eşleştirin. Durum bir çağrı sonucu değil, KK sonucudur." data-de="Spalten den Terminfeldern zuordnen. Status ist kein Anrufergebnis, sondern ein QC-Ergebnis.">Excel sütunlarını randevu alanlarıyla eşleştirin. Durum bir çağrı sonucu değil, KK sonucudur.</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Excel sütunlarını randevu alanlarıyla eşleştirin. Durum bir çağrı sonucu değil, Kalite kontrol sonucudur." data-de="Spalten den Terminfeldern zuordnen. Status ist kein Anrufergebnis, sondern ein QC-Ergebnis.">Excel sütunlarını randevu alanlarıyla eşleştirin. Durum bir çağrı sonucu değil, Kalite kontrol sonucudur.</div>
 <div id="ia-mapping-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
 </div>
 <div id="ia-options-section" style="display:none;">
@@ -223,7 +223,7 @@ ondrop="handleDrop(event)">
 <select class="form-input" id="ia-customer">
 <option value="qc">Tümü — QC seçer</option>
 </select>
-<div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Kampanyadaki müşteri hazır gelir. Tümü dersen bu dosyada müşteriyi KK yazar." data-de="Der Kampagnenkunde steht bereit. Alle: QC trägt den Kunden für diese Datei ein.">Kampanyadaki müşteri hazır gelir. Tümü dersen bu dosyada müşteriyi KK yazar.</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Kampanyadaki müşteri hazır gelir. Tümü dersen bu dosyada müşteriyi Kalite kontrol yazar." data-de="Der Kampagnenkunde steht bereit. Alle: QC trägt den Kunden für diese Datei ein.">Kampanyadaki müşteri hazır gelir. Tümü dersen bu dosyada müşteriyi Kalite kontrol yazar.</div>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Personel (sütun yoksa)" data-de="Personal (ohne Spalte)">Personel (sütun yoksa)</label>
@@ -232,9 +232,9 @@ ondrop="handleDrop(event)">
 </select>
 </div>
 <div class="form-row">
-<label class="form-label" data-tr="KK sonucu (sütun yoksa)" data-de="QC-Ergebnis (ohne Spalte)">KK sonucu (sütun yoksa)</label>
+<label class="form-label" data-tr="Kalite kontrol sonucu (sütun yoksa)" data-de="QC-Ergebnis (ohne Spalte)">Kalite kontrol sonucu (sütun yoksa)</label>
 <select class="form-input" id="ia-status">
-<option value="qc_bekleniyor">KK Bekleniyor</option>
+<option value="qc_bekleniyor" data-tr="Kalite kontrol bekliyor" data-de="QC ausstehend">Kalite kontrol bekliyor</option>
 </select>
 </div>
 <div class="form-row">
@@ -513,7 +513,7 @@ Duyuru metni burada görünecek
 <div class="modal-hdr">
 <div class="modal-title">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-<span data-tr="KK" data-de="QC">KK</span>
+<span data-tr="Kalite Kontrol" data-de="Qualitätskontrolle">Kalite Kontrol</span>
 </div>
 <button class="modal-close" onclick="closeModal('m-qc-detail')">✕</button>
 </div>
