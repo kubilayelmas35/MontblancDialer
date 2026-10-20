@@ -9,6 +9,13 @@ let _etSelectedIds = new Set();
 let _etKampSel = new Set();
 let _etStatSel = new Set();
 let _etResultDefs = [];
+let _etResultByFirm = {};
+let _etCampById = {};
+let _etCols = [];
+let _etColsTouched = false;
+let _etLayouts = [];
+let _etLayoutName = '';
+let _etLayoutsReady = false;
 
 function _etFmtInputDate(d) {
   const yyyy = d.getFullYear();
@@ -17,22 +24,32 @@ function _etFmtInputDate(d) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function _etToday() {
+  return typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
+}
+
+function _etShift(day, delta) {
+  return typeof mbShiftDate === 'function' ? mbShiftDate(day, delta) : day;
+}
+
 function _etDefaultRange() {
-  const today = new Date();
-  const from = new Date(today);
-  from.setDate(from.getDate() - 7);
-  const to = new Date(today);
-  to.setDate(to.getDate() + 30);
-  return { from: _etFmtInputDate(from), to: _etFmtInputDate(to) };
+  const today = _etToday();
+  return { from: _etShift(today, -7), to: _etShift(today, 30) };
 }
 
 function _etWeekRange() {
-  const today = new Date();
-  const day = today.getDay();
-  const diffToMonday = today.getDate() - day + (day === 0 ? -6 : 1);
-  const startOfWeek = new Date(today.getFullYear(), today.getMonth(), diffToMonday);
-  const endOfWeek = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + 6);
-  return { from: _etFmtInputDate(startOfWeek), to: _etFmtInputDate(endOfWeek) };
+  const today = _etToday();
+  const p = String(today).split('-').map(Number);
+  const dow = new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay();
+  const back = dow === 0 ? 6 : dow - 1;
+  const from = _etShift(today, -back);
+  return { from, to: _etShift(from, 6) };
+}
+
+function _etBounds(from, to) {
+  const gte = typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
+  const lte = typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
+  return { gte, lte };
 }
 
 function _etNormDurum(raw) {
@@ -44,14 +61,36 @@ function _etNormDurum(raw) {
   return _normResultKey(s);
 }
 
-function _etDurumLabel(key) {
-  const d = _etResultDefs.find((x) => x.key === key);
+function _etDurumLabel(key, firmId) {
+  const list = (firmId && _etResultByFirm[firmId]) || _etResultDefs;
+  const d = (list || []).find((x) => x.key === key);
   if (d?.label) return d.label;
-  return key || '—';
+  const any = Object.values(_etResultByFirm).map((rows) => (rows || []).find((x) => x.key === key)?.label).find(Boolean);
+  return any || key || '—';
+}
+
+function _etChipLabel(key) {
+  const labels = [];
+  Object.values(_etResultByFirm).forEach((list) => {
+    const label = (list || []).find((x) => x.key === key)?.label;
+    if (label && !labels.includes(label)) labels.push(label);
+  });
+  if (!labels.length) return _etDurumLabel(key);
+  return labels.join(' / ');
+}
+
+function _etStatusKeys() {
+  const keys = [];
+  const push = (key) => { if (key && !keys.includes(key)) keys.push(key); };
+  const lists = Object.values(_etResultByFirm);
+  (lists.length ? lists : [_etResultDefs]).forEach((list) => (list || []).forEach((row) => push(row.key)));
+  _etProcessed.forEach((row) => push(row.durumKey));
+  return keys;
 }
 
 function _etBadgeColor(key) {
-  const d = _etResultDefs.find((x) => x.key === key);
+  const pool = Object.values(_etResultByFirm).flat();
+  const d = (pool.length ? pool : _etResultDefs).find((x) => x.key === key);
   const c = d?.color && /^#[0-9a-fA-F]{6}$/.test(String(d.color)) ? d.color : '#64748b';
   return c;
 }
@@ -66,14 +105,15 @@ function _etShowLoading(on, msg) {
 async function _etFetchRows(from, to) {
   const ff = getFirmFilter('&');
   const cols =
-    'id,termin_tarih,durum,nachname,telefonnummer,telefon2,strasse,plz,ortschaft,hausart,baujahr,qm,heizung,alter_der_heizung,verbrauch_pro_jahr,personen,interesse_an_pv,agent_notu,agent_id,campaign_id,customer_id,firm_id';
-  let q = `appointments?select=${cols},users(name),campaigns(name),customers(name,code)${ff}`;
-  q += `&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&order=termin_tarih.asc&limit=15000`;
+    'id,slot_id,termin_tarih,kayit_tarihi,durum,nachname,telefonnummer,telefon2,strasse,plz,ortschaft,hausart,baujahr,qm,heizung,alter_der_heizung,verbrauch_pro_jahr,personen,interesse_an_pv,agent_notu,qc_notu,agent_id,campaign_id,customer_id,firm_id,form_ek';
+  const bounds = _etBounds(from, to);
+  let q = `appointments?select=${cols},users(name),campaigns(name),customers(name,code),takvim_slots!slot_id(tarih,baslangic_saat,bitis_saat)${ff}`;
+  q += `&termin_tarih=gte.${bounds.gte}&termin_tarih=lte.${bounds.lte}&order=termin_tarih.asc&limit=15000`;
   let rows;
   try {
     rows = await sb(q);
   } catch (e) {
-    q = `appointments?select=${cols}${ff}&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&order=termin_tarih.asc&limit=15000`;
+    q = `appointments?select=${cols}${ff}&termin_tarih=gte.${bounds.gte}&termin_tarih=lte.${bounds.lte}&order=termin_tarih.asc&limit=15000`;
     rows = await sb(q).catch(() => []);
     if (!rows?.length) return [];
     const aIds = [...new Set(rows.map((r) => r.agent_id).filter(Boolean))];
@@ -106,7 +146,9 @@ async function _etFetchRows(from, to) {
 
 function _etProcess(rows) {
   return (rows || []).map((r) => {
-    const dt = r.termin_tarih ? new Date(r.termin_tarih) : null;
+    const slot = Array.isArray(r.takvim_slots) ? r.takvim_slots[0] : r.takvim_slots;
+    const wall = _etWall(r.termin_tarih, slot);
+    const dt = wall.sort ? new Date(wall.sort) : (r.termin_tarih ? new Date(r.termin_tarih) : null);
     const kampName = r.campaigns?.name ? String(r.campaigns.name) : '—';
     const agentName = r.users?.name ? String(r.users.name) : '';
     let custLabel = '';
@@ -119,6 +161,10 @@ function _etProcess(rows) {
       id: r.id,
       raw: r,
       terminDate: dt,
+      dayKey: wall.dayKey,
+      whenTime: wall.time,
+      whenDay: wall.day,
+      whenText: wall.text,
       nachname: r.nachname || '—',
       telefon: String(r.telefonnummer || r.telefon2 || '').trim(),
       strasse: r.strasse || '',
@@ -190,16 +236,7 @@ function _etUpdateKampVisibility() {
   const agentVal = document.getElementById('et-agent')?.value || '';
   const custVal = document.getElementById('et-customer')?.value || '';
   base = base.filter((e) => {
-    if (df) {
-      const s = new Date(df);
-      s.setHours(0, 0, 0, 0);
-      if (e.terminDate && e.terminDate < s) return false;
-    }
-    if (dt) {
-      const end = new Date(dt);
-      end.setHours(23, 59, 59, 999);
-      if (e.terminDate && e.terminDate > end) return false;
-    }
+    if (!_etInRange(e, df, dt)) return false;
     if (_etStatSel.size && !_etStatSel.has(e.durumKey)) return false;
     if (agentVal && String(e.agentId) !== agentVal) return false;
     if (custVal && String(e.customerId) !== custVal) return false;
@@ -227,12 +264,10 @@ function _etBuildStatusGrid() {
     const k = e.durumKey;
     stats[k] = (stats[k] || 0) + 1;
   });
-  const keys = _etResultDefs.length
-    ? _etResultDefs.map((r) => r.key)
-    : ['qc_bekleniyor', 'basarili', 'basarisiz', 'beklemede', 'ulasilamadi', 'iptal'];
+  const keys = _etStatusKeys();
   container.innerHTML = '';
   keys.forEach((key) => {
-    const lbl = _etDurumLabel(key);
+    const lbl = _etChipLabel(key);
     const cnt = stats[key] || 0;
     const sel = _etStatSel.has(key);
     const row = document.createElement('div');
@@ -336,16 +371,7 @@ function etApplyFilter() {
   const custVal = document.getElementById('et-customer')?.value || '';
 
   let base = _etProcessed.filter((e) => {
-    if (df) {
-      const s = new Date(df);
-      s.setHours(0, 0, 0, 0);
-      if (e.terminDate && e.terminDate < s) return false;
-    }
-    if (dt) {
-      const end = new Date(dt);
-      end.setHours(23, 59, 59, 999);
-      if (e.terminDate && e.terminDate > end) return false;
-    }
+    if (!_etInRange(e, df, dt)) return false;
     if (_etStatSel.size && !_etStatSel.has(e.durumKey)) return false;
     if (agentVal && String(e.agentId) !== agentVal) return false;
     if (custVal && String(e.customerId) !== custVal) return false;
@@ -370,16 +396,22 @@ function etRenderTable() {
   const sc = document.getElementById('et-selected-count');
   const dl = document.getElementById('et-download');
   const dlc = document.getElementById('et-download-count');
-  const hh = document.getElementById('et-header-check');
   if (!tbody) return;
 
+  const cols = _etVisibleCols();
+  const span = cols.length + 1;
+  const head = document.querySelector('#page-export thead tr');
+  if (head) {
+    head.innerHTML = `<th style="width:40px;text-align:center;"><input type="checkbox" id="et-header-check" onchange="etToggleHeaderAll()"/></th>${cols.map((col) => `<th>${_uiEsc(col.label)}</th>`).join('')}`;
+  }
   if (!_etFiltered.length) {
-    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(9, 'ui.no_termin') : `<tr><td colspan="9" class="mb-empty-hint" style="padding:40px;">${t('ui.no_termin')}</td></tr>`;
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(span, 'ui.no_termin') : `<tr><td colspan="${span}" class="mb-empty-hint" style="padding:40px;">${t('ui.no_termin')}</td></tr>`;
     if (rc) rc.textContent = '0';
     if (sc) sc.textContent = '0';
     if (dl) dl.disabled = true;
     if (dlc) dlc.textContent = '0';
-    if (hh) hh.checked = false;
+    const box = document.getElementById('et-header-check');
+    if (box) box.checked = false;
     return;
   }
 
@@ -390,28 +422,8 @@ function etRenderTable() {
     tr.style.cursor = 'pointer';
     const isSel = _etSelectedIds.has(e.id);
     if (isSel) tr.style.background = 'var(--accent-soft)';
-    let timeStr = '—';
-    let dayStr = '';
-    if (e.terminDate && !isNaN(e.terminDate.getTime())) {
-      const loc = mbLocale();
-      timeStr = e.terminDate.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
-      dayStr = e.terminDate.toLocaleDateString(loc, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
-    }
-    let tel = e.telefon || '—';
-    if (tel === '0' || tel === '0.00') tel = '—';
-    const addr = [e.strasse, [e.plz, e.ortschaft].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
-    const durumLbl = _etDurumLabel(e.durumKey);
-    const badgeBg = _etBadgeColor(e.durumKey);
-    tr.innerHTML = `
-<td data-label="Seç" style="text-align:center;"><input type="checkbox" class="et-row-cb" data-id="${e.id}" ${isSel ? 'checked' : ''}/></td>
-<td data-label="Tarih / saat"><div style="font-weight:700;color:var(--accent);">${_uiEsc(timeStr)}</div><div style="font-size:11px;color:var(--text-3);">${_uiEsc(dayStr)}</div></td>
-<td data-label="Müşteri" style="font-weight:600;">${_uiEsc(e.nachname)}</td>
-<td data-label="Telefon">${_uiEsc(tel)}</td>
-<td data-label="Adres" style="max-width:220px;font-size:12px;">${_uiEsc(addr)}</td>
-<td data-label="Kampanya"><span class="badge" style="background:var(--accent);color:#fff;font-size:10px;">${_uiEsc(e.kampName)}</span></td>
-<td data-label="Durum"><span class="badge" style="background:${badgeBg};color:#fff;font-size:10px;">${_uiEsc(durumLbl)}</span></td>
-<td data-label="Agent">${_uiEsc(e.agentName || '—')}</td>
-<td data-label="Atanan müşteri" style="font-size:12px;">${_uiEsc(e.custLabel)}</td>`;
+    const cells = cols.map((col) => `<td data-label="${_uiEsc(col.label)}">${_etCellHtml(e, col)}</td>`).join('');
+    tr.innerHTML = `<td data-label="Seç" style="text-align:center;"><input type="checkbox" class="et-row-cb" data-id="${e.id}" ${isSel ? 'checked' : ''}/></td>${cells}`;
     const cb = tr.querySelector('.et-row-cb');
     cb.onchange = () => {
       if (cb.checked) _etSelectedIds.add(e.id);
@@ -523,6 +535,11 @@ async function etReload() {
     const rows = await _etFetchRows(df, dt);
     if (gen !== _etReloadGen) return;
     _etProcessed = _etProcess(rows);
+    await etLoadResultMaps(_etProcessed.map((row) => row.raw?.firm_id));
+    await etLoadCampFields(_etProcessed.map((row) => row.raw?.campaign_id));
+    if (gen !== _etReloadGen) return;
+    etComposeCols();
+    etPaintCols();
     _etSelectedIds.clear();
     _etFillAgentSelect();
     await _etFillCustomerSelect();
@@ -573,38 +590,7 @@ function exportTerminXlsx() {
     toast(t('ui.no_selection'), 'warn');
     return;
   }
-  const loc = mbLocale();
-  const excelData = use.map((e) => {
-    const r = e.raw;
-    let tDate = '';
-    let tTime = '';
-    if (e.terminDate && !isNaN(e.terminDate.getTime())) {
-      tDate = e.terminDate.toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric' });
-      tTime = e.terminDate.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
-    }
-    const pv = r.interesse_an_pv === true ? t('ui.yes') : r.interesse_an_pv === false ? t('ui.no') : '';
-    return {
-      'Randevu': `${tDate} ${tTime}`.trim(),
-      'Ad Soyad': e.nachname || '',
-      'Sokak': r.strasse || '',
-      'PLZ': r.plz || '',
-      'İlçe/Şehir': r.ortschaft || '',
-      'Telefon': e.telefon || '',
-      'Baujahr': r.baujahr || '',
-      'Hausart': r.hausart || '',
-      'm²': r.qm || '',
-      'Heizung': r.heizung || '',
-      'Heizung Alter': r.alter_der_heizung || '',
-      'Verbrauch/Jahr': r.verbrauch_pro_jahr || '',
-      'Personen': r.personen || '',
-      'PV Interesse': pv,
-      'Agent Notu': r.agent_notu || '',
-      'Agent': e.agentName || '',
-      'Müşteri': e.custLabel || '',
-      'Kampagne': e.kampName || '',
-      'Durum': _etDurumLabel(e.durumKey),
-    };
-  });
+  const excelData = use.map((e) => _etExcelRow(e));
   const ws = XLSX.utils.json_to_sheet(excelData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Termine');
@@ -643,9 +629,352 @@ async function _loadExportTerminPageBody() {
     df.value = r.from;
     dt.value = r.to;
   }
+  await etHydrateLayouts();
   const fid = getActiveFirmId() || currentUser?.firm_id;
-  _etResultDefs = fid ? await loadFirmAppointmentResults(fid) : defaultAppointmentResults();
+  _etResultDefs = fid && typeof loadFirmAppointmentResults === 'function' ? await loadFirmAppointmentResults(fid) : defaultAppointmentResults();
+  if (fid) _etResultByFirm[fid] = _etResultDefs;
   await _etBuildShortcuts();
   await etReload();
   if (typeof applyLang === 'function') applyLang();
+}
+
+function _etWall(iso, slot) {
+  const slotDay = slot?.tarih ? String(slot.tarih).slice(0, 10) : '';
+  const start = slot?.baslangic_saat ? String(slot.baslangic_saat).slice(0, 5) : '';
+  const end = slot?.bitis_saat ? String(slot.bitis_saat).slice(0, 5) : '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(slotDay) && /^\d{2}:\d{2}$/.test(start)) {
+    const [y, m, d] = slotDay.split('-');
+    const time = end && end !== start ? `${start}–${end}` : start;
+    const day = `${d}.${m}.${y}`;
+    return { dayKey: slotDay, day, time, text: `${day} ${time}`, sort: `${slotDay}T${start}:00` };
+  }
+  let day = '';
+  let time = '';
+  if (iso && typeof mbFormatWall === 'function') {
+    const bits = String(mbFormatWall(iso, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) || '').split(' ');
+    day = bits[0] || '';
+    time = bits[1] || '';
+  }
+  let dayKey = '';
+  if (iso && typeof mbStampParts === 'function') {
+    const p = mbStampParts(iso);
+    if (p?.year) dayKey = `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
+  }
+  return { dayKey, day, time, text: `${day} ${time}`.trim(), sort: iso || '' };
+}
+
+function _etInRange(row, from, to) {
+  const day = row?.dayKey || '';
+  if (!day) return true;
+  if (from && day < from) return false;
+  if (to && day > to) return false;
+  return true;
+}
+
+function _etEk(raw) {
+  let value = raw?.form_ek;
+  if (!value) return {};
+  if (typeof value === 'string') {
+    try { value = JSON.parse(value); } catch (e) { return {}; }
+  }
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function _etMeta() {
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const pair = (key, tr, deLabel, on) => ({ key, tr, de: deLabel, label: de ? deLabel : tr, on, kind: 'meta' });
+  return [
+    pair('when', 'Tarih / saat', 'Datum / Zeit', true),
+    pair('name', 'Ad Soyad', 'Name', true),
+    pair('phone', 'Telefon', 'Telefon', true),
+    pair('phone2', 'Telefon 2', 'Telefon 2', false),
+    pair('street', 'Sokak', 'Straße', true),
+    pair('plz', 'PLZ', 'PLZ', true),
+    pair('city', 'İlçe/Şehir', 'Ort', true),
+    pair('camp', 'Kampanya', 'Kampagne', true),
+    pair('status', 'Durum', 'Status', true),
+    pair('agent', 'Agent', 'Agent', true),
+    pair('customer', 'Atanan müşteri', 'Kundenzuweisung', true),
+    pair('note', 'Agent notu', 'Agentnotiz', true),
+    pair('qc', 'QC notu', 'QC-Notiz', false),
+    pair('created', 'Kayıt tarihi', 'Erfasst am', false),
+  ];
+}
+
+function _etFormList(camp) {
+  const tf = typeof getCampSettings === 'function' ? getCampSettings(camp).termin_form : null;
+  if (typeof terminFormListFromSaved === 'function') return terminFormListFromSaved(tf);
+  if (typeof dialerTerminFields === 'function') {
+    return dialerTerminFields(camp).map((field) => ({ key: field.key, label: field.l, enabled: true }));
+  }
+  return [];
+}
+
+function _etDiscoverFields() {
+  const map = new Map();
+  Object.values(_etCampById).forEach((camp) => {
+    _etFormList(camp).forEach((field) => {
+      const key = String(field.key || '').trim();
+      const label = String(field.label || field.l || key).trim();
+      if (!key || !label) return;
+      const prev = map.get(key);
+      if (!prev) map.set(key, { label, on: field.enabled !== false });
+      else if (field.enabled !== false) prev.on = true;
+    });
+  });
+  _etProcessed.forEach((row) => {
+    Object.keys(_etEk(row.raw)).forEach((key) => {
+      if (!map.has(key)) map.set(key, { label: key, on: true });
+    });
+  });
+  return [...map.entries()].map(([key, info]) => ({
+    key: `f:${key}`,
+    field: key,
+    label: info.label,
+    on: info.on !== false,
+    kind: 'field',
+  }));
+}
+
+function _etFieldValue(raw, key) {
+  const col = typeof TAKVIM_APPT_COL !== 'undefined' ? TAKVIM_APPT_COL[key] : '';
+  if (col && raw?.[col] != null && raw[col] !== '') {
+    if (typeof takvimYesNo === 'function' && (key === 'interesse_an_pv' || raw[col] === true || raw[col] === false)) return takvimYesNo(raw[col]);
+    return raw[col];
+  }
+  const extra = _etEk(raw);
+  if (extra[key] != null && extra[key] !== '') return extra[key];
+  return '';
+}
+
+function _etVisibleCols() {
+  const cols = _etCols.filter((col) => col.on);
+  return cols.length ? cols : _etMeta().filter((col) => col.on);
+}
+
+function _etCellText(row, col) {
+  const raw = row.raw || {};
+  if (col.key === 'when') return row.whenText || '';
+  if (col.key === 'name') return row.nachname && row.nachname !== '—' ? row.nachname : '';
+  if (col.key === 'phone') {
+    const tel = row.telefon || '';
+    return tel === '0' || tel === '0.00' ? '' : tel;
+  }
+  if (col.key === 'phone2') return raw.telefon2 || '';
+  if (col.key === 'street') return raw.strasse || '';
+  if (col.key === 'plz') return raw.plz || '';
+  if (col.key === 'city') return raw.ortschaft || '';
+  if (col.key === 'camp') return row.kampName && row.kampName !== '—' ? row.kampName : '';
+  if (col.key === 'status') return _etDurumLabel(row.durumKey, raw.firm_id);
+  if (col.key === 'agent') return row.agentName || '';
+  if (col.key === 'customer') return row.custLabel && row.custLabel !== '—' ? row.custLabel : '';
+  if (col.key === 'note') return raw.agent_notu || '';
+  if (col.key === 'qc') return raw.qc_notu || '';
+  if (col.key === 'created') {
+    return raw.kayit_tarihi && typeof mbFormatWall === 'function'
+      ? mbFormatWall(raw.kayit_tarihi, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '';
+  }
+  if (col.field) return _etFieldValue(raw, col.field);
+  return '';
+}
+
+function _etCellHtml(row, col) {
+  const text = String(_etCellText(row, col) || '');
+  const shown = text || '—';
+  if (col.key === 'when') {
+    return `<div style="font-weight:700;color:var(--accent);">${_uiEsc(row.whenTime || '—')}</div><div style="font-size:11px;color:var(--text-3);">${_uiEsc(row.whenDay || '')}</div>`;
+  }
+  if (col.key === 'name') return `<span style="font-weight:600;">${_uiEsc(shown)}</span>`;
+  if (col.key === 'camp') return `<span class="badge et-camp" style="background:var(--accent);color:#fff;font-size:10px;" title="${_uiEsc(text)}">${_uiEsc(shown)}</span>`;
+  if (col.key === 'status') return `<span class="badge" style="background:${_etBadgeColor(row.durumKey)};color:#fff;font-size:10px;">${_uiEsc(shown)}</span>`;
+  return _uiEsc(shown);
+}
+
+function _etExcelRow(row) {
+  const out = {};
+  _etVisibleCols().forEach((col) => { out[col.label] = _etCellText(row, col); });
+  return out;
+}
+
+function etComposeCols() {
+  const catalog = _etMeta().concat(_etDiscoverFields());
+  const merge = (source, fallbackOn) => {
+    const byKey = new Map(catalog.map((col) => [col.key, col]));
+    const used = new Set();
+    const next = [];
+    (source || []).forEach((col) => {
+      const base = byKey.get(col.key);
+      if (!base) return;
+      next.push({ ...base, on: fallbackOn ? !!col.on : !!col.on });
+      used.add(col.key);
+    });
+    catalog.forEach((col) => {
+      if (!used.has(col.key)) next.push({ ...col, on: false });
+    });
+    return next;
+  };
+  if (_etColsTouched && _etCols.length) {
+    _etCols = merge(_etCols);
+    return;
+  }
+  const saved = _etLayouts.find((item) => item.name === _etLayoutName);
+  _etCols = saved ? merge(saved.cols) : catalog;
+}
+
+function etPaintCols() {
+  const host = document.getElementById('et-cols');
+  if (!host) return;
+  const last = _etCols.length - 1;
+  host.innerHTML = `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+<select id="et-layout-pick" class="form-input" style="width:auto;max-width:220px;"></select>
+<input id="et-layout-name" class="form-input" style="width:180px;" maxlength="60" placeholder="${_uiEsc(t('export.layout_ph'))}" value="${_uiEsc(_etLayoutName)}">
+<button type="button" class="btn btn-ghost btn-sm" id="et-layout-save">${_uiEsc(t('export.layout_save'))}</button>
+<button type="button" class="btn btn-ghost btn-sm" id="et-layout-del">${_uiEsc(t('export.layout_delete'))}</button>
+</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">${_uiEsc(t('export.cols_title'))} · ${_uiEsc(t('export.col_hint'))}</div>
+<div class="et-col-row">${_etCols.map((col, i) => `<div class="et-col-chip${col.on ? ' is-on' : ''}" data-key="${_uiEsc(col.key)}">
+<button type="button" data-move="-1" ${i === 0 ? 'disabled' : ''} aria-label="↑">↑</button>
+<button type="button" data-move="1" ${i === last ? 'disabled' : ''} aria-label="↓">↓</button>
+<label><input type="checkbox" ${col.on ? 'checked' : ''}><span title="${_uiEsc(col.label)}">${_uiEsc(col.label)}</span></label>
+</div>`).join('')}</div>`;
+  const pick = document.getElementById('et-layout-pick');
+  if (pick) {
+    pick.innerHTML = `<option value="">${_uiEsc(t('export.layout_none'))}</option>${_etLayouts.map((item) => `<option value="${_uiEsc(item.name)}">${_uiEsc(item.name)}</option>`).join('')}`;
+    pick.value = _etLayouts.some((item) => item.name === _etLayoutName) ? _etLayoutName : '';
+    pick.onchange = () => etPickLayout(pick.value);
+  }
+  const save = document.getElementById('et-layout-save');
+  if (save) save.onclick = () => { etSaveLayout(); };
+  const del = document.getElementById('et-layout-del');
+  if (del) del.onclick = () => { etDeleteLayout(); };
+  host.querySelectorAll('.et-col-chip').forEach((chip) => {
+    const key = chip.getAttribute('data-key');
+    chip.querySelectorAll('[data-move]').forEach((btn) => {
+      btn.onclick = () => etMoveCol(key, Number(btn.getAttribute('data-move')));
+    });
+    const box = chip.querySelector('input[type=checkbox]');
+    if (box) box.onchange = () => etToggleCol(key, box.checked);
+  });
+}
+
+function etMoveCol(key, dir) {
+  const index = _etCols.findIndex((col) => col.key === key);
+  const next = index + dir;
+  if (index < 0 || next < 0 || next >= _etCols.length) return;
+  const [row] = _etCols.splice(index, 1);
+  _etCols.splice(next, 0, row);
+  _etColsTouched = true;
+  etPaintCols();
+  etRenderTable();
+}
+
+function etToggleCol(key, on) {
+  const col = _etCols.find((item) => item.key === key);
+  if (!col) return;
+  col.on = !!on;
+  _etColsTouched = true;
+  const chip = [...document.querySelectorAll('#et-cols .et-col-chip')].find((el) => el.getAttribute('data-key') === key);
+  if (chip) chip.classList.toggle('is-on', col.on);
+  etRenderTable();
+}
+
+function etPickLayout(name) {
+  _etLayoutName = String(name || '');
+  _etColsTouched = false;
+  _etLayoutsReady = true;
+  etComposeCols();
+  etPaintCols();
+  etRenderTable();
+  if (name && typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+async function etSaveLayout() {
+  const name = String(document.getElementById('et-layout-name')?.value || '').trim().slice(0, 60);
+  if (!name) {
+    toast(t('export.layout_name'), 'warn');
+    return;
+  }
+  const cols = _etCols.map((col) => ({ key: col.key, on: !!col.on }));
+  _etLayouts = _etLayouts.filter((item) => item.name !== name).concat([{ name, cols }]).slice(-30);
+  _etLayoutName = name;
+  _etLayoutsReady = true;
+  _etColsTouched = false;
+  if (typeof mbFlushUiPrefs === 'function') await mbFlushUiPrefs();
+  toast(t('export.layout_saved'), 'ok');
+  etPaintCols();
+}
+
+async function etDeleteLayout() {
+  const name = _etLayoutName || String(document.getElementById('et-layout-name')?.value || '').trim();
+  if (!name) return;
+  _etLayouts = _etLayouts.filter((item) => item.name !== name);
+  if (_etLayoutName === name) _etLayoutName = '';
+  _etLayoutsReady = true;
+  _etColsTouched = false;
+  etComposeCols();
+  etPaintCols();
+  etRenderTable();
+  if (typeof mbFlushUiPrefs === 'function') await mbFlushUiPrefs();
+  toast(t('export.layout_deleted'), 'ok');
+}
+
+async function etHydrateLayouts() {
+  if (_etLayoutsReady) return;
+  const id = currentUser?.id;
+  if (!id || typeof sb !== 'function') {
+    _etLayoutsReady = true;
+    return;
+  }
+  try {
+    const rows = await sb(`users?id=eq.${id}&select=ui_prefs&limit=1`);
+    const remote = rows?.[0]?.ui_prefs || {};
+    mbAdoptExportLayouts(remote.export_layouts, remote.export_layout_active);
+  } catch (e) {
+    _etLayoutsReady = true;
+  }
+}
+
+function mbAdoptExportLayouts(raw, active) {
+  const list = Array.isArray(raw) ? raw : [];
+  _etLayouts = list.map((item) => {
+    const name = String(item?.name || '').trim().slice(0, 60);
+    const cols = Array.isArray(item?.cols) ? item.cols : [];
+    if (!name) return null;
+    return {
+      name,
+      cols: cols.map((col) => ({ key: String(col?.key || ''), on: !!col?.on })).filter((col) => /^[a-zA-Z0-9_:-]+$/.test(col.key)).slice(0, 80),
+    };
+  }).filter(Boolean).slice(0, 30);
+  const want = String(active || '');
+  _etLayoutName = _etLayouts.some((item) => item.name === want) ? want : '';
+  _etLayoutsReady = true;
+}
+
+function mbExportLayoutsForPrefs() {
+  if (!_etLayoutsReady) return null;
+  return { layouts: _etLayouts, active: _etLayoutName };
+}
+
+async function etLoadResultMaps(firmIds) {
+  const ids = [...new Set([typeof getActiveFirmId === 'function' ? getActiveFirmId() : null, currentUser?.firm_id, ...(firmIds || [])].filter(Boolean))];
+  const map = {};
+  for (const id of ids) {
+    map[id] = typeof loadFirmAppointmentResults === 'function'
+      ? await loadFirmAppointmentResults(id)
+      : (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
+  }
+  _etResultByFirm = map;
+  const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
+  _etResultDefs = map[fid] || (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
+}
+
+async function etLoadCampFields(ids) {
+  _etCampById = {};
+  const uniq = [...new Set((ids || []).filter(Boolean))];
+  for (let i = 0; i < uniq.length; i += 40) {
+    const chunk = uniq.slice(i, i + 40);
+    const rows = await sb(`campaigns?select=id,name,settings&id=in.(${chunk.join(',')})`).catch(() => []);
+    (rows || []).forEach((camp) => { _etCampById[camp.id] = camp; });
+  }
 }

@@ -48,6 +48,11 @@ function mbCollectUiPrefs() {
   if (typeof mbFieldTemplates === 'function') prefs.field_templates = mbFieldTemplates();
   const grads = mbReadLiveGrads();
   if (Object.keys(grads).length) prefs.live_grads = grads;
+  const ex = typeof mbExportLayoutsForPrefs === 'function' ? mbExportLayoutsForPrefs() : null;
+  if (ex) {
+    prefs.export_layouts = ex.layouts;
+    prefs.export_layout_active = ex.active;
+  }
   if (Array.isArray(rows) && typeof MB_DASH_ROWS !== 'undefined') {
     prefs.dash_rows = rows.filter((key) => MB_DASH_ROWS.includes(key));
   } else if (typeof MB_DASH_ROWS !== 'undefined') {
@@ -118,6 +123,9 @@ function mbApplyUiPrefs(remote) {
       } catch (e) {}
       mbApplyLiveGrads(grads);
       mbPaintLiveGradForm();
+    }
+    if (typeof mbAdoptExportLayouts === 'function') {
+      mbAdoptExportLayouts(remote.export_layouts, remote.export_layout_active);
     }
     if (remote.mascot && typeof remote.mascot === 'object' && typeof setMascotPref === 'function') {
       Object.entries(remote.mascot).forEach(([base, val]) => {
