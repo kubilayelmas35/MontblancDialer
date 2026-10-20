@@ -682,6 +682,73 @@ function opsNotifSub(id) {
   buttons.forEach((btn) => btn.classList.toggle('is-on', btn.dataset.sub === picked));
 }
 
+let _opsNotifFirmLoaded = '';
+
+async function opsEnsureNotifFirmForm() {
+  const fid = opsFirmId();
+  if (fid && typeof sb === 'function' && _opsNotifFirmLoaded !== fid) {
+    _opsNotifFirmLoaded = fid;
+    try {
+      const rows = await sb(`firms?id=eq.${fid}&select=settings`);
+      opsReadAlerts(rows?.[0]?.settings?.ops_alerts);
+    } catch (e) {
+      _opsNotifFirmLoaded = '';
+    }
+  }
+  opsFillNotifSettings();
+}
+
+function opsMountNotifFirm() {
+  const host = document.getElementById('ops-notif-firm');
+  if (!host) return;
+  const show = typeof isSuperAdmin === 'function' && isSuperAdmin();
+  if (!show) {
+    host.hidden = true;
+    host.replaceChildren();
+    return;
+  }
+  const firms = (typeof _allFirms !== 'undefined' && Array.isArray(_allFirms)) ? _allFirms : [];
+  if (!firms.length && typeof loadAllFirms === 'function') {
+    host.hidden = true;
+    loadAllFirms().then(() => opsMountNotifFirm());
+    return;
+  }
+  host.hidden = false;
+  const fid = opsFirmId();
+  host.replaceChildren();
+  const label = document.createElement('span');
+  label.className = 'form-label';
+  label.textContent = opsSay('ops.notif.firm', 'Firma');
+  const sel = document.createElement('select');
+  sel.id = 'ops-notif-firm-sel';
+  sel.className = 'form-input';
+  firms.forEach((firm) => {
+    const opt = document.createElement('option');
+    opt.value = firm.id;
+    opt.textContent = firm.name || firm.slug || firm.id;
+    if (String(firm.id) === String(fid)) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  if (fid && ![...sel.options].some((opt) => opt.value === String(fid))) {
+    const opt = document.createElement('option');
+    opt.value = fid;
+    opt.textContent = fid;
+    opt.selected = true;
+    sel.appendChild(opt);
+  }
+  const hint = document.createElement('small');
+  hint.textContent = opsSay('ops.notif.firm_hint', 'Kayıt bu firmanın bildirimine yazılır.');
+  host.append(label, sel, hint);
+  sel.onchange = () => {
+    const next = sel.value || '';
+    if (!next) return;
+    if (typeof setSuperAdminFirmSelection === 'function') setSuperAdminFirmSelection(next);
+    else if (typeof _selectedFirmId !== 'undefined') _selectedFirmId = next;
+    _opsNotifFirmLoaded = '';
+    opsEnsureNotifFirmForm();
+  };
+}
+
 function opsFillNotifSettings() {
   const card = document.getElementById('notif-settings-card');
   if (!card) return;
@@ -732,6 +799,7 @@ function opsFillNotifSettings() {
   opsPaintAgentNotif();
   opsNotifSub(card.dataset.sub || 'wv');
   opsFillResultRows();
+  opsMountNotifFirm();
 }
 
 function opsSyncRoleChipVisibility() {

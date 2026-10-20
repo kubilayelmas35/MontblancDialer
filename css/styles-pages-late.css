@@ -859,3 +859,17 @@ i.ph {
   color: var(--text-2);
 }
 #page-callhistory .ch-cb { font-size: 10px; color: var(--yellow); margin-top: 2px; }
+#ops-notif-firm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-2);
+}
+#ops-notif-firm[hidden] { display: none !important; }
+#ops-notif-firm .form-label { margin: 0; }
+#ops-notif-firm select { max-width: 280px; }
+#ops-notif-firm small { color: var(--text-3); font-size: 11px; }

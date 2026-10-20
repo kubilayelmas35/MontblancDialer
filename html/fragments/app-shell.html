@@ -2555,7 +2555,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn active" data-tab="general" onclick="setSettingsTab('general')" data-tr="Görünüm" data-de="Darstellung">Görünüm</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="mascot" onclick="setSettingsTab('mascot')" data-tr="Maskot" data-de="Maskottchen">Maskot</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="communication" onclick="setSettingsTab('communication')" data-tr="İletişim" data-de="Kommunikation">İletişim</button>
-<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="notifications" onclick="setSettingsTab('notifications'); if (typeof opsFillNotifSettings==='function') opsFillNotifSettings();" data-tr="Bildirim" data-de="Hinweis">Bildirim</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="notifications" onclick="setSettingsTab('notifications'); if (typeof opsEnsureNotifFirmForm==='function') opsEnsureNotifFirmForm();" data-tr="Bildirim" data-de="Hinweis">Bildirim</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="quality" onclick="setSettingsTab('quality'); if (typeof loadAppointmentResultsSettings==='function') loadAppointmentResultsSettings();" data-tr="Kalite Kontrol" data-de="Qualitätskontrolle">Kalite Kontrol</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="operations" onclick="setSettingsTab('operations')" data-tr="Operasyon" data-de="Betrieb">Operasyon</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="mesai" onclick="setSettingsTab('mesai'); if (typeof loadMesaiPlanCard==='function') loadMesaiPlanCard();" data-tr="Mesai" data-de="Schicht">Mesai</button>
@@ -2565,6 +2565,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="settings-layout">
 <div class="card" id="notif-settings-card">
 <div class="card-title" data-tr="Bildirim" data-de="Hinweis">Bildirim</div>
+<div id="ops-notif-firm" class="ops-firm-only" hidden></div>
 <p class="ops-set-lead ops-firm-only" data-tr="Şerit, rol ve önizleme kendi bölümündedir. Agent kendi gördüğü satırın sesini kaydeder." data-de="Streifen, Rollen und Vorschau stehen im eigenen Abschnitt. Der Agent speichert den Ton seiner eigenen Zeile.">Şerit, rol ve önizleme kendi bölümündedir. Agent kendi gördüğü satırın sesini kaydeder.</p>
 <p class="ops-set-lead ops-agent-only" data-tr="Kendi gördüğün bildirimlerin sesini ve rengini seçersin. Örnek, bildirim merkezine de düşer." data-de="Du stellst Ton und Farbe der Hinweise ein, die du siehst. Beispiel landet auch im Zentrum.">Kendi gördüğün bildirimlerin sesini ve rengini seçersin. Örnek, bildirim merkezine de düşer.</p>
 <div class="ops-sound-vol">

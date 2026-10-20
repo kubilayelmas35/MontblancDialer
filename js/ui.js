@@ -179,7 +179,7 @@ function initSettingsTabs(preferTab) {
   const tab = agent ? 'notifications' : (preferTab || 'general');
   window.__settingsTab = '';
   setSettingsTab(tab);
-  if (tab === 'notifications' && typeof opsFillNotifSettings === 'function') opsFillNotifSettings();
+  if (tab === 'notifications' && typeof opsEnsureNotifFirmForm === 'function') opsEnsureNotifFirmForm();
 }
 
 function mbSyncSettingsTabs() {
@@ -196,7 +196,7 @@ function mbSyncSettingsTabs() {
   });
   if (agent) {
     setSettingsTab('notifications');
-    if (typeof opsFillNotifSettings === 'function') opsFillNotifSettings();
+    if (typeof opsEnsureNotifFirmForm === 'function') opsEnsureNotifFirmForm();
     return;
   }
   const active = document.querySelector('#settings-tabs .settings-tab-btn.active');
