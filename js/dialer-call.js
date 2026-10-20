@@ -1294,9 +1294,28 @@ function _paintQcReviewOutcomes(grid) {
 <div class="icon" style="color:${esc(def.color || 'var(--accent)')}"><i class="ph ph-check-circle"></i></div>
 <div class="lbl">${esc(label(def))}</div>
 </button>`).join('');
+  if (!selectedOutcome && window._qcReviewApptId && typeof qcList !== 'undefined') {
+    const row = (qcList || []).find((x) => x.id === window._qcReviewApptId);
+    const key = row && typeof _qcDurumKey === 'function' ? _qcDurumKey(row) : '';
+    if (key) selectedOutcome = key;
+  }
   if (typeof selectedOutcome === 'string' && selectedOutcome) {
     grid.querySelector(`[data-outcome="${selectedOutcome}"]`)?.classList.add('active');
   }
+  _qcApplyReviewNoteChrome();
+}
+
+function _qcApplyReviewNoteChrome() {
+  const label = document.getElementById('outcome-note-label');
+  const note = document.getElementById('outcome-note');
+  const text = typeof t === 'function' ? t('qc.note') : 'Kalite kontrol notu';
+  if (label) label.textContent = text;
+  if (!note) return;
+  note.placeholder = text;
+  if (note.dataset.qcFilled === '1') return;
+  const row = (typeof qcList !== 'undefined' ? qcList : []).find((x) => x.id === window._qcReviewApptId);
+  note.value = row?.qc_notu || '';
+  note.dataset.qcFilled = '1';
 }
 
 function _qcRestoreOutcomeChrome() {
@@ -1305,6 +1324,15 @@ function _qcRestoreOutcomeChrome() {
     const lang = typeof currentLang !== 'undefined' ? currentLang : 'tr';
     title.textContent = title.getAttribute(lang === 'de' ? 'data-de' : 'data-tr') || 'ÇAĞRI SONUCU';
   }
+  const label = document.getElementById('outcome-note-label');
+  const note = document.getElementById('outcome-note');
+  const lang = typeof currentLang !== 'undefined' ? currentLang : 'tr';
+  if (label) label.textContent = label.getAttribute(lang === 'de' ? 'data-de' : 'data-tr') || 'Not';
+  if (note) {
+    note.placeholder = note.getAttribute(lang === 'de' ? 'data-de' : 'data-tr') || '';
+    delete note.dataset.qcFilled;
+  }
+  document.getElementById('qc-review-form')?.remove();
   const dnc = document.getElementById('outcome-dnc')?.closest('div');
   if (dnc) dnc.style.display = '';
   const br = document.querySelector('#ctab-outcome-panel [onclick="submitOutcome(true)"]');
@@ -1317,6 +1345,9 @@ async function _submitQcReview() {
     return;
   }
   const id = window._qcReviewApptId;
+  const form = document.getElementById('qc-review-form');
+  const row = (typeof qcList !== 'undefined' ? qcList : []).find((x) => x.id === id);
+  if (form && row && typeof takvimCollectPatch === 'function') window._qcDetailPatch = takvimCollectPatch(form, row);
   window._qcReviewNote = document.getElementById('outcome-note')?.value || '';
   const ok = typeof quickQcUpdate === 'function' ? await quickQcUpdate(id, selectedOutcome) : false;
   window._qcReviewNote = null;

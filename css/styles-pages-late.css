@@ -873,3 +873,18 @@ i.ph {
 #ops-notif-firm .form-label { margin: 0; }
 #ops-notif-firm select { max-width: 280px; }
 #ops-notif-firm small { color: var(--text-3); font-size: 11px; }
+#qc-review-form {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 2px dashed var(--accent);
+}
+.qc-review-form-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.qc-review-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.qc-review-form-hint { margin-top: 6px; font-size: 11px; color: var(--text-3); }

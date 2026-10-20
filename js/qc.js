@@ -81,7 +81,7 @@ async function loadQcData() {
       ? await sb(`customers?firm_id=eq.${fid}&is_active=eq.true&select=id,name,code&order=name.asc`).catch(() => [])
       : [];
     window._qcCampById = {};
-    const camps = await sb(`campaigns?select=id,name,settings${ff}&limit=500`).catch(() => []);
+    const camps = await sb(`campaigns?select=id,name,settings,field_config${ff}&limit=500`).catch(() => []);
     (camps || []).forEach((c) => { window._qcCampById[c.id] = c; });
     window._qcRecByContact = await _qcAttachRec(qcList);
     const cap = document.getElementById('qc-cap');
@@ -291,8 +291,28 @@ async function qcOpenPersonCard(apptId) {
   const row = (qcList || []).find((x) => x.id === apptId);
   if (!row?.contact_id) { toast(t('qc.no_contact'), 'warn'); return; }
   window._qcReviewApptId = apptId;
+  selectedOutcome = _qcDurumKey(row) || null;
   if (typeof closeModal === 'function') closeModal('m-qc-detail');
   if (typeof openDialerForContact === 'function') await openDialerForContact(row.contact_id);
+}
+
+function mountQcReviewForm() {
+  const id = window._qcReviewApptId;
+  const old = document.getElementById('qc-review-form');
+  if (!id) {
+    old?.remove();
+    return;
+  }
+  const row = (qcList || []).find((x) => x.id === id);
+  const anchor = document.getElementById('cust-fields');
+  if (!row || !anchor) return;
+  const camp = window._qcCampById?.[row.campaign_id] || (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === row.campaign_id) || {};
+  const fields = typeof takvimFieldsMarkup === 'function' ? takvimFieldsMarkup(camp, row, currentContact, 'edit') : '';
+  const host = old || document.createElement('div');
+  host.id = 'qc-review-form';
+  host.innerHTML = `<div class="qc-review-form-title">${_uiEsc(t('qc.form'))}</div><div class="qc-review-form-grid">${fields}</div><div class="qc-review-form-hint">${_uiEsc(t('qc.form_hint'))}</div>`;
+  if (!old) anchor.after(host);
+  if (typeof _qcApplyReviewNoteChrome === 'function') _qcApplyReviewNoteChrome();
 }
 
 async function qcUpdateStatus(status) {
@@ -321,10 +341,10 @@ async function quickQcUpdate(apptId, status) {
     const apptPatch = { durum: resultKey };
     const extra = window._qcDetailPatch;
     window._qcDetailPatch = null;
-    if (extra && qcDetailId === apptId) {
+    if (extra && (qcDetailId === apptId || window._qcReviewApptId === apptId)) {
       Object.assign(apptPatch, extra.body || {});
       apptPatch.durum = resultKey;
-      if (extra.ek && Object.keys(extra.ek).length) apptPatch.form_ek = extra.ek;
+      if (extra.ek && typeof extra.ek === 'object') apptPatch.form_ek = extra.ek;
     }
     if (customerId) apptPatch.customer_id = customerId;
     if (note !== null) apptPatch.qc_notu = note;

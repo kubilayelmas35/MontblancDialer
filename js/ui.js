@@ -124,6 +124,7 @@ if (typeof userHasPagePerm === 'function' && Array.isArray(ALL_PAGES) && ALL_PAG
 if (page !== 'supervisor' && typeof unloadSupervisorPanel === 'function') unloadSupervisorPanel();
 if (page !== 'agents' && typeof agentsStopPoll === 'function') agentsStopPoll();
 if (page !== 'dialer') {
+  if (window._qcReviewApptId) selectedOutcome = null;
   window._qcReviewApptId = null;
   if (typeof _qcRestoreOutcomeChrome === 'function') _qcRestoreOutcomeChrome();
   if (typeof closeMicAudioDrawer === 'function') closeMicAudioDrawer();

@@ -363,6 +363,8 @@ Randevuyu Kaydet
   if (typeof dialerStatus === 'undefined' || dialerStatus !== 'wrapping') {
     if (typeof switchContactTab === 'function') switchContactTab('info');
   }
+  if (window._qcReviewApptId && typeof mountQcReviewForm === 'function') mountQcReviewForm();
+  else document.getElementById('qc-review-form')?.remove();
   if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
   syncDialerNotes(c.notes || '', 'load');
   bindDialerNoteSync();
@@ -447,7 +449,7 @@ function syncDialerNotes(note, source) {
     const tf = document.getElementById('tf2-note');
     const top = document.getElementById('cval-notes');
     const editing = document.getElementById('cedit-notes');
-    if (source !== 'outcome' && out && out.value !== text) out.value = text;
+    if (!window._qcReviewApptId && source !== 'outcome' && out && out.value !== text) out.value = text;
     if (source !== 'tf2' && tf && tf.value !== text) tf.value = text;
     if (source !== 'top' && editing && editing.value !== text) editing.value = text;
     if (source !== 'top' && top && top.style.display !== 'none') top.textContent = text.trim() ? text : '—';
@@ -458,6 +460,7 @@ function syncDialerNotes(note, source) {
 }
 
 function onDialerNoteInput(value, source) {
+  if (window._qcReviewApptId) return;
   syncDialerNotes(value, source);
   queueContactNoteSave(value);
 }
