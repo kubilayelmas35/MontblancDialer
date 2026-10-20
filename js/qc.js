@@ -1,320 +1,370 @@
 // ─────────────────────────────────────────────
-// QC PANELİ — kalite kontrol
+// KK PANELİ — randevu kalite kontrolü
 // ─────────────────────────────────────────────
 
-function _qcMatchesTab(r, tab) {
-  const o = String(r?.outcome || '');
-  if (tab === 'all') return o === 'appointment' || o === 'appointment_done';
-  if (tab === 'qc bekleniyor') return o === 'appointment';
-  if (tab === 'başarılı') return o === 'appointment_done';
-  if (tab === 'başarısız') return o === 'negative';
-  if (tab === 'beklemede') return o === 'callback' || o === 'callback_requested';
-  return false;
+const QC_CAP = 2000;
+
+function _qcSlot(row) {
+  const slot = row?.takvim_slots;
+  return Array.isArray(slot) ? slot[0] : slot;
+}
+
+function _qcMoved(row) {
+  const slot = _qcSlot(row);
+  return !!(slot && (slot.alta_tasindi === true || slot.alta_tasindi === 'true' || slot.alta_tasindi === 't'));
+}
+
+function _qcDurumKey(row) {
+  const raw = String(row?.durum || '').trim();
+  const norm = typeof _normResultKey === 'function' ? _normResultKey(raw) : raw;
+  if (window._qcResultMap?.[norm]) return norm;
+  const mapped = typeof contactStatusToAppointmentResult === 'function' ? contactStatusToAppointmentResult(raw) : norm;
+  const key = typeof _normResultKey === 'function' ? _normResultKey(mapped) : mapped;
+  return window._qcResultMap?.[key] ? key : (norm || key || '');
+}
+
+function _qcResultLabel(key) {
+  const cfg = window._qcResultMap?.[key];
+  if (cfg && typeof mbResultLabel === 'function') return mbResultLabel(cfg.key, cfg.label);
+  if (cfg?.label) return cfg.label;
+  return key || '—';
+}
+
+function _qcWall(row) {
+  if (typeof _etWall === 'function') return _etWall(row?.termin_tarih, _qcSlot(row));
+  return { dayKey: '', day: '', time: '', text: '' };
+}
+
+function _qcInDates(row) {
+  const from = document.getElementById('qc-date-from')?.value || '';
+  const to = document.getElementById('qc-date-to')?.value || '';
+  if (!from && !to) return true;
+  if (typeof _etInRange === 'function') return _etInRange({ dayKey: _qcWall(row).dayKey }, from, to);
+  const day = _qcWall(row).dayKey || '';
+  if (!day) return true;
+  if (from && day < from) return false;
+  if (to && day > to) return false;
+  return true;
 }
 
 async function loadQcData() {
   const qcSel = document.getElementById('qc-firm-selector');
-  if (qcSel) { qcSel.style.display = isSuperAdmin() ? '' : 'none'; renderFirmSelector('qc-firm-selector', loadQcData); }
+  if (qcSel && typeof renderFirmSelector === 'function') {
+    qcSel.style.display = typeof isSuperAdmin === 'function' && isSuperAdmin() ? '' : 'none';
+    renderFirmSelector('qc-firm-selector', loadQcData);
+  }
   const tbody = document.getElementById('qc-tbody');
   if (tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(10) : `<tr><td colspan="10" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
   try {
     const fid = getActiveFirmId() || currentUser?.firm_id || null;
-    const resultCfg = await loadFirmAppointmentResults(fid);
+    const resultCfg = typeof loadFirmAppointmentResults === 'function'
+      ? await loadFirmAppointmentResults(fid)
+      : (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
     window._qcResultCfg = resultCfg || [];
     window._qcResultMap = {};
-    (window._qcResultCfg || []).forEach(r => { window._qcResultMap[r.key] = r; });
-    const firmFilter = fid ? `&firm_id=eq.${fid}` : '';
-    const qcSelect = `call_logs?select=id,started_at,outcome,agent_id,campaign_id,contact_id,firm_id,recording_url,duration_sec,phone,contacts(first_name,last_name,phone,plz,status),users(name),campaigns(name)&outcome=in.(appointment,appointment_done)${firmFilter}&order=started_at.desc&limit=500`;
+    (window._qcResultCfg || []).forEach((r) => { window._qcResultMap[r.key] = r; });
+    const ff = typeof getFirmFilter === 'function' ? getFirmFilter('&') : (fid ? `&firm_id=eq.${fid}` : '');
+    const cols = 'id,slot_id,contact_id,termin_tarih,durum,nachname,telefonnummer,telefon2,strasse,plz,ortschaft,hausart,baujahr,qm,heizung,alter_der_heizung,verbrauch_pro_jahr,personen,interesse_an_pv,agent_notu,qc_notu,agent_id,campaign_id,customer_id,firm_id,form_ek';
+    let dateQ = '';
+    const from = document.getElementById('qc-date-from')?.value || '';
+    const to = document.getElementById('qc-date-to')?.value || '';
+    if (from && typeof mbInstantGte === 'function') dateQ += `&termin_tarih=gte.${mbInstantGte(from)}`;
+    if (to && typeof mbInstantLte === 'function') dateQ += `&termin_tarih=lte.${mbInstantLte(to)}`;
+    const embed = `appointments?select=${cols},users(name),campaigns(name),customers(name,code),takvim_slots!slot_id(tarih,baslangic_saat,bitis_saat,alta_tasindi)${ff}${dateQ}&order=termin_tarih.desc&limit=${QC_CAP}`;
     try {
-      qcList = await sb(qcSelect);
-    } catch (_) {
-      qcList = await sb(`call_logs?select=id,started_at,outcome,agent_id,campaign_id,contact_id,firm_id,recording_url,duration_sec,phone&outcome=in.(appointment,appointment_done)${firmFilter}&order=started_at.desc&limit=500`).catch(() => []);
+      qcList = await sb(embed);
+    } catch (e) {
+      qcList = await sb(`appointments?select=${cols}${ff}${dateQ}&order=termin_tarih.desc&limit=${QC_CAP}`).catch(() => []);
     }
-    window._qcCustomers = fid ? await sb(`customers?firm_id=eq.${fid}&is_active=eq.true&select=id,name,code&order=name.asc`).catch(()=>[]) : [];
-    const contactIds = [...new Set((qcList || []).map(r => r.contact_id).filter((id) => typeof isValidUUID === 'function' && isValidUUID(id)))];
-    window._qcApptByContact = {};
-    if (fid && contactIds.length) {
-      const chunkSize = 40;
-      for (let i = 0; i < contactIds.length; i += chunkSize) {
-        const ids = contactIds.slice(i, i + chunkSize).join(',');
-        const appts = await sb(`appointments?firm_id=eq.${fid}&contact_id=in.(${ids})&select=id,contact_id,customer_id&order=kayit_tarihi.desc&limit=1000`).catch(()=>[]);
-        (appts || []).forEach(a => {
-          if (!window._qcApptByContact[a.contact_id]) window._qcApptByContact[a.contact_id] = a;
-        });
-      }
+    qcList = qcList || [];
+    window._qcCustomers = fid
+      ? await sb(`customers?firm_id=eq.${fid}&is_active=eq.true&select=id,name,code&order=name.asc`).catch(() => [])
+      : [];
+    window._qcCampById = {};
+    const camps = await sb(`campaigns?select=id,name,settings${ff}&limit=500`).catch(() => []);
+    (camps || []).forEach((c) => { window._qcCampById[c.id] = c; });
+    window._qcRecByContact = await _qcAttachRec(qcList);
+    const cap = document.getElementById('qc-cap');
+    if (cap) {
+      const hit = qcList.length >= QC_CAP;
+      cap.style.display = hit ? '' : 'none';
+      cap.textContent = hit ? t('qc.cap').replace('{n}', String(QC_CAP)) : '';
     }
+    if (!window._qcResultMap[qcTab] && qcTab !== 'all' && qcTab !== '__moved') qcTab = 'qc_bekleniyor';
     renderQcTable();
-    const pending = (qcList||[]).filter((r) => _qcMatchesTab(r, 'qc bekleniyor'));
+    const pending = qcList.filter((r) => _qcDurumKey(r) === 'qc_bekleniyor').length;
     const badge = document.getElementById('sb-badge-qc');
     if (badge) {
-      badge.style.display = pending.length > 0 ? '' : 'none';
-      badge.textContent = pending.length;
+      badge.style.display = pending > 0 ? '' : 'none';
+      badge.textContent = pending;
     }
     if (typeof loadJobMarketQcQueue === 'function') loadJobMarketQcQueue();
-  } catch(e) { console.error('QC load err:', e); }
+  } catch (e) {
+    console.error('QC load err:', e);
+  }
+}
+
+async function _qcAttachRec(rows) {
+  const ids = [...new Set((rows || []).map((r) => r.contact_id).filter((id) => typeof isValidUUID !== 'function' || isValidUUID(id)))];
+  const map = {};
+  for (let i = 0; i < ids.length; i += 40) {
+    const chunk = ids.slice(i, i + 40).join(',');
+    const logs = await sb(`call_logs?contact_id=in.(${chunk})&select=id,contact_id,recording_url,duration_sec&recording_url=not.is.null&order=started_at.desc&limit=400`).catch(() => []);
+    (logs || []).forEach((log) => {
+      if (!map[log.contact_id] && log.recording_url) map[log.contact_id] = log;
+    });
+  }
+  return map;
 }
 
 function setQcTab(tab) {
-  qcTab = tab;
-  const tabs = ['pending','success','fail','callback','all'];
-  const tabMap = {'qc bekleniyor':'pending','başarılı':'success','başarısız':'fail','beklemede':'callback','all':'all'};
-  tabs.forEach(t => {
-    const btn = document.getElementById('qc-tab-'+t);
-    if (btn) {
-      const isActive = tabMap[qcTab] === t || (t==='pending' && qcTab==='qc bekleniyor');
-      btn.style.background = isActive ? 'var(--accent)' : 'transparent';
-      btn.style.color = isActive ? '#fff' : 'var(--text-2)';
-    }
-  });
+  const alias = {
+    'qc bekleniyor': 'qc_bekleniyor',
+    'başarılı': 'basarili',
+    'başarısız': 'basarisiz',
+    beklemede: 'beklemede',
+  };
+  qcTab = alias[tab] || tab || 'qc_bekleniyor';
   renderQcTable();
 }
 
 function filterQcTable() { renderQcTable(); }
 
-const QC_CALL_STATE = new Set(['negative', 'no_answer', 'calling', 'callback', 'callback_requested', 'voicemail', 'dnc', 'pending', 'new']);
+function _qcMatchesTab(row) {
+  if (qcTab === '__moved') return _qcMoved(row);
+  if (qcTab === 'all') return true;
+  return _qcDurumKey(row) === qcTab;
+}
 
-function qcDurumView(contact, outcome) {
-  const status = String(contact?.status || '').trim();
-  const statusKey = status.toLowerCase().replace(/\s+/g, '_');
-  const ignore = !status || QC_CALL_STATE.has(statusKey) || QC_CALL_STATE.has(status.toLowerCase());
-  let raw = status;
-  if (outcome === 'appointment' && ignore) raw = 'qc bekleniyor';
-  else if (outcome === 'appointment_done' && ignore) raw = 'başarılı';
-  const resultKey = typeof contactStatusToAppointmentResult === 'function' ? contactStatusToAppointmentResult(raw) : raw;
-  const resultCfg = window._qcResultMap?.[resultKey];
-  if (resultCfg) {
-    const text = typeof mbResultLabel === 'function' ? mbResultLabel(resultCfg.key, resultCfg.label) : (resultCfg.label || raw);
-    return { text, color: resultCfg.color || 'var(--text-3)', key: resultKey };
-  }
-  const keyMap = {
-    negative: 'qc.status.negative',
-    no_answer: 'qc.status.no_answer',
-    calling: 'qc.status.calling',
-    callback: 'qc.status.callback',
-    voicemail: 'qc.status.voicemail',
-    dnc: 'qc.status.dnc',
-  };
-  const i18nKey = keyMap[statusKey] || keyMap[String(raw || '').toLowerCase()] || '';
-  if (i18nKey && typeof t === 'function') return { text: t(i18nKey), color: 'var(--text-3)', key: resultKey };
-  return { text: raw || '—', color: 'var(--text-3)', key: resultKey };
+function renderQcTabs(list) {
+  const host = document.getElementById('qc-tabs');
+  if (!host) return;
+  const defs = window._qcResultCfg || [];
+  const countOf = (key) => list.filter((row) => (key === 'all' ? true : key === '__moved' ? _qcMoved(row) : _qcDurumKey(row) === key)).length;
+  const items = defs.map((def) => ({ key: def.key, label: _qcResultLabel(def.key), color: def.color || '' }));
+  items.push({ key: '__moved', label: t('export.moved_down'), color: '#b91c1c' });
+  items.push({ key: 'all', label: t('qc.all'), color: '' });
+  host.innerHTML = items.map((item) => {
+    const on = qcTab === item.key;
+    const n = countOf(item.key);
+    const dot = item.color ? `<span class="qc-dot" style="background:${_uiEsc(item.color)}"></span>` : '';
+    return `<button type="button" class="qc-tab${on ? ' is-on' : ''}" data-key="${_uiEsc(item.key)}">${dot}<span>${_uiEsc(item.label)}</span><span class="qc-tab-n">${n}</span></button>`;
+  }).join('');
+  host.querySelectorAll('.qc-tab').forEach((btn) => {
+    btn.onclick = () => setQcTab(btn.getAttribute('data-key'));
+  });
 }
 
 function renderQcTable() {
   const tbody = document.getElementById('qc-tbody');
   if (!tbody) return;
-  const canAssignField = mbIsFirmAdmin();
+  const canAssignField = typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin();
   const hasCustomers = (window._qcCustomers || []).length > 0;
-  const search = (document.getElementById('qc-search')?.value||'').toLowerCase();
-  let list = [...(qcList||[])];
-  list = list.filter((r) => _qcMatchesTab(r, qcTab));
+  const search = (document.getElementById('qc-search')?.value || '').toLowerCase();
+  let list = (qcList || []).filter((row) => _qcInDates(row));
+  renderQcTabs(list);
+  list = list.filter((row) => _qcMatchesTab(row));
   if (search) {
-    list = list.filter(r =>
-      (r.contacts?.last_name||'').toLowerCase().includes(search) ||
-      (r.contacts?.first_name||'').toLowerCase().includes(search) ||
-      (r.contacts?.phone||'').includes(search) ||
-      (r.agent_id||'').toLowerCase().includes(search)
-    );
+    list = list.filter((row) => {
+      const camp = row.campaigns?.name || window._qcCampById?.[row.campaign_id]?.name || '';
+      const blob = [
+        row.nachname, row.telefonnummer, row.telefon2, row.plz, row.ortschaft,
+        row.users?.name, camp, _qcResultLabel(_qcDurumKey(row)),
+      ].join(' ').toLowerCase();
+      return blob.includes(search);
+    });
   }
-  const pendingCnt = (qcList||[]).filter((r) => _qcMatchesTab(r, 'qc bekleniyor')).length;
-  const cntEl = document.getElementById('qc-cnt-pending');
-  if (cntEl) cntEl.textContent = pendingCnt;
   if (!list.length) {
     tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(10, 'ui.no_records') : `<tr><td colspan="10" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
     return;
   }
-  const customerOptions = (window._qcCustomers || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-  tbody.innerHTML = list.map(r => {
-    const contact = r.contacts||{};
-    const dt = r.started_at ? new Date(r.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
-    const durumView = qcDurumView(contact, r.outcome);
-    const durum = durumView.text;
-    const durumColor = durumView.color;
-    const name = `${contact.first_name||''} ${contact.last_name||''}`.trim()||'—';
-    const agentName = r.users?.name || r.agent_id?.slice(0,8)||'—';
-    const campName = r.campaigns?.name || r.campaign_id?.slice(0,8)||'—';
-    const recUrl = r.recording_url||'';
-    const recHtml = recUrl
+  const customerOptions = (window._qcCustomers || []).map((c) => `<option value="${_uiEsc(c.id)}">${_uiEsc(c.name || '')}</option>`).join('');
+  tbody.innerHTML = list.map((row) => {
+    const wall = _qcWall(row);
+    const key = _qcDurumKey(row);
+    const cfg = window._qcResultMap?.[key];
+    const color = cfg?.color || 'var(--text-3)';
+    const campName = row.campaigns?.name || window._qcCampById?.[row.campaign_id]?.name || '—';
+    const agentName = row.users?.name || '—';
+    const moved = _qcMoved(row) ? `<span class="qc-down">! ${_uiEsc(t('export.moved_short'))}</span>` : '';
+    const rec = row.contact_id ? window._qcRecByContact?.[row.contact_id] : null;
+    const recHtml = rec?.recording_url
       ? `<div style="display:flex;align-items:center;gap:4px;">
-<audio id="aud-${r.id}" src="${recUrl}" preload="none" style="display:none;"></audio>
-<button onclick="toggleAudio('${r.id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2);font-size:11px;" title="Dinle"><i class="ph ph-play"></i></button>
-<span style="font-size:10px;color:var(--text-3);">${r.duration_sec?Math.floor(r.duration_sec/60)+'m'+r.duration_sec%60+'s':''}</span>
+<audio id="aud-${_uiEsc(rec.id)}" src="${_uiEsc(rec.recording_url)}" preload="none" style="display:none;"></audio>
+<button type="button" onclick="toggleAudio('${_uiEsc(rec.id)}')" class="icon-btn" title="${_uiEsc(t('qc.listen'))}"><i class="ph ph-play"></i></button>
+<span style="font-size:10px;color:var(--text-3);">${rec.duration_sec ? `${Math.floor(rec.duration_sec / 60)}m${rec.duration_sec % 60}s` : ''}</span>
 </div>`
-      : `<span style="font-size:10px;color:var(--text-3);">—</span>`;
-    const contactDetailBtn = r.contact_id
-      ? `<button class="icon-btn" onclick="openDialerForContact('${r.contact_id}')" title="Dialer'da Aç"><i class="ph ph-magnifying-glass"></i></button>`
-      : `<button class="icon-btn" onclick="openQcDetail('${r.id}')" title="Detay"><i class="ph ph-magnifying-glass"></i></button>`;
-    const ap = window._qcApptByContact?.[r.contact_id] || {};
-    const selectedCustomer = ap.customer_id || '';
+      : '<span style="font-size:10px;color:var(--text-3);">—</span>';
+    const selectedCustomer = row.customer_id || '';
+    const custCell = hasCustomers
+      ? `<select class="form-input" id="qc-customer-select-${_uiEsc(row.id)}" style="min-width:140px;max-width:180px;">
+    <option value="">${_uiEsc(t('qc.customer_ph'))}</option>
+    ${customerOptions.replace(`value="${_uiEsc(selectedCustomer)}"`, `value="${_uiEsc(selectedCustomer)}" selected`)}
+  </select>`
+      : `<span style="font-size:11px;">${_uiEsc(row.customers?.name || '—')}</span>`;
     const assignBtn = canAssignField
-      ? `<button class="icon-btn" ${ap.id ? '' : 'disabled style="opacity:.45;cursor:not-allowed;"'} onclick="${ap.id ? `openFieldAssignModal('${ap.id}','${r.firm_id || currentUser?.firm_id || ''}')` : 'void(0)'}" title="Sahaya Ata"><i class="ph ph-map-pin"></i></button>`
+      ? `<button type="button" class="icon-btn" onclick="openFieldAssignModal('${_uiEsc(row.id)}','${_uiEsc(row.firm_id || '')}')" title="${_uiEsc(t('qc.field'))}"><i class="ph ph-map-pin"></i></button>`
+      : '';
+    const okBtn = window._qcResultMap?.basarili
+      ? `<button type="button" class="icon-btn" style="border-color:var(--green);color:var(--green);" onclick="quickQcUpdate('${_uiEsc(row.id)}','basarili')" title="${_uiEsc(_qcResultLabel('basarili'))}"><i class="ph ph-check"></i></button>`
+      : '';
+    const noBtn = window._qcResultMap?.basarisiz
+      ? `<button type="button" class="icon-btn" style="border-color:var(--red);color:var(--red);" onclick="quickQcUpdate('${_uiEsc(row.id)}','basarisiz')" title="${_uiEsc(_qcResultLabel('basarisiz'))}"><i class="ph ph-x"></i></button>`
       : '';
     return `<tr>
-<td style="font-family:var(--mono);font-size:11px;">${dt}</td>
-<td style="font-weight:600;cursor:pointer;" onclick="openQcDetail('${r.id}')">${name}</td>
-<td style="font-family:var(--mono);font-size:12px;">${contact.phone||'—'}</td>
-<td style="font-family:var(--mono);font-size:12px;">${contact.plz||'—'}</td>
-<td style="font-size:12px;">${agentName}</td>
-<td style="font-size:11px;">${campName}</td>
-<td>${hasCustomers ? `
-  <select class="form-input" id="qc-customer-select-${r.id}" style="min-width:150px;">
-    <option value="">Müşteri seç</option>
-    ${customerOptions.replace(`value="${selectedCustomer}"`, `value="${selectedCustomer}" selected`)}
-  </select>
-` : `<span style="font-size:11px;color:var(--text-3);">—</span>`}</td>
+<td><div style="font-weight:700;color:var(--accent);">${_uiEsc(wall.time || '—')}</div><div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_uiEsc(wall.day || '')}</div></td>
+<td style="font-weight:600;cursor:pointer;" onclick="openQcDetail('${_uiEsc(row.id)}')">${_uiEsc(row.nachname || '—')}${moved}</td>
+<td style="font-family:var(--mono);font-size:12px;">${_uiEsc(row.telefonnummer || '—')}</td>
+<td style="font-family:var(--mono);font-size:12px;">${_uiEsc(row.plz || '—')}</td>
+<td style="font-size:12px;">${_uiEsc(agentName)}</td>
+<td><span class="qc-camp" title="${_uiEsc(campName)}">${_uiEsc(campName)}</span></td>
+<td>${custCell}</td>
 <td>${recHtml}</td>
-<td><span style="font-size:11px;font-weight:700;color:${durumColor};">${durum}</span></td>
-<td>
-<div style="display:flex;gap:3px;align-items:center;">
-${contactDetailBtn}
-${assignBtn}
-<button class="icon-btn" style="border-color:var(--green);color:var(--green);" onclick="quickQcUpdate('${r.id}','başarılı')" title="Başarılı"><i class="ph ph-check"></i></button>
-<button class="icon-btn" style="border-color:var(--red);color:var(--red);" onclick="quickQcUpdate('${r.id}','başarısız')" title="Başarısız"><i class="ph ph-x"></i></button>
-</div>
-</td>
+<td><span style="font-size:11px;font-weight:700;color:${_uiEsc(color)};">${_uiEsc(_qcResultLabel(key))}</span></td>
+<td><div style="display:flex;gap:3px;align-items:center;">
+<button type="button" class="icon-btn" onclick="openQcDetail('${_uiEsc(row.id)}')" title="${_uiEsc(t('qc.detail'))}"><i class="ph ph-magnifying-glass"></i></button>
+${assignBtn}${okBtn}${noBtn}
+</div></td>
 </tr>`;
   }).join('');
 }
 
-function openQcDetail(logId) {
-  const r = (qcList||[]).find(x => x.id === logId);
-  if (!r) return;
-  const role = currentUser?.role || '';
-  const canAssignField = mbIsFirmAdmin(role);
-  qcDetailId = logId;
-  const contact = r.contacts||{};
-  const name = `${contact.first_name||''} ${contact.last_name||''}`.trim()||'—';
-  const dt = r.started_at ? new Date(r.started_at).toLocaleString('tr-TR') : '—';
+function _qcFormHtml(row) {
+  const camp = window._qcCampById?.[row.campaign_id] || {};
+  const list = typeof _etFormList === 'function' ? _etFormList(camp) : [];
+  return list.filter((field) => field.enabled !== false).map((field) => {
+    const val = typeof _etFieldValue === 'function' ? _etFieldValue(row, field.key) : '';
+    if (val == null || val === '') return '';
+    return `<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(field.label || field.l || field.key)}</div><div style="font-weight:650;">${_uiEsc(val)}</div></div>`;
+  }).filter(Boolean).join('');
+}
+
+function openQcDetail(id) {
+  const row = (qcList || []).find((x) => x.id === id);
+  if (!row) return;
+  qcDetailId = id;
+  const wall = _qcWall(row);
+  const key = _qcDurumKey(row);
   const body = document.getElementById('qc-detail-body');
   const hasCustomers = (window._qcCustomers || []).length > 0;
+  const canAssignField = typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin();
+  const rec = row.contact_id ? window._qcRecByContact?.[row.contact_id] : null;
+  const moved = _qcMoved(row) ? `<span class="qc-down">! ${_uiEsc(t('export.moved_short'))}</span>` : '';
+  const campName = row.campaigns?.name || window._qcCampById?.[row.campaign_id]?.name || '—';
   if (body) body.innerHTML = `
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">MÜŞTERİ</div><div style="font-weight:700;">${name}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">TELEFON</div><div style="font-weight:700;font-family:var(--mono);">${contact.phone||'—'}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">PLZ / ŞEHİR</div><div style="font-weight:700;">${contact.plz||'—'} ${contact.city||''}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">ADRES</div><div style="font-weight:700;">${contact.address||'—'}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">AGENT</div><div style="font-weight:700;">${r.users?.name||r.agent_id||'—'}</div></div>
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">TARİH</div><div style="font-weight:700;">${dt}</div></div>
-${contact.notes ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">NOT</div><div>${contact.notes}</div></div>` : ''}
-${r.recording_url ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:6px;">KAYIT</div><audio controls src="${r.recording_url}" style="width:100%;"></audio></div>` : ''}
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.when'))}</div><div style="font-weight:700;">${_uiEsc(wall.time || '—')}</div><div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_uiEsc(wall.day || '')}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.name'))}</div><div style="font-weight:700;">${_uiEsc(row.nachname || '—')}${moved}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.phone'))}</div><div style="font-weight:700;font-family:var(--mono);">${_uiEsc(row.telefonnummer || '—')}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">PLZ</div><div style="font-weight:700;">${_uiEsc(row.plz || '—')} ${_uiEsc(row.ortschaft || '')}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.address'))}</div><div style="font-weight:700;">${_uiEsc(row.strasse || '—')}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.agent'))}</div><div style="font-weight:700;">${_uiEsc(row.users?.name || '—')}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.camp'))}</div><div style="font-weight:700;" class="qc-camp">${_uiEsc(campName)}</div></div>
+${row.agent_notu ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.agent_note'))}</div><div>${_uiEsc(row.agent_notu)}</div></div>` : ''}
+${_qcFormHtml(row)}
+${rec?.recording_url ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:6px;">${_uiEsc(t('qc.rec'))}</div><audio controls src="${_uiEsc(rec.recording_url)}" style="width:100%;"></audio></div>` : ''}
 </div>
 ${hasCustomers ? `<div style="margin-top:10px;">
-  <label class="form-label">Müşteri</label>
+  <label class="form-label">${_uiEsc(t('qc.customer_ph'))}</label>
   <select class="form-input" id="qc-detail-customer" style="width:100%;">
-    <option value="">Müşteri seç</option>
-    ${(window._qcCustomers || []).map(c => {
-      const ap = window._qcApptByContact?.[r.contact_id] || {};
-      return `<option value="${c.id}" ${ap.customer_id === c.id ? 'selected' : ''}>${c.name}</option>`;
-    }).join('')}
+    <option value="">${_uiEsc(t('qc.customer_ph'))}</option>
+    ${(window._qcCustomers || []).map((c) => `<option value="${_uiEsc(c.id)}" ${row.customer_id === c.id ? 'selected' : ''}>${_uiEsc(c.name || '')}</option>`).join('')}
   </select>
 </div>` : ''}
 <div style="margin-top:10px;">
-  <label class="form-label">Sonuç</label>
+  <label class="form-label">${_uiEsc(t('qc.result'))}</label>
   <select class="form-input" id="qc-status-select" style="width:100%;">
-    ${(window._qcResultCfg || []).map(s => `<option value="${s.key}" ${qcDurumView(contact, r.outcome).key===s.key?'selected':''}>${typeof mbResultLabel==='function'?mbResultLabel(s.key, s.label):s.label}</option>`).join('')}
+    ${(window._qcResultCfg || []).map((s) => `<option value="${_uiEsc(s.key)}" ${key === s.key ? 'selected' : ''}>${_uiEsc(_qcResultLabel(s.key))}</option>`).join('')}
   </select>
 </div>
 <div style="margin-top:12px;">
-<div style="font-size:10px;color:var(--text-3);font-weight:700;margin-bottom:4px;">Kalite Kontrol Notu</div>
-<textarea id="qc-note-input" class="form-input" rows="2" placeholder="QC notu..." style="width:100%;resize:vertical;"></textarea>
+<div style="font-size:10px;color:var(--text-3);font-weight:700;margin-bottom:4px;">${_uiEsc(t('qc.note'))}</div>
+<textarea id="qc-note-input" class="form-input" rows="2" style="width:100%;resize:vertical;">${_uiEsc(row.qc_notu || '')}</textarea>
 </div>
-${canAssignField ? `<div style="margin-top:10px;display:flex;justify-content:flex-end;">
-  <button class="btn btn-primary" onclick="(function(){ const ap = window._qcApptByContact?.['${r.contact_id || ''}']; if (!ap?.id) { toast('Bu kayda bağlı randevu bulunamadı','warn'); return; } openFieldAssignModal(ap.id, '${r.firm_id || currentUser?.firm_id || ''}'); })()">Sahaya Ata</button>
-</div>` : ''}`;
-  openModal('m-qc-detail');
-  if (r.contact_id && typeof sb === 'function') {
-    sb(`appointments?contact_id=eq.${r.contact_id}&select=qc_notu&order=kayit_tarihi.desc&limit=1`).then((rows) => {
-      const note = String(rows?.[0]?.qc_notu || '').trim();
-      const ta = document.getElementById('qc-note-input');
-      if (ta && note && !ta.value && qcDetailId === logId) ta.value = note;
-    }).catch(() => {});
-  }
+${canAssignField ? `<div style="margin-top:10px;display:flex;justify-content:flex-end;"><button type="button" class="btn btn-ghost btn-sm" onclick="openFieldAssignModal('${_uiEsc(row.id)}','${_uiEsc(row.firm_id || '')}')">${_uiEsc(t('qc.field'))}</button></div>` : ''}`;
+  if (typeof openModal === 'function') openModal('m-qc-detail');
 }
 
 async function qcUpdateStatus(status) {
   if (!qcDetailId) return;
   const selected = document.getElementById('qc-status-select')?.value || '';
-  await quickQcUpdate(qcDetailId, selected || status);
-  closeModal('m-qc-detail');
+  const ok = await quickQcUpdate(qcDetailId, selected || status);
+  if (ok && typeof closeModal === 'function') closeModal('m-qc-detail');
 }
 
-async function quickQcUpdate(logId, status) {
-  const r = (qcList||[]).find(x => x.id === logId);
-  if (!r?.contact_id) { toast('Contact ID yok','err'); return; }
-  const hasCustomers = (window._qcCustomers || []).length > 0;
-  const customerId = document.getElementById(`qc-customer-select-${logId}`)?.value
-    || document.getElementById('qc-detail-customer')?.value
-    || '';
-  if (hasCustomers && !customerId) { toast('Önce müşteri seçmelisiniz', 'err'); return; }
-  const resultKey = _normResultKey(status || '');
+async function quickQcUpdate(apptId, status) {
+  const row = (qcList || []).find((x) => x.id === apptId);
+  if (!row) { toast(t('qc.missing'), 'err'); return false; }
+  const resultKey = typeof _normResultKey === 'function' ? _normResultKey(status || '') : String(status || '');
   const resultCfg = window._qcResultMap?.[resultKey];
-  const contactStatus = resultCfg?.contact_status || appointmentResultToContactStatus(resultKey);
-  const apptStatus = resultKey || contactStatusToAppointmentResult(contactStatus);
-  const note = document.getElementById('qc-note-input')?.value||'';
+  if (!resultKey || !resultCfg) { toast(t('qc.missing'), 'err'); return false; }
+  const contactStatus = resultCfg.contact_status || (typeof appointmentResultToContactStatus === 'function' ? appointmentResultToContactStatus(resultKey) : resultKey);
+  const detailOpen = qcDetailId === apptId && document.getElementById('qc-note-input');
+  const note = detailOpen ? String(document.getElementById('qc-note-input').value || '') : null;
+  const custEl = document.getElementById(`qc-customer-select-${apptId}`) || (detailOpen ? document.getElementById('qc-detail-customer') : null);
+  const customerId = custEl ? String(custEl.value || '') : '';
   try {
-    const fid = getActiveFirmId() || currentUser?.firm_id || null;
-    await sb(`contacts?id=eq.${r.contact_id}`, {method:'PATCH', prefer:'return=minimal',
-      body: JSON.stringify({durum: contactStatus, qc_note: note || undefined})});
-    await sb(`call_logs?id=eq.${logId}`, {method:'PATCH', prefer:'return=minimal',
-      body: JSON.stringify({ qc_by: currentUser?.id || null, qc_at: new Date().toISOString(), qc_result: resultKey || null })}).catch(() => {});
-    const apptRows = fid ? await sb(`appointments?firm_id=eq.${fid}&contact_id=eq.${r.contact_id}&select=id&order=kayit_tarihi.desc&limit=1`).catch(()=>[]) : [];
-    let apptDate = '', apptTime = '';
-    if (apptRows?.length) {
-      const cfg = (window._qcResultCfg || []).find(x => x.key === apptStatus);
-      const apptPatch = { customer_id: hasCustomers ? (customerId || null) : null, durum: apptStatus };
-      if (note) apptPatch.qc_notu = note;
-      await sb(`appointments?id=eq.${apptRows[0].id}`, {
+    const apptPatch = { durum: resultKey };
+    if (customerId) apptPatch.customer_id = customerId;
+    if (note !== null) apptPatch.qc_notu = note;
+    await sb(`appointments?id=eq.${apptId}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify(apptPatch) });
+    if (row.contact_id && contactStatus) {
+      await sb(`contacts?id=eq.${row.contact_id}`, {
         method: 'PATCH',
         prefer: 'return=minimal',
-        body: JSON.stringify(apptPatch),
-      });
-      if (cfg?.auto_move_down) {
-        const slots = await sb(`takvim_slots?appointment_id=eq.${apptRows[0].id}&select=id&limit=1`).catch(() => []);
-        if (slots?.[0]?.id) {
-          await sb(`takvim_slots?id=eq.${slots[0].id}`, {
-            method: 'PATCH',
-            prefer: 'return=minimal',
-            body: JSON.stringify({ alta_tasindi: true, durum: 'dolu' }),
-          }).catch(() => {});
-        }
-      }
-      // Fetch slot date/time for SMS template
-      const slotRows = await sb(`takvim_slots?appointment_id=eq.${apptRows[0].id}&select=tarih,baslangic_saat&order=created_at.desc&limit=1`).catch(() => []);
-      if (slotRows?.[0]) {
-        apptDate = slotRows[0].tarih || '';
-        apptTime = (slotRows[0].baslangic_saat || '').slice(0, 5);
+        body: JSON.stringify({ status: contactStatus }),
+      }).catch(() => {});
+    }
+    if (row.contact_id) {
+      const logs = await sb(`call_logs?contact_id=eq.${row.contact_id}&select=id&order=started_at.desc&limit=1`).catch(() => []);
+      if (logs?.[0]?.id) {
+        await sb(`call_logs?id=eq.${logs[0].id}`, {
+          method: 'PATCH',
+          prefer: 'return=minimal',
+          body: JSON.stringify({ qc_by: currentUser?.id || null, qc_at: new Date().toISOString(), qc_result: resultKey }),
+        }).catch(() => {});
       }
     }
-    await loadQcData();
-    if (apptRows?.length && apptStatus && typeof opsAnnounceQc === 'function') {
-      const contact = r.contacts || {};
+    const slot = _qcSlot(row);
+    if (resultCfg.auto_move_down && slot?.id && !_qcMoved(row)) {
+      await sb(`takvim_slots?id=eq.${slot.id}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ alta_tasindi: true, durum: 'dolu' }),
+      }).catch(() => {});
+    }
+    let apptDate = '';
+    let apptTime = '';
+    if (slot) {
+      apptDate = slot.tarih || '';
+      apptTime = String(slot.baslangic_saat || '').slice(0, 5);
+    }
+    if (typeof opsAnnounceQc === 'function') {
       opsAnnounceQc({
-        id: apptRows[0].id,
-        nachname: `${contact.first_name || ''} ${contact.last_name || ''}`.trim(),
-        campaign_id: r.campaign_id,
+        id: apptId,
+        nachname: row.nachname || '',
+        campaign_id: row.campaign_id,
         tarih: apptDate,
         baslangic_saat: apptTime,
-      }, apptStatus);
+      }, resultKey);
     }
-    toast(`Durum güncellendi ✓`, 'ok');
-
-    // SMS prompt for successful QC approval
-    if (resultKey === 'basarili' || contactStatus === 'başarılı') {
-      const contact = r.contacts || {};
-      const phone = contact.phone || '';
-      const name  = `${contact.first_name||''} ${contact.last_name||''}`.trim();
+    toast(t('qc.saved'), 'ok');
+    if (resultKey === 'basarili') {
+      const phone = row.telefonnummer || '';
       let explicit = false;
-      if (r.campaign_id && typeof getCampSettings === 'function') {
-        let camp = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => String(c.id) === String(r.campaign_id));
-        if (!camp) {
-          const rows = await sb(`campaigns?id=eq.${r.campaign_id}&select=settings`).catch(() => []);
-          camp = rows?.[0];
-        }
-        const cs = getCampSettings(camp || {});
+      if (row.campaign_id && typeof getCampSettings === 'function') {
+        const camp = window._qcCampById?.[row.campaign_id] || {};
+        const cs = getCampSettings(camp);
         explicit = typeof cs.notif_sms === 'boolean' || typeof cs.notif_whatsapp === 'boolean' || typeof cs.notif_email === 'boolean';
       }
       if (!explicit && phone && typeof showQcSmsPrompt === 'function') {
-        await showQcSmsPrompt(phone, name, apptDate, apptTime);
+        await showQcSmsPrompt(phone, row.nachname || '', apptDate, apptTime);
       }
     }
-  } catch(e) { toast('Hata: '+e.message,'err'); }
+    await loadQcData();
+    return true;
+  } catch (e) {
+    toast(t('qc.fail') + (e.message || ''), 'err');
+    return false;
+  }
 }

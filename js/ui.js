@@ -232,13 +232,14 @@ function mbResultLabel(key, storedLabel) {
   if (!mapKey || typeof t !== 'function' || typeof MB_I18N === 'undefined') return raw || key || '';
   const tr = MB_I18N.tr[mapKey];
   const de = MB_I18N.de[mapKey];
-  if (!raw || raw === tr || raw === de || raw === k || raw === key) return t(mapKey);
+  const legacy = k === 'qc_bekleniyor' && (raw === 'QC Bekleniyor' || raw === 'QC ausstehend');
+  if (!raw || raw === tr || raw === de || raw === k || raw === key || legacy) return t(mapKey);
   return raw;
 }
 
 function defaultAppointmentResults() {
   return [
-    { key: 'qc_bekleniyor', label: 'QC Bekleniyor', color: '#2563eb', contact_status: 'qc bekleniyor', auto_move_down: false },
+    { key: 'qc_bekleniyor', label: 'KK Bekleniyor', color: '#2563eb', contact_status: 'qc bekleniyor', auto_move_down: false },
     { key: 'basarili', label: 'Başarılı', color: '#16a34a', contact_status: 'başarılı', auto_move_down: false },
     { key: 'basarisiz', label: 'Başarısız', color: '#dc2626', contact_status: 'başarısız', auto_move_down: true },
     { key: 'beklemede', label: 'Beklemede', color: '#f59e0b', contact_status: 'beklemede', auto_move_down: true },
@@ -341,12 +342,13 @@ function renderAppointmentResultRows(rows) {
       <div class="form-row">
         <label class="form-label">Sonuç tipi</label>
         <select class="form-input" id="ar-type-${i}" onchange="syncAppointmentResultLabel(${i})">
-          <option value="qc_bekleniyor" ${r.key==='qc_bekleniyor'?'selected':''}>QC Bekleniyor</option>
+          <option value="qc_bekleniyor" ${r.key==='qc_bekleniyor'?'selected':''}>KK Bekleniyor</option>
           <option value="basarili" ${r.key==='basarili'?'selected':''}>Başarılı</option>
           <option value="basarisiz" ${r.key==='basarisiz'?'selected':''}>Başarısız</option>
           <option value="beklemede" ${r.key==='beklemede'?'selected':''}>Beklemede</option>
           <option value="ulasilamadi" ${r.key==='ulasilamadi'?'selected':''}>Ulaşılamadı</option>
           <option value="iptal" ${r.key==='iptal'?'selected':''}>İptal</option>
+          <option value="__custom" ${!['qc_bekleniyor','basarili','basarisiz','beklemede','ulasilamadi','iptal'].includes(r.key)?'selected':''}>Özel ad</option>
         </select>
       </div>
       <div class="form-row"><label class="form-label">Görünen ad</label><input class="form-input" id="ar-label-${i}" value="${_uiEsc(r.label||'')}"></div>
@@ -363,13 +365,14 @@ function syncAppointmentResultLabel(idx) {
   const l = document.getElementById(`ar-label-${idx}`);
   if (!l) return;
   const map = {
-    qc_bekleniyor: 'QC Bekleniyor',
+    qc_bekleniyor: 'KK Bekleniyor',
     basarili: 'Başarılı',
     basarisiz: 'Başarısız',
     beklemede: 'Beklemede',
     ulasilamadi: 'Ulaşılamadı',
     iptal: 'İptal',
   };
+  if (t === '__custom') return;
   if (!String(l.value || '').trim()) l.value = map[t] || t;
 }
 
@@ -378,12 +381,13 @@ function readAppointmentResultRows() {
   const count = Number(wrap?.dataset.count || 0);
   const out = [];
   for (let i = 0; i < count; i++) {
-    const key = _normResultKey(document.getElementById(`ar-type-${i}`)?.value || '');
-    const label = String(document.getElementById(`ar-label-${i}`)?.value || '').trim() || key;
+    const picked = document.getElementById(`ar-type-${i}`)?.value || '';
+    const label = String(document.getElementById(`ar-label-${i}`)?.value || '').trim();
+    const key = _normResultKey(picked === '__custom' ? label : picked);
     const color = _normalizeResultColor(document.getElementById(`ar-color-${i}`)?.value || '#64748b');
     const auto_move_down = !!document.getElementById(`ar-move-${i}`)?.checked;
-    if (!key) continue;
-    out.push({ key, label, color, contact_status: appointmentResultToContactStatus(key), auto_move_down });
+    if (!key || out.some((row) => row.key === key)) continue;
+    out.push({ key, label: label || key, color, contact_status: appointmentResultToContactStatus(key), auto_move_down });
   }
   return out;
 }

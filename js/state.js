@@ -43,7 +43,7 @@ let wvReminderTimer = null;
 
 // QC
 let qcList     = [];
-let qcTab      = 'qc bekleniyor';
+let qcTab      = 'qc_bekleniyor';
 let qcDetailId = null;
 
 // Firmalar

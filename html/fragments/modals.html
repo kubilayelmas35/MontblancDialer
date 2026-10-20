@@ -37,9 +37,9 @@
 <label class="form-label" data-tr="Müşteri" data-de="Kunde">Müşteri</label>
 <select class="form-input" id="nc-customer" onchange="ncCustomerNote()">
 <option value="" data-tr="Seçin" data-de="Wählen">Seçin</option>
-<option value="qc" data-tr="Tümü — QC seçer" data-de="Alle — QC wählt">Tümü — QC seçer</option>
+<option value="qc" data-tr="Tümü — KK seçer" data-de="Alle — QC wählt">Tümü — KK seçer</option>
 </select>
-<div id="nc-customer-note" style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Bir müşteri seçin. Tümü derseniz randevu müşterisiz açılır ve müşteriyi QC yazar." data-de="Einen Kunden wählen. Alle: der Termin bleibt ohne Kunde, QC trägt ihn ein.">Bir müşteri seçin. Tümü derseniz randevu müşterisiz açılır ve müşteriyi QC yazar.</div>
+<div id="nc-customer-note" style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Bir müşteri seçin. Tümü derseniz randevu müşterisiz açılır ve müşteriyi KK yazar." data-de="Einen Kunden wählen. Alle: der Termin bleibt ohne Kunde, QC trägt ihn ein.">Bir müşteri seçin. Tümü derseniz randevu müşterisiz açılır ve müşteriyi KK yazar.</div>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Personeller" data-de="Personal">Personeller</label>
@@ -206,7 +206,7 @@ ondrop="handleDrop(event)">
 </div>
 <div id="ia-mapping-section" style="display:none;">
 <div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);" data-tr="2. Sütun eşleştir" data-de="2. Spalten zuordnen">2. Sütun eşleştir</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Excel sütunlarını randevu alanlarıyla eşleştirin. Durum bir çağrı sonucu değil, QC sonucudur." data-de="Spalten den Terminfeldern zuordnen. Status ist kein Anrufergebnis, sondern ein QC-Ergebnis.">Excel sütunlarını randevu alanlarıyla eşleştirin. Durum bir çağrı sonucu değil, QC sonucudur.</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Excel sütunlarını randevu alanlarıyla eşleştirin. Durum bir çağrı sonucu değil, KK sonucudur." data-de="Spalten den Terminfeldern zuordnen. Status ist kein Anrufergebnis, sondern ein QC-Ergebnis.">Excel sütunlarını randevu alanlarıyla eşleştirin. Durum bir çağrı sonucu değil, KK sonucudur.</div>
 <div id="ia-mapping-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
 </div>
 <div id="ia-options-section" style="display:none;">
@@ -223,7 +223,7 @@ ondrop="handleDrop(event)">
 <select class="form-input" id="ia-customer">
 <option value="qc">Tümü — QC seçer</option>
 </select>
-<div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Kampanyadaki müşteri hazır gelir. Tümü dersen bu dosyada müşteriyi QC yazar." data-de="Der Kampagnenkunde steht bereit. Alle: QC trägt den Kunden für diese Datei ein.">Kampanyadaki müşteri hazır gelir. Tümü dersen bu dosyada müşteriyi QC yazar.</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Kampanyadaki müşteri hazır gelir. Tümü dersen bu dosyada müşteriyi KK yazar." data-de="Der Kampagnenkunde steht bereit. Alle: QC trägt den Kunden für diese Datei ein.">Kampanyadaki müşteri hazır gelir. Tümü dersen bu dosyada müşteriyi KK yazar.</div>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Personel (sütun yoksa)" data-de="Personal (ohne Spalte)">Personel (sütun yoksa)</label>
@@ -232,9 +232,9 @@ ondrop="handleDrop(event)">
 </select>
 </div>
 <div class="form-row">
-<label class="form-label" data-tr="QC sonucu (sütun yoksa)" data-de="QC-Ergebnis (ohne Spalte)">QC sonucu (sütun yoksa)</label>
+<label class="form-label" data-tr="KK sonucu (sütun yoksa)" data-de="QC-Ergebnis (ohne Spalte)">KK sonucu (sütun yoksa)</label>
 <select class="form-input" id="ia-status">
-<option value="qc_bekleniyor">QC Bekleniyor</option>
+<option value="qc_bekleniyor">KK Bekleniyor</option>
 </select>
 </div>
 <div class="form-row">
@@ -513,28 +513,13 @@ Duyuru metni burada görünecek
 <div class="modal-hdr">
 <div class="modal-title">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-QC Detay
+<span data-tr="KK" data-de="QC">KK</span>
 </div>
 <button class="modal-close" onclick="closeModal('m-qc-detail')">✕</button>
 </div>
-<div id="qc-detail-body" style="padding:16px 20px;"></div>
-<div class="modal-footer" style="flex-wrap:wrap;gap:6px;">
-<button class="btn btn-sm" style="background:var(--green);color:#fff;border-color:var(--green);" onclick="qcUpdateStatus('başarılı')">
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>
-<span data-tr="Başarılı" data-de="Erfolgreich">Başarılı</span>
-</button>
-<button class="btn btn-sm" style="background:var(--red);color:#fff;border-color:var(--red);" onclick="qcUpdateStatus('başarısız')">
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-<span data-tr="Başarısız" data-de="Erfolglos">Başarısız</span>
-</button>
-<button class="btn btn-sm" style="background:var(--yellow);color:#000;border-color:var(--yellow);" onclick="qcUpdateStatus('beklemede')">
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
-<span data-tr="Beklemede" data-de="Ausstehend">Beklemede</span>
-</button>
-<button class="btn btn-sm" style="background:var(--accent);color:#fff;border-color:var(--accent);" onclick="qcUpdateStatus('qc bekleniyor')">QC Bekleniyor</button>
-<div style="flex:1;display:flex;gap:6px;align-items:center;">
-<input class="form-input" id="qc-note-input" placeholder="QC notu (opsiyonel)..." style="flex:1;padding:5px 8px;font-size:12px;">
-</div>
+<div id="qc-detail-body" style="padding:16px 20px;max-height:70vh;overflow-y:auto;"></div>
+<div class="modal-footer">
+<button class="btn btn-primary" onclick="qcUpdateStatus()" data-tr="Kaydet" data-de="Speichern">Kaydet</button>
 </div>
 </div>
 </div>
