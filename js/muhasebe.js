@@ -336,10 +336,9 @@ function setMuhasebeTab(tab) {
   });
   document.querySelectorAll('.muh-tab-btn').forEach(btn => {
     btn.style.display = '';
-    const active = btn.dataset.muhTab === window._muhasebeTab;
-    btn.classList.toggle('active', active);
-    btn.style.background = active ? 'var(--accent)' : '';
-    btn.style.color = active ? '#fff' : '';
+    btn.classList.toggle('active', btn.dataset.muhTab === window._muhasebeTab);
+    btn.style.background = '';
+    btn.style.color = '';
   });
   const ex = document.getElementById('muh-personel-export-btns');
   const ct = document.getElementById('muh-personel-card-title');
@@ -1185,12 +1184,31 @@ function renderMuhasebeRowsTable(rows, rules) {
         ${admin ? `<td>
           <button class="btn btn-ghost btn-sm" onclick="setPayrollOfficeDays('${r.user_id}')">${_mEsc(t('muh.office_days'))}</button>
           <button class="btn btn-ghost btn-sm" onclick="openPayrollOverride('${r.user_id}')">Özel Ayar</button>
-          <button class="btn btn-ghost btn-sm" onclick="addPayrollAdjustment('${r.user_id}')">Ekle/Kes</button>
+          <button class="btn btn-ghost btn-sm" onclick="addPayrollAdjustment('${r.user_id}')">${_mEsc(t('muh.adj.btn'))}</button>
           <button class="btn btn-ghost btn-sm" onclick="savePayrollPayment('${r.user_id}')">Ödeme</button>
         </td>` : ''}
       </tr>`;
     }).join('')
-  }</tbody></table>`;
+  }</tbody><tfoot><tr class="muh-total">${_mPayrollTotalCells(rows, cur, admin)}</tr></tfoot></table>`;
+}
+
+function _mPayrollTotalCells(rows, cur, admin) {
+  const sum = rows.reduce((a, r) => {
+    a.success += Number(r.success || 0);
+    a.base += Number(r.baseSalary || 0);
+    a.bonus += Number(r.bonus || 0);
+    a.office += Number(r.officePay || 0);
+    a.sgk += Number(r.sgkCost || 0);
+    a.late += Number(r.latePenalty || 0);
+    a.leave += Number(r.leavePenalty || 0);
+    a.manual += Number(r.manualAdd || 0) - Number(r.manualDeduct || 0);
+    a.pay += Number(r.netPayable || 0);
+    a.paid += Number(r.paidAmount || 0);
+    a.rem += Number(r.remaining || 0);
+    return a;
+  }, { success: 0, base: 0, bonus: 0, office: 0, sgk: 0, late: 0, leave: 0, manual: 0, pay: 0, paid: 0, rem: 0 });
+  const money = n => `${_mFmt(n)} ${cur}`;
+  return `<td>${_mEsc(t('muh.total'))}</td><td></td><td>${sum.success}</td><td>${money(sum.base)}</td><td>${money(sum.bonus)}</td><td>${money(sum.office)}</td><td>${money(sum.sgk)}</td><td>${money(sum.late)}</td><td>${money(sum.leave)}</td><td>${sum.manual >= 0 ? '+' : ''}${money(sum.manual)}</td><td></td><td>${money(sum.pay)}</td><td>${money(sum.paid)}</td><td>${money(sum.rem)}</td>${admin ? '<td></td>' : ''}`;
 }
 
 async function openPayrollOverride(uid) {
@@ -1227,31 +1245,73 @@ async function openPayrollOverride(uid) {
   }
 }
 
-async function addPayrollAdjustment(uid) {
+function addPayrollAdjustment(uid) {
   if (!isMuhasebeAdmin()) return;
+  const row = (window._muhasebeRows || []).find(r => r.user_id === uid);
+  document.getElementById('m-muh-adj')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'm-muh-adj';
+  modal.className = 'modal-overlay open';
+  modal.dataset.type = 'add';
+  modal.innerHTML = `<div class="modal" style="max-width:420px;">
+    <div class="modal-hdr">
+      <div class="modal-title">${_mEsc(t('muh.adj.title'))}</div>
+      <button class="modal-close" type="button" onclick="document.getElementById('m-muh-adj')?.remove()">✕</button>
+    </div>
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;">
+      <div style="font-size:13px;font-weight:700;">${_mEsc(row?.user_name || '')}</div>
+      <div class="muh-adj-types">
+        <button type="button" class="muh-adj-type is-on" data-adj="add" onclick="muhAdjPick('add', this)">${_mEsc(t('muh.adj.add'))}</button>
+        <button type="button" class="muh-adj-type" data-adj="deduct" onclick="muhAdjPick('deduct', this)">${_mEsc(t('muh.adj.deduct'))}</button>
+      </div>
+      <div class="form-grid">
+        <div class="form-row"><label class="form-label">${_mEsc(t('muh.adj.amount'))}</label><input class="form-input" id="muh-adj-amount" type="number" min="0" step="0.01" value="0"></div>
+        <div class="form-row"><label class="form-label">${_mEsc(t('muh.cur'))}</label>
+          <select class="form-input" id="muh-adj-cur"><option value="EUR">EUR</option><option value="TRY">TRY</option></select>
+        </div>
+      </div>
+      <div class="form-row"><label class="form-label">${_mEsc(t('muh.adj.note'))}</label><input class="form-input" id="muh-adj-note"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" type="button" onclick="document.getElementById('m-muh-adj')?.remove()">${_mEsc(t('muh.adj.cancel'))}</button>
+      <button class="btn btn-primary" type="button" onclick="savePayrollAdjustment('${uid}')">${_mEsc(t('muh.adj.save'))}</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+  document.getElementById('muh-adj-amount')?.focus();
+}
+
+function muhAdjPick(type, btn) {
+  const modal = document.getElementById('m-muh-adj');
+  if (!modal) return;
+  modal.dataset.type = type === 'deduct' ? 'deduct' : 'add';
+  modal.querySelectorAll('.muh-adj-type').forEach(b => b.classList.toggle('is-on', b === btn));
+}
+
+async function savePayrollAdjustment(uid) {
+  if (!isMuhasebeAdmin()) return;
+  const modal = document.getElementById('m-muh-adj');
+  const type = modal?.dataset.type === 'deduct' ? 'deduct' : 'add';
+  const amount = Number(document.getElementById('muh-adj-amount')?.value || 0);
+  if (!amount || amount <= 0) {
+    toast(t('muh.ledger.need'), 'err');
+    return;
+  }
+  const currency = (document.getElementById('muh-adj-cur')?.value || 'EUR').toUpperCase();
+  const reason = document.getElementById('muh-adj-note')?.value?.trim() || null;
   const fid = muhasebeFirmId();
-  const type = await mbPrompt('İşlem tipi: add veya deduct', 'add', 'Ekle/Kes');
-  if (!['add', 'deduct'].includes(String(type || '').trim())) return;
-  const amountStr = await mbPrompt('Tutar', '0', 'Ekle/Kes');
-  if (amountStr === null) return;
-  const amount = Number(amountStr);
-  if (!amount || amount <= 0) return;
-  const currencyIn = await mbPrompt('Para birimi (EUR/TRY)', 'EUR', 'Ekle/Kes');
-  if (currencyIn === null) return;
-  const currency = (currencyIn || 'EUR').toUpperCase();
-  const reasonIn = await mbPrompt('Açıklama', '', 'Ekle/Kes');
-  if (reasonIn === null) return;
-  const reason = reasonIn || null;
   try {
     await sb('payroll_adjustments', {
       method: 'POST',
       prefer: 'return=minimal',
       body: JSON.stringify({ firm_id: fid, user_id: uid, period_ym: _mGetPeriod(), adjustment_type: type, amount, currency, reason, created_by: currentUser?.id || null }),
     });
-    toast('İşlem kaydedildi', 'ok');
+    modal?.remove();
+    toast(t('muh.adj.saved'), 'ok');
     loadMuhasebePage();
   } catch (e) {
-    toast('İşlem hatası: ' + e.message, 'err');
+    toast(t('muh.ledger.fail') + ' ' + e.message, 'err');
   }
 }
 

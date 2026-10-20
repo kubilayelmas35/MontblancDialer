@@ -943,3 +943,84 @@ i.ph {
 @media (max-width: 640px) {
   #fieldops-pdf-body div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
 }
+#page-muhasebe .muh-tabbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 2px 0 4px;
+}
+#page-muhasebe .muh-tab-btn {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text-2);
+  font-weight: 700;
+  padding: 10px 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+#page-muhasebe .muh-tab-btn.active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, .18);
+}
+#page-muhasebe .stat-card,
+#page-maasim .stat-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 18px 16px 16px 18px;
+}
+#page-muhasebe .stat-card::before,
+#page-maasim .stat-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #3b82f6;
+}
+#page-muhasebe .stat-card.stat-green::before,
+#page-maasim .stat-card.stat-green::before { background: #10b981; }
+#page-muhasebe .stat-card.stat-red::before,
+#page-maasim .stat-card.stat-red::before { background: #ef4444; }
+#page-muhasebe .stat-card.stat-blue::before,
+#page-maasim .stat-card.stat-blue::before { background: #0ea5e9; }
+#page-muhasebe .stat-card.stat-purple::before,
+#page-maasim .stat-card.stat-purple::before { background: #8b5cf6; }
+#page-muhasebe .tbl-wrap table,
+#page-maasim .tbl-wrap table { border-collapse: separate; border-spacing: 0; }
+#page-muhasebe .tbl-wrap thead th,
+#page-maasim .tbl-wrap thead th {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  background: var(--bg-3);
+  white-space: nowrap;
+}
+#page-muhasebe .tbl-wrap tbody tr:hover td,
+#page-maasim .tbl-wrap tbody tr:hover td { background: var(--bg-3); }
+#page-muhasebe .muh-total td,
+#page-maasim .muh-total td {
+  font-weight: 800;
+  background: var(--bg-3);
+  border-top: 2px solid var(--border);
+  position: sticky;
+  bottom: 0;
+}
+.muh-adj-types { display: flex; gap: 8px; }
+.muh-adj-type {
+  flex: 1;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text-2);
+  font-weight: 800;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.muh-adj-type.is-on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.muh-adj-type[data-adj="deduct"].is-on { background: #b91c1c; color: #fff; border-color: #b91c1c; }
