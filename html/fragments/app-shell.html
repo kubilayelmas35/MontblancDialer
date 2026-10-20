@@ -2052,7 +2052,10 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 Firma Ekle
 </button>
 </div>
-<div id="firms-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+<div class="firms-tools">
+<input class="form-input" id="firms-q" data-i18n-placeholder="firm.search" placeholder="Firma veya kullanıcı ara" oninput="renderFirmsList()">
+</div>
+<div id="firms-list" class="firms-list"></div>
 </div>
 <div class="page page-takvim" id="page-takvim">
 <div class="page-hdr takvim-page-hdr">

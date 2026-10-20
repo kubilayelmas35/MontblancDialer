@@ -430,8 +430,7 @@ async function renderMuhasebeYear(fid, rules) {
 }
 
 async function muhFillPayCategorySelect(prefill, selectId = 'am-paycat') {
-  const hostId = selectId === 'eu-paycat' ? 'eu-paycat-wrap' : 'am-paycat-wrap';
-  const host = document.getElementById(hostId);
+  const host = document.getElementById(`${selectId}-wrap`);
   if (!host || typeof loadFirmPayrollRules !== 'function') return;
   const fid = document.getElementById('am-firm')?.value || prefill?.firm_id || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id;
   const rules = await loadFirmPayrollRules(fid, true);

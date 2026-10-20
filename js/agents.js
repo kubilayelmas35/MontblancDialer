@@ -547,15 +547,15 @@ function _validateUserPassword(pass, isNew) {
   return '';
 }
 
-async function syncFieldAgentRoleOption(prefillRole, targetFirmId) {
-  const sel = document.getElementById('am-role');
+async function syncFieldAgentRoleOption(prefillRole, targetFirmId, selectId = 'am-role') {
+  const sel = document.getElementById(selectId);
   if (!sel) return;
   const can = await canManageFieldAgents(targetFirmId);
   const has = [...sel.options].some((o) => o.value === 'field_agent');
   if (can && !has) {
     const o = document.createElement('option');
     o.value = 'field_agent';
-    o.textContent = 'Saha Elemanı';
+    o.textContent = typeof firmRoleLabel === 'function' ? firmRoleLabel('field_agent') : 'Saha Elemanı';
     sel.appendChild(o);
     if (prefillRole === 'field_agent') sel.value = 'field_agent';
   }
@@ -790,58 +790,187 @@ async function removeAgent(agentId, campId) {
 }
 
 // ── Firma Yönetimi (super_admin) ──────────────
+function firmRoleLabel(role) {
+  const key = {
+    agent: 'firm.role.agent',
+    qc: 'firm.role.qc',
+    field_agent: 'firm.role.field',
+    firm_admin: 'firm.role.firm_admin',
+    admin: 'firm.role.admin',
+    super_admin: 'firm.role.super',
+  }[role];
+  return key && typeof t === 'function' ? t(key) : (role || '');
+}
+
+function firmPlanLabel(plan) {
+  const key = { basic: 'firm.plan.basic', pro: 'firm.plan.pro', enterprise: 'firm.plan.enterprise' }[plan];
+  return key && typeof t === 'function' ? t(key) : (plan || '');
+}
+
+function firmMoney(amount, cur) {
+  if (typeof formatMoney === 'function') return formatMoney(amount, cur);
+  const sym = { EUR: '€', USD: '$', TRY: '₺' }[cur] || '';
+  return `${sym}${Number(amount || 0).toFixed(2)}`;
+}
+
+function firmPayCatName(firm, catId) {
+  if (!catId) return '';
+  const cats = firm?.settings?.payroll?.salary_categories;
+  if (!Array.isArray(cats)) return '';
+  const hit = cats.find((c) => c && c.id === catId);
+  return hit?.name || '';
+}
+
+function firmBalanceLog(firm) {
+  const log = firm?.settings?.balance_log;
+  return Array.isArray(log) ? log : [];
+}
+
+function firmById(id) {
+  return (window._firmsPageData?.firms || []).find((f) => f.id === id) || null;
+}
+
+function firmLogWhen(ts) {
+  try {
+    return new Date(ts).toLocaleString('tr-TR', { timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  } catch (_) {
+    return '';
+  }
+}
+
+function labelUserRoleSelect(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel || typeof t !== 'function') return;
+  const map = {
+    agent: t('firm.role.agent'),
+    qc: t('firm.role.qc'),
+    field_agent: t('firm.role.field'),
+    firm_admin: t('firm.role.firm_admin'),
+    admin: t('firm.role.admin'),
+    super_admin: t('firm.role.super'),
+  };
+  [...sel.options].forEach((o) => { if (map[o.value]) o.textContent = map[o.value]; });
+}
+
+function applyFirmPlanLabels() {
+  const sel = document.getElementById('firm-plan');
+  if (!sel) return;
+  [...sel.options].forEach((o) => {
+    const label = firmPlanLabel(o.value);
+    if (label) o.textContent = label;
+  });
+}
+
+function bindFirmsList() {
+  const el = document.getElementById('firms-list');
+  if (!el || el.dataset.bound === '1') return;
+  el.dataset.bound = '1';
+  el.addEventListener('click', onFirmsListClick);
+}
+
+function onFirmsListClick(e) {
+  const btn = e.target.closest('[data-firm-act]');
+  if (btn) {
+    const act = btn.dataset.firmAct;
+    if (act === 'balance') openBalanceModal(btn.dataset.firmId);
+    else if (act === 'user') openUserModal(btn.dataset.firmId);
+    else if (act === 'edit') editFirm(btn.dataset.firmId);
+    else if (act === 'edit-user') openEditUserModal(btn.dataset.userId);
+    else if (act === 'toggle') toggleUserActive(btn.dataset.userId, btn.dataset.active === '1');
+    else if (act === 'pass') resetUserPass(btn.dataset.userId, btn.dataset.email || '');
+    return;
+  }
+  const row = e.target.closest('[data-user-id]');
+  if (row) openEditUserModal(row.dataset.userId);
+}
+
 async function loadFirmsPage() {
   const el = document.getElementById('firms-list');
   if (!el) return;
-  el.innerHTML = '<div style="color:var(--text-3);padding:24px;">Yükleniyor...</div>';
+  bindFirmsList();
+  const q = document.getElementById('firms-q');
+  if (q && typeof t === 'function') q.placeholder = t('firm.search');
+  el.innerHTML = `<div class="firm-none">${escapeHtml(t('firm.loading'))}</div>`;
   try {
     const [firms, users] = await Promise.all([
       sb('firms?select=*&order=created_at.asc'),
-      sb('users?select=id,firm_id,name,email,role,is_active&order=name.asc')
+      sb('users?select=id,firm_id,name,email,role,is_active,payroll_category_id&order=name.asc'),
     ]);
-    if (!firms?.length) { el.innerHTML = '<div style="color:var(--text-3);padding:24px;">Firma yok</div>'; return; }
-    el.innerHTML = firms.map(f => {
-      const fu  = (users||[]).filter(u=>u.firm_id===f.id);
-      const bal = f.balance || 0;
-      const cur = f.currency || 'EUR';
-      const sym = {EUR:'€',USD:'$',TRY:'₺'}[cur]||cur;
-      return `<div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+    window._firmsPageData = { firms: firms || [], users: users || [] };
+    renderFirmsList();
+  } catch (e) {
+    el.innerHTML = `<div style="color:var(--red);padding:24px;">${escapeHtml(t('firm.load_fail'))} ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderFirmsList() {
+  const el = document.getElementById('firms-list');
+  const data = window._firmsPageData;
+  if (!el || !data) return;
+  const q = String(document.getElementById('firms-q')?.value || '').trim().toLocaleLowerCase('tr');
+  const firms = data.firms || [];
+  if (!firms.length) {
+    el.innerHTML = `<div class="firm-none">${escapeHtml(t('firm.empty'))}</div>`;
+    return;
+  }
+  const html = firms.map((f) => {
+    const all = (data.users || []).filter((u) => u.firm_id === f.id);
+    const firmHit = !q || [f.name, f.slug, firmPlanLabel(f.plan)].some((v) => String(v || '').toLocaleLowerCase('tr').includes(q));
+    const users = firmHit
+      ? all
+      : all.filter((u) => [u.name, u.email, firmRoleLabel(u.role), firmPayCatName(f, u.payroll_category_id)].some((v) => String(v || '').toLocaleLowerCase('tr').includes(q)));
+    if (q && !firmHit && !users.length) return '';
+    const cur = typeof normalizeCurrency === 'function' ? normalizeCurrency(f.currency) : (f.currency || 'EUR');
+    const bal = Number(f.balance || 0);
+    const reserved = Number(f.reserved_balance || 0);
+    const available = Math.max(bal - reserved, 0);
+    const last = firmBalanceLog(f).slice(-1)[0];
+    const reservedLine = reserved > 0
+      ? `<div class="firm-bal-note">${escapeHtml(t('firm.reserved'))} ${escapeHtml(firmMoney(reserved, cur))} · ${escapeHtml(t('firm.available'))} ${escapeHtml(firmMoney(available, cur))}</div>`
+      : '';
+    const lastNote = last?.note ? `<div class="firm-bal-note">${escapeHtml(last.note)}</div>` : '';
+    const userRows = users.map((u) => {
+      const cat = firmPayCatName(f, u.payroll_category_id);
+      const initial = escapeHtml(String(u.name || '?').charAt(0));
+      return `<div class="firm-user" data-user-id="${escapeHtml(u.id)}">
+<div class="firm-user-main">
+<div class="firm-avatar">${initial}</div>
 <div>
-<div style="font-size:16px;font-weight:800;">${f.name}</div>
-<div style="font-size:12px;color:var(--text-3);">${f.slug} · ${f.plan} · ${fu.length} kullanıcı</div>
-</div>
-<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-<div style="display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);">
-<span style="font-size:11px;color:var(--text-3);">Bakiye:</span>
-<span style="font-size:14px;font-weight:800;color:var(--green);font-family:var(--mono);">${sym}${Number(bal).toFixed(2)}</span>
-<button class="btn btn-ghost btn-sm" style="padding:1px 7px;font-size:11px;" onclick="openBalanceModal('${f.id}','${f.name.replace(/'/g,"\\'")}','${cur}')">+ Yükle</button>
-</div>
-<button class="btn btn-ghost btn-sm" onclick="openUserModal('${f.id}','${f.name.replace(/'/g,"\\'")}')">+ Kullanıcı</button>
-<button class="btn btn-ghost btn-sm" onclick="editFirm('${f.id}')">Düzenle</button>
+<div class="firm-user-name">${escapeHtml(u.name || '')}</div>
+<div class="firm-user-mail">${escapeHtml(u.email || '')}</div>
 </div>
 </div>
-<div style="display:flex;flex-direction:column;gap:4px;">
-${fu.map(u=>`
-<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg-3);border-radius:var(--radius-xs);cursor:pointer;" onclick="openEditUserModal('${u.id}')">
-<div style="display:flex;align-items:center;gap:10px;">
-<div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;">${u.name.charAt(0)}</div>
-<div>
-<div style="font-size:12px;font-weight:700;">${u.name}</div>
-<div style="font-size:11px;color:var(--text-3);">${u.email}</div>
-</div>
-</div>
-<div style="display:flex;gap:5px;align-items:center;" onclick="event.stopPropagation()">
-<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-weight:700;">${u.role}</span>
-<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;${u.is_active?'':'color:var(--red);'}" onclick="toggleUserActive('${u.id}',${u.is_active})">${u.is_active?'Aktif':'Pasif'}</button>
-<button class="btn btn-ghost btn-sm" style="padding:2px 6px;" onclick="resetUserPass('${u.id}','${u.email}')"><i class="ph ph-key"></i></button>
-<button class="btn btn-ghost btn-sm" style="padding:2px 6px;" onclick="openEditUserModal('${u.id}')"><i class="ph ph-pencil-simple"></i></button>
-</div>
-</div>`).join('')}
+<div class="firm-user-actions">
+<span class="firm-role">${escapeHtml(firmRoleLabel(u.role))}</span>
+${cat ? `<span class="firm-cat">${escapeHtml(cat)}</span>` : ''}
+<button type="button" class="btn btn-ghost btn-sm firm-mini${u.is_active ? '' : ' is-off'}" data-firm-act="toggle" data-user-id="${escapeHtml(u.id)}" data-active="${u.is_active ? '1' : '0'}">${escapeHtml(u.is_active ? t('firm.active') : t('firm.passive'))}</button>
+<button type="button" class="btn btn-ghost btn-sm firm-mini" data-firm-act="pass" data-user-id="${escapeHtml(u.id)}" data-email="${escapeHtml(u.email || '')}" title="${escapeHtml(t('firm.reset_pass'))}"><i class="ph ph-key"></i></button>
+<button type="button" class="btn btn-ghost btn-sm firm-mini" data-firm-act="edit-user" data-user-id="${escapeHtml(u.id)}"><i class="ph ph-pencil-simple"></i></button>
 </div>
 </div>`;
     }).join('');
-  } catch(e) { el.innerHTML = '<div style="color:var(--red);padding:24px;">Hata: '+e.message+'</div>'; }
+    const emptyUsers = users.length ? '' : `<div class="firm-none">${escapeHtml(q ? t('firm.no_match_user') : t('firm.no_user'))}</div>`;
+    return `<div class="card firm-card">
+<div class="firm-head">
+<div>
+<div class="firm-name">${escapeHtml(f.name || '')}</div>
+<div class="firm-meta">${escapeHtml(f.slug || '')} · ${escapeHtml(firmPlanLabel(f.plan))} · ${all.length} ${escapeHtml(t('firm.users'))}</div>
+</div>
+<div class="firm-actions">
+<div class="firm-bal">
+<span class="firm-bal-lbl">${escapeHtml(t('firm.balance'))}</span>
+<span class="firm-bal-val">${escapeHtml(firmMoney(bal, cur))}</span>
+${reservedLine}${lastNote}
+</div>
+<button type="button" class="btn btn-ghost btn-sm" data-firm-act="balance" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.topup'))}</button>
+<button type="button" class="btn btn-ghost btn-sm" data-firm-act="user" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.add_user'))}</button>
+<button type="button" class="btn btn-ghost btn-sm" data-firm-act="edit" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.edit'))}</button>
+</div>
+</div>
+<div class="firm-users">${userRows}${emptyUsers}</div>
+</div>`;
+  }).join('');
+  el.innerHTML = html || `<div class="firm-none">${escapeHtml(t('firm.no_match'))}</div>`;
 }
 
 async function openEditUserModal(userId) {
@@ -850,7 +979,9 @@ async function openEditUserModal(userId) {
   document.getElementById('m-edit-user')?.remove();
   const modal = document.createElement('div');
   modal.id = 'm-edit-user'; modal.className = 'modal-overlay open'; modal.style.zIndex='3001';
+  modal.dataset.firmId = u.firm_id || '';
   const canAssignSuper = mbIsSuperAdmin();
+  const showAdmin = canAssignSuper || u.role === 'admin';
   modal.innerHTML = `
 <div class="modal" style="max-width:440px;">
 <div class="modal-hdr">
@@ -859,18 +990,19 @@ async function openEditUserModal(userId) {
 </div>
 <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
 <div class="form-row"><label class="form-label">Ad Soyad *</label>
-<input class="form-input" id="eu-name" value="${u.name}"></div>
+<input class="form-input" id="eu-name" value="${escapeHtml(u.name || '')}"></div>
 <div class="form-row"><label class="form-label">E-posta *</label>
-<input class="form-input" id="eu-email" value="${u.email}" type="email"></div>
+<input class="form-input" id="eu-email" value="${escapeHtml(u.email || '')}" type="email"></div>
 <div class="form-row"><label class="form-label">Yeni Şifre (boş = değişmez)</label>
 <input class="form-input" id="eu-pass" type="password" placeholder="••••••••"></div>
 <div class="form-row"><label class="form-label">Rol</label>
 <select class="form-input" id="eu-role">
-<option value="agent" ${u.role==='agent'?'selected':''}>Agent</option>
-<option value="qc" ${u.role==='qc'?'selected':''}>QC</option>
-<option value="field_agent" ${u.role==='field_agent'?'selected':''}>Saha Elemanı</option>
-<option value="firm_admin" ${u.role==='firm_admin'?'selected':''}>Firma Admin</option>
-${canAssignSuper ? `<option value="super_admin" ${u.role==='super_admin'?'selected':''}>Süper Admin</option>` : ''}
+<option value="agent" ${u.role==='agent'?'selected':''}>${escapeHtml(firmRoleLabel('agent'))}</option>
+<option value="qc" ${u.role==='qc'?'selected':''}>${escapeHtml(firmRoleLabel('qc'))}</option>
+<option value="field_agent" ${u.role==='field_agent'?'selected':''}>${escapeHtml(firmRoleLabel('field_agent'))}</option>
+<option value="firm_admin" ${u.role==='firm_admin'?'selected':''}>${escapeHtml(firmRoleLabel('firm_admin'))}</option>
+${showAdmin ? `<option value="admin" ${u.role==='admin'?'selected':''}>${escapeHtml(firmRoleLabel('admin'))}</option>` : ''}
+${canAssignSuper ? `<option value="super_admin" ${u.role==='super_admin'?'selected':''}>${escapeHtml(firmRoleLabel('super_admin'))}</option>` : ''}
 </select></div>
 <div id="eu-paycat-wrap"></div>
 <div class="form-row"><label class="form-label">Durum</label>
@@ -907,7 +1039,8 @@ async function saveEditUser(userId) {
   if (!name||!email) { toast('Ad ve e-posta zorunlu','err'); return; }
   const pwdErr = _validateUserPassword(pass, false);
   if (pwdErr) { toast(pwdErr, 'err'); return; }
-  if (role === 'field_agent' && !(await canManageFieldAgents(currentUser?.firm_id))) {
+  const editFirmId = document.getElementById('m-edit-user')?.dataset.firmId || '';
+  if (role === 'field_agent' && !(await canManageFieldAgents(editFirmId))) {
     toast('Saha elemanı rolü için yetkiniz yok','err');
     return;
   }
@@ -931,31 +1064,35 @@ async function saveEditUser(userId) {
     }
     document.getElementById('m-edit-user')?.remove();
     await loadFirmsPage();
-    toast('Kullanıcı güncellendi ✓','ok');
+    toast(t('firm.user_saved'),'ok');
   } catch(e) { toast('Hata: '+_safeErrorText(e),'err'); }
 }
 
-function openBalanceModal(firmId, firmName, currentCurrency) {
+function openBalanceModal(firmId) {
+  const f = firmById(firmId) || {};
+  const cur = typeof normalizeCurrency === 'function' ? normalizeCurrency(f.currency) : (f.currency || 'EUR');
+  const log = firmBalanceLog(f).slice(-5).reverse();
+  const history = log.length
+    ? `<div class="form-row"><label class="form-label">${escapeHtml(t('firm.bal.history'))}</label><div class="firm-log">${log.map((row) => `<div>${escapeHtml(firmLogWhen(row.ts))} · ${escapeHtml(firmMoney(row.amount, row.currency || cur))}${row.note ? ` · ${escapeHtml(row.note)}` : ''}</div>`).join('')}</div></div>`
+    : '';
   document.getElementById('m-balance')?.remove();
   const modal = document.createElement('div');
   modal.id='m-balance'; modal.className='modal-overlay open'; modal.style.zIndex='3001';
   modal.innerHTML=`
-<div class="modal" style="max-width:360px;">
+<div class="modal" style="max-width:400px;">
 <div class="modal-hdr">
-<div class="modal-title">💰 Bakiye Yükle — ${firmName}</div>
+<div class="modal-title">${escapeHtml(t('firm.bal.title'))} — ${escapeHtml(f.name || '')}</div>
 <button class="modal-close" onclick="document.getElementById('m-balance').remove()">✕</button>
 </div>
 <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
-<div class="form-row"><label class="form-label">Para Birimi</label>
-<select class="form-input" id="bal-currency">
-<option value="EUR" ${currentCurrency==='EUR'?'selected':''}>€ Euro</option>
-<option value="USD" ${currentCurrency==='USD'?'selected':''}>$ Dolar</option>
-<option value="TRY" ${currentCurrency==='TRY'?'selected':''}>₺ Türk Lirası</option>
-</select></div>
-<div class="form-row"><label class="form-label">Miktar *</label>
+<div class="form-row"><label class="form-label">${escapeHtml(t('firm.bal.currency'))}</label>
+<div class="form-input" style="background:var(--bg-3);">${escapeHtml(firmMoney(f.balance || 0, cur))} · ${escapeHtml(cur)}</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;">${escapeHtml(t('firm.bal.currency_hint'))}</div></div>
+<div class="form-row"><label class="form-label">${escapeHtml(t('firm.bal.amount'))} *</label>
 <input class="form-input" id="bal-amount" type="number" min="0" step="0.01" placeholder="100.00"></div>
-<div class="form-row"><label class="form-label">Not (opsiyonel)</label>
-<input class="form-input" id="bal-note" placeholder="Ocak ödemesi..."></div>
+<div class="form-row"><label class="form-label">${escapeHtml(t('firm.bal.note'))}</label>
+<input class="form-input" id="bal-note" placeholder=""></div>
+${history}
 </div>
 <div class="modal-footer">
 <button class="btn btn-ghost" onclick="document.getElementById('m-balance').remove()">İptal</button>
@@ -967,19 +1104,23 @@ function openBalanceModal(firmId, firmName, currentCurrency) {
 }
 
 async function saveBalance(firmId) {
-  const amount   = parseFloat(document.getElementById('bal-amount')?.value||'0');
-  const currency = document.getElementById('bal-currency')?.value||'EUR';
-  if (!amount||amount<=0) { toast('Geçerli miktar girin','err'); return; }
+  const amount = parseFloat(document.getElementById('bal-amount')?.value || '0');
+  const note = document.getElementById('bal-note')?.value.trim() || '';
+  if (!amount || amount <= 0) { toast(t('firm.bal.need'), 'err'); return; }
   try {
-    const firms = await sb(`firms?id=eq.${firmId}&select=balance,currency`);
-    const oldBal = firms?.[0]?.balance || 0;
+    const firms = await sb(`firms?id=eq.${firmId}&select=balance,currency,settings`);
+    const row = firms?.[0] || {};
+    const currency = typeof normalizeCurrency === 'function' ? normalizeCurrency(row.currency) : (row.currency || 'EUR');
+    const oldBal = Number(row.balance || 0);
     const newBal = oldBal + amount;
+    const settings = row.settings && typeof row.settings === 'object' ? row.settings : {};
+    const log = Array.isArray(settings.balance_log) ? settings.balance_log.slice(-19) : [];
+    log.push({ ts: new Date().toISOString(), amount, note, currency, by: currentUser?.name || '' });
     await sb(`firms?id=eq.${firmId}`,{method:'PATCH',prefer:'return=minimal',
-      body:JSON.stringify({balance:newBal, currency})});
+      body:JSON.stringify({ balance: newBal, settings: { ...settings, balance_log: log } })});
     document.getElementById('m-balance')?.remove();
     await loadFirmsPage();
-    const sym = {EUR:'€',USD:'$',TRY:'₺'}[currency]||currency;
-    toast(`${sym}${amount.toFixed(2)} yüklendi ✓ (Toplam: ${sym}${newBal.toFixed(2)})`,'ok');
+    toast(`${firmMoney(amount, currency)} ${t('firm.bal.saved')} (${t('firm.bal.total')}: ${firmMoney(newBal, currency)})`,'ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
@@ -998,6 +1139,7 @@ function openFirmModal() {
   if (incChk) incChk.checked = false;
   if (didRow) didRow.style.display = mbIsSuperAdmin() ? '' : 'none';
   if (didEl) didEl.value = '';
+  applyFirmPlanLabels();
   openModal('m-firm');
 }
 
@@ -1021,6 +1163,7 @@ async function editFirm(id) {
     if (didRow) didRow.style.display = mbIsSuperAdmin() ? '' : 'none';
     if (didEl) didEl.value = f.settings?.dialer?.outbound_did || '';
   } catch (e) {}
+  applyFirmPlanLabels();
   openModal('m-firm');
 }
 
@@ -1075,26 +1218,35 @@ async function saveFirm() {
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
-function openUserModal(firmId, firmName) {
+async function openUserModal(firmId, firmName) {
   userEditId = null;
-  document.getElementById('user-modal-title').textContent = `Kullanıcı Ekle — ${firmName}`;
+  const known = firmById(firmId);
+  document.getElementById('user-modal-title').textContent = `${t('firm.add_user')} — ${firmName || known?.name || ''}`;
   document.getElementById('user-firm-id').value = firmId;
   ['user-name','user-email','user-pass'].forEach(id => document.getElementById(id).value='');
   const roleSel = document.getElementById('user-role');
   if (roleSel) {
     const canAssignSuper = mbIsSuperAdmin();
-    const hasSuper = [...roleSel.options].some((o) => o.value === 'super_admin');
-    if (!canAssignSuper && hasSuper) {
-      [...roleSel.options].forEach((o) => { if (o.value === 'super_admin') o.remove(); });
-    }
-    if (canAssignSuper && !hasSuper) {
+    [...roleSel.options].forEach((o) => {
+      if ((o.value === 'super_admin' || o.value === 'admin') && !canAssignSuper) o.remove();
+    });
+    if (canAssignSuper && ![...roleSel.options].some((o) => o.value === 'admin')) {
       const o = document.createElement('option');
-      o.value = 'super_admin';
-      o.textContent = 'Süper Admin';
+      o.value = 'admin';
+      o.textContent = t('firm.role.admin');
       roleSel.appendChild(o);
     }
+    if (canAssignSuper && ![...roleSel.options].some((o) => o.value === 'super_admin')) {
+      const o = document.createElement('option');
+      o.value = 'super_admin';
+      o.textContent = t('firm.role.super');
+      roleSel.appendChild(o);
+    }
+    labelUserRoleSelect('user-role');
     roleSel.value = 'agent';
   }
+  await syncFieldAgentRoleOption('agent', firmId, 'user-role');
+  if (typeof muhFillPayCategorySelect === 'function') await muhFillPayCategorySelect({ firm_id: firmId }, 'user-paycat');
   openModal('m-user');
 }
 
@@ -1104,9 +1256,15 @@ async function saveUser() {
   const pass   = document.getElementById('user-pass').value;
   const role   = document.getElementById('user-role').value;
   const firmId = document.getElementById('user-firm-id').value;
-  if (!name||!email||!pass) { toast('Tüm alanlar zorunlu','err'); return; }
-  if (mbIsSuperAdmin(role) && !mbIsSuperAdmin()) {
-    toast('Süper Admin rolünü sadece Süper Admin verebilir','err');
+  if (!name||!email||!pass) { toast('Ad, e-posta ve şifre zorunlu','err'); return; }
+  const pwdErr = _validateUserPassword(pass, true);
+  if (pwdErr) { toast(pwdErr, 'err'); return; }
+  if (role === 'field_agent' && !(await canManageFieldAgents(firmId))) {
+    toast('Saha elemanı ekleme yetkiniz yok','err');
+    return;
+  }
+  if ((role === 'admin' || mbIsSuperAdmin(role)) && !mbIsSuperAdmin()) {
+    toast('Bu rolü sadece Süper Admin verebilir','err');
     return;
   }
   try {
@@ -1116,20 +1274,34 @@ async function saveUser() {
       body:JSON.stringify({p_firm_id:firmId,p_email:email,p_password:pass,p_name:name,p_role:role})
     });
     if (!res.ok) throw new Error(await res.text());
+    if (typeof logAuditEvent === 'function') await logAuditEvent('user_created', 'user', email, { role, firm_id: firmId });
+    const paycat = document.getElementById('user-paycat')?.value || '';
+    if (paycat) {
+      const found = await sb(`users?email=eq.${encodeURIComponent(email)}&select=id`).catch(() => []);
+      if (found?.[0]?.id) {
+        await sb(`users?id=eq.${found[0].id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ payroll_category_id: paycat }) });
+      }
+    }
     closeModal('m-user');
     await loadFirmsPage();
-    toast('Kullanıcı eklendi ✓','ok');
-  } catch(e) { toast('Hata: '+e.message,'err'); }
+    toast(t('firm.user_added'),'ok');
+  } catch(e) { toast('Hata: '+_safeErrorText(e),'err'); }
 }
 
 async function toggleUserActive(userId, cur) {
-  await sb(`users?id=eq.${userId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({is_active:!cur})});
-  loadFirmsPage();
+  try {
+    await sb(`users?id=eq.${userId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({is_active:!cur})});
+    await loadFirmsPage();
+  } catch (e) {
+    toast(t('firm.toggle_fail'), 'err');
+  }
 }
 
 async function resetUserPass(userId, email) {
   const p = await mbPrompt(`${email} için yeni şifre:`, '', 'Şifre Sıfırla');
   if (!p) return;
+  const pwdErr = _validateUserPassword(p, true);
+  if (pwdErr) { toast(pwdErr, 'err'); return; }
   try {
     const r = await fetch(`${SB_URL}/rest/v1/rpc/reset_user_password`,{
       method:'POST',
@@ -1137,8 +1309,8 @@ async function resetUserPass(userId, email) {
       body:JSON.stringify({p_user_id:userId,p_new_password:p})
     });
     if (!r.ok) throw new Error(await r.text());
-    toast('Şifre sıfırlandı ✓','ok');
-  } catch(e) { toast('Hata: '+e.message,'err'); }
+    toast(t('firm.pass_saved'),'ok');
+  } catch(e) { toast('Hata: '+_safeErrorText(e),'err'); }
 }
 
 // ── Roller & İzinler ──────────────────────────

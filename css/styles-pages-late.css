@@ -1053,3 +1053,28 @@ i.ph {
 }
 .muh-adj-type.is-on { background: var(--text); color: var(--bg); border-color: var(--text); }
 .muh-adj-type[data-adj="deduct"].is-on { background: #b91c1c; color: #fff; border-color: #b91c1c; }
+.firms-tools { margin-bottom: 12px; }
+.firms-tools .form-input { max-width: 360px; }
+.firms-list { display: flex; flex-direction: column; gap: 12px; }
+.firm-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.firm-name { font-size: 16px; font-weight: 800; }
+.firm-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+.firm-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.firm-bal { display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius-sm); min-width: 0; }
+.firm-bal-lbl { font-size: 11px; color: var(--text-3); }
+.firm-bal-val { font-size: 14px; font-weight: 800; color: var(--green); font-family: var(--mono); }
+.firm-bal-note { font-size: 11px; color: var(--text-3); max-width: 240px; overflow-wrap: anywhere; }
+.firm-users { display: flex; flex-direction: column; gap: 4px; }
+.firm-user { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg-3); border-radius: var(--radius-xs); cursor: pointer; flex-wrap: wrap; }
+.firm-user-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.firm-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; flex-shrink: 0; }
+.firm-user-name { font-size: 12px; font-weight: 700; }
+.firm-user-mail { font-size: 11px; color: var(--text-3); overflow-wrap: anywhere; }
+.firm-user-actions { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+.firm-role, .firm-cat { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700; white-space: nowrap; }
+.firm-role { background: var(--accent-soft); color: var(--accent); }
+.firm-cat { background: var(--bg-2); color: var(--text-2); border: 1px solid var(--border); }
+.firm-mini { padding: 2px 6px; font-size: 11px; }
+.firm-mini.is-off { color: var(--red); }
+.firm-none, .firm-log { font-size: 12px; color: var(--text-3); }
+.firm-log { display: flex; flex-direction: column; gap: 4px; font-size: 11px; }
