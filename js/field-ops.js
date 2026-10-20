@@ -201,11 +201,21 @@ ${agentOpts ? `<div class="form-row" style="margin-top:8px;"><label class="form-
 </div>
 <div class="modal-footer">
 <button class="btn btn-ghost" onclick="document.getElementById('fieldops-detail').remove()">${_foEsc(t('fieldops.close'))}</button>
+<button class="btn btn-ghost" onclick="fieldOpsEditQuote('${_foEsc(row.id)}')">${_foEsc(t('field.cat.edit_pdf'))}</button>
 ${agentOpts ? `<button class="btn btn-primary" onclick="fieldOpsReassign('${_foEsc(row.id)}')">${_foEsc(t('field.assign_btn'))}</button>` : ''}
 </div>
 </div>`;
   ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
   document.body.appendChild(ov);
+}
+
+function fieldOpsEditQuote(taskId) {
+  const row = _fieldOpsRows.find((item) => item.id === taskId);
+  if (!row || typeof fieldOpenQuote !== 'function') return;
+  const task = { ...row };
+  _fieldTasks = (_fieldTasks || []).filter((item) => item.id !== row.id).concat([task]);
+  window._fieldApptMap = { ...(window._fieldApptMap || {}), [row.appointment_id]: row.appointment || {} };
+  fieldOpenQuote(row.id);
 }
 
 async function fieldOpsReassign(taskId) {
@@ -243,6 +253,7 @@ async function loadFieldOpsPage() {
     if (mbIsSuperAdmin(role)) renderFirmSelector('fieldops-firm-wrap', loadFieldOpsPage);
     else fw.innerHTML = '';
   }
+  if (typeof loadFieldOpsCatalog === 'function') loadFieldOpsCatalog();
   const fid = getActiveFirmId() || currentUser?.firm_id || null;
   if (mbIsSuperAdmin(role) && !fid) {
     if (tbody) tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(FIELD_OPS_COLS, 'ui.select_firm_first') : `<tr><td colspan="${FIELD_OPS_COLS}" class="mb-empty-hint">${t('ui.select_firm_first')}</td></tr>`;

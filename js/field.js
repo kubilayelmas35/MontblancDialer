@@ -17,7 +17,25 @@ function defaultFirmFieldSettings() {
     result_options: ['satis', 'teklif', 'ziyaret_tamamlandi', 'ulasilamadi'],
     document_requirements: ['kimlik', 'sozlesme'],
     form_schema: [],
-    products: []
+    products: [],
+    pdf: { title: '', company: '', intro: '', terms: '', footer: '', vat: 19 }
+  };
+}
+
+function defaultFieldPdf() {
+  return { title: '', company: '', intro: '', terms: '', footer: '', vat: 19 };
+}
+
+function fieldNormalizeProduct(row, idx) {
+  const raw = row?.stock;
+  const stock = raw === '' || raw == null ? null : Math.max(0, Math.floor(Number(raw) || 0));
+  return {
+    id: String(row?.id || `p_${idx + 1}`),
+    name: String(row?.name || '').trim(),
+    unit: String(row?.unit || '').trim() || 'adet',
+    price: Math.max(0, Number(row?.price) || 0),
+    stock,
+    image: String(row?.image || '').trim()
   };
 }
 
@@ -30,7 +48,10 @@ async function getFirmFieldSettings(fid) {
     if (!Array.isArray(merged.result_options)) merged.result_options = defaultFirmFieldSettings().result_options;
     if (!Array.isArray(merged.document_requirements)) merged.document_requirements = [];
     if (!Array.isArray(merged.form_schema)) merged.form_schema = [];
-    if (!Array.isArray(merged.products)) merged.products = [];
+    merged.products = (Array.isArray(merged.products) ? merged.products : []).map((row, idx) => fieldNormalizeProduct(row, idx)).filter((row) => row.name);
+    merged.pdf = { ...defaultFieldPdf(), ...(merged.pdf && typeof merged.pdf === 'object' ? merged.pdf : {}) };
+    const vat = Number(merged.pdf.vat);
+    merged.pdf.vat = Number.isFinite(vat) ? Math.max(0, vat) : 19;
     _fieldSettingsCache[fid] = merged;
     return merged;
   } catch (e) {

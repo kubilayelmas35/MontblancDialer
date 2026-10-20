@@ -927,3 +927,9 @@ i.ph {
   .field-route-grid { grid-template-columns: 1fr; }
   #field-route-map, .field-route-stops { height: auto; max-height: 280px; }
 }
+.field-cat-row { display: grid; grid-template-columns: 64px 1fr; gap: 8px; padding: 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-2); }
+.field-cat-photo { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; background: var(--bg-3); display: block; }
+.field-cat-photo-empty { border: 1px dashed var(--border); }
+@media (max-width: 640px) {
+  #field-cat-pdf > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+}

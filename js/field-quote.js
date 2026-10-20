@@ -107,7 +107,7 @@ function fieldBuildOfferPdf(doc) {
   if (doc.note) {
     textAt(left, y, 10, doc.noteLabel || 'Not');
     y -= 14;
-    String(doc.note).split(/\n/).slice(0, 4).forEach((row) => {
+    String(doc.note).split(/\n/).slice(0, 8).forEach((row) => {
       textAt(left, y, 10, row.slice(0, 90));
       y -= 13;
     });
@@ -120,6 +120,7 @@ function fieldBuildOfferPdf(doc) {
   commands.push(`${320} ${signY} m ${500} ${signY} l S`);
   textAt(left, signY - 16, 9, doc.customer || '');
   textAt(320, signY - 16, 9, doc.agent || '');
+  if (doc.footer) textAt(left, 36, 8, String(doc.footer).slice(0, 110));
   let imageObj = '';
   if (doc.jpeg && doc.jpeg.length && doc.imgW && doc.imgH) {
     commands.push(`q ${160} 0 0 ${Math.round(160 * doc.imgH / doc.imgW)} ${left} ${signY + 8} cm /Im1 Do Q`);
@@ -204,7 +205,11 @@ function fieldQuoteAddSelected() {
     return;
   }
   const product = JSON.parse(raw);
-  _fieldQuoteLines.push({ name: product.name, unit: product.unit || 'adet', qty, price: Number(product.price) || 0 });
+  if (product.stock != null && product.stock !== '' && qty > Number(product.stock)) {
+    toast(t('field.cat.low'), 'warn');
+    return;
+  }
+  _fieldQuoteLines.push({ productId: product.id || '', name: product.name, unit: product.unit || 'adet', qty, price: Number(product.price) || 0 });
   fieldQuotePaint();
 }
 
@@ -258,7 +263,12 @@ async function fieldQuoteFillCatalog(task) {
   if (!host) return;
   const fs = await getFirmFieldSettings(task.firm_id);
   const products = (fs.products || []).filter((row) => row?.name);
-  const options = products.map((row) => `<option data-product="${_fEsc(JSON.stringify({ name: row.name, unit: row.unit || 'adet', price: Number(row.price) || 0 }))}">${_fEsc(row.name)} · ${_fEsc(fieldMoney(row.price))}</option>`).join('');
+  const vatEl = document.getElementById('field-quote-vat');
+  if (vatEl && !vatEl.dataset.touched && fs.pdf && document.getElementById('field-quote-vat')?.value === '19' && fs.pdf.vat != null) vatEl.value = fs.pdf.vat;
+  const options = products.map((row) => {
+    const stockBit = row.stock == null ? '' : ` · ${t('field.cat.stock')} ${row.stock}`;
+    return `<option data-product="${_fEsc(JSON.stringify({ id: row.id, name: row.name, unit: row.unit || 'adet', price: Number(row.price) || 0, stock: row.stock }))}">${_fEsc(row.name)} · ${_fEsc(fieldMoney(row.price))}${_fEsc(stockBit)}</option>`;
+  }).join('');
   host.innerHTML = `${products.length ? `<select class="form-input" id="field-quote-product" style="flex:1;min-width:180px;"><option value="">${_fEsc(t('field.quote.pick'))}</option>${options}</select>
 <input class="form-input" id="field-quote-qty" type="number" min="1" value="1" style="width:70px;">
 <button type="button" class="btn btn-ghost btn-sm" onclick="fieldQuoteAddSelected()">${_fEsc(t('field.quote.add'))}</button>` : `<span style="font-size:12px;color:var(--text-3);">${_fEsc(t('field.quote.no_catalog'))}</span>`}
@@ -286,6 +296,7 @@ async function fieldQuoteCreate() {
   const task = fieldQuoteTask();
   if (!task) return;
   const lines = _fieldQuoteLines.map((line) => ({
+    productId: String(line.productId || ''),
     name: String(line.name || '').trim(),
     unit: String(line.unit || 'adet').trim(),
     qty: Number(line.qty) || 0,
@@ -297,14 +308,28 @@ async function fieldQuoteCreate() {
     return;
   }
   const sums = fieldQuoteTotals();
+  const fs = await getFirmFieldSettings(task.firm_id);
+  const pdfCfg = { ...defaultFieldPdf(), ...(fs.pdf || {}) };
+  const previous = task.result_payload?.quote?.lines || [];
+  const delta = typeof fieldCatalogStockDelta === 'function' ? fieldCatalogStockDelta(previous, lines) : {};
+  const products = fs.products || [];
+  const short = Object.keys(delta).some((id) => {
+    const row = products.find((item) => item.id === id);
+    return row && row.stock != null && row.stock + Number(delta[id] || 0) < 0;
+  });
+  if (short) {
+    toast(t('field.cat.low'), 'warn');
+    return;
+  }
   const ap = window._fieldApptMap?.[task.appointment_id] || {};
   const when = typeof fieldApptWhen === 'function' ? (fieldApptWhen(ap).text || '') : '';
   const addr = [ap.strasse, ap.plz, ap.ortschaft].filter(Boolean).join(' ');
   const jpeg = await fieldQuoteJpeg();
   const no = `AG-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(task.id).slice(0, 6)}`;
+  const noteText = document.getElementById('field-quote-note')?.value || '';
   const pdf = fieldBuildOfferPdf({
-    title: t('field.quote.pdf_title'),
-    firm: currentUser?.firm_name || 'Montblanc',
+    title: pdfCfg.title || t('field.quote.pdf_title'),
+    firm: pdfCfg.company || currentUser?.firm_name || '',
     no,
     date: typeof mbFormatWall === 'function' ? mbFormatWall(new Date().toISOString(), { day: '2-digit', month: '2-digit', year: 'numeric' }) : new Date().toLocaleDateString('de-DE'),
     customerLabel: t('field.quote.customer'),
@@ -324,7 +349,8 @@ async function fieldQuoteCreate() {
     grossLabel: t('field.quote.gross'),
     grossText: fieldMoney(sums.gross),
     noteLabel: t('field.quote.note'),
-    note: document.getElementById('field-quote-note')?.value || '',
+    note: [pdfCfg.intro, noteText, pdfCfg.terms].filter((part) => String(part || '').trim()).join('\n'),
+    footer: pdfCfg.footer || '',
     signLabel: t('field.quote.sign'),
     agentLabel: t('field.agent'),
     agent: currentUser?.name || '',
@@ -394,6 +420,9 @@ async function fieldQuoteCreate() {
     toast(t('field.save_fail'), 'err');
     return;
   }
+  if (typeof fieldCatalogApplyStock === 'function') {
+    try { await fieldCatalogApplyStock(task.firm_id, delta); } catch (e) {}
+  }
   const link = document.createElement('a');
   link.href = URL.createObjectURL(pdf);
   link.download = fileName;
@@ -401,7 +430,9 @@ async function fieldQuoteCreate() {
   setTimeout(() => URL.revokeObjectURL(link.href), 4000);
   toast(t('field.quote.ready'), 'ok');
   document.getElementById('field-quote-modal')?.remove();
-  if (typeof loadFieldPage === 'function') await loadFieldPage();
+  const opsOpen = document.getElementById('page-fieldops')?.classList.contains('active');
+  if (opsOpen && typeof loadFieldOpsPage === 'function') await loadFieldOpsPage();
+  else if (typeof loadFieldPage === 'function') await loadFieldPage();
 }
 
 function fieldKeepApptMap(map) {

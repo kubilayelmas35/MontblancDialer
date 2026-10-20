@@ -12,7 +12,8 @@ function defaultFieldSettings() {
     result_options: ['satis', 'teklif', 'ziyaret_tamamlandi', 'ulasilamadi'],
     document_requirements: ['kimlik', 'sozlesme'],
     form_schema: [],
-    products: []
+    products: [],
+    pdf: { title: '', company: '', intro: '', terms: '', footer: '', vat: 19 }
   };
 }
 
@@ -349,19 +350,21 @@ async function saveFieldSettings() {
     schema.push({ key, label, type, options, required, placeholder, min, max, show_when_result: showWhenResult });
   }
 
-  const fieldService = {
-    ...defaultFieldSettings(),
-    enabled,
-    can_manage_agents: canManage,
-    result_options: results.length ? results : defaultFieldSettings().result_options,
-    document_requirements: docs,
-    form_schema: schema,
-    products: readFieldProducts()
-  };
-
   try {
     const firms = await sb(`firms?id=eq.${fid}&select=settings`);
     const existing = firms?.[0]?.settings || {};
+    const prevService = existing.fieldService || {};
+    const fieldService = {
+      ...defaultFieldSettings(),
+      ...prevService,
+      enabled,
+      can_manage_agents: canManage,
+      result_options: results.length ? results : defaultFieldSettings().result_options,
+      document_requirements: docs,
+      form_schema: schema,
+      products: Array.isArray(prevService.products) ? prevService.products : [],
+      pdf: { ...(typeof defaultFieldPdf === 'function' ? defaultFieldPdf() : {}), ...(prevService.pdf || {}) }
+    };
     await sb(`firms?id=eq.${fid}`, {
       method: 'PATCH',
       prefer: 'return=minimal',
