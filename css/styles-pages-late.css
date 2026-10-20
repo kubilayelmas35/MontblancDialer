@@ -730,6 +730,12 @@ i.ph {
 }
 .ar-row .form-row { margin: 0; min-width: 0; }
 .ar-row .form-input { width: 100%; min-width: 0; box-sizing: border-box; }
+.ar-row input[type="color"] {
+  height: 36px;
+  padding: 3px;
+  cursor: pointer;
+  background: var(--bg-2);
+}
 .ar-move {
   display: flex;
   align-items: center;

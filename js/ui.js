@@ -379,17 +379,28 @@ function syncAppointmentResultLabel(idx) {
   if (!String(l.value || '').trim()) l.value = map[t] || t;
 }
 
+function _uniqueResultKey(base, used) {
+  let key = _normResultKey(base) || 'ozel';
+  if (!used.has(key)) return key;
+  let n = 2;
+  while (used.has(`${key}_${n}`)) n += 1;
+  return `${key}_${n}`;
+}
+
 function readAppointmentResultRows() {
   const wrap = document.getElementById('s-appt-results-rows');
   const count = Number(wrap?.dataset.count || 0);
   const out = [];
+  const used = new Set();
   for (let i = 0; i < count; i++) {
     const picked = document.getElementById(`ar-type-${i}`)?.value || '';
     const label = String(document.getElementById(`ar-label-${i}`)?.value || '').trim();
-    const key = _normResultKey(picked === '__custom' ? label : picked);
     const color = _normalizeResultColor(document.getElementById(`ar-color-${i}`)?.value || '#64748b');
     const auto_move_down = !!document.getElementById(`ar-move-${i}`)?.checked;
-    if (!key || out.some((row) => row.key === key)) continue;
+    const base = picked === '__custom' ? (label || `ozel_${i + 1}`) : picked;
+    const key = _uniqueResultKey(base, used);
+    if (!key) continue;
+    used.add(key);
     out.push({ key, label: label || key, color, contact_status: appointmentResultToContactStatus(key), auto_move_down });
   }
   return out;
@@ -397,7 +408,9 @@ function readAppointmentResultRows() {
 
 function addAppointmentResultRow() {
   const cur = readAppointmentResultRows();
-  cur.push({ key: 'beklemede', label: 'Beklemede', color: '#f59e0b', contact_status: 'beklemede', auto_move_down: true });
+  const used = new Set(cur.map((row) => row.key));
+  const key = _uniqueResultKey('yeni_sonuc', used);
+  cur.push({ key, label: 'Yeni sonuç', color: '#7c3aed', contact_status: appointmentResultToContactStatus(key), auto_move_down: false });
   renderAppointmentResultRows(cur);
 }
 
