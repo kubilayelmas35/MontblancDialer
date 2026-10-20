@@ -53,6 +53,141 @@ function openQcSettings() {
   if (typeof navigate === 'function') navigate('settings');
 }
 
+function qcRestrictedIds(scope, userId) {
+  if (!scope || typeof scope !== 'object' || !userId) return null;
+  if (!Object.prototype.hasOwnProperty.call(scope, userId)) return null;
+  return (Array.isArray(scope[userId]) ? scope[userId] : []).map(String).filter(Boolean);
+}
+
+function qcScopeEditorHtml(userId, customers, scope) {
+  const key = String(userId || '');
+  const restricted = qcRestrictedIds(scope, key);
+  const picked = new Set(restricted || []);
+  const allOn = restricted == null;
+  const esc = typeof _uiEsc === 'function' ? _uiEsc : (v) => String(v ?? '');
+  const boxes = (customers || []).map((c) => {
+    const label = `${c.code ? `${c.code} · ` : ''}${c.name || ''}`.trim();
+    return `<label><input type="checkbox" data-qc-scope-user="${esc(key)}" value="${esc(c.id)}" ${picked.has(String(c.id)) ? 'checked' : ''}>${esc(label || c.id)}</label>`;
+  }).join('');
+  return `<label class="qc-scope-all"><input type="checkbox" data-qc-scope-all="${esc(key)}" ${allOn ? 'checked' : ''} onchange="qcScopeToggleAll(this)">${esc(t('qc.scope.all'))}</label>
+<div class="qc-scope-picks"${allOn ? ' hidden' : ''}>${boxes || `<div style="color:var(--text-3);">${esc(t('qc.scope.no_customers'))}</div>`}</div>`;
+}
+
+function qcScopeToggleAll(box) {
+  const picks = box?.closest('.qc-scope-block')?.querySelector('.qc-scope-picks');
+  if (picks) picks.hidden = !!box.checked;
+}
+
+function qcReadScopeEditor(root, userId) {
+  if (!root) return null;
+  const all = root.querySelector(`[data-qc-scope-all="${userId}"]`);
+  if (!all || all.checked) return null;
+  return [...root.querySelectorAll(`[data-qc-scope-user="${userId}"]:checked`)].map((el) => el.value).filter(Boolean);
+}
+
+function qcAgentScopeLabel(user) {
+  const scope = window._agentQcScopeByFirm?.[user?.firm_id] || {};
+  const customers = (window._agentCustomers || []).filter((c) => String(c.firm_id) === String(user?.firm_id));
+  const ids = qcRestrictedIds(scope, user?.id);
+  if (ids == null) return t('qc.scope.all');
+  if (!ids.length) return t('qc.scope.none_picked');
+  const names = ids.map((id) => customers.find((c) => String(c.id) === id)?.name).filter(Boolean);
+  if (!names.length) return String(ids.length);
+  if (names.length <= 2) return names.join(', ');
+  return `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
+}
+
+async function qcCommitUserScope(firmId, userId, idsOrNull) {
+  if (!firmId || !userId || typeof sb !== 'function') return;
+  const firms = await sb(`firms?id=eq.${firmId}&select=settings`);
+  const existing = firms?.[0]?.settings || {};
+  const scope = { ...(existing.qc_customer_scope || {}) };
+  if (idsOrNull == null) delete scope[userId];
+  else scope[userId] = idsOrNull;
+  await sb(`firms?id=eq.${firmId}`, {
+    method: 'PATCH',
+    prefer: 'return=minimal',
+    body: JSON.stringify({ settings: { ...existing, qc_customer_scope: scope } }),
+  });
+  if (window._agentQcScopeByFirm) window._agentQcScopeByFirm[firmId] = scope;
+}
+
+async function loadQcScopeSettings() {
+  const card = document.getElementById('qc-scope-card');
+  const list = document.getElementById('qc-scope-list');
+  if (!card || !list) return;
+  const can = typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin();
+  card.style.display = can ? '' : 'none';
+  if (!can) return;
+  const host = document.getElementById('qc-scope-firm');
+  if (host && typeof renderFirmSelector === 'function') {
+    host.style.display = typeof isSuperAdmin === 'function' && isSuperAdmin() ? '' : 'none';
+    renderFirmSelector('qc-scope-firm', loadQcScopeSettings);
+  }
+  const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id || '';
+  if (!fid) {
+    list.innerHTML = `<div style="font-size:12px;color:var(--text-3);">${_uiEsc(t('qc.scope.needfirm'))}</div>`;
+    return;
+  }
+  list.innerHTML = `<div style="font-size:12px;color:var(--text-3);">${_uiEsc(t('ui.loading'))}</div>`;
+  const [users, customers, firms] = await Promise.all([
+    sb(`users?firm_id=eq.${fid}&role=eq.qc&select=id,name,email&order=name.asc`).catch(() => []),
+    sb(`customers?firm_id=eq.${fid}&is_active=eq.true&select=id,name,code&order=name.asc`).catch(() => []),
+    sb(`firms?id=eq.${fid}&select=settings`).catch(() => []),
+  ]);
+  const scope = firms?.[0]?.settings?.qc_customer_scope || {};
+  window._qcScopeDraftFirm = fid;
+  if (!users?.length) {
+    list.innerHTML = `<div style="font-size:12px;color:var(--text-3);">${_uiEsc(t('qc.scope.empty'))}</div>`;
+    return;
+  }
+  list.innerHTML = users.map((u) => `<div class="qc-scope-block" data-user="${_uiEsc(u.id)}">
+<div class="qc-scope-name">${_uiEsc(u.name || '')}<small>${_uiEsc(u.email || '')}</small></div>
+${qcScopeEditorHtml(u.id, customers || [], scope)}
+</div>`).join('');
+}
+
+async function saveQcScopeSettings() {
+  if (typeof mbIsFirmAdmin === 'function' && !mbIsFirmAdmin()) return;
+  const fid = window._qcScopeDraftFirm || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id || '';
+  const list = document.getElementById('qc-scope-list');
+  if (!fid || !list) { toast(t('qc.scope.needfirm'), 'warn'); return; }
+  try {
+    const firms = await sb(`firms?id=eq.${fid}&select=settings`);
+    const existing = firms?.[0]?.settings || {};
+    const scope = { ...(existing.qc_customer_scope || {}) };
+    list.querySelectorAll('.qc-scope-block').forEach((block) => {
+      const id = block.dataset.user;
+      const next = qcReadScopeEditor(block, id);
+      if (next == null) delete scope[id];
+      else scope[id] = next;
+    });
+    await sb(`firms?id=eq.${fid}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings: { ...existing, qc_customer_scope: scope } }),
+    });
+    if (window._agentQcScopeByFirm) window._agentQcScopeByFirm[fid] = scope;
+    toast(t('qc.scope.saved'), 'ok');
+  } catch (e) {
+    toast(t('qc.fail') + (e.message || ''), 'err');
+  }
+}
+
+async function qcFillAgentScope(userId, firmId) {
+  const host = document.getElementById('am-qc-scope');
+  if (!host || !userId || !firmId) return;
+  host.dataset.firm = firmId;
+  host.innerHTML = `<div style="font-size:12px;color:var(--text-3);">${_uiEsc(t('ui.loading'))}</div>`;
+  const [customers, firms] = await Promise.all([
+    sb(`customers?firm_id=eq.${firmId}&is_active=eq.true&select=id,name,code&order=name.asc`).catch(() => []),
+    sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []),
+  ]);
+  const scope = firms?.[0]?.settings?.qc_customer_scope || {};
+  host.innerHTML = `<div class="form-label">${_uiEsc(t('qc.scope.short'))}</div><div class="qc-scope-block" data-user="${_uiEsc(userId)}">${qcScopeEditorHtml(userId, customers || [], scope)}</div>`;
+  host.dataset.loaded = '1';
+}
+
 async function loadQcData() {
   const settingsBtn = document.getElementById('qc-settings-btn');
   if (settingsBtn) settingsBtn.style.display = (typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin()) ? '' : 'none';
@@ -78,16 +213,34 @@ async function loadQcData() {
     const to = document.getElementById('qc-date-to')?.value || '';
     if (from && typeof mbInstantGte === 'function') dateQ += `&termin_tarih=gte.${mbInstantGte(from)}`;
     if (to && typeof mbInstantLte === 'function') dateQ += `&termin_tarih=lte.${mbInstantLte(to)}`;
-    const embed = `appointments?select=${cols},users(name),campaigns(name),customers(name,code),takvim_slots!slot_id(tarih,baslangic_saat,bitis_saat,alta_tasindi)${ff}${dateQ}&order=termin_tarih.desc&limit=${QC_CAP}`;
-    try {
-      qcList = await sb(embed);
-    } catch (e) {
-      qcList = await sb(`appointments?select=${cols}${ff}${dateQ}&order=termin_tarih.desc&limit=${QC_CAP}`).catch(() => []);
+    let scopeIds = null;
+    if (String(currentUser?.role || '') === 'qc' && fid) {
+      const firms = await sb(`firms?id=eq.${fid}&select=settings`).catch(() => []);
+      scopeIds = qcRestrictedIds(firms?.[0]?.settings?.qc_customer_scope, currentUser.id);
+    }
+    const scopeQ = scopeIds?.length ? `&customer_id=in.(${scopeIds.join(',')})` : '';
+    const embed = `appointments?select=${cols},users(name),campaigns(name),customers(name,code),takvim_slots!slot_id(tarih,baslangic_saat,bitis_saat,alta_tasindi)${ff}${dateQ}${scopeQ}&order=termin_tarih.desc&limit=${QC_CAP}`;
+    if (scopeIds && !scopeIds.length) {
+      qcList = [];
+    } else {
+      try {
+        qcList = await sb(embed);
+      } catch (e) {
+        qcList = await sb(`appointments?select=${cols}${ff}${dateQ}${scopeQ}&order=termin_tarih.desc&limit=${QC_CAP}`).catch(() => []);
+      }
     }
     qcList = qcList || [];
+    if (scopeIds) {
+      const allow = new Set(scopeIds);
+      qcList = qcList.filter((row) => allow.has(String(row.customer_id || '')));
+    }
     window._qcCustomers = fid
       ? await sb(`customers?firm_id=eq.${fid}&is_active=eq.true&select=id,name,code&order=name.asc`).catch(() => [])
       : [];
+    if (scopeIds) {
+      const allow = new Set(scopeIds);
+      window._qcCustomers = (window._qcCustomers || []).filter((c) => allow.has(String(c.id)));
+    }
     window._qcCampById = {};
     const camps = await sb(`campaigns?select=id,name,settings,field_config${ff}&limit=500`).catch(() => []);
     (camps || []).forEach((c) => { window._qcCampById[c.id] = c; });

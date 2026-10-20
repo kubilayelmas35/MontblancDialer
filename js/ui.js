@@ -82,6 +82,7 @@ const _NAVIGATE_LOADERS = {
     _mbPageFn('loadRolesPage')?.();
     _mbPageFn('loadIncomingCallsSettingsPage')?.();
     _mbPageFn('loadAppointmentResultsSettings')?.();
+    _mbPageFn('loadQcScopeSettings')?.();
     setTimeout(() => _mbPageFn('initSettingsTabs')?.(window.__settingsTab || 'general'), 0);
     _mbPageFn('loadMesaiSettings')?.();
     _mbPageFn('loadCallHoursSettings')?.();
@@ -161,7 +162,7 @@ function initSettingsTabs(preferTab) {
     communication: new Set(['incoming-calls-settings-card', 'chat-settings-card']),
     notifications: new Set(['notif-settings-card']),
     operations: new Set(['call-hours-card', 'settings-goals-card', 'mesai-settings-card']),
-    quality: new Set(['results-settings-card', 'default-takvim-firm-card']),
+    quality: new Set(['results-settings-card', 'default-takvim-firm-card', 'qc-scope-card']),
     mesai: new Set(['mesai-plan-card']),
     field: new Set(['field-settings-card']),
     system: new Set(['settings-api-keys-card', 'feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings', 'sms-settings-card']),

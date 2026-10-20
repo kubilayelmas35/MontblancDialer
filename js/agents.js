@@ -267,6 +267,7 @@ function agentCardMarkup(user) {
 <button type="button" class="agent-camps-hit" title="${agentEsc(t('agent.camp.title'))}" onclick="event.stopPropagation();openAgentCampaigns('${user.id}')">${agentEsc(camps)}</button>
 <div class="agent-today" title="${agentEsc(t('agent.today.hint'))}">${agentEsc(agentTodayLine(user))}</div>
 <button type="button" class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="event.stopPropagation();openAgentCampaigns('${user.id}')">${agentEsc(t('agent.campaigns'))}</button>
+${user.role === 'qc' ? `<div class="agent-qc-scope">${agentEsc(t('qc.scope.short'))}: ${agentEsc(typeof qcAgentScopeLabel === 'function' ? qcAgentScopeLabel(user) : '')}</div>` : ''}
 </div>
 <div class="agent-card-side">
 <span style="font-size:10px;padding:2px 7px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-weight:700;">${agentEsc(text.role)}</span>
@@ -291,7 +292,7 @@ function agentRowsBody() {
     const color = agentStatusColor(status);
     const camps = text.camps || t('agent.no_campaign');
     const cells = {
-      name: `<td><span class="camp-row-name" title="${agentEsc(u.name || '')}">${agentEsc(u.name || '')}</span></td>`,
+      name: `<td><span class="camp-row-name" title="${agentEsc(u.name || '')}">${agentEsc(u.name || '')}</span>${u.role === 'qc' ? `<div class="agent-qc-scope">${agentEsc(t('qc.scope.short'))}: ${agentEsc(typeof qcAgentScopeLabel === 'function' ? qcAgentScopeLabel(u) : '')}</div>` : ''}</td>`,
       email: `<td>${agentEsc(u.email || '')}</td>`,
       role: `<td>${agentEsc(text.role)}</td>`,
       status: `<td style="color:${color};">${agentEsc(text.status)}</td>`,
@@ -390,13 +391,23 @@ async function loadAgents() {
   const grid = document.getElementById('agents-grid');
   try {
     const ff = getFirmFilter('&');
-    const [users, camps, sessions, counts] = await Promise.all([
+    const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : '';
+    const [users, camps, sessions, counts, scopeFirms, scopeCustomers] = await Promise.all([
       sb(`users?select=id,name,email,role,is_active,firm_id${ff}&role=in.(agent,qc,firm_admin,field_agent,super_admin)&order=name.asc`),
       sb(`campaigns?select=id,name,firm_id,settings${ff}&order=name.asc`),
       sb(`agent_sessions?select=agent_id,status,campaign_id,last_seen,updated_at${ff}`),
       agentFetchCounts(ff),
+      sb(fid ? `firms?id=eq.${fid}&select=id,settings` : 'firms?select=id,settings').catch(() => []),
+      sb(fid
+        ? `customers?firm_id=eq.${fid}&is_active=eq.true&select=id,name,code,firm_id&order=name.asc`
+        : 'customers?is_active=eq.true&select=id,name,code,firm_id&order=name.asc&limit=400').catch(() => []),
     ]);
     if (gen !== _agentsLoadGen) return;
+    window._agentCustomers = scopeCustomers || [];
+    window._agentQcScopeByFirm = {};
+    (scopeFirms || []).forEach((firm) => {
+      window._agentQcScopeByFirm[firm.id] = firm.settings?.qc_customer_scope || {};
+    });
     _agentUsers = users || [];
     _agentCamps = (camps || []).slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'tr'));
     agentStoreSessions(sessions || []);
@@ -591,6 +602,7 @@ ${!isEdit ? `<div class="form-row"><label class="form-label">Firma</label>
 ${(_allFirms||[]).map(f=>`<option value="${f.id}">${f.name}</option>`).join('')}
 ${!(_allFirms||[]).length ? `<option value="${currentUser.firm_id}">${escapeHtml(currentUser.firm_name || 'Firma')}</option>` : ''}
 </select></div>` : ''}
+${isEdit ? `<div id="am-qc-scope" ${prefill?.role === 'qc' ? '' : 'hidden'}></div>` : ''}
 </div>
 <div class="modal-footer">
 ${isEdit ? `<button class="btn btn-ghost" style="margin-right:auto;color:var(--red);" onclick="confirmDeleteAgent('${userId}')"><i class="ph ph-trash"></i> Sil</button>` : ''}
@@ -606,6 +618,18 @@ ${isEdit ? `<button class="btn btn-ghost" style="margin-right:auto;color:var(--r
   if (firmSel) {
     firmSel.onchange = () => syncFieldAgentRoleOption(prefill?.role, firmSel.value);
   }
+  const roleSel = document.getElementById('am-role');
+  const showQcScope = () => {
+    const host = document.getElementById('am-qc-scope');
+    if (!host) return;
+    const on = roleSel?.value === 'qc';
+    host.hidden = !on;
+    if (on && host.dataset.loaded !== '1' && typeof qcFillAgentScope === 'function') {
+      qcFillAgentScope(userId, prefill?.firm_id || currentUser?.firm_id);
+    }
+  };
+  if (roleSel) roleSel.addEventListener('change', showQcScope);
+  if (isEdit && prefill?.role === 'qc') showQcScope();
 }
 
 function openAddAgentModal() { _agentModal(null, null); }
@@ -678,6 +702,11 @@ async function saveAgentEdit(userId) {
       if (typeof logAuditEvent === 'function') await logAuditEvent('user_password_reset', 'user', userId, {});
     }
     if (typeof logAuditEvent === 'function') await logAuditEvent('user_updated', 'user', userId, { role, active });
+    const scopeHost = document.getElementById('am-qc-scope');
+    if (scopeHost?.dataset.loaded === '1' && typeof qcCommitUserScope === 'function') {
+      const next = role === 'qc' ? qcReadScopeEditor(scopeHost, userId) : null;
+      await qcCommitUserScope(scopeHost.dataset.firm, userId, next);
+    }
     document.getElementById('m-agent-mgr')?.remove();
     await loadAgents();
     toast('Güncellendi ✓','ok');
