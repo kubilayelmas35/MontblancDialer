@@ -257,25 +257,25 @@ async function loadFieldPage() {
   renderFieldKpi(_fieldTasks, files, fs);
 
   listEl.innerHTML = _fieldTasks
-    .map((t) => {
-      const ap = apptMap[t.appointment_id] || {};
+    .map((task) => {
+      const ap = apptMap[task.appointment_id] || {};
       const addr = [ap.strasse, ap.plz, ap.ortschaft].filter(Boolean).join(' ');
       const camp = ap.campaigns?.name || (Array.isArray(ap.campaigns) ? ap.campaigns[0]?.name : '');
       const biz = ap.customers?.name || (Array.isArray(ap.customers) ? ap.customers[0]?.name : '');
       const when = fieldApptWhen(ap).text;
-      const docs = fileMap[t.id] || [];
-      const payload = t.result_payload || {};
+      const docs = fileMap[task.id] || [];
+      const payload = task.result_payload || {};
       const sample = payload.sample === true ? `<span class="badge badge-blue" style="margin-left:6px;">${_fEsc(t('fieldops.sample'))}</span>` : '';
       const docTypes = (fs.document_requirements || []).map((item) => String(item || '').trim()).filter(Boolean);
       const docSelect = docTypes.length
-        ? `<select class="form-input" id="field-doctype-${t.id}" style="min-width:140px;font-size:12px;"><option value="">${_fEsc(t('field.doc_type'))}</option>${docTypes.map((key) => `<option value="${_fEsc(key)}">${_fEsc(fieldDocLabel(key))}</option>`).join('')}</select>`
+        ? `<select class="form-input" id="field-doctype-${task.id}" style="min-width:140px;font-size:12px;"><option value="">${_fEsc(t('field.doc_type'))}</option>${docTypes.map((key) => `<option value="${_fEsc(key)}">${_fEsc(fieldDocLabel(key))}</option>`).join('')}</select>`
         : '';
       return `<div class="card" style="padding:12px;">
 <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
 <div>
 <div style="font-size:14px;font-weight:800;">${_fEsc(ap.nachname || t('field.customer'))}${sample}</div>
 <div style="font-size:11px;color:var(--text-3);">${_fEsc(ap.telefonnummer || '—')} · ${_fEsc(addr || t('field.no_address'))}</div>
-<div style="font-size:11px;color:var(--text-3);margin-top:4px;">${_fEsc(t('field.assignee'))}: ${_fEsc(userMap[t.assigned_to] || '—')} · ${_fEsc(t('field.status'))}: <b>${_fEsc(fieldStatusLabel(t.status))}</b></div>
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;">${_fEsc(t('field.assignee'))}: ${_fEsc(userMap[task.assigned_to] || '—')} · ${_fEsc(t('field.status'))}: <b>${_fEsc(fieldStatusLabel(task.status))}</b></div>
 ${when ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_fEsc(t('field.appt'))}: ${_fEsc(when)}</div>` : ''}
 ${camp || biz ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px;">${[_fEsc(biz ? `${t('field.biz')}: ${biz}` : ''), _fEsc(camp ? `${t('field.camp')}: ${camp}` : '')].filter(Boolean).join(' · ')}</div>` : ''}
 </div>
@@ -287,22 +287,22 @@ ${camp || biz ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px;"
 ${ap.agent_notu ? `<div style="margin-top:8px;padding:8px;border-radius:6px;background:var(--bg-3);font-size:12px;"><b>${_fEsc(t('field.call_note'))}:</b> ${_fEsc(ap.agent_notu)}</div>` : ''}
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:8px;">
 <div class="form-row"><label class="form-label">${_fEsc(t('field.status'))}</label>
-<select class="form-input" id="field-status-${t.id}">
-<option value="assigned" ${t.status === 'assigned' ? 'selected' : ''}>${_fEsc(t('field.status.assigned'))}</option>
-<option value="in_progress" ${t.status === 'in_progress' ? 'selected' : ''}>${_fEsc(t('field.status.progress'))}</option>
-<option value="completed" ${t.status === 'completed' ? 'selected' : ''}>${_fEsc(t('field.status.done'))}</option>
-<option value="cancelled" ${t.status === 'cancelled' ? 'selected' : ''}>${_fEsc(t('field.status.cancel'))}</option>
+<select class="form-input" id="field-status-${task.id}">
+<option value="assigned" ${task.status === 'assigned' ? 'selected' : ''}>${_fEsc(t('field.status.assigned'))}</option>
+<option value="in_progress" ${task.status === 'in_progress' ? 'selected' : ''}>${_fEsc(t('field.status.progress'))}</option>
+<option value="completed" ${task.status === 'completed' ? 'selected' : ''}>${_fEsc(t('field.status.done'))}</option>
+<option value="cancelled" ${task.status === 'cancelled' ? 'selected' : ''}>${_fEsc(t('field.status.cancel'))}</option>
 </select></div>
 <div class="form-row"><label class="form-label">${_fEsc(t('field.result'))}</label>
-<select class="form-input" id="field-result-${t.id}" onchange="fieldSyncConditional('${t.id}')">
+<select class="form-input" id="field-result-${task.id}" onchange="fieldSyncConditional('${task.id}')">
 <option value="">${_fEsc(t('field.pick'))}</option>
-${(fs.result_options || []).map((r) => `<option value="${_fEsc(r)}" ${t.result_key === r ? 'selected' : ''}>${_fEsc(fieldResultLabel(r))}</option>`).join('')}
+${(fs.result_options || []).map((r) => `<option value="${_fEsc(r)}" ${task.result_key === r ? 'selected' : ''}>${_fEsc(fieldResultLabel(r))}</option>`).join('')}
 </select></div>
 <div class="form-row"><label class="form-label">${_fEsc(t('field.next'))} <span style="font-weight:500;color:var(--text-3);">${_fEsc(t('field.next_hint'))}</span></label>
-<input type="datetime-local" class="form-input" id="field-next-${t.id}" value="${_fEsc(fieldNextLocal(t.next_action_at))}"></div>
+<input type="datetime-local" class="form-input" id="field-next-${task.id}" value="${_fEsc(fieldNextLocal(task.next_action_at))}"></div>
 </div>
 <div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(t('field.note'))}</label>
-<textarea class="form-input" rows="2" id="field-note-${t.id}" placeholder="${_fEsc(t('field.note_ph'))}">${_fEsc(t.notes || '')}</textarea></div>
+<textarea class="form-input" rows="2" id="field-note-${task.id}" placeholder="${_fEsc(t('field.note_ph'))}">${_fEsc(task.notes || '')}</textarea></div>
 ${(fs.form_schema || [])
   .map((f) => {
     const ff = _fieldNormalizeSchemaRow(f);
@@ -312,27 +312,27 @@ ${(fs.form_schema || [])
     const minAttr = ff.min !== '' ? `min="${_fEsc(ff.min)}"` : '';
     const maxAttr = ff.max !== '' ? `max="${_fEsc(ff.max)}"` : '';
     const reqMark = ff.required ? ' *' : '';
-    const hidden = ff.show_when_result && String(t.result_key || '') !== String(ff.show_when_result) ? 'display:none;' : '';
-    const wrap = (inner) => `<div data-field-when-task="${t.id}" data-field-when="${_fEsc(ff.show_when_result)}" style="margin-top:8px;${hidden}">${inner}</div>`;
+    const hidden = ff.show_when_result && String(task.result_key || '') !== String(ff.show_when_result) ? 'display:none;' : '';
+    const wrap = (inner) => `<div data-field-when-task="${task.id}" data-field-when="${_fEsc(ff.show_when_result)}" style="margin-top:8px;${hidden}">${inner}</div>`;
     if (ff.type === 'number') {
-      return wrap(`<div class="form-row"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><input type="number" ${reqAttr} ${minAttr} ${maxAttr} class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`);
+      return wrap(`<div class="form-row"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><input type="number" ${reqAttr} ${minAttr} ${maxAttr} class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`);
     }
     if (ff.type === 'date') {
-      return wrap(`<div class="form-row"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><input type="date" ${reqAttr} class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`);
+      return wrap(`<div class="form-row"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><input type="date" ${reqAttr} class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`);
     }
     if (ff.type === 'select') {
-      return wrap(`<div class="form-row"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><select ${reqAttr} class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}"><option value="">${_fEsc(t('field.pick'))}</option>${(ff.options || []).map((o) => `<option value="${_fEsc(o)}" ${String(v) === String(o) ? 'selected' : ''}>${_fEsc(o)}</option>`).join('')}</select></div>`);
+      return wrap(`<div class="form-row"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><select ${reqAttr} class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}"><option value="">${_fEsc(t('field.pick'))}</option>${(ff.options || []).map((o) => `<option value="${_fEsc(o)}" ${String(v) === String(o) ? 'selected' : ''}>${_fEsc(o)}</option>`).join('')}</select></div>`);
     }
-    return wrap(`<div class="form-row"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><input ${reqAttr} class="form-input" id="field-extra-${t.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`);
+    return wrap(`<div class="form-row"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><input ${reqAttr} class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`);
   })
   .join('')}
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;">
 ${docSelect}
 <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
 ${_fEsc(t('field.upload'))}
-<input type="file" style="display:none;" onchange="uploadFieldTaskFile('${t.id}', this)">
+<input type="file" style="display:none;" onchange="uploadFieldTaskFile('${task.id}', this)">
 </label>
-<button class="btn btn-primary btn-sm" onclick="saveFieldTaskUpdate('${t.id}')">${_fEsc(t('field.save'))}</button>
+<button class="btn btn-primary btn-sm" onclick="saveFieldTaskUpdate('${task.id}')">${_fEsc(t('field.save'))}</button>
 </div>
 ${docs.length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">${docs
         .slice(0, 6)
@@ -344,14 +344,14 @@ ${docs.length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;
 }
 
 async function saveFieldTaskUpdate(taskId) {
-  const t = _fieldTasks.find((x) => x.id === taskId);
-  if (!t) return;
-  const fid = t.firm_id;
+  const row = _fieldTasks.find((x) => x.id === taskId);
+  if (!row) return;
+  const fid = row.firm_id;
   const fs = await getFirmFieldSettings(fid);
-  const status = document.getElementById(`field-status-${taskId}`)?.value || t.status;
+  const status = document.getElementById(`field-status-${taskId}`)?.value || row.status;
   const resultKey = document.getElementById(`field-result-${taskId}`)?.value || null;
   const notes = document.getElementById(`field-note-${taskId}`)?.value || '';
-  const payload = { ...(t.result_payload || {}) };
+  const payload = { ...(row.result_payload || {}) };
   for (const f of fs.form_schema || []) {
     const ff = _fieldNormalizeSchemaRow(f);
     if (!ff.key) continue;

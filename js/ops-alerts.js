@@ -4,7 +4,7 @@
 let _opsDirective = { ids: [], at: '', by: '' };
 let _opsAlerts = {
   callMin: 4, goldAfter: 1, waitMin: 1,
-  roles: ['agent', 'field_agent'], effect: 'aurora', campRoles: ['agent', 'field_agent'], campEffect: 'aurora', mesaiEffect: 'aurora',
+  roles: ['agent'], effect: 'aurora', campRoles: ['agent'], campEffect: 'aurora', mesaiEffect: 'aurora',
   appt: true, campaign: true, wrongAfter: 2, dataMin: 1000,
   sounds: { volume: 70, due: true, soon: true, hour: true, slot: true, wrong: true, camp: true, data: true, shift_on: true, break: true, break_end: true, shift: true, call: true, wait: true, pick: true, drop: true, clear: true, move: true, results: {} },
 };
@@ -358,7 +358,7 @@ function opsClamp(n, fallback, min, max) {
 
 function opsReadAlerts(raw) {
   const src = raw && typeof raw === 'object' ? raw : {};
-  const roles = Array.isArray(src.warn_roles) ? src.warn_roles.map(String) : ['agent', 'field_agent'];
+  const roles = (Array.isArray(src.warn_roles) ? src.warn_roles.map(String) : ['agent']).filter((role) => role !== 'field_agent');
   const effect = ['aurora', 'gradient', 'blink', 'solid'].includes(src.bar_effect) ? src.bar_effect : 'aurora';
   _opsAlerts = {
     callMin: opsClamp(src.call_min, 4, 1, 60),
@@ -366,7 +366,7 @@ function opsReadAlerts(raw) {
     waitMin: opsClamp(src.wait_min, 1, 1, 30),
     roles,
     effect,
-    campRoles: Array.isArray(src.camp_roles) ? src.camp_roles.map(String) : roles.slice(),
+    campRoles: (Array.isArray(src.camp_roles) ? src.camp_roles.map(String) : roles.slice()).filter((role) => role !== 'field_agent'),
     campEffect: ['aurora', 'gradient', 'blink', 'solid'].includes(src.camp_effect) ? src.camp_effect : effect,
     mesaiEffect: ['aurora', 'gradient', 'blink', 'solid'].includes(src.mesai_effect) ? src.mesai_effect : 'aurora',
     appt: src.notify_appt !== false,
@@ -433,10 +433,12 @@ function opsRoleIn(list) {
 }
 
 function opsRoleSeesWarn() {
+  if (String(currentUser?.role || '') === 'field_agent') return false;
   return opsRoleIn(_opsAlerts.roles);
 }
 
 function opsRoleSeesCamp() {
+  if (String(currentUser?.role || '') === 'field_agent') return false;
   return opsRoleIn(_opsAlerts.campRoles);
 }
 
