@@ -133,7 +133,8 @@ function mbApplyNavAccess() {
     const action = String(btn.getAttribute('onclick') || '');
     if (action.includes('doLogout')) return;
     const match = action.match(/navigate\('([a-z0-9_]+)'\)/);
-    const pageKey = match ? match[1] : (action.includes('openNavTakvim') ? 'takvim' : '');
+    const report = action.match(/openStatsReport\('([a-z0-9_]+)'\)/);
+    const pageKey = report ? 'stats' : (match ? match[1] : (action.includes('openNavTakvim') ? 'takvim' : ''));
     if (!pageKey) return;
     const page = MB_PAGES.find((item) => item.key === pageKey);
     if (!page) return;

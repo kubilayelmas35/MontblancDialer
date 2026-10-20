@@ -1112,31 +1112,44 @@ ${_statsExtras.map((col) => `<td class="td-mono">${tot.extra[col.key] || 0}</td>
   setSum('stats-sum-avg', statsClock(avgAll));
 }
 
+function statsCurrentRange() {
+  const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : null;
+  const ff = typeof getFirmFilter === 'function' ? getFirmFilter('&') : '';
+  const dateFilter = document.getElementById('stats-date-f')?.value || 'today';
+  const camp = document.getElementById('stats-camp-f')?.value || '';
+  const agent = document.getElementById('stats-agent-f')?.value || '';
+  const todayBiz = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
+  let dateFrom = todayBiz;
+  let dateTo = todayBiz;
+  if (dateFilter === 'week') dateFrom = statsMonday(todayBiz);
+  else if (dateFilter === 'month') dateFrom = `${String(todayBiz).slice(0, 8)}01`;
+  else if (dateFilter === 'year') dateFrom = `${String(todayBiz).slice(0, 4)}-01-01`;
+  else if (dateFilter === 'all') dateFrom = '2020-01-01';
+  else if (dateFilter === 'custom') {
+    dateFrom = document.getElementById('stats-date-from')?.value || dateFrom;
+    dateTo = document.getElementById('stats-date-to')?.value || dateTo;
+  }
+  if (dateTo < dateFrom) { const swap = dateFrom; dateFrom = dateTo; dateTo = swap; }
+  const gte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
+  const lte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
+  return { fid, ff, camp, agent, dateFrom, dateTo, gte, lte };
+}
+
 async function loadStats() {
+if (typeof mbSyncStatsChrome === 'function') mbSyncStatsChrome();
+if (window._statsReport && window._statsReport !== 'overview') return loadStatsReport();
 renderFirmSelector('stats-firm-selector', loadStats);
 const tbody = document.getElementById('stats-tbody');
 if (tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(STATS_COL) : `<tr><td colspan="${STATS_COL}" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
 try {
-const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : null;
+const range = statsCurrentRange();
+const fid = range.fid;
 await statsFillFilters(fid);
-const ff = getFirmFilter('&');
-const dateFilter = document.getElementById('stats-date-f')?.value || 'today';
-const campFilter = document.getElementById('stats-camp-f')?.value || '';
-const agentFilter = document.getElementById('stats-agent-f')?.value || '';
-const todayBiz = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
-let dateFrom = todayBiz;
-let dateTo = todayBiz;
-if (dateFilter === 'week') {
-dateFrom = statsMonday(todayBiz);
-} else if (dateFilter === 'month') {
-dateFrom = `${String(todayBiz).slice(0, 8)}01`;
-} else if (dateFilter === 'custom') {
-dateFrom = document.getElementById('stats-date-from')?.value || dateFrom;
-dateTo = document.getElementById('stats-date-to')?.value || dateTo;
-}
-if (dateTo < dateFrom) { const swap = dateFrom; dateFrom = dateTo; dateTo = swap; }
-const statsGte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
-const statsLte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
+const ff = range.ff;
+const campFilter = range.camp;
+const agentFilter = range.agent;
+const statsGte = range.gte;
+const statsLte = range.lte;
 const pulled = await statsPullLogs(ff, statsGte, statsLte, campFilter, agentFilter);
 const logs = pulled.rows || [];
 const capEl = document.getElementById('stats-cap');

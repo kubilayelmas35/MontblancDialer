@@ -242,9 +242,41 @@
 <svg class="sb-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
 </button>
 <div class="sb-sub">
-<button class="sb-item" onclick="navigate('stats')">
+<button class="sb-item" data-rep="overview" onclick="openStatsReport('overview')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
 <span data-tr="İstatistikler" data-de="Statistiken">İstatistikler</span>
+</button>
+<button class="sb-item" data-rep="operator" onclick="openStatsReport('operator')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="8" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/></svg></span>
+<span data-tr="Operatör istatistiği" data-de="Operatorstatistik">Operatör istatistiği</span>
+</button>
+<button class="sb-item" data-rep="calls" onclick="openStatsReport('calls')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 19V5M4 19h16"/><path d="M8 16v-5M12 16V8M16 16v-3"/></svg></span>
+<span data-tr="Arama istatistik" data-de="Anrufstatistik">Arama istatistik</span>
+</button>
+<button class="sb-item" data-rep="appt" onclick="openStatsReport('appt')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+<span data-tr="Randevu istatistik" data-de="Terminstatistik">Randevu istatistik</span>
+</button>
+<button class="sb-item" data-rep="result" onclick="openStatsReport('result')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg></span>
+<span data-tr="Sonlandırma istatistik" data-de="Abschlussstatistik">Sonlandırma istatistik</span>
+</button>
+<button class="sb-item" data-rep="credit" onclick="openStatsReport('credit')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="8"/><path d="M12 7v10M9.5 9.5c.6-.8 1.4-1.2 2.5-1.2 1.6 0 2.6.9 2.6 2.1S13.6 12.4 12 12.4 9.4 13.3 9.4 14.6 10.4 16.7 12 16.7c1.1 0 1.9-.4 2.5-1.2"/></svg></span>
+<span data-tr="Kredi harcama" data-de="Guthabenverbrauch">Kredi harcama</span>
+</button>
+<button class="sb-item" data-rep="perf" onclick="openStatsReport('perf')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 16l4-4 3 3 7-8"/></svg></span>
+<span data-tr="Operatör performans" data-de="Operatorleistung">Operatör performans</span>
+</button>
+<button class="sb-item" data-rep="group" onclick="openStatsReport('group')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="8" cy="9" r="2.5"/><circle cx="16" cy="9" r="2.5"/><path d="M3 18a5 5 0 0 1 10 0M11 18a5 5 0 0 1 10 0"/></svg></span>
+<span data-tr="Grup performans" data-de="Gruppenleistung">Grup performans</span>
+</button>
+<button class="sb-item" data-rep="rank" onclick="openStatsReport('rank')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg></span>
+<span data-tr="Liderlik" data-de="Rangliste">Liderlik</span>
 </button>
 <button class="sb-item" onclick="navigate('callhistory')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M8 6h13M8 12h13M8 18h13M4 6h.01M4 12h.01M4 18h.01"/></svg></span>
@@ -749,8 +781,11 @@
 <option value="today" data-tr="Bugün" data-de="Heute">Bugün</option>
 <option value="week" data-tr="Bu Hafta" data-de="Diese Woche">Bu Hafta</option>
 <option value="month" data-tr="Bu Ay" data-de="Dieser Monat">Bu Ay</option>
+<option value="year" data-tr="Bu Yıl" data-de="Dieses Jahr">Bu Yıl</option>
+<option value="all" data-tr="Tüm zamanlar" data-de="Gesamte Zeit">Tüm zamanlar</option>
 <option value="custom" data-tr="Özel Aralık" data-de="Benutzerdefiniert">Özel Aralık</option>
 </select>
+<select class="form-input" style="width:auto;display:none;" id="stats-result-f" onchange="loadStats()"></select>
 <div id="stats-custom-range" style="display:none;gap:4px;align-items:center;">
 <input type="date" class="form-input" id="stats-date-from" style="width:130px;" onchange="loadStats()">
 <span style="align-self:center;color:var(--text-3);">—</span>
@@ -762,6 +797,7 @@
 </div>
 </div>
 </div>
+<div id="stats-overview">
 <div id="stats-sum" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:12px;">
 <div class="card" style="padding:14px;"><div style="font-size:11px;color:var(--text-3);font-weight:700;" data-tr="Arama" data-de="Anrufe">Arama</div><div id="stats-sum-calls" style="font-size:22px;font-weight:800;margin-top:4px;">—</div></div>
 <div class="card" style="padding:14px;"><div style="font-size:11px;color:var(--text-3);font-weight:700;" data-tr="Randevu" data-de="Termin">Randevu</div><div id="stats-sum-appt" style="font-size:22px;font-weight:800;margin-top:4px;">—</div></div>
@@ -794,6 +830,8 @@
 </div>
 </div>
 <div id="stats-detail" style="display:flex;flex-direction:column;gap:12px;margin-top:12px;"></div>
+</div>
+<div id="stats-extra" style="display:none;flex-direction:column;gap:12px;"></div>
 </div>
 <div class="page" id="page-callhistory">
 <div class="page-hdr">
