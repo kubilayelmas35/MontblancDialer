@@ -126,14 +126,17 @@ function fieldOpsOpen(taskId) {
   const formRows = schema.map((item) => {
     const field = typeof _fieldNormalizeSchemaRow === 'function' ? _fieldNormalizeSchemaRow(item) : item;
     if (!field?.key) return '';
-    if (field.type === 'photo') {
-      const shots = _fieldOpsFiles.filter((file) => file.task_id === row.id && (typeof fieldDocKeyOf === 'function' ? fieldDocKeyOf(file) : '') === `photo:${field.key}`);
+    if (field.type === 'photo' || field.type === 'sign') {
+      const mark = `${field.type === 'sign' ? 'sign' : 'photo'}:${field.key}`;
+      const shots = _fieldOpsFiles.filter((file) => file.task_id === row.id && (typeof fieldDocKeyOf === 'function' ? fieldDocKeyOf(file) : '') === mark);
       if (!shots.length) return '';
-      return `<div class="dash-mini-row"><span>${_foEsc(field.label || field.key)}</span><b>${shots.map((file) => `<a target="_blank" rel="noopener" href="${_foEsc(file.file_url)}">${_foEsc(typeof fieldFileTitle === 'function' ? fieldFileTitle(file) : file.file_name)}</a>`).join(' · ')}</b></div>`;
+      return `<div class="dash-mini-row"><span>${_foEsc(field.label || field.key)}</span><b style="display:flex;gap:6px;flex-wrap:wrap;">${shots.map((file) => (typeof fieldFileThumb === 'function' ? fieldFileThumb(file) : '')).join('')}</b></div>`;
     }
     const value = payload[field.key];
-    if (value == null || value === '') return '';
-    const shown = field.type === 'yesno' ? (value === 'evet' ? t('field.yes') : value === 'hayir' ? t('field.no') : value) : value;
+    if (value == null || value === '' || (Array.isArray(value) && !value.length)) return '';
+    const shown = Array.isArray(value)
+      ? value.join(', ')
+      : field.type === 'yesno' ? (value === 'evet' ? t('field.yes') : value === 'hayir' ? t('field.no') : value) : value;
     return `<div class="dash-mini-row"><span>${_foEsc(field.label || field.key)}</span><b>${_foEsc(shown)}</b></div>`;
   }).filter(Boolean);
   Object.keys(payload).forEach((key) => {
@@ -145,7 +148,7 @@ function fieldOpsOpen(taskId) {
   });
   const docs = _fieldOpsFiles.filter((file) => file.task_id === row.id);
   const docHtml = docs.length
-    ? docs.map((file) => `<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${_foEsc(file.file_url)}">${_foEsc(typeof fieldFileTitle === 'function' ? fieldFileTitle(file) : file.file_name)}</a>`).join('')
+    ? docs.map((file) => (typeof fieldFileThumb === 'function' ? fieldFileThumb(file) : `<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${_foEsc(file.file_url)}">${_foEsc(file.file_name)}</a>`)).join('')
     : `<span style="color:var(--text-3);font-size:12px;">${_foEsc(t('fieldops.no_docs'))}</span>`;
   const agentOpts = _fieldOpsAgents.map((user) => `<option value="${_foEsc(user.id)}" ${user.id === row.assigned_to ? 'selected' : ''}>${_foEsc(user.name || user.email || user.id)}</option>`).join('');
   document.getElementById('fieldops-detail')?.remove();
@@ -163,6 +166,7 @@ function fieldOpsOpen(taskId) {
 <div><b>${_foEsc(t('field.agent'))}:</b> ${_foEsc(asg.name || asg.email || '—')}</div>
 <div><b>${_foEsc(t('field.result'))}:</b> ${_foEsc(_fieldOpsResultLabel(row.result_key || '—'))}</div>
 <div><b>${_foEsc(t('field.next'))}:</b> ${_foEsc(next || '—')}</div>
+${typeof fieldBriefMarkup === 'function' ? fieldBriefMarkup(ap) : ''}
 ${ap.agent_notu ? `<div style="padding:8px;border-radius:6px;background:var(--bg-3);"><b>${_foEsc(t('field.call_note'))}:</b> ${_foEsc(ap.agent_notu)}</div>` : ''}
 ${row.notes ? `<div style="padding:8px;border-radius:6px;background:var(--bg-3);"><b>${_foEsc(t('field.note'))}:</b> ${_foEsc(row.notes)}</div>` : ''}
 <div style="margin-top:4px;font-weight:700;">${_foEsc(t('fieldops.form'))}</div>

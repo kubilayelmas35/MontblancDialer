@@ -46,9 +46,10 @@ function _fieldNormalizeSchemaRow(row) {
   return {
     key: String(row?.key || '').trim(),
     label: String(row?.label || '').trim(),
-    type: ['text', 'long', 'number', 'select', 'date', 'yesno', 'photo'].includes(String(row?.type || 'text')) ? String(row?.type) : 'text',
+    type: ['text', 'long', 'number', 'select', 'checks', 'date', 'yesno', 'photo', 'sign'].includes(String(row?.type || 'text')) ? String(row?.type) : 'text',
     options: Array.isArray(row?.options) ? row.options : [],
     required: !!row?.required,
+    placeholder: String(row?.placeholder || ''),
     min: row?.min ?? '',
     max: row?.max ?? '',
     show_when_result: String(row?.show_when_result || '').trim()
@@ -122,6 +123,7 @@ function fieldFileTitle(file) {
   const raw = String(file?.file_name || '');
   const name = key ? raw.replace(/^\[[^\]]+\]\s+/, '') : raw;
   if (key.startsWith('photo:')) return `${t('field.photo')} · ${name}`;
+  if (key.startsWith('sign:')) return `${t('field.sign')} · ${name}`;
   return key ? `${fieldDocLabel(key)} · ${name}` : name;
 }
 
@@ -179,6 +181,21 @@ function fieldPhotoKey(key) {
   return `photo:${String(key || '').trim()}`;
 }
 
+function fieldMarkKey(kind, key) {
+  return `${kind === 'sign' ? 'sign' : 'photo'}:${String(key || '').trim()}`;
+}
+
+function fieldFileThumb(file, attr) {
+  const href = _fEsc(file?.file_url);
+  const title = _fEsc(fieldFileTitle(file));
+  const name = String(file?.file_name || '');
+  const key = fieldDocKeyOf(file);
+  const image = key.startsWith('photo:') || key.startsWith('sign:') || /\.(png|jpe?g|webp|gif)$/i.test(name);
+  const mark = attr ? ` ${attr}` : '';
+  if (!image) return `<a class="btn btn-ghost btn-sm"${mark} target="_blank" rel="noopener" href="${href}">${title}</a>`;
+  return `<a${mark} target="_blank" rel="noopener" href="${href}" title="${title}"><img src="${href}" alt="${title}" style="width:76px;height:76px;object-fit:cover;border-radius:8px;display:block;border:1px solid var(--border);"></a>`;
+}
+
 function fieldQuestionMarkup(task, field, payload, docs) {
   const ff = _fieldNormalizeSchemaRow(field);
   if (!ff.key || !ff.label) return '';
@@ -188,7 +205,10 @@ function fieldQuestionMarkup(task, field, payload, docs) {
   const reqAttr = ff.required ? 'required' : '';
   let inner = '';
   if (ff.type === 'long') {
-    inner = `<textarea class="form-input" rows="3" id="field-extra-${task.id}-${_fEsc(ff.key)}">${_fEsc(value)}</textarea>`;
+    inner = `<textarea class="form-input" rows="3" id="field-extra-${task.id}-${_fEsc(ff.key)}" placeholder="${_fEsc(ff.placeholder)}">${_fEsc(value)}</textarea>`;
+  } else if (ff.type === 'checks') {
+    const picked = Array.isArray(value) ? value.map(String) : String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+    inner = `<div id="field-extra-${task.id}-${_fEsc(ff.key)}" style="display:flex;flex-direction:column;gap:4px;">${(ff.options || []).map((opt) => `<label style="font-size:12px;display:flex;align-items:center;gap:6px;"><input type="checkbox" value="${_fEsc(opt)}" ${picked.includes(String(opt)) ? 'checked' : ''}> ${_fEsc(opt)}</label>`).join('')}</div>`;
   } else if (ff.type === 'number') {
     const minAttr = ff.min !== '' ? `min="${_fEsc(ff.min)}"` : '';
     const maxAttr = ff.max !== '' ? `max="${_fEsc(ff.max)}"` : '';
@@ -201,10 +221,14 @@ function fieldQuestionMarkup(task, field, payload, docs) {
     inner = `<select class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}"><option value="">${_fEsc(t('field.pick'))}</option>${(ff.options || []).map((o) => `<option value="${_fEsc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${_fEsc(o)}</option>`).join('')}</select>`;
   } else if (ff.type === 'photo') {
     const mine = (docs || []).filter((file) => fieldDocKeyOf(file) === fieldPhotoKey(ff.key));
-    const thumbs = mine.map((file) => `<a data-field-photo="${_fEsc(task.id)}:${_fEsc(ff.key)}" class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${_fEsc(file.file_url)}">${_fEsc(fieldFileTitle(file))}</a>`).join('');
-    inner = `<label class="btn btn-ghost btn-sm" style="cursor:pointer;width:fit-content;">${_fEsc(t('field.photo_add'))}<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="uploadFieldTaskFile('${task.id}', this, '${_fEsc(ff.key)}')"></label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${thumbs}</div>`;
+    const thumbs = mine.map((file) => fieldFileThumb(file, `data-field-photo="${_fEsc(task.id)}:${_fEsc(ff.key)}"`)).join('');
+    inner = `<label class="btn btn-ghost btn-sm" style="cursor:pointer;width:fit-content;">${_fEsc(t('field.photo_add'))}<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="uploadFieldTaskFile('${task.id}', this, '${_fEsc(ff.key)}', 'photo')"></label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${thumbs}</div>`;
+  } else if (ff.type === 'sign') {
+    const mine = (docs || []).filter((file) => fieldDocKeyOf(file) === fieldMarkKey('sign', ff.key));
+    const thumbs = mine.map((file) => fieldFileThumb(file, `data-field-sign="${_fEsc(task.id)}:${_fEsc(ff.key)}"`)).join('');
+    inner = `<canvas id="field-sign-${task.id}-${_fEsc(ff.key)}" width="640" height="160" style="width:100%;height:120px;background:var(--bg);border:1px solid var(--border);border-radius:8px;touch-action:none;" onpointerdown="fieldSignStart(event)" onpointermove="fieldSignMove(event)" onpointerup="fieldSignEnd(event)" onpointercancel="fieldSignEnd(event)"></canvas><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;"><button type="button" class="btn btn-ghost btn-sm" onclick="fieldSignClear('${task.id}','${_fEsc(ff.key)}')">${_fEsc(t('field.sign_clear'))}</button><button type="button" class="btn btn-primary btn-sm" onclick="fieldSignSave('${task.id}','${_fEsc(ff.key)}')">${_fEsc(t('field.sign_save'))}</button></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${thumbs}</div>`;
   } else {
-    inner = `<input ${reqAttr} class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}" value="${_fEsc(value)}">`;
+    inner = `<input ${reqAttr} class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}" placeholder="${_fEsc(ff.placeholder)}" value="${_fEsc(value)}">`;
   }
   return `<div data-field-when-task="${task.id}" data-field-when="${_fEsc(ff.show_when_result)}" style="margin-top:8px;${hidden}"><div class="form-row"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label>${inner}</div></div>`;
 }
@@ -213,6 +237,102 @@ function fieldQuickStatus(taskId, status) {
   const sel = document.getElementById(`field-status-${taskId}`);
   if (sel) sel.value = status;
   saveFieldTaskUpdate(taskId);
+}
+
+function fieldSignPoint(canvas, event) {
+  const src = event.touches ? event.touches[0] : event;
+  const rect = canvas.getBoundingClientRect();
+  return [
+    (src.clientX - rect.left) * (canvas.width / Math.max(rect.width, 1)),
+    (src.clientY - rect.top) * (canvas.height / Math.max(rect.height, 1))
+  ];
+}
+
+function fieldSignStart(event) {
+  const canvas = event.currentTarget;
+  const ctx = canvas.getContext('2d');
+  const [x, y] = fieldSignPoint(canvas, event);
+  ctx.strokeStyle = getComputedStyle(document.body).color || '#111';
+  ctx.lineWidth = 2.4;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  canvas._ink = true;
+  canvas.setPointerCapture?.(event.pointerId);
+  event.preventDefault();
+}
+
+function fieldSignMove(event) {
+  const canvas = event.currentTarget;
+  if (!canvas?._ink) return;
+  const ctx = canvas.getContext('2d');
+  const [x, y] = fieldSignPoint(canvas, event);
+  ctx.lineTo(x, y);
+  ctx.stroke();
+  event.preventDefault();
+}
+
+function fieldSignEnd(event) {
+  if (event?.currentTarget) event.currentTarget._ink = false;
+}
+
+function fieldSignClear(taskId, key) {
+  const canvas = document.getElementById(`field-sign-${taskId}-${key}`);
+  if (!canvas) return;
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function fieldSignSave(taskId, key) {
+  const canvas = document.getElementById(`field-sign-${taskId}-${key}`);
+  if (!canvas) return;
+  const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+  const ink = pixels.some((value) => value !== 0);
+  if (!ink) {
+    toast(t('field.sign_empty'), 'warn');
+    return;
+  }
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const file = new File([blob], 'imza.png', { type: 'image/png' });
+    uploadFieldTaskFile(taskId, { files: [file] }, key, 'sign');
+  }, 'image/png');
+}
+
+const FIELD_HOUSE_KEYS = ['hausart', 'baujahr', 'qm', 'heizung', 'alter_der_heizung', 'verbrauch_pro_jahr', 'personen', 'interesse_an_pv'];
+
+function fieldBriefValue(key, raw) {
+  if (raw == null || raw === '') return '';
+  if (typeof raw === 'boolean' || key === 'interesse_an_pv') {
+    if (raw === true || raw === 'true' || raw === 'evet') return t('field.yes');
+    if (raw === false || raw === 'false' || raw === 'hayir') return t('field.no');
+  }
+  if (typeof raw === 'object') return '';
+  return String(raw);
+}
+
+function fieldBriefLabel(key) {
+  const i18nKey = `field.house.${key}`;
+  const label = typeof t === 'function' ? t(i18nKey) : key;
+  return label && label !== i18nKey ? label : String(key || '').replaceAll('_', ' ');
+}
+
+function fieldBriefMarkup(ap) {
+  if (!ap) return '';
+  const rows = [];
+  const push = (key, raw) => {
+    const shown = fieldBriefValue(key, raw);
+    if (!shown) return;
+    rows.push(`<div><span style="color:var(--text-3);">${_fEsc(fieldBriefLabel(key))}:</span> ${_fEsc(shown)}</div>`);
+  };
+  FIELD_HOUSE_KEYS.forEach((key) => push(key, ap[key]));
+  const ek = ap.form_ek && typeof ap.form_ek === 'object' ? ap.form_ek : {};
+  Object.keys(ek).forEach((key) => {
+    if (FIELD_HOUSE_KEYS.includes(key)) return;
+    push(key, ek[key]);
+  });
+  if (ap.qc_notu) rows.push(`<div><span style="color:var(--text-3);">${_fEsc(t('field.qc_note'))}:</span> ${_fEsc(ap.qc_notu)}</div>`);
+  if (!rows.length) return '';
+  return `<div style="margin-top:8px;padding:8px;border-radius:6px;background:var(--bg-3);font-size:12px;display:flex;flex-direction:column;gap:3px;"><b>${_fEsc(t('field.brief'))}</b>${rows.join('')}</div>`;
 }
 
 function fieldSyncConditional(taskId) {
@@ -227,7 +347,7 @@ async function fieldLoadAppointments(ids) {
   const list = [...new Set((ids || []).filter(Boolean))];
   if (!list.length) return [];
   const idList = list.join(',');
-  const rich = `appointments?id=in.(${idList})&select=id,nachname,telefonnummer,strasse,plz,ortschaft,agent_notu,termin_tarih,campaigns(name),customers(name),takvim_slots!slot_id(tarih,baslangic_saat,bitis_saat)`;
+  const rich = `appointments?id=in.(${idList})&select=id,nachname,telefonnummer,telefon2,strasse,plz,ortschaft,agent_notu,qc_notu,hausart,baujahr,qm,heizung,alter_der_heizung,verbrauch_pro_jahr,personen,interesse_an_pv,form_ek,termin_tarih,campaigns(name),customers(name),takvim_slots!slot_id(tarih,baslangic_saat,bitis_saat)`;
   const rows = await sb(rich).catch(() => null);
   if (Array.isArray(rows)) return rows;
   return (await sb(`appointments?id=in.(${idList})&select=id,nachname,telefonnummer,strasse,plz,ortschaft,agent_notu,termin_tarih`).catch(() => [])) || [];
@@ -246,6 +366,36 @@ function renderFieldKpi(tasks, files, fs) {
   set('field-kpi-done', done);
   set('field-kpi-sales', sales);
   set('field-kpi-missing-doc', missing);
+}
+
+let _fieldDay = 'open';
+
+function fieldBerlinToday() {
+  if (typeof mbBerlinDay === 'function') return mbBerlinDay(new Date().toISOString());
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}
+
+function fieldTaskVisible(task, appointment) {
+  if (_fieldDay === 'all') return true;
+  if (_fieldDay === 'today') {
+    const slot = fieldSlotOf(appointment);
+    const day = slot?.tarih || String(appointment?.termin_tarih || '').slice(0, 10);
+    return day === fieldBerlinToday();
+  }
+  return task.status === 'assigned' || task.status === 'in_progress';
+}
+
+function fieldSetDay(day) {
+  _fieldDay = day || 'open';
+  loadFieldPage();
+}
+
+function fieldSyncDayButtons() {
+  document.querySelectorAll('[data-field-day]').forEach((btn) => {
+    const on = btn.getAttribute('data-field-day') === _fieldDay;
+    btn.classList.toggle('btn-primary', on);
+    btn.classList.toggle('btn-ghost', !on);
+  });
 }
 
 async function loadFieldPage() {
@@ -296,8 +446,14 @@ async function loadFieldPage() {
     fileMap[f.task_id].push(f);
   });
   renderFieldKpi(_fieldTasks, files, fs);
+  fieldSyncDayButtons();
+  const visible = _fieldTasks.filter((task) => fieldTaskVisible(task, apptMap[task.appointment_id] || {}));
+  if (!visible.length) {
+    listEl.innerHTML = `<div class="card" style="padding:20px;color:var(--text-3);font-size:12px;text-align:center;">${_fEsc(t('field.empty.filter'))}</div>`;
+    return;
+  }
 
-  listEl.innerHTML = _fieldTasks
+  listEl.innerHTML = visible
     .map((task) => {
       const ap = apptMap[task.appointment_id] || {};
       const addr = [ap.strasse, ap.plz, ap.ortschaft].filter(Boolean).join(' ');
@@ -325,6 +481,7 @@ ${camp || biz ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px;"
 <a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://maps.google.com/?q=${encodeURIComponent(addr || '')}" ${addr ? '' : 'style="pointer-events:none;opacity:.45;"'}>${_fEsc(t('field.map'))}</a>
 </div>
 </div>
+${fieldBriefMarkup(ap)}
 ${ap.agent_notu ? `<div style="margin-top:8px;padding:8px;border-radius:6px;background:var(--bg-3);font-size:12px;"><b>${_fEsc(t('field.call_note'))}:</b> ${_fEsc(ap.agent_notu)}</div>` : ''}
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:8px;">
 <div class="form-row"><label class="form-label">${_fEsc(t('field.status'))}</label>
@@ -357,9 +514,9 @@ ${_fEsc(t('field.upload'))}
 </label>
 <button class="btn btn-primary btn-sm" onclick="saveFieldTaskUpdate('${task.id}')">${_fEsc(t('field.save'))}</button>
 </div>
-${docs.filter((file) => !String(fieldDocKeyOf(file)).startsWith('photo:')).length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">${docs.filter((file) => !String(fieldDocKeyOf(file)).startsWith('photo:'))
+${docs.filter((file) => { const key = fieldDocKeyOf(file); return !key.startsWith('photo:') && !key.startsWith('sign:'); }).length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">${docs.filter((file) => { const key = fieldDocKeyOf(file); return !key.startsWith('photo:') && !key.startsWith('sign:'); })
         .slice(0, 6)
-        .map((f) => `<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${_fEsc(f.file_url)}">${_fEsc(fieldFileTitle(f))}</a>`)
+        .map((f) => fieldFileThumb(f))
         .join('')}</div>` : ''}
 </div>`;
     })
@@ -379,12 +536,22 @@ async function saveFieldTaskUpdate(taskId) {
     const ff = _fieldNormalizeSchemaRow(f);
     if (!ff.key) continue;
     if (ff.show_when_result && String(resultKey || '') !== String(ff.show_when_result)) continue;
-    if (ff.type === 'photo') {
-      const has = document.querySelector(`[data-field-photo="${taskId}:${ff.key}"]`);
+    if (ff.type === 'photo' || ff.type === 'sign') {
+      const attr = ff.type === 'sign' ? 'data-field-sign' : 'data-field-photo';
+      const has = document.querySelector(`[${attr}="${taskId}:${ff.key}"]`);
       if (ff.required && !has) {
-        toast(tReplace('field.need_photo', { label: ff.label || ff.key }), 'warn');
+        toast(tReplace(ff.type === 'sign' ? 'field.need_sign' : 'field.need_photo', { label: ff.label || ff.key }), 'warn');
         return;
       }
+      continue;
+    }
+    if (ff.type === 'checks') {
+      const picked = [...document.querySelectorAll(`#field-extra-${taskId}-${ff.key} input:checked`)].map((el) => el.value);
+      if (ff.required && !picked.length) {
+        toast(tReplace('field.need_checks', { label: ff.label || ff.key }), 'warn');
+        return;
+      }
+      payload[ff.key] = picked;
       continue;
     }
     const val = document.getElementById(`field-extra-${taskId}-${ff.key}`)?.value || '';
@@ -431,9 +598,9 @@ async function saveFieldTaskUpdate(taskId) {
   await loadFieldPage();
 }
 
-async function uploadFieldTaskFile(taskId, input, fieldKey) {
+async function uploadFieldTaskFile(taskId, input, fieldKey, kind) {
   const file = input?.files?.[0];
-  input.value = '';
+  if (input && 'value' in input) input.value = '';
   if (!file) return;
   const task = _fieldTasks.find((x) => x.id === taskId);
   if (!task) return;
@@ -445,7 +612,7 @@ async function uploadFieldTaskFile(taskId, input, fieldKey) {
     toast(t('field.need_doc_type'), 'warn');
     return;
   }
-  const storedName = photoKey ? `[${fieldPhotoKey(photoKey)}] ${file.name}` : (docType ? `[${docType}] ${file.name}` : file.name);
+  const storedName = photoKey ? `[${fieldMarkKey(kind, photoKey)}] ${file.name}` : (docType ? `[${docType}] ${file.name}` : file.name);
   const path = `${task.firm_id}/${taskId}/${Date.now()}_${String(file.name).replace(/[^a-zA-Z0-9._-]/g, '_')}`;
   let url = '';
   try {
