@@ -941,5 +941,5 @@ i.ph {
 .field-cat-photo-empty.cat_wallbox { background: #0e7490; border: none; }
 .field-cat-photo-empty.cat_wp { background: #c25a1c; border: none; }
 @media (max-width: 640px) {
-  #field-cat-pdf > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+  #fieldops-pdf-body div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
 }

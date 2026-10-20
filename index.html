@@ -12,16 +12,16 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=10.23">
-<link rel="stylesheet" href="css/styles-dialer.css?v=10.23">
-<link rel="stylesheet" href="css/styles-mascot.css?v=10.23">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=10.23">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=10.23">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=10.23">
-<link rel="stylesheet" href="css/styles-pages.css?v=10.23">
-<link rel="stylesheet" href="css/styles-aurora.css?v=10.23">
-<link rel="stylesheet" href="css/styles-chat.css?v=10.23">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=10.23">
+<link rel="stylesheet" href="css/styles.css?v=10.24">
+<link rel="stylesheet" href="css/styles-dialer.css?v=10.24">
+<link rel="stylesheet" href="css/styles-mascot.css?v=10.24">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=10.24">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=10.24">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=10.24">
+<link rel="stylesheet" href="css/styles-pages.css?v=10.24">
+<link rel="stylesheet" href="css/styles-aurora.css?v=10.24">
+<link rel="stylesheet" href="css/styles-chat.css?v=10.24">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=10.24">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -48,7 +48,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v10.23 — 2026</div>
+<div class="login-version">v10.24 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -409,7 +409,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v10.23</div>
+<div class="sb-ver">MontBlanc v10.24</div>
 </div>
 </nav>
 <main id="main">
@@ -1746,7 +1746,7 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="page-title"><span data-tr="Saha Operasyon Takibi" data-de="Feldübersicht">Saha Operasyon Takibi</span></div>
 <div class="page-sub" data-tr="Hangi randevu hangi saha elemanında ve güncel sonuç durumu" data-de="Welcher Termin bei welchem Feldmitarbeiter liegt">Hangi randevu hangi saha elemanında ve güncel sonuç durumu</div>
 </div>
-<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+<div id="fieldops-tools" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="fieldops-firm-wrap"></div>
 <select class="form-input" id="fieldops-status-filter" style="min-width:140px;font-size:12px;" onchange="fieldOpsApplyFilters()">
 <option value="" data-tr="Tüm durumlar" data-de="Alle Status">Tüm durumlar</option>
@@ -1759,26 +1759,18 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <button class="btn btn-ghost btn-sm" onclick="loadFieldOpsPage()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
 </div>
 </div>
+<div class="settings-tabs" id="fieldops-tabs" style="margin-bottom:10px;">
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn active" data-pane="tasks" onclick="fieldOpsPane('tasks')"><span data-tr="Görevler" data-de="Aufgaben">Görevler</span></button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-pane="products" onclick="fieldOpsPane('products')"><span data-tr="Ürünler" data-de="Produkte">Ürünler</span></button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-pane="pdf" onclick="fieldOpsPane('pdf')"><span data-tr="PDF" data-de="PDF">PDF</span></button>
+</div>
+<div id="fieldops-pane-tasks">
 <div id="fieldops-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:10px;">
 <div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Toplam" data-de="Gesamt">Toplam</div><div id="fieldops-kpi-total" style="font-size:20px;font-weight:800;">0</div></div>
 <div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Atandı" data-de="Zugewiesen">Atandı</div><div id="fieldops-kpi-assigned" style="font-size:20px;font-weight:800;">0</div></div>
 <div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Sahada" data-de="Im Feld">Sahada</div><div id="fieldops-kpi-progress" style="font-size:20px;font-weight:800;">0</div></div>
 <div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="Tamamlandı" data-de="Erledigt">Tamamlandı</div><div id="fieldops-kpi-done" style="font-size:20px;font-weight:800;">0</div></div>
 <div class="card" style="padding:10px;"><div style="font-size:11px;color:var(--text-3);" data-tr="İptal" data-de="Storniert">İptal</div><div id="fieldops-kpi-cancelled" style="font-size:20px;font-weight:800;">0</div></div>
-</div>
-<div class="card" id="fieldops-catalog" style="margin-bottom:10px;display:none;">
-<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
-<div class="card-title" style="margin:0;"><span data-tr="Stok ve teklif PDF" data-de="Bestand und Angebots-PDF">Stok ve teklif PDF</span></div>
-<div style="display:flex;gap:6px;">
-<button type="button" class="btn btn-ghost btn-sm" id="field-cat-tab-stock" onclick="fieldCatalogTab('stock')"><span data-tr="Stok" data-de="Bestand">Stok</span></button>
-<button type="button" class="btn btn-ghost btn-sm" id="field-cat-tab-pdf" onclick="fieldCatalogTab('pdf')"><span data-tr="PDF" data-de="PDF">PDF</span></button>
-</div>
-</div>
-<div id="fieldops-catalog-body"></div>
-<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-<button type="button" class="btn btn-primary btn-sm" onclick="saveFieldCatalog()"><span data-tr="Stok ve PDF kaydet" data-de="Bestand und PDF speichern">Stok ve PDF kaydet</span></button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="fieldCatalogPreview()"><span data-tr="PDF önizleme" data-de="PDF-Vorschau">PDF önizleme</span></button>
-</div>
 </div>
 <div class="card">
 <div class="tbl-wrap">
@@ -1799,6 +1791,24 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <tr><td colspan="10" style="text-align:center;color:var(--text-3);padding:24px;" data-tr="Yükleniyor..." data-de="Wird geladen...">Yükleniyor...</td></tr>
 </tbody>
 </table>
+</div>
+</div>
+</div>
+<div id="fieldops-pane-products" hidden>
+<div class="card">
+<div class="card-title" style="margin-bottom:8px;"><span data-tr="Ürünler" data-de="Produkte">Ürünler</span></div>
+<div id="fieldops-products-body"></div>
+<button type="button" class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="saveFieldCatalog()"><span data-tr="Ürünleri kaydet" data-de="Produkte speichern">Ürünleri kaydet</span></button>
+</div>
+</div>
+<div id="fieldops-pane-pdf" hidden>
+<div class="card">
+<div class="card-title" style="margin-bottom:8px;"><span data-tr="Teklif PDF" data-de="Angebots-PDF">Teklif PDF</span></div>
+<div id="fieldops-pdf-body"></div>
+<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+<button type="button" class="btn btn-primary btn-sm" onclick="saveFieldCatalog()"><span data-tr="PDF kaydet" data-de="PDF speichern">PDF kaydet</span></button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="fieldCatalogPreview()"><span data-tr="PDF önizleme" data-de="PDF-Vorschau">PDF önizleme</span></button>
+</div>
 </div>
 </div>
 </div>
@@ -4351,62 +4361,62 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=10.23"></script>
-<script src="js/i18n.js?v=10.23"></script>
-<script src="js/config.js?v=10.23"></script>
-<script src="js/state.js?v=10.23"></script>
-<script src="js/api.js?v=10.23"></script>
-<script src="js/access.js?v=10.23"></script>
-<script src="js/auth.js?v=10.23"></script>
-<script src="js/ui.js?v=10.23"></script>
-<script src="js/chat.js?v=10.23"></script>
-<script src="js/chat-settings.js?v=10.23"></script>
-<script src="js/field-settings.js?v=10.23"></script>
-<script src="js/audit.js?v=10.23"></script>
-<script src="js/feature-flags.js?v=10.23"></script>
-<script src="js/notification-center.js?v=10.23"></script>
+<script src="js/version.js?v=10.24"></script>
+<script src="js/i18n.js?v=10.24"></script>
+<script src="js/config.js?v=10.24"></script>
+<script src="js/state.js?v=10.24"></script>
+<script src="js/api.js?v=10.24"></script>
+<script src="js/access.js?v=10.24"></script>
+<script src="js/auth.js?v=10.24"></script>
+<script src="js/ui.js?v=10.24"></script>
+<script src="js/chat.js?v=10.24"></script>
+<script src="js/chat-settings.js?v=10.24"></script>
+<script src="js/field-settings.js?v=10.24"></script>
+<script src="js/audit.js?v=10.24"></script>
+<script src="js/feature-flags.js?v=10.24"></script>
+<script src="js/notification-center.js?v=10.24"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=10.23"></script>
-<script src="js/job-market.js?v=10.23"></script>
-<script src="js/qc-job-market.js?v=10.23"></script>
-<script src="js/export-admin.js?v=10.23"></script>
-<script src="js/export-termin.js?v=10.23"></script>
-<script src="js/performance.js?v=10.23"></script>
-<script src="js/competition.js?v=10.23"></script>
-<script src="js/dashboard.js?v=10.23"></script>
-<script src="js/dashboard-brief.js?v=10.23"></script>
-<script src="js/campaigns.js?v=10.23"></script>
-<script src="js/campaigns-detail.js?v=10.23"></script>
-<script src="js/campaigns-queue.js?v=10.23"></script>
-<script src="js/contacts-upload.js?v=10.23"></script>
-<script src="js/contacts.js?v=10.23"></script>
-<script src="js/contacts-drawer.js?v=10.23"></script>
-<script src="js/telnyx.js?v=10.23"></script>
-<script src="js/voice-orb.js?v=10.23"></script>
-<script src="js/dialer.js?v=10.23"></script>
-<script src="js/ops-alerts.js?v=10.23"></script>
-<script src="js/dialer-mascot.js?v=10.23"></script>
-<script src="js/dialer-mascot-live.js?v=10.23"></script>
-<script src="js/ui-prefs.js?v=10.23"></script>
-<script src="js/dialer-session.js?v=10.23"></script>
-<script src="js/dialer-call.js?v=10.23"></script>
-<script src="js/dialer-tools.js?v=10.23"></script>
-<script src="js/appointments.js?v=10.23"></script>
-<script src="js/appointments-actions.js?v=10.23"></script>
-<script src="js/appointments-tools.js?v=10.23"></script>
-<script src="js/field.js?v=10.23"></script>
-<script src="js/field-quote.js?v=10.23"></script>
-<script src="js/field-catalog.js?v=10.23"></script>
-<script src="js/field-ops.js?v=10.23"></script>
-<script src="js/wiedervorlage.js?v=10.23"></script>
-<script src="js/qc.js?v=10.23"></script>
-<script src="js/supervisor.js?v=10.23"></script>
-<script src="js/live-coach.js?v=10.23"></script>
-<script src="js/sms-settings.js?v=10.23"></script>
-<script src="js/leave-hr.js?v=10.23"></script>
-<script src="js/muhasebe.js?v=10.23"></script>
-<script src="js/agent-self-performance.js?v=10.23"></script>
-<script src="js/agents.js?v=10.23"></script>
-<script src="js/mimi-brain.js?v=10.23"></script>
+<script src="js/wallet.js?v=10.24"></script>
+<script src="js/job-market.js?v=10.24"></script>
+<script src="js/qc-job-market.js?v=10.24"></script>
+<script src="js/export-admin.js?v=10.24"></script>
+<script src="js/export-termin.js?v=10.24"></script>
+<script src="js/performance.js?v=10.24"></script>
+<script src="js/competition.js?v=10.24"></script>
+<script src="js/dashboard.js?v=10.24"></script>
+<script src="js/dashboard-brief.js?v=10.24"></script>
+<script src="js/campaigns.js?v=10.24"></script>
+<script src="js/campaigns-detail.js?v=10.24"></script>
+<script src="js/campaigns-queue.js?v=10.24"></script>
+<script src="js/contacts-upload.js?v=10.24"></script>
+<script src="js/contacts.js?v=10.24"></script>
+<script src="js/contacts-drawer.js?v=10.24"></script>
+<script src="js/telnyx.js?v=10.24"></script>
+<script src="js/voice-orb.js?v=10.24"></script>
+<script src="js/dialer.js?v=10.24"></script>
+<script src="js/ops-alerts.js?v=10.24"></script>
+<script src="js/dialer-mascot.js?v=10.24"></script>
+<script src="js/dialer-mascot-live.js?v=10.24"></script>
+<script src="js/ui-prefs.js?v=10.24"></script>
+<script src="js/dialer-session.js?v=10.24"></script>
+<script src="js/dialer-call.js?v=10.24"></script>
+<script src="js/dialer-tools.js?v=10.24"></script>
+<script src="js/appointments.js?v=10.24"></script>
+<script src="js/appointments-actions.js?v=10.24"></script>
+<script src="js/appointments-tools.js?v=10.24"></script>
+<script src="js/field.js?v=10.24"></script>
+<script src="js/field-quote.js?v=10.24"></script>
+<script src="js/field-catalog.js?v=10.24"></script>
+<script src="js/field-ops.js?v=10.24"></script>
+<script src="js/wiedervorlage.js?v=10.24"></script>
+<script src="js/qc.js?v=10.24"></script>
+<script src="js/supervisor.js?v=10.24"></script>
+<script src="js/live-coach.js?v=10.24"></script>
+<script src="js/sms-settings.js?v=10.24"></script>
+<script src="js/leave-hr.js?v=10.24"></script>
+<script src="js/muhasebe.js?v=10.24"></script>
+<script src="js/agent-self-performance.js?v=10.24"></script>
+<script src="js/agents.js?v=10.24"></script>
+<script src="js/mimi-brain.js?v=10.24"></script>
 </body>
 </html>

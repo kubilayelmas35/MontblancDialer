@@ -20,7 +20,11 @@ function fieldCatalogRemember() {
         stock: stockRaw === '' ? null : stockRaw,
         image: document.querySelector(`[data-cat-image="${idx}"]`)?.value,
         categoryId: document.querySelector(`[data-cat-category="${idx}"]`)?.value || '',
-        sample: document.querySelector(`[data-cat-sample="${idx}"]`)?.value === '1'
+        sample: document.querySelector(`[data-cat-sample="${idx}"]`)?.value === '1',
+        vat: document.querySelector(`[data-cat-vat="${idx}"]`)?.value,
+        watt: document.querySelector(`[data-cat-watt="${idx}"]`)?.value,
+        qty_rule: document.querySelector(`[data-cat-rule="${idx}"]`)?.value,
+        qty_factor: document.querySelector(`[data-cat-factor="${idx}"]`)?.value
       }, Number(idx));
     });
   }
@@ -41,7 +45,10 @@ function fieldCatalogRemember() {
       intro: document.getElementById('field-cat-intro')?.value || '',
       terms: document.getElementById('field-cat-terms')?.value || '',
       footer: document.getElementById('field-cat-footer')?.value || '',
-      vat: Math.max(0, Number(document.getElementById('field-cat-vat')?.value) || 0)
+      vat: Math.max(0, Number(document.getElementById('field-cat-vat')?.value) || 0),
+      montage_base: Math.max(0, Number(document.getElementById('field-cat-montage')?.value) || 0),
+      montage_per_kw: Math.max(0, Number(document.getElementById('field-cat-montage-kw')?.value) || 0),
+      margin_pct: Math.max(0, Number(document.getElementById('field-cat-margin')?.value) || 0)
     };
   }
 }
@@ -51,18 +58,32 @@ function fieldCatalogMarkTab() {
   document.getElementById('field-cat-tab-pdf')?.classList.toggle('btn-primary', _fieldCatalogTab === 'pdf');
 }
 
+let _fieldOpsPane = 'tasks';
+
+function fieldOpsPane(id) {
+  const admin = typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin(currentUser?.role || '');
+  _fieldOpsPane = id === 'products' || id === 'pdf' ? id : 'tasks';
+  if (!admin) _fieldOpsPane = 'tasks';
+  ['tasks', 'products', 'pdf'].forEach((key) => {
+    const pane = document.getElementById(`fieldops-pane-${key}`);
+    if (pane) pane.hidden = key !== _fieldOpsPane;
+    document.querySelector(`#fieldops-tabs [data-pane="${key}"]`)?.classList.toggle('active', key === _fieldOpsPane);
+  });
+  const tools = document.getElementById('fieldops-tools');
+  if (tools) tools.style.display = _fieldOpsPane === 'tasks' ? '' : 'none';
+  document.querySelectorAll('#fieldops-tabs [data-pane="products"], #fieldops-tabs [data-pane="pdf"]').forEach((btn) => {
+    btn.style.display = admin ? '' : 'none';
+  });
+}
+
 function fieldCatalogTab(tab) {
-  _fieldCatalogTab = tab === 'pdf' ? 'pdf' : 'stock';
-  const stock = document.getElementById('field-cat-stock');
-  const pdf = document.getElementById('field-cat-pdf');
-  if (stock) stock.style.display = _fieldCatalogTab === 'stock' ? '' : 'none';
-  if (pdf) pdf.style.display = _fieldCatalogTab === 'pdf' ? '' : 'none';
-  fieldCatalogMarkTab();
+  fieldOpsPane(tab === 'pdf' ? 'pdf' : 'products');
 }
 
 function renderFieldCatalog() {
-  const body = document.getElementById('fieldops-catalog-body');
-  if (!body) return;
+  const productsHost = document.getElementById('fieldops-products-body');
+  const pdfHost = document.getElementById('fieldops-pdf-body');
+  if (!productsHost && !pdfHost) return;
   const pdf = { ...defaultFieldPdf(), ...(_fieldCatalogPdf || {}) };
   const catOptions = (selected) => [`<option value="">${_fEsc(t('field.cat.uncat'))}</option>`]
     .concat(_fieldCatalogCategories.filter((cat) => cat.name).map((cat) => `<option value="${_fEsc(cat.id)}"${cat.id === selected ? ' selected' : ''}>${_fEsc(cat.name)}</option>`))
@@ -79,6 +100,14 @@ function renderFieldCatalog() {
 <input class="form-input" data-cat-unit="${idx}" value="${_fEsc(row.unit || '')}" placeholder="${_fEsc(t('field.set.ph_unit'))}" style="width:90px;">
 <input class="form-input" data-cat-price="${idx}" type="number" min="0" step="0.01" value="${row.price === 0 ? '0' : _fEsc(row.price ?? '')}" placeholder="${_fEsc(t('field.set.ph_price'))}" style="width:110px;">
 <input class="form-input" data-cat-stock="${idx}" type="number" min="0" step="1" value="${row.stock == null ? '' : _fEsc(row.stock)}" placeholder="${_fEsc(t('field.cat.ph_stock'))}" style="width:90px;">
+<input class="form-input" data-cat-vat="${idx}" type="number" min="0" step="1" value="${_fEsc(row.vat ?? 19)}" placeholder="${_fEsc(t('field.cat.vat_short'))}" style="width:70px;" title="${_fEsc(t('field.cat.vat_short'))}">
+<input class="form-input" data-cat-watt="${idx}" type="number" min="0" step="1" value="${row.watt ? _fEsc(row.watt) : ''}" placeholder="${_fEsc(t('field.cat.watt'))}" style="width:80px;">
+<select class="form-input" data-cat-rule="${idx}" style="width:130px;">
+<option value=""${row.qty_rule ? '' : ' selected'}>${_fEsc(t('field.cat.rule_manual'))}</option>
+<option value="per_kw"${row.qty_rule === 'per_kw' ? ' selected' : ''}>${_fEsc(t('field.cat.rule_kw'))}</option>
+<option value="per_panel"${row.qty_rule === 'per_panel' ? ' selected' : ''}>${_fEsc(t('field.cat.rule_panel'))}</option>
+</select>
+<input class="form-input" data-cat-factor="${idx}" type="number" min="0" step="0.1" value="${row.qty_factor ? _fEsc(row.qty_factor) : ''}" placeholder="${_fEsc(t('field.cat.factor'))}" style="width:80px;">
 <label class="btn btn-ghost btn-sm" style="cursor:pointer;">${_fEsc(t('field.cat.image'))}<input type="file" accept="image/*" style="display:none;" onchange="fieldCatalogPickImage(${idx}, this)"></label>
 <button type="button" class="btn btn-ghost btn-sm" onclick="fieldCatalogRemove(${idx})">${_fEsc(t('field.set.remove'))}</button>
 </div>
@@ -99,7 +128,7 @@ function renderFieldCatalog() {
 <input class="form-input" data-cat-c-name="${idx}" value="${_fEsc(cat.name || '')}" placeholder="${_fEsc(t('field.cat.ph_cat'))}">
 <button type="button" class="btn btn-ghost btn-sm" onclick="fieldCatalogRemoveCategory(${idx})">${_fEsc(t('field.set.remove'))}</button>
 </div>`).join('');
-  body.innerHTML = `<div id="field-cat-stock" style="display:${_fieldCatalogTab === 'stock' ? '' : 'none'};">
+  if (productsHost) productsHost.innerHTML = `
 <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">${_fEsc(t('field.cat.lead'))}</div>
 <div style="font-size:12px;font-weight:800;margin-bottom:6px;">${_fEsc(t('field.cat.categories'))}</div>
 <div id="field-cat-cats" class="field-cat-cats">${chips || `<div style="font-size:12px;color:var(--text-3);">${_fEsc(t('field.cat.no_cat'))}</div>`}</div>
@@ -108,9 +137,8 @@ function renderFieldCatalog() {
 <button type="button" class="btn btn-ghost btn-sm" onclick="fieldCatalogAddCategory()">${_fEsc(t('field.cat.add_cat'))}</button>
 </div>
 <div id="field-cat-list" style="display:flex;flex-direction:column;gap:10px;">${groups}${looseHtml}</div>
-<button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="fieldCatalogAdd()">${_fEsc(t('field.cat.add'))}</button>
-</div>
-<div id="field-cat-pdf" style="display:${_fieldCatalogTab === 'pdf' ? '' : 'none'};">
+<button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="fieldCatalogAdd()">${_fEsc(t('field.cat.add'))}</button>`;
+  if (pdfHost) pdfHost.innerHTML = `
 <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">${_fEsc(t('field.cat.pdf_lead'))}</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 <div class="form-row"><label class="form-label">${_fEsc(t('field.cat.pdf_title'))}</label><input class="form-input" id="field-cat-title" value="${_fEsc(pdf.title || '')}" placeholder="${_fEsc(t('field.quote.pdf_title'))}"></div>
@@ -120,24 +148,26 @@ function renderFieldCatalog() {
 <div class="form-row"><label class="form-label">${_fEsc(t('field.cat.intro'))}</label><textarea class="form-input" id="field-cat-intro" rows="3">${_fEsc(pdf.intro || '')}</textarea></div>
 <div class="form-row"><label class="form-label">${_fEsc(t('field.cat.terms'))}</label><textarea class="form-input" id="field-cat-terms" rows="3">${_fEsc(pdf.terms || '')}</textarea></div>
 <div class="form-row"><label class="form-label">${_fEsc(t('field.cat.footer'))}</label><input class="form-input" id="field-cat-footer" value="${_fEsc(pdf.footer || '')}"></div>
-</div>`;
-  fieldCatalogMarkTab();
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;">
+<div class="form-row"><label class="form-label">${_fEsc(t('field.cat.montage'))}</label><input class="form-input" id="field-cat-montage" type="number" min="0" step="1" value="${_fEsc(pdf.montage_base ?? 1485)}"></div>
+<div class="form-row"><label class="form-label">${_fEsc(t('field.cat.montage_kw'))}</label><input class="form-input" id="field-cat-montage-kw" type="number" min="0" step="1" value="${_fEsc(pdf.montage_per_kw ?? 200)}"></div>
+<div class="form-row"><label class="form-label">${_fEsc(t('field.cat.margin'))}</label><input class="form-input" id="field-cat-margin" type="number" min="0" step="1" value="${_fEsc(pdf.margin_pct ?? 50)}"></div>
+</div>
+<div style="font-size:11px;color:var(--text-3);margin-top:6px;">${_fEsc(t('field.cat.calc_hint'))}</div>`;
 }
 
 async function loadFieldOpsCatalog() {
-  const card = document.getElementById('fieldops-catalog');
-  if (!card) return;
   const role = currentUser?.role || '';
   if (!(typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin(role))) {
-    card.style.display = 'none';
+    fieldOpsPane('tasks');
     return;
   }
-  card.style.display = '';
   const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id || null;
-  const body = document.getElementById('fieldops-catalog-body');
+  const productsHost = document.getElementById('fieldops-products-body');
   if (!fid) {
     _fieldCatalogFid = null;
-    if (body) body.innerHTML = `<div style="font-size:12px;color:var(--text-3);">${_fEsc(t('field.cat.empty_firm'))}</div>`;
+    if (productsHost) productsHost.innerHTML = `<div style="font-size:12px;color:var(--text-3);">${_fEsc(t('field.cat.empty_firm'))}</div>`;
+    fieldOpsPane(_fieldOpsPane);
     return;
   }
   _fieldCatalogFid = fid;
@@ -146,6 +176,7 @@ async function loadFieldOpsCatalog() {
   _fieldCatalogProducts = (fs.products || []).map((row, idx) => fieldNormalizeProduct(row, idx));
   _fieldCatalogPdf = { ...defaultFieldPdf(), ...(fs.pdf || {}) };
   renderFieldCatalog();
+  fieldOpsPane(_fieldOpsPane);
 }
 
 function fieldCatalogAdd() {

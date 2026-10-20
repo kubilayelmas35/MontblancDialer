@@ -103,6 +103,16 @@ function fieldBuildOfferPdf(doc) {
   y -= 16;
   textAt(330, y, 12, doc.grossLabel || 'Toplam');
   textAt(470, y, 12, doc.grossText || '');
+  if (doc.montageText) {
+    y -= 14;
+    textAt(330, y, 10, doc.montageLabel || 'Montaj');
+    textAt(470, y, 10, doc.montageText);
+  }
+  if (doc.saleText) {
+    y -= 16;
+    textAt(330, y, 12, doc.saleLabel || 'Satis');
+    textAt(470, y, 12, doc.saleText);
+  }
   y -= 28;
   if (doc.note) {
     textAt(left, y, 10, doc.noteLabel || 'Not');
@@ -156,11 +166,34 @@ function fieldQuoteTask() {
   return (_fieldTasks || []).find((row) => row.id === _fieldQuoteTaskId) || null;
 }
 
+let _fieldQuotePdf = { vat: 19, montage_base: 1485, montage_per_kw: 200, margin_pct: 50 };
+
+function fieldQuoteSuggestQty(product, typed) {
+  const kw = Math.max(0, Number(document.getElementById('field-quote-kw')?.value) || 0);
+  const factor = Number(product?.qty_factor) || 0;
+  if (product?.qty_rule === 'per_kw' && kw && factor) return Math.max(1, Math.ceil(kw * factor));
+  if (Number(product?.watt) > 0 && kw) return Math.max(1, Math.ceil((kw * 1000) / Number(product.watt)));
+  if (product?.qty_rule === 'per_panel' && factor) {
+    const panel = _fieldQuoteLines.find((line) => Number(line.watt) > 0);
+    if (panel) return Math.max(1, Math.ceil((Number(panel.qty) || 0) * factor));
+  }
+  return Math.max(1, Number(typed) || 1);
+}
+
 function fieldQuoteTotals() {
+  const fallbackVat = Math.max(0, Number(document.getElementById('field-quote-vat')?.value) || 0);
   const net = _fieldQuoteLines.reduce((sum, line) => sum + (Number(line.qty) || 0) * (Number(line.price) || 0), 0);
-  const vatRate = Math.max(0, Number(document.getElementById('field-quote-vat')?.value) || 0);
-  const vat = net * vatRate / 100;
-  return { net, vatRate, vat, gross: net + vat };
+  const vat = _fieldQuoteLines.reduce((sum, line) => {
+    const rate = line.vat == null || line.vat === '' ? fallbackVat : Math.max(0, Number(line.vat) || 0);
+    return sum + (Number(line.qty) || 0) * (Number(line.price) || 0) * rate / 100;
+  }, 0);
+  const kw = Math.max(0, Number(document.getElementById('field-quote-kw')?.value) || 0);
+  const pdf = _fieldQuotePdf || {};
+  const montage = kw > 0 ? Math.max(0, Number(pdf.montage_base) || 0) + kw * Math.max(0, Number(pdf.montage_per_kw) || 0) : 0;
+  const gross = net + vat + montage;
+  const margin = Math.max(0, Number(pdf.margin_pct) || 0);
+  const sale = gross * (1 + margin / 100);
+  return { net, vat, vatRate: fallbackVat, montage, gross, margin, sale, kw };
 }
 
 function fieldQuotePaint() {
@@ -180,8 +213,10 @@ function fieldQuotePaint() {
   const box = document.getElementById('field-quote-sums');
   if (box) {
     box.innerHTML = `<div>${_fEsc(t('field.quote.net'))}: <b>${_fEsc(fieldMoney(sums.net))}</b></div>
-<div>${_fEsc(t('field.quote.vat'))} ${sums.vatRate}%: <b>${_fEsc(fieldMoney(sums.vat))}</b></div>
-<div style="font-size:16px;">${_fEsc(t('field.quote.gross'))}: <b>${_fEsc(fieldMoney(sums.gross))}</b></div>`;
+<div>${_fEsc(t('field.quote.vat'))}: <b>${_fEsc(fieldMoney(sums.vat))}</b></div>
+${sums.kw ? `<div>${_fEsc(t('field.cat.montage_line'))}: <b>${_fEsc(fieldMoney(sums.montage))}</b></div>` : ''}
+<div style="font-size:16px;">${_fEsc(t('field.quote.gross'))}: <b>${_fEsc(fieldMoney(sums.gross))}</b></div>
+${sums.kw && sums.margin ? `<div>${_fEsc(t('field.cat.sale'))} +${sums.margin}%: <b>${_fEsc(fieldMoney(sums.sale))}</b></div>` : ''}`;
   }
 }
 
@@ -198,18 +233,26 @@ function fieldQuoteRemove(index) {
 
 function fieldQuoteAddSelected() {
   const sel = document.getElementById('field-quote-product');
-  const qty = Math.max(1, Number(document.getElementById('field-quote-qty')?.value) || 1);
   const raw = sel?.selectedOptions?.[0]?.dataset?.product;
   if (!raw) {
     toast(t('field.quote.pick'), 'warn');
     return;
   }
   const product = JSON.parse(raw);
+  const qty = fieldQuoteSuggestQty(product, document.getElementById('field-quote-qty')?.value);
   if (product.stock != null && product.stock !== '' && qty > Number(product.stock)) {
     toast(t('field.cat.low'), 'warn');
     return;
   }
-  _fieldQuoteLines.push({ productId: product.id || '', name: product.name, unit: product.unit || 'adet', qty, price: Number(product.price) || 0 });
+  _fieldQuoteLines.push({
+    productId: product.id || '',
+    name: product.name,
+    unit: product.unit || 'adet',
+    qty,
+    price: Number(product.price) || 0,
+    vat: product.vat == null ? null : Number(product.vat) || 0,
+    watt: Number(product.watt) || 0
+  });
   fieldQuotePaint();
 }
 
@@ -237,6 +280,8 @@ function fieldOpenQuote(taskId) {
 <div id="field-quote-catalog" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"></div>
 <div id="field-quote-lines" style="display:flex;flex-direction:column;gap:6px;"></div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+<label style="font-size:12px;">kW</label>
+<input class="form-input" id="field-quote-kw" type="number" min="0" step="1" value="${_fEsc(saved?.kw || '')}" style="width:80px;" oninput="fieldQuotePaint()">
 <label style="font-size:12px;">${_fEsc(t('field.quote.vat'))} %</label>
 <input class="form-input" id="field-quote-vat" type="number" min="0" step="1" value="${_fEsc(saved?.vat_rate ?? 19)}" style="width:80px;" oninput="fieldQuotePaint()">
 </div>
@@ -263,11 +308,13 @@ async function fieldQuoteFillCatalog(task) {
   if (!host) return;
   const fs = await getFirmFieldSettings(task.firm_id);
   const products = (fs.products || []).filter((row) => row?.name);
+  _fieldQuotePdf = { ...defaultFieldPdf(), ...(fs.pdf || {}) };
+  if (typeof fieldQuotePaint === 'function') fieldQuotePaint();
   const vatEl = document.getElementById('field-quote-vat');
   if (vatEl && !vatEl.dataset.touched && fs.pdf && document.getElementById('field-quote-vat')?.value === '19' && fs.pdf.vat != null) vatEl.value = fs.pdf.vat;
   const option = (row) => {
     const stockBit = row.stock == null ? '' : ` · ${t('field.cat.stock')} ${row.stock}`;
-    return `<option data-product="${_fEsc(JSON.stringify({ id: row.id, name: row.name, unit: row.unit || 'adet', price: Number(row.price) || 0, stock: row.stock }))}">${_fEsc(row.name)} · ${_fEsc(fieldMoney(row.price))}${_fEsc(stockBit)}</option>`;
+    return `<option data-product="${_fEsc(JSON.stringify({ id: row.id, name: row.name, unit: row.unit || 'adet', price: Number(row.price) || 0, stock: row.stock, vat: row.vat, watt: row.watt || 0, qty_rule: row.qty_rule || '', qty_factor: row.qty_factor || 0 }))}">${_fEsc(row.name)} · ${_fEsc(fieldMoney(row.price))}${_fEsc(stockBit)}</option>`;
   };
   const cats = (fs.categories || []).filter((cat) => cat?.name);
   const grouped = cats.map((cat) => {
@@ -308,6 +355,8 @@ async function fieldQuoteCreate() {
     unit: String(line.unit || 'adet').trim(),
     qty: Number(line.qty) || 0,
     price: Number(line.price) || 0,
+    vat: line.vat == null || line.vat === '' ? null : Number(line.vat) || 0,
+    watt: Number(line.watt) || 0,
     total: (Number(line.qty) || 0) * (Number(line.price) || 0)
   })).filter((line) => line.name && line.qty > 0);
   if (!lines.length) {
@@ -355,6 +404,10 @@ async function fieldQuoteCreate() {
     vatText: fieldMoney(sums.vat),
     grossLabel: t('field.quote.gross'),
     grossText: fieldMoney(sums.gross),
+    montageLabel: t('field.cat.montage_line'),
+    montageText: sums.kw ? fieldMoney(sums.montage) : '',
+    saleLabel: `${t('field.cat.sale')} +${sums.margin}%`,
+    saleText: sums.kw && sums.margin ? fieldMoney(sums.sale) : '',
     noteLabel: t('field.quote.note'),
     note: [pdfCfg.intro, noteText, pdfCfg.terms].filter((part) => String(part || '').trim()).join('\n'),
     footer: pdfCfg.footer || '',
@@ -410,6 +463,9 @@ async function fieldQuoteCreate() {
     net: Math.round(sums.net * 100) / 100,
     vat: Math.round(sums.vat * 100) / 100,
     gross: Math.round(sums.gross * 100) / 100,
+    kw: sums.kw,
+    montage: Math.round(sums.montage * 100) / 100,
+    sale: Math.round(sums.sale * 100) / 100,
     note: document.getElementById('field-quote-note')?.value || '',
     signed: !!jpeg,
     pdf_url: url

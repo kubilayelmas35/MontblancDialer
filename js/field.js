@@ -24,7 +24,7 @@ function defaultFirmFieldSettings() {
 }
 
 function defaultFieldPdf() {
-  return { title: '', company: '', intro: '', terms: '', footer: '', vat: 19 };
+  return { title: '', company: '', intro: '', terms: '', footer: '', vat: 19, montage_base: 1485, montage_per_kw: 200, margin_pct: 50 };
 }
 
 function fieldNormalizeCategory(row, idx) {
@@ -45,7 +45,11 @@ function fieldNormalizeProduct(row, idx) {
     stock,
     image: String(row?.image || '').trim(),
     categoryId: String(row?.categoryId || '').trim(),
-    sample: !!row?.sample
+    sample: !!row?.sample,
+    vat: row?.vat === '' || row?.vat == null ? 19 : Math.max(0, Number(row.vat) || 0),
+    watt: Math.max(0, Number(row?.watt) || 0),
+    qty_rule: ['per_kw', 'per_panel'].includes(String(row?.qty_rule || '')) ? String(row.qty_rule) : '',
+    qty_factor: Math.max(0, Number(row?.qty_factor) || 0)
   };
 }
 
@@ -63,6 +67,10 @@ async function getFirmFieldSettings(fid) {
     merged.pdf = { ...defaultFieldPdf(), ...(merged.pdf && typeof merged.pdf === 'object' ? merged.pdf : {}) };
     const vat = Number(merged.pdf.vat);
     merged.pdf.vat = Number.isFinite(vat) ? Math.max(0, vat) : 19;
+    ['montage_base', 'montage_per_kw', 'margin_pct'].forEach((key) => {
+      const n = Number(merged.pdf[key]);
+      merged.pdf[key] = Number.isFinite(n) ? Math.max(0, n) : defaultFieldPdf()[key];
+    });
     _fieldSettingsCache[fid] = merged;
     return merged;
   } catch (e) {
