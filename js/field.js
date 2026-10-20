@@ -16,7 +16,8 @@ function defaultFirmFieldSettings() {
     can_manage_agents: false,
     result_options: ['satis', 'teklif', 'ziyaret_tamamlandi', 'ulasilamadi'],
     document_requirements: ['kimlik', 'sozlesme'],
-    form_schema: []
+    form_schema: [],
+    products: []
   };
 }
 
@@ -29,6 +30,7 @@ async function getFirmFieldSettings(fid) {
     if (!Array.isArray(merged.result_options)) merged.result_options = defaultFirmFieldSettings().result_options;
     if (!Array.isArray(merged.document_requirements)) merged.document_requirements = [];
     if (!Array.isArray(merged.form_schema)) merged.form_schema = [];
+    if (!Array.isArray(merged.products)) merged.products = [];
     _fieldSettingsCache[fid] = merged;
     return merged;
   } catch (e) {
@@ -70,7 +72,8 @@ const FIELD_RESULT_I18N = {
 
 const FIELD_DOC_I18N = {
   kimlik: 'field.doc.id',
-  sozlesme: 'field.doc.contract'
+  sozlesme: 'field.doc.contract',
+  teklif: 'field.doc.offer'
 };
 
 function fieldResultLabel(raw) {
@@ -447,6 +450,7 @@ async function loadFieldPage() {
   });
   renderFieldKpi(_fieldTasks, files, fs);
   fieldSyncDayButtons();
+  if (typeof fieldRefreshRoute === 'function') fieldRefreshRoute(_fieldTasks, apptMap);
   const visible = _fieldTasks.filter((task) => fieldTaskVisible(task, apptMap[task.appointment_id] || {}));
   if (!visible.length) {
     listEl.innerHTML = `<div class="card" style="padding:20px;color:var(--text-3);font-size:12px;text-align:center;">${_fEsc(t('field.empty.filter'))}</div>`;
@@ -479,8 +483,10 @@ ${camp || biz ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px;"
 <div style="display:flex;gap:6px;align-items:center;">
 <a class="btn btn-ghost btn-sm" href="${ap.telefonnummer ? `tel:${_fEsc(ap.telefonnummer)}` : '#'}" ${ap.telefonnummer ? '' : 'style="pointer-events:none;opacity:.45;"'}>${_fEsc(t('field.call'))}</a>
 <a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://maps.google.com/?q=${encodeURIComponent(addr || '')}" ${addr ? '' : 'style="pointer-events:none;opacity:.45;"'}>${_fEsc(t('field.map'))}</a>
+<button type="button" class="btn btn-primary btn-sm" onclick="fieldOpenQuote('${task.id}')">${_fEsc(t('field.quote.open'))}</button>
 </div>
 </div>
+${payload.quote?.gross ? `<div style="margin-top:8px;font-size:12px;font-weight:800;">${_fEsc(t('field.quote.saved'))}: ${_fEsc(typeof fieldMoney === 'function' ? fieldMoney(payload.quote.gross) : payload.quote.gross)}</div>` : ''}
 ${fieldBriefMarkup(ap)}
 ${ap.agent_notu ? `<div style="margin-top:8px;padding:8px;border-radius:6px;background:var(--bg-3);font-size:12px;"><b>${_fEsc(t('field.call_note'))}:</b> ${_fEsc(ap.agent_notu)}</div>` : ''}
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:8px;">

@@ -11,7 +11,8 @@ function defaultFieldSettings() {
     can_manage_agents: false,
     result_options: ['satis', 'teklif', 'ziyaret_tamamlandi', 'ulasilamadi'],
     document_requirements: ['kimlik', 'sozlesme'],
-    form_schema: []
+    form_schema: [],
+    products: []
   };
 }
 
@@ -165,6 +166,58 @@ function rememberFieldSchemaDraft() {
   }));
 }
 
+function renderFieldProductRows() {
+  const el = document.getElementById('field-set-products-list');
+  if (!el) return;
+  const rows = _fieldSettingsDraft.products || [];
+  el.innerHTML = rows.length
+    ? rows.map((row, idx) => `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+<input type="hidden" data-field-product-id="${idx}" value="${_fieldSetEsc(row.id || '')}">
+<input class="form-input" data-field-product-name="${idx}" value="${_fieldSetEsc(row.name || '')}" placeholder="${_fieldSetEsc(t('field.set.ph_product'))}" style="flex:1;min-width:160px;">
+<input class="form-input" data-field-product-unit="${idx}" value="${_fieldSetEsc(row.unit || '')}" placeholder="${_fieldSetEsc(t('field.set.ph_unit'))}" style="width:110px;">
+<input class="form-input" data-field-product-price="${idx}" type="number" min="0" step="0.01" value="${_fieldSetEsc(row.price ?? '')}" placeholder="${_fieldSetEsc(t('field.set.ph_price'))}" style="width:120px;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="removeFieldProductRow(${idx})">${_fieldSetEsc(t('field.set.remove'))}</button>
+</div>`).join('')
+    : `<div style="color:var(--text-3);font-size:11px;padding:8px;background:var(--bg-3);border-radius:6px;">${_fieldSetEsc(t('field.set.no_products'))}</div>`;
+}
+
+function rememberFieldProducts() {
+  const names = [...document.querySelectorAll('[data-field-product-name]')];
+  if (!names.length) return;
+  _fieldSettingsDraft.products = names.map((input) => {
+    const idx = input.getAttribute('data-field-product-name');
+    return {
+      id: document.querySelector(`[data-field-product-id="${idx}"]`)?.value || `p_${idx}`,
+      name: input.value || '',
+      unit: document.querySelector(`[data-field-product-unit="${idx}"]`)?.value || '',
+      price: document.querySelector(`[data-field-product-price="${idx}"]`)?.value || ''
+    };
+  });
+}
+
+function readFieldProducts() {
+  rememberFieldProducts();
+  return (_fieldSettingsDraft.products || []).map((row, idx) => ({
+    id: String(row.id || '').trim() || `p_${idx + 1}`,
+    name: String(row.name || '').trim(),
+    unit: String(row.unit || '').trim() || 'adet',
+    price: Math.max(0, Number(row.price) || 0)
+  })).filter((row) => row.name);
+}
+
+function addFieldProductRow() {
+  rememberFieldProducts();
+  if (!_fieldSettingsDraft.products) _fieldSettingsDraft.products = [];
+  _fieldSettingsDraft.products.push({ id: `p_${Date.now()}`, name: '', unit: 'adet', price: '' });
+  renderFieldProductRows();
+}
+
+function removeFieldProductRow(index) {
+  rememberFieldProducts();
+  _fieldSettingsDraft.products.splice(index, 1);
+  renderFieldProductRows();
+}
+
 function addFieldSchemaRow() {
   rememberFieldSchemaDraft();
   if (!_fieldSettingsDraft.form_schema) _fieldSettingsDraft.form_schema = [];
@@ -242,7 +295,8 @@ async function renderFieldSettingsForm() {
     ...settings,
     result_options: [...(settings.result_options || [])],
     document_requirements: [...(settings.document_requirements || [])],
-    form_schema: [...(settings.form_schema || [])].map(_normalizeFieldSchemaRow)
+    form_schema: [...(settings.form_schema || [])].map(_normalizeFieldSchemaRow),
+    products: [...(settings.products || [])]
   };
 
   const enabledEl = document.getElementById('field-set-enabled');
@@ -251,6 +305,7 @@ async function renderFieldSettingsForm() {
   if (manageEl) manageEl.checked = !!settings.can_manage_agents;
   renderFieldResultsRows();
   renderFieldDocRows();
+  renderFieldProductRows();
   renderFieldSchemaRows();
 }
 
@@ -300,7 +355,8 @@ async function saveFieldSettings() {
     can_manage_agents: canManage,
     result_options: results.length ? results : defaultFieldSettings().result_options,
     document_requirements: docs,
-    form_schema: schema
+    form_schema: schema,
+    products: readFieldProducts()
   };
 
   try {

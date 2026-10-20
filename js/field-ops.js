@@ -103,10 +103,33 @@ function fieldOpsApplyFilters() {
       <td style="font-size:11px;font-family:var(--mono);">${_foEsc(when || '—')}</td>
       <td>${_foEsc(asg.name || asg.email || '—')}</td>
       <td>${_fieldOpsStatusBadge(r.status)}</td>
-      <td>${_foEsc(_fieldOpsResultLabel(r.result_key || r.result_payload?.visit_result || '—'))}</td>
+      <td>${_foEsc(_fieldOpsResultLabel(r.result_key || r.result_payload?.visit_result || '—'))}${fieldOpsWorkBits(r)}</td>
       <td><button type="button" class="btn btn-ghost btn-sm" onclick="event.stopPropagation();fieldOpsOpen('${_foEsc(r.id)}')">${_foEsc(t('fieldops.open'))}</button></td>
     </tr>`;
   }).join('');
+}
+
+function fieldOpsWorkBits(row) {
+  const quote = row?.result_payload?.quote;
+  const files = _fieldOpsFiles.filter((file) => file.task_id === row.id);
+  const bits = [];
+  if (quote?.gross) bits.push(`${t('field.quote.badge')} ${typeof fieldMoney === 'function' ? fieldMoney(quote.gross) : quote.gross}`);
+  if (files.length) bits.push(`${files.length} ${t('field.quote.docs')}`);
+  if (!bits.length) return '';
+  return `<div style="font-size:10px;color:var(--text-3);margin-top:2px;">${_foEsc(bits.join(' · '))}</div>`;
+}
+
+function fieldOpsQuoteBlock(row) {
+  const quote = row?.result_payload?.quote;
+  if (!quote?.lines?.length && !quote?.gross) return '';
+  const lines = (quote.lines || []).map((line) => `<div class="dash-mini-row"><span>${_foEsc(line.qty)} × ${_foEsc(line.name)}</span><b>${_foEsc(typeof fieldMoney === 'function' ? fieldMoney(line.total) : line.total)}</b></div>`).join('');
+  const pdf = _fieldOpsFiles.find((file) => file.task_id === row.id && String(file.file_name || '').includes('[teklif]'));
+  return `<div style="margin-top:4px;font-weight:700;">${_foEsc(t('field.quote.title'))}</div>
+<div style="font-size:11px;color:var(--text-3);">${_foEsc(quote.no || '')} · ${_foEsc(quote.customer_name || '')}</div>
+${lines}
+<div class="dash-mini-row"><span>${_foEsc(t('field.quote.gross'))}</span><b>${_foEsc(typeof fieldMoney === 'function' ? fieldMoney(quote.gross) : quote.gross)}</b></div>
+${quote.signed ? `<div style="font-size:11px;">${_foEsc(t('field.quote.signed'))}</div>` : `<div style="font-size:11px;color:var(--text-3);">${_foEsc(t('field.quote.unsigned'))}</div>`}
+${pdf ? `<a class="btn btn-ghost btn-sm" style="width:fit-content;" target="_blank" rel="noopener" href="${_foEsc(pdf.file_url)}">${_foEsc(t('field.quote.pdf'))}</a>` : ''}`;
 }
 
 function fieldOpsOpen(taskId) {
@@ -169,6 +192,7 @@ function fieldOpsOpen(taskId) {
 ${typeof fieldBriefMarkup === 'function' ? fieldBriefMarkup(ap) : ''}
 ${ap.agent_notu ? `<div style="padding:8px;border-radius:6px;background:var(--bg-3);"><b>${_foEsc(t('field.call_note'))}:</b> ${_foEsc(ap.agent_notu)}</div>` : ''}
 ${row.notes ? `<div style="padding:8px;border-radius:6px;background:var(--bg-3);"><b>${_foEsc(t('field.note'))}:</b> ${_foEsc(row.notes)}</div>` : ''}
+${fieldOpsQuoteBlock(row)}
 <div style="margin-top:4px;font-weight:700;">${_foEsc(t('fieldops.form'))}</div>
 ${formRows.length ? formRows.join('') : `<div style="color:var(--text-3);">${_foEsc(t('fieldops.no_form'))}</div>`}
 <div style="margin-top:4px;font-weight:700;">${_foEsc(t('fieldops.docs'))}</div>
