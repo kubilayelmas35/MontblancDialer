@@ -2379,38 +2379,28 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div id="muh-pane-ayar" class="muh-pane" style="display:none;">
 <div class="card" id="muhasebe-rules-card" style="padding:16px;display:none;">
 <div class="card-title" style="margin-bottom:4px;" data-tr="Muhasebe ayarları" data-de="Buchhaltungseinstellungen">Muhasebe ayarları</div>
-<div class="card-sub" style="margin-bottom:12px;" data-tr="Para birimi, kur, baz maaş ve kademeler. Özet bu ayarlarla hesaplanır." data-de="Währung, Kurs, Grundgehalt und Stufen. Die Übersicht rechnet mit diesen Werten.">Para birimi, kur, baz maaş ve kademeler. Özet bu ayarlarla hesaplanır.</div>
-<div class="form-label" style="margin-bottom:6px;" data-tr="Kur" data-de="Kurs">Kur</div>
+<div class="card-sub" style="margin-bottom:12px;" data-tr="Bordro ve kasa bu ayarlarla hesaplanır. Kur kendiliğinden gelir." data-de="Lohn und Kasse rechnen mit diesen Werten. Der Kurs kommt von selbst.">Bordro ve kasa bu ayarlarla hesaplanır. Kur kendiliğinden gelir.</div>
+<div class="form-label" style="margin-bottom:6px;" data-tr="Para ve kur" data-de="Währung und Kurs">Para ve kur</div>
 <div class="muh-form-grid">
-<div class="form-row"><label class="form-label">Para birimi</label><select class="form-input" id="pr-currency" onchange="updatePayrollPreview()"><option value="EUR">EUR</option><option value="TRY">TRY</option></select></div>
-<div class="form-row"><label class="form-label">Kur (1 EUR = TRY)</label><input class="form-input" id="pr-rate" type="number" step="0.0001" value="1" oninput="updatePayrollPreview()"></div>
-<div class="form-row"><label class="form-label">Kur API</label>
-<select class="form-input" id="pr-fx-provider" onchange="onFxProviderChange()">
-<option value="frankfurter">Canlı kur</option>
-<option value="exchangerate_host">exchangerate.host</option>
-<option value="custom">Özel API</option>
-</select>
-</div>
-<div class="form-row"><label class="form-label">Kur testi</label><button class="btn btn-ghost btn-sm" type="button" onclick="testFxRateNow()">API'den Kuru Çek</button></div>
-<div class="form-row" id="pr-fx-url-row" style="display:none;"><label class="form-label">Özel API URL</label><input class="form-input" id="pr-fx-url" placeholder="https://api.example.com/rates?date={date}&base=EUR&symbols=TRY"></div>
-<div class="form-row" id="pr-fx-key-row" style="display:none;"><label class="form-label">Özel API Key (opsiyonel)</label><input class="form-input" id="pr-fx-key" placeholder="apikey / access_key"></div>
+<div class="form-row"><label class="form-label" data-tr="Para birimi" data-de="Währung">Para birimi</label><select class="form-input" id="pr-currency" onchange="updatePayrollPreview()"><option value="EUR">EUR</option><option value="TRY">TRY</option></select><div class="muh-hint" data-tr="Tablolar ve kasa bu birimde görünür." data-de="Tabellen und Kasse zeigen diese Währung.">Tablolar ve kasa bu birimde görünür.</div></div>
+<div class="form-row"><label class="form-label" data-tr="Kur, 1 EUR kaç TRY" data-de="Kurs, 1 EUR in TRY">Kur, 1 EUR kaç TRY</label><input class="form-input" id="pr-rate" type="number" step="0.0001" value="1" oninput="updatePayrollPreview()"><div class="muh-hint" data-tr="Sayfa açılınca canlı kur yazılır. Elle değiştirirsen bu ay o kuru kullanır." data-de="Beim Öffnen steht der Live-Kurs. Eine manuelle Zahl gilt für diesen Monat.">Sayfa açılınca canlı kur yazılır. Elle değiştirirsen bu ay o kuru kullanır.</div></div>
 </div>
 <div class="form-label" style="margin:14px 0 6px;" data-tr="Maaş ve kesinti" data-de="Gehalt und Abzüge">Maaş ve kesinti</div>
 <div class="muh-form-grid">
-<div class="form-row"><label class="form-label">Maaş modu</label><select class="form-input" id="pr-mode"><option value="net">Net</option><option value="gross_minimum">Asgari (brüt)</option></select></div>
-<div class="form-row"><label class="form-label">Baz maaş</label><input class="form-input" id="pr-base" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>
-<div class="form-row"><label class="form-label">Vergi %</label><input class="form-input" id="pr-tax" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>
-<div class="form-row"><label class="form-label">Başarılı randevu gelir tutarı</label><input class="form-input" id="pr-rev-success" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>
-<div class="form-row"><label class="form-label">Geç kalma cezası (olay başı)</label><input class="form-input" id="pr-late" type="number" step="0.01" value="0"></div>
-<div class="form-row"><label class="form-label">İzin aşımı cezası (gün başı)</label><input class="form-input" id="pr-leave-over-amt" type="number" step="0.01" value="0"></div>
+<div class="form-row"><label class="form-label" data-tr="Maaş türü" data-de="Gehaltsart">Maaş türü</label><select class="form-input" id="pr-mode"><option value="net">Net</option><option value="gross_minimum">Asgari (brüt)</option></select></div>
+<div class="form-row"><label class="form-label" data-tr="Baz maaş" data-de="Grundgehalt">Baz maaş</label><input class="form-input" id="pr-base" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"><div class="muh-hint" data-tr="Kategorisi olmayan personel için." data-de="Für Personal ohne Kategorie.">Kategorisi olmayan personel için.</div></div>
+<div class="form-row"><label class="form-label" data-tr="Şirket vergisi %" data-de="Unternehmensteuer %">Şirket vergisi %</label><input class="form-input" id="pr-tax" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>
+<div class="form-row"><label class="form-label" data-tr="Randevu geliri" data-de="Termineinnahme">Randevu geliri</label><input class="form-input" id="pr-rev-success" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"><div class="muh-hint" data-tr="Müşteri tarifesi yoksa, başarılı randevu başına." data-de="Ohne Kundentarif, pro erfolgreichem Termin.">Müşteri tarifesi yoksa, başarılı randevu başına.</div></div>
+<div class="form-row"><label class="form-label" data-tr="Geç kalma kesintisi" data-de="Verspätungsabzug">Geç kalma kesintisi</label><input class="form-input" id="pr-late" type="number" step="0.01" value="0"><div class="muh-hint" data-tr="Her geç kalma için." data-de="Pro Verspätung.">Her geç kalma için.</div></div>
+<div class="form-row"><label class="form-label" data-tr="İzin aşımı kesintisi" data-de="Urlaubsüberschreitung">İzin aşımı kesintisi</label><input class="form-input" id="pr-leave-over-amt" type="number" step="0.01" value="0"><div class="muh-hint" data-tr="Yıllık hakkı aşan gün başına." data-de="Pro Tag über dem Jahresanspruch.">Yıllık hakkı aşan gün başına.</div></div>
 <div class="form-row"><label class="form-label" data-tr="İşveren SGK %" data-de="Arbeitgeber-SV %">İşveren SGK %</label><input class="form-input" id="pr-sgk" type="number" step="0.01" value="0"></div>
 <div class="form-row"><label class="form-label" data-tr="Ofis gündeliği" data-de="Bürotagessatz">Ofis gündeliği</label><input class="form-input" id="pr-office" type="number" step="0.01" value="0"></div>
 </div>
 <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:12px;">
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-gov" onchange="updatePayrollPreview()"> Devlet destekli (vergi uygulama)</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-late-on"> Geç kalma kesilsin</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-leave-over"> Yıllık izin aşımında kes</label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-agent-customer"> Agent müşteri seçebilsin</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-gov" onchange="updatePayrollPreview()"> <span data-tr="Devlet destekli, şirket vergisi yok" data-de="Staatlich gefördert, keine Unternehmensteuer">Devlet destekli, şirket vergisi yok</span></label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-late-on"> <span data-tr="Geç kalınca kes" data-de="Bei Verspätung abziehen">Geç kalınca kes</span></label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-leave-over"> <span data-tr="İzin aşımında kes" data-de="Bei Urlaubsüberschreitung abziehen">İzin aşımında kes</span></label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-agent-customer"> <span data-tr="Temsilci randevuda müşteri seçsin" data-de="Agent wählt den Kunden am Termin">Temsilci randevuda müşteri seçsin</span></label>
 </div>
 <div style="display:grid;grid-template-columns:1fr;gap:12px;">
 <div>
@@ -3259,6 +3249,23 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label">TomTom API Key</label>
 <input class="form-input" id="s-tomtom-key" placeholder="...">
 <div style="font-size:11px;color:var(--text-3);margin-top:3px;">Randevu mesafe hesaplama için</div>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Kur kaynağı" data-de="Kursquelle">Kur kaynağı</label>
+<select class="form-input" id="s-fx-provider" onchange="onFxProviderChange()">
+<option value="frankfurter">Canlı kur</option>
+<option value="exchangerate_host">exchangerate.host</option>
+<option value="custom">Özel API</option>
+</select>
+<div style="font-size:11px;color:var(--text-3);margin-top:3px;" data-tr="Muhasebe euro ve TL çevrimini buradan alır. Firma admini bu alanı görmez." data-de="Die Buchhaltung rechnet Euro und TL hierüber. Der Firma-Admin sieht das nicht.">Muhasebe euro ve TL çevrimini buradan alır. Firma admini bu alanı görmez.</div>
+</div>
+<div class="form-row" id="s-fx-url-row" style="display:none;">
+<label class="form-label" data-tr="Özel kur adresi" data-de="Eigene Kurs-URL">Özel kur adresi</label>
+<input class="form-input" id="s-fx-url" placeholder="https://api.example.com/rates?date={date}&base=EUR&symbols=TRY">
+</div>
+<div class="form-row" id="s-fx-key-row" style="display:none;">
+<label class="form-label" data-tr="Özel kur anahtarı" data-de="Eigener Kursschlüssel">Özel kur anahtarı</label>
+<input type="password" class="form-input" id="s-fx-key" placeholder="apikey">
 </div>
 <button class="btn btn-primary" style="align-self:flex-start;" onclick="saveApiSettings()"><i class="ph ph-floppy-disk"></i> API Ayarlarını Kaydet</button>
 </div>

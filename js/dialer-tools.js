@@ -301,6 +301,41 @@ function mbFillIntegForms(cfg) {
   set('s-conn-id', line.sip_connection_id);
   set('s-sip-user', line.sip_username);
   set('s-sip-pass', line.sip_password);
+  const fid = (typeof _mbIntegFirmId !== 'undefined' && _mbIntegFirmId) || currentUser?.firm_id;
+  if (fid && typeof mbFillFxForm === 'function') mbFillFxForm(fid);
+}
+
+async function mbFillFxForm(fid) {
+  const sel = document.getElementById('s-fx-provider');
+  if (!sel || !fid || typeof loadFirmPayrollRules !== 'function') return;
+  const rules = await loadFirmPayrollRules(fid, true);
+  sel.value = rules.fx_api_provider || 'frankfurter';
+  const url = document.getElementById('s-fx-url');
+  const key = document.getElementById('s-fx-key');
+  if (url) url.value = rules.fx_api_url || '';
+  if (key) key.value = rules.fx_api_key || '';
+  if (typeof onFxProviderChange === 'function') onFxProviderChange();
+}
+
+async function saveFirmFxApi(fid) {
+  const sel = document.getElementById('s-fx-provider');
+  if (!sel || !fid) return;
+  const provider = sel.value || 'frankfurter';
+  const url = document.getElementById('s-fx-url')?.value?.trim() || '';
+  const key = document.getElementById('s-fx-key')?.value?.trim() || '';
+  const firms = await sb(`firms?id=eq.${fid}&select=settings`);
+  const settings = { ...(firms?.[0]?.settings || {}) };
+  settings.payroll = { ...(settings.payroll || {}), fx_api_provider: provider, fx_api_url: url, fx_api_key: key };
+  await sb(`firms?id=eq.${fid}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ settings }) });
+  const exists = await sb(`payroll_rules?firm_id=eq.${fid}&select=id`).catch(() => []);
+  if (exists?.length) {
+    await sb(`payroll_rules?firm_id=eq.${fid}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ fx_api_provider: provider, fx_api_url: url, fx_api_key: key, updated_at: new Date().toISOString() }),
+    });
+  }
+  if (window._payrollRulesCacheByFirm) delete window._payrollRulesCacheByFirm[fid];
 }
 
 async function mbIntegFirmChanged(from) {
@@ -330,6 +365,7 @@ async function saveApiSettings() {
         tomtom_key: tk || prev.tomtom_key,
       });
       if (String(fid) === String(currentUser?.firm_id)) mbApplyFirmIntegrationsLocal(saved, false);
+      if (typeof saveFirmFxApi === 'function') await saveFirmFxApi(fid);
     }
   }
   toast(typeof t === 'function' ? t('dial.api_saved') : 'API ayarları kaydedildi ✓','ok');

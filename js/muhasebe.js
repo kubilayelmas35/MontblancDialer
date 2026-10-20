@@ -313,12 +313,10 @@ async function testFxRateNow() {
   const fid = muhasebeFirmId();
   if (!fid) return;
   const ym = _mGetPeriod();
+  const cached = window._payrollRulesCacheByFirm[fid] || defaultPayrollRules();
   const rules = {
-    ...defaultPayrollRules(),
-    exchange_rate: Number(document.getElementById('pr-rate')?.value || 1),
-    fx_api_provider: document.getElementById('pr-fx-provider')?.value || 'frankfurter',
-    fx_api_url: document.getElementById('pr-fx-url')?.value?.trim() || '',
-    fx_api_key: document.getElementById('pr-fx-key')?.value?.trim() || '',
+    ...cached,
+    exchange_rate: Number(document.getElementById('pr-rate')?.value || cached.exchange_rate || 1),
   };
   const rate = await _getMonthFxRate(fid, ym, Number(rules.exchange_rate || 1), rules);
   const rateInput = document.getElementById('pr-rate');
@@ -439,9 +437,6 @@ function renderPayrollRulesForm(r) {
   };
   set('pr-currency', r.currency || 'EUR');
   set('pr-rate', Number(r.exchange_rate || 1));
-  set('pr-fx-provider', r.fx_api_provider || 'frankfurter');
-  set('pr-fx-url', r.fx_api_url || '');
-  set('pr-fx-key', r.fx_api_key || '');
   set('pr-mode', r.base_salary_mode || 'net');
   set('pr-base', Number(r.base_salary_amount || 0));
   set('pr-tax', Number(r.tax_rate_percent || 0));
@@ -467,12 +462,12 @@ function renderPayrollRulesForm(r) {
 }
 
 function onFxProviderChange() {
-  const p = document.getElementById('pr-fx-provider')?.value || 'frankfurter';
-  const urlRow = document.getElementById('pr-fx-url-row');
-  const keyRow = document.getElementById('pr-fx-key-row');
+  const p = document.getElementById('s-fx-provider')?.value || document.getElementById('pr-fx-provider')?.value || 'frankfurter';
   const isCustom = p === 'custom';
-  if (urlRow) urlRow.style.display = isCustom ? '' : 'none';
-  if (keyRow) keyRow.style.display = isCustom ? '' : 'none';
+  ['s-fx-url-row', 's-fx-key-row', 'pr-fx-url-row', 'pr-fx-key-row'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isCustom ? '' : 'none';
+  });
 }
 
 function renderPayrollTierRows(type, rows) {
@@ -560,13 +555,14 @@ async function savePayrollRules() {
   if (!isMuhasebeAdmin()) return;
   const fid = muhasebeFirmId();
   if (!fid) return;
+  const prevFx = window._payrollRulesCacheByFirm[fid] || defaultPayrollRules();
   const rules = {
     firm_id: fid,
     currency: document.getElementById('pr-currency')?.value || 'EUR',
     exchange_rate: Number(document.getElementById('pr-rate')?.value) || 1,
-    fx_api_provider: document.getElementById('pr-fx-provider')?.value || 'frankfurter',
-    fx_api_url: document.getElementById('pr-fx-url')?.value?.trim() || '',
-    fx_api_key: document.getElementById('pr-fx-key')?.value?.trim() || '',
+    fx_api_provider: prevFx.fx_api_provider || 'frankfurter',
+    fx_api_url: prevFx.fx_api_url || '',
+    fx_api_key: prevFx.fx_api_key || '',
     base_salary_mode: document.getElementById('pr-mode')?.value || 'net',
     base_salary_amount: Number(document.getElementById('pr-base')?.value) || 0,
     tax_rate_percent: Number(document.getElementById('pr-tax')?.value) || 0,
