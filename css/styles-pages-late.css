@@ -1088,3 +1088,8 @@ i.ph {
 .firm-led-amt.is-minus { color: var(--red); }
 .firm-none, .firm-log { font-size: 12px; color: var(--text-3); }
 .firm-log { display: flex; flex-direction: column; gap: 4px; font-size: 11px; }
+.firm-rate-row { display: grid; grid-template-columns: 90px 1fr 100px auto; gap: 6px; align-items: center; }
+.stats-hours { display: flex; flex-direction: column; gap: 4px; }
+.stats-hour { display: grid; grid-template-columns: 42px 1fr 36px 88px; gap: 8px; align-items: center; font-size: 11px; color: var(--text-2); }
+.stats-hour-track { height: 8px; background: var(--bg-3); border-radius: 4px; overflow: hidden; }
+.stats-hour-bar { display: block; height: 100%; background: var(--accent); }

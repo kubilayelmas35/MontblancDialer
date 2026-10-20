@@ -874,6 +874,7 @@ function onFirmsListClick(e) {
     const act = btn.dataset.firmAct;
     if (act === 'balance') openBalanceModal(btn.dataset.firmId);
     else if (act === 'ledger') openFirmLedger(btn.dataset.firmId);
+    else if (act === 'billing') openFirmBilling(btn.dataset.firmId);
     else if (act === 'user') openUserModal(btn.dataset.firmId);
     else if (act === 'edit') editFirm(btn.dataset.firmId);
     else if (act === 'edit-user') openEditUserModal(btn.dataset.userId);
@@ -924,10 +925,21 @@ function renderFirmsList() {
     const cur = typeof normalizeCurrency === 'function' ? normalizeCurrency(f.currency) : (f.currency || 'EUR');
     const bal = Number(f.balance || 0);
     const reserved = Number(f.reserved_balance || 0);
-    const available = Math.max(bal - reserved, 0);
+    const bill = firmBilling(f);
+    const available = Math.max(bal - reserved + bill.overdraft, 0);
     const last = firmBalanceLog(f).slice(-1)[0];
-    const reservedLine = reserved > 0
-      ? `<div class="firm-bal-note">${escapeHtml(t('firm.reserved'))} ${escapeHtml(firmMoney(reserved, cur))} · ${escapeHtml(t('firm.available'))} ${escapeHtml(firmMoney(available, cur))}</div>`
+    const limitBits = [];
+    if (reserved > 0) limitBits.push(`${t('firm.reserved')} ${firmMoney(reserved, cur)}`);
+    if (bill.overdraft > 0) limitBits.push(`${t('firm.bill.overdraft')} ${firmMoney(bill.overdraft, cur)}`);
+    if (limitBits.length) limitBits.push(`${t('firm.available')} ${firmMoney(available, cur)}`);
+    const reservedLine = limitBits.length
+      ? `<div class="firm-bal-note">${limitBits.map((bit) => escapeHtml(bit)).join(' · ')}</div>`
+      : '';
+    const warnLine = bill.warn_amount > 0 && bal < bill.warn_amount
+      ? `<div class="firm-bal-note">${escapeHtml(t('firm.bill.warn'))}</div>`
+      : '';
+    const capLine = bill.agent_cap > 0 && all.length > bill.agent_cap
+      ? `<div class="firm-bal-note">${escapeHtml(tReplace('firm.bill.over_cap', { n: all.length, cap: bill.agent_cap }))}</div>`
       : '';
     const lastNote = last?.note ? `<div class="firm-bal-note">${escapeHtml(last.note)}</div>` : '';
     const userRows = users.map((u) => {
@@ -961,8 +973,9 @@ ${cat ? `<span class="firm-cat">${escapeHtml(cat)}</span>` : ''}
 <div class="firm-bal">
 <span class="firm-bal-lbl">${escapeHtml(t('firm.balance'))}</span>
 <span class="firm-bal-val">${escapeHtml(firmMoney(bal, cur))}</span>
-${reservedLine}${lastNote}
+${reservedLine}${warnLine}${capLine}${lastNote}
 </div>
+<button type="button" class="btn btn-ghost btn-sm" data-firm-act="billing" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.bill.open'))}</button>
 <button type="button" class="btn btn-ghost btn-sm" data-firm-act="ledger" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.led.open'))}</button>
 <button type="button" class="btn btn-ghost btn-sm" data-firm-act="balance" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.topup'))}</button>
 <button type="button" class="btn btn-ghost btn-sm" data-firm-act="user" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.add_user'))}</button>
@@ -1044,7 +1057,7 @@ async function openFirmLedger(firmId, filter) {
   const cur = typeof normalizeCurrency === 'function' ? normalizeCurrency(f.currency) : (f.currency || 'EUR');
   const bal = Number(f.balance || 0);
   const reserved = Number(f.reserved_balance || 0);
-  const available = Math.max(bal - reserved, 0);
+  const available = Math.max(bal - reserved + firmBilling(f).overdraft, 0);
   document.getElementById('m-firm-ledger')?.remove();
   const modal = document.createElement('div');
   modal.id = 'm-firm-ledger';
@@ -1106,6 +1119,102 @@ async function openFirmLedger(firmId, filter) {
   } catch (e) {
     const box = document.getElementById('firm-led-list');
     if (box) box.innerHTML = `<div class="firm-none" style="color:var(--red);">${escapeHtml(t('firm.led.fail'))}</div>`;
+  }
+}
+
+function firmBilling(firm) {
+  const b = firm?.settings?.billing && typeof firm.settings.billing === 'object' ? firm.settings.billing : {};
+  const rates = Array.isArray(b.rates) ? b.rates.filter((r) => r && String(r.prefix || '').trim()) : [];
+  return {
+    overdraft: Math.max(0, Number(b.overdraft) || 0),
+    warn_amount: Number(b.warn_amount) || 0,
+    agent_cap: Math.max(0, parseInt(b.agent_cap, 10) || 0),
+    rates,
+  };
+}
+
+function firmRateRow(rate) {
+  return `<div class="firm-rate-row">
+<input class="form-input" data-rate="prefix" value="${escapeHtml(rate?.prefix || '')}" placeholder="49">
+<input class="form-input" data-rate="name" value="${escapeHtml(rate?.name || '')}" placeholder="${escapeHtml(t('firm.bill.dest'))}">
+<input class="form-input" data-rate="price" value="${rate?.price != null && rate.price !== '' ? escapeHtml(rate.price) : ''}" inputmode="decimal" placeholder="0.025">
+<button type="button" class="btn btn-ghost btn-sm" data-rate-del>✕</button>
+</div>`;
+}
+
+function openFirmBilling(firmId) {
+  const f = firmById(firmId) || {};
+  const bill = firmBilling(f);
+  const cur = typeof normalizeCurrency === 'function' ? normalizeCurrency(f.currency) : (f.currency || 'EUR');
+  document.getElementById('m-firm-billing')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'm-firm-billing';
+  modal.className = 'modal-overlay open';
+  modal.style.zIndex = '3001';
+  const rates = bill.rates.length ? bill.rates : [{ prefix: '', name: '', price: '' }];
+  modal.innerHTML = `
+<div class="modal" style="max-width:560px;">
+<div class="modal-hdr">
+<div class="modal-title">${escapeHtml(t('firm.bill.title'))} — ${escapeHtml(f.name || '')}</div>
+<button class="modal-close" onclick="document.getElementById('m-firm-billing').remove()">✕</button>
+</div>
+<div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+<div style="font-size:12px;color:var(--text-3);">${escapeHtml(t('firm.bill.hint'))}</div>
+<label class="form-label">${escapeHtml(t('firm.bill.overdraft'))} (${escapeHtml(cur)})</label>
+<input class="form-input" data-bill="overdraft" type="number" min="0" step="0.01" value="${bill.overdraft}">
+<label class="form-label">${escapeHtml(t('firm.bill.warn_at'))} (${escapeHtml(cur)})</label>
+<input class="form-input" data-bill="warn" type="number" step="0.01" value="${bill.warn_amount}">
+<label class="form-label">${escapeHtml(t('firm.bill.cap'))}</label>
+<input class="form-input" data-bill="cap" type="number" min="0" step="1" value="${bill.agent_cap}">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+<div class="form-label" style="margin:0;">${escapeHtml(t('firm.bill.rates'))}</div>
+<div style="display:flex;gap:6px;">
+<button type="button" class="btn btn-ghost btn-sm" data-rate-sample>${escapeHtml(t('firm.bill.sample'))}</button>
+<button type="button" class="btn btn-ghost btn-sm" data-rate-add>${escapeHtml(t('firm.bill.add_rate'))}</button>
+</div>
+</div>
+<div id="firm-rate-list">${rates.map((r) => firmRateRow(r)).join('')}</div>
+<div style="font-size:11px;color:var(--text-3);">${escapeHtml(t('firm.bill.rate_hint'))}</div>
+<button type="button" class="btn btn-primary" data-bill-save>${escapeHtml(t('firm.bill.save'))}</button>
+</div>
+</div>`;
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+    if (e.target.closest('[data-rate-del]')) e.target.closest('.firm-rate-row')?.remove();
+    if (e.target.closest('[data-rate-add]')) document.getElementById('firm-rate-list')?.insertAdjacentHTML('beforeend', firmRateRow({}));
+    if (e.target.closest('[data-rate-sample]')) {
+      const box = document.getElementById('firm-rate-list');
+      if (box) box.innerHTML = firmRateRow({ prefix: '49', name: t('firm.bill.sample_land'), price: '0.025' }) + firmRateRow({ prefix: '491', name: t('firm.bill.sample_mob'), price: '0.055' });
+    }
+    if (e.target.closest('[data-bill-save]')) saveFirmBilling(firmId);
+  });
+  document.body.appendChild(modal);
+}
+
+async function saveFirmBilling(firmId) {
+  const modal = document.getElementById('m-firm-billing');
+  if (!modal) return;
+  const overdraft = Math.max(0, Number(modal.querySelector('[data-bill="overdraft"]')?.value) || 0);
+  const warn_amount = Number(modal.querySelector('[data-bill="warn"]')?.value) || 0;
+  const agent_cap = Math.max(0, parseInt(modal.querySelector('[data-bill="cap"]')?.value, 10) || 0);
+  const rates = [...modal.querySelectorAll('.firm-rate-row')].map((row) => ({
+    prefix: String(row.querySelector('[data-rate="prefix"]')?.value || '').replace(/\D/g, ''),
+    name: String(row.querySelector('[data-rate="name"]')?.value || '').trim(),
+    price: Number(String(row.querySelector('[data-rate="price"]')?.value || '').replace(',', '.')) || 0,
+  })).filter((r) => r.prefix);
+  try {
+    const firms = await sb(`firms?id=eq.${firmId}&select=settings`);
+    const settings = firms?.[0]?.settings && typeof firms[0].settings === 'object' ? firms[0].settings : {};
+    await sb(`firms?id=eq.${firmId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings: { ...settings, billing: { overdraft, warn_amount, agent_cap, rates } } }),
+    });
+    modal.remove();
+    await loadFirmsPage();
+    toast(t('firm.bill.saved'), 'ok');
+  } catch (e) {
+    toast(t('firm.bill.fail') + ' ' + (e.message || ''), 'err');
   }
 }
 

@@ -897,7 +897,7 @@ async function statsFillFilters(fid) {
 
 async function statsPullLogs(ff, gte, lte, camp, agent) {
   const tail = `${ff}&started_at=gte.${gte}&started_at=lte.${lte}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}&order=started_at.desc`;
-  const rich = `call_logs?select=id,outcome,agent_id,campaign_id,firm_id,duration_sec,users(id,name),campaigns(id,name)${tail}`;
+  const rich = `call_logs?select=id,outcome,agent_id,campaign_id,firm_id,duration_sec,started_at,phone,users(id,name,role),campaigns(id,name)${tail}`;
   const plain = `call_logs?select=id,outcome,agent_id,campaign_id,firm_id,duration_sec${tail}`;
   let usePlain = false;
   const all = [];
@@ -1206,7 +1206,111 @@ _statsRows = rows.map((r) => {
 });
 statsRenderHead(extras);
 statsPaintBody();
+window._statsLabelMap = labelMap;
+void statsPaintDetail(logs, fid);
 } catch(e){ console.error(e); if(tbody) tbody.innerHTML = typeof mbErrorRow === 'function' ? mbErrorRow(STATS_COL, t('ui.error_prefix') + (e?.message || t('ui.unknown_error'))) : `<tr><td colspan="${STATS_COL}" class="mb-empty-hint" style="color:var(--red);">${typeof escapeHtml === 'function' ? escapeHtml(t('ui.error_prefix') + (e?.message || t('ui.unknown_error'))) : ''}</td></tr>`; }
+}
+
+function statsHms(sec) {
+  const n = Math.max(0, Math.round(Number(sec) || 0));
+  const h = Math.floor(n / 3600);
+  const m = Math.floor((n % 3600) / 60);
+  const s = n % 60;
+  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function statsBerlinHour(iso) {
+  if (typeof mbBerlinHour === 'function') return mbBerlinHour(iso);
+  try {
+    const h = new Date(iso).toLocaleString('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hourCycle: 'h23' });
+    return Number(String(h).slice(0, 2));
+  } catch (_) {
+    return new Date(iso).getHours();
+  }
+}
+
+function statsMatchRate(phone, rates) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) return null;
+  const list = (rates || []).slice().sort((a, b) => String(b.prefix || '').length - String(a.prefix || '').length);
+  return list.find((r) => digits.startsWith(String(r.prefix || '').replace(/\D/g, ''))) || null;
+}
+
+async function statsPaintDetail(logs, fid) {
+  const host = document.getElementById('stats-detail');
+  if (!host) return;
+  const rows = logs || [];
+  const byOut = {};
+  const hours = Array.from({ length: 24 }, () => ({ n: 0, appt: 0 }));
+  const byRole = {};
+  rows.forEach((l) => {
+    const key = statsOutcomeKey(l.outcome) || 'other';
+    if (!byOut[key]) byOut[key] = { n: 0, sec: 0 };
+    byOut[key].n += 1;
+    byOut[key].sec += Number(l.duration_sec) || 0;
+    if (l.started_at) {
+      const h = statsBerlinHour(l.started_at);
+      if (h >= 0 && h <= 23) {
+        hours[h].n += 1;
+        if (key === 'appointment') hours[h].appt += 1;
+      }
+    }
+    const role = l.users?.role || 'agent';
+    if (!byRole[role]) byRole[role] = { n: 0, appt: 0, sec: 0 };
+    byRole[role].n += 1;
+    byRole[role].sec += Number(l.duration_sec) || 0;
+    if (key === 'appointment') byRole[role].appt += 1;
+  });
+  const total = rows.length || 1;
+  const outRows = Object.keys(byOut).sort((a, b) => byOut[b].n - byOut[a].n).map((key) => {
+    const label = (typeof chOutcomeText === 'function' ? chOutcomeText(key, window._statsLabelMap) : '') || key;
+    const share = Math.round(byOut[key].n / total * 100);
+    return `<tr><td>${statsEsc(label)}</td><td>${byOut[key].n}</td><td>${statsEsc(statsHms(byOut[key].sec))}</td><td>${share}%</td></tr>`;
+  }).join('');
+  const maxHour = Math.max(1, ...hours.map((h) => h.n));
+  const hourRows = hours.map((h, i) => ({ i, ...h })).filter((h) => h.n > 0).map((h) => {
+    const w = Math.round(h.n / maxHour * 100);
+    return `<div class="stats-hour"><span>${String(h.i).padStart(2, '0')}:00</span><span class="stats-hour-track"><span class="stats-hour-bar" style="width:${w}%"></span></span><span>${h.n}</span><span>${h.appt} ${statsEsc(t('stats.appt_short'))}</span></div>`;
+  }).join('');
+  const roleRows = Object.keys(byRole).sort().map((role) => {
+    const label = typeof firmRoleLabel === 'function' ? firmRoleLabel(role) : role;
+    return `<tr><td>${statsEsc(label)}</td><td>${byRole[role].n}</td><td>${byRole[role].appt}</td><td>${statsEsc(statsHms(byRole[role].sec))}</td></tr>`;
+  }).join('');
+  let costRows = `<tr><td colspan="4">${statsEsc(t('stats.cost_empty'))}</td></tr>`;
+  if (fid) {
+    const firms = await sb(`firms?id=eq.${fid}&select=settings,currency`).catch(() => []);
+    const firm = firms?.[0] || {};
+    const rates = firm.settings?.billing?.rates;
+    const cur = typeof normalizeCurrency === 'function' ? normalizeCurrency(firm.currency) : (firm.currency || 'EUR');
+    if (Array.isArray(rates) && rates.length) {
+      const bag = {};
+      rows.forEach((l) => {
+        const rate = statsMatchRate(l.phone, rates);
+        if (!rate) return;
+        const id = `${rate.prefix}|${rate.name || ''}`;
+        if (!bag[id]) bag[id] = { name: rate.name || rate.prefix, prefix: rate.prefix, price: Number(rate.price) || 0, sec: 0 };
+        bag[id].sec += Number(l.duration_sec) || 0;
+      });
+      const lines = Object.values(bag);
+      if (lines.length) {
+        costRows = lines.map((line) => {
+          const money = (line.sec / 60) * line.price;
+          const shown = typeof formatMoney === 'function' ? formatMoney(money, cur) : money.toFixed(2);
+          return `<tr><td>${statsEsc(line.prefix)}</td><td>${statsEsc(line.name)}</td><td>${statsEsc(statsHms(line.sec))}</td><td>${statsEsc(shown)}</td></tr>`;
+        }).join('');
+      }
+    }
+  }
+  host.innerHTML = `
+<div class="card"><div class="card-title">${statsEsc(t('stats.out_title'))}</div>
+<div class="tbl-wrap"><table><thead><tr><th>${statsEsc(t('stats.col.result'))}</th><th>${statsEsc(t('stats.col.count'))}</th><th>${statsEsc(t('stats.col.time'))}</th><th>%</th></tr></thead><tbody>${outRows || `<tr><td colspan="4">${statsEsc(t('stats.none'))}</td></tr>`}</tbody></table></div></div>
+<div class="card"><div class="card-title">${statsEsc(t('stats.hour_title'))}</div>
+<div class="stats-hours">${hourRows || `<div class="firm-none">${statsEsc(t('stats.none'))}</div>`}</div></div>
+<div class="card"><div class="card-title">${statsEsc(t('stats.role_title'))}</div>
+<div class="tbl-wrap"><table><thead><tr><th>${statsEsc(t('stats.col.role'))}</th><th>${statsEsc(t('stats.col.count'))}</th><th>${statsEsc(t('stats.appt_short'))}</th><th>${statsEsc(t('stats.col.time'))}</th></tr></thead><tbody>${roleRows || `<tr><td colspan="4">${statsEsc(t('stats.none'))}</td></tr>`}</tbody></table></div></div>
+<div class="card"><div class="card-title">${statsEsc(t('stats.cost_title'))}</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">${statsEsc(t('stats.cost_hint'))}</div>
+<div class="tbl-wrap"><table><thead><tr><th>${statsEsc(t('stats.col.prefix'))}</th><th>${statsEsc(t('stats.col.dest'))}</th><th>${statsEsc(t('stats.col.time'))}</th><th>${statsEsc(t('stats.col.cost'))}</th></tr></thead><tbody>${costRows}</tbody></table></div></div>`;
 }
 
 const CH_CAP = 5000;

@@ -2,11 +2,20 @@ async function getFirmWallet(fid) {
   const firmId = fid || getActiveFirmId() || currentUser?.firm_id;
   if (!firmId) return { balance: 0, reserved_balance: 0, available: 0 };
   try {
-    const firms = await sb(`firms?id=eq.${firmId}&select=id,balance,reserved_balance`);
+    const firms = await sb(`firms?id=eq.${firmId}&select=id,balance,reserved_balance,settings`);
     const f = firms?.[0] || {};
     const balance = Number(f.balance || 0);
     const reserved = Number(f.reserved_balance || 0);
-    return { balance, reserved_balance: reserved, available: Math.max(balance - reserved, 0) };
+    const overdraft = Math.max(0, Number(f.settings?.billing?.overdraft) || 0);
+    const warnAmount = Number(f.settings?.billing?.warn_amount) || 0;
+    const spendable = balance - reserved + overdraft;
+    return {
+      balance,
+      reserved_balance: reserved,
+      overdraft,
+      warn_amount: warnAmount,
+      available: Math.max(spendable, 0),
+    };
   } catch (e) {
     return { balance: 0, reserved_balance: 0, available: 0 };
   }
@@ -48,7 +57,8 @@ async function refreshWalletInfo() {
     : (getActiveFirmId() || currentUser?.firm_id);
   const w = await getFirmWallet(ownerFirmId);
   const cur = await getFirmCurrency(ownerFirmId);
-  el.textContent = `Bakiye: ${formatMoney(w.balance, cur)} | Rezerve: ${formatMoney(w.reserved_balance, cur)} | Kullanılabilir: ${formatMoney(w.available, cur)}`;
+  const extra = w.overdraft > 0 ? ` | Eksi limit: ${formatMoney(w.overdraft, cur)}` : '';
+  el.textContent = `Bakiye: ${formatMoney(w.balance, cur)} | Rezerve: ${formatMoney(w.reserved_balance, cur)} | Kullanılabilir: ${formatMoney(w.available, cur)}${extra}`;
 }
 
 async function loadJobFinanceSummary() {
