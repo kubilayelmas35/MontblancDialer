@@ -897,7 +897,8 @@ i.ph {
 }
 .qc-scope-name { font-size: 13px; font-weight: 800; margin-bottom: 6px; }
 .qc-scope-name small { margin-left: 6px; font-weight: 500; color: var(--text-3); }
-.qc-scope-all, .qc-scope-picks label { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.qc-scope-all, .qc-scope-jobs, .qc-scope-picks label { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.qc-scope-jobs { margin-top: 8px; }
 .qc-scope-picks { display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow: auto; margin-top: 6px; }
 .qc-scope-picks[hidden] { display: none !important; }
 .agent-qc-scope { margin-top: 4px; font-size: 11px; color: var(--text-2); }

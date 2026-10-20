@@ -59,18 +59,20 @@ function qcRestrictedIds(scope, userId) {
   return (Array.isArray(scope[userId]) ? scope[userId] : []).map(String).filter(Boolean);
 }
 
-function qcScopeEditorHtml(userId, customers, scope) {
+function qcScopeEditorHtml(userId, customers, scope, jobSee) {
   const key = String(userId || '');
   const restricted = qcRestrictedIds(scope, key);
   const picked = new Set(restricted || []);
   const allOn = restricted == null;
+  const jobsOn = jobSee?.[key] !== false;
   const esc = typeof _uiEsc === 'function' ? _uiEsc : (v) => String(v ?? '');
   const boxes = (customers || []).map((c) => {
     const label = `${c.code ? `${c.code} · ` : ''}${c.name || ''}`.trim();
     return `<label><input type="checkbox" data-qc-scope-user="${esc(key)}" value="${esc(c.id)}" ${picked.has(String(c.id)) ? 'checked' : ''}>${esc(label || c.id)}</label>`;
   }).join('');
   return `<label class="qc-scope-all"><input type="checkbox" data-qc-scope-all="${esc(key)}" ${allOn ? 'checked' : ''} onchange="qcScopeToggleAll(this)">${esc(t('qc.scope.all'))}</label>
-<div class="qc-scope-picks"${allOn ? ' hidden' : ''}>${boxes || `<div style="color:var(--text-3);">${esc(t('qc.scope.no_customers'))}</div>`}</div>`;
+<div class="qc-scope-picks"${allOn ? ' hidden' : ''}>${boxes || `<div style="color:var(--text-3);">${esc(t('qc.scope.no_customers'))}</div>`}</div>
+<label class="qc-scope-jobs"><input type="checkbox" data-qc-scope-jobs="${esc(key)}" ${jobsOn ? 'checked' : ''}>${esc(t('qc.scope.jobs'))}</label>`;
 }
 
 function qcScopeToggleAll(box) {
@@ -79,37 +81,56 @@ function qcScopeToggleAll(box) {
 }
 
 function qcReadScopeEditor(root, userId) {
-  if (!root) return null;
+  const jobsEl = root?.querySelector(`[data-qc-scope-jobs="${userId}"]`);
+  const jobs = jobsEl ? !!jobsEl.checked : true;
+  if (!root) return { customers: null, jobs };
   const all = root.querySelector(`[data-qc-scope-all="${userId}"]`);
-  if (!all || all.checked) return null;
-  return [...root.querySelectorAll(`[data-qc-scope-user="${userId}"]:checked`)].map((el) => el.value).filter(Boolean);
+  const customers = (!all || all.checked)
+    ? null
+    : [...root.querySelectorAll(`[data-qc-scope-user="${userId}"]:checked`)].map((el) => el.value).filter(Boolean);
+  return { customers, jobs };
 }
 
 function qcAgentScopeLabel(user) {
   const scope = window._agentQcScopeByFirm?.[user?.firm_id] || {};
   const customers = (window._agentCustomers || []).filter((c) => String(c.firm_id) === String(user?.firm_id));
   const ids = qcRestrictedIds(scope, user?.id);
-  if (ids == null) return t('qc.scope.all');
-  if (!ids.length) return t('qc.scope.none_picked');
-  const names = ids.map((id) => customers.find((c) => String(c.id) === id)?.name).filter(Boolean);
-  if (!names.length) return String(ids.length);
-  if (names.length <= 2) return names.join(', ');
-  return `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
+  const jobsOn = window._agentQcJobSeeByFirm?.[user?.firm_id]?.[user?.id] !== false;
+  const jobs = jobsOn ? t('qc.scope.jobs_on') : t('qc.scope.jobs_off');
+  let cust = t('qc.scope.all');
+  if (ids != null) {
+    if (!ids.length) cust = t('qc.scope.none_picked');
+    else {
+      const names = ids.map((id) => customers.find((c) => String(c.id) === id)?.name).filter(Boolean);
+      cust = !names.length ? String(ids.length) : (names.length <= 2 ? names.join(', ') : `${names.slice(0, 2).join(', ')} +${names.length - 2}`);
+    }
+  }
+  return `${cust} · ${jobs}`;
 }
 
-async function qcCommitUserScope(firmId, userId, idsOrNull) {
+async function qcCommitUserScope(firmId, userId, spec) {
   if (!firmId || !userId || typeof sb !== 'function') return;
   const firms = await sb(`firms?id=eq.${firmId}&select=settings`);
   const existing = firms?.[0]?.settings || {};
   const scope = { ...(existing.qc_customer_scope || {}) };
-  if (idsOrNull == null) delete scope[userId];
-  else scope[userId] = idsOrNull;
+  const jobSee = { ...(existing.qc_job_see || {}) };
+  if (!spec) {
+    delete scope[userId];
+    delete jobSee[userId];
+  } else {
+    if (spec.customers == null) delete scope[userId];
+    else scope[userId] = spec.customers;
+    if (spec.jobs === false) jobSee[userId] = false;
+    else delete jobSee[userId];
+  }
   await sb(`firms?id=eq.${firmId}`, {
     method: 'PATCH',
     prefer: 'return=minimal',
-    body: JSON.stringify({ settings: { ...existing, qc_customer_scope: scope } }),
+    body: JSON.stringify({ settings: { ...existing, qc_customer_scope: scope, qc_job_see: jobSee } }),
   });
   if (window._agentQcScopeByFirm) window._agentQcScopeByFirm[firmId] = scope;
+  if (!window._agentQcJobSeeByFirm) window._agentQcJobSeeByFirm = {};
+  window._agentQcJobSeeByFirm[firmId] = jobSee;
 }
 
 async function loadQcScopeSettings() {
@@ -136,6 +157,7 @@ async function loadQcScopeSettings() {
     sb(`firms?id=eq.${fid}&select=settings`).catch(() => []),
   ]);
   const scope = firms?.[0]?.settings?.qc_customer_scope || {};
+  const jobSee = firms?.[0]?.settings?.qc_job_see || {};
   window._qcScopeDraftFirm = fid;
   if (!users?.length) {
     list.innerHTML = `<div style="font-size:12px;color:var(--text-3);">${_uiEsc(t('qc.scope.empty'))}</div>`;
@@ -143,7 +165,7 @@ async function loadQcScopeSettings() {
   }
   list.innerHTML = users.map((u) => `<div class="qc-scope-block" data-user="${_uiEsc(u.id)}">
 <div class="qc-scope-name">${_uiEsc(u.name || '')}<small>${_uiEsc(u.email || '')}</small></div>
-${qcScopeEditorHtml(u.id, customers || [], scope)}
+${qcScopeEditorHtml(u.id, customers || [], scope, jobSee)}
 </div>`).join('');
 }
 
@@ -156,18 +178,23 @@ async function saveQcScopeSettings() {
     const firms = await sb(`firms?id=eq.${fid}&select=settings`);
     const existing = firms?.[0]?.settings || {};
     const scope = { ...(existing.qc_customer_scope || {}) };
+    const jobSee = { ...(existing.qc_job_see || {}) };
     list.querySelectorAll('.qc-scope-block').forEach((block) => {
       const id = block.dataset.user;
       const next = qcReadScopeEditor(block, id);
-      if (next == null) delete scope[id];
-      else scope[id] = next;
+      if (next.customers == null) delete scope[id];
+      else scope[id] = next.customers;
+      if (next.jobs === false) jobSee[id] = false;
+      else delete jobSee[id];
     });
     await sb(`firms?id=eq.${fid}`, {
       method: 'PATCH',
       prefer: 'return=minimal',
-      body: JSON.stringify({ settings: { ...existing, qc_customer_scope: scope } }),
+      body: JSON.stringify({ settings: { ...existing, qc_customer_scope: scope, qc_job_see: jobSee } }),
     });
     if (window._agentQcScopeByFirm) window._agentQcScopeByFirm[fid] = scope;
+    if (!window._agentQcJobSeeByFirm) window._agentQcJobSeeByFirm = {};
+    window._agentQcJobSeeByFirm[fid] = jobSee;
     toast(t('qc.scope.saved'), 'ok');
   } catch (e) {
     toast(t('qc.fail') + (e.message || ''), 'err');
@@ -184,7 +211,8 @@ async function qcFillAgentScope(userId, firmId) {
     sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []),
   ]);
   const scope = firms?.[0]?.settings?.qc_customer_scope || {};
-  host.innerHTML = `<div class="form-label">${_uiEsc(t('qc.scope.short'))}</div><div class="qc-scope-block" data-user="${_uiEsc(userId)}">${qcScopeEditorHtml(userId, customers || [], scope)}</div>`;
+  const jobSee = firms?.[0]?.settings?.qc_job_see || {};
+  host.innerHTML = `<div class="form-label">${_uiEsc(t('qc.scope.short'))}</div><div class="qc-scope-block" data-user="${_uiEsc(userId)}">${qcScopeEditorHtml(userId, customers || [], scope, jobSee)}</div>`;
   host.dataset.loaded = '1';
 }
 

@@ -1,11 +1,21 @@
 async function loadJobMarketQcQueue() {
   const list = document.getElementById('qc-job-market-queue');
   if (!list) return;
+  const card = document.getElementById('qc-job-queue-card');
   const canQc = ['qc', 'admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
   if (!canQc) {
-    list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:8px;">QC yetkisi yok</div>`;
+    if (card) card.style.display = 'none';
     return;
   }
+  if (String(currentUser?.role || '') === 'qc' && currentUser?.firm_id) {
+    const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`).catch(() => []);
+    const see = firms?.[0]?.settings?.qc_job_see || {};
+    if (see[currentUser.id] === false) {
+      if (card) card.style.display = 'none';
+      return;
+    }
+  }
+  if (card) card.style.display = '';
   const fid = getActiveFirmId() || currentUser?.firm_id;
   const rows = await sb(`job_submissions?status=eq.qc_pending&select=id,job_post_id,worker_firm_id,worker_user_id,submission_type,payload,created_at,job_posts(id,title,requester_firm_id,budget,currency)&order=created_at.asc&limit=120`).catch(() => []);
   const filtered = (rows || []).filter((r) => !fid || r?.job_posts?.requester_firm_id === fid || mbIsSuperAdmin());

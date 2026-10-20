@@ -405,8 +405,10 @@ async function loadAgents() {
     if (gen !== _agentsLoadGen) return;
     window._agentCustomers = scopeCustomers || [];
     window._agentQcScopeByFirm = {};
+    window._agentQcJobSeeByFirm = {};
     (scopeFirms || []).forEach((firm) => {
       window._agentQcScopeByFirm[firm.id] = firm.settings?.qc_customer_scope || {};
+      window._agentQcJobSeeByFirm[firm.id] = firm.settings?.qc_job_see || {};
     });
     _agentUsers = users || [];
     _agentCamps = (camps || []).slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'tr'));
