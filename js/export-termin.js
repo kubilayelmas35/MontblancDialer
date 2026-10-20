@@ -16,6 +16,7 @@ let _etColsTouched = false;
 let _etLayouts = [];
 let _etLayoutName = '';
 let _etLayoutsReady = false;
+let _etMovedOnly = false;
 
 function _etFmtInputDate(d) {
   const yyyy = d.getFullYear();
@@ -107,7 +108,7 @@ async function _etFetchRows(from, to) {
   const cols =
     'id,slot_id,termin_tarih,kayit_tarihi,durum,nachname,telefonnummer,telefon2,strasse,plz,ortschaft,hausart,baujahr,qm,heizung,alter_der_heizung,verbrauch_pro_jahr,personen,interesse_an_pv,agent_notu,qc_notu,agent_id,campaign_id,customer_id,firm_id,form_ek';
   const bounds = _etBounds(from, to);
-  let q = `appointments?select=${cols},users(name),campaigns(name),customers(name,code),takvim_slots!slot_id(tarih,baslangic_saat,bitis_saat)${ff}`;
+  let q = `appointments?select=${cols},users(name),campaigns(name),customers(name,code),takvim_slots!slot_id(tarih,baslangic_saat,bitis_saat,alta_tasindi)${ff}`;
   q += `&termin_tarih=gte.${bounds.gte}&termin_tarih=lte.${bounds.lte}&order=termin_tarih.asc&limit=15000`;
   let rows;
   try {
@@ -172,6 +173,7 @@ function _etProcess(rows) {
       ortschaft: r.ortschaft || '',
       kampName,
       durumKey: _etNormDurum(r.durum),
+      movedDown: !!(slot && (slot.alta_tasindi === true || slot.alta_tasindi === 'true' || slot.alta_tasindi === 't')),
       agentName,
       agentId: r.agent_id || '',
       customerId: r.customer_id ? String(r.customer_id) : '',
@@ -282,6 +284,17 @@ function _etBuildStatusGrid() {
     };
     container.appendChild(row);
   });
+  const moved = _etProcessed.filter((row) => row.movedDown).length;
+  const chip = document.createElement('div');
+  chip.className = 'et-stat-item et-moved' + (_etMovedOnly ? ' et-stat-sel' : '');
+  chip.dataset.key = '__moved';
+  chip.innerHTML = `<span class="et-stat-dot" style="background:#b91c1c;"></span><span class="et-stat-lbl">${_uiEsc(t('export.moved_down'))}</span><span class="et-stat-n et-moved-n">${moved}</span>`;
+  chip.onclick = () => {
+    _etMovedOnly = !_etMovedOnly;
+    chip.classList.toggle('et-stat-sel', _etMovedOnly);
+    etApplyFilter();
+  };
+  container.appendChild(chip);
 }
 
 function _etUpdateStatusCounts(base) {
@@ -290,10 +303,13 @@ function _etUpdateStatusCounts(base) {
     stats[e.durumKey] = (stats[e.durumKey] || 0) + 1;
   });
   document.querySelectorAll('.et-stat-item').forEach((item) => {
+    if (item.dataset.key === '__moved') return;
     const key = item.dataset.key;
     const n = item.querySelector('.et-stat-n');
     if (n) n.textContent = String(stats[key] || 0);
   });
+  const moved = document.querySelector('.et-moved-n');
+  if (moved) moved.textContent = String(base.filter((row) => row.movedDown).length);
 }
 
 function _etFillAgentSelect() {
@@ -380,6 +396,7 @@ function etApplyFilter() {
 
   _etUpdateKampVisibility();
   _etUpdateStatusCounts(base);
+  if (_etMovedOnly) base = base.filter((row) => row.movedDown);
 
   if (_etKampSel.size) {
     _etFiltered = base.filter((e) => _etKampSel.has(e.kampName || '—'));
@@ -512,6 +529,7 @@ function etResetFilters(reload) {
   if (dt) dt.value = r.to;
   _etKampSel.clear();
   _etStatSel.clear();
+  _etMovedOnly = false;
   _etSelectedIds.clear();
   const ag = document.getElementById('et-agent');
   const cu = document.getElementById('et-customer');
@@ -693,6 +711,7 @@ function _etMeta() {
     pair('city', 'İlçe/Şehir', 'Ort', true),
     pair('camp', 'Kampanya', 'Kampagne', true),
     pair('status', 'Durum', 'Status', true),
+    pair('moved', 'Alta', 'Unten', true),
     pair('agent', 'Agent', 'Agent', true),
     pair('customer', 'Atanan müşteri', 'Kundenzuweisung', true),
     pair('note', 'Agent notu', 'Agentnotiz', true),
@@ -766,6 +785,7 @@ function _etCellText(row, col) {
   if (col.key === 'city') return raw.ortschaft || '';
   if (col.key === 'camp') return row.kampName && row.kampName !== '—' ? row.kampName : '';
   if (col.key === 'status') return _etDurumLabel(row.durumKey, raw.firm_id);
+  if (col.key === 'moved') return row.movedDown ? t('export.moved_short') : '';
   if (col.key === 'agent') return row.agentName || '';
   if (col.key === 'customer') return row.custLabel && row.custLabel !== '—' ? row.custLabel : '';
   if (col.key === 'note') return raw.agent_notu || '';
@@ -785,7 +805,11 @@ function _etCellHtml(row, col) {
   if (col.key === 'when') {
     return `<div style="font-weight:700;color:var(--accent);">${_uiEsc(row.whenTime || '—')}</div><div style="font-size:11px;color:var(--text-3);">${_uiEsc(row.whenDay || '')}</div>`;
   }
-  if (col.key === 'name') return `<span style="font-weight:600;">${_uiEsc(shown)}</span>`;
+  if (col.key === 'name') {
+    const flag = row.movedDown ? `<span class="et-down">! ${_uiEsc(t('export.moved_short'))}</span>` : '';
+    return `<span style="font-weight:600;">${_uiEsc(shown)}</span>${flag}`;
+  }
+  if (col.key === 'moved' && row.movedDown) return `<span class="et-down">! ${_uiEsc(shown)}</span>`;
   if (col.key === 'camp') return `<span class="badge et-camp" style="background:var(--accent);color:#fff;font-size:10px;" title="${_uiEsc(text)}">${_uiEsc(shown)}</span>`;
   if (col.key === 'status') return `<span class="badge" style="background:${_etBadgeColor(row.durumKey)};color:#fff;font-size:10px;">${_uiEsc(shown)}</span>`;
   return _uiEsc(shown);
