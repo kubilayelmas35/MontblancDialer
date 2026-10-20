@@ -943,6 +943,12 @@ i.ph {
 @media (max-width: 640px) {
   #fieldops-pdf-body div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
 }
+#page-muhasebe .muh-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
 #page-muhasebe .muh-tabbar {
   display: flex;
   gap: 8px;

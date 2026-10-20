@@ -2366,6 +2366,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="alacak" onclick="setMuhasebeTab('alacak')" data-tr="Alacak / Borç" data-de="Forderungen / Schulden">Alacak / Borç</button>
 <button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="vergi" onclick="setMuhasebeTab('vergi')" data-tr="Vergi & SGK" data-de="Steuer & SV">Vergi & SGK</button>
 <button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="musteri" onclick="setMuhasebeTab('musteri')" data-tr="Müşteri tarifeleri" data-de="Kundentarife">Müşteri Tarifeleri</button>
+<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="ayar" onclick="setMuhasebeTab('ayar')" data-tr="Ayarlar" data-de="Einstellungen">Ayarlar</button>
 </div>
 <div id="muh-pane-ozet" class="muh-pane">
 <div class="card" style="padding:16px;">
@@ -2374,9 +2375,13 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="card-title" style="margin:14px 0 8px;" data-tr="Yıllık kırılım" data-de="Jahresverlauf">Yıllık kırılım</div>
 <div id="muh-year-box" class="tbl-wrap"></div>
 </div>
+</div>
+<div id="muh-pane-ayar" class="muh-pane" style="display:none;">
 <div class="card" id="muhasebe-rules-card" style="padding:16px;display:none;">
-<div class="card-title" style="margin-bottom:10px;">Firma muhasebe ayarları</div>
-<div class="stats-grid" style="margin-bottom:10px;">
+<div class="card-title" style="margin-bottom:4px;" data-tr="Muhasebe ayarları" data-de="Buchhaltungseinstellungen">Muhasebe ayarları</div>
+<div class="card-sub" style="margin-bottom:12px;" data-tr="Para birimi, kur, baz maaş ve kademeler. Özet bu ayarlarla hesaplanır." data-de="Währung, Kurs, Grundgehalt und Stufen. Die Übersicht rechnet mit diesen Werten.">Para birimi, kur, baz maaş ve kademeler. Özet bu ayarlarla hesaplanır.</div>
+<div class="form-label" style="margin-bottom:6px;" data-tr="Kur" data-de="Kurs">Kur</div>
+<div class="muh-form-grid">
 <div class="form-row"><label class="form-label">Para birimi</label><select class="form-input" id="pr-currency" onchange="updatePayrollPreview()"><option value="EUR">EUR</option><option value="TRY">TRY</option></select></div>
 <div class="form-row"><label class="form-label">Kur (1 EUR = TRY)</label><input class="form-input" id="pr-rate" type="number" step="0.0001" value="1" oninput="updatePayrollPreview()"></div>
 <div class="form-row"><label class="form-label">Kur API</label>
@@ -2389,6 +2394,9 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="form-row"><label class="form-label">Kur testi</label><button class="btn btn-ghost btn-sm" type="button" onclick="testFxRateNow()">API'den Kuru Çek</button></div>
 <div class="form-row" id="pr-fx-url-row" style="display:none;"><label class="form-label">Özel API URL</label><input class="form-input" id="pr-fx-url" placeholder="https://api.example.com/rates?date={date}&base=EUR&symbols=TRY"></div>
 <div class="form-row" id="pr-fx-key-row" style="display:none;"><label class="form-label">Özel API Key (opsiyonel)</label><input class="form-input" id="pr-fx-key" placeholder="apikey / access_key"></div>
+</div>
+<div class="form-label" style="margin:14px 0 6px;" data-tr="Maaş ve kesinti" data-de="Gehalt und Abzüge">Maaş ve kesinti</div>
+<div class="muh-form-grid">
 <div class="form-row"><label class="form-label">Maaş modu</label><select class="form-input" id="pr-mode"><option value="net">Net</option><option value="gross_minimum">Asgari (brüt)</option></select></div>
 <div class="form-row"><label class="form-label">Baz maaş</label><input class="form-input" id="pr-base" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>
 <div class="form-row"><label class="form-label">Vergi %</label><input class="form-input" id="pr-tax" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>

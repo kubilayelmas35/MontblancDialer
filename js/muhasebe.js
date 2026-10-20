@@ -329,7 +329,7 @@ async function testFxRateNow() {
 
 function setMuhasebeTab(tab) {
   window._muhasebeTab = tab || 'ozet';
-  const panes = ['ozet', 'gelir', 'personel', 'vergi', 'kategori', 'sabit', 'alacak', 'musteri'];
+  const panes = ['ozet', 'gelir', 'personel', 'vergi', 'kategori', 'sabit', 'alacak', 'musteri', 'ayar'];
   panes.forEach(p => {
     const pane = document.getElementById(`muh-pane-${p}`);
     if (pane) pane.style.display = p === window._muhasebeTab ? '' : 'none';
