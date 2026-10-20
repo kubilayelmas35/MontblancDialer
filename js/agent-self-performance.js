@@ -262,6 +262,47 @@ ${_aspRenderSalaryTierTable(noTermin ? 0 : success, salaryTiersRaw, rules)}
   if (typeof applyLang === 'function') applyLang();
 }
 
+async function loadFieldSelfPerformance(fid, ym) {
+  const host = document.getElementById('muh-agent-perf-wrap');
+  if (!host) return;
+  host.innerHTML = `<div class="card" style="padding:16px;margin-bottom:14px;">
+<div class="card-title" style="margin-bottom:4px;">${_fEscPerf(t('perf.field.title'))}</div>
+<div class="card-sub" style="margin-bottom:10px;">${_fEscPerf(t('perf.field.sub'))} · <strong>${_fEscPerf(ym)}</strong></div>
+<div id="asp-body" style="color:var(--text-3);font-size:13px;">${_fEscPerf(t('field.loading'))}</div>
+</div>`;
+  const { start, end } = _aspMonthBounds(ym);
+  let tasks = [];
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/rpc/list_field_tasks_for_user`, {
+      method: 'POST',
+      headers: mbAuthHeaders(),
+      body: JSON.stringify({ p_actor_user_id: currentUser.id, p_firm_id: fid || currentUser.firm_id || null }),
+    });
+    if (res.ok) tasks = (await res.json().catch(() => [])) || [];
+  } catch (e) {}
+  const inMonth = (iso) => {
+    const day = String(iso || '').slice(0, 10);
+    return day && start && end && day >= start && day <= end;
+  };
+  const monthTasks = tasks.filter((task) => inMonth(task.completed_at || task.created_at));
+  const open = tasks.filter((task) => task.status === 'assigned' || task.status === 'in_progress').length;
+  const done = monthTasks.filter((task) => task.status === 'completed').length;
+  const sales = monthTasks.filter((task) => typeof fieldIsSale === 'function' && fieldIsSale(task.result_key)).length;
+  const cancelled = monthTasks.filter((task) => task.status === 'cancelled').length;
+  const body = document.getElementById('asp-body');
+  if (!body) return;
+  body.innerHTML = `<div class="stats-grid" style="margin-bottom:14px;">
+<div class="stat-card"><div class="stat-lbl">${_fEscPerf(t('dash.field.open'))}</div><div class="stat-val">${open}</div></div>
+<div class="stat-card stat-green"><div class="stat-lbl">${_fEscPerf(t('dash.field.done'))}</div><div class="stat-val">${done}</div></div>
+<div class="stat-card stat-blue"><div class="stat-lbl">${_fEscPerf(t('dash.field.sales'))}</div><div class="stat-val">${sales}</div></div>
+<div class="stat-card"><div class="stat-lbl">${_fEscPerf(t('field.status.cancel'))}</div><div class="stat-val">${cancelled}</div></div>
+</div>`;
+}
+
+function _fEscPerf(value) {
+  return String(value ?? '').replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+}
+
 async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const host = document.getElementById('muh-agent-perf-wrap');
   if (!host) return;
@@ -270,6 +311,13 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
     host.style.display = 'none';
     host.innerHTML = '';
     aspDestroyCharts();
+    return;
+  }
+  if (role === 'field_agent') {
+    host.style.display = '';
+    const sub = document.getElementById('performansim-sub');
+    if (sub) sub.textContent = t('perf.field.sub');
+    await loadFieldSelfPerformance(fid, ym);
     return;
   }
   host.style.display = '';

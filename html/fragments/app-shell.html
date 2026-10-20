@@ -385,7 +385,7 @@
 <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:220px;">
 <div id="dash-eom-av" style="width:56px;height:56px;border-radius:14px;background:var(--bg-3);color:var(--text);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></div>
 <div style="flex:1;min-width:0;">
-<div style="font-size:11px;font-weight:800;color:var(--text-3);letter-spacing:.04em;" data-tr="Ayın elemanı · Yarış" data-de="Mitarbeiter des Monats">Ayın elemanı · Yarış</div>
+<div id="dash-eom-kicker" style="font-size:11px;font-weight:800;color:var(--text-3);letter-spacing:.04em;" data-tr="Ayın elemanı · Yarış" data-de="Mitarbeiter des Monats">Ayın elemanı · Yarış</div>
 <div id="dash-eom-name" style="font-size:22px;font-weight:800;margin-top:4px;line-height:1.2;">—</div>
 <div id="dash-eom-period" style="font-size:12px;color:var(--text-3);margin-top:4px;">—</div>
 <div id="dash-eom-note" style="font-size:11px;margin-top:8px;color:var(--text-3);line-height:1.4;"></div>
@@ -2519,7 +2519,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div class="card" style="padding:16px;">
 <div class="card-title" style="margin-bottom:6px;">Canlı yarış</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;"><span data-tr="Sıra, randevu günü seçilen aya denk gelen terminlere göre. İptal ve başarısız sayılmaz." data-de="Rang nach Termintag im gewählten Monat. Stornierte und fehlgeschlagene zählen nicht.">Sıra, randevu günü seçilen aya denk gelen terminlere göre. İptal ve başarısız sayılmaz.</span> <span class="comp-admin-only" style="display:none;">Admin: her satırda randevu sayısı görünür.</span><span class="comp-agent-hint">Agent: sadece sıra ve isim; adetler gizli.</span></div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;"><span id="comp-rank-note" data-tr="Sıra, randevu günü seçilen aya denk gelen terminlere göre. İptal ve başarısız sayılmaz." data-de="Rang nach Termintag im gewählten Monat. Stornierte und fehlgeschlagene zählen nicht.">Sıra, randevu günü seçilen aya denk gelen terminlere göre. İptal ve başarısız sayılmaz.</span> <span class="comp-admin-only" style="display:none;">Admin: her satırda randevu sayısı görünür.</span><span class="comp-agent-hint">Agent: sadece sıra ve isim; adetler gizli.</span></div>
 <div id="comp-race-lanes" class="comp-race-lanes"></div>
 </div>
 <div class="card" style="padding:0;overflow:hidden;">

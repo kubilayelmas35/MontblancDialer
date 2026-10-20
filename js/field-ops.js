@@ -126,9 +126,15 @@ function fieldOpsOpen(taskId) {
   const formRows = schema.map((item) => {
     const field = typeof _fieldNormalizeSchemaRow === 'function' ? _fieldNormalizeSchemaRow(item) : item;
     if (!field?.key) return '';
+    if (field.type === 'photo') {
+      const shots = _fieldOpsFiles.filter((file) => file.task_id === row.id && (typeof fieldDocKeyOf === 'function' ? fieldDocKeyOf(file) : '') === `photo:${field.key}`);
+      if (!shots.length) return '';
+      return `<div class="dash-mini-row"><span>${_foEsc(field.label || field.key)}</span><b>${shots.map((file) => `<a target="_blank" rel="noopener" href="${_foEsc(file.file_url)}">${_foEsc(typeof fieldFileTitle === 'function' ? fieldFileTitle(file) : file.file_name)}</a>`).join(' · ')}</b></div>`;
+    }
     const value = payload[field.key];
     if (value == null || value === '') return '';
-    return `<div class="dash-mini-row"><span>${_foEsc(field.label || field.key)}</span><b>${_foEsc(value)}</b></div>`;
+    const shown = field.type === 'yesno' ? (value === 'evet' ? t('field.yes') : value === 'hayir' ? t('field.no') : value) : value;
+    return `<div class="dash-mini-row"><span>${_foEsc(field.label || field.key)}</span><b>${_foEsc(shown)}</b></div>`;
   }).filter(Boolean);
   Object.keys(payload).forEach((key) => {
     if (key === 'sample' || key === 'visit_result') return;

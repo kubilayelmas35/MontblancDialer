@@ -88,7 +88,51 @@ function compShiftMonth(delta) {
   loadCompetitionPage();
 }
 
+function _compFieldViewer() {
+  return currentUser?.role === 'field_agent';
+}
+
+async function _compFetchFieldCounts(dateFrom, dateTo) {
+  const fid = _compFirmId() || currentUser?.firm_id;
+  if (!fid || !currentUser?.id) return {};
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/rpc/list_field_visit_ranks`, {
+      method: 'POST',
+      headers: mbAuthHeaders(),
+      body: JSON.stringify({
+        p_actor_user_id: currentUser.id,
+        p_firm_id: fid,
+        p_from: dateFrom,
+        p_to: dateTo,
+      }),
+    });
+    if (res.ok) {
+      const rows = (await res.json().catch(() => [])) || [];
+      const map = {};
+      window._compFieldNames = {};
+      rows.forEach((row) => {
+        if (!row?.user_id) return;
+        map[row.user_id] = Number(row.completed) || 0;
+        if (row.name) window._compFieldNames[row.user_id] = row.name;
+      });
+      return map;
+    }
+  } catch (e) {}
+  const own = await fetch(`${SB_URL}/rest/v1/rpc/list_field_tasks_for_user`, {
+    method: 'POST',
+    headers: mbAuthHeaders(),
+    body: JSON.stringify({ p_actor_user_id: currentUser.id, p_firm_id: fid }),
+  }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  const done = (own || []).filter((task) => {
+    if (task.status !== 'completed') return false;
+    const day = String(task.completed_at || '').slice(0, 10);
+    return day && day >= dateFrom && day <= dateTo;
+  }).length;
+  return done ? { [currentUser.id]: done } : {};
+}
+
 async function _compFetchTerminCounts(dateFrom, dateTo) {
+  if (_compFieldViewer()) return _compFetchFieldCounts(dateFrom, dateTo);
   const fid = _compFirmId();
   if (!fid) return {};
   const ff = `&firm_id=eq.${fid}`;
@@ -112,7 +156,7 @@ async function _compRowsFromCounts(countMap) {
   const byId = Object.fromEntries(users.map((u) => [u.id, u]));
   const rows = ids.map((id) => ({
     userId: id,
-    name: byId[id]?.name || byId[id]?.email || id.slice(0, 8),
+    name: byId[id]?.name || byId[id]?.email || window._compFieldNames?.[id] || id.slice(0, 8),
     count: countMap[id],
   }));
   rows.sort((a, b) => b.count - a.count);
@@ -146,9 +190,11 @@ async function loadDashCompetitionCard() {
   if (periodEl) {
     periodEl.textContent = _compMonthLabel(y, m);
   }
+  const kicker = document.getElementById('dash-eom-kicker');
+  if (kicker && _compFieldViewer()) kicker.textContent = t('comp.field_title');
   if (noteEl) {
     noteEl.style.display = '';
-    noteEl.textContent = t('comp.note_auto_count');
+    noteEl.textContent = _compFieldViewer() ? t('comp.field_note') : t('comp.note_auto_count');
   }
 
   try {
@@ -213,6 +259,16 @@ async function loadCompetitionPage() {
   }
 
   const showCounts = _compShowCounts();
+  if (_compFieldViewer()) {
+    const pageTitle = document.querySelector('#page-competition .page-title span');
+    const pageSub = document.getElementById('comp-page-sub');
+    const rankNote = document.getElementById('comp-rank-note');
+    if (pageTitle) pageTitle.textContent = t('comp.field_title');
+    if (pageSub) pageSub.textContent = t('comp.field_note');
+    if (rankNote) rankNote.textContent = t('comp.field_note');
+    document.querySelectorAll('.comp-agent-hint').forEach((el) => { el.textContent = t('comp.field_hint'); });
+    document.querySelectorAll('#page-competition thead th:nth-child(2)').forEach((th) => { th.textContent = t('field.agent'); });
+  }
   document.querySelectorAll('.comp-admin-only').forEach((el) => {
     el.style.display = showCounts ? '' : 'none';
   });

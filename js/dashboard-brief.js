@@ -348,6 +348,59 @@ async function mbDashQcBlock(ff) {
     + mbDashCard(mbDashTr('Senin kapattıkların', 'Von dir abgeschlossen'), doneRows);
 }
 
+function mbDashLabel(valueId, text) {
+  const card = document.getElementById(valueId)?.closest('.stat-card');
+  const lbl = valueId === 'd-calls' ? document.getElementById('stat-lbl-calls') : card?.querySelector('.stat-lbl');
+  if (lbl) lbl.textContent = text;
+}
+
+async function mbPaintFieldDash(from, to) {
+  mbDashLabel('d-calls', t('dash.field.open'));
+  mbDashLabel('d-appt', t('dash.field.done'));
+  mbDashLabel('d-cb', t('dash.field.sales'));
+  mbDashLabel('d-vm', t('dash.field.missing'));
+  let tasks = [];
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/rpc/list_field_tasks_for_user`, {
+      method: 'POST',
+      headers: mbAuthHeaders(),
+      body: JSON.stringify({ p_actor_user_id: currentUser.id, p_firm_id: (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser.firm_id || null }),
+    });
+    if (res.ok) tasks = (await res.json().catch(() => [])) || [];
+  } catch (e) {}
+  const inRange = (iso) => {
+    const day = iso && typeof mbBerlinDay === 'function' ? mbBerlinDay(iso) : String(iso || '').slice(0, 10);
+    if (!day) return false;
+    if (from && day < from) return false;
+    if (to && day > to) return false;
+    return true;
+  };
+  const open = tasks.filter((task) => task.status === 'assigned' || task.status === 'in_progress').length;
+  const done = tasks.filter((task) => task.status === 'completed' && inRange(task.completed_at || task.updated_at)).length;
+  const sales = tasks.filter((task) => (typeof fieldIsSale === 'function' ? fieldIsSale(task.result_key) : String(task.result_key || '') === 'satis') && inRange(task.completed_at || task.updated_at)).length;
+  let missing = 0;
+  try {
+    const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id || null;
+    const fs = fid && typeof getFirmFieldSettings === 'function' ? await getFirmFieldSettings(fid) : null;
+    const ids = tasks.map((task) => task.id).filter(Boolean);
+    const files = ids.length ? ((await sb(`field_task_files?task_id=in.(${ids.join(',')})&select=task_id,file_name`).catch(() => [])) || []) : [];
+    missing = tasks.filter((task) => typeof fieldTaskMissingDocs === 'function' && fieldTaskMissingDocs(task, files, fs?.document_requirements)).length;
+  } catch (e) {}
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = String(val); };
+  set('d-calls', open);
+  set('d-appt', done);
+  set('d-cb', sales);
+  set('d-vm', missing);
+  const callsMeta = document.getElementById('d-calls-m');
+  if (callsMeta) callsMeta.textContent = t('dash.field.open');
+  const apptMeta = document.getElementById('d-appt-m');
+  if (apptMeta) apptMeta.textContent = t('dash.field.done');
+  const cbCard = document.getElementById('d-cb')?.closest('.stat-card');
+  const cbMeta = cbCard?.querySelector('.stat-meta');
+  if (cbMeta) cbMeta.textContent = t('dash.field.sales');
+  ['d-calls-delta', 'd-appt-delta', 'd-cb-delta', 'd-vm-delta', 'd-talk-delta'].forEach((id) => mbDashPaintDelta(id, 0, null));
+}
+
 async function mbDashFieldBlock(rangeKey, from, to) {
   const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : currentUser?.firm_id;
   let tasks = [];

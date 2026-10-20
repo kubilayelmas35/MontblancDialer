@@ -46,7 +46,7 @@ function _fieldNormalizeSchemaRow(row) {
   return {
     key: String(row?.key || '').trim(),
     label: String(row?.label || '').trim(),
-    type: ['text', 'number', 'select', 'date'].includes(String(row?.type || 'text')) ? String(row?.type) : 'text',
+    type: ['text', 'long', 'number', 'select', 'date', 'yesno', 'photo'].includes(String(row?.type || 'text')) ? String(row?.type) : 'text',
     options: Array.isArray(row?.options) ? row.options : [],
     required: !!row?.required,
     min: row?.min ?? '',
@@ -121,6 +121,7 @@ function fieldFileTitle(file) {
   const key = fieldDocKeyOf(file);
   const raw = String(file?.file_name || '');
   const name = key ? raw.replace(/^\[[^\]]+\]\s+/, '') : raw;
+  if (key.startsWith('photo:')) return `${t('field.photo')} · ${name}`;
   return key ? `${fieldDocLabel(key)} · ${name}` : name;
 }
 
@@ -172,6 +173,46 @@ function fieldNextToIso(value) {
   });
   const asBerlin = Date.UTC(+map.year, +map.month - 1, +map.day, +map.hour % 24, +map.minute, +map.second);
   return new Date(utcGuess.getTime() - (asBerlin - utcGuess.getTime())).toISOString();
+}
+
+function fieldPhotoKey(key) {
+  return `photo:${String(key || '').trim()}`;
+}
+
+function fieldQuestionMarkup(task, field, payload, docs) {
+  const ff = _fieldNormalizeSchemaRow(field);
+  if (!ff.key || !ff.label) return '';
+  const value = payload?.[ff.key] || '';
+  const hidden = ff.show_when_result && String(task.result_key || '') !== String(ff.show_when_result) ? 'display:none;' : '';
+  const reqMark = ff.required ? ' *' : '';
+  const reqAttr = ff.required ? 'required' : '';
+  let inner = '';
+  if (ff.type === 'long') {
+    inner = `<textarea class="form-input" rows="3" id="field-extra-${task.id}-${_fEsc(ff.key)}">${_fEsc(value)}</textarea>`;
+  } else if (ff.type === 'number') {
+    const minAttr = ff.min !== '' ? `min="${_fEsc(ff.min)}"` : '';
+    const maxAttr = ff.max !== '' ? `max="${_fEsc(ff.max)}"` : '';
+    inner = `<input type="number" ${reqAttr} ${minAttr} ${maxAttr} class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}" value="${_fEsc(value)}">`;
+  } else if (ff.type === 'date') {
+    inner = `<input type="date" ${reqAttr} class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}" value="${_fEsc(value)}">`;
+  } else if (ff.type === 'yesno') {
+    inner = `<select class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}"><option value="">${_fEsc(t('field.pick'))}</option><option value="evet" ${value === 'evet' ? 'selected' : ''}>${_fEsc(t('field.yes'))}</option><option value="hayir" ${value === 'hayir' ? 'selected' : ''}>${_fEsc(t('field.no'))}</option></select>`;
+  } else if (ff.type === 'select') {
+    inner = `<select class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}"><option value="">${_fEsc(t('field.pick'))}</option>${(ff.options || []).map((o) => `<option value="${_fEsc(o)}" ${String(value) === String(o) ? 'selected' : ''}>${_fEsc(o)}</option>`).join('')}</select>`;
+  } else if (ff.type === 'photo') {
+    const mine = (docs || []).filter((file) => fieldDocKeyOf(file) === fieldPhotoKey(ff.key));
+    const thumbs = mine.map((file) => `<a data-field-photo="${_fEsc(task.id)}:${_fEsc(ff.key)}" class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${_fEsc(file.file_url)}">${_fEsc(fieldFileTitle(file))}</a>`).join('');
+    inner = `<label class="btn btn-ghost btn-sm" style="cursor:pointer;width:fit-content;">${_fEsc(t('field.photo_add'))}<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="uploadFieldTaskFile('${task.id}', this, '${_fEsc(ff.key)}')"></label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">${thumbs}</div>`;
+  } else {
+    inner = `<input ${reqAttr} class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}" value="${_fEsc(value)}">`;
+  }
+  return `<div data-field-when-task="${task.id}" data-field-when="${_fEsc(ff.show_when_result)}" style="margin-top:8px;${hidden}"><div class="form-row"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label>${inner}</div></div>`;
+}
+
+function fieldQuickStatus(taskId, status) {
+  const sel = document.getElementById(`field-status-${taskId}`);
+  if (sel) sel.value = status;
+  saveFieldTaskUpdate(taskId);
 }
 
 function fieldSyncConditional(taskId) {
@@ -303,30 +344,12 @@ ${(fs.result_options || []).map((r) => `<option value="${_fEsc(r)}" ${task.resul
 </div>
 <div class="form-row" style="margin-top:8px;"><label class="form-label">${_fEsc(t('field.note'))}</label>
 <textarea class="form-input" rows="2" id="field-note-${task.id}" placeholder="${_fEsc(t('field.note_ph'))}">${_fEsc(task.notes || '')}</textarea></div>
-${(fs.form_schema || [])
-  .map((f) => {
-    const ff = _fieldNormalizeSchemaRow(f);
-    const v = payload?.[ff.key] || '';
-    if (!ff.key || !ff.label) return '';
-    const reqAttr = ff.required ? 'required' : '';
-    const minAttr = ff.min !== '' ? `min="${_fEsc(ff.min)}"` : '';
-    const maxAttr = ff.max !== '' ? `max="${_fEsc(ff.max)}"` : '';
-    const reqMark = ff.required ? ' *' : '';
-    const hidden = ff.show_when_result && String(task.result_key || '') !== String(ff.show_when_result) ? 'display:none;' : '';
-    const wrap = (inner) => `<div data-field-when-task="${task.id}" data-field-when="${_fEsc(ff.show_when_result)}" style="margin-top:8px;${hidden}">${inner}</div>`;
-    if (ff.type === 'number') {
-      return wrap(`<div class="form-row"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><input type="number" ${reqAttr} ${minAttr} ${maxAttr} class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`);
-    }
-    if (ff.type === 'date') {
-      return wrap(`<div class="form-row"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><input type="date" ${reqAttr} class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`);
-    }
-    if (ff.type === 'select') {
-      return wrap(`<div class="form-row"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><select ${reqAttr} class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}"><option value="">${_fEsc(t('field.pick'))}</option>${(ff.options || []).map((o) => `<option value="${_fEsc(o)}" ${String(v) === String(o) ? 'selected' : ''}>${_fEsc(o)}</option>`).join('')}</select></div>`);
-    }
-    return wrap(`<div class="form-row"><label class="form-label">${_fEsc(ff.label)}${reqMark}</label><input ${reqAttr} class="form-input" id="field-extra-${task.id}-${_fEsc(ff.key)}" value="${_fEsc(v)}"></div>`);
-  })
-  .join('')}
+<div style="margin-top:10px;font-size:11px;font-weight:800;color:var(--text-3);">${_fEsc(t('field.questions'))}</div>
+${(fs.form_schema || []).map((field) => fieldQuestionMarkup(task, field, payload, docs)).join('')}
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="fieldQuickStatus('${task.id}','in_progress')">${_fEsc(t('field.action.go'))}</button>
+<button type="button" class="btn btn-primary btn-sm" onclick="fieldQuickStatus('${task.id}','completed')">${_fEsc(t('field.action.done'))}</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="fieldQuickStatus('${task.id}','cancelled')">${_fEsc(t('field.action.cancel'))}</button>
 ${docSelect}
 <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
 ${_fEsc(t('field.upload'))}
@@ -334,7 +357,7 @@ ${_fEsc(t('field.upload'))}
 </label>
 <button class="btn btn-primary btn-sm" onclick="saveFieldTaskUpdate('${task.id}')">${_fEsc(t('field.save'))}</button>
 </div>
-${docs.length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">${docs
+${docs.filter((file) => !String(fieldDocKeyOf(file)).startsWith('photo:')).length ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">${docs.filter((file) => !String(fieldDocKeyOf(file)).startsWith('photo:'))
         .slice(0, 6)
         .map((f) => `<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${_fEsc(f.file_url)}">${_fEsc(fieldFileTitle(f))}</a>`)
         .join('')}</div>` : ''}
@@ -356,6 +379,14 @@ async function saveFieldTaskUpdate(taskId) {
     const ff = _fieldNormalizeSchemaRow(f);
     if (!ff.key) continue;
     if (ff.show_when_result && String(resultKey || '') !== String(ff.show_when_result)) continue;
+    if (ff.type === 'photo') {
+      const has = document.querySelector(`[data-field-photo="${taskId}:${ff.key}"]`);
+      if (ff.required && !has) {
+        toast(tReplace('field.need_photo', { label: ff.label || ff.key }), 'warn');
+        return;
+      }
+      continue;
+    }
     const val = document.getElementById(`field-extra-${taskId}-${ff.key}`)?.value || '';
     if (ff.required && !String(val).trim()) {
       toast(tReplace('field.required', { label: ff.label || ff.key }), 'warn');
@@ -400,7 +431,7 @@ async function saveFieldTaskUpdate(taskId) {
   await loadFieldPage();
 }
 
-async function uploadFieldTaskFile(taskId, input) {
+async function uploadFieldTaskFile(taskId, input, fieldKey) {
   const file = input?.files?.[0];
   input.value = '';
   if (!file) return;
@@ -409,11 +440,12 @@ async function uploadFieldTaskFile(taskId, input) {
   const docType = String(document.getElementById(`field-doctype-${taskId}`)?.value || '').trim();
   const fs = await getFirmFieldSettings(task.firm_id);
   const needsType = (fs.document_requirements || []).some((item) => String(item || '').trim());
-  if (needsType && !docType) {
+  const photoKey = String(fieldKey || '').trim();
+  if (!photoKey && needsType && !docType) {
     toast(t('field.need_doc_type'), 'warn');
     return;
   }
-  const storedName = docType ? `[${docType}] ${file.name}` : file.name;
+  const storedName = photoKey ? `[${fieldPhotoKey(photoKey)}] ${file.name}` : (docType ? `[${docType}] ${file.name}` : file.name);
   const path = `${task.firm_id}/${taskId}/${Date.now()}_${String(file.name).replace(/[^a-zA-Z0-9._-]/g, '_')}`;
   let url = '';
   try {

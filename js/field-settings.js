@@ -19,7 +19,7 @@ function _normalizeFieldSchemaRow(row) {
   const out = {
     key: String(row?.key || '').trim(),
     label: String(row?.label || '').trim(),
-    type: ['text', 'number', 'select', 'date'].includes(String(row?.type || 'text')) ? String(row?.type) : 'text',
+    type: ['text', 'long', 'number', 'select', 'date', 'yesno', 'photo'].includes(String(row?.type || 'text')) ? String(row?.type) : 'text',
     options: Array.isArray(row?.options) ? row.options.map((x) => String(x || '').trim()).filter(Boolean) : [],
     required: !!row?.required,
     min: row?.min ?? '',
@@ -80,9 +80,12 @@ function renderFieldSchemaRows() {
 <input class="form-input" data-field-schema-label-index="${idx}" value="${_fieldSetEsc(rr.label)}" placeholder="${_fieldSetEsc(t('field.set.ph_label'))}">
 <select class="form-input" data-field-schema-type-index="${idx}" onchange="onFieldSchemaTypeChange(${idx}, this.value)">
 <option value="text" ${rr.type === 'text' ? 'selected' : ''}>${_fieldSetEsc(t('field.set.type.text'))}</option>
+<option value="long" ${rr.type === 'long' ? 'selected' : ''}>${_fieldSetEsc(t('field.set.type.long'))}</option>
 <option value="number" ${rr.type === 'number' ? 'selected' : ''}>${_fieldSetEsc(t('field.set.type.number'))}</option>
 <option value="date" ${rr.type === 'date' ? 'selected' : ''}>${_fieldSetEsc(t('field.set.type.date'))}</option>
 <option value="select" ${rr.type === 'select' ? 'selected' : ''}>${_fieldSetEsc(t('field.set.type.select'))}</option>
+<option value="yesno" ${rr.type === 'yesno' ? 'selected' : ''}>${_fieldSetEsc(t('field.set.type.yesno'))}</option>
+<option value="photo" ${rr.type === 'photo' ? 'selected' : ''}>${_fieldSetEsc(t('field.set.type.photo'))}</option>
 </select>
 <div style="display:flex;gap:4px;justify-content:flex-end;">
 <button type="button" class="btn btn-ghost btn-sm" onclick="moveFieldSchemaRow(${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>↑</button>

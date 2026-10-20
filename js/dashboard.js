@@ -750,6 +750,21 @@ const rangeSuffix =
       : rangeKey === 'month'
         ? (isTr ? 'bu ay' : 'diesen Monat')
         : (isTr ? 'seçili aralık' : 'Zeitraum');
+if (dashRole === 'field') {
+  document.querySelectorAll('[data-dash-row="analytics"],[data-dash-row="trend"],[data-dash-row="live"],[data-dash-row="jobs"]').forEach((el) => { el.style.display = 'none'; });
+  if (costEl) costEl.style.display = 'none';
+  const talkCard = document.getElementById('d-talk')?.closest('.stat-card');
+  if (talkCard) talkCard.style.display = 'none';
+  try { await mbPaintFieldDash(from, to); } catch (e) { console.warn('field dash', e); }
+  if (typeof loadDashCompetitionCard === 'function') {
+    try { await loadDashCompetitionCard(); } catch (e) {}
+  }
+  if (typeof loadDashBrief === 'function') {
+    try { await loadDashBrief({ logs: [], ff, agentQ, rangeKey, from, to }); } catch (e) {}
+  }
+  if (typeof mbSyncDashRows === 'function') mbSyncDashRows();
+  return;
+}
 try {
 const logGte = typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
 const logLte = typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
