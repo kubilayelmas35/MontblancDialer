@@ -22,6 +22,9 @@ function startFieldEdit(fieldKey, fieldLabel, btnEl) {
       if (typeof onDialerNoteInput === 'function') onDialerNoteInput(input.value, 'top');
     });
   }
+  input.addEventListener('input', () => {
+    if (typeof qcSyncTwin === 'function') qcSyncTwin(fieldKey, input.value, 'top', { domOnly: true });
+  });
   input.focus(); input.select();
   btnEl.innerHTML = '<i class="ph ph-check" style="font-size:14px;"></i>';
   btnEl.title = 'Kaydet'; btnEl.style.color = 'var(--green)'; btnEl.style.opacity = '1';
@@ -69,6 +72,8 @@ async function saveFieldEdit(fieldKey, fieldLabel, inputEl, valEl, btnEl) {
     }
     if (fieldKey === 'notes' && typeof syncDialerNotes === 'function') syncDialerNotes(newVal, 'top');
     valEl.textContent = newVal || '—';
+    if (typeof qcSyncTwin === 'function') qcSyncTwin(fieldKey, newVal, 'top');
+    if (fieldKey === 'address' && currentContact.city && typeof qcSyncTwin === 'function') qcSyncTwin('city', currentContact.city, 'top');
     clearAddressSuggest(inputEl.closest('.cust-field'));
     inputEl.remove(); valEl.style.display = '';
     btnEl.innerHTML = '<i class="ph ph-pencil-simple" style="font-size:14px;"></i>';
@@ -150,6 +155,8 @@ async function applyDialerAddressSuggestion(row, input, valEl, btnEl) {
 }
 
 function cancelFieldEdit(fieldKey, inputEl, valEl, btnEl) {
+  const kept = valEl?.textContent === '—' ? '' : (valEl?.textContent || '');
+  if (typeof qcSyncTwin === 'function') qcSyncTwin(fieldKey, kept, 'top', { domOnly: true });
   clearAddressSuggest(inputEl.closest('.cust-field'));
   inputEl.remove(); valEl.style.display = '';
   btnEl.innerHTML = '<i class="ph ph-pencil-simple" style="font-size:14px;"></i>';

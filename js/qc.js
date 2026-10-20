@@ -312,7 +312,113 @@ function mountQcReviewForm() {
   host.id = 'qc-review-form';
   host.innerHTML = `<div class="qc-review-form-title">${_uiEsc(t('qc.form'))}</div><div class="qc-review-form-grid">${fields}</div><div class="qc-review-form-hint">${_uiEsc(t('qc.form_hint'))}</div>`;
   if (!old) anchor.after(host);
+  if (host.dataset.twin !== '1') {
+    host.dataset.twin = '1';
+    host.addEventListener('input', qcTwinFromForm);
+    host.addEventListener('change', qcTwinFromForm);
+  }
   if (typeof _qcApplyReviewNoteChrome === 'function') _qcApplyReviewNoteChrome();
+}
+
+let _qcTwinLock = false;
+
+function qcTwinShown(value) {
+  const text = String(value ?? '').trim();
+  if (text === 'true') return 'Evet';
+  if (text === 'false') return 'Hayır';
+  return text;
+}
+
+function qcRememberTwin(key, value) {
+  const text = String(value ?? '').trim();
+  const row = (qcList || []).find((x) => x.id === window._qcReviewApptId);
+  const col = typeof TAKVIM_APPT_COL !== 'undefined' ? TAKVIM_APPT_COL[key] : '';
+  if (row && col) row[col] = text || null;
+  else if (row && key !== 'attempt') {
+    const ek = row.form_ek && typeof row.form_ek === 'object' ? { ...row.form_ek } : {};
+    if (text) ek[key] = text;
+    else delete ek[key];
+    row.form_ek = ek;
+  }
+  if (!currentContact || key === 'attempt') return;
+  if (key === 'name') {
+    const parts = text.split(/\s+/).filter(Boolean);
+    currentContact.first_name = parts.shift() || '';
+    currentContact.last_name = parts.join(' ');
+    return;
+  }
+  if (key === 'phone') { currentContact.phone = text; return; }
+  if (['plz', 'city', 'address', 'phone2', 'notes'].includes(key)) { currentContact[key] = text; return; }
+  const extra = { ...(currentContact.extra && typeof currentContact.extra === 'object' ? currentContact.extra : {}) };
+  extra[key] = text;
+  currentContact.extra = extra;
+}
+
+function qcPaintTop(key, value) {
+  const shown = qcTwinShown(value);
+  const valEl = document.getElementById(`cval-${key}`);
+  if (valEl) {
+    const editor = [...(valEl.parentElement?.children || [])].find((el) => el.tagName === 'INPUT');
+    if (editor && document.activeElement !== editor) editor.value = shown;
+    if (!editor || valEl.style.display !== 'none') valEl.textContent = shown || '—';
+  }
+  const nameEl = document.getElementById('cust-name');
+  if (key === 'name' || nameEl?.dataset.headKey === key) {
+    const span = nameEl?.querySelector('span');
+    const first = document.getElementById('cust-edit-first');
+    const last = document.getElementById('cust-edit-last');
+    if (key === 'name' && first && last && document.activeElement !== first && document.activeElement !== last) {
+      const parts = shown.split(/\s+/).filter(Boolean);
+      first.value = parts.shift() || '';
+      last.value = parts.join(' ');
+    } else if (span && nameEl?.dataset.headKey === key) span.textContent = shown || '—';
+    else if (nameEl && !span && nameEl.dataset.headKey === key && !nameEl.querySelector('input')) nameEl.textContent = shown || '—';
+    if (key === 'name') {
+      const av = document.querySelector('#cust-av .cust-av-inner');
+      if (av && shown) av.textContent = shown.charAt(0).toUpperCase();
+    }
+  }
+  const phoneEl = document.getElementById('cust-phone');
+  if (phoneEl?.dataset.headKey === key && !phoneEl.querySelector('input')) phoneEl.textContent = shown || '—';
+}
+
+function qcSyncTwin(key, value, source, opts) {
+  if (!window._qcReviewApptId || !key || key === 'attempt' || _qcTwinLock) return;
+  if (!/^[a-zA-Z0-9_-]+$/.test(key)) return;
+  _qcTwinLock = true;
+  try {
+    const text = String(value ?? '');
+    if (source !== 'top') qcPaintTop(key, text);
+    if (source !== 'form') {
+      const el = document.querySelector(`#qc-review-form [data-takvim-key="${key}"]`);
+      if (el && document.activeElement !== el) el.value = text;
+    }
+    if (!opts?.domOnly) qcRememberTwin(key, text);
+  } finally {
+    _qcTwinLock = false;
+  }
+}
+
+function qcContactFromForm(extra) {
+  const body = extra?.body || {};
+  const patch = {};
+  if ('nachname' in body) {
+    const parts = String(body.nachname || '').trim().split(/\s+/).filter(Boolean);
+    patch.first_name = parts.shift() || '';
+    patch.last_name = parts.join(' ');
+  }
+  if ('telefonnummer' in body) patch.phone = body.telefonnummer || '';
+  if ('telefon2' in body) patch.phone2 = body.telefon2 || '';
+  if ('plz' in body) patch.plz = body.plz || '';
+  if ('ortschaft' in body) patch.city = body.ortschaft || '';
+  if ('strasse' in body) patch.address = body.strasse || '';
+  return patch;
+}
+
+function qcTwinFromForm(ev) {
+  const el = ev.target?.closest?.('[data-takvim-key]');
+  if (!el || el.hasAttribute('readonly')) return;
+  qcSyncTwin(el.getAttribute('data-takvim-key'), el.value, 'form');
 }
 
 async function qcUpdateStatus(status) {
@@ -353,10 +459,12 @@ async function quickQcUpdate(apptId, status) {
       await takvimSaveContactExtras(row.contact_id, extra.contactExtra).catch(() => {});
     }
     if (row.contact_id && contactStatus) {
+      const contactPatch = { status: contactStatus };
+      if (extra && (qcDetailId === apptId || window._qcReviewApptId === apptId)) Object.assign(contactPatch, qcContactFromForm(extra));
       await sb(`contacts?id=eq.${row.contact_id}`, {
         method: 'PATCH',
         prefer: 'return=minimal',
-        body: JSON.stringify({ status: contactStatus }),
+        body: JSON.stringify(contactPatch),
       }).catch(() => {});
     }
     if (row.contact_id) {

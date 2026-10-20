@@ -343,6 +343,7 @@ Randevuyu Kaydet
     } else {
       nameEl.textContent = titleText || '—';
     }
+    nameEl.dataset.headKey = headKey || '';
     const nameLabel = head[0] ? labelOf(head[0].key, head[0].label || 'Ad') : 'Ad';
     nameEl.style.cursor = 'pointer';
     nameEl.title = 'Kopyala';
@@ -355,6 +356,7 @@ Randevuyu Kaydet
   }
   const phoneEl = document.getElementById('cust-phone');
   if (phoneEl) {
+    phoneEl.dataset.headKey = head[1]?.key || '';
     const subLabel = head[1] ? labelOf(head[1].key, head[1].label || '') : '';
     phoneEl.style.cursor = subText ? 'pointer' : 'default';
     phoneEl.title = subText ? 'Kopyala' : '';
@@ -554,6 +556,13 @@ async function startCustomerNameEdit(btnEl) {
     <button onclick="saveCustomerNameEdit()" style="background:transparent;border:none;color:var(--green);cursor:pointer;" title="Kaydet"><i class="ph ph-check"></i></button>
     <button onclick="showCustomerCard(currentContact)" style="background:transparent;border:none;color:var(--text-3);cursor:pointer;" title="İptal"><i class="ph ph-x"></i></button>
   </div>`;
+  const pushName = () => {
+    if (typeof qcSyncTwin !== 'function') return;
+    const full = `${document.getElementById('cust-edit-first')?.value || ''} ${document.getElementById('cust-edit-last')?.value || ''}`.trim();
+    qcSyncTwin('name', full, 'top', { domOnly: true });
+  };
+  nameEl.querySelector('#cust-edit-first')?.addEventListener('input', pushName);
+  nameEl.querySelector('#cust-edit-last')?.addEventListener('input', pushName);
 }
 
 async function saveCustomerNameEdit() {
@@ -568,6 +577,7 @@ async function saveCustomerNameEdit() {
     });
     currentContact.first_name = first;
     currentContact.last_name = last;
+    if (typeof qcSyncTwin === 'function') qcSyncTwin('name', `${first} ${last}`.trim(), 'top');
     showCustomerCard(currentContact);
     toast('İsim güncellendi', 'ok');
   } catch (e) {
