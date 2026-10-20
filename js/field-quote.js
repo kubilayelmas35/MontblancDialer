@@ -265,10 +265,17 @@ async function fieldQuoteFillCatalog(task) {
   const products = (fs.products || []).filter((row) => row?.name);
   const vatEl = document.getElementById('field-quote-vat');
   if (vatEl && !vatEl.dataset.touched && fs.pdf && document.getElementById('field-quote-vat')?.value === '19' && fs.pdf.vat != null) vatEl.value = fs.pdf.vat;
-  const options = products.map((row) => {
+  const option = (row) => {
     const stockBit = row.stock == null ? '' : ` · ${t('field.cat.stock')} ${row.stock}`;
     return `<option data-product="${_fEsc(JSON.stringify({ id: row.id, name: row.name, unit: row.unit || 'adet', price: Number(row.price) || 0, stock: row.stock }))}">${_fEsc(row.name)} · ${_fEsc(fieldMoney(row.price))}${_fEsc(stockBit)}</option>`;
+  };
+  const cats = (fs.categories || []).filter((cat) => cat?.name);
+  const grouped = cats.map((cat) => {
+    const rows = products.filter((row) => row.categoryId === cat.id);
+    return rows.length ? `<optgroup label="${_fEsc(cat.name)}">${rows.map(option).join('')}</optgroup>` : '';
   }).join('');
+  const loose = products.filter((row) => !cats.some((cat) => cat.id === row.categoryId));
+  const options = grouped + (loose.length ? `<optgroup label="${_fEsc(t('field.cat.uncat'))}">${loose.map(option).join('')}</optgroup>` : '');
   host.innerHTML = `${products.length ? `<select class="form-input" id="field-quote-product" style="flex:1;min-width:180px;"><option value="">${_fEsc(t('field.quote.pick'))}</option>${options}</select>
 <input class="form-input" id="field-quote-qty" type="number" min="1" value="1" style="width:70px;">
 <button type="button" class="btn btn-ghost btn-sm" onclick="fieldQuoteAddSelected()">${_fEsc(t('field.quote.add'))}</button>` : `<span style="font-size:12px;color:var(--text-3);">${_fEsc(t('field.quote.no_catalog'))}</span>`}

@@ -18,12 +18,20 @@ function defaultFirmFieldSettings() {
     document_requirements: ['kimlik', 'sozlesme'],
     form_schema: [],
     products: [],
+    categories: [],
     pdf: { title: '', company: '', intro: '', terms: '', footer: '', vat: 19 }
   };
 }
 
 function defaultFieldPdf() {
   return { title: '', company: '', intro: '', terms: '', footer: '', vat: 19 };
+}
+
+function fieldNormalizeCategory(row, idx) {
+  return {
+    id: String(row?.id || `c_${idx + 1}`),
+    name: String(row?.name || '').trim()
+  };
 }
 
 function fieldNormalizeProduct(row, idx) {
@@ -35,7 +43,9 @@ function fieldNormalizeProduct(row, idx) {
     unit: String(row?.unit || '').trim() || 'adet',
     price: Math.max(0, Number(row?.price) || 0),
     stock,
-    image: String(row?.image || '').trim()
+    image: String(row?.image || '').trim(),
+    categoryId: String(row?.categoryId || '').trim(),
+    sample: !!row?.sample
   };
 }
 
@@ -48,6 +58,7 @@ async function getFirmFieldSettings(fid) {
     if (!Array.isArray(merged.result_options)) merged.result_options = defaultFirmFieldSettings().result_options;
     if (!Array.isArray(merged.document_requirements)) merged.document_requirements = [];
     if (!Array.isArray(merged.form_schema)) merged.form_schema = [];
+    merged.categories = (Array.isArray(merged.categories) ? merged.categories : []).map((row, idx) => fieldNormalizeCategory(row, idx)).filter((row) => row.name);
     merged.products = (Array.isArray(merged.products) ? merged.products : []).map((row, idx) => fieldNormalizeProduct(row, idx)).filter((row) => row.name);
     merged.pdf = { ...defaultFieldPdf(), ...(merged.pdf && typeof merged.pdf === 'object' ? merged.pdf : {}) };
     const vat = Number(merged.pdf.vat);

@@ -2,6 +2,7 @@
 
 let _fieldCatalogFid = null;
 let _fieldCatalogProducts = [];
+let _fieldCatalogCategories = [];
 let _fieldCatalogPdf = { title: '', company: '', intro: '', terms: '', footer: '', vat: 19 };
 let _fieldCatalogTab = 'stock';
 
@@ -17,7 +18,18 @@ function fieldCatalogRemember() {
         unit: document.querySelector(`[data-cat-unit="${idx}"]`)?.value,
         price: document.querySelector(`[data-cat-price="${idx}"]`)?.value,
         stock: stockRaw === '' ? null : stockRaw,
-        image: document.querySelector(`[data-cat-image="${idx}"]`)?.value
+        image: document.querySelector(`[data-cat-image="${idx}"]`)?.value,
+        categoryId: document.querySelector(`[data-cat-category="${idx}"]`)?.value || '',
+        sample: document.querySelector(`[data-cat-sample="${idx}"]`)?.value === '1'
+      }, Number(idx));
+    });
+  }
+  if (document.getElementById('field-cat-cats')) {
+    _fieldCatalogCategories = [...document.querySelectorAll('[data-cat-c-name]')].map((input) => {
+      const idx = input.getAttribute('data-cat-c-name');
+      return fieldNormalizeCategory({
+        id: document.querySelector(`[data-cat-c-id="${idx}"]`)?.value,
+        name: input.value
       }, Number(idx));
     });
   }
@@ -52,26 +64,50 @@ function renderFieldCatalog() {
   const body = document.getElementById('fieldops-catalog-body');
   if (!body) return;
   const pdf = { ...defaultFieldPdf(), ...(_fieldCatalogPdf || {}) };
-  const rows = _fieldCatalogProducts.length
-    ? _fieldCatalogProducts.map((row, idx) => `<div class="field-cat-row">
-<div class="field-cat-photo-wrap">${row.image ? `<img class="field-cat-photo" alt="" src="${_fEsc(row.image)}">` : `<div class="field-cat-photo field-cat-photo-empty"></div>`}</div>
+  const catOptions = (selected) => [`<option value="">${_fEsc(t('field.cat.uncat'))}</option>`]
+    .concat(_fieldCatalogCategories.filter((cat) => cat.name).map((cat) => `<option value="${_fEsc(cat.id)}"${cat.id === selected ? ' selected' : ''}>${_fEsc(cat.name)}</option>`))
+    .join('');
+  const rowHtml = (row, idx) => `<div class="field-cat-row">
+<div class="field-cat-photo-wrap">${row.image ? `<img class="field-cat-photo" alt="" src="${_fEsc(row.image)}">` : `<div class="field-cat-photo field-cat-photo-empty ${_fEsc(row.categoryId || '')}"></div>`}</div>
 <div style="display:flex;flex-direction:column;gap:6px;min-width:0;">
 <input type="hidden" data-cat-id="${idx}" value="${_fEsc(row.id || '')}">
 <input type="hidden" data-cat-image="${idx}" value="${_fEsc(row.image || '')}">
+<input type="hidden" data-cat-sample="${idx}" value="${row.sample ? '1' : ''}">
 <input class="form-input" data-cat-name="${idx}" value="${_fEsc(row.name || '')}" placeholder="${_fEsc(t('field.set.ph_product'))}">
 <div style="display:flex;gap:6px;flex-wrap:wrap;">
-<input class="form-input" data-cat-unit="${idx}" value="${_fEsc(row.unit || '')}" placeholder="${_fEsc(t('field.set.ph_unit'))}" style="width:100px;">
-<input class="form-input" data-cat-price="${idx}" type="number" min="0" step="0.01" value="${row.price === 0 ? '0' : _fEsc(row.price ?? '')}" placeholder="${_fEsc(t('field.set.ph_price'))}" style="width:120px;">
-<input class="form-input" data-cat-stock="${idx}" type="number" min="0" step="1" value="${row.stock == null ? '' : _fEsc(row.stock)}" placeholder="${_fEsc(t('field.cat.ph_stock'))}" style="width:100px;">
+<select class="form-input" data-cat-category="${idx}" style="min-width:140px;">${catOptions(row.categoryId || '')}</select>
+<input class="form-input" data-cat-unit="${idx}" value="${_fEsc(row.unit || '')}" placeholder="${_fEsc(t('field.set.ph_unit'))}" style="width:90px;">
+<input class="form-input" data-cat-price="${idx}" type="number" min="0" step="0.01" value="${row.price === 0 ? '0' : _fEsc(row.price ?? '')}" placeholder="${_fEsc(t('field.set.ph_price'))}" style="width:110px;">
+<input class="form-input" data-cat-stock="${idx}" type="number" min="0" step="1" value="${row.stock == null ? '' : _fEsc(row.stock)}" placeholder="${_fEsc(t('field.cat.ph_stock'))}" style="width:90px;">
 <label class="btn btn-ghost btn-sm" style="cursor:pointer;">${_fEsc(t('field.cat.image'))}<input type="file" accept="image/*" style="display:none;" onchange="fieldCatalogPickImage(${idx}, this)"></label>
 <button type="button" class="btn btn-ghost btn-sm" onclick="fieldCatalogRemove(${idx})">${_fEsc(t('field.set.remove'))}</button>
 </div>
 </div>
-</div>`).join('')
-    : `<div style="color:var(--text-3);font-size:12px;">${_fEsc(t('field.set.no_products'))}</div>`;
+</div>`;
+  const groups = _fieldCatalogCategories.filter((cat) => cat.name).map((cat) => {
+    const items = [];
+    _fieldCatalogProducts.forEach((row, idx) => { if (row.categoryId === cat.id) items.push(rowHtml(row, idx)); });
+    return `<div class="field-cat-group"><div class="field-cat-head">${_fEsc(cat.name)}</div>${items.join('') || `<div style="font-size:12px;color:var(--text-3);">${_fEsc(t('field.set.no_products'))}</div>`}</div>`;
+  }).join('');
+  const loose = [];
+  _fieldCatalogProducts.forEach((row, idx) => {
+    if (!_fieldCatalogCategories.some((cat) => cat.id === row.categoryId)) loose.push(rowHtml(row, idx));
+  });
+  const looseHtml = loose.length ? `<div class="field-cat-group"><div class="field-cat-head">${_fEsc(t('field.cat.uncat'))}</div>${loose.join('')}</div>` : '';
+  const chips = _fieldCatalogCategories.map((cat, idx) => `<div class="field-cat-chip">
+<input type="hidden" data-cat-c-id="${idx}" value="${_fEsc(cat.id || '')}">
+<input class="form-input" data-cat-c-name="${idx}" value="${_fEsc(cat.name || '')}" placeholder="${_fEsc(t('field.cat.ph_cat'))}">
+<button type="button" class="btn btn-ghost btn-sm" onclick="fieldCatalogRemoveCategory(${idx})">${_fEsc(t('field.set.remove'))}</button>
+</div>`).join('');
   body.innerHTML = `<div id="field-cat-stock" style="display:${_fieldCatalogTab === 'stock' ? '' : 'none'};">
 <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">${_fEsc(t('field.cat.lead'))}</div>
-<div id="field-cat-list" style="display:flex;flex-direction:column;gap:8px;">${rows}</div>
+<div style="font-size:12px;font-weight:800;margin-bottom:6px;">${_fEsc(t('field.cat.categories'))}</div>
+<div id="field-cat-cats" class="field-cat-cats">${chips || `<div style="font-size:12px;color:var(--text-3);">${_fEsc(t('field.cat.no_cat'))}</div>`}</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px;">
+<input class="form-input" id="field-cat-new" placeholder="${_fEsc(t('field.cat.ph_cat'))}" style="max-width:220px;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="fieldCatalogAddCategory()">${_fEsc(t('field.cat.add_cat'))}</button>
+</div>
+<div id="field-cat-list" style="display:flex;flex-direction:column;gap:10px;">${groups}${looseHtml}</div>
 <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="fieldCatalogAdd()">${_fEsc(t('field.cat.add'))}</button>
 </div>
 <div id="field-cat-pdf" style="display:${_fieldCatalogTab === 'pdf' ? '' : 'none'};">
@@ -106,6 +142,7 @@ async function loadFieldOpsCatalog() {
   }
   _fieldCatalogFid = fid;
   const fs = await getFirmFieldSettings(fid);
+  _fieldCatalogCategories = (fs.categories || []).map((row, idx) => fieldNormalizeCategory(row, idx));
   _fieldCatalogProducts = (fs.products || []).map((row, idx) => fieldNormalizeProduct(row, idx));
   _fieldCatalogPdf = { ...defaultFieldPdf(), ...(fs.pdf || {}) };
   renderFieldCatalog();
@@ -113,8 +150,28 @@ async function loadFieldOpsCatalog() {
 
 function fieldCatalogAdd() {
   fieldCatalogRemember();
-  _fieldCatalogProducts.push(fieldNormalizeProduct({ id: `p_${Date.now()}`, name: '', unit: 'adet', price: 0, stock: null, image: '' }, _fieldCatalogProducts.length));
+  const cat = _fieldCatalogCategories.find((row) => row.name);
+  _fieldCatalogProducts.push(fieldNormalizeProduct({ id: `p_${Date.now()}`, name: '', unit: 'adet', price: 0, stock: null, image: '', categoryId: cat?.id || '' }, _fieldCatalogProducts.length));
   _fieldCatalogProducts[_fieldCatalogProducts.length - 1].name = '';
+  renderFieldCatalog();
+}
+
+function fieldCatalogAddCategory() {
+  fieldCatalogRemember();
+  const name = String(document.getElementById('field-cat-new')?.value || '').trim();
+  if (!name) {
+    toast(t('field.cat.need_cat'), 'warn');
+    return;
+  }
+  _fieldCatalogCategories.push(fieldNormalizeCategory({ id: `c_${Date.now()}`, name }, _fieldCatalogCategories.length));
+  renderFieldCatalog();
+}
+
+function fieldCatalogRemoveCategory(index) {
+  fieldCatalogRemember();
+  const cat = _fieldCatalogCategories[index];
+  _fieldCatalogCategories.splice(index, 1);
+  if (cat) _fieldCatalogProducts.forEach((row) => { if (row.categoryId === cat.id) row.categoryId = ''; });
   renderFieldCatalog();
 }
 
@@ -189,7 +246,9 @@ async function saveFieldCatalog() {
     toast(t('field.cat.empty_firm'), 'warn');
     return;
   }
-  const products = _fieldCatalogProducts.map((row, idx) => fieldNormalizeProduct(row, idx)).filter((row) => row.name);
+  const categories = _fieldCatalogCategories.map((row, idx) => fieldNormalizeCategory(row, idx)).filter((row) => row.name);
+  const known = new Set(categories.map((row) => row.id));
+  const products = _fieldCatalogProducts.map((row, idx) => fieldNormalizeProduct(row, idx)).filter((row) => row.name).map((row) => ({ ...row, categoryId: known.has(row.categoryId) ? row.categoryId : '' }));
   const pdf = { ...defaultFieldPdf(), ..._fieldCatalogPdf };
   try {
     const firms = await sb(`firms?id=eq.${fid}&select=settings`);
@@ -199,6 +258,7 @@ async function saveFieldCatalog() {
       ...(typeof defaultFirmFieldSettings === 'function' ? defaultFirmFieldSettings() : {}),
       ...prev,
       products,
+      categories,
       pdf
     };
     await sb(`firms?id=eq.${fid}`, {
@@ -207,6 +267,7 @@ async function saveFieldCatalog() {
       body: JSON.stringify({ settings: { ...existing, fieldService } })
     });
     if (typeof invalidateFieldSettingsCache === 'function') invalidateFieldSettingsCache(fid);
+    _fieldCatalogCategories = categories;
     _fieldCatalogProducts = products;
     toast(t('field.cat.saved'), 'ok');
   } catch (e) {

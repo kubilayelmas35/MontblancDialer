@@ -13,6 +13,7 @@ function defaultFieldSettings() {
     document_requirements: ['kimlik', 'sozlesme'],
     form_schema: [],
     products: [],
+    categories: [],
     pdf: { title: '', company: '', intro: '', terms: '', footer: '', vat: 19 }
   };
 }
@@ -363,6 +364,7 @@ async function saveFieldSettings() {
       document_requirements: docs,
       form_schema: schema,
       products: Array.isArray(prevService.products) ? prevService.products : [],
+      categories: Array.isArray(prevService.categories) ? prevService.categories : [],
       pdf: { ...(typeof defaultFieldPdf === 'function' ? defaultFieldPdf() : {}), ...(prevService.pdf || {}) }
     };
     await sb(`firms?id=eq.${fid}`, {
