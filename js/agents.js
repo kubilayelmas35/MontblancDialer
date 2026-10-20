@@ -271,6 +271,7 @@ ${user.role === 'qc' ? `<div class="agent-qc-scope">${agentEsc(t('qc.scope.short
 </div>
 <div class="agent-card-side">
 <span style="font-size:10px;padding:2px 7px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-weight:700;">${agentEsc(text.role)}</span>
+${typeof agentPayCatName === 'function' && agentPayCatName(user) ? `<div style="font-size:10px;color:var(--text-3);">${agentEsc(agentPayCatName(user))}</div>` : ''}
 <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:${color};">
 <div style="width:7px;height:7px;border-radius:50%;background:${color};"></div>
 ${agentEsc(text.status)}
@@ -294,7 +295,7 @@ function agentRowsBody() {
     const cells = {
       name: `<td><span class="camp-row-name" title="${agentEsc(u.name || '')}">${agentEsc(u.name || '')}</span>${u.role === 'qc' ? `<div class="agent-qc-scope">${agentEsc(t('qc.scope.short'))}: ${agentEsc(typeof qcAgentScopeLabel === 'function' ? qcAgentScopeLabel(u) : '')}</div>` : ''}</td>`,
       email: `<td>${agentEsc(u.email || '')}</td>`,
-      role: `<td>${agentEsc(text.role)}</td>`,
+      role: `<td>${agentEsc(text.role)}${typeof agentPayCatName === 'function' && agentPayCatName(u) ? `<div style="font-size:10px;color:var(--text-3);">${agentEsc(agentPayCatName(u))}</div>` : ''}</td>`,
       status: `<td style="color:${color};">${agentEsc(text.status)}</td>`,
       camps: `<td class="agent-camps-cell" title="${agentEsc(t('agent.camp.title'))}" onclick="event.stopPropagation();openAgentCampaigns('${u.id}')">${agentEsc(camps)}</td>`,
       calls: `<td class="num" title="${agentEsc(t('agent.today.hint'))}">${agentEsc(text.calls)}</td>`,
@@ -393,7 +394,7 @@ async function loadAgents() {
     const ff = getFirmFilter('&');
     const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : '';
     const [users, camps, sessions, counts, scopeFirms, scopeCustomers] = await Promise.all([
-      sb(`users?select=id,name,email,role,is_active,firm_id${ff}&role=in.(agent,qc,firm_admin,field_agent,super_admin)&order=name.asc`),
+      sb(`users?select=id,name,email,role,is_active,firm_id,payroll_category_id${ff}&role=in.(agent,qc,firm_admin,field_agent,super_admin)&order=name.asc`),
       sb(`campaigns?select=id,name,firm_id,settings${ff}&order=name.asc`),
       sb(`agent_sessions?select=agent_id,status,campaign_id,last_seen,updated_at${ff}`),
       agentFetchCounts(ff),
@@ -406,7 +407,13 @@ async function loadAgents() {
     window._agentCustomers = scopeCustomers || [];
     window._agentQcScopeByFirm = {};
     window._agentQcJobSeeByFirm = {};
+    window._agentPayCatByFirm = {};
     (scopeFirms || []).forEach((firm) => {
+      const map = {};
+      (firm.settings?.payroll?.salary_categories || []).forEach((c) => {
+        if (c?.id) map[c.id] = c.name || c.id;
+      });
+      window._agentPayCatByFirm[firm.id] = map;
       window._agentQcScopeByFirm[firm.id] = firm.settings?.qc_customer_scope || {};
       window._agentQcJobSeeByFirm[firm.id] = firm.settings?.qc_job_see || {};
     });
@@ -604,6 +611,7 @@ ${!isEdit ? `<div class="form-row"><label class="form-label">Firma</label>
 ${(_allFirms||[]).map(f=>`<option value="${f.id}">${f.name}</option>`).join('')}
 ${!(_allFirms||[]).length ? `<option value="${currentUser.firm_id}">${escapeHtml(currentUser.firm_name || 'Firma')}</option>` : ''}
 </select></div>` : ''}
+<div id="am-paycat-wrap"></div>
 ${isEdit ? `<div id="am-qc-scope" ${prefill?.role === 'qc' ? '' : 'hidden'}></div>` : ''}
 </div>
 <div class="modal-footer">
@@ -618,8 +626,12 @@ ${isEdit ? `<button class="btn btn-ghost" style="margin-right:auto;color:var(--r
   syncFieldAgentRoleOption(prefill?.role, targetFirmId);
   const firmSel = document.getElementById('am-firm');
   if (firmSel) {
-    firmSel.onchange = () => syncFieldAgentRoleOption(prefill?.role, firmSel.value);
+    firmSel.onchange = () => {
+      syncFieldAgentRoleOption(prefill?.role, firmSel.value);
+      if (typeof muhFillPayCategorySelect === 'function') muhFillPayCategorySelect(prefill);
+    };
   }
+  if (typeof muhFillPayCategorySelect === 'function') muhFillPayCategorySelect(prefill);
   const roleSel = document.getElementById('am-role');
   const showQcScope = () => {
     const host = document.getElementById('am-qc-scope');
@@ -669,6 +681,13 @@ async function saveNewAgent() {
     });
     if (!res.ok) throw new Error(await res.text());
     if (typeof logAuditEvent === 'function') await logAuditEvent('user_created', 'user', email, { role, firm_id: firmId });
+    const paycat = document.getElementById('am-paycat')?.value || '';
+    if (paycat) {
+      const found = await sb(`users?email=eq.${encodeURIComponent(email)}&select=id`).catch(() => []);
+      if (found?.[0]?.id) {
+        await sb(`users?id=eq.${found[0].id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ payroll_category_id: paycat }) });
+      }
+    }
     document.getElementById('m-agent-mgr')?.remove();
     await loadAgents();
     toast('Kullanıcı oluşturuldu ✓','ok');
@@ -692,8 +711,11 @@ async function saveAgentEdit(userId) {
     return;
   }
   try {
+    const patch = { name, role, is_active: active };
+    const paycat = document.getElementById('am-paycat');
+    if (paycat) patch.payroll_category_id = paycat.value || null;
     await sb(`users?id=eq.${userId}`,{method:'PATCH',prefer:'return=minimal',
-      body:JSON.stringify({name,role,is_active:active})});
+      body:JSON.stringify(patch)});
     if (pass) {
       const r = await fetch(`${SB_URL}/rest/v1/rpc/reset_user_password`,{
         method:'POST',
@@ -850,6 +872,7 @@ async function openEditUserModal(userId) {
 <option value="firm_admin" ${u.role==='firm_admin'?'selected':''}>Firma Admin</option>
 ${canAssignSuper ? `<option value="super_admin" ${u.role==='super_admin'?'selected':''}>Süper Admin</option>` : ''}
 </select></div>
+<div id="eu-paycat-wrap"></div>
 <div class="form-row"><label class="form-label">Durum</label>
 <select class="form-input" id="eu-active">
 <option value="true" ${u.is_active?'selected':''}>Aktif</option>
@@ -863,6 +886,7 @@ ${canAssignSuper ? `<option value="super_admin" ${u.role==='super_admin'?'select
 </div>`;
   modal.addEventListener('click', e=>{if(e.target===modal)modal.remove();});
   document.body.appendChild(modal);
+  if (typeof muhFillPayCategorySelect === 'function') muhFillPayCategorySelect(u, 'eu-paycat');
   const euRole = document.getElementById('eu-role');
   canManageFieldAgents(u.firm_id).then((can) => {
     if (!euRole) return;
@@ -892,8 +916,11 @@ async function saveEditUser(userId) {
     return;
   }
   try {
+    const patch = { name, email, role, is_active: active };
+    const paycat = document.getElementById('eu-paycat');
+    if (paycat) patch.payroll_category_id = paycat.value || null;
     await sb(`users?id=eq.${userId}`,{method:'PATCH',prefer:'return=minimal',
-      body:JSON.stringify({name,email,role,is_active:active})});
+      body:JSON.stringify(patch)});
     if (pass) {
       const r = await fetch(`${SB_URL}/rest/v1/rpc/reset_user_password`,{
         method:'POST',

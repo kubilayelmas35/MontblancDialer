@@ -2359,14 +2359,23 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </div>
 <div class="card" style="padding:10px 12px;">
 <div style="display:flex;gap:8px;flex-wrap:wrap;">
-<button class="btn btn-ghost btn-sm muh-tab-btn active" data-muh-tab="ozet" onclick="setMuhasebeTab('ozet')">Özet & Takip</button>
-<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="gelir" onclick="setMuhasebeTab('gelir')">Gelir / Gider</button>
-<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="personel" onclick="setMuhasebeTab('personel')">Personel Maaş</button>
-<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="vergi" onclick="setMuhasebeTab('vergi')">Vergi & SGK</button>
-<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="musteri" onclick="setMuhasebeTab('musteri')">Müşteri Tarifeleri</button>
+<button class="btn btn-ghost btn-sm muh-tab-btn active" data-muh-tab="ozet" onclick="setMuhasebeTab('ozet')" data-tr="Özet" data-de="Übersicht">Özet</button>
+<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="gelir" onclick="setMuhasebeTab('gelir')" data-tr="Gelir / Gider" data-de="Einnahmen / Ausgaben">Gelir / Gider</button>
+<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="personel" onclick="setMuhasebeTab('personel')" data-tr="Personel Maaş" data-de="Personalgehalt">Personel Maaş</button>
+<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="kategori" onclick="setMuhasebeTab('kategori')" data-tr="Maaş kategorileri" data-de="Gehaltskategorien">Maaş kategorileri</button>
+<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="sabit" onclick="setMuhasebeTab('sabit')" data-tr="Sabit gider" data-de="Fixkosten">Sabit gider</button>
+<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="alacak" onclick="setMuhasebeTab('alacak')" data-tr="Alacak / Borç" data-de="Forderungen / Schulden">Alacak / Borç</button>
+<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="vergi" onclick="setMuhasebeTab('vergi')" data-tr="Vergi & SGK" data-de="Steuer & SV">Vergi & SGK</button>
+<button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="musteri" onclick="setMuhasebeTab('musteri')" data-tr="Müşteri tarifeleri" data-de="Kundentarife">Müşteri Tarifeleri</button>
 </div>
 </div>
 <div id="muh-pane-ozet" class="muh-pane">
+<div class="card" style="padding:16px;">
+<div class="card-title" style="margin-bottom:8px;" data-tr="Kasa özeti" data-de="Kassenübersicht">Kasa özeti</div>
+<div id="muh-ozet-cards" class="stats-grid"></div>
+<div class="card-title" style="margin:14px 0 8px;" data-tr="Yıllık kırılım" data-de="Jahresverlauf">Yıllık kırılım</div>
+<div id="muh-year-box" class="tbl-wrap"></div>
+</div>
 <div class="card" id="muhasebe-rules-card" style="padding:16px;display:none;">
 <div class="card-title" style="margin-bottom:10px;">Firma muhasebe ayarları</div>
 <div class="stats-grid" style="margin-bottom:10px;">
@@ -2388,6 +2397,8 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="form-row"><label class="form-label">Başarılı randevu gelir tutarı</label><input class="form-input" id="pr-rev-success" type="number" step="0.01" value="0" oninput="updatePayrollPreview()"></div>
 <div class="form-row"><label class="form-label">Geç kalma cezası (olay başı)</label><input class="form-input" id="pr-late" type="number" step="0.01" value="0"></div>
 <div class="form-row"><label class="form-label">İzin aşımı cezası (gün başı)</label><input class="form-input" id="pr-leave-over-amt" type="number" step="0.01" value="0"></div>
+<div class="form-row"><label class="form-label" data-tr="İşveren SGK %" data-de="Arbeitgeber-SV %">İşveren SGK %</label><input class="form-input" id="pr-sgk" type="number" step="0.01" value="0"></div>
+<div class="form-row"><label class="form-label" data-tr="Ofis gündeliği" data-de="Bürotagessatz">Ofis gündeliği</label><input class="form-input" id="pr-office" type="number" step="0.01" value="0"></div>
 </div>
 <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:12px;">
 <label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-gov" onchange="updatePayrollPreview()"> Devlet destekli (vergi uygulama)</label>
@@ -2448,6 +2459,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="card-sub" id="muh-personel-card-sub">Baz maaş, prim, kesintiler, manuel ekleme/kesme, ödenen/kalan</div>
 </div>
 <div style="display:flex;gap:6px;" id="muh-personel-export-btns">
+<button class="btn btn-ghost btn-sm" onclick="printMuhasebeBordro()" data-tr="Bordro yazdır" data-de="Lohnabrechnung drucken">Bordro yazdır</button>
 <button class="btn btn-ghost btn-sm" onclick="exportMuhasebeCsv()">CSV</button>
 <button class="btn btn-ghost btn-sm" onclick="exportMuhasebeXlsx()">Excel</button>
 </div>
@@ -2464,8 +2476,71 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </div>
 <div id="muh-pane-vergi" class="muh-pane" style="display:none;">
 <div class="card" style="padding:16px;">
-<div class="card-title" style="margin-bottom:8px;">Vergi & Matrah</div>
+<div class="card-title" style="margin-bottom:8px;" data-tr="Vergi ve SGK" data-de="Steuer und SV">Vergi ve SGK</div>
 <div id="muh-tax-summary"></div>
+</div>
+</div>
+<div id="muh-pane-kategori" class="muh-pane" style="display:none;">
+<div class="card" style="padding:16px;">
+<div class="card-title" data-tr="Maaş kategorileri" data-de="Gehaltskategorien">Maaş kategorileri</div>
+<div class="card-sub" style="margin-bottom:10px;" data-tr="Kategori baz maaşı, prim kademesini ve SGK oranını taşır. Personel kaydından seçilir. Boş kademe firma ayarını kullanır." data-de="Eine Kategorie trägt Grundgehalt, Prämienstufen und SV-Satz. Sie wird am Personal gewählt. Leere Stufen nutzen die Firmeneinstellung.">Kategori baz maaşı, prim kademesini ve SGK oranını taşır. Personel kaydından seçilir. Boş kademe firma ayarını kullanır.</div>
+<div id="muh-cat-editor"></div>
+<button class="btn btn-ghost btn-sm" type="button" onclick="addSalaryCategory()" data-tr="Kategori ekle" data-de="Kategorie hinzufügen">Kategori ekle</button>
+<button class="btn btn-primary btn-sm" type="button" onclick="savePayrollRules()" data-tr="Kategorileri kaydet" data-de="Kategorien speichern">Kategorileri kaydet</button>
+</div>
+</div>
+<div id="muh-pane-sabit" class="muh-pane" style="display:none;">
+<div class="card" style="padding:16px;">
+<div class="card-title" data-tr="Sabit gider" data-de="Fixkosten">Sabit gider</div>
+<div class="card-sub" style="margin-bottom:10px;" data-tr="Kira, SGK, abonelik. Her ay seçeneği başlangıç ayından itibaren her aya yazılır. Kira stopajı yüzde 20 vergi satırına gider." data-de="Miete, SV, Abos. Die Option Jeden Monat gilt ab dem Startmonat. Miet-Abzugsteuer 20 % erscheint in der Steuerzeile.">Kira, SGK, abonelik. Her ay seçeneği başlangıç ayından itibaren her aya yazılır. Kira stopajı yüzde 20 vergi satırına gider.</div>
+<div style="display:grid;grid-template-columns:1.4fr 120px 90px 140px auto;gap:8px;align-items:end;">
+<div class="form-row"><label class="form-label" data-tr="Başlık" data-de="Titel">Başlık</label><input class="form-input" id="ml-gider-title"></div>
+<div class="form-row"><label class="form-label" data-tr="Tutar" data-de="Betrag">Tutar</label><input class="form-input" id="ml-gider-amount" type="number" step="0.01"></div>
+<div class="form-row"><label class="form-label" data-tr="Para" data-de="Währung">Para</label><select class="form-input" id="ml-gider-cur"><option>EUR</option><option>TRY</option></select></div>
+<div class="form-row"><label class="form-label" data-tr="Ay" data-de="Monat">Ay</label><input class="form-input" id="ml-gider-period" type="month"></div>
+<button class="btn btn-primary btn-sm" type="button" onclick="saveLedgerItem('gider')" data-tr="Ekle" data-de="Hinzufügen">Ekle</button>
+</div>
+<div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0;">
+<label style="font-size:12px;display:flex;gap:6px;align-items:center;"><input type="checkbox" id="ml-gider-recur"> <span data-tr="Her ay" data-de="Jeden Monat">Her ay</span></label>
+<label style="font-size:12px;display:flex;gap:6px;align-items:center;"><input type="checkbox" id="ml-gider-stopaj"> <span data-tr="Kira stopajı %20" data-de="Miet-Abzugsteuer 20 %">Kira stopajı %20</span></label>
+<input class="form-input" id="ml-gider-note" placeholder="Not" style="max-width:240px;">
+<input class="form-input" id="ml-gider-due" type="date" style="max-width:160px;">
+</div>
+<div id="muh-gider-table" class="tbl-wrap"></div>
+</div>
+</div>
+<div id="muh-pane-alacak" class="muh-pane" style="display:none;">
+<div class="card" style="padding:16px;">
+<div class="card-title" data-tr="Alacak" data-de="Forderungen">Alacak</div>
+<div style="display:grid;grid-template-columns:1.4fr 120px 90px 140px auto;gap:8px;align-items:end;margin-top:8px;">
+<div class="form-row"><label class="form-label" data-tr="Başlık" data-de="Titel">Başlık</label><input class="form-input" id="ml-alacak-title"></div>
+<div class="form-row"><label class="form-label" data-tr="Tutar" data-de="Betrag">Tutar</label><input class="form-input" id="ml-alacak-amount" type="number" step="0.01"></div>
+<div class="form-row"><label class="form-label" data-tr="Para" data-de="Währung">Para</label><select class="form-input" id="ml-alacak-cur"><option>EUR</option><option>TRY</option></select></div>
+<div class="form-row"><label class="form-label" data-tr="Ay" data-de="Monat">Ay</label><input class="form-input" id="ml-alacak-period" type="month"></div>
+<button class="btn btn-primary btn-sm" type="button" onclick="saveLedgerItem('alacak')" data-tr="Ekle" data-de="Hinzufügen">Ekle</button>
+</div>
+<div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0;">
+<label style="font-size:12px;display:flex;gap:6px;align-items:center;"><input type="checkbox" id="ml-alacak-recur"> <span data-tr="Her ay" data-de="Jeden Monat">Her ay</span></label>
+<input class="form-input" id="ml-alacak-note" placeholder="Not" style="max-width:240px;">
+<input class="form-input" id="ml-alacak-due" type="date" style="max-width:160px;">
+</div>
+<div id="muh-alacak-table" class="tbl-wrap"></div>
+</div>
+<div class="card" style="padding:16px;">
+<div class="card-title" data-tr="Borç" data-de="Schulden">Borç</div>
+<div style="display:grid;grid-template-columns:1.4fr 120px 90px 140px auto;gap:8px;align-items:end;margin-top:8px;">
+<div class="form-row"><label class="form-label" data-tr="Başlık" data-de="Titel">Başlık</label><input class="form-input" id="ml-borc-title"></div>
+<div class="form-row"><label class="form-label" data-tr="Tutar" data-de="Betrag">Tutar</label><input class="form-input" id="ml-borc-amount" type="number" step="0.01"></div>
+<div class="form-row"><label class="form-label" data-tr="Para" data-de="Währung">Para</label><select class="form-input" id="ml-borc-cur"><option>EUR</option><option>TRY</option></select></div>
+<div class="form-row"><label class="form-label" data-tr="Ay" data-de="Monat">Ay</label><input class="form-input" id="ml-borc-period" type="month"></div>
+<button class="btn btn-primary btn-sm" type="button" onclick="saveLedgerItem('borc')" data-tr="Ekle" data-de="Hinzufügen">Ekle</button>
+</div>
+<div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0;">
+<label style="font-size:12px;display:flex;gap:6px;align-items:center;"><input type="checkbox" id="ml-borc-recur"> <span data-tr="Her ay taksit" data-de="Monatliche Rate">Her ay taksit</span></label>
+<input class="form-input" id="ml-borc-note" placeholder="Not" style="max-width:240px;">
+<input class="form-input" id="ml-borc-due" type="date" style="max-width:160px;">
+</div>
+<div id="muh-borc-table" class="tbl-wrap"></div>
 </div>
 </div>
 </div>
