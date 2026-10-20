@@ -162,7 +162,8 @@ function initSettingsTabs(preferTab) {
     communication: new Set(['incoming-calls-settings-card', 'chat-settings-card']),
     notifications: new Set(['notif-settings-card']),
     operations: new Set(['call-hours-card', 'settings-goals-card', 'mesai-settings-card']),
-    quality: new Set(['results-settings-card', 'default-takvim-firm-card', 'qc-scope-card']),
+    quality: new Set(['results-settings-card', 'qc-scope-card']),
+    takvim: new Set(['default-takvim-firm-card']),
     mesai: new Set(['mesai-plan-card']),
     field: new Set(['field-settings-card']),
     system: new Set(['settings-api-keys-card', 'feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings', 'sms-settings-card']),
@@ -191,6 +192,10 @@ function mbSyncSettingsTabs() {
     const tab = btn.dataset.tab;
     if (agent) {
       btn.style.display = tab === 'notifications' ? '' : 'none';
+      return;
+    }
+    if (tab === 'takvim' && !(typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin())) {
+      btn.style.display = 'none';
       return;
     }
     const ownerTab = tab === 'system' || tab === 'operations';
@@ -318,17 +323,14 @@ async function loadAppointmentResultsSettings() {
   const box = document.getElementById('results-settings-card');
   const wrap = document.getElementById('s-appt-results-rows');
   const selectorHost = document.getElementById('results-firm-selector');
-  const dCard = document.getElementById('default-takvim-firm-card');
   if (!wrap || !box) return;
   const canEdit = mbIsFirmAdmin();
   box.style.display = canEdit ? '' : 'none';
-  if (dCard) dCard.style.display = canEdit ? '' : 'none';
   if (!canEdit) return;
   if (selectorHost) {
     renderFirmSelector('results-firm-selector', loadAppointmentResultsSettings);
     selectorHost.style.display = isSuperAdmin() ? '' : 'none';
   }
-  if (typeof loadDefaultTakvimFirmCard === 'function') await loadDefaultTakvimFirmCard();
   const fid = getActiveFirmId() || currentUser?.firm_id;
   if (!fid) {
     wrap.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Randevu sonuçlarını görmek için firma seçin.</div>`;

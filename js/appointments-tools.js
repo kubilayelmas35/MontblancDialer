@@ -1355,10 +1355,24 @@ async function loadFirmCallHours() {
   } catch(e) { _callHours = null; }
 }
 
+function loadTakvimSettingsTab() {
+  if (typeof setSettingsTab === 'function') setSettingsTab('takvim');
+  const card = document.getElementById('default-takvim-firm-card');
+  if (!card) return;
+  const can = typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin();
+  card.style.display = can ? '' : 'none';
+  if (can) loadDefaultTakvimFirmCard();
+}
+
 async function loadDefaultTakvimFirmCard() {
   const card = document.getElementById('default-takvim-firm-card');
   const host = document.getElementById('default-takvim-firm-body');
   if (!card || !host) return;
+  const firmHost = document.getElementById('takvim-settings-firm');
+  if (firmHost && typeof renderFirmSelector === 'function') {
+    renderFirmSelector('takvim-settings-firm', loadDefaultTakvimFirmCard);
+    firmHost.style.display = typeof isSuperAdmin === 'function' && isSuperAdmin() ? '' : 'none';
+  }
   const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
   if (!fid) {
     host.innerHTML = '<div style="font-size:12px;color:var(--text-3);">Varsayılan takvim için firma seçin.</div>';
@@ -1377,7 +1391,6 @@ async function loadDefaultTakvimFirmCard() {
     .map((n) => `<option value="${n}"${cfg.slot_dur === n ? ' selected' : ''}>${n} saat</option>`)
     .join('');
   host.innerHTML = `
-<div style="font-size:11px;color:var(--text-3);margin-bottom:10px;">Yeni kampanyalar ve takvim ayarı kaydı olmayan kampanyalar bu değerleri firma varsayılanından alır. İstersen tüm aktif kampanyalara da uygulayabilirsin.</div>
 <div>
 <div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">Çalışma Günleri</div>
 <div style="display:flex;gap:4px;flex-wrap:wrap;" id="fdt-days">

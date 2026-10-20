@@ -2584,6 +2584,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="communication" onclick="setSettingsTab('communication')" data-tr="İletişim" data-de="Kommunikation">İletişim</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="notifications" onclick="setSettingsTab('notifications'); if (typeof opsEnsureNotifFirmForm==='function') opsEnsureNotifFirmForm();" data-tr="Bildirim" data-de="Hinweis">Bildirim</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="quality" onclick="setSettingsTab('quality'); if (typeof loadAppointmentResultsSettings==='function') loadAppointmentResultsSettings(); if (typeof loadQcScopeSettings==='function') loadQcScopeSettings();" data-tr="Kalite Kontrol" data-de="Qualitätskontrolle">Kalite Kontrol</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="takvim" onclick="loadTakvimSettingsTab()" data-tr="Takvim" data-de="Kalender">Takvim</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="operations" onclick="setSettingsTab('operations')" data-tr="Operasyon" data-de="Betrieb">Operasyon</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="mesai" onclick="setSettingsTab('mesai'); if (typeof loadMesaiPlanCard==='function') loadMesaiPlanCard();" data-tr="Mesai" data-de="Schicht">Mesai</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="field" onclick="setSettingsTab('field')" data-tr="Saha" data-de="Feld">Saha</button>
@@ -3389,8 +3390,9 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveQcScopeSettings()" data-tr="Kaydet" data-de="Speichern">Kaydet</button>
 </div>
 <div class="card" id="default-takvim-firm-card" style="display:none;">
-<div class="card-title" style="margin-bottom:12px;">Varsayılan takvim (firma)</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Süper admin için firma seçimi üstteki “Randevu Sonuçları” kartı ile aynıdır.</div>
+<div class="card-title" style="margin-bottom:12px;" data-tr="Takvim" data-de="Kalender">Takvim</div>
+<div id="takvim-settings-firm" style="margin-bottom:10px;"></div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Çalışma günleri, saat aralığı, slot süresi ve boş slot rengi. Yeni kampanyalar bu varsayılanı alır." data-de="Arbeitstage, Uhrzeiten, Slotlänge und Farbe leerer Slots. Neue Kampagnen übernehmen diese Vorgabe.">Çalışma günleri, saat aralığı, slot süresi ve boş slot rengi. Yeni kampanyalar bu varsayılanı alır.</div>
 <div id="default-takvim-firm-body" style="font-size:12px;color:var(--text-3);">Yükleniyor…</div>
 </div>
 <div class="card" id="telnyx-settings">

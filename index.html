@@ -12,16 +12,16 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=10.20">
-<link rel="stylesheet" href="css/styles-dialer.css?v=10.20">
-<link rel="stylesheet" href="css/styles-mascot.css?v=10.20">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=10.20">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=10.20">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=10.20">
-<link rel="stylesheet" href="css/styles-pages.css?v=10.20">
-<link rel="stylesheet" href="css/styles-aurora.css?v=10.20">
-<link rel="stylesheet" href="css/styles-chat.css?v=10.20">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=10.20">
+<link rel="stylesheet" href="css/styles.css?v=10.21">
+<link rel="stylesheet" href="css/styles-dialer.css?v=10.21">
+<link rel="stylesheet" href="css/styles-mascot.css?v=10.21">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=10.21">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=10.21">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=10.21">
+<link rel="stylesheet" href="css/styles-pages.css?v=10.21">
+<link rel="stylesheet" href="css/styles-aurora.css?v=10.21">
+<link rel="stylesheet" href="css/styles-chat.css?v=10.21">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=10.21">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -48,7 +48,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v10.20 — 2026</div>
+<div class="login-version">v10.21 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -409,7 +409,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v10.20</div>
+<div class="sb-ver">MontBlanc v10.21</div>
 </div>
 </nav>
 <main id="main">
@@ -2682,6 +2682,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="communication" onclick="setSettingsTab('communication')" data-tr="İletişim" data-de="Kommunikation">İletişim</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="notifications" onclick="setSettingsTab('notifications'); if (typeof opsEnsureNotifFirmForm==='function') opsEnsureNotifFirmForm();" data-tr="Bildirim" data-de="Hinweis">Bildirim</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="quality" onclick="setSettingsTab('quality'); if (typeof loadAppointmentResultsSettings==='function') loadAppointmentResultsSettings(); if (typeof loadQcScopeSettings==='function') loadQcScopeSettings();" data-tr="Kalite Kontrol" data-de="Qualitätskontrolle">Kalite Kontrol</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="takvim" onclick="loadTakvimSettingsTab()" data-tr="Takvim" data-de="Kalender">Takvim</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="operations" onclick="setSettingsTab('operations')" data-tr="Operasyon" data-de="Betrieb">Operasyon</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="mesai" onclick="setSettingsTab('mesai'); if (typeof loadMesaiPlanCard==='function') loadMesaiPlanCard();" data-tr="Mesai" data-de="Schicht">Mesai</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="field" onclick="setSettingsTab('field')" data-tr="Saha" data-de="Feld">Saha</button>
@@ -3487,8 +3488,9 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="saveQcScopeSettings()" data-tr="Kaydet" data-de="Speichern">Kaydet</button>
 </div>
 <div class="card" id="default-takvim-firm-card" style="display:none;">
-<div class="card-title" style="margin-bottom:12px;">Varsayılan takvim (firma)</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Süper admin için firma seçimi üstteki “Randevu Sonuçları” kartı ile aynıdır.</div>
+<div class="card-title" style="margin-bottom:12px;" data-tr="Takvim" data-de="Kalender">Takvim</div>
+<div id="takvim-settings-firm" style="margin-bottom:10px;"></div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Çalışma günleri, saat aralığı, slot süresi ve boş slot rengi. Yeni kampanyalar bu varsayılanı alır." data-de="Arbeitstage, Uhrzeiten, Slotlänge und Farbe leerer Slots. Neue Kampagnen übernehmen diese Vorgabe.">Çalışma günleri, saat aralığı, slot süresi ve boş slot rengi. Yeni kampanyalar bu varsayılanı alır.</div>
 <div id="default-takvim-firm-body" style="font-size:12px;color:var(--text-3);">Yükleniyor…</div>
 </div>
 <div class="card" id="telnyx-settings">
@@ -4342,61 +4344,61 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=10.20"></script>
-<script src="js/i18n.js?v=10.20"></script>
-<script src="js/config.js?v=10.20"></script>
-<script src="js/state.js?v=10.20"></script>
-<script src="js/api.js?v=10.20"></script>
-<script src="js/access.js?v=10.20"></script>
-<script src="js/auth.js?v=10.20"></script>
-<script src="js/ui.js?v=10.20"></script>
-<script src="js/chat.js?v=10.20"></script>
-<script src="js/chat-settings.js?v=10.20"></script>
-<script src="js/field-settings.js?v=10.20"></script>
-<script src="js/audit.js?v=10.20"></script>
-<script src="js/feature-flags.js?v=10.20"></script>
-<script src="js/notification-center.js?v=10.20"></script>
+<script src="js/version.js?v=10.21"></script>
+<script src="js/i18n.js?v=10.21"></script>
+<script src="js/config.js?v=10.21"></script>
+<script src="js/state.js?v=10.21"></script>
+<script src="js/api.js?v=10.21"></script>
+<script src="js/access.js?v=10.21"></script>
+<script src="js/auth.js?v=10.21"></script>
+<script src="js/ui.js?v=10.21"></script>
+<script src="js/chat.js?v=10.21"></script>
+<script src="js/chat-settings.js?v=10.21"></script>
+<script src="js/field-settings.js?v=10.21"></script>
+<script src="js/audit.js?v=10.21"></script>
+<script src="js/feature-flags.js?v=10.21"></script>
+<script src="js/notification-center.js?v=10.21"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=10.20"></script>
-<script src="js/job-market.js?v=10.20"></script>
-<script src="js/qc-job-market.js?v=10.20"></script>
-<script src="js/export-admin.js?v=10.20"></script>
-<script src="js/export-termin.js?v=10.20"></script>
-<script src="js/performance.js?v=10.20"></script>
-<script src="js/competition.js?v=10.20"></script>
-<script src="js/dashboard.js?v=10.20"></script>
-<script src="js/dashboard-brief.js?v=10.20"></script>
-<script src="js/campaigns.js?v=10.20"></script>
-<script src="js/campaigns-detail.js?v=10.20"></script>
-<script src="js/campaigns-queue.js?v=10.20"></script>
-<script src="js/contacts-upload.js?v=10.20"></script>
-<script src="js/contacts.js?v=10.20"></script>
-<script src="js/contacts-drawer.js?v=10.20"></script>
-<script src="js/telnyx.js?v=10.20"></script>
-<script src="js/voice-orb.js?v=10.20"></script>
-<script src="js/dialer.js?v=10.20"></script>
-<script src="js/ops-alerts.js?v=10.20"></script>
-<script src="js/dialer-mascot.js?v=10.20"></script>
-<script src="js/dialer-mascot-live.js?v=10.20"></script>
-<script src="js/ui-prefs.js?v=10.20"></script>
-<script src="js/dialer-session.js?v=10.20"></script>
-<script src="js/dialer-call.js?v=10.20"></script>
-<script src="js/dialer-tools.js?v=10.20"></script>
-<script src="js/appointments.js?v=10.20"></script>
-<script src="js/appointments-actions.js?v=10.20"></script>
-<script src="js/appointments-tools.js?v=10.20"></script>
-<script src="js/field.js?v=10.20"></script>
-<script src="js/field-quote.js?v=10.20"></script>
-<script src="js/field-ops.js?v=10.20"></script>
-<script src="js/wiedervorlage.js?v=10.20"></script>
-<script src="js/qc.js?v=10.20"></script>
-<script src="js/supervisor.js?v=10.20"></script>
-<script src="js/live-coach.js?v=10.20"></script>
-<script src="js/sms-settings.js?v=10.20"></script>
-<script src="js/leave-hr.js?v=10.20"></script>
-<script src="js/muhasebe.js?v=10.20"></script>
-<script src="js/agent-self-performance.js?v=10.20"></script>
-<script src="js/agents.js?v=10.20"></script>
-<script src="js/mimi-brain.js?v=10.20"></script>
+<script src="js/wallet.js?v=10.21"></script>
+<script src="js/job-market.js?v=10.21"></script>
+<script src="js/qc-job-market.js?v=10.21"></script>
+<script src="js/export-admin.js?v=10.21"></script>
+<script src="js/export-termin.js?v=10.21"></script>
+<script src="js/performance.js?v=10.21"></script>
+<script src="js/competition.js?v=10.21"></script>
+<script src="js/dashboard.js?v=10.21"></script>
+<script src="js/dashboard-brief.js?v=10.21"></script>
+<script src="js/campaigns.js?v=10.21"></script>
+<script src="js/campaigns-detail.js?v=10.21"></script>
+<script src="js/campaigns-queue.js?v=10.21"></script>
+<script src="js/contacts-upload.js?v=10.21"></script>
+<script src="js/contacts.js?v=10.21"></script>
+<script src="js/contacts-drawer.js?v=10.21"></script>
+<script src="js/telnyx.js?v=10.21"></script>
+<script src="js/voice-orb.js?v=10.21"></script>
+<script src="js/dialer.js?v=10.21"></script>
+<script src="js/ops-alerts.js?v=10.21"></script>
+<script src="js/dialer-mascot.js?v=10.21"></script>
+<script src="js/dialer-mascot-live.js?v=10.21"></script>
+<script src="js/ui-prefs.js?v=10.21"></script>
+<script src="js/dialer-session.js?v=10.21"></script>
+<script src="js/dialer-call.js?v=10.21"></script>
+<script src="js/dialer-tools.js?v=10.21"></script>
+<script src="js/appointments.js?v=10.21"></script>
+<script src="js/appointments-actions.js?v=10.21"></script>
+<script src="js/appointments-tools.js?v=10.21"></script>
+<script src="js/field.js?v=10.21"></script>
+<script src="js/field-quote.js?v=10.21"></script>
+<script src="js/field-ops.js?v=10.21"></script>
+<script src="js/wiedervorlage.js?v=10.21"></script>
+<script src="js/qc.js?v=10.21"></script>
+<script src="js/supervisor.js?v=10.21"></script>
+<script src="js/live-coach.js?v=10.21"></script>
+<script src="js/sms-settings.js?v=10.21"></script>
+<script src="js/leave-hr.js?v=10.21"></script>
+<script src="js/muhasebe.js?v=10.21"></script>
+<script src="js/agent-self-performance.js?v=10.21"></script>
+<script src="js/agents.js?v=10.21"></script>
+<script src="js/mimi-brain.js?v=10.21"></script>
 </body>
 </html>
