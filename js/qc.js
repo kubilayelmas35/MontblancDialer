@@ -47,7 +47,15 @@ function _qcInDates(row) {
   return true;
 }
 
+function openQcSettings() {
+  if (typeof mbIsFirmAdmin === 'function' && !mbIsFirmAdmin()) return;
+  window.__settingsTab = 'quality';
+  if (typeof navigate === 'function') navigate('settings');
+}
+
 async function loadQcData() {
+  const settingsBtn = document.getElementById('qc-settings-btn');
+  if (settingsBtn) settingsBtn.style.display = (typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin()) ? '' : 'none';
   const qcSel = document.getElementById('qc-firm-selector');
   if (qcSel && typeof renderFirmSelector === 'function') {
     qcSel.style.display = typeof isSuperAdmin === 'function' && isSuperAdmin() ? '' : 'none';

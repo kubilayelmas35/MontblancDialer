@@ -1784,6 +1784,10 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="qc-date-field"><label class="form-label" style="font-size:10px;" data-tr="Bitiş" data-de="Ende">Bitiş</label><input type="date" class="form-input" id="qc-date-to" onchange="loadQcData()"></div>
 </div>
 <input type="text" class="form-input" id="qc-search" data-tr="İsim, numara, agent, kampanya" data-de="Name, Nummer, Agent, Kampagne" placeholder="İsim, numara, agent, kampanya" style="width:220px;padding:6px 10px;font-size:12px;" oninput="filterQcTable()">
+<button type="button" class="btn btn-ghost btn-sm" id="qc-settings-btn" style="display:none;" onclick="openQcSettings()">
+<i class="ph ph-sliders-horizontal"></i>
+<span data-tr="Ayarlar" data-de="Einstellungen">Ayarlar</span>
+</button>
 <button class="btn btn-ghost btn-sm" onclick="loadQcData()">
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
 <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span>
