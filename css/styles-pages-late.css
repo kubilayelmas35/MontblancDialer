@@ -1076,5 +1076,15 @@ i.ph {
 .firm-cat { background: var(--bg-2); color: var(--text-2); border: 1px solid var(--border); }
 .firm-mini { padding: 2px 6px; font-size: 11px; }
 .firm-mini.is-off { color: var(--red); }
+.firm-led-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.firm-led-filters button.is-on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.firm-led-sum { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--text-2); }
+.firm-led-list { display: flex; flex-direction: column; max-height: 360px; overflow: auto; }
+.firm-led-row { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.firm-led-kind { font-size: 12px; font-weight: 800; }
+.firm-led-meta { font-size: 11px; color: var(--text-3); overflow-wrap: anywhere; }
+.firm-led-amt { font-family: var(--mono); font-weight: 800; font-size: 13px; white-space: nowrap; }
+.firm-led-amt.is-plus { color: var(--green); }
+.firm-led-amt.is-minus { color: var(--red); }
 .firm-none, .firm-log { font-size: 12px; color: var(--text-3); }
 .firm-log { display: flex; flex-direction: column; gap: 4px; font-size: 11px; }

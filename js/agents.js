@@ -873,6 +873,7 @@ function onFirmsListClick(e) {
   if (btn) {
     const act = btn.dataset.firmAct;
     if (act === 'balance') openBalanceModal(btn.dataset.firmId);
+    else if (act === 'ledger') openFirmLedger(btn.dataset.firmId);
     else if (act === 'user') openUserModal(btn.dataset.firmId);
     else if (act === 'edit') editFirm(btn.dataset.firmId);
     else if (act === 'edit-user') openEditUserModal(btn.dataset.userId);
@@ -962,6 +963,7 @@ ${cat ? `<span class="firm-cat">${escapeHtml(cat)}</span>` : ''}
 <span class="firm-bal-val">${escapeHtml(firmMoney(bal, cur))}</span>
 ${reservedLine}${lastNote}
 </div>
+<button type="button" class="btn btn-ghost btn-sm" data-firm-act="ledger" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.led.open'))}</button>
 <button type="button" class="btn btn-ghost btn-sm" data-firm-act="balance" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.topup'))}</button>
 <button type="button" class="btn btn-ghost btn-sm" data-firm-act="user" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.add_user'))}</button>
 <button type="button" class="btn btn-ghost btn-sm" data-firm-act="edit" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.edit'))}</button>
@@ -971,6 +973,140 @@ ${reservedLine}${lastNote}
 </div>`;
   }).join('');
   el.innerHTML = html || `<div class="firm-none">${escapeHtml(t('firm.no_match'))}</div>`;
+}
+
+function firmLedgerNote(note) {
+  const n = String(note || '').trim();
+  const known = {
+    'Job charge': 'firm.led.note_charge',
+    'Job reward': 'firm.led.note_reward',
+    'Job reserve': 'firm.led.note_reserve',
+  };
+  return known[n] ? t(known[n]) : n;
+}
+
+function firmLedgerLabel(row) {
+  if (row.kind === 'topup') return t('firm.led.topup');
+  const key = {
+    charge: 'firm.led.charge',
+    reward: 'firm.led.reward',
+    refund: 'firm.led.refund',
+    reserve: 'firm.led.reserve',
+    release: 'firm.led.release',
+    adjustment: 'firm.led.adjust',
+  }[row.entry_type];
+  return key ? t(key) : (row.entry_type || '');
+}
+
+function firmLedgerBucket(row) {
+  if (row.kind === 'topup') return 'load';
+  if (row.entry_type === 'charge') return 'spend';
+  if (row.entry_type === 'reward' || row.entry_type === 'refund') return 'in';
+  if (row.entry_type === 'reserve' || row.entry_type === 'release') return 'hold';
+  return 'other';
+}
+
+function firmLedgerSign(row) {
+  const bucket = firmLedgerBucket(row);
+  if (bucket === 'load' || bucket === 'in') return '+';
+  if (bucket === 'spend') return '−';
+  return '';
+}
+
+function paintFirmLedger(firmId, filter) {
+  const box = document.getElementById('firm-led-list');
+  const pack = window._firmLedgerCache?.[firmId];
+  if (!box || !pack) return;
+  const rows = (pack.rows || []).filter((row) => filter === 'all' || firmLedgerBucket(row) === filter);
+  document.querySelectorAll('#m-firm-ledger [data-led-filter]').forEach((btn) => {
+    btn.classList.toggle('is-on', btn.dataset.ledFilter === filter);
+  });
+  if (!rows.length) {
+    box.innerHTML = `<div class="firm-none">${escapeHtml(filter === 'all' ? t('firm.led.empty') : t('firm.led.none'))}</div>`;
+    return;
+  }
+  box.innerHTML = rows.map((row) => {
+    const sign = firmLedgerSign(row);
+    const cls = sign === '+' ? 'is-plus' : (sign === '−' ? 'is-minus' : '');
+    const note = firmLedgerNote(row.note);
+    return `<div class="firm-led-row">
+<div>
+<div class="firm-led-kind">${escapeHtml(firmLedgerLabel(row))}</div>
+<div class="firm-led-meta">${escapeHtml(firmLogWhen(row.ts))}${note ? ` · ${escapeHtml(note)}` : ''}</div>
+</div>
+<div class="firm-led-amt ${cls}">${sign}${escapeHtml(firmMoney(row.amount, row.currency))}</div>
+</div>`;
+  }).join('');
+}
+
+async function openFirmLedger(firmId, filter) {
+  const f = firmById(firmId) || {};
+  const cur = typeof normalizeCurrency === 'function' ? normalizeCurrency(f.currency) : (f.currency || 'EUR');
+  const bal = Number(f.balance || 0);
+  const reserved = Number(f.reserved_balance || 0);
+  const available = Math.max(bal - reserved, 0);
+  document.getElementById('m-firm-ledger')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'm-firm-ledger';
+  modal.className = 'modal-overlay open';
+  modal.style.zIndex = '3001';
+  const filters = [
+    ['all', t('firm.led.all')],
+    ['load', t('firm.led.loads')],
+    ['spend', t('firm.led.spends')],
+    ['in', t('firm.led.income')],
+    ['hold', t('firm.led.hold')],
+  ];
+  modal.innerHTML = `
+<div class="modal" style="max-width:520px;">
+<div class="modal-hdr">
+<div class="modal-title">${escapeHtml(t('firm.led.title'))} — ${escapeHtml(f.name || '')}</div>
+<button class="modal-close" onclick="document.getElementById('m-firm-ledger').remove()">✕</button>
+</div>
+<div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+<div class="firm-led-sum">
+<span>${escapeHtml(t('firm.balance'))} ${escapeHtml(firmMoney(bal, cur))}</span>
+<span>${escapeHtml(t('firm.reserved'))} ${escapeHtml(firmMoney(reserved, cur))}</span>
+<span>${escapeHtml(t('firm.available'))} ${escapeHtml(firmMoney(available, cur))}</span>
+</div>
+<div class="firm-led-filters">${filters.map(([id, label]) => `<button type="button" class="btn btn-ghost btn-sm" data-led-filter="${id}">${escapeHtml(label)}</button>`).join('')}</div>
+<div id="firm-led-cap" class="firm-led-meta"></div>
+<div id="firm-led-list"><div class="firm-none">${escapeHtml(t('firm.loading'))}</div></div>
+</div>
+</div>`;
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+    const btn = e.target.closest('[data-led-filter]');
+    if (btn) paintFirmLedger(firmId, btn.dataset.ledFilter || 'all');
+  });
+  document.body.appendChild(modal);
+  try {
+    const ledger = await sb(`wallet_ledger?firm_id=eq.${firmId}&select=entry_type,amount,currency,note,created_at&order=created_at.desc&limit=80`);
+    const loads = firmBalanceLog(f).map((row) => ({
+      kind: 'topup',
+      ts: row.ts,
+      amount: Number(row.amount || 0),
+      currency: row.currency || cur,
+      note: row.note || '',
+    }));
+    const moves = (ledger || []).map((row) => ({
+      kind: 'ledger',
+      entry_type: row.entry_type,
+      ts: row.created_at,
+      amount: Number(row.amount || 0),
+      currency: row.currency || cur,
+      note: row.note || '',
+    }));
+    const rows = loads.concat(moves).sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')));
+    window._firmLedgerCache = window._firmLedgerCache || {};
+    window._firmLedgerCache[firmId] = { rows };
+    const cap = document.getElementById('firm-led-cap');
+    if (cap && (ledger || []).length >= 80) cap.textContent = tReplace('firm.led.cap', { n: 80 });
+    paintFirmLedger(firmId, filter || 'all');
+  } catch (e) {
+    const box = document.getElementById('firm-led-list');
+    if (box) box.innerHTML = `<div class="firm-none" style="color:var(--red);">${escapeHtml(t('firm.led.fail'))}</div>`;
+  }
 }
 
 async function openEditUserModal(userId) {
