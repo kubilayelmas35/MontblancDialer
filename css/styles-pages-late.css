@@ -1104,3 +1104,4 @@ i.ph {
 .rep-legend-row { display: grid; grid-template-columns: 8px 1fr auto; gap: 6px; align-items: center; font-size: 12px; }
 .rep-legend-row i { width: 8px; height: 8px; border-radius: 50%; display: block; }
 .rep-legend-row b { font-variant-numeric: tabular-nums; }
+#stats-extra .tbl-wrap th { white-space: nowrap; }

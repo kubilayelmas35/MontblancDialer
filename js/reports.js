@@ -191,15 +191,6 @@ function repDonut(parts, center) {
   return `<div class="rep-donut-wrap"><div class="rep-donut" style="background:conic-gradient(${stops})"><div class="rep-donut-hole">${statsEsc(center)}</div></div><div class="rep-legend">${legend}</div></div>`;
 }
 
-function repSaleBucket(durum) {
-  const key = String(durum || '');
-  if (key === 'qc_bekleniyor' || key === 'beklemede') return 'new';
-  if (key === 'basarili' || key === 'onaylandi' || key === 'onay') return 'ok';
-  if (key === 'iptal' || key === 'basarisiz') return 'cancel';
-  if (key === 'ulasilamadi') return 'miss';
-  return key || 'other';
-}
-
 function repLoggedToday(sess, today) {
   if (!sess) return false;
   if (sess.login_at && repDay(sess.login_at) === today) return true;
@@ -216,6 +207,7 @@ async function repLoadOperatorExtra(pack, range) {
   const camps = await sb(`campaigns?select=id,name${firmQ}&limit=300`).catch(() => []);
   (camps || []).forEach((camp) => { pack.campMap[camp.id] = camp.name || ''; });
   pack.statusLogs = (await sb(`agent_status_log?select=agent_id,status,break_code,campaign_id,started_at,ended_at,duration_sec${firmQ}&started_at=gte.${range.gte}&started_at=lte.${range.lte}&order=started_at.desc&limit=200`).catch(() => [])) || [];
+  pack.qcResults = await repLoadQcResults(range);
   const sameDay = range.dateFrom === today && range.dateTo === today && !range.agent && !range.camp;
   if (!sameDay && today) {
     const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
@@ -259,7 +251,7 @@ ${repCard(t('rep.time_ring'), repDonut(timeParts, statsHms(totalSec)))}
     }))
     : `<div class="firm-none">${statsEsc(t('rep.absent_none'))}</div>`;
   const history = repStatusTable(agentId, userById, sessById, pack);
-  const sales = repSalesTable(appts, userById);
+  const sales = repSalesTable(appts, userById, pack.qcResults);
   const breaks = repBreakTable(pack.statusLogs || [], userById, sessById);
   const breakLive = Object.values(sessById).some((row) => row.status === 'break') || (pack.statusLogs || []).some((row) => row.status === 'break');
   const queues = repQueueTable(pack.todayLogs || [], pack.campMap || {});
@@ -286,32 +278,68 @@ function repStatusTable(agentId, userById, sessById, pack) {
   return repTable([t('rep.person'), t('rep.queue'), t('rep.status_col'), t('rep.break_col'), t('stats.col.time'), t('rep.last_act')], liveRows.concat(histRows));
 }
 
-function repSalesTable(appts, userById) {
+function repDurumKey(value) {
+  if (typeof _normResultKey === 'function') return _normResultKey(value) || '—';
+  const key = String(value || '').trim();
+  return key || '—';
+}
+
+async function repLoadQcResults(range) {
+  const pushInto = (columns, seen, key, label) => {
+    const norm = repDurumKey(key);
+    if (!norm || norm === '—' || seen.has(norm)) return;
+    seen.add(norm);
+    columns.push({ key: norm, label: String(label || '').trim() || repDurumLabel(norm) });
+  };
+  if (range.fid && typeof loadFirmAppointmentResults === 'function') {
+    const rows = await loadFirmAppointmentResults(range.fid).catch(() => []);
+    return rows || [];
+  }
+  const firms = (await sb('firms?select=id,settings&limit=200').catch(() => [])) || [];
+  const columns = [];
+  const seen = new Set();
+  firms.forEach((firm) => {
+    const raw = firm?.settings?.appointment_results;
+    const list = Array.isArray(raw) && raw.length
+      ? raw
+      : (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
+    list.forEach((row) => pushInto(columns, seen, row?.key, row?.label));
+  });
+  if (!columns.length && typeof defaultAppointmentResults === 'function') return defaultAppointmentResults();
+  return columns;
+}
+
+function repSalesTable(appts, userById, defs) {
+  const columns = [];
+  const seen = new Set();
+  (defs || []).forEach((def) => {
+    const key = repDurumKey(def?.key);
+    if (!key || key === '—' || seen.has(key)) return;
+    seen.add(key);
+    columns.push({ key, label: String(def?.label || '').trim() || repDurumLabel(key) });
+  });
+  (appts || []).forEach((row) => {
+    const key = repDurumKey(row.durum);
+    if (seen.has(key)) return;
+    seen.add(key);
+    columns.push({ key, label: repDurumLabel(key) });
+  });
   const bag = {};
-  const extras = new Set();
   (appts || []).forEach((row) => {
     const id = row.agent_id || '—';
-    if (!bag[id]) bag[id] = { id, name: userById[id]?.name || '—', neu: 0, ok: 0, cancel: 0, miss: 0, extra: {}, total: 0 };
-    const bucket = repSaleBucket(row.durum);
+    if (!bag[id]) bag[id] = { name: userById[id]?.name || '—', counts: {}, total: 0 };
+    const key = repDurumKey(row.durum);
+    bag[id].counts[key] = (bag[id].counts[key] || 0) + 1;
     bag[id].total += 1;
-    if (bucket === 'new') bag[id].neu += 1;
-    else if (bucket === 'ok') bag[id].ok += 1;
-    else if (bucket === 'cancel') bag[id].cancel += 1;
-    else if (bucket === 'miss') bag[id].miss += 1;
-    else {
-      extras.add(bucket);
-      bag[id].extra[bucket] = (bag[id].extra[bucket] || 0) + 1;
-    }
   });
-  const extraKeys = [...extras];
   const list = Object.values(bag).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, 'tr'));
-  const sum = { neu: 0, ok: 0, cancel: 0, miss: 0, extra: {}, total: 0 };
+  const sum = { counts: {}, total: 0 };
   list.forEach((row) => {
-    sum.neu += row.neu; sum.ok += row.ok; sum.cancel += row.cancel; sum.miss += row.miss; sum.total += row.total;
-    extraKeys.forEach((key) => { sum.extra[key] = (sum.extra[key] || 0) + (row.extra[key] || 0); });
+    sum.total += row.total;
+    columns.forEach((col) => { sum.counts[col.key] = (sum.counts[col.key] || 0) + (row.counts[col.key] || 0); });
   });
-  const heads = [t('rep.person'), t('rep.sale_new'), t('rep.sale_ok'), t('rep.sale_cancel'), t('rep.sale_miss')].concat(extraKeys.map((key) => repDurumLabel(key)), [t('rep.total')]);
-  const cells = (row) => `<tr><td>${statsEsc(row.name || t('rep.total'))}</td><td>${row.neu}</td><td>${row.ok}</td><td>${row.cancel}</td><td>${row.miss}</td>${extraKeys.map((key) => `<td>${row.extra[key] || 0}</td>`).join('')}<td>${row.total}</td></tr>`;
+  const heads = [t('rep.person')].concat(columns.map((col) => col.label), [t('rep.total')]);
+  const cells = (row) => `<tr><td>${statsEsc(row.name || t('rep.total'))}</td>${columns.map((col) => `<td>${row.counts[col.key] || 0}</td>`).join('')}<td>${row.total}</td></tr>`;
   const body = list.map(cells);
   if (list.length) body.push(cells({ ...sum, name: t('rep.total') }));
   return repTable(heads, body);
