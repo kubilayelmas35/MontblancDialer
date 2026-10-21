@@ -339,6 +339,10 @@
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M3 7h15a2 2 0 0 1 2 2v3h-4a2 2 0 0 0 0 4h4"/></svg></span>
 <span data-tr="Maaşım" data-de="Mein Gehalt">Maaşım</span>
 </button>
+<button class="sb-item" id="nav-firmdesk-btn" onclick="navigate('firmdesk')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 10h16M4 6h16M4 14h10M4 18h8"/></svg></span>
+<span data-tr="Yönetim" data-de="Verwaltung">Yönetim</span>
+</button>
 <button class="sb-item" id="nav-firms-btn" style="display:none;" onclick="navigate('firms')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></span>
 <span data-tr="Firmalar" data-de="Firmen">Firmalar</span>
@@ -2096,6 +2100,16 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </div>
 </div>
 </div>
+</div>
+<div class="page" id="page-firmdesk">
+<div class="page-hdr">
+<div>
+<div class="page-title" data-tr="Yönetim" data-de="Verwaltung">Yönetim</div>
+<div class="page-sub" id="firmdesk-sub" data-tr="Bakiye, tarife ve aylık kullanım" data-de="Guthaben, Tarif und monatliche Nutzung">Bakiye, tarife ve aylık kullanım</div>
+</div>
+<button type="button" class="btn btn-primary btn-sm" id="firmdesk-edit" onclick="mbFirmDeskEdit()">Ücreti düzenle</button>
+</div>
+<div id="firmdesk-body" class="firmdesk"></div>
 </div>
 <div class="page" id="page-firms">
 <div class="page-hdr">

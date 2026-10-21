@@ -1195,12 +1195,15 @@ async function submitOutcome(goBreak) {
       if (activeCallId) { try { logData.telnyx_call_id = activeCallId; } catch(e) {} }
       const callExtra = typeof mbCallLogExtras === 'function' ? mbCallLogExtras() : {};
       if (!skipAutoLog) {
+      let savedLog = null;
       try {
-        await sb('call_logs',{method:'POST',prefer:'return=minimal',body:JSON.stringify({ ...logData, ...callExtra })});
+        savedLog = await sb('call_logs',{method:'POST',prefer:'return=representation',body:JSON.stringify({ ...logData, ...callExtra })});
       } catch (logErr) {
         if (!Object.keys(callExtra).length) throw logErr;
-        await sb('call_logs',{method:'POST',prefer:'return=minimal',body:JSON.stringify(logData)});
+        savedLog = await sb('call_logs',{method:'POST',prefer:'return=representation',body:JSON.stringify(logData)});
       }
+      const savedRow = Array.isArray(savedLog) ? savedLog[0] : savedLog;
+      if (savedRow?.id && typeof mbChargeCall === 'function') void mbChargeCall(savedRow);
       if (typeof mbResetCallMeta === 'function') mbResetCallMeta();
       }
       if (contactId && currentContact.queue_id) {

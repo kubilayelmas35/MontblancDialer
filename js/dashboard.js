@@ -53,6 +53,7 @@ if (fid) {
   window._tbBalCur = cur || 'EUR';
   window._tbBalFid = fid;
   mbPaintBalChip(Number(wallet?.balance || 0), cur || 'EUR');
+  if (typeof mbKickBilling === 'function') mbKickBilling(fid);
   const pop = document.getElementById('tb-bal-pop');
   if (pop && !pop.hidden) mbFillBalPop(pop);
 }
@@ -147,20 +148,13 @@ async function mbTodaySpend(fid) {
   const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
-  const firms = await sb(`firms?id=eq.${fid}&select=settings`).catch(() => []);
-  const rates = firms?.[0]?.settings?.billing?.rates || [];
-  const logs = await sb(`call_logs?select=duration_sec,cost_usd,phone&firm_id=eq.${fid}&started_at=gte.${gte}&started_at=lte.${lte}&limit=8000`).catch(() => []);
+  const logs = await sb(`call_logs?select=duration_sec,cost_usd&firm_id=eq.${fid}&started_at=gte.${gte}&started_at=lte.${lte}&limit=8000`).catch(() => []);
   let cost = 0;
   let sec = 0;
   (logs || []).forEach((l) => {
     sec += Number(l.duration_sec) || 0;
-    const stored = Number(l.cost_usd);
-    if (stored > 0) {
-      cost += stored;
-      return;
-    }
-    const rate = typeof statsMatchRate === 'function' ? statsMatchRate(l.phone, rates) : null;
-    if (rate) cost += ((Number(l.duration_sec) || 0) / 60) * (Number(rate.price) || 0);
+    if (l.cost_usd == null || l.cost_usd === '') return;
+    cost += Number(l.cost_usd) || 0;
   });
   return { cost, sec, n: (logs || []).length };
 }
@@ -176,17 +170,27 @@ function mbFillBalPop(pop) {
     return;
   }
   const money = (n) => (typeof formatMoney === 'function' ? formatMoney(n, cur) : Number(n || 0).toFixed(2));
-  const rows = [
-    mbBalRow(t('tb.bal'), money(w.balance)),
-    mbBalRow(t('tb.bal_reserved'), money(w.reserved_balance)),
-    mbBalRow(t('tb.bal_available'), money(w.available)),
-  ];
+  const plan = typeof mbBillPlan === 'function' ? mbBillPlan(window._tbBalPlan) : null;
+  const due = plan && typeof mbNextBill === 'function' ? mbNextBill(plan) : null;
+  const rows = [mbBalRow(t('tb.bal'), money(w.balance))];
+  if (Number(w.reserved_balance) > 0) {
+    rows.push(mbBalRow(t('tb.bal_reserved'), money(w.reserved_balance)));
+    rows.push(mbBalRow(t('tb.bal_available'), money(w.available)));
+  }
   if (Number(w.overdraft) > 0) rows.push(mbBalRow(t('tb.bal_overdraft'), money(w.overdraft)));
+  if (due) {
+    const when = due.days === 0
+      ? t('firm.desk.today')
+      : tReplace('firm.desk.days', { n: due.days });
+    rows.push(mbBalRow(t('firm.desk.fee'), `${money(plan.monthly_fee)} · ${when}`));
+  }
+  const hold = Number(w.reserved_balance) > 0 ? `<p class="tb-bal-note">${esc(t('firm.desk.hold_hint'))}</p>` : '';
   pop.innerHTML = `
 <div class="tb-bal-kicker">${esc(t('tb.bal_today'))}</div>
 <div class="tb-bal-today" id="tb-bal-today">${esc(t('tb.bal_loading'))}</div>
 <div class="tb-bal-sub" id="tb-bal-sub"></div>
 <div class="tb-bal-rows">${rows.join('')}</div>
+${hold}
 <p class="tb-bal-note">${esc(t('tb.bal_note'))}</p>`;
   const seq = (window._tbBalSeq = (window._tbBalSeq || 0) + 1);
   mbTodaySpend(fid).then((spend) => {
@@ -199,6 +203,12 @@ function mbFillBalPop(pop) {
     const todayEl = document.getElementById('tb-bal-today');
     if (todayEl && seq === window._tbBalSeq) todayEl.textContent = money(0);
   });
+  if (!window._tbBalPlan && fid) {
+    sb(`firms?id=eq.${fid}&select=settings`).then((rows) => {
+      window._tbBalPlan = rows?.[0]?.settings?.billing || {};
+      if (seq === window._tbBalSeq && !pop.hidden) mbFillBalPop(pop);
+    }).catch(() => {});
+  }
 }
 
 function mbPlaceBalPop(pop) {
@@ -1679,15 +1689,10 @@ function chEndIso(l) {
   return '';
 }
 
-function chMoney(l, ratesByFirm) {
-  const stored = Number(l?.cost_usd);
-  const sec = chDurSec(l);
-  const rate = typeof statsMatchRate === 'function' ? statsMatchRate(l?.phone, ratesByFirm?.[l?.firm_id] || []) : null;
-  const unit = rate ? `${chEuro(rate.price)}/dk` : '—';
-  if (stored > 0) return { n: stored, text: chEuro(stored), unit };
-  if (!rate) return { n: 0, text: '—', unit };
-  const eur = (sec / 60) * (Number(rate.price) || 0);
-  return { n: eur, text: chEuro(eur), unit };
+function chMoney(l) {
+  if (l?.cost_usd == null || l.cost_usd === '') return { n: 0, text: '—', unit: '—' };
+  const n = Number(l.cost_usd) || 0;
+  return { n, text: chEuro(n), unit: '—' };
 }
 
 async function chFillFilters(fid) {

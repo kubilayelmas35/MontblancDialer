@@ -1123,12 +1123,16 @@ async function openFirmLedger(firmId, filter) {
 }
 
 function firmBilling(firm) {
+  if (typeof mbBillPlan === 'function') return mbBillPlan(firm?.settings?.billing);
   const b = firm?.settings?.billing && typeof firm.settings.billing === 'object' ? firm.settings.billing : {};
   const rates = Array.isArray(b.rates) ? b.rates.filter((r) => r && String(r.prefix || '').trim()) : [];
   return {
     overdraft: Math.max(0, Number(b.overdraft) || 0),
     warn_amount: Number(b.warn_amount) || 0,
     agent_cap: Math.max(0, parseInt(b.agent_cap, 10) || 0),
+    monthly_fee: b.monthly_fee == null ? 100 : Number(b.monthly_fee) || 0,
+    bill_day: Math.min(28, Math.max(1, parseInt(b.bill_day, 10) || 1)),
+    grace_days: Math.max(0, parseInt(b.grace_days, 10) || 3),
     rates,
   };
 }
@@ -1166,6 +1170,12 @@ function openFirmBilling(firmId) {
 <input class="form-input" data-bill="warn" type="number" step="0.01" value="${bill.warn_amount}">
 <label class="form-label">${escapeHtml(t('firm.bill.cap'))}</label>
 <input class="form-input" data-bill="cap" type="number" min="0" step="1" value="${bill.agent_cap}">
+<label class="form-label">${escapeHtml(t('firm.bill.month'))} (${escapeHtml(cur)})</label>
+<input class="form-input" data-bill="month" type="number" min="0" step="0.01" value="${bill.monthly_fee}">
+<label class="form-label">${escapeHtml(t('firm.bill.day'))}</label>
+<input class="form-input" data-bill="day" type="number" min="1" max="28" step="1" value="${bill.bill_day}">
+<label class="form-label">${escapeHtml(t('firm.bill.grace'))}</label>
+<input class="form-input" data-bill="grace" type="number" min="0" step="1" value="${bill.grace_days}">
 <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
 <div class="form-label" style="margin:0;">${escapeHtml(t('firm.bill.rates'))}</div>
 <div style="display:flex;gap:6px;">
@@ -1197,6 +1207,9 @@ async function saveFirmBilling(firmId) {
   const overdraft = Math.max(0, Number(modal.querySelector('[data-bill="overdraft"]')?.value) || 0);
   const warn_amount = Number(modal.querySelector('[data-bill="warn"]')?.value) || 0;
   const agent_cap = Math.max(0, parseInt(modal.querySelector('[data-bill="cap"]')?.value, 10) || 0);
+  const monthly_fee = Math.max(0, Number(modal.querySelector('[data-bill="month"]')?.value) || 0);
+  const bill_day = Math.min(28, Math.max(1, parseInt(modal.querySelector('[data-bill="day"]')?.value, 10) || 1));
+  const grace_days = Math.max(0, parseInt(modal.querySelector('[data-bill="grace"]')?.value, 10) || 0);
   const rates = [...modal.querySelectorAll('.firm-rate-row')].map((row) => ({
     prefix: String(row.querySelector('[data-rate="prefix"]')?.value || '').replace(/\D/g, ''),
     name: String(row.querySelector('[data-rate="name"]')?.value || '').trim(),
@@ -1205,11 +1218,18 @@ async function saveFirmBilling(firmId) {
   try {
     const firms = await sb(`firms?id=eq.${firmId}&select=settings`);
     const settings = firms?.[0]?.settings && typeof firms[0].settings === 'object' ? firms[0].settings : {};
+    const prev = settings.billing && typeof settings.billing === 'object' ? settings.billing : {};
     await sb(`firms?id=eq.${firmId}`, {
       method: 'PATCH',
       prefer: 'return=minimal',
-      body: JSON.stringify({ settings: { ...settings, billing: { overdraft, warn_amount, agent_cap, rates } } }),
+      body: JSON.stringify({
+        settings: {
+          ...settings,
+          billing: { ...prev, overdraft, warn_amount, agent_cap, rates, monthly_fee, bill_day, grace_days, rates_set: true },
+        },
+      }),
     });
+    if (typeof mbSettleUnbilled === 'function') void mbSettleUnbilled(firmId);
     modal.remove();
     await loadFirmsPage();
     toast(t('firm.bill.saved'), 'ok');

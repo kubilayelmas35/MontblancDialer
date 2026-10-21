@@ -2105,3 +2105,16 @@ background:var(--bg-3); border:1px solid var(--border);
 }
 .unfinalized-head #unfinalized-calls-count { color: var(--text-3); }
 .unfinalized-head.is-hot #unfinalized-calls-count { color: var(--yellow); }
+.firmdesk { display: flex; flex-direction: column; gap: 14px; }
+.firmdesk-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.firmdesk-card { padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-2); }
+.firmdesk-card small { display: block; font-size: 11px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--text-3); }
+.firmdesk-card b { display: block; margin-top: 6px; font-size: 22px; font-variant-numeric: tabular-nums; }
+.firmdesk-card span { display: block; margin-top: 4px; font-size: 12px; color: var(--text-2); }
+.firmdesk-card.is-due { border-color: #fdba74; background: #fff7ed; }
+[data-theme="dark"] .firmdesk-card.is-due { background: rgba(234, 88, 12, .16); }
+.firmdesk-table { width: 100%; border-collapse: collapse; }
+.firmdesk-table th, .firmdesk-table td { padding: 10px 8px; border-bottom: 1px solid var(--border); text-align: left; font-size: 13px; }
+.firmdesk-table th { font-size: 11px; color: var(--text-3); font-weight: 800; }
+.firmdesk-note { font-size: 12px; color: var(--text-2); }
+@media (max-width: 900px) { .firmdesk-grid { grid-template-columns: 1fr 1fr; } }

@@ -16,6 +16,7 @@ const MB_PAGES = [
   { key: 'stats', label: 'İstatistikler', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'agents', label: 'Personeller', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'firms', label: 'Firmalar', roles: ['super_admin'] },
+  { key: 'firmdesk', label: 'Yönetim', roles: ['super_admin', 'admin', 'firm_admin'], inPerms: false },
   { key: 'settings', label: 'Ayarlar', roles: ['super_admin', 'admin', 'firm_admin', 'agent'] },
   { key: 'takvim', label: 'Takvim', roles: ['super_admin', 'admin', 'firm_admin', 'agent'] },
   { key: 'qc', label: 'Kalite Kontrol', roles: ['super_admin', 'admin', 'firm_admin', 'qc'] },

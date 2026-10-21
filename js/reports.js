@@ -799,7 +799,7 @@ async function repCreditExtra(logs, range) {
     const cur = typeof normalizeCurrency === 'function' ? normalizeCurrency(firm.currency) : (firm.currency || 'EUR');
     currency = cur;
     const rate = typeof statsMatchRate === 'function' ? statsMatchRate(log.phone, firm.settings?.billing?.rates || []) : null;
-    const cost = rate ? (talk / 60) * (Number(rate.price) || 0) : 0;
+    const cost = log.cost_usd == null || log.cost_usd === '' ? 0 : (Number(log.cost_usd) || 0);
     if (rate) currencies.add(cur);
     money += cost;
     const qid = log.campaign_id || '—';
