@@ -482,19 +482,22 @@ function opsPaintCampPill() {
   if (admin) return;
   btn.classList.add('is-agent');
   const ids = opsActiveIds();
-  if (ids.some((id) => !opsCampName(id)) && !btn._nameWait) {
+  const required = (_opsDirective.ids || []).map(String).filter(Boolean);
+  const { missing, extra } = opsMismatch();
+  const wrong = required.length && (missing.length || extra.length);
+  const showIds = !required.length ? ids : (wrong && missing.length ? missing : required);
+  if (showIds.some((id) => !opsCampName(id)) && !btn._nameWait) {
     btn._nameWait = true;
-    opsEnsureCampNames(ids).then(() => {
+    opsEnsureCampNames(showIds).then(() => {
       btn._nameWait = false;
       opsPaintCampPill();
     });
   }
-  const names = opsNamedCamps(ids);
-  val.textContent = names.length ? names.join(' · ') : String(ids.length);
-  const required = (_opsDirective.ids || []).map(String).filter(Boolean);
+  const names = opsNamedCamps(showIds);
+  const label = names.length ? names.join(' · ') : (showIds.length ? String(showIds.length) : '0');
+  val.textContent = label;
+  btn.title = label;
   if (!required.length) return;
-  const { missing, extra } = opsMismatch();
-  const wrong = missing.length || extra.length;
   if (!wrong) btn.classList.add('is-ok');
   else if (Date.now() >= opsWrongHoldUntil()) btn.classList.add('is-wrong');
 }
