@@ -467,7 +467,40 @@ function opsNotifyPrefs() {
   return _opsAlerts;
 }
 
+function opsPaintCampPill() {
+  const btn = document.getElementById('pill-camp-btn');
+  const val = document.getElementById('pill-camp');
+  if (!btn || !val) return;
+  const role = String(currentUser?.role || '');
+  if (role === 'field_agent') {
+    btn.style.display = 'none';
+    return;
+  }
+  btn.style.display = '';
+  btn.classList.remove('is-ok', 'is-wrong', 'is-agent');
+  const admin = typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin();
+  if (admin) return;
+  btn.classList.add('is-agent');
+  const ids = opsActiveIds();
+  if (ids.some((id) => !opsCampName(id)) && !btn._nameWait) {
+    btn._nameWait = true;
+    opsEnsureCampNames(ids).then(() => {
+      btn._nameWait = false;
+      opsPaintCampPill();
+    });
+  }
+  const names = opsNamedCamps(ids);
+  val.textContent = names.length ? names.join(' · ') : String(ids.length);
+  const required = (_opsDirective.ids || []).map(String).filter(Boolean);
+  if (!required.length) return;
+  const { missing, extra } = opsMismatch();
+  const wrong = missing.length || extra.length;
+  if (!wrong) btn.classList.add('is-ok');
+  else if (Date.now() >= opsWrongHoldUntil()) btn.classList.add('is-wrong');
+}
+
 function opsPaintCampWarn() {
+  opsPaintCampPill();
   const bar = document.getElementById('ops-camp-warn');
   if (!bar) return;
   if (Date.now() < opsWrongHoldUntil()) {
