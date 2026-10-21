@@ -414,6 +414,27 @@ function mbScheduleHideResPanel() {
   }, 180);
 }
 
+function mbShowLiveBoard() {
+  clearTimeout(window._tbLiveHide);
+  const pills = document.getElementById('tb-pills');
+  const btn = document.getElementById('tb-live-btn');
+  if (!btn || !pills || getComputedStyle(pills).display === 'none') return;
+  const pop = document.getElementById('tb-chip-pop');
+  if (pop && !pop.hidden && window._tbChip?.kind === 'live') return;
+  mbOpenChip({ stopPropagation() {}, currentTarget: btn }, { kind: 'live', key: 'all', anchor: btn });
+}
+
+function mbScheduleHideLive() {
+  clearTimeout(window._tbLiveHide);
+  window._tbLiveHide = setTimeout(() => {
+    const pop = document.getElementById('tb-chip-pop');
+    const btn = document.getElementById('tb-live-btn');
+    if (!pop || pop.hidden || window._tbChip?.kind !== 'live') return;
+    if (btn?.matches(':hover') || pop.matches(':hover')) return;
+    mbCloseChipPop();
+  }, 200);
+}
+
 function mbLiveMeta(status) {
   return {
     on_call: ['tb.live.call', 'Aramada', '#2E7D32'],
@@ -449,18 +470,18 @@ function mbFillLivePop(pop, status) {
     return `<button type="button" class="tb-live-tile${on}" style="--tone:${meta[2]}" onclick="mbToggleLivePop(event,'${st}')"><em>${mbChipEsc(mbChipSay(meta[0], meta[1]))}</em><b>${count(st)}</b></button>`;
   }).join('');
   const head = `<div class="tb-chip-head"><strong>${mbChipEsc(mbChipSay('tb.live.now', 'Şu an'))}</strong><span>${all.length}</span></div>`;
+  const de = (typeof currentLang !== 'undefined' && currentLang === 'de');
   const body = rows.length ? rows.map((row) => {
-    const bits = [];
-    if (row.status === 'on_call' && row.current_contact_name) bits.push(row.current_contact_name);
-    if (row.status === 'break' && row.break_code) bits.push(row.break_code);
-    if (names[row.campaign_id]) bits.push(names[row.campaign_id]);
-    if (row.status === 'on_call') {
-      const since = new Date(row.call_started_at || row.call_start || '').getTime();
-      if (Number.isFinite(since)) bits.push(mbChipClock(Math.floor((Date.now() - since) / 1000)));
-    }
-    const detail = bits.filter(Boolean).join(' · ');
-    const call = row.status === 'on_call' ? ' is-call' : '';
-    return `<div class="tb-chip-row${call}"><b><i style="--dot:${mbLiveDot(row.status)}"></i>${mbChipEsc(row.agent_name || '—')}</b>${detail ? `<small>${mbChipEsc(detail)}</small>` : ''}</div>`;
+    const st = _DASH_LIVE_STATUS[row.status] ? row.status : 'offline';
+    const info = _DASH_LIVE_STATUS[st];
+    const label = de ? info.de : info.tr;
+    const since = typeof liveStateSinceIso === 'function' ? liveStateSinceIso(row) : '';
+    const age = typeof liveAgeUnit === 'function' ? liveAgeUnit(row) : 0;
+    const dur = typeof liveClock === 'function' ? liveClock(since, de) : '';
+    const name = row.agent_name || '—';
+    const initial = String(name).trim().charAt(0).toUpperCase() || '?';
+    const camp = names[row.campaign_id] || '—';
+    return `<div class="live-line live-line--${st} tb-live-line" style="--live-age:${Number(age).toFixed(3)}"><div class="live-line-who"><span class="live-av">${mbChipEsc(initial)}</span><span class="live-name">${mbChipEsc(name)}</span></div><div class="live-status">${mbChipEsc(label)}</div><div class="live-dur">${mbChipEsc(dur)}</div><div class="live-line-clip">${mbChipEsc(camp)}</div></div>`;
   }).join('') : `<div class="tb-chip-empty">${mbChipEsc(mbChipSay('tb.live.empty', 'Bu durumda kimse yok'))}</div>`;
   pop.innerHTML = `${head}<div class="tb-live-tiles">${tiles}</div><div class="tb-live-people">${body}</div>`;
 }
@@ -584,6 +605,8 @@ document.addEventListener('mouseover', (ev) => {
   if (!target || !target.closest) return;
   if (target.closest('#tb-results, #tb-res-panel')) mbShowResPanel();
   else mbScheduleHideResPanel();
+  if (target.closest('#tb-live-btn') || (target.closest('#tb-chip-pop') && window._tbChip?.kind === 'live')) mbShowLiveBoard();
+  else mbScheduleHideLive();
 });
 
 function _dashCanUseAgentFilter() {

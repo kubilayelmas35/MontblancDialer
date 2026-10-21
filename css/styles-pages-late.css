@@ -723,11 +723,17 @@ i.ph {
 #s-appt-results-rows { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .ar-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 88px minmax(140px, auto) auto;
+  grid-template-columns: 28px minmax(0, 1.15fr) minmax(0, 1fr) 88px minmax(140px, auto) auto;
   gap: 8px;
   align-items: end;
   min-width: 0;
 }
+.ar-grip {
+  width: 28px; height: 36px; padding: 0; border: 0; border-radius: 8px;
+  background: transparent; color: var(--text-3); cursor: grab; align-self: end;
+}
+.ar-grip:active { cursor: grabbing; }
+.ar-row.is-dragging { opacity: .45; }
 .ar-row .form-row { margin: 0; min-width: 0; }
 .ar-row .form-input { width: 100%; min-width: 0; box-sizing: border-box; }
 .ar-row input[type="color"] {
@@ -746,7 +752,7 @@ i.ph {
   padding-bottom: 8px;
 }
 @media (max-width: 1100px) {
-  .ar-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .ar-row { grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr); }
   .ar-move { grid-column: 1 / -1; }
 }
 .mesai-row {

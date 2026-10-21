@@ -428,11 +428,6 @@ button.tb-res {
   font-family: var(--mono); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1;
   display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
 }
-button.tb-res:not(.tb-res-sum)::before {
-  content: ""; position: absolute; left: 50%; top: 50%; z-index: -1;
-  width: 5px; height: 5px; margin: -7px 0 0 -8px; border-radius: 50%;
-  background: var(--c, #64748b); pointer-events: none; opacity: .85;
-}
 button.tb-res.tb-res-sum {
   margin-left: 4px; height: 24px; min-width: 24px; padding: 0 7px;
   border-radius: 12px; background: var(--bg-2); color: var(--text);
@@ -468,8 +463,8 @@ button.tb-res-row b {
   box-shadow: var(--shadow);
 }
 .tb-chip-pop.is-board {
-  width: min(420px, calc(100vw - 16px));
-  max-height: min(480px, calc(100vh - 80px));
+  width: min(560px, calc(100vw - 16px));
+  max-height: min(520px, calc(100vh - 80px));
   padding: 12px;
 }
 .tb-live-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
@@ -482,7 +477,16 @@ button.tb-res-row b {
 .tb-live-tile em { font-style: normal; font-size: 10px; font-weight: 800; color: var(--text-3); }
 .tb-live-tile b { font-size: 18px; font-weight: 800; line-height: 1; color: var(--tone, var(--text)); font-variant-numeric: tabular-nums; }
 .tb-live-tile.is-on { box-shadow: inset 0 0 0 1.5px var(--tone, var(--text)); }
-.tb-live-people { display: flex; flex-direction: column; border-top: 1px solid var(--border); padding-top: 6px; }
+.tb-live-people { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--border); padding-top: 8px; }
+.tb-live-people .tb-live-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) .72fr .78fr minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
 .tb-chip-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 2px 8px; }
 .tb-chip-head strong { font-size: 13px; }
 .tb-chip-head span { font-size: 11px; color: var(--text-3); font-weight: 700; }

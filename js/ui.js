@@ -346,8 +346,12 @@ function renderAppointmentResultRows(rows) {
   const wrap = document.getElementById('s-appt-results-rows');
   if (!wrap) return;
   const safe = rows?.length ? rows : [defaultAppointmentResults()[0]];
+  const gripLabel = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Reihenfolge ändern' : 'Sırayı değiştir';
   wrap.innerHTML = safe.map((r, i) => `
     <div class="ar-row">
+      <button type="button" class="ar-grip" draggable="true" aria-label="${gripLabel}" title="${gripLabel}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="7" r="1.4"/><circle cx="15" cy="7" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="17" r="1.4"/><circle cx="15" cy="17" r="1.4"/></svg>
+      </button>
       <div class="form-row">
         <label class="form-label">Sonuç tipi</label>
         <select class="form-input" id="ar-type-${i}" onchange="syncAppointmentResultLabel(${i})">
@@ -367,6 +371,40 @@ function renderAppointmentResultRows(rows) {
     </div>
   `).join('');
   wrap.dataset.count = String(safe.length);
+  mbBindResultReorder(wrap);
+}
+
+function mbBindResultReorder(wrap) {
+  wrap.querySelectorAll('.ar-grip').forEach((grip) => {
+    grip.addEventListener('dragstart', (ev) => {
+      const row = grip.closest('.ar-row');
+      wrap._dragRow = row;
+      wrap._dragBefore = readAppointmentResultRows().map((item) => item.key).join('|');
+      ev.dataTransfer.effectAllowed = 'move';
+      ev.dataTransfer.setData('text/plain', 'result');
+      row.classList.add('is-dragging');
+    });
+    grip.addEventListener('dragend', async () => {
+      const row = wrap._dragRow;
+      row?.classList.remove('is-dragging');
+      wrap._dragRow = null;
+      const parsed = readAppointmentResultRows();
+      if (parsed.map((item) => item.key).join('|') === wrap._dragBefore) return;
+      renderAppointmentResultRows(parsed);
+      await saveAppointmentResultsSettings();
+    });
+  });
+  if (wrap.dataset.reorder === '1') return;
+  wrap.dataset.reorder = '1';
+  wrap.addEventListener('dragover', (ev) => {
+    const dragRow = wrap._dragRow;
+    if (!dragRow) return;
+    ev.preventDefault();
+    const row = ev.target.closest?.('.ar-row');
+    if (!row || row === dragRow || !wrap.contains(row)) return;
+    const mid = row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2;
+    wrap.insertBefore(dragRow, ev.clientY > mid ? row.nextSibling : row);
+  });
 }
 
 function syncAppointmentResultLabel(idx) {
@@ -395,20 +433,20 @@ function _uniqueResultKey(base, used) {
 
 function readAppointmentResultRows() {
   const wrap = document.getElementById('s-appt-results-rows');
-  const count = Number(wrap?.dataset.count || 0);
+  const domRows = [...(wrap?.querySelectorAll(':scope > .ar-row') || [])];
   const out = [];
   const used = new Set();
-  for (let i = 0; i < count; i++) {
-    const picked = document.getElementById(`ar-type-${i}`)?.value || '';
-    const label = String(document.getElementById(`ar-label-${i}`)?.value || '').trim();
-    const color = _normalizeResultColor(document.getElementById(`ar-color-${i}`)?.value || '#64748b');
-    const auto_move_down = !!document.getElementById(`ar-move-${i}`)?.checked;
+  domRows.forEach((row, i) => {
+    const picked = row.querySelector('select')?.value || '';
+    const label = String(row.querySelector('input[id^="ar-label-"]')?.value || '').trim();
+    const color = _normalizeResultColor(row.querySelector('input[type="color"]')?.value || '#64748b');
+    const auto_move_down = !!row.querySelector('input[type="checkbox"]')?.checked;
     const base = picked === '__custom' ? (label || `ozel_${i + 1}`) : picked;
     const key = _uniqueResultKey(base, used);
-    if (!key) continue;
+    if (!key) return;
     used.add(key);
     out.push({ key, label: label || key, color, contact_status: appointmentResultToContactStatus(key), auto_move_down });
-  }
+  });
   return out;
 }
 
@@ -442,6 +480,7 @@ async function saveAppointmentResultsSettings() {
     });
     window._apptResultsByFirm[fid] = parsed;
     if (typeof loadMyMiniStats === 'function') loadMyMiniStats();
+    if (typeof mbPaintTodayResults === 'function') mbPaintTodayResults();
     toast('Randevu sonuçları kaydedildi', 'ok');
   } catch (e) {
     toast('Kaydetme hatası: ' + e.message, 'err');
