@@ -20,7 +20,8 @@ await fetch(`${SB_URL}/rest/v1/campaigns?limit=1`, { headers: mbAuthHeaders() })
 document.getElementById('pill-ping').textContent = Date.now()-t0;
 } catch(e) { document.getElementById('pill-ping').textContent = '!'; }
 try {
-const sessions = await sb(`agent_sessions?select=status${ffLive}`) || [];
+const sessions = await mbLoadLiveRows(ffLive);
+window._tbLiveRows = sessions;
 const setPill = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = String(n); };
 const countSt = (st) => sessions.filter(s => s.status === st).length;
 setPill('pill-call', countSt('on_call'));
@@ -31,7 +32,9 @@ setPill('pill-off', countSt('offline'));
 setPill('pill-total', sessions.length);
 } catch(e){}
 try {
-const cs = await sb(`campaigns?select=id,status&status=eq.active${ffLive}`);
+const cs = await sb(`campaigns?select=id,name,status&status=eq.active${ffLive}`);
+window._tbCampNames = {};
+(cs || []).forEach((camp) => { window._tbCampNames[camp.id] = camp.name || ''; });
 document.getElementById('pill-camp').textContent = cs.length;
 document.getElementById('sb-badge-camp').textContent = cs.length;
 } catch(e){}
@@ -42,6 +45,8 @@ const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}
 const logs  = await sb(`call_logs?select=id&outcome=eq.appointment&started_at=gte.${gte}&started_at=lte.${lte}${ffLive}`);
 document.getElementById('pill-appt').textContent = logs.length;
 } catch(e){}
+try { await mbPaintTodayResults(); } catch (e) {}
+if (window._tbChip) mbFillChipPop();
 try {
 const fid = getActiveFirmId() || currentUser?.firm_id;
 if (fid) {
@@ -252,7 +257,234 @@ document.addEventListener('scroll', () => {
   const pop = document.getElementById('tb-bal-pop');
   if (!pop || pop.hidden) return;
   mbPlaceBalPop(pop);
+  const chip = document.getElementById('tb-chip-pop');
+  if (chip && !chip.hidden && window._tbChip?.anchor) mbPlaceChipPop(window._tbChip.anchor);
 }, true);
+
+function mbChipSay(key, fallback) {
+  return typeof t === 'function' ? t(key) : fallback;
+}
+
+function mbChipEsc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+function mbChipClock(sec) {
+  const safe = Math.max(0, Number(sec) || 0);
+  const m = Math.floor(safe / 60);
+  const s = safe % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function mbChipWhen(iso) {
+  const match = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}:\d{2})/);
+  return match ? `${match[3]}.${match[2]} ${match[4]}` : '';
+}
+
+async function mbLoadLiveRows(ff) {
+  const rich = 'agent_id,agent_name,status,break_code,campaign_id,current_contact_name,call_started_at,call_start,updated_at,last_seen';
+  const mid = 'agent_id,agent_name,status,break_code,campaign_id,current_contact_name,call_started_at,updated_at,last_seen';
+  const plain = 'agent_id,agent_name,status,campaign_id,current_contact_name,call_started_at,updated_at,last_seen';
+  try {
+    return (await sb(`agent_sessions?select=${rich}${ff}`)) || [];
+  } catch (e) {
+    try {
+      return (await sb(`agent_sessions?select=${mid}${ff}`)) || [];
+    } catch (err) {
+      return (await sb(`agent_sessions?select=${plain}${ff}`)) || [];
+    }
+  }
+}
+
+function mbCloseChipPop() {
+  const pop = document.getElementById('tb-chip-pop');
+  if (pop) pop.hidden = true;
+  document.querySelectorAll('[data-chip].is-open, button.tb-res.is-open').forEach((el) => {
+    el.classList.remove('is-open');
+    el.setAttribute('aria-expanded', 'false');
+  });
+  window._tbChip = null;
+}
+
+function mbPlaceChipPop(anchor) {
+  const pop = document.getElementById('tb-chip-pop');
+  if (!pop || !anchor) return;
+  if (pop.parentElement !== document.body) document.body.appendChild(pop);
+  const rect = anchor.getBoundingClientRect();
+  const width = pop.offsetWidth || 320;
+  let left = rect.left;
+  if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
+  if (left < 8) left = 8;
+  pop.style.top = `${Math.round(rect.bottom + 8)}px`;
+  pop.style.left = `${Math.round(left)}px`;
+}
+
+function mbOpenChip(ev, spec) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const btn = ev?.currentTarget;
+  const pop = document.getElementById('tb-chip-pop');
+  if (!pop || !btn) return;
+  const same = window._tbChip && window._tbChip.kind === spec.kind && window._tbChip.key === spec.key && !pop.hidden;
+  mbCloseChipPop();
+  const bal = document.getElementById('tb-bal-pop');
+  if (bal) {
+    bal.hidden = true;
+    document.getElementById('pill-bal-btn')?.setAttribute('aria-expanded', 'false');
+  }
+  if (same) return;
+  window._tbChip = { ...spec, anchor: btn };
+  btn.classList.add('is-open');
+  btn.setAttribute('aria-expanded', 'true');
+  mbFillChipPop();
+  pop.hidden = false;
+  mbPlaceChipPop(btn);
+}
+
+function mbToggleLivePop(ev, status) {
+  mbOpenChip(ev, { kind: 'live', key: status });
+}
+
+function mbToggleResPop(ev, key) {
+  mbOpenChip(ev, { kind: 'res', key: key || '' });
+}
+
+function mbLiveTitle(status) {
+  const btn = document.querySelector(`[data-chip="${status}"] .tb-pill-lbl`);
+  return btn?.textContent || status;
+}
+
+function mbLiveDot(status) {
+  return {
+    on_call: '#4CAF50',
+    ready: '#FFB74D',
+    wrapping: '#00BCD4',
+    break: '#7E57C2',
+    offline: '#9E9E9E',
+  }[status] || '#94a3b8';
+}
+
+function mbFillLivePop(pop, status) {
+  const rows = (window._tbLiveRows || []).filter((row) => status === 'all' || row.status === status);
+  rows.sort((a, b) => String(a.agent_name || '').localeCompare(String(b.agent_name || ''), 'tr'));
+  const names = window._tbCampNames || {};
+  const title = mbLiveTitle(status);
+  const head = `<div class="tb-chip-head"><strong>${mbChipEsc(title)}</strong><span>${rows.length}</span></div>`;
+  if (!rows.length) {
+    pop.innerHTML = `${head}<div class="tb-chip-empty">${mbChipEsc(mbChipSay('tb.live.empty', 'Bu durumda kimse yok'))}</div>`;
+    return;
+  }
+  const body = rows.map((row) => {
+    const bits = [];
+    if (row.status === 'on_call' && row.current_contact_name) bits.push(row.current_contact_name);
+    if (row.status === 'break' && row.break_code) bits.push(row.break_code);
+    if (names[row.campaign_id]) bits.push(names[row.campaign_id]);
+    if (row.status === 'on_call') {
+      const since = new Date(row.call_started_at || row.call_start || '').getTime();
+      if (Number.isFinite(since)) bits.push(mbChipClock(Math.floor((Date.now() - since) / 1000)));
+    }
+    const detail = bits.filter(Boolean).join(' · ');
+    const call = row.status === 'on_call' ? ' is-call' : '';
+    return `<div class="tb-chip-row${call}"><b><i style="--dot:${mbLiveDot(row.status)}"></i>${mbChipEsc(row.agent_name || '—')}</b>${detail ? `<small>${mbChipEsc(detail)}</small>` : ''}</div>`;
+  }).join('');
+  pop.innerHTML = head + body;
+}
+
+function mbFillResPop(pop, key) {
+  const rows = (window._tbApptRows || []).filter((row) => !key || (typeof _normResultKey === 'function' ? _normResultKey(row.durum) : row.durum) === key);
+  const def = (window._tbResDefs || []).find((item) => item.key === key);
+  const title = key ? (def?.label || key) : mbChipSay('tb.res.total', 'Toplam');
+  const scope = window._tbResOwn ? mbChipSay('tb.res.mine', 'Senin randevuların') : mbChipSay('tb.res.all', 'Firma toplamı');
+  const head = `<div class="tb-chip-head"><strong>${mbChipEsc(title)}</strong><span>${mbChipEsc(scope)} · ${rows.length}</span></div>`;
+  if (!rows.length) {
+    pop.innerHTML = `${head}<div class="tb-chip-empty">${mbChipEsc(mbChipSay('tb.res.empty', 'Bu sonuçta randevu yok'))}</div>`;
+    return;
+  }
+  const open = mbChipSay('tb.res.open', 'Dialerda aç');
+  const body = rows.slice(0, 40).map((row) => {
+    const id = /^[0-9a-f-]{36}$/i.test(String(row.contact_id || '')) ? String(row.contact_id) : '';
+    const when = mbChipWhen(row.termin_tarih) || mbChipWhen(row.kayit_tarihi);
+    const who = (window._tbLiveRows || []).find((agent) => agent.agent_id === row.agent_id);
+    const detail = [when, !window._tbResOwn ? who?.agent_name : '', id ? open : ''].filter(Boolean).join(' · ');
+    if (!id) return `<div class="tb-chip-row"><b>${mbChipEsc(row.nachname || '—')}</b>${detail ? `<small>${mbChipEsc(detail)}</small>` : ''}</div>`;
+    return `<button type="button" class="tb-chip-row" onclick="mbOpenChipAppt('${id}')"><b>${mbChipEsc(row.nachname || '—')}</b><small>${mbChipEsc(detail)}</small></button>`;
+  }).join('');
+  pop.innerHTML = head + body;
+}
+
+function mbFillChipPop() {
+  const pop = document.getElementById('tb-chip-pop');
+  const spec = window._tbChip;
+  if (!pop || !spec) return;
+  if (spec.kind === 'live') mbFillLivePop(pop, spec.key);
+  else mbFillResPop(pop, spec.key);
+  if (spec.anchor) mbPlaceChipPop(spec.anchor);
+}
+
+function mbOpenChipAppt(contactId) {
+  mbCloseChipPop();
+  if (typeof openDialerForContact === 'function') openDialerForContact(contactId);
+}
+
+async function mbPaintTodayResults() {
+  const host = document.getElementById('tb-results');
+  if (!host || !currentUser) return;
+  if (currentUser.role === 'field_agent') {
+    host.hidden = true;
+    host.innerHTML = '';
+    return;
+  }
+  const own = currentUser.role === 'agent';
+  const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : currentUser.firm_id;
+  const ff = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
+  const mine = own && currentUser.id ? `&agent_id=eq.${currentUser.id}` : '';
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
+  const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
+  const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
+  const defs = fid && typeof loadFirmAppointmentResults === 'function'
+    ? await loadFirmAppointmentResults(fid).catch(() => [])
+    : (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
+  const rows = await sb(`appointments?select=id,nachname,durum,agent_id,contact_id,termin_tarih,kayit_tarihi&kayit_tarihi=gte.${gte}&kayit_tarihi=lte.${lte}${ff}${mine}&order=kayit_tarihi.desc&limit=400`).catch(() => []) || [];
+  const norm = (value) => (typeof _normResultKey === 'function' ? _normResultKey(value) : String(value || ''));
+  const list = (defs || []).map((def) => ({
+    key: norm(def.key),
+    label: String(def.label || def.key || '').trim(),
+    color: String(def.color || '#64748b'),
+  })).filter((def) => def.key);
+  const seen = new Set(list.map((def) => def.key));
+  rows.forEach((row) => {
+    const key = norm(row.durum);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    list.push({ key, label: String(row.durum || key), color: '#64748b' });
+  });
+  window._tbApptRows = rows;
+  window._tbResDefs = list;
+  window._tbResOwn = own;
+  const countOf = (key) => rows.filter((row) => norm(row.durum) === key).length;
+  const total = rows.length;
+  const chip = (key, label, color, n) => {
+    const safeKey = /^[a-z0-9_]*$/i.test(String(key || '')) ? String(key || '') : '';
+    const safeColor = /^#[0-9a-fA-F]{6}$/.test(String(color || '')) ? color : '#64748b';
+    return `<button type="button" class="tb-res" data-res="${safeKey}" style="--c:${safeColor}" title="${mbChipEsc(label)}" onclick="mbToggleResPop(event,'${safeKey}')"><b>${n}</b><span>${mbChipEsc(label)}</span></button>`;
+  };
+  host.hidden = false;
+  host.innerHTML = `<span class="tb-res-label">${mbChipEsc(mbChipSay('tb.res.today', 'Bugün'))}</span>${chip('', mbChipSay('tb.res.total', 'Toplam'), '#334155', total)}${list.map((def) => chip(def.key, def.label, def.color, countOf(def.key))).join('')}`;
+  if (window._tbChip?.kind === 'res') {
+    const next = host.querySelector(`[data-res="${window._tbChip.key || ''}"]`);
+    if (next) {
+      next.classList.add('is-open');
+      next.setAttribute('aria-expanded', 'true');
+      window._tbChip.anchor = next;
+    }
+  }
+}
+
+document.addEventListener('click', (ev) => {
+  const pop = document.getElementById('tb-chip-pop');
+  if (!pop || pop.hidden) return;
+  if (ev.target.closest && ev.target.closest('#tb-chip-pop, [data-chip], .tb-res')) return;
+  mbCloseChipPop();
+});
 
 function _dashCanUseAgentFilter() {
   return mbIsFirmAdmin();

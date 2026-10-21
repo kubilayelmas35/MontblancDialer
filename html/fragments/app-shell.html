@@ -19,6 +19,7 @@
 </div>
 <div class="tb-mascot-anchor" id="tb-mascot-anchor" aria-hidden="true" title="Maskot"></div>
 <div class="tb-pills-wrap">
+<div class="tb-pill-cluster">
 <div id="tb-pills" style="display:none;">
 <div class="tb-pill pill-ping">
 <div class="tb-pill-dot"></div>
@@ -29,36 +30,36 @@
 <span class="pill-bal-mark" id="pill-bal-mark" aria-hidden="true">€</span>
 <span class="tb-pill-val" id="pill-bal">--</span>
 </button>
-<div class="tb-pill pill-call">
+<button type="button" class="tb-pill pill-call" data-chip="on_call" onclick="mbToggleLivePop(event,'on_call')" aria-expanded="false" aria-controls="tb-chip-pop">
 <div class="tb-pill-dot"></div>
 <span class="tb-pill-val" id="pill-call">0</span>
 <span class="tb-pill-lbl" data-tr="aramada" data-de="Gespräch">aramada</span>
-</div>
-<div class="tb-pill pill-ready">
+</button>
+<button type="button" class="tb-pill pill-ready" data-chip="ready" onclick="mbToggleLivePop(event,'ready')" aria-expanded="false" aria-controls="tb-chip-pop">
 <div class="tb-pill-dot"></div>
 <span class="tb-pill-val" id="pill-ready">0</span>
 <span class="tb-pill-lbl" data-tr="hazır" data-de="bereit">hazır</span>
-</div>
-<div class="tb-pill pill-wrap">
+</button>
+<button type="button" class="tb-pill pill-wrap" data-chip="wrapping" onclick="mbToggleLivePop(event,'wrapping')" aria-expanded="false" aria-controls="tb-chip-pop">
 <div class="tb-pill-dot"></div>
 <span class="tb-pill-val" id="pill-wrap">0</span>
 <span class="tb-pill-lbl" data-tr="sonuç" data-de="Nacharbeit">sonuç</span>
-</div>
-<div class="tb-pill pill-break">
+</button>
+<button type="button" class="tb-pill pill-break" data-chip="break" onclick="mbToggleLivePop(event,'break')" aria-expanded="false" aria-controls="tb-chip-pop">
 <div class="tb-pill-dot"></div>
 <span class="tb-pill-val" id="pill-break">0</span>
 <span class="tb-pill-lbl" data-tr="mola" data-de="Pause">mola</span>
-</div>
-<div class="tb-pill pill-off">
+</button>
+<button type="button" class="tb-pill pill-off" data-chip="offline" onclick="mbToggleLivePop(event,'offline')" aria-expanded="false" aria-controls="tb-chip-pop">
 <div class="tb-pill-dot"></div>
 <span class="tb-pill-val" id="pill-off">0</span>
 <span class="tb-pill-lbl" data-tr="çevrimdışı" data-de="offline">çevrimdışı</span>
-</div>
-<div class="tb-pill pill-total">
+</button>
+<button type="button" class="tb-pill pill-total" data-chip="all" onclick="mbToggleLivePop(event,'all')" aria-expanded="false" aria-controls="tb-chip-pop">
 <div class="tb-pill-dot"></div>
 <span class="tb-pill-val" id="pill-total">0</span>
 <span class="tb-pill-lbl" data-tr="toplam" data-de="gesamt">toplam</span>
-</div>
+</button>
 <button type="button" class="tb-pill pill-camp" id="pill-camp-btn" onclick="opsCampPillClick(event)">
 <span class="tb-pill-ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span>
 <span class="tb-pill-val" id="pill-camp">0</span>
@@ -71,7 +72,9 @@
 </div>
 </div>
 </div>
+</div>
 <div id="tb-bal-pop" class="tb-bal-pop" hidden></div>
+<div id="tb-chip-pop" class="tb-chip-pop" hidden></div>
 <div class="tb-right">
 <span id="tb-test-flag" class="tb-test-flag" role="status" hidden>TEST</span>
 <button type="button" class="tb-icon-btn tb-mesai" id="tb-mesai-btn" onclick="opsToggleMesaiInfo(event)" title="Mesai" data-tr-title="Mesai" data-de-title="Schicht" aria-label="Mesai" data-tr-aria="Mesai" data-de-aria="Schicht">
@@ -367,6 +370,7 @@
 </div>
 </nav>
 <main id="main">
+<div id="tb-results-bar" class="tb-results-bar"><div id="tb-results" class="tb-results" hidden></div></div>
 <div class="page active" id="page-dashboard">
 <div class="page-hdr">
 <div>
