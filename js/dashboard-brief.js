@@ -364,8 +364,7 @@ function mbDashCampInner(logs, ops) {
   return `<div class="dash-camps${scroll}">${rows}</div>`;
 }
 
-function mbFitCampScroll() {
-  const box = document.querySelector('#dash-camp-body .dash-camps-scroll');
+function mbFitRowScroll(box) {
   if (!box) return;
   const rows = [...box.children].filter((el) => el.classList.contains('dash-camp'));
   if (rows.length <= 3) {
@@ -375,6 +374,15 @@ function mbFitCampScroll() {
   const gap = parseFloat(getComputedStyle(box).rowGap) || 10;
   const height = rows.slice(0, 3).reduce((sum, el) => sum + el.offsetHeight, 0) + gap * 2;
   box.style.maxHeight = `${Math.ceil(height)}px`;
+}
+
+function mbFitCampScroll() {
+  mbFitRowScroll(document.querySelector('#dash-camp-body .dash-camps-scroll'));
+}
+
+function mbFitRankScroll() {
+  mbFitRowScroll(document.querySelector('#dash-rank-body .dash-camps-scroll'));
+  mbSyncRankTitle();
 }
 
 async function mbDashRankInner(logs, ff, usersReady) {
@@ -391,8 +399,7 @@ async function mbDashRankInner(logs, ff, usersReady) {
     bag[id].talk += Number(log.duration_sec) || 0;
   });
   const rows = Object.keys(bag).map((id) => ({ id, ...bag[id] }))
-    .sort((a, b) => b.appt - a.appt || b.calls - a.calls)
-    .slice(0, 8);
+    .sort((a, b) => b.appt - a.appt || b.calls - a.calls);
   if (!rows.length) {
     return `<div class="dash-mini-row">${mbDashTr('Bu aralıkta arama yok', 'Keine Anrufe in diesem Zeitraum')}</div>`;
   }
@@ -403,7 +410,17 @@ async function mbDashRankInner(logs, ff, usersReady) {
     const width = Math.round((row.calls / maxCalls) * 100);
     return `<button type="button" class="dash-camp" onclick="mbDashOpenAgent('${row.id}')"><span class="dash-camp-name">${mbDashEsc(names[row.id] || row.id.slice(0, 8))}</span><b>${row.appt}</b><span class="dash-meter"><i style="width:${width}%;background:#34d399"></i></span><small>${row.calls} ${mbDashTr('arama', 'Anrufe')} · ${min}dk · %${rate}</small></button>`;
   }).join('');
-  return `<div class="dash-camps">${body}</div>`;
+  const scroll = rows.length > 3 ? ' dash-camps-scroll' : '';
+  return `<div class="dash-camps${scroll}">${body}</div>`;
+}
+
+function mbSyncRankTitle() {
+  const body = document.getElementById('dash-rank-body');
+  const title = body?.closest('.dash-brief-card')?.querySelector('.card-title > span');
+  if (!title) return;
+  const n = body.querySelectorAll('.dash-camp').length;
+  const base = mbDashTr('Temsilci sırası', 'Agentenliste');
+  title.textContent = n > 3 ? `${base} · ${n}` : base;
 }
 
 async function mbDashNextBlock(ff, agentQ) {
@@ -601,7 +618,10 @@ async function mbDashApplyLogs(ctx) {
     requestAnimationFrame(() => mbFitCampScroll());
   }
   const rank = document.getElementById('dash-rank-body');
-  if (rank) rank.innerHTML = await mbDashRankInner(logs, snap.ff, users);
+  if (rank) {
+    rank.innerHTML = await mbDashRankInner(logs, snap.ff, users);
+    requestAnimationFrame(() => mbFitRankScroll());
+  }
   await mbDashRunDeltas(snap, logs, ctx?.rangeKey, ctx?.from, ctx?.to);
 }
 
@@ -683,7 +703,7 @@ async function loadDashBrief(ctx) {
   host.innerHTML = `<div class="dash-brief"><div class="dash-brief-scope">${mbDashEsc(mbDashScopeLine(role))}</div>${alerts}<div class="dash-brief-grid">${parts.join('')}</div></div>`;
   mbPackBrief(host);
   mbInitBriefDrag();
-  requestAnimationFrame(() => mbFitCampScroll());
+  requestAnimationFrame(() => { mbFitCampScroll(); mbFitRankScroll(); });
   if (ready) await mbDashRunDeltas(snap, liveLogs, rangeKey, from, to);
   if (ops?.ids?.length) {
     mbDashOpsSlow(ops).then(() => {
