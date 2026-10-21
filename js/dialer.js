@@ -4,6 +4,7 @@
 
 async function initDialer() {
   if (!currentUser) return;
+  mbDialerAdminGate(null);
   resetDialerVoiceVisuals();
   if (typeof isFeatureEnabledForCurrentFirm === 'function') {
     const canDial = await isFeatureEnabledForCurrentFirm('dialer_enabled');
@@ -134,6 +135,7 @@ async function initDialer() {
     }).join('');
     // Manuel arama / Telnyx DID vb. için global kampanya listesi (agent kampanyaları)
     campaigns = (myCamps || []).map((ac) => ac.campaigns).filter(Boolean);
+    mbDialerAdminGate(campaigns);
     // Önceki oturumdan seçili kampanya: arama başlatmaz ama hazır/etiket/sağlık paneli doğru olsun
     (function restoreSelectedCampFromStorage() {
       const allowedIds = new Set(myCamps.map((x) => String(x.campaign_id)));
@@ -243,6 +245,158 @@ function toggleCampActive(campId, checked) {
   refreshDialerHealthPanel();
   if (typeof opsPaintCampWarn === 'function') opsPaintCampWarn();
 }
+
+function mbDialerAdminGate(camps) {
+  const btn = document.getElementById('agent-camp-admin');
+  const pop = document.getElementById('agent-camp-admin-pop');
+  const ok = typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin() && Array.isArray(camps) && camps.length;
+  window._dialerAdminCamps = ok ? camps : [];
+  if (btn) {
+    btn.hidden = !ok;
+    const label = typeof t === 'function' ? t('dial.admin_menu') : 'Kampanya ayarları';
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    if (!ok) btn.setAttribute('aria-expanded', 'false');
+  }
+  if (!ok && pop) pop.hidden = true;
+}
+
+function mbDialerAdminEsc(v) {
+  return typeof escapeHtml === 'function' ? escapeHtml(v) : String(v ?? '');
+}
+
+function mbRenderCampAdmin(pop) {
+  if (!pop) return;
+  const say = (key, fb) => (typeof t === 'function' ? t(key) : fb);
+  const camps = window._dialerAdminCamps || [];
+  pop.innerHTML = camps.map((camp) => {
+    const id = String(camp?.id || '');
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return '';
+    const speed = Math.min(10, Math.max(1, parseInt(camp.dial_speed, 10) || 1));
+    const opts = Array.from({ length: 10 }, (_, i) => {
+      const n = i + 1;
+      return `<option value="${n}"${n === speed ? ' selected' : ''}>${n}</option>`;
+    }).join('');
+    const queues = (camp.queues || []).slice().sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'tr'));
+    const qHtml = queues.length ? queues.map((q) => {
+      const qid = String(q?.id || '');
+      if (!/^[0-9a-f-]{36}$/i.test(qid)) return '';
+      const paused = String(q.status || '') === 'paused';
+      return `<div class="aca-q">
+<input data-aca-name="${qid}" value="${mbDialerAdminEsc(q.name || '')}" maxlength="80" aria-label="${mbDialerAdminEsc(say('dial.admin_queues', 'Kuyruklar'))}">
+<select data-aca-status="${qid}" aria-label="${mbDialerAdminEsc(say('dial.admin_q_on', 'Açık'))}">
+<option value="active"${paused ? '' : ' selected'}>${mbDialerAdminEsc(say('dial.admin_q_on', 'Açık'))}</option>
+<option value="paused"${paused ? ' selected' : ''}>${mbDialerAdminEsc(say('dial.admin_q_off', 'Duraklatıldı'))}</option>
+</select>
+<button type="button" class="aca-save" title="${mbDialerAdminEsc(say('dial.admin_q_save', 'Kaydet'))}" aria-label="${mbDialerAdminEsc(say('dial.admin_q_save', 'Kaydet'))}" onclick="mbDialerAdminQueue('${qid}')"><i class="ph ph-check" aria-hidden="true"></i></button>
+</div>`;
+    }).join('') : `<div class="aca-empty">${mbDialerAdminEsc(say('dial.admin_q_empty', 'Kuyruk yok'))}</div>`;
+    return `<div class="aca-camp">
+<div class="aca-name" title="${mbDialerAdminEsc(camp.name || '')}">${mbDialerAdminEsc(camp.name || '')}</div>
+<label class="aca-speed">${mbDialerAdminEsc(say('dial.admin_speed', 'Hız'))}
+<select data-aca-speed="${id}" aria-label="${mbDialerAdminEsc(say('dial.admin_speed', 'Hız'))}" onchange="mbDialerAdminSpeed('${id}', this.value)">${opts}</select>
+</label>
+<div class="aca-kicker">${mbDialerAdminEsc(say('dial.admin_queues', 'Kuyruklar'))}</div>
+${qHtml}
+</div>`;
+  }).join('');
+}
+
+function mbPlaceCampAdmin(pop) {
+  const btn = document.getElementById('agent-camp-admin');
+  if (!btn || !pop) return;
+  const rect = btn.getBoundingClientRect();
+  const width = Math.min(300, window.innerWidth - 16);
+  pop.style.width = `${Math.round(width)}px`;
+  let left = rect.right - width;
+  if (left < 8) left = 8;
+  if (left + width > window.innerWidth - 8) left = Math.max(8, window.innerWidth - width - 8);
+  let top = Math.round(rect.bottom + 6);
+  const h = pop.offsetHeight || 0;
+  if (h && top + h > window.innerHeight - 8) top = Math.max(8, Math.round(rect.top - h - 6));
+  pop.style.top = `${top}px`;
+  pop.style.left = `${Math.round(left)}px`;
+}
+
+function mbToggleCampAdmin(ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const pop = document.getElementById('agent-camp-admin-pop');
+  const btn = document.getElementById('agent-camp-admin');
+  if (!pop || !btn || btn.hidden) return;
+  if (typeof mbIsFirmAdmin === 'function' && !mbIsFirmAdmin()) return;
+  if (!pop.hidden) {
+    pop.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+    return;
+  }
+  mbRenderCampAdmin(pop);
+  pop.hidden = false;
+  btn.setAttribute('aria-expanded', 'true');
+  mbPlaceCampAdmin(pop);
+}
+
+async function mbDialerAdminSpeed(id, value) {
+  if (typeof mbIsFirmAdmin === 'function' && !mbIsFirmAdmin()) return;
+  const speed = Math.min(10, Math.max(1, parseInt(value, 10) || 1));
+  if (!/^[0-9a-f-]{36}$/i.test(String(id || ''))) return;
+  try {
+    await sb(`campaigns?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ dial_speed: speed }) });
+    const camp = (window._dialerAdminCamps || []).find((row) => String(row.id) === String(id))
+      || (typeof campaigns !== 'undefined' && Array.isArray(campaigns) ? campaigns.find((row) => String(row.id) === String(id)) : null);
+    if (camp) camp.dial_speed = speed;
+    const msg = typeof tReplace === 'function'
+      ? tReplace('camp.speed.saved', { v: speed })
+      : `Hız ${speed}`;
+    if (typeof toast === 'function') toast(msg, 'ok');
+  } catch (e) {
+    if (typeof toast === 'function') toast(e?.message || 'Hız kaydedilemedi', 'err');
+  }
+}
+
+async function mbDialerAdminQueue(queueId) {
+  if (typeof mbIsFirmAdmin === 'function' && !mbIsFirmAdmin()) return;
+  if (!/^[0-9a-f-]{36}$/i.test(String(queueId || ''))) return;
+  const name = String(document.querySelector(`[data-aca-name="${queueId}"]`)?.value || '').trim();
+  const status = document.querySelector(`[data-aca-status="${queueId}"]`)?.value === 'paused' ? 'paused' : 'active';
+  if (!name) {
+    if (typeof toast === 'function') toast(typeof t === 'function' ? t('camp.queue.name.required') : 'Kuyruk adı gerekli', 'err');
+    return;
+  }
+  const camp = (window._dialerAdminCamps || []).find((row) => (row.queues || []).some((q) => String(q.id) === String(queueId)));
+  if (camp && typeof queueNameTaken === 'function' && queueNameTaken(camp, queueId, name)) {
+    if (typeof toast === 'function') toast(typeof t === 'function' ? t('camp.queue.name.dup') : 'Bu kampanyada aynı kuyruk adı var', 'err');
+    return;
+  }
+  try {
+    await sb(`queues?id=eq.${queueId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ name, status }),
+    });
+    const queue = (camp?.queues || []).find((q) => String(q.id) === String(queueId));
+    if (queue) {
+      queue.name = name;
+      queue.status = status;
+    }
+    if (typeof toast === 'function') toast(typeof t === 'function' ? t('camp.queue.saved') : 'Kuyruk ayarları kaydedildi', 'ok');
+  } catch (e) {
+    if (typeof toast === 'function') toast(e?.message || 'Kuyruk kaydedilemedi', 'err');
+  }
+}
+
+document.addEventListener('click', (ev) => {
+  const pop = document.getElementById('agent-camp-admin-pop');
+  if (!pop || pop.hidden) return;
+  if (ev.target.closest && ev.target.closest('#agent-camp-admin, #agent-camp-admin-pop')) return;
+  pop.hidden = true;
+  document.getElementById('agent-camp-admin')?.setAttribute('aria-expanded', 'false');
+});
+
+document.addEventListener('scroll', () => {
+  const pop = document.getElementById('agent-camp-admin-pop');
+  if (!pop || pop.hidden) return;
+  mbPlaceCampAdmin(pop);
+}, true);
 
 function selectCamp(id, name, opts = {}) {
   selectedCampId = id;

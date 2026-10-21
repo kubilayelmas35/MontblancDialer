@@ -1591,8 +1591,10 @@ Son randevu bilgileri indirilebilir.
 </div>
 <div class="dialer-side">
 <div class="agent-camps-panel" id="agent-camps-panel">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+<div class="agent-camp-head">
 <div class="card-title" data-tr="Kampanyalarım" data-de="Meine Kampagnen">Kampanyalarım</div>
+<button type="button" id="agent-camp-admin" class="agent-camp-admin" hidden onclick="mbToggleCampAdmin(event)" aria-expanded="false" aria-controls="agent-camp-admin-pop" title="Kampanya ayarları" data-tr-title="Kampanya ayarları" data-de-title="Kampagneneinstellungen" aria-label="Kampanya ayarları" data-tr-aria="Kampanya ayarları" data-de-aria="Kampagneneinstellungen"><i class="ph ph-gear-six" aria-hidden="true"></i></button>
+<div id="agent-camp-admin-pop" class="agent-camp-admin-pop" hidden></div>
 </div>
 <div class="manual-dial-inline-wrap">
 <button type="button" id="manual-dial-toggle" class="agent-camp-item manual-dial-camp-trigger" onclick="toggleManualDialDrawer()">
