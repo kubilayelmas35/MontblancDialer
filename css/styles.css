@@ -390,7 +390,7 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 }
 .tb-live-n::before {
   content: ""; position: absolute; left: 50%; top: 50%; z-index: -1;
-  width: 8px; height: 8px; margin: -8px 0 0 -9px; border-radius: 50%;
+  width: 5px; height: 5px; margin: -7px 0 0 -8px; border-radius: 50%;
   background: var(--c, currentColor); pointer-events: none;
   animation: tb-pulse 2s ease-in-out infinite;
 }
@@ -430,7 +430,7 @@ button.tb-res {
 }
 button.tb-res:not(.tb-res-sum)::before {
   content: ""; position: absolute; left: 50%; top: 50%; z-index: -1;
-  width: 8px; height: 8px; margin: -8px 0 0 -9px; border-radius: 50%;
+  width: 5px; height: 5px; margin: -7px 0 0 -8px; border-radius: 50%;
   background: var(--c, #64748b); pointer-events: none;
   animation: tb-pulse 2s ease-in-out infinite;
 }
