@@ -600,7 +600,7 @@ async function mbPaintTodayResults() {
     return { key, color, ink, n: countOf(key), label: def.label };
   };
   const pieces = list.map(piece).filter((item) => item.key);
-  const rowsHtml = pieces.length ? `<div class="tb-res-head">${mbChipEsc(todayLabel)}</div>${pieces.map((item) => `<button type="button" class="tb-res-row" onclick="mbToggleResPop(event,'${item.key}')"><i style="--c:${item.color}"></i><span>${mbChipEsc(item.label)}</span><b>${item.n}</b></button>`).join('')}` : '';
+  const rowsHtml = pieces.length ? `<div class="tb-res-head"><span>${mbChipEsc(todayLabel)}</span><b>${rows.length}</b></div><div class="tb-res-list">${pieces.map((item) => `<button type="button" class="tb-res-row" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')"><b class="tb-res-num">${item.n}</b><span>${mbChipEsc(item.label)}</span></button>`).join('')}</div>` : '';
   const keepOpen = !!(panel && (!panel.hidden || host.matches(':hover') || panel.matches(':hover')));
   host.hidden = false;
   host.setAttribute('aria-label', todayLabel);
