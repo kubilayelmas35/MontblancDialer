@@ -1327,9 +1327,21 @@ const QUEUE_OPS_ROWS = [
   { key: 'dnc', requeue: false, pull: false, label: 'camp.st.dnc', fb: 'Kara liste' },
 ];
 
+function opsHost() {
+  const modal = document.getElementById('m-queue-ops');
+  if (modal) return modal;
+  const pop = document.getElementById('agent-camp-admin-pop');
+  if (pop && !pop.hidden) return pop;
+  return null;
+}
+
+function opsEl(id) {
+  return opsHost()?.querySelector('#' + id) || null;
+}
+
 function opsDatesOk() {
-  const from = document.getElementById('ops-from')?.value || '';
-  const to = document.getElementById('ops-to')?.value || '';
+  const from = opsEl('ops-from')?.value || '';
+  const to = opsEl('ops-to')?.value || '';
   if (/^\d{4}-\d{2}-\d{2}$/.test(from) && /^\d{4}-\d{2}-\d{2}$/.test(to) && from > to) {
     toast(campT('camp.ops.bad_range','Başlangıç, bitişten sonra olamaz'), 'warn');
     return false;
@@ -1338,8 +1350,8 @@ function opsDatesOk() {
 }
 
 function opsRangeQuery() {
-  const from = document.getElementById('ops-from')?.value || '';
-  const to = document.getElementById('ops-to')?.value || '';
+  const from = opsEl('ops-from')?.value || '';
+  const to = opsEl('ops-to')?.value || '';
   let q = '';
   if (/^\d{4}-\d{2}-\d{2}$/.test(from)) q += `&created_at=gte.${from}`;
   if (/^\d{4}-\d{2}-\d{2}$/.test(to)) q += `&created_at=lte.${to}T23:59:59`;
@@ -1347,10 +1359,9 @@ function opsRangeQuery() {
 }
 
 function opsSliceCount(key) {
-  const modal = document.getElementById('m-queue-ops');
-  const row = modal?.querySelector(`tr[data-ops="${key}"]`);
+  const row = opsHost()?.querySelector(`tr[data-ops="${key}"]`);
   const n = Number(row?.getAttribute('data-count') || 0);
-  const slider = document.getElementById(`ops-pct-${key}`);
+  const slider = opsEl(`ops-pct-${key}`);
   const raw = slider ? slider.value : '100';
   const pct = raw === '' ? 100 : Number(raw);
   const safe = Number.isFinite(pct) ? pct : 100;
@@ -1358,7 +1369,7 @@ function opsSliceCount(key) {
 }
 
 function opsPaintTake(key) {
-  const el = document.getElementById(`ops-take-${key}`);
+  const el = opsEl(`ops-take-${key}`);
   if (el) el.textContent = String(opsSliceCount(key));
 }
 
@@ -1377,6 +1388,11 @@ function opsContactsCsv(rows) {
 async function openQueueOps(queueId) {
   const found = findQueue(queueId);
   if (!found) return;
+  const desk = document.getElementById('agent-camp-admin-pop');
+  if (desk) {
+    desk.hidden = true;
+    desk.replaceChildren();
+  }
   document.getElementById('m-queue-ops')?.remove();
   const modal = document.createElement('div');
   modal.id = 'm-queue-ops';
@@ -1417,8 +1433,8 @@ async function openQueueOps(queueId) {
 }
 
 async function refreshQueueOps() {
-  const modal = document.getElementById('m-queue-ops');
-  const body = document.getElementById('qops-body');
+  const modal = opsHost();
+  const body = opsEl('qops-body');
   const queueId = modal?.dataset.queueId;
   if (!body || !queueId) return;
   if (!opsDatesOk()) return;

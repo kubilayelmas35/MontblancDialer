@@ -108,6 +108,7 @@ async function initDialer() {
   <div style="flex:1;min-width:0;">
     <div style="display:flex;align-items:center;gap:6px;min-width:0;">
       <div class="agent-camp-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ac.campaigns?.name||cid}</div>
+      ${(typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin()) ? `<button type="button" class="agent-camp-admin" aria-expanded="false" title="${escapeHtml(typeof t === 'function' ? t('dial.admin_menu') : 'Kampanya ayarları')}" aria-label="${escapeHtml(typeof t === 'function' ? t('dial.admin_menu') : 'Kampanya ayarları')}" onclick="event.stopPropagation();mbToggleCampAdmin(event,'${cid}')"><i class="ph ph-gear-six" aria-hidden="true"></i></button>` : ''}
       ${rulesBtn}
     </div>
     <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -247,92 +248,133 @@ function toggleCampActive(campId, checked) {
 }
 
 function mbDialerAdminGate(camps) {
-  const btn = document.getElementById('agent-camp-admin');
   const pop = document.getElementById('agent-camp-admin-pop');
   const ok = typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin() && Array.isArray(camps) && camps.length;
   window._dialerAdminCamps = ok ? camps : [];
-  if (btn) {
-    btn.hidden = !ok;
-    const label = typeof t === 'function' ? t('dial.admin_menu') : 'Kampanya ayarları';
-    btn.title = label;
-    btn.setAttribute('aria-label', label);
-    if (!ok) btn.setAttribute('aria-expanded', 'false');
+  if (!ok && pop) {
+    pop.hidden = true;
+    pop.replaceChildren();
   }
-  if (!ok && pop) pop.hidden = true;
 }
 
 function mbDialerAdminEsc(v) {
   return typeof escapeHtml === 'function' ? escapeHtml(v) : String(v ?? '');
 }
 
-function mbRenderCampAdmin(pop) {
-  if (!pop) return;
-  const say = (key, fb) => (typeof t === 'function' ? t(key) : fb);
-  const camps = window._dialerAdminCamps || [];
-  pop.innerHTML = camps.map((camp) => {
-    const id = String(camp?.id || '');
-    if (!/^[0-9a-f-]{36}$/i.test(id)) return '';
-    const speed = Math.min(10, Math.max(1, parseInt(camp.dial_speed, 10) || 1));
-    const opts = Array.from({ length: 10 }, (_, i) => {
-      const n = i + 1;
-      return `<option value="${n}"${n === speed ? ' selected' : ''}>${n}</option>`;
-    }).join('');
-    const queues = (camp.queues || []).slice().sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'tr'));
-    const qHtml = queues.length ? queues.map((q) => {
-      const qid = String(q?.id || '');
-      if (!/^[0-9a-f-]{36}$/i.test(qid)) return '';
-      const paused = String(q.status || '') === 'paused';
-      return `<div class="aca-q">
-<input data-aca-name="${qid}" value="${mbDialerAdminEsc(q.name || '')}" maxlength="80" aria-label="${mbDialerAdminEsc(say('dial.admin_queues', 'Kuyruklar'))}">
-<select data-aca-status="${qid}" aria-label="${mbDialerAdminEsc(say('dial.admin_q_on', 'Açık'))}">
-<option value="active"${paused ? '' : ' selected'}>${mbDialerAdminEsc(say('dial.admin_q_on', 'Açık'))}</option>
-<option value="paused"${paused ? ' selected' : ''}>${mbDialerAdminEsc(say('dial.admin_q_off', 'Duraklatıldı'))}</option>
-</select>
-<button type="button" class="aca-save" title="${mbDialerAdminEsc(say('dial.admin_q_save', 'Kaydet'))}" aria-label="${mbDialerAdminEsc(say('dial.admin_q_save', 'Kaydet'))}" onclick="mbDialerAdminQueue('${qid}')"><i class="ph ph-check" aria-hidden="true"></i></button>
-</div>`;
-    }).join('') : `<div class="aca-empty">${mbDialerAdminEsc(say('dial.admin_q_empty', 'Kuyruk yok'))}</div>`;
-    return `<div class="aca-camp">
-<div class="aca-name" title="${mbDialerAdminEsc(camp.name || '')}">${mbDialerAdminEsc(camp.name || '')}</div>
-<label class="aca-speed">${mbDialerAdminEsc(say('dial.admin_speed', 'Hız'))}
-<select data-aca-speed="${id}" aria-label="${mbDialerAdminEsc(say('dial.admin_speed', 'Hız'))}" onchange="mbDialerAdminSpeed('${id}', this.value)">${opts}</select>
-</label>
-<div class="aca-kicker">${mbDialerAdminEsc(say('dial.admin_queues', 'Kuyruklar'))}</div>
-${qHtml}
-</div>`;
-  }).join('');
+function mbCampSay(key, fb) {
+  if (typeof campT === 'function') return campT(key, fb);
+  return typeof t === 'function' ? t(key) : fb;
 }
 
-function mbPlaceCampAdmin(pop) {
-  const btn = document.getElementById('agent-camp-admin');
-  if (!btn || !pop) return;
-  const rect = btn.getBoundingClientRect();
-  const width = Math.min(300, window.innerWidth - 16);
+function mbRenderCampDesk(pop, campId) {
+  if (!pop) return;
+  const camp = (window._dialerAdminCamps || []).find((row) => String(row?.id) === String(campId));
+  if (!camp || !/^[0-9a-f-]{36}$/i.test(String(camp.id || ''))) return;
+  const id = String(camp.id);
+  const speed = Math.min(10, Math.max(1, parseInt(camp.dial_speed, 10) || 1));
+  const queues = (camp.queues || []).slice().sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), 'tr'));
+  const first = queues.find((q) => /^[0-9a-f-]{36}$/i.test(String(q?.id || '')));
+  pop.dataset.campId = id;
+  pop.dataset.queueId = first ? String(first.id) : '';
+  const pills = queues.map((q) => {
+    const qid = String(q?.id || '');
+    if (!/^[0-9a-f-]{36}$/i.test(qid)) return '';
+    const on = first && String(first.id) === qid;
+    return `<button type="button" class="aca-qpick${on ? ' is-on' : ''}" data-aca-q="${qid}" onclick="event.stopPropagation();mbDialerPickQueue('${qid}')">${mbDialerAdminEsc(q.name || qid)}</button>`;
+  }).join('');
+  const opsTitle = first
+    ? `${mbCampSay('camp.ops.title', 'İşlemler')} — ${mbDialerAdminEsc(first.name || '')}`
+    : mbCampSay('dial.admin_q_empty', 'Kuyruk yok');
+  const table = first ? `
+<div class="aca-ops-title">${opsTitle}</div>
+<div class="qops-filters">
+<label class="form-label">${mbDialerAdminEsc(mbCampSay('camp.ops.from', 'Başlangıç'))}<input class="form-input" id="ops-from" type="date"></label>
+<label class="form-label">${mbDialerAdminEsc(mbCampSay('camp.ops.to', 'Bitiş'))}<input class="form-input" id="ops-to" type="date"></label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="event.stopPropagation();refreshQueueOps()">${mbDialerAdminEsc(mbCampSay('camp.ops.apply', 'Göster'))}</button>
+<button type="button" class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="event.stopPropagation();mbDialerOpsAll()"><i class="ph ph-download-simple"></i> ${mbDialerAdminEsc(mbCampSay('camp.ops.all', 'Toplu indirme'))}</button>
+</div>
+<table class="qops">
+<thead><tr>
+<th>${mbDialerAdminEsc(mbCampSay('camp.ops.name', 'Adı'))}</th>
+<th>${mbDialerAdminEsc(mbCampSay('camp.ops.count', 'Adet'))}</th>
+<th>${mbDialerAdminEsc(mbCampSay('camp.ops.share', 'Yüzde'))}</th>
+<th>${mbDialerAdminEsc(mbCampSay('camp.ops.slice', 'Pay'))}</th>
+<th>${mbDialerAdminEsc(mbCampSay('camp.ops.take', 'Alınacak'))}</th>
+<th></th>
+</tr></thead>
+<tbody id="qops-body"><tr><td colspan="6" style="color:var(--text-3);">…</td></tr></tbody>
+</table>` : `<div class="aca-empty">${mbDialerAdminEsc(mbCampSay('dial.admin_q_empty', 'Kuyruk yok'))}</div>`;
+  pop.innerHTML = `<div class="aca-top"><b class="aca-name" title="${mbDialerAdminEsc(camp.name || '')}">${mbDialerAdminEsc(camp.name || '')}</b></div>
+<label class="aca-speed">${mbDialerAdminEsc(mbCampSay('dial.admin_speed', 'Hız'))}
+<input type="range" min="1" max="10" step="1" value="${speed}" aria-label="${mbDialerAdminEsc(mbCampSay('dial.admin_speed', 'Hız'))}" oninput="mbDialerSpeedLabel(this)" onchange="mbDialerAdminSpeed('${id}', this.value)">
+<b data-aca-speed-n>${speed}</b>
+</label>
+<div class="aca-qpicks">${pills}</div>
+${table}`;
+}
+
+function mbDialerSpeedLabel(input) {
+  const n = input?.parentElement?.querySelector('[data-aca-speed-n]');
+  if (n) n.textContent = String(input.value || '');
+}
+
+function mbDialerPickQueue(queueId) {
+  const pop = document.getElementById('agent-camp-admin-pop');
+  if (!pop || !/^[0-9a-f-]{36}$/i.test(String(queueId || ''))) return;
+  pop.dataset.queueId = String(queueId);
+  pop.querySelectorAll('.aca-qpick').forEach((el) => el.classList.toggle('is-on', el.getAttribute('data-aca-q') === String(queueId)));
+  const camp = (window._dialerAdminCamps || []).find((row) => String(row?.id) === String(pop.dataset.campId));
+  const queue = (camp?.queues || []).find((q) => String(q?.id) === String(queueId));
+  const title = pop.querySelector('.aca-ops-title');
+  if (title) title.textContent = `${mbCampSay('camp.ops.title', 'İşlemler')} — ${queue?.name || ''}`;
+  if (typeof refreshQueueOps === 'function') void refreshQueueOps();
+}
+
+function mbDialerOpsAll() {
+  const id = document.getElementById('agent-camp-admin-pop')?.dataset.queueId || '';
+  if (id && typeof downloadOpsContacts === 'function') void downloadOpsContacts(id, 'all');
+}
+
+function mbPlaceCampAdmin(pop, anchor) {
+  if (!anchor || !pop) return;
+  const rect = anchor.getBoundingClientRect();
+  const width = Math.min(680, window.innerWidth - 16);
   pop.style.width = `${Math.round(width)}px`;
-  let left = rect.right - width;
-  if (left < 8) left = 8;
+  let left = rect.left - width - 8;
+  if (left < 8) left = Math.min(rect.right + 8, window.innerWidth - width - 8);
   if (left + width > window.innerWidth - 8) left = Math.max(8, window.innerWidth - width - 8);
-  let top = Math.round(rect.bottom + 6);
+  let top = Math.round(rect.top);
   const h = pop.offsetHeight || 0;
-  if (h && top + h > window.innerHeight - 8) top = Math.max(8, Math.round(rect.top - h - 6));
+  if (h && top + h > window.innerHeight - 8) top = Math.max(8, window.innerHeight - h - 8);
   pop.style.top = `${top}px`;
   pop.style.left = `${Math.round(left)}px`;
 }
 
-function mbToggleCampAdmin(ev) {
+function mbToggleCampAdmin(ev, campId) {
   if (ev && ev.stopPropagation) ev.stopPropagation();
   const pop = document.getElementById('agent-camp-admin-pop');
-  const btn = document.getElementById('agent-camp-admin');
-  if (!pop || !btn || btn.hidden) return;
+  const btn = ev?.currentTarget || null;
+  if (!pop || !/^[0-9a-f-]{36}$/i.test(String(campId || ''))) return;
   if (typeof mbIsFirmAdmin === 'function' && !mbIsFirmAdmin()) return;
-  if (!pop.hidden) {
+  if (!pop.hidden && pop.dataset.campId === String(campId)) {
     pop.hidden = true;
-    btn.setAttribute('aria-expanded', 'false');
+    pop.replaceChildren();
+    btn?.setAttribute('aria-expanded', 'false');
     return;
   }
-  mbRenderCampAdmin(pop);
+  document.querySelectorAll('button.agent-camp-admin').forEach((el) => el.setAttribute('aria-expanded', 'false'));
+  document.getElementById('m-queue-ops')?.remove();
+  if (pop.parentElement !== document.body) document.body.appendChild(pop);
+  mbRenderCampDesk(pop, campId);
   pop.hidden = false;
-  btn.setAttribute('aria-expanded', 'true');
-  mbPlaceCampAdmin(pop);
+  btn?.setAttribute('aria-expanded', 'true');
+  mbPlaceCampAdmin(pop, btn);
+  if (pop.dataset.queueId && typeof refreshQueueOps === 'function') {
+    void refreshQueueOps().then(() => {
+      const openBtn = document.querySelector('button.agent-camp-admin[aria-expanded="true"]');
+      if (openBtn && !pop.hidden) mbPlaceCampAdmin(pop, openBtn);
+    });
+  }
 }
 
 async function mbDialerAdminSpeed(id, value) {
@@ -387,15 +429,17 @@ async function mbDialerAdminQueue(queueId) {
 document.addEventListener('click', (ev) => {
   const pop = document.getElementById('agent-camp-admin-pop');
   if (!pop || pop.hidden) return;
-  if (ev.target.closest && ev.target.closest('#agent-camp-admin, #agent-camp-admin-pop')) return;
+  if (ev.target.closest && ev.target.closest('button.agent-camp-admin, #agent-camp-admin-pop')) return;
   pop.hidden = true;
-  document.getElementById('agent-camp-admin')?.setAttribute('aria-expanded', 'false');
+  pop.replaceChildren();
+  document.querySelectorAll('button.agent-camp-admin').forEach((el) => el.setAttribute('aria-expanded', 'false'));
 });
 
 document.addEventListener('scroll', () => {
   const pop = document.getElementById('agent-camp-admin-pop');
   if (!pop || pop.hidden) return;
-  mbPlaceCampAdmin(pop);
+  const btn = document.querySelector('button.agent-camp-admin[aria-expanded="true"]');
+  if (btn) mbPlaceCampAdmin(pop, btn);
 }, true);
 
 function selectCamp(id, name, opts = {}) {
