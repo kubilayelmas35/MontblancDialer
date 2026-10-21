@@ -859,6 +859,8 @@ i.ph {
   color: var(--text-2);
 }
 #page-callhistory .ch-cb { font-size: 10px; color: var(--yellow); margin-top: 2px; }
+#page-callhistory .tbl-wrap th,
+#page-callhistory .tbl-wrap td { white-space: nowrap; }
 #ops-notif-firm {
   display: flex;
   align-items: center;

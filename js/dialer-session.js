@@ -932,7 +932,7 @@ async function mbPlacePoolCall(contact) {
     if (typeof mbSimOutbound === 'function') mbSimOutbound(contact, 900);
     return;
   }
-  sendToRTC('MB_CALL', { destination: contact.phone, callerNumber: caller, contact });
+  sendToRTC('MB_CALL', { destination: contact.phone, callerNumber: caller, contact, work: 'auto' });
 }
 
 function mbEnsurePoolTimer() {

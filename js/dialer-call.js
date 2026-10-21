@@ -1193,8 +1193,15 @@ async function submitOutcome(goBreak) {
       if (contactId) logData.contact_id = contactId;
       if (cbAt) logData.callback_at = cbAt;
       if (activeCallId) { try { logData.telnyx_call_id = activeCallId; } catch(e) {} }
+      const callExtra = typeof mbCallLogExtras === 'function' ? mbCallLogExtras() : {};
       if (!skipAutoLog) {
-      await sb('call_logs',{method:'POST',prefer:'return=minimal',body:JSON.stringify(logData)});
+      try {
+        await sb('call_logs',{method:'POST',prefer:'return=minimal',body:JSON.stringify({ ...logData, ...callExtra })});
+      } catch (logErr) {
+        if (!Object.keys(callExtra).length) throw logErr;
+        await sb('call_logs',{method:'POST',prefer:'return=minimal',body:JSON.stringify(logData)});
+      }
+      if (typeof mbResetCallMeta === 'function') mbResetCallMeta();
       }
       if (contactId && currentContact.queue_id) {
         // dialed_count'u contacts tablosundan dinamik hesapla

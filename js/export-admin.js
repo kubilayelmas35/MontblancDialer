@@ -105,7 +105,7 @@ function _buildCallHistoryQueryForExport() {
   const dateTo = document.getElementById('ch-date-to')?.value || chToday;
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
-  let query = `call_logs?select=*,users(id,name),campaigns(name),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=8000`;
+  let query = `call_logs?select=*,users(id,name),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=8000`;
   query += `&started_at=gte.${gte}`;
   query += `&started_at=lte.${lte}`;
   const camp = document.getElementById('ch-camp-f')?.value || '';
@@ -155,7 +155,13 @@ function _logToExportRow(l) {
   const notes = (l.notes || '').replace(/__test_sim__/g, ' ').replace(/\s+/g, ' ').trim();
   const cb = _chWall(l.callback_at);
   const rec = l.recording_url || '';
-  return [dt, name, phone, agent, camp, durStr, durSec, oc, notes, cb, rec];
+  const answer = _chWall(l.answered_at || (Number(l.duration_sec) > 0 ? l.started_at : ''));
+  const end = _chWall(l.ended_at);
+  const caller = l.caller_number || l.campaigns?.telnyx_did || '';
+  const work = typeof chWorkText === 'function' ? chWorkText(l.work_type) : (l.work_type || '');
+  const who = typeof chWhoText === 'function' ? chWhoText(l.hangup_by) : (l.hangup_by || '');
+  const cost = l.cost_usd != null && Number(l.cost_usd) > 0 ? l.cost_usd : '';
+  return [dt, answer, end, name, phone, caller, agent, camp, work, durStr, durSec, cost, oc, who, notes, cb, rec];
 }
 
 async function exportCallHistoryCsv() {
@@ -167,15 +173,21 @@ async function exportCallHistoryCsv() {
       return;
     }
     const head = [
-      'Tarih/Saat',
+      'Arama',
+      'Cevaplama',
+      'Kapatma',
       'Müşteri',
       'Telefon',
-      'Agent',
-      'Kampanya',
+      'Arayan',
+      'Operatör',
+      'Kuyruk',
+      'Çalışma tipi',
       'Süre',
       'Süre_sn',
+      'Ücret',
       'Sonuç',
-      'Not',
+      'Sonlandıran',
+      'Açıklama',
       'Geri arama',
       'Kayıt URL',
     ];
@@ -205,15 +217,21 @@ async function exportCallHistoryXlsx() {
       return;
     }
     const head = [
-      'Tarih/Saat',
+      'Arama',
+      'Cevaplama',
+      'Kapatma',
       'Müşteri',
       'Telefon',
-      'Agent',
-      'Kampanya',
+      'Arayan',
+      'Operatör',
+      'Kuyruk',
+      'Çalışma tipi',
       'Süre',
       'Süre_sn',
+      'Ücret',
       'Sonuç',
-      'Not',
+      'Sonlandıran',
+      'Açıklama',
       'Geri arama',
       'Kayıt URL',
     ];

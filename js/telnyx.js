@@ -2,12 +2,50 @@
 // TELNYX WEBRTC ENTEGRASYONu
 // ─────────────────────────────────────────────
 
+function mbResetCallMeta() {
+  window._mbCallMeta = null;
+}
+
+function mbNoteCallStart(caller, work) {
+  window._mbCallMeta = {
+    dialAt: new Date().toISOString(),
+    caller: String(caller || '').trim(),
+    work: work || 'manual',
+    answeredAt: '',
+    hangupBy: '',
+  };
+}
+
+function mbNoteCallAnswered() {
+  const meta = window._mbCallMeta || {};
+  if (!meta.answeredAt) meta.answeredAt = new Date().toISOString();
+  window._mbCallMeta = meta;
+}
+
+function mbNoteCallHangup(who) {
+  const meta = window._mbCallMeta || {};
+  if (!meta.hangupBy && who) meta.hangupBy = who;
+  window._mbCallMeta = meta;
+}
+
+function mbCallLogExtras() {
+  const meta = window._mbCallMeta || {};
+  const extra = {};
+  if (meta.dialAt) extra.dial_at = meta.dialAt;
+  if (meta.answeredAt) extra.answered_at = meta.answeredAt;
+  if (meta.caller) extra.caller_number = meta.caller;
+  if (meta.work) extra.work_type = meta.work;
+  if (meta.hangupBy) extra.hangup_by = meta.hangupBy;
+  return extra;
+}
+
 function sendToRTC(type, data={}) {
 switch(type) {
 case 'MB_CONNECT':
 _connectTelnyx(data.sipUser, data.sipPass);
 break;
 case 'MB_CALL':
+mbNoteCallStart(data.callerNumber, data.work || 'manual');
 _makeCall(data.destination, data.callerNumber, data.contact);
 break;
 case 'MB_HANGUP':
@@ -230,6 +268,7 @@ function mbCancelHopper() {
 }
 
 function mbHangupLiveOrWave() {
+  mbNoteCallHangup('agent');
   if (_liveCallId) {
     const row = _hopper.find((r) => r.id === _liveCallId);
     try { (row?.call || _telnyxCall)?.hangup(); } catch (e) {}
@@ -460,6 +499,7 @@ active:  { tr:'Aramada', de:'Im Gespräch' },
 };
 if (state === 'active') {
 _outboundAnswered = true;
+mbNoteCallAnswered();
 if (currentContact && typeof showCustomerCard === 'function') showCustomerCard(currentContact);
 if (dialerStatus !== 'on_call') {
 setDialerStatus('on_call');
@@ -480,6 +520,7 @@ function handleAMD(result) {
 amdResult = result;
 if (result === 'machine' && !_outboundAnswered) {
 toast('🤖 ' + t('telnyx.amd_voicemail'), 'ok');
+mbNoteCallHangup('system');
 sendToRTC('MB_HANGUP');
 autoSaveVoicemail();
 }
@@ -510,6 +551,7 @@ updateSessionInDB('wrapping');
 }
 
 function handleCallEnd(duration) {
+mbNoteCallHangup('customer');
 if (typeof mbMarkLiveHold === 'function') mbMarkLiveHold(false);
 _outboundWaitGen++;
 _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');

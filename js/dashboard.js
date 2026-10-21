@@ -1425,16 +1425,76 @@ function chColumns() {
   const de = typeof currentLang !== 'undefined' && currentLang === 'de';
   const pair = (key, tr, deLabel, type) => ({ key, tr, de: deLabel, label: de ? deLabel : tr, type });
   return [
-    pair('when', 'Tarih/Saat', 'Datum/Zeit', 'time'),
-    pair('name', 'Müşteri', 'Kunde', 'text'),
-    pair('phone', 'Numara', 'Nummer', 'text'),
-    pair('agent', 'Agent', 'Agent', 'text'),
-    pair('camp', 'Kampanya', 'Kampagne', 'text'),
+    pair('id', 'ID', 'ID', 'text'),
     pair('dur', 'Süre', 'Dauer', 'num'),
-    pair('rec', 'Kayıt', 'Aufnahme', 'text'),
+    pair('rec', 'Ses kaydı', 'Aufnahme', 'text'),
+    pair('when', 'Arama zamanı', 'Anrufzeit', 'time'),
+    pair('answer', 'Cevaplama', 'Annahme', 'time'),
+    pair('end', 'Kapatma', 'Auflegen', 'time'),
+    pair('agent', 'Operatör', 'Operator', 'text'),
+    pair('name', 'Adı', 'Name', 'text'),
+    pair('phone', 'Numara', 'Nummer', 'text'),
+    pair('work', 'Çalışma tipi', 'Arbeitsart', 'text'),
+    pair('caller', 'Arayan numara', 'Anrufernummer', 'text'),
+    pair('camp', 'Kuyruk', 'Warteschlange', 'text'),
+    pair('cost', 'Ücret', 'Kosten', 'num'),
+    pair('rate', 'Tarife', 'Tarif', 'text'),
     pair('outcome', 'Sonuç', 'Ergebnis', 'text'),
-    pair('note', 'Not', 'Notiz', 'text'),
+    pair('who', 'Sonlandıran', 'Aufgelegt von', 'text'),
+    pair('note', 'Açıklama', 'Beschreibung', 'text'),
+    pair('callid', 'Çağrı no', 'Anruf-Nr.', 'text'),
   ];
+}
+
+function chEuro(n) {
+  const num = Number(n);
+  if (!Number.isFinite(num)) return '—';
+  return `${num.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} €`;
+}
+
+function chWorkText(value) {
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const map = {
+    auto: de ? 'Automatischer Anruf' : 'Otomatik arama',
+    manual: de ? 'Manueller Anruf' : 'Manuel arama',
+    inbound: de ? 'Eingehender Anruf' : 'Gelen arama',
+  };
+  return map[String(value || '')] || '—';
+}
+
+function chWhoText(value) {
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const map = {
+    agent: de ? 'Operator' : 'Operatör',
+    customer: de ? 'Kunde' : 'Müşteri',
+    system: de ? 'System' : 'Sistem',
+  };
+  return map[String(value || '')] || '—';
+}
+
+function chAnswerIso(l) {
+  if (l?.answered_at) return l.answered_at;
+  if (chDurSec(l) > 0 && l?.started_at) return l.started_at;
+  return '';
+}
+
+function chEndIso(l) {
+  if (l?.ended_at) return l.ended_at;
+  const start = l?.started_at ? new Date(l.started_at).getTime() : 0;
+  const sec = chDurSec(l);
+  if (start && sec) return new Date(start + sec * 1000).toISOString();
+  return '';
+}
+
+function chMoney(l, ratesByFirm) {
+  const stored = Number(l?.cost_usd);
+  const sec = chDurSec(l);
+  const rate = typeof statsMatchRate === 'function' ? statsMatchRate(l?.phone, ratesByFirm?.[l?.firm_id] || []) : null;
+  const unit = rate ? `${chEuro(rate.price)}/dk` : '—';
+  if (stored > 0) return { n: stored, text: chEuro(stored), unit };
+  if (!rate) return { n: 0, text: '—', unit };
+  const eur = (sec / 60) * (Number(rate.price) || 0);
+  return { n: eur, text: chEuro(eur), unit };
 }
 
 async function chFillFilters(fid) {
@@ -1496,20 +1556,24 @@ async function chPullLogs(ff, gte, lte, camp, agent, outcome) {
     : outcome === 'appointment' ? '&outcome=in.(appointment,appointment_done)'
     : `&outcome=eq.${encodeURIComponent(outcome)}`;
   const tail = `${ff}&started_at=gte.${gte}&started_at=lte.${lte}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}${outcomeQ}&order=started_at.desc`;
-  const fields = 'id,started_at,outcome,agent_id,campaign_id,firm_id,phone,duration_sec,contact_id,recording_url,notes,callback_at,telnyx_call_id';
-  const rich = `call_logs?select=${fields},users(id,name),campaigns(name),contacts(first_name,last_name,phone)${tail}`;
-  const plain = `call_logs?select=${fields}${tail}`;
-  let usePlain = false;
+  const fields = 'id,started_at,ended_at,dial_at,answered_at,outcome,agent_id,campaign_id,firm_id,phone,caller_number,work_type,hangup_by,duration_sec,cost_usd,contact_id,recording_url,notes,callback_at,telnyx_call_id';
+  const legacy = 'id,started_at,ended_at,outcome,agent_id,campaign_id,firm_id,phone,duration_sec,cost_usd,contact_id,recording_url,notes,callback_at,telnyx_call_id';
+  const rich = `call_logs?select=${fields},users(id,name),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${tail}`;
+  const mid = `call_logs?select=${legacy},users(id,name),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${tail}`;
+  const plain = `call_logs?select=${legacy}${tail}`;
+  let mode = 'rich';
   const all = [];
   let off = 0;
   while (off < CH_CAP) {
     const size = Math.min(1000, CH_CAP - off);
-    const q = `${usePlain ? plain : rich}&limit=${size}&offset=${off}`;
+    const base = mode === 'rich' ? rich : mode === 'mid' ? mid : plain;
+    const q = `${base}&limit=${size}&offset=${off}`;
     let rows;
     try {
       rows = (await sb(q)) || [];
     } catch (e) {
-      if (!usePlain && off === 0) { usePlain = true; continue; }
+      if (mode === 'rich' && off === 0) { mode = 'mid'; continue; }
+      if (mode === 'mid' && off === 0) { mode = 'plain'; continue; }
       throw e;
     }
     all.push(...rows);
@@ -1557,52 +1621,70 @@ function chPaint() {
   const search = String(document.getElementById('ch-search')?.value || '').trim().toLocaleLowerCase('tr');
   const filtered = _chRows.filter((row) => {
     if (search) {
-      const blob = [row.name, row.phone, row.agent, row.camp, row.outcomeText, row.note].join(' ').toLocaleLowerCase('tr');
+      const blob = [row.idText, row.name, row.phone, row.caller, row.agent, row.camp, row.outcomeText, row.note, row.callid, row.work].join(' ').toLocaleLowerCase('tr');
       if (!blob.includes(search)) return false;
     }
     return cols.every((col) => {
       const q = String(_chFilters[col.key] || '').trim().toLocaleLowerCase('tr');
       if (!q) return true;
-      const text = col.key === 'dur' ? row.durText : col.key === 'when' ? row.whenText : col.key === 'rec' ? row.recText : col.key === 'outcome' ? row.outcomeText : String(row[col.key] || '');
-      return String(text).toLocaleLowerCase('tr').includes(q);
+      return chCellText(row, col.key).toLocaleLowerCase('tr').includes(q);
     });
   });
   const dir = _chSort.dir === 'asc' ? 1 : -1;
   const key = _chSort.key;
   filtered.sort((a, b) => {
-    if (key === 'when' || key === 'dur') return ((a[key] || 0) - (b[key] || 0)) * dir;
-    const av = key === 'outcome' ? a.outcomeText : key === 'rec' ? a.recText : String(a[key] || '');
-    const bv = key === 'outcome' ? b.outcomeText : key === 'rec' ? b.recText : String(b[key] || '');
-    return av.localeCompare(bv, 'tr', { numeric: true, sensitivity: 'base' }) * dir;
+    if (key === 'when' || key === 'answer' || key === 'end' || key === 'dur' || key === 'cost') return ((a[key] || 0) - (b[key] || 0)) * dir;
+    return chCellText(a, key).localeCompare(chCellText(b, key), 'tr', { numeric: true, sensitivity: 'base' }) * dir;
   });
+  const span = cols.length + 1;
   if (!filtered.length) {
-    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(10, 'ui.no_records') : `<tr><td colspan="10" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(span, 'ui.no_records') : `<tr><td colspan="${span}" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
     return;
   }
   tbody.innerHTML = filtered.map((row) => {
     const l = row.raw;
-    const cb = l.callback_at ? `<div class="ch-cb"><i class="ph ph-calendar"></i> ${statsEsc(chWhen(l.callback_at))}</div>` : '';
     const detail = l.contact_id ? `<button type="button" class="icon-btn" onclick="openContactDrawer('${statsEsc(l.contact_id)}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button>` : '';
-    const note = row.note ? `<div class="ch-note" title="${statsEsc(row.note)}">${statsEsc(row.note)}</div>` : '<span style="color:var(--text-3);">—</span>';
-    return `<tr>
-<td class="td-mono" style="font-size:11px;">${statsEsc(row.whenText)}</td>
-<td style="font-weight:600;">${statsEsc(row.name)}</td>
-<td class="td-mono" style="font-size:11px;cursor:pointer;" data-phone="${statsEsc(row.phone)}" onclick="chCopyPhone(this)" title="Kopyala">${statsEsc(row.phone)}</td>
-<td style="font-size:12px;">${statsEsc(row.agent)}</td>
-<td style="font-size:11px;">${statsEsc(row.camp)}</td>
-<td class="td-mono" style="font-size:11px;">${statsEsc(row.durText)}</td>
-<td>${chRecHtml(l)}</td>
-<td>${chBadge(l.outcome)}${cb}</td>
-<td>${note}</td>
-<td>${detail}</td>
-</tr>`;
+    return `<tr>${cols.map((col) => chCellHtml(row, col.key)).join('')}<td>${detail}</td></tr>`;
   }).join('');
+}
+
+function chCellText(row, key) {
+  if (key === 'dur') return row.durText || '';
+  if (key === 'when') return row.whenText || '';
+  if (key === 'answer') return row.answerText || '';
+  if (key === 'end') return row.endText || '';
+  if (key === 'rec') return row.recText || '';
+  if (key === 'outcome') return row.outcomeText || '';
+  if (key === 'cost') return row.costText || '';
+  if (key === 'id') return row.idText || '';
+  return String(row[key] || '');
+}
+
+function chCellHtml(row, key) {
+  const l = row.raw;
+  if (key === 'rec') return `<td>${chRecHtml(l)}</td>`;
+  if (key === 'outcome') {
+    const cb = l.callback_at ? `<div class="ch-cb"><i class="ph ph-calendar"></i> ${statsEsc(chWhen(l.callback_at))}</div>` : '';
+    return `<td>${chBadge(l.outcome)}${cb}</td>`;
+  }
+  if (key === 'phone' || key === 'caller') {
+    const value = key === 'caller' ? row.caller : row.phone;
+    return `<td class="td-mono" style="font-size:11px;cursor:pointer;" data-phone="${statsEsc(value)}" onclick="chCopyPhone(this)" title="Kopyala">${statsEsc(value || '—')}</td>`;
+  }
+  if (key === 'note') {
+    const note = row.note ? `<div class="ch-note" title="${statsEsc(row.note)}">${statsEsc(row.note)}</div>` : '<span style="color:var(--text-3);">—</span>';
+    return `<td>${note}</td>`;
+  }
+  if (key === 'name') return `<td style="font-weight:600;">${statsEsc(row.name || '—')}</td>`;
+  if (key === 'id' || key === 'callid') return `<td class="td-mono" style="font-size:11px;" title="${statsEsc(key === 'id' ? l.id : (l.telnyx_call_id || ''))}">${statsEsc(chCellText(row, key) || '—')}</td>`;
+  return `<td class="td-mono" style="font-size:11px;">${statsEsc(chCellText(row, key) || '—')}</td>`;
 }
 
 async function loadCallHistory() {
   const gen = ++_chLoadGen;
   const tbody = document.getElementById('ch-tbody');
-  if (tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(10) : `<tr><td colspan="10" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
+  const colSpan = chColumns().length + 1;
+  if (tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(colSpan) : `<tr><td colspan="${colSpan}" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
   try {
     if (typeof renderFirmSelector === 'function') renderFirmSelector('ch-firm-selector', loadCallHistory);
     const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : null;
@@ -1628,6 +1710,11 @@ async function loadCallHistory() {
         : '';
     }
     _chLabelMap = await statsOutcomeLabels(campFilter ? [campFilter] : logs.map((l) => l.campaign_id));
+    const rateFirms = fid
+      ? ((await sb(`firms?id=eq.${fid}&select=id,settings`).catch(() => [])) || [])
+      : ((await sb('firms?select=id,settings&limit=200').catch(() => [])) || []);
+    const ratesByFirm = {};
+    rateFirms.forEach((firm) => { ratesByFirm[firm.id] = firm?.settings?.billing?.rates || []; });
     if (gen !== _chLoadGen) return;
     chFillOutcomeSelect(_chLabelMap, logs, campFilter);
     const contactNameById = {};
@@ -1650,19 +1737,36 @@ async function loadCallHistory() {
       const sec = chDurSec(l);
       const phone = l.phone || l.contacts?.phone || '—';
       const name = `${l.contacts?.first_name || ''} ${l.contacts?.last_name || ''}`.trim() || contactNameById[l.contact_id] || phone;
+      const answerIso = chAnswerIso(l);
+      const endIso = chEndIso(l);
+      const dialIso = l.dial_at || l.started_at;
+      const money = chMoney(l, ratesByFirm);
+      const callNo = String(l.telnyx_call_id || '');
       return {
         raw: l,
-        when: new Date(l.started_at).getTime() || 0,
-        whenText: chWhen(l.started_at),
+        idText: String(l.id || '').replace(/-/g, '').slice(0, 8),
+        when: new Date(dialIso).getTime() || 0,
+        whenText: chWhen(dialIso),
+        answer: answerIso ? new Date(answerIso).getTime() : 0,
+        answerText: answerIso ? chWhen(answerIso) : '—',
+        end: endIso ? new Date(endIso).getTime() : 0,
+        endText: endIso ? chWhen(endIso) : '—',
         name,
         phone,
+        caller: l.caller_number || l.campaigns?.telnyx_did || '—',
         agent: `${l.users?.name || '—'}${statsFirmSuffix(l.firm_id)}`,
         camp: l.campaigns?.name || '—',
+        work: chWorkText(l.work_type),
+        who: chWhoText(l.hangup_by),
         dur: sec,
-        durText: sec ? statsClock(sec) : '—',
+        durText: sec ? statsClock(sec) : '00:00',
+        cost: money.n,
+        costText: money.text,
+        rate: money.unit,
         recText: l.recording_url ? 'Kayıt' : '—',
         outcomeText: chOutcomeText(l.outcome, _chLabelMap),
         note: chNoteText(l.notes),
+        callid: callNo ? callNo.slice(0, 10) : '—',
       };
     });
     chRenderHead();
@@ -1673,8 +1777,8 @@ async function loadCallHistory() {
     if (tbody) {
       const msg = t('ui.error_prefix') + (e?.message || t('ui.unknown_error'));
       tbody.innerHTML = typeof mbErrorRow === 'function'
-        ? mbErrorRow(10, msg)
-        : `<tr><td colspan="10" class="mb-empty-hint" style="color:var(--red);">${statsEsc(msg)}</td></tr>`;
+        ? mbErrorRow(colSpan, msg)
+        : `<tr><td colspan="${colSpan}" class="mb-empty-hint" style="color:var(--red);">${statsEsc(msg)}</td></tr>`;
     }
   }
 }
