@@ -215,6 +215,10 @@ async function loadStatsReport() {
     const sessById = {};
     sessions.forEach((s) => { sessById[s.agent_id] = s; });
     if (view === 'operator') await repLoadOperatorExtra(pack, fresh);
+    if (view === 'perf') {
+      const logQ = fresh.fid ? `&firm_id=eq.${fresh.fid}` : '';
+      pack.statusLogs = (await sb(`agent_status_log?select=agent_id,status,started_at,ended_at,duration_sec${logQ}&started_at=gte.${fresh.gte}&started_at=lte.${fresh.lte}&order=started_at.desc&limit=2000`).catch(() => [])) || [];
+    }
     host.innerHTML = repPaint(view, pack, fresh, userById, sessById);
     if (view === 'credit') host.innerHTML += await repCreditExtra(pack.logs, fresh);
     repMountHourCharts();
@@ -241,7 +245,8 @@ function repPaint(view, pack, range, userById, sessById) {
     repCard(t('rep.call'), repHours(logs.filter((l) => statsOutcomeKey(l.outcome) === 'appointment').map((l) => l.started_at), 'warm'), t('rep.call_hint')),
   ].join('')}</div>`;
   if (view === 'operator') return repOperator(logs, pack.allAppts || appts, userById, sessById, pack);
-  if (view === 'perf' || view === 'group' || view === 'rank') return repPeople(view, logs, appts, userById);
+  if (view === 'perf') return repPerf(logs, appts, userById, sessById, pack, range);
+  if (view === 'group' || view === 'rank') return repPeople(view, logs, appts, userById);
   return '';
 }
 
@@ -489,6 +494,149 @@ function repQueueTable(logs, campMap) {
     [t('rep.queue'), t('rep.answered'), t('rep.unreached'), t('rep.dropped')],
     list.map((row) => `<tr><td>${statsEsc(row.name)}</td><td>${row.ok}</td><td>${row.miss}</td><td>${row.drop}</td></tr>`)
   );
+}
+
+function repIsOnline(sess) {
+  if (!sess || !sess.status || sess.status === 'offline') return false;
+  const seen = sess.last_seen ? new Date(sess.last_seen).getTime() : 0;
+  return seen > 0 && (Date.now() - seen) < 90000;
+}
+
+function repLogSpan(row, sess) {
+  if (!row?.started_at) return 0;
+  if (row.ended_at) return Math.max(0, Number(row.duration_sec) || 0);
+  if (!sess || String(sess.status) !== String(row.status) || !repIsOnline(sess)) return Math.max(0, Number(row.duration_sec) || 0);
+  const sec = Math.max(0, Math.round((Date.now() - new Date(row.started_at).getTime()) / 1000));
+  return Math.min(sec, 8 * 3600);
+}
+
+function repPerf(logs, appts, userById, sessById, pack, range) {
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : '';
+  const liveNow = !range || (range.dateFrom <= today && range.dateTo >= today);
+  const bag = {};
+  const rowOf = (id) => {
+    const key = id || '—';
+    if (!bag[key]) {
+      const user = userById[key] || {};
+      bag[key] = { id: key, name: user.name || '—', role: user.role || '', calls: 0, sale: 0, ok: 0, talk: 0, wait: 0, brk: 0 };
+    }
+    return bag[key];
+  };
+  Object.values(userById).forEach((user) => {
+    if (['agent', 'qc', 'admin', 'firm_admin'].includes(user.role)) rowOf(user.id);
+  });
+  (logs || []).forEach((log) => {
+    const row = rowOf(log.agent_id);
+    if (!row.name || row.name === '—') row.name = log.users?.name || row.name;
+    if (!row.role) row.role = log.users?.role || '';
+    row.calls += 1;
+    row.talk += Number(log.duration_sec) || 0;
+  });
+  (appts || []).forEach((appt) => {
+    const row = rowOf(appt.agent_id);
+    row.sale += 1;
+    if (['basarili', 'onaylandi', 'onay'].includes(String(appt.durum || ''))) row.ok += 1;
+  });
+  (pack.statusLogs || []).forEach((row) => {
+    const person = rowOf(row.agent_id);
+    const sec = repLogSpan(row, sessById[row.agent_id]);
+    if (row.status === 'break') person.brk += sec;
+    else if (row.status === 'ready' || row.status === 'wrapping') person.wait += sec;
+  });
+  if (liveNow) {
+    Object.values(sessById || {}).forEach((sess) => {
+      if (sess.status !== 'break' || !sess.break_start || !repIsOnline(sess)) return;
+      const logged = (pack.statusLogs || []).some((row) => String(row.agent_id) === String(sess.agent_id) && row.status === 'break' && !row.ended_at);
+      if (logged) return;
+      const person = bag[sess.agent_id];
+      if (!person) return;
+      const sec = Math.max(0, Math.round((Date.now() - new Date(sess.break_start).getTime()) / 1000));
+      if (sec > 8 * 3600) return;
+      person.brk += sec;
+    });
+  }
+  const list = Object.values(bag).filter((row) => row.name && row.name !== '—').sort((a, b) => {
+    const ao = repIsOnline(sessById[a.id]) ? 1 : 0;
+    const bo = repIsOnline(sessById[b.id]) ? 1 : 0;
+    return (bo - ao) || (b.calls - a.calls) || a.name.localeCompare(b.name, 'tr');
+  });
+  const mode = window._perfPresence || 'all';
+  const rows = list.map((row) => {
+    const on = repIsOnline(sessById[row.id]);
+    const total = row.talk + row.wait + row.brk;
+    return `<tr class="${on ? 'rep-perf-on' : 'rep-perf-off'}" data-on="${on ? '1' : '0'}" data-calls="${row.calls}" data-sale="${row.sale}" data-ok="${row.ok}" data-talk="${row.talk}" data-wait="${row.wait}" data-brk="${row.brk}" ${mode === 'on' && !on ? 'hidden' : ''} ${mode === 'off' && on ? 'hidden' : ''}>
+<td><span class="rep-pill ${on ? 'on' : 'off'}">${statsEsc(on ? t('rep.perf_on') : t('rep.perf_off'))}</span> ${statsEsc(row.name)}</td>
+<td>${statsEsc(repRole(row.role))}</td>
+<td>${row.calls}</td>
+<td>${row.sale}</td>
+<td>${row.ok}</td>
+<td>${statsEsc(statsHms(row.talk))}</td>
+<td>${statsEsc(statsHms(row.wait))}</td>
+<td>${statsEsc(statsHms(row.brk))}</td>
+<td>${statsEsc(statsHms(total))}</td>
+</tr>`;
+  });
+  const addUp = (rows) => rows.reduce((acc, row) => {
+    acc.calls += row.calls; acc.sale += row.sale; acc.ok += row.ok; acc.talk += row.talk; acc.wait += row.wait; acc.brk += row.brk;
+    return acc;
+  }, { calls: 0, sale: 0, ok: 0, talk: 0, wait: 0, brk: 0 });
+  const shown = list.filter((row) => {
+    const on = repIsOnline(sessById[row.id]);
+    if (mode === 'on') return on;
+    if (mode === 'off') return !on;
+    return true;
+  });
+  const sum = addUp(shown);
+  const allSum = addUp(list);
+  rows.push(`<tr class="rep-credit-total" id="rep-perf-total"><td>${statsEsc(t('rep.total'))}</td><td></td><td>${sum.calls}</td><td>${sum.sale}</td><td>${sum.ok}</td><td>${statsEsc(statsHms(sum.talk))}</td><td>${statsEsc(statsHms(sum.wait))}</td><td>${statsEsc(statsHms(sum.brk))}</td><td>${statsEsc(statsHms(sum.talk + sum.wait + sum.brk))}</td></tr>`);
+  const online = list.filter((row) => repIsOnline(sessById[row.id])).length;
+  const kpis = `<div class="rep-credit-kpis">
+<div class="rep-kpi is-c"><span>${statsEsc(t('rep.perf_on'))}</span><b>${online}</b><small>${list.length}</small></div>
+<div class="rep-kpi is-b"><span>${statsEsc(t('rep.calls_n'))}</span><b>${allSum.calls}</b></div>
+<div class="rep-kpi is-a"><span>${statsEsc(t('rep.sale_n'))}</span><b>${allSum.sale}</b><small>${statsEsc(t('rep.sale_ok_n'))} ${allSum.ok}</small></div>
+<div class="rep-kpi is-d"><span>${statsEsc(t('rep.oncall'))}</span><b>${statsEsc(statsHms(allSum.talk))}</b></div>
+</div>`;
+  const switcher = `<div class="rep-perf-switch">
+<button type="button" class="${mode === 'all' ? 'is-on' : ''}" data-perf="all" onclick="repPerfFilter('all')">${statsEsc(t('rep.perf_all'))}</button>
+<button type="button" class="${mode === 'on' ? 'is-on' : ''}" data-perf="on" onclick="repPerfFilter('on')">${statsEsc(t('rep.perf_on'))}</button>
+<button type="button" class="${mode === 'off' ? 'is-on' : ''}" data-perf="off" onclick="repPerfFilter('off')">${statsEsc(t('rep.perf_off'))}</button>
+</div>`;
+  const table = repTable(
+    [t('rep.person'), t('stats.col.role'), t('rep.calls_n'), t('rep.sale_n'), t('rep.sale_ok_n'), t('rep.oncall'), t('rep.wait'), t('rep.break_col'), t('rep.total_time')],
+    rows
+  );
+  return `${kpis}${repCard(t('rep.talk'), `${switcher}${table}`, t('rep.perf_hint'))}`;
+}
+
+function repPerfFilter(mode) {
+  window._perfPresence = mode === 'on' || mode === 'off' ? mode : 'all';
+  document.querySelectorAll('#stats-extra .rep-perf-switch button').forEach((btn) => {
+    btn.classList.toggle('is-on', btn.dataset.perf === window._perfPresence);
+  });
+  const sum = { calls: 0, sale: 0, ok: 0, talk: 0, wait: 0, brk: 0 };
+  document.querySelectorAll('#stats-extra tr[data-on]').forEach((tr) => {
+    const on = tr.dataset.on === '1';
+    const hide = window._perfPresence === 'on' ? !on : window._perfPresence === 'off' ? on : false;
+    tr.hidden = hide;
+    if (hide) return;
+    sum.calls += Number(tr.dataset.calls) || 0;
+    sum.sale += Number(tr.dataset.sale) || 0;
+    sum.ok += Number(tr.dataset.ok) || 0;
+    sum.talk += Number(tr.dataset.talk) || 0;
+    sum.wait += Number(tr.dataset.wait) || 0;
+    sum.brk += Number(tr.dataset.brk) || 0;
+  });
+  const total = document.getElementById('rep-perf-total');
+  if (!total) return;
+  const cells = total.cells;
+  if (!cells || cells.length < 9) return;
+  cells[2].textContent = String(sum.calls);
+  cells[3].textContent = String(sum.sale);
+  cells[4].textContent = String(sum.ok);
+  cells[5].textContent = statsHms(sum.talk);
+  cells[6].textContent = statsHms(sum.wait);
+  cells[7].textContent = statsHms(sum.brk);
+  cells[8].textContent = statsHms(sum.talk + sum.wait + sum.brk);
 }
 
 function repPeople(view, logs, appts, userById) {
