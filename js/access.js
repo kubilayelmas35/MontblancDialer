@@ -38,6 +38,7 @@ const MB_PAGES = [
 
 const MB_CHROME = [
   { id: 'tb-pills', roles: ['admin', 'super_admin', 'firm_admin'] },
+  { id: 'tb-live-btn', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'sb-settings', roles: ['super_admin'] },
   { id: 'telnyx-settings', roles: ['super_admin'] },
   { id: 'mesai-settings-card', roles: ['admin', 'super_admin', 'firm_admin'] },

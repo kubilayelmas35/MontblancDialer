@@ -176,32 +176,14 @@ max-width: 100%;
   height: 0;
 }
 .tb-pills-wrap {
-  flex: 0 0 var(--tb-peek, 168px);
-  width: var(--tb-peek, 168px);
-  max-width: var(--tb-peek, 168px);
-  margin-left: auto;
+  flex: 1 1 auto;
   min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  margin-left: auto;
+  overflow: visible;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  scrollbar-width: thin;
-  container-type: inline-size;
-  container-name: tbpills;
-}
-.tb-pills-wrap:hover,
-.tb-pills-wrap:focus-within {
-  flex: 1 1 auto;
-  width: auto;
-  max-width: none;
-}
-@container tbpills (max-width: 920px) {
-  .tb-pill-lbl { display: none; }
-  .tb-pill { padding: 0 8px; max-width: none; }
-}
-.tb-pills-wrap::-webkit-scrollbar {
-  height: 4px;
+  justify-content: flex-end;
+  gap: 8px;
 }
 #topbar > * {
 position: relative;
@@ -307,38 +289,14 @@ background: rgba(255, 255, 255, 0.06);
   border-color: transparent;
   color: #0f172a;
 }
-/* Topbar pills (wrapper .tb-pills-wrap kaydırır) */
-.tb-pill-cluster {
-display: flex;
-align-items: center;
-gap: 8px;
-flex: none;
-margin-left: auto;
-min-width: max-content;
-}
 #tb-pills { display: contents; }
-.tb-live { order: 1; }
-#tb-results { order: 2; }
-.tb-mesai { order: 3; }
-.pill-bal { order: 4; }
-.pill-ping { order: 5; }
-.pill-camp { order: 6; }
-.tb-takvim { order: 7; }
-.tb-theme { order: 8; }
-.tb-pills-wrap:not(:hover):not(.is-open):not(:focus-within) .tb-live-n,
-.tb-pills-wrap:not(:hover):not(.is-open):not(:focus-within) #tb-results .tb-res:not(.tb-res-sum) {
+.tb-live:not(:hover):not(.is-open) .tb-live-n,
+#tb-results:not(:hover) .tb-res:not(.tb-res-sum) {
   width: 0; min-width: 0; padding: 0; margin: 0; opacity: 0; overflow: hidden; pointer-events: none;
 }
-.tb-pills-wrap:not(:hover):not(.is-open):not(:focus-within) .tb-mesai {
-  width: 32px; min-width: 32px; padding: 0; justify-content: center;
-}
-.tb-pills-wrap:not(:hover):not(.is-open):not(:focus-within) #tb-mesai-label { display: none; }
-.tb-pills-wrap:hover .tb-live-cycle,
-.tb-pills-wrap.is-open .tb-live-cycle,
-.tb-pills-wrap:focus-within .tb-live-cycle,
-.tb-pills-wrap:hover .tb-today-cycle,
-.tb-pills-wrap.is-open .tb-today-cycle,
-.tb-pills-wrap:focus-within .tb-today-cycle { display: none; }
+.tb-live:hover .tb-live-cycle,
+.tb-live.is-open .tb-live-cycle,
+#tb-results:hover .tb-today-cycle { display: none; }
 button.tb-pill { color: inherit; font-size: 12px; }
 button.tb-pill.is-open { box-shadow: inset 0 0 0 2px var(--accent); }
 .tb-pill {
@@ -682,7 +640,7 @@ button.tb-pill.pill-bal.is-neg {
 .tb-right {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
   margin-left: 6px;
   flex: 0 0 auto;
   flex-wrap: nowrap;
@@ -703,6 +661,13 @@ button.tb-pill.pill-bal.is-neg {
   font-variant-numeric: tabular-nums;
   border-radius: 999px;
 }
+.tb-icon-btn.tb-mesai:not(:hover) {
+  width: 32px;
+  min-width: 32px;
+  padding: 0;
+  justify-content: center;
+}
+.tb-icon-btn.tb-mesai:not(:hover) #tb-mesai-label { display: none; }
 .tb-mesai-fill {
   position: absolute;
   left: 0;

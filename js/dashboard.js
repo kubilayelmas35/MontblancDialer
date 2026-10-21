@@ -409,9 +409,8 @@ function mbScheduleHideResPanel() {
 
 function mbShowLiveBoard() {
   clearTimeout(window._tbLiveHide);
-  const pills = document.getElementById('tb-pills');
   const btn = document.getElementById('tb-live-btn');
-  if (!btn || !pills || getComputedStyle(pills).display === 'none') return;
+  if (!btn || getComputedStyle(btn).display === 'none') return;
   const pop = document.getElementById('tb-chip-pop');
   if (pop && !pop.hidden && window._tbChip?.kind === 'live') return;
   mbOpenChip({ stopPropagation() {}, currentTarget: btn }, { kind: 'live', key: 'all', anchor: btn });
@@ -442,20 +441,6 @@ function mbSpinCounts() {
     today.style.setProperty('--c', bit.style.getPropertyValue('--c') || '#64748b');
     today.style.setProperty('--ink', bit.style.getPropertyValue('--ink') || '#334155');
   }
-  mbFitPillPeek();
-}
-
-function mbFitPillPeek() {
-  const wrap = document.getElementById('tb-pills-wrap');
-  if (!wrap || wrap.matches(':hover') || wrap.classList.contains('is-open') || wrap.matches(':focus-within')) return;
-  const live = document.getElementById('tb-live-btn');
-  const today = document.getElementById('tb-results');
-  const cluster = wrap.querySelector('.tb-pill-cluster');
-  const gap = parseFloat(getComputedStyle(cluster || wrap).columnGap) || 8;
-  let w = 0;
-  if (live && getComputedStyle(live).display !== 'none' && live.offsetWidth) w += live.offsetWidth;
-  if (today && !today.hidden && today.offsetWidth) w += (w ? gap : 0) + today.offsetWidth;
-  if (w) wrap.style.setProperty('--tb-peek', (w + 2) + 'px');
 }
 
 function mbScheduleHideLive() {
@@ -649,17 +634,7 @@ document.addEventListener('mouseover', (ev) => {
   else mbScheduleHideLive();
 });
 
-document.getElementById('tb-pills-wrap')?.addEventListener('scroll', () => {
-  const wrap = document.getElementById('tb-pills-wrap');
-  if (!wrap) return;
-  wrap.classList.toggle('is-open', wrap.scrollLeft > 4);
-  if (wrap.scrollLeft <= 4) requestAnimationFrame(mbFitPillPeek);
-});
-document.getElementById('tb-pills-wrap')?.addEventListener('mouseleave', () => {
-  requestAnimationFrame(() => requestAnimationFrame(mbFitPillPeek));
-});
 setInterval(mbSpinCounts, 1400);
-mbFitPillPeek();
 
 function _dashCanUseAgentFilter() {
   return mbIsFirmAdmin();
