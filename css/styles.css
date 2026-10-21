@@ -1285,7 +1285,33 @@ box-shadow: var(--shadow);
 #page-dashboard[data-dash-role="qc"] .dash-row[data-dash-row="live"],
 #page-dashboard[data-dash-role="qc"] #dash-stat-cost { display:none !important; }
 .dash-brief { display:flex; flex-direction:column; gap:12px; min-width:0; }
-.dash-brief-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
+.dash-brief-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.dash-brief-card { min-width:0; padding:14px 16px; margin:0; }
+.dash-brief-card .card-title { margin-bottom:12px; }
+.dash-span { grid-column:1 / -1; }
+.dash-rings { display:flex; justify-content:space-around; gap:8px; }
+.dash-ring { flex:1; min-width:0; text-align:center; }
+.dash-ring em { display:block; font-style:normal; font-size:12px; font-weight:700; color:var(--text-2); }
+.dash-ring-face { width:92px; height:92px; margin:0 auto 6px; border-radius:50%; background:conic-gradient(var(--c) calc(var(--p) * 1%), color-mix(in srgb, var(--c) 16%, var(--bg-3)) 0); display:grid; place-items:center; }
+.dash-ring-face > span { width:66px; height:66px; border-radius:50%; background:var(--bg-2); display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.dash-ring-face b { font-size:14px; line-height:1.1; }
+.dash-ring-face small { font-size:10px; color:var(--text-3); font-weight:700; }
+.dash-donut-wrap { display:flex; align-items:center; gap:16px; }
+.dash-donut { width:148px; height:148px; border-radius:50%; display:grid; place-items:center; flex-shrink:0; }
+.dash-donut > span { width:96px; height:96px; border-radius:50%; background:var(--bg-2); display:grid; place-items:center; font-size:26px; font-weight:800; }
+.dash-legend { list-style:none; margin:0; padding:0; flex:1; min-width:0; }
+.dash-legend li { display:flex; align-items:center; gap:8px; font-size:12px; padding:3px 0; }
+.dash-legend i { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.dash-legend span { flex:1; min-width:0; }
+.dash-legend b { font-variant-numeric:tabular-nums; }
+.dash-camps { display:flex; flex-direction:column; gap:10px; }
+.dash-camp { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 8px; width:100%; text-align:left; border:0; background:transparent; padding:0; cursor:pointer; color:inherit; font:inherit; }
+.dash-camp-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:700; }
+.dash-camp b { font-variant-numeric:tabular-nums; font-size:13px; }
+.dash-camp small { grid-column:1 / -1; color:var(--text-3); font-size:11px; }
+.dash-meter { grid-column:1 / -1; height:8px; border-radius:99px; background:var(--bg-3); overflow:hidden; }
+.dash-meter i { display:block; height:100%; border-radius:99px; }
+@media (max-width: 860px) { .dash-brief-grid { grid-template-columns:1fr; } .dash-donut-wrap { flex-direction:column; align-items:flex-start; } }
 .dash-brief-scope { font-size:12px; color:var(--text-3); margin:0 0 2px; }
 .dash-goal-line { display:flex; justify-content:space-between; gap:8px; font-size:12px; font-weight:700; margin-bottom:4px; }
 .dash-goal { height:8px; border-radius:99px; background:var(--bg-3); overflow:hidden; margin-bottom:10px; }
@@ -1301,7 +1327,7 @@ box-shadow: var(--shadow);
 .dash-mini-row.is-link { cursor:pointer; }
 .dash-mini-row.is-link:hover { background:var(--bg-3); margin:0 -6px; padding-left:6px; padding-right:6px; border-radius:8px; }
 .dash-alerts { display:flex; flex-direction:column; gap:6px; }
-.dash-alert { text-align:left; cursor:pointer; border:1px solid #fecaca; background:#fff7f7; color:#9f1239; border-radius:10px; padding:8px 12px; font-size:12px; font-weight:700; }
+.dash-alert { display:block; width:100%; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; cursor:pointer; border:1px solid #fecaca; background:#fff7f7; color:#9f1239; border-radius:10px; padding:8px 12px; font-size:12px; font-weight:700; }
 .dash-next-split { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
 @media (max-width: 720px) { .dash-next-split { grid-template-columns:1fr; } }
 .dash-live-pills { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }

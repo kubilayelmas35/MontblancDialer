@@ -765,6 +765,10 @@ if (dashRole === 'field') {
   if (typeof mbSyncDashRows === 'function') mbSyncDashRows();
   return;
 }
+const dashSeed = {
+  opsP: (dashRole === 'super' || dashRole === 'firm') && typeof mbDashOps === 'function' ? mbDashOps(ff) : Promise.resolve(null),
+  goalsP: (dashRole === 'super' || dashRole === 'firm' || dashRole === 'agent') && typeof mbDashGoalsData === 'function' ? mbDashGoalsData(ff, agentQ, dashRole) : Promise.resolve(null),
+};
 try {
 const logGte = typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
 const logLte = typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
@@ -815,21 +819,13 @@ document.getElementById('pill-appt').textContent= appts;
   const errSub = document.getElementById('dash-chart-sub');
   if (errSub) errSub.textContent = (typeof t === 'function' ? t('ui.error_prefix') : 'Hata: ') + (e?.message || '');
 }
-if (showLive) try {
-await renderDashLiveAgents();
-} catch(e){ console.warn('live', e); }
-if (typeof loadDashCompetitionCard === 'function') {
-  try { await loadDashCompetitionCard(); } catch (e) { console.warn('comp', e); }
-}
-if (typeof loadJobMarketKpi === 'function') {
-  try { await loadJobMarketKpi(); } catch (e) {}
-}
-if (typeof loadJobFinanceSummary === 'function') {
-  try { await loadJobFinanceSummary(); } catch (e) {}
-}
-if (typeof loadDashBrief === 'function') {
-  try { await loadDashBrief({ logs: dashLogs, ff, agentQ, rangeKey, from, to }); } catch (e) { console.warn('brief', e); }
-}
+const dashTail = [];
+if (showLive) dashTail.push(renderDashLiveAgents().catch((e) => console.warn('live', e)));
+if (typeof loadDashCompetitionCard === 'function') dashTail.push(loadDashCompetitionCard().catch((e) => console.warn('comp', e)));
+if (typeof loadJobMarketKpi === 'function') dashTail.push(loadJobMarketKpi().catch(() => {}));
+if (typeof loadJobFinanceSummary === 'function') dashTail.push(loadJobFinanceSummary().catch(() => {}));
+if (typeof loadDashBrief === 'function') dashTail.push(loadDashBrief({ logs: dashLogs, ff, agentQ, rangeKey, from, to, seed: dashSeed }).catch((e) => console.warn('brief', e)));
+await Promise.all(dashTail);
 if (typeof mbSyncDashRows === 'function') mbSyncDashRows();
 }
 
