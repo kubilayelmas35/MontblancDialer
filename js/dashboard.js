@@ -38,13 +38,6 @@ window._tbCampNames = {};
 document.getElementById('pill-camp').textContent = cs.length;
 document.getElementById('sb-badge-camp').textContent = cs.length;
 } catch(e){}
-try {
-const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
-const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
-const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
-const logs  = await sb(`call_logs?select=id&outcome=eq.appointment&started_at=gte.${gte}&started_at=lte.${lte}${ffLive}`);
-document.getElementById('pill-appt').textContent = logs.length;
-} catch(e){}
 try { await mbPaintTodayResults(); } catch (e) {}
 if (window._tbChip) mbFillChipPop();
 try {
@@ -424,6 +417,47 @@ function mbShowLiveBoard() {
   mbOpenChip({ stopPropagation() {}, currentTarget: btn }, { kind: 'live', key: 'all', anchor: btn });
 }
 
+function mbSpinCounts() {
+  const step = (window._tbSpin = (window._tbSpin || 0) + 1);
+  const live = document.getElementById('tb-live-cycle');
+  const slots = [
+    ['pill-call', '#2E7D32', '#4CAF50'],
+    ['pill-ready', '#E65100', '#FFB74D'],
+    ['pill-wrap', '#00838F', '#00BCD4'],
+    ['pill-break', '#5E35B1', '#7E57C2'],
+    ['pill-off', '#757575', '#9E9E9E'],
+  ];
+  if (live) {
+    const slot = slots[step % slots.length];
+    const src = document.getElementById(slot[0]);
+    live.textContent = src ? src.textContent : '0';
+    live.style.color = slot[1];
+    live.style.setProperty('--c', slot[2]);
+  }
+  const today = document.getElementById('tb-today-cycle');
+  const bits = [...document.querySelectorAll('#tb-results .tb-res:not(.tb-res-sum)')];
+  if (today && bits.length) {
+    const bit = bits[step % bits.length];
+    today.textContent = bit.textContent || '0';
+    today.style.setProperty('--c', bit.style.getPropertyValue('--c') || '#64748b');
+    today.style.setProperty('--ink', bit.style.getPropertyValue('--ink') || '#334155');
+  }
+  mbFitPillPeek();
+}
+
+function mbFitPillPeek() {
+  const wrap = document.getElementById('tb-pills-wrap');
+  if (!wrap || wrap.matches(':hover') || wrap.classList.contains('is-open') || wrap.matches(':focus-within')) return;
+  const live = document.getElementById('tb-live-btn');
+  const today = document.getElementById('tb-results');
+  const cluster = wrap.querySelector('.tb-pill-cluster');
+  const gap = parseFloat(getComputedStyle(cluster || wrap).columnGap) || 8;
+  let w = 0;
+  if (live && getComputedStyle(live).display !== 'none' && live.offsetWidth) w += live.offsetWidth;
+  if (today && !today.hidden && today.offsetWidth) w += (w ? gap : 0) + today.offsetWidth;
+  if (w) wrap.style.setProperty('--tb-peek', (w + 2) + 'px');
+}
+
 function mbScheduleHideLive() {
   clearTimeout(window._tbLiveHide);
   window._tbLiveHide = setTimeout(() => {
@@ -460,7 +494,12 @@ function mbFillLivePop(pop, status) {
   const all = window._tbLiveRows || [];
   const key = status || 'all';
   const rows = all.filter((row) => key === 'all' || row.status === key);
-  rows.sort((a, b) => String(a.agent_name || '').localeCompare(String(b.agent_name || ''), 'tr'));
+  rows.sort((a, b) => {
+    const ra = _DASH_LIVE_ORDER[a.status] ?? 9;
+    const rb = _DASH_LIVE_ORDER[b.status] ?? 9;
+    if (ra !== rb) return ra - rb;
+    return String(a.agent_name || '').localeCompare(String(b.agent_name || ''), 'tr');
+  });
   const names = window._tbCampNames || {};
   const order = ['on_call', 'ready', 'wrapping', 'break', 'offline', 'all'];
   const count = (st) => (st === 'all' ? all.length : all.filter((row) => row.status === st).length);
@@ -577,7 +616,8 @@ async function mbPaintTodayResults() {
   host.hidden = false;
   host.setAttribute('aria-label', todayLabel);
   const nums = pieces.map((item) => `<button type="button" class="tb-res" data-res="${item.key}" aria-label="${mbChipEsc(item.label)}" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')">${item.n}</button>`).join('');
-  host.innerHTML = `${nums}<button type="button" class="tb-res tb-res-sum" data-res="" aria-label="${mbChipEsc(totalLabel)}" onclick="mbToggleResPop(event,'')">${rows.length}</button>`;
+  host.innerHTML = `<span class="tb-today-cycle" id="tb-today-cycle">0</span><button type="button" class="tb-res tb-res-sum" data-res="" aria-label="${mbChipEsc(totalLabel)}" onclick="mbToggleResPop(event,'')">${rows.length}</button>${nums}`;
+  mbSpinCounts();
   if (panel) {
     panel.innerHTML = rowsHtml;
     panel.hidden = !keepOpen || !rowsHtml;
@@ -608,6 +648,18 @@ document.addEventListener('mouseover', (ev) => {
   if (target.closest('#tb-live-btn') || (target.closest('#tb-chip-pop') && window._tbChip?.kind === 'live')) mbShowLiveBoard();
   else mbScheduleHideLive();
 });
+
+document.getElementById('tb-pills-wrap')?.addEventListener('scroll', () => {
+  const wrap = document.getElementById('tb-pills-wrap');
+  if (!wrap) return;
+  wrap.classList.toggle('is-open', wrap.scrollLeft > 4);
+  if (wrap.scrollLeft <= 4) requestAnimationFrame(mbFitPillPeek);
+});
+document.getElementById('tb-pills-wrap')?.addEventListener('mouseleave', () => {
+  requestAnimationFrame(() => requestAnimationFrame(mbFitPillPeek));
+});
+setInterval(mbSpinCounts, 1400);
+mbFitPillPeek();
 
 function _dashCanUseAgentFilter() {
   return mbIsFirmAdmin();
@@ -1372,7 +1424,6 @@ document.getElementById('d-appt-m').textContent = total > 0
 document.getElementById('d-avg').textContent    = isTr
   ? `ort. ${total > 0 ? Math.round(talk / total) : 0}sn/çağrı`
   : `Ø ${total > 0 ? Math.round(talk / total) : 0}s/Anruf`;
-document.getElementById('pill-appt').textContent= appts;
 } catch(e){
   console.error(e);
   renderDashHourlyMixed([]);
