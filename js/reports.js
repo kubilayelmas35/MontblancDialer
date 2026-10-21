@@ -218,6 +218,7 @@ async function loadStatsReport() {
     host.innerHTML = repPaint(view, pack, fresh, userById, sessById);
     if (view === 'credit') host.innerHTML += await repCreditExtra(pack.logs, fresh);
     repMountHourCharts();
+    repMountCreditChart();
   } catch (e) {
     host.innerHTML = `<div class="card"><div class="firm-none">${statsEsc(t('ui.error_prefix') + (e?.message || ''))}</div></div>`;
   }
@@ -544,52 +545,164 @@ function repPeople(view, logs, appts, userById) {
   return repCard(t('rep.talk'), repTable([t('rep.person'), t('stats.col.role'), t('stats.col.count'), t('rep.answered'), t('rep.talk'), t('stats.appt_short'), t('rep.ok')], rows), t('rep.gap'));
 }
 
+function repMoney(amount, cur) {
+  if (typeof formatMoney === 'function') return formatMoney(amount, cur || 'EUR');
+  return `${Number(amount || 0).toFixed(2)} ${cur || 'EUR'}`;
+}
+
+function repCreditShare(pct) {
+  const width = Math.max(0, Math.min(100, Math.round(pct)));
+  return `<div class="rep-share" title="${width}%"><span style="width:${width}%"></span></div>`;
+}
+
 async function repCreditExtra(logs, range) {
-  let costRows = `<tr><td colspan="4">${statsEsc(t('stats.cost_empty'))}</td></tr>`;
-  if (range.fid) {
-    const firms = await sb(`firms?id=eq.${range.fid}&select=settings,currency`).catch(() => []);
-    const firm = firms?.[0] || {};
-    const rates = firm.settings?.billing?.rates;
+  const firmQ = range.fid ? `id=eq.${range.fid}&` : '';
+  const firms = (await sb(`firms?${firmQ}select=id,name,settings,currency&limit=200`).catch(() => [])) || [];
+  const byFirm = {};
+  firms.forEach((firm) => { byFirm[firm.id] = firm; });
+  const queues = {};
+  const prefixes = {};
+  let calls = 0;
+  let sec = 0;
+  let money = 0;
+  let currency = 'EUR';
+  const currencies = new Set();
+  (logs || []).forEach((log) => {
+    const talk = Number(log.duration_sec) || 0;
+    calls += 1;
+    sec += talk;
+    const firm = byFirm[log.firm_id] || {};
     const cur = typeof normalizeCurrency === 'function' ? normalizeCurrency(firm.currency) : (firm.currency || 'EUR');
-    if (Array.isArray(rates) && rates.length) {
-      const bag = {};
-      logs.forEach((l) => {
-        const rate = statsMatchRate(l.phone, rates);
-        if (!rate) return;
-        const id = `${rate.prefix}|${rate.name || ''}`;
-        if (!bag[id]) bag[id] = { name: rate.name || rate.prefix, prefix: rate.prefix, price: Number(rate.price) || 0, sec: 0 };
-        bag[id].sec += Number(l.duration_sec) || 0;
-      });
-      const lines = Object.values(bag);
-      if (lines.length) {
-        costRows = lines.map((line) => {
-          const money = (line.sec / 60) * line.price;
-          const shown = typeof formatMoney === 'function' ? formatMoney(money, cur) : money.toFixed(2);
-          return `<tr><td>${statsEsc(line.prefix)}</td><td>${statsEsc(line.name)}</td><td>${statsEsc(statsHms(line.sec))}</td><td>${statsEsc(shown)}</td></tr>`;
-        }).join('');
-      }
+    currency = cur;
+    const rate = typeof statsMatchRate === 'function' ? statsMatchRate(log.phone, firm.settings?.billing?.rates || []) : null;
+    const cost = rate ? (talk / 60) * (Number(rate.price) || 0) : 0;
+    if (rate) currencies.add(cur);
+    money += cost;
+    const qid = log.campaign_id || '—';
+    if (!queues[qid]) queues[qid] = { name: log.campaigns?.name || '—', calls: 0, sec: 0, money: 0, cur };
+    queues[qid].calls += 1;
+    queues[qid].sec += talk;
+    queues[qid].money += cost;
+    if (rate) {
+      const pid = `${rate.prefix}|${rate.name || ''}|${rate.price}|${cur}`;
+      if (!prefixes[pid]) prefixes[pid] = { prefix: rate.prefix || '—', name: rate.name || rate.prefix || '—', price: Number(rate.price) || 0, calls: 0, sec: 0, money: 0, cur };
+      prefixes[pid].calls += 1;
+      prefixes[pid].sec += talk;
+      prefixes[pid].money += cost;
     }
+  });
+  const queueList = Object.values(queues).sort((a, b) => b.sec - a.sec || b.calls - a.calls);
+  const prefixList = Object.values(prefixes).sort((a, b) => b.money - a.money || b.sec - a.sec);
+  const top = queueList[0];
+  const maxSec = Math.max(1, ...queueList.map((row) => row.sec));
+  const kpis = `<div class="rep-credit-kpis">
+<div class="rep-kpi is-a"><span>${statsEsc(t('rep.credit_sum'))}</span><b>${statsEsc(prefixList.length ? repMoney(money, currency) : '—')}</b><small>${statsEsc(t('stats.cost_title'))}</small></div>
+<div class="rep-kpi is-b"><span>${statsEsc(t('rep.credit_talk_kpi'))}</span><b>${statsEsc(statsHms(sec))}</b><small>${sec} ${statsEsc(t('rep.credit_sec'))}</small></div>
+<div class="rep-kpi is-c"><span>${statsEsc(t('rep.credit_calls'))}</span><b>${calls}</b></div>
+<div class="rep-kpi is-d"><span>${statsEsc(t('rep.credit_topq'))}</span><b>${statsEsc(top?.name || '—')}</b><small>${top ? statsEsc(statsHms(top.sec)) : ''}</small></div>
+</div>`;
+  const chartRows = queueList.slice(0, 12);
+  const clipName = (name) => {
+    const text = String(name || '—');
+    return text.length > 28 ? `${text.slice(0, 26)}…` : text;
+  };
+  window._repCreditSpec = chartRows.length ? {
+    labels: chartRows.map((row) => clipName(row.name)),
+    full: chartRows.map((row) => row.name || '—'),
+    data: chartRows.map((row) => row.sec),
+  } : null;
+  const chart = chartRows.length
+    ? `<div class="rep-hour-canvas rep-credit-canvas"><canvas id="rep-credit-chart"></canvas></div>`
+    : `<div class="firm-none">${statsEsc(t('stats.none'))}</div>`;
+  const queueRows = queueList.map((row) => `<tr><td class="rep-clip" title="${statsEsc(row.name)}">${statsEsc(row.name)}</td><td>${row.calls}</td><td>${statsEsc(statsHms(row.sec))}</td><td>${row.sec}</td><td>${repCreditShare(row.sec / maxSec * 100)}${statsEsc(prefixList.length ? repMoney(row.money, row.cur) : '—')}</td></tr>`);
+  if (queueList.length) {
+    queueRows.push(`<tr class="rep-credit-total"><td>${statsEsc(t('rep.total'))}</td><td>${calls}</td><td>${statsEsc(statsHms(sec))}</td><td>${sec}</td><td>${statsEsc(prefixList.length ? repMoney(money, currency) : '—')}</td></tr>`);
   }
-  let ledgerRows = `<tr><td colspan="2">${statsEsc(t('stats.none'))}</td></tr>`;
-  if (range.fid) {
-    const ledger = await sb(`wallet_ledger?firm_id=eq.${range.fid}&created_at=gte.${range.gte}&created_at=lte.${range.lte}&select=entry_type,amount,currency&order=created_at.desc&limit=200`).catch(() => []);
-    const bag = {};
-    (ledger || []).forEach((row) => {
-      const key = row.entry_type || 'adjustment';
-      if (!bag[key]) bag[key] = { key, amount: 0, currency: row.currency };
-      bag[key].amount += Number(row.amount) || 0;
-    });
-    const lines = Object.values(bag);
-    if (lines.length) {
-      ledgerRows = lines.map((line) => {
-        const label = typeof firmLedgerLabel === 'function' ? firmLedgerLabel({ kind: 'ledger', entry_type: line.key }) : line.key;
-        const shown = typeof formatMoney === 'function' ? formatMoney(line.amount, line.currency) : String(line.amount);
-        return `<tr><td>${statsEsc(label)}</td><td>${statsEsc(shown)}</td></tr>`;
-      }).join('');
-    }
-  }
+  const prefixRows = prefixList.map((row) => {
+    const rate = `${repMoney(row.price, row.cur)}/dk`;
+    return `<tr><td>${statsEsc(row.prefix)}</td><td>${statsEsc(row.name)}</td><td>${statsEsc(rate)}</td><td>${row.calls}</td><td>${statsEsc(statsHms(row.sec))}</td><td>${row.sec}</td><td>${statsEsc(repMoney(row.money, row.cur))}</td></tr>`;
+  });
+  const prefixBody = prefixRows.length
+    ? repTable([t('stats.col.prefix'), t('stats.col.dest'), t('rep.credit_rate'), t('rep.credit_calls'), t('stats.col.time'), t('rep.credit_sec'), t('stats.col.cost')], prefixRows)
+    : `<div class="firm-none">${statsEsc(t('stats.cost_empty'))}</div>`;
+  let ledgerRows = [];
+  const ledgerQ = range.fid ? `&firm_id=eq.${range.fid}` : '';
+  const ledger = (await sb(`wallet_ledger?select=entry_type,amount,currency${ledgerQ}&created_at=gte.${range.gte}&created_at=lte.${range.lte}&order=created_at.desc&limit=200`).catch(() => [])) || [];
+  const ledgerBag = {};
+  ledger.forEach((row) => {
+    const key = `${row.entry_type || 'adjustment'}|${row.currency || ''}`;
+    if (!ledgerBag[key]) ledgerBag[key] = { key: row.entry_type || 'adjustment', amount: 0, currency: row.currency };
+    ledgerBag[key].amount += Number(row.amount) || 0;
+  });
+  ledgerRows = Object.values(ledgerBag).map((line) => {
+    const label = typeof firmLedgerLabel === 'function' ? firmLedgerLabel({ kind: 'ledger', entry_type: line.key }) : line.key;
+    return `<tr><td>${statsEsc(label)}</td><td>${statsEsc(repMoney(line.amount, line.currency))}</td></tr>`;
+  });
   return [
-    repCard(t('stats.cost_title'), repTable([t('stats.col.prefix'), t('stats.col.dest'), t('stats.col.time'), t('stats.col.cost')], [costRows]), t('stats.cost_hint')),
-    repCard(t('rep.credit_real'), repTable([t('stats.col.result'), t('stats.col.cost')], [ledgerRows]), t('rep.credit_real_hint')),
+    kpis,
+    repCard(t('rep.credit_by_queue'), `${chart}${repTable([t('rep.queue'), t('rep.credit_calls'), t('stats.col.time'), t('rep.credit_sec'), t('stats.col.cost')], queueRows)}`),
+    repCard(t('stats.cost_title'), prefixBody, t('stats.cost_hint')),
+    repCard(t('rep.credit_real'), repTable([t('stats.col.result'), t('stats.col.cost')], ledgerRows), t('rep.credit_real_hint')),
   ].join('');
+}
+
+function repMountCreditChart() {
+  if (window._repCreditChart) {
+    try { window._repCreditChart.destroy(); } catch (_) {}
+    window._repCreditChart = null;
+  }
+  const spec = window._repCreditSpec;
+  window._repCreditSpec = null;
+  const canvas = document.getElementById('rep-credit-chart');
+  if (!spec || !canvas || typeof Chart === 'undefined') return;
+  const text = typeof _dashCssVar === 'function' ? _dashCssVar('--text-2', '#64748b') : '#64748b';
+  const grid = typeof _dashCssVar === 'function' ? _dashCssVar('--border', '#e2e8f0') : '#e2e8f0';
+  const colors = spec.labels.map((_, i) => REP_BAR_COLORS[i % REP_BAR_COLORS.length]);
+  window._repCreditChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: spec.labels,
+      datasets: [{
+        label: t('rep.credit_sec'),
+        data: spec.data,
+        backgroundColor: colors,
+        borderRadius: 8,
+        borderSkipped: false,
+        maxBarThickness: 28,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 800, easing: 'easeOutQuart' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f172a',
+          displayColors: false,
+          callbacks: {
+            title(items) { return spec.full?.[items?.[0]?.dataIndex] || items?.[0]?.label || ''; },
+            label(ctx) { return statsHms(ctx.parsed.x || 0); },
+          },
+        },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          title: { display: true, text: t('rep.credit_sec'), color: text, font: { size: 11 } },
+          grid: { color: grid },
+          ticks: { color: text, precision: 0 },
+        },
+        y: {
+          grid: { display: false },
+          ticks: {
+            color: text,
+            font: { size: 11 },
+            callback(value) { return this.getLabelForValue(value); },
+          },
+        },
+      },
+    },
+  });
 }
