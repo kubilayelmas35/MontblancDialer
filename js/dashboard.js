@@ -269,6 +269,15 @@ function mbChipEsc(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
 
+function mbChipInk(hex) {
+  const h = String(hex || '').replace('#', '');
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return '#fff';
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 165 ? '#1f2937' : '#fff';
+}
+
 function mbChipClock(sec) {
   const safe = Math.max(0, Number(sec) || 0);
   const m = Math.floor(safe / 60);
@@ -434,29 +443,23 @@ async function mbPaintTodayResults() {
     return;
   }
   const own = currentUser.role === 'agent';
-  const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : currentUser.firm_id;
+  const selected = typeof getActiveFirmId === 'function' ? getActiveFirmId() : '';
+  const fid = selected || currentUser.firm_id;
   const ff = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
   const mine = own && currentUser.id ? `&agent_id=eq.${currentUser.id}` : '';
   const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
   const defs = fid && typeof loadFirmAppointmentResults === 'function'
-    ? await loadFirmAppointmentResults(fid).catch(() => [])
+    ? await loadFirmAppointmentResults(fid, true).catch(() => [])
     : (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
   const rows = await sb(`appointments?select=id,nachname,durum,agent_id,contact_id,termin_tarih,kayit_tarihi&kayit_tarihi=gte.${gte}&kayit_tarihi=lte.${lte}${ff}${mine}&order=kayit_tarihi.desc&limit=400`).catch(() => []) || [];
   const norm = (value) => (typeof _normResultKey === 'function' ? _normResultKey(value) : String(value || ''));
   const list = (defs || []).map((def) => ({
     key: norm(def.key),
     label: String(def.label || def.key || '').trim(),
-    color: String(def.color || '#64748b'),
+    color: typeof _normalizeResultColor === 'function' ? _normalizeResultColor(def.color) : String(def.color || '#64748b'),
   })).filter((def) => def.key);
-  const seen = new Set(list.map((def) => def.key));
-  rows.forEach((row) => {
-    const key = norm(row.durum);
-    if (!key || seen.has(key)) return;
-    seen.add(key);
-    list.push({ key, label: String(row.durum || key), color: '#64748b' });
-  });
   window._tbApptRows = rows;
   window._tbResDefs = list;
   window._tbResOwn = own;
@@ -465,7 +468,8 @@ async function mbPaintTodayResults() {
   const chip = (key, label, color, n) => {
     const safeKey = /^[a-z0-9_]*$/i.test(String(key || '')) ? String(key || '') : '';
     const safeColor = /^#[0-9a-fA-F]{6}$/.test(String(color || '')) ? color : '#64748b';
-    return `<button type="button" class="tb-res" data-res="${safeKey}" style="--c:${safeColor}" title="${mbChipEsc(label)}" onclick="mbToggleResPop(event,'${safeKey}')"><b>${n}</b><span>${mbChipEsc(label)}</span></button>`;
+    const ink = mbChipInk(safeColor);
+    return `<button type="button" class="tb-res" data-res="${safeKey}" data-label="${mbChipEsc(label)}" aria-label="${mbChipEsc(label)}" style="--c:${safeColor};--ink:${ink}" onclick="mbToggleResPop(event,'${safeKey}')"><b>${n}</b></button>`;
   };
   host.hidden = false;
   host.innerHTML = `<span class="tb-res-label">${mbChipEsc(mbChipSay('tb.res.today', 'Bugün'))}</span>${chip('', mbChipSay('tb.res.total', 'Toplam'), '#334155', total)}${list.map((def) => chip(def.key, def.label, def.color, countOf(def.key))).join('')}`;
@@ -484,6 +488,25 @@ document.addEventListener('click', (ev) => {
   if (!pop || pop.hidden) return;
   if (ev.target.closest && ev.target.closest('#tb-chip-pop, [data-chip], .tb-res')) return;
   mbCloseChipPop();
+});
+
+document.addEventListener('mouseover', (ev) => {
+  const tip = document.getElementById('tb-res-tip');
+  if (!tip) return;
+  const btn = ev.target.closest?.('.tb-res');
+  if (!btn) {
+    tip.hidden = true;
+    return;
+  }
+  tip.textContent = btn.getAttribute('data-label') || '';
+  tip.hidden = false;
+  const rect = btn.getBoundingClientRect();
+  const width = tip.offsetWidth || 40;
+  let left = rect.left + rect.width / 2;
+  if (left - width / 2 < 8) left = width / 2 + 8;
+  if (left + width / 2 > window.innerWidth - 8) left = window.innerWidth - width / 2 - 8;
+  tip.style.top = `${Math.round(rect.bottom + 6)}px`;
+  tip.style.left = `${Math.round(left)}px`;
 });
 
 function _dashCanUseAgentFilter() {
