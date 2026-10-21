@@ -603,6 +603,7 @@ async function mbPaintTodayResults() {
   const nums = pieces.map((item) => `<button type="button" class="tb-res" data-res="${item.key}" aria-label="${mbChipEsc(item.label)}" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')">${item.n}</button>`).join('');
   host.innerHTML = `<span class="tb-today-cycle" id="tb-today-cycle">0</span><button type="button" class="tb-res tb-res-sum" data-res="" aria-label="${mbChipEsc(totalLabel)}" onclick="mbToggleResPop(event,'')">${rows.length}</button>${nums}`;
   mbSpinCounts();
+  if (typeof mbFitStatus === 'function') mbFitStatus();
   if (panel) {
     panel.innerHTML = rowsHtml;
     panel.hidden = !keepOpen || !rowsHtml;
@@ -634,7 +635,39 @@ document.addEventListener('mouseover', (ev) => {
   else mbScheduleHideLive();
 });
 
+function mbStatusWidth(wrap) {
+  const kids = [...wrap.children].filter((el) => !el.hidden && getComputedStyle(el).display !== 'none');
+  const gap = parseFloat(getComputedStyle(wrap).columnGap) || 0;
+  const boxes = kids.reduce((sum, el) => {
+    const style = getComputedStyle(el);
+    return sum + el.getBoundingClientRect().width + (parseFloat(style.marginLeft) || 0) + (parseFloat(style.marginRight) || 0);
+  }, 0);
+  return boxes + gap * Math.max(0, kids.length - 1);
+}
+
+function mbFitStatus() {
+  const wrap = document.getElementById('tb-pills-wrap');
+  if (!wrap || wrap._fitLock) return;
+  wrap._fitLock = true;
+  const room = wrap.clientWidth;
+  const steps = ['is-live-open', 'is-today-open', 'is-mesai-open'];
+  wrap.classList.remove(...steps);
+  for (const step of steps) {
+    wrap.classList.add(step);
+    if (mbStatusWidth(wrap) > room + 1) {
+      wrap.classList.remove(step);
+      break;
+    }
+  }
+  wrap._fitLock = false;
+}
+
 setInterval(mbSpinCounts, 1400);
+{
+  const wrap = document.getElementById('tb-pills-wrap');
+  if (wrap && window.ResizeObserver) new ResizeObserver(() => mbFitStatus()).observe(wrap);
+  mbFitStatus();
+}
 
 function _dashCanUseAgentFilter() {
   return mbIsFirmAdmin();

@@ -1998,6 +1998,7 @@ function opsPaintMesaiBar() {
   if (fill) fill.style.width = view.rolled ? '0%' : `${Math.round(phase.pct)}%`;
   const pop = document.getElementById('tb-mesai-pop');
   if (pop && !pop.hidden) opsFillMesaiPop(pop);
+  if (typeof mbFitStatus === 'function') mbFitStatus();
 }
 
 function opsMesaiDay(gun) {
