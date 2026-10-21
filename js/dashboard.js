@@ -662,7 +662,16 @@ function mbFitStatus() {
   wrap._fitLock = false;
 }
 
+function mbPaintTakvimDay() {
+  const el = document.getElementById('tb-takvim-day');
+  if (!el) return;
+  const iso = typeof mbBusinessToday === 'function' ? mbBusinessToday() : '';
+  const day = iso && iso.length >= 10 ? Number(iso.slice(8, 10)) : new Date().getDate();
+  el.textContent = String(day || '');
+}
+
 setInterval(mbSpinCounts, 1400);
+mbPaintTakvimDay();
 {
   const wrap = document.getElementById('tb-pills-wrap');
   if (wrap && window.ResizeObserver) new ResizeObserver(() => mbFitStatus()).observe(wrap);
