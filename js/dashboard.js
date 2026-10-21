@@ -310,7 +310,7 @@ async function mbLoadLiveRows(ff) {
 function mbCloseChipPop() {
   const pop = document.getElementById('tb-chip-pop');
   if (pop) pop.hidden = true;
-  document.querySelectorAll('[data-chip].is-open, .tb-res-sum.is-open').forEach((el) => {
+  document.querySelectorAll('[data-chip].is-open, button.tb-res.is-open').forEach((el) => {
     el.classList.remove('is-open');
     el.setAttribute('aria-expanded', 'false');
   });
@@ -357,12 +357,13 @@ function mbToggleLivePop(ev, status) {
 
 function mbToggleResPop(ev, key) {
   const fromPanel = !!(ev?.currentTarget && ev.currentTarget.closest && ev.currentTarget.closest('#tb-res-panel'));
-  const sum = document.querySelector('#tb-results .tb-res-sum');
+  const safe = /^[a-z0-9_]*$/i.test(String(key || '')) ? String(key || '') : '';
+  const chip = safe ? document.querySelector(`#tb-results .tb-res[data-res="${safe}"]`) : null;
   if (fromPanel) {
     const panel = document.getElementById('tb-res-panel');
     if (panel) panel.hidden = true;
   }
-  mbOpenChip(ev, { kind: 'res', key: key || '', anchor: fromPanel ? sum : null });
+  mbOpenChip(ev, { kind: 'res', key: safe, anchor: fromPanel ? chip : null });
 }
 
 function mbPlaceResPanel() {
@@ -512,25 +513,28 @@ async function mbPaintTodayResults() {
   window._tbResDefs = list;
   window._tbResOwn = own;
   const countOf = (key) => rows.filter((row) => norm(row.durum) === key).length;
-  const total = rows.length;
   const safeColor = (color) => (/^#[0-9a-fA-F]{6}$/.test(String(color || '')) ? color : '#64748b');
   const todayLabel = mbChipSay('tb.res.today', 'Bugün');
-  const dots = list.slice(0, 6).map((def) => `<i style="background:${safeColor(def.color)}"></i>`).join('');
-  const rowsHtml = list.map((def) => {
+  const piece = (def) => {
     const key = /^[a-z0-9_]*$/i.test(String(def.key || '')) ? String(def.key) : '';
     if (!key) return '';
-    return `<button type="button" class="tb-res-row" onclick="mbToggleResPop(event,'${key}')"><i style="--c:${safeColor(def.color)}"></i><span>${mbChipEsc(def.label)}</span><b>${countOf(key)}</b></button>`;
-  }).join('');
+    const color = safeColor(def.color);
+    const ink = mbChipInk(color);
+    return { key, color, ink, n: countOf(key), label: def.label };
+  };
+  const pieces = list.map(piece).filter((item) => item.key);
+  const rowsHtml = pieces.map((item) => `<button type="button" class="tb-res-row" onclick="mbToggleResPop(event,'${item.key}')"><i style="--c:${item.color}"></i><span>${mbChipEsc(item.label)}</span><b>${item.n}</b></button>`).join('');
   const keepOpen = !!(panel && (!panel.hidden || host.matches(':hover') || panel.matches(':hover')));
   host.hidden = false;
-  host.innerHTML = `<button type="button" class="tb-pill tb-res-sum" onclick="mbToggleResPop(event,'')" aria-expanded="false" aria-label="${mbChipEsc(todayLabel)}"><span class="tb-res-dots" aria-hidden="true">${dots}</span><span class="tb-res-label">${mbChipEsc(todayLabel)}</span><span class="tb-pill-val">${total}</span></button>`;
+  host.setAttribute('aria-label', todayLabel);
+  host.innerHTML = pieces.map((item) => `<button type="button" class="tb-res" data-res="${item.key}" aria-label="${mbChipEsc(item.label)}" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')">${item.n}</button>`).join('');
   if (panel) {
     panel.innerHTML = rowsHtml;
     panel.hidden = !keepOpen || !rowsHtml;
     if (!panel.hidden) mbPlaceResPanel();
   }
   if (window._tbChip?.kind === 'res') {
-    const next = host.querySelector('.tb-res-sum');
+    const next = host.querySelector(`[data-res="${window._tbChip.key || ''}"]`);
     if (next) {
       next.classList.add('is-open');
       next.setAttribute('aria-expanded', 'true');
