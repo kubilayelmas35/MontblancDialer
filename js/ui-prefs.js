@@ -58,6 +58,10 @@ function mbCollectUiPrefs() {
   } else if (typeof MB_DASH_ROWS !== 'undefined') {
     prefs.dash_rows = MB_DASH_ROWS.slice();
   }
+  if (typeof mbReadBriefOrder === 'function') {
+    const cards = mbReadBriefOrder();
+    if (cards) prefs.dash_cards = { left: cards.left, right: cards.right, wide: cards.wide || [] };
+  }
   return prefs;
 }
 
@@ -114,6 +118,10 @@ function mbApplyUiPrefs(remote) {
       const keys = remote.dash_rows.filter((key) => MB_DASH_ROWS.includes(key));
       try { localStorage.setItem(mbDashRowKey(), JSON.stringify(keys)); } catch (e) {}
       if (typeof mbApplyDashRowOrder === 'function') mbApplyDashRowOrder();
+    }
+    if (remote.dash_cards && typeof mbBriefOrderOk === 'function' && mbBriefOrderOk(remote.dash_cards) && typeof mbBriefCardKey === 'function') {
+      try { localStorage.setItem(mbBriefCardKey(), JSON.stringify(remote.dash_cards)); } catch (e) {}
+      if (typeof mbPackBrief === 'function') mbPackBrief(document.getElementById('dash-brief'));
     }
     if (remote.live_grads && typeof remote.live_grads === 'object') {
       const grads = mbSanitizeLiveGrads(remote.live_grads);

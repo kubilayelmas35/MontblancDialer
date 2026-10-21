@@ -831,8 +831,12 @@ function mbSaveDashRowOrder() {
 
 function mbResetDashRows() {
   try { localStorage.removeItem(mbDashRowKey()); } catch (e) {}
+  if (typeof mbBriefCardKey === 'function') {
+    try { localStorage.removeItem(mbBriefCardKey()); } catch (e) {}
+  }
   mbApplyDashRowOrder();
   mbSyncDashRows();
+  if (typeof mbPackBrief === 'function') mbPackBrief(document.getElementById('dash-brief'));
   if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 }
 

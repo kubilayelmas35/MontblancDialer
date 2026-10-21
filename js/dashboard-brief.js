@@ -19,9 +19,15 @@ function mbDashEsc(value) {
     .replace(/>/g, '&gt;');
 }
 
-function mbDashCard(title, body, extra, bodyId) {
+function mbDashCard(title, body, extra, bodyId, key) {
   const id = bodyId ? ` id="${bodyId}"` : '';
-  return `<div class="card dash-brief-card${extra ? ` ${extra}` : ''}"><div class="card-title">${title}</div><div class="dash-brief-body"${id}>${body}</div></div>`;
+  const safeKey = /^[a-z0-9-]{1,24}$/.test(String(key || '')) ? String(key) : '';
+  const wide = !!(extra && String(extra).includes('dash-span'));
+  const attr = `${safeKey ? ` data-dash-card="${safeKey}"` : ''}${wide ? ' data-dash-wide="1"' : ''}`;
+  const handle = safeKey
+    ? `<button type="button" class="dash-card-handle" draggable="true" title="${mbDashEsc(mbDashTr('Kutuyu taşı', 'Karte verschieben'))}" aria-label="${mbDashEsc(mbDashTr('Kutuyu taşı', 'Karte verschieben'))}"><i class="ph ph-dots-six-vertical" aria-hidden="true"></i></button>`
+    : '';
+  return `<div class="card dash-brief-card${extra ? ` ${extra}` : ''}"${attr}><div class="card-title">${handle}<span>${title}</span></div><div class="dash-brief-body"${id}>${body}</div></div>`;
 }
 
 function mbDashClip(value, max) {
@@ -163,7 +169,10 @@ function mbDashGoalsHtml(data) {
       mbDashRing(mbDashTr('Bugün', 'Heute'), data?.dayN || 0, goals.daily * people, '#38bdf8'),
       mbDashRing(mbDashTr('Bu hafta', 'Diese Woche'), data?.weekN || 0, goals.weekly * people, '#fb923c'),
       mbDashRing(mbDashTr('Bu ay', 'Dieser Monat'), data?.monthN || 0, goals.monthly * people, '#34d399'),
-    ].join('')}</div>`
+    ].join('')}</div>`,
+    '',
+    '',
+    'goals'
   );
 }
 
@@ -396,7 +405,9 @@ async function mbDashNextBlock(ff, agentQ) {
   return mbDashCard(
     mbDashTr('Sıradaki iş', 'Als Nächstes'),
     `<div class="dash-next-split"><div><div class="dash-goal-line"><span>${mbDashTr('Geri aramalar', 'Rückrufe')}</span></div>${cbRows}</div><div><div class="dash-goal-line"><span>${mbDashTr('Randevular', 'Termine')}</span></div>${apRows}</div></div>`,
-    'dash-span'
+    'dash-span',
+    '',
+    'next'
   );
 }
 
@@ -412,11 +423,11 @@ async function mbDashMyRank(ff) {
   });
   const mine = bag[currentUser?.id] || 0;
   if (!mine) {
-    return mbDashCard(mbDashTr('Senin sıran', 'Dein Platz'), `<div class="dash-mini-row">${mbDashTr('Bugün henüz randevun yok', 'Heute noch kein Termin')}</div>`);
+    return mbDashCard(mbDashTr('Senin sıran', 'Dein Platz'), `<div class="dash-mini-row">${mbDashTr('Bugün henüz randevun yok', 'Heute noch kein Termin')}</div>`, '', '', 'mine');
   }
   const higher = Object.values(bag).filter((n) => n > mine).length;
   const place = higher + 1;
-  return mbDashCard(mbDashTr('Senin sıran', 'Dein Platz'), `<div class="dash-mini-row"><span>${mbDashTr('Bugün randevuda', 'Heute bei Terminen')}</span><b>${place}. ${mbDashTr('sıradasın', 'Platz')}</b></div>`);
+  return mbDashCard(mbDashTr('Senin sıran', 'Dein Platz'), `<div class="dash-mini-row"><span>${mbDashTr('Bugün randevuda', 'Heute bei Terminen')}</span><b>${place}. ${mbDashTr('sıradasın', 'Platz')}</b></div>`, '', '', 'mine');
 }
 
 async function mbDashQcBlock(ff) {
@@ -430,8 +441,8 @@ async function mbDashQcBlock(ff) {
     || `<div class="dash-mini-row">${mbDashTr('Bekleyen Kalite Kontrol yok', 'Keine offene QC')}</div>`;
   const doneRows = (closed || []).map((row) => `<div class="dash-mini-row is-link" onclick="mbDashOpenPage('qc')"><span>${mbDashEsc(row.phone || '—')}</span><b>${mbDashEsc(row.qc_result || '—')} · ${mbDashWhen(row.qc_at)}</b></div>`).join('')
     || `<div class="dash-mini-row">${mbDashTr('Henüz kapattığın Kalite Kontrol yok', 'Noch keine abgeschlossene QC')}</div>`;
-  return mbDashCard(`${mbDashTr('Bekleyen Kalite Kontrol', 'Offene QC')} · ${pending == null ? '—' : pending}`, waitRows)
-    + mbDashCard(mbDashTr('Senin kapattıkların', 'Von dir abgeschlossen'), doneRows);
+  return mbDashCard(`${mbDashTr('Bekleyen Kalite Kontrol', 'Offene QC')} · ${pending == null ? '—' : pending}`, waitRows, '', '', 'qc-wait')
+    + mbDashCard(mbDashTr('Senin kapattıkların', 'Von dir abgeschlossen'), doneRows, '', '', 'qc-done');
 }
 
 function mbDashLabel(valueId, text) {
@@ -518,7 +529,7 @@ async function mbDashFieldBlock(rangeKey, from, to) {
     <span>${mbDashTr('Sahada', 'Vor Ort')} ${count('in_progress')}</span>
     <span>${mbDashTr('Bu aralıkta bitti', 'Im Zeitraum erledigt')} ${doneInRange}</span>
   </div>`;
-  return mbDashCard(mbDashTr('Saha görevlerin', 'Deine Außentermine'), summary + list + (rangeKey ? '' : ''));
+  return mbDashCard(mbDashTr('Saha görevlerin', 'Deine Außentermine'), summary + list, '', '', 'field');
 }
 
 async function mbDashDeltas(logs, ff, agentQ, rangeKey, from, to) {
@@ -597,6 +608,8 @@ async function loadDashBrief(ctx) {
   if (role === 'field') {
     const fieldHtml = await mbDashFieldBlock(rangeKey, from, to);
     host.innerHTML = `<div class="dash-brief"><div class="dash-brief-scope">${mbDashEsc(mbDashScopeLine(role))}</div><div class="dash-brief-grid">${fieldHtml}</div></div>`;
+    mbPackBrief(host);
+    mbInitBriefDrag();
     ['d-calls-delta', 'd-appt-delta', 'd-cb-delta', 'd-vm-delta', 'd-talk-delta'].forEach((id) => mbDashPaintDelta(id, 0, null));
     return;
   }
@@ -636,17 +649,19 @@ async function loadDashBrief(ctx) {
   const ready = window._dashLogsReady === true;
   const liveLogs = ready ? (window._dashPendingLogs || []) : logs;
   if (ops) {
-    parts.push(mbDashCard(mbDashTr('Açık kampanyalar', 'Offene Kampagnen'), mbDashCampInner(liveLogs, ops), '', 'dash-camp-body'));
+    parts.push(mbDashCard(mbDashTr('Açık kampanyalar', 'Offene Kampagnen'), mbDashCampInner(liveLogs, ops), '', 'dash-camp-body', 'camps'));
     const rankInner = ready ? await mbDashRankInner(liveLogs, ff, await usersP) : `<div class="dash-mini-row">${mbDashTr('Yükleniyor...', 'Laden...')}</div>`;
-    parts.push(mbDashCard(mbDashTr('Temsilci sırası', 'Agentenliste'), rankInner, '', 'dash-rank-body'));
+    parts.push(mbDashCard(mbDashTr('Temsilci sırası', 'Agentenliste'), rankInner, '', 'dash-rank-body', 'rank'));
   }
   if (qcHtml) parts.push(qcHtml);
-  parts.push(mbDashCard(role === 'qc' ? mbDashTr('Kalite Kontrol sonuçları', 'QC-Ergebnisse') : mbDashTr('Arama sonuçları', 'Anrufergebnisse'), mbDashOutcomeHtml(liveLogs), '', 'dash-out-body'));
+  parts.push(mbDashCard(role === 'qc' ? mbDashTr('Kalite Kontrol sonuçları', 'QC-Ergebnisse') : mbDashTr('Arama sonuçları', 'Anrufergebnisse'), mbDashOutcomeHtml(liveLogs), '', 'dash-out-body', 'out'));
   if (nextHtml) parts.push(nextHtml);
   if (gen !== _dashBriefGen) return;
   const snap = { gen, ops, ff, agentQ, usersP, usedLogs: ready, deltas: false };
   window._dashBriefSnap = snap;
   host.innerHTML = `<div class="dash-brief"><div class="dash-brief-scope">${mbDashEsc(mbDashScopeLine(role))}</div>${alerts}<div class="dash-brief-grid">${parts.join('')}</div></div>`;
+  mbPackBrief(host);
+  mbInitBriefDrag();
   if (ready) await mbDashRunDeltas(snap, liveLogs, rangeKey, from, to);
   if (ops?.ids?.length) {
     mbDashOpsSlow(ops).then(() => {
@@ -662,3 +677,141 @@ async function loadDashBrief(ctx) {
     }).catch(() => {});
   }
 }
+
+function mbBriefCardKey() {
+  const id = (typeof currentUser !== 'undefined' && currentUser?.id) ? currentUser.id : 'local';
+  return `mb_dash_cards_${id}`;
+}
+
+function mbBriefOrderOk(raw) {
+  const okList = (list) => Array.isArray(list) && list.every((key) => /^[a-z0-9-]{1,24}$/.test(String(key || '')));
+  return !!raw && typeof raw === 'object' && okList(raw.left) && okList(raw.right) && okList(raw.wide || []);
+}
+
+function mbReadBriefOrder() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(mbBriefCardKey()) || 'null');
+    return mbBriefOrderOk(raw) ? raw : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function mbSaveBriefOrder() {
+  const read = (sel) => [...document.querySelectorAll(sel)].map((el) => el.dataset.dashCard).filter((key) => /^[a-z0-9-]{1,24}$/.test(key || ''));
+  const data = {
+    left: read('.dash-brief-col[data-brief-col="left"] > .dash-brief-card'),
+    right: read('.dash-brief-col[data-brief-col="right"] > .dash-brief-card'),
+    wide: read('.dash-brief-wide > .dash-brief-card'),
+  };
+  try { localStorage.setItem(mbBriefCardKey(), JSON.stringify(data)); } catch (e) {}
+  if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+function mbPackBrief(host) {
+  const root = host || document.getElementById('dash-brief');
+  const grid = root?.querySelector('.dash-brief-grid');
+  if (!grid) return;
+  const cards = [...root.querySelectorAll('.dash-brief-card')];
+  const saved = mbReadBriefOrder();
+  const left = document.createElement('div');
+  left.className = 'dash-brief-col';
+  left.dataset.briefCol = 'left';
+  const right = document.createElement('div');
+  right.className = 'dash-brief-col';
+  right.dataset.briefCol = 'right';
+  let wide = root.querySelector('.dash-brief-wide');
+  if (!wide) wide = document.createElement('div');
+  wide.className = 'dash-brief-wide';
+  wide.replaceChildren();
+  const byKey = new Map();
+  cards.forEach((el) => { if (el.dataset.dashCard) byKey.set(el.dataset.dashCard, el); });
+  const used = new Set();
+  const put = (key, parent) => {
+    const el = byKey.get(key);
+    if (!el || used.has(key)) return;
+    used.add(key);
+    el.classList.toggle('dash-span', parent === wide);
+    parent.appendChild(el);
+  };
+  if (saved) {
+    (saved.left || []).forEach((key) => put(key, left));
+    (saved.right || []).forEach((key) => put(key, right));
+    (saved.wide || []).forEach((key) => put(key, wide));
+  }
+  const prefer = {
+    goals: left, mine: left, rank: left, 'qc-wait': left, 'qc-done': left, field: left,
+    camps: right, out: right, next: wide,
+  };
+  cards.forEach((el) => {
+    const key = el.dataset.dashCard;
+    if (!key || used.has(key)) return;
+    const target = prefer[key] || (el.dataset.dashWide === '1' ? wide : (left.childElementCount <= right.childElementCount ? left : right));
+    put(key, target);
+  });
+  grid.replaceChildren(left, right);
+  if (wide.childElementCount) grid.after(wide);
+  else wide.remove();
+}
+
+let _briefDrag = '';
+
+function mbInitBriefDrag() {
+  const page = document.getElementById('page-dashboard');
+  if (!page || page.dataset.briefDrag === '1') return;
+  page.dataset.briefDrag = '1';
+  const clearMarks = () => {
+    page.querySelectorAll('.dash-brief-card.is-drop, .dash-brief-col.is-drop, .dash-brief-wide.is-drop').forEach((el) => {
+      el.classList.remove('is-drop', 'is-drop-before');
+    });
+  };
+  page.addEventListener('dragstart', (e) => {
+    const handle = e.target.closest?.('.dash-card-handle');
+    if (!handle || !page.contains(handle)) return;
+    const card = handle.closest('.dash-brief-card');
+    if (!card) return;
+    _briefDrag = card.dataset.dashCard || '';
+    card.classList.add('is-dragging');
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', _briefDrag);
+    }
+  });
+  page.addEventListener('dragend', () => {
+    _briefDrag = '';
+    page.querySelectorAll('.dash-brief-card.is-dragging').forEach((el) => el.classList.remove('is-dragging'));
+    clearMarks();
+  });
+  page.addEventListener('dragover', (e) => {
+    if (!_briefDrag) return;
+    const zone = e.target.closest?.('.dash-brief-col, .dash-brief-wide');
+    if (!zone || !page.contains(zone)) return;
+    e.preventDefault();
+    clearMarks();
+    const card = e.target.closest?.('.dash-brief-card');
+    if (card && card.dataset.dashCard !== _briefDrag && zone.contains(card)) {
+      const rect = card.getBoundingClientRect();
+      card.classList.add('is-drop');
+      card.classList.toggle('is-drop-before', e.clientY < rect.top + rect.height / 2);
+    } else zone.classList.add('is-drop');
+  });
+  page.addEventListener('drop', (e) => {
+    if (!_briefDrag) return;
+    const from = page.querySelector(`.dash-brief-card[data-dash-card="${_briefDrag}"]`);
+    const zone = e.target.closest?.('.dash-brief-col, .dash-brief-wide');
+    if (!from || !zone || !page.contains(zone)) return;
+    e.preventDefault();
+    const card = e.target.closest?.('.dash-brief-card');
+    from.classList.toggle('dash-span', zone.classList.contains('dash-brief-wide'));
+    if (card && card !== from && zone.contains(card)) {
+      const rect = card.getBoundingClientRect();
+      if (e.clientY > rect.top + rect.height / 2) card.after(from);
+      else card.before(from);
+    } else zone.appendChild(from);
+    clearMarks();
+    from.classList.remove('is-dragging');
+    _briefDrag = '';
+    mbSaveBriefOrder();
+  });
+}
+
