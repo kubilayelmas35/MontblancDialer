@@ -1108,6 +1108,8 @@ i.ph {
 .rep-kpi.is-c { box-shadow: inset 3px 0 0 #4ade80; }
 .rep-kpi.is-d { box-shadow: inset 3px 0 0 #a78bfa; }
 .rep-credit-canvas { height: 320px; }
+.rep-group-canvas { height: 240px; }
+.rep-group-name { font-weight: 700; margin-bottom: 4px; }
 .rep-share { height: 8px; margin-bottom: 4px; background: var(--bg-3); border-radius: 99px; overflow: hidden; min-width: 72px; }
 .rep-share span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #38bdf8, #fb923c); }
 .rep-credit-total td { font-weight: 800; }

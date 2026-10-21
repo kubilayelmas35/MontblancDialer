@@ -215,7 +215,7 @@ async function loadStatsReport() {
     const sessById = {};
     sessions.forEach((s) => { sessById[s.agent_id] = s; });
     if (view === 'operator') await repLoadOperatorExtra(pack, fresh);
-    if (view === 'perf') {
+    if (view === 'perf' || view === 'group') {
       const logQ = fresh.fid ? `&firm_id=eq.${fresh.fid}` : '';
       pack.statusLogs = (await sb(`agent_status_log?select=agent_id,status,started_at,ended_at,duration_sec${logQ}&started_at=gte.${fresh.gte}&started_at=lte.${fresh.lte}&order=started_at.desc&limit=2000`).catch(() => [])) || [];
     }
@@ -223,6 +223,7 @@ async function loadStatsReport() {
     if (view === 'credit') host.innerHTML += await repCreditExtra(pack.logs, fresh);
     repMountHourCharts();
     repMountCreditChart();
+    repMountGroupChart();
   } catch (e) {
     host.innerHTML = `<div class="card"><div class="firm-none">${statsEsc(t('ui.error_prefix') + (e?.message || ''))}</div></div>`;
   }
@@ -230,6 +231,7 @@ async function loadStatsReport() {
 
 function repPaint(view, pack, range, userById, sessById) {
   window._repHourPending = [];
+  window._repGroupSpec = null;
   const logs = pack.logs || [];
   const appts = pack.appts || [];
   if (view === 'calls') return repCard(t('stats.out_title'), repTable(
@@ -246,7 +248,8 @@ function repPaint(view, pack, range, userById, sessById) {
   ].join('')}</div>`;
   if (view === 'operator') return repOperator(logs, pack.allAppts || appts, userById, sessById, pack);
   if (view === 'perf') return repPerf(logs, appts, userById, sessById, pack, range);
-  if (view === 'group' || view === 'rank') return repPeople(view, logs, appts, userById);
+  if (view === 'group') return repGroup(logs, appts, userById, sessById, pack, range);
+  if (view === 'rank') return repPeople(view, logs, appts, userById);
   return '';
 }
 
@@ -510,7 +513,7 @@ function repLogSpan(row, sess) {
   return Math.min(sec, 8 * 3600);
 }
 
-function repPerf(logs, appts, userById, sessById, pack, range) {
+function repPersonRows(logs, appts, userById, sessById, pack, range) {
   const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : '';
   const liveNow = !range || (range.dateFrom <= today && range.dateTo >= today);
   const bag = {};
@@ -555,7 +558,11 @@ function repPerf(logs, appts, userById, sessById, pack, range) {
       person.brk += sec;
     });
   }
-  const list = Object.values(bag).filter((row) => row.name && row.name !== '—').sort((a, b) => {
+  return Object.values(bag);
+}
+
+function repPerf(logs, appts, userById, sessById, pack, range) {
+  const list = repPersonRows(logs, appts, userById, sessById, pack, range).filter((row) => row.name && row.name !== '—').sort((a, b) => {
     const ao = repIsOnline(sessById[a.id]) ? 1 : 0;
     const bo = repIsOnline(sessById[b.id]) ? 1 : 0;
     return (bo - ao) || (b.calls - a.calls) || a.name.localeCompare(b.name, 'tr');
@@ -639,6 +646,66 @@ function repPerfFilter(mode) {
   cells[8].textContent = statsHms(sum.talk + sum.wait + sum.brk);
 }
 
+function repGroup(logs, appts, userById, sessById, pack, range) {
+  const people = repPersonRows(logs, appts, userById, sessById, pack, range);
+  const groups = {};
+  people.forEach((row) => {
+    const key = row.role || '';
+    if (!groups[key]) groups[key] = { role: key, people: 0, online: 0, calls: 0, sale: 0, ok: 0, talk: 0, wait: 0, brk: 0 };
+    const group = groups[key];
+    if (row.name && row.name !== '—') {
+      group.people += 1;
+      if (repIsOnline(sessById[row.id])) group.online += 1;
+    }
+    group.calls += row.calls;
+    group.sale += row.sale;
+    group.ok += row.ok;
+    group.talk += row.talk;
+    group.wait += row.wait;
+    group.brk += row.brk;
+  });
+  const list = Object.values(groups).filter((row) => row.people || row.calls || row.sale).sort((a, b) => b.calls - a.calls || a.role.localeCompare(b.role, 'tr'));
+  const sum = list.reduce((acc, row) => {
+    acc.people += row.people; acc.online += row.online; acc.calls += row.calls; acc.sale += row.sale; acc.ok += row.ok;
+    acc.talk += row.talk; acc.wait += row.wait; acc.brk += row.brk;
+    return acc;
+  }, { people: 0, online: 0, calls: 0, sale: 0, ok: 0, talk: 0, wait: 0, brk: 0 });
+  window._repGroupSpec = list.length ? {
+    labels: list.map((row) => (row.role ? repRole(row.role) : t('rep.unassigned'))),
+    data: list.map((row) => row.calls),
+    talk: list.map((row) => row.talk),
+    sale: list.map((row) => row.sale),
+  } : null;
+  const rows = list.map((row) => {
+    const share = sum.calls ? Math.round(row.calls / sum.calls * 100) : 0;
+    const total = row.talk + row.wait + row.brk;
+    return `<tr>
+<td><div class="rep-group-name">${statsEsc(row.role ? repRole(row.role) : t('rep.unassigned'))}</div>${repCreditShare(share)}</td>
+<td>${row.online} / ${row.people}</td>
+<td>${row.calls}</td>
+<td>${statsEsc(statsHms(row.talk))}</td>
+<td>${statsEsc(statsHms(row.wait))}</td>
+<td>${statsEsc(statsHms(row.brk))}</td>
+<td>${statsEsc(statsHms(total))}</td>
+<td>${row.sale}</td>
+<td>${row.ok}</td>
+</tr>`;
+  });
+  rows.push(`<tr class="rep-credit-total"><td>${statsEsc(t('rep.total'))}</td><td>${sum.online} / ${sum.people}</td><td>${sum.calls}</td><td>${statsEsc(statsHms(sum.talk))}</td><td>${statsEsc(statsHms(sum.wait))}</td><td>${statsEsc(statsHms(sum.brk))}</td><td>${statsEsc(statsHms(sum.talk + sum.wait + sum.brk))}</td><td>${sum.sale}</td><td>${sum.ok}</td></tr>`);
+  const kpis = `<div class="rep-credit-kpis">
+<div class="rep-kpi is-c"><span>${statsEsc(t('rep.user_group'))}</span><b>${list.length}</b><small>${sum.online} / ${sum.people}</small></div>
+<div class="rep-kpi is-b"><span>${statsEsc(t('rep.calls_n'))}</span><b>${sum.calls}</b></div>
+<div class="rep-kpi is-a"><span>${statsEsc(t('rep.sale_n'))}</span><b>${sum.sale}</b><small>${statsEsc(t('rep.sale_ok_n'))} ${sum.ok}</small></div>
+<div class="rep-kpi is-d"><span>${statsEsc(t('rep.oncall'))}</span><b>${statsEsc(statsHms(sum.talk))}</b></div>
+</div>`;
+  const chart = `<div class="rep-group-canvas"><canvas id="rep-group-chart"></canvas></div>`;
+  const table = repTable(
+    [t('rep.user_group'), t('rep.people_n'), t('rep.calls_n'), t('rep.oncall'), t('rep.wait'), t('rep.break_col'), t('rep.total_time'), t('rep.sale_n'), t('rep.sale_ok_n')],
+    rows
+  );
+  return `${kpis}${repCard(t('rep.group_chart'), chart)}${repCard(t('stats.role_title'), table, t('rep.perf_hint'))}`;
+}
+
 function repPeople(view, logs, appts, userById) {
   const bag = {};
   function rowOf(id) {
@@ -671,20 +738,6 @@ function repPeople(view, logs, appts, userById) {
     if (['basarili', 'onaylandi', 'onay'].includes(String(a.durum || ''))) row.ok += 1;
   });
   const list = Object.values(bag);
-  if (view === 'group') {
-    const groups = {};
-    list.forEach((row) => {
-      const key = row.role || '—';
-      if (!groups[key]) groups[key] = { role: key, calls: 0, answered: 0, sec: 0, appt: 0, ok: 0 };
-      groups[key].calls += row.calls;
-      groups[key].answered += row.answered;
-      groups[key].sec += row.sec;
-      groups[key].appt += row.appt;
-      groups[key].ok += row.ok;
-    });
-    const rows = Object.values(groups).sort((a, b) => b.calls - a.calls).map((g) => `<tr><td>${statsEsc(repRole(g.role))}</td><td>${g.calls}</td><td>${g.answered}</td><td>${statsEsc(statsHms(g.sec))}</td><td>${g.appt}</td><td>${g.ok}</td></tr>`);
-    return repCard(t('stats.role_title'), repTable([t('stats.col.role'), t('stats.col.count'), t('rep.answered'), t('rep.talk'), t('stats.appt_short'), t('rep.ok')], rows), t('rep.gap'));
-  }
   if (view === 'rank') {
     const rows = list.slice().sort((a, b) => (b.ok - a.ok) || (b.appt - a.appt) || a.name.localeCompare(b.name, 'tr')).map((row, i) => `<tr><td>${i + 1}</td><td>${statsEsc(row.name)}</td><td>${statsEsc(repRole(row.role))}</td><td>${row.ok}</td><td>${row.appt}</td></tr>`);
     return repCard(t('rep.rank'), repTable([t('rep.rank'), t('rep.person'), t('stats.col.role'), t('rep.ok'), t('stats.appt_short')], rows));
@@ -792,6 +845,62 @@ async function repCreditExtra(logs, range) {
     repCard(t('stats.cost_title'), prefixBody, t('stats.cost_hint')),
     repCard(t('rep.credit_real'), repTable([t('stats.col.result'), t('stats.col.cost')], ledgerRows), t('rep.credit_real_hint')),
   ].join('');
+}
+
+function repMountGroupChart() {
+  if (window._repGroupChart) {
+    try { window._repGroupChart.destroy(); } catch (_) {}
+    window._repGroupChart = null;
+  }
+  const spec = window._repGroupSpec;
+  window._repGroupSpec = null;
+  const canvas = document.getElementById('rep-group-chart');
+  if (!spec || !canvas || typeof Chart === 'undefined') return;
+  const text = typeof _dashCssVar === 'function' ? _dashCssVar('--text-2', '#64748b') : '#64748b';
+  const grid = typeof _dashCssVar === 'function' ? _dashCssVar('--border', '#e2e8f0') : '#e2e8f0';
+  const colors = spec.labels.map((_, i) => REP_BAR_COLORS[i % REP_BAR_COLORS.length]);
+  window._repGroupChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: spec.labels,
+      datasets: [{
+        label: t('rep.calls_n'),
+        data: spec.data,
+        backgroundColor: colors,
+        borderRadius: 8,
+        borderSkipped: false,
+        maxBarThickness: 28,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 800, easing: 'easeOutQuart' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f172a',
+          displayColors: false,
+          callbacks: {
+            label(ctx) {
+              const i = ctx.dataIndex;
+              return `${ctx.parsed.x || 0} · ${statsHms(spec.talk?.[i] || 0)} · ${t('rep.sale_n')} ${spec.sale?.[i] || 0}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          title: { display: true, text: t('rep.calls_n'), color: text, font: { size: 11 } },
+          grid: { color: grid },
+          ticks: { color: text, precision: 0 },
+        },
+        y: { grid: { display: false }, ticks: { color: text, font: { size: 12 } } },
+      },
+    },
+  });
 }
 
 function repMountCreditChart() {
