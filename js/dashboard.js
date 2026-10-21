@@ -772,6 +772,7 @@ const dashSeed = {
   goalsP: (dashRole === 'super' || dashRole === 'firm' || dashRole === 'agent') && typeof mbDashGoalsData === 'function' ? mbDashGoalsData(ff, agentQ, dashRole) : Promise.resolve(null),
   usersP: (dashRole === 'super' || dashRole === 'firm') ? sb(`users?select=id,name&is_active=eq.true${ff}&limit=300`).catch(() => []) : Promise.resolve([]),
 };
+const dashCurP = typeof getFirmCurrency === 'function' ? getFirmCurrency() : Promise.resolve('EUR');
 const briefShell = typeof loadDashBrief === 'function'
   ? loadDashBrief({ logs: [], ff, agentQ, rangeKey, from, to, seed: dashSeed }).catch((e) => console.warn('brief', e))
   : Promise.resolve();
@@ -807,7 +808,8 @@ document.getElementById('d-calls').textContent  = total;
 document.getElementById('d-appt').textContent   = appts;
 document.getElementById('d-cb').textContent     = cbs;
 document.getElementById('d-vm').textContent     = vms;
-document.getElementById('d-cost').textContent   = `$${cost.toFixed(2)}`;
+const dashCur = await dashCurP;
+document.getElementById('d-cost').textContent = typeof formatMoney === 'function' ? formatMoney(cost, dashCur) : `${Number(cost || 0).toFixed(2)} €`;
 const talkMin = Math.floor(talk/60);
 document.getElementById('d-talk').textContent   = isTr ? `${talkMin}dk` : `${talkMin} Min`;
 const callWord = isTr ? 'çağrı' : (total === 1 ? 'Anruf' : 'Anrufe');
