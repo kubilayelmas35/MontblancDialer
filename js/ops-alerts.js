@@ -1864,22 +1864,138 @@ function opsMesaiPhase(win) {
   };
 }
 
+function opsNextWorkGun(fromGun) {
+  const idx = Math.max(0, OPS_GUN_ORDER.indexOf(fromGun));
+  for (let step = 1; step <= 7; step += 1) {
+    const gun = OPS_GUN_ORDER[(idx + step) % 7];
+    if (!opsMesaiDay(gun).off) return gun;
+  }
+  return fromGun;
+}
+
+function opsMesaiFocus() {
+  const clock = opsBerlinClock(_opsMesaiTz);
+  const today = opsMesaiDay(clock.gun);
+  const end = today.off ? null : opsHmMins(today.end);
+  if (!today.off && end != null && clock.mins < end + 120) {
+    return { gun: clock.gun, clock, rolled: false, day: today };
+  }
+  const gun = opsNextWorkGun(clock.gun);
+  return { gun, clock, rolled: true, day: opsMesaiDay(gun) };
+}
+
+function opsMinsUntilGun(clock, gun) {
+  const idxNow = OPS_GUN_ORDER.indexOf(clock.gun);
+  const idx = OPS_GUN_ORDER.indexOf(gun);
+  let days = (idx - idxNow + 7) % 7;
+  if (days === 0) days = 7;
+  const start = opsHmMins(opsMesaiDay(gun).start) || 0;
+  return Math.max(0, (24 * 60 - clock.mins) + (days - 1) * 24 * 60 + start);
+}
+
+function opsMesaiCue(day, mins, kind) {
+  const say = (key, fb) => opsSay(key, fb);
+  const none = say('ops.mesai.none', 'Mesai yok');
+  const start = opsHmMins(day?.start);
+  const end = opsHmMins(day?.end);
+  const breaks = day?.breaks || [];
+  if (!day || day.off || start == null || end == null) {
+    return { title: none, when: '', short: none, detail: none, stage: 'off', breakStart: '' };
+  }
+  if (kind === 'future') {
+    const left = opsLeftText(mins);
+    return {
+      title: say('ops.mesai.nextShift', 'Sonraki mesai'),
+      when: day.start,
+      short: `${say('ops.mesai.chipNext', 'Sonraki')} ${left}`,
+      detail: `${say('ops.mesai.nextShift', 'Sonraki mesai')} ${left}`,
+      stage: 'start',
+      breakStart: '',
+    };
+  }
+  if (kind === 'look') {
+    const span = `${day.start}–${day.end}`;
+    return { title: span, when: '', short: span, detail: '', stage: '', breakStart: '' };
+  }
+  if (mins >= end) {
+    return {
+      title: say('ops.mesai.ended', 'Mesai bitti'),
+      when: day.end,
+      short: say('ops.mesai.chipOver', 'Bitti'),
+      detail: say('ops.mesai.over', 'Mesai bitti'),
+      stage: 'over',
+      breakStart: '',
+    };
+  }
+  if (mins < start) {
+    const left = opsLeftText(start - mins);
+    return {
+      title: say('ops.mesai.startAt', 'Başlangıç'),
+      when: day.start,
+      short: `${say('ops.mesai.chipStart', 'Başlama')} ${left}`,
+      detail: `${say('ops.mesai.toStart', 'başlamaya')} ${left}`,
+      stage: 'start',
+      breakStart: '',
+    };
+  }
+  const live = breaks.find((item) => {
+    const a = opsHmMins(item.start);
+    const z = opsHmMins(item.end);
+    return a != null && z != null && mins >= a && mins < z;
+  });
+  if (live) {
+    const left = opsLeftText(opsHmMins(live.end) - mins);
+    return {
+      title: say('ops.mesai.chipIn', 'Molada'),
+      when: `${live.start}–${live.end}`,
+      short: `${say('ops.mesai.chipIn', 'Molada')} ${left}`,
+      detail: `${say('ops.mesai.inBreak', 'molada')} ${left}`,
+      stage: 'live',
+      breakStart: live.start,
+    };
+  }
+  const next = breaks.find((item) => {
+    const a = opsHmMins(item.start);
+    return a != null && a > mins && a < end;
+  });
+  if (next) {
+    const left = opsLeftText(opsHmMins(next.start) - mins);
+    return {
+      title: say('ops.mesai.nextBreak', 'Sonraki mola'),
+      when: `${next.start}–${next.end}`,
+      short: `${say('ops.mesai.chipBreak', 'Mola')} ${left}`,
+      detail: `${say('ops.mesai.toBreak', 'molaya')} ${left}`,
+      stage: 'break',
+      breakStart: next.start,
+    };
+  }
+  const left = opsLeftText(end - mins);
+  return {
+    title: say('ops.mesai.endAt', 'Bitiş'),
+    when: day.end,
+    short: `${say('ops.mesai.chipEnd', 'Bitiş')} ${left}`,
+    detail: `${say('ops.mesai.toEnd', 'bitişe')} ${left}`,
+    stage: 'end',
+    breakStart: '',
+  };
+}
+
 function opsPaintMesaiBar() {
   const label = document.getElementById('tb-mesai-label');
   const btn = document.getElementById('tb-mesai-btn');
   if (!label || !btn) return;
-  const win = opsMesaiWindow();
-  const phase = opsMesaiPhase(win);
+  const view = opsMesaiFocus();
+  const phase = opsMesaiPhase(opsMesaiWindow());
+  const cue = view.rolled
+    ? opsMesaiCue(view.day, opsMinsUntilGun(view.clock, view.gun), 'future')
+    : opsMesaiCue(view.day, view.clock.mins, 'live');
   const flashed = _opsMesaiFlash && _opsMesaiFlash.until > Date.now();
-  const showRange = Math.floor(Date.now() / 5000) % 2 === 0;
-  const text = flashed
-    ? _opsMesaiFlash.text
-    : (phase.hold || phase.short === phase.range ? phase.short : (showRange ? phase.range : phase.short));
+  const text = flashed ? _opsMesaiFlash.text : (!view.rolled && phase.hold ? phase.short : cue.short);
   label.textContent = text;
-  btn.title = `${phase.range} · ${phase.detail}`;
-  btn.classList.toggle('is-due', flashed || !!phase.due);
+  btn.title = cue.detail ? `${cue.title} · ${cue.detail}` : cue.title;
+  btn.classList.toggle('is-due', flashed || (!view.rolled && !!phase.due));
   const fill = document.getElementById('tb-mesai-fill');
-  if (fill) fill.style.width = `${Math.round(phase.pct)}%`;
+  if (fill) fill.style.width = view.rolled ? '0%' : `${Math.round(phase.pct)}%`;
   const pop = document.getElementById('tb-mesai-pop');
   if (pop && !pop.hidden) opsFillMesaiPop(pop);
 }
@@ -1900,49 +2016,87 @@ function opsMesaiDay(gun) {
   };
 }
 
-function opsMesaiTrack(day, clock, isToday) {
+function opsMesaiTrack(day, mins, live) {
   const track = document.createElement('div');
   track.className = 'tb-mesai-track';
   const start = opsHmMins(day.start);
   const end = opsHmMins(day.end);
   if (day.off || start == null || end == null || end <= start) return track;
   const span = end - start;
+  const now = live ? mins : null;
   const marks = (day.breaks || []).map((item) => ({
     a: opsHmMins(item.start),
     z: opsHmMins(item.end),
   })).filter((item) => item.a != null && item.z != null && item.z > item.a && item.z > start && item.a < end);
+  const seg = (cls, a, z) => {
+    const node = document.createElement('i');
+    let name = cls;
+    if (now != null) {
+      if (now >= z) name += ' is-done';
+      else if (now >= a) name += ' is-live';
+    }
+    node.className = name;
+    node.style.left = `${((a - start) / span) * 100}%`;
+    node.style.width = `${Math.max(cls === 'tb-mesai-gap' ? 1.5 : 0, ((z - a) / span) * 100)}%`;
+    track.appendChild(node);
+  };
   let cursor = start;
   marks.forEach((item) => {
     const a = Math.max(item.a, start);
     const z = Math.min(item.z, end);
-    if (a > cursor) {
-      const work = document.createElement('i');
-      work.className = 'tb-mesai-work';
-      work.style.left = `${((cursor - start) / span) * 100}%`;
-      work.style.width = `${((a - cursor) / span) * 100}%`;
-      track.appendChild(work);
-    }
-    const gap = document.createElement('i');
-    gap.className = 'tb-mesai-gap';
-    gap.style.left = `${((a - start) / span) * 100}%`;
-    gap.style.width = `${Math.max(1.5, ((z - a) / span) * 100)}%`;
-    track.appendChild(gap);
+    if (a > cursor) seg('tb-mesai-work', cursor, a);
+    seg('tb-mesai-gap', a, z);
     cursor = Math.max(cursor, z);
   });
-  if (end > cursor) {
-    const work = document.createElement('i');
-    work.className = 'tb-mesai-work';
-    work.style.left = `${((cursor - start) / span) * 100}%`;
-    work.style.width = `${((end - cursor) / span) * 100}%`;
-    track.appendChild(work);
-  }
-  if (isToday && clock && clock.mins >= start && clock.mins <= end) {
+  if (end > cursor) seg('tb-mesai-work', cursor, end);
+  if (now != null && now >= start) {
     const dot = document.createElement('b');
     dot.className = 'tb-mesai-now';
-    dot.style.left = `${((clock.mins - start) / span) * 100}%`;
+    const at = Math.min(now, end);
+    dot.style.left = `${((at - start) / span) * 100}%`;
     track.appendChild(dot);
   }
   return track;
+}
+
+function opsMesaiStages(day, mins, kind) {
+  const wrap = document.createElement('div');
+  wrap.className = 'tb-mesai-stages';
+  const start = opsHmMins(day.start);
+  const end = opsHmMins(day.end);
+  if (day.off || start == null || end == null) return wrap;
+  const cue = opsMesaiCue(day, kind === 'future' ? 0 : mins, kind === 'look' ? 'look' : kind);
+  const stages = [{ id: 'start', label: opsSay('ops.mesai.startAt', 'Başlangıç'), time: day.start }];
+  (day.breaks || []).forEach((item) => {
+    stages.push({ id: item.start, label: opsSay('ops.break.title', 'Mola'), time: item.start });
+  });
+  stages.push({ id: 'end', label: opsSay('ops.mesai.endAt', 'Bitiş'), time: day.end });
+  stages.forEach((stage) => {
+    const el = document.createElement('div');
+    el.className = 'tb-mesai-stage';
+    if (kind === 'future' && stage.id === 'start') el.classList.add('is-next');
+    if (kind === 'live' && mins != null) {
+      if (stage.id === 'start') el.classList.add(mins >= start ? 'is-done' : 'is-next');
+      else if (stage.id === 'end') {
+        if (mins >= end) el.classList.add('is-done');
+        else if (cue.stage === 'end') el.classList.add('is-next');
+      } else {
+        const item = (day.breaks || []).find((row) => row.start === stage.id);
+        const a = opsHmMins(item?.start);
+        const z = opsHmMins(item?.end);
+        if (z != null && mins >= z) el.classList.add('is-done');
+        else if (a != null && mins >= a) el.classList.add('is-live');
+        else if (cue.breakStart === stage.id) el.classList.add('is-next');
+      }
+    }
+    const name = document.createElement('span');
+    name.textContent = stage.label;
+    const time = document.createElement('b');
+    time.textContent = stage.time || '';
+    el.append(name, time);
+    wrap.appendChild(el);
+  });
+  return wrap;
 }
 
 function opsMesaiPickDay(gun, ev) {
@@ -1953,13 +2107,17 @@ function opsMesaiPickDay(gun, ev) {
 }
 
 function opsFillMesaiPop(pop) {
-  const today = opsMesaiWindow();
+  const focus = opsMesaiFocus();
   const open = OPS_GUN_ORDER.filter((key) => !opsMesaiDay(key).off);
-  let gun = OPS_GUN_ORDER.includes(_opsMesaiPopGun) ? _opsMesaiPopGun : today.clock.gun;
-  if (!open.includes(gun)) gun = open.includes(today.clock.gun) ? today.clock.gun : (open[0] || gun);
+  let gun = OPS_GUN_ORDER.includes(_opsMesaiPopGun) ? _opsMesaiPopGun : focus.gun;
+  if (!open.includes(gun)) gun = open.includes(focus.gun) ? focus.gun : (open[0] || gun);
   _opsMesaiPopGun = gun;
   const day = opsMesaiDay(gun);
-  const isToday = gun === today.clock.gun;
+  const isLive = !focus.rolled && gun === focus.clock.gun;
+  const isFuture = focus.rolled && gun === focus.gun;
+  const kind = isLive ? 'live' : (isFuture ? 'future' : 'look');
+  const mins = isFuture ? opsMinsUntilGun(focus.clock, gun) : focus.clock.mins;
+  const cue = opsMesaiCue(day, mins, kind);
   pop.replaceChildren();
   if (open.length) {
     const days = document.createElement('div');
@@ -1969,7 +2127,7 @@ function opsFillMesaiPop(pop) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'tb-mesai-day is-on';
-      if (key === today.clock.gun) btn.classList.add('is-today');
+      if (key === focus.clock.gun) btn.classList.add('is-today');
       if (key === gun) btn.classList.add('is-pick');
       btn.textContent = item.short;
       btn.onclick = (ev) => opsMesaiPickDay(key, ev);
@@ -1981,17 +2139,28 @@ function opsFillMesaiPop(pop) {
   head.className = 'tb-mesai-head';
   const name = document.createElement('b');
   name.textContent = day.label;
-  const time = document.createElement('span');
-  time.textContent = day.off ? opsSay('ops.mesai.none', 'Mesai yok') : `${day.start}–${day.end}`;
-  head.append(name, time);
+  const next = document.createElement('div');
+  next.className = 'tb-mesai-next';
+  if (kind === 'look') {
+    const span = document.createElement('span');
+    span.textContent = day.off ? opsSay('ops.mesai.none', 'Mesai yok') : `${day.start}–${day.end}`;
+    next.appendChild(span);
+  } else {
+    const small = document.createElement('small');
+    small.textContent = cue.title;
+    const span = document.createElement('span');
+    span.textContent = cue.when || cue.title;
+    next.append(small, span);
+  }
+  head.append(name, next);
   pop.appendChild(head);
-  pop.appendChild(opsMesaiTrack(day, today.clock, isToday));
+  pop.appendChild(opsMesaiTrack(day, isLive ? focus.clock.mins : null, isLive));
+  pop.appendChild(opsMesaiStages(day, isLive ? focus.clock.mins : null, kind));
   const sub = document.createElement('div');
   sub.className = 'tb-mesai-sub';
   const zone = _opsMesaiTz === 'Europe/Istanbul' ? opsSay('mesai.tz.tr', 'Türkiye') : opsSay('mesai.tz.berlin', 'Berlin');
-  if (isToday) sub.textContent = `${opsMesaiPhase(today).detail} · ${zone}`;
+  if (kind === 'live' || kind === 'future') sub.textContent = `${cue.detail} · ${zone}`;
   else if (day.off) sub.textContent = opsSay('ops.mesai.none', 'Mesai yok');
-  else sub.textContent = day.breaks.length ? '' : opsSay('ops.mesai.noBreak', 'Mola yok');
   if (sub.textContent) pop.appendChild(sub);
   const kicker = document.createElement('div');
   kicker.className = 'tb-mesai-kicker';
@@ -2008,6 +2177,13 @@ function opsFillMesaiPop(pop) {
   breaks.forEach((item, index) => {
     const card = document.createElement('div');
     card.className = 'tb-mesai-card';
+    if (kind === 'live') {
+      const a = opsHmMins(item.start);
+      const z = opsHmMins(item.end);
+      if (z != null && focus.clock.mins >= z) card.classList.add('is-done');
+      else if (a != null && focus.clock.mins >= a) card.classList.add('is-live');
+      else if (cue.breakStart === item.start) card.classList.add('is-next');
+    }
     const badge = document.createElement('i');
     badge.textContent = String(index + 1);
     const label = document.createElement('span');
