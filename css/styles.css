@@ -1480,10 +1480,11 @@ box-shadow: var(--shadow);
 #page-dashboard[data-dash-role="qc"] .dash-row[data-dash-row="live"],
 #page-dashboard[data-dash-role="qc"] #dash-stat-cost { display:none !important; }
 .dash-brief { display:flex; flex-direction:column; gap:12px; min-width:0; }
-.dash-brief-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; align-items:start; }
-.dash-brief-col { display:flex; flex-direction:column; gap:14px; min-width:0; }
+.dash-brief-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:14px; row-gap:14px; align-items:stretch; }
+.dash-brief-col { display:grid; grid-template-rows:subgrid; row-gap:14px; min-width:0; }
 .dash-brief-wide { display:flex; flex-direction:column; gap:14px; }
-.dash-brief-card { min-width:0; height:auto; padding:14px 16px; margin:0; }
+.dash-brief-card { min-width:0; height:auto; min-height:100%; padding:14px 16px; margin:0; display:flex; flex-direction:column; }
+.dash-brief-body { flex:1; }
 .dash-brief-card .card-title { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
 .dash-brief-card .card-title > span { min-width:0; }
 button.dash-card-handle {

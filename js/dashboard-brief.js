@@ -774,6 +774,15 @@ function mbPackBrief(host) {
   grid.replaceChildren(left, right);
   if (wide.childElementCount) grid.after(wide);
   else wide.remove();
+  mbSyncBriefRows(grid);
+}
+
+function mbSyncBriefRows(grid) {
+  const root = grid || document.querySelector('#dash-brief .dash-brief-grid');
+  if (!root) return;
+  const cols = [...root.querySelectorAll(':scope > .dash-brief-col')];
+  const n = Math.max(1, ...cols.map((col) => col.childElementCount));
+  cols.forEach((col) => { col.style.gridRow = `span ${n}`; });
 }
 
 let _briefDrag = '';
@@ -834,6 +843,7 @@ function mbInitBriefDrag() {
     from.classList.remove('is-dragging');
     _briefDrag = '';
     mbSaveBriefOrder();
+    mbSyncBriefRows();
   });
 }
 
