@@ -1285,8 +1285,8 @@ box-shadow: var(--shadow);
 #page-dashboard[data-dash-role="qc"] .dash-row[data-dash-row="live"],
 #page-dashboard[data-dash-role="qc"] #dash-stat-cost { display:none !important; }
 .dash-brief { display:flex; flex-direction:column; gap:12px; min-width:0; }
-.dash-brief-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
-.dash-brief-card { min-width:0; padding:14px 16px; margin:0; }
+.dash-brief-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; align-items:start; }
+.dash-brief-card { min-width:0; height:auto; align-self:start; padding:14px 16px; margin:0; }
 .dash-brief-card .card-title { margin-bottom:12px; }
 .dash-span { grid-column:1 / -1; }
 .dash-rings { display:flex; justify-content:space-around; gap:8px; }
@@ -1306,7 +1306,10 @@ box-shadow: var(--shadow);
 .dash-legend b { font-variant-numeric:tabular-nums; }
 .dash-camps { display:flex; flex-direction:column; gap:10px; }
 .dash-camp { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 8px; width:100%; text-align:left; border:0; background:transparent; padding:0; cursor:pointer; color:inherit; font:inherit; }
-.dash-camp-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:700; }
+.dash-camp-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:700; border:0; background:transparent; padding:0; color:inherit; font-family:inherit; text-align:left; cursor:pointer; }
+.dash-camp-meta { grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.dash-speed { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--text-3); }
+.dash-speed select { border:1px solid var(--border); background:var(--bg-3); color:var(--text); border-radius:8px; padding:2px 8px; font-weight:800; }
 .dash-camp b { font-variant-numeric:tabular-nums; font-size:13px; }
 .dash-camp small { grid-column:1 / -1; color:var(--text-3); font-size:11px; }
 .dash-meter { grid-column:1 / -1; height:8px; border-radius:99px; background:var(--bg-3); overflow:hidden; }

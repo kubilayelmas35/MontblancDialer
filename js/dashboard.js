@@ -765,10 +765,16 @@ if (dashRole === 'field') {
   if (typeof mbSyncDashRows === 'function') mbSyncDashRows();
   return;
 }
+window._dashLogsReady = false;
+window._dashPendingLogs = null;
 const dashSeed = {
   opsP: (dashRole === 'super' || dashRole === 'firm') && typeof mbDashOps === 'function' ? mbDashOps(ff) : Promise.resolve(null),
   goalsP: (dashRole === 'super' || dashRole === 'firm' || dashRole === 'agent') && typeof mbDashGoalsData === 'function' ? mbDashGoalsData(ff, agentQ, dashRole) : Promise.resolve(null),
+  usersP: (dashRole === 'super' || dashRole === 'firm') ? sb(`users?select=id,name&is_active=eq.true${ff}&limit=300`).catch(() => []) : Promise.resolve([]),
 };
+const briefShell = typeof loadDashBrief === 'function'
+  ? loadDashBrief({ logs: [], ff, agentQ, rangeKey, from, to, seed: dashSeed }).catch((e) => console.warn('brief', e))
+  : Promise.resolve();
 try {
 const logGte = typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
 const logLte = typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
@@ -781,6 +787,8 @@ if (dashRole === 'qc') {
   logs.splice(0, logs.length, ...logs.filter((l) => l.outcome === 'appointment' || l.outcome === 'appointment_done'));
 }
 dashLogs = logs;
+window._dashPendingLogs = logs;
+window._dashLogsReady = true;
 if (rangeKey === 'today') {
   renderDashHourlyMixed(logs);
 } else {
@@ -824,7 +832,7 @@ if (showLive) dashTail.push(renderDashLiveAgents().catch((e) => console.warn('li
 if (typeof loadDashCompetitionCard === 'function') dashTail.push(loadDashCompetitionCard().catch((e) => console.warn('comp', e)));
 if (typeof loadJobMarketKpi === 'function') dashTail.push(loadJobMarketKpi().catch(() => {}));
 if (typeof loadJobFinanceSummary === 'function') dashTail.push(loadJobFinanceSummary().catch(() => {}));
-if (typeof loadDashBrief === 'function') dashTail.push(loadDashBrief({ logs: dashLogs, ff, agentQ, rangeKey, from, to, seed: dashSeed }).catch((e) => console.warn('brief', e)));
+dashTail.push(briefShell.then(() => (typeof mbDashApplyLogs === 'function' ? mbDashApplyLogs({ logs: dashLogs, ff, agentQ, rangeKey, from, to }) : null)).catch((e) => console.warn('brief', e)));
 await Promise.all(dashTail);
 if (typeof mbSyncDashRows === 'function') mbSyncDashRows();
 }
