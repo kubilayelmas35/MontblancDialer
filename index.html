@@ -12,16 +12,16 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=10.41">
-<link rel="stylesheet" href="css/styles-dialer.css?v=10.41">
-<link rel="stylesheet" href="css/styles-mascot.css?v=10.41">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=10.41">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=10.41">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=10.41">
-<link rel="stylesheet" href="css/styles-pages.css?v=10.41">
-<link rel="stylesheet" href="css/styles-aurora.css?v=10.41">
-<link rel="stylesheet" href="css/styles-chat.css?v=10.41">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=10.41">
+<link rel="stylesheet" href="css/styles.css?v=10.42">
+<link rel="stylesheet" href="css/styles-dialer.css?v=10.42">
+<link rel="stylesheet" href="css/styles-mascot.css?v=10.42">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=10.42">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=10.42">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=10.42">
+<link rel="stylesheet" href="css/styles-pages.css?v=10.42">
+<link rel="stylesheet" href="css/styles-aurora.css?v=10.42">
+<link rel="stylesheet" href="css/styles-chat.css?v=10.42">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=10.42">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -48,7 +48,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v10.41 — 2026</div>
+<div class="login-version">v10.42 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -334,47 +334,63 @@
 </button>
 </div>
 </div>
+<div class="sb-section sb-group is-collapsed" data-sb-group="stats">
+<button type="button" class="sb-group-btn" onclick="toggleSbGroup(this)">
+<span data-tr="İstatistikler" data-de="Statistiken">İstatistikler</span>
+<svg class="sb-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+</button>
+<div class="sb-sub">
+<button class="sb-item" data-rep="overview" onclick="openStatsReport('overview')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+<span data-tr="Firma özeti" data-de="Firmenüberblick">Firma özeti</span>
+</button>
+<button class="sb-item" data-rep="operator" onclick="openStatsReport('operator')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="8" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/></svg></span>
+<span data-tr="Temsilci günlüğü" data-de="Agententagebuch">Temsilci günlüğü</span>
+</button>
+<button class="sb-item" data-rep="calls" onclick="openStatsReport('calls')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 19V5M4 19h16"/><path d="M8 16v-5M12 16V8M16 16v-3"/></svg></span>
+<span data-tr="Sonuç kırılımı" data-de="Ergebnisverteilung">Sonuç kırılımı</span>
+</button>
+<button class="sb-item" data-rep="appt" onclick="openStatsReport('appt')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+<span data-tr="Randevu saatleri" data-de="Terminstunden">Randevu saatleri</span>
+</button>
+<button class="sb-item" data-rep="result" onclick="openStatsReport('result')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg></span>
+<span data-tr="Kapanış saatleri" data-de="Abschlussstunden">Kapanış saatleri</span>
+</button>
+</div>
+</div>
+<div class="sb-section sb-group is-collapsed" data-sb-group="perf">
+<button type="button" class="sb-group-btn" onclick="toggleSbGroup(this)">
+<span data-tr="Performanslar" data-de="Leistungen">Performanslar</span>
+<svg class="sb-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+</button>
+<div class="sb-sub">
+<button class="sb-item" data-rep="perf" onclick="openStatsReport('perf')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 16l4-4 3 3 7-8"/></svg></span>
+<span data-tr="Temsilci masası" data-de="Agententisch">Temsilci masası</span>
+</button>
+<button class="sb-item" data-rep="group" onclick="openStatsReport('group')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="8" cy="9" r="2.5"/><circle cx="16" cy="9" r="2.5"/><path d="M3 18a5 5 0 0 1 10 0M11 18a5 5 0 0 1 10 0"/></svg></span>
+<span data-tr="Rol karşılaştırması" data-de="Rollenvergleich">Rol karşılaştırması</span>
+</button>
+<button class="sb-item" data-rep="rank" onclick="openStatsReport('rank')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg></span>
+<span data-tr="Satış sırası" data-de="Verkaufsreihe">Satış sırası</span>
+</button>
+</div>
+</div>
 <div class="sb-section sb-group is-collapsed" data-sb-group="reports">
 <button type="button" class="sb-group-btn" onclick="toggleSbGroup(this)">
 <span data-tr="Raporlar" data-de="Berichte">Raporlar</span>
 <svg class="sb-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
 </button>
 <div class="sb-sub">
-<button class="sb-item" data-rep="overview" onclick="openStatsReport('overview')">
-<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-<span data-tr="İstatistikler" data-de="Statistiken">İstatistikler</span>
-</button>
-<button class="sb-item" data-rep="operator" onclick="openStatsReport('operator')">
-<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="8" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/></svg></span>
-<span data-tr="Operatör istatistiği" data-de="Operatorstatistik">Operatör istatistiği</span>
-</button>
-<button class="sb-item" data-rep="calls" onclick="openStatsReport('calls')">
-<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 19V5M4 19h16"/><path d="M8 16v-5M12 16V8M16 16v-3"/></svg></span>
-<span data-tr="Arama istatistik" data-de="Anrufstatistik">Arama istatistik</span>
-</button>
-<button class="sb-item" data-rep="appt" onclick="openStatsReport('appt')">
-<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
-<span data-tr="Randevu istatistik" data-de="Terminstatistik">Randevu istatistik</span>
-</button>
-<button class="sb-item" data-rep="result" onclick="openStatsReport('result')">
-<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg></span>
-<span data-tr="Sonlandırma istatistik" data-de="Abschlussstatistik">Sonlandırma istatistik</span>
-</button>
 <button class="sb-item" data-rep="credit" onclick="openStatsReport('credit')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="8"/><path d="M12 7v10M9.5 9.5c.6-.8 1.4-1.2 2.5-1.2 1.6 0 2.6.9 2.6 2.1S13.6 12.4 12 12.4 9.4 13.3 9.4 14.6 10.4 16.7 12 16.7c1.1 0 1.9-.4 2.5-1.2"/></svg></span>
 <span data-tr="Kredi harcama" data-de="Guthabenverbrauch">Kredi harcama</span>
-</button>
-<button class="sb-item" data-rep="perf" onclick="openStatsReport('perf')">
-<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 16l4-4 3 3 7-8"/></svg></span>
-<span data-tr="Operatör performans" data-de="Operatorleistung">Operatör performans</span>
-</button>
-<button class="sb-item" data-rep="group" onclick="openStatsReport('group')">
-<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="8" cy="9" r="2.5"/><circle cx="16" cy="9" r="2.5"/><path d="M3 18a5 5 0 0 1 10 0M11 18a5 5 0 0 1 10 0"/></svg></span>
-<span data-tr="Grup performans" data-de="Gruppenleistung">Grup performans</span>
-</button>
-<button class="sb-item" data-rep="rank" onclick="openStatsReport('rank')">
-<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg></span>
-<span data-tr="Liderlik" data-de="Rangliste">Liderlik</span>
 </button>
 <button class="sb-item" onclick="navigate('callhistory')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M8 6h13M8 12h13M8 18h13M4 6h.01M4 12h.01M4 18h.01"/></svg></span>
@@ -441,7 +457,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v10.41</div>
+<div class="sb-ver">MontBlanc v10.42</div>
 </div>
 </nav>
 <main id="main">
@@ -864,7 +880,7 @@
 <div class="page" id="page-stats">
 <div class="page-hdr">
 <div>
-<div class="page-title" data-tr="İstatistikler" data-de="Statistiken">İstatistikler</div>
+<div class="page-title" id="stats-page-title" data-tr="Firma özeti" data-de="Firmenüberblick">Firma özeti</div>
 <div class="page-sub" data-tr="Arama sonucu. Randevu, agentin aramada yazdığı sonuçtur. Kalite kontrol sonrası durum Personel performansta." data-de="Anrufergebnis. Termin ist das Ergebnis des Agenten. Der Stand nach QC steht unter Mitarbeiterleistung.">Arama sonucu. Randevu, agentin aramada yazdığı sonuçtur. Kalite kontrol sonrası durum Personel performansta.</div>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto;">
@@ -4495,64 +4511,64 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=10.41"></script>
-<script src="js/i18n.js?v=10.41"></script>
-<script src="js/config.js?v=10.41"></script>
-<script src="js/state.js?v=10.41"></script>
-<script src="js/api.js?v=10.41"></script>
-<script src="js/access.js?v=10.41"></script>
-<script src="js/auth.js?v=10.41"></script>
-<script src="js/ui.js?v=10.41"></script>
-<script src="js/chat.js?v=10.41"></script>
-<script src="js/chat-settings.js?v=10.41"></script>
-<script src="js/field-settings.js?v=10.41"></script>
-<script src="js/audit.js?v=10.41"></script>
-<script src="js/feature-flags.js?v=10.41"></script>
-<script src="js/notification-center.js?v=10.41"></script>
+<script src="js/version.js?v=10.42"></script>
+<script src="js/i18n.js?v=10.42"></script>
+<script src="js/config.js?v=10.42"></script>
+<script src="js/state.js?v=10.42"></script>
+<script src="js/api.js?v=10.42"></script>
+<script src="js/access.js?v=10.42"></script>
+<script src="js/auth.js?v=10.42"></script>
+<script src="js/ui.js?v=10.42"></script>
+<script src="js/chat.js?v=10.42"></script>
+<script src="js/chat-settings.js?v=10.42"></script>
+<script src="js/field-settings.js?v=10.42"></script>
+<script src="js/audit.js?v=10.42"></script>
+<script src="js/feature-flags.js?v=10.42"></script>
+<script src="js/notification-center.js?v=10.42"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=10.41"></script>
-<script src="js/job-market.js?v=10.41"></script>
-<script src="js/qc-job-market.js?v=10.41"></script>
-<script src="js/export-admin.js?v=10.41"></script>
-<script src="js/export-termin.js?v=10.41"></script>
-<script src="js/performance.js?v=10.41"></script>
-<script src="js/competition.js?v=10.41"></script>
-<script src="js/dashboard.js?v=10.41"></script>
-<script src="js/reports.js?v=10.41"></script>
-<script src="js/dashboard-brief.js?v=10.41"></script>
-<script src="js/campaigns.js?v=10.41"></script>
-<script src="js/campaigns-detail.js?v=10.41"></script>
-<script src="js/campaigns-queue.js?v=10.41"></script>
-<script src="js/contacts-upload.js?v=10.41"></script>
-<script src="js/contacts.js?v=10.41"></script>
-<script src="js/contacts-drawer.js?v=10.41"></script>
-<script src="js/telnyx.js?v=10.41"></script>
-<script src="js/voice-orb.js?v=10.41"></script>
-<script src="js/dialer.js?v=10.41"></script>
-<script src="js/ops-alerts.js?v=10.41"></script>
-<script src="js/dialer-mascot.js?v=10.41"></script>
-<script src="js/dialer-mascot-live.js?v=10.41"></script>
-<script src="js/ui-prefs.js?v=10.41"></script>
-<script src="js/dialer-session.js?v=10.41"></script>
-<script src="js/dialer-call.js?v=10.41"></script>
-<script src="js/dialer-tools.js?v=10.41"></script>
-<script src="js/appointments.js?v=10.41"></script>
-<script src="js/appointments-actions.js?v=10.41"></script>
-<script src="js/appointments-tools.js?v=10.41"></script>
-<script src="js/field.js?v=10.41"></script>
-<script src="js/field-quote.js?v=10.41"></script>
-<script src="js/field-catalog.js?v=10.41"></script>
-<script src="js/field-ops.js?v=10.41"></script>
-<script src="js/wiedervorlage.js?v=10.41"></script>
-<script src="js/qc.js?v=10.41"></script>
-<script src="js/supervisor.js?v=10.41"></script>
-<script src="js/live-coach.js?v=10.41"></script>
-<script src="js/sms-settings.js?v=10.41"></script>
-<script src="js/leave-hr.js?v=10.41"></script>
-<script src="js/muhasebe.js?v=10.41"></script>
-<script src="js/muhasebe-books.js?v=10.41"></script>
-<script src="js/agent-self-performance.js?v=10.41"></script>
-<script src="js/agents.js?v=10.41"></script>
-<script src="js/mimi-brain.js?v=10.41"></script>
+<script src="js/wallet.js?v=10.42"></script>
+<script src="js/job-market.js?v=10.42"></script>
+<script src="js/qc-job-market.js?v=10.42"></script>
+<script src="js/export-admin.js?v=10.42"></script>
+<script src="js/export-termin.js?v=10.42"></script>
+<script src="js/performance.js?v=10.42"></script>
+<script src="js/competition.js?v=10.42"></script>
+<script src="js/dashboard.js?v=10.42"></script>
+<script src="js/reports.js?v=10.42"></script>
+<script src="js/dashboard-brief.js?v=10.42"></script>
+<script src="js/campaigns.js?v=10.42"></script>
+<script src="js/campaigns-detail.js?v=10.42"></script>
+<script src="js/campaigns-queue.js?v=10.42"></script>
+<script src="js/contacts-upload.js?v=10.42"></script>
+<script src="js/contacts.js?v=10.42"></script>
+<script src="js/contacts-drawer.js?v=10.42"></script>
+<script src="js/telnyx.js?v=10.42"></script>
+<script src="js/voice-orb.js?v=10.42"></script>
+<script src="js/dialer.js?v=10.42"></script>
+<script src="js/ops-alerts.js?v=10.42"></script>
+<script src="js/dialer-mascot.js?v=10.42"></script>
+<script src="js/dialer-mascot-live.js?v=10.42"></script>
+<script src="js/ui-prefs.js?v=10.42"></script>
+<script src="js/dialer-session.js?v=10.42"></script>
+<script src="js/dialer-call.js?v=10.42"></script>
+<script src="js/dialer-tools.js?v=10.42"></script>
+<script src="js/appointments.js?v=10.42"></script>
+<script src="js/appointments-actions.js?v=10.42"></script>
+<script src="js/appointments-tools.js?v=10.42"></script>
+<script src="js/field.js?v=10.42"></script>
+<script src="js/field-quote.js?v=10.42"></script>
+<script src="js/field-catalog.js?v=10.42"></script>
+<script src="js/field-ops.js?v=10.42"></script>
+<script src="js/wiedervorlage.js?v=10.42"></script>
+<script src="js/qc.js?v=10.42"></script>
+<script src="js/supervisor.js?v=10.42"></script>
+<script src="js/live-coach.js?v=10.42"></script>
+<script src="js/sms-settings.js?v=10.42"></script>
+<script src="js/leave-hr.js?v=10.42"></script>
+<script src="js/muhasebe.js?v=10.42"></script>
+<script src="js/muhasebe-books.js?v=10.42"></script>
+<script src="js/agent-self-performance.js?v=10.42"></script>
+<script src="js/agents.js?v=10.42"></script>
+<script src="js/mimi-brain.js?v=10.42"></script>
 </body>
 </html>

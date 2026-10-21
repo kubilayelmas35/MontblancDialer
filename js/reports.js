@@ -11,8 +11,31 @@ function openStatsReport(view) {
   }
 }
 
+const REP_TITLE = {
+  overview: 'nav.rep_home',
+  operator: 'nav.rep_operator',
+  calls: 'nav.rep_calls',
+  appt: 'nav.rep_appt',
+  result: 'nav.rep_result',
+  credit: 'nav.rep_credit',
+  perf: 'nav.rep_perf',
+  group: 'nav.rep_group',
+  rank: 'nav.rep_rank',
+};
+
 function mbSyncStatsChrome() {
   const view = window._statsReport || 'overview';
+  const titleKey = REP_TITLE[view] || 'nav.rep_home';
+  const title = document.getElementById('stats-page-title');
+  if (title) {
+    const tr = (typeof MB_I18N !== 'undefined' && MB_I18N.tr?.[titleKey]) || t(titleKey);
+    const de = (typeof MB_I18N !== 'undefined' && MB_I18N.de?.[titleKey]) || tr;
+    title.setAttribute('data-tr', tr);
+    title.setAttribute('data-de', de);
+    title.textContent = t(titleKey);
+  }
+  const sub = document.querySelector('#page-stats .page-sub');
+  if (sub) sub.style.display = view === 'overview' ? '' : 'none';
   const overview = document.getElementById('stats-overview');
   const extra = document.getElementById('stats-extra');
   if (overview) overview.style.display = view === 'overview' ? '' : 'none';
@@ -612,7 +635,7 @@ function repPerf(logs, appts, userById, sessById, pack, range) {
     [t('rep.person'), t('stats.col.role'), t('rep.calls_n'), t('rep.sale_n'), t('rep.sale_ok_n'), t('rep.oncall'), t('rep.wait'), t('rep.break_col'), t('rep.total_time')],
     rows
   );
-  return `${kpis}${repCard(t('rep.talk'), `${switcher}${table}`, t('rep.perf_hint'))}`;
+  return `${kpis}${repCard(t('nav.rep_perf'), `${switcher}${table}`, t('rep.perf_hint'))}`;
 }
 
 function repPerfFilter(mode) {
