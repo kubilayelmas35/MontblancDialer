@@ -33,20 +33,108 @@ function repTable(heads, rows) {
   return `<div class="tbl-wrap"><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
-function repHours(items) {
+const REP_BAR_COLORS = ['#7dd3fc', '#fdba74', '#fb923c', '#4ade80', '#60a5fa', '#f97316', '#38bdf8', '#f87171', '#a78bfa', '#facc15', '#34d399', '#f472b6'];
+let _repHourCharts = [];
+let _repHourSeq = 0;
+
+function repHourCounts(items) {
   const hours = Array.from({ length: 24 }, () => 0);
-  items.forEach((iso) => {
+  (items || []).forEach((iso) => {
     if (!iso) return;
     const h = statsBerlinHour(iso);
     if (h >= 0 && h <= 23) hours[h] += 1;
   });
-  const max = Math.max(1, ...hours);
-  const html = hours.map((n, i) => {
-    if (!n) return '';
-    const w = Math.round(n / max * 100);
-    return `<div class="stats-hour"><span>${String(i).padStart(2, '0')}:00</span><span class="stats-hour-track"><span class="stats-hour-bar" style="width:${w}%"></span></span><span>${n}</span><span></span></div>`;
-  }).join('');
-  return `<div class="stats-hours">${html || `<div class="firm-none">${statsEsc(t('stats.none'))}</div>`}</div>`;
+  return hours;
+}
+
+function repHourTable(hours) {
+  const rows = [];
+  hours.forEach((n, i) => {
+    if (!n) return;
+    rows.push(`<tr><td>${rows.length + 1}</td><td>${String(i).padStart(2, '0')}:00</td><td>${n}</td></tr>`);
+  });
+  return repTable(['#', t('rep.hour'), t('rep.qty')], rows);
+}
+
+function repHours(items, tone) {
+  const hours = repHourCounts(items);
+  if (!hours.some((n) => n > 0)) return `<div class="firm-none">${statsEsc(t('stats.none'))}</div>`;
+  if (typeof Chart === 'undefined') {
+    const max = Math.max(1, ...hours);
+    const html = hours.map((n, i) => {
+      if (!n) return '';
+      const w = Math.round(n / max * 100);
+      return `<div class="stats-hour"><span>${String(i).padStart(2, '0')}:00</span><span class="stats-hour-track"><span class="stats-hour-bar" style="width:${w}%"></span></span><span>${n}</span><span></span></div>`;
+    }).join('');
+    return `<div class="stats-hours">${html}</div>${repHourTable(hours)}`;
+  }
+  const id = `rep-hour-${++_repHourSeq}`;
+  window._repHourPending = window._repHourPending || [];
+  window._repHourPending.push({ id, hours, tone: tone || 'cool' });
+  return `<div class="rep-hour-canvas"><canvas id="${id}"></canvas></div>${repHourTable(hours)}`;
+}
+
+function repMountHourCharts() {
+  _repHourCharts.forEach((chart) => { try { chart.destroy(); } catch (_) {} });
+  _repHourCharts = [];
+  const pending = window._repHourPending || [];
+  window._repHourPending = [];
+  if (typeof Chart === 'undefined') return;
+  const text = typeof _dashCssVar === 'function' ? _dashCssVar('--text-2', '#64748b') : '#64748b';
+  const grid = typeof _dashCssVar === 'function' ? _dashCssVar('--border', '#e2e8f0') : '#e2e8f0';
+  pending.forEach((spec) => {
+    const canvas = document.getElementById(spec.id);
+    if (!canvas) return;
+    const labels = [];
+    const data = [];
+    const colors = [];
+    spec.hours.forEach((n, i) => {
+      if (!n) return;
+      labels.push(`${String(i).padStart(2, '0')}:00`);
+      data.push(n);
+      colors.push(REP_BAR_COLORS[(spec.tone === 'warm' ? i + 1 : i) % REP_BAR_COLORS.length]);
+    });
+    const chart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: t('rep.freq'),
+          data,
+          backgroundColor: colors,
+          borderRadius: 8,
+          borderSkipped: false,
+          maxBarThickness: 46,
+          hoverBackgroundColor: colors.map((c) => c),
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 800, easing: 'easeOutQuart' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0f172a',
+            displayColors: false,
+            callbacks: {
+              label(ctx) { return `${ctx.parsed.y}`; },
+            },
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: text, font: { size: 11 } } },
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: t('rep.freq'), color: text, font: { size: 11 } },
+            grid: { color: grid },
+            ticks: { color: text, precision: 0, font: { size: 11 } },
+          },
+        },
+      },
+    });
+    _repHourCharts.push(chart);
+  });
 }
 
 function repOutcomeLabel(key) {
@@ -129,12 +217,14 @@ async function loadStatsReport() {
     if (view === 'operator') await repLoadOperatorExtra(pack, fresh);
     host.innerHTML = repPaint(view, pack, fresh, userById, sessById);
     if (view === 'credit') host.innerHTML += await repCreditExtra(pack.logs, fresh);
+    repMountHourCharts();
   } catch (e) {
     host.innerHTML = `<div class="card"><div class="firm-none">${statsEsc(t('ui.error_prefix') + (e?.message || ''))}</div></div>`;
   }
 }
 
 function repPaint(view, pack, range, userById, sessById) {
+  window._repHourPending = [];
   const logs = pack.logs || [];
   const appts = pack.appts || [];
   if (view === 'calls') return repCard(t('stats.out_title'), repTable(
@@ -145,10 +235,10 @@ function repPaint(view, pack, range, userById, sessById) {
     })
   ));
   if (view === 'result') return repResult(logs);
-  if (view === 'appt') return [
-    repCard(t('rep.create'), repHours(appts.map((a) => a.kayit_tarihi))),
-    repCard(t('rep.call'), repHours(logs.filter((l) => statsOutcomeKey(l.outcome) === 'appointment').map((l) => l.started_at))),
-  ].join('');
+  if (view === 'appt') return `<div class="rep-appt-grid">${[
+    repCard(t('rep.create'), repHours(appts.map((a) => a.kayit_tarihi), 'cool'), t('rep.create_hint')),
+    repCard(t('rep.call'), repHours(logs.filter((l) => statsOutcomeKey(l.outcome) === 'appointment').map((l) => l.started_at), 'warm'), t('rep.call_hint')),
+  ].join('')}</div>`;
   if (view === 'operator') return repOperator(logs, pack.allAppts || appts, userById, sessById, pack);
   if (view === 'perf' || view === 'group' || view === 'rank') return repPeople(view, logs, appts, userById);
   return '';
