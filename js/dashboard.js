@@ -539,11 +539,15 @@ async function mbPaintTodayResults() {
   const countOf = (key) => rows.filter((row) => norm(row.durum) === key).length;
   const safeColor = (color) => (/^#[0-9a-fA-F]{6}$/.test(String(color || '')) ? color : '#64748b');
   const todayLabel = mbChipSay('tb.res.today', 'Bugün');
+  const totalLabel = mbChipSay('tb.res.total', 'Toplam');
   const piece = (def) => {
     const key = /^[a-z0-9_]*$/i.test(String(def.key || '')) ? String(def.key) : '';
     if (!key) return '';
     const color = safeColor(def.color);
-    const ink = mbChipInk(color);
+    const ink = mbChipInk(color) === '#fff' ? color : color.replace(/[0-9a-f]{2}/gi, (pair) => {
+      const n = Math.max(0, Math.round(parseInt(pair, 16) * 0.62));
+      return n.toString(16).padStart(2, '0');
+    });
     return { key, color, ink, n: countOf(key), label: def.label };
   };
   const pieces = list.map(piece).filter((item) => item.key);
@@ -551,7 +555,8 @@ async function mbPaintTodayResults() {
   const keepOpen = !!(panel && (!panel.hidden || host.matches(':hover') || panel.matches(':hover')));
   host.hidden = false;
   host.setAttribute('aria-label', todayLabel);
-  host.innerHTML = pieces.map((item) => `<button type="button" class="tb-res" data-res="${item.key}" aria-label="${mbChipEsc(item.label)}" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')">${item.n}</button>`).join('');
+  const nums = pieces.map((item) => `<button type="button" class="tb-res" data-res="${item.key}" aria-label="${mbChipEsc(item.label)}" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')">${item.n}</button>`).join('');
+  host.innerHTML = `${nums}<button type="button" class="tb-res tb-res-sum" data-res="" aria-label="${mbChipEsc(totalLabel)}" onclick="mbToggleResPop(event,'')">${rows.length}</button>`;
   if (panel) {
     panel.innerHTML = rowsHtml;
     panel.hidden = !keepOpen || !rowsHtml;
