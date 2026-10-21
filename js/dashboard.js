@@ -49,17 +49,200 @@ if (fid) {
     (typeof getFirmWallet === 'function' ? getFirmWallet(fid) : Promise.resolve({ balance: 0 })),
     (typeof getFirmCurrency === 'function' ? getFirmCurrency(fid) : Promise.resolve('EUR')),
   ]);
-  const balEl = document.getElementById('pill-bal');
-  const bal = Number(wallet?.balance || 0);
-  if (balEl) {
-    balEl.textContent = _fmtPillMoney(bal);
-    balEl.title = bal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-  const curEl = document.getElementById('pill-bal-cur');
-  if (curEl) curEl.textContent = cur || 'EUR';
+  window._tbBalWallet = wallet || { balance: 0, reserved_balance: 0, available: 0, overdraft: 0 };
+  window._tbBalCur = cur || 'EUR';
+  window._tbBalFid = fid;
+  mbPaintBalChip(Number(wallet?.balance || 0), cur || 'EUR');
+  const pop = document.getElementById('tb-bal-pop');
+  if (pop && !pop.hidden) mbFillBalPop(pop);
 }
 } catch(e){}
 }
+
+function mbBalHex(hex) {
+  const h = String(hex || '').replace('#', '');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+function mbBalMix(a, b, t) {
+  const pa = mbBalHex(a);
+  const pb = mbBalHex(b);
+  const u = Math.max(0, Math.min(1, Number(t) || 0));
+  const c = pa.map((n, i) => Math.round(n + (pb[i] - n) * u));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+}
+
+function mbChipMoney(n, cur) {
+  const v = Number(n);
+  const safe = Number.isFinite(v) ? v : 0;
+  const code = cur || 'EUR';
+  const sym = typeof getCurrencySymbol === 'function' ? getCurrencySymbol(code) : '€';
+  const full = typeof formatMoney === 'function' ? formatMoney(safe, code) : `${sym}${safe.toFixed(2)}`;
+  if (Math.abs(safe) < 100000) {
+    const text = full.startsWith(sym) ? full.slice(sym.length) : full;
+    return { text, title: full, sym };
+  }
+  const compact = _fmtPillMoney(Math.abs(safe));
+  const text = `${safe < 0 ? '-' : ''}${compact}`;
+  return { text, title: full, sym };
+}
+
+function mbPaintBalChip(bal, cur) {
+  const btn = document.getElementById('pill-bal-btn');
+  const balEl = document.getElementById('pill-bal');
+  const mark = document.getElementById('pill-bal-mark');
+  const n = Number(bal);
+  const safe = Number.isFinite(n) ? n : 0;
+  const shown = mbChipMoney(safe, cur);
+  if (mark) mark.textContent = shown.sym;
+  if (balEl) {
+    balEl.textContent = shown.text;
+    balEl.title = shown.title;
+  }
+  if (!btn) return;
+  btn.classList.remove('is-ok', 'is-warn', 'is-low', 'is-neg');
+  btn.style.background = '';
+  btn.style.borderColor = '';
+  btn.style.color = '';
+  btn.style.removeProperty('--bal-rest');
+  btn.style.removeProperty('--bal-ink');
+  btn.title = shown.title;
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (safe >= 100) {
+    btn.classList.add('is-ok');
+  } else if (safe >= 50) {
+    btn.classList.add('is-warn');
+  } else if (safe < 0) {
+    btn.classList.add('is-neg');
+    const depth = Math.max(0, Math.min(1, Math.abs(safe) / 200));
+    if (dark) {
+      btn.style.setProperty('--bal-rest', mbBalMix('#450a0a', '#1c0505', depth));
+      btn.style.setProperty('--bal-ink', depth > 0.55 ? '#fff' : '#fecaca');
+    } else {
+      btn.style.setProperty('--bal-rest', mbBalMix('#fee2e2', '#7f1d1d', depth));
+      btn.style.setProperty('--bal-ink', depth > 0.55 ? '#fff' : '#991b1b');
+    }
+    btn.style.borderColor = '#dc2626';
+  } else {
+    btn.classList.add('is-low');
+    const mix = 1 - (safe / 50);
+    if (dark) {
+      btn.style.background = mbBalMix('#3f2a14', '#450a0a', mix);
+      btn.style.borderColor = mbBalMix('#fb923c', '#ef4444', mix);
+      btn.style.color = mbBalMix('#fdba74', '#fecaca', mix);
+    } else {
+      btn.style.background = mbBalMix('#fff7ed', '#fee2e2', mix);
+      btn.style.borderColor = mbBalMix('#fb923c', '#dc2626', mix);
+      btn.style.color = mbBalMix('#c2410c', '#991b1b', mix);
+    }
+  }
+}
+
+function mbBalRow(label, value) {
+  const esc = typeof statsEsc === 'function' ? statsEsc : (v) => String(v ?? '');
+  return `<div class="tb-bal-row"><span>${esc(label)}</span><b>${esc(value)}</b></div>`;
+}
+
+async function mbTodaySpend(fid) {
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
+  const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
+  const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
+  const firms = await sb(`firms?id=eq.${fid}&select=settings`).catch(() => []);
+  const rates = firms?.[0]?.settings?.billing?.rates || [];
+  const logs = await sb(`call_logs?select=duration_sec,cost_usd,phone&firm_id=eq.${fid}&started_at=gte.${gte}&started_at=lte.${lte}&limit=8000`).catch(() => []);
+  let cost = 0;
+  let sec = 0;
+  (logs || []).forEach((l) => {
+    sec += Number(l.duration_sec) || 0;
+    const stored = Number(l.cost_usd);
+    if (stored > 0) {
+      cost += stored;
+      return;
+    }
+    const rate = typeof statsMatchRate === 'function' ? statsMatchRate(l.phone, rates) : null;
+    if (rate) cost += ((Number(l.duration_sec) || 0) / 60) * (Number(rate.price) || 0);
+  });
+  return { cost, sec, n: (logs || []).length };
+}
+
+function mbFillBalPop(pop) {
+  if (!pop) return;
+  const esc = typeof statsEsc === 'function' ? statsEsc : (v) => String(v ?? '');
+  const fid = window._tbBalFid || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id;
+  const cur = window._tbBalCur || 'EUR';
+  const w = window._tbBalWallet || { balance: 0, reserved_balance: 0, available: 0, overdraft: 0 };
+  if (!fid) {
+    pop.innerHTML = `<div class="tb-bal-empty">${esc(t('tb.bal_none'))}</div>`;
+    return;
+  }
+  const money = (n) => (typeof formatMoney === 'function' ? formatMoney(n, cur) : Number(n || 0).toFixed(2));
+  const rows = [
+    mbBalRow(t('tb.bal'), money(w.balance)),
+    mbBalRow(t('tb.bal_reserved'), money(w.reserved_balance)),
+    mbBalRow(t('tb.bal_available'), money(w.available)),
+  ];
+  if (Number(w.overdraft) > 0) rows.push(mbBalRow(t('tb.bal_overdraft'), money(w.overdraft)));
+  pop.innerHTML = `
+<div class="tb-bal-kicker">${esc(t('tb.bal_today'))}</div>
+<div class="tb-bal-today" id="tb-bal-today">${esc(t('tb.bal_loading'))}</div>
+<div class="tb-bal-sub" id="tb-bal-sub"></div>
+<div class="tb-bal-rows">${rows.join('')}</div>
+<p class="tb-bal-note">${esc(t('tb.bal_note'))}</p>`;
+  const seq = (window._tbBalSeq = (window._tbBalSeq || 0) + 1);
+  mbTodaySpend(fid).then((spend) => {
+    if (seq !== window._tbBalSeq || pop.hidden) return;
+    const todayEl = document.getElementById('tb-bal-today');
+    const subEl = document.getElementById('tb-bal-sub');
+    if (todayEl) todayEl.textContent = money(spend.cost);
+    if (subEl) subEl.textContent = `${tReplace('tb.bal_calls', { n: spend.n })} · ${tReplace('tb.bal_talk', { t: statsHms(spend.sec) })}`;
+  }).catch(() => {
+    const todayEl = document.getElementById('tb-bal-today');
+    if (todayEl && seq === window._tbBalSeq) todayEl.textContent = money(0);
+  });
+}
+
+function mbPlaceBalPop(pop) {
+  const btn = document.getElementById('pill-bal-btn');
+  if (!btn || !pop) return;
+  const rect = btn.getBoundingClientRect();
+  const width = 280;
+  let left = rect.left;
+  if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
+  if (left < 8) left = 8;
+  pop.style.top = `${Math.round(rect.bottom + 8)}px`;
+  pop.style.left = `${Math.round(left)}px`;
+}
+
+function mbToggleBalPop(ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const pop = document.getElementById('tb-bal-pop');
+  const btn = document.getElementById('pill-bal-btn');
+  if (!pop) return;
+  if (!pop.hidden) {
+    pop.hidden = true;
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+    return;
+  }
+  pop.hidden = false;
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+  mbPlaceBalPop(pop);
+  mbFillBalPop(pop);
+}
+
+document.addEventListener('click', (ev) => {
+  const pop = document.getElementById('tb-bal-pop');
+  if (!pop || pop.hidden) return;
+  if (ev.target.closest && ev.target.closest('#pill-bal-btn, #tb-bal-pop')) return;
+  pop.hidden = true;
+  const btn = document.getElementById('pill-bal-btn');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+});
+
+document.addEventListener('scroll', () => {
+  const pop = document.getElementById('tb-bal-pop');
+  if (!pop || pop.hidden) return;
+  mbPlaceBalPop(pop);
+}, true);
 
 function _dashCanUseAgentFilter() {
   return mbIsFirmAdmin();

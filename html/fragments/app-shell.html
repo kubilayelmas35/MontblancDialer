@@ -25,11 +25,10 @@
 <span class="tb-pill-val" id="pill-ping">--</span>
 <span class="tb-pill-lbl">ms</span>
 </div>
-<div class="tb-pill pill-bal">
-<span class="tb-pill-ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M18 7.5a6 6 0 1 0 0 9"/><path d="M6 10.25h9"/><path d="M6 13.75h8"/></svg></span>
+<button type="button" class="tb-pill pill-bal" id="pill-bal-btn" onclick="mbToggleBalPop(event)" aria-expanded="false" aria-controls="tb-bal-pop" title="Bakiye" data-tr-title="Bakiye" data-de-title="Guthaben" aria-label="Bakiye" data-tr-aria="Bakiye" data-de-aria="Guthaben">
+<span class="pill-bal-mark" id="pill-bal-mark" aria-hidden="true">€</span>
 <span class="tb-pill-val" id="pill-bal">--</span>
-<span class="tb-pill-lbl" id="pill-bal-cur">EUR</span>
-</div>
+</button>
 <div class="tb-pill pill-call">
 <div class="tb-pill-dot"></div>
 <span class="tb-pill-val" id="pill-call">0</span>
@@ -72,6 +71,7 @@
 </div>
 </div>
 </div>
+<div id="tb-bal-pop" class="tb-bal-pop" hidden></div>
 <div class="tb-right">
 <span id="tb-test-flag" class="tb-test-flag" role="status" hidden>TEST</span>
 <button type="button" class="tb-icon-btn tb-mesai" id="tb-mesai-btn" onclick="opsToggleMesaiInfo(event)" title="Mesai" data-tr-title="Mesai" data-de-title="Schicht" aria-label="Mesai" data-tr-aria="Mesai" data-de-aria="Schicht">
