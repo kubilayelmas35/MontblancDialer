@@ -1449,6 +1449,13 @@ button.dash-card-handle:active { cursor:grabbing; }
 .dash-legend span { flex:1; min-width:0; }
 .dash-legend b { font-variant-numeric:tabular-nums; }
 .dash-camps { display:flex; flex-direction:column; gap:10px; }
+.dash-camps-scroll {
+  max-height:230px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  padding-right:4px;
+}
 .dash-camp { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 8px; width:100%; text-align:left; border:0; background:transparent; padding:0; cursor:pointer; color:inherit; font:inherit; }
 .dash-camp-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:700; border:0; background:transparent; padding:0; color:inherit; font-family:inherit; text-align:left; cursor:pointer; }
 .dash-camp-meta { grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; gap:8px; }

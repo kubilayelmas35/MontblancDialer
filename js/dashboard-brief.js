@@ -360,7 +360,21 @@ function mbDashCampInner(logs, ops) {
     const firm = showFirm && ops.firmName[camp.firm_id] ? ` · ${mbDashClip(ops.firmName[camp.firm_id], 18)}` : '';
     return `<div class="dash-camp"><button type="button" class="dash-camp-name" title="${mbDashEsc(camp.name || '')}" onclick="mbDashOpenCamp('${camp.id}')">${mbDashEsc(mbDashClip(camp.name, 32))}${mbDashEsc(firm)}</button><b>${remain}</b><span class="dash-meter"><i style="width:${width}%;background:${colors[index % colors.length]}"></i></span><span class="dash-camp-meta"><small>${mbDashTr('kalan', 'offen')} · %${rate}</small>${mbDashSpeedSelect(camp.id, camp.dial_speed)}</span></div>`;
   }).join('');
-  return `<div class="dash-camps">${rows}</div>`;
+  const scroll = camps.length > 3 ? ' dash-camps-scroll' : '';
+  return `<div class="dash-camps${scroll}">${rows}</div>`;
+}
+
+function mbFitCampScroll() {
+  const box = document.querySelector('#dash-camp-body .dash-camps-scroll');
+  if (!box) return;
+  const rows = [...box.children].filter((el) => el.classList.contains('dash-camp'));
+  if (rows.length <= 3) {
+    box.style.maxHeight = '';
+    return;
+  }
+  const gap = parseFloat(getComputedStyle(box).rowGap) || 10;
+  const height = rows.slice(0, 3).reduce((sum, el) => sum + el.offsetHeight, 0) + gap * 2;
+  box.style.maxHeight = `${Math.ceil(height)}px`;
 }
 
 async function mbDashRankInner(logs, ff, usersReady) {
@@ -582,7 +596,10 @@ async function mbDashApplyLogs(ctx) {
   const out = document.getElementById('dash-out-body');
   if (out) out.innerHTML = mbDashOutcomeHtml(logs);
   const camp = document.getElementById('dash-camp-body');
-  if (camp && snap.ops) camp.innerHTML = mbDashCampInner(logs, snap.ops);
+  if (camp && snap.ops) {
+    camp.innerHTML = mbDashCampInner(logs, snap.ops);
+    requestAnimationFrame(() => mbFitCampScroll());
+  }
   const rank = document.getElementById('dash-rank-body');
   if (rank) rank.innerHTML = await mbDashRankInner(logs, snap.ff, users);
   await mbDashRunDeltas(snap, logs, ctx?.rangeKey, ctx?.from, ctx?.to);
@@ -649,7 +666,11 @@ async function loadDashBrief(ctx) {
   const ready = window._dashLogsReady === true;
   const liveLogs = ready ? (window._dashPendingLogs || []) : logs;
   if (ops) {
-    parts.push(mbDashCard(mbDashTr('Açık kampanyalar', 'Offene Kampagnen'), mbDashCampInner(liveLogs, ops), '', 'dash-camp-body', 'camps'));
+    const campN = (ops.camps || []).length;
+    const campTitle = campN > 3
+      ? `${mbDashTr('Açık kampanyalar', 'Offene Kampagnen')} · ${campN}`
+      : mbDashTr('Açık kampanyalar', 'Offene Kampagnen');
+    parts.push(mbDashCard(campTitle, mbDashCampInner(liveLogs, ops), '', 'dash-camp-body', 'camps'));
     const rankInner = ready ? await mbDashRankInner(liveLogs, ff, await usersP) : `<div class="dash-mini-row">${mbDashTr('Yükleniyor...', 'Laden...')}</div>`;
     parts.push(mbDashCard(mbDashTr('Temsilci sırası', 'Agentenliste'), rankInner, '', 'dash-rank-body', 'rank'));
   }
@@ -662,6 +683,7 @@ async function loadDashBrief(ctx) {
   host.innerHTML = `<div class="dash-brief"><div class="dash-brief-scope">${mbDashEsc(mbDashScopeLine(role))}</div>${alerts}<div class="dash-brief-grid">${parts.join('')}</div></div>`;
   mbPackBrief(host);
   mbInitBriefDrag();
+  requestAnimationFrame(() => mbFitCampScroll());
   if (ready) await mbDashRunDeltas(snap, liveLogs, rangeKey, from, to);
   if (ops?.ids?.length) {
     mbDashOpsSlow(ops).then(() => {
