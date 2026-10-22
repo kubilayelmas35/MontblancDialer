@@ -1087,9 +1087,8 @@ function dialerBusinessClock() {
 function getDialerHealthState() {
   const checks = [];
   const push = (ok, label) => checks.push({ ok, label });
-  push(!!selectedCampId, dialerHealthLabel(!!selectedCampId, 'dial.health.push.camp', 'dial.health.need.camp', 'Kampanya seçildi', 'Kampanya seçin'));
   const campActiveOk = !!selectedCampId && mbCampaignIsActive(selectedCampId);
-  push(campActiveOk, dialerHealthLabel(campActiveOk, 'dial.health.push.active', 'dial.health.need.active', 'Aktif kampanya var', 'Kampanyayı aktif edin'));
+  push(campActiveOk, dialerHealthLabel(campActiveOk, 'dial.health.push.camp', 'dial.health.need.camp', 'Kampanya seçildi', 'Kampanya seçin'));
   const lineOk = _testMode || !!telnyxReady;
   push(lineOk, _testMode
     ? (typeof t === 'function' ? t('dial.health.push.test') : 'Test modu aktif')
@@ -1102,11 +1101,9 @@ function getDialerHealthState() {
   push(micOk, dialerHealthLabel(micOk, 'dial.health.push.mic', 'dial.health.need.mic', 'Mikrofon izni', 'Mikrofon izni verin'));
   const firstFail = checks.find((c) => !c.ok);
   const code = firstFail
-    ? !selectedCampId
+    ? !campActiveOk
       ? 'DIAL-CAMP'
-      : !campActiveOk
-        ? 'DIAL-ACTIVE'
-        : (!_testMode && !telnyxReady)
+      : (!_testMode && !telnyxReady)
           ? 'DIAL-SIP'
           : (!_testMode && !callWindow)
             ? 'DIAL-HOURS'

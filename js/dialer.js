@@ -100,7 +100,7 @@ async function initDialer() {
         typeof t === 'function'
           ? (canDisableAutoDial ? t('dial.camp_auto_hint_on') : t('dial.camp_auto_hint_off'))
           : '';
-      const autoLbl = typeof t === 'function' ? t('dial.camp_auto_label') : 'Bu kampanyada otomatik ara';
+      const autoLbl = typeof t === 'function' ? t('dial.camp_auto_label') : 'Otomatik Ara';
       const toggOn = typeof t === 'function' ? t('dial.camp_toggle_on') : 'Kapat';
       const toggOff = typeof t === 'function' ? t('dial.camp_toggle_off') : 'Aktif Et';
       return `<div class="agent-camp-item ${isActive?'active':''}" id="camp-item-${cid}" style="padding:8px 10px;" onclick="selectCamp('${cid}','${cName}')">
