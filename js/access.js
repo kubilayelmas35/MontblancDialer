@@ -93,14 +93,21 @@ function mbIsFirmAdmin(role) {
   return ['admin', 'firm_admin', 'super_admin'].includes(r || '');
 }
 
-const MB_PERM_REV = 2;
-const MB_PERMS_SINCE_REV2 = ['supervisor', 'jobmarket', 'fieldops'];
+const MB_PERM_REV = 3;
+const MB_PERM_GRANTS = [
+  { rev: 2, keys: ['supervisor', 'jobmarket', 'fieldops'] },
+  { rev: 3, keys: ['geocon'] },
+];
 
 function mbMergeStoredPerms(list, role, settings) {
   const saved = Array.isArray(list) ? [...list] : [];
-  if (Number(settings?.role_permissions_rev || 0) >= MB_PERM_REV) return saved;
-  const extra = (BUILTIN_ROLES.find((item) => item.key === role)?.perms || [])
-    .filter((key) => MB_PERMS_SINCE_REV2.includes(key) && !saved.includes(key));
+  const storedRev = Number(settings?.role_permissions_rev || 0);
+  if (storedRev >= MB_PERM_REV) return saved;
+  const builtin = BUILTIN_ROLES.find((item) => item.key === role)?.perms || [];
+  const extra = MB_PERM_GRANTS
+    .filter((grant) => storedRev < grant.rev)
+    .flatMap((grant) => grant.keys)
+    .filter((key) => builtin.includes(key) && !saved.includes(key));
   return [...saved, ...extra];
 }
 

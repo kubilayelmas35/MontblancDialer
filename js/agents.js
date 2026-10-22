@@ -1610,13 +1610,20 @@ async function loadRolesPage() {
   } catch(e) {}
   let customRoles = [];
   let rolePermOverrides = {};
+  let rolePermSettings = {};
   try {
     const firms = await sb(`firms?id=eq.${targetFirmId}&select=settings`);
     customRoles = firms?.[0]?.settings?.custom_roles || [];
     rolePermOverrides = firms?.[0]?.settings?.role_permissions || {};
+    rolePermSettings = firms?.[0]?.settings || {};
   } catch(e) {}
   const allRoles = [
-    ...BUILTIN_ROLES.map(r => ({ ...r, perms: rolePermOverrides?.[r.key] || r.perms })),
+    ...BUILTIN_ROLES.map(r => ({
+      ...r,
+      perms: Array.isArray(rolePermOverrides?.[r.key])
+        ? mbMergeStoredPerms(rolePermOverrides[r.key], r.key, rolePermSettings)
+        : r.perms,
+    })),
     ...customRoles.map(r=>({...r,builtin:false}))
   ].filter(role => {
     if (isSuperAdmin()) return true;
@@ -1683,7 +1690,9 @@ async function toggleRolePerm(roleKey, pageKey, enabled) {
       const builtin = BUILTIN_ROLES.find(r => r.key === roleKey);
       if (!builtin) return;
       const overrides = { ...(existing.role_permissions || {}) };
-      const perms = Array.isArray(overrides[roleKey]) ? [...overrides[roleKey]] : [...builtin.perms];
+      const perms = Array.isArray(overrides[roleKey])
+        ? mbMergeStoredPerms([...overrides[roleKey]], roleKey, existing)
+        : [...builtin.perms];
       if (enabled) { if (!perms.includes(pageKey)) perms.push(pageKey); }
       else {
         const minPerm = roleKey === 'agent' ? 'dialer' : 'qc';
@@ -1693,7 +1702,7 @@ async function toggleRolePerm(roleKey, pageKey, enabled) {
       }
       overrides[roleKey] = perms;
       existing.role_permissions = overrides;
-      existing.role_permissions_rev = 2;
+      existing.role_permissions_rev = MB_PERM_REV;
     }
     await sb(`firms?id=eq.${fid}`,{method:'PATCH',prefer:'return=minimal',
       body:JSON.stringify({settings:{...existing,custom_roles:roles}})});
@@ -1727,7 +1736,12 @@ async function openRolePermModal(roleKey) {
     const customRoles = settings.custom_roles || [];
     const builtin = BUILTIN_ROLES.find(r => r.key === roleKey);
     const custom = customRoles.find(r => r.key === roleKey);
-    const base = custom || (builtin ? { ...builtin, perms: roleOverrides[roleKey] || builtin.perms, builtin: true } : null);
+    const stored = roleOverrides[roleKey];
+    const base = custom || (builtin ? {
+      ...builtin,
+      perms: Array.isArray(stored) ? mbMergeStoredPerms(stored, roleKey, settings) : builtin.perms,
+      builtin: true,
+    } : null);
     if (!base) return;
     const currentPerms = new Set(base.perms || []);
     const title = `${base.label} izinleri`;
@@ -1773,7 +1787,7 @@ async function saveRolePermModal(roleKey, fid) {
       const overrides = { ...(settings.role_permissions || {}) };
       overrides[roleKey] = selected;
       settings.role_permissions = overrides;
-      settings.role_permissions_rev = 2;
+      settings.role_permissions_rev = MB_PERM_REV;
     }
     await sb(`firms?id=eq.${fid}`, {
       method:'PATCH',
