@@ -346,7 +346,10 @@
 <div class="sb-foot-main">
 <div id="sb-person-pop" class="sb-person-pop" hidden></div>
 <div id="sb-nav-empty" class="sb-nav-empty" hidden data-tr="Eşleşme yok" data-de="Kein Treffer">Eşleşme yok</div>
-<input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)">
+<div class="sb-nav-search-wrap">
+<input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
+<kbd class="sb-nav-kbd">Ctrl+K</kbd>
+</div>
 <div class="sb-ver">MontBlanc v__MB_VERSION__</div>
 </div>
 </div>

@@ -251,16 +251,35 @@ function mbNavSearchKey(e) {
     if (had) {
       if (input) input.value = '';
       mbFilterNav('');
-      if (typeof mbPersonClose === 'function') mbPersonClose();
+      if (typeof mbPersonRecent === 'function') mbPersonRecent();
+      else if (typeof mbPersonClose === 'function') mbPersonClose();
       return;
     }
     input?.blur();
     if (window.innerWidth <= 1024 && typeof closeSidebar === 'function') closeSidebar();
     return;
   }
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    const rows = [...document.querySelectorAll('#sb-person-pop:not([hidden]) .sb-person-row')];
+    if (!rows.length) return;
+    e.preventDefault();
+    let index = rows.findIndex((row) => row.classList.contains('is-on'));
+    if (e.key === 'ArrowDown') index = index < 0 ? 0 : Math.min(rows.length - 1, index + 1);
+    else index = index < 0 ? rows.length - 1 : Math.max(0, index - 1);
+    rows.forEach((row, i) => row.classList.toggle('is-on', i === index));
+    rows[index].scrollIntoView({ block: 'nearest' });
+    return;
+  }
   if (e.key !== 'Enter') return;
-  if (!String(document.getElementById('sb-nav-search')?.value || '').trim()) return;
+  const picked = document.querySelector('#sb-person-pop:not([hidden]) .sb-person-row.is-on');
+  const typed = String(document.getElementById('sb-nav-search')?.value || '').trim();
+  if (!typed && !picked) return;
   e.preventDefault();
+  if (picked && typeof mbOpenPerson === 'function') {
+    mbOpenPerson(picked.getAttribute('data-person-id'));
+    return;
+  }
+  if (!typed) return;
   const hit = [...document.querySelectorAll('#sidebar .sb-item')].find((btn) => {
     return btn.style.display !== 'none' && !btn.classList.contains('is-nav-miss');
   });

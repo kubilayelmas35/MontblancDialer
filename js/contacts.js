@@ -967,6 +967,7 @@ function mbPersonPaint(html) {
   if (!pop) return;
   pop.hidden = false;
   pop.innerHTML = html;
+  mbPersonMarkFirst();
   mbPersonPlace();
   if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
 }
@@ -988,6 +989,16 @@ function mbPersonSearchInput(raw) {
   clearTimeout(_personTimer);
   _personWait = false;
   const q = String(raw || '').trim();
+  if (!q) {
+    if (document.activeElement?.id === 'sb-nav-search') mbPersonRecent();
+    else {
+      const pop = document.getElementById('sb-person-pop');
+      if (pop) { pop.hidden = true; pop.innerHTML = ''; }
+      _personSeq += 1;
+    }
+    if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
+    return;
+  }
   if (q.length < 2) {
     const pop = document.getElementById('sb-person-pop');
     if (pop) { pop.hidden = true; pop.innerHTML = ''; }
@@ -995,9 +1006,124 @@ function mbPersonSearchInput(raw) {
     if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
     return;
   }
+  if (mbPersonPageHit()) {
+    document.querySelectorAll('#sb-person-pop .sb-person-row.is-on').forEach((row) => row.classList.remove('is-on'));
+  }
   _personWait = true;
   _personTimer = setTimeout(() => { mbPersonRun(q); }, 280);
   if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
+}
+
+function mbPersonOutcomeLabel(key) {
+  const raw = String(key || '');
+  const k = raw === 'appointment_done' ? 'appointment' : raw;
+  if (!k || k === 'pending' || k === 'new') return '';
+  if (k === 'calling') return mbPersonSay('find.unfinal', 'Sonuçsuz');
+  if (k === 'appointment') return mbPersonSay('camp.ops.appointment', 'Randevu');
+  if (['no_answer', 'negative', 'callback', 'dnc', 'voicemail'].includes(k)) {
+    return mbPersonSay(`camp.st.${k}`, k);
+  }
+  return '';
+}
+
+function mbPersonHtml(rows, mode) {
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const title = mode === 'recent'
+    ? mbPersonSay('find.recent', 'Son görüşülenler')
+    : mbPersonSay('find.people', 'Kişiler');
+  const note = `<div class="sb-person-note">${esc(mbPersonSay('find.hint', 'Aramaz. Sadece kişinin kartını açar.'))}</div>`;
+  const open = esc(mbPersonSay('find.open', 'Aç'));
+  const dotLabel = esc(mbPersonSay('find.unfinal', 'Sonuçsuz'));
+  const fid = mbPersonFirmId();
+  const html = rows.map((r) => {
+    const name = [r.first_name, r.last_name].filter(Boolean).join(' ').trim() || '—';
+    const camp = r.campaigns?.name || (typeof campaigns !== 'undefined' ? (campaigns || []).find((c) => String(c.id) === String(r.campaign_id))?.name : '') || '';
+    let firm = '';
+    if (fid === '*' && typeof _allFirms !== 'undefined') {
+      firm = (_allFirms || []).find((f) => String(f.id) === String(r.firm_id))?.name || '';
+    }
+    const meta = [firm, r.city, r.phone].filter(Boolean).join(' · ');
+    const outcomeKey = r._outcome || (r.status === 'calling' ? '' : r.status);
+    const outcome = mbPersonOutcomeLabel(outcomeKey);
+    const openDot = r._open || r.status === 'calling';
+    const campHtml = camp ? `<span class="sb-person-camp">${esc(camp)}</span>` : '';
+    const outHtml = outcome ? `<span class="sb-person-out">${esc(outcome)}</span>` : '';
+    const dot = openDot ? `<i class="sb-person-dot" title="${dotLabel}" aria-label="${dotLabel}"></i>` : '';
+    return `<button type="button" class="sb-person-row" data-person-id="${esc(r.id)}"><span class="sb-person-name">${dot}${esc(name)}</span>${campHtml}${outHtml}<span class="sb-person-meta">${esc(meta)}</span><span class="sb-person-open">${open}</span></button>`;
+  }).join('');
+  return `<div class="sb-person-label">${esc(title)}</div>${html}${note}`;
+}
+
+function mbPersonPageHit() {
+  const q = String(document.getElementById('sb-nav-search')?.value || '').trim();
+  if (!q) return false;
+  return [...document.querySelectorAll('#sidebar .sb-item')].some((btn) => {
+    return btn.style.display !== 'none' && !btn.classList.contains('is-nav-miss');
+  });
+}
+
+function mbPersonMarkFirst() {
+  const pop = document.getElementById('sb-person-pop');
+  if (!pop) return;
+  const rows = [...pop.querySelectorAll('.sb-person-row')];
+  rows.forEach((row) => row.classList.remove('is-on'));
+  if (!mbPersonPageHit() && rows[0]) rows[0].classList.add('is-on');
+}
+
+async function mbPersonRecent() {
+  const q = String(document.getElementById('sb-nav-search')?.value || '').trim();
+  if (q) return;
+  const seq = ++_personSeq;
+  _personWait = true;
+  const fid = mbPersonFirmId();
+  if (!fid) {
+    _personWait = false;
+    mbPersonClose();
+    return;
+  }
+  const own = mbPersonOwnOnly();
+  const uid = String(currentUser?.id || '');
+  let path = 'call_logs?select=contact_id,outcome,started_at,contacts(id,first_name,last_name,phone,city,firm_id,campaign_id,status,campaigns(name))&contact_id=not.is.null&order=started_at.desc&limit=30';
+  if (own && /^[0-9a-f-]{36}$/i.test(uid)) path += `&agent_id=eq.${uid}`;
+  if (fid !== '*') path += `&firm_id=eq.${fid}`;
+  let logs = [];
+  try {
+    const got = await sb(path);
+    logs = Array.isArray(got) ? got : [];
+  } catch (e) {
+    logs = [];
+  }
+  _personWait = false;
+  if (seq !== _personSeq) return;
+  if (String(document.getElementById('sb-nav-search')?.value || '').trim()) return;
+  const rows = [];
+  const seen = new Set();
+  logs.forEach((log) => {
+    const c = log?.contacts || {};
+    const id = c.id || log.contact_id;
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    rows.push({
+      id,
+      first_name: c.first_name,
+      last_name: c.last_name,
+      phone: c.phone,
+      city: c.city,
+      firm_id: c.firm_id,
+      campaign_id: c.campaign_id,
+      campaigns: c.campaigns,
+      status: c.status,
+      _outcome: log.outcome,
+      _open: c.status === 'calling',
+    });
+  });
+  if (!rows.length) {
+    const pop = document.getElementById('sb-person-pop');
+    if (pop) { pop.hidden = true; pop.innerHTML = ''; }
+    if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
+    return;
+  }
+  mbPersonPaint(mbPersonHtml(rows.slice(0, 8), 'recent'));
 }
 
 async function mbPersonRun(raw) {
@@ -1009,9 +1135,6 @@ async function mbPersonRun(raw) {
     return;
   }
   const seq = ++_personSeq;
-  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
-  const label = `<div class="sb-person-label">${esc(mbPersonSay('find.people', 'Kişiler'))}</div>`;
-  const note = `<div class="sb-person-note">${esc(mbPersonSay('find.hint', 'Aramaz. Sadece kişinin kartını açar.'))}</div>`;
   const fid = mbPersonFirmId();
   const own = mbPersonOwnOnly();
   const uid = String(currentUser?.id || '');
@@ -1035,7 +1158,7 @@ async function mbPersonRun(raw) {
   const ownSel = ownQ ? ',call_logs!inner(agent_id)' : '';
   let rows = [];
   try {
-    const got = await sb(`contacts?${firmQ}${ownQ}or=(${parts.join(',')})&select=id,first_name,last_name,phone,city,firm_id,campaign_id,campaigns(name)${ownSel}&limit=${ownQ ? 24 : 8}`);
+    const got = await sb(`contacts?${firmQ}${ownQ}or=(${parts.join(',')})&select=id,first_name,last_name,phone,city,firm_id,campaign_id,status,campaigns(name)${ownSel}&limit=${ownQ ? 24 : 8}`);
     rows = Array.isArray(got) ? got : [];
   } catch (e) {
     rows = [];
@@ -1055,20 +1178,7 @@ async function mbPersonRun(raw) {
     if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
     return;
   }
-  const open = esc(mbPersonSay('find.open', 'Aç'));
-  const html = label + rows.map((r) => {
-    const name = [r.first_name, r.last_name].filter(Boolean).join(' ').trim() || '—';
-    const camp = r.campaigns?.name || (typeof campaigns !== 'undefined' ? (campaigns || []).find((c) => String(c.id) === String(r.campaign_id))?.name : '') || '';
-    let firm = '';
-    if (fid === '*' && typeof _allFirms !== 'undefined') {
-      firm = (_allFirms || []).find((f) => String(f.id) === String(r.firm_id))?.name || '';
-    }
-    const meta = [firm, r.city, r.phone].filter(Boolean).join(' · ');
-    const id = esc(r.id);
-    const campHtml = camp ? `<span class="sb-person-camp">${esc(camp)}</span>` : '';
-    return `<button type="button" class="sb-person-row" data-person-id="${id}"><span class="sb-person-name">${esc(name)}</span>${campHtml}<span class="sb-person-meta">${esc(meta)}</span><span class="sb-person-open">${open}</span></button>`;
-  }).join('') + note;
-  mbPersonPaint(html);
+  mbPersonPaint(mbPersonHtml(rows, 'search'));
 }
 
 async function mbOpenPerson(id) {
@@ -1121,5 +1231,11 @@ document.getElementById('sb-person-pop')?.addEventListener('click', (e) => {
   if (!btn) return;
   e.preventDefault();
   mbOpenPerson(btn.getAttribute('data-person-id'));
+});
+document.getElementById('sb-person-pop')?.addEventListener('mouseover', (e) => {
+  const btn = e.target.closest('.sb-person-row');
+  const pop = document.getElementById('sb-person-pop');
+  if (!btn || !pop) return;
+  pop.querySelectorAll('.sb-person-row').forEach((row) => row.classList.toggle('is-on', row === btn));
 });
 window.addEventListener('resize', () => { if (typeof mbPersonPlace === 'function') mbPersonPlace(); });
