@@ -531,6 +531,28 @@ flex-direction:column; gap:4px;
 .call-action-row { display:flex; gap:8px; flex-wrap:wrap; }
 #call-actions:not(.call-actions--pre-call):not(.call-actions--wrapping) #btn-queue-next { display:none; }
 #btn-queue-next.is-on { color:var(--accent); border-color:var(--accent); }
+.dialer-queue-chip {
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin:0 0 8px; padding:8px 10px;
+  border:1px solid var(--accent); border-radius:var(--radius-sm);
+  background:color-mix(in srgb, var(--accent) 12%, transparent);
+  font-size:12px; font-weight:700;
+}
+.dialer-queue-chip[hidden] { display:none !important; }
+.dialer-queue-chip__k { font-weight:800; color:var(--accent); }
+#dialer-queue-chip-camp { color:var(--text-3); font-weight:700; }
+#dialer-queue-chip-x {
+  margin-left:auto; border:none; background:transparent; color:var(--text-2);
+  font-size:16px; line-height:1; cursor:pointer; padding:0 4px;
+}
+#cust-source-badge {
+  background:color-mix(in srgb, var(--accent) 16%, transparent);
+  color:var(--accent); font-weight:800;
+}
+#cust-source-badge[hidden] { display:none !important; }
+#outcome-open-left { font-size:12px; font-weight:800; color:var(--red); margin-bottom:6px; }
+#outcome-open-left[hidden] { display:none !important; }
+.outcome-note-hint.is-warn { color:var(--yellow); font-weight:800; }
 #call-actions.call-actions--wrapping #btn-mute,
 #call-actions.call-actions--wrapping #btn-hold,
 #call-actions.call-actions--wrapping #btn-hangup { display: none; }

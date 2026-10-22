@@ -5,7 +5,12 @@
 function mbDialerIdleGate() {
   if (currentUser?.role !== 'agent') return;
   if (window._mbDialerPreview && currentContact) return;
-  if (typeof mbAgentOpenGate === 'function') void mbAgentOpenGate();
+  void mbRunDialerIdleGate();
+}
+
+async function mbRunDialerIdleGate() {
+  if (typeof mbAgentOpenGate === 'function' && await mbAgentOpenGate()) return;
+  if (typeof mbOpenDueCallback === 'function') await mbOpenDueCallback();
 }
 
 function mbFitAgentCampNames() {

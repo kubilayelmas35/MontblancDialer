@@ -243,6 +243,7 @@ function showCustomerCard(c) {
   document.getElementById('cust-attempt-badge').textContent = uqSay('dial.attempt', '{n}. arama', { n: c.attempt_count || 1 });
   document.getElementById('cust-camp-badge').textContent  = camp?.name||'—';
   document.getElementById('cust-queue-badge').textContent = c.queues?.name||c.queue_name||'—';
+  if (typeof mbPaintCardSource === 'function') mbPaintCardSource(c);
   const labelOf = (key, fallback) => (typeof mbFieldLabel === 'function' ? mbFieldLabel(fc, key, fallback) : fallback);
   const textOf = (key) => (typeof mbContactFieldText === 'function' ? mbContactFieldText(c, key) : '');
   const visibleFields = layout.slice(2).map((field) => ({
@@ -463,6 +464,16 @@ function syncDialerNotes(note, source) {
 
 function onDialerNoteInput(value, source) {
   if (window._qcReviewApptId) return;
+  if (String(value || '').trim()) {
+    window._mbEmptyNoteOk = false;
+    const hint = document.getElementById('outcome-note-hint');
+    if (hint?.dataset.noteWarn === '1') {
+      delete hint.dataset.noteWarn;
+      hint.classList.remove('is-warn');
+      const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+      hint.textContent = de ? (hint.getAttribute('data-de') || hint.textContent) : (hint.getAttribute('data-tr') || hint.textContent);
+    }
+  }
   syncDialerNotes(value, source);
   queueContactNoteSave(value);
 }
@@ -521,6 +532,7 @@ function clearCustomerCard() {
   const dock = document.getElementById('outcome-dock');
   if (dock) dock.hidden = true;
   if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+  if (typeof mbPaintCardSource === 'function') mbPaintCardSource(null);
   if (typeof startCustEmptyCoach === 'function') startCustEmptyCoach();
 }
 

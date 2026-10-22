@@ -286,6 +286,7 @@ async function openUpcomingCallback(wvId) {
       contact = found?.[0] || null;
     }
     const card = mbWvCard(row, contact);
+    card._mbSource = 'aranacaklar';
     if (!card.phone) {
       toast(typeof t === 'function' ? t('dial.no_contact') : 'Önce müşteri / numara yok', 'err');
       return;
@@ -295,7 +296,7 @@ async function openUpcomingCallback(wvId) {
     if (typeof showCustomerCard === 'function') showCustomerCard(card);
     if (typeof switchContactTab === 'function') switchContactTab('info');
     forceDialerPreCallBar();
-    toast(typeof t === 'function' ? t('dial.wv_opened') : 'Kişi kartı açıldı. Aramak için Ara’ya bas.', 'ok', 2400);
+    toast(typeof t === 'function' ? t('dial.from_callbacks_open') : 'Aranacaklar’dan açıldı. Aramak için Ara’ya bas.', 'ok', 2600);
   } catch (e) {}
 }
 
@@ -1005,7 +1006,9 @@ async function mbTakeQueuedContact() {
   const rows = await sb(`contacts?id=eq.${id}&select=*&limit=1`).catch(() => []);
   const contact = Array.isArray(rows) ? rows[0] : null;
   window._mbQueuedContactId = '';
+  window._mbQueuedMeta = null;
   document.getElementById('btn-queue-next')?.classList.remove('is-on');
+  if (typeof mbPaintQueuedChip === 'function') mbPaintQueuedChip();
   if (!contact || String(contact.status || '') === 'dnc') return null;
   const updated = await sb(`contacts?id=eq.${id}&status=neq.dnc`, {
     method: 'PATCH',
@@ -1037,8 +1040,83 @@ function mbQueueCurrentContact() {
     return;
   }
   window._mbQueuedContactId = id;
+  window._mbQueuedMeta = mbQueuedMeta(currentContact);
   document.getElementById('btn-queue-next')?.classList.add('is-on');
+  mbPaintQueuedChip();
   toast(typeof t === 'function' ? t('dial.queue_set') : 'Sıradaki arama bu kişi. Ara’ya bas.', 'ok', 2400);
+}
+
+function mbQueuedMeta(contact) {
+  const name = [contact?.first_name, contact?.last_name].filter(Boolean).join(' ').trim()
+    || String(document.getElementById('cust-name')?.textContent || '').trim()
+    || (typeof t === 'function' ? t('dial.queue_person') : 'Kişi');
+  const campObj = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === contact?.campaign_id);
+  const camp = campObj && typeof mbCampShown === 'function'
+    ? mbCampShown(campObj)
+    : String(document.getElementById('cust-camp-badge')?.textContent || '').trim();
+  return { name, camp: camp && camp !== '—' ? camp : '' };
+}
+
+function mbPaintQueuedChip() {
+  const box = document.getElementById('dialer-queue-chip');
+  if (!box) return;
+  const id = String(window._mbQueuedContactId || '');
+  const meta = window._mbQueuedMeta;
+  const on = /^[0-9a-f-]{36}$/i.test(id) && meta;
+  box.hidden = !on;
+  if (!on) return;
+  const nameEl = document.getElementById('dialer-queue-chip-name');
+  const campEl = document.getElementById('dialer-queue-chip-camp');
+  if (nameEl) nameEl.textContent = meta.name || '';
+  if (campEl) campEl.textContent = meta.camp || '';
+}
+
+function mbClearQueuedContact() {
+  window._mbQueuedContactId = '';
+  window._mbQueuedMeta = null;
+  document.getElementById('btn-queue-next')?.classList.remove('is-on');
+  mbPaintQueuedChip();
+  toast(typeof t === 'function' ? t('dial.queue_clear') : 'Sıradan çıkarıldı.', 'ok', 1800);
+}
+
+function mbPaintCardSource(contact) {
+  const badge = document.getElementById('cust-source-badge');
+  if (!badge) return;
+  const on = contact?._mbSource === 'aranacaklar';
+  badge.hidden = !on;
+  if (on) badge.textContent = typeof t === 'function' ? t('dial.from_callbacks') : 'Aranacaklar';
+}
+
+let _mbDueCbBusy = false;
+const _mbDueSkip = new Map();
+
+async function mbOpenDueCallback() {
+  if (currentUser?.role !== 'agent') return false;
+  if (_mbDueCbBusy || _mbOpenGateBusy) return false;
+  if (!document.getElementById('page-dialer')?.classList.contains('active')) return false;
+  if (dialerStatus === 'on_call' || dialerStatus === 'calling' || dialerStatus === 'wrapping') return false;
+  if (_outboundDialPending || _telnyxCall || _fakeCallActive) return false;
+  if (window._mbDialerPreview && currentContact) return false;
+  const uid = String(currentUser?.id || '');
+  if (!/^[0-9a-f-]{36}$/i.test(uid)) return false;
+  _mbDueCbBusy = true;
+  try {
+    const nowIso = encodeURIComponent(new Date().toISOString());
+    const rows = await sb(`wiedervorlage?select=id,contact_id,telefon&agent_id=eq.${uid}&durum=eq.bekliyor&termin_zaman=lte.${nowIso}&order=termin_zaman.asc&limit=5`).catch(() => []);
+    const now = Date.now();
+    const row = (Array.isArray(rows) ? rows : []).find((r) => {
+      if (!r?.id) return false;
+      if ((_mbDueSkip.get(r.id) || 0) > now) return false;
+      return !!(r.contact_id || String(r.telefon || '').trim());
+    });
+    if (!row?.id || typeof openUpcomingCallback !== 'function') return false;
+    await openUpcomingCallback(row.id);
+    const opened = !!(currentContact && currentContact._mbSource === 'aranacaklar' && currentContact.phone);
+    if (!opened) _mbDueSkip.set(row.id, Date.now() + 120000);
+    return opened;
+  } finally {
+    _mbDueCbBusy = false;
+  }
 }
 
 let _mbOpenGateBusy = false;
@@ -1139,6 +1217,10 @@ function mbEnsurePoolTimer() {
 
 async function mbSyncPool() {
   if (window._mbDialerPreview) return;
+  if (dialerStatus === 'ready') {
+    if (_mbDueCbBusy) return;
+    if (await mbOpenDueCallback()) return;
+  }
   if (_poolSyncing) return;
   if (dialerStatus === 'offline' || dialerStatus === 'break' || dialerStatus === 'wrapping') return;
   if (!_autoDial && dialerStatus !== 'calling' && dialerStatus !== 'ready' && dialerStatus !== 'on_call' && dialerStatus !== 'wrapping') return;
@@ -1222,6 +1304,7 @@ async function dialNext() {
   if (_dialNextLock) return;
   if (dialerStatus !== 'ready') return;
   if (await mbAgentOpenGate({ force: true })) return;
+  if (await mbOpenDueCallback()) return;
   if (_outboundDialPending || _telnyxCall || _fakeCallActive) return;
   if (!selectedCampId || !mbCampaignIsActive(selectedCampId)) {
     mbWarnNoActiveCampaign();

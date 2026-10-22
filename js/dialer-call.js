@@ -983,6 +983,62 @@ function paintDialerOutcomes() {
   if (typeof selectedOutcome === 'string' && selectedOutcome) {
     grid.querySelector(`[data-outcome="${selectedOutcome}"]`)?.classList.add('active');
   }
+  if (typeof mbRefreshOutcomeOpenLeft === 'function') void mbRefreshOutcomeOpenLeft();
+}
+
+function mbPaintOutcomeOpenLeft(count) {
+  const el = document.getElementById('outcome-open-left');
+  if (!el) return;
+  const n = Math.max(0, Number(count) || 0);
+  if (!n) {
+    el.hidden = true;
+    el.textContent = '';
+    return;
+  }
+  el.hidden = false;
+  el.textContent = typeof tReplace === 'function'
+    ? tReplace('dial.open_left', { n })
+    : `${n} sonuçsuz kaldı`;
+}
+
+async function mbRefreshOutcomeOpenLeft() {
+  const el = document.getElementById('outcome-open-left');
+  if (!el) return;
+  if (currentUser?.role !== 'agent') {
+    mbPaintOutcomeOpenLeft(0);
+    return;
+  }
+  const uid = String(currentUser?.id || '');
+  if (!/^[0-9a-f-]{36}$/i.test(uid) || typeof sb !== 'function') {
+    mbPaintOutcomeOpenLeft(0);
+    return;
+  }
+  const rows = await sb(`call_logs?select=contact_id,contacts!inner(id)&agent_id=eq.${uid}&contacts.status=eq.calling&limit=40`).catch(() => []);
+  const ids = new Set((Array.isArray(rows) ? rows : []).map((r) => r?.contacts?.id || r?.contact_id).filter(Boolean));
+  mbPaintOutcomeOpenLeft(ids.size);
+}
+
+function mbHoldEmptyOutcomeNote(cat, note) {
+  const need = cat === 'appointment' || cat === 'negative';
+  if (!need || String(note || '').trim()) {
+    window._mbEmptyNoteOk = false;
+    return false;
+  }
+  if (window._mbEmptyNoteOk) {
+    window._mbEmptyNoteOk = false;
+    return false;
+  }
+  window._mbEmptyNoteOk = true;
+  const hint = document.getElementById('outcome-note-hint');
+  if (hint) {
+    hint.dataset.noteWarn = '1';
+    hint.classList.add('is-warn');
+    hint.textContent = typeof t === 'function'
+      ? t('dial.note_empty')
+      : 'Not boş. Randevu ve olumsuz için bir not yaz. Yine de kaydetmek için Sonuçlandır’a bir kez daha bas.';
+  }
+  toast(typeof t === 'function' ? t('dial.note_empty') : 'Not boş. Yine de kaydetmek için bir kez daha bas.', 'warn', 3800);
+  return true;
 }
 
 function pickOutcome(key) {
@@ -1142,6 +1198,8 @@ async function submitOutcome(goBreak) {
   }
   if (!selectedOutcome) { toast(typeof t === 'function' ? t('dial.pick_outcome') : 'Sonuç seçin', 'err'); return; }
   const note   = document.getElementById('outcome-note')?.value.trim()||'';
+  const noteCat = typeof mbOutcomeCategory === 'function' ? mbOutcomeCategory(typeof mbFindOutcome === 'function' ? mbFindOutcome(selectedOutcome) : { key: selectedOutcome }) : '';
+  if (typeof mbHoldEmptyOutcomeNote === 'function' && mbHoldEmptyOutcomeNote(noteCat, note)) return;
   const cbTime = document.getElementById('callback-dt')?.value||null;
   const isDnc  = document.getElementById('outcome-dnc')?.checked || false;
   const lockedSlotEarly = _bookingSlot?.id || window._selectedBookingSlot?.id;
@@ -1277,7 +1335,8 @@ async function submitOutcome(goBreak) {
     setDialerStatus('ready');
     upsertAgentSession({agent_id:currentUser.id,status:'ready',last_seen:new Date().toISOString()}).catch(()=>{});
     const heldByOpen = typeof mbAgentOpenGate === 'function' && await mbAgentOpenGate();
-    if (heldByOpen) {
+    const heldByCallback = !heldByOpen && typeof mbOpenDueCallback === 'function' && await mbOpenDueCallback();
+    if (heldByOpen || heldByCallback) {
       if (typeof hideOutboundWait === 'function') hideOutboundWait();
     } else if (_autoDial) {
       if (!getAutoDialCampaignIds().length) {

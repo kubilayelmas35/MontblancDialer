@@ -1440,6 +1440,12 @@ TEST MODU
 </div>
 </div>
 <div id="hotkey-hints" style="margin-bottom:6px;"></div>
+<div id="dialer-queue-chip" class="dialer-queue-chip" hidden>
+<span class="dialer-queue-chip__k" data-tr="Sıradaki" data-de="Als Nächstes">Sıradaki</span>
+<span id="dialer-queue-chip-name"></span>
+<span id="dialer-queue-chip-camp"></span>
+<button type="button" id="dialer-queue-chip-x" onclick="mbClearQueuedContact()" data-tr-title="Sıradan çıkar" data-de-title="Aus der Reihe nehmen" title="Sıradan çıkar" aria-label="Sıradan çıkar">×</button>
+</div>
 <div class="customer-card" id="customer-card">
 <div class="cust-empty" id="cust-empty">
 <div class="cust-empty-default" id="cust-empty-default">
@@ -1532,6 +1538,7 @@ TEST MODU
 <span class="badge badge-gray" id="cust-camp-badge">—</span>
 <span class="badge badge-gray" id="cust-queue-badge">—</span>
 <span class="badge badge-yellow" id="cust-attempt-badge">1. arama</span>
+<span class="badge" id="cust-source-badge" hidden>Aranacaklar</span>
 </div>
 </div>
 <div class="dialer-timer-block" id="dialer-timer-block" style="display:none;">
@@ -1562,6 +1569,7 @@ Son randevu bilgileri indirilebilir.
 </div>
 <div id="ctab-outcome-panel" style="display:none;">
 <div class="outcome-form">
+<div id="outcome-open-left" hidden></div>
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
 <i class="ph ph-phone-x" style="font-size:16px;color:var(--accent);"></i>
 <div class="outcome-form-title" data-tr="Çağrı Sonucu" data-de="Anrufergebnis" style="font-size:13px;color:var(--text);">ÇAĞRI SONUCU</div>
@@ -1570,7 +1578,7 @@ Son randevu bilgileri indirilebilir.
 <div class="form-row">
 <label class="form-label" id="outcome-note-label" data-tr="Not" data-de="Notiz">Not</label>
 <textarea class="form-input" id="outcome-note" rows="2" placeholder="Opsiyonel not…" data-tr="Opsiyonel not…" data-de="Optionale Notiz…" style="resize:vertical;" oninput="onDialerNoteInput(this.value,'outcome')"></textarea>
-<div class="outcome-note-hint" data-tr="Ctrl+Enter kaydeder" data-de="Strg+Enter speichert">Ctrl+Enter kaydeder</div>
+<div class="outcome-note-hint" id="outcome-note-hint" data-tr="Ctrl+Enter kaydeder" data-de="Strg+Enter speichert">Ctrl+Enter kaydeder</div>
 </div>
 <div id="callback-time-row" style="display:none;">
 <div class="form-row">
