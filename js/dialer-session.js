@@ -1081,33 +1081,37 @@ async function _dialNextPlaced() {
   await mbSyncPool();
 }
 
-function dialerHealthLabel(ok, okKey, needKey, okFb, needFb) {
-  const key = ok ? okKey : needKey;
-  const fb = ok ? okFb : needFb;
-  return typeof t === 'function' ? t(key) : fb;
-}
-
 function dialerBusinessClock() {
   if (typeof mbBusinessNow === 'function') return mbBusinessNow();
   const now = new Date();
   return { dateStr: now.toISOString().split('T')[0], timeStr: now.toTimeString().slice(0, 8) };
 }
 
+function dialerHealthPair(ok, okKey, needKey, okFb, needFb) {
+  const key = ok ? okKey : needKey;
+  if (typeof tPair === 'function') return tPair(key);
+  const fb = ok ? okFb : needFb;
+  return { tr: fb, de: fb };
+}
+
 function getDialerHealthState() {
   const checks = [];
-  const push = (ok, label) => checks.push({ ok, label });
+  const push = (ok, okKey, needKey, okFb, needFb) => {
+    const pair = dialerHealthPair(ok, okKey, needKey, okFb, needFb);
+    const label = typeof currentLang !== 'undefined' && currentLang === 'de' ? pair.de : pair.tr;
+    checks.push({ ok, label, tr: pair.tr, de: pair.de });
+  };
   const campActiveOk = !!selectedCampId && mbCampaignIsActive(selectedCampId);
-  push(campActiveOk, dialerHealthLabel(campActiveOk, 'dial.health.push.camp', 'dial.health.need.camp', 'Kampanya seçildi', 'Kampanya seçin'));
+  push(campActiveOk, 'dial.health.push.camp', 'dial.health.need.camp', 'Kampanya seçildi', 'Kampanya seçin');
   const lineOk = _testMode || !!telnyxReady;
-  push(lineOk, _testMode
-    ? (typeof t === 'function' ? t('dial.health.push.test') : 'Test modu aktif')
-    : dialerHealthLabel(lineOk, 'dial.health.push.line', 'dial.health.need.line', 'Hat bağlantısı hazır', 'Hat bağlantısını bekleyin'));
+  if (_testMode) push(true, 'dial.health.push.test', 'dial.health.push.test', 'Test modu aktif', 'Test modu aktif');
+  else push(lineOk, 'dial.health.push.line', 'dial.health.need.line', 'Hat bağlantısı hazır', 'Hat bağlantısını bekleyin');
   const clock = dialerBusinessClock();
   const callWindow = isCallAllowed(clock.dateStr, clock.timeStr).allowed;
   const hoursOk = _testMode || callWindow;
-  push(hoursOk, dialerHealthLabel(hoursOk, 'dial.health.push.hours', 'dial.health.need.hours', 'Saat kısıtı uygun', 'Arama saati dışında'));
+  push(hoursOk, 'dial.health.push.hours', 'dial.health.need.hours', 'Saat kısıtı uygun', 'Arama saati dışında');
   const micOk = _testMode || (typeof micGranted === 'undefined' ? true : !!micGranted);
-  push(micOk, dialerHealthLabel(micOk, 'dial.health.push.mic', 'dial.health.need.mic', 'Mikrofon izni', 'Mikrofon izni verin'));
+  push(micOk, 'dial.health.push.mic', 'dial.health.need.mic', 'Mikrofon izni', 'Mikrofon izni verin');
   const firstFail = checks.find((c) => !c.ok);
   const code = firstFail
     ? !campActiveOk
@@ -1118,10 +1122,20 @@ function getDialerHealthState() {
             ? 'DIAL-HOURS'
             : 'DIAL-MIC'
     : 'DIAL-OK';
-  const msg = firstFail
-    ? (typeof tReplace === 'function' ? tReplace('dial.health.wait', { label: firstFail.label }) : `Bekleniyor: ${firstFail.label}`)
-    : (typeof t === 'function' ? t('dial.health.ok') : 'Tüm kontroller geçildi. Arama başlatılabilir.');
-  return { checks, code, msg };
+  const summary = firstFail
+    ? { tr: firstFail.tr, de: firstFail.de }
+    : dialerHealthPair(true, 'dial.health.ok', 'dial.health.ok', 'Hazırsınız, başlayabilirsiniz', 'Sie sind bereit, Sie können starten.');
+  const msg = typeof currentLang !== 'undefined' && currentLang === 'de' ? summary.de : summary.tr;
+  return { checks, code, msg, summary };
+}
+
+function toggleDialerHealthPanel() {
+  const card = document.getElementById('dialer-reliability-card');
+  if (!card) return;
+  const open = card.classList.contains('is-collapsed');
+  card.classList.toggle('is-collapsed', !open);
+  const btn = document.getElementById('dialer-health-toggle');
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
 function refreshDialerHealthPanel() {
@@ -1131,10 +1145,20 @@ function refreshDialerHealthPanel() {
   const checksEl = document.getElementById('dialer-health-checks');
   if (!codeEl || !msgEl || !checksEl) return;
   const h = getDialerHealthState();
+  const card = document.getElementById('dialer-reliability-card');
   codeEl.textContent = h.code;
   msgEl.textContent = h.msg;
+  if (h.summary) {
+    msgEl.setAttribute('data-tr', h.summary.tr);
+    msgEl.setAttribute('data-de', h.summary.de);
+  }
+  if (card) {
+    card.classList.toggle('is-ok', h.code === 'DIAL-OK');
+    card.classList.toggle('is-bad', h.code !== 'DIAL-OK');
+  }
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   checksEl.innerHTML = h.checks
-    .map((c) => `<div style="display:flex;align-items:center;gap:6px;color:${c.ok ? 'var(--green)' : 'var(--yellow)'};"><span>${c.ok ? '✓' : '•'}</span><span>${c.label}</span></div>`)
+    .map((c) => `<div style="display:flex;align-items:center;gap:6px;color:${c.ok ? 'var(--green)' : 'var(--yellow)'};"><span>${c.ok ? '✓' : '•'}</span><span>${esc(c.label)}</span></div>`)
     .join('');
   const btn = document.getElementById('btn-ready');
   const txt = document.getElementById('ready-text');

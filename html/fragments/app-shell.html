@@ -1658,12 +1658,13 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </div>
 </div>
 <div id="ready-section">
-<div id="dialer-reliability-card">
-<div class="dialer-health-hd">
-<div data-tr="Çağrı Sağlık Kontrolü" data-de="Anruf-Check">Çağrı Sağlık Kontrolü</div>
+<div id="dialer-reliability-card" class="is-collapsed">
+<button type="button" class="dialer-health-hd" id="dialer-health-toggle" onclick="toggleDialerHealthPanel()" aria-expanded="false">
+<span class="dialer-health-chevron" aria-hidden="true"></span>
+<span data-tr="Çağrı Sağlık Kontrolü" data-de="Anruf-Check">Çağrı Sağlık Kontrolü</span>
+<span id="dialer-health-msg" class="dialer-health-summary" data-tr="Hazırsınız, başlayabilirsiniz" data-de="Sie sind bereit, Sie können starten.">Hazırsınız, başlayabilirsiniz</span>
 <span id="dialer-health-code">DIAL-INIT</span>
-</div>
-<div id="dialer-health-msg" data-tr="Kontrol ediliyor…" data-de="Prüfung läuft…">Kontrol ediliyor…</div>
+</button>
 <div id="dialer-health-checks"></div>
 </div>
 <div id="camp-required-notice">

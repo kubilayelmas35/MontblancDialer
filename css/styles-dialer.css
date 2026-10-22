@@ -153,7 +153,13 @@ max-width:100%;
     grid-column: 1;
     grid-row: 2;
     width: 100%;
-    max-height: 280px;
+    max-height: none;
+    overflow: visible;
+  }
+  #page-dialer .dialer-side > .agent-camps-panel {
+    flex: 0 0 auto;
+    min-height: auto;
+    overflow: visible;
   }
   #page-dialer #ready-section { grid-column: 1; grid-row: 3; }
 }

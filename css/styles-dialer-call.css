@@ -432,15 +432,44 @@ box-shadow:0 4px 20px #16a34a30;
 #dialer-reliability-card .dialer-health-hd {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
-  margin-bottom: 6px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
   font-size: 12px;
   font-weight: 800;
+  text-align: left;
+  cursor: pointer;
 }
-#dialer-health-code { font-size: 10px; color: var(--text-3); font-family: var(--mono); }
-#dialer-health-msg { font-size: 11px; color: var(--text-2); margin-bottom: 6px; }
-#dialer-health-checks { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--text-3); }
+#dialer-reliability-card.is-collapsed { padding: 8px 12px; }
+#dialer-reliability-card.is-collapsed #dialer-health-checks { display: none; }
+.dialer-health-chevron {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--text-3);
+  flex: 0 0 auto;
+}
+#dialer-reliability-card:not(.is-collapsed) .dialer-health-chevron { transform: rotate(90deg); }
+#dialer-health-code { margin-left: auto; font-size: 10px; color: var(--text-3); font-family: var(--mono); font-weight: 600; }
+#dialer-health-msg {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#dialer-reliability-card.is-ok #dialer-health-msg { color: var(--green); }
+#dialer-reliability-card.is-bad #dialer-health-msg { color: var(--yellow); }
+#dialer-health-checks { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--text-3); margin-top: 8px; }
 #camp-required-notice {
   display: flex;
   align-items: center;
