@@ -17,8 +17,8 @@ const t0 = Date.now();
 const ffLive = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
 try {
 await fetch(`${SB_URL}/rest/v1/campaigns?limit=1`, { headers: mbAuthHeaders() });
-document.getElementById('pill-ping').textContent = Date.now()-t0;
-} catch(e) { document.getElementById('pill-ping').textContent = '!'; }
+mbPaintPing(Date.now()-t0);
+} catch(e) { mbPaintPing('!'); }
 try {
 const sessions = await mbLoadLiveRows(ffLive);
 window._tbLiveRows = sessions;
@@ -224,6 +224,193 @@ function mbPlaceBalPop(pop) {
   pop.style.left = `${Math.round(left)}px`;
 }
 
+function mbCloseTopbarPops(except) {
+  if (except !== 'bal') {
+    const bal = document.getElementById('tb-bal-pop');
+    if (bal) bal.hidden = true;
+    document.getElementById('pill-bal-btn')?.setAttribute('aria-expanded', 'false');
+  }
+  if (except !== 'ping') {
+    const ping = document.getElementById('tb-ping-pop');
+    if (ping) ping.hidden = true;
+    document.getElementById('pill-ping-btn')?.setAttribute('aria-expanded', 'false');
+  }
+  if (except !== 'mesai' && typeof opsCloseMesaiInfo === 'function') opsCloseMesaiInfo();
+  if (except !== 'chip' && typeof mbCloseChipPop === 'function') mbCloseChipPop();
+}
+
+function mbPingSay(key, fallback) {
+  return typeof t === 'function' ? t(key) : fallback;
+}
+
+function mbPingGrade(ms) {
+  const n = Number(ms);
+  if (!Number.isFinite(n)) return 'fail';
+  if (n < 80) return 'great';
+  if (n < 160) return 'ok';
+  if (n < 300) return 'mid';
+  return 'slow';
+}
+
+function mbPaintPing(ms) {
+  const el = document.getElementById('pill-ping');
+  const btn = document.getElementById('pill-ping-btn');
+  if (el) el.textContent = ms;
+  if (btn) {
+    btn.classList.remove('is-mid', 'is-slow');
+    const grade = mbPingGrade(ms);
+    if (grade === 'mid') btn.classList.add('is-mid');
+    if (grade === 'slow' || grade === 'fail') btn.classList.add('is-slow');
+  }
+  const pop = document.getElementById('tb-ping-pop');
+  if (pop && !pop.hidden && !window._tbPingBusy) mbFillPingPop(pop);
+}
+
+function mbPlacePingPop(pop) {
+  const btn = document.getElementById('pill-ping-btn');
+  if (!btn || !pop) return;
+  if (pop.parentElement !== document.body) document.body.appendChild(pop);
+  const rect = btn.getBoundingClientRect();
+  const width = 280;
+  let left = rect.left;
+  if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
+  if (left < 8) left = 8;
+  pop.style.top = `${Math.round(rect.bottom + 8)}px`;
+  pop.style.left = `${Math.round(left)}px`;
+}
+
+function mbFillPingPop(pop, state) {
+  if (!pop) return;
+  const raw = document.getElementById('pill-ping')?.textContent || '--';
+  const now = Number(raw);
+  const grade = mbPingGrade(now);
+  const label = mbPingSay(`tb.ping.${grade}`, grade === 'fail' ? 'Ölçülemedi' : 'İyi');
+  const samples = (window._tbPingSamples || []).filter((n) => Number.isFinite(n));
+  const min = samples.length ? Math.min(...samples) : null;
+  const max = samples.length ? Math.max(...samples) : null;
+  const avg = samples.length ? Math.round(samples.reduce((sum, n) => sum + n, 0) / samples.length) : null;
+  const meter = Number.isFinite(now) ? Math.max(8, Math.min(100, Math.round(100 - now / 4))) : 8;
+  const tone = grade === 'slow' || grade === 'fail' ? 'is-slow' : grade === 'mid' ? 'is-mid' : '';
+  const busy = !!(state && state.busy);
+  const num = (n) => (n == null ? '—' : `${n}`);
+  pop.innerHTML = `
+<div class="tb-ping-hd"><b>${mbPingSay('tb.ping.title', 'Bağlantı')}</b><span class="${tone}">${label}</span></div>
+<div class="tb-ping-now">${Number.isFinite(now) ? now : '—'}${Number.isFinite(now) ? '<small>ms</small>' : ''}</div>
+<div class="tb-ping-meter"><i class="${tone}" style="width:${meter}%"></i></div>
+<div class="tb-ping-hint">${mbPingSay('tb.ping.hint', 'Sunucuya gidiş-dönüş. Test beş ölçüm alır.')}</div>
+<div class="tb-ping-stats">
+<div><small>${mbPingSay('tb.ping.min', 'En düşük')}</small><b>${num(min)}</b></div>
+<div><small>${mbPingSay('tb.ping.avg', 'Ortalama')}</small><b>${num(avg)}</b></div>
+<div><small>${mbPingSay('tb.ping.max', 'En yüksek')}</small><b>${num(max)}</b></div>
+</div>
+<button type="button" class="tb-ping-go" id="tb-ping-go" onclick="mbRunPingTest(event)" ${busy ? 'disabled' : ''}>${busy ? mbPingSay('tb.ping.testing', 'Ölçülüyor…') : (samples.length ? mbPingSay('tb.ping.again', 'Yeniden ölç') : mbPingSay('tb.ping.test', 'Hız testi'))}</button>`;
+}
+
+function mbOpenPingPop() {
+  const pop = document.getElementById('tb-ping-pop');
+  const btn = document.getElementById('pill-ping-btn');
+  if (!pop) return;
+  if (!pop.hidden) {
+    mbPlacePingPop(pop);
+    return;
+  }
+  mbCloseTopbarPops('ping');
+  pop.hidden = false;
+  mbFillPingPop(pop, window._tbPingBusy ? { busy: true } : null);
+  mbPlacePingPop(pop);
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+}
+
+function mbTogglePingPop(ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const pop = document.getElementById('tb-ping-pop');
+  if (!pop) return;
+  if (!pop.hidden) {
+    pop.hidden = true;
+    document.getElementById('pill-ping-btn')?.setAttribute('aria-expanded', 'false');
+    return;
+  }
+  mbOpenPingPop();
+}
+
+function mbShowPingPop() {
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  clearTimeout(window._tbPingHide);
+  mbOpenPingPop();
+}
+
+function mbScheduleHidePing() {
+  clearTimeout(window._tbPingHide);
+  window._tbPingHide = setTimeout(() => {
+    const pop = document.getElementById('tb-ping-pop');
+    const btn = document.getElementById('pill-ping-btn');
+    if (!pop || pop.hidden) return;
+    if (btn?.matches(':hover') || pop.matches(':hover')) return;
+    pop.hidden = true;
+    btn?.setAttribute('aria-expanded', 'false');
+  }, 180);
+}
+
+async function mbPingSample() {
+  const t0 = performance.now();
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    await fetch(`${SB_URL}/rest/v1/campaigns?select=id&limit=1`, {
+      headers: typeof mbAuthHeaders === 'function' ? mbAuthHeaders() : {},
+      cache: 'no-store',
+      signal: ctrl.signal,
+    });
+    return Math.max(1, Math.round(performance.now() - t0));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function mbRunPingTest(ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const run = (window._tbPingRun = (window._tbPingRun || 0) + 1);
+  window._tbPingBusy = true;
+  window._tbPingSamples = [];
+  const pop = document.getElementById('tb-ping-pop');
+  mbFillPingPop(pop, { busy: true });
+  const samples = [];
+  for (let i = 0; i < 5; i += 1) {
+    if (run !== window._tbPingRun) return;
+    try { samples.push(await mbPingSample()); } catch (e) { samples.push(null); }
+    window._tbPingSamples = samples.filter((n) => Number.isFinite(n));
+    if (pop && !pop.hidden) mbFillPingPop(pop, { busy: i < 4 });
+  }
+  window._tbPingBusy = false;
+  const ok = samples.filter((n) => Number.isFinite(n));
+  if (ok.length) mbPaintPing(Math.round(ok.reduce((sum, n) => sum + n, 0) / ok.length));
+  else if (pop && !pop.hidden) mbFillPingPop(pop);
+}
+
+function mbShowBalPop() {
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  clearTimeout(window._tbBalHide);
+  const pop = document.getElementById('tb-bal-pop');
+  if (!pop || !pop.hidden) return;
+  mbCloseTopbarPops('bal');
+  pop.hidden = false;
+  document.getElementById('pill-bal-btn')?.setAttribute('aria-expanded', 'true');
+  mbPlaceBalPop(pop);
+  mbFillBalPop(pop);
+}
+
+function mbScheduleHideBal() {
+  clearTimeout(window._tbBalHide);
+  window._tbBalHide = setTimeout(() => {
+    const pop = document.getElementById('tb-bal-pop');
+    const btn = document.getElementById('pill-bal-btn');
+    if (!pop || pop.hidden) return;
+    if (btn?.matches(':hover') || pop.matches(':hover')) return;
+    pop.hidden = true;
+    btn?.setAttribute('aria-expanded', 'false');
+  }, 180);
+}
+
 function mbToggleBalPop(ev) {
   if (ev && ev.stopPropagation) ev.stopPropagation();
   const pop = document.getElementById('tb-bal-pop');
@@ -234,11 +421,20 @@ function mbToggleBalPop(ev) {
     if (btn) btn.setAttribute('aria-expanded', 'false');
     return;
   }
+  mbCloseTopbarPops('bal');
   pop.hidden = false;
   if (btn) btn.setAttribute('aria-expanded', 'true');
   mbPlaceBalPop(pop);
   mbFillBalPop(pop);
 }
+
+document.addEventListener('click', (ev) => {
+  const pop = document.getElementById('tb-ping-pop');
+  if (!pop || pop.hidden) return;
+  if (ev.target.closest && ev.target.closest('#pill-ping-btn, #tb-ping-pop')) return;
+  pop.hidden = true;
+  document.getElementById('pill-ping-btn')?.setAttribute('aria-expanded', 'false');
+});
 
 document.addEventListener('click', (ev) => {
   const pop = document.getElementById('tb-bal-pop');
@@ -333,11 +529,7 @@ function mbOpenChip(ev, spec) {
   if (!pop || !btn) return;
   const same = window._tbChip && window._tbChip.kind === spec.kind && window._tbChip.key === spec.key && !pop.hidden;
   mbCloseChipPop();
-  const bal = document.getElementById('tb-bal-pop');
-  if (bal) {
-    bal.hidden = true;
-    document.getElementById('pill-bal-btn')?.setAttribute('aria-expanded', 'false');
-  }
+  mbCloseTopbarPops('chip');
   if (same) return;
   window._tbChip = { ...spec, anchor: btn };
   btn.classList.add('is-open');
@@ -870,6 +1062,12 @@ document.addEventListener('mouseover', (ev) => {
   else mbScheduleHideResPanel();
   if (target.closest('#tb-live-btn') || (target.closest('#tb-chip-pop') && window._tbChip?.kind === 'live')) mbShowLiveBoard();
   else mbScheduleHideLive();
+  if (target.closest('#pill-ping-btn, #tb-ping-pop')) mbShowPingPop();
+  else mbScheduleHidePing();
+  if (target.closest('#pill-bal-btn, #tb-bal-pop')) mbShowBalPop();
+  else mbScheduleHideBal();
+  if (target.closest('#tb-mesai-btn, #tb-mesai-pop') && typeof opsShowMesaiPop === 'function') opsShowMesaiPop();
+  else if (typeof opsScheduleHideMesai === 'function') opsScheduleHideMesai();
 });
 
 function mbStatusWidth(wrap) {

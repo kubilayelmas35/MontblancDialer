@@ -39,17 +39,18 @@
 <div id="tb-chip-pop" class="tb-chip-pop" hidden></div>
 <div id="tb-res-panel" class="tb-res-panel" hidden></div>
 <div id="tb-mesai-pop" class="tb-mesai-pop" hidden></div>
+<div id="tb-ping-pop" class="tb-ping-pop" hidden></div>
 <div class="tb-right">
 <div id="tb-pills" style="display:none;">
 <button type="button" class="tb-pill pill-bal" id="pill-bal-btn" onclick="mbToggleBalPop(event)" aria-expanded="false" aria-controls="tb-bal-pop" title="Bakiye" data-tr-title="Bakiye" data-de-title="Guthaben" aria-label="Bakiye" data-tr-aria="Bakiye" data-de-aria="Guthaben">
 <span class="pill-bal-mark" id="pill-bal-mark" aria-hidden="true">€</span>
 <span class="tb-pill-val" id="pill-bal">--</span>
 </button>
-<div class="tb-pill pill-ping">
-<div class="tb-pill-dot"></div>
+<button type="button" class="tb-pill pill-ping" id="pill-ping-btn" onclick="mbTogglePingPop(event)" aria-expanded="false" aria-controls="tb-ping-pop" title="Bağlantı" data-tr-title="Bağlantı" data-de-title="Verbindung" aria-label="Bağlantı" data-tr-aria="Bağlantı" data-de-aria="Verbindung">
+<span class="tb-pill-dot"></span>
 <span class="tb-pill-val" id="pill-ping">--</span>
 <span class="tb-pill-lbl">ms</span>
-</div>
+</button>
 </div>
 <button type="button" class="tb-pill pill-camp" id="pill-camp-btn" onclick="opsCampPillClick(event)" title="Kampanya" data-tr-title="Kampanya" data-de-title="Kampagne" aria-label="Kampanya" data-tr-aria="Kampanya" data-de-aria="Kampagne">
 <span class="pill-camp-mark" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1.4h1.3v13.2H3z"/><path d="M5 2.2h8.4L11.1 5.7 13.4 9.2H5z"/></svg></span>

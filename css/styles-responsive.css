@@ -33,7 +33,7 @@
     overflow-x: auto;
     overflow-y: auto;
   }
-  .tb-mesai-pop, .tb-bal-pop, .tb-chip-pop, .tb-res-panel {
+  .tb-mesai-pop, .tb-bal-pop, .tb-chip-pop, .tb-res-panel, .tb-ping-pop {
     width: min(380px, calc(100vw - 16px));
     max-width: calc(100vw - 16px);
   }
@@ -122,7 +122,7 @@
   }
   .tb-pill { padding: 0 6px; gap: 3px; }
   .pill-ping .tb-pill-val { max-width: 42px; }
-  .tb-mesai-pop, .tb-bal-pop, .tb-chip-pop, .tb-res-panel {
+  .tb-mesai-pop, .tb-bal-pop, .tb-chip-pop, .tb-res-panel, .tb-ping-pop {
     left: 8px !important;
     right: 8px !important;
     width: auto !important;
