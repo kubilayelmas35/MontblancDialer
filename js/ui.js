@@ -109,6 +109,7 @@ const _NAVIGATE_LOADERS = {
   maasim: () => { _mbPageFn('loadMaasimPage')?.(); },
   performansim: () => { _mbPageFn('loadPerformansimPage')?.(); },
   competition: () => { _mbPageFn('loadCompetitionPage')?.(); },
+  geocon: () => { _mbPageFn('loadGeoconPage')?.(); },
 };
 
 function runPageEntry(page) {
@@ -718,7 +719,10 @@ el.style.removeProperty('display');
 el.classList.add('open');
 }
 
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+  document.getElementById(id)?.classList.remove('open');
+  if (id === 'm-upload-q' && typeof mbGeoconSetMode === 'function') mbGeoconSetMode(false);
+}
 
 document.querySelectorAll('.modal-overlay').forEach(m=>{
 m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });

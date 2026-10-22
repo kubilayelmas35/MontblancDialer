@@ -92,8 +92,18 @@
 <div class="modal-overlay" id="m-upload-q">
 <div class="modal" style="max-width:560px;">
 <div class="modal-hdr">
-<div class="modal-title" data-tr="Kuyruk Yükle" data-de="Liste laden">Kuyruk Yükle</div>
+<div class="modal-title" id="uq-modal-title" data-tr="Kuyruk Yükle" data-de="Liste laden">Kuyruk Yükle</div>
 <button class="modal-close" onclick="closeModal('m-upload-q')">✕</button>
+</div>
+<div id="uq-geocon-target" hidden>
+<div class="form-row">
+<label class="form-label" for="uq-camp" data-tr="Kampanya" data-de="Kampagne">Kampanya</label>
+<select class="form-input" id="uq-camp" onchange="mbGeoconPickCamp()"></select>
+</div>
+<div class="form-row">
+<label class="form-label" for="uq-queue" data-tr="Kuyruk" data-de="Warteschlange">Kuyruk</label>
+<select class="form-input" id="uq-queue" onchange="mbGeoconPickQueue()"></select>
+</div>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Kuyruk Adı" data-de="Listenname">Kuyruk Adı</label>

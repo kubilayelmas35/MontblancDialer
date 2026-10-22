@@ -11,6 +11,7 @@ const MB_ROLES = [
 const MB_PAGES = [
   { key: 'dashboard', label: 'Özet', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc', 'field_agent'] },
   { key: 'campaigns', label: 'Kampanyalar', roles: ['super_admin', 'admin', 'firm_admin'] },
+  { key: 'geocon', label: 'GeoCon', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'callhistory', label: 'Çağrı Geçmişi', roles: ['super_admin', 'admin', 'firm_admin', 'qc'] },
   { key: 'stats', label: 'İstatistikler', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'agents', label: 'Personeller', roles: ['super_admin', 'admin', 'firm_admin'] },

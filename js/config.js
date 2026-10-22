@@ -33,6 +33,7 @@ const UQ_FIELD_KEYWORDS = {
   plz: ['plz', 'posta kodu', 'postleitzahl', 'zip', 'pk'],
   city: ['şehir', 'sehir', 'stadt', 'ort', 'ortschaft', 'city'],
   address: ['adres', 'adresse', 'strasse', 'straße', 'street', 'sokak'],
+  notes: ['notiz', 'notes', 'notlar', 'note'],
 };
 
 function mbCleanHeader(h) {
@@ -157,6 +158,7 @@ const UQ_TARGET_FIELDS = [
 { key:'plz',        labelKey:'uq.field.plz' },
 { key:'city',       labelKey:'uq.field.city' },
 { key:'address',    labelKey:'uq.field.address' },
+{ key:'notes',      labelKey:'uq.field.notes' },
 ];
 
 const GUNLER = [

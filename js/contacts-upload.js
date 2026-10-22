@@ -311,13 +311,15 @@ function mbUploadSkipText(skipped) {
 }
 
 async function uploadQueue() {
+  const campId = (typeof _uqCampOverride !== 'undefined' && _uqCampOverride) || currentCampId;
   const targetId = String(_uqTargetQueueId || '');
-  const foundTarget = targetId && typeof findQueue === 'function' ? findQueue(targetId) : null;
+  const geoQ = (typeof _uqGeoconQueue !== 'undefined' && _uqGeoconQueue && String(_uqGeoconQueue.id) === targetId) ? _uqGeoconQueue : null;
+  const foundTarget = geoQ ? { queue: geoQ } : (targetId && typeof findQueue === 'function' ? findQueue(targetId) : null);
   if (targetId && !foundTarget) { toast(uqSay('uq.missing', 'Kuyruk bulunamadı'), 'err'); return; }
   const name = foundTarget ? String(foundTarget.queue.name || '').trim() : document.getElementById('uq-name').value.trim();
   if (!name)          { toast(campT('camp.queue.name.required', 'Kuyruk adı gerekli'), 'err'); return; }
   if (!uploadFile)    { toast(uqSay('uq.need.file', 'Dosya seçin'), 'err'); return; }
-  if (!currentCampId) { toast(uqSay('uq.need.camp', 'Önce kampanya seçin'), 'err'); return; }
+  if (!campId) { toast(uqSay('uq.need.camp', 'Önce kampanya seçin'), 'err'); return; }
   if (!(uploadParsedRows.length && uploadHeaders.length)) {
     toast(uqSay('uq.need.rows', 'Dosya okunamadı'), 'err');
     return;
@@ -326,14 +328,14 @@ async function uploadQueue() {
   if (!mapping.phone && mapping.phone !== 0) { toast(uqSay('uq.need.phone', 'Telefon sütunu seçilmedi'), 'err'); return; }
   const parsed = uploadParsedRows.map((row) => ({
     queue_id: '__PH__',
-    campaign_id: currentCampId,
+    campaign_id: campId,
     ...mbRowFromMapping(row, mapping),
   }));
   const classified = typeof mbClassifyLeadRows === 'function'
     ? mbClassifyLeadRows(parsed)
     : { accepted: parsed.filter((c) => c.phone), skipped: { empty: 0, invalid: 0, duplicate: 0 } };
   const mode = getDedupMode();
-  const existing = await mbFindExistingPhones(classified.accepted.map((c) => c.phone), mode, currentCampId);
+  const existing = await mbFindExistingPhones(classified.accepted.map((c) => c.phone), mode, campId);
   const outcomeKeys = getUploadOutcomeSkip();
   let outcomeHits = new Map();
   if (outcomeKeys.length) {
@@ -376,14 +378,14 @@ async function uploadQueue() {
     if (detail) progressDetail.textContent = detail;
   };
   try {
-    const campRow = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === currentCampId);
-    const firmId = campRow?.firm_id || currentUser?.firm_id || null;
+    const campRow = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === campId);
+    const firmId = (typeof _uqCampFirm !== 'undefined' && _uqCampFirm) || campRow?.firm_id || currentUser?.firm_id || null;
     let queue = foundTarget ? foundTarget.queue : null;
     if (queue) {
       setProgress(5, uqSay('uq.adding', 'Kuyruğa ekleniyor...'), `${contacts.length.toLocaleString()} kişi hazırlanıyor`);
     } else {
       setProgress(5, 'Kuyruk oluşturuluyor...', `${contacts.length.toLocaleString()} kişi hazırlanıyor`);
-      const queueBody = { campaign_id:currentCampId, name, total_contacts:contacts.length };
+      const queueBody = { campaign_id:campId, name, total_contacts:contacts.length };
       if (firmId) queueBody.firm_id = firmId;
       const queueRes = await sb('queues', {
         method:'POST', prefer: 'return=representation',
@@ -391,7 +393,7 @@ async function uploadQueue() {
       });
       queue = Array.isArray(queueRes) ? queueRes[0] : queueRes;
       if (!queue?.id) {
-        const found = await sb(`queues?campaign_id=eq.${currentCampId}&name=eq.${encodeURIComponent(name)}&order=created_at.desc&limit=1`);
+        const found = await sb(`queues?campaign_id=eq.${campId}&name=eq.${encodeURIComponent(name)}&order=created_at.desc&limit=1`);
         queue = Array.isArray(found) ? found[0] : found;
       }
       if (!queue?.id) throw new Error('Kuyruk oluşturulamadı — ID alınamadı');
@@ -436,10 +438,10 @@ async function uploadQueue() {
     progressSection.style.display = 'none';
     submitBtn.disabled = false;
     toast(summary, 'ok', 4200);
-    const campMem = (campaigns || []).find((c) => c.id === currentCampId);
+    const campMem = (campaigns || []).find((c) => c.id === campId);
     if (campMem) {
       if (!foundTarget) {
-        campMem.queues = [{ id: queue.id, name, total_contacts: contacts.length, dialed_count: 0, status: 'active', campaign_id: currentCampId, firm_id: firmId }, ...(campMem.queues || [])];
+        campMem.queues = [{ id: queue.id, name, total_contacts: contacts.length, dialed_count: 0, status: 'active', campaign_id: campId, firm_id: firmId }, ...(campMem.queues || [])];
       }
       if (typeof renderCampGrid === 'function') renderCampGrid();
       if (typeof renderCampQueues === 'function') renderCampQueues(campMem);

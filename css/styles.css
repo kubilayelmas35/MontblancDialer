@@ -1894,6 +1894,9 @@ display: flex;
 pointer-events: auto;
 visibility: visible;
 }
+#page-geocon.page { padding: 0; gap: 0; overflow: hidden; }
+.geocon-frame { flex: 1; width: 100%; min-height: 0; border: 0; background: #0e1324; }
+#m-upload-q.is-geocon .upload-area { display: none; }
 @media (max-width: 1024px) { .page { padding: 14px; } }
 .page-hdr {
 display: flex; align-items: flex-start; justify-content: space-between;
