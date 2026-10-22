@@ -46,6 +46,56 @@
   #page-settings .settings-tabs { width: 100%; }
   .dash-rings { flex-wrap: wrap; }
   .dash-ring { flex: 1 1 88px; }
+  #page-dialer.page.active {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+  #page-dialer > .dialer-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    gap: 8px;
+  }
+  #page-dialer .dialer-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  #page-dialer .dialer-side {
+    flex: 0 1 auto;
+    width: 100%;
+    min-height: 0;
+    max-height: 34%;
+    overflow: auto;
+  }
+  #page-dialer #ready-section { flex: 0 0 auto; width: 100%; }
+  #page-dialer .dialer-main > #customer-card:not(.customer-card--empty) {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  #page-dialer #customer-card:not(.customer-card--empty) .cust-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg-2);
+  }
+  body:has(#page-dialer.page.active) .team-chat-root:not(:has(.team-chat-panel--open)) {
+    bottom: 108px;
+  }
 }
 
 .dialer-fold-toggle { display: none; }

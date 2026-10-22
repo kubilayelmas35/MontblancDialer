@@ -532,6 +532,27 @@ function syncDialerBottomChrome() {
   paintCallActionButtons();
 }
 
+function syncCampsFoldForCall() {
+  const el = document.getElementById('agent-camps-panel');
+  if (!el) return;
+  const narrow = window.matchMedia('(max-width: 768px)').matches;
+  const busy = dialerStatus === 'calling' || dialerStatus === 'on_call' || dialerStatus === 'wrapping';
+  const btn = el.querySelector('.dialer-fold-toggle');
+  if (narrow && busy) {
+    el.classList.add('is-collapsed');
+    el.dataset.campFoldCall = '1';
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+    return;
+  }
+  if (el.dataset.campFoldCall === '1' && narrow) {
+    el.classList.remove('is-collapsed');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+  }
+  if (!busy) el.dataset.campFoldCall = '';
+}
+
+window.addEventListener('resize', syncCampsFoldForCall);
+
 function setDialerStatus(s) {
   const prev = dialerStatus;
   dialerStatus = s;
@@ -710,6 +731,7 @@ function setDialerStatus(s) {
   if (s !== 'on_call') document.getElementById('global-mascot')?.style.setProperty('--mascot-call-heat', '0');
   syncCustomerCardEmptyVisual();
   syncGlobalMascotDock();
+  syncCampsFoldForCall();
 }
 
 function updateDialerNavCallIndicator() {
