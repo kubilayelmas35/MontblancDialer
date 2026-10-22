@@ -921,6 +921,10 @@ function mbPersonSay(key, fallback) {
   return msg && msg !== key ? msg : fallback;
 }
 
+function mbPersonOwnOnly() {
+  return String(currentUser?.role || '') === 'agent';
+}
+
 function mbPersonFirmId() {
   const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : '';
   if (/^[0-9a-f-]{36}$/i.test(String(fid || ''))) return String(fid);
@@ -949,9 +953,9 @@ function mbPersonPlace() {
     return;
   }
   const r = input.getBoundingClientRect();
-  const width = Math.min(300, Math.max(220, r.width));
-  const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
-  pop.style.width = `${Math.round(width)}px`;
+  const width = Math.max(160, Math.round(r.width));
+  const left = Math.max(8, Math.min(Math.round(r.left), window.innerWidth - width - 8));
+  pop.style.width = `${width}px`;
   pop.style.left = `${Math.round(left)}px`;
   const height = pop.offsetHeight || 160;
   const above = r.top - 6 - height;
@@ -1006,8 +1010,11 @@ async function mbPersonRun(raw) {
   }
   const seq = ++_personSeq;
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const label = `<div class="sb-person-label">${esc(mbPersonSay('find.people', 'Kişiler'))}</div>`;
   const note = `<div class="sb-person-note">${esc(mbPersonSay('find.hint', 'Aramaz. Sadece kişinin kartını açar.'))}</div>`;
   const fid = mbPersonFirmId();
+  const own = mbPersonOwnOnly();
+  const uid = String(currentUser?.id || '');
   const clean = q.replace(/[%*,()\\]/g, ' ').replace(/\s+/g, ' ').trim();
   if (!fid || clean.length < 2) {
     _personWait = false;
@@ -1022,13 +1029,24 @@ async function mbPersonRun(raw) {
     parts.push(`phone.ilike.${dstar}`, `phone2.ilike.${dstar}`);
   }
   const firmQ = fid === '*' ? '' : `firm_id=eq.${fid}&`;
+  const ownQ = own && /^[0-9a-f-]{36}$/i.test(uid)
+    ? `call_logs.agent_id=eq.${uid}&`
+    : '';
+  const ownSel = ownQ ? ',call_logs!inner(agent_id)' : '';
   let rows = [];
   try {
-    const got = await sb(`contacts?${firmQ}or=(${parts.join(',')})&select=id,first_name,last_name,phone,city,firm_id&limit=8`);
+    const got = await sb(`contacts?${firmQ}${ownQ}or=(${parts.join(',')})&select=id,first_name,last_name,phone,city,firm_id,campaign_id,campaigns(name)${ownSel}&limit=${ownQ ? 24 : 8}`);
     rows = Array.isArray(got) ? got : [];
   } catch (e) {
     rows = [];
   }
+  const seenIds = new Set();
+  rows = rows.filter((r) => {
+    const id = String(r?.id || '');
+    if (!id || seenIds.has(id)) return false;
+    seenIds.add(id);
+    return true;
+  }).slice(0, 8);
   _personWait = false;
   if (seq !== _personSeq) return;
   if (!rows.length) {
@@ -1038,15 +1056,17 @@ async function mbPersonRun(raw) {
     return;
   }
   const open = esc(mbPersonSay('find.open', 'Aç'));
-  const html = rows.map((r) => {
+  const html = label + rows.map((r) => {
     const name = [r.first_name, r.last_name].filter(Boolean).join(' ').trim() || '—';
+    const camp = r.campaigns?.name || (typeof campaigns !== 'undefined' ? (campaigns || []).find((c) => String(c.id) === String(r.campaign_id))?.name : '') || '';
     let firm = '';
     if (fid === '*' && typeof _allFirms !== 'undefined') {
       firm = (_allFirms || []).find((f) => String(f.id) === String(r.firm_id))?.name || '';
     }
     const meta = [firm, r.city, r.phone].filter(Boolean).join(' · ');
     const id = esc(r.id);
-    return `<button type="button" class="sb-person-row" data-person-id="${id}"><span class="sb-person-name">${esc(name)}</span><span class="sb-person-meta">${esc(meta)}</span><span class="sb-person-open">${open}</span></button>`;
+    const campHtml = camp ? `<span class="sb-person-camp">${esc(camp)}</span>` : '';
+    return `<button type="button" class="sb-person-row" data-person-id="${id}"><span class="sb-person-name">${esc(name)}</span>${campHtml}<span class="sb-person-meta">${esc(meta)}</span><span class="sb-person-open">${open}</span></button>`;
   }).join('') + note;
   mbPersonPaint(html);
 }
@@ -1059,6 +1079,13 @@ async function mbOpenPerson(id) {
     return;
   }
   mbPersonClose();
+  if (mbPersonOwnOnly()) {
+    const seen = await sb(`call_logs?agent_id=eq.${currentUser.id}&contact_id=eq.${pid}&select=id&limit=1`).catch(() => []);
+    if (!Array.isArray(seen) || !seen.length) {
+      toast(mbPersonSay('find.own', 'Bu kişiyle görüşmen yok'), 'warn', 2200);
+      return;
+    }
+  }
   let contact = null;
   try {
     const found = await sb(`contacts?id=eq.${pid}&select=*,queues(name,status)&limit=1`);

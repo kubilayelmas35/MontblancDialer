@@ -192,62 +192,83 @@ z-index: 1;
 .sb-person-pop {
   position: fixed;
   z-index: 420;
-  width: min(300px, calc(100vw - 16px));
   max-height: 280px;
   overflow: auto;
-  padding: 6px;
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-md);
+  padding: 6px 6px 4px;
+  background: var(--sidebar-aurora-base);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+  color: rgba(255,255,255,0.9);
 }
 .sb-person-pop[hidden] { display: none !important; }
+.sb-person-pop::-webkit-scrollbar { width: 8px; }
+.sb-person-pop::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 8px; }
+.sb-person-label {
+  padding: 4px 8px 2px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+}
 .sb-person-note {
-  padding: 6px 8px 4px;
-  font-size: 11px;
+  padding: 4px 8px 6px;
+  font-size: 10px;
   line-height: 1.35;
-  color: var(--text-3);
+  color: rgba(255,255,255,0.45);
 }
 .sb-person-row {
   width: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "name open" "meta open";
-  gap: 1px 8px;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 1px;
   text-align: left;
-  padding: 8px;
+  padding: 7px 8px;
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: var(--text);
+  color: rgba(255,255,255,0.9);
   cursor: pointer;
 }
-.sb-person-row:hover { background: var(--bg-3); }
+.sb-person-row:hover { background: rgba(255,255,255,0.08); }
 .sb-person-name {
-  grid-area: name;
+  grid-column: 1;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 650;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.sb-person-camp,
+.sb-person-meta {
+  grid-column: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sb-person-camp {
+  font-size: 10px;
+  font-weight: 650;
+  color: rgba(255,255,255,0.62);
 }
 .sb-person-meta {
-  grid-area: meta;
   font-size: 11px;
-  color: var(--text-3);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: rgba(255,255,255,0.42);
 }
 .sb-person-open {
-  grid-area: open;
+  grid-column: 2;
+  grid-row: 1 / span 3;
   align-self: center;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--accent);
-  border: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: rgba(255,255,255,0.82);
+  border: 1px solid rgba(255,255,255,0.22);
   border-radius: 999px;
-  padding: 4px 8px;
+  padding: 3px 8px;
 }
 .tb-hamburger {
 width: 34px; height: 34px;
