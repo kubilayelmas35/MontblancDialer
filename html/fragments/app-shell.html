@@ -1291,7 +1291,11 @@
 </div>
 </div>
 <div class="page" id="page-dialer">
-<div class="page-hdr dialer-page-hdr" id="dialer-page-hdr" style="padding:8px 16px;min-height:0;width:100%;box-sizing:border-box;">
+<div class="page-hdr dialer-page-hdr is-collapsed" id="dialer-page-hdr" style="padding:8px 16px;min-height:0;width:100%;box-sizing:border-box;">
+<button type="button" class="dialer-fold-toggle" onclick="toggleDialerFold('hdr')" aria-expanded="false">
+<span class="dialer-fold-chevron" aria-hidden="true"></span>
+<span data-tr="Durum" data-de="Status">Durum</span>
+</button>
 <div class="dialer-hdr-main" style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0;">
 <div class="dialer-status-row">
 <div id="dialer-firm-selector"></div>
@@ -1592,10 +1596,11 @@ Son randevu bilgileri indirilebilir.
 </div>
 </div>
 <div class="dialer-side">
-<div class="agent-camps-panel" id="agent-camps-panel">
-<div class="agent-camp-head">
-<div class="card-title" data-tr="Kampanyalarım" data-de="Meine Kampagnen">Kampanyalarım</div>
-</div>
+<div class="agent-camps-panel is-collapsed" id="agent-camps-panel">
+<button type="button" class="agent-camp-head dialer-fold-toggle" onclick="toggleDialerFold('camps')" aria-expanded="false">
+<span class="dialer-fold-chevron" aria-hidden="true"></span>
+<span class="card-title" data-tr="Kampanyalarım" data-de="Meine Kampagnen">Kampanyalarım</span>
+</button>
 <div id="agent-camp-admin-pop" class="agent-camp-admin-pop" hidden></div>
 <div class="manual-dial-inline-wrap">
 <button type="button" id="manual-dial-toggle" class="agent-camp-item manual-dial-camp-trigger" onclick="toggleManualDialDrawer()">

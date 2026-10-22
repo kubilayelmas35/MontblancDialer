@@ -498,6 +498,12 @@ function _syncGlobalMascotDockImpl() {
   if (!gm) return;
   const anchor = _visibleMascotAnchor();
   const inSidebar = !!(anchor && anchor.id === 'sb-mascot-anchor' && !isMimiHidden());
+  const narrowTop = (window.innerWidth || 0) <= 768 && !inSidebar;
+  gm.classList.toggle('global-mascot--mobile-off', narrowTop);
+  if (narrowTop) {
+    gm.classList.remove('global-mascot--placed');
+    return;
+  }
   const slot = document.getElementById('tb-mascot-anchor');
   if (slot) slot.classList.toggle('is-off', inSidebar);
   gm.classList.toggle('global-mascot--sidebar', inSidebar);

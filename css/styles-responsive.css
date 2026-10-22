@@ -48,10 +48,35 @@
   .dash-ring { flex: 1 1 88px; }
 }
 
+.dialer-fold-toggle { display: none; }
+.dialer-fold-chevron {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--text-3);
+  flex: 0 0 auto;
+}
+.global-mascot.global-mascot--mobile-off {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 @media (max-width: 768px) {
-  #topbar { gap: 4px; padding: 0 6px; }
+  #topbar {
+    gap: 4px;
+    padding: 0 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  #topbar::-webkit-scrollbar { height: 0; display: none; }
+  #topbar > .tb-hamburger,
+  #topbar > .tb-logo,
+  #topbar > .tb-pills-wrap,
+  #topbar > .tb-right { flex-shrink: 0; }
   .tb-pills-wrap, .tb-right { gap: 4px; }
-  .tb-right { min-width: 0; flex: 0 1 auto; }
+  .tb-right { flex: 0 0 auto; }
   .tb-mascot-anchor { display: none !important; }
   .tb-user > div { display: none; }
   .tb-user { padding: 0; gap: 0; }
@@ -89,6 +114,30 @@
   #page-dialer .customer-card:not(.customer-card--empty) { padding: 12px 14px; }
   #page-dialer .cust-header { flex-wrap: wrap; }
   #page-dialer .dialer-timer-block { margin-left: 0; flex-basis: auto; }
+  #page-dialer .dialer-fold-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin: 0;
+    padding: 8px 2px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    text-align: left;
+    cursor: pointer;
+  }
+  #page-dialer #dialer-page-hdr.is-collapsed { padding: 0 10px !important; }
+  #page-dialer #dialer-page-hdr.is-collapsed .dialer-hdr-main,
+  #page-dialer #dialer-page-hdr.is-collapsed .dialer-hdr-badges { display: none !important; }
+  #page-dialer #agent-camps-panel.is-collapsed > :not(.agent-camp-head) { display: none !important; }
+  #page-dialer #agent-camps-panel.is-collapsed .agent-camp-head { margin-bottom: 0; }
+  #page-dialer #dialer-page-hdr:not(.is-collapsed) .dialer-fold-chevron,
+  #page-dialer #agent-camps-panel:not(.is-collapsed) .dialer-fold-chevron { transform: rotate(90deg); }
+  #page-dialer .dialer-main > #customer-card.customer-card--empty { min-height: 320px; }
   #page-dialer #hotkey-hints { max-width: 100%; }
   #page-dialer .call-action-btn { flex: 1 1 calc(50% - 8px); }
   .takvim-toolbar-cluster--right { margin-left: 0; justify-content: flex-start; }

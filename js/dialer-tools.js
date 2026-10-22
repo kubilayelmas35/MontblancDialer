@@ -101,6 +101,15 @@ function launchConfetti() {
 }
 
 // ── Hotkeys ───────────────────────────────────
+function toggleDialerFold(which) {
+  const el = document.getElementById(which === 'camps' ? 'agent-camps-panel' : 'dialer-page-hdr');
+  if (!el) return;
+  const open = el.classList.contains('is-collapsed');
+  el.classList.toggle('is-collapsed', !open);
+  const btn = el.querySelector('.dialer-fold-toggle');
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
 function renderHotkeyHints() {
   const el = document.getElementById('hotkey-hints');
   if (!el) return;
