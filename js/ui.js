@@ -159,6 +159,12 @@ if (notif) notif.style.display = 'none';
 if (typeof toggleTeamChat === 'function') toggleTeamChat(false);
 if (typeof mbSyncInboundStrip === 'function') mbSyncInboundStrip();
 if (typeof mbRefreshOpenBadge === 'function') mbRefreshOpenBadge(false);
+if (typeof mbClearNavSearch === 'function') mbClearNavSearch();
+try {
+  localStorage.setItem('mb_last_page', page);
+  if (page === 'stats' && window._statsReport) localStorage.setItem('mb_last_report', window._statsReport);
+  else localStorage.removeItem('mb_last_report');
+} catch (e) {}
 }
 
 function initSettingsTabs(preferTab) {
@@ -535,6 +541,7 @@ if (typeof window._mbConnStatus === 'string' && typeof updateConnectionStatus ==
   updateConnectionStatus(window._mbConnStatus);
 }
 if (typeof renderHotkeyHints === 'function') renderHotkeyHints();
+if (typeof mbPaintTopFirm === 'function') mbPaintTopFirm();
 const testBtn = document.getElementById('test-mode-btn');
 if (testBtn && typeof t === 'function') {
   testBtn.textContent = (typeof _testMode !== 'undefined' && _testMode) ? t('dial.test_btn_on') : t('dial.test_btn_off');

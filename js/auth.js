@@ -200,13 +200,8 @@ document.getElementById('tb-av').textContent = currentUser.initials.charAt(0);
 document.getElementById('tb-uname').textContent = currentUser.name;
 const isAdmin = mbIsFirmAdmin();
 if (typeof mbApplyNavAccess === 'function') mbApplyNavAccess();
-const roleEl = document.getElementById('tb-urole');
-if (roleEl) {
-  const suffix = currentUser.firm_name ? ` · ${currentUser.firm_name}` : '';
-  const imp = _impersonation ? ' · Temsil Modu' : '';
-  const roleName = typeof mbRoleLabel === 'function' ? mbRoleLabel(currentUser.role) : currentUser.role;
-  roleEl.textContent = roleName + suffix + imp;
-}
+if (typeof mbRestoreFirmPick === 'function') mbRestoreFirmPick();
+mbPaintTopFirm();
 if (mbIsSuperAdmin()) { loadAllFirms(); }
 loadFirmCallHours(); // arama kısıtlamalarını yükle
 if (typeof loadFirmAppointmentGoals === 'function') void loadFirmAppointmentGoals();
@@ -220,7 +215,7 @@ setInterval(updateTopbarStats, 30000);
 loadWvBadge();
 if (typeof refreshUserPagePerms === 'function') refreshUserPagePerms().catch(() => {});
 if (typeof mbLoadUiPrefs === 'function') await mbLoadUiPrefs();
-navigate(typeof mbHomePage === 'function' ? mbHomePage(currentUser.role) : 'dialer');
+navigate(typeof mbBootPage === 'function' ? mbBootPage() : (typeof mbHomePage === 'function' ? mbHomePage(currentUser.role) : 'dialer'));
 if (typeof initChat === 'function') initChat();
 if (typeof initNotificationCenter === 'function') initNotificationCenter();
 initRTCListener();
@@ -262,6 +257,51 @@ async function _syncOwnAgentPresence(status) {
   }
 }
 
+function mbRestoreFirmPick() {
+  if (typeof mbIsSuperAdmin !== 'function' || !mbIsSuperAdmin() || _impersonation) return;
+  try {
+    const saved = localStorage.getItem('mb_firm_pick') || '';
+    if (saved) _selectedFirmId = saved;
+  } catch (e) {}
+}
+
+function mbRememberFirmPick() {
+  if (typeof mbIsSuperAdmin !== 'function' || !mbIsSuperAdmin() || _impersonation) return;
+  try {
+    const id = _selectedFirmId || '';
+    if (!id) {
+      localStorage.removeItem('mb_firm_pick');
+      localStorage.removeItem('mb_firm_pick_name');
+      return;
+    }
+    const hit = (_allFirms || []).find((f) => String(f.id) === String(id));
+    localStorage.setItem('mb_firm_pick', id);
+    if (hit?.name) localStorage.setItem('mb_firm_pick_name', hit.name);
+  } catch (e) {}
+}
+
+function mbFirmLabel() {
+  if (!currentUser) return '';
+  if (!(typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin()) || _impersonation) {
+    return currentUser.firm_name || '';
+  }
+  const id = _selectedFirmId || '';
+  if (!id) return typeof t === 'function' ? t('nav.firm_all') : 'Tüm firmalar';
+  const hit = (_allFirms || []).find((f) => String(f.id) === String(id));
+  if (hit?.name) return hit.name;
+  try { return localStorage.getItem('mb_firm_pick_name') || currentUser.firm_name || ''; } catch (e) { return currentUser.firm_name || ''; }
+}
+
+function mbPaintTopFirm() {
+  const roleEl = document.getElementById('tb-urole');
+  if (!roleEl || !currentUser) return;
+  const roleName = typeof mbRoleLabel === 'function' ? mbRoleLabel(currentUser.role) : (currentUser.role || '');
+  const firm = mbFirmLabel();
+  const suffix = firm ? ` · ${firm}` : '';
+  const imp = _impersonation ? ' · Temsil Modu' : '';
+  roleEl.textContent = roleName + suffix + imp;
+}
+
 function getActiveFirmId() {
 return isSuperAdmin() ? _selectedFirmId : currentUser?.firm_id;
 }
@@ -270,6 +310,8 @@ return isSuperAdmin() ? _selectedFirmId : currentUser?.firm_id;
 function setSuperAdminFirmSelection(firmId) {
   if (!mbIsSuperAdmin() || !firmId) return;
   _selectedFirmId = firmId;
+  if (typeof mbRememberFirmPick === 'function') mbRememberFirmPick();
+  if (typeof mbPaintTopFirm === 'function') mbPaintTopFirm();
   document.querySelectorAll('select[id$="-sel"]').forEach((sel) => {
     const opt = [...sel.options].find((o) => o.value === firmId);
     if (opt) sel.value = firmId;
@@ -286,6 +328,11 @@ if (!isSuperAdmin()) return;
 try {
 _allFirms = await sb('firms?select=id,name,slug&order=name.asc') || [];
 } catch(e) { _allFirms = []; }
+if (_selectedFirmId && !_allFirms.some((f) => String(f.id) === String(_selectedFirmId))) {
+  _selectedFirmId = null;
+  try { localStorage.removeItem('mb_firm_pick'); localStorage.removeItem('mb_firm_pick_name'); } catch (e) {}
+}
+if (typeof mbPaintTopFirm === 'function') mbPaintTopFirm();
 }
 
 function renderFirmSelector(containerId, callbackFn) {
@@ -296,6 +343,8 @@ const onChange = function() {
   const next = this.value || null;
   if (next === (_selectedFirmId || null)) return;
   _selectedFirmId = next;
+  if (typeof mbRememberFirmPick === 'function') mbRememberFirmPick();
+  if (typeof mbPaintTopFirm === 'function') mbPaintTopFirm();
   if (typeof callbackFn === 'function') callbackFn();
 };
 const buildSelect = () => {
@@ -330,6 +379,11 @@ ${names}
 if (!_allFirms.length) {
 sb('firms?select=id,name,slug&order=name.asc').then(firms => {
 _allFirms = firms || [];
+if (_selectedFirmId && !_allFirms.some((f) => String(f.id) === String(_selectedFirmId))) {
+  _selectedFirmId = null;
+  try { localStorage.removeItem('mb_firm_pick'); localStorage.removeItem('mb_firm_pick_name'); } catch (e) {}
+}
+if (typeof mbPaintTopFirm === 'function') mbPaintTopFirm();
 buildSelect();
 }).catch(() => buildSelect());
 } else {

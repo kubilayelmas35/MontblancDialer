@@ -194,6 +194,78 @@ function mbRestoreSbGroups() {
   });
 }
 
+function mbNavItemLabel(btn) {
+  const span = btn.querySelector('span[data-tr]') || btn.querySelector('span:not(.sb-item-icon):not(.sb-badge)');
+  const tr = span?.getAttribute('data-tr') || '';
+  const de = span?.getAttribute('data-de') || '';
+  const text = span?.textContent || '';
+  return `${tr} ${de} ${text}`.toLocaleLowerCase('tr');
+}
+
+function mbFilterNav(raw) {
+  const q = String(raw || '').trim().toLocaleLowerCase('tr');
+  const sidebar = document.getElementById('sidebar');
+  const searching = q.length > 0;
+  sidebar?.classList.toggle('is-nav-search', searching);
+  const items = [...document.querySelectorAll('#sidebar .sb-item')];
+  let hits = 0;
+  items.forEach((btn) => {
+    const allowed = btn.style.display !== 'none';
+    const label = mbNavItemLabel(btn);
+    const match = !searching || (allowed && label.includes(q));
+    btn.classList.toggle('is-nav-miss', searching && !match);
+    if (match && allowed) hits += 1;
+  });
+  document.querySelectorAll('#sidebar .sb-group, #sidebar .sb-section').forEach((box) => {
+    if (box.classList.contains('sb-footer')) return;
+    const kids = [...box.querySelectorAll(':scope > .sb-sub > .sb-item, :scope > .sb-item')];
+    if (!kids.length) return;
+    const any = kids.some((btn) => btn.style.display !== 'none' && !btn.classList.contains('is-nav-miss'));
+    box.classList.toggle('is-nav-miss', searching && !any);
+  });
+  const empty = document.getElementById('sb-nav-empty');
+  if (empty) empty.hidden = !(searching && hits === 0);
+}
+
+function mbNavSearchKey(e) {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    const input = document.getElementById('sb-nav-search');
+    if (input) input.value = '';
+    mbFilterNav('');
+    return;
+  }
+  if (e.key !== 'Enter') return;
+  if (!String(document.getElementById('sb-nav-search')?.value || '').trim()) return;
+  e.preventDefault();
+  const hit = [...document.querySelectorAll('#sidebar .sb-item')].find((btn) => {
+    return btn.style.display !== 'none' && !btn.classList.contains('is-nav-miss');
+  });
+  if (hit) hit.click();
+}
+
+function mbClearNavSearch() {
+  const input = document.getElementById('sb-nav-search');
+  if (input && input.value) input.value = '';
+  if (document.getElementById('sidebar')?.classList.contains('is-nav-search')) mbFilterNav('');
+}
+
+function mbBootPage() {
+  const home = typeof mbHomePage === 'function' ? mbHomePage(currentUser?.role) : 'dashboard';
+  let saved = '';
+  try { saved = localStorage.getItem('mb_last_page') || ''; } catch (e) { return home; }
+  if (!saved || !document.getElementById(`page-${saved}`)) return home;
+  const role = currentUser?.role || '';
+  if (typeof MB_PAGES !== 'undefined' && typeof mbPageVisible === 'function') {
+    const page = MB_PAGES.find((item) => item.key === saved);
+    if (page && !mbPageVisible(page, role)) return home;
+  }
+  if (saved === 'stats') {
+    try { window._statsReport = localStorage.getItem('mb_last_report') || window._statsReport || 'overview'; } catch (e) {}
+  }
+  return saved;
+}
+
 function toggleSbGroup(btn) {
   const group = btn?.closest?.('.sb-group');
   if (!group) return;

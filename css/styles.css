@@ -1709,10 +1709,34 @@ border-radius: 10px; font-family: var(--mono);
   border-top: 1px solid rgba(255,255,255,0.08);
   min-height: 88px;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 6px;
 }
+.sb-foot-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; width: 100%; }
+.sb-nav-search {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+}
+.sb-nav-search::placeholder { color: rgba(255,255,255,0.55); }
+.sb-nav-search:focus { outline: none; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.12); }
+.sb-nav-empty { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.72); }
+.sb-nav-empty[hidden] { display: none !important; }
+#sidebar.is-nav-search .sb-item.is-nav-miss { display: none !important; }
+#sidebar.is-nav-search .sb-group.is-nav-miss,
+#sidebar.is-nav-search .sb-section.is-nav-miss { display: none !important; }
+#sidebar.is-nav-search .sb-divider { display: none; }
+#sidebar.is-nav-search .sb-group:not(.is-nav-miss) .sb-sub { display: flex; }
+#sidebar.collapsed .sb-nav-search,
+#sidebar.collapsed .sb-nav-empty { display: none !important; }
 .sb-ver { font-size: 10px; color: rgba(255,255,255,0.68); font-family: var(--mono); }
 /* Sidebar header logo */
 /* Sidebar içinde tb-logo olursa (koyu zemin) */

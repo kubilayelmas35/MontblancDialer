@@ -1,5 +1,9 @@
 function openStatsReport(view) {
   window._statsReport = view || 'overview';
+  try {
+    localStorage.setItem('mb_last_page', 'stats');
+    localStorage.setItem('mb_last_report', window._statsReport);
+  } catch (e) {}
   const onPage = document.getElementById('page-stats')?.classList.contains('active');
   if (!onPage) navigate('stats');
   else if (typeof loadStats === 'function') loadStats();
