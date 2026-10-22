@@ -525,6 +525,37 @@ i.ph {
   display: inline-flex;
   align-items: center;
 }
+.dialer-test-lab {
+  margin: 0 16px 10px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--yellow) 45%, var(--border));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--yellow) 10%, var(--bg-2));
+}
+.dialer-test-lab__head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+.dialer-test-lab__head strong { font-size: 13px; font-weight: 800; }
+.dialer-test-lab__head span { font-size: 12px; font-weight: 650; color: var(--text-2); }
+.dialer-test-lab__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.dialer-test-lab__actions button {
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.dialer-test-lab__actions button:hover { border-color: var(--accent); }
+.dialer-test-lab__steps {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
 .outcome-btn {
   background: var(--bg-2);
   color: var(--text);

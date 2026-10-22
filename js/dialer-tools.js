@@ -1248,6 +1248,13 @@ function inboundTestTransferToOwner() {
   const ctx = _inboundTestCtx;
   const owner = ctx?.contact?._testOwner;
   if (!owner?.id) return;
+  if (owner.id === 'lab-owner') {
+    const from = currentUser?.name || (typeof t === 'function' ? t('dial.lab.agent') : 'Temsilci');
+    _closeInboundTestRingUI();
+    toast(typeof t === 'function' ? t('dial.lab.transfer_next') : 'Karşı tarafın kartı açılıyor', 'ok', 2200);
+    setTimeout(() => mbRunInboundLab('forwarded', from), 280);
+    return;
+  }
   const payload = {
     phone: ctx.phone,
     displayName: ctx.displayName,
@@ -1441,6 +1448,90 @@ window.isIncomingDialerEnabled = function () {
   return !!(s.incoming_super_enabled && s.incoming_enabled);
 };
 
+function mbPaintInboundLab() {
+  const el = document.getElementById('dialer-test-lab');
+  if (el) el.hidden = !_testMode;
+}
+
+function mbLabContact(phone) {
+  return {
+    id: `in-${Date.now()}`,
+    phone,
+    first_name: typeof t === 'function' ? t('dial.lab.customer') : 'Örnek müşteri',
+    last_name: '',
+    firm_id: currentUser?.firm_id || null,
+    campaign_id: typeof selectedCampId !== 'undefined' ? selectedCampId : null,
+    status: 'pending',
+    attempt_count: 0,
+    is_inbound_test: true,
+  };
+}
+
+function mbRunInboundLab(kind, fromName) {
+  if (!_testMode) return;
+  if (_fakeCallActive || dialerStatus === 'on_call' || dialerStatus === 'calling' || _inboundTestRingOpen) {
+    toast(typeof t === 'function' ? t('dial.lab.busy_now') : 'Önce açık sahte çağrıyı kapat', 'warn', 2600);
+    return;
+  }
+  document.getElementById('customer-card')?.classList.add('customer-card--empty');
+  const custData = document.getElementById('cust-data');
+  const custEmpty = document.getElementById('cust-empty');
+  if (custData) custData.style.display = 'none';
+  if (custEmpty) custEmpty.style.display = '';
+  const phone = kind === 'external' ? '+490000000099' : '+490000000001';
+  const contact = mbLabContact(phone);
+  const ownerName = typeof t === 'function' ? t('dial.lab.owner') : 'Örnek sahip';
+  const displayName = `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || phone;
+  if (kind === 'mine') {
+    contact._inboundMine = true;
+    void beginInboundTestCall({
+      phone,
+      displayName,
+      contact,
+      routeDetail: typeof t === 'function' ? t('dial.inbound_owner_mine') : '',
+      isExternalInbound: false,
+    });
+    return;
+  }
+  if (kind === 'busy' || kind === 'transfer') {
+    contact._testScenario = 'owner_other';
+    contact._testOwner = { id: 'lab-owner', name: ownerName };
+    contact._testOwnerOnline = kind === 'transfer';
+    contact._inboundSuggest = kind === 'busy';
+    void beginInboundTestCall({
+      phone,
+      displayName,
+      contact,
+      routeDetail: typeof tReplace === 'function' ? tReplace('dial.inbound_owner_suggest', { name: ownerName }) : '',
+      isExternalInbound: false,
+    });
+    return;
+  }
+  if (kind === 'forwarded') {
+    contact._testScenario = 'forwarded';
+    contact._testFromAgentName = fromName || (typeof t === 'function' ? t('dial.lab.agent') : 'Örnek temsilci');
+    void beginInboundTestCall({
+      phone,
+      displayName,
+      contact,
+      routeDetail: '',
+      isExternalInbound: false,
+    });
+    return;
+  }
+  if (kind === 'external') {
+    contact.first_name = typeof t === 'function' ? t('dial.contact_inbound') : 'Gelen';
+    contact.last_name = typeof t === 'function' ? t('dial.contact_test') : 'Test';
+    void beginInboundTestCall({
+      phone,
+      displayName: phone,
+      contact,
+      routeDetail: '',
+      isExternalInbound: true,
+    });
+  }
+}
+
 // ── Test Modu ─────────────────────────────────
 function toggleTestMode() {
   _testMode = !_testMode;
@@ -1472,7 +1563,9 @@ function toggleTestMode() {
       }
     }
     toast(typeof t === 'function' ? t('dial.test_mode_off') : 'Test modu kapatıldı', 'warn', 2000);
+    if (_inboundTestRingOpen) _closeInboundTestRingUI();
   }
+  mbPaintInboundLab();
   if (_inboundTestXferPoll) {
     clearInterval(_inboundTestXferPoll);
     _inboundTestXferPoll = null;

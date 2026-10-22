@@ -1315,6 +1315,25 @@ TEST MODU
 </div>
 </div>
 <div id="dialer-inbound-banner" style="display:none;width:100%;box-sizing:border-box;padding:6px 14px;background:rgba(234,179,8,.14);border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text);"></div>
+<div id="dialer-test-lab" class="dialer-test-lab" hidden>
+<div class="dialer-test-lab__head">
+<strong data-tr="Sahte gelen arama" data-de="Simulierter Eingang">Sahte gelen arama</strong>
+<span data-tr="Gerçek hat açılmaz. Müşteri satırı değişmez." data-de="Keine echte Leitung. Der Kontakt bleibt unverändert.">Gerçek hat açılmaz. Müşteri satırı değişmez.</span>
+</div>
+<div class="dialer-test-lab__actions">
+<button type="button" onclick="mbRunInboundLab('mine')" data-tr="Sahip sensin" data-de="Du bist zuständig">Sahip sensin</button>
+<button type="button" onclick="mbRunInboundLab('busy')" data-tr="Sahip meşgul" data-de="Zuständiger besetzt">Sahip meşgul</button>
+<button type="button" onclick="mbRunInboundLab('transfer')" data-tr="Aktarmayı dene" data-de="Übergabe testen">Aktarmayı dene</button>
+<button type="button" onclick="mbRunInboundLab('forwarded')" data-tr="Sana aktarıldı" data-de="An dich übergeben">Sana aktarıldı</button>
+<button type="button" onclick="mbRunInboundLab('external')" data-tr="Dış numara" data-de="Externe Nummer">Dış numara</button>
+</div>
+<ol class="dialer-test-lab__steps">
+<li data-tr="Bir senaryo seç. Kart müşterinin yerinde açılır." data-de="Szenario wählen. Die Karte öffnet sich an der Kontaktstelle.">Bir senaryo seç. Kart müşterinin yerinde açılır.</li>
+<li data-tr="Sağa kaydır veya Yanıtla. Sola kaydır veya Reddet kapatır." data-de="Nach rechts oder Annehmen. Nach links oder Ablehnen legt auf.">Sağa kaydır veya Yanıtla. Sola kaydır veya Reddet kapatır.</li>
+<li data-tr="Aktarmayı dene: sahip hazır görünür. Aktar deyince karşı tarafın kartı bu ekranda açılır." data-de="Übergabe testen: der Zuständige ist bereit. Danach öffnet sich seine Karte hier.">Aktarmayı dene: sahip hazır görünür. Aktar deyince karşı tarafın kartı bu ekranda açılır.</li>
+<li data-tr="Çağrıyı kapatıp sonuç seçebilirsin. Kayıt sahte kalır." data-de="Auflegen und Ergebnis wählen. Der Eintrag bleibt eine Simulation.">Çağrıyı kapatıp sonuç seçebilirsin. Kayıt sahte kalır.</li>
+</ol>
+</div>
 <div id="mic-audio-drawer" class="dialer-hdr-drawer" style="display:none;">
 <div class="mic-drawer">
 <div class="mic-drawer__head">
