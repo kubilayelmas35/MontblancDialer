@@ -132,17 +132,15 @@ if (state === 'ringing' && isInbound) {
     try { call.answer(); } catch (e) {}
     return;
   }
-  if (_liveCallId || dialerStatus === 'on_call') {
-    try { call.hangup(); } catch (e) {}
-    return;
-  }
+  if (_liveCallId || dialerStatus === 'on_call' || dialerStatus === 'wrapping') return;
   if (typeof window.isIncomingDialerEnabled === 'function' && !window.isIncomingDialerEnabled()) {
     try { call.hangup(); } catch (e) {}
     if (typeof toast === 'function') toast('Gelen arama bu firma için kapalı', 'warn', 3200);
     return;
   }
-  if (typeof call.answer === 'function') {
-    try { call.answer(); } catch (e) {}
+  if (typeof mbOfferInboundCall === 'function') {
+    void mbOfferInboundCall(call);
+    return;
   }
 }
 mbOnHopperCall(call);

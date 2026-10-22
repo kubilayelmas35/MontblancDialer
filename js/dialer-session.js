@@ -49,18 +49,19 @@ function _consumeIncomingTransfer(row) {
     _testFromAgentName: fromAgent,
   };
 
-  sb(`pending_transfers?id=eq.${row.id}`, {
-    method: 'PATCH',
-    prefer: 'return=minimal',
-    body: JSON.stringify({ status: 'accepted' }),
-  }).catch(() => {});
-
   void beginInboundTestCall({
     phone,
     displayName: contactName,
     contact,
     routeDetail: typeof tReplace === 'function' ? tReplace('dial.route_from', { name: fromAgent }) : `Aktaran: ${fromAgent}`,
     isExternalInbound: false,
+    onAccept: () => {
+      sb(`pending_transfers?id=eq.${row.id}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ status: 'accepted' }),
+      }).catch(() => {});
+    },
   });
 }
 
@@ -110,8 +111,8 @@ async function executeTransfer(toAgentId, toAgentName) {
         status: 'pending',
       }),
     });
-    toast(typeof tReplace === 'function' ? tReplace('dial.transfer_toast', { name: toAgentName }) : '', 'ok', 3000);
-    setTimeout(() => hangup(), 800);
+    toast(typeof tReplace === 'function' ? tReplace('dial.transfer_toast', { name: toAgentName }) : '', 'ok', 2800);
+    toast(typeof t === 'function' ? t('dial.transfer_hold') : 'Hat sizde kalır', 'ok', 4600);
   } catch (e) {
     toast((typeof t === 'function' ? t('dial.transfer_err') : 'Aktarma hatası: ') + e.message, 'err');
   }

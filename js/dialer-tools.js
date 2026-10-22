@@ -585,6 +585,126 @@ function _canShowInboundRoutingDetail() {
   return ['firm_admin', 'admin', 'super_admin'].includes(role);
 }
 
+function mbInboundCaller(call) {
+  const o = call?.options || {};
+  return String(o.remoteCallerNumber || o.callerNumber || o.caller_id_number || call?.remoteCallerNumber || call?.callerNumber || '').trim();
+}
+
+function mbInboundVariants(raw) {
+  const digits = String(raw || '').replace(/\D/g, '');
+  if (!digits) return [];
+  const out = new Set([String(raw || '').trim(), digits, `+${digits}`]);
+  if (digits.startsWith('49') && digits.length > 4) out.add(`0${digits.slice(2)}`);
+  if (digits.startsWith('0') && digits.length > 4) {
+    out.add(`49${digits.slice(1)}`);
+    out.add(`+49${digits.slice(1)}`);
+  }
+  return [...out].filter(Boolean).slice(0, 6);
+}
+
+async function mbFindInboundContact(fid, phone) {
+  const vars = mbInboundVariants(phone);
+  if (!fid || !vars.length) return null;
+  for (const value of vars) {
+    const enc = encodeURIComponent(value);
+    const byPhone = await sb(`contacts?firm_id=eq.${fid}&phone=eq.${enc}&select=*&limit=1`).catch(() => []);
+    if (byPhone?.[0]) return byPhone[0];
+    const byAlt = await sb(`contacts?firm_id=eq.${fid}&phone2=eq.${enc}&select=*&limit=1`).catch(() => []);
+    if (byAlt?.[0]) return byAlt[0];
+  }
+  return null;
+}
+
+async function mbInboundOwnerOf(fid, contact, phone) {
+  const parts = [];
+  if (contact?.id && typeof isValidUUID === 'function' && isValidUUID(contact.id)) parts.push(`contact_id.eq.${contact.id}`);
+  mbInboundVariants(contact?.phone || phone).forEach((value) => parts.push(`phone.eq.${encodeURIComponent(value)}`));
+  if (!parts.length) return null;
+  let rows = await sb(`call_logs?firm_id=eq.${fid}&or=(${parts.join(',')})&order=started_at.desc&limit=15&select=agent_id,outcome,users(name)`).catch(() => null);
+  if (rows == null) {
+    rows = await sb(`call_logs?firm_id=eq.${fid}&or=(${parts.join(',')})&order=started_at.desc&limit=15&select=agent_id,outcome`).catch(() => []) || [];
+  }
+  const list = rows || [];
+  const scored = list.find((row) => row.agent_id && row.outcome && row.outcome !== 'no_answer') || list.find((row) => row.agent_id);
+  if (!scored?.agent_id) return null;
+  let name = scored.users?.name || '';
+  if (!name) {
+    const user = await sb(`users?id=eq.${scored.agent_id}&select=name&limit=1`).catch(() => []);
+    name = user?.[0]?.name || '';
+  }
+  return { id: scored.agent_id, name: name || '—' };
+}
+
+async function mbResolveInbound(phone) {
+  const fid = currentUser?.firm_id;
+  if (!fid || !phone) return null;
+  await loadFirmDialerSettingsCache();
+  const settings = window._firmDialerSettings || {};
+  const found = await mbFindInboundContact(fid, phone);
+  const external = !found;
+  if (external && !settings.incoming_external) return null;
+  const owner = found ? await mbInboundOwnerOf(fid, found, phone) : null;
+  const since = new Date(Date.now() - 90000).toISOString();
+  const ready = await sb(`agent_sessions?firm_id=eq.${fid}&status=eq.ready&last_seen=gte.${encodeURIComponent(since)}&select=agent_id,agent_name,last_seen&order=last_seen.asc&limit=200`).catch(() => []) || [];
+  const ownerReady = !!(owner && ready.some((row) => row.agent_id === owner.id));
+  let targetId = null;
+  let suggest = false;
+  if (ownerReady) targetId = owner.id;
+  else if (ready.length) {
+    targetId = ready[0].agent_id;
+    suggest = !!(owner && owner.id !== targetId);
+  }
+  const displayName = found ? `${found.first_name || ''} ${found.last_name || ''}`.trim() || phone : phone;
+  const contact = found || {
+    id: `in-${Date.now()}`,
+    phone,
+    first_name: typeof t === 'function' ? t('dial.contact_inbound') : 'Gelen',
+    last_name: '',
+    firm_id: fid,
+    campaign_id: typeof selectedCampId !== 'undefined' ? selectedCampId : null,
+    status: 'pending',
+    attempt_count: 0,
+  };
+  let detail = '';
+  if (ownerReady && owner) {
+    detail = typeof tReplace === 'function' ? tReplace('dial.inbound_route_last', { name: owner.name ? ` (${owner.name})` : '' }) : '';
+  } else if (suggest && owner) {
+    detail = typeof tReplace === 'function' ? tReplace('dial.inbound_owner_suggest', { name: owner.name || '—' }) : '';
+  } else if (ready[0]) {
+    detail = typeof tReplace === 'function' ? tReplace('dial.inbound_route_next', { name: ready[0].agent_name || '—' }) : '';
+  }
+  return { contact, owner, ownerReady, targetId, suggest, external, displayName, detail, phone };
+}
+
+async function mbOfferInboundCall(call) {
+  const id = String(call?.id || '');
+  window._mbInboundSeen = window._mbInboundSeen || new Set();
+  if (id && window._mbInboundSeen.has(id)) return;
+  if (id) window._mbInboundSeen.add(id);
+  if (dialerStatus !== 'ready' || _liveCallId || _inboundTestRingOpen || _fakeCallActive) return;
+  if (typeof window.isIncomingDialerEnabled === 'function' && !window.isIncomingDialerEnabled()) return;
+  const phone = mbInboundCaller(call);
+  const route = await mbResolveInbound(phone);
+  if (!route || route.targetId !== currentUser?.id) return;
+  if (dialerStatus !== 'ready' || _inboundTestRingOpen) return;
+  const contact = route.contact;
+  contact._telnyxCall = call;
+  contact._inboundMine = !!(route.owner && route.owner.id === currentUser.id && !route.suggest);
+  if (route.suggest && route.owner) {
+    contact._testScenario = 'owner_other';
+    contact._testOwner = route.owner;
+    contact._testOwnerOnline = false;
+    contact._inboundSuggest = true;
+  }
+  await beginInboundTestCall({
+    phone: contact.phone || phone,
+    displayName: route.displayName,
+    contact,
+    routeDetail: route.detail,
+    isExternalInbound: route.external,
+  });
+}
+
 async function tickInboundTestSimulation() {
   if (!_testMode) return;
   await loadFirmDialerSettingsCache();
@@ -918,7 +1038,7 @@ function openInboundTestRingUI(ctx) {
         ow.style.display = 'block';
         ow.textContent = ownerOn
           ? (typeof tReplace === 'function' ? tReplace('dial.inbound_owner_ready', { name: owner.name }) : '')
-          : (typeof tReplace === 'function' ? tReplace('dial.inbound_owner_na', { name: owner.name }) : '');
+          : (typeof tReplace === 'function' ? tReplace('dial.inbound_owner_suggest', { name: owner.name }) : '');
       }
       if (ownBtn) {
         ownBtn.style.display = ownerOn ? 'inline-flex' : 'none';
@@ -936,7 +1056,9 @@ function openInboundTestRingUI(ctx) {
   }
 
   if (sub) {
-    if (scenario === 'forwarded') {
+    if (contact?._inboundMine) {
+      sub.textContent = typeof t === 'function' ? t('dial.inbound_owner_mine') : '';
+    } else if (scenario === 'forwarded') {
       sub.textContent = typeof t === 'function' ? t('dial.inbound_sub_fwd') : '';
     } else if (scenario === 'owner_other') {
       sub.textContent = typeof t === 'function' ? t('dial.inbound_sub_owner') : '';
@@ -998,10 +1120,14 @@ function openInboundTestRingUI(ctx) {
   } catch (e) {}
 
   const accept = () => {
+    const done = _inboundTestCtx?.onAccept;
     _closeInboundTestRingUI();
+    if (typeof done === 'function') done();
     void proceed();
   };
   const decline = () => {
+    try { ctx.call?.hangup?.(); } catch (e) {}
+    try { contact?._telnyxCall?.hangup?.(); } catch (e) {}
     _closeInboundTestRingUI();
     toast(
       (typeof t === 'function' ? t('dial.inbound_declined') : '') + (routeDetail ? ' — ' + routeDetail : ''),
@@ -1140,7 +1266,7 @@ function inboundTestTransferToOwner() {
   restartInboundTestSimulationScheduler();
 }
 
-async function beginInboundTestCall({ phone, displayName, contact, routeDetail, isExternalInbound }) {
+async function beginInboundTestCall({ phone, displayName, contact, routeDetail, isExternalInbound, onAccept }) {
   if (_fakeCallActive || dialerStatus === 'on_call' || _inboundTestRingOpen) return;
 
   const proceed = async () => {
@@ -1151,13 +1277,28 @@ async function beginInboundTestCall({ phone, displayName, contact, routeDetail, 
     }
     currentContact = contact;
     showCustomerCard(contact);
-    _fakeCallActive = true;
-    _inboundSimActive = true;
-    window.__voiceOrbSimRemote = true;
-    setDialerStatus('on_call');
-    updateSessionInDB('on_call').catch(() => {});
+    const live = contact?._telnyxCall;
+    const realLine = !!(live && typeof live.answer === 'function');
+    if (realLine) {
+      try { live.answer(); } catch (e) {}
+    } else {
+      _fakeCallActive = true;
+      _inboundSimActive = true;
+      window.__voiceOrbSimRemote = true;
+      setDialerStatus('on_call');
+      updateSessionInDB('on_call').catch(() => {});
+    }
 
     const ban = document.getElementById('dialer-inbound-banner');
+    const liveRoute = !!(contact?._telnyxCall || contact?._inboundSuggest || contact?._inboundMine);
+    if (ban && liveRoute) {
+      ban.style.display = '';
+      ban.classList.toggle('dialer-inbound-banner--external', !!isExternalInbound);
+      ban.textContent = routeDetail || `${displayName} · ${phone}`;
+      toast(ban.textContent, 'ok', 4600);
+      if (typeof switchContactTab === 'function') switchContactTab('info');
+      return;
+    }
     if (ban) {
       ban.style.display = '';
       if (isExternalInbound) {
@@ -1198,13 +1339,8 @@ async function beginInboundTestCall({ phone, displayName, contact, routeDetail, 
     if (typeof switchContactTab === 'function') switchContactTab('info');
   };
 
-  if (!_testMode) {
-    await proceed();
-    return;
-  }
-
   const ring = () =>
-    openInboundTestRingUI({ phone, displayName, routeDetail, isExternalInbound, proceed, contact });
+    openInboundTestRingUI({ phone, displayName, routeDetail, isExternalInbound, proceed, contact, onAccept, call: contact?._telnyxCall || null });
 
   if (isExternalInbound && !_isCustDataVisible()) {
     stopCustEmptyCoach();
