@@ -1013,17 +1013,20 @@ function openInboundTestRingUI(ctx) {
   if (nm) nm.textContent = displayName || '—';
   if (ph) ph.textContent = phone || '—';
   if (bd) {
-    bd.textContent = isExternalInbound
-      ? (typeof t === 'function' ? t('dial.inbound_badge_ext') : 'Extern')
-      : (typeof t === 'function' ? t('dial.inbound_badge_int') : 'Intern');
+    bd.textContent = contact?._labInternal
+      ? (typeof t === 'function' ? t('dial.lab.internal_badge') : 'İç arama')
+      : (isExternalInbound
+        ? (typeof t === 'function' ? t('dial.inbound_badge_ext') : 'Extern')
+        : (typeof t === 'function' ? t('dial.inbound_badge_int') : 'Intern'));
   }
 
   if (fw) {
     fw.style.display = scenario === 'forwarded' ? 'block' : 'none';
     if (scenario === 'forwarded') {
+      const fwdKey = contact?._labInternal ? 'dial.lab.internal_fwd' : 'dial.inbound_fwd';
       fw.textContent =
         typeof tReplace === 'function'
-          ? tReplace('dial.inbound_fwd', { from: fromNm || (typeof t === 'function' ? t('dial.inbound_fwd_fallback') : 'Agent') })
+          ? tReplace(fwdKey, { from: fromNm || (typeof t === 'function' ? t('dial.inbound_fwd_fallback') : 'Agent') })
           : '';
     }
   }
@@ -1056,7 +1059,9 @@ function openInboundTestRingUI(ctx) {
   }
 
   if (sub) {
-    if (contact?._inboundMine) {
+    if (contact?._labInternal && scenario !== 'forwarded') {
+      sub.textContent = typeof t === 'function' ? t('dial.lab.internal_sub') : '';
+    } else if (contact?._inboundMine) {
       sub.textContent = typeof t === 'function' ? t('dial.inbound_owner_mine') : '';
     } else if (scenario === 'forwarded') {
       sub.textContent = typeof t === 'function' ? t('dial.inbound_sub_fwd') : '';
@@ -1092,7 +1097,7 @@ function openInboundTestRingUI(ctx) {
     String(contact.id).startsWith('in-') ||
     String(contact.id).startsWith('adhoc-') ||
     contact?.is_inbound_test === true;
-  if (addTg) addTg.style.display = unreg ? 'inline-flex' : 'none';
+  if (addTg) addTg.style.display = contact?._labInternal ? 'none' : (unreg ? 'inline-flex' : 'none');
 
   const xWrap = document.getElementById('cust-empty-incoming-xfer-wrap');
   const xferSel = document.getElementById('dialer-incoming-xfer-agent');
@@ -1450,7 +1455,23 @@ window.isIncomingDialerEnabled = function () {
 
 function mbPaintInboundLab() {
   const el = document.getElementById('dialer-test-lab');
-  if (el) el.hidden = !_testMode;
+  if (!el) return;
+  el.hidden = !_testMode;
+  if (!_testMode) el.classList.remove('is-compact');
+}
+
+function mbCompactInboundLab(kind) {
+  const el = document.getElementById('dialer-test-lab');
+  if (!el) return;
+  el.classList.add('is-compact');
+  el.querySelectorAll('[data-lab]').forEach((btn) => btn.classList.toggle('is-on', btn.getAttribute('data-lab') === kind));
+  const now = document.getElementById('dialer-test-lab-now');
+  const on = el.querySelector(`[data-lab="${kind}"]`);
+  if (now) now.textContent = on ? on.textContent.trim() : '';
+}
+
+function mbExpandInboundLab() {
+  document.getElementById('dialer-test-lab')?.classList.remove('is-compact');
 }
 
 function mbLabContact(phone) {
@@ -1469,10 +1490,12 @@ function mbLabContact(phone) {
 
 function mbRunInboundLab(kind, fromName) {
   if (!_testMode) return;
-  if (_fakeCallActive || dialerStatus === 'on_call' || dialerStatus === 'calling' || _inboundTestRingOpen) {
+  if (_fakeCallActive || dialerStatus === 'on_call' || dialerStatus === 'calling') {
     toast(typeof t === 'function' ? t('dial.lab.busy_now') : 'Önce açık sahte çağrıyı kapat', 'warn', 2600);
     return;
   }
+  if (_inboundTestRingOpen) _closeInboundTestRingUI();
+  mbCompactInboundLab(kind);
   document.getElementById('customer-card')?.classList.add('customer-card--empty');
   const custData = document.getElementById('cust-data');
   const custEmpty = document.getElementById('cust-empty');
@@ -1529,6 +1552,24 @@ function mbRunInboundLab(kind, fromName) {
       routeDetail: '',
       isExternalInbound: true,
     });
+    return;
+  }
+  if (kind === 'internal' || kind === 'internal-xfer') {
+    const agent = typeof t === 'function' ? t('dial.lab.agent') : 'Örnek temsilci';
+    contact._labInternal = true;
+    contact.first_name = agent;
+    contact.phone = '101';
+    if (kind === 'internal-xfer') {
+      contact._testScenario = 'forwarded';
+      contact._testFromAgentName = agent;
+    }
+    void beginInboundTestCall({
+      phone: '101',
+      displayName: agent,
+      contact,
+      routeDetail: '',
+      isExternalInbound: false,
+    });
   }
 }
 
@@ -1551,6 +1592,7 @@ function toggleTestMode() {
       rdyBtn.onclick = testToggleReady; // Telnyx kontrolsüz versiyon
     }
     toast(typeof t === 'function' ? t('dial.test_mode_on') : 'Test modu açık', 'ok', 4000);
+    document.getElementById('dialer-test-lab')?.classList.remove('is-compact');
   } else {
     btn.style.cssText = btn.style.cssText.replace(/background[^;]+;|color[^;]+;|border-color[^;]+;/g, '');
     btn.textContent = typeof t === 'function' ? t('dial.test_btn_off') : 'TEST MODU';

@@ -532,11 +532,17 @@ i.ph {
   border-radius: 16px;
   background: color-mix(in srgb, var(--yellow) 10%, var(--bg-2));
 }
-.dialer-test-lab__head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
-.dialer-test-lab__head strong { font-size: 13px; font-weight: 800; }
-.dialer-test-lab__head span { font-size: 12px; font-weight: 650; color: var(--text-2); }
-.dialer-test-lab__actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.dialer-test-lab__actions button {
+.dialer-test-lab__bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.dialer-test-lab__bar strong { font-size: 13px; font-weight: 800; }
+.dialer-test-lab__lead { font-size: 12px; font-weight: 650; color: var(--text-2); }
+.dialer-test-lab__now { display: none; font-style: normal; font-size: 12px; font-weight: 800; color: var(--text); }
+.dialer-test-lab__more { display: none; margin-left: auto; }
+.dialer-test-lab__groups { display: flex; flex-direction: column; gap: 8px; }
+.dialer-test-lab__group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.dialer-test-lab__group > span {
+  font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); margin-right: 2px;
+}
+.dialer-test-lab__group button, .dialer-test-lab__more {
   border: 1px solid var(--border);
   background: var(--bg-2);
   color: var(--text);
@@ -547,7 +553,8 @@ i.ph {
   font-weight: 750;
   cursor: pointer;
 }
-.dialer-test-lab__actions button:hover { border-color: var(--accent); }
+.dialer-test-lab__group button.is-on { background: var(--accent); color: #fff; border-color: transparent; }
+.dialer-test-lab__group button:hover { border-color: var(--accent); }
 .dialer-test-lab__steps {
   margin: 10px 0 0;
   padding-left: 18px;
@@ -556,6 +563,13 @@ i.ph {
   font-weight: 650;
   line-height: 1.45;
 }
+.dialer-test-lab.is-compact { padding: 6px 10px; margin-bottom: 8px; }
+.dialer-test-lab.is-compact .dialer-test-lab__bar { margin: 0; }
+.dialer-test-lab.is-compact .dialer-test-lab__lead,
+.dialer-test-lab.is-compact .dialer-test-lab__groups,
+.dialer-test-lab.is-compact .dialer-test-lab__steps { display: none; }
+.dialer-test-lab.is-compact .dialer-test-lab__now,
+.dialer-test-lab.is-compact .dialer-test-lab__more { display: inline-flex; }
 .outcome-btn {
   background: var(--bg-2);
   color: var(--text);

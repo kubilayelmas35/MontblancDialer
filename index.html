@@ -12,16 +12,16 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=10.86">
-<link rel="stylesheet" href="css/styles-dialer.css?v=10.86">
-<link rel="stylesheet" href="css/styles-mascot.css?v=10.86">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=10.86">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=10.86">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=10.86">
-<link rel="stylesheet" href="css/styles-pages.css?v=10.86">
-<link rel="stylesheet" href="css/styles-aurora.css?v=10.86">
-<link rel="stylesheet" href="css/styles-chat.css?v=10.86">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=10.86">
+<link rel="stylesheet" href="css/styles.css?v=10.87">
+<link rel="stylesheet" href="css/styles-dialer.css?v=10.87">
+<link rel="stylesheet" href="css/styles-mascot.css?v=10.87">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=10.87">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=10.87">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=10.87">
+<link rel="stylesheet" href="css/styles-pages.css?v=10.87">
+<link rel="stylesheet" href="css/styles-aurora.css?v=10.87">
+<link rel="stylesheet" href="css/styles-chat.css?v=10.87">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=10.87">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -48,7 +48,7 @@
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span data-i18n="login.feat.3">Takvim &amp; randevu yönetimi</span></div>
 <div class="login-feat"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg><span data-i18n="login.feat.4">Çok kiracılı güvenli altyapı</span></div>
 </div>
-<div class="login-version">v10.86 — 2026</div>
+<div class="login-version">v10.87 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -437,7 +437,7 @@
 </div>
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
-<div class="sb-ver">MontBlanc v10.86</div>
+<div class="sb-ver">MontBlanc v10.87</div>
 </div>
 </nav>
 <main id="main">
@@ -1414,22 +1414,31 @@ TEST MODU
 </div>
 <div id="dialer-inbound-banner" style="display:none;width:100%;box-sizing:border-box;padding:6px 14px;background:rgba(234,179,8,.14);border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text);"></div>
 <div id="dialer-test-lab" class="dialer-test-lab" hidden>
-<div class="dialer-test-lab__head">
-<strong data-tr="Sahte gelen arama" data-de="Simulierter Eingang">Sahte gelen arama</strong>
-<span data-tr="Gerçek hat açılmaz. Müşteri satırı değişmez." data-de="Keine echte Leitung. Der Kontakt bleibt unverändert.">Gerçek hat açılmaz. Müşteri satırı değişmez.</span>
+<div class="dialer-test-lab__bar">
+<strong data-tr="Sahte arama" data-de="Testanruf">Sahte arama</strong>
+<span class="dialer-test-lab__lead" data-tr="Gerçek hat açılmaz. Müşteri satırı değişmez." data-de="Keine echte Leitung. Der Kontakt bleibt unverändert.">Gerçek hat açılmaz. Müşteri satırı değişmez.</span>
+<em id="dialer-test-lab-now" class="dialer-test-lab__now"></em>
+<button type="button" class="dialer-test-lab__more" onclick="mbExpandInboundLab()" data-tr="Senaryolar" data-de="Szenarien">Senaryolar</button>
 </div>
-<div class="dialer-test-lab__actions">
-<button type="button" onclick="mbRunInboundLab('mine')" data-tr="Sahip sensin" data-de="Du bist zuständig">Sahip sensin</button>
-<button type="button" onclick="mbRunInboundLab('busy')" data-tr="Sahip meşgul" data-de="Zuständiger besetzt">Sahip meşgul</button>
-<button type="button" onclick="mbRunInboundLab('transfer')" data-tr="Aktarmayı dene" data-de="Übergabe testen">Aktarmayı dene</button>
-<button type="button" onclick="mbRunInboundLab('forwarded')" data-tr="Sana aktarıldı" data-de="An dich übergeben">Sana aktarıldı</button>
-<button type="button" onclick="mbRunInboundLab('external')" data-tr="Dış numara" data-de="Externe Nummer">Dış numara</button>
+<div class="dialer-test-lab__groups">
+<div class="dialer-test-lab__group">
+<span data-tr="Müşteri" data-de="Kunde">Müşteri</span>
+<button type="button" data-lab="mine" onclick="mbRunInboundLab('mine')" data-tr="Sahip sensin" data-de="Du bist zuständig">Sahip sensin</button>
+<button type="button" data-lab="busy" onclick="mbRunInboundLab('busy')" data-tr="Sahip meşgul" data-de="Zuständiger besetzt">Sahip meşgul</button>
+<button type="button" data-lab="transfer" onclick="mbRunInboundLab('transfer')" data-tr="Aktarmayı dene" data-de="Übergabe testen">Aktarmayı dene</button>
+<button type="button" data-lab="forwarded" onclick="mbRunInboundLab('forwarded')" data-tr="Sana aktarıldı" data-de="An dich übergeben">Sana aktarıldı</button>
+<button type="button" data-lab="external" onclick="mbRunInboundLab('external')" data-tr="Dış numara" data-de="Externe Nummer">Dış numara</button>
+</div>
+<div class="dialer-test-lab__group">
+<span data-tr="İç hat" data-de="Intern">İç hat</span>
+<button type="button" data-lab="internal" onclick="mbRunInboundLab('internal')" data-tr="Temsilci arıyor" data-de="Agent ruft an">Temsilci arıyor</button>
+<button type="button" data-lab="internal-xfer" onclick="mbRunInboundLab('internal-xfer')" data-tr="İç aktarma" data-de="Interne Übergabe">İç aktarma</button>
+</div>
 </div>
 <ol class="dialer-test-lab__steps">
-<li data-tr="Bir senaryo seç. Kart müşterinin yerinde açılır." data-de="Szenario wählen. Die Karte öffnet sich an der Kontaktstelle.">Bir senaryo seç. Kart müşterinin yerinde açılır.</li>
+<li data-tr="Müşteri senaryosu kayıtlı numarayı, iç hat senaryosu temsilciyi aratır." data-de="Kundenszenario simuliert eine Nummer, intern einen Agenten.">Müşteri senaryosu kayıtlı numarayı, iç hat senaryosu temsilciyi aratır.</li>
 <li data-tr="Sağa kaydır veya Yanıtla. Sola kaydır veya Reddet kapatır." data-de="Nach rechts oder Annehmen. Nach links oder Ablehnen legt auf.">Sağa kaydır veya Yanıtla. Sola kaydır veya Reddet kapatır.</li>
-<li data-tr="Aktarmayı dene: sahip hazır görünür. Aktar deyince karşı tarafın kartı bu ekranda açılır." data-de="Übergabe testen: der Zuständige ist bereit. Danach öffnet sich seine Karte hier.">Aktarmayı dene: sahip hazır görünür. Aktar deyince karşı tarafın kartı bu ekranda açılır.</li>
-<li data-tr="Çağrıyı kapatıp sonuç seçebilirsin. Kayıt sahte kalır." data-de="Auflegen und Ergebnis wählen. Der Eintrag bleibt eine Simulation.">Çağrıyı kapatıp sonuç seçebilirsin. Kayıt sahte kalır.</li>
+<li data-tr="Seçince bu kutu küçülür. Senaryolar ile yeniden açılır." data-de="Nach der Wahl wird die Leiste klein. Szenarien öffnet sie wieder.">Seçince bu kutu küçülür. Senaryolar ile yeniden açılır.</li>
 </ol>
 </div>
 <div id="mic-audio-drawer" class="dialer-hdr-drawer" style="display:none;">
@@ -4530,65 +4539,65 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=10.86"></script>
-<script src="js/i18n.js?v=10.86"></script>
-<script src="js/config.js?v=10.86"></script>
-<script src="js/state.js?v=10.86"></script>
-<script src="js/api.js?v=10.86"></script>
-<script src="js/access.js?v=10.86"></script>
-<script src="js/auth.js?v=10.86"></script>
-<script src="js/ui.js?v=10.86"></script>
-<script src="js/chat.js?v=10.86"></script>
-<script src="js/chat-settings.js?v=10.86"></script>
-<script src="js/field-settings.js?v=10.86"></script>
-<script src="js/audit.js?v=10.86"></script>
-<script src="js/feature-flags.js?v=10.86"></script>
-<script src="js/notification-center.js?v=10.86"></script>
+<script src="js/version.js?v=10.87"></script>
+<script src="js/i18n.js?v=10.87"></script>
+<script src="js/config.js?v=10.87"></script>
+<script src="js/state.js?v=10.87"></script>
+<script src="js/api.js?v=10.87"></script>
+<script src="js/access.js?v=10.87"></script>
+<script src="js/auth.js?v=10.87"></script>
+<script src="js/ui.js?v=10.87"></script>
+<script src="js/chat.js?v=10.87"></script>
+<script src="js/chat-settings.js?v=10.87"></script>
+<script src="js/field-settings.js?v=10.87"></script>
+<script src="js/audit.js?v=10.87"></script>
+<script src="js/feature-flags.js?v=10.87"></script>
+<script src="js/notification-center.js?v=10.87"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=10.86"></script>
-<script src="js/job-market.js?v=10.86"></script>
-<script src="js/qc-job-market.js?v=10.86"></script>
-<script src="js/export-admin.js?v=10.86"></script>
-<script src="js/export-termin.js?v=10.86"></script>
-<script src="js/performance.js?v=10.86"></script>
-<script src="js/competition.js?v=10.86"></script>
-<script src="js/dashboard.js?v=10.86"></script>
-<script src="js/reports.js?v=10.86"></script>
-<script src="js/dashboard-brief.js?v=10.86"></script>
-<script src="js/campaigns.js?v=10.86"></script>
-<script src="js/campaigns-detail.js?v=10.86"></script>
-<script src="js/campaigns-queue.js?v=10.86"></script>
-<script src="js/contacts-upload.js?v=10.86"></script>
-<script src="js/contacts.js?v=10.86"></script>
-<script src="js/contacts-drawer.js?v=10.86"></script>
-<script src="js/telnyx.js?v=10.86"></script>
-<script src="js/voice-orb.js?v=10.86"></script>
-<script src="js/dialer.js?v=10.86"></script>
-<script src="js/ops-alerts.js?v=10.86"></script>
-<script src="js/dialer-mascot.js?v=10.86"></script>
-<script src="js/dialer-mascot-live.js?v=10.86"></script>
-<script src="js/ui-prefs.js?v=10.86"></script>
-<script src="js/dialer-session.js?v=10.86"></script>
-<script src="js/dialer-call.js?v=10.86"></script>
-<script src="js/dialer-tools.js?v=10.86"></script>
-<script src="js/appointments.js?v=10.86"></script>
-<script src="js/appointments-actions.js?v=10.86"></script>
-<script src="js/appointments-tools.js?v=10.86"></script>
-<script src="js/field.js?v=10.86"></script>
-<script src="js/field-quote.js?v=10.86"></script>
-<script src="js/field-catalog.js?v=10.86"></script>
-<script src="js/field-ops.js?v=10.86"></script>
-<script src="js/wiedervorlage.js?v=10.86"></script>
-<script src="js/qc.js?v=10.86"></script>
-<script src="js/supervisor.js?v=10.86"></script>
-<script src="js/live-coach.js?v=10.86"></script>
-<script src="js/sms-settings.js?v=10.86"></script>
-<script src="js/leave-hr.js?v=10.86"></script>
-<script src="js/muhasebe.js?v=10.86"></script>
-<script src="js/muhasebe-books.js?v=10.86"></script>
-<script src="js/agent-self-performance.js?v=10.86"></script>
-<script src="js/agents.js?v=10.86"></script>
-<script src="js/firm-desk.js?v=10.86"></script>
-<script src="js/mimi-brain.js?v=10.86"></script>
+<script src="js/wallet.js?v=10.87"></script>
+<script src="js/job-market.js?v=10.87"></script>
+<script src="js/qc-job-market.js?v=10.87"></script>
+<script src="js/export-admin.js?v=10.87"></script>
+<script src="js/export-termin.js?v=10.87"></script>
+<script src="js/performance.js?v=10.87"></script>
+<script src="js/competition.js?v=10.87"></script>
+<script src="js/dashboard.js?v=10.87"></script>
+<script src="js/reports.js?v=10.87"></script>
+<script src="js/dashboard-brief.js?v=10.87"></script>
+<script src="js/campaigns.js?v=10.87"></script>
+<script src="js/campaigns-detail.js?v=10.87"></script>
+<script src="js/campaigns-queue.js?v=10.87"></script>
+<script src="js/contacts-upload.js?v=10.87"></script>
+<script src="js/contacts.js?v=10.87"></script>
+<script src="js/contacts-drawer.js?v=10.87"></script>
+<script src="js/telnyx.js?v=10.87"></script>
+<script src="js/voice-orb.js?v=10.87"></script>
+<script src="js/dialer.js?v=10.87"></script>
+<script src="js/ops-alerts.js?v=10.87"></script>
+<script src="js/dialer-mascot.js?v=10.87"></script>
+<script src="js/dialer-mascot-live.js?v=10.87"></script>
+<script src="js/ui-prefs.js?v=10.87"></script>
+<script src="js/dialer-session.js?v=10.87"></script>
+<script src="js/dialer-call.js?v=10.87"></script>
+<script src="js/dialer-tools.js?v=10.87"></script>
+<script src="js/appointments.js?v=10.87"></script>
+<script src="js/appointments-actions.js?v=10.87"></script>
+<script src="js/appointments-tools.js?v=10.87"></script>
+<script src="js/field.js?v=10.87"></script>
+<script src="js/field-quote.js?v=10.87"></script>
+<script src="js/field-catalog.js?v=10.87"></script>
+<script src="js/field-ops.js?v=10.87"></script>
+<script src="js/wiedervorlage.js?v=10.87"></script>
+<script src="js/qc.js?v=10.87"></script>
+<script src="js/supervisor.js?v=10.87"></script>
+<script src="js/live-coach.js?v=10.87"></script>
+<script src="js/sms-settings.js?v=10.87"></script>
+<script src="js/leave-hr.js?v=10.87"></script>
+<script src="js/muhasebe.js?v=10.87"></script>
+<script src="js/muhasebe-books.js?v=10.87"></script>
+<script src="js/agent-self-performance.js?v=10.87"></script>
+<script src="js/agents.js?v=10.87"></script>
+<script src="js/firm-desk.js?v=10.87"></script>
+<script src="js/mimi-brain.js?v=10.87"></script>
 </body>
 </html>
