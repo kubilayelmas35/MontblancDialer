@@ -79,6 +79,7 @@
 </button>
 </div>
 </div>
+<button type="button" id="mb-inbound-strip" class="mb-inbound-strip" hidden onclick="mbOpenInboundFromStrip()"></button>
 <div id="ops-camp-new" class="ops-camp-warn is-new" role="status" hidden></div>
 <div id="ops-camp-warn" class="ops-camp-warn" role="status" hidden></div>
 <div id="ops-appt-strip" class="ops-appt-strip" role="status" hidden></div>
@@ -1436,6 +1437,7 @@ TEST MODU
 <div class="cust-empty-copy">
 <div class="cust-empty-text" data-tr="Hazır ol — müşteri bilgileri burada görünecek" data-de="Bereit schalten — Kundeninformationen erscheinen hier">Hazır ol — müşteri bilgileri burada görünecek</div>
 <div class="cust-empty-sub" data-tr="Karşı taraf açınca müşteri bilgileri burada açılır" data-de="Kundendaten erscheinen, sobald abgenommen wird">Karşı taraf açınca müşteri bilgileri burada açılır</div>
+<div id="cust-empty-saved" class="cust-empty-saved" hidden></div>
 <div id="cust-empty-inbound-cue" class="cust-empty-inbound-cue" style="display:none;" role="alert" aria-live="assertive">
 <div class="cust-empty-inbound-cue__inner">
 <span class="cust-empty-inbound-cue__pulse" aria-hidden="true"></span>
@@ -1565,16 +1567,16 @@ Son randevu bilgileri indirilebilir.
 <span style="color:var(--red);font-weight:700;"><i class="ph ph-prohibit"></i> <span data-tr="Kara listeye ekle (bir daha arama)" data-de="Auf die Sperrliste (nicht mehr anrufen)">Kara listeye ekle (bir daha arama)</span></span>
 </label>
 </div>
-<div style="display:flex;gap:8px;align-items:center;">
-<button class="btn btn-primary" style="flex:1;" onclick="submitOutcome(false)">
+</div>
+</div>
+</div>
+<div id="outcome-dock" class="outcome-dock" hidden>
+<button type="button" class="btn btn-primary" style="flex:1;" onclick="submitOutcome(false)">
 <span data-tr="Sonuçlandır" data-de="Abschließen">Sonuçlandır</span>
 </button>
-<button class="btn btn-ghost" onclick="submitOutcome(true)">
+<button type="button" class="btn btn-ghost" id="outcome-break-btn" onclick="submitOutcome(true)">
 <span data-tr="Mola" data-de="Pause">Mola</span>
 </button>
-</div>
-</div>
-</div>
 </div>
 </div>
 <div id="call-actions" style="display:none;">

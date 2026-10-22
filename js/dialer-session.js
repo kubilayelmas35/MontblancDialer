@@ -281,6 +281,30 @@ async function openUpcomingCallback(wvId) {
   } catch (e) {}
 }
 
+function mbFormatSavedDur(sec) {
+  const n = Math.max(0, Number(sec) || 0);
+  const m = Math.floor(n / 60);
+  const s = n % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function mbShowSavedLine(sec) {
+  const el = document.getElementById('cust-empty-saved');
+  if (!el) return;
+  const time = mbFormatSavedDur(sec);
+  el.textContent = typeof tReplace === 'function'
+    ? tReplace('dial.saved_line', { time })
+    : `Kaydedildi · ${time}`;
+  el.hidden = false;
+}
+
+function mbClearSavedLine() {
+  const el = document.getElementById('cust-empty-saved');
+  if (!el) return;
+  el.hidden = true;
+  el.textContent = '';
+}
+
 async function toggleReady() {
   refreshDialerHealthPanel();
   if (dialerStatus==='offline' || dialerStatus==='break') {
@@ -289,6 +313,7 @@ async function toggleReady() {
     if (document.getElementById('pill-ping-btn')?.classList.contains('is-slow')) {
       toast(typeof t === 'function' ? t('dial.ping_slow') : 'Bağlantı yavaş. Arama yine de başlıyor.', 'warn', 4000);
     }
+    mbClearSavedLine();
     setDialerStatus('ready');
     try {
       await sb('agent_sessions',{method:'POST',prefer:'resolution=merge-duplicates,return=minimal',
@@ -624,6 +649,7 @@ function setDialerStatus(s) {
     document.getElementById('customer-card').style.display='';
     _clearHangupUiTick();
   } else if (s==='calling') {
+    mbClearSavedLine();
     document.getElementById('ready-section').style.display='none';
     if (callAct) {
       callAct.style.display='';
@@ -632,6 +658,7 @@ function setDialerStatus(s) {
     document.getElementById('customer-card').style.display='';
     _startHangupUiTick();
   } else if (s==='on_call') {
+    mbClearSavedLine();
     document.getElementById('ready-section').style.display='none';
     if (callAct) {
       callAct.style.display='';

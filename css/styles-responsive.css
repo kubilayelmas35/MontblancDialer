@@ -82,10 +82,7 @@
     min-height: 0;
     height: auto;
     max-height: none;
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    overflow: hidden;
   }
   #page-dialer #customer-card:not(.customer-card--empty) .cust-tabs {
     position: sticky;

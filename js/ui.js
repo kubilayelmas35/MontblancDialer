@@ -157,6 +157,7 @@ if (toastEl) toastEl.classList.remove('show');
 const notif = document.getElementById('notification-center');
 if (notif) notif.style.display = 'none';
 if (typeof toggleTeamChat === 'function') toggleTeamChat(false);
+if (typeof mbSyncInboundStrip === 'function') mbSyncInboundStrip();
 }
 
 function initSettingsTabs(preferTab) {

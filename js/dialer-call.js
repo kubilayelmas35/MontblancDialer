@@ -1246,15 +1246,17 @@ async function submitOutcome(goBreak) {
     } catch (e) {}
   }
   setDialerStatus('wrapping');
+  const savedDur = Math.max(0, Number(callSeconds) || 0);
   selectedOutcome = null;
   currentContact = null;
   clearCustomerCard();
   loadMyMiniStats();
+  let heldNext = false;
   if (goBreak) {
     setDialerStatus('break');
     upsertAgentSession({agent_id:currentUser.id,status:'break',last_seen:new Date().toISOString()}).catch(()=>{});
     openBreakModal();
-  } else if (typeof mbTakeHeldCall === 'function' && mbTakeHeldCall()) {
+  } else if (typeof mbTakeHeldCall === 'function' && (heldNext = mbTakeHeldCall())) {
     upsertAgentSession({agent_id:currentUser.id,status:'on_call',last_seen:new Date().toISOString()}).catch(()=>{});
   } else {
     setDialerStatus('ready');
@@ -1285,6 +1287,7 @@ async function submitOutcome(goBreak) {
   }
   if (outcomeSaved) {
     toast(typeof t === 'function' ? t('dial.outcome_saved') : 'Sonuç kaydedildi', 'ok', 2200);
+    if (!heldNext && typeof mbShowSavedLine === 'function') mbShowSavedLine(savedDur);
   }
 }
 
@@ -1295,7 +1298,7 @@ function _paintQcReviewOutcomes(grid) {
   if (dnc) dnc.style.display = 'none';
   const cb = document.getElementById('callback-time-row');
   if (cb) cb.style.display = 'none';
-  const br = document.querySelector('#ctab-outcome-panel [onclick="submitOutcome(true)"]');
+  const br = document.getElementById('outcome-break-btn');
   if (br) br.style.display = 'none';
   const defs = window._qcResultCfg || [];
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
@@ -1345,7 +1348,7 @@ function _qcRestoreOutcomeChrome() {
   document.getElementById('qc-review-form')?.remove();
   const dnc = document.getElementById('outcome-dnc')?.closest('div');
   if (dnc) dnc.style.display = '';
-  const br = document.querySelector('#ctab-outcome-panel [onclick="submitOutcome(true)"]');
+  const br = document.getElementById('outcome-break-btn');
   if (br) br.style.display = '';
 }
 

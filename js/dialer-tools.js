@@ -947,6 +947,29 @@ function _closeInboundTestRingUI(opts = {}) {
   ) {
     startCustEmptyMascotLoops();
   }
+  mbSyncInboundStrip();
+}
+
+function mbSyncInboundStrip() {
+  const strip = document.getElementById('mb-inbound-strip');
+  if (!strip) return;
+  const onDialer = !!document.getElementById('page-dialer')?.classList.contains('active');
+  const ringing = typeof _inboundTestRingOpen !== 'undefined' && !!_inboundTestRingOpen;
+  if (!ringing || onDialer) {
+    strip.hidden = true;
+    return;
+  }
+  const ctx = typeof _inboundTestCtx !== 'undefined' ? _inboundTestCtx : null;
+  const name = String(ctx?.displayName || ctx?.phone || '').trim() || '—';
+  strip.textContent = typeof tReplace === 'function'
+    ? tReplace('dial.inbound_strip', { name })
+    : `Gelen arama · ${name}`;
+  strip.hidden = false;
+}
+
+function mbOpenInboundFromStrip() {
+  if (typeof navigate === 'function') navigate('dialer');
+  mbSyncInboundStrip();
 }
 
 function _wireInboundTestSwipeOnce({ accept, decline }) {
@@ -1164,6 +1187,7 @@ function openInboundTestRingUI(ctx) {
   }, 32000);
 
   _wireInboundTestSwipeOnce({ accept, decline });
+  mbSyncInboundStrip();
 }
 
 function inboundTestToggleAddPanel() {

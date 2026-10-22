@@ -58,18 +58,48 @@ max-width:100%;
   min-height: 0;
   height: auto;
 }
+@media (min-width: 1025px) {
+  #page-dialer.page.active {
+    display: flex;
+    flex-direction: column;
+  }
+  #page-dialer > .dialer-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  #page-dialer .dialer-main {
+    min-height: 0;
+    overflow: hidden;
+  }
+}
 #page-dialer .dialer-main > #customer-card.customer-card--empty {
   flex: 1 1 auto;
   min-height: 240px;
   min-width: 0;
 }
 #page-dialer .dialer-main > #customer-card:not(.customer-card--empty) {
-  flex: 0 0 auto;
-  min-height: min-content;
+  flex: 1 1 auto;
+  min-height: 0;
   min-width: 0;
   height: auto;
-  overflow: visible;
+  max-height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   justify-content: flex-start;
+}
+#page-dialer #customer-card:not(.customer-card--empty) > #cust-data {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#page-dialer #customer-card:not(.customer-card--empty) > #outcome-dock {
+  flex: 0 0 auto;
+}
+#page-dialer #customer-card:not(.customer-card--empty):has(#outcome-dock:not([hidden])) {
+  padding-bottom: 0;
 }
 #page-dialer #customer-card:not(.customer-card--empty) > #cust-empty {
   display: none !important;
@@ -142,26 +172,28 @@ max-width:100%;
   flex-shrink: 0;
 }
 @container dialer (max-width: 1040px) {
-  .dialer-layout {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto;
-    height: auto;
+  #page-dialer > .dialer-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    gap: 8px;
   }
-  #page-dialer > .dialer-layout { overflow-x: hidden; overflow-y: auto; min-width: 0; }
-  .dialer-main { grid-column: 1; grid-row: 1; }
-  .dialer-side {
-    grid-column: 1;
-    grid-row: 2;
+  #page-dialer .dialer-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  #page-dialer .dialer-side {
+    flex: 0 1 auto;
     width: 100%;
-    max-height: none;
-    overflow: visible;
+    max-height: 34%;
+    min-height: 0;
+    overflow: auto;
   }
-  #page-dialer .dialer-side > .agent-camps-panel {
-    flex: 0 0 auto;
-    min-height: auto;
-    overflow: visible;
-  }
-  #page-dialer #ready-section { grid-column: 1; grid-row: 3; }
+  #page-dialer #ready-section { flex: 0 0 auto; width: 100%; }
 }
 .agent-camp-name {
   flex: 1 1 auto;

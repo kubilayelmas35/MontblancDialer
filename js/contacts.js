@@ -518,6 +518,8 @@ function clearCustomerCard() {
   document.getElementById('customer-card')?.classList.add('customer-card--empty');
   document.getElementById('cust-empty').style.display='';
   document.getElementById('cust-data').style.display='none';
+  const dock = document.getElementById('outcome-dock');
+  if (dock) dock.hidden = true;
   if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
   if (typeof startCustEmptyCoach === 'function') startCustEmptyCoach();
 }
@@ -529,6 +531,8 @@ function switchContactTab(tab) {
     if (btn) { btn.style.background=t===tab?'var(--text)':'transparent'; btn.style.color=t===tab?'var(--bg-2)':'var(--text-2)'; }
     if (panel) panel.style.display=t===tab?'':'none';
   });
+  const dock = document.getElementById('outcome-dock');
+  if (dock) dock.hidden = tab !== 'outcome';
   if (tab==='map' && currentContact) showContactMap(currentContact.address, currentContact.plz, currentContact.city);
   if (tab==='history' && currentContact) loadContactHistory(currentContact.id);
   if (tab==='file' && currentContact) updateContactFileHint();
