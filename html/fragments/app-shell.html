@@ -643,6 +643,15 @@
 </div>
 <div style="font-size:11px;color:var(--text-3);margin-top:8px;" data-tr="Seçilen sonuç, bekleme bitince yeniden aranır. Deneme dolunca bir daha kuyruğa girmez. Geri ara saati geldiyse bekleme dolmasa da aranır. Kuyruk sınırı her numarayı keser." data-de="Gewählte Ergebnisse werden nach der Wartezeit wieder angerufen. Ist das Limit voll, kommen sie nicht zurück. Ein fälliger Rückruf wird trotzdem angerufen. Das Listenlimit gilt für jede Nummer.">Seçilen sonuç, bekleme bitince yeniden aranır. Deneme dolunca bir daha kuyruğa girmez. Geri ara saati geldiyse bekleme dolmasa da aranır. Kuyruk sınırı her numarayı keser.</div>
 </div>
+<div style="padding:10px 14px;background:var(--bg-3);border-radius:8px;">
+<div style="font-size:13px;font-weight:700;margin-bottom:8px;"><i class="ph ph-stack"></i> <span data-tr="Kuyruk eşiği" data-de="Warteschlangen-Schwelle">Kuyruk eşiği</span></div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Dialerde kalan veri bu sayılara göre renklenir. Yeşil eşiğin üstü yeşil, turuncu eşiğin üstü turuncu, turuncu eşik ve altı kırmızı. Varsayılan 1500 ve 750." data-de="Die Restzahl im Dialer färbt sich nach diesen Werten. Über der grünen Schwelle grün, über der orangen orange, die orange Schwelle und darunter rot. Standard 1500 und 750.">Dialerde kalan veri bu sayılara göre renklenir. Yeşil eşiğin üstü yeşil, turuncu eşiğin üstü turuncu, turuncu eşik ve altı kırmızı. Varsayılan 1500 ve 750.</div>
+<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+<label style="font-size:12px;color:var(--text-3);display:flex;flex-direction:column;gap:4px;"><span data-tr="Yeşil eşik" data-de="Grüne Schwelle">Yeşil eşik</span><input class="form-input" id="cd-queue-green" type="number" min="1" step="1" value="1500" style="width:120px;font-size:12px;padding:4px 8px;"></label>
+<label style="font-size:12px;color:var(--text-3);display:flex;flex-direction:column;gap:4px;"><span data-tr="Turuncu eşik" data-de="Orange Schwelle">Turuncu eşik</span><input class="form-input" id="cd-queue-orange" type="number" min="0" step="1" value="750" style="width:120px;font-size:12px;padding:4px 8px;"></label>
+</div>
+<button type="button" class="btn btn-primary btn-sm" style="margin-top:10px;align-self:flex-start;" onclick="saveCampQueueThreshold()"><i class="ph ph-floppy-disk"></i> <span data-tr="Eşiği kaydet" data-de="Schwelle speichern">Eşiği kaydet</span></button>
+</div>
 <button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampAramaSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Arama ayarlarını kaydet" data-de="Anrufeinstellungen speichern">Arama ayarlarını kaydet</span></button>
 </div>
 </div>

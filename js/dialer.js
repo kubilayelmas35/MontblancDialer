@@ -122,6 +122,8 @@ async function initDialer() {
       </label>
     </div>
   </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+  ${(typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin()) ? `<span class="camp-left" id="camp-left-${cid}" title="${escapeHtml(typeof t === 'function' ? t('camp.queue.band.left') : 'Kalan veri')}">…</span>` : ''}
   <!-- Toggle switch -->
   <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0;cursor:pointer;" title="${escapeHtml(isActive ? toggOn : toggOff)}" onclick="event.stopPropagation()">
     <input type="checkbox" ${isActive?'checked':''} onchange="toggleCampActive('${cid}',this.checked)"
@@ -131,12 +133,14 @@ async function initDialer() {
       <span style="position:absolute;top:3px;left:${isActive?'19':'3'}px;width:14px;height:14px;background:#fff;border-radius:50%;transition:.25s;" id="camp-knob-${cid}"></span>
     </span>
   </label>
+  </div>
 </div>
 </div>`;
     }).join('');
     // Manuel arama / Telnyx DID vb. için global kampanya listesi (agent kampanyaları)
     campaigns = (myCamps || []).map((ac) => ac.campaigns).filter(Boolean);
     mbDialerAdminGate(campaigns);
+    void mbPaintCampLeft(campaigns);
     // Önceki oturumdan seçili kampanya: arama başlatmaz ama hazır/etiket/sağlık paneli doğru olsun
     (function restoreSelectedCampFromStorage() {
       const allowedIds = new Set(myCamps.map((x) => String(x.campaign_id)));
@@ -191,6 +195,36 @@ async function initDialer() {
       if (typeof positionGlobalMascotInfoPanel === 'function') positionGlobalMascotInfoPanel();
     });
   }
+}
+
+async function mbPaintCampLeft(camps) {
+  if (typeof mbIsFirmAdmin !== 'function' || !mbIsFirmAdmin()) return;
+  const rows = (camps || []).filter((c) => c && /^[0-9a-f-]{36}$/i.test(String(c.id || '')));
+  if (!rows.length || typeof mbDashRemainMap !== 'function') return;
+  let map = {};
+  try {
+    const got = await mbDashRemainMap(rows.map((c) => c.id));
+    map = got?.map || {};
+  } catch (e) {
+    return;
+  }
+  rows.forEach((camp) => {
+    const el = document.getElementById(`camp-left-${camp.id}`);
+    if (!el) return;
+    const known = Object.prototype.hasOwnProperty.call(map, camp.id);
+    el.classList.remove('is-ok', 'is-warn', 'is-low');
+    if (!known) {
+      el.textContent = '—';
+      return;
+    }
+    const n = Number(map[camp.id]) || 0;
+    const band = typeof mbQueueThresholds === 'function' ? mbQueueThresholds(camp) : { green: 1500, orange: 750 };
+    el.textContent = n.toLocaleString('tr-TR');
+    const tone = typeof mbQueueTone === 'function' ? mbQueueTone(n, band.green, band.orange) : '';
+    if (tone) el.classList.add(tone);
+    const label = typeof t === 'function' ? t('camp.queue.band.left') : 'Kalan veri';
+    el.title = `${label}: ${n}`;
+  });
 }
 
 function _campIdsMatch(a, b) {

@@ -778,6 +778,43 @@ setCheck('cd-recycle', s.recycle || false);
 setVal('cd-recycle-delay', s.recycle_delay || 60);
 renderRecycleControls(camp, s);
 paintAgentEditHint(camp);
+const band = mbQueueThresholds(camp);
+setVal('cd-queue-green', band.green);
+setVal('cd-queue-orange', band.orange);
+}
+
+function mbQueueThresholds(camp) {
+  const s = typeof getCampSettings === 'function' ? getCampSettings(camp || {}) : {};
+  const raw = s.queue_threshold && typeof s.queue_threshold === 'object' ? s.queue_threshold : {};
+  let green = parseInt(raw.green, 10);
+  let orange = parseInt(raw.orange, 10);
+  if (!Number.isFinite(green) || green < 1) green = 1500;
+  if (!Number.isFinite(orange) || orange < 0) orange = 750;
+  if (orange >= green) orange = green - 1;
+  return { green, orange };
+}
+
+function mbQueueTone(n, green, orange) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '';
+  if (v > green) return 'is-ok';
+  if (v > orange) return 'is-warn';
+  return 'is-low';
+}
+
+async function saveCampQueueThreshold() {
+  const green = parseInt(getVal('cd-queue-green'), 10);
+  const orange = parseInt(getVal('cd-queue-orange'), 10);
+  if (!Number.isFinite(green) || green < 1 || !Number.isFinite(orange) || orange < 0 || orange >= green) {
+    toast(campT('camp.queue.band.bad', 'Yeşil eşik, turuncu eşikten büyük olmalı'), 'err');
+    return;
+  }
+  await saveCampSettingsPatch({ queue_threshold: { green, orange } });
+  toast(campT('camp.queue.band.saved', 'Kuyruk eşiği kaydedildi'), 'ok');
+  if (typeof mbPaintCampLeft === 'function') {
+    const camp = campaigns.find((c) => c.id === currentCampId);
+    if (camp) void mbPaintCampLeft([camp]);
+  }
 }
 
 async function saveCampAramaSettings() {

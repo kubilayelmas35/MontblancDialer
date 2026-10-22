@@ -620,6 +620,19 @@ button.aca-qpick.is-on { background:var(--accent); color:#fff; border-color:var(
 #agent-camp-admin-pop .form-label { font-size:11px; margin:0; }
 #agent-camp-admin-pop .form-input { height:32px; }
 .agent-camp-count { font-size:11px; color:var(--text-3); margin-top:2px; font-family:var(--mono); }
+.camp-left {
+  display:inline-flex; align-items:center; justify-content:center;
+  height:22px; min-width:36px; padding:0 8px; box-sizing:border-box;
+  border-radius:11px; border:1px solid var(--border); background:var(--bg-2);
+  color:var(--text); font-family:var(--mono); font-size:12px; font-weight:800;
+  font-variant-numeric:tabular-nums; line-height:1; flex-shrink:0;
+}
+.camp-left.is-ok { background:#dcfce7; border-color:#16a34a; color:#166534; }
+.camp-left.is-warn { background:#ffedd5; border-color:#ea580c; color:#c2410c; }
+.camp-left.is-low { background:#fee2e2; border-color:#dc2626; color:#991b1b; }
+[data-theme="dark"] .camp-left.is-ok { background:rgba(22,163,74,.24); border-color:#22c55e; color:#86efac; }
+[data-theme="dark"] .camp-left.is-warn { background:rgba(234,88,12,.24); border-color:#fb923c; color:#fdba74; }
+[data-theme="dark"] .camp-left.is-low { background:rgba(220,38,38,.22); border-color:#f87171; color:#fecaca; }
 /* Dialer üst bar: manuel arama chip + çekmeceler */
 .manual-dial-chip {
   display:flex; align-items:center; gap:10px;
