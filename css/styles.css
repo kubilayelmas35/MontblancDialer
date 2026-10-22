@@ -669,8 +669,8 @@ button.tb-pill.pill-bal.is-neg {
 .tb-right {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-left: 6px;
+  gap: 8px;
+  margin-left: 0;
   flex: 0 0 auto;
   flex-wrap: nowrap;
   height: 32px;
