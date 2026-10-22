@@ -118,15 +118,17 @@ function _buildCallHistoryQueryForExport() {
 async function _fetchCallHistoryExportRows() {
   const { query, search } = _buildCallHistoryQueryForExport();
   let logs = (await sb(query).catch(() => [])) || [];
-  if (search) {
-    logs = logs.filter((l) => {
-      const name = `${l.contacts?.first_name || ''} ${l.contacts?.last_name || ''}`.toLowerCase();
-      const phone = l.phone || l.contacts?.phone || '';
-      const agent = l.users?.name?.toLowerCase() || '';
-      const note = String(l.notes || '').toLowerCase();
-      return name.includes(search) || String(phone).includes(search) || agent.includes(search) || note.includes(search);
-    });
-  }
+  const dir = document.getElementById('ch-dir')?.value || '';
+  logs = logs.filter((l) => {
+    if (dir === 'in' && l.work_type !== 'inbound') return false;
+    if (dir === 'out' && l.work_type === 'inbound') return false;
+    if (!search) return true;
+    const name = `${l.contacts?.first_name || ''} ${l.contacts?.last_name || ''}`.toLowerCase();
+    const phone = l.phone || l.contacts?.phone || '';
+    const agent = l.users?.name?.toLowerCase() || '';
+    const note = String(l.notes || '').toLowerCase();
+    return name.includes(search) || String(phone).includes(search) || agent.includes(search) || note.includes(search);
+  });
   const map = typeof statsOutcomeLabels === 'function' ? await statsOutcomeLabels(logs.map((l) => l.campaign_id)) : {};
   logs.forEach((l) => {
     l._ocLabel = typeof chOutcomeText === 'function' ? chOutcomeText(l.outcome, map) : _chOutcomeLabel(l.outcome);

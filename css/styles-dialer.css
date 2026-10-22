@@ -131,7 +131,19 @@ align-items:stretch;
   overflow: visible;
   flex-shrink: 0;
 }
-@media(max-width:900px) { .dialer-layout { grid-template-columns:1fr; } }
+@media(max-width:900px) {
+  .dialer-layout { grid-template-columns:1fr; }
+  #page-dialer > .dialer-layout { overflow:auto; }
+  #page-dialer .dialer-layout > div:first-child { display:contents; overflow:visible; }
+  #page-dialer #daily-goal-bar { order:1; }
+  #page-dialer #hotkey-hints { order:2; }
+  #page-dialer #customer-card { order:3; }
+  #page-dialer #call-actions { order:4; }
+  #page-dialer #prev-call-info { order:5; }
+  #page-dialer .dialer-side { order:6; min-height:auto; overflow:visible; }
+  #page-dialer .dialer-side > .agent-camps-panel { flex:0 0 auto; min-height:auto; overflow:visible; }
+  #page-dialer #ready-section { order:7; }
+}
 /* Status bar */
 .dialer-status-bar {
 display:flex; align-items:center; gap:10px;

@@ -2232,7 +2232,8 @@ function chRecHtml(l) {
   const id = statsEsc(l.id);
   if (l.recording_url) {
     const src = statsEsc(l.recording_url);
-    return `<div style="display:flex;align-items:center;gap:4px;"><audio id="ch-aud-${id}" src="${src}" preload="none" style="display:none;"></audio><button type="button" onclick="toggleAudio('ch-aud-${id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--text-2);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;"><i class="ph ph-play"></i></button></div>`;
+    const dl = statsEsc(typeof t === 'function' ? t('ch.rec.download') : 'Kaydı indir');
+    return `<div style="display:flex;align-items:center;gap:4px;"><audio id="ch-aud-${id}" src="${src}" preload="none" style="display:none;"></audio><button type="button" onclick="toggleAudio('ch-aud-${id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--text-2);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;"><i class="ph ph-play"></i></button><a href="${src}" download="kayit-${id}.mp3" target="_blank" rel="noopener" title="${dl}" aria-label="${dl}" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--text-2);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:11px;"><i class="ph ph-download-simple"></i></a></div>`;
   }
   if (chIsFakeRec(l) && typeof _fakeRecordingMarkup === 'function') return _fakeRecordingMarkup(l, 'chhist');
   return '<span style="color:var(--text-3);font-size:11px;">—</span>';
@@ -2468,11 +2469,14 @@ function chPaint() {
   if (!tbody) return;
   const cols = chColumns();
   const search = String(document.getElementById('ch-search')?.value || '').trim().toLocaleLowerCase('tr');
+  const way = document.getElementById('ch-dir')?.value || '';
   const filtered = _chRows.filter((row) => {
     if (search) {
       const blob = [row.idText, row.name, row.phone, row.caller, row.agent, row.camp, row.outcomeText, row.note, row.callid, row.work].join(' ').toLocaleLowerCase('tr');
       if (!blob.includes(search)) return false;
     }
+    if (way === 'in' && row.workKey !== 'inbound') return false;
+    if (way === 'out' && row.workKey === 'inbound') return false;
     return cols.every((col) => {
       const q = String(_chFilters[col.key] || '').trim().toLocaleLowerCase('tr');
       if (!q) return true;
@@ -2606,6 +2610,7 @@ async function loadCallHistory() {
         agent: `${l.users?.name || '—'}${statsFirmSuffix(l.firm_id)}`,
         camp: l.campaigns?.name || '—',
         work: chWorkText(l.work_type),
+        workKey: l.work_type || '',
         who: chWhoText(l.hangup_by),
         dur: sec,
         durText: sec ? statsClock(sec) : '00:00',
@@ -2683,9 +2688,10 @@ const isFakeRec = (l) => {
 };
 const recHtmlFor = (l) => {
   if (l.recording_url) {
-    return `<button onclick="event.stopPropagation();toggleAudio('mh-aud-${l.id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;">
-<audio id="mh-aud-${l.id}" src="${l.recording_url}" preload="none" style="display:none;"></audio>
-<i class="ph ph-play"></i></button>`;
+    const src = statsEsc(l.recording_url);
+    const id = statsEsc(l.id);
+    const dl = statsEsc(typeof t === 'function' ? t('ch.rec.download') : 'Kaydı indir');
+    return `<span style="display:inline-flex;align-items:center;gap:4px;" onclick="event.stopPropagation();"><audio id="mh-aud-${id}" src="${src}" preload="none" style="display:none;"></audio><button type="button" onclick="event.stopPropagation();toggleAudio('mh-aud-${id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;"><i class="ph ph-play"></i></button><a href="${src}" download="kayit-${id}.mp3" target="_blank" rel="noopener" title="${dl}" aria-label="${dl}" onclick="event.stopPropagation();" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--text-2);display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:11px;"><i class="ph ph-download-simple"></i></a></span>`;
   }
   if (isFakeRec(l) && typeof _fakeRecordingMarkup === 'function') return _fakeRecordingMarkup(l, 'myhist');
   return '<span style="color:var(--text-3);font-size:11px;">—</span>';

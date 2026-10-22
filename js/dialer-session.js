@@ -788,7 +788,15 @@ function mbPoolPlan(ready, speed, ringing) {
 }
 
 function mbRefreshHopperUi() {
-  const ringing = _hopper.filter((r) => r.phase === 'dialing' || r.phase === 'ringing').length;
+  const live = _hopper.filter((r) => r.phase === 'dialing' || r.phase === 'ringing');
+  const ringing = live.length;
+  const openId = String(currentContact?.id || '');
+  const others = live.filter((r) => {
+    const id = String(r.contact?.id || r.contactId || '');
+    if (openId && id && id === openId) return false;
+    if (_liveCallId && r.id && String(r.id) === String(_liveCallId)) return false;
+    return true;
+  }).length;
   const title = document.querySelector('#cust-empty-outbound-wait .cust-outbound-wait__title');
   const sub = document.querySelector('#cust-empty-outbound-wait .cust-outbound-wait__sub');
   const plan = _poolPlan;
@@ -820,7 +828,7 @@ function mbRefreshHopperUi() {
   }
   if (note) {
     const parts = [];
-    if (ringing && dialerStatus === 'on_call') parts.push(typeof tReplace === 'function' ? tReplace('dial.hopper.ringing', { n: ringing }) : `${ringing} kişi aranıyor`);
+    if (others && dialerStatus === 'on_call') parts.push(typeof tReplace === 'function' ? tReplace('dial.hopper.ringing', { n: others }) : `${others} kişi aranıyor`);
     note.style.display = parts.length ? '' : 'none';
     note.textContent = parts.join(' · ');
   }

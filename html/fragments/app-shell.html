@@ -846,6 +846,11 @@
 <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:auto;">
 <div id="ch-firm-selector"></div>
 <input type="text" class="form-input" style="width:150px;" placeholder="İsim, numara..." id="ch-search" oninput="chPaint()">
+<select class="form-input" style="width:auto;" id="ch-dir" onchange="chPaint()">
+<option value="" data-tr="Tümü" data-de="Alle">Tümü</option>
+<option value="out" data-tr="Giden" data-de="Ausgehend">Giden</option>
+<option value="in" data-tr="Gelen" data-de="Eingehend">Gelen</option>
+</select>
 <select class="form-input" style="width:auto;" id="ch-agent-f" onchange="loadCallHistory()">
 <option value="" data-tr="Tüm temsilciler" data-de="Alle Agenten">Tüm temsilciler</option>
 </select>
@@ -1390,7 +1395,7 @@ TEST MODU
 </div>
 </div>
 <div class="dialer-layout">
-<div style="display:flex;flex-direction:column;gap:8px;">
+<div>
 <div id="daily-goal-bar" style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:4px;display:none;">
 <div style="display:flex;gap:2px;margin-bottom:8px;background:var(--bg-2);border-radius:4px;padding:2px;">
 <button id="goal-tab-daily" onclick="setGoalTab('daily')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:var(--text);color:var(--bg-2);border-radius:3px;cursor:pointer;" data-tr="Günlük" data-de="Täglich">Günlük</button>
