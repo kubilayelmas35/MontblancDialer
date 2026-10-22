@@ -30,7 +30,7 @@
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <style>
 :root{--pri:#4e54c8;--sec:#8f94fb;--acc:#ff7e5f;--used:#dc3545;--rec:#28a745;--sel:#198754;--dist:#fd7e14;--pw:300px;}
-html.mb-embed #secTakvim,html.mb-embed #secBest{display:none!important;}
+html.mb-embed #secTakvim,html.mb-embed #secBest,html.mb-embed .kub-wix-only{display:none!important;}
 *{box-sizing:border-box;}
 html,body{height:100%;width:100%;margin:0;padding:0;font-family:'Segoe UI',sans-serif;overflow:hidden;overscroll-behavior:none;}
 #mapWrap{position:absolute;inset:0;z-index:1;overscroll-behavior:none;touch-action:none;}
@@ -728,14 +728,12 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
     <div>
       <div class="kub-label" data-geo-tr="Kaynak" data-geo-de="Quelle">Kaynak</div>
       <div class="kub-mode">
-        <button type="button" class="kub-chip" data-kub-mode="bos" onclick="setKubMode('bos')" data-geo-tr="Boş" data-geo-de="Leer">Boş</button>
-        <button type="button" class="kub-chip" data-kub-mode="dolu" onclick="setKubMode('dolu')" data-geo-tr="Dolu" data-geo-de="Voll">Dolu</button>
-        <button type="button" class="kub-chip active" data-kub-mode="ikisi" onclick="setKubMode('ikisi')" data-geo-tr="İkisi" data-geo-de="Beides">İkisi</button>
+        <button type="button" class="kub-chip active" data-kub-mode="yarin" onclick="setKubMode('yarin')" data-geo-tr="Yarın" data-geo-de="Morgen">Yarın</button>
         <button type="button" class="kub-chip" data-kub-mode="top" onclick="setKubMode('top')" data-geo-tr="En çok randevu" data-geo-de="Top PLZ">En çok randevu</button>
         <button type="button" class="kub-chip" data-kub-mode="plz" onclick="setKubMode('plz')" data-geo-tr="Kod" data-geo-de="PLZ">Kod</button>
       </div>
     </div>
-    <div class="kub-days-wrap on" id="kubDaysWrap">
+    <div class="kub-days-wrap" id="kubDaysWrap">
       <div class="kub-label"><span data-geo-tr="Günler" data-geo-de="Tage">Günler</span> <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(tarih sırası)" data-geo-de="(nach Datum)">(tarih sırası)</small></div>
       <div class="kub-days" id="kubDayStrip"><span style="font-size:.65rem;color:#94a3b8;" data-geo-tr="Kampanya seçin" data-geo-de="Kampagne wählen">Kampanya seçin</span></div>
       <div id="kubDayDetail" class="kub-day-detail" style="display:none;"></div>
@@ -828,12 +826,12 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
       <button type="button" class="kub-plan-btn" id="kubPlanBtn" onclick="kubilaiPlanPackage()"><i class="fas fa-box-open"></i> <span data-geo-tr="Paket hazırla" data-geo-de="Paket erstellen">Paket hazırla</span></button>
       <button type="button" class="kub-reset-btn" id="kubResetBtn" onclick="resetKubilaiDefaults()" title="Varsayılan ayarlara dön" data-geo-title-tr="Varsayılan ayarlara dön" data-geo-title-de="Auf Standard"><span data-geo-tr="Sıfırla" data-geo-de="Zurücksetzen">Sıfırla</span></button>
     </div>
-    <label class="kub-check" title="Kubilai yorumu (kredi harcar)">
+    <label class="kub-check kub-wix-only" title="Kubilai yorumu (kredi harcar)">
       <input type="checkbox" id="kubWantComment" onchange="kubWantComment=this.checked;saveKubilaiSettings()">
       <span data-geo-tr="Yorum iste" data-geo-de="Kommentar">Yorum iste</span> <small data-geo-tr="(Kubilai — varsayılan kapalı)" data-geo-de="(Kubilai — standard aus)">(Kubilai — varsayılan kapalı)</small>
     </label>
     <div class="kub-status" id="kubStatus"></div>
-    <div>
+    <div class="kub-wix-only">
       <div class="kub-label" data-geo-tr="Sohbet" data-geo-de="Chat">Sohbet</div>
       <div class="kub-chat" id="kubChat"></div>
       <div class="kub-input-row" style="margin-top:6px;">
@@ -923,9 +921,9 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
         <option value="5">Skor ≥ 5</option>
         <option value="4">Skor ≥ 4</option>
       </select>
-      <button class="filter-toggle-btn" id="filterHideUsed" onclick="toggleFilterUsed()" title="Kullanılanları gizle"><i class="fas fa-eye-slash"></i></button>
-      <button class="filter-toggle-btn" id="filterOnlyRec" onclick="toggleFilterRec()" title="Sadece önerilenler"><i class="fas fa-star"></i></button>
-      <button class="filter-toggle-btn" id="filterRegionOnly" onclick="toggleFilterRegion()" title="Sadece arama alanı"><i class="fas fa-draw-circle"></i></button>
+      <button class="filter-toggle-btn" id="filterHideUsed" onclick="toggleFilterUsed()" title="Kullanılanları gizle"><i class="fas fa-eye-slash"></i> <span id="filterHideUsedText">Gizle</span></button>
+      <button class="filter-toggle-btn" id="filterOnlyRec" onclick="toggleFilterRec()" title="Sadece önerilenler"><i class="fas fa-star"></i> <span id="filterOnlyRecText">Öneri</span></button>
+      <button class="filter-toggle-btn" id="filterRegionOnly" onclick="toggleFilterRegion()" title="Sadece arama alanı"><i class="fas fa-draw-circle"></i> <span id="filterRegionOnlyText">Alan</span></button>
     </div>
   </div>
 
@@ -1262,7 +1260,9 @@ const KUB_RELAX_META={
 };
 const KUB_RELAX_KEYS=['skor','dk','pair','km','samePlz'];
 let kubilaiOpen=false;
-let kubMode='ikisi';
+let kubMode='yarin';
+let activeCamps=[];
+let selectedCampId='';
 let kubSelectedDay='';
 let kubManualRefs=[]; // Top PLZ / elle PLZ — coklu anchor
 let kubTopScope='kampanya'; // 'plz' = onek (01xxx) | 'kampanya' = kampanyadaki tum PLZ
@@ -1580,7 +1580,9 @@ Object.assign(T.de,{
   noPlzSource:'Keine PLZ-Quelle erreichbar',noOverpass:'Quelle nicht erreichbar — bitte erneut versuchen',
   needFirm:'Zum Markieren oben eine Firma wählen',
   analysingPlz:(plz,n)=>`Analyse ${plz}… (${n})`,
-  layerHouse:'EFH',layerApart:'MFH',layerSolar:'PV',layerTrend:'Trends'
+  layerHouse:'EFH',layerApart:'MFH',layerSolar:'PV',layerTrend:'Trends',
+  filterHideShort:'Aus',filterRecShort:'Empf.',filterRegionShort:'Radius',
+  noCampDays:'Kein Termintag'
 });
 Object.assign(T.tr,{
   modeCircle:'Çevre (1 kod)',modeCorridor:'Koridor (2 kod)',
@@ -1602,6 +1604,8 @@ Object.assign(T.tr,{
   noPlzSource:'Posta kodu kaynağına ulaşılamadı',noOverpass:'Kaynak yanıt vermedi — tekrar deneyin',
   dlMsg:p=>`Kod ${p} aktarılıyor…`,
   layerHouse:'Ev',layerApart:'Apartman',layerSolar:'Güneş',layerTrend:'Trend',
+  filterHideShort:'Gizle',filterRecShort:'Öneri',filterRegionShort:'Alan',
+  noCampDays:'Randevu günü yok',
   mbEmpty:'Bu kod için randevu yok.',
   bulkHint:'Haritadaki kodlara tıklayın',
   distHint:'En az 2 kod seçin',
@@ -1681,6 +1685,8 @@ window.addEventListener('message', ev => {
   if (d.type === 'GEO_MB_COUNTS') applyMbLeadCounts(d.counts || {});
   if (d.type === 'GEO_MB_LEADS' || d.type === 'GEO_MB_LEADS_ERROR') applyMbLeadDetail(d);
   if (d.type === 'GEO_TAKVIMLER') renderTakvimChips(d.takvimler || []);
+  if (d.type === 'GEO_CAMPS') applyGeoCamps(d);
+  if (d.type === 'GEO_CAMP_DAYS') applyGeoCampDays(d);
   if (d.type === 'GEO_TOP_PLZ') { topPlzItems = d.items || []; renderTopPlzList(); try{if(kubMode==='top')renderKubTopPlzList();}catch(_){} }
   if (d.type === 'GEO_UPCOMING_PLZ') {
     upcomingPlzItems = d.items || [];
@@ -2072,6 +2078,26 @@ function restoreGeoSecs(){
   }catch(e){}
 }
 
+function applyGeoCamps(data){
+  activeCamps=Array.isArray(data&&data.items)?data.items:[];
+  const el=document.getElementById('kubTakvimChips');
+  if(data&&data.needFirm){
+    activeCamps=[];
+    selectedCampId='';
+    selectedTakvim='';
+    if(el)el.innerHTML=`<span style="font-size:.65rem;color:#94a3b8;">${tr().needFirm}</span>`;
+    return;
+  }
+  renderKubTakvimChips();
+}
+function applyGeoCampDays(data){
+  if(data&&data.campaignId&&data.campaignId!==selectedCampId)return;
+  kubSlotDays=(data&&data.days||[]).map(d=>({ymd:d.ymd,count:d.count||0,dolu:d.count||0,bos:0,plzs:d.plzs||[]}));
+  if(!kubSlotDays.some(d=>d.ymd===kubSelectedDay))kubSelectedDay='';
+  renderKubDayStrip();
+  if(kubSelectedDay)loadKubilaiDayDetail(kubSelectedDay);
+  setKubStatus(kubSlotDays.length?(kubSlotDays.length+(lang==='tr'?' gün':' Tage')):(tr().noCampDays||'Randevu günü yok'));
+}
 function renderTakvimChips(list){
   activeTakvimler=list||[];
   const el=document.getElementById('takvimChips');
@@ -2091,9 +2117,27 @@ function renderTakvimChips(list){
   renderKubTakvimChips();
 }
 
+function selectCampaign(id,name){
+  selectedCampId=id||'';
+  selectedTakvim=name||'';
+  kubSelectedDay='';
+  kubSlotDays=[];
+  renderKubTakvimChips();
+  const sec=document.getElementById('secTopPlz');
+  if(sec)sec.classList.remove('collapsed');
+  const lbl=document.getElementById('lblTopPlz');
+  if(lbl)lbl.textContent=name?(name+' — '+(tr().takvimTop||'En çok randevu')):(tr().takvimTop||'En çok randevu');
+  sendWix({action:'GEO_GET_TOP_PLZ',campaignId:selectedCampId,limit:20});
+  sendWix({action:'GEO_GET_UPCOMING_PLZ',campaignId:selectedCampId});
+  if(selectedCampId)sendWix({action:'GEO_GET_CAMP_DAYS',campaignId:selectedCampId});
+  else{kubSlotDays=[];renderKubDayStrip();}
+  updateKubSourcePanels();
+}
 function selectTakvim(name){
+  const camp=activeCamps.find(c=>c.name===name);
+  if(camp){selectCampaign(camp.id,camp.name);return;}
   selectedTakvim=name;
-  topPlzItems=[]; // eski kampanya listesi kalmasin
+  topPlzItems=[];
   renderTakvimChips(activeTakvimler);
   document.getElementById('secTopPlz').classList.remove('collapsed');
   document.getElementById('secUpcoming').classList.remove('collapsed');
@@ -2101,10 +2145,6 @@ function selectTakvim(name){
   sendWix({ action:'GEO_GET_TOP_PLZ', takvimAdi:name, limit:100, days:0 });
   sendWix({ action:'GEO_GET_UPCOMING_PLZ', takvimAdi:name });
   if(!bestPlzItems.length) sendWix({ action:'GEO_GET_BEST_PLZ', limit:100, days:0 });
-  if(kubilaiOpen){
-    if(isKubDayMode())loadKubilaiSlotDays();
-    else if(kubMode==='top')renderKubTopPlzList(true);
-  }
 }
 
 function packagePlzRowHtml(c){
@@ -2150,6 +2190,8 @@ function renderTopPlzList(){
   const el=document.getElementById('topPlzList');
   if(!el)return;
   if(!topPlzItems.length){el.innerHTML=`<div style="font-size:.68rem;color:#aaa;">${tr().alerts.noData}</div>`;return;}
+  const sec=document.getElementById('secTopPlz');
+  if(sec)sec.classList.remove('collapsed');
   el.innerHTML=topPlzItems.map(it=>geoPlzRowHtml(it)).join('');
 }
 
@@ -2482,6 +2524,7 @@ async function buildDataPackage(anchorPlz,allowOtherPrefixOverride,opts){
   if(needsPrefixExpand){
     html+=`<div style="margin:4px 0;padding:6px 8px;background:#f1f5f9;border:1px solid #dbe4ec;border-radius:6px;font-size:.68rem;color:#555;">ℹ️ ${anchorPrefix}xx bölgesinde bulunan tüm veri (${total.toLocaleString('de-DE')} kontak) paketlendi, bu kadarıyla tamamlandı. İsterseniz diğer PLZ bölgelerinde de ara:<br><button type="button" onclick="expandPackageOtherPrefix('${anchor}')" style="margin-top:4px;padding:3px 8px;font-size:.68rem;border:1px solid #90a4ae;background:#fff;border-radius:5px;cursor:pointer;">🔍 Diğer PLZ bölgelerinde de ara</button></div>`;
   }
+  html+=`<button type="button" class="btn btn-success btn-sm" style="margin:6px 0;" onclick="downloadBulkExcel()"><i class="fas fa-share"></i> ${tr().popupDaten}</button>`;
   html+=picked.map(c=>packagePlzRowHtml(c)).join('');
   if(!picked.length)html+='<div style="font-size:.68rem;color:#888;margin-top:4px;">Uygun PLZ bulunamadı</div>';
   panel.innerHTML=html;
@@ -3434,6 +3477,9 @@ function changeLanguage(l){
   put('filterHideUsed',t.filterHide,'title');
   put('filterOnlyRec',t.filterRec,'title');
   put('filterRegionOnly',t.filterRegion,'title');
+  put('filterHideUsedText',t.filterHideShort||t.filterHide);
+  put('filterOnlyRecText',t.filterRecShort||t.filterRec);
+  put('filterRegionOnlyText',t.filterRegionShort||t.filterRegion);
   put('filterToggleBtn',t.filterBtn,'title');
   put('distHint',t.distHint);
   const scoreWord=lang==='tr'?'Skor':'Score';
@@ -6771,10 +6817,8 @@ function toggleKubilaiDrawer(force){
     applyKubilaiSettingsToUi();
     renderKubTakvimChips();
     updateKubSourcePanels();
-    if(isKubDayMode()){
-      if(selectedTakvim)loadKubilaiSlotDays();
-      else if(activeTakvimler.length&&!selectedTakvim)selectTakvim(activeTakvimler[0]);
-    }else if(kubMode==='top'){
+    if(selectedCampId)loadKubilaiSlotDays();
+    if(kubMode==='top'){
       ensureKubTopPlzLoaded();
       const src=selectedTakvim?(topPlzItems||[]):(bestPlzItems||[]);
       renderKubTopPlzList(!src.length);
@@ -7027,50 +7071,58 @@ function onKubPairTravel(v){
   if(el)el.textContent=kubPairTravelMin+' dk';
   saveKubilaiSettings();
 }
+function kubPlanRefs(){
+  if(selectedCampId&&kubSelectedDay){
+    const day=kubSlotDays.find(d=>d.ymd===kubSelectedDay);
+    const fromDay=(day&&day.plzs||[]).map(p=>p.plz).filter(Boolean);
+    if(fromDay.length)return fromDay.slice(0,5);
+  }
+  if(kubMode==='top'){
+    if(kubManualRefs.length)return kubManualRefs.slice(0,5);
+    return (topPlzItems||[]).map(i=>i.plz).filter(Boolean).slice(0,3);
+  }
+  if(kubMode==='plz')return kubManualRefs.slice(0,5);
+  return (upcomingPlzItems||[]).map(i=>i.plz).filter(Boolean).slice(0,5);
+}
 function renderKubTakvimChips(){
   const el=document.getElementById('kubTakvimChips');
   if(!el)return;
-  if(!activeTakvimler.length){el.innerHTML='<span style="font-size:.65rem;color:#94a3b8;">Takvim yok</span>';return;}
+  if(!activeCamps.length){el.innerHTML=`<span style="font-size:.65rem;color:#94a3b8;">${tr().needFirm}</span>`;return;}
   el.innerHTML='';
   const all=document.createElement('button');
   all.type='button';
-  all.className='kub-chip'+(!selectedTakvim?' active':'');
-  all.textContent='Tümü';
-  all.title='Kampanya yok — global Top PLZ';
+  all.className='kub-chip'+(!selectedCampId?' active':'');
+  all.textContent=lang==='tr'?'Tümü':'Alle';
   all.onclick=()=>clearKubTakvim();
   el.appendChild(all);
-  activeTakvimler.forEach(name=>{
+  activeCamps.forEach(camp=>{
     const b=document.createElement('button');
     b.type='button';
-    b.className='kub-chip'+(selectedTakvim===name?' active':'');
-    b.textContent=name;
-    b.onclick=()=>selectTakvim(name);
+    b.className='kub-chip'+(selectedCampId===camp.id?' active':'');
+    b.textContent=camp.name||'';
+    b.onclick=()=>selectCampaign(camp.id,camp.name||'');
     el.appendChild(b);
   });
 }
 function clearKubTakvim(){
+  selectedCampId='';
   selectedTakvim='';
+  kubSelectedDay='';
+  kubSlotDays=[];
   topPlzItems=[];
-  renderTakvimChips(activeTakvimler);
   renderKubTakvimChips();
-  try{document.getElementById('lblTopPlz').textContent='Top PLZ';}catch(_){}
-  if(kubilaiOpen){
-    if(isKubDayMode()){
-      kubSlotDays=[];
-      kubSelectedDay='';
-      renderKubDayStrip();
-      const box=document.getElementById('kubDayDetail');
-      if(box){box.style.display='none';box.innerHTML='';}
-      setKubStatus('Kampanya seçin (gün modu)');
-    }else if(kubMode==='top'){
-      ensureKubTopPlzLoaded();
-      renderKubTopPlzList(true);
-      setKubStatus('Global Top PLZ');
-    }
+  try{document.getElementById('lblTopPlz').textContent=tr().takvimTop||'En çok randevu';}catch(_){}
+  sendWix({action:'GEO_GET_TOP_PLZ',limit:20});
+  sendWix({action:'GEO_GET_UPCOMING_PLZ'});
+  renderKubDayStrip();
+  updateKubSourcePanels();
+  if(kubMode==='top'){
+    renderKubTopPlzList(true);
+    setKubStatus(lang==='tr'?'Tüm randevular':'Alle Termine');
   }
 }
 function isKubDayMode(){
-  return kubMode==='bos'||kubMode==='dolu'||kubMode==='ikisi';
+  return false;
 }
 function isKubAnchorMode(){
   return kubMode==='top'||kubMode==='plz';
@@ -7083,12 +7135,13 @@ function updateKubSourcePanels(){
   const days=document.getElementById('kubDaysWrap');
   const top=document.getElementById('kubTopPlzWrap');
   const man=document.getElementById('kubManualPlzWrap');
-  if(days)days.classList.toggle('on',isKubDayMode());
+  if(days)days.classList.toggle('on',!!selectedCampId);
   if(top)top.classList.toggle('on',kubMode==='top');
   if(man)man.classList.toggle('on',kubMode==='plz');
 }
 function setKubMode(mode){
-  kubMode=mode||'ikisi';
+  if(mode==='bos'||mode==='dolu'||mode==='ikisi')mode='yarin';
+  kubMode=mode||'yarin';
   document.querySelectorAll('[data-kub-mode]').forEach(b=>b.classList.toggle('active',b.dataset.kubMode===kubMode));
   updateKubSourcePanels();
   if(isKubDayMode()){
@@ -7104,11 +7157,7 @@ function setKubMode(mode){
   }
 }
 function ensureKubTopPlzLoaded(){
-  if(selectedTakvim){
-    try{sendWix({action:'GEO_GET_TOP_PLZ',takvimAdi:selectedTakvim,limit:100,days:0});}catch(_){}
-  }else{
-    try{sendWix({action:'GEO_GET_BEST_PLZ',limit:100,days:0});}catch(_){}
-  }
+  try{sendWix({action:'GEO_GET_TOP_PLZ',campaignId:selectedCampId||'',limit:20});}catch(_){}
 }
 /** Kampanya adi "01" / "99 …" ise ilk 2 hane = PLZ öneki (sadece Top scope=plz) */
 function kubCampaignPlzPrefix(){
@@ -7280,7 +7329,7 @@ function renderKubDayStrip(){
   const el=document.getElementById('kubDayStrip');
   if(!el)return;
   if(!kubSlotDays.length){
-    el.innerHTML='<span style="font-size:.65rem;color:#94a3b8;">Bu tipte gün yok</span>';
+    el.innerHTML=`<span style="font-size:.65rem;color:#94a3b8;">${tr().noCampDays||'Randevu günü yok'}</span>`;
     return;
   }
   el.innerHTML='';
@@ -7289,79 +7338,24 @@ function renderKubDayStrip(){
     b.type='button';
     b.className='kub-day'+(kubSelectedDay===day.ymd?' active':'');
     const wd=weekdayTr(day.ymd);
-    b.innerHTML=`<div class="kd-d">${wd} ${formatKubDay(day.ymd)}</div><div class="kd-m">⬜${day.bos||0} · ⬛${day.dolu||0}</div>`;
+    b.innerHTML=`<div class="kd-d">${wd} ${formatKubDay(day.ymd)}</div><div class="kd-m">${day.count||day.dolu||0} ${tr().termShort||'rand.'}</div>`;
     b.onclick=()=>{kubSelectedDay=day.ymd;renderKubDayStrip();loadKubilaiDayDetail(day.ymd);};
     el.appendChild(b);
   });
 }
-async function loadKubilaiDayDetail(ymd){
+function loadKubilaiDayDetail(ymd){
   const box=document.getElementById('kubDayDetail');
   if(!box)return;
-  if(!selectedTakvim||!ymd){box.style.display='none';return;}
+  const day=kubSlotDays.find(d=>d.ymd===ymd);
+  const plzs=(day&&day.plzs)||[];
+  if(!plzs.length){box.style.display='none';box.innerHTML='';return;}
   box.style.display='block';
-  box.innerHTML='<span style="color:#94a3b8;"><i class="fas fa-circle-notch fa-spin"></i> Slotlar…</span>';
-  const bucketLabel={basarili:'Başarılı',qc:'QC',ulasilamadi:'Ulaşılamayan',basarisiz:'Başarısız',beklemede:'Beklemede'};
-  const bucketCls=b=>'b-'+(b||'qc');
-  const rowHtml=(d,ayik)=>{
-    const b=d.bucket||'qc';
-    const lbl=bucketLabel[b]||d.durum||b;
-    return `<div class="kd-row${ayik?' kd-ayik':''}"><span class="${bucketCls(b)}">${d.saat||'—'} · ${lbl}</span><span>${d.plz||'—'}</span></div>`;
-  };
-  try{
-    const res=await kubilaiRequest('KUBILAI_DAY_DETAIL',{takvimAdi:selectedTakvim,tarih:ymd},45000);
-    const dolu=res.dolu||[];
-    const ayiklanan=res.ayiklanan||[];
-    const bos=res.bos||[];
-    let html=`<div class="kd-sec">Dolu (${dolu.length})</div>`;
-    if(!dolu.length)html+='<div style="color:#94a3b8;">—</div>';
-    else dolu.forEach(d=>{html+=rowHtml(d,false);});
-    html+=`<div class="kd-sec">Boş (${bos.length})</div>`;
-    if(!bos.length)html+='<div style="color:#94a3b8;">—</div>';
-    else bos.forEach(b=>{html+=`<div class="kd-row"><span class="tag-b">${b.saat||'—'}</span><span>slot</span></div>`;});
-    if(res.windows&&res.windows.length){
-      html+=`<div class="kd-sec">Pencere</div>`;
-      res.windows.slice(0,6).forEach(w=>{
-        const refs=(w.refs||[]).map(r=>`${r.saat} ${r.plz}`).join(' · ')||'—';
-        html+=`<div class="kd-row"><span>bos ${w.bosSaat}</span><span style="text-align:right;">${refs}</span></div>`;
-      });
-    }
-    html+=`<div class="kd-sec">Ayıklananlar (${ayiklanan.length})</div>`;
-    if(!ayiklanan.length)html+='<div style="color:#94a3b8;">—</div>';
-    else ayiklanan.forEach(d=>{html+=rowHtml(d,true);});
-    box.innerHTML=html;
-  }catch(e){
-    box.innerHTML=`<span style="color:#b91c1c;">${e.message||'Detay yok'}</span>`;
-  }
+  box.innerHTML=plzs.map(p=>`<div class="kd-row"><span>${p.count||0} ${tr().termShort||'rand.'}</span><span>${p.plz||''}</span></div>`).join('');
 }
-async function loadKubilaiSlotDays(){
-  if(!selectedTakvim){setKubStatus('Kampanya seçin');return;}
-  const loadId=++kubDaysLoadId;
-  // Anında seed — flicker için mevcut listeyi silme
-  if(!kubSlotDays.length)seedKubilaiDaysFromUpcoming();
-  setKubStatus('Günler yükleniyor…');
-  try{
-    const res=await kubilaiRequest('KUBILAI_SLOT_DAYS',{takvimAdi:selectedTakvim,mode:kubMode},55000);
-    if(loadId!==kubDaysLoadId)return; // eski cevap at
-    let days=sortKubDaysChrono(res.days||[]);
-    if(!days.length){
-      seedKubilaiDaysFromUpcoming(true);
-      days=sortKubDaysChrono(kubSlotDays);
-    }else{
-      kubSlotDays=days;
-    }
-    if(!kubSlotDays.some(d=>d.ymd===kubSelectedDay))kubSelectedDay=kubSlotDays[0]?.ymd||'';
-    renderKubDayStrip();
-    if(kubSelectedDay)loadKubilaiDayDetail(kubSelectedDay);
-    setKubStatus(kubSlotDays.length?`${kubSlotDays.length} gün`:'Gün yok');
-  }catch(e){
-    if(loadId!==kubDaysLoadId)return;
-    if(!kubSlotDays.length)seedKubilaiDaysFromUpcoming(true);
-    renderKubDayStrip();
-    if(kubSelectedDay)loadKubilaiDayDetail(kubSelectedDay);
-    // Seed varsa soft uyar; tamamen bos ise page-code uyarisi
-    if(kubSlotDays.length)setKubStatus(`${kubSlotDays.length} gün (önizleme)`);
-    else setKubStatus((e.message||'Hata')+' — page-code Publish + Ctrl+F5');
-  }
+function loadKubilaiSlotDays(){
+  if(!selectedCampId){setKubStatus(tr().needFirm);return;}
+  setKubStatus(lang==='tr'?'Günler yükleniyor…':'Tage werden geladen…');
+  sendWix({action:'GEO_GET_CAMP_DAYS',campaignId:selectedCampId});
 }
 function seedKubilaiDaysFromUpcoming(force){
   if(!upcomingDayLabel)return;
@@ -7526,6 +7520,7 @@ async function collectKubMapBackupCands({
   return {cands,relaxSkor,relaxSame,relaxDk,relaxPair,relaxKm,nearKm,refList};
 }
 async function kubilaiSendChat(){
+  if(document.documentElement.classList.contains('mb-embed'))return;
   const input=document.getElementById('kubChatInput');
   const msg=(input?.value||'').trim();
   if(!msg)return;
@@ -7583,13 +7578,12 @@ function waitForPlzSearchSettle(anchorPlz,timeoutMs){
   });
 }
 async function kubilaiPlanPackage(){
-  const anchorMode=isKubAnchorMode();
-  if(isKubDayMode()&&!selectedTakvim){setKubStatus('Kampanya seçin');return;}
-  if(isKubDayMode()&&!kubSelectedDay){setKubStatus('Gün seçin');return;}
-  if(anchorMode&&!kubManualRefs.length){
-    setKubStatus(kubMode==='top'?'Top PLZ seçin':'En az 1 PLZ girin');
+  const planRefs=kubPlanRefs();
+  if(!planRefs.length){
+    setKubStatus(kubMode==='plz'?(lang==='tr'?'En az 1 kod girin':'Mindestens 1 PLZ'):(kubMode==='top'?(lang==='tr'?'En çok randevu yok':'Keine Top-PLZ'):(tr().noUpcoming||'Yarın randevu yok')));
     return;
   }
+  const anchorMode=isKubAnchorMode();
   // Onceki istekleri iptal et (tekrar Hazirla'da eski timeout hatasi gelmesin)
   kubilaiCancelPending('yeni paket');
   const planGen=++kubPlanGen;
@@ -7631,21 +7625,7 @@ async function kubilaiPlanPackage(){
     }
 
     startKubProgressCrawl(42,planGen,'Paketiniz hazırlanıyor…','Yol süresi ve skor filtresi…');
-    const planPayload={
-      takvimAdi:selectedTakvim||'',
-      tarih:isKubDayMode()?kubSelectedDay:'',
-      maxTravelMin:kubMaxTravelMin,
-      maxPairTravelMin:kubPairTravelMin,
-      minScore:kubMinScore,
-      radiusKm:kubRadiusKm,
-      targetData:kubTargetData,
-      onlySamePrefix:kubOnlySamePrefix!==false,
-      plzScores:Object.assign({},analyseScores||{}),
-      usedPlzs:usedMap,
-      plzMeta
-    };
-    if(anchorMode)planPayload.anchorRefs=kubManualRefs.slice(0,5);
-    const res=await kubilaiRequest('KUBILAI_PLAN_PACKAGE',planPayload,28000);
+    const res={plzs:planRefs.slice(),anchor:planRefs[0],refs:{refs:planRefs.slice(),label:planRefs.join(' + ')},summary:''};
     bumpKubProgress(48,planGen,'Paketiniz hazırlanıyor…','Yanıt alındı');
 
     const plzs=(res.plzs||[]).map(p=>String(p).padStart(5,'0').slice(-5)).filter(p=>/^\d{5}$/.test(p));
@@ -8053,7 +8033,7 @@ async function kubilaiPlanPackage(){
 
     setKubStatus(`${pickedNow.length} PLZ · ${total!=null?total:'?'} / ${kubTargetData} veri${usedMapBackup?' · yedek':''}${offeredPartial?' · yedek teklifi':''}`);
 
-    if(kubWantComment||document.getElementById('kubWantComment')?.checked){
+    if(!document.documentElement.classList.contains('mb-embed')&&(kubWantComment||document.getElementById('kubWantComment')?.checked)){
       setKubPlanBusy(true,'Paketiniz hazırlanıyor…','Kubilai yorumluyor…',planGen,97);
       try{
         const note=await kubilaiRequest('KUBILAI_CHAT',{
@@ -8263,7 +8243,7 @@ function renderAnalyseResult(plz,city,result){
     ${streetD!=null?`<div class="analyse-row"><span class="lbl"><i class="fas fa-road" style="color:#f39c12;width:14px;"></i>${tr().analyseStrasse}</span><span class="val">${streetD} ${streetD>=30?`<span style="color:#27ae60;font-size:.68rem;">★ ${tr().analyseDicht}</span>`:''}</span></div>`:''}
     ${extra?.incomeEst!=null?`<div class="analyse-row"><span class="lbl"><i class="fas fa-euro-sign" style="color:#f1c40f;width:14px;"></i>${tr().analyseEinkommen}</span><span class="val" style="color:#f39c12;">${incStars} <small style="color:#aaa;">(${extra.incomeEst}/5 ${tr().analyseEst})</small></span></div>`:''}
     <div class="analyse-verdict ${verdictCls}">${verdictTxt}</div>
-    <button type="button" class="kub-analyse-btn" id="kubAnalyseBtn" onclick="kubilaiAnalyseNote('${plz}')"><i class="fas fa-robot"></i> Kubilai</button>
+    <button type="button" class="kub-analyse-btn kub-wix-only" id="kubAnalyseBtn" onclick="kubilaiAnalyseNote('${plz}')"><i class="fas fa-robot"></i> Kubilai</button>
     <div class="kub-analyse-note" id="kubAnalyseNote" style="${result.kubilaiNote?'':'display:none;'}">${result.kubilaiNote?String(result.kubilaiNote).replace(/</g,'&lt;'):''}</div>
     <div style="margin-top:6px;font-size:.62rem;color:#bbb;text-align:center;">${tr().analyseQuelle} · ${radius}m</div>`;
 }
@@ -8379,6 +8359,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   setTimeout(()=>sendWix({action:'GEO_GET_UPCOMING_PLZ'}),750);
   if(document.documentElement.classList.contains('mb-embed')){
     setTimeout(()=>sendWix({action:'GEO_GET_TOP_PLZ',limit:20,days:180}),700);
+    setTimeout(()=>sendWix({action:'GEO_GET_CAMPS'}),500);
   }else{
     setTimeout(()=>sendWix({action:'GEO_GET_TAKVIMLER'}),700);
     setTimeout(()=>sendWix({action:'GEO_GET_BEST_PLZ',limit:100,days:0}),900);

@@ -168,8 +168,10 @@ window.addEventListener('message', (event) => {
     mbOpenGeoconTransfer(data);
     return;
   }
-  if (data.action === 'GEO_GET_UPCOMING_PLZ') void mbGeoconUpcoming(event.source);
-  if (data.action === 'GEO_GET_TOP_PLZ') void mbGeoconTop(event.source);
+  if (data.action === 'GEO_GET_UPCOMING_PLZ') void mbGeoconUpcoming(event.source, data.campaignId);
+  if (data.action === 'GEO_GET_TOP_PLZ') void mbGeoconTop(event.source, data.campaignId);
+  if (data.action === 'GEO_GET_CAMPS') void mbGeoconCamps(event.source);
+  if (data.action === 'GEO_GET_CAMP_DAYS') void mbGeoconCampDays(event.source, data.campaignId);
   if (data.action === 'GEO_GET_STATE') void mbGeoconPushState(event.source);
   if (data.action === 'GEO_SAVE_SCORE') void mbGeoconSaveScore(data.plz, data.score);
   if (data.action === 'GEO_SAVE_FLAGS') void mbGeoconSaveFlags(data);
@@ -192,6 +194,7 @@ function mbGeoconOnFirm() {
   const frame = document.getElementById('geocon-frame');
   if (!frame || frame.dataset.loaded !== '1') return;
   void mbGeoconPushState(frame.contentWindow);
+  void mbGeoconCamps(frame.contentWindow);
 }
 
 async function mbGeoconPushState(target) {
@@ -260,10 +263,17 @@ function geoBerlinDay(offsetDays) {
   return fmt.format(new Date(Date.now() + (Number(offsetDays) || 0) * 86400000));
 }
 
-async function mbGeoconUpcoming(target) {
+function geoCampId(value) {
+  const id = String(value || '');
+  return /^[0-9a-f-]{36}$/i.test(id) ? id : '';
+}
+
+async function mbGeoconUpcoming(target, campaignId) {
   if (!target || target === window || typeof sb !== 'function') return;
   const day = geoBerlinDay(1);
   let query = `appointments?select=plz,ortschaft,durum&termin_tarih=gte.${day}T00:00:00&termin_tarih=lte.${day}T23:59:59&durum=not.in.(iptal,basarisiz)&limit=2000`;
+  const camp = geoCampId(campaignId);
+  if (camp) query += `&campaign_id=eq.${camp}`;
   const role = currentUser?.role || '';
   if (role !== 'super_admin') {
     const firmId = currentUser?.firm_id || '';
@@ -294,10 +304,12 @@ async function mbGeoconUpcoming(target) {
   } catch (_) {}
 }
 
-async function mbGeoconTop(target) {
+async function mbGeoconTop(target, campaignId) {
   if (!target || target === window || typeof sb !== 'function') return;
   const from = geoBerlinDay(-180);
   let query = `appointments?select=plz,ortschaft&termin_tarih=gte.${from}T00:00:00&durum=not.in.(iptal,basarisiz)&limit=4000`;
+  const camp = geoCampId(campaignId);
+  if (camp) query += `&campaign_id=eq.${camp}`;
   const role = currentUser?.role || '';
   if (role !== 'super_admin') {
     const firmId = currentUser?.firm_id || '';
@@ -324,4 +336,81 @@ async function mbGeoconTop(target) {
   });
   const items = [...grouped.values()].sort((a, b) => b.count - a.count || a.plz.localeCompare(b.plz)).slice(0, 20);
   try { target.postMessage({ type: 'GEO_TOP_PLZ', items }, window.location.origin); } catch (_) {}
+}
+
+function geoBerlinStamp(value) {
+  const text = String(value || '');
+  const match = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (match) return match[1];
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+}
+
+async function mbGeoconCamps(target) {
+  if (!target || target === window || typeof sb !== 'function') return;
+  const role = currentUser?.role || '';
+  const firmId = role === 'super_admin' ? (geoActiveFirmId() || '') : (currentUser?.firm_id || '');
+  if (!firmId) {
+    try { target.postMessage({ type: 'GEO_CAMPS', items: [], needFirm: true }, window.location.origin); } catch (_) {}
+    return;
+  }
+  let rows = [];
+  try {
+    const got = await sb(`campaigns?select=id,name&firm_id=eq.${firmId}&order=name.asc&limit=80`);
+    rows = Array.isArray(got) ? got : [];
+  } catch (_) { rows = []; }
+  const items = rows.map((row) => ({ id: row.id, name: row.name || '' })).filter((row) => geoCampId(row.id));
+  try { target.postMessage({ type: 'GEO_CAMPS', items, needFirm: false }, window.location.origin); } catch (_) {}
+}
+
+async function mbGeoconCampDays(target, campaignId) {
+  if (!target || target === window || typeof sb !== 'function') return;
+  const camp = geoCampId(campaignId);
+  if (!camp) {
+    try { target.postMessage({ type: 'GEO_CAMP_DAYS', campaignId: '', days: [] }, window.location.origin); } catch (_) {}
+    return;
+  }
+  const from = geoBerlinDay(-45);
+  const to = geoBerlinDay(21);
+  let query = `appointments?select=termin_tarih,plz,ortschaft&campaign_id=eq.${camp}&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&durum=not.in.(iptal,basarisiz)&order=termin_tarih.asc&limit=3000`;
+  const role = currentUser?.role || '';
+  if (role !== 'super_admin') {
+    const firmId = currentUser?.firm_id || '';
+    if (!firmId) {
+      try { target.postMessage({ type: 'GEO_CAMP_DAYS', campaignId: camp, days: [] }, window.location.origin); } catch (_) {}
+      return;
+    }
+    query += `&firm_id=eq.${firmId}`;
+  } else if (geoActiveFirmId()) {
+    query += `&firm_id=eq.${geoActiveFirmId()}`;
+  }
+  let rows = [];
+  try {
+    const got = await sb(query);
+    rows = Array.isArray(got) ? got : [];
+  } catch (_) { rows = []; }
+  const days = new Map();
+  rows.forEach((row) => {
+    const ymd = geoBerlinStamp(row.termin_tarih);
+    const plz = String(row.plz || '').replace(/\D/g, '');
+    if (!ymd || plz.length < 4) return;
+    const code = plz.padStart(5, '0').slice(-5);
+    const day = days.get(ymd) || { ymd, count: 0, plzs: new Map() };
+    day.count += 1;
+    const cur = day.plzs.get(code) || { plz: code, count: 0, city: row.ortschaft || '' };
+    cur.count += 1;
+    if (!cur.city && row.ortschaft) cur.city = row.ortschaft;
+    day.plzs.set(code, cur);
+    days.set(ymd, day);
+  });
+  const items = [...days.values()]
+    .sort((a, b) => a.ymd.localeCompare(b.ymd))
+    .slice(-24)
+    .map((day) => ({
+      ymd: day.ymd,
+      count: day.count,
+      plzs: [...day.plzs.values()].sort((a, b) => b.count - a.count || a.plz.localeCompare(b.plz)).slice(0, 8),
+    }));
+  try { target.postMessage({ type: 'GEO_CAMP_DAYS', campaignId: camp, days: items }, window.location.origin); } catch (_) {}
 }
