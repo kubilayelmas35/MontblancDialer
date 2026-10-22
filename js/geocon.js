@@ -162,6 +162,49 @@ function mbGeoconPickQueue() {
 window.addEventListener('message', (event) => {
   if (event.origin !== window.location.origin) return;
   const data = event.data;
-  if (!data || data.type !== 'mb-geocon-transfer') return;
-  mbOpenGeoconTransfer(data);
+  if (!data) return;
+  if (data.type === 'mb-geocon-transfer') {
+    mbOpenGeoconTransfer(data);
+    return;
+  }
+  if (data.action === 'GEO_GET_UPCOMING_PLZ') void mbGeoconUpcoming(event.source);
 });
+
+function geoBerlinDay(offsetDays) {
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' });
+  return fmt.format(new Date(Date.now() + (Number(offsetDays) || 0) * 86400000));
+}
+
+async function mbGeoconUpcoming(target) {
+  if (!target || target === window || typeof sb !== 'function') return;
+  const day = geoBerlinDay(1);
+  let query = `appointments?select=plz,ortschaft,durum&termin_tarih=gte.${day}T00:00:00&termin_tarih=lte.${day}T23:59:59&durum=not.in.(iptal,basarisiz)&limit=2000`;
+  const role = currentUser?.role || '';
+  if (role !== 'super_admin') {
+    const firmId = currentUser?.firm_id || '';
+    if (!firmId) {
+      try { target.postMessage({ type: 'GEO_UPCOMING_PLZ', items: [], detail: [], dayLabel: day }, window.location.origin); } catch (_) {}
+      return;
+    }
+    query += `&firm_id=eq.${firmId}`;
+  }
+  let rows = [];
+  try {
+    const got = await sb(query);
+    rows = Array.isArray(got) ? got : [];
+  } catch (_) { rows = []; }
+  const grouped = new Map();
+  rows.forEach((row) => {
+    const plz = String(row.plz || '').replace(/\D/g, '');
+    if (plz.length < 4) return;
+    const code = plz.padStart(5, '0').slice(-5);
+    const cur = grouped.get(code) || { plz: code, count: 0, city: row.ortschaft || '' };
+    cur.count += 1;
+    if (!cur.city && row.ortschaft) cur.city = row.ortschaft;
+    grouped.set(code, cur);
+  });
+  const items = [...grouped.values()].sort((a, b) => b.count - a.count || a.plz.localeCompare(b.plz));
+  try {
+    target.postMessage({ type: 'GEO_UPCOMING_PLZ', items, detail: items, dayLabel: day }, window.location.origin);
+  } catch (_) {}
+}

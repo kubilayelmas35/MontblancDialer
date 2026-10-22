@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
-<title>PLZ Umkreis Pro</title>
+<title>GeoCon</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="config.js"></script>
@@ -588,13 +588,13 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
 
   <div class="search-container">
     <div class="search-mode-row">
-      <button type="button" class="search-mode-btn active" id="modeCircleBtn" onclick="setSearchMode('circle')">Umkreis (1 PLZ)</button>
-      <button type="button" class="search-mode-btn" id="modeCorridorBtn" onclick="setSearchMode('corridor')">Korridor (2 PLZ)</button>
+      <button type="button" class="search-mode-btn active" id="modeCircleBtn" onclick="setSearchMode('circle')">Çevre (1 kod)</button>
+      <button type="button" class="search-mode-btn" id="modeCorridorBtn" onclick="setSearchMode('corridor')">Koridor (2 kod)</button>
     </div>
     <div id="circleSearchBox">
       <div class="row g-2">
         <div class="col-12">
-          <label id="searchLabel" style="font-size:.79rem;font-weight:600;">Stadt oder PLZ suchen</label>
+          <label id="searchLabel" style="font-size:.79rem;font-weight:600;">Şehir veya posta kodu ara</label>
           <div class="position-relative">
             <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="z.B. 'Berlin' oder '10115'">
             <div id="suggestionsDropdown"></div>
@@ -622,14 +622,14 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
       <div id="searchDirHint" style="font-size:.65rem;color:#888;text-align:center;margin-top:4px;display:none;"></div>
     </div>
     <div id="corridorBox">
-      <div id="corridorIntro" style="font-size:.72rem;color:#555;margin-bottom:6px;">Zwei PLZ → rechteckiger Korridor dazwischen (Start: Mitte).</div>
+      <div id="corridorIntro" style="font-size:.72rem;color:#555;margin-bottom:6px;">İki posta kodu → aralarında dikdörtgen koridor (başlangıç: orta).</div>
       <div class="corridor-plz-row mb-2">
         <div>
-          <label style="font-size:.72rem;font-weight:600;">PLZ A</label>
+          <label id="corridorALabel" style="font-size:.72rem;font-weight:600;">Kod A</label>
           <input type="text" class="form-control form-control-sm" id="corridorPlzA" placeholder="z.B. 71364" maxlength="5" inputmode="numeric">
         </div>
         <div>
-          <label style="font-size:.72rem;font-weight:600;">PLZ B</label>
+          <label id="corridorBLabel" style="font-size:.72rem;font-weight:600;">Kod B</label>
           <input type="text" class="form-control form-control-sm" id="corridorPlzB" placeholder="z.B. 71686" maxlength="5" inputmode="numeric">
         </div>
       </div>
@@ -668,7 +668,7 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
 
   <div class="map-controls">
     <button class="map-control-btn" id="toggleFillBtn" onclick="toggleCircleFill()"><i class="fas fa-circle"></i> <span id="toggleFillText">Füllung</span></button>
-    <button class="map-control-btn active" id="togglePLZBtn" onclick="togglePLZLayer()"><i class="fas fa-layer-group"></i> <span id="plzBtnText">PLZ</span></button>
+    <button class="map-control-btn active" id="togglePLZBtn" onclick="togglePLZLayer()"><i class="fas fa-layer-group"></i> <span id="plzBtnText">Kodlar</span></button>
     <button class="map-control-btn active" id="toggleHeatBtn" onclick="toggleHeatmap()"><i class="fas fa-fire"></i> <span id="heatBtnText">Heatmap</span></button>
     <button class="map-control-btn" id="togglePhoto3DBtn" onclick="togglePhoto3D()" title="Photorealistic 3D"><i class="fas fa-cube"></i> <span id="map3dToggleText">3D</span></button>
   </div>
@@ -703,7 +703,7 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
 <!-- ANALYSE PANEL -->
 <div id="analysePanel">
   <div class="analyse-header">
-    <h6><i class="fas fa-chart-bar"></i> <span id="analysePanelTitle">Analyse</span> <span id="analysePanelPLZ" style="opacity:.7;font-weight:400;font-size:.8rem;"></span></h6>
+    <h6><i class="fas fa-chart-bar"></i> <span id="analysePanelTitle">Analiz</span> <span id="analysePanelPLZ" style="opacity:.7;font-weight:400;font-size:.8rem;"></span></h6>
     <button style="background:none;border:none;color:white;font-size:1.3rem;cursor:pointer;line-height:1;" onclick="closeAnalysePanel()">&times;</button>
   </div>
   <div class="analyse-body" id="analyseBody">
@@ -729,8 +729,8 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
         <button type="button" class="kub-chip" data-kub-mode="bos" onclick="setKubMode('bos')" data-geo-tr="Boş" data-geo-de="Leer">Boş</button>
         <button type="button" class="kub-chip" data-kub-mode="dolu" onclick="setKubMode('dolu')" data-geo-tr="Dolu" data-geo-de="Voll">Dolu</button>
         <button type="button" class="kub-chip active" data-kub-mode="ikisi" onclick="setKubMode('ikisi')" data-geo-tr="İkisi" data-geo-de="Beides">İkisi</button>
-        <button type="button" class="kub-chip" data-kub-mode="top" onclick="setKubMode('top')">Top PLZ</button>
-        <button type="button" class="kub-chip" data-kub-mode="plz" onclick="setKubMode('plz')">PLZ</button>
+        <button type="button" class="kub-chip" data-kub-mode="top" onclick="setKubMode('top')" data-geo-tr="En çok randevu" data-geo-de="Top PLZ">En çok randevu</button>
+        <button type="button" class="kub-chip" data-kub-mode="plz" onclick="setKubMode('plz')" data-geo-tr="Kod" data-geo-de="PLZ">Kod</button>
       </div>
     </div>
     <div class="kub-days-wrap on" id="kubDaysWrap">
@@ -739,17 +739,17 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
       <div id="kubDayDetail" class="kub-day-detail" style="display:none;"></div>
     </div>
     <div id="kubTopPlzWrap">
-      <div class="kub-label">Top PLZ <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(gün yok — en çok termin)" data-geo-de="(kein Tag — meiste Termine)">(gün yok — en çok termin)</small></div>
-      <p class="kub-source-hint" id="kubTopPlzHint" data-geo-tr="Kampanya yoksa: tümünde en çok termin (tüm zamanlar). Kampanya seçince PLZ / Kampanya alt seçeneği çıkar." data-geo-de="Ohne Kampagne: meiste Termine insgesamt. Mit Kampagne erscheinen PLZ / Kampagne.">Kampanya yoksa: tümünde en çok termin (tüm zamanlar). Kampanya seçince <b>PLZ</b> / <b>Kampanya</b> alt seçeneği çıkar.</p>
+      <div class="kub-label"><span data-geo-tr="En çok randevu" data-geo-de="Top PLZ">En çok randevu</span> <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(gün yok — en çok randevu)" data-geo-de="(kein Tag — meiste Termine)">(gün yok — en çok randevu)</small></div>
+      <p class="kub-source-hint" id="kubTopPlzHint" data-geo-tr="Kampanya yoksa: tümünde en çok randevu (tüm zamanlar). Kampanya seçince kod / kampanya alt seçeneği çıkar." data-geo-de="Ohne Kampagne: meiste Termine insgesamt. Mit Kampagne erscheinen PLZ / Kampagne.">Kampanya yoksa: tümünde en çok randevu (tüm zamanlar). Kampanya seçince <b>kod</b> / <b>kampanya</b> alt seçeneği çıkar.</p>
       <div class="kub-mode" id="kubTopScopeRow" style="display:none;margin-bottom:6px;">
-        <button type="button" class="kub-chip" data-kub-top-scope="plz" onclick="setKubTopScope('plz')">PLZ</button>
+        <button type="button" class="kub-chip" data-kub-top-scope="plz" onclick="setKubTopScope('plz')" data-geo-tr="Kod" data-geo-de="PLZ">Kod</button>
         <button type="button" class="kub-chip active" data-kub-top-scope="kampanya" onclick="setKubTopScope('kampanya')" data-geo-tr="Kampanya" data-geo-de="Kampagne">Kampanya</button>
       </div>
       <div class="kub-anchor-list" id="kubTopPlzList"><span style="font-size:.65rem;color:#94a3b8;">Yükleniyor…</span></div>
     </div>
     <div id="kubManualPlzWrap">
-      <div class="kub-label"><span data-geo-tr="PLZ gir" data-geo-de="PLZ eingeben">PLZ gir</span> <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(elle — çoklu OK)" data-geo-de="(manuell, mehrere OK)">(elle — çoklu OK)</small></div>
-      <p class="kub-source-hint" data-geo-tr="1–5 PLZ ekle. Hepsi referans olur; paket bunların yakınına kurulur." data-geo-de="1–5 PLZ. Alle werden Anker; das Paket entsteht in ihrer Nähe.">1–5 PLZ ekle. Hepsi anchor/referans olur; paket bunların yakınına ve birbirine uygun şekilde kurulur.</p>
+      <div class="kub-label"><span data-geo-tr="Kod gir" data-geo-de="PLZ eingeben">Kod gir</span> <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(elle — çoklu)" data-geo-de="(manuell, mehrere OK)">(elle — çoklu)</small></div>
+      <p class="kub-source-hint" data-geo-tr="1–5 kod ekle. Hepsi referans olur; paket bunların yakınına kurulur." data-geo-de="1–5 PLZ. Alle werden Anker; das Paket entsteht in ihrer Nähe.">1–5 kod ekle. Hepsi referans olur; paket bunların yakınına kurulur.</p>
       <div class="kub-manual-row">
         <input type="text" id="kubManualPlzInput" placeholder="örn. 99734" data-geo-ph-tr="örn. 99734" data-geo-ph-de="z.B. 99734" maxlength="5" inputmode="numeric" onkeydown="if(event.key==='Enter'){event.preventDefault();addKubManualPlz();}">
         <button type="button" onclick="addKubManualPlz()" data-geo-tr="Ekle" data-geo-de="Hinzu">Ekle</button>
@@ -764,7 +764,7 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
       </div>
     </div>
     <div>
-      <div class="kub-label"><span data-geo-tr="Paket içi max yol" data-geo-de="Max. Fahrzeit im Paket">Paket içi max yol</span> <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(PLZ’ler arası)" data-geo-de="(zwischen PLZ)">(PLZ’ler arası)</small></div>
+      <div class="kub-label"><span data-geo-tr="Paket içi max yol" data-geo-de="Max. Fahrzeit im Paket">Paket içi max yol</span> <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(kodlar arası)" data-geo-de="(zwischen PLZ)">(kodlar arası)</small></div>
       <div class="kub-max">
         <input type="range" id="kubPairTravel" min="15" max="90" step="5" value="25" oninput="onKubPairTravel(this.value)">
         <span class="v" id="kubPairTravelVal">25 dk</span>
@@ -798,12 +798,12 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
         <span class="v" id="kubTargetDataVal">3000</span>
       </div>
     </div>
-    <label class="kub-check" title="Sadece aynı 2 haneli PLZ bölgesi">
+    <label class="kub-check" title="Sadece aynı 2 haneli bölge">
       <input type="checkbox" id="kubOnlySamePrefix" checked onchange="setKubOnlySamePrefix(this.checked)">
-      <span data-geo-tr="Sadece aynı 2 haneli PLZ" data-geo-de="Nur gleiche 2-stellige PLZ">Sadece aynı 2 haneli PLZ</span>
+      <span data-geo-tr="Sadece aynı 2 haneli bölge" data-geo-de="Nur gleiche 2-stellige PLZ">Sadece aynı 2 haneli bölge</span>
     </label>
     <div class="kub-backup" id="kubBackupBox">
-      <label class="kub-check" style="margin:0;padding:0;border:none;background:transparent;" title="Sıkı kural yetmezse haritadan yedek PLZ ara">
+      <label class="kub-check" style="margin:0;padding:0;border:none;background:transparent;" title="Sıkı kural yetmezse haritadan yedek kod ara">
         <input type="checkbox" id="kubMapBackup" onchange="setKubMapBackup(this.checked)">
         <span data-geo-tr="Harita yedeği" data-geo-de="Karten-Reserve">Harita yedeği</span> <small data-geo-tr="(varsayılan kapalı)" data-geo-de="(standard aus)">(varsayılan kapalı)</small>
       </label>
@@ -856,11 +856,11 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
     <div class="geo-sec-b"><div class="takvim-chips" id="takvimChips"><span style="font-size:.68rem;color:#aaa;">…</span></div></div>
   </div>
   <div class="geo-sec collapsed" id="secTopPlz">
-    <div class="geo-sec-h" onclick="toggleGeoSec('secTopPlz',event)"><i class="fas fa-chart-line" style="color:var(--pri);"></i> <span id="lblTopPlz">Top PLZ</span><span class="chev">▼</span></div>
+    <div class="geo-sec-h" onclick="toggleGeoSec('secTopPlz',event)"><i class="fas fa-chart-line" style="color:var(--pri);"></i> <span id="lblTopPlz">En çok randevu</span><span class="chev">▼</span></div>
     <div class="geo-sec-b" id="topPlzList"></div>
   </div>
   <div class="geo-sec collapsed" id="secUpcoming">
-    <div class="geo-sec-h" onclick="toggleGeoSec('secUpcoming',event)"><i class="fas fa-clock" style="color:var(--dist);"></i> <span id="lblUpcoming">Yarın Terminleri</span><span class="chev">▼</span></div>
+    <div class="geo-sec-h" onclick="toggleGeoSec('secUpcoming',event)"><i class="fas fa-clock" style="color:var(--dist);"></i> <span id="lblUpcoming">Yarın randevuları</span><span class="chev">▼</span></div>
     <div class="geo-sec-b" id="upcomingPlzList"></div>
   </div>
   <div class="geo-sec collapsed" id="secBest">
@@ -872,7 +872,7 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
     <div class="geo-sec-b">
       <label style="display:flex;align-items:center;gap:6px;font-size:.7rem;color:#555;margin-bottom:5px;cursor:pointer;">
         <input type="checkbox" id="chkOnlySamePrefix" checked onchange="setOnlySamePrefixPkg(this.checked)" style="margin:0;">
-        <span id="samePrefixLabel">Sadece aynı 2 haneli PLZ bölgesi</span>
+        <span id="samePrefixLabel">Sadece aynı 2 haneli bölge</span>
       </label>
       <div class="used-expire-bar" style="margin:6px 0;" title="Paket arama yarıçapı">
         <div class="ue-title"><i class="fas fa-circle-notch"></i> <span id="pkgRadiusTitle">Paket-Radius</span></div>
@@ -880,7 +880,7 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
         <div class="ue-scale"><span id="pkgRadiusLeft">10 km</span><span id="pkgRadiusRight">50 km</span></div>
         <div class="ue-value" id="pkgRadiusValue">30 km</div>
       </div>
-      <div id="packagePanel"><div id="packageEmpty" style="font-size:.68rem;color:#888;">Referans PLZ seçin…</div></div>
+      <div id="packagePanel"><div id="packageEmpty" style="font-size:.68rem;color:#888;">Referans kodu seçin…</div></div>
     </div>
   </div>
 </div>
@@ -889,17 +889,17 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
 <div class="panel-card" id="resultsCard">
   <div class="panel-card-h" onclick="togglePanelCard('resultsCard')">
     <i class="fas fa-list" style="color:var(--pri);"></i>
-    <span id="lblResultsPanelTitle">Bulunan PLZ</span>
+    <span id="lblResultsPanelTitle">Bulunan kodlar</span>
     <span class="pchev">▼</span>
   </div>
   <div class="panel-card-body">
 <div id="resultsBox">
   <div style="flex-shrink:0;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
-      <h5 class="mb-0" style="font-size:.88rem;"><i class="fas fa-map-pin"></i> <span id="resultsTitle">Gefundene PLZ</span></h5>
-      <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterBar()" title="Filter"><i class="fas fa-filter"></i> <span id="filterBtnLabel">Filter</span></button>
+      <h5 class="mb-0" style="font-size:.88rem;"><i class="fas fa-map-pin"></i> <span id="resultsTitle">Bulunan kodlar</span></h5>
+      <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterBar()" title="Filtre"><i class="fas fa-filter"></i> <span id="filterBtnLabel">Filtre</span></button>
     </div>
-    <div id="plzCount" class="badge bg-secondary mb-1">0 PLZ gefunden</div>
+    <div id="plzCount" class="badge bg-secondary mb-1">0 kod</div>
     <div id="searchInfo" style="display:none;"></div>
   </div>
 
@@ -907,23 +907,23 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
   <div id="filterBar">
     <div class="filter-row">
       <select class="filter-select" id="filterSort" onchange="applyFilters()">
-        <option value="plz_asc" id="optSortPlz">PLZ ↑</option>
-        <option value="score_desc" id="optSortScore">Score ↓</option>
-        <option value="count_desc" id="optSortCount">Daten ↓</option>
-        <option value="lead_desc" id="optSortLead">Leads ↓</option>
-        <option value="mb_desc" id="optSortMb">MB Leads ↓</option>
+        <option value="plz_asc" id="optSortPlz">Kod ↑</option>
+        <option value="score_desc" id="optSortScore">Skor ↓</option>
+        <option value="count_desc" id="optSortCount">Veri ↓</option>
+        <option value="lead_desc" id="optSortLead">Lead ↓</option>
+        <option value="mb_desc" id="optSortMb">MB Lead ↓</option>
       </select>
       <select class="filter-select" id="filterMinScore" onchange="applyFilters()">
-        <option value="0" id="optAllScores">Alle Scores</option>
-        <option value="7.5">Score ≥ 7.5</option>
-        <option value="7">Score ≥ 7</option>
-        <option value="6">Score ≥ 6</option>
-        <option value="5">Score ≥ 5</option>
-        <option value="4">Score ≥ 4</option>
+        <option value="0" id="optAllScores">Tüm Skorlar</option>
+        <option value="7.5">Skor ≥ 7.5</option>
+        <option value="7">Skor ≥ 7</option>
+        <option value="6">Skor ≥ 6</option>
+        <option value="5">Skor ≥ 5</option>
+        <option value="4">Skor ≥ 4</option>
       </select>
-      <button class="filter-toggle-btn" id="filterHideUsed" onclick="toggleFilterUsed()" title="Verwendete ausblenden"><i class="fas fa-eye-slash"></i></button>
-      <button class="filter-toggle-btn" id="filterOnlyRec" onclick="toggleFilterRec()" title="Nur Empfohlene"><i class="fas fa-star"></i></button>
-      <button class="filter-toggle-btn" id="filterRegionOnly" onclick="toggleFilterRegion()" title="Nur Suchradius"><i class="fas fa-draw-circle"></i></button>
+      <button class="filter-toggle-btn" id="filterHideUsed" onclick="toggleFilterUsed()" title="Kullanılanları gizle"><i class="fas fa-eye-slash"></i></button>
+      <button class="filter-toggle-btn" id="filterOnlyRec" onclick="toggleFilterRec()" title="Sadece önerilenler"><i class="fas fa-star"></i></button>
+      <button class="filter-toggle-btn" id="filterRegionOnly" onclick="toggleFilterRegion()" title="Sadece arama alanı"><i class="fas fa-draw-circle"></i></button>
     </div>
   </div>
 
@@ -931,23 +931,23 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
   <!-- Toplu Analyse -->
   <div id="bulkAnalyseBar">
     <div id="bulkAnalyseText">
-      <span id="bulkAnalyseLabel" style="font-weight:600;color:#1a1a2e;"><i class="fas fa-chart-bar me-1"></i><span id="bulkAnalyseLabelText">Alle analysieren</span></span>
+      <span id="bulkAnalyseLabel" style="font-weight:600;color:#1a1a2e;"><i class="fas fa-chart-bar me-1"></i><span id="bulkAnalyseLabelText">Tümünü analiz et</span></span>
       <span id="bulkAnalyseCounter" style="color:#4e54c8;font-weight:700;"></span>
     </div>
     <div id="bulkAnalyseProgress"><div id="bulkAnalyseProgressFill"></div></div>
   </div>
   <div id="resultsFooter">
-    <div style="font-size:.68rem;color:#888;margin-bottom:3px;" id="globalDlLabel">Alle PLZ exportieren</div>
+    <div style="font-size:.68rem;color:#888;margin-bottom:3px;" id="globalDlLabel">Tümünü dışa aktar</div>
     <div class="download-btns">
       <button class="btn btn-success btn-download" onclick="downloadExcel()"><i class="fas fa-file-excel"></i> Excel</button>
       <button class="btn btn-info btn-download" onclick="downloadCSV()"><i class="fas fa-file-csv"></i> CSV</button>
       <button class="btn btn-danger btn-download" onclick="downloadPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
-      <button class="btn btn-secondary btn-download" onclick="clearResults()"><i class="fas fa-trash"></i> <span id="clearButton">Löschen</span></button>
+      <button class="btn btn-secondary btn-download" onclick="clearResults()"><i class="fas fa-trash"></i> <span id="clearButton">Temizle</span></button>
     </div>
     <div class="d-flex gap-1 mt-2 flex-wrap">
-      <button class="btn btn-outline-success btn-download-all flex-fill" id="allDatenBtn" onclick="downloadAllDaten()"><i class="fas fa-database"></i> <span id="allDatenBtnText">Alle übertragen</span></button>
-      <button class="btn btn-download-all flex-fill" id="allLeadsBtn" style="background:linear-gradient(135deg,#e67e22,#f39c12);color:white;border:none;" onclick="downloadAllLeads()"><i class="fas fa-users"></i> <span id="allLeadsBtnText">Leads übertragen</span></button>
-      <button class="btn btn-download-all flex-fill" id="bulkAnalyseBtn" style="background:linear-gradient(135deg,#1a1a2e,#4e54c8);color:white;border:none;" onclick="startBulkAnalyse()"><i class="fas fa-chart-bar"></i> <span id="bulkAnalyseBtnText">Analysieren</span></button>
+      <button class="btn btn-outline-success btn-download-all flex-fill" id="allDatenBtn" onclick="downloadAllDaten()"><i class="fas fa-database"></i> <span id="allDatenBtnText">Tümünü aktar</span></button>
+      <button class="btn btn-download-all flex-fill" id="allLeadsBtn" style="background:linear-gradient(135deg,#e67e22,#f39c12);color:white;border:none;" onclick="downloadAllLeads()"><i class="fas fa-users"></i> <span id="allLeadsBtnText">Leadleri aktar</span></button>
+      <button class="btn btn-download-all flex-fill" id="bulkAnalyseBtn" style="background:linear-gradient(135deg,#1a1a2e,#4e54c8);color:white;border:none;" onclick="startBulkAnalyse()"><i class="fas fa-chart-bar"></i> <span id="bulkAnalyseBtnText">Tümünü Analiz Et</span></button>
     </div>
     <div id="allDlProgress"></div>
   </div>
@@ -961,14 +961,14 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
 <div id="bulkPanel">
   <div class="side-panel-h" style="color:var(--sel);">
     <i class="fas fa-check-square"></i>
-    <span id="bulkPanelTitle">Massenauswahl</span>
+    <span id="bulkPanelTitle">Toplu Seçim</span>
     <span id="bulkTotalBadge" style="background:var(--sel);color:white;border-radius:9px;padding:1px 7px;font-size:.63rem;margin-left:3px;"></span>
-    <button class="btn btn-sm btn-outline-secondary ms-auto" style="padding:1px 5px;font-size:.66rem;" onclick="clearBulkSelection()" id="bulkClearBtn">Löschen</button>
+    <button class="btn btn-sm btn-outline-secondary ms-auto" style="padding:1px 5px;font-size:.66rem;" onclick="clearBulkSelection()" id="bulkClearBtn">Temizle</button>
   </div>
-  <div style="font-size:.68rem;color:#888;margin-bottom:4px;" id="bulkHint">PLZ auf der Karte anklicken</div>
+  <div style="font-size:.68rem;color:#888;margin-bottom:4px;" id="bulkHint">Haritadaki kodlara tıklayın</div>
   <div class="side-panel-list" id="bulkList"></div>
   <button class="btn btn-success w-100 btn-sm" onclick="downloadBulkExcel()" id="bulkDlBtn">
-    <i class="fas fa-share"></i> <span id="bulkDlBtnText">In die Warteschlange</span>
+    <i class="fas fa-share"></i> <span id="bulkDlBtnText">Kuyruğa aktar</span>
   </button>
 </div>
 
@@ -976,10 +976,10 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
 <div id="distPanel">
   <div class="side-panel-h" style="color:var(--dist);">
     <i class="fas fa-ruler-combined"></i>
-    <span id="distPanelTitle">Entfernungsmesser</span>
+    <span id="distPanelTitle">Mesafe Ölçer</span>
     <button class="btn btn-sm btn-outline-secondary ms-auto" style="padding:1px 5px;font-size:.66rem;" onclick="clearDistSelection()" id="distClearBtn">Löschen</button>
   </div>
-  <div style="font-size:.68rem;color:#888;margin-bottom:4px;" id="distHint">Mindestens 2 PLZ auswählen</div>
+  <div style="font-size:.68rem;color:#888;margin-bottom:4px;" id="distHint">En az 2 kod seçin</div>
   <div style="display:flex;gap:8px;">
     <div class="side-panel-list" style="flex:1;" id="distList"></div>
     <div id="distResult" class="dist-result" style="display:none;flex:1;align-self:flex-start;"></div>
@@ -1252,9 +1252,9 @@ const KUB_DEFAULTS={
 const KUB_RELAX_META={
   skor:{label:'Skor',hint:'Min skoru esnet'},
   dk:{label:'Yol süresi (dk)',hint:'Referanslara max dk kuralını esnet'},
-  pair:{label:'PLZ arası (dk)',hint:'Paket içi PLZ’ler arası max dk kuralını esnet'},
+  pair:{label:'Kodlar arası (dk)',hint:'Paket içindeki kodlar arası süre kuralını esnet'},
   km:{label:'Mesafe (km)',hint:'Çap kuralını esnet'},
-  samePlz:{label:'Aynı 2 haneli PLZ',hint:'Önek kuralını esnet'}
+  samePlz:{label:'Aynı 2 haneli bölge',hint:'Önek kuralını esnet'}
 };
 const KUB_RELAX_KEYS=['skor','dk','pair','km','samePlz'];
 let kubilaiOpen=false;
@@ -1566,21 +1566,42 @@ Object.assign(T.de,{
   corridorIntro:'Zwei PLZ → rechteckiger Korridor dazwischen (Start: Mitte).',
   corridorWidth:'Korridor-Halbbreite',corridorSearch:'Korridor suchen',
   corridorHint:'Wenige Treffer → Breite wird automatisch erweitert.',corridorPh:'z.B. 71364',
+  corridorA:'PLZ A',corridorB:'PLZ B',
   takvimTitle:'Kalender & Datenpaket',takvimActive:'Aktive Kalender',takvimTop:'Top PLZ',
   takvimUpcoming:'Termine morgen',takvimBest:'Beste Orte',takvimPackage:'Datenpaket',
   samePrefix:'Nur gleiche 2-stellige PLZ-Region',pkgPick:'Referenz-PLZ wählen…',
-  hideEmpty:n=>`${n} PLZ ohne Daten ausgeblendet`
+  hideEmpty:n=>`${n} PLZ ohne Daten ausgeblendet`,
+  filterHide:'Verwendete ausblenden',filterRec:'Nur Empfohlene',filterRegion:'Nur Suchradius',
+  noUpcoming:'Morgen keine Termine',termShort:'Term.',
+  noPlzSource:'Keine PLZ-Quelle erreichbar',noOverpass:'Quelle nicht erreichbar — bitte erneut versuchen'
 });
 Object.assign(T.tr,{
-  modeCircle:'Çevre (1 PLZ)',modeCorridor:'Koridor (2 PLZ)',
+  modeCircle:'Çevre (1 kod)',modeCorridor:'Koridor (2 kod)',
   searchPh:"ör. 'Berlin' veya '10115'",
-  corridorIntro:'İki PLZ → aralarında dikdörtgen koridor (başlangıç: orta).',
+  corridorIntro:'İki posta kodu → aralarında dikdörtgen koridor (başlangıç: orta).',
   corridorWidth:'Koridor yarı genişliği',corridorSearch:'Koridor ara',
   corridorHint:'Az sonuç → genişlik otomatik artar.',corridorPh:'ör. 71364',
-  takvimTitle:'Takvim & Veri Paketi',takvimActive:'Aktif Takvimler',takvimTop:'Top PLZ',
-  takvimUpcoming:'Yarın Terminleri',takvimBest:'En İyi Yerler',takvimPackage:'Veri Paketi',
-  samePrefix:'Sadece aynı 2 haneli PLZ bölgesi',pkgPick:'Referans PLZ seçin…',
-  hideEmpty:n=>`${n} PLZ verisi olmadığı için gizlendi`
+  corridorA:'Kod A',corridorB:'Kod B',
+  takvimTitle:'Takvim ve veri paketi',takvimActive:'Aktif takvimler',takvimTop:'En çok randevu',
+  takvimUpcoming:'Yarın randevuları',takvimBest:'En iyi yerler',takvimPackage:'Veri paketi',
+  samePrefix:'Sadece aynı 2 haneli bölge',pkgPick:'Referans kodu seçin…',
+  hideEmpty:n=>`${n} boş kod atlandı`,
+  resultsTitle:'Bulunan kodlar',
+  plzCount:n=>`${n} kod`,
+  plzBtnText:'Kodlar',
+  sortPlz:'Kod ↑',
+  filterHide:'Kullanılanları gizle',filterRec:'Sadece önerilenler',filterRegion:'Sadece arama alanı',
+  noUpcoming:'Yarın randevu yok',termShort:'rand.',
+  noPlzSource:'Posta kodu kaynağına ulaşılamadı',noOverpass:'Kaynak yanıt vermedi — tekrar deneyin',
+  dlMsg:p=>`Kod ${p} aktarılıyor…`,
+  mbEmpty:'Bu kod için randevu yok.',
+  bulkHint:'Haritadaki kodlara tıklayın',
+  distHint:'En az 2 kod seçin',
+  distHint1:'1 kod daha seçin',
+  distHintN:'Kod ekle/çıkar',
+  loadingPLZ:'Kodlar yükleniyor…',
+  downloadingPLZ:n=>`${n} kod yükleniyor…`,
+  alerts:{minChars:'En az 3 karakter girin',noData:'Veri yok.',plzNotFound:'Posta kodu bulunamadı.',cityNotFound:'Şehir bulunamadı.',error:'Hata. Lütfen tekrar deneyin.',noUsedPLZs:'İşaretlenmiş kod yok.'}
 });
 Object.assign(T.en,T.de);
 function geoWantLang(){
@@ -2108,7 +2129,7 @@ function refreshPackagePanelBulkState(){
 }
 function geoPlzRowHtml(item,opts={}){
   const plz=item.plz||'';
-  const cnt=item.count!=null?`<span class="geo-badge">${item.count} Term.</span>`:'';
+  const cnt=item.count!=null?`<span class="geo-badge">${item.count} ${tr().termShort||'Term.'}</span>`:'';
   const dist=item.distKm!=null?`<span class="geo-dist ${item.distKm<=25?'near':item.distKm>60?'far':''}">${item.distKm.toFixed(1)} km</span>`:'';
   const score=item.score!=null?`<span class="geo-badge" style="background:#10b981;">⭐${item.score.toFixed(1)}</span>`:'';
   const dataCnt=item.dataCount!=null?`<span class="geo-badge" style="background:#6366f1;">${item.dataCount} ✉</span>`:'';
@@ -2125,8 +2146,9 @@ function renderTopPlzList(){
 async function renderUpcomingPlzList(){
   const el=document.getElementById('upcomingPlzList');
   if(!el)return;
-  document.getElementById('lblUpcoming').textContent='Termin · '+ (upcomingDayLabel||'Yarın');
-  if(!upcomingPlzItems.length){el.innerHTML='<div style="font-size:.68rem;color:#aaa;">Termin yok</div>';return;}
+  const title=document.getElementById('lblUpcoming');
+  if(title)title.textContent=tr().takvimUpcoming||'Yarın randevuları';
+  if(!upcomingPlzItems.length){el.innerHTML=`<div style="font-size:.68rem;color:#aaa;">${tr().noUpcoming||'Yarın randevu yok'}</div>`;return;}
   const items=[...upcomingPlzItems];
   if(refPlz){
     for(const it of items){
@@ -3077,30 +3099,91 @@ function removeEmptyPlzFromResults(){
   renderBulkList();
   updatePLZCount();
   updateHeatmap();
+  paintSearchInfo();
+  return removed.size;
+}
+
+async function loadCounts(codes){
+  const mySession=Date.now();
+  window._loadCountsSession=mySession;
+  countLoadingActive=true;
+  const queue=[...codes];
+  const total=queue.length||1;
+  let done=0;
+  const run=async()=>{
+    while(queue.length){
+      if(window._loadCountsSession!==mySession)return;
+      const code=queue.shift();
+      try{
+        const [n,l]=await Promise.all([countByPLZ(code),countLeadsByPLZ(code)]);
+        if(window._loadCountsSession!==mySession)return;
+        const e=plzData.find(x=>x.plz===code);
+        if(e){e.count=n;e.leadCount=l;}
+      }catch(_){
+        const e=plzData.find(x=>x.plz===code);
+        if(e){e.count=0;e.leadCount=0;}
+      }
+      done++;
+      setLoadingBar(75+Math.round((done/total)*24),tr().loadingData(`${done}/${total}`));
+    }
+  };
+  const workers=Math.min(8,queue.length||1);
+  await Promise.all(Array.from({length:workers},()=>run()));
+  if(window._loadCountsSession!==mySession)return;
+  countLoadingActive=false;
+  plzData.forEach((e)=>{if(e.count==null)e.count=0;if(e.leadCount==null)e.leadCount=0;});
+  removeEmptyPlzFromResults();
+  spreadPlzMarkers(plzData);
+  paintSearchMarkers();
   if(photo3DActive&&map3dReady){
     syncMap3DMarkers();
     syncMap3DPlzLayer();
     syncMap3DSearchOverlays();
   }
-  const info=document.getElementById('searchInfo');
-  if(info&&info.style.display!=='none'&&lastCenter){
-    const city=lastCenter.city||'';
-    info.innerHTML=`<i class="fas fa-search-location me-1"></i><strong>${city}</strong> · ${radInput.value} km · ${plzData.length} PLZ${searchDirSuffix()}`;
-  }
-  return removed.size;
+  renderPLZList();
+  updatePLZCount();
+  paintSearchInfo();
+  setLoadingBar(100);
 }
 
-async function loadCounts(codes){
-  const sessionId=Date.now();countLoadingActive=true;const mySession=sessionId;const total=codes.length;let done=0;const remaining=[...codes];
-  const loadOne=async(code)=>{if(!countLoadingActive||mySession!==window._loadCountsSession)return;try{const[n,l]=await Promise.all([countByPLZ(code),countLeadsByPLZ(code)]);if(!countLoadingActive||mySession!==window._loadCountsSession)return;const e=plzData.find(x=>x.plz===code);if(e){e.count=n;e.leadCount=l;}updateCountBadge(code,n,l);renderBulkList();refreshOpenPopup(code);}catch(e){const entry=plzData.find(x=>x.plz===code);if(entry){entry.count=0;entry.leadCount=0;}updateCountBadge(code,0,0);}done++;const pct=75+Math.round((done/total)*25);setLoadingBar(done>=total?100:pct,done<total?tr().loadingData(`${done}/${total}`):null);};
-  window._loadCountsSession=sessionId;let i=0;
-  while(remaining.length>0){if(!countLoadingActive||window._loadCountsSession!==mySession)break;if(priorityPLZ&&remaining.includes(priorityPLZ)){const idx=remaining.indexOf(priorityPLZ);remaining.splice(idx,1);remaining.unshift(priorityPLZ);priorityPLZ=null;}const code=remaining.shift();if(!code)break;await loadOne(code);if(i%5===4)await new Promise(r=>setTimeout(r,150));else await new Promise(r=>setTimeout(r,50));i++;}
-  if(window._loadCountsSession===mySession){
-    countLoadingActive=false;
-    plzData.forEach((e)=>{if(e.count==null)e.count=0;if(e.leadCount==null)e.leadCount=0;});
-    const removed=removeEmptyPlzFromResults();
-    if(removed>0)showToast(tr().hideEmpty?tr().hideEmpty(removed):`${removed} PLZ`);
-  }
+function geoMeters(aLat,aLon,bLat,bLon){
+  const dLat=(bLat-aLat)*Math.PI/180;
+  const dLon=(bLon-aLon)*Math.PI/180;
+  const x=dLon*Math.cos(((aLat+bLat)/2)*Math.PI/180);
+  return 6371000*Math.hypot(x,dLat);
+}
+function spreadPlzMarkers(rows){
+  const placed=[];
+  const minM=460;
+  (rows||[]).forEach((e)=>{
+    let lat=+e.lat, lon=+e.lon;
+    for(let i=0;i<18;i++){
+      const clash=placed.some((p)=>geoMeters(p.lat,p.lon,lat,lon)<minM);
+      if(!clash)break;
+      const ang=i*0.9;
+      const ring=(minM*(1+Math.floor(i/6)))/111320;
+      lat=+e.lat+Math.cos(ang)*ring;
+      lon=+e.lon+Math.sin(ang)*ring/Math.max(0.25,Math.cos(+e.lat*Math.PI/180));
+    }
+    e._mLat=lat;
+    e._mLon=lon;
+    placed.push({lat,lon});
+  });
+}
+function paintSearchInfo(){
+  const info=document.getElementById('searchInfo');
+  if(!info||!lastCenter)return;
+  const word=lang==='tr'?'kod':'PLZ';
+  info.style.display='block';
+  info.innerHTML=`<i class="fas fa-search-location me-1"></i><strong>${lastCenter.city||''}</strong> · ${radInput.value} km · ${plzData.length} ${word}${searchDirSuffix()}`;
+}
+function paintSearchMarkers(){
+  plzData.forEach((e)=>{
+    const lat=e._mLat??e.lat;
+    const lon=e._mLon??e.lon;
+    if(isGoogleMap())addGoogleMarker(lat,lon,e.plz,e.city||'');
+    else addLeafletMarker(lat,lon,e.plz,e.city||'');
+  });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -3133,6 +3216,8 @@ function changeLanguage(l){
   put('corridorHint',t.corridorHint);
   put('corridorPlzA',t.corridorPh,'placeholder');
   put('corridorPlzB',t.corridorPh,'placeholder');
+  put('corridorALabel',t.corridorA);
+  put('corridorBLabel',t.corridorB);
   put('lblActiveTakvim',t.takvimActive);
   put('lblTopPlz',t.takvimTop);
   put('lblUpcoming',t.takvimUpcoming);
@@ -3140,6 +3225,17 @@ function changeLanguage(l){
   put('lblPackage',t.takvimPackage);
   put('samePrefixLabel',t.samePrefix);
   put('pwModalTitle',t.pwTitle);
+  put('optAllScores',t.allScores);
+  put('filterHideUsed',t.filterHide,'title');
+  put('filterOnlyRec',t.filterRec,'title');
+  put('filterRegionOnly',t.filterRegion,'title');
+  put('filterToggleBtn',t.filterBtn,'title');
+  put('distHint',t.distHint);
+  const scoreWord=lang==='tr'?'Skor':'Score';
+  document.querySelectorAll('#filterMinScore option').forEach((opt)=>{
+    if(opt.id==='optAllScores')return;
+    opt.textContent=`${scoreWord} ≥ ${opt.value}`;
+  });
   const dirs=SEARCH_DIR_LABELS[lang]||SEARCH_DIR_LABELS.de;
   put('dirUp',dirs.up,'title');
   put('dirDown',dirs.down,'title');
@@ -4380,9 +4476,9 @@ async function showPLZ(lat,lon,label,rm,isCity,cityName){
     const code=String(label).match(/\b\d{5}\b/)?.[0];
     if(code){
       buildPLZResults(new Map([[code,{lat,lon,locName:cityName||''}]]),lat,lon,label,rm,isCity,cityName,off);
-      showToast('Keine PLZ-Quelle erreichbar – nur Such-PLZ angezeigt');
+      showToast(tr().noPlzSource||'Posta kodu kaynağına ulaşılamadı');
     }else{
-      showToast('Overpass / Backup nicht erreichbar – bitte nochmal versuchen');
+      showToast(tr().noOverpass||'Kaynak yanıt vermedi — tekrar deneyin');
     }
     return;
   }
@@ -4413,15 +4509,11 @@ function buildPLZResults(temp,lat,lon,label,rm,isCity,cityName,circleCenter){
   wipeMapSearchVisuals();
   resetResultsPanelScroll();
   const codes=Array.from(temp.keys()).sort((a,b)=>parseInt(a)-parseInt(b));
-  document.getElementById('searchInfo').innerHTML=`<i class="fas fa-search-location me-1"></i><strong>${cityName}</strong> · ${radInput.value} km · ${codes.length} PLZ${searchDirSuffix()}`;
+  document.getElementById('searchInfo').innerHTML=`<i class="fas fa-search-location me-1"></i><strong>${cityName}</strong> · ${radInput.value} km · ${tr().loadingData('…')}`;
   document.getElementById('searchInfo').style.display='block';
   plzData=codes.map(code=>({plz:code,lat:temp.get(code).lat,lon:temp.get(code).lon,city:temp.get(code).locName||cityName||'',count:null,leadCount:null,mbCount:mbCountFor(code)}));
-  renderPLZList();
-  codes.forEach(code=>{
-    const p=temp.get(code);const localCity=plzData.find(e=>e.plz===code)?.city||cityName||'';
-    if(isGoogleMap())addGoogleMarker(p.lat,p.lon,code,localCity);
-    else addLeafletMarker(p.lat,p.lon,code,localCity);
-  });
+  if(plzListEl)plzListEl.innerHTML=`<div style="font-size:.75rem;color:#888;padding:8px;">${tr().loadingData('…')}</div>`;
+  if(plzCntEl)plzCntEl.textContent=tr().loadingData('…');
   const cLat=circleCenter?.lat??lat,cLon=circleCenter?.lon??lon;
   lastCircleCenter={lat:cLat,lon:cLon};
   if(rm!=null&&Number.isFinite(+rm))lastRm=+rm;
@@ -4445,14 +4537,10 @@ function buildPLZResults(temp,lat,lon,label,rm,isCity,cityName,circleCenter){
       try{gMarkers.forEach(m=>{if(m.plz===searchAnchorPlz)m.setIcon(buildGIcon(searchAnchorPlz));});}catch(e){}
     }
   }
-  updatePLZCount();loadCounts(codes).then(()=>afterPlzSearchReady());
-  // Heatmap varsa güncelle
-  updateHeatmap();
+  loadCounts(codes).then(()=>afterPlzSearchReady());
   if(photo3DActive&&map3dReady){
     updateMap3DCamera({preferSearch:true});
     cancelPendingMap3DSyncs();
-    syncMap3DMarkers(); // hemen senkron — gecikmeli sync eski marker bırakmasın
-    syncMap3DPlzLayer();
   }
   // Bina / PV: arama sonrası otomatik Overpass yok — katman açılınca yüklenir
 }
@@ -4568,7 +4656,7 @@ function syncMap3DMarkersFiltered(visiblePLZs){
     const e=list[i];
     try{
       const m=new Visual3D({
-        position:{lat:+e.lat,lng:+e.lon},
+        position:{lat:+(e._mLat??e.lat),lng:+(e._mLon??e.lon)},
         altitudeMode:'CLAMP_TO_GROUND',
         extruded:false,
         sizePreserved:true,
@@ -4860,7 +4948,7 @@ function addGoogleSearchCrosshair(lat,lon){
 }
 function addGoogleCenter(lat,lon,label,isCity){if(!googleMap)return;const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="${isCity?'#ff7e5f':'red'}" stroke="white" stroke-width="3"/></svg>`;gMarkers.push(new google.maps.Marker({position:{lat:+lat,lng:+lon},map:googleMap,title:label,icon:{url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),scaledSize:new google.maps.Size(50,50),anchor:new google.maps.Point(25,25)}}));}
 function addGoogleCircle(lat,lon,rm){if(!googleMap)return;gCircles.push(new google.maps.Circle({map:googleMap,center:{lat:+lat,lng:+lon},radius:rm,strokeColor:'#4e54c8',strokeOpacity:1,strokeWeight:2,fillColor:fillOn?'#8f94fb':'transparent',fillOpacity:fillOn?.2:0}));}
-function redrawOnGoogle(){if(!googleMap)return;gMarkers.forEach(m=>m.setMap(null));gMarkers=[];gCircles.forEach(c=>c.setMap(null));gCircles=[];clearCorridorOverlay();plzData.forEach(e=>addGoogleMarker(e.lat,e.lon,e.plz,e.city));if(lastSearchMode==='corridor'&&lastCorridor?.corners){drawCorridorOverlay(lastCorridor.corners);if(lastCenter)addGoogleCenter(lastCenter.lat,lastCenter.lon,lastCenter.label,!!lastCenter.isCity);}else if(lastCenter&&lastRm){const cc=lastCircleCenter||lastCenter;addGoogleSearchCrosshair(cc.lat,cc.lon);if(lastCenter.isCity)addGoogleCenter(lastCenter.lat,lastCenter.lon,lastCenter.label,true);addGoogleCircle(cc.lat,cc.lon,lastRm);googleMap.setCenter({lat:+lastCenter.lat,lng:+lastCenter.lon});googleMap.setZoom(12);}if(gDirectionsRenderer){gDirectionsRenderer.setMap(null);gDirectionsRenderer=null;}drawDistRoute();applyFilters();if(photo3DActive&&map3dReady){/* applyFilters zaten 3D marker filtreli sync eder */syncMap3DPlzLayer();syncMap3DSearchOverlays();}}
+function redrawOnGoogle(){if(!googleMap)return;gMarkers.forEach(m=>m.setMap(null));gMarkers=[];gCircles.forEach(c=>c.setMap(null));gCircles=[];clearCorridorOverlay();plzData.forEach(e=>addGoogleMarker(e._mLat??e.lat,e._mLon??e.lon,e.plz,e.city));if(lastSearchMode==='corridor'&&lastCorridor?.corners){drawCorridorOverlay(lastCorridor.corners);if(lastCenter)addGoogleCenter(lastCenter.lat,lastCenter.lon,lastCenter.label,!!lastCenter.isCity);}else if(lastCenter&&lastRm){const cc=lastCircleCenter||lastCenter;addGoogleSearchCrosshair(cc.lat,cc.lon);if(lastCenter.isCity)addGoogleCenter(lastCenter.lat,lastCenter.lon,lastCenter.label,true);addGoogleCircle(cc.lat,cc.lon,lastRm);googleMap.setCenter({lat:+lastCenter.lat,lng:+lastCenter.lon});googleMap.setZoom(12);}if(gDirectionsRenderer){gDirectionsRenderer.setMap(null);gDirectionsRenderer=null;}drawDistRoute();applyFilters();if(photo3DActive&&map3dReady){/* applyFilters zaten 3D marker filtreli sync eder */syncMap3DPlzLayer();syncMap3DSearchOverlays();}}
 function hideMap3D(){
   const host=document.getElementById('googleMap3d');
   const hint=document.getElementById('map3dHint');
@@ -6788,10 +6876,10 @@ function setKubMode(mode){
     ensureKubTopPlzLoaded();
     const src=selectedTakvim?(topPlzItems||[]):(bestPlzItems||[]);
     renderKubTopPlzList(!src.length);
-    setKubStatus(kubManualRefs.length?`${kubManualRefs.length} Top PLZ seçili`:(selectedTakvim?'Kampanya Top PLZ':'Global Top PLZ'));
+    setKubStatus(kubManualRefs.length?`${kubManualRefs.length} kod seçili`:(selectedTakvim?'Kampanyada en çok randevu':'Tüm sistemde en çok randevu'));
   }else if(kubMode==='plz'){
     renderKubManualPlzTags();
-    setKubStatus(kubManualRefs.length?`${kubManualRefs.length} PLZ`:'PLZ girin');
+    setKubStatus(kubManualRefs.length?`${kubManualRefs.length} kod`:'Kod girin');
   }
 }
 function ensureKubTopPlzLoaded(){
@@ -6828,18 +6916,18 @@ function updateKubTopPlzHint(){
   if(!selectedTakvim){
     hint.innerHTML=de
       ?'Keine Kampagne (<b>Alle</b>): meiste Termine über alle Kampagnen. Klick = Anker.'
-      :'Kampanya yok (<b>Tümü</b>): tüm kampanyalarda en çok termin (tüm zamanlar). Tıkla = referans.';
+      :'Kampanya yok (<b>Tümü</b>): tüm kampanyalarda en çok randevu (tüm zamanlar). Tıkla = referans.';
     return;
   }
   const px=kubCampaignPlzPrefix();
   if(kubTopScope==='plz'){
     hint.innerHTML=px
-      ?(de?`<b>PLZ</b>: nur <b>${px}xxx</b> · Termine von ${selectedTakvim}.`:`<b>PLZ</b> modu: sadece <b>${px}xxx</b> · ${selectedTakvim} kampanyasının termin sırası.`)
-      :(de?'<b>PLZ</b>: kein 2-stelliges Präfix im Kampagnennamen — alle PLZ der Kampagne.':`<b>PLZ</b> modu: kampanya adından 2 haneli önek çıkmadı — kampanyadaki tüm PLZ’ler.`);
+      ?(de?`<b>PLZ</b>: nur <b>${px}xxx</b> · Termine von ${selectedTakvim}.`:`<b>Kod</b> modu: sadece <b>${px}xxx</b> · ${selectedTakvim} kampanyasının randevu sırası.`)
+      :(de?'<b>PLZ</b>: kein 2-stelliges Präfix im Kampagnennamen — alle PLZ der Kampagne.':'<b>Kod</b> modu: kampanya adından 2 haneli önek çıkmadı — kampanyadaki tüm kodlar.');
   }else{
     hint.innerHTML=de
       ?`<b>Kampagne</b>: alle PLZ in <b>${selectedTakvim}</b> · nach Terminen.`
-      :`<b>Kampanya</b> modu: <b>${selectedTakvim}</b> içinde hangi PLZ’ler geçtiyse (öneksiz) · termin sırası.`;
+      :`<b>Kampanya</b> modu: <b>${selectedTakvim}</b> içinde hangi kodlar geçtiyse (öneksiz) · randevu sırası.`;
   }
 }
 /**
@@ -6888,8 +6976,8 @@ function renderKubTopPlzList(loading){
     const why=selectedTakvim
       ?(scope==='plz'&&prefix
         ?(prefix+'xx bu kampanyada yok — “Kampanya”ya geçmeyi dene')
-        :'Bu kampanyada hiç termin PLZ’si yok')
-      :'Henüz global termin verisi yok';
+        :'Bu kampanyada randevulu kod yok')
+      :'Henüz randevu verisi yok';
     el.innerHTML='<span style="font-size:.65rem;color:#94a3b8;">'+why+'</span>';
     if(!src.length)ensureKubTopPlzLoaded();
     return;
@@ -6897,18 +6985,18 @@ function renderKubTopPlzList(loading){
   const scopeLbl=!selectedTakvim
     ?'Tüm kampanyalar'
     :(scope==='plz'&&prefix
-      ?(selectedTakvim+' · PLZ '+prefix+'xx')
-      :(selectedTakvim+' · Kampanya (tüm PLZ)'));
-  el.innerHTML='<div style="width:100%;font-size:.58rem;color:#94a3b8;font-weight:600;margin:0 0 4px;">'+scopeLbl+' · tüm zamanlar · termin sırası'+(totalRaw?(' · '+totalRaw+' kaynak'):'')+'</div>';
+      ?(selectedTakvim+' · kod '+prefix+'xx')
+      :(selectedTakvim+' · Kampanya (tüm kodlar)'));
+  el.innerHTML='<div style="width:100%;font-size:.58rem;color:#94a3b8;font-weight:600;margin:0 0 4px;">'+scopeLbl+' · tüm zamanlar · randevu sırası'+(totalRaw?(' · '+totalRaw+' kaynak'):'')+'</div>';
   list.forEach(it=>{
     const b=document.createElement('button');
     b.type='button';
     const used=typeof isEffectivelyUsed==='function'&&isEffectivelyUsed(it.plz);
     b.className='kub-anchor-chip'+(kubManualRefs.includes(it.plz)?' active':'');
     if(used)b.style.opacity='0.55';
-    const cnt=it.count!=null?`${it.count} termin`:'';
+    const cnt=it.count!=null?`${it.count} rand.`:'';
     b.innerHTML=`<span class="ka-plz">${it.plz}</span><span class="ka-m">${cnt}${used?' · kullanıldı':''}</span>`;
-    b.title=`${it.plz} — ${it.count||0} termin (tüm zamanlar)`;
+    b.title=`${it.plz} — ${it.count||0} randevu (tüm zamanlar)`;
     b.onclick=()=>toggleKubManualRef(it.plz);
     el.appendChild(b);
   });
@@ -6919,7 +7007,7 @@ function toggleKubManualRef(plz){
   const i=kubManualRefs.indexOf(p);
   if(i>=0)kubManualRefs.splice(i,1);
   else{
-    if(kubManualRefs.length>=5){setKubStatus('En fazla 5 PLZ');return;}
+    if(kubManualRefs.length>=5){setKubStatus('En fazla 5 kod');return;}
     kubManualRefs.push(p);
   }
   if(kubMode==='top')renderKubTopPlzList();
@@ -6929,9 +7017,9 @@ function toggleKubManualRef(plz){
 function addKubManualPlz(){
   const input=document.getElementById('kubManualPlzInput');
   const p=normalizeKubPlz(input?.value);
-  if(!p){setKubStatus('Geçerli 5 haneli PLZ girin');return;}
+  if(!p){setKubStatus('Geçerli 5 haneli kod girin');return;}
   if(kubManualRefs.includes(p)){setKubStatus(`${p} zaten var`);if(input)input.value='';return;}
-  if(kubManualRefs.length>=5){setKubStatus('En fazla 5 PLZ');return;}
+  if(kubManualRefs.length>=5){setKubStatus('En fazla 5 kod');return;}
   kubManualRefs.push(p);
   if(input)input.value='';
   renderKubManualPlzTags();
@@ -8068,6 +8156,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   setTimeout(()=>sendWix({action:'loadUsedPLZs',limit:10000}),500);
   setTimeout(()=>sendWix({action:'GEO_GET_MB_COUNTS'}),800);
   setTimeout(()=>sendWix({action:'GEO_GET_TAKVIMLER'}),700);
+  setTimeout(()=>sendWix({action:'GEO_GET_UPCOMING_PLZ'}),750);
   setTimeout(()=>sendWix({action:'GEO_GET_BEST_PLZ',limit:100,days:0}),900);
 });
 
