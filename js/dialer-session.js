@@ -1043,13 +1043,19 @@ function mbQueueCurrentContact() {
 
 let _mbOpenGateBusy = false;
 
-async function mbAgentOpenGate() {
+async function mbAgentOpenGate(opts) {
+  const force = !!(opts && opts.force);
   if (currentUser?.role !== 'agent') return false;
   if (_mbOpenGateBusy) return false;
   if (!document.getElementById('page-dialer')?.classList.contains('active')) return false;
-  if (dialerStatus === 'on_call' || dialerStatus === 'calling' || dialerStatus === 'wrapping') return false;
+  if (dialerStatus === 'on_call' || dialerStatus === 'calling') return false;
   if (_outboundDialPending || _telnyxCall || _fakeCallActive) return false;
-  if (window._mbDialerPreview && currentContact?.id) return false;
+  if (dialerStatus === 'wrapping') {
+    if (!force) return false;
+    toast(typeof t === 'function' ? t('dial.open_gate') : 'Sonuçsuz çağrı var. Önce sonucu yaz.', 'warn', 2600);
+    return true;
+  }
+  if (!force && window._mbDialerPreview && currentContact?.id) return false;
   const uid = String(currentUser?.id || '');
   if (!/^[0-9a-f-]{36}$/i.test(uid)) return false;
   _mbOpenGateBusy = true;
@@ -1215,7 +1221,7 @@ async function dialNext() {
   refreshDialerHealthPanel();
   if (_dialNextLock) return;
   if (dialerStatus !== 'ready') return;
-  if (await mbAgentOpenGate()) return;
+  if (await mbAgentOpenGate({ force: true })) return;
   if (_outboundDialPending || _telnyxCall || _fakeCallActive) return;
   if (!selectedCampId || !mbCampaignIsActive(selectedCampId)) {
     mbWarnNoActiveCampaign();

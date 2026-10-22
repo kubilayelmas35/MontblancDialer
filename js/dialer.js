@@ -2,6 +2,12 @@
 // DIALER — agent dialer, call management
 // ─────────────────────────────────────────────
 
+function mbDialerIdleGate() {
+  if (currentUser?.role !== 'agent') return;
+  if (window._mbDialerPreview && currentContact) return;
+  if (typeof mbAgentOpenGate === 'function') void mbAgentOpenGate();
+}
+
 function mbFitAgentCampNames() {
   if (typeof opsFitMarquee !== 'function') return;
   document.querySelectorAll('#agent-camp-list .agent-camp-name').forEach((el) => {
@@ -15,10 +21,11 @@ async function initDialer() {
   resetDialerVoiceVisuals();
   if (typeof isFeatureEnabledForCurrentFirm === 'function') {
     const canDial = await isFeatureEnabledForCurrentFirm('dialer_enabled');
-    if (!canDial) {
+      if (!canDial) {
       const list = document.getElementById('agent-camp-list');
       if (list) list.innerHTML = `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${escapeHtml(typeof t === 'function' ? t('dial.init.feature_off') : '')}</div>`;
       refreshDialerHealthPanel();
+      mbDialerIdleGate();
       return;
     }
   }
@@ -38,6 +45,7 @@ async function initDialer() {
       if (list) {
         list.innerHTML = `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${escapeHtml(typeof t === 'function' ? t('dial.init.select_firm') : '')}</div>`;
       }
+      mbDialerIdleGate();
       return;
     }
 
@@ -49,6 +57,7 @@ async function initDialer() {
     const list = document.getElementById('agent-camp-list');
     if (!myCamps.length) {
       list.innerHTML=`<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${typeof t === 'function' ? t('dial.init.no_camp_html') : ''}</div>`;
+      mbDialerIdleGate();
       return;
     }
 
@@ -98,7 +107,8 @@ async function initDialer() {
       const canDisableAutoDial = (campSettings?.auto_dial !== false);
       const enabledForMe = isAutoDialEnabledForCampaign(ac.campaign_id, canDisableAutoDial);
       const cid = ac.campaign_id;
-      const cName = String(ac.campaigns?.name || cid).replace(/'/g, "\\'");
+      const campLabel = typeof mbCampShown === 'function' ? mbCampShown(camp) : String(ac.campaigns?.name || cid);
+      const cName = campLabel.replace(/'/g, "\\'");
       const rulesText = String(campSettings?.rules || '').trim();
       const rulesBtn = rulesText
         ? `<button type="button" class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;" onclick="event.stopPropagation();openCampRules('${cid}')">${typeof currentLang !== 'undefined' && currentLang === 'de' ? 'Regeln' : 'Kurallar'}</button>`
@@ -114,7 +124,7 @@ async function initDialer() {
 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
   <div style="flex:1;min-width:0;">
     <div style="display:flex;align-items:center;gap:6px;min-width:0;">
-      <div class="agent-camp-name">${ac.campaigns?.name||cid}</div>
+      <div class="agent-camp-name" data-full="${escapeHtml(campLabel)}">${escapeHtml(campLabel)}</div>
       ${(typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin()) ? `<button type="button" class="agent-camp-admin" aria-expanded="false" title="${escapeHtml(typeof t === 'function' ? t('dial.admin_menu') : 'Kampanya ayarları')}" aria-label="${escapeHtml(typeof t === 'function' ? t('dial.admin_menu') : 'Kampanya ayarları')}" onclick="event.stopPropagation();mbToggleCampAdmin(event,'${cid}')"><i class="ph ph-gear-six" aria-hidden="true"></i></button>` : ''}
       ${rulesBtn}
     </div>
@@ -194,8 +204,8 @@ async function initDialer() {
     showCustomerCard(currentContact);
     if (typeof switchContactTab === 'function') switchContactTab('info');
     if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
-  } else if (typeof mbAgentOpenGate === 'function') {
-    void mbAgentOpenGate();
+  } else if (typeof mbDialerIdleGate === 'function') {
+    mbDialerIdleGate();
   }
   if (typeof syncGlobalMascotDock === 'function') {
     syncGlobalMascotDock();
@@ -263,7 +273,7 @@ function mbRetargetSelectedCamp() {
   selectedCampId = next;
   _saveSelectedCampId(next);
   const lbl = document.getElementById('dialer-camp-label');
-  if (lbl && camp?.name) lbl.textContent = camp.name;
+  if (lbl && camp) lbl.textContent = typeof mbCampShown === 'function' ? mbCampShown(camp) : (camp.name || '');
 }
 
 // Kampanya aktif/pasif toggle
@@ -501,9 +511,9 @@ function selectCamp(id, name, opts = {}) {
     _activeCampIds.push(id);
     _saveActiveCampIds(_activeCampIds);
   }
-  const lbl = document.getElementById('dialer-camp-label');
-  if (lbl) lbl.textContent = name || id;
   const camp = campaigns.find(c=>c.id===id);
+  const lbl = document.getElementById('dialer-camp-label');
+  if (lbl) lbl.textContent = camp && typeof mbCampShown === 'function' ? mbCampShown(camp) : (name || id);
   const aux = camp && typeof getCampSettings === 'function' ? getCampSettings(camp).aux_codes : null;
   window._campAuxCodes = Array.isArray(aux) && aux.length ? aux : (typeof DEFAULT_AUX_CODES !== 'undefined' ? DEFAULT_AUX_CODES.slice() : []);
   if (typeof paintDialerOutcomes === 'function') paintDialerOutcomes();

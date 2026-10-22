@@ -139,7 +139,21 @@ async function refreshDialerCampaignCacheIfEmpty() {
 }
 
 function redialCurrentContact() {
+  void mbRedialCurrentContact();
+}
+
+async function mbRedialCurrentContact() {
   if (_callLineIsLive()) return;
+  if (typeof mbAgentOpenGate === 'function' && await mbAgentOpenGate({ force: true })) return;
+  const queued = typeof mbTakeQueuedContact === 'function' ? await mbTakeQueuedContact() : null;
+  if (queued) {
+    if (!queued.phone) {
+      toast(typeof t === 'function' ? t('dial.no_contact') : 'Önce müşteri / numara yok', 'err');
+      return;
+    }
+    currentContact = queued;
+    if (typeof showCustomerCard === 'function') showCustomerCard(queued);
+  }
   window._mbDialerPreview = false;
   if (!currentContact?.phone) {
     toast(typeof t === 'function' ? t('dial.no_contact') : 'Önce müşteri / numara yok', 'err');
@@ -1249,6 +1263,7 @@ async function submitOutcome(goBreak) {
   const savedDur = Math.max(0, Number(callSeconds) || 0);
   selectedOutcome = null;
   currentContact = null;
+  window._mbDialerPreview = false;
   clearCustomerCard();
   loadMyMiniStats();
   let heldNext = false;
@@ -1261,7 +1276,10 @@ async function submitOutcome(goBreak) {
   } else {
     setDialerStatus('ready');
     upsertAgentSession({agent_id:currentUser.id,status:'ready',last_seen:new Date().toISOString()}).catch(()=>{});
-    if (_autoDial) {
+    const heldByOpen = typeof mbAgentOpenGate === 'function' && await mbAgentOpenGate();
+    if (heldByOpen) {
+      if (typeof hideOutboundWait === 'function') hideOutboundWait();
+    } else if (_autoDial) {
       if (!getAutoDialCampaignIds().length) {
         _autoDial = false;
         refreshAutoDialUi();

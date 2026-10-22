@@ -437,18 +437,21 @@ function _renderCdrHistory() {
     const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
     const sec = _logDurationSec(l);
     const dur = sec ? `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}` : '—';
-    const oc = OM[l.outcome] || l.outcome || '—';
+    const named = typeof mbOutcomeShown === 'function' ? mbOutcomeShown(l.outcome, l.campaigns, l.campaign_id) : '';
+    const oc = named || OM[l.outcome] || l.outcome || '—';
     const oc_color = colorMap[l.outcome] || 'var(--text-3)';
-    const camp = l.campaigns?.name || '—';
+    const camp = typeof mbCampShown === 'function' ? mbCampShown(l.campaigns, l.campaign_id) : (l.campaigns?.name || '—');
+    const ocSafe = typeof _escHtml === 'function' ? _escHtml(oc) : oc;
+    const campSafe = typeof _escHtml === 'function' ? _escHtml(camp) : camp;
     const agent = l.users?.name || '—';
     return `<div class="cdr-log-row">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
   <div style="font-size:11px;font-family:var(--mono);color:var(--text-2);">${dt}</div>
-  <span style="font-size:11px;font-weight:700;color:${oc_color};background:${oc_color}18;padding:2px 8px;border-radius:10px;">${oc}</span>
+  <span style="font-size:11px;font-weight:700;color:${oc_color};background:${oc_color}18;padding:2px 8px;border-radius:10px;">${ocSafe}</span>
 </div>
 <div style="display:flex;gap:12px;font-size:11px;color:var(--text-3);">
   <span><i class="ph ph-user" style="vertical-align:-2px;"></i> ${agent}</span>
-  <span><i class="ph ph-megaphone-simple" style="vertical-align:-2px;"></i> ${camp}</span>
+  <span><i class="ph ph-megaphone-simple" style="vertical-align:-2px;"></i> ${campSafe}</span>
   <span><i class="ph ph-clock" style="vertical-align:-2px;"></i> ${dur}</span>
 </div>
 ${(() => { const nt = _stripSimCallMarker(l.notes); return nt ? '<div style="margin-top:4px;font-size:11px;color:var(--text-2);font-style:italic;">"' + _escHtml(nt) + '"</div>' : ''; })()}
