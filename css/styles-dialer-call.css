@@ -528,7 +528,9 @@ flex-direction:column; gap:4px;
 .ob-noanswer.active    { box-shadow:0 0 0 3px rgba(100,116,139,.35); border-color:var(--text-2) !important; }
 .ob-voicemail.active   { box-shadow:0 0 0 3px rgba(100,116,139,.35); border-color:var(--text-2) !important; }
 /* Mute / hold */
-.call-action-row { display:flex; gap:8px; }
+.call-action-row { display:flex; gap:8px; flex-wrap:wrap; }
+#call-actions:not(.call-actions--pre-call):not(.call-actions--wrapping) #btn-queue-next { display:none; }
+#btn-queue-next.is-on { color:var(--accent); border-color:var(--accent); }
 #call-actions.call-actions--wrapping #btn-mute,
 #call-actions.call-actions--wrapping #btn-hold,
 #call-actions.call-actions--wrapping #btn-hangup { display: none; }

@@ -2339,6 +2339,7 @@ if (capEl) {
     : '';
 }
 const groups = {};
+if (typeof mbWarmCampShown === 'function') await mbWarmCampShown(logs.map((l) => l.campaign_id));
 logs.forEach(l => {
 const agentId = l.agent_id || 'unknown';
 const campId  = l.campaign_id || 'unknown';
@@ -2347,12 +2348,12 @@ if (!groups[key]) groups[key] = {
 agent_id: agentId,
 agent_name: l.users?.name || '',
 campaign_id: campId,
-campaign_name: l.campaigns?.name || '',
+campaign_name: (typeof mbCampShown === 'function' ? mbCampShown(l.campaigns, l.campaign_id) : (l.campaigns?.name || '')),
 firm_id: l.firm_id || null,
 logs: []
 };
 if (!groups[key].agent_name && l.users?.name) groups[key].agent_name = l.users.name;
-if (!groups[key].campaign_name && l.campaigns?.name) groups[key].campaign_name = l.campaigns.name;
+if (!groups[key].campaign_name && l.campaigns?.name) groups[key].campaign_name = typeof mbCampShown === 'function' ? mbCampShown(l.campaigns, l.campaign_id) : l.campaigns.name;
 groups[key].logs.push(l);
 });
 const rows = Object.values(groups).sort((a, b) => (b.logs.length - a.logs.length) || String(a.agent_name).localeCompare(String(b.agent_name), 'tr'));
@@ -2529,7 +2530,13 @@ function chStdOutcome(key) {
 function chOutcomeText(key, labelMap) {
   const std = chStdOutcome(key);
   if (std) return std;
-  return statsExtraLabel(statsOutcomeKey(key), labelMap || _chLabelMap);
+  const extra = statsExtraLabel(statsOutcomeKey(key), labelMap || _chLabelMap);
+  if (extra && !String(extra).startsWith('custom_') && extra !== key) return extra;
+  if (typeof mbOutcomeShown === 'function') {
+    const named = mbOutcomeShown(key);
+    if (named) return named;
+  }
+  return extra && !String(extra).startsWith('custom_') ? extra : (extra === key ? extra : (extra || '—'));
 }
 
 function chNoteText(raw) {
@@ -2910,6 +2917,8 @@ async function loadCallHistory() {
       }
     } catch (_) {}
     if (gen !== _chLoadGen) return;
+    if (typeof mbWarmCampShown === 'function') await mbWarmCampShown(logs.map((l) => l.campaign_id));
+    if (gen !== _chLoadGen) return;
     _chRows = logs.map((l) => {
       const sec = chDurSec(l);
       const phone = l.phone || l.contacts?.phone || '—';
@@ -2932,7 +2941,7 @@ async function loadCallHistory() {
         phone,
         caller: l.caller_number || l.campaigns?.telnyx_did || '—',
         agent: `${l.users?.name || '—'}${statsFirmSuffix(l.firm_id)}`,
-        camp: l.campaigns?.name || '—',
+        camp: typeof mbCampShown === 'function' ? mbCampShown(l.campaigns, l.campaign_id) : (l.campaigns?.name || '—'),
         work: chWorkText(l.work_type),
         workKey: l.work_type || '',
         who: chWhoText(l.hangup_by),
@@ -2976,6 +2985,7 @@ query += `&started_at=gte.${mhGte}&started_at=lte.${mhLte}`;
 if (outcome) query += outcome === 'appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
 query += '&order=started_at.desc&limit=200';
 const logs = await sb(query) || [];
+if (typeof mbWarmCampShown === 'function') await mbWarmCampShown((logs || []).map((l) => l.campaign_id));
 const contactNameById = {};
 try {
   const missingIds = [...new Set((logs || [])
@@ -3049,10 +3059,12 @@ const name =
   contactNameById[l.contact_id] ||
   (l.phone || l.contacts?.phone || '—');
 const phone = l.phone || l.contacts?.phone || '—';
-const camp = l.campaigns?.name || '—';
+const camp = typeof mbCampShown === 'function' ? mbCampShown(l.campaigns, l.campaign_id) : (l.campaigns?.name || '—');
 const sec = logDurSec(l);
 const dur = sec ? `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}` : '—';
 const cbInfo = l.callback_at ? `<div style="font-size:10px;color:var(--yellow);margin-top:2px;"><i class="ph ph-calendar" style="vertical-align:-2px;"></i> ${new Date(l.callback_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>` : '';
+const customOutcome = typeof mbOutcomeShown === 'function' ? mbOutcomeShown(l.outcome, l.campaigns, l.campaign_id) : '';
+const outcomeHtml = OM[l.outcome] || `<span class="badge badge-gray">${typeof escapeHtml === 'function' ? escapeHtml(customOutcome || l.outcome || '—') : (customOutcome || l.outcome || '—')}</span>`;
 const recHtml = recHtmlFor(l);
 const detailBtn = l.contact_id ? `<button class="icon-btn" onclick="openContactDrawer('${l.contact_id}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button>` : '';
 return `<tr>
@@ -3062,7 +3074,7 @@ return `<tr>
 <td style="font-size:11px;">${camp}</td>
 <td class="td-mono" style="font-size:11px;">${dur}</td>
 <td>${recHtml}</td>
-<td>${OM[l.outcome]||`<span class="badge badge-gray">${l.outcome||'—'}</span>`}${cbInfo}</td>
+<td>${outcomeHtml}${cbInfo}</td>
 <td>${detailBtn}</td>
 </tr>`;
 }).join('');

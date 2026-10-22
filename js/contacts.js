@@ -1014,7 +1014,8 @@ function mbPersonSearchInput(raw) {
   if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
 }
 
-function mbPersonOutcomeLabel(key) {
+function mbPersonOutcomeLabel(key, camp, id) {
+  if (typeof mbOutcomeShown === 'function') return mbOutcomeShown(key, camp, id);
   const raw = String(key || '');
   const k = raw === 'appointment_done' ? 'appointment' : raw;
   if (!k || k === 'pending' || k === 'new') return '';
@@ -1037,14 +1038,16 @@ function mbPersonHtml(rows, mode) {
   const fid = mbPersonFirmId();
   const html = rows.map((r) => {
     const name = [r.first_name, r.last_name].filter(Boolean).join(' ').trim() || '—';
-    const camp = r.campaigns?.name || (typeof campaigns !== 'undefined' ? (campaigns || []).find((c) => String(c.id) === String(r.campaign_id))?.name : '') || '';
+    const campObj = (typeof campaigns !== 'undefined' ? (campaigns || []).find((c) => String(c.id) === String(r.campaign_id)) : null) || r.campaigns || null;
+    const campRaw = typeof mbCampShown === 'function' ? mbCampShown(campObj, r.campaign_id) : (r.campaigns?.name || '');
+    const camp = campRaw && campRaw !== '—' ? campRaw : '';
     let firm = '';
     if (fid === '*' && typeof _allFirms !== 'undefined') {
       firm = (_allFirms || []).find((f) => String(f.id) === String(r.firm_id))?.name || '';
     }
     const meta = [firm, r.city, r.phone].filter(Boolean).join(' · ');
     const outcomeKey = r._outcome || (r.status === 'calling' ? '' : r.status);
-    const outcome = mbPersonOutcomeLabel(outcomeKey);
+    const outcome = mbPersonOutcomeLabel(outcomeKey, campObj, r.campaign_id);
     const openDot = r._open || r.status === 'calling';
     const campHtml = camp ? `<span class="sb-person-camp">${esc(camp)}</span>` : '';
     const outHtml = outcome ? `<span class="sb-person-out">${esc(outcome)}</span>` : '';
@@ -1123,6 +1126,8 @@ async function mbPersonRecent() {
     if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
     return;
   }
+  if (typeof mbWarmCampShown === 'function') await mbWarmCampShown(rows.map((row) => row.campaign_id));
+  if (seq !== _personSeq) return;
   mbPersonPaint(mbPersonHtml(rows.slice(0, 8), 'recent'));
 }
 
@@ -1178,6 +1183,8 @@ async function mbPersonRun(raw) {
     if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
     return;
   }
+  if (typeof mbWarmCampShown === 'function') await mbWarmCampShown(rows.map((row) => row.campaign_id));
+  if (seq !== _personSeq) return;
   mbPersonPaint(mbPersonHtml(rows, 'search'));
 }
 

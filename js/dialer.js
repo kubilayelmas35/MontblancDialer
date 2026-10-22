@@ -194,6 +194,8 @@ async function initDialer() {
     showCustomerCard(currentContact);
     if (typeof switchContactTab === 'function') switchContactTab('info');
     if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
+  } else if (typeof mbAgentOpenGate === 'function') {
+    void mbAgentOpenGate();
   }
   if (typeof syncGlobalMascotDock === 'function') {
     syncGlobalMascotDock();

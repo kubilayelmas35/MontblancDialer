@@ -462,8 +462,10 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
       const dur = _aspCallDur(c);
       const dm = `${Math.floor(dur / 60)}:${String(dur % 60).padStart(2, '0')}`;
       const cid = c.campaign_id || c.campaign?.id || c.campaigns?.id || null;
-      const campName = campaigns?.find?.((x) => String(x.id) === String(cid))?.name || c.campaigns?.name || '—';
-      return `<tr><td class="td-mono">${ds}</td><td class="td-mono">${_uiEsc(c.phone || '—')}</td><td>${_uiEsc(campName)}</td><td>${_uiEsc(om[c.outcome] || c.outcome || '—')}</td><td class="td-mono">${dm}</td></tr>`;
+      const campObj = campaigns?.find?.((x) => String(x.id) === String(cid)) || c.campaigns || null;
+      const campName = typeof mbCampShown === 'function' ? mbCampShown(campObj, cid) : (campObj?.name || c.campaigns?.name || '—');
+      const outcomeName = typeof mbOutcomeShown === 'function' ? (mbOutcomeShown(c.outcome, campObj, cid) || om[c.outcome] || c.outcome || '—') : (om[c.outcome] || c.outcome || '—');
+      return `<tr><td class="td-mono">${ds}</td><td class="td-mono">${_uiEsc(c.phone || '—')}</td><td>${_uiEsc(campName)}</td><td>${_uiEsc(outcomeName)}</td><td class="td-mono">${dm}</td></tr>`;
     }).join('') : `<tr><td colspan="5" style="text-align:center;padding:16px;">—</td></tr>`;
   }
 

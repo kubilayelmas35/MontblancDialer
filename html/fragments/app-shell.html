@@ -560,6 +560,11 @@
 <input class="form-input" id="cd-edit-name" maxlength="120" autocomplete="off">
 <div id="cd-edit-name-err" class="nc-inline-err" hidden></div>
 </div>
+<div>
+<label class="form-label" for="cd-edit-display" data-tr="Görünen ad" data-de="Anzeigename">Görünen ad</label>
+<input class="form-input" id="cd-edit-display" maxlength="80" autocomplete="off" data-tr="Listede okunan ad" data-de="Name in den Listen" placeholder="Listede okunan ad">
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Listede kısa kodun yanında görünür. Boşsa yalnız kod yazılır." data-de="Steht in Listen neben dem Kurzcode. Leer: nur der Code.">Listede kısa kodun yanında görünür. Boşsa yalnız kod yazılır.</div>
+</div>
 <div id="cd-did-row">
 <label class="form-label" for="cd-edit-did" data-tr="Arayan numara (DID)" data-de="Anrufernummer (DID)">Arayan numara (DID)</label>
 <input class="form-input" id="cd-edit-did" maxlength="20" placeholder="+49301234567" autocomplete="off">
@@ -1595,6 +1600,9 @@ Son randevu bilgileri indirilebilir.
 <div class="call-action-row">
 <button type="button" class="call-action-btn" id="btn-redial" onclick="redialCurrentContact()" title="Tekrar ara">
 <i class="ph ph-phone"></i> <span data-tr="Ara" data-de="Anrufen">Ara</span>
+</button>
+<button type="button" class="call-action-btn" id="btn-queue-next" onclick="mbQueueCurrentContact()" data-tr-title="Sıradaki arama bu kişi olsun" data-de-title="Diese Person als Nächstes anrufen" title="Sıradaki arama bu kişi olsun">
+<i class="ph ph-queue"></i> <span data-tr="Sıraya al" data-de="Einreihen">Sıraya al</span>
 </button>
 <button type="button" class="call-action-btn call-action-btn--dialer-hub" id="btn-dialer-hub-back" onclick="returnToDialerHub()" title="Boş hazır ekranına dön">
 <i class="ph ph-arrow-u-up-left" aria-hidden="true"></i> <span data-tr="Dialera dön" data-de="Zum Dialer">Dialera dön</span>

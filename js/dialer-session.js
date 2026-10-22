@@ -999,7 +999,77 @@ async function mbRemoteRingingByCampaign(campIds) {
   return counts;
 }
 
+async function mbTakeQueuedContact() {
+  const id = String(window._mbQueuedContactId || '');
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const rows = await sb(`contacts?id=eq.${id}&select=*&limit=1`).catch(() => []);
+  const contact = Array.isArray(rows) ? rows[0] : null;
+  window._mbQueuedContactId = '';
+  document.getElementById('btn-queue-next')?.classList.remove('is-on');
+  if (!contact || String(contact.status || '') === 'dnc') return null;
+  const updated = await sb(`contacts?id=eq.${id}&status=neq.dnc`, {
+    method: 'PATCH',
+    prefer: 'return=representation',
+    body: JSON.stringify({
+      status: 'calling',
+      locked_by: currentUser?.id || null,
+      last_called_at: new Date().toISOString(),
+    }),
+  }).catch(() => null);
+  if (Array.isArray(updated) && updated.length) return { ...contact, ...updated[0] };
+  return { ...contact, status: 'calling' };
+}
+
+function mbQueueCurrentContact() {
+  const id = String(currentContact?.id || '');
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    toast(typeof t === 'function' ? t('dial.queue_need') : 'Önce bir kişi kartı aç.', 'warn', 2200);
+    return;
+  }
+  const live = (typeof _callLineIsLive === 'function' && _callLineIsLive())
+    || dialerStatus === 'on_call'
+    || dialerStatus === 'calling'
+    || !!_outboundDialPending
+    || !!_telnyxCall
+    || !!_fakeCallActive;
+  if (live) {
+    toast(typeof t === 'function' ? t('dial.preview_busy') : 'Süren arama var. Önce onu bitir.', 'err', 2200);
+    return;
+  }
+  window._mbQueuedContactId = id;
+  document.getElementById('btn-queue-next')?.classList.add('is-on');
+  toast(typeof t === 'function' ? t('dial.queue_set') : 'Sıradaki arama bu kişi. Ara’ya bas.', 'ok', 2400);
+}
+
+let _mbOpenGateBusy = false;
+
+async function mbAgentOpenGate() {
+  if (currentUser?.role !== 'agent') return false;
+  if (_mbOpenGateBusy) return false;
+  if (!document.getElementById('page-dialer')?.classList.contains('active')) return false;
+  if (dialerStatus === 'on_call' || dialerStatus === 'calling' || dialerStatus === 'wrapping') return false;
+  if (_outboundDialPending || _telnyxCall || _fakeCallActive) return false;
+  if (window._mbDialerPreview && currentContact?.id) return false;
+  const uid = String(currentUser?.id || '');
+  if (!/^[0-9a-f-]{36}$/i.test(uid)) return false;
+  _mbOpenGateBusy = true;
+  try {
+    const rows = await sb(`call_logs?select=contact_id,started_at,contacts!inner(id,status)&agent_id=eq.${uid}&contacts.status=eq.calling&order=started_at.asc&limit=8`).catch(() => []);
+    const hit = (Array.isArray(rows) ? rows : []).find((log) => log?.contacts?.id || log?.contact_id);
+    const id = String(hit?.contacts?.id || hit?.contact_id || '');
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return false;
+    if (typeof openUnfinalizedCall === 'function') await openUnfinalizedCall(id);
+    if (dialerStatus !== 'wrapping') return false;
+    toast(typeof t === 'function' ? t('dial.open_gate') : 'Sonuçsuz çağrı var. Önce sonucu yaz.', 'warn', 2600);
+    return true;
+  } finally {
+    _mbOpenGateBusy = false;
+  }
+}
+
 async function mbNextPoolContact(campIds) {
+  const queued = await mbTakeQueuedContact();
+  if (queued) return queued;
   if (Array.isArray(window.__mbPoolQueue)) {
     return window.__mbPoolQueue.shift() || null;
   }
@@ -1145,6 +1215,7 @@ async function dialNext() {
   refreshDialerHealthPanel();
   if (_dialNextLock) return;
   if (dialerStatus !== 'ready') return;
+  if (await mbAgentOpenGate()) return;
   if (_outboundDialPending || _telnyxCall || _fakeCallActive) return;
   if (!selectedCampId || !mbCampaignIsActive(selectedCampId)) {
     mbWarnNoActiveCampaign();

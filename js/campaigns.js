@@ -403,9 +403,11 @@ const pauseLabel = c.status==='active'
   ? `<i class="ph ph-pause"></i> ${esc(campT('camp.pause','Duraklat'))}`
   : `<i class="ph ph-play"></i> ${esc(campT('camp.start','Başlat'))}`;
 const sel = detailOpen && currentCampId === c.id ? ' sel' : '';
+const displayName = String(mbCampSettings(c).display_name || '').trim();
+const displayLine = displayName && displayName !== String(c.name || '') ? `<div class="queue-sub">${esc(displayName)}</div>` : '';
 return `<div class="camp-card${sel}${empty ? ' is-empty' : ''}" data-camp-id="${esc(c.id)}" onclick="openCampDetail('${c.id}')">
 <div class="camp-card-head">
-<div class="camp-card-main"><div class="camp-name" title="${esc(c.name)}">${esc(c.name)}</div>${firmLine ? `<div class="camp-firm">${esc(firmLine)}</div>` : ''}${didText ? `<div class="camp-did">${esc(didText)}</div>` : ''}${descLine ? `<div class="queue-sub" title="${esc(descLine)}">${esc(descLine)}</div>` : ''}</div>
+<div class="camp-card-main"><div class="camp-name" title="${esc(c.name)}">${esc(c.name)}</div>${displayLine}${firmLine ? `<div class="camp-firm">${esc(firmLine)}</div>` : ''}${didText ? `<div class="camp-did">${esc(didText)}</div>` : ''}${descLine ? `<div class="queue-sub" title="${esc(descLine)}">${esc(descLine)}</div>` : ''}</div>
 <div style="display:flex;gap:12px;flex-shrink:0;align-items:center;" onclick="event.stopPropagation()">
 ${sb2}
 <button class="icon-btn" onclick="openCampFieldSettings('${c.id}')" title="${esc(campT('camp.field.title','Alan Ayarları'))}" aria-label="${esc(campT('camp.field.title','Alan Ayarları'))}"><i class="ph ph-gear" aria-hidden="true"></i></button>
@@ -504,7 +506,7 @@ const c = campaigns.find(x=>x.id===id);
 if (!c) return;
 document.getElementById('camp-detail').style.display = 'block';
 paintCampSelection();
-document.getElementById('cd-name').textContent = c.name;
+document.getElementById('cd-name').textContent = mbCampShown(c);
 const didRaw = String(c.telnyx_did || '').trim();
 const didBad = didRaw && typeof mbIsE164 === 'function' && !mbIsE164(didRaw);
 const didEl = document.getElementById('cd-did');
@@ -519,6 +521,8 @@ const nameInput = document.getElementById('cd-edit-name');
 const descInput = document.getElementById('cd-edit-desc');
 const didInput = document.getElementById('cd-edit-did');
 if (nameInput) nameInput.value = c.name || '';
+const displayInput = document.getElementById('cd-edit-display');
+if (displayInput) displayInput.value = String(mbCampSettings(c).display_name || '');
 if (descInput) descInput.value = c.description || '';
 if (didInput) didInput.value = didRaw;
 const nameErr = document.getElementById('cd-edit-name-err');
@@ -611,6 +615,8 @@ updateCampPreview();
 openModal('m-new-camp');
 setTimeout(renderNcTemplateSelect, 50);
 document.getElementById('nc-name').value = '';
+const ncDisplay = document.getElementById('nc-display');
+if (ncDisplay) ncDisplay.value = '';
 document.getElementById('nc-name')?.classList.remove('is-invalid');
 const ncNameErr = document.getElementById('nc-name-err');
 if (ncNameErr) ncNameErr.hidden = true;
@@ -813,6 +819,8 @@ function ncBuildSettings() {
   }
   const boxes = [...document.querySelectorAll('#nc-personnel [data-nc-personnel-id]')];
   if (boxes.length) settings.personnel_off = boxes.filter((el) => !el.checked).map((el) => String(el.dataset.ncPersonnelId || '')).filter(Boolean);
+  const displayName = String(document.getElementById('nc-display')?.value || '').trim().slice(0, 80);
+  if (displayName) settings.display_name = displayName;
   return settings;
 }
 
@@ -1084,6 +1092,80 @@ function queueDialPrefs(campaignId, queueId) {
 
 const RECYCLE_STATUS_KEYS = ['no_answer', 'voicemail', 'negative', 'callback'];
 
+const _mbCampShownCache = new Map();
+
+function mbCampSettings(camp) {
+  if (!camp) return {};
+  if (typeof getCampSettings === 'function') {
+    try { return getCampSettings(camp) || {}; } catch (e) { return {}; }
+  }
+  let raw = camp.settings;
+  if (!raw) return {};
+  if (typeof raw === 'string') {
+    try { raw = JSON.parse(raw); } catch (e) { return {}; }
+  }
+  return raw && typeof raw === 'object' ? raw : {};
+}
+
+function mbCampRecord(id, embed) {
+  const key = String(id || embed?.id || '');
+  const live = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => String(c.id) === key);
+  if (live) return live;
+  if (key && _mbCampShownCache.has(key)) return _mbCampShownCache.get(key);
+  return embed || null;
+}
+
+function mbCampShown(camp, id) {
+  const src = mbCampRecord(id || camp?.id, camp) || {};
+  const code = String(src.name || camp?.name || '').trim();
+  const shown = String(mbCampSettings(src).display_name || mbCampSettings(camp).display_name || '').trim();
+  if (!code) return shown || '—';
+  if (!shown || shown.toLocaleLowerCase('tr-TR') === code.toLocaleLowerCase('tr-TR')) return code;
+  return `${code} · ${shown}`;
+}
+
+function mbOutcomeShown(key, camp, id) {
+  const raw = String(key || '');
+  const k = raw === 'appointment_done' ? 'appointment' : raw;
+  if (!k || k === 'pending' || k === 'new') return '';
+  if (k === 'calling') return typeof t === 'function' ? t('find.unfinal') : 'Sonuçsuz';
+  const std = {
+    appointment: 'camp.ops.appointment',
+    no_answer: 'camp.st.no_answer',
+    negative: 'camp.st.negative',
+    callback: 'camp.st.callback',
+    dnc: 'camp.st.dnc',
+    voicemail: 'camp.st.voicemail',
+  };
+  if (std[k] && typeof t === 'function') return t(std[k]);
+  const sources = [];
+  const one = mbCampRecord(id || camp?.id, camp);
+  if (one) sources.push(one);
+  if (camp && camp !== one) sources.push(camp);
+  if (!one) {
+    (typeof campaigns !== 'undefined' ? campaigns : []).forEach((row) => sources.push(row));
+    _mbCampShownCache.forEach((row) => sources.push(row));
+  }
+  for (let i = 0; i < sources.length; i++) {
+    const rows = mbCampSettings(sources[i]).outcomes || [];
+    const hit = rows.find((row) => String(row?.key || '') === raw || String(row?.key || '') === k);
+    const label = String(hit?.label || '').trim();
+    if (label && label !== raw && label !== k) return label;
+  }
+  return '';
+}
+
+async function mbWarmCampShown(ids) {
+  const need = [...new Set((ids || []).map((id) => String(id || '')).filter((id) => /^[0-9a-f-]{36}$/i.test(id)))]
+    .filter((id) => !_mbCampShownCache.has(id) && !(typeof campaigns !== 'undefined' ? campaigns : []).some((c) => String(c.id) === id));
+  for (let i = 0; i < need.length; i += 80) {
+    const chunk = need.slice(i, i + 80);
+    const rows = (await sb(`campaigns?select=id,name,settings&id=in.(${chunk.join(',')})`).catch(() => [])) || [];
+    rows.forEach((row) => { if (row?.id) _mbCampShownCache.set(String(row.id), row); });
+    chunk.forEach((id) => { if (!_mbCampShownCache.has(id)) _mbCampShownCache.set(id, { id, name: '' }); });
+  }
+}
+
 function campRecycleChoiceList(camp) {
   const base = [
     { key: 'no_answer', label: campT('camp.st.no_answer', 'Cevap yok') },
@@ -1336,6 +1418,7 @@ async function saveCampIdentity() {
   const didEl = document.getElementById('cd-edit-did');
   const didErr = document.getElementById('cd-edit-did-err');
   const name = String(nameEl?.value || '').trim();
+  const displayName = String(document.getElementById('cd-edit-display')?.value || '').trim().slice(0, 80);
   const desc = String(document.getElementById('cd-edit-desc')?.value || '').trim();
   const didRaw = String(didEl?.value || '').trim();
   if (!name) {
@@ -1362,13 +1445,17 @@ async function saveCampIdentity() {
     if (firmDid) telnyx_did = firmDid;
   }
   try {
+    const settings = { ...(mbCampSettings(camp) || {}) };
+    if (displayName) settings.display_name = displayName;
+    else delete settings.display_name;
     await sb(`campaigns?id=eq.${camp.id}`, {
       method: 'PATCH', prefer: 'return=minimal',
-      body: JSON.stringify({ name, description: desc || null, telnyx_did })
+      body: JSON.stringify({ name, description: desc || null, telnyx_did, settings })
     });
     camp.name = name;
     camp.description = desc || null;
     camp.telnyx_did = telnyx_did;
+    camp.settings = settings;
     toast(campT('camp.identity.saved','Kampanya kaydedildi'), 'ok');
     await loadCampaigns();
   } catch (e) {
