@@ -1966,6 +1966,21 @@ box-shadow: var(--shadow);
 #page-dashboard[data-dash-role="agent"] .dash-row[data-dash-row="live"],
 #page-dashboard[data-dash-role="qc"] .dash-row[data-dash-row="live"],
 #page-dashboard[data-dash-role="qc"] #dash-stat-cost { display:none !important; }
+.dash-agent-day { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:0 0 14px; }
+.dash-agent-day[hidden] { display:none !important; }
+.dash-day-card { margin:0; min-width:0; display:flex; flex-direction:column; padding:14px 16px; }
+.dash-day-card .card-title { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+.dash-day-list { display:flex; flex-direction:column; min-height:72px; }
+.dash-day-row { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; text-align:left; background:transparent; border:0; border-bottom:1px solid var(--border); padding:7px 0; font:inherit; color:inherit; cursor:pointer; }
+.dash-day-row:hover { background:var(--bg-3); margin:0 -6px; padding-left:6px; padding-right:6px; border-radius:8px; }
+.dash-day-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:700; display:flex; align-items:center; }
+.dash-day-row b { font-size:11px; font-weight:700; color:var(--text-2); font-variant-numeric:tabular-nums; flex:0 0 auto; }
+.dash-day-empty { font-size:12px; color:var(--text-3); padding:8px 0; }
+.dash-day-foot { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; }
+.dash-day-note { font-size:10px; color:var(--text-3); }
+.dash-day-more { border:0; background:transparent; color:var(--text-2); font:inherit; font-size:11px; font-weight:700; cursor:pointer; padding:0; }
+.dash-day-dot { width:7px; height:7px; border-radius:50%; background:#dc2626; display:inline-block; margin-right:6px; flex:0 0 7px; }
+@media (max-width: 860px) { .dash-agent-day { grid-template-columns:1fr; } }
 .dash-brief { display:flex; flex-direction:column; gap:12px; min-width:0; }
 .dash-brief-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:14px; row-gap:14px; align-items:stretch; }
 .dash-brief-col { display:grid; grid-template-rows:subgrid; row-gap:14px; min-width:0; }

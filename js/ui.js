@@ -550,6 +550,7 @@ if (testBtn && typeof t === 'function') {
 if (typeof _syncGoalTabChromeFromPerf === 'function') _syncGoalTabChromeFromPerf();
 if (typeof _mbPaintMonthFaces === 'function') _mbPaintMonthFaces();
 if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
+if (document.getElementById('page-dashboard')?.classList.contains('active') && typeof mbAgentDay === 'function') void mbAgentDay();
 const activePage = (document.querySelector('.page.active')?.id || '').replace(/^page-/, '');
 const inCall = typeof dialerStatus !== 'undefined' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping');
 if (!(typeof _mbPrefsApplying !== 'undefined' && _mbPrefsApplying) && currentUser && activePage && activePage !== 'settings' && !(activePage === 'dialer' && inCall) && typeof runPageEntry === 'function') {

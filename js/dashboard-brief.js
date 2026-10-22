@@ -625,7 +625,99 @@ async function mbDashApplyLogs(ctx) {
   await mbDashRunDeltas(snap, logs, ctx?.rangeKey, ctx?.from, ctx?.to);
 }
 
+let _agentDaySeq = 0;
+
+function mbAgentDaySay(key, fallback) {
+  return typeof t === 'function' ? t(key) : fallback;
+}
+
+function mbAgentDayCard(title, rowsHtml, empty, hint, page) {
+  const body = rowsHtml || `<div class="dash-day-empty">${mbDashEsc(empty)}</div>`;
+  return `<section class="card dash-day-card"><div class="card-title"><span>${mbDashEsc(title)}</span></div><div class="dash-day-list">${body}</div><div class="dash-day-foot"><span class="dash-day-note">${mbDashEsc(hint)}</span><button type="button" class="dash-day-more" onclick="mbDashOpenPage('${page}')">${mbDashEsc(mbAgentDaySay('dash.day.list', 'Liste'))}</button></div></section>`;
+}
+
+async function mbAgentDayOpen(kind, id) {
+  const pid = String(id || '');
+  if (!/^[0-9a-f-]{36}$/i.test(pid)) return;
+  if (kind === 'cb' && typeof openUpcomingCallback === 'function') {
+    openUpcomingCallback(pid);
+    return;
+  }
+  if (kind === 'open' && typeof openUnfinalizedCall === 'function') {
+    openUnfinalizedCall(pid);
+    return;
+  }
+  if (kind !== 'ap') return;
+  let contactId = '';
+  try {
+    const rows = await sb(`appointments?id=eq.${pid}&select=contact_id&limit=1`);
+    contactId = String(rows?.[0]?.contact_id || '');
+  } catch (e) {
+    contactId = '';
+  }
+  if (/^[0-9a-f-]{36}$/i.test(contactId) && typeof mbOpenPerson === 'function') {
+    mbOpenPerson(contactId);
+    return;
+  }
+  if (typeof navigate === 'function') navigate('takvim');
+}
+
+async function mbAgentDay() {
+  const host = document.getElementById('dash-agent-day');
+  if (!host) return;
+  const uid = String(currentUser?.id || '');
+  if (currentUser?.role !== 'agent' || !/^[0-9a-f-]{36}$/i.test(uid)) {
+    host.hidden = true;
+    host.innerHTML = '';
+    return;
+  }
+  const seq = ++_agentDaySeq;
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
+  const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
+  const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
+  const nowIso = new Date().toISOString();
+  const [callbacks, appts, openLogs] = await Promise.all([
+    sb(`wiedervorlage?select=id,nachname,telefon,termin_zaman&agent_id=eq.${uid}&durum=eq.bekliyor&termin_zaman=lte.${nowIso}&order=termin_zaman.asc&limit=6`).catch(() => []),
+    sb(`appointments?select=id,nachname,telefonnummer,termin_tarih,durum&agent_id=eq.${uid}&termin_tarih=gte.${gte}&termin_tarih=lte.${lte}&order=termin_tarih.asc&limit=8`).catch(() => []),
+    sb(`call_logs?select=contact_id,started_at,contacts!inner(id,first_name,last_name,phone,status)&agent_id=eq.${uid}&contacts.status=eq.calling&order=started_at.asc&limit=20`).catch(() => []),
+  ]);
+  if (seq !== _agentDaySeq) return;
+  const safeId = (id) => (/^[0-9a-f-]{36}$/i.test(String(id || '')) ? String(id) : '');
+  const cbRows = (Array.isArray(callbacks) ? callbacks : []).map((row) => {
+    const id = safeId(row.id);
+    if (!id) return '';
+    const name = row.nachname || row.telefon || '—';
+    return `<button type="button" class="dash-day-row" onclick="mbAgentDayOpen('cb','${id}')"><span class="dash-day-name">${mbDashEsc(name)}</span><b>${mbDashEsc(mbDashWhen(row.termin_zaman))}</b></button>`;
+  }).join('');
+  const apRows = (Array.isArray(appts) ? appts : []).filter((row) => row.durum !== 'iptal').slice(0, 6).map((row) => {
+    const id = safeId(row.id);
+    if (!id) return '';
+    const name = row.nachname || row.telefonnummer || '—';
+    return `<button type="button" class="dash-day-row" onclick="mbAgentDayOpen('ap','${id}')"><span class="dash-day-name">${mbDashEsc(name)}</span><b>${mbDashEsc(mbDashWhen(row.termin_tarih))}</b></button>`;
+  }).join('');
+  const seen = new Set();
+  const openRows = [];
+  (Array.isArray(openLogs) ? openLogs : []).forEach((log) => {
+    const c = log?.contacts || {};
+    const id = c.id || log.contact_id;
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    const safe = safeId(id);
+    if (!safe) return;
+    openRows.push({ id: safe, name: [c.first_name, c.last_name].filter(Boolean).join(' ').trim() || c.phone || '—', at: log.started_at });
+  });
+  const openHtml = openRows.slice(0, 6).map((row) => `<button type="button" class="dash-day-row" onclick="mbAgentDayOpen('open','${row.id}')"><span class="dash-day-name"><i class="dash-day-dot" aria-hidden="true"></i>${mbDashEsc(row.name)}</span><b>${mbDashEsc(mbDashWhen(row.at))}</b></button>`).join('');
+  const n = (html) => (html ? html.split('dash-day-row').length - 1 : 0);
+  host.innerHTML = [
+    mbAgentDayCard(`${mbAgentDaySay('dash.day.cb', 'Vakti gelen geri aramalar')} · ${n(cbRows)}`, cbRows, mbAgentDaySay('dash.day.empty_cb', 'Vakti gelen geri arama yok'), mbAgentDaySay('dash.day.hint', 'Aramaz. Kartı açar.'), 'wiedervorlage'),
+    mbAgentDayCard(`${mbAgentDaySay('dash.day.ap', 'Bugünkü randevular')} · ${n(apRows)}`, apRows, mbAgentDaySay('dash.day.empty_ap', 'Bugün randevu yok'), mbAgentDaySay('dash.day.hint', 'Aramaz. Kartı açar.'), 'takvim'),
+    mbAgentDayCard(`${mbAgentDaySay('dash.day.open', 'Sonuçsuz çağrılar')} · ${n(openHtml)}`, openHtml, mbAgentDaySay('dash.day.empty_open', 'Sonuçsuz çağrı yok'), mbAgentDaySay('dash.day.hint_open', 'Aramaz. Sonucu yazmak için açar.'), 'dialer'),
+  ].join('');
+  host.hidden = false;
+}
+
 async function loadDashBrief(ctx) {
+  void mbAgentDay();
   const host = document.getElementById('dash-brief');
   if (!host || !currentUser) return;
   const role = mbDashRole();
