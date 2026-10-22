@@ -63,6 +63,8 @@ function resetUploadQueueForm() {
   const note = document.getElementById('uq-target-note');
   if (note) { note.hidden = true; note.textContent = ''; }
   document.querySelectorAll('.uq-skip-status').forEach((box) => { box.checked = false; });
+  const excelMode = document.querySelector('input[name="dedup-mode"][value="excel"]');
+  if (excelMode) excelMode.checked = true;
 }
 
 function handleFileSelect(e) { if (e.target.files[0]) setFile(e.target.files[0]); }
@@ -296,18 +298,30 @@ function getUploadOutcomeSkip() {
   return [...document.querySelectorAll('.uq-skip-status:checked')].map((el) => el.value).filter((key) => UQ_OUTCOME_SKIP.some((row) => row.key === key));
 }
 
-function mbUploadSkipText(skipped) {
-  const bits = [];
-  if (skipped.empty) bits.push(`${skipped.empty} ${uqSay('uq.skip.empty', 'boş numara')}`);
-  if (skipped.invalid) bits.push(`${skipped.invalid} ${uqSay('uq.skip.invalid', 'geçersiz numara')}`);
-  if (skipped.duplicate) bits.push(`${skipped.duplicate} ${uqSay('uq.skip.dup', 'dosyada mükerrer')}`);
-  if (skipped.existing) bits.push(`${skipped.existing} ${uqSay('uq.skip.existing', 'zaten kayıtlı')}`);
+function mbUploadReportLines(skipped, campCounts) {
+  const lines = [];
+  if (skipped.empty) lines.push(uqSay('uq.report.empty', '{n} boş numara olduğu için eklenmedi', { n: skipped.empty }));
+  if (skipped.invalid) lines.push(uqSay('uq.report.invalid', '{n} geçersiz numara olduğu için eklenmedi', { n: skipped.invalid }));
+  if (skipped.duplicate) lines.push(uqSay('uq.report.file', 'Dosyada {n} mükerrer kayıt bulundu, eklenmedi', { n: skipped.duplicate }));
+  Object.entries(campCounts || {}).forEach(([name, n]) => {
+    if (!n) return;
+    lines.push(uqSay('uq.report.camp', '{name} kampanyasında {n} mükerrer kayıt bulundu, eklenmedi', { name, n }));
+  });
   Object.entries(skipped.outcomes || {}).forEach(([key, n]) => {
     if (!n) return;
     const spec = UQ_OUTCOME_SKIP.find((row) => row.key === key);
-    bits.push(`${n} ${uqSay(spec?.label || key, spec?.fb || key)}`);
+    const label = uqSay(spec?.label || key, spec?.fb || key);
+    lines.push(uqSay('uq.report.outcome', '{n} kişi {label} olarak sonuçlandırıldığı için eklenmedi', { n, label }));
   });
-  return bits.join(', ');
+  return lines;
+}
+
+async function mbShowUploadReport(lines) {
+  if (!lines.length) return;
+  const title = uqSay('uq.report.title', 'Yükleme raporu');
+  const text = lines.join('\n');
+  if (typeof mbAlert === 'function') await mbAlert(text, title);
+  else toast(text, 'ok', 6000);
 }
 
 async function uploadQueue() {
@@ -331,16 +345,18 @@ async function uploadQueue() {
     campaign_id: campId,
     ...mbRowFromMapping(row, mapping),
   }));
-  const classified = typeof mbClassifyLeadRows === 'function'
-    ? mbClassifyLeadRows(parsed)
-    : { accepted: parsed.filter((c) => c.phone), skipped: { empty: 0, invalid: 0, duplicate: 0 } };
   const mode = getDedupMode();
-  const existing = await mbFindExistingPhones(classified.accepted.map((c) => c.phone), mode, campId);
+  const classified = typeof mbClassifyLeadRows === 'function'
+    ? mbClassifyLeadRows(parsed, { keepDuplicates: mode === 'none' })
+    : { accepted: parsed.filter((c) => c.phone), skipped: { empty: 0, invalid: 0, duplicate: 0 } };
+  const places = (mode === 'none' || typeof mbFindExistingPhonePlaces !== 'function')
+    ? new Map()
+    : await mbFindExistingPhonePlaces(classified.accepted.map((c) => c.phone), mode, campId);
   const outcomeKeys = getUploadOutcomeSkip();
   let outcomeHits = new Map();
   if (outcomeKeys.length) {
     try {
-      const left = classified.accepted.filter((row) => !existing.has(row.phone)).map((row) => row.phone);
+      const left = classified.accepted.filter((row) => !places.has(row.phone)).map((row) => row.phone);
       outcomeHits = await mbFindPhonesWithStatuses(left, outcomeKeys);
     } catch (e) {
       toast(e.message || uqSay('uq.err.generic', 'Yükleme başarısız'), 'err');
@@ -348,18 +364,25 @@ async function uploadQueue() {
     }
   }
   const contacts = [];
-  let existingCount = 0;
+  const campCounts = {};
   const outcomeCounts = {};
+  const unknownCamp = uqSay('uq.report.camp.unknown', 'Kampanya');
   classified.accepted.forEach((row) => {
-    if (existing.has(row.phone)) { existingCount += 1; return; }
+    const place = places.get(row.phone);
+    if (place) {
+      const campName = place.name || unknownCamp;
+      campCounts[campName] = (campCounts[campName] || 0) + 1;
+      return;
+    }
     const st = outcomeHits.get(row.phone);
     if (st) { outcomeCounts[st] = (outcomeCounts[st] || 0) + 1; return; }
     contacts.push(row);
   });
-  const skipped = { ...classified.skipped, existing: existingCount, outcomes: outcomeCounts };
-  const why = mbUploadSkipText(skipped);
+  const skipped = { ...classified.skipped, outcomes: outcomeCounts };
+  const reportLines = mbUploadReportLines(skipped, campCounts);
   if (!contacts.length) {
-    toast(uqSay('uq.none', 'Geçerli numara yok. Atlanan: {why}', { why: why || '—' }), 'err');
+    await mbShowUploadReport(reportLines);
+    if (!reportLines.length) toast(uqSay('uq.none', 'Geçerli numara yok'), 'err');
     return;
   }
 
@@ -423,9 +446,8 @@ async function uploadQueue() {
       foundTarget.queue._sales = null;
     }
     const done = uqSay('uq.done', '{n} kişi yüklendi', { n: contacts.length.toLocaleString() });
-    const summary = why ? uqSay('uq.summary', '{done}. Atlanan: {why}', { done, why }) : done;
-    setProgress(100, done, summary);
-    await new Promise(r => setTimeout(r, 500));
+    setProgress(100, done, reportLines.length ? reportLines.join(' · ') : done);
+    await new Promise(r => setTimeout(r, 400));
     closeModal('m-upload-q');
     uploadFile = null; uploadParsedRows = []; uploadHeaders = []; uploadHeaderLabels = [];
     _uqWorkbook = null;
@@ -437,7 +459,6 @@ async function uploadQueue() {
     document.getElementById('uq-mapping-section').style.display = 'none';
     progressSection.style.display = 'none';
     submitBtn.disabled = false;
-    toast(summary, 'ok', 4200);
     const campMem = (campaigns || []).find((c) => c.id === campId);
     if (campMem) {
       if (!foundTarget) {
@@ -447,6 +468,10 @@ async function uploadQueue() {
       if (typeof renderCampQueues === 'function') renderCampQueues(campMem);
     }
     if (typeof loadCampaigns === 'function') await loadCampaigns();
+    toast(done, 'ok', 3200);
+    if (reportLines.length) {
+      await mbShowUploadReport([uqSay('uq.report.added', '{n} kişi kuyruğa eklendi', { n: contacts.length.toLocaleString() }), ...reportLines]);
+    }
   } catch(e) {
     console.error(e);
     const friendly = mbUploadFailText(e);

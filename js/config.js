@@ -89,7 +89,8 @@ function mbNormalizeDialPhone(raw) {
   return s;
 }
 
-function mbClassifyLeadRows(rows) {
+function mbClassifyLeadRows(rows, opts) {
+  const keepDup = !!(opts && opts.keepDuplicates);
   const seen = new Set();
   const accepted = [];
   const skipped = { empty: 0, invalid: 0, duplicate: 0 };
@@ -97,8 +98,8 @@ function mbClassifyLeadRows(rows) {
     const phone = mbNormalizeDialPhone(row?.phone);
     if (!phone) { skipped.empty += 1; return; }
     if (typeof mbIsE164 !== 'function' || !mbIsE164(phone)) { skipped.invalid += 1; return; }
-    if (seen.has(phone)) { skipped.duplicate += 1; return; }
-    seen.add(phone);
+    if (!keepDup && seen.has(phone)) { skipped.duplicate += 1; return; }
+    if (!keepDup) seen.add(phone);
     accepted.push({ ...row, phone });
   });
   return { accepted, skipped };

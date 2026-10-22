@@ -880,24 +880,38 @@ async function addToDnc(phone, contactId) {
   } catch(e) { console.error('DNC error:', e); }
 }
 
-async function mbFindExistingPhones(phones, mode, campaignId) {
-  const found = new Set();
-  if (mode !== 'campaign' && mode !== 'system') return found;
+async function mbFindExistingPhonePlaces(phones, mode, campaignId) {
+  const places = new Map();
+  if (mode !== 'campaign' && mode !== 'system') return places;
   const unique = [...new Set((phones || []).map((p) => mbNormalizeDialPhone(p)).filter(Boolean))];
   const chunkSize = 40;
+  const scope = mode === 'campaign' && campaignId ? `&campaign_id=eq.${campaignId}` : '';
   for (let i = 0; i < unique.length; i += chunkSize) {
     const chunk = unique.slice(i, i + chunkSize);
     const list = chunk.map((p) => encodeURIComponent(p)).join(',');
-    const scope = mode === 'campaign' && campaignId ? `&campaign_id=eq.${campaignId}` : '';
+    let rows = [];
     try {
-      const existing = await sb(`contacts?select=phone&phone=in.(${list})${scope}`) || [];
-      existing.forEach((e) => {
-        const n = mbNormalizeDialPhone(e.phone);
-        if (n) found.add(n);
-      });
-    } catch (e) {}
+      rows = await sb(`contacts?select=phone,campaign_id,campaigns(name)&phone=in.(${list})${scope}`) || [];
+    } catch (e) {
+      try { rows = await sb(`contacts?select=phone,campaign_id&phone=in.(${list})${scope}`) || []; } catch (_) { rows = []; }
+    }
+    rows.forEach((row) => {
+      const n = mbNormalizeDialPhone(row.phone);
+      if (!n) return;
+      const embedded = row.campaigns && (row.campaigns.name || row.campaigns[0]?.name);
+      const mem = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => String(c.id) === String(row.campaign_id));
+      const place = { id: row.campaign_id || '', name: String(embedded || mem?.name || '').trim() };
+      const prev = places.get(n);
+      if (!prev) { places.set(n, place); return; }
+      if (campaignId && String(place.id) === String(campaignId) && String(prev.id) !== String(campaignId)) places.set(n, place);
+    });
   }
-  return found;
+  return places;
+}
+
+async function mbFindExistingPhones(phones, mode, campaignId) {
+  const places = await mbFindExistingPhonePlaces(phones, mode, campaignId);
+  return new Set(places.keys());
 }
 
 async function mbFindPhonesWithStatuses(phones, statuses) {

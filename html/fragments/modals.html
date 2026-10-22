@@ -151,6 +151,9 @@ ondrop="handleDrop(event)">
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
 <input type="radio" name="dedup-mode" value="system"> <span data-tr="Tüm sistemde kontrol et" data-de="Im gesamten System prüfen">Tüm sistemde kontrol et</span>
 </label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
+<input type="radio" name="dedup-mode" value="none"> <span data-tr="Kontrol etme" data-de="Nicht prüfen">Kontrol etme</span>
+</label>
 </div>
 <div style="font-size:12px;font-weight:700;margin:12px 0 4px;color:var(--text-2);" data-tr="Sonuçlanmış kişileri ekleme" data-de="Abgeschlossene nicht laden">Sonuçlanmış kişileri ekleme</div>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;" data-tr="Aynı numara sistemde işaretlediğin sonuçla duruyorsa eklenmez." data-de="Dieselbe Nummer wird nicht geladen, wenn sie im System mit einem markierten Ergebnis liegt.">Aynı numara sistemde işaretlediğin sonuçla duruyorsa eklenmez.</div>
@@ -310,7 +313,7 @@ ondrop="handleDrop(event)">
 <button class="modal-close" onclick="closeSystemDialog(false)">✕</button>
 </div>
 <div style="padding:14px 18px;">
-<div id="sysdlg-message" style="font-size:13px;color:var(--text);line-height:1.45;">—</div>
+<div id="sysdlg-message" style="font-size:13px;color:var(--text);line-height:1.45;white-space:pre-line;">—</div>
 <div id="sysdlg-input-wrap" style="display:none;margin-top:10px;">
 <input id="sysdlg-input" class="form-input" type="text">
 </div>
