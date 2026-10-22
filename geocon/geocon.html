@@ -7,7 +7,20 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="config.js"></script>
-<script>document.write('<script src="https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent((window.GEOCON_CONFIG||{}).googleKey||'') + '&libraries=places,geometry&v=weekly&language=de"><\/script>');</script>
+<script>
+(function(){
+  var lang='tr';
+  try{
+    var q=new URLSearchParams(location.search).get('lang');
+    var saved=localStorage.getItem('mb-lang');
+    var pick=q||saved||'';
+    if(pick==='de'||pick==='tr')lang=pick;
+    else if(String(navigator.language||'').toLowerCase().indexOf('de')===0)lang='de';
+  }catch(e){}
+  var key=encodeURIComponent((window.GEOCON_CONFIG||{}).googleKey||'');
+  document.write('<script src="https://maps.googleapis.com/maps/api/js?key='+key+'&libraries=places,geometry&v=weekly&language='+lang+'"><\/script>');
+})();
+</script>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -21,7 +34,7 @@
 html,body{height:100%;width:100%;margin:0;padding:0;font-family:'Segoe UI',sans-serif;overflow:hidden;overscroll-behavior:none;}
 #mapWrap{position:absolute;inset:0;z-index:1;overscroll-behavior:none;touch-action:none;}
 #map,#googleMap,#googleMap3d{position:absolute;inset:0;width:100%;height:100%;}
-#map{z-index:1;display:none;}#googleMap{z-index:2;display:none;}#googleMap3d{z-index:3;display:block;background:#0b1220;touch-action:none;overscroll-behavior:none;}
+#map{z-index:1;display:none;}#googleMap{z-index:2;display:block;}#googleMap3d{z-index:3;display:none;background:#0b1220;touch-action:none;overscroll-behavior:none;}
 #googleMap3d gmp-map-3d{width:100%;height:100%;display:block;outline:none!important;touch-action:none;}
 html.geo-3d-lock,html.geo-3d-lock body{
   overflow:hidden!important;overscroll-behavior:none!important;height:100%!important;position:relative!important;
@@ -569,9 +582,8 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
 <div id="mobileControls">
 
   <div class="language-selector">
-    <button class="language-btn active" onclick="changeLanguage('de')">DE</button>
-    <button class="language-btn" onclick="changeLanguage('en')">EN</button>
-    <button class="language-btn" onclick="changeLanguage('tr')">TR</button>
+    <button class="language-btn" id="langBtnDe" onclick="changeLanguage('de')">DE</button>
+    <button class="language-btn" id="langBtnTr" onclick="changeLanguage('tr')">TR</button>
   </div>
 
   <div class="search-container">
@@ -610,7 +622,7 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
       <div id="searchDirHint" style="font-size:.65rem;color:#888;text-align:center;margin-top:4px;display:none;"></div>
     </div>
     <div id="corridorBox">
-      <div style="font-size:.72rem;color:#555;margin-bottom:6px;">Zwei PLZ → rechteckiger Korridor dazwischen (Start: Mitte).</div>
+      <div id="corridorIntro" style="font-size:.72rem;color:#555;margin-bottom:6px;">Zwei PLZ → rechteckiger Korridor dazwischen (Start: Mitte).</div>
       <div class="corridor-plz-row mb-2">
         <div>
           <label style="font-size:.72rem;font-weight:600;">PLZ A</label>
@@ -621,7 +633,7 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
           <input type="text" class="form-control form-control-sm" id="corridorPlzB" placeholder="z.B. 71686" maxlength="5" inputmode="numeric">
         </div>
       </div>
-      <label style="font-size:.72rem;font-weight:600;">Korridor-Halbbreite</label>
+      <label id="corridorWidthLabel" style="font-size:.72rem;font-weight:600;">Korridor-Halbbreite</label>
       <input type="range" class="form-range" min="3" max="30" step="1" id="corridorWidthInput" value="8">
       <div class="d-flex justify-content-between mb-2"><small>3 km</small><small id="corridorWidthValue">8 km</small><small>30 km</small></div>
       <button class="btn btn-primary btn-sm w-100" id="corridorSearchBtn" onclick="searchCorridor()">
@@ -708,79 +720,79 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
   </div>
   <div class="kub-body">
     <div>
-      <div class="kub-label">Kampanya</div>
-      <div class="kub-chips" id="kubTakvimChips"><span style="font-size:.65rem;color:#94a3b8;">Takvim yükleniyor…</span></div>
+      <div class="kub-label" data-geo-tr="Kampanya" data-geo-de="Kampagne">Kampanya</div>
+      <div class="kub-chips" id="kubTakvimChips"><span style="font-size:.65rem;color:#94a3b8;" data-geo-tr="Takvim yükleniyor…" data-geo-de="Kalender werden geladen…">Takvim yükleniyor…</span></div>
     </div>
     <div>
-      <div class="kub-label">Kaynak</div>
+      <div class="kub-label" data-geo-tr="Kaynak" data-geo-de="Quelle">Kaynak</div>
       <div class="kub-mode">
-        <button type="button" class="kub-chip" data-kub-mode="bos" onclick="setKubMode('bos')">Boş</button>
-        <button type="button" class="kub-chip" data-kub-mode="dolu" onclick="setKubMode('dolu')">Dolu</button>
-        <button type="button" class="kub-chip active" data-kub-mode="ikisi" onclick="setKubMode('ikisi')">İkisi</button>
+        <button type="button" class="kub-chip" data-kub-mode="bos" onclick="setKubMode('bos')" data-geo-tr="Boş" data-geo-de="Leer">Boş</button>
+        <button type="button" class="kub-chip" data-kub-mode="dolu" onclick="setKubMode('dolu')" data-geo-tr="Dolu" data-geo-de="Voll">Dolu</button>
+        <button type="button" class="kub-chip active" data-kub-mode="ikisi" onclick="setKubMode('ikisi')" data-geo-tr="İkisi" data-geo-de="Beides">İkisi</button>
         <button type="button" class="kub-chip" data-kub-mode="top" onclick="setKubMode('top')">Top PLZ</button>
         <button type="button" class="kub-chip" data-kub-mode="plz" onclick="setKubMode('plz')">PLZ</button>
       </div>
     </div>
     <div class="kub-days-wrap on" id="kubDaysWrap">
-      <div class="kub-label">Günler <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;">(tarih sırası)</small></div>
-      <div class="kub-days" id="kubDayStrip"><span style="font-size:.65rem;color:#94a3b8;">Kampanya seçin</span></div>
+      <div class="kub-label"><span data-geo-tr="Günler" data-geo-de="Tage">Günler</span> <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(tarih sırası)" data-geo-de="(nach Datum)">(tarih sırası)</small></div>
+      <div class="kub-days" id="kubDayStrip"><span style="font-size:.65rem;color:#94a3b8;" data-geo-tr="Kampanya seçin" data-geo-de="Kampagne wählen">Kampanya seçin</span></div>
       <div id="kubDayDetail" class="kub-day-detail" style="display:none;"></div>
     </div>
     <div id="kubTopPlzWrap">
-      <div class="kub-label">Top PLZ <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;">(gün yok — en çok termin)</small></div>
-      <p class="kub-source-hint" id="kubTopPlzHint">Kampanya yoksa: tümünde en çok termin (tüm zamanlar). Kampanya seçince <b>PLZ</b> / <b>Kampanya</b> alt seçeneği çıkar.</p>
+      <div class="kub-label">Top PLZ <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(gün yok — en çok termin)" data-geo-de="(kein Tag — meiste Termine)">(gün yok — en çok termin)</small></div>
+      <p class="kub-source-hint" id="kubTopPlzHint" data-geo-tr="Kampanya yoksa: tümünde en çok termin (tüm zamanlar). Kampanya seçince PLZ / Kampanya alt seçeneği çıkar." data-geo-de="Ohne Kampagne: meiste Termine insgesamt. Mit Kampagne erscheinen PLZ / Kampagne.">Kampanya yoksa: tümünde en çok termin (tüm zamanlar). Kampanya seçince <b>PLZ</b> / <b>Kampanya</b> alt seçeneği çıkar.</p>
       <div class="kub-mode" id="kubTopScopeRow" style="display:none;margin-bottom:6px;">
         <button type="button" class="kub-chip" data-kub-top-scope="plz" onclick="setKubTopScope('plz')">PLZ</button>
-        <button type="button" class="kub-chip active" data-kub-top-scope="kampanya" onclick="setKubTopScope('kampanya')">Kampanya</button>
+        <button type="button" class="kub-chip active" data-kub-top-scope="kampanya" onclick="setKubTopScope('kampanya')" data-geo-tr="Kampanya" data-geo-de="Kampagne">Kampanya</button>
       </div>
       <div class="kub-anchor-list" id="kubTopPlzList"><span style="font-size:.65rem;color:#94a3b8;">Yükleniyor…</span></div>
     </div>
     <div id="kubManualPlzWrap">
-      <div class="kub-label">PLZ gir <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;">(elle — çoklu OK)</small></div>
-      <p class="kub-source-hint">1–5 PLZ ekle. Hepsi anchor/referans olur; paket bunların yakınına ve birbirine uygun şekilde kurulur.</p>
+      <div class="kub-label"><span data-geo-tr="PLZ gir" data-geo-de="PLZ eingeben">PLZ gir</span> <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(elle — çoklu OK)" data-geo-de="(manuell, mehrere OK)">(elle — çoklu OK)</small></div>
+      <p class="kub-source-hint" data-geo-tr="1–5 PLZ ekle. Hepsi referans olur; paket bunların yakınına kurulur." data-geo-de="1–5 PLZ. Alle werden Anker; das Paket entsteht in ihrer Nähe.">1–5 PLZ ekle. Hepsi anchor/referans olur; paket bunların yakınına ve birbirine uygun şekilde kurulur.</p>
       <div class="kub-manual-row">
-        <input type="text" id="kubManualPlzInput" placeholder="örn. 99734" maxlength="5" inputmode="numeric" onkeydown="if(event.key==='Enter'){event.preventDefault();addKubManualPlz();}">
-        <button type="button" onclick="addKubManualPlz()">Ekle</button>
+        <input type="text" id="kubManualPlzInput" placeholder="örn. 99734" data-geo-ph-tr="örn. 99734" data-geo-ph-de="z.B. 99734" maxlength="5" inputmode="numeric" onkeydown="if(event.key==='Enter'){event.preventDefault();addKubManualPlz();}">
+        <button type="button" onclick="addKubManualPlz()" data-geo-tr="Ekle" data-geo-de="Hinzu">Ekle</button>
       </div>
       <div class="kub-manual-tags" id="kubManualPlzTags"></div>
     </div>
     <div>
-      <div class="kub-label">Max yol süresi <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;">(referanslara)</small></div>
+      <div class="kub-label"><span data-geo-tr="Max yol süresi" data-geo-de="Max. Fahrzeit">Max yol süresi</span> <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(referanslara)" data-geo-de="(zu den Ankern)">(referanslara)</small></div>
       <div class="kub-max">
         <input type="range" id="kubMaxTravel" min="15" max="90" step="5" value="25" oninput="onKubMaxTravel(this.value)">
         <span class="v" id="kubMaxTravelVal">25 dk</span>
       </div>
     </div>
     <div>
-      <div class="kub-label">Paket içi max yol <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;">(PLZ’ler arası)</small></div>
+      <div class="kub-label"><span data-geo-tr="Paket içi max yol" data-geo-de="Max. Fahrzeit im Paket">Paket içi max yol</span> <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(PLZ’ler arası)" data-geo-de="(zwischen PLZ)">(PLZ’ler arası)</small></div>
       <div class="kub-max">
         <input type="range" id="kubPairTravel" min="15" max="90" step="5" value="25" oninput="onKubPairTravel(this.value)">
         <span class="v" id="kubPairTravelVal">25 dk</span>
       </div>
     </div>
     <div>
-      <div class="kub-label">Arama çapı (km)</div>
+      <div class="kub-label" data-geo-tr="Arama çapı (km)" data-geo-de="Suchradius (km)">Arama çapı (km)</div>
       <div class="kub-max">
         <input type="range" id="kubRadius" min="10" max="50" step="1" value="30" oninput="onKubRadius(this.value)">
         <span class="v" id="kubRadiusVal">30 km</span>
       </div>
     </div>
     <div>
-      <div class="kub-label">Kullanıldı (kaç gün)</div>
+      <div class="kub-label" data-geo-tr="Kullanıldı (kaç gün)" data-geo-de="Verwendet (Tage)">Kullanıldı (kaç gün)</div>
       <div class="kub-max">
         <input type="range" id="kubUsedExpire" min="1" max="101" step="1" value="30" oninput="onKubUsedExpire(this.value)">
         <span class="v" id="kubUsedExpireVal">30 gün</span>
       </div>
     </div>
     <div>
-      <div class="kub-label">Min skor</div>
+      <div class="kub-label" data-geo-tr="Min skor" data-geo-de="Min. Score">Min skor</div>
       <div class="kub-max">
         <input type="range" id="kubMinScore" min="0" max="10" step="0.5" value="6" oninput="onKubMinScore(this.value)">
         <span class="v" id="kubMinScoreVal">≥ 6.0</span>
       </div>
     </div>
     <div>
-      <div class="kub-label">İstenen veri sayısı</div>
+      <div class="kub-label" data-geo-tr="İstenen veri sayısı" data-geo-de="Gewünschte Datensätze">İstenen veri sayısı</div>
       <div class="kub-max">
         <input type="range" id="kubTargetData" min="1000" max="10000" step="500" value="3000" oninput="onKubTargetData(this.value)">
         <span class="v" id="kubTargetDataVal">3000</span>
@@ -788,43 +800,43 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
     </div>
     <label class="kub-check" title="Sadece aynı 2 haneli PLZ bölgesi">
       <input type="checkbox" id="kubOnlySamePrefix" checked onchange="setKubOnlySamePrefix(this.checked)">
-      Sadece aynı 2 haneli PLZ
+      <span data-geo-tr="Sadece aynı 2 haneli PLZ" data-geo-de="Nur gleiche 2-stellige PLZ">Sadece aynı 2 haneli PLZ</span>
     </label>
     <div class="kub-backup" id="kubBackupBox">
       <label class="kub-check" style="margin:0;padding:0;border:none;background:transparent;" title="Sıkı kural yetmezse haritadan yedek PLZ ara">
         <input type="checkbox" id="kubMapBackup" onchange="setKubMapBackup(this.checked)">
-        Harita yedeği <small>(varsayılan kapalı)</small>
+        <span data-geo-tr="Harita yedeği" data-geo-de="Karten-Reserve">Harita yedeği</span> <small data-geo-tr="(varsayılan kapalı)" data-geo-de="(standard aus)">(varsayılan kapalı)</small>
       </label>
       <div class="kub-backup-sub" id="kubBackupSub">
-        <div class="kub-backup-hint">Tiklenen kural yedekte <b>esnetilir</b>. Sıra = yedek seçiminde öncelik.</div>
+        <div class="kub-backup-hint" data-geo-tr="Tiklenen kural yedekte esnetilir. Sıra = yedek seçiminde öncelik." data-geo-de="Angehakte Regel wird in der Reserve gelockert. Reihenfolge = Priorität.">Tiklenen kural yedekte <b>esnetilir</b>. Sıra = yedek seçiminde öncelik.</div>
         <div class="kub-relax-list" id="kubRelaxList"></div>
         <label class="kub-check" style="margin-top:4px;" title="Sıkı sonuç hedefi doldurmazsa otomatik yedek ekle">
           <input type="checkbox" id="kubPartialBackup" onchange="setKubPartialBackup(this.checked)">
-          Kısmi dolumda yedek ekle <small>(otomatik)</small>
+          <span data-geo-tr="Kısmi dolumda yedek ekle" data-geo-de="Bei Teilergebnis Reserve">Kısmi dolumda yedek ekle</span> <small data-geo-tr="(otomatik)" data-geo-de="(automatisch)">(otomatik)</small>
         </label>
-        <div class="kub-label" style="margin-top:6px;">Kısmiye yakınlık <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;">(yedek, seçilenlere mesafe)</small></div>
+        <div class="kub-label" style="margin-top:6px;"><span data-geo-tr="Kısmiye yakınlık" data-geo-de="Nähe zum Teilpaket">Kısmiye yakınlık</span> <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(yedek, seçilenlere mesafe)" data-geo-de="(Reserve, Abstand zu den Gewählten)">(yedek, seçilenlere mesafe)</small></div>
         <div class="kub-max">
           <input type="range" id="kubPartialNear" min="8" max="40" step="1" value="20" oninput="onKubPartialNear(this.value)">
           <span class="v" id="kubPartialNearVal">20 km</span>
         </div>
-        <div class="kub-backup-hint">Yedek adayları önce mevcut pakete/anchora bu km içinde aranır.</div>
+        <div class="kub-backup-hint" data-geo-tr="Yedek adayları önce mevcut pakete bu km içinde aranır." data-geo-de="Reserve wird zuerst in diesem km-Radius gesucht.">Yedek adayları önce mevcut pakete/anchora bu km içinde aranır.</div>
       </div>
     </div>
     <div class="kub-actions">
-      <button type="button" class="kub-plan-btn" id="kubPlanBtn" onclick="kubilaiPlanPackage()"><i class="fas fa-box-open"></i> Paket hazırla</button>
-      <button type="button" class="kub-reset-btn" id="kubResetBtn" onclick="resetKubilaiDefaults()" title="Varsayılan ayarlara dön">Sıfırla</button>
+      <button type="button" class="kub-plan-btn" id="kubPlanBtn" onclick="kubilaiPlanPackage()"><i class="fas fa-box-open"></i> <span data-geo-tr="Paket hazırla" data-geo-de="Paket erstellen">Paket hazırla</span></button>
+      <button type="button" class="kub-reset-btn" id="kubResetBtn" onclick="resetKubilaiDefaults()" title="Varsayılan ayarlara dön" data-geo-title-tr="Varsayılan ayarlara dön" data-geo-title-de="Auf Standard"><span data-geo-tr="Sıfırla" data-geo-de="Zurücksetzen">Sıfırla</span></button>
     </div>
     <label class="kub-check" title="Kubilai yorumu (kredi harcar)">
       <input type="checkbox" id="kubWantComment" onchange="kubWantComment=this.checked;saveKubilaiSettings()">
-      Yorum iste <small>(Kubilai — varsayılan kapalı)</small>
+      <span data-geo-tr="Yorum iste" data-geo-de="Kommentar">Yorum iste</span> <small data-geo-tr="(Kubilai — varsayılan kapalı)" data-geo-de="(Kubilai — standard aus)">(Kubilai — varsayılan kapalı)</small>
     </label>
     <div class="kub-status" id="kubStatus"></div>
     <div>
-      <div class="kub-label">Sohbet</div>
+      <div class="kub-label" data-geo-tr="Sohbet" data-geo-de="Chat">Sohbet</div>
       <div class="kub-chat" id="kubChat"></div>
       <div class="kub-input-row" style="margin-top:6px;">
-        <input type="text" id="kubChatInput" placeholder="KubilAi’ye sor…" maxlength="800" onkeydown="if(event.key==='Enter')kubilaiSendChat()">
-        <button type="button" onclick="kubilaiSendChat()">Gönder</button>
+        <input type="text" id="kubChatInput" placeholder="KubilAi’ye sor…" data-geo-ph-tr="KubilAi’ye sor…" data-geo-ph-de="Frag KubilAi…" maxlength="800" onkeydown="if(event.key==='Enter')kubilaiSendChat()">
+        <button type="button" onclick="kubilaiSendChat()" data-geo-tr="Gönder" data-geo-de="Senden">Gönder</button>
       </div>
     </div>
   </div>
@@ -860,7 +872,7 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
     <div class="geo-sec-b">
       <label style="display:flex;align-items:center;gap:6px;font-size:.7rem;color:#555;margin-bottom:5px;cursor:pointer;">
         <input type="checkbox" id="chkOnlySamePrefix" checked onchange="setOnlySamePrefixPkg(this.checked)" style="margin:0;">
-        Sadece aynı 2 haneli PLZ bölgesi
+        <span id="samePrefixLabel">Sadece aynı 2 haneli PLZ bölgesi</span>
       </label>
       <div class="used-expire-bar" style="margin:6px 0;" title="Paket arama yarıçapı">
         <div class="ue-title"><i class="fas fa-circle-notch"></i> <span id="pkgRadiusTitle">Paket-Radius</span></div>
@@ -868,7 +880,7 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
         <div class="ue-scale"><span id="pkgRadiusLeft">10 km</span><span id="pkgRadiusRight">50 km</span></div>
         <div class="ue-value" id="pkgRadiusValue">30 km</div>
       </div>
-      <div id="packagePanel"><div style="font-size:.68rem;color:#888;">Referans PLZ seçin…</div></div>
+      <div id="packagePanel"><div id="packageEmpty" style="font-size:.68rem;color:#888;">Referans PLZ seçin…</div></div>
     </div>
   </div>
 </div>
@@ -1363,7 +1375,7 @@ const T={
     distPanelTitle:"Entfernungsmesser",distHint:"Mind. 2 PLZ auswählen",
     distHint1:"1 PLZ hinzufügen",distHintN:"PLZ hinzufügen/entfernen",distClearBtn:"Löschen",
     distRouteLoading:"Route wird berechnet…",distRouteDriving:"Fahrstrecke",distRouteTomTom:"Fahrstrecke (TomTom)",distRouteAir:"Luftlinie (Fallback)",
-    popupDaten:"Daten",popupLead:"Leads",
+    popupDaten:"Übertragen",popupLead:"Leads",
     pwTitle:"Leads übertragen",pwPlaceholder:"Passwort eingeben",pwError:"Falsches Passwort",
     pwOk:"OK",pwCancel:"Abbrechen",
     mapStreet:"Straße",mapSat:"OSM Sat",mapGoogle:"Google",map3dToggle:"3D",
@@ -1495,7 +1507,7 @@ const T={
     distPanelTitle:"Mesafe Ölçer",distHint:"En az 2 PLZ seçin",
     distHint1:"1 PLZ daha seçin",distHintN:"PLZ ekle/çıkar",distClearBtn:"Temizle",
     distRouteLoading:"Rota hesaplanıyor…",distRouteDriving:"Araç yolu",distRouteTomTom:"Araç yolu (TomTom)",distRouteAir:"Kuş uçuşu (yedek)",
-    popupDaten:"Veri İndir",popupLead:"Lead İndir",
+    popupDaten:"Aktar",popupLead:"Lead aktar",
     pwTitle:"Lead aktar",pwPlaceholder:"Şifre girin",pwError:"Yanlış şifre",
     pwOk:"Tamam",pwCancel:"İptal",
     mapStreet:"Sokak",mapSat:"OSM Uydu",mapGoogle:"Google",map3dToggle:"3D",
@@ -1540,14 +1552,48 @@ const T={
     dEnergyOld:"Enerji yenileme gerekli",dEnergyMid:"Orta enerji standardı",dEnergyNew:"İyi enerji standardı",
     dDensityLow:"Düşük yapı yoğunluğu – ısı pompası için iyi",dDensityHigh:"Yüksek yapı yoğunluğu",
     analyseDichte:"Yapı yoğunluğu",analyseGewerbe:"Ticari",analyseDicht:"Yoğun",analyseEst:"Tahmin",
-    heatBtnText:"Heatmap",filterBtn:"Filtre",
+    heatBtnText:"Isı haritası",filterBtn:"Filtre",
     sortPlz:"PLZ ↑",sortScore:"Skor ↓",sortCount:"Veri ↓",sortLead:"Lead ↓",sortMb:"MB Lead ↓",
     allScores:"Tüm Skorlar",filterShown:n=>`${n} gösteriliyor`,
     alerts:{minChars:"En az 3 karakter girin",noData:"Veri yok.",plzNotFound:"PLZ bulunamadı.",cityNotFound:"Şehir bulunamadı.",error:"Hata. Lütfen tekrar deneyin.",noUsedPLZs:"İşaretlenmiş PLZ yok."}
   }
 };
-let lang='de';
-const tr=()=>T[lang];
+let lang='tr';
+const tr=()=>T[lang]||T.tr;
+Object.assign(T.de,{
+  modeCircle:'Umkreis (1 PLZ)',modeCorridor:'Korridor (2 PLZ)',
+  searchPh:"z.B. 'Berlin' oder '10115'",
+  corridorIntro:'Zwei PLZ → rechteckiger Korridor dazwischen (Start: Mitte).',
+  corridorWidth:'Korridor-Halbbreite',corridorSearch:'Korridor suchen',
+  corridorHint:'Wenige Treffer → Breite wird automatisch erweitert.',corridorPh:'z.B. 71364',
+  takvimTitle:'Kalender & Datenpaket',takvimActive:'Aktive Kalender',takvimTop:'Top PLZ',
+  takvimUpcoming:'Termine morgen',takvimBest:'Beste Orte',takvimPackage:'Datenpaket',
+  samePrefix:'Nur gleiche 2-stellige PLZ-Region',pkgPick:'Referenz-PLZ wählen…',
+  hideEmpty:n=>`${n} PLZ ohne Daten ausgeblendet`
+});
+Object.assign(T.tr,{
+  modeCircle:'Çevre (1 PLZ)',modeCorridor:'Koridor (2 PLZ)',
+  searchPh:"ör. 'Berlin' veya '10115'",
+  corridorIntro:'İki PLZ → aralarında dikdörtgen koridor (başlangıç: orta).',
+  corridorWidth:'Koridor yarı genişliği',corridorSearch:'Koridor ara',
+  corridorHint:'Az sonuç → genişlik otomatik artar.',corridorPh:'ör. 71364',
+  takvimTitle:'Takvim & Veri Paketi',takvimActive:'Aktif Takvimler',takvimTop:'Top PLZ',
+  takvimUpcoming:'Yarın Terminleri',takvimBest:'En İyi Yerler',takvimPackage:'Veri Paketi',
+  samePrefix:'Sadece aynı 2 haneli PLZ bölgesi',pkgPick:'Referans PLZ seçin…',
+  hideEmpty:n=>`${n} PLZ verisi olmadığı için gizlendi`
+});
+Object.assign(T.en,T.de);
+function geoWantLang(){
+  try{
+    const q=new URLSearchParams(location.search).get('lang');
+    if(q==='de'||q==='tr')return q;
+  }catch(_){}
+  try{
+    const saved=localStorage.getItem('mb-lang');
+    if(saved==='de'||saved==='tr')return saved;
+  }catch(_){}
+  return String(navigator.language||'').toLowerCase().indexOf('de')===0?'de':'tr';
+}
 
 let toastTmr;
 function showToast(msg,ms=3500){const el=document.getElementById('dlToast');el.textContent=msg;el.style.display='block';clearTimeout(toastTmr);toastTmr=setTimeout(()=>el.style.display='none',ms);}
@@ -3053,7 +3099,7 @@ async function loadCounts(codes){
     countLoadingActive=false;
     plzData.forEach((e)=>{if(e.count==null)e.count=0;if(e.leadCount==null)e.leadCount=0;});
     const removed=removeEmptyPlzFromResults();
-    if(removed>0)showToast(`${removed} PLZ ohne Daten ausgeblendet`);
+    if(removed>0)showToast(tr().hideEmpty?tr().hideEmpty(removed):`${removed} PLZ`);
   }
 }
 
@@ -3061,7 +3107,10 @@ async function loadCounts(codes){
 // LANGUAGE
 // ═══════════════════════════════════════════════════════
 function changeLanguage(l){
-  lang=l;document.querySelectorAll('.language-btn').forEach(b=>b.classList.toggle('active',b.textContent===l.toUpperCase()));
+  if(l!=='de'&&l!=='tr')l=geoWantLang();
+  lang=l;
+  try{document.documentElement.lang=l;}catch(_){}
+  document.querySelectorAll('.language-btn').forEach(b=>b.classList.toggle('active',b.textContent===l.toUpperCase()));
   const t=tr();
   const idMap={searchLabel:'searchLabel',searchButtonText:'searchButtonText',resultsTitle:'resultsTitle',clearButton:'clearButton',usedListButtonText:'usedListButtonText',usedListModalTitle:'usedListModalTitle',toggleFillText:'toggleFillText',plzBtnText:'plzBtnText',globalDlLabel:'globalDlLabel',bulkBtnText:'bulkBtnText',distBtnText:'distBtnText',bulkPanelTitle:'bulkPanelTitle',bulkHint:'bulkHint',bulkClearBtn:'bulkClearBtn',bulkDlBtnText:'bulkDlBtnText',distPanelTitle:'distPanelTitle',distClearBtn:'distClearBtn',analysePanelTitle:'analysePanelTitle',radiusLabel:'radiusLabel',bulkAnalyseLabelText:'bulkAnalyseLabelText',heatBtnText:'heatBtnText'};
   Object.entries(idMap).forEach(([k,id])=>{const el=document.getElementById(id);if(el&&t[k])el.textContent=t[k];});
@@ -3073,9 +3122,45 @@ function changeLanguage(l){
   const sortIds={optSortPlz:'sortPlz',optSortScore:'sortScore',optSortCount:'sortCount',optSortLead:'sortLead',optSortMb:'sortMb'};
   Object.entries(sortIds).forEach(([id,key])=>{const el=document.getElementById(id);if(el&&t[key])el.textContent=t[key];});
   const elT1=document.getElementById('lblTakvimPanelTitle');
-  if(elT1)elT1.textContent=lang==='de'?'Kalender & Datenpaket':lang==='en'?'Calendar & Data Pack':'Takvim & Veri Paketi';
+  if(elT1)elT1.textContent=t.takvimTitle||(lang==='de'?'Kalender & Datenpaket':'Takvim & Veri Paketi');
+  const put=(id,val,attr)=>{const el=document.getElementById(id);if(!el||val==null||val==='')return;if(attr)el.setAttribute(attr,val);else el.textContent=val;};
+  put('modeCircleBtn',t.modeCircle);
+  put('modeCorridorBtn',t.modeCorridor);
+  put('searchInput',t.searchPh,'placeholder');
+  put('corridorIntro',t.corridorIntro);
+  put('corridorWidthLabel',t.corridorWidth);
+  put('corridorSearchText',t.corridorSearch);
+  put('corridorHint',t.corridorHint);
+  put('corridorPlzA',t.corridorPh,'placeholder');
+  put('corridorPlzB',t.corridorPh,'placeholder');
+  put('lblActiveTakvim',t.takvimActive);
+  put('lblTopPlz',t.takvimTop);
+  put('lblUpcoming',t.takvimUpcoming);
+  put('lblBestPlz',t.takvimBest);
+  put('lblPackage',t.takvimPackage);
+  put('samePrefixLabel',t.samePrefix);
+  put('pwModalTitle',t.pwTitle);
+  const dirs=SEARCH_DIR_LABELS[lang]||SEARCH_DIR_LABELS.de;
+  put('dirUp',dirs.up,'title');
+  put('dirDown',dirs.down,'title');
+  put('dirLeft',dirs.left,'title');
+  put('dirRight',dirs.right,'title');
+  const emptyPkg=document.getElementById('packageEmpty');
+  if(emptyPkg&&t.pkgPick)emptyPkg.textContent=t.pkgPick;
+  document.querySelectorAll('[data-geo-tr]').forEach(el=>{
+    const v=lang==='de'?el.getAttribute('data-geo-de'):el.getAttribute('data-geo-tr');
+    if(v)el.textContent=v;
+  });
+  document.querySelectorAll('[data-geo-ph-tr]').forEach(el=>{
+    const v=lang==='de'?el.getAttribute('data-geo-ph-de'):el.getAttribute('data-geo-ph-tr');
+    if(v)el.setAttribute('placeholder',v);
+  });
   const elT2=document.getElementById('lblResultsPanelTitle');if(elT2)elT2.textContent=t.resultsTitle;
-  setSearchDir(searchDir);
+  const hint=document.getElementById('searchDirHint');
+  if(hint){
+    if(searchDir==='center')hint.style.display='none';
+    else hint.textContent='↳ '+(dirs[searchDir]||searchDir)+' · '+radInput.value+' km';
+  }
   // Şifre modal
   const el8=document.getElementById('pwOkText');if(el8)el8.textContent=t.pwOk;
   const el9=document.getElementById('pwCancelText');if(el9)el9.textContent=t.pwCancel;
@@ -3090,6 +3175,7 @@ function changeLanguage(l){
   const m3=document.getElementById('map3dToggleText');if(m3&&t.map3dToggle)m3.textContent=t.map3dToggle;
   try{syncUsedExpireUI();}catch(e){}
   try{syncPkgRadiusUI();}catch(e){}
+  try{updateKubTopPlzHint();}catch(e){}
 }
 
 async function toggleFS(){const wrap=document.getElementById('mapWrap');try{if(!document.fullscreenElement)await wrap.requestFullscreen({navigationUI:"hide"});else await document.exitFullscreen();}catch(e){}setTimeout(()=>{if(curMapType==='leaflet')map.invalidateSize();else if(googleMap){google.maps.event.trigger(googleMap,'resize');if(lastCenter)googleMap.setCenter({lat:+lastCenter.lat,lng:+lastCenter.lon});}},250);}
@@ -4605,7 +4691,7 @@ function buildPopupContent(plz,city){
     <div style="padding:0 3px 4px;">
       <div class="popup-sel-btns"><button class="popup-sel-btn bulk ${bulkActive?'active':''}" onclick="window.popupToggleBulk('${plz}','${(city||'').replace(/'/g,"\\'")}',this)"><i class="fas fa-check-square"></i> ${t.bulkBtnText}</button><button class="popup-sel-btn dist ${distActive?'active':''}" onclick="window.popupToggleDist('${plz}',${lat},${lon},'${(city||'').replace(/'/g,"\\'")}',this)"><i class="fas fa-ruler-combined"></i> ${t.distBtnText}</button></div>
       <div class="popup-toggles"><div class="plz-toggle"><span>${t.usedLabel}</span><label class="toggle-switch used"><input type="checkbox" ${s.used?'checked':''} onchange="setPLZFlag('${plz}','used',this.checked)"><span class="toggle-slider"></span></label></div><div class="plz-toggle"><span>${t.recLabel}</span><label class="toggle-switch rec"><input type="checkbox" ${s.used1?'checked':''} onchange="setPLZFlag('${plz}','used1',this.checked)"><span class="toggle-slider"></span></label></div></div>
-      <div class="popup-dl-btns"><button class="popup-dl-btn daten" onclick="downloadPLZData('${plz}','${(city||'').replace(/'/g,"\\'")}')"><i class="fas fa-download"></i> ${t.popupDaten}</button><button class="popup-dl-btn lead" onclick="downloadLeadData('${plz}','${(city||'').replace(/'/g,"\\'")}')"><i class="fas fa-user-tie"></i> ${t.popupLead}</button></div>
+      <div class="popup-dl-btns"><button class="popup-dl-btn daten" onclick="downloadPLZData('${plz}','${(city||'').replace(/'/g,"\\'")}')"><i class="fas fa-share"></i> ${t.popupDaten}</button><button class="popup-dl-btn lead" onclick="downloadLeadData('${plz}','${(city||'').replace(/'/g,"\\'")}')"><i class="fas fa-share"></i> ${t.popupLead}</button></div>
       <div style="margin-top:4px;">${analyseBtn}</div>
     </div></div>`;
 }
@@ -5536,7 +5622,7 @@ async function ensureMap3D(){
     minTilt:0,
     fov:35,
     mode:(MapMode&&MapMode.HYBRID)||'HYBRID',
-    language:'de',
+    language:lang==='de'?'de':'tr',
     region:'DE',
     defaultUIHidden:true
   };
@@ -6738,17 +6824,22 @@ function updateKubTopPlzHint(){
     b.classList.toggle('active',b.dataset.kubTopScope===kubTopScope);
   });
   if(!hint)return;
+  const de=lang==='de';
   if(!selectedTakvim){
-    hint.innerHTML='Kampanya yok (<b>Tümü</b>): tüm kampanyalarda en çok termin (tüm zamanlar). Tıkla = anchor.';
+    hint.innerHTML=de
+      ?'Keine Kampagne (<b>Alle</b>): meiste Termine über alle Kampagnen. Klick = Anker.'
+      :'Kampanya yok (<b>Tümü</b>): tüm kampanyalarda en çok termin (tüm zamanlar). Tıkla = referans.';
     return;
   }
   const px=kubCampaignPlzPrefix();
   if(kubTopScope==='plz'){
     hint.innerHTML=px
-      ?(`<b>PLZ</b> modu: sadece <b>${px}xxx</b> · ${selectedTakvim} kampanyasının termin sırası.`)
-      :(`<b>PLZ</b> modu: kampanya adından 2 haneli önek çıkmadı — kampanyadaki tüm PLZ’ler.`);
+      ?(de?`<b>PLZ</b>: nur <b>${px}xxx</b> · Termine von ${selectedTakvim}.`:`<b>PLZ</b> modu: sadece <b>${px}xxx</b> · ${selectedTakvim} kampanyasının termin sırası.`)
+      :(de?'<b>PLZ</b>: kein 2-stelliges Präfix im Kampagnennamen — alle PLZ der Kampagne.':`<b>PLZ</b> modu: kampanya adından 2 haneli önek çıkmadı — kampanyadaki tüm PLZ’ler.`);
   }else{
-    hint.innerHTML=`<b>Kampanya</b> modu: <b>${selectedTakvim}</b> içinde hangi PLZ’ler geçtiyse (öneksiz) · termin sırası.`;
+    hint.innerHTML=de
+      ?`<b>Kampagne</b>: alle PLZ in <b>${selectedTakvim}</b> · nach Terminen.`
+      :`<b>Kampanya</b> modu: <b>${selectedTakvim}</b> içinde hangi PLZ’ler geçtiyse (öneksiz) · termin sırası.`;
   }
 }
 /**
@@ -7965,14 +8056,12 @@ document.addEventListener('DOMContentLoaded',async()=>{
   setSearchDir(searchDir);
   // Dolgu varsayılan kapalı (PLZ renkleri + daire dolgusu)
   document.getElementById('toggleFillBtn')?.classList.remove('active');
-  const bl=(navigator.language||navigator.userLanguage||'de').toLowerCase().substring(0,2);
-  changeLanguage(['de','en','tr'].includes(bl)?bl:'de');
-  // Direkt Photorealistic 3D (2D flash yok)
+  changeLanguage(geoWantLang());
   try{
-    await bootPhotorealistic3D();
+    await switchToGoogleMap();
   }catch(e){
-    console.warn('default 3D',e);
-    try{await switchToGoogleMap();}catch(_){}
+    console.warn('google map',e);
+    try{switchToLeaflet('street');}catch(_){}
   }
   watchMapResize();
   await loadPLZLayer();
@@ -7980,6 +8069,13 @@ document.addEventListener('DOMContentLoaded',async()=>{
   setTimeout(()=>sendWix({action:'GEO_GET_MB_COUNTS'}),800);
   setTimeout(()=>sendWix({action:'GEO_GET_TAKVIMLER'}),700);
   setTimeout(()=>sendWix({action:'GEO_GET_BEST_PLZ',limit:100,days:0}),900);
+});
+
+window.addEventListener('message',(ev)=>{
+  if(ev.origin!==window.location.origin)return;
+  const data=ev.data;
+  if(!data||data.type!=='mb-geocon-lang')return;
+  if(data.lang==='de'||data.lang==='tr')changeLanguage(data.lang);
 });
 
 function mbPushTransfer(rows, label){

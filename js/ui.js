@@ -538,6 +538,12 @@ document.querySelectorAll('[data-tr-aria]').forEach((el) => {
   if (v) el.setAttribute('aria-label', v);
 });
 try { localStorage.setItem('mb-lang', l); } catch (_) {}
+try {
+  const geoFrame = document.getElementById('geocon-frame');
+  if (geoFrame && geoFrame.contentWindow) {
+    geoFrame.contentWindow.postMessage({ type: 'mb-geocon-lang', lang: l === 'de' ? 'de' : 'tr' }, window.location.origin);
+  }
+} catch (_) {}
 if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 if (typeof window._mbConnStatus === 'string' && typeof updateConnectionStatus === 'function') {
   updateConnectionStatus(window._mbConnStatus);

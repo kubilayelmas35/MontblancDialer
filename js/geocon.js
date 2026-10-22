@@ -9,11 +9,20 @@ function geoSay(key, fb) {
   return !text || text === key ? fb : text;
 }
 
+function geoDialerLang() {
+  return (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'de' : 'tr';
+}
+
 function loadGeoconPage() {
   const frame = document.getElementById('geocon-frame');
-  if (!frame || frame.dataset.loaded === '1') return;
+  if (!frame) return;
+  const lang = geoDialerLang();
+  if (frame.dataset.loaded === '1') {
+    try { frame.contentWindow.postMessage({ type: 'mb-geocon-lang', lang }, window.location.origin); } catch (_) {}
+    return;
+  }
   const v = window.MB_APP_VERSION || '';
-  frame.src = `geocon/geocon.html?v=${encodeURIComponent(v)}`;
+  frame.src = `geocon/geocon.html?v=${encodeURIComponent(v)}&lang=${lang}`;
   frame.dataset.loaded = '1';
 }
 
