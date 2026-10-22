@@ -286,6 +286,9 @@ async function toggleReady() {
   if (dialerStatus==='offline' || dialerStatus==='break') {
     if (!selectedCampId) { toast(typeof t === 'function' ? t('dial.pick_camp_first') : 'Önce kampanya seçin', 'err'); return; }
     if (!telnyxReady && !_testMode) { toast(typeof t === 'function' ? t('dial.line_preparing') : '...', 'err'); return; }
+    if (document.getElementById('pill-ping-btn')?.classList.contains('is-slow')) {
+      toast(typeof t === 'function' ? t('dial.ping_slow') : 'Bağlantı yavaş. Arama yine de başlıyor.', 'warn', 4000);
+    }
     setDialerStatus('ready');
     try {
       await sb('agent_sessions',{method:'POST',prefer:'resolution=merge-duplicates,return=minimal',

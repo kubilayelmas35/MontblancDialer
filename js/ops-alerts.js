@@ -1204,9 +1204,136 @@ async function opsNotifyWorkCamps(panel) {
   }
 }
 
+function opsCampSummary() {
+  const selected = (typeof selectedCampId !== 'undefined' && selectedCampId) ? String(selectedCampId) : '';
+  const openIds = opsActiveIds();
+  const directed = (_opsDirective.ids || []).map(String).filter(Boolean);
+  const ids = selected ? [selected, ...openIds.filter((id) => id !== selected)] : (openIds.length ? openIds : directed);
+  const id = ids[0] || '';
+  const row = (typeof campaigns !== 'undefined' && Array.isArray(campaigns))
+    ? campaigns.find((c) => String(c?.id) === id)
+    : null;
+  const nested = (typeof _agentCamps !== 'undefined' && Array.isArray(_agentCamps))
+    ? _agentCamps.find((c) => String(c?.campaign_id || c?.id) === id)
+    : null;
+  const camp = row || nested?.campaigns || nested || null;
+  const queues = Array.isArray(camp?.queues) ? camp.queues.length : null;
+  return {
+    id,
+    name: opsCampName(id) || String(camp?.name || '').trim(),
+    status: String(camp?.status || ''),
+    queues,
+    extra: Math.max(0, ids.length - 1),
+    picked: !!selected,
+  };
+}
+
+function opsPlaceCampSummary(pop) {
+  const btn = document.getElementById('pill-camp-btn');
+  if (!btn || !pop) return;
+  if (pop.parentElement !== document.body) document.body.appendChild(pop);
+  const rect = btn.getBoundingClientRect();
+  const width = 260;
+  let left = rect.left;
+  if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
+  if (left < 8) left = 8;
+  pop.style.top = `${Math.round(rect.bottom + 8)}px`;
+  pop.style.left = `${Math.round(left)}px`;
+}
+
+function opsFillCampSummary(pop) {
+  if (!pop) return;
+  const info = opsCampSummary();
+  pop.replaceChildren();
+  const kicker = document.createElement('div');
+  kicker.className = 'tb-camp-kicker';
+  kicker.textContent = opsSay('tb.camp.title', 'Kampanya');
+  const name = document.createElement('div');
+  name.className = 'tb-camp-name';
+  name.textContent = info.name || opsSay('tb.camp.none', 'Kampanya seçilmedi');
+  pop.append(kicker, name);
+  if (!info.name) return;
+  const meta = document.createElement('div');
+  meta.className = 'tb-camp-meta';
+  const bits = [];
+  if (info.status === 'active') bits.push(opsSay('tb.camp.active', 'Aktif'));
+  else if (info.status === 'paused') bits.push(opsSay('tb.camp.paused', 'Durduruldu'));
+  if (info.queues != null) bits.push(typeof tReplace === 'function' ? tReplace('tb.camp.queues', { n: info.queues }) : `${info.queues}`);
+  meta.textContent = bits.join(' · ');
+  if (meta.textContent) pop.appendChild(meta);
+  const sub = document.createElement('div');
+  sub.className = 'tb-camp-sub';
+  sub.textContent = info.picked ? opsSay('tb.camp.selected', 'Aramada bu kampanya') : opsSay('tb.camp.open', 'Açık kampanya');
+  if (info.extra) {
+    const more = typeof tReplace === 'function' ? tReplace('tb.camp.more', { n: info.extra }) : `+${info.extra}`;
+    sub.textContent = `${sub.textContent} · ${more}`;
+  }
+  pop.appendChild(sub);
+}
+
+function opsCloseCampSummary() {
+  const pop = document.getElementById('tb-camp-pop');
+  if (pop) pop.hidden = true;
+}
+
+function opsOpenCampSummary() {
+  const pop = document.getElementById('tb-camp-pop');
+  const btn = document.getElementById('pill-camp-btn');
+  if (!pop || !btn || getComputedStyle(btn).display === 'none') return;
+  if (typeof mbCloseTopbarPops === 'function') mbCloseTopbarPops('camp');
+  opsFillCampSummary(pop);
+  pop.hidden = false;
+  opsPlaceCampSummary(pop);
+  const info = opsCampSummary();
+  if (info.id && !info.name) {
+    void opsEnsureCampNames([info.id]).then(() => {
+      if (!pop.hidden) opsFillCampSummary(pop);
+    });
+  }
+}
+
+function opsToggleCampSummary() {
+  const pop = document.getElementById('tb-camp-pop');
+  if (!pop) return;
+  if (!pop.hidden) { opsCloseCampSummary(); return; }
+  opsOpenCampSummary();
+}
+
+function opsShowCampSummary() {
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  clearTimeout(window._tbCampHide);
+  const pop = document.getElementById('tb-camp-pop');
+  if (pop && !pop.hidden) return;
+  opsOpenCampSummary();
+}
+
+function opsScheduleHideCampSummary() {
+  clearTimeout(window._tbCampHide);
+  window._tbCampHide = setTimeout(() => {
+    const pop = document.getElementById('tb-camp-pop');
+    const btn = document.getElementById('pill-camp-btn');
+    if (!pop || pop.hidden) return;
+    if (btn?.matches(':hover') || pop.matches(':hover')) return;
+    opsCloseCampSummary();
+  }, 180);
+}
+
 function opsCampPillClick(ev) {
   if (ev) ev.stopPropagation();
-  if (typeof mbIsFirmAdmin !== 'function' || !mbIsFirmAdmin()) return;
+  const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const admin = typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin();
+  if (!fine) {
+    if (admin) {
+      opsCloseCampSummary();
+      if (document.getElementById('ops-camp-panel')) { opsCloseCampPanel(); return; }
+      opsOpenCampPanel();
+      return;
+    }
+    opsToggleCampSummary();
+    return;
+  }
+  if (!admin) return;
+  opsCloseCampSummary();
   if (document.getElementById('ops-camp-panel')) { opsCloseCampPanel(); return; }
   opsOpenCampPanel();
 }
@@ -1855,6 +1982,34 @@ function opsMesaiPrev(now, start, breaks) {
   return prev;
 }
 
+function opsBreakSoon() {
+  const win = opsMesaiWindow();
+  if (!win || win.off || win.clock?.mins == null) return null;
+  const now = win.clock.mins;
+  let best = null;
+  (win.breaks || []).forEach((item) => {
+    const a = opsHmMins(item.start);
+    if (a == null) return;
+    const left = a - now;
+    if (left > 0 && left <= 2 && (!best || left < best.left)) best = { left, item };
+  });
+  return best;
+}
+
+function opsNoteBreakSoon() {
+  const soon = opsBreakSoon();
+  if (!soon || !soon.item) return;
+  const day = opsMesaiWindow().clock?.date || '';
+  const key = `brkSoon:${day}:${soon.item.start}`;
+  if (_opsShiftTold.has(key)) return;
+  _opsShiftTold.add(key);
+  const span = soon.item.start && soon.item.end ? `${soon.item.start}–${soon.item.end}` : '';
+  const title = opsSay('ops.mesai.breakSoon', 'Mola 2 dk');
+  const sentence = span ? `${title} · ${span}` : title;
+  opsFlashMesaiChip(sentence);
+  if (typeof toast === 'function') toast(sentence, 'ok', 4000);
+}
+
 function opsMesaiPhase(win) {
   const none = opsSay('ops.mesai.none', 'Mesai yok');
   if (!win || win.off) return { range: none, short: none, detail: none, pct: 0, due: false };
@@ -2066,6 +2221,7 @@ function opsPaintMesaiBar() {
   label.textContent = text;
   btn.title = cue.detail ? `${cue.title} · ${cue.detail}` : cue.title;
   btn.classList.toggle('is-due', flashed || (!view.rolled && !!phase.due));
+  btn.classList.toggle('is-break-soon', !view.rolled && !!opsBreakSoon());
   const fill = document.getElementById('tb-mesai-fill');
   if (fill) fill.style.width = view.rolled ? '0%' : `${Math.round(phase.pct)}%`;
   const pop = document.getElementById('tb-mesai-pop');
@@ -2396,6 +2552,7 @@ function opsTickShift() {
   if (end != null && now - end >= 0 && now - end <= 2) {
     fire('shift', `end:${day}`, opsSay('ops.mesai.ended', 'Mesai bitti'), win.end);
   }
+  opsNoteBreakSoon();
 }
 
 function opsBoot() {
@@ -2428,6 +2585,13 @@ document.addEventListener('click', (ev) => {
   const pop = document.getElementById('tb-mesai-pop');
   if (!pop || pop.hidden) return;
   if (ev.target.closest && ev.target.closest('#tb-mesai-btn, #tb-mesai-pop')) return;
+  pop.hidden = true;
+});
+
+document.addEventListener('click', (ev) => {
+  const pop = document.getElementById('tb-camp-pop');
+  if (!pop || pop.hidden) return;
+  if (ev.target.closest && ev.target.closest('#pill-camp-btn, #tb-camp-pop')) return;
   pop.hidden = true;
 });
 

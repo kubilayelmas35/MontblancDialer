@@ -625,7 +625,8 @@ document.querySelectorAll('.palette-dot').forEach(d => d.classList.toggle('sel',
 // ── TOAST ────────────────────────────────────
 function toast(msg, type='ok', durationMs) {
 const el=document.getElementById('toast');
-el.textContent=(type==='ok'?'✓ ':'✕ ')+msg;
+const mark = type==='ok' ? '✓ ' : type==='warn' ? '' : '✕ ';
+el.textContent=mark+msg;
 el.className=`show ${type}`;
 clearTimeout(toastT);
 const d = Number(durationMs) > 0 ? Number(durationMs) : 3000;
