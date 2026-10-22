@@ -19,6 +19,7 @@ function loadGeoconPage() {
   const lang = geoDialerLang();
   if (frame.dataset.loaded === '1') {
     try { frame.contentWindow.postMessage({ type: 'mb-geocon-lang', lang }, window.location.origin); } catch (_) {}
+    void mbGeoconPushState(frame.contentWindow);
     return;
   }
   const v = window.MB_APP_VERSION || '';
@@ -168,7 +169,90 @@ window.addEventListener('message', (event) => {
     return;
   }
   if (data.action === 'GEO_GET_UPCOMING_PLZ') void mbGeoconUpcoming(event.source);
+  if (data.action === 'GEO_GET_STATE') void mbGeoconPushState(event.source);
+  if (data.action === 'GEO_SAVE_SCORE') void mbGeoconSaveScore(data.plz, data.score);
+  if (data.action === 'GEO_SAVE_FLAGS') void mbGeoconSaveFlags(data);
+  if (data.action === 'GEO_IMPORT_SCORES') void mbGeoconImportScores(data.items);
+  if (data.action === 'GEO_IMPORT_FLAGS') void mbGeoconImportFlags(data.items);
 });
+
+function geoActiveFirmId() {
+  if (typeof getActiveFirmId === 'function') return getActiveFirmId() || '';
+  return (typeof currentUser !== 'undefined' && currentUser?.firm_id) || '';
+}
+
+function geoPlzCode(plz) {
+  const digits = String(plz || '').replace(/\D/g, '');
+  if (digits.length < 4 || digits.length > 5) return '';
+  return digits.padStart(5, '0').slice(-5);
+}
+
+function mbGeoconOnFirm() {
+  const frame = document.getElementById('geocon-frame');
+  if (!frame || frame.dataset.loaded !== '1') return;
+  void mbGeoconPushState(frame.contentWindow);
+}
+
+async function mbGeoconPushState(target) {
+  if (!target || target === window || typeof sb !== 'function') return;
+  const firmId = geoActiveFirmId();
+  let scores = [];
+  let flags = [];
+  try {
+    const rows = await sb('geocon_plz_analysis?select=plz,score&limit=10000');
+    if (Array.isArray(rows)) scores = rows;
+  } catch (_) {}
+  if (firmId) {
+    try {
+      const rows = await sb(`geocon_plz_flags?select=plz,used,recommended,used_at&firm_id=eq.${firmId}&limit=10000`);
+      if (Array.isArray(rows)) flags = rows;
+    } catch (_) {}
+  }
+  try {
+    target.postMessage({ type: 'GEO_STATE', firmId, scores, flags }, window.location.origin);
+  } catch (_) {}
+}
+
+async function mbGeoconSaveScore(plz, score) {
+  const code = geoPlzCode(plz);
+  const n = Number(score);
+  if (!code || !Number.isFinite(n) || typeof sb !== 'function') return;
+  await sb('geocon_plz_analysis', {
+    method: 'POST',
+    prefer: 'resolution=merge-duplicates,return=minimal',
+    headers: { 'on-conflict': 'plz' },
+    body: JSON.stringify({ plz: code, score: Math.round(n * 10) / 10, updated_at: new Date().toISOString() }),
+  }).catch(() => {});
+}
+
+async function mbGeoconSaveFlags(data) {
+  const firmId = geoActiveFirmId();
+  const code = geoPlzCode(data?.plz);
+  if (!firmId || !code || typeof sb !== 'function') return;
+  await sb('geocon_plz_flags', {
+    method: 'POST',
+    prefer: 'resolution=merge-duplicates,return=minimal',
+    headers: { 'on-conflict': 'firm_id,plz' },
+    body: JSON.stringify({
+      firm_id: firmId,
+      plz: code,
+      used: !!data.used,
+      recommended: !!data.recommended,
+      used_at: data.used ? (data.usedAt || new Date().toISOString()) : null,
+      updated_at: new Date().toISOString(),
+    }),
+  }).catch(() => {});
+}
+
+async function mbGeoconImportScores(items) {
+  for (const row of items || []) await mbGeoconSaveScore(row.plz, row.score);
+}
+
+async function mbGeoconImportFlags(items) {
+  for (const row of items || []) {
+    await mbGeoconSaveFlags({ plz: row.plz, used: row.used, recommended: row.recommended, usedAt: row.usedAt });
+  }
+}
 
 function geoBerlinDay(offsetDays) {
   const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' });

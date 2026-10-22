@@ -312,6 +312,7 @@ function setSuperAdminFirmSelection(firmId) {
   _selectedFirmId = firmId;
   if (typeof mbRememberFirmPick === 'function') mbRememberFirmPick();
   if (typeof mbPaintTopFirm === 'function') mbPaintTopFirm();
+  if (typeof mbGeoconOnFirm === 'function') mbGeoconOnFirm();
   document.querySelectorAll('select[id$="-sel"]').forEach((sel) => {
     const opt = [...sel.options].find((o) => o.value === firmId);
     if (opt) sel.value = firmId;
@@ -345,6 +346,7 @@ const onChange = function() {
   _selectedFirmId = next;
   if (typeof mbRememberFirmPick === 'function') mbRememberFirmPick();
   if (typeof mbPaintTopFirm === 'function') mbPaintTopFirm();
+  if (typeof mbGeoconOnFirm === 'function') mbGeoconOnFirm();
   if (typeof callbackFn === 'function') callbackFn();
 };
 const buildSelect = () => {
