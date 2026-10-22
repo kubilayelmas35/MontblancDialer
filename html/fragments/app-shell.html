@@ -1400,7 +1400,13 @@ TEST MODU
 </div>
 <div class="dialer-layout">
 <div class="dialer-main">
-<div id="daily-goal-bar" style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:4px;display:none;">
+<div id="daily-goal-bar" class="is-collapsed" style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:4px;display:none;">
+<button type="button" class="dialer-fold-toggle" onclick="toggleDialerFold('goal')" aria-expanded="false">
+<span class="dialer-fold-chevron" aria-hidden="true"></span>
+<span id="goal-fold-label" data-tr="Günlük Hedef" data-de="Tagesziel">Günlük Hedef</span>
+<span id="goal-fold-count" class="daily-goal-fold-meta">0/5 Randevu</span>
+</button>
+<div class="daily-goal-body">
 <div style="display:flex;gap:2px;margin-bottom:8px;background:var(--bg-2);border-radius:4px;padding:2px;">
 <button id="goal-tab-daily" onclick="setGoalTab('daily')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:var(--text);color:var(--bg-2);border-radius:3px;cursor:pointer;" data-tr="Günlük" data-de="Täglich">Günlük</button>
 <button id="goal-tab-weekly" onclick="setGoalTab('weekly')" style="flex:1;padding:3px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--text-2);border-radius:3px;cursor:pointer;" data-tr="Haftalık" data-de="Wöchentlich">Haftalık</button>
@@ -1412,6 +1418,7 @@ TEST MODU
 </div>
 <div style="background:var(--bg-2);border-radius:4px;height:6px;overflow:hidden;">
 <div id="daily-progress-bar" style="height:100%;width:0%;background:var(--accent);border-radius:4px;transition:width .5s;"></div>
+</div>
 </div>
 </div>
 <div id="hotkey-hints" style="margin-bottom:6px;"></div>

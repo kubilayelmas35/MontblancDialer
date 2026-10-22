@@ -741,8 +741,11 @@ function _syncGoalTabChromeFromPerf() {
     weekly: t('dial.goal.weekly'),
     monthly: t('dial.goal.monthly'),
   };
+  const text = labels[goalScope] || t('dial.goal.short');
   const lbl = document.getElementById('goal-tab-label');
-  if (lbl) lbl.textContent = labels[goalScope] || t('dial.goal.short');
+  if (lbl) lbl.textContent = text;
+  const foldLbl = document.getElementById('goal-fold-label');
+  if (foldLbl) foldLbl.textContent = text;
 }
 
 function _apptBasisKey() {
@@ -928,23 +931,8 @@ async function loadMyMiniStats() {
     document.getElementById('my-appt').textContent = appts;
     document.getElementById('my-calls').textContent = calls;
 
-    // Goal scope follows the selected performance period.
-    const goalScope = _perfTab === 'week' ? 'weekly' : (_perfTab === 'month' ? 'monthly' : 'daily');
-    _goalTab = goalScope;
-    ['daily','weekly','monthly'].forEach((t) => {
-      const b = document.getElementById(`goal-tab-${t}`);
-      if (b) {
-        b.style.background = t === goalScope ? 'var(--text)' : 'transparent';
-        b.style.color = t === goalScope ? 'var(--bg-2)' : 'var(--text-2)';
-      }
-    });
-    const labels = {
-      daily: t('dial.goal.daily'),
-      weekly: t('dial.goal.weekly'),
-      monthly: t('dial.goal.monthly'),
-    };
-    const lbl = document.getElementById('goal-tab-label');
-    if (lbl) lbl.textContent = labels[goalScope] || t('dial.goal.short');
+    _syncGoalTabChromeFromPerf();
+    const goalScope = _goalTab;
 
     let goalVal = _dailyGoal;
     if (goalScope === 'weekly') goalVal = Number(window._weeklyGoal) || _dailyGoal * 5;

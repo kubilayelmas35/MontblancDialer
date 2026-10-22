@@ -167,7 +167,17 @@
   #page-dialer #agent-camps-panel.is-collapsed > :not(.agent-camp-head) { display: none !important; }
   #page-dialer #agent-camps-panel.is-collapsed .agent-camp-head { margin-bottom: 0; }
   #page-dialer #dialer-page-hdr:not(.is-collapsed) .dialer-fold-chevron,
-  #page-dialer #agent-camps-panel:not(.is-collapsed) .dialer-fold-chevron { transform: rotate(90deg); }
+  #page-dialer #agent-camps-panel:not(.is-collapsed) .dialer-fold-chevron,
+  #page-dialer #daily-goal-bar:not(.is-collapsed) .dialer-fold-chevron { transform: rotate(90deg); }
+  #page-dialer #hotkey-hints { display: none !important; }
+  #page-dialer #daily-goal-bar.is-collapsed { padding: 0 10px !important; margin-bottom: 0; }
+  #page-dialer #daily-goal-bar.is-collapsed .daily-goal-body { display: none !important; }
+  #page-dialer #daily-goal-bar .daily-goal-fold-meta {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--accent);
+  }
   #page-dialer.page.active {
     padding: 8px 8px 8px;
     overflow: hidden;
@@ -213,7 +223,6 @@
     min-height: 0;
     max-height: none;
   }
-  #page-dialer #hotkey-hints { max-width: 100%; }
   #page-dialer .call-action-btn { flex: 1 1 calc(50% - 8px); }
   .takvim-toolbar-cluster--right { margin-left: 0; justify-content: flex-start; }
   #takvim-camp-select, #takvim-camp-select-ov { max-width: 100%; min-width: 0; width: 100%; }

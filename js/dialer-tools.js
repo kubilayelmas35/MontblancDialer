@@ -72,6 +72,8 @@ function updateDailyProgress(apptCount, customGoal) {
   el.style.background = pct>=100 ? 'var(--green)' : pct>=60 ? 'var(--yellow)' : 'var(--accent)';
   const apptWord = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Termin' : 'Randevu';
   if (label) label.textContent = `${apptCount}/${goal} ${apptWord}`;
+  const foldCount = document.getElementById('goal-fold-count');
+  if (foldCount) foldCount.textContent = `${apptCount}/${goal} ${apptWord}`;
   if (pct>=100 && !_confettiShown && _goalTab==='daily') { _confettiShown = true; launchConfetti(); }
 }
 
@@ -102,7 +104,8 @@ function launchConfetti() {
 
 // ── Hotkeys ───────────────────────────────────
 function toggleDialerFold(which) {
-  const el = document.getElementById(which === 'camps' ? 'agent-camps-panel' : 'dialer-page-hdr');
+  const id = which === 'camps' ? 'agent-camps-panel' : which === 'goal' ? 'daily-goal-bar' : 'dialer-page-hdr';
+  const el = document.getElementById(id);
   if (!el) return;
   const open = el.classList.contains('is-collapsed');
   el.classList.toggle('is-collapsed', !open);
