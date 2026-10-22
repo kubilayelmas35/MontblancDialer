@@ -223,8 +223,24 @@ function mbFilterNav(raw) {
     const any = kids.some((btn) => btn.style.display !== 'none' && !btn.classList.contains('is-nav-miss'));
     box.classList.toggle('is-nav-miss', searching && !any);
   });
+  mbNavRefreshEmpty();
+}
+
+function mbNavRefreshEmpty() {
+  const q = String(document.getElementById('sb-nav-search')?.value || '').trim();
+  const searching = q.length > 0;
+  const hits = [...document.querySelectorAll('#sidebar .sb-item')].filter((btn) => {
+    return btn.style.display !== 'none' && !btn.classList.contains('is-nav-miss');
+  }).length;
+  const people = document.querySelectorAll('#sb-person-pop:not([hidden]) [data-person-id]').length;
+  const waiting = typeof _personWait !== 'undefined' && _personWait;
   const empty = document.getElementById('sb-nav-empty');
-  if (empty) empty.hidden = !(searching && hits === 0);
+  if (empty) empty.hidden = !(searching && hits === 0 && people === 0 && !waiting);
+}
+
+function mbNavQuery(raw) {
+  mbFilterNav(raw);
+  if (typeof mbPersonSearchInput === 'function') mbPersonSearchInput(raw);
 }
 
 function mbNavSearchKey(e) {
@@ -235,6 +251,7 @@ function mbNavSearchKey(e) {
     if (had) {
       if (input) input.value = '';
       mbFilterNav('');
+      if (typeof mbPersonClose === 'function') mbPersonClose();
       return;
     }
     input?.blur();
@@ -247,13 +264,16 @@ function mbNavSearchKey(e) {
   const hit = [...document.querySelectorAll('#sidebar .sb-item')].find((btn) => {
     return btn.style.display !== 'none' && !btn.classList.contains('is-nav-miss');
   });
-  if (hit) hit.click();
+  if (hit) { hit.click(); return; }
+  const person = document.querySelector('#sb-person-pop:not([hidden]) [data-person-id]');
+  if (person && typeof mbOpenPerson === 'function') mbOpenPerson(person.getAttribute('data-person-id'));
 }
 
 function mbClearNavSearch() {
   const input = document.getElementById('sb-nav-search');
   if (input && input.value) input.value = '';
   if (document.getElementById('sidebar')?.classList.contains('is-nav-search')) mbFilterNav('');
+  if (typeof mbPersonClose === 'function') mbPersonClose();
 }
 
 function mbFocusNavSearch() {
@@ -265,7 +285,6 @@ function mbFocusNavSearch() {
   } else if (sb.classList.contains('collapsed')) {
     sb.classList.remove('collapsed');
   }
-  if (typeof mbPersonClose === 'function') mbPersonClose();
   const input = document.getElementById('sb-nav-search');
   if (input) {
     input.focus();
@@ -279,7 +298,7 @@ document.addEventListener('keydown', (e) => {
   if (String(e.key || '').toLowerCase() !== 'k') return;
   const tag = String(e.target?.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target?.isContentEditable) {
-    if (e.target?.id !== 'sb-nav-search' && e.target?.id !== 'tb-person-q') return;
+    if (e.target?.id !== 'sb-nav-search') return;
   }
   e.preventDefault();
   mbFocusNavSearch();

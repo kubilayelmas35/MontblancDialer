@@ -17,10 +17,6 @@
 </div>
 </div>
 </div>
-<label class="tb-person" id="tb-person">
-<input type="search" id="tb-person-q" data-tr="Kişi veya numara" data-de="Person oder Nummer" placeholder="Kişi veya numara" autocomplete="off" spellcheck="false" oninput="mbPersonSearchInput(this.value)" onkeydown="mbPersonSearchKey(event)">
-<div id="tb-person-pop" class="tb-person-pop" hidden></div>
-</label>
 <div class="tb-mascot-anchor" id="tb-mascot-anchor" aria-hidden="true" title="Maskot"></div>
 <div class="tb-pills-wrap" id="tb-pills-wrap">
 <button type="button" class="tb-live" id="tb-live-btn" style="display:none" onclick="mbToggleLivePop(event,'all')" aria-expanded="false" aria-controls="tb-chip-pop" aria-label="Şu an" data-tr-aria="Şu an" data-de-aria="Gerade">
@@ -348,8 +344,9 @@
 <div class="sb-footer">
 <div class="sb-mascot-anchor" id="sb-mascot-anchor" aria-hidden="true"></div>
 <div class="sb-foot-main">
+<div id="sb-person-pop" class="sb-person-pop" hidden></div>
 <div id="sb-nav-empty" class="sb-nav-empty" hidden data-tr="Eşleşme yok" data-de="Kein Treffer">Eşleşme yok</div>
-<input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa ara" data-de="Seite suchen" placeholder="Sayfa ara" autocomplete="off" spellcheck="false" oninput="mbFilterNav(this.value)" onkeydown="mbNavSearchKey(event)">
+<input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)">
 <div class="sb-ver">MontBlanc v__MB_VERSION__</div>
 </div>
 </div>

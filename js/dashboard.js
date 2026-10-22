@@ -1405,8 +1405,8 @@ async function populateDashAgentSelect() {
   wrap.style.display = '';
   const prev = sel.value;
   if (mbIsSuperAdmin() && !getActiveFirmId()) {
-    sel.innerHTML = `<option value="">${t('ui.select_firm_first')}</option>`;
-    sel.disabled = true;
+    sel.disabled = false;
+    sel.innerHTML = `<option value="">${t('ui.all_agents')}</option>`;
     return;
   }
   sel.disabled = false;

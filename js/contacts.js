@@ -914,6 +914,7 @@ async function deduplicateContacts(contacts, mode, campaignId) {
 
 let _personTimer = 0;
 let _personSeq = 0;
+let _personWait = false;
 
 function mbPersonSay(key, fallback) {
   const msg = typeof t === 'function' ? t(key) : fallback;
@@ -922,36 +923,48 @@ function mbPersonSay(key, fallback) {
 
 function mbPersonFirmId() {
   const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : '';
-  return /^[0-9a-f-]{36}$/i.test(String(fid || '')) ? String(fid) : '';
+  if (/^[0-9a-f-]{36}$/i.test(String(fid || ''))) return String(fid);
+  if (typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin()) return '*';
+  return '';
 }
 
 function mbPersonClose() {
   clearTimeout(_personTimer);
+  _personWait = false;
   _personSeq += 1;
-  const pop = document.getElementById('tb-person-pop');
+  const pop = document.getElementById('sb-person-pop');
   if (!pop) return;
   pop.hidden = true;
   pop.innerHTML = '';
+  if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
 }
 
 function mbPersonPlace() {
-  const input = document.getElementById('tb-person-q');
-  const pop = document.getElementById('tb-person-pop');
+  const input = document.getElementById('sb-nav-search');
+  const pop = document.getElementById('sb-person-pop');
+  const sb = document.getElementById('sidebar');
   if (!input || !pop || pop.hidden) return;
+  if (sb?.classList.contains('collapsed') || input.offsetParent === null) {
+    pop.hidden = true;
+    return;
+  }
   const r = input.getBoundingClientRect();
-  const width = Math.min(340, Math.max(220, window.innerWidth - 16));
+  const width = Math.min(300, Math.max(220, r.width));
   const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
-  pop.style.top = `${Math.round(r.bottom + 6)}px`;
-  pop.style.left = `${Math.round(left)}px`;
   pop.style.width = `${Math.round(width)}px`;
+  pop.style.left = `${Math.round(left)}px`;
+  const height = pop.offsetHeight || 160;
+  const above = r.top - 6 - height;
+  pop.style.top = `${Math.round(above >= 8 ? above : r.bottom + 6)}px`;
 }
 
 function mbPersonPaint(html) {
-  const pop = document.getElementById('tb-person-pop');
+  const pop = document.getElementById('sb-person-pop');
   if (!pop) return;
   pop.hidden = false;
   pop.innerHTML = html;
   mbPersonPlace();
+  if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
 }
 
 function mbPersonBusy() {
@@ -969,44 +982,36 @@ function mbPersonBusy() {
 
 function mbPersonSearchInput(raw) {
   clearTimeout(_personTimer);
+  _personWait = false;
   const q = String(raw || '').trim();
   if (q.length < 2) {
-    mbPersonClose();
+    const pop = document.getElementById('sb-person-pop');
+    if (pop) { pop.hidden = true; pop.innerHTML = ''; }
+    _personSeq += 1;
+    if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
     return;
   }
+  _personWait = true;
   _personTimer = setTimeout(() => { mbPersonRun(q); }, 280);
-}
-
-function mbPersonSearchKey(e) {
-  if (e.key === 'Escape') {
-    e.preventDefault();
-    const input = document.getElementById('tb-person-q');
-    if (input) input.value = '';
-    mbPersonClose();
-    return;
-  }
-  if (e.key !== 'Enter') return;
-  e.preventDefault();
-  const first = document.querySelector('#tb-person-pop [data-person-id]');
-  if (first) mbOpenPerson(first.getAttribute('data-person-id'));
+  if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
 }
 
 async function mbPersonRun(raw) {
   const q = String(raw || '').trim();
-  const inputNow = String(document.getElementById('tb-person-q')?.value || '').trim();
-  if (q.length < 2 || q !== inputNow) return;
-  const seq = ++_personSeq;
-  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
-  const note = `<div class="tb-person-note">${esc(mbPersonSay('find.hint', 'Aramaz. Sadece kişinin kartını açar.'))}</div>`;
-  const fid = mbPersonFirmId();
-  if (!fid) {
-    if (seq !== _personSeq) return;
-    mbPersonPaint(`<div class="tb-person-hint">${esc(mbPersonSay('find.need_firm', 'Önce bir firma seç'))}</div>${note}`);
+  const inputNow = String(document.getElementById('sb-nav-search')?.value || '').trim();
+  if (q.length < 2 || q !== inputNow) {
+    _personWait = false;
+    if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
     return;
   }
+  const seq = ++_personSeq;
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const note = `<div class="sb-person-note">${esc(mbPersonSay('find.hint', 'Aramaz. Sadece kişinin kartını açar.'))}</div>`;
+  const fid = mbPersonFirmId();
   const clean = q.replace(/[%*,()\\]/g, ' ').replace(/\s+/g, ' ').trim();
-  if (clean.length < 2) {
-    mbPersonPaint(`<div class="tb-person-hint">${esc(mbPersonSay('find.empty', 'Kayıt yok'))}</div>${note}`);
+  if (!fid || clean.length < 2) {
+    _personWait = false;
+    mbPersonClose();
     return;
   }
   const star = `*${encodeURIComponent(clean)}*`;
@@ -1016,24 +1021,32 @@ async function mbPersonRun(raw) {
     const dstar = `*${encodeURIComponent(digits)}*`;
     parts.push(`phone.ilike.${dstar}`, `phone2.ilike.${dstar}`);
   }
+  const firmQ = fid === '*' ? '' : `firm_id=eq.${fid}&`;
   let rows = [];
   try {
-    const got = await sb(`contacts?firm_id=eq.${fid}&or=(${parts.join(',')})&select=id,first_name,last_name,phone,city&limit=8`);
+    const got = await sb(`contacts?${firmQ}or=(${parts.join(',')})&select=id,first_name,last_name,phone,city,firm_id&limit=8`);
     rows = Array.isArray(got) ? got : [];
   } catch (e) {
     rows = [];
   }
+  _personWait = false;
   if (seq !== _personSeq) return;
   if (!rows.length) {
-    mbPersonPaint(`<div class="tb-person-hint">${esc(mbPersonSay('find.empty', 'Kayıt yok'))}</div>${note}`);
+    const pop = document.getElementById('sb-person-pop');
+    if (pop) { pop.hidden = true; pop.innerHTML = ''; }
+    if (typeof mbNavRefreshEmpty === 'function') mbNavRefreshEmpty();
     return;
   }
   const open = esc(mbPersonSay('find.open', 'Aç'));
   const html = rows.map((r) => {
     const name = [r.first_name, r.last_name].filter(Boolean).join(' ').trim() || '—';
-    const meta = [r.city, r.phone].filter(Boolean).join(' · ');
+    let firm = '';
+    if (fid === '*' && typeof _allFirms !== 'undefined') {
+      firm = (_allFirms || []).find((f) => String(f.id) === String(r.firm_id))?.name || '';
+    }
+    const meta = [firm, r.city, r.phone].filter(Boolean).join(' · ');
     const id = esc(r.id);
-    return `<button type="button" class="tb-person-row" data-person-id="${id}"><span class="tb-person-name">${esc(name)}</span><span class="tb-person-meta">${esc(meta)}</span><span class="tb-person-open">${open}</span></button>`;
+    return `<button type="button" class="sb-person-row" data-person-id="${id}"><span class="sb-person-name">${esc(name)}</span><span class="sb-person-meta">${esc(meta)}</span><span class="sb-person-open">${open}</span></button>`;
   }).join('') + note;
   mbPersonPaint(html);
 }
@@ -1065,18 +1078,18 @@ async function mbOpenPerson(id) {
   if (typeof showCustomerCard === 'function') showCustomerCard(contact);
   if (typeof switchContactTab === 'function') switchContactTab('info');
   if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
-  const q = document.getElementById('tb-person-q');
-  if (q) q.value = '';
+  if (typeof mbClearNavSearch === 'function') mbClearNavSearch();
   toast(mbPersonSay('dial.wv_opened', 'Kişi kartı açıldı. Aramak için Ara’ya bas.'), 'ok', 2400);
 }
 
 document.addEventListener('click', (e) => {
-  const host = document.getElementById('tb-person');
-  if (!host || host.contains(e.target)) return;
-  const pop = document.getElementById('tb-person-pop');
-  if (pop && !pop.hidden) mbPersonClose();
+  const pop = document.getElementById('sb-person-pop');
+  const input = document.getElementById('sb-nav-search');
+  if (!pop || pop.hidden) return;
+  if (pop.contains(e.target) || input?.contains(e.target)) return;
+  mbPersonClose();
 });
-document.getElementById('tb-person-pop')?.addEventListener('click', (e) => {
+document.getElementById('sb-person-pop')?.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-person-id]');
   if (!btn) return;
   e.preventDefault();
