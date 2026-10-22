@@ -888,12 +888,24 @@ button.tb-pill.pill-camp {
   line-height: 1;
 }
 .ops-camp-name {
+  flex: 1;
   font-size: 13px;
   font-weight: 700;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.ops-camp-name.is-slide { text-overflow: clip; }
+.ops-camp-name.is-slide > i {
+  display: inline-block;
+  font-style: normal;
+  font-weight: inherit;
+  white-space: nowrap;
+  animation: mbNameSlide ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ops-camp-name.is-slide > i { animation: none; }
 }
 .ops-camp-state {
   margin-left: auto;

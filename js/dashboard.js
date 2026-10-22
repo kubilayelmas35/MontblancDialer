@@ -38,7 +38,6 @@ window._tbCampNames = {};
   window._tbCampNames[camp.id] = camp.name || '';
   if (typeof _opsCampNames !== 'undefined' && camp.id) _opsCampNames[camp.id] = camp.name || '';
 });
-document.getElementById('pill-camp').textContent = cs.length;
 if (typeof opsPaintCampPill === 'function') opsPaintCampPill();
 document.getElementById('sb-badge-camp').textContent = cs.length;
 } catch(e){}
