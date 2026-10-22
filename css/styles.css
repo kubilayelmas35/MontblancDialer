@@ -442,6 +442,60 @@ button.tb-res.is-open { box-shadow: inset 0 0 0 2px var(--accent); }
   background: var(--bg-2); border: 1px solid var(--border); border-radius: 18px;
   box-shadow: 0 18px 44px rgba(15, 23, 42, .16);
 }
+.tb-res-panel.is-team {
+  width: min(460px, calc(100vw - 16px));
+  max-height: min(78vh, 640px);
+  overflow: auto;
+  padding: 12px;
+}
+.tb-res-kicker {
+  margin: 12px 2px 6px;
+  font-size: 11px; font-weight: 800; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--text-3);
+}
+.tb-res-day { display: block; margin-top: 2px; font-size: 11px; font-weight: 700; color: var(--text-3); }
+.tb-res-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tb-res-table-wrap {
+  overflow: auto; max-height: 240px; margin-top: 12px;
+  border: 1px solid var(--border); border-radius: 12px; background: var(--bg-2);
+}
+.tb-res-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tb-res-table th, .tb-res-table td {
+  padding: 7px 8px; text-align: right; white-space: nowrap;
+  font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--border);
+}
+.tb-res-table th:first-child, .tb-res-table td:first-child {
+  text-align: left; position: sticky; left: 0; background: var(--bg-2); max-width: 140px;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.tb-res-table thead th {
+  position: sticky; top: 0; z-index: 1; background: var(--bg-3);
+  font-size: 10px; font-weight: 800; color: var(--text-3);
+}
+.tb-res-table thead th:first-child { z-index: 2; }
+.tb-res-table tfoot td { font-weight: 800; background: var(--bg-3); border-bottom: 0; }
+.tb-res-table td.is-zero { color: var(--text-3); font-weight: 600; }
+.tb-res-dot {
+  width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+  background: var(--c, var(--text-3)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c, #64748b) 18%, transparent);
+}
+.tb-res-table td.tb-res-empty {
+  position: static; max-width: none; text-align: center;
+  padding: 16px 8px; color: var(--text-3); font-size: 12px; font-weight: 700;
+}
+.tb-res-month { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.tb-res-month div {
+  min-width: 0; padding: 8px 8px 7px; border-radius: 12px;
+  background: color-mix(in srgb, var(--c, #64748b) 12%, var(--bg-3));
+}
+.tb-res-month b {
+  display: block; font-size: 16px; font-weight: 800; line-height: 1.1;
+  font-variant-numeric: tabular-nums; color: var(--ink, var(--text));
+}
+.tb-res-month span {
+  display: block; margin-top: 3px; font-size: 11px; font-weight: 700; color: var(--text-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .tb-res-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 2px 4px 8px; font-size: 12px; font-weight: 800; color: var(--text);
