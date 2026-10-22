@@ -743,7 +743,7 @@ async function showContactMap(address, plz, city) {
     container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--red);font-size:12px;">${escapeHtml(e?.message || 'Map error')}</div>`;
     return;
   }
-  container.innerHTML = '<div id="contact-map-canvas" style="width:100%;height:100%;min-height:460px;"></div>';
+  container.innerHTML = '<div id="contact-map-canvas"></div>';
   _buildContactMapToolbar(container);
   const mapEl = document.getElementById('contact-map-canvas');
   if (!mapEl) return;
@@ -774,5 +774,15 @@ async function showContactMap(address, plz, city) {
       if (_contactMapMarker) _contactMapMarker.setMap(null);
       _contactMapMarker = new google.maps.Marker({ map: _contactMap, position: loc, title: q || 'Konum' });
     }
+    mbFitContactMap();
+  });
+  mbFitContactMap();
+}
+
+function mbFitContactMap() {
+  const map = _contactMap;
+  if (!map || !window.google?.maps?.event) return;
+  requestAnimationFrame(() => {
+    google.maps.event.trigger(map, 'resize');
   });
 }

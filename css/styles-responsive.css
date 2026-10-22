@@ -216,7 +216,6 @@
   #page-dialer #dialer-page-hdr:not(.is-collapsed) .dialer-fold-chevron,
   #page-dialer #agent-camps-panel:not(.is-collapsed) .dialer-fold-chevron,
   #page-dialer #daily-goal-bar:not(.is-collapsed) .dialer-fold-chevron { transform: rotate(90deg); }
-  #page-dialer #hotkey-hints { display: none !important; }
   #page-dialer #daily-goal-bar.is-collapsed { padding: 0 10px !important; margin-bottom: 0; }
   #page-dialer #daily-goal-bar.is-collapsed .daily-goal-body { display: none !important; }
   #page-dialer #daily-goal-bar .daily-goal-fold-meta {

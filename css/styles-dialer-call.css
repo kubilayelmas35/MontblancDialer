@@ -446,7 +446,13 @@ box-shadow:0 4px 20px #16a34a30;
   cursor: pointer;
 }
 #dialer-reliability-card.is-collapsed { padding: 8px 12px; }
-#dialer-reliability-card.is-collapsed #dialer-health-checks { display: none; }
+#dialer-reliability-card.is-collapsed #dialer-health-checks,
+#dialer-reliability-card.is-collapsed #hotkey-hints { display: none; }
+#dialer-reliability-card #hotkey-hints {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
 .dialer-health-chevron {
   width: 0;
   height: 0;

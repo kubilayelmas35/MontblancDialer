@@ -545,7 +545,10 @@ function switchContactTab(tab) {
   });
   const dock = document.getElementById('outcome-dock');
   if (dock) dock.hidden = tab !== 'outcome';
-  if (tab==='map' && currentContact) showContactMap(currentContact.address, currentContact.plz, currentContact.city);
+  if (tab==='map' && currentContact) {
+    showContactMap(currentContact.address, currentContact.plz, currentContact.city);
+    if (typeof mbFitContactMap === 'function') mbFitContactMap();
+  }
   if (tab==='history' && currentContact) loadContactHistory(currentContact.id);
   if (tab==='file' && currentContact) updateContactFileHint();
   if (tab==='outcome' && typeof paintDialerOutcomes === 'function') paintDialerOutcomes();

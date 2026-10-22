@@ -1418,7 +1418,7 @@ TEST MODU
 </div>
 <div class="dialer-layout">
 <div class="dialer-main">
-<div id="daily-goal-bar" class="is-collapsed" style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:4px;display:none;">
+<div id="daily-goal-bar" class="is-collapsed" style="display:none;">
 <button type="button" class="dialer-fold-toggle" onclick="toggleDialerFold('goal')" aria-expanded="false">
 <span class="dialer-fold-chevron" aria-hidden="true"></span>
 <span id="goal-fold-label" data-tr="Günlük Hedef" data-de="Tagesziel">Günlük Hedef</span>
@@ -1439,7 +1439,6 @@ TEST MODU
 </div>
 </div>
 </div>
-<div id="hotkey-hints" style="margin-bottom:6px;"></div>
 <div id="dialer-queue-chip" class="dialer-queue-chip" hidden>
 <span class="dialer-queue-chip__k" data-tr="Sıradaki" data-de="Als Nächstes">Sıradaki</span>
 <span id="dialer-queue-chip-name"></span>
@@ -1550,8 +1549,8 @@ TEST MODU
 <div id="camp-script-box" style="display:none;margin:8px 0;padding:10px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;"></div>
 <div id="camp-rules-box" style="display:none;margin:8px 0;padding:10px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;"></div>
 </div>
-<div id="ctab-map-panel" style="display:none;margin:-10px -8px -8px;">
-<div id="contact-map-container" style="position:relative;height:280px;min-height:220px;max-height:320px;background:var(--bg-3);border-radius:var(--radius-sm);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:12px;">
+<div id="ctab-map-panel" class="ctab-map-panel" style="display:none;">
+<div id="contact-map-container" class="contact-map-frame">
 <span data-tr="Müşteri seçilince harita gösterilecek" data-de="Karte erscheint nach Kundenauswahl">Müşteri seçilince harita gösterilecek</span>
 </div>
 </div>
@@ -1710,6 +1709,7 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <span id="dialer-health-code">DIAL-INIT</span>
 </button>
 <div id="dialer-health-checks"></div>
+<div id="hotkey-hints"></div>
 </div>
 <div id="camp-required-notice">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
