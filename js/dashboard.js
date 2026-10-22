@@ -1129,11 +1129,132 @@ function _dashLogFilter() {
 window._dashRange = window._dashRange || 'today';
 
 function setDashRange(r) {
-  window._dashRange = r;
-  document.querySelectorAll('.dash-range-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.dashRange === r);
-  });
+  mbCommitReportRange({ mode: r });
   loadDashboard();
+}
+
+let _mbRangeApplying = false;
+
+function mbReadReportRange() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('mb_report_range') || 'null');
+    if (!raw || typeof raw !== 'object') return null;
+    const mode = String(raw.mode || '');
+    if (!['today', 'week', 'month', 'year', 'all', 'custom'].includes(mode)) return null;
+    return { mode, from: String(raw.from || ''), to: String(raw.to || '') };
+  } catch (e) {
+    return null;
+  }
+}
+
+function mbReportToday() {
+  return typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
+}
+
+function mbReportBounds(mode, from, to) {
+  const today = mbReportToday();
+  if (mode === 'today') return { from: today, to: today };
+  if (mode === 'week') {
+    const start = typeof statsMonday === 'function' ? statsMonday(today) : today;
+    const end = typeof mbShiftDate === 'function' ? mbShiftDate(start, 6) : today;
+    return { from: start, to: end };
+  }
+  if (mode === 'month') return { from: `${String(today).slice(0, 8)}01`, to: today };
+  if (mode === 'year') return { from: `${String(today).slice(0, 4)}-01-01`, to: today };
+  if (mode === 'all') return { from: '2000-01-01', to: today };
+  const a = String(from || '');
+  const b = String(to || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(a) || !/^\d{4}-\d{2}-\d{2}$/.test(b)) return null;
+  return a <= b ? { from: a, to: b } : { from: b, to: a };
+}
+
+function mbPaintReportRange(rec) {
+  if (!rec || _mbRangeApplying) return;
+  _mbRangeApplying = true;
+  try {
+    const mode = rec.mode;
+    const bounds = mbReportBounds(mode, rec.from, rec.to);
+    if (['today', 'week', 'month', 'all'].includes(mode)) {
+      window._dashRange = mode;
+      document.querySelectorAll('.dash-range-btn').forEach((b) => {
+        b.classList.toggle('active', b.dataset.dashRange === mode);
+      });
+    }
+    const stats = document.getElementById('stats-date-f');
+    if (stats && [...stats.options].some((o) => o.value === mode)) stats.value = mode;
+    if (typeof toggleCustomDateRange === 'function') toggleCustomDateRange();
+    if (mode === 'custom' && bounds) {
+      const sf = document.getElementById('stats-date-from');
+      const st = document.getElementById('stats-date-to');
+      if (sf) sf.value = bounds.from;
+      if (st) st.value = bounds.to;
+    }
+    const ch = document.getElementById('ch-date-f');
+    if (ch && ['today', 'week', 'month'].includes(mode)) ch.value = mode;
+    else if (ch && (mode === 'custom' || mode === 'year')) ch.value = 'custom';
+    if (typeof toggleCallHistoryRange === 'function') toggleCallHistoryRange();
+    if ((mode === 'custom' || mode === 'year') && bounds) {
+      const cf = document.getElementById('ch-date-from');
+      const ct = document.getElementById('ch-date-to');
+      if (cf) cf.value = bounds.from;
+      if (ct) ct.value = bounds.to;
+    }
+    if (bounds && mode !== 'all') {
+      const ef = document.getElementById('et-date-from');
+      const et = document.getElementById('et-date-to');
+      if (ef) ef.value = bounds.from;
+      if (et) et.value = bounds.to;
+    }
+  } finally {
+    _mbRangeApplying = false;
+  }
+}
+
+function mbCommitReportRange(rec) {
+  if (_mbRangeApplying) return;
+  const mode = String(rec?.mode || 'today');
+  const bounds = mbReportBounds(mode, rec?.from, rec?.to) || { from: '', to: '' };
+  const next = { mode, from: bounds.from, to: bounds.to };
+  try { localStorage.setItem('mb_report_range', JSON.stringify(next)); } catch (e) {}
+  mbPaintReportRange(next);
+}
+
+function mbStatsRangeChanged() {
+  if (_mbRangeApplying) return;
+  const mode = document.getElementById('stats-date-f')?.value || 'today';
+  if (mode === 'custom') {
+    mbCommitReportRange({
+      mode,
+      from: document.getElementById('stats-date-from')?.value,
+      to: document.getElementById('stats-date-to')?.value,
+    });
+  } else mbCommitReportRange({ mode });
+  if (typeof toggleCustomDateRange === 'function') toggleCustomDateRange();
+  if (typeof loadStats === 'function') loadStats();
+}
+
+function mbCallHistRangeChanged() {
+  if (_mbRangeApplying) return;
+  const mode = document.getElementById('ch-date-f')?.value || 'week';
+  if (mode === 'custom') {
+    mbCommitReportRange({
+      mode,
+      from: document.getElementById('ch-date-from')?.value,
+      to: document.getElementById('ch-date-to')?.value,
+    });
+  } else mbCommitReportRange({ mode });
+  if (typeof toggleCallHistoryRange === 'function') toggleCallHistoryRange();
+  if (typeof loadCallHistory === 'function') loadCallHistory();
+}
+
+function mbExportRangeChanged() {
+  if (_mbRangeApplying) return;
+  mbCommitReportRange({
+    mode: 'custom',
+    from: document.getElementById('et-date-from')?.value,
+    to: document.getElementById('et-date-to')?.value,
+  });
+  if (typeof etReload === 'function') etReload();
 }
 
 function _dashGetRange() {
@@ -1763,6 +1884,8 @@ function mbInitDashRows() {
 }
 
 async function loadDashboard() {
+const storedRange = typeof mbReadReportRange === 'function' ? mbReadReportRange() : null;
+if (storedRange && ['today', 'week', 'month', 'all'].includes(storedRange.mode)) mbPaintReportRange(storedRange);
 mbInitDashRows();
 mbApplyDashRowOrder();
 const dashRole = typeof mbDashRole === 'function' ? mbDashRole() : 'agent';
@@ -2951,6 +3074,8 @@ return `<tr>
 }
 
 function initStatsFilters() {
+const storedRange = typeof mbReadReportRange === 'function' ? mbReadReportRange() : null;
+if (storedRange) mbPaintReportRange(storedRange);
 const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
 const from = document.getElementById('stats-date-from');
 const to   = document.getElementById('stats-date-to');
@@ -2961,6 +3086,8 @@ toggleCustomDateRange();
 
 
 function initCallHistoryFilters() {
+  const storedRange = typeof mbReadReportRange === 'function' ? mbReadReportRange() : null;
+  if (storedRange) mbPaintReportRange(storedRange);
   const sel = document.getElementById('ch-date-f');
   if (sel && !sel.value) sel.value = 'week';
   toggleCallHistoryRange();

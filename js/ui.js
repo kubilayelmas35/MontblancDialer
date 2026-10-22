@@ -160,6 +160,7 @@ if (typeof toggleTeamChat === 'function') toggleTeamChat(false);
 if (typeof mbSyncInboundStrip === 'function') mbSyncInboundStrip();
 if (typeof mbRefreshOpenBadge === 'function') mbRefreshOpenBadge(false);
 if (typeof mbClearNavSearch === 'function') mbClearNavSearch();
+if (typeof mbPersonClose === 'function') mbPersonClose();
 try {
   localStorage.setItem('mb_last_page', page);
   if (page === 'stats' && window._statsReport) localStorage.setItem('mb_last_report', window._statsReport);

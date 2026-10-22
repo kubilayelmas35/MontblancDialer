@@ -132,6 +132,7 @@
   }
   .tb-right::-webkit-scrollbar { height: 0; display: none; }
   .tb-mascot-anchor { display: none !important; }
+  .tb-person { flex-basis: 124px; width: 124px; min-width: 96px; }
   .tb-user { padding: 0; gap: 0; }
   #tb-mesai-label { display: none !important; }
   .tb-icon-btn.tb-mesai,

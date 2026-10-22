@@ -231,8 +231,14 @@ function mbNavSearchKey(e) {
   if (e.key === 'Escape') {
     e.preventDefault();
     const input = document.getElementById('sb-nav-search');
-    if (input) input.value = '';
-    mbFilterNav('');
+    const had = String(input?.value || '').trim();
+    if (had) {
+      if (input) input.value = '';
+      mbFilterNav('');
+      return;
+    }
+    input?.blur();
+    if (window.innerWidth <= 1024 && typeof closeSidebar === 'function') closeSidebar();
     return;
   }
   if (e.key !== 'Enter') return;
@@ -249,6 +255,35 @@ function mbClearNavSearch() {
   if (input && input.value) input.value = '';
   if (document.getElementById('sidebar')?.classList.contains('is-nav-search')) mbFilterNav('');
 }
+
+function mbFocusNavSearch() {
+  const sb = document.getElementById('sidebar');
+  if (!sb) return;
+  if (window.innerWidth <= 1024) {
+    sb.classList.add('open');
+    document.getElementById('sidebar-overlay')?.classList.add('show');
+  } else if (sb.classList.contains('collapsed')) {
+    sb.classList.remove('collapsed');
+  }
+  if (typeof mbPersonClose === 'function') mbPersonClose();
+  const input = document.getElementById('sb-nav-search');
+  if (input) {
+    input.focus();
+    input.select();
+  }
+  if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  if (String(e.key || '').toLowerCase() !== 'k') return;
+  const tag = String(e.target?.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target?.isContentEditable) {
+    if (e.target?.id !== 'sb-nav-search' && e.target?.id !== 'tb-person-q') return;
+  }
+  e.preventDefault();
+  mbFocusNavSearch();
+});
 
 function mbBootPage() {
   const home = typeof mbHomePage === 'function' ? mbHomePage(currentUser?.role) : 'dashboard';

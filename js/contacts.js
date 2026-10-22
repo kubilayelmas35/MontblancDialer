@@ -911,3 +911,175 @@ async function deduplicateContacts(contacts, mode, campaignId) {
   const filtered = classified.accepted.filter((c) => !existing.has(c.phone));
   return { filtered, dupCount: contacts.length - filtered.length, existingPhones: existing };
 }
+
+let _personTimer = 0;
+let _personSeq = 0;
+
+function mbPersonSay(key, fallback) {
+  const msg = typeof t === 'function' ? t(key) : fallback;
+  return msg && msg !== key ? msg : fallback;
+}
+
+function mbPersonFirmId() {
+  const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : '';
+  return /^[0-9a-f-]{36}$/i.test(String(fid || '')) ? String(fid) : '';
+}
+
+function mbPersonClose() {
+  clearTimeout(_personTimer);
+  _personSeq += 1;
+  const pop = document.getElementById('tb-person-pop');
+  if (!pop) return;
+  pop.hidden = true;
+  pop.innerHTML = '';
+}
+
+function mbPersonPlace() {
+  const input = document.getElementById('tb-person-q');
+  const pop = document.getElementById('tb-person-pop');
+  if (!input || !pop || pop.hidden) return;
+  const r = input.getBoundingClientRect();
+  const width = Math.min(340, Math.max(220, window.innerWidth - 16));
+  const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
+  pop.style.top = `${Math.round(r.bottom + 6)}px`;
+  pop.style.left = `${Math.round(left)}px`;
+  pop.style.width = `${Math.round(width)}px`;
+}
+
+function mbPersonPaint(html) {
+  const pop = document.getElementById('tb-person-pop');
+  if (!pop) return;
+  pop.hidden = false;
+  pop.innerHTML = html;
+  mbPersonPlace();
+}
+
+function mbPersonBusy() {
+  const live = typeof _callLineIsLive === 'function' && _callLineIsLive();
+  const hopper = typeof _hopper !== 'undefined' && _hopper.some((r) => r && (r.phase === 'dialing' || r.phase === 'ringing'));
+  return live
+    || dialerStatus === 'on_call'
+    || dialerStatus === 'calling'
+    || dialerStatus === 'wrapping'
+    || !!_outboundDialPending
+    || !!_telnyxCall
+    || !!_fakeCallActive
+    || hopper;
+}
+
+function mbPersonSearchInput(raw) {
+  clearTimeout(_personTimer);
+  const q = String(raw || '').trim();
+  if (q.length < 2) {
+    mbPersonClose();
+    return;
+  }
+  _personTimer = setTimeout(() => { mbPersonRun(q); }, 280);
+}
+
+function mbPersonSearchKey(e) {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    const input = document.getElementById('tb-person-q');
+    if (input) input.value = '';
+    mbPersonClose();
+    return;
+  }
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const first = document.querySelector('#tb-person-pop [data-person-id]');
+  if (first) mbOpenPerson(first.getAttribute('data-person-id'));
+}
+
+async function mbPersonRun(raw) {
+  const q = String(raw || '').trim();
+  const inputNow = String(document.getElementById('tb-person-q')?.value || '').trim();
+  if (q.length < 2 || q !== inputNow) return;
+  const seq = ++_personSeq;
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const note = `<div class="tb-person-note">${esc(mbPersonSay('find.hint', 'Aramaz. Sadece kişinin kartını açar.'))}</div>`;
+  const fid = mbPersonFirmId();
+  if (!fid) {
+    if (seq !== _personSeq) return;
+    mbPersonPaint(`<div class="tb-person-hint">${esc(mbPersonSay('find.need_firm', 'Önce bir firma seç'))}</div>${note}`);
+    return;
+  }
+  const clean = q.replace(/[%*,()\\]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (clean.length < 2) {
+    mbPersonPaint(`<div class="tb-person-hint">${esc(mbPersonSay('find.empty', 'Kayıt yok'))}</div>${note}`);
+    return;
+  }
+  const star = `*${encodeURIComponent(clean)}*`;
+  const parts = ['first_name', 'last_name', 'phone', 'phone2', 'city'].map((f) => `${f}.ilike.${star}`);
+  const digits = clean.replace(/\D/g, '');
+  if (digits.length >= 3 && digits !== clean) {
+    const dstar = `*${encodeURIComponent(digits)}*`;
+    parts.push(`phone.ilike.${dstar}`, `phone2.ilike.${dstar}`);
+  }
+  let rows = [];
+  try {
+    const got = await sb(`contacts?firm_id=eq.${fid}&or=(${parts.join(',')})&select=id,first_name,last_name,phone,city&limit=8`);
+    rows = Array.isArray(got) ? got : [];
+  } catch (e) {
+    rows = [];
+  }
+  if (seq !== _personSeq) return;
+  if (!rows.length) {
+    mbPersonPaint(`<div class="tb-person-hint">${esc(mbPersonSay('find.empty', 'Kayıt yok'))}</div>${note}`);
+    return;
+  }
+  const open = esc(mbPersonSay('find.open', 'Aç'));
+  const html = rows.map((r) => {
+    const name = [r.first_name, r.last_name].filter(Boolean).join(' ').trim() || '—';
+    const meta = [r.city, r.phone].filter(Boolean).join(' · ');
+    const id = esc(r.id);
+    return `<button type="button" class="tb-person-row" data-person-id="${id}"><span class="tb-person-name">${esc(name)}</span><span class="tb-person-meta">${esc(meta)}</span><span class="tb-person-open">${open}</span></button>`;
+  }).join('') + note;
+  mbPersonPaint(html);
+}
+
+async function mbOpenPerson(id) {
+  const pid = String(id || '');
+  if (!/^[0-9a-f-]{36}$/i.test(pid)) return;
+  if (mbPersonBusy()) {
+    toast(mbPersonSay('dial.preview_busy', 'Süren arama var. Önce onu bitir.'), 'err', 2400);
+    return;
+  }
+  mbPersonClose();
+  let contact = null;
+  try {
+    const found = await sb(`contacts?id=eq.${pid}&select=*,queues(name,status)&limit=1`);
+    contact = Array.isArray(found) ? found[0] : null;
+  } catch (e) {
+    contact = null;
+  }
+  if (!contact) return;
+  if (mbPersonBusy()) {
+    toast(mbPersonSay('dial.preview_busy', 'Süren arama var. Önce onu bitir.'), 'err', 2400);
+    return;
+  }
+  window._mbDialerPreview = true;
+  currentContact = contact;
+  const onDialer = document.getElementById('page-dialer')?.classList.contains('active');
+  if (!onDialer && typeof navigate === 'function') navigate('dialer');
+  if (typeof showCustomerCard === 'function') showCustomerCard(contact);
+  if (typeof switchContactTab === 'function') switchContactTab('info');
+  if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
+  const q = document.getElementById('tb-person-q');
+  if (q) q.value = '';
+  toast(mbPersonSay('dial.wv_opened', 'Kişi kartı açıldı. Aramak için Ara’ya bas.'), 'ok', 2400);
+}
+
+document.addEventListener('click', (e) => {
+  const host = document.getElementById('tb-person');
+  if (!host || host.contains(e.target)) return;
+  const pop = document.getElementById('tb-person-pop');
+  if (pop && !pop.hidden) mbPersonClose();
+});
+document.getElementById('tb-person-pop')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-person-id]');
+  if (!btn) return;
+  e.preventDefault();
+  mbOpenPerson(btn.getAttribute('data-person-id'));
+});
+window.addEventListener('resize', () => { if (typeof mbPersonPlace === 'function') mbPersonPlace(); });

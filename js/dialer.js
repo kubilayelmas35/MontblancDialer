@@ -190,6 +190,11 @@ async function initDialer() {
   }
   if (typeof applyMascotTheme === 'function') applyMascotTheme();
   syncCustomerCardEmptyVisual();
+  if (window._mbDialerPreview && currentContact && typeof showCustomerCard === 'function') {
+    showCustomerCard(currentContact);
+    if (typeof switchContactTab === 'function') switchContactTab('info');
+    if (typeof forceDialerPreCallBar === 'function') forceDialerPreCallBar();
+  }
   if (typeof syncGlobalMascotDock === 'function') {
     syncGlobalMascotDock();
     requestAnimationFrame(() => {
