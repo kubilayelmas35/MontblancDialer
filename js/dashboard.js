@@ -372,7 +372,7 @@ function mbToggleResPop(ev, key) {
   const chip = safe ? document.querySelector(`#tb-results .tb-res[data-res="${safe}"]`) : null;
   const panel = document.getElementById('tb-res-panel');
   if (panel) panel.hidden = true;
-  mbOpenChip(ev, { kind: 'res', key: safe, anchor: fromPanel ? chip : null });
+  mbOpenChip(ev, { kind: 'res', key: safe, anchor: fromPanel ? chip : null, fromTeam: fromPanel });
 }
 
 function mbPlaceResPanel() {
@@ -514,7 +514,8 @@ function mbFillLivePop(pop, status) {
 }
 
 function mbFillResPop(pop, key) {
-  const rows = (window._tbApptRows || []).filter((row) => !key || (typeof _normResultKey === 'function' ? _normResultKey(row.durum) : row.durum) === key);
+  const source = window._tbChip?.fromTeam ? window._tbTeamRows : window._tbApptRows;
+  const rows = (source || []).filter((row) => !key || (typeof _normResultKey === 'function' ? _normResultKey(row.durum) : row.durum) === key);
   const def = (window._tbResDefs || []).find((item) => item.key === key);
   const title = key ? (def?.label || key) : mbChipSay('tb.res.total', 'Toplam');
   const scope = window._tbResOwn ? mbChipSay('tb.res.mine', 'Senin randevuların') : mbChipSay('tb.res.all', 'Firma toplamı');
@@ -550,12 +551,82 @@ function mbOpenChipAppt(contactId) {
   if (typeof openDialerForContact === 'function') openDialerForContact(contactId);
 }
 
-function mbResDayLabel(day) {
+function mbResDayLabel(day, mode) {
   const m = String(day || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return '';
   const dt = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12));
   const lang = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'de-DE' : 'tr-TR';
-  return new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(dt);
+  const opt = mode === 'month'
+    ? { month: 'long', year: 'numeric', timeZone: 'UTC' }
+    : { day: 'numeric', month: 'short', timeZone: 'UTC' };
+  return new Intl.DateTimeFormat(lang, opt).format(dt);
+}
+
+function mbResView() {
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
+  if (!window._tbResView) window._tbResView = { basis: 'kayit', span: 'day', anchor: today };
+  if (!window._tbResView.anchor) window._tbResView.anchor = today;
+  return window._tbResView;
+}
+
+function mbResBounds(view) {
+  const anchor = view.anchor;
+  if (view.span === 'week') {
+    const m = String(anchor).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const dt = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+    const back = dt.getUTCDay() === 0 ? 6 : dt.getUTCDay() - 1;
+    const start = typeof mbShiftDate === 'function' ? mbShiftDate(anchor, -back) : anchor;
+    const end = typeof mbShiftDate === 'function' ? mbShiftDate(start, 6) : anchor;
+    return { start, end };
+  }
+  if (view.span === 'month') {
+    const m = String(anchor).match(/^(\d{4})-(\d{2})-/);
+    if (!m) return { start: anchor, end: anchor };
+    const last = new Date(Date.UTC(Number(m[1]), Number(m[2]), 0)).getUTCDate();
+    return { start: `${m[1]}-${m[2]}-01`, end: `${m[1]}-${m[2]}-${String(last).padStart(2, '0')}` };
+  }
+  return { start: anchor, end: anchor };
+}
+
+function mbResRangeLabel(view, bounds) {
+  if (view.span === 'month') return mbResDayLabel(bounds.start, 'month');
+  if (view.span === 'week') return `${mbResDayLabel(bounds.start)} – ${mbResDayLabel(bounds.end)}`;
+  return mbResDayLabel(bounds.start);
+}
+
+function mbResShift(delta, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const view = mbResView();
+  const dir = Number(delta) < 0 ? -1 : 1;
+  if (view.span === 'month') {
+    const m = String(view.anchor).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return;
+    const dt = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1 + dir, 1));
+    const y = dt.getUTCFullYear();
+    const mo = dt.getUTCMonth();
+    const last = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate();
+    const day = Math.min(Number(m[3]), last);
+    view.anchor = `${y}-${String(mo + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  } else if (typeof mbShiftDate === 'function') {
+    view.anchor = mbShiftDate(view.anchor, dir * (view.span === 'week' ? 7 : 1));
+  }
+  void mbPaintResTeam();
+}
+
+function mbResSetSpan(span, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const view = mbResView();
+  if (!['day', 'week', 'month'].includes(span) || view.span === span) return;
+  view.span = span;
+  void mbPaintResTeam();
+}
+
+function mbResSetBasis(basis, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const view = mbResView();
+  if (!['kayit', 'termin'].includes(basis) || view.basis === basis) return;
+  view.basis = basis;
+  void mbPaintResTeam();
 }
 
 function mbResAgentName(row) {
@@ -580,34 +651,130 @@ function mbResAgentBoard(rows, pieces) {
   return [...by.values()].sort((a, b) => b.total - a.total || String(a.name).localeCompare(String(b.name), 'tr'));
 }
 
-function mbTodayTeamPanel(pieces, rows, monthRows, today) {
-  const day = mbResDayLabel(today);
-  const todayLabel = mbChipSay('tb.res.today', 'Bugün');
+function mbResSampleBoard(pieces) {
+  const grid = [
+    [6, 2, 1, 0, 1, 0],
+    [4, 3, 0, 2, 0, 1],
+    [3, 1, 2, 1, 1, 0],
+    [2, 4, 0, 0, 1, 2],
+    [1, 1, 1, 2, 0, 0],
+  ];
+  const who = mbChipSay('tb.res.sampleAgent', 'Temsilci');
+  return grid.map((counts, index) => {
+    const slot = { name: `${who} ${index + 1}`, counts: {}, total: 0 };
+    pieces.forEach((item, i) => {
+      const n = counts[i] || 0;
+      slot.counts[item.key] = n;
+      slot.total += n;
+    });
+    return slot;
+  });
+}
+
+function mbTodayTeamPanel(pieces, rows, view, bounds) {
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : '';
+  const realAgents = mbResAgentBoard(rows, pieces);
+  const sample = !realAgents.length && view.span === 'day' && view.basis === 'kayit' && view.anchor === today;
+  const agents = sample ? mbResSampleBoard(pieces) : realAgents;
+  const shown = pieces.map((item) => ({
+    ...item,
+    n: sample ? agents.reduce((sum, agent) => sum + (agent.counts[item.key] || 0), 0) : item.n,
+  }));
+  const total = shown.reduce((sum, item) => sum + (item.n || 0), 0);
+  const title = view.span === 'day' && view.anchor === today
+    ? mbChipSay('tb.res.today', 'Bugün')
+    : (view.span === 'week' ? mbChipSay('tb.res.span.week', 'Hafta') : (view.span === 'month' ? mbChipSay('tb.res.span.month', 'Ay') : mbChipSay('tb.res.span.day', 'Gün')));
   const totalLabel = mbChipSay('tb.res.total', 'Toplam');
   const agentsLabel = mbChipSay('tb.res.agents', 'Temsilciler');
-  const monthLabel = mbChipSay('tb.res.month', 'Bu ay');
-  const noneLabel = mbChipSay('tb.res.none', 'Bugün kayıt yok');
-  const metrics = pieces.map((item) => `<button type="button" class="tb-res-row" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')"><b class="tb-res-num">${item.n}</b><span>${mbChipEsc(item.label)}</span></button>`).join('');
-  const headDots = pieces.map((item) => `<th title="${mbChipEsc(item.label)}"><i class="tb-res-dot" style="--c:${item.color}"></i></th>`).join('');
-  const agents = mbResAgentBoard(rows, pieces);
+  const emptyLabel = mbChipSay('tb.res.emptyRange', 'Bu aralıkta kayıt yok');
+  const sampleLabel = mbChipSay('tb.res.sample', 'Örnek');
+  const seg = (key, on, fn, arg) => `<button type="button" class="${on ? 'is-on' : ''}" onclick="${fn}('${arg}', event)">${mbChipEsc(mbChipSay(key, arg))}</button>`;
+  const tools = `<div class="tb-res-tools"><div class="tb-res-seg">${seg('tb.res.basis.kayit', view.basis === 'kayit', 'mbResSetBasis', 'kayit')}${seg('tb.res.basis.termin', view.basis === 'termin', 'mbResSetBasis', 'termin')}</div><div class="tb-res-nav"><button type="button" class="tb-res-step" aria-label="${mbChipEsc(mbChipSay('tb.res.prev', 'Geri'))}" onclick="mbResShift(-1, event)">‹</button><div class="tb-res-seg">${seg('tb.res.span.day', view.span === 'day', 'mbResSetSpan', 'day')}${seg('tb.res.span.week', view.span === 'week', 'mbResSetSpan', 'week')}${seg('tb.res.span.month', view.span === 'month', 'mbResSetSpan', 'month')}</div><button type="button" class="tb-res-step" aria-label="${mbChipEsc(mbChipSay('tb.res.next', 'İleri'))}" onclick="mbResShift(1, event)">›</button></div></div>`;
+  const metrics = shown.map((item) => {
+    const inner = `<b class="tb-res-num">${item.n}</b><span>${mbChipEsc(item.label)}</span>`;
+    return sample
+      ? `<div class="tb-res-row" style="--c:${item.color};--ink:${item.ink}">${inner}</div>`
+      : `<button type="button" class="tb-res-row" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')">${inner}</button>`;
+  }).join('');
+  const headDots = shown.map((item) => `<th title="${mbChipEsc(item.label)}"><i class="tb-res-dot" style="--c:${item.color}"></i></th>`).join('');
   const body = agents.length ? agents.map((agent) => {
-    const cells = pieces.map((item) => {
+    const cells = shown.map((item) => {
       const n = agent.counts[item.key] || 0;
       return `<td class="${n ? '' : 'is-zero'}" style="${n ? `color:${item.ink}` : ''}">${n}</td>`;
     }).join('');
-    return `<tr><td title="${mbChipEsc(agent.name)}">${mbChipEsc(agent.name)}</td>${cells}<td>${agent.total}</td></tr>`;
-  }).join('') : `<tr><td class="tb-res-empty" colspan="${pieces.length + 2}">${mbChipEsc(noneLabel)}</td></tr>`;
-  const foot = pieces.map((item) => `<td style="color:${item.ink}">${item.n}</td>`).join('');
-  const monthNorm = (value) => (typeof _normResultKey === 'function' ? _normResultKey(value) : String(value || ''));
-  const monthCount = {};
-  pieces.forEach((item) => { monthCount[item.key] = 0; });
-  (monthRows || []).forEach((row) => {
-    const key = monthNorm(row.durum);
-    if (monthCount[key] != null) monthCount[key] += 1;
+    const rowTotal = shown.reduce((sum, item) => sum + (agent.counts[item.key] || 0), 0);
+    return `<tr><td title="${mbChipEsc(agent.name)}">${mbChipEsc(agent.name)}</td>${cells}<td>${rowTotal}</td></tr>`;
+  }).join('') : `<tr><td class="tb-res-empty" colspan="${shown.length + 2}">${mbChipEsc(emptyLabel)}</td></tr>`;
+  const foot = shown.map((item) => `<td style="color:${item.ink}">${item.n}</td>`).join('');
+  const footRow = agents.length ? `<tfoot><tr><td>${mbChipEsc(totalLabel)}</td>${foot}<td>${total}</td></tr></tfoot>` : '';
+  const badge = sample ? `<em class="tb-res-sample">${mbChipEsc(sampleLabel)}</em>` : '';
+  return `${tools}<div class="tb-res-head"><div><span>${mbChipEsc(title)}</span>${badge}<small class="tb-res-day">${mbChipEsc(mbResRangeLabel(view, bounds))}</small></div><b>${total}</b></div><div class="tb-res-metrics">${metrics}</div><div class="tb-res-table-wrap"><table class="tb-res-table"><thead><tr><th>${mbChipEsc(agentsLabel)}</th>${headDots}<th>${mbChipEsc(totalLabel)}</th></tr></thead><tbody>${body}</tbody>${footRow}</table></div>`;
+}
+
+async function mbPaintResTeam() {
+  const panel = document.getElementById('tb-res-panel');
+  const host = document.getElementById('tb-results');
+  if (!panel || !host || !currentUser) return;
+  if (!(typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin()) || currentUser.role === 'agent' || currentUser.role === 'field_agent') return;
+  const seq = (window._tbResSeq = (window._tbResSeq || 0) + 1);
+  const view = mbResView();
+  const bounds = mbResBounds(view);
+  const selected = typeof getActiveFirmId === 'function' ? getActiveFirmId() : '';
+  const fid = selected || currentUser.firm_id;
+  const ff = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
+  const defs = fid && typeof loadFirmAppointmentResults === 'function'
+    ? await loadFirmAppointmentResults(fid, false).catch(() => [])
+    : (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
+  if (seq !== window._tbResSeq) return;
+  const col = view.basis === 'termin' ? 'termin_tarih' : 'kayit_tarihi';
+  const gte = typeof mbInstantGte === 'function' ? mbInstantGte(bounds.start) : `${bounds.start}T00:00:00`;
+  const lte = typeof mbInstantLte === 'function' ? mbInstantLte(bounds.end) : `${bounds.end}T23:59:59`;
+  const limit = view.span === 'month' ? 4000 : (view.span === 'week' ? 1500 : 800);
+  const select = 'id,nachname,durum,agent_id,contact_id,termin_tarih,kayit_tarihi,users(name)';
+  const q = `appointments?select=${select}&${col}=gte.${gte}&${col}=lte.${lte}${ff}&order=${col}.desc&limit=${limit}`;
+  let rows = await sb(q).catch(() => null);
+  if (rows == null) rows = await sb(q.replace(',users(name)', '')).catch(() => []) || [];
+  if (seq !== window._tbResSeq) return;
+  const norm = (value) => (typeof _normResultKey === 'function' ? _normResultKey(value) : String(value || ''));
+  const list = (defs || []).map((def) => ({
+    key: norm(def.key),
+    label: typeof mbResultLabel === 'function' ? mbResultLabel(def.key, def.label) : String(def.label || def.key || '').trim(),
+    color: typeof _normalizeResultColor === 'function' ? _normalizeResultColor(def.color) : String(def.color || '#64748b'),
+  })).filter((def) => def.key);
+  const safeColor = (color) => (/^#[0-9a-fA-F]{6}$/.test(String(color || '')) ? color : '#64748b');
+  const pieces = list.map((def) => {
+    const key = /^[a-z0-9_]*$/i.test(String(def.key || '')) ? String(def.key) : '';
+    if (!key) return null;
+    const color = safeColor(def.color);
+    const ink = mbChipInk(color) === '#fff' ? color : color.replace(/[0-9a-f]{2}/gi, (pair) => {
+      const n = Math.max(0, Math.round(parseInt(pair, 16) * 0.62));
+      return n.toString(16).padStart(2, '0');
+    });
+    return { key, color, ink, n: rows.filter((row) => norm(row.durum) === key).length, label: def.label };
+  }).filter(Boolean);
+  const extra = {};
+  rows.forEach((row) => {
+    const key = norm(row.durum);
+    if (!key || pieces.some((item) => item.key === key)) return;
+    extra[key] = (extra[key] || 0) + 1;
   });
-  const month = pieces.map((item) => `<div style="--c:${item.color};--ink:${item.ink}" title="${mbChipEsc(item.label)}"><b>${monthCount[item.key] || 0}</b><span>${mbChipEsc(item.label)}</span></div>`).join('');
-  const footRow = agents.length ? `<tfoot><tr><td>${mbChipEsc(totalLabel)}</td>${foot}<td>${rows.length}</td></tr></tfoot>` : '';
-  return `<div class="tb-res-head"><div><span>${mbChipEsc(todayLabel)}</span><small class="tb-res-day">${mbChipEsc(day)}</small></div><b>${rows.length}</b></div><div class="tb-res-metrics">${metrics}</div><div class="tb-res-table-wrap"><table class="tb-res-table"><thead><tr><th>${mbChipEsc(agentsLabel)}</th>${headDots}<th>${mbChipEsc(totalLabel)}</th></tr></thead><tbody>${body}</tbody>${footRow}</table></div><div class="tb-res-kicker">${mbChipEsc(monthLabel)}</div><div class="tb-res-month">${month}</div>`;
+  Object.keys(extra).sort().forEach((key) => {
+    const color = '#64748b';
+    const pretty = key === 'onaylandi' ? 'Onaylandı' : key.replace(/_/g, ' ').replace(/^./, (ch) => ch.toUpperCase());
+    const label = typeof mbResultLabel === 'function' ? mbResultLabel(key, pretty) : pretty;
+    const ink = color.replace(/[0-9a-f]{2}/gi, (pair) => {
+      const n = Math.max(0, Math.round(parseInt(pair, 16) * 0.62));
+      return n.toString(16).padStart(2, '0');
+    });
+    pieces.push({ key, color, ink, n: extra[key], label });
+  });
+  window._tbTeamRows = rows;
+  window._tbTeamSample = !mbResAgentBoard(rows, pieces).length && view.span === 'day' && view.basis === 'kayit' && view.anchor === (typeof mbBusinessToday === 'function' ? mbBusinessToday() : '');
+  const keepOpen = !panel.hidden || host.matches(':hover') || panel.matches(':hover');
+  panel.classList.add('is-team');
+  panel.innerHTML = pieces.length ? mbTodayTeamPanel(pieces, rows, view, bounds) : '';
+  panel.hidden = !keepOpen || !panel.innerHTML;
+  if (!panel.hidden) mbPlaceResPanel();
 }
 
 async function mbPaintTodayResults() {
@@ -632,24 +799,12 @@ async function mbPaintTodayResults() {
   const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
-  const monthStart = `${String(today).slice(0, 8)}01`;
-  const monthGte = typeof mbInstantGte === 'function' ? mbInstantGte(monthStart) : `${monthStart}T00:00:00`;
   const defs = fid && typeof loadFirmAppointmentResults === 'function'
     ? await loadFirmAppointmentResults(fid, true).catch(() => [])
     : (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
-  const todaySelect = admin
-    ? 'id,nachname,durum,agent_id,contact_id,termin_tarih,kayit_tarihi,users(name)'
-    : 'id,nachname,durum,agent_id,contact_id,termin_tarih,kayit_tarihi';
-  const todayQ = `appointments?select=${todaySelect}&kayit_tarihi=gte.${gte}&kayit_tarihi=lte.${lte}${ff}${mine}&order=kayit_tarihi.desc&limit=${admin ? 800 : 400}`;
-  const monthQ = `appointments?select=durum&kayit_tarihi=gte.${monthGte}&kayit_tarihi=lte.${lte}${ff}&limit=5000`;
-  const loaded = await Promise.all([
-    sb(todayQ).catch(() => null),
-    admin ? sb(monthQ).catch(() => []) : Promise.resolve([]),
-  ]);
-  const rows = loaded[0] || (admin
-    ? await sb(todayQ.replace(',users(name)', '')).catch(() => []) || []
-    : []);
-  const monthRows = loaded[1] || [];
+  const todaySelect = 'id,nachname,durum,agent_id,contact_id,termin_tarih,kayit_tarihi';
+  const todayQ = `appointments?select=${todaySelect}&kayit_tarihi=gte.${gte}&kayit_tarihi=lte.${lte}${ff}${mine}&order=kayit_tarihi.desc&limit=400`;
+  const rows = await sb(todayQ).catch(() => []) || [];
   const norm = (value) => (typeof _normResultKey === 'function' ? _normResultKey(value) : String(value || ''));
   const list = (defs || []).map((def) => ({
     key: norm(def.key),
@@ -674,9 +829,9 @@ async function mbPaintTodayResults() {
     return { key, color, ink, n: countOf(key), label: def.label };
   };
   const pieces = list.map(piece).filter((item) => item.key);
-  const rowsHtml = !pieces.length ? '' : (admin
-    ? mbTodayTeamPanel(pieces, rows, monthRows, today)
-    : `<div class="tb-res-head"><span>${mbChipEsc(todayLabel)}</span><b>${rows.length}</b></div><div class="tb-res-list">${pieces.map((item) => `<button type="button" class="tb-res-row" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')"><b class="tb-res-num">${item.n}</b><span>${mbChipEsc(item.label)}</span></button>`).join('')}</div>`);
+  const rowsHtml = pieces.length && !admin
+    ? `<div class="tb-res-head"><span>${mbChipEsc(todayLabel)}</span><b>${rows.length}</b></div><div class="tb-res-list">${pieces.map((item) => `<button type="button" class="tb-res-row" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')"><b class="tb-res-num">${item.n}</b><span>${mbChipEsc(item.label)}</span></button>`).join('')}</div>`
+    : '';
   const keepOpen = !!(panel && (!panel.hidden || host.matches(':hover') || panel.matches(':hover')));
   host.hidden = false;
   host.setAttribute('aria-label', todayLabel);
@@ -684,12 +839,13 @@ async function mbPaintTodayResults() {
   host.innerHTML = `<span class="tb-today-cycle" id="tb-today-cycle">0</span><button type="button" class="tb-res tb-res-sum" data-res="" aria-label="${mbChipEsc(totalLabel)}" onclick="mbToggleResPop(event,'')">${rows.length}</button>${nums}`;
   mbSpinCounts();
   if (typeof mbFitStatus === 'function') mbFitStatus();
-  if (panel) {
-    panel.classList.toggle('is-team', !!admin);
+  if (panel && !admin) {
+    panel.classList.remove('is-team');
     panel.innerHTML = rowsHtml;
     panel.hidden = !keepOpen || !rowsHtml;
     if (!panel.hidden) mbPlaceResPanel();
   }
+  if (admin) void mbPaintResTeam();
   if (window._tbChip?.kind === 'res') {
     const next = host.querySelector(`[data-res="${window._tbChip.key || ''}"]`);
     if (next) {
