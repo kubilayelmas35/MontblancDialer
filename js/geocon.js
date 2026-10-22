@@ -169,6 +169,7 @@ window.addEventListener('message', (event) => {
     return;
   }
   if (data.action === 'GEO_GET_UPCOMING_PLZ') void mbGeoconUpcoming(event.source);
+  if (data.action === 'GEO_GET_TOP_PLZ') void mbGeoconTop(event.source);
   if (data.action === 'GEO_GET_STATE') void mbGeoconPushState(event.source);
   if (data.action === 'GEO_SAVE_SCORE') void mbGeoconSaveScore(data.plz, data.score);
   if (data.action === 'GEO_SAVE_FLAGS') void mbGeoconSaveFlags(data);
@@ -291,4 +292,36 @@ async function mbGeoconUpcoming(target) {
   try {
     target.postMessage({ type: 'GEO_UPCOMING_PLZ', items, detail: items, dayLabel: day }, window.location.origin);
   } catch (_) {}
+}
+
+async function mbGeoconTop(target) {
+  if (!target || target === window || typeof sb !== 'function') return;
+  const from = geoBerlinDay(-180);
+  let query = `appointments?select=plz,ortschaft&termin_tarih=gte.${from}T00:00:00&durum=not.in.(iptal,basarisiz)&limit=4000`;
+  const role = currentUser?.role || '';
+  if (role !== 'super_admin') {
+    const firmId = currentUser?.firm_id || '';
+    if (!firmId) {
+      try { target.postMessage({ type: 'GEO_TOP_PLZ', items: [] }, window.location.origin); } catch (_) {}
+      return;
+    }
+    query += `&firm_id=eq.${firmId}`;
+  }
+  let rows = [];
+  try {
+    const got = await sb(query);
+    rows = Array.isArray(got) ? got : [];
+  } catch (_) { rows = []; }
+  const grouped = new Map();
+  rows.forEach((row) => {
+    const plz = String(row.plz || '').replace(/\D/g, '');
+    if (plz.length < 4) return;
+    const code = plz.padStart(5, '0').slice(-5);
+    const cur = grouped.get(code) || { plz: code, count: 0, city: row.ortschaft || '' };
+    cur.count += 1;
+    if (!cur.city && row.ortschaft) cur.city = row.ortschaft;
+    grouped.set(code, cur);
+  });
+  const items = [...grouped.values()].sort((a, b) => b.count - a.count || a.plz.localeCompare(b.plz)).slice(0, 20);
+  try { target.postMessage({ type: 'GEO_TOP_PLZ', items }, window.location.origin); } catch (_) {}
 }
