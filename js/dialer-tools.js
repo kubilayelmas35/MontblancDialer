@@ -129,6 +129,15 @@ function renderHotkeyHints() {
 document.addEventListener('keydown', e => {
   if (!_hotkeysEnabled) return;
   const tag = e.target.tagName.toLowerCase();
+  const noteSave = (e.ctrlKey || e.metaKey) && e.key === 'Enter' && e.target && e.target.id === 'outcome-note';
+  if (noteSave) {
+    const dialerPage = document.getElementById('page-dialer');
+    if (!dialerPage?.classList.contains('active')) return;
+    if (typeof dialerStatus === 'undefined' || dialerStatus !== 'wrapping') return;
+    e.preventDefault();
+    if (typeof submitOutcome === 'function') submitOutcome(false);
+    return;
+  }
   if (tag==='input'||tag==='textarea'||tag==='select') return;
   if (e.altKey||e.ctrlKey||e.metaKey) return;
   const dialerPage = document.getElementById('page-dialer');

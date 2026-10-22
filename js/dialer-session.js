@@ -147,6 +147,7 @@ function toggleUnfinalizedCallsPanel() {
 }
 
 async function loadUnfinalizedCalls() {
+  _openBadgeAt = Date.now();
   const el = document.getElementById('unfinalized-calls-list');
   const btn = document.getElementById('unfinalized-calls-toggle');
   if (!el || !currentUser) return;
@@ -222,6 +223,23 @@ function mbPaintUnfinalizedCount(count) {
   const head = document.getElementById('unfinalized-calls-head');
   if (badge) badge.textContent = String(n);
   if (head) head.classList.toggle('is-hot', n > 0);
+  const nav = document.getElementById('sb-badge-open');
+  if (!nav) return;
+  const shown = n > 99 ? '99+' : String(n);
+  nav.textContent = shown;
+  nav.hidden = n < 1;
+  const label = typeof tReplace === 'function'
+    ? tReplace('dial.open_badge', { n: shown })
+    : `${shown} sonuçsuz çağrı`;
+  nav.title = label;
+  nav.setAttribute('aria-label', label);
+}
+
+let _openBadgeAt = 0;
+function mbRefreshOpenBadge(force) {
+  const now = Date.now();
+  if (!force && now - _openBadgeAt < 20000) return;
+  if (typeof loadUnfinalizedCalls === 'function') void loadUnfinalizedCalls();
 }
 
 function mbWvCard(row, contact) {
@@ -592,6 +610,8 @@ function setDialerStatus(s) {
     _custEmptyIdleSince = Date.now();
   }
   updateDialerNavCallIndicator();
+  if (s === 'calling') mbStartOutboundWaitClock();
+  else mbStopOutboundWaitClock();
   if (s === 'on_call' && prev !== 'on_call' && typeof mbPlayCue === 'function') mbPlayCue('connect');
   if (s === 'wrapping' && (prev === 'on_call' || prev === 'calling') && typeof mbPlayCue === 'function') mbPlayCue('hangup');
   const dot    = document.getElementById('status-dot');
@@ -766,6 +786,37 @@ function updateDialerNavCallIndicator() {
   document.getElementById('nav-dialer-btn')?.classList.toggle('dialer-calling', onCall);
 }
 
+let _outboundWaitTick = null;
+let _outboundWaitFrom = 0;
+
+function mbStartOutboundWaitClock() {
+  if (_outboundWaitTick) return;
+  _outboundWaitFrom = Date.now();
+  const paint = () => {
+    const el = document.getElementById('cust-outbound-wait-time');
+    if (!el) return;
+    const sec = Math.max(0, Math.floor((Date.now() - _outboundWaitFrom) / 1000));
+    el.textContent = typeof mbFormatSavedDur === 'function'
+      ? mbFormatSavedDur(sec)
+      : `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+    el.hidden = false;
+  };
+  paint();
+  _outboundWaitTick = setInterval(paint, 250);
+}
+
+function mbStopOutboundWaitClock() {
+  if (_outboundWaitTick) {
+    clearInterval(_outboundWaitTick);
+    _outboundWaitTick = null;
+  }
+  _outboundWaitFrom = 0;
+  const el = document.getElementById('cust-outbound-wait-time');
+  if (!el) return;
+  el.hidden = true;
+  el.textContent = '';
+}
+
 function showOutboundWait() {
   const card = document.getElementById('customer-card');
   const root = document.getElementById('cust-empty');
@@ -792,6 +843,7 @@ function showOutboundWait() {
     panel.style.display = 'flex';
     panel.setAttribute('aria-hidden', 'false');
   }
+  mbStartOutboundWaitClock();
   if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
 }
 
@@ -804,6 +856,7 @@ function hideOutboundWait() {
     panel.style.display = 'none';
     panel.setAttribute('aria-hidden', 'true');
   }
+  mbStopOutboundWaitClock();
   if (def && root && !root.classList.contains('cust-empty--ringing')) def.style.display = '';
 }
 

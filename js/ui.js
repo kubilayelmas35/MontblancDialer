@@ -158,6 +158,7 @@ const notif = document.getElementById('notification-center');
 if (notif) notif.style.display = 'none';
 if (typeof toggleTeamChat === 'function') toggleTeamChat(false);
 if (typeof mbSyncInboundStrip === 'function') mbSyncInboundStrip();
+if (typeof mbRefreshOpenBadge === 'function') mbRefreshOpenBadge(false);
 }
 
 function initSettingsTabs(preferTab) {

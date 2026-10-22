@@ -439,10 +439,29 @@ overflow: hidden;
   font-size: 30px;
   color: var(--accent);
 }
+.cust-outbound-wait__time {
+  font-family: var(--mono);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  line-height: 1;
+}
+.cust-outbound-wait__time[hidden] { display: none !important; }
 .cust-outbound-wait__title {
   font-size: 16px;
   font-weight: 800;
   color: var(--text);
+}
+.outcome-note-hint {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+@media (max-width: 768px) {
+  .outcome-note-hint { display: none; }
 }
 .cust-outbound-wait__sub {
   font-size: 12px;
