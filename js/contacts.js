@@ -769,14 +769,49 @@ function toggleFakeRecording(key, durSec) {
   }, 1000);
 }
 
+function mbDownloadTestTone(seconds) {
+  const sr = 8000;
+  const n = Math.max(1, Math.min(3, Number(seconds) || 1)) * sr;
+  const data = n * 2;
+  const buf = new ArrayBuffer(44 + data);
+  const view = new DataView(buf);
+  const write = (offset, text) => { for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i)); };
+  write(0, 'RIFF');
+  view.setUint32(4, 36 + data, true);
+  write(8, 'WAVE');
+  write(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sr, true);
+  view.setUint32(28, sr * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  write(36, 'data');
+  view.setUint32(40, data, true);
+  for (let i = 0; i < n; i++) {
+    const sample = Math.sin((2 * Math.PI * 440 * i) / sr) * 0.18;
+    view.setInt16(44 + i * 2, sample * 32767, true);
+  }
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+  link.download = 'test-kayit.wav';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1500);
+}
+
 function _fakeRecordingMarkup(log, scopeKey) {
   const dur = Math.max(8, _logDurationSec(log));
   const key = `${scopeKey}-${log?.id || log?.started_at || Math.random().toString(16).slice(2)}`;
+  const dl = typeof t === 'function' ? t('ch.rec.download') : 'Kaydı indir';
   return `<div class="sim-rec-wrap" data-key="${_escHtml(key)}" data-dur="${dur}" style="margin-top:6px;">
 <div style="display:flex;align-items:center;gap:6px;">
   <button type="button" class="sim-rec-btn" onclick="toggleFakeRecording('${key}',${dur})"
     style="border:1px solid var(--border);background:var(--bg-3);border-radius:6px;padding:2px 8px;cursor:pointer;">▶</button>
   <span class="sim-rec-time" style="font-size:11px;color:var(--text-2);font-family:var(--mono);">00:00 / ${_formatMMSS(dur)}</span>
+  <button type="button" class="ch-rec-dl" onclick="event.stopPropagation();mbDownloadTestTone(${dur})">${_escHtml(dl)}</button>
   <span style="font-size:10px;color:var(--yellow);font-weight:700;">${typeof t === 'function' ? t('ch.test_rec') : 'TEST KAYIT'}</span>
 </div>
 <div style="height:4px;background:var(--bg-3);border-radius:999px;overflow:hidden;margin-top:4px;">

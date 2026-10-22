@@ -11,7 +11,6 @@ const MB_ROLES = [
 const MB_PAGES = [
   { key: 'dashboard', label: 'Özet', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc', 'field_agent'] },
   { key: 'campaigns', label: 'Kampanyalar', roles: ['super_admin', 'admin', 'firm_admin'] },
-  { key: 'contacts', label: 'Kişiler/Kuyruk', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'callhistory', label: 'Çağrı Geçmişi', roles: ['super_admin', 'admin', 'firm_admin', 'qc'] },
   { key: 'stats', label: 'İstatistikler', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'agents', label: 'Personeller', roles: ['super_admin', 'admin', 'firm_admin'] },
@@ -22,13 +21,13 @@ const MB_PAGES = [
   { key: 'qc', label: 'Kalite Kontrol', roles: ['super_admin', 'admin', 'firm_admin', 'qc'] },
   { key: 'wiedervorlage', label: 'Aranacaklar', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc'] },
   { key: 'dialer', label: 'Dialer', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc'] },
-  { key: 'field', label: 'Saha görevlerim', roles: ['field_agent'] },
-  { key: 'myhistory', label: 'Geçmişim', roles: ['agent'] },
+  { key: 'field', label: 'Saha görevlerim', roles: ['field_agent', 'super_admin', 'admin', 'firm_admin'] },
+  { key: 'myhistory', label: 'Geçmişim', roles: ['agent', 'super_admin', 'admin', 'firm_admin'] },
   { key: 'leave', label: 'İzin & Devam', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc', 'field_agent'] },
   { key: 'competition', label: 'Ayın elemanı', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc', 'field_agent'] },
   { key: 'muhasebe', label: 'Muhasebe', roles: ['super_admin', 'admin', 'firm_admin'] },
-  { key: 'maasim', label: 'Maaşım', roles: ['agent', 'qc', 'field_agent'] },
-  { key: 'performansim', label: 'Performansım', roles: ['agent', 'qc', 'field_agent'] },
+  { key: 'maasim', label: 'Maaşım', roles: ['agent', 'qc', 'field_agent', 'super_admin', 'admin', 'firm_admin'] },
+  { key: 'performansim', label: 'Performansım', roles: ['agent', 'qc', 'field_agent', 'super_admin', 'admin', 'firm_admin'] },
   { key: 'export', label: 'Dışa aktarım', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'performance', label: 'Personel performans', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'supervisor', label: 'Canlı Ekran', roles: ['super_admin', 'admin', 'firm_admin'] },
@@ -51,7 +50,7 @@ const MB_CHROME = [
 ];
 
 const MB_NAV_FLAGS = [
-  { id: 'nav-field-btn', roles: ['field_agent'], flag: 'field_module_enabled' },
+  { id: 'nav-field-btn', flag: 'field_module_enabled' },
   { id: 'nav-jobs-btn', roles: ['admin', 'firm_admin', 'super_admin'], flag: 'job_market_enabled' },
   { id: 'tb-notif-btn', flag: 'notification_center_enabled' },
 ];
@@ -116,6 +115,7 @@ function mbFlagAllows(flagKey) {
 function mbPageVisible(page, role) {
   if (!page || !page.roles.includes(role)) return false;
   if (page.inPerms === false) return true;
+  if (['myhistory', 'field', 'maasim', 'performansim'].includes(page.key)) return true;
   if (typeof userHasPagePerm === 'function') return userHasPagePerm(page.key);
   return true;
 }
@@ -140,8 +140,7 @@ function mbApplyNavAccess() {
     if (!pageKey) return;
     const page = MB_PAGES.find((item) => item.key === pageKey);
     if (!page) return;
-    let show = mbPageVisible(page, role);
-    if ((btn.id === 'nav-maasim-btn' || btn.id === 'nav-performansim-btn') && !MB_STAFF_ROLES.includes(role)) show = false;
+    const show = mbPageVisible(page, role);
     btn.style.display = show ? '' : 'none';
   });
 

@@ -2376,8 +2376,17 @@ min-width:0; overflow:hidden;
 }
 .camp-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; min-width:0; }
 .camp-card-main { flex:1; min-width:0; overflow:hidden; }
-.camp-name, .camp-did, .camp-card .queue-sub {
+.camp-name, .camp-did, .camp-card .queue-sub, .camp-row-name {
   display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;
+}
+.camp-row-name { max-width: 220px; }
+.camp-name.is-slide, .camp-row-name.is-slide { text-overflow: clip; }
+.camp-name.is-slide > i, .camp-row-name.is-slide > i {
+  display: inline-block;
+  font-style: normal;
+  font-weight: inherit;
+  white-space: nowrap;
+  animation: mbNameSlide ease-in-out infinite;
 }
 .camp-card.is-empty { background:rgba(245,158,11,.14); box-shadow:inset 3px 0 0 #f59e0b; }
 .camp-row.is-empty td { background:rgba(245,158,11,.12); }

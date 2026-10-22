@@ -63,6 +63,7 @@ const _NAVIGATE_LOADERS = {
   dialer: () => {
     _mbPageFn('initDialer')?.();
     _mbPageFn('refreshDialerHealthPanel')?.();
+    setTimeout(() => _mbPageFn('mbFitAgentCampNames')?.(), 60);
   },
   field: () => {
     _mbPageFn('loadFieldPage')?.();
@@ -120,6 +121,11 @@ function runPageEntry(page) {
 
 function navigate(page) {
 document.getElementById('mb-camp-notif')?.remove();
+const pg = document.getElementById(`page-${page}`);
+if (!pg) {
+  if (typeof toast === 'function') toast(typeof t === 'function' ? t('nav.missing_page') : 'Bu sayfa yok', 'warn');
+  return;
+}
 if (typeof userHasPagePerm === 'function' && Array.isArray(ALL_PAGES) && ALL_PAGES.some((p) => p.key === page) && !userHasPagePerm(page)) {
   if (typeof toast === 'function') toast(typeof t === 'function' ? t('nav.no_perm') : 'Bu sayfa için yetkiniz yok', 'warn');
   return;
@@ -136,8 +142,7 @@ if (page !== 'dialer') {
 }
 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
 document.querySelectorAll('.sb-item').forEach(s => s.classList.remove('active'));
-const pg = document.getElementById(`page-${page}`);
-if (pg) pg.classList.add('active');
+pg.classList.add('active');
 const btn = document.querySelector(`.sb-item[onclick="navigate('${page}')"]`)
   || (page === 'takvim' ? document.getElementById('nav-takvim-btn') : null);
 if (btn) {
@@ -221,6 +226,14 @@ function setSettingsTab(tabId) {
     const hide = group !== tabId;
     card.classList.toggle('settings-card-tab-hidden', hide);
   });
+  if (tabId === 'takvim') {
+    const card = document.getElementById('default-takvim-firm-card');
+    if (card) {
+      card.dataset.settingsGroup = 'takvim';
+      card.classList.remove('settings-card-tab-hidden');
+      card.style.display = '';
+    }
+  }
   const tabs = page.querySelectorAll('.settings-tab-btn');
   tabs.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === tabId));
 }

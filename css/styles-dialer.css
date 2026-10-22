@@ -4,9 +4,11 @@ AGENT DIALER EKRANI
 ============================================================ */
 .dialer-layout {
 display:grid;
-grid-template-columns:1fr 320px;
+grid-template-columns:minmax(0,1fr) minmax(240px,320px);
 gap:16px; height:100%;
 align-items:stretch;
+min-width:0;
+max-width:100%;
 }
 .dialer-side {
   min-width: 0;
@@ -32,7 +34,10 @@ align-items:stretch;
   position: absolute;
   inset: 0;
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
+  container-type: inline-size;
+  container-name: dialer;
 }
 #page-dialer > #dialer-page-hdr,
 #page-dialer > #dialer-inbound-banner {
@@ -131,18 +136,36 @@ align-items:stretch;
   overflow: visible;
   flex-shrink: 0;
 }
-@media(max-width:900px) {
-  .dialer-layout { grid-template-columns:1fr; }
-  #page-dialer > .dialer-layout { overflow:auto; }
+@container dialer (max-width: 1040px) {
+  .dialer-layout { grid-template-columns:minmax(0,1fr); height:auto; }
+  #page-dialer > .dialer-layout { overflow-x:hidden; overflow-y:auto; min-width:0; }
   #page-dialer .dialer-layout > div:first-child { display:contents; overflow:visible; }
   #page-dialer #daily-goal-bar { order:1; }
   #page-dialer #hotkey-hints { order:2; }
   #page-dialer #customer-card { order:3; }
   #page-dialer #call-actions { order:4; }
   #page-dialer #prev-call-info { order:5; }
-  #page-dialer .dialer-side { order:6; min-height:auto; overflow:visible; }
-  #page-dialer .dialer-side > .agent-camps-panel { flex:0 0 auto; min-height:auto; overflow:visible; }
+  #page-dialer .dialer-side { order:6; width:100%; min-width:0; min-height:0; max-height:240px; overflow:hidden; }
+  #page-dialer .dialer-side > .agent-camps-panel { flex:1 1 auto; min-height:0; max-height:240px; overflow:auto; }
   #page-dialer #ready-section { order:7; }
+}
+.agent-camp-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.agent-camp-name.is-slide { text-overflow: clip; }
+.agent-camp-name.is-slide > i {
+  display: inline-block;
+  font-style: normal;
+  font-weight: inherit;
+  white-space: nowrap;
+  animation: mbNameSlide ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-camp-name.is-slide > i { animation: none; }
 }
 /* Status bar */
 .dialer-status-bar {

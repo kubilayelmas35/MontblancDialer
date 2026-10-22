@@ -371,6 +371,7 @@ const detailOpen = document.getElementById('camp-detail')?.style.display === 'bl
 const showFirm = campShowFirm();
 if (campViewMode() === 'rows') {
   grid.innerHTML = renderCampRows(esc, detailOpen, visible, showFirm);
+  mbFitCampNames(grid);
   return;
 }
 if (!visible.length) {
@@ -433,6 +434,14 @@ ${pauseLabel}
 </div>
 </div>`;
 }).join('');
+mbFitCampNames(grid);
+}
+
+function mbFitCampNames(root) {
+  if (!root || typeof opsFitMarquee !== 'function') return;
+  root.querySelectorAll('.camp-name, .camp-row-name').forEach((el) => {
+    opsFitMarquee(el, el.getAttribute('title') || el.textContent || '');
+  });
 }
 
 function campRowsBody() {

@@ -2233,7 +2233,7 @@ function chRecHtml(l) {
   if (l.recording_url) {
     const src = statsEsc(l.recording_url);
     const dl = statsEsc(typeof t === 'function' ? t('ch.rec.download') : 'Kaydı indir');
-    return `<div style="display:flex;align-items:center;gap:4px;"><audio id="ch-aud-${id}" src="${src}" preload="none" style="display:none;"></audio><button type="button" onclick="toggleAudio('ch-aud-${id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--text-2);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;"><i class="ph ph-play"></i></button><a href="${src}" download="kayit-${id}.mp3" target="_blank" rel="noopener" title="${dl}" aria-label="${dl}" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--text-2);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:11px;"><i class="ph ph-download-simple"></i></a></div>`;
+    return `<div style="display:flex;align-items:center;gap:6px;"><audio id="ch-aud-${id}" src="${src}" preload="none" style="display:none;"></audio><button type="button" onclick="toggleAudio('ch-aud-${id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--text-2);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;"><i class="ph ph-play"></i></button><a class="ch-rec-dl" href="${src}" download="kayit-${id}.mp3" target="_blank" rel="noopener" title="${dl}" aria-label="${dl}"><i class="ph ph-download-simple"></i>${dl}</a></div>`;
   }
   if (chIsFakeRec(l) && typeof _fakeRecordingMarkup === 'function') return _fakeRecordingMarkup(l, 'chhist');
   return '<span style="color:var(--text-3);font-size:11px;">—</span>';
@@ -2283,12 +2283,12 @@ function chColumns() {
     pair('id', 'ID', 'ID', 'text'),
     pair('dur', 'Süre', 'Dauer', 'num'),
     pair('rec', 'Ses kaydı', 'Aufnahme', 'text'),
+    pair('name', 'Adı', 'Name', 'text'),
+    pair('phone', 'Numara', 'Nummer', 'text'),
+    pair('agent', 'Operatör', 'Operator', 'text'),
     pair('when', 'Arama zamanı', 'Anrufzeit', 'time'),
     pair('answer', 'Cevaplama', 'Annahme', 'time'),
     pair('end', 'Kapatma', 'Auflegen', 'time'),
-    pair('agent', 'Operatör', 'Operator', 'text'),
-    pair('name', 'Adı', 'Name', 'text'),
-    pair('phone', 'Numara', 'Nummer', 'text'),
     pair('work', 'Çalışma tipi', 'Arbeitsart', 'text'),
     pair('caller', 'Arayan numara', 'Anrufernummer', 'text'),
     pair('camp', 'Kuyruk', 'Warteschlange', 'text'),
@@ -2691,7 +2691,7 @@ const recHtmlFor = (l) => {
     const src = statsEsc(l.recording_url);
     const id = statsEsc(l.id);
     const dl = statsEsc(typeof t === 'function' ? t('ch.rec.download') : 'Kaydı indir');
-    return `<span style="display:inline-flex;align-items:center;gap:4px;" onclick="event.stopPropagation();"><audio id="mh-aud-${id}" src="${src}" preload="none" style="display:none;"></audio><button type="button" onclick="event.stopPropagation();toggleAudio('mh-aud-${id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;"><i class="ph ph-play"></i></button><a href="${src}" download="kayit-${id}.mp3" target="_blank" rel="noopener" title="${dl}" aria-label="${dl}" onclick="event.stopPropagation();" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--text-2);display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:11px;"><i class="ph ph-download-simple"></i></a></span>`;
+    return `<span style="display:inline-flex;align-items:center;gap:6px;" onclick="event.stopPropagation();"><audio id="mh-aud-${id}" src="${src}" preload="none" style="display:none;"></audio><button type="button" onclick="event.stopPropagation();toggleAudio('mh-aud-${id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;"><i class="ph ph-play"></i></button><a class="ch-rec-dl" href="${src}" download="kayit-${id}.mp3" target="_blank" rel="noopener" title="${dl}" aria-label="${dl}" onclick="event.stopPropagation();"><i class="ph ph-download-simple"></i>${dl}</a></span>`;
   }
   if (isFakeRec(l) && typeof _fakeRecordingMarkup === 'function') return _fakeRecordingMarkup(l, 'myhist');
   return '<span style="color:var(--text-3);font-size:11px;">—</span>';

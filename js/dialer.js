@@ -2,6 +2,13 @@
 // DIALER — agent dialer, call management
 // ─────────────────────────────────────────────
 
+function mbFitAgentCampNames() {
+  if (typeof opsFitMarquee !== 'function') return;
+  document.querySelectorAll('#agent-camp-list .agent-camp-name').forEach((el) => {
+    opsFitMarquee(el, el.dataset.full || el.textContent || '');
+  });
+}
+
 async function initDialer() {
   if (!currentUser) return;
   mbDialerAdminGate(null);
@@ -107,7 +114,7 @@ async function initDialer() {
 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
   <div style="flex:1;min-width:0;">
     <div style="display:flex;align-items:center;gap:6px;min-width:0;">
-      <div class="agent-camp-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ac.campaigns?.name||cid}</div>
+      <div class="agent-camp-name">${ac.campaigns?.name||cid}</div>
       ${(typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin()) ? `<button type="button" class="agent-camp-admin" aria-expanded="false" title="${escapeHtml(typeof t === 'function' ? t('dial.admin_menu') : 'Kampanya ayarları')}" aria-label="${escapeHtml(typeof t === 'function' ? t('dial.admin_menu') : 'Kampanya ayarları')}" onclick="event.stopPropagation();mbToggleCampAdmin(event,'${cid}')"><i class="ph ph-gear-six" aria-hidden="true"></i></button>` : ''}
       ${rulesBtn}
     </div>
@@ -137,6 +144,7 @@ async function initDialer() {
 </div>
 </div>`;
     }).join('');
+    if (typeof mbFitAgentCampNames === 'function') mbFitAgentCampNames();
     // Manuel arama / Telnyx DID vb. için global kampanya listesi (agent kampanyaları)
     campaigns = (myCamps || []).map((ac) => ac.campaigns).filter(Boolean);
     mbDialerAdminGate(campaigns);
