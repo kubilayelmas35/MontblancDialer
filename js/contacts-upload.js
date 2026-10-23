@@ -62,6 +62,8 @@ function resetUploadQueueForm() {
   if (nameEl) { nameEl.value = ''; nameEl.readOnly = false; }
   const note = document.getElementById('uq-target-note');
   if (note) { note.hidden = true; note.textContent = ''; }
+  const countEl = document.getElementById('uq-row-count');
+  if (countEl) countEl.textContent = '';
   document.querySelectorAll('.uq-skip-status').forEach((box) => { box.checked = false; });
   const excelMode = document.querySelector('input[name="dedup-mode"][value="excel"]');
   if (excelMode) excelMode.checked = true;

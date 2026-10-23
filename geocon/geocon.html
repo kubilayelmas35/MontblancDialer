@@ -30,7 +30,7 @@
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <style>
 :root{--pri:#4e54c8;--sec:#8f94fb;--acc:#ff7e5f;--used:#dc3545;--rec:#28a745;--sel:#198754;--dist:#fd7e14;--pw:300px;}
-html.mb-embed #secTakvim,html.mb-embed #secBest,html.mb-embed .kub-wix-only{display:none!important;}
+html.mb-embed #secBest,html.mb-embed .kub-wix-only{display:none!important;}
 *{box-sizing:border-box;}
 html,body{height:100%;width:100%;margin:0;padding:0;font-family:'Segoe UI',sans-serif;overflow:hidden;overscroll-behavior:none;}
 #mapWrap{position:absolute;inset:0;z-index:1;overscroll-behavior:none;touch-action:none;}
@@ -852,7 +852,7 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
   <div class="panel-card-body">
 <div id="takvimPanel">
   <div class="geo-sec" id="secTakvim">
-    <div class="geo-sec-h" onclick="toggleGeoSec('secTakvim',event)"><i class="fas fa-calendar-alt" style="color:var(--pri);"></i> <span id="lblActiveTakvim">Aktif Takvimler</span><span class="chev">▼</span></div>
+    <div class="geo-sec-h" onclick="toggleGeoSec('secTakvim',event)"><i class="fas fa-calendar-alt" style="color:var(--pri);"></i> <span id="lblActiveTakvim">Aktif kampanyalar</span><span class="chev">▼</span></div>
     <div class="geo-sec-b"><div class="takvim-chips" id="takvimChips"><span style="font-size:.68rem;color:#aaa;">…</span></div></div>
   </div>
   <div class="geo-sec collapsed" id="secTopPlz">
@@ -1571,7 +1571,7 @@ Object.assign(T.de,{
   corridorWidth:'Korridor-Halbbreite',corridorSearch:'Korridor suchen',
   corridorHint:'Wenige Treffer → Breite wird automatisch erweitert.',corridorPh:'z.B. 71364',
   corridorA:'PLZ A',corridorB:'PLZ B',
-  takvimTitle:'Kalender & Datenpaket',takvimActive:'Aktive Kalender',takvimTop:'Top PLZ',
+  takvimTitle:'Kalender & Datenpaket',takvimActive:'Aktive Kampagnen',takvimTop:'Top PLZ',
   takvimUpcoming:'Termine morgen',takvimBest:'Beste Orte',takvimPackage:'Datenpaket',
   samePrefix:'Nur gleiche 2-stellige PLZ-Region',pkgPick:'Referenz-PLZ wählen…',
   hideEmpty:n=>`${n} PLZ ohne Daten ausgeblendet`,
@@ -1591,7 +1591,7 @@ Object.assign(T.tr,{
   corridorWidth:'Koridor yarı genişliği',corridorSearch:'Koridor ara',
   corridorHint:'Az sonuç → genişlik otomatik artar.',corridorPh:'ör. 71364',
   corridorA:'Kod A',corridorB:'Kod B',
-  takvimTitle:'Takvim ve veri paketi',takvimActive:'Aktif takvimler',takvimTop:'En çok randevu',
+  takvimTitle:'Takvim ve veri paketi',takvimActive:'Aktif kampanyalar',takvimTop:'En çok randevu',
   takvimUpcoming:'Yarın randevuları',takvimBest:'En iyi yerler',takvimPackage:'Veri paketi',
   samePrefix:'Sadece aynı 2 haneli bölge',pkgPick:'Referans kodu seçin…',
   hideEmpty:n=>`${n} boş kod atlandı`,
@@ -2080,41 +2080,55 @@ function restoreGeoSecs(){
 
 function applyGeoCamps(data){
   activeCamps=Array.isArray(data&&data.items)?data.items:[];
-  const el=document.getElementById('kubTakvimChips');
   if(data&&data.needFirm){
     activeCamps=[];
     selectedCampId='';
     selectedTakvim='';
-    if(el)el.innerHTML=`<span style="font-size:.65rem;color:#94a3b8;">${tr().needFirm}</span>`;
+    const msg=`<span style="font-size:.68rem;color:#aaa;">${tr().needFirm}</span>`;
+    const a=document.getElementById('takvimChips');if(a)a.innerHTML=msg;
+    const b=document.getElementById('kubTakvimChips');if(b)b.innerHTML=msg;
     return;
   }
+  renderTakvimChips();
   renderKubTakvimChips();
 }
 function applyGeoCampDays(data){
   if(data&&data.campaignId&&data.campaignId!==selectedCampId)return;
-  kubSlotDays=(data&&data.days||[]).map(d=>({ymd:d.ymd,count:d.count||0,dolu:d.count||0,bos:0,plzs:d.plzs||[]}));
+  kubSlotDays=(data&&data.days||[]).map(d=>{
+    const plzs=(d.plzs||[]).filter(p=>campPlzVisible(p.plz));
+    const count=kubTopScope==='plz'?plzs.reduce((s,p)=>s+(Number(p.count)||0),0):(d.count||0);
+    return {ymd:d.ymd,count,dolu:count,bos:0,plzs};
+  }).filter(d=>kubTopScope!=='plz'||d.plzs.length);
   if(!kubSlotDays.some(d=>d.ymd===kubSelectedDay))kubSelectedDay='';
   renderKubDayStrip();
   if(kubSelectedDay)loadKubilaiDayDetail(kubSelectedDay);
   setKubStatus(kubSlotDays.length?(kubSlotDays.length+(lang==='tr'?' gün':' Tage')):(tr().noCampDays||'Randevu günü yok'));
 }
-function renderTakvimChips(list){
-  activeTakvimler=list||[];
+function renderTakvimChips(){
   const el=document.getElementById('takvimChips');
   if(!el)return;
-  if(!activeTakvimler.length){el.innerHTML='<span style="font-size:.68rem;color:#aaa;">Takvim yok</span>';}
-  else{
-    el.innerHTML='';
-    activeTakvimler.forEach(name=>{
-      const b=document.createElement('button');
-      b.type='button';
-      b.className='takvim-chip'+(selectedTakvim===name?' active':'');
-      b.textContent=name;
-      b.onclick=()=>selectTakvim(name);
-      el.appendChild(b);
-    });
-  }
-  renderKubTakvimChips();
+  if(!activeCamps.length){el.innerHTML='<span style="font-size:.68rem;color:#aaa;">Kampanya yok</span>';return;}
+  el.innerHTML='';
+  const all=document.createElement('button');
+  all.type='button';
+  all.className='takvim-chip'+(!selectedCampId?' active':'');
+  all.textContent=lang==='tr'?'Tümü':'Alle';
+  all.onclick=()=>clearKubTakvim();
+  el.appendChild(all);
+  activeCamps.forEach(camp=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='takvim-chip'+(selectedCampId===camp.id?' active':'');
+    b.textContent=camp.name||'';
+    b.onclick=()=>selectCampaign(camp.id,camp.name||'');
+    el.appendChild(b);
+  });
+}
+function campPlzVisible(plz){
+  if(!selectedCampId||kubTopScope!=='plz')return true;
+  const px=kubCampaignPlzPrefix();
+  if(!px)return true;
+  return String(plz||'').slice(0,2)===px;
 }
 
 function selectCampaign(id,name){
@@ -2122,7 +2136,10 @@ function selectCampaign(id,name){
   selectedTakvim=name||'';
   kubSelectedDay='';
   kubSlotDays=[];
+  kubTopScope=/^\d{2}/.test(String(name||''))?'plz':'kampanya';
+  renderTakvimChips();
   renderKubTakvimChips();
+  updateKubTopPlzHint();
   const sec=document.getElementById('secTopPlz');
   if(sec)sec.classList.remove('collapsed');
   const lbl=document.getElementById('lblTopPlz');
@@ -2138,7 +2155,7 @@ function selectTakvim(name){
   if(camp){selectCampaign(camp.id,camp.name);return;}
   selectedTakvim=name;
   topPlzItems=[];
-  renderTakvimChips(activeTakvimler);
+  renderTakvimChips();
   document.getElementById('secTopPlz').classList.remove('collapsed');
   document.getElementById('secUpcoming').classList.remove('collapsed');
   document.getElementById('lblTopPlz').textContent=(selectedTakvim||'')+' — Top PLZ';
@@ -2189,10 +2206,11 @@ function geoPlzRowHtml(item,opts={}){
 function renderTopPlzList(){
   const el=document.getElementById('topPlzList');
   if(!el)return;
-  if(!topPlzItems.length){el.innerHTML=`<div style="font-size:.68rem;color:#aaa;">${tr().alerts.noData}</div>`;return;}
+  const items=(topPlzItems||[]).filter(it=>campPlzVisible(it.plz));
+  if(!items.length){el.innerHTML=`<div style="font-size:.68rem;color:#aaa;">${tr().alerts.noData}</div>`;return;}
   const sec=document.getElementById('secTopPlz');
   if(sec)sec.classList.remove('collapsed');
-  el.innerHTML=topPlzItems.map(it=>geoPlzRowHtml(it)).join('');
+  el.innerHTML=items.map(it=>geoPlzRowHtml(it)).join('');
 }
 
 async function renderUpcomingPlzList(){
@@ -2201,7 +2219,8 @@ async function renderUpcomingPlzList(){
   const title=document.getElementById('lblUpcoming');
   if(title)title.textContent=tr().takvimUpcoming||'Yarın randevuları';
   if(!upcomingPlzItems.length){el.innerHTML=`<div style="font-size:.68rem;color:#aaa;">${tr().noUpcoming||'Yarın randevu yok'}</div>`;return;}
-  const items=[...upcomingPlzItems];
+  let items=[...upcomingPlzItems].filter(it=>campPlzVisible(it.plz));
+  if(!items.length){el.innerHTML=`<div style="font-size:.68rem;color:#aaa;">${tr().noUpcoming||'Yarın randevu yok'}</div>`;return;}
   if(refPlz){
     for(const it of items){
       it.distKm=await getTomTomDistKm(refPlz,it.plz);
@@ -2223,19 +2242,21 @@ function renderBestPlzList(){
   el.innerHTML=list.map(it=>geoPlzRowHtml(it)).join('');
 }
 
-async function onGeoPlzClick(plz,skipPackage,allowOtherPrefix){
+async function onGeoPlzClick(plz,skipPackage){
   refPlz=plz;
   renderTopPlzList();
   renderUpcomingPlzList();
   if(skipPackage){scrollToMarker(plz);return;}
-  packageRadiusStepIdx=0;
+  packagePending=false;
+  packageAnchorPlz='';
   const rad0=getPkgRadiusSteps()[0];
   radInput.value=rad0;
-  document.getElementById('radiusValue').textContent=rad0+' km';
-  packagePending=true;
-  packageAnchorPlz=plz;
-  packageAnchorAllowOtherPrefix=allowOtherPrefix;
-  document.getElementById('secPackage').classList.remove('collapsed');
+  const rv=document.getElementById('radiusValue');
+  if(rv)rv.textContent=rad0+' km';
+  const sec=document.getElementById('secPackage');
+  if(sec)sec.classList.remove('collapsed');
+  const panel=document.getElementById('packagePanel');
+  if(panel)panel.innerHTML=`<div style="font-size:.68rem;color:#888;">${tr().pkgPick||''} <b>${plz}</b></div>`;
   geocodePLZ(plz,rad0*1000);
 }
 
@@ -2496,15 +2517,6 @@ async function buildDataPackage(anchorPlz,allowOtherPrefixOverride,opts){
     }
   }
 
-  clearBulkSelection(false);
-  picked.forEach(c=>{
-    bulkSelected.add(c.plz);
-    updateMStyle(c.plz);
-    rerenderRow(c.plz);
-    const lm=plzMarkers[c.plz];
-    if(lm&&lm._icon){const inner=lm._icon.querySelector('.plz-marker');if(inner)inner.className='plz-marker '+mCls(c.plz);}
-    gMarkers.forEach(m=>{if(m.plz===c.plz)updateGoogleMarkerVisual(m,c.plz);});
-  });
   lastPackagePicked=picked;
   const avgScore=picked.length?picked.reduce((s,c)=>s+(c._score||0),0)/picked.length:0;
   const maxDist=picked.length?Math.max(...picked.map(c=>c._dist||c._prox||0)):0;
@@ -2512,15 +2524,13 @@ async function buildDataPackage(anchorPlz,allowOtherPrefixOverride,opts){
     ?(lastCorridor?.halfWidthKm||Number(document.getElementById('corridorWidthInput')?.value)||8)
     :(Number(radInput.value)||PKG_RADIUS_KM);
   lastPackageMeta={total,avgScore,maxDist,anchor,analysed,usedOtherPrefix,usedLowScore:Number.isFinite(usedLowScore)?usedLowScore:null,anchorPrefix,needsPrefixExpand,usedRadiusKm,priority:whitelist?'kubilai':'proximity',targetData,whitelist:whitelist?whitelistArr.slice():null,pairMaxMin:pairMax,enforcePair};
-  renderBulkList();
-  showBulkPanel();
   scheduleSyncMap3DPlzVisuals(120);
   const prefixNote=usedOtherPrefix?`${anchorPrefix}xx + diğer`: `${anchorPrefix}xx`;
   const scoreNote=Number.isFinite(usedLowScore)?`min skor ${usedLowScore.toFixed(1)}`:`skor —`;
   const hedefNote=needsPrefixExpand?`${anchorPrefix}xx bölgesinde bulunan kadar`:`hedef ≥${targetData.toLocaleString('de-DE')}`;
   const modeNote=lastSearchMode==='corridor'?` · koridor ±${usedRadiusKm} km`:(usedRadiusKm!==getPkgRadiusSteps()[0]?` · arama ${usedRadiusKm} km`:'');
   const prioNote=whitelist?'Kubilai listesi':'yakınlık &gt; skor';
-  let html=`<div class="package-summary"><b>${picked.length} PLZ</b> · <b>${total.toLocaleString('de-DE')}</b> contact<br>Ort. skor <b>${avgScore.toFixed(1)}</b> · Max <b>${maxDist.toFixed(1)} km</b> (Ref: ${anchor})<br><small style="color:#666;">Öncelik: <b>${prioNote}</b> · ${prefixNote} · ${scoreNote} · ${hedefNote}${modeNote} · ${analysed} analyse · İstemediklerinizi kaldırın</small></div>`;
+  let html=`<div class="package-summary"><b>${picked.length} PLZ</b> · <b>${total.toLocaleString('de-DE')}</b> contact<br>Ort. skor <b>${avgScore.toFixed(1)}</b> · Max <b>${maxDist.toFixed(1)} km</b> (Ref: ${anchor})<br><small style="color:#666;">Öncelik: <b>${prioNote}</b> · ${prefixNote} · ${scoreNote} · ${hedefNote}${modeNote} · ${analysed} analyse · İşaretleyip aktarın</small></div>`;
   if(needsPrefixExpand){
     html+=`<div style="margin:4px 0;padding:6px 8px;background:#f1f5f9;border:1px solid #dbe4ec;border-radius:6px;font-size:.68rem;color:#555;">ℹ️ ${anchorPrefix}xx bölgesinde bulunan tüm veri (${total.toLocaleString('de-DE')} kontak) paketlendi, bu kadarıyla tamamlandı. İsterseniz diğer PLZ bölgelerinde de ara:<br><button type="button" onclick="expandPackageOtherPrefix('${anchor}')" style="margin-top:4px;padding:3px 8px;font-size:.68rem;border:1px solid #90a4ae;background:#fff;border-radius:5px;cursor:pointer;">🔍 Diğer PLZ bölgelerinde de ara</button></div>`;
   }
@@ -2696,7 +2706,6 @@ function refreshUsedVisuals(){
   try{updateHeatmap();}catch(e){}
   try{renderBestPlzList();}catch(e){}
   scheduleSyncMap3DPlzVisuals(120);
-  try{if(packageAnchorPlz)buildDataPackage(packageAnchorPlz,packageAnchorAllowOtherPrefix);}catch(e){}
 }
 
 const getS=plz=>({used:isEffectivelyUsed(plz),used1:!!(usedPLZs[plz]?.used1),rawUsed:!!(usedPLZs[plz]?.used)});
@@ -7072,22 +7081,23 @@ function onKubPairTravel(v){
   saveKubilaiSettings();
 }
 function kubPlanRefs(){
+  const take=(list,n)=>list.filter(p=>campPlzVisible(p)).slice(0,n);
   if(selectedCampId&&kubSelectedDay){
     const day=kubSlotDays.find(d=>d.ymd===kubSelectedDay);
     const fromDay=(day&&day.plzs||[]).map(p=>p.plz).filter(Boolean);
-    if(fromDay.length)return fromDay.slice(0,5);
+    if(fromDay.length)return take(fromDay,5);
   }
   if(kubMode==='top'){
-    if(kubManualRefs.length)return kubManualRefs.slice(0,5);
-    return (topPlzItems||[]).map(i=>i.plz).filter(Boolean).slice(0,3);
+    if(kubManualRefs.length)return take(kubManualRefs,5);
+    return take((topPlzItems||[]).map(i=>i.plz).filter(Boolean),3);
   }
-  if(kubMode==='plz')return kubManualRefs.slice(0,5);
-  return (upcomingPlzItems||[]).map(i=>i.plz).filter(Boolean).slice(0,5);
+  if(kubMode==='plz')return take(kubManualRefs,5);
+  return take((upcomingPlzItems||[]).map(i=>i.plz).filter(Boolean),5);
 }
 function renderKubTakvimChips(){
   const el=document.getElementById('kubTakvimChips');
   if(!el)return;
-  if(!activeCamps.length){el.innerHTML=`<span style="font-size:.65rem;color:#94a3b8;">${tr().needFirm}</span>`;return;}
+  if(!activeCamps.length){el.innerHTML=`<span style="font-size:.65rem;color:#94a3b8;">${lang==='tr'?'Kampanya yok':'Keine Kampagne'}</span>`;return;}
   el.innerHTML='';
   const all=document.createElement('button');
   all.type='button';
@@ -7109,7 +7119,9 @@ function clearKubTakvim(){
   selectedTakvim='';
   kubSelectedDay='';
   kubSlotDays=[];
+  kubTopScope='kampanya';
   topPlzItems=[];
+  renderTakvimChips();
   renderKubTakvimChips();
   try{document.getElementById('lblTopPlz').textContent=tr().takvimTop||'En çok randevu';}catch(_){}
   sendWix({action:'GEO_GET_TOP_PLZ',limit:20});
@@ -7347,7 +7359,7 @@ function loadKubilaiDayDetail(ymd){
   const box=document.getElementById('kubDayDetail');
   if(!box)return;
   const day=kubSlotDays.find(d=>d.ymd===ymd);
-  const plzs=(day&&day.plzs)||[];
+  const plzs=((day&&day.plzs)||[]).filter(p=>campPlzVisible(p.plz));
   if(!plzs.length){box.style.display='none';box.innerHTML='';return;}
   box.style.display='block';
   box.innerHTML=plzs.map(p=>`<div class="kd-row"><span>${p.count||0} ${tr().termShort||'rand.'}</span><span>${p.plz||''}</span></div>`).join('');
@@ -7863,7 +7875,6 @@ async function kubilaiPlanPackage(){
     finalPlzs=[...new Set(finalPlzs)].slice(0,50);
 
     startKubProgressCrawl(88,planGen,'Paketiniz hazırlanıyor…','Veri paketi dolduruluyor…');
-    applyKubilaiPlzsToBulk(finalPlzs);
     packageTargetData=kubTargetData;
     const allowOther=(usedMapBackup&&kubRelax.samePlz)||!kubOnlySamePrefix;
     const enforcePair=!(usedMapBackup&&kubRelax.pair);
@@ -7917,19 +7928,12 @@ async function kubilaiPlanPackage(){
         }else{
           if(enforceDkFinal)travelLines.push(`${c.plz}: ref ${worstRef!=null?worstRef+' dk':'?'} ✗`);
           if(enforcePairFinal)pairLines.push(`${c.plz}: paket içi ${worstPair!=null?worstPair+' dk':'?'} ✗ (çıkarıldı)`);
-          try{bulkSelected.delete(c.plz);}catch(_){}
         }
       }
       if(kept.length!==lastPackagePicked.length){
         lastPackagePicked=kept;
         const t2=kept.reduce((s,c)=>s+(c.count||0),0);
         if(lastPackageMeta)lastPackageMeta.total=t2;
-        clearBulkSelection(false);
-        kept.forEach(c=>{
-          bulkSelected.add(c.plz);
-          try{updateMStyle(c.plz);rerenderRow(c.plz);}catch(_){}
-        });
-        try{renderBulkList();}catch(_){}
       }
     }
 
@@ -8115,7 +8119,6 @@ async function kubilaiRunPartialBackup(){
     packageTargetData=kubTargetData;
     packagePending=false;
     packageAnchorPlz=anchor;
-    applyKubilaiPlzsToBulk(merged);
     const allowOther=!!kubRelax.samePlz||!kubOnlySamePrefix;
     await buildDataPackage(anchor,!!allowOther,{
       whitelist:merged.filter(p=>p!==anchor),
@@ -8333,6 +8336,9 @@ async function runAnalyse(plz){
 }
 
 document.addEventListener('DOMContentLoaded',async()=>{
+  packagePending=false;
+  packageAnchorPlz='';
+  bulkSelected.clear();
   loadUsedExpireSetting();
   loadPkgRadiusSetting();
   loadLS();

@@ -53,6 +53,7 @@ function mbOpenGeoconTransfer(msg) {
     toast(geoSay('geo.empty', 'Aktarılacak kişi yok'), 'warn');
     return;
   }
+  if (typeof openModal === 'function') openModal('m-upload-q');
   const keys = [];
   rows.forEach((row) => {
     Object.keys(row).forEach((key) => {
@@ -73,7 +74,6 @@ function mbOpenGeoconTransfer(msg) {
     nameEl.value = String(msg.label || '').slice(0, 80);
   }
   mbGeoconSetMode(true);
-  if (typeof openModal === 'function') openModal('m-upload-q');
   void mbGeoconLoadCamps();
 }
 
@@ -350,14 +350,20 @@ function geoBerlinStamp(value) {
 async function mbGeoconCamps(target) {
   if (!target || target === window || typeof sb !== 'function') return;
   const role = currentUser?.role || '';
-  const firmId = role === 'super_admin' ? (geoActiveFirmId() || '') : (currentUser?.firm_id || '');
-  if (!firmId) {
-    try { target.postMessage({ type: 'GEO_CAMPS', items: [], needFirm: true }, window.location.origin); } catch (_) {}
-    return;
+  let query = 'campaigns?select=id,name&order=name.asc&limit=200';
+  if (role !== 'super_admin') {
+    const firmId = currentUser?.firm_id || '';
+    if (!firmId) {
+      try { target.postMessage({ type: 'GEO_CAMPS', items: [], needFirm: true }, window.location.origin); } catch (_) {}
+      return;
+    }
+    query = `campaigns?select=id,name&firm_id=eq.${firmId}&order=name.asc&limit=200`;
+  } else if (geoActiveFirmId()) {
+    query = `campaigns?select=id,name&firm_id=eq.${geoActiveFirmId()}&order=name.asc&limit=200`;
   }
   let rows = [];
   try {
-    const got = await sb(`campaigns?select=id,name&firm_id=eq.${firmId}&order=name.asc&limit=80`);
+    const got = await sb(query);
     rows = Array.isArray(got) ? got : [];
   } catch (_) { rows = []; }
   const items = rows.map((row) => ({ id: row.id, name: row.name || '' })).filter((row) => geoCampId(row.id));
