@@ -192,11 +192,24 @@ async function bindTakvimUnassigned(slotId, apptId, pop) {
   }
 }
 
+async function firmAltaOpensSlot(firmId) {
+  if (!firmId || typeof sb !== 'function') return true;
+  const cached = window._firmDefaultTakvimByFirm?.[firmId];
+  if (cached && cached.altaYeniSlot !== undefined) return cached.altaYeniSlot !== false;
+  const rows = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
+  const raw = rows?.[0]?.settings?.default_takvim;
+  if (!raw || raw.altaYeniSlot === undefined) return true;
+  window._firmDefaultTakvimByFirm = window._firmDefaultTakvimByFirm || {};
+  window._firmDefaultTakvimByFirm[firmId] = { ...raw };
+  return raw.altaYeniSlot !== false;
+}
+
 async function openReplacementForSlot(slotId) {
   if (!slotId || typeof sb !== 'function') return false;
   const rows = await sb(`takvim_slots?id=eq.${slotId}&select=id,campaign_id,firm_id,tarih,baslangic_saat,bitis_saat,gun_kapali&limit=1`).catch(() => []);
   const slot = rows?.[0];
   if (!slot || slot.gun_kapali || !slot.campaign_id || !slot.firm_id || !slot.tarih || !slot.baslangic_saat) return false;
+  if (!(await firmAltaOpensSlot(slot.firm_id))) return false;
   const start = String(slot.baslangic_saat).slice(0, 8);
   let end = slot.bitis_saat ? String(slot.bitis_saat).slice(0, 8) : '';
   if (!end) {
@@ -1458,6 +1471,10 @@ ${Object.entries(dayNames)
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-top:6px;">
 <input type="checkbox" id="fdt-confirm-slot" ${cfg.confirm_new_slot !== false ? 'checked' : ''}> Yeni slot eklerken onay penceresi (varsayılan)
 </label>
+<label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;cursor:pointer;margin-top:8px;">
+<input type="checkbox" id="fdt-alta-slot" ${raw.altaYeniSlot !== false ? 'checked' : ''}>
+<span>${typeof t === 'function' ? t('cal.alta.slot') : 'Alta inen randevunun yerine yeni yer aç'}<br><span style="color:var(--text-3);font-weight:500;">${typeof t === 'function' ? t('cal.alta.slot.help') : 'Başarısız, iptal ya da elle alta alınan randevunun saati boş kalmaz.'}</span></span>
+</label>
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;">
 <button type="button" class="btn btn-primary btn-sm" onclick="saveDefaultTakvimFirmSettings()">Varsayılanı kaydet</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="applyDefaultTakvimToFirmCampaigns()">Tüm aktif kampanyalara uygula</button>
@@ -1478,10 +1495,13 @@ async function saveDefaultTakvimFirmSettings() {
   const maxSlots = parseInt(document.getElementById('fdt-max-slots')?.value || '5', 10);
   const bos_color = document.getElementById('fdt-bos-color')?.value || '#3b82f6';
   const confirm_new_slot = !!document.getElementById('fdt-confirm-slot')?.checked;
-  const payload = { active_days: activeDays, start_hour: start, end_hour: end, slot_dur: dur, max_slots: maxSlots, bos_color, confirm_new_slot };
   try {
     const firms = await sb(`firms?id=eq.${fid}&select=settings`);
     const existing = firms?.[0]?.settings || {};
+    const prevTk = existing.default_takvim && typeof existing.default_takvim === 'object' ? existing.default_takvim : {};
+    const altaBox = document.getElementById('fdt-alta-slot');
+    const altaYeniSlot = altaBox ? !!altaBox.checked : prevTk.altaYeniSlot !== false;
+    const payload = { active_days: activeDays, start_hour: start, end_hour: end, slot_dur: dur, max_slots: maxSlots, bos_color, confirm_new_slot, altaYeniSlot };
     await sb(`firms?id=eq.${fid}`, {
       method: 'PATCH',
       prefer: 'return=minimal',

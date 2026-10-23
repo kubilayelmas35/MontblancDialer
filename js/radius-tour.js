@@ -38,6 +38,7 @@ const TOUR_DEFAULTS = {
 };
 
 let _tourPlan = null;
+let _tourAltaSlot = true;
 let _tourBusy = false;
 let _tourWatchSig = '';
 let _tourSettings = { ...TOUR_DEFAULTS };
@@ -366,6 +367,8 @@ async function tourLoadSettings() {
   let gunluk = null;
   if (typeof sb === 'function' && firmId) {
     const firms = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
+    const tk = firms?.[0]?.settings?.default_takvim;
+    _tourAltaSlot = !tk || tk.altaYeniSlot !== false;
     const firmTour = firms?.[0]?.settings?.tour;
     if (firmTour && typeof firmTour === 'object') {
       TOUR_LOCK_KEYS.forEach((key) => {
@@ -527,6 +530,7 @@ function tourPaintSettings() {
   tourSetChecked('tour-yol', pref.yolUyari);
   tourSetChecked('tour-skip', pref.bosSlotAtla);
   tourSetChecked('tour-sat', pref.cumartesi);
+  tourSetChecked('tour-alta-slot', _tourAltaSlot);
   tourSetChecked('tour-prefix', pref.ayniPrefix);
   tourSetChecked('tour-heal', pref.selfHeal);
   tourSetChecked('tour-clock', pref.zamanlayici);
@@ -1071,6 +1075,27 @@ async function tourSetMode(aktif) {
 function tourQueueMode(el) {
   const mode = el && el.value === 'yakin' ? 'yakin' : 'revert';
   void tourSave({ kuyrukMod: mode });
+}
+
+async function tourAltaSlot(el) {
+  const firmId = tourFirmId();
+  const on = !!(el && el.checked);
+  if (!firmId || typeof sb !== 'function') {
+    if (el) el.checked = _tourAltaSlot;
+    return;
+  }
+  const firms = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
+  const existing = firms?.[0]?.settings || {};
+  const prev = existing.default_takvim && typeof existing.default_takvim === 'object' ? existing.default_takvim : {};
+  const next = { ...prev, altaYeniSlot: on };
+  await sb(`firms?id=eq.${firmId}`, {
+    method: 'PATCH',
+    prefer: 'return=minimal',
+    body: JSON.stringify({ settings: { ...existing, default_takvim: next } }),
+  });
+  _tourAltaSlot = on;
+  window._firmDefaultTakvimByFirm = window._firmDefaultTakvimByFirm || {};
+  window._firmDefaultTakvimByFirm[firmId] = { ...(window._firmDefaultTakvimByFirm[firmId] || {}), ...next };
 }
 
 async function tourFlag(key, el) {
