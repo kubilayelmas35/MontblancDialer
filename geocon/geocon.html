@@ -1248,32 +1248,64 @@ async function fetchByPLZLimited(plz, limit){
   const rows = await r.json();
   return Array.isArray(rows) ? rows : [];
 }
+async function fetchLeadsLimited(plz, limit){
+  const n = Math.max(1, Math.min(200, Number(limit) || 50));
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/leads?plz=eq.${encodeURIComponent(plz)}&select=vorname,nachname,strasse,plz,ort,telefon&order=id.asc&limit=${n}`, { headers: SB_H });
+  if (!r.ok) return [];
+  const rows = await r.json();
+  if (!Array.isArray(rows)) return [];
+  return rows.map((item) => ({
+    telefon: item.telefon,
+    vorname: item.vorname || '',
+    name: item.nachname || '',
+    strasse: item.strasse || '',
+    plz: item.plz || plz,
+    ort: item.ort || '',
+  }));
+}
 async function collectNearbyRows(d){
   const anchor = String(d && d.anchorPlz || '').replace(/\D/g, '').padStart(5, '0').slice(-5);
   const limit = Math.max(1, Math.min(200, Number(d && d.limit) || 50));
   const radius = Number(d && d.radiusKm) > 0 ? Number(d.radiusKm) : 30;
   const allowOther = !!(d && d.allowOtherPrefix === true);
-  const waitUntil = Date.now() + 18000;
-  while ((!Array.isArray(plzData) || !plzData.length) && Date.now() < waitUntil) {
-    await new Promise((resolve) => setTimeout(resolve, 400));
-  }
-  if (!/^\d{5}$/.test(anchor) || !Array.isArray(plzData) || !plzData.length) return [];
+  if (!/^\d{5}$/.test(anchor)) return [];
   const anchorLL = await getPlzLatLon(anchor);
   if (!anchorLL || !anchorLL.lat) return [];
   const here = { lat: anchorLL.lat, lon: anchorLL.lon };
   const prefix = plzPrefix2(anchor);
-  const near = plzData.filter((item) => {
-    if (!item || !item.plz || item.plz === anchor || item.lat == null || item.lon == null) return false;
-    if (!allowOther && plzPrefix2(item.plz) !== prefix) return false;
-    return haversineKm(here, { lat: item.lat, lon: item.lon }) <= radius;
-  }).sort((a, b) => haversineKm(here, { lat: a.lat, lon: a.lon }) - haversineKm(here, { lat: b.lat, lon: b.lon }));
+  let resolved = null;
+  try {
+    resolved = await resolveNearbyPlzMap(here.lat, here.lon, radius * 1000, { overpassTimeoutMs: 12000 });
+  } catch (_) {}
+  const near = [];
+  if (resolved && resolved.map && resolved.map.forEach) {
+    resolved.map.forEach((val, code) => {
+      const plz = String(code || '').replace(/\D/g, '').padStart(5, '0').slice(-5);
+      if (!/^\d{5}$/.test(plz) || plz === anchor) return;
+      if (!allowOther && plzPrefix2(plz) !== prefix) return;
+      const lat = val && val.lat;
+      const lon = val && val.lon;
+      const dist = (lat != null && lon != null) ? haversineKm(here, { lat: +lat, lon: +lon }) : 0;
+      if (dist > radius + 1) return;
+      near.push({ plz, dist });
+    });
+    near.sort((a, b) => a.dist - b.dist);
+  }
   const order = [anchor].concat(near.map((item) => item.plz));
   const rows = [];
+  const seen = new Set();
   for (let i = 0; i < order.length && rows.length < limit; i++) {
     let got = [];
     try { got = await fetchByPLZLimited(order[i], limit - rows.length); } catch (_) { got = []; }
+    if (got.length < limit - rows.length) {
+      let leads = [];
+      try { leads = await fetchLeadsLimited(order[i], limit - rows.length); } catch (_) { leads = []; }
+      got = got.concat(leads);
+    }
     got.forEach((item) => {
-      if (rows.length >= limit || !item || !item.telefon) return;
+      const phone = String(item && item.telefon || '').replace(/\s/g, '');
+      if (rows.length >= limit || !phone || seen.has(phone)) return;
+      seen.add(phone);
       rows.push({ telefon: item.telefon, vorname: item.vorname || '', name: item.name || '', strasse: item.strasse || '', plz: item.plz || order[i], ort: item.ort || '' });
     });
   }

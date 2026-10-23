@@ -566,7 +566,7 @@ function tourAskRows(row, limit) {
       window.removeEventListener('message', onMsg);
       resolve(Array.isArray(rows) ? rows : []);
     };
-    const timer = setTimeout(() => finish([]), 25000);
+    const timer = setTimeout(() => finish([]), 55000);
     function onMsg(event) {
       if (event.origin !== window.location.origin) return;
       const data = event.data;
