@@ -9,6 +9,8 @@
 <script src="config.js"></script>
 <script>
 (function(){
+  var theme=new URLSearchParams(location.search).get('theme');
+  if(theme==='dark'||theme==='light')document.documentElement.setAttribute('data-theme',theme);
   var lang='tr';
   try{
     var q=new URLSearchParams(location.search).get('lang');
@@ -354,12 +356,12 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
 #analysePanel{position:absolute;right:20px;top:65px;width:360px;z-index:1040;background:white;border-radius:15px;box-shadow:0 4px 20px rgba(0,0,0,.2);display:none;overflow:hidden;}
 
 /* Kubilai drawer */
-#kubilaiFab{position:absolute;right:22px;left:auto;bottom:18px;transform:none;z-index:1150;min-width:108px;height:44px;padding:0 18px;border-radius:999px;border:1px solid rgba(255,255,255,.18);cursor:pointer;color:#f8fafc;font-family:"Segoe UI",system-ui,sans-serif;font-weight:750;font-size:.82rem;letter-spacing:.04em;background:linear-gradient(135deg,#07111f 0%,#12324f 48%,#0b7ea4 100%);box-shadow:0 10px 28px rgba(7,17,31,.38),inset 0 1px 0 rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;gap:0;transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;}
-#kubilaiFab:hover{filter:brightness(1.08);transform:translateY(-2px);box-shadow:0 14px 32px rgba(11,126,164,.42),inset 0 1px 0 rgba(255,255,255,.16);}
+#kubilaiFab{position:absolute;left:50%;right:auto;bottom:18px;transform:translateX(-50%);z-index:1150;min-width:88px;height:44px;padding:0 18px;border-radius:999px;border:1px solid rgba(255,255,255,.18);cursor:pointer;color:#f8fafc;font-family:"Segoe UI",system-ui,sans-serif;font-weight:750;font-size:.82rem;letter-spacing:.04em;background:linear-gradient(135deg,#07111f 0%,#12324f 48%,#0b7ea4 100%);box-shadow:0 10px 28px rgba(7,17,31,.38),inset 0 1px 0 rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;gap:0;transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;}
+#kubilaiFab:hover{filter:brightness(1.08);transform:translateX(-50%) translateY(-2px);box-shadow:0 14px 32px rgba(11,126,164,.42),inset 0 1px 0 rgba(255,255,255,.16);}
 #kubilaiFab span{background:linear-gradient(90deg,#e2f6ff,#fff);-webkit-background-clip:text;background-clip:text;color:transparent;}
-#kubilaiDrawer{position:absolute;right:22px;left:auto;bottom:72px;transform:none;z-index:1150;width:min(400px,94vw);max-height:min(78vh,680px);display:none;flex-direction:column;background:linear-gradient(180deg,#ffffff 0%,#f4f8fb 100%);border-radius:22px;box-shadow:0 22px 56px rgba(7,17,31,.28);overflow:hidden;border:1px solid rgba(15,55,80,.12);backdrop-filter:blur(8px);}
+#kubilaiDrawer{position:absolute;left:50%;right:auto;bottom:72px;transform:translateX(-50%);z-index:1150;width:min(400px,94vw);max-height:min(78vh,680px);display:none;flex-direction:column;background:linear-gradient(180deg,#ffffff 0%,#f4f8fb 100%);border-radius:22px;box-shadow:0 22px 56px rgba(7,17,31,.28);overflow:hidden;border:1px solid rgba(15,55,80,.12);backdrop-filter:blur(8px);}
 #kubilaiDrawer.open{display:flex;animation:kubIn .22s ease;}
-@keyframes kubIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+@keyframes kubIn{from{opacity:0;transform:translateX(-50%) translateY(10px);}to{opacity:1;transform:translateX(-50%);}}
 .kub-head{background:radial-gradient(120% 140% at 0% 0%,#1a4d6e 0%,#0b1c2c 55%,#07111f 100%);color:#fff;padding:14px 14px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(255,255,255,.08);}
 .kub-head h6{margin:0;font-size:.95rem;font-weight:750;letter-spacing:.02em;display:flex;align-items:center;gap:8px;}
 .kub-head h6 i{opacity:.85;font-size:.85rem;}
@@ -559,12 +561,56 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
   #takvimPanel{max-height:none;}
   #plzList{max-height:40vh;}
   #bulkPanel,#distPanel{position:relative!important;inset:auto!important;transform:none!important;left:auto!important;bottom:auto!important;width:100%!important;max-width:100%!important;margin:0!important;order:5;border-radius:15px;}
-  #kubilaiFab{position:fixed;right:16px;left:auto;bottom:14px;transform:none;z-index:1200;}
-  #kubilaiDrawer{position:fixed;right:12px;left:auto;bottom:66px;transform:none;width:min(400px,calc(100vw - 16px));max-height:72vh;z-index:1200;}
+  #kubilaiFab{position:fixed;left:50%;right:auto;bottom:14px;transform:translateX(-50%);z-index:1200;}
+  #kubilaiFab:hover{transform:translateX(-50%) translateY(-2px);}
+  #kubilaiDrawer{position:fixed;left:50%;right:auto;bottom:66px;transform:translateX(-50%);width:min(400px,calc(100vw - 16px));max-height:72vh;z-index:1200;}
   #kubilaiDrawer.open{animation:kubIn .22s ease;}
   #dlToast{bottom:16px;right:12px;left:12px;max-width:none;}
   #loadingStatus{top:8px;font-size:.75rem;max-width:90vw;white-space:normal;text-align:center;}
 }
+html[data-theme="dark"] body{background:#0c1222;color:#e6edf7;}
+html[data-theme="dark"] .search-container,
+html[data-theme="dark"] .panel-card,
+html[data-theme="dark"] #resultsBox,
+html[data-theme="dark"] #resultsFooter,
+html[data-theme="dark"] #bulkPanel,
+html[data-theme="dark"] #distPanel,
+html[data-theme="dark"] #analysePanel,
+html[data-theme="dark"] #pwModal,
+html[data-theme="dark"] #bulkAnalyseBar,
+html[data-theme="dark"] .map-type-controls{background:#161e33;color:#e6edf7;border-color:#2a3654;}
+html[data-theme="dark"] .panel-card-h,
+html[data-theme="dark"] .geo-sec-h,
+html[data-theme="dark"] #filterBar{background:#1c2640;color:#e6edf7;border-color:#2a3654;}
+html[data-theme="dark"] .geo-sec{border-color:#2a3654;}
+html[data-theme="dark"] .geo-plz-row,
+html[data-theme="dark"] .plz-item,
+html[data-theme="dark"] .panel-plz-item{background:#121a2e;color:#e6edf7;border-color:#2a3654;}
+html[data-theme="dark"] .geo-plz-row:hover,
+html[data-theme="dark"] .plz-item:hover{background:#1c2744;}
+html[data-theme="dark"] .plz-city,
+html[data-theme="dark"] .kub-label,
+html[data-theme="dark"] #resultsFooter,
+html[data-theme="dark"] .search-container label,
+html[data-theme="dark"] .search-container small{color:#b7c4da;}
+html[data-theme="dark"] .form-control,
+html[data-theme="dark"] .filter-select,
+html[data-theme="dark"] .search-mode-btn,
+html[data-theme="dark"] .filter-toggle-btn,
+html[data-theme="dark"] .map-type-btn,
+html[data-theme="dark"] .map-control-btn,
+html[data-theme="dark"] .bld-layer-btn,
+html[data-theme="dark"] .zoom-btn{background:#10182c;color:#e6edf7;border-color:#2a3654;}
+html[data-theme="dark"] .map-type-btn:hover,
+html[data-theme="dark"] .map-control-btn:hover:not(.active),
+html[data-theme="dark"] .zoom-btn:hover,
+html[data-theme="dark"] .search-mode-btn:hover{background:#1c2744;}
+html[data-theme="dark"] #kubilaiDrawer{background:#121a2c;border-color:#2a3654;}
+html[data-theme="dark"] .kub-body{color:#e6edf7;}
+html[data-theme="dark"] .kub-chip,
+html[data-theme="dark"] .kub-anchor-chip{background:#10182c;color:#e6edf7;border-color:#2a3654;}
+html[data-theme="dark"] #resultsFooter{border-top-color:#2a3654;}
+html[data-theme="dark"] #corridorBox{border-top-color:#2a3654;}
 </style>
 </head>
 <body>
@@ -582,11 +628,6 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
 
 <div id="mobileLayout">
 <div id="mobileControls">
-
-  <div class="language-selector">
-    <button class="language-btn" id="langBtnDe" onclick="changeLanguage('de')">DE</button>
-    <button class="language-btn" id="langBtnTr" onclick="changeLanguage('tr')">TR</button>
-  </div>
 
   <div class="search-container">
     <div class="search-mode-row">
@@ -714,10 +755,10 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
 </div>
 
 <!-- KUBILAI -->
-<button type="button" id="kubilaiFab" onclick="toggleKubilaiDrawer()" title="KubilAi"><span>KubilAi</span></button>
-<div id="kubilaiDrawer" aria-label="KubilAi">
+<button type="button" id="kubilaiFab" onclick="toggleKubilaiDrawer()" title="Çember"><span>Çember</span></button>
+<div id="kubilaiDrawer" aria-label="Çember">
   <div class="kub-head">
-    <h6><i class="fas fa-wand-magic-sparkles"></i> <span class="kub-brand">Kubil<em>Ai</em></span></h6>
+    <h6><i class="fas fa-wand-magic-sparkles"></i> <span class="kub-brand">Çember</span></h6>
     <button type="button" onclick="toggleKubilaiDrawer(false)" aria-label="Kapat">&times;</button>
   </div>
   <div class="kub-body">
@@ -828,14 +869,14 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
     </div>
     <label class="kub-check kub-wix-only" title="Kubilai yorumu (kredi harcar)">
       <input type="checkbox" id="kubWantComment" onchange="kubWantComment=this.checked;saveKubilaiSettings()">
-      <span data-geo-tr="Yorum iste" data-geo-de="Kommentar">Yorum iste</span> <small data-geo-tr="(Kubilai — varsayılan kapalı)" data-geo-de="(Kubilai — standard aus)">(Kubilai — varsayılan kapalı)</small>
+      <span data-geo-tr="Yorum iste" data-geo-de="Kommentar">Yorum iste</span> <small data-geo-tr="(Çember — varsayılan kapalı)" data-geo-de="(Çember — standard aus)">(Çember — varsayılan kapalı)</small>
     </label>
     <div class="kub-status" id="kubStatus"></div>
     <div class="kub-wix-only">
       <div class="kub-label" data-geo-tr="Sohbet" data-geo-de="Chat">Sohbet</div>
       <div class="kub-chat" id="kubChat"></div>
       <div class="kub-input-row" style="margin-top:6px;">
-        <input type="text" id="kubChatInput" placeholder="KubilAi’ye sor…" data-geo-ph-tr="KubilAi’ye sor…" data-geo-ph-de="Frag KubilAi…" maxlength="800" onkeydown="if(event.key==='Enter')kubilaiSendChat()">
+        <input type="text" id="kubChatInput" placeholder="Çember’e sor…" data-geo-ph-tr="Çember’e sor…" data-geo-ph-de="Frag Çember…" maxlength="800" onkeydown="if(event.key==='Enter')kubilaiSendChat()">
         <button type="button" onclick="kubilaiSendChat()" data-geo-tr="Gönder" data-geo-de="Senden">Gönder</button>
       </div>
     </div>
@@ -2392,7 +2433,7 @@ async function buildDataPackage(anchorPlz,allowOtherPrefixOverride,opts){
   const whitelist=whitelistArr.length?new Set(whitelistArr):null;
   const pairMax=opts&&opts.pairMaxMin!=null?Number(opts.pairMaxMin):(typeof kubPairTravelMin==='number'?kubPairTravelMin:null);
   const enforcePair=!(opts&&opts.enforcePair===false)&&pairMax!=null&&Number.isFinite(pairMax);
-  panel.innerHTML=`<div class="package-progress"><i class="fas fa-circle-notch fa-spin"></i> Paket oluşturuluyor… ${whitelist?'(Kubilai listesi)':'(önce yakınlık)'}</div>`;
+  panel.innerHTML=`<div class="package-progress"><i class="fas fa-circle-notch fa-spin"></i> Paket oluşturuluyor… ${whitelist?'(Çember listesi)':'(önce yakınlık)'}</div>`;
   const anchor=String(anchorPlz);
   let candidates=plzData.filter(e=>e.plz!==anchor&&!isEffectivelyUsed(e.plz));
   if(whitelist){
@@ -2503,7 +2544,7 @@ async function buildDataPackage(anchorPlz,allowOtherPrefixOverride,opts){
   }
 
   if(whitelist){
-    await fillByProximity(candidates,'Kubilai · doğrulanmış');
+    await fillByProximity(candidates,'Çember · doğrulanmış');
   }else{
     await fillByProximity(samePrefix,`${anchorPrefix}xx · en iyi`);
   }
@@ -2529,7 +2570,7 @@ async function buildDataPackage(anchorPlz,allowOtherPrefixOverride,opts){
   const scoreNote=Number.isFinite(usedLowScore)?`min skor ${usedLowScore.toFixed(1)}`:`skor —`;
   const hedefNote=needsPrefixExpand?`${anchorPrefix}xx bölgesinde bulunan kadar`:`hedef ≥${targetData.toLocaleString('de-DE')}`;
   const modeNote=lastSearchMode==='corridor'?` · koridor ±${usedRadiusKm} km`:(usedRadiusKm!==getPkgRadiusSteps()[0]?` · arama ${usedRadiusKm} km`:'');
-  const prioNote=whitelist?'Kubilai listesi':'yakınlık &gt; skor';
+  const prioNote=whitelist?'Çember listesi':'yakınlık &gt; skor';
   let html=`<div class="package-summary"><b>${picked.length} PLZ</b> · <b>${total.toLocaleString('de-DE')}</b> contact<br>Ort. skor <b>${avgScore.toFixed(1)}</b> · Max <b>${maxDist.toFixed(1)} km</b> (Ref: ${anchor})<br><small style="color:#666;">Öncelik: <b>${prioNote}</b> · ${prefixNote} · ${scoreNote} · ${hedefNote}${modeNote} · ${analysed} analyse · İşaretleyip aktarın</small></div>`;
   if(needsPrefixExpand){
     html+=`<div style="margin:4px 0;padding:6px 8px;background:#f1f5f9;border:1px solid #dbe4ec;border-radius:6px;font-size:.68rem;color:#555;">ℹ️ ${anchorPrefix}xx bölgesinde bulunan tüm veri (${total.toLocaleString('de-DE')} kontak) paketlendi, bu kadarıyla tamamlandı. İsterseniz diğer PLZ bölgelerinde de ara:<br><button type="button" onclick="expandPackageOtherPrefix('${anchor}')" style="margin-top:4px;padding:3px 8px;font-size:.68rem;border:1px solid #90a4ae;background:#fff;border-radius:5px;cursor:pointer;">🔍 Diğer PLZ bölgelerinde de ara</button></div>`;
@@ -8358,6 +8399,10 @@ window.addEventListener('message',(ev)=>{
   if(!data)return;
   if(data.type==='mb-geocon-lang'){
     if(data.lang==='de'||data.lang==='tr')changeLanguage(data.lang);
+    return;
+  }
+  if(data.type==='mb-geocon-theme'){
+    if(data.theme==='dark'||data.theme==='light')document.documentElement.setAttribute('data-theme',data.theme);
     return;
   }
   if(data.type==='GEO_STATE')applyGeoState(data);

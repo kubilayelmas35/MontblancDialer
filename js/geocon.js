@@ -13,17 +13,26 @@ function geoDialerLang() {
   return (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'de' : 'tr';
 }
 
+function mbGeoconOnTheme(theme) {
+  const frame = document.getElementById('geocon-frame');
+  if (!frame || frame.dataset.loaded !== '1') return;
+  const next = theme === 'light' ? 'light' : 'dark';
+  try { frame.contentWindow.postMessage({ type: 'mb-geocon-theme', theme: next }, window.location.origin); } catch (_) {}
+}
+
 function loadGeoconPage() {
   const frame = document.getElementById('geocon-frame');
   if (!frame) return;
   const lang = geoDialerLang();
+  const theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
   if (frame.dataset.loaded === '1') {
     try { frame.contentWindow.postMessage({ type: 'mb-geocon-lang', lang }, window.location.origin); } catch (_) {}
+    try { frame.contentWindow.postMessage({ type: 'mb-geocon-theme', theme }, window.location.origin); } catch (_) {}
     void mbGeoconPushState(frame.contentWindow);
     return;
   }
   const v = window.MB_APP_VERSION || '';
-  frame.src = `geocon/geocon.html?v=${encodeURIComponent(v)}&lang=${lang}`;
+  frame.src = `geocon/geocon.html?v=${encodeURIComponent(v)}&lang=${lang}&theme=${theme}`;
   frame.dataset.loaded = '1';
 }
 
