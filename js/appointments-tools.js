@@ -113,12 +113,18 @@ function showSlotContextMenu(e, slot, appt) {
   if (y+mh>vh-8) y=e.clientY-mh-4;
   menu.style.left=x+'px'; menu.style.top=y+'px';
   setTimeout(() => {
-    document.addEventListener('click', () => menu.remove(), { once: true });
-    document.addEventListener('contextmenu', () => menu.remove(), { once: true });
+    document.addEventListener('click', takvimCtxDismiss, { once: true });
+    document.addEventListener('contextmenu', takvimCtxDismiss, { once: true });
   }, 50);
 }
 
+function takvimCtxDismiss() {
+  document.getElementById('slot-ctx-menu')?.remove();
+}
+
 async function openTakvimBindUnassigned(slot) {
+  document.removeEventListener('click', takvimCtxDismiss);
+  document.removeEventListener('contextmenu', takvimCtxDismiss);
   const campId = slot?.campaign_id || (typeof takvimCampId !== 'undefined' ? takvimCampId : '');
   if (!slot?.id || !campId) {
     toast(typeof t === 'function' ? t('ops.panel.needfirm') : 'Önce firma seçin', 'warn');
@@ -174,16 +180,40 @@ async function openTakvimBindUnassigned(slot) {
 
 async function bindTakvimUnassigned(slotId, apptId, pop) {
   try {
+    const rows = await sb(`takvim_slots?id=eq.${slotId}&select=id,tarih,baslangic_saat,durum,appointment_id,gun_kapali&limit=1`);
+    const slot = rows?.[0];
+    if (!slot || slot.gun_kapali || slot.durum !== 'bos' || slot.appointment_id) {
+      toast(typeof t === 'function' ? t('cal.bind.busy') : 'Bu saat artık boş değil.', 'warn');
+      pop?.remove();
+      if (typeof loadTakvimSlots === 'function') await loadTakvimSlots();
+      return;
+    }
+    const saat = String(slot.baslangic_saat || '00:00').slice(0, 5);
     await sb(`takvim_slots?id=eq.${slotId}`, {
       method: 'PATCH',
       prefer: 'return=minimal',
-      body: JSON.stringify({ durum: 'dolu', appointment_id: apptId }),
+      body: JSON.stringify({
+        durum: 'dolu',
+        appointment_id: apptId,
+        alta_tasindi: false,
+        kilitli_agent_id: null,
+        kilitli_at: null,
+      }),
     });
-    await sb(`appointments?id=eq.${apptId}`, {
-      method: 'PATCH',
-      prefer: 'return=minimal',
-      body: JSON.stringify({ slot_id: slotId }),
-    });
+    try {
+      await sb(`appointments?id=eq.${apptId}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ slot_id: slotId, termin_tarih: `${slot.tarih}T${saat}:00` }),
+      });
+    } catch (err) {
+      await sb(`takvim_slots?id=eq.${slotId}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ durum: 'bos', appointment_id: null, kilitli_agent_id: null, kilitli_at: null }),
+      }).catch(() => {});
+      throw err;
+    }
     pop?.remove();
     if (typeof loadTakvimSlots === 'function') await loadTakvimSlots();
     toast(typeof t === 'function' ? t('cal.bind.done') : 'Randevu slota bağlandı', 'ok');
