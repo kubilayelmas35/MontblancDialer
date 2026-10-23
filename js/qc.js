@@ -676,6 +676,13 @@ async function quickQcUpdate(apptId, status) {
         body: JSON.stringify({ alta_tasindi: true, durum: 'dolu' }),
       }).catch(() => {});
       if (typeof openReplacementForSlot === 'function') openedSlot = await openReplacementForSlot(slotId).catch(() => false);
+      if (typeof ariaAfterCalendar === 'function') {
+        void ariaAfterCalendar(openedSlot ? 'alta-open' : 'alta', {
+          day: slot?.tarih || '',
+          saat: slot?.baslangic_saat || '',
+          campId: row.campaign_id,
+        });
+      }
     }
     let apptDate = '';
     let apptTime = '';

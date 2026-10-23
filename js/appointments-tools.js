@@ -261,8 +261,20 @@ async function openTakvimBindUnassigned(slot) {
 
 async function bindTakvimUnassigned(toSlotId, apptId, fromSlotId, pop) {
   if (typeof takvimExecuteMoveAppointment !== 'function') return;
+  const slots = typeof takvimSlots !== 'undefined' ? takvimSlots : [];
+  const from = slots.find((s) => s.id === fromSlotId);
+  const to = slots.find((s) => s.id === toSlotId);
   const ok = await takvimExecuteMoveAppointment(fromSlotId, toSlotId, apptId);
   if (!ok) return;
+  if (typeof ariaAfterCalendar === 'function') {
+    void ariaAfterCalendar('move', {
+      fromDay: from?.tarih,
+      fromSaat: from?.baslangic_saat,
+      toDay: to?.tarih,
+      toSaat: to?.baslangic_saat,
+      campId: to?.campaign_id || from?.campaign_id,
+    });
+  }
   pop?.remove();
   if (typeof loadTakvimSlots === 'function') await loadTakvimSlots();
   toast(typeof t === 'function' ? t('cal.bind.done') : 'Randevu bu saate taşındı', 'ok');
@@ -313,12 +325,19 @@ async function openReplacementForSlot(slotId) {
 
 async function slotAltaTasi(slotId) {
   try {
-    const rows = await sb(`takvim_slots?id=eq.${slotId}&select=id,alta_tasindi,gun_kapali&limit=1`).catch(() => []);
+    const rows = await sb(`takvim_slots?id=eq.${slotId}&select=id,alta_tasindi,gun_kapali,tarih,baslangic_saat,campaign_id&limit=1`).catch(() => []);
     const prev = rows?.[0];
     const already = !!(prev && (prev.alta_tasindi === true || prev.alta_tasindi === 'true' || prev.alta_tasindi === 't'));
     await sb(`takvim_slots?id=eq.${slotId}`, {method:'PATCH', prefer:'return=minimal', body: JSON.stringify({alta_tasindi: true, durum: 'dolu'})});
     const opened = !already && !prev?.gun_kapali ? await openReplacementForSlot(slotId).catch(() => false) : false;
     if (typeof loadTakvimSlots === 'function') await loadTakvimSlots();
+    if (typeof ariaAfterCalendar === 'function' && prev) {
+      void ariaAfterCalendar(opened ? 'alta-open' : 'alta', {
+        day: prev.tarih,
+        saat: prev.baslangic_saat,
+        campId: prev.campaign_id,
+      });
+    }
     const say = typeof t === 'function' ? t : ((key, fb) => fb);
     toast(opened ? say('cal.down.slot', 'Alta alındı. Aynı saatte boş slot açıldı.') : say('cal.down.done', 'Slot alta taşındı'), 'ok');
   } catch(e) { toast('Hata: '+e.message, 'err'); }
@@ -326,8 +345,12 @@ async function slotAltaTasi(slotId) {
 
 async function slotUsteCikar(slotId) {
   try {
+    const prev = (typeof takvimSlots !== 'undefined' ? takvimSlots : []).find((s) => s.id === slotId);
     await sb(`takvim_slots?id=eq.${slotId}`, {method:'PATCH', prefer:'return=minimal', body: JSON.stringify({alta_tasindi: false, durum: 'dolu'})});
     await loadTakvimSlots();
+    if (typeof ariaAfterCalendar === 'function') {
+      void ariaAfterCalendar('up', { day: prev?.tarih, saat: prev?.baslangic_saat, campId: prev?.campaign_id });
+    }
     toast(typeof t === 'function' ? t('cal.up.done') : 'Randevu üste alındı', 'ok');
   } catch (e) { toast('Hata: ' + (e.message || ''), 'err'); }
 }
@@ -888,6 +911,9 @@ async function addAdjacentEmptySlot(slotId) {
       })
     });
     await loadTakvimSlots();
+    if (typeof ariaAfterCalendar === 'function') {
+      void ariaAfterCalendar('add', { day: slot.tarih, saat: newStart, campId: takvimCampId });
+    }
     toast('Aynı saatte boş slot eklendi', 'ok');
   } catch (e) {
     toast('Eklenemedi: ' + (e?.message || ''), 'err');

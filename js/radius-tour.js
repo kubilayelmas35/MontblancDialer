@@ -230,6 +230,108 @@ function ariaScheduleHide() {
   }, 180);
 }
 
+function ariaChipBos() {
+  const row = _tourPlan?.pick?.id ? (_tourPlan.rows || []).find((item) => item.id === _tourPlan.pick.id) : null;
+  return row ? Number(row.bos) || 0 : null;
+}
+
+function ariaHm(value) {
+  return String(value || '').slice(0, 5);
+}
+
+function ariaWatched(ymd, campId) {
+  if (!_tourPlan?.day || !_tourPlan?.pick?.id) return false;
+  if (ymd && ymd !== _tourPlan.day) return false;
+  if (campId && campId !== _tourPlan.pick.id) return false;
+  return true;
+}
+
+function ariaDelta(kind, detail) {
+  const d = detail || {};
+  const hit = (ymd, campId) => ariaWatched(ymd, campId);
+  if (kind === 'alta-open' || kind === 'add' || kind === 'free') return hit(d.day, d.campId) ? 1 : 0;
+  if (kind === 'book') return hit(d.day, d.campId) ? -1 : 0;
+  if (kind === 'del') return d.empty && hit(d.day, d.campId) ? -1 : 0;
+  if (kind === 'move') {
+    let n = 0;
+    if (hit(d.toDay, d.campId)) n -= 1;
+    if (hit(d.fromDay, d.campId)) n += 1;
+    return n;
+  }
+  return 0;
+}
+
+function ariaCountBit(was, now, otherDay) {
+  if (now == null) return '';
+  if (otherDay) return tourSay('aria.cal.other', 'Baktığım günde boş slot {n}.', { n: now });
+  if (was == null || was === now) return tourSay('aria.cal.same', 'Boş slot {n}.', { n: now });
+  return tourSay('aria.cal.delta', 'Boş slot {was} iken {n} oldu.', { was, n: now });
+}
+
+function ariaCalendarLine(kind, detail, was, now) {
+  const d = detail || {};
+  const saat = ariaHm(d.saat || d.toSaat);
+  const from = ariaHm(d.fromSaat);
+  const eventDay = d.day || d.toDay || '';
+  const otherDay = !!(_tourPlan?.day && eventDay && eventDay !== _tourPlan.day);
+  const bit = ariaCountBit(was, now, otherDay);
+  let why = '';
+  if (kind === 'alta-open') why = tourSay('aria.cal.alta.open', '{saat} alta alındı. Onun için aynı saate yeni boş slot açtım.', { saat });
+  else if (kind === 'alta') why = tourSay('aria.cal.alta', '{saat} alta alındı. Yeni boş slot açmadım.', { saat });
+  else if (kind === 'move') why = from
+    ? tourSay('aria.cal.move', '{from} saatinden {saat} saatine randevu taşıdım. Eski saat boşaldı, bu saat doldu.', { from, saat })
+    : tourSay('aria.cal.move.here', '{saat} saatine bir randevu taşıdım.', { saat });
+  else if (kind === 'book') why = tourSay('aria.cal.book', '{saat} doldu, randevu yazıldı.', { saat });
+  else if (kind === 'add') why = tourSay('aria.cal.add', '{saat} için bir boş yer daha açtım.', { saat });
+  else if (kind === 'del') why = tourSay('aria.cal.del', '{saat} yerini sildim.', { saat });
+  else if (kind === 'free') why = tourSay('aria.cal.free', '{saat} yine boş. Randevu kalktı.', { saat });
+  else if (kind === 'up') why = tourSay('aria.cal.up', '{saat} randevusunu alttan üste aldım.', { saat });
+  else return '';
+  return tourSay('aria.cal.wrap', 'Aria: {why} {bit}', { why, bit }).replace(/\s+/g, ' ').trim();
+}
+
+let _ariaCalQueue = null;
+let _ariaCalRun = false;
+
+async function ariaAfterCalendar(kind, detail, wasKnown) {
+  const was = wasKnown == null ? ariaChipBos() : wasKnown;
+  if (wasKnown == null) {
+    const delta = ariaDelta(kind, detail);
+    if (was != null && delta) {
+      const count = document.getElementById('aria-live-n');
+      if (count) count.textContent = String(Math.max(0, was + delta));
+    }
+  }
+  _ariaCalQueue = { kind, detail: detail || {}, was };
+  if (_ariaCalRun) return;
+  _ariaCalRun = true;
+  try {
+    while (_ariaCalQueue) {
+      const job = _ariaCalQueue;
+      _ariaCalQueue = null;
+      let spins = 0;
+      while (_tourBusy && spins < 25) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        spins += 1;
+      }
+      if (_tourBusy) {
+        const pending = _ariaCalQueue || job;
+        _ariaCalQueue = null;
+        setTimeout(() => { void ariaAfterCalendar(pending.kind, pending.detail, pending.was); }, 600);
+        break;
+      }
+      await tourRefresh({ silent: true });
+      const now = ariaChipBos();
+      const line = ariaCalendarLine(job.kind, job.detail, job.was, now);
+      if (!line) continue;
+      tourPaintLive(_tourPlan, line, true);
+      void tourRemember({ k: 'cal', text: line, day: job.detail.day || job.detail.toDay || _tourPlan?.day || '', camp: job.detail.campId || '', n: now });
+    }
+  } finally {
+    _ariaCalRun = false;
+  }
+}
+
 function ariaOpenPage() {
   ariaClosePop();
   if (typeof navigate === 'function') navigate('tour');
@@ -311,7 +413,11 @@ async function tourRemember(entry) {
   const gunluk = prev.gunluk && prev.gunluk.day === clock.ymd ? prev.gunluk : { day: clock.ymd, lines: [] };
   const lines = Array.isArray(gunluk.lines) ? gunluk.lines.slice() : [];
   const last = lines[lines.length - 1];
-  if (last && last.k === entry.k && last.camp === entry.camp && last.day === entry.day && last.added === entry.added && last.moved === entry.moved) {
+  if (last && entry.text && last.text === entry.text) {
+    tourPaintLog({ day: clock.ymd, lines });
+    return;
+  }
+  if (last && last.k === entry.k && last.camp === entry.camp && last.day === entry.day && last.added === entry.added && last.moved === entry.moved && !entry.text) {
     tourPaintLog({ day: clock.ymd, lines });
     return;
   }
@@ -840,7 +946,7 @@ async function tourRefresh(opts) {
     tourRender(_tourPlan);
     tourArm();
     if (apply) await tourApply(_tourPlan, force);
-    else tourPaintLive(_tourPlan, null, true);
+    else if (!(opts && opts.silent)) tourPaintLive(_tourPlan, null, true);
   } catch (e) {
     if (typeof toast === 'function') toast(tourSay('tour.err', 'Aria okunamadı'), 'err');
     if (_tourPlan) tourRender(_tourPlan);

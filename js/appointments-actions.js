@@ -634,17 +634,30 @@ async function agentCancelAppt(slotId, apptId) {
   if (!(await mbConfirm('Randevununi iptal etmek istediğine emin misin?', 'Randevu İptali'))) return;
   try {
     await sb(`appointments?id=eq.${apptId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'iptal'})});
+    const prev = (takvimSlots || []).find((s) => s.id === slotId);
     await sb(`takvim_slots?id=eq.${slotId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'bos',appointment_id:null})});
     await loadTakvimSlots();
+    if (typeof ariaAfterCalendar === 'function') {
+      void ariaAfterCalendar('free', { day: prev?.tarih, saat: prev?.baslangic_saat, campId: prev?.campaign_id });
+    }
     toast('Randevu iptal edildi','ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
 async function deleteTakvimSlot(slotId) {
   if (!(await mbConfirm('Slot silinecek?', 'Slot Sil'))) return;
+  const prev = (takvimSlots || []).find((s) => s.id === slotId);
   await sb(`takvim_slots?id=eq.${slotId}`,{method:'DELETE',prefer:'return=minimal'}).catch(e=>toast('Hata: '+e.message,'err'));
   closeModal('m-takvim-detail');
   await loadTakvimSlots();
+  if (typeof ariaAfterCalendar === 'function' && prev) {
+    void ariaAfterCalendar('del', {
+      day: prev.tarih,
+      saat: prev.baslangic_saat,
+      campId: prev.campaign_id,
+      empty: prev.durum === 'bos' && !prev.appointment_id,
+    });
+  }
   toast('Slot silindi','ok');
 }
 
@@ -812,6 +825,9 @@ async function saveTerminFromSection() {
     const created = await _createAppointmentWithCustomerFallback(data);
     const aid = Array.isArray(created) ? created[0]?.id : created?.id;
     await sb(`takvim_slots?id=eq.${slot.id}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'dolu',appointment_id:aid,kilitli_agent_id:null,kilitli_at:null})});
+    if (typeof ariaAfterCalendar === 'function') {
+      void ariaAfterCalendar('book', { day: slot.tarih, saat: slot.baslangic_saat, campId: slot.campaign_id || takvimCampId });
+    }
     const ts = document.getElementById('termin-fields-section');
     if (ts) ts.style.display = 'none';
     const badge = document.getElementById('termin-slot-badge');
@@ -893,6 +909,9 @@ async function submitTakvimBook(slotId) {
     const aid = Array.isArray(created) ? created[0]?.id : created?.id;
     await takvimSaveContactExtras(currentContact?.id, contactExtra);
     await sb(`takvim_slots?id=eq.${slotId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'dolu',appointment_id:aid,kilitli_agent_id:null,kilitli_at:null})});
+    if (typeof ariaAfterCalendar === 'function') {
+      void ariaAfterCalendar('book', { day: slot?.tarih, saat: slot?.baslangic_saat, campId: slot?.campaign_id || takvimCampId });
+    }
     _bookingSlot = null;
     closeModal('m-takvim-detail');
     await loadTakvimSlots();
@@ -1436,8 +1455,19 @@ async function takvimSaveMoveAppointment(fromSlotId, apptId) {
     return;
   }
   if (!(await mbConfirm('Randevu seçilen boş slota taşınsın mı?', 'Randevuyu taşı'))) return;
+  const from = (takvimSlots || []).find((s) => s.id === fromSlotId);
+  const to = (takvimSlots || []).find((s) => s.id === toId);
   const ok = await takvimExecuteMoveAppointment(fromSlotId, toId, apptId);
   if (!ok) return;
+  if (typeof ariaAfterCalendar === 'function') {
+    void ariaAfterCalendar('move', {
+      fromDay: from?.tarih,
+      fromSaat: from?.baslangic_saat,
+      toDay: to?.tarih,
+      toSaat: to?.baslangic_saat,
+      campId: to?.campaign_id || from?.campaign_id,
+    });
+  }
   takvimClearMovePickMode();
   document.getElementById('m-takvim-move-appt')?.remove();
   await loadTakvimSlots();
