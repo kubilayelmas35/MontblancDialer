@@ -192,11 +192,46 @@ async function bindTakvimUnassigned(slotId, apptId, pop) {
   }
 }
 
+async function openReplacementForSlot(slotId) {
+  if (!slotId || typeof sb !== 'function') return false;
+  const rows = await sb(`takvim_slots?id=eq.${slotId}&select=id,campaign_id,firm_id,tarih,baslangic_saat,bitis_saat,gun_kapali&limit=1`).catch(() => []);
+  const slot = rows?.[0];
+  if (!slot || slot.gun_kapali || !slot.campaign_id || !slot.firm_id || !slot.tarih || !slot.baslangic_saat) return false;
+  const start = String(slot.baslangic_saat).slice(0, 8);
+  let end = slot.bitis_saat ? String(slot.bitis_saat).slice(0, 8) : '';
+  if (!end) {
+    const match = start.match(/(\d{1,2}):(\d{2})/);
+    if (!match) return false;
+    const total = (Number(match[1]) * 60 + Number(match[2]) + 60) % (24 * 60);
+    end = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  }
+  await sb('takvim_slots', {
+    method: 'POST',
+    prefer: 'return=minimal',
+    body: JSON.stringify({
+      campaign_id: slot.campaign_id,
+      firm_id: slot.firm_id,
+      tarih: slot.tarih,
+      baslangic_saat: start,
+      bitis_saat: end,
+      durum: 'bos',
+      gun_kapali: false,
+      alta_tasindi: false,
+    }),
+  });
+  return true;
+}
+
 async function slotAltaTasi(slotId) {
   try {
+    const rows = await sb(`takvim_slots?id=eq.${slotId}&select=id,alta_tasindi,gun_kapali&limit=1`).catch(() => []);
+    const prev = rows?.[0];
+    const already = !!(prev && (prev.alta_tasindi === true || prev.alta_tasindi === 'true' || prev.alta_tasindi === 't'));
     await sb(`takvim_slots?id=eq.${slotId}`, {method:'PATCH', prefer:'return=minimal', body: JSON.stringify({alta_tasindi: true, durum: 'dolu'})});
-    await loadTakvimSlots();
-    toast('Slot alta taşındı', 'ok');
+    const opened = !already && !prev?.gun_kapali ? await openReplacementForSlot(slotId).catch(() => false) : false;
+    if (typeof loadTakvimSlots === 'function') await loadTakvimSlots();
+    const say = typeof t === 'function' ? t : ((key, fb) => fb);
+    toast(opened ? say('cal.down.slot', 'Alta alındı. Aynı saatte boş slot açıldı.') : say('cal.down.done', 'Slot alta taşındı'), 'ok');
   } catch(e) { toast('Hata: '+e.message, 'err'); }
 }
 

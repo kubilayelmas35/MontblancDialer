@@ -1,2 +1,2 @@
 // Auto-synced with version.json (see scripts/build-index.mjs)
-window.MB_APP_VERSION = '11.48';
+window.MB_APP_VERSION = '11.49';

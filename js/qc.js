@@ -247,7 +247,7 @@ async function loadQcData() {
       scopeIds = qcRestrictedIds(firms?.[0]?.settings?.qc_customer_scope, currentUser.id);
     }
     const scopeQ = scopeIds?.length ? `&customer_id=in.(${scopeIds.join(',')})` : '';
-    const embed = `appointments?select=${cols},users(name),campaigns(name),customers(name,code),takvim_slots!slot_id(tarih,baslangic_saat,bitis_saat,alta_tasindi)${ff}${dateQ}${scopeQ}&order=termin_tarih.desc&limit=${QC_CAP}`;
+    const embed = `appointments?select=${cols},users(name),campaigns(name),customers(name,code),takvim_slots!slot_id(id,tarih,baslangic_saat,bitis_saat,alta_tasindi)${ff}${dateQ}${scopeQ}&order=termin_tarih.desc&limit=${QC_CAP}`;
     if (scopeIds && !scopeIds.length) {
       qcList = [];
     } else {
@@ -667,12 +667,15 @@ async function quickQcUpdate(apptId, status) {
       }
     }
     const slot = _qcSlot(row);
-    if (resultCfg.auto_move_down && slot?.id && !_qcMoved(row)) {
-      await sb(`takvim_slots?id=eq.${slot.id}`, {
+    const slotId = slot?.id || row.slot_id;
+    let openedSlot = false;
+    if (resultCfg.auto_move_down && slotId && !_qcMoved(row)) {
+      await sb(`takvim_slots?id=eq.${slotId}`, {
         method: 'PATCH',
         prefer: 'return=minimal',
         body: JSON.stringify({ alta_tasindi: true, durum: 'dolu' }),
       }).catch(() => {});
+      if (typeof openReplacementForSlot === 'function') openedSlot = await openReplacementForSlot(slotId).catch(() => false);
     }
     let apptDate = '';
     let apptTime = '';
@@ -689,7 +692,7 @@ async function quickQcUpdate(apptId, status) {
         baslangic_saat: apptTime,
       }, resultKey);
     }
-    toast(t('qc.saved'), 'ok');
+    toast(openedSlot ? t('cal.down.slot') : t('qc.saved'), 'ok');
     if (resultKey === 'basarili') {
       const phone = row.telefonnummer || '';
       let explicit = false;
