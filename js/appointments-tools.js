@@ -122,6 +122,60 @@ function takvimCtxDismiss() {
   document.getElementById('slot-ctx-menu')?.remove();
 }
 
+function takvimBindWhen(tarih, saat) {
+  const day = String(tarih || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const hm = String(saat || '').slice(0, 5);
+  if (!day) return hm;
+  return `${day[3]}.${day[2]} ${hm}`.trim();
+}
+
+function takvimBindLine(row) {
+  const who = String(row.nachname || '').trim() || '—';
+  const place = [row.plz, row.ortschaft].map((x) => String(x || '').trim()).filter(Boolean).join(' ');
+  const when = takvimBindWhen(row.tarih, row.saat);
+  const down = row.alta ? (typeof t === 'function' ? t('cal.bind.down') : 'alta') : '';
+  return [who, row.telefonnummer || '', place, when, down].filter(Boolean).join(' · ');
+}
+
+async function takvimBindRowsFromSlots(slots, toSlotId) {
+  const list = (slots || []).filter((s) => s && s.id && s.id !== toSlotId && s.appointment_id && s.durum !== 'bos' && !s.gun_kapali);
+  const ids = [...new Set(list.map((s) => s.appointment_id))];
+  if (!ids.length) return [];
+  const appts = await sb(`appointments?id=in.(${ids.join(',')})&select=id,nachname,telefonnummer,plz,ortschaft,slot_id`);
+  const byId = new Map((appts || []).map((a) => [a.id, a]));
+  return list.map((s) => {
+    const a = byId.get(s.appointment_id);
+    if (!a) return null;
+    return {
+      apptId: a.id,
+      fromSlotId: s.id,
+      nachname: a.nachname,
+      telefonnummer: a.telefonnummer,
+      plz: a.plz,
+      ortschaft: a.ortschaft,
+      tarih: s.tarih,
+      saat: s.baslangic_saat,
+      alta: !!s.alta_tasindi,
+    };
+  }).filter(Boolean);
+}
+
+async function takvimBindCandidates(campId, toSlotId) {
+  const slots = await sb(`takvim_slots?campaign_id=eq.${campId}&appointment_id=not.is.null&durum=eq.dolu&gun_kapali=eq.false&select=id,appointment_id,tarih,baslangic_saat,alta_tasindi,durum,gun_kapali&order=tarih.desc,baslangic_saat.desc&limit=150`);
+  return takvimBindRowsFromSlots(slots, toSlotId);
+}
+
+async function takvimBindSearch(campId, toSlotId, q) {
+  const safe = String(q || '').replace(/[%*,()]/g, '').trim();
+  if (safe.length < 2) return [];
+  const star = `*${encodeURIComponent(safe)}*`;
+  const appts = await sb(`appointments?campaign_id=eq.${campId}&slot_id=not.is.null&or=(nachname.ilike.${star},telefonnummer.ilike.${star},plz.ilike.${star})&select=id,nachname,telefonnummer,plz,ortschaft,slot_id&limit=40`);
+  const slotIds = [...new Set((appts || []).map((a) => a.slot_id).filter((id) => id && id !== toSlotId))];
+  if (!slotIds.length) return [];
+  const slots = await sb(`takvim_slots?id=in.(${slotIds.join(',')})&select=id,appointment_id,tarih,baslangic_saat,alta_tasindi,durum,gun_kapali`);
+  return takvimBindRowsFromSlots(slots, toSlotId);
+}
+
 async function openTakvimBindUnassigned(slot) {
   document.removeEventListener('click', takvimCtxDismiss);
   document.removeEventListener('contextmenu', takvimCtxDismiss);
@@ -131,95 +185,87 @@ async function openTakvimBindUnassigned(slot) {
     return;
   }
   document.getElementById('takvim-bind-pop')?.remove();
-  let appts = [];
-  let used = [];
+  let rows = [];
   try {
-    [appts, used] = await Promise.all([
-      sb(`appointments?campaign_id=eq.${campId}&slot_id=is.null&select=id,nachname,telefonnummer,plz,ortschaft,termin_tarih&order=kayit_tarihi.desc&limit=120`),
-      sb(`takvim_slots?campaign_id=eq.${campId}&appointment_id=not.is.null&select=appointment_id&limit=500`),
-    ]);
+    rows = await takvimBindCandidates(campId, slot.id);
   } catch (e) {
     toast((typeof t === 'function' ? t('cal.bind.fail') : 'Bağlama hatası: ') + (e.message || ''), 'err');
     return;
   }
-  const taken = new Set((used || []).map((row) => String(row.appointment_id || '')));
-  const free = (appts || []).filter((row) => row?.id && !taken.has(String(row.id)));
   const pop = document.createElement('div');
   pop.id = 'takvim-bind-pop';
   pop.className = 'takvim-bind-pop';
   const card = document.createElement('div');
   card.className = 'takvim-bind-card';
   const title = document.createElement('h3');
-  title.textContent = typeof t === 'function' ? t('cal.bind.title') : 'Atanmamış randevu';
-  card.appendChild(title);
-  if (!free.length) {
-    const empty = document.createElement('p');
-    empty.textContent = typeof t === 'function' ? t('cal.bind.empty') : 'Bu kampanyada slota bağlı olmayan randevu yok';
-    card.appendChild(empty);
-  }
-  free.forEach((row) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'takvim-bind-row';
-    const who = String(row.nachname || '').trim() || '—';
-    const place = [row.plz, row.ortschaft].map((x) => String(x || '').trim()).filter(Boolean).join(' ');
-    btn.textContent = [who, row.telefonnummer || '', place, row.termin_tarih || ''].filter(Boolean).join(' · ');
-    btn.onclick = () => bindTakvimUnassigned(slot.id, row.id, pop);
-    card.appendChild(btn);
-  });
+  title.textContent = typeof t === 'function' ? t('cal.bind.title') : 'Bu saate kimi taşıyacaksın';
+  const help = document.createElement('p');
+  help.className = 'tour-help';
+  help.textContent = typeof t === 'function' ? t('cal.bind.help') : 'Seçtiğin kişi eski saatinden çıkar ve bu boş saate gelir.';
+  const find = document.createElement('input');
+  find.type = 'search';
+  find.className = 'form-input';
+  find.placeholder = typeof t === 'function' ? t('cal.bind.find') : 'İsim, telefon veya posta kodu';
+  const list = document.createElement('div');
+  const empty = document.createElement('p');
+  empty.textContent = typeof t === 'function' ? t('cal.bind.empty') : 'Bu kampanyada taşınacak randevu yok';
+  const paint = (q) => {
+    const needle = String(q || '').trim().toLocaleLowerCase('tr');
+    list.replaceChildren();
+    const shown = rows.filter((row) => !needle || takvimBindLine(row).toLocaleLowerCase('tr').includes(needle));
+    empty.hidden = shown.length > 0;
+    shown.forEach((row) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'takvim-bind-row';
+      btn.textContent = takvimBindLine(row);
+      btn.onclick = async () => {
+        const ask = typeof t === 'function' ? t('cal.bind.ask') : 'Bu kişi bu boş saate taşınsın mı? Eski saati boşalır.';
+        const who = String(row.nachname || '').trim() || '—';
+        const ok = typeof mbConfirm === 'function'
+          ? await mbConfirm(`${who}. ${ask}`, typeof t === 'function' ? t('cal.bind') : 'Buraya taşı')
+          : true;
+        if (!ok) return;
+        await bindTakvimUnassigned(slot.id, row.apptId, row.fromSlotId, pop);
+      };
+      list.appendChild(btn);
+    });
+  };
+  let searchTimer = 0;
+  find.oninput = () => {
+    paint(find.value);
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(async () => {
+      const q = find.value;
+      if (String(q || '').trim().length < 2) return;
+      const extra = await takvimBindSearch(campId, slot.id, q).catch(() => []);
+      const seen = new Set(rows.map((row) => row.apptId));
+      extra.forEach((row) => {
+        if (!seen.has(row.apptId)) rows.push(row);
+      });
+      paint(find.value);
+    }, 250);
+  };
   const close = document.createElement('button');
   close.type = 'button';
   close.className = 'takvim-bind-row';
-  close.textContent = typeof t === 'function' ? t('wv.due.snooze') : 'Tamam';
+  close.textContent = typeof t === 'function' ? t('cal.bind.close') : 'Kapat';
   close.onclick = () => pop.remove();
-  card.appendChild(close);
+  card.append(title, help, find, empty, list, close);
+  paint('');
   pop.appendChild(card);
   pop.addEventListener('click', (ev) => { if (ev.target === pop) pop.remove(); });
   document.body.appendChild(pop);
+  find.focus();
 }
 
-async function bindTakvimUnassigned(slotId, apptId, pop) {
-  try {
-    const rows = await sb(`takvim_slots?id=eq.${slotId}&select=id,tarih,baslangic_saat,durum,appointment_id,gun_kapali&limit=1`);
-    const slot = rows?.[0];
-    if (!slot || slot.gun_kapali || slot.durum !== 'bos' || slot.appointment_id) {
-      toast(typeof t === 'function' ? t('cal.bind.busy') : 'Bu saat artık boş değil.', 'warn');
-      pop?.remove();
-      if (typeof loadTakvimSlots === 'function') await loadTakvimSlots();
-      return;
-    }
-    const saat = String(slot.baslangic_saat || '00:00').slice(0, 5);
-    await sb(`takvim_slots?id=eq.${slotId}`, {
-      method: 'PATCH',
-      prefer: 'return=minimal',
-      body: JSON.stringify({
-        durum: 'dolu',
-        appointment_id: apptId,
-        alta_tasindi: false,
-        kilitli_agent_id: null,
-        kilitli_at: null,
-      }),
-    });
-    try {
-      await sb(`appointments?id=eq.${apptId}`, {
-        method: 'PATCH',
-        prefer: 'return=minimal',
-        body: JSON.stringify({ slot_id: slotId, termin_tarih: `${slot.tarih}T${saat}:00` }),
-      });
-    } catch (err) {
-      await sb(`takvim_slots?id=eq.${slotId}`, {
-        method: 'PATCH',
-        prefer: 'return=minimal',
-        body: JSON.stringify({ durum: 'bos', appointment_id: null, kilitli_agent_id: null, kilitli_at: null }),
-      }).catch(() => {});
-      throw err;
-    }
-    pop?.remove();
-    if (typeof loadTakvimSlots === 'function') await loadTakvimSlots();
-    toast(typeof t === 'function' ? t('cal.bind.done') : 'Randevu slota bağlandı', 'ok');
-  } catch (e) {
-    toast((typeof t === 'function' ? t('cal.bind.fail') : 'Bağlama hatası: ') + (e.message || ''), 'err');
-  }
+async function bindTakvimUnassigned(toSlotId, apptId, fromSlotId, pop) {
+  if (typeof takvimExecuteMoveAppointment !== 'function') return;
+  const ok = await takvimExecuteMoveAppointment(fromSlotId, toSlotId, apptId);
+  if (!ok) return;
+  pop?.remove();
+  if (typeof loadTakvimSlots === 'function') await loadTakvimSlots();
+  toast(typeof t === 'function' ? t('cal.bind.done') : 'Randevu bu saate taşındı', 'ok');
 }
 
 async function firmAltaOpensSlot(firmId) {

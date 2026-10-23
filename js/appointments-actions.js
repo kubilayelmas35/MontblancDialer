@@ -1279,7 +1279,7 @@ async function takvimFetchEmptySlotsForMove(campaignId, centerDate) {
 }
 
 async function takvimExecuteMoveAppointment(fromSlotId, toSlotId, apptId) {
-  const chk = await sb(`takvim_slots?id=eq.${toSlotId}&select=id,durum,appointment_id&limit=1`);
+  const chk = await sb(`takvim_slots?id=eq.${toSlotId}&select=id,durum,appointment_id,tarih,baslangic_saat&limit=1`);
   const t = chk?.[0];
   if (!t || t.durum !== 'bos' || (t.appointment_id != null && String(t.appointment_id) !== '')) {
     toast('Hedef slot artık uygun değil; takvimi yenileyin.', 'warn');
@@ -1305,6 +1305,7 @@ async function takvimExecuteMoveAppointment(fromSlotId, toSlotId, apptId) {
     kilitli_agent_id: null,
     kilitli_at: null
   };
+  let destFilled = false;
   try {
     await sb(`takvim_slots?id=eq.${fromSlotId}`, {
       method: 'PATCH',
@@ -1316,15 +1317,27 @@ async function takvimExecuteMoveAppointment(fromSlotId, toSlotId, apptId) {
       prefer: 'return=minimal',
       body: JSON.stringify(fillPatch)
     });
+    destFilled = true;
+    const saat = String(t.baslangic_saat || '00:00').slice(0, 5);
+    await sb(`appointments?id=eq.${apptId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ slot_id: toSlotId, termin_tarih: `${t.tarih}T${saat}:00` })
+    });
     return true;
   } catch (e) {
-    try {
-      await sb(`takvim_slots?id=eq.${fromSlotId}`, {
+    if (destFilled) {
+      await sb(`takvim_slots?id=eq.${toSlotId}`, {
         method: 'PATCH',
         prefer: 'return=minimal',
-        body: JSON.stringify(fillPatch)
-      });
-    } catch (_) {}
+        body: JSON.stringify(emptyPatch)
+      }).catch(() => {});
+    }
+    await sb(`takvim_slots?id=eq.${fromSlotId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify(fillPatch)
+    }).catch(() => {});
     toast('Taşıma hatası: ' + e.message, 'err');
     return false;
   }
