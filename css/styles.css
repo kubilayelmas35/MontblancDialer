@@ -1900,7 +1900,33 @@ display: flex;
 pointer-events: auto;
 visibility: visible;
 }
-#page-geocon.page { padding: 0; gap: 0; overflow: hidden; }
+#page-geocon.page { position: relative; padding: 0; gap: 0; overflow: hidden; }
+.tour-fab {
+  position: absolute; left: 14px; bottom: 14px; z-index: 30;
+  border: 1px solid var(--border); background: var(--bg-2); color: var(--text-1);
+  border-radius: 999px; padding: 8px 14px; font-weight: 800; font-size: 13px; cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+}
+.tour-panel {
+  position: absolute; left: 14px; top: 14px; bottom: 62px; z-index: 30;
+  width: min(380px, calc(100% - 28px)); overflow: auto;
+  background: var(--bg-2); color: var(--text-1); border: 1px solid var(--border);
+  border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,.28); padding: 12px;
+}
+.tour-hd { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.tour-hd b { font-size: 15px; }
+.tour-note { font-size: 12px; color: var(--text-2); margin: 0 0 8px; }
+.tour-row { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; background: var(--bg-3, var(--bg-1)); }
+.tour-row b { font-size: 13px; }
+.tour-meta { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.tour-tag { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
+.tour-tag.is-bad { color: #b91c1c; }
+.tour-tag.is-mid { color: #b45309; }
+.tour-tag.is-ok { color: #15803d; }
+.tour-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+[data-theme="dark"] .tour-tag.is-bad { color: #fecaca; }
+[data-theme="dark"] .tour-tag.is-mid { color: #fde68a; }
+[data-theme="dark"] .tour-tag.is-ok { color: #bbf7d0; }
 .geocon-frame { flex: 1; width: 100%; min-height: 0; border: 0; background: #0e1324; }
 #m-upload-q.is-geocon .upload-area { display: none; }
 @media (max-width: 1024px) { .page { padding: 14px; } }
