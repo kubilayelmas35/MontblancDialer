@@ -1909,6 +1909,8 @@ visibility: visible;
 .tour-pane.is-on { display: flex; flex-direction: column; gap: 10px; }
 .tour-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
 .tour-field, .tour-check { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-3); font-size: 12px; color: var(--text-2); }
+.tour-field.is-off, .tour-check.is-off { opacity: .45; }
+.tour-yakin[hidden] { display: none; }
 .tour-check { flex-direction: row; align-items: center; justify-content: space-between; }
 .tour-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
 .tour-note { font-size: 12px; color: var(--text-2); margin: 0; }

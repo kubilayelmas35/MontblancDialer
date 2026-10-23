@@ -14,6 +14,8 @@ const TOUR_DEFAULTS = {
   olay: true,
   onay: true,
   veriEsik: 500,
+  radiusKm: 30,
+  yakinAdet: 100,
   hazirEsik: 3000,
   terminHedef: true,
   terminGunluk: 20,
@@ -37,6 +39,28 @@ let _tourBusy = false;
 let _tourWatchSig = '';
 let _tourSettings = { ...TOUR_DEFAULTS };
 let _tourTab = 'genel';
+const TOUR_LOCK_KEYS = ['lastCampId', 'lastDay', 'lastTickAt'];
+
+function tourUserId() {
+  return (typeof currentUser !== 'undefined' && currentUser?.id) ? String(currentUser.id) : '';
+}
+
+function tourAccountPrefs() {
+  const pref = tourPref();
+  const out = {};
+  Object.keys(TOUR_DEFAULTS).forEach((key) => { out[key] = pref[key]; });
+  return out;
+}
+
+function tourAdoptPrefs(saved) {
+  if (!saved || typeof saved !== 'object') return;
+  const knobs = {};
+  Object.keys(TOUR_DEFAULTS).forEach((key) => {
+    if (saved[key] !== undefined) knobs[key] = saved[key];
+  });
+  _tourSettings = { ...tourPref(), ...knobs };
+  tourPaintSettings();
+}
 
 function tourSay(key, fb, vars) {
   const raw = typeof t === 'function' ? t(key) : fb;
@@ -77,14 +101,22 @@ function tourEffectivePasif() {
 
 async function tourLoadSettings() {
   _tourSettings = { ...TOUR_DEFAULTS };
+  const userId = tourUserId();
   const firmId = tourFirmId();
-  if (!firmId || typeof sb !== 'function') {
-    tourPaintSettings();
-    return _tourSettings;
+  if (typeof sb === 'function' && userId) {
+    const rows = await sb(`users?id=eq.${userId}&select=ui_prefs`).catch(() => []);
+    const saved = rows?.[0]?.ui_prefs?.tour;
+    if (saved && typeof saved === 'object') tourAdoptPrefs(saved);
   }
-  const firms = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
-  const saved = firms?.[0]?.settings?.tour;
-  if (saved && typeof saved === 'object') _tourSettings = { ...TOUR_DEFAULTS, ...saved };
+  if (typeof sb === 'function' && firmId) {
+    const firms = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
+    const firmTour = firms?.[0]?.settings?.tour;
+    if (firmTour && typeof firmTour === 'object') {
+      TOUR_LOCK_KEYS.forEach((key) => {
+        if (firmTour[key] != null && firmTour[key] !== '') _tourSettings[key] = firmTour[key];
+      });
+    }
+  }
   tourPaintSettings();
   return _tourSettings;
 }
@@ -92,16 +124,39 @@ async function tourLoadSettings() {
 async function tourSave(patch) {
   _tourSettings = { ...tourPref(), ...patch };
   tourPaintSettings();
+  const keys = Object.keys(patch || {});
+  if (keys.some((key) => !TOUR_LOCK_KEYS.includes(key))) await tourSaveUser();
+  if (keys.some((key) => TOUR_LOCK_KEYS.includes(key))) await tourSaveLock();
+  return _tourSettings;
+}
+
+async function tourSaveUser() {
+  const userId = tourUserId();
+  if (!userId || typeof sb !== 'function') return;
+  const rows = await sb(`users?id=eq.${userId}&select=ui_prefs`).catch(() => []);
+  const existing = rows?.[0]?.ui_prefs && typeof rows[0].ui_prefs === 'object' ? rows[0].ui_prefs : {};
+  await sb(`users?id=eq.${userId}`, {
+    method: 'PATCH',
+    prefer: 'return=minimal',
+    body: JSON.stringify({ ui_prefs: { ...existing, tour: tourAccountPrefs() } }),
+  });
+}
+
+async function tourSaveLock() {
   const firmId = tourFirmId();
-  if (!firmId || typeof sb !== 'function') return _tourSettings;
+  if (!firmId || typeof sb !== 'function') return;
   const firms = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
   const existing = firms?.[0]?.settings || {};
+  const prev = existing.tour && typeof existing.tour === 'object' ? existing.tour : {};
+  const lock = {};
+  TOUR_LOCK_KEYS.forEach((key) => {
+    if (_tourSettings[key] != null && _tourSettings[key] !== '') lock[key] = _tourSettings[key];
+  });
   await sb(`firms?id=eq.${firmId}`, {
     method: 'PATCH',
     prefer: 'return=minimal',
-    body: JSON.stringify({ settings: { ...existing, tour: { ..._tourSettings } } }),
+    body: JSON.stringify({ settings: { ...existing, tour: { ...prev, ...lock } } }),
   });
-  return _tourSettings;
 }
 
 function tourSetChecked(id, on) {
@@ -123,6 +178,16 @@ function tourPaintSettings() {
   if (esik) esik.value = String(pref.veriEsik);
   const kuyruk = document.getElementById('tour-kuyruk');
   if (kuyruk) kuyruk.value = pref.kuyrukMod === 'yakin' ? 'yakin' : 'revert';
+  const near = pref.kuyrukMod === 'yakin';
+  document.querySelectorAll('.tour-yakin').forEach((el) => { el.hidden = !near; });
+  const radius = document.getElementById('tour-radius');
+  if (radius) radius.value = String([10, 20, 30, 50].includes(Number(pref.radiusKm)) ? pref.radiusKm : 30);
+  const yakinN = document.getElementById('tour-yakin-n');
+  if (yakinN) yakinN.value = String(pref.yakinAdet);
+  const onWrap = document.getElementById('tour-on-wrap');
+  const offWrap = document.getElementById('tour-off-wrap');
+  if (onWrap) onWrap.classList.toggle('is-off', !pref.zamanlayici);
+  if (offWrap) offWrap.classList.toggle('is-off', !pref.zamanlayici);
   const hazir = document.getElementById('tour-hazir');
   if (hazir) hazir.value = String(pref.hazirEsik);
   const yol = document.getElementById('tour-yol-dk');
@@ -448,8 +513,14 @@ async function tourRefresh(opts) {
   }
 }
 
-function tourRunNow() {
-  void tourRefresh({ apply: true, force: true });
+async function tourRunNow() {
+  if (tourPref().onay) {
+    const ok = typeof mbConfirm === 'function'
+      ? await mbConfirm(tourSay('tour.askrun', 'Seçilen kampanya bildirilsin. Kuyruk eşiğin altındaysa doldurulsun?'), tourSay('tour.title', 'Tur'))
+      : false;
+    if (!ok) return;
+  }
+  await tourRefresh({ apply: true, force: true });
 }
 
 function tourArm() {
@@ -512,9 +583,9 @@ function tourAskRows(row, limit) {
           type: 'mb-geocon-rows-ask',
           requestId,
           anchorPlz: row.anchor,
-          allowOtherPrefix: false,
+          allowOtherPrefix: tourPref().ayniPrefix === false,
           limit,
-          radiusKm: 30,
+          radiusKm: [10, 20, 30, 50].includes(Number(tourPref().radiusKm)) ? Number(tourPref().radiusKm) : 30,
         }, window.location.origin);
       } catch (_) {
         finish([]);
@@ -529,8 +600,9 @@ function tourAskRows(row, limit) {
 }
 
 async function tourNearbyInsert(row) {
+  const cap = Math.max(20, Math.min(200, Number(tourPref().yakinAdet) || 100));
   const gap = Math.max(20, Number(tourPref().veriEsik) - Number(row.pending || 0));
-  const limit = Math.min(200, gap);
+  const limit = Math.min(cap, gap);
   const raw = await tourAskRows(row, limit);
   const norm = (value) => (typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(value) : String(value || '').trim());
   const mapped = [];
@@ -652,7 +724,14 @@ async function tourTime(key, el) {
 }
 
 function tourPickLoop(el) {
-  tourSave({ loopSaniye: Number(el.value) || 300 }).then(() => tourArm());
+  const allowed = [60, 120, 300, 600, 900];
+  const n = Number(el.value);
+  tourSave({ loopSaniye: allowed.includes(n) ? n : 300 }).then(() => tourArm());
+}
+
+function tourPickRadius(el) {
+  const n = Number(el.value);
+  void tourSave({ radiusKm: [10, 20, 30, 50].includes(n) ? n : 30 });
 }
 
 function tourPickWait(el) {

@@ -62,6 +62,7 @@ function mbCollectUiPrefs() {
     const cards = mbReadBriefOrder();
     if (cards) prefs.dash_cards = { left: cards.left, right: cards.right, wide: cards.wide || [] };
   }
+  if (typeof tourAccountPrefs === 'function') prefs.tour = tourAccountPrefs();
   return prefs;
 }
 
@@ -135,6 +136,7 @@ function mbApplyUiPrefs(remote) {
     if (typeof mbAdoptExportLayouts === 'function') {
       mbAdoptExportLayouts(remote.export_layouts, remote.export_layout_active);
     }
+    if (remote.tour && typeof remote.tour === 'object' && typeof tourAdoptPrefs === 'function') tourAdoptPrefs(remote.tour);
     if (remote.mascot && typeof remote.mascot === 'object' && typeof setMascotPref === 'function') {
       Object.entries(remote.mascot).forEach(([base, val]) => {
         if (!/^mb_mascot_[a-z0-9_]+$/.test(base)) return;
