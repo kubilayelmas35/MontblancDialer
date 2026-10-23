@@ -537,14 +537,6 @@
 <label class="tour-check"><span data-tr="Yalnız bu saatler arasında" data-de="Nur in dieser Uhrzeit">Yalnız bu saatler arasında</span><input type="checkbox" id="tour-clock" onchange="tourFlag('zamanlayici', this)"></label>
 <label class="tour-field" id="tour-on-wrap"><span data-tr="Başlangıç" data-de="Von">Başlangıç</span><input class="form-input" id="tour-on-at" type="time" onchange="tourTime('zamanAktif', this)"></label>
 <label class="tour-field" id="tour-off-wrap"><span data-tr="Bitiş" data-de="Bis">Bitiş</span><input class="form-input" id="tour-off-at" type="time" onchange="tourTime('zamanPasif', this)"></label>
-<label class="tour-field"><span data-tr="Kontrol aralığı" data-de="Prüfintervall">Kontrol aralığı</span>
-<select class="form-input" id="tour-loop" onchange="tourPickLoop(this)">
-<option value="60" data-tr="1 dakika" data-de="1 Minute">1 dakika</option>
-<option value="120" data-tr="2 dakika" data-de="2 Minuten">2 dakika</option>
-<option value="300" data-tr="5 dakika" data-de="5 Minuten">5 dakika</option>
-<option value="600" data-tr="10 dakika" data-de="10 Minuten">10 dakika</option>
-<option value="900" data-tr="15 dakika" data-de="15 Minuten">15 dakika</option>
-</select></label>
 <label class="tour-check"><span data-tr="Boş slot yoksa sonraki iş günü" data-de="Ohne freien Slot zum nächsten Werktag">Boş slot yoksa sonraki iş günü</span><input type="checkbox" id="tour-skip" onchange="tourFlag('bosSlotAtla', this)"></label>
 <label class="tour-field"><span data-tr="Kuyruk azalınca" data-de="Wenn die Queue sinkt">Kuyruk azalınca</span>
 <select class="form-input" id="tour-kuyruk" onchange="tourQueueMode(this)">

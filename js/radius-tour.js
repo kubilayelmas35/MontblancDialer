@@ -2,7 +2,6 @@ const TOUR_GUN = { Mon: 'pzt', Tue: 'sal', Wed: 'car', Thu: 'per', Fri: 'cum', S
 const TOUR_DEFAULTS = {
   aktif: false,
   kuyrukMod: 'revert',
-  loopSaniye: 300,
   hedefManuel: false,
   hedefTarih: '',
   secili: '',
@@ -170,8 +169,6 @@ function tourPaintSettings() {
   const on = document.getElementById('tour-mode-on');
   if (off) off.classList.toggle('is-on', tourEffectivePasif());
   if (on) on.classList.toggle('is-on', !tourEffectivePasif());
-  const loop = document.getElementById('tour-loop');
-  if (loop) loop.value = String(pref.loopSaniye);
   const wait = document.getElementById('tour-wait-n');
   if (wait) wait.value = String(pref.bekleyenEsik);
   const esik = document.getElementById('tour-esik');
@@ -528,7 +525,7 @@ function tourArm() {
   if (tourEffectivePasif()) return;
   const role = (typeof currentUser !== 'undefined' && currentUser?.role) || '';
   if (!['super_admin', 'admin', 'firm_admin'].includes(role)) return;
-  const wait = Math.min(1800, Math.max(60, Number(tourPref().loopSaniye) || 300)) * 1000;
+  const wait = 60000;
   window._tourTimer = setInterval(() => {
     if (document.hidden || !currentUser) return;
     void tourRefresh({ apply: true });
@@ -665,7 +662,7 @@ async function tourApply(plan, force) {
   if (!force && tourEffectivePasif()) return;
   const pref = tourPref();
   const now = Date.now();
-  if (!force && pref.lastTickAt && now - Number(pref.lastTickAt) < 90000) return;
+  if (!force && pref.lastTickAt && now - Number(pref.lastTickAt) < 50000) return;
   const row = plan.rows.find((item) => item.id === plan.pick.id);
   if (!row) return;
   await tourSave({ lastTickAt: now });
@@ -721,12 +718,6 @@ async function tourTime(key, el) {
   const value = String(el.value || TOUR_DEFAULTS[key] || '');
   await tourSave({ [key]: value });
   if (key === 'zamanAktif' || key === 'zamanPasif') tourArm();
-}
-
-function tourPickLoop(el) {
-  const allowed = [60, 120, 300, 600, 900];
-  const n = Number(el.value);
-  tourSave({ loopSaniye: allowed.includes(n) ? n : 300 }).then(() => tourArm());
 }
 
 function tourPickRadius(el) {
