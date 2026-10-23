@@ -34,7 +34,11 @@
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg>
 <span id="tb-mesai-label">08:00–20:00</span>
 </button>
-<button type="button" id="aria-live" class="aria-live" hidden onclick="navigate('tour')"></button>
+<button type="button" id="aria-live" class="aria-live" hidden onclick="navigate('tour')" title="Aria" aria-label="Aria">
+<svg class="aria-live-mark" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.75"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/></svg>
+<span class="aria-live-camp" id="aria-live-camp"></span>
+<span class="aria-live-n" id="aria-live-n"></span>
+</button>
 </div>
 <div id="tb-bal-pop" class="tb-bal-pop" hidden></div>
 <div id="tb-chip-pop" class="tb-chip-pop" hidden></div>

@@ -99,13 +99,28 @@ function tourStory(plan, extra) {
   return tourSay('aria.watch', 'Aria: {why}', { why });
 }
 
+function tourChipFacts(plan) {
+  const row = plan?.pick?.id ? (plan.rows || []).find((item) => item.id === plan.pick.id) : null;
+  if (!row) return null;
+  const name = String(row.name || '').trim();
+  const lead = name.match(/^(\d+)\b/);
+  return { camp: lead ? lead[1] : name.slice(0, 14), n: Number(row.bos) || 0 };
+}
+
 function tourPaintLive(plan, line, speak) {
   const text = line || (plan ? tourStory(plan) : '');
   const chip = document.getElementById('aria-live');
   if (chip) {
+    const facts = tourChipFacts(plan);
+    const camp = document.getElementById('aria-live-camp');
+    const count = document.getElementById('aria-live-n');
     chip.hidden = !text;
-    chip.textContent = text;
+    chip.classList.toggle('is-on', !!facts);
+    chip.classList.toggle('is-pasif', tourEffectivePasif());
+    if (camp) camp.textContent = facts ? facts.camp : '';
+    if (count) count.textContent = facts ? String(facts.n) : '';
     chip.title = text;
+    chip.setAttribute('aria-label', facts ? `Aria ${facts.camp}` : 'Aria');
   }
   const note = document.getElementById('aria-last');
   if (note) note.textContent = text || '';
