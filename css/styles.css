@@ -956,6 +956,12 @@ button.tb-icon-btn.tb-mesai.is-break-soon {
   color: #166534 !important;
   box-shadow: inset 0 0 0 2px #22c55e, 0 0 12px rgba(34, 197, 94, .55) !important;
 }
+[data-theme="dark"] button.tb-icon-btn.tb-mesai.is-break-soon {
+  color: #f0fdf4 !important;
+}
+[data-theme="dark"] .tb-mesai.is-break-soon .tb-mesai-fill {
+  background: color-mix(in srgb, #14532d 78%, #0b1220);
+}
 .tb-mesai.is-break-soon .tb-mesai-fill { background: color-mix(in srgb, #22c55e 45%, transparent); }
 @media (min-width: 769px) {
   .tb-pills-wrap:not(.is-mesai-open) .tb-icon-btn.tb-mesai.is-break-soon:not(:hover) {
