@@ -134,6 +134,77 @@ function tourSpeak(text) {
   if (typeof _ensureBubblePlacer === 'function') _ensureBubblePlacer();
 }
 
+function tourWhy(entry) {
+  const kind = entry?.kind || 'pick';
+  const key = kind === 'stay' ? 'aria.why.stay' : kind === 'switch' ? 'aria.why.switch' : 'aria.why.pick';
+  const fb = kind === 'stay'
+    ? '{day} gününde {camp} hâlâ en çok boş slota sahip, {n} boş. Onda kaldım.'
+    : kind === 'switch'
+      ? '{day} en yakın boş gün. {camp} geride kaldı, {n} boş slotu var. Ona geçtim.'
+      : '{day} en yakın boş gün. {camp} kampanyasında {n} boş slot var, onu seçtim.';
+  return tourSay(key, fb, { day: entry?.day || '', camp: entry?.camp || '', n: entry?.n || 0 });
+}
+
+function tourLogText(item) {
+  if (!item) return '';
+  if (item.text) return item.text;
+  const why = tourWhy(item);
+  if (item.k === 'near') {
+    const q = item.created
+      ? tourSay('aria.queue.new', 'Yeni kuyruk «{q}» açtım.', { q: item.q || '' })
+      : tourSay('aria.queue.add', 'Var olan «{q}» kuyruğuna ekledim.', { q: item.q || '' });
+    return tourSay('aria.near', 'Aria: {why} Kuyrukta {pending} kişi vardı, eşik {esik}. {plz} çevresinden {km} km içinde {n} kişi, {codes} posta kodu. {q}', {
+      why, pending: item.pending, esik: item.esik, plz: item.plz || '', km: item.km, n: item.added, codes: item.codes || 0, q,
+    });
+  }
+  if (item.k === 'near0') return tourSay('aria.near0', 'Aria: {why} {plz} çevresinde eklenecek kişi bulamadım.', { why, plz: item.plz || '' });
+  if (item.k === 'revert') return tourSay('aria.revert', 'Aria: {why} Kuyrukta {pending} kişi vardı. {n} kişiyi tekrar aramaya aldım.', { why, pending: item.pending, n: item.moved });
+  if (item.k === 'nearwait') return tourSay('aria.nearwait', 'Aria: {why} Kuyrukta {pending} kişi var, eşik {esik}. Yakın veri, sekme açıkken eklenecek.', { why, pending: item.pending, esik: item.esik });
+  if (item.k === 'told') return tourSay('aria.told', 'Aria: {why} Temsilcilere bildirdim.', { why });
+  return '';
+}
+
+function tourPaintLog(gunluk) {
+  const box = document.getElementById('aria-log');
+  if (!box) return;
+  const today = tourClock().ymd;
+  const lines = gunluk && gunluk.day === today && Array.isArray(gunluk.lines) ? gunluk.lines : [];
+  if (!lines.length) {
+    box.hidden = true;
+    box.innerHTML = '';
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = `<p class="tour-meta">${tourEsc(tourSay('aria.log', 'Bugün'))}</p>`
+    + lines.map((item) => `<p class="aria-log-line"><b>${tourEsc(item.at || '')}</b> ${tourEsc(tourLogText(item))}</p>`).join('');
+}
+
+async function tourRemember(entry) {
+  if (!entry || !entry.k) return;
+  const firmId = tourFirmId();
+  if (!firmId || typeof sb !== 'function') return;
+  const clock = tourClock();
+  const hm = `${String(Math.floor(clock.mins / 60)).padStart(2, '0')}:${String(clock.mins % 60).padStart(2, '0')}`;
+  const firms = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
+  const existing = firms?.[0]?.settings || {};
+  const prev = existing.tour && typeof existing.tour === 'object' ? existing.tour : {};
+  const gunluk = prev.gunluk && prev.gunluk.day === clock.ymd ? prev.gunluk : { day: clock.ymd, lines: [] };
+  const lines = Array.isArray(gunluk.lines) ? gunluk.lines.slice() : [];
+  const last = lines[lines.length - 1];
+  if (last && last.k === entry.k && last.camp === entry.camp && last.day === entry.day && last.added === entry.added && last.moved === entry.moved) {
+    tourPaintLog({ day: clock.ymd, lines });
+    return;
+  }
+  lines.push({ at: hm, ...entry });
+  const next = { day: clock.ymd, lines: lines.slice(-30) };
+  await sb(`firms?id=eq.${firmId}`, {
+    method: 'PATCH',
+    prefer: 'return=minimal',
+    body: JSON.stringify({ settings: { ...existing, tour: { ...prev, gunluk: next } } }),
+  });
+  tourPaintLog(next);
+}
+
 function tourEsc(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
@@ -173,6 +244,7 @@ async function tourLoadSettings() {
     const saved = rows?.[0]?.ui_prefs?.tour;
     if (saved && typeof saved === 'object') tourAdoptPrefs(saved);
   }
+  let gunluk = null;
   if (typeof sb === 'function' && firmId) {
     const firms = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
     const firmTour = firms?.[0]?.settings?.tour;
@@ -180,8 +252,10 @@ async function tourLoadSettings() {
       TOUR_LOCK_KEYS.forEach((key) => {
         if (firmTour[key] != null && firmTour[key] !== '') _tourSettings[key] = firmTour[key];
       });
+      gunluk = firmTour.gunluk;
     }
   }
+  tourPaintLog(gunluk);
   tourPaintSettings();
   return _tourSettings;
 }
@@ -190,7 +264,10 @@ async function tourSave(patch) {
   _tourSettings = { ...tourPref(), ...patch };
   tourPaintSettings();
   const keys = Object.keys(patch || {});
-  if (keys.some((key) => !TOUR_LOCK_KEYS.includes(key))) await tourSaveUser();
+  if (keys.some((key) => !TOUR_LOCK_KEYS.includes(key))) {
+    await tourSaveUser();
+    await tourSaveWatch();
+  }
   if (keys.some((key) => TOUR_LOCK_KEYS.includes(key))) await tourSaveLock();
   return _tourSettings;
 }
@@ -204,6 +281,35 @@ async function tourSaveUser() {
     method: 'PATCH',
     prefer: 'return=minimal',
     body: JSON.stringify({ ui_prefs: { ...existing, tour: tourAccountPrefs() } }),
+  });
+}
+
+async function tourSaveWatch() {
+  const firmId = tourFirmId();
+  const userId = tourUserId();
+  if (!firmId || !userId || typeof sb !== 'function') return;
+  const pref = tourPref();
+  const firms = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
+  const existing = firms?.[0]?.settings || {};
+  const prev = existing.tour && typeof existing.tour === 'object' ? existing.tour : {};
+  const mine = !prev.watch || prev.watch.userId === userId;
+  let watch = prev.watch || null;
+  if (pref.aktif) {
+    watch = {
+      aktif: true,
+      userId,
+      kuyrukMod: pref.kuyrukMod === 'yakin' ? 'yakin' : 'revert',
+      veriEsik: Math.max(50, Math.min(20000, Number(pref.veriEsik) || 500)),
+      bosSlotAtla: pref.bosSlotAtla !== false,
+      zamanlayici: !!pref.zamanlayici,
+      zamanAktif: pref.zamanAktif || '09:55',
+      zamanPasif: pref.zamanPasif || '18:35',
+    };
+  } else if (mine) watch = { aktif: false, userId };
+  await sb(`firms?id=eq.${firmId}`, {
+    method: 'PATCH',
+    prefer: 'return=minimal',
+    body: JSON.stringify({ settings: { ...existing, tour: { ...prev, watch } } }),
   });
 }
 
@@ -594,7 +700,7 @@ function tourArm() {
   if (!['super_admin', 'admin', 'firm_admin'].includes(role)) return;
   const wait = 60000;
   window._tourTimer = setInterval(() => {
-    if (document.hidden || !currentUser) return;
+    if (!currentUser) return;
     void tourRefresh({ apply: true });
   }, wait);
 }
@@ -633,7 +739,7 @@ function tourAskRows(row, limit) {
       window.removeEventListener('message', onMsg);
       resolve(Array.isArray(rows) ? rows : []);
     };
-    const timer = setTimeout(() => finish([]), 55000);
+    const timer = setTimeout(() => finish([]), Math.min(120000, 40000 + Number(limit || 0) * 30));
     function onMsg(event) {
       if (event.origin !== window.location.origin) return;
       const data = event.data;
@@ -664,7 +770,7 @@ function tourAskRows(row, limit) {
 }
 
 async function tourNearbyInsert(row) {
-  const cap = Math.max(20, Math.min(200, Number(tourPref().yakinAdet) || 100));
+  const cap = Math.max(20, Math.min(2000, Number(tourPref().yakinAdet) || 100));
   const gap = Math.max(20, Number(tourPref().veriEsik) - Number(row.pending || 0));
   const limit = Math.min(cap, gap);
   const raw = await tourAskRows(row, limit);
@@ -776,6 +882,14 @@ async function tourApply(plan, force) {
   if (!extra && told) extra = { kind: 'told' };
   const line = tourStory(plan, extra);
   tourPaintLive(plan, line, !!(force || extra));
+  if (extra || told) {
+    const entry = { day: plan.day, camp: row.name, n: row.bos, kind: plan.pick.kind };
+    if (extra?.kind === 'nearby') Object.assign(entry, { k: 'near', added: extra.added, pending: extra.pending, esik: extra.esik, plz: extra.anchor, km: extra.radius, codes: (extra.plzs || []).length, q: extra.queueName, created: !!extra.created });
+    else if (extra?.kind === 'nearby0') Object.assign(entry, { k: 'near0', plz: row.anchor || '' });
+    else if (extra?.kind === 'revert') Object.assign(entry, { k: 'revert', moved: extra.moved, pending: row.pending });
+    else if (told) entry.k = 'told';
+    await tourRemember(entry);
+  }
   if (extra && typeof toast === 'function') toast(line, extra.kind === 'nearby0' ? 'warn' : 'ok');
 }
 

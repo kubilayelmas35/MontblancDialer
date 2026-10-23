@@ -1933,6 +1933,9 @@ visibility: visible;
   white-space: nowrap;
 }
 .aria-live[hidden] { display: none; }
+.aria-log { display: flex; flex-direction: column; gap: 4px; margin: 0 0 12px; }
+.aria-log[hidden] { display: none; }
+.aria-log-line { margin: 0; font-size: 13px; line-height: 1.4; color: var(--text-1); }
 .tour-yakin[hidden] { display: none; }
 .tour-check { flex-direction: row; align-items: center; justify-content: space-between; }
 .tour-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }

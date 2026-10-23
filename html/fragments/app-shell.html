@@ -534,7 +534,8 @@
 </div>
 </div>
 <p class="tour-note" id="aria-last"></p>
-<p class="tour-note" data-tr="Ayarlar bu hesaba yazılır. Başka kullanıcı kendi ayarını görür." data-de="Die Einstellungen gehören zu diesem Konto. Ein anderer Nutzer sieht seine eigenen.">Ayarlar bu hesaba yazılır. Başka kullanıcı kendi ayarını görür.</p>
+<div id="aria-log" class="aria-log" hidden></div>
+<p class="tour-note" data-tr="Ayarlar bu hesaba yazılır. Sekme arkada kalsa da bakar. Tarayıcı kapalıyken kampanyayı seçmeye devam eder." data-de="Die Einstellungen gehören zu diesem Konto. Aria schaut auch im Hintergrund. Ist der Browser zu, wählt sie die Kampagne weiter.">Ayarlar bu hesaba yazılır. Sekme arkada kalsa da bakar. Tarayıcı kapalıyken kampanyayı seçmeye devam eder.</p>
 <div class="tour-grid">
 <label class="tour-check"><span data-tr="Yalnız bu saatler arasında" data-de="Nur in dieser Uhrzeit">Yalnız bu saatler arasında</span><input type="checkbox" id="tour-clock" onchange="tourFlag('zamanlayici', this)"></label>
 <label class="tour-field" id="tour-on-wrap"><span data-tr="Başlangıç" data-de="Von">Başlangıç</span><input class="form-input" id="tour-on-at" type="time" onchange="tourTime('zamanAktif', this)"></label>
@@ -555,9 +556,9 @@
 <option value="50">50 km</option>
 </select></label>
 <label class="tour-field tour-yakin" hidden><span data-tr="En fazla kişi" data-de="Höchstens Kontakte">En fazla kişi</span>
-<input class="form-input" id="tour-yakin-n" type="number" min="20" max="200" step="10" onchange="tourNum('yakinAdet', this, 20, 200)"></label>
+<input class="form-input" id="tour-yakin-n" type="number" min="20" max="2000" step="50" onchange="tourNum('yakinAdet', this, 20, 2000)"></label>
 <label class="tour-check tour-yakin" hidden><span data-tr="Aynı 2 haneli bölge" data-de="Gleiche zweistellige Region">Aynı 2 haneli bölge</span><input type="checkbox" id="tour-prefix" onchange="tourFlag('ayniPrefix', this)"></label>
-<p class="tour-note tour-yakin tour-span" hidden data-tr="Varsa kampanyanın son kuyruğuna ekler. Kuyruk yoksa yeni açar." data-de="Hängt an die letzte Queue der Kampagne. Gibt es keine, wird eine neue angelegt.">Varsa kampanyanın son kuyruğuna ekler. Kuyruk yoksa yeni açar.</p>
+<p class="tour-note tour-yakin tour-span" hidden data-tr="En yakın posta kodundan başlar, eşik ya da bu sayı dolunca durur. Varsa son kuyruğa ekler. Kuyruk yoksa yeni açar." data-de="Beginnt bei der nächsten PLZ und stoppt an der Schwelle oder dieser Zahl. Hängt an die letzte Queue. Gibt es keine, wird eine neue angelegt.">En yakın posta kodundan başlar, eşik ya da bu sayı dolunca durur. Varsa son kuyruğa ekler. Kuyruk yoksa yeni açar.</p>
 <label class="tour-check"><span data-tr="Şimdi uygula önce sorsun" data-de="Jetzt ausführen erst fragen">Şimdi uygula önce sorsun</span><input type="checkbox" id="tour-approve" onchange="tourFlag('onay', this)"></label>
 </div>
 <div class="tour-actions">

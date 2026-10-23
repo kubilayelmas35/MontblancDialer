@@ -1241,19 +1241,29 @@ async function fetchLeadsByPLZ(plz){
   }
   return all;
 }
+async function fetchPaged(url, limit){
+  const n = Math.max(1, Math.min(2000, Number(limit) || 50));
+  const out = [];
+  let offset = 0;
+  while (out.length < n) {
+    const page = Math.min(1000, n - out.length);
+    const r = await fetch(`${url}&limit=${page}&offset=${offset}`, { headers: SB_H });
+    if (!r.ok) break;
+    const rows = await r.json();
+    if (!Array.isArray(rows) || !rows.length) break;
+    out.push(...rows);
+    if (rows.length < page) break;
+    offset += rows.length;
+  }
+  return out.slice(0, n);
+}
 async function fetchByPLZLimited(plz, limit){
-  const n = Math.max(1, Math.min(200, Number(limit) || 50));
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/contacts?plz=eq.${encodeURIComponent(plz)}&select=vorname,name,strasse,plz,ort,telefon&order=id.asc&limit=${n}`, { headers: SB_H });
-  if (!r.ok) return [];
-  const rows = await r.json();
-  return Array.isArray(rows) ? rows : [];
+  const url = `${SUPABASE_URL}/rest/v1/contacts?plz=eq.${encodeURIComponent(plz)}&select=vorname,name,strasse,plz,ort,telefon&order=id.asc`;
+  return fetchPaged(url, limit);
 }
 async function fetchLeadsLimited(plz, limit){
-  const n = Math.max(1, Math.min(200, Number(limit) || 50));
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/leads?plz=eq.${encodeURIComponent(plz)}&select=vorname,nachname,strasse,plz,ort,telefon&order=id.asc&limit=${n}`, { headers: SB_H });
-  if (!r.ok) return [];
-  const rows = await r.json();
-  if (!Array.isArray(rows)) return [];
+  const url = `${SUPABASE_URL}/rest/v1/leads?plz=eq.${encodeURIComponent(plz)}&select=vorname,nachname,strasse,plz,ort,telefon&order=id.asc`;
+  const rows = await fetchPaged(url, limit);
   return rows.map((item) => ({
     telefon: item.telefon,
     vorname: item.vorname || '',
@@ -1265,7 +1275,7 @@ async function fetchLeadsLimited(plz, limit){
 }
 async function collectNearbyRows(d){
   const anchor = String(d && d.anchorPlz || '').replace(/\D/g, '').padStart(5, '0').slice(-5);
-  const limit = Math.max(1, Math.min(200, Number(d && d.limit) || 50));
+  const limit = Math.max(1, Math.min(2000, Number(d && d.limit) || 50));
   const radius = Number(d && d.radiusKm) > 0 ? Number(d.radiusKm) : 30;
   const allowOther = !!(d && d.allowOtherPrefix === true);
   if (!/^\d{5}$/.test(anchor)) return [];

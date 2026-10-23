@@ -12,17 +12,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=11.44">
-<link rel="stylesheet" href="css/styles-dialer.css?v=11.44">
-<link rel="stylesheet" href="css/styles-mascot.css?v=11.44">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=11.44">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=11.44">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=11.44">
-<link rel="stylesheet" href="css/styles-pages.css?v=11.44">
-<link rel="stylesheet" href="css/styles-aurora.css?v=11.44">
-<link rel="stylesheet" href="css/styles-chat.css?v=11.44">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=11.44">
-<link rel="stylesheet" href="css/styles-responsive.css?v=11.44">
+<link rel="stylesheet" href="css/styles.css?v=11.45">
+<link rel="stylesheet" href="css/styles-dialer.css?v=11.45">
+<link rel="stylesheet" href="css/styles-mascot.css?v=11.45">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=11.45">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=11.45">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=11.45">
+<link rel="stylesheet" href="css/styles-pages.css?v=11.45">
+<link rel="stylesheet" href="css/styles-aurora.css?v=11.45">
+<link rel="stylesheet" href="css/styles-chat.css?v=11.45">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=11.45">
+<link rel="stylesheet" href="css/styles-responsive.css?v=11.45">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -61,7 +61,7 @@
 <div class="login-index-note" data-i18n="login.row.4.note">Kalite, muhasebe</div>
 </div>
 </div>
-<div class="login-version">v11.44 — 2026</div>
+<div class="login-version">v11.45 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -470,7 +470,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">MontBlanc v11.44</div>
+<div class="sb-ver">MontBlanc v11.45</div>
 </div>
 </div>
 </nav>
@@ -645,7 +645,8 @@
 </div>
 </div>
 <p class="tour-note" id="aria-last"></p>
-<p class="tour-note" data-tr="Ayarlar bu hesaba yazılır. Başka kullanıcı kendi ayarını görür." data-de="Die Einstellungen gehören zu diesem Konto. Ein anderer Nutzer sieht seine eigenen.">Ayarlar bu hesaba yazılır. Başka kullanıcı kendi ayarını görür.</p>
+<div id="aria-log" class="aria-log" hidden></div>
+<p class="tour-note" data-tr="Ayarlar bu hesaba yazılır. Sekme arkada kalsa da bakar. Tarayıcı kapalıyken kampanyayı seçmeye devam eder." data-de="Die Einstellungen gehören zu diesem Konto. Aria schaut auch im Hintergrund. Ist der Browser zu, wählt sie die Kampagne weiter.">Ayarlar bu hesaba yazılır. Sekme arkada kalsa da bakar. Tarayıcı kapalıyken kampanyayı seçmeye devam eder.</p>
 <div class="tour-grid">
 <label class="tour-check"><span data-tr="Yalnız bu saatler arasında" data-de="Nur in dieser Uhrzeit">Yalnız bu saatler arasında</span><input type="checkbox" id="tour-clock" onchange="tourFlag('zamanlayici', this)"></label>
 <label class="tour-field" id="tour-on-wrap"><span data-tr="Başlangıç" data-de="Von">Başlangıç</span><input class="form-input" id="tour-on-at" type="time" onchange="tourTime('zamanAktif', this)"></label>
@@ -666,9 +667,9 @@
 <option value="50">50 km</option>
 </select></label>
 <label class="tour-field tour-yakin" hidden><span data-tr="En fazla kişi" data-de="Höchstens Kontakte">En fazla kişi</span>
-<input class="form-input" id="tour-yakin-n" type="number" min="20" max="200" step="10" onchange="tourNum('yakinAdet', this, 20, 200)"></label>
+<input class="form-input" id="tour-yakin-n" type="number" min="20" max="2000" step="50" onchange="tourNum('yakinAdet', this, 20, 2000)"></label>
 <label class="tour-check tour-yakin" hidden><span data-tr="Aynı 2 haneli bölge" data-de="Gleiche zweistellige Region">Aynı 2 haneli bölge</span><input type="checkbox" id="tour-prefix" onchange="tourFlag('ayniPrefix', this)"></label>
-<p class="tour-note tour-yakin tour-span" hidden data-tr="Varsa kampanyanın son kuyruğuna ekler. Kuyruk yoksa yeni açar." data-de="Hängt an die letzte Queue der Kampagne. Gibt es keine, wird eine neue angelegt.">Varsa kampanyanın son kuyruğuna ekler. Kuyruk yoksa yeni açar.</p>
+<p class="tour-note tour-yakin tour-span" hidden data-tr="En yakın posta kodundan başlar, eşik ya da bu sayı dolunca durur. Varsa son kuyruğa ekler. Kuyruk yoksa yeni açar." data-de="Beginnt bei der nächsten PLZ und stoppt an der Schwelle oder dieser Zahl. Hängt an die letzte Queue. Gibt es keine, wird eine neue angelegt.">En yakın posta kodundan başlar, eşik ya da bu sayı dolunca durur. Varsa son kuyruğa ekler. Kuyruk yoksa yeni açar.</p>
 <label class="tour-check"><span data-tr="Şimdi uygula önce sorsun" data-de="Jetzt ausführen erst fragen">Şimdi uygula önce sorsun</span><input type="checkbox" id="tour-approve" onchange="tourFlag('onay', this)"></label>
 </div>
 <div class="tour-actions">
@@ -4675,67 +4676,67 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=11.44"></script>
-<script src="js/i18n.js?v=11.44"></script>
-<script src="js/config.js?v=11.44"></script>
-<script src="js/state.js?v=11.44"></script>
-<script src="js/api.js?v=11.44"></script>
-<script src="js/access.js?v=11.44"></script>
-<script src="js/auth.js?v=11.44"></script>
-<script src="js/ui.js?v=11.44"></script>
-<script src="js/chat.js?v=11.44"></script>
-<script src="js/chat-settings.js?v=11.44"></script>
-<script src="js/field-settings.js?v=11.44"></script>
-<script src="js/audit.js?v=11.44"></script>
-<script src="js/feature-flags.js?v=11.44"></script>
-<script src="js/notification-center.js?v=11.44"></script>
+<script src="js/version.js?v=11.45"></script>
+<script src="js/i18n.js?v=11.45"></script>
+<script src="js/config.js?v=11.45"></script>
+<script src="js/state.js?v=11.45"></script>
+<script src="js/api.js?v=11.45"></script>
+<script src="js/access.js?v=11.45"></script>
+<script src="js/auth.js?v=11.45"></script>
+<script src="js/ui.js?v=11.45"></script>
+<script src="js/chat.js?v=11.45"></script>
+<script src="js/chat-settings.js?v=11.45"></script>
+<script src="js/field-settings.js?v=11.45"></script>
+<script src="js/audit.js?v=11.45"></script>
+<script src="js/feature-flags.js?v=11.45"></script>
+<script src="js/notification-center.js?v=11.45"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=11.44"></script>
-<script src="js/job-market.js?v=11.44"></script>
-<script src="js/qc-job-market.js?v=11.44"></script>
-<script src="js/export-admin.js?v=11.44"></script>
-<script src="js/export-termin.js?v=11.44"></script>
-<script src="js/performance.js?v=11.44"></script>
-<script src="js/competition.js?v=11.44"></script>
-<script src="js/dashboard.js?v=11.44"></script>
-<script src="js/reports.js?v=11.44"></script>
-<script src="js/dashboard-brief.js?v=11.44"></script>
-<script src="js/campaigns.js?v=11.44"></script>
-<script src="js/campaigns-detail.js?v=11.44"></script>
-<script src="js/campaigns-queue.js?v=11.44"></script>
-<script src="js/contacts-upload.js?v=11.44"></script>
-<script src="js/geocon.js?v=11.44"></script>
-<script src="js/contacts.js?v=11.44"></script>
-<script src="js/contacts-drawer.js?v=11.44"></script>
-<script src="js/telnyx.js?v=11.44"></script>
-<script src="js/voice-orb.js?v=11.44"></script>
-<script src="js/dialer.js?v=11.44"></script>
-<script src="js/ops-alerts.js?v=11.44"></script>
-<script src="js/radius-tour.js?v=11.44"></script>
-<script src="js/dialer-mascot.js?v=11.44"></script>
-<script src="js/dialer-mascot-live.js?v=11.44"></script>
-<script src="js/ui-prefs.js?v=11.44"></script>
-<script src="js/dialer-session.js?v=11.44"></script>
-<script src="js/dialer-call.js?v=11.44"></script>
-<script src="js/dialer-tools.js?v=11.44"></script>
-<script src="js/appointments.js?v=11.44"></script>
-<script src="js/appointments-actions.js?v=11.44"></script>
-<script src="js/appointments-tools.js?v=11.44"></script>
-<script src="js/field.js?v=11.44"></script>
-<script src="js/field-quote.js?v=11.44"></script>
-<script src="js/field-catalog.js?v=11.44"></script>
-<script src="js/field-ops.js?v=11.44"></script>
-<script src="js/wiedervorlage.js?v=11.44"></script>
-<script src="js/qc.js?v=11.44"></script>
-<script src="js/supervisor.js?v=11.44"></script>
-<script src="js/live-coach.js?v=11.44"></script>
-<script src="js/sms-settings.js?v=11.44"></script>
-<script src="js/leave-hr.js?v=11.44"></script>
-<script src="js/muhasebe.js?v=11.44"></script>
-<script src="js/muhasebe-books.js?v=11.44"></script>
-<script src="js/agent-self-performance.js?v=11.44"></script>
-<script src="js/agents.js?v=11.44"></script>
-<script src="js/firm-desk.js?v=11.44"></script>
-<script src="js/mimi-brain.js?v=11.44"></script>
+<script src="js/wallet.js?v=11.45"></script>
+<script src="js/job-market.js?v=11.45"></script>
+<script src="js/qc-job-market.js?v=11.45"></script>
+<script src="js/export-admin.js?v=11.45"></script>
+<script src="js/export-termin.js?v=11.45"></script>
+<script src="js/performance.js?v=11.45"></script>
+<script src="js/competition.js?v=11.45"></script>
+<script src="js/dashboard.js?v=11.45"></script>
+<script src="js/reports.js?v=11.45"></script>
+<script src="js/dashboard-brief.js?v=11.45"></script>
+<script src="js/campaigns.js?v=11.45"></script>
+<script src="js/campaigns-detail.js?v=11.45"></script>
+<script src="js/campaigns-queue.js?v=11.45"></script>
+<script src="js/contacts-upload.js?v=11.45"></script>
+<script src="js/geocon.js?v=11.45"></script>
+<script src="js/contacts.js?v=11.45"></script>
+<script src="js/contacts-drawer.js?v=11.45"></script>
+<script src="js/telnyx.js?v=11.45"></script>
+<script src="js/voice-orb.js?v=11.45"></script>
+<script src="js/dialer.js?v=11.45"></script>
+<script src="js/ops-alerts.js?v=11.45"></script>
+<script src="js/radius-tour.js?v=11.45"></script>
+<script src="js/dialer-mascot.js?v=11.45"></script>
+<script src="js/dialer-mascot-live.js?v=11.45"></script>
+<script src="js/ui-prefs.js?v=11.45"></script>
+<script src="js/dialer-session.js?v=11.45"></script>
+<script src="js/dialer-call.js?v=11.45"></script>
+<script src="js/dialer-tools.js?v=11.45"></script>
+<script src="js/appointments.js?v=11.45"></script>
+<script src="js/appointments-actions.js?v=11.45"></script>
+<script src="js/appointments-tools.js?v=11.45"></script>
+<script src="js/field.js?v=11.45"></script>
+<script src="js/field-quote.js?v=11.45"></script>
+<script src="js/field-catalog.js?v=11.45"></script>
+<script src="js/field-ops.js?v=11.45"></script>
+<script src="js/wiedervorlage.js?v=11.45"></script>
+<script src="js/qc.js?v=11.45"></script>
+<script src="js/supervisor.js?v=11.45"></script>
+<script src="js/live-coach.js?v=11.45"></script>
+<script src="js/sms-settings.js?v=11.45"></script>
+<script src="js/leave-hr.js?v=11.45"></script>
+<script src="js/muhasebe.js?v=11.45"></script>
+<script src="js/muhasebe-books.js?v=11.45"></script>
+<script src="js/agent-self-performance.js?v=11.45"></script>
+<script src="js/agents.js?v=11.45"></script>
+<script src="js/firm-desk.js?v=11.45"></script>
+<script src="js/mimi-brain.js?v=11.45"></script>
 </body>
 </html>
