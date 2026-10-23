@@ -1241,6 +1241,44 @@ async function fetchLeadsByPLZ(plz){
   }
   return all;
 }
+async function fetchByPLZLimited(plz, limit){
+  const n = Math.max(1, Math.min(200, Number(limit) || 50));
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/contacts?plz=eq.${encodeURIComponent(plz)}&select=vorname,name,strasse,plz,ort,telefon&order=id.asc&limit=${n}`, { headers: SB_H });
+  if (!r.ok) return [];
+  const rows = await r.json();
+  return Array.isArray(rows) ? rows : [];
+}
+async function collectNearbyRows(d){
+  const anchor = String(d && d.anchorPlz || '').replace(/\D/g, '').padStart(5, '0').slice(-5);
+  const limit = Math.max(1, Math.min(200, Number(d && d.limit) || 50));
+  const radius = Number(d && d.radiusKm) > 0 ? Number(d.radiusKm) : 30;
+  const allowOther = !!(d && d.allowOtherPrefix === true);
+  const waitUntil = Date.now() + 18000;
+  while ((!Array.isArray(plzData) || !plzData.length) && Date.now() < waitUntil) {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  if (!/^\d{5}$/.test(anchor) || !Array.isArray(plzData) || !plzData.length) return [];
+  const anchorLL = await getPlzLatLon(anchor);
+  if (!anchorLL || !anchorLL.lat) return [];
+  const here = { lat: anchorLL.lat, lon: anchorLL.lon };
+  const prefix = plzPrefix2(anchor);
+  const near = plzData.filter((item) => {
+    if (!item || !item.plz || item.plz === anchor || item.lat == null || item.lon == null) return false;
+    if (!allowOther && plzPrefix2(item.plz) !== prefix) return false;
+    return haversineKm(here, { lat: item.lat, lon: item.lon }) <= radius;
+  }).sort((a, b) => haversineKm(here, { lat: a.lat, lon: a.lon }) - haversineKm(here, { lat: b.lat, lon: b.lon }));
+  const order = [anchor].concat(near.map((item) => item.plz));
+  const rows = [];
+  for (let i = 0; i < order.length && rows.length < limit; i++) {
+    let got = [];
+    try { got = await fetchByPLZLimited(order[i], limit - rows.length); } catch (_) { got = []; }
+    got.forEach((item) => {
+      if (rows.length >= limit || !item || !item.telefon) return;
+      rows.push({ telefon: item.telefon, vorname: item.vorname || '', name: item.name || '', strasse: item.strasse || '', plz: item.plz || order[i], ort: item.ort || '' });
+    });
+  }
+  return rows;
+}
 async function countByPLZ(plz){
   try{
     const r=await fetch(`${SUPABASE_URL}/rest/v1/contacts?plz=eq.${plz}&select=id`,{headers:{...SB_H,"Prefer":"count=exact","Range-Unit":"items","Range":"0-0"}});
@@ -1812,6 +1850,13 @@ window.addEventListener('message', ev => {
     if (kubilaiOpen) seedKubilaiDaysFromUpcoming(false);
   }
   if (d.type === 'GEO_BEST_PLZ') { bestPlzItems = d.items || []; renderBestPlzList(); try{if(kubMode==='top'&&!selectedTakvim)renderKubTopPlzList();}catch(_){} }
+  if (d.type === 'mb-geocon-rows-ask') {
+    collectNearbyRows(d).then((rows) => {
+      try { window.parent.postMessage({ type: 'mb-geocon-rows', requestId: d.requestId, rows }, window.location.origin); } catch (_) {}
+    }).catch(() => {
+      try { window.parent.postMessage({ type: 'mb-geocon-rows', requestId: d.requestId, rows: [] }, window.location.origin); } catch (_) {}
+    });
+  }
   if (d.type === 'mb-geocon-tour') {
     try {
       const plz = String(d.anchorPlz || '').replace(/\D/g, '').padStart(5, '0').slice(-5);

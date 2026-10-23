@@ -525,97 +525,26 @@
 <div class="page-hdr">
 <div>
 <div class="page-title" data-tr="Tur" data-de="Tour">Tur</div>
-<div class="page-sub" data-tr="Eşik, hedef gün, kampanya ve yol" data-de="Schwelle, Zieltage, Kampagne und Weg">Eşik, hedef gün, kampanya ve yol</div>
+<div class="page-sub" data-tr="En yakın boş güne bir kampanya bildirir. Dolunca diğerine geçer." data-de="Meldet eine Kampagne am nächsten freien Tag. Ist der voll, kommt die nächste.">En yakın boş güne bir kampanya bildirir. Dolunca diğerine geçer.</div>
 </div>
 <div class="page-hdr-actions tour-modes">
-<button type="button" class="btn btn-ghost btn-sm tour-mode" id="tour-mode-off" onclick="tourSetMode(false)" data-tr="Pasif — kontrol bende" data-de="Passiv — ich steuere">Pasif — kontrol bende</button>
-<button type="button" class="btn btn-primary btn-sm tour-mode" id="tour-mode-on" onclick="tourSetMode(true)" data-tr="Aktif — tur çalışsın" data-de="Aktiv — Tour läuft">Aktif — tur çalışsın</button>
+<button type="button" class="btn btn-ghost btn-sm tour-mode" id="tour-mode-off" onclick="tourSetMode(false)" data-tr="Pasif" data-de="Passiv">Pasif</button>
+<button type="button" class="btn btn-primary btn-sm tour-mode" id="tour-mode-on" onclick="tourSetMode(true)" data-tr="Aktif" data-de="Aktiv">Aktif</button>
 </div>
 </div>
-<div class="tour-tabs" role="tablist">
-<button type="button" class="btn btn-ghost btn-sm tour-tab is-on" data-tab="genel" onclick="tourTab('genel')" data-tr="Çalıştırma" data-de="Ablauf">Çalıştırma</button>
-<button type="button" class="btn btn-ghost btn-sm tour-tab" data-tab="kampanya" onclick="tourTab('kampanya')" data-tr="Kampanya" data-de="Kampagne">Kampanya</button>
-<button type="button" class="btn btn-ghost btn-sm tour-tab" data-tab="termin" onclick="tourTab('termin')" data-tr="Termin ve yol" data-de="Termin und Weg">Termin ve yol</button>
-<button type="button" class="btn btn-ghost btn-sm tour-tab" data-tab="sistem" onclick="tourTab('sistem')" data-tr="Sistem" data-de="System">Sistem</button>
-</div>
-<div class="tour-pane is-on" data-pane="genel">
 <div class="tour-grid">
-<label class="tour-field"><span data-tr="Tur süresi" data-de="Tourintervall">Tur süresi</span>
-<select class="form-input" id="tour-loop" onchange="tourPickLoop(this)">
-<option value="60" data-tr="1 dakika" data-de="1 Minute">1 dakika</option>
-<option value="120" data-tr="2 dakika" data-de="2 Minuten">2 dakika</option>
-<option value="180" data-tr="3 dakika" data-de="3 Minuten">3 dakika</option>
-<option value="300" selected data-tr="5 dakika" data-de="5 Minuten">5 dakika</option>
-<option value="600" data-tr="10 dakika" data-de="10 Minuten">10 dakika</option>
-<option value="900" data-tr="15 dakika" data-de="15 Minuten">15 dakika</option>
-<option value="1800" data-tr="30 dakika" data-de="30 Minuten">30 dakika</option>
+<label class="tour-field"><span data-tr="Kuyruk azalınca" data-de="Wenn die Queue sinkt">Kuyruk azalınca</span>
+<select class="form-input" id="tour-kuyruk" onchange="tourQueueMode(this)">
+<option value="revert" data-tr="Revert" data-de="Revert">Revert</option>
+<option value="yakin" data-tr="Yakın veri ekle" data-de="Daten aus der Nähe">Yakın veri ekle</option>
 </select></label>
-<div class="tour-field">
-<span data-tr="Hedef gün" data-de="Zieltage">Hedef gün</span>
-<div class="tour-actions">
-<button type="button" class="btn btn-ghost btn-sm" onclick="tourNudgeDay(-1)">◀</button>
-<strong id="tour-day-label">—</strong>
-<button type="button" class="btn btn-ghost btn-sm" onclick="tourNudgeDay(1)">▶</button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="tourDayAuto()" data-tr="Otomatik" data-de="Automatisch">Otomatik</button>
-</div>
-</div>
-<label class="tour-field"><span data-tr="Manuel kampanya" data-de="Manuelle Kampagne">Manuel kampanya</span>
-<select class="form-input" id="tour-camp-pick"></select>
-<button type="button" class="btn btn-ghost btn-sm" onclick="tourKeepCamp()" data-tr="Bu kampanyada kal" data-de="Bei dieser Kampagne bleiben">Bu kampanyada kal</button>
-</label>
-<label class="tour-field"><span data-tr="Veri takviyesi" data-de="Daten nachlegen">Veri takviyesi</span>
-<select class="form-input" id="tour-camp-data"></select>
-<button type="button" class="btn btn-primary btn-sm" onclick="tourAddData()" data-tr="Veri ekle" data-de="Daten laden">Veri ekle</button>
+<label class="tour-field"><span data-tr="Kuyruk eşiği" data-de="Queue-Schwelle">Kuyruk eşiği</span>
+<input class="form-input" id="tour-esik" type="number" min="50" max="20000" step="50" onchange="tourNum('veriEsik', this, 50, 20000)">
 </label>
 </div>
 <div class="tour-actions">
-<button type="button" class="btn btn-ghost btn-sm" onclick="tourRefresh()" data-tr="Şimdi tur çalıştır" data-de="Tour jetzt starten">Şimdi tur çalıştır</button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="tourPrepDay()" data-tr="Güne hazırlan" data-de="Tag vorbereiten">Güne hazırlan</button>
-</div>
-</div>
-<div class="tour-pane" data-pane="kampanya">
-<div class="tour-grid">
-<label class="tour-check"><span data-tr="Otomatik yenileme önerisi" data-de="Automatische Nachfüllung vorschlagen">Otomatik yenileme önerisi</span><input type="checkbox" id="tour-auto" onchange="tourFlag('auto', this)"></label>
-<label class="tour-check"><span data-tr="Kampanya geçiş önerisi" data-de="Kampagnenwechsel vorschlagen">Kampanya geçiş önerisi</span><input type="checkbox" id="tour-switch" onchange="tourFlag('autoSwitch', this)"></label>
-<label class="tour-check"><span data-tr="Kampanyayı kendisi seçsin" data-de="Kampagne selbst wählen">Kampanyayı kendisi seçsin</span><input type="checkbox" id="tour-oto" onchange="tourFlag('kampanyaOto', this)"></label>
-<label class="tour-check"><span data-tr="Bekleyen yoğunlukta geç" data-de="Bei Warteschlange wechseln">Bekleyen yoğunlukta geç</span><input type="checkbox" id="tour-wait" onchange="tourFlag('bekleyen', this)"></label>
-<label class="tour-field"><span data-tr="Bekleyen eşik (kişi)" data-de="Warteschwelle (Personen)">Bekleyen eşik (kişi)</span>
-<select class="form-input" id="tour-wait-n" onchange="tourPickWait(this)">
-<option value="2">2+</option><option value="3">3+</option><option value="4">4+</option><option value="5">5+</option><option value="6">6+</option>
-</select></label>
-<label class="tour-check"><span data-tr="Sayfa açıkken turu tekrarla" data-de="Tour wiederholen, solange die Seite offen ist">Sayfa açıkken turu tekrarla</span><input type="checkbox" id="tour-event" onchange="tourFlag('olay', this)"></label>
-<label class="tour-check"><span data-tr="Geçiş ve revert için onay" data-de="Wechsel und Revert bestätigen">Geçiş ve revert için onay</span><input type="checkbox" id="tour-approve" onchange="tourFlag('onay', this)"></label>
-<label class="tour-field"><span data-tr="Kritik eşik (bekleyen)" data-de="Kritische Schwelle (wartend)">Kritik eşik (bekleyen)</span>
-<input class="form-input" id="tour-esik" type="number" min="50" max="20000" step="50" onchange="tourNum('veriEsik', this, 50, 20000)"></label>
-<label class="tour-field"><span data-tr="Güne hazırlan eşiği" data-de="Schwelle Tag vorbereiten">Güne hazırlan eşiği</span>
-<input class="form-input" id="tour-hazir" type="number" min="100" max="20000" step="100" onchange="tourNum('hazirEsik', this, 100, 20000)"></label>
-</div>
-</div>
-<div class="tour-pane" data-pane="termin">
-<div class="tour-grid">
-<label class="tour-check"><span data-tr="Termin hedef uyarıları" data-de="Terminziel-Hinweise">Termin hedef uyarıları</span><input type="checkbox" id="tour-hedef" onchange="tourFlag('terminHedef', this)"></label>
-<label class="tour-field"><span data-tr="Günlük hedef" data-de="Tagesziel">Günlük hedef</span><input class="form-input" id="tour-gunluk" type="number" min="1" max="200" onchange="tourNum('terminGunluk', this, 1, 200)"></label>
-<label class="tour-field"><span data-tr="Öğle saati" data-de="Mittag">Öğle saati</span><input class="form-input" id="tour-ogle-saat" type="time" onchange="tourTime('terminOgleSaat', this)"></label>
-<label class="tour-field"><span data-tr="Öğlene kadar" data-de="Bis Mittag">Öğlene kadar</span><input class="form-input" id="tour-ogle" type="number" min="0" max="200" onchange="tourNum('terminOgle', this, 0, 200)"></label>
-<label class="tour-field"><span data-tr="İkindi saati" data-de="Nachmittag">İkindi saati</span><input class="form-input" id="tour-ikindi-saat" type="time" onchange="tourTime('terminIkindiSaat', this)"></label>
-<label class="tour-field"><span data-tr="İkindiye kadar" data-de="Bis Nachmittag">İkindiye kadar</span><input class="form-input" id="tour-ikindi" type="number" min="0" max="200" onchange="tourNum('terminIkindi', this, 0, 200)"></label>
-<label class="tour-check"><span data-tr="Yol süresi kontrolü" data-de="Fahrzeit prüfen">Yol süresi kontrolü</span><input type="checkbox" id="tour-yol" onchange="tourFlag('yolUyari', this)"></label>
-<label class="tour-field"><span data-tr="Maks. yol" data-de="Max. Fahrzeit">Maks. yol</span>
-<select class="form-input" id="tour-yol-dk" onchange="tourPickYol(this)">
-<option value="20">20 dk</option><option value="30">30 dk</option><option value="40">40 dk</option><option value="50">50 dk</option><option value="60">60 dk</option>
-</select></label>
-<label class="tour-check"><span data-tr="Boş slot yoksa sonraki iş günü" data-de="Ohne freien Slot zum nächsten Werktag">Boş slot yoksa sonraki iş günü</span><input type="checkbox" id="tour-skip" onchange="tourFlag('bosSlotAtla', this)"></label>
-<label class="tour-check"><span data-tr="Aynı 2 haneli bölge" data-de="Gleiche zweistellige Region">Aynı 2 haneli bölge</span><input type="checkbox" id="tour-prefix" onchange="tourFlag('ayniPrefix', this)"></label>
-</div>
-</div>
-<div class="tour-pane" data-pane="sistem">
-<div class="tour-grid">
-<label class="tour-check"><span data-tr="Hata olursa yenilemeyi tekrar dene" data-de="Bei Fehler erneut versuchen">Hata olursa yenilemeyi tekrar dene</span><input type="checkbox" id="tour-heal" onchange="tourFlag('selfHeal', this)"></label>
-<label class="tour-field"><span data-tr="En fazla deneme" data-de="Max. Versuche">En fazla deneme</span><input class="form-input" id="tour-heal-n" type="number" min="1" max="5" onchange="tourNum('selfHealDeneme', this, 1, 5)"></label>
-<label class="tour-check"><span data-tr="Saatle aktif / pasif" data-de="Aktiv / passiv nach Uhrzeit">Saatle aktif / pasif</span><input type="checkbox" id="tour-clock" onchange="tourFlag('zamanlayici', this)"></label>
-<label class="tour-field"><span data-tr="Aktif saati" data-de="Aktiv ab">Aktif saati</span><input class="form-input" id="tour-on-at" type="time" onchange="tourTime('zamanAktif', this)"></label>
-<label class="tour-field"><span data-tr="Pasif saati" data-de="Passiv ab">Pasif saati</span><input class="form-input" id="tour-off-at" type="time" onchange="tourTime('zamanPasif', this)"></label>
-</div>
+<button type="button" class="btn btn-ghost btn-sm" onclick="tourRefresh()" data-tr="Yenile" data-de="Aktualisieren">Yenile</button>
+<button type="button" class="btn btn-primary btn-sm" onclick="tourRunNow()" data-tr="Şimdi uygula" data-de="Jetzt ausführen">Şimdi uygula</button>
 </div>
 <div id="tour-panel" class="tour-board"></div>
 </div>

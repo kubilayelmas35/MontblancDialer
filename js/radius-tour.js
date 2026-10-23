@@ -1,6 +1,7 @@
 const TOUR_GUN = { Mon: 'pzt', Tue: 'sal', Wed: 'car', Thu: 'per', Fri: 'cum', Sat: 'cmt', Sun: 'paz' };
 const TOUR_DEFAULTS = {
-  aktif: true,
+  aktif: false,
+  kuyrukMod: 'revert',
   loopSaniye: 300,
   hedefManuel: false,
   hedefTarih: '',
@@ -120,6 +121,8 @@ function tourPaintSettings() {
   if (wait) wait.value = String(pref.bekleyenEsik);
   const esik = document.getElementById('tour-esik');
   if (esik) esik.value = String(pref.veriEsik);
+  const kuyruk = document.getElementById('tour-kuyruk');
+  if (kuyruk) kuyruk.value = pref.kuyrukMod === 'yakin' ? 'yakin' : 'revert';
   const hazir = document.getElementById('tour-hazir');
   if (hazir) hazir.value = String(pref.hazirEsik);
   const yol = document.getElementById('tour-yol-dk');
@@ -231,6 +234,16 @@ function tourNo(name) {
   return match ? Number(match[1]) : 99999;
 }
 
+function tourChoose(rows, currentId) {
+  const candidates = (rows || []).filter((row) => row.bos > 0).slice().sort((a, b) => b.bos - a.bos || tourNo(a.name) - tourNo(b.name) || String(a.name).localeCompare(String(b.name)));
+  const leader = candidates[0] || null;
+  const current = candidates.find((row) => row.id === currentId) || null;
+  if (!leader) return { kind: 'none', id: '' };
+  if (current && current.bos >= leader.bos) return { kind: 'stay', id: current.id };
+  if (current && current.id !== leader.id) return { kind: 'switch', id: leader.id };
+  return { kind: 'pick', id: leader.id };
+}
+
 function tourShift(plan, clock) {
   if (!plan) return { label: 'noplan' };
   const row = plan[clock.gun];
@@ -287,18 +300,16 @@ async function tourBuild() {
   const fromTop = tourAddDays(clock.ymd, -180);
   const load = () => Promise.all([
     sb(`firms?id=eq.${firmId}&select=settings`),
-    sb(`campaigns?firm_id=eq.${firmId}&select=id,name&order=name.asc&limit=200`),
+    sb(`campaigns?firm_id=eq.${firmId}&select=id,name,active_for_agents&order=name.asc&limit=200`),
     sb(`takvim_slots?firm_id=eq.${firmId}&tarih=gte.${start}&tarih=lte.${end}&gun_kapali=eq.false&select=id,campaign_id,tarih,baslangic_saat,durum,appointment_id&limit=4000`),
     sb(`appointments?firm_id=eq.${firmId}&termin_tarih=gte.${start}T00:00:00&termin_tarih=lte.${end}T23:59:59&durum=not.in.(iptal,basarisiz)&select=campaign_id,plz,termin_tarih&limit=4000`),
-    sb(`agent_sessions?firm_id=eq.${firmId}&select=campaign_id,status&limit=400`),
     sb(`appointments?firm_id=eq.${firmId}&termin_tarih=gte.${fromTop}T00:00:00&durum=not.in.(iptal,basarisiz)&select=campaign_id,plz&limit=4000`),
-    sb(`appointments?firm_id=eq.${firmId}&termin_tarih=gte.${clock.ymd}T00:00:00&termin_tarih=lte.${clock.ymd}T23:59:59&durum=not.in.(iptal,basarisiz)&select=id&limit=500`),
   ]);
-  let firmRows; let camps; let slots; let appts; let sessions; let history; let todayRows;
+  let firmRows; let camps; let slots; let appts; let history;
   const tries = pref.selfHeal ? Math.max(1, Math.min(5, Number(pref.selfHealDeneme) || 1)) : 1;
   for (let attempt = 0; attempt < tries; attempt += 1) {
     try {
-      [firmRows, camps, slots, appts, sessions, history, todayRows] = await load();
+      [firmRows, camps, slots, appts, history] = await load();
       break;
     } catch (err) {
       if (attempt + 1 >= tries) throw err;
@@ -347,40 +358,19 @@ async function tourBuild() {
     row.top = plz;
     row.topCount = count;
   });
-  const live = new Map();
-  (Array.isArray(sessions) ? sessions : []).forEach((session) => {
-    if (!session.campaign_id || !['ready', 'on_call', 'wrapping'].includes(session.status)) return;
-    live.set(session.campaign_id, (live.get(session.campaign_id) || 0) + 1);
-  });
-  let activeId = '';
-  let activeN = 0;
-  let bekleyen = 0;
-  (Array.isArray(sessions) ? sessions : []).forEach((session) => {
-    if (session.status === 'ready') bekleyen += 1;
-  });
-  live.forEach((n, id) => { if (n > activeN) { activeN = n; activeId = id; } });
-  const rows = [...byCamp.values()].filter((row) => row.bos > 0 || row.appts.length > 0);
+  const campRows = Array.isArray(camps) ? camps : [];
+  const marked = campRows.find((camp) => camp.active_for_agents);
+  const currentId = pref.lastCampId || marked?.id || '';
+  const rows = [...byCamp.values()].filter((row) => row.bos > 0);
   await Promise.all(rows.map(async (row) => {
     row.pending = await tourCount(`contacts?firm_id=eq.${firmId}&campaign_id=eq.${row.id}&status=eq.pending&select=id`).catch(() => 0);
     row.anchor = tourAnchor(row.appts.filter((a) => a.plz), row.slots) || row.top || '';
-    if (row.pending >= pref.veriEsik || !row.plzs.size || !pref.auto) return;
+    if (row.pending >= pref.veriEsik || !row.plzs.size) return;
     const got = await sb(`contacts?firm_id=eq.${firmId}&campaign_id=eq.${row.id}&status=in.(no_answer,voicemail)&or=(attempt_count.lt.2,attempt_count.is.null)&select=id,plz&limit=1000`).catch(() => []);
     row.revertIds = (Array.isArray(got) ? got : []).filter((c) => row.plzs.has(tourPlz(c.plz))).map((c) => c.id).filter(Boolean);
   }));
-  rows.sort((a, b) => b.bos - a.bos || tourNo(a.name) - tourNo(b.name) || a.name.localeCompare(b.name));
-  const candidates = rows.filter((row) => row.pending > 0 && row.bos > 0);
-  const leader = candidates[0] || null;
-  const active = rows.find((row) => row.id === activeId);
-  let pick = { kind: 'none', id: '' };
-  if (!pref.kampanyaOto) pick = { kind: 'manual', id: pref.secili || activeId || '' };
-  else if (leader && active && active.pending > 0 && active.bos > 0 && active.bos >= leader.bos) pick = { kind: 'stay', id: active.id };
-  else if (leader && pref.autoSwitch) pick = { kind: 'switch', id: leader.id };
-  else if (active && active.pending > 0) pick = { kind: 'stay', id: active.id };
-  if (pref.bekleyen && pref.autoSwitch && pref.kampanyaOto && leader && bekleyen >= Number(pref.bekleyenEsik || 3)) {
-    pick = { kind: 'switch', id: leader.id };
-  }
-  const today = Array.isArray(todayRows) ? todayRows.length : 0;
-  return { firmId, clock, shift, day, rows, pick, activeId, bekleyen, today, manual: !!pref.hedefManuel };
+  const pick = tourChoose(rows, currentId);
+  return { firmId, clock, shift, day, rows, pick, activeId: currentId, manual: !!pref.hedefManuel };
 }
 
 function tourLevel(row) {
@@ -395,35 +385,31 @@ function tourRender(plan) {
   if (!panel) return;
   const locked = plan?.shift?.label === 'break';
   const shiftKey = plan?.shift?.label || 'noplan';
-  const pref = tourPref();
-  const hedef = pref.terminHedef && plan
-    ? tourSay('tour.today', 'Bugün {n}/{g}', { n: plan.today || 0, g: pref.terminGunluk })
-    : '';
-  const head = `
-<p class="tour-note">${tourEsc(tourSay('tour.note', 'Yazma kapalı. Revert ve paket sen basınca olur.'))}${hedef ? ' · ' + tourEsc(hedef) : ''}</p>
-${tourEffectivePasif() ? `<p class="tour-note">${tourEsc(tourSay('tour.pasif', 'Pasif. Otomatik tur yok. Veri ekle ve revert elle durur.'))}</p>` : ''}`;
+  const head = tourEffectivePasif()
+    ? `<p class="tour-note">${tourEsc(tourSay('tour.pasif', 'Pasif. Karar görünür, bildirim ve kuyruk işlemi gitmez.'))}</p>`
+    : `<p class="tour-note">${tourEsc(tourSay('tour.note', 'Aktif. En yakın boş güne bir kampanya bildirilir.'))}</p>`;
   if (!plan?.firmId) {
     panel.innerHTML = head + `<p class="tour-note">${tourEsc(tourSay('tour.needfirm', 'Firma seç'))}</p>`;
     return;
   }
   const pickRow = plan.rows.find((row) => row.id === plan.pick.id);
   const pickName = pickRow?.name || '';
+  const pickKey = plan.pick.kind === 'stay' ? 'tour.stay' : plan.pick.kind === 'switch' ? 'tour.moved' : 'tour.picknew';
   const pickLine = plan.pick.kind === 'none'
-    ? tourSay(plan.rows.length ? 'tour.nodata' : 'tour.none', plan.rows.length ? 'Kuyrukta veri yok' : 'Boş slotu olan kampanya yok')
-    : plan.pick.kind === 'manual'
-      ? `${tourSay('tour.manual', 'Seçilen kampanya')} · ${pickName}`
-      : `${tourSay(plan.pick.kind === 'stay' ? 'tour.stay' : 'tour.switch', plan.pick.kind)} · ${pickName}`;
+    ? tourSay('tour.none', 'Boş slotu olan kampanya yok')
+    : `${tourSay(pickKey, plan.pick.kind)} · ${pickName}`;
   const cards = plan.rows.length ? plan.rows.map((row) => {
     const level = tourLevel(row);
     const tag = tourSay('tour.' + level, level);
     const cls = level === 'critical' ? 'is-bad' : level === 'prep' ? 'is-mid' : 'is-ok';
+    const picked = row.id === plan.pick.id ? ' is-pick' : '';
     const revert = row.revertIds.length && !locked
       ? `<button type="button" class="btn btn-ghost btn-sm" onclick="tourRevert('${row.id}')">${tourEsc(tourSay('tour.revert', '{n} kişiyi kuyruğa al', { n: row.revertIds.length }))}</button>`
       : '';
     const pack = row.anchor && row.bos > 0 && level !== 'enough' && !locked
       ? `<button type="button" class="btn btn-primary btn-sm" onclick="tourPackage('${row.id}')">${tourEsc(tourSay('tour.package', 'Paketi aç'))}</button>`
       : '';
-    return `<div class="tour-row">
+    return `<div class="tour-row${picked}">
       <b>${tourEsc(row.name)}</b><span class="tour-tag ${cls}">${tourEsc(tag)}</span>
       <div class="tour-meta">${row.pending} ${tourEsc(tourSay('tour.pending', 'bekliyor'))} · ${row.bos} ${tourEsc(tourSay('tour.slots', 'boş'))}${row.anchor ? ' · ' + tourEsc(tourSay('tour.anchor', 'referans')) + ' ' + tourEsc(row.anchor) : ''}</div>
       <div class="tour-actions">${revert}${pack}</div>
@@ -439,20 +425,21 @@ ${locked ? `<p class="tour-note">${tourEsc(tourSay('tour.blocked', 'Molada işle
 ${list}`;
 }
 
-async function tourRefresh() {
+async function tourRefresh(opts) {
   if (_tourBusy) return;
+  const apply = !!(opts && opts.apply);
+  const force = !!(opts && opts.force);
   const panel = document.getElementById('tour-panel');
-  if (panel) panel.innerHTML = `<p class="tour-note">${tourEsc(tourSay('tour.loading', 'Kayıtlar okunuyor'))}</p>`;
+  if (panel && document.getElementById('page-tour')?.classList.contains('active')) {
+    panel.innerHTML = `<p class="tour-note">${tourEsc(tourSay('tour.loading', 'Kayıtlar okunuyor'))}</p>`;
+  }
   _tourBusy = true;
   try {
     await tourLoadSettings();
     _tourPlan = await tourBuild();
     tourRender(_tourPlan);
-    tourFillSelects();
     tourArm();
-    const sig = (_tourPlan.rows || []).filter((row) => tourLevel(row) === 'critical').map((row) => row.id).join(',');
-    if (_tourWatchSig && sig !== _tourWatchSig && typeof toast === 'function') toast(tourSay('tour.critical', 'kritik'), 'warn');
-    _tourWatchSig = sig;
+    if (apply) await tourApply(_tourPlan, force);
   } catch (e) {
     if (typeof toast === 'function') toast(tourSay('tour.err', 'Tur okunamadı'), 'err');
     if (_tourPlan) tourRender(_tourPlan);
@@ -461,16 +448,168 @@ async function tourRefresh() {
   }
 }
 
+function tourRunNow() {
+  void tourRefresh({ apply: true, force: true });
+}
+
 function tourArm() {
   clearInterval(window._tourTimer);
-  const pref = tourPref();
-  if (tourEffectivePasif() || !pref.olay) return;
-  const wait = Math.min(1800, Math.max(60, Number(pref.loopSaniye) || 300)) * 1000;
+  if (tourEffectivePasif()) return;
+  const role = (typeof currentUser !== 'undefined' && currentUser?.role) || '';
+  if (!['super_admin', 'admin', 'firm_admin'].includes(role)) return;
+  const wait = Math.min(1800, Math.max(60, Number(tourPref().loopSaniye) || 300)) * 1000;
   window._tourTimer = setInterval(() => {
-    const page = document.getElementById('page-tour');
-    if (!page?.classList.contains('active') || document.hidden) return;
-    void tourRefresh();
+    if (document.hidden || !currentUser) return;
+    void tourRefresh({ apply: true });
   }, wait);
+}
+
+async function tourNotify(plan, row) {
+  const firmId = plan.firmId;
+  await sb(`campaigns?firm_id=eq.${firmId}&id=neq.${row.id}&active_for_agents=eq.true`, {
+    method: 'PATCH',
+    prefer: 'return=minimal',
+    body: JSON.stringify({ active_for_agents: false }),
+  }).catch(() => {});
+  const msg = tourSay('tour.notifmsg', '{day} · {n} boş slot', { day: plan.day, n: row.bos });
+  if (typeof setActiveCampaign === 'function') await setActiveCampaign(row.id, msg);
+  else {
+    await sb(`campaigns?id=eq.${row.id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ active_for_agents: true, notif_ts: Date.now(), notif_message: msg }),
+    });
+  }
+  if (typeof logAuditEvent === 'function') {
+    void logAuditEvent('radius_tour_notify', 'campaign', row.id, { day: plan.day, bos: row.bos, kind: plan.pick.kind });
+  }
+}
+
+function tourAskRows(row, limit) {
+  const frame = document.getElementById('geocon-frame');
+  if (!frame || !row?.anchor) return Promise.resolve([]);
+  const requestId = `tour-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (rows) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      window.removeEventListener('message', onMsg);
+      resolve(Array.isArray(rows) ? rows : []);
+    };
+    const timer = setTimeout(() => finish([]), 25000);
+    function onMsg(event) {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data;
+      if (!data || data.type !== 'mb-geocon-rows' || data.requestId !== requestId) return;
+      finish(data.rows);
+    }
+    window.addEventListener('message', onMsg);
+    const send = () => {
+      try {
+        frame.contentWindow.postMessage({
+          type: 'mb-geocon-rows-ask',
+          requestId,
+          anchorPlz: row.anchor,
+          allowOtherPrefix: false,
+          limit,
+          radiusKm: 30,
+        }, window.location.origin);
+      } catch (_) {
+        finish([]);
+      }
+    };
+    if (frame.dataset.loaded === '1' && frame.src && frame.src.indexOf('geocon.html') !== -1) setTimeout(send, 400);
+    else {
+      frame.addEventListener('load', () => setTimeout(send, 800), { once: true });
+      if (typeof loadGeoconPage === 'function') loadGeoconPage();
+    }
+  });
+}
+
+async function tourNearbyInsert(row) {
+  const gap = Math.max(20, Number(tourPref().veriEsik) - Number(row.pending || 0));
+  const limit = Math.min(200, gap);
+  const raw = await tourAskRows(row, limit);
+  const norm = (value) => (typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(value) : String(value || '').trim());
+  const mapped = [];
+  const seen = new Set();
+  (Array.isArray(raw) ? raw : []).forEach((item) => {
+    const phone = norm(item?.telefon || item?.phone || '');
+    if (!phone || seen.has(phone)) return;
+    seen.add(phone);
+    mapped.push({
+      phone,
+      first_name: String(item.vorname || item.first_name || '').slice(0, 80),
+      last_name: String(item.name || item.nachname || item.last_name || '').slice(0, 80),
+      plz: tourPlz(item.plz) || row.anchor,
+      city: String(item.ort || item.city || '').slice(0, 80),
+      address: String(item.strasse || item.address || '').slice(0, 160),
+      campaign_id: row.id,
+      firm_id: tourFirmId(),
+      status: 'pending',
+    });
+  });
+  if (!mapped.length) return 0;
+  let fresh = mapped;
+  if (typeof mbFindExistingPhonePlaces === 'function') {
+    const places = await mbFindExistingPhonePlaces(mapped.map((item) => item.phone), 'campaign', row.id);
+    fresh = mapped.filter((item) => !places.has(item.phone));
+  }
+  if (!fresh.length) return 0;
+  const firmId = tourFirmId();
+  const found = await sb(`queues?campaign_id=eq.${row.id}&select=id,name,total_contacts&order=created_at.desc&limit=1`).catch(() => []);
+  let queue = Array.isArray(found) ? found[0] : null;
+  if (!queue?.id) {
+    const created = await sb('queues', {
+      method: 'POST',
+      prefer: 'return=representation',
+      body: JSON.stringify({ campaign_id: row.id, firm_id: firmId, name: `Yakın ${row.anchor || ''}`.trim(), total_contacts: fresh.length }),
+    });
+    queue = Array.isArray(created) ? created[0] : created;
+  }
+  if (!queue?.id) return 0;
+  const withQ = fresh.map((item) => ({ ...item, queue_id: queue.id }));
+  for (let i = 0; i < withQ.length; i += 100) {
+    await sb('contacts', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(withQ.slice(i, i + 100)) });
+  }
+  await sb(`queues?id=eq.${queue.id}`, {
+    method: 'PATCH',
+    prefer: 'return=minimal',
+    body: JSON.stringify({ total_contacts: Number(queue.total_contacts || 0) + withQ.length }),
+  });
+  if (typeof logAuditEvent === 'function') {
+    void logAuditEvent('radius_tour_nearby', 'campaign', row.id, { moved: withQ.length, anchor: row.anchor, day: _tourPlan?.day });
+  }
+  return withQ.length;
+}
+
+async function tourApply(plan, force) {
+  if (!plan?.firmId || !plan.pick?.id) return;
+  if (plan.shift?.label === 'break') return;
+  const role = (typeof currentUser !== 'undefined' && currentUser?.role) || '';
+  if (!['super_admin', 'admin', 'firm_admin'].includes(role)) return;
+  if (!force && tourEffectivePasif()) return;
+  const pref = tourPref();
+  const now = Date.now();
+  if (!force && pref.lastTickAt && now - Number(pref.lastTickAt) < 90000) return;
+  const row = plan.rows.find((item) => item.id === plan.pick.id);
+  if (!row) return;
+  await tourSave({ lastTickAt: now });
+  if (row.id !== pref.lastCampId || plan.day !== pref.lastDay) {
+    await tourNotify(plan, row);
+    await tourSave({ lastCampId: row.id, lastDay: plan.day, lastTickAt: now });
+  }
+  if (row.pending >= pref.veriEsik) return;
+  if (pref.kuyrukMod === 'yakin' && row.anchor) {
+    const added = await tourNearbyInsert(row).catch(() => 0);
+    if (typeof toast === 'function') {
+      toast(added ? tourSay('tour.nearby', '{n} yakın kişi eklendi', { n: added }) : tourSay('tour.nearby0', 'Yakın veri bulunamadı'), added ? 'ok' : 'warn');
+    }
+    if (added) return;
+  }
+  if (row.revertIds.length) await tourRevert(row.id, { auto: true });
 }
 
 function tourTab(name) {
@@ -482,6 +621,13 @@ function tourTab(name) {
 async function tourSetMode(aktif) {
   await tourSave({ aktif: !!aktif });
   tourArm();
+  if (aktif) await tourRefresh({ apply: true, force: true });
+  else await tourRefresh();
+}
+
+function tourQueueMode(el) {
+  const mode = el && el.value === 'yakin' ? 'yakin' : 'revert';
+  void tourSave({ kuyrukMod: mode });
 }
 
 async function tourFlag(key, el) {
@@ -564,21 +710,22 @@ function tourPrepDay() {
   void tourRefresh();
 }
 
-async function tourRevert(campaignId) {
+async function tourRevert(campaignId, opts) {
+  const auto = !!(opts && opts.auto);
   const plan = _tourPlan;
   const row = plan?.rows?.find((item) => item.id === campaignId);
   if (!row || plan.shift?.label === 'break') {
-    if (typeof toast === 'function') toast(tourSay('tour.blocked', 'Molada işlem yok'), 'warn');
-    return;
+    if (!auto && typeof toast === 'function') toast(tourSay('tour.blocked', 'Molada işlem yok'), 'warn');
+    return 0;
   }
   const n = row.revertIds.length;
   if (!n) {
-    if (typeof toast === 'function') toast(tourSay('tour.revert0', 'Uygun kişi kalmadı'), 'warn');
-    return;
+    if (!auto && typeof toast === 'function') toast(tourSay('tour.revert0', 'Uygun kişi kalmadı'), 'warn');
+    return 0;
   }
-  if (tourPref().onay) {
+  if (!auto && tourPref().onay) {
     const ok = typeof mbConfirm === 'function' ? await mbConfirm(tourSay('tour.confirm', '{n} kişi tekrar aransın? Yarınki randevu kodları.', { n }), row.name) : false;
-    if (!ok) return;
+    if (!ok) return 0;
   }
   let moved = 0;
   for (let i = 0; i < row.revertIds.length; i += 60) {
@@ -597,7 +744,8 @@ async function tourRevert(campaignId) {
     void logAuditEvent('radius_tour_revert', 'campaign', campaignId, { moved, day: plan.day, anchor: row.anchor });
   }
   if (typeof toast === 'function') toast(moved ? tourSay('tour.reverted', '{n} kişi kuyruğa alındı', { n: moved }) : tourSay('tour.revert0', 'Uygun kişi kalmadı'), moved ? 'ok' : 'warn');
-  await tourRefresh();
+  if (!auto) await tourRefresh();
+  return moved;
 }
 
 function tourPackage(campaignId) {
@@ -634,4 +782,20 @@ function tourPackage(campaignId) {
   }
   if (typeof toast === 'function') toast(tourSay('tour.sent', 'Paket haritada açıldı. İşaretleyip aktar.'), 'ok');
 }
+
+function tourBoot() {
+  if (window._tourBooted) return;
+  window._tourBooted = true;
+  setTimeout(() => {
+    const role = (typeof currentUser !== 'undefined' && currentUser?.role) || '';
+    if (!['super_admin', 'admin', 'firm_admin'].includes(role) || !tourFirmId()) return;
+    void tourLoadSettings().then(() => {
+      tourArm();
+      if (!tourEffectivePasif()) void tourRefresh({ apply: true });
+    });
+  }, 8000);
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tourBoot);
+else tourBoot();
 

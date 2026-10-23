@@ -1913,6 +1913,7 @@ visibility: visible;
 .tour-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
 .tour-note { font-size: 12px; color: var(--text-2); margin: 0; }
 .tour-row { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; background: var(--bg-3, var(--bg-1)); }
+.tour-row.is-pick { border-color: var(--accent); }
 .tour-row b { font-size: 13px; }
 .tour-meta { font-size: 12px; color: var(--text-2); margin-top: 2px; }
 .tour-tag { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
