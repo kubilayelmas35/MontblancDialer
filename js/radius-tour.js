@@ -191,7 +191,7 @@ function tourPaintLog(gunluk) {
   }
   box.hidden = false;
   box.innerHTML = `<p class="tour-meta">${tourEsc(tourSay('aria.log', 'Bugün'))}</p>`
-    + lines.map((item) => `<p class="aria-log-line"><b>${tourEsc(item.at || '')}</b> ${tourEsc(tourLogText(item))}</p>`).join('');
+    + lines.map((item) => `<p class="aria-log-line"><span class="aria-log-at">${tourEsc(item.at || '')}</span><span>${tourEsc(tourLogText(item))}</span></p>`).join('');
 }
 
 async function tourRemember(entry) {
@@ -352,10 +352,19 @@ function tourSetChecked(id, on) {
 
 function tourPaintSettings() {
   const pref = tourPref();
+  const pasif = tourEffectivePasif();
   const off = document.getElementById('tour-mode-off');
   const on = document.getElementById('tour-mode-on');
-  if (off) off.classList.toggle('is-on', tourEffectivePasif());
-  if (on) on.classList.toggle('is-on', !tourEffectivePasif());
+  const page = document.getElementById('page-tour');
+  if (off) {
+    off.classList.toggle('is-on', pasif);
+    off.setAttribute('aria-pressed', pasif ? 'true' : 'false');
+  }
+  if (on) {
+    on.classList.toggle('is-on', !pasif);
+    on.setAttribute('aria-pressed', pasif ? 'false' : 'true');
+  }
+  if (page) page.classList.toggle('is-aria-on', !pasif);
   const wait = document.getElementById('tour-wait-n');
   if (wait) wait.value = String(pref.bekleyenEsik);
   const esik = document.getElementById('tour-esik');

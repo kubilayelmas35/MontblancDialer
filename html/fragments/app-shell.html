@@ -532,12 +532,17 @@
 <div class="page-title" data-tr="Aria" data-de="Aria">Aria</div>
 <div class="page-sub" data-tr="En yakın boş güne kampanya seçer ve nedenini söyler." data-de="Wählt die Kampagne am nächsten freien Tag und sagt warum.">En yakın boş güne kampanya seçer ve nedenini söyler.</div>
 </div>
-<div class="page-hdr-actions tour-modes">
-<button type="button" class="btn btn-ghost btn-sm tour-mode" id="tour-mode-off" onclick="tourSetMode(false)" data-tr="Pasif" data-de="Passiv">Pasif</button>
-<button type="button" class="btn btn-primary btn-sm tour-mode" id="tour-mode-on" onclick="tourSetMode(true)" data-tr="Aktif" data-de="Aktiv">Aktif</button>
+<div class="page-hdr-actions">
+<div class="tour-switch" role="group" aria-label="Aria">
+<button type="button" class="tour-switch-btn is-on" id="tour-mode-off" onclick="tourSetMode(false)" aria-pressed="true" data-tr="Pasif" data-de="Passiv">Pasif</button>
+<button type="button" class="tour-switch-btn" id="tour-mode-on" onclick="tourSetMode(true)" aria-pressed="false" data-tr="Aktif" data-de="Aktiv">Aktif</button>
 </div>
 </div>
-<p class="tour-note" id="aria-last"></p>
+</div>
+<div class="aria-status" id="aria-status">
+<span class="aria-status-mark" aria-hidden="true"></span>
+<p class="aria-status-line" id="aria-last"></p>
+</div>
 <div id="aria-log" class="aria-log" hidden></div>
 <p class="tour-note" data-tr="Ayarlar bu hesaba yazılır. Sekme arkada kalsa da bakar. Tarayıcı kapalıyken kampanyayı seçmeye devam eder." data-de="Die Einstellungen gehören zu diesem Konto. Aria schaut auch im Hintergrund. Ist der Browser zu, wählt sie die Kampagne weiter.">Ayarlar bu hesaba yazılır. Sekme arkada kalsa da bakar. Tarayıcı kapalıyken kampanyayı seçmeye devam eder.</p>
 <div class="tour-grid">
