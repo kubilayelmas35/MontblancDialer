@@ -3296,8 +3296,8 @@ async function loadCounts(codes){
   countLoadingActive=false;
   plzData.forEach((e)=>{if(e.count==null)e.count=0;if(e.leadCount==null)e.leadCount=0;});
   removeEmptyPlzFromResults();
-  spreadPlzMarkers(plzData);
   paintSearchMarkers();
+  schedulePlzZoomPaint._on=geoZoomNow()<12&&plzData.length>=2;
   if(photo3DActive&&map3dReady){
     syncMap3DMarkers();
     syncMap3DPlzLayer();
@@ -3309,33 +3309,6 @@ async function loadCounts(codes){
   setLoadingBar(100);
 }
 
-function geoMeters(aLat,aLon,bLat,bLon){
-  const dLat=(bLat-aLat)*Math.PI/180;
-  const dLon=(bLon-aLon)*Math.PI/180;
-  const x=dLon*Math.cos(((aLat+bLat)/2)*Math.PI/180);
-  return 6371000*Math.hypot(x,dLat);
-}
-function spreadPlzMarkers(rows){
-  const z=geoZoomNow();
-  const lat0=(lastCenter&&+lastCenter.lat)||51;
-  const mpp=156543.03392*Math.cos(lat0*Math.PI/180)/Math.pow(2,Math.max(3,z));
-  const minM=Math.max(460,Math.min(1400,(geoMarkerSize(false)+8)*mpp));
-  const placed=[];
-  (rows||[]).forEach((e)=>{
-    let lat=+e.lat, lon=+e.lon;
-    for(let i=0;i<18;i++){
-      const clash=placed.some((p)=>geoMeters(p.lat,p.lon,lat,lon)<minM);
-      if(!clash)break;
-      const ang=i*0.9;
-      const ring=(minM*(1+Math.floor(i/6)))/111320;
-      lat=+e.lat+Math.cos(ang)*ring;
-      lon=+e.lon+Math.sin(ang)*ring/Math.max(0.25,Math.cos(+e.lat*Math.PI/180));
-    }
-    e._mLat=lat;
-    e._mLon=lon;
-    placed.push({lat,lon});
-  });
-}
 function paintSearchInfo(){
   const info=document.getElementById('searchInfo');
   if(!info||!lastCenter)return;
@@ -3355,14 +3328,18 @@ function geoMarkerSize(isAnchor){
 }
 function schedulePlzZoomPaint(){
   clearTimeout(schedulePlzZoomPaint._t);
-  schedulePlzZoomPaint._t=setTimeout(()=>{if(!_plzPainting)repaintPlzForZoom();},160);
+  schedulePlzZoomPaint._t=setTimeout(()=>{
+    const on=geoZoomNow()<12&&plzData.length>=2;
+    if(on===schedulePlzZoomPaint._on)return;
+    schedulePlzZoomPaint._on=on;
+    if(!_plzPainting)repaintPlzForZoom();
+  },160);
 }
 let _plzPainting=false;
 function repaintPlzForZoom(){
   if(_plzPainting||!plzData.length)return;
   _plzPainting=true;
   try{
-    spreadPlzMarkers(plzData);
     if(isGoogleMap()&&googleMap){
       gMarkers.forEach(m=>{if(m.plz||m._cluster){try{m.setMap(null);}catch(e){}}});
       gMarkers=gMarkers.filter(m=>!m.plz&&!m._cluster);
@@ -3378,7 +3355,10 @@ function repaintPlzForZoom(){
       });
       paintSearchMarkers();
     }
-  }finally{_plzPainting=false;}
+  }finally{
+    _plzPainting=false;
+    schedulePlzZoomPaint._on=geoZoomNow()<12&&plzData.length>=2;
+  }
 }
 function clusterPlzItems(items){
   const z=geoZoomNow();
@@ -3389,7 +3369,7 @@ function clusterPlzItems(items){
   const cell=Math.max(0.002,(46*mpp)/111320);
   const buckets=new Map();
   list.forEach(e=>{
-    const lat=+(e._mLat??e.lat), lon=+(e._mLon??e.lon);
+    const lat=+e.lat, lon=+e.lon;
     if(!Number.isFinite(lat)||!Number.isFinite(lon))return;
     const key=Math.floor(lat/cell)+':'+Math.floor(lon/cell);
     if(!buckets.has(key))buckets.set(key,[]);
@@ -3399,7 +3379,7 @@ function clusterPlzItems(items){
   buckets.forEach(group=>{
     if(group.length===1){out.push({kind:'plz',e:group[0]});return;}
     let lat=0,lon=0;
-    group.forEach(e=>{lat+=+(e._mLat??e.lat);lon+=+(e._mLon??e.lon);});
+    group.forEach(e=>{lat+=+e.lat;lon+=+e.lon;});
     out.push({kind:'cluster',n:group.length,lat:lat/group.length,lon:lon/group.length});
   });
   return out;
@@ -3431,7 +3411,7 @@ function paintSearchMarkers(){
   clusterPlzItems(items).forEach(g=>{
     if(g.kind==='plz'){
       const e=g.e;
-      const lat=e._mLat??e.lat, lon=e._mLon??e.lon;
+      const lat=e.lat, lon=e.lon;
       if(isGoogleMap())addGoogleMarker(lat,lon,e.plz,e.city||'');
       else addLeafletMarker(lat,lon,e.plz,e.city||'');
       return;
@@ -4928,7 +4908,7 @@ function syncMap3DMarkersFiltered(visiblePLZs){
     const e=list[i];
     try{
       const m=new Visual3D({
-        position:{lat:+(e._mLat??e.lat),lng:+(e._mLon??e.lon)},
+        position:{lat:+e.lat,lng:+e.lon},
         altitudeMode:'CLAMP_TO_GROUND',
         extruded:false,
         sizePreserved:true,
