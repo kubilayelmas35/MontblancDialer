@@ -42,7 +42,7 @@ let _tourAltaSlot = true;
 let _tourBusy = false;
 let _tourWatchSig = '';
 let _tourSettings = { ...TOUR_DEFAULTS };
-let _tourTab = 'genel';
+let _tourTab = 'kampanya';
 const TOUR_LOCK_KEYS = ['lastCampId', 'lastDay', 'lastTickAt'];
 
 function tourUserId() {
@@ -1060,8 +1060,12 @@ async function tourApply(plan, force) {
 }
 
 function tourTab(name) {
-  _tourTab = name || 'genel';
-  document.querySelectorAll('.tour-tab').forEach((btn) => btn.classList.toggle('is-on', btn.dataset.tab === _tourTab));
+  _tourTab = name || 'kampanya';
+  document.querySelectorAll('.tour-tab').forEach((btn) => {
+    const on = btn.dataset.tab === _tourTab;
+    btn.classList.toggle('is-on', on);
+    btn.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
   document.querySelectorAll('.tour-pane').forEach((pane) => pane.classList.toggle('is-on', pane.dataset.pane === _tourTab));
 }
 
