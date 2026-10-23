@@ -611,6 +611,28 @@ html[data-theme="dark"] .kub-chip,
 html[data-theme="dark"] .kub-anchor-chip{background:#10182c;color:#e6edf7;border-color:#2a3654;}
 html[data-theme="dark"] #resultsFooter{border-top-color:#2a3654;}
 html[data-theme="dark"] #corridorBox{border-top-color:#2a3654;}
+html[data-theme="dark"] .used-expire-bar{background:#10182c;border-color:#2a3654;}
+html[data-theme="dark"] .used-expire-bar .ue-title{color:#c4c8ff;}
+html[data-theme="dark"] .used-expire-bar .ue-scale{color:#b7c4da;}
+html[data-theme="dark"] .used-expire-bar .ue-value{color:#f4f7ff;}
+html[data-theme="dark"] .map-type-btn.active,
+html[data-theme="dark"] .map-control-btn.active,
+html[data-theme="dark"] .search-mode-btn.active,
+html[data-theme="dark"] .filter-toggle-btn.active,
+html[data-theme="dark"] .search-dir-btn.active,
+html[data-theme="dark"] .kub-chip.active{
+  background:#5b63e8;color:#fff;border-color:#e4e6ff;
+  box-shadow:0 0 0 2px rgba(196,200,255,.72);
+}
+html[data-theme="dark"] .map-type-btn.active:hover,
+html[data-theme="dark"] .map-control-btn.active:hover,
+html[data-theme="dark"] .search-mode-btn.active:hover{background:#6d74f2;color:#fff;}
+html[data-theme="dark"] .bld-layer-btn.on{box-shadow:0 0 0 2px rgba(255,255,255,.55);}
+html[data-theme="dark"] .kub-anchor-chip.active,
+html[data-theme="dark"] .kub-day.active{
+  background:#16324f;color:#f4f7ff;border-color:#7dd3fc;
+  box-shadow:0 0 0 2px rgba(125,211,252,.45);
+}
 </style>
 </head>
 <body>
@@ -755,10 +777,10 @@ html[data-theme="dark"] #corridorBox{border-top-color:#2a3654;}
 </div>
 
 <!-- KUBILAI -->
-<button type="button" id="kubilaiFab" onclick="toggleKubilaiDrawer()" title="Çember"><span>Çember</span></button>
-<div id="kubilaiDrawer" aria-label="Çember">
+<button type="button" id="kubilaiFab" onclick="toggleKubilaiDrawer()" title="Radius"><span>Radius</span></button>
+<div id="kubilaiDrawer" aria-label="Radius">
   <div class="kub-head">
-    <h6><i class="fas fa-wand-magic-sparkles"></i> <span class="kub-brand">Çember</span></h6>
+    <h6><i class="fas fa-wand-magic-sparkles"></i> <span class="kub-brand">Radius</span></h6>
     <button type="button" onclick="toggleKubilaiDrawer(false)" aria-label="Kapat">&times;</button>
   </div>
   <div class="kub-body">
@@ -869,14 +891,14 @@ html[data-theme="dark"] #corridorBox{border-top-color:#2a3654;}
     </div>
     <label class="kub-check kub-wix-only" title="Kubilai yorumu (kredi harcar)">
       <input type="checkbox" id="kubWantComment" onchange="kubWantComment=this.checked;saveKubilaiSettings()">
-      <span data-geo-tr="Yorum iste" data-geo-de="Kommentar">Yorum iste</span> <small data-geo-tr="(Çember — varsayılan kapalı)" data-geo-de="(Çember — standard aus)">(Çember — varsayılan kapalı)</small>
+      <span data-geo-tr="Yorum iste" data-geo-de="Kommentar">Yorum iste</span> <small data-geo-tr="(Radius — varsayılan kapalı)" data-geo-de="(Radius — standard aus)">(Radius — varsayılan kapalı)</small>
     </label>
     <div class="kub-status" id="kubStatus"></div>
     <div class="kub-wix-only">
       <div class="kub-label" data-geo-tr="Sohbet" data-geo-de="Chat">Sohbet</div>
       <div class="kub-chat" id="kubChat"></div>
       <div class="kub-input-row" style="margin-top:6px;">
-        <input type="text" id="kubChatInput" placeholder="Çember’e sor…" data-geo-ph-tr="Çember’e sor…" data-geo-ph-de="Frag Çember…" maxlength="800" onkeydown="if(event.key==='Enter')kubilaiSendChat()">
+        <input type="text" id="kubChatInput" placeholder="Radius’a sor…" data-geo-ph-tr="Radius’a sor…" data-geo-ph-de="Frag Radius…" maxlength="800" onkeydown="if(event.key==='Enter')kubilaiSendChat()">
         <button type="button" onclick="kubilaiSendChat()" data-geo-tr="Gönder" data-geo-de="Senden">Gönder</button>
       </div>
     </div>
@@ -2433,7 +2455,7 @@ async function buildDataPackage(anchorPlz,allowOtherPrefixOverride,opts){
   const whitelist=whitelistArr.length?new Set(whitelistArr):null;
   const pairMax=opts&&opts.pairMaxMin!=null?Number(opts.pairMaxMin):(typeof kubPairTravelMin==='number'?kubPairTravelMin:null);
   const enforcePair=!(opts&&opts.enforcePair===false)&&pairMax!=null&&Number.isFinite(pairMax);
-  panel.innerHTML=`<div class="package-progress"><i class="fas fa-circle-notch fa-spin"></i> Paket oluşturuluyor… ${whitelist?'(Çember listesi)':'(önce yakınlık)'}</div>`;
+  panel.innerHTML=`<div class="package-progress"><i class="fas fa-circle-notch fa-spin"></i> Paket oluşturuluyor… ${whitelist?'(Radius listesi)':'(önce yakınlık)'}</div>`;
   const anchor=String(anchorPlz);
   let candidates=plzData.filter(e=>e.plz!==anchor&&!isEffectivelyUsed(e.plz));
   if(whitelist){
@@ -2544,7 +2566,7 @@ async function buildDataPackage(anchorPlz,allowOtherPrefixOverride,opts){
   }
 
   if(whitelist){
-    await fillByProximity(candidates,'Çember · doğrulanmış');
+    await fillByProximity(candidates,'Radius · doğrulanmış');
   }else{
     await fillByProximity(samePrefix,`${anchorPrefix}xx · en iyi`);
   }
@@ -2570,7 +2592,7 @@ async function buildDataPackage(anchorPlz,allowOtherPrefixOverride,opts){
   const scoreNote=Number.isFinite(usedLowScore)?`min skor ${usedLowScore.toFixed(1)}`:`skor —`;
   const hedefNote=needsPrefixExpand?`${anchorPrefix}xx bölgesinde bulunan kadar`:`hedef ≥${targetData.toLocaleString('de-DE')}`;
   const modeNote=lastSearchMode==='corridor'?` · koridor ±${usedRadiusKm} km`:(usedRadiusKm!==getPkgRadiusSteps()[0]?` · arama ${usedRadiusKm} km`:'');
-  const prioNote=whitelist?'Çember listesi':'yakınlık &gt; skor';
+  const prioNote=whitelist?'Radius listesi':'yakınlık &gt; skor';
   let html=`<div class="package-summary"><b>${picked.length} PLZ</b> · <b>${total.toLocaleString('de-DE')}</b> contact<br>Ort. skor <b>${avgScore.toFixed(1)}</b> · Max <b>${maxDist.toFixed(1)} km</b> (Ref: ${anchor})<br><small style="color:#666;">Öncelik: <b>${prioNote}</b> · ${prefixNote} · ${scoreNote} · ${hedefNote}${modeNote} · ${analysed} analyse · İşaretleyip aktarın</small></div>`;
   if(needsPrefixExpand){
     html+=`<div style="margin:4px 0;padding:6px 8px;background:#f1f5f9;border:1px solid #dbe4ec;border-radius:6px;font-size:.68rem;color:#555;">ℹ️ ${anchorPrefix}xx bölgesinde bulunan tüm veri (${total.toLocaleString('de-DE')} kontak) paketlendi, bu kadarıyla tamamlandı. İsterseniz diğer PLZ bölgelerinde de ara:<br><button type="button" onclick="expandPackageOtherPrefix('${anchor}')" style="margin-top:4px;padding:3px 8px;font-size:.68rem;border:1px solid #90a4ae;background:#fff;border-radius:5px;cursor:pointer;">🔍 Diğer PLZ bölgelerinde de ara</button></div>`;
