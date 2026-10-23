@@ -237,13 +237,6 @@ function tourRender(plan) {
   const locked = plan?.shift?.label === 'break';
   const shiftKey = plan?.shift?.label || 'noplan';
   const head = `
-<div class="tour-hd">
-  <b>${tourEsc(tourSay('tour.title', 'Tur planı'))}</b>
-  <span>
-    <button type="button" class="btn btn-ghost btn-sm" onclick="tourRefresh()">${tourEsc(tourSay('tour.refresh', 'Yenile'))}</button>
-    <button type="button" class="btn btn-ghost btn-sm" onclick="tourToggle(false)">${tourEsc(tourSay('tour.close', 'Kapat'))}</button>
-  </span>
-</div>
 <p class="tour-note">${tourEsc(tourSay('tour.note', 'Yazma kapalı. Revert ve paket sen basınca olur.'))}</p>
 <label class="tour-note" style="display:flex;gap:8px;align-items:center;">
   <input type="checkbox" id="tour-watch" ${localStorage.getItem('mb-radius-tour-watch') === '1' ? 'checked' : ''} onchange="tourWatch(this.checked)">
@@ -272,18 +265,21 @@ function tourRender(plan) {
       <div class="tour-meta">${row.pending} ${tourEsc(tourSay('tour.pending', 'bekliyor'))} · ${row.bos} ${tourEsc(tourSay('tour.slots', 'boş'))}${row.anchor ? ' · ' + tourEsc(tourSay('tour.anchor', 'referans')) + ' ' + tourEsc(row.anchor) : ''}</div>
       <div class="tour-actions">${revert}${pack}</div>
     </div>`;
-  }).join('') : `<p class="tour-note">${tourEsc(tourSay('tour.none', 'Boş slotu olan kampanya yok'))}</p>`;
+  }).join('') : '';
+  const list = cards
+    ? `<div class="tour-list">${cards}</div>`
+    : `<p class="tour-note">${tourEsc(tourSay('tour.none', 'Boş slotu olan kampanya yok'))}</p>`;
   panel.innerHTML = `${head}
 <p class="tour-meta">${tourEsc(tourSay('tour.day', 'Hedef gün'))}: <b>${tourEsc(plan.day)}</b> · ${tourEsc(tourSay('tour.' + shiftKey, shiftKey))}${plan.shift.breakEnd ? ' ' + tourEsc(plan.shift.breakEnd) : ''}</p>
 <p class="tour-meta">${tourEsc(tourSay('tour.pick', 'Çalışılacak'))}: ${tourEsc(pickLine)}</p>
 ${locked ? `<p class="tour-note">${tourEsc(tourSay('tour.blocked', 'Molada işlem yok'))}</p>` : ''}
-${cards}`;
+${list}`;
 }
 
 async function tourRefresh() {
   if (_tourBusy) return;
   const panel = document.getElementById('tour-panel');
-  if (panel && !panel.hidden) panel.innerHTML = `<p class="tour-note">${tourEsc(tourSay('tour.loading', 'Kayıtlar okunuyor'))}</p>`;
+  if (panel) panel.innerHTML = `<p class="tour-note">${tourEsc(tourSay('tour.loading', 'Kayıtlar okunuyor'))}</p>`;
   _tourBusy = true;
   try {
     _tourPlan = await tourBuild();
@@ -299,20 +295,12 @@ async function tourRefresh() {
   }
 }
 
-function tourToggle(force) {
-  const panel = document.getElementById('tour-panel');
-  if (!panel) return;
-  const open = typeof force === 'boolean' ? force : panel.hidden;
-  panel.hidden = !open;
-  if (open) void tourRefresh();
-}
-
 function tourWatch(on) {
   localStorage.setItem('mb-radius-tour-watch', on ? '1' : '0');
   clearInterval(window._tourTimer);
   if (!on) return;
   window._tourTimer = setInterval(() => {
-    const page = document.getElementById('page-geocon');
+    const page = document.getElementById('page-tour');
     if (!page?.classList.contains('active') || document.hidden) return;
     void tourRefresh();
   }, TOUR_WATCH_MS);
@@ -382,7 +370,6 @@ function tourPackage(campaignId) {
     frame.addEventListener('load', kick, { once: true });
     if (typeof loadGeoconPage === 'function') loadGeoconPage();
   }
-  tourToggle(false);
   if (typeof toast === 'function') toast(tourSay('tour.sent', 'Paket haritada açıldı. İşaretleyip aktar.'), 'ok');
 }
 

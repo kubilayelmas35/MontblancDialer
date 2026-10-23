@@ -1813,23 +1813,25 @@ window.addEventListener('message', ev => {
   }
   if (d.type === 'GEO_BEST_PLZ') { bestPlzItems = d.items || []; renderBestPlzList(); try{if(kubMode==='top'&&!selectedTakvim)renderKubTopPlzList();}catch(_){} }
   if (d.type === 'mb-geocon-tour') {
-    const plz = String(d.anchorPlz || '').replace(/\D/g, '').padStart(5, '0').slice(-5);
-    if (d.campaignId) selectCampaign(d.campaignId, d.campaignName || '');
-    if (!/^\d{5}$/.test(plz)) return;
-    lastSearchMode = 'circle';
-    lastCorridor = null;
-    packagePending = false;
-    packageAnchorPlz = '';
-    refPlz = plz;
-    const rad0 = 30;
-    if (typeof radInput !== 'undefined' && radInput) {
-      radInput.value = rad0;
-      const rv = document.getElementById('radiusValue');
-      if (rv) rv.textContent = rad0 + ' km';
-    }
-    const sec = document.getElementById('secPackage');
-    if (sec) sec.classList.remove('collapsed');
-    buildDataPackage(plz, false, { enforcePair: false });
+    try {
+      const plz = String(d.anchorPlz || '').replace(/\D/g, '').padStart(5, '0').slice(-5);
+      if (d.campaignId) selectCampaign(d.campaignId, d.campaignName || '');
+      if (!/^\d{5}$/.test(plz)) return;
+      lastSearchMode = 'circle';
+      lastCorridor = null;
+      packagePending = false;
+      packageAnchorPlz = '';
+      refPlz = plz;
+      const rad0 = 30;
+      if (radInput) {
+        radInput.value = rad0;
+        const rv = document.getElementById('radiusValue');
+        if (rv) rv.textContent = rad0 + ' km';
+      }
+      const sec = document.getElementById('secPackage');
+      if (sec) sec.classList.remove('collapsed');
+      buildDataPackage(plz, false, { enforcePair: false });
+    } catch (_) {}
   }
   if (d.type === 'OVERPASS_RESULT') {
     const p = overpassPending.get(d.requestId);

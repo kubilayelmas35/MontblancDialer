@@ -110,6 +110,7 @@ const _NAVIGATE_LOADERS = {
   performansim: () => { _mbPageFn('loadPerformansimPage')?.(); },
   competition: () => { _mbPageFn('loadCompetitionPage')?.(); },
   geocon: () => { _mbPageFn('loadGeoconPage')?.(); },
+  tour: () => { _mbPageFn('tourRefresh')?.(); },
 };
 
 function runPageEntry(page) {
