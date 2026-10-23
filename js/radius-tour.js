@@ -25,6 +25,10 @@ const TOUR_DEFAULTS = {
   yolUyari: true,
   yolDk: 30,
   bosSlotAtla: true,
+  minBos: 1,
+  gecisBos: 0,
+  cumartesi: false,
+  ufuk: 14,
   ayniPrefix: true,
   selfHeal: true,
   selfHealDeneme: 2,
@@ -99,12 +103,16 @@ function tourStory(plan, extra) {
   return tourSay('aria.watch', 'Aria: {why}', { why });
 }
 
+function tourShortDay(ymd) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(ymd || '')) ? `${ymd.slice(8, 10)}.${ymd.slice(5, 7)}` : '';
+}
+
 function tourChipFacts(plan) {
   const row = plan?.pick?.id ? (plan.rows || []).find((item) => item.id === plan.pick.id) : null;
   if (!row) return null;
   const name = String(row.name || '').trim();
   const lead = name.match(/^(\d+)\b/);
-  return { camp: lead ? lead[1] : name.slice(0, 14), n: Number(row.bos) || 0 };
+  return { camp: lead ? lead[1] : name.slice(0, 14), n: Number(row.bos) || 0, day: tourShortDay(plan.day) };
 }
 
 function tourPaintLive(plan, line, speak) {
@@ -112,15 +120,17 @@ function tourPaintLive(plan, line, speak) {
   const chip = document.getElementById('aria-live');
   if (chip) {
     const facts = tourChipFacts(plan);
+    const day = document.getElementById('aria-live-day');
     const camp = document.getElementById('aria-live-camp');
     const count = document.getElementById('aria-live-n');
     chip.hidden = !text;
     chip.classList.toggle('is-on', !!facts);
     chip.classList.toggle('is-pasif', tourEffectivePasif());
+    if (day) day.textContent = facts ? facts.day : '';
     if (camp) camp.textContent = facts ? facts.camp : '';
     if (count) count.textContent = facts ? String(facts.n) : '';
     chip.title = text;
-    chip.setAttribute('aria-label', facts ? `Aria ${facts.camp}` : 'Aria');
+    chip.setAttribute('aria-label', facts ? `Aria ${facts.day} ${facts.camp}` : 'Aria');
   }
   const note = document.getElementById('aria-last');
   if (note) note.textContent = text || '';
@@ -128,6 +138,100 @@ function tourPaintLive(plan, line, speak) {
     _ariaSpoken = text;
     tourSpeak(text);
   }
+  const pop = document.getElementById('aria-pop');
+  if (pop && !pop.hidden) ariaFillPop();
+}
+
+function ariaPlacePop() {
+  const pop = document.getElementById('aria-pop');
+  const btn = document.getElementById('aria-live');
+  if (!pop || !btn) return;
+  if (pop.parentElement !== document.body) document.body.appendChild(pop);
+  const rect = btn.getBoundingClientRect();
+  const width = 320;
+  let left = rect.left;
+  if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
+  if (left < 8) left = 8;
+  pop.style.top = `${Math.round(rect.bottom + 8)}px`;
+  pop.style.left = `${Math.round(left)}px`;
+}
+
+function ariaFillPop() {
+  const pop = document.getElementById('aria-pop');
+  if (!pop) return;
+  const plan = _tourPlan;
+  const row = plan?.pick?.id ? (plan.rows || []).find((item) => item.id === plan.pick.id) : null;
+  const mode = tourEffectivePasif()
+    ? tourSay('aria.mode.off', 'Pasif')
+    : tourSay('aria.mode.on', 'Aktif');
+  const day = tourShortDay(plan?.day) || '—';
+  const camp = row ? row.name : '';
+  const slots = row ? tourSay('aria.pop.slots', '{n} boş slot', { n: row.bos }) : '';
+  const queue = row
+    ? tourSay('aria.pop.queue', 'Kuyruk {pending} / {esik}', { pending: row.pending, esik: tourPref().veriEsik })
+    : '';
+  const esik = Math.max(1, Number(tourPref().veriEsik) || 500);
+  const pct = row ? Math.max(0, Math.min(100, Math.round((Number(row.pending) || 0) / esik * 100))) : 0;
+  const line = plan ? tourStory(plan) : '';
+  pop.innerHTML = `<div class="aria-pop-head"><span class="aria-pop-kicker">${tourEsc(mode)}</span><button type="button" class="btn btn-ghost btn-sm" onclick="ariaOpenPage()">${tourEsc(tourSay('aria.pop.open', 'Aria sayfası'))}</button></div>
+<div class="aria-pop-day">${tourEsc(day)}</div>
+${camp ? `<div class="aria-pop-camp">${tourEsc(camp)}</div>` : ''}
+${slots ? `<div class="aria-pop-meta">${tourEsc(slots)}${queue ? ' · ' + tourEsc(queue) : ''}</div><div class="tour-fill"><span style="width:${pct}%"></span></div>` : ''}
+${line ? `<p class="aria-pop-line">${tourEsc(line)}</p>` : ''}`;
+}
+
+function ariaOpenPop() {
+  const pop = document.getElementById('aria-pop');
+  const btn = document.getElementById('aria-live');
+  if (!pop || !btn || btn.hidden) return;
+  if (typeof mbCloseTopbarPops === 'function') mbCloseTopbarPops('aria');
+  ariaFillPop();
+  pop.hidden = false;
+  btn.classList.add('is-open');
+  btn.setAttribute('aria-expanded', 'true');
+  ariaPlacePop();
+}
+
+function ariaClosePop() {
+  const pop = document.getElementById('aria-pop');
+  const btn = document.getElementById('aria-live');
+  if (pop) pop.hidden = true;
+  if (btn) {
+    btn.classList.remove('is-open');
+    btn.setAttribute('aria-expanded', 'false');
+  }
+}
+
+function ariaTogglePop(ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const pop = document.getElementById('aria-pop');
+  if (!pop) return;
+  if (!pop.hidden) ariaClosePop();
+  else ariaOpenPop();
+}
+
+function ariaShowPop() {
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  clearTimeout(window._ariaPopHide);
+  const pop = document.getElementById('aria-pop');
+  if (pop && !pop.hidden) return;
+  ariaOpenPop();
+}
+
+function ariaScheduleHide() {
+  clearTimeout(window._ariaPopHide);
+  window._ariaPopHide = setTimeout(() => {
+    const pop = document.getElementById('aria-pop');
+    const btn = document.getElementById('aria-live');
+    if (!pop || pop.hidden) return;
+    if (btn?.matches(':hover') || pop.matches(':hover')) return;
+    ariaClosePop();
+  }, 180);
+}
+
+function ariaOpenPage() {
+  ariaClosePop();
+  if (typeof navigate === 'function') navigate('tour');
 }
 
 function tourSpeak(text) {
@@ -316,6 +420,12 @@ async function tourSaveWatch() {
       kuyrukMod: pref.kuyrukMod === 'yakin' ? 'yakin' : 'revert',
       veriEsik: Math.max(50, Math.min(20000, Number(pref.veriEsik) || 500)),
       bosSlotAtla: pref.bosSlotAtla !== false,
+      minBos: Math.max(1, Math.min(20, Number(pref.minBos) || 1)),
+      gecisBos: Math.max(0, Math.min(20, Number(pref.gecisBos) || 0)),
+      cumartesi: !!pref.cumartesi,
+      ufuk: [7, 14, 21].includes(Number(pref.ufuk)) ? Number(pref.ufuk) : 14,
+      hedefManuel: !!pref.hedefManuel,
+      hedefTarih: /^\d{4}-\d{2}-\d{2}$/.test(pref.hedefTarih) ? pref.hedefTarih : '',
       zamanlayici: !!pref.zamanlayici,
       zamanAktif: pref.zamanAktif || '09:55',
       zamanPasif: pref.zamanPasif || '18:35',
@@ -369,6 +479,12 @@ function tourPaintSettings() {
   if (wait) wait.value = String(pref.bekleyenEsik);
   const esik = document.getElementById('tour-esik');
   if (esik) esik.value = String(pref.veriEsik);
+  const minBos = document.getElementById('tour-min-bos');
+  if (minBos) minBos.value = String(Math.max(1, Math.min(20, Number(pref.minBos) || 1)));
+  const margin = document.getElementById('tour-margin');
+  if (margin) margin.value = String(Math.max(0, Math.min(20, Number(pref.gecisBos) || 0)));
+  const horizon = document.getElementById('tour-horizon');
+  if (horizon) horizon.value = String([7, 14, 21].includes(Number(pref.ufuk)) ? Number(pref.ufuk) : 14);
   const kuyruk = document.getElementById('tour-kuyruk');
   if (kuyruk) kuyruk.value = pref.kuyrukMod === 'yakin' ? 'yakin' : 'revert';
   const near = pref.kuyrukMod === 'yakin';
@@ -410,6 +526,7 @@ function tourPaintSettings() {
   tourSetChecked('tour-hedef', pref.terminHedef);
   tourSetChecked('tour-yol', pref.yolUyari);
   tourSetChecked('tour-skip', pref.bosSlotAtla);
+  tourSetChecked('tour-sat', pref.cumartesi);
   tourSetChecked('tour-prefix', pref.ayniPrefix);
   tourSetChecked('tour-heal', pref.selfHeal);
   tourSetChecked('tour-clock', pref.zamanlayici);
@@ -448,7 +565,8 @@ function tourAddDays(ymd, days) {
 function tourWeekend(ymd) {
   const [y, m, d] = String(ymd).split('-').map(Number);
   const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-  return dow === 0 || dow === 6;
+  if (dow === 0) return true;
+  return dow === 6 && tourPref().cumartesi !== true;
 }
 
 function tourNextBusiness(ymd) {
@@ -493,11 +611,14 @@ function tourNo(name) {
 }
 
 function tourChoose(rows, currentId) {
-  const candidates = (rows || []).filter((row) => row.bos > 0).slice().sort((a, b) => b.bos - a.bos || tourNo(a.name) - tourNo(b.name) || String(a.name).localeCompare(String(b.name)));
+  const pref = tourPref();
+  const minBos = Math.max(1, Math.min(20, Number(pref.minBos) || 1));
+  const margin = Math.max(0, Math.min(20, Number(pref.gecisBos) || 0));
+  const candidates = (rows || []).filter((row) => row.bos >= minBos).slice().sort((a, b) => b.bos - a.bos || tourNo(a.name) - tourNo(b.name) || String(a.name).localeCompare(String(b.name)));
   const leader = candidates[0] || null;
   const current = candidates.find((row) => row.id === currentId) || null;
   if (!leader) return { kind: 'none', id: '' };
-  if (current && current.bos >= leader.bos) return { kind: 'stay', id: current.id };
+  if (current && current.bos + margin >= leader.bos) return { kind: 'stay', id: current.id };
   if (current && current.id !== leader.id) return { kind: 'switch', id: leader.id };
   return { kind: 'pick', id: leader.id };
 }
@@ -549,8 +670,9 @@ async function tourBuild() {
   }
   const pref = tourPref();
   const nextDay = tourNextBusiness(clock.ymd);
+  const span = [7, 14, 21].includes(Number(pref.ufuk)) ? Number(pref.ufuk) : 14;
   let start = nextDay;
-  let end = tourAddDays(start, 14);
+  let end = tourAddDays(start, span);
   if (pref.hedefManuel && /^\d{4}-\d{2}-\d{2}$/.test(pref.hedefTarih)) {
     if (pref.hedefTarih < start) start = pref.hedefTarih;
     if (pref.hedefTarih > end) end = pref.hedefTarih;
@@ -576,7 +698,17 @@ async function tourBuild() {
   const mesai = typeof opsNormalizeMesaiPlan === 'function' ? opsNormalizeMesaiPlan(firmRows?.[0]?.settings?.mesai_plan) : null;
   const shift = tourShift(mesai, clock);
   const slotRows = Array.isArray(slots) ? slots : [];
-  const days = [...new Set(slotRows.filter((s) => s.durum === 'bos' && !s.appointment_id).map((s) => tourYmd(s.tarih)).filter((d) => d && !tourWeekend(d)))].sort();
+  const tally = new Map();
+  slotRows.forEach((slot) => {
+    const ymd = tourYmd(slot.tarih);
+    if (!ymd || tourWeekend(ymd) || slot.durum !== 'bos' || slot.appointment_id) return;
+    tally.set(ymd, (tally.get(ymd) || 0) + 1);
+  });
+  let outlook = [...tally.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).slice(0, 8).map(([ymd, bos]) => ({ ymd, bos }));
+  if (pref.hedefManuel && /^\d{4}-\d{2}-\d{2}$/.test(pref.hedefTarih) && !outlook.some((item) => item.ymd === pref.hedefTarih)) {
+    outlook = [{ ymd: pref.hedefTarih, bos: tally.get(pref.hedefTarih) || 0 }, ...outlook].slice(0, 8);
+  }
+  const days = [...tally.keys()].sort();
   let day = pref.bosSlotAtla ? (days[0] || nextDay) : nextDay;
   if (pref.hedefManuel && /^\d{4}-\d{2}-\d{2}$/.test(pref.hedefTarih)) day = pref.hedefTarih;
   const names = new Map((Array.isArray(camps) ? camps : []).map((c) => [c.id, c.name || '']));
@@ -628,7 +760,7 @@ async function tourBuild() {
     row.revertIds = (Array.isArray(got) ? got : []).filter((c) => row.plzs.has(tourPlz(c.plz))).map((c) => c.id).filter(Boolean);
   }));
   const pick = tourChoose(rows, currentId);
-  return { firmId, clock, shift, day, rows, pick, activeId: currentId, manual: !!pref.hedefManuel };
+  return { firmId, clock, shift, day, rows, pick, activeId: currentId, manual: !!pref.hedefManuel, outlook };
 }
 
 function tourLevel(row) {
@@ -667,16 +799,22 @@ function tourRender(plan) {
     const pack = row.anchor && row.bos > 0 && level !== 'enough' && !locked
       ? `<button type="button" class="btn btn-primary btn-sm" onclick="tourPackage('${row.id}')">${tourEsc(tourSay('tour.package', 'Paketi aç'))}</button>`
       : '';
+    const esik = Math.max(1, Number(tourPref().veriEsik) || 500);
+    const pct = Math.max(0, Math.min(100, Math.round((Number(row.pending) || 0) / esik * 100)));
     return `<div class="tour-row${picked}">
       <b>${tourEsc(row.name)}</b><span class="tour-tag ${cls}">${tourEsc(tag)}</span>
       <div class="tour-meta">${row.pending} ${tourEsc(tourSay('tour.pending', 'bekliyor'))} · ${row.bos} ${tourEsc(tourSay('tour.slots', 'boş'))}${row.anchor ? ' · ' + tourEsc(tourSay('tour.anchor', 'referans')) + ' ' + tourEsc(row.anchor) : ''}</div>
+      <div class="tour-fill"><span style="width:${pct}%"></span></div>
       <div class="tour-actions">${revert}${pack}</div>
     </div>`;
   }).join('') : '';
   const list = cards
     ? `<div class="tour-list">${cards}</div>`
     : `<p class="tour-note">${tourEsc(tourSay('tour.none', 'Boş slotu olan kampanya yok'))}</p>`;
+  const outlook = Array.isArray(plan.outlook) ? plan.outlook : [];
+  const daysHtml = `<div class="aria-days"><button type="button" class="aria-day${plan.manual ? '' : ' is-pick'}" onclick="tourDayAuto()"><b>${tourEsc(tourSay('aria.nearest', 'En yakın'))}</b><span>${tourEsc(plan.manual ? '—' : (tourShortDay(plan.day) || '—'))}</span></button>${outlook.map((item) => `<button type="button" class="aria-day${plan.manual && item.ymd === plan.day ? ' is-pick' : ''}" onclick="tourPinDay('${item.ymd}')"><b>${tourEsc(tourShortDay(item.ymd))}</b><span>${item.bos} ${tourEsc(tourSay('tour.slots', 'boş'))}</span></button>`).join('')}</div>`;
   panel.innerHTML = `${head}
+${daysHtml}
 <p class="tour-meta">${tourEsc(tourSay('tour.day', 'Hedef gün'))}: <b>${tourEsc(plan.day)}</b> · ${tourEsc(tourSay('tour.' + shiftKey, shiftKey))}${plan.shift.breakEnd ? ' ' + tourEsc(plan.shift.breakEnd) : ''}</p>
 <p class="tour-meta">${tourEsc(tourSay('tour.pick', 'Çalışılacak'))}: ${tourEsc(pickLine)}</p>
 ${locked ? `<p class="tour-note">${tourEsc(tourSay('tour.blocked', 'Molada işlem yok'))}</p>` : ''}
@@ -956,6 +1094,19 @@ async function tourTime(key, el) {
   if (key === 'zamanAktif' || key === 'zamanPasif') tourArm();
 }
 
+function tourPickHorizon(el) {
+  const n = Number(el && el.value);
+  const span = [7, 14, 21].includes(n) ? n : 14;
+  if (el) el.value = String(span);
+  void tourSave({ ufuk: span }).then(() => tourRefresh());
+}
+
+async function tourPinDay(ymd) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(ymd || ''))) return;
+  await tourSave({ hedefManuel: true, hedefTarih: ymd });
+  await tourRefresh();
+}
+
 function tourPickRadius(el) {
   const n = Number(el.value);
   void tourSave({ radiusKm: [10, 20, 30, 50].includes(n) ? n : 30 });
@@ -1104,4 +1255,11 @@ function tourBoot() {
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tourBoot);
 else tourBoot();
+
+document.addEventListener('click', (ev) => {
+  const pop = document.getElementById('aria-pop');
+  if (!pop || pop.hidden) return;
+  if (ev.target.closest && ev.target.closest('#aria-pop, #aria-live')) return;
+  ariaClosePop();
+});
 

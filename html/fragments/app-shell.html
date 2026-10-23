@@ -34,8 +34,9 @@
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg>
 <span id="tb-mesai-label">08:00–20:00</span>
 </button>
-<button type="button" id="aria-live" class="aria-live" hidden onclick="navigate('tour')" title="Aria" aria-label="Aria">
+<button type="button" id="aria-live" class="aria-live" hidden onclick="ariaTogglePop(event)" title="Aria" aria-label="Aria" aria-expanded="false" aria-controls="aria-pop">
 <svg class="aria-live-mark" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.75"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/></svg>
+<span class="aria-live-day" id="aria-live-day"></span>
 <span class="aria-live-camp" id="aria-live-camp"></span>
 <span class="aria-live-n" id="aria-live-n"></span>
 </button>
@@ -44,6 +45,7 @@
 <div id="tb-chip-pop" class="tb-chip-pop" hidden></div>
 <div id="tb-res-panel" class="tb-res-panel" hidden></div>
 <div id="tb-mesai-pop" class="tb-mesai-pop" hidden></div>
+<div id="aria-pop" class="aria-pop" hidden></div>
 <div id="tb-ping-pop" class="tb-ping-pop" hidden></div>
 <div id="tb-camp-pop" class="tb-camp-pop" hidden></div>
 <div class="tb-right">
@@ -545,11 +547,30 @@
 </div>
 <div id="aria-log" class="aria-log" hidden></div>
 <p class="tour-note" data-tr="Ayarlar bu hesaba yazılır. Sekme arkada kalsa da bakar. Tarayıcı kapalıyken kampanyayı seçmeye devam eder." data-de="Die Einstellungen gehören zu diesem Konto. Aria schaut auch im Hintergrund. Ist der Browser zu, wählt sie die Kampagne weiter.">Ayarlar bu hesaba yazılır. Sekme arkada kalsa da bakar. Tarayıcı kapalıyken kampanyayı seçmeye devam eder.</p>
+<p class="tour-kicker" data-tr="Karar" data-de="Entscheidung">Karar</p>
+<div class="tour-grid">
+<label class="tour-field"><span data-tr="En az boş slot" data-de="Mindestens freie Slots">En az boş slot</span>
+<input class="form-input" id="tour-min-bos" type="number" min="1" max="20" step="1" onchange="tourNum('minBos', this, 1, 20)"></label>
+<label class="tour-field"><span data-tr="Geçiş payı" data-de="Wechsel-Abstand">Geçiş payı</span>
+<input class="form-input" id="tour-margin" type="number" min="0" max="20" step="1" onchange="tourNum('gecisBos', this, 0, 20)"></label>
+<label class="tour-field"><span data-tr="İleri bakış (gün)" data-de="Vorausschau (Tage)">İleri bakış (gün)</span>
+<select class="form-input" id="tour-horizon" onchange="tourPickHorizon(this)">
+<option value="7">7</option>
+<option value="14" selected>14</option>
+<option value="21">21</option>
+</select></label>
+<label class="tour-check"><span data-tr="Cumartesi de iş günü" data-de="Samstag ist Werktag">Cumartesi de iş günü</span><input type="checkbox" id="tour-sat" onchange="tourFlag('cumartesi', this)"></label>
+<label class="tour-check"><span data-tr="Boş slot yoksa sonraki iş günü" data-de="Ohne freien Slot zum nächsten Werktag">Boş slot yoksa sonraki iş günü</span><input type="checkbox" id="tour-skip" onchange="tourFlag('bosSlotAtla', this)"></label>
+<p class="tour-note tour-span" data-tr="Bundan az boş slotu olan kampanya seçilmez. Diğer kampanya geçiş payı kadar fazla boş slota sahip değilse mevcut kampanya kalır. Gün şeridinden bir gün seçilirse Aria o güne bakar." data-de="Kampagnen mit weniger freien Slots fallen weg. Die aktuelle bleibt, solange die andere nicht um den Abstand mehr freie Slots hat. Ein Tag in der Leiste legt Aria auf diesen Tag.">Bundan az boş slotu olan kampanya seçilmez. Diğer kampanya geçiş payı kadar fazla boş slota sahip değilse mevcut kampanya kalır. Gün şeridinden bir gün seçilirse Aria o güne bakar.</p>
+</div>
+<p class="tour-kicker" data-tr="Saat" data-de="Uhrzeit">Saat</p>
 <div class="tour-grid">
 <label class="tour-check"><span data-tr="Yalnız bu saatler arasında" data-de="Nur in dieser Uhrzeit">Yalnız bu saatler arasında</span><input type="checkbox" id="tour-clock" onchange="tourFlag('zamanlayici', this)"></label>
 <label class="tour-field" id="tour-on-wrap"><span data-tr="Başlangıç" data-de="Von">Başlangıç</span><input class="form-input" id="tour-on-at" type="time" onchange="tourTime('zamanAktif', this)"></label>
 <label class="tour-field" id="tour-off-wrap"><span data-tr="Bitiş" data-de="Bis">Bitiş</span><input class="form-input" id="tour-off-at" type="time" onchange="tourTime('zamanPasif', this)"></label>
-<label class="tour-check"><span data-tr="Boş slot yoksa sonraki iş günü" data-de="Ohne freien Slot zum nächsten Werktag">Boş slot yoksa sonraki iş günü</span><input type="checkbox" id="tour-skip" onchange="tourFlag('bosSlotAtla', this)"></label>
+</div>
+<p class="tour-kicker" data-tr="Kuyruk" data-de="Queue">Kuyruk</p>
+<div class="tour-grid">
 <label class="tour-field"><span data-tr="Kuyruk azalınca" data-de="Wenn die Queue sinkt">Kuyruk azalınca</span>
 <select class="form-input" id="tour-kuyruk" onchange="tourQueueMode(this)">
 <option value="revert" data-tr="Revert" data-de="Revert">Revert</option>

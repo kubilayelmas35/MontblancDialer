@@ -236,6 +236,7 @@ function mbCloseTopbarPops(except) {
     document.getElementById('pill-ping-btn')?.setAttribute('aria-expanded', 'false');
   }
   if (except !== 'mesai' && typeof opsCloseMesaiInfo === 'function') opsCloseMesaiInfo();
+  if (except !== 'aria' && typeof ariaClosePop === 'function') ariaClosePop();
   if (except !== 'camp' && typeof opsCloseCampSummary === 'function') opsCloseCampSummary();
   if (except !== 'chip' && typeof mbCloseChipPop === 'function') mbCloseChipPop();
 }
@@ -1069,6 +1070,8 @@ document.addEventListener('mouseover', (ev) => {
   else mbScheduleHideBal();
   if (target.closest('#tb-mesai-btn, #tb-mesai-pop') && typeof opsShowMesaiPop === 'function') opsShowMesaiPop();
   else if (typeof opsScheduleHideMesai === 'function') opsScheduleHideMesai();
+  if (target.closest('#aria-live, #aria-pop') && typeof ariaShowPop === 'function') ariaShowPop();
+  else if (typeof ariaScheduleHide === 'function') ariaScheduleHide();
   if (target.closest('#pill-camp-btn, #tb-camp-pop') && typeof opsShowCampSummary === 'function') opsShowCampSummary();
   else if (typeof opsScheduleHideCampSummary === 'function') opsScheduleHideCampSummary();
 });
