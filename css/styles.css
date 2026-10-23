@@ -1901,7 +1901,15 @@ pointer-events: auto;
 visibility: visible;
 }
 #page-geocon.page { padding: 0; gap: 0; overflow: hidden; }
-.tour-board { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tour-board { display: flex; flex-direction: column; gap: 8px; min-width: 0; margin-top: 12px; }
+.tour-modes, .tour-tabs, .tour-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tour-tabs { margin: 4px 0 10px; }
+.tour-tab.is-on, .tour-mode.is-on { background: var(--accent); color: #fff; border-color: transparent; }
+.tour-pane { display: none; }
+.tour-pane.is-on { display: flex; flex-direction: column; gap: 10px; }
+.tour-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+.tour-field, .tour-check { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-3); font-size: 12px; color: var(--text-2); }
+.tour-check { flex-direction: row; align-items: center; justify-content: space-between; }
 .tour-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
 .tour-note { font-size: 12px; color: var(--text-2); margin: 0; }
 .tour-row { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; background: var(--bg-3, var(--bg-1)); }

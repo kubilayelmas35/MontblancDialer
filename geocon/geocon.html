@@ -1830,7 +1830,11 @@ window.addEventListener('message', ev => {
       }
       const sec = document.getElementById('secPackage');
       if (sec) sec.classList.remove('collapsed');
-      buildDataPackage(plz, false, { enforcePair: false });
+      const pair = Number(d.pairMaxMin);
+      buildDataPackage(plz, d.allowOtherPrefix === true, {
+        enforcePair: Number.isFinite(pair) && pair > 0,
+        pairMaxMin: Number.isFinite(pair) ? pair : null,
+      });
     } catch (_) {}
   }
   if (d.type === 'OVERPASS_RESULT') {

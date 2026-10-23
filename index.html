@@ -12,17 +12,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=11.35">
-<link rel="stylesheet" href="css/styles-dialer.css?v=11.35">
-<link rel="stylesheet" href="css/styles-mascot.css?v=11.35">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=11.35">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=11.35">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=11.35">
-<link rel="stylesheet" href="css/styles-pages.css?v=11.35">
-<link rel="stylesheet" href="css/styles-aurora.css?v=11.35">
-<link rel="stylesheet" href="css/styles-chat.css?v=11.35">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=11.35">
-<link rel="stylesheet" href="css/styles-responsive.css?v=11.35">
+<link rel="stylesheet" href="css/styles.css?v=11.36">
+<link rel="stylesheet" href="css/styles-dialer.css?v=11.36">
+<link rel="stylesheet" href="css/styles-mascot.css?v=11.36">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=11.36">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=11.36">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=11.36">
+<link rel="stylesheet" href="css/styles-pages.css?v=11.36">
+<link rel="stylesheet" href="css/styles-aurora.css?v=11.36">
+<link rel="stylesheet" href="css/styles-chat.css?v=11.36">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=11.36">
+<link rel="stylesheet" href="css/styles-responsive.css?v=11.36">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -61,7 +61,7 @@
 <div class="login-index-note" data-i18n="login.row.4.note">Kalite, muhasebe</div>
 </div>
 </div>
-<div class="login-version">v11.35 — 2026</div>
+<div class="login-version">v11.36 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -469,7 +469,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">MontBlanc v11.35</div>
+<div class="sb-ver">MontBlanc v11.36</div>
 </div>
 </div>
 </nav>
@@ -636,10 +636,96 @@
 <div class="page-hdr">
 <div>
 <div class="page-title" data-tr="Tur" data-de="Tour">Tur</div>
-<div class="page-sub" data-tr="Kampanya, kuyruk ve randevu planı" data-de="Plan für Kampagne, Queue und Termine">Kampanya, kuyruk ve randevu planı</div>
+<div class="page-sub" data-tr="Eşik, hedef gün, kampanya ve yol" data-de="Schwelle, Zieltage, Kampagne und Weg">Eşik, hedef gün, kampanya ve yol</div>
 </div>
-<div class="page-hdr-actions">
-<button type="button" class="btn btn-ghost btn-sm" onclick="tourRefresh()" data-tr="Yenile" data-de="Aktualisieren">Yenile</button>
+<div class="page-hdr-actions tour-modes">
+<button type="button" class="btn btn-ghost btn-sm tour-mode" id="tour-mode-off" onclick="tourSetMode(false)" data-tr="Pasif — kontrol bende" data-de="Passiv — ich steuere">Pasif — kontrol bende</button>
+<button type="button" class="btn btn-primary btn-sm tour-mode" id="tour-mode-on" onclick="tourSetMode(true)" data-tr="Aktif — tur çalışsın" data-de="Aktiv — Tour läuft">Aktif — tur çalışsın</button>
+</div>
+</div>
+<div class="tour-tabs" role="tablist">
+<button type="button" class="btn btn-ghost btn-sm tour-tab is-on" data-tab="genel" onclick="tourTab('genel')" data-tr="Çalıştırma" data-de="Ablauf">Çalıştırma</button>
+<button type="button" class="btn btn-ghost btn-sm tour-tab" data-tab="kampanya" onclick="tourTab('kampanya')" data-tr="Kampanya" data-de="Kampagne">Kampanya</button>
+<button type="button" class="btn btn-ghost btn-sm tour-tab" data-tab="termin" onclick="tourTab('termin')" data-tr="Termin ve yol" data-de="Termin und Weg">Termin ve yol</button>
+<button type="button" class="btn btn-ghost btn-sm tour-tab" data-tab="sistem" onclick="tourTab('sistem')" data-tr="Sistem" data-de="System">Sistem</button>
+</div>
+<div class="tour-pane is-on" data-pane="genel">
+<div class="tour-grid">
+<label class="tour-field"><span data-tr="Tur süresi" data-de="Tourintervall">Tur süresi</span>
+<select class="form-input" id="tour-loop" onchange="tourPickLoop(this)">
+<option value="60" data-tr="1 dakika" data-de="1 Minute">1 dakika</option>
+<option value="120" data-tr="2 dakika" data-de="2 Minuten">2 dakika</option>
+<option value="180" data-tr="3 dakika" data-de="3 Minuten">3 dakika</option>
+<option value="300" selected data-tr="5 dakika" data-de="5 Minuten">5 dakika</option>
+<option value="600" data-tr="10 dakika" data-de="10 Minuten">10 dakika</option>
+<option value="900" data-tr="15 dakika" data-de="15 Minuten">15 dakika</option>
+<option value="1800" data-tr="30 dakika" data-de="30 Minuten">30 dakika</option>
+</select></label>
+<div class="tour-field">
+<span data-tr="Hedef gün" data-de="Zieltage">Hedef gün</span>
+<div class="tour-actions">
+<button type="button" class="btn btn-ghost btn-sm" onclick="tourNudgeDay(-1)">◀</button>
+<strong id="tour-day-label">—</strong>
+<button type="button" class="btn btn-ghost btn-sm" onclick="tourNudgeDay(1)">▶</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="tourDayAuto()" data-tr="Otomatik" data-de="Automatisch">Otomatik</button>
+</div>
+</div>
+<label class="tour-field"><span data-tr="Manuel kampanya" data-de="Manuelle Kampagne">Manuel kampanya</span>
+<select class="form-input" id="tour-camp-pick"></select>
+<button type="button" class="btn btn-ghost btn-sm" onclick="tourKeepCamp()" data-tr="Bu kampanyada kal" data-de="Bei dieser Kampagne bleiben">Bu kampanyada kal</button>
+</label>
+<label class="tour-field"><span data-tr="Veri takviyesi" data-de="Daten nachlegen">Veri takviyesi</span>
+<select class="form-input" id="tour-camp-data"></select>
+<button type="button" class="btn btn-primary btn-sm" onclick="tourAddData()" data-tr="Veri ekle" data-de="Daten laden">Veri ekle</button>
+</label>
+</div>
+<div class="tour-actions">
+<button type="button" class="btn btn-ghost btn-sm" onclick="tourRefresh()" data-tr="Şimdi tur çalıştır" data-de="Tour jetzt starten">Şimdi tur çalıştır</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="tourPrepDay()" data-tr="Güne hazırlan" data-de="Tag vorbereiten">Güne hazırlan</button>
+</div>
+</div>
+<div class="tour-pane" data-pane="kampanya">
+<div class="tour-grid">
+<label class="tour-check"><span data-tr="Otomatik yenileme önerisi" data-de="Automatische Nachfüllung vorschlagen">Otomatik yenileme önerisi</span><input type="checkbox" id="tour-auto" onchange="tourFlag('auto', this)"></label>
+<label class="tour-check"><span data-tr="Kampanya geçiş önerisi" data-de="Kampagnenwechsel vorschlagen">Kampanya geçiş önerisi</span><input type="checkbox" id="tour-switch" onchange="tourFlag('autoSwitch', this)"></label>
+<label class="tour-check"><span data-tr="Kampanyayı kendisi seçsin" data-de="Kampagne selbst wählen">Kampanyayı kendisi seçsin</span><input type="checkbox" id="tour-oto" onchange="tourFlag('kampanyaOto', this)"></label>
+<label class="tour-check"><span data-tr="Bekleyen yoğunlukta geç" data-de="Bei Warteschlange wechseln">Bekleyen yoğunlukta geç</span><input type="checkbox" id="tour-wait" onchange="tourFlag('bekleyen', this)"></label>
+<label class="tour-field"><span data-tr="Bekleyen eşik (kişi)" data-de="Warteschwelle (Personen)">Bekleyen eşik (kişi)</span>
+<select class="form-input" id="tour-wait-n" onchange="tourPickWait(this)">
+<option value="2">2+</option><option value="3">3+</option><option value="4">4+</option><option value="5">5+</option><option value="6">6+</option>
+</select></label>
+<label class="tour-check"><span data-tr="Sayfa açıkken turu tekrarla" data-de="Tour wiederholen, solange die Seite offen ist">Sayfa açıkken turu tekrarla</span><input type="checkbox" id="tour-event" onchange="tourFlag('olay', this)"></label>
+<label class="tour-check"><span data-tr="Geçiş ve revert için onay" data-de="Wechsel und Revert bestätigen">Geçiş ve revert için onay</span><input type="checkbox" id="tour-approve" onchange="tourFlag('onay', this)"></label>
+<label class="tour-field"><span data-tr="Kritik eşik (bekleyen)" data-de="Kritische Schwelle (wartend)">Kritik eşik (bekleyen)</span>
+<input class="form-input" id="tour-esik" type="number" min="50" max="20000" step="50" onchange="tourNum('veriEsik', this, 50, 20000)"></label>
+<label class="tour-field"><span data-tr="Güne hazırlan eşiği" data-de="Schwelle Tag vorbereiten">Güne hazırlan eşiği</span>
+<input class="form-input" id="tour-hazir" type="number" min="100" max="20000" step="100" onchange="tourNum('hazirEsik', this, 100, 20000)"></label>
+</div>
+</div>
+<div class="tour-pane" data-pane="termin">
+<div class="tour-grid">
+<label class="tour-check"><span data-tr="Termin hedef uyarıları" data-de="Terminziel-Hinweise">Termin hedef uyarıları</span><input type="checkbox" id="tour-hedef" onchange="tourFlag('terminHedef', this)"></label>
+<label class="tour-field"><span data-tr="Günlük hedef" data-de="Tagesziel">Günlük hedef</span><input class="form-input" id="tour-gunluk" type="number" min="1" max="200" onchange="tourNum('terminGunluk', this, 1, 200)"></label>
+<label class="tour-field"><span data-tr="Öğle saati" data-de="Mittag">Öğle saati</span><input class="form-input" id="tour-ogle-saat" type="time" onchange="tourTime('terminOgleSaat', this)"></label>
+<label class="tour-field"><span data-tr="Öğlene kadar" data-de="Bis Mittag">Öğlene kadar</span><input class="form-input" id="tour-ogle" type="number" min="0" max="200" onchange="tourNum('terminOgle', this, 0, 200)"></label>
+<label class="tour-field"><span data-tr="İkindi saati" data-de="Nachmittag">İkindi saati</span><input class="form-input" id="tour-ikindi-saat" type="time" onchange="tourTime('terminIkindiSaat', this)"></label>
+<label class="tour-field"><span data-tr="İkindiye kadar" data-de="Bis Nachmittag">İkindiye kadar</span><input class="form-input" id="tour-ikindi" type="number" min="0" max="200" onchange="tourNum('terminIkindi', this, 0, 200)"></label>
+<label class="tour-check"><span data-tr="Yol süresi kontrolü" data-de="Fahrzeit prüfen">Yol süresi kontrolü</span><input type="checkbox" id="tour-yol" onchange="tourFlag('yolUyari', this)"></label>
+<label class="tour-field"><span data-tr="Maks. yol" data-de="Max. Fahrzeit">Maks. yol</span>
+<select class="form-input" id="tour-yol-dk" onchange="tourPickYol(this)">
+<option value="20">20 dk</option><option value="30">30 dk</option><option value="40">40 dk</option><option value="50">50 dk</option><option value="60">60 dk</option>
+</select></label>
+<label class="tour-check"><span data-tr="Boş slot yoksa sonraki iş günü" data-de="Ohne freien Slot zum nächsten Werktag">Boş slot yoksa sonraki iş günü</span><input type="checkbox" id="tour-skip" onchange="tourFlag('bosSlotAtla', this)"></label>
+<label class="tour-check"><span data-tr="Aynı 2 haneli bölge" data-de="Gleiche zweistellige Region">Aynı 2 haneli bölge</span><input type="checkbox" id="tour-prefix" onchange="tourFlag('ayniPrefix', this)"></label>
+</div>
+</div>
+<div class="tour-pane" data-pane="sistem">
+<div class="tour-grid">
+<label class="tour-check"><span data-tr="Hata olursa yenilemeyi tekrar dene" data-de="Bei Fehler erneut versuchen">Hata olursa yenilemeyi tekrar dene</span><input type="checkbox" id="tour-heal" onchange="tourFlag('selfHeal', this)"></label>
+<label class="tour-field"><span data-tr="En fazla deneme" data-de="Max. Versuche">En fazla deneme</span><input class="form-input" id="tour-heal-n" type="number" min="1" max="5" onchange="tourNum('selfHealDeneme', this, 1, 5)"></label>
+<label class="tour-check"><span data-tr="Saatle aktif / pasif" data-de="Aktiv / passiv nach Uhrzeit">Saatle aktif / pasif</span><input type="checkbox" id="tour-clock" onchange="tourFlag('zamanlayici', this)"></label>
+<label class="tour-field"><span data-tr="Aktif saati" data-de="Aktiv ab">Aktif saati</span><input class="form-input" id="tour-on-at" type="time" onchange="tourTime('zamanAktif', this)"></label>
+<label class="tour-field"><span data-tr="Pasif saati" data-de="Passiv ab">Pasif saati</span><input class="form-input" id="tour-off-at" type="time" onchange="tourTime('zamanPasif', this)"></label>
 </div>
 </div>
 <div id="tour-panel" class="tour-board"></div>
@@ -4642,67 +4728,67 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=11.35"></script>
-<script src="js/i18n.js?v=11.35"></script>
-<script src="js/config.js?v=11.35"></script>
-<script src="js/state.js?v=11.35"></script>
-<script src="js/api.js?v=11.35"></script>
-<script src="js/access.js?v=11.35"></script>
-<script src="js/auth.js?v=11.35"></script>
-<script src="js/ui.js?v=11.35"></script>
-<script src="js/chat.js?v=11.35"></script>
-<script src="js/chat-settings.js?v=11.35"></script>
-<script src="js/field-settings.js?v=11.35"></script>
-<script src="js/audit.js?v=11.35"></script>
-<script src="js/feature-flags.js?v=11.35"></script>
-<script src="js/notification-center.js?v=11.35"></script>
+<script src="js/version.js?v=11.36"></script>
+<script src="js/i18n.js?v=11.36"></script>
+<script src="js/config.js?v=11.36"></script>
+<script src="js/state.js?v=11.36"></script>
+<script src="js/api.js?v=11.36"></script>
+<script src="js/access.js?v=11.36"></script>
+<script src="js/auth.js?v=11.36"></script>
+<script src="js/ui.js?v=11.36"></script>
+<script src="js/chat.js?v=11.36"></script>
+<script src="js/chat-settings.js?v=11.36"></script>
+<script src="js/field-settings.js?v=11.36"></script>
+<script src="js/audit.js?v=11.36"></script>
+<script src="js/feature-flags.js?v=11.36"></script>
+<script src="js/notification-center.js?v=11.36"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=11.35"></script>
-<script src="js/job-market.js?v=11.35"></script>
-<script src="js/qc-job-market.js?v=11.35"></script>
-<script src="js/export-admin.js?v=11.35"></script>
-<script src="js/export-termin.js?v=11.35"></script>
-<script src="js/performance.js?v=11.35"></script>
-<script src="js/competition.js?v=11.35"></script>
-<script src="js/dashboard.js?v=11.35"></script>
-<script src="js/reports.js?v=11.35"></script>
-<script src="js/dashboard-brief.js?v=11.35"></script>
-<script src="js/campaigns.js?v=11.35"></script>
-<script src="js/campaigns-detail.js?v=11.35"></script>
-<script src="js/campaigns-queue.js?v=11.35"></script>
-<script src="js/contacts-upload.js?v=11.35"></script>
-<script src="js/geocon.js?v=11.35"></script>
-<script src="js/contacts.js?v=11.35"></script>
-<script src="js/contacts-drawer.js?v=11.35"></script>
-<script src="js/telnyx.js?v=11.35"></script>
-<script src="js/voice-orb.js?v=11.35"></script>
-<script src="js/dialer.js?v=11.35"></script>
-<script src="js/ops-alerts.js?v=11.35"></script>
-<script src="js/radius-tour.js?v=11.35"></script>
-<script src="js/dialer-mascot.js?v=11.35"></script>
-<script src="js/dialer-mascot-live.js?v=11.35"></script>
-<script src="js/ui-prefs.js?v=11.35"></script>
-<script src="js/dialer-session.js?v=11.35"></script>
-<script src="js/dialer-call.js?v=11.35"></script>
-<script src="js/dialer-tools.js?v=11.35"></script>
-<script src="js/appointments.js?v=11.35"></script>
-<script src="js/appointments-actions.js?v=11.35"></script>
-<script src="js/appointments-tools.js?v=11.35"></script>
-<script src="js/field.js?v=11.35"></script>
-<script src="js/field-quote.js?v=11.35"></script>
-<script src="js/field-catalog.js?v=11.35"></script>
-<script src="js/field-ops.js?v=11.35"></script>
-<script src="js/wiedervorlage.js?v=11.35"></script>
-<script src="js/qc.js?v=11.35"></script>
-<script src="js/supervisor.js?v=11.35"></script>
-<script src="js/live-coach.js?v=11.35"></script>
-<script src="js/sms-settings.js?v=11.35"></script>
-<script src="js/leave-hr.js?v=11.35"></script>
-<script src="js/muhasebe.js?v=11.35"></script>
-<script src="js/muhasebe-books.js?v=11.35"></script>
-<script src="js/agent-self-performance.js?v=11.35"></script>
-<script src="js/agents.js?v=11.35"></script>
-<script src="js/firm-desk.js?v=11.35"></script>
-<script src="js/mimi-brain.js?v=11.35"></script>
+<script src="js/wallet.js?v=11.36"></script>
+<script src="js/job-market.js?v=11.36"></script>
+<script src="js/qc-job-market.js?v=11.36"></script>
+<script src="js/export-admin.js?v=11.36"></script>
+<script src="js/export-termin.js?v=11.36"></script>
+<script src="js/performance.js?v=11.36"></script>
+<script src="js/competition.js?v=11.36"></script>
+<script src="js/dashboard.js?v=11.36"></script>
+<script src="js/reports.js?v=11.36"></script>
+<script src="js/dashboard-brief.js?v=11.36"></script>
+<script src="js/campaigns.js?v=11.36"></script>
+<script src="js/campaigns-detail.js?v=11.36"></script>
+<script src="js/campaigns-queue.js?v=11.36"></script>
+<script src="js/contacts-upload.js?v=11.36"></script>
+<script src="js/geocon.js?v=11.36"></script>
+<script src="js/contacts.js?v=11.36"></script>
+<script src="js/contacts-drawer.js?v=11.36"></script>
+<script src="js/telnyx.js?v=11.36"></script>
+<script src="js/voice-orb.js?v=11.36"></script>
+<script src="js/dialer.js?v=11.36"></script>
+<script src="js/ops-alerts.js?v=11.36"></script>
+<script src="js/radius-tour.js?v=11.36"></script>
+<script src="js/dialer-mascot.js?v=11.36"></script>
+<script src="js/dialer-mascot-live.js?v=11.36"></script>
+<script src="js/ui-prefs.js?v=11.36"></script>
+<script src="js/dialer-session.js?v=11.36"></script>
+<script src="js/dialer-call.js?v=11.36"></script>
+<script src="js/dialer-tools.js?v=11.36"></script>
+<script src="js/appointments.js?v=11.36"></script>
+<script src="js/appointments-actions.js?v=11.36"></script>
+<script src="js/appointments-tools.js?v=11.36"></script>
+<script src="js/field.js?v=11.36"></script>
+<script src="js/field-quote.js?v=11.36"></script>
+<script src="js/field-catalog.js?v=11.36"></script>
+<script src="js/field-ops.js?v=11.36"></script>
+<script src="js/wiedervorlage.js?v=11.36"></script>
+<script src="js/qc.js?v=11.36"></script>
+<script src="js/supervisor.js?v=11.36"></script>
+<script src="js/live-coach.js?v=11.36"></script>
+<script src="js/sms-settings.js?v=11.36"></script>
+<script src="js/leave-hr.js?v=11.36"></script>
+<script src="js/muhasebe.js?v=11.36"></script>
+<script src="js/muhasebe-books.js?v=11.36"></script>
+<script src="js/agent-self-performance.js?v=11.36"></script>
+<script src="js/agents.js?v=11.36"></script>
+<script src="js/firm-desk.js?v=11.36"></script>
+<script src="js/mimi-brain.js?v=11.36"></script>
 </body>
 </html>
