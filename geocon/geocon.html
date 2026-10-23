@@ -292,8 +292,8 @@ gmp-popover,#googleMap3d [popover],#googleMap3d .gmp-popover{display:none!import
 .search-crosshair:before{width:2px;height:100%;left:50%;top:0;transform:translateX(-50%);}
 .search-crosshair:after{height:2px;width:100%;top:50%;left:0;transform:translateY(-50%);}
 
-.download-btns{display:flex;flex-wrap:wrap;justify-content:center;gap:.28rem;}
-.btn-download{min-width:64px;font-size:.75rem;}
+.download-btns{display:flex;flex-wrap:nowrap;align-items:stretch;gap:4px;}
+.download-btns .btn-download{flex:1 1 0;min-width:0;font-size:.66rem;padding:4px 3px;line-height:1.15;white-space:nowrap;}
 
 #suggestionsDropdown{position:absolute;width:calc(100% - 20px);max-height:200px;overflow-y:auto;z-index:1200;background:white;border:1px solid #ddd;border-radius:0 0 10px 10px;box-shadow:0 8px 20px rgba(0,0,0,.12);display:none;}
 .suggestion-item{padding:7px 12px;cursor:pointer;font-size:.86rem;}
@@ -3352,8 +3352,8 @@ function geoZoomNow(){
 }
 function geoMarkerSize(isAnchor){
   const z=geoZoomNow();
-  let s=z<=9?18:z<=11?24:z<=13?32:40;
-  return isAnchor?Math.min(52,s+12):s;
+  let s=z<=12?54:z<=14?60:66;
+  return isAnchor?Math.min(78,s+12):s;
 }
 function schedulePlzZoomPaint(){
   clearTimeout(schedulePlzZoomPaint._t);
@@ -5083,8 +5083,8 @@ function addLeafletMarker(lat,lon,code,cityName){
   const sc=analyseScores[code];const sCls=sc!=null?(sc>=8?' score-great':sc>=6?' score-good':sc>=4?' score-mid':' score-low'):'';
   const anchor=searchAnchorPlz&&String(searchAnchorPlz)===String(code);
   const size=geoMarkerSize(anchor);
-  const fs=size>=28?(size>=40?11:9):0;
-  const m=L.marker([lat,lon],{title:code,icon:L.divIcon({html:`<div class="plz-marker ${mCls(code)}${sCls}${anchor?' search-anchor':''}" style="width:${size}px;height:${size}px;font-size:${fs}px;border-width:${size<28?2:3}px;">${fs?code:''}</div>`,className:'',iconSize:[size,size],iconAnchor:[size/2,size/2]})}).addTo(map);
+  const fs=size>=60?13:12;
+  const m=L.marker([lat,lon],{title:code,icon:L.divIcon({html:`<div class="plz-marker ${mCls(code)}${sCls}${anchor?' search-anchor':''}" style="width:${size}px;height:${size}px;font-size:${fs}px;border-width:3px;">${code}</div>`,className:'',iconSize:[size,size],iconAnchor:[size/2,size/2]})}).addTo(map);
   plzMarkers[code]=m;m.on('click',()=>{onPLZClick(code,lat,lon,cityName);});markers.push(m);
 }
 function addLeafletSearchCrosshair(lat,lon){
@@ -5213,7 +5213,7 @@ function watchMapResize(){
   }).observe(wrap);
 }
 function initGoogle(){googleMap=new google.maps.Map(document.getElementById('googleMap'),{center:{lat:51.1657,lng:10.4515},zoom:6,mapTypeId:google.maps.MapTypeId.HYBRID,mapTypeControl:false,streetViewControl:true,streetViewControlOptions:{position:google.maps.ControlPosition.RIGHT_BOTTOM},rotateControl:true,rotateControlOptions:{position:google.maps.ControlPosition.RIGHT_BOTTOM},fullscreenControl:false,zoomControl:false,tilt:0,heading:0,gestureHandling:'greedy',clickableIcons:true});googleMap.addListener('click',onGoogleMapPlaceClick);googleMap.addListener('zoom_changed',schedulePlzZoomPaint);const el=document.getElementById('googleMap');el.addEventListener('contextmenu',e=>e.preventDefault());let rotating=false,startX=0,startH=0;el.addEventListener('pointerdown',e=>{if(!is3D||e.button!==2)return;rotating=true;startX=e.clientX;startH=googleMap.getHeading()||0;googleMap.setOptions({draggable:false});try{el.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();});el.addEventListener('pointermove',e=>{if(!rotating||!is3D)return;googleMap.setHeading((startH+(e.clientX-startX)*.35)%360);});const stop=()=>{if(!rotating)return;rotating=false;googleMap.setOptions({draggable:true});};el.addEventListener('pointerup',stop);el.addEventListener('pointercancel',stop);window.addEventListener('blur',stop);}
-function buildGIcon(code){const s=getS(code);let a,b;if(bulkSelected.has(code)){a='#198754';b='#20c997';}else if(distSelected.find(d=>d.plz===code)){a='#fd7e14';b='#ffc107';}else{a=s.used?'#dc3545':s.used1?'#28a745':'#4e54c8';b=s.used?'#e74c3c':s.used1?'#7ae582':'#8f94fb';}const sc=analyseScores[code];const bord=sc!=null?(sc>=8?'#10b981':sc>=6?'#3b82f6':sc>=4?'#f59e0b':'#ef4444'):'white';const isAnchor=searchAnchorPlz&&String(searchAnchorPlz)===String(code);const size=geoMarkerSize(isAnchor);const bw=size<28?1:(sc!=null?3:2);const cx=size/2;const r=Math.max(5,Math.round(size/2-bw-1));const ring=isAnchor&&size>=48?`<circle cx="${cx}" cy="${cx}" r="${Math.round(size*0.46)}" fill="none" stroke="#dc3545" stroke-width="3" stroke-dasharray="4 3" opacity="0.95"/>`:'';const label=size>=28?`<text x="${cx}" y="${cx+4}" text-anchor="middle" fill="white" font-size="${size>=40?11:9}" font-weight="bold" font-family="Arial">${code}</text>`:'';const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><defs><linearGradient id="g${code}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${a}"/><stop offset="100%" stop-color="${b}"/></linearGradient></defs>${ring}<circle cx="${cx}" cy="${cx}" r="${r}" fill="url(#g${code})" stroke="${bord}" stroke-width="${bw}"/>${label}</svg>`;return{url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),scaledSize:new google.maps.Size(size,size),anchor:new google.maps.Point(cx,cx)};}
+function buildGIcon(code){const s=getS(code);let a,b;if(bulkSelected.has(code)){a='#198754';b='#20c997';}else if(distSelected.find(d=>d.plz===code)){a='#fd7e14';b='#ffc107';}else{a=s.used?'#dc3545':s.used1?'#28a745':'#4e54c8';b=s.used?'#e74c3c':s.used1?'#7ae582':'#8f94fb';}const sc=analyseScores[code];const bord=sc!=null?(sc>=8?'#10b981':sc>=6?'#3b82f6':sc>=4?'#f59e0b':'#ef4444'):'white';const isAnchor=searchAnchorPlz&&String(searchAnchorPlz)===String(code);const size=geoMarkerSize(isAnchor);const bw=size<28?1:(sc!=null?3:2);const cx=size/2;const r=Math.max(5,Math.round(size/2-bw-1));const ring=isAnchor&&size>=48?`<circle cx="${cx}" cy="${cx}" r="${Math.round(size*0.46)}" fill="none" stroke="#dc3545" stroke-width="3" stroke-dasharray="4 3" opacity="0.95"/>`:'';const labelFs=size>=60?13:12;const label=`<text x="${cx}" y="${cx+4}" text-anchor="middle" fill="white" font-size="${labelFs}" font-weight="bold" font-family="Arial">${code}</text>`;const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><defs><linearGradient id="g${code}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${a}"/><stop offset="100%" stop-color="${b}"/></linearGradient></defs>${ring}<circle cx="${cx}" cy="${cx}" r="${r}" fill="url(#g${code})" stroke="${bord}" stroke-width="${bw}"/>${label}</svg>`;return{url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),scaledSize:new google.maps.Size(size,size),anchor:new google.maps.Point(cx,cx)};}
 let openGIW=null;
 function openGoogleInfoWindow(marker,plz,cityName){if(openGIW){openGIW.close();openGIW=null;}curPopupPLZ=plz;const container=document.createElement('div');container.style.cssText='margin:0;padding:0;';container.innerHTML=buildPopupContent(plz,cityName);const iw=new google.maps.InfoWindow({content:container,disableAutoPan:false,pixelOffset:new google.maps.Size(0,-5)});openGIW=iw;iw.addListener('closeclick',()=>{if(curPopupPLZ===plz)curPopupPLZ=null;openGIW=null;});iw.open({anchor:marker,map:googleMap,shouldFocus:false});const entry=plzData.find(e=>e.plz===plz);if(entry&&entry.count===null){priorityPLZ=plz;}}
 function addGoogleMarker(lat,lon,code,cityName){if(!usedPLZs[code])usedPLZs[code]={used:false,used1:false};const m=new google.maps.Marker({position:{lat,lng:lon},map:googleMap,title:code,icon:buildGIcon(code),plz:code,zIndex:searchAnchorPlz&&String(searchAnchorPlz)===String(code)?999:undefined});m.addListener('click',()=>{if(bulkMode){toggleBulkPLZ(code,cityName);scrollToPlzRow(code);return;}if(distMode){toggleDistPLZ(code,lat,lon,cityName);drawDistRoute();scrollToPlzRow(code);return;}openGoogleInfoWindow(m,code,cityName);scrollToPlzRow(code);});gMarkers.push(m);}
@@ -5508,10 +5508,12 @@ function buildPlzCircleSvg(code){
   const bord=sc!=null?(sc>=8?'#10b981':sc>=6?'#3b82f6':sc>=4?'#f59e0b':'#ef4444'):'#ffffff';
   const bw=sc!=null?4:2;
   const isAnchor=searchAnchorPlz&&String(searchAnchorPlz)===String(code);
-  const size=isAnchor?52:40;
+  const size=geoMarkerSize(isAnchor);
   const cx=size/2;
-  const ring=isAnchor?`<circle cx="${cx}" cy="${cx}" r="24" fill="none" stroke="#dc3545" stroke-width="3" stroke-dasharray="4 3"/><circle cx="${cx}" cy="${cx}" r="21" fill="none" stroke="rgba(220,53,69,0.35)" stroke-width="4"/>`:'';
-  return`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${ring}<circle cx="${cx}" cy="${cx}" r="18" fill="${a}" stroke="${bord}" stroke-width="${bw}"/><text x="${cx}" y="${cx+5}" text-anchor="middle" fill="white" font-size="12" font-weight="bold" font-family="Arial,sans-serif">${code}</text></svg>`;
+  const r=Math.round(size/2-6);
+  const ring=isAnchor?`<circle cx="${cx}" cy="${cx}" r="${Math.round(size*0.46)}" fill="none" stroke="#dc3545" stroke-width="3" stroke-dasharray="4 3"/>`:'';
+  const labelFs=size>=60?13:12;
+  return`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${ring}<circle cx="${cx}" cy="${cx}" r="${r}" fill="${a}" stroke="${bord}" stroke-width="${bw}"/><text x="${cx}" y="${cx+4}" text-anchor="middle" fill="white" font-size="${labelFs}" font-weight="bold" font-family="Arial,sans-serif">${code}</text></svg>`;
 }
 function buildPlzBadgeSvg(text){
   const t=String(text);
