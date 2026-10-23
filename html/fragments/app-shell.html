@@ -34,6 +34,7 @@
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg>
 <span id="tb-mesai-label">08:00–20:00</span>
 </button>
+<button type="button" id="aria-live" class="aria-live" hidden onclick="navigate('tour')"></button>
 </div>
 <div id="tb-bal-pop" class="tb-bal-pop" hidden></div>
 <div id="tb-chip-pop" class="tb-chip-pop" hidden></div>
@@ -178,8 +179,8 @@
 <span data-tr="GeoCon" data-de="GeoCon">GeoCon</span>
 </button>
 <button class="sb-item" id="nav-tour-btn" onclick="navigate('tour')">
-<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
-<span data-tr="Tur" data-de="Tour">Tur</span>
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 3l2.2 6.2L21 12l-6.8 2.8L12 21l-2.2-6.2L3 12l6.8-2.8z"/></svg></span>
+<span data-tr="Aria" data-de="Aria">Aria</span>
 </button>
 <button class="sb-item" onclick="navigate('wiedervorlage')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
@@ -524,14 +525,15 @@
 <div class="page" id="page-tour">
 <div class="page-hdr">
 <div>
-<div class="page-title" data-tr="Tur" data-de="Tour">Tur</div>
-<div class="page-sub" data-tr="En yakın boş güne bir kampanya bildirir. Dolunca diğerine geçer." data-de="Meldet eine Kampagne am nächsten freien Tag. Ist der voll, kommt die nächste.">En yakın boş güne bir kampanya bildirir. Dolunca diğerine geçer.</div>
+<div class="page-title" data-tr="Aria" data-de="Aria">Aria</div>
+<div class="page-sub" data-tr="En yakın boş güne kampanya seçer ve nedenini söyler." data-de="Wählt die Kampagne am nächsten freien Tag und sagt warum.">En yakın boş güne kampanya seçer ve nedenini söyler.</div>
 </div>
 <div class="page-hdr-actions tour-modes">
 <button type="button" class="btn btn-ghost btn-sm tour-mode" id="tour-mode-off" onclick="tourSetMode(false)" data-tr="Pasif" data-de="Passiv">Pasif</button>
 <button type="button" class="btn btn-primary btn-sm tour-mode" id="tour-mode-on" onclick="tourSetMode(true)" data-tr="Aktif" data-de="Aktiv">Aktif</button>
 </div>
 </div>
+<p class="tour-note" id="aria-last"></p>
 <p class="tour-note" data-tr="Ayarlar bu hesaba yazılır. Başka kullanıcı kendi ayarını görür." data-de="Die Einstellungen gehören zu diesem Konto. Ein anderer Nutzer sieht seine eigenen.">Ayarlar bu hesaba yazılır. Başka kullanıcı kendi ayarını görür.</p>
 <div class="tour-grid">
 <label class="tour-check"><span data-tr="Yalnız bu saatler arasında" data-de="Nur in dieser Uhrzeit">Yalnız bu saatler arasında</span><input type="checkbox" id="tour-clock" onchange="tourFlag('zamanlayici', this)"></label>
@@ -555,6 +557,7 @@
 <label class="tour-field tour-yakin" hidden><span data-tr="En fazla kişi" data-de="Höchstens Kontakte">En fazla kişi</span>
 <input class="form-input" id="tour-yakin-n" type="number" min="20" max="200" step="10" onchange="tourNum('yakinAdet', this, 20, 200)"></label>
 <label class="tour-check tour-yakin" hidden><span data-tr="Aynı 2 haneli bölge" data-de="Gleiche zweistellige Region">Aynı 2 haneli bölge</span><input type="checkbox" id="tour-prefix" onchange="tourFlag('ayniPrefix', this)"></label>
+<p class="tour-note tour-yakin tour-span" hidden data-tr="Varsa kampanyanın son kuyruğuna ekler. Kuyruk yoksa yeni açar." data-de="Hängt an die letzte Queue der Kampagne. Gibt es keine, wird eine neue angelegt.">Varsa kampanyanın son kuyruğuna ekler. Kuyruk yoksa yeni açar.</p>
 <label class="tour-check"><span data-tr="Şimdi uygula önce sorsun" data-de="Jetzt ausführen erst fragen">Şimdi uygula önce sorsun</span><input type="checkbox" id="tour-approve" onchange="tourFlag('onay', this)"></label>
 </div>
 <div class="tour-actions">

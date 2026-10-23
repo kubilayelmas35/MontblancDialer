@@ -68,6 +68,72 @@ function tourSay(key, fb, vars) {
   return text;
 }
 
+let _ariaSpoken = '';
+
+function tourStory(plan, extra) {
+  if (!plan?.pick?.id) return tourSay('aria.none', 'Aria: boş slotu olan kampanya yok.');
+  const row = (plan.rows || []).find((item) => item.id === plan.pick.id);
+  if (!row) return tourSay('aria.none', 'Aria: boş slotu olan kampanya yok.');
+  const whyKey = plan.pick.kind === 'stay' ? 'aria.why.stay' : plan.pick.kind === 'switch' ? 'aria.why.switch' : 'aria.why.pick';
+  const whyFb = plan.pick.kind === 'stay'
+    ? '{day} gününde {camp} hâlâ en çok boş slota sahip, {n} boş. Onda kaldım.'
+    : plan.pick.kind === 'switch'
+      ? '{day} en yakın boş gün. {camp} geride kaldı, {n} boş slotu var. Ona geçtim.'
+      : '{day} en yakın boş gün. {camp} kampanyasında {n} boş slot var, onu seçtim.';
+  const why = tourSay(whyKey, whyFb, { day: plan.day, camp: row.name, n: row.bos });
+  if (extra?.kind === 'nearby' && extra.added) {
+    const q = extra.created
+      ? tourSay('aria.queue.new', 'Yeni kuyruk «{q}» açtım.', { q: extra.queueName })
+      : tourSay('aria.queue.add', 'Var olan «{q}» kuyruğuna ekledim.', { q: extra.queueName });
+    return tourSay('aria.near', 'Aria: {why} Kuyrukta {pending} kişi vardı, eşik {esik}. {plz} çevresinden {km} km içinde {n} kişi, {codes} posta kodu. {q}', {
+      why, pending: extra.pending, esik: extra.esik, plz: extra.anchor || row.anchor || '', km: extra.radius, n: extra.added, codes: (extra.plzs || []).length, q,
+    });
+  }
+  if (extra?.kind === 'nearby0') {
+    return tourSay('aria.near0', 'Aria: {why} {plz} çevresinde eklenecek kişi bulamadım.', { why, plz: row.anchor || '' });
+  }
+  if (extra?.kind === 'revert') {
+    return tourSay('aria.revert', 'Aria: {why} Kuyrukta {pending} kişi vardı. {n} kişiyi tekrar aramaya aldım.', { why, pending: row.pending, n: extra.moved });
+  }
+  if (extra?.kind === 'told') return tourSay('aria.told', 'Aria: {why} Temsilcilere bildirdim.', { why });
+  return tourSay('aria.watch', 'Aria: {why}', { why });
+}
+
+function tourPaintLive(plan, line, speak) {
+  const text = line || (plan ? tourStory(plan) : '');
+  const chip = document.getElementById('aria-live');
+  if (chip) {
+    chip.hidden = !text;
+    chip.textContent = text;
+    chip.title = text;
+  }
+  const note = document.getElementById('aria-last');
+  if (note) note.textContent = text || '';
+  if (speak && text && text !== _ariaSpoken) {
+    _ariaSpoken = text;
+    tourSpeak(text);
+  }
+}
+
+function tourSpeak(text) {
+  const gm = document.getElementById('global-mascot');
+  const bubble = document.getElementById('cust-empty-bubble');
+  if (gm) gm.classList.add('global-mascot--aria');
+  if (!bubble || (typeof isMimiBubbleMuted === 'function' && isMimiBubbleMuted())) return;
+  const hidden = typeof isMimiHidden === 'function' && isMimiHidden();
+  if (!hidden && typeof _showCustEmptyBubbleMsg === 'function') {
+    _showCustEmptyBubbleMsg(text);
+    return;
+  }
+  bubble.textContent = typeof formatMascotSpokenLine === 'function' ? formatMascotSpokenLine(text) : text;
+  bubble.style.display = 'block';
+  bubble.classList.remove('cust-empty-bubble--pop');
+  void bubble.offsetWidth;
+  bubble.classList.add('cust-empty-bubble--pop');
+  if (typeof placeGlobalMascotBubble === 'function') placeGlobalMascotBubble();
+  if (typeof _ensureBubblePlacer === 'function') _ensureBubblePlacer();
+}
+
 function tourEsc(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
@@ -502,8 +568,9 @@ async function tourRefresh(opts) {
     tourRender(_tourPlan);
     tourArm();
     if (apply) await tourApply(_tourPlan, force);
+    else tourPaintLive(_tourPlan, null, true);
   } catch (e) {
-    if (typeof toast === 'function') toast(tourSay('tour.err', 'Tur okunamadı'), 'err');
+    if (typeof toast === 'function') toast(tourSay('tour.err', 'Aria okunamadı'), 'err');
     if (_tourPlan) tourRender(_tourPlan);
   } finally {
     _tourBusy = false;
@@ -513,7 +580,7 @@ async function tourRefresh(opts) {
 async function tourRunNow() {
   if (tourPref().onay) {
     const ok = typeof mbConfirm === 'function'
-      ? await mbConfirm(tourSay('tour.askrun', 'Seçilen kampanya bildirilsin. Kuyruk eşiğin altındaysa doldurulsun?'), tourSay('tour.title', 'Tur'))
+      ? await mbConfirm(tourSay('tour.askrun', 'Seçilen kampanya bildirilsin. Kuyruk eşiğin altındaysa doldurulsun?'), tourSay('tour.title', 'Aria'))
       : false;
     if (!ok) return;
   }
@@ -620,17 +687,20 @@ async function tourNearbyInsert(row) {
       status: 'pending',
     });
   });
-  if (!mapped.length) return 0;
+  const empty = { added: 0, queueName: '', created: false, plzs: [], anchor: row.anchor || '' };
+  if (!mapped.length) return empty;
   let fresh = mapped;
   if (typeof mbFindExistingPhonePlaces === 'function') {
     const places = await mbFindExistingPhonePlaces(mapped.map((item) => item.phone), 'campaign', row.id);
     fresh = mapped.filter((item) => !places.has(item.phone));
   }
-  if (!fresh.length) return 0;
+  if (!fresh.length) return empty;
   const firmId = tourFirmId();
   const found = await sb(`queues?campaign_id=eq.${row.id}&select=id,name,total_contacts&order=created_at.desc&limit=1`).catch(() => []);
   let queue = Array.isArray(found) ? found[0] : null;
+  let createdQueue = false;
   if (!queue?.id) {
+    createdQueue = true;
     const created = await sb('queues', {
       method: 'POST',
       prefer: 'return=representation',
@@ -638,7 +708,7 @@ async function tourNearbyInsert(row) {
     });
     queue = Array.isArray(created) ? created[0] : created;
   }
-  if (!queue?.id) return 0;
+  if (!queue?.id) return empty;
   const withQ = fresh.map((item) => ({ ...item, queue_id: queue.id }));
   for (let i = 0; i < withQ.length; i += 100) {
     await sb('contacts', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(withQ.slice(i, i + 100)) });
@@ -649,36 +719,64 @@ async function tourNearbyInsert(row) {
     body: JSON.stringify({ total_contacts: Number(queue.total_contacts || 0) + withQ.length }),
   });
   if (typeof logAuditEvent === 'function') {
-    void logAuditEvent('radius_tour_nearby', 'campaign', row.id, { moved: withQ.length, anchor: row.anchor, day: _tourPlan?.day });
+    void logAuditEvent('radius_tour_nearby', 'campaign', row.id, { moved: withQ.length, anchor: row.anchor, queue: queue.name || '', created: createdQueue, day: _tourPlan?.day });
   }
-  return withQ.length;
+  return {
+    added: withQ.length,
+    queueName: queue.name || `Yakın ${row.anchor || ''}`.trim(),
+    created: createdQueue,
+    plzs: [...new Set(withQ.map((item) => tourPlz(item.plz)).filter(Boolean))],
+    anchor: row.anchor || '',
+  };
 }
 
 async function tourApply(plan, force) {
-  if (!plan?.firmId || !plan.pick?.id) return;
-  if (plan.shift?.label === 'break') return;
+  if (!plan?.firmId || !plan.pick?.id) {
+    tourPaintLive(plan, null, !!force);
+    return;
+  }
+  if (plan.shift?.label === 'break') {
+    tourPaintLive(plan, null, false);
+    return;
+  }
   const role = (typeof currentUser !== 'undefined' && currentUser?.role) || '';
   if (!['super_admin', 'admin', 'firm_admin'].includes(role)) return;
-  if (!force && tourEffectivePasif()) return;
+  if (!force && tourEffectivePasif()) {
+    tourPaintLive(plan, null, false);
+    return;
+  }
   const pref = tourPref();
   const now = Date.now();
-  if (!force && pref.lastTickAt && now - Number(pref.lastTickAt) < 50000) return;
+  if (!force && pref.lastTickAt && now - Number(pref.lastTickAt) < 50000) {
+    tourPaintLive(plan, null, false);
+    return;
+  }
   const row = plan.rows.find((item) => item.id === plan.pick.id);
-  if (!row) return;
+  if (!row) {
+    tourPaintLive(plan, null, !!force);
+    return;
+  }
   await tourSave({ lastTickAt: now });
+  let told = false;
   if (row.id !== pref.lastCampId || plan.day !== pref.lastDay) {
     await tourNotify(plan, row);
     await tourSave({ lastCampId: row.id, lastDay: plan.day, lastTickAt: now });
+    told = true;
   }
-  if (row.pending >= pref.veriEsik) return;
-  if (pref.kuyrukMod === 'yakin' && row.anchor) {
-    const added = await tourNearbyInsert(row).catch(() => 0);
-    if (typeof toast === 'function') {
-      toast(added ? tourSay('tour.nearby', '{n} yakın kişi eklendi', { n: added }) : tourSay('tour.nearby0', 'Yakın veri bulunamadı'), added ? 'ok' : 'warn');
-    }
-    if (added) return;
+  let extra = null;
+  if (row.pending < pref.veriEsik && pref.kuyrukMod === 'yakin' && row.anchor) {
+    const detail = await tourNearbyInsert(row).catch(() => null);
+    extra = detail && detail.added
+      ? { kind: 'nearby', ...detail, pending: row.pending, esik: pref.veriEsik, radius: pref.radiusKm }
+      : { kind: 'nearby0' };
+  } else if (row.pending < pref.veriEsik && row.revertIds.length) {
+    const moved = await tourRevert(row.id, { auto: true });
+    if (moved) extra = { kind: 'revert', moved };
   }
-  if (row.revertIds.length) await tourRevert(row.id, { auto: true });
+  if (!extra && told) extra = { kind: 'told' };
+  const line = tourStory(plan, extra);
+  tourPaintLive(plan, line, !!(force || extra));
+  if (extra && typeof toast === 'function') toast(line, extra.kind === 'nearby0' ? 'warn' : 'ok');
 }
 
 function tourTab(name) {
@@ -813,7 +911,7 @@ async function tourRevert(campaignId, opts) {
   if (typeof logAuditEvent === 'function') {
     void logAuditEvent('radius_tour_revert', 'campaign', campaignId, { moved, day: plan.day, anchor: row.anchor });
   }
-  if (typeof toast === 'function') toast(moved ? tourSay('tour.reverted', '{n} kişi kuyruğa alındı', { n: moved }) : tourSay('tour.revert0', 'Uygun kişi kalmadı'), moved ? 'ok' : 'warn');
+  if (!auto && typeof toast === 'function') toast(moved ? tourSay('tour.reverted', '{n} kişi kuyruğa alındı', { n: moved }) : tourSay('tour.revert0', 'Uygun kişi kalmadı'), moved ? 'ok' : 'warn');
   if (!auto) await tourRefresh();
   return moved;
 }

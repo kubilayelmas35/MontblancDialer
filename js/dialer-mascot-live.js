@@ -273,6 +273,7 @@ function _wireGlobalMascotInteractions() {
       const bubble = document.getElementById('cust-empty-bubble');
       if (bubble && bubble.style.display !== 'none') {
         bubble.style.display = 'none';
+        gm.classList.remove('global-mascot--aria');
         _syncGlobalMascotWanderOnly();
         return;
       }
@@ -897,6 +898,7 @@ function startCustEmptyCoach() {
 
 function stopCustEmptyCoach() {
   _clearCustEmptyCoachTimer();
+  if (document.getElementById('global-mascot')?.classList.contains('global-mascot--aria')) return;
   const bubble = document.getElementById('cust-empty-bubble');
   if (bubble) {
     bubble.style.display = 'none';
