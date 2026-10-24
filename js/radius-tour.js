@@ -39,6 +39,7 @@ const TOUR_DEFAULTS = {
 
 let _tourPlan = null;
 let _ariaShown = '';
+let _ariaGunluk = null;
 let _tourAltaSlot = true;
 let _tourBusy = false;
 let _tourWatchSig = '';
@@ -109,6 +110,60 @@ function ariaVoice(text) {
   return String(text || '').replace(/^Aria:\s*/i, '').trim();
 }
 
+function ariaContext() {
+  const plan = _tourPlan;
+  const row = plan?.pick?.id ? (plan.rows || []).find((item) => item.id === plan.pick.id) : null;
+  const pasif = tourEffectivePasif();
+  const esik = Math.max(1, Number(tourPref().veriEsik) || 500);
+  const day = tourShortDay(plan?.day) || '';
+  return {
+    pasif,
+    mode: pasif ? tourSay('aria.mode.off', 'Pasif') : tourSay('aria.mode.on', 'Aktif'),
+    day,
+    camp: row ? row.name : '',
+    slots: row ? tourSay('aria.pop.slots', '{n} boş slot', { n: row.bos }) : '',
+    queue: row ? tourSay('aria.pop.queue', 'Kuyruk {pending} / {esik}', { pending: row.pending, esik }) : '',
+    pct: row ? Math.max(0, Math.min(100, Math.round((Number(row.pending) || 0) / esik * 100))) : 0,
+    line: ariaVoice(_ariaShown || (plan ? tourStory(plan) : '')) || tourSay('aria.idle', 'Bakıyorum.'),
+  };
+}
+
+function ariaEarlier(current) {
+  const today = tourClock().ymd;
+  const lines = _ariaGunluk && _ariaGunluk.day === today && Array.isArray(_ariaGunluk.lines) ? _ariaGunluk.lines : [];
+  return lines.map((item) => ({ at: item.at || '', text: ariaVoice(tourLogText(item)) })).filter((item) => item.text && item.text !== current);
+}
+
+function ariaPaintNow() {
+  const now = ariaContext();
+  const mode = document.getElementById('aria-status-mode');
+  if (mode) {
+    mode.textContent = now.mode;
+    mode.classList.toggle('is-on', !now.pasif);
+    mode.classList.toggle('is-off', now.pasif);
+  }
+  const box = document.getElementById('aria-now');
+  if (!box) return;
+  const chips = [now.day, now.camp, now.slots].filter(Boolean);
+  if (!chips.length && !now.queue) {
+    box.hidden = true;
+    box.innerHTML = '';
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = `${chips.length ? `<div class="aria-pop-chips">${chips.map((item) => `<span>${tourEsc(item)}</span>`).join('')}</div>` : ''}
+${now.queue ? `<div class="aria-pop-meta">${tourEsc(now.queue)}</div><div class="tour-fill"><span style="width:${now.pct}%"></span></div>` : ''}`;
+}
+
+function ariaSetLooking(on) {
+  const mark = document.getElementById('aria-looking');
+  const chip = document.getElementById('aria-live');
+  const page = document.getElementById('page-tour');
+  if (mark) mark.hidden = !on;
+  if (chip) chip.classList.toggle('is-looking', !!on);
+  if (page) page.classList.toggle('is-aria-looking', !!on);
+}
+
 function tourShortDay(ymd) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(ymd || '')) ? `${ymd.slice(8, 10)}.${ymd.slice(5, 7)}` : '';
 }
@@ -145,6 +200,7 @@ function tourPaintLive(plan, line, speak) {
     _ariaSpoken = text;
     tourSpeak(text);
   }
+  ariaPaintNow();
   const pop = document.getElementById('aria-pop');
   if (pop && !pop.hidden) ariaFillPop();
 }
@@ -166,32 +222,17 @@ function ariaPlacePop() {
 function ariaFillPop() {
   const pop = document.getElementById('aria-pop');
   if (!pop) return;
-  const plan = _tourPlan;
-  const row = plan?.pick?.id ? (plan.rows || []).find((item) => item.id === plan.pick.id) : null;
-  const mode = tourEffectivePasif()
-    ? tourSay('aria.mode.off', 'Pasif')
-    : tourSay('aria.mode.on', 'Aktif');
-  const day = tourShortDay(plan?.day) || '—';
-  const camp = row ? row.name : '';
-  const slots = row ? tourSay('aria.pop.slots', '{n} boş slot', { n: row.bos }) : '';
-  const queue = row
-    ? tourSay('aria.pop.queue', 'Kuyruk {pending} / {esik}', { pending: row.pending, esik: tourPref().veriEsik })
-    : '';
-  const esik = Math.max(1, Number(tourPref().veriEsik) || 500);
-  const pct = row ? Math.max(0, Math.min(100, Math.round((Number(row.pending) || 0) / esik * 100))) : 0;
-  const line = ariaVoice(_ariaShown || (plan ? tourStory(plan) : '')) || tourSay('aria.idle', 'Bakıyorum.');
-  const chips = [
-    day && day !== '—' ? day : '',
-    camp,
-    slots,
-  ].filter(Boolean);
+  const now = ariaContext();
+  const chips = [now.day, now.camp, now.slots].filter(Boolean);
+  const earlier = ariaEarlier(now.line).slice(-3);
   pop.innerHTML = `<div class="aria-pop-head">
   <span class="aria-pop-who"><span class="aria-orb" aria-hidden="true"></span><span>Aria</span></span>
-  <span class="aria-pop-mode${tourEffectivePasif() ? ' is-off' : ' is-on'}">${tourEsc(mode)}</span>
+  <span class="aria-pop-mode${now.pasif ? ' is-off' : ' is-on'}">${tourEsc(now.mode)}</span>
 </div>
-<p class="aria-pop-line">${tourEsc(line)}</p>
+<p class="aria-pop-line">${tourEsc(now.line)}</p>
 ${chips.length ? `<div class="aria-pop-chips">${chips.map((item) => `<span>${tourEsc(item)}</span>`).join('')}</div>` : ''}
-${queue ? `<div class="aria-pop-meta">${tourEsc(queue)}</div><div class="tour-fill"><span style="width:${pct}%"></span></div>` : ''}
+${now.queue ? `<div class="aria-pop-meta">${tourEsc(now.queue)}</div><div class="tour-fill"><span style="width:${now.pct}%"></span></div>` : ''}
+${earlier.length ? `<div class="aria-pop-earlier"><span>${tourEsc(tourSay('aria.earlier', 'Bugün daha önce'))}</span>${earlier.map((item) => `<p><b>${tourEsc(item.at)}</b> ${tourEsc(item.text)}</p>`).join('')}</div>` : ''}
 <button type="button" class="aria-pop-go" onclick="ariaOpenPage()">${tourEsc(tourSay('aria.pop.open', 'Aria sayfası'))}</button>`;
 }
 
@@ -401,18 +442,18 @@ function tourLogText(item) {
 }
 
 function tourPaintLog(gunluk) {
+  _ariaGunluk = gunluk && typeof gunluk === 'object' ? gunluk : null;
   const box = document.getElementById('aria-log');
   if (!box) return;
   const today = tourClock().ymd;
-  const lines = gunluk && gunluk.day === today && Array.isArray(gunluk.lines) ? gunluk.lines : [];
-  if (!lines.length) {
-    box.hidden = true;
-    box.innerHTML = '';
-    return;
-  }
+  const lines = _ariaGunluk && _ariaGunluk.day === today && Array.isArray(_ariaGunluk.lines) ? _ariaGunluk.lines : [];
+  const title = `<p class="aria-log-kicker">${tourEsc(tourSay('aria.log', 'Bugün'))}</p>`;
   box.hidden = false;
-  box.innerHTML = `<p class="tour-meta">${tourEsc(tourSay('aria.log', 'Bugün'))}</p>`
-    + lines.map((item) => `<p class="aria-log-line"><span class="aria-log-at">${tourEsc(item.at || '')}</span><span>${tourEsc(tourLogText(item))}</span></p>`).join('');
+  box.innerHTML = lines.length
+    ? title + lines.map((item) => `<p class="aria-log-line"><span class="aria-log-at">${tourEsc(item.at || '')}</span><span class="aria-log-text">${tourEsc(ariaVoice(tourLogText(item)))}</span></p>`).join('')
+    : title + `<p class="aria-log-empty">${tourEsc(tourSay('aria.log.empty', 'Bugün henüz bir şey söylemedim.'))}</p>`;
+  const pop = document.getElementById('aria-pop');
+  if (pop && !pop.hidden) ariaFillPop();
 }
 
 async function tourRemember(entry) {
@@ -598,6 +639,7 @@ function tourPaintSettings() {
     on.setAttribute('aria-pressed', pasif ? 'false' : 'true');
   }
   if (page) page.classList.toggle('is-aria-on', !pasif);
+  ariaPaintNow();
   const wait = document.getElementById('tour-wait-n');
   if (wait) wait.value = String(pref.bekleyenEsik);
   const esik = document.getElementById('tour-esik');
@@ -954,6 +996,7 @@ async function tourRefresh(opts) {
     panel.innerHTML = `<p class="tour-note">${tourEsc(tourSay('tour.loading', 'Kayıtlar okunuyor'))}</p>`;
   }
   _tourBusy = true;
+  ariaSetLooking(true);
   try {
     await tourLoadSettings();
     _tourPlan = await tourBuild();
@@ -966,6 +1009,7 @@ async function tourRefresh(opts) {
     if (_tourPlan) tourRender(_tourPlan);
   } finally {
     _tourBusy = false;
+    ariaSetLooking(false);
   }
 }
 
