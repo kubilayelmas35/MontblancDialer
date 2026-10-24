@@ -30,6 +30,7 @@ const TOUR_DEFAULTS = {
   cumartesi: false,
   ufuk: 14,
   ayniPrefix: true,
+  kuyrukYer: 'son',
   selfHeal: true,
   selfHealDeneme: 2,
   zamanlayici: false,
@@ -43,6 +44,7 @@ let _ariaGunluk = null;
 let _tourAltaSlot = true;
 let _tourBusy = false;
 let _tourWatchSig = '';
+let _tourWatch = null;
 let _tourSettings = { ...TOUR_DEFAULTS };
 let _tourTab = 'kampanya';
 const TOUR_LOCK_KEYS = ['lastCampId', 'lastDay', 'lastTickAt'];
@@ -89,21 +91,66 @@ function tourStory(plan, extra) {
       : '{day} en yakın boş gün. {camp} kampanyasında {n} boş slot var, onu seçtim.';
   const why = tourSay(whyKey, whyFb, { day: plan.day, camp: row.name, n: row.bos });
   if (extra?.kind === 'nearby' && extra.added) {
-    const q = extra.created
-      ? tourSay('aria.queue.new', 'Yeni kuyruk «{q}» açtım.', { q: extra.queueName })
-      : tourSay('aria.queue.add', 'Var olan «{q}» kuyruğuna ekledim.', { q: extra.queueName });
-    return tourSay('aria.near', 'Aria: {why} Kuyrukta {pending} kişi vardı, eşik {esik}. {plz} çevresinden {km} km içinde {n} kişi, {codes} posta kodu. {q}', {
-      why, pending: extra.pending, esik: extra.esik, plz: extra.anchor || row.anchor || '', km: extra.radius, n: extra.added, codes: (extra.plzs || []).length, q,
-    });
+    return `${tourSay('aria.watch', 'Aria: {why}', { why })} ${ariaRoundBit(extra, row)}`;
   }
   if (extra?.kind === 'nearby0') {
     return tourSay('aria.near0', 'Aria: {why} {plz} çevresinde eklenecek kişi bulamadım.', { why, plz: row.anchor || '' });
+  }
+  if (extra?.kind === 'nearwait') {
+    return tourSay('aria.nearwait', 'Aria: {why} Yakından yükleyecektim, sekme kapalı olduğu için beklettim. Sırada {pending} kişi var, eşik {esik}.', {
+      why, pending: extra.pending, esik: extra.esik,
+    });
   }
   if (extra?.kind === 'revert') {
     return tourSay('aria.revert', 'Aria: {why} Kuyrukta {pending} kişi vardı. {n} kişiyi tekrar aramaya aldım.', { why, pending: row.pending, n: extra.moved });
   }
   if (extra?.kind === 'told') return `${tourSay('aria.told', 'Aria: {why} Temsilcilere bildirdim.', { why })} ${ariaQueuePlan(row)}`;
   return `${tourSay('aria.watch', 'Aria: {why}', { why })} ${ariaQueuePlan(row)}`;
+}
+
+function ariaPlzList(plzs, max) {
+  const list = [];
+  (Array.isArray(plzs) ? plzs : []).forEach((item) => {
+    const plz = tourPlz(item);
+    if (plz && !list.includes(plz)) list.push(plz);
+  });
+  const cap = Math.max(1, max || 12);
+  const shown = list.slice(0, cap).join('-');
+  return list.length > cap ? `${shown}…` : shown;
+}
+
+function ariaRoundBit(extra, row) {
+  const esik = Math.max(1, Number(extra?.esik) || Number(tourPref().veriEsik) || 500);
+  const pending = Number(extra?.pending ?? row?.pending) || 0;
+  const added = Number(extra?.added) || 0;
+  const now = pending + added;
+  const rest = now >= esik
+    ? tourSay('aria.round.done', 'Eşiğe geldim.')
+    : tourSay('aria.round.rest', 'Kalanı sonraki turda.');
+  const q = extra?.created
+    ? tourSay('aria.queue.new', 'Yeni kuyruk «{q}» açtım.', { q: extra.queueName })
+    : tourSay('aria.queue.add', 'Var olan «{q}» kuyruğuna ekledim.', { q: extra.queueName });
+  return tourSay('aria.round', 'Bu tur {n} kişi yükledim. Posta kodları {plzs}. {q} Sırada {pending} kişi vardı, şimdi {now} var, eşik {esik}. {rest}', {
+    n: added,
+    plzs: ariaPlzList(extra?.plzs, 12) || extra?.anchor || row?.anchor || '',
+    q,
+    pending,
+    now,
+    esik,
+    rest,
+  });
+}
+
+function tourOtherWatch() {
+  const watch = _tourWatch;
+  const me = tourUserId();
+  return !!(watch && watch.aktif && watch.userId && me && String(watch.userId) !== me);
+}
+
+function ariaWatchLine() {
+  if (tourOtherWatch()) return tourSay('aria.other', 'Başka bir yönetici bakıyor. Kampanya değiştirmedim, kimse yüklemedim.');
+  if (_tourWatch && _tourWatch.aktif && String(_tourWatch.userId || '') === tourUserId()) return tourSay('aria.mine', 'Bu hesap bakıyor.');
+  return '';
 }
 
 function ariaQueuePlan(row) {
@@ -248,6 +295,7 @@ function ariaFillPop() {
   </div>
 </div>
 <p class="aria-pop-job">${tourEsc(tourSay('aria.jobs', 'Kampanya seçer, sıra azalınca kişi yükler, alta inen randevunun yerine yer açar.'))}</p>
+${ariaWatchLine() ? `<p class="aria-pop-job">${tourEsc(ariaWatchLine())}</p>` : ''}
 <p class="aria-pop-line">${tourEsc(now.line)}</p>
 ${chips.length ? `<div class="aria-pop-chips">${chips.map((item) => `<span>${tourEsc(item)}</span>`).join('')}</div>` : ''}
 ${now.queue ? `<div class="aria-pop-meta">${tourEsc(now.queue)}</div><div class="tour-fill"><span style="width:${now.pct}%"></span></div>` : ''}
@@ -455,7 +503,7 @@ function tourLogText(item) {
   }
   if (item.k === 'near0') return tourSay('aria.near0', 'Aria: {why} {plz} çevresinde eklenecek kişi bulamadım.', { why, plz: item.plz || '' });
   if (item.k === 'revert') return tourSay('aria.revert', 'Aria: {why} Kuyrukta {pending} kişi vardı. {n} kişiyi tekrar aramaya aldım.', { why, pending: item.pending, n: item.moved });
-  if (item.k === 'nearwait') return tourSay('aria.nearwait', 'Aria: {why} Kuyrukta {pending} kişi var, eşik {esik}. Yakın veri, sekme açıkken eklenecek.', { why, pending: item.pending, esik: item.esik });
+  if (item.k === 'nearwait') return tourSay('aria.nearwait', 'Aria: {why} Yakından yükleyecektim, sekme kapalı olduğu için beklettim. Sırada {pending} kişi var, eşik {esik}.', { why, pending: item.pending, esik: item.esik });
   if (item.k === 'told') return tourSay('aria.told', 'Aria: {why} Temsilcilere bildirdim.', { why });
   return '';
 }
@@ -555,8 +603,9 @@ async function tourLoadSettings() {
         if (firmTour[key] != null && firmTour[key] !== '') _tourSettings[key] = firmTour[key];
       });
       gunluk = firmTour.gunluk;
-    }
-  }
+      _tourWatch = firmTour.watch && typeof firmTour.watch === 'object' ? firmTour.watch : null;
+    } else _tourWatch = null;
+  } else _tourWatch = null;
   tourPaintLog(gunluk);
   tourPaintSettings();
   return _tourSettings;
@@ -594,13 +643,15 @@ async function tourSaveWatch() {
   const firms = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
   const existing = firms?.[0]?.settings || {};
   const prev = existing.tour && typeof existing.tour === 'object' ? existing.tour : {};
-  const mine = !prev.watch || prev.watch.userId === userId;
+  const mine = !prev.watch || !prev.watch.userId || prev.watch.userId === userId;
+  const other = !!(prev.watch && prev.watch.aktif && prev.watch.userId && prev.watch.userId !== userId);
   let watch = prev.watch || null;
-  if (pref.aktif) {
+  if (pref.aktif && !other) {
     watch = {
       aktif: true,
       userId,
       kuyrukMod: pref.kuyrukMod === 'yakin' ? 'yakin' : 'revert',
+      kuyrukYer: pref.kuyrukYer === 'yeni' ? 'yeni' : 'son',
       veriEsik: Math.max(50, Math.min(20000, Number(pref.veriEsik) || 500)),
       bosSlotAtla: pref.bosSlotAtla !== false,
       minBos: Math.max(1, Math.min(20, Number(pref.minBos) || 1)),
@@ -613,7 +664,8 @@ async function tourSaveWatch() {
       zamanAktif: pref.zamanAktif || '09:55',
       zamanPasif: pref.zamanPasif || '18:35',
     };
-  } else if (mine) watch = { aktif: false, userId };
+  } else if (mine && !pref.aktif) watch = { aktif: false, userId };
+  _tourWatch = watch;
   await sb(`firms?id=eq.${firmId}`, {
     method: 'PATCH',
     prefer: 'return=minimal',
@@ -677,6 +729,8 @@ function tourPaintSettings() {
   if (kuyruk) kuyruk.value = pref.kuyrukMod === 'yakin' ? 'yakin' : 'revert';
   const near = pref.kuyrukMod === 'yakin';
   document.querySelectorAll('.tour-yakin').forEach((el) => { el.hidden = !near; });
+  const place = document.getElementById('tour-kuyruk-yer');
+  if (place) place.value = pref.kuyrukYer === 'yeni' ? 'yeni' : 'son';
   const radius = document.getElementById('tour-radius');
   if (radius) radius.value = String([10, 20, 30, 50].includes(Number(pref.radiusKm)) ? pref.radiusKm : 30);
   const yakinN = document.getElementById('tour-yakin-n');
@@ -1126,6 +1180,8 @@ async function tourNearbyInsert(row) {
   const cap = Math.max(20, Math.min(2000, Number(tourPref().yakinAdet) || 100));
   const gap = Math.max(20, Number(tourPref().veriEsik) - Number(row.pending || 0));
   const limit = Math.min(cap, gap);
+  const frame = document.getElementById('geocon-frame');
+  if (!frame || !frame.contentWindow) return { added: 0, queueName: '', created: false, plzs: [], anchor: row.anchor || '', reason: 'closed' };
   const raw = await tourAskRows(row, limit);
   const norm = (value) => (typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(value) : String(value || '').trim());
   const mapped = [];
@@ -1146,16 +1202,18 @@ async function tourNearbyInsert(row) {
       status: 'pending',
     });
   });
-  const empty = { added: 0, queueName: '', created: false, plzs: [], anchor: row.anchor || '' };
+  const empty = { added: 0, queueName: '', created: false, plzs: [], anchor: row.anchor || '', reason: frame.dataset.loaded === '1' ? '' : 'closed' };
   if (!mapped.length) return empty;
   let fresh = mapped;
   if (typeof mbFindExistingPhonePlaces === 'function') {
     const places = await mbFindExistingPhonePlaces(mapped.map((item) => item.phone), 'campaign', row.id);
     fresh = mapped.filter((item) => !places.has(item.phone));
   }
-  if (!fresh.length) return empty;
+  if (!fresh.length) return { ...empty, reason: '' };
   const firmId = tourFirmId();
-  const found = await sb(`queues?campaign_id=eq.${row.id}&select=id,name,total_contacts&order=created_at.desc&limit=1`).catch(() => []);
+  const plzName = ariaPlzList(fresh.map((item) => item.plz), 8) || `Yakın ${row.anchor || ''}`.trim();
+  const wantNew = tourPref().kuyrukYer === 'yeni';
+  const found = wantNew ? [] : await sb(`queues?campaign_id=eq.${row.id}&select=id,name,total_contacts&order=created_at.desc&limit=1`).catch(() => []);
   let queue = Array.isArray(found) ? found[0] : null;
   let createdQueue = false;
   if (!queue?.id) {
@@ -1163,7 +1221,7 @@ async function tourNearbyInsert(row) {
     const created = await sb('queues', {
       method: 'POST',
       prefer: 'return=representation',
-      body: JSON.stringify({ campaign_id: row.id, firm_id: firmId, name: `Yakın ${row.anchor || ''}`.trim(), total_contacts: fresh.length }),
+      body: JSON.stringify({ campaign_id: row.id, firm_id: firmId, name: plzName, total_contacts: fresh.length }),
     });
     queue = Array.isArray(created) ? created[0] : created;
   }
@@ -1182,7 +1240,7 @@ async function tourNearbyInsert(row) {
   }
   return {
     added: withQ.length,
-    queueName: queue.name || `Yakın ${row.anchor || ''}`.trim(),
+    queueName: queue.name || plzName,
     created: createdQueue,
     plzs: [...new Set(withQ.map((item) => tourPlz(item.plz)).filter(Boolean))],
     anchor: row.anchor || '',
@@ -1202,6 +1260,10 @@ async function tourApply(plan, force) {
   if (!['super_admin', 'admin', 'firm_admin'].includes(role)) return;
   if (!force && tourEffectivePasif()) {
     tourPaintLive(plan, null, false);
+    return;
+  }
+  if (!force && tourOtherWatch()) {
+    tourPaintLive(plan, tourSay('aria.other', 'Başka bir yönetici bakıyor. Kampanya değiştirmedim, kimse yüklemedim.'), true);
     return;
   }
   const pref = tourPref();
@@ -1227,7 +1289,9 @@ async function tourApply(plan, force) {
     const detail = await tourNearbyInsert(row).catch(() => null);
     extra = detail && detail.added
       ? { kind: 'nearby', ...detail, pending: row.pending, esik: pref.veriEsik, radius: pref.radiusKm }
-      : { kind: 'nearby0' };
+      : detail && detail.reason === 'closed'
+        ? { kind: 'nearwait', pending: row.pending, esik: pref.veriEsik }
+        : { kind: 'nearby0' };
   } else if (row.pending < pref.veriEsik && row.revertIds.length) {
     const moved = await tourRevert(row.id, { auto: true });
     if (moved) extra = { kind: 'revert', moved };
@@ -1237,8 +1301,9 @@ async function tourApply(plan, force) {
   tourPaintLive(plan, line, !!(force || extra));
   if (extra || told) {
     const entry = { day: plan.day, camp: row.name, n: row.bos, kind: plan.pick.kind };
-    if (extra?.kind === 'nearby') Object.assign(entry, { k: 'near', added: extra.added, pending: extra.pending, esik: extra.esik, plz: extra.anchor, km: extra.radius, codes: (extra.plzs || []).length, q: extra.queueName, created: !!extra.created });
+    if (extra?.kind === 'nearby') Object.assign(entry, { k: 'near', added: extra.added, pending: extra.pending, esik: extra.esik, plz: extra.anchor, plzs: ariaPlzList(extra.plzs, 12), km: extra.radius, codes: (extra.plzs || []).length, q: extra.queueName, created: !!extra.created, text: line });
     else if (extra?.kind === 'nearby0') Object.assign(entry, { k: 'near0', plz: row.anchor || '' });
+    else if (extra?.kind === 'nearwait') Object.assign(entry, { k: 'nearwait', pending: row.pending, esik: pref.veriEsik, text: line });
     else if (extra?.kind === 'revert') Object.assign(entry, { k: 'revert', moved: extra.moved, pending: row.pending });
     else if (told) entry.k = 'told';
     await tourRemember(entry);
@@ -1266,6 +1331,10 @@ async function tourSetMode(aktif) {
 function tourQueueMode(el) {
   const mode = el && el.value === 'yakin' ? 'yakin' : 'revert';
   void tourSave({ kuyrukMod: mode });
+}
+
+function tourQueuePlace(el) {
+  void tourSave({ kuyrukYer: el && el.value === 'yeni' ? 'yeni' : 'son' });
 }
 
 async function tourAltaSlot(el) {

@@ -620,10 +620,16 @@
 <p class="tour-note" data-tr="Bu hesap için. Seçtiği kampanyada aranacak kişi azalınca ne yapacağını sorar." data-de="Für dieses Konto. Fragt, was sie tut, wenn in der gewählten Kampagne weniger Personen zu wählen sind.">Bu hesap için. Seçtiği kampanyada aranacak kişi azalınca ne yapacağını sorar.</p>
 <div class="tour-grid">
 <label class="tour-field"><span class="tour-name" data-tr="Ne yapsın" data-de="Was sie tun soll">Ne yapsın</span>
-<small class="tour-help" data-tr="Cevap vermeyenler: daha önce açılmayan kişileri yeniden sıraya koyar. Yakın: seçtiği kampanyanın posta kodunun çevresinden kişi ekler. Varsa son kuyruğa yazar, kuyruk yoksa yeni açar." data-de="Nicht erreichte: stellt sie wieder in die Reihe. Nähe: nimmt Personen um die PLZ der gewählten Kampagne. Hängt an die letzte Queue, oder legt eine neue an.">Cevap vermeyenler: daha önce açılmayan kişileri yeniden sıraya koyar. Yakın: seçtiği kampanyanın posta kodunun çevresinden kişi ekler. Varsa son kuyruğa yazar, kuyruk yoksa yeni açar.</small>
+<small class="tour-help" data-tr="Cevap vermeyenler: daha önce açılmayan kişileri yeniden sıraya koyar. Yakın: seçtiği kampanyanın posta kodunun çevresinden kişi ekler. Nereye yazacağını alttaki soru seçer." data-de="Nicht erreichte: stellt sie wieder in die Reihe. Nähe: nimmt Personen um die PLZ der gewählten Kampagne. Wohin, steht in der Frage darunter.">Cevap vermeyenler: daha önce açılmayan kişileri yeniden sıraya koyar. Yakın: seçtiği kampanyanın posta kodunun çevresinden kişi ekler. Nereye yazacağını alttaki soru seçer.</small>
 <select class="form-input" id="tour-kuyruk" onchange="tourQueueMode(this)">
 <option value="revert" data-tr="Cevap vermeyenleri yeniden sıraya al" data-de="Nicht erreichte wieder in die Reihe">Cevap vermeyenleri yeniden sıraya al</option>
 <option value="yakin" data-tr="Yakındaki kişilerden ekle" data-de="Personen aus der Nähe hinzufügen">Yakındaki kişilerden ekle</option>
+</select></label>
+<label class="tour-field tour-yakin" hidden><span class="tour-name" data-tr="Nereye yazsın" data-de="Wohin sie schreibt">Nereye yazsın</span>
+<small class="tour-help" data-tr="Son kuyruk: kampanyanın son kuyruğuna ekler. Yeni kuyruk: yüklediği posta kodlarıyla açar, 85185-85180-85187 gibi." data-de="Letzte Queue: hängt an die letzte Queue der Kampagne. Neue Queue: benennt sie nach den geladenen PLZ, etwa 85185-85180-85187.">Son kuyruk: kampanyanın son kuyruğuna ekler. Yeni kuyruk: yüklediği posta kodlarıyla açar, 85185-85180-85187 gibi.</small>
+<select class="form-input" id="tour-kuyruk-yer" onchange="tourQueuePlace(this)">
+<option value="son" data-tr="Son kuyruğa" data-de="In die letzte Queue">Son kuyruğa</option>
+<option value="yeni" data-tr="Yeni kuyruk aç" data-de="Neue Queue anlegen">Yeni kuyruk aç</option>
 </select></label>
 <label class="tour-field"><span class="tour-name" data-tr="Sırada en az kaç kişi kalsın" data-de="Mindestens so viele in der Reihe">Sırada en az kaç kişi kalsın</span>
 <small class="tour-help" data-tr="Sıradaki kişi bu sayının altına düşünce ilk soruda seçtiğin işi yapar." data-de="Sinkt die Reihe unter diese Zahl, macht sie die Arbeit aus der ersten Frage.">Sıradaki kişi bu sayının altına düşünce ilk soruda seçtiğin işi yapar.</small>
