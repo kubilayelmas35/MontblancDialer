@@ -24,6 +24,7 @@ else       { sb.classList.add('open');   ov.classList.add('show'); }
 } else {
 sb.classList.toggle('collapsed');
 }
+if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
 }
 
 function closeSidebar() {
@@ -39,88 +40,117 @@ document.getElementById('sidebar').classList.remove('open');
 });
 
 // ── NAVIGATION ───────────────────────────────
+function _mbPageFn(name) {
+  try {
+    const fn = globalThis[name];
+    return typeof fn === 'function' ? fn : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 const _NAVIGATE_LOADERS = {
   dashboard: () => {
-    loadDashboard();
-    if (typeof loadJobMarketKpi === 'function') loadJobMarketKpi();
+    _mbPageFn('loadDashboard')?.();
+    _mbPageFn('loadJobMarketKpi')?.();
   },
-  campaigns: () => { loadCampaigns(); },
-  agents: () => { loadAgents(); },
-  stats: () => { initStatsFilters(); loadStats(); },
-  callhistory: () => { initCallHistoryFilters(); loadCallHistory(); },
-  export: () => { loadExportTerminPage(); },
-  performance: () => { loadPerformancePage(); },
+  campaigns: () => { _mbPageFn('loadCampaigns')?.(); },
+  agents: () => { _mbPageFn('loadAgents')?.(); },
+  stats: () => { _mbPageFn('initStatsFilters')?.(); _mbPageFn('loadStats')?.(); },
+  callhistory: () => { _mbPageFn('initCallHistoryFilters')?.(); _mbPageFn('loadCallHistory')?.(); },
+  export: () => { _mbPageFn('loadExportTerminPage')?.(); },
+  performance: () => { _mbPageFn('loadPerformancePage')?.(); },
   dialer: () => {
-    initDialer();
-    if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
+    _mbPageFn('initDialer')?.();
+    _mbPageFn('refreshDialerHealthPanel')?.();
+    setTimeout(() => _mbPageFn('mbFitAgentCampNames')?.(), 60);
   },
   field: () => {
-    loadFieldPage();
-    if (typeof loadNotificationCenter === 'function') loadNotificationCenter();
+    _mbPageFn('loadFieldPage')?.();
+    _mbPageFn('loadNotificationCenter')?.();
   },
-  fieldops: () => { loadFieldOpsPage(); },
+  fieldops: () => { _mbPageFn('loadFieldOpsPage')?.(); },
   jobmarket: () => {
-    loadJobMarketPage();
-    if (typeof refreshJobMarketMap === 'function') {
-      setTimeout(() => refreshJobMarketMap(), 0);
-      setTimeout(() => refreshJobMarketMap(), 280);
+    _mbPageFn('loadJobMarketPage')?.();
+    if (_mbPageFn('refreshJobMarketMap')) {
+      setTimeout(() => _mbPageFn('refreshJobMarketMap')?.(), 0);
+      setTimeout(() => _mbPageFn('refreshJobMarketMap')?.(), 280);
     }
   },
-  myhistory: () => { initMyHistoryFilters(); loadMyHistory(); },
+  myhistory: () => { _mbPageFn('initMyHistoryFilters')?.(); _mbPageFn('loadMyHistory')?.(); },
   settings: () => {
-    loadSavedSettings();
-    loadRolesPage();
-    if (typeof loadIncomingCallsSettingsPage === 'function') loadIncomingCallsSettingsPage();
-    loadAppointmentResultsSettings();
-    setTimeout(() => initSettingsTabs(), 0);
-    loadMesaiSettings();
-    loadCallHoursSettings();
-    loadChatSettingsPage();
-    loadFieldSettingsPage();
-    if (typeof loadSmsSettingsPage === 'function') loadSmsSettingsPage();
-    loadFeatureFlagsPage();
-    if (typeof loadAuditEventsPage === 'function') loadAuditEventsPage();
-    if (typeof loadJobPermissionsSettings === 'function') loadJobPermissionsSettings();
+    _mbPageFn('loadSavedSettings')?.();
+    _mbPageFn('loadRolesPage')?.();
+    _mbPageFn('loadIncomingCallsSettingsPage')?.();
+    _mbPageFn('loadAppointmentResultsSettings')?.();
+    _mbPageFn('loadQcScopeSettings')?.();
+    setTimeout(() => _mbPageFn('initSettingsTabs')?.(window.__settingsTab || 'general'), 0);
+    _mbPageFn('loadMesaiSettings')?.();
+    _mbPageFn('loadCallHoursSettings')?.();
+    _mbPageFn('loadGoalSettingsForm')?.();
+    _mbPageFn('loadChatSettingsPage')?.();
+    _mbPageFn('loadFieldSettingsPage')?.();
+    _mbPageFn('loadSmsSettingsPage')?.();
+    _mbPageFn('loadFeatureFlagsPage')?.();
+    _mbPageFn('loadAuditEventsPage')?.();
+    _mbPageFn('loadJobPermissionsSettings')?.();
   },
-  wiedervorlage: () => { loadWvPage(); },
+  wiedervorlage: () => { _mbPageFn('loadWvPage')?.(); },
   qc: () => {
-    loadQcData();
-    if (typeof loadJobMarketQcQueue === 'function') loadJobMarketQcQueue();
+    _mbPageFn('loadQcData')?.();
+    _mbPageFn('loadJobMarketQcQueue')?.();
   },
-  supervisor: () => { if (typeof loadSupervisorPanel === 'function') loadSupervisorPanel(); },
-  firms: () => { loadFirmsPage(); },
-  takvim: () => { loadTakvimPage(); },
-  leave: () => { loadLeavePage(); },
-  muhasebe: () => { loadMuhasebePage(); },
-  maasim: () => { loadMaasimPage(); },
-  performansim: () => { loadPerformansimPage(); },
-  competition: () => { loadCompetitionPage(); },
+  supervisor: () => { _mbPageFn('loadSupervisorPanel')?.(); },
+  firms: () => { _mbPageFn('loadFirmsPage')?.(); },
+  firmdesk: () => { _mbPageFn('loadFirmDesk')?.(); },
+  takvim: () => { _mbPageFn('loadTakvimPage')?.(); },
+  leave: () => { _mbPageFn('loadLeavePage')?.(); },
+  muhasebe: () => { _mbPageFn('loadMuhasebePage')?.(); },
+  maasim: () => { _mbPageFn('loadMaasimPage')?.(); },
+  performansim: () => { _mbPageFn('loadPerformansimPage')?.(); },
+  competition: () => { _mbPageFn('loadCompetitionPage')?.(); },
+  geocon: () => { _mbPageFn('loadGeoconPage')?.(); },
+  tour: () => { _mbPageFn('tourRefresh')?.(); },
 };
 
 function runPageEntry(page) {
   const run = _NAVIGATE_LOADERS[page];
-  if (typeof run === 'function') run();
+  if (typeof run === 'function') {
+    try { run(); } catch (e) { console.error(e); }
+  }
   if (typeof syncGlobalMascotDock === 'function') setTimeout(() => syncGlobalMascotDock(), 0);
 }
 
 function navigate(page) {
 document.getElementById('mb-camp-notif')?.remove();
+const pg = document.getElementById(`page-${page}`);
+if (!pg) {
+  if (typeof toast === 'function') toast(typeof t === 'function' ? t('nav.missing_page') : 'Bu sayfa yok', 'warn');
+  return;
+}
 if (typeof userHasPagePerm === 'function' && Array.isArray(ALL_PAGES) && ALL_PAGES.some((p) => p.key === page) && !userHasPagePerm(page)) {
   if (typeof toast === 'function') toast(typeof t === 'function' ? t('nav.no_perm') : 'Bu sayfa için yetkiniz yok', 'warn');
   return;
 }
 if (page !== 'supervisor' && typeof unloadSupervisorPanel === 'function') unloadSupervisorPanel();
+if (page !== 'agents' && typeof agentsStopPoll === 'function') agentsStopPoll();
 if (page !== 'dialer') {
+  if (window._qcReviewApptId) selectedOutcome = null;
+  window._qcReviewApptId = null;
+  if (typeof _qcRestoreOutcomeChrome === 'function') _qcRestoreOutcomeChrome();
   if (typeof closeMicAudioDrawer === 'function') closeMicAudioDrawer();
   if (typeof closeManualDialDrawer === 'function') closeManualDialDrawer();
   if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
 }
 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
 document.querySelectorAll('.sb-item').forEach(s => s.classList.remove('active'));
-const pg = document.getElementById(`page-${page}`);
-if (pg) pg.classList.add('active');
-const btn = document.querySelector(`.sb-item[onclick="navigate('${page}')"]`);
-if (btn) btn.classList.add('active');
+pg.classList.add('active');
+const btn = document.querySelector(`.sb-item[onclick="navigate('${page}')"]`)
+  || (page === 'takvim' ? document.getElementById('nav-takvim-btn') : null);
+if (btn) {
+  btn.classList.add('active');
+  btn.closest('.sb-group')?.classList.remove('is-collapsed');
+}
 if (window.innerWidth <= 1024) closeSidebar();
 if (page !== 'dialer' && typeof stopInboundTestSimulationScheduler === 'function') stopInboundTestSimulationScheduler();
 runPageEntry(page);
@@ -129,17 +159,32 @@ if (toastEl) toastEl.classList.remove('show');
 const notif = document.getElementById('notification-center');
 if (notif) notif.style.display = 'none';
 if (typeof toggleTeamChat === 'function') toggleTeamChat(false);
+if (typeof mbSyncInboundStrip === 'function') mbSyncInboundStrip();
+if (typeof mbRefreshOpenBadge === 'function') mbRefreshOpenBadge(false);
+if (typeof mbClearNavSearch === 'function') mbClearNavSearch();
+if (typeof mbPersonClose === 'function') mbPersonClose();
+try {
+  localStorage.setItem('mb_last_page', page);
+  if (page === 'stats' && window._statsReport) localStorage.setItem('mb_last_report', window._statsReport);
+  else localStorage.removeItem('mb_last_report');
+} catch (e) {}
 }
 
-function initSettingsTabs() {
+function initSettingsTabs(preferTab) {
   const page = document.getElementById('page-settings');
   if (!page) return;
   const cards = [...page.querySelectorAll('.settings-layout > .card')];
   const groups = {
-    general: new Set(['settings-appearance-card', 'settings-api-keys-card', 'settings-goals-card']),
-    communication: new Set(['incoming-calls-settings-card', 'chat-settings-card', 'sms-settings-card']),
-    operations: new Set(['field-settings-card', 'mesai-settings-card', 'call-hours-card', 'results-settings-card', 'default-takvim-firm-card']),
-    system: new Set(['feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings']),
+    general: new Set(['settings-appearance-card']),
+    mascot: new Set(['settings-mascot-card']),
+    communication: new Set(['incoming-calls-settings-card', 'chat-settings-card']),
+    notifications: new Set(['notif-settings-card']),
+    operations: new Set(['settings-goals-card']),
+    quality: new Set(['results-settings-card', 'qc-scope-card']),
+    takvim: new Set(['default-takvim-firm-card']),
+    mesai: new Set(['mesai-plan-card', 'mesai-settings-card', 'call-hours-card']),
+    field: new Set(['field-settings-card']),
+    system: new Set(['settings-api-keys-card', 'feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings', 'sms-settings-card']),
   };
   cards.forEach((card) => {
     if (!card.id) return;
@@ -150,7 +195,37 @@ function initSettingsTabs() {
       }
     }
   });
-  setSettingsTab('general');
+  mbSyncSettingsTabs();
+  const agent = String(currentUser?.role || '') === 'agent';
+  const tab = agent ? 'notifications' : (preferTab || 'general');
+  window.__settingsTab = '';
+  setSettingsTab(tab);
+  if (tab === 'notifications' && typeof opsEnsureNotifFirmForm === 'function') opsEnsureNotifFirmForm();
+}
+
+function mbSyncSettingsTabs() {
+  const superOnly = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+  const agent = String(currentUser?.role || '') === 'agent';
+  document.querySelectorAll('#settings-tabs .settings-tab-btn').forEach((btn) => {
+    const tab = btn.dataset.tab;
+    if (agent) {
+      btn.style.display = tab === 'notifications' ? '' : 'none';
+      return;
+    }
+    if (tab === 'takvim' && !(typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin())) {
+      btn.style.display = 'none';
+      return;
+    }
+    const ownerTab = tab === 'system';
+    btn.style.display = !superOnly && ownerTab ? 'none' : '';
+  });
+  if (agent) {
+    setSettingsTab('notifications');
+    if (typeof opsEnsureNotifFirmForm === 'function') opsEnsureNotifFirmForm();
+    return;
+  }
+  const active = document.querySelector('#settings-tabs .settings-tab-btn.active');
+  if (active && active.style.display === 'none') setSettingsTab('general');
 }
 
 function setSettingsTab(tabId) {
@@ -162,6 +237,14 @@ function setSettingsTab(tabId) {
     const hide = group !== tabId;
     card.classList.toggle('settings-card-tab-hidden', hide);
   });
+  if (tabId === 'takvim') {
+    const card = document.getElementById('default-takvim-firm-card');
+    if (card) {
+      card.dataset.settingsGroup = 'takvim';
+      card.classList.remove('settings-card-tab-hidden');
+      card.style.display = '';
+    }
+  }
   const tabs = page.querySelectorAll('.settings-tab-btn');
   tabs.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === tabId));
 }
@@ -185,13 +268,14 @@ function mbResultLabel(key, storedLabel) {
   if (!mapKey || typeof t !== 'function' || typeof MB_I18N === 'undefined') return raw || key || '';
   const tr = MB_I18N.tr[mapKey];
   const de = MB_I18N.de[mapKey];
-  if (!raw || raw === tr || raw === de || raw === k || raw === key) return t(mapKey);
+  const legacy = k === 'qc_bekleniyor' && (raw === 'QC Bekleniyor' || raw === 'QC ausstehend' || raw === 'KK Bekleniyor');
+  if (!raw || raw === tr || raw === de || raw === k || raw === key || legacy) return t(mapKey);
   return raw;
 }
 
 function defaultAppointmentResults() {
   return [
-    { key: 'qc_bekleniyor', label: 'QC Bekleniyor', color: '#2563eb', contact_status: 'qc bekleniyor', auto_move_down: false },
+    { key: 'qc_bekleniyor', label: 'Kalite kontrol bekliyor', color: '#2563eb', contact_status: 'qc bekleniyor', auto_move_down: false },
     { key: 'basarili', label: 'Başarılı', color: '#16a34a', contact_status: 'başarılı', auto_move_down: false },
     { key: 'basarisiz', label: 'Başarısız', color: '#dc2626', contact_status: 'başarısız', auto_move_down: true },
     { key: 'beklemede', label: 'Beklemede', color: '#f59e0b', contact_status: 'beklemede', auto_move_down: true },
@@ -265,17 +349,14 @@ async function loadAppointmentResultsSettings() {
   const box = document.getElementById('results-settings-card');
   const wrap = document.getElementById('s-appt-results-rows');
   const selectorHost = document.getElementById('results-firm-selector');
-  const dCard = document.getElementById('default-takvim-firm-card');
   if (!wrap || !box) return;
-  const canEdit = ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+  const canEdit = mbIsFirmAdmin();
   box.style.display = canEdit ? '' : 'none';
-  if (dCard) dCard.style.display = canEdit ? '' : 'none';
   if (!canEdit) return;
   if (selectorHost) {
     renderFirmSelector('results-firm-selector', loadAppointmentResultsSettings);
     selectorHost.style.display = isSuperAdmin() ? '' : 'none';
   }
-  if (typeof loadDefaultTakvimFirmCard === 'function') await loadDefaultTakvimFirmCard();
   const fid = getActiveFirmId() || currentUser?.firm_id;
   if (!fid) {
     wrap.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Randevu sonuçlarını görmek için firma seçin.</div>`;
@@ -289,26 +370,65 @@ function renderAppointmentResultRows(rows) {
   const wrap = document.getElementById('s-appt-results-rows');
   if (!wrap) return;
   const safe = rows?.length ? rows : [defaultAppointmentResults()[0]];
+  const gripLabel = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Reihenfolge ändern' : 'Sırayı değiştir';
   wrap.innerHTML = safe.map((r, i) => `
-    <div style="display:grid;grid-template-columns:180px 1fr 140px 170px auto;gap:8px;align-items:end;">
+    <div class="ar-row">
+      <button type="button" class="ar-grip" draggable="true" aria-label="${gripLabel}" title="${gripLabel}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="7" r="1.4"/><circle cx="15" cy="7" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="17" r="1.4"/><circle cx="15" cy="17" r="1.4"/></svg>
+      </button>
       <div class="form-row">
         <label class="form-label">Sonuç tipi</label>
         <select class="form-input" id="ar-type-${i}" onchange="syncAppointmentResultLabel(${i})">
-          <option value="qc_bekleniyor" ${r.key==='qc_bekleniyor'?'selected':''}>QC Bekleniyor</option>
+          <option value="qc_bekleniyor" ${r.key==='qc_bekleniyor'?'selected':''}>Kalite kontrol bekliyor</option>
           <option value="basarili" ${r.key==='basarili'?'selected':''}>Başarılı</option>
           <option value="basarisiz" ${r.key==='basarisiz'?'selected':''}>Başarısız</option>
           <option value="beklemede" ${r.key==='beklemede'?'selected':''}>Beklemede</option>
           <option value="ulasilamadi" ${r.key==='ulasilamadi'?'selected':''}>Ulaşılamadı</option>
           <option value="iptal" ${r.key==='iptal'?'selected':''}>İptal</option>
+          <option value="__custom" ${!['qc_bekleniyor','basarili','basarisiz','beklemede','ulasilamadi','iptal'].includes(r.key)?'selected':''}>Özel ad</option>
         </select>
       </div>
       <div class="form-row"><label class="form-label">Görünen ad</label><input class="form-input" id="ar-label-${i}" value="${_uiEsc(r.label||'')}"></div>
       <div class="form-row"><label class="form-label">Renk</label><input class="form-input" id="ar-color-${i}" type="color" value="${_uiEsc(_normalizeResultColor(r.color))}"></div>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;padding-bottom:8px;"><input type="checkbox" id="ar-move-${i}" ${r.auto_move_down?'checked':''}> Otomatik alta taşı</label>
+      <label class="ar-move"><input type="checkbox" id="ar-move-${i}" ${r.auto_move_down?'checked':''}> Otomatik alta taşı</label>
       <button class="btn btn-ghost btn-sm" type="button" onclick="removeAppointmentResultRow(${i})">Sil</button>
     </div>
   `).join('');
   wrap.dataset.count = String(safe.length);
+  mbBindResultReorder(wrap);
+}
+
+function mbBindResultReorder(wrap) {
+  wrap.querySelectorAll('.ar-grip').forEach((grip) => {
+    grip.addEventListener('dragstart', (ev) => {
+      const row = grip.closest('.ar-row');
+      wrap._dragRow = row;
+      wrap._dragBefore = readAppointmentResultRows().map((item) => item.key).join('|');
+      ev.dataTransfer.effectAllowed = 'move';
+      ev.dataTransfer.setData('text/plain', 'result');
+      row.classList.add('is-dragging');
+    });
+    grip.addEventListener('dragend', async () => {
+      const row = wrap._dragRow;
+      row?.classList.remove('is-dragging');
+      wrap._dragRow = null;
+      const parsed = readAppointmentResultRows();
+      if (parsed.map((item) => item.key).join('|') === wrap._dragBefore) return;
+      renderAppointmentResultRows(parsed);
+      await saveAppointmentResultsSettings();
+    });
+  });
+  if (wrap.dataset.reorder === '1') return;
+  wrap.dataset.reorder = '1';
+  wrap.addEventListener('dragover', (ev) => {
+    const dragRow = wrap._dragRow;
+    if (!dragRow) return;
+    ev.preventDefault();
+    const row = ev.target.closest?.('.ar-row');
+    if (!row || row === dragRow || !wrap.contains(row)) return;
+    const mid = row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2;
+    wrap.insertBefore(dragRow, ev.clientY > mid ? row.nextSibling : row);
+  });
 }
 
 function syncAppointmentResultLabel(idx) {
@@ -316,34 +436,49 @@ function syncAppointmentResultLabel(idx) {
   const l = document.getElementById(`ar-label-${idx}`);
   if (!l) return;
   const map = {
-    qc_bekleniyor: 'QC Bekleniyor',
+    qc_bekleniyor: 'Kalite kontrol bekliyor',
     basarili: 'Başarılı',
     basarisiz: 'Başarısız',
     beklemede: 'Beklemede',
     ulasilamadi: 'Ulaşılamadı',
     iptal: 'İptal',
   };
+  if (t === '__custom') return;
   if (!String(l.value || '').trim()) l.value = map[t] || t;
+}
+
+function _uniqueResultKey(base, used) {
+  let key = _normResultKey(base) || 'ozel';
+  if (!used.has(key)) return key;
+  let n = 2;
+  while (used.has(`${key}_${n}`)) n += 1;
+  return `${key}_${n}`;
 }
 
 function readAppointmentResultRows() {
   const wrap = document.getElementById('s-appt-results-rows');
-  const count = Number(wrap?.dataset.count || 0);
+  const domRows = [...(wrap?.querySelectorAll(':scope > .ar-row') || [])];
   const out = [];
-  for (let i = 0; i < count; i++) {
-    const key = _normResultKey(document.getElementById(`ar-type-${i}`)?.value || '');
-    const label = String(document.getElementById(`ar-label-${i}`)?.value || '').trim() || key;
-    const color = _normalizeResultColor(document.getElementById(`ar-color-${i}`)?.value || '#64748b');
-    const auto_move_down = !!document.getElementById(`ar-move-${i}`)?.checked;
-    if (!key) continue;
-    out.push({ key, label, color, contact_status: appointmentResultToContactStatus(key), auto_move_down });
-  }
+  const used = new Set();
+  domRows.forEach((row, i) => {
+    const picked = row.querySelector('select')?.value || '';
+    const label = String(row.querySelector('input[id^="ar-label-"]')?.value || '').trim();
+    const color = _normalizeResultColor(row.querySelector('input[type="color"]')?.value || '#64748b');
+    const auto_move_down = !!row.querySelector('input[type="checkbox"]')?.checked;
+    const base = picked === '__custom' ? (label || `ozel_${i + 1}`) : picked;
+    const key = _uniqueResultKey(base, used);
+    if (!key) return;
+    used.add(key);
+    out.push({ key, label: label || key, color, contact_status: appointmentResultToContactStatus(key), auto_move_down });
+  });
   return out;
 }
 
 function addAppointmentResultRow() {
   const cur = readAppointmentResultRows();
-  cur.push({ key: 'beklemede', label: 'Beklemede', color: '#f59e0b', contact_status: 'beklemede', auto_move_down: true });
+  const used = new Set(cur.map((row) => row.key));
+  const key = _uniqueResultKey('yeni_sonuc', used);
+  cur.push({ key, label: 'Yeni sonuç', color: '#7c3aed', contact_status: appointmentResultToContactStatus(key), auto_move_down: false });
   renderAppointmentResultRows(cur);
 }
 
@@ -368,6 +503,8 @@ async function saveAppointmentResultsSettings() {
       body: JSON.stringify({ settings: { ...existing, appointment_results: parsed } }),
     });
     window._apptResultsByFirm[fid] = parsed;
+    if (typeof loadMyMiniStats === 'function') loadMyMiniStats();
+    if (typeof mbPaintTodayResults === 'function') mbPaintTodayResults();
     toast('Randevu sonuçları kaydedildi', 'ok');
   } catch (e) {
     toast('Kaydetme hatası: ' + e.message, 'err');
@@ -393,11 +530,27 @@ el.textContent = el.getAttribute(`data-${l}`)||el.textContent;
 el.textContent = el.getAttribute(`data-${l}`)||el.getAttribute('data-tr');
 }
 });
+document.querySelectorAll('[data-tr-title]').forEach((el) => {
+  const v = el.getAttribute(l === 'de' ? 'data-de-title' : 'data-tr-title');
+  if (v) el.setAttribute('title', v);
+});
+document.querySelectorAll('[data-tr-aria]').forEach((el) => {
+  const v = el.getAttribute(l === 'de' ? 'data-de-aria' : 'data-tr-aria');
+  if (v) el.setAttribute('aria-label', v);
+});
 try { localStorage.setItem('mb-lang', l); } catch (_) {}
+try {
+  const geoFrame = document.getElementById('geocon-frame');
+  if (geoFrame && geoFrame.contentWindow) {
+    geoFrame.contentWindow.postMessage({ type: 'mb-geocon-lang', lang: l === 'de' ? 'de' : 'tr' }, window.location.origin);
+  }
+} catch (_) {}
+if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 if (typeof window._mbConnStatus === 'string' && typeof updateConnectionStatus === 'function') {
   updateConnectionStatus(window._mbConnStatus);
 }
 if (typeof renderHotkeyHints === 'function') renderHotkeyHints();
+if (typeof mbPaintTopFirm === 'function') mbPaintTopFirm();
 const testBtn = document.getElementById('test-mode-btn');
 if (testBtn && typeof t === 'function') {
   testBtn.textContent = (typeof _testMode !== 'undefined' && _testMode) ? t('dial.test_btn_on') : t('dial.test_btn_off');
@@ -405,9 +558,10 @@ if (testBtn && typeof t === 'function') {
 if (typeof _syncGoalTabChromeFromPerf === 'function') _syncGoalTabChromeFromPerf();
 if (typeof _mbPaintMonthFaces === 'function') _mbPaintMonthFaces();
 if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
+if (document.getElementById('page-dashboard')?.classList.contains('active') && typeof mbAgentDay === 'function') void mbAgentDay();
 const activePage = (document.querySelector('.page.active')?.id || '').replace(/^page-/, '');
 const inCall = typeof dialerStatus !== 'undefined' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping');
-if (currentUser && activePage && activePage !== 'settings' && !(activePage === 'dialer' && inCall) && typeof runPageEntry === 'function') {
+if (!(typeof _mbPrefsApplying !== 'undefined' && _mbPrefsApplying) && currentUser && activePage && activePage !== 'settings' && !(activePage === 'dialer' && inCall) && typeof runPageEntry === 'function') {
   runPageEntry(activePage);
 }
 if (typeof dialerStatus !== 'undefined' && dialerStatus === 'break' && typeof refreshBreakCustEmpty === 'function') {
@@ -417,6 +571,13 @@ if (typeof dialerStatus !== 'undefined' && dialerStatus === 'on_call' && typeof 
   refreshHangupFinalizeButton();
 }
 if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+if (typeof showCampScript === 'function' && typeof currentContact !== 'undefined' && currentContact) {
+  showCampScript(currentContact);
+}
+const attemptBadge = document.getElementById('cust-attempt-badge');
+if (attemptBadge && typeof currentContact !== 'undefined' && currentContact && typeof uqSay === 'function') {
+  attemptBadge.textContent = uqSay('dial.attempt', '{n}. arama', { n: currentContact.attempt_count || 1 });
+}
   const _ce = document.getElementById('cust-empty');
   if (_ce && _ce.style.display !== 'none' && typeof refreshCustEmptyCoachBubble === 'function') {
     refreshCustEmptyCoachBubble();
@@ -435,11 +596,24 @@ setLang(currentLang);
 function setTheme(t) {
 currentTheme = t;
 document.documentElement.setAttribute('data-theme', t);
+if (typeof mbGeoconOnTheme === 'function') mbGeoconOnTheme(t);
 const icon = document.getElementById('theme-icon');
 if (icon) icon.innerHTML = t==='light'
   ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
   : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3.5v2M12 18.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3.5 12h2M18.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 localStorage.setItem('mb-theme', t);
+mbApplyChartTheme();
+if (typeof mbPaintLiveGradForm === 'function') mbPaintLiveGradForm();
+if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+function mbApplyChartTheme() {
+  if (typeof Chart === 'undefined') return;
+  const cs = getComputedStyle(document.documentElement);
+  const text = cs.getPropertyValue('--text-2').trim() || '#d5dcec';
+  const grid = cs.getPropertyValue('--border-2').trim() || 'rgba(255,255,255,0.18)';
+  Chart.defaults.color = text;
+  Chart.defaults.borderColor = grid;
 }
 
 function toggleTheme() {
@@ -451,7 +625,11 @@ currentPalette = p;
 document.documentElement.setAttribute('data-palette', p);
 document.querySelectorAll('.palette-dot').forEach(d => d.classList.toggle('sel', d.dataset.p===p));
 localStorage.setItem('mb-palette', p);
+if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 }
+
+let _systemDialogResolve = null;
+let _systemDialogType = 'alert';
 
 // Restore theme/palette
 (()=>{
@@ -467,7 +645,8 @@ document.querySelectorAll('.palette-dot').forEach(d => d.classList.toggle('sel',
 // ── TOAST ────────────────────────────────────
 function toast(msg, type='ok', durationMs) {
 const el=document.getElementById('toast');
-el.textContent=(type==='ok'?'✓ ':'✕ ')+msg;
+const mark = type==='ok' ? '✓ ' : type==='warn' ? '' : '✕ ';
+el.textContent=mark+msg;
 el.className=`show ${type}`;
 clearTimeout(toastT);
 const d = Number(durationMs) > 0 ? Number(durationMs) : 3000;
@@ -478,9 +657,6 @@ toastT=setTimeout(()=>el.classList.remove('show'), d);
 function showToast(msg, type, duration) {
 toast(msg, type, duration);
 }
-
-let _systemDialogResolve = null;
-let _systemDialogType = 'alert';
 
 function _openSystemDialog({ type = 'alert', title = 'Bildirim', message = '', defaultValue = '', okText = 'Tamam', cancelText = 'İptal' }) {
   return new Promise((resolve) => {
@@ -546,11 +722,15 @@ window.prompt = (msg, def) => { console.warn('Use mbPrompt instead of prompt:', 
 function openModal(id) {
 const el = document.getElementById(id);
 if (!el) { console.warn('openModal: element not found:', id); return; }
+if (id === 'm-upload-q' && typeof resetUploadQueueForm === 'function') resetUploadQueueForm();
 el.style.removeProperty('display');
 el.classList.add('open');
 }
 
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+  document.getElementById(id)?.classList.remove('open');
+  if (id === 'm-upload-q' && typeof mbGeoconSetMode === 'function') mbGeoconSetMode(false);
+}
 
 document.querySelectorAll('.modal-overlay').forEach(m=>{
 m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
@@ -597,29 +777,37 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ── SETTINGS — SIP bilgilerini kaydet ve bağlan ──
-function saveSettings() {
+async function saveSettings() {
+if (!(typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin())) return;
+const fid = (typeof _mbIntegFirmId !== 'undefined' && _mbIntegFirmId) || currentUser?.firm_id;
+if (!fid || typeof mbSaveFirmIntegrations !== 'function') return;
 const sipUser = document.getElementById('s-sip-user')?.value.trim()||'';
 const sipPass = document.getElementById('s-sip-pass')?.value.trim()||'';
 const apiKey  = document.getElementById('s-telnyx-key')?.value.trim()||'';
 const connId  = document.getElementById('s-conn-id')?.value.trim()||'';
-localStorage.setItem('mb-sip-user',   sipUser);
-window.__mbSipPass = sipPass;
-localStorage.removeItem('mb-sip-pass');
-localStorage.setItem('mb-telnyx-key', apiKey);
-localStorage.setItem('mb-conn-id',    connId);
-toast(t('ui.settings_sip_saved'),'ok');
-updateConnectionStatus('connecting');
-sendToRTC('MB_DISCONNECT');
-setTimeout(()=>{ sendToRTC('MB_CONNECT',{sipUser,sipPass}); }, 600);
+try {
+  const prev = await mbLoadFirmIntegrations(fid);
+  const saved = await mbSaveFirmIntegrations(fid, {
+    telnyx_api_key: apiKey,
+    sip_connection_id: connId,
+    sip_username: sipUser,
+    sip_password: sipPass || prev.sip_password,
+  });
+  if (String(fid) === String(currentUser?.firm_id)) mbApplyFirmIntegrationsLocal(saved, true);
+  else if (typeof mbFillIntegForms === 'function') mbFillIntegForms(saved);
+  toast(t('ui.settings_sip_saved'),'ok');
+} catch (e) {
+  toast((typeof t === 'function' ? t('dial.log_err') : 'Kayıt hatası: ') + e.message, 'err');
+}
 }
 
-function loadSavedSettings() {
+async function loadSavedSettings() {
 loadApiSettings();
-const fields = {'s-sip-user':'mb-sip-user','s-telnyx-key':'mb-telnyx-key','s-conn-id':'mb-conn-id'};
-Object.entries(fields).forEach(([elId,key])=>{
-const el=document.getElementById(elId), val=localStorage.getItem(key);
-if(el&&val) el.value=val;
-});
+if (typeof mbPrepareIntegFirmSelects === 'function') await mbPrepareIntegFirmSelects();
+const fid = (typeof _mbIntegFirmId !== 'undefined' && _mbIntegFirmId) || currentUser?.firm_id;
+if (fid && typeof mbLoadFirmIntegrations === 'function' && typeof mbFillIntegForms === 'function') {
+  mbFillIntegForms(await mbLoadFirmIntegrations(fid));
+}
 if (typeof loadMascotSettingsForm === 'function') loadMascotSettingsForm();
 }
 

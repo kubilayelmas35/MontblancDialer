@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────
 
 function canUsePerformancePage() {
-  return ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+  return mbIsFirmAdmin();
 }
 
 /** Chart.js canvas CSS değişkenlerini okuyamaz; siyah çubuk önlemek için gerçek renk. */
@@ -30,6 +30,7 @@ let _perfCharts = {};
 let _perfChartPeriod = 'daily';
 let _perfCompType = 'termin';
 let _perfTmSort = 'total';
+let _perfApptMode = 'termin';
 
 function _perfDurKey(raw) {
   const s = String(raw || '').trim();
@@ -81,43 +82,63 @@ function perfFmtDateInput(d) {
   return `${y}-${m}-${day}`;
 }
 
+function _perfBerlinToday() {
+  return typeof mbBusinessToday === 'function' ? mbBusinessToday() : perfFmtDateInput(new Date());
+}
+
+function _perfShift(day, delta) {
+  return typeof mbShiftDate === 'function' ? mbShiftDate(day, delta) : day;
+}
+
+function _perfWeekday(day) {
+  const m = String(day || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return new Date().getDay();
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))).getUTCDay();
+}
+
+function _perfMonthEnd(day) {
+  const y = Number(String(day).slice(0, 4));
+  const mo = Number(String(day).slice(5, 7));
+  const last = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+  return `${String(day).slice(0, 7)}-${String(last).padStart(2, '0')}`;
+}
+
+function perfSetApptMode(mode, ev) {
+  _perfApptMode = mode === 'created' ? 'created' : 'termin';
+  document.querySelectorAll('.perf-mode-btn').forEach((b) => b.classList.toggle('active', b.dataset.perfMode === _perfApptMode));
+  if (ev?.currentTarget) ev.currentTarget.classList.add('active');
+  perfReload();
+}
+
+function perfApptWhen(row) {
+  if (_perfApptMode === 'created') return row?.kayit_tarihi || row?.created_at || '';
+  return row?.termin_tarih || '';
+}
+
 function perfSetQuickRange(key, ev) {
-  const today = new Date();
-  let s;
-  let e;
-  if (key === 'today') {
-    s = new Date(today);
-    e = new Date(today);
-  } else if (key === 'week') {
-    const dow = today.getDay();
-    const diff = dow === 0 ? -6 : 1 - dow;
-    s = new Date(today);
-    s.setDate(today.getDate() + diff);
-    e = new Date(s);
-    e.setDate(s.getDate() + 6);
+  const today = _perfBerlinToday();
+  let s = today;
+  let e = today;
+  if (key === 'week' || key === 'lastweek') {
+    const anchor = key === 'lastweek' ? _perfShift(today, -7) : today;
+    const diff = _perfWeekday(anchor) === 0 ? -6 : 1 - _perfWeekday(anchor);
+    s = _perfShift(anchor, diff);
+    e = _perfShift(s, 6);
   } else if (key === 'month') {
-    s = new Date(today.getFullYear(), today.getMonth(), 1);
-    e = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  } else if (key === 'lastweek') {
-    const lw = new Date(today);
-    lw.setDate(today.getDate() - 7);
-    const dow = lw.getDay();
-    const diff = dow === 0 ? -6 : 1 - dow;
-    s = new Date(lw);
-    s.setDate(lw.getDate() + diff);
-    e = new Date(s);
-    e.setDate(s.getDate() + 6);
+    s = `${today.slice(0, 8)}01`;
+    e = _perfMonthEnd(today);
   } else if (key === 'lastmonth') {
-    s = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    e = new Date(today.getFullYear(), today.getMonth(), 0);
-  } else {
-    s = new Date(2020, 0, 1);
-    e = new Date(today.getFullYear() + 1, 11, 31);
+    const prev = _perfShift(`${today.slice(0, 8)}01`, -1);
+    s = `${prev.slice(0, 8)}01`;
+    e = prev;
+  } else if (key !== 'today') {
+    s = '2020-01-01';
+    e = `${Number(today.slice(0, 4)) + 1}-12-31`;
   }
   const fs = document.getElementById('perf-date-from');
   const fe = document.getElementById('perf-date-to');
-  if (fs) fs.value = perfFmtDateInput(s);
-  if (fe) fe.value = perfFmtDateInput(e);
+  if (fs) fs.value = s;
+  if (fe) fe.value = e;
   document.querySelectorAll('.perf-range-btn').forEach((b) => b.classList.remove('active'));
   const rb = ev?.currentTarget || ev?.target?.closest?.('.perf-range-btn') || document.querySelector(`.perf-range-btn[data-perf-range="${key}"]`);
   rb?.classList?.add('active');
@@ -149,10 +170,14 @@ function perfApplyClientFilters() {
 function perfAgentName(id, fallback) {
   if (!id) return fallback || '—';
   const row = _perfRawAppts.find((a) => String(a.agent_id) === String(id));
-  if (row?.users?.name) return row.users.name;
   const c = _perfRawCalls.find((x) => String(x.agent_id) === String(id));
-  if (c?.users?.name) return c.users.name;
-  return fallback || String(id).slice(0, 8);
+  let name = row?.users?.name || c?.users?.name || fallback || String(id).slice(0, 8);
+  if (!getActiveFirmId()) {
+    const firmId = row?.firm_id || c?.firm_id;
+    const firm = (_allFirms || []).find((f) => String(f.id) === String(firmId));
+    if (firm?.name) name = `${name} · ${firm.name}`;
+  }
+  return name;
 }
 
 function perfAggregateAppts(appts) {
@@ -217,7 +242,17 @@ function perfUpdateHeaderSummary() {
   const rate = total > 0 ? Math.round((ok / total) * 100) : 0;
   const agents = new Set(all.map((a) => a.agent_id).filter(Boolean));
   const avg = agents.size > 0 ? Math.round(total / agents.size) : 0;
-  const days = new Set(all.map((a) => String(a.termin_tarih || '').slice(0, 10)).filter(Boolean));
+  const days = new Set(all.map((a) => String(perfApptWhen(a) || '').slice(0, 10)).filter(Boolean));
+  const sumLbl = document.querySelector('#perf-sum-total')?.parentElement?.querySelector('.perf-sum-lbl');
+  if (sumLbl) {
+    const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+    const pair = _perfApptMode === 'created'
+      ? { tr: 'Kayıt tarihi (dönem)', de: 'Erfasst im Zeitraum' }
+      : { tr: 'Randevu günü (dönem)', de: 'Termin im Zeitraum' };
+    sumLbl.textContent = de ? pair.de : pair.tr;
+    sumLbl.setAttribute('data-tr', pair.tr);
+    sumLbl.setAttribute('data-de', pair.de);
+  }
   const el = (id, v) => {
     const n = document.getElementById(id);
     if (n) n.textContent = v;
@@ -243,6 +278,16 @@ function perfUpdateCards() {
     const n = document.getElementById(id);
     if (n) n.textContent = v;
   };
+  const totalLbl = document.getElementById('perf-card-total-lbl');
+  if (totalLbl) {
+    const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+    const pair = _perfApptMode === 'created'
+      ? { tr: 'Bu aralıkta kaydedilen', de: 'Im Zeitraum erfasst' }
+      : { tr: 'Randevu günü bu aralıkta', de: 'Termin im Zeitraum' };
+    totalLbl.textContent = de ? pair.de : pair.tr;
+    totalLbl.setAttribute('data-tr', pair.tr);
+    totalLbl.setAttribute('data-de', pair.de);
+  }
   set('perf-card-total', String(total));
   set('perf-card-ok', String(ok));
   set('perf-card-pend', String(pend));
@@ -269,7 +314,7 @@ function perfGroupTrend(appts) {
   const map = new Map();
   const loc = mbLocale();
   sorted.forEach((a) => {
-    const raw = a.termin_tarih;
+    const raw = perfApptWhen(a);
     if (!raw) return;
     const d = new Date(raw);
     if (isNaN(d.getTime())) return;
@@ -307,6 +352,9 @@ function perfEnsureChart(key, canvasId, factory) {
   }
   const ctx = canvas.getContext('2d');
   _perfCharts[key] = factory(ctx);
+  requestAnimationFrame(() => {
+    try { _perfCharts[key]?.resize(); } catch (e) {}
+  });
   return _perfCharts[key];
 }
 
@@ -427,15 +475,20 @@ function perfRenderMainTable(sortKey) {
 function perfRenderThisMonth() {
   const tbody = document.getElementById('perf-tbody-month');
   if (!tbody) return;
+  const monthTitle = document.getElementById('perf-month-title');
+  if (monthTitle) {
+    const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+    monthTitle.textContent = _perfApptMode === 'created'
+      ? (de ? 'Diesen Monat erfasst' : 'Bu ay kaydedilen')
+      : (de ? 'Termin diesen Monat' : 'Bu ay randevu günü');
+  }
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
-  const tm = _perfRawAppts.filter((a) => {
-    const d = new Date(a.termin_tarih);
-    return !isNaN(d.getTime()) && d.getFullYear() === y && d.getMonth() === m;
-  });
+  const monthKey = `${y}-${String(m + 1).padStart(2, '0')}`;
+  const tm = _perfRawAppts.filter((a) => String(perfApptWhen(a) || '').slice(0, 7) === monthKey);
   if (!tm.length) {
-    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(9, 'ui.no_termin_month') : `<tr><td colspan="9" class="mb-empty-hint">${t('ui.no_termin_month')}</td></tr>`;
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(8, 'ui.no_termin_month') : `<tr><td colspan="8" class="mb-empty-hint">${t('ui.no_termin_month')}</td></tr>`;
     return;
   }
     const agg = perfAggregateAppts(tm);
@@ -574,7 +627,12 @@ function perfPopulateFilters() {
     ids.forEach((id) => {
       ag.innerHTML += `<option value="${id}">${_uiEsc(perfAgentName(id))}</option>`;
     });
-    if (cur && ids.some((id) => String(id) === String(cur))) ag.value = cur;
+    const want = window._mbPerfAgent || cur;
+    if (want && !ids.some((id) => String(id) === String(want))) {
+      ag.innerHTML += `<option value="${want}">${_uiEsc(perfAgentName(want))}</option>`;
+    }
+    if (want && [...ag.options].some((opt) => opt.value === String(want))) ag.value = String(want);
+    if (window._mbPerfAgent) window._mbPerfAgent = '';
   }
   if (cm) {
     const cur = cm.value;
@@ -592,13 +650,16 @@ function perfPopulateFilters() {
 
 async function _perfFetchAppointments(from, to) {
   const ff = getFirmFilter('&');
-  if (isSuperAdmin() && !getActiveFirmId()) return [];
-  const cols = 'id,termin_tarih,durum,nachname,telefonnummer,plz,ortschaft,agent_id,campaign_id,customer_id,agent_notu,firm_id';
-  let q = `appointments?select=${cols},users(name),campaigns(name),customers(name,code)${ff}&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&order=termin_tarih.asc&limit=15000`;
+  const cols = 'id,termin_tarih,kayit_tarihi,durum,nachname,telefonnummer,plz,ortschaft,agent_id,campaign_id,customer_id,agent_notu,firm_id';
+  const created = _perfApptMode === 'created';
+  const gte = created && typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
+  const lte = created && typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
+  const dateCol = created ? 'kayit_tarihi' : 'termin_tarih';
+  let q = `appointments?select=${cols},users(name),campaigns(name),customers(name,code)${ff}&${dateCol}=gte.${gte}&${dateCol}=lte.${lte}&order=${dateCol}.asc&limit=15000`;
   try {
     return (await sb(q)) || [];
   } catch (e) {
-    q = `appointments?select=${cols}${ff}&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&order=termin_tarih.asc&limit=15000`;
+    q = `appointments?select=${cols}${ff}&${dateCol}=gte.${gte}&${dateCol}=lte.${lte}&order=${dateCol}.asc&limit=15000`;
     const rows = (await sb(q).catch(() => [])) || [];
     if (!rows.length) return [];
     const aIds = [...new Set(rows.map((r) => r.agent_id).filter(Boolean))];
@@ -630,12 +691,13 @@ async function _perfFetchAppointments(from, to) {
 
 async function _perfFetchCalls(from, to) {
   const ff = getFirmFilter('&');
-  if (isSuperAdmin() && !getActiveFirmId()) return [];
-  const base = `call_logs?select=id,started_at,agent_id,campaign_id,outcome,phone,duration_sec,users(name),campaigns(name)${ff}&started_at=gte.${from}T00:00:00&started_at=lte.${to}T23:59:59&order=started_at.desc&limit=8000`;
+  const gte = typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
+  const lte = typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
+  const base = `call_logs?select=id,started_at,agent_id,campaign_id,firm_id,outcome,phone,duration_sec,users(name),campaigns(name)${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=started_at.desc&limit=8000`;
   try {
     return (await sb(base)) || [];
   } catch (e) {
-    const simple = `call_logs?select=id,started_at,agent_id,campaign_id,outcome,phone,duration_sec${ff}&started_at=gte.${from}T00:00:00&started_at=lte.${to}T23:59:59&order=started_at.desc&limit=8000`;
+    const simple = `call_logs?select=id,started_at,agent_id,campaign_id,firm_id,outcome,phone,duration_sec${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=started_at.desc&limit=8000`;
     const rows = (await sb(simple).catch(() => [])) || [];
     if (!rows.length) return [];
     const aIds = [...new Set(rows.map((r) => r.agent_id).filter(Boolean))];
@@ -682,7 +744,6 @@ async function perfReload() {
        perfRenderMainTable('total');
     perfRenderThisMonth();
     perfRenderRecent();
-    if (typeof applyLang === 'function') applyLang();
   } catch (e) {
     console.error(e);
     toast(String(e.message || e), 'err');

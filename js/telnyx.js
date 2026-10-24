@@ -2,109 +2,424 @@
 // TELNYX WEBRTC ENTEGRASYONu
 // ─────────────────────────────────────────────
 
+function mbResetCallMeta() {
+  window._mbCallMeta = null;
+}
+
+function mbNoteCallStart(caller, work) {
+  window._mbCallMeta = {
+    dialAt: new Date().toISOString(),
+    caller: String(caller || '').trim(),
+    work: work || 'manual',
+    answeredAt: '',
+    hangupBy: '',
+  };
+}
+
+function mbNoteCallAnswered() {
+  const meta = window._mbCallMeta || {};
+  if (!meta.answeredAt) meta.answeredAt = new Date().toISOString();
+  window._mbCallMeta = meta;
+}
+
+function mbNoteCallHangup(who) {
+  const meta = window._mbCallMeta || {};
+  if (!meta.hangupBy && who) meta.hangupBy = who;
+  window._mbCallMeta = meta;
+}
+
+function mbCallLogExtras() {
+  const meta = window._mbCallMeta || {};
+  const extra = {};
+  if (meta.dialAt) extra.dial_at = meta.dialAt;
+  if (meta.answeredAt) extra.answered_at = meta.answeredAt;
+  if (meta.caller) extra.caller_number = meta.caller;
+  if (meta.work) extra.work_type = meta.work;
+  if (meta.hangupBy) extra.hangup_by = meta.hangupBy;
+  return extra;
+}
+
 function sendToRTC(type, data={}) {
 switch(type) {
 case 'MB_CONNECT':
 _connectTelnyx(data.sipUser, data.sipPass);
 break;
 case 'MB_CALL':
-_makeCall(data.destination, data.callerNumber);
+mbNoteCallStart(data.callerNumber, data.work || 'manual');
+_makeCall(data.destination, data.callerNumber, data.contact);
 break;
 case 'MB_HANGUP':
-if (_telnyxCall) { try { _telnyxCall.hangup(); } catch(e) {} }
+mbHangupLiveOrWave();
 break;
 case 'MB_MUTE':
 if (_telnyxCall) { try { data.muted ? _telnyxCall.muteAudio() : _telnyxCall.unmuteAudio(); } catch(e) {} }
 break;
-case 'MB_HOLD':
-if (_telnyxCall) { try { data.hold ? _telnyxCall.hold() : _telnyxCall.unhold(); } catch(e) {} }
-break;
+case 'MB_HOLD': {
+  const live = _liveCallId ? _hopper.find((r) => r.id === _liveCallId) : null;
+  const call = live?.call || _telnyxCall;
+  const want = !!data.hold;
+  if (call && typeof call.hold === 'function') {
+    try { want ? call.hold() : call.unhold(); } catch (e) {}
+  }
+  if (live && !want) live.agentHold = false;
+  if (typeof mbMarkLiveHold === 'function') mbMarkLiveHold(want);
+  break;
+}
 case 'MB_DISCONNECT':
 if (_telnyxClient) { try { _telnyxClient.disconnect(); } catch(e) {} _telnyxClient = null; }
 break;
 }
 }
 
-function _connectTelnyx(sipUser, sipPass) {
-if (typeof TelnyxRTC === 'undefined') {
-setTimeout(() => _connectTelnyx(sipUser, sipPass), 500);
-return;
+function mbTelnyxConstructor() {
+  if (typeof TelnyxRTC === 'function') return TelnyxRTC;
+  if (typeof TelnyxWebRTC !== 'undefined' && typeof TelnyxWebRTC.TelnyxRTC === 'function') return TelnyxWebRTC.TelnyxRTC;
+  return null;
 }
+
+function _connectTelnyx(sipUser, sipPass, attempt) {
+  const n = attempt || 0;
+  const Ctor = mbTelnyxConstructor();
+  if (!Ctor) {
+    if (n < 20) {
+      setTimeout(() => _connectTelnyx(sipUser, sipPass, n + 1), 500);
+      return;
+    }
+    telnyxReady = false;
+    updateConnectionStatus('disconnected');
+    toast(typeof t === 'function' ? t('telnyx.lib_missing') : 'Hat kütüphanesi yüklenmedi. Sayfayı yenileyin.', 'err');
+    return;
+  }
 try {
 if (_telnyxClient) _telnyxClient.disconnect();
-_telnyxClient = new TelnyxRTC({ login: sipUser, password: sipPass });
-_telnyxClient.on('telnyx.ready', () => {
+const client = new Ctor({ login: sipUser, password: sipPass });
+_telnyxClient = client;
+if (typeof applySavedMicToTelnyx === 'function') applySavedMicToTelnyx();
+const mine = () => _telnyxClient === client;
+client.on('telnyx.ready', () => {
+if (!mine()) return;
 telnyxReady = true;
 updateConnectionStatus('connected');
 toast('✅ Hat bağlantısı hazır', 'ok');
 });
-_telnyxClient.on('telnyx.error', (err) => {
+client.on('telnyx.error', (err) => {
+if (!mine()) return;
 toast('❌ Hat bağlantı hatası: ' + (err?.message||'bağlantı hatası'), 'err');
 });
-_telnyxClient.on('telnyx.socket.close', () => {
+client.on('telnyx.socket.close', () => {
+if (!mine()) return;
 telnyxReady = false;
 updateConnectionStatus('disconnected');
 });
-_telnyxClient.on('telnyx.notification', (n) => {
+client.on('telnyx.notification', (n) => {
+if (!mine()) return;
 const call = n.call;
 if (n.type === 'callUpdate') {
 const state = call?.state;
 const isInbound = call?.direction === 'inbound';
 if (state === 'ringing' && isInbound) {
+  const supFor = typeof mbSupervisorHeader === 'function' ? mbSupervisorHeader(call) : '';
+  const expect = window._mbCoachExpect && Date.now() < window._mbCoachExpect.until;
+  const forMe = supFor && String(supFor) === String(currentUser?.id || '');
+  if (supFor && !forMe) {
+    try { call.hangup(); } catch (e) {}
+    return;
+  }
+  if ((forMe || expect) && typeof call.answer === 'function') {
+    call.__mbSupervisor = true;
+    call.__mbSupervisorRole = window._mbCoachExpect?.role || 'monitor';
+    window._mbCoachExpect = null;
+    try { call.answer(); } catch (e) {}
+    return;
+  }
+  if (_liveCallId || dialerStatus === 'on_call' || dialerStatus === 'wrapping') return;
   if (typeof window.isIncomingDialerEnabled === 'function' && !window.isIncomingDialerEnabled()) {
     try { call.hangup(); } catch (e) {}
     if (typeof toast === 'function') toast('Gelen arama bu firma için kapalı', 'warn', 3200);
     return;
   }
-  if (typeof call.answer === 'function') {
-    try { call.answer(); } catch (e) {}
+  if (typeof mbOfferInboundCall === 'function') {
+    void mbOfferInboundCall(call);
+    return;
   }
 }
-if (state === 'ringing' || state === 'active') _outboundDialPending = false;
-if (state === 'active') {
-_telnyxCall = call;
-let audio = document.getElementById('_telnyx_audio');
-if (!audio) {
-audio = document.createElement('audio');
-audio.id = '_telnyx_audio';
-audio.autoplay = true;
-document.body.appendChild(audio);
-}
-try { audio.srcObject = call.remoteStream; audio.play(); } catch(e) {}
-window._telnyxRemoteStream = call.remoteStream || null;
-handleCallState('active', call.id);
-}
-if (state === 'ringing') { _telnyxCall = call; handleCallState('ringing', call.id); }
-if (state === 'done' || state === 'destroy' || state === 'hangup') {
-const dur = callStart ? Math.round((Date.now()-callStart)/1000) : 0;
-_telnyxCall = null; callStart = null;
-window._telnyxRemoteStream = null;
-handleCallEnd(dur);
-}
-if (call?.amd_result) handleAMD(call.amd_result);
+mbOnHopperCall(call);
 }
 });
-_telnyxClient.connect();
 updateConnectionStatus('connecting');
+client.connect();
 } catch(e) {
 toast('❌ Hat hatası: ' + e.message, 'err');
 }
 }
 
-function _makeCall(destination, callerNumber) {
+function _hopperRowFor(call) {
+  if (!call) return null;
+  const id = call.id || call.callId || '';
+  return _hopper.find((r) => r.call === call || (id && r.id === id)) || null;
+}
+
+function _rememberHopper(call, contact) {
+  const id = call.id || ('leg-' + Date.now() + '-' + Math.random().toString(16).slice(2));
+  const row = { id, call, contact: contact || currentContact || null, phase: 'dialing', answeredAt: 0 };
+  _hopper.push(row);
+  return row;
+}
+
+function _agentBusy() {
+  if (typeof dialerStatus !== 'undefined' && dialerStatus === 'wrapping') return true;
+  if (typeof isOnHold !== 'undefined' && isOnHold && _liveCallId) return true;
+  return !!_liveCallId && _hopper.some((r) => r.id === _liveCallId && (r.phase === 'live' || r.agentHold));
+}
+
+function _setHoldButton(on) {
+  const hold = document.getElementById('btn-hold');
+  if (hold) hold.classList.toggle('active', !!on);
+}
+
+function _pauseLiveAudio(paused) {
+  const audio = document.getElementById('_telnyx_audio');
+  if (!audio) return;
+  try {
+    if (paused) audio.pause();
+    else if (audio.srcObject) audio.play();
+  } catch (e) {}
+}
+
+function mbMarkLiveHold(on) {
+  isOnHold = !!on;
+  const row = _liveCallId ? _hopper.find((r) => r.id === _liveCallId) : null;
+  if (row) {
+    row.agentHold = !!on;
+    if (on) row.phase = 'live';
+  }
+  _setHoldButton(on);
+  _pauseLiveAudio(on);
+}
+
+function _attachLiveAudio(call) {
+  let audio = document.getElementById('_telnyx_audio');
+  if (!audio) {
+    audio = document.createElement('audio');
+    audio.id = '_telnyx_audio';
+    audio.autoplay = true;
+    document.body.appendChild(audio);
+  }
+  try { if (call?.remoteStream) { audio.srcObject = call.remoteStream; audio.play(); } } catch (e) {}
+  window._telnyxRemoteStream = call?.remoteStream || null;
+}
+
+function mbConnectHopperRow(row) {
+  if (!row) return;
+  _liveCallId = row.id;
+  _telnyxCall = row.call;
+  row.phase = 'live';
+  _outboundAnswered = true;
+  _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
+  if (row.contact) currentContact = row.contact;
+  _attachLiveAudio(row.call);
+  if (typeof handleCallState === 'function') handleCallState('active', row.id);
+  if (typeof mbPublishLiveLeg === 'function') mbPublishLiveLeg(row);
+  if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+  if (typeof mbSyncPool === 'function') mbSyncPool();
+}
+
+function mbTakeHeldCall() {
+  const held = _hopper.filter((r) => r.phase === 'hold').sort((a, b) => a.answeredAt - b.answeredAt);
+  if (!held.length) return false;
+  const row = held[0];
+  try { row.call.unhold(); } catch (e) {}
+  mbConnectHopperRow(row);
+  if (typeof toast === 'function') toast(typeof t === 'function' ? t('dial.hopper.held_next') : 'Müzikte bekleyen kişi bağlandı', 'ok', 2200);
+  return true;
+}
+
+function mbReleaseUnanswered(contact, status) {
+  if (!contact?.id) return;
+  const st = status || 'no_answer';
+  if (st === 'no_answer') _hopperSkip.set(String(contact.id), Date.now() + 60000);
+  if (typeof isValidUUID === 'function' && isValidUUID(contact.id) && typeof sb === 'function') {
+    sb(`contacts?id=eq.${contact.id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ status: st, last_called_at: new Date().toISOString() }),
+    }).catch(() => {});
+  }
+}
+
+function mbCancelHopper() {
+  const rows = _hopper.filter((r) => r.phase !== 'live');
+  rows.forEach((r) => {
+    if (r.contact && r.phase !== 'hold') mbReleaseUnanswered(r.contact, 'pending');
+    _hopper = _hopper.filter((x) => x !== r);
+    try { r.call.hangup(); } catch (e) {}
+  });
+  if (!_liveCallId) {
+    _outboundDialPending = false;
+    _telnyxCall = null;
+    if (dialerStatus === 'calling' && typeof setDialerStatus === 'function') {
+      setDialerStatus('ready');
+      if (typeof clearCustomerCard === 'function') clearCustomerCard();
+    }
+  }
+  if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+}
+
+function mbHangupLiveOrWave() {
+  mbNoteCallHangup('agent');
+  if (_liveCallId) {
+    const row = _hopper.find((r) => r.id === _liveCallId);
+    try { (row?.call || _telnyxCall)?.hangup(); } catch (e) {}
+    return;
+  }
+  if (_hopper.length) {
+    mbCancelHopper();
+    return;
+  }
+  if (_telnyxCall) { try { _telnyxCall.hangup(); } catch (e) {} }
+}
+
+function mbOnHopperCall(call) {
+  if (!call) return;
+  const state = String(call.state || '');
+  if (call.__mbSupervisor || (typeof mbSupervisorHeader === 'function' && mbSupervisorHeader(call))) {
+    const dead = state === 'hangup' || state === 'destroy' || state === 'done' || state === 'purge';
+    if (state === 'active') {
+      window._mbCoachCall = call;
+      _attachLiveAudio(call);
+      const role = call.__mbSupervisorRole;
+      const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+      const label = role === 'whisper' ? (de ? 'Flüstern' : 'Fısıltı') : role === 'barge' ? (de ? 'Beigetreten' : 'Katıldın') : (de ? 'Zuhören' : 'Dinliyorsun');
+      if (typeof toast === 'function') toast(label, 'ok', 2200);
+    }
+    if (dead && window._mbCoachCall === call) window._mbCoachCall = null;
+    return;
+  }
+  const dead = state === 'hangup' || state === 'destroy' || state === 'done' || state === 'purge';
+  let row = _hopperRowFor(call);
+  if (!row) {
+    if (dead || state === 'held' || state === 'hold') return;
+    if (call.direction === 'inbound' && state !== 'active') return;
+    row = _rememberHopper(call, currentContact);
+  }
+  if (call.id && row.id !== call.id && row.id === _liveCallId) _liveCallId = call.id;
+  if (call.id) row.id = call.id;
+  if (call.amd_result === 'machine' && row.phase !== 'live') {
+    try { call.hangup(); } catch (e) {}
+    return;
+  }
+  if (state === 'ringing' || state === 'trying' || state === 'requesting' || state === 'early' || state === 'answering') {
+    if (row.phase !== 'live' && row.phase !== 'hold') row.phase = 'ringing';
+    _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
+    if (!_agentBusy() && typeof handleCallState === 'function') handleCallState('ringing', row.id);
+    if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+    return;
+  }
+  if (state === 'held' || state === 'hold') {
+    if (row.id === _liveCallId) {
+      row.agentHold = true;
+      row.phase = 'live';
+      isOnHold = true;
+      _setHoldButton(true);
+      _pauseLiveAudio(true);
+      if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+      return;
+    }
+    row.phase = 'hold';
+    if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+    return;
+  }
+  if (state === 'active') {
+    if (row.id === _liveCallId && row.phase === 'live') {
+      if (row.agentHold || isOnHold) return;
+      _setHoldButton(false);
+      _pauseLiveAudio(false);
+      _attachLiveAudio(row.call);
+      return;
+    }
+    if (row.phase === 'hold') return;
+    if (_agentBusy() && row.id !== _liveCallId) {
+      row.phase = 'hold';
+      row.answeredAt = row.answeredAt || Date.now();
+      try { call.hold(); } catch (e) {}
+      if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+      if (typeof mbSyncPool === 'function') mbSyncPool();
+      return;
+    }
+    row.answeredAt = row.answeredAt || Date.now();
+    if (!callStart) callStart = Date.now();
+    mbConnectHopperRow(row);
+    return;
+  }
+  if (dead) {
+    const wasLive = row.id === _liveCallId || row.phase === 'live';
+    const contact = row.contact;
+    const phase = row.phase;
+    _hopper = _hopper.filter((r) => r !== row);
+    _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
+    if (wasLive) {
+      _liveCallId = null;
+      _telnyxCall = null;
+      const dur = callStart ? Math.round((Date.now() - callStart) / 1000) : 0;
+      callStart = null;
+      if (typeof handleCallEnd === 'function') handleCallEnd(dur);
+    } else if (contact && phase !== 'hold') {
+      if (_telnyxCall === row.call) _telnyxCall = null;
+      mbReleaseUnanswered(contact, 'no_answer');
+      if (!_liveCallId && typeof mbRefillHopper === 'function') mbRefillHopper();
+    }
+    if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+  }
+}
+
+function _makeCall(destination, callerNumber, contact) {
 if (!_telnyxClient || !telnyxReady) {
 _outboundDialPending = false;
 toast('Hat bağlantısı yok', 'err'); return;
 }
 try {
-_telnyxCall = _telnyxClient.newCall({
+const call = _telnyxClient.newCall({
 destinationNumber: destination,
 callerNumber: callerNumber,
 audio: true, video: false,
 detectAnsweringMachine: true,
 });
-callStart = Date.now();
+_rememberHopper(call, contact || currentContact);
+if (!_telnyxCall) _telnyxCall = call;
+if (!callStart) callStart = Date.now();
+_outboundDialPending = true;
 } catch(e) { _outboundDialPending = false; toast('Arama hatası: ' + e.message, 'err'); }
+}
+
+function mbSimOutbound(contact, answerInMs) {
+  const call = {
+    id: 'sim-' + String(contact?.id || 'x') + '-' + Math.random().toString(16).slice(2),
+    state: 'ringing',
+    remoteStream: null,
+    held: false,
+    hold() { this.held = true; this.state = 'held'; },
+    unhold() { this.held = false; this.state = 'active'; },
+    hangup() { this.state = 'hangup'; mbOnHopperCall(this); },
+  };
+  _rememberHopper(call, contact);
+  _outboundDialPending = true;
+  const waitMs = (typeof window !== 'undefined' && window.__mbPoolAnswerMs) || answerInMs || 1200;
+  setTimeout(() => {
+    const row = _hopper.find((r) => r.call === call);
+    if (!row) return;
+    if (dialerStatus === 'wrapping') {
+      call.state = 'held';
+      call.held = true;
+      row.phase = 'hold';
+      row.answeredAt = row.answeredAt || Date.now();
+      if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+      return;
+    }
+    if (dialerStatus !== 'calling' && dialerStatus !== 'on_call') return;
+    call.state = 'active';
+    mbOnHopperCall(call);
+  }, Math.max(200, waitMs));
+  return call;
 }
 
 function initRTCListener() {
@@ -150,12 +465,13 @@ break;
 function updateMicStatus(granted) {
 const el = document.getElementById('mic-status');
 if (!el) return;
-el.innerHTML = granted
-  ? '<i class="ph ph-microphone" style="vertical-align:-3px;font-size:17px;color:var(--green);"></i>'
-  : '<i class="ph ph-microphone-slash" style="vertical-align:-3px;font-size:17px;color:var(--red);"></i>';
-el.title = granted
-? t('telnyx.mic_on')
-: t('telnyx.mic_off');
+const icon = granted ? 'ph-microphone' : 'ph-microphone-slash';
+const kicker = typeof t === 'function' ? t('dial.mic_chip') : 'Mikrofon';
+const hint = typeof t === 'function' ? t('dial.mic_chip_hint') : 'Ayarlar için tıkla';
+el.classList.toggle('is-on', !!granted);
+el.classList.toggle('is-off', !granted);
+el.innerHTML = `<i class="ph ${icon}"></i><span class="dialer-mic-chip__text"><span class="dialer-mic-chip__kicker">${kicker}</span><span class="dialer-mic-chip__hint">${hint}</span></span>`;
+el.title = granted ? t('telnyx.mic_on') : t('telnyx.mic_off');
 }
 
 function updateConnectionStatus(status) {
@@ -179,9 +495,20 @@ dialing: { tr:'📞 Aranıyor...', de:'Wählt...' },
 ringing: { tr:'🔔 Çalıyor...', de:'Klingelt...' },
 active:  { tr:'Aramada', de:'Im Gespräch' },
 };
-if (state === 'active' && dialerStatus !== 'on_call') {
+if (state === 'active') {
+_outboundAnswered = true;
+mbNoteCallAnswered();
+if (currentContact && typeof showCustomerCard === 'function') showCustomerCard(currentContact);
+if (dialerStatus !== 'on_call') {
 setDialerStatus('on_call');
-updateSessionInDB('on_call');
+const nm = [currentContact?.first_name, currentContact?.last_name].filter(Boolean).join(' ') || null;
+updateSessionInDB('on_call', {
+  current_contact_name: nm,
+  current_contact_phone: currentContact?.phone || null,
+  call_started_at: new Date().toISOString(),
+});
+}
+if (typeof switchContactTab === 'function') switchContactTab('info');
 } else if (subLabels[state] && label) {
 label.textContent = subLabels[state][currentLang] || subLabels[state].tr;
 }
@@ -189,8 +516,9 @@ label.textContent = subLabels[state][currentLang] || subLabels[state].tr;
 
 function handleAMD(result) {
 amdResult = result;
-if (result === 'machine') {
+if (result === 'machine' && !_outboundAnswered) {
 toast('🤖 ' + t('telnyx.amd_voicemail'), 'ok');
+mbNoteCallHangup('system');
 sendToRTC('MB_HANGUP');
 autoSaveVoicemail();
 }
@@ -213,24 +541,28 @@ await sb(`contacts?id=eq.${currentContact.id}`, { method:'PATCH', prefer:'return
 body:JSON.stringify({ status:'voicemail', last_called_at:new Date().toISOString() })
 });
 } catch(e) { console.error(e); }
-currentContact = null;
-clearCustomerCard();
-if (dialerStatus === 'on_call' || dialerStatus === 'ready') {
-setDialerStatus('ready');
-updateSessionInDB('ready');
-setTimeout(() => dialNext(), 1500);
+_voicemailAutoLogged = true;
+if (dialerStatus === 'on_call' || dialerStatus === 'calling') {
+setDialerStatus('wrapping');
+updateSessionInDB('wrapping');
 }
 }
 
 function handleCallEnd(duration) {
-if (amdResult === 'machine') return;
-_outboundDialPending = false;
+mbNoteCallHangup('customer');
+if (typeof mbMarkLiveHold === 'function') mbMarkLiveHold(false);
+_outboundWaitGen++;
+_outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
+const wasAttempt = dialerStatus === 'on_call' || (dialerStatus === 'calling' && !_hopper.length);
 callSeconds  = duration || callSeconds;
 activeCallId = null;
-if (dialerStatus === 'on_call') {
+if (wasAttempt) {
+if (currentContact && typeof showCustomerCard === 'function') showCustomerCard(currentContact);
 setDialerStatus('wrapping');
 updateSessionInDB('wrapping');
 }
+_outboundAnswered = false;
+if (amdResult === 'machine') amdResult = null;
 }
 
 async function handleTelnyxWebhook(data) {

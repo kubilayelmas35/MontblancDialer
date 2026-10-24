@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────
 
 function isExportAdmin() {
-  return ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+  return mbIsFirmAdmin();
 }
 
 function updateCallHistoryExportVisibility() {
@@ -32,11 +32,11 @@ function _downloadCsvUtf8(filename, lineStrings) {
 }
 
 function _statsTableToAoA() {
-  const table = document.querySelector('#stats-tbody');
+  const table = document.querySelector('#page-stats table');
   if (!table) return null;
-  const header = ['Agent', 'Kampanya', 'Toplam', 'Randevu', 'Olumsuz', 'Geri Ara', 'Cevap Yok', 'Ort. Süre', 'Dönüşüm'];
+  const header = [...table.querySelectorAll('thead th')].map((th) => String(th.dataset.label || th.textContent || '').trim());
   const aoa = [header];
-  table.querySelectorAll('tr').forEach((tr) => {
+  table.querySelectorAll('tbody tr').forEach((tr) => {
     const tds = tr.querySelectorAll('td');
     if (!tds.length) return;
     aoa.push(Array.from(tds).map((td) => td.textContent.trim()));
@@ -100,32 +100,52 @@ function _buildCallHistoryQueryForExport() {
   const search = document.getElementById('ch-search')?.value?.toLowerCase() || '';
   const outcome = document.getElementById('ch-outcome')?.value || '';
   const agentFilter = document.getElementById('ch-agent-f')?.value || '';
-  const dateFrom = document.getElementById('ch-date-from')?.value || new Date().toISOString().split('T')[0];
-  const dateTo = document.getElementById('ch-date-to')?.value || new Date().toISOString().split('T')[0];
-  let query = `call_logs?select=*,users(id,name),campaigns(name),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=8000`;
-  query += `&started_at=gte.${dateFrom}T00:00:00`;
-  query += `&started_at=lte.${dateTo}T23:59:59`;
-  if (outcome) query += outcome === 'appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${outcome}`;
+  const chToday = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
+  const dateFrom = document.getElementById('ch-date-from')?.value || chToday;
+  const dateTo = document.getElementById('ch-date-to')?.value || chToday;
+  const gte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
+  const lte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
+  let query = `call_logs?select=*,users(id,name),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=8000`;
+  query += `&started_at=gte.${gte}`;
+  query += `&started_at=lte.${lte}`;
+  const camp = document.getElementById('ch-camp-f')?.value || '';
+  if (outcome) query += outcome === 'appointment' ? `&outcome=in.(appointment,appointment_done)` : `&outcome=eq.${encodeURIComponent(outcome)}`;
   if (agentFilter) query += `&agent_id=eq.${agentFilter}`;
+  if (camp) query += `&campaign_id=eq.${camp}`;
   return { query, search };
 }
 
 async function _fetchCallHistoryExportRows() {
   const { query, search } = _buildCallHistoryQueryForExport();
   let logs = (await sb(query).catch(() => [])) || [];
-  if (search) {
-    logs = logs.filter((l) => {
-      const name = `${l.contacts?.first_name || ''} ${l.contacts?.last_name || ''}`.toLowerCase();
-      const phone = l.phone || l.contacts?.phone || '';
-      const agent = l.users?.name?.toLowerCase() || '';
-      return name.includes(search) || String(phone).includes(search) || agent.includes(search);
-    });
-  }
+  const dir = document.getElementById('ch-dir')?.value || '';
+  logs = logs.filter((l) => {
+    if (dir === 'in' && l.work_type !== 'inbound') return false;
+    if (dir === 'out' && l.work_type === 'inbound') return false;
+    if (!search) return true;
+    const name = `${l.contacts?.first_name || ''} ${l.contacts?.last_name || ''}`.toLowerCase();
+    const phone = l.phone || l.contacts?.phone || '';
+    const agent = l.users?.name?.toLowerCase() || '';
+    const note = String(l.notes || '').toLowerCase();
+    return name.includes(search) || String(phone).includes(search) || agent.includes(search) || note.includes(search);
+  });
+  const map = typeof statsOutcomeLabels === 'function' ? await statsOutcomeLabels(logs.map((l) => l.campaign_id)) : {};
+  logs.forEach((l) => {
+    l._ocLabel = typeof chOutcomeText === 'function' ? chOutcomeText(l.outcome, map) : _chOutcomeLabel(l.outcome);
+  });
   return logs;
 }
 
+function _chWall(iso) {
+  if (!iso) return '';
+  if (typeof mbFormatWall === 'function') {
+    return mbFormatWall(iso, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+  return new Date(iso).toLocaleString('tr-TR', { timeZone: 'Europe/Berlin' });
+}
+
 function _logToExportRow(l) {
-  const dt = l.started_at ? new Date(l.started_at).toLocaleString('tr-TR') : '';
+  const dt = _chWall(l.started_at);
   const name = `${l.contacts?.first_name || ''} ${l.contacts?.last_name || ''}`.trim() || '—';
   const phone = l.phone || l.contacts?.phone || '—';
   const agent = l.users?.name || '—';
@@ -133,11 +153,17 @@ function _logToExportRow(l) {
   const durSec = l.duration_sec != null ? l.duration_sec : '';
   const durStr =
     l.duration_sec != null ? `${Math.floor(l.duration_sec / 60)}:${String(l.duration_sec % 60).padStart(2, '0')}` : '';
-  const oc = _chOutcomeLabel(l.outcome);
-  const notes = (l.notes || '').replace(/\r?\n/g, ' ');
-  const cb = l.callback_at ? new Date(l.callback_at).toLocaleString('tr-TR') : '';
+  const oc = l._ocLabel || _chOutcomeLabel(l.outcome);
+  const notes = (l.notes || '').replace(/__test_sim__/g, ' ').replace(/\s+/g, ' ').trim();
+  const cb = _chWall(l.callback_at);
   const rec = l.recording_url || '';
-  return [dt, name, phone, agent, camp, durStr, durSec, oc, notes, cb, rec];
+  const answer = _chWall(l.answered_at || (Number(l.duration_sec) > 0 ? l.started_at : ''));
+  const end = _chWall(l.ended_at);
+  const caller = l.caller_number || l.campaigns?.telnyx_did || '';
+  const work = typeof chWorkText === 'function' ? chWorkText(l.work_type) : (l.work_type || '');
+  const who = typeof chWhoText === 'function' ? chWhoText(l.hangup_by) : (l.hangup_by || '');
+  const cost = l.cost_usd != null && Number(l.cost_usd) > 0 ? l.cost_usd : '';
+  return [dt, answer, end, name, phone, caller, agent, camp, work, durStr, durSec, cost, oc, who, notes, cb, rec];
 }
 
 async function exportCallHistoryCsv() {
@@ -149,15 +175,21 @@ async function exportCallHistoryCsv() {
       return;
     }
     const head = [
-      'Tarih/Saat',
+      'Arama',
+      'Cevaplama',
+      'Kapatma',
       'Müşteri',
       'Telefon',
-      'Agent',
-      'Kampanya',
+      'Arayan',
+      'Operatör',
+      'Kuyruk',
+      'Çalışma tipi',
       'Süre',
       'Süre_sn',
+      'Ücret',
       'Sonuç',
-      'Not',
+      'Sonlandıran',
+      'Açıklama',
       'Geri arama',
       'Kayıt URL',
     ];
@@ -187,15 +219,21 @@ async function exportCallHistoryXlsx() {
       return;
     }
     const head = [
-      'Tarih/Saat',
+      'Arama',
+      'Cevaplama',
+      'Kapatma',
       'Müşteri',
       'Telefon',
-      'Agent',
-      'Kampanya',
+      'Arayan',
+      'Operatör',
+      'Kuyruk',
+      'Çalışma tipi',
       'Süre',
       'Süre_sn',
+      'Ücret',
       'Sonuç',
-      'Not',
+      'Sonlandıran',
+      'Açıklama',
       'Geri arama',
       'Kayıt URL',
     ];

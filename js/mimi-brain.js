@@ -43,107 +43,92 @@
     return _TIME_SPEED[_timeProfile()] ?? 1.0;
   }
 
-  // Drink label depends on time
-  function _drinkForTime() {
-    const h = _hour();
-    if (h < 10) return { tr: '☕', de: '☕' };
-    if (h < 14) return { tr: '🧋', de: '🧋' };
-    if (h < 18) return { tr: '🧃', de: '🧃' };
-    return { tr: '🫖', de: '🫖' };
-  }
-
   // ── Page-specific bubble pools ───────────────
   const _PAGE_MSGS = {
     dialer: {
       tr: [
-        'Hazır mısın? Bir randevu seni bekliyor!',
-        'Bugün harika bir gün — başlayalım!',
-        'Her çağrı yeni bir şans.',
-        'Ritmin çok güzel, böyle devam!',
-        'Telefonun sıcak, müşteri yakın 🔥',
+        'Hazır olunca arama başlar.',
+        'Müşteri kartı görüşme sırasında burada görünür.',
+        'Sonucu kaydetmeden sonraki aramaya geçme.',
+        'Kısa ve net konuş. Notu görüşme bitince yaz.',
       ],
       de: [
-        'Bereit? Ein Termin wartet auf dich!',
-        'Heute wird ein guter Tag — los geht\'s!',
-        'Jeder Anruf ist eine neue Chance.',
-        'Schöner Rhythmus, weiter so!',
-        'Das Telefon ist warm, der Kunde nah 🔥',
+        'Der Anruf startet, sobald du bereit bist.',
+        'Die Kundenkarte erscheint während des Gesprächs.',
+        'Ergebnis speichern, bevor der nächste Anruf startet.',
+        'Kurz und klar sprechen. Notiz nach dem Gespräch.',
       ],
     },
     dashboard: {
       tr: [
-        'Harika sayılar! Çok iyi iş çıkarmışsın.',
-        'Grafikler seni gülümsettirsin 📈',
-        'Takım ruhunu hissediyorum!',
-        'Bugünkü rakamlar müthiş gözüküyor.',
+        'Günün özeti bu ekranda.',
+        'Randevu ve çağrı sayıları güncel.',
+        'Dönem filtresi rakamları değiştirir.',
       ],
       de: [
-        'Tolle Zahlen — sehr gute Arbeit!',
-        'Lass die Grafiken dich zum Lächeln bringen 📈',
-        'Ich spüre den Teamgeist!',
-        'Die heutigen Zahlen sehen fantastisch aus.',
+        'Die Tagesübersicht steht hier.',
+        'Termine und Anrufe sind aktuell.',
+        'Der Zeitraumfilter ändert die Zahlen.',
       ],
     },
     qc: {
       tr: [
-        'Kalite kontrolü — en önemli adım!',
-        'Her detay önemli, dikkatli ol 🔍',
-        'Mükemmellik burada başlıyor.',
-        'Harika bir kalite gözün var!',
+        'Kalite kontrolü bekleyen kayıtlar burada.',
+        'Sonucu eksiksiz işaretle.',
+        'Eksik notu olan kaydı geri çevir.',
       ],
       de: [
-        'Qualitätskontrolle — der wichtigste Schritt!',
-        'Jedes Detail zählt, sei aufmerksam 🔍',
-        'Hier beginnt die Perfektion.',
-        'Du hast ein tolles Qualitätsauge!',
+        'Offene Qualitätsprüfungen stehen hier.',
+        'Ergebnis vollständig markieren.',
+        'Eintrag mit fehlender Notiz zurückgeben.',
       ],
     },
     contacts: {
       tr: [
-        'Her müşteri özel, her liste değerli.',
-        'Hangi müşteriyi seçeceğiz bugün?',
-        'İyi bir liste iyi bir gün demek!',
+        'Kişi listesi bu ekranda.',
+        'Yüklemeden önce telefon tekrarını kontrol et.',
+        'Hatalı satır içeri alınmaz.',
       ],
       de: [
-        'Jeder Kunde ist besonders, jede Liste wertvoll.',
-        'Welchen Kunden wählen wir heute?',
-        'Eine gute Liste bedeutet einen guten Tag!',
+        'Die Kontaktliste steht hier.',
+        'Vor dem Import Telefonnummern auf Dubletten prüfen.',
+        'Fehlerhafte Zeilen werden nicht übernommen.',
       ],
     },
     campaigns: {
       tr: [
-        'Kampanyalar hedefe uçuyor 🚀',
-        'Her kampanya yeni bir fırsat!',
-        'Hangi kampanyayı patlatıyoruz?',
+        'Kampanya durumu ve kuyruk burada.',
+        'Yalnızca aktif kampanyalar aramaya girer.',
+        'Kuyruk bitince yeni liste yükle.',
       ],
       de: [
-        'Kampagnen fliegen zum Ziel 🚀',
-        'Jede Kampagne ist eine neue Chance!',
-        'Welche Kampagne rocken wir?',
+        'Kampagnenstatus und Warteschlange stehen hier.',
+        'Nur aktive Kampagnen gehen in die Wahl.',
+        'Neue Liste laden, wenn die Warteschlange leer ist.',
       ],
     },
     settings: {
       tr: [
-        'Ayarlar tamam mı? Her şey yerli yerinde.',
-        'Güzel bir sistem kurmak için buradayız!',
-        'Bir ayar değişikliği bazen her şeyi değiştirir.',
+        'Değişiklikten sonra kaydet.',
+        'Firma ayarı tüm ekibi etkiler.',
+        'Kayıtlı sonuç adları dialer kutularına yansır.',
       ],
       de: [
-        'Einstellungen okay? Alles an seinem Platz.',
-        'Wir sind hier, um ein gutes System aufzubauen!',
-        'Eine Einstellung kann manchmal alles ändern.',
+        'Nach der Änderung speichern.',
+        'Firmeneinstellungen gelten für das ganze Team.',
+        'Gespeicherte Ergebnisnamen erscheinen im Dialer.',
       ],
     },
     performance: {
       tr: [
-        'Performansın gökyüzünde! 🌟',
-        'Her sayı bir başarı hikayesi.',
-        'Veriler asla yalan söylemez!',
+        'Personel sonuçları bu ekranda.',
+        'Dönem filtresi sayıları değiştirir.',
+        'Randevu ve çağrı ayrı kolonlarda.',
       ],
       de: [
-        'Deine Performance ist durch die Decke! 🌟',
-        'Jede Zahl ist eine Erfolgsgeschichte.',
-        'Daten lügen nie!',
+        'Mitarbeiterergebnisse stehen hier.',
+        'Der Zeitraumfilter ändert die Zahlen.',
+        'Termine und Anrufe stehen in getrennten Spalten.',
       ],
     },
     supervisor: {
@@ -160,26 +145,26 @@
     },
     wiedervorlage: {
       tr: [
-        'Geri aramalar bekliyor — hazır mısın?',
-        'Sıcak leadler burada saklı 🔥',
-        'Bir geri arama bir randevu olabilir!',
+        'Geri arama listesi burada.',
+        'Vadesi gelen kaydı önce ara.',
+        'Tarih ve notu aramadan önce oku.',
       ],
       de: [
-        'Rückrufe warten — bist du bereit?',
-        'Heiße Leads sind hier versteckt 🔥',
-        'Ein Rückruf kann ein Termin werden!',
+        'Die Rückrufliste steht hier.',
+        'Fällige Einträge zuerst anrufen.',
+        'Datum und Notiz vor dem Anruf lesen.',
       ],
     },
     takvim: {
       tr: [
-        'Takvim dolu — harika iş!',
-        'Her slot bir kazanç 📅',
-        'Randevular düzenli, aklım rahat.',
+        'Randevu takvimi bu ekranda.',
+        'Dolu slota yeni kayıt eklenmez.',
+        'Taşıma öncesi kampanyayı kontrol et.',
       ],
       de: [
-        'Kalender voll — tolle Arbeit!',
-        'Jeder Slot ist ein Gewinn 📅',
-        'Termine ordentlich, mein Kopf ist frei.',
+        'Der Terminkalender steht hier.',
+        'Belegte Slots nehmen keinen neuen Eintrag.',
+        'Vor dem Verschieben die Kampagne prüfen.',
       ],
     },
     field: {
@@ -208,24 +193,24 @@
     },
     jobmarket: {
       tr: [
-        'İş piyasası canlı — fırsatlar kaçmasın!',
-        'Her ilan bir kapı açıyor.',
-        'Harita dolu, iş bol 🗺️',
+        'Açık işler bu listede.',
+        'İlan durumu ve süre burada görünür.',
+        'Başvurudan önce şartları oku.',
       ],
       de: [
-        'Jobmarkt lebendig — keine Chancen verpassen!',
-        'Jede Anzeige öffnet eine Tür.',
-        'Karte voll, viele Jobs 🗺️',
+        'Offene Aufträge stehen in dieser Liste.',
+        'Status und Frist sind hier sichtbar.',
+        'Bedingungen vor der Bewerbung lesen.',
       ],
     },
     leave: {
       tr: [
-        'Dinlenme de çalışmak kadar önemli ☀️',
-        'İzin talebini en iyi şekilde yönetelim.',
+        'İzin talepleri bu ekranda.',
+        'Onay bekleyen kaydı kontrol et.',
       ],
       de: [
-        'Erholung ist genauso wichtig wie Arbeit ☀️',
-        'Lass uns deinen Urlaubsantrag bestmöglich verwalten.',
+        'Urlaubsanträge stehen hier.',
+        'Offene Freigaben prüfen.',
       ],
     },
     muhasebe: {
@@ -242,26 +227,24 @@
     },
     competition: {
       tr: [
-        'Rekabet ruhu! Kim kazanacak?',
-        'Sıralama güncelliyor — takip et! 🏆',
+        'Aylık sıralama bu ekranda.',
+        'Sıra, dönem kapandığında güncellenir.',
       ],
       de: [
-        'Wettbewerbsgeist! Wer gewinnt?',
-        'Rangliste aktualisiert — bleib dran! 🏆',
+        'Die Monatsrangliste steht hier.',
+        'Der Rang aktualisiert sich zum Periodenende.',
       ],
     },
   };
 
   const _DEFAULT_MSGS = {
     tr: [
-      'Buradayım, her zaman!',
-      'Seninle çalışmak harika 😊',
-      'Birlikte her şeyi başarırız.',
+      'İşlem için hazır.',
+      'Menüden ilgili sayfaya geç.',
     ],
     de: [
-      'Ich bin hier, immer!',
-      'Es macht Spaß, mit dir zu arbeiten 😊',
-      'Zusammen schaffen wir alles.',
+      'Bereit für die nächste Aktion.',
+      'Im Menü zur passenden Seite wechseln.',
     ],
   };
 
@@ -350,7 +333,7 @@
     _isYawning = true;
     _setMood('cust-empty--mascot-yawn', 'yawn');
     const tr = _lang() === 'tr';
-    _bubble(tr ? 'Haaaa... biraz yoruldum 🥱' : 'Haaaa... ein bisschen müde 🥱');
+    _bubble(tr ? 'Bir süredir işlem yok.' : 'Seit einer Weile keine Aktion.');
     if (typeof _wanderSpeedMult !== 'undefined') window._wanderSpeedMult = 0.4;
   }
 
@@ -368,7 +351,7 @@
     if (typeof _wanderSpeedMult !== 'undefined') window._wanderSpeedMult = 0.1;
     if (typeof _wanderPauseUntil !== 'undefined') window._wanderPauseUntil = performance.now() + 99999999;
     const tr = _lang() === 'tr';
-    _bubble(tr ? 'Zzz... biraz şekerleme yapıyorum 😴' : 'Zzz... ich schlafe kurz 😴');
+    _bubble(tr ? 'Ekran beklemede.' : 'Ansicht wartet.');
   }
 
   function _wakeUp() {
@@ -391,12 +374,11 @@
   // ── Drink system ─────────────────────────────
   function _doDrink() {
     if (_hidden() || _isSleeping) { _scheduleDrink(); return; }
-    const drink = _drinkForTime();
     const tr = _lang() === 'tr';
     _setMood('cust-empty--mascot-drink', 'drink');
     const msgs = tr
-      ? [`${drink.tr} İçtim, teşekkürler!`, `${drink.tr} Hayat böyle güzel.`, `${drink.tr} Bir yudum — enerji geldi!`]
-      : [`${drink.de} Getrunken, danke!`, `${drink.de} So schön ist das Leben.`, `${drink.de} Ein Schluck — Energie da!`];
+      ? ['Kısa ara. Sıradaki aramaya geçebilirsin.', 'Kayıtlar güncel kalsın.', 'Müşteri kartını kontrol et, sonra ara.']
+      : ['Kurze Pause. Der nächste Anruf kann starten.', 'Einträge aktuell halten.', 'Kundenkarte prüfen, dann wählen.'];
     _bubble(_pick(msgs));
     setTimeout(() => {
       _clearMood();
@@ -417,11 +399,11 @@
     const tr = _lang() === 'tr';
     const msgs = afterSleep
       ? (tr
-          ? ['Günaydın! Gerilme zamanı 🙆', 'Uyandım! Hazırım!', 'Yeniden enerji dolu 💪']
-          : ['Guten Morgen! Zeit zu strecken 🙆', 'Aufgewacht! Bereit!', 'Wieder voller Energie 💪'])
+          ? ['Ekran tekrar aktif.', 'Aramaya devam edebilirsin.']
+          : ['Ansicht ist wieder aktiv.', 'Du kannst weiterwählen.'])
       : (tr
-          ? ['Gerilme zamanı! 🙆‍♀️', 'Biraz esneyelim...', 'Kaslarımı çalıştırıyorum 💪']
-          : ['Zeit zu strecken! 🙆‍♀️', 'Etwas dehnen...', 'Ich aktiviere meine Muskeln 💪']);
+          ? ['Kısa ara bitti.', 'Sıradaki kayıt hazır.']
+          : ['Kurze Pause beendet.', 'Nächster Eintrag ist bereit.']);
     _bubble(_pick(msgs));
     if (typeof _wanderSpeedMult !== 'undefined') window._wanderSpeedMult = 2.2;
     setTimeout(() => {
@@ -446,8 +428,8 @@
     if (typeof _wanderPauseUntil !== 'undefined') window._wanderPauseUntil = 0;
     const tr = _lang() === 'tr';
     const msgs = tr
-      ? ['Randevu! Mükemmelsin!', 'Yaptık! Harika bir kapanış!', 'Süpersin — randevu tamam!', 'Bu benim favorim — randevu geldi!']
-      : ['TERMIN! Du bist großartig!', 'Geschafft! Tolles Abschluss!', 'Spitze — Termin bestätigt!', 'Das ist mein Liebling — Termin da!'];
+      ? ['Randevu kaydedildi.', 'Termin oluşturuldu.', 'Randevu kaydı tamam.']
+      : ['Termin gespeichert.', 'Termin angelegt.', 'Termineintrag abgeschlossen.'];
     _bubble(_pick(msgs));
     setTimeout(() => {
       _clearMood();
@@ -461,7 +443,7 @@
     _currentPage = page;
     _resetActivity();
     // 40% chance to show page bubble on nav
-    if (Math.random() > 0.4 || _hidden() || _bubbleMuted()) return;
+    if (page === 'settings' || Math.random() > 0.4 || _hidden() || _bubbleMuted()) return;
     const pool = _PAGE_MSGS[page];
     const lang = _lang();
     const msgs = pool ? (pool[lang] || pool.tr) : (_DEFAULT_MSGS[lang] || _DEFAULT_MSGS.tr);
@@ -504,9 +486,9 @@
         const h = _hour();
         const tr = _lang() === 'tr';
         let greeting;
-        if (h < 12)       greeting = tr ? 'Günaydın! Bugün harika bir gün olacak ☀️' : 'Guten Morgen! Heute wird ein toller Tag ☀️';
-        else if (h < 18)  greeting = tr ? 'İyi öğleden sonralar! Tam gaz devam 🚀' : 'Guten Nachmittag! Weiter so 🚀';
-        else               greeting = tr ? 'İyi akşamlar! Son rötuşları yapıyoruz 🌙' : 'Guten Abend! Letzte Feinarbeiten 🌙';
+        if (h < 12)       greeting = tr ? 'Günaydın. Arama ekranı hazır.' : 'Guten Morgen. Der Dialer ist bereit.';
+        else if (h < 18)  greeting = tr ? 'İyi günler. Kaldığın kayıttan devam edebilirsin.' : 'Guten Tag. Du kannst beim letzten Eintrag weitermachen.';
+        else               greeting = tr ? 'İyi akşamlar. Gün sonu kayıtlarını kontrol et.' : 'Guten Abend. Tageseinträge prüfen.';
         _bubble(greeting);
       }, 2500);
     }

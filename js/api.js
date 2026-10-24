@@ -14,8 +14,38 @@ function mbAuthHeaders(extra) {
 function _mbSessionToken() {
   const base = (typeof _baseUser !== 'undefined' && _baseUser) ? _baseUser : null;
   const cur = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : null;
-  const token = base?.session_token || cur?.session_token || '';
+  const impersonating = !!(base && cur && base.id && cur.id && String(base.id) !== String(cur.id));
+  if (impersonating && base.session_token) return String(base.session_token);
+  const token = cur?.session_token || base?.session_token || '';
   return token ? String(token) : '';
+}
+
+function mbHumanDbError(status, detail) {
+  let code = '';
+  let message = '';
+  const raw = String(detail || '');
+  try {
+    const parsed = JSON.parse(raw);
+    code = String(parsed.code || '');
+    message = String(parsed.message || '');
+  } catch (_) {
+    message = raw;
+  }
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const say = (key, tr, deText) => {
+    if (typeof t === 'function') {
+      const translated = t(key);
+      if (translated && translated !== key) return translated;
+    }
+    return de ? deText : tr;
+  };
+  if (code === '42501' || /row-level security/i.test(message)) {
+    return say('api.err.rls', 'Bu işlem için yetkin yok. Çıkış yapıp tekrar gir.', 'Keine Berechtigung für diesen Vorgang. Bitte abmelden und erneut anmelden.');
+  }
+  if (Number(status) === 401 || Number(status) === 403 || /JWT|not_authenticated/i.test(message)) {
+    return say('api.err.auth', 'Oturum geçersiz. Tekrar giriş yapın.', 'Sitzung ungültig. Bitte erneut anmelden.');
+  }
+  return say('api.err.generic', 'İşlem tamamlanamadı. Tekrar deneyin.', 'Vorgang fehlgeschlagen. Bitte erneut versuchen.');
 }
 
 function _mbRequestScopeHeaders(userOverride = null) {
@@ -40,7 +70,7 @@ function _mbScopedUserForRequest(path, method = 'GET') {
   const base = (typeof _baseUser !== 'undefined' && _baseUser) ? _baseUser : null;
   if (!cur || !imp || !base) return cur;
   const baseRole = String(base.role || '').toLowerCase();
-  const isAdminBase = ['admin', 'firm_admin', 'super_admin'].includes(baseRole);
+  const isAdminBase = mbIsFirmAdmin(baseRole);
   if (!isAdminBase) return cur;
   const root = _mbPathRoot(path);
   const m = String(method || 'GET').toUpperCase();
@@ -98,8 +128,12 @@ if (!r.ok) {
       }
     }
   } catch (_) {}
-  const msg = detail || `${r.status} ${r.statusText || 'HTTP_ERROR'}`;
-  throw new Error(`Supabase error (${r.status}) @ ${path}: ${msg}`);
+  console.error(`Supabase error (${r.status}) @ ${path}: ${detail || r.statusText || 'HTTP_ERROR'}`);
+  const authFail = /42501|row-level security/i.test(detail || '') || Number(r.status) === 401 || Number(r.status) === 403;
+  if (authFail && !String(path || '').includes('mb_whoami') && typeof mbEnsureSession === 'function') {
+    mbEnsureSession({ force: true }).catch(() => {});
+  }
+  throw new Error(mbHumanDbError(r.status, detail));
 }
 if (r.status === 204) return null;
 const txt = await r.text();
@@ -133,11 +167,56 @@ body: JSON.stringify(data)
 } catch(e) { console.warn('upsert err:', e); }
 }
 
+function mbStampLogin(data, prev) {
+  if (!data?.status || data.status === 'offline') return;
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : '';
+  const day = prev?.login_at && typeof mbBerlinDay === 'function' ? mbBerlinDay(prev.login_at) : String(prev?.login_at || '').slice(0, 10);
+  const wasOffline = !prev || !prev.status || prev.status === 'offline';
+  if (wasOffline || (today && day !== today)) data.login_at = new Date().toISOString();
+}
+
+async function mbLogStatusChange(data, prev) {
+  if (!data?.agent_id || !data.status) return;
+  const firmId = data.firm_id || prev?.firm_id || (typeof currentUser !== 'undefined' ? currentUser?.firm_id : null);
+  if (!firmId) return;
+  const breakChanged = Object.prototype.hasOwnProperty.call(data, 'break_code') && String(data.break_code || '') !== String(prev?.break_code || '');
+  const campChanged = Object.prototype.hasOwnProperty.call(data, 'campaign_id') && String(data.campaign_id || '') !== String(prev?.campaign_id || '');
+  const statusChanged = !prev || data.status !== prev.status;
+  if (!statusChanged && !breakChanged && !campChanged) return;
+  const now = new Date().toISOString();
+  const open = await sb(`agent_status_log?agent_id=eq.${data.agent_id}&ended_at=is.null&select=id,started_at&order=started_at.desc&limit=1`).catch(() => []);
+  const row = open?.[0];
+  if (row?.id && row.started_at) {
+    const dur = Math.max(0, Math.round((Date.now() - new Date(row.started_at).getTime()) / 1000));
+    await sb(`agent_status_log?id=eq.${row.id}`, {
+      method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ ended_at: now, duration_sec: dur }),
+    }).catch(() => {});
+  }
+  const camp = Object.prototype.hasOwnProperty.call(data, 'campaign_id')
+    ? data.campaign_id
+    : (typeof selectedCampId !== 'undefined' ? selectedCampId : (prev?.campaign_id || null));
+  await sb('agent_status_log', {
+    method: 'POST', prefer: 'return=minimal',
+    body: JSON.stringify({
+      firm_id: firmId,
+      agent_id: data.agent_id,
+      status: data.status,
+      break_code: data.status === 'break' ? (data.break_code || prev?.break_code || null) : null,
+      campaign_id: camp || null,
+      started_at: now,
+    }),
+  }).catch(() => {});
+}
+
 // agent_sessions upsert (conflict safe)
 async function upsertAgentSession(data) {
 try {
-const existing = await sb(`agent_sessions?agent_id=eq.${data.agent_id}&select=id`).catch(()=>null);
-if (existing?.length) {
+let existing = await sb(`agent_sessions?agent_id=eq.${data.agent_id}&select=id,status,break_code,campaign_id,firm_id,login_at`).catch(() => null);
+const canLogin = Array.isArray(existing);
+if (!canLogin) existing = await sb(`agent_sessions?agent_id=eq.${data.agent_id}&select=id,status,break_code,campaign_id,firm_id`).catch(() => null);
+const prev = existing?.[0] || null;
+if (canLogin) mbStampLogin(data, prev);
+if (prev) {
 await sb(`agent_sessions?agent_id=eq.${data.agent_id}`, {
 method:'PATCH', prefer:'return=minimal', body:JSON.stringify(data)
 });
@@ -146,5 +225,6 @@ await sb('agent_sessions', {
 method:'POST', prefer:'return=minimal', body:JSON.stringify(data)
 });
 }
+mbLogStatusChange(data, prev).catch(() => {});
 } catch(e) { console.warn('session upsert:', e.message); }
 }
