@@ -87,9 +87,9 @@ function tourSay(key, fb, vars) {
 let _ariaSpoken = '';
 
 function tourStory(plan, extra) {
-  if (!plan?.pick?.id) return tourSay('aria.none', 'Aria: boş slotu olan kampanya yok.');
+  if (!plan?.pick?.id) return tourSay('aria.none', 'Mimi: boş slotu olan kampanya yok.');
   const row = (plan.rows || []).find((item) => item.id === plan.pick.id);
-  if (!row) return tourSay('aria.none', 'Aria: boş slotu olan kampanya yok.');
+  if (!row) return tourSay('aria.none', 'Mimi: boş slotu olan kampanya yok.');
   const focus = extra?.rowId ? ((plan.rows || []).find((item) => item.id === extra.rowId) || row) : row;
   const whyKey = extra?.hold ? 'aria.why.hold' : plan.pick.kind === 'stay' ? 'aria.why.stay' : plan.pick.kind === 'switch' ? 'aria.why.switch' : 'aria.why.pick';
   const whyFb = extra?.hold
@@ -101,21 +101,21 @@ function tourStory(plan, extra) {
       : '{day} en yakın boş gün. {camp} kampanyasında {n} boş slot var, onu seçtim.';
   const why = tourSay(whyKey, whyFb, { day: plan.day, camp: focus.name, n: focus.bos });
   if (extra?.kind === 'nearby' && extra.added) {
-    return `${tourSay('aria.watch', 'Aria: {why}', { why })} ${ariaRoundBit(extra, focus)}`;
+    return `${tourSay('aria.watch', 'Mimi: {why}', { why })} ${ariaRoundBit(extra, focus)}`;
   }
   if (extra?.kind === 'nearby0') {
-    return tourSay('aria.near0', 'Aria: {why} {plz} çevresinde eklenecek kişi bulamadım.', { why, plz: focus.anchor || '' });
+    return tourSay('aria.near0', 'Mimi: {why} {plz} çevresinde eklenecek kişi bulamadım.', { why, plz: focus.anchor || '' });
   }
   if (extra?.kind === 'nearwait') {
-    return tourSay('aria.nearwait', 'Aria: {why} Yakından yükleyecektim, sekme kapalı olduğu için beklettim. Sırada {pending} kişi var, eşik {esik}.', {
+    return tourSay('aria.nearwait', 'Mimi: {why} Yakından yükleyecektim, sekme kapalı olduğu için beklettim. Sırada {pending} kişi var, eşik {esik}.', {
       why, pending: extra.pending, esik: extra.esik,
     });
   }
   if (extra?.kind === 'revert') {
-    return tourSay('aria.revert', 'Aria: {why} Kuyrukta {pending} kişi vardı. {n} kişiyi tekrar aramaya aldım.', { why, pending: focus.pending, n: extra.moved });
+    return tourSay('aria.revert', 'Mimi: {why} Kuyrukta {pending} kişi vardı. {n} kişiyi tekrar aramaya aldım.', { why, pending: focus.pending, n: extra.moved });
   }
-  if (extra?.kind === 'told') return `${tourSay('aria.told', 'Aria: {why} Temsilcilere bildirdim.', { why })} ${ariaQueuePlan(focus)}`;
-  return `${tourSay('aria.watch', 'Aria: {why}', { why })} ${ariaQueuePlan(focus)}`;
+  if (extra?.kind === 'told') return `${tourSay('aria.told', 'Mimi: {why} Temsilcilere bildirdim.', { why })} ${ariaQueuePlan(focus)}`;
+  return `${tourSay('aria.watch', 'Mimi: {why}', { why })} ${ariaQueuePlan(focus)}`;
 }
 
 function ariaPlzList(plzs, max) {
@@ -180,7 +180,7 @@ function ariaQueuePlan(row) {
 }
 
 function ariaVoice(text) {
-  return String(text || '').replace(/^Aria:\s*/i, '').trim();
+  return String(text || '').replace(/^(?:Aria|Mimi):\s*/i, '').trim();
 }
 
 function ariaContext() {
@@ -327,7 +327,7 @@ function tourPaintLive(plan, line, speak) {
     if (camp) camp.textContent = facts ? facts.camp : '';
     if (count) count.textContent = facts ? String(facts.n) : '';
     chip.title = text;
-    chip.setAttribute('aria-label', facts ? `Aria ${facts.day} ${facts.camp}` : 'Aria');
+    chip.setAttribute('aria-label', facts ? `Mimi ${facts.day} ${facts.camp}` : 'Mimi');
   }
   const note = document.getElementById('aria-last');
   if (note) note.textContent = ariaVoice(text);
@@ -365,8 +365,8 @@ function ariaFillPop() {
   pop.classList.toggle('is-live', !live.pasif);
   pop.classList.toggle('is-looking', live.looking);
   pop.innerHTML = `<div class="aria-pop-head">
-  <span class="aria-pop-who"><span class="aria-orb" aria-hidden="true"></span><span>Aria</span></span>
-  <div class="tour-switch aria-pop-switch" role="group" aria-label="Aria">
+  <span class="aria-pop-who"><span class="aria-orb" aria-hidden="true"></span><span>Mimi</span></span>
+  <div class="tour-switch aria-pop-switch" role="group" aria-label="Mimi">
     <button type="button" class="tour-switch-btn is-off-side${now.pasif ? ' is-on' : ''}" onclick="tourSetMode(false)">${tourEsc(tourSay('aria.mode.off', 'Kapalı'))}</button>
     <button type="button" class="tour-switch-btn is-on-side${now.pasif ? '' : ' is-on'}" onclick="tourSetMode(true)">${tourEsc(tourSay('aria.mode.on', 'Açık'))}</button>
   </div>
@@ -383,7 +383,7 @@ ${ariaWatchLine() ? `<p class="aria-pop-job">${tourEsc(ariaWatchLine())}</p>` : 
 ${chips.length ? `<div class="aria-pop-chips">${chips.map((item) => `<span>${tourEsc(item)}</span>`).join('')}</div>` : ''}
 ${now.queue ? `<div class="aria-pop-meta">${tourEsc(now.queue)}</div><div class="tour-fill"><span style="width:${now.pct}%"></span></div>` : ''}
 ${earlier.length ? `<div class="aria-pop-earlier"><span>${tourEsc(tourSay('aria.earlier', 'Bugün daha önce'))}</span>${earlier.map((item) => `<p><b>${tourEsc(item.at)}</b> ${tourEsc(item.text)}</p>`).join('')}</div>` : ''}
-<button type="button" class="aria-pop-go" onclick="ariaOpenPage()">${tourEsc(tourSay('aria.pop.open', 'Aria sayfası'))}</button>`;
+<button type="button" class="aria-pop-go" onclick="ariaOpenPage()">${tourEsc(tourSay('aria.pop.open', 'Mimi sayfası'))}</button>`;
 }
 
 function ariaOpenPop() {
@@ -492,7 +492,7 @@ function ariaCalendarLine(kind, detail, was, now) {
   else if (kind === 'free') why = tourSay('aria.cal.free', '{saat} yine boş. Randevu kalktı.', { saat });
   else if (kind === 'up') why = tourSay('aria.cal.up', '{saat} randevusunu alttan üste aldım.', { saat });
   else return '';
-  return tourSay('aria.cal.wrap', 'Aria: {why} {bit}', { why, bit }).replace(/\s+/g, ' ').trim();
+  return tourSay('aria.cal.wrap', 'Mimi: {why} {bit}', { why, bit }).replace(/\s+/g, ' ').trim();
 }
 
 let _ariaCalQueue = null;
@@ -580,14 +580,14 @@ function tourLogText(item) {
     const q = item.created
       ? tourSay('aria.queue.new', 'Yeni kuyruk «{q}» açtım.', { q: item.q || '' })
       : tourSay('aria.queue.add', 'Var olan «{q}» kuyruğuna ekledim.', { q: item.q || '' });
-    return tourSay('aria.near', 'Aria: {why} Kuyrukta {pending} kişi vardı, eşik {esik}. {plz} çevresinden {km} km içinde {n} kişi, {codes} posta kodu. {q}', {
+    return tourSay('aria.near', 'Mimi: {why} Kuyrukta {pending} kişi vardı, eşik {esik}. {plz} çevresinden {km} km içinde {n} kişi, {codes} posta kodu. {q}', {
       why, pending: item.pending, esik: item.esik, plz: item.plz || '', km: item.km, n: item.added, codes: item.codes || 0, q,
     });
   }
-  if (item.k === 'near0') return tourSay('aria.near0', 'Aria: {why} {plz} çevresinde eklenecek kişi bulamadım.', { why, plz: item.plz || '' });
-  if (item.k === 'revert') return tourSay('aria.revert', 'Aria: {why} Kuyrukta {pending} kişi vardı. {n} kişiyi tekrar aramaya aldım.', { why, pending: item.pending, n: item.moved });
-  if (item.k === 'nearwait') return tourSay('aria.nearwait', 'Aria: {why} Yakından yükleyecektim, sekme kapalı olduğu için beklettim. Sırada {pending} kişi var, eşik {esik}.', { why, pending: item.pending, esik: item.esik });
-  if (item.k === 'told') return tourSay('aria.told', 'Aria: {why} Temsilcilere bildirdim.', { why });
+  if (item.k === 'near0') return tourSay('aria.near0', 'Mimi: {why} {plz} çevresinde eklenecek kişi bulamadım.', { why, plz: item.plz || '' });
+  if (item.k === 'revert') return tourSay('aria.revert', 'Mimi: {why} Kuyrukta {pending} kişi vardı. {n} kişiyi tekrar aramaya aldım.', { why, pending: item.pending, n: item.moved });
+  if (item.k === 'nearwait') return tourSay('aria.nearwait', 'Mimi: {why} Yakından yükleyecektim, sekme kapalı olduğu için beklettim. Sırada {pending} kişi var, eşik {esik}.', { why, pending: item.pending, esik: item.esik });
+  if (item.k === 'told') return tourSay('aria.told', 'Mimi: {why} Temsilcilere bildirdim.', { why });
   return '';
 }
 
@@ -1247,7 +1247,7 @@ async function tourRefresh(opts) {
     if (apply) await tourApply(_tourPlan, force);
     else if (!(opts && opts.silent)) tourPaintLive(_tourPlan, null, true);
   } catch (e) {
-    if (typeof toast === 'function') toast(tourSay('tour.err', 'Aria okunamadı'), 'err');
+    if (typeof toast === 'function') toast(tourSay('tour.err', 'Mimi okunamadı'), 'err');
     if (_tourPlan) tourRender(_tourPlan);
   } finally {
     _tourBusy = false;
@@ -1258,7 +1258,7 @@ async function tourRefresh(opts) {
 async function tourRunNow() {
   if (tourPref().onay) {
     const ok = typeof mbConfirm === 'function'
-      ? await mbConfirm(tourSay('tour.askrun', 'Seçilen kampanya bildirilsin. Kuyruk eşiğin altındaysa doldurulsun?'), tourSay('tour.title', 'Aria'))
+      ? await mbConfirm(tourSay('tour.askrun', 'Seçilen kampanya bildirilsin. Kuyruk eşiğin altındaysa doldurulsun?'), tourSay('tour.title', 'Mimi'))
       : false;
     if (!ok) return;
   }
