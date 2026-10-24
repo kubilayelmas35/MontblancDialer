@@ -228,13 +228,41 @@ function ariaPaintNow() {
 ${now.queue ? `<div class="aria-pop-meta">${tourEsc(now.queue)}</div><div class="tour-fill"><span style="width:${now.pct}%"></span></div>` : ''}`;
 }
 
+function ariaLiveBits() {
+  const pref = tourPref();
+  const pasif = tourEffectivePasif();
+  const looking = !!document.getElementById('aria-live')?.classList.contains('is-looking');
+  const camp = pref.kampanyaDegis !== false;
+  const queue = pref.kuyrukYenile !== false;
+  const badge = pasif
+    ? tourSay('aria.now.off', 'Duruyor')
+    : (looking ? tourSay('aria.now.look', 'Bakıyor') : tourSay('aria.now.live', 'Şimdi'));
+  const hold = tourSay('aria.job.hold', 'Bekliyor');
+  const idle = tourSay('aria.job.wait', 'Yapmıyor');
+  return {
+    pasif,
+    looking,
+    camp,
+    queue,
+    badge,
+    campWord: pasif ? hold : (camp ? tourSay('aria.job.camp.do', 'Değiştiriyor') : idle),
+    queueWord: pasif ? hold : (queue ? tourSay('aria.job.queue.do', 'Dolduruyor') : idle),
+  };
+}
+
 function ariaSetLooking(on) {
   const mark = document.getElementById('aria-looking');
   const chip = document.getElementById('aria-live');
   const page = document.getElementById('page-tour');
+  const pop = document.getElementById('aria-pop');
   if (mark) mark.hidden = !on;
   if (chip) chip.classList.toggle('is-looking', !!on);
   if (page) page.classList.toggle('is-aria-looking', !!on);
+  if (pop) {
+    pop.classList.toggle('is-looking', !!on);
+    const badge = pop.querySelector('.aria-now-kicker b');
+    if (badge && !pop.hidden) badge.textContent = ariaLiveBits().badge;
+  }
 }
 
 function tourShortDay(ymd) {
@@ -330,8 +358,12 @@ function ariaFillPop() {
   const pop = document.getElementById('aria-pop');
   if (!pop) return;
   const now = ariaContext();
+  const live = ariaLiveBits();
   const chips = [now.day, now.camp, now.slots].filter(Boolean);
   const earlier = ariaEarlier(now.line).slice(-3);
+  pop.classList.toggle('is-off', live.pasif);
+  pop.classList.toggle('is-live', !live.pasif);
+  pop.classList.toggle('is-looking', live.looking);
   pop.innerHTML = `<div class="aria-pop-head">
   <span class="aria-pop-who"><span class="aria-orb" aria-hidden="true"></span><span>Aria</span></span>
   <div class="tour-switch aria-pop-switch" role="group" aria-label="Aria">
@@ -339,13 +371,15 @@ function ariaFillPop() {
     <button type="button" class="tour-switch-btn is-on-side${now.pasif ? '' : ' is-on'}" onclick="tourSetMode(true)">${tourEsc(tourSay('aria.mode.on', 'Açık'))}</button>
   </div>
 </div>
-<div class="aria-pop-jobs">
-  <label class="aria-job" title="${tourEsc(tourSay('aria.job.camp.tip', 'Açıkken kampanyayı değiştirir. Kapalıyken açık kampanyada kalır.'))}"><input type="checkbox" ${tourPref().kampanyaDegis !== false ? 'checked' : ''} onchange="tourFlag('kampanyaDegis', this)"><span>${tourEsc(tourSay('aria.job.camp', 'Kampanya'))}</span></label>
-  <label class="aria-job" title="${tourEsc(tourSay('aria.job.queue.tip', 'Açıkken kuyruğu doldurur. Kapalıyken kuyruğa kimse yazmaz.'))}"><input type="checkbox" ${tourPref().kuyrukYenile !== false ? 'checked' : ''} onchange="tourFlag('kuyrukYenile', this)"><span>${tourEsc(tourSay('aria.job.queue', 'Kuyruk'))}</span></label>
+<div class="aria-now-card">
+  <div class="aria-now-kicker"><span class="aria-ping" aria-hidden="true"></span><b>${tourEsc(live.badge)}</b></div>
+  <p class="aria-pop-line">${tourEsc(now.line)}</p>
 </div>
-<p class="aria-pop-job">${tourEsc(tourSay('aria.jobs', 'Kampanya seçer, sıra azalınca kişi yükler, alta inen randevunun yerine yer açar.'))}</p>
+<div class="aria-pop-jobs">
+  <label class="aria-job${live.camp && !live.pasif ? ' is-doing' : ''}${live.camp ? '' : ' is-wait'}" title="${tourEsc(tourSay('aria.job.camp.tip', 'Açıkken kampanyayı değiştirir. Kapalıyken açık kampanyada kalır.'))}"><input type="checkbox" ${live.camp ? 'checked' : ''} onchange="tourFlag('kampanyaDegis', this)"><span class="aria-job-copy"><b>${tourEsc(tourSay('aria.job.camp', 'Kampanya'))}</b><small>${tourEsc(live.campWord)}</small></span></label>
+  <label class="aria-job${live.queue && !live.pasif ? ' is-doing' : ''}${live.queue ? '' : ' is-wait'}" title="${tourEsc(tourSay('aria.job.queue.tip', 'Açıkken kuyruğu doldurur. Kapalıyken kuyruğa kimse yazmaz.'))}"><input type="checkbox" ${live.queue ? 'checked' : ''} onchange="tourFlag('kuyrukYenile', this)"><span class="aria-job-copy"><b>${tourEsc(tourSay('aria.job.queue', 'Kuyruk'))}</b><small>${tourEsc(live.queueWord)}</small></span></label>
+</div>
 ${ariaWatchLine() ? `<p class="aria-pop-job">${tourEsc(ariaWatchLine())}</p>` : ''}
-<p class="aria-pop-line">${tourEsc(now.line)}</p>
 ${chips.length ? `<div class="aria-pop-chips">${chips.map((item) => `<span>${tourEsc(item)}</span>`).join('')}</div>` : ''}
 ${now.queue ? `<div class="aria-pop-meta">${tourEsc(now.queue)}</div><div class="tour-fill"><span style="width:${now.pct}%"></span></div>` : ''}
 ${earlier.length ? `<div class="aria-pop-earlier"><span>${tourEsc(tourSay('aria.earlier', 'Bugün daha önce'))}</span>${earlier.map((item) => `<p><b>${tourEsc(item.at)}</b> ${tourEsc(item.text)}</p>`).join('')}</div>` : ''}
