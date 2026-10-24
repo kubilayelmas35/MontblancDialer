@@ -102,8 +102,23 @@ function tourStory(plan, extra) {
   if (extra?.kind === 'revert') {
     return tourSay('aria.revert', 'Aria: {why} Kuyrukta {pending} kişi vardı. {n} kişiyi tekrar aramaya aldım.', { why, pending: row.pending, n: extra.moved });
   }
-  if (extra?.kind === 'told') return tourSay('aria.told', 'Aria: {why} Temsilcilere bildirdim.', { why });
-  return tourSay('aria.watch', 'Aria: {why}', { why });
+  if (extra?.kind === 'told') return `${tourSay('aria.told', 'Aria: {why} Temsilcilere bildirdim.', { why })} ${ariaQueuePlan(row)}`;
+  return `${tourSay('aria.watch', 'Aria: {why}', { why })} ${ariaQueuePlan(row)}`;
+}
+
+function ariaQueuePlan(row) {
+  const pref = tourPref();
+  const esik = Math.max(1, Number(pref.veriEsik) || 500);
+  const pending = Number(row?.pending) || 0;
+  const args = { pending, esik };
+  if (tourEffectivePasif()) return tourSay('aria.queue.pasif', 'Sırada {pending} kişi var. Pasifken kimse yüklemem.', args);
+  if (pending >= esik) return tourSay('aria.queue.full', 'Sırada {pending} kişi var, eşik {esik}. Sıra dolu, kimse yüklemedim.', args);
+  if (pref.kuyrukMod === 'yakin') {
+    if (!row?.anchor) return tourSay('aria.queue.noanchor', 'Sırada {pending} kişi var. Yakından yüklemek için bu kampanyada posta kodu yok.', args);
+    return tourSay('aria.queue.need.near', 'Sırada {pending} kişi var, eşik {esik}. Yakından kişi yüklerim.', args);
+  }
+  if (!(row?.revertIds || []).length) return tourSay('aria.queue.norevert', 'Sırada {pending} kişi var. Yeniden sıraya alınacak açılmayan kişi yok.', args);
+  return tourSay('aria.queue.need.revert', 'Sırada {pending} kişi var, eşik {esik}. Açılmayanları yeniden sıraya alırım.', args);
 }
 
 function ariaVoice(text) {
@@ -227,8 +242,12 @@ function ariaFillPop() {
   const earlier = ariaEarlier(now.line).slice(-3);
   pop.innerHTML = `<div class="aria-pop-head">
   <span class="aria-pop-who"><span class="aria-orb" aria-hidden="true"></span><span>Aria</span></span>
-  <span class="aria-pop-mode${now.pasif ? ' is-off' : ' is-on'}">${tourEsc(now.mode)}</span>
+  <div class="tour-switch aria-pop-switch" role="group" aria-label="Aria">
+    <button type="button" class="tour-switch-btn is-off-side${now.pasif ? ' is-on' : ''}" onclick="tourSetMode(false)">${tourEsc(tourSay('aria.mode.off', 'Pasif'))}</button>
+    <button type="button" class="tour-switch-btn is-on-side${now.pasif ? '' : ' is-on'}" onclick="tourSetMode(true)">${tourEsc(tourSay('aria.mode.on', 'Aktif'))}</button>
+  </div>
 </div>
+<p class="aria-pop-job">${tourEsc(tourSay('aria.jobs', 'Kampanya seçer, sıra azalınca kişi yükler, alta inen randevunun yerine yer açar.'))}</p>
 <p class="aria-pop-line">${tourEsc(now.line)}</p>
 ${chips.length ? `<div class="aria-pop-chips">${chips.map((item) => `<span>${tourEsc(item)}</span>`).join('')}</div>` : ''}
 ${now.queue ? `<div class="aria-pop-meta">${tourEsc(now.queue)}</div><div class="tour-fill"><span style="width:${now.pct}%"></span></div>` : ''}

@@ -2069,6 +2069,11 @@ visibility: visible;
 .aria-pop-earlier b { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--text-3); margin-right: 6px; }
 .aria-pop-mode.is-on { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
 .aria-pop-mode.is-off { background: var(--bg-3); color: var(--text-3); }
+.aria-pop-switch { padding: 2px; }
+.aria-pop-switch .tour-switch-btn { padding: 5px 10px; font-size: 11px; }
+.aria-pop-switch .tour-switch-btn.is-off-side.is-on { background: var(--text); color: var(--bg); }
+.aria-pop-switch .tour-switch-btn.is-on-side.is-on { background: var(--accent); color: #fff; }
+.aria-pop-job { margin: 8px 0 0; font-size: 12px; line-height: 1.45; color: var(--text-2); }
 .aria-pop-line {
   margin: 12px 0 0;
   padding: 10px 12px;
