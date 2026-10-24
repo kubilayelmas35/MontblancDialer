@@ -2132,6 +2132,7 @@ visibility: visible;
 .aria-sheet .tour-field .tour-name { grid-column: 1; grid-row: 1; }
 .aria-sheet .tour-field .tour-help { grid-column: 1; grid-row: 2; }
 .aria-sheet .tour-field .form-input { grid-column: 2; grid-row: 1 / span 2; width: 220px; max-width: 46vw; justify-self: end; }
+.aria-sheet #tour-kuyruk { width: 280px; max-width: 70vw; }
 .aria-sheet .tour-actions { margin-top: 12px; }
 @media (max-width: 640px) {
   .aria-sheet .tour-field,
