@@ -48,10 +48,11 @@ let _tourAltaSlot = true;
 let _tourBusy = false;
 let _tourWatchSig = '';
 let _tourWatch = null;
+let _tourFirmGeri = null;
+let _tourFirmOutcomes = null;
 let _tourSettings = { ...TOUR_DEFAULTS };
 let _tourTab = 'kampanya';
 const TOUR_LOCK_KEYS = ['lastCampId', 'lastDay', 'lastTickAt'];
-const TOUR_GERI = ['no_answer', 'voicemail', 'callback', 'negative'];
 
 function tourUserId() {
   return (typeof currentUser !== 'undefined' && currentUser?.id) ? String(currentUser.id) : '';
@@ -60,7 +61,7 @@ function tourUserId() {
 function tourAccountPrefs() {
   const pref = tourPref();
   const out = {};
-  Object.keys(TOUR_DEFAULTS).forEach((key) => { out[key] = pref[key]; });
+  Object.keys(TOUR_DEFAULTS).forEach((key) => { if (key !== 'geriKim') out[key] = pref[key]; });
   return out;
 }
 
@@ -68,7 +69,7 @@ function tourAdoptPrefs(saved) {
   if (!saved || typeof saved !== 'object') return;
   const knobs = {};
   Object.keys(TOUR_DEFAULTS).forEach((key) => {
-    if (saved[key] !== undefined) knobs[key] = saved[key];
+    if (key !== 'geriKim' && saved[key] !== undefined) knobs[key] = saved[key];
   });
   _tourSettings = { ...tourPref(), ...knobs };
   tourPaintSettings();
@@ -573,9 +574,37 @@ function tourPref() {
   return { ...TOUR_DEFAULTS, ...(_tourSettings || {}) };
 }
 
+function tourStatusOk(key) {
+  const name = String(key || '').toLowerCase();
+  if (!/^[a-z0-9_]{1,40}$/.test(name)) return false;
+  return !['pending', 'appointment', 'appointment_done', 'dnc', 'calling', 'new'].includes(name);
+}
+
+function tourOutcomeStatus(key, row) {
+  const name = String(key || '').trim();
+  if (name === 'dnc') return 'dnc';
+  if (name === 'appointment' || name === 'appointment_done') return 'appointment';
+  const cat = typeof mbOutcomeCategory === 'function'
+    ? mbOutcomeCategory({ key: name, category: row?.category })
+    : (name === 'negative' || name === 'callback' ? name : 'neutral');
+  if (cat === 'appointment') return 'appointment';
+  if (cat === 'negative') return 'negative';
+  if (cat === 'callback') return 'callback';
+  return name.toLowerCase();
+}
+
+function tourOutcomeNames(key, row, status) {
+  const pack = typeof OUTCOME_I18N !== 'undefined' ? (OUTCOME_I18N[key] || OUTCOME_I18N[status]) : null;
+  const raw = String(row?.label || '').trim();
+  if (pack && (!raw || raw === key || raw === status || raw === pack.tr || raw === pack.de)) return { tr: pack.tr, de: pack.de };
+  const name = raw || (pack ? pack.tr : status);
+  return { tr: name, de: name };
+}
+
 function tourGeriKim() {
-  const raw = tourPref().geriKim;
-  return (Array.isArray(raw) ? raw : ['no_answer', 'voicemail']).filter((key) => TOUR_GERI.includes(key));
+  const allowed = new Set((Array.isArray(_tourFirmOutcomes) ? _tourFirmOutcomes : []).map((row) => row.status));
+  const source = Array.isArray(_tourFirmGeri) ? _tourFirmGeri : ['no_answer', 'voicemail'];
+  return source.map((key) => String(key || '').toLowerCase()).filter((key) => tourStatusOk(key) && (!allowed.size || allowed.has(key)));
 }
 
 function tourGeriKere() {
@@ -602,6 +631,8 @@ function tourEffectivePasif() {
 
 async function tourLoadSettings() {
   _tourSettings = { ...TOUR_DEFAULTS };
+  _tourFirmGeri = null;
+  _tourFirmOutcomes = null;
   const userId = tourUserId();
   const firmId = tourFirmId();
   if (typeof sb === 'function' && userId) {
@@ -621,8 +652,19 @@ async function tourLoadSettings() {
       });
       gunluk = firmTour.gunluk;
       _tourWatch = firmTour.watch && typeof firmTour.watch === 'object' ? firmTour.watch : null;
-    } else _tourWatch = null;
-  } else _tourWatch = null;
+      if (Array.isArray(firmTour.geriKim)) _tourFirmGeri = firmTour.geriKim;
+      else if (Array.isArray(_tourWatch?.geriKim)) _tourFirmGeri = _tourWatch.geriKim;
+      else _tourFirmGeri = null;
+    } else {
+      _tourWatch = null;
+      _tourFirmGeri = null;
+    }
+    await tourLoadFirmOutcomes(firmId);
+  } else {
+    _tourWatch = null;
+    _tourFirmGeri = null;
+    _tourFirmOutcomes = null;
+  }
   tourPaintLog(gunluk);
   tourPaintSettings();
   return _tourSettings;
@@ -750,11 +792,7 @@ function tourPaintSettings() {
   const near = pref.kuyrukMod === 'yakin';
   document.querySelectorAll('.tour-yakin').forEach((el) => { el.hidden = !near; });
   document.querySelectorAll('.tour-geri').forEach((el) => { el.hidden = near; });
-  const kim = new Set(tourGeriKim());
-  TOUR_GERI.forEach((key) => {
-    const box = document.getElementById(`tour-geri-${key}`);
-    if (box) box.checked = kim.has(key);
-  });
+  tourPaintGeri(near);
   const kere = document.getElementById('tour-geri-kere');
   if (kere) kere.value = String(tourGeriKere());
   const geoGun = document.getElementById('tour-geo-gun');
@@ -1371,8 +1409,84 @@ function tourQueuePlace(el) {
 }
 
 function tourGeriPick() {
-  const picked = TOUR_GERI.filter((key) => document.getElementById(`tour-geri-${key}`)?.checked);
-  void tourSave({ geriKim: picked });
+  const picked = [...document.querySelectorAll('#tour-geri-who input[data-status]')]
+    .filter((el) => el.checked)
+    .map((el) => String(el.dataset.status || '').toLowerCase())
+    .filter((key) => tourStatusOk(key));
+  _tourFirmGeri = picked;
+  void tourSaveFirmGeri(picked);
+}
+
+const TOUR_GERI_ORDER = ['no_answer', 'voicemail', 'callback', 'negative'];
+
+async function tourLoadFirmOutcomes(firmId) {
+  _tourFirmOutcomes = [];
+  if (!firmId || typeof sb !== 'function') return;
+  const camps = await sb(`campaigns?firm_id=eq.${firmId}&select=settings&limit=200`).catch(() => []);
+  const map = new Map();
+  const lists = (Array.isArray(camps) ? camps : []).map((camp) => {
+    const settings = typeof getCampSettings === 'function' ? getCampSettings(camp) : (camp?.settings || {});
+    const rows = Array.isArray(settings?.outcomes) && settings.outcomes.length ? settings.outcomes : (typeof DEFAULT_OUTCOMES !== 'undefined' ? DEFAULT_OUTCOMES : []);
+    return rows;
+  });
+  lists.forEach((rows) => {
+    rows.forEach((row) => {
+      const key = String(row?.key || '').trim();
+      if (!key || row?.enabled === false) return;
+      const status = tourOutcomeStatus(key, row);
+      if (!tourStatusOk(status) || map.has(status)) return;
+      const names = tourOutcomeNames(key, row, status);
+      map.set(status, { status, tr: names.tr, de: names.de });
+    });
+  });
+  _tourFirmOutcomes = [...map.values()].sort((a, b) => {
+    const ai = TOUR_GERI_ORDER.indexOf(a.status);
+    const bi = TOUR_GERI_ORDER.indexOf(b.status);
+    if (ai !== -1 || bi !== -1) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    return String(a.tr).localeCompare(String(b.tr), 'tr');
+  });
+}
+
+function tourPaintGeri(near) {
+  const host = document.getElementById('tour-geri-who');
+  if (!host) return;
+  host.hidden = !!near;
+  if (near) return;
+  if (!tourFirmId()) {
+    host.innerHTML = '<p class="tour-note" data-tr="Önce bir firma seç. Sonuçlar o firmanın kampanyalarından gelir." data-de="Zuerst eine Firma wählen. Die Ergebnisse kommen aus den Kampagnen dieser Firma.">Önce bir firma seç. Sonuçlar o firmanın kampanyalarından gelir.</p>';
+    return;
+  }
+  if (!Array.isArray(_tourFirmOutcomes)) return;
+  const rows = Array.isArray(_tourFirmOutcomes) ? _tourFirmOutcomes : [];
+  if (!rows.length) {
+    host.innerHTML = '<p class="tour-note" data-tr="Bu firmada sıraya alınacak sonuç yok. Randevu ve kara liste sıraya dönmez." data-de="Diese Firma hat kein Ergebnis für die Reihe. Termin und Sperrliste kommen nicht zurück.">Bu firmada sıraya alınacak sonuç yok. Randevu ve kara liste sıraya dönmez.</p>';
+    return;
+  }
+  const kim = new Set(tourGeriKim());
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  host.innerHTML = rows.map((row) => {
+    const name = tourEsc(de ? row.de : row.tr);
+    return `<label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="${tourEsc(row.tr)}" data-de="${tourEsc(row.de)}">${name}</span>
+<small class="tour-help" data-tr="Bu firmanın sonucu. İşaretlersen bu sonucu alan kişiyi yeniden sıraya koyar." data-de="Ergebnis dieser Firma. Angehakt stellt sie Personen mit diesem Ergebnis wieder in die Reihe.">Bu firmanın sonucu. İşaretlersen bu sonucu alan kişiyi yeniden sıraya koyar.</small></span>
+<input type="checkbox" data-status="${tourEsc(row.status)}"${kim.has(row.status) ? ' checked' : ''} onchange="tourGeriPick()"></label>`;
+  }).join('');
+}
+
+async function tourSaveFirmGeri(picked) {
+  const firmId = tourFirmId();
+  const userId = tourUserId();
+  if (!firmId || typeof sb !== 'function') return;
+  const firms = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
+  const existing = firms?.[0]?.settings || {};
+  const prev = existing.tour && typeof existing.tour === 'object' ? existing.tour : {};
+  const watch = prev.watch && typeof prev.watch === 'object' ? { ...prev.watch } : null;
+  if (watch && (!watch.userId || watch.userId === userId)) watch.geriKim = picked;
+  await sb(`firms?id=eq.${firmId}`, {
+    method: 'PATCH',
+    prefer: 'return=minimal',
+    body: JSON.stringify({ settings: { ...existing, tour: { ...prev, geriKim: picked, ...(watch ? { watch } : {}) } } }),
+  });
+  if (watch) _tourWatch = watch;
 }
 
 async function tourAltaSlot(el) {

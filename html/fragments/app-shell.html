@@ -617,7 +617,7 @@
 </div>
 <div class="tour-pane" data-pane="sira">
 <p class="aria-ask" data-tr="Sıradaki kişi azalınca" data-de="Wenn die Reihe dünn wird">Sıradaki kişi azalınca</p>
-<p class="tour-note" data-tr="Bu hesap için. Seçtiği kampanyada aranacak kişi azalınca ne yapacağını sorar." data-de="Für dieses Konto. Fragt, was sie tut, wenn in der gewählten Kampagne weniger Personen zu wählen sind.">Bu hesap için. Seçtiği kampanyada aranacak kişi azalınca ne yapacağını sorar.</p>
+<p class="tour-note" data-tr="Eşik ve ne yapacağı bu hesap için. Kimleri alacağı, seçili firmanın kendi sonuçlarından gelir." data-de="Schwelle und die Arbeit gelten für dieses Konto. Wen sie nimmt, kommt aus den eigenen Ergebnissen der gewählten Firma.">Eşik ve ne yapacağı bu hesap için. Kimleri alacağı, seçili firmanın kendi sonuçlarından gelir.</p>
 <div class="tour-grid">
 <label class="tour-field"><span class="tour-name" data-tr="Ne yapsın" data-de="Was sie tun soll">Ne yapsın</span>
 <small class="tour-help" data-tr="Yeniden sıraya al: kimleri ve kaç kez aranmış olanı alacağını alttaki sorular seçer. GeoCon: seçtiği kampanyanın çevresinden, GeoCon’da son günlerde kullanılmamış posta kodlarını ekler." data-de="Wieder in die Reihe: die Fragen darunter wählen, wen und wie oft. GeoCon: nimmt um die Kampagne Personen, deren PLZ in GeoCon zuletzt nicht benutzt wurde.">Yeniden sıraya al: kimleri ve kaç kez aranmış olanı alacağını alttaki sorular seçer. GeoCon: seçtiği kampanyanın çevresinden, GeoCon’da son günlerde kullanılmamış posta kodlarını ekler.</small>
@@ -625,18 +625,7 @@
 <option value="revert" data-tr="Cevap vermeyenleri yeniden sıraya al" data-de="Nicht erreichte wieder in die Reihe">Cevap vermeyenleri yeniden sıraya al</option>
 <option value="yakin" data-tr="GeoCon’dan yakındaki kişileri ekle" data-de="Personen aus GeoCon in der Nähe hinzufügen">GeoCon’dan yakındaki kişileri ekle</option>
 </select></label>
-<label class="tour-check tour-geri" hidden><span class="tour-copy"><span class="tour-name" data-tr="Cevap yok" data-de="Keine Antwort">Cevap yok</span>
-<small class="tour-help" data-tr="Telefonu açmayan kişiyi yeniden sıraya koyar." data-de="Stellt Personen wieder in die Reihe, die nicht abgenommen haben.">Telefonu açmayan kişiyi yeniden sıraya koyar.</small></span>
-<input type="checkbox" id="tour-geri-no_answer" onchange="tourGeriPick()"></label>
-<label class="tour-check tour-geri" hidden><span class="tour-copy"><span class="tour-name" data-tr="Telesekreter" data-de="Anrufbeantworter">Telesekreter</span>
-<small class="tour-help" data-tr="Telesekretere düşen kişiyi yeniden sıraya koyar." data-de="Stellt Personen wieder in die Reihe, bei denen der Anrufbeantworter lief.">Telesekretere düşen kişiyi yeniden sıraya koyar.</small></span>
-<input type="checkbox" id="tour-geri-voicemail" onchange="tourGeriPick()"></label>
-<label class="tour-check tour-geri" hidden><span class="tour-copy"><span class="tour-name" data-tr="Geri ara" data-de="Rückruf">Geri ara</span>
-<small class="tour-help" data-tr="Geri aranacak diye işaretlenen kişiyi yeniden sıraya koyar." data-de="Stellt Personen wieder in die Reihe, die als Rückruf markiert sind.">Geri aranacak diye işaretlenen kişiyi yeniden sıraya koyar.</small></span>
-<input type="checkbox" id="tour-geri-callback" onchange="tourGeriPick()"></label>
-<label class="tour-check tour-geri" hidden><span class="tour-copy"><span class="tour-name" data-tr="Olumsuz" data-de="Negativ">Olumsuz</span>
-<small class="tour-help" data-tr="Olumsuz kapanan kişiyi alır. Kapalı kalsın, yalnız sen açarsan gelir." data-de="Nimmt negativ geschlossene Personen. Bleibt aus, bis du es öffnest.">Olumsuz kapanan kişiyi alır. Kapalı kalsın, yalnız sen açarsan gelir.</small></span>
-<input type="checkbox" id="tour-geri-negative" onchange="tourGeriPick()"></label>
+<div id="tour-geri-who" class="tour-geri" hidden></div>
 <label class="tour-field tour-geri" hidden><span class="tour-name" data-tr="En fazla kaç kez aranmış olsun" data-de="Höchstens so oft schon angerufen">En fazla kaç kez aranmış olsun</span>
 <small class="tour-help" data-tr="Bu sayıdan az aranmış kişiyi alır. 2 yazarsan hiç aranmayan ve bir kez aranan gelir. Daha çok aranan kalır. Deneme sayısı silinmez." data-de="Nimmt Personen, die seltener als diese Zahl angerufen wurden. 2 holt nie und einmal angerufene. Öfter angerufene bleiben. Die Versuche werden nicht gelöscht.">Bu sayıdan az aranmış kişiyi alır. 2 yazarsan hiç aranmayan ve bir kez aranan gelir. Daha çok aranan kalır. Deneme sayısı silinmez.</small>
 <input class="form-input" id="tour-geri-kere" type="number" min="1" max="10" step="1" onchange="tourNum('geriKere', this, 1, 10)"></label>
