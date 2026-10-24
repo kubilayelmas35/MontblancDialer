@@ -38,6 +38,7 @@ const TOUR_DEFAULTS = {
 };
 
 let _tourPlan = null;
+let _ariaShown = '';
 let _tourAltaSlot = true;
 let _tourBusy = false;
 let _tourWatchSig = '';
@@ -104,6 +105,10 @@ function tourStory(plan, extra) {
   return tourSay('aria.watch', 'Aria: {why}', { why });
 }
 
+function ariaVoice(text) {
+  return String(text || '').replace(/^Aria:\s*/i, '').trim();
+}
+
 function tourShortDay(ymd) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(ymd || '')) ? `${ymd.slice(8, 10)}.${ymd.slice(5, 7)}` : '';
 }
@@ -118,6 +123,7 @@ function tourChipFacts(plan) {
 
 function tourPaintLive(plan, line, speak) {
   const text = line || (plan ? tourStory(plan) : '');
+  _ariaShown = text;
   const chip = document.getElementById('aria-live');
   if (chip) {
     const facts = tourChipFacts(plan);
@@ -134,7 +140,7 @@ function tourPaintLive(plan, line, speak) {
     chip.setAttribute('aria-label', facts ? `Aria ${facts.day} ${facts.camp}` : 'Aria');
   }
   const note = document.getElementById('aria-last');
-  if (note) note.textContent = text || '';
+  if (note) note.textContent = ariaVoice(text);
   if (speak && text && text !== _ariaSpoken) {
     _ariaSpoken = text;
     tourSpeak(text);
@@ -149,7 +155,7 @@ function ariaPlacePop() {
   if (!pop || !btn) return;
   if (pop.parentElement !== document.body) document.body.appendChild(pop);
   const rect = btn.getBoundingClientRect();
-  const width = 320;
+  const width = 340;
   let left = rect.left;
   if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
   if (left < 8) left = 8;
@@ -173,12 +179,20 @@ function ariaFillPop() {
     : '';
   const esik = Math.max(1, Number(tourPref().veriEsik) || 500);
   const pct = row ? Math.max(0, Math.min(100, Math.round((Number(row.pending) || 0) / esik * 100))) : 0;
-  const line = plan ? tourStory(plan) : '';
-  pop.innerHTML = `<div class="aria-pop-head"><span class="aria-pop-kicker">${tourEsc(mode)}</span><button type="button" class="btn btn-ghost btn-sm" onclick="ariaOpenPage()">${tourEsc(tourSay('aria.pop.open', 'Aria sayfası'))}</button></div>
-<div class="aria-pop-day">${tourEsc(day)}</div>
-${camp ? `<div class="aria-pop-camp">${tourEsc(camp)}</div>` : ''}
-${slots ? `<div class="aria-pop-meta">${tourEsc(slots)}${queue ? ' · ' + tourEsc(queue) : ''}</div><div class="tour-fill"><span style="width:${pct}%"></span></div>` : ''}
-${line ? `<p class="aria-pop-line">${tourEsc(line)}</p>` : ''}`;
+  const line = ariaVoice(_ariaShown || (plan ? tourStory(plan) : '')) || tourSay('aria.idle', 'Bakıyorum.');
+  const chips = [
+    day && day !== '—' ? day : '',
+    camp,
+    slots,
+  ].filter(Boolean);
+  pop.innerHTML = `<div class="aria-pop-head">
+  <span class="aria-pop-who"><span class="aria-orb" aria-hidden="true"></span><span>Aria</span></span>
+  <span class="aria-pop-mode${tourEffectivePasif() ? ' is-off' : ' is-on'}">${tourEsc(mode)}</span>
+</div>
+<p class="aria-pop-line">${tourEsc(line)}</p>
+${chips.length ? `<div class="aria-pop-chips">${chips.map((item) => `<span>${tourEsc(item)}</span>`).join('')}</div>` : ''}
+${queue ? `<div class="aria-pop-meta">${tourEsc(queue)}</div><div class="tour-fill"><span style="width:${pct}%"></span></div>` : ''}
+<button type="button" class="aria-pop-go" onclick="ariaOpenPage()">${tourEsc(tourSay('aria.pop.open', 'Aria sayfası'))}</button>`;
 }
 
 function ariaOpenPop() {

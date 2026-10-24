@@ -35,10 +35,13 @@
 <span id="tb-mesai-label">08:00–20:00</span>
 </button>
 <button type="button" id="aria-live" class="aria-live" hidden onclick="ariaTogglePop(event)" title="Aria" aria-label="Aria" aria-expanded="false" aria-controls="aria-pop">
-<svg class="aria-live-mark" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.75"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/></svg>
+<span class="aria-orb" aria-hidden="true"></span>
+<span class="aria-live-name">Aria</span>
+<span class="aria-live-facts">
 <span class="aria-live-day" id="aria-live-day"></span>
 <span class="aria-live-camp" id="aria-live-camp"></span>
 <span class="aria-live-n" id="aria-live-n"></span>
+</span>
 </button>
 </div>
 <div id="tb-bal-pop" class="tb-bal-pop" hidden></div>
@@ -553,8 +556,11 @@
 </div>
 </div>
 <div class="aria-status" id="aria-status">
-<span class="aria-status-mark" aria-hidden="true"></span>
+<span class="aria-orb" aria-hidden="true"></span>
+<div class="aria-status-body">
+<div class="aria-status-kicker"><span data-tr="Aria" data-de="Aria">Aria</span></div>
 <p class="aria-status-line" id="aria-last"></p>
+</div>
 </div>
 <div id="aria-log" class="aria-log" hidden></div>
 <div class="tour-tabs" role="tablist">
