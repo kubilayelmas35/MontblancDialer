@@ -105,6 +105,7 @@ function refreshGlobalMascotInfoPanel() {
   if (statsNoteEl) {
     statsNoteEl.textContent = typeof t === 'function' ? t('dial.mimi_stats_note') : (isDe ? 'Statistiken werden aus dem Performance-Panel aktualisiert.' : 'İstatistikler performans panelinden güncellenir.');
   }
+  if (typeof ariaPaintName === 'function') ariaPaintName();
 }
 
 function _resetGlobalMascotInfoPanelPosition() {

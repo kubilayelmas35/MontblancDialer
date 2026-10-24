@@ -894,6 +894,8 @@ function saveMascotSettings() {
       .then(() => refreshGlobalMascotInfoPanel())
       .catch(() => {});
   }
+  if (typeof ariaPaintName === 'function') ariaPaintName();
+  if (typeof refreshGlobalMascotInfoPanel === 'function') refreshGlobalMascotInfoPanel();
   toast(typeof t === 'function' ? t('dial.mascot_saved') : '✓ Maskot kaydedildi', 'ok');
   if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
 }

@@ -179,8 +179,45 @@ function ariaQueuePlan(row) {
   return tourSay('aria.queue.need.revert', 'Sırada {pending} kişi var, eşik {esik}. Açılmayanları yeniden sıraya alırım.', args);
 }
 
+function ariaName() {
+  let raw = '';
+  try {
+    if (typeof getMascotPref === 'function') raw = getMascotPref('mb_mascot_name', '');
+  } catch (e) {}
+  const name = String(raw || '').trim().replace(/\s+/g, ' ').slice(0, 28);
+  return name || 'Mimi';
+}
+
+function ariaPaintName() {
+  const name = ariaName();
+  document.querySelectorAll('[data-aria-name]').forEach((el) => {
+    el.textContent = name;
+    el.setAttribute('data-tr', name);
+    el.setAttribute('data-de', name);
+  });
+  const chip = document.getElementById('aria-live');
+  const chipName = chip?.querySelector('.aria-live-name');
+  if (chipName) chipName.textContent = name;
+  document.querySelectorAll('#page-tour .tour-switch, #aria-pop .tour-switch, .aria-pop .tour-switch').forEach((el) => {
+    el.setAttribute('aria-label', name);
+  });
+  if (typeof MB_PAGES !== 'undefined') {
+    const page = MB_PAGES.find((item) => item.key === 'tour');
+    if (page) page.label = name;
+  }
+  if (typeof ALL_PAGES !== 'undefined') {
+    const page = ALL_PAGES.find((item) => item.key === 'tour');
+    if (page) page.label = name;
+  }
+  const who = document.querySelector('#aria-pop .aria-pop-who span:last-child');
+  if (who) who.textContent = name;
+  const go = document.querySelector('#aria-pop .aria-pop-go');
+  if (go) go.textContent = tourSay('aria.pop.open', '{name} sayfası', { name });
+}
+
 function ariaVoice(text) {
-  return String(text || '').replace(/^(?:Aria|Mimi):\s*/i, '').trim();
+  const name = ariaName().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return String(text || '').replace(new RegExp(`^(?:Aria|Mimi|${name}):\\s*`, 'i'), '').trim();
 }
 
 function ariaContext() {
@@ -326,8 +363,11 @@ function tourPaintLive(plan, line, speak) {
     if (day) day.textContent = facts ? facts.day : '';
     if (camp) camp.textContent = facts ? facts.camp : '';
     if (count) count.textContent = facts ? String(facts.n) : '';
+    const brand = ariaName();
+    const chipName = chip.querySelector('.aria-live-name');
+    if (chipName) chipName.textContent = brand;
     chip.title = text;
-    chip.setAttribute('aria-label', facts ? `Mimi ${facts.day} ${facts.camp}` : 'Mimi');
+    chip.setAttribute('aria-label', facts ? `${brand} ${facts.day} ${facts.camp}` : brand);
   }
   const note = document.getElementById('aria-last');
   if (note) note.textContent = ariaVoice(text);
@@ -335,6 +375,7 @@ function tourPaintLive(plan, line, speak) {
     _ariaSpoken = text;
     tourSpeak(text);
   }
+  ariaPaintName();
   ariaPaintNow();
   const pop = document.getElementById('aria-pop');
   if (pop && !pop.hidden) ariaFillPop();
@@ -365,8 +406,8 @@ function ariaFillPop() {
   pop.classList.toggle('is-live', !live.pasif);
   pop.classList.toggle('is-looking', live.looking);
   pop.innerHTML = `<div class="aria-pop-head">
-  <span class="aria-pop-who"><span class="aria-orb" aria-hidden="true"></span><span>Mimi</span></span>
-  <div class="tour-switch aria-pop-switch" role="group" aria-label="Mimi">
+  <span class="aria-pop-who"><span class="aria-orb" aria-hidden="true"></span><span>${tourEsc(ariaName())}</span></span>
+  <div class="tour-switch aria-pop-switch" role="group" aria-label="${tourEsc(ariaName())}">
     <button type="button" class="tour-switch-btn is-off-side${now.pasif ? ' is-on' : ''}" onclick="tourSetMode(false)">${tourEsc(tourSay('aria.mode.off', 'Kapalı'))}</button>
     <button type="button" class="tour-switch-btn is-on-side${now.pasif ? '' : ' is-on'}" onclick="tourSetMode(true)">${tourEsc(tourSay('aria.mode.on', 'Açık'))}</button>
   </div>
@@ -383,7 +424,7 @@ ${ariaWatchLine() ? `<p class="aria-pop-job">${tourEsc(ariaWatchLine())}</p>` : 
 ${chips.length ? `<div class="aria-pop-chips">${chips.map((item) => `<span>${tourEsc(item)}</span>`).join('')}</div>` : ''}
 ${now.queue ? `<div class="aria-pop-meta">${tourEsc(now.queue)}</div><div class="tour-fill"><span style="width:${now.pct}%"></span></div>` : ''}
 ${earlier.length ? `<div class="aria-pop-earlier"><span>${tourEsc(tourSay('aria.earlier', 'Bugün daha önce'))}</span>${earlier.map((item) => `<p><b>${tourEsc(item.at)}</b> ${tourEsc(item.text)}</p>`).join('')}</div>` : ''}
-<button type="button" class="aria-pop-go" onclick="ariaOpenPage()">${tourEsc(tourSay('aria.pop.open', 'Mimi sayfası'))}</button>`;
+<button type="button" class="aria-pop-go" onclick="ariaOpenPage()">${tourEsc(tourSay('aria.pop.open', '{name} sayfası', { name: ariaName() }))}</button>`;
 }
 
 function ariaOpenPop() {
@@ -1247,7 +1288,7 @@ async function tourRefresh(opts) {
     if (apply) await tourApply(_tourPlan, force);
     else if (!(opts && opts.silent)) tourPaintLive(_tourPlan, null, true);
   } catch (e) {
-    if (typeof toast === 'function') toast(tourSay('tour.err', 'Mimi okunamadı'), 'err');
+    if (typeof toast === 'function') toast(tourSay('tour.err', '{name} okunamadı', { name: ariaName() }), 'err');
     if (_tourPlan) tourRender(_tourPlan);
   } finally {
     _tourBusy = false;
@@ -1258,7 +1299,7 @@ async function tourRefresh(opts) {
 async function tourRunNow() {
   if (tourPref().onay) {
     const ok = typeof mbConfirm === 'function'
-      ? await mbConfirm(tourSay('tour.askrun', 'Seçilen kampanya bildirilsin. Kuyruk eşiğin altındaysa doldurulsun?'), tourSay('tour.title', 'Mimi'))
+      ? await mbConfirm(tourSay('tour.askrun', 'Seçilen kampanya bildirilsin. Kuyruk eşiğin altındaysa doldurulsun?'), tourSay('tour.title', '{name}', { name: ariaName() }))
       : false;
     if (!ok) return;
   }
@@ -1492,7 +1533,7 @@ async function tourApply(plan, force) {
     else if (told) entry.k = 'told';
     await tourRemember(entry);
   }
-  if (extra && typeof toast === 'function') toast(line, extra.kind === 'nearby0' ? 'warn' : 'ok');
+  if (extra && typeof toast === 'function') toast(ariaVoice(line), extra.kind === 'nearby0' ? 'warn' : 'ok');
 }
 
 function tourTab(name) {
@@ -1797,6 +1838,7 @@ function tourPackage(campaignId) {
 function tourBoot() {
   if (window._tourBooted) return;
   window._tourBooted = true;
+  ariaPaintName();
   setTimeout(() => {
     if (!ariaAdmin()) return;
     void tourLoadSettings().then(async () => {
