@@ -639,6 +639,10 @@ function tourPaintSettings() {
     on.setAttribute('aria-pressed', pasif ? 'false' : 'true');
   }
   if (page) page.classList.toggle('is-aria-on', !pasif);
+  const sayOn = document.getElementById('tour-say-on');
+  const sayOff = document.getElementById('tour-say-off');
+  if (sayOn) sayOn.hidden = pasif;
+  if (sayOff) sayOff.hidden = !pasif;
   ariaPaintNow();
   const wait = document.getElementById('tour-wait-n');
   if (wait) wait.value = String(pref.bekleyenEsik);
@@ -978,7 +982,7 @@ function tourRender(plan) {
     ? `<div class="tour-list">${cards}</div>`
     : `<p class="tour-note">${tourEsc(tourSay('tour.none', 'Boş slotu olan kampanya yok'))}</p>`;
   const outlook = Array.isArray(plan.outlook) ? plan.outlook : [];
-  const daysHtml = `<div class="aria-days"><button type="button" class="aria-day${plan.manual ? '' : ' is-pick'}" onclick="tourDayAuto()"><b>${tourEsc(tourSay('aria.nearest', 'En yakın'))}</b><span>${tourEsc(plan.manual ? '—' : (tourShortDay(plan.day) || '—'))}</span></button>${outlook.map((item) => `<button type="button" class="aria-day${plan.manual && item.ymd === plan.day ? ' is-pick' : ''}" onclick="tourPinDay('${item.ymd}')"><b>${tourEsc(tourShortDay(item.ymd))}</b><span>${item.bos} ${tourEsc(tourSay('tour.slots', 'boş'))}</span></button>`).join('')}</div>`;
+  const daysHtml = `<p class="aria-day-title">${tourEsc(tourSay('aria.daywatch', 'Hangi güne bakıyor'))}</p><div class="aria-days"><button type="button" class="aria-day${plan.manual ? '' : ' is-pick'}" onclick="tourDayAuto()"><b>${tourEsc(tourSay('aria.nearest', 'En yakın'))}</b><span>${tourEsc(plan.manual ? '—' : (tourShortDay(plan.day) || '—'))}</span></button>${outlook.map((item) => `<button type="button" class="aria-day${plan.manual && item.ymd === plan.day ? ' is-pick' : ''}" onclick="tourPinDay('${item.ymd}')"><b>${tourEsc(tourShortDay(item.ymd))}</b><span>${item.bos} ${tourEsc(tourSay('tour.slots', 'boş'))}</span></button>`).join('')}</div>`;
   panel.innerHTML = `${head}
 ${daysHtml}
 <p class="tour-meta">${tourEsc(tourSay('tour.day', 'Hedef gün'))}: <b>${tourEsc(plan.day)}</b> · ${tourEsc(tourSay('tour.' + shiftKey, shiftKey))}${plan.shift.breakEnd ? ' ' + tourEsc(plan.shift.breakEnd) : ''}</p>
