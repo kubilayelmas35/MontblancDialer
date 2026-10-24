@@ -168,7 +168,7 @@ function ariaQueuePlan(row) {
   const esik = Math.max(1, Number(pref.veriEsik) || 500);
   const pending = Number(row?.pending) || 0;
   const args = { pending, esik };
-  if (tourEffectivePasif()) return tourSay('aria.queue.pasif', 'Sırada {pending} kişi var. Pasifken kimse yüklemem.', args);
+  if (tourEffectivePasif()) return tourSay('aria.queue.pasif', 'Sırada {pending} kişi var. Kapalıyken kimse yüklemem.', args);
   if (pref.kuyrukYenile === false) return tourSay('aria.queue.off', 'Sırada {pending} kişi var. Kuyruk kapalı, kimse yüklemedim.', args);
   if (pending >= esik) return tourSay('aria.queue.full', 'Sırada {pending} kişi var, eşik {esik}. Sıra dolu, kimse yüklemedim.', args);
   if (pref.kuyrukMod === 'yakin') {
@@ -191,7 +191,7 @@ function ariaContext() {
   const day = tourShortDay(plan?.day) || '';
   return {
     pasif,
-    mode: pasif ? tourSay('aria.mode.off', 'Pasif') : tourSay('aria.mode.on', 'Aktif'),
+    mode: pasif ? tourSay('aria.mode.off', 'Kapalı') : tourSay('aria.mode.on', 'Açık'),
     day,
     camp: row ? row.name : '',
     slots: row ? tourSay('aria.pop.slots', '{n} boş slot', { n: row.bos }) : '',
@@ -254,9 +254,37 @@ function ariaAdmin() {
   return ['super_admin', 'admin', 'firm_admin'].includes(role);
 }
 
+function ariaModeLine() {
+  return tourEffectivePasif()
+    ? tourSay('aria.chip.pasif', 'Kapalı. Kendi kendine bakmıyorum.')
+    : tourSay('aria.chip.on', 'Açık. Kendi kendime bakıyorum.');
+}
+
+function ariaIsModeLine(text) {
+  const raw = ariaVoice(text);
+  if (!raw) return true;
+  return [
+    ariaModeLine(),
+    tourSay('aria.chip.pasif', 'Kapalı. Kendi kendine bakmıyorum.'),
+    tourSay('aria.chip.on', 'Açık. Kendi kendime bakıyorum.'),
+    tourSay('aria.idle', 'Bakıyorum.'),
+    'Pasif. Kendi kendine bakmıyorum.',
+    'Passiv. Ich schaue nicht von selbst.',
+    'Aktif. Kendi kendime bakıyorum.',
+    'Aktiv. Ich schaue von selbst.',
+    'Kapalı. Kendi kendine bakmıyorum.',
+    'Açık. Kendi kendime bakıyorum.',
+    'Aus. Ich schaue nicht von selbst.',
+    'An. Ich schaue von selbst.',
+    'Bakıyorum.',
+    'Ich schaue.',
+  ].some((item) => ariaVoice(item) === raw);
+}
+
 function tourPaintLive(plan, line, speak) {
-  let text = line || (plan?.pick?.id ? tourStory(plan) : '') || _ariaShown || '';
-  if (!text && ariaAdmin()) text = tourEffectivePasif() ? tourSay('aria.chip.pasif', 'Pasif. Kendi kendine bakmıyorum.') : tourSay('aria.idle', 'Bakıyorum.');
+  let text = line || '';
+  if (!text && !tourEffectivePasif() && plan?.pick?.id) text = tourStory(plan);
+  if (!text || ariaIsModeLine(text)) text = ariaModeLine();
   if (text) _ariaShown = text;
   const chip = document.getElementById('aria-live');
   if (chip) {
@@ -307,8 +335,8 @@ function ariaFillPop() {
   pop.innerHTML = `<div class="aria-pop-head">
   <span class="aria-pop-who"><span class="aria-orb" aria-hidden="true"></span><span>Aria</span></span>
   <div class="tour-switch aria-pop-switch" role="group" aria-label="Aria">
-    <button type="button" class="tour-switch-btn is-off-side${now.pasif ? ' is-on' : ''}" onclick="tourSetMode(false)">${tourEsc(tourSay('aria.mode.off', 'Pasif'))}</button>
-    <button type="button" class="tour-switch-btn is-on-side${now.pasif ? '' : ' is-on'}" onclick="tourSetMode(true)">${tourEsc(tourSay('aria.mode.on', 'Aktif'))}</button>
+    <button type="button" class="tour-switch-btn is-off-side${now.pasif ? ' is-on' : ''}" onclick="tourSetMode(false)">${tourEsc(tourSay('aria.mode.off', 'Kapalı'))}</button>
+    <button type="button" class="tour-switch-btn is-on-side${now.pasif ? '' : ' is-on'}" onclick="tourSetMode(true)">${tourEsc(tourSay('aria.mode.on', 'Açık'))}</button>
   </div>
 </div>
 <div class="aria-pop-jobs">
@@ -1122,8 +1150,8 @@ function tourRender(plan) {
   const locked = plan?.shift?.label === 'break';
   const shiftKey = plan?.shift?.label || 'noplan';
   const head = tourEffectivePasif()
-    ? `<p class="tour-note">${tourEsc(tourSay('tour.pasif', 'Pasif. Karar görünür, bildirim ve kuyruk işlemi gitmez.'))}</p>`
-    : `<p class="tour-note">${tourEsc(tourSay('tour.note', 'Aktif. En yakın boş güne bir kampanya bildirilir.'))}</p>`;
+    ? `<p class="tour-note">${tourEsc(tourSay('tour.pasif', 'Kapalı. Karar görünür, bildirim ve kuyruk işlemi gitmez.'))}</p>`
+    : `<p class="tour-note">${tourEsc(tourSay('tour.note', 'Açık. En yakın boş güne bir kampanya bildirilir.'))}</p>`;
   if (!plan?.firmId) {
     panel.innerHTML = head + `<p class="tour-note">${tourEsc(tourSay('tour.needfirm', 'Firma seç'))}</p>`;
     return;
@@ -1444,6 +1472,8 @@ function tourTab(name) {
 }
 
 async function tourSetMode(aktif) {
+  _tourSettings = { ...tourPref(), aktif: !!aktif };
+  tourPaintLive(_tourPlan, null, false);
   await tourSave({ aktif: !!aktif });
   tourArm();
   if (aktif) await tourRefresh({ apply: true, force: true });
