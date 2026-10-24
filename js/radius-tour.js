@@ -2,6 +2,8 @@ const TOUR_GUN = { Mon: 'pzt', Tue: 'sal', Wed: 'car', Thu: 'per', Fri: 'cum', S
 const TOUR_DEFAULTS = {
   aktif: false,
   kuyrukMod: 'revert',
+  kampanyaDegis: true,
+  kuyrukYenile: true,
   hedefManuel: false,
   hedefTarih: '',
   secili: '',
@@ -88,18 +90,21 @@ function tourStory(plan, extra) {
   if (!plan?.pick?.id) return tourSay('aria.none', 'Aria: boş slotu olan kampanya yok.');
   const row = (plan.rows || []).find((item) => item.id === plan.pick.id);
   if (!row) return tourSay('aria.none', 'Aria: boş slotu olan kampanya yok.');
-  const whyKey = plan.pick.kind === 'stay' ? 'aria.why.stay' : plan.pick.kind === 'switch' ? 'aria.why.switch' : 'aria.why.pick';
-  const whyFb = plan.pick.kind === 'stay'
+  const focus = extra?.rowId ? ((plan.rows || []).find((item) => item.id === extra.rowId) || row) : row;
+  const whyKey = extra?.hold ? 'aria.why.hold' : plan.pick.kind === 'stay' ? 'aria.why.stay' : plan.pick.kind === 'switch' ? 'aria.why.switch' : 'aria.why.pick';
+  const whyFb = extra?.hold
+    ? 'Kampanyayı değiştirmedim. {camp} açık kaldı.'
+    : plan.pick.kind === 'stay'
     ? '{day} gününde {camp} hâlâ en çok boş slota sahip, {n} boş. Onda kaldım.'
     : plan.pick.kind === 'switch'
       ? '{day} en yakın boş gün. {camp} geride kaldı, {n} boş slotu var. Ona geçtim.'
       : '{day} en yakın boş gün. {camp} kampanyasında {n} boş slot var, onu seçtim.';
-  const why = tourSay(whyKey, whyFb, { day: plan.day, camp: row.name, n: row.bos });
+  const why = tourSay(whyKey, whyFb, { day: plan.day, camp: focus.name, n: focus.bos });
   if (extra?.kind === 'nearby' && extra.added) {
-    return `${tourSay('aria.watch', 'Aria: {why}', { why })} ${ariaRoundBit(extra, row)}`;
+    return `${tourSay('aria.watch', 'Aria: {why}', { why })} ${ariaRoundBit(extra, focus)}`;
   }
   if (extra?.kind === 'nearby0') {
-    return tourSay('aria.near0', 'Aria: {why} {plz} çevresinde eklenecek kişi bulamadım.', { why, plz: row.anchor || '' });
+    return tourSay('aria.near0', 'Aria: {why} {plz} çevresinde eklenecek kişi bulamadım.', { why, plz: focus.anchor || '' });
   }
   if (extra?.kind === 'nearwait') {
     return tourSay('aria.nearwait', 'Aria: {why} Yakından yükleyecektim, sekme kapalı olduğu için beklettim. Sırada {pending} kişi var, eşik {esik}.', {
@@ -107,10 +112,10 @@ function tourStory(plan, extra) {
     });
   }
   if (extra?.kind === 'revert') {
-    return tourSay('aria.revert', 'Aria: {why} Kuyrukta {pending} kişi vardı. {n} kişiyi tekrar aramaya aldım.', { why, pending: row.pending, n: extra.moved });
+    return tourSay('aria.revert', 'Aria: {why} Kuyrukta {pending} kişi vardı. {n} kişiyi tekrar aramaya aldım.', { why, pending: focus.pending, n: extra.moved });
   }
-  if (extra?.kind === 'told') return `${tourSay('aria.told', 'Aria: {why} Temsilcilere bildirdim.', { why })} ${ariaQueuePlan(row)}`;
-  return `${tourSay('aria.watch', 'Aria: {why}', { why })} ${ariaQueuePlan(row)}`;
+  if (extra?.kind === 'told') return `${tourSay('aria.told', 'Aria: {why} Temsilcilere bildirdim.', { why })} ${ariaQueuePlan(focus)}`;
+  return `${tourSay('aria.watch', 'Aria: {why}', { why })} ${ariaQueuePlan(focus)}`;
 }
 
 function ariaPlzList(plzs, max) {
@@ -164,6 +169,7 @@ function ariaQueuePlan(row) {
   const pending = Number(row?.pending) || 0;
   const args = { pending, esik };
   if (tourEffectivePasif()) return tourSay('aria.queue.pasif', 'Sırada {pending} kişi var. Pasifken kimse yüklemem.', args);
+  if (pref.kuyrukYenile === false) return tourSay('aria.queue.off', 'Sırada {pending} kişi var. Kuyruk kapalı, kimse yüklemedim.', args);
   if (pending >= esik) return tourSay('aria.queue.full', 'Sırada {pending} kişi var, eşik {esik}. Sıra dolu, kimse yüklemedim.', args);
   if (pref.kuyrukMod === 'yakin') {
     if (!row?.anchor) return tourSay('aria.queue.noanchor', 'Sırada {pending} kişi var. Yakından yüklemek için bu kampanyada posta kodu yok.', args);
@@ -711,6 +717,8 @@ async function tourSaveWatch() {
       userId,
       kuyrukMod: pref.kuyrukMod === 'yakin' ? 'yakin' : 'revert',
       kuyrukYer: pref.kuyrukYer === 'yeni' ? 'yeni' : 'son',
+      kampanyaDegis: pref.kampanyaDegis !== false,
+      kuyrukYenile: pref.kuyrukYenile !== false,
       geriKim: tourGeriKim(),
       geriKere: tourGeriKere(),
       geoGun: tourGeoGun(),
@@ -837,6 +845,8 @@ function tourPaintSettings() {
   tourSetChecked('tour-yol', pref.yolUyari);
   tourSetChecked('tour-skip', pref.bosSlotAtla);
   tourSetChecked('tour-sat', pref.cumartesi);
+  tourSetChecked('tour-camp-auto', pref.kampanyaDegis !== false);
+  tourSetChecked('tour-queue-auto', pref.kuyrukYenile !== false);
   tourSetChecked('tour-alta-slot', _tourAltaSlot);
   tourSetChecked('tour-prefix', pref.ayniPrefix);
   tourSetChecked('tour-heal', pref.selfHeal);
@@ -1062,7 +1072,12 @@ async function tourBuild() {
   const campRows = Array.isArray(camps) ? camps : [];
   const marked = campRows.find((camp) => camp.active_for_agents);
   const currentId = pref.lastCampId || marked?.id || '';
-  const rows = [...byCamp.values()].filter((row) => row.bos > 0);
+  let rows = [...byCamp.values()].filter((row) => row.bos > 0);
+  if (pref.kampanyaDegis === false && currentId && !rows.some((row) => row.id === currentId)) {
+    const camp = campRows.find((item) => item.id === currentId);
+    const held = byCamp.get(currentId) || (camp ? { id: camp.id, name: camp.name || '', bos: 0, slots: [], appts: [], plzs: new Set(), pending: 0, revertIds: [], anchor: '', top: '' } : null);
+    if (held) rows = [held, ...rows];
+  }
   await Promise.all(rows.map(async (row) => {
     row.pending = await tourCount(`contacts?firm_id=eq.${firmId}&campaign_id=eq.${row.id}&status=eq.pending&select=id`).catch(() => 0);
     row.anchor = tourAnchor(row.appts.filter((a) => a.plz), row.slots) || row.top || '';
@@ -1319,7 +1334,11 @@ async function tourNearbyInsert(row) {
 }
 
 async function tourApply(plan, force) {
-  if (!plan?.firmId || !plan.pick?.id) {
+  const prefEarly = tourPref();
+  const heldEarly = prefEarly.kampanyaDegis === false
+    ? (plan?.rows || []).find((item) => item.id === plan?.activeId)
+    : null;
+  if (!plan?.firmId || (!plan.pick?.id && !heldEarly)) {
     tourPaintLive(plan, null, !!force);
     return;
   }
@@ -1343,39 +1362,53 @@ async function tourApply(plan, force) {
     tourPaintLive(plan, null, false);
     return;
   }
-  const row = plan.rows.find((item) => item.id === plan.pick.id);
+  const row = plan.rows.find((item) => item.id === plan.pick.id) || heldEarly;
   if (!row) {
     tourPaintLive(plan, null, !!force);
     return;
   }
   await tourSave({ lastTickAt: now });
+  const changeCamp = pref.kampanyaDegis !== false;
+  const fillQueue = pref.kuyrukYenile !== false;
+  let work = row;
+  if (!changeCamp) {
+    work = plan.rows.find((item) => item.id === plan.activeId) || null;
+    if (!work) {
+      tourPaintLive(plan, tourSay('aria.hold.none', 'Kampanyayı değiştirmedim. Açık kampanya yok, kuyruğa yazmadım.'), true);
+      return;
+    }
+  }
   let told = false;
-  if (row.id !== pref.lastCampId || plan.day !== pref.lastDay) {
-    await tourNotify(plan, row);
-    await tourSave({ lastCampId: row.id, lastDay: plan.day, lastTickAt: now });
+  if (changeCamp && (work.id !== pref.lastCampId || plan.day !== pref.lastDay)) {
+    await tourNotify(plan, work);
+    await tourSave({ lastCampId: work.id, lastDay: plan.day, lastTickAt: now });
     told = true;
   }
   let extra = null;
-  if (row.pending < pref.veriEsik && pref.kuyrukMod === 'yakin' && row.anchor) {
-    const detail = await tourNearbyInsert(row).catch(() => null);
+  if (!changeCamp) extra = { hold: true, rowId: work.id };
+  if (fillQueue && work.pending < pref.veriEsik && pref.kuyrukMod === 'yakin' && work.anchor) {
+    const detail = await tourNearbyInsert(work).catch(() => null);
+    const mark = { hold: !changeCamp, rowId: work.id };
     extra = detail && detail.added
-      ? { kind: 'nearby', ...detail, pending: row.pending, esik: pref.veriEsik, radius: pref.radiusKm }
+      ? { kind: 'nearby', ...detail, pending: work.pending, esik: pref.veriEsik, radius: pref.radiusKm, ...mark }
       : detail && detail.reason === 'closed'
-        ? { kind: 'nearwait', pending: row.pending, esik: pref.veriEsik }
-        : { kind: 'nearby0' };
-  } else if (row.pending < pref.veriEsik && row.revertIds.length) {
-    const moved = await tourRevert(row.id, { auto: true });
-    if (moved) extra = { kind: 'revert', moved };
+        ? { kind: 'nearwait', pending: work.pending, esik: pref.veriEsik, ...mark }
+        : { kind: 'nearby0', ...mark };
+  } else if (fillQueue && work.pending < pref.veriEsik && work.revertIds.length) {
+    const moved = await tourRevert(work.id, { auto: true });
+    if (moved) extra = { ...(extra || {}), kind: 'revert', moved, hold: !changeCamp, rowId: work.id };
   }
   if (!extra && told) extra = { kind: 'told' };
-  const line = tourStory(plan, extra);
-  tourPaintLive(plan, line, !!(force || extra));
-  if (extra || told) {
-    const entry = { day: plan.day, camp: row.name, n: row.bos, kind: plan.pick.kind };
+  else if (extra && !extra.kind && told) extra.kind = 'told';
+  const view = !changeCamp ? { ...plan, pick: { id: work.id, kind: 'stay', bos: work.bos } } : plan;
+  const line = tourStory(view, extra);
+  tourPaintLive(plan, line, !!(force || extra?.kind || told));
+  if (extra?.kind || told) {
+    const entry = { day: plan.day, camp: work.name, n: work.bos, kind: changeCamp ? plan.pick.kind : 'stay' };
     if (extra?.kind === 'nearby') Object.assign(entry, { k: 'near', added: extra.added, pending: extra.pending, esik: extra.esik, plz: extra.anchor, plzs: ariaPlzList(extra.plzs, 12), km: extra.radius, codes: (extra.plzs || []).length, q: extra.queueName, created: !!extra.created, text: line });
-    else if (extra?.kind === 'nearby0') Object.assign(entry, { k: 'near0', plz: row.anchor || '' });
-    else if (extra?.kind === 'nearwait') Object.assign(entry, { k: 'nearwait', pending: row.pending, esik: pref.veriEsik, text: line });
-    else if (extra?.kind === 'revert') Object.assign(entry, { k: 'revert', moved: extra.moved, pending: row.pending });
+    else if (extra?.kind === 'nearby0') Object.assign(entry, { k: 'near0', plz: work.anchor || '' });
+    else if (extra?.kind === 'nearwait') Object.assign(entry, { k: 'nearwait', pending: work.pending, esik: pref.veriEsik, text: line });
+    else if (extra?.kind === 'revert') Object.assign(entry, { k: 'revert', moved: extra.moved, pending: work.pending });
     else if (told) entry.k = 'told';
     await tourRemember(entry);
   }

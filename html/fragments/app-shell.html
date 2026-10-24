@@ -579,6 +579,9 @@
 <p class="aria-ask" data-tr="Hangi kampanyayı seçsin" data-de="Welche Kampagne sie wählt">Hangi kampanyayı seçsin</p>
 <p class="tour-note" data-tr="Bu hesap için. Boş saatler arasından hangi kampanyaya geçeceğini sırayla sorar." data-de="Für dieses Konto. Fragt der Reihe nach, zu welcher Kampagne sie unter den freien Stunden wechselt.">Bu hesap için. Boş saatler arasından hangi kampanyaya geçeceğini sırayla sorar.</p>
 <div class="tour-grid">
+<label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="Kampanyayı kendi değiştirsin" data-de="Kampagne selbst wechseln">Kampanyayı kendi değiştirsin</span>
+<small class="tour-help" data-tr="Açıkken boş saate göre kampanya seçer ve ekibe söyler. Kapalıyken açık kampanyaya dokunmaz. Kuyruk ayrı kalır." data-de="An: wählt die Kampagne nach freien Stunden und sagt es dem Team. Aus: die offene Kampagne bleibt. Die Queue bleibt getrennt.">Açıkken boş saate göre kampanya seçer ve ekibe söyler. Kapalıyken açık kampanyaya dokunmaz. Kuyruk ayrı kalır.</small></span>
+<input type="checkbox" id="tour-camp-auto" onchange="tourFlag('kampanyaDegis', this)"></label>
 <label class="tour-field"><span class="tour-name" data-tr="En az kaç boş saat olsun" data-de="Mindestens so viele freie Stunden">En az kaç boş saat olsun</span>
 <small class="tour-help" data-tr="Bir kampanyanın seçilmesi için o günde en az bu kadar boş saati olmalı. 1 yazarsan, tek boş saati olan kampanya da seçilebilir." data-de="Eine Kampagne braucht an dem Tag mindestens so viele freie Stunden. Bei 1 reicht schon eine freie Stunde.">Bir kampanyanın seçilmesi için o günde en az bu kadar boş saati olmalı. 1 yazarsan, tek boş saati olan kampanya da seçilebilir.</small>
 <input class="form-input" id="tour-min-bos" type="number" min="1" max="20" step="1" onchange="tourNum('minBos', this, 1, 20)"></label>
@@ -619,6 +622,9 @@
 <p class="aria-ask" data-tr="Sıradaki kişi azalınca" data-de="Wenn die Reihe dünn wird">Sıradaki kişi azalınca</p>
 <p class="tour-note" data-tr="Eşik ve ne yapacağı bu hesap için. Kimleri alacağı, seçili firmanın kendi sonuçlarından gelir." data-de="Schwelle und die Arbeit gelten für dieses Konto. Wen sie nimmt, kommt aus den eigenen Ergebnissen der gewählten Firma.">Eşik ve ne yapacağı bu hesap için. Kimleri alacağı, seçili firmanın kendi sonuçlarından gelir.</p>
 <div class="tour-grid">
+<label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="Kuyruğu kendi doldursun" data-de="Queue selbst füllen">Kuyruğu kendi doldursun</span>
+<small class="tour-help" data-tr="Açıkken sıra eşiğin altına düşünce kişi ekler. Kapalıyken kuyruğa kimse yazmaz. Kampanya ayrı kalır." data-de="An: fügt Personen hinzu, wenn die Reihe unter die Schwelle sinkt. Aus: niemand kommt in die Queue. Die Kampagne bleibt getrennt.">Açıkken sıra eşiğin altına düşünce kişi ekler. Kapalıyken kuyruğa kimse yazmaz. Kampanya ayrı kalır.</small></span>
+<input type="checkbox" id="tour-queue-auto" onchange="tourFlag('kuyrukYenile', this)"></label>
 <label class="tour-field"><span class="tour-name" data-tr="Ne yapsın" data-de="Was sie tun soll">Ne yapsın</span>
 <small class="tour-help" data-tr="Yeniden sıraya al: kimleri ve kaç kez aranmış olanı alacağını alttaki sorular seçer. GeoCon: seçtiği kampanyanın çevresinden, GeoCon’da son günlerde kullanılmamış posta kodlarını ekler." data-de="Wieder in die Reihe: die Fragen darunter wählen, wen und wie oft. GeoCon: nimmt um die Kampagne Personen, deren PLZ in GeoCon zuletzt nicht benutzt wurde.">Yeniden sıraya al: kimleri ve kaç kez aranmış olanı alacağını alttaki sorular seçer. GeoCon: seçtiği kampanyanın çevresinden, GeoCon’da son günlerde kullanılmamış posta kodlarını ekler.</small>
 <select class="form-input" id="tour-kuyruk" onchange="tourQueueMode(this)">

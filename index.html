@@ -12,17 +12,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=11.62">
-<link rel="stylesheet" href="css/styles-dialer.css?v=11.62">
-<link rel="stylesheet" href="css/styles-mascot.css?v=11.62">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=11.62">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=11.62">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=11.62">
-<link rel="stylesheet" href="css/styles-pages.css?v=11.62">
-<link rel="stylesheet" href="css/styles-aurora.css?v=11.62">
-<link rel="stylesheet" href="css/styles-chat.css?v=11.62">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=11.62">
-<link rel="stylesheet" href="css/styles-responsive.css?v=11.62">
+<link rel="stylesheet" href="css/styles.css?v=11.63">
+<link rel="stylesheet" href="css/styles-dialer.css?v=11.63">
+<link rel="stylesheet" href="css/styles-mascot.css?v=11.63">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=11.63">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=11.63">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=11.63">
+<link rel="stylesheet" href="css/styles-pages.css?v=11.63">
+<link rel="stylesheet" href="css/styles-aurora.css?v=11.63">
+<link rel="stylesheet" href="css/styles-chat.css?v=11.63">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=11.63">
+<link rel="stylesheet" href="css/styles-responsive.css?v=11.63">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -61,7 +61,7 @@
 <div class="login-index-note" data-i18n="login.row.4.note">Kalite, muhasebe</div>
 </div>
 </div>
-<div class="login-version">v11.62 — 2026</div>
+<div class="login-version">v11.63 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -479,7 +479,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">MontBlanc v11.62</div>
+<div class="sb-ver">MontBlanc v11.63</div>
 </div>
 </div>
 </nav>
@@ -690,6 +690,9 @@
 <p class="aria-ask" data-tr="Hangi kampanyayı seçsin" data-de="Welche Kampagne sie wählt">Hangi kampanyayı seçsin</p>
 <p class="tour-note" data-tr="Bu hesap için. Boş saatler arasından hangi kampanyaya geçeceğini sırayla sorar." data-de="Für dieses Konto. Fragt der Reihe nach, zu welcher Kampagne sie unter den freien Stunden wechselt.">Bu hesap için. Boş saatler arasından hangi kampanyaya geçeceğini sırayla sorar.</p>
 <div class="tour-grid">
+<label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="Kampanyayı kendi değiştirsin" data-de="Kampagne selbst wechseln">Kampanyayı kendi değiştirsin</span>
+<small class="tour-help" data-tr="Açıkken boş saate göre kampanya seçer ve ekibe söyler. Kapalıyken açık kampanyaya dokunmaz. Kuyruk ayrı kalır." data-de="An: wählt die Kampagne nach freien Stunden und sagt es dem Team. Aus: die offene Kampagne bleibt. Die Queue bleibt getrennt.">Açıkken boş saate göre kampanya seçer ve ekibe söyler. Kapalıyken açık kampanyaya dokunmaz. Kuyruk ayrı kalır.</small></span>
+<input type="checkbox" id="tour-camp-auto" onchange="tourFlag('kampanyaDegis', this)"></label>
 <label class="tour-field"><span class="tour-name" data-tr="En az kaç boş saat olsun" data-de="Mindestens so viele freie Stunden">En az kaç boş saat olsun</span>
 <small class="tour-help" data-tr="Bir kampanyanın seçilmesi için o günde en az bu kadar boş saati olmalı. 1 yazarsan, tek boş saati olan kampanya da seçilebilir." data-de="Eine Kampagne braucht an dem Tag mindestens so viele freie Stunden. Bei 1 reicht schon eine freie Stunde.">Bir kampanyanın seçilmesi için o günde en az bu kadar boş saati olmalı. 1 yazarsan, tek boş saati olan kampanya da seçilebilir.</small>
 <input class="form-input" id="tour-min-bos" type="number" min="1" max="20" step="1" onchange="tourNum('minBos', this, 1, 20)"></label>
@@ -730,6 +733,9 @@
 <p class="aria-ask" data-tr="Sıradaki kişi azalınca" data-de="Wenn die Reihe dünn wird">Sıradaki kişi azalınca</p>
 <p class="tour-note" data-tr="Eşik ve ne yapacağı bu hesap için. Kimleri alacağı, seçili firmanın kendi sonuçlarından gelir." data-de="Schwelle und die Arbeit gelten für dieses Konto. Wen sie nimmt, kommt aus den eigenen Ergebnissen der gewählten Firma.">Eşik ve ne yapacağı bu hesap için. Kimleri alacağı, seçili firmanın kendi sonuçlarından gelir.</p>
 <div class="tour-grid">
+<label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="Kuyruğu kendi doldursun" data-de="Queue selbst füllen">Kuyruğu kendi doldursun</span>
+<small class="tour-help" data-tr="Açıkken sıra eşiğin altına düşünce kişi ekler. Kapalıyken kuyruğa kimse yazmaz. Kampanya ayrı kalır." data-de="An: fügt Personen hinzu, wenn die Reihe unter die Schwelle sinkt. Aus: niemand kommt in die Queue. Die Kampagne bleibt getrennt.">Açıkken sıra eşiğin altına düşünce kişi ekler. Kapalıyken kuyruğa kimse yazmaz. Kampanya ayrı kalır.</small></span>
+<input type="checkbox" id="tour-queue-auto" onchange="tourFlag('kuyrukYenile', this)"></label>
 <label class="tour-field"><span class="tour-name" data-tr="Ne yapsın" data-de="Was sie tun soll">Ne yapsın</span>
 <small class="tour-help" data-tr="Yeniden sıraya al: kimleri ve kaç kez aranmış olanı alacağını alttaki sorular seçer. GeoCon: seçtiği kampanyanın çevresinden, GeoCon’da son günlerde kullanılmamış posta kodlarını ekler." data-de="Wieder in die Reihe: die Fragen darunter wählen, wen und wie oft. GeoCon: nimmt um die Kampagne Personen, deren PLZ in GeoCon zuletzt nicht benutzt wurde.">Yeniden sıraya al: kimleri ve kaç kez aranmış olanı alacağını alttaki sorular seçer. GeoCon: seçtiği kampanyanın çevresinden, GeoCon’da son günlerde kullanılmamış posta kodlarını ekler.</small>
 <select class="form-input" id="tour-kuyruk" onchange="tourQueueMode(this)">
@@ -4782,67 +4788,67 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=11.62"></script>
-<script src="js/i18n.js?v=11.62"></script>
-<script src="js/config.js?v=11.62"></script>
-<script src="js/state.js?v=11.62"></script>
-<script src="js/api.js?v=11.62"></script>
-<script src="js/access.js?v=11.62"></script>
-<script src="js/auth.js?v=11.62"></script>
-<script src="js/ui.js?v=11.62"></script>
-<script src="js/chat.js?v=11.62"></script>
-<script src="js/chat-settings.js?v=11.62"></script>
-<script src="js/field-settings.js?v=11.62"></script>
-<script src="js/audit.js?v=11.62"></script>
-<script src="js/feature-flags.js?v=11.62"></script>
-<script src="js/notification-center.js?v=11.62"></script>
+<script src="js/version.js?v=11.63"></script>
+<script src="js/i18n.js?v=11.63"></script>
+<script src="js/config.js?v=11.63"></script>
+<script src="js/state.js?v=11.63"></script>
+<script src="js/api.js?v=11.63"></script>
+<script src="js/access.js?v=11.63"></script>
+<script src="js/auth.js?v=11.63"></script>
+<script src="js/ui.js?v=11.63"></script>
+<script src="js/chat.js?v=11.63"></script>
+<script src="js/chat-settings.js?v=11.63"></script>
+<script src="js/field-settings.js?v=11.63"></script>
+<script src="js/audit.js?v=11.63"></script>
+<script src="js/feature-flags.js?v=11.63"></script>
+<script src="js/notification-center.js?v=11.63"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=11.62"></script>
-<script src="js/job-market.js?v=11.62"></script>
-<script src="js/qc-job-market.js?v=11.62"></script>
-<script src="js/export-admin.js?v=11.62"></script>
-<script src="js/export-termin.js?v=11.62"></script>
-<script src="js/performance.js?v=11.62"></script>
-<script src="js/competition.js?v=11.62"></script>
-<script src="js/dashboard.js?v=11.62"></script>
-<script src="js/reports.js?v=11.62"></script>
-<script src="js/dashboard-brief.js?v=11.62"></script>
-<script src="js/campaigns.js?v=11.62"></script>
-<script src="js/campaigns-detail.js?v=11.62"></script>
-<script src="js/campaigns-queue.js?v=11.62"></script>
-<script src="js/contacts-upload.js?v=11.62"></script>
-<script src="js/geocon.js?v=11.62"></script>
-<script src="js/contacts.js?v=11.62"></script>
-<script src="js/contacts-drawer.js?v=11.62"></script>
-<script src="js/telnyx.js?v=11.62"></script>
-<script src="js/voice-orb.js?v=11.62"></script>
-<script src="js/dialer.js?v=11.62"></script>
-<script src="js/ops-alerts.js?v=11.62"></script>
-<script src="js/radius-tour.js?v=11.62"></script>
-<script src="js/dialer-mascot.js?v=11.62"></script>
-<script src="js/dialer-mascot-live.js?v=11.62"></script>
-<script src="js/ui-prefs.js?v=11.62"></script>
-<script src="js/dialer-session.js?v=11.62"></script>
-<script src="js/dialer-call.js?v=11.62"></script>
-<script src="js/dialer-tools.js?v=11.62"></script>
-<script src="js/appointments.js?v=11.62"></script>
-<script src="js/appointments-actions.js?v=11.62"></script>
-<script src="js/appointments-tools.js?v=11.62"></script>
-<script src="js/field.js?v=11.62"></script>
-<script src="js/field-quote.js?v=11.62"></script>
-<script src="js/field-catalog.js?v=11.62"></script>
-<script src="js/field-ops.js?v=11.62"></script>
-<script src="js/wiedervorlage.js?v=11.62"></script>
-<script src="js/qc.js?v=11.62"></script>
-<script src="js/supervisor.js?v=11.62"></script>
-<script src="js/live-coach.js?v=11.62"></script>
-<script src="js/sms-settings.js?v=11.62"></script>
-<script src="js/leave-hr.js?v=11.62"></script>
-<script src="js/muhasebe.js?v=11.62"></script>
-<script src="js/muhasebe-books.js?v=11.62"></script>
-<script src="js/agent-self-performance.js?v=11.62"></script>
-<script src="js/agents.js?v=11.62"></script>
-<script src="js/firm-desk.js?v=11.62"></script>
-<script src="js/mimi-brain.js?v=11.62"></script>
+<script src="js/wallet.js?v=11.63"></script>
+<script src="js/job-market.js?v=11.63"></script>
+<script src="js/qc-job-market.js?v=11.63"></script>
+<script src="js/export-admin.js?v=11.63"></script>
+<script src="js/export-termin.js?v=11.63"></script>
+<script src="js/performance.js?v=11.63"></script>
+<script src="js/competition.js?v=11.63"></script>
+<script src="js/dashboard.js?v=11.63"></script>
+<script src="js/reports.js?v=11.63"></script>
+<script src="js/dashboard-brief.js?v=11.63"></script>
+<script src="js/campaigns.js?v=11.63"></script>
+<script src="js/campaigns-detail.js?v=11.63"></script>
+<script src="js/campaigns-queue.js?v=11.63"></script>
+<script src="js/contacts-upload.js?v=11.63"></script>
+<script src="js/geocon.js?v=11.63"></script>
+<script src="js/contacts.js?v=11.63"></script>
+<script src="js/contacts-drawer.js?v=11.63"></script>
+<script src="js/telnyx.js?v=11.63"></script>
+<script src="js/voice-orb.js?v=11.63"></script>
+<script src="js/dialer.js?v=11.63"></script>
+<script src="js/ops-alerts.js?v=11.63"></script>
+<script src="js/radius-tour.js?v=11.63"></script>
+<script src="js/dialer-mascot.js?v=11.63"></script>
+<script src="js/dialer-mascot-live.js?v=11.63"></script>
+<script src="js/ui-prefs.js?v=11.63"></script>
+<script src="js/dialer-session.js?v=11.63"></script>
+<script src="js/dialer-call.js?v=11.63"></script>
+<script src="js/dialer-tools.js?v=11.63"></script>
+<script src="js/appointments.js?v=11.63"></script>
+<script src="js/appointments-actions.js?v=11.63"></script>
+<script src="js/appointments-tools.js?v=11.63"></script>
+<script src="js/field.js?v=11.63"></script>
+<script src="js/field-quote.js?v=11.63"></script>
+<script src="js/field-catalog.js?v=11.63"></script>
+<script src="js/field-ops.js?v=11.63"></script>
+<script src="js/wiedervorlage.js?v=11.63"></script>
+<script src="js/qc.js?v=11.63"></script>
+<script src="js/supervisor.js?v=11.63"></script>
+<script src="js/live-coach.js?v=11.63"></script>
+<script src="js/sms-settings.js?v=11.63"></script>
+<script src="js/leave-hr.js?v=11.63"></script>
+<script src="js/muhasebe.js?v=11.63"></script>
+<script src="js/muhasebe-books.js?v=11.63"></script>
+<script src="js/agent-self-performance.js?v=11.63"></script>
+<script src="js/agents.js?v=11.63"></script>
+<script src="js/firm-desk.js?v=11.63"></script>
+<script src="js/mimi-brain.js?v=11.63"></script>
 </body>
 </html>
