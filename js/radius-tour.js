@@ -249,16 +249,22 @@ function tourChipFacts(plan) {
   return { camp: lead ? lead[1] : name.slice(0, 14), n: Number(row.bos) || 0, day: tourShortDay(plan.day) };
 }
 
+function ariaAdmin() {
+  const role = (typeof currentUser !== 'undefined' && currentUser?.role) || '';
+  return ['super_admin', 'admin', 'firm_admin'].includes(role);
+}
+
 function tourPaintLive(plan, line, speak) {
-  const text = line || (plan ? tourStory(plan) : '');
-  _ariaShown = text;
+  let text = line || (plan?.pick?.id ? tourStory(plan) : '') || _ariaShown || '';
+  if (!text && ariaAdmin()) text = tourEffectivePasif() ? tourSay('aria.chip.pasif', 'Pasif. Kendi kendine bakmıyorum.') : tourSay('aria.idle', 'Bakıyorum.');
+  if (text) _ariaShown = text;
   const chip = document.getElementById('aria-live');
   if (chip) {
     const facts = tourChipFacts(plan);
     const day = document.getElementById('aria-live-day');
     const camp = document.getElementById('aria-live-camp');
     const count = document.getElementById('aria-live-n');
-    chip.hidden = !text;
+    chip.hidden = !ariaAdmin();
     chip.classList.toggle('is-on', !!facts);
     chip.classList.toggle('is-pasif', tourEffectivePasif());
     if (day) day.textContent = facts ? facts.day : '';
@@ -304,6 +310,10 @@ function ariaFillPop() {
     <button type="button" class="tour-switch-btn is-off-side${now.pasif ? ' is-on' : ''}" onclick="tourSetMode(false)">${tourEsc(tourSay('aria.mode.off', 'Pasif'))}</button>
     <button type="button" class="tour-switch-btn is-on-side${now.pasif ? '' : ' is-on'}" onclick="tourSetMode(true)">${tourEsc(tourSay('aria.mode.on', 'Aktif'))}</button>
   </div>
+</div>
+<div class="aria-pop-jobs">
+  <label class="aria-job" title="${tourEsc(tourSay('aria.job.camp.tip', 'Açıkken kampanyayı değiştirir. Kapalıyken açık kampanyada kalır.'))}"><input type="checkbox" ${tourPref().kampanyaDegis !== false ? 'checked' : ''} onchange="tourFlag('kampanyaDegis', this)"><span>${tourEsc(tourSay('aria.job.camp', 'Kampanya'))}</span></label>
+  <label class="aria-job" title="${tourEsc(tourSay('aria.job.queue.tip', 'Açıkken kuyruğu doldurur. Kapalıyken kuyruğa kimse yazmaz.'))}"><input type="checkbox" ${tourPref().kuyrukYenile !== false ? 'checked' : ''} onchange="tourFlag('kuyrukYenile', this)"><span>${tourEsc(tourSay('aria.job.queue', 'Kuyruk'))}</span></label>
 </div>
 <p class="aria-pop-job">${tourEsc(tourSay('aria.jobs', 'Kampanya seçer, sıra azalınca kişi yükler, alta inen randevunun yerine yer açar.'))}</p>
 ${ariaWatchLine() ? `<p class="aria-pop-job">${tourEsc(ariaWatchLine())}</p>` : ''}
@@ -846,7 +856,15 @@ function tourPaintSettings() {
   tourSetChecked('tour-skip', pref.bosSlotAtla);
   tourSetChecked('tour-sat', pref.cumartesi);
   tourSetChecked('tour-camp-auto', pref.kampanyaDegis !== false);
+  tourSetChecked('tour-camp-auto-run', pref.kampanyaDegis !== false);
   tourSetChecked('tour-queue-auto', pref.kuyrukYenile !== false);
+  tourSetChecked('tour-queue-auto-run', pref.kuyrukYenile !== false);
+  const campJob = document.getElementById('tour-camp-auto-run')?.closest('.aria-job');
+  const queueJob = document.getElementById('tour-queue-auto-run')?.closest('.aria-job');
+  if (campJob) campJob.title = tourSay('aria.job.camp.tip', 'Açıkken kampanyayı değiştirir. Kapalıyken açık kampanyada kalır.');
+  if (queueJob) queueJob.title = tourSay('aria.job.queue.tip', 'Açıkken kuyruğu doldurur. Kapalıyken kuyruğa kimse yazmaz.');
+  const pop = document.getElementById('aria-pop');
+  if (pop && !pop.hidden && typeof ariaFillPop === 'function') ariaFillPop();
   tourSetChecked('tour-alta-slot', _tourAltaSlot);
   tourSetChecked('tour-prefix', pref.ayniPrefix);
   tourSetChecked('tour-heal', pref.selfHeal);
@@ -1716,11 +1734,15 @@ function tourBoot() {
   if (window._tourBooted) return;
   window._tourBooted = true;
   setTimeout(() => {
-    const role = (typeof currentUser !== 'undefined' && currentUser?.role) || '';
-    if (!['super_admin', 'admin', 'firm_admin'].includes(role) || !tourFirmId()) return;
-    void tourLoadSettings().then(() => {
+    if (!ariaAdmin()) return;
+    void tourLoadSettings().then(async () => {
       tourArm();
-      if (!tourEffectivePasif()) void tourRefresh({ apply: true });
+      if (tourFirmId() && !tourEffectivePasif()) {
+        await tourRefresh({ apply: true });
+        return;
+      }
+      if (tourFirmId()) _tourPlan = await tourBuild().catch(() => _tourPlan);
+      tourPaintLive(_tourPlan, null, false);
     });
   }, 8000);
 }

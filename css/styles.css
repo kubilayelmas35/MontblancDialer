@@ -1931,6 +1931,10 @@ visibility: visible;
 .aria-day-title { margin: 4px 0 0; font-size: 13px; font-weight: 800; color: var(--text); }
 .aria-run { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 12px; }
 .aria-run-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px; border: 1px solid var(--border); border-radius: 18px; background: var(--bg-2); }
+.aria-run-line { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.aria-job-switch { display: flex; flex-wrap: wrap; gap: 6px; }
+.aria-job { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg); font-size: 12px; font-weight: 700; color: var(--text); cursor: pointer; }
+.aria-job input { margin: 0; }
 .aria-run-card .tour-help[hidden] { display: none; }
 .aria-run-card .tour-help { margin: 0; }
 .tour-check-flat { width: 100%; background: transparent; border: 0; padding: 0; }
@@ -2069,6 +2073,7 @@ visibility: visible;
 .aria-pop-earlier b { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--text-3); margin-right: 6px; }
 .aria-pop-mode.is-on { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
 .aria-pop-mode.is-off { background: var(--bg-3); color: var(--text-3); }
+.aria-pop-jobs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .aria-pop-switch { padding: 2px; }
 .aria-pop-switch .tour-switch-btn { padding: 5px 10px; font-size: 11px; }
 .aria-pop-switch .tour-switch-btn.is-off-side.is-on { background: var(--text); color: var(--bg); }

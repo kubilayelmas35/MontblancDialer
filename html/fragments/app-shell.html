@@ -540,9 +540,15 @@
 </div>
 <div class="aria-run">
 <div class="aria-run-card">
+<div class="aria-run-line">
 <div class="tour-switch" role="group" aria-label="Aria">
 <button type="button" class="tour-switch-btn is-on" id="tour-mode-off" onclick="tourSetMode(false)" aria-pressed="true" data-tr="Pasif" data-de="Passiv">Pasif</button>
 <button type="button" class="tour-switch-btn" id="tour-mode-on" onclick="tourSetMode(true)" aria-pressed="false" data-tr="Aktif" data-de="Aktiv">Aktif</button>
+</div>
+<div class="aria-job-switch">
+<label class="aria-job"><input type="checkbox" id="tour-camp-auto-run" onchange="tourFlag('kampanyaDegis', this)"><span data-tr="Kampanya" data-de="Kampagne">Kampanya</span></label>
+<label class="aria-job"><input type="checkbox" id="tour-queue-auto-run" onchange="tourFlag('kuyrukYenile', this)"><span data-tr="Kuyruk" data-de="Queue">Kuyruk</span></label>
+</div>
 </div>
 <p class="tour-help" id="tour-say-on" hidden><b data-tr="Aktif" data-de="Aktiv">Aktif</b> <span data-tr="kendi kendine bakar, yaklaşık her dakika. Açınca bir kez hemen de bakar." data-de="schaut von selbst, ungefähr jede Minute. Beim Einschalten schaut sie einmal sofort.">kendi kendine bakar, yaklaşık her dakika. Açınca bir kez hemen de bakar.</span></p>
 <p class="tour-help" id="tour-say-off"><b data-tr="Pasif" data-de="Passiv">Pasif</b> <span data-tr="kendi kendine bakmaz. Ayarlar durur. Bildirim gitmez, sıra dolmaz." data-de="schaut nicht von selbst. Die Einstellungen bleiben. Keine Meldung, die Reihe wird nicht gefüllt.">kendi kendine bakmaz. Ayarlar durur. Bildirim gitmez, sıra dolmaz.</span></p>
