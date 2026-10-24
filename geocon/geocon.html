@@ -1301,7 +1301,15 @@ async function collectNearbyRows(d){
     });
     near.sort((a, b) => a.dist - b.dist);
   }
-  const order = [anchor].concat(near.map((item) => item.plz));
+  const skipDays = Number(d && d.skipUsedDays);
+  const skipUsed = Number.isFinite(skipDays) && skipDays > 0;
+  const usedNow = (code) => {
+    if (!skipUsed || !usedPLZs[code]?.used) return false;
+    const ago = getUsedDaysAgo(code);
+    if (ago == null) return true;
+    return ago <= skipDays;
+  };
+  const order = [anchor].concat(near.map((item) => item.plz)).filter((code) => !usedNow(code));
   const rows = [];
   const seen = new Set();
   for (let i = 0; i < order.length && rows.length < limit; i++) {

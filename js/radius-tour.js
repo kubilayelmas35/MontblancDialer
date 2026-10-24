@@ -31,6 +31,9 @@ const TOUR_DEFAULTS = {
   ufuk: 14,
   ayniPrefix: true,
   kuyrukYer: 'son',
+  geriKim: ['no_answer', 'voicemail'],
+  geriKere: 2,
+  geoGun: 30,
   selfHeal: true,
   selfHealDeneme: 2,
   zamanlayici: false,
@@ -48,6 +51,7 @@ let _tourWatch = null;
 let _tourSettings = { ...TOUR_DEFAULTS };
 let _tourTab = 'kampanya';
 const TOUR_LOCK_KEYS = ['lastCampId', 'lastDay', 'lastTickAt'];
+const TOUR_GERI = ['no_answer', 'voicemail', 'callback', 'negative'];
 
 function tourUserId() {
   return (typeof currentUser !== 'undefined' && currentUser?.id) ? String(currentUser.id) : '';
@@ -569,6 +573,19 @@ function tourPref() {
   return { ...TOUR_DEFAULTS, ...(_tourSettings || {}) };
 }
 
+function tourGeriKim() {
+  const raw = tourPref().geriKim;
+  return (Array.isArray(raw) ? raw : ['no_answer', 'voicemail']).filter((key) => TOUR_GERI.includes(key));
+}
+
+function tourGeriKere() {
+  return Math.max(1, Math.min(10, Number(tourPref().geriKere) || 2));
+}
+
+function tourGeoGun() {
+  return Math.max(1, Math.min(100, Number(tourPref().geoGun) || 30));
+}
+
 function tourEffectivePasif() {
   const pref = tourPref();
   if (pref.zamanlayici) {
@@ -652,6 +669,9 @@ async function tourSaveWatch() {
       userId,
       kuyrukMod: pref.kuyrukMod === 'yakin' ? 'yakin' : 'revert',
       kuyrukYer: pref.kuyrukYer === 'yeni' ? 'yeni' : 'son',
+      geriKim: tourGeriKim(),
+      geriKere: tourGeriKere(),
+      geoGun: tourGeoGun(),
       veriEsik: Math.max(50, Math.min(20000, Number(pref.veriEsik) || 500)),
       bosSlotAtla: pref.bosSlotAtla !== false,
       minBos: Math.max(1, Math.min(20, Number(pref.minBos) || 1)),
@@ -729,6 +749,16 @@ function tourPaintSettings() {
   if (kuyruk) kuyruk.value = pref.kuyrukMod === 'yakin' ? 'yakin' : 'revert';
   const near = pref.kuyrukMod === 'yakin';
   document.querySelectorAll('.tour-yakin').forEach((el) => { el.hidden = !near; });
+  document.querySelectorAll('.tour-geri').forEach((el) => { el.hidden = near; });
+  const kim = new Set(tourGeriKim());
+  TOUR_GERI.forEach((key) => {
+    const box = document.getElementById(`tour-geri-${key}`);
+    if (box) box.checked = kim.has(key);
+  });
+  const kere = document.getElementById('tour-geri-kere');
+  if (kere) kere.value = String(tourGeriKere());
+  const geoGun = document.getElementById('tour-geo-gun');
+  if (geoGun) geoGun.value = String(tourGeoGun());
   const place = document.getElementById('tour-kuyruk-yer');
   if (place) place.value = pref.kuyrukYer === 'yeni' ? 'yeni' : 'son';
   const radius = document.getElementById('tour-radius');
@@ -998,8 +1028,10 @@ async function tourBuild() {
   await Promise.all(rows.map(async (row) => {
     row.pending = await tourCount(`contacts?firm_id=eq.${firmId}&campaign_id=eq.${row.id}&status=eq.pending&select=id`).catch(() => 0);
     row.anchor = tourAnchor(row.appts.filter((a) => a.plz), row.slots) || row.top || '';
-    if (row.pending >= pref.veriEsik || !row.plzs.size) return;
-    const got = await sb(`contacts?firm_id=eq.${firmId}&campaign_id=eq.${row.id}&status=in.(no_answer,voicemail)&or=(attempt_count.lt.2,attempt_count.is.null)&select=id,plz&limit=1000`).catch(() => []);
+    const kim = tourGeriKim();
+    const kere = tourGeriKere();
+    if (row.pending >= pref.veriEsik || !row.plzs.size || !kim.length) return;
+    const got = await sb(`contacts?firm_id=eq.${firmId}&campaign_id=eq.${row.id}&status=in.(${kim.join(',')})&or=(attempt_count.lt.${kere},attempt_count.is.null)&select=id,plz&limit=1000`).catch(() => []);
     row.revertIds = (Array.isArray(got) ? got : []).filter((c) => row.plzs.has(tourPlz(c.plz))).map((c) => c.id).filter(Boolean);
   }));
   const pick = tourChoose(rows, currentId);
@@ -1163,6 +1195,7 @@ function tourAskRows(row, limit) {
           allowOtherPrefix: tourPref().ayniPrefix === false,
           limit,
           radiusKm: [10, 20, 30, 50].includes(Number(tourPref().radiusKm)) ? Number(tourPref().radiusKm) : 30,
+          skipUsedDays: tourGeoGun(),
         }, window.location.origin);
       } catch (_) {
         finish([]);
@@ -1337,6 +1370,11 @@ function tourQueuePlace(el) {
   void tourSave({ kuyrukYer: el && el.value === 'yeni' ? 'yeni' : 'son' });
 }
 
+function tourGeriPick() {
+  const picked = TOUR_GERI.filter((key) => document.getElementById(`tour-geri-${key}`)?.checked);
+  void tourSave({ geriKim: picked });
+}
+
 async function tourAltaSlot(el) {
   const firmId = tourFirmId();
   const on = !!(el && el.checked);
@@ -1472,7 +1510,9 @@ async function tourRevert(campaignId, opts) {
   let moved = 0;
   for (let i = 0; i < row.revertIds.length; i += 60) {
     const chunk = row.revertIds.slice(i, i + 60);
-    const live = await sb(`contacts?id=in.(${chunk.join(',')})&status=in.(no_answer,voicemail)&select=id`).catch(() => []);
+    const kim = tourGeriKim();
+    if (!kim.length) continue;
+    const live = await sb(`contacts?id=in.(${chunk.join(',')})&status=in.(${kim.join(',')})&select=id`).catch(() => []);
     const ids = (Array.isArray(live) ? live : []).map((c) => c.id).filter(Boolean);
     if (!ids.length) continue;
     await sb(`contacts?id=in.(${ids.join(',')})`, {
