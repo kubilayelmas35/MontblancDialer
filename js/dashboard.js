@@ -622,7 +622,7 @@ function mbShowLiveBoard() {
 function mbSpinCounts() {
   const step = (window._tbSpin = (window._tbSpin || 0) + 1);
   const today = document.getElementById('tb-today-cycle');
-  const bits = [...document.querySelectorAll('#tb-results .tb-res:not(.tb-res-sum)')];
+  const bits = [...document.querySelectorAll('#tb-results .tb-res:not(.tb-res-sum)')].filter((el) => !el.hidden);
   if (today && bits.length) {
     const bit = bits[step % bits.length];
     today.textContent = bit.textContent || '0';
@@ -1014,12 +1014,11 @@ async function mbPaintTodayResults() {
     return { key, color, ink, n: countOf(key), label: def.label };
   };
   const pieces = list.map(piece).filter((item) => item.key);
-  const live = pieces.filter((item) => item.n > 0);
-  const rowsHtml = live.length && !admin
-    ? `<div class="tb-res-head"><span>${mbChipEsc(todayLabel)}</span><b>${rows.length}</b></div><div class="tb-res-list">${live.map((item) => `<button type="button" class="tb-res-row" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')"><b class="tb-res-num">${item.n}</b><span>${mbChipEsc(item.label)}</span></button>`).join('')}</div>`
+  const rowsHtml = pieces.length && !admin
+    ? `<div class="tb-res-head"><span>${mbChipEsc(todayLabel)}</span><b>${rows.length}</b></div><div class="tb-res-list">${pieces.map((item) => `<button type="button" class="tb-res-row" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')"><b class="tb-res-num">${item.n}</b><span>${mbChipEsc(item.label)}</span></button>`).join('')}</div>`
     : '';
   const keepOpen = !!(panel && (!panel.hidden || host.matches(':hover') || panel.matches(':hover')));
-  if (!rows.length) {
+  if (!pieces.length && !rows.length) {
     host.hidden = true;
     host.innerHTML = '';
     if (panel && !admin) {
@@ -1031,7 +1030,7 @@ async function mbPaintTodayResults() {
   }
   host.hidden = false;
   host.setAttribute('aria-label', todayLabel);
-  const nums = live.map((item) => `<button type="button" class="tb-res" data-res="${item.key}" aria-label="${mbChipEsc(item.label)}" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')">${item.n}</button>`).join('');
+  const nums = pieces.map((item) => `<button type="button" class="tb-res${item.n ? '' : ' is-zero'}" data-res="${item.key}" aria-label="${mbChipEsc(item.label)}" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')">${item.n}</button>`).join('');
   host.innerHTML = `<span class="tb-today-cycle" id="tb-today-cycle">0</span><button type="button" class="tb-res tb-res-sum" data-res="" aria-label="${mbChipEsc(totalLabel)}" onclick="mbToggleResPop(event,'')">${rows.length}</button>${nums}`;
   mbSpinCounts();
   if (typeof mbFitStatus === 'function') mbFitStatus();
@@ -1119,6 +1118,19 @@ function mbBindBarDrag(swipe) {
     swipe.scrollLeft += ev.deltaY;
     ev.preventDefault();
   }, { passive: false });
+}
+
+function mbFitResultZeros() {
+  const host = document.getElementById('tb-results');
+  const swipe = document.getElementById('tb-swipe');
+  if (!host || host.hidden) return;
+  const zeros = [...host.querySelectorAll('.tb-res.is-zero')];
+  zeros.forEach((el) => { el.hidden = false; });
+  if (!zeros.length || !swipe || mbNarrowBar()) return;
+  const prev = swipe.style.justifyContent;
+  swipe.style.justifyContent = 'flex-start';
+  if (swipe.scrollWidth > swipe.clientWidth + 2) zeros.forEach((el) => { el.hidden = true; });
+  swipe.style.justifyContent = prev;
 }
 
 function mbPackBar() {
@@ -1217,6 +1229,7 @@ function mbFitStatus() {
   wrap.classList.remove('is-today-open', 'is-mesai-open', 'is-live-letter');
   bar.classList.remove('is-tb-tight');
   mbPlaceMascotChip();
+  mbFitResultZeros();
   if (mbNarrowBar()) {
     wrap.classList.add('is-today-open');
     wrap._fitLock = false;
