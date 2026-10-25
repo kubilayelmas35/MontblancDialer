@@ -1151,7 +1151,7 @@ function mbPackBar() {
 }
 
 function mbNarrowBar() {
-  return window.matchMedia('(max-width: 768px)').matches;
+  return window.matchMedia('(max-width: 480px)').matches;
 }
 
 function mbSwipeSync() {
