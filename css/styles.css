@@ -394,15 +394,29 @@ background: rgba(255, 255, 255, 0.06);
 #lang-btn { order: 7; }
 #tb-notif-btn { order: 8; }
 .tb-user { order: 9; }
-.tb-pills-wrap:not(.is-live-open) .tb-live:not(:hover):not(.is-open) .tb-live-n,
 .tb-pills-wrap:not(.is-today-open) #tb-results:not(:hover) .tb-res:not(.tb-res-sum) {
   width: 0; min-width: 0; padding: 0; margin: 0; opacity: 0; overflow: hidden; pointer-events: none;
 }
-.tb-pills-wrap.is-live-open .tb-live-cycle,
-.tb-live:hover .tb-live-cycle,
-.tb-live.is-open .tb-live-cycle,
+.tb-live-cycle { display: none !important; }
 .tb-pills-wrap.is-today-open .tb-today-cycle,
 #tb-results:hover .tb-today-cycle { display: none; }
+.tb-live-k {
+  display: none;
+  font-style: normal;
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0;
+}
+.tb-pills-wrap.is-live-letter .tb-live-k { display: inline; }
+.tb-pills-wrap.is-live-letter .tb-live { padding: 0 2px; gap: 0; }
+.tb-pills-wrap.is-live-letter .tb-live-n { min-width: 12px; padding: 0 1px; }
+.tb-pills-wrap.is-live-letter .tb-live-num,
+.tb-pills-wrap.is-live-letter .tb-live-sum { display: none; }
+#topbar.is-tb-tight .pill-ping,
+#topbar.is-tb-tight .pill-bal,
+#topbar.is-tb-tight .pill-camp,
+#topbar.is-tb-tight .tb-theme,
+#topbar.is-tb-tight #aria-live { display: none !important; }
 button.tb-pill { color: inherit; font-size: 12px; }
 button.tb-pill.is-open { box-shadow: inset 0 0 0 2px var(--accent); }
 .tb-pill {
@@ -934,13 +948,7 @@ button.tb-pill.pill-bal.is-neg {
   box-sizing: border-box;
   color: var(--text);
 }
-.tb-pills-wrap:not(.is-mesai-open) .tb-icon-btn.tb-mesai:not(:hover) {
-  width: 32px;
-  min-width: 32px;
-  padding: 0;
-  justify-content: center;
-}
-.tb-pills-wrap:not(.is-mesai-open) .tb-icon-btn.tb-mesai:not(:hover) #tb-mesai-label { display: none; }
+#tb-mesai-label { width: auto; max-width: 88px; overflow: hidden; text-overflow: ellipsis; text-align: left; white-space: nowrap; line-height: 1; }
 .tb-mesai-fill {
   position: absolute;
   left: 0;
@@ -952,7 +960,6 @@ button.tb-pill.pill-bal.is-neg {
   transition: width .8s linear;
 }
 .tb-mesai > svg, #tb-mesai-label { position: relative; z-index: 1; }
-#tb-mesai-label { width: 142px; overflow: hidden; text-align: left; white-space: nowrap; line-height: 1; }
 button.tb-icon-btn.tb-mesai.is-break-soon {
   color: #166534 !important;
   box-shadow: inset 0 0 0 2px #22c55e, 0 0 12px rgba(34, 197, 94, .55) !important;

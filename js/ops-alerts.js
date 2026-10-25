@@ -2207,6 +2207,15 @@ function opsMesaiCue(day, mins, kind) {
   };
 }
 
+function opsMesaiStateWord(cue) {
+  const say = (key, fb) => (typeof opsSay === 'function' ? opsSay(key, fb) : fb);
+  const stage = cue?.stage || '';
+  if (stage === 'live') return say('ops.mesai.stateBreak', 'Molada');
+  if (stage === 'over' || stage === 'off') return say('ops.mesai.stateOver', 'Bitti');
+  if (stage === 'start') return say('ops.mesai.stateWait', 'Başlıyor');
+  return say('ops.mesai.stateOn', 'Mesaide');
+}
+
 function opsPaintMesaiBar() {
   const label = document.getElementById('tb-mesai-label');
   const btn = document.getElementById('tb-mesai-btn');
@@ -2217,9 +2226,10 @@ function opsPaintMesaiBar() {
     ? opsMesaiCue(view.day, opsMinsUntilGun(view.clock, view.gun), 'future')
     : opsMesaiCue(view.day, view.clock.mins, 'live');
   const flashed = _opsMesaiFlash && _opsMesaiFlash.until > Date.now();
-  const text = flashed ? _opsMesaiFlash.text : (!view.rolled && phase.hold ? phase.short : cue.short);
-  label.textContent = text;
-  btn.title = cue.detail ? `${cue.title} · ${cue.detail}` : cue.title;
+  const word = opsMesaiStateWord(cue);
+  const detail = flashed ? _opsMesaiFlash.text : (cue.detail || cue.title);
+  label.textContent = word;
+  btn.title = detail && detail !== word ? `${word} · ${detail}` : word;
   btn.classList.toggle('is-due', flashed || (!view.rolled && !!phase.due));
   btn.classList.toggle('is-break-soon', !view.rolled && !!opsBreakSoon());
   const fill = document.getElementById('tb-mesai-fill');

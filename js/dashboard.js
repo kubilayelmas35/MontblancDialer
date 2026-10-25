@@ -22,7 +22,13 @@ mbPaintPing(Date.now()-t0);
 try {
 const sessions = await mbLoadLiveRows(ffLive);
 window._tbLiveRows = sessions;
-const setPill = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = String(n); };
+const setPill = (id, n) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const num = el.querySelector('.tb-live-num');
+  if (num) num.textContent = String(n);
+  else el.textContent = String(n);
+};
 const countSt = (st) => sessions.filter(s => s.status === st).length;
 setPill('pill-call', countSt('on_call'));
 setPill('pill-ready', countSt('ready'));
@@ -615,21 +621,6 @@ function mbShowLiveBoard() {
 
 function mbSpinCounts() {
   const step = (window._tbSpin = (window._tbSpin || 0) + 1);
-  const live = document.getElementById('tb-live-cycle');
-  const slots = [
-    ['pill-call', '#2E7D32', '#4CAF50'],
-    ['pill-ready', '#E65100', '#FFB74D'],
-    ['pill-wrap', '#00838F', '#00BCD4'],
-    ['pill-break', '#5E35B1', '#7E57C2'],
-    ['pill-off', '#757575', '#9E9E9E'],
-  ];
-  if (live) {
-    const slot = slots[step % slots.length];
-    const src = document.getElementById(slot[0]);
-    live.textContent = src ? src.textContent : '0';
-    live.style.color = slot[1];
-    live.style.setProperty('--c', slot[2]);
-  }
   const today = document.getElementById('tb-today-cycle');
   const bits = [...document.querySelectorAll('#tb-results .tb-res:not(.tb-res-sum)')];
   if (today && bits.length) {
@@ -1076,30 +1067,36 @@ document.addEventListener('mouseover', (ev) => {
   else if (typeof opsScheduleHideCampSummary === 'function') opsScheduleHideCampSummary();
 });
 
-function mbStatusWidth(wrap) {
-  const kids = [...wrap.children].filter((el) => !el.hidden && getComputedStyle(el).display !== 'none');
-  const gap = parseFloat(getComputedStyle(wrap).columnGap) || 0;
-  const boxes = kids.reduce((sum, el) => {
-    const style = getComputedStyle(el);
-    return sum + el.getBoundingClientRect().width + (parseFloat(style.marginLeft) || 0) + (parseFloat(style.marginRight) || 0);
-  }, 0);
-  return boxes + gap * Math.max(0, kids.length - 1);
+function mbBarCrowded(bar) {
+  const br = bar.getBoundingClientRect();
+  const mid = (br.top + br.bottom) / 2;
+  const boxes = [...bar.querySelectorAll(':scope > button, :scope > .tb-pills-wrap button, :scope > .tb-right button')]
+    .filter((el) => {
+      if (el.hidden || getComputedStyle(el).display === 'none') return false;
+      const r = el.getBoundingClientRect();
+      return r.width > 8 && r.height > 8 && r.top <= mid && r.bottom >= mid;
+    })
+    .map((el) => el.getBoundingClientRect())
+    .sort((a, b) => a.left - b.left);
+  if (boxes.some((r) => r.left < br.left - 1 || r.right > br.right + 1)) return true;
+  for (let i = 1; i < boxes.length; i++) {
+    if (boxes[i].left < boxes[i - 1].right - 2) return true;
+  }
+  return false;
 }
 
 function mbFitStatus() {
   const wrap = document.getElementById('tb-pills-wrap');
-  if (!wrap || wrap._fitLock) return;
+  const bar = document.getElementById('topbar');
+  if (!wrap || !bar || wrap._fitLock) return;
   wrap._fitLock = true;
-  const room = wrap.clientWidth;
-  const steps = ['is-live-open', 'is-today-open', 'is-mesai-open'];
-  wrap.classList.remove(...steps);
-  for (const step of steps) {
-    wrap.classList.add(step);
-    if (mbStatusWidth(wrap) > room + 1) {
-      wrap.classList.remove(step);
-      break;
-    }
-  }
+  wrap.classList.remove('is-today-open', 'is-mesai-open', 'is-live-letter');
+  bar.classList.remove('is-tb-tight');
+  const crowded = () => mbBarCrowded(bar);
+  wrap.classList.add('is-today-open');
+  if (crowded()) wrap.classList.remove('is-today-open');
+  if (crowded()) wrap.classList.add('is-live-letter');
+  if (crowded()) bar.classList.add('is-tb-tight');
   wrap._fitLock = false;
 }
 
