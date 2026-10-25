@@ -8,6 +8,9 @@ let _wanderCur = { x: 0, y: 0 };
 let _wanderTgt = { x: 0, y: 0 };
 let _wanderPauseUntil = 0;
 let _wanderSpeedMult = 1;
+let _wanderHeading = NaN;
+let _wanderHopJitter = 1;
+let _wanderHolding = false;
 let _dockRaf = null;
 let _mimiActiveTab = 'profile';
 
@@ -313,6 +316,9 @@ function _stopGlobalMascotWander() {
   _wanderTgt = { x: 0, y: 0 };
   _wanderPauseUntil = 0;
   _wanderSpeedMult = 1;
+  _wanderHeading = NaN;
+  _wanderHopJitter = 1;
+  _wanderHolding = false;
   if (gm) {
     gm.style.setProperty('--gm-wx', '0px');
     gm.style.setProperty('--gm-wy', '0px');
@@ -343,32 +349,59 @@ function _syncGlobalMascotWanderOnly() {
   else _stopGlobalMascotWander();
 }
 
+function _clampWander(x, y, b) {
+  return {
+    x: Math.min(b.maxX, Math.max(b.minX, x)),
+    y: Math.min(b.maxY, Math.max(b.minY, y)),
+  };
+}
+
+/** Bırakılan yerin (0,0) çevresinde kısa adım. Mesafe kaydırıcısı tasmayı belirler. */
 function _pickWanderTarget(gm) {
   const b = _mascotWanderBoundsFromViewport(gm);
   const w = b.maxX - b.minX;
   const h = b.maxY - b.minY;
-  if (!Number.isFinite(w) || !Number.isFinite(h) || w < 0 || h < 0) {
-    _wanderTgt.x = Number.isFinite(_wanderCur.x) ? _wanderCur.x : 0;
-    _wanderTgt.y = Number.isFinite(_wanderCur.y) ? _wanderCur.y : 0;
+  const cx = Number.isFinite(_wanderCur.x) ? _wanderCur.x : 0;
+  const cy = Number.isFinite(_wanderCur.y) ? _wanderCur.y : 0;
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w < 8 || h < 8) {
+    _wanderTgt.x = cx;
+    _wanderTgt.y = cy;
     return;
   }
-  if (w < 1e-4 && h < 1e-4) {
-    _wanderTgt.x = b.minX;
-    _wanderTgt.y = b.minY;
-    return;
+  const t = Math.max(0, Math.min(100, getMascotWanderPct())) / 100;
+  const leash = Math.max(16, Math.min(w, h) * (0.06 + 0.38 * t));
+  const home = Math.hypot(cx, cy);
+  if (!Number.isFinite(_wanderHeading)) _wanderHeading = Math.random() * Math.PI * 2;
+  if (home > leash * 0.86) {
+    _wanderHeading = Math.atan2(-cy, -cx) + (Math.random() - 0.5) * 0.9;
+  } else {
+    const wide = Math.random() < 0.16;
+    const mag = wide ? 0.55 + Math.random() * 1.15 : 0.18 + Math.random() * 0.85;
+    _wanderHeading += mag * (Math.random() < 0.5 ? -1 : 1);
   }
-  const wanderPct = getMascotWanderPct();
-  /** Düşük gezinmede hedef yarıçapı küçülür; hareket alanı büyük olsa bile “sürekli köşelere” gitmez. */
-  const wf = Math.pow(Math.max(0, wanderPct) / 100, 1.22);
-  const midX = (b.minX + b.maxX) / 2;
-  const midY = (b.minY + b.maxY) / 2;
-  const halfWx = w / 2;
-  const halfHy = h / 2;
-  _wanderTgt.x = midX + (Math.random() * 2 - 1) * halfWx * wf;
-  _wanderTgt.y = midY + (Math.random() * 2 - 1) * halfHy * wf;
-  // Hedefe vardıktan sonra rastgele bekle (0.8–5 sn) ve rastgele hızla git
-  _wanderPauseUntil = performance.now() + 800 + Math.random() * 4200;
-  _wanderSpeedMult = 0.35 + Math.random() * 1.65;
+  const hop = (18 + t * 56) + Math.random() * (14 + t * 48);
+  const propose = (head) => {
+    let nx = cx + Math.cos(head) * hop;
+    let ny = cy + Math.sin(head) * hop;
+    const nd = Math.hypot(nx, ny);
+    if (nd > leash && nd > 0) {
+      nx *= leash / nd;
+      ny *= leash / nd;
+    }
+    return _clampWander(nx, ny, b);
+  };
+  let next = propose(_wanderHeading);
+  if (Math.hypot(next.x - cx, next.y - cy) < 8) {
+    _wanderHeading += (Math.PI / 2) * (Math.random() < 0.5 ? -1 : 1);
+    next = propose(_wanderHeading);
+  }
+  if (Math.hypot(next.x - cx, next.y - cy) < 8) {
+    _wanderHeading += Math.PI;
+    next = propose(_wanderHeading);
+  }
+  _wanderTgt.x = next.x;
+  _wanderTgt.y = next.y;
+  _wanderHopJitter = 0.84 + Math.random() * 0.32;
 }
 
 function _wanderFrame() {
@@ -384,25 +417,31 @@ function _wanderFrame() {
   }
   const dx = _wanderTgt.x - _wanderCur.x;
   const dy = _wanderTgt.y - _wanderCur.y;
-  if (Math.abs(dx) < 0.35 && Math.abs(dy) < 0.35) {
+  const dist = Math.hypot(dx, dy);
+  if (dist < 1.4) {
+    if (!_wanderHolding) {
+      _wanderHolding = true;
+      _wanderPauseUntil = performance.now() + 280 + Math.random() * 900;
+    }
     if (performance.now() < _wanderPauseUntil) {
       _wanderRaf = requestAnimationFrame(_wanderFrame);
       return;
     }
+    _wanderHolding = false;
     _pickWanderTarget(gm);
   }
-  // Ara sıra rastgele yön değiştir (%0.3 şans / frame)
-  if (Math.random() < 0.003) _pickWanderTarget(gm);
   const bounds = _mascotWanderBoundsFromViewport(gm);
-  const speedPct = getMascotWanderSpeedPct();
-  const speedT = Math.max(0, speedPct) / 100;
-  const speedK = 0.006 + speedT * 0.14;
-  const wanderT = Math.max(0, Math.min(100, pct)) / 100;
-  const step = speedK * (0.12 + wanderT * 0.88) * 0.09 * Math.pow(wanderT, 1.35) * _wanderSpeedMult;
-  _wanderCur.x += dx * step;
-  _wanderCur.y += dy * step;
-  _wanderCur.x = Math.min(bounds.maxX, Math.max(bounds.minX, _wanderCur.x));
-  _wanderCur.y = Math.min(bounds.maxY, Math.max(bounds.minY, _wanderCur.y));
+  const speedT = Math.max(0, Math.min(100, getMascotWanderSpeedPct())) / 100;
+  const px = (0.12 + speedT * 2.4) * _wanderHopJitter * _wanderSpeedMult;
+  const stepDist = Math.hypot(_wanderTgt.x - _wanderCur.x, _wanderTgt.y - _wanderCur.y);
+  if (stepDist > 0.001) {
+    const move = Math.min(stepDist, px);
+    _wanderCur.x += ((_wanderTgt.x - _wanderCur.x) / stepDist) * move;
+    _wanderCur.y += ((_wanderTgt.y - _wanderCur.y) / stepDist) * move;
+  }
+  const clamped = _clampWander(_wanderCur.x, _wanderCur.y, bounds);
+  _wanderCur.x = clamped.x;
+  _wanderCur.y = clamped.y;
   if (!Number.isFinite(_wanderCur.x)) _wanderCur.x = 0;
   if (!Number.isFinite(_wanderCur.y)) _wanderCur.y = 0;
   gm.style.setProperty('--gm-wx', `${_wanderCur.x.toFixed(2)}px`);

@@ -774,10 +774,10 @@ function _mascotWanderBoundsFromViewport(gm) {
   const fullMinY = minCy - Py;
   const fullMaxY = maxCy - Py;
   return {
-    minX: t * fullMinX,
-    maxX: t * fullMaxX,
-    minY: t * fullMinY,
-    maxY: t * fullMaxY,
+    minX: Math.min(t * fullMinX, 0),
+    maxX: Math.max(t * fullMaxX, 0),
+    minY: Math.min(t * fullMinY, 0),
+    maxY: Math.max(t * fullMaxY, 0),
   };
 }
 
