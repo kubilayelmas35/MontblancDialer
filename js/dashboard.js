@@ -1077,6 +1077,7 @@ function mbSwipeSync() {
   if (!root || !dots) return;
   if (!mbNarrowBar()) {
     if (dots.childElementCount) dots.replaceChildren();
+    dots.style.width = '';
     return;
   }
   const slides = [...root.querySelectorAll('.tb-slide')]
@@ -1084,8 +1085,10 @@ function mbSwipeSync() {
     .sort((a, b) => a.offsetLeft - b.offsetLeft);
   if (slides.length < 2) {
     if (dots.childElementCount) dots.replaceChildren();
+    dots.style.width = '';
     return;
   }
+  dots.style.width = root.clientWidth + 'px';
   if (!root._swiped && root.scrollLeft > 1) {
     root._swipeHold = (root._swipeHold || 0) + 1;
     root.scrollLeft = 0;
@@ -1111,7 +1114,7 @@ function mbSwipeSync() {
 function mbBarCrowded(bar) {
   const br = bar.getBoundingClientRect();
   const mid = (br.top + br.bottom) / 2;
-  const boxes = [...bar.querySelectorAll('.tb-hamburger, .tb-logo, #tb-pills-wrap button, #tb-right button')]
+    const boxes = [...bar.querySelectorAll('.tb-hamburger, .tb-logo, #tb-pills-wrap button, #tb-right button, #tb-pin button')]
     .filter((el) => {
       if (el.hidden || getComputedStyle(el).display === 'none') return false;
       const r = el.getBoundingClientRect();

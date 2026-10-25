@@ -346,8 +346,11 @@
 
 @media (max-width: 768px) {
   #tb-swipe-host {
-    display: block;
+    display: flex;
     flex: 1 1 auto;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
     min-width: 0;
     height: 100%;
     position: relative;
@@ -355,9 +358,12 @@
   #tb-swipe {
     display: flex;
     align-items: center;
-    width: 100%;
+    flex: 1 1 auto;
+    width: auto;
     height: 100%;
     min-width: 0;
+    gap: 0;
+    justify-content: flex-start;
     overflow-x: auto;
     overflow-y: hidden;
     overflow-anchor: none;
@@ -386,11 +392,8 @@
   }
   #tb-swipe .tb-slide:has(#tb-live-btn) { order: 1; }
   #tb-swipe .tb-slide:has(#tb-mesai-btn) { order: 2; }
-  #tb-swipe .tb-slide:has(#takvim-topbar-btn) { order: 3; }
-  #tb-swipe .tb-slide:has(#lang-btn) { order: 4; }
-  #tb-swipe .tb-slide:has(#tb-notif-btn) { order: 5; }
-  #tb-swipe .tb-slide:has(.tb-user) { order: 6; }
-  #tb-swipe .tb-slide:has(#tb-results) { order: 7; }
+  #tb-swipe .tb-slide:has(#tb-results) { order: 3; }
+  #tb-swipe .tb-slide:has(#pill-camp-btn) { order: 4; }
   #tb-swipe .tb-slide:has(> [hidden]),
   #tb-swipe .tb-slide:has(> [style*="display:none"]),
   #tb-swipe .tb-slide:has(> [style*="display: none"]) { display: none; }
@@ -401,44 +404,47 @@
     max-width: calc(100cqi - 16px);
     position: relative;
   }
-  #tb-swipe #tb-mesai-btn { max-width: calc(100cqi - 16px); padding: 0 10px; }
+  #tb-swipe #tb-mesai-btn { max-width: calc(100cqi - 8px); padding: 0 8px; }
   #tb-swipe #tb-mesai-label { display: inline !important; max-width: none; font-size: 12px; }
-  #tb-swipe #takvim-topbar-btn { width: auto; max-width: none; padding: 0 10px; gap: 5px; flex: 0 0 auto; }
-  #tb-swipe .tb-takvim .tb-pill-lbl,
-  #tb-swipe .pill-camp .tb-pill-val,
-  #tb-swipe .pill-bal .tb-pill-val,
-  #tb-swipe .pill-ping .tb-pill-lbl { display: inline !important; }
-  #tb-swipe .pill-ping { max-width: none; width: auto; padding: 0 8px; }
-  #tb-swipe .tb-user {
-    position: static;
-    width: auto;
-    min-width: 0;
-    max-width: calc(100cqi - 16px);
+  @container (max-width: 150px) {
+    #tb-swipe .tb-live { padding: 0 3px; }
+    #tb-swipe .tb-live-n,
+    #tb-swipe .tb-live-sum { min-width: 14px; height: 22px; padding: 0 2px; font-size: 11px; }
+  }
+  #tb-pin {
+    gap: 2px;
     height: 32px;
-    padding: 0 10px 0 3px;
-    gap: 7px;
-    justify-content: flex-start;
-    border-radius: 16px;
+    z-index: 3;
+  }
+  #tb-pin .aria-live,
+  #tb-pin #takvim-topbar-btn,
+  #tb-pin .tb-icon-btn,
+  #tb-pin .tb-user {
+    width: 30px;
+    min-width: 30px;
+    max-width: 30px;
+    height: 30px;
+    padding: 0;
+    gap: 0;
+    flex: 0 0 30px;
+    justify-content: center;
+  }
+  #tb-pin .aria-live-name,
+  #tb-pin .aria-live-facts,
+  #tb-pin .tb-takvim .tb-pill-lbl,
+  #tb-pin .tb-user > div:not(.tb-avatar) { display: none !important; }
+  #tb-pin .tb-user {
+    position: static;
+    border-radius: 8px;
     box-shadow: none;
   }
-  #tb-swipe .tb-user > div:last-child,
-  #tb-swipe .tb-user > div:not(.tb-avatar) { display: block; }
-  #tb-swipe .tb-urole { display: none; }
-  #tb-swipe .tb-uname {
-    max-width: 148px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1;
-  }
+  #tb-pin .aria-live { border-radius: 8px; }
   #tb-swipe-dots {
     display: flex;
     position: absolute;
     left: 0;
-    right: 0;
-    bottom: 3px;
+    bottom: 2px;
+    width: 0;
     gap: 4px;
     align-items: center;
     justify-content: center;

@@ -175,8 +175,28 @@ max-width: 100%;
 #topbar::-webkit-scrollbar {
   height: 0;
 }
-.tb-swipe-host { display: contents; }
-.tb-swipe { display: contents; }
+.tb-swipe-host {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  gap: 8px;
+}
+.tb-swipe {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  gap: 8px;
+}
+.tb-pin {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 8px;
+}
 .tb-slide { display: contents; }
 .tb-swipe-dots { display: none; }
 .tb-pills-wrap {
