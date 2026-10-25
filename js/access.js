@@ -156,6 +156,7 @@ function mbNavItemKey(btn) {
 function mbRememberNavHomes() {
   if (window._mbNavHomes) return;
   window._mbNavHomes = [];
+  window._mbNavGroupHomes = [...document.querySelectorAll('#sidebar-scroll > .sb-group')];
   document.querySelectorAll('#sidebar .sb-sub').forEach((parent) => {
     [...parent.children].forEach((el, index) => {
       if (!el.classList?.contains('sb-item')) return;
@@ -165,8 +166,19 @@ function mbRememberNavHomes() {
   });
 }
 
+function mbNavAnchor(scroll) {
+  return [...(scroll?.children || [])].find((el) => el.classList?.contains('sb-divider') || (el.classList?.contains('sb-section') && !el.classList.contains('sb-group'))) || null;
+}
+
 function mbApplyNavOrder(roleName) {
   mbRememberNavHomes();
+  const scroll = document.getElementById('sidebar-scroll');
+  const anchor = mbNavAnchor(scroll);
+  (window._mbNavGroupHomes || []).forEach((group) => {
+    if (!scroll || !group) return;
+    if (anchor) scroll.insertBefore(group, anchor);
+    else scroll.appendChild(group);
+  });
   const byParent = new Map();
   window._mbNavHomes.forEach((row) => {
     if (!byParent.has(row.parent)) byParent.set(row.parent, []);
@@ -176,6 +188,11 @@ function mbApplyNavOrder(roleName) {
     rows.sort((a, b) => a.index - b.index);
     rows.forEach((row) => parent.appendChild(row.el));
   });
+  const custom = typeof mbGetNavCustom === 'function' ? mbGetNavCustom() : null;
+  if (custom) {
+    mbPlaceNavCustom(custom);
+    return;
+  }
   const role = roleName || currentUser?.role || '';
   const focus = MB_NAV_FOCUS[role];
   const work = document.querySelector('[data-sb-group="work"] .sb-sub');
@@ -227,6 +244,8 @@ function mbApplyNavAccess() {
   if (typeof syncDidVisibility === 'function') syncDidVisibility();
   mbApplyNavOrder(role);
   mbRestoreSbGroups();
+  mbWireNavDrag();
+  if (document.getElementById('sidebar')?.classList.contains('is-nav-edit')) mbPaintNavEdit(true);
 }
 
 function mbSbGroupState() {
@@ -397,7 +416,200 @@ function mbBootPage() {
   return saved;
 }
 
+let _mbNavCustom = null;
+
+function mbNavStoreKey() {
+  const id = (typeof currentUser !== 'undefined' && currentUser?.id) ? String(currentUser.id) : '';
+  return id ? `mb_nav_order_${id}` : '';
+}
+
+function mbNavOrderOk(order) {
+  return !!(order && Array.isArray(order.groups) && order.items && typeof order.items === 'object');
+}
+
+function mbSetNavCustom(order) {
+  _mbNavCustom = mbNavOrderOk(order) ? order : null;
+  const key = mbNavStoreKey();
+  if (!key) return;
+  try {
+    if (_mbNavCustom) localStorage.setItem(key, JSON.stringify(_mbNavCustom));
+    else localStorage.removeItem(key);
+  } catch (e) {}
+}
+
+function mbGetNavCustom() {
+  if (_mbNavCustom) return _mbNavCustom;
+  const key = mbNavStoreKey();
+  if (!key) return null;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+    if (mbNavOrderOk(parsed)) _mbNavCustom = parsed;
+  } catch (e) {}
+  return _mbNavCustom;
+}
+
+function mbReadNavDom() {
+  const groups = [...document.querySelectorAll('#sidebar-scroll > .sb-group')]
+    .map((group) => group.getAttribute('data-sb-group'))
+    .filter(Boolean);
+  const items = {};
+  document.querySelectorAll('#sidebar-scroll > .sb-group').forEach((group) => {
+    const key = group.getAttribute('data-sb-group');
+    if (!key) return;
+    items[key] = [...group.querySelectorAll(':scope > .sb-sub > .sb-item')].map(mbNavItemKey).filter(Boolean);
+  });
+  return groups.length ? { groups, items } : null;
+}
+
+function mbPlaceNavCustom(order) {
+  if (!mbNavOrderOk(order)) return;
+  const scroll = document.getElementById('sidebar-scroll');
+  if (!scroll) return;
+  const byGroup = new Map([...scroll.querySelectorAll(':scope > .sb-group')].map((group) => [group.getAttribute('data-sb-group'), group]));
+  const anchor = mbNavAnchor(scroll);
+  const knownGroups = new Set(order.groups);
+  order.groups.forEach((key) => {
+    const group = byGroup.get(key);
+    if (!group) return;
+    if (anchor) scroll.insertBefore(group, anchor);
+    else scroll.appendChild(group);
+  });
+  [...byGroup.values()].forEach((group) => {
+    if (knownGroups.has(group.getAttribute('data-sb-group'))) return;
+    if (anchor) scroll.insertBefore(group, anchor);
+    else scroll.appendChild(group);
+  });
+  const buttons = [...document.querySelectorAll('#sidebar .sb-sub > .sb-item')];
+  Object.entries(order.items).forEach(([groupKey, keys]) => {
+    const sub = document.querySelector(`#sidebar [data-sb-group="${groupKey}"] > .sb-sub`);
+    if (!sub || !Array.isArray(keys)) return;
+    const known = new Set(keys);
+    keys.forEach((key) => {
+      const btn = buttons.find((el) => el.dataset.navKey === key);
+      if (btn) sub.appendChild(btn);
+    });
+    [...sub.querySelectorAll(':scope > .sb-item')].forEach((btn) => {
+      if (!known.has(btn.dataset.navKey)) sub.appendChild(btn);
+    });
+  });
+}
+
+function mbSaveNavOrder() {
+  const order = mbReadNavDom();
+  if (!order) return;
+  mbSetNavCustom(order);
+  if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+async function mbResetNavOrder() {
+  mbSetNavCustom(null);
+  mbApplyNavOrder();
+  const id = (typeof currentUser !== 'undefined' && currentUser?.id) ? String(currentUser.id) : '';
+  if (!id || typeof sb !== 'function') return;
+  try {
+    const rows = await sb(`users?id=eq.${id}&select=ui_prefs&limit=1`);
+    const existing = rows?.[0]?.ui_prefs && typeof rows[0].ui_prefs === 'object' ? rows[0].ui_prefs : {};
+    const next = { ...existing };
+    delete next.nav;
+    await sb(`users?id=eq.${id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ ui_prefs: next }),
+    });
+  } catch (e) {}
+}
+
+function mbPaintNavEdit(on) {
+  const side = document.getElementById('sidebar');
+  if (side) side.classList.toggle('is-nav-edit', !!on);
+  document.querySelectorAll('#sidebar .sb-group').forEach((group) => {
+    if (on) group.classList.remove('is-collapsed');
+  });
+  document.querySelectorAll('#sidebar .sb-group-btn').forEach((btn) => { btn.draggable = !!on; });
+  document.querySelectorAll('#sidebar .sb-sub .sb-item').forEach((btn) => { btn.draggable = !!on; });
+  if (!on) mbRestoreSbGroups();
+  const label = document.getElementById('nav-edit-label');
+  if (!label) return;
+  const tr = on ? 'Düzenlemeyi bitir' : 'Menüyü düzenle';
+  const de = on ? 'Fertig' : 'Menü anordnen';
+  label.textContent = (typeof currentLang !== 'undefined' && currentLang === 'de') ? de : tr;
+  label.setAttribute('data-tr', tr);
+  label.setAttribute('data-de', de);
+}
+
+function mbToggleNavEdit() {
+  const side = document.getElementById('sidebar');
+  mbPaintNavEdit(!side?.classList.contains('is-nav-edit'));
+}
+
+function mbWireNavDrag() {
+  const root = document.getElementById('sidebar-scroll');
+  if (!root || root.dataset.navDrag) return;
+  root.dataset.navDrag = '1';
+  let dragEl = null;
+  let moved = false;
+  root.addEventListener('dragstart', (e) => {
+    if (!document.getElementById('sidebar')?.classList.contains('is-nav-edit')) {
+      e.preventDefault();
+      return;
+    }
+    const item = e.target.closest?.('.sb-sub .sb-item');
+    const group = e.target.closest?.('.sb-group-btn')?.closest('.sb-group');
+    dragEl = item || group;
+    moved = false;
+    if (!dragEl) return;
+    dragEl.classList.add('is-nav-dragging');
+    try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', 'nav'); } catch (err) {}
+  });
+  root.addEventListener('dragover', (e) => {
+    if (!dragEl) return;
+    e.preventDefault();
+    const item = e.target.closest?.('.sb-item');
+    const group = e.target.closest?.('.sb-group');
+    if (dragEl.classList.contains('sb-group')) {
+      if (!group || group === dragEl) return;
+      const box = group.getBoundingClientRect();
+      const after = e.clientY > box.top + box.height / 2;
+      const next = after ? group.nextElementSibling : group;
+      if (next !== dragEl) {
+        group.parentElement.insertBefore(dragEl, next);
+        moved = true;
+      }
+      return;
+    }
+    if (item && item !== dragEl && item.closest('.sb-sub') && item.parentElement) {
+      const box = item.getBoundingClientRect();
+      const after = e.clientY > box.top + box.height / 2;
+      const next = after ? item.nextElementSibling : item;
+      if (next !== dragEl) {
+        item.parentElement.insertBefore(dragEl, next);
+        moved = true;
+      }
+      return;
+    }
+    const sub = group?.querySelector(':scope > .sb-sub');
+    if (sub && !sub.contains(dragEl)) {
+      sub.appendChild(dragEl);
+      moved = true;
+    }
+  });
+  root.addEventListener('dragend', () => {
+    dragEl?.classList.remove('is-nav-dragging');
+    dragEl = null;
+    if (moved && document.getElementById('sidebar')?.classList.contains('is-nav-edit')) mbSaveNavOrder();
+    moved = false;
+  });
+  root.addEventListener('click', (e) => {
+    if (!document.getElementById('sidebar')?.classList.contains('is-nav-edit')) return;
+    const el = e.target instanceof Element ? e.target : e.target?.parentElement;
+    if (!el?.closest('.sb-item, .sb-group-btn')) return;
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+}
+
 function toggleSbGroup(btn) {
+  if (document.getElementById('sidebar')?.classList.contains('is-nav-edit')) return;
   const group = btn?.closest?.('.sb-group');
   if (!group) return;
   group.classList.toggle('is-collapsed');

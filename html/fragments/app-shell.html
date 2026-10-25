@@ -3192,6 +3192,14 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="mbResetLiveGrads()" data-tr="Varsayılan renkler" data-de="Standardfarben">Varsayılan renkler</button>
 </div>
 <div class="form-row">
+<label class="form-label" data-tr="Menü" data-de="Menü">Menü</label>
+<p class="live-grad-hint" data-tr="Açıkken soldaki satırları ve Ofis, Raporlar gibi başlıkları sürükle. Sıra hesabına yazılır, başka bilgisayarda da aynı kalır." data-de="Ziehen Sie die Zeilen und Überschriften wie Büro und Berichte. Die Ordnung bleibt am Konto und gilt auch an einem anderen Rechner.">Açıkken soldaki satırları ve Ofis, Raporlar gibi başlıkları sürükle. Sıra hesabına yazılır, başka bilgisayarda da aynı kalır.</p>
+<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+<button type="button" class="btn btn-ghost btn-sm" id="nav-edit-btn" onclick="mbToggleNavEdit()"><span id="nav-edit-label" data-tr="Menüyü düzenle" data-de="Menü anordnen">Menüyü düzenle</span></button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbResetNavOrder()" data-tr="Menü sırasını sıfırla" data-de="Menüreihenfolge zurücksetzen">Menü sırasını sıfırla</button>
+</div>
+</div>
+<div class="form-row">
 <label class="form-label" data-tr="Dil" data-de="Sprache">Dil</label>
 <div style="display:flex;gap:8px;margin-top:4px;">
 <button class="btn btn-ghost btn-sm" onclick="setLang('tr')">🇹🇷 Türkçe</button>
