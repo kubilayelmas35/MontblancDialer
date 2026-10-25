@@ -413,9 +413,20 @@
     #tb-swipe .tb-live-sum { min-width: 14px; height: 22px; padding: 0 2px; font-size: 11px; }
   }
   #tb-pin {
-    gap: 2px;
+    gap: 6px;
     height: 32px;
     z-index: 3;
+  }
+  #tb-pin #tb-notif-badge {
+    top: 0 !important;
+    right: 0 !important;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    font-size: 9px;
+    line-height: 14px;
+    border-radius: 99px;
+    box-shadow: 0 0 0 2px var(--topbar-bg, var(--bg));
   }
   #tb-pin #takvim-topbar-btn,
   #tb-pin .tb-icon-btn,
@@ -433,8 +444,23 @@
   #tb-pin .tb-user > div:not(.tb-avatar) { display: none !important; }
   #tb-pin .tb-user {
     position: static;
-    border-radius: 8px;
+    border-radius: 50%;
+    border: 0;
+    background: transparent;
     box-shadow: none;
+  }
+  #tb-pin .tb-user .tb-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #0f172a;
+    color: #fff;
+    border: 0;
+    font-size: 12px;
+  }
+  [data-theme="dark"] #tb-pin .tb-user .tb-avatar {
+    background: #334155;
+    color: #fff;
   }
   #tb-swipe-dots {
     display: flex;
