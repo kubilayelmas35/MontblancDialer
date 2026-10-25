@@ -1085,10 +1085,6 @@ function setOutcome(o) {
       setTimeout(() => gm.classList.remove('global-mascot--celebrate'), 2300);
     }
     if (typeof _mimiCelebrate === 'function') _mimiCelebrate();
-    const okI = Math.floor(Math.random() * 3);
-    if (!isMimiHidden() && (typeof mascotSpeechOn !== 'function' || mascotSpeechOn('appt'))) {
-      _showCustEmptyBubbleMsg(typeof t === 'function' ? t(`dial.outcome.app.${okI}`) : '', 'appt');
-    }
   } else if (nextCat === 'negative') {
     if (gm && !isMimiHidden()) {
       gm.classList.add('global-mascot--sad');

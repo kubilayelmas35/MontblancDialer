@@ -591,7 +591,7 @@ function tourSpeak(text) {
   if (!bubble || (typeof isMimiBubbleMuted === 'function' && isMimiBubbleMuted())) return;
   const hidden = typeof isMimiHidden === 'function' && isMimiHidden();
   if (!hidden && typeof _showCustEmptyBubbleMsg === 'function') {
-    _showCustEmptyBubbleMsg(text);
+    _showCustEmptyBubbleMsg(text, 'assist');
     return;
   }
   bubble.textContent = typeof formatMascotSpokenLine === 'function' ? formatMascotSpokenLine(text) : text;

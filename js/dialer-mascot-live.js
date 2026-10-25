@@ -3,6 +3,7 @@ let _lastMascotCheerSec = -1;
 let _mascotNotifMorphT = null;
 let _mascotDragState = null;
 let _mascotCallAccumSec = Number(getMascotPref('mb_mascot_call_accum_sec', '0')) || 0;
+let _bubbleAutoHideT = null;
 let _wanderRaf = null;
 let _wanderCur = { x: 0, y: 0 };
 let _wanderTgt = { x: 0, y: 0 };
@@ -808,8 +809,15 @@ function _ensureBubblePlacer() {
 
 function _showCustEmptyBubbleMsg(msg, kind) {
   const bubble = document.getElementById('cust-empty-bubble');
+  const gm = document.getElementById('global-mascot');
   if (!bubble || isMimiHidden() || isMimiBubbleMuted()) return;
   if (kind && typeof mascotSpeechOn === 'function' && !mascotSpeechOn(kind)) return;
+  if (kind !== 'assist' && gm?.classList.contains('global-mascot--aria') && bubble.style.display !== 'none') return;
+  if (_bubbleAutoHideT) {
+    clearTimeout(_bubbleAutoHideT);
+    _bubbleAutoHideT = null;
+  }
+  bubble.dataset.owner = kind || '';
   bubble.textContent = formatMascotSpokenLine(msg);
   bubble.style.display = 'block';
   bubble.classList.remove('cust-empty-bubble--pop');
@@ -817,6 +825,15 @@ function _showCustEmptyBubbleMsg(msg, kind) {
   bubble.classList.add('cust-empty-bubble--pop');
   placeGlobalMascotBubble();
   _ensureBubblePlacer();
+  if (kind === 'greet' || kind === 'page') {
+    _bubbleAutoHideT = setTimeout(() => {
+      _bubbleAutoHideT = null;
+      const b = document.getElementById('cust-empty-bubble');
+      const g = document.getElementById('global-mascot');
+      if (!b || g?.classList.contains('global-mascot--aria')) return;
+      if (b.dataset.owner === 'greet' || b.dataset.owner === 'page') b.style.display = 'none';
+    }, 6000);
+  }
 }
 
 function _clearCustEmptyNotifPeek() {

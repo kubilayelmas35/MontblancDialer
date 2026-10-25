@@ -459,3 +459,7 @@
 #cust-empty[data-mascot-idle="1"] .cust-empty-eye {
   animation-duration: 8.5s;
 }
+.global-mascot[data-call-heat="off"] .cust-empty-mascot,
+#cust-empty[data-call-heat="off"] .cust-empty-mascot {
+  filter: none;
+}

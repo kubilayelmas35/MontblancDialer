@@ -123,6 +123,18 @@ function isMascotMoodColorOn() {
   return getMascotPref('mb_mascot_mood_color', '1') !== '0';
 }
 
+function isMascotCallHeatOn() {
+  return getMascotPref('mb_mascot_call_heat', '1') !== '0';
+}
+
+function _applyMascotCallHeatFlag(enabled) {
+  const on = enabled == null ? isMascotCallHeatOn() : !!enabled;
+  document.querySelectorAll('.mascot-theme-root, #cust-empty').forEach((el) => {
+    if (on) el.removeAttribute('data-call-heat');
+    else el.setAttribute('data-call-heat', 'off');
+  });
+}
+
 function _applyMascotMoodColorFlag(enabled) {
   const on = enabled == null ? isMascotMoodColorOn() : !!enabled;
   const nodes = document.querySelectorAll('.mascot-theme-root, #cust-empty');
@@ -880,6 +892,7 @@ function applyMascotTheme() {
   applyMascotCosmetics();
   applyMascotCosmeticColors();
   _applyMascotMoodColorFlag();
+  _applyMascotCallHeatFlag();
   if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
   updateMascotNameLabel();
 }
@@ -993,6 +1006,9 @@ function loadMascotSettingsForm() {
   const mood = document.getElementById('s-mascot-mood-color');
   if (mood) mood.checked = isMascotMoodColorOn();
   _syncMascotMoodColorControls();
+  const heat = document.getElementById('s-mascot-call-heat');
+  if (heat) heat.checked = isMascotCallHeatOn();
+  _applyMascotCallHeatFlag();
   const clock = document.getElementById('s-mascot-clock');
   if (clock) clock.value = String(getMascotPref('mb_mascot_clock', 'berlin') || 'berlin') === 'istanbul' ? 'istanbul' : 'berlin';
   const sayOn = document.getElementById('s-mascot-say-on');
@@ -1042,6 +1058,11 @@ function loadMascotSettingsForm() {
     const box = document.getElementById('s-mascot-mood-color');
     setMascotPref('mb_mascot_mood_color', box?.checked ? '1' : '0');
     _syncMascotMoodColorControls();
+  });
+  document.getElementById('s-mascot-call-heat')?.addEventListener('change', () => {
+    const box = document.getElementById('s-mascot-call-heat');
+    setMascotPref('mb_mascot_call_heat', box?.checked ? '1' : '0');
+    _applyMascotCallHeatFlag(!!box?.checked);
   });
   document.getElementById('s-mascot-clock')?.addEventListener('change', (ev) => {
     const v = ev.target.value === 'istanbul' ? 'istanbul' : 'berlin';
@@ -1166,6 +1187,8 @@ function saveMascotSettings() {
   if (ag) setMascotPref('mb_mascot_angry_color', ag.value || '#ff5b55');
   const mood = document.getElementById('s-mascot-mood-color');
   if (mood) setMascotPref('mb_mascot_mood_color', mood.checked ? '1' : '0');
+  const heat = document.getElementById('s-mascot-call-heat');
+  if (heat) setMascotPref('mb_mascot_call_heat', heat.checked ? '1' : '0');
   const clock = document.getElementById('s-mascot-clock');
   if (clock) setMascotPref('mb_mascot_clock', clock.value === 'istanbul' ? 'istanbul' : 'berlin');
   if (won) setMascotPref('mb_mascot_wander_on', won.checked ? '1' : '0');
