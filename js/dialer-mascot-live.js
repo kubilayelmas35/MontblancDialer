@@ -541,6 +541,21 @@ function _topbarMascotRect() {
   return { left: 56, top: 7, width: size, height: size };
 }
 
+function _parkMascotInCorner(gm) {
+  _wanderCur = { x: 0, y: 0 };
+  _wanderTgt = { x: 0, y: 0 };
+  _stopGlobalMascotWander();
+  const edge = 36;
+  const lift = 88;
+  gm.style.left = `${edge}px`;
+  gm.style.top = `${Math.max(edge, (window.innerHeight || 0) - lift)}px`;
+  gm.classList.add('global-mascot--placed', 'global-mascot--topbar');
+  gm.classList.remove('global-mascot--custom', 'global-mascot--dialer', 'global-mascot--sidebar');
+  const slot = document.getElementById('tb-mascot-anchor');
+  if (slot) slot.classList.add('is-off');
+  _wireGlobalMascotInteractions();
+}
+
 function _placeGlobalMascotAtRect(rect) {
   const gm = document.getElementById('global-mascot');
   if (!gm || !rect) return;
@@ -591,7 +606,15 @@ function _syncGlobalMascotDockImpl() {
   const narrowTop = (window.innerWidth || 0) <= 768 && !inSidebar;
   gm.classList.toggle('global-mascot--mobile-off', narrowTop);
   if (narrowTop) {
-    gm.classList.remove('global-mascot--placed');
+    if (isMimiHidden()) {
+      gm.classList.remove('global-mascot--placed');
+      return;
+    }
+    _parkMascotInCorner(gm);
+    const info = document.getElementById('global-mascot-info');
+    if (info && info.style.display !== 'none') {
+      requestAnimationFrame(() => positionGlobalMascotInfoPanel());
+    }
     return;
   }
   const slot = document.getElementById('tb-mascot-anchor');
@@ -825,15 +848,17 @@ function _showCustEmptyBubbleMsg(msg, kind) {
   bubble.classList.add('cust-empty-bubble--pop');
   placeGlobalMascotBubble();
   _ensureBubblePlacer();
-  if (kind === 'greet' || kind === 'page') {
-    _bubbleAutoHideT = setTimeout(() => {
-      _bubbleAutoHideT = null;
-      const b = document.getElementById('cust-empty-bubble');
-      const g = document.getElementById('global-mascot');
-      if (!b || g?.classList.contains('global-mascot--aria')) return;
-      if (b.dataset.owner === 'greet' || b.dataset.owner === 'page') b.style.display = 'none';
-    }, 6000);
-  }
+  const hideMs = { greet: 6000, page: 6000, outcome: 7000, break: 7000, hint: 7000, coach: 7000, assist: 10000 }[kind];
+  if (!hideMs) return;
+  _bubbleAutoHideT = setTimeout(() => {
+    _bubbleAutoHideT = null;
+    const b = document.getElementById('cust-empty-bubble');
+    const g = document.getElementById('global-mascot');
+    if (!b || b.dataset.owner !== kind) return;
+    if (kind !== 'assist' && g?.classList.contains('global-mascot--aria')) return;
+    b.style.display = 'none';
+    if (kind === 'assist') g?.classList.remove('global-mascot--aria');
+  }, hideMs);
 }
 
 function _clearCustEmptyNotifPeek() {

@@ -11,10 +11,25 @@
   const STRETCH_MIN_MS  = 90 * 1000;
   const STRETCH_MAX_MS  = 210 * 1000;
 
+  function _clockTz() {
+    return typeof getMascotClockTz === 'function' ? getMascotClockTz() : 'Europe/Berlin';
+  }
+
   function _hour() {
-    const tz = typeof getMascotClockTz === 'function' ? getMascotClockTz() : 'Europe/Berlin';
-    const h = Number(new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
+    const h = Number(new Intl.DateTimeFormat('en-GB', { timeZone: _clockTz(), hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
     return Number.isFinite(h) ? h : new Date().getHours();
+  }
+
+  function _todayKey() {
+    try {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: _clockTz(), year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    } catch (e) {
+      return new Date().toISOString().slice(0, 10);
+    }
+  }
+
+  function _greetSeenToday() {
+    return typeof getMascotPref === 'function' && getMascotPref('mb_mascot_greet_day', '') === _todayKey();
   }
 
   function _lang() { return typeof currentLang !== 'undefined' ? currentLang : 'tr'; }
@@ -198,12 +213,7 @@
       if (!tdC && !tdA) return '';
       return tr ? `Bugün ${tdC} çağrı, ${tdA} randevu.` : `Heute ${tdC} Anrufe, ${tdA} Termine.`;
     }
-    if (page === 'dialer') {
-      const st = _status();
-      if (st === 'ready') return tr ? 'Hazırsın. Sıradaki arama bekleniyor.' : 'Bereit. Der nächste Anruf steht an.';
-      if (st === 'break') return tr ? 'Moladasın.' : 'Pause läuft.';
-      return '';
-    }
+    if (page === 'dialer') return '';
     if (page === 'wiedervorlage') {
       const overdue = Number(document.getElementById('wv-overdue-count')?.textContent) || 0;
       const rows = _countRows('#wv-tbody tr');
@@ -263,8 +273,9 @@
     _scheduleDrink();
     _scheduleStretch();
     _idleCheckInterval = setInterval(_checkIdle, 15000);
-    if (_hidden() || _onLine() || !_speak('greet')) return;
+    if (_hidden() || _onLine() || !_speak('greet') || _greetSeenToday()) return;
     setTimeout(() => {
+      if (_hidden() || _onLine() || !_speak('greet') || _greetSeenToday()) return;
       const h = _hour();
       const tr = _lang() === 'tr';
       let greeting;
@@ -272,6 +283,10 @@
       else if (h < 18) greeting = tr ? 'İyi günler. Kaldığın kayıttan devam edebilirsin.' : 'Guten Tag. Du kannst beim letzten Eintrag weitermachen.';
       else greeting = tr ? 'İyi akşamlar. Gün sonu kayıtlarını kontrol et.' : 'Guten Abend. Tageseinträge prüfen.';
       _bubble(greeting, 'greet');
+      const b = document.getElementById('cust-empty-bubble');
+      if (b && b.style.display !== 'none' && b.dataset.owner === 'greet' && typeof setMascotPref === 'function') {
+        setMascotPref('mb_mascot_greet_day', _todayKey());
+      }
     }, 2500);
   }
 

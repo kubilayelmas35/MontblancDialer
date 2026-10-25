@@ -104,9 +104,9 @@
   border-left: 5px solid var(--text-3);
   flex: 0 0 auto;
 }
-.global-mascot.global-mascot--mobile-off {
-  visibility: hidden !important;
-  pointer-events: none !important;
+.global-mascot.global-mascot--mobile-off .cust-empty-mascot {
+  transform: translate(calc(-50% + var(--gm-wx, 0px)), calc(-50% + var(--gm-wy, 0px)))
+    scale(calc(var(--mascot-scale, 1) * 0.48));
 }
 
 @media (max-width: 768px) {
