@@ -3325,8 +3325,9 @@ function _paintDashLive() {
     return;
   }
   const filter = liveFloorFilter();
+  const allOn = liveFloorStatuses().every((st) => filter[st] !== false);
   const allLabel = de ? 'Alle' : 'Tümü';
-  const chips = `<button type="button" class="live-filter live-filter--all" onclick="toggleLiveFloorStatus('*')">${allLabel}</button>`
+  const chips = `<button type="button" class="live-filter live-filter--all${allOn ? ' is-all' : ''}" onclick="toggleLiveFloorStatus('*')">${allLabel}</button>`
     + liveFloorStatuses().map((st) => {
       const info = _DASH_LIVE_STATUS[st];
       const label = de ? info.de : info.tr;

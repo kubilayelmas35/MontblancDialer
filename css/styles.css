@@ -2589,13 +2589,18 @@ button.dash-card-handle:active { cursor:grabbing; }
 .dash-next-split { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
 @media (max-width: 720px) { .dash-next-split { grid-template-columns:1fr; } }
 .dash-live-pills { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
-.dash-live-pill { display:inline-flex; align-items:center; gap:8px; min-height:36px; padding:0 14px; border-radius:10px; color:#fff; font-size:13px; font-weight:700; }
+.dash-live-pill {
+  display:inline-flex; align-items:center; gap:8px; min-height:36px; padding:0 14px; border-radius:10px; color:#fff; font-size:13px; font-weight:700;
+  background:
+    linear-gradient(155deg, color-mix(in srgb, #fff 34%, transparent), transparent 58%),
+    linear-gradient(115deg, var(--pill), color-mix(in srgb, #000 18%, var(--pill)));
+}
 .dash-live-pill b { font-weight:800; }
-.dash-live-pill--open { background:#2563eb; }
-.dash-live-pill--ring { background:#16a34a; }
-.dash-live-pill--target { background:#dc2626; }
-.dash-live-pill--wait { background:#f97316; }
-.dash-live-pill--pool { background:#0891b2; }
+.dash-live-pill--open { --pill:#2563eb; }
+.dash-live-pill--ring { --pill:#16a34a; }
+.dash-live-pill--target { --pill:#dc2626; }
+.dash-live-pill--wait { --pill:#f97316; }
+.dash-live-pill--pool { --pill:#0891b2; }
 .stat-blue .stat-val   { color: var(--accent); }
 .stat-green .stat-val  { color: var(--green); }
 .stat-yellow .stat-val { color: var(--yellow); }
@@ -3035,7 +3040,7 @@ DASHBOARD
 }
 .live-filter .dot { width:9px; height:9px; border-radius:50%; background:var(--dot, #64748b); flex:0 0 auto; }
 .live-filter.inactive { opacity:0.42; }
-.live-filter--all { background:var(--accent); color:#fff; border-color:var(--accent); }
+.live-filter--all.is-all { background:var(--accent); color:#fff; border-color:var(--accent); }
 .live-grad-hint { font-size:11px; color:var(--text-3); line-height:1.45; margin-top:4px; }
 .live-grad-list { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
 .live-grad-row { display:grid; grid-template-columns:108px 42px 42px minmax(80px,1fr); gap:8px; align-items:center; }
