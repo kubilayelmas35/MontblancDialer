@@ -208,12 +208,25 @@ async function mbDashRemainMap(ids) {
   return { map, ok: false };
 }
 
+async function mbDashLinesOut(ids, ff) {
+  if (!ids.length || typeof sb !== 'function') return 0;
+  const camp = ids.map((id) => encodeURIComponent(id)).join(',');
+  const firm = ff || '';
+  const sessions = await sb(`agent_sessions?select=agent_id&status=in.(ready,calling,on_call)${firm}&limit=300`).catch(() => []);
+  const live = (Array.isArray(sessions) ? sessions : [])
+    .map((row) => String(row?.agent_id || ''))
+    .filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  if (!live.length) return 0;
+  const n = await mbDashCount(
+    `contacts?select=id&status=eq.calling&campaign_id=in.(${camp})&locked_by=in.(${live.join(',')})${firm}`
+  );
+  return n == null ? 0 : n;
+}
+
 async function mbDashOps(ff) {
-  const since = new Date(Date.now() - 90000).toISOString();
-  const [camps, readyRows, ringing, firms] = await Promise.all([
+  const [camps, readyRows, firms] = await Promise.all([
     sb(`campaigns?select=id,name,dial_speed,firm_id&status=eq.active${ff}&order=name.asc&limit=40`).catch(() => []),
     sb(`agent_sessions?select=agent_id,firm_id&status=eq.ready${ff}&limit=300`).catch(() => []),
-    mbDashCount(`contacts?select=id&status=eq.calling&last_called_at=gte.${encodeURIComponent(since)}${ff}`),
     sb(`firms?select=id,name&limit=100`).catch(() => []),
   ]);
   const list = camps || [];
@@ -238,6 +251,7 @@ async function mbDashOps(ff) {
     target += ready * speed;
   });
   const ids = list.map((camp) => camp.id).filter(Boolean);
+  const ringing = await mbDashLinesOut(ids, ff);
   const shown = list.slice(0, 8);
   const firmName = {};
   (firms || []).forEach((firm) => { firmName[firm.id] = firm.name || ''; });
@@ -285,7 +299,7 @@ function mbDashPaintPills(ops) {
     pill('open', mbDashTr('Açık kampanya', 'Offene Kampagne'), ops.open),
     pill('ring', mbDashTr('Çalıyor', 'Klingelt'), ops.ringing),
     pill('target', mbDashTr('Hedef hat', 'Zielleitung'), ops.target),
-    pill('wait', mbDashTr('Sıra bekliyor', 'Wartet'), ops.ready),
+    pill('wait', mbDashTr('Hatta', 'In der Leitung'), ops.ringing),
     pill('pool', mbDashTr('Havuzda bekleyen', 'Im Pool'), ops.pool),
   ].join('');
 }
