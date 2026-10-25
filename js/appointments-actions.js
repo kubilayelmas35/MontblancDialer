@@ -368,7 +368,7 @@ ${cell('OLUŞTURULMA TARİHİ / SAATİ', created)}
     if (!String(appt.qc_notu || '').trim()) qcWrap.hidden = true;
     const qcLab = document.createElement('div');
     qcLab.style.cssText = 'font-size:10px;color:var(--text-3);font-weight:700;';
-    qcLab.textContent = 'Kalite Kontrol Notu';
+    qcLab.textContent = 'Kalite kontrol notu';
     const qc = document.createElement('textarea');
     qc.id = 'takvim-qc-note';
     qc.className = 'form-input';

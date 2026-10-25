@@ -277,7 +277,7 @@ async function loadSupervisorPanel() {
   page.innerHTML = `
 <div class="page-hdr">
   <div>
-    <div class="page-title">${de ? 'Live-Ansicht' : 'Canlı Ekran'}</div>
+    <div class="page-title">${de ? 'Live-Ansicht' : 'Canlı ekran'}</div>
     <div class="page-sub" id="sup-live-badge">—</div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">

@@ -1373,7 +1373,7 @@ async function submitOutcome(goBreak) {
 
 function _paintQcReviewOutcomes(grid) {
   const title = document.querySelector('#ctab-outcome-panel .outcome-form-title');
-  if (title) title.textContent = typeof t === 'function' ? t('qc.review_title') : 'Kalite Kontrol';
+  if (title) title.textContent = typeof t === 'function' ? t('qc.review_title') : 'Kalite kontrol';
   const dnc = document.getElementById('outcome-dnc')?.closest('div');
   if (dnc) dnc.style.display = 'none';
   const cb = document.getElementById('callback-time-row');
