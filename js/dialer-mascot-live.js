@@ -247,7 +247,8 @@ function toggleGlobalMascotInfoPanel(forceOpen) {
 }
 
 function mbMascotReturnHome() {
-  setMascotPref('mb_mascot_custom_pos', '');
+  const narrow = _mascotNarrowScreen();
+  setMascotPref(narrow ? 'mb_mascot_narrow_pos' : 'mb_mascot_custom_pos', '');
   const gm = document.getElementById('global-mascot');
   if (gm) {
     gm.classList.remove('global-mascot--custom');
@@ -283,9 +284,9 @@ function showMimi() {
   if (typeof startCustEmptyCoach === 'function') startCustEmptyCoach();
 }
 
-function _loadMascotCustomPos() {
+function _loadMascotPos(base) {
   try {
-    const raw = getMascotPref('mb_mascot_custom_pos', '');
+    const raw = getMascotPref(base, '');
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed.x !== 'number' || typeof parsed.y !== 'number') return null;
@@ -293,6 +294,20 @@ function _loadMascotCustomPos() {
   } catch (e) {
     return null;
   }
+}
+
+function _loadMascotCustomPos() {
+  return _loadMascotPos('mb_mascot_custom_pos');
+}
+
+function _loadMascotNarrowPos() {
+  return _loadMascotPos('mb_mascot_narrow_pos');
+}
+
+function _mascotNarrowScreen() {
+  const anchor = _visibleMascotAnchor();
+  const inSidebar = !!(anchor && anchor.id === 'sb-mascot-anchor' && !(typeof isMimiHidden === 'function' && isMimiHidden()));
+  return (window.innerWidth || 0) <= 768 && !inSidebar;
 }
 
 function _wireGlobalMascotInteractions() {
@@ -338,7 +353,8 @@ function _wireGlobalMascotInteractions() {
       const px = parseFloat(gm.style.left);
       const py = parseFloat(gm.style.top);
       if (Number.isFinite(px) && Number.isFinite(py)) {
-        setMascotPref('mb_mascot_custom_pos', JSON.stringify({ x: px, y: py }));
+        const key = _mascotNarrowScreen() ? 'mb_mascot_narrow_pos' : 'mb_mascot_custom_pos';
+        setMascotPref(key, JSON.stringify({ x: px, y: py }));
       }
       if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
       else _syncGlobalMascotWanderOnly();
@@ -559,11 +575,18 @@ function _parkMascotInCorner(gm) {
   _wanderTgt = { x: 0, y: 0 };
   _stopGlobalMascotWander();
   const edge = 36;
-  const chat = document.querySelector('.team-chat-fab');
-  const cr = chat ? chat.getBoundingClientRect() : null;
+  const saved = _loadMascotNarrowPos();
+  let left = edge;
   let top = Math.max(edge, (window.innerHeight || 0) - 164);
-  if (cr && cr.width > 2 && top + 22 > cr.top - 12) top = Math.max(edge, cr.top - 34);
-  gm.style.left = `${edge}px`;
+  if (!saved) {
+    const chat = document.querySelector('.team-chat-fab');
+    const cr = chat ? chat.getBoundingClientRect() : null;
+    if (cr && cr.width > 2 && top + 22 > cr.top - 12) top = Math.max(edge, cr.top - 34);
+  } else {
+    left = Math.max(28, Math.min((window.innerWidth || 0) - 28, saved.x));
+    top = Math.max(28, Math.min((window.innerHeight || 0) - 28, saved.y));
+  }
+  gm.style.left = `${left}px`;
   gm.style.top = `${top}px`;
   gm.classList.add('global-mascot--placed', 'global-mascot--topbar');
   gm.classList.remove('global-mascot--custom', 'global-mascot--dialer', 'global-mascot--sidebar');
