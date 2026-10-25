@@ -12,7 +12,7 @@
   const STRETCH_MAX_MS  = 210 * 1000;
 
   function _hour() {
-    const tz = typeof MB_BUSINESS_TZ === 'string' ? MB_BUSINESS_TZ : 'Europe/Berlin';
+    const tz = typeof getMascotClockTz === 'function' ? getMascotClockTz() : 'Europe/Berlin';
     const h = Number(new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
     return Number.isFinite(h) ? h : new Date().getHours();
   }

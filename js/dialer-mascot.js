@@ -791,6 +791,11 @@ function isMimiBubbleMuted() {
 
 const MASCOT_SAY_KINDS = ['greet', 'page', 'cheer', 'appt', 'outcome', 'break', 'hint', 'coach', 'assist'];
 
+function getMascotClockTz() {
+  const v = String(getMascotPref('mb_mascot_clock', 'berlin') || 'berlin').toLowerCase();
+  return v === 'istanbul' ? 'Europe/Istanbul' : 'Europe/Berlin';
+}
+
 function mascotSpeechOn(kind) {
   if (typeof isMimiHidden === 'function' && isMimiHidden()) return false;
   if (isMimiBubbleMuted()) return false;
@@ -988,6 +993,8 @@ function loadMascotSettingsForm() {
   const mood = document.getElementById('s-mascot-mood-color');
   if (mood) mood.checked = isMascotMoodColorOn();
   _syncMascotMoodColorControls();
+  const clock = document.getElementById('s-mascot-clock');
+  if (clock) clock.value = String(getMascotPref('mb_mascot_clock', 'berlin') || 'berlin') === 'istanbul' ? 'istanbul' : 'berlin';
   const sayOn = document.getElementById('s-mascot-say-on');
   if (sayOn) sayOn.checked = !isMimiBubbleMuted();
   MASCOT_SAY_KINDS.forEach((kind) => {
@@ -1035,6 +1042,10 @@ function loadMascotSettingsForm() {
     const box = document.getElementById('s-mascot-mood-color');
     setMascotPref('mb_mascot_mood_color', box?.checked ? '1' : '0');
     _syncMascotMoodColorControls();
+  });
+  document.getElementById('s-mascot-clock')?.addEventListener('change', (ev) => {
+    const v = ev.target.value === 'istanbul' ? 'istanbul' : 'berlin';
+    setMascotPref('mb_mascot_clock', v);
   });
   document.getElementById('s-mascot-say-on')?.addEventListener('change', () => {
     const box = document.getElementById('s-mascot-say-on');
@@ -1155,6 +1166,8 @@ function saveMascotSettings() {
   if (ag) setMascotPref('mb_mascot_angry_color', ag.value || '#ff5b55');
   const mood = document.getElementById('s-mascot-mood-color');
   if (mood) setMascotPref('mb_mascot_mood_color', mood.checked ? '1' : '0');
+  const clock = document.getElementById('s-mascot-clock');
+  if (clock) setMascotPref('mb_mascot_clock', clock.value === 'istanbul' ? 'istanbul' : 'berlin');
   if (won) setMascotPref('mb_mascot_wander_on', won.checked ? '1' : '0');
   if (wd) setMascotPref('mb_mascot_wander_pct', wd.value || '35');
   if (ws) setMascotPref('mb_mascot_wander_speed', ws.value || '22');
