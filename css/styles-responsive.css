@@ -108,6 +108,13 @@
   transform: translate(calc(-50% + var(--gm-wx, 0px)), calc(-50% + var(--gm-wy, 0px)))
     scale(calc(var(--mascot-scale, 1) * 0.48));
 }
+@media (max-width: 768px) {
+  .global-mascot-info {
+    min-width: 0;
+    max-height: min(340px, 46dvh);
+    overflow: auto;
+  }
+}
 
 @media (max-width: 768px) {
   #topbar {

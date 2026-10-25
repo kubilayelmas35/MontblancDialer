@@ -4,6 +4,7 @@ let _mascotNotifMorphT = null;
 let _mascotDragState = null;
 let _mascotCallAccumSec = Number(getMascotPref('mb_mascot_call_accum_sec', '0')) || 0;
 let _bubbleAutoHideT = null;
+let _bubbleHold = null;
 let _wanderRaf = null;
 let _wanderCur = { x: 0, y: 0 };
 let _wanderTgt = { x: 0, y: 0 };
@@ -158,6 +159,8 @@ function _resetGlobalMascotInfoPanelPosition() {
   panel.style.bottom = '';
   panel.style.transform = '';
   panel.style.maxWidth = '';
+  panel.style.maxHeight = '';
+  panel.style.overflow = '';
 }
 
 /** Mimi kartı maskot viewport kenarındayken taşmasın — fixed konum + clamp */
@@ -169,10 +172,20 @@ function positionGlobalMascotInfoPanel() {
     document.querySelector('#global-mascot .cust-empty-blob') || document.getElementById('cust-empty-mascot');
   if (!anchor) return;
   const pad = 10;
-  const maxW = Math.min(420, Math.max(220, window.innerWidth - pad * 2));
+  const narrow = (window.innerWidth || 0) <= 768;
+  const maxW = narrow
+    ? Math.min(230, Math.max(168, window.innerWidth - 120))
+    : Math.min(420, Math.max(220, window.innerWidth - pad * 2));
   panel.style.position = 'fixed';
   panel.style.transform = 'none';
   panel.style.maxWidth = `${maxW}px`;
+  if (narrow) {
+    panel.style.maxHeight = `${Math.max(160, Math.round(window.innerHeight * 0.46))}px`;
+    panel.style.overflow = 'auto';
+  } else {
+    panel.style.maxHeight = '';
+    panel.style.overflow = '';
+  }
   panel.style.left = '-9999px';
   panel.style.top = '0';
   const ar = anchor.getBoundingClientRect();
@@ -546,9 +559,12 @@ function _parkMascotInCorner(gm) {
   _wanderTgt = { x: 0, y: 0 };
   _stopGlobalMascotWander();
   const edge = 36;
-  const lift = 88;
+  const chat = document.querySelector('.team-chat-fab');
+  const cr = chat ? chat.getBoundingClientRect() : null;
+  let top = Math.max(edge, (window.innerHeight || 0) - 164);
+  if (cr && cr.width > 2 && top + 22 > cr.top - 12) top = Math.max(edge, cr.top - 34);
   gm.style.left = `${edge}px`;
-  gm.style.top = `${Math.max(edge, (window.innerHeight || 0) - lift)}px`;
+  gm.style.top = `${top}px`;
   gm.classList.add('global-mascot--placed', 'global-mascot--topbar');
   gm.classList.remove('global-mascot--custom', 'global-mascot--dialer', 'global-mascot--sidebar');
   const slot = document.getElementById('tb-mascot-anchor');
@@ -835,7 +851,11 @@ function _showCustEmptyBubbleMsg(msg, kind) {
   const gm = document.getElementById('global-mascot');
   if (!bubble || isMimiHidden() || isMimiBubbleMuted()) return;
   if (kind && typeof mascotSpeechOn === 'function' && !mascotSpeechOn(kind)) return;
-  if (kind !== 'assist' && gm?.classList.contains('global-mascot--aria') && bubble.style.display !== 'none') return;
+  if (kind !== 'assist' && gm?.classList.contains('global-mascot--aria') && bubble.style.display !== 'none') {
+    if (msg) _bubbleHold = { msg, kind: kind || '' };
+    return;
+  }
+  if (kind !== 'assist') _bubbleHold = null;
   if (_bubbleAutoHideT) {
     clearTimeout(_bubbleAutoHideT);
     _bubbleAutoHideT = null;
@@ -848,7 +868,7 @@ function _showCustEmptyBubbleMsg(msg, kind) {
   bubble.classList.add('cust-empty-bubble--pop');
   placeGlobalMascotBubble();
   _ensureBubblePlacer();
-  const hideMs = { greet: 6000, page: 6000, outcome: 7000, break: 7000, hint: 7000, coach: 7000, assist: 10000 }[kind];
+  const hideMs = { greet: 6000, page: 6000, outcome: 7000, break: 7000, hint: 7000, coach: 7000, appt: 7000, assist: 10000 }[kind];
   if (!hideMs) return;
   _bubbleAutoHideT = setTimeout(() => {
     _bubbleAutoHideT = null;
@@ -857,7 +877,12 @@ function _showCustEmptyBubbleMsg(msg, kind) {
     if (!b || b.dataset.owner !== kind) return;
     if (kind !== 'assist' && g?.classList.contains('global-mascot--aria')) return;
     b.style.display = 'none';
-    if (kind === 'assist') g?.classList.remove('global-mascot--aria');
+    if (kind === 'assist') {
+      g?.classList.remove('global-mascot--aria');
+      const held = _bubbleHold;
+      _bubbleHold = null;
+      if (held) _showCustEmptyBubbleMsg(held.msg, held.kind);
+    }
   }, hideMs);
 }
 
