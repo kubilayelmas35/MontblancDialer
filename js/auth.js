@@ -307,16 +307,27 @@ return isSuperAdmin() ? _selectedFirmId : currentUser?.firm_id;
 }
 
 /** Süper admin firma seçimini kod tarafında günceller (ör. sohbetten atlama) */
-function setSuperAdminFirmSelection(firmId) {
-  if (!mbIsSuperAdmin() || !firmId) return;
-  _selectedFirmId = firmId;
+function mbApplySuperFirm(firmId) {
+  if (typeof mbIsSuperAdmin !== 'function' || !mbIsSuperAdmin() || _impersonation) return;
+  const next = firmId || null;
+  const changed = String(next || '') !== String(_selectedFirmId || '');
+  _selectedFirmId = next;
   if (typeof mbRememberFirmPick === 'function') mbRememberFirmPick();
   if (typeof mbPaintTopFirm === 'function') mbPaintTopFirm();
   if (typeof mbGeoconOnFirm === 'function') mbGeoconOnFirm();
   document.querySelectorAll('select[id$="-sel"]').forEach((sel) => {
-    const opt = [...sel.options].find((o) => o.value === firmId);
-    if (opt) sel.value = firmId;
+    if (sel.id === 'imp-firm') return;
+    const want = next || '';
+    if ([...sel.options].some((o) => o.value === want) && sel.value !== want) sel.value = want;
   });
+  if (!changed) return;
+  const activePage = (document.querySelector('.page.active')?.id || '').replace(/^page-/, '');
+  if (activePage && typeof runPageEntry === 'function') runPageEntry(activePage);
+}
+
+function setSuperAdminFirmSelection(firmId) {
+  if (!mbIsSuperAdmin() || !firmId) return;
+  mbApplySuperFirm(firmId);
 }
 
 function getFirmFilter(prefix='') {
@@ -371,7 +382,7 @@ const buildSelect = () => {
 <div style="display:flex;align-items:center;gap:6px;">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-3);flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
 <select class="form-input" id="${selId}" data-firms="${sig}" style="font-size:12px;padding:4px 10px;min-width:160px;">
-<option value="">Tüm Firmalar</option>
+<option value="" data-tr="Tüm firmalar" data-de="Alle Firmen">${typeof t === 'function' ? t('nav.firm_all') : 'Tüm firmalar'}</option>
 ${names}
 </select>
 </div>`;
@@ -414,7 +425,9 @@ async function openImpersonationModal() {
   document.getElementById('m-impersonation')?.remove();
   const firms = (_allFirms && _allFirms.length) ? _allFirms : (await sb('firms?select=id,name&order=name.asc').catch(() => []));
   _allFirms = firms || [];
-  const activeFirmId = _impersonation?.firm_id || _selectedFirmId || currentUser?.firm_id || _baseUser?.firm_id || '';
+  const activeFirmId = _impersonation?.firm_id || _selectedFirmId || '';
+  const allLabel = typeof t === 'function' ? t('nav.firm_all') : 'Tüm firmalar';
+  const hint = typeof t === 'function' ? t('imp.hint') : 'Firma seçince temsil olmadan o firmanın verisinde çalışırsınız. Kullanıcı seçip temsil başlatırsanız o kişi olursunuz.';
   const ov = document.createElement('div');
   ov.id = 'm-impersonation';
   ov.className = 'modal-overlay open';
@@ -424,10 +437,11 @@ async function openImpersonationModal() {
   <button class="modal-close" onclick="closeImpersonationModal()">✕</button>
 </div>
 <div style="padding:14px 20px;display:flex;flex-direction:column;gap:10px;">
-  <div class="jm-hint" style="margin:0;">Bir firma ve kullanıcı seçip o kullanıcıymış gibi işlem yapabilirsiniz.</div>
+  <div class="jm-hint" style="margin:0;">${_escHtml(hint)}</div>
   <div class="form-row">
     <label class="form-label">Firma</label>
-    <select id="imp-firm" class="form-input" onchange="onImpersonationFirmChange()">
+    <select id="imp-firm" class="form-input" onchange="onImpersonationFirmChange(true)">
+      <option value="" data-tr="Tüm firmalar" data-de="Alle Firmen" ${activeFirmId ? '' : 'selected'}>${_escHtml(allLabel)}</option>
       ${_allFirms.map((f) => `<option value="${_escHtml(f.id)}" ${String(f.id)===String(activeFirmId)?'selected':''}>${_escHtml(f.name || f.id)}</option>`).join('')}
     </select>
   </div>
@@ -445,25 +459,36 @@ async function openImpersonationModal() {
 </div>`;
   ov.onclick = (e) => { if (e.target === ov) closeImpersonationModal(); };
   document.body.appendChild(ov);
-  await onImpersonationFirmChange();
+  await onImpersonationFirmChange(false);
 }
 
 function closeImpersonationModal() {
   document.getElementById('m-impersonation')?.remove();
 }
 
-async function onImpersonationFirmChange() {
+async function onImpersonationFirmChange(applyFirm) {
   const firmId = document.getElementById('imp-firm')?.value || '';
   const userSel = document.getElementById('imp-user');
   const info = document.getElementById('imp-info');
-  if (!userSel || !firmId) return;
+  if (!userSel) return;
+  if (applyFirm && !_impersonation && typeof mbApplySuperFirm === 'function') mbApplySuperFirm(firmId);
+  if (!firmId) {
+    const wait = typeof t === 'function' ? t('imp.user_all') : 'Temsil için önce bir firma seçin';
+    userSel.innerHTML = `<option value="">${_escHtml(wait)}</option>`;
+    if (info) info.textContent = _impersonation
+      ? `Aktif: ${_impersonation.name} (${_impersonation.role})`
+      : (typeof t === 'function' ? t('imp.watching_all') : 'Temsil yok. Tüm firmalara kendi hesabınızla bakıyorsunuz.');
+    return;
+  }
   userSel.innerHTML = '<option value="">Yükleniyor...</option>';
   const users = await sb(`users?firm_id=eq.${firmId}&is_active=eq.true&select=id,name,email,role,firm_id&order=name.asc`).catch(() => []);
   userSel.innerHTML = (users || []).map((u) => {
     const selected = _impersonation?.user_id === u.id ? 'selected' : '';
     return `<option value="${_escHtml(u.id)}" ${selected}>${_escHtml(u.name)} · ${_escHtml(u.role)} · ${_escHtml(u.email || '')}</option>`;
   }).join('') || '<option value="">Aktif kullanıcı yok</option>';
-  if (info) info.textContent = _impersonation ? `Aktif: ${_impersonation.name} (${_impersonation.role})` : 'Aktif temsil yok (kendi hesabınızdasınız).';
+  if (info) info.textContent = _impersonation
+    ? `Aktif: ${_impersonation.name} (${_impersonation.role})`
+    : (typeof t === 'function' ? t('imp.watching_firm') : 'Temsil yok. Bu firmanın verisine kendi hesabınızla bakıyorsunuz.');
 }
 
 function persistImpersonationState() {
@@ -509,8 +534,11 @@ async function applyImpersonation() {
 
 function stopImpersonation() {
   if (!_impersonation || !_baseUser) return;
+  const firmSel = document.getElementById('imp-firm');
   currentUser = { ..._baseUser };
   _impersonation = null;
+  if (firmSel) _selectedFirmId = firmSel.value || null;
+  if (typeof mbRememberFirmPick === 'function') mbRememberFirmPick();
   persistImpersonationState();
   closeImpersonationModal();
   bootApp();
