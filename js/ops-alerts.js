@@ -1892,13 +1892,15 @@ function opsBerlinClock(zone) {
   const timeZone = zone === 'Europe/Istanbul' ? 'Europe/Istanbul' : 'Europe/Berlin';
   const parts = {};
   new Intl.DateTimeFormat('en-GB', {
-    timeZone, hourCycle: 'h23', weekday: 'short', hour: '2-digit', minute: '2-digit',
+    timeZone, hourCycle: 'h23', weekday: 'short',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
   }).formatToParts(new Date()).forEach((part) => { parts[part.type] = part.value; });
   const gun = { Mon: 'pzt', Tue: 'sal', Wed: 'car', Thu: 'per', Fri: 'cum', Sat: 'cmt', Sun: 'paz' }[parts.weekday] || 'pzt';
   const hour = Number(parts.hour);
   const minute = Number(parts.minute);
+  const second = Number(parts.second) || 0;
   const date = new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date());
-  return { gun, hour, minute, mins: hour * 60 + minute, date, zone: timeZone };
+  return { gun, hour, minute, second, mins: hour * 60 + minute, date, zone: timeZone };
 }
 
 function opsMesaiTzOf(raw) {
@@ -1957,6 +1959,44 @@ function opsLeftText(mins) {
   if (hour && minute) return `${hour}s ${minute}dk`;
   if (hour) return `${hour}s`;
   return `${minute}dk`;
+}
+
+function opsLeftClock(totalSeconds) {
+  const left = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+  const hour = Math.floor(left / 3600);
+  const minute = Math.floor((left % 3600) / 60);
+  const second = left % 60;
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${hour}:${pad(minute)}:${pad(second)}`;
+}
+
+function opsMesaiChipParts(view, cue) {
+  const say = (key, fb) => (typeof opsSay === 'function' ? opsSay(key, fb) : fb);
+  const day = view?.day;
+  const clock = view?.clock || { mins: 0, second: 0 };
+  const none = say('ops.mesai.none', 'Mesai yok');
+  if (!day || day.off || !day.start || !day.end) return { range: none, left: '' };
+  const span = view.rolled && day.short ? `${day.short} ${day.start}–${day.end}` : `${day.start}–${day.end}`;
+  if (cue?.stage === 'over') return { range: span, left: say('ops.mesai.chipOver', 'Bitti') };
+  const secNow = clock.mins * 60 + (Number(clock.second) || 0);
+  let leftSec = null;
+  if (view.rolled || cue?.stage === 'start') {
+    const mins = view.rolled
+      ? opsMinsUntilGun(clock, view.gun)
+      : Math.max(0, (opsHmMins(day.start) || 0) - clock.mins);
+    leftSec = Math.max(0, mins * 60 - (Number(clock.second) || 0));
+  } else if (cue?.stage === 'live') {
+    const end = opsHmMins(String(cue.when || '').split(/[–-]/)[1]);
+    if (end != null) leftSec = end * 60 - secNow;
+  } else if (cue?.stage === 'break') {
+    const start = opsHmMins(cue.breakStart);
+    if (start != null) leftSec = start * 60 - secNow;
+  } else if (cue?.stage === 'end') {
+    const end = opsHmMins(day.end);
+    if (end != null) leftSec = end * 60 - secNow;
+  }
+  if (leftSec == null) return { range: span, left: '' };
+  return { range: span, left: opsLeftClock(leftSec) };
 }
 
 function opsMesaiWindow() {
@@ -2228,7 +2268,10 @@ function opsPaintMesaiBar() {
   const flashed = _opsMesaiFlash && _opsMesaiFlash.until > Date.now();
   const word = opsMesaiStateWord(cue);
   const detail = flashed ? _opsMesaiFlash.text : (cue.detail || cue.title);
-  label.textContent = word;
+  const chip = opsMesaiChipParts(view, cue);
+  label.textContent = chip.range;
+  const left = document.getElementById('tb-mesai-left');
+  if (left) left.textContent = chip.left;
   btn.title = detail && detail !== word ? `${word} · ${detail}` : word;
   btn.classList.toggle('is-due', flashed || (!view.rolled && !!phase.due));
   btn.classList.toggle('is-break-soon', !view.rolled && !!opsBreakSoon());

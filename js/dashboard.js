@@ -1141,6 +1141,18 @@ function mbBarCrowded(bar) {
   return false;
 }
 
+function mbPlaceMascotChip() {
+  const slide = document.getElementById('aria-live')?.closest('.tb-slide');
+  const pin = document.getElementById('tb-pin');
+  const wrap = document.getElementById('tb-pills-wrap');
+  if (!slide || !pin || !wrap) return;
+  if (mbNarrowBar()) {
+    if (slide.parentElement !== wrap) wrap.appendChild(slide);
+    return;
+  }
+  if (slide.parentElement !== pin) pin.insertBefore(slide, pin.firstChild);
+}
+
 function mbFitStatus() {
   const wrap = document.getElementById('tb-pills-wrap');
   const bar = document.getElementById('topbar');
@@ -1148,6 +1160,7 @@ function mbFitStatus() {
   wrap._fitLock = true;
   wrap.classList.remove('is-today-open', 'is-mesai-open', 'is-live-letter');
   bar.classList.remove('is-tb-tight');
+  mbPlaceMascotChip();
   if (mbNarrowBar()) {
     wrap.classList.add('is-today-open');
     wrap._fitLock = false;
