@@ -1132,6 +1132,7 @@ function mbPackBar() {
   swipe.style.justifyContent = 'flex-start';
   const room = swipe.scrollWidth - swipe.clientWidth;
   const overflow = room > 2;
+  swipe.style.justifyContent = overflow ? 'flex-start' : 'flex-end';
   swipe.classList.toggle('is-overflow', overflow);
   swipe.classList.toggle('is-fade-left', overflow && swipe.scrollLeft > 2);
   swipe.classList.toggle('is-fade-right', overflow && swipe.scrollLeft < room - 2);
