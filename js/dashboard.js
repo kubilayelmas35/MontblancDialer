@@ -1239,12 +1239,14 @@ function mbFitStatus() {
       swipe.scrollLeft = 0;
     }
     mbSwipeSync();
+    if (typeof opsFitMesaiMarquee === 'function') opsFitMesaiMarquee();
     return;
   }
   wrap.classList.add('is-today-open');
   wrap._fitLock = false;
   mbPackBar();
   mbSwipeSync();
+  if (typeof opsFitMesaiMarquee === 'function') opsFitMesaiMarquee();
 }
 
 setInterval(mbSpinCounts, 1400);

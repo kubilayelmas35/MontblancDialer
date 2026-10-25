@@ -2066,6 +2066,34 @@ function opsApplyMesaiSlide(prev) {
   });
 }
 
+function opsFitMesaiMarquee() {
+  const rot = document.getElementById('tb-mesai-rot');
+  if (!rot) return;
+  const room = rot.clientWidth;
+  if (room < 8) return;
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  [...rot.children].forEach((el) => {
+    const text = el.dataset.full || el.textContent;
+    let inner = el.querySelector(':scope > i');
+    if (inner && el.dataset.full === text && inner.dataset.room === String(room) && (inner.classList.contains('is-slide') || inner.offsetWidth <= room + 2)) return;
+    el.dataset.full = text;
+    if (!inner) {
+      inner = document.createElement('i');
+      el.replaceChildren(inner);
+    }
+    inner.textContent = text;
+    inner.classList.remove('is-slide');
+    inner.style.animationDuration = '';
+    inner.style.removeProperty('--slide');
+    inner.dataset.room = String(room);
+    const dist = inner.offsetWidth - room;
+    if (reduce || dist < 4) return;
+    inner.style.setProperty('--slide', `-${Math.ceil(dist)}px`);
+    inner.style.animationDuration = `${Math.min(12000, Math.max(4200, dist * 45))}ms`;
+    inner.classList.add('is-slide');
+  });
+}
+
 function opsPaintMesaiSlides(slides) {
   const rot = document.getElementById('tb-mesai-rot');
   if (!rot) return;
@@ -2081,15 +2109,22 @@ function opsPaintMesaiSlides(slides) {
       if (item.k === 'range') el.id = 'tb-mesai-label';
       if (item.k === 'left') el.id = 'tb-mesai-left';
       el.textContent = item.text;
+      el.dataset.full = item.text;
       return el;
     }));
     opsApplyMesaiSlide();
+    opsFitMesaiMarquee();
     return;
   }
   list.forEach((item) => {
     const el = rot.querySelector(`[data-k="${item.k}"]`);
-    if (el && el.textContent !== item.text) el.textContent = item.text;
+    if (!el || el.dataset.full === item.text) return;
+    el.dataset.full = item.text;
+    const inner = el.querySelector(':scope > i');
+    if (inner) inner.textContent = item.text;
+    else el.textContent = item.text;
   });
+  opsFitMesaiMarquee();
 }
 
 function opsMesaiWindow() {

@@ -141,10 +141,24 @@
   .tb-icon-btn.tb-mesai {
     width: auto;
     min-width: 0;
-    max-width: 96px;
+    max-width: 120px;
     padding: 0 6px;
+    overflow: hidden;
   }
-  #tb-mesai-label { max-width: 64px; font-size: 11px; }
+  #tb-mesai-rot {
+    flex: 0 0 92px;
+    width: 92px;
+    min-width: 72px;
+    max-width: 92px;
+    overflow: hidden;
+  }
+  #tb-mesai-rot > span {
+    width: 100%;
+    max-width: 100%;
+    justify-self: stretch;
+    text-overflow: clip;
+  }
+  #tb-mesai-label { max-width: none; font-size: 11px; }
   .tb-user > div:not(.tb-avatar) { display: none; }
   #topbar .tb-user {
     position: sticky;
@@ -366,12 +380,13 @@
   button.tb-icon-btn.tb-mesai {
     width: auto;
     min-width: 0;
-    max-width: 84px;
+    max-width: 120px;
     flex: 0 1 auto;
     padding: 0 5px;
     gap: 3px;
+    overflow: hidden;
   }
-  #tb-mesai-label { display: inline !important; max-width: 52px; font-size: 10px; }
+  #tb-mesai-label { max-width: none; font-size: 11px; }
   .tb-pill, .tb-icon-btn, .tb-user, .tb-icon-btn.tb-mesai { height: 32px; }
   button.tb-pill.tb-takvim,
   button.tb-pill.pill-camp,
