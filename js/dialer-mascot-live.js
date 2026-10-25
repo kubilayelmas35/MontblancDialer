@@ -891,7 +891,7 @@ function _showCustEmptyBubbleMsg(msg, kind) {
   bubble.classList.add('cust-empty-bubble--pop');
   placeGlobalMascotBubble();
   _ensureBubblePlacer();
-  const hideMs = { greet: 6000, page: 6000, outcome: 7000, break: 7000, hint: 7000, coach: 7000, appt: 7000, assist: 10000 }[kind];
+  const hideMs = { greet: 6000, page: 6000, outcome: 7000, break: 7000, hint: 7000, coach: 7000, appt: 7000, cheer: 7000, assist: 10000 }[kind];
   if (!hideMs) return;
   _bubbleAutoHideT = setTimeout(() => {
     _bubbleAutoHideT = null;
