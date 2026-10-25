@@ -175,6 +175,10 @@ max-width: 100%;
 #topbar::-webkit-scrollbar {
   height: 0;
 }
+.tb-swipe-host { display: contents; }
+.tb-swipe { display: contents; }
+.tb-slide { display: contents; }
+.tb-swipe-dots { display: none; }
 .tb-pills-wrap {
   flex: 1 1 auto;
   min-width: 0;

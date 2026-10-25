@@ -1067,10 +1067,51 @@ document.addEventListener('mouseover', (ev) => {
   else if (typeof opsScheduleHideCampSummary === 'function') opsScheduleHideCampSummary();
 });
 
+function mbNarrowBar() {
+  return window.matchMedia('(max-width: 768px)').matches;
+}
+
+function mbSwipeSync() {
+  const root = document.getElementById('tb-swipe');
+  const dots = document.getElementById('tb-swipe-dots');
+  if (!root || !dots) return;
+  if (!mbNarrowBar()) {
+    if (dots.childElementCount) dots.replaceChildren();
+    return;
+  }
+  const slides = [...root.querySelectorAll('.tb-slide')]
+    .filter((el) => el.offsetWidth > 8 && el.offsetHeight > 8)
+    .sort((a, b) => a.offsetLeft - b.offsetLeft);
+  if (slides.length < 2) {
+    if (dots.childElementCount) dots.replaceChildren();
+    return;
+  }
+  if (!root._swiped && root.scrollLeft > 1) {
+    root._swipeHold = (root._swipeHold || 0) + 1;
+    root.scrollLeft = 0;
+    setTimeout(() => { root._swipeHold = Math.max(0, (root._swipeHold || 1) - 1); }, 80);
+  }
+  if (dots.childElementCount !== slides.length) {
+    dots.replaceChildren(...slides.map(() => document.createElement('i')));
+  }
+  if (!slides.length) return;
+  const mid = root.scrollLeft + root.clientWidth / 2;
+  let best = 0;
+  let bestDist = Infinity;
+  slides.forEach((el, i) => {
+    const dist = Math.abs(el.offsetLeft + el.offsetWidth / 2 - mid);
+    if (dist < bestDist) { bestDist = dist; best = i; }
+  });
+  [...dots.children].forEach((dot, i) => {
+    const on = i === best;
+    if (dot.classList.contains('is-on') !== on) dot.classList.toggle('is-on', on);
+  });
+}
+
 function mbBarCrowded(bar) {
   const br = bar.getBoundingClientRect();
   const mid = (br.top + br.bottom) / 2;
-  const boxes = [...bar.querySelectorAll(':scope > button, :scope > .tb-pills-wrap button, :scope > .tb-right button')]
+  const boxes = [...bar.querySelectorAll('.tb-hamburger, .tb-logo, #tb-pills-wrap button, #tb-right button')]
     .filter((el) => {
       if (el.hidden || getComputedStyle(el).display === 'none') return false;
       const r = el.getBoundingClientRect();
@@ -1092,18 +1133,51 @@ function mbFitStatus() {
   wrap._fitLock = true;
   wrap.classList.remove('is-today-open', 'is-mesai-open', 'is-live-letter');
   bar.classList.remove('is-tb-tight');
+  if (mbNarrowBar()) {
+    wrap.classList.add('is-today-open');
+    wrap._fitLock = false;
+    const swipe = document.getElementById('tb-swipe');
+    if (swipe && !swipe._swipeReady) {
+      swipe._swipeReady = true;
+      swipe.scrollLeft = 0;
+    }
+    mbSwipeSync();
+    return;
+  }
   const crowded = () => mbBarCrowded(bar);
   wrap.classList.add('is-today-open');
   if (crowded()) wrap.classList.remove('is-today-open');
   if (crowded()) wrap.classList.add('is-live-letter');
   if (crowded()) bar.classList.add('is-tb-tight');
   wrap._fitLock = false;
+  mbSwipeSync();
 }
 
 setInterval(mbSpinCounts, 1400);
 {
-  const wrap = document.getElementById('tb-pills-wrap');
-  if (wrap && window.ResizeObserver) new ResizeObserver(() => mbFitStatus()).observe(wrap);
+  const bar = document.getElementById('topbar');
+  const swipe = document.getElementById('tb-swipe');
+  if (bar && window.ResizeObserver) new ResizeObserver(() => mbFitStatus()).observe(bar);
+  if (swipe && !swipe._swipeBound) {
+    swipe._swipeBound = true;
+    swipe.addEventListener('scroll', () => {
+      if (swipe._swipeHold) {
+        mbSwipeSync();
+        return;
+      }
+      if (swipe.scrollLeft > 1) swipe._swiped = true;
+      mbSwipeSync();
+    }, { passive: true });
+    if (window.MutationObserver) {
+      new MutationObserver(() => {
+        if (swipe._swipeRa) return;
+        swipe._swipeRa = requestAnimationFrame(() => {
+          swipe._swipeRa = 0;
+          mbSwipeSync();
+        });
+      }).observe(swipe, { attributes: true, subtree: true, attributeFilter: ['style', 'hidden', 'class'] });
+    }
+  }
   mbFitStatus();
 }
 
