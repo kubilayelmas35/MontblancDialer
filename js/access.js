@@ -138,6 +138,53 @@ function openNavTakvim() {
   navigate('takvim');
 }
 
+const MB_NAV_FOCUS = {
+  agent: ['dialer', 'wiedervorlage', 'takvim', 'myhistory', 'performansim', 'dashboard', 'maasim', 'competition', 'leave'],
+  qc: ['qc', 'callhistory', 'dialer', 'wiedervorlage', 'dashboard', 'performansim', 'maasim', 'competition', 'leave'],
+  field_agent: ['field', 'dashboard', 'performansim', 'maasim', 'competition', 'leave'],
+};
+
+function mbNavItemKey(btn) {
+  const action = String(btn?.getAttribute?.('onclick') || '');
+  if (action.includes('openNavTakvim')) return 'takvim';
+  const page = action.match(/navigate\('([a-z0-9_]+)'\)/);
+  if (page) return page[1];
+  const report = action.match(/openStatsReport\('([a-z0-9_]+)'\)/);
+  return report ? report[1] : '';
+}
+
+function mbRememberNavHomes() {
+  if (window._mbNavHomes) return;
+  window._mbNavHomes = [];
+  document.querySelectorAll('#sidebar .sb-sub').forEach((parent) => {
+    [...parent.children].forEach((el, index) => {
+      if (!el.classList?.contains('sb-item')) return;
+      el.dataset.navKey = mbNavItemKey(el);
+      window._mbNavHomes.push({ el, parent, index });
+    });
+  });
+}
+
+function mbApplyNavOrder(roleName) {
+  mbRememberNavHomes();
+  const byParent = new Map();
+  window._mbNavHomes.forEach((row) => {
+    if (!byParent.has(row.parent)) byParent.set(row.parent, []);
+    byParent.get(row.parent).push(row);
+  });
+  byParent.forEach((rows, parent) => {
+    rows.sort((a, b) => a.index - b.index);
+    rows.forEach((row) => parent.appendChild(row.el));
+  });
+  const role = roleName || currentUser?.role || '';
+  const focus = MB_NAV_FOCUS[role];
+  const work = document.querySelector('[data-sb-group="work"] .sb-sub');
+  if (!focus || !work) return;
+  const buttons = [...document.querySelectorAll('#sidebar .sb-item')];
+  const picked = focus.map((key) => buttons.find((el) => el.dataset.navKey === key && el.style.display !== 'none')).filter(Boolean);
+  for (let i = picked.length - 1; i >= 0; i -= 1) work.insertBefore(picked[i], work.firstChild);
+}
+
 function mbApplyNavAccess() {
   const role = currentUser?.role || '';
 
@@ -178,6 +225,7 @@ function mbApplyNavAccess() {
   if (topTakvim) topTakvim.style.display = allowTakvim ? '' : 'none';
   if (typeof mbSyncSettingsTabs === 'function') mbSyncSettingsTabs();
   if (typeof syncDidVisibility === 'function') syncDidVisibility();
+  mbApplyNavOrder(role);
   mbRestoreSbGroups();
 }
 
