@@ -274,29 +274,54 @@
   }
   #page-dialer .call-action-btn { flex: 1 1 calc(50% - 8px); }
   .takvim-toolbar-cluster--right { margin-left: 0; justify-content: flex-start; }
-  .takvim-toolbar,
-  .takvim-toolbar-actions,
-  .takvim-toolbar-cluster--left,
-  .takvim-toolbar-cluster--right {
+  #takvim-popup-overlay.open { padding: 0; align-items: stretch; justify-content: stretch; }
+  .takvim-toolbar {
     flex-direction: column;
     align-items: stretch;
     width: 100%;
   }
-  .takvim-toolbar-cluster--left > *,
-  .takvim-toolbar-cluster--right > * { width: 100%; max-width: 100%; }
-  .takvim-seg { display: flex; width: 100%; }
+  .takvim-toolbar-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
+  }
+  .takvim-toolbar-cluster--left,
+  .takvim-toolbar-cluster--right {
+    display: contents;
+  }
+  .takvim-seg,
+  .takvim-nav,
+  #takvim-overlay-admin,
+  #takvim-camp-select-wrap,
+  #takvim-page-firm-selector,
+  #takvim-overlay-firm-selector { flex: 1 1 100%; width: 100%; max-width: 100%; }
+  .takvim-seg { display: flex; }
   .takvim-seg button { flex: 1 1 0; }
-  .takvim-nav { width: 100%; justify-content: space-between; }
+  .takvim-nav { justify-content: space-between; }
   .takvim-nav span { flex: 1 1 auto; min-width: 0; }
   .takvim-plz-measure,
-  .takvim-plz-measure > .btn,
-  .takvim-admin-tools,
-  #takvim-overlay-admin,
-  #takvim-admin-tools,
   #takvim-filter-btn,
-  #takvim-filter-btn-ov { width: 100%; }
-  .takvim-overlay-admin,
-  .takvim-admin-tools { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+  #takvim-filter-btn-ov { flex: 0 0 auto; width: auto; max-width: none; }
+  .takvim-overlay-admin {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+  }
+  .takvim-admin-tools {
+    flex: 1 1 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+    align-items: center;
+  }
+  .takvim-admin-tools > .btn { flex: 1 1 calc(33% - 8px); width: auto; }
+  #takvim-overlay-firm-selector select,
+  #takvim-page-firm-selector select,
+  #takvim-camp-select,
+  #takvim-camp-select-ov { max-width: 100%; min-width: 0; width: 100%; }
   .takvim-toolbar--overlay {
     display: flex;
     flex-direction: column;
@@ -311,14 +336,17 @@
   }
   .takvim-ov-close { margin-left: auto; }
   .takvim-fs-panel {
+    position: absolute !important;
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
+    width: auto !important;
+    height: auto !important;
     border-radius: 0 !important;
   }
-  #takvim-camp-select, #takvim-camp-select-ov { max-width: 100%; min-width: 0; width: 100%; }
   #page-takvim, #takvim-main, #takvim-popup-overlay, .takvim-fs-panel { overflow-x: hidden; max-width: 100%; }
+  #takvim-scroll, #takvim-scroll-ov { overflow-x: auto; }
   .live-rows { min-width: 0; }
   .live-filters { flex-wrap: wrap; overflow-x: visible; }
   .modal-hdr { flex-wrap: nowrap; }
