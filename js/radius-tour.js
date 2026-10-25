@@ -587,6 +587,7 @@ function tourSpeak(text) {
   const gm = document.getElementById('global-mascot');
   const bubble = document.getElementById('cust-empty-bubble');
   if (gm) gm.classList.add('global-mascot--aria');
+  if (typeof mascotSpeechOn === 'function' && !mascotSpeechOn('assist')) return;
   if (!bubble || (typeof isMimiBubbleMuted === 'function' && isMimiBubbleMuted())) return;
   const hidden = typeof isMimiHidden === 'function' && isMimiHidden();
   if (!hidden && typeof _showCustEmptyBubbleMsg === 'function') {

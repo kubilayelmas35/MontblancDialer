@@ -24,6 +24,53 @@ function _fmtMimiLife(sec) {
   return `${day}g ${hour}s ${min}d ${rem}sn`;
 }
 
+function mbMascotMoodView(status, moodKey, flags) {
+  const say = (key, fb) => (typeof t === 'function' ? t(key) : fb);
+  const st = String(status || '');
+  const mood = String(moodKey || '');
+  const f = flags || {};
+  const heat = Math.max(0, Math.min(1, Number(f.heat) || 0));
+  let label = say('dial.mimi_mood_calm', 'Sakin');
+  let note = say('dial.mimi_mood_note_default', 'Hazır.');
+  let energy = '—';
+  if (st === 'calling') {
+    label = say('dial.mimi_mood_calling', 'Arıyor');
+    note = say('dial.mimi_mood_note_calling', 'Hat aranıyor.');
+  } else if (st === 'on_call') {
+    label = say('dial.mimi_mood_oncall', 'Görüşmede');
+    note = say('dial.mimi_mood_note_oncall', 'Görüşme sürüyor.');
+    energy = `${Math.round(heat * 100)}%`;
+  } else if (st === 'wrapping') {
+    label = say('dial.mimi_mood_wrap', 'Sonuç yazılıyor');
+    note = say('dial.mimi_mood_note_wrap', 'Sonuç kaydı açık.');
+  } else if (mood === 'drink') {
+    label = say('dial.mimi_mood_drink', 'Su molası');
+    note = say('dial.mimi_mood_note_drink', 'Molada kısa bir su arası.');
+  } else if (mood === 'stretch') {
+    label = say('dial.mimi_mood_stretch', 'Esneme');
+    note = say('dial.mimi_mood_note_stretch', 'Molada kısa bir esneme.');
+  } else if (st === 'break') {
+    label = say('dial.mimi_mood_pause', 'Molada');
+    note = say('dial.mimi_mood_note_pause', 'Mola sürüyor.');
+  } else if (f.celebrate || mood === 'celebrate') {
+    label = say('dial.mimi_mood_celebrate', 'Kutlama');
+    note = say('dial.mimi_mood_note_celebrate', 'Randevu kaydedildi.');
+  } else if (f.sad) {
+    label = say('dial.mimi_mood_sad', 'Üzgün');
+    note = say('dial.mimi_mood_note_sad', 'Son arama olumsuz kapandı.');
+  } else if (mood === 'angry') {
+    label = say('dial.mimi_mood_angry', 'Gergin');
+  } else if (mood === 'bored') {
+    label = say('dial.mimi_mood_bored', 'Sıkıldı');
+  } else if (mood === 'eat') {
+    label = say('dial.mimi_mood_eat', 'Mutlu');
+  } else if (f.idle) {
+    label = say('dial.mimi_mood_idle', 'Beklemede');
+    note = say('dial.mimi_mood_note_idle', 'Bir süredir hareket yok.');
+  }
+  return { label, note, energy };
+}
+
 function refreshGlobalMascotInfoPanel() {
   const nameEl = document.getElementById('global-mascot-info-name');
   const ageEl = document.getElementById('global-mascot-info-age');
@@ -66,41 +113,30 @@ function refreshGlobalMascotInfoPanel() {
       : (typeof t === 'function' ? t('dial.mimi_mute_hide') : 'Balon konuşmasını kapat');
   }
   if (muteBtn) muteBtn.setAttribute('aria-pressed', isMimiBubbleMuted() ? 'true' : 'false');
+  const hideLbl = document.getElementById('mimi-hide-label');
+  if (hideLbl) hideLbl.textContent = isDe ? `${n} ausblenden` : `${n} gizle`;
+  const infoPanel = document.getElementById('global-mascot-info');
+  if (infoPanel) infoPanel.setAttribute('aria-label', isDe ? `${n} Karte` : `${n} kartı`);
   if (noteEl) {
     noteEl.textContent =
       typeof tReplace === 'function'
-        ? tReplace('dial.mimi_note_age', { coef: getMascotAgeCoeff().toFixed(1) })
+        ? tReplace('dial.mimi_note_age', { coef: getMascotAgeCoeff().toFixed(1), name: n })
         : (isDe
-          ? `Mimi altert mit dem ${getMascotAgeCoeff().toFixed(1)}-fachen deiner Gesprächszeit. Je ruhiger du bleibst, desto stärker wird sie.`
-          : `Çağrı süresinin ${getMascotAgeCoeff().toFixed(1)} katı kadar Mimi yaş alıyor. Ne kadar sakin kalırsan o kadar büyüyor.`);
+          ? `${n} altert mit dem ${getMascotAgeCoeff().toFixed(1)}-fachen der Gesprächszeit.`
+          : `${n}, çağrı süresinin ${getMascotAgeCoeff().toFixed(1)} katı kadar yaş alır.`);
   }
   const gm = document.getElementById('global-mascot');
   const moodKey = gm?.getAttribute('data-mood') || '';
-  const sad = gm?.classList.contains('global-mascot--sad');
-  const cel = gm?.classList.contains('global-mascot--celebrate');
-  const moodLabel = cel
-    ? (typeof t === 'function' ? t('dial.mimi_mood_celebrate') : 'Kutlama')
-    : sad
-      ? (typeof t === 'function' ? t('dial.mimi_mood_sad') : 'Üzgün')
-      : moodKey === 'break'
-        ? (typeof t === 'function' ? t('dial.mimi_mood_break') : 'Uykulu')
-        : moodKey === 'angry'
-          ? (typeof t === 'function' ? t('dial.mimi_mood_angry') : 'Gergin')
-          : moodKey === 'bored'
-            ? (typeof t === 'function' ? t('dial.mimi_mood_bored') : 'Sıkıldı')
-            : moodKey === 'eat'
-              ? (typeof t === 'function' ? t('dial.mimi_mood_eat') : 'Mutlu')
-              : (typeof t === 'function' ? t('dial.mimi_mood_calm') : 'Sakin');
-  if (moodEl) moodEl.textContent = moodLabel;
-  const heat = Number(document.getElementById('global-mascot')?.style.getPropertyValue('--mascot-call-heat') || '0') || 0;
-  if (energyEl) energyEl.textContent = `${Math.round(heat * 100)}%`;
-  if (moodNoteEl) {
-    moodNoteEl.textContent = sad
-      ? (typeof t === 'function' ? t('dial.mimi_mood_note_sad') : (isDe ? 'Kurz durchatmen… der nächste wird besser.' : 'Bir sonraki arama için minik bir nefes… Hazırsın.'))
-      : cel
-        ? (typeof t === 'function' ? t('dial.mimi_mood_note_celebrate') : (isDe ? 'Mit dieser Energie läuft’s!' : 'Bu enerjiyle çok iyi gidiyoruz!'))
-        : (typeof t === 'function' ? t('dial.mimi_mood_note_default') : (isDe ? 'Ruhig und fokussiert.' : 'Sakin ve odaklı — en iyi hâlim.'));
-  }
+  const heat = Number(gm?.style.getPropertyValue('--mascot-call-heat') || '0') || 0;
+  const view = mbMascotMoodView(typeof dialerStatus !== 'undefined' ? dialerStatus : '', moodKey, {
+    heat,
+    sad: gm?.classList.contains('global-mascot--sad'),
+    celebrate: gm?.classList.contains('global-mascot--celebrate'),
+    idle: gm?.getAttribute('data-mascot-idle') === '1',
+  });
+  if (moodEl) moodEl.textContent = view.label;
+  if (energyEl) energyEl.textContent = view.energy;
+  if (moodNoteEl) moodNoteEl.textContent = view.note;
   const p = window._dialerPerfSnapshot || {};
   if (tCallsEl) tCallsEl.textContent = String(Number(p.todayCalls) || 0);
   if (tApptEl) tApptEl.textContent = String(Number(p.todayAppts) || 0);
@@ -196,6 +232,21 @@ function toggleGlobalMascotInfoPanel(forceOpen) {
   });
 }
 
+function mbMascotReturnHome() {
+  setMascotPref('mb_mascot_custom_pos', '');
+  const gm = document.getElementById('global-mascot');
+  if (gm) {
+    gm.classList.remove('global-mascot--custom');
+    gm.style.left = '';
+    gm.style.top = '';
+  }
+  _wanderCur = { x: 0, y: 0 };
+  _wanderTgt = { x: 0, y: 0 };
+  _wanderHeading = NaN;
+  _wanderHolding = false;
+  if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
+}
+
 function hideMimi() {
   setMascotPref('mb_mascot_hidden', '1');
   const bubble = document.getElementById('cust-empty-bubble');
@@ -262,7 +313,6 @@ function _wireGlobalMascotInteractions() {
     gm.style.left = `${x}px`;
     gm.style.top = `${y}px`;
     gm.classList.add('global-mascot--custom');
-    setMascotPref('mb_mascot_custom_pos', JSON.stringify({ x, y }));
     placeGlobalMascotBubble();
   });
   mascot.addEventListener('pointerup', (e) => {
@@ -271,16 +321,14 @@ function _wireGlobalMascotInteractions() {
     _mascotDragState = null;
     gm.classList.remove('global-mascot--dragging');
     if (wasMove) {
+      const px = parseFloat(gm.style.left);
+      const py = parseFloat(gm.style.top);
+      if (Number.isFinite(px) && Number.isFinite(py)) {
+        setMascotPref('mb_mascot_custom_pos', JSON.stringify({ x: px, y: py }));
+      }
       if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
       else _syncGlobalMascotWanderOnly();
     } else {
-      const bubble = document.getElementById('cust-empty-bubble');
-      if (bubble && bubble.style.display !== 'none') {
-        bubble.style.display = 'none';
-        gm.classList.remove('global-mascot--aria');
-        _syncGlobalMascotWanderOnly();
-        return;
-      }
       if (isMimiHidden()) showMimi();
       else toggleGlobalMascotInfoPanel();
       _syncGlobalMascotWanderOnly();
@@ -631,10 +679,11 @@ function onCallTickForGlobalMascot() {
   const hit = milestones.find((m) => m <= sec && m > _lastMascotCheerSec);
   if (!hit) return;
   if (isMimiHidden()) return;
+  if (typeof mascotSpeechOn === 'function' && !mascotSpeechOn('cheer')) return;
   _lastMascotCheerSec = hit;
   const idx = Math.floor(Math.random() * 9);
   const msg = typeof t === 'function' ? t(`dial.cheer.${idx}`) : '';
-  _showCustEmptyBubbleMsg(msg || '…');
+  _showCustEmptyBubbleMsg(msg || '…', 'cheer');
 }
 
 function runGlobalMascotNotifMorph() {
@@ -757,9 +806,10 @@ function _ensureBubblePlacer() {
   _bubblePlaceRaf = requestAnimationFrame(tick);
 }
 
-function _showCustEmptyBubbleMsg(msg) {
+function _showCustEmptyBubbleMsg(msg, kind) {
   const bubble = document.getElementById('cust-empty-bubble');
   if (!bubble || isMimiHidden() || isMimiBubbleMuted()) return;
+  if (kind && typeof mascotSpeechOn === 'function' && !mascotSpeechOn(kind)) return;
   bubble.textContent = formatMascotSpokenLine(msg);
   bubble.style.display = 'block';
   bubble.classList.remove('cust-empty-bubble--pop');
@@ -797,7 +847,8 @@ function hintCustEmptyNotifUnread(totalUnread) {
   _clearCustEmptyNotifPeek();
   if (typeof runGlobalMascotNotifMorph === 'function') runGlobalMascotNotifMorph();
   _showCustEmptyBubbleMsg(
-    typeof tReplace === 'function' ? tReplace('dial.hint_notif', { n }) : `Bildirim (${n})`
+    typeof tReplace === 'function' ? tReplace('dial.hint_notif', { n }) : `Bildirim (${n})`,
+    'hint'
   );
   _custEmptyNotifPeekDelayT = setTimeout(() => {
     _custEmptyNotifPeekDelayT = null;
@@ -836,7 +887,8 @@ function hintCustEmptyChatMessage(fromName) {
           ? 'Team'
           : 'Ekip';
   _showCustEmptyBubbleMsg(
-    typeof tReplace === 'function' ? tReplace('dial.hint_chat', { who }) : `Chat: ${who}`
+    typeof tReplace === 'function' ? tReplace('dial.hint_chat', { who }) : `Chat: ${who}`,
+    'hint'
   );
   if (_custEmptyChatPeekTimer) clearTimeout(_custEmptyChatPeekTimer);
   _custEmptyChatPeekTimer = setTimeout(() => clearCustEmptyChatPeek(), 14000);
@@ -875,6 +927,7 @@ function _custEmptyCoachTargetVisible() {
 
 function refreshCustEmptyCoachBubble() {
   if (isMimiHidden() || isMimiBubbleMuted()) return;
+  if (typeof mascotSpeechOn === 'function' && !mascotSpeechOn('coach')) return;
   const bubble = document.getElementById('cust-empty-bubble');
   const root = document.getElementById('cust-empty');
   const gm = document.getElementById('global-mascot');
@@ -921,12 +974,13 @@ function refreshCustEmptyCoachBubble() {
     const pi = Math.floor(Math.random() * 4);
     msg = typeof t === 'function' ? t(`dial.coach.pool.${pi}`) : '';
   }
-  _showCustEmptyBubbleMsg(msg || '…');
+  _showCustEmptyBubbleMsg(msg || '…', 'coach');
 }
 
 function startCustEmptyCoach() {
   _clearCustEmptyCoachTimer();
   if (isMimiHidden() || isMimiBubbleMuted()) return;
+  if (typeof mascotSpeechOn === 'function' && !mascotSpeechOn('coach')) return;
   const root = document.getElementById('cust-empty');
   const gm = document.getElementById('global-mascot');
   if (root && (root.classList.contains('cust-empty--peek-chat') || root.classList.contains('cust-empty--peek-notif'))) return;

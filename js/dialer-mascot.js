@@ -789,9 +789,34 @@ function isMimiBubbleMuted() {
   return getMascotPref('mb_mascot_bubble_mute', '0') === '1';
 }
 
+const MASCOT_SAY_KINDS = ['greet', 'page', 'cheer', 'appt', 'outcome', 'break', 'hint', 'coach', 'assist'];
+
+function mascotSpeechOn(kind) {
+  if (typeof isMimiHidden === 'function' && isMimiHidden()) return false;
+  if (isMimiBubbleMuted()) return false;
+  const k = String(kind || '').replace(/[^a-z]/g, '');
+  if (!k) return true;
+  return getMascotPref(`mb_mascot_say_${k}`, '1') !== '0';
+}
+
+function _syncMascotSayControls() {
+  const master = document.getElementById('s-mascot-say-on');
+  const list = document.getElementById('s-mascot-say-list');
+  const on = master ? !!master.checked : !isMimiBubbleMuted();
+  if (list) {
+    list.style.opacity = on ? '' : '0.45';
+    list.querySelectorAll('input').forEach((el) => {
+      el.disabled = !on;
+    });
+  }
+}
+
 function toggleMimiBubbleMute() {
   const next = isMimiBubbleMuted() ? '0' : '1';
   setMascotPref('mb_mascot_bubble_mute', next);
+  const master = document.getElementById('s-mascot-say-on');
+  if (master) master.checked = next !== '1';
+  _syncMascotSayControls();
   if (next === '1') {
     stopCustEmptyCoach();
     const bubble = document.getElementById('cust-empty-bubble');
@@ -963,6 +988,13 @@ function loadMascotSettingsForm() {
   const mood = document.getElementById('s-mascot-mood-color');
   if (mood) mood.checked = isMascotMoodColorOn();
   _syncMascotMoodColorControls();
+  const sayOn = document.getElementById('s-mascot-say-on');
+  if (sayOn) sayOn.checked = !isMimiBubbleMuted();
+  MASCOT_SAY_KINDS.forEach((kind) => {
+    const box = document.getElementById(`s-mascot-say-${kind}`);
+    if (box) box.checked = getMascotPref(`mb_mascot_say_${kind}`, '1') !== '0';
+  });
+  _syncMascotSayControls();
   mbPaintMascotStyleBook();
   mbWireMascotStyleBook();
   if (currentUser?.firm_id) {
@@ -1003,6 +1035,24 @@ function loadMascotSettingsForm() {
     const box = document.getElementById('s-mascot-mood-color');
     setMascotPref('mb_mascot_mood_color', box?.checked ? '1' : '0');
     _syncMascotMoodColorControls();
+  });
+  document.getElementById('s-mascot-say-on')?.addEventListener('change', () => {
+    const box = document.getElementById('s-mascot-say-on');
+    const on = !!box?.checked;
+    setMascotPref('mb_mascot_bubble_mute', on ? '0' : '1');
+    if (!on) {
+      const bubble = document.getElementById('cust-empty-bubble');
+      if (bubble && !document.getElementById('global-mascot')?.classList.contains('global-mascot--aria')) {
+        bubble.style.display = 'none';
+      }
+    }
+    _syncMascotSayControls();
+    if (typeof refreshGlobalMascotInfoPanel === 'function') refreshGlobalMascotInfoPanel();
+  });
+  MASCOT_SAY_KINDS.forEach((kind) => {
+    document.getElementById(`s-mascot-say-${kind}`)?.addEventListener('change', (ev) => {
+      setMascotPref(`mb_mascot_say_${kind}`, ev.target.checked ? '1' : '0');
+    });
   });
   won?.addEventListener('change', () => {
     setMascotPref('mb_mascot_wander_on', won.checked ? '1' : '0');
@@ -1153,6 +1203,7 @@ function saveMascotSettings() {
 }
 
 try {
+  window.mascotSpeechOn = mascotSpeechOn;
   window.saveMascotSettings = saveMascotSettings;
   window.loadMascotSettingsForm = loadMascotSettingsForm;
   window.applyMascotTheme = applyMascotTheme;

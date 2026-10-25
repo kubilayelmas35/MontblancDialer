@@ -12,17 +12,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=11.79">
-<link rel="stylesheet" href="css/styles-dialer.css?v=11.79">
-<link rel="stylesheet" href="css/styles-mascot.css?v=11.79">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=11.79">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=11.79">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=11.79">
-<link rel="stylesheet" href="css/styles-pages.css?v=11.79">
-<link rel="stylesheet" href="css/styles-aurora.css?v=11.79">
-<link rel="stylesheet" href="css/styles-chat.css?v=11.79">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=11.79">
-<link rel="stylesheet" href="css/styles-responsive.css?v=11.79">
+<link rel="stylesheet" href="css/styles.css?v=11.80">
+<link rel="stylesheet" href="css/styles-dialer.css?v=11.80">
+<link rel="stylesheet" href="css/styles-mascot.css?v=11.80">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=11.80">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=11.80">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=11.80">
+<link rel="stylesheet" href="css/styles-pages.css?v=11.80">
+<link rel="stylesheet" href="css/styles-aurora.css?v=11.80">
+<link rel="stylesheet" href="css/styles-chat.css?v=11.80">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=11.80">
+<link rel="stylesheet" href="css/styles-responsive.css?v=11.80">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -61,7 +61,7 @@
 <div class="login-index-note" data-i18n="login.row.4.note">Kalite, muhasebe</div>
 </div>
 </div>
-<div class="login-version">v11.79 — 2026</div>
+<div class="login-version">v11.80 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -232,31 +232,34 @@
 <div class="global-mascot-morph" id="global-mascot-morph" aria-hidden="true">
 <i class="ph ph-bell"></i>
 </div>
-<div id="global-mascot-info" class="global-mascot-info" style="display:none;" role="dialog" aria-label="Mimi bilgi kartı">
+<div id="global-mascot-info" class="global-mascot-info" style="display:none;" role="dialog" aria-label="Maskot kartı">
 <div class="global-mascot-info-title" id="global-mascot-info-name">Mimi</div>
-<div class="global-mascot-info-tabs" role="tablist" aria-label="Mimi sekmeleri">
-  <button type="button" class="global-mascot-tab active" id="mimi-tab-profile" onclick="switchMimiTab('profile')" role="tab">Profil</button>
-  <button type="button" class="global-mascot-tab" id="mimi-tab-mood" onclick="switchMimiTab('mood')" role="tab">Ruh hali</button>
-  <button type="button" class="global-mascot-tab" id="mimi-tab-stats" onclick="switchMimiTab('stats')" role="tab">İstatistik</button>
+<div class="global-mascot-info-tabs" role="tablist">
+  <button type="button" class="global-mascot-tab active" id="mimi-tab-profile" onclick="switchMimiTab('profile')" role="tab" data-tr="Profil" data-de="Profil">Profil</button>
+  <button type="button" class="global-mascot-tab" id="mimi-tab-mood" onclick="switchMimiTab('mood')" role="tab" data-tr="Ruh hali" data-de="Stimmung">Ruh hali</button>
+  <button type="button" class="global-mascot-tab" id="mimi-tab-stats" onclick="switchMimiTab('stats')" role="tab" data-tr="İstatistik" data-de="Statistik">İstatistik</button>
 </div>
 <div class="global-mascot-info-actions">
-  <button type="button" class="btn btn-ghost btn-sm" id="mimi-bubble-mute-btn" onclick="toggleMimiBubbleMute()" aria-pressed="false" title="Dialerde balon ipuçlarını aç/kapat">
+  <button type="button" class="btn btn-ghost btn-sm" id="mimi-bubble-mute-btn" onclick="toggleMimiBubbleMute()" aria-pressed="false">
     <i class="ph ph-chat-circle-slash"></i> <span id="mimi-bubble-mute-label">Balon konuşmasını kapat</span>
   </button>
+  <button type="button" class="btn btn-ghost btn-sm" id="mimi-home-btn" onclick="mbMascotReturnHome()">
+    <i class="ph ph-arrow-u-up-left"></i> <span data-tr="Menü ayağına dön" data-de="Zurück zum Menü">Menü ayağına dön</span>
+  </button>
   <button type="button" class="btn btn-ghost btn-sm" onclick="hideMimi()">
-    <i class="ph ph-eye-slash"></i> Mimiyi kapat
+    <i class="ph ph-eye-slash"></i> <span id="mimi-hide-label">Gizle</span>
   </button>
 </div>
 <div class="global-mascot-tabpanes">
   <div id="mimi-pane-profile" class="global-mascot-pane" role="tabpanel">
-    <div class="global-mascot-info-row"><span>Yaş</span><strong id="global-mascot-info-age">0g 0s 0d 0sn</strong></div>
-    <div class="global-mascot-info-row"><span>Toplam çağrı</span><strong id="global-mascot-info-calls">0g 0s 0d 0sn</strong></div>
-    <div class="global-mascot-info-row"><span>Aura modu</span><strong id="global-mascot-info-variant">Aurora</strong></div>
+    <div class="global-mascot-info-row"><span data-tr="Yaş" data-de="Alter">Yaş</span><strong id="global-mascot-info-age">0g 0s 0d 0sn</strong></div>
+    <div class="global-mascot-info-row"><span data-tr="Toplam çağrı" data-de="Gespräche gesamt">Toplam çağrı</span><strong id="global-mascot-info-calls">0g 0s 0d 0sn</strong></div>
+    <div class="global-mascot-info-row"><span data-tr="Aura" data-de="Aura">Aura modu</span><strong id="global-mascot-info-variant">Aurora</strong></div>
     <div class="global-mascot-info-note" id="global-mascot-info-note">—</div>
   </div>
   <div id="mimi-pane-mood" class="global-mascot-pane" role="tabpanel" style="display:none;">
-    <div class="global-mascot-info-row"><span>Durum</span><strong id="global-mascot-info-mood">Sakin</strong></div>
-    <div class="global-mascot-info-row"><span>Enerji</span><strong id="global-mascot-info-energy">0%</strong></div>
+    <div class="global-mascot-info-row"><span data-tr="Durum" data-de="Zustand">Durum</span><strong id="global-mascot-info-mood">Sakin</strong></div>
+    <div class="global-mascot-info-row"><span data-tr="Enerji" data-de="Energie">Enerji</span><strong id="global-mascot-info-energy">—</strong></div>
     <div class="global-mascot-info-note" id="global-mascot-info-mood-note">—</div>
   </div>
   <div id="mimi-pane-stats" class="global-mascot-pane" role="tabpanel" style="display:none;">
@@ -479,7 +482,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">MontBlanc v11.79</div>
+<div class="sb-ver">MontBlanc v11.80</div>
 </div>
 </div>
 </nav>
@@ -3413,13 +3416,31 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Gezme açıkken tempo. 0: neredeyse durur." data-de="Tempo bei aktivem Umherlaufen. 0: fast still.">Gezme açıkken tempo. 0: neredeyse durur.</div>
 </div>
 </div>
+<div id="s-mascot-say" style="grid-column:1 / -1;margin-top:4px;padding-top:10px;border-top:1px solid var(--border);">
+<label class="form-label" style="font-size:11px;display:flex;align-items:center;gap:8px;cursor:pointer;">
+<input type="checkbox" id="s-mascot-say-on" checked style="width:16px;height:16px;">
+<span data-tr="Konuşsun" data-de="Spricht">Konuşsun</span>
+</label>
+<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Kapalıyken hiçbir balon çıkmaz. Açıkken alttaki türler tek tek geçer." data-de="Aus: keine Sprechblase. An: die Arten darunter gelten einzeln.">Kapalıyken hiçbir balon çıkmaz. Açıkken alttaki türler tek tek geçer.</div>
+<div id="s-mascot-say-list" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:8px;">
+<label style="font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="s-mascot-say-greet" checked> <span data-tr="Karşılama" data-de="Begrüßung">Karşılama</span></label>
+<label style="font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="s-mascot-say-page" checked> <span data-tr="Sayfa" data-de="Seite">Sayfa</span></label>
+<label style="font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="s-mascot-say-cheer" checked> <span data-tr="Görüşme tezahüratı" data-de="Anruf-Zuspruch">Görüşme tezahüratı</span></label>
+<label style="font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="s-mascot-say-appt" checked> <span data-tr="Randevu" data-de="Termin">Randevu</span></label>
+<label style="font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="s-mascot-say-outcome" checked> <span data-tr="Sonuç" data-de="Ergebnis">Sonuç</span></label>
+<label style="font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="s-mascot-say-break" checked> <span data-tr="Mola" data-de="Pause">Mola</span></label>
+<label style="font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="s-mascot-say-hint" checked> <span data-tr="Bildirim ve sohbet" data-de="Hinweis und Chat">Bildirim ve sohbet</span></label>
+<label style="font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="s-mascot-say-coach" checked> <span data-tr="Dialer koçu" data-de="Dialer-Coach">Dialer koçu</span></label>
+<label style="font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="s-mascot-say-assist" checked> <span data-tr="Asistan" data-de="Assistent">Asistan</span></label>
+</div>
+</div>
 <div style="grid-column:1 / -1;">
 <label class="form-label" style="font-size:11px;" data-tr="Boyut (%)" data-de="Größe (%)">Boyut (%)</label>
 <input class="form-input settings-mascot-slider" id="s-mascot-user-scale" type="range" min="50" max="150" step="1" value="100">
 <div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Maskotu küçültür veya büyütür; tüm sekmelerde geçerlidir." data-de="Verkleinert oder vergrößert das Maskottchen; gilt app-weit.">Maskotu küçültür veya büyütür; tüm sekmelerde geçerlidir.</div>
 </div>
 <div style="grid-column:1 / -1;margin-top:8px;padding-top:10px;border-top:1px solid var(--border);">
-<div class="form-label" style="font-size:11px;margin-bottom:8px;" data-tr="Mimi aksesuarları" data-de="Mimi-Accessoires">Mimi aksesuarları</div>
+<div class="form-label" style="font-size:11px;margin-bottom:8px;" data-tr="Aksesuarlar" data-de="Accessoires">Aksesuarlar</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;align-items:end;">
 <div>
 <label class="form-label" style="font-size:10px;">Göz</label>
@@ -3613,37 +3634,37 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" style="font-size:11px;" data-tr="Şekil" data-de="Form">Şekil</label>
 <select class="form-input" id="s-mascot-shape" style="max-width:280px;margin-top:4px;">
 <option value="blob" data-tr="Organik (varsayılan)" data-de="Organisch (Standard)">Organik (varsayılan)</option>
-<option value="circle">Daire</option>
-<option value="squircle">Süper elips</option>
-<option value="square">Kare</option>
-<option value="pill">Hap</option>
-<option value="hex">Altıgen</option>
-<option value="diamond">Elmas</option>
-<option value="star">Yıldız</option>
-<option value="heart">Kalp</option>
-<option value="droplet">Damla</option>
-<option value="ring">Halka</option>
-<option value="pulse">Nabız (canlı)</option>
-<option value="wave">Dalga (canlı)</option>
-<option value="ripple">Halka (canlı)</option>
-<option value="morph">Akan (canlı)</option>
-<option value="cloud">Bulut</option>
-<option value="egg">Yumurta</option>
-<option value="pebble">Çakıl</option>
-<option value="clover">Yonca</option>
-<option value="leaf">Yaprak</option>
-<option value="moon">Hilal</option>
-<option value="sun">Güneş</option>
-<option value="bolt">Şimşek</option>
-<option value="gem">Elmas kesim</option>
-<option value="shield">Kalkan</option>
-<option value="flower">Çiçek</option>
-<option value="ticket">Bilet</option>
-<option value="bow">Fiyonk</option>
+<option value="circle" data-tr="Daire" data-de="Kreis">Daire</option>
+<option value="squircle" data-tr="Süper elips" data-de="Superellipse">Süper elips</option>
+<option value="square" data-tr="Kare" data-de="Quadrat">Kare</option>
+<option value="pill" data-tr="Hap" data-de="Kapsel">Hap</option>
+<option value="hex" data-tr="Altıgen" data-de="Sechseck">Altıgen</option>
+<option value="diamond" data-tr="Elmas" data-de="Raute">Elmas</option>
+<option value="star" data-tr="Yıldız" data-de="Stern">Yıldız</option>
+<option value="heart" data-tr="Kalp" data-de="Herz">Kalp</option>
+<option value="droplet" data-tr="Damla" data-de="Tropfen">Damla</option>
+<option value="ring" data-tr="Halka" data-de="Ring">Halka</option>
+<option value="pulse" data-tr="Nabız (canlı)" data-de="Puls (lebendig)">Nabız (canlı)</option>
+<option value="wave" data-tr="Dalga (canlı)" data-de="Welle (lebendig)">Dalga (canlı)</option>
+<option value="ripple" data-tr="Halka dalgası (canlı)" data-de="Ringwelle (lebendig)">Halka dalgası (canlı)</option>
+<option value="morph" data-tr="Akan (canlı)" data-de="Fließend (lebendig)">Akan (canlı)</option>
+<option value="cloud" data-tr="Bulut" data-de="Wolke">Bulut</option>
+<option value="egg" data-tr="Yumurta" data-de="Ei">Yumurta</option>
+<option value="pebble" data-tr="Çakıl" data-de="Kiesel">Çakıl</option>
+<option value="clover" data-tr="Yonca" data-de="Klee">Yonca</option>
+<option value="leaf" data-tr="Yaprak" data-de="Blatt">Yaprak</option>
+<option value="moon" data-tr="Hilal" data-de="Mondsichel">Hilal</option>
+<option value="sun" data-tr="Güneş" data-de="Sonne">Güneş</option>
+<option value="bolt" data-tr="Şimşek" data-de="Blitz">Şimşek</option>
+<option value="gem" data-tr="Elmas kesim" data-de="Schliff">Elmas kesim</option>
+<option value="shield" data-tr="Kalkan" data-de="Schild">Kalkan</option>
+<option value="flower" data-tr="Çiçek" data-de="Blume">Çiçek</option>
+<option value="ticket" data-tr="Bilet" data-de="Ticket">Bilet</option>
+<option value="bow" data-tr="Fiyonk" data-de="Schleife">Fiyonk</option>
 </select>
 </div>
 <div style="grid-column:1 / -1;">
-<label class="form-label" style="font-size:11px;">Mimi yaş katsayısı (admin)</label>
+<label class="form-label" style="font-size:11px;" data-tr="Yaş katsayısı (admin)" data-de="Altersfaktor (Admin)">Yaş katsayısı (admin)</label>
 <input class="form-input" id="s-mascot-age-coef" type="number" min="1" max="30" step="0.1" value="10">
 <div id="s-mascot-age-coef-hint" style="font-size:10px;color:var(--text-3);margin-top:3px;">Firma geneli katsayıdır.</div>
 </div>
@@ -4819,67 +4840,67 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=11.79"></script>
-<script src="js/i18n.js?v=11.79"></script>
-<script src="js/config.js?v=11.79"></script>
-<script src="js/state.js?v=11.79"></script>
-<script src="js/api.js?v=11.79"></script>
-<script src="js/access.js?v=11.79"></script>
-<script src="js/auth.js?v=11.79"></script>
-<script src="js/ui.js?v=11.79"></script>
-<script src="js/chat.js?v=11.79"></script>
-<script src="js/chat-settings.js?v=11.79"></script>
-<script src="js/field-settings.js?v=11.79"></script>
-<script src="js/audit.js?v=11.79"></script>
-<script src="js/feature-flags.js?v=11.79"></script>
-<script src="js/notification-center.js?v=11.79"></script>
+<script src="js/version.js?v=11.80"></script>
+<script src="js/i18n.js?v=11.80"></script>
+<script src="js/config.js?v=11.80"></script>
+<script src="js/state.js?v=11.80"></script>
+<script src="js/api.js?v=11.80"></script>
+<script src="js/access.js?v=11.80"></script>
+<script src="js/auth.js?v=11.80"></script>
+<script src="js/ui.js?v=11.80"></script>
+<script src="js/chat.js?v=11.80"></script>
+<script src="js/chat-settings.js?v=11.80"></script>
+<script src="js/field-settings.js?v=11.80"></script>
+<script src="js/audit.js?v=11.80"></script>
+<script src="js/feature-flags.js?v=11.80"></script>
+<script src="js/notification-center.js?v=11.80"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=11.79"></script>
-<script src="js/job-market.js?v=11.79"></script>
-<script src="js/qc-job-market.js?v=11.79"></script>
-<script src="js/export-admin.js?v=11.79"></script>
-<script src="js/export-termin.js?v=11.79"></script>
-<script src="js/performance.js?v=11.79"></script>
-<script src="js/competition.js?v=11.79"></script>
-<script src="js/dashboard.js?v=11.79"></script>
-<script src="js/reports.js?v=11.79"></script>
-<script src="js/dashboard-brief.js?v=11.79"></script>
-<script src="js/campaigns.js?v=11.79"></script>
-<script src="js/campaigns-detail.js?v=11.79"></script>
-<script src="js/campaigns-queue.js?v=11.79"></script>
-<script src="js/contacts-upload.js?v=11.79"></script>
-<script src="js/geocon.js?v=11.79"></script>
-<script src="js/contacts.js?v=11.79"></script>
-<script src="js/contacts-drawer.js?v=11.79"></script>
-<script src="js/telnyx.js?v=11.79"></script>
-<script src="js/voice-orb.js?v=11.79"></script>
-<script src="js/dialer.js?v=11.79"></script>
-<script src="js/ops-alerts.js?v=11.79"></script>
-<script src="js/radius-tour.js?v=11.79"></script>
-<script src="js/dialer-mascot.js?v=11.79"></script>
-<script src="js/dialer-mascot-live.js?v=11.79"></script>
-<script src="js/ui-prefs.js?v=11.79"></script>
-<script src="js/dialer-session.js?v=11.79"></script>
-<script src="js/dialer-call.js?v=11.79"></script>
-<script src="js/dialer-tools.js?v=11.79"></script>
-<script src="js/appointments.js?v=11.79"></script>
-<script src="js/appointments-actions.js?v=11.79"></script>
-<script src="js/appointments-tools.js?v=11.79"></script>
-<script src="js/field.js?v=11.79"></script>
-<script src="js/field-quote.js?v=11.79"></script>
-<script src="js/field-catalog.js?v=11.79"></script>
-<script src="js/field-ops.js?v=11.79"></script>
-<script src="js/wiedervorlage.js?v=11.79"></script>
-<script src="js/qc.js?v=11.79"></script>
-<script src="js/supervisor.js?v=11.79"></script>
-<script src="js/live-coach.js?v=11.79"></script>
-<script src="js/sms-settings.js?v=11.79"></script>
-<script src="js/leave-hr.js?v=11.79"></script>
-<script src="js/muhasebe.js?v=11.79"></script>
-<script src="js/muhasebe-books.js?v=11.79"></script>
-<script src="js/agent-self-performance.js?v=11.79"></script>
-<script src="js/agents.js?v=11.79"></script>
-<script src="js/firm-desk.js?v=11.79"></script>
-<script src="js/mimi-brain.js?v=11.79"></script>
+<script src="js/wallet.js?v=11.80"></script>
+<script src="js/job-market.js?v=11.80"></script>
+<script src="js/qc-job-market.js?v=11.80"></script>
+<script src="js/export-admin.js?v=11.80"></script>
+<script src="js/export-termin.js?v=11.80"></script>
+<script src="js/performance.js?v=11.80"></script>
+<script src="js/competition.js?v=11.80"></script>
+<script src="js/dashboard.js?v=11.80"></script>
+<script src="js/reports.js?v=11.80"></script>
+<script src="js/dashboard-brief.js?v=11.80"></script>
+<script src="js/campaigns.js?v=11.80"></script>
+<script src="js/campaigns-detail.js?v=11.80"></script>
+<script src="js/campaigns-queue.js?v=11.80"></script>
+<script src="js/contacts-upload.js?v=11.80"></script>
+<script src="js/geocon.js?v=11.80"></script>
+<script src="js/contacts.js?v=11.80"></script>
+<script src="js/contacts-drawer.js?v=11.80"></script>
+<script src="js/telnyx.js?v=11.80"></script>
+<script src="js/voice-orb.js?v=11.80"></script>
+<script src="js/dialer.js?v=11.80"></script>
+<script src="js/ops-alerts.js?v=11.80"></script>
+<script src="js/radius-tour.js?v=11.80"></script>
+<script src="js/dialer-mascot.js?v=11.80"></script>
+<script src="js/dialer-mascot-live.js?v=11.80"></script>
+<script src="js/ui-prefs.js?v=11.80"></script>
+<script src="js/dialer-session.js?v=11.80"></script>
+<script src="js/dialer-call.js?v=11.80"></script>
+<script src="js/dialer-tools.js?v=11.80"></script>
+<script src="js/appointments.js?v=11.80"></script>
+<script src="js/appointments-actions.js?v=11.80"></script>
+<script src="js/appointments-tools.js?v=11.80"></script>
+<script src="js/field.js?v=11.80"></script>
+<script src="js/field-quote.js?v=11.80"></script>
+<script src="js/field-catalog.js?v=11.80"></script>
+<script src="js/field-ops.js?v=11.80"></script>
+<script src="js/wiedervorlage.js?v=11.80"></script>
+<script src="js/qc.js?v=11.80"></script>
+<script src="js/supervisor.js?v=11.80"></script>
+<script src="js/live-coach.js?v=11.80"></script>
+<script src="js/sms-settings.js?v=11.80"></script>
+<script src="js/leave-hr.js?v=11.80"></script>
+<script src="js/muhasebe.js?v=11.80"></script>
+<script src="js/muhasebe-books.js?v=11.80"></script>
+<script src="js/agent-self-performance.js?v=11.80"></script>
+<script src="js/agents.js?v=11.80"></script>
+<script src="js/firm-desk.js?v=11.80"></script>
+<script src="js/mimi-brain.js?v=11.80"></script>
 </body>
 </html>

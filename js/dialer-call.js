@@ -49,9 +49,10 @@ function stopCallTimer() {
   if (lastDur > 0) {
     _mascotCallAccumSec += lastDur;
     setMascotPref('mb_mascot_call_accum_sec', String(_mascotCallAccumSec));
-    if (lastDur < 60 && !isMimiHidden()) {
+    if (lastDur < 60 && !isMimiHidden() && (typeof mascotSpeechOn !== 'function' || mascotSpeechOn('outcome'))) {
       _showCustEmptyBubbleMsg(
-        typeof t === 'function' ? t('dial.short_call') : '…'
+        typeof t === 'function' ? t('dial.short_call') : '…',
+        'outcome'
       );
     }
   }
@@ -1079,24 +1080,28 @@ function setOutcome(o) {
   const gm = document.getElementById('global-mascot');
   if (gm) gm.classList.remove('global-mascot--sad', 'global-mascot--celebrate');
   if (nextCat === 'appointment') {
-    if (gm && !isMimiHidden()) gm.classList.add('global-mascot--celebrate');
+    if (gm && !isMimiHidden()) {
+      gm.classList.add('global-mascot--celebrate');
+      setTimeout(() => gm.classList.remove('global-mascot--celebrate'), 2300);
+    }
     if (typeof _mimiCelebrate === 'function') _mimiCelebrate();
     const okI = Math.floor(Math.random() * 3);
-    if (!isMimiHidden()) {
-      _showCustEmptyBubbleMsg(typeof t === 'function' ? t(`dial.outcome.app.${okI}`) : '');
-      setTimeout(() => gm?.classList.remove('global-mascot--celebrate'), 2300);
+    if (!isMimiHidden() && (typeof mascotSpeechOn !== 'function' || mascotSpeechOn('appt'))) {
+      _showCustEmptyBubbleMsg(typeof t === 'function' ? t(`dial.outcome.app.${okI}`) : '', 'appt');
     }
   } else if (nextCat === 'negative') {
-    if (gm && !isMimiHidden()) gm.classList.add('global-mascot--sad');
+    if (gm && !isMimiHidden()) {
+      gm.classList.add('global-mascot--sad');
+      setTimeout(() => gm.classList.remove('global-mascot--sad'), 3600);
+    }
     const ni = Math.floor(Math.random() * 3);
-    if (!isMimiHidden()) {
-      _showCustEmptyBubbleMsg(typeof t === 'function' ? t(`dial.outcome.neg.${ni}`) : '');
-      setTimeout(() => gm?.classList.remove('global-mascot--sad'), 3600);
+    if (!isMimiHidden() && (typeof mascotSpeechOn !== 'function' || mascotSpeechOn('outcome'))) {
+      _showCustEmptyBubbleMsg(typeof t === 'function' ? t(`dial.outcome.neg.${ni}`) : '', 'outcome');
     }
   } else if (nextCat === 'callback') {
     const ci = Math.floor(Math.random() * 3);
-    if (!isMimiHidden()) {
-      _showCustEmptyBubbleMsg(typeof t === 'function' ? t(`dial.outcome.cb.${ci}`) : '');
+    if (!isMimiHidden() && (typeof mascotSpeechOn !== 'function' || mascotSpeechOn('outcome'))) {
+      _showCustEmptyBubbleMsg(typeof t === 'function' ? t(`dial.outcome.cb.${ci}`) : '', 'outcome');
     }
   }
 }
