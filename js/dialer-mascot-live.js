@@ -657,7 +657,7 @@ function _syncGlobalMascotDockImpl() {
     return;
   }
   const slot = document.getElementById('tb-mascot-anchor');
-  if (slot) slot.classList.toggle('is-off', inSidebar);
+  if (slot) slot.classList.toggle('is-off', inSidebar || isMimiHidden());
   gm.classList.toggle('global-mascot--sidebar', inSidebar);
   gm.classList.toggle('global-mascot--muted', isMimiHidden());
   _wireGlobalMascotInteractions();

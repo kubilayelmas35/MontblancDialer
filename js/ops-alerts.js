@@ -11,6 +11,7 @@ let _opsAlerts = {
 let _opsNotifPrimed = false;
 let _opsWrongSig = '';
 let _opsCampNames = {};
+let _opsCampFaces = {};
 let _opsDirectiveTimer = null;
 let _opsWrongTimer = null;
 let _opsCampStripTimer = null;
@@ -52,18 +53,41 @@ function opsCampName(id) {
   return name && !/^[0-9a-f-]{8,}$/i.test(name) ? name : '';
 }
 
+function opsCampFace(id) {
+  const key = String(id || '');
+  if (!key) return { num: '', face: '' };
+  if (_opsCampFaces[key]) return _opsCampFaces[key];
+  const row = (typeof campaigns !== 'undefined' && Array.isArray(campaigns))
+    ? campaigns.find((c) => String(c?.id) === key)
+    : null;
+  const raw = String(row?.name || _opsCampNames[key] || '').trim();
+  const num = raw && !/^[0-9a-f-]{8,}$/i.test(raw) ? raw : '';
+  const knows = !!(row && Object.prototype.hasOwnProperty.call(row, 'settings'));
+  if (!knows) return { num, face: num };
+  const shown = typeof mbCampSettings === 'function'
+    ? String(mbCampSettings(row).display_name || '').trim()
+    : '';
+  _opsCampFaces[key] = { num, face: shown || num };
+  return _opsCampFaces[key];
+}
+
 function opsNamedCamps(ids) {
   return (ids || []).map(opsCampName).filter(Boolean);
 }
 
 async function opsEnsureCampNames(ids) {
-  const missing = (ids || []).map(String).filter((id) => id && !opsCampName(id));
+  const missing = (ids || []).map(String).filter((id) => id && !_opsCampFaces[id]);
   if (!missing.length || typeof sb !== 'function') return;
   try {
-    const rows = await sb(`campaigns?id=in.(${missing.join(',')})&select=id,name`) || [];
+    const rows = await sb(`campaigns?id=in.(${missing.join(',')})&select=id,name,settings`) || [];
     rows.forEach((c) => {
       const name = String(c?.name || '').trim();
       if (c?.id && name) _opsCampNames[c.id] = name;
+      const shown = typeof mbCampSettings === 'function'
+        ? String(mbCampSettings(c).display_name || '').trim()
+        : String(c?.settings?.display_name || '').trim();
+      const num = name && !/^[0-9a-f-]{8,}$/i.test(name) ? name : '';
+      if (c?.id) _opsCampFaces[c.id] = { num, face: shown || num };
     });
   } catch (e) {}
 }
@@ -494,14 +518,14 @@ function opsFitMarquee(el, text) {
 }
 
 function opsWriteCampPill(btn, val, ids, fallbackCount) {
-  if (ids.some((id) => !opsCampName(id)) && !btn._nameWait) {
+  if (ids.some((id) => !_opsCampFaces[String(id)]) && !btn._nameWait) {
     btn._nameWait = true;
     opsEnsureCampNames(ids).then(() => {
       btn._nameWait = false;
       opsPaintCampPill();
     });
   }
-  const names = opsNamedCamps(ids);
+  const names = ids.map((id) => opsCampFace(id).face).filter(Boolean);
   const label = names.length ? names.join(' · ') : (ids.length ? (fallbackCount ? String(ids.length) : '…') : '—');
   btn.title = label;
   opsFitMarquee(val, label);
@@ -1218,9 +1242,11 @@ function opsCampSummary() {
     : null;
   const camp = row || nested?.campaigns || nested || null;
   const queues = Array.isArray(camp?.queues) ? camp.queues.length : null;
+  const face = opsCampFace(id);
   return {
     id,
-    name: opsCampName(id) || String(camp?.name || '').trim(),
+    name: face.num || opsCampName(id) || String(camp?.name || '').trim(),
+    face: face.face || face.num || opsCampName(id) || String(camp?.name || '').trim(),
     status: String(camp?.status || ''),
     queues,
     extra: Math.max(0, ids.length - 1),
@@ -1250,12 +1276,13 @@ function opsFillCampSummary(pop) {
   kicker.textContent = opsSay('tb.camp.title', 'Kampanya');
   const name = document.createElement('div');
   name.className = 'tb-camp-name';
-  name.textContent = info.name || opsSay('tb.camp.none', 'Kampanya seçilmedi');
+  name.textContent = info.face || info.name || opsSay('tb.camp.none', 'Kampanya seçilmedi');
   pop.append(kicker, name);
-  if (!info.name) return;
+  if (!info.face && !info.name) return;
   const meta = document.createElement('div');
   meta.className = 'tb-camp-meta';
   const bits = [];
+  if (info.name && info.face && info.name !== info.face) bits.push(info.name);
   if (info.status === 'active') bits.push(opsSay('tb.camp.active', 'Aktif'));
   else if (info.status === 'paused') bits.push(opsSay('tb.camp.paused', 'Durduruldu'));
   if (info.queues != null) bits.push(typeof tReplace === 'function' ? tReplace('tb.camp.queues', { n: info.queues }) : `${info.queues}`);
@@ -1285,7 +1312,7 @@ function opsOpenCampSummary() {
   pop.hidden = false;
   opsPlaceCampSummary(pop);
   const info = opsCampSummary();
-  if (info.id && !info.name) {
+  if (info.id && !info.face) {
     void opsEnsureCampNames([info.id]).then(() => {
       if (!pop.hidden) opsFillCampSummary(pop);
     });

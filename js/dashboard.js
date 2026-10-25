@@ -1014,13 +1014,24 @@ async function mbPaintTodayResults() {
     return { key, color, ink, n: countOf(key), label: def.label };
   };
   const pieces = list.map(piece).filter((item) => item.key);
-  const rowsHtml = pieces.length && !admin
-    ? `<div class="tb-res-head"><span>${mbChipEsc(todayLabel)}</span><b>${rows.length}</b></div><div class="tb-res-list">${pieces.map((item) => `<button type="button" class="tb-res-row" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')"><b class="tb-res-num">${item.n}</b><span>${mbChipEsc(item.label)}</span></button>`).join('')}</div>`
+  const live = pieces.filter((item) => item.n > 0);
+  const rowsHtml = live.length && !admin
+    ? `<div class="tb-res-head"><span>${mbChipEsc(todayLabel)}</span><b>${rows.length}</b></div><div class="tb-res-list">${live.map((item) => `<button type="button" class="tb-res-row" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')"><b class="tb-res-num">${item.n}</b><span>${mbChipEsc(item.label)}</span></button>`).join('')}</div>`
     : '';
   const keepOpen = !!(panel && (!panel.hidden || host.matches(':hover') || panel.matches(':hover')));
+  if (!rows.length) {
+    host.hidden = true;
+    host.innerHTML = '';
+    if (panel && !admin) {
+      panel.hidden = true;
+      panel.innerHTML = '';
+    }
+    if (typeof mbFitStatus === 'function') mbFitStatus();
+    return;
+  }
   host.hidden = false;
   host.setAttribute('aria-label', todayLabel);
-  const nums = pieces.map((item) => `<button type="button" class="tb-res" data-res="${item.key}" aria-label="${mbChipEsc(item.label)}" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')">${item.n}</button>`).join('');
+  const nums = live.map((item) => `<button type="button" class="tb-res" data-res="${item.key}" aria-label="${mbChipEsc(item.label)}" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')">${item.n}</button>`).join('');
   host.innerHTML = `<span class="tb-today-cycle" id="tb-today-cycle">0</span><button type="button" class="tb-res tb-res-sum" data-res="" aria-label="${mbChipEsc(totalLabel)}" onclick="mbToggleResPop(event,'')">${rows.length}</button>${nums}`;
   mbSpinCounts();
   if (typeof mbFitStatus === 'function') mbFitStatus();
@@ -1055,10 +1066,6 @@ document.addEventListener('mouseover', (ev) => {
   else mbScheduleHideResPanel();
   if (target.closest('#tb-live-btn') || (target.closest('#tb-chip-pop') && window._tbChip?.kind === 'live')) mbShowLiveBoard();
   else mbScheduleHideLive();
-  if (target.closest('#pill-ping-btn, #tb-ping-pop')) mbShowPingPop();
-  else mbScheduleHidePing();
-  if (target.closest('#pill-bal-btn, #tb-bal-pop')) mbShowBalPop();
-  else mbScheduleHideBal();
   if (target.closest('#tb-mesai-btn, #tb-mesai-pop') && typeof opsShowMesaiPop === 'function') opsShowMesaiPop();
   else if (typeof opsScheduleHideMesai === 'function') opsScheduleHideMesai();
   if (target.closest('#aria-live, #aria-pop') && typeof ariaShowPop === 'function') ariaShowPop();
@@ -1119,13 +1126,15 @@ function mbPackBar() {
   if (!swipe) return;
   if (mbNarrowBar()) {
     swipe.style.justifyContent = '';
-    swipe.classList.remove('is-overflow');
+    swipe.classList.remove('is-overflow', 'is-fade-left', 'is-fade-right');
     return;
   }
   swipe.style.justifyContent = 'flex-start';
-  const overflows = swipe.scrollWidth > swipe.clientWidth + 2;
-  swipe.style.justifyContent = overflows ? 'flex-start' : 'flex-end';
-  swipe.classList.toggle('is-overflow', overflows);
+  const room = swipe.scrollWidth - swipe.clientWidth;
+  const overflow = room > 2;
+  swipe.classList.toggle('is-overflow', overflow);
+  swipe.classList.toggle('is-fade-left', overflow && swipe.scrollLeft > 2);
+  swipe.classList.toggle('is-fade-right', overflow && swipe.scrollLeft < room - 2);
 }
 
 function mbNarrowBar() {
@@ -1239,6 +1248,7 @@ setInterval(mbSpinCounts, 1400);
       }
       if (swipe.scrollLeft > 1) swipe._swiped = true;
       mbSwipeSync();
+      mbPackBar();
     }, { passive: true });
     if (window.MutationObserver) {
       new MutationObserver(() => {

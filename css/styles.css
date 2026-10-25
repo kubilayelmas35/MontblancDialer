@@ -196,6 +196,18 @@ max-width: 100%;
   scrollbar-width: none;
 }
 #tb-swipe.is-overflow { cursor: grab; }
+#tb-swipe.is-fade-left.is-fade-right {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+}
+#tb-swipe.is-fade-right:not(.is-fade-left) {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 16px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 16px), transparent);
+}
+#tb-swipe.is-fade-left:not(.is-fade-right) {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 16px);
+  mask-image: linear-gradient(90deg, transparent, #000 16px);
+}
 #tb-swipe.is-dragging { cursor: grabbing; user-select: none; }
 .tb-swipe::-webkit-scrollbar { display: none; height: 0; }
 .tb-pin {
@@ -1167,7 +1179,7 @@ button.tb-pill.pill-camp {
   color: #fff;
 }
 .pill-camp .tb-pill-val {
-  max-width: 168px;
+  max-width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
