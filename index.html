@@ -12,17 +12,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=11.76">
-<link rel="stylesheet" href="css/styles-dialer.css?v=11.76">
-<link rel="stylesheet" href="css/styles-mascot.css?v=11.76">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=11.76">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=11.76">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=11.76">
-<link rel="stylesheet" href="css/styles-pages.css?v=11.76">
-<link rel="stylesheet" href="css/styles-aurora.css?v=11.76">
-<link rel="stylesheet" href="css/styles-chat.css?v=11.76">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=11.76">
-<link rel="stylesheet" href="css/styles-responsive.css?v=11.76">
+<link rel="stylesheet" href="css/styles.css?v=11.77">
+<link rel="stylesheet" href="css/styles-dialer.css?v=11.77">
+<link rel="stylesheet" href="css/styles-mascot.css?v=11.77">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=11.77">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=11.77">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=11.77">
+<link rel="stylesheet" href="css/styles-pages.css?v=11.77">
+<link rel="stylesheet" href="css/styles-aurora.css?v=11.77">
+<link rel="stylesheet" href="css/styles-chat.css?v=11.77">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=11.77">
+<link rel="stylesheet" href="css/styles-responsive.css?v=11.77">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -61,7 +61,7 @@
 <div class="login-index-note" data-i18n="login.row.4.note">Kalite, muhasebe</div>
 </div>
 </div>
-<div class="login-version">v11.76 — 2026</div>
+<div class="login-version">v11.77 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -479,7 +479,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">MontBlanc v11.76</div>
+<div class="sb-ver">MontBlanc v11.77</div>
 </div>
 </div>
 </nav>
@@ -3375,7 +3375,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button type="button" class="btn btn-ghost btn-sm" onclick="mbFlattenMascotColor()" data-tr="Düz renk" data-de="Eine Farbe">Düz renk</button>
 </div>
 <div id="s-mascot-style-list" class="mascot-style-list"></div>
-<div style="font-size:10px;color:var(--text-3);margin-top:4px;" data-tr="Şu anki gradient ve ana renk bu isimle hesaba yazılır. Aynı isim eskisinin yerine geçer. Düz renk, ana rengi dört durağa da koyar." data-de="Der aktuelle Verlauf und die Grundfarbe werden unter diesem Namen am Konto gespeichert. Derselbe Name ersetzt den alten Stil. Eine Farbe setzt die Grundfarbe auf alle vier Stufen.">Şu anki gradient ve ana renk bu isimle hesaba yazılır. Aynı isim eskisinin yerine geçer. Düz renk, ana rengi dört durağa da koyar.</div>
+<div style="font-size:10px;color:var(--text-3);margin-top:4px;" data-tr="Şekil, yüz ve aksesuar da bu isimle kaydolur. Aynı isim eskisinin yerine geçer. Düz renk ana rengi dört durağa koyar. Rastgele yüz sayfa yenilenince aynı kalır." data-de="Form, Gesicht und Zubehör werden mit diesem Namen gespeichert. Derselbe Name ersetzt den alten Stil. Eine Farbe setzt die Grundfarbe auf alle vier Stufen. Ein zufälliges Gesicht bleibt beim Neuladen gleich.">Şekil, yüz ve aksesuar da bu isimle kaydolur. Aynı isim eskisinin yerine geçer. Düz renk ana rengi dört durağa koyar. Rastgele yüz sayfa yenilenince aynı kalır.</div>
 </div>
 </div>
 <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
@@ -3426,7 +3426,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-eye" style="font-size:12px;">
 <option value="none">Varsayılan</option>
-<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
 <option value="sparkle">Işıltılı</option>
 <option value="anime">Anime</option>
 <option value="sleepy">Uykulu</option>
@@ -3446,7 +3446,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-brow" style="font-size:12px;">
 <option value="none">Yok</option>
-<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
 <option value="thin">İnce</option>
 <option value="soft">Yumuşak</option>
 <option value="arch">Kavisli</option>
@@ -3465,7 +3465,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-stache" style="font-size:12px;">
 <option value="none">Yok</option>
-<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
 <option value="silk">İpek çizgi</option>
 <option value="gentle">Yumuşak gölge</option>
 <option value="twirl">Uçları kıvrık</option>
@@ -3484,7 +3484,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-mouth" style="font-size:12px;">
 <option value="none">Yok</option>
-<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
 <option value="beam">Parlak gülümseme</option>
 <option value="soft">Yumuşak gülüm</option>
 <option value="laugh">Kahkaha</option>
@@ -3503,7 +3503,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-nose" style="font-size:12px;">
 <option value="none">Yok</option>
-<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
 <option value="dot">Nokta</option>
 <option value="oval">Oval</option>
 <option value="button">Düğme</option>
@@ -3519,7 +3519,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-hat" style="font-size:12px;">
 <option value="none">Yok</option>
-<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
 <option value="cap">Kep</option>
 <option value="beanie">Bere</option>
 <option value="tophat">Silindir</option>
@@ -3537,7 +3537,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-earring" style="font-size:12px;">
 <option value="none">Yok</option>
-<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
 <option value="stud">Pim</option>
 <option value="hoop">Halka</option>
 <option value="pearl">İnci</option>
@@ -3553,7 +3553,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-outfit" style="font-size:12px;max-width:100%;">
 <option value="none">Yok</option>
-<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
 <option value="bowtie">Papyon</option>
 <option value="necktie">Kravat</option>
 <option value="scarf">Atkı</option>
@@ -3571,7 +3571,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-makeup" style="font-size:12px;max-width:100%;">
 <option value="none">Yok</option>
-<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
 <option value="blush">Allık</option>
 <option value="glow">Parlama</option>
 <option value="freckles">Çiller</option>
@@ -3587,7 +3587,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-hair" style="font-size:12px;max-width:100%;">
 <option value="none">Yok</option>
-<option value="random" data-tr="Rastgele (her yenilemede)" data-de="Zufällig (bei jedem Laden)">Rastgele (her yenilemede)</option>
+<option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
 <option value="bob">Bob</option>
 <option value="short">Kısa</option>
 <option value="long">Uzun</option>
@@ -4819,67 +4819,67 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=11.76"></script>
-<script src="js/i18n.js?v=11.76"></script>
-<script src="js/config.js?v=11.76"></script>
-<script src="js/state.js?v=11.76"></script>
-<script src="js/api.js?v=11.76"></script>
-<script src="js/access.js?v=11.76"></script>
-<script src="js/auth.js?v=11.76"></script>
-<script src="js/ui.js?v=11.76"></script>
-<script src="js/chat.js?v=11.76"></script>
-<script src="js/chat-settings.js?v=11.76"></script>
-<script src="js/field-settings.js?v=11.76"></script>
-<script src="js/audit.js?v=11.76"></script>
-<script src="js/feature-flags.js?v=11.76"></script>
-<script src="js/notification-center.js?v=11.76"></script>
+<script src="js/version.js?v=11.77"></script>
+<script src="js/i18n.js?v=11.77"></script>
+<script src="js/config.js?v=11.77"></script>
+<script src="js/state.js?v=11.77"></script>
+<script src="js/api.js?v=11.77"></script>
+<script src="js/access.js?v=11.77"></script>
+<script src="js/auth.js?v=11.77"></script>
+<script src="js/ui.js?v=11.77"></script>
+<script src="js/chat.js?v=11.77"></script>
+<script src="js/chat-settings.js?v=11.77"></script>
+<script src="js/field-settings.js?v=11.77"></script>
+<script src="js/audit.js?v=11.77"></script>
+<script src="js/feature-flags.js?v=11.77"></script>
+<script src="js/notification-center.js?v=11.77"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=11.76"></script>
-<script src="js/job-market.js?v=11.76"></script>
-<script src="js/qc-job-market.js?v=11.76"></script>
-<script src="js/export-admin.js?v=11.76"></script>
-<script src="js/export-termin.js?v=11.76"></script>
-<script src="js/performance.js?v=11.76"></script>
-<script src="js/competition.js?v=11.76"></script>
-<script src="js/dashboard.js?v=11.76"></script>
-<script src="js/reports.js?v=11.76"></script>
-<script src="js/dashboard-brief.js?v=11.76"></script>
-<script src="js/campaigns.js?v=11.76"></script>
-<script src="js/campaigns-detail.js?v=11.76"></script>
-<script src="js/campaigns-queue.js?v=11.76"></script>
-<script src="js/contacts-upload.js?v=11.76"></script>
-<script src="js/geocon.js?v=11.76"></script>
-<script src="js/contacts.js?v=11.76"></script>
-<script src="js/contacts-drawer.js?v=11.76"></script>
-<script src="js/telnyx.js?v=11.76"></script>
-<script src="js/voice-orb.js?v=11.76"></script>
-<script src="js/dialer.js?v=11.76"></script>
-<script src="js/ops-alerts.js?v=11.76"></script>
-<script src="js/radius-tour.js?v=11.76"></script>
-<script src="js/dialer-mascot.js?v=11.76"></script>
-<script src="js/dialer-mascot-live.js?v=11.76"></script>
-<script src="js/ui-prefs.js?v=11.76"></script>
-<script src="js/dialer-session.js?v=11.76"></script>
-<script src="js/dialer-call.js?v=11.76"></script>
-<script src="js/dialer-tools.js?v=11.76"></script>
-<script src="js/appointments.js?v=11.76"></script>
-<script src="js/appointments-actions.js?v=11.76"></script>
-<script src="js/appointments-tools.js?v=11.76"></script>
-<script src="js/field.js?v=11.76"></script>
-<script src="js/field-quote.js?v=11.76"></script>
-<script src="js/field-catalog.js?v=11.76"></script>
-<script src="js/field-ops.js?v=11.76"></script>
-<script src="js/wiedervorlage.js?v=11.76"></script>
-<script src="js/qc.js?v=11.76"></script>
-<script src="js/supervisor.js?v=11.76"></script>
-<script src="js/live-coach.js?v=11.76"></script>
-<script src="js/sms-settings.js?v=11.76"></script>
-<script src="js/leave-hr.js?v=11.76"></script>
-<script src="js/muhasebe.js?v=11.76"></script>
-<script src="js/muhasebe-books.js?v=11.76"></script>
-<script src="js/agent-self-performance.js?v=11.76"></script>
-<script src="js/agents.js?v=11.76"></script>
-<script src="js/firm-desk.js?v=11.76"></script>
-<script src="js/mimi-brain.js?v=11.76"></script>
+<script src="js/wallet.js?v=11.77"></script>
+<script src="js/job-market.js?v=11.77"></script>
+<script src="js/qc-job-market.js?v=11.77"></script>
+<script src="js/export-admin.js?v=11.77"></script>
+<script src="js/export-termin.js?v=11.77"></script>
+<script src="js/performance.js?v=11.77"></script>
+<script src="js/competition.js?v=11.77"></script>
+<script src="js/dashboard.js?v=11.77"></script>
+<script src="js/reports.js?v=11.77"></script>
+<script src="js/dashboard-brief.js?v=11.77"></script>
+<script src="js/campaigns.js?v=11.77"></script>
+<script src="js/campaigns-detail.js?v=11.77"></script>
+<script src="js/campaigns-queue.js?v=11.77"></script>
+<script src="js/contacts-upload.js?v=11.77"></script>
+<script src="js/geocon.js?v=11.77"></script>
+<script src="js/contacts.js?v=11.77"></script>
+<script src="js/contacts-drawer.js?v=11.77"></script>
+<script src="js/telnyx.js?v=11.77"></script>
+<script src="js/voice-orb.js?v=11.77"></script>
+<script src="js/dialer.js?v=11.77"></script>
+<script src="js/ops-alerts.js?v=11.77"></script>
+<script src="js/radius-tour.js?v=11.77"></script>
+<script src="js/dialer-mascot.js?v=11.77"></script>
+<script src="js/dialer-mascot-live.js?v=11.77"></script>
+<script src="js/ui-prefs.js?v=11.77"></script>
+<script src="js/dialer-session.js?v=11.77"></script>
+<script src="js/dialer-call.js?v=11.77"></script>
+<script src="js/dialer-tools.js?v=11.77"></script>
+<script src="js/appointments.js?v=11.77"></script>
+<script src="js/appointments-actions.js?v=11.77"></script>
+<script src="js/appointments-tools.js?v=11.77"></script>
+<script src="js/field.js?v=11.77"></script>
+<script src="js/field-quote.js?v=11.77"></script>
+<script src="js/field-catalog.js?v=11.77"></script>
+<script src="js/field-ops.js?v=11.77"></script>
+<script src="js/wiedervorlage.js?v=11.77"></script>
+<script src="js/qc.js?v=11.77"></script>
+<script src="js/supervisor.js?v=11.77"></script>
+<script src="js/live-coach.js?v=11.77"></script>
+<script src="js/sms-settings.js?v=11.77"></script>
+<script src="js/leave-hr.js?v=11.77"></script>
+<script src="js/muhasebe.js?v=11.77"></script>
+<script src="js/muhasebe-books.js?v=11.77"></script>
+<script src="js/agent-self-performance.js?v=11.77"></script>
+<script src="js/agents.js?v=11.77"></script>
+<script src="js/firm-desk.js?v=11.77"></script>
+<script src="js/mimi-brain.js?v=11.77"></script>
 </body>
 </html>

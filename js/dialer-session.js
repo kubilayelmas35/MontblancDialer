@@ -600,6 +600,9 @@ window.addEventListener('resize', syncCampsFoldForCall);
 function setDialerStatus(s) {
   const prev = dialerStatus;
   dialerStatus = s;
+  if ((s === 'calling' || s === 'on_call' || s === 'wrapping') && typeof mbMascotQuietForCall === 'function') {
+    mbMascotQuietForCall();
+  }
   if (s === 'ready' && prev !== 'ready') {
     _readyEnteredAt = Date.now();
     _custEmptyIdleSince = null;

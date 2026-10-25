@@ -455,3 +455,7 @@
 .global-mascot[data-mood-color="off"].global-mascot--celebrate .cust-empty-mascot {
   filter: none !important;
 }
+.mascot-theme-root[data-mascot-idle="1"] .cust-empty-eye,
+#cust-empty[data-mascot-idle="1"] .cust-empty-eye {
+  animation-duration: 8.5s;
+}

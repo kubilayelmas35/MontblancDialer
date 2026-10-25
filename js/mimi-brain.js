@@ -7,8 +7,7 @@
   'use strict';
 
   // ── Constants ───────────────────────────────
-  const IDLE_YAWN_MS    = 3 * 60 * 1000;   // 3 min → yawn
-  const IDLE_SLEEP_MS   = 8 * 60 * 1000;   // 8 min → deep sleep
+  const IDLE_YAWN_MS    = 3 * 60 * 1000;
   const DRINK_MIN_MS    = 35 * 1000;
   const DRINK_MAX_MS    = 80 * 1000;
   const STRETCH_MIN_MS  = 90 * 1000;
@@ -19,29 +18,7 @@
   // Returns hour 0-23
   function _hour() { return new Date().getHours(); }
 
-  function _timeProfile() {
-    const h = _hour();
-    if (h >= 6  && h < 9)  return 'earlyMorning';
-    if (h >= 9  && h < 12) return 'morning';
-    if (h >= 12 && h < 14) return 'lunch';
-    if (h >= 14 && h < 18) return 'afternoon';
-    if (h >= 18 && h < 22) return 'evening';
-    return 'night';
-  }
-
-  // Speed multiplier based on time-of-day (applied on top of user wander speed)
-  const _TIME_SPEED = {
-    earlyMorning: 1.1,
-    morning:      1.8,
-    lunch:        0.6,
-    afternoon:    1.3,
-    evening:      0.5,
-    night:        0.3,
-  };
-
-  function _getTimeSpeedMult() {
-    return _TIME_SPEED[_timeProfile()] ?? 1.0;
-  }
+  function _lang() { return typeof currentLang !== 'undefined' ? currentLang : 'tr'; }
 
   // ── Page-specific bubble pools ───────────────
   const _PAGE_MSGS = {
@@ -251,17 +228,12 @@
   // ── State ────────────────────────────────────
   let _currentPage   = '';
   let _lastActivity  = Date.now();
-  let _isSleeping    = false;
-  let _isYawning     = false;
   let _drinkTimer    = null;
   let _stretchTimer  = null;
   let _idleCheckInterval = null;
-  let _timeSpeedInterval = null;
   let _wiredNavigate = false;
 
   // ── Helpers ──────────────────────────────────
-  function _lang() { return typeof currentLang !== 'undefined' ? currentLang : 'tr'; }
-
   function _hidden() { return typeof isMimiHidden === 'function' && isMimiHidden(); }
   function _bubbleMuted() { return typeof isMimiBubbleMuted === 'function' && isMimiBubbleMuted(); }
 
@@ -305,20 +277,34 @@
     _setGlobalMood('');
   }
 
-  // Wander speed: apply time-of-day mult to base variable
-  function _applyTimeWanderSpeed() {
-    const mult = _getTimeSpeedMult();
-    if (typeof _wanderSpeedMult !== 'undefined') {
-      // Only nudge if not already overridden by another mood
-      if (!_isSleeping) window._wanderSpeedMult = mult;
-    }
+  function _onLine() {
+    const st = typeof dialerStatus !== 'undefined' ? dialerStatus : '';
+    return st === 'calling' || st === 'on_call' || st === 'wrapping';
   }
 
-  // ── Activity tracking ────────────────────────
+  function _setIdle(on) {
+    document.querySelectorAll('.mascot-theme-root, #cust-empty').forEach((el) => {
+      if (on) el.setAttribute('data-mascot-idle', '1');
+      else el.removeAttribute('data-mascot-idle');
+    });
+  }
+
+  function _quietForCall() {
+    const gm = document.getElementById('global-mascot');
+    const mood = gm?.getAttribute('data-mood') || '';
+    const celebrating = mood === 'celebrate' || gm?.classList.contains('global-mascot--celebrate');
+    if (!celebrating) _clearMood();
+    _setIdle(false);
+    if (typeof _wanderSpeedMult !== 'undefined' && !celebrating) _wanderSpeedMult = 1;
+    if (gm?.classList.contains('global-mascot--aria')) return;
+    const bubble = document.getElementById('cust-empty-bubble');
+    if (bubble && !celebrating) bubble.style.display = 'none';
+  }
+  window.mbMascotQuietForCall = _quietForCall;
+
   function _resetActivity() {
     _lastActivity = Date.now();
-    if (_isSleeping) _wakeUp();
-    else if (_isYawning) _cancelYawn();
+    _setIdle(false);
   }
 
   function _wireActivity() {
@@ -327,53 +313,17 @@
     });
   }
 
-  // ── Sleep / Yawn system ──────────────────────
-  function _yawn() {
-    if (_hidden() || _isSleeping) return;
-    _isYawning = true;
-    _setMood('cust-empty--mascot-yawn', 'yawn');
-    const tr = _lang() === 'tr';
-    _bubble(tr ? 'Bir süredir işlem yok.' : 'Seit einer Weile keine Aktion.');
-    if (typeof _wanderSpeedMult !== 'undefined') window._wanderSpeedMult = 0.4;
-  }
-
-  function _cancelYawn() {
-    _isYawning = false;
-    _clearMood();
-    _applyTimeWanderSpeed();
-  }
-
-  function _goSleep() {
-    if (_hidden()) return;
-    _isSleeping = true;
-    _isYawning  = false;
-    _setMood('cust-empty--break', 'break');
-    if (typeof _wanderSpeedMult !== 'undefined') window._wanderSpeedMult = 0.1;
-    if (typeof _wanderPauseUntil !== 'undefined') window._wanderPauseUntil = performance.now() + 99999999;
-    const tr = _lang() === 'tr';
-    _bubble(tr ? 'Ekran beklemede.' : 'Ansicht wartet.');
-  }
-
-  function _wakeUp() {
-    if (!_isSleeping) return;
-    _isSleeping = false;
-    _clearMood();
-    if (typeof _wanderPauseUntil !== 'undefined') window._wanderPauseUntil = 0;
-    _applyTimeWanderSpeed();
-    // Stretch after waking
-    setTimeout(() => _doStretch(true), 600);
-  }
-
   function _checkIdle() {
-    const idle = Date.now() - _lastActivity;
-    if (_isSleeping) return;
-    if (idle >= IDLE_SLEEP_MS) { _goSleep(); return; }
-    if (idle >= IDLE_YAWN_MS && !_isYawning) { _yawn(); }
+    if (_hidden() || _onLine()) {
+      _setIdle(false);
+      return;
+    }
+    _setIdle(Date.now() - _lastActivity >= IDLE_YAWN_MS);
   }
 
   // ── Drink system ─────────────────────────────
   function _doDrink() {
-    if (_hidden() || _isSleeping) { _scheduleDrink(); return; }
+    if (_hidden() || _onLine()) { _scheduleDrink(); return; }
     const tr = _lang() === 'tr';
     _setMood('cust-empty--mascot-drink', 'drink');
     const msgs = tr
@@ -393,22 +343,18 @@
   }
 
   // ── Stretch system ───────────────────────────
-  function _doStretch(afterSleep = false) {
-    if (_hidden() || _isSleeping) { if (!afterSleep) _scheduleStretch(); return; }
+  function _doStretch() {
+    if (_hidden() || _onLine()) { _scheduleStretch(); return; }
     _setMood('cust-empty--mascot-stretch', 'stretch');
     const tr = _lang() === 'tr';
-    const msgs = afterSleep
-      ? (tr
-          ? ['Ekran tekrar aktif.', 'Aramaya devam edebilirsin.']
-          : ['Ansicht ist wieder aktiv.', 'Du kannst weiterwählen.'])
-      : (tr
-          ? ['Kısa ara bitti.', 'Sıradaki kayıt hazır.']
-          : ['Kurze Pause beendet.', 'Nächster Eintrag ist bereit.']);
+    const msgs = tr
+      ? ['Kısa ara bitti.', 'Sıradaki kayıt hazır.']
+      : ['Kurze Pause beendet.', 'Nächster Eintrag ist bereit.'];
     _bubble(_pick(msgs));
-    if (typeof _wanderSpeedMult !== 'undefined') window._wanderSpeedMult = 2.2;
+    if (typeof _wanderSpeedMult !== 'undefined') _wanderSpeedMult = 2.2;
     setTimeout(() => {
       _clearMood();
-      _applyTimeWanderSpeed();
+      if (typeof _wanderSpeedMult !== 'undefined') _wanderSpeedMult = 1;
       _scheduleStretch();
     }, 2200);
   }
@@ -424,8 +370,8 @@
     if (_hidden()) return;
     _resetActivity();
     _setMood('cust-empty--mascot-celebrate', 'celebrate');
-    if (typeof _wanderSpeedMult !== 'undefined') window._wanderSpeedMult = 3.0;
-    if (typeof _wanderPauseUntil !== 'undefined') window._wanderPauseUntil = 0;
+    if (typeof _wanderSpeedMult !== 'undefined') _wanderSpeedMult = 3.0;
+    if (typeof _wanderPauseUntil !== 'undefined') _wanderPauseUntil = 0;
     const tr = _lang() === 'tr';
     const msgs = tr
       ? ['Randevu kaydedildi.', 'Termin oluşturuldu.', 'Randevu kaydı tamam.']
@@ -433,7 +379,7 @@
     _bubble(_pick(msgs));
     setTimeout(() => {
       _clearMood();
-      _applyTimeWanderSpeed();
+      if (typeof _wanderSpeedMult !== 'undefined') _wanderSpeedMult = 1;
     }, 2500);
   }
   window._mimiCelebrate = _mimiCelebrate;
@@ -443,7 +389,7 @@
     _currentPage = page;
     _resetActivity();
     // 40% chance to show page bubble on nav
-    if (page === 'settings' || Math.random() > 0.4 || _hidden() || _bubbleMuted()) return;
+    if (page === 'settings' || _onLine() || Math.random() > 0.4 || _hidden() || _bubbleMuted()) return;
     const pool = _PAGE_MSGS[page];
     const lang = _lang();
     const msgs = pool ? (pool[lang] || pool.tr) : (_DEFAULT_MSGS[lang] || _DEFAULT_MSGS.tr);
@@ -463,25 +409,15 @@
     };
   }
 
-  // ── Time-speed update (every 5 min) ──────────
-  function _startTimeSpeedUpdater() {
-    clearInterval(_timeSpeedInterval);
-    _timeSpeedInterval = setInterval(_applyTimeWanderSpeed, 5 * 60 * 1000);
-    _applyTimeWanderSpeed();
-  }
-
-  // ── Boot ─────────────────────────────────────
   function _boot() {
     _wireActivity();
     _hookNavigate();
-    _startTimeSpeedUpdater();
     _scheduleDrink();
     _scheduleStretch();
 
     _idleCheckInterval = setInterval(_checkIdle, 15000);
 
-    // Greet on first load
-    if (!_hidden() && !_bubbleMuted()) {
+    if (!_hidden() && !_bubbleMuted() && !_onLine()) {
       setTimeout(() => {
         const h = _hour();
         const tr = _lang() === 'tr';

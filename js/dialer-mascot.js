@@ -146,6 +146,30 @@ function _syncMascotMoodColorControls() {
   _applyMascotMoodColorFlag(on);
 }
 
+function mbMascotCosValue(part, val) {
+  const v = String(val || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  if (!v) return '';
+  if (v === 'none' || v === 'random') return v;
+  const pool = MASCOT_COS_RANDOM_POOLS[part] || [];
+  return pool.includes(v) ? v : '';
+}
+
+function mbMascotLookFromForm() {
+  const cos = {};
+  const col = {};
+  MASCOT_COS_KEYS.forEach((part) => {
+    const el = document.getElementById(`s-mascot-cos-${part}`);
+    cos[part] = mbMascotCosValue(part, el ? el.value : getMascotCosmeticPref(part)) || 'none';
+    const cel = document.getElementById(`s-mascot-ccol-${part}`);
+    col[part] = cel?.dataset?.cosInherit === '1' ? '' : _mascotNormalizeHex(cel?.value, '');
+  });
+  return {
+    shape: mascotShapeFromString(document.getElementById('s-mascot-shape')?.value || getMascotShape()),
+    cos,
+    col,
+  };
+}
+
 function mbMascotStyleOk(row) {
   if (!row || typeof row !== 'object') return null;
   const name = String(row.name || '').trim().slice(0, 24);
@@ -155,13 +179,31 @@ function mbMascotStyleOk(row) {
   const variant = variantRaw === 'random' || MASCOT_VARIANT_OFFSETS[variantRaw] ? variantRaw : '';
   if (!variant) return null;
   const stopsIn = Array.isArray(row.stops) ? row.stops : [];
-  return {
+  const out = {
     id,
     name,
     variant,
     color: _mascotNormalizeHex(row.color, '#a855f7'),
     stops: MASCOT_CUSTOM_GRAD_DEFAULT.map((fb, i) => _mascotNormalizeHex(stopsIn[i], fb)),
   };
+  if (row.shape) out.shape = mascotShapeFromString(row.shape);
+  if (row.cos && typeof row.cos === 'object') {
+    const cos = {};
+    MASCOT_COS_KEYS.forEach((part) => {
+      const v = mbMascotCosValue(part, row.cos[part]);
+      if (v) cos[part] = v;
+    });
+    if (Object.keys(cos).length) out.cos = cos;
+  }
+  if (row.col && typeof row.col === 'object') {
+    const col = {};
+    MASCOT_COS_COLOR_PARTS.forEach((part) => {
+      if (!Object.prototype.hasOwnProperty.call(row.col, part)) return;
+      col[part] = _mascotNormalizeHex(row.col[part], '');
+    });
+    if (Object.keys(col).length) out.col = col;
+  }
+  return out;
 }
 
 function mbMascotStyleBook() {
@@ -221,12 +263,25 @@ function mbSaveMascotStyle() {
     return;
   }
   const id = hit?.id || Math.random().toString(36).slice(2, 10);
-  const next = mbMascotStyleOk({ id, name, variant, color, stops });
+  const next = mbMascotStyleOk({ id, name, variant, color, stops, ...mbMascotLookFromForm() });
   if (!next) return;
   const rest = book.filter((row) => row.id !== next.id && row.name.toLocaleLowerCase('tr') !== key);
   setMascotPref('mb_mascot_variant', variant);
   setMascotPref('mb_mascot_color', color);
   stops.forEach((hexStop, i) => setMascotPref(`mb_mascot_grad_${i}`, hexStop));
+  if (next.shape) setMascotPref('mb_mascot_shape', next.shape);
+  if (next.cos) {
+    MASCOT_COS_KEYS.forEach((part) => {
+      if (next.cos[part]) setMascotPref(`mb_mascot_cos_${part}`, next.cos[part]);
+    });
+  }
+  if (next.col) {
+    MASCOT_COS_COLOR_PARTS.forEach((part) => {
+      if (Object.prototype.hasOwnProperty.call(next.col, part)) {
+        setMascotPref(`mb_mascot_cos_${part}_color`, next.col[part] || '');
+      }
+    });
+  }
   if (variant === 'random') _mascotVariantRandResolved = '';
   mbWriteMascotStyleBook([next, ...rest]);
   if (input) input.value = '';
@@ -241,6 +296,20 @@ function mbApplyMascotStyle(id) {
   setMascotPref('mb_mascot_variant', row.variant);
   setMascotPref('mb_mascot_color', row.color);
   row.stops.forEach((hexStop, i) => setMascotPref(`mb_mascot_grad_${i}`, hexStop));
+  if (row.shape) setMascotPref('mb_mascot_shape', row.shape);
+  if (row.cos) {
+    MASCOT_COS_KEYS.forEach((part) => {
+      if (row.cos[part]) setMascotPref(`mb_mascot_cos_${part}`, row.cos[part]);
+    });
+    _mascotCosRandCache = {};
+  }
+  if (row.col) {
+    MASCOT_COS_COLOR_PARTS.forEach((part) => {
+      if (Object.prototype.hasOwnProperty.call(row.col, part)) {
+        setMascotPref(`mb_mascot_cos_${part}_color`, row.col[part] || '');
+      }
+    });
+  }
   if (row.variant === 'random') _mascotVariantRandResolved = '';
   loadMascotSettingsForm();
   toast(typeof t === 'function' ? t('dial.mascot_style_on') : 'Stil uygulandı', 'ok');
@@ -458,6 +527,7 @@ function randomizeMascotAppearance() {
     );
     setMascotPref(`mb_mascot_cos_${part}_color`, hx);
   }
+  MASCOT_COS_KEYS.forEach((part) => setMascotPref(`mb_mascot_cos_pin_${part}`, ''));
 
   try {
     loadMascotSettingsForm();
@@ -592,14 +662,16 @@ function _rollMascotCosmeticFromPool(part) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-/** DOM / tema için: random → havuzdan rastgele (oturum içi önbellek). */
+/** DOM / tema için: random bir kez çekilir ve yenilemede aynı kalır. */
 function getMascotCosmeticApplied(part) {
   const raw = getMascotCosmeticPref(part);
   if (raw !== 'random') return raw;
-  if (!_mascotCosRandCache[part]) {
-    _mascotCosRandCache[part] = _rollMascotCosmeticFromPool(part);
-  }
-  return _mascotCosRandCache[part];
+  const pool = MASCOT_COS_RANDOM_POOLS[part] || [];
+  const pinned = String(getMascotPref(`mb_mascot_cos_pin_${part}`, '') || '');
+  if (pinned && pool.includes(pinned)) return pinned;
+  const next = _rollMascotCosmeticFromPool(part);
+  setMascotPref(`mb_mascot_cos_pin_${part}`, next);
+  return next;
 }
 
 function applyMascotCosmetics() {

@@ -8,7 +8,7 @@ function mbUiPrefsUserId() {
 
 function mbMascotPrefValueOk(base, val) {
   if (typeof val !== 'string' || !/^mb_mascot_[a-z0-9_]+$/.test(String(base || ''))) return false;
-  const cap = base === 'mb_mascot_grad_book' ? 2400 : 120;
+  const cap = base === 'mb_mascot_grad_book' ? 8000 : 120;
   return val.length <= cap;
 }
 
