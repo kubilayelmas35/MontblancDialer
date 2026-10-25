@@ -366,7 +366,7 @@ function tourPaintLive(plan, line, speak) {
     const brand = ariaName();
     const chipName = chip.querySelector('.aria-live-name');
     if (chipName) chipName.textContent = brand;
-    chip.title = text;
+    chip.removeAttribute('title');
     chip.setAttribute('aria-label', facts ? `${brand} ${facts.day} ${facts.camp}` : brand);
   }
   const note = document.getElementById('aria-last');
