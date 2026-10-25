@@ -1067,6 +1067,18 @@ document.addEventListener('mouseover', (ev) => {
   else if (typeof opsScheduleHideCampSummary === 'function') opsScheduleHideCampSummary();
 });
 
+function mbPackBar() {
+  const swipe = document.getElementById('tb-swipe');
+  if (!swipe) return;
+  if (mbNarrowBar()) {
+    swipe.style.justifyContent = '';
+    return;
+  }
+  swipe.style.justifyContent = 'flex-start';
+  const overflows = swipe.scrollWidth > swipe.clientWidth + 2;
+  swipe.style.justifyContent = overflows ? 'flex-start' : 'flex-end';
+}
+
 function mbNarrowBar() {
   return window.matchMedia('(max-width: 768px)').matches;
 }
@@ -1147,12 +1159,9 @@ function mbFitStatus() {
     mbSwipeSync();
     return;
   }
-  const crowded = () => mbBarCrowded(bar);
   wrap.classList.add('is-today-open');
-  if (crowded()) wrap.classList.remove('is-today-open');
-  if (crowded()) wrap.classList.add('is-live-letter');
-  if (crowded()) bar.classList.add('is-tb-tight');
   wrap._fitLock = false;
+  mbPackBar();
   mbSwipeSync();
 }
 

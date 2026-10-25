@@ -36,6 +36,15 @@
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg>
 <span id="tb-mesai-label">08:00–20:00</span>
 </button></div>
+<div class="tb-slide"><button type="button" id="aria-live" class="aria-live" hidden onclick="ariaTogglePop(event)" title="Mimi" aria-label="Mimi" aria-expanded="false" aria-controls="aria-pop">
+<span class="aria-orb" aria-hidden="true"></span>
+<span class="aria-live-name">Mimi</span>
+<span class="aria-live-facts">
+<span class="aria-live-day" id="aria-live-day"></span>
+<span class="aria-live-camp" id="aria-live-camp"></span>
+<span class="aria-live-n" id="aria-live-n"></span>
+</span>
+</button></div>
 </div>
 <div class="tb-right">
 <div id="tb-pills" style="display:none;">
@@ -56,15 +65,6 @@
 </div>
 </div>
 <div class="tb-pin" id="tb-pin">
-<button type="button" id="aria-live" class="aria-live" hidden onclick="ariaTogglePop(event)" title="Mimi" aria-label="Mimi" aria-expanded="false" aria-controls="aria-pop">
-<span class="aria-orb" aria-hidden="true"></span>
-<span class="aria-live-name">Mimi</span>
-<span class="aria-live-facts">
-<span class="aria-live-day" id="aria-live-day"></span>
-<span class="aria-live-camp" id="aria-live-camp"></span>
-<span class="aria-live-n" id="aria-live-n"></span>
-</span>
-</button>
 <button class="tb-pill tb-takvim" id="takvim-topbar-btn" onclick="openTakvimOverlay()" title="Takvim" data-tr-title="Takvim" data-de-title="Kalender" aria-label="Takvim" data-tr-aria="Takvim" data-de-aria="Kalender">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3.5v3M16 3.5v3"/></svg>
 <span class="tb-pill-lbl" data-tr="Takvim" data-de="Kalender">Takvim</span>

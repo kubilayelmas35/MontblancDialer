@@ -392,8 +392,9 @@
   }
   #tb-swipe .tb-slide:has(#tb-live-btn) { order: 1; }
   #tb-swipe .tb-slide:has(#tb-mesai-btn) { order: 2; }
-  #tb-swipe .tb-slide:has(#tb-results) { order: 3; }
-  #tb-swipe .tb-slide:has(#pill-camp-btn) { order: 4; }
+  #tb-swipe .tb-slide:has(#aria-live) { order: 3; }
+  #tb-swipe .tb-slide:has(#tb-results) { order: 4; }
+  #tb-swipe .tb-slide:has(#pill-camp-btn) { order: 5; }
   #tb-swipe .tb-slide:has(> [hidden]),
   #tb-swipe .tb-slide:has(> [style*="display:none"]),
   #tb-swipe .tb-slide:has(> [style*="display: none"]) { display: none; }
@@ -416,7 +417,6 @@
     height: 32px;
     z-index: 3;
   }
-  #tb-pin .aria-live,
   #tb-pin #takvim-topbar-btn,
   #tb-pin .tb-icon-btn,
   #tb-pin .tb-user {
@@ -429,8 +429,6 @@
     flex: 0 0 30px;
     justify-content: center;
   }
-  #tb-pin .aria-live-name,
-  #tb-pin .aria-live-facts,
   #tb-pin .tb-takvim .tb-pill-lbl,
   #tb-pin .tb-user > div:not(.tb-avatar) { display: none !important; }
   #tb-pin .tb-user {
@@ -438,7 +436,6 @@
     border-radius: 8px;
     box-shadow: none;
   }
-  #tb-pin .aria-live { border-radius: 8px; }
   #tb-swipe-dots {
     display: flex;
     position: absolute;
