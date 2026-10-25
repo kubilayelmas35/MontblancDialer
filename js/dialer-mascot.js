@@ -116,6 +116,173 @@ function _syncMascotCustomGradPanel() {
   if (v.value === 'custom') _paintMascotCustomGradPreview();
 }
 
+const MASCOT_STYLE_KEY = 'mb_mascot_grad_book';
+const MASCOT_STYLE_MAX = 8;
+
+function isMascotMoodColorOn() {
+  return getMascotPref('mb_mascot_mood_color', '1') !== '0';
+}
+
+function _applyMascotMoodColorFlag(enabled) {
+  const on = enabled == null ? isMascotMoodColorOn() : !!enabled;
+  const nodes = document.querySelectorAll('.mascot-theme-root, #cust-empty');
+  nodes.forEach((el) => {
+    if (on) el.removeAttribute('data-mood-color');
+    else el.setAttribute('data-mood-color', 'off');
+  });
+}
+
+function _syncMascotMoodColorControls() {
+  const box = document.getElementById('s-mascot-mood-color');
+  const on = box ? !!box.checked : isMascotMoodColorOn();
+  ['s-mascot-break-wrap', 's-mascot-angry-wrap'].forEach((id) => {
+    const wrap = document.getElementById(id);
+    if (!wrap) return;
+    wrap.style.opacity = on ? '' : '0.45';
+    wrap.querySelectorAll('input').forEach((el) => {
+      el.disabled = !on;
+    });
+  });
+  _applyMascotMoodColorFlag(on);
+}
+
+function mbMascotStyleOk(row) {
+  if (!row || typeof row !== 'object') return null;
+  const name = String(row.name || '').trim().slice(0, 24);
+  const id = String(row.id || '').replace(/[^a-z0-9]/gi, '').slice(0, 12);
+  if (!name || !id) return null;
+  const variantRaw = String(row.variant || 'custom').toLowerCase();
+  const variant = variantRaw === 'random' || MASCOT_VARIANT_OFFSETS[variantRaw] ? variantRaw : '';
+  if (!variant) return null;
+  const stopsIn = Array.isArray(row.stops) ? row.stops : [];
+  return {
+    id,
+    name,
+    variant,
+    color: _mascotNormalizeHex(row.color, '#a855f7'),
+    stops: MASCOT_CUSTOM_GRAD_DEFAULT.map((fb, i) => _mascotNormalizeHex(stopsIn[i], fb)),
+  };
+}
+
+function mbMascotStyleBook() {
+  try {
+    const raw = JSON.parse(getMascotPref(MASCOT_STYLE_KEY, '[]') || '[]');
+    if (!Array.isArray(raw)) return [];
+    return raw.map(mbMascotStyleOk).filter(Boolean).slice(0, MASCOT_STYLE_MAX);
+  } catch (e) {
+    return [];
+  }
+}
+
+function mbWriteMascotStyleBook(rows) {
+  const clean = (Array.isArray(rows) ? rows : []).map(mbMascotStyleOk).filter(Boolean).slice(0, MASCOT_STYLE_MAX);
+  setMascotPref(MASCOT_STYLE_KEY, JSON.stringify(clean));
+}
+
+function mbMascotStyleSwatch(row) {
+  const stops = row.variant === 'custom'
+    ? row.stops
+    : _mascotBodyStops(row.variant === 'random' ? 'aurora' : row.variant, _mascotHexToHue(row.color), row.stops);
+  return `linear-gradient(90deg, ${stops[0]}, ${stops[1]}, ${stops[2]}, ${stops[3]})`;
+}
+
+function mbPaintMascotStyleBook() {
+  const list = document.getElementById('s-mascot-style-list');
+  if (!list) return;
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const book = mbMascotStyleBook();
+  if (!book.length) {
+    const empty = de ? 'Noch kein gespeicherter Stil.' : 'Henüz kayıtlı stil yok.';
+    list.innerHTML = `<span style="font-size:10px;color:var(--text-3);" data-tr="Henüz kayıtlı stil yok." data-de="Noch kein gespeicherter Stil.">${empty}</span>`;
+    return;
+  }
+  const delLabel = de ? 'Löschen' : 'Sil';
+  list.innerHTML = book.map((row) => `<span class="mascot-style-item"><button type="button" class="mascot-style-chip" data-style-id="${esc(row.id)}"><span class="mascot-style-swatch" style="background:${mbMascotStyleSwatch(row)}"></span><span>${esc(row.name)}</span></button><button type="button" class="mascot-style-del" data-style-del="${esc(row.id)}" aria-label="${esc(delLabel)}"><span data-tr="Sil" data-de="Löschen">${delLabel}</span></button></span>`).join('');
+}
+
+function mbSaveMascotStyle() {
+  const input = document.getElementById('s-mascot-style-name');
+  const name = String(input?.value || '').trim().slice(0, 24);
+  const say = (key, fallback) => (typeof t === 'function' ? t(key) : fallback);
+  if (!name) {
+    toast(say('dial.mascot_style_need', 'Stil adı yaz'), 'warn');
+    return;
+  }
+  const vRaw = String(document.getElementById('s-mascot-variant')?.value || 'aurora').toLowerCase();
+  const variant = vRaw === 'random' || MASCOT_VARIANT_OFFSETS[vRaw] ? vRaw : 'aurora';
+  const color = _mascotNormalizeHex(document.getElementById('s-mascot-color')?.value, '#a855f7');
+  const stops = _mascotCustomStopsFromForm();
+  const book = mbMascotStyleBook();
+  const key = name.toLocaleLowerCase('tr');
+  const hit = book.find((row) => row.name.toLocaleLowerCase('tr') === key);
+  if (!hit && book.length >= MASCOT_STYLE_MAX) {
+    toast(say('dial.mascot_style_full', 'En fazla 8 stil'), 'warn');
+    return;
+  }
+  const id = hit?.id || Math.random().toString(36).slice(2, 10);
+  const next = mbMascotStyleOk({ id, name, variant, color, stops });
+  if (!next) return;
+  const rest = book.filter((row) => row.id !== next.id && row.name.toLocaleLowerCase('tr') !== key);
+  setMascotPref('mb_mascot_variant', variant);
+  setMascotPref('mb_mascot_color', color);
+  stops.forEach((hexStop, i) => setMascotPref(`mb_mascot_grad_${i}`, hexStop));
+  if (variant === 'random') _mascotVariantRandResolved = '';
+  mbWriteMascotStyleBook([next, ...rest]);
+  if (input) input.value = '';
+  mbPaintMascotStyleBook();
+  applyMascotTheme();
+  toast(say('dial.mascot_style_saved', 'Stil kaydedildi'), 'ok');
+}
+
+function mbApplyMascotStyle(id) {
+  const row = mbMascotStyleBook().find((item) => item.id === String(id || ''));
+  if (!row) return;
+  setMascotPref('mb_mascot_variant', row.variant);
+  setMascotPref('mb_mascot_color', row.color);
+  row.stops.forEach((hexStop, i) => setMascotPref(`mb_mascot_grad_${i}`, hexStop));
+  if (row.variant === 'random') _mascotVariantRandResolved = '';
+  loadMascotSettingsForm();
+  toast(typeof t === 'function' ? t('dial.mascot_style_on') : 'Stil uygulandı', 'ok');
+}
+
+function mbDeleteMascotStyle(id) {
+  mbWriteMascotStyleBook(mbMascotStyleBook().filter((row) => row.id !== String(id || '')));
+  mbPaintMascotStyleBook();
+}
+
+function mbFlattenMascotColor() {
+  const color = _mascotNormalizeHex(document.getElementById('s-mascot-color')?.value, '#a855f7');
+  const v = document.getElementById('s-mascot-variant');
+  if (v) v.value = 'custom';
+  for (let i = 0; i < 4; i += 1) {
+    const el = document.getElementById(`s-mascot-grad-${i}`);
+    if (el) el.value = color;
+  }
+  setMascotPref('mb_mascot_variant', 'custom');
+  setMascotPref('mb_mascot_color', color);
+  for (let i = 0; i < 4; i += 1) setMascotPref(`mb_mascot_grad_${i}`, color);
+  _syncMascotCustomGradPanel();
+  applyMascotTheme();
+  toast(typeof t === 'function' ? t('dial.mascot_style_flat') : 'Ana renk düz uygulandı', 'ok');
+}
+
+function mbWireMascotStyleBook() {
+  const list = document.getElementById('s-mascot-style-list');
+  if (!list || list.dataset.wired) return;
+  list.dataset.wired = '1';
+  list.addEventListener('click', (e) => {
+    const el = e.target instanceof Element ? e.target : e.target?.parentElement;
+    const del = el?.closest?.('[data-style-del]');
+    if (del) {
+      mbDeleteMascotStyle(del.getAttribute('data-style-del'));
+      return;
+    }
+    const chip = el?.closest?.('[data-style-id]');
+    if (chip) mbApplyMascotStyle(chip.getAttribute('data-style-id'));
+  });
+}
+
 const MASCOT_SHAPES = new Set([
   'blob',
   'circle',
@@ -610,6 +777,7 @@ function applyMascotTheme() {
   applyMascotShape();
   applyMascotCosmetics();
   applyMascotCosmeticColors();
+  _applyMascotMoodColorFlag();
   if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
   updateMascotNameLabel();
 }
@@ -720,6 +888,11 @@ function loadMascotSettingsForm() {
       ? 'Firma geneli katsayıdır.'
       : 'Bu katsayıyı sadece admin değiştirebilir.';
   }
+  const mood = document.getElementById('s-mascot-mood-color');
+  if (mood) mood.checked = isMascotMoodColorOn();
+  _syncMascotMoodColorControls();
+  mbPaintMascotStyleBook();
+  mbWireMascotStyleBook();
   if (currentUser?.firm_id) {
     loadFirmDialerSettingsCache().then(() => {
       if (coef) coef.value = String(getMascotAgeCoeff());
@@ -754,6 +927,11 @@ function loadMascotSettingsForm() {
   n.addEventListener('input', onLive);
   bk?.addEventListener('input', onLive);
   ag?.addEventListener('input', onLive);
+  document.getElementById('s-mascot-mood-color')?.addEventListener('change', () => {
+    const box = document.getElementById('s-mascot-mood-color');
+    setMascotPref('mb_mascot_mood_color', box?.checked ? '1' : '0');
+    _syncMascotMoodColorControls();
+  });
   won?.addEventListener('change', () => {
     setMascotPref('mb_mascot_wander_on', won.checked ? '1' : '0');
     _syncMascotWanderControls();
@@ -853,6 +1031,8 @@ function saveMascotSettings() {
   });
   if (bk) setMascotPref('mb_mascot_break_color', bk.value || '#4f8cff');
   if (ag) setMascotPref('mb_mascot_angry_color', ag.value || '#ff5b55');
+  const mood = document.getElementById('s-mascot-mood-color');
+  if (mood) setMascotPref('mb_mascot_mood_color', mood.checked ? '1' : '0');
   if (won) setMascotPref('mb_mascot_wander_on', won.checked ? '1' : '0');
   if (wd) setMascotPref('mb_mascot_wander_pct', wd.value || '35');
   if (ws) setMascotPref('mb_mascot_wander_speed', ws.value || '22');
@@ -909,4 +1089,8 @@ try {
   window.applyMascotCosmeticColors = applyMascotCosmeticColors;
   window.randomizeMascotAppearance = randomizeMascotAppearance;
   window.toggleMimiBubbleMute = toggleMimiBubbleMute;
+  window.mbSaveMascotStyle = mbSaveMascotStyle;
+  window.mbFlattenMascotColor = mbFlattenMascotColor;
+  window.mbApplyMascotStyle = mbApplyMascotStyle;
+  window.mbDeleteMascotStyle = mbDeleteMascotStyle;
 } catch (e) {}

@@ -437,3 +437,21 @@
   background: color-mix(in srgb, var(--accent) 18%, var(--bg-3));
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
 }
+[data-mood-color="off"] .cust-empty-blob {
+  background: linear-gradient(
+    145deg,
+    var(--m-c0, #f5d0fe) 0%,
+    var(--m-c1, #c084fc) 32%,
+    var(--m-c2, #7c3aed) 62%,
+    var(--m-c3, #4c1d95) 100%
+  ) !important;
+  filter: none !important;
+}
+[data-mood-color="off"][data-mood="celebrate"] .cust-empty-blob,
+[data-mood-color="off"].cust-empty--mascot-celebrate .cust-empty-blob {
+  box-shadow: inset 0 2px 14px rgba(255, 255, 255, 0.42) !important;
+}
+.global-mascot[data-mood-color="off"].global-mascot--sad .cust-empty-mascot,
+.global-mascot[data-mood-color="off"].global-mascot--celebrate .cust-empty-mascot {
+  filter: none !important;
+}

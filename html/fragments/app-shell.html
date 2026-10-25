@@ -3256,13 +3256,30 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div style="font-size:10px;color:var(--text-3);margin-top:4px;" data-tr="Soldan sağa: açık vurgudan koyu gölgeye. Dört renk gövdenin geçişini kurar." data-de="Von links nach rechts: helle Stelle bis dunkler Schatten. Vier Farben bilden den Verlauf.">Soldan sağa: açık vurgudan koyu gölgeye. Dört renk gövdenin geçişini kurar.</div>
 </div>
+<div id="s-mascot-style-book" style="margin-top:10px;">
+<label class="form-label" style="font-size:11px;" data-tr="Kayıtlı stiller" data-de="Gespeicherte Stile">Kayıtlı stiller</label>
+<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;">
+<input class="form-input" id="s-mascot-style-name" maxlength="24" autocomplete="off" placeholder="Stil adı" data-tr="Stil adı" data-de="Stilname" style="max-width:180px;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbSaveMascotStyle()" data-tr="Stili kaydet" data-de="Stil speichern">Stili kaydet</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbFlattenMascotColor()" data-tr="Düz renk" data-de="Eine Farbe">Düz renk</button>
+</div>
+<div id="s-mascot-style-list" class="mascot-style-list"></div>
+<div style="font-size:10px;color:var(--text-3);margin-top:4px;" data-tr="Şu anki gradient ve ana renk bu isimle hesaba yazılır. Aynı isim eskisinin yerine geçer. Düz renk, ana rengi dört durağa da koyar." data-de="Der aktuelle Verlauf und die Grundfarbe werden unter diesem Namen am Konto gespeichert. Derselbe Name ersetzt den alten Stil. Eine Farbe setzt die Grundfarbe auf alle vier Stufen.">Şu anki gradient ve ana renk bu isimle hesaba yazılır. Aynı isim eskisinin yerine geçer. Düz renk, ana rengi dört durağa da koyar.</div>
+</div>
 </div>
 <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
-<div>
+<div style="grid-column:1 / -1;">
+<label class="form-label" style="font-size:11px;display:flex;align-items:center;gap:8px;cursor:pointer;">
+<input type="checkbox" id="s-mascot-mood-color" checked style="width:16px;height:16px;">
+<span data-tr="Duygular rengi değiştirsin" data-de="Gefühle färben den Körper">Duygular rengi değiştirsin</span>
+</label>
+<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Kapalıyken gövde seçtiğin renkte ve gradientte kalır. Mola, olumsuz ve sevinç başka renk vermez." data-de="Aus: der Körper bleibt in deiner Farbe und deinem Verlauf. Pause, Ablehnung und Freude färben ihn nicht um.">Kapalıyken gövde seçtiğin renkte ve gradientte kalır. Mola, olumsuz ve sevinç başka renk vermez.</div>
+</div>
+<div id="s-mascot-break-wrap">
 <label class="form-label" style="font-size:11px;" data-tr="Mola rengi" data-de="Pausenfarbe">Mola rengi</label>
 <input type="color" id="s-mascot-break-color" value="#4f8cff" style="width:52px;height:38px;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);cursor:pointer;">
 </div>
-<div>
+<div id="s-mascot-angry-wrap">
 <label class="form-label" style="font-size:11px;" data-tr="Olumsuz rengi" data-de="Farbe bei Ablehnung">Olumsuz rengi</label>
 <input type="color" id="s-mascot-angry-color" value="#ff5b55" style="width:52px;height:38px;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);cursor:pointer;">
 </div>

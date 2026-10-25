@@ -976,3 +976,15 @@
 .mascot-theme-root[data-mascot-earring="crystal"] .mascot-cos-ear--r {
   animation-delay: 0.14s;
 }
+.mascot-style-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.mascot-style-item { display:inline-flex; align-items:center; gap:2px; }
+.mascot-style-chip {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:3px 8px 3px 3px; border-radius:999px;
+  border:1px solid var(--border); background:var(--bg-2); color:var(--text);
+  font-size:11px; cursor:pointer;
+}
+.mascot-style-swatch { width:22px; height:22px; border-radius:50%; border:1px solid var(--border); }
+.mascot-style-del {
+  border:0; background:transparent; color:var(--text-3); cursor:pointer; font-size:11px; padding:0 4px;
+}

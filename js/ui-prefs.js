@@ -6,6 +6,12 @@ function mbUiPrefsUserId() {
   return (typeof currentUser !== 'undefined' && currentUser?.id) ? String(currentUser.id) : '';
 }
 
+function mbMascotPrefValueOk(base, val) {
+  if (typeof val !== 'string' || !/^mb_mascot_[a-z0-9_]+$/.test(String(base || ''))) return false;
+  const cap = base === 'mb_mascot_grad_book' ? 2400 : 120;
+  return val.length <= cap;
+}
+
 function mbCollectMascotPrefs() {
   const id = mbUiPrefsUserId();
   const suffix = id ? `_${id}` : '';
@@ -15,11 +21,11 @@ function mbCollectMascotPrefs() {
     const key = localStorage.key(i);
     if (!key || !key.startsWith('mb_mascot_')) continue;
     const val = localStorage.getItem(key);
-    if (val == null || val.length > 120) continue;
+    if (val == null) continue;
     if (suffix && key.endsWith(suffix)) {
       const base = key.slice(0, -suffix.length);
-      if (/^mb_mascot_[a-z0-9_]+$/.test(base)) scoped[base] = val;
-    } else if (/^mb_mascot_[a-z0-9_]+$/.test(key)) {
+      if (mbMascotPrefValueOk(base, val)) scoped[base] = val;
+    } else if (mbMascotPrefValueOk(key, val)) {
       legacy[key] = val;
     }
   }
@@ -148,8 +154,7 @@ function mbApplyUiPrefs(remote) {
     }
     if (remote.mascot && typeof remote.mascot === 'object' && typeof setMascotPref === 'function') {
       Object.entries(remote.mascot).forEach(([base, val]) => {
-        if (!/^mb_mascot_[a-z0-9_]+$/.test(base)) return;
-        if (typeof val !== 'string' || val.length > 120) return;
+        if (!mbMascotPrefValueOk(base, val)) return;
         setMascotPref(base, val);
       });
       if (typeof reloadMascotStateForUser === 'function') reloadMascotStateForUser();

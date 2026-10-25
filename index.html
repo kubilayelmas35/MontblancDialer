@@ -12,17 +12,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=11.75">
-<link rel="stylesheet" href="css/styles-dialer.css?v=11.75">
-<link rel="stylesheet" href="css/styles-mascot.css?v=11.75">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=11.75">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=11.75">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=11.75">
-<link rel="stylesheet" href="css/styles-pages.css?v=11.75">
-<link rel="stylesheet" href="css/styles-aurora.css?v=11.75">
-<link rel="stylesheet" href="css/styles-chat.css?v=11.75">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=11.75">
-<link rel="stylesheet" href="css/styles-responsive.css?v=11.75">
+<link rel="stylesheet" href="css/styles.css?v=11.76">
+<link rel="stylesheet" href="css/styles-dialer.css?v=11.76">
+<link rel="stylesheet" href="css/styles-mascot.css?v=11.76">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=11.76">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=11.76">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=11.76">
+<link rel="stylesheet" href="css/styles-pages.css?v=11.76">
+<link rel="stylesheet" href="css/styles-aurora.css?v=11.76">
+<link rel="stylesheet" href="css/styles-chat.css?v=11.76">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=11.76">
+<link rel="stylesheet" href="css/styles-responsive.css?v=11.76">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -61,7 +61,7 @@
 <div class="login-index-note" data-i18n="login.row.4.note">Kalite, muhasebe</div>
 </div>
 </div>
-<div class="login-version">v11.75 — 2026</div>
+<div class="login-version">v11.76 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -479,7 +479,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">MontBlanc v11.75</div>
+<div class="sb-ver">MontBlanc v11.76</div>
 </div>
 </div>
 </nav>
@@ -3367,13 +3367,30 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div style="font-size:10px;color:var(--text-3);margin-top:4px;" data-tr="Soldan sağa: açık vurgudan koyu gölgeye. Dört renk gövdenin geçişini kurar." data-de="Von links nach rechts: helle Stelle bis dunkler Schatten. Vier Farben bilden den Verlauf.">Soldan sağa: açık vurgudan koyu gölgeye. Dört renk gövdenin geçişini kurar.</div>
 </div>
+<div id="s-mascot-style-book" style="margin-top:10px;">
+<label class="form-label" style="font-size:11px;" data-tr="Kayıtlı stiller" data-de="Gespeicherte Stile">Kayıtlı stiller</label>
+<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;">
+<input class="form-input" id="s-mascot-style-name" maxlength="24" autocomplete="off" placeholder="Stil adı" data-tr="Stil adı" data-de="Stilname" style="max-width:180px;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbSaveMascotStyle()" data-tr="Stili kaydet" data-de="Stil speichern">Stili kaydet</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbFlattenMascotColor()" data-tr="Düz renk" data-de="Eine Farbe">Düz renk</button>
+</div>
+<div id="s-mascot-style-list" class="mascot-style-list"></div>
+<div style="font-size:10px;color:var(--text-3);margin-top:4px;" data-tr="Şu anki gradient ve ana renk bu isimle hesaba yazılır. Aynı isim eskisinin yerine geçer. Düz renk, ana rengi dört durağa da koyar." data-de="Der aktuelle Verlauf und die Grundfarbe werden unter diesem Namen am Konto gespeichert. Derselbe Name ersetzt den alten Stil. Eine Farbe setzt die Grundfarbe auf alle vier Stufen.">Şu anki gradient ve ana renk bu isimle hesaba yazılır. Aynı isim eskisinin yerine geçer. Düz renk, ana rengi dört durağa da koyar.</div>
+</div>
 </div>
 <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
-<div>
+<div style="grid-column:1 / -1;">
+<label class="form-label" style="font-size:11px;display:flex;align-items:center;gap:8px;cursor:pointer;">
+<input type="checkbox" id="s-mascot-mood-color" checked style="width:16px;height:16px;">
+<span data-tr="Duygular rengi değiştirsin" data-de="Gefühle färben den Körper">Duygular rengi değiştirsin</span>
+</label>
+<div style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Kapalıyken gövde seçtiğin renkte ve gradientte kalır. Mola, olumsuz ve sevinç başka renk vermez." data-de="Aus: der Körper bleibt in deiner Farbe und deinem Verlauf. Pause, Ablehnung und Freude färben ihn nicht um.">Kapalıyken gövde seçtiğin renkte ve gradientte kalır. Mola, olumsuz ve sevinç başka renk vermez.</div>
+</div>
+<div id="s-mascot-break-wrap">
 <label class="form-label" style="font-size:11px;" data-tr="Mola rengi" data-de="Pausenfarbe">Mola rengi</label>
 <input type="color" id="s-mascot-break-color" value="#4f8cff" style="width:52px;height:38px;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);cursor:pointer;">
 </div>
-<div>
+<div id="s-mascot-angry-wrap">
 <label class="form-label" style="font-size:11px;" data-tr="Olumsuz rengi" data-de="Farbe bei Ablehnung">Olumsuz rengi</label>
 <input type="color" id="s-mascot-angry-color" value="#ff5b55" style="width:52px;height:38px;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);cursor:pointer;">
 </div>
@@ -4802,67 +4819,67 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=11.75"></script>
-<script src="js/i18n.js?v=11.75"></script>
-<script src="js/config.js?v=11.75"></script>
-<script src="js/state.js?v=11.75"></script>
-<script src="js/api.js?v=11.75"></script>
-<script src="js/access.js?v=11.75"></script>
-<script src="js/auth.js?v=11.75"></script>
-<script src="js/ui.js?v=11.75"></script>
-<script src="js/chat.js?v=11.75"></script>
-<script src="js/chat-settings.js?v=11.75"></script>
-<script src="js/field-settings.js?v=11.75"></script>
-<script src="js/audit.js?v=11.75"></script>
-<script src="js/feature-flags.js?v=11.75"></script>
-<script src="js/notification-center.js?v=11.75"></script>
+<script src="js/version.js?v=11.76"></script>
+<script src="js/i18n.js?v=11.76"></script>
+<script src="js/config.js?v=11.76"></script>
+<script src="js/state.js?v=11.76"></script>
+<script src="js/api.js?v=11.76"></script>
+<script src="js/access.js?v=11.76"></script>
+<script src="js/auth.js?v=11.76"></script>
+<script src="js/ui.js?v=11.76"></script>
+<script src="js/chat.js?v=11.76"></script>
+<script src="js/chat-settings.js?v=11.76"></script>
+<script src="js/field-settings.js?v=11.76"></script>
+<script src="js/audit.js?v=11.76"></script>
+<script src="js/feature-flags.js?v=11.76"></script>
+<script src="js/notification-center.js?v=11.76"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=11.75"></script>
-<script src="js/job-market.js?v=11.75"></script>
-<script src="js/qc-job-market.js?v=11.75"></script>
-<script src="js/export-admin.js?v=11.75"></script>
-<script src="js/export-termin.js?v=11.75"></script>
-<script src="js/performance.js?v=11.75"></script>
-<script src="js/competition.js?v=11.75"></script>
-<script src="js/dashboard.js?v=11.75"></script>
-<script src="js/reports.js?v=11.75"></script>
-<script src="js/dashboard-brief.js?v=11.75"></script>
-<script src="js/campaigns.js?v=11.75"></script>
-<script src="js/campaigns-detail.js?v=11.75"></script>
-<script src="js/campaigns-queue.js?v=11.75"></script>
-<script src="js/contacts-upload.js?v=11.75"></script>
-<script src="js/geocon.js?v=11.75"></script>
-<script src="js/contacts.js?v=11.75"></script>
-<script src="js/contacts-drawer.js?v=11.75"></script>
-<script src="js/telnyx.js?v=11.75"></script>
-<script src="js/voice-orb.js?v=11.75"></script>
-<script src="js/dialer.js?v=11.75"></script>
-<script src="js/ops-alerts.js?v=11.75"></script>
-<script src="js/radius-tour.js?v=11.75"></script>
-<script src="js/dialer-mascot.js?v=11.75"></script>
-<script src="js/dialer-mascot-live.js?v=11.75"></script>
-<script src="js/ui-prefs.js?v=11.75"></script>
-<script src="js/dialer-session.js?v=11.75"></script>
-<script src="js/dialer-call.js?v=11.75"></script>
-<script src="js/dialer-tools.js?v=11.75"></script>
-<script src="js/appointments.js?v=11.75"></script>
-<script src="js/appointments-actions.js?v=11.75"></script>
-<script src="js/appointments-tools.js?v=11.75"></script>
-<script src="js/field.js?v=11.75"></script>
-<script src="js/field-quote.js?v=11.75"></script>
-<script src="js/field-catalog.js?v=11.75"></script>
-<script src="js/field-ops.js?v=11.75"></script>
-<script src="js/wiedervorlage.js?v=11.75"></script>
-<script src="js/qc.js?v=11.75"></script>
-<script src="js/supervisor.js?v=11.75"></script>
-<script src="js/live-coach.js?v=11.75"></script>
-<script src="js/sms-settings.js?v=11.75"></script>
-<script src="js/leave-hr.js?v=11.75"></script>
-<script src="js/muhasebe.js?v=11.75"></script>
-<script src="js/muhasebe-books.js?v=11.75"></script>
-<script src="js/agent-self-performance.js?v=11.75"></script>
-<script src="js/agents.js?v=11.75"></script>
-<script src="js/firm-desk.js?v=11.75"></script>
-<script src="js/mimi-brain.js?v=11.75"></script>
+<script src="js/wallet.js?v=11.76"></script>
+<script src="js/job-market.js?v=11.76"></script>
+<script src="js/qc-job-market.js?v=11.76"></script>
+<script src="js/export-admin.js?v=11.76"></script>
+<script src="js/export-termin.js?v=11.76"></script>
+<script src="js/performance.js?v=11.76"></script>
+<script src="js/competition.js?v=11.76"></script>
+<script src="js/dashboard.js?v=11.76"></script>
+<script src="js/reports.js?v=11.76"></script>
+<script src="js/dashboard-brief.js?v=11.76"></script>
+<script src="js/campaigns.js?v=11.76"></script>
+<script src="js/campaigns-detail.js?v=11.76"></script>
+<script src="js/campaigns-queue.js?v=11.76"></script>
+<script src="js/contacts-upload.js?v=11.76"></script>
+<script src="js/geocon.js?v=11.76"></script>
+<script src="js/contacts.js?v=11.76"></script>
+<script src="js/contacts-drawer.js?v=11.76"></script>
+<script src="js/telnyx.js?v=11.76"></script>
+<script src="js/voice-orb.js?v=11.76"></script>
+<script src="js/dialer.js?v=11.76"></script>
+<script src="js/ops-alerts.js?v=11.76"></script>
+<script src="js/radius-tour.js?v=11.76"></script>
+<script src="js/dialer-mascot.js?v=11.76"></script>
+<script src="js/dialer-mascot-live.js?v=11.76"></script>
+<script src="js/ui-prefs.js?v=11.76"></script>
+<script src="js/dialer-session.js?v=11.76"></script>
+<script src="js/dialer-call.js?v=11.76"></script>
+<script src="js/dialer-tools.js?v=11.76"></script>
+<script src="js/appointments.js?v=11.76"></script>
+<script src="js/appointments-actions.js?v=11.76"></script>
+<script src="js/appointments-tools.js?v=11.76"></script>
+<script src="js/field.js?v=11.76"></script>
+<script src="js/field-quote.js?v=11.76"></script>
+<script src="js/field-catalog.js?v=11.76"></script>
+<script src="js/field-ops.js?v=11.76"></script>
+<script src="js/wiedervorlage.js?v=11.76"></script>
+<script src="js/qc.js?v=11.76"></script>
+<script src="js/supervisor.js?v=11.76"></script>
+<script src="js/live-coach.js?v=11.76"></script>
+<script src="js/sms-settings.js?v=11.76"></script>
+<script src="js/leave-hr.js?v=11.76"></script>
+<script src="js/muhasebe.js?v=11.76"></script>
+<script src="js/muhasebe-books.js?v=11.76"></script>
+<script src="js/agent-self-performance.js?v=11.76"></script>
+<script src="js/agents.js?v=11.76"></script>
+<script src="js/firm-desk.js?v=11.76"></script>
+<script src="js/mimi-brain.js?v=11.76"></script>
 </body>
 </html>
