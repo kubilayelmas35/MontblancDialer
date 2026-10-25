@@ -543,6 +543,7 @@ async function loadTakvimSlots() {
     endD = `${y}-${String(m+1).padStart(2,'0')}-${new Date(y,m+1,0).getDate()}`;
   }
   try {
+    if (typeof mbSweepSlotHolds === 'function') await mbSweepSlotHolds();
     const campRow = (typeof campaigns !== 'undefined' && campaigns) ? campaigns.find((x) => x.id === takvimCampId) : null;
     const firmId = campRow?.firm_id || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
     await ensureFirmTakvimDefaultsLoaded(firmId);

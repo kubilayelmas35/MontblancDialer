@@ -89,6 +89,7 @@ function toggleLoginPass() {
 
 async function doLogout() {
 try {
+if (typeof mbDropSlotHold === 'function') await mbDropSlotHold();
 await fetch(`${SB_URL}/rest/v1/rpc/end_app_session`, {
 method: 'POST',
 headers: mbAuthHeaders(),
@@ -195,6 +196,7 @@ async function mbEnsureSession(opts = {}) {
 async function bootApp() {
 if (!(await mbEnsureSession({ force: true }))) return;
 if (!currentUser) return;
+if (typeof mbReclaimSlotHold === 'function') await mbReclaimSlotHold();
 if (!currentUser.initials) currentUser.initials = (currentUser.name||'?').charAt(0).toUpperCase();
 document.getElementById('tb-av').textContent = currentUser.initials.charAt(0);
 document.getElementById('tb-uname').textContent = currentUser.name;

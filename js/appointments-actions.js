@@ -625,10 +625,139 @@ async function unlockSlot(slotId) {
   if (!(await mbConfirm('Slot kilidi kaldırılsın mı?', 'Slot Kilidi'))) return;
   try {
     await sb(`takvim_slots?id=eq.${slotId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'bos',kilitli_agent_id:null,kilitli_at:null})});
+    if (mbReadSlotHold() === String(slotId || '')) mbForgetSlotHold();
     await loadTakvimSlots();
     toast('Kilit kaldırıldı ✓','ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
+
+// Randevu formu yer tutunca slot kilitlenir. Yenileme, kapatma ve çıkış bu kilidi bırakır.
+// Milisaniye 777 yalnızca bu geçici tutmayı işaretler; yönetici kilidi 000 kalır ve süreli değildir.
+const MB_HOLD_KEY = 'mb_slot_hold';
+const MB_HOLD_STALE_MS = 90000;
+let _mbHoldTimer = 0;
+let _mbHoldSweepAt = 0;
+
+function mbHoldUuid(v) {
+  return /^[0-9a-f-]{36}$/i.test(String(v || ''));
+}
+
+function mbHoldStamp() {
+  const d = new Date();
+  d.setUTCMilliseconds(777);
+  return d.toISOString();
+}
+
+function mbPlainLockStamp() {
+  const d = new Date();
+  d.setUTCMilliseconds(0);
+  return d.toISOString();
+}
+
+function mbHoldLease(iso) {
+  const raw = String(iso || '');
+  if (raw.includes('.777')) return true;
+  const t = Date.parse(raw);
+  if (!Number.isFinite(t)) return false;
+  return new Date(t).getUTCMilliseconds() === 777;
+}
+
+function mbReadSlotHold() {
+  try { return String(sessionStorage.getItem(MB_HOLD_KEY) || ''); } catch (e) { return ''; }
+}
+
+function mbForgetSlotHold() {
+  try { sessionStorage.removeItem(MB_HOLD_KEY); } catch (e) {}
+  if (_mbHoldTimer) {
+    clearInterval(_mbHoldTimer);
+    _mbHoldTimer = 0;
+  }
+}
+
+function mbSlotHoldPatch(slotId, keepalive, extra) {
+  const id = String(slotId || '');
+  if (!mbHoldUuid(id) || typeof SB_URL !== 'string') return Promise.resolve();
+  const path = `takvim_slots?id=eq.${id}&durum=eq.kilitli&appointment_id=is.null${extra || ''}`;
+  const body = JSON.stringify({ durum: 'bos', kilitli_agent_id: null, kilitli_at: null });
+  if (keepalive) {
+    try {
+      fetch(`${SB_URL}/rest/v1/${path}`, {
+        method: 'PATCH',
+        keepalive: true,
+        headers: mbAuthHeaders({ Prefer: 'return=minimal' }),
+        body,
+      });
+    } catch (e) {}
+    return Promise.resolve();
+  }
+  if (typeof sb !== 'function') return Promise.resolve();
+  return sb(path, { method: 'PATCH', prefer: 'return=minimal', body }).catch(() => {});
+}
+
+function mbStartSlotHoldBeat(slotId) {
+  if (_mbHoldTimer) clearInterval(_mbHoldTimer);
+  const id = String(slotId || '');
+  _mbHoldTimer = setInterval(() => {
+    const uid = String(currentUser?.id || '');
+    if (mbReadSlotHold() !== id || !mbHoldUuid(uid) || typeof sb !== 'function') return;
+    sb(`takvim_slots?id=eq.${id}&durum=eq.kilitli&kilitli_agent_id=eq.${uid}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ kilitli_at: mbHoldStamp() }),
+    }).catch(() => {});
+  }, 25000);
+}
+
+function mbRememberSlotHold(slotId) {
+  const id = String(slotId || '');
+  if (!mbHoldUuid(id)) return;
+  try { sessionStorage.setItem(MB_HOLD_KEY, id); } catch (e) {}
+  mbStartSlotHoldBeat(id);
+}
+
+function mbWireSlotHoldLeave() {
+  if (window._mbHoldLeaveWired) return;
+  window._mbHoldLeaveWired = true;
+  window.addEventListener('pagehide', (ev) => {
+    if (ev.persisted) return;
+    const id = mbReadSlotHold();
+    const uid = String(currentUser?.id || '');
+    if (!mbHoldUuid(id) || !mbHoldUuid(uid)) return;
+    mbSlotHoldPatch(id, true, `&kilitli_agent_id=eq.${uid}`);
+  });
+}
+
+async function mbDropSlotHold() {
+  const id = mbReadSlotHold();
+  const uid = String(currentUser?.id || '');
+  mbForgetSlotHold();
+  if (!mbHoldUuid(id) || !mbHoldUuid(uid)) return;
+  await mbSlotHoldPatch(id, false, `&kilitli_agent_id=eq.${uid}`);
+}
+
+async function mbSweepSlotHolds() {
+  const now = Date.now();
+  if (now - _mbHoldSweepAt < 15000) return;
+  _mbHoldSweepAt = now;
+  if (typeof sb !== 'function') return;
+  const cutoff = new Date(now - MB_HOLD_STALE_MS).toISOString();
+  const rows = await sb(`takvim_slots?durum=eq.kilitli&appointment_id=is.null&kilitli_at=lt.${cutoff}&select=id,kilitli_at&limit=40`).catch(() => []);
+  const own = mbReadSlotHold();
+  const ids = (Array.isArray(rows) ? rows : [])
+    .filter((row) => row?.id && String(row.id) !== own && mbHoldLease(row.kilitli_at))
+    .map((row) => String(row.id));
+  await Promise.all(ids.map((id) => mbSlotHoldPatch(id, false, `&kilitli_at=lt.${cutoff}`)));
+}
+
+async function mbReclaimSlotHold() {
+  if (!window._mbHoldReclaimed) {
+    window._mbHoldReclaimed = true;
+    if (mbReadSlotHold()) await mbDropSlotHold();
+  }
+  await mbSweepSlotHolds();
+}
+
+mbWireSlotHoldLeave();
 
 async function agentCancelAppt(slotId, apptId) {
   if (!(await mbConfirm('Randevununi iptal etmek istediğine emin misin?', 'Randevu İptali'))) return;
@@ -663,10 +792,13 @@ async function deleteTakvimSlot(slotId) {
 
 async function lockAndBookSlot(slot) {
   if (!slot) return;
+  const prev = mbReadSlotHold();
+  if (prev && prev !== String(slot.id)) await mbDropSlotHold();
   try {
-    await sb(`takvim_slots?id=eq.${slot.id}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'kilitli',kilitli_agent_id:currentUser.id,kilitli_at:new Date().toISOString()})});
+    await sb(`takvim_slots?id=eq.${slot.id}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'kilitli',kilitli_agent_id:currentUser.id,kilitli_at:mbHoldStamp()})});
   } catch(e) { toast('Slot kilitlenemiyor: '+e.message,'err'); return; }
   _bookingSlot = slot;
+  mbRememberSlotHold(slot.id);
   // If we're in dialer context, show randevu section instead of popup
   // Agent, dialer sayfasındayken takvim overlay'inden slot seçti
   const inDialerCtx = typeof onAgentSlotSelected === 'function' && typeof dialerStatus !== 'undefined';
@@ -825,6 +957,7 @@ async function saveTerminFromSection() {
     const created = await _createAppointmentWithCustomerFallback(data);
     const aid = Array.isArray(created) ? created[0]?.id : created?.id;
     await sb(`takvim_slots?id=eq.${slot.id}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'dolu',appointment_id:aid,kilitli_agent_id:null,kilitli_at:null})});
+    mbForgetSlotHold();
     if (typeof ariaAfterCalendar === 'function') {
       void ariaAfterCalendar('book', { day: slot.tarih, saat: slot.baslangic_saat, campId: slot.campaign_id || takvimCampId });
     }
@@ -877,6 +1010,7 @@ async function saveTerminFromSection() {
 
 async function cancelTakvimBook(slotId) {
   await sb(`takvim_slots?id=eq.${slotId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'bos',kilitli_agent_id:null,kilitli_at:null})}).catch(()=>{});
+  if (!slotId || mbReadSlotHold() === String(slotId)) mbForgetSlotHold();
   _bookingSlot = null;
   closeModal('m-takvim-detail');
 }
@@ -909,6 +1043,7 @@ async function submitTakvimBook(slotId) {
     const aid = Array.isArray(created) ? created[0]?.id : created?.id;
     await takvimSaveContactExtras(currentContact?.id, contactExtra);
     await sb(`takvim_slots?id=eq.${slotId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({durum:'dolu',appointment_id:aid,kilitli_agent_id:null,kilitli_at:null})});
+    mbForgetSlotHold();
     if (typeof ariaAfterCalendar === 'function') {
       void ariaAfterCalendar('book', { day: slot?.tarih, saat: slot?.baslangic_saat, campId: slot?.campaign_id || takvimCampId });
     }
@@ -1185,7 +1320,7 @@ async function takvimAdminKilitle(slot) {
       body: JSON.stringify({
         durum: 'kilitli',
         kilitli_agent_id: currentUser.id,
-        kilitli_at: new Date().toISOString()
+        kilitli_at: mbPlainLockStamp()
       })
     });
     await loadTakvimSlots();

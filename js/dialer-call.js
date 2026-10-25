@@ -895,6 +895,7 @@ function mbAppointmentSlotRequired(campId) {
 
 function mbReleaseBookingSlot() {
   const slotId = (_bookingSlot || window._selectedBookingSlot)?.id;
+  if (typeof mbForgetSlotHold === 'function') mbForgetSlotHold();
   if (slotId && typeof isValidUUID === 'function' && isValidUUID(slotId)) {
     sb(`takvim_slots?id=eq.${slotId}`, {
       method: 'PATCH', prefer: 'return=minimal',
@@ -1292,6 +1293,7 @@ async function submitOutcome(goBreak) {
   const lockedSlotId = _bookingSlot?.id || window._selectedBookingSlot?.id;
   const submitCat = typeof mbOutcomeCategory === 'function' ? mbOutcomeCategory(typeof mbFindOutcome === 'function' ? mbFindOutcome(selectedOutcome) : { key: selectedOutcome }) : '';
   if (lockedSlotId && submitCat !== 'appointment') {
+    if (typeof mbForgetSlotHold === 'function') mbForgetSlotHold();
     sb(`takvim_slots?id=eq.${lockedSlotId}`,{method:'PATCH',prefer:'return=minimal',
       body:JSON.stringify({durum:'bos',kilitli_agent_id:null,kilitli_at:null})
     }).catch(()=>{});
