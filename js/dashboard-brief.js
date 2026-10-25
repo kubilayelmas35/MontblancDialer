@@ -923,6 +923,7 @@ function mbInitBriefDrag() {
     });
   };
   page.addEventListener('dragstart', (e) => {
+    if (!page.classList.contains('is-arranging')) return;
     const handle = e.target.closest?.('.dash-card-handle');
     if (!handle || !page.contains(handle)) return;
     const card = handle.closest('.dash-brief-card');

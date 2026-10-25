@@ -2696,6 +2696,9 @@ button.dash-card-handle:active { cursor:grabbing; }
   padding: 0;
 }
 .dash-row-handle:active { cursor: grabbing; }
+#page-dashboard:not(.is-arranging) .dash-row-handle,
+#page-dashboard:not(.is-arranging) .dash-card-handle,
+#page-dashboard:not(.is-arranging) #dash-reset-rows { display: none; }
 .dash-row.is-dragging { opacity: 0.45; }
 .dash-row.is-drop {
   outline: 2px solid var(--accent);

@@ -1918,11 +1918,24 @@ function mbSyncDashRows() {
   });
 }
 
+function mbToggleDashArrange() {
+  const page = document.getElementById('page-dashboard');
+  const label = document.getElementById('dash-arrange-lbl');
+  if (!page || !label) return;
+  const on = page.classList.toggle('is-arranging');
+  const tr = on ? 'Bitti' : 'Düzenle';
+  const de = on ? 'Fertig' : 'Bearbeiten';
+  label.dataset.tr = tr;
+  label.dataset.de = de;
+  label.textContent = (typeof currentLang !== 'undefined' && currentLang === 'de') ? de : tr;
+}
+
 function mbInitDashRows() {
   const page = document.getElementById('page-dashboard');
   if (!page || page.dataset.dashRowsReady === '1') return;
   page.dataset.dashRowsReady = '1';
   page.addEventListener('dragstart', (e) => {
+    if (!page.classList.contains('is-arranging')) return;
     const handle = e.target.closest?.('.dash-row-handle');
     if (!handle || !page.contains(handle)) return;
     const row = handle.closest('.dash-row');

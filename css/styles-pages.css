@@ -115,7 +115,6 @@ MOBILE / RESPONSIVE
 }
 }
 @media(max-width:480px) {
-#tb-pills { display:none !important; }
 .stats-grid { grid-template-columns:1fr 1fr; }
 .cust-fields { grid-template-columns:1fr; }
 #page-dialer .page-hdr {
