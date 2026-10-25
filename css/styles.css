@@ -1772,7 +1772,7 @@ transform: translateX(-100%); box-shadow: var(--shadow-md);
 transition: transform var(--transition);
 }
 #sidebar.open { transform: translateX(0); }
-#sidebar.collapsed { transform: translateX(-100%); width: var(--sidebar-w); min-width: var(--sidebar-w); }
+#sidebar.collapsed:not(.open) { transform: translateX(-100%); width: var(--sidebar-w); min-width: var(--sidebar-w); }
 }
 .sb-section { padding: 8px; }
 .sb-group + .sb-group { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 4px; padding-top: 4px; }

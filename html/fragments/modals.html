@@ -413,7 +413,10 @@ ondrop="handleDrop(event)">
 <div class="takvim-fs-panel" style="position:absolute;top:16px;left:16px;right:16px;bottom:16px;background:var(--bg-2);border-radius:var(--radius);display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.6);border:1px solid var(--border);overflow:hidden;min-height:0;">
 <div class="takvim-overlay-toolbar-hdr">
 <div class="takvim-toolbar takvim-toolbar--overlay" role="toolbar">
+<div class="takvim-ov-head">
 <div class="takvim-toolbar-brand"><i class="ph ph-calendar-blank"></i><span>Takvim</span></div>
+<button type="button" class="btn btn-ghost btn-sm takvim-ov-close" onclick="closeTakvimOverlay()" title="Kapat" aria-label="Kapat">✕</button>
+</div>
 <div class="takvim-toolbar-actions">
 <div class="takvim-toolbar-cluster takvim-toolbar-cluster--left">
 <div class="takvim-seg">
@@ -446,7 +449,6 @@ ondrop="handleDrop(event)">
 </div>
 </div>
 <div id="takvim-overlay-camp-label" class="takvim-overlay-agent-camp"></div>
-<button type="button" class="btn btn-ghost btn-sm takvim-ov-close" onclick="closeTakvimOverlay()" title="Kapat">✕</button>
 </div>
 </div>
 </div>

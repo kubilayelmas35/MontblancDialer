@@ -274,7 +274,56 @@
   }
   #page-dialer .call-action-btn { flex: 1 1 calc(50% - 8px); }
   .takvim-toolbar-cluster--right { margin-left: 0; justify-content: flex-start; }
+  .takvim-toolbar,
+  .takvim-toolbar-actions,
+  .takvim-toolbar-cluster--left,
+  .takvim-toolbar-cluster--right {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .takvim-toolbar-cluster--left > *,
+  .takvim-toolbar-cluster--right > * { width: 100%; max-width: 100%; }
+  .takvim-seg { display: flex; width: 100%; }
+  .takvim-seg button { flex: 1 1 0; }
+  .takvim-nav { width: 100%; justify-content: space-between; }
+  .takvim-nav span { flex: 1 1 auto; min-width: 0; }
+  .takvim-plz-measure,
+  .takvim-plz-measure > .btn,
+  .takvim-admin-tools,
+  #takvim-overlay-admin,
+  #takvim-admin-tools,
+  #takvim-filter-btn,
+  #takvim-filter-btn-ov { width: 100%; }
+  .takvim-overlay-admin,
+  .takvim-admin-tools { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+  .takvim-toolbar--overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .takvim-ov-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+  }
+  .takvim-ov-close { margin-left: auto; }
+  .takvim-fs-panel {
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    border-radius: 0 !important;
+  }
   #takvim-camp-select, #takvim-camp-select-ov { max-width: 100%; min-width: 0; width: 100%; }
+  #page-takvim, #takvim-main, #takvim-popup-overlay, .takvim-fs-panel { overflow-x: hidden; max-width: 100%; }
+  .live-rows { min-width: 0; }
+  .live-filters { flex-wrap: wrap; overflow-x: visible; }
+  .modal-hdr { flex-wrap: nowrap; }
+  .modal-title { min-width: 0; flex: 1; }
+  .modal-close { flex: 0 0 28px; }
   .camp-search { width: 100%; max-width: 100%; }
   #toast { left: 10px; right: 10px; bottom: 12px; max-width: none; }
 }
@@ -329,7 +378,13 @@
   .card { padding: 12px; }
   .firmdesk-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
-  .form-grid, .mic-drawer__grid, .mic-drawer__sliders { grid-template-columns: 1fr; }
+  .form-grid, .mic-drawer__grid, .mic-drawer__sliders, .comp-top-grid,
+  .modal [style*="grid-template-columns:1fr 1fr"],
+  .page [style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+  #camp-detail .card-hdr { flex-wrap: nowrap; align-items: center; }
+  #camp-detail .card-hdr > div:first-child { flex: 1 1 auto; min-width: 0; }
+  #camp-detail .card-hdr > div:last-child { flex: 0 0 auto; }
+  #camp-detail .card-title { max-width: 100%; }
   .modal-footer .btn { flex: 1 1 auto; justify-content: center; }
   #page-dialer.page.active { padding: 6px 6px 6px; }
   #page-dialer .btn-ready-big { font-size: 14px; padding: 12px 10px; }

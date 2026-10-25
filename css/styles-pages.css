@@ -326,7 +326,25 @@ min-height: 0;
   min-width: 0;
 }
 .takvim-toolbar--overlay {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+}
+.takvim-ov-head { display: contents; }
+.takvim-toolbar--overlay .takvim-toolbar-brand { grid-column: 1; grid-row: 1; }
+.takvim-toolbar--overlay .takvim-toolbar-actions { grid-column: 2; grid-row: 1; }
+.takvim-ov-close {
+  grid-column: 3;
+  grid-row: 1;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  flex: 0 0 36px;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
 }
 .takvim-toolbar-brand {
   display: flex;
