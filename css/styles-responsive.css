@@ -473,9 +473,9 @@
     scroll-snap-stop: always;
     order: 8;
   }
-  #tb-swipe .tb-slide:has(#tb-live-btn) { order: 1; }
-  #tb-swipe .tb-slide:has(#tb-mesai-btn) { order: 2; }
-  #tb-swipe .tb-slide:has(#aria-live) { order: 3; }
+  #tb-swipe .tb-slide:has(#aria-live) { order: 1; }
+  #tb-swipe .tb-slide:has(#tb-live-btn) { order: 2; }
+  #tb-swipe .tb-slide:has(#tb-mesai-btn) { order: 3; }
   #tb-swipe .tb-slide:has(#tb-results) { order: 4; }
   #tb-swipe .tb-slide:has(#pill-camp-btn) { order: 5; }
   #tb-swipe .tb-slide:has(#pill-bal-btn) { order: 6; }
@@ -493,24 +493,9 @@
     max-width: calc(100cqi - 16px);
     position: relative;
   }
-  #tb-swipe #tb-mesai-btn {
-    width: calc(100cqi - 8px);
-    max-width: calc(100cqi - 8px);
-    height: 36px;
-    padding: 2px 8px;
-    flex-direction: column;
-    justify-content: center;
-    gap: 1px;
-  }
+  #tb-swipe #tb-mesai-btn { max-width: calc(100cqi - 8px); padding: 0 8px; }
   #tb-swipe #tb-mesai-btn svg { display: none; }
-  #tb-swipe #tb-mesai-label,
-  #tb-swipe #tb-mesai-left {
-    display: block !important;
-    max-width: 100%;
-    font-size: 11px;
-    line-height: 1.05;
-    text-align: center;
-  }
+  #tb-swipe #tb-mesai-rot > span { max-width: calc(100cqi - 24px); font-size: 12px; }
   #tb-swipe #pill-camp-btn,
   #tb-swipe #pill-bal-btn,
   #tb-swipe #pill-ping-btn,

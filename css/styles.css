@@ -192,8 +192,11 @@ max-width: 100%;
   max-width: 100%;
   gap: 8px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
 }
+#tb-swipe.is-overflow { cursor: grab; }
+#tb-swipe.is-dragging { cursor: grabbing; user-select: none; }
 .tb-swipe::-webkit-scrollbar { display: none; height: 0; }
 .tb-pin {
   display: flex;
@@ -967,6 +970,7 @@ button.tb-pill.pill-bal.is-neg {
   padding: 0 8px;
   gap: 5px;
   justify-content: flex-start;
+  flex: none;
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -976,20 +980,45 @@ button.tb-pill.pill-bal.is-neg {
   box-sizing: border-box;
   color: var(--text);
 }
-#tb-mesai-label { width: auto; max-width: 132px; overflow: hidden; text-overflow: ellipsis; text-align: left; white-space: nowrap; line-height: 1; }
-#tb-mesai-left {
+.tb-mesai-rot {
   position: relative;
   z-index: 1;
-  max-width: 84px;
+  display: grid;
+  overflow: hidden;
+  align-items: center;
+  min-width: 0;
+}
+#tb-mesai-rot {
+  display: grid;
+  line-height: 1;
+}
+#tb-mesai-rot > span {
+  grid-area: 1 / 1;
+  width: max-content;
+  max-width: 168px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1;
+  text-align: left;
+  transition: transform .45s ease, opacity .45s ease;
+}
+#tb-mesai-label { font-weight: 700; }
+#tb-mesai-left {
   font-variant-numeric: tabular-nums;
   font-weight: 800;
   color: var(--accent);
-  line-height: 1;
 }
-#tb-mesai-left:empty { display: none; }
+#tb-mesai-rot > #tb-mesai-label,
+#tb-mesai-rot > #tb-mesai-left { display: block !important; }
+#tb-mesai-left:empty,
+#tb-mesai-rot > #tb-mesai-left:empty { display: none !important; }
+#tb-mesai-rot:not(.is-count) > #tb-mesai-left { transform: translateX(110%); opacity: 0; }
+#tb-mesai-rot.is-count > #tb-mesai-label { transform: translateX(-110%); opacity: 0; }
+#tb-mesai-rot.is-count > #tb-mesai-left { transform: none; opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  #tb-mesai-rot > span { transition: none; }
+}
 .tb-mesai-fill {
   position: absolute;
   left: 0;
@@ -2405,9 +2434,6 @@ visibility: visible;
 .aria-live.is-pasif { color: var(--text-3); }
 .aria-live.is-pasif .aria-orb { background: var(--text-3); box-shadow: none; animation: none; }
 .aria-live[hidden] { display: none; }
-@media (min-width: 769px) {
-  #tb-pin .aria-live { height: 32px; }
-}
 @keyframes aria-breathe {
   0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
   50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 8%, transparent); }

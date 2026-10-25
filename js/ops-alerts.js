@@ -1883,6 +1883,7 @@ const OPS_GUN_LABEL = { pzt: 'Pazartesi', sal: 'Salı', car: 'Çarşamba', per: 
 const OPS_GUN_ORDER = ['pzt', 'sal', 'car', 'per', 'cum', 'cmt', 'paz'];
 let _opsMesaiPlan = null;
 let _opsMesaiPaintTimer = 0;
+let _opsMesaiRotTimer = 0;
 let _opsMesaiPopGun = '';
 let _opsMesaiTz = 'Europe/Berlin';
 let _opsMesaiAt = 0;
@@ -2608,9 +2609,24 @@ function opsTickShift() {
   opsNoteBreakSoon();
 }
 
+function opsSpinMesaiChip() {
+  const rot = document.getElementById('tb-mesai-rot');
+  const left = document.getElementById('tb-mesai-left');
+  const label = document.getElementById('tb-mesai-label');
+  if (!rot) return;
+  const showCount = !!(left && left.textContent.trim());
+  if (!showCount) rot.classList.remove('is-count');
+  else rot.classList.toggle('is-count');
+  const counting = rot.classList.contains('is-count') && showCount;
+  if (label) label.setAttribute('aria-hidden', counting ? 'true' : 'false');
+  if (left) left.setAttribute('aria-hidden', counting ? 'false' : 'true');
+}
+
 function opsBoot() {
   if (_opsDirectiveTimer) clearInterval(_opsDirectiveTimer);
   if (_opsMesaiPaintTimer) clearInterval(_opsMesaiPaintTimer);
+  if (_opsMesaiRotTimer) clearInterval(_opsMesaiRotTimer);
+  _opsMesaiRotTimer = setInterval(opsSpinMesaiChip, 5000);
   _opsMesaiPaintTimer = setInterval(() => {
     if (!currentUser) return;
     opsPaintMesaiBar();

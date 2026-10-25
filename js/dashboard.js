@@ -1067,16 +1067,65 @@ document.addEventListener('mouseover', (ev) => {
   else if (typeof opsScheduleHideCampSummary === 'function') opsScheduleHideCampSummary();
 });
 
+function mbBindBarDrag(swipe) {
+  if (!swipe || swipe._dragBound) return;
+  swipe._dragBound = true;
+  let pointer = 0;
+  let startX = 0;
+  let startLeft = 0;
+  let drag = false;
+  const can = () => swipe.scrollWidth > swipe.clientWidth + 2;
+  swipe.addEventListener('pointerdown', (ev) => {
+    if (ev.pointerType !== 'mouse' || ev.button !== 0 || !can()) return;
+    pointer = ev.pointerId;
+    startX = ev.clientX;
+    startLeft = swipe.scrollLeft;
+    drag = false;
+  });
+  swipe.addEventListener('pointermove', (ev) => {
+    if (!pointer || ev.pointerId !== pointer) return;
+    const dx = ev.clientX - startX;
+    if (!drag) {
+      if (Math.abs(dx) < 6) return;
+      drag = true;
+      swipe.classList.add('is-dragging');
+      try { swipe.setPointerCapture(pointer); } catch (e) {}
+    }
+    swipe.scrollLeft = startLeft - dx;
+  });
+  const end = (ev) => {
+    if (!pointer || ev.pointerId !== pointer) return;
+    if (drag) {
+      swipe.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, { capture: true, once: true });
+    }
+    swipe.classList.remove('is-dragging');
+    pointer = 0;
+    drag = false;
+  };
+  swipe.addEventListener('pointerup', end);
+  swipe.addEventListener('pointercancel', end);
+  swipe.addEventListener('wheel', (ev) => {
+    if (!can() || Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) return;
+    swipe.scrollLeft += ev.deltaY;
+    ev.preventDefault();
+  }, { passive: false });
+}
+
 function mbPackBar() {
   const swipe = document.getElementById('tb-swipe');
   if (!swipe) return;
   if (mbNarrowBar()) {
     swipe.style.justifyContent = '';
+    swipe.classList.remove('is-overflow');
     return;
   }
   swipe.style.justifyContent = 'flex-start';
   const overflows = swipe.scrollWidth > swipe.clientWidth + 2;
   swipe.style.justifyContent = overflows ? 'flex-start' : 'flex-end';
+  swipe.classList.toggle('is-overflow', overflows);
 }
 
 function mbNarrowBar() {
@@ -1143,14 +1192,11 @@ function mbBarCrowded(bar) {
 
 function mbPlaceMascotChip() {
   const slide = document.getElementById('aria-live')?.closest('.tb-slide');
-  const pin = document.getElementById('tb-pin');
   const wrap = document.getElementById('tb-pills-wrap');
-  if (!slide || !pin || !wrap) return;
-  if (mbNarrowBar()) {
-    if (slide.parentElement !== wrap) wrap.appendChild(slide);
-    return;
+  if (!slide || !wrap) return;
+  if (slide.parentElement !== wrap || wrap.firstElementChild !== slide) {
+    wrap.insertBefore(slide, wrap.firstChild);
   }
-  if (slide.parentElement !== pin) pin.insertBefore(slide, pin.firstChild);
 }
 
 function mbFitStatus() {
@@ -1185,6 +1231,7 @@ setInterval(mbSpinCounts, 1400);
   if (bar && window.ResizeObserver) new ResizeObserver(() => mbFitStatus()).observe(bar);
   if (swipe && !swipe._swipeBound) {
     swipe._swipeBound = true;
+    mbBindBarDrag(swipe);
     swipe.addEventListener('scroll', () => {
       if (swipe._swipeHold) {
         mbSwipeSync();
