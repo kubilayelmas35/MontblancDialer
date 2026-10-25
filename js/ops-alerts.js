@@ -1971,14 +1971,30 @@ function opsLeftClock(totalSeconds) {
   return `${hour}:${pad(minute)}:${pad(second)}`;
 }
 
-function opsMesaiChipParts(view, cue) {
+function opsBreakMinsText(mins) {
+  const n = Math.max(1, Math.round(Number(mins) || 0));
+  return opsDe() ? `${n} Min` : `${n} dk`;
+}
+
+function opsBreakFace(cue) {
+  const parts = String(cue?.when || '').split(/[–-]/).map((part) => part.trim()).filter(Boolean);
+  if (parts.length < 2) return null;
+  const start = opsHmMins(parts[0]);
+  const end = opsHmMins(parts[1]);
+  if (start == null || end == null || end <= start) return null;
+  return { text: `${parts[0]}–${parts[1]}`, mins: end - start };
+}
+
+function opsMesaiChipSlides(view, cue) {
   const say = (key, fb) => (typeof opsSay === 'function' ? opsSay(key, fb) : fb);
   const day = view?.day;
   const clock = view?.clock || { mins: 0, second: 0 };
   const none = say('ops.mesai.none', 'Mesai yok');
-  if (!day || day.off || !day.start || !day.end) return { range: none, left: '' };
+  if (!day || day.off || !day.start || !day.end) return [{ k: 'range', text: none }];
   const span = view.rolled && day.short ? `${day.short} ${day.start}–${day.end}` : `${day.start}–${day.end}`;
-  if (cue?.stage === 'over') return { range: span, left: say('ops.mesai.chipOver', 'Bitti') };
+  if (cue?.stage === 'over') {
+    return [{ k: 'range', text: span }, { k: 'left', text: say('ops.mesai.chipOver', 'Bitti') }];
+  }
   const secNow = clock.mins * 60 + (Number(clock.second) || 0);
   let leftSec = null;
   if (view.rolled || cue?.stage === 'start') {
@@ -1996,8 +2012,57 @@ function opsMesaiChipParts(view, cue) {
     const end = opsHmMins(day.end);
     if (end != null) leftSec = end * 60 - secNow;
   }
-  if (leftSec == null) return { range: span, left: '' };
-  return { range: span, left: opsLeftClock(leftSec) };
+  const slides = [{ k: 'range', text: span }];
+  if (cue?.stage === 'live' || cue?.stage === 'break') {
+    const face = opsBreakFace(cue);
+    if (face) {
+      slides.push({ k: 'break', text: face.text });
+      slides.push({ k: 'len', text: opsBreakMinsText(face.mins) });
+    }
+  }
+  if (leftSec != null) slides.push({ k: 'left', text: opsLeftClock(Math.max(0, leftSec)) });
+  return slides;
+}
+
+function opsApplyMesaiSlide(prev) {
+  const rot = document.getElementById('tb-mesai-rot');
+  if (!rot) return;
+  const kids = [...rot.children];
+  if (!kids.length) return;
+  let index = Number(rot.dataset.i) || 0;
+  if (index >= kids.length) index = 0;
+  rot.dataset.i = String(index);
+  kids.forEach((el, n) => {
+    el.classList.toggle('is-on', n === index);
+    el.classList.toggle('is-out', prev != null && n === prev && n !== index);
+    el.setAttribute('aria-hidden', n === index ? 'false' : 'true');
+  });
+}
+
+function opsPaintMesaiSlides(slides) {
+  const rot = document.getElementById('tb-mesai-rot');
+  if (!rot) return;
+  const list = Array.isArray(slides) && slides.length ? slides : [];
+  const sig = list.map((item) => item.k).join(',');
+  if (rot.dataset.sig !== sig) {
+    const index = Math.min(Number(rot.dataset.i) || 0, Math.max(0, list.length - 1));
+    rot.dataset.sig = sig;
+    rot.dataset.i = String(index);
+    rot.replaceChildren(...list.map((item) => {
+      const el = document.createElement('span');
+      el.dataset.k = item.k;
+      if (item.k === 'range') el.id = 'tb-mesai-label';
+      if (item.k === 'left') el.id = 'tb-mesai-left';
+      el.textContent = item.text;
+      return el;
+    }));
+    opsApplyMesaiSlide();
+    return;
+  }
+  list.forEach((item) => {
+    const el = rot.querySelector(`[data-k="${item.k}"]`);
+    if (el && el.textContent !== item.text) el.textContent = item.text;
+  });
 }
 
 function opsMesaiWindow() {
@@ -2258,9 +2323,9 @@ function opsMesaiStateWord(cue) {
 }
 
 function opsPaintMesaiBar() {
-  const label = document.getElementById('tb-mesai-label');
   const btn = document.getElementById('tb-mesai-btn');
-  if (!label || !btn) return;
+  const rot = document.getElementById('tb-mesai-rot');
+  if (!btn || !rot) return;
   const view = opsMesaiFocus();
   const phase = opsMesaiPhase(opsMesaiWindow());
   const cue = view.rolled
@@ -2269,10 +2334,8 @@ function opsPaintMesaiBar() {
   const flashed = _opsMesaiFlash && _opsMesaiFlash.until > Date.now();
   const word = opsMesaiStateWord(cue);
   const detail = flashed ? _opsMesaiFlash.text : (cue.detail || cue.title);
-  const chip = opsMesaiChipParts(view, cue);
-  label.textContent = chip.range;
-  const left = document.getElementById('tb-mesai-left');
-  if (left) left.textContent = chip.left;
+  const chip = opsMesaiChipSlides(view, cue);
+  opsPaintMesaiSlides(chip);
   btn.title = detail && detail !== word ? `${word} · ${detail}` : word;
   btn.classList.toggle('is-due', flashed || (!view.rolled && !!phase.due));
   btn.classList.toggle('is-break-soon', !view.rolled && !!opsBreakSoon());
@@ -2611,15 +2674,10 @@ function opsTickShift() {
 
 function opsSpinMesaiChip() {
   const rot = document.getElementById('tb-mesai-rot');
-  const left = document.getElementById('tb-mesai-left');
-  const label = document.getElementById('tb-mesai-label');
-  if (!rot) return;
-  const showCount = !!(left && left.textContent.trim());
-  if (!showCount) rot.classList.remove('is-count');
-  else rot.classList.toggle('is-count');
-  const counting = rot.classList.contains('is-count') && showCount;
-  if (label) label.setAttribute('aria-hidden', counting ? 'true' : 'false');
-  if (left) left.setAttribute('aria-hidden', counting ? 'false' : 'true');
+  if (!rot || rot.children.length < 2) return;
+  const prev = Number(rot.dataset.i) || 0;
+  rot.dataset.i = String((prev + 1) % rot.children.length);
+  opsApplyMesaiSlide(prev);
 }
 
 function opsBoot() {
