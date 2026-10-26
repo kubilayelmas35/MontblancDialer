@@ -718,7 +718,7 @@ html[data-theme="dark"] .kub-day.active{
         <div class="col-12">
           <label id="searchLabel" style="font-size:.79rem;font-weight:600;">Şehir veya posta kodu ara</label>
           <div class="position-relative">
-            <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="z.B. 'Berlin' oder '10115'">
+            <input type="search" class="form-control form-control-sm" id="searchInput" name="mb-plz-city" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="search" enterkeyhint="search" readonly placeholder="z.B. 'Berlin' oder '10115'">
             <div id="suggestionsDropdown"></div>
           </div>
         </div>
@@ -748,11 +748,11 @@ html[data-theme="dark"] .kub-day.active{
       <div class="corridor-plz-row mb-2">
         <div>
           <label id="corridorALabel" style="font-size:.72rem;font-weight:600;">Kod A</label>
-          <input type="text" class="form-control form-control-sm" id="corridorPlzA" placeholder="z.B. 71364" maxlength="5" inputmode="numeric">
+          <input type="text" class="form-control form-control-sm" id="corridorPlzA" name="mb-plz-a" autocomplete="off" placeholder="z.B. 71364" maxlength="5" inputmode="numeric">
         </div>
         <div>
           <label id="corridorBLabel" style="font-size:.72rem;font-weight:600;">Kod B</label>
-          <input type="text" class="form-control form-control-sm" id="corridorPlzB" placeholder="z.B. 71686" maxlength="5" inputmode="numeric">
+          <input type="text" class="form-control form-control-sm" id="corridorPlzB" name="mb-plz-b" autocomplete="off" placeholder="z.B. 71686" maxlength="5" inputmode="numeric">
         </div>
       </div>
       <label id="corridorWidthLabel" style="font-size:.72rem;font-weight:600;">Korridor-Halbbreite</label>
@@ -4607,6 +4607,7 @@ if(corridorWidthInput){
   if(!el)return;
   el.addEventListener('keypress',e=>{if(e.key==='Enter')searchCorridor();});
 });
+searchInput.addEventListener('focus',function(){const el=this;setTimeout(function(){el.removeAttribute('readonly');},0);});
 searchInput.addEventListener('input',function(){const q=this.value.trim();if(q.length>=2)fetchSugg(q);else suggestDrop.style.display='none';});
 searchInput.addEventListener('keypress',e=>{if(e.key==='Enter')searchLocation();});
 document.addEventListener('click',e=>{if(!searchInput.contains(e.target)&&!suggestDrop.contains(e.target))suggestDrop.style.display='none';});
