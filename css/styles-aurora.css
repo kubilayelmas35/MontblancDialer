@@ -167,6 +167,23 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
     rgba(20, 28, 42, 0.5) 360deg);
   opacity: 0.35;
 }
+.tb-logo.is-box-tint .fluid-aurora--logo::before,
+[data-theme="dark"] .tb-logo.is-box-tint .fluid-aurora--logo::before {
+  background: conic-gradient(from 118deg at 38% 32%,
+    var(--logo-box-a) 0deg,
+    color-mix(in srgb, var(--logo-box-b) 55%, white) 120deg,
+    var(--logo-box-a) 240deg,
+    var(--logo-box-b) 360deg);
+  opacity: 0.9;
+}
+.tb-logo.is-box-tint .fluid-aurora--logo::after,
+[data-theme="dark"] .tb-logo.is-box-tint .fluid-aurora--logo::after {
+  background: conic-gradient(from 305deg at 62% 58%,
+    var(--logo-box-b) 0deg,
+    var(--logo-box-a) 180deg,
+    var(--logo-box-b) 360deg);
+  opacity: 0.55;
+}
 .form-input.is-invalid { border-color: var(--red); box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.18); }
 .nc-inline-err { font-size: 11px; color: var(--red); margin-top: 4px; }
 .mb-month-wrap { position: relative; display: inline-flex; align-items: center; }

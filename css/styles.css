@@ -399,34 +399,51 @@ color: #0f172a;
 text-shadow: none;
 margin: 0;
 }
-.tb-logo-one { color: #2563eb; }
+.tb-logo-one { color: var(--logo-one, #2563eb); }
+.tb-logo.is-text .tb-logo-name,
+[data-theme="dark"] .tb-logo.is-text .tb-logo-name { color: var(--logo-text); }
+.tb-logo.is-text .tb-logo-mark,
+[data-theme="dark"] .tb-logo.is-text .tb-logo-mark { color: var(--logo-text); }
 .tb-logo-eye { fill: var(--logo-eye-l, currentColor); }
 .tb-logo-eye--r { fill: var(--logo-eye-r, #2563eb); }
 .tb-logo.is-blink .tb-logo-eye {
   transform-box: fill-box;
   transform-origin: center;
-  animation: mbLogoBlink 5.4s ease-in-out infinite;
+  animation: mbLogoBlink var(--logo-blink, 5.4s) ease-in-out infinite;
 }
-.tb-logo.is-blink .tb-logo-eye--r { animation-delay: 0.08s; }
+.tb-logo.is-blink.is-blink-alt .tb-logo-eye--r {
+  animation-delay: calc(var(--logo-blink, 5.4s) / 2);
+}
+.tb-logo.is-blink-left:not(.is-aurora-r) .tb-logo-eye--r,
+.tb-logo.is-blink-right:not(.is-aurora-l) .tb-logo-eye--l { animation: none; }
 .tb-logo.is-aurora-l:not(.is-blink) .tb-logo-eye--l,
-.tb-logo.is-aurora-r:not(.is-blink) .tb-logo-eye--r {
-  animation: mbLogoEyeAurora 5.5s ease-in-out infinite;
+.tb-logo.is-blink-right.is-aurora-l .tb-logo-eye--l {
+  animation: mbLogoEyeAuroraL 5.5s ease-in-out infinite;
+}
+.tb-logo.is-aurora-r:not(.is-blink) .tb-logo-eye--r,
+.tb-logo.is-blink-left.is-aurora-r .tb-logo-eye--r {
+  animation: mbLogoEyeAuroraR 5.5s ease-in-out infinite;
 }
 .tb-logo.is-blink.is-aurora-l .tb-logo-eye--l {
-  animation: mbLogoBlink 5.4s ease-in-out infinite, mbLogoEyeAurora 5.5s ease-in-out infinite;
+  animation: mbLogoBlink var(--logo-blink, 5.4s) ease-in-out infinite, mbLogoEyeAuroraL 5.5s ease-in-out infinite;
 }
 .tb-logo.is-blink.is-aurora-r .tb-logo-eye--r {
-  animation: mbLogoBlink 5.4s ease-in-out infinite, mbLogoEyeAurora 5.5s ease-in-out infinite;
-  animation-delay: 0.08s, 0s;
+  animation: mbLogoBlink var(--logo-blink, 5.4s) ease-in-out infinite, mbLogoEyeAuroraR 5.5s ease-in-out infinite;
+}
+.tb-logo.is-blink.is-blink-alt.is-aurora-r .tb-logo-eye--r {
+  animation-delay: calc(var(--logo-blink, 5.4s) / 2), 0s;
 }
 @keyframes mbLogoBlink {
   0%, 38%, 42%, 100% { transform: scaleY(1); }
   40% { transform: scaleY(0.08); }
 }
-@keyframes mbLogoEyeAurora {
-  0%, 100% { fill: #7dd3fc; }
-  40% { fill: #818cf8; }
-  70% { fill: #22d3ee; }
+@keyframes mbLogoEyeAuroraL {
+  0%, 100% { fill: var(--logo-al-a, #7dd3fc); }
+  50% { fill: var(--logo-al-b, #818cf8); }
+}
+@keyframes mbLogoEyeAuroraR {
+  0%, 100% { fill: var(--logo-ar-a, #38bdf8); }
+  50% { fill: var(--logo-ar-b, #2563eb); }
 }
 [data-theme="dark"] .tb-logo.is-box {
   border-color: rgba(255, 255, 255, 0.22);

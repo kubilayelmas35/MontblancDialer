@@ -3639,13 +3639,48 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <input type="checkbox" id="logo-blink" checked style="width:15px;height:15px;">
 <span data-tr="Göz kırpma" data-de="Blinzeln">Göz kırpma</span>
 </label>
+<div class="form-row">
+<label class="form-label" data-tr="Kırpma" data-de="Blinzeln">Kırpma</label>
+<select class="form-input" id="logo-blink-mode">
+<option value="sync" data-tr="Birlikte" data-de="Gleichzeitig">Birlikte</option>
+<option value="alt" data-tr="Sırayla" data-de="Nacheinander">Sırayla</option>
+<option value="left" data-tr="Yalnız sol" data-de="Nur links">Yalnız sol</option>
+<option value="right" data-tr="Yalnız sağ" data-de="Nur rechts">Yalnız sağ</option>
+</select>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Kırpma temposu" data-de="Blinzeltempo">Kırpma temposu</label>
+<input type="range" id="logo-blink-sec" min="2" max="10" step="0.5" value="5">
+</div>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
 <input type="checkbox" id="logo-box" checked style="width:15px;height:15px;">
 <span data-tr="Aurora kutu" data-de="Aurora-Kasten">Aurora kutu</span>
 </label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+<input type="checkbox" id="logo-box-custom" style="width:15px;height:15px;">
+<span data-tr="Kutu renkleri" data-de="Kastenfarben">Kutu renkleri</span>
+</label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<input type="color" id="logo-box-a" value="#e8eef8" disabled style="width:100%;height:32px;padding:2px;" title="Kutu A">
+<input type="color" id="logo-box-b" value="#2563eb" disabled style="width:100%;height:32px;padding:2px;" title="Kutu B">
+</div>
 <div class="form-row">
 <label class="form-label" data-tr="Yazı aralığı" data-de="Abstand zur Schrift">Yazı aralığı</label>
 <input type="range" id="logo-gap" min="0" max="18" step="1" value="6">
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div>
+<label class="form-label" data-tr="Yazı" data-de="Schrift">Yazı</label>
+<input type="color" id="logo-text" value="#0f172a" disabled style="width:100%;height:32px;padding:2px;">
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
+<input type="checkbox" id="logo-text-auto" checked style="width:14px;height:14px;">
+<span data-tr="Tema rengi" data-de="Themefarbe">Tema rengi</span>
+</label>
+</div>
+<div>
+<label class="form-label">.one</label>
+<input type="color" id="logo-one" value="#2563eb" style="width:100%;height:32px;padding:2px;">
+</div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
 <div>
@@ -3659,6 +3694,10 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <input type="checkbox" id="logo-eye-l-aurora" style="width:14px;height:14px;">
 <span>Aurora</span>
 </label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;">
+<input type="color" id="logo-eye-l-a" value="#7dd3fc" disabled style="width:100%;height:28px;padding:2px;">
+<input type="color" id="logo-eye-l-b" value="#818cf8" disabled style="width:100%;height:28px;padding:2px;">
+</div>
 </div>
 <div>
 <label class="form-label" data-tr="Sağ göz" data-de="Rechtes Auge">Sağ göz</label>
@@ -3667,6 +3706,10 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <input type="checkbox" id="logo-eye-r-aurora" style="width:14px;height:14px;">
 <span>Aurora</span>
 </label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;">
+<input type="color" id="logo-eye-r-a" value="#38bdf8" disabled style="width:100%;height:28px;padding:2px;">
+<input type="color" id="logo-eye-r-b" value="#2563eb" disabled style="width:100%;height:28px;padding:2px;">
+</div>
 </div>
 </div>
 <button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="mbSaveLogoSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Logoyu kaydet" data-de="Logo speichern">Logoyu kaydet</span></button>
