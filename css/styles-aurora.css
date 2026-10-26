@@ -33,6 +33,7 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
     rgba(37, 99, 235, 0.55) 360deg);
   animation: fluid-spin 19s linear infinite;
   filter: blur(56px);
+  opacity: 0.62;
 }
 .fluid-aurora--login::after {
   background: conic-gradient(from 180deg at 55% 55%,
@@ -42,7 +43,7 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
     rgba(255, 255, 255, 0.18) 360deg);
   animation: fluid-spin-rev 24s linear infinite;
   filter: blur(48px);
-  opacity: 0.85;
+  opacity: 0.42;
 }
 [data-theme="dark"] .fluid-aurora--login::before {
   opacity: 0.75;
