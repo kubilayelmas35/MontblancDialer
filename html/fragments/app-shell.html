@@ -3,14 +3,14 @@
 <button class="tb-hamburger" onclick="toggleSidebar()" id="hamburger">
 <span></span><span></span><span></span>
 </button>
-<div class="tb-logo">
+<div class="tb-logo is-blink is-box" id="tb-logo">
 <div class="tb-logo-aurora fluid-aurora fluid-aurora--logo" aria-hidden="true"></div>
 <div class="tb-logo-inner">
 <div class="tb-logo-mark">
 <svg width="32" height="32" viewBox="0 0 64 64" aria-hidden="true">
 <g transform="rotate(-38 32 32)">
-<rect x="12" y="18" width="16" height="28" rx="8" fill="currentColor"/>
-<rect x="36" y="18" width="16" height="28" rx="8" fill="#2563eb"/>
+<rect class="tb-logo-eye tb-logo-eye--l" x="12" y="18" width="16" height="28" rx="8"/>
+<rect class="tb-logo-eye tb-logo-eye--r" x="36" y="18" width="16" height="28" rx="8"/>
 </g>
 </svg>
 </div>
@@ -3614,6 +3614,62 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <button type="button" class="btn btn-primary btn-sm" style="margin-top:12px;align-self:flex-start;" onclick="saveMascotSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Maskotu kaydet" data-de="Maskottchen speichern">Maskotu kaydet</span></button>
 </div>
+</div>
+</div>
+<div class="card" id="logo-settings-card">
+<div class="card-title" style="margin-bottom:12px;" data-tr="Logo" data-de="Logo">Logo</div>
+<div class="tb-logo is-blink is-box" id="logo-set-preview" style="margin-bottom:14px;">
+<div class="tb-logo-aurora fluid-aurora fluid-aurora--logo" aria-hidden="true"></div>
+<div class="tb-logo-inner">
+<div class="tb-logo-mark">
+<svg width="32" height="32" viewBox="0 0 64 64" aria-hidden="true">
+<g transform="rotate(-38 32 32)">
+<rect class="tb-logo-eye tb-logo-eye--l" x="12" y="18" width="16" height="28" rx="8"/>
+<rect class="tb-logo-eye tb-logo-eye--r" x="36" y="18" width="16" height="28" rx="8"/>
+</g>
+</svg>
+</div>
+<div class="tb-logo-text">
+<div class="tb-logo-name">callin<span class="tb-logo-one">.one</span></div>
+</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px;">
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+<input type="checkbox" id="logo-blink" checked style="width:15px;height:15px;">
+<span data-tr="Göz kırpma" data-de="Blinzeln">Göz kırpma</span>
+</label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+<input type="checkbox" id="logo-box" checked style="width:15px;height:15px;">
+<span data-tr="Aurora kutu" data-de="Aurora-Kasten">Aurora kutu</span>
+</label>
+<div class="form-row">
+<label class="form-label" data-tr="Yazı aralığı" data-de="Abstand zur Schrift">Yazı aralığı</label>
+<input type="range" id="logo-gap" min="0" max="18" step="1" value="6">
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div>
+<label class="form-label" data-tr="Sol göz" data-de="Linkes Auge">Sol göz</label>
+<input type="color" id="logo-eye-l" value="#0f172a" style="width:100%;height:32px;padding:2px;">
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
+<input type="checkbox" id="logo-eye-l-auto" checked style="width:14px;height:14px;">
+<span data-tr="Yazı rengi" data-de="Schriftfarbe">Yazı rengi</span>
+</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
+<input type="checkbox" id="logo-eye-l-aurora" style="width:14px;height:14px;">
+<span>Aurora</span>
+</label>
+</div>
+<div>
+<label class="form-label" data-tr="Sağ göz" data-de="Rechtes Auge">Sağ göz</label>
+<input type="color" id="logo-eye-r" value="#2563eb" style="width:100%;height:32px;padding:2px;">
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
+<input type="checkbox" id="logo-eye-r-aurora" style="width:14px;height:14px;">
+<span>Aurora</span>
+</label>
+</div>
+</div>
+<button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="mbSaveLogoSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Logoyu kaydet" data-de="Logo speichern">Logoyu kaydet</span></button>
 </div>
 </div>
 <div class="card" id="settings-api-keys-card">

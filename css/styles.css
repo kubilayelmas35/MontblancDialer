@@ -357,15 +357,20 @@ isolation: isolate;
 border: none;
 box-shadow: none;
 }
-.tb-logo-aurora {
-display: none;
+.tb-logo-aurora { display: none; }
+.tb-logo.is-box {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 1px 10px rgba(15, 23, 42, 0.08);
 }
+.tb-logo.is-box .tb-logo-aurora { display: block; }
 .tb-logo-inner {
 position: relative;
 z-index: 1;
 display: flex;
 align-items: center;
-gap: 11px;
+gap: var(--logo-gap, 6px);
 padding: 4px 10px 4px 6px;
 }
 .tb-logo-text {
@@ -395,10 +400,38 @@ text-shadow: none;
 margin: 0;
 }
 .tb-logo-one { color: #2563eb; }
-[data-theme="dark"] .tb-logo {
-border: none;
-box-shadow: none;
-background: none;
+.tb-logo-eye { fill: var(--logo-eye-l, currentColor); }
+.tb-logo-eye--r { fill: var(--logo-eye-r, #2563eb); }
+.tb-logo.is-blink .tb-logo-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mbLogoBlink 5.4s ease-in-out infinite;
+}
+.tb-logo.is-blink .tb-logo-eye--r { animation-delay: 0.08s; }
+.tb-logo.is-aurora-l:not(.is-blink) .tb-logo-eye--l,
+.tb-logo.is-aurora-r:not(.is-blink) .tb-logo-eye--r {
+  animation: mbLogoEyeAurora 5.5s ease-in-out infinite;
+}
+.tb-logo.is-blink.is-aurora-l .tb-logo-eye--l {
+  animation: mbLogoBlink 5.4s ease-in-out infinite, mbLogoEyeAurora 5.5s ease-in-out infinite;
+}
+.tb-logo.is-blink.is-aurora-r .tb-logo-eye--r {
+  animation: mbLogoBlink 5.4s ease-in-out infinite, mbLogoEyeAurora 5.5s ease-in-out infinite;
+  animation-delay: 0.08s, 0s;
+}
+@keyframes mbLogoBlink {
+  0%, 38%, 42%, 100% { transform: scaleY(1); }
+  40% { transform: scaleY(0.08); }
+}
+@keyframes mbLogoEyeAurora {
+  0%, 100% { fill: #7dd3fc; }
+  40% { fill: #818cf8; }
+  70% { fill: #22d3ee; }
+}
+[data-theme="dark"] .tb-logo.is-box {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.06);
 }
 [data-theme="dark"] .tb-logo-name { color: #f8fafc; }
 [data-theme="dark"] .tb-uname { color: #f8fafc; }
@@ -3122,6 +3155,7 @@ LOGIN PAGE
   .fluid-aurora--login::after,
   .fluid-aurora--logo::before,
   .fluid-aurora--logo::after,
+  .tb-logo-eye,
   .fluid-aurora--sidebar::before,
   .fluid-aurora--sidebar::after,
   .fluid-aurora--chat-fab::before,
