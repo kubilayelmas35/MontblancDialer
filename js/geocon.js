@@ -20,20 +20,33 @@ function mbGeoconOnTheme(theme) {
   try { frame.contentWindow.postMessage({ type: 'mb-geocon-theme', theme: next }, window.location.origin); } catch (_) {}
 }
 
+function mbGeoconGoogleKey() {
+  let key = '';
+  if (typeof _googleApiKey === 'string') key = _googleApiKey.trim();
+  if (!key) {
+    try { key = String(localStorage.getItem('mb_google_key') || '').trim(); } catch (e) {}
+  }
+  return key;
+}
+
 function loadGeoconPage() {
   const frame = document.getElementById('geocon-frame');
   if (!frame) return;
   const lang = geoDialerLang();
   const theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-  if (frame.dataset.loaded === '1') {
+  const key = mbGeoconGoogleKey();
+  try { sessionStorage.setItem('mb_geocon_google_key', key); } catch (e) {}
+  const stamp = key ? '1' : '0';
+  if (frame.dataset.loaded === '1' && frame.dataset.gkey === stamp) {
     try { frame.contentWindow.postMessage({ type: 'mb-geocon-lang', lang }, window.location.origin); } catch (_) {}
     try { frame.contentWindow.postMessage({ type: 'mb-geocon-theme', theme }, window.location.origin); } catch (_) {}
     void mbGeoconPushState(frame.contentWindow);
     return;
   }
-  const v = window.MB_APP_VERSION || '';
-  frame.src = `geocon/geocon.html?v=${encodeURIComponent(v)}&lang=${lang}&theme=${theme}`;
+  frame.dataset.gkey = stamp;
   frame.dataset.loaded = '1';
+  const v = window.MB_APP_VERSION || '';
+  frame.src = `geocon/geocon.html?v=${encodeURIComponent(v)}&lang=${lang}&theme=${theme}&g=${stamp}`;
 }
 
 function mbGeoconSetMode(on) {

@@ -19,7 +19,11 @@
     if(pick==='de'||pick==='tr')lang=pick;
     else if(String(navigator.language||'').toLowerCase().indexOf('de')===0)lang='de';
   }catch(e){}
-  var key=encodeURIComponent((window.GEOCON_CONFIG||{}).googleKey||'');
+  var key='';
+  try{key=sessionStorage.getItem('mb_geocon_google_key')||'';}catch(e){}
+  if(!key){try{key=localStorage.getItem('mb_google_key')||'';}catch(e){}}
+  if(!key)key=(window.GEOCON_CONFIG||{}).googleKey||'';
+  key=encodeURIComponent(key);
   document.write('<script src="https://maps.googleapis.com/maps/api/js?key='+key+'&libraries=places,geometry&v=weekly&language='+lang+'"><\/script>');
 })();
 </script>
