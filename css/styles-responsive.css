@@ -374,7 +374,7 @@
   #topbar { gap: 2px; padding: 0 4px; }
   .tb-pills-wrap, .tb-right { gap: 2px; }
   .tb-logo { margin-right: 0; }
-  .tb-logo-mark { width: 28px; height: 28px; }
+  .tb-logo-mark { width: auto; height: auto; }
   .tb-logo-inner { padding: 2px; }
   #tb-live-btn { width: auto; max-width: none; flex: 0 1 auto; }
   button.tb-icon-btn.tb-mesai {

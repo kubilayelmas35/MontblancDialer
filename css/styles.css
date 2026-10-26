@@ -350,19 +350,15 @@ flex-shrink: 0;
 z-index: 1;
 min-height: 0;
 max-height: 40px;
-border-radius: 12px;
-overflow: hidden;
-background: transparent;
+border-radius: 0;
+overflow: visible;
+background: none;
 isolation: isolate;
-border: 1px solid rgba(15, 23, 42, 0.1);
-box-shadow: 0 1px 10px rgba(15, 23, 42, 0.08);
+border: none;
+box-shadow: none;
 }
 .tb-logo-aurora {
-position: absolute;
-inset: 0;
-border-radius: inherit;
-pointer-events: none;
-z-index: 0;
+display: none;
 }
 .tb-logo-inner {
 position: relative;
@@ -378,17 +374,17 @@ align-items: center;
 line-height: 1.2;
 }
 .tb-logo-mark {
-width: 32px;
-height: 32px;
+width: auto;
+height: auto;
 flex-shrink: 0;
-background: #0f172a;
-border: 1px solid transparent;
-border-radius: 10px;
+background: none;
+border: none;
+border-radius: 0;
 display: flex;
 align-items: center;
 justify-content: center;
-color: #f8fafc;
-box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+color: #0f172a;
+box-shadow: none;
 }
 .tb-logo-name {
 font-size: 16px;
@@ -399,10 +395,40 @@ text-shadow: none;
 margin: 0;
 }
 .tb-logo-one { color: #2563eb; }
+.tb-logo-i {
+  position: relative;
+  display: inline-block;
+  width: 0.36em;
+  height: 0.95em;
+  margin: 0 0.02em;
+  vertical-align: -0.04em;
+}
+.tb-logo-i::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 0.18em;
+  height: 0.5em;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: currentColor;
+}
+.tb-logo-i::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 0.34em;
+  height: 0.34em;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #2563eb;
+}
 [data-theme="dark"] .tb-logo {
-border-color: rgba(255, 255, 255, 0.22);
+border: none;
 box-shadow: none;
-background: rgba(255, 255, 255, 0.06);
+background: none;
 }
 [data-theme="dark"] .tb-logo-name { color: #f8fafc; }
 [data-theme="dark"] .tb-uname { color: #f8fafc; }
@@ -424,7 +450,7 @@ background: rgba(255, 255, 255, 0.06);
 }
 [data-theme="dark"] .tb-test-flag { color: #fde68a; }
 [data-theme="dark"] .tb-logo-mark {
-  background: #0f172a;
+  background: none;
   border-color: transparent;
   color: #f8fafc;
 }
@@ -2023,9 +2049,10 @@ border-radius: 10px; font-family: var(--mono);
 /* Sidebar içinde tb-logo olursa (koyu zemin) */
 #sidebar .tb-logo-name { color: var(--brand-chrome-fg) !important; }
 #sidebar .tb-logo-mark {
-  color: #f8fafc !important;
-  background: #0f172a !important;
+  color: var(--brand-chrome-fg) !important;
+  background: none !important;
   border-color: transparent !important;
+  box-shadow: none !important;
 }
 #sidebar .tb-hamburger { color: rgba(255,255,255,0.82); }
 #sidebar .tb-hamburger:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); }
@@ -3058,10 +3085,10 @@ LOGIN PAGE
 @media(max-width:700px){.login-left{display:none;}}
 .login-brand { display:flex; flex-direction:column; gap:16px; }
 .login-logo-svg {
-  width:72px; height:72px; border-radius:20px;
-  background:rgba(255,255,255,.15); backdrop-filter:blur(8px);
+  width:auto; height:auto; border-radius:0;
+  background:none; backdrop-filter:none; -webkit-backdrop-filter:none;
   display:flex; align-items:center; justify-content:center;
-  border:2px solid rgba(255,255,255,.25);
+  border:none; color:#fff;
 }
 .login-brand-name { font-size:32px; font-weight:800; letter-spacing:-1px; margin-top:8px; }
 .login-brand-sub  { font-size:14px; opacity:.7; font-weight:500; margin-top:-4px; }
@@ -3145,10 +3172,11 @@ LOGIN PAGE
 }
 .login-card-logo { display:flex; align-items:center; gap:12px; margin-bottom:4px; }
 .login-logo-mark {
-  width:46px; height:46px; border-radius:12px;
-  background:#0f172a;
+  width:auto; height:auto; border-radius:0;
+  background:none;
   display:flex; align-items:center; justify-content:center;
-  box-shadow:0 4px 16px rgba(15,23,42,.28); flex-shrink:0;
+  box-shadow:none; flex-shrink:0;
+  color:var(--text);
 }
 .login-title { font-size:22px; font-weight:800; letter-spacing:-.5px; }
 .login-sub   { font-size:13px; color:var(--text-3); margin-top:2px; }
