@@ -153,7 +153,7 @@ if (typeof mbEnsureSession === 'function') {
 renderFirmSelector('camp-firm-selector', loadCampaigns);
 try {
 const ff = getFirmFilter('&');
-campaigns = await sb(`campaigns?select=*,queues(*),agent_campaigns(*)&order=created_at.desc${ff}`);
+campaigns = await sb(`campaigns?select=*,queues(*),agent_campaigns(*)&order=name.asc${ff}`);
 campaigns = campaigns || [];
 await attachCampaignPeople();
 await reconcileQueueTotals(campaigns);
@@ -246,6 +246,10 @@ function campFirmName(firmId) {
   return String(row?.name || '').trim();
 }
 
+function campByCode(a, b) {
+  return String(a?.name || '').localeCompare(String(b?.name || ''), 'tr', { numeric: true, sensitivity: 'base' });
+}
+
 function campVisibleList() {
   const q = _campSearch.toLocaleLowerCase('tr-TR');
   return (campaigns || []).filter((c) => {
@@ -256,7 +260,7 @@ function campVisibleList() {
     }
     const text = campRowFields(c, campShowFirm()).text;
     return Object.entries(_campColFilters).every(([key, raw]) => !key || campMatch(text[key] || '', raw));
-  });
+  }).sort(campByCode);
 }
 
 function campColDefs() {
