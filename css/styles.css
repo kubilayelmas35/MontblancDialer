@@ -3157,14 +3157,15 @@ LOGIN PAGE
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border-right: 1px solid rgba(255,255,255,0.12);
-  display:flex; flex-direction:column; justify-content:space-between;
+  display:flex; flex-direction:column; justify-content:center;
   padding:48px 52px; color:#fff;
+  position:relative;
 }
 [data-theme="dark"] .login-left {
   background: rgba(15, 23, 42, 0.45);
   border-right-color: rgba(255,255,255,0.08);
 }
-.login-brand-name, .login-brand-sub { text-shadow: 0 1px 18px rgba(0,0,0,0.35); }
+.login-brand-name, .login-brand-sub { text-shadow: none; }
 @media(max-width:700px){.login-left{display:none;}}
 .login-brand { display:flex; flex-direction:column; gap:16px; }
 .login-lockup { display:flex; align-items:center; gap:16px; }
@@ -3181,46 +3182,20 @@ LOGIN PAGE
 .login-left .tb-logo.is-box { overflow:visible; border:none; box-shadow:none; background:none; }
 .login-left .tb-logo-aurora { display:none; }
 .login-left .tb-logo-mark { color:#fff; }
-.login-left .login-logo-svg svg { filter: drop-shadow(0 10px 18px rgba(15, 23, 42, 0.28)); }
-.login-brand-name { font-size:32px; font-weight:800; letter-spacing:-1px; margin-top:0; }
-.login-brand-sub  { font-size:14px; opacity:.7; font-weight:500; margin-top:2px; }
-.login-index {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 0;
-  margin: 28px 0 12px;
+.login-left .login-logo-svg svg { filter: none; }
+.login-brand-name { font-size:32px; font-weight:800; letter-spacing:-1px; margin-top:0; text-shadow:none; }
+.login-brand-sub  { font-size:14px; opacity:.7; font-weight:500; margin-top:2px; text-shadow:none; }
+.login-version {
+  position:absolute; left:52px; bottom:28px;
+  font-size:11px; opacity:.75;
 }
-.login-index-row { padding: 14px 0 16px; }
-.login-index-row + .login-index-row {
-  border-top: 1px solid rgba(255,255,255,0.2);
-}
-.login-index-name {
-  font-size: clamp(36px, 3.6vw, 52px);
-  font-weight: 600;
-  letter-spacing: -0.045em;
-  line-height: 0.95;
-  text-shadow: 0 1px 18px rgba(0,0,0,0.28);
-}
-.login-index-note {
-  margin-top: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  opacity: 0.72;
-}
-.login-version { font-size:11px; opacity:.75; }
 @media (max-height: 820px) {
   .login-left { padding: 28px 40px; }
+  .login-version { left: 40px; bottom: 18px; }
   .login-left .login-logo-svg svg { width: 56px; height: 56px; }
   .login-lockup { gap: 12px; }
   .login-brand { gap: 10px; }
   .login-brand-name { font-size: 28px; margin-top: 0; }
-  .login-index { margin: 16px 0 8px; }
-  .login-index-row { padding: 10px 0 12px; }
-  .login-index-name { font-size: clamp(30px, 3.2vw, 40px); }
-  .login-index-note { margin-top: 3px; }
 }
 .login-right {
   flex:1; background:var(--bg); display:flex;
