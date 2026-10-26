@@ -3179,9 +3179,8 @@ LOGIN PAGE
 .login-brand-name, .login-brand-sub { text-shadow:none; }
 .login-brand-name { font-size:32px; font-weight:800; letter-spacing:-1px; margin:0; color:#fff; text-shadow:none; }
 .login-lockup .tb-logo-one { color:#2563eb; }
-#page-login > .login-version {
-  position:absolute; left:0; right:0; bottom:18px;
-  text-align:center; font-size:11px; color:rgba(255,255,255,0.72);
+.login-version {
+  text-align:center; font-size:11px; color:#fff;
 }
 @media (prefers-reduced-motion: reduce) {
   .fluid-aurora--login::before,
