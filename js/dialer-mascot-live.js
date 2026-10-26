@@ -554,20 +554,20 @@ function _topbarMascotRect() {
     ? slot.getBoundingClientRect()
     : null;
   if (r && r.width > 8 && r.height > 8) return r;
-  const logo = document.querySelector('.tb-logo');
+  const logo = document.getElementById('tb-logo');
   const bar = document.getElementById('topbar');
   const lr = logo ? logo.getBoundingClientRect() : null;
   const br = bar ? bar.getBoundingClientRect() : null;
   const size = 40;
   if (lr && lr.width > 1 && br && br.height > 1) {
     return {
-      left: lr.right + 6,
+      left: lr.right + 10,
       top: br.top + (br.height - size) / 2,
       width: size,
       height: size,
     };
   }
-  return { left: 56, top: 7, width: size, height: size };
+  return { left: 220, top: 7, width: size, height: size };
 }
 
 function _parkMascotInCorner(gm) {
@@ -657,7 +657,7 @@ function _syncGlobalMascotDockImpl() {
     return;
   }
   const slot = document.getElementById('tb-mascot-anchor');
-  if (slot) slot.classList.toggle('is-off', inSidebar || isMimiHidden());
+  if (slot) slot.classList.toggle('is-off', inSidebar);
   gm.classList.toggle('global-mascot--sidebar', inSidebar);
   gm.classList.toggle('global-mascot--muted', isMimiHidden());
   _wireGlobalMascotInteractions();
