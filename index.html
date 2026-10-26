@@ -12,17 +12,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=12.36">
-<link rel="stylesheet" href="css/styles-dialer.css?v=12.36">
-<link rel="stylesheet" href="css/styles-mascot.css?v=12.36">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=12.36">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=12.36">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=12.36">
-<link rel="stylesheet" href="css/styles-pages.css?v=12.36">
-<link rel="stylesheet" href="css/styles-aurora.css?v=12.36">
-<link rel="stylesheet" href="css/styles-chat.css?v=12.36">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=12.36">
-<link rel="stylesheet" href="css/styles-responsive.css?v=12.36">
+<link rel="stylesheet" href="css/styles.css?v=12.37">
+<link rel="stylesheet" href="css/styles-dialer.css?v=12.37">
+<link rel="stylesheet" href="css/styles-mascot.css?v=12.37">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=12.37">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=12.37">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=12.37">
+<link rel="stylesheet" href="css/styles-pages.css?v=12.37">
+<link rel="stylesheet" href="css/styles-aurora.css?v=12.37">
+<link rel="stylesheet" href="css/styles-chat.css?v=12.37">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=12.37">
+<link rel="stylesheet" href="css/styles-responsive.css?v=12.37">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -50,7 +50,7 @@
 </div>
 </div>
 </div>
-<div class="login-version">v12.36 — 2026</div>
+<div class="login-version">v12.37 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -58,7 +58,7 @@
 <div class="login-card-logo">
 <div class="login-logo-mark tb-logo is-blink" id="login-card-logo">
 <div class="tb-logo-mark">
-<svg width="40" height="40" viewBox="0 0 64 64" aria-hidden="true">
+<svg width="56" height="56" viewBox="0 0 64 64" aria-hidden="true">
 <g transform="rotate(-38 32 32)">
 <rect class="tb-logo-eye tb-logo-eye--l" x="12" y="18" width="16" height="28" rx="8"/>
 <rect class="tb-logo-eye tb-logo-eye--r" x="36" y="18" width="16" height="28" rx="8"/>
@@ -71,33 +71,33 @@
 <div class="login-sub" data-i18n="login.subtitle">E-posta ve şifre</div>
 </div>
 </div>
-<div style="display:flex;flex-direction:column;gap:14px;">
+<div class="login-fields">
 <div class="form-row">
 <label class="form-label" id="lbl-email" data-i18n="login.email">E-posta</label>
-<div style="position:relative;">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
-<input class="form-input" type="email" id="login-email" data-i18n-placeholder="login.ph.email" placeholder="kullanici@firma.com" autocomplete="email" style="padding-left:36px;" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+<div class="login-field">
+<svg class="login-field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+<input class="form-input" type="email" id="login-email" data-i18n-placeholder="login.ph.email" placeholder="kullanici@firma.com" autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
 </div>
 </div>
 <div class="form-row">
 <label class="form-label" id="lbl-pass" data-i18n="login.password">Şifre</label>
-<div style="position:relative;">
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-<input class="form-input" type="password" id="login-pass" data-i18n-placeholder="login.ph.pass" placeholder="••••••••" autocomplete="current-password" style="padding-left:36px;padding-right:40px;" onkeydown="if(event.key==='Enter')doLogin()">
-<button onclick="toggleLoginPass()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;" id="login-eye"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+<div class="login-field">
+<svg class="login-field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+<input class="form-input" type="password" id="login-pass" data-i18n-placeholder="login.ph.pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+<button type="button" class="login-eye" onclick="toggleLoginPass()" id="login-eye" aria-label="Şifre"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
 </div>
 </div>
 </div>
 <div id="login-err" class="login-error"></div>
-<div>
+<div class="login-submit">
 <button class="login-btn" onclick="doLogin()" id="login-submit">
 <span id="login-btn-label" data-i18n="login.btn">Giriş Yap</span>
 </button>
 <div class="login-demo" id="login-demo-hint" data-i18n="login.demo">Hesabı yöneticin açar.</div>
 </div>
-<div style="display:flex;justify-content:center;gap:8px;">
-<button class="btn btn-ghost btn-sm" onclick="setLang('tr')">TR</button>
-<button class="btn btn-ghost btn-sm" onclick="setLang('de')">DE</button>
+<div class="login-lang">
+<button type="button" class="login-lang-btn login-lang-tr" onclick="setLang('tr')">TR</button>
+<button type="button" class="login-lang-btn login-lang-de" onclick="setLang('de')">DE</button>
 </div>
 </div>
 </div>
@@ -486,7 +486,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">callin.one v12.36</div>
+<div class="sb-ver">callin.one v12.37</div>
 </div>
 </div>
 </nav>
@@ -5175,68 +5175,68 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=12.36"></script>
-<script src="js/i18n.js?v=12.36"></script>
-<script src="js/config.js?v=12.36"></script>
-<script src="js/state.js?v=12.36"></script>
-<script src="js/api.js?v=12.36"></script>
-<script src="js/access.js?v=12.36"></script>
-<script src="js/auth.js?v=12.36"></script>
-<script src="js/logo.js?v=12.36"></script>
-<script src="js/ui.js?v=12.36"></script>
-<script src="js/chat.js?v=12.36"></script>
-<script src="js/chat-settings.js?v=12.36"></script>
-<script src="js/field-settings.js?v=12.36"></script>
-<script src="js/audit.js?v=12.36"></script>
-<script src="js/feature-flags.js?v=12.36"></script>
-<script src="js/notification-center.js?v=12.36"></script>
+<script src="js/version.js?v=12.37"></script>
+<script src="js/i18n.js?v=12.37"></script>
+<script src="js/config.js?v=12.37"></script>
+<script src="js/state.js?v=12.37"></script>
+<script src="js/api.js?v=12.37"></script>
+<script src="js/access.js?v=12.37"></script>
+<script src="js/auth.js?v=12.37"></script>
+<script src="js/logo.js?v=12.37"></script>
+<script src="js/ui.js?v=12.37"></script>
+<script src="js/chat.js?v=12.37"></script>
+<script src="js/chat-settings.js?v=12.37"></script>
+<script src="js/field-settings.js?v=12.37"></script>
+<script src="js/audit.js?v=12.37"></script>
+<script src="js/feature-flags.js?v=12.37"></script>
+<script src="js/notification-center.js?v=12.37"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=12.36"></script>
-<script src="js/job-market.js?v=12.36"></script>
-<script src="js/qc-job-market.js?v=12.36"></script>
-<script src="js/export-admin.js?v=12.36"></script>
-<script src="js/export-termin.js?v=12.36"></script>
-<script src="js/performance.js?v=12.36"></script>
-<script src="js/competition.js?v=12.36"></script>
-<script src="js/dashboard.js?v=12.36"></script>
-<script src="js/reports.js?v=12.36"></script>
-<script src="js/dashboard-brief.js?v=12.36"></script>
-<script src="js/campaigns.js?v=12.36"></script>
-<script src="js/campaigns-detail.js?v=12.36"></script>
-<script src="js/campaigns-queue.js?v=12.36"></script>
-<script src="js/contacts-upload.js?v=12.36"></script>
-<script src="js/geocon.js?v=12.36"></script>
-<script src="js/contacts.js?v=12.36"></script>
-<script src="js/contacts-drawer.js?v=12.36"></script>
-<script src="js/telnyx.js?v=12.36"></script>
-<script src="js/voice-orb.js?v=12.36"></script>
-<script src="js/dialer.js?v=12.36"></script>
-<script src="js/ops-alerts.js?v=12.36"></script>
-<script src="js/radius-tour.js?v=12.36"></script>
-<script src="js/dialer-mascot.js?v=12.36"></script>
-<script src="js/dialer-mascot-live.js?v=12.36"></script>
-<script src="js/ui-prefs.js?v=12.36"></script>
-<script src="js/dialer-session.js?v=12.36"></script>
-<script src="js/dialer-call.js?v=12.36"></script>
-<script src="js/dialer-tools.js?v=12.36"></script>
-<script src="js/appointments.js?v=12.36"></script>
-<script src="js/appointments-actions.js?v=12.36"></script>
-<script src="js/appointments-tools.js?v=12.36"></script>
-<script src="js/field.js?v=12.36"></script>
-<script src="js/field-quote.js?v=12.36"></script>
-<script src="js/field-catalog.js?v=12.36"></script>
-<script src="js/field-ops.js?v=12.36"></script>
-<script src="js/wiedervorlage.js?v=12.36"></script>
-<script src="js/qc.js?v=12.36"></script>
-<script src="js/supervisor.js?v=12.36"></script>
-<script src="js/live-coach.js?v=12.36"></script>
-<script src="js/sms-settings.js?v=12.36"></script>
-<script src="js/leave-hr.js?v=12.36"></script>
-<script src="js/muhasebe.js?v=12.36"></script>
-<script src="js/muhasebe-books.js?v=12.36"></script>
-<script src="js/agent-self-performance.js?v=12.36"></script>
-<script src="js/agents.js?v=12.36"></script>
-<script src="js/firm-desk.js?v=12.36"></script>
-<script src="js/mimi-brain.js?v=12.36"></script>
+<script src="js/wallet.js?v=12.37"></script>
+<script src="js/job-market.js?v=12.37"></script>
+<script src="js/qc-job-market.js?v=12.37"></script>
+<script src="js/export-admin.js?v=12.37"></script>
+<script src="js/export-termin.js?v=12.37"></script>
+<script src="js/performance.js?v=12.37"></script>
+<script src="js/competition.js?v=12.37"></script>
+<script src="js/dashboard.js?v=12.37"></script>
+<script src="js/reports.js?v=12.37"></script>
+<script src="js/dashboard-brief.js?v=12.37"></script>
+<script src="js/campaigns.js?v=12.37"></script>
+<script src="js/campaigns-detail.js?v=12.37"></script>
+<script src="js/campaigns-queue.js?v=12.37"></script>
+<script src="js/contacts-upload.js?v=12.37"></script>
+<script src="js/geocon.js?v=12.37"></script>
+<script src="js/contacts.js?v=12.37"></script>
+<script src="js/contacts-drawer.js?v=12.37"></script>
+<script src="js/telnyx.js?v=12.37"></script>
+<script src="js/voice-orb.js?v=12.37"></script>
+<script src="js/dialer.js?v=12.37"></script>
+<script src="js/ops-alerts.js?v=12.37"></script>
+<script src="js/radius-tour.js?v=12.37"></script>
+<script src="js/dialer-mascot.js?v=12.37"></script>
+<script src="js/dialer-mascot-live.js?v=12.37"></script>
+<script src="js/ui-prefs.js?v=12.37"></script>
+<script src="js/dialer-session.js?v=12.37"></script>
+<script src="js/dialer-call.js?v=12.37"></script>
+<script src="js/dialer-tools.js?v=12.37"></script>
+<script src="js/appointments.js?v=12.37"></script>
+<script src="js/appointments-actions.js?v=12.37"></script>
+<script src="js/appointments-tools.js?v=12.37"></script>
+<script src="js/field.js?v=12.37"></script>
+<script src="js/field-quote.js?v=12.37"></script>
+<script src="js/field-catalog.js?v=12.37"></script>
+<script src="js/field-ops.js?v=12.37"></script>
+<script src="js/wiedervorlage.js?v=12.37"></script>
+<script src="js/qc.js?v=12.37"></script>
+<script src="js/supervisor.js?v=12.37"></script>
+<script src="js/live-coach.js?v=12.37"></script>
+<script src="js/sms-settings.js?v=12.37"></script>
+<script src="js/leave-hr.js?v=12.37"></script>
+<script src="js/muhasebe.js?v=12.37"></script>
+<script src="js/muhasebe-books.js?v=12.37"></script>
+<script src="js/agent-self-performance.js?v=12.37"></script>
+<script src="js/agents.js?v=12.37"></script>
+<script src="js/firm-desk.js?v=12.37"></script>
+<script src="js/mimi-brain.js?v=12.37"></script>
 </body>
 </html>
