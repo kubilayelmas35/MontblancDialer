@@ -12,17 +12,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=12.32">
-<link rel="stylesheet" href="css/styles-dialer.css?v=12.32">
-<link rel="stylesheet" href="css/styles-mascot.css?v=12.32">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=12.32">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=12.32">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=12.32">
-<link rel="stylesheet" href="css/styles-pages.css?v=12.32">
-<link rel="stylesheet" href="css/styles-aurora.css?v=12.32">
-<link rel="stylesheet" href="css/styles-chat.css?v=12.32">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=12.32">
-<link rel="stylesheet" href="css/styles-responsive.css?v=12.32">
+<link rel="stylesheet" href="css/styles.css?v=12.33">
+<link rel="stylesheet" href="css/styles-dialer.css?v=12.33">
+<link rel="stylesheet" href="css/styles-mascot.css?v=12.33">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=12.33">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=12.33">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=12.33">
+<link rel="stylesheet" href="css/styles-pages.css?v=12.33">
+<link rel="stylesheet" href="css/styles-aurora.css?v=12.33">
+<link rel="stylesheet" href="css/styles-chat.css?v=12.33">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=12.33">
+<link rel="stylesheet" href="css/styles-responsive.css?v=12.33">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -60,7 +60,7 @@
 <div class="login-index-note" data-i18n="login.row.4.note">Kalite, muhasebe</div>
 </div>
 </div>
-<div class="login-version">v12.32 — 2026</div>
+<div class="login-version">v12.33 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -492,7 +492,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">callin.one v12.32</div>
+<div class="sb-ver">callin.one v12.33</div>
 </div>
 </div>
 </nav>
@@ -3473,6 +3473,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-eye" style="font-size:12px;">
 <option value="none">Varsayılan</option>
+<option value="logo" data-tr="Logo göz" data-de="Logo-Augen">Logo göz</option>
 <option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
 <option value="sparkle">Işıltılı</option>
 <option value="anime">Anime</option>
@@ -3726,6 +3727,49 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 </div>
+<div class="card" id="mascot-default-card">
+<div class="card-title" style="margin-bottom:8px;" data-tr="Varsayılan maskot" data-de="Standard-Maskottchen">Varsayılan maskot</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:10px;line-height:1.45;" data-tr="Kendi maskotunu kaydeden bunu görmez. Kaydı olmayanlar bu görünüşle başlar." data-de="Wer sein Maskottchen gespeichert hat, sieht das nicht. Ohne eigene Speicherung startet dieser Look.">Kendi maskotunu kaydeden bunu görmez. Kaydı olmayanlar bu görünüşle başlar.</div>
+<div id="mascot-default-preview" class="mascot-theme-root" data-mascot-fixed="1" data-mascot-eye="logo" data-mascot-shape="blob" style="margin-bottom:12px;">
+<div class="settings-mascot-preview-mascot">
+<div class="cust-empty-blob">
+<div class="cust-empty-mascot-eyes">
+<span class="cust-empty-eye"></span>
+<span class="cust-empty-eye cust-empty-eye--r"></span>
+</div>
+</div>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div class="form-row">
+<label class="form-label" data-tr="Göz" data-de="Auge">Göz</label>
+<select class="form-input" id="mascot-def-eye"></select>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Şekil" data-de="Form">Şekil</label>
+<select class="form-input" id="mascot-def-shape"></select>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Ağız" data-de="Mund">Ağız</label>
+<select class="form-input" id="mascot-def-mouth"></select>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Kaş" data-de="Braue">Kaş</label>
+<select class="form-input" id="mascot-def-brow"></select>
+</div>
+</div>
+<div class="form-row" style="margin-top:10px;">
+<label class="form-label" data-tr="Ana renk" data-de="Grundfarbe">Ana renk</label>
+<div style="display:flex;align-items:center;gap:10px;">
+<input type="color" id="mascot-def-color" value="#a855f7" disabled style="width:52px;height:32px;padding:2px;">
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;">
+<input type="checkbox" id="mascot-def-color-auto" checked style="width:14px;height:14px;">
+<span data-tr="Ürünün rengi" data-de="Produktfarbe">Ürünün rengi</span>
+</label>
+</div>
+</div>
+<button type="button" class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="mbSaveMascotDefault()"><i class="ph ph-floppy-disk"></i> <span data-tr="Varsayılanı kaydet" data-de="Standard speichern">Varsayılanı kaydet</span></button>
+</div>
 <div class="card" id="logo-settings-card">
 <div class="card-title" style="margin-bottom:12px;" data-tr="Logo" data-de="Logo">Logo</div>
 <div class="tb-logo is-blink is-box" id="logo-set-preview" style="margin-bottom:14px;">
@@ -3789,28 +3833,30 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" data-tr="Yazı aralığı" data-de="Abstand zur Schrift">Yazı aralığı</label>
 <input type="range" id="logo-gap" min="0" max="18" step="1" value="6">
 </div>
+<div style="display:grid;grid-template-columns:1fr 120px;gap:10px;">
 <div class="form-row">
 <label class="form-label" data-tr="Yazı" data-de="Schrift">Yazı</label>
 <input class="form-input" id="logo-word" maxlength="60" autocomplete="off" name="mb-logo-word" placeholder="callin">
 </div>
 <div class="form-row">
-<label class="form-label" data-tr="İkinci yazı" data-de="Zweite Schrift">İkinci yazı</label>
-<input class="form-input" id="logo-word2" maxlength="60" autocomplete="off" name="mb-logo-word2" placeholder="Bayramınız kutlu olsun">
-<div style="font-size:11px;color:var(--text-3);margin-top:3px;" data-tr="Doluysa bir süre sonra birinci yazının yerine geçer." data-de="Wenn gefüllt, löst sie nach einer Weile die erste Schrift ab.">Doluysa bir süre sonra birinci yazının yerine geçer.</div>
+<label class="form-label" data-tr="Sonek" data-de="Endung">Sonek</label>
+<input class="form-input" id="logo-suffix" maxlength="24" autocomplete="off" name="mb-logo-suffix" value=".one">
+</div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
 <div class="form-row">
-<label class="form-label" data-tr="İkinci yazının dili" data-de="Sprache der zweiten Schrift">İkinci yazının dili</label>
-<select class="form-input" id="logo-word2-lang">
-<option value="" data-tr="Her dil" data-de="Jede Sprache">Her dil</option>
-<option value="tr" data-tr="Türkçe" data-de="Türkisch">Türkçe</option>
-<option value="de" data-tr="Almanca" data-de="Deutsch">Almanca</option>
-</select>
+<label class="form-label" data-tr="İkinci yazı (Türkçe)" data-de="Zweite Schrift (Türkisch)">İkinci yazı (Türkçe)</label>
+<input class="form-input" id="logo-word2-tr" maxlength="60" autocomplete="off" name="mb-logo-word2-tr" placeholder="Bayramınız kutlu olsun">
 </div>
+<div class="form-row">
+<label class="form-label" data-tr="İkinci yazı (Almanca)" data-de="Zweite Schrift (Deutsch)">İkinci yazı (Almanca)</label>
+<input class="form-input" id="logo-word2-de" maxlength="60" autocomplete="off" name="mb-logo-word2-de" placeholder="Frohes Fest">
+</div>
+</div>
+<div style="font-size:11px;color:var(--text-3);" data-tr="Dolu olan dilde bir süre sonra birinci yazının yerine geçer." data-de="In der Sprache, die gefüllt ist, löst sie nach einer Weile die erste Schrift ab.">Dolu olan dilde bir süre sonra birinci yazının yerine geçer.</div>
 <div class="form-row">
 <label class="form-label" data-tr="Yazı süresi" data-de="Schriftdauer">Yazı süresi</label>
 <input type="range" id="logo-swap-sec" min="3" max="12" step="1" value="6">
-</div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
 <div>
@@ -5075,68 +5121,68 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=12.32"></script>
-<script src="js/i18n.js?v=12.32"></script>
-<script src="js/config.js?v=12.32"></script>
-<script src="js/state.js?v=12.32"></script>
-<script src="js/api.js?v=12.32"></script>
-<script src="js/access.js?v=12.32"></script>
-<script src="js/auth.js?v=12.32"></script>
-<script src="js/logo.js?v=12.32"></script>
-<script src="js/ui.js?v=12.32"></script>
-<script src="js/chat.js?v=12.32"></script>
-<script src="js/chat-settings.js?v=12.32"></script>
-<script src="js/field-settings.js?v=12.32"></script>
-<script src="js/audit.js?v=12.32"></script>
-<script src="js/feature-flags.js?v=12.32"></script>
-<script src="js/notification-center.js?v=12.32"></script>
+<script src="js/version.js?v=12.33"></script>
+<script src="js/i18n.js?v=12.33"></script>
+<script src="js/config.js?v=12.33"></script>
+<script src="js/state.js?v=12.33"></script>
+<script src="js/api.js?v=12.33"></script>
+<script src="js/access.js?v=12.33"></script>
+<script src="js/auth.js?v=12.33"></script>
+<script src="js/logo.js?v=12.33"></script>
+<script src="js/ui.js?v=12.33"></script>
+<script src="js/chat.js?v=12.33"></script>
+<script src="js/chat-settings.js?v=12.33"></script>
+<script src="js/field-settings.js?v=12.33"></script>
+<script src="js/audit.js?v=12.33"></script>
+<script src="js/feature-flags.js?v=12.33"></script>
+<script src="js/notification-center.js?v=12.33"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=12.32"></script>
-<script src="js/job-market.js?v=12.32"></script>
-<script src="js/qc-job-market.js?v=12.32"></script>
-<script src="js/export-admin.js?v=12.32"></script>
-<script src="js/export-termin.js?v=12.32"></script>
-<script src="js/performance.js?v=12.32"></script>
-<script src="js/competition.js?v=12.32"></script>
-<script src="js/dashboard.js?v=12.32"></script>
-<script src="js/reports.js?v=12.32"></script>
-<script src="js/dashboard-brief.js?v=12.32"></script>
-<script src="js/campaigns.js?v=12.32"></script>
-<script src="js/campaigns-detail.js?v=12.32"></script>
-<script src="js/campaigns-queue.js?v=12.32"></script>
-<script src="js/contacts-upload.js?v=12.32"></script>
-<script src="js/geocon.js?v=12.32"></script>
-<script src="js/contacts.js?v=12.32"></script>
-<script src="js/contacts-drawer.js?v=12.32"></script>
-<script src="js/telnyx.js?v=12.32"></script>
-<script src="js/voice-orb.js?v=12.32"></script>
-<script src="js/dialer.js?v=12.32"></script>
-<script src="js/ops-alerts.js?v=12.32"></script>
-<script src="js/radius-tour.js?v=12.32"></script>
-<script src="js/dialer-mascot.js?v=12.32"></script>
-<script src="js/dialer-mascot-live.js?v=12.32"></script>
-<script src="js/ui-prefs.js?v=12.32"></script>
-<script src="js/dialer-session.js?v=12.32"></script>
-<script src="js/dialer-call.js?v=12.32"></script>
-<script src="js/dialer-tools.js?v=12.32"></script>
-<script src="js/appointments.js?v=12.32"></script>
-<script src="js/appointments-actions.js?v=12.32"></script>
-<script src="js/appointments-tools.js?v=12.32"></script>
-<script src="js/field.js?v=12.32"></script>
-<script src="js/field-quote.js?v=12.32"></script>
-<script src="js/field-catalog.js?v=12.32"></script>
-<script src="js/field-ops.js?v=12.32"></script>
-<script src="js/wiedervorlage.js?v=12.32"></script>
-<script src="js/qc.js?v=12.32"></script>
-<script src="js/supervisor.js?v=12.32"></script>
-<script src="js/live-coach.js?v=12.32"></script>
-<script src="js/sms-settings.js?v=12.32"></script>
-<script src="js/leave-hr.js?v=12.32"></script>
-<script src="js/muhasebe.js?v=12.32"></script>
-<script src="js/muhasebe-books.js?v=12.32"></script>
-<script src="js/agent-self-performance.js?v=12.32"></script>
-<script src="js/agents.js?v=12.32"></script>
-<script src="js/firm-desk.js?v=12.32"></script>
-<script src="js/mimi-brain.js?v=12.32"></script>
+<script src="js/wallet.js?v=12.33"></script>
+<script src="js/job-market.js?v=12.33"></script>
+<script src="js/qc-job-market.js?v=12.33"></script>
+<script src="js/export-admin.js?v=12.33"></script>
+<script src="js/export-termin.js?v=12.33"></script>
+<script src="js/performance.js?v=12.33"></script>
+<script src="js/competition.js?v=12.33"></script>
+<script src="js/dashboard.js?v=12.33"></script>
+<script src="js/reports.js?v=12.33"></script>
+<script src="js/dashboard-brief.js?v=12.33"></script>
+<script src="js/campaigns.js?v=12.33"></script>
+<script src="js/campaigns-detail.js?v=12.33"></script>
+<script src="js/campaigns-queue.js?v=12.33"></script>
+<script src="js/contacts-upload.js?v=12.33"></script>
+<script src="js/geocon.js?v=12.33"></script>
+<script src="js/contacts.js?v=12.33"></script>
+<script src="js/contacts-drawer.js?v=12.33"></script>
+<script src="js/telnyx.js?v=12.33"></script>
+<script src="js/voice-orb.js?v=12.33"></script>
+<script src="js/dialer.js?v=12.33"></script>
+<script src="js/ops-alerts.js?v=12.33"></script>
+<script src="js/radius-tour.js?v=12.33"></script>
+<script src="js/dialer-mascot.js?v=12.33"></script>
+<script src="js/dialer-mascot-live.js?v=12.33"></script>
+<script src="js/ui-prefs.js?v=12.33"></script>
+<script src="js/dialer-session.js?v=12.33"></script>
+<script src="js/dialer-call.js?v=12.33"></script>
+<script src="js/dialer-tools.js?v=12.33"></script>
+<script src="js/appointments.js?v=12.33"></script>
+<script src="js/appointments-actions.js?v=12.33"></script>
+<script src="js/appointments-tools.js?v=12.33"></script>
+<script src="js/field.js?v=12.33"></script>
+<script src="js/field-quote.js?v=12.33"></script>
+<script src="js/field-catalog.js?v=12.33"></script>
+<script src="js/field-ops.js?v=12.33"></script>
+<script src="js/wiedervorlage.js?v=12.33"></script>
+<script src="js/qc.js?v=12.33"></script>
+<script src="js/supervisor.js?v=12.33"></script>
+<script src="js/live-coach.js?v=12.33"></script>
+<script src="js/sms-settings.js?v=12.33"></script>
+<script src="js/leave-hr.js?v=12.33"></script>
+<script src="js/muhasebe.js?v=12.33"></script>
+<script src="js/muhasebe-books.js?v=12.33"></script>
+<script src="js/agent-self-performance.js?v=12.33"></script>
+<script src="js/agents.js?v=12.33"></script>
+<script src="js/firm-desk.js?v=12.33"></script>
+<script src="js/mimi-brain.js?v=12.33"></script>
 </body>
 </html>

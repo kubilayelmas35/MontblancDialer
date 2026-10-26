@@ -400,6 +400,7 @@ text-shadow: none;
 margin: 0;
 }
 .tb-logo-one { color: var(--logo-one, #2563eb); }
+.tb-logo-one:empty { display: none; }
 [data-theme="dark"] .tb-logo.is-one-dark .tb-logo-one { color: var(--logo-one-dark); }
 .tb-logo.is-text .tb-logo-name,
 .tb-logo.is-text .tb-logo-mark { color: var(--logo-text); }

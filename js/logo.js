@@ -10,8 +10,9 @@ const MB_LOGO_DEFAULT = {
   boxBDark: '',
   gap: 6,
   word: '',
-  word2: '',
-  word2Lang: '',
+  suffix: '.one',
+  word2Tr: '',
+  word2De: '',
   swapSec: 6,
   text: '',
   textDark: '',
@@ -64,7 +65,15 @@ function mbLogoNormalize(raw) {
   swapSec = Math.max(3, Math.min(12, Math.round(swapSec)));
   const blinkMode = MB_LOGO_BLINK.includes(src.blinkMode) ? src.blinkMode : MB_LOGO_DEFAULT.blinkMode;
   const boxFx = MB_LOGO_BOX_FX.includes(src.boxFx) ? src.boxFx : MB_LOGO_DEFAULT.boxFx;
-  const word2Lang = src.word2Lang === 'tr' || src.word2Lang === 'de' ? src.word2Lang : '';
+  const has = (key) => Object.prototype.hasOwnProperty.call(src, key);
+  const legacySecond = (lang) => {
+    const key = lang === 'de' ? 'word2De' : 'word2Tr';
+    if (has(key)) return mbLogoPlain(src[key]);
+    const legacy = mbLogoPlain(src.word2);
+    const gate = src.word2Lang === 'tr' || src.word2Lang === 'de' ? src.word2Lang : '';
+    if (!legacy || (gate && gate !== lang)) return '';
+    return legacy;
+  };
   return {
     blink: src.blink !== false,
     blinkMode,
@@ -77,8 +86,9 @@ function mbLogoNormalize(raw) {
     boxBDark: mbLogoHex(src.boxBDark),
     gap,
     word: mbLogoPlain(src.word),
-    word2: mbLogoPlain(src.word2),
-    word2Lang,
+    suffix: has('suffix') ? mbLogoPlain(src.suffix).slice(0, 24) : '.one',
+    word2Tr: legacySecond('tr'),
+    word2De: legacySecond('de'),
     swapSec,
     text: mbLogoHex(src.text),
     textDark: mbLogoHex(src.textDark),
@@ -101,17 +111,17 @@ function mbLogoNormalize(raw) {
   };
 }
 
-function mbLogoSwapOn(cfg) {
-  if (!cfg.word2) return false;
-  if (!cfg.word2Lang) return true;
-  return cfg.word2Lang === mbLogoLang();
+function mbLogoSecondText(cfg) {
+  return mbLogoLang() === 'de' ? cfg.word2De : cfg.word2Tr;
 }
 
 function mbLogoPaintWords(cfg) {
   const word = cfg.word || 'callin';
-  const swap = mbLogoSwapOn(cfg);
+  const second = mbLogoSecondText(cfg);
+  const swap = !!second;
   document.querySelectorAll('.tb-logo-word').forEach((el) => { el.textContent = word; });
-  document.querySelectorAll('.tb-logo-word2').forEach((el) => { el.textContent = cfg.word2; });
+  document.querySelectorAll('.tb-logo-one').forEach((el) => { el.textContent = cfg.suffix; });
+  document.querySelectorAll('.tb-logo-word2').forEach((el) => { el.textContent = second; });
   document.querySelectorAll('.tb-logo-faces').forEach((el) => {
     el.classList.toggle('is-swap', swap);
     if (swap) el.style.setProperty('--logo-swap', (cfg.swapSec * 2) + 's');
@@ -227,8 +237,9 @@ function mbLogoFromForm() {
     boxBDark: boxDark?.checked ? document.getElementById('logo-box-b-dark')?.value : '',
     gap: gap ? gap.value : MB_LOGO_DEFAULT.gap,
     word: document.getElementById('logo-word')?.value,
-    word2: document.getElementById('logo-word2')?.value,
-    word2Lang: document.getElementById('logo-word2-lang')?.value,
+    suffix: document.getElementById('logo-suffix')?.value,
+    word2Tr: document.getElementById('logo-word2-tr')?.value,
+    word2De: document.getElementById('logo-word2-de')?.value,
     swapSec: document.getElementById('logo-swap-sec')?.value,
     text: textAuto?.checked ? '' : (document.getElementById('logo-text')?.value || ''),
     textDark: textDarkAuto?.checked ? '' : (document.getElementById('logo-text-dark')?.value || ''),
@@ -273,8 +284,9 @@ function mbLogoFillForm(raw) {
   set('logo-box-b-dark', cfg.boxBDark || '#2563eb');
   set('logo-gap', String(cfg.gap));
   set('logo-word', cfg.word);
-  set('logo-word2', cfg.word2);
-  set('logo-word2-lang', cfg.word2Lang);
+  set('logo-suffix', cfg.suffix);
+  set('logo-word2-tr', cfg.word2Tr);
+  set('logo-word2-de', cfg.word2De);
   set('logo-swap-sec', String(cfg.swapSec));
   set('logo-text-auto', !cfg.text);
   set('logo-text', cfg.text || '#0f172a');
@@ -336,10 +348,9 @@ function mbLogoSyncLocks() {
   if (pace) pace.disabled = !blinking;
   const boxFx = document.getElementById('logo-box-fx');
   if (boxFx) boxFx.disabled = !document.getElementById('logo-box')?.checked;
-  const second = !!mbLogoPlain(document.getElementById('logo-word2')?.value);
-  const lang = document.getElementById('logo-word2-lang');
+  const second = !!mbLogoPlain(document.getElementById('logo-word2-tr')?.value)
+    || !!mbLogoPlain(document.getElementById('logo-word2-de')?.value);
   const hold = document.getElementById('logo-swap-sec');
-  if (lang) lang.disabled = !second;
   if (hold) hold.disabled = !second;
 }
 
@@ -399,7 +410,7 @@ async function mbSaveLogoSettings() {
 function mbLogoBind() {
   const ids = [
     'logo-blink', 'logo-blink-mode', 'logo-blink-sec', 'logo-box', 'logo-box-fx', 'logo-box-custom',
-    'logo-box-a', 'logo-box-b', 'logo-gap', 'logo-word', 'logo-word2', 'logo-word2-lang', 'logo-swap-sec',
+    'logo-box-a', 'logo-box-b', 'logo-gap', 'logo-word', 'logo-suffix', 'logo-word2-tr', 'logo-word2-de', 'logo-swap-sec',
     'logo-text', 'logo-text-auto', 'logo-one',
     'logo-eye-l', 'logo-eye-l-auto', 'logo-eye-r', 'logo-eye-l-aurora', 'logo-eye-r-aurora',
     'logo-eye-l-a', 'logo-eye-l-b', 'logo-eye-r-a', 'logo-eye-r-b',

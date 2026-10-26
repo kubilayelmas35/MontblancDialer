@@ -218,6 +218,7 @@ loadWvBadge();
 if (typeof refreshUserPagePerms === 'function') refreshUserPagePerms().catch(() => {});
 if (typeof mbLoadUiPrefs === 'function') await mbLoadUiPrefs();
 if (typeof mbLogoBootRemote === 'function') await mbLogoBootRemote();
+if (typeof mbMascotDefaultBoot === 'function') await mbMascotDefaultBoot();
 navigate(typeof mbBootPage === 'function' ? mbBootPage() : (typeof mbHomePage === 'function' ? mbHomePage(currentUser.role) : 'dialer'));
 if (typeof initChat === 'function') initChat();
 if (typeof initNotificationCenter === 'function') initNotificationCenter();

@@ -49,6 +49,7 @@ const MB_CHROME = [
   { id: 'feature-flags-card', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'job-permissions-card', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'logo-settings-card', roles: ['super_admin'] },
+  { id: 'mascot-default-card', roles: ['super_admin'] },
   { selector: '#page-settings .card:has(#s-google-key)', roles: ['super_admin'] },
 ];
 

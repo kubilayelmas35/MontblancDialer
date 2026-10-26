@@ -129,7 +129,7 @@ function isMascotCallHeatOn() {
 
 function _applyMascotCallHeatFlag(enabled) {
   const on = enabled == null ? isMascotCallHeatOn() : !!enabled;
-  document.querySelectorAll('.mascot-theme-root, #cust-empty').forEach((el) => {
+  document.querySelectorAll('.mascot-theme-root:not([data-mascot-fixed]), #cust-empty').forEach((el) => {
     if (on) el.removeAttribute('data-call-heat');
     else el.setAttribute('data-call-heat', 'off');
   });
@@ -137,7 +137,7 @@ function _applyMascotCallHeatFlag(enabled) {
 
 function _applyMascotMoodColorFlag(enabled) {
   const on = enabled == null ? isMascotMoodColorOn() : !!enabled;
-  const nodes = document.querySelectorAll('.mascot-theme-root, #cust-empty');
+  const nodes = document.querySelectorAll('.mascot-theme-root:not([data-mascot-fixed]), #cust-empty');
   nodes.forEach((el) => {
     if (on) el.removeAttribute('data-mood-color');
     else el.setAttribute('data-mood-color', 'off');
@@ -644,7 +644,7 @@ const MASCOT_COS_LEGACY = {
 
 /** Rastgele seçenek: sayfa yükünde bir kez çözülür (yenilemede yeniden). */
 const MASCOT_COS_RANDOM_POOLS = {
-  eye: ['none', 'sparkle', 'anime', 'sleepy', 'wink', 'shy', 'big', 'star', 'glow', 'retro', 'softsquare'],
+  eye: ['none', 'logo', 'sparkle', 'anime', 'sleepy', 'wink', 'shy', 'big', 'star', 'glow', 'retro', 'softsquare'],
   brow: ['none', 'thin', 'soft', 'arch', 'thick', 'wispy', 'bold', 'angry', 'straight', 'curved'],
   stache: ['none', 'silk', 'gentle', 'twirl', 'dapper', 'velvet', 'painter', 'crescent', 'film', 'sombrero'],
   mouth: ['none', 'beam', 'soft', 'laugh', 'smitten', 'playful', 'tiny', 'pout', 'cool', 'dreamy'],
@@ -658,12 +658,33 @@ const MASCOT_COS_RANDOM_POOLS = {
 
 let _mascotCosRandCache = {};
 
+function mbMascotHasPref(base) {
+  try {
+    const scoped = localStorage.getItem(_mascotLsKey(base));
+    if (scoped !== null && scoped !== '') return true;
+    const legacy = localStorage.getItem(base);
+    return legacy !== null && legacy !== '';
+  } catch (e) {
+    return false;
+  }
+}
+
+const MB_MASCOT_DEFAULT = { eye: 'logo', shape: 'blob', color: '', mouth: 'none', brow: 'none' };
+let mbMascotDefaultLive = { ...MB_MASCOT_DEFAULT };
+
+function mbMascotDefaultLook() {
+  return mbMascotDefaultLive;
+}
+
 function getMascotCosmeticPref(part) {
-  let v = String(getMascotPref(`mb_mascot_cos_${part}`, '') || 'none')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]/g, '');
-  v = v || 'none';
+  const base = `mb_mascot_cos_${part}`;
+  let raw = '';
+  if (!mbMascotHasPref(base) && (part === 'eye' || part === 'mouth' || part === 'brow')) {
+    raw = String(mbMascotDefaultLook()[part] || (part === 'eye' ? 'logo' : 'none'));
+  } else {
+    raw = String(getMascotPref(base, '') || 'none');
+  }
+  let v = raw.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'none';
   const leg = MASCOT_COS_LEGACY[part]?.[v];
   return leg || v;
 }
@@ -691,7 +712,7 @@ function applyMascotCosmetics() {
   for (const k of MASCOT_COS_KEYS) {
     attrs[`data-mascot-${k}`] = getMascotCosmeticApplied(k);
   }
-  document.querySelectorAll('.mascot-theme-root').forEach((root) => {
+  document.querySelectorAll('.mascot-theme-root:not([data-mascot-fixed])').forEach((root) => {
     for (const [attr, val] of Object.entries(attrs)) {
       root.setAttribute(attr, val);
     }
@@ -704,7 +725,7 @@ function getMascotCosmeticColorPref(part) {
 }
 
 function applyMascotCosmeticColors() {
-  document.querySelectorAll('.mascot-theme-root').forEach((root) => {
+  document.querySelectorAll('.mascot-theme-root:not([data-mascot-fixed])').forEach((root) => {
     for (const p of MASCOT_COS_COLOR_PARTS) {
       const hex = getMascotCosmeticColorPref(p);
       if (hex) root.style.setProperty(`--cos-${p}-color`, hex);
@@ -731,12 +752,15 @@ function getMascotWanderSpeedPct() {
 }
 
 function getMascotShape() {
+  if (typeof mbMascotHasPref === 'function' && !mbMascotHasPref('mb_mascot_shape')) {
+    return mascotShapeFromString(mbMascotDefaultLook().shape || 'blob');
+  }
   return mascotShapeFromString(getMascotPref('mb_mascot_shape', 'blob'));
 }
 
 function applyMascotShape() {
   const s = getMascotShape();
-  document.querySelectorAll('.mascot-theme-root').forEach((el) => {
+  document.querySelectorAll('.mascot-theme-root:not([data-mascot-fixed])').forEach((el) => {
     el.setAttribute('data-mascot-shape', s);
   });
 }
@@ -873,7 +897,8 @@ function formatMascotSpokenLine(msg) {
 }
 
 function applyMascotTheme() {
-  const hex = getMascotPref('mb_mascot_color', '#a855f7') || '#a855f7';
+  const ownColor = mbMascotHasPref('mb_mascot_color') ? getMascotPref('mb_mascot_color', '') : '';
+  const hex = ownColor || mbMascotDefaultLook().color || '#a855f7';
   const variant = resolveMascotVariantKeyFromPref();
   const breakHex = getMascotPref('mb_mascot_break_color', '#4f8cff') || '#4f8cff';
   const angryHex = getMascotPref('mb_mascot_angry_color', '#ff5b55') || '#ff5b55';
@@ -923,7 +948,7 @@ function applyMascotThemeLiveFromForm() {
   if (prev) prev.style.setProperty('--mascot-user-scale', String(mul));
   if (sh) {
     const sVal = mascotShapeFromString(sh.value);
-    document.querySelectorAll('.mascot-theme-root').forEach((el) => el.setAttribute('data-mascot-shape', sVal));
+    document.querySelectorAll('.mascot-theme-root:not([data-mascot-fixed])').forEach((el) => el.setAttribute('data-mascot-shape', sVal));
   }
   if (typeof updateCustEmptyMascotScale === 'function') updateCustEmptyMascotScale();
   applyMascotCosmetics();
@@ -1253,3 +1278,137 @@ try {
   window.mbApplyMascotStyle = mbApplyMascotStyle;
   window.mbDeleteMascotStyle = mbDeleteMascotStyle;
 } catch (e) {}
+
+function mbMascotDefaultNormalize(raw) {
+  const src = raw && typeof raw === 'object' ? raw : {};
+  const pick = (part, value, fallback) => {
+    const v = mbMascotCosValue(part, value) || fallback;
+    return v === 'random' ? fallback : v;
+  };
+  const color = /^#[0-9a-fA-F]{6}$/.test(String(src.color || '')) ? String(src.color).toLowerCase() : '';
+  return {
+    eye: pick('eye', src.eye, 'logo'),
+    shape: mascotShapeFromString(src.shape || 'blob'),
+    color,
+    mouth: pick('mouth', src.mouth, 'none'),
+    brow: pick('brow', src.brow, 'none')
+  };
+}
+
+function mbMascotDefaultCopyOptions(fromId, toId) {
+  const from = document.getElementById(fromId);
+  const to = document.getElementById(toId);
+  if (!from || !to) return;
+  to.innerHTML = from.innerHTML;
+  Array.from(to.options).forEach((opt) => {
+    if (opt.value === 'random') opt.remove();
+  });
+}
+
+function mbMascotDefaultPaint(cfg) {
+  const look = mbMascotDefaultNormalize(cfg);
+  const root = document.getElementById('mascot-default-preview');
+  if (!root) return look;
+  root.setAttribute('data-mascot-eye', look.eye);
+  root.setAttribute('data-mascot-shape', look.shape);
+  root.setAttribute('data-mascot-mouth', look.mouth);
+  root.setAttribute('data-mascot-brow', look.brow);
+  root.style.removeProperty('--cos-eye-color');
+  return look;
+}
+
+function mbMascotDefaultFill(raw) {
+  const cfg = mbMascotDefaultNormalize(raw);
+  const set = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+  };
+  set('mascot-def-eye', cfg.eye);
+  set('mascot-def-shape', cfg.shape);
+  set('mascot-def-mouth', cfg.mouth);
+  set('mascot-def-brow', cfg.brow);
+  const auto = document.getElementById('mascot-def-color-auto');
+  const color = document.getElementById('mascot-def-color');
+  if (auto) auto.checked = !cfg.color;
+  if (color) {
+    color.disabled = !cfg.color;
+    color.value = cfg.color || '#a855f7';
+  }
+  mbMascotDefaultPaint(cfg);
+}
+
+function mbMascotDefaultFromForm() {
+  const auto = document.getElementById('mascot-def-color-auto');
+  return mbMascotDefaultNormalize({
+    eye: document.getElementById('mascot-def-eye')?.value,
+    shape: document.getElementById('mascot-def-shape')?.value,
+    mouth: document.getElementById('mascot-def-mouth')?.value,
+    brow: document.getElementById('mascot-def-brow')?.value,
+    color: auto?.checked ? '' : (document.getElementById('mascot-def-color')?.value || '')
+  });
+}
+
+function mbMascotDefaultBind() {
+  mbMascotDefaultCopyOptions('s-mascot-cos-eye', 'mascot-def-eye');
+  mbMascotDefaultCopyOptions('s-mascot-shape', 'mascot-def-shape');
+  mbMascotDefaultCopyOptions('s-mascot-cos-mouth', 'mascot-def-mouth');
+  mbMascotDefaultCopyOptions('s-mascot-cos-brow', 'mascot-def-brow');
+  mbMascotDefaultFill(mbMascotDefaultLive);
+  ['mascot-def-eye', 'mascot-def-shape', 'mascot-def-mouth', 'mascot-def-brow', 'mascot-def-color', 'mascot-def-color-auto'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const run = () => {
+      const color = document.getElementById('mascot-def-color');
+      const auto = document.getElementById('mascot-def-color-auto');
+      if (color && auto) color.disabled = !!auto.checked;
+      mbMascotDefaultPaint(mbMascotDefaultFromForm());
+    };
+    el.addEventListener('input', run);
+    el.addEventListener('change', run);
+  });
+}
+
+async function mbMascotDefaultBoot() {
+  if (typeof sb !== 'function' || typeof currentUser === 'undefined' || !currentUser) return;
+  let raw = null;
+  try {
+    const fid = currentUser.firm_id;
+    const path = fid ? `firms?id=eq.${fid}&select=settings` : 'firms?select=settings&limit=1';
+    const rows = await sb(path);
+    raw = rows?.[0]?.settings?.mascotDefault || null;
+  } catch (e) {
+    return;
+  }
+  if (!raw) {
+    if (typeof applyMascotTheme === 'function') applyMascotTheme();
+    return;
+  }
+  mbMascotDefaultLive = mbMascotDefaultNormalize(raw);
+  const card = document.getElementById('mascot-default-card');
+  if (!(card && card.contains(document.activeElement))) mbMascotDefaultFill(mbMascotDefaultLive);
+  if (typeof applyMascotTheme === 'function') applyMascotTheme();
+}
+
+async function mbSaveMascotDefault() {
+  const cfg = mbMascotDefaultFromForm();
+  mbMascotDefaultLive = cfg;
+  mbMascotDefaultPaint(cfg);
+  if (typeof sb !== 'function') return;
+  try {
+    const firms = await sb('firms?select=id,settings');
+    for (const firm of firms || []) {
+      if (!firm?.id) continue;
+      const prev = firm.settings && typeof firm.settings === 'object' ? firm.settings : {};
+      await sb(`firms?id=eq.${firm.id}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ settings: { ...prev, mascotDefault: cfg } })
+      });
+    }
+    if (typeof toast === 'function') toast('Varsayılan maskot kaydedildi', 'success');
+  } catch (e) {
+    if (typeof toast === 'function') toast('Varsayılan bu oturumda duruyor, kayıt yazılamadı', 'warn');
+  }
+}
+
+mbMascotDefaultBind();
