@@ -121,6 +121,7 @@ function mbLogoPaintWords(cfg) {
   const swap = !!second;
   document.querySelectorAll('.tb-logo-word').forEach((el) => { el.textContent = word; });
   document.querySelectorAll('.tb-logo-one').forEach((el) => { el.textContent = cfg.suffix; });
+  document.querySelectorAll('.tb-logo-face.is-brand').forEach((el) => { el.lang = 'en'; });
   document.querySelectorAll('.tb-logo-word2').forEach((el) => { el.textContent = second; });
   document.querySelectorAll('.tb-logo-faces').forEach((el) => {
     el.classList.toggle('is-swap', swap);
