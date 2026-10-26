@@ -3379,6 +3379,37 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <input type="color" id="s-mascot-ccol-eye" value="#64748b" title="Renk · çift tık: varsayılan" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
 </div>
 </div>
+<div id="s-mascot-logo-eye" hidden style="grid-column:1 / -1;">
+<div class="form-label" style="font-size:10px;margin:6px 0;" data-tr="Logo göz" data-de="Logo-Augen">Logo göz</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<div>
+<label class="form-label" style="font-size:10px;" data-tr="Sol göz" data-de="Linkes Auge">Sol göz</label>
+<input type="color" id="s-mascot-logo-l" value="#f8fafc" style="width:100%;height:28px;padding:2px;">
+</div>
+<div>
+<label class="form-label" style="font-size:10px;" data-tr="Sağ göz" data-de="Rechtes Auge">Sağ göz</label>
+<input type="color" id="s-mascot-logo-r" value="#2563eb" style="width:100%;height:28px;padding:2px;">
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+<div>
+<label class="form-label" style="font-size:10px;" data-tr="Boyut" data-de="Größe">Boyut</label>
+<input type="range" id="s-mascot-logo-size" min="60" max="170" step="1" value="100">
+</div>
+<div>
+<label class="form-label" style="font-size:10px;" data-tr="Aralık" data-de="Abstand">Aralık</label>
+<input type="range" id="s-mascot-logo-gap" min="0" max="16" step="1" value="3">
+</div>
+<div>
+<label class="form-label" style="font-size:10px;" data-tr="Dikey" data-de="Höhe">Dikey</label>
+<input type="range" id="s-mascot-logo-y" min="18" max="56" step="1" value="34">
+</div>
+<div>
+<label class="form-label" style="font-size:10px;" data-tr="Eğim" data-de="Neigung">Eğim</label>
+<input type="range" id="s-mascot-logo-tilt" min="-70" max="30" step="1" value="-28">
+</div>
+</div>
+</div>
 <div>
 <label class="form-label" style="font-size:10px;">Kaş</label>
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
@@ -3646,6 +3677,35 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="form-row">
 <label class="form-label" data-tr="Kaş" data-de="Braue">Kaş</label>
 <select class="form-input" id="mascot-def-brow"></select>
+</div>
+</div>
+<div id="mascot-def-logo-eye" style="margin-top:10px;">
+<div class="form-label" style="font-size:11px;margin-bottom:8px;" data-tr="Logo göz" data-de="Logo-Augen">Logo göz</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div>
+<label class="form-label" data-tr="Sol göz" data-de="Linkes Auge">Sol göz</label>
+<input type="color" id="mascot-def-eye-l" value="#f8fafc" style="width:100%;height:32px;padding:2px;">
+</div>
+<div>
+<label class="form-label" data-tr="Sağ göz" data-de="Rechtes Auge">Sağ göz</label>
+<input type="color" id="mascot-def-eye-r" value="#2563eb" style="width:100%;height:32px;padding:2px;">
+</div>
+<div>
+<label class="form-label" data-tr="Boyut" data-de="Größe">Boyut</label>
+<input type="range" id="mascot-def-eye-size" min="60" max="170" step="1" value="100">
+</div>
+<div>
+<label class="form-label" data-tr="Aralık" data-de="Abstand">Aralık</label>
+<input type="range" id="mascot-def-eye-gap" min="0" max="16" step="1" value="3">
+</div>
+<div>
+<label class="form-label" data-tr="Dikey" data-de="Höhe">Dikey</label>
+<input type="range" id="mascot-def-eye-y" min="18" max="56" step="1" value="34">
+</div>
+<div>
+<label class="form-label" data-tr="Eğim" data-de="Neigung">Eğim</label>
+<input type="range" id="mascot-def-eye-tilt" min="-70" max="30" step="1" value="-28">
+</div>
 </div>
 </div>
 <div class="form-row" style="margin-top:10px;">

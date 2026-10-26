@@ -669,11 +669,101 @@ function mbMascotHasPref(base) {
   }
 }
 
-const MB_MASCOT_DEFAULT = { eye: 'logo', shape: 'blob', color: '', mouth: 'none', brow: 'none' };
+const MB_MASCOT_DEFAULT = {
+  eye: 'logo', shape: 'blob', color: '', mouth: 'none', brow: 'none',
+  eyeL: '#f8fafc', eyeR: '#2563eb', eyeSize: 100, eyeGap: 3, eyeY: 34, eyeTilt: -28
+};
 let mbMascotDefaultLive = { ...MB_MASCOT_DEFAULT };
 
 function mbMascotDefaultLook() {
   return mbMascotDefaultLive;
+}
+
+function mbMascotLogoEyePaint(root, cfg) {
+  if (!root || !cfg) return;
+  root.style.setProperty('--logo-eye-l', cfg.l);
+  root.style.setProperty('--logo-eye-r', cfg.r);
+  root.style.setProperty('--logo-eye-scale', String(cfg.size / 100));
+  root.style.setProperty('--logo-eye-gap', cfg.gap + 'px');
+  root.style.setProperty('--logo-eye-y', cfg.y + '%');
+  root.style.setProperty('--logo-eye-tilt', cfg.tilt + 'deg');
+}
+
+function mbMascotLogoEyeCfg() {
+  const d = mbMascotDefaultLook();
+  const hex = (key, fallback) => {
+    if (!mbMascotHasPref(key)) return fallback;
+    const v = String(getMascotPref(key, '') || '');
+    return /^#[0-9a-fA-F]{6}$/.test(v) ? v.toLowerCase() : fallback;
+  };
+  const num = (key, fallback, min, max) => {
+    if (!mbMascotHasPref(key)) return fallback;
+    const n = Number(getMascotPref(key, ''));
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, Math.round(n)));
+  };
+  return {
+    l: hex('mb_mascot_logo_l', d.eyeL || '#f8fafc'),
+    r: hex('mb_mascot_logo_r', d.eyeR || '#2563eb'),
+    size: num('mb_mascot_logo_size', d.eyeSize || 100, 60, 170),
+    gap: num('mb_mascot_logo_gap', d.eyeGap ?? 3, 0, 16),
+    y: num('mb_mascot_logo_y', d.eyeY || 34, 18, 56),
+    tilt: num('mb_mascot_logo_tilt', d.eyeTilt ?? -28, -70, 30)
+  };
+}
+
+function mbMascotLogoEyeApply() {
+  const cfg = mbMascotLogoEyeCfg();
+  document.querySelectorAll('.mascot-theme-root:not([data-mascot-fixed])').forEach((root) => {
+    mbMascotLogoEyePaint(root, cfg);
+  });
+}
+
+function mbMascotLogoEyeSyncPanel() {
+  const box = document.getElementById('s-mascot-logo-eye');
+  const eye = document.getElementById('s-mascot-cos-eye');
+  if (box) box.hidden = !(eye && eye.value === 'logo');
+  const def = document.getElementById('mascot-def-logo-eye');
+  const defEye = document.getElementById('mascot-def-eye');
+  if (def) def.hidden = !!(defEye && defEye.value && defEye.value !== 'logo');
+}
+
+function mbMascotLogoEyeFillForm() {
+  const cfg = mbMascotLogoEyeCfg();
+  const set = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+  };
+  set('s-mascot-logo-l', cfg.l);
+  set('s-mascot-logo-r', cfg.r);
+  set('s-mascot-logo-size', String(cfg.size));
+  set('s-mascot-logo-gap', String(cfg.gap));
+  set('s-mascot-logo-y', String(cfg.y));
+  set('s-mascot-logo-tilt', String(cfg.tilt));
+  mbMascotLogoEyeSyncPanel();
+}
+
+function mbMascotLogoEyeBind() {
+  mbMascotLogoEyeFillForm();
+  const map = {
+    's-mascot-logo-l': 'mb_mascot_logo_l',
+    's-mascot-logo-r': 'mb_mascot_logo_r',
+    's-mascot-logo-size': 'mb_mascot_logo_size',
+    's-mascot-logo-gap': 'mb_mascot_logo_gap',
+    's-mascot-logo-y': 'mb_mascot_logo_y',
+    's-mascot-logo-tilt': 'mb_mascot_logo_tilt'
+  };
+  Object.keys(map).forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const run = () => {
+      setMascotPref(map[id], el.value);
+      mbMascotLogoEyeApply();
+    };
+    el.addEventListener('input', run);
+    el.addEventListener('change', run);
+  });
+  document.getElementById('s-mascot-cos-eye')?.addEventListener('change', mbMascotLogoEyeSyncPanel);
 }
 
 function getMascotCosmeticPref(part) {
@@ -732,6 +822,7 @@ function applyMascotCosmeticColors() {
       else root.style.removeProperty(`--cos-${p}-color`);
     }
   });
+  mbMascotLogoEyeApply();
 }
 
 function _syncMascotCosColorInputsFromPrefs() {
@@ -1043,6 +1134,7 @@ function loadMascotSettingsForm() {
     if (box) box.checked = getMascotPref(`mb_mascot_say_${kind}`, '1') !== '0';
   });
   _syncMascotSayControls();
+  mbMascotLogoEyeFillForm();
   mbPaintMascotStyleBook();
   mbWireMascotStyleBook();
   if (currentUser?.firm_id) {
@@ -1286,12 +1378,24 @@ function mbMascotDefaultNormalize(raw) {
     return v === 'random' ? fallback : v;
   };
   const color = /^#[0-9a-fA-F]{6}$/.test(String(src.color || '')) ? String(src.color).toLowerCase() : '';
+  const hex = (value, fallback) => /^#[0-9a-fA-F]{6}$/.test(String(value || '')) ? String(value).toLowerCase() : fallback;
+  const num = (value, fallback, min, max) => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, Math.round(n)));
+  };
   return {
     eye: pick('eye', src.eye, 'logo'),
     shape: mascotShapeFromString(src.shape || 'blob'),
     color,
     mouth: pick('mouth', src.mouth, 'none'),
-    brow: pick('brow', src.brow, 'none')
+    brow: pick('brow', src.brow, 'none'),
+    eyeL: hex(src.eyeL, '#f8fafc'),
+    eyeR: hex(src.eyeR, '#2563eb'),
+    eyeSize: num(src.eyeSize, 100, 60, 170),
+    eyeGap: num(src.eyeGap, 3, 0, 16),
+    eyeY: num(src.eyeY, 34, 18, 56),
+    eyeTilt: num(src.eyeTilt, -28, -70, 30)
   };
 }
 
@@ -1313,7 +1417,9 @@ function mbMascotDefaultPaint(cfg) {
   root.setAttribute('data-mascot-shape', look.shape);
   root.setAttribute('data-mascot-mouth', look.mouth);
   root.setAttribute('data-mascot-brow', look.brow);
-  root.style.removeProperty('--cos-eye-color');
+  mbMascotLogoEyePaint(root, {
+    l: look.eyeL, r: look.eyeR, size: look.eyeSize, gap: look.eyeGap, y: look.eyeY, tilt: look.eyeTilt
+  });
   return look;
 }
 
@@ -1327,6 +1433,12 @@ function mbMascotDefaultFill(raw) {
   set('mascot-def-shape', cfg.shape);
   set('mascot-def-mouth', cfg.mouth);
   set('mascot-def-brow', cfg.brow);
+  set('mascot-def-eye-l', cfg.eyeL);
+  set('mascot-def-eye-r', cfg.eyeR);
+  set('mascot-def-eye-size', String(cfg.eyeSize));
+  set('mascot-def-eye-gap', String(cfg.eyeGap));
+  set('mascot-def-eye-y', String(cfg.eyeY));
+  set('mascot-def-eye-tilt', String(cfg.eyeTilt));
   const auto = document.getElementById('mascot-def-color-auto');
   const color = document.getElementById('mascot-def-color');
   if (auto) auto.checked = !cfg.color;
@@ -1334,6 +1446,7 @@ function mbMascotDefaultFill(raw) {
     color.disabled = !cfg.color;
     color.value = cfg.color || '#a855f7';
   }
+  mbMascotLogoEyeSyncPanel();
   mbMascotDefaultPaint(cfg);
 }
 
@@ -1344,7 +1457,13 @@ function mbMascotDefaultFromForm() {
     shape: document.getElementById('mascot-def-shape')?.value,
     mouth: document.getElementById('mascot-def-mouth')?.value,
     brow: document.getElementById('mascot-def-brow')?.value,
-    color: auto?.checked ? '' : (document.getElementById('mascot-def-color')?.value || '')
+    color: auto?.checked ? '' : (document.getElementById('mascot-def-color')?.value || ''),
+    eyeL: document.getElementById('mascot-def-eye-l')?.value,
+    eyeR: document.getElementById('mascot-def-eye-r')?.value,
+    eyeSize: document.getElementById('mascot-def-eye-size')?.value,
+    eyeGap: document.getElementById('mascot-def-eye-gap')?.value,
+    eyeY: document.getElementById('mascot-def-eye-y')?.value,
+    eyeTilt: document.getElementById('mascot-def-eye-tilt')?.value
   });
 }
 
@@ -1354,13 +1473,15 @@ function mbMascotDefaultBind() {
   mbMascotDefaultCopyOptions('s-mascot-cos-mouth', 'mascot-def-mouth');
   mbMascotDefaultCopyOptions('s-mascot-cos-brow', 'mascot-def-brow');
   mbMascotDefaultFill(mbMascotDefaultLive);
-  ['mascot-def-eye', 'mascot-def-shape', 'mascot-def-mouth', 'mascot-def-brow', 'mascot-def-color', 'mascot-def-color-auto'].forEach((id) => {
+  ['mascot-def-eye', 'mascot-def-shape', 'mascot-def-mouth', 'mascot-def-brow', 'mascot-def-color', 'mascot-def-color-auto',
+    'mascot-def-eye-l', 'mascot-def-eye-r', 'mascot-def-eye-size', 'mascot-def-eye-gap', 'mascot-def-eye-y', 'mascot-def-eye-tilt'].forEach((id) => {
     const el = document.getElementById(id);
     if (!el) return;
     const run = () => {
       const color = document.getElementById('mascot-def-color');
       const auto = document.getElementById('mascot-def-color-auto');
       if (color && auto) color.disabled = !!auto.checked;
+      mbMascotLogoEyeSyncPanel();
       mbMascotDefaultPaint(mbMascotDefaultFromForm());
     };
     el.addEventListener('input', run);
@@ -1412,3 +1533,4 @@ async function mbSaveMascotDefault() {
 }
 
 mbMascotDefaultBind();
+mbMascotLogoEyeBind();
