@@ -246,8 +246,40 @@ function campFirmName(firmId) {
   return String(row?.name || '').trim();
 }
 
-function campByCode(a, b) {
-  return String(a?.name || '').localeCompare(String(b?.name || ''), 'tr', { numeric: true, sensitivity: 'base' });
+let _campSort = { key: 'name', dir: 'asc' };
+
+function campSortValue(c, key) {
+  const f = campRowFields(c, false);
+  const st = f.st;
+  if (key === 'status') return f.statusLabel;
+  if (key === 'did') return f.didText;
+  if (key === 'queues') return st.qs.length;
+  if (key === 'total') return st.total;
+  if (key === 'dialed') return st.dialed;
+  if (key === 'left') return c._left == null ? -1 : Number(c._left);
+  if (key === 'stuck') return c._stuck == null ? -1 : Number(c._stuck);
+  if (key === 'pct') return st.pct;
+  if (key === 'speed') return Number(c.dial_speed) || 0;
+  if (key === 'agents') return st.agents;
+  if (key === 'created') return String(c.created_at || '');
+  return String(c.name || '');
+}
+
+function campBySort(a, b) {
+  const key = _campSort.key || 'name';
+  const dir = _campSort.dir === 'desc' ? -1 : 1;
+  const av = campSortValue(a, key);
+  const bv = campSortValue(b, key);
+  let cmp = 0;
+  if (typeof av === 'number' && typeof bv === 'number') cmp = av - bv;
+  else cmp = String(av).localeCompare(String(bv), 'tr', { numeric: true, sensitivity: 'base' });
+  if (!cmp) cmp = String(a?.name || '').localeCompare(String(b?.name || ''), 'tr', { numeric: true, sensitivity: 'base' });
+  return cmp * dir;
+}
+
+function setCampSort(key, dir) {
+  _campSort = { key: key || 'name', dir: dir === 'desc' ? 'desc' : 'asc' };
+  renderCampGrid();
 }
 
 function campVisibleList() {
@@ -260,7 +292,7 @@ function campVisibleList() {
     }
     const text = campRowFields(c, campShowFirm()).text;
     return Object.entries(_campColFilters).every(([key, raw]) => !key || campMatch(text[key] || '', raw));
-  }).sort(campByCode);
+  }).sort(campBySort);
 }
 
 function campColDefs() {
@@ -499,7 +531,11 @@ function renderCampRows(esc) {
     const filter = col.key
       ? `<input class="camp-col-filter" value="${esc(_campColFilters[col.key] || '')}" oninput="setCampColFilter('${col.key}', this.value)" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">`
       : '';
-    return `<th class="${col.num ? 'num' : ''}">${esc(col.label)}${filter}</th>`;
+    const on = col.key && _campSort.key === col.key;
+    const sort = col.key
+      ? `<span class="camp-sort"><button type="button" class="camp-sort-btn${on && _campSort.dir === 'asc' ? ' is-on' : ''}" title="${esc(campT('camp.sort.asc', 'Küçükten büyüğe'))}" aria-label="${esc(campT('camp.sort.asc', 'Küçükten büyüğe'))}" onclick="event.stopPropagation();setCampSort('${col.key}','asc')"><i class="ph ph-caret-up"></i></button><button type="button" class="camp-sort-btn${on && _campSort.dir === 'desc' ? ' is-on' : ''}" title="${esc(campT('camp.sort.desc', 'Büyükten küçüğe'))}" aria-label="${esc(campT('camp.sort.desc', 'Büyükten küçüğe'))}" onclick="event.stopPropagation();setCampSort('${col.key}','desc')"><i class="ph ph-caret-down"></i></button></span>`
+      : '';
+    return `<th class="${col.num ? 'num' : ''}"><span class="camp-sort-label">${esc(col.label)}${sort}</span>${filter}</th>`;
   }).join('');
   return `<div class="camp-rows-wrap"><table class="camp-rows"><thead><tr>${head}</tr></thead><tbody>${campRowsBody()}</tbody></table></div>`;
 }

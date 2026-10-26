@@ -3451,6 +3451,15 @@ CAMPAIGNS
   padding:8px 10px; border-bottom:1px solid var(--border); white-space:nowrap; background:var(--bg-3);
   vertical-align:top;
 }
+.camp-sort-label { display:inline-flex; align-items:center; gap:4px; }
+.camp-rows th.num .camp-sort-label { width:100%; justify-content:flex-end; }
+.camp-sort { display:inline-flex; flex-direction:column; line-height:1; }
+.camp-sort-btn {
+  border:0; background:transparent; color:var(--text-3); cursor:pointer;
+  width:14px; height:11px; padding:0; display:flex; align-items:center; justify-content:center;
+}
+.camp-sort-btn i { font-size:10px; }
+.camp-sort-btn.is-on { color:var(--accent); }
 .camp-col-filter {
   display:block; width:100%; min-width:72px; margin-top:6px; box-sizing:border-box;
   font-size:12px; font-weight:500; text-align:left; padding:4px 6px;
