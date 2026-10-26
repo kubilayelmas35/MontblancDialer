@@ -395,36 +395,6 @@ text-shadow: none;
 margin: 0;
 }
 .tb-logo-one { color: #2563eb; }
-.tb-logo-i {
-  position: relative;
-  display: inline-block;
-  width: 0.36em;
-  height: 0.95em;
-  margin: 0 0.02em;
-  vertical-align: -0.04em;
-}
-.tb-logo-i::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 0.18em;
-  height: 0.5em;
-  transform: translateX(-50%);
-  border-radius: 999px;
-  background: currentColor;
-}
-.tb-logo-i::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: 0.34em;
-  height: 0.34em;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: #2563eb;
-}
 [data-theme="dark"] .tb-logo {
 border: none;
 box-shadow: none;
