@@ -3,6 +3,7 @@ const MB_LOGO_DEFAULT = {
   blinkMode: 'sync',
   blinkSec: 5,
   box: true,
+  boxFx: 'flow',
   boxA: '',
   boxB: '',
   boxADark: '',
@@ -33,6 +34,7 @@ const MB_LOGO_DEFAULT = {
 };
 
 const MB_LOGO_BLINK = ['sync', 'alt', 'left', 'right'];
+const MB_LOGO_BOX_FX = ['flow', 'slow', 'fast', 'breath', 'drift', 'still'];
 let mbLogoLive = null;
 
 function mbLogoHex(value) {
@@ -61,12 +63,14 @@ function mbLogoNormalize(raw) {
   if (!Number.isFinite(swapSec)) swapSec = MB_LOGO_DEFAULT.swapSec;
   swapSec = Math.max(3, Math.min(12, Math.round(swapSec)));
   const blinkMode = MB_LOGO_BLINK.includes(src.blinkMode) ? src.blinkMode : MB_LOGO_DEFAULT.blinkMode;
+  const boxFx = MB_LOGO_BOX_FX.includes(src.boxFx) ? src.boxFx : MB_LOGO_DEFAULT.boxFx;
   const word2Lang = src.word2Lang === 'tr' || src.word2Lang === 'de' ? src.word2Lang : '';
   return {
     blink: src.blink !== false,
     blinkMode,
     blinkSec,
     box: src.box !== false,
+    boxFx,
     boxA: mbLogoHex(src.boxA),
     boxB: mbLogoHex(src.boxB),
     boxADark: mbLogoHex(src.boxADark),
@@ -147,6 +151,9 @@ function mbLogoApply(raw) {
     root.classList.toggle('is-blink-left', cfg.blink && cfg.blinkMode === 'left');
     root.classList.toggle('is-blink-right', cfg.blink && cfg.blinkMode === 'right');
     root.classList.toggle('is-box', cfg.box);
+    MB_LOGO_BOX_FX.forEach((fx) => {
+      root.classList.toggle('is-box-fx-' + fx, cfg.box && cfg.boxFx === fx);
+    });
     root.classList.toggle('is-box-tint', cfg.box && !!(cfg.boxA && cfg.boxB));
     root.classList.toggle('is-box-tint-dark', cfg.box && !!(cfg.boxADark && cfg.boxBDark));
     root.classList.toggle('is-text', !!cfg.text);
@@ -213,6 +220,7 @@ function mbLogoFromForm() {
     blinkMode: document.getElementById('logo-blink-mode')?.value,
     blinkSec: document.getElementById('logo-blink-sec')?.value,
     box: !!document.getElementById('logo-box')?.checked,
+    boxFx: document.getElementById('logo-box-fx')?.value,
     boxA: boxCustom?.checked ? document.getElementById('logo-box-a')?.value : '',
     boxB: boxCustom?.checked ? document.getElementById('logo-box-b')?.value : '',
     boxADark: boxDark?.checked ? document.getElementById('logo-box-a-dark')?.value : '',
@@ -256,6 +264,7 @@ function mbLogoFillForm(raw) {
   set('logo-blink-mode', cfg.blinkMode);
   set('logo-blink-sec', String(cfg.blinkSec));
   set('logo-box', cfg.box);
+  set('logo-box-fx', cfg.boxFx);
   set('logo-box-custom', !!(cfg.boxA && cfg.boxB));
   set('logo-box-a', cfg.boxA || '#e8eef8');
   set('logo-box-b', cfg.boxB || '#2563eb');
@@ -325,6 +334,8 @@ function mbLogoSyncLocks() {
   const blinking = !!document.getElementById('logo-blink')?.checked;
   if (mode) mode.disabled = !blinking;
   if (pace) pace.disabled = !blinking;
+  const boxFx = document.getElementById('logo-box-fx');
+  if (boxFx) boxFx.disabled = !document.getElementById('logo-box')?.checked;
   const second = !!mbLogoPlain(document.getElementById('logo-word2')?.value);
   const lang = document.getElementById('logo-word2-lang');
   const hold = document.getElementById('logo-swap-sec');
@@ -387,7 +398,7 @@ async function mbSaveLogoSettings() {
 
 function mbLogoBind() {
   const ids = [
-    'logo-blink', 'logo-blink-mode', 'logo-blink-sec', 'logo-box', 'logo-box-custom',
+    'logo-blink', 'logo-blink-mode', 'logo-blink-sec', 'logo-box', 'logo-box-fx', 'logo-box-custom',
     'logo-box-a', 'logo-box-b', 'logo-gap', 'logo-word', 'logo-word2', 'logo-word2-lang', 'logo-swap-sec',
     'logo-text', 'logo-text-auto', 'logo-one',
     'logo-eye-l', 'logo-eye-l-auto', 'logo-eye-r', 'logo-eye-l-aurora', 'logo-eye-r-aurora',

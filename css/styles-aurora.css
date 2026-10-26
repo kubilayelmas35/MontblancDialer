@@ -197,6 +197,32 @@ html:not([data-theme="dark"]) .tb-logo.is-box-tint .fluid-aurora--logo::after {
     var(--logo-box-b-dark) 360deg);
   opacity: 0.55;
 }
+.tb-logo.is-box-fx-slow .fluid-aurora--logo::before { animation-duration: 46s; }
+.tb-logo.is-box-fx-slow .fluid-aurora--logo::after { animation-duration: 54s; }
+.tb-logo.is-box-fx-fast .fluid-aurora--logo::before { animation-duration: 7s; }
+.tb-logo.is-box-fx-fast .fluid-aurora--logo::after { animation-duration: 9s; }
+.tb-logo.is-box-fx-breath .fluid-aurora--logo::before { animation: mbLogoBoxBreath 5.5s ease-in-out infinite; }
+.tb-logo.is-box-fx-breath .fluid-aurora--logo::after { animation: mbLogoBoxBreathRev 7s ease-in-out infinite; }
+.tb-logo.is-box-fx-drift .fluid-aurora--logo::before { animation: mbLogoBoxDrift 9s ease-in-out infinite; }
+.tb-logo.is-box-fx-drift .fluid-aurora--logo::after { animation: mbLogoBoxDriftRev 11s ease-in-out infinite; }
+.tb-logo.is-box-fx-still .fluid-aurora--logo::before,
+.tb-logo.is-box-fx-still .fluid-aurora--logo::after { animation: none; }
+@keyframes mbLogoBoxBreath {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+@keyframes mbLogoBoxBreathRev {
+  0%, 100% { transform: scale(1.12); }
+  50% { transform: scale(0.92); }
+}
+@keyframes mbLogoBoxDrift {
+  0%, 100% { transform: translate3d(-8%, -4%, 0) rotate(8deg); }
+  50% { transform: translate3d(10%, 6%, 0) rotate(-6deg); }
+}
+@keyframes mbLogoBoxDriftRev {
+  0%, 100% { transform: translate3d(8%, 6%, 0) rotate(-10deg); }
+  50% { transform: translate3d(-10%, -4%, 0) rotate(8deg); }
+}
 .form-input.is-invalid { border-color: var(--red); box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.18); }
 .nc-inline-err { font-size: 11px; color: var(--red); margin-top: 4px; }
 .mb-month-wrap { position: relative; display: inline-flex; align-items: center; }
