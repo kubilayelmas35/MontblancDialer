@@ -381,13 +381,13 @@ line-height: 1.2;
 width: 32px;
 height: 32px;
 flex-shrink: 0;
-background: rgba(255, 255, 255, 0.55);
-border: 1px solid rgba(15, 23, 42, 0.12);
+background: #0f172a;
+border: 1px solid transparent;
 border-radius: 10px;
 display: flex;
 align-items: center;
 justify-content: center;
-color: #0f172a;
+color: #f8fafc;
 box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
 }
 .tb-logo-name {
@@ -398,6 +398,7 @@ color: #0f172a;
 text-shadow: none;
 margin: 0;
 }
+.tb-logo-one { color: #2563eb; }
 [data-theme="dark"] .tb-logo {
 border-color: rgba(255, 255, 255, 0.22);
 box-shadow: none;
@@ -423,9 +424,9 @@ background: rgba(255, 255, 255, 0.06);
 }
 [data-theme="dark"] .tb-test-flag { color: #fde68a; }
 [data-theme="dark"] .tb-logo-mark {
-  background: #f8fafc;
+  background: #0f172a;
   border-color: transparent;
-  color: #0f172a;
+  color: #f8fafc;
 }
 #tb-pills { display: contents; }
 .pill-camp { order: 1; }
@@ -2022,9 +2023,9 @@ border-radius: 10px; font-family: var(--mono);
 /* Sidebar içinde tb-logo olursa (koyu zemin) */
 #sidebar .tb-logo-name { color: var(--brand-chrome-fg) !important; }
 #sidebar .tb-logo-mark {
-  color: var(--brand-chrome-fg) !important;
-  background: var(--brand-chrome-frost) !important;
-  border-color: var(--brand-chrome-border) !important;
+  color: #f8fafc !important;
+  background: #0f172a !important;
+  border-color: transparent !important;
 }
 #sidebar .tb-hamburger { color: rgba(255,255,255,0.82); }
 #sidebar .tb-hamburger:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); }
@@ -3145,9 +3146,9 @@ LOGIN PAGE
 .login-card-logo { display:flex; align-items:center; gap:12px; margin-bottom:4px; }
 .login-logo-mark {
   width:46px; height:46px; border-radius:12px;
-  background:var(--accent);
+  background:#0f172a;
   display:flex; align-items:center; justify-content:center;
-  box-shadow:0 4px 16px var(--accent-soft); flex-shrink:0;
+  box-shadow:0 4px 16px rgba(15,23,42,.28); flex-shrink:0;
 }
 .login-title { font-size:22px; font-weight:800; letter-spacing:-.5px; }
 .login-sub   { font-size:13px; color:var(--text-3); margin-top:2px; }
