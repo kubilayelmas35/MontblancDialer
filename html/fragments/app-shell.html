@@ -15,7 +15,7 @@
 </svg>
 </div>
 <div class="tb-logo-text">
-<h1 class="tb-logo-name">callin<span class="tb-logo-one">.one</span></h1>
+<h1 class="tb-logo-name"><span class="tb-logo-faces"><span class="tb-logo-face is-brand"><span class="tb-logo-word">callin</span><span class="tb-logo-one">.one</span></span><span class="tb-logo-face is-note" aria-hidden="true"><span class="tb-logo-word2"></span></span></span></h1>
 </div>
 </div>
 </div>
@@ -3630,7 +3630,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </svg>
 </div>
 <div class="tb-logo-text">
-<div class="tb-logo-name">callin<span class="tb-logo-one">.one</span></div>
+<div class="tb-logo-name"><span class="tb-logo-faces"><span class="tb-logo-face is-brand"><span class="tb-logo-word">callin</span><span class="tb-logo-one">.one</span></span><span class="tb-logo-face is-note" aria-hidden="true"><span class="tb-logo-word2"></span></span></span></div>
 </div>
 </div>
 </div>
@@ -3668,9 +3668,32 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" data-tr="Yazı aralığı" data-de="Abstand zur Schrift">Yazı aralığı</label>
 <input type="range" id="logo-gap" min="0" max="18" step="1" value="6">
 </div>
+<div class="form-row">
+<label class="form-label" data-tr="Yazı" data-de="Schrift">Yazı</label>
+<input class="form-input" id="logo-word" maxlength="60" autocomplete="off" name="mb-logo-word" placeholder="callin">
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="İkinci yazı" data-de="Zweite Schrift">İkinci yazı</label>
+<input class="form-input" id="logo-word2" maxlength="60" autocomplete="off" name="mb-logo-word2" placeholder="Bayramınız kutlu olsun">
+<div style="font-size:11px;color:var(--text-3);margin-top:3px;" data-tr="Doluysa bir süre sonra birinci yazının yerine geçer." data-de="Wenn gefüllt, löst sie nach einer Weile die erste Schrift ab.">Doluysa bir süre sonra birinci yazının yerine geçer.</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div class="form-row">
+<label class="form-label" data-tr="İkinci yazının dili" data-de="Sprache der zweiten Schrift">İkinci yazının dili</label>
+<select class="form-input" id="logo-word2-lang">
+<option value="" data-tr="Her dil" data-de="Jede Sprache">Her dil</option>
+<option value="tr" data-tr="Türkçe" data-de="Türkisch">Türkçe</option>
+<option value="de" data-tr="Almanca" data-de="Deutsch">Almanca</option>
+</select>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Yazı süresi" data-de="Schriftdauer">Yazı süresi</label>
+<input type="range" id="logo-swap-sec" min="3" max="12" step="1" value="6">
+</div>
+</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
 <div>
-<label class="form-label" data-tr="Yazı" data-de="Schrift">Yazı</label>
+<label class="form-label" data-tr="Yazı rengi" data-de="Schriftfarbe">Yazı rengi</label>
 <input type="color" id="logo-text" value="#0f172a" disabled style="width:100%;height:32px;padding:2px;">
 <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
 <input type="checkbox" id="logo-text-auto" checked style="width:14px;height:14px;">
@@ -3712,6 +3735,80 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 </div>
+<details id="logo-dark-details">
+<summary style="cursor:pointer;font-size:12px;font-weight:700;margin:2px 0;"><span data-tr="Koyu mod" data-de="Dunkelmodus">Koyu mod</span></summary>
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+<div style="font-size:11px;color:var(--text-3);" data-tr="İşaret durursa koyu tema bildiği rengi kullanır. İşareti kaldırırsan bu renk yalnız koyu temada geçer." data-de="Bleibt der Haken, nutzt das Dunkeltheme seine eigene Farbe. Ohne Haken gilt diese Farbe nur im Dunkelmodus.">İşaret durursa koyu tema bildiği rengi kullanır. İşareti kaldırırsan bu renk yalnız koyu temada geçer.</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div>
+<label class="form-label" data-tr="Yazı rengi" data-de="Schriftfarbe">Yazı rengi</label>
+<input type="color" id="logo-text-dark" value="#f8fafc" disabled style="width:100%;height:32px;padding:2px;">
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
+<input type="checkbox" id="logo-text-dark-auto" checked style="width:14px;height:14px;">
+<span data-tr="Tema rengi" data-de="Themefarbe">Tema rengi</span>
+</label>
+</div>
+<div>
+<label class="form-label">.one</label>
+<input type="color" id="logo-one-dark" value="#2563eb" disabled style="width:100%;height:32px;padding:2px;">
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
+<input type="checkbox" id="logo-one-dark-auto" checked style="width:14px;height:14px;">
+<span data-tr="Açıkla aynı" data-de="Wie hell">Açıkla aynı</span>
+</label>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div>
+<label class="form-label" data-tr="Sol göz" data-de="Linkes Auge">Sol göz</label>
+<input type="color" id="logo-eye-l-dark" value="#f8fafc" disabled style="width:100%;height:32px;padding:2px;">
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
+<input type="checkbox" id="logo-eye-l-dark-auto" checked style="width:14px;height:14px;">
+<span data-tr="Yazı rengi" data-de="Schriftfarbe">Yazı rengi</span>
+</label>
+</div>
+<div>
+<label class="form-label" data-tr="Sağ göz" data-de="Rechtes Auge">Sağ göz</label>
+<input type="color" id="logo-eye-r-dark" value="#2563eb" disabled style="width:100%;height:32px;padding:2px;">
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
+<input type="checkbox" id="logo-eye-r-dark-auto" checked style="width:14px;height:14px;">
+<span data-tr="Açıkla aynı" data-de="Wie hell">Açıkla aynı</span>
+</label>
+</div>
+</div>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+<input type="checkbox" id="logo-box-dark" style="width:15px;height:15px;">
+<span data-tr="Koyu kutu renkleri" data-de="Dunkle Kastenfarben">Koyu kutu renkleri</span>
+</label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<input type="color" id="logo-box-a-dark" value="#121826" disabled style="width:100%;height:32px;padding:2px;">
+<input type="color" id="logo-box-b-dark" value="#2563eb" disabled style="width:100%;height:32px;padding:2px;">
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div>
+<label class="form-label" data-tr="Sol aurora" data-de="Linke Aurora">Sol aurora</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin:6px 0;cursor:pointer;">
+<input type="checkbox" id="logo-eye-l-dark-same" checked style="width:14px;height:14px;">
+<span data-tr="Açıkla aynı" data-de="Wie hell">Açıkla aynı</span>
+</label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+<input type="color" id="logo-eye-l-a-dark" value="#7dd3fc" disabled style="width:100%;height:28px;padding:2px;">
+<input type="color" id="logo-eye-l-b-dark" value="#818cf8" disabled style="width:100%;height:28px;padding:2px;">
+</div>
+</div>
+<div>
+<label class="form-label" data-tr="Sağ aurora" data-de="Rechte Aurora">Sağ aurora</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin:6px 0;cursor:pointer;">
+<input type="checkbox" id="logo-eye-r-dark-same" checked style="width:14px;height:14px;">
+<span data-tr="Açıkla aynı" data-de="Wie hell">Açıkla aynı</span>
+</label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+<input type="color" id="logo-eye-r-a-dark" value="#38bdf8" disabled style="width:100%;height:28px;padding:2px;">
+<input type="color" id="logo-eye-r-b-dark" value="#2563eb" disabled style="width:100%;height:28px;padding:2px;">
+</div>
+</div>
+</div>
+</div>
+</details>
 <button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="mbSaveLogoSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Logoyu kaydet" data-de="Logo speichern">Logoyu kaydet</span></button>
 </div>
 </div>

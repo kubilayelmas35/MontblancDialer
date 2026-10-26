@@ -12,17 +12,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=12.30">
-<link rel="stylesheet" href="css/styles-dialer.css?v=12.30">
-<link rel="stylesheet" href="css/styles-mascot.css?v=12.30">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=12.30">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=12.30">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=12.30">
-<link rel="stylesheet" href="css/styles-pages.css?v=12.30">
-<link rel="stylesheet" href="css/styles-aurora.css?v=12.30">
-<link rel="stylesheet" href="css/styles-chat.css?v=12.30">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=12.30">
-<link rel="stylesheet" href="css/styles-responsive.css?v=12.30">
+<link rel="stylesheet" href="css/styles.css?v=12.31">
+<link rel="stylesheet" href="css/styles-dialer.css?v=12.31">
+<link rel="stylesheet" href="css/styles-mascot.css?v=12.31">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=12.31">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=12.31">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=12.31">
+<link rel="stylesheet" href="css/styles-pages.css?v=12.31">
+<link rel="stylesheet" href="css/styles-aurora.css?v=12.31">
+<link rel="stylesheet" href="css/styles-chat.css?v=12.31">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=12.31">
+<link rel="stylesheet" href="css/styles-responsive.css?v=12.31">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -39,7 +39,7 @@
 <rect x="9" y="18" width="14" height="26" rx="7" fill="currentColor"/>
 </svg>
 </div>
-<div class="login-brand-name">callin<span class="tb-logo-one">.one</span></div>
+<div class="login-brand-name"><span class="tb-logo-faces"><span class="tb-logo-face is-brand"><span class="tb-logo-word">callin</span><span class="tb-logo-one">.one</span></span><span class="tb-logo-face is-note" aria-hidden="true"><span class="tb-logo-word2"></span></span></span></div>
 <div class="login-brand-sub" data-i18n="login.brand.sub">Çağrı merkezi</div>
 </div>
 <div class="login-index">
@@ -60,7 +60,7 @@
 <div class="login-index-note" data-i18n="login.row.4.note">Kalite, muhasebe</div>
 </div>
 </div>
-<div class="login-version">v12.30 — 2026</div>
+<div class="login-version">v12.31 — 2026</div>
 </div>
 <!-- Right form panel -->
 <div class="login-right">
@@ -125,7 +125,7 @@
 </svg>
 </div>
 <div class="tb-logo-text">
-<h1 class="tb-logo-name">callin<span class="tb-logo-one">.one</span></h1>
+<h1 class="tb-logo-name"><span class="tb-logo-faces"><span class="tb-logo-face is-brand"><span class="tb-logo-word">callin</span><span class="tb-logo-one">.one</span></span><span class="tb-logo-face is-note" aria-hidden="true"><span class="tb-logo-word2"></span></span></span></h1>
 </div>
 </div>
 </div>
@@ -492,7 +492,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">callin.one v12.30</div>
+<div class="sb-ver">callin.one v12.31</div>
 </div>
 </div>
 </nav>
@@ -3740,7 +3740,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </svg>
 </div>
 <div class="tb-logo-text">
-<div class="tb-logo-name">callin<span class="tb-logo-one">.one</span></div>
+<div class="tb-logo-name"><span class="tb-logo-faces"><span class="tb-logo-face is-brand"><span class="tb-logo-word">callin</span><span class="tb-logo-one">.one</span></span><span class="tb-logo-face is-note" aria-hidden="true"><span class="tb-logo-word2"></span></span></span></div>
 </div>
 </div>
 </div>
@@ -3778,9 +3778,32 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" data-tr="Yazı aralığı" data-de="Abstand zur Schrift">Yazı aralığı</label>
 <input type="range" id="logo-gap" min="0" max="18" step="1" value="6">
 </div>
+<div class="form-row">
+<label class="form-label" data-tr="Yazı" data-de="Schrift">Yazı</label>
+<input class="form-input" id="logo-word" maxlength="60" autocomplete="off" name="mb-logo-word" placeholder="callin">
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="İkinci yazı" data-de="Zweite Schrift">İkinci yazı</label>
+<input class="form-input" id="logo-word2" maxlength="60" autocomplete="off" name="mb-logo-word2" placeholder="Bayramınız kutlu olsun">
+<div style="font-size:11px;color:var(--text-3);margin-top:3px;" data-tr="Doluysa bir süre sonra birinci yazının yerine geçer." data-de="Wenn gefüllt, löst sie nach einer Weile die erste Schrift ab.">Doluysa bir süre sonra birinci yazının yerine geçer.</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div class="form-row">
+<label class="form-label" data-tr="İkinci yazının dili" data-de="Sprache der zweiten Schrift">İkinci yazının dili</label>
+<select class="form-input" id="logo-word2-lang">
+<option value="" data-tr="Her dil" data-de="Jede Sprache">Her dil</option>
+<option value="tr" data-tr="Türkçe" data-de="Türkisch">Türkçe</option>
+<option value="de" data-tr="Almanca" data-de="Deutsch">Almanca</option>
+</select>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Yazı süresi" data-de="Schriftdauer">Yazı süresi</label>
+<input type="range" id="logo-swap-sec" min="3" max="12" step="1" value="6">
+</div>
+</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
 <div>
-<label class="form-label" data-tr="Yazı" data-de="Schrift">Yazı</label>
+<label class="form-label" data-tr="Yazı rengi" data-de="Schriftfarbe">Yazı rengi</label>
 <input type="color" id="logo-text" value="#0f172a" disabled style="width:100%;height:32px;padding:2px;">
 <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
 <input type="checkbox" id="logo-text-auto" checked style="width:14px;height:14px;">
@@ -3822,6 +3845,80 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 </div>
+<details id="logo-dark-details">
+<summary style="cursor:pointer;font-size:12px;font-weight:700;margin:2px 0;"><span data-tr="Koyu mod" data-de="Dunkelmodus">Koyu mod</span></summary>
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+<div style="font-size:11px;color:var(--text-3);" data-tr="İşaret durursa koyu tema bildiği rengi kullanır. İşareti kaldırırsan bu renk yalnız koyu temada geçer." data-de="Bleibt der Haken, nutzt das Dunkeltheme seine eigene Farbe. Ohne Haken gilt diese Farbe nur im Dunkelmodus.">İşaret durursa koyu tema bildiği rengi kullanır. İşareti kaldırırsan bu renk yalnız koyu temada geçer.</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div>
+<label class="form-label" data-tr="Yazı rengi" data-de="Schriftfarbe">Yazı rengi</label>
+<input type="color" id="logo-text-dark" value="#f8fafc" disabled style="width:100%;height:32px;padding:2px;">
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
+<input type="checkbox" id="logo-text-dark-auto" checked style="width:14px;height:14px;">
+<span data-tr="Tema rengi" data-de="Themefarbe">Tema rengi</span>
+</label>
+</div>
+<div>
+<label class="form-label">.one</label>
+<input type="color" id="logo-one-dark" value="#2563eb" disabled style="width:100%;height:32px;padding:2px;">
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
+<input type="checkbox" id="logo-one-dark-auto" checked style="width:14px;height:14px;">
+<span data-tr="Açıkla aynı" data-de="Wie hell">Açıkla aynı</span>
+</label>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div>
+<label class="form-label" data-tr="Sol göz" data-de="Linkes Auge">Sol göz</label>
+<input type="color" id="logo-eye-l-dark" value="#f8fafc" disabled style="width:100%;height:32px;padding:2px;">
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
+<input type="checkbox" id="logo-eye-l-dark-auto" checked style="width:14px;height:14px;">
+<span data-tr="Yazı rengi" data-de="Schriftfarbe">Yazı rengi</span>
+</label>
+</div>
+<div>
+<label class="form-label" data-tr="Sağ göz" data-de="Rechtes Auge">Sağ göz</label>
+<input type="color" id="logo-eye-r-dark" value="#2563eb" disabled style="width:100%;height:32px;padding:2px;">
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
+<input type="checkbox" id="logo-eye-r-dark-auto" checked style="width:14px;height:14px;">
+<span data-tr="Açıkla aynı" data-de="Wie hell">Açıkla aynı</span>
+</label>
+</div>
+</div>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+<input type="checkbox" id="logo-box-dark" style="width:15px;height:15px;">
+<span data-tr="Koyu kutu renkleri" data-de="Dunkle Kastenfarben">Koyu kutu renkleri</span>
+</label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+<input type="color" id="logo-box-a-dark" value="#121826" disabled style="width:100%;height:32px;padding:2px;">
+<input type="color" id="logo-box-b-dark" value="#2563eb" disabled style="width:100%;height:32px;padding:2px;">
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div>
+<label class="form-label" data-tr="Sol aurora" data-de="Linke Aurora">Sol aurora</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin:6px 0;cursor:pointer;">
+<input type="checkbox" id="logo-eye-l-dark-same" checked style="width:14px;height:14px;">
+<span data-tr="Açıkla aynı" data-de="Wie hell">Açıkla aynı</span>
+</label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+<input type="color" id="logo-eye-l-a-dark" value="#7dd3fc" disabled style="width:100%;height:28px;padding:2px;">
+<input type="color" id="logo-eye-l-b-dark" value="#818cf8" disabled style="width:100%;height:28px;padding:2px;">
+</div>
+</div>
+<div>
+<label class="form-label" data-tr="Sağ aurora" data-de="Rechte Aurora">Sağ aurora</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:11px;margin:6px 0;cursor:pointer;">
+<input type="checkbox" id="logo-eye-r-dark-same" checked style="width:14px;height:14px;">
+<span data-tr="Açıkla aynı" data-de="Wie hell">Açıkla aynı</span>
+</label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+<input type="color" id="logo-eye-r-a-dark" value="#38bdf8" disabled style="width:100%;height:28px;padding:2px;">
+<input type="color" id="logo-eye-r-b-dark" value="#2563eb" disabled style="width:100%;height:28px;padding:2px;">
+</div>
+</div>
+</div>
+</div>
+</details>
 <button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="mbSaveLogoSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Logoyu kaydet" data-de="Logo speichern">Logoyu kaydet</span></button>
 </div>
 </div>
@@ -4967,68 +5064,68 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=12.30"></script>
-<script src="js/i18n.js?v=12.30"></script>
-<script src="js/config.js?v=12.30"></script>
-<script src="js/state.js?v=12.30"></script>
-<script src="js/api.js?v=12.30"></script>
-<script src="js/access.js?v=12.30"></script>
-<script src="js/auth.js?v=12.30"></script>
-<script src="js/logo.js?v=12.30"></script>
-<script src="js/ui.js?v=12.30"></script>
-<script src="js/chat.js?v=12.30"></script>
-<script src="js/chat-settings.js?v=12.30"></script>
-<script src="js/field-settings.js?v=12.30"></script>
-<script src="js/audit.js?v=12.30"></script>
-<script src="js/feature-flags.js?v=12.30"></script>
-<script src="js/notification-center.js?v=12.30"></script>
+<script src="js/version.js?v=12.31"></script>
+<script src="js/i18n.js?v=12.31"></script>
+<script src="js/config.js?v=12.31"></script>
+<script src="js/state.js?v=12.31"></script>
+<script src="js/api.js?v=12.31"></script>
+<script src="js/access.js?v=12.31"></script>
+<script src="js/auth.js?v=12.31"></script>
+<script src="js/logo.js?v=12.31"></script>
+<script src="js/ui.js?v=12.31"></script>
+<script src="js/chat.js?v=12.31"></script>
+<script src="js/chat-settings.js?v=12.31"></script>
+<script src="js/field-settings.js?v=12.31"></script>
+<script src="js/audit.js?v=12.31"></script>
+<script src="js/feature-flags.js?v=12.31"></script>
+<script src="js/notification-center.js?v=12.31"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=12.30"></script>
-<script src="js/job-market.js?v=12.30"></script>
-<script src="js/qc-job-market.js?v=12.30"></script>
-<script src="js/export-admin.js?v=12.30"></script>
-<script src="js/export-termin.js?v=12.30"></script>
-<script src="js/performance.js?v=12.30"></script>
-<script src="js/competition.js?v=12.30"></script>
-<script src="js/dashboard.js?v=12.30"></script>
-<script src="js/reports.js?v=12.30"></script>
-<script src="js/dashboard-brief.js?v=12.30"></script>
-<script src="js/campaigns.js?v=12.30"></script>
-<script src="js/campaigns-detail.js?v=12.30"></script>
-<script src="js/campaigns-queue.js?v=12.30"></script>
-<script src="js/contacts-upload.js?v=12.30"></script>
-<script src="js/geocon.js?v=12.30"></script>
-<script src="js/contacts.js?v=12.30"></script>
-<script src="js/contacts-drawer.js?v=12.30"></script>
-<script src="js/telnyx.js?v=12.30"></script>
-<script src="js/voice-orb.js?v=12.30"></script>
-<script src="js/dialer.js?v=12.30"></script>
-<script src="js/ops-alerts.js?v=12.30"></script>
-<script src="js/radius-tour.js?v=12.30"></script>
-<script src="js/dialer-mascot.js?v=12.30"></script>
-<script src="js/dialer-mascot-live.js?v=12.30"></script>
-<script src="js/ui-prefs.js?v=12.30"></script>
-<script src="js/dialer-session.js?v=12.30"></script>
-<script src="js/dialer-call.js?v=12.30"></script>
-<script src="js/dialer-tools.js?v=12.30"></script>
-<script src="js/appointments.js?v=12.30"></script>
-<script src="js/appointments-actions.js?v=12.30"></script>
-<script src="js/appointments-tools.js?v=12.30"></script>
-<script src="js/field.js?v=12.30"></script>
-<script src="js/field-quote.js?v=12.30"></script>
-<script src="js/field-catalog.js?v=12.30"></script>
-<script src="js/field-ops.js?v=12.30"></script>
-<script src="js/wiedervorlage.js?v=12.30"></script>
-<script src="js/qc.js?v=12.30"></script>
-<script src="js/supervisor.js?v=12.30"></script>
-<script src="js/live-coach.js?v=12.30"></script>
-<script src="js/sms-settings.js?v=12.30"></script>
-<script src="js/leave-hr.js?v=12.30"></script>
-<script src="js/muhasebe.js?v=12.30"></script>
-<script src="js/muhasebe-books.js?v=12.30"></script>
-<script src="js/agent-self-performance.js?v=12.30"></script>
-<script src="js/agents.js?v=12.30"></script>
-<script src="js/firm-desk.js?v=12.30"></script>
-<script src="js/mimi-brain.js?v=12.30"></script>
+<script src="js/wallet.js?v=12.31"></script>
+<script src="js/job-market.js?v=12.31"></script>
+<script src="js/qc-job-market.js?v=12.31"></script>
+<script src="js/export-admin.js?v=12.31"></script>
+<script src="js/export-termin.js?v=12.31"></script>
+<script src="js/performance.js?v=12.31"></script>
+<script src="js/competition.js?v=12.31"></script>
+<script src="js/dashboard.js?v=12.31"></script>
+<script src="js/reports.js?v=12.31"></script>
+<script src="js/dashboard-brief.js?v=12.31"></script>
+<script src="js/campaigns.js?v=12.31"></script>
+<script src="js/campaigns-detail.js?v=12.31"></script>
+<script src="js/campaigns-queue.js?v=12.31"></script>
+<script src="js/contacts-upload.js?v=12.31"></script>
+<script src="js/geocon.js?v=12.31"></script>
+<script src="js/contacts.js?v=12.31"></script>
+<script src="js/contacts-drawer.js?v=12.31"></script>
+<script src="js/telnyx.js?v=12.31"></script>
+<script src="js/voice-orb.js?v=12.31"></script>
+<script src="js/dialer.js?v=12.31"></script>
+<script src="js/ops-alerts.js?v=12.31"></script>
+<script src="js/radius-tour.js?v=12.31"></script>
+<script src="js/dialer-mascot.js?v=12.31"></script>
+<script src="js/dialer-mascot-live.js?v=12.31"></script>
+<script src="js/ui-prefs.js?v=12.31"></script>
+<script src="js/dialer-session.js?v=12.31"></script>
+<script src="js/dialer-call.js?v=12.31"></script>
+<script src="js/dialer-tools.js?v=12.31"></script>
+<script src="js/appointments.js?v=12.31"></script>
+<script src="js/appointments-actions.js?v=12.31"></script>
+<script src="js/appointments-tools.js?v=12.31"></script>
+<script src="js/field.js?v=12.31"></script>
+<script src="js/field-quote.js?v=12.31"></script>
+<script src="js/field-catalog.js?v=12.31"></script>
+<script src="js/field-ops.js?v=12.31"></script>
+<script src="js/wiedervorlage.js?v=12.31"></script>
+<script src="js/qc.js?v=12.31"></script>
+<script src="js/supervisor.js?v=12.31"></script>
+<script src="js/live-coach.js?v=12.31"></script>
+<script src="js/sms-settings.js?v=12.31"></script>
+<script src="js/leave-hr.js?v=12.31"></script>
+<script src="js/muhasebe.js?v=12.31"></script>
+<script src="js/muhasebe-books.js?v=12.31"></script>
+<script src="js/agent-self-performance.js?v=12.31"></script>
+<script src="js/agents.js?v=12.31"></script>
+<script src="js/firm-desk.js?v=12.31"></script>
+<script src="js/mimi-brain.js?v=12.31"></script>
 </body>
 </html>

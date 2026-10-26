@@ -573,6 +573,7 @@ if (typeof dialerStatus !== 'undefined' && dialerStatus === 'on_call' && typeof 
   refreshHangupFinalizeButton();
 }
 if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+if (typeof mbLogoRefresh === 'function') mbLogoRefresh();
 if (typeof showCampScript === 'function' && typeof currentContact !== 'undefined' && currentContact) {
   showCampScript(currentContact);
 }

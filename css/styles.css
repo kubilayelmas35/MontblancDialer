@@ -400,19 +400,58 @@ text-shadow: none;
 margin: 0;
 }
 .tb-logo-one { color: var(--logo-one, #2563eb); }
+[data-theme="dark"] .tb-logo.is-one-dark .tb-logo-one { color: var(--logo-one-dark); }
 .tb-logo.is-text .tb-logo-name,
-[data-theme="dark"] .tb-logo.is-text .tb-logo-name { color: var(--logo-text); }
-.tb-logo.is-text .tb-logo-mark,
-[data-theme="dark"] .tb-logo.is-text .tb-logo-mark { color: var(--logo-text); }
+.tb-logo.is-text .tb-logo-mark { color: var(--logo-text); }
+[data-theme="dark"] .tb-logo.is-text:not(.is-text-dark) .tb-logo-name,
+[data-theme="dark"] .tb-logo.is-text:not(.is-text-dark) .tb-logo-mark { color: #f8fafc; }
+[data-theme="dark"] .tb-logo.is-text-dark .tb-logo-name,
+[data-theme="dark"] .tb-logo.is-text-dark .tb-logo-mark { color: var(--logo-text-dark); }
+.tb-logo-faces { display: grid; align-items: center; max-width: 220px; }
+.tb-logo-face { grid-area: 1 / 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-logo-face.is-note { opacity: 0; }
+.tb-logo-faces.is-swap .tb-logo-face.is-brand { animation: mbLogoFaceA var(--logo-swap, 12s) ease-in-out infinite; }
+.tb-logo-faces.is-swap .tb-logo-face.is-note { animation: mbLogoFaceB var(--logo-swap, 12s) ease-in-out infinite; }
+#logo-set-preview .tb-logo-faces,
+.login-brand-name .tb-logo-faces { max-width: 360px; }
+@keyframes mbLogoFaceA {
+  0%, 42% { opacity: 1; }
+  50%, 92% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes mbLogoFaceB {
+  0%, 42% { opacity: 0; }
+  50%, 92% { opacity: 1; }
+  100% { opacity: 0; }
+}
 .tb-logo-eye { fill: var(--logo-eye-l, currentColor); }
 .tb-logo-eye--r { fill: var(--logo-eye-r, #2563eb); }
+[data-theme="dark"] .tb-logo .tb-logo-eye { fill: var(--logo-eye-l-dark, currentColor); }
+[data-theme="dark"] .tb-logo .tb-logo-eye--r { fill: var(--logo-eye-r-dark, var(--logo-eye-r, #2563eb)); }
+.tb-logo {
+  --logo-al-a-use: var(--logo-al-a, #7dd3fc);
+  --logo-al-b-use: var(--logo-al-b, #818cf8);
+  --logo-ar-a-use: var(--logo-ar-a, #38bdf8);
+  --logo-ar-b-use: var(--logo-ar-b, #2563eb);
+}
+[data-theme="dark"] .tb-logo {
+  --logo-al-a-use: var(--logo-al-a-dark, var(--logo-al-a, #7dd3fc));
+  --logo-al-b-use: var(--logo-al-b-dark, var(--logo-al-b, #818cf8));
+  --logo-ar-a-use: var(--logo-ar-a-dark, var(--logo-ar-a, #38bdf8));
+  --logo-ar-b-use: var(--logo-ar-b-dark, var(--logo-ar-b, #2563eb));
+}
 .tb-logo.is-blink .tb-logo-eye {
   transform-box: fill-box;
   transform-origin: center;
-  animation: mbLogoBlink var(--logo-blink, 5.4s) ease-in-out infinite;
+  animation-name: mbLogoBlink;
+  animation-duration: var(--logo-blink, 5.4s);
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-delay: 0s;
 }
 .tb-logo.is-blink.is-blink-alt .tb-logo-eye--r {
-  animation-delay: calc(var(--logo-blink, 5.4s) / 2);
+  animation-name: mbLogoBlinkAlt;
+  animation-delay: 0s;
 }
 .tb-logo.is-blink-left:not(.is-aurora-r) .tb-logo-eye--r,
 .tb-logo.is-blink-right:not(.is-aurora-l) .tb-logo-eye--l { animation: none; }
@@ -425,25 +464,48 @@ margin: 0;
   animation: mbLogoEyeAuroraR 5.5s ease-in-out infinite;
 }
 .tb-logo.is-blink.is-aurora-l .tb-logo-eye--l {
-  animation: mbLogoBlink var(--logo-blink, 5.4s) ease-in-out infinite, mbLogoEyeAuroraL 5.5s ease-in-out infinite;
+  animation-name: mbLogoBlink, mbLogoEyeAuroraL;
+  animation-duration: var(--logo-blink, 5.4s), 5.5s;
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  animation-delay: 0s, 0s;
+}
+.tb-logo.is-blink.is-blink-right.is-aurora-l .tb-logo-eye--l {
+  animation-name: mbLogoEyeAuroraL;
+  animation-duration: 5.5s;
+  animation-delay: 0s;
 }
 .tb-logo.is-blink.is-aurora-r .tb-logo-eye--r {
-  animation: mbLogoBlink var(--logo-blink, 5.4s) ease-in-out infinite, mbLogoEyeAuroraR 5.5s ease-in-out infinite;
+  animation-name: mbLogoBlink, mbLogoEyeAuroraR;
+  animation-duration: var(--logo-blink, 5.4s), 5.5s;
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  animation-delay: 0s, 0s;
 }
 .tb-logo.is-blink.is-blink-alt.is-aurora-r .tb-logo-eye--r {
-  animation-delay: calc(var(--logo-blink, 5.4s) / 2), 0s;
+  animation-name: mbLogoBlinkAlt, mbLogoEyeAuroraR;
+  animation-delay: 0s, 0s;
+}
+.tb-logo.is-blink.is-blink-left.is-aurora-r .tb-logo-eye--r {
+  animation-name: mbLogoEyeAuroraR;
+  animation-duration: 5.5s;
+  animation-delay: 0s;
 }
 @keyframes mbLogoBlink {
-  0%, 38%, 42%, 100% { transform: scaleY(1); }
-  40% { transform: scaleY(0.08); }
+  0%, 46%, 54%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.08); }
+}
+@keyframes mbLogoBlinkAlt {
+  0%, 96%, 100% { transform: scaleY(1); }
+  4% { transform: scaleY(0.08); }
 }
 @keyframes mbLogoEyeAuroraL {
-  0%, 100% { fill: var(--logo-al-a, #7dd3fc); }
-  50% { fill: var(--logo-al-b, #818cf8); }
+  0%, 100% { fill: var(--logo-al-a-use, #7dd3fc); }
+  50% { fill: var(--logo-al-b-use, #818cf8); }
 }
 @keyframes mbLogoEyeAuroraR {
-  0%, 100% { fill: var(--logo-ar-a, #38bdf8); }
-  50% { fill: var(--logo-ar-b, #2563eb); }
+  0%, 100% { fill: var(--logo-ar-a-use, #38bdf8); }
+  50% { fill: var(--logo-ar-b-use, #2563eb); }
 }
 [data-theme="dark"] .tb-logo.is-box {
   border-color: rgba(255, 255, 255, 0.22);
@@ -3173,6 +3235,7 @@ LOGIN PAGE
   .fluid-aurora--logo::before,
   .fluid-aurora--logo::after,
   .tb-logo-eye,
+  .tb-logo-face,
   .fluid-aurora--sidebar::before,
   .fluid-aurora--sidebar::after,
   .fluid-aurora--chat-fab::before,
