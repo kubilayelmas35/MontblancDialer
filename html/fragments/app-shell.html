@@ -2144,7 +2144,7 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="qc-dates">
 <div class="qc-date-field"><label class="form-label" style="font-size:10px;" data-tr="Başlangıç" data-de="Beginn">Başlangıç</label><input type="date" class="form-input" id="qc-date-from" onchange="loadQcData()"></div>
 <div class="qc-date-field"><label class="form-label" style="font-size:10px;" data-tr="Bitiş" data-de="Ende">Bitiş</label><input type="date" class="form-input" id="qc-date-to" onchange="loadQcData()"></div>
-<button type="button" class="dash-range-btn" id="qc-near-btn" onclick="qcToggleNear()"></button>
+<div class="qc-date-field"><label class="form-label" id="qc-near-lbl" style="font-size:10px;">Tarih sırası</label><button type="button" class="dash-range-btn" id="qc-near-btn" onclick="qcToggleNear()"></button></div>
 </div>
 <input type="text" class="form-input" id="qc-search" data-tr="İsim, numara, agent, kampanya" data-de="Name, Nummer, Agent, Kampagne" placeholder="İsim, numara, agent, kampanya" style="width:220px;padding:6px 10px;font-size:12px;" oninput="filterQcTable()">
 <button type="button" class="btn btn-ghost btn-sm" id="qc-settings-btn" style="display:none;" onclick="openQcSettings()">

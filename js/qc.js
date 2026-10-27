@@ -385,26 +385,9 @@ function qcFilterText(fields, key) {
   return fields[key] || '';
 }
 
-function qcWhenMs(row) {
-  const raw = String(qcFields(row).when || '');
-  const t = Date.parse(raw.length === 16 ? `${raw}:00` : raw);
-  return Number.isFinite(t) ? t : null;
-}
-
 function qcBySort(a, b) {
   const key = _qcSort.key || 'when';
   const dir = _qcSort.dir === 'asc' ? 1 : -1;
-  if (key === 'near') {
-    const now = Date.now();
-    const da = qcWhenMs(a);
-    const db = qcWhenMs(b);
-    const av = da == null ? Number.MAX_SAFE_INTEGER : Math.abs(da - now);
-    const bv = db == null ? Number.MAX_SAFE_INTEGER : Math.abs(db - now);
-    let cmp = av - bv;
-    if (!cmp && da != null && db != null) cmp = da - db;
-    if (!cmp) cmp = String(a?.id || '').localeCompare(String(b?.id || ''));
-    return cmp * dir;
-  }
   const fa = qcFields(a);
   const fb = qcFields(b);
   const av = key === 'rec' ? fa.recN : (key === 'when' ? fa.when : qcFilterText(fa, key));
@@ -437,10 +420,12 @@ function qcVisibleRows() {
 function qcPaintNearBtn() {
   const btn = document.getElementById('qc-near-btn');
   if (!btn) return;
-  const near = _qcSort.key === 'near';
-  btn.textContent = t('qc.near');
-  btn.classList.toggle('active', near);
-  btn.title = near ? t('qc.far') : t('qc.near');
+  const early = _qcSort.key === 'when' && _qcSort.dir === 'asc';
+  btn.textContent = early ? t('qc.when_early') : t('qc.when_late');
+  btn.classList.toggle('active', early);
+  btn.title = t('qc.when_hint');
+  const lbl = document.getElementById('qc-near-lbl');
+  if (lbl) lbl.textContent = t('qc.when_label');
 }
 
 function qcPaintHead() {
@@ -450,7 +435,9 @@ function qcPaintHead() {
   head.innerHTML = `<tr>${qcColDefs().map((col) => {
     if (!col.key) return `<th>${esc(col.label)}</th>`;
     const on = _qcSort.key === col.key;
-    const sort = `<span class="camp-sort"><button type="button" class="camp-sort-btn${on && _qcSort.dir === 'asc' ? ' is-on' : ''}" title="${esc(t('camp.sort.asc'))}" onclick="event.stopPropagation();setQcSort('${col.key}','asc')"><i class="ph ph-caret-up"></i></button><button type="button" class="camp-sort-btn${on && _qcSort.dir === 'desc' ? ' is-on' : ''}" title="${esc(t('camp.sort.desc'))}" onclick="event.stopPropagation();setQcSort('${col.key}','desc')"><i class="ph ph-caret-down"></i></button></span>`;
+    const upTitle = col.key === 'when' ? t('qc.when_early') : t('camp.sort.asc');
+    const downTitle = col.key === 'when' ? t('qc.when_late') : t('camp.sort.desc');
+    const sort = `<span class="camp-sort"><button type="button" class="camp-sort-btn${on && _qcSort.dir === 'asc' ? ' is-on' : ''}" title="${esc(upTitle)}" onclick="event.stopPropagation();setQcSort('${col.key}','asc')"><i class="ph ph-caret-up"></i></button><button type="button" class="camp-sort-btn${on && _qcSort.dir === 'desc' ? ' is-on' : ''}" title="${esc(downTitle)}" onclick="event.stopPropagation();setQcSort('${col.key}','desc')"><i class="ph ph-caret-down"></i></button></span>`;
     const filter = `<input class="camp-col-filter" value="${esc(_qcColFilters[col.key] || '')}" aria-label="${esc(col.label)}" oninput="setQcColFilter('${col.key}', this.value)" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">`;
     return `<th><span class="camp-sort-label">${esc(col.label)}${sort}</span>${filter}</th>`;
   }).join('')}</tr>`;
@@ -469,8 +456,8 @@ function setQcSort(key, dir) {
 }
 
 function qcToggleNear() {
-  if (_qcSort.key === 'near') setQcSort('when', 'desc');
-  else setQcSort('near', 'asc');
+  if (_qcSort.key === 'when' && _qcSort.dir === 'asc') setQcSort('when', 'desc');
+  else setQcSort('when', 'asc');
 }
 
 function filterQcTable() { renderQcTable(); }
