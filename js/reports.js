@@ -319,11 +319,14 @@ async function repFetchRangeAppts(range) {
 }
 
 async function repLoadBundle(range) {
-  const pulled = await statsPullLogs(range.ff, range.gte, range.lte, range.camp, range.agent);
+  const [pulled, apptRows] = await Promise.all([
+    statsPullLogs(range.ff, range.gte, range.lte, range.camp, range.agent),
+    repFetchRangeAppts(range),
+  ]);
   const logs = pulled.rows || [];
   const labelMap = typeof statsOutcomeLabels === 'function' ? await statsOutcomeLabels(logs.map((l) => l.campaign_id)) : {};
   window._statsLabelMap = labelMap;
-  let appts = await repFetchRangeAppts(range);
+  let appts = apptRows;
   const allAppts = appts;
   if (range.agent) appts = appts.filter((a) => String(a.agent_id) === String(range.agent));
   return { logs, appts, allAppts, capped: pulled.capped };

@@ -225,7 +225,10 @@ async function loadQcData() {
     renderFirmSelector('qc-firm-selector', loadQcData);
   }
   const tbody = document.getElementById('qc-tbody');
-  if (tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(10) : `<tr><td colspan="10" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
+  const cachedTab = window._qcTabCache && window._qcTabCache[qcTab];
+  if (tbody && !(Array.isArray(cachedTab) && cachedTab.length)) {
+    tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(10) : `<tr><td colspan="10" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
+  }
   try {
     const fid = getActiveFirmId() || currentUser?.firm_id || null;
     const resultCfg = typeof loadFirmAppointmentResults === 'function'
@@ -248,39 +251,45 @@ async function loadQcData() {
     }
     const scopeQ = scopeIds?.length ? `&customer_id=in.(${scopeIds.join(',')})` : '';
     const embed = `appointments?select=${cols},users(name),campaigns(name),customers(name,code),takvim_slots!slot_id(id,tarih,baslangic_saat,bitis_saat,alta_tasindi)${ff}${dateQ}${scopeQ}&order=termin_tarih.desc,id.asc`;
-    if (scopeIds && !scopeIds.length) {
-      qcList = [];
-    } else {
-      try {
-        qcList = await mbFetchAll(embed);
-      } catch (e) {
-        qcList = await mbFetchAll(`appointments?select=${cols}${ff}${dateQ}${scopeQ}&order=termin_tarih.desc,id.asc`).catch(() => []);
-      }
+    const gen = ++_qcLoadGen;
+    if (!window._qcResultMap[qcTab] && qcTab !== 'all' && qcTab !== '__moved') qcTab = 'qc_bekleniyor';
+    const sameQuery = window._qcEmbed === embed && window._qcTabCache;
+    if (!sameQuery) {
+      window._qcEmbed = embed;
+      window._qcTabCache = {};
+      window._qcCounts = {};
     }
-    qcList = qcList || [];
+    window._qcListPartial = false;
+    const custP = fid
+      ? sb(`customers?firm_id=eq.${fid}&is_active=eq.true&select=id,name,code&order=name.asc`).catch(() => [])
+      : Promise.resolve([]);
+    const campP = sb(`campaigns?select=id,name,settings,field_config${ff}&limit=500`).catch(() => []);
+    if (scopeIds && !scopeIds.length) qcList = [];
+    else await qcEnsureTab(qcTab || 'qc_bekleniyor', gen);
+    if (gen !== _qcLoadGen) return;
+    if (!sameQuery || !window._qcCounts || window._qcCounts.all == null) {
+      await qcRefreshCounts(`appointments?select=id,durum${ff}${dateQ}${scopeQ}&order=id.asc`);
+    }
+    if (gen !== _qcLoadGen) return;
     const qcCapped = !!qcList.capped;
-    if (scopeIds) {
-      const allow = new Set(scopeIds);
-      qcList = qcList.filter((row) => allow.has(String(row.customer_id || '')));
-    }
-    window._qcCustomers = fid
-      ? await sb(`customers?firm_id=eq.${fid}&is_active=eq.true&select=id,name,code&order=name.asc`).catch(() => [])
-      : [];
+    window._qcCustomers = await custP;
     if (scopeIds) {
       const allow = new Set(scopeIds);
       window._qcCustomers = (window._qcCustomers || []).filter((c) => allow.has(String(c.id)));
     }
     window._qcCampById = {};
-    const camps = await sb(`campaigns?select=id,name,settings,field_config${ff}&limit=500`).catch(() => []);
+    const camps = await campP;
     (camps || []).forEach((c) => { window._qcCampById[c.id] = c; });
-    window._qcRecByContact = await _qcAttachRec(qcList);
     const cap = document.getElementById('qc-cap');
     if (cap) {
       const hit = qcCapped;
       cap.style.display = hit ? '' : 'none';
       cap.textContent = hit ? t('qc.cap').replace('{n}', String(QC_CAP)) : '';
     }
-    if (!window._qcResultMap[qcTab] && qcTab !== 'all' && qcTab !== '__moved') qcTab = 'qc_bekleniyor';
+    renderQcTable();
+    const recs = await _qcAttachRec(qcList);
+    if (gen !== _qcLoadGen) return;
+    window._qcRecByContact = recs;
     renderQcTable();
     const pending = qcList.filter((r) => _qcDurumKey(r) === 'qc_bekleniyor').length;
     const badge = document.getElementById('sb-badge-qc');
@@ -294,20 +303,69 @@ async function loadQcData() {
   }
 }
 
+let _qcLoadGen = 0;
+
 async function _qcAttachRec(rows) {
   const ids = [...new Set((rows || []).map((r) => r.contact_id).filter((id) => typeof isValidUUID !== 'function' || isValidUUID(id)))];
   const map = {};
-  for (let i = 0; i < ids.length; i += 40) {
-    const chunk = ids.slice(i, i + 40).join(',');
-    const logs = await sb(`call_logs?contact_id=in.(${chunk})&select=id,contact_id,recording_url,duration_sec&recording_url=not.is.null&order=started_at.desc&limit=400`).catch(() => []);
-    (logs || []).forEach((log) => {
-      if (!map[log.contact_id] && log.recording_url) map[log.contact_id] = log;
+  if (!ids.length) return map;
+  if (typeof mbHeadCount === 'function') {
+    const ff = typeof getFirmFilter === 'function' ? getFirmFilter('&') : '';
+    const n = await mbHeadCount(`call_logs?select=id&recording_url=not.is.null${ff}`).catch(() => null);
+    if (n === 0) return map;
+  }
+  const chunks = [];
+  for (let i = 0; i < ids.length; i += 40) chunks.push(ids.slice(i, i + 40).join(','));
+  for (let i = 0; i < chunks.length; i += 6) {
+    const wave = chunks.slice(i, i + 6);
+    const parts = await Promise.all(wave.map((chunk) => sb(`call_logs?contact_id=in.(${chunk})&select=id,contact_id,recording_url,duration_sec&recording_url=not.is.null&order=started_at.desc&limit=400`).catch(() => [])));
+    parts.forEach((logs) => {
+      (logs || []).forEach((log) => {
+        if (!map[log.contact_id] && log.recording_url) map[log.contact_id] = log;
+      });
     });
   }
   return map;
 }
 
-function setQcTab(tab) {
+async function qcRefreshCounts(path) {
+  const rows = await mbFetchAll(path).catch(() => []);
+  const counts = { all: Array.isArray(rows) ? rows.length : 0 };
+  (rows || []).forEach((row) => {
+    const key = typeof _qcDurumKey === 'function' ? _qcDurumKey(row) : String(row?.durum || '');
+    if (!key) return;
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  window._qcCounts = counts;
+}
+
+async function qcEnsureTab(tabKey, gen) {
+  const cache = window._qcTabCache || (window._qcTabCache = {});
+  const key = tabKey || 'qc_bekleniyor';
+  if (cache[key]) {
+    if (gen == null || gen === _qcLoadGen) {
+      qcList = cache[key];
+      renderQcTable();
+    }
+    return cache[key];
+  }
+  const embed = window._qcEmbed || '';
+  if (!embed || key === '__moved') {
+    qcList = [];
+    renderQcTable();
+    return [];
+  }
+  const q = key === 'all' ? embed : `${embed}&durum=eq.${encodeURIComponent(key)}`;
+  const all = await mbFetchAll(q).catch(() => []);
+  cache[key] = Array.isArray(all) ? all : [];
+  if ((gen == null || gen === _qcLoadGen) && qcTab === key) {
+    qcList = cache[key];
+    renderQcTable();
+  }
+  return cache[key];
+}
+
+async function setQcTab(tab) {
   const alias = {
     'qc bekleniyor': 'qc_bekleniyor',
     'başarılı': 'basarili',
@@ -315,7 +373,7 @@ function setQcTab(tab) {
     beklemede: 'beklemede',
   };
   qcTab = alias[tab] || tab || 'qc_bekleniyor';
-  renderQcTable();
+  await qcEnsureTab(qcTab);
 }
 
 let _qcColFilters = {};
@@ -473,7 +531,10 @@ function renderQcTabs(list) {
   const host = document.getElementById('qc-tabs');
   if (!host) return;
   const defs = window._qcResultCfg || [];
-  const countOf = (key) => list.filter((row) => (key === 'all' ? true : key === '__moved' ? _qcMoved(row) : _qcDurumKey(row) === key)).length;
+  const countOf = (key) => {
+    if (window._qcCounts && window._qcCounts[key] != null && key !== '__moved') return window._qcCounts[key];
+    return list.filter((row) => (key === 'all' ? true : key === '__moved' ? _qcMoved(row) : _qcDurumKey(row) === key)).length;
+  };
   const items = defs.map((def) => ({ key: def.key, label: _qcResultLabel(def.key), color: def.color || '' }));
   items.push({ key: '__moved', label: t('export.moved_down'), color: '#b91c1c' });
   items.push({ key: 'all', label: t('qc.all'), color: '' });

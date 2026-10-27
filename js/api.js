@@ -84,30 +84,38 @@ function _mbScopedUserForRequest(path, method = 'GET') {
   return cur;
 }
 
-async function mbFetchAll(path) {
+const _mbAllCache = new Map();
+const _mbAllFlight = new Map();
+const _mbFetchEpoch = new Map();
+const MB_ALL_TTL = 20000;
+
+function mbFetchAllBase(path) {
   let base = String(path || '');
   base = base.replace(/([?&])limit=\d+/g, '').replace(/([?&])offset=\d+/g, '');
   base = base.replace(/\?&/g, '?').replace(/&&+/g, '&').replace(/[?&]$/, '');
   if (!/(?:^|[?&])order=/.test(base)) base += `${base.includes('?') ? '&' : '?'}order=id.asc`;
-  const size = 1000;
-  const max = 50000;
+  return base;
+}
+
+function mbForgetFetch(root) {
+  const name = String(root || '').split('?')[0];
+  if (!name) return;
+  _mbFetchEpoch.set(name, (_mbFetchEpoch.get(name) || 0) + 1);
+  for (const key of [..._mbAllCache.keys()]) {
+    if (key === name || key.startsWith(`${name}?`)) _mbAllCache.delete(key);
+  }
+}
+
+function mbCollectPages(bag, size, max) {
   const all = [];
   const seen = new Set();
   const pages = new Set();
-  for (let offset = 0; offset < max; offset += size) {
-    const sep = base.includes('?') ? '&' : '?';
-    let rows;
-    try {
-      rows = await sb(`${base}${sep}limit=${size}&offset=${offset}`);
-    } catch (e) {
-      if (offset === 0) throw e;
-      break;
-    }
-    rows = Array.isArray(rows) ? rows : [];
-    if (!rows.length) break;
+  const offsets = [...bag.keys()].sort((a, b) => a - b);
+  for (const offset of offsets) {
+    const rows = Array.isArray(bag.get(offset)) ? bag.get(offset) : [];
     const sig = rows.map((row) => (row && row.id != null ? String(row.id) : JSON.stringify(row))).join('|');
-    if (pages.has(sig)) break;
-    pages.add(sig);
+    if (rows.length && pages.has(sig)) break;
+    if (rows.length) pages.add(sig);
     let added = 0;
     rows.forEach((row) => {
       const id = row && row.id != null ? String(row.id) : '';
@@ -125,6 +133,77 @@ async function mbFetchAll(path) {
     }
   }
   return all;
+}
+
+async function mbGetPage(base, offset, size) {
+  const sep = base.includes('?') ? '&' : '?';
+  const url = `${base}${sep}limit=${size}&offset=${offset}`;
+  let err = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const rows = await sb(url);
+      return Array.isArray(rows) ? rows : [];
+    } catch (e) {
+      err = e;
+      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+    }
+  }
+  throw err;
+}
+
+async function mbFetchAllNow(base) {
+  const size = 1000;
+  const max = 50000;
+  const wave = 3;
+  const bag = new Map();
+  const first = await mbGetPage(base, 0, size);
+  bag.set(0, first);
+  if (first.length < size) return mbCollectPages(bag, size, max);
+  let next = size;
+  while (next < max) {
+    const offsets = [];
+    for (let i = 0; i < wave && next < max; i += 1) {
+      offsets.push(next);
+      next += size;
+    }
+    const parts = await Promise.all(offsets.map(async (offset) => ({ offset, rows: await mbGetPage(base, offset, size) })));
+    let stop = false;
+    parts.sort((a, b) => a.offset - b.offset).forEach((part) => {
+      if (stop) return;
+      bag.set(part.offset, part.rows);
+      if (part.rows.length < size) stop = true;
+    });
+    if (stop) break;
+  }
+  return mbCollectPages(bag, size, max);
+}
+
+async function mbFetchAll(path, opts) {
+  const base = mbFetchAllBase(path);
+  const root = _mbPathRoot(base);
+  const fresh = !!(opts && opts.fresh);
+  if (!fresh) {
+    const hit = _mbAllCache.get(base);
+    if (hit && Date.now() - hit.at < MB_ALL_TTL) return hit.rows;
+    const flight = _mbAllFlight.get(base);
+    if (flight) return flight;
+  }
+  const epoch = _mbFetchEpoch.get(root) || 0;
+  const job = mbFetchAllNow(base).then((rows) => {
+    if ((_mbFetchEpoch.get(root) || 0) === epoch) {
+      _mbAllCache.set(base, { at: Date.now(), rows });
+      if (_mbAllCache.size > 40) {
+        const oldest = _mbAllCache.keys().next().value;
+        if (oldest) _mbAllCache.delete(oldest);
+      }
+    }
+    return rows;
+  });
+  _mbAllFlight.set(base, job);
+  job.finally(() => {
+    if (_mbAllFlight.get(base) === job) _mbAllFlight.delete(base);
+  });
+  return job;
 }
 
 async function sb(path, opts={}) {
@@ -178,6 +257,7 @@ if (!r.ok) {
   }
   throw new Error(mbHumanDbError(r.status, detail));
 }
+if (method !== 'GET' && method !== 'HEAD') mbForgetFetch(_mbPathRoot(path));
 if (r.status === 204) return null;
 const txt = await r.text();
 if (!txt || !txt.trim()) return null;
@@ -199,6 +279,7 @@ headers: {
 },
 body: JSON.stringify(data)
 });
+if (res.ok || res.status === 409) mbForgetFetch(_mbPathRoot(table));
 // 409 conflict durumunda PATCH ile dene
 if (res.status === 409 && data[onConflict]) {
 await fetch(`${SB_URL}/rest/v1/${table}?${onConflict}=eq.${data[onConflict]}`, {

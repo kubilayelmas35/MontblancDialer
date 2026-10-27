@@ -2141,7 +2141,11 @@ let qLogs = `call_logs?select=*&started_at=gte.${logGte}&started_at=lte.${logLte
 qLogs += ff;
 qLogs += agentQ;
 qLogs += '&order=started_at.asc,id.asc';
-const logs  = await mbFetchAll(qLogs) || [];
+const [logsRaw, apptRows] = await Promise.all([
+  mbFetchAll(qLogs).catch((e) => { throw e; }),
+  fetchDashAppointmentsInRange(from, to, ff, agentQ),
+]);
+const logs  = logsRaw || [];
 if (dashRole === 'qc') {
   logs.splice(0, logs.length, ...logs.filter((l) => l.outcome === 'appointment' || l.outcome === 'appointment_done'));
 }
@@ -2153,7 +2157,6 @@ if (rangeKey === 'today') {
 } else {
   renderDashPeriodMixed(logs, rangeKey, from, to);
 }
-const apptRows = await fetchDashAppointmentsInRange(from, to, ff, agentQ);
 renderDashTerminDonut(apptRows);
 renderDashTrendForRange(rangeKey, logs, from, to);
 const total = logs.length;
@@ -2259,27 +2262,16 @@ async function statsFillFilters(fid) {
 }
 
 async function statsPullLogs(ff, gte, lte, camp, agent) {
-  const tail = `${ff}&started_at=gte.${gte}&started_at=lte.${lte}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}&order=started_at.desc`;
+  const tail = `${ff}&started_at=gte.${gte}&started_at=lte.${lte}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}&order=started_at.desc,id.desc`;
   const rich = `call_logs?select=id,outcome,agent_id,campaign_id,firm_id,duration_sec,started_at,phone,users(id,name,role),campaigns(id,name)${tail}`;
   const plain = `call_logs?select=id,outcome,agent_id,campaign_id,firm_id,duration_sec${tail}`;
-  let usePlain = false;
-  const all = [];
-  let off = 0;
-  while (off < STATS_CAP) {
-    const size = Math.min(1000, STATS_CAP - off);
-    const q = `${usePlain ? plain : rich}&limit=${size}&offset=${off}`;
-    let rows;
-    try {
-      rows = (await sb(q)) || [];
-    } catch (e) {
-      if (!usePlain && off === 0) { usePlain = true; continue; }
-      throw e;
-    }
-    all.push(...rows);
-    if (rows.length < size) return { rows: all, capped: false };
-    off += rows.length;
+  try {
+    const rows = await mbFetchAll(rich);
+    return { rows: rows || [], capped: !!rows?.capped };
+  } catch (e) {
+    const rows = await mbFetchAll(plain);
+    return { rows: rows || [], capped: !!rows?.capped };
   }
-  return { rows: all, capped: true };
 }
 
 function statsOutcomeKey(outcome) {
@@ -2921,32 +2913,23 @@ async function chPullLogs(ff, gte, lte, camp, agent, outcome) {
   const outcomeQ = !outcome ? ''
     : outcome === 'appointment' ? '&outcome=in.(appointment,appointment_done)'
     : `&outcome=eq.${encodeURIComponent(outcome)}`;
-  const tail = `${ff}&started_at=gte.${gte}&started_at=lte.${lte}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}${outcomeQ}&order=started_at.desc`;
+  const tail = `${ff}&started_at=gte.${gte}&started_at=lte.${lte}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}${outcomeQ}&order=started_at.desc,id.desc`;
   const fields = 'id,started_at,ended_at,dial_at,answered_at,outcome,agent_id,campaign_id,firm_id,phone,caller_number,work_type,hangup_by,duration_sec,cost_usd,contact_id,recording_url,notes,callback_at,telnyx_call_id';
   const legacy = 'id,started_at,ended_at,outcome,agent_id,campaign_id,firm_id,phone,duration_sec,cost_usd,contact_id,recording_url,notes,callback_at,telnyx_call_id';
   const rich = `call_logs?select=${fields},users(id,name),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${tail}`;
   const mid = `call_logs?select=${legacy},users(id,name),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${tail}`;
   const plain = `call_logs?select=${legacy}${tail}`;
-  let mode = 'rich';
-  const all = [];
-  let off = 0;
-  while (off < CH_CAP) {
-    const size = Math.min(1000, CH_CAP - off);
-    const base = mode === 'rich' ? rich : mode === 'mid' ? mid : plain;
-    const q = `${base}&limit=${size}&offset=${off}`;
-    let rows;
+  const chain = [rich, mid, plain];
+  let lastErr = null;
+  for (let i = 0; i < chain.length; i += 1) {
     try {
-      rows = (await sb(q)) || [];
+      const rows = await mbFetchAll(chain[i]);
+      return { rows: rows || [], capped: !!rows?.capped };
     } catch (e) {
-      if (mode === 'rich' && off === 0) { mode = 'mid'; continue; }
-      if (mode === 'mid' && off === 0) { mode = 'plain'; continue; }
-      throw e;
+      lastErr = e;
     }
-    all.push(...rows);
-    if (rows.length < size) return { rows: all, capped: false };
-    off += rows.length;
   }
-  return { rows: all, capped: true };
+  throw lastErr;
 }
 
 function chRenderHead() {

@@ -2763,10 +2763,10 @@ function opsBoot() {
   if (currentUser) {
     opsLoadDirective();
     opsTickLive();
-    opsTickFloor();
     opsTickData();
     opsLoadMesai();
     opsPaintMesaiBar();
+    setTimeout(() => { if (currentUser) opsTickFloor(); }, 4000);
   }
 }
 

@@ -137,20 +137,15 @@ async function _compFetchTerminCounts(dateFrom, dateTo) {
   if (!fid) return {};
   const ff = `&firm_id=eq.${fid}`;
   const map = {};
-  const size = 1000;
-  for (let offset = 0; offset < 50000; offset += size) {
-    const q = `appointments?select=id,agent_id,durum${ff}&termin_tarih=gte.${dateFrom}T00:00:00&termin_tarih=lte.${dateTo}T23:59:59&order=termin_tarih.asc,id.asc&limit=${size}&offset=${offset}`;
-    const rows = (await sb(q).catch(() => [])) || [];
-    for (const row of rows) {
-      if (!row.agent_id) continue;
-      const ok = typeof perfApptBucket === 'function'
-        ? perfApptBucket(row.durum) === 'ok'
-        : String(row.durum || '').trim().toLowerCase() === 'basarili';
-      if (!ok) continue;
-      map[row.agent_id] = (map[row.agent_id] || 0) + 1;
-    }
-    if (rows.length < size) break;
-  }
+  const rows = await mbFetchAll(`appointments?select=id,agent_id,durum${ff}&termin_tarih=gte.${dateFrom}T00:00:00&termin_tarih=lte.${dateTo}T23:59:59&order=termin_tarih.asc,id.asc`).catch(() => []);
+  (rows || []).forEach((row) => {
+    if (!row.agent_id) return;
+    const ok = typeof perfApptBucket === 'function'
+      ? perfApptBucket(row.durum) === 'ok'
+      : String(row.durum || '').trim().toLowerCase() === 'basarili';
+    if (!ok) return;
+    map[row.agent_id] = (map[row.agent_id] || 0) + 1;
+  });
   return map;
 }
 

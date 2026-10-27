@@ -685,13 +685,13 @@ async function _perfFetchAppointments(from, to) {
   const dateCol = created ? 'kayit_tarihi' : 'termin_tarih';
   const order = `${dateCol}.asc,id.asc`;
   try {
-    return await _perfFetchPages((offset, size) => sb(
-      `appointments?select=${cols},users(name),campaigns(name),customers(name,code)${ff}&${dateCol}=gte.${gte}&${dateCol}=lte.${lte}&order=${order}&limit=${size}&offset=${offset}`
-    ));
+    return await mbFetchAll(
+      `appointments?select=${cols},users(name),campaigns(name),customers(name,code)${ff}&${dateCol}=gte.${gte}&${dateCol}=lte.${lte}&order=${order}`
+    );
   } catch (e) {
-    const rows = await _perfFetchPages((offset, size) => sb(
-      `appointments?select=${cols}${ff}&${dateCol}=gte.${gte}&${dateCol}=lte.${lte}&order=${order}&limit=${size}&offset=${offset}`
-    ).catch(() => [])).catch(() => []);
+    const rows = await mbFetchAll(
+      `appointments?select=${cols}${ff}&${dateCol}=gte.${gte}&${dateCol}=lte.${lte}&order=${order}`
+    ).catch(() => []);
     if (!rows.length) return [];
     const aIds = [...new Set(rows.map((r) => r.agent_id).filter(Boolean))];
     const cIds = [...new Set(rows.map((r) => r.campaign_id).filter(Boolean))];
@@ -726,13 +726,13 @@ async function _perfFetchCalls(from, to) {
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
   const order = 'started_at.desc,id.desc';
   try {
-    return await _perfFetchPages((offset, size) => sb(
-      `call_logs?select=id,started_at,agent_id,campaign_id,firm_id,outcome,phone,duration_sec,users(name),campaigns(name)${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=${order}&limit=${size}&offset=${offset}`
-    ));
+    return await mbFetchAll(
+      `call_logs?select=id,started_at,agent_id,campaign_id,firm_id,outcome,phone,duration_sec,users(name),campaigns(name)${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=${order}`
+    );
   } catch (e) {
-    const rows = await _perfFetchPages((offset, size) => sb(
-      `call_logs?select=id,started_at,agent_id,campaign_id,firm_id,outcome,phone,duration_sec${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=${order}&limit=${size}&offset=${offset}`
-    ).catch(() => []));
+    const rows = await mbFetchAll(
+      `call_logs?select=id,started_at,agent_id,campaign_id,firm_id,outcome,phone,duration_sec${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=${order}`
+    ).catch(() => []);
     if (!rows.length) return [];
     const aIds = [...new Set(rows.map((r) => r.agent_id).filter(Boolean))];
     const cIds = [...new Set(rows.map((r) => r.campaign_id).filter(Boolean))];
