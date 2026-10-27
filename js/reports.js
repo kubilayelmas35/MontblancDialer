@@ -327,17 +327,33 @@ async function repFetchHourAppts(range) {
   return all;
 }
 
+async function repFetchRangeAppts(range) {
+  const size = 1000;
+  const all = [];
+  const seen = new Set();
+  for (let offset = 0; offset < 20000; offset += size) {
+    const rows = (await sb(
+      `appointments?select=id,kayit_tarihi,durum,agent_id,firm_id${range.ff}&kayit_tarihi=gte.${range.gte}&kayit_tarihi=lte.${range.lte}&order=kayit_tarihi.asc,id.asc&limit=${size}&offset=${offset}`
+    ).catch(() => [])) || [];
+    let added = 0;
+    rows.forEach((row) => {
+      const id = row && row.id ? String(row.id) : '';
+      if (id && seen.has(id)) return;
+      if (id) seen.add(id);
+      all.push(row);
+      added += 1;
+    });
+    if (rows.length < size || added === 0) break;
+  }
+  return all;
+}
+
 async function repLoadBundle(range) {
   const pulled = await statsPullLogs(range.ff, range.gte, range.lte, range.camp, range.agent);
   const logs = pulled.rows || [];
   const labelMap = typeof statsOutcomeLabels === 'function' ? await statsOutcomeLabels(logs.map((l) => l.campaign_id)) : {};
   window._statsLabelMap = labelMap;
-  let appts = [];
-  try {
-    appts = (await sb(`appointments?select=id,kayit_tarihi,durum,agent_id,firm_id${range.ff}&kayit_tarihi=gte.${range.gte}&kayit_tarihi=lte.${range.lte}&limit=8000`)) || [];
-  } catch (e) {
-    appts = [];
-  }
+  let appts = await repFetchRangeAppts(range);
   const allAppts = appts;
   if (range.agent) appts = appts.filter((a) => String(a.agent_id) === String(range.agent));
   return { logs, appts, allAppts, capped: pulled.capped };
