@@ -21,6 +21,7 @@ const UQ_AUTO_MAP = {
 'adres':'address','adresse':'address','strasse':'address','straße':'address',
 'posta kodu':'plz','postleitzahl':'plz','plz':'plz',
 'şehir':'city','stadt':'city','ort':'city',
+'no':'house_no','nr':'house_no','hausnr':'house_no','hausnummer':'house_no','numara':'house_no',
 'not':'notes','notiz':'notes','anmerkung':'notes',
 };
 
@@ -33,6 +34,7 @@ const UQ_FIELD_KEYWORDS = {
   plz: ['plz', 'posta kodu', 'postleitzahl', 'zip', 'pk'],
   city: ['şehir', 'sehir', 'stadt', 'ort', 'ortschaft', 'city'],
   address: ['adres', 'adresse', 'strasse', 'straße', 'street', 'sokak'],
+  house_no: ['no', 'nr', 'hausnr', 'hausnummer', 'numara', 'kapı no', 'kapi no'],
   notes: ['notiz', 'notes', 'notlar', 'note'],
 };
 
@@ -159,6 +161,7 @@ const UQ_TARGET_FIELDS = [
 { key:'plz',        labelKey:'uq.field.plz' },
 { key:'city',       labelKey:'uq.field.city' },
 { key:'address',    labelKey:'uq.field.address' },
+{ key:'house_no',   labelKey:'uq.field.houseno' },
 { key:'notes',      labelKey:'uq.field.notes' },
 ];
 

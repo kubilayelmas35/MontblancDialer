@@ -3119,6 +3119,16 @@ border: 2px dashed var(--border-2); border-radius:var(--radius);
 padding:28px; text-align:center; cursor:pointer; transition:var(--transition);
 }
 .upload-area:hover, .upload-area.drag { border-color:var(--accent); background:var(--accent-soft); }
+#uq-addr-box { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+#uq-addr-box[hidden] { display:none !important; }
+.uq-addr-hint { font-size:11px; color:var(--text-2); line-height:1.4; }
+.uq-addr-bulk { display:flex; flex-wrap:wrap; gap:6px; }
+.uq-addr-list { display:flex; flex-direction:column; gap:6px; max-height:240px; overflow:auto; }
+.uq-addr-card { border:1px solid var(--border); background:var(--bg-3); border-radius:8px; padding:8px 10px; }
+.uq-addr-card strong { display:block; font-size:12px; margin-bottom:4px; color:var(--text); }
+.uq-addr-card p { margin:0; font-size:11px; color:var(--text-2); line-height:1.35; }
+.uq-addr-choices { display:flex; flex-wrap:wrap; gap:10px; margin-top:6px; font-size:12px; font-weight:700; color:var(--text); }
+.uq-addr-choices label { display:flex; align-items:center; gap:4px; cursor:pointer; }
 .upload-icon { font-size:28px; margin-bottom:8px; }
 .upload-text { font-size:13px; color:var(--text-2); font-weight:500; }
 .upload-sub  { font-size:11px; color:var(--text-3); margin-top:3px; }

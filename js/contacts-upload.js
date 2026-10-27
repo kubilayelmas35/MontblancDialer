@@ -67,6 +67,7 @@ function resetUploadQueueForm() {
   document.querySelectorAll('.uq-skip-status').forEach((box) => { box.checked = false; });
   const excelMode = document.querySelector('input[name="dedup-mode"][value="excel"]');
   if (excelMode) excelMode.checked = true;
+  mbAddrClear();
 }
 
 function handleFileSelect(e) { if (e.target.files[0]) setFile(e.target.files[0]); }
@@ -106,6 +107,7 @@ function uqUseSheet(name) {
 }
 
 async function setFile(f) {
+  mbAddrClear();
   uploadFile = f;
   _uqWorkbook = null;
   document.getElementById('uq-fname').textContent = `✓ ${f.name} (${(f.size/1024).toFixed(1)} KB)`;
@@ -196,7 +198,7 @@ function renderColumnMapping() {
       : uqSay('uq.map.skip', '— Kullanma —');
     return `<div>
 <div class="form-label" style="margin-bottom:4px;">${esc(field.label)}</div>
-<select class="form-input" id="uq-map-${field.key}" onchange="updateUploadPreview()">
+<select class="form-input" id="uq-map-${field.key}" onchange="mbAddrClear();updateUploadPreview()">
 <option value="">${esc(placeholder)}</option>
 ${options}
 </select>
@@ -268,6 +270,8 @@ function mbRowFromMapping(row, mapping) {
   };
   const notes = get('notes');
   if (notes) rowOut.notes = notes;
+  const house = get('house_no');
+  if (house) rowOut.house_no = house;
   if (Object.keys(extra).length) rowOut.extra = extra;
   return rowOut;
 }
@@ -305,6 +309,8 @@ function mbUploadReportLines(skipped, campCounts) {
   if (skipped.empty) lines.push(uqSay('uq.report.empty', '{n} boş numara olduğu için eklenmedi', { n: skipped.empty }));
   if (skipped.invalid) lines.push(uqSay('uq.report.invalid', '{n} geçersiz numara olduğu için eklenmedi', { n: skipped.invalid }));
   if (skipped.duplicate) lines.push(uqSay('uq.report.file', 'Dosyada {n} mükerrer kayıt bulundu, eklenmedi', { n: skipped.duplicate }));
+  if (skipped.addrMerged) lines.push(uqSay('uq.addr.merged', '{n} aynı adres birleştirildi, numara nota yazıldı', { n: skipped.addrMerged }));
+  if (skipped.addrSkipped) lines.push(uqSay('uq.addr.skipped', '{n} aynı adres atlandı', { n: skipped.addrSkipped }));
   Object.entries(campCounts || {}).forEach(([name, n]) => {
     if (!n) return;
     lines.push(uqSay('uq.report.camp', '{name} kampanyasında {n} mükerrer kayıt bulundu, eklenmedi', { name, n }));
@@ -324,6 +330,211 @@ async function mbShowUploadReport(lines) {
   const text = lines.join('\n');
   if (typeof mbAlert === 'function') await mbAlert(text, title);
   else toast(text, 'ok', 6000);
+}
+
+let _uqAddrGroups = null;
+
+function mbAddrFold(value) {
+  return String(value || '')
+    .replace(/İ/g, 'i')
+    .replace(/I/g, 'i')
+    .toLowerCase()
+    .replace(/ß/g, 'ss')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ı/g, 'i');
+}
+
+function mbAddrHouse(raw) {
+  let s = mbAddrFold(raw).replace(/[.,:;]+/g, ' ').replace(/\s+/g, ' ').trim();
+  s = s.replace(/^(?:no|nr|numara|hausnr|hnr)\s+/, '');
+  s = s.replace(/(\d)\s*([/-])\s*(\d)/g, '$1$2$3');
+  if (!/^\d+[a-z]?(?:[/-]\d+[a-z]?)?$/.test(s)) return '';
+  return s;
+}
+
+function mbAddrKey(address, plz, houseNo) {
+  const code = String(plz || '').replace(/\D/g, '');
+  if (code.length < 4 || code.length > 6) return '';
+  let street = mbAddrFold(address).replace(/[.,:;]+/g, ' ').replace(/\s+/g, ' ').trim();
+  street = street.replace(/(\d)\s*([/-])\s*(\d)/g, '$1$2$3');
+  street = street.replace(/str\b/g, 'strasse');
+  let no = mbAddrHouse(houseNo);
+  if (no) {
+    const tail = no.replace(/[.*+?^${}()|[\]\\/-]/g, '\\$&');
+    street = street.replace(new RegExp(`(?:\\s+(?:no|nr|numara|hausnr|hnr))?\\s+${tail}$`), '').trim();
+  } else {
+    const hit = street.match(/^(.*?)(?:\s+(?:no|nr|numara|hausnr|hnr))?\s+(\d+[a-z]?(?:[/-]\d+[a-z]?)?)$/);
+    if (!hit) return '';
+    street = hit[1].trim();
+    no = hit[2];
+  }
+  street = street.replace(/\s+(?:no|nr|numara|hausnr|hnr)$/, '').replace(/\s+/g, ' ').trim();
+  if (!street || !no) return '';
+  return `${code}|${street}|${no}`;
+}
+
+function mbAddrClear() {
+  _uqAddrGroups = null;
+  const box = document.getElementById('uq-addr-box');
+  if (box) {
+    box.hidden = true;
+    box.innerHTML = '';
+    delete box.dataset.open;
+    delete box.dataset.count;
+  }
+  const submit = document.getElementById('uq-submit-btn');
+  if (submit) submit.textContent = uqSay('uq.upload', 'Yükle');
+}
+
+function mbAddrWho(row) {
+  const name = [row?.first_name, row?.last_name].filter(Boolean).join(' ').trim();
+  return [name, row?.phone || ''].filter(Boolean).join(' · ') || '—';
+}
+
+function mbAddrFace(row) {
+  const no = String(row?.house_no || '').trim();
+  const addr = String(row?.address || '').trim();
+  const folded = mbAddrFold(addr);
+  const token = mbAddrFold(no);
+  const shown = no && token && !folded.endsWith(token) ? `${addr} ${no}` : addr;
+  return [shown, row?.plz || ''].filter(Boolean).join(' · ') || '—';
+}
+
+function mbAddrNote(existing, phones, ownPhone, ownPhone2) {
+  const have = new Set([ownPhone, ownPhone2].map((p) => (typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(p) : String(p || ''))).filter(Boolean));
+  const text = String(existing || '');
+  const add = [];
+  (phones || []).forEach((p) => {
+    const n = typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(p) : String(p || '');
+    if (!n || have.has(n) || text.includes(n)) return;
+    have.add(n);
+    add.push(n);
+  });
+  if (!add.length) return text;
+  const line = `${uqSay('uq.addr.note', 'Aynı adres')} · ${add.join(' · ')}`;
+  return text ? `${text}\n${line}` : line;
+}
+
+function mbAddrExport(row) {
+  const out = { ...row };
+  delete out._addrKey;
+  const no = String(out.house_no || '').trim();
+  delete out.house_no;
+  if (no) {
+    const addr = String(out.address || '').trim();
+    const token = mbAddrFold(no);
+    if (token && !mbAddrFold(addr).endsWith(token)) out.address = addr ? `${addr} ${no}` : no;
+  }
+  return out;
+}
+
+async function mbAddrLive(plzs, firmId) {
+  const codes = [...new Set((plzs || []).map((p) => String(p || '').replace(/\D/g, '')).filter((p) => p.length >= 4 && p.length <= 6))];
+  const rows = [];
+  const firm = /^[0-9a-f-]{36}$/i.test(String(firmId || '')) ? `&firm_id=eq.${firmId}` : '';
+  if (!firm) return rows;
+  for (let i = 0; i < codes.length; i += 25) {
+    const list = codes.slice(i, i + 25).map((code) => `"${code}"`).join(',');
+    let offset = 0;
+    for (;;) {
+      const part = await sb(`contacts?select=id,phone,phone2,first_name,last_name,address,plz,notes&plz=in.(${list})${firm}&limit=1000&offset=${offset}`) || [];
+      rows.push(...part);
+      if (part.length < 1000 || rows.length >= 8000) return rows;
+      offset += 1000;
+    }
+  }
+  return rows;
+}
+
+async function mbAddrCollect(contacts, firmId) {
+  const byKey = new Map();
+  (contacts || []).forEach((row, index) => {
+    const key = mbAddrKey(row.address, row.plz, row.house_no);
+    if (!key) return;
+    if (!byKey.has(key)) byKey.set(key, { key, file: [], live: [] });
+    byKey.get(key).file.push(index);
+  });
+  if (!byKey.size) return [];
+  const plzs = (contacts || []).map((row) => row.plz);
+  let live = [];
+  try { live = await mbAddrLive(plzs, firmId); } catch (e) { live = []; }
+  live.forEach((row) => {
+    const key = mbAddrKey(row.address, row.plz);
+    if (!key || !byKey.has(key)) return;
+    const group = byKey.get(key);
+    if (group.live.some((item) => item.id === row.id)) return;
+    group.live.push(row);
+  });
+  return [...byKey.values()].filter((group) => group.file.length > 1 || group.live.length);
+}
+
+function mbAddrPickAll(choice) {
+  document.querySelectorAll('#uq-addr-box input[type="radio"]').forEach((el) => { el.checked = el.value === choice; });
+}
+
+function mbAddrPaint(groups, contacts) {
+  const box = document.getElementById('uq-addr-box');
+  if (!box) return;
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const cards = groups.map((group, index) => {
+    const sample = contacts[group.file[0]] || {};
+    const live = group.live.slice(0, 3).map((row) => esc(mbAddrWho(row))).join('<br>');
+    const file = group.file.slice(0, 4).map((idx) => esc(mbAddrWho(contacts[idx]))).join('<br>');
+    const choice = (value, label, on) => `<label><input type="radio" name="uq-addr-${index}" value="${value}"${on ? ' checked' : ''}> ${esc(label)}</label>`;
+    return `<div class="uq-addr-card"><strong>${esc(mbAddrFace(sample))}</strong>${live ? `<p>${esc(uqSay('uq.addr.live', 'Sistemde'))}: ${live}</p>` : ''}<p>${esc(uqSay('uq.addr.file', 'Dosyada'))}: ${file}</p><div class="uq-addr-choices">${choice('add', uqSay('uq.addr.add', 'Ekle'), false)}${choice('skip', uqSay('uq.addr.skip', 'Atla'), false)}${choice('merge', uqSay('uq.addr.merge', 'Birleştir'), true)}</div></div>`;
+  }).join('');
+  box.innerHTML = `<div style="font-size:12px;font-weight:700;color:var(--text);">${esc(uqSay('uq.addr.title', 'Aynı adres'))}</div><div class="uq-addr-hint">${esc(uqSay('uq.addr.hint', 'Posta kodu, sokak ve kapı numarası birebir aynı olanlar. 5 ile 5/2 ayrı kayıttır.'))}</div><div class="uq-addr-bulk"><button type="button" class="btn btn-ghost btn-xs" onclick="mbAddrPickAll('merge')">${esc(uqSay('uq.addr.all.merge', 'Hepsini birleştir'))}</button><button type="button" class="btn btn-ghost btn-xs" onclick="mbAddrPickAll('add')">${esc(uqSay('uq.addr.all.add', 'Hepsini ekle'))}</button><button type="button" class="btn btn-ghost btn-xs" onclick="mbAddrPickAll('skip')">${esc(uqSay('uq.addr.all.skip', 'Hepsini atla'))}</button></div><div class="uq-addr-list">${cards}</div>`;
+  box.hidden = false;
+  box.dataset.open = '1';
+  box.dataset.count = String(contacts.length);
+  _uqAddrGroups = groups;
+  box.scrollIntoView({ block: 'nearest' });
+}
+
+function mbAddrTake(contacts, groups) {
+  const drop = new Set();
+  const patches = [];
+  let merged = 0;
+  let skipped = 0;
+  (groups || []).forEach((group, index) => {
+    const choice = document.querySelector(`input[name="uq-addr-${index}"]:checked`)?.value || 'merge';
+    const incoming = group.file.map((idx) => contacts[idx]).filter(Boolean);
+    const phones = incoming.flatMap((row) => [row.phone, row.phone2].filter(Boolean));
+    if (choice === 'add') return;
+    if (choice === 'skip') {
+      group.file.forEach((idx) => drop.add(idx));
+      skipped += group.file.length;
+      return;
+    }
+    if (group.live.length) {
+      group.file.forEach((idx) => drop.add(idx));
+      merged += group.file.length;
+      const host = group.live[0];
+      const notes = mbAddrNote(host.notes, phones, host.phone, host.phone2);
+      if (host.id && notes !== String(host.notes || '')) patches.push({ id: host.id, notes });
+      return;
+    }
+    const keep = group.file[0];
+    group.file.slice(1).forEach((idx) => drop.add(idx));
+    merged += Math.max(0, group.file.length - 1);
+    const host = contacts[keep];
+    if (!host) return;
+    const others = incoming.slice(1).flatMap((row) => [row.phone, row.phone2].filter(Boolean));
+    host.notes = mbAddrNote(host.notes, others, host.phone, host.phone2);
+  });
+  return { contacts: contacts.filter((_, idx) => !drop.has(idx)), patches, merged, skipped };
+}
+
+async function mbAddrPatch(patches) {
+  for (const patch of patches || []) {
+    if (!/^[0-9a-f-]{36}$/i.test(String(patch.id || ''))) continue;
+    await sb(`contacts?id=eq.${patch.id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ notes: patch.notes }),
+    });
+  }
 }
 
 async function uploadQueue() {
@@ -365,7 +576,7 @@ async function uploadQueue() {
       return;
     }
   }
-  const contacts = [];
+  let contacts = [];
   const campCounts = {};
   const outcomeCounts = {};
   const unknownCamp = uqSay('uq.report.camp.unknown', 'Kampanya');
@@ -381,8 +592,53 @@ async function uploadQueue() {
     contacts.push(row);
   });
   const skipped = { ...classified.skipped, outcomes: outcomeCounts };
+  const campRow = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === campId);
+  const firmId = (typeof _uqCampFirm !== 'undefined' && _uqCampFirm) || campRow?.firm_id || currentUser?.firm_id || null;
+  const addrBox = document.getElementById('uq-addr-box');
+  const reviewing = !!(addrBox && addrBox.dataset.open === '1' && _uqAddrGroups && Number(addrBox.dataset.count) === contacts.length);
+  let patches = [];
+  if (reviewing) {
+    const taken = mbAddrTake(contacts, _uqAddrGroups);
+    contacts = taken.contacts;
+    patches = taken.patches;
+    skipped.addrMerged = taken.merged;
+    skipped.addrSkipped = taken.skipped;
+    mbAddrClear();
+  } else if (contacts.length) {
+    const submitEarly = document.getElementById('uq-submit-btn');
+    const progressEarly = document.getElementById('uq-progress-section');
+    if (submitEarly) submitEarly.disabled = true;
+    if (progressEarly) progressEarly.style.display = '';
+    const labelEarly = document.getElementById('uq-progress-label');
+    if (labelEarly) labelEarly.textContent = uqSay('uq.addr.checking', 'Adresler kontrol ediliyor...');
+    try {
+      const groups = await mbAddrCollect(contacts, firmId);
+      if (groups.length) {
+        mbAddrPaint(groups, contacts);
+        if (submitEarly) {
+          submitEarly.disabled = false;
+          submitEarly.textContent = uqSay('uq.addr.go', 'Seç ve yükle');
+        }
+        if (progressEarly) progressEarly.style.display = 'none';
+        return;
+      }
+    } catch (e) {
+      if (submitEarly) submitEarly.disabled = false;
+      if (progressEarly) progressEarly.style.display = 'none';
+      toast(e.message || uqSay('uq.err.generic', 'Yükleme başarısız'), 'err');
+      return;
+    }
+    if (submitEarly) submitEarly.disabled = false;
+    if (progressEarly) progressEarly.style.display = 'none';
+  }
   const reportLines = mbUploadReportLines(skipped, campCounts);
   if (!contacts.length) {
+    if (patches.length) {
+      try { await mbAddrPatch(patches); } catch (e) {
+        toast(e.message || uqSay('uq.err.generic', 'Yükleme başarısız'), 'err');
+        return;
+      }
+    }
     await mbShowUploadReport(reportLines);
     if (!reportLines.length) toast(uqSay('uq.none', 'Geçerli numara yok'), 'err');
     return;
@@ -403,8 +659,6 @@ async function uploadQueue() {
     if (detail) progressDetail.textContent = detail;
   };
   try {
-    const campRow = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === campId);
-    const firmId = (typeof _uqCampFirm !== 'undefined' && _uqCampFirm) || campRow?.firm_id || currentUser?.firm_id || null;
     let queue = foundTarget ? foundTarget.queue : null;
     if (queue) {
       setProgress(5, uqSay('uq.adding', 'Kuyruğa ekleniyor...'), `${contacts.length.toLocaleString()} kişi hazırlanıyor`);
@@ -424,7 +678,7 @@ async function uploadQueue() {
       if (!queue?.id) throw new Error('Kuyruk oluşturulamadı — ID alınamadı');
     }
     const withQ = contacts.map(c => {
-      const row = { ...c, queue_id: queue.id };
+      const row = mbAddrExport({ ...c, queue_id: queue.id });
       if (firmId) row.firm_id = firmId;
       return row;
     });
@@ -447,6 +701,7 @@ async function uploadQueue() {
       foundTarget.queue._left = null;
       foundTarget.queue._sales = null;
     }
+    if (patches.length) await mbAddrPatch(patches);
     const done = uqSay('uq.done', '{n} kişi yüklendi', { n: contacts.length.toLocaleString() });
     setProgress(100, done, reportLines.length ? reportLines.join(' · ') : done);
     await new Promise(r => setTimeout(r, 400));
