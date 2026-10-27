@@ -648,6 +648,25 @@ function perfPopulateFilters() {
   }
 }
 
+async function _perfFetchPages(makePath) {
+  const size = 1000;
+  const all = [];
+  const seen = new Set();
+  for (let offset = 0; offset < 20000; offset += size) {
+    const rows = (await makePath(offset, size)) || [];
+    let added = 0;
+    rows.forEach((row) => {
+      const id = row && row.id ? String(row.id) : '';
+      if (id && seen.has(id)) return;
+      if (id) seen.add(id);
+      all.push(row);
+      added += 1;
+    });
+    if (rows.length < size || added === 0) break;
+  }
+  return all;
+}
+
 async function _perfFetchAppointments(from, to) {
   const ff = getFirmFilter('&');
   const cols = 'id,termin_tarih,kayit_tarihi,durum,nachname,telefonnummer,plz,ortschaft,agent_id,campaign_id,customer_id,agent_notu,firm_id';
@@ -655,12 +674,15 @@ async function _perfFetchAppointments(from, to) {
   const gte = created && typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
   const lte = created && typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
   const dateCol = created ? 'kayit_tarihi' : 'termin_tarih';
-  let q = `appointments?select=${cols},users(name),campaigns(name),customers(name,code)${ff}&${dateCol}=gte.${gte}&${dateCol}=lte.${lte}&order=${dateCol}.asc&limit=15000`;
+  const order = `${dateCol}.asc,id.asc`;
   try {
-    return (await sb(q)) || [];
+    return await _perfFetchPages((offset, size) => sb(
+      `appointments?select=${cols},users(name),campaigns(name),customers(name,code)${ff}&${dateCol}=gte.${gte}&${dateCol}=lte.${lte}&order=${order}&limit=${size}&offset=${offset}`
+    ));
   } catch (e) {
-    q = `appointments?select=${cols}${ff}&${dateCol}=gte.${gte}&${dateCol}=lte.${lte}&order=${dateCol}.asc&limit=15000`;
-    const rows = (await sb(q).catch(() => [])) || [];
+    const rows = await _perfFetchPages((offset, size) => sb(
+      `appointments?select=${cols}${ff}&${dateCol}=gte.${gte}&${dateCol}=lte.${lte}&order=${order}&limit=${size}&offset=${offset}`
+    ).catch(() => [])).catch(() => []);
     if (!rows.length) return [];
     const aIds = [...new Set(rows.map((r) => r.agent_id).filter(Boolean))];
     const cIds = [...new Set(rows.map((r) => r.campaign_id).filter(Boolean))];
@@ -693,12 +715,15 @@ async function _perfFetchCalls(from, to) {
   const ff = getFirmFilter('&');
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
-  const base = `call_logs?select=id,started_at,agent_id,campaign_id,firm_id,outcome,phone,duration_sec,users(name),campaigns(name)${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=started_at.desc&limit=8000`;
+  const order = 'started_at.desc,id.desc';
   try {
-    return (await sb(base)) || [];
+    return await _perfFetchPages((offset, size) => sb(
+      `call_logs?select=id,started_at,agent_id,campaign_id,firm_id,outcome,phone,duration_sec,users(name),campaigns(name)${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=${order}&limit=${size}&offset=${offset}`
+    ));
   } catch (e) {
-    const simple = `call_logs?select=id,started_at,agent_id,campaign_id,firm_id,outcome,phone,duration_sec${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=started_at.desc&limit=8000`;
-    const rows = (await sb(simple).catch(() => [])) || [];
+    const rows = await _perfFetchPages((offset, size) => sb(
+      `call_logs?select=id,started_at,agent_id,campaign_id,firm_id,outcome,phone,duration_sec${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=${order}&limit=${size}&offset=${offset}`
+    ).catch(() => []));
     if (!rows.length) return [];
     const aIds = [...new Set(rows.map((r) => r.agent_id).filter(Boolean))];
     const cIds = [...new Set(rows.map((r) => r.campaign_id).filter(Boolean))];
