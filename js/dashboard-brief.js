@@ -304,25 +304,74 @@ function mbDashPaintPills(ops) {
   ].join('');
 }
 
+function mbDashAlertDay() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date());
+}
+
+function mbDashAlertOffKey() {
+  const id = (typeof currentUser !== 'undefined' && currentUser?.id) ? currentUser.id : 'local';
+  return `mb_dash_alert_off_${id}_${mbDashAlertDay()}`;
+}
+
+function mbDashAlertHidden() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(mbDashAlertOffKey()) || '[]');
+    return new Set(Array.isArray(raw) ? raw.map(String) : []);
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function mbDashDismissAlert(key, el) {
+  const safe = String(key || '');
+  if (!/^[a-z0-9:-]{1,80}$/i.test(safe)) return;
+  const hidden = mbDashAlertHidden();
+  hidden.add(safe);
+  try { localStorage.setItem(mbDashAlertOffKey(), JSON.stringify([...hidden])); } catch (e) {}
+  const row = el?.closest?.('.dash-alert');
+  const box = row?.parentElement;
+  row?.remove();
+  if (box && !box.querySelector('.dash-alert')) box.remove();
+}
+
+function mbDashAlertRow(key, html, click) {
+  if (!/^[a-z0-9:-]{1,80}$/i.test(String(key || ''))) return '';
+  if (mbDashAlertHidden().has(key)) return '';
+  const go = click
+    ? `<button type="button" class="dash-alert-go" onclick="${click}">${html}</button>`
+    : `<div class="dash-alert-go">${html}</div>`;
+  const label = mbDashEsc(mbDashTr('Kapat', 'Schließen'));
+  return `<div class="dash-alert">${go}<button type="button" class="dash-alert-x" aria-label="${label}" title="${label}" onclick="mbDashDismissAlert('${key}', this)"><i class="ph ph-x" aria-hidden="true"></i></button></div>`;
+}
+
+function mbDashAlertBox(items) {
+  const rows = (items || []).filter(Boolean);
+  if (!rows.length) return '';
+  return `<div class="dash-alerts">${rows.join('')}</div>`;
+}
+
+function mbDashBehindAlert(done, daily) {
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
+  if (!(hour >= 14 && daily > 0 && done < daily * 0.4)) return '';
+  return mbDashAlertRow('behind', `${mbDashTr('Gün hedefinin gerisinde', 'Tagesziel liegt zurück')} · ${done} / ${daily}`);
+}
+
 function mbDashAlertHtml(ops, goals, todayAppts) {
   const items = [];
-  const empty = ops.camps.filter((camp) => camp.left === 0);
+  const empty = (ops?.camps || []).filter((camp) => camp.left === 0);
   empty.slice(0, 2).forEach((camp) => {
     const firm = ops.firmName[camp.firm_id] ? ` · ${ops.firmName[camp.firm_id]}` : '';
-    items.push(`<button type="button" class="dash-alert" title="${mbDashEsc(camp.name || '')}" onclick="mbDashOpenCamp('${camp.id}')">${mbDashEsc(mbDashClip(camp.name, 42))}${mbDashEsc(firm)}: ${mbDashTr('aranacak kalmadı', 'keine Kontakte mehr')}</button>`);
+    const text = `${mbDashEsc(mbDashClip(camp.name, 42))}${mbDashEsc(firm)}: ${mbDashTr('aranacak kalmadı', 'keine Kontakte mehr')}`;
+    items.push(mbDashAlertRow(`empty:${camp.id}`, text, `mbDashOpenCamp('${camp.id}')`));
   });
   if (empty.length > 2) {
-    items.push(`<button type="button" class="dash-alert" onclick="mbDashOpenPage('campaigns')">${empty.length} ${mbDashTr('kampanyada aranacak kalmadı', 'Kampagnen ohne Kontakte')}</button>`);
+    items.push(mbDashAlertRow('empty-more', `${empty.length} ${mbDashTr('kampanyada aranacak kalmadı', 'Kampagnen ohne Kontakte')}`, `mbDashOpenPage('campaigns')`));
   }
   if (ops.ready > 0 && ops.target === 0) {
-    items.push(`<button type="button" class="dash-alert" onclick="mbDashOpenPage('campaigns')">${mbDashTr('Hazır temsilci var, hedef hat 0', 'Agenten bereit, Zielleitung 0')}</button>`);
+    items.push(mbDashAlertRow('pace', mbDashTr('Hazır temsilci var, hedef hat 0', 'Agenten bereit, Zielleitung 0'), `mbDashOpenPage('campaigns')`));
   }
-  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
-  if (hour >= 14 && goals.daily > 0 && todayAppts < goals.daily * 0.4) {
-    items.push(`<div class="dash-alert">${mbDashTr('Gün hedefinin gerisinde', 'Tagesziel liegt zurück')} · ${todayAppts} / ${goals.daily}</div>`);
-  }
-  if (!items.length) return '';
-  return `<div class="dash-alerts">${items.join('')}</div>`;
+  items.push(mbDashBehindAlert(todayAppts, goals?.daily));
+  return mbDashAlertBox(items);
 }
 
 function mbDashSpeedSelect(id, speed) {
@@ -780,12 +829,7 @@ async function loadDashBrief(ctx) {
   if (goals) {
     const target = goals.goals.daily * goals.people;
     if (ops) alerts = mbDashAlertHtml(ops, { daily: target }, goals.dayN);
-    else if (role === 'agent') {
-      const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
-      if (hour >= 14 && goals.goals.daily > 0 && goals.dayN < goals.goals.daily * 0.4) {
-        alerts = `<div class="dash-alert">${mbDashTr('Gün hedefinin gerisinde', 'Tagesziel liegt zurück')} · ${goals.dayN} / ${goals.goals.daily}</div>`;
-      }
-    }
+    else if (role === 'agent') alerts = mbDashAlertBox([mbDashBehindAlert(goals.dayN, goals.goals.daily)]);
     parts.push(mbDashGoalsHtml(goals));
   }
   if (myRank) parts.push(myRank);
