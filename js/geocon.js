@@ -190,6 +190,8 @@ window.addEventListener('message', (event) => {
     mbOpenGeoconTransfer(data);
     return;
   }
+  if (data.action === 'GEO_GET_MB_COUNTS') void mbGeoconMbCounts(event.source);
+  if (data.action === 'GEO_GET_MB_LEADS') void mbGeoconMbLeads(event.source, data.plz, data.requestId);
   if (data.action === 'GEO_GET_UPCOMING_PLZ') void mbGeoconUpcoming(event.source, data.campaignId);
   if (data.action === 'GEO_GET_TOP_PLZ') void mbGeoconTop(event.source, data.campaignId);
   if (data.action === 'GEO_GET_CAMPS') void mbGeoconCamps(event.source);
@@ -235,8 +237,106 @@ async function mbGeoconPushState(target) {
     } catch (_) {}
   }
   try {
-    target.postMessage({ type: 'GEO_STATE', firmId, scores, flags }, window.location.origin);
+    const superAdmin = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+    target.postMessage({ type: 'GEO_STATE', firmId, scores, flags, superAdmin }, window.location.origin);
   } catch (_) {}
+}
+
+function geoMbFirmQuery() {
+  const role = currentUser?.role || '';
+  const superAdmin = typeof mbIsSuperAdmin === 'function' ? mbIsSuperAdmin(role) : role === 'super_admin';
+  if (superAdmin) return '';
+  const firmId = currentUser?.firm_id || '';
+  return firmId ? `&firm_id=eq.${firmId}` : null;
+}
+
+function geoDurumText(key) {
+  const name = String(key || '').trim();
+  if (!name) return '—';
+  if (typeof t === 'function') {
+    const label = t(`res.${name}`);
+    if (label && label !== `res.${name}`) return label;
+  }
+  return name;
+}
+
+function geoDurumBucket(key) {
+  const name = String(key || '');
+  if (name === 'basarili' || name === 'onaylandi' || name === 'onay') return 'basarili';
+  if (name === 'basarisiz' || name === 'iptal') return 'basarisiz';
+  if (name === 'beklemede') return 'beklemede';
+  if (name === 'ulasilamadi') return 'ulasilamadi';
+  return 'qc';
+}
+
+function geoWhenText(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value || '').replace('T', ' ').slice(0, 16);
+  return new Intl.DateTimeFormat('tr-TR', {
+    timeZone: 'Europe/Berlin',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function geoPost(target, msg) {
+  if (!target || typeof target.postMessage !== 'function') return;
+  try { target.postMessage(msg, window.location.origin); } catch (_) {}
+}
+
+async function mbGeoconMbCounts(target) {
+  const firmQuery = geoMbFirmQuery();
+  if (firmQuery == null) {
+    geoPost(target, { type: 'GEO_MB_COUNTS', counts: {} });
+    return;
+  }
+  let rows = [];
+  try {
+    const got = await mbFetchAll(`appointments?select=plz${firmQuery}&order=id.asc`);
+    rows = Array.isArray(got) ? got : [];
+  } catch (_) { rows = []; }
+  const counts = {};
+  rows.forEach((row) => {
+    const code = geoPlzCode(row.plz);
+    if (!code) return;
+    counts[code] = (counts[code] || 0) + 1;
+  });
+  geoPost(target, { type: 'GEO_MB_COUNTS', counts });
+}
+
+async function mbGeoconMbLeads(target, plz, requestId) {
+  const code = geoPlzCode(plz);
+  const firmQuery = geoMbFirmQuery();
+  if (!code || firmQuery == null) {
+    geoPost(target, { type: 'GEO_MB_LEADS', plz: code || '', requestId, items: [], ok: true });
+    return;
+  }
+  const bare = String(Number(code));
+  const plzFilter = bare && bare !== code ? `&or=(plz.eq.${code},plz.eq.${bare})` : `&plz=eq.${code}`;
+  const rich = `appointments?select=id,termin_tarih,durum,nachname,telefonnummer,strasse,ortschaft,plz,campaigns(name),firms(name)${firmQuery}${plzFilter}&order=termin_tarih.desc,id.desc`;
+  const plain = `appointments?select=id,termin_tarih,durum,nachname,telefonnummer,strasse,ortschaft,plz${firmQuery}${plzFilter}&order=termin_tarih.desc,id.desc`;
+  let rows = null;
+  try { rows = await mbFetchAll(rich); } catch (_) { rows = null; }
+  if (!Array.isArray(rows)) {
+    try { rows = await mbFetchAll(plain); } catch (_) { rows = []; }
+  }
+  const items = (rows || []).map((row) => {
+    const camp = row.campaigns && row.campaigns.name ? row.campaigns.name : '';
+    const firm = row.firms && row.firms.name ? row.firms.name : '';
+    return {
+      durum: geoDurumText(row.durum),
+      bucket: geoDurumBucket(row.durum),
+      when: geoWhenText(row.termin_tarih),
+      who: row.nachname || '',
+      ort: row.ortschaft || '',
+      telefon: row.telefonnummer || '',
+      strasse: row.strasse || '',
+      takvim: [camp, firm].filter(Boolean).join(' · '),
+    };
+  });
+  geoPost(target, { type: 'GEO_MB_LEADS', plz: code, requestId, items, ok: true });
 }
 
 async function mbGeoconSaveScore(plz, score) {
