@@ -533,11 +533,8 @@ function qcPaintBody() {
     const assignBtn = canAssignField
       ? `<button type="button" class="icon-btn" onclick="openFieldAssignModal('${_uiEsc(row.id)}','${_uiEsc(row.firm_id || '')}')" title="${_uiEsc(t('qc.field'))}"><i class="ph ph-map-pin"></i></button>`
       : '';
-    const okBtn = window._qcResultMap?.basarili
-      ? `<button type="button" class="icon-btn" style="border-color:var(--green);color:var(--green);" onclick="quickQcUpdate('${_uiEsc(row.id)}','basarili')" title="${_uiEsc(_qcResultLabel('basarili'))}"><i class="ph ph-check"></i></button>`
-      : '';
-    const noBtn = window._qcResultMap?.basarisiz
-      ? `<button type="button" class="icon-btn" style="border-color:var(--red);color:var(--red);" onclick="quickQcUpdate('${_uiEsc(row.id)}','basarisiz')" title="${_uiEsc(_qcResultLabel('basarisiz'))}"><i class="ph ph-x"></i></button>`
+    const resultBtn = (window._qcResultCfg || []).length
+      ? `<button type="button" class="icon-btn qc-result-btn" title="${_uiEsc(t('qc.pick'))}" onclick="qcToggleResultMenu(this,'${_uiEsc(row.id)}')"><i class="ph ph-caret-down"></i></button>`
       : '';
     return `<tr>
 <td><div style="font-weight:700;color:var(--accent);">${_uiEsc(wall.time || '—')}</div><div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_uiEsc(wall.day || '')}</div></td>
@@ -552,7 +549,7 @@ function qcPaintBody() {
 <td><div style="display:flex;gap:3px;align-items:center;">
 <button type="button" class="icon-btn" onclick="qcOpenPersonCard('${_uiEsc(row.id)}')" title="${_uiEsc(t('qc.card'))}"><i class="ph ph-user"></i></button>
 <button type="button" class="icon-btn" onclick="openQcDetail('${_uiEsc(row.id)}')" title="${_uiEsc(t('qc.detail'))}"><i class="ph ph-magnifying-glass"></i></button>
-${assignBtn}${okBtn}${noBtn}
+${assignBtn}${resultBtn}
 </div></td>
 </tr>`;
   }).join('');
@@ -747,6 +744,54 @@ function qcTwinFromForm(ev) {
   const el = ev.target?.closest?.('[data-takvim-key]');
   if (!el || el.hasAttribute('readonly')) return;
   qcSyncTwin(el.getAttribute('data-takvim-key'), el.value, 'form');
+}
+
+function qcCloseResultMenu() {
+  document.getElementById('qc-result-menu')?.remove();
+}
+
+function qcToggleResultMenu(btn, apptId) {
+  const open = document.getElementById('qc-result-menu');
+  if (open && open.dataset.appt === String(apptId)) {
+    open.remove();
+    return;
+  }
+  open?.remove();
+  const items = (window._qcResultCfg || []).map((row) => {
+    const color = row.color || '#64748b';
+    return `<button type="button" class="qc-result-opt" data-key="${_uiEsc(row.key)}"><span class="qc-dot" style="background:${_uiEsc(color)}"></span><span>${_uiEsc(_qcResultLabel(row.key))}</span></button>`;
+  }).join('');
+  if (!items) return;
+  const menu = document.createElement('div');
+  menu.id = 'qc-result-menu';
+  menu.className = 'qc-result-menu';
+  menu.dataset.appt = String(apptId);
+  menu.innerHTML = items;
+  document.body.appendChild(menu);
+  const box = btn.getBoundingClientRect();
+  const width = menu.offsetWidth || 200;
+  const height = menu.offsetHeight || 0;
+  let left = Math.min(box.left, window.innerWidth - width - 8);
+  if (left < 8) left = 8;
+  let top = box.bottom + 4;
+  if (top + height > window.innerHeight - 8) top = Math.max(8, box.top - height - 4);
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+  menu.querySelectorAll('.qc-result-opt').forEach((opt) => {
+    opt.onclick = () => {
+      const key = opt.getAttribute('data-key') || '';
+      qcCloseResultMenu();
+      quickQcUpdate(apptId, key);
+    };
+  });
+  if (!window._qcMenuBound) {
+    window._qcMenuBound = true;
+    document.addEventListener('click', (ev) => {
+      if (ev.target.closest?.('#qc-result-menu') || ev.target.closest?.('.qc-result-btn')) return;
+      qcCloseResultMenu();
+    });
+    document.getElementById('qc-scroll')?.addEventListener('scroll', qcCloseResultMenu, { passive: true });
+  }
 }
 
 async function qcUpdateStatus(status) {
