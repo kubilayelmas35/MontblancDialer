@@ -469,26 +469,35 @@ function geoBerlinStamp(value) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 }
 
+function geoCampOpen(row) {
+  if (!row || (row.status !== 'active' && row.status !== 'paused')) return false;
+  if (row.settings && Object.prototype.hasOwnProperty.call(row.settings, 'wix_active')) {
+    const on = row.settings.wix_active === true || row.settings.wix_active === 'true';
+    if (!on) return row.status === 'active';
+  }
+  return true;
+}
+
 async function mbGeoconCamps(target) {
   if (!target || target === window || typeof sb !== 'function') return;
   const role = currentUser?.role || '';
-  let query = 'campaigns?select=id,name&order=name.asc&limit=200';
+  let query = 'campaigns?select=id,name,status,settings&status=in.(active,paused)&order=name.asc&limit=1000';
   if (role !== 'super_admin') {
     const firmId = currentUser?.firm_id || '';
     if (!firmId) {
       try { target.postMessage({ type: 'GEO_CAMPS', items: [], needFirm: true }, window.location.origin); } catch (_) {}
       return;
     }
-    query = `campaigns?select=id,name&firm_id=eq.${firmId}&order=name.asc&limit=200`;
+    query = `campaigns?select=id,name,status,settings&status=in.(active,paused)&firm_id=eq.${firmId}&order=name.asc&limit=1000`;
   } else if (geoActiveFirmId()) {
-    query = `campaigns?select=id,name&firm_id=eq.${geoActiveFirmId()}&order=name.asc&limit=200`;
+    query = `campaigns?select=id,name,status,settings&status=in.(active,paused)&firm_id=eq.${geoActiveFirmId()}&order=name.asc&limit=1000`;
   }
   let rows = [];
   try {
     const got = await sb(query);
     rows = Array.isArray(got) ? got : [];
   } catch (_) { rows = []; }
-  const items = rows.map((row) => ({ id: row.id, name: row.name || '' })).filter((row) => geoCampId(row.id));
+  const items = rows.filter(geoCampOpen).map((row) => ({ id: row.id, name: row.name || '' })).filter((row) => geoCampId(row.id));
   try { target.postMessage({ type: 'GEO_CAMPS', items, needFirm: false }, window.location.origin); } catch (_) {}
 }
 
