@@ -63,12 +63,41 @@ function repTable(heads, rows) {
 const REP_BAR_COLORS = ['#7dd3fc', '#fdba74', '#fb923c', '#4ade80', '#60a5fa', '#f97316', '#38bdf8', '#f87171', '#a78bfa', '#facc15', '#34d399', '#f472b6'];
 let _repHourCharts = [];
 let _repHourSeq = 0;
+let _repHourZone = 'berlin';
 
-function repHourCounts(items) {
+function repTurkeyHour(iso) {
+  const dt = new Date(iso);
+  if (!Number.isFinite(dt.getTime())) return -1;
+  if (typeof mbZonedParts === 'function') {
+    const h = Number(mbZonedParts(dt, 'Europe/Istanbul').hour);
+    return Number.isFinite(h) ? h : -1;
+  }
+  try {
+    const h = dt.toLocaleString('en-GB', { timeZone: 'Europe/Istanbul', hour: '2-digit', hourCycle: 'h23' });
+    return Number(String(h).slice(0, 2));
+  } catch (_) {
+    return -1;
+  }
+}
+
+function repSetHourZone(zone) {
+  _repHourZone = zone === 'tr' ? 'tr' : 'berlin';
+  if (window._statsReport === 'appt' && typeof loadStatsReport === 'function') loadStatsReport();
+}
+
+function repHourZoneBar() {
+  const zone = _repHourZone === 'tr' ? 'tr' : 'berlin';
+  return `<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;">
+<button type="button" class="range-btn${zone === 'berlin' ? ' active' : ''}" onclick="repSetHourZone('berlin')">${statsEsc(t('rep.tz.berlin'))}</button>
+<button type="button" class="range-btn${zone === 'tr' ? ' active' : ''}" onclick="repSetHourZone('tr')">${statsEsc(t('rep.tz.tr'))}</button>
+</div>`;
+}
+
+function repHourCounts(items, zone) {
   const hours = Array.from({ length: 24 }, () => 0);
   (items || []).forEach((iso) => {
     if (!iso) return;
-    const h = statsBerlinHour(iso);
+    const h = zone === 'tr' ? repTurkeyHour(iso) : statsBerlinHour(iso);
     if (h >= 0 && h <= 23) hours[h] += 1;
   });
   return hours;
@@ -83,8 +112,8 @@ function repHourTable(hours) {
   return repTable(['#', t('rep.hour'), t('rep.qty')], rows);
 }
 
-function repHours(items, tone) {
-  const hours = repHourCounts(items);
+function repHours(items, tone, zone) {
+  const hours = repHourCounts(items, zone);
   if (!hours.some((n) => n > 0)) return `<div class="firm-none">${statsEsc(t('stats.none'))}</div>`;
   if (typeof Chart === 'undefined') {
     const max = Math.max(1, ...hours);
@@ -269,10 +298,13 @@ function repPaint(view, pack, range, userById, sessById) {
     })
   ));
   if (view === 'result') return repResult(logs);
-  if (view === 'appt') return `<div class="rep-appt-grid">${[
-    repCard(t('rep.create'), repHours(appts.map((a) => a.kayit_tarihi), 'cool'), t('rep.create_hint')),
-    repCard(t('rep.call'), repHours(logs.filter((l) => statsOutcomeKey(l.outcome) === 'appointment').map((l) => l.started_at), 'warm'), t('rep.call_hint')),
-  ].join('')}</div>`;
+  if (view === 'appt') {
+    const zone = _repHourZone === 'tr' ? 'tr' : 'berlin';
+    return `${repHourZoneBar()}<div class="rep-appt-grid">${[
+      repCard(t('rep.create'), repHours(appts.map((a) => a.kayit_tarihi), 'cool', zone), t('rep.create_hint')),
+      repCard(t('rep.call'), repHours(logs.filter((l) => statsOutcomeKey(l.outcome) === 'appointment').map((l) => l.started_at), 'warm', zone), t('rep.call_hint')),
+    ].join('')}</div>`;
+  }
   if (view === 'operator') return repOperator(logs, pack.allAppts || appts, userById, sessById, pack);
   if (view === 'perf') return repPerf(logs, appts, userById, sessById, pack, range);
   if (view === 'group') return repGroup(logs, appts, userById, sessById, pack, range);
