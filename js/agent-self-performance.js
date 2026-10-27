@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────
 
 let _aspCharts = {};
+let _aspLoadGen = 0;
 
 function _aspApptBucket(durum) {
   if (typeof perfApptBucket === 'function') return perfApptBucket(durum);
@@ -104,8 +105,8 @@ function _aspDaysInMonth(ym) {
 
 async function _aspFetchAppointments(fid, uid, start, end, mode = 'termin') {
   if (!uid) return [];
-  // Şema farklılıklarında 400 almamak için wildcard select
-  let rows = (await sb(`appointments?select=*&limit=5000`).catch(() => [])) || [];
+  const firm = fid ? `&firm_id=eq.${encodeURIComponent(fid)}` : '';
+  let rows = (await sb(`appointments?select=*&agent_id=eq.${encodeURIComponent(uid)}${firm}&limit=5000`).catch(() => [])) || [];
   const meId = String(uid || '');
   const meName = String(currentUser?.name || '').trim().toLowerCase();
   const meEmail = String(currentUser?.email || '').trim().toLowerCase();
@@ -150,7 +151,8 @@ async function _aspFetchCalls(fid, uid, start, end) {
   if (!uid) return [];
   const fromMs = _aspBerlinStartMs(start);
   const toMs = _aspBerlinEndMs(end);
-  let rows = (await sb(`call_logs?select=*&limit=10000`).catch(() => [])) || [];
+  const firm = fid ? `&firm_id=eq.${encodeURIComponent(fid)}` : '';
+  let rows = (await sb(`call_logs?select=*&agent_id=eq.${encodeURIComponent(uid)}${firm}&order=started_at.desc&limit=5000`).catch(() => [])) || [];
   const meId = String(uid || '');
   const meName = String(currentUser?.name || '').trim().toLowerCase();
   const meEmail = String(currentUser?.email || '').trim().toLowerCase();
@@ -306,6 +308,7 @@ function _fEscPerf(value) {
 async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const host = document.getElementById('muh-agent-perf-wrap');
   if (!host) return;
+  const gen = ++_aspLoadGen;
   const role = String(currentUser?.role || '').trim().toLowerCase();
   if (!['agent', 'qc', 'admin', 'firm_admin', 'super_admin', 'field_agent'].includes(role)) {
     host.style.display = 'none';
@@ -348,6 +351,7 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
     _aspFetchAppointments(fid, uid, start, end, apptMode),
     _aspFetchCalls(fid, uid, start, end),
   ]);
+  if (gen !== _aspLoadGen) return;
   const apRows = appts || [];
   const callRows = calls || [];
 
@@ -382,6 +386,7 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const lbl = dayKeys.map((k) => k.slice(8, 10));
 
   const body = document.getElementById('asp-body');
+  if (!body) return;
   body.innerHTML = `
 <div class="stats-grid" style="margin-bottom:14px;">
 <div class="stat-card"><div class="stat-lbl">${apptMode === 'created' ? 'Randevu (oluşturma ayı)' : 'Randevu (tarih ayı)'}</div><div class="stat-val">${tot}</div><div class="stat-meta">${ok} başarılı · oran %${rate}</div></div>

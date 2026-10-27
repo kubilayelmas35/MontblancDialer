@@ -513,6 +513,7 @@ async function saveAppointmentResultsSettings() {
 
 // ── LANG ─────────────────────────────────────
 function setLang(l) {
+const langChanged = currentLang !== l;
 currentLang = l;
 document.querySelectorAll('.modal-overlay.open').forEach((m) => {
   if (m.id === 'm-system-dialog') return;
@@ -563,7 +564,7 @@ if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
 if (document.getElementById('page-dashboard')?.classList.contains('active') && typeof mbAgentDay === 'function') void mbAgentDay();
 const activePage = (document.querySelector('.page.active')?.id || '').replace(/^page-/, '');
 const inCall = typeof dialerStatus !== 'undefined' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping');
-if (!(typeof _mbPrefsApplying !== 'undefined' && _mbPrefsApplying) && currentUser && activePage && activePage !== 'settings' && !(activePage === 'dialer' && inCall) && typeof runPageEntry === 'function') {
+if (langChanged && !(typeof _mbPrefsApplying !== 'undefined' && _mbPrefsApplying) && currentUser && activePage && activePage !== 'settings' && !(activePage === 'dialer' && inCall) && typeof runPageEntry === 'function') {
   runPageEntry(activePage);
 }
 if (typeof dialerStatus !== 'undefined' && dialerStatus === 'break' && typeof refreshBreakCustEmpty === 'function') {
