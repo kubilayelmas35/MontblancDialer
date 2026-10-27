@@ -2144,6 +2144,7 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="qc-dates">
 <div class="qc-date-field"><label class="form-label" style="font-size:10px;" data-tr="Başlangıç" data-de="Beginn">Başlangıç</label><input type="date" class="form-input" id="qc-date-from" onchange="loadQcData()"></div>
 <div class="qc-date-field"><label class="form-label" style="font-size:10px;" data-tr="Bitiş" data-de="Ende">Bitiş</label><input type="date" class="form-input" id="qc-date-to" onchange="loadQcData()"></div>
+<button type="button" class="dash-range-btn" id="qc-near-btn" onclick="qcToggleNear()"></button>
 </div>
 <input type="text" class="form-input" id="qc-search" data-tr="İsim, numara, agent, kampanya" data-de="Name, Nummer, Agent, Kampagne" placeholder="İsim, numara, agent, kampanya" style="width:220px;padding:6px 10px;font-size:12px;" oninput="filterQcTable()">
 <button type="button" class="btn btn-ghost btn-sm" id="qc-settings-btn" style="display:none;" onclick="openQcSettings()">
@@ -2158,20 +2159,20 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </div>
 <div id="qc-cap" style="display:none;font-size:11px;color:var(--text-3);margin-bottom:8px;"></div>
 <div id="qc-tabs" class="qc-tabs"></div>
-<div class="card" style="padding:0;overflow:hidden;">
-<div class="tbl-wrap">
+<div class="card qc-table-card">
+<div class="tbl-wrap" id="qc-scroll">
 <table>
-<thead><tr>
-<th data-tr="Tarih / saat" data-de="Datum / Zeit">Tarih / saat</th>
-<th data-tr="Ad" data-de="Name">Ad</th>
-<th data-tr="Telefon" data-de="Telefon">Telefon</th>
-<th data-tr="Posta kodu" data-de="PLZ">Posta kodu</th>
+<thead id="qc-thead"><tr>
+<th>Tarih / saat</th>
+<th>Ad</th>
+<th>Telefon</th>
+<th>Posta kodu</th>
 <th>Agent</th>
-<th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
-<th data-tr="Müşteri" data-de="Kunde">Müşteri</th>
-<th data-tr="Kayıt" data-de="Aufnahme">Kayıt</th>
-<th data-tr="Durum" data-de="Status">Durum</th>
-<th data-tr="İşlem" data-de="Aktion">İşlem</th>
+<th>Kampanya</th>
+<th>Müşteri</th>
+<th>Kayıt</th>
+<th>Durum</th>
+<th>İşlem</th>
 </tr></thead>
 <tbody id="qc-tbody">
 <tr><td colspan="10" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>

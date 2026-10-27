@@ -317,6 +317,162 @@ function setQcTab(tab) {
   renderQcTable();
 }
 
+let _qcColFilters = {};
+let _qcSort = { key: 'when', dir: 'desc' };
+
+function qcColDefs() {
+  return [
+    { key: 'when', label: t('qc.when') },
+    { key: 'name', label: t('qc.name') },
+    { key: 'phone', label: t('qc.phone') },
+    { key: 'plz', label: t('qc.plz') },
+    { key: 'agent', label: t('qc.agent') },
+    { key: 'camp', label: t('qc.camp') },
+    { key: 'customer', label: t('qc.customer') },
+    { key: 'rec', label: t('qc.rec') },
+    { key: 'status', label: t('qc.status') },
+    { key: '', label: t('qc.action') },
+  ];
+}
+
+function qcFold(value) {
+  return String(value || '').toLocaleLowerCase('tr-TR');
+}
+
+function qcMatch(text, query) {
+  if (typeof campMatch === 'function') return campMatch(text, query);
+  const q = qcFold(query).trim();
+  if (!q) return true;
+  return qcFold(text).includes(q);
+}
+
+function qcCustomerText(row) {
+  const id = row?.customer_id;
+  const hit = (window._qcCustomers || []).find((c) => String(c.id) === String(id));
+  return hit?.name || row?.customers?.name || '';
+}
+
+function qcRecInfo(row) {
+  const rec = row?.contact_id ? window._qcRecByContact?.[row.contact_id] : null;
+  if (!rec?.recording_url) return { text: '', n: 0 };
+  const sec = Number(rec.duration_sec) || 0;
+  const text = sec ? `${Math.floor(sec / 60)}m${sec % 60}s` : t('qc.rec');
+  return { text, n: sec || 1 };
+}
+
+function qcFields(row) {
+  const wall = _qcWall(row);
+  const time = String(wall.time || '').slice(0, 5);
+  const when = wall.dayKey && time ? `${wall.dayKey}T${time}` : String(row?.termin_tarih || '');
+  const rec = qcRecInfo(row);
+  return {
+    when,
+    whenText: `${wall.day || ''} ${wall.time || ''}`.trim(),
+    name: row?.nachname || '',
+    phone: `${row?.telefonnummer || ''} ${row?.telefon2 || ''}`.trim(),
+    plz: `${row?.plz || ''} ${row?.ortschaft || ''}`.trim(),
+    agent: row?.users?.name || '',
+    camp: row?.campaigns?.name || window._qcCampById?.[row.campaign_id]?.name || '',
+    customer: qcCustomerText(row),
+    rec: rec.text,
+    recN: rec.n,
+    status: _qcResultLabel(_qcDurumKey(row)),
+  };
+}
+
+function qcFilterText(fields, key) {
+  if (key === 'when') return fields.whenText;
+  return fields[key] || '';
+}
+
+function qcWhenMs(row) {
+  const raw = String(qcFields(row).when || '');
+  const t = Date.parse(raw.length === 16 ? `${raw}:00` : raw);
+  return Number.isFinite(t) ? t : null;
+}
+
+function qcBySort(a, b) {
+  const key = _qcSort.key || 'when';
+  const dir = _qcSort.dir === 'asc' ? 1 : -1;
+  if (key === 'near') {
+    const now = Date.now();
+    const da = qcWhenMs(a);
+    const db = qcWhenMs(b);
+    const av = da == null ? Number.MAX_SAFE_INTEGER : Math.abs(da - now);
+    const bv = db == null ? Number.MAX_SAFE_INTEGER : Math.abs(db - now);
+    let cmp = av - bv;
+    if (!cmp && da != null && db != null) cmp = da - db;
+    if (!cmp) cmp = String(a?.id || '').localeCompare(String(b?.id || ''));
+    return cmp * dir;
+  }
+  const fa = qcFields(a);
+  const fb = qcFields(b);
+  const av = key === 'rec' ? fa.recN : (key === 'when' ? fa.when : qcFilterText(fa, key));
+  const bv = key === 'rec' ? fb.recN : (key === 'when' ? fb.when : qcFilterText(fb, key));
+  let cmp = 0;
+  if (typeof av === 'number' && typeof bv === 'number') cmp = av - bv;
+  else cmp = String(av).localeCompare(String(bv), 'tr', { numeric: true, sensitivity: 'base' });
+  if (!cmp) cmp = String(a?.id || '').localeCompare(String(b?.id || ''));
+  return cmp * dir;
+}
+
+function qcVisibleRows() {
+  const search = qcFold(document.getElementById('qc-search')?.value || '').trim();
+  let list = (qcList || []).filter((row) => _qcInDates(row) && _qcMatchesTab(row));
+  if (search) {
+    list = list.filter((row) => {
+      const f = qcFields(row);
+      const blob = [f.whenText, f.name, f.phone, f.plz, f.agent, f.camp, f.customer, f.rec, f.status].join(' ');
+      return qcFold(blob).includes(search);
+    });
+  }
+  list = list.filter((row) => {
+    const f = qcFields(row);
+    return qcColDefs().every((col) => !col.key || qcMatch(qcFilterText(f, col.key), _qcColFilters[col.key] || ''));
+  });
+  list.sort(qcBySort);
+  return list;
+}
+
+function qcPaintNearBtn() {
+  const btn = document.getElementById('qc-near-btn');
+  if (!btn) return;
+  const near = _qcSort.key === 'near';
+  btn.textContent = t('qc.near');
+  btn.classList.toggle('active', near);
+  btn.title = near ? t('qc.far') : t('qc.near');
+}
+
+function qcPaintHead() {
+  const head = document.getElementById('qc-thead');
+  if (!head) return;
+  const esc = typeof _uiEsc === 'function' ? _uiEsc : (v) => String(v ?? '');
+  head.innerHTML = `<tr>${qcColDefs().map((col) => {
+    if (!col.key) return `<th>${esc(col.label)}</th>`;
+    const on = _qcSort.key === col.key;
+    const sort = `<span class="camp-sort"><button type="button" class="camp-sort-btn${on && _qcSort.dir === 'asc' ? ' is-on' : ''}" title="${esc(t('camp.sort.asc'))}" onclick="event.stopPropagation();setQcSort('${col.key}','asc')"><i class="ph ph-caret-up"></i></button><button type="button" class="camp-sort-btn${on && _qcSort.dir === 'desc' ? ' is-on' : ''}" title="${esc(t('camp.sort.desc'))}" onclick="event.stopPropagation();setQcSort('${col.key}','desc')"><i class="ph ph-caret-down"></i></button></span>`;
+    const filter = `<input class="camp-col-filter" value="${esc(_qcColFilters[col.key] || '')}" aria-label="${esc(col.label)}" oninput="setQcColFilter('${col.key}', this.value)" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">`;
+    return `<th><span class="camp-sort-label">${esc(col.label)}${sort}</span>${filter}</th>`;
+  }).join('')}</tr>`;
+  qcPaintNearBtn();
+}
+
+function setQcColFilter(key, value) {
+  _qcColFilters[key] = String(value || '');
+  qcPaintBody();
+}
+
+function setQcSort(key, dir) {
+  _qcSort = { key: key || 'when', dir: dir === 'asc' ? 'asc' : 'desc' };
+  qcPaintHead();
+  qcPaintBody();
+}
+
+function qcToggleNear() {
+  if (_qcSort.key === 'near') setQcSort('when', 'desc');
+  else setQcSort('near', 'asc');
+}
+
 function filterQcTable() { renderQcTable(); }
 
 function _qcMatchesTab(row) {
@@ -347,24 +503,20 @@ function renderQcTabs(list) {
 function renderQcTable() {
   const tbody = document.getElementById('qc-tbody');
   if (!tbody) return;
+  renderQcTabs((qcList || []).filter((row) => _qcInDates(row)));
+  qcPaintHead();
+  qcPaintBody();
+}
+
+function qcPaintBody() {
+  const tbody = document.getElementById('qc-tbody');
+  if (!tbody) return;
   const canAssignField = typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin();
   const hasCustomers = (window._qcCustomers || []).length > 0;
-  const search = (document.getElementById('qc-search')?.value || '').toLowerCase();
-  let list = (qcList || []).filter((row) => _qcInDates(row));
-  renderQcTabs(list);
-  list = list.filter((row) => _qcMatchesTab(row));
-  if (search) {
-    list = list.filter((row) => {
-      const camp = row.campaigns?.name || window._qcCampById?.[row.campaign_id]?.name || '';
-      const blob = [
-        row.nachname, row.telefonnummer, row.telefon2, row.plz, row.ortschaft,
-        row.users?.name, camp, _qcResultLabel(_qcDurumKey(row)),
-      ].join(' ').toLowerCase();
-      return blob.includes(search);
-    });
-  }
+  const list = qcVisibleRows();
+  const cols = qcColDefs().length;
   if (!list.length) {
-    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(10, 'ui.no_records') : `<tr><td colspan="10" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(cols, 'ui.no_records') : `<tr><td colspan="${cols}" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
     return;
   }
   const customerOptions = (window._qcCustomers || []).map((c) => `<option value="${_uiEsc(c.id)}">${_uiEsc(c.name || '')}</option>`).join('');

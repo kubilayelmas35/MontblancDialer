@@ -2968,12 +2968,6 @@ button.dash-card-handle:active { cursor:grabbing; }
 .muh-badge.err { background: rgba(220,38,38,.14); color: var(--red); }
 /* Table */
 .tbl-wrap { overflow-x: auto; max-width: 100%; min-width: 0; scrollbar-width: thin; }
-@media (max-width: 1280px) {
-  #page-qc th:nth-child(4),
-  #page-qc td:nth-child(4),
-  #page-qc th:nth-child(8),
-  #page-qc td:nth-child(8) { display: none; }
-}
 .page > * { min-width: 0; max-width: 100%; }
 table { width:100%; border-collapse:collapse; }
 th {
