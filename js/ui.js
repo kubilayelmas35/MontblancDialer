@@ -884,9 +884,9 @@ const connId  = document.getElementById('s-conn-id')?.value.trim()||'';
 try {
   const prev = await mbLoadFirmIntegrations(fid);
   const saved = await mbSaveFirmIntegrations(fid, {
-    telnyx_api_key: apiKey,
-    sip_connection_id: connId,
-    sip_username: sipUser,
+    telnyx_api_key: apiKey || prev.telnyx_api_key,
+    sip_connection_id: connId || prev.sip_connection_id,
+    sip_username: sipUser || prev.sip_username,
     sip_password: sipPass || prev.sip_password,
   });
   if (String(fid) === String(currentUser?.firm_id)) mbApplyFirmIntegrationsLocal(saved, true);
