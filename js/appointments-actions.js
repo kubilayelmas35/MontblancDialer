@@ -284,6 +284,104 @@ function takvimCardExtras(contact, camp) {
   return ek;
 }
 
+function takvimWhenFace(slot, appt) {
+  if (slot) {
+    const start = String(slot.baslangic_saat || '').slice(0, 5);
+    const end = slot.bitis_saat ? String(slot.bitis_saat).slice(0, 5) : '';
+    return `${slot.tarih || ''} ${start}${end ? '–' + end : ''}`.trim();
+  }
+  return String(appt?.termin_tarih || '').replace('T', ' ').slice(0, 16);
+}
+
+function takvimWhenBox(when, editable) {
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const say = typeof t === 'function' ? t : (k) => k;
+  const hint = editable ? `<div style="font-size:10px;color:var(--accent);font-weight:650;margin-top:2px;">${esc(say('cal.when.edit'))}</div>` : '';
+  const click = editable ? 'cursor:pointer;' : '';
+  const act = editable ? 'onclick="openTakvimWhenEdit()"' : '';
+  return `<div id="takvim-when-box" ${act} style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;text-align:left;border:0;${click}"><div style="font-size:10px;color:var(--text-3);">RANDEVU TARİHİ / SAATİ</div><div id="takvim-when-face" style="font-weight:700;">${esc(when || '—')}</div>${hint}</div>`;
+}
+
+function openTakvimWhenEdit() {
+  const box = document.getElementById('takvim-when-box');
+  const ctx = window._takvimWhenCtx || {};
+  if (!box || !mbIsFirmAdmin() || box.dataset.editing === '1') return;
+  const slot = ctx.slot || null;
+  const appt = ctx.appt || null;
+  const day = slot?.tarih || String(appt?.termin_tarih || '').slice(0, 10);
+  const start = String(slot?.baslangic_saat || String(appt?.termin_tarih || '').slice(11, 16) || '09:00').slice(0, 5);
+  let end = String(slot?.bitis_saat || '').slice(0, 5);
+  if (!end && typeof takvimAddHours === 'function') end = takvimAddHours(start, typeof takvimSlotDurHours === 'function' ? takvimSlotDurHours() : 2);
+  const say = typeof t === 'function' ? t : (k) => k;
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  box.dataset.editing = '1';
+  box.removeAttribute('onclick');
+  box.innerHTML = `<div style="font-size:10px;color:var(--text-3);margin-bottom:6px;">RANDEVU TARİHİ / SAATİ</div>
+<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:6px;">
+<label style="font-size:10px;color:var(--text-3);">${esc(say('cal.when.day'))}<input class="form-input" id="takvim-when-day" type="date" value="${esc(day)}" style="margin-top:2px;"></label>
+<label style="font-size:10px;color:var(--text-3);">${esc(say('cal.when.start'))}<input class="form-input" id="takvim-when-start" type="time" step="60" value="${esc(start)}" style="margin-top:2px;"></label>
+<label style="font-size:10px;color:var(--text-3);">${esc(say('cal.when.end'))}<input class="form-input" id="takvim-when-end" type="time" step="60" value="${esc(end)}" style="margin-top:2px;"></label>
+</div>
+<div style="display:flex;gap:6px;margin-top:8px;">
+<button type="button" class="btn btn-primary btn-sm" onclick="saveTakvimWhenEdit()">${esc(say('cal.when.save'))}</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="closeTakvimWhenEdit()">${esc(typeof currentLang !== 'undefined' && currentLang === 'de' ? 'Abbrechen' : 'Vazgeç')}</button>
+</div>`;
+}
+
+function closeTakvimWhenEdit() {
+  const box = document.getElementById('takvim-when-box');
+  const ctx = window._takvimWhenCtx || {};
+  if (!box) return;
+  const face = takvimWhenFace(ctx.slot, ctx.appt);
+  const editable = mbIsFirmAdmin() && !!(ctx.slot?.id || ctx.appt?.id);
+  box.outerHTML = takvimWhenBox(face, editable);
+}
+
+async function saveTakvimWhenEdit() {
+  if (!mbIsFirmAdmin()) return;
+  const ctx = window._takvimWhenCtx || {};
+  const slot = ctx.slot || null;
+  const appt = ctx.appt || null;
+  const day = String(document.getElementById('takvim-when-day')?.value || '');
+  const start = String(document.getElementById('takvim-when-start')?.value || '').slice(0, 5);
+  const end = String(document.getElementById('takvim-when-end')?.value || '').slice(0, 5);
+  const say = typeof t === 'function' ? t : (k) => k;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end)) {
+    toast(say('cal.when.bad'), 'warn');
+    return;
+  }
+  if (typeof takvimTimeToMinutes === 'function' && takvimTimeToMinutes(end) <= takvimTimeToMinutes(start)) {
+    toast(say('cal.when.bad'), 'warn');
+    return;
+  }
+  try {
+    if (slot?.id) {
+      await sb(`takvim_slots?id=eq.${slot.id}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ tarih: day, baslangic_saat: start, bitis_saat: end })
+      });
+      slot.tarih = day;
+      slot.baslangic_saat = start;
+      slot.bitis_saat = end;
+    }
+    if (appt?.id) {
+      const termin = `${day}T${start}:00`;
+      await sb(`appointments?id=eq.${appt.id}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ termin_tarih: termin })
+      });
+      appt.termin_tarih = termin;
+    }
+    closeTakvimWhenEdit();
+    toast(say('cal.when.saved'), 'ok');
+    if (slot?.id && typeof loadTakvimSlots === 'function' && typeof takvimCampId !== 'undefined' && takvimCampId) await loadTakvimSlots();
+  } catch (e) {
+    toast('Hata: ' + (e?.message || ''), 'err');
+  }
+}
+
 async function openTakvimSlotDetail(slot, appt) {
   const role = currentUser?.role || '';
   const isAdmin = mbIsFirmAdmin(role);
@@ -316,9 +414,8 @@ ${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="dele
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   const cell = (label, value) => `<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">${label}</div><div style="font-weight:700;">${esc(value || '—')}</div></div>`;
   const agentName = String(appt.agent_name || window._takvimAgentNameById?.[appt.agent_id] || '').trim();
-  const when = slot
-    ? `${slot.tarih || ''} ${String(slot.baslangic_saat || '').slice(0, 5)}${slot.bitis_saat ? '–' + String(slot.bitis_saat).slice(0, 5) : ''}`
-    : (appt.termin_tarih || '');
+  const when = takvimWhenFace(slot, appt);
+  window._takvimWhenCtx = { slot, appt };
   const created = appt.kayit_tarihi
     ? (typeof mbFormatWall === 'function'
       ? mbFormatWall(appt.kayit_tarihi, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -330,7 +427,7 @@ ${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="dele
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">DURUM</div><div style="font-weight:800;font-size:14px;color:${dc};">${esc(statusLabel)}</div></div>
 ${takvimDetailCells(camp, appt, contact)}
 ${cell('PERSONEL', agentName)}
-${cell('RANDEVU TARİHİ / SAATİ', when)}
+${takvimWhenBox(when, isAdmin && !!(slot?.id || appt?.id))}
 ${cell('OLUŞTURULMA TARİHİ / SAATİ', created)}
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">KOMŞU RANDEVULARA MESAFE</div><div id="takvim-neighbor-dist" style="font-weight:700;">Hesaplanıyor…</div></div>
 <div id="takvim-appt-recs" style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">${typeof t === 'function' ? t('cal.recs.title') : 'Görüşme kayıtları'}</div><div style="margin-top:6px;font-size:12px;color:var(--text-3);">${typeof t === 'function' ? t('cal.recs.loading') : 'Yükleniyor…'}</div></div>
