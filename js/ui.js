@@ -337,6 +337,7 @@ async function loadFirmAppointmentResults(fid, force = false) {
         key: _normResultKey(r?.key),
         label: String(r?.label || r?.key || '').trim(),
         color: String(r?.color || '').trim() || '#64748b',
+        color_from: /^#[0-9A-Fa-f]{6}$/.test(String(r?.color_from || '').trim()) ? String(r.color_from).trim() : '',
         contact_status: String(r?.contact_status || appointmentResultToContactStatus(r?.key)).trim(),
         auto_move_down: !!r?.auto_move_down,
       })).filter(r => r.key && r.label)
@@ -389,13 +390,53 @@ function renderAppointmentResultRows(rows) {
         </select>
       </div>
       <div class="form-row"><label class="form-label">Görünen ad</label><input class="form-input" id="ar-label-${i}" value="${_uiEsc(r.label||'')}"></div>
-      <div class="form-row"><label class="form-label">Renk</label><input class="form-input" id="ar-color-${i}" type="color" value="${_uiEsc(_normalizeResultColor(r.color))}"></div>
+      <div class="form-row ar-colors">
+        <label class="form-label">${_uiEsc(typeof t === 'function' ? t('qc.color.pair') : 'Renk')}</label>
+        <div class="ar-grad">
+          <input class="form-input" id="ar-color-from-${i}" type="color" data-auto="${r.color_from ? '0' : '1'}" value="${_uiEsc(r.color_from ? _normalizeResultColor(r.color_from) : _resultAutoFrom(r.color))}" title="${_uiEsc(typeof t === 'function' ? t('qc.color.start') : 'Başlangıç')}">
+          <input class="form-input" id="ar-color-${i}" type="color" value="${_uiEsc(_normalizeResultColor(r.color))}" title="${_uiEsc(typeof t === 'function' ? t('qc.color.end') : 'Bitiş')}">
+          <span class="ar-grad-bar"></span>
+        </div>
+      </div>
       <label class="ar-move"><input type="checkbox" id="ar-move-${i}" ${r.auto_move_down?'checked':''}> Otomatik alta taşı</label>
       <button class="btn btn-ghost btn-sm" type="button" onclick="removeAppointmentResultRow(${i})">Sil</button>
     </div>
   `).join('');
   wrap.dataset.count = String(safe.length);
+  wrap.querySelectorAll('.ar-row').forEach((row) => mbBindResultGradient(row));
   mbBindResultReorder(wrap);
+}
+
+function _resultAutoFrom(color) {
+  const end = _normalizeResultColor(color);
+  if (typeof takvimGradientFromAccent === 'function') return takvimGradientFromAccent(end).from;
+  return end;
+}
+
+function mbPaintResultGradient(row) {
+  if (!row) return;
+  const fromEl = row.querySelector('input[id^="ar-color-from-"]');
+  const colorEl = [...row.querySelectorAll('input[type="color"]')].find((el) => /^ar-color-\d+$/.test(el.id));
+  const bar = row.querySelector('.ar-grad-bar');
+  if (!colorEl || !bar) return;
+  const end = _normalizeResultColor(colorEl.value);
+  if (fromEl && fromEl.dataset.auto === '1') fromEl.value = _resultAutoFrom(end);
+  const start = _normalizeResultColor(fromEl?.value || end);
+  bar.style.background = `linear-gradient(135deg, ${start}, ${end})`;
+}
+
+function mbBindResultGradient(row) {
+  const fromEl = row.querySelector('input[id^="ar-color-from-"]');
+  const colorEl = [...row.querySelectorAll('input[type="color"]')].find((el) => /^ar-color-\d+$/.test(el.id));
+  colorEl?.addEventListener('input', () => {
+    if (fromEl?.dataset.auto === '1') fromEl.value = _resultAutoFrom(colorEl.value);
+    mbPaintResultGradient(row);
+  });
+  fromEl?.addEventListener('input', () => {
+    fromEl.dataset.auto = '0';
+    mbPaintResultGradient(row);
+  });
+  mbPaintResultGradient(row);
 }
 
 function mbBindResultReorder(wrap) {
@@ -463,13 +504,17 @@ function readAppointmentResultRows() {
   domRows.forEach((row, i) => {
     const picked = row.querySelector('select')?.value || '';
     const label = String(row.querySelector('input[id^="ar-label-"]')?.value || '').trim();
-    const color = _normalizeResultColor(row.querySelector('input[type="color"]')?.value || '#64748b');
+    const colorEl = [...row.querySelectorAll('input[type="color"]')].find((el) => /^ar-color-\d+$/.test(el.id));
+    const fromEl = row.querySelector('input[id^="ar-color-from-"]');
+    const color = _normalizeResultColor(colorEl?.value || '#64748b');
     const auto_move_down = !!row.querySelector('input[type="checkbox"]')?.checked;
     const base = picked === '__custom' ? (label || `ozel_${i + 1}`) : picked;
     const key = _uniqueResultKey(base, used);
     if (!key) return;
     used.add(key);
-    out.push({ key, label: label || key, color, contact_status: appointmentResultToContactStatus(key), auto_move_down });
+    const item = { key, label: label || key, color, contact_status: appointmentResultToContactStatus(key), auto_move_down };
+    if (fromEl && fromEl.dataset.auto !== '1') item.color_from = _normalizeResultColor(fromEl.value);
+    out.push(item);
   });
   return out;
 }

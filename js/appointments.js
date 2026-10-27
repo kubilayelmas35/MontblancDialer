@@ -138,8 +138,15 @@ function takvimGradientFromAccent(hex) {
   const raw = String(hex || '').trim();
   const base = /^#?[a-f\d]{6}$/i.test(raw) ? (raw.startsWith('#') ? raw : `#${raw}`).toLowerCase() : '#3b82f6';
   const dark = _takvimAdjustHex(base, -0.38);
-  // Koyu uç solda: isim/metin solda beyaz kalır
   return { gradient: `linear-gradient(135deg,${dark},${base})`, from: dark, to: base };
+}
+
+function takvimResultGradient(color, colorFrom) {
+  const end = String(color || '').trim();
+  const base = /^#?[a-f\d]{6}$/i.test(end) ? (end.startsWith('#') ? end : `#${end}`).toLowerCase() : '#64748b';
+  const rawFrom = String(colorFrom || '').trim();
+  const from = /^#[a-f\d]{6}$/i.test(rawFrom) ? rawFrom.toLowerCase() : takvimGradientFromAccent(base).from;
+  return `linear-gradient(135deg,${from},${base})`;
 }
 
 function takvimResolveFirmId(slot, appt) {
@@ -166,8 +173,7 @@ function getSlotGradientAndText(slot, appt) {
   const key = appt ? _normResultKey(appt.durum) : '';
   const cfg = Array.isArray(rows) ? rows.find((r) => _normResultKey(r.key) === key) : null;
   if (cfg?.color) {
-    const { gradient } = takvimGradientFromAccent(cfg.color);
-    return { background: gradient, color: '#ffffff' };
+    return { background: takvimResultGradient(cfg.color, cfg.color_from), color: '#ffffff' };
   }
   const d = (appt?.durum || '').toLowerCase();
   if (d === 'basarili') return { background: 'linear-gradient(135deg,#15803d,#16a34a)', color: '#fff' };
