@@ -640,7 +640,7 @@ async function _loadExportTerminPageBody() {
   if (firmHost && typeof renderFirmSelector === 'function') {
     renderFirmSelector('et-firm-wrap', loadExportTerminPage);
   }
-  const storedRange = typeof mbReadReportRange === 'function' ? mbReadReportRange() : null;
+  const storedRange = typeof mbEntryReportRange === 'function' ? mbEntryReportRange() : (typeof mbReadReportRange === 'function' ? mbReadReportRange() : null);
   if (storedRange && typeof mbPaintReportRange === 'function') mbPaintReportRange(storedRange);
   const df = document.getElementById('et-date-from');
   const dt = document.getElementById('et-date-to');

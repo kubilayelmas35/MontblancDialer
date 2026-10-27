@@ -137,7 +137,7 @@ async function _compFetchTerminCounts(dateFrom, dateTo) {
   if (!fid) return {};
   const ff = `&firm_id=eq.${fid}`;
   const map = {};
-  const rows = await mbFetchAll(`appointments?select=id,agent_id,durum${ff}&termin_tarih=gte.${dateFrom}T00:00:00&termin_tarih=lte.${dateTo}T23:59:59&order=termin_tarih.asc,id.asc`).catch(() => []);
+  const rows = await mbFetchAll(`appointments?select=id,agent_id,durum${ff}&durum=eq.basarili&termin_tarih=gte.${dateFrom}T00:00:00&termin_tarih=lte.${dateTo}T23:59:59&order=termin_tarih.asc,id.asc`).catch(() => []);
   (rows || []).forEach((row) => {
     if (!row.agent_id) return;
     const ok = typeof perfApptBucket === 'function'
@@ -283,15 +283,17 @@ async function loadCompetitionPage() {
   const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
   const pm = _compMonthBounds(prev.y, prev.m);
 
-  const curMap = await _compFetchTerminCounts(start, end);
-  const curRows = await _compRowsFromCounts(curMap);
-  const prevMap = await _compFetchTerminCounts(pm.start, pm.end);
-  const prevRows = await _compRowsFromCounts(prevMap);
-
   const yStart = `${y}-01-01`;
   const yEnd = end;
-  const yearMap = await _compFetchTerminCounts(yStart, yEnd);
-  const yearRows = await _compRowsFromCounts(yearMap);
+  const yearBody = document.getElementById('comp-lb-year');
+  if (yearBody) yearBody.innerHTML = `<tr><td colspan="${showCounts ? 3 : 2}" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;
+  const yearP = _compFetchTerminCounts(yStart, yEnd);
+  const [curMap, prevMap] = await Promise.all([
+    _compFetchTerminCounts(start, end),
+    _compFetchTerminCounts(pm.start, pm.end),
+  ]);
+  const curRows = await _compRowsFromCounts(curMap);
+  const prevRows = await _compRowsFromCounts(prevMap);
 
   const champName = document.getElementById('comp-champ-name');
   const champSub = document.getElementById('comp-champ-sub');
@@ -367,8 +369,6 @@ async function loadCompetitionPage() {
 
   _compRenderRace(curRows.slice(0, 10), showCounts);
   _compRenderTable('comp-lb-month', curRows, showCounts);
-  _compRenderTable('comp-lb-year', yearRows, showCounts);
-
   const meRow = curRows.find((r) => r.userId === currentUser.id);
   const banner = document.getElementById('comp-you-banner');
   if (banner) {
@@ -381,6 +381,8 @@ async function loadCompetitionPage() {
       banner.style.display = 'none';
     }
   }
+  const yearRows = await _compRowsFromCounts(await yearP);
+  _compRenderTable('comp-lb-year', yearRows, showCounts);
 }
 
 function _compRenderRace(rows, showCounts) {

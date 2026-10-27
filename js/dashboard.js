@@ -1319,6 +1319,12 @@ function mbReadReportRange() {
   }
 }
 
+function mbEntryReportRange() {
+  const rec = mbReadReportRange();
+  if (!rec || rec.mode === 'all' || rec.mode === 'year') return { mode: 'month' };
+  return rec;
+}
+
 function mbReportToday() {
   return typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
 }
@@ -2069,7 +2075,8 @@ function mbInitDashRows() {
 }
 
 async function loadDashboard() {
-const storedRange = typeof mbReadReportRange === 'function' ? mbReadReportRange() : null;
+const eomP = typeof loadDashCompetitionCard === 'function' ? loadDashCompetitionCard().catch((e) => console.warn('comp', e)) : null;
+const storedRange = typeof mbEntryReportRange === 'function' ? mbEntryReportRange() : null;
 if (storedRange && ['today', 'week', 'month', 'all'].includes(storedRange.mode)) mbPaintReportRange(storedRange);
 mbInitDashRows();
 mbApplyDashRowOrder();
@@ -2114,9 +2121,7 @@ if (dashRole === 'field') {
   const talkCard = document.getElementById('d-talk')?.closest('.stat-card');
   if (talkCard) talkCard.style.display = 'none';
   try { await mbPaintFieldDash(from, to); } catch (e) { console.warn('field dash', e); }
-  if (typeof loadDashCompetitionCard === 'function') {
-    try { await loadDashCompetitionCard(); } catch (e) {}
-  }
+  if (eomP) await eomP;
   if (typeof loadDashBrief === 'function') {
     try { await loadDashBrief({ logs: [], ff, agentQ, rangeKey, from, to }); } catch (e) {}
   }
@@ -2191,7 +2196,7 @@ document.getElementById('d-avg').textContent    = isTr
 }
 const dashTail = [];
 if (showLive) dashTail.push(renderDashLiveAgents().catch((e) => console.warn('live', e)));
-if (typeof loadDashCompetitionCard === 'function') dashTail.push(loadDashCompetitionCard().catch((e) => console.warn('comp', e)));
+if (eomP) dashTail.push(eomP);
 if (typeof loadJobMarketKpi === 'function') dashTail.push(loadJobMarketKpi().catch(() => {}));
 if (typeof loadJobFinanceSummary === 'function') dashTail.push(loadJobFinanceSummary().catch(() => {}));
 dashTail.push(briefShell.then(() => (typeof mbDashApplyLogs === 'function' ? mbDashApplyLogs({ logs: dashLogs, ff, agentQ, rangeKey, from, to }) : null)).catch((e) => console.warn('brief', e)));
@@ -3254,7 +3259,7 @@ return `<tr>
 }
 
 function initStatsFilters() {
-const storedRange = typeof mbReadReportRange === 'function' ? mbReadReportRange() : null;
+const storedRange = typeof mbEntryReportRange === 'function' ? mbEntryReportRange() : null;
 if (storedRange) mbPaintReportRange(storedRange);
 const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().split('T')[0];
 const from = document.getElementById('stats-date-from');
@@ -3266,7 +3271,7 @@ toggleCustomDateRange();
 
 
 function initCallHistoryFilters() {
-  const storedRange = typeof mbReadReportRange === 'function' ? mbReadReportRange() : null;
+  const storedRange = typeof mbEntryReportRange === 'function' ? mbEntryReportRange() : null;
   if (storedRange) mbPaintReportRange(storedRange);
   const sel = document.getElementById('ch-date-f');
   if (sel && !sel.value) sel.value = 'week';
