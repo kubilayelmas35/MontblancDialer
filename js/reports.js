@@ -48,6 +48,7 @@ function mbSyncStatsChrome() {
   if (exp) exp.style.display = view === 'overview' ? '' : 'none';
   const result = document.getElementById('stats-result-f');
   if (result) result.style.display = view === 'result' ? '' : 'none';
+  if (typeof repPaintHourTools === 'function') repPaintHourTools();
 }
 
 function repCard(title, body, hint) {
@@ -64,6 +65,10 @@ const REP_BAR_COLORS = ['#7dd3fc', '#fdba74', '#fb923c', '#4ade80', '#60a5fa', '
 let _repHourCharts = [];
 let _repHourSeq = 0;
 let _repHourZone = 'berlin';
+const REP_HOUR_FROM = 7;
+const REP_HOUR_TO = 21;
+const REP_HOUR_DURUM = ['basarili', 'basarisiz', 'beklemede', 'qc_bekleniyor', 'ulasilamadi', 'iptal'];
+let _repHourDurum = null;
 
 function repTurkeyHour(iso) {
   const dt = new Date(iso);
@@ -80,30 +85,74 @@ function repTurkeyHour(iso) {
   }
 }
 
-function repSetHourZone(zone) {
-  _repHourZone = zone === 'tr' ? 'tr' : 'berlin';
+function repHourDurumActive(key) {
+  return !_repHourDurum || _repHourDurum.has(key);
+}
+
+function repHourCreatedIsos() {
+  const rows = (window._repHourSource && window._repHourSource.rows) || [];
+  return rows.filter((row) => repHourDurumActive(row.durum)).map((row) => row.iso);
+}
+
+function repPaintHourTools() {
+  const host = document.getElementById('stats-hour-tools');
+  if (!host) return;
+  if ((window._statsReport || 'overview') !== 'appt') {
+    host.style.display = 'none';
+    host.innerHTML = '';
+    return;
+  }
+  host.style.display = 'flex';
+  const zone = _repHourZone === 'tr' ? 'tr' : 'berlin';
+  const zoneBtns = ['berlin', 'tr'].map((key) => {
+    const on = zone === key;
+    const label = key === 'tr' ? t('rep.tz.tr') : t('rep.tz.berlin');
+    return `<button type="button" class="dash-range-btn${on ? ' active' : ''}" aria-pressed="${on ? 'true' : 'false'}" onclick="repSetHourZone('${key}')">${statsEsc(label)}</button>`;
+  }).join('');
+  const durumBtns = REP_HOUR_DURUM.map((key) => {
+    const on = repHourDurumActive(key);
+    return `<button type="button" class="dash-range-btn${on ? ' active' : ''}" aria-pressed="${on ? 'true' : 'false'}" onclick="repToggleHourDurum('${key}')">${statsEsc(repDurumLabel(key))}</button>`;
+  }).join('');
+  host.innerHTML = `<span style="font-size:12px;font-weight:700;color:var(--text-2);">${statsEsc(t('rep.tz.label'))}</span>${zoneBtns}<span style="width:10px;"></span><span style="font-size:12px;font-weight:700;color:var(--text-2);">${statsEsc(t('rep.durum.label'))}</span>${durumBtns}`;
+}
+
+function repRepaintApptHours() {
   const host = document.getElementById('stats-extra');
   if (!host || window._statsReport !== 'appt' || !window._repHourSource) return;
   host.innerHTML = repHourApptHtml();
   if (typeof repMountHourCharts === 'function') repMountHourCharts();
 }
 
-function repHourApptHtml() {
-  const zone = _repHourZone === 'tr' ? 'tr' : 'berlin';
-  const src = window._repHourSource || { created: [], called: [] };
-  const sum = (n) => tReplace('rep.hour_sum', { n });
-  return `${repHourZoneBar()}<div class="rep-appt-grid">${[
-    repCard(t('rep.create'), repHours(src.created, 'cool', zone), `${t('rep.create_hint')} · ${sum(src.created.length)}`),
-    repCard(t('rep.call'), repHours(src.called, 'warm', zone), `${t('rep.call_hint')} · ${sum(src.called.length)}`),
-  ].join('')}</div>`;
+function repSetHourZone(zone) {
+  _repHourZone = zone === 'tr' ? 'tr' : 'berlin';
+  repPaintHourTools();
+  repRepaintApptHours();
 }
 
-function repHourZoneBar() {
+function repToggleHourDurum(key) {
+  if (!REP_HOUR_DURUM.includes(key)) return;
+  const next = new Set(_repHourDurum || REP_HOUR_DURUM);
+  if (next.has(key)) next.delete(key);
+  else next.add(key);
+  _repHourDurum = next.size === REP_HOUR_DURUM.length ? null : next;
+  repPaintHourTools();
+  repRepaintApptHours();
+}
+
+function repHourApptHtml() {
   const zone = _repHourZone === 'tr' ? 'tr' : 'berlin';
-  return `<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;">
-<button type="button" class="range-btn${zone === 'berlin' ? ' active' : ''}" onclick="repSetHourZone('berlin')">${statsEsc(t('rep.tz.berlin'))}</button>
-<button type="button" class="range-btn${zone === 'tr' ? ' active' : ''}" onclick="repSetHourZone('tr')">${statsEsc(t('rep.tz.tr'))}</button>
-</div>`;
+  const src = window._repHourSource || { rows: [], called: [] };
+  const created = repHourCreatedIsos();
+  const called = src.called || [];
+  const sum = (n) => tReplace('rep.hour_sum', { n });
+  const picked = _repHourDurum
+    ? [..._repHourDurum].map((key) => repDurumLabel(key)).join(', ')
+    : t('rep.durum.all');
+  const span = { from: REP_HOUR_FROM, to: REP_HOUR_TO };
+  return `<div class="firm-none" style="margin:0;">${statsEsc(t('rep.tz.note'))}</div><div class="rep-appt-grid">${[
+    repCard(t('rep.create'), repHours(created, 'cool', zone, span), `${t('rep.create_hint')} · ${picked} · ${sum(created.length)}`),
+    repCard(t('rep.call'), repHours(called, 'warm', zone, span), `${t('rep.call_hint')} · ${sum(called.length)}`),
+  ].join('')}</div>`;
 }
 
 function repHourCounts(items, zone) {
@@ -116,31 +165,39 @@ function repHourCounts(items, zone) {
   return hours;
 }
 
-function repHourTable(hours) {
+function repHourTable(hours, from, to) {
   const rows = [];
-  hours.forEach((n, i) => {
-    if (!n) return;
+  const span = Number.isFinite(from) && Number.isFinite(to);
+  const start = span ? from : 0;
+  const end = span ? to : hours.length - 1;
+  for (let i = start; i <= end; i += 1) {
+    const n = hours[i] || 0;
+    if (!span && !n) continue;
     rows.push(`<tr><td>${rows.length + 1}</td><td>${String(i).padStart(2, '0')}:00</td><td>${n}</td></tr>`);
-  });
+  }
   return repTable(['#', t('rep.hour'), t('rep.qty')], rows);
 }
 
-function repHours(items, tone, zone) {
+function repHours(items, tone, zone, opts) {
   const hours = repHourCounts(items, zone);
-  if (!hours.some((n) => n > 0)) return `<div class="firm-none">${statsEsc(t('stats.none'))}</div>`;
+  const from = opts && Number.isFinite(opts.from) ? opts.from : null;
+  const to = opts && Number.isFinite(opts.to) ? opts.to : null;
+  const span = from != null && to != null;
+  const slice = span ? hours.slice(from, to + 1) : hours;
+  if (!slice.some((n) => n > 0)) return `<div class="firm-none">${statsEsc(t('stats.none'))}</div>`;
   if (typeof Chart === 'undefined') {
-    const max = Math.max(1, ...hours);
+    const max = Math.max(1, ...(span ? slice : hours));
     const html = hours.map((n, i) => {
-      if (!n) return '';
-      const w = Math.round(n / max * 100);
-      return `<div class="stats-hour"><span>${String(i).padStart(2, '0')}:00</span><span class="stats-hour-track"><span class="stats-hour-bar" style="width:${w}%"></span></span><span>${n}</span><span></span></div>`;
+      if (span ? (i < from || i > to) : !n) return '';
+      const w = Math.round((n || 0) / max * 100);
+      return `<div class="stats-hour"><span>${String(i).padStart(2, '0')}:00</span><span class="stats-hour-track"><span class="stats-hour-bar" style="width:${w}%"></span></span><span>${n || 0}</span><span></span></div>`;
     }).join('');
-    return `<div class="stats-hours">${html}</div>${repHourTable(hours)}`;
+    return `<div class="stats-hours">${html}</div>${repHourTable(hours, span ? from : undefined, span ? to : undefined)}`;
   }
   const id = `rep-hour-${++_repHourSeq}`;
   window._repHourPending = window._repHourPending || [];
-  window._repHourPending.push({ id, hours, tone: tone || 'cool' });
-  return `<div class="rep-hour-canvas"><canvas id="${id}"></canvas></div>${repHourTable(hours)}`;
+  window._repHourPending.push({ id, hours, tone: tone || 'cool', from: span ? from : null, to: span ? to : null });
+  return `<div class="rep-hour-canvas"><canvas id="${id}"></canvas></div>${repHourTable(hours, span ? from : undefined, span ? to : undefined)}`;
 }
 
 function repMountHourCharts() {
@@ -157,12 +214,16 @@ function repMountHourCharts() {
     const labels = [];
     const data = [];
     const colors = [];
-    spec.hours.forEach((n, i) => {
-      if (!n) return;
+    const start = Number.isFinite(spec.from) ? spec.from : 0;
+    const end = Number.isFinite(spec.to) ? spec.to : spec.hours.length - 1;
+    const span = Number.isFinite(spec.from) && Number.isFinite(spec.to);
+    for (let i = start; i <= end; i += 1) {
+      const n = spec.hours[i] || 0;
+      if (!span && !n) continue;
       labels.push(`${String(i).padStart(2, '0')}:00`);
       data.push(n);
       colors.push(REP_BAR_COLORS[(spec.tone === 'warm' ? i + 1 : i) % REP_BAR_COLORS.length]);
-    });
+    }
     const chart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -336,7 +397,10 @@ function repPaint(view, pack, range, userById, sessById) {
   if (view === 'result') return repResult(logs);
   if (view === 'appt') {
     window._repHourSource = {
-      created: appts.map((a) => a.kayit_tarihi).filter(Boolean),
+      rows: appts.filter((a) => a.kayit_tarihi).map((a) => ({
+        iso: a.kayit_tarihi,
+        durum: typeof _perfDurKey === 'function' ? _perfDurKey(a.durum) : String(a.durum || '').trim(),
+      })),
       called: logs.filter((l) => statsOutcomeKey(l.outcome) === 'appointment').map((l) => l.started_at).filter(Boolean),
     };
     return repHourApptHtml();
