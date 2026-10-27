@@ -420,24 +420,33 @@ function perfUpdateCharts() {
     },
   }));
 
-  const rows2 = perfMergedRows().filter((r) => r.agent_id && r.agent_id !== '_none').slice(0, 15);
-  const data = rows2.map((r) => {
+  const compValue = (r) => {
     if (_perfCompType === 'success') return r.rate;
-    if (_perfCompType === 'efficiency') return r.eff;
+    if (_perfCompType === 'efficiency') return r.ok;
     return r.total;
-  });
+  };
+  const rows2 = perfMergedRows()
+    .filter((r) => r.agent_id && r.agent_id !== '_none')
+    .sort((a, b) => compValue(b) - compValue(a) || String(a.name).localeCompare(String(b.name), 'tr'));
+  const isRate = _perfCompType === 'success';
+  const compLabel = isRate ? L.rate : (_perfCompType === 'efficiency' ? L.ok : L.apBar);
   const barColors = rows2.map(() => perfHexToRgba(accentHex, 0.75));
   perfEnsureChart('agents', 'perf-chart-agents', (ctx) => new ChartCtor(ctx, {
     type: 'bar',
     data: {
       labels: rows2.map((r) => r.name),
-      datasets: [{ label: L.apBar, data, backgroundColor: barColors, borderWidth: 0, borderRadius: 6, maxBarThickness: 48 }],
+      datasets: [{ label: compLabel, data: rows2.map(compValue), backgroundColor: barColors, borderWidth: 0, borderRadius: 6, maxBarThickness: 48 }],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       animation: { duration: 0 },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 0 } } },
+      scales: {
+        y: isRate
+          ? { beginAtZero: true, max: 100, ticks: { callback: (v) => `${v}%` } }
+          : { beginAtZero: true, ticks: { precision: 0 } },
+        x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 0 } },
+      },
       plugins: { legend: { display: false } },
     },
   }));
