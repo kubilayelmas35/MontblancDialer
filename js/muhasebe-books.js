@@ -93,7 +93,10 @@ function renderSalaryCategoryEditor(cats) {
       <div class="form-row"><label class="form-label">${_mEsc(t('muh.office_rate'))}</label><input class="form-input" type="number" step="0.01" id="mcat-office-${i}" value="${Number(c.office_day_rate || 0)}"></div>
       <button class="btn btn-ghost btn-sm" type="button" onclick="removeSalaryCategory(${i})">${_mEsc(t('muh.del'))}</button>
     </div>
-    <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:8px;"><input type="checkbox" id="mcat-fixed-${i}" ${c.fixed_staff ? 'checked' : ''}> ${_mEsc(t('muh.cat.fixed_staff'))}</label>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="mcat-fixed-${i}" ${c.fixed_staff ? 'checked' : ''}> ${_mEsc(t('muh.cat.fixed_staff'))}</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="mcat-nopay-${i}" ${c.no_salary ? 'checked' : ''}> ${_mEsc(t('muh.cat.no_salary'))}</label>
+    </div>
     ${tierRows(c, i, 'bonus')}
     ${tierRows(c, i, 'salary')}
   </div>`).join('');
@@ -132,6 +135,7 @@ function readSalaryCategories() {
       sgk_percent: Number(document.getElementById(`mcat-sgk-${i}`)?.value || 0),
       office_day_rate: Number(document.getElementById(`mcat-office-${i}`)?.value || 0),
       fixed_staff: !!document.getElementById(`mcat-fixed-${i}`)?.checked,
+      no_salary: !!document.getElementById(`mcat-nopay-${i}`)?.checked,
       bonus_tiers: readCatTiers(i, 'bonus'),
       salary_tiers: readCatTiers(i, 'salary'),
     });
@@ -148,6 +152,7 @@ function addSalaryCategory() {
     sgk_percent: Number(document.getElementById('pr-sgk')?.value || 0),
     office_day_rate: Number(document.getElementById('pr-office')?.value || 0),
     fixed_staff: false,
+    no_salary: false,
     bonus_tiers: [],
     salary_tiers: [],
   });

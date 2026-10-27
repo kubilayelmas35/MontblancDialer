@@ -1166,6 +1166,29 @@ i.ph {
 #page-maasim .stat-card.stat-purple::before { background: #8b5cf6; }
 #page-muhasebe .tbl-wrap table,
 #page-maasim .tbl-wrap table { border-collapse: separate; border-spacing: 0; }
+#page-muhasebe .muh-pay-note,
+#page-maasim .muh-pay-note {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-3);
+  margin: 0 0 8px;
+}
+#page-muhasebe .muh-pay-table,
+#page-maasim .muh-pay-table { width: max-content; min-width: 100%; }
+#page-muhasebe .muh-pay-table th,
+#page-muhasebe .muh-pay-table td,
+#page-maasim .muh-pay-table th,
+#page-maasim .muh-pay-table td {
+  white-space: nowrap;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+#page-muhasebe .muh-pay-person,
+#page-maasim .muh-pay-person { display: inline-flex; align-items: baseline; gap: 8px; }
+#page-muhasebe .muh-meta,
+#page-maasim .muh-meta { color: var(--text-3); font-size: 11px; font-weight: 600; }
+#page-muhasebe .muh-row-acts,
+#page-maasim .muh-row-acts { display: flex; flex-wrap: nowrap; gap: 4px; align-items: center; }
 #page-muhasebe .tbl-wrap thead th,
 #page-maasim .tbl-wrap thead th {
   font-size: 11px;
