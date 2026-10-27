@@ -82,7 +82,20 @@ function repTurkeyHour(iso) {
 
 function repSetHourZone(zone) {
   _repHourZone = zone === 'tr' ? 'tr' : 'berlin';
-  if (window._statsReport === 'appt' && typeof loadStatsReport === 'function') loadStatsReport();
+  const host = document.getElementById('stats-extra');
+  if (!host || window._statsReport !== 'appt' || !window._repHourSource) return;
+  host.innerHTML = repHourApptHtml();
+  if (typeof repMountHourCharts === 'function') repMountHourCharts();
+}
+
+function repHourApptHtml() {
+  const zone = _repHourZone === 'tr' ? 'tr' : 'berlin';
+  const src = window._repHourSource || { created: [], called: [] };
+  const sum = (n) => tReplace('rep.hour_sum', { n });
+  return `${repHourZoneBar()}<div class="rep-appt-grid">${[
+    repCard(t('rep.create'), repHours(src.created, 'cool', zone), `${t('rep.create_hint')} · ${sum(src.created.length)}`),
+    repCard(t('rep.call'), repHours(src.called, 'warm', zone), `${t('rep.call_hint')} · ${sum(src.called.length)}`),
+  ].join('')}</div>`;
 }
 
 function repHourZoneBar() {
@@ -222,6 +235,28 @@ function repRole(role) {
   return typeof firmRoleLabel === 'function' ? firmRoleLabel(role) : (role || '—');
 }
 
+async function repFetchHourAppts(range) {
+  const size = 1000;
+  const all = [];
+  const seen = new Set();
+  const agent = range.agent ? `&agent_id=eq.${range.agent}` : '';
+  for (let offset = 0; offset < 20000; offset += size) {
+    const rows = (await sb(
+      `appointments?select=id,kayit_tarihi,durum${range.ff}${agent}&kayit_tarihi=gte.${range.gte}&kayit_tarihi=lte.${range.lte}&order=kayit_tarihi.asc,id.asc&limit=${size}&offset=${offset}`
+    ).catch(() => [])) || [];
+    let added = 0;
+    rows.forEach((row) => {
+      const id = row && row.id ? String(row.id) : '';
+      if (id && seen.has(id)) return;
+      if (id) seen.add(id);
+      all.push(row);
+      added += 1;
+    });
+    if (rows.length < size || added === 0) break;
+  }
+  return all;
+}
+
 async function repLoadBundle(range) {
   const pulled = await statsPullLogs(range.ff, range.gte, range.lte, range.camp, range.agent);
   const logs = pulled.rows || [];
@@ -261,6 +296,7 @@ async function loadStatsReport() {
     if (typeof statsFillFilters === 'function') await statsFillFilters(range.fid);
     const fresh = statsCurrentRange();
     const pack = await repLoadBundle(fresh);
+    if (view === 'appt') pack.appts = await repFetchHourAppts(fresh);
     const firmQ = fresh.fid ? `&firm_id=eq.${fresh.fid}` : '';
     const users = (await sb(`users?select=id,name,role,firm_id,is_active${firmQ}&order=name.asc&limit=400`).catch(() => [])) || [];
     let sessions = await sb(`agent_sessions?select=agent_id,status,last_seen,break_code,break_start,campaign_id,login_at${firmQ}&order=last_seen.desc.nullslast&limit=400`).catch(() => null);
@@ -299,11 +335,11 @@ function repPaint(view, pack, range, userById, sessById) {
   ));
   if (view === 'result') return repResult(logs);
   if (view === 'appt') {
-    const zone = _repHourZone === 'tr' ? 'tr' : 'berlin';
-    return `${repHourZoneBar()}<div class="rep-appt-grid">${[
-      repCard(t('rep.create'), repHours(appts.map((a) => a.kayit_tarihi), 'cool', zone), t('rep.create_hint')),
-      repCard(t('rep.call'), repHours(logs.filter((l) => statsOutcomeKey(l.outcome) === 'appointment').map((l) => l.started_at), 'warm', zone), t('rep.call_hint')),
-    ].join('')}</div>`;
+    window._repHourSource = {
+      created: appts.map((a) => a.kayit_tarihi).filter(Boolean),
+      called: logs.filter((l) => statsOutcomeKey(l.outcome) === 'appointment').map((l) => l.started_at).filter(Boolean),
+    };
+    return repHourApptHtml();
   }
   if (view === 'operator') return repOperator(logs, pack.allAppts || appts, userById, sessById, pack);
   if (view === 'perf') return repPerf(logs, appts, userById, sessById, pack, range);
