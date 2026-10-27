@@ -110,8 +110,22 @@ function _mCatNameKey(name) {
   return String(name || '').trim().toLocaleUpperCase('tr-TR');
 }
 
-function _mEffectiveCategories(rules) {
+function _mIsMontblancFirm(fid) {
+  const id = String(fid || (typeof muhasebeFirmId === 'function' ? muhasebeFirmId() : '') || '');
+  if (!id) return false;
+  const firms = typeof _allFirms !== 'undefined' && Array.isArray(_allFirms) ? _allFirms : [];
+  const hit = firms.find((f) => String(f.id) === id);
+  if (hit?.slug) return String(hit.slug).toLowerCase() === 'montblanc';
+  if (String(currentUser?.firm_id || '') === id) {
+    return String(currentUser?.firm_name || '').toLowerCase().includes('montblanc');
+  }
+  return false;
+}
+
+function _mEffectiveCategories(rules, firmId) {
   const cats = _mNormCategories(rules?.salary_categories);
+  const fid = firmId || rules?.firm_id || (typeof muhasebeFirmId === 'function' ? muhasebeFirmId() : null);
+  if (!_mIsMontblancFirm(fid)) return cats;
   const names = new Set(cats.map((c) => _mCatNameKey(c.name)));
   const extra = mbBuiltinSalaryCategories().filter((c) => !names.has(_mCatNameKey(c.name)));
   return cats.concat(extra);
@@ -143,16 +157,17 @@ function _mNamedCat(cats, name) {
 
 function _mCatForMonth(user, ym, cats) {
   const list = cats || [];
-  const namedA = _mNamedCat(list, 'A');
+  const defaultA = list.find((c) => c.id === 'kat_a') || null;
   const map = _mParseMonthMap(user?.payroll_category_months);
-  if (String(ym || '') < '2026-08') return namedA;
+  const byId = (id) => list.find((c) => c.id === id) || null;
+  if (String(ym || '') < '2026-08') return defaultA || byId(user?.payroll_category_id);
   if (Object.keys(map).length) {
     const id = map[ym];
-    if (!id) return namedA;
-    return list.find((c) => c.id === id) || namedA;
+    if (!id) return defaultA;
+    return byId(id) || defaultA;
   }
-  if (user?.payroll_category_id) return list.find((c) => c.id === user.payroll_category_id) || null;
-  return namedA;
+  if (user?.payroll_category_id) return byId(user.payroll_category_id);
+  return defaultA;
 }
 
 function _mKatMonths() {

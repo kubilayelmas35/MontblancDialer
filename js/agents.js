@@ -414,8 +414,8 @@ async function loadAgents() {
     (scopeFirms || []).forEach((firm) => {
       const raw = firm.settings?.payroll?.salary_categories || [];
       const list = typeof _mEffectiveCategories === 'function'
-        ? _mEffectiveCategories({ salary_categories: raw })
-        : (raw.length ? raw : (typeof mbBuiltinSalaryCategories === 'function' ? mbBuiltinSalaryCategories() : []));
+        ? _mEffectiveCategories({ salary_categories: raw }, firm.id)
+        : raw;
       const map = {};
       list.forEach((c) => {
         if (c?.id) map[c.id] = c.name || c.id;
@@ -824,8 +824,8 @@ function firmMoney(amount, cur) {
 function firmCurrentPayCat(firm, user) {
   const raw = firm?.settings?.payroll?.salary_categories || [];
   const list = typeof _mEffectiveCategories === 'function'
-    ? _mEffectiveCategories({ salary_categories: raw })
-    : (raw.length ? raw : (typeof mbBuiltinSalaryCategories === 'function' ? mbBuiltinSalaryCategories() : []));
+    ? _mEffectiveCategories({ salary_categories: raw }, firm?.id)
+    : raw;
   if (typeof _mCatForMonth === 'function') {
     const now = new Date();
     const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

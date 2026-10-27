@@ -49,7 +49,15 @@ async function loadPayrollLedger(fid) {
   return window._muhLedgerRows;
 }
 
+function _mPaintSalaryPreset() {
+  const show = typeof _mIsMontblancFirm === 'function' && _mIsMontblancFirm();
+  document.querySelectorAll('button[onclick="applyBuiltinSalaryCategories()"]').forEach((btn) => {
+    btn.style.display = show ? '' : 'none';
+  });
+}
+
 function renderSalaryCategoryEditor(cats) {
+  _mPaintSalaryPreset();
   const box = document.getElementById('muh-cat-editor');
   if (!box) return;
   const list = Array.isArray(cats) ? cats : [];
@@ -439,7 +447,7 @@ async function muhFillPayCategorySelect(prefill, selectId = 'am-paycat') {
   if (!host || typeof loadFirmPayrollRules !== 'function') return;
   const fid = document.getElementById('am-firm')?.value || prefill?.firm_id || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id;
   const rules = await loadFirmPayrollRules(fid, true);
-  const cats = _mEffectiveCategories(rules);
+  const cats = _mEffectiveCategories(rules, fid);
   const uid = prefill?.id || '';
   if (uid && typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin()) {
     const now = new Date();
@@ -450,7 +458,7 @@ async function muhFillPayCategorySelect(prefill, selectId = 'am-paycat') {
         <strong>${_mEsc(cat?.name || t('muh.cat.none'))}</strong>
         <button type="button" class="btn btn-ghost btn-sm" onclick="openPayCategoryMonths('${_mEsc(uid)}')">${_mEsc(t('muh.cat.months'))}</button>
       </div>
-      <div style="font-size:11px;color:var(--text-3);margin-top:4px;">${_mEsc(t('muh.cat.month_hint'))}</div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:4px;">${_mEsc(t(cats.some((c) => c.id === 'kat_a') ? 'muh.cat.month_hint' : 'muh.cat.month_hint_own'))}</div>
     </div>`;
     return;
   }
@@ -476,6 +484,7 @@ function agentPayCatName(user) {
 }
 
 function applyBuiltinSalaryCategories() {
+  if (typeof _mIsMontblancFirm === 'function' && !_mIsMontblancFirm()) return;
   if (typeof mbBuiltinSalaryCategories !== 'function') return;
   const ask = typeof mbConfirm === 'function'
     ? mbConfirm(t('muh.cat.preset_ask'), t('muh.cat.preset'))
@@ -492,7 +501,7 @@ async function openPayCategoryMonths(userId) {
   const user = rows?.[0];
   if (!user) return;
   const rules = await loadFirmPayrollRules(user.firm_id, true);
-  const cats = _mEffectiveCategories(rules);
+  const cats = _mEffectiveCategories(rules, user.firm_id);
   if (!cats.length) {
     toast(t('muh.cat.empty'), 'err');
     return;
@@ -511,7 +520,7 @@ async function openPayCategoryMonths(userId) {
       <button class="modal-close" type="button" onclick="document.getElementById('m-paykat')?.remove()">✕</button>
     </div>
     <div style="padding:12px 16px 16px;">
-      <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">${_mEsc(t('muh.cat.month_hint'))}</div>
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">${_mEsc(t(cats.some((c) => c.id === 'kat_a') ? 'muh.cat.month_hint' : 'muh.cat.month_hint_own'))}</div>
       <div class="tbl-wrap" style="max-height:420px;overflow:auto;">
         <table>
           <thead><tr><th>${_mEsc(t('muh.month'))}</th>${cats.map((c) => `<th>${_mEsc(c.name)}</th>`).join('')}</tr></thead>
@@ -538,8 +547,8 @@ async function savePayCategoryMonths(userId) {
   const user = rows?.[0];
   if (!user) return;
   const rules = await loadFirmPayrollRules(user.firm_id, true);
-  const cats = _mEffectiveCategories(rules);
-  const def = _mNamedCat(cats, 'A');
+  const cats = _mEffectiveCategories(rules, user.firm_id);
+  const def = cats.find((c) => c.id === 'kat_a') || null;
   const map = _mParseMonthMap(user.payroll_category_months);
   const now = new Date();
   const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
