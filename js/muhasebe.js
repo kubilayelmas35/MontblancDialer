@@ -1022,8 +1022,8 @@ async function _mFetchMonthlyData(fid, ym, year, monthBounds) {
     sb(`payroll_employee_overrides?firm_id=eq.${fid}&select=*`).catch(() => []),
     sb(`payroll_adjustments?firm_id=eq.${fid}&period_ym=eq.${ym}&select=*`).catch(() => []),
     sb(`payroll_monthly?firm_id=eq.${fid}&period_ym=eq.${ym}&select=*`).catch(() => []),
-    sb(`appointments?firm_id=eq.${fid}&termin_tarih=gte.${monthBounds.start}T00:00:00&termin_tarih=lte.${monthBounds.end}T23:59:59&select=id,agent_id,durum,customer_id`).catch(() => []),
-    sb(`leave_requests?firm_id=eq.${fid}&status=eq.approved&date_from=lte.${monthBounds.end}&date_to=gte.${monthBounds.start}&select=user_id,days_used,kind`).catch(() => []),
+    (typeof mbFetchAll === 'function' ? mbFetchAll : sb)(`appointments?firm_id=eq.${fid}&termin_tarih=gte.${monthBounds.start}T00:00:00&termin_tarih=lte.${monthBounds.end}T23:59:59&select=id,agent_id,durum,customer_id`).catch(() => []),
+    sb(`leave_requests?firm_id=eq.${fid}&status=eq.approved&date_from=lte.${monthBounds.end}&date_to=gte.${monthBounds.start}&select=user_id,days_used,kind,date_from,date_to`).catch(() => []),
     sb(`user_leave_entitlements?year=eq.${year}&select=user_id,extra_days_granted`).catch(() => []),
     sb(`late_arrivals?firm_id=eq.${fid}&day_date=gte.${monthBounds.start}&day_date=lte.${monthBounds.end}&select=user_id,minutes_late`).catch(() => []),
     sb(`firms?id=eq.${fid}&select=settings`).catch(() => []),
@@ -1032,7 +1032,20 @@ async function _mFetchMonthlyData(fid, ym, year, monthBounds) {
   return { ovr: ovr || [], adj: adj || [], monthly: monthly || [], appts: appts || [], leaveReqs: leaveReqs || [], ents: ents || [], lates: lates || [], hr };
 }
 
-function _mBuildStatsByUser(appts, leaveReqs, ents, lates) {
+function _mLeaveDaysInMonth(row, monthStart, monthEnd) {
+  const from = String(row?.date_from || '').slice(0, 10);
+  const to = String(row?.date_to || '').slice(0, 10);
+  const used = Number(row?.days_used || 0);
+  if (!(used > 0)) return 0;
+  if (!from || !to) return used;
+  if (from >= monthStart && to <= monthEnd) return used;
+  const all = typeof leaveEachDay === 'function' ? leaveEachDay(from, to) : [];
+  if (!all.length) return used;
+  const inside = all.filter((day) => day >= monthStart && day <= monthEnd).length;
+  return used * (inside / all.length);
+}
+
+function _mBuildStatsByUser(appts, leaveReqs, ents, lates, monthStart, monthEnd) {
   const s = {};
   const ensure = uid => {
     if (!s[uid]) s[uid] = { success: 0, fail: 0, pending: 0, qc: 0, cancel: 0, leaveDays: 0, lateCount: 0, entitlementExtra: 0 };
@@ -1051,7 +1064,7 @@ function _mBuildStatsByUser(appts, leaveReqs, ents, lates) {
   (leaveReqs || []).forEach(r => {
     if (!r.user_id) return;
     const st = ensure(r.user_id);
-    st.leaveDays += Number(r.days_used || 0);
+    st.leaveDays += _mLeaveDaysInMonth(r, monthStart, monthEnd);
   });
   (ents || []).forEach(e => {
     if (!e.user_id) return;
@@ -1088,7 +1101,7 @@ async function renderMuhasebePayrollTable(fid, ym, rules, opts = {}) {
   const b = _mMonthBounds(ym);
   const monthRate = await _getMonthFxRate(fid, ym, Number(rules.exchange_rate || 1), rules);
   const data = await _mFetchMonthlyData(fid, ym, b.year, b);
-  const statsByUser = _mBuildStatsByUser(data.appts, data.leaveReqs, data.ents, data.lates);
+  const statsByUser = _mBuildStatsByUser(data.appts, data.leaveReqs, data.ents, data.lates, b.start, b.end);
   const overMap = {};
   const monthlyMap = {};
   (data.ovr || []).forEach(o => { overMap[o.user_id] = o; });
@@ -1228,9 +1241,10 @@ function renderMuhasebeSummaryCards(rows, rules) {
     return a;
   }, { base: 0, bonus: 0, office: 0, sgk: 0, pen: 0, tax: 0, pay: 0, paid: 0, rem: 0, success: 0, rev: 0 });
   const totalRevenue = sum.rev;
-  const taxBase = Math.max(0, totalRevenue - sum.pay);
-  const companyTax = rules.government_supported ? 0 : taxBase * (Number(rules.tax_rate_percent || 0) / 100);
-  const netProfit = totalRevenue - sum.pay - companyTax - sum.sgk;
+  const pack = window._muhPayrollUi !== 'maasim' && typeof _mBooksPack === 'function' ? _mBooksPack(rows, rules) : null;
+  const taxBase = pack ? pack.taxBase : Math.max(0, totalRevenue - sum.pay);
+  const companyTax = pack ? pack.tax : (rules.government_supported ? 0 : taxBase * (Number(rules.tax_rate_percent || 0) / 100));
+  const netProfit = pack ? pack.profit : (totalRevenue - sum.pay - companyTax - sum.sgk);
   const cur = _mEsc(_mCurFace(_mViewCur(rules)));
   const v = (n) => _mFmt(_mViewAmt(n, rules));
   _mPaintCurToggle();
@@ -1244,20 +1258,22 @@ function renderMuhasebeSummaryCards(rows, rules) {
     <div class="stat-card"><div class="stat-lbl">Şirket Vergisi (${cur})</div><div class="stat-val">${v(companyTax)}</div><div class="stat-meta">Matrah: ${v(taxBase)} ${cur}</div></div>
     <div class="stat-card stat-blue"><div class="stat-lbl">Hakediş (${cur})</div><div class="stat-val">${v(sum.pay)}</div></div>
     <div class="stat-card stat-purple"><div class="stat-lbl">Kalan (${cur})</div><div class="stat-val">${v(sum.rem)}</div><div class="stat-meta">Ödenen: ${v(sum.paid)} ${cur}</div></div>
-    <div class="stat-card"><div class="stat-lbl">Net Kar (${cur})</div><div class="stat-val" style="color:${netProfit>=0?'var(--green)':'var(--red)'}">${v(netProfit)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Net Kar (${cur})</div><div class="stat-val" style="color:${netProfit>=0?'var(--green)':'var(--red)'}">${v(netProfit)}</div>${pack ? `<div class="stat-meta">${_mEsc(t('muh.profit_same'))}</div>` : ''}</div>
   `;
 }
 
 function renderMuhasebeFinancePanels(rows, rules) {
   const cur = _mEsc(rules.currency || 'EUR');
+  const pack = typeof _mBooksPack === 'function' ? _mBooksPack(rows, rules) : null;
   const totals = rows.reduce((a, r) => {
     a.rev += Number(r.totalRevenue || 0);
     a.pay += Number(r.netPayable || 0);
     a.paid += Number(r.paidAmount || 0);
     return a;
   }, { rev: 0, pay: 0, paid: 0 });
-  const taxBase = Math.max(0, totals.rev - totals.pay);
-  const tax = rules.government_supported ? 0 : taxBase * (Number(rules.tax_rate_percent || 0) / 100);
+  const taxBase = pack ? pack.taxBase : Math.max(0, totals.rev - totals.pay);
+  const tax = pack ? pack.tax : (rules.government_supported ? 0 : taxBase * (Number(rules.tax_rate_percent || 0) / 100));
+  const profit = pack ? pack.profit : (totals.rev - totals.pay - tax);
   const incomeBox = document.getElementById('muh-income-expense-summary');
   const taxBox = document.getElementById('muh-tax-summary');
   if (incomeBox) {
@@ -1271,7 +1287,7 @@ function renderMuhasebeFinancePanels(rows, rules) {
     taxBox.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:10px;">
       <div class="stat-card"><div class="stat-lbl">Vergi Matrahı (${cur})</div><div class="stat-val">${_mFmt(taxBase)}</div></div>
       <div class="stat-card"><div class="stat-lbl">Şirket Vergisi (${cur})</div><div class="stat-val">${_mFmt(tax)}</div></div>
-      <div class="stat-card"><div class="stat-lbl">Vergi Sonrası Kar (${cur})</div><div class="stat-val">${_mFmt(totals.rev - totals.pay - tax)}</div></div>
+      <div class="stat-card"><div class="stat-lbl">Vergi Sonrası Kar (${cur})</div><div class="stat-val">${_mFmt(profit)}</div></div>
     </div>`;
   }
 }
