@@ -1506,7 +1506,7 @@ button.tb-pill.pill-camp.is-wrong .tb-pill-val { color: inherit; }
   pointer-events: none;
 }
 .global-mascot .cust-empty-mascot {
-  position: relative;
+  position: absolute;
   left: 0;
   top: 0;
   margin: 0;
