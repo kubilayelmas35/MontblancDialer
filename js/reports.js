@@ -233,7 +233,7 @@ async function loadStatsReport() {
     const fresh = statsCurrentRange();
     const pack = await repLoadBundle(fresh);
     const firmQ = fresh.fid ? `&firm_id=eq.${fresh.fid}` : '';
-    const users = (await sb(`users?select=id,name,role,firm_id${firmQ}&order=name.asc&limit=400`).catch(() => [])) || [];
+    const users = (await sb(`users?select=id,name,role,firm_id,is_active${firmQ}&order=name.asc&limit=400`).catch(() => [])) || [];
     let sessions = await sb(`agent_sessions?select=agent_id,status,last_seen,break_code,break_start,campaign_id,login_at${firmQ}&order=last_seen.desc.nullslast&limit=400`).catch(() => null);
     if (!sessions) sessions = (await sb(`agent_sessions?select=agent_id,status,last_seen,break_start,campaign_id,login_at${firmQ}&order=last_seen.desc.nullslast&limit=400`).catch(() => [])) || [];
     if (!sessions) sessions = (await sb(`agent_sessions?select=agent_id,status,last_seen,campaign_id${firmQ}&order=last_seen.desc.nullslast&limit=400`).catch(() => [])) || [];
@@ -368,7 +368,7 @@ function repOperator(logs, appts, userById, sessById, pack) {
 ${repCard(t('rep.count_ring'), repDonut(countParts, String(logs.length)))}
 ${repCard(t('rep.time_ring'), repDonut(timeParts, statsHms(totalSec)))}
 </div>`;
-  const staff = Object.values(userById).filter((u) => u.role === 'agent' || u.role === 'qc');
+  const staff = Object.values(userById).filter((u) => (u.role === 'agent' || u.role === 'qc') && u.is_active !== false);
   const absent = staff.filter((u) => !repLoggedToday(sessById[u.id], today));
   const absentTable = absent.length
     ? repTable([t('rep.person'), t('rep.last')], absent.map((u) => {
