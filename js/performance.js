@@ -661,7 +661,7 @@ async function _perfFetchPages(makePath) {
   const size = 1000;
   const all = [];
   const seen = new Set();
-  for (let offset = 0; offset < 20000; offset += size) {
+  for (let offset = 0; offset < 50000; offset += size) {
     const rows = (await makePath(offset, size)) || [];
     let added = 0;
     rows.forEach((row) => {

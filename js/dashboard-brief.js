@@ -460,7 +460,7 @@ async function mbDashMyRank(ff) {
   const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
-  const rows = await sb(`call_logs?select=agent_id&outcome=in.(appointment,appointment_done)&started_at=gte.${gte}&started_at=lte.${lte}${ff}&limit=8000`).catch(() => []) || [];
+  const rows = await mbFetchAll(`call_logs?select=id,agent_id&outcome=in.(appointment,appointment_done)&started_at=gte.${gte}&started_at=lte.${lte}${ff}&order=started_at.asc,id.asc`).catch(() => []) || [];
   const bag = {};
   rows.forEach((row) => {
     if (!row.agent_id) return;
@@ -585,7 +585,7 @@ async function mbDashDeltas(logs, ff, agentQ, rangeKey, from, to) {
   }
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(prev.from) : `${prev.from}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(prev.to) : `${prev.to}T23:59:59`;
-  let prevLogs = await sb(`call_logs?select=outcome,amd_result,duration_sec&started_at=gte.${gte}&started_at=lte.${lte}${ff}${agentQ}&limit=8000`).catch(() => []) || [];
+  let prevLogs = await mbFetchAll(`call_logs?select=id,outcome,amd_result,duration_sec&started_at=gte.${gte}&started_at=lte.${lte}${ff}${agentQ}&order=started_at.asc,id.asc`).catch(() => []) || [];
   if (mbDashRole() === 'qc') {
     prevLogs = prevLogs.filter((log) => log.outcome === 'appointment' || log.outcome === 'appointment_done');
   }

@@ -225,12 +225,12 @@ async function mbGeoconPushState(target) {
   let scores = [];
   let flags = [];
   try {
-    const rows = await sb('geocon_plz_analysis?select=plz,score&limit=10000');
+    const rows = await mbFetchAll('geocon_plz_analysis?select=plz,score&order=plz.asc');
     if (Array.isArray(rows)) scores = rows;
   } catch (_) {}
   if (firmId) {
     try {
-      const rows = await sb(`geocon_plz_flags?select=plz,used,recommended,used_at&firm_id=eq.${firmId}&limit=10000`);
+      const rows = await mbFetchAll(`geocon_plz_flags?select=plz,used,recommended,used_at&firm_id=eq.${firmId}&order=plz.asc`);
       if (Array.isArray(rows)) flags = rows;
     } catch (_) {}
   }
@@ -293,7 +293,7 @@ function geoCampId(value) {
 async function mbGeoconUpcoming(target, campaignId) {
   if (!target || target === window || typeof sb !== 'function') return;
   const day = geoBerlinDay(1);
-  let query = `appointments?select=plz,ortschaft,durum&termin_tarih=gte.${day}T00:00:00&termin_tarih=lte.${day}T23:59:59&durum=not.in.(iptal,basarisiz)&limit=2000`;
+  let query = `appointments?select=id,plz,ortschaft,durum&termin_tarih=gte.${day}T00:00:00&termin_tarih=lte.${day}T23:59:59&durum=not.in.(iptal,basarisiz)&order=termin_tarih.asc,id.asc`;
   const camp = geoCampId(campaignId);
   if (camp) query += `&campaign_id=eq.${camp}`;
   const role = currentUser?.role || '';
@@ -307,7 +307,7 @@ async function mbGeoconUpcoming(target, campaignId) {
   }
   let rows = [];
   try {
-    const got = await sb(query);
+    const got = await mbFetchAll(query);
     rows = Array.isArray(got) ? got : [];
   } catch (_) { rows = []; }
   const grouped = new Map();
@@ -329,7 +329,7 @@ async function mbGeoconUpcoming(target, campaignId) {
 async function mbGeoconTop(target, campaignId) {
   if (!target || target === window || typeof sb !== 'function') return;
   const from = geoBerlinDay(-180);
-  let query = `appointments?select=plz,ortschaft&termin_tarih=gte.${from}T00:00:00&durum=not.in.(iptal,basarisiz)&limit=4000`;
+  let query = `appointments?select=id,plz,ortschaft&termin_tarih=gte.${from}T00:00:00&durum=not.in.(iptal,basarisiz)&order=termin_tarih.asc,id.asc`;
   const camp = geoCampId(campaignId);
   if (camp) query += `&campaign_id=eq.${camp}`;
   const role = currentUser?.role || '';
@@ -343,7 +343,7 @@ async function mbGeoconTop(target, campaignId) {
   }
   let rows = [];
   try {
-    const got = await sb(query);
+    const got = await mbFetchAll(query);
     rows = Array.isArray(got) ? got : [];
   } catch (_) { rows = []; }
   const grouped = new Map();
@@ -401,7 +401,7 @@ async function mbGeoconCampDays(target, campaignId) {
   }
   const from = geoBerlinDay(-45);
   const to = geoBerlinDay(21);
-  let query = `appointments?select=termin_tarih,plz,ortschaft&campaign_id=eq.${camp}&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&durum=not.in.(iptal,basarisiz)&order=termin_tarih.asc&limit=3000`;
+  let query = `appointments?select=id,termin_tarih,plz,ortschaft&campaign_id=eq.${camp}&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&durum=not.in.(iptal,basarisiz)&order=termin_tarih.asc,id.asc`;
   const role = currentUser?.role || '';
   if (role !== 'super_admin') {
     const firmId = currentUser?.firm_id || '';
@@ -415,7 +415,7 @@ async function mbGeoconCampDays(target, campaignId) {
   }
   let rows = [];
   try {
-    const got = await sb(query);
+    const got = await mbFetchAll(query);
     rows = Array.isArray(got) ? got : [];
   } catch (_) { rows = []; }
   const days = new Map();

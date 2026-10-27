@@ -1337,16 +1337,30 @@ async function countByPLZ(plz){
   try{
     const r=await fetch(`${SUPABASE_URL}/rest/v1/contacts?plz=eq.${plz}&select=id`,{headers:{...SB_H,"Prefer":"count=exact","Range-Unit":"items","Range":"0-0"}});
     const ct=r.headers.get('content-range');if(ct&&ct.includes('/')) return parseInt(ct.split('/')[1])||0;
-    const r2=await fetch(`${SUPABASE_URL}/rest/v1/contacts?plz=eq.${plz}&select=id&limit=50000`,{headers:SB_H});
-    const d=await r2.json();return Array.isArray(d)?d.length:0;
+    let total=0;
+    for(let offset=0;offset<50000;offset+=1000){
+      const r2=await fetch(`${SUPABASE_URL}/rest/v1/contacts?plz=eq.${plz}&select=id&order=id.asc&limit=1000&offset=${offset}`,{headers:SB_H});
+      const d=await r2.json();
+      if(!Array.isArray(d)||!d.length) break;
+      total+=d.length;
+      if(d.length<1000) break;
+    }
+    return total;
   }catch(e){return 0;}
 }
 async function countLeadsByPLZ(plz){
   try{
     const r=await fetch(`${SUPABASE_URL}/rest/v1/leads?plz=eq.${plz}&select=id`,{headers:{...SB_H,"Prefer":"count=exact","Range-Unit":"items","Range":"0-0"}});
     const ct=r.headers.get('content-range');if(ct&&ct.includes('/')) return parseInt(ct.split('/')[1])||0;
-    const r2=await fetch(`${SUPABASE_URL}/rest/v1/leads?plz=eq.${plz}&select=id&limit=10000`,{headers:SB_H});
-    const d=await r2.json();return Array.isArray(d)?d.length:0;
+    let total=0;
+    for(let offset=0;offset<50000;offset+=1000){
+      const r2=await fetch(`${SUPABASE_URL}/rest/v1/leads?plz=eq.${plz}&select=id&order=id.asc&limit=1000&offset=${offset}`,{headers:SB_H});
+      const d=await r2.json();
+      if(!Array.isArray(d)||!d.length) break;
+      total+=d.length;
+      if(d.length<1000) break;
+    }
+    return total;
   }catch(e){return 0;}
 }
 

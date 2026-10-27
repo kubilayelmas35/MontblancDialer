@@ -155,7 +155,7 @@ async function mbTodaySpend(fid) {
   const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
-  const logs = await sb(`call_logs?select=duration_sec,cost_usd&firm_id=eq.${fid}&started_at=gte.${gte}&started_at=lte.${lte}&limit=8000`).catch(() => []);
+  const logs = await mbFetchAll(`call_logs?select=id,duration_sec,cost_usd&firm_id=eq.${fid}&started_at=gte.${gte}&started_at=lte.${lte}&order=started_at.asc,id.asc`).catch(() => []);
   let cost = 0;
   let sec = 0;
   (logs || []).forEach((l) => {
@@ -914,11 +914,11 @@ async function mbPaintResTeam() {
   const col = view.basis === 'termin' ? 'termin_tarih' : 'kayit_tarihi';
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(bounds.start) : `${bounds.start}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(bounds.end) : `${bounds.end}T23:59:59`;
-  const limit = view.span === 'month' ? 4000 : (view.span === 'week' ? 1500 : 800);
   const select = 'id,nachname,durum,agent_id,contact_id,termin_tarih,kayit_tarihi,users(name)';
-  const q = `appointments?select=${select}&${col}=gte.${gte}&${col}=lte.${lte}${ff}&order=${col}.desc&limit=${limit}`;
-  let rows = await sb(q).catch(() => null);
-  if (rows == null) rows = await sb(q.replace(',users(name)', '')).catch(() => []) || [];
+  const q = `appointments?select=${select}&${col}=gte.${gte}&${col}=lte.${lte}${ff}&order=${col}.desc,id.asc`;
+  let rows = null;
+  try { rows = await mbFetchAll(q); } catch (e) { rows = null; }
+  if (rows == null) rows = await mbFetchAll(q.replace(',users(name)', '')).catch(() => []) || [];
   if (seq !== window._tbResSeq) return;
   const norm = (value) => (typeof _normResultKey === 'function' ? _normResultKey(value) : String(value || ''));
   const list = (defs || []).map((def) => ({
@@ -1555,11 +1555,11 @@ function _dashUpdateCardTitles(rangeKey) {
 }
 
 async function fetchDashAppointmentsInRange(from, to, ff, agentQ) {
-  let q = `appointments?select=durum,termin_tarih,agent_id&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&limit=15000`;
+  let q = `appointments?select=id,durum,termin_tarih,agent_id&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&order=termin_tarih.asc,id.asc`;
   if (ff) q += ff;
   if (agentQ) q += agentQ;
   try {
-    return (await sb(q)) || [];
+    return (await mbFetchAll(q)) || [];
   } catch (e) {
     console.error(e);
     return [];
@@ -2140,8 +2140,8 @@ const logLte = typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23
 let qLogs = `call_logs?select=*&started_at=gte.${logGte}&started_at=lte.${logLte}`;
 qLogs += ff;
 qLogs += agentQ;
-qLogs += '&limit=8000';
-const logs  = await sb(qLogs) || [];
+qLogs += '&order=started_at.asc,id.asc';
+const logs  = await mbFetchAll(qLogs) || [];
 if (dashRole === 'qc') {
   logs.splice(0, logs.length, ...logs.filter((l) => l.outcome === 'appointment' || l.outcome === 'appointment_done'));
 }
@@ -2198,7 +2198,7 @@ if (typeof mbSyncDashRows === 'function') mbSyncDashRows();
 
 const STATS_COL = 11;
 const STATS_STD = ['appointment', 'negative', 'callback', 'no_answer', 'voicemail', 'dnc'];
-const STATS_CAP = 5000;
+const STATS_CAP = 50000;
 
 function statsEsc(v) {
   return typeof escapeHtml === 'function' ? escapeHtml(v ?? '') : String(v ?? '');
@@ -2690,7 +2690,7 @@ async function statsPaintDetail(logs, fid) {
 <div class="tbl-wrap"><table><thead><tr><th>${statsEsc(t('stats.col.prefix'))}</th><th>${statsEsc(t('stats.col.dest'))}</th><th>${statsEsc(t('stats.col.time'))}</th><th>${statsEsc(t('stats.col.cost'))}</th></tr></thead><tbody>${costRows}</tbody></table></div></div>`;
 }
 
-const CH_CAP = 5000;
+const CH_CAP = 50000;
 let _chRows = [];
 let _chSort = { key: 'when', dir: 'desc' };
 let _chFilters = {};

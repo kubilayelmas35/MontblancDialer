@@ -306,46 +306,16 @@ function repRole(role) {
 }
 
 async function repFetchHourAppts(range) {
-  const size = 1000;
-  const all = [];
-  const seen = new Set();
   const agent = range.agent ? `&agent_id=eq.${range.agent}` : '';
-  for (let offset = 0; offset < 20000; offset += size) {
-    const rows = (await sb(
-      `appointments?select=id,kayit_tarihi,durum${range.ff}${agent}&kayit_tarihi=gte.${range.gte}&kayit_tarihi=lte.${range.lte}&order=kayit_tarihi.asc,id.asc&limit=${size}&offset=${offset}`
-    ).catch(() => [])) || [];
-    let added = 0;
-    rows.forEach((row) => {
-      const id = row && row.id ? String(row.id) : '';
-      if (id && seen.has(id)) return;
-      if (id) seen.add(id);
-      all.push(row);
-      added += 1;
-    });
-    if (rows.length < size || added === 0) break;
-  }
-  return all;
+  return mbFetchAll(
+    `appointments?select=id,kayit_tarihi,durum${range.ff}${agent}&kayit_tarihi=gte.${range.gte}&kayit_tarihi=lte.${range.lte}&order=kayit_tarihi.asc,id.asc`
+  ).catch(() => []);
 }
 
 async function repFetchRangeAppts(range) {
-  const size = 1000;
-  const all = [];
-  const seen = new Set();
-  for (let offset = 0; offset < 20000; offset += size) {
-    const rows = (await sb(
-      `appointments?select=id,kayit_tarihi,durum,agent_id,firm_id${range.ff}&kayit_tarihi=gte.${range.gte}&kayit_tarihi=lte.${range.lte}&order=kayit_tarihi.asc,id.asc&limit=${size}&offset=${offset}`
-    ).catch(() => [])) || [];
-    let added = 0;
-    rows.forEach((row) => {
-      const id = row && row.id ? String(row.id) : '';
-      if (id && seen.has(id)) return;
-      if (id) seen.add(id);
-      all.push(row);
-      added += 1;
-    });
-    if (rows.length < size || added === 0) break;
-  }
-  return all;
+  return mbFetchAll(
+    `appointments?select=id,kayit_tarihi,durum,agent_id,firm_id${range.ff}&kayit_tarihi=gte.${range.gte}&kayit_tarihi=lte.${range.lte}&order=kayit_tarihi.asc,id.asc`
+  ).catch(() => []);
 }
 
 async function repLoadBundle(range) {
@@ -395,7 +365,7 @@ async function loadStatsReport() {
     if (view === 'operator') await repLoadOperatorExtra(pack, fresh);
     if (view === 'perf' || view === 'group') {
       const logQ = fresh.fid ? `&firm_id=eq.${fresh.fid}` : '';
-      pack.statusLogs = (await sb(`agent_status_log?select=agent_id,status,started_at,ended_at,duration_sec${logQ}&started_at=gte.${fresh.gte}&started_at=lte.${fresh.lte}&order=started_at.desc&limit=2000`).catch(() => [])) || [];
+      pack.statusLogs = (await mbFetchAll(`agent_status_log?select=id,agent_id,status,started_at,ended_at,duration_sec${logQ}&started_at=gte.${fresh.gte}&started_at=lte.${fresh.lte}&order=started_at.desc,id.asc`).catch(() => [])) || [];
     }
     host.innerHTML = repPaint(view, pack, fresh, userById, sessById);
     if (view === 'credit') host.innerHTML += await repCreditExtra(pack.logs, fresh);
@@ -495,7 +465,7 @@ async function repLoadOperatorExtra(pack, range) {
   const firmQ = range.fid ? `&firm_id=eq.${range.fid}` : '';
   const camps = await sb(`campaigns?select=id,name${firmQ}&limit=300`).catch(() => []);
   (camps || []).forEach((camp) => { pack.campMap[camp.id] = camp.name || ''; });
-  pack.statusLogs = (await sb(`agent_status_log?select=agent_id,status,break_code,campaign_id,started_at,ended_at,duration_sec${firmQ}&started_at=gte.${range.gte}&started_at=lte.${range.lte}&order=started_at.desc&limit=200`).catch(() => [])) || [];
+  pack.statusLogs = (await mbFetchAll(`agent_status_log?select=id,agent_id,status,break_code,campaign_id,started_at,ended_at,duration_sec${firmQ}&started_at=gte.${range.gte}&started_at=lte.${range.lte}&order=started_at.desc,id.asc`).catch(() => [])) || [];
   pack.qcResults = await repLoadQcResults(range);
   const sameDay = range.dateFrom === today && range.dateTo === today && !range.agent && !range.camp;
   if (!sameDay && today) {
@@ -1018,7 +988,7 @@ async function repCreditExtra(logs, range) {
     : `<div class="firm-none">${statsEsc(t('stats.cost_empty'))}</div>`;
   let ledgerRows = [];
   const ledgerQ = range.fid ? `&firm_id=eq.${range.fid}` : '';
-  const ledger = (await sb(`wallet_ledger?select=entry_type,amount,currency${ledgerQ}&created_at=gte.${range.gte}&created_at=lte.${range.lte}&order=created_at.desc&limit=200`).catch(() => [])) || [];
+  const ledger = (await mbFetchAll(`wallet_ledger?select=id,entry_type,amount,currency${ledgerQ}&created_at=gte.${range.gte}&created_at=lte.${range.lte}&order=created_at.desc,id.asc`).catch(() => [])) || [];
   const ledgerBag = {};
   ledger.forEach((row) => {
     const key = `${row.entry_type || 'adjustment'}|${row.currency || ''}`;

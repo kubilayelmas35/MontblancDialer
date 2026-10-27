@@ -1313,7 +1313,7 @@ async function mbHeadCount(path) {
       }
     }
   } catch (_) {}
-  const rows = await sb(`${path}&limit=2000`);
+  const rows = await mbFetchAll(path);
   return Array.isArray(rows) ? rows.length : 0;
 }
 
@@ -1510,7 +1510,7 @@ async function requeueOpsSlice(queueId, status) {
   const ok = await mbConfirm(campT('camp.ops.confirm','{n} kişi yeniden kuyruğa alınsın').replace('{n}', String(n)), campT('camp.ops.title','İşlemler'));
   if (!ok) return;
   try {
-    const rows = await sb(`contacts?queue_id=eq.${queueId}&status=eq.${status}${opsRangeQuery()}&select=id&order=created_at.asc&limit=${n}`);
+    const rows = await mbFetchAll(`contacts?queue_id=eq.${queueId}&status=eq.${status}${opsRangeQuery()}&select=id&order=created_at.asc,id.asc`);
     const ids = (rows || []).map((r) => r.id).filter(Boolean);
     for (let i = 0; i < ids.length; i += 60) {
       const chunk = ids.slice(i, i + 60);
@@ -1539,7 +1539,7 @@ async function pullOpsSlice(queueId, status) {
   const ok = await mbConfirm(campT('camp.ops.pull.confirm','{n} kişi kuyruktan çıkarılsın').replace('{n}', String(n)), campT('camp.ops.title','İşlemler'));
   if (!ok) return;
   try {
-    const rows = await sb(`contacts?queue_id=eq.${queueId}&status=eq.${status}${opsRangeQuery()}&select=id&order=created_at.asc&limit=${n}`);
+    const rows = await mbFetchAll(`contacts?queue_id=eq.${queueId}&status=eq.${status}${opsRangeQuery()}&select=id&order=created_at.asc,id.asc`);
     const ids = (rows || []).map((r) => r.id).filter(Boolean);
     for (let i = 0; i < ids.length; i += 60) {
       const chunk = ids.slice(i, i + 60);
@@ -1573,9 +1573,8 @@ async function syncQueueDialed(queueId) {
 async function downloadOpsContacts(queueId, status) {
   if (!opsDatesOk()) return;
   const st = status && status !== 'all' ? `&status=eq.${status}` : '';
-  const cap = 2000;
   try {
-    const rows = await sb(`contacts?queue_id=eq.${queueId}${st}${opsRangeQuery()}&select=phone,first_name,last_name,status,attempt_count,plz,city&order=created_at.asc&limit=${cap}`);
+    const rows = await mbFetchAll(`contacts?queue_id=eq.${queueId}${st}${opsRangeQuery()}&select=id,phone,first_name,last_name,status,attempt_count,plz,city&order=created_at.asc,id.asc`);
     const list = Array.isArray(rows) ? rows : [];
     if (!list.length) {
       toast(campT('camp.ops.zero','Alınacak kişi yok'), 'warn');
@@ -1588,7 +1587,7 @@ async function downloadOpsContacts(queueId, status) {
     a.download = `kuyruk-${status || 'all'}.csv`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1500);
-    if (list.length >= cap) toast(campT('camp.ops.cap','İlk {n} kayıt indirildi').replace('{n}', String(cap)), 'warn');
+    if (rows && rows.capped) toast(campT('camp.ops.cap','İlk {n} kayıt indirildi').replace('{n}', String(list.length)), 'warn');
   } catch (e) {
     toast(e.message, 'err');
   }

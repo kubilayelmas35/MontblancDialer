@@ -90,7 +90,7 @@ async function doRequeue(queueId) {
   try {
     let moved = 0;
     for (const status of statuses) {
-      const rows = await sb(`contacts?queue_id=eq.${queueId}&status=eq.${status}&select=id&limit=2000`) || [];
+      const rows = await mbFetchAll(`contacts?queue_id=eq.${queueId}&status=eq.${status}&select=id&order=id.asc`) || [];
       const ids = rows.map((r) => r.id).filter(Boolean);
       const patch = { status: 'pending', last_called_at: null };
       if (resetAttempts) patch.attempt_count = 0;

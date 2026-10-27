@@ -66,7 +66,7 @@ async function loadJobFinanceSummary() {
   if (!wrap) return;
   const fid = getActiveFirmId() || currentUser?.firm_id;
   if (!fid) return;
-  const rows = await sb(`wallet_ledger?firm_id=eq.${fid}&select=entry_type,amount,created_at&order=created_at.desc&limit=500`).catch(() => []);
+  const rows = await mbFetchAll(`wallet_ledger?firm_id=eq.${fid}&select=id,entry_type,amount,created_at&order=created_at.desc,id.asc`).catch(() => []);
   const cur = await getFirmCurrency(fid);
   let charge = 0;
   let reward = 0;
@@ -220,7 +220,7 @@ async function mbSettleUnbilled(firmId) {
   if (!firm) return { n: 0, eur: 0 };
   const plan = mbBillPlan(firm.settings?.billing);
   if (!plan.rates.length) return { n: 0, eur: 0 };
-  const rows = await sb(`call_logs?select=id,phone,duration_sec,cost_usd,firm_id&firm_id=eq.${firmId}&duration_sec=gt.0&or=(cost_usd.is.null,cost_usd.eq.0)&limit=500`).catch(() => []);
+  const rows = await mbFetchAll(`call_logs?select=id,phone,duration_sec,cost_usd,firm_id&firm_id=eq.${firmId}&duration_sec=gt.0&or=(cost_usd.is.null,cost_usd.eq.0)&order=id.asc`).catch(() => []);
   let eur = 0;
   let n = 0;
   const list = rows || [];

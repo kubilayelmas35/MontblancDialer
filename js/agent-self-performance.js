@@ -106,7 +106,7 @@ function _aspDaysInMonth(ym) {
 async function _aspFetchAppointments(fid, uid, start, end, mode = 'termin') {
   if (!uid) return [];
   const firm = fid ? `&firm_id=eq.${encodeURIComponent(fid)}` : '';
-  let rows = (await sb(`appointments?select=*&agent_id=eq.${encodeURIComponent(uid)}${firm}&limit=5000`).catch(() => [])) || [];
+  let rows = (await mbFetchAll(`appointments?select=*&agent_id=eq.${encodeURIComponent(uid)}${firm}&order=id.asc`).catch(() => [])) || [];
   const meId = String(uid || '');
   const meName = String(currentUser?.name || '').trim().toLowerCase();
   const meEmail = String(currentUser?.email || '').trim().toLowerCase();
@@ -152,7 +152,7 @@ async function _aspFetchCalls(fid, uid, start, end) {
   const fromMs = _aspBerlinStartMs(start);
   const toMs = _aspBerlinEndMs(end);
   const firm = fid ? `&firm_id=eq.${encodeURIComponent(fid)}` : '';
-  let rows = (await sb(`call_logs?select=*&agent_id=eq.${encodeURIComponent(uid)}${firm}&order=started_at.desc&limit=5000`).catch(() => [])) || [];
+  let rows = (await mbFetchAll(`call_logs?select=*&agent_id=eq.${encodeURIComponent(uid)}${firm}&order=started_at.desc,id.asc`).catch(() => [])) || [];
   const meId = String(uid || '');
   const meName = String(currentUser?.name || '').trim().toLowerCase();
   const meEmail = String(currentUser?.email || '').trim().toLowerCase();

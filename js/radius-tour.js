@@ -1125,9 +1125,9 @@ async function tourBuild() {
   const load = () => Promise.all([
     sb(`firms?id=eq.${firmId}&select=settings`),
     sb(`campaigns?firm_id=eq.${firmId}&select=id,name,active_for_agents&order=name.asc&limit=200`),
-    sb(`takvim_slots?firm_id=eq.${firmId}&tarih=gte.${start}&tarih=lte.${end}&gun_kapali=eq.false&select=id,campaign_id,tarih,baslangic_saat,durum,appointment_id&limit=4000`),
-    sb(`appointments?firm_id=eq.${firmId}&termin_tarih=gte.${start}T00:00:00&termin_tarih=lte.${end}T23:59:59&durum=not.in.(iptal,basarisiz)&select=campaign_id,plz,termin_tarih&limit=4000`),
-    sb(`appointments?firm_id=eq.${firmId}&termin_tarih=gte.${fromTop}T00:00:00&durum=not.in.(iptal,basarisiz)&select=campaign_id,plz&limit=4000`),
+    mbFetchAll(`takvim_slots?firm_id=eq.${firmId}&tarih=gte.${start}&tarih=lte.${end}&gun_kapali=eq.false&select=id,campaign_id,tarih,baslangic_saat,durum,appointment_id&order=tarih.asc,id.asc`),
+    mbFetchAll(`appointments?firm_id=eq.${firmId}&termin_tarih=gte.${start}T00:00:00&termin_tarih=lte.${end}T23:59:59&durum=not.in.(iptal,basarisiz)&select=id,campaign_id,plz,termin_tarih&order=termin_tarih.asc,id.asc`),
+    mbFetchAll(`appointments?firm_id=eq.${firmId}&termin_tarih=gte.${fromTop}T00:00:00&durum=not.in.(iptal,basarisiz)&select=id,campaign_id,plz&order=termin_tarih.asc,id.asc`),
   ]);
   let firmRows; let camps; let slots; let appts; let history;
   const tries = pref.selfHeal ? Math.max(1, Math.min(5, Number(pref.selfHealDeneme) || 1)) : 1;
@@ -1207,7 +1207,7 @@ async function tourBuild() {
     const kim = tourGeriKim();
     const kere = tourGeriKere();
     if (row.pending >= pref.veriEsik || !row.plzs.size || !kim.length) return;
-    const got = await sb(`contacts?firm_id=eq.${firmId}&campaign_id=eq.${row.id}&status=in.(${kim.join(',')})&or=(attempt_count.lt.${kere},attempt_count.is.null)&select=id,plz&limit=1000`).catch(() => []);
+    const got = await mbFetchAll(`contacts?firm_id=eq.${firmId}&campaign_id=eq.${row.id}&status=in.(${kim.join(',')})&or=(attempt_count.lt.${kere},attempt_count.is.null)&select=id,plz&order=id.asc`).catch(() => []);
     row.revertIds = (Array.isArray(got) ? got : []).filter((c) => row.plzs.has(tourPlz(c.plz))).map((c) => c.id).filter(Boolean);
   }));
   const pick = tourChoose(rows, currentId);

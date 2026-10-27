@@ -109,13 +109,13 @@ async function _etFetchRows(from, to) {
     'id,slot_id,termin_tarih,kayit_tarihi,durum,nachname,telefonnummer,telefon2,strasse,plz,ortschaft,hausart,baujahr,qm,heizung,alter_der_heizung,verbrauch_pro_jahr,personen,interesse_an_pv,agent_notu,qc_notu,agent_id,campaign_id,customer_id,firm_id,form_ek';
   const bounds = _etBounds(from, to);
   let q = `appointments?select=${cols},users(name),campaigns(name),customers(name,code),takvim_slots!slot_id(tarih,baslangic_saat,bitis_saat,alta_tasindi)${ff}`;
-  q += `&termin_tarih=gte.${bounds.gte}&termin_tarih=lte.${bounds.lte}&order=termin_tarih.asc&limit=15000`;
+  q += `&termin_tarih=gte.${bounds.gte}&termin_tarih=lte.${bounds.lte}&order=termin_tarih.asc,id.asc`;
   let rows;
   try {
-    rows = await sb(q);
+    rows = await mbFetchAll(q);
   } catch (e) {
-    q = `appointments?select=${cols}${ff}&termin_tarih=gte.${bounds.gte}&termin_tarih=lte.${bounds.lte}&order=termin_tarih.asc&limit=15000`;
-    rows = await sb(q).catch(() => []);
+    q = `appointments?select=${cols}${ff}&termin_tarih=gte.${bounds.gte}&termin_tarih=lte.${bounds.lte}&order=termin_tarih.asc,id.asc`;
+    rows = await mbFetchAll(q).catch(() => []);
     if (!rows?.length) return [];
     const aIds = [...new Set(rows.map((r) => r.agent_id).filter(Boolean))];
     const cIds = [...new Set(rows.map((r) => r.campaign_id).filter(Boolean))];

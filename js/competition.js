@@ -138,7 +138,7 @@ async function _compFetchTerminCounts(dateFrom, dateTo) {
   const ff = `&firm_id=eq.${fid}`;
   const map = {};
   const size = 1000;
-  for (let offset = 0; offset < 20000; offset += size) {
+  for (let offset = 0; offset < 50000; offset += size) {
     const q = `appointments?select=id,agent_id,durum${ff}&termin_tarih=gte.${dateFrom}T00:00:00&termin_tarih=lte.${dateTo}T23:59:59&order=termin_tarih.asc,id.asc&limit=${size}&offset=${offset}`;
     const rows = (await sb(q).catch(() => [])) || [];
     for (const row of rows) {

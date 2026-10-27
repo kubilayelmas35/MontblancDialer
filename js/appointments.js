@@ -548,10 +548,15 @@ async function loadTakvimSlots() {
     const firmId = campRow?.firm_id || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
     await ensureFirmTakvimDefaultsLoaded(firmId);
     if (firmId) await loadFirmAppointmentResults(firmId, false).catch(() => {});
-    const slots = await sb(`takvim_slots?campaign_id=eq.${takvimCampId}&tarih=gte.${startD}&tarih=lte.${endD}&order=tarih.asc,baslangic_saat.asc`);
+    const slots = await mbFetchAll(`takvim_slots?campaign_id=eq.${takvimCampId}&tarih=gte.${startD}&tarih=lte.${endD}&order=tarih.asc,baslangic_saat.asc,id.asc`);
     takvimSlots = slots||[];
     const ids = takvimSlots.filter(s=>s.appointment_id).map(s=>s.appointment_id);
-    takvimAppts = ids.length ? await sb(`appointments?id=in.(${ids.join(',')})`) || [] : [];
+    takvimAppts = [];
+    for (let i = 0; i < ids.length; i += 80) {
+      const chunk = ids.slice(i, i + 80);
+      const part = await sb(`appointments?id=in.(${chunk.join(',')})`).catch(() => []) || [];
+      takvimAppts.push(...part);
+    }
     await takvimLoadCustomerNames(takvimAppts);
     const agentIds = [...new Set(takvimAppts.map((a) => a.agent_id).filter(Boolean))];
     window._takvimAgentNameById = window._takvimAgentNameById || {};

@@ -1282,9 +1282,11 @@ async function submitOutcome(goBreak) {
       }
       if (contactId && currentContact.queue_id) {
         // dialed_count'u contacts tablosundan dinamik hesapla
-        sb(`contacts?queue_id=eq.${currentContact.queue_id}&status=not.in.(pending,calling,removed)&select=id`)
-          .then(rows => sb(`queues?id=eq.${currentContact.queue_id}`,{method:'PATCH',prefer:'return=minimal',
-            body:JSON.stringify({dialed_count:(rows||[]).length})
+        (typeof mbHeadCount === 'function'
+          ? mbHeadCount(`contacts?queue_id=eq.${currentContact.queue_id}&status=not.in.(pending,calling,removed)&select=id`)
+          : mbFetchAll(`contacts?queue_id=eq.${currentContact.queue_id}&status=not.in.(pending,calling,removed)&select=id&order=id.asc`).then((rows) => (rows || []).length))
+          .then(n => sb(`queues?id=eq.${currentContact.queue_id}`,{method:'PATCH',prefer:'return=minimal',
+            body:JSON.stringify({dialed_count:Number(n) || 0})
           })).catch(()=>{});
       }
     }

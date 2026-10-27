@@ -1783,8 +1783,8 @@ async function opsTickFloor() {
     const from = opsBerlinDay(-1);
     const to = opsBerlinDay(14);
     const [slots, appts] = await Promise.all([
-      sb(`takvim_slots?firm_id=eq.${fid}&gun_kapali=eq.false&tarih=gte.${from}&tarih=lte.${to}&select=id,durum,kilitli_agent_id,appointment_id,campaign_id,tarih,baslangic_saat&limit=800`).catch(() => null),
-      sb(`appointments?firm_id=eq.${fid}&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&select=id,nachname,durum,agent_id,campaign_id,termin_tarih,slot_id,contact_id&limit=800`).catch(() => null),
+      mbFetchAll(`takvim_slots?firm_id=eq.${fid}&gun_kapali=eq.false&tarih=gte.${from}&tarih=lte.${to}&select=id,durum,kilitli_agent_id,appointment_id,campaign_id,tarih,baslangic_saat&order=tarih.asc,id.asc`).catch(() => null),
+      mbFetchAll(`appointments?firm_id=eq.${fid}&termin_tarih=gte.${from}T00:00:00&termin_tarih=lte.${to}T23:59:59&select=id,nachname,durum,agent_id,campaign_id,termin_tarih,slot_id,contact_id&order=termin_tarih.asc,id.asc`).catch(() => null),
     ]);
     if (!Array.isArray(slots) || !Array.isArray(appts)) return;
     const slotMap = {};

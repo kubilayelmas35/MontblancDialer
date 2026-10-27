@@ -2,7 +2,7 @@
 // KK PANELİ — randevu kalite kontrolü
 // ─────────────────────────────────────────────
 
-const QC_CAP = 2000;
+const QC_CAP = 50000;
 
 function _qcSlot(row) {
   const slot = row?.takvim_slots;
@@ -247,17 +247,18 @@ async function loadQcData() {
       scopeIds = qcRestrictedIds(firms?.[0]?.settings?.qc_customer_scope, currentUser.id);
     }
     const scopeQ = scopeIds?.length ? `&customer_id=in.(${scopeIds.join(',')})` : '';
-    const embed = `appointments?select=${cols},users(name),campaigns(name),customers(name,code),takvim_slots!slot_id(id,tarih,baslangic_saat,bitis_saat,alta_tasindi)${ff}${dateQ}${scopeQ}&order=termin_tarih.desc&limit=${QC_CAP}`;
+    const embed = `appointments?select=${cols},users(name),campaigns(name),customers(name,code),takvim_slots!slot_id(id,tarih,baslangic_saat,bitis_saat,alta_tasindi)${ff}${dateQ}${scopeQ}&order=termin_tarih.desc,id.asc`;
     if (scopeIds && !scopeIds.length) {
       qcList = [];
     } else {
       try {
-        qcList = await sb(embed);
+        qcList = await mbFetchAll(embed);
       } catch (e) {
-        qcList = await sb(`appointments?select=${cols}${ff}${dateQ}${scopeQ}&order=termin_tarih.desc&limit=${QC_CAP}`).catch(() => []);
+        qcList = await mbFetchAll(`appointments?select=${cols}${ff}${dateQ}${scopeQ}&order=termin_tarih.desc,id.asc`).catch(() => []);
       }
     }
     qcList = qcList || [];
+    const qcCapped = !!qcList.capped;
     if (scopeIds) {
       const allow = new Set(scopeIds);
       qcList = qcList.filter((row) => allow.has(String(row.customer_id || '')));
@@ -275,7 +276,7 @@ async function loadQcData() {
     window._qcRecByContact = await _qcAttachRec(qcList);
     const cap = document.getElementById('qc-cap');
     if (cap) {
-      const hit = qcList.length >= QC_CAP;
+      const hit = qcCapped;
       cap.style.display = hit ? '' : 'none';
       cap.textContent = hit ? t('qc.cap').replace('{n}', String(QC_CAP)) : '';
     }

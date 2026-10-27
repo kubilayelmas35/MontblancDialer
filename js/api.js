@@ -84,6 +84,49 @@ function _mbScopedUserForRequest(path, method = 'GET') {
   return cur;
 }
 
+async function mbFetchAll(path) {
+  let base = String(path || '');
+  base = base.replace(/([?&])limit=\d+/g, '').replace(/([?&])offset=\d+/g, '');
+  base = base.replace(/\?&/g, '?').replace(/&&+/g, '&').replace(/[?&]$/, '');
+  if (!/(?:^|[?&])order=/.test(base)) base += `${base.includes('?') ? '&' : '?'}order=id.asc`;
+  const size = 1000;
+  const max = 50000;
+  const all = [];
+  const seen = new Set();
+  const pages = new Set();
+  for (let offset = 0; offset < max; offset += size) {
+    const sep = base.includes('?') ? '&' : '?';
+    let rows;
+    try {
+      rows = await sb(`${base}${sep}limit=${size}&offset=${offset}`);
+    } catch (e) {
+      if (offset === 0) throw e;
+      break;
+    }
+    rows = Array.isArray(rows) ? rows : [];
+    if (!rows.length) break;
+    const sig = rows.map((row) => (row && row.id != null ? String(row.id) : JSON.stringify(row))).join('|');
+    if (pages.has(sig)) break;
+    pages.add(sig);
+    let added = 0;
+    rows.forEach((row) => {
+      const id = row && row.id != null ? String(row.id) : '';
+      if (id) {
+        if (seen.has(id)) return;
+        seen.add(id);
+      }
+      all.push(row);
+      added += 1;
+    });
+    if (rows.length < size || added === 0) break;
+    if (offset + size >= max) {
+      all.capped = true;
+      break;
+    }
+  }
+  return all;
+}
+
 async function sb(path, opts={}) {
 const ctrl = new AbortController();
 const timeoutMs = Number(opts.timeoutMs || 20000);

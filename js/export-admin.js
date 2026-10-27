@@ -105,7 +105,7 @@ function _buildCallHistoryQueryForExport() {
   const dateTo = document.getElementById('ch-date-to')?.value || chToday;
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
-  let query = `call_logs?select=*,users(id,name),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${ff}&order=started_at.desc&limit=8000`;
+  let query = `call_logs?select=*,users(id,name),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${ff}&order=started_at.desc,id.asc`;
   query += `&started_at=gte.${gte}`;
   query += `&started_at=lte.${lte}`;
   const camp = document.getElementById('ch-camp-f')?.value || '';
@@ -117,7 +117,7 @@ function _buildCallHistoryQueryForExport() {
 
 async function _fetchCallHistoryExportRows() {
   const { query, search } = _buildCallHistoryQueryForExport();
-  let logs = (await sb(query).catch(() => [])) || [];
+  let logs = (await mbFetchAll(query).catch(() => [])) || [];
   const dir = document.getElementById('ch-dir')?.value || '';
   logs = logs.filter((l) => {
     if (dir === 'in' && l.work_type !== 'inbound') return false;
