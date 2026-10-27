@@ -1267,6 +1267,12 @@ async function submitOutcome(goBreak) {
       if (contactId) logData.contact_id = contactId;
       if (cbAt) logData.callback_at = cbAt;
       if (activeCallId) { try { logData.telnyx_call_id = activeCallId; } catch(e) {} }
+      if (!logData.telnyx_call_id && window._mbCallMeta?.telnyxCallId) logData.telnyx_call_id = window._mbCallMeta.telnyxCallId;
+      const recIds = {
+        control: logData.telnyx_call_id || window._mbCallMeta?.telnyxCallId || '',
+        session: window._mbCallMeta?.telnyxSessionId || '',
+        leg: window._mbCallMeta?.telnyxLegId || '',
+      };
       const callExtra = typeof mbCallLogExtras === 'function' ? mbCallLogExtras() : {};
       if (!skipAutoLog) {
       let savedLog = null;
@@ -1278,6 +1284,9 @@ async function submitOutcome(goBreak) {
       }
       const savedRow = Array.isArray(savedLog) ? savedLog[0] : savedLog;
       if (savedRow?.id && typeof mbChargeCall === 'function') void mbChargeCall(savedRow);
+      if (savedRow?.id && !String(logNotes || '').includes('__test_sim__') && (recIds.control || recIds.session || recIds.leg) && typeof mbPullRecording === 'function') {
+        void mbPullRecording(savedRow.id, recIds);
+      }
       if (typeof mbResetCallMeta === 'function') mbResetCallMeta();
       }
       if (contactId && currentContact.queue_id) {

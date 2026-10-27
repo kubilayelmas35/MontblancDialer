@@ -36,7 +36,97 @@ function mbCallLogExtras() {
   if (meta.caller) extra.caller_number = meta.caller;
   if (meta.work) extra.work_type = meta.work;
   if (meta.hangupBy) extra.hangup_by = meta.hangupBy;
+  if (meta.telnyxCallId) extra.telnyx_call_id = meta.telnyxCallId;
   return extra;
+}
+
+function mbTelnyxIds(call) {
+  let ids = {};
+  try { ids = call?.telnyxIDs || {}; } catch (e) { ids = {}; }
+  return {
+    control: String(ids.telnyxCallControlId || call?.telnyxCallControlId || '').trim(),
+    leg: String(ids.telnyxLegId || '').trim(),
+    session: String(ids.telnyxSessionId || '').trim(),
+  };
+}
+
+function mbRememberTelnyxIds(call) {
+  const ids = mbTelnyxIds(call);
+  if (!ids.control && !ids.leg && !ids.session) return ids;
+  const meta = window._mbCallMeta || {};
+  if (ids.control) meta.telnyxCallId = ids.control;
+  if (ids.leg) meta.telnyxLegId = ids.leg;
+  if (ids.session) meta.telnyxSessionId = ids.session;
+  window._mbCallMeta = meta;
+  if (ids.control) activeCallId = ids.control;
+  return ids;
+}
+
+function mbRecWarn(key, fallback) {
+  if (window._mbRecWarned) return;
+  window._mbRecWarned = true;
+  const msg = typeof t === 'function' ? t(key) : fallback;
+  if (typeof toast === 'function') toast(!msg || msg === key ? fallback : msg, 'warn');
+}
+
+async function mbTelnyxRecord(action, payload) {
+  if (typeof SB_URL !== 'string' || !SB_URL) return {};
+  const headers = typeof mbAuthHeaders === 'function' ? mbAuthHeaders() : { 'Content-Type': 'application/json' };
+  try {
+    const res = await fetch(`${SB_URL}/functions/v1/telnyx-record`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ action, ...(payload || {}) }),
+    });
+    return await res.json().catch(() => ({}));
+  } catch (e) {
+    return {};
+  }
+}
+
+function mbStartCallRecording(call) {
+  if (!call || call.__mbSupervisor || String(call.id || '').startsWith('sim-')) return;
+  if (typeof _testMode !== 'undefined' && _testMode) return;
+  const ids = mbRememberTelnyxIds(call);
+  if (call.__mbRecOn || call.__mbRecPending || !ids.control || (call.__mbRecTries || 0) >= 2) return;
+  call.__mbRecTries = (call.__mbRecTries || 0) + 1;
+  call.__mbRecPending = true;
+  void mbTelnyxRecord('start', { call_control_id: ids.control }).then((body) => {
+    call.__mbRecPending = false;
+    if (body && body.ok) {
+      call.__mbRecOn = true;
+      return;
+    }
+    if ((call.__mbRecTries || 0) >= 2) mbRecWarn('telnyx.rec_fail', 'Ses kaydı başlatılamadı');
+  });
+}
+
+function mbNoteRecordingMiss(call) {
+  if (!call || call.__mbRecOn || call.__mbSupervisor || String(call.id || '').startsWith('sim-')) return;
+  if (typeof _testMode !== 'undefined' && _testMode) return;
+  if ((call.__mbRecTries || 0) > 0) return;
+  mbRecWarn('telnyx.rec_noid', 'Bu aramada ses kaydı kimliği gelmedi');
+}
+
+async function mbPullRecording(logId, ids) {
+  if (!logId || !ids) return;
+  for (let i = 0; i < 8; i++) {
+    await new Promise((resolve) => setTimeout(resolve, i === 0 ? 4000 : 5000));
+    const body = await mbTelnyxRecord('fetch', {
+      call_control_id: ids.control || '',
+      session_id: ids.session || '',
+      leg_id: ids.leg || '',
+    });
+    if (body?.error === 'auth' || body?.error === 'nokey') return;
+    const url = String(body?.url || '').trim();
+    if (!/^https:\/\//i.test(url) || typeof sb !== 'function') continue;
+    await sb(`call_logs?id=eq.${logId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ recording_url: url }),
+    }).catch(() => {});
+    return;
+  }
 }
 
 function sendToRTC(type, data={}) {
@@ -330,6 +420,7 @@ function mbOnHopperCall(call) {
     return;
   }
   if (state === 'active') {
+    mbStartCallRecording(call);
     if (row.id === _liveCallId && row.phase === 'live') {
       if (row.agentHold || isOnHold) return;
       _setHoldButton(false);
@@ -358,6 +449,7 @@ function mbOnHopperCall(call) {
     _hopper = _hopper.filter((r) => r !== row);
     _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
     if (wasLive) {
+      mbNoteRecordingMiss(call);
       _liveCallId = null;
       _telnyxCall = null;
       const dur = callStart ? Math.round((Date.now() - callStart) / 1000) : 0;
