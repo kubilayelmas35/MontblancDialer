@@ -2667,8 +2667,15 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="page" id="page-muhasebe">
 <div class="page-hdr">
 <div>
+<div class="muh-title-row">
 <div class="page-title" data-tr="Muhasebe" data-de="Buchhaltung">Muhasebe</div>
+<div class="muh-fx-inline" id="muh-fx-banner">
+<span id="muh-fx-rate">1 EUR = — TRY</span>
+<button type="button" class="muh-fx-refresh" onclick="testFxRateNow()" title="Kuru yenile"><i class="ph ph-arrow-clockwise"></i></button>
+</div>
+</div>
 <div class="page-sub" id="muhasebe-sub">Maaş, prim, kesinti ve müşteri yönetimi</div>
+<span id="muh-fx-meta" hidden>Kur yükleniyor</span>
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="muhasebe-firm-selector"></div>
@@ -2678,14 +2685,6 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </div>
 <div id="muhasebe-no-access" class="card" style="display:none;padding:18px;">Bu sayfayı görüntüleme yetkiniz yok.</div>
 <div id="muhasebe-main" style="display:flex;flex-direction:column;gap:14px;padding-bottom:28px;">
-<div class="card muh-fx-banner" id="muh-fx-banner">
-<div>
-<div class="muh-fx-kicker" data-tr="Canlı kur" data-de="Live-Kurs">Canlı kur</div>
-<div id="muh-fx-rate">1 EUR = — TRY</div>
-<div id="muh-fx-meta" data-tr="Kur yükleniyor" data-de="Kurs wird geladen">Kur yükleniyor</div>
-</div>
-<button class="btn btn-ghost btn-sm" type="button" onclick="testFxRateNow()" data-tr="Kuru yenile" data-de="Kurs aktualisieren">Kuru yenile</button>
-</div>
 <div class="muh-tabbar">
 <button class="btn btn-ghost btn-sm muh-tab-btn active" data-muh-tab="ozet" onclick="setMuhasebeTab('ozet')" data-tr="Özet" data-de="Übersicht">Özet</button>
 <button class="btn btn-ghost btn-sm muh-tab-btn" data-muh-tab="gelir" onclick="setMuhasebeTab('gelir')" data-tr="Gelir / Gider" data-de="Einnahmen / Ausgaben">Gelir / Gider</button>
@@ -2783,7 +2782,11 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="card-title" id="muh-personel-card-title">Aylık personel muhasebesi</div>
 <div class="card-sub" id="muh-personel-card-sub">Baz maaş, prim, kesintiler, manuel ekleme/kesme, ödenen/kalan</div>
 </div>
-<div style="display:flex;gap:6px;" id="muh-personel-export-btns">
+<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;" id="muh-personel-export-btns">
+<div class="muh-cur-toggle" id="muh-cur-toggle">
+<button type="button" class="muh-cur-btn is-on" data-cur="EUR" onclick="setMuhViewCurrency('EUR')">EUR</button>
+<button type="button" class="muh-cur-btn" data-cur="TRY" onclick="setMuhViewCurrency('TRY')">TL</button>
+</div>
 <button class="btn btn-ghost btn-sm" onclick="printMuhasebeBordro()" data-tr="Bordro yazdır" data-de="Lohnabrechnung drucken">Bordro yazdır</button>
 <button class="btn btn-ghost btn-sm" onclick="exportMuhasebeCsv()">CSV</button>
 <button class="btn btn-ghost btn-sm" onclick="exportMuhasebeXlsx()">Excel</button>

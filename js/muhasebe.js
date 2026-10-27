@@ -790,12 +790,50 @@ function _muhPaintFxBanner(rate, source, dateStr) {
   const de = (typeof currentLang !== 'undefined' && currentLang === 'de');
   const rateEl = document.getElementById('muh-fx-rate');
   const metaEl = document.getElementById('muh-fx-meta');
-  if (rateEl) rateEl.textContent = n > 0 ? `1 EUR = ${_mFmt(n)} TRY` : '1 EUR = — TRY';
-  if (metaEl) {
-    const raw = source || '';
-    const src = raw === 'live' ? (de ? 'Live-Kurs' : 'canlı kur') : (raw || (de ? 'manuell' : 'manuel'));
-    metaEl.textContent = `${src} · ${dateStr || '—'}`;
-  }
+  if (rateEl) rateEl.textContent = n > 0 ? `1 € = ${_mFmt(n)} ₺` : '1 € = — ₺';
+  const raw = source || '';
+  const src = raw === 'live' ? (de ? 'Live-Kurs' : 'canlı kur') : (raw || (de ? 'manuell' : 'manuel'));
+  const tip = `${src} · ${dateStr || '—'}`;
+  if (metaEl) metaEl.textContent = tip;
+  const banner = document.getElementById('muh-fx-banner');
+  if (banner) banner.title = tip;
+  const refresh = banner?.querySelector('.muh-fx-refresh');
+  if (refresh) refresh.title = de ? 'Kurs aktualisieren' : 'Kuru yenile';
+}
+
+function _mViewCur(rules) {
+  const base = String(rules?.currency || 'EUR').toUpperCase();
+  if (window._muhPayrollUi === 'maasim' || !window._muhViewTry) return base;
+  return base === 'TRY' ? 'EUR' : 'TRY';
+}
+
+function _mViewAmt(amount, rules) {
+  const base = String(rules?.currency || 'EUR').toUpperCase();
+  const to = _mViewCur(rules);
+  if (to === base) return Number(amount || 0);
+  return _mConvertCurrency(amount, base, to, Number(rules?.exchange_rate || 1));
+}
+
+function _mCurFace(cur) {
+  return String(cur || 'EUR').toUpperCase() === 'TRY' ? 'TL' : String(cur || 'EUR').toUpperCase();
+}
+
+function _mPaintCurToggle() {
+  const on = !!window._muhViewTry;
+  document.querySelectorAll('#muh-cur-toggle .muh-cur-btn').forEach((btn) => {
+    btn.classList.toggle('is-on', (btn.dataset.cur === 'TRY') === on);
+  });
+}
+
+function setMuhViewCurrency(cur) {
+  window._muhViewTry = String(cur || '').toUpperCase() === 'TRY';
+  _mPaintCurToggle();
+  const fid = typeof muhasebeFirmId === 'function' ? muhasebeFirmId() : '';
+  const rules = window._payrollRulesCacheByFirm?.[fid];
+  const rows = window._muhasebeRows || [];
+  if (!rules) return;
+  renderMuhasebeSummaryCards(rows, rules);
+  renderMuhasebeRowsTable(rows, rules);
 }
 
 function _mAltAmount(amount, cur, rate) {
@@ -1193,18 +1231,20 @@ function renderMuhasebeSummaryCards(rows, rules) {
   const taxBase = Math.max(0, totalRevenue - sum.pay);
   const companyTax = rules.government_supported ? 0 : taxBase * (Number(rules.tax_rate_percent || 0) / 100);
   const netProfit = totalRevenue - sum.pay - companyTax - sum.sgk;
-  const cur = _mEsc(rules.currency || 'EUR');
+  const cur = _mEsc(_mCurFace(_mViewCur(rules)));
+  const v = (n) => _mFmt(_mViewAmt(n, rules));
+  _mPaintCurToggle();
   box.innerHTML = `
-    <div class="stat-card"><div class="stat-lbl">Gelir (${cur})</div><div class="stat-val">${_mFmt(totalRevenue)}</div><div class="stat-meta">${sum.success} başarılı randevu</div></div>
-    <div class="stat-card"><div class="stat-lbl">Baz Maaş (${cur})</div><div class="stat-val">${_mFmt(sum.base)}</div></div>
-    <div class="stat-card stat-green"><div class="stat-lbl">Prim (${cur})</div><div class="stat-val">${_mFmt(sum.bonus)}</div></div>
-    <div class="stat-card"><div class="stat-lbl">${_mEsc(t('muh.office'))} (${cur})</div><div class="stat-val">${_mFmt(sum.office)}</div></div>
-    <div class="stat-card"><div class="stat-lbl">${_mEsc(t('muh.sgk'))} (${cur})</div><div class="stat-val">${_mFmt(sum.sgk)}</div></div>
-    <div class="stat-card stat-red"><div class="stat-lbl">Toplam Kesinti (${cur})</div><div class="stat-val">${_mFmt(sum.pen)}</div></div>
-    <div class="stat-card"><div class="stat-lbl">Şirket Vergisi (${cur})</div><div class="stat-val">${_mFmt(companyTax)}</div><div class="stat-meta">Matrah: ${_mFmt(taxBase)} ${cur}</div></div>
-    <div class="stat-card stat-blue"><div class="stat-lbl">Hakediş (${cur})</div><div class="stat-val">${_mFmt(sum.pay)}</div>${_mAltAmount(sum.pay, cur, rules.exchange_rate)}</div>
-    <div class="stat-card stat-purple"><div class="stat-lbl">Kalan (${cur})</div><div class="stat-val">${_mFmt(sum.rem)}</div><div class="stat-meta">Ödenen: ${_mFmt(sum.paid)} ${cur}</div></div>
-    <div class="stat-card"><div class="stat-lbl">Net Kar (${cur})</div><div class="stat-val" style="color:${netProfit>=0?'var(--green)':'var(--red)'}">${_mFmt(netProfit)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Gelir (${cur})</div><div class="stat-val">${v(totalRevenue)}</div><div class="stat-meta">${sum.success} başarılı randevu</div></div>
+    <div class="stat-card"><div class="stat-lbl">Baz Maaş (${cur})</div><div class="stat-val">${v(sum.base)}</div></div>
+    <div class="stat-card stat-green"><div class="stat-lbl">Prim (${cur})</div><div class="stat-val">${v(sum.bonus)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">${_mEsc(t('muh.office'))} (${cur})</div><div class="stat-val">${v(sum.office)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">${_mEsc(t('muh.sgk'))} (${cur})</div><div class="stat-val">${v(sum.sgk)}</div></div>
+    <div class="stat-card stat-red"><div class="stat-lbl">Toplam Kesinti (${cur})</div><div class="stat-val">${v(sum.pen)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Şirket Vergisi (${cur})</div><div class="stat-val">${v(companyTax)}</div><div class="stat-meta">Matrah: ${v(taxBase)} ${cur}</div></div>
+    <div class="stat-card stat-blue"><div class="stat-lbl">Hakediş (${cur})</div><div class="stat-val">${v(sum.pay)}</div></div>
+    <div class="stat-card stat-purple"><div class="stat-lbl">Kalan (${cur})</div><div class="stat-val">${v(sum.rem)}</div><div class="stat-meta">Ödenen: ${v(sum.paid)} ${cur}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Net Kar (${cur})</div><div class="stat-val" style="color:${netProfit>=0?'var(--green)':'var(--red)'}">${v(netProfit)}</div></div>
   `;
 }
 
@@ -1244,13 +1284,10 @@ function renderMuhasebeRowsTable(rows, rules) {
     return;
   }
   const admin = isMuhasebeAdmin();
-  const cur = _mEsc(rules.currency || 'EUR');
+  const cur = _mEsc(_mCurFace(_mViewCur(rules)));
+  const money = (n) => _mFmt(_mViewAmt(n, rules));
   const roleOf = (role) => (typeof firmRoleLabel === 'function' ? firmRoleLabel(role) : (role || ''));
   const meta = (text) => (text ? `<span class="muh-meta"> · ${_mEsc(text)}</span>` : '');
-  const fxTitle = (amount) => {
-    const alt = _mAltAmount(amount, rules.currency, rules.exchange_rate).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-    return alt ? ` title="${_mEsc(alt)}"` : '';
-  };
   wrap.innerHTML = `<div class="muh-pay-note">${_mEsc(t('muh.pay_note'))} ${cur}</div><table class="muh-pay-table"><thead><tr>
     <th>Personel</th><th>${_mEsc(t('muh.cat.col'))}</th><th>Başarılı</th><th>Baz</th><th>Prim</th><th>${_mEsc(t('muh.office'))}</th><th>${_mEsc(t('muh.sgk'))}</th><th>Geç</th><th>İzin</th>
     <th>Manuel</th><th>Hakediş</th><th>Ödenen</th><th>Kalan</th>${admin ? '<th></th>' : ''}
@@ -1265,16 +1302,16 @@ function renderMuhasebeRowsTable(rows, rules) {
         <td><span class="muh-pay-person"><strong>${_mEsc(r.user_name)}</strong><span class="muh-meta">${_mEsc(roleOf(r.role))}</span></span></td>
         <td>${_mEsc(r.categoryName || '—')}</td>
         <td class="num">${r.success}</td>
-        <td class="num">${_mFmt(r.baseSalary)}</td>
-        <td class="num">${_mFmt(r.bonus)}</td>
-        <td class="num">${_mFmt(r.officePay || 0)}${meta(officeMeta)}</td>
-        <td class="num">${_mFmt(r.sgkCost || 0)}</td>
-        <td class="num">${_mFmt(r.latePenalty)}${meta(lateMeta)}</td>
-        <td class="num">${_mFmt(r.leavePenalty)}${meta(leaveMeta)}</td>
-        <td class="num">${manualClass ? `<span class="muh-badge ${manualClass}">${manualNet > 0 ? '+' : ''}${_mFmt(manualNet)}</span>` : _mFmt(0)}</td>
-        <td class="num"${fxTitle(r.netPayable)} style="font-weight:800;">${_mFmt(r.netPayable)}</td>
-        <td class="num">${_mFmt(r.paidAmount)}</td>
-        <td class="num" style="font-weight:800;color:${r.remaining > 0 ? 'var(--red)' : 'var(--green)'};">${_mFmt(r.remaining)}</td>
+        <td class="num">${money(r.baseSalary)}</td>
+        <td class="num">${money(r.bonus)}</td>
+        <td class="num">${money(r.officePay || 0)}${meta(officeMeta)}</td>
+        <td class="num">${money(r.sgkCost || 0)}</td>
+        <td class="num">${money(r.latePenalty)}${meta(lateMeta)}</td>
+        <td class="num">${money(r.leavePenalty)}${meta(leaveMeta)}</td>
+        <td class="num">${manualClass ? `<span class="muh-badge ${manualClass}">${manualNet > 0 ? '+' : ''}${money(manualNet)}</span>` : money(0)}</td>
+        <td class="num" style="font-weight:800;">${money(r.netPayable)}</td>
+        <td class="num">${money(r.paidAmount)}</td>
+        <td class="num" style="font-weight:800;color:${r.remaining > 0 ? 'var(--red)' : 'var(--green)'};">${money(r.remaining)}</td>
         ${admin ? `<td><div class="muh-row-acts">
           <button class="btn btn-ghost btn-sm" onclick="openPayCategoryMonths('${r.user_id}')">${_mEsc(t('muh.cat.col'))}</button>
           <button class="btn btn-ghost btn-sm" onclick="setPayrollOfficeDays('${r.user_id}')">${_mEsc(t('muh.office_days'))}</button>
@@ -1284,10 +1321,10 @@ function renderMuhasebeRowsTable(rows, rules) {
         </div></td>` : ''}
       </tr>`;
     }).join('')
-  }</tbody><tfoot><tr class="muh-total">${_mPayrollTotalCells(rows, admin)}</tr></tfoot></table>`;
+  }</tbody><tfoot><tr class="muh-total">${_mPayrollTotalCells(rows, rules, admin)}</tr></tfoot></table>`;
 }
 
-function _mPayrollTotalCells(rows, admin) {
+function _mPayrollTotalCells(rows, rules, admin) {
   const sum = rows.reduce((a, r) => {
     a.success += Number(r.success || 0);
     a.base += Number(r.baseSalary || 0);
@@ -1302,7 +1339,7 @@ function _mPayrollTotalCells(rows, admin) {
     a.rem += Number(r.remaining || 0);
     return a;
   }, { success: 0, base: 0, bonus: 0, office: 0, sgk: 0, late: 0, leave: 0, manual: 0, pay: 0, paid: 0, rem: 0 });
-  const money = n => _mFmt(n);
+  const money = n => _mFmt(_mViewAmt(n, rules));
   return `<td>${_mEsc(t('muh.total'))}</td><td></td><td class="num">${sum.success}</td><td class="num">${money(sum.base)}</td><td class="num">${money(sum.bonus)}</td><td class="num">${money(sum.office)}</td><td class="num">${money(sum.sgk)}</td><td class="num">${money(sum.late)}</td><td class="num">${money(sum.leave)}</td><td class="num">${sum.manual > 0 ? '+' : ''}${money(sum.manual)}</td><td class="num">${money(sum.pay)}</td><td class="num">${money(sum.paid)}</td><td class="num">${money(sum.rem)}</td>${admin ? '<td></td>' : ''}`;
 }
 
