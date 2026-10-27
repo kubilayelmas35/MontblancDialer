@@ -361,10 +361,14 @@ async function loadAppointmentResultsSettings() {
   const fid = getActiveFirmId() || currentUser?.firm_id;
   if (!fid) {
     wrap.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Randevu sonuçlarını görmek için firma seçin.</div>`;
+    const bosHost = document.getElementById('s-bos-color-row');
+    if (bosHost) bosHost.innerHTML = '';
     return;
   }
   const rows = await loadFirmAppointmentResults(fid, true);
   renderAppointmentResultRows(rows);
+  if (typeof mbReloadFirmTakvimDefaults === 'function') await mbReloadFirmTakvimDefaults(fid);
+  renderBosSlotColor(window._firmDefaultTakvimByFirm?.[fid] || {});
 }
 
 function renderAppointmentResultRows(rows) {
@@ -407,6 +411,41 @@ function renderAppointmentResultRows(rows) {
   mbBindResultReorder(wrap);
 }
 
+function renderBosSlotColor(tk) {
+  const host = document.getElementById('s-bos-color-row');
+  if (!host) return;
+  const say = typeof t === 'function' ? t : ((k) => k);
+  const color = _normalizeResultColor(tk?.bos_color || '#3b82f6');
+  const storedFrom = /^#[0-9A-Fa-f]{6}$/.test(String(tk?.bos_color_from || '').trim()) ? String(tk.bos_color_from).trim() : '';
+  host.innerHTML = `<div class="ar-row ar-row-bos">
+    <span class="ar-grip" aria-hidden="true"></span>
+    <div class="form-row"><label class="form-label">Sonuç tipi</label><input class="form-input" value="${_uiEsc(say('qc.color.bos'))}" disabled></div>
+    <div class="form-row"><label class="form-label">Görünen ad</label><input class="form-input" value="${_uiEsc(say('cal.filter.empty'))}" disabled></div>
+    <div class="form-row ar-colors">
+      <label class="form-label">${_uiEsc(say('qc.color.pair'))}</label>
+      <div class="ar-grad">
+        <input class="form-input" id="ar-color-from-bos" type="color" data-auto="${storedFrom ? '0' : '1'}" value="${_uiEsc(storedFrom || _resultAutoFrom(color))}" title="${_uiEsc(say('qc.color.start'))}">
+        <input class="form-input" id="ar-color-bos" type="color" value="${_uiEsc(color)}" title="${_uiEsc(say('qc.color.end'))}">
+        <span class="ar-grad-bar"></span>
+      </div>
+    </div>
+    <span></span>
+    <span></span>
+  </div>`;
+  const row = host.querySelector('.ar-row');
+  if (row) mbBindResultGradient(row);
+}
+
+function readBosSlotColor() {
+  const colorEl = document.getElementById('ar-color-bos');
+  const fromEl = document.getElementById('ar-color-from-bos');
+  if (!colorEl) return null;
+  const color = _normalizeResultColor(colorEl.value || '#3b82f6');
+  const out = { color };
+  if (fromEl && fromEl.dataset.auto !== '1') out.color_from = _normalizeResultColor(fromEl.value);
+  return out;
+}
+
 function _resultAutoFrom(color) {
   const end = _normalizeResultColor(color);
   if (typeof takvimGradientFromAccent === 'function') return takvimGradientFromAccent(end).from;
@@ -416,7 +455,7 @@ function _resultAutoFrom(color) {
 function mbPaintResultGradient(row) {
   if (!row) return;
   const fromEl = row.querySelector('input[id^="ar-color-from-"]');
-  const colorEl = [...row.querySelectorAll('input[type="color"]')].find((el) => /^ar-color-\d+$/.test(el.id));
+  const colorEl = [...row.querySelectorAll('input[type="color"]')].find((el) => /^ar-color-(?:\d+|bos)$/.test(el.id));
   const bar = row.querySelector('.ar-grad-bar');
   if (!colorEl || !bar) return;
   const end = _normalizeResultColor(colorEl.value);
@@ -427,7 +466,7 @@ function mbPaintResultGradient(row) {
 
 function mbBindResultGradient(row) {
   const fromEl = row.querySelector('input[id^="ar-color-from-"]');
-  const colorEl = [...row.querySelectorAll('input[type="color"]')].find((el) => /^ar-color-\d+$/.test(el.id));
+  const colorEl = [...row.querySelectorAll('input[type="color"]')].find((el) => /^ar-color-(?:\d+|bos)$/.test(el.id));
   colorEl?.addEventListener('input', () => {
     if (fromEl?.dataset.auto === '1') fromEl.value = _resultAutoFrom(colorEl.value);
     mbPaintResultGradient(row);
@@ -504,7 +543,7 @@ function readAppointmentResultRows() {
   domRows.forEach((row, i) => {
     const picked = row.querySelector('select')?.value || '';
     const label = String(row.querySelector('input[id^="ar-label-"]')?.value || '').trim();
-    const colorEl = [...row.querySelectorAll('input[type="color"]')].find((el) => /^ar-color-\d+$/.test(el.id));
+    const colorEl = [...row.querySelectorAll('input[type="color"]')].find((el) => /^ar-color-(?:\d+|bos)$/.test(el.id));
     const fromEl = row.querySelector('input[id^="ar-color-from-"]');
     const color = _normalizeResultColor(colorEl?.value || '#64748b');
     const auto_move_down = !!row.querySelector('input[type="checkbox"]')?.checked;
@@ -542,12 +581,20 @@ async function saveAppointmentResultsSettings() {
   try {
     const firms = await sb(`firms?id=eq.${fid}&select=settings`);
     const existing = firms?.[0]?.settings || {};
+    const prevTk = existing.default_takvim && typeof existing.default_takvim === 'object' ? existing.default_takvim : {};
+    const bos = readBosSlotColor();
+    const default_takvim = { ...prevTk, bos_color: bos?.color || prevTk.bos_color || '#3b82f6' };
+    if (bos?.color_from) default_takvim.bos_color_from = bos.color_from;
+    else delete default_takvim.bos_color_from;
     await sb(`firms?id=eq.${fid}`, {
       method: 'PATCH',
       prefer: 'return=minimal',
-      body: JSON.stringify({ settings: { ...existing, appointment_results: parsed } }),
+      body: JSON.stringify({ settings: { ...existing, appointment_results: parsed, default_takvim } }),
     });
     window._apptResultsByFirm[fid] = parsed;
+    if (typeof mbRememberFirmTakvim === 'function') mbRememberFirmTakvim(fid, default_takvim);
+    if (typeof renderTakvimSlots === 'function') renderTakvimSlots();
+    if (typeof renderTakvimFailed === 'function') renderTakvimFailed();
     if (typeof loadMyMiniStats === 'function') loadMyMiniStats();
     if (typeof mbPaintTodayResults === 'function') mbPaintTodayResults();
     toast('Randevu sonuçları kaydedildi', 'ok');

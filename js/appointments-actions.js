@@ -1231,6 +1231,7 @@ async function saveTakvimSettings(applyAll = false) {
     bos_color: bosColor,
     confirm_new_slot
   };
+  if (prevCfg.bos_color_from) takvimSettings.bos_color_from = prevCfg.bos_color_from;
   try {
     const modal = document.getElementById('m-takvim-settings');
     const fid = modal?.dataset?.firmId || getActiveFirmId() || currentUser?.firm_id;

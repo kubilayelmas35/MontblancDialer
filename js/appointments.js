@@ -75,6 +75,7 @@ function mergeTakvimSettings(raw) {
   const slot_dur = Math.min(4, Math.max(1, parseInt(tk.slot_dur, 10) || 2));
   const max_slots = Math.min(40, Math.max(1, parseInt(tk.max_slots, 10) || 5));
   const bos_color = String(tk.bos_color || '').trim() || '#3b82f6';
+  const bos_color_from = /^#[0-9A-Fa-f]{6}$/.test(String(tk.bos_color_from || '').trim()) ? String(tk.bos_color_from).trim() : '';
   const confirm_new_slot = tk.confirm_new_slot !== false;
   return {
     active_days: active,
@@ -85,6 +86,7 @@ function mergeTakvimSettings(raw) {
     slot_dur,
     max_slots,
     bos_color,
+    bos_color_from,
     confirm_new_slot
   };
 }
@@ -115,7 +117,23 @@ function getCampaignTakvimSettings() {
   const fid = c?.firm_id || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
   const firmTk = fid && window._firmDefaultTakvimByFirm[fid] ? window._firmDefaultTakvimByFirm[fid] : {};
   const campTk = c?.settings?.takvim && typeof c.settings.takvim === 'object' ? c.settings.takvim : {};
-  return mergeTakvimSettings({ ...firmTk, ...campTk });
+  const merged = mergeTakvimSettings({ ...firmTk, ...campTk });
+  if (firmTk.bos_color) {
+    merged.bos_color = String(firmTk.bos_color).trim() || merged.bos_color;
+    merged.bos_color_from = /^#[0-9A-Fa-f]{6}$/.test(String(firmTk.bos_color_from || '').trim()) ? String(firmTk.bos_color_from).trim() : '';
+  }
+  return merged;
+}
+
+function mbReloadFirmTakvimDefaults(fid) {
+  _takvimDefaultsFidLoaded = null;
+  return ensureFirmTakvimDefaultsLoaded(fid);
+}
+
+function mbRememberFirmTakvim(fid, tk) {
+  if (!fid) return;
+  window._firmDefaultTakvimByFirm[fid] = { ...(tk || {}) };
+  _takvimDefaultsFidLoaded = fid;
 }
 
 function _takvimHexToRgb(hex) {
@@ -165,8 +183,7 @@ function getSlotGradientAndText(slot, appt) {
   }
   if (slot.durum === 'bos') {
     const tk = getCampaignTakvimSettings();
-    const { gradient } = takvimGradientFromAccent(tk.bos_color);
-    return { background: gradient, color: '#ffffff' };
+    return { background: takvimResultGradient(tk.bos_color, tk.bos_color_from), color: '#ffffff' };
   }
   const fid = takvimResolveFirmId(slot, appt);
   const rows = (fid && window._apptResultsByFirm?.[fid]) || (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);

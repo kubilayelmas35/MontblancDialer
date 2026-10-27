@@ -827,6 +827,9 @@ i.ph {
   border-radius: 999px;
   border: 1px solid var(--border);
 }
+#s-bos-color-row { margin-bottom: 8px; }
+.ar-row-bos .ar-grip { visibility: hidden; pointer-events: none; }
+.ar-row-bos .form-input:disabled { opacity: 1; color: var(--text); background: var(--bg-3); }
 .ar-move {
   display: flex;
   align-items: center;

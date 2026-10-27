@@ -1535,7 +1535,6 @@ async function loadDefaultTakvimFirmCard() {
     raw = rows?.[0]?.settings?.default_takvim && typeof rows[0].settings.default_takvim === 'object' ? rows[0].settings.default_takvim : {};
   } catch (_) {}
   const cfg = mergeTakvimSettings(raw);
-  const bosDisp = /^#[0-9A-Fa-f]{6}$/i.test(String(cfg.bos_color || '').trim()) ? String(cfg.bos_color).trim() : '#3b82f6';
   const dayNames = { pzt: 'Pazartesi', sal: 'Salı', car: 'Çarşamba', per: 'Perşembe', cum: 'Cuma', cmt: 'Cumartesi', paz: 'Pazar' };
   const slotOpts = [1, 2, 3, 4]
     .map((n) => `<option value="${n}"${cfg.slot_dur === n ? ' selected' : ''}>${n} saat</option>`)
@@ -1569,7 +1568,6 @@ ${Object.entries(dayNames)
 </div>
 <div class="form-row" style="margin-top:8px;"><label class="form-label">Slot süresi</label><select class="form-input" id="fdt-slot-dur">${slotOpts}</select></div>
 <div class="form-row"><label class="form-label">Gün başına maks. slot</label><input type="number" class="form-input" id="fdt-max-slots" value="${cfg.max_slots}" min="1" max="40" style="width:80px;"></div>
-<div class="form-row"><label class="form-label">Boş slot rengi</label><input type="color" class="form-input" id="fdt-bos-color" value="${bosDisp}" style="width:72px;height:40px;padding:2px;"></div>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-top:6px;">
 <input type="checkbox" id="fdt-confirm-slot" ${cfg.confirm_new_slot !== false ? 'checked' : ''}> Yeni slot eklerken onay penceresi (varsayılan)
 </label>
@@ -1595,7 +1593,6 @@ async function saveDefaultTakvimFirmSettings() {
   const end = document.getElementById('fdt-end')?.value || '20:00';
   const dur = parseInt(document.getElementById('fdt-slot-dur')?.value || '2', 10);
   const maxSlots = parseInt(document.getElementById('fdt-max-slots')?.value || '5', 10);
-  const bos_color = document.getElementById('fdt-bos-color')?.value || '#3b82f6';
   const confirm_new_slot = !!document.getElementById('fdt-confirm-slot')?.checked;
   try {
     const firms = await sb(`firms?id=eq.${fid}&select=settings`);
@@ -1603,7 +1600,7 @@ async function saveDefaultTakvimFirmSettings() {
     const prevTk = existing.default_takvim && typeof existing.default_takvim === 'object' ? existing.default_takvim : {};
     const altaBox = document.getElementById('fdt-alta-slot');
     const altaYeniSlot = altaBox ? !!altaBox.checked : prevTk.altaYeniSlot !== false;
-    const payload = { active_days: activeDays, start_hour: start, end_hour: end, slot_dur: dur, max_slots: maxSlots, bos_color, confirm_new_slot, altaYeniSlot };
+    const payload = { ...prevTk, active_days: activeDays, start_hour: start, end_hour: end, slot_dur: dur, max_slots: maxSlots, confirm_new_slot, altaYeniSlot };
     await sb(`firms?id=eq.${fid}`, {
       method: 'PATCH',
       prefer: 'return=minimal',
@@ -1634,9 +1631,11 @@ async function applyDefaultTakvimToFirmCampaigns() {
   const end = document.getElementById('fdt-end')?.value || '20:00';
   const dur = parseInt(document.getElementById('fdt-slot-dur')?.value || '2', 10);
   const maxSlots = parseInt(document.getElementById('fdt-max-slots')?.value || '5', 10);
-  const bos_color = document.getElementById('fdt-bos-color')?.value || '#3b82f6';
+  const cached = window._firmDefaultTakvimByFirm?.[fid] || {};
+  const bos_color = cached.bos_color || '#3b82f6';
   const confirm_new_slot = !!document.getElementById('fdt-confirm-slot')?.checked;
   const takvim = { active_days: activeDays, start_hour: start, end_hour: end, slot_dur: dur, max_slots: maxSlots, bos_color, confirm_new_slot };
+  if (cached.bos_color_from) takvim.bos_color_from = cached.bos_color_from;
   try {
     const camps = await sb(`campaigns?firm_id=eq.${fid}&status=eq.active&select=id,settings`);
     let n = 0;

@@ -4192,6 +4192,7 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <div class="card-title" style="margin-bottom:12px;" data-tr="Kalite kontrol sonuçları" data-de="QC-Ergebnisse">Kalite kontrol sonuçları</div>
 <div id="results-firm-selector" style="margin-bottom:10px;"></div>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Sonuç adını yaz, tipi seç. Listede olmayan bir ad için Özel ad seç. Renkte soldaki başlangıç, sağdaki bitiş; takvimde ikisi gradyan olur. Soldakine dokunmazsanız bitiş renginden koyusu kullanılır. İstersen bu sonuçta slotu otomatik alta taşı." data-de="Namen schreiben und Typ wählen. Für einen eigenen Namen Sondername wählen. Links der Anfang, rechts das Ende; im Kalender werden beide zum Verlauf. Ohne Änderung am Anfang wird das Ende abgedunkelt. Der Slot kann automatisch nach unten wandern.">Sonuç adını yaz, tipi seç. Listede olmayan bir ad için Özel ad seç. Renkte soldaki başlangıç, sağdaki bitiş; takvimde ikisi gradyan olur. Soldakine dokunmazsanız bitiş renginden koyusu kullanılır. İstersen bu sonuçta slotu otomatik alta taşı.</div>
+<div id="s-bos-color-row"></div>
 <div id="s-appt-results-rows" style="display:flex;flex-direction:column;gap:8px;"></div>
 <button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="addAppointmentResultRow()">+ Sonuç Ekle</button>
 <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="saveAppointmentResultsSettings()">Sonuçları Kaydet</button>
@@ -4206,7 +4207,7 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <div class="card" id="default-takvim-firm-card" style="display:none;">
 <div class="card-title" style="margin-bottom:12px;" data-tr="Takvim" data-de="Kalender">Takvim</div>
 <div id="takvim-settings-firm" style="margin-bottom:10px;"></div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Çalışma günleri, saat aralığı, slot süresi ve boş slot rengi. Yeni kampanyalar bu varsayılanı alır." data-de="Arbeitstage, Uhrzeiten, Slotlänge und Farbe leerer Slots. Neue Kampagnen übernehmen diese Vorgabe.">Çalışma günleri, saat aralığı, slot süresi ve boş slot rengi. Yeni kampanyalar bu varsayılanı alır.</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Çalışma günleri, saat aralığı ve slot süresi. Yeni kampanyalar bu varsayılanı alır. Boş slot rengi kalite kontrol sonuçlarındadır." data-de="Arbeitstage, Uhrzeiten und Slotlänge. Neue Kampagnen übernehmen diese Vorgabe. Die Farbe leerer Slots steht bei den QC-Ergebnissen.">Çalışma günleri, saat aralığı ve slot süresi. Yeni kampanyalar bu varsayılanı alır. Boş slot rengi kalite kontrol sonuçlarındadır.</div>
 <div id="default-takvim-firm-body" style="font-size:12px;color:var(--text-3);">Yükleniyor…</div>
 </div>
 <div class="card" id="telnyx-settings">
