@@ -272,6 +272,7 @@ ${user.role === 'qc' ? `<div class="agent-qc-scope">${agentEsc(t('qc.scope.short
 <div class="agent-card-side">
 <span style="font-size:10px;padding:2px 7px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-weight:700;">${agentEsc(text.role)}</span>
 ${typeof agentPayCatName === 'function' && agentPayCatName(user) ? `<div style="font-size:10px;color:var(--text-3);">${agentEsc(agentPayCatName(user))}</div>` : ''}
+${typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin() ? `<button type="button" class="btn btn-ghost btn-sm" style="margin-top:4px;" onclick="event.stopPropagation();openPayCategoryMonths('${user.id}')">${agentEsc(t('muh.cat.col'))}</button>` : ''}
 <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:${color};">
 <div style="width:7px;height:7px;border-radius:50%;background:${color};"></div>
 ${agentEsc(text.status)}
@@ -303,6 +304,7 @@ function agentRowsBody() {
       active: `<td>${agentEsc(text.active)}</td>`,
       '': `<td onclick="event.stopPropagation()"><div class="agent-row-actions">
 <button type="button" class="btn btn-ghost btn-sm" onclick="openAgentCampaigns('${u.id}')">${agentEsc(t('agent.campaigns'))}</button>
+${typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin() ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openPayCategoryMonths('${u.id}')">${agentEsc(t('muh.cat.col'))}</button>` : ''}
 </div></td>`,
     };
     return `<tr class="camp-row${u.is_active === false ? ' is-off' : ''}" onclick="if (event.target.closest('button, .agent-camps-cell')) return; openEditAgentModal('${u.id}')">${defs.map((col) => cells[col.key] || '').join('')}</tr>`;
@@ -394,7 +396,7 @@ async function loadAgents() {
     const ff = getFirmFilter('&');
     const fid = typeof getActiveFirmId === 'function' ? getActiveFirmId() : '';
     const [users, camps, sessions, counts, scopeFirms, scopeCustomers] = await Promise.all([
-      sb(`users?select=id,name,email,role,is_active,firm_id,payroll_category_id${ff}&role=in.(agent,qc,firm_admin,field_agent,super_admin)&order=name.asc`),
+      sb(`users?select=id,name,email,role,is_active,firm_id,payroll_category_id,payroll_category_months${ff}&role=in.(agent,qc,firm_admin,field_agent,super_admin)&order=name.asc`),
       sb(`campaigns?select=id,name,firm_id,settings${ff}&order=name.asc`),
       sb(`agent_sessions?select=agent_id,status,campaign_id,last_seen,updated_at${ff}`),
       agentFetchCounts(ff),
@@ -408,12 +410,18 @@ async function loadAgents() {
     window._agentQcScopeByFirm = {};
     window._agentQcJobSeeByFirm = {};
     window._agentPayCatByFirm = {};
+    window._agentPayCatsByFirm = {};
     (scopeFirms || []).forEach((firm) => {
+      const raw = firm.settings?.payroll?.salary_categories || [];
+      const list = typeof _mEffectiveCategories === 'function'
+        ? _mEffectiveCategories({ salary_categories: raw })
+        : (raw.length ? raw : (typeof mbBuiltinSalaryCategories === 'function' ? mbBuiltinSalaryCategories() : []));
       const map = {};
-      (firm.settings?.payroll?.salary_categories || []).forEach((c) => {
+      list.forEach((c) => {
         if (c?.id) map[c.id] = c.name || c.id;
       });
       window._agentPayCatByFirm[firm.id] = map;
+      window._agentPayCatsByFirm[firm.id] = list;
       window._agentQcScopeByFirm[firm.id] = firm.settings?.qc_customer_scope || {};
       window._agentQcJobSeeByFirm[firm.id] = firm.settings?.qc_job_see || {};
     });
@@ -813,6 +821,31 @@ function firmMoney(amount, cur) {
   return `${sym}${Number(amount || 0).toFixed(2)}`;
 }
 
+function firmCurrentPayCat(firm, user) {
+  const raw = firm?.settings?.payroll?.salary_categories || [];
+  const list = typeof _mEffectiveCategories === 'function'
+    ? _mEffectiveCategories({ salary_categories: raw })
+    : (raw.length ? raw : (typeof mbBuiltinSalaryCategories === 'function' ? mbBuiltinSalaryCategories() : []));
+  if (typeof _mCatForMonth === 'function') {
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return _mCatForMonth(user, ym, list)?.name || '';
+  }
+  return firmPayCatName(firm, user?.payroll_category_id);
+}
+
+function agentRememberPayMonths(userId, map, categoryId) {
+  const patch = (u) => {
+    if (!u || String(u.id) !== String(userId)) return;
+    u.payroll_category_months = map;
+    u.payroll_category_id = categoryId || null;
+  };
+  (_agentUsers || []).forEach(patch);
+  (window._firmsPageData?.users || []).forEach(patch);
+  if (document.getElementById('page-agents')?.classList.contains('active')) renderAgents();
+  if (document.getElementById('page-firms')?.classList.contains('active')) renderFirmsList();
+}
+
 function firmPayCatName(firm, catId) {
   if (!catId) return '';
   const cats = firm?.settings?.payroll?.salary_categories;
@@ -880,6 +913,7 @@ function onFirmsListClick(e) {
     else if (act === 'edit-user') openEditUserModal(btn.dataset.userId);
     else if (act === 'toggle') toggleUserActive(btn.dataset.userId, btn.dataset.active === '1');
     else if (act === 'pass') resetUserPass(btn.dataset.userId, btn.dataset.email || '');
+    else if (act === 'paycat' && typeof openPayCategoryMonths === 'function') openPayCategoryMonths(btn.dataset.userId);
     return;
   }
   const row = e.target.closest('[data-user-id]');
@@ -896,7 +930,7 @@ async function loadFirmsPage() {
   try {
     const [firms, users] = await Promise.all([
       sb('firms?select=*&order=created_at.asc'),
-      sb('users?select=id,firm_id,name,email,role,is_active,payroll_category_id&order=name.asc'),
+      sb('users?select=id,firm_id,name,email,role,is_active,payroll_category_id,payroll_category_months&order=name.asc'),
     ]);
     window._firmsPageData = { firms: firms || [], users: users || [] };
     renderFirmsList();
@@ -920,7 +954,7 @@ function renderFirmsList() {
     const firmHit = !q || [f.name, f.slug, firmPlanLabel(f.plan)].some((v) => String(v || '').toLocaleLowerCase('tr').includes(q));
     const users = firmHit
       ? all
-      : all.filter((u) => [u.name, u.email, firmRoleLabel(u.role), firmPayCatName(f, u.payroll_category_id)].some((v) => String(v || '').toLocaleLowerCase('tr').includes(q)));
+      : all.filter((u) => [u.name, u.email, firmRoleLabel(u.role), firmCurrentPayCat(f, u)].some((v) => String(v || '').toLocaleLowerCase('tr').includes(q)));
     if (q && !firmHit && !users.length) return '';
     const cur = typeof normalizeCurrency === 'function' ? normalizeCurrency(f.currency) : (f.currency || 'EUR');
     const bal = Number(f.balance || 0);
@@ -943,7 +977,7 @@ function renderFirmsList() {
       : '';
     const lastNote = last?.note ? `<div class="firm-bal-note">${escapeHtml(last.note)}</div>` : '';
     const userRows = users.map((u) => {
-      const cat = firmPayCatName(f, u.payroll_category_id);
+      const cat = firmCurrentPayCat(f, u);
       const initial = escapeHtml(String(u.name || '?').charAt(0));
       return `<div class="firm-user" data-user-id="${escapeHtml(u.id)}">
 <div class="firm-user-main">
@@ -956,6 +990,7 @@ function renderFirmsList() {
 <div class="firm-user-actions">
 <span class="firm-role">${escapeHtml(firmRoleLabel(u.role))}</span>
 ${cat ? `<span class="firm-cat">${escapeHtml(cat)}</span>` : ''}
+<button type="button" class="btn btn-ghost btn-sm firm-mini" data-firm-act="paycat" data-user-id="${escapeHtml(u.id)}">${escapeHtml(t('muh.cat.col'))}</button>
 <button type="button" class="btn btn-ghost btn-sm firm-mini${u.is_active ? '' : ' is-off'}" data-firm-act="toggle" data-user-id="${escapeHtml(u.id)}" data-active="${u.is_active ? '1' : '0'}">${escapeHtml(u.is_active ? t('firm.active') : t('firm.passive'))}</button>
 <button type="button" class="btn btn-ghost btn-sm firm-mini" data-firm-act="pass" data-user-id="${escapeHtml(u.id)}" data-email="${escapeHtml(u.email || '')}" title="${escapeHtml(t('firm.reset_pass'))}"><i class="ph ph-key"></i></button>
 <button type="button" class="btn btn-ghost btn-sm firm-mini" data-firm-act="edit-user" data-user-id="${escapeHtml(u.id)}"><i class="ph ph-pencil-simple"></i></button>

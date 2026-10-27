@@ -86,6 +86,77 @@ function _mNormCategories(raw) {
   }));
 }
 
+function mbBuiltinSalaryCategories() {
+  const per = (min, max, amount) => ({ min, max, amount, currency: 'EUR', calc_type: 'per_appointment' });
+  const band = (min, max, amount) => ({ min, max, amount, currency: 'EUR', calc_type: 'fixed' });
+  const bonusA = [per(21, 25, 46), per(26, 30, 48), per(31, 35, 53), per(36, 40, 61), per(41, 45, 70), per(46, 999999, 80)];
+  return _mNormCategories([
+    { id: 'kat_a', name: 'A', base_salary_amount: 1200, bonus_tiers: bonusA, salary_tiers: [] },
+    {
+      id: 'kat_b',
+      name: 'B',
+      base_salary_amount: 0,
+      bonus_tiers: bonusA,
+      salary_tiers: [band(1, 9, 500), band(10, 14, 650), band(15, 19, 1000), band(20, 999999, 1200)],
+    },
+    { id: 'kat_c', name: 'C', base_salary_amount: 1200, bonus_tiers: [per(21, 999999, 40)], salary_tiers: [] },
+  ]);
+}
+
+function _mEffectiveCategories(rules) {
+  const cats = _mNormCategories(rules?.salary_categories);
+  const names = new Set(cats.map((c) => String(c.name || '').trim().toUpperCase()));
+  if (names.has('A') && names.has('B') && names.has('C')) return cats;
+  const extra = mbBuiltinSalaryCategories().filter((c) => !names.has(String(c.name || '').trim().toUpperCase()));
+  return cats.concat(extra);
+}
+
+function _mParseMonthMap(raw) {
+  if (!raw) return {};
+  if (typeof raw === 'object' && !Array.isArray(raw)) return raw;
+  try {
+    const o = JSON.parse(String(raw));
+    return o && typeof o === 'object' && !Array.isArray(o) ? o : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function _mNamedCat(cats, name) {
+  const want = String(name || '').trim().toUpperCase();
+  return (cats || []).find((c) => String(c.name || '').trim().toUpperCase() === want) || null;
+}
+
+function _mCatForMonth(user, ym, cats) {
+  const list = cats || [];
+  const namedA = _mNamedCat(list, 'A');
+  const map = _mParseMonthMap(user?.payroll_category_months);
+  if (String(ym || '') < '2026-08') return namedA;
+  if (Object.keys(map).length) {
+    const id = map[ym];
+    if (!id) return namedA;
+    return list.find((c) => c.id === id) || namedA;
+  }
+  if (user?.payroll_category_id) return list.find((c) => c.id === user.payroll_category_id) || null;
+  return namedA;
+}
+
+function _mKatMonths() {
+  const endY = new Date().getFullYear() + 1;
+  const out = [];
+  let y = 2026;
+  let m = 8;
+  while (y < endY || (y === endY && m <= 12)) {
+    out.push(`${y}-${String(m).padStart(2, '0')}`);
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+  }
+  return out;
+}
+
 function _mEsc(s) {
   if (s == null) return '';
   return String(s)
@@ -236,25 +307,28 @@ async function canAgentSelectCustomer(fid) {
 }
 
 function _mBonusFor(successCount, tiers, ruleCurrency, targetCurrency, rate) {
-  let bonus = 0;
+  const n = Number(successCount || 0);
+  let perSum = 0;
+  let fixedAmt = 0;
+  let fixedHit = false;
   (tiers || []).forEach(t => {
     const min = Number(t.min || 0);
     const max = Number(t.max || 999999);
-    if (successCount >= min && successCount <= max) {
-      const amount = Number(t.amount || 0);
-      const calcType = t.calc_type === 'per_appointment' ? 'per_appointment' : 'fixed';
-      const ccy = (t.currency || ruleCurrency || 'EUR').toUpperCase();
-      let oneUnit = amount;
-      if (ccy !== targetCurrency) oneUnit = _mConvertCurrency(amount, ccy, targetCurrency, rate);
-      if (calcType === 'per_appointment') {
-        const countInTier = Math.max(0, Math.min(successCount, max) - min + 1);
-        bonus = oneUnit * countInTier;
-      } else {
-        bonus = oneUnit;
-      }
+    const ccy = (t.currency || ruleCurrency || 'EUR').toUpperCase();
+    let oneUnit = Number(t.amount || 0);
+    if (ccy !== targetCurrency) oneUnit = _mConvertCurrency(oneUnit, ccy, targetCurrency, rate);
+    if (t.calc_type === 'per_appointment') {
+      if (n < min) return;
+      const countInTier = Math.max(0, Math.min(n, max) - min + 1);
+      perSum += oneUnit * countInTier;
+      return;
+    }
+    if (n >= min && n <= max) {
+      fixedHit = true;
+      fixedAmt = oneUnit;
     }
   });
-  return bonus;
+  return perSum + (fixedHit ? fixedAmt : 0);
 }
 
 function _mConvertCurrency(v, from, to, rate) {
@@ -456,7 +530,9 @@ function renderPayrollRulesForm(r) {
   renderPayrollTierRows('bonus', bonusTiers);
   renderPayrollTierRows('salary', salaryTiers);
   renderCustomerRateTable(r);
-  if (typeof renderSalaryCategoryEditor === 'function') renderSalaryCategoryEditor(r.salary_categories || []);
+  if (typeof renderSalaryCategoryEditor === 'function') {
+    renderSalaryCategoryEditor(_mEffectiveCategories(r));
+  }
   onFxProviderChange();
   updatePayrollPreview();
 }
@@ -548,7 +624,7 @@ function updatePayrollPreview() {
   const revenue = success * revenuePerSuccess;
   const matrah = Math.max(0, revenue - net);
   const companyTax = gov ? 0 : matrah * (taxRate / 100);
-  out.innerHTML = `Başarılı: <b>${success}</b> · Baz(Net): <b>${_mFmt(salary)} ${currency}</b> · Prim: <b>${_mFmt(bonus)} ${currency}</b> · Personel Hakedişi: <b>${_mFmt(net)} ${currency}</b> · Şirket Geliri: <b>${_mFmt(revenue)} ${currency}</b> · Şirket Vergisi: <b>${_mFmt(companyTax)} ${currency}</b><div style="margin-top:4px;font-size:11px;color:var(--text-3);">Prim tipi: Sabit = kademeye girince tek tutar, Randevu Başı = aralıktaki her randevu için tutar.</div>`;
+  out.innerHTML = `Başarılı: <b>${success}</b> · Baz(Net): <b>${_mFmt(salary)} ${currency}</b> · Prim: <b>${_mFmt(bonus)} ${currency}</b> · Personel Hakedişi: <b>${_mFmt(net)} ${currency}</b> · Şirket Geliri: <b>${_mFmt(revenue)} ${currency}</b> · Şirket Vergisi: <b>${_mFmt(companyTax)} ${currency}</b><div style="margin-top:4px;font-size:11px;color:var(--text-3);">Prim tipi: Sabit = kademeye girince tek tutar. Randevu başı = her kademedeki randevu kendi tutarıyla toplanır.</div>`;
 }
 
 async function savePayrollRules() {
@@ -882,7 +958,7 @@ async function deleteMuhasebeCustomer(id) {
 
 async function _mFetchUsers(fid) {
   try {
-    const rows = await sb(`users?firm_id=eq.${fid}&is_active=eq.true&select=id,name,role,payroll_category_id&order=name.asc`);
+    const rows = await sb(`users?firm_id=eq.${fid}&is_active=eq.true&select=id,name,role,payroll_category_id,payroll_category_months&order=name.asc`);
     return rows || [];
   } catch (e) {
     return [];
@@ -969,7 +1045,7 @@ async function renderMuhasebePayrollTable(fid, ym, rules, opts = {}) {
   const rows = users.map(u => {
     const st = statsByUser[u.id] || { success: 0, fail: 0, pending: 0, qc: 0, cancel: 0, leaveDays: 0, lateCount: 0, entitlementExtra: 0 };
     const ov = overMap[u.id] || {};
-    const cat = (rules.salary_categories || []).find(c => c.id && c.id === u.payroll_category_id) || null;
+    const cat = _mCatForMonth(u, ym, _mEffectiveCategories(rules));
     const noTermin = !!ov.no_termin || !!cat?.fixed_staff;
     const mode = ov.base_salary_mode || rules.base_salary_mode;
     const rawBaseSalary = (ov.base_salary_amount != null && ov.base_salary_amount !== '')
@@ -1076,8 +1152,14 @@ async function renderMuhasebePayrollTable(fid, ym, rules, opts = {}) {
   const payrollRowForSelf = rows.find(r => r.user_id === currentUser.id) || null;
   const uidSelf = currentUser.id;
   const ovSelf = overMap[uidSelf] || {};
-  const bonusTiersSelf = Array.isArray(ovSelf.bonus_tiers) ? ovSelf.bonus_tiers : rules.bonus_tiers;
-  const salaryTiersSelf = Array.isArray(ovSelf.salary_tiers) ? ovSelf.salary_tiers : rules.salary_tiers;
+  const selfUser = users.find(u => u.id === uidSelf) || { id: uidSelf };
+  const selfCat = _mCatForMonth(selfUser, ym, _mEffectiveCategories(rules));
+  const bonusTiersSelf = (Array.isArray(ovSelf.bonus_tiers) && ovSelf.bonus_tiers.length)
+    ? ovSelf.bonus_tiers
+    : (selfCat?.bonus_tiers?.length ? selfCat.bonus_tiers : rules.bonus_tiers);
+  const salaryTiersSelf = (Array.isArray(ovSelf.salary_tiers) && ovSelf.salary_tiers.length)
+    ? ovSelf.salary_tiers
+    : (selfCat?.salary_tiers?.length ? selfCat.salary_tiers : rules.salary_tiers);
   if (['agent', 'qc'].includes(currentUser?.role || '')) {
     if (typeof loadAgentSalaryDash === 'function') {
       loadAgentSalaryDash(fid, ym, rules, payrollRowForSelf, bonusTiersSelf, salaryTiersSelf);
@@ -1178,6 +1260,7 @@ function renderMuhasebeRowsTable(rows, rules) {
         <td>${_mFmt(r.paidAmount)} ${cur}</td>
         <td style="font-weight:800;color:${r.remaining > 0 ? 'var(--red)' : 'var(--green)'};">${_mFmt(r.remaining)} ${cur}</td>
         ${admin ? `<td>
+          <button class="btn btn-ghost btn-sm" onclick="openPayCategoryMonths('${r.user_id}')">${_mEsc(t('muh.cat.col'))}</button>
           <button class="btn btn-ghost btn-sm" onclick="setPayrollOfficeDays('${r.user_id}')">${_mEsc(t('muh.office_days'))}</button>
           <button class="btn btn-ghost btn-sm" onclick="openPayrollOverride('${r.user_id}')">Özel Ayar</button>
           <button class="btn btn-ghost btn-sm" onclick="addPayrollAdjustment('${r.user_id}')">${_mEsc(t('muh.adj.btn'))}</button>

@@ -434,7 +434,21 @@ async function muhFillPayCategorySelect(prefill, selectId = 'am-paycat') {
   if (!host || typeof loadFirmPayrollRules !== 'function') return;
   const fid = document.getElementById('am-firm')?.value || prefill?.firm_id || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id;
   const rules = await loadFirmPayrollRules(fid, true);
-  const cats = _mNormCategories(rules.salary_categories);
+  const cats = _mEffectiveCategories(rules);
+  const uid = prefill?.id || '';
+  if (uid && typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin()) {
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const cat = _mCatForMonth(prefill, ym, cats);
+    host.innerHTML = `<div class="form-row"><label class="form-label">${_mEsc(t('muh.cat.pick'))}</label>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <strong>${_mEsc(cat?.name || t('muh.cat.none'))}</strong>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openPayCategoryMonths('${_mEsc(uid)}')">${_mEsc(t('muh.cat.months'))}</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:4px;">${_mEsc(t('muh.cat.month_hint'))}</div>
+    </div>`;
+    return;
+  }
   const cur = prefill?.payroll_category_id || '';
   host.innerHTML = `<div class="form-row"><label class="form-label">${_mEsc(t('muh.cat.pick'))}</label>
     <select class="form-input" id="${selectId}">
@@ -446,6 +460,106 @@ async function muhFillPayCategorySelect(prefill, selectId = 'am-paycat') {
 }
 
 function agentPayCatName(user) {
+  const list = window._agentPayCatsByFirm?.[user?.firm_id];
+  if (list && typeof _mCatForMonth === 'function') {
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return _mCatForMonth(user, ym, list)?.name || '';
+  }
   const map = window._agentPayCatByFirm?.[user?.firm_id] || {};
   return map[user?.payroll_category_id] || '';
+}
+
+function applyBuiltinSalaryCategories() {
+  if (typeof mbBuiltinSalaryCategories !== 'function') return;
+  const ask = typeof mbConfirm === 'function'
+    ? mbConfirm(t('muh.cat.preset_ask'), t('muh.cat.preset'))
+    : Promise.resolve(window.confirm(t('muh.cat.preset_ask')));
+  Promise.resolve(ask).then((ok) => {
+    if (!ok) return;
+    renderSalaryCategoryEditor(mbBuiltinSalaryCategories());
+  });
+}
+
+async function openPayCategoryMonths(userId) {
+  if (!userId || (typeof mbIsFirmAdmin === 'function' && !mbIsFirmAdmin())) return;
+  const rows = await sb(`users?id=eq.${userId}&select=id,name,firm_id,payroll_category_id,payroll_category_months`).catch(() => []);
+  const user = rows?.[0];
+  if (!user) return;
+  const rules = await loadFirmPayrollRules(user.firm_id, true);
+  const cats = _mEffectiveCategories(rules);
+  if (!cats.length) {
+    toast(t('muh.cat.empty'), 'err');
+    return;
+  }
+  const now = new Date();
+  const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const months = _mKatMonths();
+  document.getElementById('m-paykat')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'm-paykat';
+  modal.className = 'modal-overlay open';
+  modal.style.zIndex = '3200';
+  modal.innerHTML = `<div class="modal" style="max-width:560px;">
+    <div class="modal-hdr">
+      <div class="modal-title">${_mEsc(tReplace('muh.cat.month_title', { name: user.name || '' }))}</div>
+      <button class="modal-close" type="button" onclick="document.getElementById('m-paykat')?.remove()">✕</button>
+    </div>
+    <div style="padding:12px 16px 16px;">
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">${_mEsc(t('muh.cat.month_hint'))}</div>
+      <div class="tbl-wrap" style="max-height:420px;overflow:auto;">
+        <table>
+          <thead><tr><th>${_mEsc(t('muh.month'))}</th>${cats.map((c) => `<th>${_mEsc(c.name)}</th>`).join('')}</tr></thead>
+          <tbody id="paykat-body">${months.map((ym) => {
+            const picked = _mCatForMonth(user, ym, cats);
+            const cur = ym === nowKey ? ' style="background:var(--accent-soft);"' : '';
+            return `<tr data-ym="${ym}"${cur}><td>${_mEsc(_mbMonthFaceText(ym))}</td>${cats.map((c) => `<td><input type="radio" name="paykat-${ym}" value="${_mEsc(c.id)}" ${picked && picked.id === c.id ? 'checked' : ''}></td>`).join('')}</tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" type="button" onclick="document.getElementById('m-paykat')?.remove()">${_mEsc(t('muh.adj.cancel'))}</button>
+      <button class="btn btn-primary" type="button" onclick="savePayCategoryMonths('${_mEsc(user.id)}')">${_mEsc(t('muh.cat.months'))}</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+async function savePayCategoryMonths(userId) {
+  if (!userId || (typeof mbIsFirmAdmin === 'function' && !mbIsFirmAdmin())) return;
+  const rows = await sb(`users?id=eq.${userId}&select=id,firm_id,payroll_category_months`).catch(() => []);
+  const user = rows?.[0];
+  if (!user) return;
+  const rules = await loadFirmPayrollRules(user.firm_id, true);
+  const cats = _mEffectiveCategories(rules);
+  const def = _mNamedCat(cats, 'A');
+  const map = _mParseMonthMap(user.payroll_category_months);
+  const now = new Date();
+  const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  let currentId = user.payroll_category_id || null;
+  document.querySelectorAll('#paykat-body tr').forEach((tr) => {
+    const ym = tr.getAttribute('data-ym');
+    const checked = tr.querySelector('input:checked');
+    if (!ym || !checked) return;
+    const id = checked.value;
+    if (!id || (def && id === def.id)) delete map[ym];
+    else map[ym] = id;
+    if (ym === nowKey) currentId = (!id || (def && id === def.id)) ? null : id;
+  });
+  try {
+    await sb(`users?id=eq.${userId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ payroll_category_months: map, payroll_category_id: currentId }),
+    });
+    if (typeof agentRememberPayMonths === 'function') agentRememberPayMonths(userId, map, currentId);
+    document.getElementById('m-paykat')?.remove();
+    toast(t('muh.cat.saved'), 'ok');
+    if (document.getElementById('page-muhasebe')?.classList.contains('active') && typeof loadMuhasebePage === 'function') loadMuhasebePage();
+    else if (document.getElementById('page-maasim')?.classList.contains('active') && typeof loadMaasimPage === 'function') loadMaasimPage();
+  } catch (e) {
+    toast(e.message || t('muh.cat.saved'), 'err');
+  }
 }

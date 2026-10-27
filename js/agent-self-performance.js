@@ -53,15 +53,16 @@ function _aspConvertCurrency(v, from, to, rate) {
 function _aspTierBonusPortion(success, t, ruleCurrency, targetCurrency, rate) {
   const min = Number(t.min || 0);
   const max = Number(t.max || 999999);
-  if (success < min || success > max) return { portion: 0, countInTier: 0, active: false };
+  if (success < min) return { portion: 0, countInTier: 0, active: false };
   const calcType = t.calc_type === 'per_appointment' ? 'per_appointment' : 'fixed';
   const ccy = (t.currency || ruleCurrency || 'EUR').toUpperCase();
   let oneUnit = Number(t.amount || 0);
   if (ccy !== targetCurrency) oneUnit = _aspConvertCurrency(oneUnit, ccy, targetCurrency, rate);
   if (calcType === 'per_appointment') {
     const countInTier = Math.max(0, Math.min(success, max) - min + 1);
-    return { portion: oneUnit * countInTier, countInTier, active: true };
+    return { portion: oneUnit * countInTier, countInTier, active: countInTier > 0 };
   }
+  if (success > max) return { portion: 0, countInTier: 0, active: false };
   return { portion: oneUnit, countInTier: 0, active: true };
 }
 
