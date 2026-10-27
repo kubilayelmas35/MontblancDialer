@@ -46,9 +46,18 @@ function mbSyncStatsChrome() {
   if (extra) extra.style.display = view === 'overview' ? 'none' : 'flex';
   const exp = document.getElementById('stats-export-btns');
   if (exp) exp.style.display = view === 'overview' ? '' : 'none';
-  const result = document.getElementById('stats-result-f');
-  if (result) result.style.display = view === 'result' ? '' : 'none';
+  if (typeof repSyncResultFilter === 'function') repSyncResultFilter(false);
   if (typeof repPaintHourTools === 'function') repPaintHourTools();
+}
+
+function repSyncResultFilter(show) {
+  const sel = document.getElementById('stats-result-f');
+  const lbl = document.getElementById('stats-result-lbl');
+  if (sel) sel.style.display = show ? '' : 'none';
+  if (lbl) {
+    lbl.style.display = show ? '' : 'none';
+    lbl.textContent = show ? t('rep.durum.label') : '';
+  }
 }
 
 function repCard(title, body, hint) {
@@ -415,15 +424,21 @@ function repPaint(view, pack, range, userById, sessById) {
 function repResult(logs) {
   const sel = document.getElementById('stats-result-f');
   const keys = repByOutcome(logs).map((row) => row.key);
+  if (!keys.length) {
+    if (sel) sel.innerHTML = '';
+    repSyncResultFilter(false);
+    return repCard(t('nav.rep_result'), `<div class="firm-none">${statsEsc(t('rep.close.empty'))}</div>`);
+  }
   const current = sel?.value || '';
   if (sel) {
     const keep = keys.includes(current) ? current : (keys[0] || '');
     sel.innerHTML = keys.map((key) => `<option value="${statsEsc(key)}">${statsEsc(repOutcomeLabel(key))}</option>`).join('');
     if (keep) sel.value = keep;
   }
+  repSyncResultFilter(true);
   const key = sel?.value || keys[0] || '';
   const rows = logs.filter((l) => statsOutcomeKey(l.outcome) === key);
-  return repCard(repOutcomeLabel(key), repHours(rows.map((l) => l.started_at)));
+  return repCard(repOutcomeLabel(key), repHours(rows.map((l) => l.started_at)), t('rep.close.hint'));
 }
 
 const REP_COLORS = ['#16a34a', '#2563eb', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#db2777', '#64748b'];
