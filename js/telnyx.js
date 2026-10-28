@@ -115,10 +115,109 @@ function mbRememberTelnyxIds(call) {
 }
 
 function mbRecWarn(key, fallback) {
-  if (window._mbRecWarned) return;
-  window._mbRecWarned = true;
+  const stamp = Date.now();
+  if (window._mbRecWarned && stamp - window._mbRecWarned < 4000) return;
+  window._mbRecWarned = stamp;
   const msg = typeof t === 'function' ? t(key) : fallback;
   if (typeof toast === 'function') toast(!msg || msg === key ? fallback : msg, 'warn');
+}
+
+function mbCallLocalStream(call) {
+  if (call?.localStream?.getAudioTracks?.().some((track) => track.readyState === 'live')) return call.localStream;
+  const pc = call?.peer?.instance || call?.peerConnection || call?.pc;
+  if (!pc?.getSenders) return null;
+  const tracks = pc.getSenders().map((sender) => sender.track).filter((track) => track && track.kind === 'audio' && track.readyState === 'live');
+  if (!tracks.length) return null;
+  const stream = new MediaStream();
+  tracks.forEach((track) => stream.addTrack(track));
+  return stream;
+}
+
+function mbArmLocalRecording(call) {
+  if (!call || call.__mbLocalRec || call.__mbSupervisor || String(call.id || '').startsWith('sim-')) return;
+  if (typeof _testMode !== 'undefined' && _testMode) return;
+  if (typeof MediaRecorder === 'undefined') {
+    call.__mbLocalMiss = 'nosound';
+    return;
+  }
+  if (typeof mbCallIsDead === 'function' && mbCallIsDead(call)) return;
+  const remote = call.remoteStream || document.getElementById('_telnyx_audio')?.srcObject;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!remote || !Ctx) {
+    if (!call.__mbLocalRetry) {
+      call.__mbLocalRetry = true;
+      setTimeout(() => mbArmLocalRecording(call), 400);
+      return;
+    }
+    call.__mbLocalMiss = 'nosound';
+    return;
+  }
+  try {
+    const ctx = new Ctx();
+    if (ctx.state === 'suspended') ctx.resume();
+    const dest = ctx.createMediaStreamDestination();
+    ctx.createMediaStreamSource(remote).connect(dest);
+    const local = mbCallLocalStream(call);
+    if (local) {
+      try { ctx.createMediaStreamSource(local).connect(dest); } catch (e) {}
+    }
+    const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+    const mime = types.find((kind) => MediaRecorder.isTypeSupported(kind)) || '';
+    const rec = mime ? new MediaRecorder(dest.stream, { mimeType: mime }) : new MediaRecorder(dest.stream);
+    const chunks = [];
+    rec.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+    window._mbLocalRecWait = new Promise((resolve) => { call.__mbLocalDone = resolve; });
+    rec.onstop = () => {
+      const blob = new Blob(chunks, { type: rec.mimeType || mime || 'audio/webm' });
+      if (call.__mbLocalKeep && blob.size > 400) window._mbLocalRecBlob = blob;
+      else if (call.__mbLocalKeep) call.__mbLocalMiss = 'short';
+      try { ctx.close(); } catch (e) {}
+      if (typeof call.__mbLocalDone === 'function') call.__mbLocalDone(window._mbLocalRecBlob || null);
+    };
+    rec.start(1000);
+    call.__mbLocalRec = rec;
+    call.__mbLocalKeep = true;
+    call.__mbLocalMiss = '';
+    window._mbLocalRecCall = call;
+    window._mbLocalRecBlob = null;
+  } catch (e) {
+    call.__mbLocalMiss = 'nosound';
+  }
+}
+
+function mbFinishLocalRecording(call, keep) {
+  const target = call || window._mbLocalRecCall;
+  if (!target) return Promise.resolve(window._mbLocalRecBlob || null);
+  target.__mbLocalKeep = !!keep;
+  const rec = target.__mbLocalRec;
+  if (rec && rec.state !== 'inactive') {
+    try { rec.requestData(); } catch (e) {}
+    try { rec.stop(); } catch (e) {}
+  }
+  if (window._mbLocalRecBlob) return Promise.resolve(window._mbLocalRecBlob);
+  if (rec) return window._mbLocalRecWait || Promise.resolve(null);
+  return Promise.resolve(null);
+}
+
+async function mbUploadLocalRecording(blob) {
+  if (!blob || typeof SB_URL !== 'string' || typeof SB_KEY !== 'string') return '';
+  const firm = String(currentUser?.firm_id || 'shared').replace(/[^\w-]/g, '') || 'shared';
+  const ext = /mp4|aac/i.test(blob.type) ? 'm4a' : 'webm';
+  const path = `${firm}/${Date.now()}-${Math.random().toString(16).slice(2, 10)}.${ext}`;
+  const res = await fetch(`${SB_URL}/storage/v1/object/call-recordings/${path}`, {
+    method: 'POST',
+    headers: {
+      apikey: SB_KEY,
+      Authorization: `Bearer ${SB_KEY}`,
+      'Content-Type': blob.type || 'audio/webm',
+      'x-upsert': 'true',
+    },
+    body: blob,
+  });
+  if (!res.ok) throw new Error('storage');
+  window._mbLocalRecBlob = null;
+  window._mbRecWarned = 0;
+  return `${SB_URL}/storage/v1/object/public/call-recordings/${path}`;
 }
 
 async function mbTelnyxRecord(action, payload) {
@@ -154,10 +253,10 @@ function mbStartCallRecording(call) {
 }
 
 function mbNoteRecordingMiss(call) {
-  if (!call || call.__mbRecOn || call.__mbSupervisor || String(call.id || '').startsWith('sim-')) return;
+  if (!call || call.__mbRecOn || call.__mbLocalRec || window._mbLocalRecBlob || call.__mbSupervisor || String(call.id || '').startsWith('sim-')) return;
   if (typeof _testMode !== 'undefined' && _testMode) return;
-  if ((call.__mbRecTries || 0) > 0) return;
-  mbRecWarn('telnyx.rec_noid', 'Bu aramada ses kaydı kimliği gelmedi');
+  if ((call.__mbRecTries || 0) > 0 && mbTelnyxIds(call).control) return;
+  mbRecWarn('telnyx.rec_noid', 'Ses kaydı alınamadı');
 }
 
 async function mbPullRecording(logId, ids) {
@@ -476,6 +575,7 @@ function _attachLiveAudio(call) {
   }
   try { if (call?.remoteStream) { audio.srcObject = call.remoteStream; audio.play(); } } catch (e) {}
   window._telnyxRemoteStream = call?.remoteStream || null;
+  if (String(call?.state || '') === 'active') mbArmLocalRecording(call);
 }
 
 function mbConnectHopperRow(row) {
@@ -666,6 +766,7 @@ function mbOnHopperCall(call) {
     });
     _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
     if (wasLive) {
+      mbFinishLocalRecording(call, true);
       mbNoteRecordingMiss(call);
       _liveCallId = null;
       _telnyxCall = null;

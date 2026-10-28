@@ -935,22 +935,75 @@ function _buildAdhocDialContact(phoneRaw) {
   };
 }
 
+async function mbEnsureManualQueue(campId) {
+  if (!campId) return null;
+  let camp = (campaigns || []).find((c) => c.id === campId) || null;
+  if (!camp) {
+    const rows = await sb(`campaigns?id=eq.${campId}&select=id,settings,name`).catch(() => []);
+    camp = Array.isArray(rows) ? rows[0] : null;
+  }
+  const note = typeof t === 'function' ? t('camp.queue.manual.note') : 'Numara ile aramada listede olmayan kişi için otomatik oluşturulan kuyruk';
+  const label = 'Manuel';
+  let queue = (camp?.queues || []).find((q) => String(q.name || '').trim().toLocaleLowerCase('tr-TR') === 'manuel') || null;
+  if (!queue?.id) {
+    const found = await sb(`queues?campaign_id=eq.${campId}&name=ilike.${encodeURIComponent(label)}&select=id,name,status,total_contacts,campaign_id&order=created_at.desc&limit=1`).catch(() => []);
+    queue = Array.isArray(found) ? found[0] : null;
+  }
+  if (!queue?.id) {
+    const body = { campaign_id: campId, name: label, total_contacts: 0, status: 'active' };
+    if (currentUser?.firm_id) body.firm_id = currentUser.firm_id;
+    const created = await sb('queues', { method: 'POST', prefer: 'return=representation', body: JSON.stringify(body) });
+    queue = Array.isArray(created) ? created[0] : created;
+  }
+  if (!queue?.id) return null;
+  const settings = { ...(typeof getCampSettings === 'function' ? getCampSettings(camp || {}) : {}) };
+  const meta = { ...(settings.queue_meta || {}) };
+  const prev = meta[queue.id] || {};
+  if (!String(prev.notes || '').trim()) {
+    meta[queue.id] = { priority: Number(prev.priority) || 0, max_attempts: Number(prev.max_attempts) || 0, notes: note };
+    settings.queue_meta = meta;
+    await sb(`campaigns?id=eq.${campId}`, {
+      method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ settings }),
+    }).catch(() => {});
+    if (camp) camp.settings = settings;
+  }
+  const live = (campaigns || []).find((c) => c.id === campId);
+  if (live && !(live.queues || []).some((q) => q.id === queue.id)) {
+    live.queues = [{ id: queue.id, name: queue.name || label, status: queue.status || 'active', total_contacts: queue.total_contacts || 0, dialed_count: 0, campaign_id: campId }, ...(live.queues || [])];
+  }
+  return queue;
+}
+
 async function _persistAdhocDialContact(contact) {
   if (!contact?.phone || !contact?.campaign_id || !currentUser?.firm_id) return contact;
+  let queue = null;
+  try { queue = await mbEnsureManualQueue(contact.campaign_id); } catch (e) { queue = null; }
   try {
+    const payload = {
+      firm_id: currentUser.firm_id,
+      campaign_id: contact.campaign_id,
+      first_name: contact.first_name || 'Yeni',
+      last_name: contact.last_name || 'Çağrı',
+      phone: contact.phone,
+      status: 'pending',
+    };
+    if (queue?.id) payload.queue_id = queue.id;
     const rows = await sb('contacts', {
       method: 'POST',
       prefer: 'return=representation',
-      body: JSON.stringify({
-        firm_id: currentUser.firm_id,
-        campaign_id: contact.campaign_id,
-        first_name: contact.first_name || 'Yeni',
-        last_name: contact.last_name || 'Çağrı',
-        phone: contact.phone,
-        status: 'pending',
-      }),
+      body: JSON.stringify(payload),
     });
-    return rows?.[0] || contact;
+    const saved = rows?.[0] || contact;
+    if (queue?.id && saved?.id && typeof mbHeadCount === 'function') {
+      const n = await mbHeadCount(`contacts?queue_id=eq.${queue.id}&select=id`).catch(() => null);
+      if (Number.isFinite(n)) {
+        await sb(`queues?id=eq.${queue.id}`, {
+          method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ total_contacts: n }),
+        }).catch(() => {});
+        queue.total_contacts = n;
+      }
+    }
+    return saved;
   } catch (e) {
     return contact;
   }
@@ -1298,6 +1351,8 @@ async function submitOutcome(goBreak) {
       }
     }
   }
+  const manualDialWrap = !!(window._mbCallMeta && window._mbCallMeta.work && window._mbCallMeta.work !== 'auto');
+  const talked = (Number(callSeconds) || 0) > 0 || !!(window._mbCallMeta && window._mbCallMeta.answeredAt);
   let outcomeSaved = !currentContact;
   try {
     if (currentContact) {
@@ -1350,6 +1405,22 @@ async function submitOutcome(goBreak) {
         leg: window._mbCallMeta?.telnyxLegId || '',
       };
       const callExtra = typeof mbCallLogExtras === 'function' ? mbCallLogExtras() : {};
+      if (talked && typeof mbFinishLocalRecording === 'function') {
+        await Promise.race([
+          mbFinishLocalRecording(window._mbLocalRecCall, true),
+          new Promise((resolve) => setTimeout(resolve, 2000)),
+        ]);
+      }
+      if (window._mbLocalRecBlob && typeof mbUploadLocalRecording === 'function') {
+        try {
+          const localRecUrl = await mbUploadLocalRecording(window._mbLocalRecBlob);
+          if (localRecUrl) logData.recording_url = localRecUrl;
+        } catch (e) {
+          if (typeof mbRecWarn === 'function') mbRecWarn('telnyx.rec_fail', 'Ses kaydı kaydedilemedi');
+        }
+      } else if (talked && !_testMode && !logData.recording_url && typeof mbRecWarn === 'function') {
+        mbRecWarn('telnyx.rec_noid', 'Ses kaydı alınamadı');
+      }
       if (!skipAutoLog) {
       let savedLog = null;
       try {
@@ -1360,7 +1431,7 @@ async function submitOutcome(goBreak) {
       }
       const savedRow = Array.isArray(savedLog) ? savedLog[0] : savedLog;
       if (savedRow?.id && typeof mbChargeCall === 'function') void mbChargeCall(savedRow);
-      if (savedRow?.id && !String(logNotes || '').includes('__test_sim__') && (recIds.control || recIds.session || recIds.leg) && typeof mbPullRecording === 'function') {
+      if (savedRow?.id && !logData.recording_url && !String(logNotes || '').includes('__test_sim__') && (recIds.control || recIds.session || recIds.leg) && typeof mbPullRecording === 'function') {
         void mbPullRecording(savedRow.id, recIds);
       }
       if (typeof mbResetCallMeta === 'function') mbResetCallMeta();
@@ -1421,6 +1492,11 @@ async function submitOutcome(goBreak) {
     openBreakModal();
   } else if (typeof mbTakeHeldCall === 'function' && (heldNext = mbTakeHeldCall())) {
     upsertAgentSession({agent_id:currentUser.id,status:'on_call',last_seen:new Date().toISOString()}).catch(()=>{});
+  } else if (manualDialWrap) {
+    if (typeof hideOutboundWait === 'function') hideOutboundWait();
+    setDialerStatus('offline');
+    upsertAgentSession({agent_id:currentUser.id,status:'offline',last_seen:new Date().toISOString()}).catch(()=>{});
+    window._mbManualAttempt = false;
   } else {
     setDialerStatus('ready');
     upsertAgentSession({agent_id:currentUser.id,status:'ready',last_seen:new Date().toISOString()}).catch(()=>{});

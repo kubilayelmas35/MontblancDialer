@@ -637,6 +637,7 @@ function setDialerStatus(s) {
   } else {
     mbStopOutboundWaitClock();
     if (typeof mbStopRingback === 'function') mbStopRingback();
+    if ((s === 'offline' || s === 'break') && typeof hideOutboundWait === 'function') hideOutboundWait();
   }
   if (s === 'on_call' && prev !== 'on_call' && typeof mbPlayCue === 'function') mbPlayCue('connect');
   if (s === 'wrapping' && (prev === 'on_call' || prev === 'calling') && typeof mbPlayCue === 'function' && !(window._mbBusyAt && Date.now() - window._mbBusyAt < 2500)) mbPlayCue('hangup');
