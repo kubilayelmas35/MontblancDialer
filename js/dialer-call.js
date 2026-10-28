@@ -892,13 +892,16 @@ async function runManualDialSearch() {
   }
 }
 
-function pickManualDialContact(idx) {
+async function pickManualDialContact(idx) {
   if (_hasLiveCallInProgress()) {
     toast(typeof t === 'function' ? t('dial.close_active_first') : 'Önce aktif çağrıyı kapatın', 'err', 2200);
     return;
   }
   const row = window._manualDialLastResults?.[idx];
   if (!row) return;
+  if (!row.queue_id && row.campaign_id) {
+    try { await mbPlaceInManualQueue(row); } catch (e) {}
+  }
   const camp = campaigns.find((x) => x.id === row.campaign_id);
   if (row.campaign_id) selectCamp(row.campaign_id, camp?.name || '', { skipActivate: true });
   currentContact = row;
@@ -972,6 +975,32 @@ async function mbEnsureManualQueue(campId) {
     live.queues = [{ id: queue.id, name: queue.name || label, status: queue.status || 'active', total_contacts: queue.total_contacts || 0, dialed_count: 0, campaign_id: campId }, ...(live.queues || [])];
   }
   return queue;
+}
+
+async function mbPlaceInManualQueue(contact) {
+  if (!contact?.campaign_id || contact.queue_id) return contact;
+  let queue = null;
+  try { queue = await mbEnsureManualQueue(contact.campaign_id); } catch (e) { queue = null; }
+  if (!queue?.id) return contact;
+  const id = String(contact.id || '');
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return contact;
+  await sb(`contacts?id=eq.${id}`, {
+    method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ queue_id: queue.id }),
+  }).catch(() => {});
+  contact.queue_id = queue.id;
+  if (typeof mbHeadCount === 'function') {
+    const n = await mbHeadCount(`contacts?queue_id=eq.${queue.id}&select=id`).catch(() => null);
+    if (Number.isFinite(n)) {
+      await sb(`queues?id=eq.${queue.id}`, {
+        method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ total_contacts: n }),
+      }).catch(() => {});
+      queue.total_contacts = n;
+      const live = (campaigns || []).find((c) => c.id === contact.campaign_id);
+      const listed = (live?.queues || []).find((row) => row.id === queue.id);
+      if (listed) listed.total_contacts = n;
+    }
+  }
+  return contact;
 }
 
 async function _persistAdhocDialContact(contact) {

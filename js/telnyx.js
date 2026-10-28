@@ -835,6 +835,9 @@ if (typeof mbLineCallBlockedSync === 'function' && mbLineCallBlockedSync(callerN
 try {
 window._mbOutboundManual = work !== 'auto';
 window._mbManualAttempt = work !== 'auto';
+if (work !== 'auto' && contact && !contact.queue_id && typeof mbPlaceInManualQueue === 'function') {
+  void mbPlaceInManualQueue(contact);
+}
 const call = _telnyxClient.newCall({
 destinationNumber: destination,
 callerNumber: callerNumber,

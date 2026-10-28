@@ -356,26 +356,47 @@ async function attachCampaignDialCounts() {
   const ids = (campaigns || []).map((c) => c.id).filter(Boolean);
   const left = {};
   const stuck = {};
+  const looseMap = {};
   const chunk = 6;
   for (let i = 0; i < ids.length; i += chunk) {
     const slice = ids.slice(i, i + chunk);
     await Promise.all(slice.map(async (id) => {
-      const [remain, calling] = await Promise.all([
+      const [remain, calling, loose] = await Promise.all([
         typeof mbDashCount === 'function'
           ? mbDashCount(`contacts?select=id&campaign_id=eq.${id}&status=in.(pending,no_answer,callback)`)
           : null,
         typeof mbDashCount === 'function'
           ? mbDashCount(`contacts?select=id&campaign_id=eq.${id}&status=eq.calling`)
           : null,
+        typeof mbDashCount === 'function'
+          ? mbDashCount(`contacts?select=id&campaign_id=eq.${id}&queue_id=is.null&status=in.(pending,no_answer,callback)`)
+          : null,
       ]);
       left[id] = remain;
       stuck[id] = calling;
+      looseMap[id] = loose;
     }));
   }
   (campaigns || []).forEach((c) => {
     c._left = Object.prototype.hasOwnProperty.call(left, c.id) ? left[c.id] : null;
     c._stuck = Object.prototype.hasOwnProperty.call(stuck, c.id) ? stuck[c.id] : null;
+    c._loose = Object.prototype.hasOwnProperty.call(looseMap, c.id) ? looseMap[c.id] : null;
   });
+}
+
+function campLeftWhere(c) {
+  const loose = Number(c?._loose) || 0;
+  if (loose > 0) return `${campT('camp.queue.loose', 'Kuyruksuz')}: ${campCountText(loose)}`;
+  const names = (c?.queues || []).map((q) => String(q.name || '').trim()).filter(Boolean);
+  if (names.length === 1) return names[0];
+  return names.join(', ');
+}
+
+function campLeftLabel(c) {
+  const loose = Number(c?._loose) || 0;
+  if (loose > 0) return campT('camp.queue.loose', 'Kuyruksuz');
+  const names = (c?.queues || []).map((q) => String(q.name || '').trim()).filter(Boolean);
+  return names.length === 1 ? names[0] : '';
 }
 
 function campCountText(n) {
@@ -458,7 +479,7 @@ ${sb2}
 <div class="camp-kpi">
 <div class="camp-kpi-item"><div class="camp-kpi-val">${tot.toLocaleString()}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.total','Toplam'))}</div></div>
 <div class="camp-kpi-item"><div class="camp-kpi-val" style="color:var(--accent);">${dia.toLocaleString()}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.dialed','Aranan'))}</div></div>
-<div class="camp-kpi-item"><div class="camp-kpi-val${empty ? ' is-hot' : ''}">${campCountText(c._left)}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.left','Kalan'))}</div></div>
+<div class="camp-kpi-item" title="${esc(campLeftWhere(c))}"><div class="camp-kpi-val${empty ? ' is-hot' : ''}">${campCountText(c._left)}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.left','Kalan'))}${campLeftLabel(c) ? ` · ${esc(campLeftLabel(c))}` : ''}</div></div>
 <div class="camp-kpi-item"><div class="camp-kpi-val">${qs.length}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.queues','Kuyruk'))}</div></div>
 <div class="camp-kpi-item"><div class="camp-kpi-val" style="color:var(--text-2);">${ags}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.agent','Temsilci'))}</div></div>
 <div class="camp-kpi-item"><div class="camp-kpi-val${stuckHot ? ' is-hot' : ''}">${campCountText(c._stuck)}</div><div class="camp-kpi-lbl">${esc(campT('camp.kpi.stuck','Sonuçsuz'))}</div></div>
@@ -514,7 +535,7 @@ function campRowsBody() {
       queues: `<td class="num">${f.st.qs.length}</td>`,
       total: `<td class="num">${f.text.total}</td>`,
       dialed: `<td class="num">${f.text.dialed}</td>`,
-      left: `<td class="num${empty ? ' is-hot' : ''}">${esc(f.text.left)}</td>`,
+      left: `<td class="num${empty ? ' is-hot' : ''}" title="${esc(campLeftWhere(c))}">${esc(f.text.left)}${campLeftLabel(c) ? `<div class="queue-sub">${esc(campLeftLabel(c))}</div>` : ''}</td>`,
       stuck: `<td class="num${c._stuck > 0 ? ' is-hot' : ''}">${esc(f.text.stuck)}</td>`,
       pct: `<td class="num">${f.st.pct}%</td>`,
       speed: `<td class="num">${esc(c.dial_speed)} ${esc(campT('camp.speed.unit', 'hat'))}</td>`,
@@ -1393,8 +1414,12 @@ function paintQueueTable(c) {
   const qs = c?.queues || [];
   const countEl = document.getElementById('cd-queue-count');
   if (countEl) countEl.textContent = ` · ${qs.length}`;
+  const loose = Number(c?._loose) || 0;
+  const looseBar = loose > 0
+    ? `<div class="queue-sub" style="margin-bottom:8px;">${campEsc(campT('camp.queue.loose', 'Kuyruksuz'))}: ${campCountText(loose)}. ${campEsc(campT('camp.queue.loose.hint', ''))}</div>`
+    : '';
   if (!qs.length) {
-    host.innerHTML = `<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${campEsc(campT('camp.queue.none', 'Kuyruk yok'))}</div>`;
+    host.innerHTML = `${looseBar}<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">${campEsc(campT('camp.queue.none', 'Kuyruk yok'))}</div>`;
     return;
   }
   const defs = queueColDefs();
@@ -1404,7 +1429,7 @@ function paintQueueTable(c) {
       : '';
     return `<th class="${col.num ? 'num' : ''}">${campEsc(col.label)}${filter}</th>`;
   }).join('');
-  host.innerHTML = `<div class="camp-rows-wrap"><table class="camp-rows"><thead><tr>${head}</tr></thead><tbody>${queueRowsBody(c)}</tbody></table></div>`;
+  host.innerHTML = `${looseBar}<div class="camp-rows-wrap"><table class="camp-rows"><thead><tr>${head}</tr></thead><tbody>${queueRowsBody(c)}</tbody></table></div>`;
 }
 
 async function renderCampQueues(c) {
