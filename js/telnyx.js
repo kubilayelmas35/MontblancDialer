@@ -292,6 +292,7 @@ function mbStartCallRecording(call) {
 
 function mbNoteRecordingMiss(call) {
   if (mbRecordingUsesTelnyx()) return;
+  if (!(window._mbCallMeta && window._mbCallMeta.answeredAt)) return;
   if (!call || call.__mbRecOn || call.__mbLocalRec || window._mbLocalRecBlob || call.__mbSupervisor || String(call.id || '').startsWith('sim-')) return;
   if (typeof _testMode !== 'undefined' && _testMode) return;
   if ((call.__mbRecTries || 0) > 0 && mbTelnyxIds(call).control) return;

@@ -1406,6 +1406,7 @@ async function submitOutcome(goBreak) {
       };
       const callExtra = typeof mbCallLogExtras === 'function' ? mbCallLogExtras() : {};
       const telnyxRec = typeof mbRecordingUsesTelnyx === 'function' && mbRecordingUsesTelnyx();
+      const expectRec = !!(window._mbCallMeta && window._mbCallMeta.answeredAt) && finalOutcome !== 'no_answer';
       if (!telnyxRec && talked && typeof mbFinishLocalRecording === 'function') {
         await Promise.race([
           mbFinishLocalRecording(window._mbLocalRecCall, true),
@@ -1419,7 +1420,7 @@ async function submitOutcome(goBreak) {
         } catch (e) {
           if (typeof mbRecWarn === 'function') mbRecWarn('telnyx.rec_fail', 'Ses kaydı kaydedilemedi');
         }
-      } else if (!telnyxRec && talked && !_testMode && !logData.recording_url && typeof mbRecWarn === 'function') {
+      } else if (!telnyxRec && expectRec && !_testMode && !logData.recording_url && typeof mbRecWarn === 'function') {
         mbRecWarn('telnyx.rec_noid', 'Ses kaydı alınamadı');
       }
       if (!skipAutoLog) {
@@ -1432,7 +1433,7 @@ async function submitOutcome(goBreak) {
       }
       const savedRow = Array.isArray(savedLog) ? savedLog[0] : savedLog;
       if (savedRow?.id && typeof mbChargeCall === 'function') void mbChargeCall(savedRow);
-      if (savedRow?.id && telnyxRec && !String(logNotes || '').includes('__test_sim__') && typeof mbPullTelnyxRecording === 'function') {
+      if (savedRow?.id && telnyxRec && expectRec && !String(logNotes || '').includes('__test_sim__') && typeof mbPullTelnyxRecording === 'function') {
         void mbPullTelnyxRecording(savedRow.id, {
           phone: currentContact.phone,
           since: window._mbCallMeta?.dialAt || logData.started_at,
