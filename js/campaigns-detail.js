@@ -1523,6 +1523,7 @@ async function requeueOpsSlice(queueId, status) {
       });
     }
     await syncQueueDialed(queueId);
+    if (typeof mbTouchCampLeft === 'function') mbTouchCampLeft(queueId, ids.length);
     toast(campT('camp.ops.done','{n} kişi kuyruğa alındı').replace('{n}', String(ids.length)), 'ok');
     await refreshQueueOps();
   } catch (e) {
@@ -1552,6 +1553,7 @@ async function pullOpsSlice(queueId, status) {
       });
     }
     await syncQueueDialed(queueId);
+    if (typeof mbTouchCampLeft === 'function') mbTouchCampLeft(queueId, -ids.length);
     toast(campT('camp.ops.pull.done','{n} kişi kuyruktan çıkarıldı').replace('{n}', String(ids.length)), 'ok');
     await refreshQueueOps();
   } catch (e) {

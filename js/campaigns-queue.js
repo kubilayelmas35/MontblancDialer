@@ -114,6 +114,7 @@ async function doRequeue(queueId) {
       return;
     }
     await syncQueueDialed(queueId);
+    if (typeof mbTouchCampLeft === 'function') mbTouchCampLeft(queueId, moved);
     document.getElementById('m-requeue')?.remove();
     toast(campT('camp.ops.done','{n} kişi kuyruğa alındı').replace('{n}', String(moved)), 'ok');
     if (currentCampId) await loadCampaigns();

@@ -725,17 +725,27 @@ button.aca-qpick.is-on { background:var(--accent); color:#fff; border-color:var(
 .agent-camp-count { font-size:11px; color:var(--text-3); margin-top:2px; font-family:var(--mono); }
 .camp-left {
   display:inline-flex; align-items:center; justify-content:center;
-  height:22px; min-width:36px; padding:0 8px; box-sizing:border-box;
-  border-radius:11px; border:1px solid var(--border); background:var(--bg-2);
-  color:var(--text); font-family:var(--mono); font-size:12px; font-weight:800;
+  height:22px; min-width:28px; padding:0 8px; box-sizing:border-box;
+  border-radius:7px; border:0; background:var(--bg); color:var(--text-3);
+  box-shadow:inset 0 0 0 1px var(--border);
+  font-family:var(--mono); font-size:12px; font-weight:700;
   font-variant-numeric:tabular-nums; line-height:1; flex-shrink:0;
 }
-.camp-left.is-ok { background:#dcfce7; border-color:#16a34a; color:#166534; }
-.camp-left.is-warn { background:#ffedd5; border-color:#ea580c; color:#c2410c; }
-.camp-left.is-low { background:#fee2e2; border-color:#dc2626; color:#991b1b; }
-[data-theme="dark"] .camp-left.is-ok { background:rgba(22,163,74,.24); border-color:#22c55e; color:#86efac; }
-[data-theme="dark"] .camp-left.is-warn { background:rgba(234,88,12,.24); border-color:#fb923c; color:#fdba74; }
-[data-theme="dark"] .camp-left.is-low { background:rgba(220,38,38,.22); border-color:#f87171; color:#fecaca; }
+.camp-left.is-ok { background:#ecfdf3; color:#027a48; box-shadow:inset 0 0 0 1px #abefc6; }
+.camp-left.is-warn { background:#fffaeb; color:#b54708; box-shadow:inset 0 0 0 1px #fedf89; }
+.camp-left.is-low { background:var(--bg); color:var(--text-3); box-shadow:inset 0 0 0 1px var(--border); }
+.camp-left.is-low:not([data-n="0"]) {
+  background:var(--accent-soft); color:var(--accent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+[data-theme="dark"] .camp-left,
+[data-theme="dark"] .camp-left.is-low { background:rgba(255,255,255,.04); color:var(--text-3); }
+[data-theme="dark"] .camp-left.is-ok { background:rgba(22,163,74,.16); color:#86efac; box-shadow:inset 0 0 0 1px rgba(34,197,94,.45); }
+[data-theme="dark"] .camp-left.is-warn { background:rgba(234,88,12,.16); color:#fdba74; box-shadow:inset 0 0 0 1px rgba(251,146,60,.45); }
+[data-theme="dark"] .camp-left.is-low:not([data-n="0"]) {
+  background:rgba(37,99,235,.16); color:#93c5fd;
+  box-shadow:inset 0 0 0 1px rgba(96,165,250,.4);
+}
 /* Dialer üst bar: manuel arama chip + çekmeceler */
 .manual-dial-chip {
   display:flex; align-items:center; gap:10px;

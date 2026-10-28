@@ -285,6 +285,13 @@ function mbRefreshCampLeftSoon() {
   }, 400);
 }
 
+function mbTouchCampLeft(queueId, delta) {
+  const found = typeof findQueue === 'function' ? findQueue(queueId) : null;
+  const campId = found?.camp?.id || found?.queue?.campaign_id;
+  if (campId && delta) mbBumpCampLeft(campId, delta);
+  mbRefreshCampLeftSoon();
+}
+
 function _campIdsMatch(a, b) {
   return String(a || '') === String(b || '');
 }
