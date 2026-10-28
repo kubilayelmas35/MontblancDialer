@@ -290,6 +290,7 @@ async function mbBootFirmIntegrations() {
     });
     if (Object.values(seed).some(Boolean)) cfg = await mbSaveFirmIntegrations(fid, seed);
   }
+  if (typeof mbLoadRecordingSource === 'function') await mbLoadRecordingSource(fid);
   return mbApplyFirmIntegrationsLocal(cfg, true);
 }
 

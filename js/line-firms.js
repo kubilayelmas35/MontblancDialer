@@ -230,6 +230,14 @@ function mbLineFirmBody(firm) {
       <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.conn', 'SIP Connection ID'))}</label><input class="form-input" id="line-conn" autocomplete="off" value="${mbLineEsc(integ.sip_connection_id || '')}"></div>
       <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.user', 'SIP Username'))}</label><input class="form-input" id="line-sip-user" autocomplete="off" value="${mbLineEsc(integ.sip_username || '')}"></div>
       <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.pass', 'SIP Password'))}</label><input type="password" class="form-input" id="line-sip-pass" autocomplete="new-password" value="${mbLineEsc(integ.sip_password || '')}"></div>
+      <div class="form-row">
+        <label class="form-label">${mbLineEsc(mbLineT('line.rec', 'Ses kaydı'))}</label>
+        <select class="form-input" id="line-rec-source">
+          <option value="supabase"${settings.recording_source === 'telnyx' ? '' : ' selected'}>${mbLineEsc(mbLineT('line.rec.supabase', 'Supabase deposu'))}</option>
+          <option value="telnyx"${settings.recording_source === 'telnyx' ? ' selected' : ''}>${mbLineEsc(mbLineT('line.rec.telnyx', 'Telnyx'))}</option>
+        </select>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px;">${mbLineEsc(mbLineT('line.rec.hint', ''))}</div>
+      </div>
     </div>
     <div class="line-firm-block">
       <div class="form-label">${mbLineEsc(mbLineT('line.nums', 'Numaralar'))}</div>
@@ -380,11 +388,41 @@ async function mbSaveLineFirm(firmId) {
       from_number: from || '',
       telnyx_api_key: String(settings.integrations?.telnyx_api_key || smsPrev.telnyx_api_key || ''),
     };
-    await sb(`firms?id=eq.${firmId}`, {
-      method: 'PATCH',
-      prefer: 'return=minimal',
-      body: JSON.stringify({ settings }),
-    });
+    if (superView) {
+      const prevSource = settings.recording_source === 'telnyx' ? 'telnyx' : 'supabase';
+      const wantTelnyx = document.getElementById('line-rec-source')?.value === 'telnyx';
+      settings.recording_source = wantTelnyx ? 'telnyx' : 'supabase';
+      await sb(`firms?id=eq.${firmId}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ settings }),
+      });
+      const armed = typeof mbTelnyxRecord === 'function'
+        ? await mbTelnyxRecord('mode', {
+          source: settings.recording_source,
+          connection_id: settings.integrations?.sip_connection_id || '',
+          firm_id: firmId,
+        })
+        : { ok: !wantTelnyx };
+      if (wantTelnyx && !armed?.ok) {
+        settings.recording_source = prevSource;
+        await sb(`firms?id=eq.${firmId}`, {
+          method: 'PATCH',
+          prefer: 'return=minimal',
+          body: JSON.stringify({ settings }),
+        });
+        toast(mbLineT('line.rec.telnyx_fail', 'Telnyx kaydı açılamadı'), 'err');
+      } else if (!wantTelnyx && armed && armed.ok === false && armed.error === 'profile') {
+        toast(mbLineT('line.rec.supabase_warn', 'Telnyx kaydı kapatılamadı'), 'warn');
+      }
+      if (String(firmId) === String(currentUser?.firm_id || '')) window._mbRecordingSource = settings.recording_source;
+    } else {
+      await sb(`firms?id=eq.${firmId}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ settings }),
+      });
+    }
     if (superView && typeof saveFirmFxApi === 'function') await saveFirmFxApi(firmId);
     const hit = _lineRows.find((row) => String(row.id) === String(firmId));
     if (hit) hit.settings = settings;

@@ -1405,20 +1405,21 @@ async function submitOutcome(goBreak) {
         leg: window._mbCallMeta?.telnyxLegId || '',
       };
       const callExtra = typeof mbCallLogExtras === 'function' ? mbCallLogExtras() : {};
-      if (talked && typeof mbFinishLocalRecording === 'function') {
+      const telnyxRec = typeof mbRecordingUsesTelnyx === 'function' && mbRecordingUsesTelnyx();
+      if (!telnyxRec && talked && typeof mbFinishLocalRecording === 'function') {
         await Promise.race([
           mbFinishLocalRecording(window._mbLocalRecCall, true),
           new Promise((resolve) => setTimeout(resolve, 2000)),
         ]);
       }
-      if (window._mbLocalRecBlob && typeof mbUploadLocalRecording === 'function') {
+      if (!telnyxRec && window._mbLocalRecBlob && typeof mbUploadLocalRecording === 'function') {
         try {
           const localRecUrl = await mbUploadLocalRecording(window._mbLocalRecBlob);
           if (localRecUrl) logData.recording_url = localRecUrl;
         } catch (e) {
           if (typeof mbRecWarn === 'function') mbRecWarn('telnyx.rec_fail', 'Ses kaydı kaydedilemedi');
         }
-      } else if (talked && !_testMode && !logData.recording_url && typeof mbRecWarn === 'function') {
+      } else if (!telnyxRec && talked && !_testMode && !logData.recording_url && typeof mbRecWarn === 'function') {
         mbRecWarn('telnyx.rec_noid', 'Ses kaydı alınamadı');
       }
       if (!skipAutoLog) {
@@ -1431,7 +1432,12 @@ async function submitOutcome(goBreak) {
       }
       const savedRow = Array.isArray(savedLog) ? savedLog[0] : savedLog;
       if (savedRow?.id && typeof mbChargeCall === 'function') void mbChargeCall(savedRow);
-      if (savedRow?.id && !logData.recording_url && !String(logNotes || '').includes('__test_sim__') && (recIds.control || recIds.session || recIds.leg) && typeof mbPullRecording === 'function') {
+      if (savedRow?.id && telnyxRec && !String(logNotes || '').includes('__test_sim__') && typeof mbPullTelnyxRecording === 'function') {
+        void mbPullTelnyxRecording(savedRow.id, {
+          phone: currentContact.phone,
+          since: window._mbCallMeta?.dialAt || logData.started_at,
+        });
+      } else if (savedRow?.id && !logData.recording_url && !String(logNotes || '').includes('__test_sim__') && (recIds.control || recIds.session || recIds.leg) && typeof mbPullRecording === 'function') {
         void mbPullRecording(savedRow.id, recIds);
       }
       if (typeof mbResetCallMeta === 'function') mbResetCallMeta();

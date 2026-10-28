@@ -56,14 +56,17 @@ Deno.serve(async (req) => {
       const asked = String(req.headers.get('x-mb-firm-id') || '').trim();
       if (uuidRe.test(asked)) firmId = asked;
     }
-    if (!uuidRe.test(firmId)) return json({ error: 'auth' }, 401);
+    if (!uuidRe.test(firmId) && String(user.role || '') !== 'super_admin') return json({ error: 'auth' }, 401);
 
-    const { data: firm } = await admin.from('firms').select('settings').eq('id', firmId).maybeSingle();
-    const key = String(firm?.settings?.integrations?.telnyx_api_key || '').trim();
-    if (!key) return json({ error: 'nokey' }, 400);
+    let key = '';
+    if (uuidRe.test(firmId)) {
+      const { data: firm } = await admin.from('firms').select('settings').eq('id', firmId).maybeSingle();
+      key = String(firm?.settings?.integrations?.telnyx_api_key || '').trim();
+    }
 
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action || '');
+    if (action !== 'mode' && !key) return json({ error: 'nokey' }, 400);
     const control = safeId(body?.call_control_id);
     const session = safeId(body?.session_id);
     const leg = safeId(body?.leg_id);
@@ -106,6 +109,60 @@ Deno.serve(async (req) => {
         call_session_id: safeId(hit.call_session_id),
         call_leg_id: safeId(hit.call_leg_id),
       });
+    }
+
+    if (action === 'mode') {
+      if (String(user.role || '') !== 'super_admin') return json({ error: 'auth' }, 403);
+      const askedFirm = String(body?.firm_id || '').trim();
+      if (!uuidRe.test(askedFirm)) return json({ error: 'auth' }, 401);
+      const { data: target } = await admin.from('firms').select('settings').eq('id', askedFirm).maybeSingle();
+      const firmKey = String(target?.settings?.integrations?.telnyx_api_key || '').trim();
+      const conn = safeId(body?.connection_id) || safeId(target?.settings?.integrations?.sip_connection_id);
+      if (!firmKey) return json({ ok: false, error: 'nokey' });
+      if (!conn) return json({ ok: false, error: 'id' });
+      const source = body?.source === 'telnyx' ? 'telnyx' : 'supabase';
+      const headers = { Authorization: `Bearer ${firmKey}`, 'Content-Type': 'application/json' };
+      const connRes = await fetch(`https://api.telnyx.com/v2/credential_connections/${encodeURIComponent(conn)}`, { headers });
+      const connBody = await connRes.json().catch(() => ({}));
+      const profileId = safeId(connBody?.data?.outbound?.outbound_voice_profile_id);
+      if (!connRes.ok || !profileId) return json({ ok: false, error: 'profile' });
+      const recording = source === 'telnyx'
+        ? { call_recording_type: 'all', call_recording_channels: 'dual', call_recording_format: 'mp3' }
+        : { call_recording_type: 'none', call_recording_channels: 'dual', call_recording_format: 'mp3' };
+      const patched = await fetch(`https://api.telnyx.com/v2/outbound_voice_profiles/${encodeURIComponent(profileId)}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ call_recording: recording }),
+      });
+      return json({ ok: patched.ok, error: patched.ok ? '' : 'profile' }, patched.ok ? 200 : 502);
+    }
+
+    if (action === 'recent') {
+      const phone = String(body?.phone || '').replace(/\D/g, '');
+      if (phone.length < 6) return json({ ok: false, url: '' });
+      const sinceMs = Date.parse(String(body?.since || ''));
+      const gte = Number.isFinite(sinceMs) ? new Date(sinceMs - 15000).toISOString() : new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      const params = new URLSearchParams();
+      params.set('filter[created_at][gte]', gte);
+      params.set('page[size]', '25');
+      const listed = await fetch(`https://api.telnyx.com/v2/recordings?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${key}` },
+      });
+      const payload = await listed.json().catch(() => ({}));
+      const rows = Array.isArray(payload?.data) ? payload.data : [];
+      const tail = (value: unknown) => {
+        const digits = String(value || '').replace(/\D/g, '');
+        const n = Math.min(8, digits.length, phone.length);
+        return n >= 6 && digits.slice(-n) === phone.slice(-n);
+      };
+      const hit = rows.find((row: Record<string, unknown>) => {
+        const urls = row?.download_urls as Record<string, unknown> | undefined;
+        const file = String(urls?.mp3 || urls?.wav || '');
+        return /^https:\/\//i.test(file) && (tail(row.to) || tail(row.from));
+      });
+      const urls = hit?.download_urls as Record<string, unknown> | undefined;
+      const url = String(urls?.mp3 || urls?.wav || '');
+      return json({ ok: /^https:\/\//i.test(url), url: /^https:\/\//i.test(url) ? url : '' });
     }
 
     if (action === 'fetch') {

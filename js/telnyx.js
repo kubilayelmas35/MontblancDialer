@@ -133,7 +133,44 @@ function mbCallLocalStream(call) {
   return stream;
 }
 
+function mbRecordingUsesTelnyx() {
+  return window._mbRecordingSource === 'telnyx';
+}
+
+async function mbLoadRecordingSource(firmId) {
+  const id = firmId || (typeof currentUser !== 'undefined' ? currentUser?.firm_id : '');
+  if (!id || typeof sb !== 'function') {
+    window._mbRecordingSource = 'supabase';
+    return 'supabase';
+  }
+  const rows = await sb(`firms?id=eq.${id}&select=settings`).catch(() => []);
+  const source = rows?.[0]?.settings?.recording_source === 'telnyx' ? 'telnyx' : 'supabase';
+  window._mbRecordingSource = source;
+  return source;
+}
+
+async function mbPullTelnyxRecording(logId, info) {
+  if (!logId) return;
+  const phone = String(info?.phone || '').replace(/\D/g, '');
+  const since = info?.since || new Date().toISOString();
+  for (let i = 0; i < 10; i++) {
+    await new Promise((resolve) => setTimeout(resolve, i === 0 ? 8000 : 6000));
+    const body = await mbTelnyxRecord('recent', { phone, since });
+    const url = String(body?.url || '');
+    if (!/^https:\/\//i.test(url) || typeof sb !== 'function') continue;
+    await sb(`call_logs?id=eq.${logId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ recording_url: url }),
+    }).catch(() => {});
+    window._mbRecWarned = 0;
+    return;
+  }
+  mbRecWarn('telnyx.rec_noid', 'Ses kaydı alınamadı');
+}
+
 function mbArmLocalRecording(call) {
+  if (mbRecordingUsesTelnyx()) return;
   if (!call || call.__mbLocalRec || call.__mbSupervisor || String(call.id || '').startsWith('sim-')) return;
   if (typeof _testMode !== 'undefined' && _testMode) return;
   if (typeof MediaRecorder === 'undefined') {
@@ -236,6 +273,7 @@ async function mbTelnyxRecord(action, payload) {
 }
 
 function mbStartCallRecording(call) {
+  if (typeof mbRecordingUsesTelnyx === 'function') return;
   if (!call || call.__mbSupervisor || String(call.id || '').startsWith('sim-')) return;
   if (typeof _testMode !== 'undefined' && _testMode) return;
   const ids = mbRememberTelnyxIds(call);
@@ -253,6 +291,7 @@ function mbStartCallRecording(call) {
 }
 
 function mbNoteRecordingMiss(call) {
+  if (mbRecordingUsesTelnyx()) return;
   if (!call || call.__mbRecOn || call.__mbLocalRec || window._mbLocalRecBlob || call.__mbSupervisor || String(call.id || '').startsWith('sim-')) return;
   if (typeof _testMode !== 'undefined' && _testMode) return;
   if ((call.__mbRecTries || 0) > 0 && mbTelnyxIds(call).control) return;
