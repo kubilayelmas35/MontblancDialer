@@ -702,6 +702,18 @@ async function loadContactHistory(contactId) {
   try {
     const logs = await sb(`call_logs?contact_id=eq.${contactId}&select=*&order=started_at.desc&limit=10`);
     if (!logs?.length) { el.innerHTML='<div style="color:var(--text-3);padding:12px;text-align:center;">Önceki arama yok</div>'; return; }
+    if (typeof mbWarmCampShown === 'function') await mbWarmCampShown((logs || []).map((l) => l.campaign_id));
+    const outcomeLabel = (key, campId) => {
+      if (typeof mbOutcomeShown === 'function') {
+        const named = mbOutcomeShown(key, null, campId);
+        if (named) return named;
+      }
+      if (typeof chOutcomeText === 'function') {
+        const text = chOutcomeText(key);
+        if (text && text !== '—') return text;
+      }
+      return key || '—';
+    };
     el.innerHTML = logs.map(l=>`
 <div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
 <div>
@@ -709,7 +721,7 @@ async function loadContactHistory(contactId) {
 ${(() => { const nt = _stripSimCallMarker(l.notes); return nt ? '<div style="font-size:11px;color:var(--text-3);">' + _escHtml(nt) + '</div>' : ''; })()}
 ${_isFakeRecordingRow(l) ? _fakeRecordingMarkup(l, 'history') : ''}
 </div>
-<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:var(--bg-3);">${l.outcome||'—'}</span>
+<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:var(--bg-3);">${_escHtml(outcomeLabel(l.outcome, l.campaign_id))}</span>
 </div>`).join('');
   } catch(e) { el.innerHTML='<div style="color:var(--text-3);padding:12px;text-align:center;">Geçmiş okunamadı</div>'; }
 }
