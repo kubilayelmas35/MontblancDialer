@@ -41,7 +41,6 @@ const MB_CHROME = [
   { id: 'tb-pills', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'tb-live-btn', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'sb-settings', roles: ['super_admin'] },
-  { id: 'telnyx-settings', roles: ['super_admin'] },
   { id: 'mesai-settings-card', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'chat-settings-card', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'field-settings-card', roles: ['admin', 'super_admin', 'firm_admin'] },
@@ -50,7 +49,6 @@ const MB_CHROME = [
   { id: 'job-permissions-card', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'logo-settings-card', roles: ['super_admin'] },
   { id: 'mascot-default-card', roles: ['super_admin'] },
-  { selector: '#page-settings .card:has(#s-google-key)', roles: ['super_admin'] },
 ];
 
 const MB_NAV_FLAGS = [

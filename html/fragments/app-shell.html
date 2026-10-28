@@ -756,7 +756,8 @@
 <div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Listede kısa kodun yanında görünür. Boşsa yalnız kod yazılır." data-de="Steht in Listen neben dem Kurzcode. Leer: nur der Code.">Listede kısa kodun yanında görünür. Boşsa yalnız kod yazılır.</div>
 </div>
 <div id="cd-did-row">
-<label class="form-label" for="cd-edit-did" data-tr="Arayan numara (DID)" data-de="Anrufernummer (DID)">Arayan numara (DID)</label>
+<label class="form-label" for="cd-edit-did" data-tr="Arayan numara" data-de="Anrufernummer">Arayan numara</label>
+<select class="form-input" id="cd-edit-did-pick" hidden></select>
 <input class="form-input" id="cd-edit-did" maxlength="20" placeholder="+49301234567" autocomplete="off">
 <div id="cd-edit-did-err" class="nc-inline-err" hidden></div>
 </div>
@@ -3016,6 +3017,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="operations" onclick="setSettingsTab('operations')" data-tr="Operasyon" data-de="Betrieb">Operasyon</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="mesai" onclick="setSettingsTab('mesai'); if (typeof loadMesaiPlanCard==='function') loadMesaiPlanCard();" data-tr="Mesai" data-de="Schicht">Mesai</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="field" onclick="setSettingsTab('field')" data-tr="Saha" data-de="Feld">Saha</button>
+<button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="lines" onclick="setSettingsTab('lines')" data-tr="Hat" data-de="Leitung">Hat</button>
 <button type="button" class="btn btn-ghost btn-sm settings-tab-btn" data-tab="system" onclick="setSettingsTab('system')" data-tr="Sistem" data-de="System">Sistem</button>
 </div>
 <div class="settings-layout">
@@ -3936,44 +3938,6 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="mbSaveLogoSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Logoyu kaydet" data-de="Logo speichern">Logoyu kaydet</span></button>
 </div>
 </div>
-<div class="card" id="settings-api-keys-card">
-<div class="card-title" style="margin-bottom:16px;">API Anahtarları</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;" data-tr="Süper admin firmaya bir kez yazar. Temsilci her girişte yeniden girmez." data-de="Der Super-Admin speichert das einmal pro Firma. Mitarbeiter tragen es nicht bei jedem Login neu ein.">Süper admin firmaya bir kez yazar. Temsilci her girişte yeniden girmez.</div>
-<div style="display:flex;flex-direction:column;gap:10px;">
-<div class="form-row" id="integ-api-firm-row">
-<label class="form-label" data-tr="Firma" data-de="Firma">Firma</label>
-<select class="form-input" id="integ-api-firm" onchange="mbIntegFirmChanged('api')"></select>
-</div>
-<div class="form-row">
-<label class="form-label">Google Maps API Key</label>
-<input class="form-input" id="s-google-key" placeholder="AIza...">
-<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Harita ve adres görüntüleme için</div>
-</div>
-<div class="form-row">
-<label class="form-label">TomTom API Key</label>
-<input class="form-input" id="s-tomtom-key" placeholder="...">
-<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Randevu mesafe hesaplama için</div>
-</div>
-<div class="form-row">
-<label class="form-label" data-tr="Kur kaynağı" data-de="Kursquelle">Kur kaynağı</label>
-<select class="form-input" id="s-fx-provider" onchange="onFxProviderChange()">
-<option value="frankfurter">Canlı kur</option>
-<option value="exchangerate_host">exchangerate.host</option>
-<option value="custom">Özel API</option>
-</select>
-<div style="font-size:11px;color:var(--text-3);margin-top:3px;" data-tr="Muhasebe euro ve TL çevrimini buradan alır. Firma admini bu alanı görmez." data-de="Die Buchhaltung rechnet Euro und TL hierüber. Der Firma-Admin sieht das nicht.">Muhasebe euro ve TL çevrimini buradan alır. Firma admini bu alanı görmez.</div>
-</div>
-<div class="form-row" id="s-fx-url-row" style="display:none;">
-<label class="form-label" data-tr="Özel kur adresi" data-de="Eigene Kurs-URL">Özel kur adresi</label>
-<input class="form-input" id="s-fx-url" placeholder="https://api.example.com/rates?date={date}&base=EUR&symbols=TRY">
-</div>
-<div class="form-row" id="s-fx-key-row" style="display:none;">
-<label class="form-label" data-tr="Özel kur anahtarı" data-de="Eigener Kursschlüssel">Özel kur anahtarı</label>
-<input type="password" class="form-input" id="s-fx-key" placeholder="apikey">
-</div>
-<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveApiSettings()"><i class="ph ph-floppy-disk"></i> API Ayarlarını Kaydet</button>
-</div>
-</div>
 <div class="card" id="settings-goals-card">
 <div class="card-title" style="margin-bottom:16px;" data-tr="Randevu hedefleri" data-de="Terminziele">Randevu hedefleri</div>
 <div style="display:flex;flex-direction:column;gap:10px;">
@@ -4210,34 +4174,10 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Çalışma günleri, saat aralığı ve slot süresi. Yeni kampanyalar bu varsayılanı alır. Boş slot rengi kalite kontrol sonuçlarındadır." data-de="Arbeitstage, Uhrzeiten und Slotlänge. Neue Kampagnen übernehmen diese Vorgabe. Die Farbe leerer Slots steht bei den QC-Ergebnissen.">Çalışma günleri, saat aralığı ve slot süresi. Yeni kampanyalar bu varsayılanı alır. Boş slot rengi kalite kontrol sonuçlarındadır.</div>
 <div id="default-takvim-firm-body" style="font-size:12px;color:var(--text-3);">Yükleniyor…</div>
 </div>
-<div class="card" id="telnyx-settings">
-<div class="card-title" style="margin-bottom:16px;">Hat Bağlantısı</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;" data-tr="Hat bilgisi firmada durur. Girişte kendiliğinden bağlanır." data-de="Die Leitungsdaten bleiben bei der Firma und verbinden sich beim Login von selbst.">Hat bilgisi firmada durur. Girişte kendiliğinden bağlanır.</div>
-<div style="display:flex;flex-direction:column;gap:12px;">
-<div class="form-row" id="integ-line-firm-row">
-<label class="form-label" data-tr="Firma" data-de="Firma">Firma</label>
-<select class="form-input" id="integ-line-firm" onchange="mbIntegFirmChanged('line')"></select>
-</div>
-<div class="form-row">
-<label class="form-label">API Key</label>
-<input type="password" class="form-input" id="s-telnyx-key" placeholder="KEY_...">
-</div>
-<div class="form-row">
-<label class="form-label">SIP Connection ID</label>
-<input type="text" class="form-input" id="s-conn-id" placeholder="1234567890...">
-</div>
-<div class="form-row">
-<label class="form-label">SIP Username</label>
-<input type="text" class="form-input" id="s-sip-user" placeholder="sip_kullanici">
-</div>
-<div class="form-row">
-<label class="form-label">SIP Password</label>
-<input type="password" class="form-input" id="s-sip-pass" placeholder="••••••••">
-</div>
-<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveSettings()">
-<i class="ph ph-floppy-disk"></i> <span data-tr="Kaydet" data-de="Speichern">Kaydet</span>
-</button>
-</div>
+<div class="card" id="line-firms-card">
+<div class="card-title" style="margin-bottom:8px;" data-tr="Hat ve API" data-de="Leitung und API">Hat ve API</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;" data-tr="Firma satırına tıklayınca hat, anahtarlar ve SMS açılır. Yeşil bağlı, kırmızı kopuk." data-de="Ein Klick auf die Firma öffnet Leitung, Schlüssel und SMS. Grün ist verbunden, rot ist getrennt.">Firma satırına tıklayınca hat, anahtarlar ve SMS açılır. Yeşil bağlı, kırmızı kopuk.</div>
+<div id="line-firms-list"></div>
 </div>
 <div class="card" id="sb-settings" style="display:none;">
 <div class="card-title" style="margin-bottom:16px;" data-tr="Veritabanı adresi" data-de="Datenbankadresse">Veritabanı adresi</div>
@@ -4245,38 +4185,6 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <div class="form-row">
 <label class="form-label">URL</label>
 <input type="text" class="form-input" id="s-sb-url" value="https://gsvvhzyhdhkbozjnlyrn.supabase.co" readonly>
-</div>
-</div>
-<div class="card" id="sms-settings-card" style="display:none;">
-<div class="card-title" style="margin-bottom:8px;"><i class="ph ph-chat-dots" style="vertical-align:-3px;margin-right:6px;"></i><span data-tr="SMS hatırlatma" data-de="SMS-Erinnerung">SMS hatırlatma</span></div>
-<div id="sms-settings-firm-row" style="display:none;margin-bottom:12px;">
-<label class="form-label" style="font-size:11px;">Firma</label>
-<select class="form-input" id="sms-settings-firm-select" onchange="onSmsSettingsFirmChange()"></select>
-</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:16px;" data-tr="Kalite kontrol onayında müşteriye randevu hatırlatması gider. Bunu yalnızca dialer sahibi firma için açar." data-de="Bei QC-Freigabe geht eine Terminerinnerung an den Kunden. Nur der Dialer-Inhaber schaltet das je Firma frei.">Kalite kontrol onayında müşteriye randevu hatırlatması gider. Bunu yalnızca dialer sahibi firma için açar.</div>
-<div style="display:flex;flex-direction:column;gap:12px;">
-<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-<input type="checkbox" id="sms-enabled-chk" style="width:15px;height:15px;cursor:pointer;">
-<span>SMS hatırlatmayı etkinleştir</span>
-</label>
-<div class="form-row">
-<label class="form-label">Telnyx API Key (SMS için)</label>
-<input type="password" class="form-input" id="sms-telnyx-key" placeholder="KEY_...">
-<div style="font-size:11px;color:var(--text-3);margin-top:3px;">SMS göndermek için Telnyx API anahtarı (voice key ile aynı olabilir)</div>
-</div>
-<div class="form-row">
-<label class="form-label">Gönderen Numara</label>
-<input class="form-input" id="sms-from-number" placeholder="+4915..." style="font-family:var(--mono);">
-<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Telnyx'teki SMS özellikli numara</div>
-</div>
-<div class="form-row">
-<label class="form-label">Mesaj Şablonu</label>
-<textarea class="form-input" id="sms-template" rows="4" placeholder="Sayin {isim}, randevunuz {tarih} tarihinde saat {saat} icin onaylandi." style="resize:vertical;"></textarea>
-<div style="font-size:11px;color:var(--text-3);margin-top:3px;">Değişkenler: <code style="background:var(--bg-3);padding:1px 4px;border-radius:3px;">{isim}</code> <code style="background:var(--bg-3);padding:1px 4px;border-radius:3px;">{tarih}</code> <code style="background:var(--bg-3);padding:1px 4px;border-radius:3px;">{saat}</code></div>
-</div>
-<button class="btn btn-primary" style="align-self:flex-start;" onclick="saveSmsSettings()">
-<i class="ph ph-floppy-disk"></i> SMS Ayarlarını Kaydet
-</button>
 </div>
 </div>
 </div>

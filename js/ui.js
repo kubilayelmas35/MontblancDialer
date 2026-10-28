@@ -184,7 +184,8 @@ function initSettingsTabs(preferTab) {
     takvim: new Set(['default-takvim-firm-card']),
     mesai: new Set(['mesai-plan-card', 'mesai-settings-card', 'call-hours-card']),
     field: new Set(['field-settings-card']),
-    system: new Set(['settings-api-keys-card', 'feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'telnyx-settings', 'sb-settings', 'sms-settings-card']),
+    lines: new Set(['line-firms-card']),
+    system: new Set(['feature-flags-card', 'job-permissions-card', 'audit-log-card', 'roles-card', 'sb-settings']),
   };
   cards.forEach((card) => {
     if (!card.id) return;
@@ -214,6 +215,11 @@ function mbSyncSettingsTabs() {
     }
     if (tab === 'takvim' && !(typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin())) {
       btn.style.display = 'none';
+      return;
+    }
+    if (tab === 'lines') {
+      const show = !agent && typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin();
+      btn.style.display = show ? '' : 'none';
       return;
     }
     const ownerTab = tab === 'system';
@@ -247,6 +253,7 @@ function setSettingsTab(tabId) {
   }
   const tabs = page.querySelectorAll('.settings-tab-btn');
   tabs.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === tabId));
+  if (tabId === 'lines' && typeof mbLoadLineFirms === 'function') mbLoadLineFirms();
 }
 
 window._apptResultsByFirm = window._apptResultsByFirm || {};

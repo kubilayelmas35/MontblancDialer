@@ -24,6 +24,21 @@ SETTINGS PAGE
 #page-settings .settings-tab-btn { border-radius: 8px; }
 .settings-tab-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
 .settings-card-tab-hidden { display:none !important; }
+.line-firm { border: 1px solid var(--border); border-radius: 10px; background: var(--bg-2); overflow: hidden; }
+.line-firm + .line-firm { margin-top: 8px; }
+.line-firm-head { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: transparent; border: 0; color: var(--text); cursor: pointer; text-align: left; font: inherit; }
+.line-firm-name { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.line-firm-meta { margin-left: auto; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.line-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+.line-dot.is-on { background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 28%, transparent); }
+.line-dot.is-off { background: var(--red); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 28%, transparent); }
+.line-firm-body { display: flex; flex-direction: column; gap: 12px; padding: 0 12px 12px; }
+.line-firm-block { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+.line-num-row { display: flex; gap: 8px; align-items: center; }
+.line-num-row .form-input { flex: 1; font-family: var(--mono); }
+.line-num-def { display: none; align-items: center; gap: 4px; font-size: 11px; color: var(--text-2); white-space: nowrap; }
+.line-numbers-multi .line-num-def { display: flex; }
+.line-sms-one { font-family: var(--mono); font-size: 13px; }
 #page-competition #comp-main { min-width: 0; }
 #page-competition .comp-top-grid,
 #page-competition .comp-podium-grid { min-width: 0; }

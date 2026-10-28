@@ -327,23 +327,29 @@ function mbFillIntegForms(cfg) {
 }
 
 async function mbFillFxForm(fid) {
-  const sel = document.getElementById('s-fx-provider');
+  const sel = document.getElementById('line-fx-provider') || document.getElementById('s-fx-provider');
   if (!sel || !fid || typeof loadFirmPayrollRules !== 'function') return;
   const rules = await loadFirmPayrollRules(fid, true);
   sel.value = rules.fx_api_provider || 'frankfurter';
-  const url = document.getElementById('s-fx-url');
-  const key = document.getElementById('s-fx-key');
+  const url = document.getElementById('line-fx-url') || document.getElementById('s-fx-url');
+  const key = document.getElementById('line-fx-key') || document.getElementById('s-fx-key');
   if (url) url.value = rules.fx_api_url || '';
   if (key) key.value = rules.fx_api_key || '';
+  sel.dataset.fxReady = '1';
   if (typeof onFxProviderChange === 'function') onFxProviderChange();
 }
 
 async function saveFirmFxApi(fid) {
-  const sel = document.getElementById('s-fx-provider');
+  const sel = document.getElementById('line-fx-provider') || document.getElementById('s-fx-provider');
   if (!sel || !fid) return;
+  if (sel.id === 'line-fx-provider' && sel.dataset.fxReady !== '1') return;
   const provider = sel.value || 'frankfurter';
-  const url = document.getElementById('s-fx-url')?.value?.trim() || '';
-  const key = document.getElementById('s-fx-key')?.value?.trim() || '';
+  const urlEl = document.getElementById('line-fx-url') || document.getElementById('s-fx-url');
+  const keyEl = document.getElementById('line-fx-key') || document.getElementById('s-fx-key');
+  const firmsPeek = await sb(`firms?id=eq.${fid}&select=settings`);
+  const prevPayroll = firmsPeek?.[0]?.settings?.payroll || {};
+  const url = urlEl?.value?.trim() || prevPayroll.fx_api_url || '';
+  const key = keyEl?.value?.trim() || prevPayroll.fx_api_key || '';
   const firms = await sb(`firms?id=eq.${fid}&select=settings`);
   const settings = { ...(firms?.[0]?.settings || {}) };
   settings.payroll = { ...(settings.payroll || {}), fx_api_provider: provider, fx_api_url: url, fx_api_key: key };

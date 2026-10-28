@@ -567,9 +567,12 @@ function renderPayrollRulesForm(r) {
 }
 
 function onFxProviderChange() {
-  const p = document.getElementById('s-fx-provider')?.value || document.getElementById('pr-fx-provider')?.value || 'frankfurter';
+  const visible = ['line-fx-provider', 's-fx-provider', 'pr-fx-provider']
+    .map((id) => document.getElementById(id))
+    .find((el) => el && el.offsetParent !== null);
+  const p = visible?.value || document.getElementById('pr-fx-provider')?.value || document.getElementById('line-fx-provider')?.value || 'frankfurter';
   const isCustom = p === 'custom';
-  ['s-fx-url-row', 's-fx-key-row', 'pr-fx-url-row', 'pr-fx-key-row'].forEach((id) => {
+  ['s-fx-url-row', 's-fx-key-row', 'line-fx-url-row', 'line-fx-key-row', 'pr-fx-url-row', 'pr-fx-key-row'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.style.display = isCustom ? '' : 'none';
   });

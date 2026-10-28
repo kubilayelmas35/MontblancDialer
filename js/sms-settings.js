@@ -50,6 +50,7 @@ async function _renderSmsSettingsForm() {
 }
 
 async function saveSmsSettings() {
+  if (!document.getElementById('sms-template')) return;
   if (!(typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin())) return;
   const fid = _smsSettingsFirmId || currentUser?.firm_id;
   if (!fid) { toast('Firma bulunamadi', 'err'); return; }
@@ -76,8 +77,18 @@ async function _getSmsConfig() {
   const fid = currentUser?.firm_id;
   if (!fid) return null;
   const firms = await sb(`firms?id=eq.${fid}&select=settings`).catch(() => []);
-  _smsCachedConfig = firms?.[0]?.settings?.sms_reminder || {};
-  return _smsCachedConfig;
+  const settings = firms?.[0]?.settings || {};
+  const cfg = { ...(settings.sms_reminder || {}) };
+  const numbers = typeof mbLineNumbersFromSettings === 'function' ? mbLineNumbersFromSettings(settings) : [];
+  let from = typeof mbNormDid === 'function' ? mbNormDid(cfg.from_number) : String(cfg.from_number || '').trim();
+  if (numbers.length === 1) from = numbers[0];
+  else if (numbers.length > 1 && !numbers.includes(from)) {
+    from = (typeof mbLineDefaultFromSettings === 'function' ? mbLineDefaultFromSettings(settings) : '') || numbers[0];
+  }
+  cfg.telnyx_api_key = String(settings.integrations?.telnyx_api_key || cfg.telnyx_api_key || '').trim();
+  if (from) cfg.from_number = from;
+  _smsCachedConfig = cfg;
+  return cfg;
 }
 
 // ── QC SMS Prompt ─────────────────────────────

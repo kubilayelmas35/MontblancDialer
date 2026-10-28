@@ -69,7 +69,7 @@ function mbAdoptFieldTemplates(remoteRaw, migrateLocal) {
 }
 
 function mbCanEditDid() {
-  return typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+  return typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin();
 }
 
 function syncDidVisibility() {
@@ -85,7 +85,12 @@ function syncDidVisibility() {
 async function firmOutboundDid(firmId) {
   if (!firmId) return '';
   const rows = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
-  return String(rows?.[0]?.settings?.dialer?.outbound_did || '').replace(/[\s()-]/g, '');
+  const settings = rows?.[0]?.settings || {};
+  if (typeof mbLineDefaultFromSettings === 'function') {
+    const picked = mbLineDefaultFromSettings(settings);
+    if (picked) return picked;
+  }
+  return String(settings?.dialer?.outbound_did || '').replace(/[\s()-]/g, '');
 }
 
 async function attachCampaignPeople() {
@@ -564,7 +569,13 @@ if (nameInput) nameInput.value = c.name || '';
 const displayInput = document.getElementById('cd-edit-display');
 if (displayInput) displayInput.value = String(mbCampSettings(c).display_name || '');
 if (descInput) descInput.value = c.description || '';
-if (didInput) didInput.value = didRaw;
+if (didInput) {
+  didInput.value = didRaw;
+  didInput.hidden = true;
+}
+const didPick = document.getElementById('cd-edit-did-pick');
+if (didPick) didPick.hidden = true;
+if (typeof mbBindCampDid === 'function') void mbBindCampDid(c.firm_id, didRaw);
 const nameErr = document.getElementById('cd-edit-name-err');
 const didErr = document.getElementById('cd-edit-did-err');
 if (nameInput) nameInput.classList.remove('is-invalid');
@@ -686,6 +697,7 @@ ncFillCopySelect();
 ncFillCustomers(ncTargetFirmId());
 ncFillPersonnel(ncTargetFirmId());
 ncCustomerNote();
+if (typeof mbBindNewCampDid === 'function') void mbBindNewCampDid(ncTargetFirmId());
 }
 
 function ncTargetFirmId() {
@@ -714,6 +726,7 @@ async function ncOnFirmChange() {
   await ncFillCustomers(ncTargetFirmId());
   await ncFillPersonnel(ncTargetFirmId());
   ncCustomerNote();
+  if (typeof mbBindNewCampDid === 'function') await mbBindNewCampDid(ncTargetFirmId());
 }
 
 async function ncFillCustomers(firmId) {
@@ -1016,7 +1029,11 @@ if (typeof mbEnsureSession === 'function') {
   if (!ok) return;
 }
 const name = document.getElementById('nc-name').value.trim();
-const did  = mbCanEditDid() ? document.getElementById('nc-did').value.trim() : '';
+const didPick = document.getElementById('nc-did-pick');
+const didInput = document.getElementById('nc-did');
+const did = (didPick && !didPick.hidden)
+  ? String(didPick.value || '').trim()
+  : ((didInput && !didInput.hidden) ? didInput.value.trim() : '');
 const desc = document.getElementById('nc-desc').value.trim();
 const spd  = parseInt(document.getElementById('nc-speed').value)||1;
 const nameEl = document.getElementById('nc-name');
@@ -1471,8 +1488,12 @@ async function saveCampIdentity() {
   if (nameErr) nameErr.hidden = true;
   const prev = String(camp.telnyx_did || '').trim();
   let telnyx_did = prev || null;
-  if (mbCanEditDid()) {
-    const nextNorm = didRaw.replace(/[\s()-]/g, '');
+  const didPickEl = document.getElementById('cd-edit-did-pick');
+  const usePick = didPickEl && !didPickEl.hidden;
+  const useInput = didEl && !didEl.hidden;
+  if (usePick || useInput) {
+    const nextRaw = usePick ? String(didPickEl.value || '') : didRaw;
+    const nextNorm = nextRaw.replace(/[\s()-]/g, '');
     if (nextNorm && (typeof mbIsE164 !== 'function' || !mbIsE164(nextNorm))) {
       if (didEl) didEl.classList.add('is-invalid');
       if (didErr) { didErr.hidden = false; didErr.textContent = campT('camp.did.bad','DID + ile başlamalı, örnek +49301234567'); }
@@ -1480,9 +1501,6 @@ async function saveCampIdentity() {
       return;
     }
     telnyx_did = nextNorm || null;
-  } else {
-    const firmDid = await firmOutboundDid(camp.firm_id);
-    if (firmDid) telnyx_did = firmDid;
   }
   try {
     const settings = { ...(mbCampSettings(camp) || {}) };
