@@ -50,6 +50,40 @@ function mbTelnyxIds(call) {
   };
 }
 
+function mbCaptureTelnyxIds(call) {
+  if (!call || call.__mbIdHook || typeof call.handleMessage !== 'function') return;
+  call.__mbIdHook = true;
+  const orig = call.handleMessage;
+  call.handleMessage = function (msg) {
+    try {
+      const p = msg?.params || {};
+      const opt = this.options || (this.options = {});
+      if (p.telnyx_call_control_id) opt.telnyxCallControlId = p.telnyx_call_control_id;
+      if (p.telnyx_session_id) opt.telnyxSessionId = p.telnyx_session_id;
+      if (p.telnyx_leg_id) opt.telnyxLegId = p.telnyx_leg_id;
+    } catch (e) {}
+    const result = orig.apply(this, arguments);
+    try {
+      if (String(this.state || '') === 'active') mbStartCallRecording(this);
+    } catch (e) {}
+    return result;
+  };
+}
+
+function mbWatchRecordingId(call) {
+  if (!call || call.__mbRecWatch) return;
+  call.__mbRecWatch = true;
+  let n = 0;
+  const tick = () => {
+    if (!call || call.__mbRecOn || n++ > 24) return;
+    const st = String(call.state || '');
+    if (['hangup', 'destroy', 'done', 'purge', 'bye'].includes(st)) return;
+    if (st === 'active') mbStartCallRecording(call);
+    if (!call.__mbRecOn) setTimeout(tick, 500);
+  };
+  setTimeout(tick, 400);
+}
+
 function mbRememberTelnyxIds(call) {
   const ids = mbTelnyxIds(call);
   if (!ids.control && !ids.leg && !ids.session) return ids;
@@ -355,6 +389,7 @@ function _rememberHopper(call, contact, dest, manual) {
     manual: !!manual,
   };
   _hopper.push(row);
+  mbCaptureTelnyxIds(call);
   if (call && !call.__mbEndHook) {
     call.__mbEndHook = true;
     const poke = () => { try { mbOnHopperCall(call); } catch (e) {} };
@@ -578,6 +613,8 @@ function mbOnHopperCall(call) {
   }
   if (state === 'active') {
     if (typeof mbStopRingback === 'function') mbStopRingback();
+    mbCaptureTelnyxIds(call);
+    mbWatchRecordingId(call);
     mbStartCallRecording(call);
     if (row.id === _liveCallId && row.phase === 'live') {
       if (row.agentHold || isOnHold) return;
