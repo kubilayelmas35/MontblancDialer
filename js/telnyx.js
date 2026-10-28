@@ -443,6 +443,47 @@ function mbCallDigits(call) {
   return String(raw).replace(/\D/g, '');
 }
 
+function mbUnusedNumber(call) {
+  if (!call) return false;
+  const sip = Number(call.sipCode || call.sip_code || 0);
+  const q850 = Number(call.causeCode || call.cause_code || 0);
+  if ([404, 410, 484, 604].includes(sip)) return true;
+  if ([1, 3, 22, 27, 28].includes(q850)) return true;
+  const text = [
+    call.cause,
+    call.sipReason,
+    call.sip_reason,
+    call.sipHangupCause,
+    call.hangupCause,
+    call.hangup_cause,
+  ].map((v) => String(v || '')).join(' ').toUpperCase();
+  return /UNALLOCATED|INVALID[_\s-]*NUMBER|NUMBER[_\s-]*CHANGED|NO[_\s-]*ROUTE[_\s-]*DESTINATION|DESTINATION[_\s-]*OUT[_\s-]*OF[_\s-]*ORDER|NOT[_\s-]*IN[_\s-]*SERVICE|UNASSIGNED|DOES[_\s-]*NOT[_\s-]*EXIST|ADDRESS[_\s-]*INCOMPLETE/.test(text);
+}
+
+function mbDialPhoneBad(dest) {
+  const n = typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(dest) : String(dest || '').trim();
+  return !(typeof mbIsE164 === 'function' && mbIsE164(n));
+}
+
+function mbDropUnusedNumber(contact, manual) {
+  const who = contact || (typeof currentContact !== 'undefined' ? currentContact : null);
+  if (who) mbReleaseUnanswered(who, 'unused');
+  _outboundDialPending = false;
+  if (manual && typeof toast === 'function') {
+    toast(typeof t === 'function' ? t('dial.unused_number') : 'Bu numara kullanım dışı', 'warn', 2800);
+  }
+  if (!mbHopperStillUp()) {
+    if (typeof hideOutboundWait === 'function') hideOutboundWait();
+    if (typeof dialerStatus !== 'undefined' && dialerStatus === 'calling' && typeof setDialerStatus === 'function') setDialerStatus('ready');
+  }
+}
+
+function mbPoolEndStatus(row) {
+  if (mbUnusedNumber(row?.call)) return 'unused';
+  if (row?.phase === 'hold') return 'stuck';
+  return 'no_answer';
+}
+
 function mbCallIsDead(call) {
   const st = String(call?.state || '').toLowerCase();
   if (['hangup', 'destroy', 'done', 'purge', 'bye', 'disconnected'].includes(st)) return true;
@@ -485,10 +526,11 @@ function mbUnansweredEnded(row) {
     const byAgent = window._mbCallMeta && window._mbCallMeta.hangupBy === 'agent';
     if (!byAgent && typeof mbPlayBusy === 'function') mbPlayBusy();
     else if (typeof mbStopRingback === 'function') mbStopRingback();
+    if (contact && mbUnusedNumber(row?.call)) mbReleaseUnanswered(contact, 'unused');
     if (typeof handleCallEnd === 'function') handleCallEnd(0);
     return;
   }
-  const endStatus = row?.phase === 'hold' ? 'stuck' : 'no_answer';
+  const endStatus = mbPoolEndStatus(row);
   if (mbHopperStillUp()) {
     if (contact) mbReleaseUnanswered(contact, endStatus);
     if (!_liveCallId && typeof mbRefillHopper === 'function') mbRefillHopper();
@@ -833,6 +875,10 @@ if (typeof mbLineCallBlockedSync === 'function' && mbLineCallBlockedSync(callerN
   _outboundDialPending = false;
   if (typeof mbNoteIntlBlocked === 'function') mbNoteIntlBlocked(contact);
   if (typeof dialerStatus !== 'undefined' && dialerStatus === 'calling' && typeof setDialerStatus === 'function') setDialerStatus('ready');
+  return;
+}
+if (mbDialPhoneBad(destination)) {
+  mbDropUnusedNumber(contact, work !== 'auto');
   return;
 }
 try {

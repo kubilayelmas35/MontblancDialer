@@ -1298,6 +1298,7 @@ function mbOutcomeShown(key, camp, id) {
     appointment: 'camp.ops.appointment',
     no_answer: 'camp.st.no_answer',
     stuck: 'camp.st.stuck',
+    unused: 'camp.st.unused',
     negative: 'camp.st.negative',
     callback: 'camp.st.callback',
     dnc: 'camp.st.dnc',
