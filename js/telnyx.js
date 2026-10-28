@@ -484,6 +484,43 @@ function mbPoolEndStatus(row) {
   return 'no_answer';
 }
 
+function mbFarEndMissed(row) {
+  if (!row || row.phase === 'hold') return false;
+  const call = row.call;
+  const sip = Number(call?.sipCode || call?.sip_code || 0);
+  const q850 = Number(call?.causeCode || call?.cause_code || 0);
+  const text = [
+    call?.cause,
+    call?.sipReason,
+    call?.sip_reason,
+    call?.hangupCause,
+    call?.hangup_cause,
+  ].map((v) => String(v || '')).join(' ').toUpperCase();
+  const rejected = [408, 480, 486, 487, 603].includes(sip)
+    || [17, 18, 19, 21, 102].includes(q850)
+    || /USER[_\s-]*BUSY|CALL[_\s-]*REJECT|NO[_\s-]*ANSWER|NO[_\s-]*USER[_\s-]*RESPONSE|RECOVERY[_\s-]*ON[_\s-]*TIMER|DECLINE/.test(text);
+  if (row.phase === 'live' || row.id === _liveCallId) return rejected;
+  return true;
+}
+
+function mbAgentCancelledRing(row) {
+  const byAgent = window._mbCallMeta && window._mbCallMeta.hangupBy === 'agent';
+  return !!byAgent && row?.phase !== 'live' && row?.phase !== 'hold';
+}
+
+function mbFinishUnanswered(row) {
+  if (mbHopperStillUp()) return;
+  if (row?.manual) {
+    if (typeof hideOutboundWait === 'function') hideOutboundWait();
+    if (typeof clearCustomerCard === 'function') clearCustomerCard();
+    if (typeof setDialerStatus === 'function') setDialerStatus('offline');
+    if (typeof updateSessionInDB === 'function') updateSessionInDB('offline');
+    return;
+  }
+  if (typeof mbRefillHopper === 'function') mbRefillHopper();
+  else mbSettleEmptyCalling();
+}
+
 function mbCallIsDead(call) {
   const st = String(call?.state || '').toLowerCase();
   if (['hangup', 'destroy', 'done', 'purge', 'bye', 'disconnected'].includes(st)) return true;
@@ -523,13 +560,19 @@ function mbUnansweredEnded(row) {
     _hopper = _hopper.filter((r) => r.phase === 'live' || r.phase === 'hold');
     _outboundDialPending = false;
     _telnyxCall = null;
-    const byAgent = window._mbCallMeta && window._mbCallMeta.hangupBy === 'agent';
+    const byAgent = mbAgentCancelledRing(row);
     if (!byAgent && typeof mbPlayBusy === 'function') mbPlayBusy();
     else if (typeof mbStopRingback === 'function') mbStopRingback();
+    if (!byAgent && contact && (mbFarEndMissed(row) || row?.phase === 'hold')) {
+      mbReleaseUnanswered(contact, mbPoolEndStatus(row));
+      mbFinishUnanswered(row);
+      return;
+    }
     if (contact && mbUnusedNumber(row?.call)) mbReleaseUnanswered(contact, 'unused');
     if (typeof handleCallEnd === 'function') handleCallEnd(0);
     return;
   }
+  if (mbAgentCancelledRing(row)) return;
   const endStatus = mbPoolEndStatus(row);
   if (mbHopperStillUp()) {
     if (contact) mbReleaseUnanswered(contact, endStatus);
@@ -841,7 +884,7 @@ function mbOnHopperCall(call) {
     return;
   }
   if (dead) {
-    const wasLive = row.id === _liveCallId || row.phase === 'live';
+    const wasLive = (row.id === _liveCallId || row.phase === 'live') && !mbFarEndMissed(row);
     const dest = row.dest || mbCallDigits(call);
     _hopper = _hopper.filter((r) => {
       if (r === row) return false;
@@ -859,7 +902,19 @@ function mbOnHopperCall(call) {
       callStart = null;
       if (typeof handleCallEnd === 'function') handleCallEnd(dur);
     } else {
+      const owned = row.id === _liveCallId || row.phase === 'live';
+      if (row.id === _liveCallId) {
+        _liveCallId = null;
+        callStart = null;
+      }
       if (_telnyxCall === row.call) _telnyxCall = null;
+      if (owned && dialerStatus === 'on_call' && !_liveCallId && !(typeof mbTakeHeldCall === 'function' && mbTakeHeldCall())) {
+        if (!mbHopperStillUp()) {
+          if (typeof clearCustomerCard === 'function') clearCustomerCard();
+          if (typeof hideOutboundWait === 'function') hideOutboundWait();
+          if (typeof setDialerStatus === 'function') setDialerStatus('calling');
+        }
+      }
       mbUnansweredEnded(row);
     }
     if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
