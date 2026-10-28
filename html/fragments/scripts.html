@@ -13,7 +13,7 @@
 <script src="js/audit.js?v=__MB_VERSION__"></script>
 <script src="js/feature-flags.js?v=__MB_VERSION__"></script>
 <script src="js/notification-center.js?v=__MB_VERSION__"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="js/wallet.js?v=__MB_VERSION__"></script>
 <script src="js/job-market.js?v=__MB_VERSION__"></script>
 <script src="js/qc-job-market.js?v=__MB_VERSION__"></script>
@@ -62,3 +62,8 @@
 <script src="js/agents.js?v=__MB_VERSION__"></script>
 <script src="js/firm-desk.js?v=__MB_VERSION__"></script>
 <script src="js/mimi-brain.js?v=__MB_VERSION__"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (typeof mbApplyChartTheme === 'function') mbApplyChartTheme();
+});
+</script>

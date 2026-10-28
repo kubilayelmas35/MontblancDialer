@@ -194,6 +194,7 @@ async function mbEnsureSession(opts = {}) {
 }
 
 async function bootApp() {
+if (typeof mbApplyChartTheme === 'function') mbApplyChartTheme();
 if (!(await mbEnsureSession({ force: true }))) return;
 if (!currentUser) return;
 if (typeof mbReclaimSlotHold === 'function') await mbReclaimSlotHold();
