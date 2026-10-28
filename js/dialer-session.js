@@ -870,6 +870,10 @@ function showOutboundWait() {
   if (panel) {
     panel.style.display = 'flex';
     panel.setAttribute('aria-hidden', 'false');
+    const title = panel.querySelector('.cust-outbound-wait__title');
+    const sub = panel.querySelector('.cust-outbound-wait__sub');
+    if (title) title.textContent = typeof t === 'function' ? t('dial.wait_answer') : 'Telefonun açılması bekleniyor';
+    if (sub) sub.textContent = typeof t === 'function' ? t('dial.wait_answer_sub') : 'Karşı taraf açınca müşteri kartı burada açılır';
   }
   const dock = document.getElementById('outcome-dock');
   if (dock) dock.hidden = true;
@@ -881,14 +885,25 @@ function hideOutboundWait() {
   const root = document.getElementById('cust-empty');
   const def = document.getElementById('cust-empty-default');
   const panel = document.getElementById('cust-empty-outbound-wait');
-  document.getElementById('customer-card')?.classList.remove('customer-card--wait');
+  const card = document.getElementById('customer-card');
+  card?.classList.remove('customer-card--wait');
   if (root) root.classList.remove('cust-empty--outbound-wait');
   if (panel) {
     panel.style.display = 'none';
     panel.setAttribute('aria-hidden', 'true');
   }
   mbStopOutboundWaitClock();
-  if (def && root && !root.classList.contains('cust-empty--ringing')) def.style.display = '';
+  const ringing = root?.classList.contains('cust-empty--ringing');
+  const data = document.getElementById('cust-data');
+  const cardOpen = data && data.style.display !== 'none';
+  if (!ringing && !cardOpen) {
+    if (root) root.style.display = '';
+    if (def) def.style.display = '';
+    if (typeof syncCustomerCardEmptyVisual === 'function') syncCustomerCardEmptyVisual();
+    if (typeof startCustEmptyCoach === 'function') startCustEmptyCoach();
+  } else if (def && !ringing) {
+    def.style.display = '';
+  }
 }
 
 function mbCampaignDialSpeed(campId) {
@@ -924,51 +939,16 @@ function mbPoolPlan(ready, speed, ringing) {
 }
 
 function mbRefreshHopperUi() {
-  const live = _hopper.filter((r) => r.phase === 'dialing' || r.phase === 'ringing');
-  const manualRing = live.some((r) => r.manual);
-  const poolRing = live.filter((r) => !r.manual).length;
-  const openId = String(currentContact?.id || '');
-  const others = live.filter((r) => {
-    const id = String(r.contact?.id || r.contactId || '');
-    if (openId && id && id === openId) return false;
-    if (_liveCallId && r.id && String(r.id) === String(_liveCallId)) return false;
-    return true;
-  }).length;
   const title = document.querySelector('#cust-empty-outbound-wait .cust-outbound-wait__title');
   const sub = document.querySelector('#cust-empty-outbound-wait .cust-outbound-wait__sub');
-  const plan = _poolPlan;
   if (title && dialerStatus === 'calling') {
-    title.textContent = (!manualRing && poolRing > 0)
-      ? (typeof tReplace === 'function' ? tReplace('dial.hopper.ringing', { n: poolRing }) : `Havuz: ${poolRing} kişi aranıyor`)
-      : (typeof t === 'function' ? t('dial.wait_answer') : 'Telefonun açılması bekleniyor');
+    title.textContent = typeof t === 'function' ? t('dial.wait_answer') : 'Telefonun açılması bekleniyor';
   }
   if (sub && dialerStatus === 'calling') {
-    if (!manualRing && plan && plan.multi) {
-      sub.textContent = typeof tReplace === 'function'
-        ? tReplace('dial.hopper.ratio_multi', { ready: plan.ready, open: plan.open, target: plan.target })
-        : `Hazır ${plan.ready} · hız ${plan.open} kampanyaya bölünür · hedef ${plan.target}`;
-    } else if (!manualRing && plan && poolRing > 0) {
-      sub.textContent = typeof tReplace === 'function'
-        ? tReplace('dial.hopper.ratio', { ready: plan.ready, speed: plan.speed, target: plan.target })
-        : `Hazır ${plan.ready} × hız ${plan.speed} = ${plan.target}`;
-    } else {
-      sub.textContent = typeof t === 'function' ? t('dial.wait_answer_sub') : '';
-    }
+    sub.textContent = typeof t === 'function' ? t('dial.wait_answer_sub') : 'Karşı taraf açınca müşteri kartı burada açılır';
   }
-  let note = document.getElementById('hopper-hold-note');
-  const host = document.querySelector('#cust-data .cust-badge-row');
-  if (!note && host) {
-    note = document.createElement('span');
-    note.id = 'hopper-hold-note';
-    note.className = 'badge badge-gray';
-    host.appendChild(note);
-  }
-  if (note) {
-    const parts = [];
-    if (others && dialerStatus === 'on_call') parts.push(typeof tReplace === 'function' ? tReplace('dial.hopper.ringing', { n: others }) : `${others} kişi aranıyor`);
-    note.style.display = parts.length ? '' : 'none';
-    note.textContent = parts.join(' · ');
-  }
+  const note = document.getElementById('hopper-hold-note');
+  if (note) note.style.display = 'none';
 }
 
 function mbRefillHopper() {
@@ -1207,6 +1187,8 @@ async function mbNextPoolContact(campIds) {
         }
       ).catch(() => null);
       if (!updated || !updated.length) continue;
+      if (typeof mbBumpCampLeft === 'function') mbBumpCampLeft(updated[0].campaign_id || contact.campaign_id, -1);
+      if (typeof mbRefreshCampLeftSoon === 'function') mbRefreshCampLeftSoon();
       return { ...contact, ...updated[0] };
     }
     return contact;
@@ -1326,16 +1308,19 @@ async function mbSyncPool() {
           left--;
         }
       }
-      if (!placed && !_hopper.length && !_liveCallId && dialerStatus === 'ready') {
+      if (!placed && !_hopper.length && !_liveCallId && (dialerStatus === 'ready' || dialerStatus === 'calling')) {
         toast(typeof t === 'function' ? t('dial.queue_empty') : '✅ Kuyrukta numara kalmadı', 'ok');
+        if (typeof clearCustomerCard === 'function') clearCustomerCard();
         setDialerStatus('offline');
         updateSessionInDB('offline');
+        if (typeof mbRefreshCampLeftSoon === 'function') mbRefreshCampLeftSoon();
       }
     }
     if (dialerStatus === 'calling' && !_outboundDialPending && !_liveCallId && !_hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'live' || r.phase === 'hold') && typeof mbSettleEmptyCalling === 'function') {
       mbSettleEmptyCalling();
     }
     mbRefreshHopperUi();
+    if (typeof mbRefreshCampLeftSoon === 'function') mbRefreshCampLeftSoon();
     if (dialerStatus === 'calling' || dialerStatus === 'on_call' || dialerStatus === 'ready' || dialerStatus === 'wrapping') {
       mbEnsurePoolTimer();
     }

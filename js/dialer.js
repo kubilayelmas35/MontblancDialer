@@ -249,12 +249,40 @@ async function mbPaintCampLeft(camps) {
     }
     const n = Number(map[camp.id]) || 0;
     const band = typeof mbQueueThresholds === 'function' ? mbQueueThresholds(camp) : { green: 1500, orange: 750 };
+    el.dataset.n = String(n);
     el.textContent = n.toLocaleString('tr-TR');
     const tone = typeof mbQueueTone === 'function' ? mbQueueTone(n, band.green, band.orange) : '';
     if (tone) el.classList.add(tone);
     const label = typeof t === 'function' ? t('camp.queue.band.left') : 'Kalan veri';
     el.title = `${label}: ${n}`;
   });
+}
+
+function mbBumpCampLeft(campId, delta) {
+  const el = document.getElementById(`camp-left-${campId}`);
+  if (!el) return;
+  const raw = String(el.dataset.n ?? el.textContent ?? '').replace(/\./g, '').replace(/,/g, '');
+  const cur = parseInt(raw, 10);
+  if (!Number.isFinite(cur)) return;
+  const n = Math.max(0, cur + (Number(delta) || 0));
+  el.dataset.n = String(n);
+  el.textContent = n.toLocaleString('tr-TR');
+  const camp = (campaigns || []).find((c) => String(c.id) === String(campId));
+  const band = typeof mbQueueThresholds === 'function' ? mbQueueThresholds(camp) : { green: 1500, orange: 750 };
+  el.classList.remove('is-ok', 'is-warn', 'is-low');
+  const tone = typeof mbQueueTone === 'function' ? mbQueueTone(n, band.green, band.orange) : '';
+  if (tone) el.classList.add(tone);
+  const label = typeof t === 'function' ? t('camp.queue.band.left') : 'Kalan veri';
+  el.title = `${label}: ${n}`;
+}
+
+let _campLeftTimer = 0;
+function mbRefreshCampLeftSoon() {
+  clearTimeout(_campLeftTimer);
+  _campLeftTimer = setTimeout(() => {
+    _campLeftTimer = 0;
+    if (typeof campaigns !== 'undefined') void mbPaintCampLeft(campaigns);
+  }, 400);
 }
 
 function _campIdsMatch(a, b) {

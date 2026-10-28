@@ -470,6 +470,7 @@ function mbSettleEmptyCalling() {
   if (typeof hideOutboundWait === 'function') hideOutboundWait();
   if (typeof setDialerStatus === 'function') setDialerStatus('ready');
   if (typeof updateSessionInDB === 'function') updateSessionInDB('ready');
+  if (typeof mbRefreshCampLeftSoon === 'function') mbRefreshCampLeftSoon();
 }
 
 function mbUnansweredEnded(row) {
@@ -654,6 +655,7 @@ function mbReleaseUnanswered(contact, status) {
       body: JSON.stringify({ status: st, last_called_at: new Date().toISOString() }),
     }).catch(() => {});
   }
+  if (typeof mbRefreshCampLeftSoon === 'function') mbRefreshCampLeftSoon();
 }
 
 function mbCancelHopper() {

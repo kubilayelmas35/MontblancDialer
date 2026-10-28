@@ -1565,6 +1565,7 @@ async function submitOutcome(goBreak) {
     }
   }
   if (outcomeSaved) {
+    if (typeof mbRefreshCampLeftSoon === 'function') mbRefreshCampLeftSoon();
     toast(typeof t === 'function' ? t('dial.outcome_saved') : 'Sonuç kaydedildi', 'ok', 2200);
     if (!heldNext && typeof mbShowSavedLine === 'function') mbShowSavedLine(savedDur);
   }
