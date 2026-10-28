@@ -531,6 +531,7 @@ function clearCustomerCard() {
   document.getElementById('cust-data').style.display='none';
   const dock = document.getElementById('outcome-dock');
   if (dock) dock.hidden = true;
+  if (typeof showPrevCallInfo === 'function') showPrevCallInfo(null);
   if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
   if (typeof mbPaintCardSource === 'function') mbPaintCardSource(null);
   if (typeof startCustEmptyCoach === 'function') startCustEmptyCoach();
@@ -545,6 +546,10 @@ function switchContactTab(tab) {
   });
   const dock = document.getElementById('outcome-dock');
   if (dock) dock.hidden = tab !== 'outcome';
+  if (tab !== 'history') {
+    document.querySelectorAll('#prev-call-info audio').forEach((aud) => { try { aud.pause(); } catch (e) {} });
+    document.querySelectorAll('#prev-call-info .mb-rec-btn').forEach((btn) => { btn.textContent = '▶'; });
+  }
   if (tab==='map' && currentContact) {
     showContactMap(currentContact.address, currentContact.plz, currentContact.city);
     if (typeof mbFitContactMap === 'function') mbFitContactMap();
