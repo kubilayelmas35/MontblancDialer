@@ -478,9 +478,42 @@ function mbDropUnusedNumber(contact, manual) {
   }
 }
 
+function mbCallFailText(call) {
+  return [
+    call?.cause,
+    call?.sipReason,
+    call?.sip_reason,
+    call?.sipHangupCause,
+    call?.hangupCause,
+    call?.hangup_cause,
+  ].map((v) => String(v || '')).join(' ').toUpperCase();
+}
+
+function mbBusyLine(call) {
+  if (!call) return false;
+  const sip = Number(call.sipCode || call.sip_code || 0);
+  const q850 = Number(call.causeCode || call.cause_code || 0);
+  if (sip === 486 || q850 === 17) return true;
+  return /USER[_\s-]*BUSY/.test(mbCallFailText(call));
+}
+
+function mbPhoneOff(call) {
+  if (!call) return false;
+  const text = mbCallFailText(call);
+  if (/NO[_\s-]*ANSWER|NO[_\s-]*USER[_\s-]*RESPONSE|RECOVERY[_\s-]*ON[_\s-]*TIMER|USER[_\s-]*BUSY|CALL[_\s-]*REJECT/.test(text)) return false;
+  const sip = Number(call.sipCode || call.sip_code || 0);
+  const q850 = Number(call.causeCode || call.cause_code || 0);
+  if (q850 === 19 || q850 === 18 || q850 === 17 || q850 === 21 || q850 === 102) return false;
+  if (sip === 480 || sip === 503) return true;
+  if ([20, 34, 38, 41, 42, 47].includes(q850)) return true;
+  return /SUBSCRIBER[_\s-]*ABSENT|TEMPORARY[_\s-]*FAILURE|NORMAL[_\s-]*TEMPORARY|NO[_\s-]*CIRCUIT|SWITCH[_\s-]*CONGEST|NETWORK[_\s-]*OUT[_\s-]*OF[_\s-]*ORDER|RESOURCE[_\s-]*UNAVAILABLE/.test(text);
+}
+
 function mbPoolEndStatus(row) {
   if (mbUnusedNumber(row?.call)) return 'unused';
   if (row?.phase === 'hold') return 'stuck';
+  if (mbBusyLine(row?.call)) return 'busy';
+  if (mbPhoneOff(row?.call)) return 'phone_off';
   return 'no_answer';
 }
 
@@ -489,16 +522,10 @@ function mbFarEndMissed(row) {
   const call = row.call;
   const sip = Number(call?.sipCode || call?.sip_code || 0);
   const q850 = Number(call?.causeCode || call?.cause_code || 0);
-  const text = [
-    call?.cause,
-    call?.sipReason,
-    call?.sip_reason,
-    call?.hangupCause,
-    call?.hangup_cause,
-  ].map((v) => String(v || '')).join(' ').toUpperCase();
-  const rejected = [408, 480, 486, 487, 603].includes(sip)
-    || [17, 18, 19, 21, 102].includes(q850)
-    || /USER[_\s-]*BUSY|CALL[_\s-]*REJECT|NO[_\s-]*ANSWER|NO[_\s-]*USER[_\s-]*RESPONSE|RECOVERY[_\s-]*ON[_\s-]*TIMER|DECLINE/.test(text);
+  const text = mbCallFailText(call);
+  const rejected = [408, 480, 486, 487, 503, 603].includes(sip)
+    || [17, 18, 19, 20, 21, 34, 38, 41, 42, 47, 102].includes(q850)
+    || /USER[_\s-]*BUSY|CALL[_\s-]*REJECT|NO[_\s-]*ANSWER|NO[_\s-]*USER[_\s-]*RESPONSE|RECOVERY[_\s-]*ON[_\s-]*TIMER|DECLINE|SUBSCRIBER[_\s-]*ABSENT|TEMPORARY[_\s-]*FAILURE|NO[_\s-]*CIRCUIT|SWITCH[_\s-]*CONGEST|NETWORK[_\s-]*OUT[_\s-]*OF[_\s-]*ORDER/.test(text);
   if (row.phase === 'live' || row.id === _liveCallId) return rejected;
   return true;
 }

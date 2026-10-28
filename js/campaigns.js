@@ -1255,7 +1255,7 @@ function queueDialPrefs(campaignId, queueId) {
   return { priority: meta.priority, maxAttempts: meta.maxAttempts };
 }
 
-const RECYCLE_STATUS_KEYS = ['no_answer', 'voicemail', 'negative', 'callback'];
+const RECYCLE_STATUS_KEYS = ['no_answer', 'busy', 'phone_off', 'stuck', 'unused', 'voicemail', 'negative', 'callback'];
 
 const _mbCampShownCache = new Map();
 
@@ -1299,6 +1299,8 @@ function mbOutcomeShown(key, camp, id) {
     no_answer: 'camp.st.no_answer',
     stuck: 'camp.st.stuck',
     unused: 'camp.st.unused',
+    busy: 'camp.st.busy',
+    phone_off: 'camp.st.phone_off',
     negative: 'camp.st.negative',
     callback: 'camp.st.callback',
     dnc: 'camp.st.dnc',
@@ -1336,12 +1338,16 @@ async function mbWarmCampShown(ids) {
 function campRecycleChoiceList(camp) {
   const base = [
     { key: 'no_answer', label: campT('camp.st.no_answer', 'Cevap yok') },
+    { key: 'busy', label: campT('camp.st.busy', 'Meşgul') },
+    { key: 'phone_off', label: campT('camp.st.phone_off', 'Telefon kapalı') },
+    { key: 'stuck', label: campT('camp.st.stuck', 'Tıkanık') },
+    { key: 'unused', label: campT('camp.st.unused', 'Kullanım dışı') },
     { key: 'voicemail', label: campT('camp.st.voicemail', 'Telesekreter') },
     { key: 'negative', label: campT('camp.st.negative', 'Olumsuz') },
     { key: 'callback', label: campT('camp.st.callback', 'Geri ara') },
   ];
   const seen = new Set(base.map((row) => row.key));
-  const builtin = new Set(['appointment', 'negative', 'callback', 'no_answer', 'dnc', 'voicemail']);
+  const builtin = new Set(['appointment', 'negative', 'callback', 'no_answer', 'dnc', 'voicemail', 'busy', 'phone_off', 'stuck', 'unused']);
   const outcomes = (typeof getCampSettings === 'function' ? getCampSettings(camp) : {})?.outcomes || [];
   outcomes.forEach((row) => {
     const key = String(row?.key || '').trim();
