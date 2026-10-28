@@ -2742,12 +2742,7 @@ function chIsFakeRec(l) {
 }
 
 function chRecHtml(l) {
-  const id = statsEsc(l.id);
-  if (l.recording_url) {
-    const src = statsEsc(l.recording_url);
-    const dl = statsEsc(typeof t === 'function' ? t('ch.rec.download') : 'Kaydı indir');
-    return `<div style="display:flex;align-items:center;gap:6px;"><audio id="ch-aud-${id}" src="${src}" preload="none" style="display:none;"></audio><button type="button" onclick="toggleAudio('ch-aud-${id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;color:var(--text-2);cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;"><i class="ph ph-play"></i></button><a class="ch-rec-dl" href="${src}" download="kayit-${id}.mp3" target="_blank" rel="noopener" title="${dl}" aria-label="${dl}"><i class="ph ph-download-simple"></i>${dl}</a></div>`;
-  }
+  if (l.recording_url && typeof mbRecPlayerHtml === 'function') return mbRecPlayerHtml(l.id, l.recording_url, chDurSec(l));
   if (chIsFakeRec(l) && typeof _fakeRecordingMarkup === 'function') return _fakeRecordingMarkup(l, 'chhist');
   return '<span style="color:var(--text-3);font-size:11px;">—</span>';
 }
@@ -3195,12 +3190,7 @@ const isFakeRec = (l) => {
   return false;
 };
 const recHtmlFor = (l) => {
-  if (l.recording_url) {
-    const src = statsEsc(l.recording_url);
-    const id = statsEsc(l.id);
-    const dl = statsEsc(typeof t === 'function' ? t('ch.rec.download') : 'Kaydı indir');
-    return `<span style="display:inline-flex;align-items:center;gap:6px;" onclick="event.stopPropagation();"><audio id="mh-aud-${id}" src="${src}" preload="none" style="display:none;"></audio><button type="button" onclick="event.stopPropagation();toggleAudio('mh-aud-${id}')" style="background:var(--bg-3);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;"><i class="ph ph-play"></i></button><a class="ch-rec-dl" href="${src}" download="kayit-${id}.mp3" target="_blank" rel="noopener" title="${dl}" aria-label="${dl}" onclick="event.stopPropagation();"><i class="ph ph-download-simple"></i>${dl}</a></span>`;
-  }
+  if (l.recording_url && typeof mbRecPlayerHtml === 'function') return mbRecPlayerHtml(l.id, l.recording_url, logDurSec(l));
   if (isFakeRec(l) && typeof _fakeRecordingMarkup === 'function') return _fakeRecordingMarkup(l, 'myhist');
   return '<span style="color:var(--text-3);font-size:11px;">—</span>';
 };

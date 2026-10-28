@@ -578,12 +578,8 @@ function qcPaintBody() {
     const agentName = row.users?.name || '—';
     const moved = _qcMoved(row) ? `<span class="qc-down">! ${_uiEsc(t('export.moved_short'))}</span>` : '';
     const rec = row.contact_id ? window._qcRecByContact?.[row.contact_id] : null;
-    const recHtml = rec?.recording_url
-      ? `<div style="display:flex;align-items:center;gap:4px;">
-<audio id="aud-${_uiEsc(rec.id)}" src="${_uiEsc(rec.recording_url)}" preload="none" style="display:none;"></audio>
-<button type="button" onclick="toggleAudio('${_uiEsc(rec.id)}')" class="icon-btn" title="${_uiEsc(t('qc.listen'))}"><i class="ph ph-play"></i></button>
-<span style="font-size:10px;color:var(--text-3);">${rec.duration_sec ? `${Math.floor(rec.duration_sec / 60)}m${rec.duration_sec % 60}s` : ''}</span>
-</div>`
+    const recHtml = rec?.recording_url && typeof mbRecPlayerHtml === 'function'
+      ? mbRecPlayerHtml(rec.id, rec.recording_url, rec.duration_sec)
       : '<span style="font-size:10px;color:var(--text-3);">—</span>';
     const selectedCustomer = row.customer_id || '';
     const custCell = hasCustomers

@@ -821,6 +821,67 @@ function mbDownloadTestTone(seconds) {
   setTimeout(() => URL.revokeObjectURL(link.href), 1500);
 }
 
+function mbRecPlayerHtml(id, url, durSec) {
+  const safeId = String(id || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  const raw = String(url || '');
+  const src = typeof statsEsc === 'function' ? statsEsc(raw) : raw.replace(/"/g, '&quot;');
+  const dl = typeof t === 'function' ? t('ch.rec.download') : 'Kaydı indir';
+  const dlSafe = typeof statsEsc === 'function' ? statsEsc(dl) : dl;
+  const dur = Math.max(0, Number(durSec) || 0);
+  const ext = /\.webm(\?|$)/i.test(raw) ? 'webm' : 'mp3';
+  return `<span class="mb-rec" data-dur="${dur}" onclick="event.stopPropagation();"><audio id="aud-${safeId}" src="${src}" preload="metadata"></audio><button type="button" class="mb-rec-btn" onclick="event.stopPropagation();mbToggleRec('${safeId}')">▶</button><span class="mb-rec-time">00:00 / ${_formatMMSS(dur)}</span><a class="ch-rec-dl" href="${src}" download="kayit-${safeId}.${ext}" target="_blank" rel="noopener" onclick="event.stopPropagation();"><i class="ph ph-download-simple"></i>${dlSafe}</a></span>`;
+}
+
+let _mbRecAudio = null;
+
+document.addEventListener('loadedmetadata', (ev) => {
+  const aud = ev.target;
+  if (!aud || aud.tagName !== 'AUDIO') return;
+  const wrap = aud.closest?.('.mb-rec');
+  const time = wrap?.querySelector('.mb-rec-time');
+  if (!time || aud.currentTime > 0.2) return;
+  const known = Number(wrap.getAttribute('data-dur') || 0);
+  const total = Number.isFinite(aud.duration) && aud.duration > 0 ? aud.duration : known;
+  time.textContent = `00:00 / ${_formatMMSS(total)}`;
+}, true);
+
+function mbToggleRec(id) {
+  const aud = document.getElementById('aud-' + id);
+  const wrap = aud?.closest('.mb-rec');
+  const btn = wrap?.querySelector('.mb-rec-btn');
+  const time = wrap?.querySelector('.mb-rec-time');
+  if (!aud) return;
+  const known = Number(wrap?.getAttribute('data-dur') || 0);
+  const paint = () => {
+    const total = Number.isFinite(aud.duration) && aud.duration > 0 ? aud.duration : known;
+    if (time) time.textContent = `${_formatMMSS(aud.currentTime || 0)} / ${_formatMMSS(total)}`;
+  };
+  if (_mbRecAudio && _mbRecAudio !== aud) {
+    _mbRecAudio.pause();
+    const otherBtn = _mbRecAudio.closest('.mb-rec')?.querySelector('.mb-rec-btn');
+    if (otherBtn) otherBtn.textContent = '▶';
+    try { _mbRecAudio.currentTime = 0; } catch (e) {}
+  }
+  if (aud.paused) {
+    const played = aud.play();
+    if (played && typeof played.catch === 'function') played.catch(() => {});
+    if (btn) btn.textContent = '⏸';
+    _mbRecAudio = aud;
+    aud.ontimeupdate = paint;
+    aud.onloadedmetadata = paint;
+    aud.onended = () => {
+      if (btn) btn.textContent = '▶';
+      try { aud.currentTime = 0; } catch (e) {}
+      paint();
+      if (_mbRecAudio === aud) _mbRecAudio = null;
+    };
+    return;
+  }
+  aud.pause();
+  if (btn) btn.textContent = '▶';
+  if (_mbRecAudio === aud) _mbRecAudio = null;
+}
+
 function _fakeRecordingMarkup(log, scopeKey) {
   const dur = Math.max(8, _logDurationSec(log));
   const key = `${scopeKey}-${log?.id || log?.started_at || Math.random().toString(16).slice(2)}`;
