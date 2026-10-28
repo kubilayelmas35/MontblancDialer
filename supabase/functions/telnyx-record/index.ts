@@ -144,6 +144,7 @@ Deno.serve(async (req) => {
       const gte = Number.isFinite(sinceMs) ? new Date(sinceMs - 15000).toISOString() : new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
       const params = new URLSearchParams();
       params.set('filter[created_at][gte]', gte);
+      if (Number.isFinite(sinceMs)) params.set('filter[created_at][lte]', new Date(sinceMs + 20 * 60 * 1000).toISOString());
       params.set('page[size]', '25');
       const listed = await fetch(`https://api.telnyx.com/v2/recordings?${params.toString()}`, {
         headers: { Authorization: `Bearer ${key}` },
@@ -155,11 +156,20 @@ Deno.serve(async (req) => {
         const n = Math.min(8, digits.length, phone.length);
         return n >= 6 && digits.slice(-n) === phone.slice(-n);
       };
-      const hit = rows.find((row: Record<string, unknown>) => {
+      const hits = rows.filter((row: Record<string, unknown>) => {
         const urls = row?.download_urls as Record<string, unknown> | undefined;
         const file = String(urls?.mp3 || urls?.wav || '');
         return /^https:\/\//i.test(file) && (tail(row.to) || tail(row.from));
       });
+      const hit = hits.reduce((best: Record<string, unknown> | null, row: Record<string, unknown>) => {
+        if (!best) return row;
+        if (!Number.isFinite(sinceMs)) return best;
+        const rowAt = Date.parse(String(row.created_at || ''));
+        const bestAt = Date.parse(String(best.created_at || ''));
+        if (!Number.isFinite(rowAt)) return best;
+        if (!Number.isFinite(bestAt)) return row;
+        return Math.abs(rowAt - sinceMs) < Math.abs(bestAt - sinceMs) ? row : best;
+      }, null as Record<string, unknown> | null);
       const urls = hit?.download_urls as Record<string, unknown> | undefined;
       const url = String(urls?.mp3 || urls?.wav || '');
       return json({ ok: /^https:\/\//i.test(url), url: /^https:\/\//i.test(url) ? url : '' });

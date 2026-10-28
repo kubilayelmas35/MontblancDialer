@@ -829,7 +829,87 @@ function mbRecPlayerHtml(id, url, durSec) {
   const dlSafe = typeof statsEsc === 'function' ? statsEsc(dl) : dl;
   const dur = Math.max(0, Number(durSec) || 0);
   const ext = /\.webm(\?|$)/i.test(raw) ? 'webm' : 'mp3';
-  return `<span class="mb-rec" data-dur="${dur}" onclick="event.stopPropagation();"><span class="mb-rec-top"><audio id="aud-${safeId}" src="${src}" preload="metadata"></audio><button type="button" class="mb-rec-btn" onclick="event.stopPropagation();mbToggleRec('${safeId}')">▶</button><span class="mb-rec-time">00:00 / ${_formatMMSS(dur)}</span><a class="ch-rec-dl" href="${src}" download="kayit-${safeId}.${ext}" target="_blank" rel="noopener" onclick="event.stopPropagation();"><i class="ph ph-download-simple"></i>${dlSafe}</a></span><span class="mb-rec-bar" role="slider" aria-valuemin="0" aria-valuemax="${dur}" onpointerdown="mbSeekRec(event,'${safeId}')"><span class="mb-rec-fill"></span></span></span>`;
+  mbScheduleRecWarm();
+  return `<span class="mb-rec" data-dur="${dur}" onclick="event.stopPropagation();"><span class="mb-rec-top"><audio id="aud-${safeId}" src="${src}" preload="metadata"></audio><button type="button" class="mb-rec-btn" onclick="event.stopPropagation();mbToggleRec('${safeId}')">▶</button><span class="mb-rec-time">00:00 / ${_formatMMSS(dur)}</span><a class="ch-rec-dl" href="${src}" download="kayit-${safeId}.${ext}" target="_blank" rel="noopener" onclick="mbOpenRec(event,'${safeId}')"><i class="ph ph-download-simple"></i>${dlSafe}</a></span><span class="mb-rec-bar" role="slider" aria-valuemin="0" aria-valuemax="${dur}" onpointerdown="mbSeekRec(event,'${safeId}')"><span class="mb-rec-fill"></span></span></span>`;
+}
+
+function mbRecUrlStale(src) {
+  try {
+    const u = new URL(String(src || ''), window.location.href);
+    const signed = u.searchParams.has('X-Amz-Signature') || /amazonaws\.com$/i.test(u.hostname);
+    if (!signed) return false;
+    const exp = Number(u.searchParams.get('X-Amz-Expires') || 0);
+    const stamp = String(u.searchParams.get('X-Amz-Date') || '');
+    const m = stamp.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
+    if (!m || !exp) return true;
+    const start = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+    return Date.now() > start + Math.max(0, exp - 20) * 1000;
+  } catch (e) {
+    return false;
+  }
+}
+
+const _mbRecFresh = new Map();
+
+async function mbRefreshRecUrl(id) {
+  const logId = String(id || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!logId || typeof sb !== 'function' || typeof mbTelnyxRecord !== 'function') return '';
+  if (_mbRecFresh.has(logId)) return _mbRecFresh.get(logId);
+  const job = (async () => {
+    const rows = await sb(`call_logs?id=eq.${logId}&select=id,phone,started_at,recording_url`).catch(() => []);
+    const row = rows?.[0];
+    const phone = String(row?.phone || '').replace(/\D/g, '');
+    if (phone.length < 6) return '';
+    const body = await mbTelnyxRecord('recent', { phone, since: row.started_at || '' });
+    const url = String(body?.url || '');
+    if (!/^https:\/\//i.test(url)) return '';
+    if (url !== String(row.recording_url || '')) {
+      await sb(`call_logs?id=eq.${logId}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ recording_url: url }),
+      }).catch(() => {});
+    }
+    return url;
+  })();
+  _mbRecFresh.set(logId, job);
+  try { return await job; } finally { _mbRecFresh.delete(logId); }
+}
+
+function mbApplyRecUrl(aud, url) {
+  if (!aud || !url) return;
+  const link = aud.closest('.mb-rec')?.querySelector('a.ch-rec-dl');
+  if (link) link.href = url;
+  if ((aud.currentSrc || aud.src) !== url) aud.src = url;
+}
+
+function mbScheduleRecWarm() {
+  clearTimeout(window._mbRecWarmTimer);
+  window._mbRecWarmTimer = setTimeout(() => { void mbWarmVisibleRecs(); }, 40);
+}
+
+async function mbWarmVisibleRecs() {
+  const audios = [...document.querySelectorAll('.mb-rec audio')];
+  for (const aud of audios) {
+    const src = aud.getAttribute('src') || '';
+    if (!mbRecUrlStale(src)) continue;
+    const fresh = await mbRefreshRecUrl(String(aud.id || '').replace(/^aud-/, ''));
+    if (fresh && aud.paused) mbApplyRecUrl(aud, fresh);
+  }
+}
+
+async function mbOpenRec(ev, id) {
+  if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+  const aud = document.getElementById('aud-' + id);
+  let href = aud?.getAttribute('src') || aud?.src || '';
+  if (!href || mbRecUrlStale(href)) {
+    const fresh = await mbRefreshRecUrl(id);
+    if (fresh) {
+      href = fresh;
+      mbApplyRecUrl(aud, fresh);
+    }
+  }
+  if (href) window.open(href, '_blank', 'noopener');
 }
 
 let _mbRecAudio = null;
@@ -896,9 +976,7 @@ function mbToggleRec(id) {
     try { _mbRecAudio.currentTime = 0; } catch (e) {}
     mbPaintRec(_mbRecAudio);
   }
-  if (aud.paused) {
-    const played = aud.play();
-    if (played && typeof played.catch === 'function') played.catch(() => {});
+  const arm = () => {
     if (btn) btn.textContent = '⏸';
     _mbRecAudio = aud;
     aud.ontimeupdate = paint;
@@ -909,6 +987,28 @@ function mbToggleRec(id) {
       paint();
       if (_mbRecAudio === aud) _mbRecAudio = null;
     };
+  };
+  const start = () => {
+    arm();
+    const played = aud.play();
+    if (played && typeof played.catch === 'function') {
+      played.catch(() => {
+        if (btn) btn.textContent = '▶';
+        if (_mbRecAudio === aud) _mbRecAudio = null;
+      });
+    }
+  };
+  if (aud.paused) {
+    const src = aud.getAttribute('src') || aud.src || '';
+    if (mbRecUrlStale(src)) {
+      if (btn) btn.textContent = '…';
+      void mbRefreshRecUrl(id).then((fresh) => {
+        if (fresh) mbApplyRecUrl(aud, fresh);
+        start();
+      });
+      return;
+    }
+    start();
     return;
   }
   aud.pause();

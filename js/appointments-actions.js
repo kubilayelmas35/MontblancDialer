@@ -628,7 +628,7 @@ async function takvimFillApptRecordings(appt) {
     const meta = [when, dur, showWho ? who : ''].filter(Boolean).join(' · ');
     return `<div style="margin-top:8px;">
 <div style="font-size:11px;color:var(--text-2);margin-bottom:4px;">${esc(meta)}</div>
-<audio controls preload="none" src="${esc(log.recording_url)}" style="width:100%;height:32px;"></audio>
+${typeof mbRecPlayerHtml === 'function' ? mbRecPlayerHtml(log.id, log.recording_url, sec) : `<audio controls preload="none" src="${esc(log.recording_url)}" style="width:100%;height:32px;"></audio>`}
 </div>`;
   }).join('');
   paint(html);

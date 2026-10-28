@@ -647,7 +647,7 @@ function openQcDetail(id) {
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.agent'))}</div><div style="font-weight:700;">${_uiEsc(row.users?.name || '—')}</div></div>
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.camp'))}</div><div class="qc-camp" style="font-weight:700;" title="${_uiEsc(campName)}">${_uiEsc(campName)}</div></div>
 ${row.agent_notu ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.agent_note'))}</div><div>${_uiEsc(row.agent_notu)}</div></div>` : ''}
-${rec?.recording_url ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:6px;">${_uiEsc(t('qc.rec'))}</div><audio controls src="${_uiEsc(rec.recording_url)}" style="width:100%;"></audio></div>` : ''}
+${rec?.recording_url && typeof mbRecPlayerHtml === 'function' ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:6px;">${_uiEsc(t('qc.rec'))}</div>${mbRecPlayerHtml(rec.id, rec.recording_url, rec.duration_sec)}</div>` : ''}
 </div>
 ${hasCustomers ? `<div style="margin-top:10px;">
   <label class="form-label">${_uiEsc(t('qc.customer_ph'))}</label>

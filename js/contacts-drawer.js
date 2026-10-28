@@ -455,7 +455,7 @@ function _renderCdrHistory() {
   <span><i class="ph ph-clock" style="vertical-align:-2px;"></i> ${dur}</span>
 </div>
 ${(() => { const nt = _stripSimCallMarker(l.notes); return nt ? '<div style="margin-top:4px;font-size:11px;color:var(--text-2);font-style:italic;">"' + _escHtml(nt) + '"</div>' : ''; })()}
-${l.recording_url ? `<div style="margin-top:6px;"><audio controls src="${l.recording_url}" style="width:100%;height:28px;" preload="none"></audio></div>` : (_isFakeRecordingRow(l) ? _fakeRecordingMarkup(l, 'cdrhist') : '')}
+${l.recording_url && typeof mbRecPlayerHtml === 'function' ? `<div style="margin-top:6px;">${mbRecPlayerHtml(l.id, l.recording_url, typeof _logDurationSec === 'function' ? _logDurationSec(l) : l.duration_sec)}</div>` : (_isFakeRecordingRow(l) ? _fakeRecordingMarkup(l, 'cdrhist') : '')}
 </div>`;
   }).join('');
 }
@@ -477,8 +477,8 @@ function _renderCdrRecordings() {
   <span style="font-size:11px;color:var(--text-2);font-family:var(--mono);">${dt}</span>
   <span style="font-size:11px;color:var(--text-3);">${dur}</span>
 </div>
-${l.recording_url
-  ? `<audio controls src="${l.recording_url}" style="width:100%;height:32px;" preload="none"></audio>`
+${l.recording_url && typeof mbRecPlayerHtml === 'function'
+  ? mbRecPlayerHtml(l.id, l.recording_url, typeof _logDurationSec === 'function' ? _logDurationSec(l) : l.duration_sec)
   : _fakeRecordingMarkup(l, 'cdrrec')}
 </div>`;
   }).join('');
