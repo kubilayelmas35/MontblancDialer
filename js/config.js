@@ -16,6 +16,7 @@ const SLOT_HOURS = 2;
 const UQ_AUTO_MAP = {
 'telefon':'phone','phone':'phone','tel':'phone','handy':'phone','mobil':'phone',
 'telefon2':'phone2','phone2':'phone2','tel2':'phone2',
+'vorwahl':'vorwahl','ländervorwahl':'cc','laendervorwahl':'cc','country code':'cc',
 'ad':'first_name','vorname':'first_name','name':'first_name','firstname':'first_name',
 'soyad':'last_name','nachname':'last_name','familienname':'last_name','lastname':'last_name',
 'adres':'address','adresse':'address','strasse':'address','straße':'address',
@@ -26,8 +27,10 @@ const UQ_AUTO_MAP = {
 };
 
 const UQ_FIELD_KEYWORDS = {
-  phone: ['telefon', 'phone', 'tel', 'handy', 'mobil', 'telefon 1', 'gsm'],
+  phone: ['telefon', 'phone', 'tel', 'handy', 'mobil', 'telefon 1', 'gsm', 'rufnummer'],
   phone2: ['telefon 2', 'telefon2', 'phone 2', 'phone2', 'tel2', 'handy 2', 'mobil 2'],
+  cc: ['ländervorwahl', 'laendervorwahl', 'country code', 'ülke kodu', 'ulke kodu', 'dial code', 'landesvorwahl'],
+  vorwahl: ['vorwahl', 'ortsvorwahl', 'area code', 'alan kodu', 'vorwahl nummer'],
   first_name: ['ad', 'vorname', 'firstname', 'first name', 'isim'],
   last_name: ['soyad', 'nachname', 'lastname', 'last name', 'familienname'],
   name: ['ad soyad', 'ad / soyad', 'vollname', 'full name', 'isim soyisim', 'name'],
@@ -85,10 +88,45 @@ function mbSplitPersonName(full) {
 }
 
 function mbNormalizeDialPhone(raw) {
-  let s = String(raw == null ? '' : raw).replace(/[\s()-]/g, '').trim();
+  let s = String(raw == null ? '' : raw).trim();
   if (/^\d+\.0$/.test(s)) s = s.slice(0, -2);
-  if (/^[1-9]\d{7,14}$/.test(s)) s = `+${s}`;
+  s = s.replace(/[\s()\/.-]/g, '');
+  if (s.startsWith('00')) s = `+${s.slice(2)}`;
+  else if (/^[1-9]\d{7,14}$/.test(s)) s = `+${s}`;
   return s;
+}
+
+function mbComposeDialPhone(phone, cc, vorwahl) {
+  const raw = String(phone == null ? '' : phone).trim();
+  const ccRaw = String(cc == null ? '' : cc).trim();
+  const areaRaw = String(vorwahl == null ? '' : vorwahl).trim();
+  const direct = mbNormalizeDialPhone(phone);
+  const explicitIntl = /^\+|^00/.test(raw.replace(/[\s()\/.-]/g, ''));
+  if (!ccRaw && !areaRaw) return direct;
+  if (explicitIntl && direct && typeof mbIsE164 === 'function' && mbIsE164(direct)) return direct;
+  const digits = (value) => {
+    let s = String(value == null ? '' : value).trim();
+    if (/^\d+\.0$/.test(s)) s = s.slice(0, -2);
+    s = s.replace(/[\s()\/.-]/g, '');
+    if (s.startsWith('+')) s = s.slice(1);
+    if (s.startsWith('00')) s = s.slice(2);
+    return s.replace(/\D/g, '');
+  };
+  let country = digits(ccRaw);
+  let area = digits(areaRaw);
+  let local = digits(phone);
+  if (country && area.startsWith(country) && area.length > country.length) area = area.slice(country.length);
+  area = area.replace(/^0+/, '');
+  if ((country || area) && local.startsWith('0')) local = local.replace(/^0+/, '');
+  if (!country && area) country = '49';
+  if (!local || (!country && !area)) return direct;
+  if (country && !area && local.startsWith(country) && local.length >= country.length + 6) {
+    return mbNormalizeDialPhone(`+${local}`);
+  }
+  if (area && local.startsWith(area) && local.length >= area.length + 7) {
+    return mbNormalizeDialPhone(`+${country}${local}`);
+  }
+  return mbNormalizeDialPhone(`+${country}${area}${local}`);
 }
 
 function mbClassifyLeadRows(rows, opts) {
@@ -155,6 +193,8 @@ const NC_DEFAULT_FIELDS = [
 const UQ_TARGET_FIELDS = [
 { key:'phone',      labelKey:'uq.field.phone', required:true },
 { key:'phone2',     labelKey:'uq.field.phone2' },
+{ key:'cc',         labelKey:'uq.field.cc' },
+{ key:'vorwahl',    labelKey:'uq.field.vorwahl' },
 { key:'name',       labelKey:'uq.field.name' },
 { key:'first_name', labelKey:'uq.field.first' },
 { key:'last_name',  labelKey:'uq.field.last' },

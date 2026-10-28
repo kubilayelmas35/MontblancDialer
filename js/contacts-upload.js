@@ -252,7 +252,9 @@ function mbRowFromMapping(row, mapping) {
     first = split.first_name;
     last = split.last_name;
   }
-  const norm = (v) => (typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(v) : v);
+  const join = (key) => (typeof mbComposeDialPhone === 'function'
+    ? mbComposeDialPhone(get(key), get('cc'), key === 'phone' ? get('vorwahl') : '')
+    : get(key));
   const extra = {};
   uqExtraUploadFields().forEach((field) => {
     if (field.store !== 'extra') return;
@@ -260,8 +262,8 @@ function mbRowFromMapping(row, mapping) {
     if (value) extra[field.key] = value;
   });
   const rowOut = {
-    phone: norm(get('phone')),
-    phone2: norm(get('phone2')),
+    phone: join('phone'),
+    phone2: join('phone2'),
     first_name: first,
     last_name: last,
     city: get('city'),
