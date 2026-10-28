@@ -283,21 +283,26 @@ function mbSettleEmptyCalling() {
 
 function mbUnansweredEnded(row) {
   const contact = row?.contact || null;
-  const manual = !!row?.manual;
-  if (mbHopperStillUp()) {
-    if (contact && !manual && row?.phase !== 'hold') mbReleaseUnanswered(contact, 'no_answer');
-    if (!_liveCallId && !manual && typeof mbRefillHopper === 'function') mbRefillHopper();
-    return;
-  }
-  _outboundDialPending = false;
-  _telnyxCall = null;
+  const manualLeft = _hopper.some((r) => r.manual && (r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'live' || r.phase === 'hold'));
+  const manual = !!row?.manual || (!manualLeft && !!window._mbManualAttempt);
   if (manual) {
+    window._mbManualAttempt = false;
+    _hopper = _hopper.filter((r) => r.phase === 'live' || r.phase === 'hold');
+    _outboundDialPending = false;
+    _telnyxCall = null;
     const byAgent = window._mbCallMeta && window._mbCallMeta.hangupBy === 'agent';
     if (!byAgent && typeof mbPlayBusy === 'function') mbPlayBusy();
     else if (typeof mbStopRingback === 'function') mbStopRingback();
     if (typeof handleCallEnd === 'function') handleCallEnd(0);
     return;
   }
+  if (mbHopperStillUp()) {
+    if (contact && row?.phase !== 'hold') mbReleaseUnanswered(contact, 'no_answer');
+    if (!_liveCallId && typeof mbRefillHopper === 'function') mbRefillHopper();
+    return;
+  }
+  _outboundDialPending = false;
+  _telnyxCall = null;
   if (contact && row?.phase !== 'hold') mbReleaseUnanswered(contact, 'no_answer');
   if (_poolSyncing) mbSettleEmptyCalling();
   else if (typeof mbRefillHopper === 'function') mbRefillHopper();
@@ -331,6 +336,14 @@ function _hopperRowFor(call) {
 }
 
 function _rememberHopper(call, contact, dest, manual) {
+  const existing = call && _hopper.find((r) => r.call === call);
+  if (existing) {
+    if (manual) existing.manual = true;
+    if (contact && !existing.contact) existing.contact = contact;
+    const digits = String(dest || '').replace(/\D/g, '');
+    if (digits) existing.dest = digits;
+    return existing;
+  }
   const id = call.id || ('leg-' + Date.now() + '-' + Math.random().toString(16).slice(2));
   const row = {
     id,
@@ -523,7 +536,14 @@ function mbOnHopperCall(call) {
     }
     if (state === 'held' || state === 'hold') return;
     if (call.direction === 'inbound' && state !== 'active') return;
-    row = _rememberHopper(call, currentContact, mbCallDigits(call), false);
+    const pendingManual = _hopper.filter((r) => r.manual && (r.phase === 'dialing' || r.phase === 'ringing'));
+    if (pendingManual.length === 1) {
+      row = pendingManual[0];
+      row.call = call;
+      if (call.id) row.id = call.id;
+    } else {
+      row = _rememberHopper(call, currentContact, mbCallDigits(call), !!(call.__mbManual || window._mbOutboundManual));
+    }
   }
   if (call.id && row.id !== call.id && row.id === _liveCallId) _liveCallId = call.id;
   if (call.id) row.id = call.id;
@@ -586,7 +606,7 @@ function mbOnHopperCall(call) {
     _hopper = _hopper.filter((r) => {
       if (r === row) return false;
       if (r.phase === 'live' || r.phase === 'hold') return true;
-      if (row.manual && r.manual && (r.phase === 'dialing' || r.phase === 'ringing')) return false;
+      if ((row.manual || window._mbManualAttempt) && (r.phase === 'dialing' || r.phase === 'ringing')) return false;
       return !(dest && mbSameDialDigits(r.dest || mbCallDigits(r.call) || r.contact?.phone, dest));
     });
     _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
@@ -617,17 +637,21 @@ if (typeof mbLineCallBlockedSync === 'function' && mbLineCallBlockedSync(callerN
   return;
 }
 try {
+window._mbOutboundManual = work !== 'auto';
+window._mbManualAttempt = work !== 'auto';
 const call = _telnyxClient.newCall({
 destinationNumber: destination,
 callerNumber: callerNumber,
 audio: true, video: false,
 detectAnsweringMachine: true,
 });
-_rememberHopper(call, contact || currentContact, destination, work !== 'auto');
+call.__mbManual = work !== 'auto';
+_rememberHopper(call, contact || currentContact, destination, call.__mbManual);
+window._mbOutboundManual = false;
 if (!_telnyxCall) _telnyxCall = call;
 if (!callStart) callStart = Date.now();
 _outboundDialPending = true;
-} catch(e) { _outboundDialPending = false; toast('Arama hatası: ' + e.message, 'err'); }
+} catch(e) { window._mbOutboundManual = false; _outboundDialPending = false; toast('Arama hatası: ' + e.message, 'err'); }
 }
 
 function mbSimOutbound(contact, answerInMs) {
@@ -791,8 +815,12 @@ function handleCallEnd(duration) {
 mbNoteCallHangup('customer');
 if (typeof mbMarkLiveHold === 'function') mbMarkLiveHold(false);
 _outboundWaitGen++;
+const liveLeft = _hopper.some((r) => r.phase === 'live' || r.phase === 'hold');
+if ((dialerStatus === 'calling' || dialerStatus === 'on_call') && !liveLeft) {
+  _hopper = _hopper.filter((r) => r.phase === 'live' || r.phase === 'hold');
+}
 _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
-const wasAttempt = dialerStatus === 'on_call' || (dialerStatus === 'calling' && !_hopper.length);
+const wasAttempt = dialerStatus === 'on_call' || (dialerStatus === 'calling' && !liveLeft);
 callSeconds  = duration || callSeconds;
 activeCallId = null;
 if (wasAttempt) {

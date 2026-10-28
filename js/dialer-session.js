@@ -1272,6 +1272,9 @@ async function mbSyncPool() {
         updateSessionInDB('offline');
       }
     }
+    if (dialerStatus === 'calling' && !_liveCallId && !_hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'live' || r.phase === 'hold') && typeof mbSettleEmptyCalling === 'function') {
+      mbSettleEmptyCalling();
+    }
     return;
   }
   _poolSyncing = true;
