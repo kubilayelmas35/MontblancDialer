@@ -84,6 +84,30 @@ Deno.serve(async (req) => {
       return json({ ok }, ok ? 200 : 502);
     }
 
+    if (action === 'lookup') {
+      const phone = String(body?.phone || '').replace(/\D/g, '');
+      if (phone.length < 6) return json({ error: 'id' }, 400);
+      const tail = (value: unknown) => {
+        const digits = String(value || '').replace(/\D/g, '');
+        const n = Math.min(8, digits.length, phone.length);
+        return n >= 6 && digits.slice(-n) === phone.slice(-n);
+      };
+      const listed = await fetch('https://api.telnyx.com/v2/calls?page[size]=50', {
+        headers: { Authorization: `Bearer ${key}` },
+      });
+      const payload = await listed.json().catch(() => ({}));
+      const rows = Array.isArray(payload?.data) ? payload.data : [];
+      const hit = rows.find((row: Record<string, unknown>) => tail(row.to) || tail(row.from) || tail(row.destination) || tail(row.to_number));
+      const foundId = safeId(hit?.call_control_id);
+      if (!hit || !foundId) return json({ ok: false });
+      return json({
+        ok: true,
+        call_control_id: foundId,
+        call_session_id: safeId(hit.call_session_id),
+        call_leg_id: safeId(hit.call_leg_id),
+      });
+    }
+
     if (action === 'fetch') {
       const params = new URLSearchParams();
       if (control) params.set('filter[call_control_id]', control);

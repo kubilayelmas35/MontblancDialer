@@ -78,10 +78,28 @@ function mbWatchRecordingId(call) {
     if (!call || call.__mbRecOn || n++ > 24) return;
     const st = String(call.state || '');
     if (['hangup', 'destroy', 'done', 'purge', 'bye'].includes(st)) return;
-    if (st === 'active') mbStartCallRecording(call);
+    if (st === 'active') {
+      mbStartCallRecording(call);
+      if (!mbTelnyxIds(call).control && !call.__mbLookup) void mbLookupRecordingId(call);
+    }
     if (!call.__mbRecOn) setTimeout(tick, 500);
   };
   setTimeout(tick, 400);
+}
+
+async function mbLookupRecordingId(call) {
+  if (!call || call.__mbLookup || call.__mbRecOn) return;
+  const phone = mbCallDigits(call) || String(currentContact?.phone || '').replace(/\D/g, '');
+  if (phone.length < 6) return;
+  call.__mbLookup = true;
+  const body = await mbTelnyxRecord('lookup', { phone });
+  const control = String(body?.call_control_id || '').trim();
+  if (!control) return;
+  const opt = call.options || (call.options = {});
+  opt.telnyxCallControlId = control;
+  if (body.call_session_id) opt.telnyxSessionId = body.call_session_id;
+  if (body.call_leg_id) opt.telnyxLegId = body.call_leg_id;
+  if (String(call.state || '') === 'active') mbStartCallRecording(call);
 }
 
 function mbRememberTelnyxIds(call) {

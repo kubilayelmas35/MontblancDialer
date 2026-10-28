@@ -774,6 +774,7 @@ const s = getCampSettings(camp);
 setCheck('cd-auto-dial', s.auto_dial !== false);
 setCheck('cd-agent-edit', s.agent_edit !== false);
 setCheck('cd-appointment-slot-required', s.appointment_slot_required || false);
+setCheck('cd-negative-note-free', !!s.negative_note_optional);
 setCheck('cd-recycle', s.recycle || false);
 setVal('cd-recycle-delay', s.recycle_delay || 60);
 renderRecycleControls(camp, s);
@@ -832,6 +833,7 @@ const s = {
 auto_dial: getCheck('cd-auto-dial'),
 agent_edit: getCheck('cd-agent-edit'),
 appointment_slot_required: getCheck('cd-appointment-slot-required'),
+negative_note_optional: getCheck('cd-negative-note-free'),
 recycle: master,
 recycle_delay: parseInt(getVal('cd-recycle-delay')||'60'),
 recycle_max: Math.max(1, Math.min(5, parseInt(getVal('cd-recycle-max') || '2', 10) || 2)),

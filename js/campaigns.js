@@ -1257,15 +1257,31 @@ function campRecyclePolicy(campaignId) {
   return { on: !!s.recycle && statuses.length > 0, statuses, max, delayMin };
 }
 
+function mbDialableContactFilter(campaignId) {
+  const nowIso = new Date().toISOString();
+  const pol = campRecyclePolicy(campaignId);
+  const parts = [
+    'status.eq.pending',
+    `and(status.eq.callback,or(callback_at.is.null,callback_at.lte.${nowIso}))`,
+  ];
+  if (pol?.on) {
+    const due = new Date(Date.now() - pol.delayMin * 60000).toISOString();
+    pol.statuses.forEach((st) => {
+      if (st === 'pending' || st === 'callback' || !/^[a-z0-9_]+$/i.test(st)) return;
+      parts.push(`and(status.eq.${st},attempt_count.lt.${pol.max},or(last_called_at.is.null,last_called_at.lte.${due}))`);
+    });
+  }
+  return `or=(${parts.join(',')})`;
+}
+
 function contactEligibleForRecycle(c, testRelax) {
   if (testRelax || !c) return true;
-  const pol = campRecyclePolicy(c.campaign_id);
-  if (!pol) return true;
   const st = String(c.status || '').toLowerCase();
   if (!st || st === 'pending' || st === 'calling') return true;
-  const dueCb = st === 'callback' && c.callback_at && Date.parse(c.callback_at) <= Date.now();
+  const dueCb = st === 'callback' && (!c.callback_at || Date.parse(c.callback_at) <= Date.now());
   if (dueCb) return true;
-  if (!pol.on || !pol.statuses.includes(st)) return false;
+  const pol = campRecyclePolicy(c.campaign_id);
+  if (!pol?.on || !pol.statuses.includes(st)) return false;
   if ((Number(c.attempt_count) || 0) >= pol.max) return false;
   if (pol.delayMin > 0 && c.last_called_at) {
     if (Date.parse(c.last_called_at) + pol.delayMin * 60000 > Date.now()) return false;

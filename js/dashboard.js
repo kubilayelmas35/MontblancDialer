@@ -3000,7 +3000,8 @@ function chPaint() {
   }
   tbody.innerHTML = filtered.map((row) => {
     const l = row.raw;
-    const detail = l.contact_id ? `<button type="button" class="icon-btn" onclick="openContactDrawer('${statsEsc(l.contact_id)}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button>` : '';
+    const openTitle = statsEsc(typeof t === 'function' ? t('dial.history_open') : 'Dialerde aç');
+    const detail = l.contact_id ? `<button type="button" class="icon-btn" onclick="openContactDrawer('${statsEsc(l.contact_id)}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button><button type="button" class="icon-btn" onclick="openDialerForContact('${statsEsc(l.contact_id)}')" title="${openTitle}"><i class="ph ph-arrow-square-out"></i></button>` : '';
     return `<tr>${cols.map((col) => chCellHtml(row, col.key)).join('')}<td>${detail}</td></tr>`;
   }).join('');
 }
@@ -3239,7 +3240,8 @@ const cbInfo = l.callback_at ? `<div style="font-size:10px;color:var(--yellow);m
 const customOutcome = typeof mbOutcomeShown === 'function' ? mbOutcomeShown(l.outcome, l.campaigns, l.campaign_id) : '';
 const outcomeHtml = OM[l.outcome] || `<span class="badge badge-gray">${typeof escapeHtml === 'function' ? escapeHtml(customOutcome || l.outcome || '—') : (customOutcome || l.outcome || '—')}</span>`;
 const recHtml = recHtmlFor(l);
-const detailBtn = l.contact_id ? `<button class="icon-btn" onclick="openContactDrawer('${l.contact_id}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button>` : '';
+const openTitle = typeof statsEsc === 'function' ? statsEsc(typeof t === 'function' ? t('dial.history_open') : 'Dialerde aç') : 'Dialerde aç';
+const detailBtn = l.contact_id ? `<button class="icon-btn" onclick="openContactDrawer('${l.contact_id}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button><button class="icon-btn" onclick="openDialerForContact('${l.contact_id}')" title="${openTitle}"><i class="ph ph-arrow-square-out"></i></button>` : '';
 return `<tr>
 <td class="td-mono" style="font-size:11px;">${dt}</td>
 <td style="font-weight:600;">${name}</td>

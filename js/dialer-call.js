@@ -1089,8 +1089,15 @@ async function mbRefreshOutcomeOpenLeft() {
   mbPaintOutcomeOpenLeft(ids.size);
 }
 
+function mbNegativeNoteOptional() {
+  const id = currentContact?.campaign_id || (typeof selectedCampId !== 'undefined' ? selectedCampId : '');
+  const camp = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => String(c.id) === String(id));
+  const s = typeof getCampSettings === 'function' ? getCampSettings(camp || {}) : {};
+  return !!s.negative_note_optional;
+}
+
 function mbHoldEmptyOutcomeNote(cat, note) {
-  const need = cat === 'appointment' || cat === 'negative';
+  const need = cat === 'appointment' || (cat === 'negative' && !mbNegativeNoteOptional());
   if (!need || String(note || '').trim()) {
     window._mbEmptyNoteOk = false;
     return false;

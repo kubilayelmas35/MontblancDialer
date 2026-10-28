@@ -193,19 +193,14 @@ function mbDashOpenPage(page) {
 async function mbDashRemainMap(ids) {
   const map = {};
   if (!ids.length) return { map, ok: true };
-  const grouped = await sb(`contacts?select=campaign_id,id.count()&status=in.(pending,no_answer,callback)&campaign_id=in.(${ids.join(',')})`).catch(() => null);
-  const usable = Array.isArray(grouped) && (grouped.length === 0 || grouped.every((row) => row && (row.count != null || row.id_count != null)));
-  if (usable) {
-    grouped.forEach((row) => { map[row.campaign_id] = Number(row.count ?? row.id_count) || 0; });
-    ids.forEach((id) => { if (map[id] == null) map[id] = 0; });
-    return { map, ok: true };
-  }
-  const slice = ids.slice(0, 8);
-  const counts = await Promise.all(slice.map((id) => mbDashCount(
-    `contacts?select=id&campaign_id=eq.${id}&status=in.(pending,no_answer,callback)`
-  )));
-  slice.forEach((id, i) => { map[id] = counts[i]; });
-  return { map, ok: false };
+  const counts = await Promise.all(ids.map((id) => {
+    const filter = typeof mbDialableContactFilter === 'function'
+      ? mbDialableContactFilter(id)
+      : 'or=(status.eq.pending)';
+    return mbDashCount(`contacts?select=id&campaign_id=eq.${id}&${filter}`);
+  }));
+  ids.forEach((id, i) => { map[id] = counts[i] == null ? 0 : counts[i]; });
+  return { map, ok: true };
 }
 
 async function mbDashLinesOut(ids, ff) {

@@ -128,7 +128,7 @@ async function getNextContact(campaignIds = null) {
 
     // Normal akış: önce bekleyen / cevap yok / vakti gelen geri aramalar
     let contacts = await fetchScopedContacts(
-      `&status=in.(pending,no_answer,callback)&or=(callback_at.is.null,callback_at.lte.${nowIso})`,
+      `&status=in.(pending,callback)&or=(callback_at.is.null,callback_at.lte.${nowIso})`,
       50
     ) || [];
     if (!(typeof _testMode !== 'undefined' && _testMode) && typeof campRecyclePolicy === 'function') {
@@ -190,7 +190,7 @@ async function getNextContact(campaignIds = null) {
         .slice(0, 5);
       for (let i = 0; i < hot.length; i++) {
         const extra = (await sb(
-          `contacts?queue_id=eq.${hot[i].id}&status=in.(pending,no_answer,callback)&or=(callback_at.is.null,callback_at.lte.${nowIso})&order=last_called_at.asc.nullsfirst&limit=20&select=*`
+          `contacts?queue_id=eq.${hot[i].id}&status=in.(pending,callback)&or=(callback_at.is.null,callback_at.lte.${nowIso})&order=last_called_at.asc.nullsfirst&limit=20&select=*`
         ).catch(() => [])) || [];
         extra.forEach((row) => contacts.unshift(row));
       }
