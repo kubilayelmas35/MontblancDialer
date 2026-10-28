@@ -1358,7 +1358,7 @@ async function saveQueueSettings(queueId) {
 const QUEUE_OPS_ROWS = [
   { key: 'pending', requeue: false, pull: true, label: 'camp.ops.pending', fb: 'Kuyrukta' },
   { key: 'removed', requeue: true, pull: false, label: 'camp.ops.removed', fb: 'Kuyruktan çıkan' },
-  { key: 'calling', requeue: false, pull: false, label: 'camp.ops.calling', fb: 'Aranıyor' },
+  { key: 'calling', requeue: true, pull: false, label: 'camp.ops.calling', fb: 'Aranıyor' },
   { key: 'no_answer', requeue: true, pull: false, label: 'camp.st.no_answer', fb: 'Cevap yok' },
   { key: 'busy', requeue: true, pull: false, label: 'camp.st.busy', fb: 'Meşgul' },
   { key: 'phone_off', requeue: true, pull: false, label: 'camp.st.phone_off', fb: 'Telefon kapalı' },
@@ -1505,6 +1505,31 @@ ${row.requeue ? `<button type="button" class="btn btn-primary btn-xs" ${n ? '' :
   }).join('');
 }
 
+async function mbDropCallingHold(ids) {
+  const list = (ids || []).filter((id) => /^[0-9a-f-]{36}$/i.test(String(id || '')));
+  if (!list.length || typeof sb !== 'function') return;
+  const clear = {
+    current_contact_id: null,
+    current_contact_name: null,
+    current_contact_phone: null,
+    call_started_at: null,
+    call_start: null,
+  };
+  for (let i = 0; i < list.length; i += 40) {
+    const chunk = list.slice(i, i + 40).join(',');
+    await sb(`agent_sessions?current_contact_id=in.(${chunk})&status=in.(wrapping,on_call,calling)`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ ...clear, status: 'ready' }),
+    }).catch(() => {});
+    await sb(`agent_sessions?current_contact_id=in.(${chunk})`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify(clear),
+    }).catch(() => {});
+  }
+}
+
 async function requeueOpsSlice(queueId, status) {
   const row = QUEUE_OPS_ROWS.find((r) => r.key === status);
   if (!row?.requeue) return;
@@ -1523,9 +1548,10 @@ async function requeueOpsSlice(queueId, status) {
       const chunk = ids.slice(i, i + 60);
       await sb(`contacts?id=in.(${chunk.join(',')})`, {
         method: 'PATCH', prefer: 'return=minimal',
-        body: JSON.stringify({ status: 'pending', last_called_at: null }),
+        body: JSON.stringify({ status: 'pending', last_called_at: null, locked_by: null, locked_at: null }),
       });
     }
+    if (status === 'calling') await mbDropCallingHold(ids);
     await syncQueueDialed(queueId);
     if (typeof mbTouchCampLeft === 'function') mbTouchCampLeft(queueId, ids.length);
     toast(campT('camp.ops.done','{n} kişi kuyruğa alındı').replace('{n}', String(ids.length)), 'ok');
