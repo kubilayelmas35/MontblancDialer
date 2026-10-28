@@ -898,7 +898,8 @@ function mbPoolPlan(ready, speed, ringing) {
 
 function mbRefreshHopperUi() {
   const live = _hopper.filter((r) => r.phase === 'dialing' || r.phase === 'ringing');
-  const ringing = live.length;
+  const manualRing = live.some((r) => r.manual);
+  const poolRing = live.filter((r) => !r.manual).length;
   const openId = String(currentContact?.id || '');
   const others = live.filter((r) => {
     const id = String(r.contact?.id || r.contactId || '');
@@ -910,16 +911,16 @@ function mbRefreshHopperUi() {
   const sub = document.querySelector('#cust-empty-outbound-wait .cust-outbound-wait__sub');
   const plan = _poolPlan;
   if (title && dialerStatus === 'calling') {
-    title.textContent = ringing > 0
-      ? (typeof tReplace === 'function' ? tReplace('dial.hopper.ringing', { n: ringing }) : `Havuz: ${ringing} kişi aranıyor`)
+    title.textContent = (!manualRing && poolRing > 0)
+      ? (typeof tReplace === 'function' ? tReplace('dial.hopper.ringing', { n: poolRing }) : `Havuz: ${poolRing} kişi aranıyor`)
       : (typeof t === 'function' ? t('dial.wait_answer') : 'Telefonun açılması bekleniyor');
   }
   if (sub && dialerStatus === 'calling') {
-    if (plan && plan.multi) {
+    if (!manualRing && plan && plan.multi) {
       sub.textContent = typeof tReplace === 'function'
         ? tReplace('dial.hopper.ratio_multi', { ready: plan.ready, open: plan.open, target: plan.target })
         : `Hazır ${plan.ready} · hız ${plan.open} kampanyaya bölünür · hedef ${plan.target}`;
-    } else if (plan) {
+    } else if (!manualRing && plan && poolRing > 0) {
       sub.textContent = typeof tReplace === 'function'
         ? tReplace('dial.hopper.ratio', { ready: plan.ready, speed: plan.speed, target: plan.target })
         : `Hazır ${plan.ready} × hız ${plan.speed} = ${plan.target}`;
@@ -1230,6 +1231,10 @@ async function mbSyncPool() {
   }
   if (_poolSyncing) return;
   if (dialerStatus === 'offline' || dialerStatus === 'break' || dialerStatus === 'wrapping') return;
+  if (_hopper.some((r) => r.manual && (r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'live'))) {
+    mbRefreshHopperUi();
+    return;
+  }
   if (!_autoDial && dialerStatus !== 'calling' && dialerStatus !== 'ready' && dialerStatus !== 'on_call' && dialerStatus !== 'wrapping') return;
   const campIds = typeof getAutoDialCampaignIds === 'function' ? getAutoDialCampaignIds() : [];
   const ids = campIds;
@@ -1296,6 +1301,9 @@ async function mbSyncPool() {
         setDialerStatus('offline');
         updateSessionInDB('offline');
       }
+    }
+    if (dialerStatus === 'calling' && !_outboundDialPending && !_liveCallId && !_hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'live' || r.phase === 'hold') && typeof mbSettleEmptyCalling === 'function') {
+      mbSettleEmptyCalling();
     }
     mbRefreshHopperUi();
     if (dialerStatus === 'calling' || dialerStatus === 'on_call' || dialerStatus === 'ready' || dialerStatus === 'wrapping') {

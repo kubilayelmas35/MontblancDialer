@@ -136,7 +136,7 @@ _connectTelnyx(data.sipUser, data.sipPass);
 break;
 case 'MB_CALL':
 mbNoteCallStart(data.callerNumber, data.work || 'manual');
-_makeCall(data.destination, data.callerNumber, data.contact);
+_makeCall(data.destination, data.callerNumber, data.contact, data.work || 'manual');
 break;
 case 'MB_HANGUP':
 mbHangupLiveOrWave();
@@ -243,15 +243,91 @@ toast('❌ Hat hatası: ' + e.message, 'err');
 }
 }
 
+function mbCallDigits(call) {
+  const raw = call?.options?.destinationNumber
+    || call?.options?.destination
+    || call?.destinationNumber
+    || call?.destination
+    || '';
+  return String(raw).replace(/\D/g, '');
+}
+
+function mbSameDialDigits(a, b) {
+  const x = String(a || '').replace(/\D/g, '');
+  const y = String(b || '').replace(/\D/g, '');
+  if (!x || !y) return false;
+  const n = Math.min(8, x.length, y.length);
+  return n >= 6 && x.slice(-n) === y.slice(-n);
+}
+
+function mbHopperStillUp() {
+  return !!_liveCallId || _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'live' || r.phase === 'hold');
+}
+
+function mbSettleEmptyCalling() {
+  if (mbHopperStillUp() || _outboundDialPending || dialerStatus !== 'calling') return;
+  if (typeof hideOutboundWait === 'function') hideOutboundWait();
+  if (typeof setDialerStatus === 'function') setDialerStatus('ready');
+  if (typeof updateSessionInDB === 'function') updateSessionInDB('ready');
+}
+
+function mbUnansweredEnded(row) {
+  const contact = row?.contact || null;
+  const manual = !!row?.manual;
+  if (mbHopperStillUp()) {
+    if (contact && !manual && row?.phase !== 'hold') mbReleaseUnanswered(contact, 'no_answer');
+    if (!_liveCallId && !manual && typeof mbRefillHopper === 'function') mbRefillHopper();
+    return;
+  }
+  _outboundDialPending = false;
+  _telnyxCall = null;
+  if (manual) {
+    if (typeof handleCallEnd === 'function') handleCallEnd(0);
+    return;
+  }
+  if (contact && row?.phase !== 'hold') mbReleaseUnanswered(contact, 'no_answer');
+  if (_poolSyncing) mbSettleEmptyCalling();
+  else if (typeof mbRefillHopper === 'function') mbRefillHopper();
+  else mbSettleEmptyCalling();
+}
+
 function _hopperRowFor(call) {
   if (!call) return null;
   const id = call.id || call.callId || '';
-  return _hopper.find((r) => r.call === call || (id && r.id === id)) || null;
+  const hit = _hopper.find((r) => r.call === call || (id && r.id === id));
+  if (hit) return hit;
+  const dest = mbCallDigits(call);
+  if (dest) {
+    const same = _hopper.find((r) => (r.phase === 'dialing' || r.phase === 'ringing') && mbSameDialDigits(r.dest || mbCallDigits(r.call) || r.contact?.phone, dest));
+    if (same) {
+      if (same.call !== call && (!same.call?.id || String(same.id).startsWith('leg-') || same.call.id === call.id)) same.call = call;
+      if (call.id) same.id = call.id;
+      return same;
+    }
+  }
+  if (call.direction !== 'inbound') {
+    const orphans = _hopper.filter((r) => (r.phase === 'dialing' || r.phase === 'ringing') && String(r.id).startsWith('leg-'));
+    if (orphans.length === 1) {
+      orphans[0].call = call;
+      if (call.id) orphans[0].id = call.id;
+      if (dest) orphans[0].dest = dest;
+      return orphans[0];
+    }
+  }
+  return null;
 }
 
-function _rememberHopper(call, contact) {
+function _rememberHopper(call, contact, dest, manual) {
   const id = call.id || ('leg-' + Date.now() + '-' + Math.random().toString(16).slice(2));
-  const row = { id, call, contact: contact || currentContact || null, phase: 'dialing', answeredAt: 0 };
+  const row = {
+    id,
+    call,
+    contact: contact || currentContact || null,
+    phase: 'dialing',
+    answeredAt: 0,
+    dest: String(dest || mbCallDigits(call) || contact?.phone || '').replace(/\D/g, ''),
+    manual: !!manual,
+  };
   _hopper.push(row);
   return row;
 }
@@ -388,9 +464,25 @@ function mbOnHopperCall(call) {
   const dead = state === 'hangup' || state === 'destroy' || state === 'done' || state === 'purge';
   let row = _hopperRowFor(call);
   if (!row) {
-    if (dead || state === 'held' || state === 'hold') return;
+    if (dead) {
+      const dest = mbCallDigits(call);
+      const doomed = _hopper.filter((r) => {
+        if (r.phase === 'live' || r.phase === 'hold') return false;
+        if (dest && mbSameDialDigits(r.dest || mbCallDigits(r.call) || r.contact?.phone, dest)) return true;
+        const st = String(r.call?.state || '');
+        return st === 'hangup' || st === 'destroy' || st === 'done' || st === 'purge';
+      });
+      if (!doomed.length) return;
+      const sample = doomed[doomed.length - 1];
+      _hopper = _hopper.filter((r) => !doomed.includes(r));
+      _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
+      mbUnansweredEnded(sample);
+      if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+      return;
+    }
+    if (state === 'held' || state === 'hold') return;
     if (call.direction === 'inbound' && state !== 'active') return;
-    row = _rememberHopper(call, currentContact);
+    row = _rememberHopper(call, currentContact, mbCallDigits(call), false);
   }
   if (call.id && row.id !== call.id && row.id === _liveCallId) _liveCallId = call.id;
   if (call.id) row.id = call.id;
@@ -444,9 +536,13 @@ function mbOnHopperCall(call) {
   }
   if (dead) {
     const wasLive = row.id === _liveCallId || row.phase === 'live';
-    const contact = row.contact;
-    const phase = row.phase;
-    _hopper = _hopper.filter((r) => r !== row);
+    const dest = row.dest || mbCallDigits(call);
+    _hopper = _hopper.filter((r) => {
+      if (r === row) return false;
+      if (r.phase === 'live' || r.phase === 'hold') return true;
+      if (row.manual && r.manual && (r.phase === 'dialing' || r.phase === 'ringing')) return false;
+      return !(dest && mbSameDialDigits(r.dest || mbCallDigits(r.call) || r.contact?.phone, dest));
+    });
     _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
     if (wasLive) {
       mbNoteRecordingMiss(call);
@@ -455,16 +551,15 @@ function mbOnHopperCall(call) {
       const dur = callStart ? Math.round((Date.now() - callStart) / 1000) : 0;
       callStart = null;
       if (typeof handleCallEnd === 'function') handleCallEnd(dur);
-    } else if (contact && phase !== 'hold') {
+    } else {
       if (_telnyxCall === row.call) _telnyxCall = null;
-      mbReleaseUnanswered(contact, 'no_answer');
-      if (!_liveCallId && typeof mbRefillHopper === 'function') mbRefillHopper();
+      mbUnansweredEnded(row);
     }
     if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
   }
 }
 
-function _makeCall(destination, callerNumber, contact) {
+function _makeCall(destination, callerNumber, contact, work) {
 if (!_telnyxClient || !telnyxReady) {
 _outboundDialPending = false;
 toast('Hat bağlantısı yok', 'err'); return;
@@ -482,7 +577,7 @@ callerNumber: callerNumber,
 audio: true, video: false,
 detectAnsweringMachine: true,
 });
-_rememberHopper(call, contact || currentContact);
+_rememberHopper(call, contact || currentContact, destination, work !== 'auto');
 if (!_telnyxCall) _telnyxCall = call;
 if (!callStart) callStart = Date.now();
 _outboundDialPending = true;
@@ -655,6 +750,7 @@ const wasAttempt = dialerStatus === 'on_call' || (dialerStatus === 'calling' && 
 callSeconds  = duration || callSeconds;
 activeCallId = null;
 if (wasAttempt) {
+if (typeof hideOutboundWait === 'function') hideOutboundWait();
 if (currentContact && typeof showCustomerCard === 'function') showCustomerCard(currentContact);
 setDialerStatus('wrapping');
 updateSessionInDB('wrapping');
