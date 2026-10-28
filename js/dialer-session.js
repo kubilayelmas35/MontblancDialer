@@ -402,8 +402,9 @@ function _clearHangupUiTick() {
 }
 
 function refreshHangupFinalizeButton() {
-  if (document.getElementById('call-actions')?.classList.contains('call-actions--pre-call')) return;
-  if (dialerStatus !== 'on_call') return;
+  const ringing = dialerStatus === 'calling' && (_outboundDialPending || _telnyxCall || _fakeCallActive || _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing'));
+  if (!ringing && document.getElementById('call-actions')?.classList.contains('call-actions--pre-call')) return;
+  if (dialerStatus !== 'on_call' && !ringing) return;
   const lbl = document.getElementById('btn-hangup-label');
   const btn = document.getElementById('btn-hangup');
   if (!lbl || !btn) return;
@@ -412,10 +413,14 @@ function refreshHangupFinalizeButton() {
   btn.style.opacity = '';
   btn.style.cursor = 'pointer';
   btn.onclick = hangup;
-  if (lineUp) {
+  if (lineUp || ringing) {
     lbl.textContent = typeof t === 'function' ? t('dial.hangup_close') : 'Kapat';
     btn.style.color = 'var(--red)';
     btn.title = '';
+    btn.onclick = hangup;
+    document.getElementById('call-actions')?.classList.remove('call-actions--pre-call');
+    const dock = document.getElementById('outcome-dock');
+    if (dock) dock.hidden = true;
   } else {
     lbl.textContent = typeof t === 'function' ? t('dial.hangup_finish') : 'Bitir';
     btn.style.color = 'var(--accent)';
@@ -451,7 +456,8 @@ function refreshPreCallToolbarUi() {
 
 /** Müşteri kartı açıkken (ön arama) alt çubuğu Ara modunda tut — initDialer gecikmeli boyamalarda da kullanılır */
 function forceDialerPreCallBar() {
-  if (!(dialerStatus === 'offline' || dialerStatus === 'ready' || dialerStatus === 'calling')) return;
+  if (_callLineIsLive()) return;
+  if (!(dialerStatus === 'offline' || dialerStatus === 'ready')) return;
   const readySec = document.getElementById('ready-section');
   const callAct = document.getElementById('call-actions');
   if (readySec) readySec.style.display = 'none';
@@ -539,6 +545,17 @@ function syncDialerBottomChrome() {
       }
     }
     if (dialerStatus === 'on_call' || outboundRing) resetHold();
+    if (outboundRing) {
+      const hangLbl = document.getElementById('btn-hangup-label');
+      const hangBtn = document.getElementById('btn-hangup');
+      if (hangLbl) hangLbl.textContent = typeof t === 'function' ? t('dial.hangup_close') : 'Kapat';
+      if (hangBtn) {
+        hangBtn.style.color = 'var(--red)';
+        hangBtn.onclick = hangup;
+      }
+      const dock = document.getElementById('outcome-dock');
+      if (dock) dock.hidden = true;
+    }
     if (typeof mbApplyCampWarning === 'function') mbApplyCampWarning();
     paintCallActionButtons();
     return;
@@ -614,10 +631,15 @@ function setDialerStatus(s) {
     _custEmptyIdleSince = Date.now();
   }
   updateDialerNavCallIndicator();
-  if (s === 'calling') mbStartOutboundWaitClock();
-  else mbStopOutboundWaitClock();
+  if (s === 'calling') {
+    mbStartOutboundWaitClock();
+    if (typeof mbStartRingback === 'function') mbStartRingback();
+  } else {
+    mbStopOutboundWaitClock();
+    if (typeof mbStopRingback === 'function') mbStopRingback();
+  }
   if (s === 'on_call' && prev !== 'on_call' && typeof mbPlayCue === 'function') mbPlayCue('connect');
-  if (s === 'wrapping' && (prev === 'on_call' || prev === 'calling') && typeof mbPlayCue === 'function') mbPlayCue('hangup');
+  if (s === 'wrapping' && (prev === 'on_call' || prev === 'calling') && typeof mbPlayCue === 'function' && !(window._mbBusyAt && Date.now() - window._mbBusyAt < 2500)) mbPlayCue('hangup');
   const dot    = document.getElementById('status-dot');
   const label  = document.getElementById('status-label');
   const rdyBtn = document.getElementById('btn-ready');
@@ -804,6 +826,7 @@ function mbStartOutboundWaitClock() {
       ? mbFormatSavedDur(sec)
       : `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
     el.hidden = false;
+    if (typeof mbSweepDeadHopper === 'function') mbSweepDeadHopper();
   };
   paint();
   _outboundWaitTick = setInterval(paint, 250);
@@ -847,6 +870,8 @@ function showOutboundWait() {
     panel.style.display = 'flex';
     panel.setAttribute('aria-hidden', 'false');
   }
+  const dock = document.getElementById('outcome-dock');
+  if (dock) dock.hidden = true;
   mbStartOutboundWaitClock();
   if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
 }

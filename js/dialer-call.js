@@ -723,6 +723,67 @@ async function playMicDrawerBeep() {
   }
 }
 
+let _ringbackTimer = null;
+let _ringbackOn = false;
+
+function mbToneBurst(freq, dur, peak, at) {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!window._mbCueCtx || window._mbCueCtx.state === 'closed') window._mbCueCtx = new Ctx();
+    const ctx = window._mbCueCtx;
+    if (ctx.state === 'suspended') ctx.resume();
+    const now = ctx.currentTime + (Number(at) || 0);
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(peak, now + 0.02);
+    g.gain.setValueAtTime(peak, now + Math.max(0.05, dur - 0.04));
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    o.connect(g).connect(ctx.destination);
+    o.start(now);
+    o.stop(now + dur + 0.02);
+  } catch (e) {}
+}
+
+function mbStartRingback() {
+  if (_ringbackOn) return;
+  if (typeof _testMode !== 'undefined' && _testMode) return;
+  if (typeof dialerStatus !== 'undefined' && dialerStatus !== 'calling') return;
+  _ringbackOn = true;
+  const pulse = () => {
+    if (!_ringbackOn || dialerStatus !== 'calling') {
+      mbStopRingback();
+      return;
+    }
+    const live = (typeof _hopper !== 'undefined' ? _hopper : []).find((r) => (r.phase === 'dialing' || r.phase === 'ringing') && r.call?.remoteStream);
+    if (live) {
+      if (typeof _attachLiveAudio === 'function') _attachLiveAudio(live.call);
+      mbStopRingback();
+      return;
+    }
+    mbToneBurst(425, 1, 0.11);
+    _ringbackTimer = setTimeout(pulse, 5000);
+  };
+  pulse();
+}
+
+function mbStopRingback() {
+  _ringbackOn = false;
+  if (_ringbackTimer) {
+    clearTimeout(_ringbackTimer);
+    _ringbackTimer = null;
+  }
+}
+
+function mbPlayBusy() {
+  mbStopRingback();
+  window._mbBusyAt = Date.now();
+  [0, 0.72, 1.44].forEach((at) => mbToneBurst(425, 0.32, 0.12, at));
+}
+
 function mbPlayCue(kind) {
   const notes = {
     connect: [[660, 0, 0.07], [880, 0.09, 0.1]],

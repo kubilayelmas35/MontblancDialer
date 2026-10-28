@@ -204,7 +204,7 @@ updateConnectionStatus('disconnected');
 client.on('telnyx.notification', (n) => {
 if (!mine()) return;
 const call = n.call;
-if (n.type === 'callUpdate') {
+if (n.type === 'callUpdate' && call) {
 const state = call?.state;
 const isInbound = call?.direction === 'inbound';
 if (state === 'ringing' && isInbound) {
@@ -233,8 +233,8 @@ if (state === 'ringing' && isInbound) {
     return;
   }
 }
-mbOnHopperCall(call);
 }
+if (call) mbOnHopperCall(call);
 });
 updateConnectionStatus('connecting');
 client.connect();
@@ -250,6 +250,16 @@ function mbCallDigits(call) {
     || call?.destination
     || '';
   return String(raw).replace(/\D/g, '');
+}
+
+function mbCallIsDead(call) {
+  const st = String(call?.state || '').toLowerCase();
+  if (['hangup', 'destroy', 'done', 'purge', 'bye', 'disconnected'].includes(st)) return true;
+  if (st === 'active') return false;
+  const cause = String(call?.cause || call?.sipReason || call?.sip_reason || '').toUpperCase();
+  if (/BUSY|REJECT|DECLINE|CANCEL|NO_ANSWER|NORMAL_CLEAR/.test(cause)) return true;
+  const code = Number(call?.sipCode || call?.sip_code || call?.causeCode || 0);
+  return [404, 408, 480, 486, 487, 603].includes(code);
 }
 
 function mbSameDialDigits(a, b) {
@@ -282,6 +292,9 @@ function mbUnansweredEnded(row) {
   _outboundDialPending = false;
   _telnyxCall = null;
   if (manual) {
+    const byAgent = window._mbCallMeta && window._mbCallMeta.hangupBy === 'agent';
+    if (!byAgent && typeof mbPlayBusy === 'function') mbPlayBusy();
+    else if (typeof mbStopRingback === 'function') mbStopRingback();
     if (typeof handleCallEnd === 'function') handleCallEnd(0);
     return;
   }
@@ -329,7 +342,31 @@ function _rememberHopper(call, contact, dest, manual) {
     manual: !!manual,
   };
   _hopper.push(row);
+  if (call && !call.__mbEndHook) {
+    call.__mbEndHook = true;
+    const poke = () => { try { mbOnHopperCall(call); } catch (e) {} };
+    if (typeof call.on === 'function') {
+      ['hangup', 'destroy', 'bye'].forEach((ev) => { try { call.on(ev, poke); } catch (e) {} });
+    }
+  }
   return row;
+}
+
+function mbSweepDeadHopper() {
+  if (dialerStatus !== 'calling' && dialerStatus !== 'on_call') return;
+  const doomed = _hopper.filter((r) => (r.phase === 'dialing' || r.phase === 'ringing') && mbCallIsDead(r.call));
+  if (!doomed.length) return;
+  const sample = doomed[doomed.length - 1];
+  _hopper = _hopper.filter((r) => !doomed.includes(r));
+  _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
+  if (sample.id === _liveCallId || sample.phase === 'live') {
+    _liveCallId = null;
+    _telnyxCall = null;
+    if (typeof handleCallEnd === 'function') handleCallEnd(0);
+  } else {
+    mbUnansweredEnded(sample);
+  }
+  if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
 }
 
 function _agentBusy() {
@@ -461,17 +498,21 @@ function mbOnHopperCall(call) {
     if (dead && window._mbCoachCall === call) window._mbCoachCall = null;
     return;
   }
-  const dead = state === 'hangup' || state === 'destroy' || state === 'done' || state === 'purge';
+  const dead = mbCallIsDead(call);
   let row = _hopperRowFor(call);
   if (!row) {
     if (dead) {
       const dest = mbCallDigits(call);
-      const doomed = _hopper.filter((r) => {
+      let doomed = _hopper.filter((r) => {
         if (r.phase === 'live' || r.phase === 'hold') return false;
         if (dest && mbSameDialDigits(r.dest || mbCallDigits(r.call) || r.contact?.phone, dest)) return true;
-        const st = String(r.call?.state || '');
-        return st === 'hangup' || st === 'destroy' || st === 'done' || st === 'purge';
+        return mbCallIsDead(r.call);
       });
+      if (!doomed.length && call.direction !== 'inbound') {
+        const pending = _hopper.filter((r) => r.phase === 'dialing' || r.phase === 'ringing');
+        const manual = pending.filter((r) => r.manual);
+        doomed = manual.length ? manual : (pending.length === 1 ? pending : []);
+      }
       if (!doomed.length) return;
       const sample = doomed[doomed.length - 1];
       _hopper = _hopper.filter((r) => !doomed.includes(r));
@@ -493,6 +534,10 @@ function mbOnHopperCall(call) {
   if (state === 'ringing' || state === 'trying' || state === 'requesting' || state === 'early' || state === 'answering') {
     if (row.phase !== 'live' && row.phase !== 'hold') row.phase = 'ringing';
     _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
+    if (call.remoteStream) {
+      _attachLiveAudio(call);
+      if (typeof mbStopRingback === 'function') mbStopRingback();
+    } else if (typeof mbStartRingback === 'function') mbStartRingback();
     if (!_agentBusy() && typeof handleCallState === 'function') handleCallState('ringing', row.id);
     if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
     return;
@@ -512,6 +557,7 @@ function mbOnHopperCall(call) {
     return;
   }
   if (state === 'active') {
+    if (typeof mbStopRingback === 'function') mbStopRingback();
     mbStartCallRecording(call);
     if (row.id === _liveCallId && row.phase === 'live') {
       if (row.agentHold || isOnHold) return;
