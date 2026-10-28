@@ -292,6 +292,7 @@ transition:var(--transition);
 }
 .status-dot.offline { background:var(--text-3); }
 .status-dot.ready   { background:var(--green); box-shadow:0 0 8px var(--green); animation:blink 2s infinite; }
+.status-dot.calling { background:var(--accent); box-shadow:0 0 8px var(--accent); animation:blink 1.2s infinite; }
 .status-dot.on_call {
 background: hsl(calc(215 - var(--voice-progress, 0) * 95), calc(78% + var(--voice-progress, 0) * 12%), calc(52% + var(--voice-progress, 0) * 6%));
 box-shadow:
@@ -494,8 +495,7 @@ overflow: hidden;
   border: 2px solid color-mix(in srgb, var(--accent) 65%, transparent);
   animation: cust-outbound-pulse 1.8s ease-out infinite;
 }
-.cust-outbound-wait__rings span:nth-child(2) { animation-delay: .4s; }
-.cust-outbound-wait__rings span:nth-child(3) { animation-delay: .8s; }
+.cust-outbound-wait__rings span:nth-child(2) { animation-delay: .55s; }
 .cust-outbound-wait__rings i {
   position: relative;
   z-index: 1;

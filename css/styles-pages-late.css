@@ -445,6 +445,25 @@ i.ph {
   padding: 0;
   overflow: hidden;
 }
+#page-dialer #customer-card.customer-card--wait {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  box-shadow: none;
+  padding: 0;
+  overflow: hidden;
+  min-height: 0;
+  max-height: 100%;
+}
+#page-dialer #customer-card.customer-card--wait > .cust-outbound-wait {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  max-height: 100%;
+  margin: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
 #page-dialer .cust-empty {
   margin: 0;
   width: 100%;

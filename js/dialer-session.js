@@ -830,7 +830,7 @@ function showOutboundWait() {
   const inc = document.getElementById('cust-empty-incoming-panel');
   if (card) {
     card.style.display = '';
-    card.classList.add('customer-card--empty');
+    card.classList.add('customer-card--empty', 'customer-card--wait');
   }
   if (data) data.style.display = 'none';
   if (root) {
@@ -855,6 +855,7 @@ function hideOutboundWait() {
   const root = document.getElementById('cust-empty');
   const def = document.getElementById('cust-empty-default');
   const panel = document.getElementById('cust-empty-outbound-wait');
+  document.getElementById('customer-card')?.classList.remove('customer-card--wait');
   if (root) root.classList.remove('cust-empty--outbound-wait');
   if (panel) {
     panel.style.display = 'none';

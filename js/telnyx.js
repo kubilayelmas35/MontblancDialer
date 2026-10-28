@@ -684,8 +684,8 @@ function handleCallState(state, callId) {
 activeCallId = callId;
 const label = document.getElementById('status-label');
 const subLabels = {
-dialing: { tr:'📞 Aranıyor...', de:'Wählt...' },
-ringing: { tr:'🔔 Çalıyor...', de:'Klingelt...' },
+dialing: { tr:'Aranıyor...', de:'Wählt...' },
+ringing: { tr:'Çalıyor...', de:'Klingelt...' },
 active:  { tr:'Aramada', de:'Im Gespräch' },
 };
 if (state === 'active') {
