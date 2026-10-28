@@ -1191,6 +1191,10 @@ async function mbPlacePoolCall(contact) {
   const selected = (campaigns || []).find((c) => String(c.id) === String(selectedCampId));
   const campaign = own || selected;
   const caller = campaign?.telnyx_did || '';
+  if (!_testMode && !window.__mbPoolSimulate && typeof mbLineCallBlocked === 'function' && await mbLineCallBlocked(campaign?.firm_id || currentUser?.firm_id, caller, contact?.phone)) {
+    if (typeof mbNoteIntlBlocked === 'function') mbNoteIntlBlocked(contact);
+    return;
+  }
   if (!_liveCallId) {
     _outboundAnswered = false;
     _voicemailAutoLogged = false;

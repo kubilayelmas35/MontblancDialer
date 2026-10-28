@@ -469,6 +469,12 @@ if (!_telnyxClient || !telnyxReady) {
 _outboundDialPending = false;
 toast('Hat bağlantısı yok', 'err'); return;
 }
+if (typeof mbLineCallBlockedSync === 'function' && mbLineCallBlockedSync(callerNumber, destination)) {
+  _outboundDialPending = false;
+  if (typeof mbNoteIntlBlocked === 'function') mbNoteIntlBlocked(contact);
+  if (typeof dialerStatus !== 'undefined' && dialerStatus === 'calling' && typeof setDialerStatus === 'function') setDialerStatus('ready');
+  return;
+}
 try {
 const call = _telnyxClient.newCall({
 destinationNumber: destination,

@@ -21,6 +21,80 @@ function mbNormDid(value) {
   return /^\+[1-9]\d{7,14}$/.test(s) ? s : '';
 }
 
+const MB_CALLING_CODES = ['1','7','20','27','30','31','32','33','34','36','39','40','41','43','44','45','46','47','48','49','51','52','53','54','55','56','57','58','60','61','62','63','64','65','66','81','82','84','86','90','91','92','93','94','95','98','211','212','213','216','218','220','221','222','223','224','225','226','227','228','229','230','231','232','233','234','235','236','237','238','239','240','241','242','243','244','245','246','248','249','250','251','252','253','254','255','256','257','258','260','261','262','263','264','265','266','267','268','269','290','291','297','298','299','350','351','352','353','354','355','356','357','358','359','370','371','372','373','374','375','376','377','378','380','381','382','383','385','386','387','389','420','421','423','500','501','502','503','504','505','506','507','508','509','590','591','592','593','594','595','596','597','598','599','670','672','673','674','675','676','677','678','679','680','681','682','683','685','686','687','688','689','690','691','692','850','852','853','855','856','880','886','960','961','962','963','964','965','966','967','968','970','971','972','973','974','975','976','977','992','993','994','995','996','998'];
+let _mbCallingCodes = null;
+
+function mbCallingCode(e164) {
+  const digits = String(e164 || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (!_mbCallingCodes) _mbCallingCodes = MB_CALLING_CODES.slice().sort((a, b) => b.length - a.length);
+  return _mbCallingCodes.find((code) => digits.startsWith(code)) || '';
+}
+
+function mbDestinationCallingCode(callerDid, raw) {
+  const callerCc = mbCallingCode(callerDid);
+  let dest = String(raw || '').replace(/[^\d+]/g, '');
+  if (dest.startsWith('00')) dest = '+' + dest.slice(2);
+  if (!dest.startsWith('+')) return callerCc;
+  return mbCallingCode(dest);
+}
+
+function mbIntlMismatch(callerDid, destination) {
+  const callerCc = mbCallingCode(callerDid);
+  if (!callerCc) return false;
+  const destCc = mbDestinationCallingCode(callerDid, destination);
+  return !destCc || destCc !== callerCc;
+}
+
+function mbLineLocalNumbers(settings) {
+  const raw = Array.isArray(settings?.line_local) ? settings.line_local : [];
+  const out = [];
+  raw.forEach((item) => {
+    const n = mbNormDid(typeof item === 'string' ? item : item?.number);
+    if (n && !out.includes(n)) out.push(n);
+  });
+  return out;
+}
+
+const _lineRuleCache = new Map();
+
+async function mbLineRules(firmId) {
+  const id = String(firmId || '');
+  if (!id) return { local: new Set() };
+  if (_lineRuleCache.has(id)) return _lineRuleCache.get(id);
+  const rows = typeof sb === 'function' ? await sb(`firms?id=eq.${id}&select=settings`).catch(() => []) : [];
+  const pack = { local: new Set(mbLineLocalNumbers(rows?.[0]?.settings)) };
+  _lineRuleCache.set(id, pack);
+  return pack;
+}
+
+async function mbLineCallBlocked(firmId, caller, destination) {
+  const did = mbNormDid(caller);
+  if (!did || !firmId) return false;
+  const rules = await mbLineRules(firmId);
+  if (!rules.local.has(did)) return false;
+  return mbIntlMismatch(did, destination);
+}
+
+function mbLineCallBlockedSync(caller, destination) {
+  const did = mbNormDid(caller);
+  if (!did) return false;
+  let local = false;
+  _lineRuleCache.forEach((pack) => { if (pack.local.has(did)) local = true; });
+  if (!local) return false;
+  return mbIntlMismatch(did, destination);
+}
+
+function mbNoteIntlBlocked(contact) {
+  const now = Date.now();
+  if (!window._mbIntlToastAt || now - window._mbIntlToastAt > 8000) {
+    window._mbIntlToastAt = now;
+    if (typeof toast === 'function') toast(mbLineT('line.intl_blocked', 'Bu hat yalnızca kendi ülkesini arar'), 'warn');
+  }
+  if (contact?.id && typeof _hopperSkip !== 'undefined') _hopperSkip.set(String(contact.id), now + 10 * 60 * 1000);
+  if (contact?.id && typeof mbReleaseUnanswered === 'function') mbReleaseUnanswered(contact, 'pending');
+}
+
 function mbLineNumbersFromSettings(settings) {
   const raw = settings?.line_numbers;
   const source = Array.isArray(raw) ? raw : [settings?.dialer?.outbound_did, settings?.sms_reminder?.from_number];
@@ -160,18 +234,22 @@ function mbLineFirmBody(firm) {
     <div class="line-firm-block">
       <div class="form-label">${mbLineEsc(mbLineT('line.nums', 'Numaralar'))}</div>
       <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.num_hint', ''))}</div>
-      <div id="line-numbers" class="${numbers.length > 1 ? 'line-numbers-multi' : ''}">${mbLineNumberRows(numbers.length ? numbers : [''], def)}</div>
+      <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.local_hint', ''))}</div>
+      <div id="line-numbers" class="${numbers.length > 1 ? 'line-numbers-multi' : ''}">${mbLineNumberRows(numbers.length ? numbers : [''], def, mbLineLocalNumbers(settings))}</div>
       <button type="button" class="btn btn-ghost btn-sm" style="align-self:flex-start;" onclick="mbAddLineNumber()">${mbLineEsc(mbLineT('line.num_add', 'Numara ekle'))}</button>
     </div>` : '';
   return `${secret}${smsBlock}<button type="button" class="btn btn-primary" style="align-self:flex-start;" onclick="mbSaveLineFirm('${String(firm.id)}')"><i class="ph ph-floppy-disk"></i> ${mbLineEsc(mbLineT('line.save', 'Kaydet'))}</button>`;
 }
 
-function mbLineNumberRows(numbers, def) {
+function mbLineNumberRows(numbers, def, localList) {
+  const local = new Set((localList || []).map((item) => mbNormDid(item)).filter(Boolean));
   return numbers.map((n, i) => {
     const checked = (n && n === def) || (!n && i === 0) ? 'checked' : '';
+    const closed = n && local.has(n) ? 'checked' : '';
     return `<div class="line-num-row">
       <label class="line-num-def"><input type="radio" class="line-num-default" name="line-num-default" ${checked}> ${mbLineEsc(mbLineT('line.default', 'Varsayılan'))}</label>
       <input class="form-input line-num-input" value="${mbLineEsc(n)}" placeholder="+49..." inputmode="tel" autocomplete="off" oninput="mbSyncLineSmsChoices()">
+      <label class="line-num-local"><input type="checkbox" class="line-num-local-chk" ${closed}> ${mbLineEsc(mbLineT('line.local', 'Yurt dışı kapalı'))}</label>
       <button type="button" class="icon-btn" onclick="mbRemoveLineNumber(this)" aria-label="×">×</button>
     </div>`;
   }).join('');
@@ -186,14 +264,16 @@ function mbReadLineNumberDraft() {
   const rows = [...document.querySelectorAll('#line-numbers .line-num-row')];
   const numbers = [];
   let picked = '';
+  const local = [];
   rows.forEach((row) => {
     const n = mbNormDid(row.querySelector('.line-num-input')?.value);
     if (row.querySelector('.line-num-default')?.checked && n) picked = n;
     if (!n || numbers.includes(n)) return;
     numbers.push(n);
+    if (row.querySelector('.line-num-local-chk')?.checked) local.push(n);
   });
   const def = numbers.length <= 1 ? (numbers[0] || '') : (numbers.includes(picked) ? picked : numbers[0]);
-  return { numbers, def };
+  return { numbers, def, local };
 }
 
 function mbSyncLineNumberMode() {
@@ -281,7 +361,9 @@ async function mbSaveLineFirm(firmId) {
       const draft = mbReadLineNumberDraft();
       settings.line_numbers = draft.numbers;
       settings.line_default = draft.def;
+      settings.line_local = draft.local;
       settings.dialer = { ...(settings.dialer || {}), outbound_did: draft.def || '' };
+      _lineRuleCache.delete(String(firmId));
     }
     const numbers = mbLineNumbersFromSettings(settings);
     const def = mbLineDefaultFromSettings(settings);

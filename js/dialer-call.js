@@ -167,6 +167,10 @@ async function mbRedialCurrentContact() {
   const campId = currentContact.campaign_id || selectedCampId;
   const campaign = campaigns.find((c) => c.id === campId);
   if (campId) selectCamp(campId, campaign?.name || '', { skipActivate: true });
+  if (!_testMode && typeof mbLineCallBlocked === 'function' && await mbLineCallBlocked(campaign?.firm_id || currentUser?.firm_id, campaign?.telnyx_did || '', currentContact.phone)) {
+    if (typeof mbNoteIntlBlocked === 'function') mbNoteIntlBlocked(currentContact);
+    return;
+  }
   if (_testMode) {
     _fakeCallActive = true;
     window.__voiceOrbSimRemote = true;
@@ -183,7 +187,7 @@ async function mbRedialCurrentContact() {
   if (typeof switchContactTab === 'function') switchContactTab('info');
 }
 
-function callSecondaryPhone() {
+async function callSecondaryPhone() {
   const p2 = String(currentContact?.phone2 || '').trim();
   if (!p2) {
     toast(typeof t === 'function' ? t('dial.no_phone2') : '2. telefon numarası yok', 'warn');
@@ -196,6 +200,10 @@ function callSecondaryPhone() {
   const campId = currentContact?.campaign_id || selectedCampId;
   const campaign = campaigns.find((c) => c.id === campId);
   if (campId) selectCamp(campId, campaign?.name || '', { skipActivate: true });
+  if (!_testMode && typeof mbLineCallBlocked === 'function' && await mbLineCallBlocked(campaign?.firm_id || currentUser?.firm_id, campaign?.telnyx_did || '', p2)) {
+    if (typeof mbNoteIntlBlocked === 'function') mbNoteIntlBlocked(currentContact);
+    return;
+  }
   if (_testMode) {
     _fakeCallActive = true;
     window.__voiceOrbSimRemote = true;

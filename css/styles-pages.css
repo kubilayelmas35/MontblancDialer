@@ -34,8 +34,9 @@ SETTINGS PAGE
 .line-dot.is-off { background: var(--red); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 28%, transparent); }
 .line-firm-body { display: flex; flex-direction: column; gap: 12px; padding: 0 12px 12px; }
 .line-firm-block { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
-.line-num-row { display: flex; gap: 8px; align-items: center; }
-.line-num-row .form-input { flex: 1; font-family: var(--mono); }
+.line-num-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.line-num-row .form-input { flex: 1; min-width: 140px; font-family: var(--mono); }
+.line-num-local { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-2); white-space: nowrap; }
 .line-num-def { display: none; align-items: center; gap: 4px; font-size: 11px; color: var(--text-2); white-space: nowrap; }
 .line-numbers-multi .line-num-def { display: flex; }
 .line-sms-one { font-family: var(--mono); font-size: 13px; }
