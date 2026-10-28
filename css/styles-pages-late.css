@@ -1115,6 +1115,11 @@ i.ph {
   font-family: var(--mono);
   white-space: nowrap;
 }
+#takvim-appt-recs .mb-rec,
+.prev-call-audio-wrap .mb-rec {
+  width: 100%;
+  min-width: 0;
+}
 #ops-notif-firm {
   display: flex;
   align-items: center;

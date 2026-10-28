@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action || '');
-    if (action !== 'mode' && !key) return json({ error: 'nokey' }, 400);
+    if (action !== 'mode' && action !== 'grab' && !key) return json({ error: 'nokey' }, 400);
     const control = safeId(body?.call_control_id);
     const session = safeId(body?.session_id);
     const leg = safeId(body?.leg_id);
@@ -173,6 +173,25 @@ Deno.serve(async (req) => {
       const urls = hit?.download_urls as Record<string, unknown> | undefined;
       const url = String(urls?.mp3 || urls?.wav || '');
       return json({ ok: /^https:\/\//i.test(url), url: /^https:\/\//i.test(url) ? url : '' });
+    }
+
+    if (action === 'grab') {
+      const logId = String(body?.log_id || '').trim();
+      if (!uuidRe.test(logId)) return json({ error: 'id' }, 400);
+      const { data: log } = await admin.from('call_logs').select('id,firm_id,recording_url').eq('id', logId).maybeSingle();
+      const fileUrl = String(log?.recording_url || '');
+      if (!/^https:\/\//i.test(fileUrl)) return json({ error: 'none' }, 404);
+      const sameFirm = String(log?.firm_id || '') === String(user.firm_id || '') || String(log?.firm_id || '') === firmId;
+      if (String(user.role || '') !== 'super_admin' && !sameFirm) return json({ error: 'auth' }, 403);
+      const fileRes = await fetch(fileUrl);
+      if (!fileRes.ok) return json({ error: 'file' }, 502);
+      const type = String(fileRes.headers.get('content-type') || 'application/octet-stream');
+      if (/json|xml|html/i.test(type)) return json({ error: 'file' }, 502);
+      const bytes = await fileRes.arrayBuffer();
+      if (bytes.byteLength < 400) return json({ error: 'file' }, 502);
+      return new Response(bytes, {
+        headers: { ...corsHeaders, 'Content-Type': type, 'Cache-Control': 'no-store' },
+      });
     }
 
     if (action === 'fetch') {

@@ -318,7 +318,7 @@ async function _qcAttachRec(rows) {
   for (let i = 0; i < ids.length; i += 40) chunks.push(ids.slice(i, i + 40).join(','));
   for (let i = 0; i < chunks.length; i += 6) {
     const wave = chunks.slice(i, i + 6);
-    const parts = await Promise.all(wave.map((chunk) => sb(`call_logs?contact_id=in.(${chunk})&select=id,contact_id,recording_url,duration_sec&recording_url=not.is.null&order=started_at.desc&limit=400`).catch(() => [])));
+    const parts = await Promise.all(wave.map((chunk) => sb(`call_logs?contact_id=in.(${chunk})&select=id,contact_id,recording_url,duration_sec,started_at,phone&recording_url=not.is.null&order=started_at.desc&limit=400`).catch(() => [])));
     parts.forEach((logs) => {
       (logs || []).forEach((log) => {
         if (!map[log.contact_id] && log.recording_url) map[log.contact_id] = log;
@@ -579,7 +579,7 @@ function qcPaintBody() {
     const moved = _qcMoved(row) ? `<span class="qc-down">! ${_uiEsc(t('export.moved_short'))}</span>` : '';
     const rec = row.contact_id ? window._qcRecByContact?.[row.contact_id] : null;
     const recHtml = rec?.recording_url && typeof mbRecPlayerHtml === 'function'
-      ? mbRecPlayerHtml(rec.id, rec.recording_url, rec.duration_sec)
+      ? mbRecPlayerHtml(rec.id, rec.recording_url, rec.duration_sec, typeof mbRecMeta === 'function' ? mbRecMeta(rec, { last_name: row.nachname || '', phone: row.telefonnummer || '' }) : null)
       : '<span style="font-size:10px;color:var(--text-3);">—</span>';
     const selectedCustomer = row.customer_id || '';
     const custCell = hasCustomers
@@ -647,7 +647,7 @@ function openQcDetail(id) {
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.agent'))}</div><div style="font-weight:700;">${_uiEsc(row.users?.name || '—')}</div></div>
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.camp'))}</div><div class="qc-camp" style="font-weight:700;" title="${_uiEsc(campName)}">${_uiEsc(campName)}</div></div>
 ${row.agent_notu ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.agent_note'))}</div><div>${_uiEsc(row.agent_notu)}</div></div>` : ''}
-${rec?.recording_url && typeof mbRecPlayerHtml === 'function' ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:6px;">${_uiEsc(t('qc.rec'))}</div>${mbRecPlayerHtml(rec.id, rec.recording_url, rec.duration_sec)}</div>` : ''}
+${rec?.recording_url && typeof mbRecPlayerHtml === 'function' ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:6px;">${_uiEsc(t('qc.rec'))}</div>${mbRecPlayerHtml(rec.id, rec.recording_url, rec.duration_sec, typeof mbRecMeta === 'function' ? mbRecMeta(rec, { last_name: row.nachname || '', phone: row.telefonnummer || '' }) : null)}</div>` : ''}
 </div>
 ${hasCustomers ? `<div style="margin-top:10px;">
   <label class="form-label">${_uiEsc(t('qc.customer_ph'))}</label>

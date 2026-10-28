@@ -626,9 +626,12 @@ async function takvimFillApptRecordings(appt) {
     const dur = sec ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : '';
     const who = Array.isArray(log.users) ? log.users[0]?.name : log.users?.name;
     const meta = [when, dur, showWho ? who : ''].filter(Boolean).join(' · ');
+    const player = typeof mbRecPlayerHtml === 'function'
+      ? mbRecPlayerHtml(log.id, log.recording_url, sec, typeof mbRecMeta === 'function' ? mbRecMeta(log, { first_name: appt.vorname || '', last_name: appt.nachname || '', phone: appt.telefonnummer || '' }) : null)
+      : `<audio controls preload="none" src="${esc(log.recording_url)}" style="width:100%;height:32px;"></audio>`;
     return `<div style="margin-top:8px;">
 <div style="font-size:11px;color:var(--text-2);margin-bottom:4px;">${esc(meta)}</div>
-${typeof mbRecPlayerHtml === 'function' ? mbRecPlayerHtml(log.id, log.recording_url, sec) : `<audio controls preload="none" src="${esc(log.recording_url)}" style="width:100%;height:32px;"></audio>`}
+${player}
 </div>`;
   }).join('');
   paint(html);

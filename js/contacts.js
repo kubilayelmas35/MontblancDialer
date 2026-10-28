@@ -821,16 +821,63 @@ function mbDownloadTestTone(seconds) {
   setTimeout(() => URL.revokeObjectURL(link.href), 1500);
 }
 
-function mbRecPlayerHtml(id, url, durSec) {
+function mbRecMeta(log, contact) {
+  const nested = contact || log?.contacts || {};
+  const person = Array.isArray(nested) ? (nested[0] || {}) : nested;
+  const name = `${person.first_name || ''} ${person.last_name || ''}`.trim()
+    || `${person.vorname || ''} ${person.nachname || ''}`.trim()
+    || String(log?.name || '').trim();
+  const phone = log?.phone || person.phone || person.telefonnummer || '';
+  return { name, phone, at: log?.started_at || '' };
+}
+
+function mbRecFileStamp(iso) {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return '';
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(d);
+  const pick = (type) => parts.find((part) => part.type === type)?.value || '';
+  return `${pick('day')}${pick('month')}${pick('year')}${pick('hour')}${pick('minute')}`;
+}
+
+function mbRecFileName(meta, ext) {
+  const name = String(meta?.name || '').replace(/[\s\u0000-\u001f\\/:*?"<>|]+/g, '');
+  const phone = String(meta?.phone || '').replace(/\D/g, '');
+  const stamp = meta?.at ? mbRecFileStamp(meta.at) : '';
+  const base = `${name}${phone}${stamp}` || 'kayit';
+  const kind = ext === 'webm' ? 'webm' : 'mp3';
+  return `${base}.${kind}`;
+}
+
+let _mbRecSeq = 0;
+
+function mbRecPlayerHtml(id, url, durSec, meta) {
   const safeId = String(id || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  const uid = `r${++_mbRecSeq}`;
   const raw = String(url || '');
   const src = typeof statsEsc === 'function' ? statsEsc(raw) : raw.replace(/"/g, '&quot;');
   const dl = typeof t === 'function' ? t('ch.rec.download') : 'Kaydı indir';
   const dlSafe = typeof statsEsc === 'function' ? statsEsc(dl) : dl;
   const dur = Math.max(0, Number(durSec) || 0);
   const ext = /\.webm(\?|$)/i.test(raw) ? 'webm' : 'mp3';
+  const file = mbRecFileName(meta || {}, ext);
+  const fileAttr = typeof statsEsc === 'function' ? statsEsc(file) : file.replace(/"/g, '');
   mbScheduleRecWarm();
-  return `<span class="mb-rec" data-dur="${dur}" onclick="event.stopPropagation();"><span class="mb-rec-top"><audio id="aud-${safeId}" src="${src}" preload="metadata"></audio><button type="button" class="mb-rec-btn" onclick="event.stopPropagation();mbToggleRec('${safeId}')">▶</button><span class="mb-rec-time">00:00 / ${_formatMMSS(dur)}</span><a class="ch-rec-dl" href="${src}" download="kayit-${safeId}.${ext}" target="_blank" rel="noopener" onclick="mbOpenRec(event,'${safeId}')"><i class="ph ph-download-simple"></i>${dlSafe}</a></span><span class="mb-rec-bar" role="slider" aria-valuemin="0" aria-valuemax="${dur}" onpointerdown="mbSeekRec(event,'${safeId}')"><span class="mb-rec-fill"></span></span></span>`;
+  return `<span class="mb-rec" data-log="${safeId}" data-file="${fileAttr}" data-dur="${dur}" onclick="event.stopPropagation();"><span class="mb-rec-top"><audio id="aud-${uid}" src="${src}" preload="metadata"></audio><button type="button" class="mb-rec-btn" onclick="event.stopPropagation();mbToggleRec(this)">▶</button><span class="mb-rec-time">00:00 / ${_formatMMSS(dur)}</span><a class="ch-rec-dl" href="${src}" download="${fileAttr}" target="_blank" rel="noopener" onclick="mbOpenRec(event,this)"><i class="ph ph-download-simple"></i>${dlSafe}</a></span><span class="mb-rec-bar" role="slider" aria-valuemin="0" aria-valuemax="${dur}" onpointerdown="mbSeekRec(event)"><span class="mb-rec-fill"></span></span></span>`;
+}
+
+function mbRecBox(el) {
+  const wrap = el?.closest?.('.mb-rec');
+  return {
+    wrap,
+    aud: wrap?.querySelector('audio') || null,
+    btn: wrap?.querySelector('.mb-rec-btn') || null,
+    logId: wrap?.getAttribute('data-log') || '',
+    file: wrap?.getAttribute('data-file') || '',
+  };
 }
 
 function mbRecUrlStale(src) {
@@ -893,22 +940,67 @@ async function mbWarmVisibleRecs() {
   for (const aud of audios) {
     const src = aud.getAttribute('src') || '';
     if (!mbRecUrlStale(src)) continue;
-    const fresh = await mbRefreshRecUrl(String(aud.id || '').replace(/^aud-/, ''));
+    const fresh = await mbRefreshRecUrl(aud.closest('.mb-rec')?.getAttribute('data-log') || '');
     if (fresh && aud.paused) mbApplyRecUrl(aud, fresh);
   }
 }
 
-async function mbOpenRec(ev, id) {
+function mbSaveBlob(blob, filename) {
+  const link = document.createElement('a');
+  const href = URL.createObjectURL(blob);
+  link.href = href;
+  link.download = filename || 'kayit.mp3';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 1500);
+}
+
+async function mbGrabRecBlob(logId) {
+  if (!logId || typeof SB_URL !== 'string' || !SB_URL || typeof mbAuthHeaders !== 'function') return null;
+  try {
+    const res = await fetch(`${SB_URL}/functions/v1/telnyx-record`, {
+      method: 'POST',
+      headers: mbAuthHeaders(),
+      body: JSON.stringify({ action: 'grab', log_id: logId }),
+    });
+    if (!res.ok) return null;
+    const type = String(res.headers.get('content-type') || '');
+    if (type.includes('json') || type.includes('xml') || type.includes('html')) return null;
+    const blob = await res.blob();
+    return blob && blob.size > 400 ? blob : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function mbOpenRec(ev, el) {
   if (ev) { ev.preventDefault(); ev.stopPropagation(); }
-  const aud = document.getElementById('aud-' + id);
+  const box = mbRecBox(el);
+  const aud = box.aud;
   let href = aud?.getAttribute('src') || aud?.src || '';
   if (!href || mbRecUrlStale(href)) {
-    const fresh = await mbRefreshRecUrl(id);
+    const fresh = await mbRefreshRecUrl(box.logId);
     if (fresh) {
       href = fresh;
       mbApplyRecUrl(aud, fresh);
     }
   }
+  let name = box.file || 'kayit.mp3';
+  const save = (blob) => {
+    const kind = String(blob?.type || '');
+    if (kind.includes('webm')) name = name.replace(/\.\w+$/, '') + '.webm';
+    else if (kind.includes('mpeg') || kind.includes('mp3')) name = name.replace(/\.\w+$/, '') + '.mp3';
+    mbSaveBlob(blob, name);
+  };
+  try {
+    const res = await fetch(href);
+    if (!res.ok) throw new Error('http');
+    const blob = await res.blob();
+    if (blob.size > 400) { save(blob); return; }
+  } catch (e) {}
+  const grabbed = await mbGrabRecBlob(box.logId);
+  if (grabbed) { save(grabbed); return; }
   if (href) window.open(href, '_blank', 'noopener');
 }
 
@@ -938,11 +1030,12 @@ document.addEventListener('loadedmetadata', (ev) => {
   mbPaintRec(aud);
 }, true);
 
-function mbSeekRec(ev, id) {
+function mbSeekRec(ev) {
   if (ev) { ev.preventDefault(); ev.stopPropagation(); }
-  const aud = document.getElementById('aud-' + id);
   const bar = ev?.currentTarget;
-  const wrap = aud?.closest('.mb-rec');
+  const box = mbRecBox(bar);
+  const aud = box.aud;
+  const wrap = box.wrap;
   if (!aud || !bar) return;
   const place = (clientX) => {
     const total = mbRecTotal(aud, wrap);
@@ -963,10 +1056,11 @@ function mbSeekRec(ev, id) {
   window.addEventListener('pointerup', up);
 }
 
-function mbToggleRec(id) {
-  const aud = document.getElementById('aud-' + id);
-  const wrap = aud?.closest('.mb-rec');
-  const btn = wrap?.querySelector('.mb-rec-btn');
+function mbToggleRec(el) {
+  const box = mbRecBox(el);
+  const aud = box.aud;
+  const btn = box.btn;
+  const id = box.logId;
   if (!aud) return;
   const paint = () => mbPaintRec(aud);
   if (_mbRecAudio && _mbRecAudio !== aud) {

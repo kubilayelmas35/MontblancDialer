@@ -2742,7 +2742,7 @@ function chIsFakeRec(l) {
 }
 
 function chRecHtml(l) {
-  if (l.recording_url && typeof mbRecPlayerHtml === 'function') return mbRecPlayerHtml(l.id, l.recording_url, chDurSec(l));
+  if (l.recording_url && typeof mbRecPlayerHtml === 'function') return mbRecPlayerHtml(l.id, l.recording_url, chDurSec(l), typeof mbRecMeta === 'function' ? mbRecMeta(l) : null);
   if (chIsFakeRec(l) && typeof _fakeRecordingMarkup === 'function') return _fakeRecordingMarkup(l, 'chhist');
   return '<span style="color:var(--text-3);font-size:11px;">—</span>';
 }
@@ -3190,7 +3190,7 @@ const isFakeRec = (l) => {
   return false;
 };
 const recHtmlFor = (l) => {
-  if (l.recording_url && typeof mbRecPlayerHtml === 'function') return mbRecPlayerHtml(l.id, l.recording_url, logDurSec(l));
+  if (l.recording_url && typeof mbRecPlayerHtml === 'function') return mbRecPlayerHtml(l.id, l.recording_url, logDurSec(l), typeof mbRecMeta === 'function' ? mbRecMeta(l) : null);
   if (isFakeRec(l) && typeof _fakeRecordingMarkup === 'function') return _fakeRecordingMarkup(l, 'myhist');
   return '<span style="color:var(--text-3);font-size:11px;">—</span>';
 };
