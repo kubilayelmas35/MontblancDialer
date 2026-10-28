@@ -251,7 +251,14 @@ function campFirmName(firmId) {
   return String(row?.name || '').trim();
 }
 
-let _campSort = { key: 'name', dir: 'asc' };
+let _campSort = { key: '', dir: 'asc' };
+
+function campStatusRank(c) {
+  const st = String(c?.status || '').toLowerCase();
+  if (st === 'active') return 0;
+  if (st === 'paused') return 1;
+  return 2;
+}
 
 function campSortValue(c, key) {
   const f = campRowFields(c, false);
@@ -271,6 +278,10 @@ function campSortValue(c, key) {
 }
 
 function campBySort(a, b) {
+  if (!_campSort.key) {
+    const rank = campStatusRank(a) - campStatusRank(b);
+    if (rank) return rank;
+  }
   const key = _campSort.key || 'name';
   const dir = _campSort.dir === 'desc' ? -1 : 1;
   const av = campSortValue(a, key);
