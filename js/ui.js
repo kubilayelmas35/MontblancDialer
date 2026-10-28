@@ -154,8 +154,7 @@ if (btn) {
 if (window.innerWidth <= 1024) closeSidebar();
 if (page !== 'dialer' && typeof stopInboundTestSimulationScheduler === 'function') stopInboundTestSimulationScheduler();
 runPageEntry(page);
-const toastEl = document.getElementById('toast');
-if (toastEl) toastEl.classList.remove('show');
+if (typeof mbClearToasts === 'function') mbClearToasts();
 const notif = document.getElementById('notification-center');
 if (notif) notif.style.display = 'none';
 if (typeof toggleTeamChat === 'function') toggleTeamChat(false);
@@ -746,14 +745,35 @@ document.querySelectorAll('.palette-dot').forEach(d => d.classList.toggle('sel',
 })();
 
 // ── TOAST ────────────────────────────────────
+function mbClearToasts() {
+  const host = document.getElementById('toast');
+  if (!host) return;
+  [...host.children].forEach((item) => {
+    clearTimeout(item._mbTimer);
+    item.remove();
+  });
+}
+
 function toast(msg, type='ok', durationMs) {
-const el=document.getElementById('toast');
-const mark = type==='ok' ? '✓ ' : type==='warn' ? '' : '✕ ';
-el.textContent=mark+msg;
-el.className=`show ${type}`;
-clearTimeout(toastT);
-const d = Number(durationMs) > 0 ? Number(durationMs) : 3000;
-toastT=setTimeout(()=>el.classList.remove('show'), d);
+  const host = document.getElementById('toast');
+  if (!host) return;
+  const kind = type === 'err' || type === 'warn' ? type : 'ok';
+  const mark = kind === 'ok' ? '✓ ' : kind === 'err' ? '✕ ' : '';
+  const item = document.createElement('div');
+  item.className = `toast-item ${kind}`;
+  item.textContent = mark + String(msg || '');
+  host.appendChild(item);
+  while (host.children.length > 6) {
+    const oldest = host.firstElementChild;
+    clearTimeout(oldest._mbTimer);
+    oldest.remove();
+  }
+  requestAnimationFrame(() => item.classList.add('show'));
+  const d = Number(durationMs) > 0 ? Number(durationMs) : 3000;
+  item._mbTimer = setTimeout(() => {
+    item.classList.remove('show');
+    item._mbTimer = setTimeout(() => item.remove(), 240);
+  }, d);
 }
 
 // Alias used in some places

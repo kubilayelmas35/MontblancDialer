@@ -367,7 +367,7 @@
   .modal-title { min-width: 0; flex: 1; }
   .modal-close { flex: 0 0 28px; }
   .camp-search { width: 100%; max-width: 100%; }
-  #toast { left: 10px; right: 10px; bottom: 12px; max-width: none; }
+  #toast { left: 10px; right: 10px; bottom: 12px; width: auto; align-items: stretch; }
 }
 
 @media (max-width: 480px) {
