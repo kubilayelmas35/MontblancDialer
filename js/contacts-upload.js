@@ -183,7 +183,7 @@ function renderColumnMapping() {
   const title = document.getElementById('uq-map-title');
   if (title) title.textContent = uqSay('uq.map.title', 'Sütun eşleştirme');
   const fields = [
-    ...UQ_TARGET_FIELDS.map((field) => ({ ...field, label: uqSay(field.labelKey, field.key), store: 'column' })),
+    ...UQ_TARGET_FIELDS.filter((field) => field.key !== 'cc' && field.key !== 'vorwahl').map((field) => ({ ...field, label: uqSay(field.labelKey, field.key), store: 'column' })),
     ...uqExtraUploadFields(),
   ];
   grid.innerHTML = fields.map((field) => {
@@ -204,7 +204,92 @@ ${options}
 </select>
 </div>`;
   }).join('');
+  uqRenderDialExtra();
   updateUploadPreview();
+}
+
+function uqMappedColumn(id) {
+  const sel = document.getElementById(id)?.value;
+  if (sel === '' || sel == null) return -1;
+  const idx = Number(sel);
+  return Number.isInteger(idx) && idx >= 0 ? idx : -1;
+}
+
+function uqColumnAlreadyIntl(idx) {
+  if (idx < 0) return false;
+  let seen = 0;
+  for (let i = 0; i < (uploadParsedRows || []).length; i++) {
+    const raw = String(uploadParsedRows[i]?.[idx] || '').trim();
+    if (!raw) continue;
+    seen += 1;
+    const phone = typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(raw) : raw;
+    if (typeof mbIsE164 !== 'function' || !mbIsE164(phone)) return false;
+  }
+  return seen > 0;
+}
+
+function uqPhonesAlreadyIntl() {
+  if (!uqColumnAlreadyIntl(uqMappedColumn('uq-map-phone'))) return false;
+  const second = uqMappedColumn('uq-map-phone2');
+  if (second < 0) return true;
+  let seen = 0;
+  for (let i = 0; i < (uploadParsedRows || []).length; i++) {
+    const raw = String(uploadParsedRows[i]?.[second] || '').trim();
+    if (!raw) continue;
+    seen += 1;
+    const phone = typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(raw) : raw;
+    if (typeof mbIsE164 !== 'function' || !mbIsE164(phone)) return false;
+  }
+  return true;
+}
+
+function uqDialExtrasOpen() {
+  const el = document.getElementById('uq-dial-extra');
+  return !!el && el.style.display !== 'none';
+}
+
+function uqRenderDialExtra() {
+  const section = document.getElementById('uq-mapping-section');
+  const preview = document.getElementById('uq-preview');
+  if (!section) return;
+  let host = document.getElementById('uq-dial-extra');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'uq-dial-extra';
+    if (preview) section.insertBefore(host, preview);
+    else section.appendChild(host);
+  }
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const auto = typeof mbAutoMapHeaders === 'function' ? mbAutoMapHeaders(uploadHeaders) : {};
+  const hide = uqPhonesAlreadyIntl();
+  host.style.cssText = hide
+    ? 'display:none;'
+    : 'display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;';
+  host.innerHTML = ['cc', 'vorwahl'].map((key) => {
+    const field = (UQ_TARGET_FIELDS || []).find((row) => row.key === key);
+    const label = uqSay(field?.labelKey || key, key);
+    const guessed = hide ? null : auto[key];
+    const picked = guessed == null || guessed < 0 ? '' : String(guessed);
+    const options = (uploadHeaders || []).map((h, i) => {
+      const name = (uploadHeaderLabels && uploadHeaderLabels[i]) || h;
+      return `<option value="${i}" ${picked === String(i) ? 'selected' : ''}>${esc(name)}</option>`;
+    }).join('');
+    const ph = key === 'cc' ? uqSay('uq.dial.cc.ph', '90') : uqSay('uq.dial.area.ph', '212');
+    return `<div>
+<div class="form-label" style="margin-bottom:4px;">${esc(label)}</div>
+<input class="form-input" id="uq-fixed-${key}" inputmode="numeric" autocomplete="off" placeholder="${esc(ph)}" oninput="mbAddrClear();updateUploadPreview()" style="margin-bottom:6px;">
+<select class="form-input" id="uq-map-${key}" onchange="mbAddrClear();updateUploadPreview()">
+<option value="">${esc(uqSay('uq.map.skip', '— Kullanma —'))}</option>
+${options}
+</select>
+</div>`;
+  }).join('') + `<div style="grid-column:1 / -1;font-size:11px;color:var(--text-3);line-height:1.4;">${esc(uqSay('uq.dial.hint', ''))}</div>`;
+}
+
+function uqSyncDialExtra() {
+  const host = document.getElementById('uq-dial-extra');
+  if (!host) return;
+  host.style.display = uqPhonesAlreadyIntl() ? 'none' : 'grid';
 }
 
 function updateUploadPreview() {
@@ -212,6 +297,7 @@ function updateUploadPreview() {
   const rows = document.getElementById('uq-preview-rows');
   const sample = uploadParsedRows.slice(0, 3);
   if (!sample.length) return;
+  uqSyncDialExtra();
   preview.style.display = '';
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   const labels = {};
@@ -241,8 +327,12 @@ function getUploadMapping() {
 
 function mbRowFromMapping(row, mapping) {
   const get = (key) => {
+    if ((key === 'cc' || key === 'vorwahl') && !uqDialExtrasOpen()) return '';
     const idx = mapping[key];
-    return (idx !== undefined && idx >= 0) ? String(row[idx] || '').trim().replace(/["\r]/g, '') : '';
+    const fromCol = (idx !== undefined && idx >= 0) ? String(row[idx] || '').trim().replace(/["\r]/g, '') : '';
+    if (key !== 'cc' && key !== 'vorwahl') return fromCol;
+    const fixed = String(document.getElementById(`uq-fixed-${key}`)?.value || '').trim();
+    return fromCol || fixed;
   };
   let first = get('first_name');
   let last = get('last_name');
