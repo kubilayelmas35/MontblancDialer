@@ -143,7 +143,8 @@ MOBILE / RESPONSIVE
   flex-wrap: wrap;
 }
 #page-dialer .manual-dial-popover > div:first-child { flex-direction: column; align-items: stretch; }
-#page-dialer .prev-call-audio { width: 100%; min-width: 160px; }
+#page-dialer .prev-call-audio { width: 100%; min-width: 0; }
+#page-dialer .prev-call-audio-wrap { min-width: 0; max-width: none; flex-basis: 100%; }
 #page-dialer #daily-goal-bar {
   padding: 6px 8px !important;
 }

@@ -610,13 +610,15 @@ font-size:11px; color:var(--text-2);
 background:var(--bg-3); border:1px solid var(--border); border-radius:999px; padding:2px 8px;
 }
 .prev-call-audio-wrap {
-display:flex; align-items:center; gap:8px;
+display:flex; flex-direction:column; align-items:stretch; gap:6px;
+flex:1 1 360px; min-width:min(100%, 360px); max-width:480px;
 background:color-mix(in srgb, var(--accent) 8%, var(--bg-2));
 border:1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
-border-radius:999px; padding:4px 8px;
+border-radius:12px; padding:8px 10px;
 }
+.prev-call-audio-wrap .mb-rec { width:100%; min-width:0; }
 .prev-call-audio-lbl { font-size:10px; font-weight:700; color:var(--accent); white-space:nowrap; }
-.prev-call-audio { width:190px; height:28px; }
+.prev-call-audio { width:100%; min-width:280px; height:32px; }
 /* Outcome form */
 .outcome-form {
 background:var(--bg-2); border:2px solid var(--accent-soft);

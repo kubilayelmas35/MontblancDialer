@@ -1069,11 +1069,36 @@ i.ph {
 }
 .mb-rec {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 220px;
   vertical-align: middle;
 }
+.mb-rec-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .mb-rec audio { display: none; }
+.mb-rec-bar {
+  position: relative;
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  touch-action: none;
+}
+.mb-rec-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2, var(--accent)));
+  pointer-events: none;
+}
 .mb-rec-btn {
   border: 1px solid var(--border);
   background: var(--bg-3);

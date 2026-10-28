@@ -197,10 +197,10 @@ async function showPrevCallInfo(contact) {
     </div>
     ${(() => { const nt = _stripSimCallMarker(prev.notes); return nt ? '<div style="margin-top:4px;color:var(--text-2);">"' + _escHtml(nt) + '"</div>' : ''; })()}
   </div>
-  ${recLog?.recording_url ? `
+  ${recLog?.recording_url && typeof mbRecPlayerHtml === 'function' ? `
   <div class="prev-call-audio-wrap">
     <span class="prev-call-audio-lbl">Ses kaydı</span>
-    <audio controls src="${recLog.recording_url}" preload="none" class="prev-call-audio"></audio>
+    ${mbRecPlayerHtml(recLog.id, recLog.recording_url, typeof _logDurationSec === 'function' ? _logDurationSec(recLog) : recLog.duration_sec)}
   </div>` : (_isFakeRecordingRow(prev) ? `
   <div class="prev-call-audio-wrap">
     <span class="prev-call-audio-lbl">Test kaydı</span>

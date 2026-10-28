@@ -829,38 +829,72 @@ function mbRecPlayerHtml(id, url, durSec) {
   const dlSafe = typeof statsEsc === 'function' ? statsEsc(dl) : dl;
   const dur = Math.max(0, Number(durSec) || 0);
   const ext = /\.webm(\?|$)/i.test(raw) ? 'webm' : 'mp3';
-  return `<span class="mb-rec" data-dur="${dur}" onclick="event.stopPropagation();"><audio id="aud-${safeId}" src="${src}" preload="metadata"></audio><button type="button" class="mb-rec-btn" onclick="event.stopPropagation();mbToggleRec('${safeId}')">▶</button><span class="mb-rec-time">00:00 / ${_formatMMSS(dur)}</span><a class="ch-rec-dl" href="${src}" download="kayit-${safeId}.${ext}" target="_blank" rel="noopener" onclick="event.stopPropagation();"><i class="ph ph-download-simple"></i>${dlSafe}</a></span>`;
+  return `<span class="mb-rec" data-dur="${dur}" onclick="event.stopPropagation();"><span class="mb-rec-top"><audio id="aud-${safeId}" src="${src}" preload="metadata"></audio><button type="button" class="mb-rec-btn" onclick="event.stopPropagation();mbToggleRec('${safeId}')">▶</button><span class="mb-rec-time">00:00 / ${_formatMMSS(dur)}</span><a class="ch-rec-dl" href="${src}" download="kayit-${safeId}.${ext}" target="_blank" rel="noopener" onclick="event.stopPropagation();"><i class="ph ph-download-simple"></i>${dlSafe}</a></span><span class="mb-rec-bar" role="slider" aria-valuemin="0" aria-valuemax="${dur}" onpointerdown="mbSeekRec(event,'${safeId}')"><span class="mb-rec-fill"></span></span></span>`;
 }
 
 let _mbRecAudio = null;
 
+function mbRecTotal(aud, wrap) {
+  const known = Number(wrap?.getAttribute('data-dur') || 0);
+  if (aud && Number.isFinite(aud.duration) && aud.duration > 0 && aud.duration !== Infinity) return aud.duration;
+  return known;
+}
+
+function mbPaintRec(aud) {
+  const wrap = aud?.closest?.('.mb-rec');
+  if (!wrap) return;
+  const time = wrap.querySelector('.mb-rec-time');
+  const fill = wrap.querySelector('.mb-rec-fill');
+  const total = mbRecTotal(aud, wrap);
+  const cur = Math.max(0, Number(aud.currentTime) || 0);
+  if (time) time.textContent = `${_formatMMSS(cur)} / ${_formatMMSS(total)}`;
+  if (fill) fill.style.width = total > 0 ? `${Math.min(100, (cur / total) * 100)}%` : '0%';
+}
+
 document.addEventListener('loadedmetadata', (ev) => {
   const aud = ev.target;
-  if (!aud || aud.tagName !== 'AUDIO') return;
-  const wrap = aud.closest?.('.mb-rec');
-  const time = wrap?.querySelector('.mb-rec-time');
-  if (!time || aud.currentTime > 0.2) return;
-  const known = Number(wrap.getAttribute('data-dur') || 0);
-  const total = Number.isFinite(aud.duration) && aud.duration > 0 ? aud.duration : known;
-  time.textContent = `00:00 / ${_formatMMSS(total)}`;
+  if (!aud || aud.tagName !== 'AUDIO' || !aud.closest?.('.mb-rec')) return;
+  if (aud.currentTime > 0.2) return;
+  mbPaintRec(aud);
 }, true);
+
+function mbSeekRec(ev, id) {
+  if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+  const aud = document.getElementById('aud-' + id);
+  const bar = ev?.currentTarget;
+  const wrap = aud?.closest('.mb-rec');
+  if (!aud || !bar) return;
+  const place = (clientX) => {
+    const total = mbRecTotal(aud, wrap);
+    if (!(total > 0)) return;
+    const rect = bar.getBoundingClientRect();
+    const width = rect.width || 1;
+    const pct = Math.min(1, Math.max(0, (clientX - rect.left) / width));
+    try { aud.currentTime = pct * total; } catch (e) {}
+    mbPaintRec(aud);
+  };
+  place(ev.clientX);
+  const move = (e) => place(e.clientX);
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+}
 
 function mbToggleRec(id) {
   const aud = document.getElementById('aud-' + id);
   const wrap = aud?.closest('.mb-rec');
   const btn = wrap?.querySelector('.mb-rec-btn');
-  const time = wrap?.querySelector('.mb-rec-time');
   if (!aud) return;
-  const known = Number(wrap?.getAttribute('data-dur') || 0);
-  const paint = () => {
-    const total = Number.isFinite(aud.duration) && aud.duration > 0 ? aud.duration : known;
-    if (time) time.textContent = `${_formatMMSS(aud.currentTime || 0)} / ${_formatMMSS(total)}`;
-  };
+  const paint = () => mbPaintRec(aud);
   if (_mbRecAudio && _mbRecAudio !== aud) {
     _mbRecAudio.pause();
     const otherBtn = _mbRecAudio.closest('.mb-rec')?.querySelector('.mb-rec-btn');
     if (otherBtn) otherBtn.textContent = '▶';
     try { _mbRecAudio.currentTime = 0; } catch (e) {}
+    mbPaintRec(_mbRecAudio);
   }
   if (aud.paused) {
     const played = aud.play();
