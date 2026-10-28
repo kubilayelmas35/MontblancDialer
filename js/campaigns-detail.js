@@ -1360,6 +1360,7 @@ const QUEUE_OPS_ROWS = [
   { key: 'removed', requeue: true, pull: false, label: 'camp.ops.removed', fb: 'Kuyruktan çıkan' },
   { key: 'calling', requeue: false, pull: false, label: 'camp.ops.calling', fb: 'Aranıyor' },
   { key: 'no_answer', requeue: true, pull: false, label: 'camp.st.no_answer', fb: 'Cevap yok' },
+  { key: 'stuck', requeue: true, pull: false, label: 'camp.st.stuck', fb: 'Tıkanık' },
   { key: 'voicemail', requeue: true, pull: false, label: 'camp.st.voicemail', fb: 'Telesekreter' },
   { key: 'negative', requeue: true, pull: false, label: 'camp.st.negative', fb: 'Olumsuz' },
   { key: 'callback', requeue: true, pull: false, label: 'camp.st.callback', fb: 'Geri ara' },

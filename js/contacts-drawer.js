@@ -180,7 +180,7 @@ async function showPrevCallInfo(contact) {
     const prev = logs[0];
     const recLog = logs.find((l) => String(l?.recording_url || '').trim());
     const dt = new Date(prev.started_at).toLocaleString('tr-TR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    const outcomeMap = {appointment:'Randevu',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',dnc:'Kara Liste'};
+    const outcomeMap = {appointment:'Randevu',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',dnc:'Kara Liste',stuck:'Tıkanık'};
     const rawAgent = prev?.users?.name || '';
     const own = !!currentUser?.id && prev?.agent_id === currentUser.id;
     const agentLabel = own
@@ -357,7 +357,7 @@ async function openContactDrawer(contactId) {
     document.getElementById('cdr-name').textContent = fullName;
     document.getElementById('cdr-phone').textContent = c.phone || '—';
     // Info tab
-    const statusMap = {pending:'Bekliyor',no_answer:'Cevap Yok',callback:'Geri Ara',negative:'Olumsuz',appointment:'Randevu',dnc:'Kara Liste',done:'Tamamlandı'};
+    const statusMap = {pending:'Bekliyor',no_answer:'Cevap Yok',callback:'Geri Ara',negative:'Olumsuz',appointment:'Randevu',dnc:'Kara Liste',done:'Tamamlandı',stuck:'Tıkanık'};
     const fields = [
       {l:'Telefon',    v:c.phone,      mono:true, copy:true},
       {l:'2. Tel',     v:c.phone2,     mono:true, copy:true},
@@ -431,8 +431,8 @@ function _renderCdrHistory() {
     el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:20px;font-size:12px;">Arama geçmişi yok</div>';
     return;
   }
-  const OM = {appointment:'Randevu',appointment_done:'Randevu',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',voicemail:'Telesekreter',dnc:'Kara Liste'};
-  const colorMap = {appointment:'var(--green)',appointment_done:'var(--green)',negative:'var(--red)',callback:'var(--yellow)',no_answer:'var(--text-3)',dnc:'var(--red)',voicemail:'var(--text-3)'};
+  const OM = {appointment:'Randevu',appointment_done:'Randevu',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',voicemail:'Telesekreter',dnc:'Kara Liste',stuck:'Tıkanık'};
+  const colorMap = {appointment:'var(--green)',appointment_done:'var(--green)',negative:'var(--red)',callback:'var(--yellow)',no_answer:'var(--text-3)',dnc:'var(--red)',voicemail:'var(--text-3)',stuck:'var(--text-3)'};
   el.innerHTML = _cdrLogs.map(l => {
     const dt = new Date(l.started_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
     const sec = _logDurationSec(l);

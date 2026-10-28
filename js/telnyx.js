@@ -488,14 +488,15 @@ function mbUnansweredEnded(row) {
     if (typeof handleCallEnd === 'function') handleCallEnd(0);
     return;
   }
+  const endStatus = row?.phase === 'hold' ? 'stuck' : 'no_answer';
   if (mbHopperStillUp()) {
-    if (contact && row?.phase !== 'hold') mbReleaseUnanswered(contact, 'no_answer');
+    if (contact) mbReleaseUnanswered(contact, endStatus);
     if (!_liveCallId && typeof mbRefillHopper === 'function') mbRefillHopper();
     return;
   }
   _outboundDialPending = false;
   _telnyxCall = null;
-  if (contact && row?.phase !== 'hold') mbReleaseUnanswered(contact, 'no_answer');
+  if (contact) mbReleaseUnanswered(contact, endStatus);
   if (_poolSyncing) mbSettleEmptyCalling();
   else if (typeof mbRefillHopper === 'function') mbRefillHopper();
   else mbSettleEmptyCalling();

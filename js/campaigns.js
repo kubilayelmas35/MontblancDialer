@@ -1297,6 +1297,7 @@ function mbOutcomeShown(key, camp, id) {
   const std = {
     appointment: 'camp.ops.appointment',
     no_answer: 'camp.st.no_answer',
+    stuck: 'camp.st.stuck',
     negative: 'camp.st.negative',
     callback: 'camp.st.callback',
     dnc: 'camp.st.dnc',
