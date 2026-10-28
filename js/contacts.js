@@ -135,12 +135,17 @@ async function getNextContact(campaignIds = null) {
       for (let i = 0; i < idList.length; i++) {
         const pol = campRecyclePolicy(idList[i]);
         if (!pol?.on) continue;
-        const extraSt = pol.statuses.filter((st) => !['pending', 'no_answer', 'callback'].includes(st));
+        const extraSt = pol.statuses.filter((st) => st !== 'pending' && st !== 'callback' && /^[a-z0-9_]+$/i.test(st));
         if (!extraSt.length) continue;
-        const rows = (await sb(
-          `contacts?campaign_id=eq.${idList[i]}&status=in.(${extraSt.join(',')})&order=last_called_at.asc.nullsfirst&limit=40&select=*`
-        ).catch(() => [])) || [];
-        if (rows.length) contacts = contacts.concat(rows);
+        const camp = (campaigns || []).find((row) => String(row.id) === String(idList[i]));
+        const qids = typeof mbRecycleQueueIds === 'function' ? mbRecycleQueueIds(idList[i]) : [];
+        if (!camp || !qids.length) continue;
+        for (let q = 0; q < qids.length; q++) {
+          const rows = (await sb(
+            `contacts?queue_id=eq.${qids[q]}&status=in.(${extraSt.join(',')})&order=last_called_at.asc.nullsfirst&limit=40&select=*`
+          ).catch(() => [])) || [];
+          if (rows.length) contacts = contacts.concat(rows);
+        }
       }
     }
     if (!contacts?.length) {
@@ -216,6 +221,25 @@ async function getNextContact(campaignIds = null) {
   } catch(e) { console.error(e); return null; }
 }
 
+function mbPaintAttemptWarn(c) {
+  const el = document.getElementById('cust-attempt-warn');
+  if (!el) return;
+  const cap = typeof mbAttemptCap === 'function' ? mbAttemptCap(c) : 0;
+  const n = Number(c?.attempt_count) || 0;
+  if (!cap || n < cap) {
+    el.style.display = 'none';
+    el.textContent = '';
+    return;
+  }
+  const msg = (typeof t === 'function' ? t('dial.attempt_cap') : 'Bu numara {n} kez denendi').replace('{n}', String(n));
+  el.style.display = '';
+  el.textContent = msg;
+  if (window._mbAttemptWarnFor !== c.id) {
+    window._mbAttemptWarnFor = c.id;
+    if (typeof toast === 'function') toast(msg, 'warn', 4200);
+  }
+}
+
 function showCustomerCard(c) {
   if (typeof hideOutboundWait === 'function') hideOutboundWait();
   if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
@@ -241,6 +265,7 @@ function showCustomerCard(c) {
   document.getElementById('cust-phone').textContent = subText;
   document.getElementById('cust-attempt-badge').style.display = show('attempt') ? '' : 'none';
   document.getElementById('cust-attempt-badge').textContent = uqSay('dial.attempt', '{n}. arama', { n: c.attempt_count || 1 });
+  mbPaintAttemptWarn(c);
   document.getElementById('cust-camp-badge').textContent  = camp?.name||'—';
   document.getElementById('cust-queue-badge').textContent = c.queues?.name||c.queue_name||'—';
   if (typeof mbPaintCardSource === 'function') mbPaintCardSource(c);

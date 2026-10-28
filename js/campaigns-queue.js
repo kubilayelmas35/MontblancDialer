@@ -48,6 +48,10 @@ async function openRequeueModal(queueId) {
 <input class="form-input" id="rq-max" type="number" min="0" max="50" value="${meta.maxAttempts}">
 <div style="font-size:11px;color:var(--text-3);margin-top:4px;">${campEsc(campT('camp.queue.max.hint','0 sınırsız. Dolunca numara atlanır.'))}</div>
 </div>
+<label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;padding:8px 10px;background:var(--bg-3);border-radius:8px;border:1px solid var(--border);">
+<input type="checkbox" id="rq-recycle" ${meta.recycle ? 'checked' : ''} style="width:16px;height:16px;margin-top:2px;">
+<span style="font-size:12px;font-weight:700;">${campEsc(campT('camp.queue.recycle','Akıllı yeniden kuyruğa al'))}<span style="display:block;font-weight:500;color:var(--text-3);margin-top:2px;">${campEsc(campT('camp.queue.recycle.hint',''))}</span></span>
+</label>
 <div>
 <label class="form-label" for="rq-notes">${campEsc(campT('camp.queue.notes','Not'))}</label>
 <textarea class="form-input" id="rq-notes" rows="2" maxlength="500">${campEsc(meta.notes)}</textarea>

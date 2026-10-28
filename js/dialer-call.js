@@ -963,7 +963,7 @@ async function mbEnsureManualQueue(campId) {
   const meta = { ...(settings.queue_meta || {}) };
   const prev = meta[queue.id] || {};
   if (!String(prev.notes || '').trim()) {
-    meta[queue.id] = { priority: Number(prev.priority) || 0, max_attempts: Number(prev.max_attempts) || 0, notes: note };
+    meta[queue.id] = { priority: Number(prev.priority) || 0, max_attempts: Number(prev.max_attempts) || 0, notes: note, recycle: prev.recycle === true };
     settings.queue_meta = meta;
     await sb(`campaigns?id=eq.${campId}`, {
       method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ settings }),

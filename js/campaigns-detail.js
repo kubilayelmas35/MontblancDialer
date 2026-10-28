@@ -1343,7 +1343,7 @@ async function saveQueueSettings(queueId) {
     });
     const prev = getCampSettings(found.camp).queue_meta || {};
     currentCampId = found.camp.id;
-    await saveCampSettingsPatch({ queue_meta: { ...prev, [queueId]: { priority, max_attempts: maxAttempts, notes } } });
+    await saveCampSettingsPatch({ queue_meta: { ...prev, [queueId]: { priority, max_attempts: maxAttempts, notes, recycle: !!document.getElementById('rq-recycle')?.checked } } });
     found.queue.name = name;
     found.queue.status = status;
     document.getElementById('m-requeue')?.remove();

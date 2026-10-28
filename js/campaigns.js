@@ -1158,7 +1158,60 @@ function queueMetaFor(camp, queueId) {
     })(),
     maxAttempts: Math.max(0, Math.min(50, parseInt(meta.max_attempts, 10) || 0)),
     notes: String(meta.notes || '').slice(0, 500),
+    recycle: meta.recycle === true,
   };
+}
+
+function queueRecycleOn(camp, queueId) {
+  if (!camp || !queueId) return false;
+  if (!campRecyclePolicy(camp.id)?.on) return false;
+  const meta = (getCampSettings(camp).queue_meta || {})[queueId] || {};
+  return meta.recycle === true;
+}
+
+function mbRecycleQueueIds(campaignId) {
+  const camp = (campaigns || []).find((c) => String(c.id) === String(campaignId));
+  if (!camp) return [];
+  return (camp.queues || [])
+    .map((q) => String(q.id || ''))
+    .filter((id) => /^[0-9a-f-]{36}$/i.test(id) && queueRecycleOn(camp, id));
+}
+
+function mbAttemptCap(contact) {
+  if (!contact) return 0;
+  const camp = (campaigns || []).find((c) => String(c.id) === String(contact.campaign_id));
+  if (!camp || !contact.queue_id) return 0;
+  const caps = [];
+  const meta = queueMetaFor(camp, contact.queue_id);
+  if (meta.maxAttempts > 0) caps.push(meta.maxAttempts);
+  if (queueRecycleOn(camp, contact.queue_id)) {
+    const pol = campRecyclePolicy(camp.id);
+    if (pol?.max) caps.push(pol.max);
+  }
+  if (!caps.length) return 0;
+  return Math.min.apply(null, caps);
+}
+
+async function toggleQueueRecycle(queueId, on) {
+  const found = findQueue(queueId);
+  if (!found) return;
+  const prev = { ...(getCampSettings(found.camp).queue_meta || {}) };
+  const cur = { ...(prev[queueId] || {}) };
+  cur.recycle = !!on;
+  if (cur.priority == null) cur.priority = 0;
+  if (cur.max_attempts == null) cur.max_attempts = 0;
+  prev[queueId] = cur;
+  currentCampId = found.camp.id;
+  try {
+    await saveCampSettingsPatch({ queue_meta: prev });
+    const msg = on
+      ? campT('camp.queue.recycle.on', 'Bu kuyruk bekleme bitince yeniden aranır')
+      : campT('camp.queue.recycle.off', 'Bu kuyruk yeniden aranmaz');
+    toast(msg, 'ok');
+  } catch (e) {
+    toast(e.message, 'err');
+    renderCampQueues(found.camp);
+  }
 }
 
 function queueDialPrefs(campaignId, queueId) {
@@ -1285,11 +1338,12 @@ function mbDialableContactFilter(campaignId) {
     'status.eq.pending',
     `and(status.eq.callback,or(callback_at.is.null,callback_at.lte.${nowIso}))`,
   ];
-  if (pol?.on) {
+  const recycleQueues = mbRecycleQueueIds(campaignId);
+  if (pol?.on && recycleQueues.length) {
     const due = new Date(Date.now() - pol.delayMin * 60000).toISOString();
     pol.statuses.forEach((st) => {
       if (st === 'pending' || st === 'callback' || !/^[a-z0-9_]+$/i.test(st)) return;
-      parts.push(`and(status.eq.${st},attempt_count.lt.${pol.max},or(last_called_at.is.null,last_called_at.lte.${due}))`);
+      parts.push(`and(status.eq.${st},queue_id.in.(${recycleQueues.join(',')}),attempt_count.lt.${pol.max},or(last_called_at.is.null,last_called_at.lte.${due}))`);
     });
   }
   return `or=(${parts.join(',')})`;
@@ -1303,6 +1357,8 @@ function contactEligibleForRecycle(c, testRelax) {
   if (dueCb) return true;
   const pol = campRecyclePolicy(c.campaign_id);
   if (!pol?.on || !pol.statuses.includes(st)) return false;
+  const camp = (campaigns || []).find((row) => String(row.id) === String(c.campaign_id));
+  if (!camp || !c.queue_id || !queueRecycleOn(camp, c.queue_id)) return false;
   if ((Number(c.attempt_count) || 0) >= pol.max) return false;
   if (pol.delayMin > 0 && c.last_called_at) {
     if (Date.parse(c.last_called_at) + pol.delayMin * 60000 > Date.now()) return false;
@@ -1369,7 +1425,7 @@ function queueRowsBody(camp) {
   return rows.map((q) => {
     const text = queueFieldText(camp, q);
     const cells = {
-      name: `<td><div class="queue-name">${campEsc(q.name)}</div>${text.bits.length ? `<div class="queue-sub">${campEsc(text.bits.join(' · '))}</div>` : ''}</td>`,
+      name: `<td><div class="queue-name">${campEsc(q.name)}</div>${text.bits.length ? `<div class="queue-sub">${campEsc(text.bits.join(' · '))}</div>` : ''}<label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11px;color:var(--text-2);cursor:pointer;" onclick="event.stopPropagation()" title="${campEsc(campT('camp.queue.recycle.hint', ''))}"><input type="checkbox" ${queueMetaFor(camp, q.id).recycle ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleQueueRecycle('${q.id}', this.checked)" style="width:14px;height:14px;accent-color:var(--accent);">${campEsc(campT('camp.queue.recycle', 'Akıllı yeniden kuyruğa al'))}</label></td>`,
       status: `<td><span class="badge ${text.active ? 'badge-green' : 'badge-gray'}">${campEsc(text.status)}</span></td>`,
       ratio: `<td class="num">${campEsc(text.ratio)}</td>`,
       dialed: `<td class="num">${campEsc(text.dialed)}</td>`,
