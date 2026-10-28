@@ -106,11 +106,21 @@ function uqUseSheet(name) {
   uqApplyMatrix(raw[0], raw.slice(1));
 }
 
+function uqNameFromFile(filename) {
+  const base = String(filename || '').split(/[/\\]/).pop() || '';
+  return base.replace(/\.[^.]+$/, '').trim().slice(0, 120);
+}
+
 async function setFile(f) {
   mbAddrClear();
   uploadFile = f;
   _uqWorkbook = null;
   document.getElementById('uq-fname').textContent = `✓ ${f.name} (${(f.size/1024).toFixed(1)} KB)`;
+  const nameEl = document.getElementById('uq-name');
+  if (nameEl && !nameEl.readOnly && !String(nameEl.value || '').trim()) {
+    const stem = uqNameFromFile(f.name);
+    if (stem) nameEl.value = stem;
+  }
   try {
     const isXlsx = f.name.toLowerCase().endsWith('.xlsx') || f.name.toLowerCase().endsWith('.xls');
     const sheetHost = document.getElementById('uq-sheet-wrap');

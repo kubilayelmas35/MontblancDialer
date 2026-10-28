@@ -363,6 +363,17 @@ function campRowFields(c, showFirm) {
   };
 }
 
+function mbIsManualQueue(q) {
+  return String(q?.name || '').trim().toLocaleLowerCase('tr-TR') === 'manuel';
+}
+
+function mbManualQueueIds(camp) {
+  return (camp?.queues || [])
+    .filter(mbIsManualQueue)
+    .map((q) => String(q.id || ''))
+    .filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+}
+
 async function attachCampaignDialCounts() {
   const ids = (campaigns || []).map((c) => c.id).filter(Boolean);
   const left = {};
@@ -372,7 +383,9 @@ async function attachCampaignDialCounts() {
   for (let i = 0; i < ids.length; i += chunk) {
     const slice = ids.slice(i, i + chunk);
     await Promise.all(slice.map(async (id) => {
-      const [remain, calling, loose] = await Promise.all([
+      const camp = (campaigns || []).find((c) => c.id === id);
+      const manualIds = mbManualQueueIds(camp);
+      const jobs = [
         typeof mbDashCount === 'function'
           ? mbDashCount(`contacts?select=id&campaign_id=eq.${id}&status=in.(pending,no_answer,callback)`)
           : null,
@@ -382,10 +395,16 @@ async function attachCampaignDialCounts() {
         typeof mbDashCount === 'function'
           ? mbDashCount(`contacts?select=id&campaign_id=eq.${id}&queue_id=is.null&status=in.(pending,no_answer,callback)`)
           : null,
-      ]);
-      left[id] = remain;
-      stuck[id] = calling;
-      looseMap[id] = loose;
+      ];
+      if (manualIds.length && typeof mbDashCount === 'function') {
+        jobs.push(mbDashCount(`contacts?select=id&queue_id=in.(${manualIds.join(',')})&status=eq.no_answer`));
+      }
+      const nums = await Promise.all(jobs);
+      const remain = nums[0];
+      const parked = manualIds.length ? nums[3] : 0;
+      left[id] = remain == null ? null : Math.max(0, remain - (Number(parked) || 0));
+      stuck[id] = nums[1];
+      looseMap[id] = nums[2];
     }));
   }
   (campaigns || []).forEach((c) => {
@@ -396,6 +415,7 @@ async function attachCampaignDialCounts() {
 }
 
 function campLeftWhere(c) {
+  if (!(Number(c?._left) > 0)) return '';
   const loose = Number(c?._loose) || 0;
   if (loose > 0) return `${campT('camp.queue.loose', 'Kuyruksuz')}: ${campCountText(loose)}`;
   const names = (c?.queues || []).map((q) => String(q.name || '').trim()).filter(Boolean);
@@ -404,6 +424,7 @@ function campLeftWhere(c) {
 }
 
 function campLeftLabel(c) {
+  if (!(Number(c?._left) > 0)) return '';
   const loose = Number(c?._loose) || 0;
   if (loose > 0) return campT('camp.queue.loose', 'Kuyruksuz');
   const names = (c?.queues || []).map((q) => String(q.name || '').trim()).filter(Boolean);
@@ -1175,6 +1196,8 @@ function queueMetaFor(camp, queueId) {
 
 function queueRecycleOn(camp, queueId) {
   if (!camp || !queueId) return false;
+  const queue = (camp.queues || []).find((q) => String(q.id) === String(queueId));
+  if (mbIsManualQueue(queue)) return false;
   if (!campRecyclePolicy(camp.id)?.on) return false;
   const meta = (getCampSettings(camp).queue_meta || {})[queueId] || {};
   return meta.recycle === true;
@@ -1205,7 +1228,7 @@ function mbAttemptCap(contact) {
 
 async function toggleQueueRecycle(queueId, on) {
   const found = findQueue(queueId);
-  if (!found) return;
+  if (!found || mbIsManualQueue(found.queue)) return;
   const prev = { ...(getCampSettings(found.camp).queue_meta || {}) };
   const cur = { ...(prev[queueId] || {}) };
   cur.recycle = !!on;
@@ -1424,6 +1447,11 @@ function queueFieldText(camp, q) {
   };
 }
 
+function queueRecycleBox(camp, q) {
+  if (mbIsManualQueue(q)) return '';
+  return `<label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11px;color:var(--text-2);cursor:pointer;" onclick="event.stopPropagation()" title="${campEsc(campT('camp.queue.recycle.hint', ''))}"><input type="checkbox" ${queueMetaFor(camp, q.id).recycle ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleQueueRecycle('${q.id}', this.checked)" style="width:14px;height:14px;accent-color:var(--accent);">${campEsc(campT('camp.queue.recycle', 'Akıllı yeniden kuyruğa al'))}</label>`;
+}
+
 function queueRowsBody(camp) {
   const defs = queueColDefs();
   const rows = (camp?.queues || []).filter((q) => {
@@ -1436,7 +1464,7 @@ function queueRowsBody(camp) {
   return rows.map((q) => {
     const text = queueFieldText(camp, q);
     const cells = {
-      name: `<td><div class="queue-name">${campEsc(q.name)}</div>${text.bits.length ? `<div class="queue-sub">${campEsc(text.bits.join(' · '))}</div>` : ''}<label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11px;color:var(--text-2);cursor:pointer;" onclick="event.stopPropagation()" title="${campEsc(campT('camp.queue.recycle.hint', ''))}"><input type="checkbox" ${queueMetaFor(camp, q.id).recycle ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleQueueRecycle('${q.id}', this.checked)" style="width:14px;height:14px;accent-color:var(--accent);">${campEsc(campT('camp.queue.recycle', 'Akıllı yeniden kuyruğa al'))}</label></td>`,
+      name: `<td><div class="queue-name">${campEsc(q.name)}</div>${text.bits.length ? `<div class="queue-sub">${campEsc(text.bits.join(' · '))}</div>` : ''}${queueRecycleBox(camp, q)}</td>`,
       status: `<td><span class="badge ${text.active ? 'badge-green' : 'badge-gray'}">${campEsc(text.status)}</span></td>`,
       ratio: `<td class="num">${campEsc(text.ratio)}</td>`,
       dialed: `<td class="num">${campEsc(text.dialed)}</td>`,
@@ -1464,8 +1492,11 @@ async function attachQueueColumnStats(camp) {
     const slice = queues.slice(i, i + chunk);
     await Promise.all(slice.map(async (q) => {
       if (!count || !q.id) return;
+      const leftPath = mbIsManualQueue(q)
+        ? `contacts?select=id&queue_id=eq.${q.id}&status=in.(pending,callback)`
+        : `contacts?select=id&queue_id=eq.${q.id}&status=in.(pending,no_answer,callback)`;
       const [left, sales] = await Promise.all([
-        count(`contacts?select=id&queue_id=eq.${q.id}&status=in.(pending,no_answer,callback)`),
+        count(leftPath),
         count(`contacts?select=id&queue_id=eq.${q.id}&status=eq.appointment`),
       ]);
       q._left = left;
