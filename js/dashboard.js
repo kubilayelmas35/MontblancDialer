@@ -3120,7 +3120,7 @@ async function loadCallHistory() {
         costText: money.text,
         rate: money.unit,
         recText: l.recording_url ? 'Kayıt' : '—',
-        outcomeText: chOutcomeText(l.outcome, _chLabelMap),
+        outcomeText: (!l.outcome && sec >= 3) ? ((typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Gesprochen' : 'Konuşuldu') : chOutcomeText(l.outcome, _chLabelMap),
         note: chNoteText(l.notes),
         callid: callNo ? callNo.slice(0, 10) : '—',
       };
@@ -3232,7 +3232,10 @@ const sec = logDurSec(l);
 const dur = sec ? `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}` : '—';
 const cbInfo = l.callback_at ? `<div style="font-size:10px;color:var(--yellow);margin-top:2px;"><i class="ph ph-calendar" style="vertical-align:-2px;"></i> ${new Date(l.callback_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>` : '';
 const customOutcome = typeof mbOutcomeShown === 'function' ? mbOutcomeShown(l.outcome, l.campaigns, l.campaign_id) : '';
-const outcomeHtml = OM[l.outcome] || `<span class="badge badge-gray">${typeof escapeHtml === 'function' ? escapeHtml(customOutcome || l.outcome || '—') : (customOutcome || l.outcome || '—')}</span>`;
+const talkedOpen = !l.outcome && sec >= 3;
+const outcomeHtml = talkedOpen
+  ? '<span class="badge badge-gray">Konuşuldu</span>'
+  : (OM[l.outcome] || `<span class="badge badge-gray">${typeof escapeHtml === 'function' ? escapeHtml(customOutcome || l.outcome || '—') : (customOutcome || l.outcome || '—')}</span>`);
 const recHtml = recHtmlFor(l);
 const openTitle = typeof statsEsc === 'function' ? statsEsc(typeof t === 'function' ? t('dial.history_open') : 'Dialerde aç') : 'Dialerde aç';
 const detailBtn = l.contact_id ? `<button class="icon-btn" onclick="openContactDrawer('${l.contact_id}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button><button class="icon-btn" onclick="openDialerForContact('${l.contact_id}')" title="${openTitle}"><i class="ph ph-arrow-square-out"></i></button>` : '';

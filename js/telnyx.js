@@ -517,8 +517,18 @@ function mbPoolEndStatus(row) {
   return 'no_answer';
 }
 
+function mbTalkSeconds(row) {
+  const at = Number(row?.answeredAt) || 0;
+  if (at) return Math.max(0, Math.round((Date.now() - at) / 1000));
+  const iso = window._mbCallMeta?.answeredAt;
+  const t = iso ? Date.parse(iso) : 0;
+  if (!t) return 0;
+  return Math.max(0, Math.round((Date.now() - t) / 1000));
+}
+
 function mbFarEndMissed(row) {
   if (!row || row.phase === 'hold') return false;
+  if (mbTalkSeconds(row) >= 3 && (row.phase === 'live' || row.id === _liveCallId)) return false;
   const call = row.call;
   const sip = Number(call?.sipCode || call?.sip_code || 0);
   const q850 = Number(call?.causeCode || call?.cause_code || 0);
@@ -799,6 +809,43 @@ function mbWriteAttemptLog(contact, outcome, row) {
   post({ ...body, ...extra }).catch(() => post(body).catch(() => {}));
 }
 
+function mbEnsureTalkLog(sec) {
+  if (window._mbPendingLogId || window._mbPendingLogPromise || typeof sb !== 'function') return;
+  const meta = window._mbCallMeta || {};
+  const duration = Math.max(0, Number(sec) || 0);
+  if (!meta.answeredAt && duration < 3) return;
+  const contact = (typeof currentContact !== 'undefined' && currentContact) ? currentContact : null;
+  const campId = contact?.campaign_id || (typeof selectedCampId !== 'undefined' ? selectedCampId : null) || null;
+  let firmId = contact?.firm_id || (typeof currentUser !== 'undefined' ? currentUser?.firm_id : null) || null;
+  if (!firmId && campId) {
+    try {
+      const camp = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === campId);
+      if (camp?.firm_id) firmId = camp.firm_id;
+    } catch (e) {}
+  }
+  const phone = String(contact?.phone || '').trim();
+  const started = meta.dialAt || new Date(Date.now() - duration * 1000).toISOString();
+  const body = {
+    campaign_id: (campId && typeof isValidUUID === 'function' && isValidUUID(campId)) ? campId : null,
+    firm_id: firmId,
+    agent_id: (typeof currentUser !== 'undefined' ? currentUser?.id : null) || null,
+    phone: phone || null,
+    duration_sec: duration,
+    started_at: started,
+    ended_at: new Date().toISOString(),
+    notes: '',
+  };
+  if (contact?.id && typeof isValidUUID === 'function' && isValidUUID(contact.id)) body.contact_id = contact.id;
+  const extra = typeof mbCallLogExtras === 'function' ? mbCallLogExtras() : {};
+  if (!extra.work_type) extra.work_type = meta.work || 'manual';
+  const post = (payload) => sb('call_logs', { method: 'POST', prefer: 'return=representation', body: JSON.stringify(payload) });
+  window._mbPendingLogPromise = post({ ...body, ...extra }).catch(() => post(body)).then((rows) => {
+    const saved = Array.isArray(rows) ? rows[0] : rows;
+    if (saved?.id) window._mbPendingLogId = saved.id;
+    return saved?.id || '';
+  }).catch(() => '');
+}
+
 function mbReleaseUnanswered(contact, status) {
   if (!contact?.id) return;
   const st = status || 'no_answer';
@@ -967,7 +1014,8 @@ function mbOnHopperCall(call) {
       mbNoteRecordingMiss(call);
       _liveCallId = null;
       _telnyxCall = null;
-      const dur = callStart ? Math.round((Date.now() - callStart) / 1000) : 0;
+      const talk = mbTalkSeconds(row);
+      const dur = talk >= 3 ? talk : (callStart ? Math.round((Date.now() - callStart) / 1000) : 0);
       callStart = null;
       if (typeof handleCallEnd === 'function') handleCallEnd(dur);
     } else {
@@ -1200,6 +1248,7 @@ if (typeof hideOutboundWait === 'function') hideOutboundWait();
 if (currentContact && typeof showCustomerCard === 'function') showCustomerCard(currentContact);
 setDialerStatus('wrapping');
 updateSessionInDB('wrapping');
+mbEnsureTalkLog(callSeconds);
 }
 _outboundAnswered = false;
 if (amdResult === 'machine') amdResult = null;

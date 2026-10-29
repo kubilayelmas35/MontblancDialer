@@ -1415,7 +1415,7 @@ async function submitOutcome(goBreak) {
         : note;
       const logData = {
         campaign_id: selectedCampId,
-        firm_id: currentUser.firm_id,
+        firm_id: currentContact.firm_id || currentUser.firm_id,
         agent_id: currentUser.id,
         phone: currentContact.phone,
         outcome: finalOutcome,   // normalleştirilmiş (appointment_done → appointment)
@@ -1424,6 +1424,7 @@ async function submitOutcome(goBreak) {
         started_at: new Date(Date.now()-callSeconds*1000).toISOString(),
         ended_at: new Date().toISOString(),
       };
+      if (logData.campaign_id && typeof isValidUUID === 'function' && !isValidUUID(logData.campaign_id)) delete logData.campaign_id;
       if (contactId) logData.contact_id = contactId;
       if (cbAt) logData.callback_at = cbAt;
       if (activeCallId) { try { logData.telnyx_call_id = activeCallId; } catch(e) {} }
@@ -1453,12 +1454,27 @@ async function submitOutcome(goBreak) {
         mbRecWarn('telnyx.rec_noid', 'Ses kaydı alınamadı');
       }
       if (!skipAutoLog) {
+      if (window._mbPendingLogPromise) {
+        try { await window._mbPendingLogPromise; } catch (e) {}
+      }
       let savedLog = null;
+      const pendingId = window._mbPendingLogId || '';
+      if (pendingId) {
+        window._mbPendingLogId = null;
+        window._mbPendingLogPromise = null;
+        try {
+          savedLog = await sb(`call_logs?id=eq.${pendingId}`,{method:'PATCH',prefer:'return=representation',body:JSON.stringify({ ...logData, ...callExtra })});
+        } catch (logErr) {
+          savedLog = await sb(`call_logs?id=eq.${pendingId}`,{method:'PATCH',prefer:'return=representation',body:JSON.stringify(logData)});
+        }
+        if (!Array.isArray(savedLog) || !savedLog.length) savedLog = [{ id: pendingId }];
+      } else {
       try {
         savedLog = await sb('call_logs',{method:'POST',prefer:'return=representation',body:JSON.stringify({ ...logData, ...callExtra })});
       } catch (logErr) {
         if (!Object.keys(callExtra).length) throw logErr;
         savedLog = await sb('call_logs',{method:'POST',prefer:'return=representation',body:JSON.stringify(logData)});
+      }
       }
       const savedRow = Array.isArray(savedLog) ? savedLog[0] : savedLog;
       if (savedRow?.id && typeof mbChargeCall === 'function') void mbChargeCall(savedRow);
