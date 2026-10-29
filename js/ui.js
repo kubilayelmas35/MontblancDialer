@@ -55,6 +55,7 @@ const _NAVIGATE_LOADERS = {
     _mbPageFn('loadJobMarketKpi')?.();
   },
   campaigns: () => { _mbPageFn('loadCampaigns')?.(); },
+  queues: () => { _mbPageFn('loadQueuesPage')?.(); },
   agents: () => { _mbPageFn('loadAgents')?.(); },
   stats: () => { _mbPageFn('initStatsFilters')?.(); _mbPageFn('loadStats')?.(); },
   callhistory: () => { _mbPageFn('initCallHistoryFilters')?.(); _mbPageFn('loadCallHistory')?.(); },

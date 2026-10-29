@@ -743,17 +743,26 @@ async function uploadQueue() {
   };
   try {
     let queue = foundTarget ? foundTarget.queue : null;
+    let reusedQueue = false;
     if (queue) {
       setProgress(5, uqSay('uq.adding', 'Kuyruğa ekleniyor...'), `${contacts.length.toLocaleString()} kişi hazırlanıyor`);
     } else {
       setProgress(5, 'Kuyruk oluşturuluyor...', `${contacts.length.toLocaleString()} kişi hazırlanıyor`);
-      const queueBody = { campaign_id:campId, name, total_contacts:contacts.length };
+      if (typeof mbIsManualQueue === 'function' && mbIsManualQueue({ name })) {
+        const camp = (campaigns || []).find((c) => c.id === campId);
+        queue = (camp?.queues || []).find((q) => mbIsManualQueue(q)) || null;
+        if (!queue?.id && typeof mbEnsureManualQueue === 'function') queue = await mbEnsureManualQueue(campId);
+        if (queue?.id) reusedQueue = true;
+      }
+      const queueBody = queue?.id ? null : { campaign_id:campId, name, total_contacts:contacts.length };
+      if (queueBody) {
       if (firmId) queueBody.firm_id = firmId;
       const queueRes = await sb('queues', {
         method:'POST', prefer: 'return=representation',
         body: JSON.stringify(queueBody)
       });
       queue = Array.isArray(queueRes) ? queueRes[0] : queueRes;
+      }
       if (!queue?.id) {
         const found = await sb(`queues?campaign_id=eq.${campId}&name=eq.${encodeURIComponent(name)}&order=created_at.desc&limit=1`);
         queue = Array.isArray(found) ? found[0] : found;
@@ -774,15 +783,16 @@ async function uploadQueue() {
       setProgress(pct, `Yükleniyor... (${batchNum}/${totalBatches} batch)`, `${uploaded.toLocaleString()} / ${withQ.length.toLocaleString()} kişi`);
       await sb('contacts', { method:'POST', body: JSON.stringify(withQ.slice(i, i+batchSize)), prefer:'return=minimal' });
     }
-    if (foundTarget) {
-      const nextTotal = Number(foundTarget.queue.total_contacts || 0) + contacts.length;
-      await sb(`queues?id=eq.${foundTarget.queue.id}`, {
+    if (foundTarget || reusedQueue) {
+      const base = foundTarget ? foundTarget.queue : queue;
+      const nextTotal = Number(base.total_contacts || 0) + contacts.length;
+      await sb(`queues?id=eq.${base.id}`, {
         method: 'PATCH', prefer: 'return=minimal',
         body: JSON.stringify({ total_contacts: nextTotal }),
       });
-      foundTarget.queue.total_contacts = nextTotal;
-      foundTarget.queue._left = null;
-      foundTarget.queue._sales = null;
+      base.total_contacts = nextTotal;
+      base._left = null;
+      base._sales = null;
     }
     if (patches.length) await mbAddrPatch(patches);
     const done = uqSay('uq.done', '{n} kişi yüklendi', { n: contacts.length.toLocaleString() });
@@ -801,13 +811,17 @@ async function uploadQueue() {
     submitBtn.disabled = false;
     const campMem = (campaigns || []).find((c) => c.id === campId);
     if (campMem) {
-      if (!foundTarget) {
-        campMem.queues = [{ id: queue.id, name, total_contacts: contacts.length, dialed_count: 0, status: 'active', campaign_id: campId, firm_id: firmId }, ...(campMem.queues || [])];
+      if (!foundTarget && !(campMem.queues || []).some((q) => q.id === queue.id)) {
+        campMem.queues = [{ id: queue.id, name, total_contacts: contacts.length, dialed_count: 0, status: 'active', campaign_id: campId, firm_id: firmId, created_at: new Date().toISOString() }, ...(campMem.queues || [])];
       }
       if (typeof renderCampGrid === 'function') renderCampGrid();
       if (typeof renderCampQueues === 'function') renderCampQueues(campMem);
     }
     if (typeof loadCampaigns === 'function') await loadCampaigns();
+    if (document.getElementById('page-queues')?.classList.contains('active') && typeof paintQueuesPage === 'function') {
+      paintQueuesPage();
+      if (typeof fillQueuesPageCounts === 'function') void fillQueuesPageCounts();
+    }
     toast(done, 'ok', 3200);
     if (reportLines.length) {
       await mbShowUploadReport([uqSay('uq.report.added', '{n} kişi kuyruğa eklendi', { n: contacts.length.toLocaleString() }), ...reportLines]);

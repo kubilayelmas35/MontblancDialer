@@ -197,6 +197,10 @@
 <span data-tr="Kampanyalar" data-de="Kampagnen">Kampanyalar</span>
 <span class="sb-badge" id="sb-badge-camp">0</span>
 </button>
+<button class="sb-item" onclick="navigate('queues')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
+<span data-tr="Kuyruklar" data-de="Warteschlangen">Kuyruklar</span>
+</button>
 <button class="sb-item" id="nav-geocon-btn" onclick="navigate('geocon')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21"/><line x1="8" y1="3" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="21"/></svg></span>
 <span data-tr="GeoCon" data-de="GeoCon">GeoCon</span>
@@ -698,6 +702,34 @@
 <span class="tour-help" data-tr="Ekrandaki günü yeniden okur. Kampanya değiştirmez, bildirim göndermez." data-de="Liest den Tag auf dem Bildschirm neu. Wechselt die Kampagne nicht und sendet keine Meldung.">Ekrandaki günü yeniden okur. Kampanya değiştirmez, bildirim göndermez.</span>
 </div>
 <div id="tour-panel" class="tour-board"></div>
+</div>
+</div>
+<div class="page" id="page-queues">
+<div class="page-hdr">
+<div>
+<div class="page-title" data-tr="Kuyruklar" data-de="Warteschlangen">Kuyruklar</div>
+<div class="page-sub" data-tr="Tüm kampanyaların kuyrukları. En son eklenen üstte." data-de="Listen aller Kampagnen. Die neueste steht oben.">Tüm kampanyaların kuyrukları. En son eklenen üstte.</div>
+</div>
+<div class="page-hdr-actions">
+<input type="search" id="queues-search" class="form-input camp-search" data-tr="Kuyruk veya kampanya ara" data-de="Liste oder Kampagne suchen" placeholder="Kuyruk veya kampanya ara" oninput="paintQueuesPage()">
+<button type="button" class="btn btn-ghost btn-sm" onclick="loadQueuesPage()" data-tr="Yenile" data-de="Aktualisieren">Yenile</button>
+<button type="button" class="btn btn-primary" onclick="openQueuesNew()">+ <span data-tr="Yeni kuyruk" data-de="Neue Liste">Yeni kuyruk</span></button>
+</div>
+</div>
+<div class="camp-rows-wrap">
+<table class="camp-rows">
+<thead>
+<tr>
+<th data-tr="Kuyruk" data-de="Liste">Kuyruk</th>
+<th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
+<th class="num" data-tr="Aranacak/Toplam" data-de="Offen/Gesamt">Aranacak/Toplam</th>
+<th class="num" data-tr="Aranan" data-de="Angerufen">Aranan</th>
+<th data-tr="Oluşturma" data-de="Erstellt">Oluşturma</th>
+<th></th>
+</tr>
+</thead>
+<tbody id="queues-tbody"></tbody>
+</table>
 </div>
 </div>
 <div class="page" id="page-campaigns">

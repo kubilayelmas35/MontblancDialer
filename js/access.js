@@ -11,6 +11,7 @@ const MB_ROLES = [
 const MB_PAGES = [
   { key: 'dashboard', label: 'Özet', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc', 'field_agent'] },
   { key: 'campaigns', label: 'Kampanyalar', roles: ['super_admin', 'admin', 'firm_admin'] },
+  { key: 'queues', label: 'Kuyruklar', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'geocon', label: 'GeoCon', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'tour', label: 'Callin', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'callhistory', label: 'Çağrı geçmişi', roles: ['super_admin', 'admin', 'firm_admin', 'qc'] },
@@ -94,11 +95,12 @@ function mbIsFirmAdmin(role) {
   return ['admin', 'firm_admin', 'super_admin'].includes(r || '');
 }
 
-const MB_PERM_REV = 4;
+const MB_PERM_REV = 5;
 const MB_PERM_GRANTS = [
   { rev: 2, keys: ['supervisor', 'jobmarket', 'fieldops'] },
   { rev: 3, keys: ['geocon'] },
   { rev: 4, keys: ['tour'] },
+  { rev: 5, keys: ['queues'] },
 ];
 
 function mbMergeStoredPerms(list, role, settings) {
@@ -489,7 +491,18 @@ function mbPlaceNavCustom(order) {
       if (btn) sub.appendChild(btn);
     });
     [...sub.querySelectorAll(':scope > .sb-item')].forEach((btn) => {
-      if (!known.has(btn.dataset.navKey)) sub.appendChild(btn);
+      if (known.has(btn.dataset.navKey)) return;
+      const home = (window._mbNavHomes || []).find((row) => row.el === btn);
+      let after = null;
+      if (home) {
+        const mates = (window._mbNavHomes || []).filter((row) => row.parent === home.parent && row.index < home.index);
+        for (let i = mates.length - 1; i >= 0; i -= 1) {
+          const prev = mates[i].el;
+          if (prev.parentElement === sub && known.has(prev.dataset.navKey)) { after = prev; break; }
+        }
+      }
+      if (after) after.insertAdjacentElement('afterend', btn);
+      else sub.appendChild(btn);
     });
   });
 }
