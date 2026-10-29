@@ -185,7 +185,7 @@ function ariaName() {
     if (typeof getMascotPref === 'function') raw = getMascotPref('mb_mascot_name', '');
   } catch (e) {}
   const name = String(raw || '').trim().replace(/\s+/g, ' ').slice(0, 28);
-  return name || 'Mimi';
+  return name || 'Callin';
 }
 
 function ariaPaintName() {

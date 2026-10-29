@@ -87,7 +87,7 @@ function refreshGlobalMascotInfoPanel() {
   const mApptEl = document.getElementById('global-mascot-info-month-appts');
   const statsNoteEl = document.getElementById('global-mascot-info-stats-note');
   const isDe = typeof currentLang !== 'undefined' && currentLang === 'de';
-  const n = (getMascotPref('mb_mascot_name', '') || '').trim() || 'Mimi';
+  const n = (getMascotPref('mb_mascot_name', '') || '').trim() || 'Callin';
   const rawVariant = String(getMascotPref('mb_mascot_variant', 'aurora') || 'aurora').toLowerCase();
   const appliedV = resolveMascotVariantKeyFromPref();
   const appliedLabel = appliedV.charAt(0).toUpperCase() + appliedV.slice(1);

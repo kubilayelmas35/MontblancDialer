@@ -549,8 +549,8 @@ body:not(.geo-super-lead) #optSortLead{display:none!important;}
 #circleSearchBox.off{display:none;}
 .corridor-plz-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
 @media(max-width:1040px){
-  html,body{overflow-x:hidden;overflow-y:auto;height:auto;min-height:100%;background:#eef1f6;}
-  #mobileLayout{display:flex;flex-direction:column;gap:10px;padding:10px;padding-bottom:28px;min-height:100vh;}
+  html,body{overflow:hidden;height:100%;min-height:100%;background:#eef1f6;}
+  #mobileLayout{display:flex;flex-direction:column;gap:10px;padding:10px;padding-bottom:28px;height:100%;max-height:100%;min-height:0;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;}
   #mobileControls{display:flex;flex-direction:column;gap:10px;order:1;}
   #topLeftBar{display:none!important;}
   #mobileBar{display:flex;gap:8px;align-items:center;order:0;margin:0;}
@@ -562,7 +562,7 @@ body:not(.geo-super-lead) #optSortLead{display:none!important;}
   .map-type-btn-wide{grid-column:auto;height:44px!important;}
   .map-controls{position:relative!important;inset:auto!important;bottom:auto!important;left:auto!important;width:100%!important;margin:0!important;flex-wrap:wrap;}
   .map-control-btn{flex:1 1 22%;min-width:22%;justify-content:center;font-size:.72rem;padding:8px;}
-  #mapWrap{position:relative!important;inset:auto!important;order:2;width:100%;height:56vh;min-height:300px;max-height:none;border-radius:16px;overflow:hidden;z-index:1;box-shadow:0 2px 12px rgba(0,0,0,.12);}
+  #mapWrap{position:relative!important;inset:auto!important;order:2;width:100%;height:56vh;min-height:300px;max-height:none;border-radius:16px;overflow:hidden;z-index:1;box-shadow:0 2px 12px rgba(0,0,0,.12);touch-action:pan-y;flex:0 0 auto;}
   #map,#googleMap,#googleMap3d{position:absolute;inset:0;}
   #analysePanel{position:relative!important;right:auto!important;top:auto!important;width:100%!important;order:3;margin:0;z-index:4;}
   #rightColumn{position:relative!important;right:auto!important;top:auto!important;width:100%!important;max-height:none!important;overflow:visible!important;order:4;z-index:4;gap:10px;}
@@ -5484,6 +5484,12 @@ async function onGoogleMapPlaceClick(e){
 // GOOGLE MAPS
 // ═══════════════════════════════════════════════════════
 async function ensureGoogle(){if(googleMap)return;initGoogle();await new Promise(r=>setTimeout(r,50));}
+function geoNarrow(){return window.matchMedia('(max-width:1040px)').matches;}
+function geoMapGesture(){return geoNarrow()?'cooperative':'greedy';}
+function geoApplyMapGesture(){
+  if(!googleMap||(typeof photo3DActive!=='undefined'&&photo3DActive))return;
+  try{googleMap.setOptions({gestureHandling:geoMapGesture()});}catch(e){}
+}
 function watchMapResize(){
   const wrap=document.getElementById('mapWrap');
   if(!wrap||!window.ResizeObserver)return;
@@ -5493,11 +5499,12 @@ function watchMapResize(){
     t=setTimeout(()=>{
       if(!googleMap||!isGoogleMap())return;
       google.maps.event.trigger(googleMap,'resize');
+      geoApplyMapGesture();
       if(lastCenter)googleMap.setCenter({lat:+lastCenter.lat,lng:+lastCenter.lon});
     },100);
   }).observe(wrap);
 }
-function initGoogle(){googleMap=new google.maps.Map(document.getElementById('googleMap'),{center:{lat:51.1657,lng:10.4515},zoom:6,mapTypeId:google.maps.MapTypeId.HYBRID,mapTypeControl:false,streetViewControl:true,streetViewControlOptions:{position:google.maps.ControlPosition.RIGHT_BOTTOM},rotateControl:true,rotateControlOptions:{position:google.maps.ControlPosition.RIGHT_BOTTOM},fullscreenControl:false,zoomControl:false,tilt:0,heading:0,gestureHandling:'greedy',clickableIcons:true});googleMap.addListener('click',onGoogleMapPlaceClick);googleMap.addListener('zoom_changed',schedulePlzZoomPaint);const el=document.getElementById('googleMap');el.addEventListener('contextmenu',e=>e.preventDefault());let rotating=false,startX=0,startH=0;el.addEventListener('pointerdown',e=>{if(!is3D||e.button!==2)return;rotating=true;startX=e.clientX;startH=googleMap.getHeading()||0;googleMap.setOptions({draggable:false});try{el.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();});el.addEventListener('pointermove',e=>{if(!rotating||!is3D)return;googleMap.setHeading((startH+(e.clientX-startX)*.35)%360);});const stop=()=>{if(!rotating)return;rotating=false;googleMap.setOptions({draggable:true});};el.addEventListener('pointerup',stop);el.addEventListener('pointercancel',stop);window.addEventListener('blur',stop);}
+function initGoogle(){googleMap=new google.maps.Map(document.getElementById('googleMap'),{center:{lat:51.1657,lng:10.4515},zoom:6,mapTypeId:google.maps.MapTypeId.HYBRID,mapTypeControl:false,streetViewControl:true,streetViewControlOptions:{position:google.maps.ControlPosition.RIGHT_BOTTOM},rotateControl:true,rotateControlOptions:{position:google.maps.ControlPosition.RIGHT_BOTTOM},fullscreenControl:false,zoomControl:false,tilt:0,heading:0,gestureHandling:geoMapGesture(),clickableIcons:true});googleMap.addListener('click',onGoogleMapPlaceClick);googleMap.addListener('zoom_changed',schedulePlzZoomPaint);const el=document.getElementById('googleMap');el.addEventListener('contextmenu',e=>e.preventDefault());let rotating=false,startX=0,startH=0;el.addEventListener('pointerdown',e=>{if(!is3D||e.button!==2)return;rotating=true;startX=e.clientX;startH=googleMap.getHeading()||0;googleMap.setOptions({draggable:false});try{el.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();});el.addEventListener('pointermove',e=>{if(!rotating||!is3D)return;googleMap.setHeading((startH+(e.clientX-startX)*.35)%360);});const stop=()=>{if(!rotating)return;rotating=false;googleMap.setOptions({draggable:true});};el.addEventListener('pointerup',stop);el.addEventListener('pointercancel',stop);window.addEventListener('blur',stop);}
 function buildGIcon(code){const s=getS(code);let a,b;if(bulkSelected.has(code)){a='#198754';b='#20c997';}else if(distSelected.find(d=>d.plz===code)){a='#fd7e14';b='#ffc107';}else{a=s.used?'#dc3545':s.used1?'#28a745':'#4e54c8';b=s.used?'#e74c3c':s.used1?'#7ae582':'#8f94fb';}const sc=analyseScores[code];const bord=sc!=null?(sc>=8?'#10b981':sc>=6?'#3b82f6':sc>=4?'#f59e0b':'#ef4444'):'white';const isAnchor=searchAnchorPlz&&String(searchAnchorPlz)===String(code);const size=geoMarkerSize(isAnchor);const bw=size<28?1:(sc!=null?3:2);const cx=size/2;const r=Math.max(5,Math.round(size/2-bw-1));const ring=isAnchor&&size>=48?`<circle cx="${cx}" cy="${cx}" r="${Math.round(size*0.46)}" fill="none" stroke="#dc3545" stroke-width="3" stroke-dasharray="4 3" opacity="0.95"/>`:'';const labelFs=isAnchor?12:11;const label=`<text x="${cx}" y="${cx+4}" text-anchor="middle" fill="white" font-size="${labelFs}" font-weight="bold" font-family="Arial">${code}</text>`;const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><defs><linearGradient id="g${code}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${a}"/><stop offset="100%" stop-color="${b}"/></linearGradient></defs>${ring}<circle cx="${cx}" cy="${cx}" r="${r}" fill="url(#g${code})" stroke="${bord}" stroke-width="${bw}"/>${label}</svg>`;return{url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),scaledSize:new google.maps.Size(size,size),anchor:new google.maps.Point(cx,cx)};}
 let openGIW=null;
 function openGoogleInfoWindow(marker,plz,cityName){if(openGIW){openGIW.close();openGIW=null;}curPopupPLZ=plz;const container=document.createElement('div');container.style.cssText='margin:0;padding:0;';container.innerHTML=buildPopupContent(plz,cityName);const iw=new google.maps.InfoWindow({content:container,disableAutoPan:false,pixelOffset:new google.maps.Size(0,-5)});openGIW=iw;iw.addListener('closeclick',()=>{if(curPopupPLZ===plz)curPopupPLZ=null;openGIW=null;});iw.open({anchor:marker,map:googleMap,shouldFocus:false});const entry=plzData.find(e=>e.plz===plz);if(entry&&entry.count===null){priorityPLZ=plz;}}
@@ -6277,13 +6284,14 @@ async function ensureMap3D(){
     region:'DE',
     defaultUIHidden:true
   };
-  if(GestureHandling&&GestureHandling.GREEDY)opts.gestureHandling=GestureHandling.GREEDY;
+  const gh=geoMapGesture()==='cooperative'?'COOPERATIVE':'GREEDY';
+  if(GestureHandling&&GestureHandling[gh])opts.gestureHandling=GestureHandling[gh];
   map3dEl=new Map3DElementCls(opts);
   try{map3dEl.mode=(MapMode&&MapMode.HYBRID)||'HYBRID';}catch(e){}
   try{map3dEl.defaultUIHidden=true;}catch(e){}
   try{map3dEl.setAttribute('mode','HYBRID');}catch(e){}
   try{map3dEl.setAttribute('default-ui-hidden','true');}catch(e){}
-  try{map3dEl.setAttribute('gesture-handling','greedy');}catch(e){}
+  try{map3dEl.setAttribute('gesture-handling',geoMapGesture());}catch(e){}
   map3dEl.style.width='100%';
   map3dEl.style.height='100%';
   map3dEl.style.outline='none';
