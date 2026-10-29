@@ -562,6 +562,9 @@ body:not(.geo-super-lead) #optSortLead{display:none!important;}
   .map-type-btn-wide{grid-column:auto;height:44px!important;}
   .map-controls{position:relative!important;inset:auto!important;bottom:auto!important;left:auto!important;width:100%!important;margin:0!important;flex-wrap:wrap;}
   .map-control-btn{flex:1 1 22%;min-width:22%;justify-content:center;font-size:.72rem;padding:8px;}
+  .bld-layer-bar{position:relative!important;inset:auto!important;bottom:auto!important;left:auto!important;width:100%!important;max-width:none;margin:0;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:8px;background:rgba(255,255,255,.96);padding:8px;border-radius:15px;box-shadow:0 1px 6px rgba(0,0,0,.08);}
+  .bld-layer-btn{justify-content:center;min-height:40px;width:100%;}
+  html[data-theme="dark"] .bld-layer-bar{background:#161e33;box-shadow:none;}
   #mapWrap{position:relative!important;inset:auto!important;order:2;width:100%;height:56vh;min-height:300px;max-height:none;border-radius:16px;overflow:hidden;z-index:1;box-shadow:0 2px 12px rgba(0,0,0,.12);touch-action:pan-y;flex:0 0 auto;}
   #map,#googleMap,#googleMap3d{position:absolute;inset:0;}
   #analysePanel{position:relative!important;right:auto!important;top:auto!important;width:100%!important;order:3;margin:0;z-index:4;}
@@ -570,8 +573,8 @@ body:not(.geo-super-lead) #optSortLead{display:none!important;}
   #takvimPanel{max-height:none;}
   #plzList{max-height:40vh;}
   #bulkPanel,#distPanel{position:relative!important;inset:auto!important;transform:none!important;left:auto!important;bottom:auto!important;width:100%!important;max-width:100%!important;margin:0!important;order:5;border-radius:15px;}
-  #kubilaiFab{position:fixed;left:50%;right:auto;bottom:66px;transform:translateX(-50%);z-index:1200;}
-  #kubilaiFab:hover{transform:translateX(-50%) translateY(-2px);}
+  #kubilaiFab{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;transform:none!important;order:3;align-self:stretch;width:100%;height:44px;min-height:44px;flex:0 0 auto;margin:0;z-index:4;}
+  #kubilaiFab:hover{transform:none;filter:brightness(1.08);}
   #kubilaiDrawer{position:fixed;left:50%;right:auto;bottom:120px;transform:translateX(-50%);width:min(400px,calc(100vw - 16px));max-height:72vh;z-index:1200;}
   #kubilaiDrawer.open{animation:kubIn .22s ease;}
   #dlToast{bottom:16px;right:12px;left:12px;max-width:none;}
