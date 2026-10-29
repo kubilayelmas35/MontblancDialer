@@ -44,7 +44,7 @@ function mbTelnyxIds(call) {
   let ids = {};
   try { ids = call?.telnyxIDs || {}; } catch (e) { ids = {}; }
   return {
-    control: String(ids.telnyxCallControlId || call?.telnyxCallControlId || '').trim(),
+    control: String(ids.telnyxCallControlId || call?.telnyxCallControlId || call?.options?.telnyxCallControlId || '').trim(),
     leg: String(ids.telnyxLegId || '').trim(),
     session: String(ids.telnyxSessionId || '').trim(),
   };
@@ -339,6 +339,8 @@ case 'MB_HOLD': {
   const live = _liveCallId ? _hopper.find((r) => r.id === _liveCallId) : null;
   const call = live?.call || _telnyxCall;
   const want = !!data.hold;
+  if (want && typeof mbStartHoldMusic === 'function') void mbStartHoldMusic(call, live?.contact || (typeof currentContact !== 'undefined' ? currentContact : null));
+  else if (typeof mbStopHoldMusic === 'function') mbStopHoldMusic(call);
   if (call && typeof call.hold === 'function') {
     try { want ? call.hold() : call.unhold(); } catch (e) {}
   }
@@ -767,6 +769,7 @@ function mbTakeHeldCall() {
   const held = _hopper.filter((r) => r.phase === 'hold').sort((a, b) => a.answeredAt - b.answeredAt);
   if (!held.length) return false;
   const row = held[0];
+  if (typeof mbStopHoldMusic === 'function') mbStopHoldMusic(row.call);
   try { row.call.unhold(); } catch (e) {}
   mbConnectHopperRow(row);
   if (typeof toast === 'function') toast(typeof t === 'function' ? t('dial.hopper.held_next') : 'Müzikte bekleyen kişi bağlandı', 'ok', 2200);
@@ -989,6 +992,7 @@ function mbOnHopperCall(call) {
     if (_agentBusy() && row.id !== _liveCallId) {
       row.phase = 'hold';
       row.answeredAt = row.answeredAt || Date.now();
+      if (typeof mbStartHoldMusic === 'function') void mbStartHoldMusic(call, row.contact);
       try { call.hold(); } catch (e) {}
       if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
       if (typeof mbSyncPool === 'function') mbSyncPool();

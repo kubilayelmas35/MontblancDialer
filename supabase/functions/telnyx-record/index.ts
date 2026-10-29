@@ -211,6 +211,30 @@ Deno.serve(async (req) => {
       return json({ ok: true, url: /^https:\/\//i.test(url) ? url : '' });
     }
 
+    if (action === 'play' || action === 'stop') {
+      if (!control) return json({ error: 'id' }, 400);
+      const base = `https://api.telnyx.com/v2/calls/${encodeURIComponent(control)}/actions/`;
+      const headers = { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
+      if (action === 'stop') {
+        const stopped = await fetch(`${base}playback_stop`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ stop: 'all' }),
+        });
+        return json({ ok: stopped.ok || stopped.status === 422 }, stopped.ok || stopped.status === 422 ? 200 : 502);
+      }
+      const audio = String(body?.audio_url || '').trim();
+      const storage = String(Deno.env.get('SUPABASE_URL') || '').replace(/\/$/, '');
+      const allowed = storage && audio.startsWith(`${storage}/storage/v1/object/public/call-recordings/hold-music/`);
+      if (!allowed || audio.length > 500 || /[\s<>]/.test(audio)) return json({ error: 'url' }, 400);
+      const started = await fetch(`${base}playback_start`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ audio_url: audio, loop: 'infinity', overlay: false, target_legs: 'opposite' }),
+      });
+      return json({ ok: started.ok }, started.ok ? 200 : 502);
+    }
+
     return json({ error: 'action' }, 400);
   } catch (_) {
     return json({ error: 'fail' }, 500);

@@ -246,7 +246,19 @@ function mbLineFirmBody(firm) {
       <div id="line-numbers" class="${numbers.length > 1 ? 'line-numbers-multi' : ''}">${mbLineNumberRows(numbers.length ? numbers : [''], def, mbLineLocalNumbers(settings))}</div>
       <button type="button" class="btn btn-ghost btn-sm" style="align-self:flex-start;" onclick="mbAddLineNumber()">${mbLineEsc(mbLineT('line.num_add', 'Numara ekle'))}</button>
     </div>` : '';
-  return `${secret}${smsBlock}<button type="button" class="btn btn-primary" style="align-self:flex-start;" onclick="mbSaveLineFirm('${String(firm.id)}')"><i class="ph ph-floppy-disk"></i> ${mbLineEsc(mbLineT('line.save', 'Kaydet'))}</button>`;
+  const musicUrl = /^https:\/\//i.test(String(settings.hold_music_url || '')) ? String(settings.hold_music_url) : '';
+  const musicBlock = `<div class="line-firm-block">
+    <div class="form-label">${mbLineEsc(mbLineT('hold.music', 'Bekleme müziği'))}</div>
+    <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('hold.music.firm_hint', 'Kampanyanın kendi dosyası yoksa bu çalar. mp3 veya wav, en fazla 8 MB.'))}</div>
+    <div style="font-size:12px;font-weight:700;">${mbLineEsc(musicUrl ? mbLineT('hold.music.using_own', 'Bu dosya çalıyor') : mbLineT('hold.music.none', 'Müzik yok. Bekleyen sessiz kalır.'))}</div>
+    ${musicUrl ? `<audio controls preload="none" src="${mbLineEsc(musicUrl)}" style="width:100%;max-width:320px;height:32px;"></audio>` : ''}
+    <input type="file" id="line-hold-file" accept=".mp3,.wav,audio/mpeg,audio/wav" style="font-size:12px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button type="button" class="btn btn-primary btn-sm" onclick="mbSaveFirmHoldMusic('${String(firm.id)}')">${mbLineEsc(mbLineT('hold.music.upload', 'Müziği kaydet'))}</button>
+      ${musicUrl ? `<button type="button" class="btn btn-ghost btn-sm" onclick="mbClearFirmHoldMusic('${String(firm.id)}')">${mbLineEsc(mbLineT('hold.music.clear', 'Müziği kaldır'))}</button>` : ''}
+    </div>
+  </div>`;
+  return `${secret}${smsBlock}${musicBlock}<button type="button" class="btn btn-primary" style="align-self:flex-start;" onclick="mbSaveLineFirm('${String(firm.id)}')"><i class="ph ph-floppy-disk"></i> ${mbLineEsc(mbLineT('line.save', 'Kaydet'))}</button>`;
 }
 
 function mbLineNumberRows(numbers, def, localList) {

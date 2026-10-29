@@ -621,6 +621,7 @@ const didInput = document.getElementById('cd-edit-did');
 if (nameInput) nameInput.value = c.name || '';
 const displayInput = document.getElementById('cd-edit-display');
 if (displayInput) displayInput.value = String(mbCampSettings(c).display_name || '');
+if (typeof mbPaintCampHoldMusic === 'function') mbPaintCampHoldMusic(c);
 if (descInput) descInput.value = c.description || '';
 if (didInput) {
   didInput.value = didRaw;
