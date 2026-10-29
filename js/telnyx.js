@@ -590,9 +590,15 @@ function mbUnansweredEnded(row) {
     const byAgent = mbAgentCancelledRing(row);
     if (!byAgent && typeof mbPlayBusy === 'function') mbPlayBusy();
     else if (typeof mbStopRingback === 'function') mbStopRingback();
-    if (!byAgent && contact && (mbFarEndMissed(row) || row?.phase === 'hold')) {
-      mbReleaseUnanswered(contact, mbPoolEndStatus(row));
+    if (!byAgent && (mbFarEndMissed(row) || row?.phase === 'hold')) {
+      const endStatus = mbPoolEndStatus(row);
+      mbWriteAttemptLog(contact, endStatus, row);
+      if (contact) mbReleaseUnanswered(contact, endStatus);
       mbFinishUnanswered(row);
+      return;
+    }
+    if (byAgent) {
+      mbWriteAttemptLog(contact, 'no_answer', row);
       return;
     }
     if (contact && mbUnusedNumber(row?.call)) mbReleaseUnanswered(contact, 'unused');
@@ -755,6 +761,42 @@ function mbTakeHeldCall() {
   mbConnectHopperRow(row);
   if (typeof toast === 'function') toast(typeof t === 'function' ? t('dial.hopper.held_next') : 'Müzikte bekleyen kişi bağlandı', 'ok', 2200);
   return true;
+}
+
+function mbWriteAttemptLog(contact, outcome, row) {
+  if (!row || row.logged || String(row.id || '').startsWith('sim-')) return;
+  if (typeof sb !== 'function') return;
+  row.logged = true;
+  const meta = window._mbCallMeta || {};
+  let phone = String(contact?.phone || '').trim();
+  if (!phone && row?.dest) {
+    const digits = String(row.dest).replace(/\D/g, '');
+    if (digits.length >= 8) phone = `+${digits}`;
+  }
+  const campId = contact?.campaign_id || (typeof selectedCampId !== 'undefined' ? selectedCampId : null) || null;
+  let firmId = contact?.firm_id || (typeof currentUser !== 'undefined' ? currentUser?.firm_id : null) || null;
+  if (!firmId && campId) {
+    try {
+      const camp = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === campId);
+      if (camp?.firm_id) firmId = camp.firm_id;
+    } catch (e) {}
+  }
+  const body = {
+    campaign_id: campId,
+    firm_id: firmId,
+    agent_id: (typeof currentUser !== 'undefined' ? currentUser?.id : null) || null,
+    phone: phone || null,
+    outcome: outcome || 'no_answer',
+    notes: '',
+    duration_sec: 0,
+    started_at: meta.dialAt || new Date().toISOString(),
+    ended_at: new Date().toISOString(),
+  };
+  if (contact?.id && typeof isValidUUID === 'function' && isValidUUID(contact.id)) body.contact_id = contact.id;
+  const extra = typeof mbCallLogExtras === 'function' ? mbCallLogExtras() : {};
+  if (!extra.work_type) extra.work_type = row.manual ? 'manual' : (meta.work || 'manual');
+  const post = (payload) => sb('call_logs', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(payload) });
+  post({ ...body, ...extra }).catch(() => post(body).catch(() => {}));
 }
 
 function mbReleaseUnanswered(contact, status) {

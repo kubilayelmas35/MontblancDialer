@@ -3201,6 +3201,10 @@ const OM={
   callback:'<span class="badge badge-yellow">Geri Ara</span>',
   voicemail:'<span class="badge badge-gray">Telesekreter</span>',
   no_answer:'<span class="badge badge-gray">Cevap Yok</span>',
+  busy:'<span class="badge badge-gray">Meşgul</span>',
+  phone_off:'<span class="badge badge-gray">Telefon kapalı</span>',
+  stuck:'<span class="badge badge-gray">Tıkanık</span>',
+  unused:'<span class="badge badge-gray">Kullanım dışı</span>',
   dnc:'<span class="badge badge-red">DNC</span>'
 };
 let filtered = logs;

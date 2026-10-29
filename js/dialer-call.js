@@ -183,7 +183,7 @@ async function mbRedialCurrentContact() {
   _voicemailAutoLogged = false;
   showOutboundWait();
   setDialerStatus('calling');
-  sendToRTC('MB_CALL', { destination: currentContact.phone, callerNumber: campaign?.telnyx_did || '' });
+  sendToRTC('MB_CALL', { destination: currentContact.phone, callerNumber: campaign?.telnyx_did || '', contact: currentContact, work: 'manual' });
   if (typeof switchContactTab === 'function') switchContactTab('info');
 }
 
@@ -216,7 +216,7 @@ async function callSecondaryPhone() {
   _voicemailAutoLogged = false;
   showOutboundWait();
   setDialerStatus('calling');
-  sendToRTC('MB_CALL', { destination: p2, callerNumber: campaign?.telnyx_did || '' });
+  sendToRTC('MB_CALL', { destination: p2, callerNumber: campaign?.telnyx_did || '', contact: currentContact, work: 'manual' });
   if (typeof switchContactTab === 'function') switchContactTab('info');
 }
 
