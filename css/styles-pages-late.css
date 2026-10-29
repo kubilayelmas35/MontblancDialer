@@ -1079,6 +1079,23 @@ i.ph {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
+}
+.mb-rec-side {
+  border: 1px solid var(--border);
+  background: var(--bg-1);
+  color: var(--text-3);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.mb-rec-side.is-on {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
 }
 .mb-rec audio { display: none; }
 .mb-rec-bar {

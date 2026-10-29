@@ -896,19 +896,197 @@ function mbRecFileName(meta, ext) {
 
 let _mbRecSeq = 0;
 
+function mbRecSay(key, fallback) {
+  const msg = typeof t === 'function' ? t(key) : fallback;
+  return !msg || msg === key ? fallback : msg;
+}
+
+function mbRecSides(wrap) {
+  const on = (side) => !!wrap?.querySelector(`.mb-rec-side[data-side="${side}"]`)?.classList.contains('is-on');
+  return { caller: on('caller'), answer: on('answer') };
+}
+
+function mbRecPcmWav(samples, sampleRate) {
+  const n = samples.length;
+  const data = n * 2;
+  const buf = new ArrayBuffer(44 + data);
+  const view = new DataView(buf);
+  const write = (offset, text) => { for (let i = 0; i < text.length; i += 1) view.setUint8(offset + i, text.charCodeAt(i)); };
+  write(0, 'RIFF');
+  view.setUint32(4, 36 + data, true);
+  write(8, 'WAVE');
+  write(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  write(36, 'data');
+  view.setUint32(40, data, true);
+  for (let i = 0; i < n; i += 1) {
+    const s = Math.max(-1, Math.min(1, samples[i] || 0));
+    view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+function mbRecKindFromBuffer(buf) {
+  if (!buf || buf.numberOfChannels < 2) return 'mono';
+  const a = buf.getChannelData(0);
+  const b = buf.getChannelData(1);
+  const step = Math.max(1, Math.floor(a.length / 6000));
+  let dot = 0;
+  let ea = 0;
+  let eb = 0;
+  for (let i = 0; i < a.length; i += step) {
+    const x = a[i];
+    const y = b[i];
+    dot += x * y;
+    ea += x * x;
+    eb += y * y;
+  }
+  if (ea < 1e-8 || eb < 1e-8) return 'split';
+  const corr = dot / Math.sqrt(ea * eb);
+  return corr > 0.92 ? 'mixed' : 'split';
+}
+
+async function mbRecInspect(blob) {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx || !blob) return 'mono';
+  const ctx = window._mbRecCtx || new Ctx();
+  window._mbRecCtx = ctx;
+  try {
+    const copy = (await blob.arrayBuffer()).slice(0);
+    const buf = await ctx.decodeAudioData(copy);
+    return mbRecKindFromBuffer(buf);
+  } catch (e) {
+    return 'mono';
+  }
+}
+
+async function mbRecSoloWav(blob, side) {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx || !blob) return null;
+  const ctx = window._mbRecCtx || new Ctx();
+  window._mbRecCtx = ctx;
+  const copy = (await blob.arrayBuffer()).slice(0);
+  const buf = await ctx.decodeAudioData(copy);
+  const ch = side === 'answer' ? 1 : 0;
+  if (buf.numberOfChannels <= ch) return null;
+  return mbRecPcmWav(buf.getChannelData(ch), buf.sampleRate || 8000);
+}
+
+function mbApplyRecSides(aud) {
+  const graph = aud?.__mbGraph;
+  if (!graph) return;
+  const sides = mbRecSides(aud.closest('.mb-rec'));
+  graph.caller.gain.value = sides.caller ? 1 : 0;
+  graph.answer.gain.value = sides.answer ? 1 : 0;
+}
+
+function mbWireRecGraph(aud) {
+  if (aud.__mbGraph) return aud.__mbGraph;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  const ctx = window._mbRecCtx || new Ctx();
+  window._mbRecCtx = ctx;
+  const source = ctx.createMediaElementSource(aud);
+  const split = ctx.createChannelSplitter(2);
+  const caller = ctx.createGain();
+  const answer = ctx.createGain();
+  source.connect(split);
+  split.connect(caller, 0);
+  split.connect(answer, 1);
+  caller.connect(ctx.destination);
+  answer.connect(ctx.destination);
+  aud.__mbGraph = { ctx, caller, answer };
+  mbApplyRecSides(aud);
+  return aud.__mbGraph;
+}
+
+async function mbRecLocalUrl(aud) {
+  if (aud.__mbLocalUrl) return aud.__mbLocalUrl;
+  const wrap = aud.closest('.mb-rec');
+  let href = aud.getAttribute('src') || '';
+  if (!href || mbRecUrlStale(href)) {
+    const fresh = await mbRefreshRecUrl(wrap?.getAttribute('data-log') || '');
+    if (fresh) {
+      href = fresh;
+      mbApplyRecUrl(aud, fresh);
+    }
+  }
+  let blob = null;
+  if (href) {
+    try {
+      const res = await fetch(href);
+      if (res.ok) {
+        const got = await res.blob();
+        if (got.size > 400) blob = got;
+      }
+    } catch (e) {}
+  }
+  if (!blob) blob = await mbGrabRecBlob(wrap?.getAttribute('data-log') || '');
+  if (!blob) return '';
+  aud.__mbBlob = blob;
+  aud.__mbLocalUrl = URL.createObjectURL(blob);
+  aud.src = aud.__mbLocalUrl;
+  try { aud.load(); } catch (e) {}
+  return aud.__mbLocalUrl;
+}
+
+async function mbPrepareRec(aud) {
+  if (aud.__mbReady) return true;
+  if (aud.__mbPreparing) return aud.__mbPreparing;
+  const job = mbPrepareRecJob(aud);
+  aud.__mbPreparing = job;
+  try { return await job; } finally { aud.__mbPreparing = null; }
+}
+
+async function mbPrepareRecJob(aud) {
+  await mbRecLocalUrl(aud);
+  aud.__mbKind = aud.__mbBlob ? await mbRecInspect(aud.__mbBlob) : 'mono';
+  const wrap = aud.closest('.mb-rec');
+  if (aud.__mbKind === 'split') {
+    try { mbWireRecGraph(aud); } catch (e) { aud.__mbKind = 'mono'; }
+  }
+  if (aud.__mbKind !== 'split') {
+    wrap?.querySelectorAll('.mb-rec-side').forEach((btn) => btn.classList.add('is-on'));
+  } else {
+    mbApplyRecSides(aud);
+  }
+  aud.__mbReady = true;
+  return !!(aud.__mbLocalUrl || aud.src);
+}
+
+function mbToggleRecSide(btn) {
+  const wrap = btn?.closest?.('.mb-rec');
+  const aud = wrap?.querySelector('audio');
+  if (!wrap || !aud) return;
+  if (aud.__mbKind && aud.__mbKind !== 'split') {
+    if (typeof toast === 'function') toast(mbRecSay('ch.rec.mixed', 'Bu kayıtta sesler ayrı değil'), 'warn');
+    return;
+  }
+  btn.classList.toggle('is-on');
+  mbApplyRecSides(aud);
+}
+
 function mbRecPlayerHtml(id, url, durSec, meta) {
   const safeId = String(id || '').replace(/[^a-zA-Z0-9_-]/g, '');
   const uid = `r${++_mbRecSeq}`;
   const raw = String(url || '');
   const src = typeof statsEsc === 'function' ? statsEsc(raw) : raw.replace(/"/g, '&quot;');
-  const dl = typeof t === 'function' ? t('ch.rec.download') : 'Kaydı indir';
-  const dlSafe = typeof statsEsc === 'function' ? statsEsc(dl) : dl;
+  const dl = mbRecSay('ch.rec.download', 'Kaydı indir');
+  const caller = mbRecSay('ch.rec.caller', 'Arayan');
+  const answer = mbRecSay('ch.rec.answer', 'Cevaplayan');
+  const esc = typeof statsEsc === 'function' ? statsEsc : (v) => String(v ?? '').replace(/"/g, '&quot;');
   const dur = Math.max(0, Number(durSec) || 0);
   const ext = /\.webm(\?|$)/i.test(raw) ? 'webm' : 'mp3';
   const file = mbRecFileName(meta || {}, ext);
-  const fileAttr = typeof statsEsc === 'function' ? statsEsc(file) : file.replace(/"/g, '');
+  const fileAttr = esc(file);
   mbScheduleRecWarm();
-  return `<span class="mb-rec" data-log="${safeId}" data-file="${fileAttr}" data-dur="${dur}" onclick="event.stopPropagation();"><span class="mb-rec-top"><audio id="aud-${uid}" src="${src}" preload="metadata"></audio><button type="button" class="mb-rec-btn" onclick="event.stopPropagation();mbToggleRec(this)">▶</button><span class="mb-rec-time">00:00 / ${_formatMMSS(dur)}</span><a class="ch-rec-dl" href="${src}" download="${fileAttr}" target="_blank" rel="noopener" onclick="mbOpenRec(event,this)"><i class="ph ph-download-simple"></i>${dlSafe}</a></span><span class="mb-rec-bar" role="slider" aria-valuemin="0" aria-valuemax="${dur}" onpointerdown="mbSeekRec(event)"><span class="mb-rec-fill"></span></span></span>`;
+  return `<span class="mb-rec" data-log="${safeId}" data-file="${fileAttr}" data-dur="${dur}" onclick="event.stopPropagation();"><span class="mb-rec-top"><audio id="aud-${uid}" src="${src}" preload="metadata"></audio><button type="button" class="mb-rec-btn" onclick="event.stopPropagation();mbToggleRec(this)">▶</button><button type="button" class="mb-rec-side is-on" data-side="caller" onclick="event.stopPropagation();mbToggleRecSide(this)">${esc(caller)}</button><button type="button" class="mb-rec-side is-on" data-side="answer" onclick="event.stopPropagation();mbToggleRecSide(this)">${esc(answer)}</button><span class="mb-rec-time">00:00 / ${_formatMMSS(dur)}</span><a class="ch-rec-dl" href="${src}" download="${fileAttr}" target="_blank" rel="noopener" onclick="mbOpenRec(event,this)"><i class="ph ph-download-simple"></i>${esc(dl)}</a></span><span class="mb-rec-bar" role="slider" aria-valuemin="0" aria-valuemax="${dur}" onpointerdown="mbSeekRec(event)"><span class="mb-rec-fill"></span></span></span>`;
 }
 
 function mbRecBox(el) {
@@ -1029,20 +1207,41 @@ async function mbOpenRec(ev, el) {
     }
   }
   let name = box.file || 'kayit.mp3';
+  const sides = mbRecSides(box.wrap);
+  if (!sides.caller && !sides.answer) return;
   const save = (blob) => {
     const kind = String(blob?.type || '');
     if (kind.includes('webm')) name = name.replace(/\.\w+$/, '') + '.webm';
+    else if (kind.includes('wav')) name = name.replace(/\.\w+$/, '') + '.wav';
     else if (kind.includes('mpeg') || kind.includes('mp3')) name = name.replace(/\.\w+$/, '') + '.mp3';
     mbSaveBlob(blob, name);
   };
+  const saveSolo = async (blob) => {
+    const solo = sides.caller !== sides.answer;
+    if (!solo) { save(blob); return; }
+    const kind = aud.__mbKind || await mbRecInspect(blob);
+    aud.__mbKind = kind;
+    if (kind !== 'split') {
+      if (typeof toast === 'function') toast(mbRecSay('ch.rec.mixed', 'Bu kayıtta sesler ayrı değil'), 'warn');
+      save(blob);
+      return;
+    }
+    const wav = await mbRecSoloWav(blob, sides.caller ? 'caller' : 'answer');
+    if (!wav) { save(blob); return; }
+    const de = document.documentElement.lang === 'de';
+    const tag = sides.caller ? (de ? 'anrufer' : 'arayan') : (de ? 'angerufener' : 'cevaplayan');
+    name = name.replace(/\.\w+$/, '') + `-${tag}.wav`;
+    mbSaveBlob(wav, name);
+  };
+  if (aud?.__mbBlob) { await saveSolo(aud.__mbBlob); return; }
   try {
     const res = await fetch(href);
     if (!res.ok) throw new Error('http');
     const blob = await res.blob();
-    if (blob.size > 400) { save(blob); return; }
+    if (blob.size > 400) { await saveSolo(blob); return; }
   } catch (e) {}
   const grabbed = await mbGrabRecBlob(box.logId);
-  if (grabbed) { save(grabbed); return; }
+  if (grabbed) { await saveSolo(grabbed); return; }
   if (href) window.open(href, '_blank', 'noopener');
 }
 
@@ -1102,7 +1301,6 @@ function mbToggleRec(el) {
   const box = mbRecBox(el);
   const aud = box.aud;
   const btn = box.btn;
-  const id = box.logId;
   if (!aud) return;
   const paint = () => mbPaintRec(aud);
   if (_mbRecAudio && _mbRecAudio !== aud) {
@@ -1134,17 +1332,27 @@ function mbToggleRec(el) {
       });
     }
   };
-  if (aud.paused) {
-    const src = aud.getAttribute('src') || aud.src || '';
-    if (mbRecUrlStale(src)) {
-      if (btn) btn.textContent = '…';
-      void mbRefreshRecUrl(id).then((fresh) => {
-        if (fresh) mbApplyRecUrl(aud, fresh);
-        start();
-      });
+  const open = async () => {
+    if (btn) btn.textContent = '…';
+    const ok = await mbPrepareRec(aud);
+    if (!ok) {
+      if (btn) btn.textContent = '▶';
       return;
     }
+    const graph = aud.__mbGraph;
+    if (graph?.ctx?.state === 'suspended') {
+      try { await graph.ctx.resume(); } catch (e) {}
+    }
+    if (aud.__mbKind && aud.__mbKind !== 'split') {
+      const sides = mbRecSides(aud.closest('.mb-rec'));
+      if (!sides.caller || !sides.answer) {
+        if (typeof toast === 'function') toast(mbRecSay('ch.rec.mixed', 'Bu kayıtta sesler ayrı değil'), 'warn');
+      }
+    }
     start();
+  };
+  if (aud.paused) {
+    void open();
     return;
   }
   aud.pause();
