@@ -136,6 +136,7 @@ async function deleteQueue(queueId) {
     await saveCampSettingsPatch({ queue_meta: meta }).catch(() => {});
     renderCampQueues(found.camp);
     renderCampGrid();
+    if (typeof mbPaintQueuesIfOpen === 'function') mbPaintQueuesIfOpen();
     toast(campT('camp.queue.deleted','Kuyruk silindi'), 'ok');
   } catch (e) {
     toast(e.message, 'err');

@@ -1350,6 +1350,7 @@ async function saveQueueSettings(queueId) {
     document.getElementById('m-requeue')?.remove();
     toast(campT('camp.queue.saved','Kuyruk ayarları kaydedildi'), 'ok');
     renderCampQueues(found.camp);
+    if (typeof mbPaintQueuesIfOpen === 'function') mbPaintQueuesIfOpen();
   } catch (e) {
     toast(e.message, 'err');
   }

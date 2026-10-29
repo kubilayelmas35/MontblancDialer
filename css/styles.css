@@ -3500,6 +3500,27 @@ CAMPAIGNS
 .camp-rows tr:last-child td { border-bottom:0; }
 .camp-row { cursor:pointer; }
 .camp-row:hover td { background:var(--bg-3); }
+#page-queues .camp-row.is-paused td { background: rgba(100, 116, 139, 0.14); color: var(--text-2); }
+#page-queues .camp-row.is-paused td:first-child { box-shadow: inset 3px 0 0 #94a3b8; }
+#page-queues .camp-row.is-paused:hover td { background: rgba(100, 116, 139, 0.22); }
+[data-theme="dark"] #page-queues .camp-row.is-paused td { background: rgba(148, 163, 184, 0.12); }
+[data-theme="dark"] #page-queues .camp-row.is-paused:hover td { background: rgba(148, 163, 184, 0.2); }
+.queue-menu-pop {
+  position: fixed; z-index: 420; display: flex; flex-direction: column; gap: 4px;
+  min-width: 168px; padding: 6px; background: var(--bg-1);
+  border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-md);
+}
+.queue-menu-pop button {
+  text-align: left; border: 0; border-radius: 7px; padding: 7px 10px;
+  font-size: 12px; font-weight: 700; cursor: pointer; color: #fff;
+}
+.queue-menu-pop .qm-ops { background: #2563eb; }
+.queue-menu-pop .qm-up { background: #38bdf8; color: #0f172a; }
+.queue-menu-pop .qm-name { background: #7c3aed; }
+.queue-menu-pop .qm-pause { background: #f59e0b; color: #1c1917; }
+.queue-menu-pop .qm-set { background: #16a34a; }
+.queue-menu-pop .qm-people { background: #0d9488; }
+.queue-menu-pop .qm-del { background: #dc2626; }
 .camp-row.sel td { background:var(--accent-soft); }
 .camp-row.sel td:first-child { box-shadow:inset 3px 0 0 var(--accent); }
 .camp-row-name {

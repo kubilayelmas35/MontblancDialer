@@ -1564,7 +1564,10 @@ function startQueueRename(queueId) {
   input?.select();
   input?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') commitQueueRename(queueId);
-    if (e.key === 'Escape' && currentCampId) openCampDetail(currentCampId, { keepTab: true, silent: true });
+    if (e.key === 'Escape') {
+      if (typeof mbPaintQueuesIfOpen === 'function' && document.getElementById('page-queues')?.classList.contains('active')) mbPaintQueuesIfOpen();
+      else if (currentCampId) openCampDetail(currentCampId, { keepTab: true, silent: true });
+    }
   });
 }
 
@@ -1589,6 +1592,7 @@ async function commitQueueRename(queueId) {
   }
   if (name === found.queue.name) {
     renderCampQueues(found.camp);
+    if (typeof mbPaintQueuesIfOpen === 'function') mbPaintQueuesIfOpen();
     return;
   }
   try {
@@ -1596,6 +1600,7 @@ async function commitQueueRename(queueId) {
     found.queue.name = name;
     toast(campT('camp.queue.saved','Kuyruk ayarları kaydedildi'), 'ok');
     renderCampQueues(found.camp);
+    if (typeof mbPaintQueuesIfOpen === 'function') mbPaintQueuesIfOpen();
   } catch (e) {
     toast(e.message, 'err');
   }
@@ -1609,6 +1614,7 @@ async function toggleQueueStatus(queueId) {
     await sb(`queues?id=eq.${queueId}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ status: next }) });
     found.queue.status = next;
     renderCampQueues(found.camp);
+    if (typeof mbPaintQueuesIfOpen === 'function') mbPaintQueuesIfOpen();
   } catch (e) {
     toast(e.message, 'err');
   }

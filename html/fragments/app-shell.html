@@ -708,7 +708,7 @@
 <div class="page-hdr">
 <div>
 <div class="page-title" data-tr="Kuyruklar" data-de="Warteschlangen">Kuyruklar</div>
-<div class="page-sub" data-tr="Tüm kampanyaların kuyrukları. En son eklenen üstte." data-de="Listen aller Kampagnen. Die neueste steht oben.">Tüm kampanyaların kuyrukları. En son eklenen üstte.</div>
+<div class="page-sub" data-tr="Tüm kampanyaların kuyrukları. Aktifler üstte, en yeni önce." data-de="Listen aller Kampagnen. Aktive oben, die neueste zuerst.">Tüm kampanyaların kuyrukları. Aktifler üstte, en yeni önce.</div>
 </div>
 <div class="page-hdr-actions">
 <input type="search" id="queues-search" class="form-input camp-search" data-tr="Kuyruk veya kampanya ara" data-de="Liste oder Kampagne suchen" placeholder="Kuyruk veya kampanya ara" oninput="paintQueuesPage()">
@@ -718,16 +718,7 @@
 </div>
 <div class="camp-rows-wrap">
 <table class="camp-rows">
-<thead>
-<tr>
-<th data-tr="Kuyruk" data-de="Liste">Kuyruk</th>
-<th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
-<th class="num" data-tr="Aranacak/Toplam" data-de="Offen/Gesamt">Aranacak/Toplam</th>
-<th class="num" data-tr="Aranan" data-de="Angerufen">Aranan</th>
-<th data-tr="Oluşturma" data-de="Erstellt">Oluşturma</th>
-<th></th>
-</tr>
-</thead>
+<thead id="queues-thead"></thead>
 <tbody id="queues-tbody"></tbody>
 </table>
 </div>
