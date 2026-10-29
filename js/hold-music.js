@@ -5,6 +5,23 @@ function mbHoldMusicSay(key, fb) {
   return !msg || msg === key ? fb : msg;
 }
 
+function mbHoldFileNamed(input) {
+  const el = document.getElementById(`${input?.id || ''}-name`);
+  if (!el) return;
+  el.textContent = input?.files?.[0]?.name || mbHoldMusicSay('hold.music.none_file', 'Dosya seçilmedi');
+}
+
+function mbHoldFileField(id) {
+  const pick = mbHoldMusicSay('hold.music.pick', 'Dosya seç');
+  const empty = mbHoldMusicSay('hold.music.none_file', 'Dosya seçilmedi');
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  return `<div class="hold-file">
+    <input type="file" id="${esc(id)}" accept=".mp3,.wav,audio/mpeg,audio/wav" onchange="mbHoldFileNamed(this)">
+    <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('${esc(id)}').click()"><i class="ph ph-music-notes"></i> ${esc(pick)}</button>
+    <span class="hold-file-name" id="${esc(id)}-name">${esc(empty)}</span>
+  </div>`;
+}
+
 function mbHoldMusicKind(file) {
   if (!file || file.size <= 0 || file.size > MB_HOLD_MUSIC_MAX) return '';
   const name = String(file.name || '').toLowerCase();
@@ -138,11 +155,17 @@ async function mbClearCampHoldMusic() {
   }
 }
 
-async function mbPatchFirmHoldMusic(firmId, url) {
+async function mbPatchFirmHoldMusic(firmId, url, off) {
   const rows = await sb(`firms?id=eq.${firmId}&select=settings`);
   const settings = { ...(rows?.[0]?.settings || {}) };
-  if (url) settings.hold_music_url = url;
-  else delete settings.hold_music_url;
+  const prev = String(settings.hold_music_url || '');
+  if (off) {
+    settings.hold_music_off = true;
+    delete settings.hold_music_url;
+  } else {
+    settings.hold_music_off = false;
+    if (url) settings.hold_music_url = url;
+  }
   await sb(`firms?id=eq.${firmId}`, {
     method: 'PATCH',
     prefer: 'return=minimal',
@@ -150,8 +173,20 @@ async function mbPatchFirmHoldMusic(firmId, url) {
   });
   const hit = (typeof _lineRows !== 'undefined' ? _lineRows : []).find((row) => String(row.id) === String(firmId));
   if (hit) hit.settings = settings;
-  window._mbHoldMusicFirm = { id: String(firmId), url: url || '', at: Date.now() };
-  return settings;
+  if (String(window._mbHoldMusicFirm?.id || '') === String(firmId)) window._mbHoldMusicFirm = null;
+  return { settings, prev };
+}
+
+function mbHoldFirmIds(firmId) {
+  const all = !!document.getElementById('line-hold-all')?.checked && typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+  if (!all) return [firmId];
+  const ids = (typeof _lineRows !== 'undefined' ? _lineRows : []).map((row) => row.id).filter(Boolean);
+  return ids.length ? ids : [firmId];
+}
+
+async function mbWriteFirmHold(firmId, url, off) {
+  const wrote = await mbPatchFirmHoldMusic(firmId, url, off);
+  if (wrote?.prev && wrote.prev !== url) void mbDeleteHoldMusicFile(wrote.prev);
 }
 
 async function mbSaveFirmHoldMusic(firmId) {
@@ -162,14 +197,12 @@ async function mbSaveFirmHoldMusic(firmId) {
     return;
   }
   try {
-    const rows = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
-    const prev = String(rows?.[0]?.settings?.hold_music_url || '');
     const url = await mbUploadHoldMusic(file, firmId);
     if (!url) return;
-    await mbPatchFirmHoldMusic(firmId, url);
-    if (prev) void mbDeleteHoldMusicFile(prev);
+    const ids = mbHoldFirmIds(firmId);
+    for (let i = 0; i < ids.length; i += 1) await mbWriteFirmHold(ids[i], url, false);
     if (typeof mbPaintLineList === 'function') mbPaintLineList();
-    toast(mbHoldMusicSay('hold.music.saved', 'Müzik kaydedildi'), 'ok');
+    toast(mbHoldMusicSay(ids.length > 1 ? 'hold.music.all_saved' : 'hold.music.saved', 'Müzik kaydedildi'), 'ok');
   } catch (e) {
     toast(mbHoldMusicSay('hold.music.fail', 'Müzik kaydedilemedi'), 'err');
   }
@@ -178,15 +211,79 @@ async function mbSaveFirmHoldMusic(firmId) {
 async function mbClearFirmHoldMusic(firmId) {
   if (!mbCanSetHoldMusic(firmId)) return;
   try {
-    const rows = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
-    const prev = String(rows?.[0]?.settings?.hold_music_url || '');
-    await mbPatchFirmHoldMusic(firmId, '');
-    if (prev) void mbDeleteHoldMusicFile(prev);
+    const ids = mbHoldFirmIds(firmId);
+    for (let i = 0; i < ids.length; i += 1) await mbWriteFirmHold(ids[i], '', true);
     if (typeof mbPaintLineList === 'function') mbPaintLineList();
-    toast(mbHoldMusicSay('hold.music.cleared', 'Müzik kaldırıldı'), 'ok');
+    toast(mbHoldMusicSay(ids.length > 1 ? 'hold.music.all_saved' : 'hold.music.cleared', 'Müzik kaldırıldı'), 'ok');
   } catch (e) {
     toast(mbHoldMusicSay('hold.music.fail', 'Müzik kaydedilemedi'), 'err');
   }
+}
+
+function mbHoldFirmMode(firmId, mode) {
+  const wrap = document.getElementById('line-hold-file-wrap');
+  document.querySelectorAll('#line-hold-mode .hold-mode-btn').forEach((btn) => {
+    btn.classList.toggle('is-on', btn.dataset.mode === mode);
+  });
+  if (wrap) wrap.hidden = mode !== 'file';
+  if (mode === 'off') void mbClearFirmHoldMusic(firmId);
+}
+
+async function mbSaveHoldForAll() {
+  if (typeof mbIsSuperAdmin !== 'function' || !mbIsSuperAdmin()) return;
+  const file = document.getElementById('global-hold-file')?.files?.[0];
+  if (!file) {
+    toast(mbHoldMusicSay('hold.music.bad', 'mp3 veya wav olmalı, en fazla 8 MB'), 'err');
+    return;
+  }
+  const ids = (typeof _lineRows !== 'undefined' ? _lineRows : []).map((row) => row.id).filter(Boolean);
+  if (!ids.length) return;
+  try {
+    const url = await mbUploadHoldMusic(file, 'shared');
+    if (!url) return;
+    for (let i = 0; i < ids.length; i += 1) await mbWriteFirmHold(ids[i], url, false);
+    if (typeof mbPaintLineList === 'function') mbPaintLineList();
+    toast(mbHoldMusicSay('hold.music.all_saved', 'Tüm firmalara yazıldı'), 'ok');
+  } catch (e) {
+    toast(mbHoldMusicSay('hold.music.fail', 'Müzik kaydedilemedi'), 'err');
+  }
+}
+
+async function mbClearHoldForAll() {
+  if (typeof mbIsSuperAdmin !== 'function' || !mbIsSuperAdmin()) return;
+  const ids = (typeof _lineRows !== 'undefined' ? _lineRows : []).map((row) => row.id).filter(Boolean);
+  if (!ids.length) return;
+  try {
+    for (let i = 0; i < ids.length; i += 1) await mbWriteFirmHold(ids[i], '', true);
+    if (typeof mbPaintLineList === 'function') mbPaintLineList();
+    toast(mbHoldMusicSay('hold.music.all_saved', 'Tüm firmalara yazıldı'), 'ok');
+  } catch (e) {
+    toast(mbHoldMusicSay('hold.music.fail', 'Müzik kaydedilemedi'), 'err');
+  }
+}
+
+function mbHoldGlobalBlock() {
+  if (typeof mbIsSuperAdmin !== 'function' || !mbIsSuperAdmin()) return '';
+  const rows = typeof _lineRows !== 'undefined' ? _lineRows : [];
+  const urls = [...new Set(rows.map((row) => String(row.settings?.hold_music_url || '')).filter((url) => /^https:\/\//i.test(url)))];
+  const allOff = rows.length > 0 && rows.every((row) => row.settings?.hold_music_off === true);
+  const one = !allOff && urls.length === 1 ? urls[0] : '';
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const on = mbHoldMusicSay('hold.music.on', 'Varsayılan müzik');
+  const off = mbHoldMusicSay('hold.music.off', 'Müziksiz');
+  return `<div class="hold-global">
+    <div class="form-label">${esc(mbHoldMusicSay('hold.music.all_title', 'Herkes için varsayılan'))}</div>
+    <div style="font-size:11px;color:var(--text-3);">${esc(mbHoldMusicSay('hold.music.all_hint', ''))}</div>
+    <div class="hold-mode">
+      <button type="button" class="hold-mode-btn${one ? ' is-on' : ''}" onclick="document.getElementById('global-hold-file-wrap').hidden=false;this.classList.add('is-on');this.nextElementSibling.classList.remove('is-on')">${esc(on)}</button>
+      <button type="button" class="hold-mode-btn${allOff ? ' is-on' : ''}" onclick="mbClearHoldForAll()">${esc(off)}</button>
+    </div>
+    <div id="global-hold-file-wrap" class="hold-stack" ${one || !allOff ? '' : 'hidden'}>
+      ${one ? `<audio controls preload="none" src="${esc(one)}" style="width:100%;max-width:320px;height:32px;"></audio>` : ''}
+      ${mbHoldFileField('global-hold-file')}
+      <button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="mbSaveHoldForAll()">${esc(mbHoldMusicSay('hold.music.upload', 'Müziği kaydet'))}</button>
+    </div>
+  </div>`;
 }
 
 async function mbFirmHoldMusicUrl(firmId) {
@@ -195,6 +292,10 @@ async function mbFirmHoldMusicUrl(firmId) {
   const cache = window._mbHoldMusicFirm;
   if (cache && cache.id === id && Date.now() - cache.at < 60000) return cache.url || '';
   const rows = await sb(`firms?id=eq.${id}&select=settings`).catch(() => []);
+  if (rows?.[0]?.settings?.hold_music_off === true) {
+    window._mbHoldMusicFirm = { id, url: '', at: Date.now() };
+    return '';
+  }
   const url = String(rows?.[0]?.settings?.hold_music_url || '').trim();
   const clean = /^https:\/\//i.test(url) ? url : '';
   window._mbHoldMusicFirm = { id, url: clean, at: Date.now() };

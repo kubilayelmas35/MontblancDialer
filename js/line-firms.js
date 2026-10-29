@@ -160,7 +160,8 @@ function mbPaintLineList() {
     box.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:8px;">${mbLineEsc(mbLineT('line.empty', 'Firma yok'))}</div>`;
     return;
   }
-  box.innerHTML = _lineRows.map((firm) => {
+  const globalHold = typeof mbHoldGlobalBlock === 'function' ? mbHoldGlobalBlock() : '';
+  box.innerHTML = globalHold + _lineRows.map((firm) => {
     const open = String(_lineOpenId) === String(firm.id);
     const on = mbLineConnected(firm.settings);
     const count = mbLineNumbersFromSettings(firm.settings).length;
@@ -247,15 +248,24 @@ function mbLineFirmBody(firm) {
       <button type="button" class="btn btn-ghost btn-sm" style="align-self:flex-start;" onclick="mbAddLineNumber()">${mbLineEsc(mbLineT('line.num_add', 'Numara ekle'))}</button>
     </div>` : '';
   const musicUrl = /^https:\/\//i.test(String(settings.hold_music_url || '')) ? String(settings.hold_music_url) : '';
-  const musicBlock = `<div class="line-firm-block">
+  const musicOff = settings.hold_music_off === true;
+  const musicStatus = musicOff
+    ? mbLineT('hold.music.off', 'Müziksiz')
+    : (musicUrl ? mbLineT('hold.music.using_own', 'Bu dosya çalıyor') : mbLineT('hold.music.none', 'Müzik yok. Bekleyen sessiz kalır.'));
+  const allBox = superView ? `<label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;"><input type="checkbox" id="line-hold-all"> ${mbLineEsc(mbLineT('hold.music.all_check', 'Tüm firmalara yaz'))}</label>` : '';
+  const musicBlock = `<div class="line-firm-block" style="display:flex;flex-direction:column;gap:8px;">
     <div class="form-label">${mbLineEsc(mbLineT('hold.music', 'Bekleme müziği'))}</div>
     <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('hold.music.firm_hint', 'Kampanyanın kendi dosyası yoksa bu çalar. mp3 veya wav, en fazla 8 MB.'))}</div>
-    <div style="font-size:12px;font-weight:700;">${mbLineEsc(musicUrl ? mbLineT('hold.music.using_own', 'Bu dosya çalıyor') : mbLineT('hold.music.none', 'Müzik yok. Bekleyen sessiz kalır.'))}</div>
-    ${musicUrl ? `<audio controls preload="none" src="${mbLineEsc(musicUrl)}" style="width:100%;max-width:320px;height:32px;"></audio>` : ''}
-    <input type="file" id="line-hold-file" accept=".mp3,.wav,audio/mpeg,audio/wav" style="font-size:12px;">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button type="button" class="btn btn-primary btn-sm" onclick="mbSaveFirmHoldMusic('${String(firm.id)}')">${mbLineEsc(mbLineT('hold.music.upload', 'Müziği kaydet'))}</button>
-      ${musicUrl ? `<button type="button" class="btn btn-ghost btn-sm" onclick="mbClearFirmHoldMusic('${String(firm.id)}')">${mbLineEsc(mbLineT('hold.music.clear', 'Müziği kaldır'))}</button>` : ''}
+    <div class="hold-mode" id="line-hold-mode">
+      <button type="button" class="hold-mode-btn${musicUrl && !musicOff ? ' is-on' : ''}" data-mode="file" onclick="mbHoldFirmMode('${String(firm.id)}','file')">${mbLineEsc(mbLineT('hold.music.on', 'Varsayılan müzik'))}</button>
+      <button type="button" class="hold-mode-btn${musicOff ? ' is-on' : ''}" data-mode="off" onclick="mbHoldFirmMode('${String(firm.id)}','off')">${mbLineEsc(mbLineT('hold.music.off', 'Müziksiz'))}</button>
+    </div>
+    <div style="font-size:12px;font-weight:700;">${mbLineEsc(musicStatus)}</div>
+    ${allBox}
+    <div id="line-hold-file-wrap" class="hold-stack" ${musicOff ? 'hidden' : ''}>
+      ${musicUrl ? `<audio controls preload="none" src="${mbLineEsc(musicUrl)}" style="width:100%;max-width:320px;height:32px;"></audio>` : ''}
+      ${typeof mbHoldFileField === 'function' ? mbHoldFileField('line-hold-file') : ''}
+      <button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="mbSaveFirmHoldMusic('${String(firm.id)}')">${mbLineEsc(mbLineT('hold.music.upload', 'Müziği kaydet'))}</button>
     </div>
   </div>`;
   return `${secret}${smsBlock}${musicBlock}<button type="button" class="btn btn-primary" style="align-self:flex-start;" onclick="mbSaveLineFirm('${String(firm.id)}')"><i class="ph ph-floppy-disk"></i> ${mbLineEsc(mbLineT('line.save', 'Kaydet'))}</button>`;

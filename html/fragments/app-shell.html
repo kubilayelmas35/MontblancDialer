@@ -796,7 +796,11 @@
 <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;" data-tr="Yalnız bu kampanya. Dosya yoksa firma müziği çalar." data-de="Nur diese Kampagne. Ohne Datei läuft die Firmenmusik.">Yalnız bu kampanya. Dosya yoksa firma müziği çalar.</div>
 <div id="cd-hold-note" style="font-size:12px;font-weight:700;margin-bottom:6px;"></div>
 <audio id="cd-hold-audio" controls preload="none" hidden style="width:100%;max-width:320px;height:32px;margin-bottom:6px;"></audio>
-<input type="file" id="cd-hold-file" accept=".mp3,.wav,audio/mpeg,audio/wav" style="font-size:12px;margin-bottom:8px;">
+<div class="hold-file" style="margin-bottom:8px;">
+<input type="file" id="cd-hold-file" accept=".mp3,.wav,audio/mpeg,audio/wav" onchange="mbHoldFileNamed(this)">
+<button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('cd-hold-file').click()"><i class="ph ph-music-notes"></i> <span data-tr="Dosya seç" data-de="Datei wählen">Dosya seç</span></button>
+<span class="hold-file-name" id="cd-hold-file-name" data-tr="Dosya seçilmedi" data-de="Keine Datei">Dosya seçilmedi</span>
+</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;">
 <button type="button" class="btn btn-primary btn-sm" onclick="mbSaveCampHoldMusic()" data-tr="Müziği kaydet" data-de="Musik speichern">Müziği kaydet</button>
 <button type="button" class="btn btn-ghost btn-sm" id="cd-hold-clear" hidden onclick="mbClearCampHoldMusic()" data-tr="Müziği kaldır" data-de="Musik entfernen">Müziği kaldır</button>
