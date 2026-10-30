@@ -264,7 +264,7 @@ function mbLineFirmBody(firm) {
     <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.noise.hint', ''))}</div>
     ${noiseSwitch}
     <div id="line-noise-agents" class="mic-ns-dirs" ${noiseOn ? '' : 'hidden'}></div>
-    <div style="font-size:11px;color:var(--text-3);${noiseOn ? '' : 'display:none;'}">${mbLineEsc(mbLineT('line.noise.all', ''))}</div>
+    <div id="line-noise-all" style="font-size:11px;color:var(--text-3);" ${noiseOn ? '' : 'hidden'}>${mbLineEsc(mbLineT('line.noise.all', ''))}</div>
     ${(superView || noiseOn) ? `<button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="mbSaveNoiseGrant('${String(firm.id)}')">${mbLineEsc(mbLineT('line.noise.save', 'Yetkiyi kaydet'))}</button>` : ''}
   </div>`;
   const musicBlock = `<div class="line-firm-block" style="display:flex;flex-direction:column;gap:8px;">
@@ -288,16 +288,23 @@ function mbLineFirmBody(firm) {
 function mbNoiseGrantToggle(firmId) {
   const on = !!document.getElementById('line-noise-on')?.checked;
   const box = document.getElementById('line-noise-agents');
-  if (box) box.hidden = !on;
+  const hint = document.getElementById('line-noise-all');
+  if (box) {
+    box.hidden = !on;
+    if (!on) box.innerHTML = '';
+  }
+  if (hint) hint.hidden = !on;
   if (on) void mbFillNoiseAgents(firmId);
 }
 
 async function mbFillNoiseAgents(firmId) {
   const box = document.getElementById('line-noise-agents');
-  if (!box || !firmId || typeof sb !== 'function') return;
+  const sw = document.getElementById('line-noise-on');
+  if (!box || box.hidden || (sw && !sw.checked) || !firmId || typeof sb !== 'function') return;
   const rows = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
   const list = Array.isArray(rows?.[0]?.settings?.noise_agents) ? rows[0].settings.noise_agents.map(String) : null;
   const users = await sb(`users?firm_id=eq.${firmId}&is_active=eq.true&select=id,name,role&order=name.asc`).catch(() => []);
+  if (box.hidden || (document.getElementById('line-noise-on') && !document.getElementById('line-noise-on').checked)) return;
   const people = (users || []).filter((row) => ['agent', 'admin', 'firm_admin'].includes(row.role));
   const esc = typeof mbLineEsc === 'function' ? mbLineEsc : (v) => String(v ?? '');
   box.innerHTML = people.map((row) => {

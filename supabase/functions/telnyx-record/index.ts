@@ -213,6 +213,29 @@ Deno.serve(async (req) => {
       return json({ ok: true, url: /^https:\/\//i.test(url) ? url : '' });
     }
 
+    if (action === 'jitter') {
+      const conn = safeId(firmSettings?.integrations?.sip_connection_id);
+      if (!conn || !key) return json({ error: 'id' }, 400);
+      const enabled = body?.enabled === true;
+      const headers = { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
+      const patched = await fetch(`https://api.telnyx.com/v2/credential_connections/${encodeURIComponent(conn)}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          jitter_buffer: {
+            enable_jitter_buffer: enabled,
+            jitterbuffer_msec_min: 60,
+            jitterbuffer_msec_max: 200,
+          },
+        }),
+      });
+      if (!patched.ok) return json({ ok: false }, 502);
+      firmSettings.jitter_buffer = enabled;
+      const saved = await admin.from('firms').update({ settings: firmSettings }).eq('id', firmId);
+      if (saved.error) return json({ ok: false }, 502);
+      return json({ ok: true });
+    }
+
     if (action === 'suppress') {
       if (!control) return json({ error: 'id' }, 400);
       const advanced = firmSettings.noise_advanced === true;

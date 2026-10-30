@@ -713,36 +713,54 @@ function toggleMicDrawerMonitor() {
 
 async function playMicDrawerBeep() {
   const speakerId = localStorage.getItem('mb_spk_device') || '';
-  const canSink = speakerId && typeof HTMLMediaElement !== 'undefined' && typeof HTMLMediaElement.prototype.setSinkId === 'function';
-  if (!canSink) {
-    mbPlayCue('connect');
-    return;
-  }
+  const meter = document.getElementById('mic-drawer-out-meter');
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     const ctx = new Ctx();
+    if (ctx.state === 'suspended') await ctx.resume();
     const dest = ctx.createMediaStreamDestination();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 512;
+    const master = ctx.createGain();
+    master.connect(dest);
+    master.connect(analyser);
     const now = ctx.currentTime;
-    [[660, 0, 0.07], [880, 0.09, 0.1]].forEach(([freq, at, dur]) => {
+    [[392, 0.05, 0.28], [494, 0.48, 0.28], [587, 0.92, 0.28], [784, 1.36, 0.42]].forEach(([freq, at, dur]) => {
       const o = ctx.createOscillator();
       const g = ctx.createGain();
       o.type = 'sine';
       o.frequency.value = freq;
       g.gain.setValueAtTime(0.0001, now + at);
-      g.gain.exponentialRampToValueAtTime(0.08, now + at + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.22, now + at + 0.03);
+      g.gain.setValueAtTime(0.18, now + at + dur - 0.06);
       g.gain.exponentialRampToValueAtTime(0.0001, now + at + dur);
-      o.connect(g).connect(dest);
+      o.connect(g).connect(master);
       o.start(now + at);
       o.stop(now + at + dur + 0.02);
     });
     const audio = new Audio();
     audio.srcObject = dest.stream;
-    await audio.setSinkId(speakerId);
+    if (speakerId && typeof audio.setSinkId === 'function') {
+      try { await audio.setSinkId(speakerId); } catch (e) {}
+    }
+    const buf = new Uint8Array(analyser.frequencyBinCount);
+    let raf = 0;
+    const tick = () => {
+      analyser.getByteFrequencyData(buf);
+      let sum = 0;
+      for (let i = 0; i < buf.length; i += 1) sum += buf[i];
+      if (meter) meter.style.width = `${Math.min(100, (sum / buf.length) * 0.85)}%`;
+      raf = requestAnimationFrame(tick);
+    };
+    tick();
     await audio.play();
     setTimeout(() => {
+      cancelAnimationFrame(raf);
+      if (meter && !window._telnyxRemoteStream) meter.style.width = '0%';
       try { audio.pause(); audio.srcObject = null; ctx.close(); } catch (e) {}
-    }, 700);
+    }, 2100);
   } catch (e) {
+    if (meter && !window._telnyxRemoteStream) meter.style.width = '0%';
     mbPlayCue('connect');
   }
 }
@@ -878,8 +896,25 @@ async function mbRefreshNoisePolicy() {
   const settings = rows?.[0]?.settings || {};
   const advanced = settings.noise_advanced === true;
   const list = Array.isArray(settings.noise_agents) ? settings.noise_agents.map(String) : null;
-  window._mbNoisePolicy = { allowed: advanced && (list == null || list.includes(uid)) };
+  window._mbNoisePolicy = {
+    allowed: advanced && (list == null || list.includes(uid)),
+    jitter: settings.jitter_buffer === true,
+  };
+  const jitter = document.getElementById('mic-jitter');
+  if (jitter) jitter.checked = window._mbNoisePolicy.jitter;
   mbPaintMicFilters();
+}
+
+async function mbSaveMicJitter(on) {
+  const box = document.getElementById('mic-jitter');
+  if (typeof mbTelnyxRecord !== 'function') return;
+  const body = await mbTelnyxRecord('jitter', { enabled: !!on });
+  if (!body?.ok) {
+    if (box) box.checked = !on;
+    toast(typeof t === 'function' ? t('dial.mic.jitter_fail') : 'Akıcı ses kaydedilemedi', 'err');
+    return;
+  }
+  if (window._mbNoisePolicy) window._mbNoisePolicy.jitter = !!on;
 }
 
 async function mbApplyCallNoise(call, force) {

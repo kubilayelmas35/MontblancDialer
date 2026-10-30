@@ -1616,11 +1616,11 @@ TEST MODU
 </div>
 <div class="mic-drawer__grid">
 <label class="mic-drawer__field">
-<span class="mic-drawer__label" data-tr="Mikrofon" data-de="Mikrofon">Mikrofon</span>
+<span class="mic-drawer__label"><span data-tr="Mikrofon" data-de="Mikrofon">Mikrofon</span> <span class="mic-info" tabindex="0" onclick="event.preventDefault();event.stopPropagation()">i<span class="mic-info__tip" data-tr="Aramada kullanılacak mikrofon." data-de="Mikrofon für den Anruf.">Aramada kullanılacak mikrofon.</span></span></span>
 <select id="mic-drawer-input" class="form-input" aria-label="Mikrofon"></select>
 </label>
 <label class="mic-drawer__field">
-<span class="mic-drawer__label" data-tr="Hoparlör" data-de="Lautsprecher">Hoparlör</span>
+<span class="mic-drawer__label"><span data-tr="Hoparlör" data-de="Lautsprecher">Hoparlör</span> <span class="mic-info" tabindex="0" onclick="event.preventDefault();event.stopPropagation()">i<span class="mic-info__tip" data-tr="Karşı tarafı dinleyeceğiniz çıkış." data-de="Ausgang, über den Sie die Gegenstelle hören.">Karşı tarafı dinleyeceğiniz çıkış.</span></span></span>
 <select id="mic-drawer-output" class="form-input" aria-label="Hoparlör"></select>
 </label>
 </div>
@@ -1629,11 +1629,11 @@ TEST MODU
 <div class="hdr-meter-track"><div id="mic-drawer-in-meter" class="hdr-meter-fill hdr-meter-fill--in"></div><div id="mic-drawer-in-threshold" class="hdr-meter-threshold"></div></div>
 <div class="mic-drawer__sliders">
 <label class="mic-drawer__slider">
-<span class="mic-drawer__slider-top"><span data-tr="Hassasiyet" data-de="Empfindlichkeit">Hassasiyet</span><span class="mic-drawer__val" id="mic-drawer-gain-val">1.00</span></span>
+<span class="mic-drawer__slider-top"><span data-tr="Hassasiyet" data-de="Empfindlichkeit">Hassasiyet</span> <span class="mic-info" tabindex="0" onclick="event.preventDefault();event.stopPropagation()">i<span class="mic-info__tip" data-tr="Konuşmanızın ne kadar kolay geçeceği. Sıfır olursa mikrofon aramada kapanır. Windows’un kendi ses kaydıracını değiştirmez." data-de="Wie leicht Ihre Stimme durchgeht. Bei null ist das Mikrofon im Anruf stumm. Der Windows-Regler bleibt unverändert.">Konuşmanızın ne kadar kolay geçeceği. Sıfır olursa mikrofon aramada kapanır. Windows’un kendi ses kaydıracını değiştirmez.</span></span><span class="mic-drawer__val" id="mic-drawer-gain-val">1.00</span></span>
 <input type="range" id="mic-drawer-gain" min="0" max="4" step="0.05" value="1">
 </label>
 <label class="mic-drawer__slider">
-<span class="mic-drawer__slider-top"><span data-tr="Eşik" data-de="Schwelle">Eşik</span><span class="mic-drawer__val" id="mic-drawer-thr-val">18</span></span>
+<span class="mic-drawer__slider-top"><span data-tr="Eşik" data-de="Schwelle">Eşik</span> <span class="mic-info" tabindex="0" onclick="event.preventDefault();event.stopPropagation()">i<span class="mic-info__tip" data-tr="Bu çizginin altındaki ses karşıya gitmez. Öksürük ve tıkırtı geçmesin diye yükseltin. Sizi zor duyuyorlarsa indirin." data-de="Unter dieser Linie geht kein Ton hinaus. Höher gegen Husten und Klicken. Tiefer, wenn man Sie schlecht hört.">Bu çizginin altındaki ses karşıya gitmez. Öksürük ve tıkırtı geçmesin diye yükseltin. Sizi zor duyuyorlarsa indirin.</span></span><span class="mic-drawer__val" id="mic-drawer-thr-val">18</span></span>
 <input type="range" id="mic-drawer-threshold" min="0" max="100" step="1" value="18">
 </label>
 </div>
@@ -1641,11 +1641,11 @@ TEST MODU
 <div>
 <div class="mic-drawer__label" data-tr="Gelen ses (hat)" data-de="Eingehend (Leitung)">Gelen ses (hat)</div>
 <div class="hdr-meter-track"><div id="mic-drawer-out-meter" class="hdr-meter-fill hdr-meter-fill--out"></div></div>
-<div class="mic-drawer__hint" data-tr="Çağrı yokken çubuk boş kalır. Cihaz seçimi bir sonraki aramada kullanılır." data-de="Ohne aktiven Anruf bleibt der Balken leer. Das Gerät gilt ab dem nächsten Anruf.">Çağrı yokken çubuk boş kalır. Cihaz seçimi bir sonraki aramada kullanılır.</div>
+<div class="mic-drawer__hint" data-tr="Hoparlör testinde ve çağrı sırasında bu çubuk oynar." data-de="Der Balken bewegt sich beim Lautsprechertest und während des Anrufs.">Hoparlör testinde ve çağrı sırasında bu çubuk oynar.</div>
 </div>
 <div class="mic-drawer__filters">
-<label class="mic-switch"><span data-tr="Yankı engelle" data-de="Echo unterdrücken">Yankı engelle</span><input type="checkbox" id="mic-drawer-echo" checked></label>
-<label class="mic-switch"><span data-tr="Arka plan gürültüsünü kes" data-de="Hintergrund dämpfen">Arka plan gürültüsünü kes</span><input type="checkbox" id="mic-drawer-ns" checked></label>
+<label class="mic-switch"><span class="mic-switch__name"><span data-tr="Yankı engelle" data-de="Echo unterdrücken">Yankı engelle</span> <span class="mic-info" tabindex="0" onclick="event.preventDefault();event.stopPropagation()">i<span class="mic-info__tip" data-tr="Hoparlörden çıkan sesin mikrofona geri dönmesini keser. Karşı taraf kendi sesini duyuyorsa açık kalsın." data-de="Verhindert, dass der Lautsprecher ins Mikrofon zurückläuft. An lassen, wenn die Gegenstelle sich selbst hört.">Hoparlörden çıkan sesin mikrofona geri dönmesini keser. Karşı taraf kendi sesini duyuyorsa açık kalsın.</span></span></span><input type="checkbox" id="mic-drawer-echo" checked></label>
+<label class="mic-switch"><span class="mic-switch__name"><span data-tr="Arka plan gürültüsünü kes" data-de="Hintergrund dämpfen">Arka plan gürültüsünü kes</span> <span class="mic-info" tabindex="0" onclick="event.preventDefault();event.stopPropagation()">i<span class="mic-info__tip" data-tr="Arkadaki uğultuyu keser. Standart bu bilgisayarda çalışır. Orta, Güçlü ve Süper yalnız gerçek aramada." data-de="Dämpft Hintergrundrauschen. Standard läuft auf diesem Computer. Mittel, Stark und Super nur im echten Anruf.">Arkadaki uğultuyu keser. Standart bu bilgisayarda çalışır. Orta, Güçlü ve Süper yalnız gerçek aramada.</span></span></span><input type="checkbox" id="mic-drawer-ns" checked></label>
 <div id="mic-ns-advanced" hidden>
 <div class="mic-ns-bar" role="group">
 <button type="button" class="mic-ns-step is-on" data-level="1" onclick="mbPickMicNs(1)"><span data-tr="Standart" data-de="Standard">Standart</span></button>
@@ -1654,11 +1654,13 @@ TEST MODU
 <button type="button" class="mic-ns-step" data-level="4" onclick="mbPickMicNs(4)"><span data-tr="Süper" data-de="Super">Süper</span></button>
 </div>
 <div class="mic-ns-dirs">
-<label class="mic-switch"><span data-tr="Benim sesim için" data-de="Für meine Stimme">Benim sesim için</span><input type="checkbox" id="mic-ns-mine" checked></label>
-<label class="mic-switch"><span data-tr="Karşıdan gelen ses için" data-de="Für die Gegenstelle">Karşıdan gelen ses için</span><input type="checkbox" id="mic-ns-far"></label>
+<label class="mic-switch"><span class="mic-switch__name"><span data-tr="Benim sesim için" data-de="Für meine Stimme">Benim sesim için</span> <span class="mic-info" tabindex="0" onclick="event.preventDefault();event.stopPropagation()">i<span class="mic-info__tip" data-tr="Sizin bulunduğunuz yerdeki gürültüyü temizler." data-de="Reinigt das Geräusch an Ihrem Platz.">Sizin bulunduğunuz yerdeki gürültüyü temizler.</span></span></span><input type="checkbox" id="mic-ns-mine" checked></label>
+<label class="mic-switch"><span class="mic-switch__name"><span data-tr="Karşıdan gelen ses için" data-de="Für die Gegenstelle">Karşıdan gelen ses için</span> <span class="mic-info" tabindex="0" onclick="event.preventDefault();event.stopPropagation()">i<span class="mic-info__tip" data-tr="Karşı tarafın bulunduğu yerdeki gürültüyü temizler. Açıkken o yön için de ücret yazılır." data-de="Reinigt das Geräusch bei der Gegenstelle. Dafür wird diese Richtung extra berechnet.">Karşı tarafın bulunduğu yerdeki gürültüyü temizler. Açıkken o yön için de ücret yazılır.</span></span></span><input type="checkbox" id="mic-ns-far"></label>
 </div>
-<div class="mic-drawer__hint" data-tr="Standart tarayıcıdadır. Orta, güçlü ve süper gerçek aramada uygulanır. Mikrofon testi tarayıcıdaki sesi dinletir." data-de="Standard läuft im Browser. Mittel, stark und super gelten im echten Anruf. Der Mikrofontest spielt die Browseraufnahme.">Standart tarayıcıdadır. Orta, güçlü ve süper gerçek aramada uygulanır. Mikrofon testi tarayıcıdaki sesi dinletir.</div>
+<div class="mic-drawer__hint" data-tr="Standart bu bilgisayarda çalışır. Orta, Güçlü ve Süper sadece gerçek aramada işe yarar. Mikrofon testi kendi sesinizi geri çalar." data-de="Standard läuft auf diesem Computer. Mittel, Stark und Super gelten nur im echten Anruf. Der Mikrofontest spielt Ihre Stimme zurück.">Standart bu bilgisayarda çalışır. Orta, Güçlü ve Süper sadece gerçek aramada işe yarar. Mikrofon testi kendi sesinizi geri çalar.</div>
 </div>
+<label class="mic-switch"><span class="mic-switch__name"><span data-tr="Akıcı ses" data-de="Flüssiger Ton">Akıcı ses</span> <span class="mic-info" tabindex="0" onclick="event.preventDefault();event.stopPropagation()">i<span class="mic-info__tip" data-tr="Kelimeler kopuyor, ses dalgalı veya robot gibi geliyorsa açın. Hat rahatsa kapalı kalsın. Biraz gecikme ekler ve firmanın hattına yazılır." data-de="Einschalten, wenn Wörter abreißen oder die Stimme wellig klingt. Bei ruhiger Leitung aus lassen. Es kommt etwas Verzögerung dazu und gilt für die ganze Firma.">Kelimeler kopuyor, ses dalgalı veya robot gibi geliyorsa açın. Hat rahatsa kapalı kalsın. Biraz gecikme ekler ve firmanın hattına yazılır.</span></span></span><input type="checkbox" id="mic-jitter" onchange="mbSaveMicJitter(this.checked)"></label>
+<div class="mic-drawer__hint" data-tr="Kelimeler kopuyor veya ses dalgalı geliyorsa açın. Hat düzgünse kapalı kalsın." data-de="Einschalten, wenn Wörter abreißen oder die Stimme wellig ist. Sonst aus lassen.">Kelimeler kopuyor veya ses dalgalı geliyorsa açın. Hat düzgünse kapalı kalsın.</div>
 </div>
 <div class="mic-drawer__actions">
 <button type="button" class="btn btn-ghost btn-sm" id="mic-drawer-beep-btn" onclick="playMicDrawerBeep()"><i class="ph ph-speaker-high"></i> <span data-tr="Hoparlör testi" data-de="Lautsprechertest">Hoparlör testi</span></button>
