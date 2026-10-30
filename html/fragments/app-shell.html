@@ -1624,10 +1624,6 @@ TEST MODU
 <select id="mic-drawer-output" class="form-input" aria-label="Hoparlör"></select>
 </label>
 </div>
-<div class="mic-drawer__checks">
-<label><input type="checkbox" id="mic-drawer-echo" checked> <span data-tr="Yankı engelle" data-de="Echo unterdrücken">Yankı engelle</span></label>
-<label><input type="checkbox" id="mic-drawer-ns" checked> <span data-tr="Arka plan gürültüsünü kes" data-de="Hintergrund dämpfen">Arka plan gürültüsünü kes</span></label>
-</div>
 <div>
 <div class="mic-drawer__label" data-tr="Giriş (mikrofon)" data-de="Eingang (Mikrofon)">Giriş (mikrofon)</div>
 <div class="hdr-meter-track"><div id="mic-drawer-in-meter" class="hdr-meter-fill hdr-meter-fill--in"></div><div id="mic-drawer-in-threshold" class="hdr-meter-threshold"></div></div>
@@ -1647,8 +1643,26 @@ TEST MODU
 <div class="hdr-meter-track"><div id="mic-drawer-out-meter" class="hdr-meter-fill hdr-meter-fill--out"></div></div>
 <div class="mic-drawer__hint" data-tr="Çağrı yokken çubuk boş kalır. Cihaz seçimi bir sonraki aramada kullanılır." data-de="Ohne aktiven Anruf bleibt der Balken leer. Das Gerät gilt ab dem nächsten Anruf.">Çağrı yokken çubuk boş kalır. Cihaz seçimi bir sonraki aramada kullanılır.</div>
 </div>
+<div class="mic-drawer__filters">
+<label class="mic-switch"><span data-tr="Yankı engelle" data-de="Echo unterdrücken">Yankı engelle</span><input type="checkbox" id="mic-drawer-echo" checked></label>
+<label class="mic-switch"><span data-tr="Arka plan gürültüsünü kes" data-de="Hintergrund dämpfen">Arka plan gürültüsünü kes</span><input type="checkbox" id="mic-drawer-ns" checked></label>
+<div id="mic-ns-advanced" hidden>
+<div class="mic-ns-bar" role="group">
+<button type="button" class="mic-ns-step is-on" data-level="1" onclick="mbPickMicNs(1)"><span data-tr="Standart" data-de="Standard">Standart</span></button>
+<button type="button" class="mic-ns-step" data-level="2" onclick="mbPickMicNs(2)"><span data-tr="Orta" data-de="Mittel">Orta</span></button>
+<button type="button" class="mic-ns-step" data-level="3" onclick="mbPickMicNs(3)"><span data-tr="Güçlü" data-de="Stark">Güçlü</span></button>
+<button type="button" class="mic-ns-step" data-level="4" onclick="mbPickMicNs(4)"><span data-tr="Süper" data-de="Super">Süper</span></button>
+</div>
+<div class="mic-ns-dirs">
+<label class="mic-switch"><span data-tr="Benim sesim için" data-de="Für meine Stimme">Benim sesim için</span><input type="checkbox" id="mic-ns-mine" checked></label>
+<label class="mic-switch"><span data-tr="Karşıdan gelen ses için" data-de="Für die Gegenstelle">Karşıdan gelen ses için</span><input type="checkbox" id="mic-ns-far"></label>
+</div>
+<div class="mic-drawer__hint" data-tr="Standart tarayıcıdadır. Orta, güçlü ve süper gerçek aramada uygulanır. Mikrofon testi tarayıcıdaki sesi dinletir." data-de="Standard läuft im Browser. Mittel, stark und super gelten im echten Anruf. Der Mikrofontest spielt die Browseraufnahme.">Standart tarayıcıdadır. Orta, güçlü ve süper gerçek aramada uygulanır. Mikrofon testi tarayıcıdaki sesi dinletir.</div>
+</div>
+</div>
 <div class="mic-drawer__actions">
 <button type="button" class="btn btn-ghost btn-sm" id="mic-drawer-beep-btn" onclick="playMicDrawerBeep()"><i class="ph ph-speaker-high"></i> <span data-tr="Hoparlör testi" data-de="Lautsprechertest">Hoparlör testi</span></button>
+<button type="button" class="btn btn-ghost btn-sm" id="mic-drawer-hear-btn" onclick="mbMicHearTest()"><i class="ph ph-microphone"></i> <span data-tr="Mikrofon testi" data-de="Mikrofontest">Mikrofon testi</span></button>
 <button type="button" class="btn btn-primary btn-sm" id="mic-drawer-monitor-btn" onclick="toggleMicDrawerMonitor()"><span data-tr="Dinlemeyi başlat" data-de="Überwachung starten">Dinlemeyi başlat</span></button>
 <button type="button" class="btn btn-ghost btn-sm" id="mic-drawer-save-btn" onclick="saveMicDrawerPrefs()"><i class="ph ph-floppy-disk"></i> <span data-tr="Ayarları kaydet" data-de="Einstellungen speichern">Ayarları kaydet</span></button>
 </div>

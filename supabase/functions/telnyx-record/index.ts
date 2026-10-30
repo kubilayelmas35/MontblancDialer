@@ -59,9 +59,11 @@ Deno.serve(async (req) => {
     if (!uuidRe.test(firmId) && String(user.role || '') !== 'super_admin') return json({ error: 'auth' }, 401);
 
     let key = '';
+    let firmSettings: Record<string, any> = {};
     if (uuidRe.test(firmId)) {
       const { data: firm } = await admin.from('firms').select('settings').eq('id', firmId).maybeSingle();
-      key = String(firm?.settings?.integrations?.telnyx_api_key || '').trim();
+      firmSettings = (firm?.settings || {}) as Record<string, any>;
+      key = String(firmSettings?.integrations?.telnyx_api_key || '').trim();
     }
 
     const body = await req.json().catch(() => ({}));
@@ -209,6 +211,35 @@ Deno.serve(async (req) => {
       const row = Array.isArray(payload?.data) ? payload.data[0] : null;
       const url = String(row?.download_urls?.mp3 || row?.download_urls?.wav || '');
       return json({ ok: true, url: /^https:\/\//i.test(url) ? url : '' });
+    }
+
+    if (action === 'suppress') {
+      if (!control) return json({ error: 'id' }, 400);
+      const advanced = firmSettings.noise_advanced === true;
+      const list = Array.isArray(firmSettings.noise_agents) ? firmSettings.noise_agents.map(String) : null;
+      const allowed = advanced && (list == null || list.includes(String(user.id)));
+      if (!allowed && String(user.role || '') !== 'super_admin') return json({ error: 'auth' }, 403);
+      const headers = { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
+      const base = `https://api.telnyx.com/v2/calls/${encodeURIComponent(control)}/actions/`;
+      const level = Math.max(1, Math.min(4, Number(body?.level) || 1));
+      const mine = body?.mine !== false;
+      const far = body?.far === true;
+      if (level < 2 || (!mine && !far)) {
+        const stopped = await fetch(`${base}suppression_stop`, { method: 'POST', headers, body: '{}' });
+        return json({ ok: stopped.ok || stopped.status === 422 }, stopped.ok || stopped.status === 422 ? 200 : 502);
+      }
+      const direction = mine && far ? 'both' : (mine ? 'inbound' : 'outbound');
+      const engine = level >= 4 ? 'Krisp' : (level === 3 ? 'AiCoustics' : 'Denoiser');
+      const payload: Record<string, unknown> = { direction, noise_suppression_engine: engine };
+      if (engine === 'Krisp') {
+        payload.noise_suppression_engine_config = { model: 'krisp-viva-pro-v1.kef', suppression_level: 80 };
+      }
+      const started = await fetch(`${base}suppression_start`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+      return json({ ok: started.ok }, started.ok ? 200 : 502);
     }
 
     if (action === 'play' || action === 'stop') {

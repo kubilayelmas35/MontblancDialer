@@ -303,11 +303,19 @@ function _micAudioFlag(key, fallback) {
   return raw !== '0';
 }
 
+function mbMicNsLevel() {
+  if (!_micAudioFlag('mb_mic_ns', true)) return 0;
+  const raw = Number(localStorage.getItem('mb_mic_ns_level') || '1');
+  const level = raw >= 2 && raw <= 4 ? raw : 1;
+  if (level > 1 && !window._mbNoisePolicy?.allowed) return 1;
+  return level;
+}
+
 function _micInputConstraints() {
   const id = localStorage.getItem('mb_mic_device') || '';
   const audio = {
     echoCancellation: _micAudioFlag('mb_mic_echo', true),
-    noiseSuppression: _micAudioFlag('mb_mic_ns', true),
+    noiseSuppression: mbMicNsLevel() === 1,
     autoGainControl: false,
   };
   if (id) audio.deviceId = { ideal: id };
@@ -328,7 +336,7 @@ function applySavedMicToTelnyx() {
       speakerId: speakerId || undefined,
       speakerLabel: speakerId ? speakerLabel : undefined,
       echoCancellation: _micAudioFlag('mb_mic_echo', true),
-      noiseSuppression: _micAudioFlag('mb_mic_ns', true),
+      noiseSuppression: mbMicNsLevel() === 1,
       autoGainControl: false,
     });
   } catch (e) {}
@@ -401,8 +409,18 @@ function _micDrawerWireControlsOnce() {
   });
   document.getElementById('mic-drawer-ns')?.addEventListener('change', (ev) => {
     localStorage.setItem('mb_mic_ns', ev.target.checked ? '1' : '0');
+    mbPaintMicFilters();
     applySavedMicToTelnyx();
     _restartMicDrawerMonitor();
+    if (typeof _telnyxCall !== 'undefined' && _telnyxCall) void mbApplyCallNoise(_telnyxCall, true);
+  });
+  document.getElementById('mic-ns-mine')?.addEventListener('change', (ev) => {
+    localStorage.setItem('mb_mic_ns_mine', ev.target.checked ? '1' : '0');
+    if (typeof _telnyxCall !== 'undefined' && _telnyxCall) void mbApplyCallNoise(_telnyxCall, true);
+  });
+  document.getElementById('mic-ns-far')?.addEventListener('change', (ev) => {
+    localStorage.setItem('mb_mic_ns_far', ev.target.checked ? '1' : '0');
+    if (typeof _telnyxCall !== 'undefined' && _telnyxCall) void mbApplyCallNoise(_telnyxCall, true);
   });
 }
 
@@ -417,6 +435,7 @@ function _micDrawerLoadPrefs() {
   const ns = document.getElementById('mic-drawer-ns');
   if (echo) echo.checked = _micAudioFlag('mb_mic_echo', true);
   if (ns) ns.checked = _micAudioFlag('mb_mic_ns', true);
+  mbPaintMicFilters();
   if (_micDrawerInputGain && ge) _micDrawerInputGain.gain.value = parseFloat(ge.value) || 1;
   const trEl = document.getElementById('mic-drawer-in-threshold');
   if (trEl && te) trEl.style.left = `${te.value}%`;
@@ -559,7 +578,12 @@ function saveMicDrawerPrefs() {
   if (output) localStorage.setItem('mb_spk_device', output.value || '');
   if (echo) localStorage.setItem('mb_mic_echo', echo.checked ? '1' : '0');
   if (ns) localStorage.setItem('mb_mic_ns', ns.checked ? '1' : '0');
+  const mine = document.getElementById('mic-ns-mine');
+  const far = document.getElementById('mic-ns-far');
+  if (mine) localStorage.setItem('mb_mic_ns_mine', mine.checked ? '1' : '0');
+  if (far) localStorage.setItem('mb_mic_ns_far', far.checked ? '1' : '0');
   applySavedMicToTelnyx();
+  if (typeof _telnyxCall !== 'undefined' && _telnyxCall) void mbApplyCallNoise(_telnyxCall, true);
   if (_micDrawerInputGain && ge) {
     const g = parseFloat(ge.value);
     _micDrawerInputGain.gain.value = Number.isFinite(g) ? g : 1;
@@ -816,6 +840,129 @@ function mbPlayCue(kind) {
   } catch (e) {}
 }
 
+function mbPaintMicFilters() {
+  const ns = document.getElementById('mic-drawer-ns');
+  const mine = document.getElementById('mic-ns-mine');
+  const far = document.getElementById('mic-ns-far');
+  if (mine) mine.checked = _micAudioFlag('mb_mic_ns_mine', true);
+  if (far) far.checked = _micAudioFlag('mb_mic_ns_far', false);
+  const level = Math.min(4, Math.max(1, Number(localStorage.getItem('mb_mic_ns_level') || '1') || 1));
+  document.querySelectorAll('.mic-ns-step').forEach((btn) => {
+    btn.classList.toggle('is-on', Number(btn.dataset.level) === level);
+  });
+  const box = document.getElementById('mic-ns-advanced');
+  if (box) box.hidden = !(ns?.checked && window._mbNoisePolicy?.allowed);
+}
+
+function mbPickMicNs(level) {
+  const next = Math.min(4, Math.max(1, Number(level) || 1));
+  localStorage.setItem('mb_mic_ns_level', String(next));
+  localStorage.setItem('mb_mic_ns', '1');
+  const ns = document.getElementById('mic-drawer-ns');
+  if (ns) ns.checked = true;
+  mbPaintMicFilters();
+  applySavedMicToTelnyx();
+  _restartMicDrawerMonitor();
+  if (typeof _telnyxCall !== 'undefined' && _telnyxCall) void mbApplyCallNoise(_telnyxCall, true);
+}
+
+async function mbRefreshNoisePolicy() {
+  const firmId = typeof currentUser !== 'undefined' ? currentUser?.firm_id : '';
+  const uid = String((typeof currentUser !== 'undefined' ? currentUser?.id : '') || '');
+  if (!firmId || typeof sb !== 'function') {
+    window._mbNoisePolicy = { allowed: false };
+    mbPaintMicFilters();
+    return;
+  }
+  const rows = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
+  const settings = rows?.[0]?.settings || {};
+  const advanced = settings.noise_advanced === true;
+  const list = Array.isArray(settings.noise_agents) ? settings.noise_agents.map(String) : null;
+  window._mbNoisePolicy = { allowed: advanced && (list == null || list.includes(uid)) };
+  mbPaintMicFilters();
+}
+
+async function mbApplyCallNoise(call, force) {
+  if (!call || String(call.id || '').startsWith('sim-')) return;
+  if (typeof _testMode !== 'undefined' && _testMode) return;
+  const level = mbMicNsLevel();
+  const mine = _micAudioFlag('mb_mic_ns_mine', true);
+  const far = _micAudioFlag('mb_mic_ns_far', false);
+  const mark = `${level}:${mine ? 1 : 0}:${far ? 1 : 0}`;
+  if (!force && call.__mbNsMark === mark) return;
+  const ids = typeof mbRememberTelnyxIds === 'function' ? mbRememberTelnyxIds(call) : {};
+  const control = ids?.control || '';
+  if (!control) {
+    call.__mbNsTries = (call.__mbNsTries || 0) + 1;
+    if (call.__mbNsTries > 8 || call.__mbNsWait) return;
+    call.__mbNsWait = true;
+    setTimeout(() => {
+      call.__mbNsWait = false;
+      void mbApplyCallNoise(call, force);
+    }, 800);
+    return;
+  }
+  call.__mbNsMark = mark;
+  if (typeof mbTelnyxRecord !== 'function') return;
+  if (level < 2 || (!mine && !far)) {
+    if (call.__mbNsOn) {
+      call.__mbNsOn = false;
+      void mbTelnyxRecord('suppress', { call_control_id: control, level: 1 });
+    }
+    return;
+  }
+  call.__mbNsOn = true;
+  void mbTelnyxRecord('suppress', { call_control_id: control, level, mine, far });
+}
+
+async function mbMicHearTest() {
+  if (window._mbMicHear) return;
+  const btn = document.getElementById('mic-drawer-hear-btn');
+  const sp = btn?.querySelector('span');
+  const say = (key, fallback) => {
+    const msg = typeof t === 'function' ? t(key) : fallback;
+    return !msg || msg === key ? fallback : msg;
+  };
+  window._mbMicHear = true;
+  if (sp) sp.textContent = say('dial.mic.hear_rec', 'Kaydediliyor');
+  let stream = null;
+  let own = false;
+  try {
+    if (_micDrawerStream) stream = _micDrawerStream;
+    else {
+      stream = await navigator.mediaDevices.getUserMedia(_micInputConstraints());
+      own = true;
+    }
+    const chunks = [];
+    const rec = new MediaRecorder(stream);
+    const blob = await new Promise((resolve, reject) => {
+      rec.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+      rec.onerror = () => reject(new Error('rec'));
+      rec.onstop = () => resolve(new Blob(chunks, { type: rec.mimeType || 'audio/webm' }));
+      rec.start();
+      setTimeout(() => { try { rec.stop(); } catch (e) { reject(e); } }, 2800);
+    });
+    if (own) stream.getTracks().forEach((track) => track.stop());
+    if (sp) sp.textContent = say('dial.mic.hear_play', 'Çalıyor');
+    const audio = new Audio(URL.createObjectURL(blob));
+    const speakerId = localStorage.getItem('mb_spk_device') || '';
+    if (speakerId && typeof audio.setSinkId === 'function') {
+      try { await audio.setSinkId(speakerId); } catch (e) {}
+    }
+    await audio.play();
+    audio.onended = () => {
+      URL.revokeObjectURL(audio.src);
+      window._mbMicHear = false;
+      if (sp) sp.textContent = say('dial.mic.hear', 'Mikrofon testi');
+    };
+  } catch (e) {
+    if (own && stream) stream.getTracks().forEach((track) => track.stop());
+    window._mbMicHear = false;
+    if (sp) sp.textContent = say('dial.mic.hear', 'Mikrofon testi');
+    toast(say('dial.mic_open_err', 'Mikrofon açılamadı: ') + (e?.message || ''), 'err');
+  }
+}
+
 function closeMicAudioDrawer() {
   const el = document.getElementById('mic-audio-drawer');
   if (el) el.style.display = 'none';
@@ -833,6 +980,7 @@ function toggleMicAudioDrawer() {
   closeManualDialDrawer();
   _micDrawerWireControlsOnce();
   _micDrawerLoadPrefs();
+  void mbRefreshNoisePolicy();
   el.style.display = 'block';
   void refreshMicDeviceLists();
   if (!_micDrawerMonitoring) void startMicDrawerMonitor();

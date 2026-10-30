@@ -179,6 +179,8 @@ function mbPaintLineList() {
   if (_lineOpenId && typeof mbFillFxForm === 'function' && typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin()) {
     mbFillFxForm(_lineOpenId);
   }
+  const noiseBox = document.getElementById('line-noise-agents');
+  if (noiseBox && !noiseBox.hidden && _lineOpenId) void mbFillNoiseAgents(_lineOpenId);
 }
 
 function mbLineFirmBody(firm) {
@@ -253,6 +255,18 @@ function mbLineFirmBody(firm) {
     ? mbLineT('hold.music.off', 'Müziksiz')
     : (musicUrl ? mbLineT('hold.music.using_own', 'Bu dosya çalıyor') : mbLineT('hold.music.none', 'Müzik yok. Bekleyen sessiz kalır.'));
   const allBox = superView ? `<label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;"><input type="checkbox" id="line-hold-all"> ${mbLineEsc(mbLineT('hold.music.all_check', 'Tüm firmalara yaz'))}</label>` : '';
+  const noiseOn = settings.noise_advanced === true;
+  const noiseSwitch = superView
+    ? `<label class="mic-switch"><span>${mbLineEsc(mbLineT('line.noise', 'Gelişmiş gürültü engelleme'))}</span><input type="checkbox" id="line-noise-on" ${noiseOn ? 'checked' : ''} onchange="mbNoiseGrantToggle('${String(firm.id)}')"></label>`
+    : `<div style="font-size:12px;font-weight:700;">${mbLineEsc(noiseOn ? mbLineT('line.noise', 'Gelişmiş gürültü engelleme') : mbLineT('line.noise.off', 'Süper admin henüz açmadı'))}</div>`;
+  const noiseBlock = `<div class="line-firm-block" style="display:flex;flex-direction:column;gap:8px;">
+    <div class="form-label">${mbLineEsc(mbLineT('line.noise', 'Gelişmiş gürültü engelleme'))}</div>
+    <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.noise.hint', ''))}</div>
+    ${noiseSwitch}
+    <div id="line-noise-agents" class="mic-ns-dirs" ${noiseOn ? '' : 'hidden'}></div>
+    <div style="font-size:11px;color:var(--text-3);${noiseOn ? '' : 'display:none;'}">${mbLineEsc(mbLineT('line.noise.all', ''))}</div>
+    ${(superView || noiseOn) ? `<button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="mbSaveNoiseGrant('${String(firm.id)}')">${mbLineEsc(mbLineT('line.noise.save', 'Yetkiyi kaydet'))}</button>` : ''}
+  </div>`;
   const musicBlock = `<div class="line-firm-block" style="display:flex;flex-direction:column;gap:8px;">
     <div class="form-label">${mbLineEsc(mbLineT('hold.music', 'Bekleme müziği'))}</div>
     <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('hold.music.firm_hint', 'Kampanyanın kendi dosyası yoksa bu çalar. mp3 veya wav, en fazla 8 MB.'))}</div>
@@ -268,7 +282,58 @@ function mbLineFirmBody(firm) {
       <button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="mbSaveFirmHoldMusic('${String(firm.id)}')">${mbLineEsc(mbLineT('hold.music.upload', 'Müziği kaydet'))}</button>
     </div>
   </div>`;
-  return `${secret}${smsBlock}${musicBlock}<button type="button" class="btn btn-primary" style="align-self:flex-start;" onclick="mbSaveLineFirm('${String(firm.id)}')"><i class="ph ph-floppy-disk"></i> ${mbLineEsc(mbLineT('line.save', 'Kaydet'))}</button>`;
+  return `${secret}${smsBlock}${noiseBlock}${musicBlock}<button type="button" class="btn btn-primary" style="align-self:flex-start;" onclick="mbSaveLineFirm('${String(firm.id)}')"><i class="ph ph-floppy-disk"></i> ${mbLineEsc(mbLineT('line.save', 'Kaydet'))}</button>`;
+}
+
+function mbNoiseGrantToggle(firmId) {
+  const on = !!document.getElementById('line-noise-on')?.checked;
+  const box = document.getElementById('line-noise-agents');
+  if (box) box.hidden = !on;
+  if (on) void mbFillNoiseAgents(firmId);
+}
+
+async function mbFillNoiseAgents(firmId) {
+  const box = document.getElementById('line-noise-agents');
+  if (!box || !firmId || typeof sb !== 'function') return;
+  const rows = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
+  const list = Array.isArray(rows?.[0]?.settings?.noise_agents) ? rows[0].settings.noise_agents.map(String) : null;
+  const users = await sb(`users?firm_id=eq.${firmId}&is_active=eq.true&select=id,name,role&order=name.asc`).catch(() => []);
+  const people = (users || []).filter((row) => ['agent', 'admin', 'firm_admin'].includes(row.role));
+  const esc = typeof mbLineEsc === 'function' ? mbLineEsc : (v) => String(v ?? '');
+  box.innerHTML = people.map((row) => {
+    const on = list == null || list.includes(String(row.id));
+    return `<label class="mic-switch"><span>${esc(row.name || '')}</span><input type="checkbox" data-agent="${esc(row.id)}" ${on ? 'checked' : ''}></label>`;
+  }).join('');
+}
+
+async function mbSaveNoiseGrant(firmId) {
+  if (typeof mbCanSetHoldMusic === 'function' && !mbCanSetHoldMusic(firmId)) return;
+  try {
+    const rows = await sb(`firms?id=eq.${firmId}&select=settings`);
+    const settings = { ...(rows?.[0]?.settings || {}) };
+    if (typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin()) {
+      settings.noise_advanced = !!document.getElementById('line-noise-on')?.checked;
+    }
+    if (settings.noise_advanced === true) {
+      const boxes = [...document.querySelectorAll('#line-noise-agents input[data-agent]')];
+      if (boxes.length) {
+        const picked = boxes.filter((box) => box.checked).map((box) => box.getAttribute('data-agent')).filter(Boolean);
+        if (picked.length === boxes.length) delete settings.noise_agents;
+        else settings.noise_agents = picked;
+      }
+    }
+    await sb(`firms?id=eq.${firmId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings }),
+    });
+    const hit = _lineRows.find((row) => String(row.id) === String(firmId));
+    if (hit) hit.settings = settings;
+    if (String(firmId) === String(currentUser?.firm_id || '')) window._mbNoisePolicy = null;
+    toast(typeof mbLineT === 'function' ? mbLineT('line.noise.saved', 'Gürültü yetkisi kaydedildi') : 'Gürültü yetkisi kaydedildi', 'ok');
+  } catch (e) {
+    toast(typeof mbLineT === 'function' ? mbLineT('hold.music.fail', 'Kaydedilemedi') : 'Kaydedilemedi', 'err');
+  }
 }
 
 function mbLineNumberRows(numbers, def, localList) {

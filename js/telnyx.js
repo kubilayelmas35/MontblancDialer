@@ -99,7 +99,10 @@ async function mbLookupRecordingId(call) {
   opt.telnyxCallControlId = control;
   if (body.call_session_id) opt.telnyxSessionId = body.call_session_id;
   if (body.call_leg_id) opt.telnyxLegId = body.call_leg_id;
-  if (String(call.state || '') === 'active') mbStartCallRecording(call);
+  if (String(call.state || '') === 'active') {
+    mbStartCallRecording(call);
+    if (typeof mbApplyCallNoise === 'function') void mbApplyCallNoise(call);
+  }
 }
 
 function mbRememberTelnyxIds(call) {
@@ -979,6 +982,7 @@ function mbOnHopperCall(call) {
   if (state === 'active') {
     if (typeof mbStopRingback === 'function') mbStopRingback();
     mbCaptureTelnyxIds(call);
+    if (typeof mbApplyCallNoise === 'function') void mbApplyCallNoise(call);
     mbWatchRecordingId(call);
     mbStartCallRecording(call);
     if (row.id === _liveCallId && row.phase === 'live') {
