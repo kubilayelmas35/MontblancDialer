@@ -11,6 +11,8 @@ const SPEND_DEST_USD = [
 
 let _spendRows = [];
 let _spendFirms = [];
+let _spendSort = { key: 'when', dir: 'desc' };
+let _spendFilters = {};
 
 function spendSay(key, fb) {
   if (typeof t !== 'function') return fb;
@@ -106,6 +108,97 @@ function spendCell(rateReal, rateSale, amtReal, amtSale) {
   return `<td class="spend-num"><span class="spend-rate">${spendEsc(spendPair(rateReal, rateSale))}</span><span class="spend-amt">${spendEsc(spendPair(amtReal, amtSale))}</span></td>`;
 }
 
+function spendCols() {
+  return [
+    { key: 'when', label: spendSay('spend.col.when', 'Zaman') },
+    { key: 'firm', label: spendSay('spend.col.firm', 'Firma') },
+    { key: 'dur', label: spendSay('spend.col.dur', 'Süre'), num: true },
+    { key: 'call', label: spendSay('spend.col.call', 'Çağrı'), num: true },
+    { key: 'rec', label: spendSay('spend.col.rec', 'Kayıt'), num: true },
+    { key: 'music', label: spendSay('spend.col.music', 'Müzik'), num: true },
+    { key: 'total', label: spendSay('spend.col.total', 'Toplam'), num: true },
+  ];
+}
+
+function spendView(row) {
+  const firm = spendFirm(row.firm_id);
+  const part = spendParts(row);
+  const callTxt = `${spendPair(part.callRealMin, part.callSaleMin)} ${spendPair(part.callReal, part.callSale)}`;
+  const recTxt = `${spendPair(part.recRealMin, 0)} ${spendPair(part.recReal, 0)}`;
+  const musicTxt = `${spendPair(0, 0)} ${spendPair(0, 0)}`;
+  return {
+    row,
+    part,
+    text: {
+      when: spendWhen(row.started_at),
+      firm: firm?.name || '',
+      dur: spendDur(row.duration_sec),
+      call: callTxt,
+      rec: recTxt,
+      music: musicTxt,
+      total: spendPair(part.real, part.sale),
+    },
+    num: {
+      when: String(row.started_at || ''),
+      firm: String(firm?.name || '').toLocaleLowerCase('tr-TR'),
+      dur: Math.max(0, Number(row.duration_sec) || 0),
+      call: part.callSale,
+      rec: part.recReal,
+      music: 0,
+      total: part.sale,
+    },
+    tie: { call: part.callReal, total: part.real },
+  };
+}
+
+function spendCompare(a, b) {
+  const key = _spendSort.key || 'when';
+  const dir = _spendSort.dir === 'asc' ? 1 : -1;
+  const av = a.num[key];
+  const bv = b.num[key];
+  let cmp = 0;
+  if (typeof av === 'number' && typeof bv === 'number') cmp = av - bv;
+  else cmp = String(av || '').localeCompare(String(bv || ''), 'tr');
+  if (!cmp && a.tie && b.tie && a.tie[key] != null && b.tie[key] != null) cmp = a.tie[key] - b.tie[key];
+  if (cmp) return cmp * dir;
+  return String(b.row.started_at || '').localeCompare(String(a.row.started_at || ''));
+}
+
+function spendList() {
+  const views = (_spendRows || []).map(spendView);
+  const filtered = views.filter((view) => Object.entries(_spendFilters).every(([key, raw]) => {
+    if (!String(raw || '').trim()) return true;
+    const text = view.text[key] || '';
+    return typeof campMatch === 'function'
+      ? campMatch(text, raw)
+      : String(text).toLocaleLowerCase('tr-TR').includes(String(raw).toLocaleLowerCase('tr-TR'));
+  }));
+  filtered.sort(spendCompare);
+  return filtered;
+}
+
+function paintSpendHead() {
+  const head = document.getElementById('spend-thead');
+  if (!head) return;
+  head.innerHTML = `<tr>${spendCols().map((col) => {
+    const on = _spendSort.key === col.key;
+    const sort = `<span class="camp-sort"><button type="button" class="camp-sort-btn${on && _spendSort.dir === 'asc' ? ' is-on' : ''}" title="${spendEsc(spendSay('camp.sort.asc', 'Küçükten büyüğe'))}" onclick="setSpendSort('${col.key}','asc')"><i class="ph ph-caret-up"></i></button><button type="button" class="camp-sort-btn${on && _spendSort.dir === 'desc' ? ' is-on' : ''}" title="${spendEsc(spendSay('camp.sort.desc', 'Büyükten küçüğe'))}" onclick="setSpendSort('${col.key}','desc')"><i class="ph ph-caret-down"></i></button></span>`;
+    const filter = `<input class="camp-col-filter" value="${spendEsc(_spendFilters[col.key] || '')}" aria-label="${spendEsc(col.label)}" oninput="setSpendFilter('${col.key}', this.value)" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">`;
+    return `<th class="${col.num ? 'num' : ''}"><span class="camp-sort-label">${spendEsc(col.label)}${sort}</span>${filter}</th>`;
+  }).join('')}</tr>`;
+}
+
+function setSpendSort(key, dir) {
+  _spendSort = { key: key || 'when', dir: dir === 'asc' ? 'asc' : 'desc' };
+  paintSpendHead();
+  spendPaint();
+}
+
+function setSpendFilter(key, value) {
+  _spendFilters[key] = String(value || '');
+  spendPaint();
+}
+
 function spendFillFirms() {
   const sel = document.getElementById('spend-firm');
   if (!sel) return;
@@ -120,31 +213,30 @@ function spendPaint() {
   const body = document.getElementById('spend-tbody');
   const cards = document.getElementById('spend-cards');
   if (!body) return;
-  const rows = _spendRows || [];
+  const views = spendList();
   const bag = { callReal: 0, callSale: 0, recReal: 0, real: 0, sale: 0 };
-  const html = rows.map((row) => {
-    const firm = spendFirm(row.firm_id);
-    const part = spendParts(row);
+  const html = views.map((view) => {
+    const part = view.part;
     bag.callReal += part.callReal;
     bag.callSale += part.callSale;
     bag.recReal += part.recReal;
     bag.real += part.real;
     bag.sale += part.sale;
-    const total = spendPair(part.real, part.sale);
     return `<tr>
-<td>${spendEsc(spendWhen(row.started_at))}</td>
-<td>${spendEsc(firm?.name || '')}</td>
-<td class="spend-num">${spendEsc(spendDur(row.duration_sec))}</td>
+<td>${spendEsc(view.text.when)}</td>
+<td>${spendEsc(view.text.firm)}</td>
+<td class="spend-num">${spendEsc(view.text.dur)}</td>
 ${spendCell(part.callRealMin, part.callSaleMin, part.callReal, part.callSale)}
 ${spendCell(part.recRealMin, 0, part.recReal, 0)}
 ${spendCell(0, 0, 0, 0)}
-<td class="spend-num"><span class="spend-rate">${spendEsc(total)}</span></td>
+<td class="spend-num"><span class="spend-rate">${spendEsc(view.text.total)}</span></td>
 </tr>`;
   }).join('');
-  if (!rows.length) {
-    body.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(7, 'spend.empty') : '<tr><td colspan="7"></td></tr>';
+  if (!views.length) {
+    const key = (_spendRows || []).length ? 'spend.nomatch' : 'spend.empty';
+    body.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(7, key) : '<tr><td colspan="7"></td></tr>';
   } else {
-    const cap = rows.capped ? `<tr><td colspan="7" class="mb-empty-hint">${spendEsc(spendSay('spend.capped', 'Liste dolu. Aralığı daraltın.'))}</td></tr>` : '';
+    const cap = _spendRows.capped ? `<tr><td colspan="7" class="mb-empty-hint">${spendEsc(spendSay('spend.capped', 'Liste dolu. Aralığı daraltın.'))}</td></tr>` : '';
     body.innerHTML = html + cap;
   }
   if (cards) {
@@ -162,6 +254,7 @@ async function loadSpendPage() {
   const body = document.getElementById('spend-tbody');
   if (typeof mbIsSuperAdmin === 'function' && !mbIsSuperAdmin()) return;
   if (body) body.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(7) : '';
+  paintSpendHead();
   const range = spendRange();
   const firmId = document.getElementById('spend-firm')?.value || '';
   const firmQ = firmId ? `&firm_id=eq.${firmId}` : '';
@@ -172,6 +265,7 @@ async function loadSpendPage() {
     const q = `call_logs?select=id,started_at,phone,duration_sec,cost_usd,firm_id,recording_url&started_at=gte.${range.gte}&started_at=lte.${range.lte}${firmQ}&order=started_at.desc`;
     const rows = await mbFetchAll(q);
     _spendRows = rows || [];
+    paintSpendHead();
     spendPaint();
   } catch (e) {
     console.error(e);
