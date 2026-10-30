@@ -18,6 +18,7 @@ const MB_PAGES = [
   { key: 'stats', label: 'İstatistikler', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'agents', label: 'Personeller', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'firms', label: 'Firmalar', roles: ['super_admin'] },
+  { key: 'spend', label: 'Giderler', roles: ['super_admin'] },
   { key: 'firmdesk', label: 'Yönetim', roles: ['super_admin', 'admin', 'firm_admin'], inPerms: false },
   { key: 'settings', label: 'Ayarlar', roles: ['super_admin', 'admin', 'firm_admin', 'agent'] },
   { key: 'takvim', label: 'Takvim', roles: ['super_admin', 'admin', 'firm_admin', 'agent'] },
@@ -95,12 +96,13 @@ function mbIsFirmAdmin(role) {
   return ['admin', 'firm_admin', 'super_admin'].includes(r || '');
 }
 
-const MB_PERM_REV = 5;
+const MB_PERM_REV = 6;
 const MB_PERM_GRANTS = [
   { rev: 2, keys: ['supervisor', 'jobmarket', 'fieldops'] },
   { rev: 3, keys: ['geocon'] },
   { rev: 4, keys: ['tour'] },
   { rev: 5, keys: ['queues'] },
+  { rev: 6, keys: ['spend'] },
 ];
 
 function mbMergeStoredPerms(list, role, settings) {

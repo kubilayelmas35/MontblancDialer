@@ -1828,6 +1828,13 @@ const MB_I18N = {
     'rep.status_col': 'Durum',
     'rep.break_col': 'Mola',
     'rep.pick_person': 'Temsilci seçin',
+    'spend.empty': 'Bu aralıkta çağrı yok.',
+    'spend.capped': 'Liste dolu. Aralığı daraltın.',
+    'spend.all': 'Tüm firmalar',
+    'spend.card.call': 'Çağrı tutarı',
+    'spend.card.rec': 'Kayıt tutarı',
+    'spend.card.music': 'Müzik tutarı',
+    'spend.card.total': 'Toplam tutar',
   },
   de: {
     'login.brand.sub': 'Callcenter',
@@ -3657,6 +3664,13 @@ const MB_I18N = {
     'rep.status_col': 'Status',
     'rep.break_col': 'Pause',
     'rep.pick_person': 'Agent wählen',
+    'spend.empty': 'Keine Anrufe in diesem Zeitraum.',
+    'spend.capped': 'Liste voll. Zeitraum enger wählen.',
+    'spend.all': 'Alle Firmen',
+    'spend.card.call': 'Anrufbetrag',
+    'spend.card.rec': 'Aufnahmebetrag',
+    'spend.card.music': 'Musikbetrag',
+    'spend.card.total': 'Gesamtbetrag',
   },
 };
 

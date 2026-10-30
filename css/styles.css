@@ -3475,6 +3475,13 @@ CAMPAIGNS
 .camp-grid--rows { display:block; }
 .camp-rows-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-2); }
 .camp-rows { width:100%; border-collapse:collapse; font-size:12px; }
+.spend-cards { display:flex; gap:10px; flex-wrap:wrap; margin:0 0 12px; }
+.spend-card { min-width:140px; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-2); }
+.spend-card small { display:block; color:var(--text-3); font-size:11px; margin-bottom:4px; }
+.spend-card b { font-variant-numeric:tabular-nums; font-weight:650; }
+.spend-num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.spend-rate { font-weight:650; }
+.spend-amt { display:block; margin-top:2px; font-size:11px; color:var(--text-3); }
 .camp-rows th {
   text-align:left; font-size:11px; font-weight:700; color:var(--text-3);
   padding:8px 10px; border-bottom:1px solid var(--border); white-space:nowrap; background:var(--bg-3);

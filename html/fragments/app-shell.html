@@ -347,6 +347,10 @@
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></span>
 <span data-tr="İş platformu" data-de="Auftragsplattform">İş platformu</span>
 </button>
+<button class="sb-item" onclick="navigate('spend')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 19V5M4 19h16"/><path d="M8 16v-5M12 16V8M16 16v-3"/></svg></span>
+<span data-tr="Giderler" data-de="Kosten">Giderler</span>
+</button>
 <button class="sb-item" onclick="navigate('muhasebe')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 12h8M8 16h5"/></svg></span>
 <span data-tr="Muhasebe" data-de="Buchhaltung">Muhasebe</span>
@@ -2429,6 +2433,40 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <button type="button" class="btn btn-primary btn-sm" id="firmdesk-edit" onclick="mbFirmDeskEdit()">Ücreti düzenle</button>
 </div>
 <div id="firmdesk-body" class="firmdesk"></div>
+</div>
+<div class="page" id="page-spend">
+<div class="page-hdr">
+<div>
+<div class="page-title" data-tr="Giderler" data-de="Kosten">Giderler</div>
+<div class="page-sub" data-tr="Kalın satır dakika fiyatı, alt satır bu çağrının tutarı. Sol yayınlanan Telnyx USD, sağ bakiyeden düşülen. Almanya hattı yerel listedeki fiyat. Kayıt yalnız Telnyx kaydı açıksa 0,002. Müzik 0." data-de="Fette Zeile ist der Minutenpreis, darunter der Betrag dieses Anrufs. Links veröffentlichter Telnyx-USD-Preis, rechts vom Guthaben abgebucht. Deutschland ist der lokale Listenpreis. Aufnahme 0,002 nur bei Telnyx-Aufnahme. Musik 0.">Kalın satır dakika fiyatı, alt satır bu çağrının tutarı. Sol yayınlanan Telnyx USD, sağ bakiyeden düşülen. Almanya hattı yerel listedeki fiyat. Kayıt yalnız Telnyx kaydı açıksa 0,002. Müzik 0.</div>
+</div>
+<div class="page-hdr-actions">
+<select class="form-input" style="width:auto;" id="spend-firm" onchange="loadSpendPage()"></select>
+<select class="form-input" style="width:auto;" id="spend-range" onchange="loadSpendPage()">
+<option value="today" data-tr="Bugün" data-de="Heute">Bugün</option>
+<option value="week" data-tr="Bu hafta" data-de="Diese Woche">Bu hafta</option>
+<option value="month" data-tr="Bu ay" data-de="Dieser Monat">Bu ay</option>
+</select>
+<button type="button" class="btn btn-ghost btn-sm" onclick="loadSpendPage()" data-tr="Yenile" data-de="Aktualisieren">Yenile</button>
+</div>
+</div>
+<div class="spend-cards" id="spend-cards"></div>
+<div class="camp-rows-wrap">
+<table class="camp-rows">
+<thead>
+<tr>
+<th data-tr="Zaman" data-de="Zeit">Zaman</th>
+<th data-tr="Firma" data-de="Firma">Firma</th>
+<th class="num" data-tr="Süre" data-de="Dauer">Süre</th>
+<th class="num" data-tr="Çağrı" data-de="Anruf">Çağrı</th>
+<th class="num" data-tr="Kayıt" data-de="Aufnahme">Kayıt</th>
+<th class="num" data-tr="Müzik" data-de="Musik">Müzik</th>
+<th class="num" data-tr="Toplam" data-de="Summe">Toplam</th>
+</tr>
+</thead>
+<tbody id="spend-tbody"></tbody>
+</table>
+</div>
 </div>
 <div class="page" id="page-firms">
 <div class="page-hdr">

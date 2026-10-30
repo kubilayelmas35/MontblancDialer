@@ -103,6 +103,7 @@ const _NAVIGATE_LOADERS = {
   },
   supervisor: () => { _mbPageFn('loadSupervisorPanel')?.(); },
   firms: () => { _mbPageFn('loadFirmsPage')?.(); },
+  spend: () => { _mbPageFn('loadSpendPage')?.(); },
   firmdesk: () => { _mbPageFn('loadFirmDesk')?.(); },
   takvim: () => { _mbPageFn('loadTakvimPage')?.(); },
   leave: () => { _mbPageFn('loadLeavePage')?.(); },
