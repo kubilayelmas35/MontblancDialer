@@ -237,6 +237,7 @@ async function loadQcData() {
     window._qcResultCfg = resultCfg || [];
     window._qcResultMap = {};
     (window._qcResultCfg || []).forEach((r) => { window._qcResultMap[r.key] = r; });
+    if (typeof mbCacheAiStaff === 'function' && fid) await mbCacheAiStaff(fid);
     const ff = typeof getFirmFilter === 'function' ? getFirmFilter('&') : (fid ? `&firm_id=eq.${fid}` : '');
     const cols = 'id,slot_id,contact_id,termin_tarih,durum,nachname,telefonnummer,telefon2,strasse,plz,ortschaft,hausart,baujahr,qm,heizung,alter_der_heizung,verbrauch_pro_jahr,personen,interesse_an_pv,agent_notu,qc_notu,agent_id,campaign_id,customer_id,firm_id,form_ek';
     let dateQ = '';
@@ -604,9 +605,10 @@ function qcPaintBody() {
 <td>${custCell}</td>
 <td>${recHtml}</td>
 <td><span style="font-size:11px;font-weight:700;color:${_uiEsc(color)};">${_uiEsc(_qcResultLabel(key))}</span></td>
-<td><div style="display:flex;gap:3px;align-items:center;">
+<td><div style="display:flex;gap:3px;align-items:center;flex-wrap:wrap;">
 <button type="button" class="icon-btn" onclick="qcOpenPersonCard('${_uiEsc(row.id)}')" title="${_uiEsc(t('qc.card'))}"><i class="ph ph-user"></i></button>
 <button type="button" class="icon-btn" onclick="openQcDetail('${_uiEsc(row.id)}')" title="${_uiEsc(t('qc.detail'))}"><i class="ph ph-magnifying-glass"></i></button>
+${typeof qcCallinButton === 'function' ? qcCallinButton(row) : ''}
 ${assignBtn}${resultBtn}
 </div></td>
 </tr>`;
@@ -641,6 +643,7 @@ function openQcDetail(id) {
 <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px;">
 <div style="font-size:12px;color:var(--text-3);">${_uiEsc(wall.time || '—')} · ${_uiEsc(wall.day || '')} ${moved}</div>
 <button type="button" class="btn btn-ghost btn-sm" onclick="qcOpenPersonCard('${_uiEsc(row.id)}')">${_uiEsc(t('qc.card'))}</button>
+${typeof qcCallinButton === 'function' ? qcCallinButton(row) : ''}
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">${fields}</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-top:8px;">

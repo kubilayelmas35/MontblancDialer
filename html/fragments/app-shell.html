@@ -561,6 +561,11 @@
 <div class="page-sub" data-tr="Boş güne kampanya seçer ve nedenini söyler. Sıra azalınca kişi yükler. Randevu alta inince yerine boş yer açar." data-de="Wählt die Kampagne am nächsten freien Tag und sagt warum. Wird die Reihe dünn, lädt sie Personen. Geht ein Termin nach unten, öffnet sie einen freien Platz.">Boş güne kampanya seçer ve nedenini söyler. Sıra azalınca kişi yükler. Randevu alta inince yerine boş yer açar.</div>
 </div>
 </div>
+<div class="callin-tabs" role="tablist">
+<button type="button" class="callin-tab is-on" role="tab" aria-selected="true" data-callin="auto" onclick="callinTab('auto')" data-tr="Otomatik" data-de="Automatisch">Otomatik</button>
+<button type="button" class="callin-tab" role="tab" aria-selected="false" data-callin="staff" onclick="callinTab('staff')" data-tr="YZ Personel" data-de="KI-Personal">YZ Personel</button>
+</div>
+<div id="callin-pane-auto">
 <div class="aria-run">
 <div class="aria-run-card">
 <div class="aria-run-line">
@@ -708,6 +713,10 @@
 <div id="tour-panel" class="tour-board"></div>
 </div>
 </div>
+<div id="callin-pane-staff" hidden>
+<div id="ai-staff-root"></div>
+</div>
+</div>
 <div class="page" id="page-queues">
 <div class="page-hdr">
 <div>
@@ -763,7 +772,6 @@
 <button class="cd-tab" data-tab="alanlar" onclick="switchCampTab('alanlar')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Alanlar" data-de="Felder">Alanlar</button>
 <button class="cd-tab" data-tab="termin-form" onclick="switchCampTab('termin-form')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Randevu Formu" data-de="Terminformular">Randevu Formu</button>
 <button class="cd-tab" data-tab="script" onclick="switchCampTab('script')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Konuşma metni" data-de="Gesprächsleitfaden">Konuşma metni</button>
-<button class="cd-tab" data-tab="agent" onclick="switchCampTab('agent')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Agent" data-de="Agent">Agent</button>
 <button class="cd-tab" data-tab="arama" onclick="switchCampTab('arama')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Arama" data-de="Anruf">Arama</button>
 <button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Mola/Sonuç" data-de="Pause/Ergebnis">Mola/Sonuç</button>
 <button class="cd-tab" data-tab="bildirim" onclick="switchCampTab('bildirim')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Bildirim" data-de="Hinweis">Bildirim</button>
@@ -849,9 +857,6 @@
 </div>
 <button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveCampScript()"><i class="ph ph-floppy-disk"></i> <span data-tr="Metni kaydet" data-de="Leitfaden speichern">Metni kaydet</span></button>
 </div>
-</div>
-<div id="cd-tab-agent" class="cd-tab-panel" style="display:none;">
-<div id="cd-agent-body"></div>
 </div>
 <div id="cd-tab-arama" class="cd-tab-panel" style="display:none;">
 <div style="display:flex;flex-direction:column;gap:14px;">
