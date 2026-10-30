@@ -274,6 +274,7 @@ if (panel) panel.style.display = '';
 if (tab === 'alanlar' && currentCampId) loadCampFieldsTab();
 if (tab === 'qc' && currentCampId) loadCampQcTab();
 if (tab === 'script' && currentCampId) loadCampScriptTab();
+if (tab === 'agent' && currentCampId) loadCampAgentTab();
 if (tab === 'arama' && currentCampId) loadCampAramaTab();
 if (tab === 'bildirim' && currentCampId) loadCampBildirimTab();
 if (tab === 'termin-form' && currentCampId) loadCampTerminFormTab();
@@ -983,6 +984,99 @@ function mbOutcomeBtnClass(row) {
   if (cat === 'negative') return 'ob-negative';
   if (cat === 'callback') return 'ob-callback';
   return 'ob-noanswer';
+}
+
+let _aiTabGen = 0;
+let _aiDraft = null;
+
+function mbAiEsc(value) {
+  return typeof escapeHtml === 'function' ? escapeHtml(value) : String(value ?? '');
+}
+
+function mbReadAgentDraft() {
+  const job = String(document.getElementById('cd-agent-job')?.value || 'off');
+  const rules = { ...(_aiDraft?.rules || {}) };
+  document.querySelectorAll('#cd-agent-rules [data-ai-key]').forEach((el) => {
+    const key = String(el.getAttribute('data-ai-key') || '').slice(0, 40);
+    const text = String(el.value || '').trim().slice(0, 240);
+    if (!key) return;
+    if (text) rules[key] = text;
+    else delete rules[key];
+  });
+  return { campId: typeof currentCampId !== 'undefined' ? currentCampId : '', job: job === 'sales' || job === 'qc' ? job : 'off', rules };
+}
+
+function mbAgentJobChanged() {
+  _aiDraft = mbReadAgentDraft();
+  loadCampAgentTab(_aiDraft);
+}
+
+async function loadCampAgentTab(draft) {
+  const gen = ++_aiTabGen;
+  const box = document.getElementById('cd-agent-body');
+  const camp = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === currentCampId);
+  if (!box || !camp) return;
+  const saved = (typeof mbCampSettings === 'function' ? mbCampSettings(camp).ai : null) || {};
+  const savedRules = saved.rules && typeof saved.rules === 'object' ? saved.rules : {};
+  let incoming = draft || null;
+  if (!incoming && _aiDraft?.campId === camp.id && document.getElementById('cd-agent-job')) incoming = mbReadAgentDraft();
+  const use = incoming && incoming.campId === camp.id ? incoming : { campId: camp.id, job: saved.job, rules: savedRules };
+  const job = use.job === 'sales' || use.job === 'qc' ? use.job : 'off';
+  const rules = use.rules && typeof use.rules === 'object' ? use.rules : {};
+  _aiDraft = { campId: camp.id, job, rules: { ...rules } };
+  let rows = [];
+  if (job === 'sales') {
+    rows = mbCampOutcomeRows(camp).filter((row) => row.enabled).map((row) => ({ key: row.key, label: row.label }));
+  } else if (job === 'qc') {
+    const list = typeof loadFirmAppointmentResults === 'function'
+      ? await loadFirmAppointmentResults(camp.firm_id)
+      : (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
+    if (gen !== _aiTabGen) return;
+    rows = (list || []).map((row) => ({
+      key: String(row.key || ''),
+      label: typeof mbResultLabel === 'function' ? mbResultLabel(row.key, row.label) : (row.label || row.key),
+    })).filter((row) => row.key);
+  }
+  if (gen !== _aiTabGen) return;
+  const say = (key, fb) => (typeof campT === 'function' ? campT(key, fb) : fb);
+  const hint = job === 'sales' ? say('camp.ai.sales_hint', '') : (job === 'qc' ? say('camp.ai.qc_hint', '') : say('camp.ai.off_hint', ''));
+  const ruleHtml = job === 'off' ? '' : (rows.length
+    ? `<div id="cd-agent-rules" style="display:flex;flex-direction:column;gap:8px;">${rows.map((row) => `<label class="form-row"><span class="form-label">${mbAiEsc(row.label)}</span><input class="form-input" data-ai-key="${mbAiEsc(row.key)}" maxlength="240" placeholder="${mbAiEsc(say('camp.ai.when', 'Ne zaman'))}" value="${mbAiEsc(rules[row.key] || '')}"></label>`).join('')}</div>`
+    : `<div style="font-size:12px;color:var(--text-3);">${mbAiEsc(say('camp.ai.empty', 'Seçilecek sonuç yok'))}</div>`);
+  box.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px;max-width:560px;">
+    <div class="form-row">
+      <label class="form-label" for="cd-agent-job">${mbAiEsc(say('camp.ai.job', 'İş'))}</label>
+      <select class="form-input" id="cd-agent-job" onchange="mbAgentJobChanged()">
+        <option value="off"${job === 'off' ? ' selected' : ''}>${mbAiEsc(say('camp.ai.off', 'Kapalı'))}</option>
+        <option value="sales"${job === 'sales' ? ' selected' : ''}>${mbAiEsc(say('camp.ai.sales', 'Satış'))}</option>
+        <option value="qc"${job === 'qc' ? ' selected' : ''}>${mbAiEsc(say('camp.ai.qc', 'Kalite'))}</option>
+      </select>
+    </div>
+    <div style="font-size:11px;color:var(--text-3);line-height:1.45;">${mbAiEsc(hint)}</div>
+    ${ruleHtml}
+    <button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="mbSaveCampAgent()">${mbAiEsc(say('camp.ai.save', 'Agent işini kaydet'))}</button>
+  </div>`;
+}
+
+async function mbSaveCampAgent() {
+  const camp = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === currentCampId);
+  if (!camp || typeof sb !== 'function') return;
+  const draft = mbReadAgentDraft();
+  const settings = { ...(typeof mbCampSettings === 'function' ? mbCampSettings(camp) : (camp.settings || {})) };
+  const prev = settings.ai && typeof settings.ai === 'object' ? settings.ai : {};
+  settings.ai = { ...prev, job: draft.job, rules: draft.rules };
+  try {
+    await sb(`campaigns?id=eq.${camp.id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings }),
+    });
+    camp.settings = settings;
+    _aiDraft = { campId: camp.id, job: draft.job, rules: { ...draft.rules } };
+    if (typeof toast === 'function') toast(typeof campT === 'function' ? campT('camp.ai.saved', 'Agent işi kaydedildi') : 'Agent işi kaydedildi', 'ok');
+  } catch (e) {
+    if (typeof toast === 'function') toast(e?.message || '', 'err');
+  }
 }
 
 function mbCampOutcomeRows(camp) {

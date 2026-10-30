@@ -282,7 +282,134 @@ function mbLineFirmBody(firm) {
       <button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="mbSaveFirmHoldMusic('${String(firm.id)}')">${mbLineEsc(mbLineT('hold.music.upload', 'Müziği kaydet'))}</button>
     </div>
   </div>`;
-  return `${secret}${smsBlock}${noiseBlock}${musicBlock}<button type="button" class="btn btn-primary" style="align-self:flex-start;" onclick="mbSaveLineFirm('${String(firm.id)}')"><i class="ph ph-floppy-disk"></i> ${mbLineEsc(mbLineT('line.save', 'Kaydet'))}</button>`;
+  return `${secret}${smsBlock}${noiseBlock}${musicBlock}${mbLineAiBlock(firm)}<button type="button" class="btn btn-primary" style="align-self:flex-start;" onclick="mbSaveLineFirm('${String(firm.id)}')"><i class="ph ph-floppy-disk"></i> ${mbLineEsc(mbLineT('line.save', 'Kaydet'))}</button>`;
+}
+
+function mbFirmAi(settings) {
+  const ai = settings?.ai && typeof settings.ai === 'object' ? settings.ai : {};
+  const rate = Number(ai.rate);
+  const channels = Number(ai.concurrency);
+  return {
+    spoken_name: String(ai.spoken_name || '').trim().slice(0, 80),
+    lang: ai.lang === 'tr' ? 'tr' : 'de',
+    voice: ai.voice === 'female' || ai.voice === 'male' ? ai.voice : '',
+    rate: Number.isFinite(rate) && rate > 0 ? Math.round(rate * 1000) / 1000 : 0,
+    transfer: mbNormDid(ai.transfer) || '',
+    concurrency: channels === 2 || channels === 3 ? channels : 1,
+    forbid_price: ai.forbid_price !== false,
+    forbid_contract: ai.forbid_contract !== false,
+    forbid_other: ai.forbid_other !== false,
+  };
+}
+
+function mbAiFirmReady(settings) {
+  const ai = mbFirmAi(settings);
+  return !!(ai.spoken_name && ai.rate > 0);
+}
+
+function mbAiRateInput(raw) {
+  const text = String(raw || '').trim().replace(',', '.');
+  if (!text) return 0;
+  if (!/^\d+(\.\d{1,3})?$/.test(text)) return null;
+  const n = Number(text);
+  if (!Number.isFinite(n) || n <= 0 || n > 99) return null;
+  return Math.round(n * 1000) / 1000;
+}
+
+function mbLineAiBlock(firm) {
+  const ai = mbFirmAi(firm.settings);
+  const ready = mbAiFirmReady(firm.settings);
+  const opt = (value, current, label) => `<option value="${mbLineEsc(value)}"${value === current ? ' selected' : ''}>${mbLineEsc(label)}</option>`;
+  const check = (id, on, label) => `<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" id="${id}"${on ? ' checked' : ''}> <span>${mbLineEsc(label)}</span></label>`;
+  return `<div class="line-firm-block" style="display:flex;flex-direction:column;gap:8px;">
+    <div class="form-label">${mbLineEsc(mbLineT('line.ai', 'Agent'))}</div>
+    <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.ai.hint', ''))}</div>
+    <div style="font-size:12px;font-weight:700;">${mbLineEsc(ready ? mbLineT('line.ai.ready', '') : mbLineT('line.ai.idle', ''))}</div>
+    <div class="form-row">
+      <label class="form-label" for="line-ai-name">${mbLineEsc(mbLineT('line.ai.name', 'Söylenecek şirket adı'))}</label>
+      <input class="form-input" id="line-ai-name" maxlength="80" autocomplete="off" placeholder="${mbLineEsc(mbLineT('line.ai.name_ph', ''))}" value="${mbLineEsc(ai.spoken_name)}">
+    </div>
+    <div class="form-row">
+      <label class="form-label" for="line-ai-lang">${mbLineEsc(mbLineT('line.ai.lang', 'Dil'))}</label>
+      <select class="form-input" id="line-ai-lang">
+        ${opt('de', ai.lang, mbLineT('line.ai.lang.de', 'Almanca'))}
+        ${opt('tr', ai.lang, mbLineT('line.ai.lang.tr', 'Türkçe'))}
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label" for="line-ai-voice">${mbLineEsc(mbLineT('line.ai.voice', 'Ses'))}</label>
+      <select class="form-input" id="line-ai-voice">
+        ${opt('', ai.voice, mbLineT('line.ai.voice.default', 'Varsayılan'))}
+        ${opt('female', ai.voice, mbLineT('line.ai.voice.female', 'Kadın'))}
+        ${opt('male', ai.voice, mbLineT('line.ai.voice.male', 'Erkek'))}
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label" for="line-ai-rate">${mbLineEsc(mbLineT('line.ai.rate', 'AI dakika fiyatı'))}</label>
+      <input class="form-input" id="line-ai-rate" inputmode="decimal" autocomplete="off" placeholder="0.08" value="${ai.rate > 0 ? mbLineEsc(String(ai.rate)) : ''}">
+      <div style="font-size:11px;color:var(--text-3);margin-top:3px;">${mbLineEsc(mbLineT('line.ai.rate_hint', ''))}</div>
+    </div>
+    <div class="form-row">
+      <label class="form-label" for="line-ai-transfer">${mbLineEsc(mbLineT('line.ai.transfer', 'İnsana aktar'))}</label>
+      <input class="form-input" id="line-ai-transfer" maxlength="20" autocomplete="off" placeholder="+49301234567" value="${mbLineEsc(ai.transfer)}">
+    </div>
+    <div class="form-row">
+      <label class="form-label" for="line-ai-channels">${mbLineEsc(mbLineT('line.ai.channels', 'Aynı anda'))}</label>
+      <select class="form-input" id="line-ai-channels">
+        ${opt('1', String(ai.concurrency), '1')}
+        ${opt('2', String(ai.concurrency), '2')}
+        ${opt('3', String(ai.concurrency), '3')}
+      </select>
+    </div>
+    ${check('line-ai-price', ai.forbid_price, mbLineT('line.ai.forbid_price', 'Fiyat söylemesin'))}
+    ${check('line-ai-contract', ai.forbid_contract, mbLineT('line.ai.forbid_contract', 'Sözleşme konuşmasın'))}
+    ${check('line-ai-other', ai.forbid_other, mbLineT('line.ai.forbid_other', 'Başka şirket adı vermesin'))}
+    <button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="mbSaveFirmAi('${String(firm.id)}')">${mbLineEsc(mbLineT('line.ai.save', 'Agent ayarını kaydet'))}</button>
+  </div>`;
+}
+
+async function mbSaveFirmAi(firmId) {
+  if (!firmId || typeof sb !== 'function') return;
+  if (typeof mbCanSetHoldMusic === 'function' && !mbCanSetHoldMusic(firmId)) return;
+  const rate = mbAiRateInput(document.getElementById('line-ai-rate')?.value);
+  if (rate == null) {
+    toast(mbLineT('line.ai.rate_bad', 'Dakika fiyatı sayı olsun, örnek 0.08'), 'err');
+    return;
+  }
+  const transferRaw = String(document.getElementById('line-ai-transfer')?.value || '').trim();
+  const transfer = transferRaw ? mbNormDid(transferRaw) : '';
+  if (transferRaw && !transfer) {
+    toast(mbLineT('line.ai.transfer_bad', 'Aktarma + ile başlamalı, örnek +49301234567'), 'err');
+    return;
+  }
+  const channels = Number(document.getElementById('line-ai-channels')?.value);
+  const ai = {
+    spoken_name: String(document.getElementById('line-ai-name')?.value || '').trim().slice(0, 80),
+    lang: document.getElementById('line-ai-lang')?.value === 'tr' ? 'tr' : 'de',
+    voice: ['female', 'male'].includes(document.getElementById('line-ai-voice')?.value) ? document.getElementById('line-ai-voice').value : '',
+    rate,
+    transfer,
+    concurrency: channels === 2 || channels === 3 ? channels : 1,
+    forbid_price: !!document.getElementById('line-ai-price')?.checked,
+    forbid_contract: !!document.getElementById('line-ai-contract')?.checked,
+    forbid_other: !!document.getElementById('line-ai-other')?.checked,
+  };
+  try {
+    const rows = await sb(`firms?id=eq.${firmId}&select=settings`);
+    const settings = { ...(rows?.[0]?.settings || {}) };
+    settings.ai = ai;
+    await sb(`firms?id=eq.${firmId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings }),
+    });
+    const hit = _lineRows.find((row) => String(row.id) === String(firmId));
+    if (hit) hit.settings = settings;
+    toast(mbLineT('line.ai.saved', 'Agent ayarı kaydedildi'), 'ok');
+    mbPaintLineList();
+  } catch (e) {
+    toast((typeof t === 'function' ? t('dial.log_err') : 'Kayıt hatası: ') + (e?.message || ''), 'err');
+  }
 }
 
 function mbNoiseGrantToggle(firmId) {
