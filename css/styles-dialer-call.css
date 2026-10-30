@@ -884,13 +884,14 @@ button.aca-qpick.is-on { background:var(--accent); color:#fff; border-color:var(
   display:flex; align-items:center; justify-content:space-between; gap:12px;
   font-size:12px; font-weight:700; color:var(--text);
 }
-.mic-switch__name { display:inline-flex; align-items:center; gap:6px; min-width:0; }
+.mic-switch__name { display:inline-flex; align-items:center; gap:4px; min-width:0; }
 .mic-info {
   display:inline-flex; align-items:center; justify-content:center;
-  width:15px; height:15px; border-radius:50%; border:1px solid var(--text-3);
-  color:var(--text-3); font-size:10px; font-weight:800; font-style:italic;
+  width:13px; height:13px; margin:0; padding:0; border:0; background:none;
+  color:var(--text-3); font-style:normal; font-weight:400;
   line-height:1; cursor:help; position:relative; flex:0 0 auto;
 }
+.mic-info .ph-info { font-size:13px; line-height:1; }
 .mic-info__tip {
   display:none; position:absolute; left:0; top:calc(100% + 6px); width:230px;
   padding:8px 10px; border-radius:8px; background:var(--text); color:var(--bg-1);
@@ -918,6 +919,7 @@ button.aca-qpick.is-on { background:var(--accent); color:#fff; border-color:var(
 }
 .mic-ns-step.is-on { background:var(--accent); color:#fff; border-color:transparent; }
 .mic-ns-dirs { display:flex; flex-direction:column; gap:8px; }
+#mic-ns-advanced:not([hidden]) { display:flex; flex-direction:column; gap:14px; }
 .mic-ns-dirs[hidden],
 #line-noise-agents[hidden],
 #line-noise-all[hidden],
@@ -925,6 +927,7 @@ button.aca-qpick.is-on { background:var(--accent); color:#fff; border-color:var(
 .mic-drawer__sliders { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; }
 .mic-drawer__slider { display:flex; flex-direction:column; gap:4px; font-size:11px; font-weight:650; color:var(--text-2); }
 .mic-drawer__slider-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.mic-drawer__slider-name { display:inline-flex; align-items:center; gap:4px; min-width:0; }
 .mic-drawer__val { font-variant-numeric:tabular-nums; font-weight:800; color:var(--text); }
 .mic-drawer__slider input[type="range"] { width:100%; accent-color:var(--accent); }
 .mic-drawer__hint { font-size:11px; color:var(--text-3); margin-top:6px; line-height:1.4; }
