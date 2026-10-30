@@ -370,7 +370,7 @@ function qcAskCallin(apptId) {
     <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
       <button type="button" class="btn btn-ghost btn-sm" onclick="qcCloseCallin()">${mbAiEsc(mbAiSay('qc.callin.cancel', 'Vazgeç'))}</button>
       <button type="button" class="btn btn-ghost btn-sm" onclick="qcConfirmCallin('${mbAiEsc(row.id)}','${mbAiEsc(staff.id)}',true)">${mbAiEsc(mbAiSay('qc.callin.direct', 'Direkt kalite kontrol yap'))}</button>
-      <button type="button" class="btn btn-primary btn-sm" onclick="qcConfirmCallin('${mbAiEsc(row.id)}','${mbAiEsc(staff.id)}',false)">${mbAiEsc(mbAiSay('qc.callin.note', 'Bu notla hazırla'))}</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="qcConfirmCallin('${mbAiEsc(row.id)}','${mbAiEsc(staff.id)}',false)">${mbAiEsc(mbAiSay('qc.callin.note', 'Bu notla ara'))}</button>
     </div>
   </div>`;
   pop.addEventListener('click', (event) => { if (event.target === pop) qcCloseCallin(); });
@@ -381,10 +381,32 @@ function qcCloseCallin() {
   document.getElementById('ai-callin-pop')?.remove();
 }
 
-function qcConfirmCallin(apptId, staffId, direct) {
+async function mbTelnyxAi(action, payload) {
+  if (typeof SB_URL !== 'string' || !SB_URL) return { ok: false, error: 'fail' };
+  const headers = typeof mbAuthHeaders === 'function' ? mbAuthHeaders() : { 'Content-Type': 'application/json' };
+  try {
+    const res = await fetch(`${SB_URL}/functions/v1/telnyx-ai`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ action, ...(payload || {}) }),
+    });
+    return await res.json().catch(() => ({ ok: false, error: 'fail' }));
+  } catch (e) {
+    return { ok: false, error: 'fail' };
+  }
+}
+
+async function qcConfirmCallin(apptId, staffId, direct) {
+  const pop = document.getElementById('ai-callin-pop');
+  pop?.querySelectorAll('button').forEach((btn) => { btn.disabled = true; });
   const note = direct ? '' : String(document.getElementById('ai-callin-note')?.value || '').trim().slice(0, 800);
-  window._aiCallNotes = window._aiCallNotes || {};
-  window._aiCallNotes[apptId] = { staffId, note, at: Date.now() };
+  const res = await mbTelnyxAi('place', { appointment_id: apptId, staff_id: staffId, note });
+  if (!res?.ok) {
+    pop?.querySelectorAll('button').forEach((btn) => { btn.disabled = false; });
+    const key = { gate: 'qc.callin.gate', results: 'qc.callin.gate', phone: 'qc.callin.phone', busy: 'qc.callin.busy' }[res?.error] || 'qc.callin.fail';
+    if (typeof toast === 'function') toast(mbAiSay(key, 'Arama çıkmadı.'), 'err');
+    return;
+  }
   qcCloseCallin();
-  if (typeof toast === 'function') toast(mbAiSay('qc.callin.later', 'Arama henüz çıkmıyor. Not duruyor, hat bağlanınca bu randevu için kullanılır.'), 'ok');
+  if (typeof toast === 'function') toast(mbAiSay('qc.callin.started', 'Arama çıktı. Karşı taraf açınca konuşma başlar.'), 'ok');
 }

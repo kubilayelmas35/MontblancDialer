@@ -1,0 +1,590 @@
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import {
+  allowedChoices,
+  berlinClock,
+  berlinDay,
+  buildAiBrief,
+  clip,
+  fieldLines,
+  normDid,
+  normKey,
+  resultAllowed,
+  type AiChoice,
+} from './instruct.ts';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-mb-session, x-mb-user-id, x-mb-firm-id, x-mb-role',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MODEL = 'Qwen/Qwen3-235B-A22B';
+const APPT_COLS = ['nachname', 'telefonnummer', 'telefon2', 'strasse', 'plz', 'ortschaft', 'hausart', 'baujahr', 'qm', 'heizung', 'alter_der_heizung', 'verbrauch_pro_jahr', 'personen', 'interesse_an_pv'];
+
+function json(data: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+function adminClient() {
+  return createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    { auth: { persistSession: false } },
+  );
+}
+
+function packState(data: Record<string, string>) {
+  const bytes = new TextEncoder().encode(JSON.stringify(data));
+  let bin = '';
+  bytes.forEach((byte) => { bin += String.fromCharCode(byte); });
+  return btoa(bin);
+}
+
+function unpackState(value: unknown) {
+  try {
+    const raw = atob(String(value || ''));
+    const bytes = Uint8Array.from(raw, (ch) => ch.charCodeAt(0));
+    const parsed = JSON.parse(new TextDecoder().decode(bytes));
+    return parsed && typeof parsed === 'object' ? parsed as Record<string, string> : null;
+  } catch {
+    return null;
+  }
+}
+
+function tokenOk(token: string) {
+  return /^[a-f0-9]{32}$/.test(token);
+}
+
+function newToken() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function b64(value: string) {
+  const raw = atob(value);
+  return Uint8Array.from(raw, (ch) => ch.charCodeAt(0));
+}
+
+async function verifySignature(raw: string, req: Request) {
+  const publicKey = String(Deno.env.get('TELNYX_PUBLIC_KEY') || '').trim();
+  if (!publicKey) return true;
+  const signature = String(req.headers.get('telnyx-signature-ed25519') || '');
+  const timestamp = String(req.headers.get('telnyx-timestamp') || '');
+  if (!signature || !timestamp) return false;
+  try {
+    const key = await crypto.subtle.importKey('raw', b64(publicKey), { name: 'Ed25519' }, false, ['verify']);
+    const payload = new TextEncoder().encode(`${timestamp}|${raw}`);
+    return await crypto.subtle.verify('Ed25519', key, b64(signature), payload);
+  } catch {
+    return false;
+  }
+}
+
+async function telnyx(key: string, path: string, body: Record<string, unknown>) {
+  const res = await fetch(`https://api.telnyx.com/v2/${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+function lineFrom(settings: Record<string, any>) {
+  const direct = normDid(settings.line_default) || normDid(settings.dialer?.outbound_did);
+  if (direct) return direct;
+  const nums = Array.isArray(settings.line_numbers) ? settings.line_numbers : [];
+  for (const item of nums) {
+    const hit = normDid(item);
+    if (hit) return hit;
+  }
+  return '';
+}
+
+function firmAi(settings: Record<string, any>) {
+  const ai = settings.ai && typeof settings.ai === 'object' ? settings.ai : {};
+  return {
+    spoken_name: clip(ai.spoken_name, 80),
+    lang: ai.lang === 'tr' ? 'tr' as const : 'de' as const,
+    voice: ai.voice === 'female' || ai.voice === 'male' ? ai.voice : '',
+    rate: Number(ai.rate) > 0 ? Number(ai.rate) : 0,
+    transfer: normDid(ai.transfer),
+    forbidPrice: ai.forbid_price !== false,
+    forbidContract: ai.forbid_contract !== false,
+    forbidOther: ai.forbid_other !== false,
+    qcAssistant: clip(ai.qc_assistant_id, 80),
+  };
+}
+
+function staffOf(settings: Record<string, any>, staffId: string, campaignId: string) {
+  const raw = Array.isArray(settings.ai_staff) ? settings.ai_staff : [];
+  const hit = raw.find((row: any) => String(row?.id || '') === staffId);
+  if (!hit) return { error: 'staff' as const };
+  if (hit.kind !== 'qc') return { error: 'kind' as const };
+  const camp = String(hit.campaign_id || '');
+  if (camp && camp !== campaignId) return { error: 'staff' as const };
+  const results = Array.isArray(hit.results) ? hit.results.map((key: unknown) => normKey(key)).filter(Boolean) : [];
+  return { id: staffId, prompt: clip(hit.prompt, 800), results };
+}
+
+function resultChoices(settings: Record<string, any>): AiChoice[] {
+  const raw = Array.isArray(settings.appointment_results) ? settings.appointment_results : [];
+  if (!raw.length) {
+    return [
+      { key: 'basarili', label: 'Başarılı' },
+      { key: 'basarisiz', label: 'Başarısız' },
+      { key: 'beklemede', label: 'Beklemede' },
+      { key: 'ulasilamadi', label: 'Ulaşılamadı' },
+      { key: 'iptal', label: 'İptal' },
+    ];
+  }
+  return raw.map((row: any) => ({ key: normKey(row?.key), label: clip(row?.label || row?.key, 80) })).filter((row: AiChoice) => row.key);
+}
+
+function contactStatus(key: string, settings: Record<string, any>) {
+  const raw = Array.isArray(settings.appointment_results) ? settings.appointment_results : [];
+  const hit = raw.find((row: any) => normKey(row?.key) === key);
+  const saved = clip(hit?.contact_status, 80);
+  if (saved) return saved;
+  const map: Record<string, string> = {
+    basarili: 'başarılı',
+    basarisiz: 'başarısız',
+    beklemede: 'beklemede',
+    ulasilamadi: 'ulaşılamadı',
+    iptal: 'iptal',
+  };
+  return map[key] || key.replaceAll('_', ' ');
+}
+
+function whenText(appt: Record<string, any>) {
+  const raw = String(appt.termin_tarih || '');
+  if (raw.length >= 16) return `${raw.slice(0, 10)} ${raw.slice(11, 16)}`;
+  return raw.slice(0, 40);
+}
+
+async function ensureAssistant(key: string, settings: Record<string, any>, firmId: string, admin: SupabaseClient) {
+  const ai = firmAi(settings);
+  if (ai.qcAssistant) return ai.qcAssistant;
+  let made = await telnyx(key, 'ai/assistants', {
+    name: 'Callin Kalite',
+    model: MODEL,
+    instructions: 'Per-call instructions replace this text.',
+  });
+  if (!made.ok) {
+    made = await telnyx(key, 'ai/assistants', {
+      name: 'Callin Kalite',
+      instructions: 'Per-call instructions replace this text.',
+    });
+  }
+  const id = clip(made.data?.data?.id || made.data?.id, 80);
+  if (!made.ok || !id) return '';
+  const { data: fresh } = await admin.from('firms').select('settings').eq('id', firmId).maybeSingle();
+  const current = (fresh?.settings || settings) as Record<string, any>;
+  const next = { ...(current.ai || {}), qc_assistant_id: id };
+  await admin.from('firms').update({ settings: { ...current, ai: next } }).eq('id', firmId);
+  settings.ai = next;
+  return id;
+}
+
+function toolDefs(url: string) {
+  const hook = (name: string, description: string, toolUrl: string, properties: Record<string, unknown>) => ({
+    type: 'webhook',
+    webhook: {
+      name,
+      description,
+      url: toolUrl,
+      method: 'POST',
+      body_parameters: { type: 'object', properties },
+    },
+  });
+  return [
+    hook('takvim_bak', 'List free appointment times in Europe/Berlin. Offer only returned times.', `${url}&tool=takvim_bak`, {
+      date: { type: 'string', description: 'YYYY-MM-DD, optional' },
+      after: { type: 'string', description: 'HH:MM, optional' },
+    }),
+    hook('sonuc_yaz', 'Write one allowed result key and optional corrected fields or a free slot id.', `${url}&tool=sonuc_yaz`, {
+      result: { type: 'string', description: 'Allowed result key' },
+      note: { type: 'string', description: 'Short note' },
+      slot_id: { type: 'string', description: 'Free slot id from takvim_bak, optional' },
+      fields: { type: 'object', description: 'Corrected form fields' },
+    }),
+    hook('insana_aktar', 'Transfer the call to the saved human number.', `${url}&tool=insana_aktar`, {}),
+  ];
+}
+
+function assistantBody(assistantId: string, brief: { instructions: string; greeting: string; voice: string }, url: string, withVoice: boolean) {
+  const assistant: Record<string, unknown> = {
+    id: assistantId,
+    instructions: brief.instructions,
+    greeting: brief.greeting,
+    tools: toolDefs(url),
+  };
+  if (withVoice) assistant.voice_settings = { voice: brief.voice };
+  return assistant;
+}
+
+async function startAssistant(key: string, control: string, assistantId: string, brief: { instructions: string; greeting: string; voice: string }, url: string) {
+  const path = `calls/${encodeURIComponent(control)}/actions/ai_assistant_start`;
+  const first = await telnyx(key, path, {
+    assistant: assistantBody(assistantId, brief, url, false),
+    voice: brief.voice,
+    voice_settings: { type: 'aws' },
+  });
+  if (first.ok || first.status !== 422) return first;
+  return telnyx(key, path, { assistant: assistantBody(assistantId, brief, url, true) });
+}
+
+async function loadByToken(admin: SupabaseClient, token: string) {
+  if (!tokenOk(token)) return null;
+  const { data } = await admin.from('appointments').select('*').filter('form_ek->>callin_token', 'eq', token).maybeSingle();
+  return data;
+}
+
+async function mergeEk(admin: SupabaseClient, appt: Record<string, any>, patch: Record<string, unknown>) {
+  const ek = { ...(appt.form_ek && typeof appt.form_ek === 'object' ? appt.form_ek : {}), ...patch };
+  const { error } = await admin.from('appointments').update({ form_ek: ek }).eq('id', appt.id);
+  if (!error) appt.form_ek = ek;
+  return !error;
+}
+
+async function placeCall(admin: SupabaseClient, user: Record<string, any>, body: Record<string, any>) {
+  const appointmentId = String(body.appointment_id || '');
+  const staffId = String(body.staff_id || '');
+  if (!uuidRe.test(appointmentId) || !staffId) return json({ ok: false, error: 'id' }, 400);
+  const { data: appt } = await admin.from('appointments').select('*').eq('id', appointmentId).maybeSingle();
+  if (!appt) return json({ ok: false, error: 'missing' }, 404);
+  const role = String(user.role || '');
+  if (!['super_admin', 'admin', 'firm_admin', 'qc'].includes(role)) return json({ ok: false, error: 'auth' }, 403);
+  if (role !== 'super_admin' && String(user.firm_id || '') !== String(appt.firm_id || '')) return json({ ok: false, error: 'auth' }, 403);
+  const { data: firm } = await admin.from('firms').select('settings').eq('id', appt.firm_id).maybeSingle();
+  const settings = (firm?.settings || {}) as Record<string, any>;
+  const staff = staffOf(settings, staffId, String(appt.campaign_id || ''));
+  if ('error' in staff) return json({ ok: false, error: staff.error }, 400);
+  const ai = firmAi(settings);
+  const choices = allowedChoices('qc', staff.results, resultChoices(settings));
+  const extra = appt.form_ek && typeof appt.form_ek === 'object' ? appt.form_ek : {};
+  const note = clip(body.note, 800);
+  const brief = buildAiBrief({
+    kind: 'qc',
+    lang: ai.lang,
+    company: ai.spoken_name,
+    rate: ai.rate,
+    prompt: staff.prompt,
+    note,
+    forbidPrice: ai.forbidPrice,
+    forbidContract: ai.forbidContract,
+    forbidOther: ai.forbidOther,
+    transfer: ai.transfer,
+    voice: ai.voice,
+    allowed: choices,
+    fields: fieldLines(ai.lang, appt, extra),
+    when: whenText(appt),
+  });
+  if (!brief.ok) return json({ ok: false, error: brief.error }, 400);
+  const to = normDid(appt.telefonnummer);
+  if (!to) return json({ ok: false, error: 'phone' }, 400);
+  const { data: camp } = await admin.from('campaigns').select('telnyx_did').eq('id', appt.campaign_id).maybeSingle();
+  const from = normDid(camp?.telnyx_did) || lineFrom(settings);
+  const connection = clip(settings.integrations?.sip_connection_id, 80);
+  const key = clip(settings.integrations?.telnyx_api_key, 200);
+  if (!key) return json({ ok: false, error: 'nokey' }, 400);
+  if (!connection) return json({ ok: false, error: 'noconnection' }, 400);
+  if (!from) return json({ ok: false, error: 'nodid' }, 400);
+  const state = String(extra.callin_state || '');
+  const at = Date.parse(String(extra.callin_at || ''));
+  if (state === 'dialing' && at && Date.now() - at < 120000) return json({ ok: false, error: 'busy' }, 409);
+  const assistantId = await ensureAssistant(key, settings, String(appt.firm_id), admin);
+  if (!assistantId) return json({ ok: false, error: 'assistant' }, 502);
+  const token = newToken();
+  const base = String(Deno.env.get('SUPABASE_URL') || '').replace(/\/$/, '');
+  const hook = `${base}/functions/v1/telnyx-ai?callin=${token}`;
+  const saved = await mergeEk(admin, appt, {
+    callin_note: note,
+    callin_staff_id: staff.id,
+    callin_token: token,
+    callin_state: 'dialing',
+    callin_at: new Date().toISOString(),
+    callin_error: '',
+    callin_billed: '',
+    callin_started: '',
+    callin_warm: '',
+  });
+  if (!saved) return json({ ok: false, error: 'save' }, 500);
+  const callBody = {
+    connection_id: connection,
+    to,
+    from,
+    webhook_url: hook,
+    webhook_url_method: 'POST',
+    client_state: packState({ token, appointment_id: appointmentId, firm_id: String(appt.firm_id) }),
+  };
+  let dial = await telnyx(key, 'calls', {
+    ...callBody,
+    assistant: assistantBody(assistantId, brief, hook, true),
+  });
+  let control = clip(dial.data?.data?.call_control_id || '', 120);
+  let warm = !!(dial.ok && control);
+  if (!dial.ok) {
+    dial = await telnyx(key, 'calls', callBody);
+    control = clip(dial.data?.data?.call_control_id || '', 120);
+    warm = false;
+  }
+  if (!dial.ok || !control) {
+    await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'dial' });
+    return json({ ok: false, error: 'dial' }, 502);
+  }
+  await mergeEk(admin, appt, { callin_control: control, callin_warm: warm ? '1' : '' });
+  return json({ ok: true });
+}
+
+async function onAnswer(admin: SupabaseClient, appt: Record<string, any>, control: string) {
+  const extra = appt.form_ek || {};
+  if (extra.callin_started === '1' || String(extra.callin_warm || '') === '1') return;
+  const saved = String(extra.callin_control || '');
+  if (saved && saved !== control) return;
+  if (!saved) await mergeEk(admin, appt, { callin_control: control });
+  const { data: firm } = await admin.from('firms').select('settings').eq('id', appt.firm_id).maybeSingle();
+  const settings = (firm?.settings || {}) as Record<string, any>;
+  const staff = staffOf(settings, String(extra.callin_staff_id || ''), String(appt.campaign_id || ''));
+  const ai = firmAi(settings);
+  const key = clip(settings.integrations?.telnyx_api_key, 200);
+  if ('error' in staff || !key || !ai.qcAssistant) {
+    if (key) await telnyx(key, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
+    await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'start' });
+    return;
+  }
+  const choices = allowedChoices('qc', staff.results, resultChoices(settings));
+  const brief = buildAiBrief({
+    kind: 'qc',
+    lang: ai.lang,
+    company: ai.spoken_name,
+    rate: ai.rate,
+    prompt: staff.prompt,
+    note: clip(extra.callin_note, 800),
+    forbidPrice: ai.forbidPrice,
+    forbidContract: ai.forbidContract,
+    forbidOther: ai.forbidOther,
+    transfer: ai.transfer,
+    voice: ai.voice,
+    allowed: choices,
+    fields: fieldLines(ai.lang, appt, extra),
+    when: whenText(appt),
+  });
+  if (!brief.ok) {
+    await telnyx(key, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
+    await mergeEk(admin, appt, { callin_state: 'idle', callin_error: brief.error });
+    return;
+  }
+  const base = String(Deno.env.get('SUPABASE_URL') || '').replace(/\/$/, '');
+  const hook = `${base}/functions/v1/telnyx-ai?callin=${extra.callin_token}`;
+  const started = await startAssistant(key, control, ai.qcAssistant, brief, hook);
+  if (!started.ok) {
+    await telnyx(key, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
+    await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'start' });
+    return;
+  }
+  await mergeEk(admin, appt, { callin_started: '1' });
+}
+
+async function onHangup(admin: SupabaseClient, appt: Record<string, any>, payload: Record<string, any>) {
+  const extra = appt.form_ek || {};
+  if (String(extra.callin_billed || '') === '1') return;
+  const { data: firm } = await admin.from('firms').select('settings,balance').eq('id', appt.firm_id).maybeSingle();
+  const settings = (firm?.settings || {}) as Record<string, any>;
+  const rate = firmAi(settings).rate;
+  const direct = Number(payload.duration_secs ?? payload.duration_sec ?? 0);
+  let sec = direct > 0 ? direct : 0;
+  const start = Date.parse(String(payload.start_time || ''));
+  const end = Date.parse(String(payload.end_time || ''));
+  if (!sec && start && end && end > start) sec = Math.round((end - start) / 1000);
+  const cost = sec > 0 && rate > 0 ? Math.round((sec / 60) * rate * 100) / 100 : 0;
+  const ek = {
+    ...(extra && typeof extra === 'object' ? extra : {}),
+    callin_billed: '1',
+    callin_state: 'done',
+    callin_sec: String(sec),
+    callin_cost: String(cost),
+  };
+  const { data: claimed } = await admin.from('appointments').update({ form_ek: ek }).eq('id', appt.id).eq('form_ek->>callin_billed', String(extra.callin_billed || '')).select('id');
+  if (!Array.isArray(claimed) || !claimed.length) return;
+  appt.form_ek = ek;
+  if (cost <= 0) return;
+  let balance = Number(firm?.balance || 0);
+  let wrote = false;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const next = Math.round((balance - cost) * 100) / 100;
+    const { data } = await admin.from('firms').update({ balance: next }).eq('id', appt.firm_id).eq('balance', balance).select('balance');
+    if (Array.isArray(data) && data.length) { wrote = true; break; }
+    const fresh = await admin.from('firms').select('balance').eq('id', appt.firm_id).maybeSingle();
+    balance = Number(fresh.data?.balance || 0);
+  }
+  if (!wrote) {
+    const next = Math.round((balance - cost) * 100) / 100;
+    await admin.from('firms').update({ balance: next }).eq('id', appt.firm_id);
+  }
+}
+
+async function freeSlots(admin: SupabaseClient, appt: Record<string, any>, args: Record<string, any>) {
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(String(args.date || '')) ? String(args.date) : '';
+  const after = /^\d{2}:\d{2}$/.test(String(args.after || '')) ? String(args.after) : '';
+  const today = berlinDay();
+  const now = berlinClock();
+  let query = admin.from('takvim_slots').select('id,tarih,baslangic_saat,bitis_saat,alta_tasindi').eq('campaign_id', appt.campaign_id).eq('firm_id', appt.firm_id).eq('durum', 'bos').eq('gun_kapali', false).gte('tarih', day || today).order('tarih', { ascending: true }).order('baslangic_saat', { ascending: true }).limit(80);
+  if (day) query = query.eq('tarih', day);
+  const { data } = await query;
+  const rows = (data || []).filter((slot) => {
+    if (slot.alta_tasindi) return false;
+    const time = String(slot.baslangic_saat || '').slice(0, 5);
+    if (slot.tarih === today && time <= now) return false;
+    if (after && slot.tarih === (day || today) && time <= after) return false;
+    return true;
+  }).slice(0, 8);
+  return {
+    result: rows.length ? rows.map((slot) => `${slot.tarih} ${String(slot.baslangic_saat || '').slice(0, 5)} id=${slot.id}`).join('\n') : 'no_free_time',
+  };
+}
+
+async function writeResult(admin: SupabaseClient, appt: Record<string, any>, args: Record<string, any>) {
+  const { data: firm } = await admin.from('firms').select('settings').eq('id', appt.firm_id).maybeSingle();
+  const settings = (firm?.settings || {}) as Record<string, any>;
+  const extra = appt.form_ek || {};
+  const staff = staffOf(settings, String(extra.callin_staff_id || ''), String(appt.campaign_id || ''));
+  if ('error' in staff) return { result: 'no_staff' };
+  const choices = allowedChoices('qc', staff.results, resultChoices(settings));
+  const key = normKey(args.result);
+  if (!resultAllowed('qc', key, choices.map((row) => row.key))) return { result: 'result_denied' };
+  const patch: Record<string, unknown> = { durum: key };
+  const extras: Record<string, string> = {};
+  const fields = args.fields && typeof args.fields === 'object' ? args.fields as Record<string, unknown> : {};
+  Object.entries(fields).forEach(([name, value]) => {
+    if (value && typeof value === 'object') return;
+    const col = normKey(name);
+    const text = clip(value, 180);
+    if (!col || !text || col.startsWith('callin_')) return;
+    if (APPT_COLS.includes(col)) patch[col] = text;
+    else if (/^[a-z0-9_]{1,40}$/.test(col)) extras[col] = text;
+  });
+  const note = clip(args.note, 500);
+  if (note) patch.qc_notu = note;
+  const slotId = String(args.slot_id || '');
+  if (uuidRe.test(slotId)) {
+    const { data: slot } = await admin.from('takvim_slots').select('id,tarih,baslangic_saat,durum,campaign_id,firm_id,gun_kapali,alta_tasindi').eq('id', slotId).maybeSingle();
+    const time = String(slot?.baslangic_saat || '').slice(0, 5);
+    const open = slot && slot.durum === 'bos' && !slot.gun_kapali && !slot.alta_tasindi && String(slot.campaign_id) === String(appt.campaign_id) && String(slot.firm_id) === String(appt.firm_id);
+    if (!open) return { result: 'slot_taken' };
+    const { data: moved } = await admin.from('takvim_slots').update({ durum: 'dolu', appointment_id: appt.id, kilitli_agent_id: null, kilitli_at: null }).eq('id', slotId).eq('durum', 'bos').select('id');
+    if (!Array.isArray(moved) || !moved.length) return { result: 'slot_taken' };
+    if (appt.slot_id && appt.slot_id !== slotId) {
+      await admin.from('takvim_slots').update({ durum: 'bos', appointment_id: null }).eq('id', appt.slot_id);
+    }
+    patch.slot_id = slotId;
+    patch.termin_tarih = `${slot.tarih}T${time}:00`;
+  }
+  const { data: live } = await admin.from('appointments').select('form_ek').eq('id', appt.id).maybeSingle();
+  const ek = { ...(live?.form_ek && typeof live.form_ek === 'object' ? live.form_ek : extra), ...extras };
+  patch.form_ek = ek;
+  const { error } = await admin.from('appointments').update(patch).eq('id', appt.id);
+  if (error) {
+    if (uuidRe.test(slotId)) {
+      await admin.from('takvim_slots').update({ durum: 'bos', appointment_id: null }).eq('id', slotId);
+      if (appt.slot_id && appt.slot_id !== slotId) {
+        await admin.from('takvim_slots').update({ durum: 'dolu', appointment_id: appt.id }).eq('id', appt.slot_id);
+      }
+    }
+    return { result: 'save_failed' };
+  }
+  if (appt.contact_id) {
+    await admin.from('contacts').update({ status: contactStatus(key, settings) }).eq('id', appt.contact_id);
+  }
+  const { data: fresh } = await admin.from('firms').select('settings').eq('id', appt.firm_id).maybeSingle();
+  const callKey = clip((fresh.data?.settings || settings).integrations?.telnyx_api_key, 200);
+  const control = clip(extra.callin_control, 120);
+  if (callKey && control) await telnyx(callKey, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
+  return { result: `saved ${key}` };
+}
+
+async function transferCall(admin: SupabaseClient, appt: Record<string, any>) {
+  const { data: firm } = await admin.from('firms').select('settings').eq('id', appt.firm_id).maybeSingle();
+  const settings = (firm?.settings || {}) as Record<string, any>;
+  const to = firmAi(settings).transfer;
+  const key = clip(settings.integrations?.telnyx_api_key, 200);
+  const control = clip(appt.form_ek?.callin_control, 120);
+  if (!to) return { result: 'no_transfer_number' };
+  if (!key || !control) return { result: 'no_call' };
+  const moved = await telnyx(key, `calls/${encodeURIComponent(control)}/actions/transfer`, { to });
+  return { result: moved.ok ? 'transferred' : 'transfer_failed' };
+}
+
+function toolRequest(body: Record<string, any>, hinted: string) {
+  const names = ['takvim_bak', 'sonuc_yaz', 'insana_aktar'];
+  const payload = body?.data?.payload && typeof body.data.payload === 'object' ? body.data.payload : body;
+  let name = String(payload?.name || payload?.tool_name || payload?.function?.name || '');
+  if (!names.includes(name) && names.includes(hinted)) name = hinted;
+  if (!names.includes(name)) return null;
+  let args = payload?.arguments ?? payload?.function?.arguments;
+  if (args == null && !body?.data?.event_type) args = body;
+  if (typeof args === 'string') {
+    try { args = JSON.parse(args); } catch { args = {}; }
+  }
+  if (!args || typeof args !== 'object' || Array.isArray(args)) args = {};
+  return { name, args: args as Record<string, any> };
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method !== 'POST') return json({ error: 'method' }, 405);
+  const raw = await req.text();
+  let body: Record<string, any> = {};
+  try { body = raw ? JSON.parse(raw) : {}; } catch { return json({ error: 'json' }, 400); }
+  const url = new URL(req.url);
+  const queryToken = String(url.searchParams.get('callin') || '');
+  const hinted = String(url.searchParams.get('tool') || '');
+  const event = String(body?.data?.event_type || '');
+  const tool = toolRequest(body, hinted);
+  if (event || tool) {
+    if (!await verifySignature(raw, req)) return json({ error: 'signature' }, 401);
+    const admin = adminClient();
+    const state = unpackState(body?.data?.payload?.client_state);
+    const token = tokenOk(queryToken) ? queryToken : String(state?.token || '');
+    const appt = await loadByToken(admin, token);
+    if (!appt) return json({ result: 'unknown' }, 404);
+    if (state?.token && state.token !== token) return json({ error: 'token' }, 401);
+    if (event === 'call.answered') {
+      const control = clip(body?.data?.payload?.call_control_id, 120);
+      if (control) await onAnswer(admin, appt, control);
+      return json({ ok: true });
+    }
+    if (event === 'call.hangup') {
+      await onHangup(admin, appt, body?.data?.payload || {});
+      return json({ ok: true });
+    }
+    if (event === 'call.conversation.start_failed') {
+      const control = clip(body?.data?.payload?.call_control_id, 120);
+      const { data: firm } = await admin.from('firms').select('settings').eq('id', appt.firm_id).maybeSingle();
+      const key = clip((firm?.settings || {}).integrations?.telnyx_api_key, 200);
+      if (key && control) await telnyx(key, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
+      await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'start' });
+      return json({ ok: true });
+    }
+    if (tool?.name === 'takvim_bak') return json(await freeSlots(admin, appt, tool.args));
+    if (tool?.name === 'sonuc_yaz') return json(await writeResult(admin, appt, tool.args));
+    if (tool?.name === 'insana_aktar') return json(await transferCall(admin, appt));
+    return json({ ok: true });
+  }
+
+  const action = String(body?.action || '');
+  if (action !== 'place') return json({ error: 'action' }, 400);
+  const session = String(req.headers.get('x-mb-session') || '').trim();
+  if (session.length < 32) return json({ error: 'auth' }, 401);
+  const admin = adminClient();
+  const { data: sess } = await admin.from('app_sessions').select('user_id, expires_at').eq('token', session).maybeSingle();
+  if (!sess?.user_id || new Date(sess.expires_at).getTime() <= Date.now()) return json({ error: 'auth' }, 401);
+  const { data: user } = await admin.from('users').select('id, firm_id, role, is_active').eq('id', sess.user_id).maybeSingle();
+  if (!user || user.is_active === false) return json({ error: 'auth' }, 401);
+  return placeCall(admin, user, body);
+});
