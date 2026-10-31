@@ -284,6 +284,12 @@ export async function ensureEleven(admin: SupabaseClient, ctx: ElevenSetup) {
   const agents = { ...(saved.agents || {}) } as Record<string, { id: string; sig: string }>;
   if (!pinned && !agents[akey] && saved.agent_id && saved.sig && String(saved.sig).includes(`|${ctx.llm}|`)) agents[akey] = { id: String(saved.agent_id), sig: String(saved.sig) };
   let agentId = clip(agents[akey]?.id, 80);
+  // A renamed model keeps the same ElevenLabs agent, so the dashboard record is updated in place.
+  if (!agentId) {
+    const previous = Object.keys(EL_LLM_ALIAS).find((oldId) => EL_LLM_ALIAS[oldId] === ctx.llm);
+    const oldKey = previous ? (pinned ? `${previous}@${pinned}` : previous) : '';
+    agentId = clip(agents[oldKey]?.id, 80);
+  }
   const voices = { ...(saved.voices || {}) } as Record<string, string>;
   const vkey = `v3_${ctx.lang}_${kind}`;
   const known = pinned || clip(voices[vkey], 60);
