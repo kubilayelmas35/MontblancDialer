@@ -276,7 +276,7 @@ function voiceOpts(voice: string) {
 }
 
 function asrFor(voice: string) {
-  return voice.startsWith('Azure.tr-') ? { model: 'azure/fast', language: 'tr-TR' } : null;
+  return voice.startsWith('Azure.tr-') ? { model: 'azure/fast', language: 'tr-TR', region: 'westeurope' } : null;
 }
 
 function assistantBody(assistantId: string, brief: { instructions: string; greeting: string; voice: string }, url: string, withVoice: boolean, withAsr = false) {
@@ -295,20 +295,26 @@ function assistantBody(assistantId: string, brief: { instructions: string; greet
 async function startAssistant(key: string, control: string, assistantId: string, brief: { instructions: string; greeting: string; voice: string }, url: string) {
   const path = `calls/${encodeURIComponent(control)}/actions/ai_assistant_start`;
   const asr = asrFor(brief.voice);
-  const first = await telnyx(key, path, {
-    assistant: assistantBody(assistantId, brief, url, false),
-    voice: brief.voice,
-    voice_settings: voiceOpts(brief.voice),
-    ...(asr ? { transcription: asr } : {}),
-  });
-  const why1 = telnyxWhy(first);
-  if (first.ok || first.status !== 422) return { ...first, tag: first.ok ? 'azure_asr' : 'err', why: why1 };
-  const second = await telnyx(key, path, { assistant: assistantBody(assistantId, brief, url, true) });
-  const why2 = telnyxWhy(second);
-  if (second.ok || second.status !== 422 || !brief.voice.startsWith('Azure.')) return { ...second, tag: second.ok ? 'voice_only' : 'err', why: `1:${why1} | 2:${why2}` };
+  const top = { assistant: assistantBody(assistantId, brief, url, false), voice: brief.voice, voice_settings: voiceOpts(brief.voice) };
   const plain = { ...brief, voice: FALLBACK_VOICE };
-  const third = await telnyx(key, path, { assistant: assistantBody(assistantId, plain, url, false), voice: FALLBACK_VOICE, voice_settings: { type: 'aws' } });
-  return { ...third, tag: third.ok ? 'polly' : 'err', why: `1:${why1} | 2:${why2} | 3:${telnyxWhy(third)}` };
+  const variants: { tag: string; body: Record<string, unknown> }[] = [];
+  if (asr) variants.push({ tag: 'azure_asr', body: { ...top, transcription: asr } });
+  variants.push({ tag: 'top_voice', body: top });
+  variants.push({ tag: 'voice_only', body: { assistant: assistantBody(assistantId, brief, url, true) } });
+  if (brief.voice.startsWith('Azure.')) {
+    variants.push({ tag: 'polly', body: { assistant: assistantBody(assistantId, plain, url, false), voice: FALLBACK_VOICE, voice_settings: { type: 'aws' } } });
+  }
+  const whys: string[] = [];
+  let last = { ok: false, status: 0, data: {} as any };
+  let tag = 'err';
+  for (const variant of variants) {
+    last = await telnyx(key, path, variant.body);
+    tag = variant.tag;
+    if (last.ok) return { ...last, tag, why: whys.join(' | ') };
+    whys.push(`${variant.tag}:${telnyxWhy(last)}`);
+    if (last.status !== 422) break;
+  }
+  return { ...last, tag: 'err', why: whys.join(' | ') };
 }
 
 async function loadByToken(admin: SupabaseClient, token: string) {
