@@ -176,7 +176,8 @@ function staffOf(settings: Record<string, any>, staffId: string, campaignId: str
   const ids = campIds(hit);
   if (ids.length && !ids.includes(campaignId)) return { error: 'staff' as const };
   const results = Array.isArray(hit.results) ? hit.results.map((key: unknown) => normKey(key)).filter(Boolean) : [];
-  return { id: staffId, prompt: clip(hit.prompt, 2000), greeting: clip(hit.greeting, 400), results };
+  const engine = hit.engine === 'super' ? 'super' as const : hit.engine === 'std' ? 'std' as const : '';
+  return { id: staffId, prompt: clip(hit.prompt, 2000), greeting: clip(hit.greeting, 400), results, engine, llm: clip(hit.llm, 40) };
 }
 
 function spokenBrief(brief: { ok: true; instructions: string; greeting: string; voice: string }, appt: Record<string, any>, extra: Record<string, any>, when: string) {
@@ -353,6 +354,9 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
   const staff = staffOf(settings, staffId, String(appt.campaign_id || ''));
   if ('error' in staff) return json({ ok: false, error: staff.error }, 400);
   const ai = firmAi(settings);
+  // The staff member's own engine wins; firms that never chose per staff keep their old firm-level choice.
+  ai.engine = staff.engine || ai.engine;
+  ai.llm = llmOf(staff.llm || ai.llm);
   const choices = allowedChoices('qc', staff.results, resultChoices(settings));
   const extra = appt.form_ek && typeof appt.form_ek === 'object' ? appt.form_ek : {};
   const note = clip(body.note, 800);
@@ -380,7 +384,7 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
   const { data: camp } = await admin.from('campaigns').select('telnyx_did').eq('id', appt.campaign_id).maybeSingle();
   const from = normDid(camp?.telnyx_did) || lineFrom(settings);
   if (ai.engine === 'super') {
-    return placeEleven(admin, appt, settings, { staffId: staff.id, note, extra, to, from, speech: spokenBrief(brief, appt, extra, whenText(appt)) });
+    return placeEleven(admin, appt, settings, { staffId: staff.id, llm: ai.llm, note, extra, to, from, speech: spokenBrief(brief, appt, extra, whenText(appt)) });
   }
   const connection = clip(settings.integrations?.sip_connection_id, 80);
   const key = clip(settings.integrations?.telnyx_api_key, 200);
@@ -457,7 +461,7 @@ async function placeEleven(
   admin: SupabaseClient,
   appt: Record<string, any>,
   settings: Record<string, any>,
-  job: { staffId: string; note: string; extra: Record<string, any>; to: string; from: string; speech: { instructions: string; greeting: string } },
+  job: { staffId: string; llm: string; note: string; extra: Record<string, any>; to: string; from: string; speech: { instructions: string; greeting: string } },
 ) {
   const key = clip(settings.integrations?.elevenlabs_api_key, 300);
   if (!key) return json({ ok: false, error: 'nokey_el' }, 400);
@@ -468,6 +472,7 @@ async function placeEleven(
   const base = String(Deno.env.get('SUPABASE_URL') || '').replace(/\/$/, '');
   const ctx = elementsFor(settings, job.from, `${base}/functions/v1/telnyx-ai`);
   ctx.firmId = String(appt.firm_id);
+  ctx.llm = llmOf(job.llm);
   const ready = await ensureEleven(admin, ctx);
   if (!ready.ok || !ready.agentId || !ready.phoneId) {
     return json({ ok: false, error: 'eleven', detail: clip(ready.why || 'setup', 300) }, 502);

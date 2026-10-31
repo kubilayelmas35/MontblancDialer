@@ -153,10 +153,13 @@ export async function ensureEleven(admin: SupabaseClient, ctx: ElevenSetup) {
   const toolIds = [tools.ids.takvim_bak, tools.ids.sonuc_yaz].filter(Boolean);
   log.push('tools ok');
 
-  let agentId = clip(saved.agent_id, 80);
+  // One agent per language model, so two staff members with different models never overwrite each other.
+  const agents = { ...(saved.agents || {}) } as Record<string, { id: string; sig: string }>;
+  if (!agents[ctx.llm] && saved.agent_id && saved.sig && String(saved.sig).includes(`|${ctx.llm}|`)) agents[ctx.llm] = { id: String(saved.agent_id), sig: String(saved.sig) };
+  let agentId = clip(agents[ctx.llm]?.id, 80);
   const sig = `v2|${ctx.llm}|${ctx.lang}|${kind}|${toolIds.join(',')}`;
   const voices = { ...(saved.voices || {}) } as Record<string, string>;
-  if (!agentId || saved.sig !== sig || !voices[`${ctx.lang}_${kind}`]) {
+  if (!agentId || agents[ctx.llm]?.sig !== sig || !voices[`${ctx.lang}_${kind}`]) {
     const picked = voices[`${ctx.lang}_${kind}`] ? [voices[`${ctx.lang}_${kind}`]] : await voiceCandidates(ctx.key, ctx.lang, kind);
     let lastWhy = '';
     let done = false;
@@ -164,7 +167,7 @@ export async function ensureEleven(admin: SupabaseClient, ctx: ElevenSetup) {
       const config = agentConfig(ctx.lang, ctx.llm, toolIds, voiceId);
       const res = agentId
         ? await el(ctx.key, 'PATCH', `/v1/convai/agents/${encodeURIComponent(agentId)}`, { conversation_config: config })
-        : await el(ctx.key, 'POST', '/v1/convai/agents/create', { name: 'Callin Kalite', conversation_config: config });
+        : await el(ctx.key, 'POST', '/v1/convai/agents/create', { name: `Callin Kalite ${ctx.llm}`, conversation_config: config });
       if (res.ok) {
         agentId = agentId || clip(res.data?.agent_id, 80);
         voices[`${ctx.lang}_${kind}`] = voiceId;
@@ -174,7 +177,8 @@ export async function ensureEleven(admin: SupabaseClient, ctx: ElevenSetup) {
       lastWhy = `agent ${elWhy(res)} voice=${voiceId}`;
     }
     if (!done) return fail(lastWhy || 'agent');
-    saved = await saveEl(admin, ctx.firmId, { agent_id: agentId, sig, voices });
+    agents[ctx.llm] = { id: agentId, sig };
+    saved = await saveEl(admin, ctx.firmId, { agents, voices });
     log.push('agent ok');
   }
 
