@@ -12,6 +12,7 @@ import {
   resultAllowed,
   type AiChoice,
 } from './instruct.ts';
+import { ensureEleven, elConversation, elDial, elWhy, el, llmOf } from './eleven.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -154,6 +155,8 @@ function firmAi(settings: Record<string, any>) {
     forbidContract: ai.forbid_contract !== false,
     forbidOther: ai.forbid_other !== false,
     qcAssistant: clip(ai.qc_assistant_id, 80),
+    engine: ai.engine === 'super' ? 'super' as const : 'std' as const,
+    llm: llmOf(ai.llm),
   };
 }
 
@@ -369,12 +372,16 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     allowed: choices,
     fields: fieldLines(ai.lang, appt, extra),
     when: whenText(appt),
+    engine: ai.engine,
   });
   if (!brief.ok) return json({ ok: false, error: brief.error }, 400);
   const to = normDid(appt.telefonnummer);
   if (!to) return json({ ok: false, error: 'phone' }, 400);
   const { data: camp } = await admin.from('campaigns').select('telnyx_did').eq('id', appt.campaign_id).maybeSingle();
   const from = normDid(camp?.telnyx_did) || lineFrom(settings);
+  if (ai.engine === 'super') {
+    return placeEleven(admin, appt, settings, { staffId: staff.id, note, extra, to, from, speech: spokenBrief(brief, appt, extra, whenText(appt)) });
+  }
   const connection = clip(settings.integrations?.sip_connection_id, 80);
   const key = clip(settings.integrations?.telnyx_api_key, 200);
   if (!key) return json({ ok: false, error: 'nokey' }, 400);
@@ -427,6 +434,98 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
   }
   await mergeEk(admin, appt, { callin_control: control, callin_warm: warm ? '1' : '', callin_error_first: clip(firstWhy, 300) });
   return json({ ok: true });
+}
+
+function elementsFor(settings: Record<string, any>, from: string, hook: string) {
+  const ai = firmAi(settings);
+  const integ = settings.integrations || {};
+  return {
+    firmId: '',
+    settings,
+    key: clip(integ.elevenlabs_api_key, 300),
+    hook,
+    lang: ai.lang,
+    llm: ai.llm,
+    voice: ai.voice,
+    from,
+    sipUser: clip(integ.sip_username, 120),
+    sipPass: clip(integ.sip_password, 200),
+  };
+}
+
+async function placeEleven(
+  admin: SupabaseClient,
+  appt: Record<string, any>,
+  settings: Record<string, any>,
+  job: { staffId: string; note: string; extra: Record<string, any>; to: string; from: string; speech: { instructions: string; greeting: string } },
+) {
+  const key = clip(settings.integrations?.elevenlabs_api_key, 300);
+  if (!key) return json({ ok: false, error: 'nokey_el' }, 400);
+  if (!job.from) return json({ ok: false, error: 'nodid' }, 400);
+  const state = String(job.extra.callin_state || '');
+  const at = Date.parse(String(job.extra.callin_at || ''));
+  if (state === 'dialing' && at && Date.now() - at < 120000) return json({ ok: false, error: 'busy' }, 409);
+  const base = String(Deno.env.get('SUPABASE_URL') || '').replace(/\/$/, '');
+  const ctx = elementsFor(settings, job.from, `${base}/functions/v1/telnyx-ai`);
+  ctx.firmId = String(appt.firm_id);
+  const ready = await ensureEleven(admin, ctx);
+  if (!ready.ok || !ready.agentId || !ready.phoneId) {
+    return json({ ok: false, error: 'eleven', detail: clip(ready.why || 'setup', 300) }, 502);
+  }
+  const token = newToken();
+  const saved = await mergeEk(admin, appt, {
+    callin_note: job.note,
+    callin_staff_id: job.staffId,
+    callin_token: token,
+    callin_state: 'dialing',
+    callin_at: new Date().toISOString(),
+    callin_engine: 'eleven',
+    callin_conv: '',
+    callin_error: '',
+    callin_billed: '',
+    callin_started: '',
+    callin_warm: '',
+    callin_retry: '',
+    callin_error_detail: '',
+    callin_error_first: '',
+    callin_voice_used: 'eleven',
+  });
+  if (!saved) return json({ ok: false, error: 'save' }, 500);
+  const dial = await elDial(key, ready.agentId, ready.phoneId, job.to, {
+    brief: job.speech.instructions,
+    greeting: job.speech.greeting,
+    callin_token: token,
+  });
+  if (!dial.ok) {
+    await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'dial', callin_error_detail: clip(dial.why, 300) });
+    return json({ ok: false, error: 'dial', detail: clip(dial.why, 300) }, 502);
+  }
+  await mergeEk(admin, appt, { callin_conv: dial.conv, callin_started: '1' });
+  return json({ ok: true, engine: 'super' });
+}
+
+async function syncEleven(admin: SupabaseClient, appt: Record<string, any>) {
+  const extra = appt.form_ek || {};
+  if (extra.callin_engine !== 'eleven' || !extra.callin_conv) return { state: String(extra.callin_state || ''), done: String(extra.callin_state || '') === 'done' };
+  if (String(extra.callin_billed || '') === '1') return { state: 'done', done: true };
+  const { data: firm } = await admin.from('firms').select('settings').eq('id', appt.firm_id).maybeSingle();
+  const key = clip(firm?.settings?.integrations?.elevenlabs_api_key, 300);
+  if (!key) return { state: 'dialing', done: false };
+  const conv = await elConversation(key, String(extra.callin_conv));
+  if (!conv.ok) return { state: 'dialing', done: false, why: conv.why };
+  if (conv.status !== 'done' && conv.status !== 'failed') return { state: 'dialing', done: false, status: conv.status };
+  await onHangup(admin, appt, { duration_secs: conv.secs });
+  if (conv.secs <= 0) await mergeEk(admin, appt, { callin_error: 'noanswer' });
+  return { state: 'done', done: true, secs: conv.secs };
+}
+
+async function sweepEleven(admin: SupabaseClient, firmId: string) {
+  const { data } = await admin.from('appointments').select('*').eq('firm_id', firmId).filter('form_ek->>callin_engine', 'eq', 'eleven').filter('form_ek->>callin_state', 'eq', 'dialing').limit(5);
+  for (const row of data || []) {
+    const at = Date.parse(String(row.form_ek?.callin_at || ''));
+    if (at && Date.now() - at < 60000) continue;
+    await syncEleven(admin, row).catch(() => null);
+  }
 }
 
 function qcBrief(settings: Record<string, any>, appt: Record<string, any>, extra: Record<string, any>, staffId: string, note: string) {
@@ -585,7 +684,11 @@ async function writeResult(admin: SupabaseClient, appt: Record<string, any>, arg
   if (!resultAllowed('qc', key, choices.map((row) => row.key))) return { result: 'result_denied' };
   const patch: Record<string, unknown> = { durum: key };
   const extras: Record<string, string> = {};
-  const fields = args.fields && typeof args.fields === 'object' ? args.fields as Record<string, unknown> : {};
+  let rawFields: unknown = args.fields;
+  if (typeof args.fields_json === 'string' && args.fields_json.trim()) {
+    try { rawFields = JSON.parse(args.fields_json); } catch { rawFields = {}; }
+  }
+  const fields = rawFields && typeof rawFields === 'object' && !Array.isArray(rawFields) ? rawFields as Record<string, unknown> : {};
   Object.entries(fields).forEach(([name, value]) => {
     if (value && typeof value === 'object') return;
     const col = normKey(name);
@@ -672,13 +775,16 @@ Deno.serve(async (req) => {
   const event = String(body?.data?.event_type || '');
   const tool = toolRequest(body, hinted);
   if (event || tool) {
-    if (!await verifySignature(raw, req)) return json({ error: 'signature' }, 401);
+    // ElevenLabs tool calls carry no Telnyx signature; their per-call secret token in the URL is the proof.
+    const fromEleven = !event && !!tool && !req.headers.get('telnyx-signature-ed25519');
+    if (!fromEleven && !await verifySignature(raw, req)) return json({ error: 'signature' }, 401);
     const admin = adminClient();
     const state = unpackState(body?.data?.payload?.client_state);
     const token = tokenOk(queryToken) ? queryToken : String(state?.token || '');
     const appt = await loadByToken(admin, token);
     if (!appt) return json({ result: 'unknown' }, 404);
     if (state?.token && state.token !== token) return json({ error: 'token' }, 401);
+    if (fromEleven && appt.form_ek?.callin_engine !== 'eleven') return json({ error: 'token' }, 401);
     if (event === 'call.answered') {
       const control = clip(body?.data?.payload?.call_control_id, 120);
       if (control) await onAnswer(admin, appt, control);
@@ -725,7 +831,7 @@ Deno.serve(async (req) => {
   }
 
   const action = String(body?.action || '');
-  if (action !== 'place') return json({ error: 'action' }, 400);
+  if (!['place', 'sync', 'eleven_setup'].includes(action)) return json({ error: 'action' }, 400);
   const session = String(req.headers.get('x-mb-session') || '').trim();
   if (session.length < 32) return json({ error: 'auth' }, 401);
   const admin = adminClient();
@@ -733,5 +839,48 @@ Deno.serve(async (req) => {
   if (!sess?.user_id || new Date(sess.expires_at).getTime() <= Date.now()) return json({ error: 'auth' }, 401);
   const { data: user } = await admin.from('users').select('id, firm_id, role, is_active').eq('id', sess.user_id).maybeSingle();
   if (!user || user.is_active === false) return json({ error: 'auth' }, 401);
+  if (action === 'sync') return syncAction(admin, user, body);
+  if (action === 'eleven_setup') return setupAction(admin, user, body);
   return placeCall(admin, user, body);
 });
+
+async function syncAction(admin: SupabaseClient, user: Record<string, any>, body: Record<string, any>) {
+  const id = String(body.appointment_id || '');
+  if (!uuidRe.test(id)) return json({ ok: false, error: 'id' }, 400);
+  const { data: appt } = await admin.from('appointments').select('*').eq('id', id).maybeSingle();
+  if (!appt) return json({ ok: false, error: 'missing' }, 404);
+  const role = String(user.role || '');
+  if (!['super_admin', 'admin', 'firm_admin', 'qc'].includes(role)) return json({ ok: false, error: 'auth' }, 403);
+  if (role !== 'super_admin' && String(user.firm_id || '') !== String(appt.firm_id || '')) return json({ ok: false, error: 'auth' }, 403);
+  const res = await syncEleven(admin, appt);
+  await sweepEleven(admin, String(appt.firm_id)).catch(() => null);
+  const { data: fresh } = await admin.from('appointments').select('durum, form_ek').eq('id', id).maybeSingle();
+  return json({
+    ok: true,
+    done: !!res.done,
+    state: res.state,
+    secs: Number((res as any).secs || fresh?.form_ek?.callin_sec || 0),
+    durum: String(fresh?.durum || ''),
+    error: String(fresh?.form_ek?.callin_error || ''),
+  });
+}
+
+async function setupAction(admin: SupabaseClient, user: Record<string, any>, body: Record<string, any>) {
+  const role = String(user.role || '');
+  if (!['super_admin', 'admin', 'firm_admin'].includes(role)) return json({ ok: false, error: 'auth' }, 403);
+  const firmId = role === 'super_admin' ? String(body.firm_id || user.firm_id || '') : String(user.firm_id || '');
+  if (!uuidRe.test(firmId)) return json({ ok: false, error: 'id' }, 400);
+  const { data: firm } = await admin.from('firms').select('settings').eq('id', firmId).maybeSingle();
+  const settings = (firm?.settings || {}) as Record<string, any>;
+  const key = clip(settings.integrations?.elevenlabs_api_key, 300);
+  if (!key) return json({ ok: false, error: 'nokey_el' }, 400);
+  const check = await el(key, 'GET', '/v1/convai/agents?page_size=1');
+  if (!check.ok) return json({ ok: false, error: 'eleven', detail: `key ${elWhy(check)}` }, 502);
+  const base = String(Deno.env.get('SUPABASE_URL') || '').replace(/\/$/, '');
+  const from = lineFrom(settings);
+  const ctx = elementsFor(settings, from, `${base}/functions/v1/telnyx-ai`);
+  ctx.firmId = firmId;
+  const ready = await ensureEleven(admin, ctx);
+  if (!ready.ok) return json({ ok: false, error: 'eleven', detail: clip(ready.why, 300) }, 502);
+  return json({ ok: true, steps: ready.log, phone: !!ready.phoneId });
+}

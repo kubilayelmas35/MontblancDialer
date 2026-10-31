@@ -24,7 +24,27 @@ function mbFirmAi(settings) {
     forbid_price: ai.forbid_price !== false,
     forbid_contract: ai.forbid_contract !== false,
     forbid_other: ai.forbid_other !== false,
+    engine: ai.engine === 'super' ? 'super' : 'std',
+    llm: MB_AI_LLMS.some((row) => row.id === ai.llm) ? ai.llm : MB_AI_LLMS[0].id,
   };
+}
+
+const MB_AI_LLMS = [
+  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', tag: 'rec' },
+  { id: 'gpt-4o-mini', label: 'GPT-4o mini', tag: 'eco' },
+  { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5', tag: 'smart' },
+  { id: 'gpt-4o', label: 'GPT-4o', tag: 'strong' },
+  { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5', tag: 'best' },
+];
+
+function mbAiLlmTag(tag) {
+  return {
+    rec: mbAiSay('ai.llm.rec', 'dengeli ve hızlı, önerilen · yaklaşık 0,003 $/dk'),
+    eco: mbAiSay('ai.llm.eco', 'en ekonomik, basit konuşmalar için · yaklaşık 0,001 $/dk'),
+    smart: mbAiSay('ai.llm.smart', 'daha iyi anlar, orta fiyat · yaklaşık 0,01 $/dk'),
+    strong: mbAiSay('ai.llm.strong', 'güçlü, pahalı · yaklaşık 0,02 $/dk'),
+    best: mbAiSay('ai.llm.best', 'en yüksek kalite, en pahalı · yaklaşık 0,03 $/dk'),
+  }[tag] || '';
 }
 
 function mbAiFirmReady(settings) {
@@ -182,6 +202,8 @@ function mbAiReadDesk() {
       spoken_name: String(document.getElementById('ai-spoken')?.value || '').trim().slice(0, 80),
       lang: document.getElementById('ai-lang')?.value === 'tr' ? 'tr' : 'de',
       voice: ['female', 'male'].includes(document.getElementById('ai-voice')?.value) ? document.getElementById('ai-voice').value : '',
+      engine: document.getElementById('ai-engine')?.value === 'super' ? 'super' : 'std',
+      llm: MB_AI_LLMS.some((row) => row.id === document.getElementById('ai-llm')?.value) ? document.getElementById('ai-llm').value : MB_AI_LLMS[0].id,
       rate: prev.rate,
       draft: true,
       transfer: transferRaw ? (typeof mbNormDid === 'function' ? mbNormDid(transferRaw) : '') : '',
@@ -285,6 +307,11 @@ function mbPaintAiStaff() {
       ${mbAiField('ai-transfer', mbAiSay('line.ai.transfer', 'İnsana aktar'), `<input class="form-input" id="ai-transfer" maxlength="20" placeholder="+49301234567" value="${mbAiEsc(ai.transfer || ai.transfer_raw || '')}">`)}
       ${mbAiField('ai-lang', mbAiSay('line.ai.lang', 'Dil'), `<select class="form-input" id="ai-lang">${opt('de', ai.lang, mbAiSay('line.ai.lang.de', 'Almanca'))}${opt('tr', ai.lang, mbAiSay('line.ai.lang.tr', 'Türkçe'))}</select>`)}
       ${mbAiField('ai-voice', mbAiSay('line.ai.voice', 'Ses'), `<select class="form-input" id="ai-voice">${opt('', ai.voice || '', mbAiSay('line.ai.voice.default', 'Varsayılan'))}${opt('female', ai.voice || '', mbAiSay('line.ai.voice.female', 'Kadın'))}${opt('male', ai.voice || '', mbAiSay('line.ai.voice.male', 'Erkek'))}</select>`)}
+      ${mbAiField('ai-engine', mbAiSay('ai.engine', 'Motor'), `<select class="form-input" id="ai-engine" onchange="mbAiEngineChanged()">${opt('std', ai.engine || 'std', mbAiSay('ai.engine.std', 'Standart'))}${opt('super', ai.engine || 'std', mbAiSay('ai.engine.super', 'Süper'))}</select><div class="ai-note" id="ai-engine-hint"></div>`, true)}
+      <div id="ai-llm-wrap" style="grid-column:1/-1;display:${ai.engine === 'super' ? 'block' : 'none'};">
+        ${mbAiField('ai-llm', mbAiSay('ai.llm', 'Yapay zeka modeli'), `<select class="form-input" id="ai-llm" onchange="mbAiEngineChanged()">${MB_AI_LLMS.map((row) => opt(row.id, ai.llm || MB_AI_LLMS[0].id, row.label)).join('')}</select><div class="ai-note" id="ai-llm-hint"></div>`, true)}
+        <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiElevenSetup(this)"><i class="ph ph-plugs-connected"></i> ${mbAiEsc(mbAiSay('ai.eleven.test', 'ElevenLabs bağlantısını dene'))}</button>
+      </div>
     </div>
     <div class="ai-switches">
       ${mbAiSwitch('ai-price', ai.forbid_price !== false, mbAiSay('line.ai.forbid_price', 'Fiyat söylemesin'))}
@@ -307,6 +334,38 @@ function mbPaintAiStaff() {
       <button type="button" class="btn btn-primary" onclick="mbSaveAiStaff()"><i class="ph ph-floppy-disk"></i> ${mbAiEsc(mbAiSay('ai.staff.save', 'Kaydet'))}</button>
     </div>
   </div>`;
+  mbAiEngineChanged();
+}
+
+function mbAiEngineChanged() {
+  const sup = document.getElementById('ai-engine')?.value === 'super';
+  const wrap = document.getElementById('ai-llm-wrap');
+  if (wrap) wrap.style.display = sup ? 'block' : 'none';
+  const hint = document.getElementById('ai-engine-hint');
+  if (hint) {
+    hint.textContent = sup
+      ? mbAiSay('ai.engine.super.desc', 'Süper: ElevenLabs Agents. Daha doğal ses, daha akıllı konuşma, model seçilebilir. Dakika maliyeti daha yüksek. Telnyx yalnız hat olarak kullanılır. ElevenLabs anahtarı gerekir.')
+      : mbAiSay('ai.engine.std.desc', 'Standart: Telnyx yapay zekası. Ek kurulum yok, dakika maliyeti düşük, ses kalitesi orta.');
+  }
+  const llm = MB_AI_LLMS.find((row) => row.id === document.getElementById('ai-llm')?.value) || MB_AI_LLMS[0];
+  const llmHint = document.getElementById('ai-llm-hint');
+  if (llmHint) llmHint.textContent = mbAiLlmTag(llm.tag);
+}
+
+async function mbAiElevenSetup(btn) {
+  if (!_aiFirmId) return;
+  if (btn) btn.disabled = true;
+  const res = await mbTelnyxAi('eleven_setup', { firm_id: _aiFirmId });
+  if (btn) btn.disabled = false;
+  if (res?.ok) {
+    if (typeof toast === 'function') toast(mbAiSay('ai.eleven.ok', 'ElevenLabs hazır.') + (res.phone ? '' : ' ' + mbAiSay('ai.eleven.nophone', '(Hat numarası yok, arama için gerekli.)')), 'ok');
+    return;
+  }
+  const why = String(res?.detail || res?.error || '').slice(0, 260);
+  const text = res?.error === 'nokey_el'
+    ? mbAiSay('ai.eleven.nokey', 'ElevenLabs API anahtarı yok. Hat bağlantısında anahtarı kaydedin.')
+    : mbAiSay('ai.eleven.fail', 'ElevenLabs kurulamadı.') + (why ? ` (${why})` : '');
+  if (typeof toast === 'function') toast(text, 'err');
 }
 
 function mbAiTokenName(key) {
@@ -469,6 +528,8 @@ async function mbSaveAiStaff() {
     spoken_name: String(draft.spoken_name || '').trim().slice(0, 80),
     lang: draft.lang === 'tr' ? 'tr' : 'de',
     voice: draft.voice === 'female' || draft.voice === 'male' ? draft.voice : '',
+    engine: draft.engine === 'super' ? 'super' : 'std',
+    llm: MB_AI_LLMS.some((row) => row.id === draft.llm) ? draft.llm : MB_AI_LLMS[0].id,
     rate: Number(draft.rate) > 0 ? Number(draft.rate) : 0,
     transfer,
     forbid_price: draft.forbid_price !== false,
@@ -571,11 +632,29 @@ async function qcConfirmCallin(apptId, staffId, direct) {
   const res = await mbTelnyxAi('place', { appointment_id: apptId, staff_id: staffId, note });
   if (!res?.ok) {
     pop?.querySelectorAll('button').forEach((btn) => { btn.disabled = false; });
-    const key = { gate: 'qc.callin.gate', results: 'qc.callin.gate', phone: 'qc.callin.phone', busy: 'qc.callin.busy' }[res?.error] || 'qc.callin.fail';
+    const key = { gate: 'qc.callin.gate', results: 'qc.callin.gate', phone: 'qc.callin.phone', busy: 'qc.callin.busy', nokey_el: 'qc.callin.nokey_el' }[res?.error] || 'qc.callin.fail';
     const why = String(res?.detail || '').slice(0, 220);
     if (typeof toast === 'function') toast(mbAiSay(key, 'Arama çıkmadı.') + (why ? ` (${why})` : ''), 'err');
     return;
   }
   qcCloseCallin();
   if (typeof toast === 'function') toast(mbAiSay('qc.callin.started', 'Arama çıktı. Karşı taraf açınca konuşma başlar.'), 'ok');
+  if (res?.engine === 'super') mbAiWatchCall(apptId);
+}
+
+// Süper motorda bitiş bildirimi gelmez; arama bitene kadar sunucudan durum sorulur ve süre faturalanır.
+async function mbAiWatchCall(apptId) {
+  const started = Date.now();
+  while (Date.now() - started < 12 * 60 * 1000) {
+    await new Promise((resolve) => setTimeout(resolve, 6000));
+    const res = await mbTelnyxAi('sync', { appointment_id: apptId });
+    if (!res?.ok || !res.done) continue;
+    if (typeof toast === 'function') {
+      toast(res.secs > 0
+        ? mbAiSay('qc.callin.done', 'Arama bitti.')
+        : mbAiSay('qc.callin.noanswer', 'Arama açılmadı.'), res.secs > 0 ? 'ok' : 'warn');
+    }
+    if (typeof loadQcData === 'function') loadQcData();
+    return;
+  }
 }

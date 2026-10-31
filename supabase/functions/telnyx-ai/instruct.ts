@@ -22,6 +22,7 @@ export type AiBriefInput = {
   allowed: AiChoice[];
   fields: AiField[];
   when: string;
+  engine?: 'std' | 'super';
 };
 
 export type AiBrief = {
@@ -190,10 +191,17 @@ export function buildAiBrief(input: AiBriefInput): AiBrief {
     : (de
       ? 'Du sprichst für einen Termin. Ergebnis basarili ist verboten. Ein Termin legt den Datensatz in die Qualitätskontrolle.'
       : 'Randevu için konuşursun. Başarılı yazmak yasak. Randevu, kaydı kalite kontrole bırakır.');
-  const tools = de
-    ? 'Werkzeuge: takvim_bak für freie Zeiten, sonuc_yaz nur mit einem erlaubten Schlüssel, insana_aktar nur wenn ein Mensch übernehmen soll. Biete keine Uhrzeit an, die takvim_bak nicht geliefert hat. Wenn keine Zeit frei ist, versprich keine neue Zeit.'
-    : 'Araçlar: takvim_bak boş saatleri verir, sonuc_yaz yalnız izinli anahtarla sonuç yazar, insana_aktar insan devralacaksa kullanılır. takvim_bak döndürmediği saati önerme. Boş saat yoksa yeni saat vaat etme.';
-  const handoff = transfer
+  const sup = input.engine === 'super';
+  const tools = sup
+    ? (de
+      ? 'Werkzeuge: takvim_bak für freie Zeiten, sonuc_yaz nur mit einem erlaubten Schlüssel (fields_json nur für korrigierte Angaben als JSON-Text). Biete keine Uhrzeit an, die takvim_bak nicht geliefert hat. Wenn keine Zeit frei ist, versprich keine neue Zeit. Nach sonuc_yaz verabschiede dich kurz und rufe end_call.'
+      : 'Araçlar: takvim_bak boş saatleri verir, sonuc_yaz yalnız izinli anahtarla sonuç yazar (düzeltilen bilgiler için fields_json, JSON metni). takvim_bak döndürmediği saati önerme. Boş saat yoksa yeni saat vaat etme. sonuc_yaz yazdıktan sonra kısaca vedalaş ve end_call ile aramayı bitir.')
+    : (de
+      ? 'Werkzeuge: takvim_bak für freie Zeiten, sonuc_yaz nur mit einem erlaubten Schlüssel, insana_aktar nur wenn ein Mensch übernehmen soll. Biete keine Uhrzeit an, die takvim_bak nicht geliefert hat. Wenn keine Zeit frei ist, versprich keine neue Zeit.'
+      : 'Araçlar: takvim_bak boş saatleri verir, sonuc_yaz yalnız izinli anahtarla sonuç yazar, insana_aktar insan devralacaksa kullanılır. takvim_bak döndürmediği saati önerme. Boş saat yoksa yeni saat vaat etme.');
+  const handoff = sup
+    ? (de ? 'Es gibt keine Weiterleitung. Wähle nur ein erlaubtes Ergebnis, das Warten oder Rückruf bedeutet, falls vorhanden.' : 'Aktarma yok. Varsa yalnız bekleme veya geri arama anlamına gelen izinli sonucu seç.')
+    : transfer
     ? (de ? 'Wenn du nicht weiterkommst, rufe insana_aktar.' : 'İlerleyemezsen insana_aktar çağır.')
     : (de ? 'Es gibt keine Weiterleitungsnummer. Wähle nur ein erlaubtes Ergebnis, das Warten oder Rückruf bedeutet, falls vorhanden.' : 'Aktarma numarası yok. Varsa yalnız bekleme veya geri arama anlamına gelen izinli sonucu seç.');
   const instructions = [
