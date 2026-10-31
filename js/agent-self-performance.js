@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────
 
 let _aspCharts = {};
+let _aspLoadGen = 0;
 
 function _aspApptBucket(durum) {
   if (typeof perfApptBucket === 'function') return perfApptBucket(durum);
@@ -52,15 +53,16 @@ function _aspConvertCurrency(v, from, to, rate) {
 function _aspTierBonusPortion(success, t, ruleCurrency, targetCurrency, rate) {
   const min = Number(t.min || 0);
   const max = Number(t.max || 999999);
-  if (success < min || success > max) return { portion: 0, countInTier: 0, active: false };
+  if (success < min) return { portion: 0, countInTier: 0, active: false };
   const calcType = t.calc_type === 'per_appointment' ? 'per_appointment' : 'fixed';
   const ccy = (t.currency || ruleCurrency || 'EUR').toUpperCase();
   let oneUnit = Number(t.amount || 0);
   if (ccy !== targetCurrency) oneUnit = _aspConvertCurrency(oneUnit, ccy, targetCurrency, rate);
   if (calcType === 'per_appointment') {
     const countInTier = Math.max(0, Math.min(success, max) - min + 1);
-    return { portion: oneUnit * countInTier, countInTier, active: true };
+    return { portion: oneUnit * countInTier, countInTier, active: countInTier > 0 };
   }
+  if (success > max) return { portion: 0, countInTier: 0, active: false };
   return { portion: oneUnit, countInTier: 0, active: true };
 }
 
@@ -104,8 +106,8 @@ function _aspDaysInMonth(ym) {
 
 async function _aspFetchAppointments(fid, uid, start, end, mode = 'termin') {
   if (!uid) return [];
-  // Şema farklılıklarında 400 almamak için wildcard select
-  let rows = (await sb(`appointments?select=*&limit=5000`).catch(() => [])) || [];
+  const firm = fid ? `&firm_id=eq.${encodeURIComponent(fid)}` : '';
+  let rows = (await mbFetchAll(`appointments?select=*&agent_id=eq.${encodeURIComponent(uid)}${firm}&order=id.asc`).catch(() => [])) || [];
   const meId = String(uid || '');
   const meName = String(currentUser?.name || '').trim().toLowerCase();
   const meEmail = String(currentUser?.email || '').trim().toLowerCase();
@@ -120,18 +122,38 @@ async function _aspFetchAppointments(fid, uid, start, end, mode = 'termin') {
   });
   const s = `${start}T00:00:00`;
   const e = `${end}T23:59:59`;
+  const fromMs = _aspBerlinStartMs(start);
+  const toMs = _aspBerlinEndMs(end);
   return rows.filter((r) => {
-    const raw = mode === 'created' ? r.created_at : r.termin_tarih;
-    const t = String(raw || '');
-    return t && t >= s && t <= e;
+    const raw = mode === 'created' ? (r.kayit_tarihi || r.created_at) : r.termin_tarih;
+    if (!raw) return false;
+    if (mode === 'created') {
+      const ms = new Date(raw).getTime();
+      return Number.isFinite(ms) && Number.isFinite(fromMs) && Number.isFinite(toMs) && ms >= fromMs && ms <= toMs;
+    }
+    const t = String(raw);
+    return t >= s && t <= e;
   });
+}
+
+function _aspBerlinStartMs(day) {
+  const iso = typeof mbWallToIso === 'function' ? mbWallToIso(`${day}T00:00`) : null;
+  const ms = iso ? new Date(iso).getTime() : NaN;
+  return ms;
+}
+
+function _aspBerlinEndMs(day) {
+  const iso = typeof mbWallToIso === 'function' ? mbWallToIso(`${day}T23:59`) : null;
+  const ms = iso ? new Date(iso).getTime() : NaN;
+  return Number.isFinite(ms) ? ms + 59999 : ms;
 }
 
 async function _aspFetchCalls(fid, uid, start, end) {
   if (!uid) return [];
-  const s = `${start}T00:00:00`;
-  const e = `${end}T23:59:59`;
-  let rows = (await sb(`call_logs?select=*&limit=10000`).catch(() => [])) || [];
+  const fromMs = _aspBerlinStartMs(start);
+  const toMs = _aspBerlinEndMs(end);
+  const firm = fid ? `&firm_id=eq.${encodeURIComponent(fid)}` : '';
+  let rows = (await mbFetchAll(`call_logs?select=*&agent_id=eq.${encodeURIComponent(uid)}${firm}&order=started_at.desc,id.asc`).catch(() => [])) || [];
   const meId = String(uid || '');
   const meName = String(currentUser?.name || '').trim().toLowerCase();
   const meEmail = String(currentUser?.email || '').trim().toLowerCase();
@@ -145,8 +167,8 @@ async function _aspFetchCalls(fid, uid, start, end) {
     return false;
   });
   return rows.filter((r) => {
-    const t = String(r.started_at || '');
-    return t && t >= s && t <= e;
+    const ms = new Date(r.started_at || '').getTime();
+    return Number.isFinite(ms) && Number.isFinite(fromMs) && Number.isFinite(toMs) && ms >= fromMs && ms <= toMs;
   });
 }
 
@@ -243,14 +265,63 @@ ${_aspRenderSalaryTierTable(noTermin ? 0 : success, salaryTiersRaw, rules)}
   if (typeof applyLang === 'function') applyLang();
 }
 
+async function loadFieldSelfPerformance(fid, ym) {
+  const host = document.getElementById('muh-agent-perf-wrap');
+  if (!host) return;
+  host.innerHTML = `<div class="card" style="padding:16px;margin-bottom:14px;">
+<div class="card-title" style="margin-bottom:4px;">${_fEscPerf(t('perf.field.title'))}</div>
+<div class="card-sub" style="margin-bottom:10px;">${_fEscPerf(t('perf.field.sub'))} · <strong>${_fEscPerf(ym)}</strong></div>
+<div id="asp-body" style="color:var(--text-3);font-size:13px;">${_fEscPerf(t('field.loading'))}</div>
+</div>`;
+  const { start, end } = _aspMonthBounds(ym);
+  let tasks = [];
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/rpc/list_field_tasks_for_user`, {
+      method: 'POST',
+      headers: mbAuthHeaders(),
+      body: JSON.stringify({ p_actor_user_id: currentUser.id, p_firm_id: fid || currentUser.firm_id || null }),
+    });
+    if (res.ok) tasks = (await res.json().catch(() => [])) || [];
+  } catch (e) {}
+  const inMonth = (iso) => {
+    const day = String(iso || '').slice(0, 10);
+    return day && start && end && day >= start && day <= end;
+  };
+  const monthTasks = tasks.filter((task) => inMonth(task.completed_at || task.created_at));
+  const open = tasks.filter((task) => task.status === 'assigned' || task.status === 'in_progress').length;
+  const done = monthTasks.filter((task) => task.status === 'completed').length;
+  const sales = monthTasks.filter((task) => typeof fieldIsSale === 'function' && fieldIsSale(task.result_key)).length;
+  const cancelled = monthTasks.filter((task) => task.status === 'cancelled').length;
+  const body = document.getElementById('asp-body');
+  if (!body) return;
+  body.innerHTML = `<div class="stats-grid" style="margin-bottom:14px;">
+<div class="stat-card"><div class="stat-lbl">${_fEscPerf(t('dash.field.open'))}</div><div class="stat-val">${open}</div></div>
+<div class="stat-card stat-green"><div class="stat-lbl">${_fEscPerf(t('dash.field.done'))}</div><div class="stat-val">${done}</div></div>
+<div class="stat-card stat-blue"><div class="stat-lbl">${_fEscPerf(t('dash.field.sales'))}</div><div class="stat-val">${sales}</div></div>
+<div class="stat-card"><div class="stat-lbl">${_fEscPerf(t('field.status.cancel'))}</div><div class="stat-val">${cancelled}</div></div>
+</div>`;
+}
+
+function _fEscPerf(value) {
+  return String(value ?? '').replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+}
+
 async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const host = document.getElementById('muh-agent-perf-wrap');
   if (!host) return;
+  const gen = ++_aspLoadGen;
   const role = String(currentUser?.role || '').trim().toLowerCase();
   if (!['agent', 'qc', 'admin', 'firm_admin', 'super_admin', 'field_agent'].includes(role)) {
     host.style.display = 'none';
     host.innerHTML = '';
     aspDestroyCharts();
+    return;
+  }
+  if (role === 'field_agent') {
+    host.style.display = '';
+    const sub = document.getElementById('performansim-sub');
+    if (sub) sub.textContent = t('perf.field.sub');
+    await loadFieldSelfPerformance(fid, ym);
     return;
   }
   host.style.display = '';
@@ -281,6 +352,7 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
     _aspFetchAppointments(fid, uid, start, end, apptMode),
     _aspFetchCalls(fid, uid, start, end),
   ]);
+  if (gen !== _aspLoadGen) return;
   const apRows = appts || [];
   const callRows = calls || [];
 
@@ -302,7 +374,7 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const byDay = {};
   dayKeys.forEach((d) => { byDay[d] = { ok: 0, pend: 0, qc: 0, fail: 0, oth: 0 }; });
   apRows.forEach((a) => {
-    const raw = apptMode === 'created' ? a.created_at : a.termin_tarih;
+    const raw = apptMode === 'created' ? (a.kayit_tarihi || a.created_at) : a.termin_tarih;
     const d = String(raw || '').slice(0, 10);
     if (!byDay[d]) return;
     const b = _aspApptBucket(a.durum);
@@ -315,6 +387,7 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   const lbl = dayKeys.map((k) => k.slice(8, 10));
 
   const body = document.getElementById('asp-body');
+  if (!body) return;
   body.innerHTML = `
 <div class="stats-grid" style="margin-bottom:14px;">
 <div class="stat-card"><div class="stat-lbl">${apptMode === 'created' ? 'Randevu (oluşturma ayı)' : 'Randevu (tarih ayı)'}</div><div class="stat-val">${tot}</div><div class="stat-meta">${ok} başarılı · oran %${rate}</div></div>
@@ -362,15 +435,16 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
   if (tbAp) {
     const sorted = [...apRows]
       .sort((a, b) => {
-        const ka = apptMode === 'created' ? a.created_at : a.termin_tarih;
-        const kb = apptMode === 'created' ? b.created_at : b.termin_tarih;
+        const ka = apptMode === 'created' ? (a.kayit_tarihi || a.created_at) : a.termin_tarih;
+        const kb = apptMode === 'created' ? (b.kayit_tarihi || b.created_at) : b.termin_tarih;
         return String(kb || '').localeCompare(String(ka || ''));
       })
       .slice(0, 25);
     tbAp.innerHTML = sorted.length ? sorted.map((a) => {
       const d = new Date(a.termin_tarih);
       const ds = isNaN(d.getTime()) ? '—' : d.toLocaleString(loc, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-      const dc = a.created_at ? new Date(a.created_at) : null;
+      const bookedRaw = a.kayit_tarihi || a.created_at;
+      const dc = bookedRaw ? new Date(bookedRaw) : null;
       const dcs =
         dc && !isNaN(dc.getTime())
           ? dc.toLocaleString(loc, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -394,8 +468,10 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
       const dur = _aspCallDur(c);
       const dm = `${Math.floor(dur / 60)}:${String(dur % 60).padStart(2, '0')}`;
       const cid = c.campaign_id || c.campaign?.id || c.campaigns?.id || null;
-      const campName = campaigns?.find?.((x) => String(x.id) === String(cid))?.name || c.campaigns?.name || '—';
-      return `<tr><td class="td-mono">${ds}</td><td class="td-mono">${_uiEsc(c.phone || '—')}</td><td>${_uiEsc(campName)}</td><td>${_uiEsc(om[c.outcome] || c.outcome || '—')}</td><td class="td-mono">${dm}</td></tr>`;
+      const campObj = campaigns?.find?.((x) => String(x.id) === String(cid)) || c.campaigns || null;
+      const campName = typeof mbCampShown === 'function' ? mbCampShown(campObj, cid) : (campObj?.name || c.campaigns?.name || '—');
+      const outcomeName = typeof mbOutcomeShown === 'function' ? (mbOutcomeShown(c.outcome, campObj, cid) || om[c.outcome] || c.outcome || '—') : (om[c.outcome] || c.outcome || '—');
+      return `<tr><td class="td-mono">${ds}</td><td class="td-mono">${_uiEsc(c.phone || '—')}</td><td>${_uiEsc(campName)}</td><td>${_uiEsc(outcomeName)}</td><td class="td-mono">${dm}</td></tr>`;
     }).join('') : `<tr><td colspan="5" style="text-align:center;padding:16px;">—</td></tr>`;
   }
 

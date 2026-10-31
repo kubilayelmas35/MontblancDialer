@@ -52,13 +52,13 @@ async function loadFeatureFlagsPage() {
   const list = document.getElementById('feature-flags-list');
   if (!card || !list) return;
   const role = currentUser?.role || '';
-  const canView = ['super_admin', 'admin', 'firm_admin'].includes(role);
+  const canView = mbIsFirmAdmin(role);
   card.style.display = canView ? '' : 'none';
   if (!canView) return;
 
   const row = document.getElementById('feature-flags-firm-row');
   const sel = document.getElementById('feature-flags-firm-select');
-  if (role === 'super_admin') {
+  if (mbIsSuperAdmin(role)) {
     if (row) row.style.display = '';
     if (sel && !sel.options.length) {
       const firms = await sb('firms?is_active=eq.true&select=id,name&order=name').catch(() => []);
@@ -109,21 +109,9 @@ async function saveFeatureFlags() {
 }
 
 async function applyFeatureFlagsOnBoot() {
-  const role = currentUser?.role || '';
-  const adminLike = ['admin', 'firm_admin', 'super_admin'].includes(role);
-  const qc = role === 'qc';
   const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
-  const flags = await getFirmFeatureFlags(fid);
-  const adminDialerNav = document.getElementById('nav-admin-dialer-btn');
-  if (adminDialerNav && adminLike) adminDialerNav.style.display = flags.admin_dialer_enabled !== false ? '' : 'none';
-  const agentDialerNav = document.getElementById('nav-dialer-btn');
-  if (agentDialerNav && qc) agentDialerNav.style.display = flags.qc_dialer_enabled !== false ? '' : 'none';
-  const fieldNav = document.getElementById('nav-field-btn');
-  if (fieldNav && currentUser?.role === 'field_agent') fieldNav.style.display = flags.field_module_enabled !== false ? '' : 'none';
-  const notifBtn = document.getElementById('tb-notif-btn');
-  if (notifBtn) notifBtn.style.display = flags.notification_center_enabled !== false ? '' : 'none';
-  const jobsNav = document.getElementById('nav-jobs-btn');
-  if (jobsNav && adminLike) jobsNav.style.display = flags.job_market_enabled !== false ? '' : 'none';
+  await getFirmFeatureFlags(fid);
+  if (typeof mbApplyNavAccess === 'function') mbApplyNavAccess();
 }
 
 window.isFeatureEnabledForCurrentFirm = isFeatureEnabledForCurrentFirm;

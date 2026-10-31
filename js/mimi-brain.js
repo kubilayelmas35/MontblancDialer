@@ -1,290 +1,52 @@
 // ─────────────────────────────────────────────
-// Mimi Brain — deep mascot personality system
-// Sleep · Drink · Stretch · Celebrate · Page bubbles · Time personality
+// Mimi Brain — greeting, break, celebrate, page facts
 // ─────────────────────────────────────────────
 
 (function () {
   'use strict';
 
-  // ── Constants ───────────────────────────────
-  const IDLE_YAWN_MS    = 3 * 60 * 1000;   // 3 min → yawn
-  const IDLE_SLEEP_MS   = 8 * 60 * 1000;   // 8 min → deep sleep
+  const IDLE_YAWN_MS    = 3 * 60 * 1000;
   const DRINK_MIN_MS    = 35 * 1000;
   const DRINK_MAX_MS    = 80 * 1000;
   const STRETCH_MIN_MS  = 90 * 1000;
   const STRETCH_MAX_MS  = 210 * 1000;
-  const WANDER_TICK_MS  = 16;
 
-  // ── Time-of-day profiles ─────────────────────
-  // Returns hour 0-23
-  function _hour() { return new Date().getHours(); }
-
-  function _timeProfile() {
-    const h = _hour();
-    if (h >= 6  && h < 9)  return 'earlyMorning';
-    if (h >= 9  && h < 12) return 'morning';
-    if (h >= 12 && h < 14) return 'lunch';
-    if (h >= 14 && h < 18) return 'afternoon';
-    if (h >= 18 && h < 22) return 'evening';
-    return 'night';
+  function _clockTz() {
+    return typeof getMascotClockTz === 'function' ? getMascotClockTz() : 'Europe/Berlin';
   }
 
-  // Speed multiplier based on time-of-day (applied on top of user wander speed)
-  const _TIME_SPEED = {
-    earlyMorning: 1.1,
-    morning:      1.8,
-    lunch:        0.6,
-    afternoon:    1.3,
-    evening:      0.5,
-    night:        0.3,
-  };
-
-  function _getTimeSpeedMult() {
-    return _TIME_SPEED[_timeProfile()] ?? 1.0;
+  function _hour() {
+    const h = Number(new Intl.DateTimeFormat('en-GB', { timeZone: _clockTz(), hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
+    return Number.isFinite(h) ? h : new Date().getHours();
   }
 
-  // Drink label depends on time
-  function _drinkForTime() {
-    const h = _hour();
-    if (h < 10) return { tr: '☕', de: '☕' };
-    if (h < 14) return { tr: '🧋', de: '🧋' };
-    if (h < 18) return { tr: '🧃', de: '🧃' };
-    return { tr: '🫖', de: '🫖' };
+  function _todayKey() {
+    try {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: _clockTz(), year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    } catch (e) {
+      return new Date().toISOString().slice(0, 10);
+    }
   }
 
-  // ── Page-specific bubble pools ───────────────
-  const _PAGE_MSGS = {
-    dialer: {
-      tr: [
-        'Hazır mısın? Bir randevu seni bekliyor!',
-        'Bugün harika bir gün — başlayalım!',
-        'Her çağrı yeni bir şans.',
-        'Ritmin çok güzel, böyle devam!',
-        'Telefonun sıcak, müşteri yakın 🔥',
-      ],
-      de: [
-        'Bereit? Ein Termin wartet auf dich!',
-        'Heute wird ein guter Tag — los geht\'s!',
-        'Jeder Anruf ist eine neue Chance.',
-        'Schöner Rhythmus, weiter so!',
-        'Das Telefon ist warm, der Kunde nah 🔥',
-      ],
-    },
-    dashboard: {
-      tr: [
-        'Harika sayılar! Çok iyi iş çıkarmışsın.',
-        'Grafikler seni gülümsettirsin 📈',
-        'Takım ruhunu hissediyorum!',
-        'Bugünkü rakamlar müthiş gözüküyor.',
-      ],
-      de: [
-        'Tolle Zahlen — sehr gute Arbeit!',
-        'Lass die Grafiken dich zum Lächeln bringen 📈',
-        'Ich spüre den Teamgeist!',
-        'Die heutigen Zahlen sehen fantastisch aus.',
-      ],
-    },
-    qc: {
-      tr: [
-        'Kalite kontrolü — en önemli adım!',
-        'Her detay önemli, dikkatli ol 🔍',
-        'Mükemmellik burada başlıyor.',
-        'Harika bir kalite gözün var!',
-      ],
-      de: [
-        'Qualitätskontrolle — der wichtigste Schritt!',
-        'Jedes Detail zählt, sei aufmerksam 🔍',
-        'Hier beginnt die Perfektion.',
-        'Du hast ein tolles Qualitätsauge!',
-      ],
-    },
-    contacts: {
-      tr: [
-        'Her müşteri özel, her liste değerli.',
-        'Hangi müşteriyi seçeceğiz bugün?',
-        'İyi bir liste iyi bir gün demek!',
-      ],
-      de: [
-        'Jeder Kunde ist besonders, jede Liste wertvoll.',
-        'Welchen Kunden wählen wir heute?',
-        'Eine gute Liste bedeutet einen guten Tag!',
-      ],
-    },
-    campaigns: {
-      tr: [
-        'Kampanyalar hedefe uçuyor 🚀',
-        'Her kampanya yeni bir fırsat!',
-        'Hangi kampanyayı patlatıyoruz?',
-      ],
-      de: [
-        'Kampagnen fliegen zum Ziel 🚀',
-        'Jede Kampagne ist eine neue Chance!',
-        'Welche Kampagne rocken wir?',
-      ],
-    },
-    settings: {
-      tr: [
-        'Ayarlar tamam mı? Her şey yerli yerinde.',
-        'Güzel bir sistem kurmak için buradayız!',
-        'Bir ayar değişikliği bazen her şeyi değiştirir.',
-      ],
-      de: [
-        'Einstellungen okay? Alles an seinem Platz.',
-        'Wir sind hier, um ein gutes System aufzubauen!',
-        'Eine Einstellung kann manchmal alles ändern.',
-      ],
-    },
-    performance: {
-      tr: [
-        'Performansın gökyüzünde! 🌟',
-        'Her sayı bir başarı hikayesi.',
-        'Veriler asla yalan söylemez!',
-      ],
-      de: [
-        'Deine Performance ist durch die Decke! 🌟',
-        'Jede Zahl ist eine Erfolgsgeschichte.',
-        'Daten lügen nie!',
-      ],
-    },
-    supervisor: {
-      tr: [
-        'Canlı kat açık: kim konuşuyor, ne kadar sürdü, kiminle.',
-        'Süreler her saniye ilerliyor.',
-        'Mola ve sonuç satırları da bu ekranda.',
-      ],
-      de: [
-        'Live-Floor: wer spricht, wie lange, mit wem.',
-        'Die Dauer läuft jede Sekunde weiter.',
-        'Pause und Nacharbeit siehst du hier auch.',
-      ],
-    },
-    wiedervorlage: {
-      tr: [
-        'Geri aramalar bekliyor — hazır mısın?',
-        'Sıcak leadler burada saklı 🔥',
-        'Bir geri arama bir randevu olabilir!',
-      ],
-      de: [
-        'Rückrufe warten — bist du bereit?',
-        'Heiße Leads sind hier versteckt 🔥',
-        'Ein Rückruf kann ein Termin werden!',
-      ],
-    },
-    takvim: {
-      tr: [
-        'Takvim dolu — harika iş!',
-        'Her slot bir kazanç 📅',
-        'Randevular düzenli, aklım rahat.',
-      ],
-      de: [
-        'Kalender voll — tolle Arbeit!',
-        'Jeder Slot ist ein Gewinn 📅',
-        'Termine ordentlich, mein Kopf ist frei.',
-      ],
-    },
-    field: {
-      tr: [
-        'Saha ekibi yolda. Posta kodu ve şehir tabloda.',
-        'İptal edilen görevler ayrı sayılır.',
-        'Randevu tarihi ile saha sonucu yan yana.',
-      ],
-      de: [
-        'Außendienst unterwegs. PLZ und Ort stehen in der Tabelle.',
-        'Stornierte Aufgaben zählen extra.',
-        'Terminzeit und Feldergebnis nebeneinander.',
-      ],
-    },
-    fieldops: {
-      tr: [
-        'Saha takibi: kimde hangi randevu var.',
-        'Posta kodu, şehir ve randevu tarihi burada.',
-        'İptal edilenler de sayıya dahil.',
-      ],
-      de: [
-        'Feldübersicht: welcher Termin bei wem liegt.',
-        'PLZ, Ort und Terminzeit auf einen Blick.',
-        'Stornos zählen mit.',
-      ],
-    },
-    jobmarket: {
-      tr: [
-        'İş piyasası canlı — fırsatlar kaçmasın!',
-        'Her ilan bir kapı açıyor.',
-        'Harita dolu, iş bol 🗺️',
-      ],
-      de: [
-        'Jobmarkt lebendig — keine Chancen verpassen!',
-        'Jede Anzeige öffnet eine Tür.',
-        'Karte voll, viele Jobs 🗺️',
-      ],
-    },
-    leave: {
-      tr: [
-        'Dinlenme de çalışmak kadar önemli ☀️',
-        'İzin talebini en iyi şekilde yönetelim.',
-      ],
-      de: [
-        'Erholung ist genauso wichtig wie Arbeit ☀️',
-        'Lass uns deinen Urlaubsantrag bestmöglich verwalten.',
-      ],
-    },
-    muhasebe: {
-      tr: [
-        'Euro maaşın altında lira karşılığı da duruyor.',
-        'Kur canlı geliyor. Yenile dersen tazelenir.',
-        'Muhasebe şeffaf olunca herkes aynı sayıyı görür.',
-      ],
-      de: [
-        'Unter dem Euro-Lohn steht auch der Lira-Gegenwert.',
-        'Der Kurs kommt live. Aktualisieren holt ihn neu.',
-        'Transparente Buchhaltung, gleiche Zahlen für alle.',
-      ],
-    },
-    competition: {
-      tr: [
-        'Rekabet ruhu! Kim kazanacak?',
-        'Sıralama güncelliyor — takip et! 🏆',
-      ],
-      de: [
-        'Wettbewerbsgeist! Wer gewinnt?',
-        'Rangliste aktualisiert — bleib dran! 🏆',
-      ],
-    },
-  };
+  function _greetSeenToday() {
+    return typeof getMascotPref === 'function' && getMascotPref('mb_mascot_greet_day', '') === _todayKey();
+  }
 
-  const _DEFAULT_MSGS = {
-    tr: [
-      'Buradayım, her zaman!',
-      'Seninle çalışmak harika 😊',
-      'Birlikte her şeyi başarırız.',
-    ],
-    de: [
-      'Ich bin hier, immer!',
-      'Es macht Spaß, mit dir zu arbeiten 😊',
-      'Zusammen schaffen wir alles.',
-    ],
-  };
+  function _lang() { return typeof currentLang !== 'undefined' ? currentLang : 'tr'; }
 
-  // ── State ────────────────────────────────────
   let _currentPage   = '';
   let _lastActivity  = Date.now();
-  let _isSleeping    = false;
-  let _isYawning     = false;
   let _drinkTimer    = null;
   let _stretchTimer  = null;
   let _idleCheckInterval = null;
-  let _timeSpeedInterval = null;
   let _wiredNavigate = false;
 
-  // ── Helpers ──────────────────────────────────
-  function _lang() { return typeof currentLang !== 'undefined' ? currentLang : 'tr'; }
-
   function _hidden() { return typeof isMimiHidden === 'function' && isMimiHidden(); }
-  function _bubbleMuted() { return typeof isMimiBubbleMuted === 'function' && isMimiBubbleMuted(); }
+  function _speak(kind) { return typeof mascotSpeechOn !== 'function' || mascotSpeechOn(kind); }
 
-  function _bubble(msg) {
-    if (_hidden() || _bubbleMuted()) return;
-    if (typeof _showCustEmptyBubbleMsg === 'function') _showCustEmptyBubbleMsg(msg);
+  function _bubble(msg, kind) {
+    if (!msg || _hidden() || !_speak(kind)) return;
+    if (typeof _showCustEmptyBubbleMsg === 'function') _showCustEmptyBubbleMsg(msg, kind);
   }
 
   function _pick(pool) { return pool[Math.floor(Math.random() * pool.length)]; }
@@ -322,20 +84,42 @@
     _setGlobalMood('');
   }
 
-  // Wander speed: apply time-of-day mult to base variable
-  function _applyTimeWanderSpeed() {
-    const mult = _getTimeSpeedMult();
-    if (typeof _wanderSpeedMult !== 'undefined') {
-      // Only nudge if not already overridden by another mood
-      if (!_isSleeping) window._wanderSpeedMult = mult;
-    }
+  function _status() {
+    return typeof dialerStatus !== 'undefined' ? dialerStatus : '';
   }
 
-  // ── Activity tracking ────────────────────────
+  function _onLine() {
+    const st = _status();
+    return st === 'calling' || st === 'on_call' || st === 'wrapping';
+  }
+
+  function _onBreak() {
+    return _status() === 'break';
+  }
+
+  function _setIdle(on) {
+    document.querySelectorAll('.mascot-theme-root, #cust-empty').forEach((el) => {
+      if (on) el.setAttribute('data-mascot-idle', '1');
+      else el.removeAttribute('data-mascot-idle');
+    });
+  }
+
+  function _quietForCall() {
+    const gm = document.getElementById('global-mascot');
+    const mood = gm?.getAttribute('data-mood') || '';
+    const celebrating = mood === 'celebrate' || gm?.classList.contains('global-mascot--celebrate');
+    if (!celebrating) _clearMood();
+    _setIdle(false);
+    if (typeof _wanderSpeedMult !== 'undefined' && !celebrating) _wanderSpeedMult = 1;
+    if (gm?.classList.contains('global-mascot--aria')) return;
+    const bubble = document.getElementById('cust-empty-bubble');
+    if (bubble && !celebrating) bubble.style.display = 'none';
+  }
+  window.mbMascotQuietForCall = _quietForCall;
+
   function _resetActivity() {
     _lastActivity = Date.now();
-    if (_isSleeping) _wakeUp();
-    else if (_isYawning) _cancelYawn();
+    _setIdle(false);
   }
 
   function _wireActivity() {
@@ -344,60 +128,22 @@
     });
   }
 
-  // ── Sleep / Yawn system ──────────────────────
-  function _yawn() {
-    if (_hidden() || _isSleeping) return;
-    _isYawning = true;
-    _setMood('cust-empty--mascot-yawn', 'yawn');
-    const tr = _lang() === 'tr';
-    _bubble(tr ? 'Haaaa... biraz yoruldum 🥱' : 'Haaaa... ein bisschen müde 🥱');
-    if (typeof _wanderSpeedMult !== 'undefined') window._wanderSpeedMult = 0.4;
-  }
-
-  function _cancelYawn() {
-    _isYawning = false;
-    _clearMood();
-    _applyTimeWanderSpeed();
-  }
-
-  function _goSleep() {
-    if (_hidden()) return;
-    _isSleeping = true;
-    _isYawning  = false;
-    _setMood('cust-empty--break', 'break');
-    if (typeof _wanderSpeedMult !== 'undefined') window._wanderSpeedMult = 0.1;
-    if (typeof _wanderPauseUntil !== 'undefined') window._wanderPauseUntil = performance.now() + 99999999;
-    const tr = _lang() === 'tr';
-    _bubble(tr ? 'Zzz... biraz şekerleme yapıyorum 😴' : 'Zzz... ich schlafe kurz 😴');
-  }
-
-  function _wakeUp() {
-    if (!_isSleeping) return;
-    _isSleeping = false;
-    _clearMood();
-    if (typeof _wanderPauseUntil !== 'undefined') window._wanderPauseUntil = 0;
-    _applyTimeWanderSpeed();
-    // Stretch after waking
-    setTimeout(() => _doStretch(true), 600);
-  }
-
   function _checkIdle() {
-    const idle = Date.now() - _lastActivity;
-    if (_isSleeping) return;
-    if (idle >= IDLE_SLEEP_MS) { _goSleep(); return; }
-    if (idle >= IDLE_YAWN_MS && !_isYawning) { _yawn(); }
+    if (_hidden() || _onLine()) {
+      _setIdle(false);
+      return;
+    }
+    _setIdle(Date.now() - _lastActivity >= IDLE_YAWN_MS);
   }
 
-  // ── Drink system ─────────────────────────────
   function _doDrink() {
-    if (_hidden() || _isSleeping) { _scheduleDrink(); return; }
-    const drink = _drinkForTime();
+    if (_hidden() || _onLine() || !_onBreak()) { _scheduleDrink(); return; }
     const tr = _lang() === 'tr';
     _setMood('cust-empty--mascot-drink', 'drink');
     const msgs = tr
-      ? [`${drink.tr} İçtim, teşekkürler!`, `${drink.tr} Hayat böyle güzel.`, `${drink.tr} Bir yudum — enerji geldi!`]
-      : [`${drink.de} Getrunken, danke!`, `${drink.de} So schön ist das Leben.`, `${drink.de} Ein Schluck — Energie da!`];
-    _bubble(_pick(msgs));
+      ? ['Mola. Kısa bir su arası.', 'Mola sürüyor. Dönünce sıradaki kayıt hazır.']
+      : ['Pause. Kurzer Schluck.', 'Pause läuft. Der nächste Eintrag wartet.'];
+    _bubble(_pick(msgs), 'break');
     setTimeout(() => {
       _clearMood();
       _scheduleDrink();
@@ -410,23 +156,18 @@
     _drinkTimer = setTimeout(_doDrink, delay);
   }
 
-  // ── Stretch system ───────────────────────────
-  function _doStretch(afterSleep = false) {
-    if (_hidden() || _isSleeping) { if (!afterSleep) _scheduleStretch(); return; }
+  function _doStretch() {
+    if (_hidden() || _onLine() || !_onBreak()) { _scheduleStretch(); return; }
     _setMood('cust-empty--mascot-stretch', 'stretch');
     const tr = _lang() === 'tr';
-    const msgs = afterSleep
-      ? (tr
-          ? ['Günaydın! Gerilme zamanı 🙆', 'Uyandım! Hazırım!', 'Yeniden enerji dolu 💪']
-          : ['Guten Morgen! Zeit zu strecken 🙆', 'Aufgewacht! Bereit!', 'Wieder voller Energie 💪'])
-      : (tr
-          ? ['Gerilme zamanı! 🙆‍♀️', 'Biraz esneyelim...', 'Kaslarımı çalıştırıyorum 💪']
-          : ['Zeit zu strecken! 🙆‍♀️', 'Etwas dehnen...', 'Ich aktiviere meine Muskeln 💪']);
-    _bubble(_pick(msgs));
-    if (typeof _wanderSpeedMult !== 'undefined') window._wanderSpeedMult = 2.2;
+    const msgs = tr
+      ? ['Mola. Kısa bir esneme.', 'Mola bitince aramaya dönersin.']
+      : ['Pause. Kurzes Strecken.', 'Nach der Pause geht der Anruf weiter.'];
+    _bubble(_pick(msgs), 'break');
+    if (typeof _wanderSpeedMult !== 'undefined') _wanderSpeedMult = 2.2;
     setTimeout(() => {
       _clearMood();
-      _applyTimeWanderSpeed();
+      if (typeof _wanderSpeedMult !== 'undefined') _wanderSpeedMult = 1;
       _scheduleStretch();
     }, 2200);
   }
@@ -437,39 +178,84 @@
     _stretchTimer = setTimeout(_doStretch, delay);
   }
 
-  // ── Celebrate ────────────────────────────────
   function _mimiCelebrate() {
     if (_hidden()) return;
     _resetActivity();
     _setMood('cust-empty--mascot-celebrate', 'celebrate');
-    if (typeof _wanderSpeedMult !== 'undefined') window._wanderSpeedMult = 3.0;
-    if (typeof _wanderPauseUntil !== 'undefined') window._wanderPauseUntil = 0;
+    if (typeof _wanderSpeedMult !== 'undefined') _wanderSpeedMult = 3.0;
+    if (typeof _wanderPauseUntil !== 'undefined') _wanderPauseUntil = 0;
     const tr = _lang() === 'tr';
     const msgs = tr
-      ? ['Randevu! Mükemmelsin!', 'Yaptık! Harika bir kapanış!', 'Süpersin — randevu tamam!', 'Bu benim favorim — randevu geldi!']
-      : ['TERMIN! Du bist großartig!', 'Geschafft! Tolles Abschluss!', 'Spitze — Termin bestätigt!', 'Das ist mein Liebling — Termin da!'];
-    _bubble(_pick(msgs));
+      ? ['Randevu kaydedildi.', 'Termin oluşturuldu.', 'Randevu kaydı tamam.']
+      : ['Termin gespeichert.', 'Termin angelegt.', 'Termineintrag abgeschlossen.'];
+    _bubble(_pick(msgs), 'appt');
     setTimeout(() => {
       _clearMood();
-      _applyTimeWanderSpeed();
+      if (typeof _wanderSpeedMult !== 'undefined') _wanderSpeedMult = 1;
     }, 2500);
   }
   window._mimiCelebrate = _mimiCelebrate;
 
-  // ── Page-aware bubbles ───────────────────────
+  function _countRows(sel) {
+    return [...document.querySelectorAll(sel)].filter((tr) => {
+      const cells = tr.querySelectorAll('td');
+      if (cells.length === 1 && cells[0].colSpan > 1) return false;
+      return true;
+    }).length;
+  }
+
+  function _pageFact(page) {
+    const tr = _lang() === 'tr';
+    const snap = window._dialerPerfSnapshot || {};
+    const tdC = Number(snap.todayCalls) || Number(document.getElementById('my-calls')?.textContent) || 0;
+    const tdA = Number(snap.todayAppts) || Number(document.getElementById('my-appt')?.textContent) || 0;
+    if (page === 'dashboard' || page === 'performance' || page === 'stats') {
+      if (!tdC && !tdA) return '';
+      return tr ? `Bugün ${tdC} çağrı, ${tdA} randevu.` : `Heute ${tdC} Anrufe, ${tdA} Termine.`;
+    }
+    if (page === 'dialer') return '';
+    if (page === 'wiedervorlage') {
+      const overdue = Number(document.getElementById('wv-overdue-count')?.textContent) || 0;
+      const rows = _countRows('#wv-tbody tr');
+      if (overdue > 0) return tr ? `${overdue} geri aramanın vakti geçmiş.` : `${overdue} Rückrufe sind überfällig.`;
+      if (rows > 0) return tr ? `Listede ${rows} geri arama var.` : `${rows} Rückrufe in der Liste.`;
+      return '';
+    }
+    if (page === 'takvim') {
+      const slots = [...document.querySelectorAll('#page-takvim .takvim-slot-el')];
+      if (!slots.length) return '';
+      const empty = slots.filter((el) => /^\s*(Boş|Leer)\b/.test(el.textContent || '')).length;
+      const full = Math.max(0, slots.length - empty);
+      return tr ? `Bu görünümde ${empty} boş, ${full} dolu yer.` : `In dieser Ansicht ${empty} frei, ${full} belegt.`;
+    }
+    if (page === 'campaigns') {
+      const n = document.querySelectorAll('#camp-grid > *').length;
+      if (!n) return '';
+      return tr ? `${n} kampanya listeleniyor.` : `${n} Kampagnen in der Liste.`;
+    }
+    if (page === 'qc') {
+      const n = _countRows('#qc-tbody tr');
+      if (!n) return '';
+      return tr ? `Kalite kontrolünde ${n} kayıt var.` : `${n} Einträge in der Qualitätsprüfung.`;
+    }
+    if (page === 'history' || page === 'my') {
+      const n = _countRows('#my-tbody tr');
+      if (!n) return '';
+      return tr ? `Geçmişte ${n} satır var.` : `${n} Zeilen im Verlauf.`;
+    }
+    return '';
+  }
+
   function _mimiOnNavigate(page) {
     _currentPage = page;
     _resetActivity();
-    // 40% chance to show page bubble on nav
-    if (Math.random() > 0.4 || _hidden() || _bubbleMuted()) return;
-    const pool = _PAGE_MSGS[page];
-    const lang = _lang();
-    const msgs = pool ? (pool[lang] || pool.tr) : (_DEFAULT_MSGS[lang] || _DEFAULT_MSGS.tr);
-    setTimeout(() => _bubble(_pick(msgs)), 1200);
+    if (page === 'settings' || _onLine() || _hidden() || !_speak('page')) return;
+    const line = _pageFact(page);
+    if (!line) return;
+    setTimeout(() => _bubble(line, 'page'), 1200);
   }
   window._mimiOnNavigate = _mimiOnNavigate;
 
-  // ── Hook navigate() ──────────────────────────
   function _hookNavigate() {
     if (_wiredNavigate) return;
     _wiredNavigate = true;
@@ -481,35 +267,27 @@
     };
   }
 
-  // ── Time-speed update (every 5 min) ──────────
-  function _startTimeSpeedUpdater() {
-    clearInterval(_timeSpeedInterval);
-    _timeSpeedInterval = setInterval(_applyTimeWanderSpeed, 5 * 60 * 1000);
-    _applyTimeWanderSpeed();
-  }
-
-  // ── Boot ─────────────────────────────────────
   function _boot() {
     _wireActivity();
     _hookNavigate();
-    _startTimeSpeedUpdater();
     _scheduleDrink();
     _scheduleStretch();
-
     _idleCheckInterval = setInterval(_checkIdle, 15000);
-
-    // Greet on first load
-    if (!_hidden() && !_bubbleMuted()) {
-      setTimeout(() => {
-        const h = _hour();
-        const tr = _lang() === 'tr';
-        let greeting;
-        if (h < 12)       greeting = tr ? 'Günaydın! Bugün harika bir gün olacak ☀️' : 'Guten Morgen! Heute wird ein toller Tag ☀️';
-        else if (h < 18)  greeting = tr ? 'İyi öğleden sonralar! Tam gaz devam 🚀' : 'Guten Nachmittag! Weiter so 🚀';
-        else               greeting = tr ? 'İyi akşamlar! Son rötuşları yapıyoruz 🌙' : 'Guten Abend! Letzte Feinarbeiten 🌙';
-        _bubble(greeting);
-      }, 2500);
-    }
+    if (_hidden() || _onLine() || !_speak('greet') || _greetSeenToday()) return;
+    setTimeout(() => {
+      if (_hidden() || _onLine() || !_speak('greet') || _greetSeenToday()) return;
+      const h = _hour();
+      const tr = _lang() === 'tr';
+      let greeting;
+      if (h < 12) greeting = tr ? 'Günaydın. Arama ekranı hazır.' : 'Guten Morgen. Der Dialer ist bereit.';
+      else if (h < 18) greeting = tr ? 'İyi günler. Kaldığın kayıttan devam edebilirsin.' : 'Guten Tag. Du kannst beim letzten Eintrag weitermachen.';
+      else greeting = tr ? 'İyi akşamlar. Gün sonu kayıtlarını kontrol et.' : 'Guten Abend. Tageseinträge prüfen.';
+      _bubble(greeting, 'greet');
+      const b = document.getElementById('cust-empty-bubble');
+      if (b && b.style.display !== 'none' && b.dataset.owner === 'greet' && typeof setMascotPref === 'function') {
+        setMascotPref('mb_mascot_greet_day', _todayKey());
+      }
+    }, 2500);
   }
 
   if (document.readyState === 'loading') {

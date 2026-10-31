@@ -8,23 +8,52 @@
 <div style="padding:16px 20px;border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;gap:12px;">
 <div id="nc-firm-row" style="display:none;" class="form-row">
 <label class="form-label">Firma *</label>
-<select class="form-input" id="nc-firm-id" style="font-size:12px;">
+<select class="form-input" id="nc-firm-id" style="font-size:12px;" onchange="ncOnFirmChange()">
 <option value="">Firma seçin...</option>
 </select>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Kampanya Adı *" data-de="Kampagnenname *">Kampanya Adı *</label>
 <input class="form-input" id="nc-name" placeholder="Isı pompası Q2" data-tr="Isı pompası Q2" data-de="Wärmepumpe Q2" oninput="this.classList.remove('is-invalid');const e=document.getElementById('nc-name-err');if(e)e.hidden=true;">
-<div id="nc-name-err" class="nc-inline-err" hidden></div>
+<div id="nc-name-err" class="nc-inline-err" role="alert" hidden></div>
 </div>
 <div class="form-row">
-<label class="form-label" data-tr="Hat DID (+49...)" data-de="Anschluss-DID (+49...)">Hat DID (+49...)</label>
+<label class="form-label" data-tr="Görünen ad" data-de="Anzeigename">Görünen ad</label>
+<input class="form-input" id="nc-display" maxlength="80" autocomplete="off" data-tr="Listede okunan ad" data-de="Name in den Listen" placeholder="Listede okunan ad">
+</div>
+<div class="form-row" id="nc-did-row">
+<label class="form-label" data-tr="Arayan numara" data-de="Anrufernummer">Arayan numara</label>
+<select class="form-input" id="nc-did-pick" hidden></select>
 <input class="form-input" id="nc-did" list="nc-did-list" placeholder="+49301234567" inputmode="tel" autocomplete="off">
 <datalist id="nc-did-list"></datalist>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Açıklama" data-de="Beschreibung">Açıklama</label>
 <input class="form-input" id="nc-desc" placeholder="Kısa açıklama..." data-tr="Kısa açıklama..." data-de="Kurze Beschreibung...">
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Ayarları kopyala" data-de="Einstellungen kopieren">Ayarları kopyala</label>
+<select class="form-input" id="nc-copy-from" onchange="ncApplyCopy(this.value)">
+<option value="" data-tr="Kopyalama" data-de="Nicht kopieren">Kopyalama</option>
+</select>
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Alanlar, hız, metin, kurallar, sonuçlar ve müşteri gelir. Kişiler gelmez." data-de="Felder, Tempo, Text, Regeln, Ergebnisse und Kunde kommen mit. Kontakte nicht.">Alanlar, hız, metin, kurallar, sonuçlar ve müşteri gelir. Kişiler gelmez.</div>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Müşteri" data-de="Kunde">Müşteri</label>
+<select class="form-input" id="nc-customer" onchange="ncCustomerNote()">
+<option value="" data-tr="Seçin" data-de="Wählen">Seçin</option>
+<option value="qc" data-tr="Tümü — Kalite kontrol seçer" data-de="Alle — QC wählt">Tümü — Kalite kontrol seçer</option>
+</select>
+<div id="nc-customer-note" style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Bir müşteri seçin. Tümü derseniz randevu müşterisiz açılır ve müşteriyi Kalite kontrol yazar." data-de="Einen Kunden wählen. Alle: der Termin bleibt ohne Kunde, QC trägt ihn ein.">Bir müşteri seçin. Tümü derseniz randevu müşterisiz açılır ve müşteriyi Kalite kontrol yazar.</div>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Personeller" data-de="Personal">Personeller</label>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;" data-tr="İşaretli personel dialerde bu kampanyanın kutusunu görür. Varsayılan herkes işaretlidir." data-de="Markiertes Personal sieht diese Kampagne im Dialer. Standard: alle markiert.">İşaretli personel dialerde bu kampanyanın kutusunu görür. Varsayılan herkes işaretlidir.</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="ncPersonnelAll(true)" data-tr="Tümünü ekle" data-de="Alle hinzufügen">Tümünü ekle</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="ncPersonnelAll(false)" data-tr="Tümünü çıkar" data-de="Alle entfernen">Tümünü çıkar</button>
+</div>
+<div id="nc-personnel" style="display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto;"></div>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Arama Hızı" data-de="Wahlgeschwindigkeit">Arama Hızı</label>
@@ -64,12 +93,23 @@
 <div class="modal-overlay" id="m-upload-q">
 <div class="modal" style="max-width:560px;">
 <div class="modal-hdr">
-<div class="modal-title" data-tr="Kuyruk Yükle" data-de="Liste laden">Kuyruk Yükle</div>
+<div class="modal-title" id="uq-modal-title" data-tr="Kuyruk Yükle" data-de="Liste laden">Kuyruk Yükle</div>
 <button class="modal-close" onclick="closeModal('m-upload-q')">✕</button>
+</div>
+<div id="uq-geocon-target" hidden>
+<div class="form-row">
+<label class="form-label" for="uq-camp" data-tr="Kampanya" data-de="Kampagne">Kampanya</label>
+<select class="form-input" id="uq-camp" onchange="mbGeoconPickCamp()"></select>
+</div>
+<div class="form-row">
+<label class="form-label" for="uq-queue" data-tr="Kuyruk" data-de="Warteschlange">Kuyruk</label>
+<select class="form-input" id="uq-queue" onchange="mbGeoconPickQueue()"></select>
+</div>
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Kuyruk Adı" data-de="Listenname">Kuyruk Adı</label>
 <input class="form-input" id="uq-name" placeholder="Liste A, Bölge Berlin...">
+<div id="uq-target-note" hidden style="font-size:11px;color:var(--text-2);margin-top:6px;line-height:1.4;"></div>
 </div>
 <div class="upload-area" id="uq-area" onclick="document.getElementById('uq-file').click()"
 ondragover="event.preventDefault();this.classList.add('drag')"
@@ -80,13 +120,10 @@ ondrop="handleDrop(event)">
 <div class="upload-sub" id="uq-fname">.xlsx, .csv — maks. 50.000 satır</div>
 <input type="file" id="uq-file" accept=".xlsx,.csv" style="display:none" onchange="handleFileSelect(event)">
 </div>
+<div id="uq-sheet-wrap" style="display:none;margin-top:10px;"></div>
 <div id="uq-mapping-section" style="display:none;">
-<div class="form-label" style="margin-bottom:8px;font-size:13px;font-weight:700;">
-Sütun Eşleştirme
-<span style="font-size:11px;color:var(--text-3);font-weight:400;margin-left:6px;">
-(<span id="uq-row-count">0</span> satır tespit edildi)
-</span>
-</div>
+<div class="form-label" id="uq-map-title" style="margin-bottom:4px;font-size:13px;font-weight:700;" data-tr="Sütun eşleştirme" data-de="Spaltenzuordnung">Sütun eşleştirme</div>
+<div id="uq-row-count" style="font-size:11px;color:var(--text-3);font-weight:400;margin-bottom:8px;"></div>
 <div id="uq-mapping-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:240px;overflow-y:auto;padding-right:4px;"></div>
 <div id="uq-preview" style="margin-top:10px;background:var(--bg-3);border-radius:var(--radius-sm);padding:10px;font-size:11px;display:none;">
 <div style="font-weight:700;margin-bottom:6px;color:var(--text-2);" data-tr="İlk 3 satır önizleme" data-de="Vorschau der ersten 3 Zeilen">İlk 3 satır önizleme</div>
@@ -107,16 +144,42 @@ Sütun Eşleştirme
 <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-2);" data-tr="Mükerrer kayıt kontrolü" data-de="Dublettenprüfung">Mükerrer kayıt kontrolü</div>
 <div style="display:flex;flex-direction:column;gap:4px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
-<input type="radio" name="dedup-mode" value="excel" checked> Bu Excel içinde kontrol et
+<input type="radio" name="dedup-mode" value="excel" checked> <span data-tr="Bu dosyada kontrol et" data-de="In dieser Datei prüfen">Bu dosyada kontrol et</span>
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
-<input type="radio" name="dedup-mode" value="campaign"> Bu Kampanyada kontrol et
+<input type="radio" name="dedup-mode" value="campaign"> <span data-tr="Bu kampanyada kontrol et" data-de="In dieser Kampagne prüfen">Bu kampanyada kontrol et</span>
 </label>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
-<input type="radio" name="dedup-mode" value="system"> Tüm Sistemde kontrol et
+<input type="radio" name="dedup-mode" value="system"> <span data-tr="Tüm sistemde kontrol et" data-de="Im gesamten System prüfen">Tüm sistemde kontrol et</span>
+</label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
+<input type="radio" name="dedup-mode" value="none"> <span data-tr="Kontrol etme" data-de="Nicht prüfen">Kontrol etme</span>
+</label>
+</div>
+<div style="font-size:12px;font-weight:700;margin:12px 0 4px;color:var(--text-2);" data-tr="Sonuçlanmış kişileri ekleme" data-de="Abgeschlossene nicht laden">Sonuçlanmış kişileri ekleme</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;" data-tr="Aynı numara sistemde işaretlediğin sonuçla duruyorsa eklenmez." data-de="Dieselbe Nummer wird nicht geladen, wenn sie im System mit einem markierten Ergebnis liegt.">Aynı numara sistemde işaretlediğin sonuçla duruyorsa eklenmez.</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
+<input type="checkbox" class="uq-skip-status" value="appointment"> <span data-tr="Randevu" data-de="Termin">Randevu</span>
+</label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
+<input type="checkbox" class="uq-skip-status" value="no_answer"> <span data-tr="Cevap yok" data-de="Keine Antwort">Cevap yok</span>
+</label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
+<input type="checkbox" class="uq-skip-status" value="negative"> <span data-tr="Olumsuz" data-de="Negativ">Olumsuz</span>
+</label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
+<input type="checkbox" class="uq-skip-status" value="callback"> <span data-tr="Geri ara" data-de="Rückruf">Geri ara</span>
+</label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
+<input type="checkbox" class="uq-skip-status" value="voicemail"> <span data-tr="Telesekreter" data-de="Anrufbeantworter">Telesekreter</span>
+</label>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 8px;background:var(--bg-3);border-radius:5px;">
+<input type="checkbox" class="uq-skip-status" value="dnc"> <span data-tr="Kara liste" data-de="Sperrliste">Kara liste</span>
 </label>
 </div>
 <div id="dedup-result" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:5px;font-size:11px;color:var(--yellow);font-weight:700;"></div>
+<div id="uq-addr-box" hidden></div>
 </div>
 <div class="modal-footer">
 <button class="btn btn-ghost" onclick="closeModal('m-upload-q')" data-tr="İptal" data-de="Abbrechen">İptal</button>
@@ -162,30 +225,35 @@ Sütun Eşleştirme
 </div>
 <div id="ia-mapping-section" style="display:none;">
 <div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);" data-tr="2. Sütun eşleştir" data-de="2. Spalten zuordnen">2. Sütun eşleştir</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Excel sütunlarını randevu alanlarıyla eşleştirin. * zorunlu</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Excel sütunlarını randevu alanlarıyla eşleştirin. Durum bir çağrı sonucu değil, Kalite kontrol sonucudur." data-de="Spalten den Terminfeldern zuordnen. Status ist kein Anrufergebnis, sondern ein QC-Ergebnis.">Excel sütunlarını randevu alanlarıyla eşleştirin. Durum bir çağrı sonucu değil, Kalite kontrol sonucudur.</div>
 <div id="ia-mapping-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
 </div>
 <div id="ia-options-section" style="display:none;">
 <div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);" data-tr="3. Ayarlar" data-de="3. Einstellungen">3. Ayarlar</div>
 <div style="display:flex;flex-direction:column;gap:10px;">
 <div class="form-row">
-<label class="form-label">Kampanya *</label>
-<select class="form-input" id="ia-campaign">
+<label class="form-label" data-tr="Kampanya (sütun yoksa)" data-de="Kampagne (ohne Spalte)">Kampanya (sütun yoksa)</label>
+<select class="form-input" id="ia-campaign" onchange="iaSyncFallbackCustomer()">
 <option value="">Kampanya seçin...</option>
 </select>
 </div>
 <div class="form-row">
-<label class="form-label">Atanacak Agent *</label>
+<label class="form-label" data-tr="Müşteri (sütun yoksa)" data-de="Kunde (ohne Spalte)">Müşteri (sütun yoksa)</label>
+<select class="form-input" id="ia-customer">
+<option value="qc">Tümü — QC seçer</option>
+</select>
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Kampanyadaki müşteri hazır gelir. Tümü dersen bu dosyada müşteriyi Kalite kontrol yazar." data-de="Der Kampagnenkunde steht bereit. Alle: QC trägt den Kunden für diese Datei ein.">Kampanyadaki müşteri hazır gelir. Tümü dersen bu dosyada müşteriyi Kalite kontrol yazar.</div>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Personel (sütun yoksa)" data-de="Personal (ohne Spalte)">Personel (sütun yoksa)</label>
 <select class="form-input" id="ia-agent">
 <option value="">Agent seçin...</option>
 </select>
 </div>
 <div class="form-row">
-<label class="form-label">Varsayılan Durum</label>
+<label class="form-label" data-tr="Kalite kontrol sonucu (sütun yoksa)" data-de="QC-Ergebnis (ohne Spalte)">Kalite kontrol sonucu (sütun yoksa)</label>
 <select class="form-input" id="ia-status">
-<option value="qc_bekleniyor">QC Bekleniyor</option>
-<option value="basarili">Başarılı</option>
-<option value="beklemede">Beklemede</option>
+<option value="qc_bekleniyor" data-tr="Kalite kontrol bekliyor" data-de="QC ausstehend">Kalite kontrol bekliyor</option>
 </select>
 </div>
 <div class="form-row">
@@ -198,6 +266,7 @@ Sütun Eşleştirme
 </div>
 </div>
 </div>
+<div id="ia-questions" style="display:none;flex-direction:column;gap:8px;"></div>
 <div id="ia-preview-section" style="display:none;">
 <div style="font-size:12px;font-weight:800;margin-bottom:6px;color:var(--text-2);" data-tr="4. Önizleme" data-de="4. Vorschau">4. Önizleme</div>
 <div id="ia-preview-table" style="overflow-x:auto;max-height:200px;font-size:11px;"></div>
@@ -212,6 +281,7 @@ Sütun Eşleştirme
 </div>
 <div class="modal-footer" style="flex-shrink:0;">
 <button class="btn btn-ghost" onclick="closeModal('m-import-appt')">İptal</button>
+<button class="btn btn-ghost btn-sm" id="ia-match-btn" onclick="iaBuildQuestions()" style="display:none;" data-tr="Eşleştir" data-de="Zuordnen">Eşleştir</button>
 <button class="btn btn-ghost btn-sm" id="ia-preview-btn" onclick="previewImport()" style="display:none;" data-tr="Önizle" data-de="Vorschau">Önizle</button>
 <button class="btn btn-primary" id="ia-submit-btn" onclick="startImportAppt()" style="display:none;" data-tr="İçe aktar" data-de="Importieren">İçe aktar</button>
 </div>
@@ -245,7 +315,7 @@ Sütun Eşleştirme
 <button class="modal-close" onclick="closeSystemDialog(false)">✕</button>
 </div>
 <div style="padding:14px 18px;">
-<div id="sysdlg-message" style="font-size:13px;color:var(--text);line-height:1.45;">—</div>
+<div id="sysdlg-message" style="font-size:13px;color:var(--text);line-height:1.45;white-space:pre-line;">—</div>
 <div id="sysdlg-input-wrap" style="display:none;margin-top:10px;">
 <input id="sysdlg-input" class="form-input" type="text">
 </div>
@@ -253,6 +323,18 @@ Sütun Eşleştirme
 <div class="modal-footer" style="justify-content:flex-end;">
 <button class="btn btn-ghost" id="sysdlg-cancel" onclick="closeSystemDialog(false)">İptal</button>
 <button class="btn btn-primary" id="sysdlg-ok" onclick="closeSystemDialog(true)">Tamam</button>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="m-camp-rules">
+<div class="modal" style="max-width:520px;">
+<div class="modal-hdr">
+<div class="modal-title" id="camp-rules-title" data-tr="Kampanya kuralları" data-de="Kampagnenregeln">Kampanya kuralları</div>
+<button class="modal-close" onclick="closeModal('m-camp-rules')">✕</button>
+</div>
+<div id="camp-rules-body" style="padding:4px 2px 8px;white-space:pre-wrap;font-size:13px;line-height:1.5;"></div>
+<div class="modal-footer">
+<button class="btn btn-primary btn-sm" onclick="closeModal('m-camp-rules')" data-tr="Kapat" data-de="Schließen">Kapat</button>
 </div>
 </div>
 </div>
@@ -279,6 +361,11 @@ Sütun Eşleştirme
 <option value="USD">USD ($)</option>
 <option value="TRY">TRY (₺)</option>
 </select></div>
+<div class="form-row" id="firm-did-row" style="display:none;">
+<label class="form-label" data-tr="Firma hattı (DID)" data-de="Firmenanschluss (DID)">Firma hattı (DID)</label>
+<input class="form-input" id="firm-outbound-did" placeholder="+49301234567" inputmode="tel" autocomplete="off">
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Bu numara firmanın bütün kampanyalarına yazılır. Firma bunu değiştirmez." data-de="Diese Nummer gilt für alle Kampagnen der Firma. Die Firma ändert sie nicht.">Bu numara firmanın bütün kampanyalarına yazılır. Firma bunu değiştirmez.</div>
+</div>
 <div class="form-row" id="firm-incoming-super-row" style="display:none;">
 <label class="form-label">Gelen arama</label>
 <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;cursor:pointer;line-height:1.35;">
@@ -310,9 +397,12 @@ Sütun Eşleştirme
 <select class="form-input" id="user-role">
 <option value="agent">Agent</option>
 <option value="qc">QC</option>
+<option value="field_agent">Saha Elemanı</option>
 <option value="firm_admin">Firma Admin</option>
+<option value="admin">Admin</option>
 <option value="super_admin">Süper Admin</option>
 </select></div>
+<div id="user-paycat-wrap"></div>
 <input type="hidden" id="user-firm-id">
 </div>
 <div class="modal-footer">
@@ -325,7 +415,10 @@ Sütun Eşleştirme
 <div class="takvim-fs-panel" style="position:absolute;top:16px;left:16px;right:16px;bottom:16px;background:var(--bg-2);border-radius:var(--radius);display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.6);border:1px solid var(--border);overflow:hidden;min-height:0;">
 <div class="takvim-overlay-toolbar-hdr">
 <div class="takvim-toolbar takvim-toolbar--overlay" role="toolbar">
+<div class="takvim-ov-head">
 <div class="takvim-toolbar-brand"><i class="ph ph-calendar-blank"></i><span>Takvim</span></div>
+<button type="button" class="btn btn-ghost btn-sm takvim-ov-close" onclick="closeTakvimOverlay()" title="Kapat" aria-label="Kapat">✕</button>
+</div>
 <div class="takvim-toolbar-actions">
 <div class="takvim-toolbar-cluster takvim-toolbar-cluster--left">
 <div class="takvim-seg">
@@ -339,9 +432,13 @@ Sütun Eşleştirme
 <button type="button" class="btn btn-ghost btn-sm tk-nav-btn" onclick="takvimNext()" aria-label="Sonraki"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="9 18 15 12 9 6"/></svg></button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="takvimGoToday()">Bugün</button>
 </div>
-<button type="button" class="btn btn-ghost btn-sm" onclick="openTakvimPlzMeasureModal()">Mesafe ölç</button>
+<span class="takvim-plz-measure">
+<button type="button" class="btn btn-ghost btn-sm" id="takvim-plz-btn-ov" onclick="takvimPlzMeasureOpen()">Mesafe ölç</button>
+<input type="text" class="form-input takvim-plz-inp" id="takvim-plz-inp-ov" hidden data-i18n-placeholder="cal.plz.ph" placeholder="Posta kodu girin" autocomplete="off" inputmode="numeric" oninput="takvimPlzMeasureInput(this.value)" onkeydown="takvimPlzMeasureKey(event)">
+</span>
 </div>
 <div class="takvim-toolbar-cluster takvim-toolbar-cluster--right">
+<button type="button" class="btn btn-ghost btn-sm" id="takvim-filter-btn-ov" onclick="takvimToggleFilters()" data-tr="Filtreler" data-de="Filter">Filtreler</button>
 <div id="takvim-overlay-admin" class="takvim-overlay-admin" style="display:none;">
 <div id="takvim-overlay-firm-selector"></div>
 <select class="form-input" id="takvim-camp-select-ov" onchange="onTakvimCampChange(this.value)">
@@ -354,10 +451,14 @@ Sütun Eşleştirme
 </div>
 </div>
 <div id="takvim-overlay-camp-label" class="takvim-overlay-agent-camp"></div>
-<button type="button" class="btn btn-ghost btn-sm takvim-ov-close" onclick="closeTakvimOverlay()" title="Kapat">✕</button>
 </div>
 </div>
 </div>
+</div>
+<div class="takvim-filters" id="takvim-filters-ov" hidden>
+<input type="search" id="takvim-search-ov" class="takvim-search" data-i18n-placeholder="cal.filter.search" placeholder="İsim, telefon, PLZ" oninput="takvimSetSearch(this.value)" autocomplete="off">
+<div id="takvim-status-chips-ov" class="takvim-chip-row" hidden></div>
+<div id="takvim-customer-chips-ov" class="takvim-chip-row" hidden></div>
 </div>
 <div id="takvim-scroll-ov" style="flex:1;min-height:0;position:relative;">
 <div id="takvim-grid-ov"></div>
@@ -372,7 +473,7 @@ Sütun Eşleştirme
 <div style="display:inline-block;animation:ticker-scroll 22s linear infinite;" id="ticker-text">
 Duyuru metni burada görünecek
 </div>
-<button onclick="document.getElementById('broadcast-ticker').style.display='none'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;border-radius:4px;color:#fff;cursor:pointer;padding:2px 7px;font-size:12px;">✕</button>
+<button type="button" onclick="mbDismissTicker()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;border-radius:4px;color:#fff;cursor:pointer;padding:2px 7px;font-size:12px;">✕</button>
 </div>
 <div class="modal-overlay" id="m-wv-form">
 <div class="modal" style="max-width:520px;">
@@ -414,6 +515,10 @@ Duyuru metni burada görünecek
 <select class="form-input" id="wv-agent-sel"></select>
 </div>
 <div class="form-row" style="grid-column:1/-1;">
+<label class="form-label" data-tr="Kampanya" data-de="Kampagne">Kampanya</label>
+<select class="form-input" id="wv-camp"></select>
+</div>
+<div class="form-row" style="grid-column:1/-1;">
 <label class="form-label" data-tr="Not" data-de="Notiz">Not</label>
 <textarea class="form-input" id="wv-note" rows="2" style="resize:vertical;"></textarea>
 </div>
@@ -432,28 +537,13 @@ Duyuru metni burada görünecek
 <div class="modal-hdr">
 <div class="modal-title">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-QC Detay
+<span data-tr="Kalite kontrol" data-de="Qualitätskontrolle">Kalite kontrol</span>
 </div>
 <button class="modal-close" onclick="closeModal('m-qc-detail')">✕</button>
 </div>
-<div id="qc-detail-body" style="padding:16px 20px;"></div>
-<div class="modal-footer" style="flex-wrap:wrap;gap:6px;">
-<button class="btn btn-sm" style="background:var(--green);color:#fff;border-color:var(--green);" onclick="qcUpdateStatus('başarılı')">
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>
-<span data-tr="Başarılı" data-de="Erfolgreich">Başarılı</span>
-</button>
-<button class="btn btn-sm" style="background:var(--red);color:#fff;border-color:var(--red);" onclick="qcUpdateStatus('başarısız')">
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-<span data-tr="Başarısız" data-de="Erfolglos">Başarısız</span>
-</button>
-<button class="btn btn-sm" style="background:var(--yellow);color:#000;border-color:var(--yellow);" onclick="qcUpdateStatus('beklemede')">
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
-<span data-tr="Beklemede" data-de="Ausstehend">Beklemede</span>
-</button>
-<button class="btn btn-sm" style="background:var(--accent);color:#fff;border-color:var(--accent);" onclick="qcUpdateStatus('qc bekleniyor')">QC Bekleniyor</button>
-<div style="flex:1;display:flex;gap:6px;align-items:center;">
-<input class="form-input" id="qc-note-input" placeholder="QC notu (opsiyonel)..." style="flex:1;padding:5px 8px;font-size:12px;">
-</div>
+<div id="qc-detail-body" style="padding:16px 20px;max-height:70vh;overflow-y:auto;"></div>
+<div class="modal-footer">
+<button class="btn btn-primary" onclick="qcUpdateStatus()" data-tr="Kaydet" data-de="Speichern">Kaydet</button>
 </div>
 </div>
 </div>
@@ -582,9 +672,9 @@ QC Detay
 </button>
 </div>
 <div class="contact-drawer-tabs">
-<button class="contact-drawer-tab active" id="cdr-tab-info" onclick="setCdrTab('info')">Bilgi</button>
-<button class="contact-drawer-tab" id="cdr-tab-history" onclick="setCdrTab('history')">Geçmiş</button>
-<button class="contact-drawer-tab" id="cdr-tab-recordings" onclick="setCdrTab('recordings')">Kayıtlar</button>
+<button class="contact-drawer-tab active" id="cdr-tab-info" onclick="setCdrTab('info')" data-tr="Bilgi" data-de="Info">Bilgi</button>
+<button class="contact-drawer-tab" id="cdr-tab-history" onclick="setCdrTab('history')" data-tr="Geçmiş" data-de="Verlauf">Geçmiş</button>
+<button class="contact-drawer-tab" id="cdr-tab-recordings" onclick="setCdrTab('recordings')" data-tr="Kayıtlar" data-de="Aufnahmen">Kayıtlar</button>
 </div>
 <div class="contact-drawer-body">
 <div id="cdr-panel-info">

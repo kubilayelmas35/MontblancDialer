@@ -7,7 +7,7 @@ window._payrollRulesCacheByFirm = window._payrollRulesCacheByFirm || {};
 window._customersCacheByFirm = window._customersCacheByFirm || {};
 
 function isMuhasebeAdmin() {
-  return ['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
+  return mbIsFirmAdmin();
 }
 
 function canViewMuhasebe() {
@@ -66,7 +66,124 @@ function defaultPayrollRules() {
     bonus_tiers: [],
     salary_tiers: [],
     customer_rates: [],
+    salary_categories: [],
+    sgk_percent: 0,
+    office_day_rate: 0,
   };
+}
+
+function _mNormCategories(raw) {
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr.map((c, i) => ({
+    id: String(c?.id || `cat_${i}`),
+    name: String(c?.name || '').trim(),
+    base_salary_amount: Number(c?.base_salary_amount || 0),
+    sgk_percent: Number(c?.sgk_percent || 0),
+    office_day_rate: Number(c?.office_day_rate || 0),
+    fixed_staff: !!c?.fixed_staff,
+    bonus_tiers: _mNormTiers(c?.bonus_tiers),
+    salary_tiers: _mNormTiers(c?.salary_tiers),
+    no_salary: !!c?.no_salary,
+  }));
+}
+
+function mbBuiltinSalaryCategories() {
+  const per = (min, max, amount) => ({ min, max, amount, currency: 'EUR', calc_type: 'per_appointment' });
+  const band = (min, max, amount) => ({ min, max, amount, currency: 'EUR', calc_type: 'fixed' });
+  const bonusA = [per(21, 25, 46), per(26, 30, 48), per(31, 35, 53), per(36, 40, 61), per(41, 45, 70), per(46, 999999, 80)];
+  return _mNormCategories([
+    { id: 'kat_a', name: 'A', base_salary_amount: 1200, bonus_tiers: bonusA, salary_tiers: [] },
+    {
+      id: 'kat_b',
+      name: 'B',
+      base_salary_amount: 0,
+      bonus_tiers: bonusA,
+      salary_tiers: [band(1, 9, 500), band(10, 14, 650), band(15, 19, 1000), band(20, 999999, 1200)],
+    },
+    { id: 'kat_c', name: 'C', base_salary_amount: 1200, bonus_tiers: [per(21, 999999, 40)], salary_tiers: [] },
+    { id: 'kat_fixed', name: 'Sabit maaş', base_salary_amount: 0, fixed_staff: true, bonus_tiers: [], salary_tiers: [] },
+    { id: 'kat_none', name: 'Maaş almaz', base_salary_amount: 0, no_salary: true, fixed_staff: true, bonus_tiers: [], salary_tiers: [] },
+  ]);
+}
+
+function _mCatNameKey(name) {
+  return String(name || '').trim().toLocaleUpperCase('tr-TR');
+}
+
+function _mIsMontblancFirm(fid) {
+  const id = String(fid || (typeof muhasebeFirmId === 'function' ? muhasebeFirmId() : '') || '');
+  if (!id) return false;
+  const firms = typeof _allFirms !== 'undefined' && Array.isArray(_allFirms) ? _allFirms : [];
+  const hit = firms.find((f) => String(f.id) === id);
+  if (hit?.slug) return String(hit.slug).toLowerCase() === 'montblanc';
+  if (String(currentUser?.firm_id || '') === id) {
+    return String(currentUser?.firm_name || '').toLowerCase().includes('montblanc');
+  }
+  return false;
+}
+
+function _mEffectiveCategories(rules, firmId) {
+  const cats = _mNormCategories(rules?.salary_categories);
+  const fid = firmId || rules?.firm_id || (typeof muhasebeFirmId === 'function' ? muhasebeFirmId() : null);
+  if (!_mIsMontblancFirm(fid)) return cats;
+  const names = new Set(cats.map((c) => _mCatNameKey(c.name)));
+  const extra = mbBuiltinSalaryCategories().filter((c) => !names.has(_mCatNameKey(c.name)));
+  return cats.concat(extra);
+}
+
+function _mPickTiers(personal, catOwn, firmOwn, cat) {
+  if (cat?.no_salary) return [];
+  if (Array.isArray(personal) && personal.length) return _mNormTiers(personal);
+  if (cat?.fixed_staff) return _mNormTiers(catOwn || []);
+  if (catOwn?.length) return _mNormTiers(catOwn);
+  return _mNormTiers(firmOwn);
+}
+
+function _mParseMonthMap(raw) {
+  if (!raw) return {};
+  if (typeof raw === 'object' && !Array.isArray(raw)) return raw;
+  try {
+    const o = JSON.parse(String(raw));
+    return o && typeof o === 'object' && !Array.isArray(o) ? o : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function _mNamedCat(cats, name) {
+  const want = String(name || '').trim().toUpperCase();
+  return (cats || []).find((c) => String(c.name || '').trim().toUpperCase() === want) || null;
+}
+
+function _mCatForMonth(user, ym, cats) {
+  const list = cats || [];
+  const defaultA = list.find((c) => c.id === 'kat_a') || null;
+  const map = _mParseMonthMap(user?.payroll_category_months);
+  const byId = (id) => list.find((c) => c.id === id) || null;
+  if (String(ym || '') < '2026-08') return defaultA || byId(user?.payroll_category_id);
+  if (Object.keys(map).length) {
+    const id = map[ym];
+    if (!id) return defaultA;
+    return byId(id) || defaultA;
+  }
+  if (user?.payroll_category_id) return byId(user.payroll_category_id);
+  return defaultA;
+}
+
+function _mKatMonths() {
+  const endY = new Date().getFullYear() + 1;
+  const out = [];
+  let y = 2026;
+  let m = 8;
+  while (y < endY || (y === endY && m <= 12)) {
+    out.push(`${y}-${String(m).padStart(2, '0')}`);
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+  }
+  return out;
 }
 
 function _mEsc(s) {
@@ -193,6 +310,9 @@ async function loadFirmPayrollRules(fid, force = false) {
   merged.bonus_tiers = _mParseTiers(merged.bonus_tiers);
   merged.salary_tiers = _mParseTiers(merged.salary_tiers);
   merged.customer_rates = _mParseTiers(merged.customer_rates);
+  merged.salary_categories = _mNormCategories(_mParseTiers(merged.salary_categories));
+  merged.sgk_percent = Number(merged.sgk_percent || 0);
+  merged.office_day_rate = Number(merged.office_day_rate || 0);
   window._payrollRulesCacheByFirm[fid] = merged;
   return merged;
 }
@@ -216,25 +336,28 @@ async function canAgentSelectCustomer(fid) {
 }
 
 function _mBonusFor(successCount, tiers, ruleCurrency, targetCurrency, rate) {
-  let bonus = 0;
+  const n = Number(successCount || 0);
+  let perSum = 0;
+  let fixedAmt = 0;
+  let fixedHit = false;
   (tiers || []).forEach(t => {
     const min = Number(t.min || 0);
     const max = Number(t.max || 999999);
-    if (successCount >= min && successCount <= max) {
-      const amount = Number(t.amount || 0);
-      const calcType = t.calc_type === 'per_appointment' ? 'per_appointment' : 'fixed';
-      const ccy = (t.currency || ruleCurrency || 'EUR').toUpperCase();
-      let oneUnit = amount;
-      if (ccy !== targetCurrency) oneUnit = _mConvertCurrency(amount, ccy, targetCurrency, rate);
-      if (calcType === 'per_appointment') {
-        const countInTier = Math.max(0, Math.min(successCount, max) - min + 1);
-        bonus = oneUnit * countInTier;
-      } else {
-        bonus = oneUnit;
-      }
+    const ccy = (t.currency || ruleCurrency || 'EUR').toUpperCase();
+    let oneUnit = Number(t.amount || 0);
+    if (ccy !== targetCurrency) oneUnit = _mConvertCurrency(oneUnit, ccy, targetCurrency, rate);
+    if (t.calc_type === 'per_appointment') {
+      if (n < min) return;
+      const countInTier = Math.max(0, Math.min(n, max) - min + 1);
+      perSum += oneUnit * countInTier;
+      return;
+    }
+    if (n >= min && n <= max) {
+      fixedHit = true;
+      fixedAmt = oneUnit;
     }
   });
-  return bonus;
+  return perSum + (fixedHit ? fixedAmt : 0);
 }
 
 function _mConvertCurrency(v, from, to, rate) {
@@ -284,19 +407,19 @@ async function loadMuhasebePage() {
   document.getElementById('muhasebe-customers-card').style.display = isMuhasebeAdmin() ? '' : 'none';
   if (isMuhasebeAdmin()) await renderMuhasebeCustomers();
   if (isMuhasebeAdmin()) renderCustomerRateTable(rules);
+  if (typeof loadPayrollLedger === 'function') await loadPayrollLedger(fid);
   await renderMuhasebePayrollTable(fid, period, rules);
+  if (typeof renderMuhasebeYear === 'function' && isMuhasebeAdmin()) renderMuhasebeYear(fid, rules);
 }
 
 async function testFxRateNow() {
   const fid = muhasebeFirmId();
   if (!fid) return;
   const ym = _mGetPeriod();
+  const cached = window._payrollRulesCacheByFirm[fid] || defaultPayrollRules();
   const rules = {
-    ...defaultPayrollRules(),
-    exchange_rate: Number(document.getElementById('pr-rate')?.value || 1),
-    fx_api_provider: document.getElementById('pr-fx-provider')?.value || 'frankfurter',
-    fx_api_url: document.getElementById('pr-fx-url')?.value?.trim() || '',
-    fx_api_key: document.getElementById('pr-fx-key')?.value?.trim() || '',
+    ...cached,
+    exchange_rate: Number(document.getElementById('pr-rate')?.value || cached.exchange_rate || 1),
   };
   const rate = await _getMonthFxRate(fid, ym, Number(rules.exchange_rate || 1), rules);
   const rateInput = document.getElementById('pr-rate');
@@ -307,19 +430,16 @@ async function testFxRateNow() {
 
 function setMuhasebeTab(tab) {
   window._muhasebeTab = tab || 'ozet';
-  const panes = ['ozet', 'gelir', 'personel', 'vergi', 'musteri'];
+  const panes = ['ozet', 'gelir', 'personel', 'vergi', 'kategori', 'sabit', 'alacak', 'musteri', 'ayar'];
   panes.forEach(p => {
     const pane = document.getElementById(`muh-pane-${p}`);
     if (pane) pane.style.display = p === window._muhasebeTab ? '' : 'none';
   });
-  const personelBtn = document.querySelector('.muh-tab-btn[data-muh-tab="personel"]');
-  if (personelBtn) personelBtn.textContent = 'Personel Maaş';
   document.querySelectorAll('.muh-tab-btn').forEach(btn => {
     btn.style.display = '';
-    const active = btn.dataset.muhTab === window._muhasebeTab;
-    btn.classList.toggle('active', active);
-    btn.style.background = active ? 'var(--accent)' : '';
-    btn.style.color = active ? '#fff' : '';
+    btn.classList.toggle('active', btn.dataset.muhTab === window._muhasebeTab);
+    btn.style.background = '';
+    btn.style.color = '';
   });
   const ex = document.getElementById('muh-personel-export-btns');
   const ct = document.getElementById('muh-personel-card-title');
@@ -420,9 +540,6 @@ function renderPayrollRulesForm(r) {
   };
   set('pr-currency', r.currency || 'EUR');
   set('pr-rate', Number(r.exchange_rate || 1));
-  set('pr-fx-provider', r.fx_api_provider || 'frankfurter');
-  set('pr-fx-url', r.fx_api_url || '');
-  set('pr-fx-key', r.fx_api_key || '');
   set('pr-mode', r.base_salary_mode || 'net');
   set('pr-base', Number(r.base_salary_amount || 0));
   set('pr-tax', Number(r.tax_rate_percent || 0));
@@ -433,6 +550,8 @@ function renderPayrollRulesForm(r) {
     const el = document.getElementById(id);
     if (el) el.checked = !!v;
   };
+  set('pr-sgk', Number(r.sgk_percent || 0));
+  set('pr-office', Number(r.office_day_rate || 0));
   setChk('pr-gov', r.government_supported);
   setChk('pr-late-on', r.late_penalty_enabled);
   setChk('pr-leave-over', r.leave_overflow_penalty_enabled);
@@ -440,17 +559,23 @@ function renderPayrollRulesForm(r) {
   renderPayrollTierRows('bonus', bonusTiers);
   renderPayrollTierRows('salary', salaryTiers);
   renderCustomerRateTable(r);
+  if (typeof renderSalaryCategoryEditor === 'function') {
+    renderSalaryCategoryEditor(_mEffectiveCategories(r));
+  }
   onFxProviderChange();
   updatePayrollPreview();
 }
 
 function onFxProviderChange() {
-  const p = document.getElementById('pr-fx-provider')?.value || 'frankfurter';
-  const urlRow = document.getElementById('pr-fx-url-row');
-  const keyRow = document.getElementById('pr-fx-key-row');
+  const visible = ['line-fx-provider', 's-fx-provider', 'pr-fx-provider']
+    .map((id) => document.getElementById(id))
+    .find((el) => el && el.offsetParent !== null);
+  const p = visible?.value || document.getElementById('pr-fx-provider')?.value || document.getElementById('line-fx-provider')?.value || 'frankfurter';
   const isCustom = p === 'custom';
-  if (urlRow) urlRow.style.display = isCustom ? '' : 'none';
-  if (keyRow) keyRow.style.display = isCustom ? '' : 'none';
+  ['s-fx-url-row', 's-fx-key-row', 'line-fx-url-row', 'line-fx-key-row', 'pr-fx-url-row', 'pr-fx-key-row'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isCustom ? '' : 'none';
+  });
 }
 
 function renderPayrollTierRows(type, rows) {
@@ -531,20 +656,21 @@ function updatePayrollPreview() {
   const revenue = success * revenuePerSuccess;
   const matrah = Math.max(0, revenue - net);
   const companyTax = gov ? 0 : matrah * (taxRate / 100);
-  out.innerHTML = `Başarılı: <b>${success}</b> · Baz(Net): <b>${_mFmt(salary)} ${currency}</b> · Prim: <b>${_mFmt(bonus)} ${currency}</b> · Personel Hakedişi: <b>${_mFmt(net)} ${currency}</b> · Şirket Geliri: <b>${_mFmt(revenue)} ${currency}</b> · Şirket Vergisi: <b>${_mFmt(companyTax)} ${currency}</b><div style="margin-top:4px;font-size:11px;color:var(--text-3);">Prim tipi: Sabit = kademeye girince tek tutar, Randevu Başı = aralıktaki her randevu için tutar.</div>`;
+  out.innerHTML = `Başarılı: <b>${success}</b> · Baz(Net): <b>${_mFmt(salary)} ${currency}</b> · Prim: <b>${_mFmt(bonus)} ${currency}</b> · Personel Hakedişi: <b>${_mFmt(net)} ${currency}</b> · Şirket Geliri: <b>${_mFmt(revenue)} ${currency}</b> · Şirket Vergisi: <b>${_mFmt(companyTax)} ${currency}</b><div style="margin-top:4px;font-size:11px;color:var(--text-3);">Prim tipi: Sabit = kademeye girince tek tutar. Randevu başı = her kademedeki randevu kendi tutarıyla toplanır.</div>`;
 }
 
 async function savePayrollRules() {
   if (!isMuhasebeAdmin()) return;
   const fid = muhasebeFirmId();
   if (!fid) return;
+  const prevFx = window._payrollRulesCacheByFirm[fid] || defaultPayrollRules();
   const rules = {
     firm_id: fid,
     currency: document.getElementById('pr-currency')?.value || 'EUR',
     exchange_rate: Number(document.getElementById('pr-rate')?.value) || 1,
-    fx_api_provider: document.getElementById('pr-fx-provider')?.value || 'frankfurter',
-    fx_api_url: document.getElementById('pr-fx-url')?.value?.trim() || '',
-    fx_api_key: document.getElementById('pr-fx-key')?.value?.trim() || '',
+    fx_api_provider: prevFx.fx_api_provider || 'frankfurter',
+    fx_api_url: prevFx.fx_api_url || '',
+    fx_api_key: prevFx.fx_api_key || '',
     base_salary_mode: document.getElementById('pr-mode')?.value || 'net',
     base_salary_amount: Number(document.getElementById('pr-base')?.value) || 0,
     tax_rate_percent: Number(document.getElementById('pr-tax')?.value) || 0,
@@ -555,13 +681,21 @@ async function savePayrollRules() {
     leave_overflow_penalty_enabled: !!document.getElementById('pr-leave-over')?.checked,
     leave_overflow_penalty_amount: Number(document.getElementById('pr-leave-over-amt')?.value) || 0,
     appointment_customer_select_by_agent: !!document.getElementById('pr-agent-customer')?.checked,
+    sgk_percent: Number(document.getElementById('pr-sgk')?.value) || 0,
+    office_day_rate: Number(document.getElementById('pr-office')?.value) || 0,
     bonus_tiers: readPayrollTierRows('bonus'),
     salary_tiers: readPayrollTierRows('salary'),
     customer_rates: readCustomerRateRows(),
+    salary_categories: (typeof readSalaryCategories === 'function' && document.getElementById('muh-cat-editor')?.dataset.count != null)
+      ? readSalaryCategories().filter(c => c.name)
+      : (window._payrollRulesCacheByFirm[fid]?.salary_categories || []),
     updated_at: new Date().toISOString(),
   };
   const rulesForTable = { ...rules };
   delete rulesForTable.customer_rates;
+  delete rulesForTable.salary_categories;
+  delete rulesForTable.sgk_percent;
+  delete rulesForTable.office_day_rate;
   try {
     const exists = await sb(`payroll_rules?firm_id=eq.${fid}&select=id`).catch(() => []);
     if (exists?.length) {
@@ -674,12 +808,50 @@ function _muhPaintFxBanner(rate, source, dateStr) {
   const de = (typeof currentLang !== 'undefined' && currentLang === 'de');
   const rateEl = document.getElementById('muh-fx-rate');
   const metaEl = document.getElementById('muh-fx-meta');
-  if (rateEl) rateEl.textContent = n > 0 ? `1 EUR = ${_mFmt(n)} TRY` : '1 EUR = — TRY';
-  if (metaEl) {
-    const raw = source || '';
-    const src = raw === 'live' ? (de ? 'Live-Kurs' : 'canlı kur') : (raw || (de ? 'manuell' : 'manuel'));
-    metaEl.textContent = `${src} · ${dateStr || '—'}`;
-  }
+  if (rateEl) rateEl.textContent = n > 0 ? `1 € = ${_mFmt(n)} ₺` : '1 € = — ₺';
+  const raw = source || '';
+  const src = raw === 'live' ? (de ? 'Live-Kurs' : 'canlı kur') : (raw || (de ? 'manuell' : 'manuel'));
+  const tip = `${src} · ${dateStr || '—'}`;
+  if (metaEl) metaEl.textContent = tip;
+  const banner = document.getElementById('muh-fx-banner');
+  if (banner) banner.title = tip;
+  const refresh = banner?.querySelector('.muh-fx-refresh');
+  if (refresh) refresh.title = de ? 'Kurs aktualisieren' : 'Kuru yenile';
+}
+
+function _mViewCur(rules) {
+  const base = String(rules?.currency || 'EUR').toUpperCase();
+  if (window._muhPayrollUi === 'maasim' || !window._muhViewTry) return base;
+  return base === 'TRY' ? 'EUR' : 'TRY';
+}
+
+function _mViewAmt(amount, rules) {
+  const base = String(rules?.currency || 'EUR').toUpperCase();
+  const to = _mViewCur(rules);
+  if (to === base) return Number(amount || 0);
+  return _mConvertCurrency(amount, base, to, Number(rules?.exchange_rate || 1));
+}
+
+function _mCurFace(cur) {
+  return String(cur || 'EUR').toUpperCase() === 'TRY' ? 'TL' : String(cur || 'EUR').toUpperCase();
+}
+
+function _mPaintCurToggle() {
+  const on = !!window._muhViewTry;
+  document.querySelectorAll('#muh-cur-toggle .muh-cur-btn').forEach((btn) => {
+    btn.classList.toggle('is-on', (btn.dataset.cur === 'TRY') === on);
+  });
+}
+
+function setMuhViewCurrency(cur) {
+  window._muhViewTry = String(cur || '').toUpperCase() === 'TRY';
+  _mPaintCurToggle();
+  const fid = typeof muhasebeFirmId === 'function' ? muhasebeFirmId() : '';
+  const rules = window._payrollRulesCacheByFirm?.[fid];
+  const rows = window._muhasebeRows || [];
+  if (!rules) return;
+  renderMuhasebeSummaryCards(rows, rules);
+  renderMuhasebeRowsTable(rows, rules);
 }
 
 function _mAltAmount(amount, cur, rate) {
@@ -856,7 +1028,7 @@ async function deleteMuhasebeCustomer(id) {
 
 async function _mFetchUsers(fid) {
   try {
-    const rows = await sb(`users?firm_id=eq.${fid}&is_active=eq.true&select=id,name,role&order=name.asc`);
+    const rows = await sb(`users?firm_id=eq.${fid}&is_active=eq.true&select=id,name,role,payroll_category_id,payroll_category_months&order=name.asc`);
     return rows || [];
   } catch (e) {
     return [];
@@ -868,8 +1040,8 @@ async function _mFetchMonthlyData(fid, ym, year, monthBounds) {
     sb(`payroll_employee_overrides?firm_id=eq.${fid}&select=*`).catch(() => []),
     sb(`payroll_adjustments?firm_id=eq.${fid}&period_ym=eq.${ym}&select=*`).catch(() => []),
     sb(`payroll_monthly?firm_id=eq.${fid}&period_ym=eq.${ym}&select=*`).catch(() => []),
-    sb(`appointments?firm_id=eq.${fid}&termin_tarih=gte.${monthBounds.start}T00:00:00&termin_tarih=lte.${monthBounds.end}T23:59:59&select=id,agent_id,durum,customer_id`).catch(() => []),
-    sb(`leave_requests?firm_id=eq.${fid}&status=eq.approved&date_from=lte.${monthBounds.end}&date_to=gte.${monthBounds.start}&select=user_id,days_used,kind`).catch(() => []),
+    (typeof mbFetchAll === 'function' ? mbFetchAll : sb)(`appointments?firm_id=eq.${fid}&termin_tarih=gte.${monthBounds.start}T00:00:00&termin_tarih=lte.${monthBounds.end}T23:59:59&select=id,agent_id,durum,customer_id`).catch(() => []),
+    sb(`leave_requests?firm_id=eq.${fid}&status=eq.approved&date_from=lte.${monthBounds.end}&date_to=gte.${monthBounds.start}&select=user_id,days_used,kind,date_from,date_to`).catch(() => []),
     sb(`user_leave_entitlements?year=eq.${year}&select=user_id,extra_days_granted`).catch(() => []),
     sb(`late_arrivals?firm_id=eq.${fid}&day_date=gte.${monthBounds.start}&day_date=lte.${monthBounds.end}&select=user_id,minutes_late`).catch(() => []),
     sb(`firms?id=eq.${fid}&select=settings`).catch(() => []),
@@ -878,7 +1050,20 @@ async function _mFetchMonthlyData(fid, ym, year, monthBounds) {
   return { ovr: ovr || [], adj: adj || [], monthly: monthly || [], appts: appts || [], leaveReqs: leaveReqs || [], ents: ents || [], lates: lates || [], hr };
 }
 
-function _mBuildStatsByUser(appts, leaveReqs, ents, lates) {
+function _mLeaveDaysInMonth(row, monthStart, monthEnd) {
+  const from = String(row?.date_from || '').slice(0, 10);
+  const to = String(row?.date_to || '').slice(0, 10);
+  const used = Number(row?.days_used || 0);
+  if (!(used > 0)) return 0;
+  if (!from || !to) return used;
+  if (from >= monthStart && to <= monthEnd) return used;
+  const all = typeof leaveEachDay === 'function' ? leaveEachDay(from, to) : [];
+  if (!all.length) return used;
+  const inside = all.filter((day) => day >= monthStart && day <= monthEnd).length;
+  return used * (inside / all.length);
+}
+
+function _mBuildStatsByUser(appts, leaveReqs, ents, lates, monthStart, monthEnd) {
   const s = {};
   const ensure = uid => {
     if (!s[uid]) s[uid] = { success: 0, fail: 0, pending: 0, qc: 0, cancel: 0, leaveDays: 0, lateCount: 0, entitlementExtra: 0 };
@@ -897,7 +1082,7 @@ function _mBuildStatsByUser(appts, leaveReqs, ents, lates) {
   (leaveReqs || []).forEach(r => {
     if (!r.user_id) return;
     const st = ensure(r.user_id);
-    st.leaveDays += Number(r.days_used || 0);
+    st.leaveDays += _mLeaveDaysInMonth(r, monthStart, monthEnd);
   });
   (ents || []).forEach(e => {
     if (!e.user_id) return;
@@ -934,7 +1119,7 @@ async function renderMuhasebePayrollTable(fid, ym, rules, opts = {}) {
   const b = _mMonthBounds(ym);
   const monthRate = await _getMonthFxRate(fid, ym, Number(rules.exchange_rate || 1), rules);
   const data = await _mFetchMonthlyData(fid, ym, b.year, b);
-  const statsByUser = _mBuildStatsByUser(data.appts, data.leaveReqs, data.ents, data.lates);
+  const statsByUser = _mBuildStatsByUser(data.appts, data.leaveReqs, data.ents, data.lates, b.start, b.end);
   const overMap = {};
   const monthlyMap = {};
   (data.ovr || []).forEach(o => { overMap[o.user_id] = o; });
@@ -943,21 +1128,33 @@ async function renderMuhasebePayrollTable(fid, ym, rules, opts = {}) {
   const rows = users.map(u => {
     const st = statsByUser[u.id] || { success: 0, fail: 0, pending: 0, qc: 0, cancel: 0, leaveDays: 0, lateCount: 0, entitlementExtra: 0 };
     const ov = overMap[u.id] || {};
-    const noTermin = !!ov.no_termin;
+    const cat = _mCatForMonth(u, ym, _mEffectiveCategories(rules));
+    const noPay = !!cat?.no_salary;
+    const noTermin = noPay || !!ov.no_termin || !!cat?.fixed_staff;
     const mode = ov.base_salary_mode || rules.base_salary_mode;
-    const rawBaseSalary = Number(ov.base_salary_amount ?? rules.base_salary_amount ?? 0);
+    const rawBaseSalary = noPay
+      ? 0
+      : ((ov.base_salary_amount != null && ov.base_salary_amount !== '')
+        ? Number(ov.base_salary_amount)
+        : Number(cat ? cat.base_salary_amount : (rules.base_salary_amount || 0)));
     const taxRate = Number(ov.tax_rate_percent ?? rules.tax_rate_percent ?? 0);
-    const tiers = _mNormTiers(Array.isArray(ov.bonus_tiers) ? ov.bonus_tiers : rules.bonus_tiers);
-    const salaryTiers = _mNormTiers(Array.isArray(ov.salary_tiers) ? ov.salary_tiers : rules.salary_tiers);
-    const success = noTermin ? 0 : st.success;
-    const baseSalary = _mSalaryForSuccess(rawBaseSalary, success, salaryTiers, rules.currency, rules.currency, monthRate);
-    const bonus = _mBonusFor(success, tiers, rules.currency, rules.currency, monthRate);
-    const latePenalty = rules.late_penalty_enabled ? st.lateCount * Number(rules.late_penalty_amount || 0) : 0;
+    const tiers = _mPickTiers(ov.bonus_tiers, cat?.bonus_tiers, rules.bonus_tiers, cat);
+    const salaryTiers = _mPickTiers(ov.salary_tiers, cat?.salary_tiers, rules.salary_tiers, cat);
+    const success = st.success;
+    const payCount = noTermin ? 0 : success;
+    const baseSalary = _mSalaryForSuccess(rawBaseSalary, payCount, salaryTiers, rules.currency, rules.currency, monthRate);
+    const bonus = _mBonusFor(payCount, tiers, rules.currency, rules.currency, monthRate);
+    const officeDays = Number(monthlyMap[u.id]?.office_days || 0);
+    const officeRate = (cat && Number(cat.office_day_rate) > 0) ? Number(cat.office_day_rate) : Number(rules.office_day_rate || 0);
+    const officePay = noPay ? 0 : Math.max(0, officeDays) * officeRate;
+    const sgkPct = (cat && Number(cat.sgk_percent) > 0) ? Number(cat.sgk_percent) : Number(rules.sgk_percent || 0);
+    const sgkCost = noPay ? 0 : (baseSalary + bonus + officePay) * sgkPct / 100;
+    const latePenalty = noPay ? 0 : (rules.late_penalty_enabled ? st.lateCount * Number(rules.late_penalty_amount || 0) : 0);
     const annualAllowance = (Number(data.hr?.annual_leave_days_default || 14)) + Number(st.entitlementExtra || 0);
     const leaveOverflow = Math.max(0, Number(st.leaveDays || 0) - annualAllowance);
-    const leavePenalty = rules.leave_overflow_penalty_enabled ? leaveOverflow * Number(rules.leave_overflow_penalty_amount || 0) : 0;
+    const leavePenalty = noPay ? 0 : (rules.leave_overflow_penalty_enabled ? leaveOverflow * Number(rules.leave_overflow_penalty_amount || 0) : 0);
     const adj = _mCollectAdjustments(data.adj, u.id, { ...rules, exchange_rate: monthRate });
-    const preTax = baseSalary + bonus + adj.add - adj.ded - latePenalty - leavePenalty;
+    const preTax = baseSalary + bonus + officePay + adj.add - adj.ded - latePenalty - leavePenalty;
     const taxAmount = 0;
     const netPayable = preTax;
     const paidAmount = Number(monthlyMap[u.id]?.paid_amount || 0);
@@ -966,6 +1163,11 @@ async function renderMuhasebePayrollTable(fid, ym, rules, opts = {}) {
       user_id: u.id,
       user_name: u.name || u.id.slice(0, 8),
       role: u.role,
+      categoryId: cat?.id || '',
+      categoryName: cat?.name || '',
+      officeDays,
+      officePay,
+      sgkCost,
       ym,
       mode,
       noTermin,
@@ -1021,6 +1223,7 @@ async function renderMuhasebePayrollTable(fid, ym, rules, opts = {}) {
   else if (summaryBox) summaryBox.innerHTML = '';
   renderMuhasebeRowsTable(filtered, rules);
   if (showCompanyFinance) renderMuhasebeFinancePanels(filtered, rules);
+  if (showCompanyFinance && typeof renderMuhBooks === 'function') renderMuhBooks(filtered, rules);
   else {
     const incomeBox = document.getElementById('muh-income-expense-summary');
     const taxBox = document.getElementById('muh-tax-summary');
@@ -1030,8 +1233,10 @@ async function renderMuhasebePayrollTable(fid, ym, rules, opts = {}) {
   const payrollRowForSelf = rows.find(r => r.user_id === currentUser.id) || null;
   const uidSelf = currentUser.id;
   const ovSelf = overMap[uidSelf] || {};
-  const bonusTiersSelf = Array.isArray(ovSelf.bonus_tiers) ? ovSelf.bonus_tiers : rules.bonus_tiers;
-  const salaryTiersSelf = Array.isArray(ovSelf.salary_tiers) ? ovSelf.salary_tiers : rules.salary_tiers;
+  const selfUser = users.find(u => u.id === uidSelf) || { id: uidSelf };
+  const selfCat = _mCatForMonth(selfUser, ym, _mEffectiveCategories(rules));
+  const bonusTiersSelf = _mPickTiers(ovSelf.bonus_tiers, selfCat?.bonus_tiers, rules.bonus_tiers, selfCat);
+  const salaryTiersSelf = _mPickTiers(ovSelf.salary_tiers, selfCat?.salary_tiers, rules.salary_tiers, selfCat);
   if (['agent', 'qc'].includes(currentUser?.role || '')) {
     if (typeof loadAgentSalaryDash === 'function') {
       loadAgentSalaryDash(fid, ym, rules, payrollRowForSelf, bonusTiersSelf, salaryTiersSelf);
@@ -1046,39 +1251,47 @@ function renderMuhasebeSummaryCards(rows, rules) {
   const box = _mPayrollSummaryBox();
   if (!box) return;
   const sum = rows.reduce((a, r) => {
-    a.base += r.baseSalary; a.bonus += r.bonus; a.pen += r.latePenalty + r.leavePenalty + r.manualDeduct;
+    a.base += r.baseSalary; a.bonus += r.bonus; a.office += Number(r.officePay || 0); a.sgk += Number(r.sgkCost || 0);
+    a.pen += r.latePenalty + r.leavePenalty + r.manualDeduct;
     a.tax += r.taxAmount; a.pay += r.netPayable; a.paid += r.paidAmount; a.rem += r.remaining;
     a.success += r.success || 0;
     a.rev += Number(r.totalRevenue || 0);
     return a;
-  }, { base: 0, bonus: 0, pen: 0, tax: 0, pay: 0, paid: 0, rem: 0, success: 0, rev: 0 });
+  }, { base: 0, bonus: 0, office: 0, sgk: 0, pen: 0, tax: 0, pay: 0, paid: 0, rem: 0, success: 0, rev: 0 });
   const totalRevenue = sum.rev;
-  const taxBase = Math.max(0, totalRevenue - sum.pay);
-  const companyTax = rules.government_supported ? 0 : taxBase * (Number(rules.tax_rate_percent || 0) / 100);
-  const netProfit = totalRevenue - sum.pay - companyTax;
-  const cur = _mEsc(rules.currency || 'EUR');
+  const pack = window._muhPayrollUi !== 'maasim' && typeof _mBooksPack === 'function' ? _mBooksPack(rows, rules) : null;
+  const taxBase = pack ? pack.taxBase : Math.max(0, totalRevenue - sum.pay);
+  const companyTax = pack ? pack.tax : (rules.government_supported ? 0 : taxBase * (Number(rules.tax_rate_percent || 0) / 100));
+  const netProfit = pack ? pack.profit : (totalRevenue - sum.pay - companyTax - sum.sgk);
+  const cur = _mEsc(_mCurFace(_mViewCur(rules)));
+  const v = (n) => _mFmt(_mViewAmt(n, rules));
+  _mPaintCurToggle();
   box.innerHTML = `
-    <div class="stat-card"><div class="stat-lbl">Gelir (${cur})</div><div class="stat-val">${_mFmt(totalRevenue)}</div><div class="stat-meta">${sum.success} başarılı randevu</div></div>
-    <div class="stat-card"><div class="stat-lbl">Baz Maaş (${cur})</div><div class="stat-val">${_mFmt(sum.base)}</div></div>
-    <div class="stat-card stat-green"><div class="stat-lbl">Prim (${cur})</div><div class="stat-val">${_mFmt(sum.bonus)}</div></div>
-    <div class="stat-card stat-red"><div class="stat-lbl">Toplam Kesinti (${cur})</div><div class="stat-val">${_mFmt(sum.pen)}</div></div>
-    <div class="stat-card"><div class="stat-lbl">Şirket Vergisi (${cur})</div><div class="stat-val">${_mFmt(companyTax)}</div><div class="stat-meta">Matrah: ${_mFmt(taxBase)} ${cur}</div></div>
-    <div class="stat-card stat-blue"><div class="stat-lbl">Hakediş (${cur})</div><div class="stat-val">${_mFmt(sum.pay)}</div>${_mAltAmount(sum.pay, cur, rules.exchange_rate)}</div>
-    <div class="stat-card stat-purple"><div class="stat-lbl">Kalan (${cur})</div><div class="stat-val">${_mFmt(sum.rem)}</div><div class="stat-meta">Ödenen: ${_mFmt(sum.paid)} ${cur}</div></div>
-    <div class="stat-card"><div class="stat-lbl">Net Kar (${cur})</div><div class="stat-val" style="color:${netProfit>=0?'var(--green)':'var(--red)'}">${_mFmt(netProfit)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Gelir (${cur})</div><div class="stat-val">${v(totalRevenue)}</div><div class="stat-meta">${sum.success} başarılı randevu</div></div>
+    <div class="stat-card"><div class="stat-lbl">Baz Maaş (${cur})</div><div class="stat-val">${v(sum.base)}</div></div>
+    <div class="stat-card stat-green"><div class="stat-lbl">Prim (${cur})</div><div class="stat-val">${v(sum.bonus)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">${_mEsc(t('muh.office'))} (${cur})</div><div class="stat-val">${v(sum.office)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">${_mEsc(t('muh.sgk'))} (${cur})</div><div class="stat-val">${v(sum.sgk)}</div></div>
+    <div class="stat-card stat-red"><div class="stat-lbl">Toplam Kesinti (${cur})</div><div class="stat-val">${v(sum.pen)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Şirket Vergisi (${cur})</div><div class="stat-val">${v(companyTax)}</div><div class="stat-meta">Matrah: ${v(taxBase)} ${cur}</div></div>
+    <div class="stat-card stat-blue"><div class="stat-lbl">Hakediş (${cur})</div><div class="stat-val">${v(sum.pay)}</div></div>
+    <div class="stat-card stat-purple"><div class="stat-lbl">Kalan (${cur})</div><div class="stat-val">${v(sum.rem)}</div><div class="stat-meta">Ödenen: ${v(sum.paid)} ${cur}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Net Kar (${cur})</div><div class="stat-val" style="color:${netProfit>=0?'var(--green)':'var(--red)'}">${v(netProfit)}</div>${pack ? `<div class="stat-meta">${_mEsc(t('muh.profit_same'))}</div>` : ''}</div>
   `;
 }
 
 function renderMuhasebeFinancePanels(rows, rules) {
   const cur = _mEsc(rules.currency || 'EUR');
+  const pack = typeof _mBooksPack === 'function' ? _mBooksPack(rows, rules) : null;
   const totals = rows.reduce((a, r) => {
     a.rev += Number(r.totalRevenue || 0);
     a.pay += Number(r.netPayable || 0);
     a.paid += Number(r.paidAmount || 0);
     return a;
   }, { rev: 0, pay: 0, paid: 0 });
-  const taxBase = Math.max(0, totals.rev - totals.pay);
-  const tax = rules.government_supported ? 0 : taxBase * (Number(rules.tax_rate_percent || 0) / 100);
+  const taxBase = pack ? pack.taxBase : Math.max(0, totals.rev - totals.pay);
+  const tax = pack ? pack.tax : (rules.government_supported ? 0 : taxBase * (Number(rules.tax_rate_percent || 0) / 100));
+  const profit = pack ? pack.profit : (totals.rev - totals.pay - tax);
   const incomeBox = document.getElementById('muh-income-expense-summary');
   const taxBox = document.getElementById('muh-tax-summary');
   if (incomeBox) {
@@ -1092,7 +1305,7 @@ function renderMuhasebeFinancePanels(rows, rules) {
     taxBox.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:10px;">
       <div class="stat-card"><div class="stat-lbl">Vergi Matrahı (${cur})</div><div class="stat-val">${_mFmt(taxBase)}</div></div>
       <div class="stat-card"><div class="stat-lbl">Şirket Vergisi (${cur})</div><div class="stat-val">${_mFmt(tax)}</div></div>
-      <div class="stat-card"><div class="stat-lbl">Vergi Sonrası Kar (${cur})</div><div class="stat-val">${_mFmt(totals.rev - totals.pay - tax)}</div></div>
+      <div class="stat-card"><div class="stat-lbl">Vergi Sonrası Kar (${cur})</div><div class="stat-val">${_mFmt(profit)}</div></div>
     </div>`;
   }
 }
@@ -1105,34 +1318,63 @@ function renderMuhasebeRowsTable(rows, rules) {
     return;
   }
   const admin = isMuhasebeAdmin();
-  const cur = _mEsc(rules.currency || 'EUR');
-  wrap.innerHTML = `<table><thead><tr>
-    <th>Personel</th><th>Başarılı</th><th>Baz</th><th>Prim</th><th>Geç/Kalma</th><th>İzin Aşımı</th>
-    <th>Manuel</th><th>Vergi</th><th>Hakediş</th><th>Ödenen</th><th>Kalan</th>${admin ? '<th>İşlem</th>' : ''}
+  const cur = _mEsc(_mCurFace(_mViewCur(rules)));
+  const money = (n) => _mFmt(_mViewAmt(n, rules));
+  const roleOf = (role) => (typeof firmRoleLabel === 'function' ? firmRoleLabel(role) : (role || ''));
+  const meta = (text) => (text ? `<span class="muh-meta"> · ${_mEsc(text)}</span>` : '');
+  wrap.innerHTML = `<div class="muh-pay-note">${_mEsc(t('muh.pay_note'))} ${cur}</div><table class="muh-pay-table"><thead><tr>
+    <th>Personel</th><th>${_mEsc(t('muh.cat.col'))}</th><th>Başarılı</th><th>Baz</th><th>Prim</th><th>${_mEsc(t('muh.office'))}</th><th>${_mEsc(t('muh.sgk'))}</th><th>Geç</th><th>İzin</th>
+    <th>Manuel</th><th>Hakediş</th><th>Ödenen</th><th>Kalan</th>${admin ? '<th></th>' : ''}
   </tr></thead><tbody>${
     rows.map(r => {
       const manualNet = r.manualAdd - r.manualDeduct;
-      const manualClass = manualNet >= 0 ? 'ok' : 'err';
+      const manualClass = manualNet > 0 ? 'ok' : (manualNet < 0 ? 'err' : '');
+      const officeMeta = Number(r.officeDays) ? `${_mFmt(r.officeDays)} gün` : '';
+      const lateMeta = Number(r.lateCount) ? `${r.lateCount} kez` : '';
+      const leaveMeta = Number(r.leaveOverflow) ? `${_mFmt(r.leaveOverflow)} gün` : '';
       return `<tr>
-        <td style="font-weight:700;">${_mEsc(r.user_name)}<div style="font-size:10px;color:var(--text-3);margin-top:2px;">${_mEsc(r.role)}${r.noTermin ? ' · sabit personel' : ''}</div></td>
-        <td>${r.success}</td>
-        <td>${_mFmt(r.baseSalary)} ${cur}</td>
-        <td>${_mFmt(r.bonus)} ${cur}</td>
-        <td>${_mFmt(r.latePenalty)} ${cur}<div style="font-size:10px;color:var(--text-3);">${r.lateCount} kez</div></td>
-        <td>${_mFmt(r.leavePenalty)} ${cur}<div style="font-size:10px;color:var(--text-3);">${_mFmt(r.leaveOverflow)} gün</div></td>
-        <td><span class="muh-badge ${manualClass}">${manualNet >= 0 ? '+' : ''}${_mFmt(manualNet)} ${cur}</span></td>
-        <td><span style="font-size:11px;color:var(--text-3);">Şirket matrahında</span></td>
-        <td style="font-weight:800;">${_mFmt(r.netPayable)} ${cur}${_mAltAmount(r.netPayable, cur, rules.exchange_rate)}</td>
-        <td>${_mFmt(r.paidAmount)} ${cur}</td>
-        <td style="font-weight:800;color:${r.remaining > 0 ? 'var(--red)' : 'var(--green)'};">${_mFmt(r.remaining)} ${cur}</td>
-        ${admin ? `<td>
-          <button class="btn btn-ghost btn-sm" onclick="openPayrollOverride('${r.user_id}')">Özel Ayar</button>
-          <button class="btn btn-ghost btn-sm" onclick="addPayrollAdjustment('${r.user_id}')">Ekle/Kes</button>
+        <td><span class="muh-pay-person"><strong>${_mEsc(r.user_name)}</strong><span class="muh-meta">${_mEsc(roleOf(r.role))}</span></span></td>
+        <td>${_mEsc(r.categoryName || '—')}</td>
+        <td class="num">${r.success}</td>
+        <td class="num">${money(r.baseSalary)}</td>
+        <td class="num">${money(r.bonus)}</td>
+        <td class="num">${money(r.officePay || 0)}${meta(officeMeta)}</td>
+        <td class="num">${money(r.sgkCost || 0)}</td>
+        <td class="num">${money(r.latePenalty)}${meta(lateMeta)}</td>
+        <td class="num">${money(r.leavePenalty)}${meta(leaveMeta)}</td>
+        <td class="num">${manualClass ? `<span class="muh-badge ${manualClass}">${manualNet > 0 ? '+' : ''}${money(manualNet)}</span>` : money(0)}</td>
+        <td class="num" style="font-weight:800;">${money(r.netPayable)}</td>
+        <td class="num">${money(r.paidAmount)}</td>
+        <td class="num" style="font-weight:800;color:${r.remaining > 0 ? 'var(--red)' : 'var(--green)'};">${money(r.remaining)}</td>
+        ${admin ? `<td><div class="muh-row-acts">
+          <button class="btn btn-ghost btn-sm" onclick="openPayCategoryMonths('${r.user_id}')">${_mEsc(t('muh.cat.col'))}</button>
+          <button class="btn btn-ghost btn-sm" onclick="setPayrollOfficeDays('${r.user_id}')">${_mEsc(t('muh.office_days'))}</button>
+          <button class="btn btn-ghost btn-sm" onclick="openPayrollOverride('${r.user_id}')">Özel</button>
+          <button class="btn btn-ghost btn-sm" onclick="addPayrollAdjustment('${r.user_id}')">${_mEsc(t('muh.adj.btn'))}</button>
           <button class="btn btn-ghost btn-sm" onclick="savePayrollPayment('${r.user_id}')">Ödeme</button>
-        </td>` : ''}
+        </div></td>` : ''}
       </tr>`;
     }).join('')
-  }</tbody></table>`;
+  }</tbody><tfoot><tr class="muh-total">${_mPayrollTotalCells(rows, rules, admin)}</tr></tfoot></table>`;
+}
+
+function _mPayrollTotalCells(rows, rules, admin) {
+  const sum = rows.reduce((a, r) => {
+    a.success += Number(r.success || 0);
+    a.base += Number(r.baseSalary || 0);
+    a.bonus += Number(r.bonus || 0);
+    a.office += Number(r.officePay || 0);
+    a.sgk += Number(r.sgkCost || 0);
+    a.late += Number(r.latePenalty || 0);
+    a.leave += Number(r.leavePenalty || 0);
+    a.manual += Number(r.manualAdd || 0) - Number(r.manualDeduct || 0);
+    a.pay += Number(r.netPayable || 0);
+    a.paid += Number(r.paidAmount || 0);
+    a.rem += Number(r.remaining || 0);
+    return a;
+  }, { success: 0, base: 0, bonus: 0, office: 0, sgk: 0, late: 0, leave: 0, manual: 0, pay: 0, paid: 0, rem: 0 });
+  const money = n => _mFmt(_mViewAmt(n, rules));
+  return `<td>${_mEsc(t('muh.total'))}</td><td></td><td class="num">${sum.success}</td><td class="num">${money(sum.base)}</td><td class="num">${money(sum.bonus)}</td><td class="num">${money(sum.office)}</td><td class="num">${money(sum.sgk)}</td><td class="num">${money(sum.late)}</td><td class="num">${money(sum.leave)}</td><td class="num">${sum.manual > 0 ? '+' : ''}${money(sum.manual)}</td><td class="num">${money(sum.pay)}</td><td class="num">${money(sum.paid)}</td><td class="num">${money(sum.rem)}</td>${admin ? '<td></td>' : ''}`;
 }
 
 async function openPayrollOverride(uid) {
@@ -1169,31 +1411,73 @@ async function openPayrollOverride(uid) {
   }
 }
 
-async function addPayrollAdjustment(uid) {
+function addPayrollAdjustment(uid) {
   if (!isMuhasebeAdmin()) return;
+  const row = (window._muhasebeRows || []).find(r => r.user_id === uid);
+  document.getElementById('m-muh-adj')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'm-muh-adj';
+  modal.className = 'modal-overlay open';
+  modal.dataset.type = 'add';
+  modal.innerHTML = `<div class="modal" style="max-width:420px;">
+    <div class="modal-hdr">
+      <div class="modal-title">${_mEsc(t('muh.adj.title'))}</div>
+      <button class="modal-close" type="button" onclick="document.getElementById('m-muh-adj')?.remove()">✕</button>
+    </div>
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;">
+      <div style="font-size:13px;font-weight:700;">${_mEsc(row?.user_name || '')}</div>
+      <div class="muh-adj-types">
+        <button type="button" class="muh-adj-type is-on" data-adj="add" onclick="muhAdjPick('add', this)">${_mEsc(t('muh.adj.add'))}</button>
+        <button type="button" class="muh-adj-type" data-adj="deduct" onclick="muhAdjPick('deduct', this)">${_mEsc(t('muh.adj.deduct'))}</button>
+      </div>
+      <div class="form-grid">
+        <div class="form-row"><label class="form-label">${_mEsc(t('muh.adj.amount'))}</label><input class="form-input" id="muh-adj-amount" type="number" min="0" step="0.01" value="0"></div>
+        <div class="form-row"><label class="form-label">${_mEsc(t('muh.cur'))}</label>
+          <select class="form-input" id="muh-adj-cur"><option value="EUR">EUR</option><option value="TRY">TRY</option></select>
+        </div>
+      </div>
+      <div class="form-row"><label class="form-label">${_mEsc(t('muh.adj.note'))}</label><input class="form-input" id="muh-adj-note"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" type="button" onclick="document.getElementById('m-muh-adj')?.remove()">${_mEsc(t('muh.adj.cancel'))}</button>
+      <button class="btn btn-primary" type="button" onclick="savePayrollAdjustment('${uid}')">${_mEsc(t('muh.adj.save'))}</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+  document.getElementById('muh-adj-amount')?.focus();
+}
+
+function muhAdjPick(type, btn) {
+  const modal = document.getElementById('m-muh-adj');
+  if (!modal) return;
+  modal.dataset.type = type === 'deduct' ? 'deduct' : 'add';
+  modal.querySelectorAll('.muh-adj-type').forEach(b => b.classList.toggle('is-on', b === btn));
+}
+
+async function savePayrollAdjustment(uid) {
+  if (!isMuhasebeAdmin()) return;
+  const modal = document.getElementById('m-muh-adj');
+  const type = modal?.dataset.type === 'deduct' ? 'deduct' : 'add';
+  const amount = Number(document.getElementById('muh-adj-amount')?.value || 0);
+  if (!amount || amount <= 0) {
+    toast(t('muh.ledger.need'), 'err');
+    return;
+  }
+  const currency = (document.getElementById('muh-adj-cur')?.value || 'EUR').toUpperCase();
+  const reason = document.getElementById('muh-adj-note')?.value?.trim() || null;
   const fid = muhasebeFirmId();
-  const type = await mbPrompt('İşlem tipi: add veya deduct', 'add', 'Ekle/Kes');
-  if (!['add', 'deduct'].includes(String(type || '').trim())) return;
-  const amountStr = await mbPrompt('Tutar', '0', 'Ekle/Kes');
-  if (amountStr === null) return;
-  const amount = Number(amountStr);
-  if (!amount || amount <= 0) return;
-  const currencyIn = await mbPrompt('Para birimi (EUR/TRY)', 'EUR', 'Ekle/Kes');
-  if (currencyIn === null) return;
-  const currency = (currencyIn || 'EUR').toUpperCase();
-  const reasonIn = await mbPrompt('Açıklama', '', 'Ekle/Kes');
-  if (reasonIn === null) return;
-  const reason = reasonIn || null;
   try {
     await sb('payroll_adjustments', {
       method: 'POST',
       prefer: 'return=minimal',
       body: JSON.stringify({ firm_id: fid, user_id: uid, period_ym: _mGetPeriod(), adjustment_type: type, amount, currency, reason, created_by: currentUser?.id || null }),
     });
-    toast('İşlem kaydedildi', 'ok');
+    modal?.remove();
+    toast(t('muh.adj.saved'), 'ok');
     loadMuhasebePage();
   } catch (e) {
-    toast('İşlem hatası: ' + e.message, 'err');
+    toast(t('muh.ledger.fail') + ' ' + e.message, 'err');
   }
 }
 
