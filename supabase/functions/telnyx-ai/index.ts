@@ -302,6 +302,7 @@ async function startAssistant(key: string, control: string, assistantId: string,
   const plain = { ...brief, voice: FALLBACK_VOICE };
   const variants: { tag: string; body: Record<string, unknown> }[] = [];
   const bare = { ...top, voice_settings: voiceOpts(brief.voice, false) };
+  variants.push({ tag: 'asst_voice', body: { assistant: assistantBody(assistantId, brief, url, true, true) } });
   if (asr) variants.push({ tag: 'azure_asr', body: { ...top, transcription: asr } });
   if (asr) variants.push({ tag: 'azure_asr_nolang', body: { ...bare, transcription: asr } });
   variants.push({ tag: 'top_voice', body: top });
@@ -493,7 +494,20 @@ async function onAnswer(admin: SupabaseClient, appt: Record<string, any>, contro
   }
   const base = String(Deno.env.get('SUPABASE_URL') || '').replace(/\/$/, '');
   const hook = `${base}/functions/v1/telnyx-ai?callin=${extra.callin_token}`;
-  const started = await startAssistant(key, control, ai.qcAssistant, spokenBrief(brief, appt, extra, whenText(appt)), hook);
+  const speech = spokenBrief(brief, appt, extra, whenText(appt));
+  // Make the stored assistant itself carry the call voice and speech model, then read it back for diagnostics.
+  const asrCfg = asrFor(speech.voice);
+  const patched = await fetch(`https://api.telnyx.com/v2/ai/assistants/${encodeURIComponent(ai.qcAssistant)}`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ voice_settings: { voice: speech.voice }, ...(asrCfg ? { transcription: asrCfg } : {}) }),
+  });
+  const patchBody = await patched.json().catch(() => ({}));
+  const seen = patchBody?.data || patchBody || {};
+  await mergeEk(admin, appt, {
+    callin_debug: clip(JSON.stringify({ patch: patched.status, vs: seen.voice_settings, tr: seen.transcription, lang: seen.language, model: seen.model, err: patched.ok ? undefined : patchBody?.errors }), 400),
+  });
+  const started = await startAssistant(key, control, ai.qcAssistant, speech, hook);
   if (!started.ok) {
     await telnyx(key, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
     await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'start', callin_error_detail: clip(started.why, 300) });
