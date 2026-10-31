@@ -5,6 +5,7 @@ import {
   berlinDay,
   buildAiBrief,
   clip,
+  fillAiText,
   fieldLines,
   normDid,
   normKey,
@@ -121,15 +122,31 @@ function firmAi(settings: Record<string, any>) {
   };
 }
 
+function campIds(row: Record<string, any>) {
+  const many = Array.isArray(row?.campaign_ids) ? row.campaign_ids : [];
+  const ids = many.map((id: unknown) => String(id || '')).filter((id: string) => uuidRe.test(id));
+  if (ids.length) return ids;
+  const one = String(row?.campaign_id || '');
+  return uuidRe.test(one) ? [one] : [];
+}
+
 function staffOf(settings: Record<string, any>, staffId: string, campaignId: string) {
   const raw = Array.isArray(settings.ai_staff) ? settings.ai_staff : [];
   const hit = raw.find((row: any) => String(row?.id || '') === staffId);
   if (!hit) return { error: 'staff' as const };
   if (hit.kind !== 'qc') return { error: 'kind' as const };
-  const camp = String(hit.campaign_id || '');
-  if (camp && camp !== campaignId) return { error: 'staff' as const };
+  const ids = campIds(hit);
+  if (ids.length && !ids.includes(campaignId)) return { error: 'staff' as const };
   const results = Array.isArray(hit.results) ? hit.results.map((key: unknown) => normKey(key)).filter(Boolean) : [];
-  return { id: staffId, prompt: clip(hit.prompt, 800), results };
+  return { id: staffId, prompt: clip(hit.prompt, 2000), greeting: clip(hit.greeting, 400), results };
+}
+
+function spokenBrief(brief: { ok: true; instructions: string; greeting: string; voice: string }, appt: Record<string, any>, extra: Record<string, any>, when: string) {
+  return {
+    ...brief,
+    instructions: fillAiText(brief.instructions, appt, extra, when),
+    greeting: fillAiText(brief.greeting, appt, extra, when),
+  };
 }
 
 function resultChoices(settings: Record<string, any>): AiChoice[] {
@@ -275,6 +292,7 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     company: ai.spoken_name,
     rate: ai.rate,
     prompt: staff.prompt,
+    greetingText: staff.greeting,
     note,
     forbidPrice: ai.forbidPrice,
     forbidContract: ai.forbidContract,
@@ -286,6 +304,7 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     when: whenText(appt),
   });
   if (!brief.ok) return json({ ok: false, error: brief.error }, 400);
+  const speech = spokenBrief(brief, appt, extra, whenText(appt));
   const to = normDid(appt.telefonnummer);
   if (!to) return json({ ok: false, error: 'phone' }, 400);
   const { data: camp } = await admin.from('campaigns').select('telnyx_did').eq('id', appt.campaign_id).maybeSingle();
@@ -325,7 +344,7 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
   };
   let dial = await telnyx(key, 'calls', {
     ...callBody,
-    assistant: assistantBody(assistantId, brief, hook, true),
+    assistant: assistantBody(assistantId, speech, hook, true),
   });
   let control = clip(dial.data?.data?.call_control_id || '', 120);
   let warm = !!(dial.ok && control);
@@ -365,6 +384,7 @@ async function onAnswer(admin: SupabaseClient, appt: Record<string, any>, contro
     company: ai.spoken_name,
     rate: ai.rate,
     prompt: staff.prompt,
+    greetingText: staff.greeting,
     note: clip(extra.callin_note, 800),
     forbidPrice: ai.forbidPrice,
     forbidContract: ai.forbidContract,
@@ -382,7 +402,7 @@ async function onAnswer(admin: SupabaseClient, appt: Record<string, any>, contro
   }
   const base = String(Deno.env.get('SUPABASE_URL') || '').replace(/\/$/, '');
   const hook = `${base}/functions/v1/telnyx-ai?callin=${extra.callin_token}`;
-  const started = await startAssistant(key, control, ai.qcAssistant, brief, hook);
+  const started = await startAssistant(key, control, ai.qcAssistant, spokenBrief(brief, appt, extra, whenText(appt)), hook);
   if (!started.ok) {
     await telnyx(key, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
     await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'start' });

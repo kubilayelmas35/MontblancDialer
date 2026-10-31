@@ -248,6 +248,11 @@ function mbLineFirmBody(firm) {
       <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.local_hint', ''))}</div>
       <div id="line-numbers" class="${numbers.length > 1 ? 'line-numbers-multi' : ''}">${mbLineNumberRows(numbers.length ? numbers : [''], def, mbLineLocalNumbers(settings))}</div>
       <button type="button" class="btn btn-ghost btn-sm" style="align-self:flex-start;" onclick="mbAddLineNumber()">${mbLineEsc(mbLineT('line.num_add', 'Numara ekle'))}</button>
+    </div>
+    <div class="line-firm-block">
+      <div class="form-label">${mbLineEsc(mbLineT('line.ai.rate', 'AI dakika fiyatı'))}</div>
+      <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.ai.rate_admin', 'Bunu yalnız süper admin yazar. Firma admini personel ekranından değiştiremez.'))}</div>
+      <input class="form-input" id="line-ai-rate" inputmode="decimal" placeholder="0.08" value="${Number(settings.ai?.rate) > 0 ? mbLineEsc(String(settings.ai.rate)) : ''}">
     </div>` : '';
   const musicUrl = /^https:\/\//i.test(String(settings.hold_music_url || '')) ? String(settings.hold_music_url) : '';
   const musicOff = settings.hold_music_off === true;
@@ -450,6 +455,15 @@ async function mbSaveLineFirm(firmId) {
     const superView = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
     const read = (id) => document.getElementById(id)?.value.trim() || '';
     if (superView) {
+      const rateEl = document.getElementById('line-ai-rate');
+      if (rateEl && typeof mbAiRateInput === 'function') {
+        const rate = mbAiRateInput(rateEl.value);
+        if (rate == null) {
+          toast(mbLineT('line.ai.rate_bad', 'Dakika fiyatı sayı olsun, örnek 0.08'), 'err');
+          return;
+        }
+        settings.ai = { ...(settings.ai || {}), rate };
+      }
       const prev = typeof mbNormalizeFirmIntegrations === 'function' ? mbNormalizeFirmIntegrations(settings.integrations) : {};
       settings.integrations = mbNormalizeFirmIntegrations({
         ...prev,

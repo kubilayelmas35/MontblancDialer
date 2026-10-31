@@ -12,6 +12,7 @@ export type AiBriefInput = {
   company: string;
   rate: number;
   prompt: string;
+  greetingText: string;
   note: string;
   forbidPrice: boolean;
   forbidContract: boolean;
@@ -115,6 +116,36 @@ export function resultAllowed(kind: AiKind, key: string, allowedKeys: string[]) 
   return allowedKeys.map(normKey).includes(norm);
 }
 
+const TOKEN_COL: Record<string, string> = {
+  ad: 'nachname', isim: 'nachname', name: 'nachname',
+  telefon: 'telefonnummer', phone: 'telefonnummer',
+  telefon2: 'telefon2',
+  adres: 'strasse', address: 'strasse', strasse: 'strasse',
+  plz: 'plz',
+  sehir: 'ortschaft', city: 'ortschaft', ort: 'ortschaft', ortschaft: 'ortschaft',
+  hausart: 'hausart', baujahr: 'baujahr', qm: 'qm', heizung: 'heizung',
+  alter_der_heizung: 'alter_der_heizung', verbrauch_pro_jahr: 'verbrauch_pro_jahr',
+  personen: 'personen', interesse_an_pv: 'interesse_an_pv',
+};
+
+export function fillAiText(text: string, appt: Record<string, unknown>, extra: Record<string, unknown>, when = '') {
+  const day = String(when || '').slice(0, 10);
+  const clock = String(when || '').length >= 16 ? String(when).slice(11, 16) : '';
+  return String(text || '').replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}|\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, (_all, doubled, single) => {
+    const key = normKey(doubled || single);
+    if (!key || key.startsWith('callin_')) return '';
+    if (key === 'tarih' || key === 'date') return day;
+    if (key === 'saat' || key === 'time') return clock;
+    const col = TOKEN_COL[key];
+    const fromCol = col ? clip(appt?.[col], 180) : '';
+    if (fromCol) return fromCol;
+    const direct = !col && appt && typeof appt[key] !== 'object' ? clip(appt[key], 180) : '';
+    if (direct) return direct;
+    const ek = extra && typeof extra[key] !== 'object' ? clip(extra[key], 180) : '';
+    return ek;
+  });
+}
+
 export function fieldLines(lang: 'de' | 'tr', appt: Record<string, unknown>, extra: Record<string, unknown>) {
   const lines: AiField[] = [];
   COLS.forEach((col) => {
@@ -149,7 +180,7 @@ export function buildAiBrief(input: AiBriefInput): AiBrief {
   const resultLines = choices.map((row) => `- ${row.key}: ${row.label}`).join('\n');
   const known = (input.fields || []).filter((row) => clip(row.value, 180)).map((row) => `- ${clip(row.label, 80)}: ${clip(row.value, 180)}`).join('\n');
   const note = clip(input.note, 800);
-  const prompt = clip(input.prompt, 800);
+  const prompt = clip(input.prompt, 2000);
   const when = clip(input.when, 40);
   const transfer = normDid(input.transfer);
   const job = kind === 'qc'
@@ -179,7 +210,7 @@ export function buildAiBrief(input: AiBriefInput): AiBrief {
     tools,
     handoff,
   ].filter(Boolean).join('\n\n');
-  const greeting = de ? `Guten Tag, hier ist ${company}.` : `Merhaba, ben ${company}.`;
+  const greeting = clip(input.greetingText, 400) || (de ? `Guten Tag, hier ist ${company}.` : `Merhaba, ben ${company}.`);
   return {
     ok: true,
     instructions,
