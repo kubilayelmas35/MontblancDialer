@@ -88,10 +88,7 @@ async function ensureTools(key: string, saved: Record<string, any>, hook: string
         fields_json: 'Corrected form fields as JSON text, optional',
       }),
     },
-    {
-      name: 'end_call',
-      make: () => ({ tool_config: { type: 'system', name: 'end_call', description: '', params: { system_tool_type: 'end_call' } } }),
-    },
+
   ];
   for (const def of defs) {
     if (ids[def.name]) continue;
@@ -120,7 +117,7 @@ function agentConfig(lang: string, llm: string, toolIds: string[], voiceId: stri
       first_message: '{{greeting}}',
       language: lang === 'tr' ? 'tr' : 'de',
       dynamic_variables: { dynamic_variable_placeholders: { brief: 'brief', greeting: 'greeting', callin_token: 'token' } },
-      prompt: { prompt: '{{brief}}', llm, temperature: 0.3, timezone: 'Europe/Berlin', tool_ids: toolIds },
+      prompt: { prompt: '{{brief}}', llm, temperature: 0.3, timezone: 'Europe/Berlin', tool_ids: toolIds, built_in_tools: { end_call: { name: 'end_call', description: '', params: { system_tool_type: 'end_call' } } } },
     },
     tts: { model_id: TTS_MODEL, voice_id: voiceId },
     conversation: { max_duration_seconds: 420 },
@@ -153,11 +150,11 @@ export async function ensureEleven(admin: SupabaseClient, ctx: ElevenSetup) {
   const tools = await ensureTools(ctx.key, saved, ctx.hook);
   if (tools.why) return fail(tools.why);
   saved = await saveEl(admin, ctx.firmId, { tools: tools.ids });
-  const toolIds = [tools.ids.takvim_bak, tools.ids.sonuc_yaz, tools.ids.end_call].filter(Boolean);
+  const toolIds = [tools.ids.takvim_bak, tools.ids.sonuc_yaz].filter(Boolean);
   log.push('tools ok');
 
   let agentId = clip(saved.agent_id, 80);
-  const sig = `${ctx.llm}|${ctx.lang}|${kind}|${toolIds.join(',')}`;
+  const sig = `v2|${ctx.llm}|${ctx.lang}|${kind}|${toolIds.join(',')}`;
   const voices = { ...(saved.voices || {}) } as Record<string, string>;
   if (!agentId || saved.sig !== sig || !voices[`${ctx.lang}_${kind}`]) {
     const picked = voices[`${ctx.lang}_${kind}`] ? [voices[`${ctx.lang}_${kind}`]] : await voiceCandidates(ctx.key, ctx.lang, kind);
