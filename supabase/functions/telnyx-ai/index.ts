@@ -271,8 +271,11 @@ function toolDefs(url: string) {
 
 const FALLBACK_VOICE = 'AWS.Polly.Filiz';
 
-function voiceOpts(voice: string) {
-  return voice.startsWith('AWS.') ? { type: 'aws' } : {};
+function voiceOpts(voice: string, withLang = true) {
+  if (voice.startsWith('AWS.')) return { type: 'aws' };
+  // Azure speaks with its default en-US locale unless language_code is set.
+  const lang = voice.match(/^Azure\.([a-z]{2}-[A-Z]{2})-/)?.[1] || '';
+  return lang && withLang ? { language_code: lang } : {};
 }
 
 function asrFor(voice: string) {
@@ -298,7 +301,9 @@ async function startAssistant(key: string, control: string, assistantId: string,
   const top = { assistant: assistantBody(assistantId, brief, url, false), voice: brief.voice, voice_settings: voiceOpts(brief.voice) };
   const plain = { ...brief, voice: FALLBACK_VOICE };
   const variants: { tag: string; body: Record<string, unknown> }[] = [];
+  const bare = { ...top, voice_settings: voiceOpts(brief.voice, false) };
   if (asr) variants.push({ tag: 'azure_asr', body: { ...top, transcription: asr } });
+  if (asr) variants.push({ tag: 'azure_asr_nolang', body: { ...bare, transcription: asr } });
   variants.push({ tag: 'top_voice', body: top });
   variants.push({ tag: 'voice_only', body: { assistant: assistantBody(assistantId, brief, url, true) } });
   if (brief.voice.startsWith('Azure.')) {
