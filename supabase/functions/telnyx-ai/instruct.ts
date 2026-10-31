@@ -199,6 +199,11 @@ export function buildAiBrief(input: AiBriefInput): AiBrief {
     : (de
       ? 'Werkzeuge: takvim_bak für freie Zeiten, sonuc_yaz nur mit einem erlaubten Schlüssel, insana_aktar nur wenn ein Mensch übernehmen soll. Biete keine Uhrzeit an, die takvim_bak nicht geliefert hat. Wenn keine Zeit frei ist, versprich keine neue Zeit.'
       : 'Araçlar: takvim_bak boş saatleri verir, sonuc_yaz yalnız izinli anahtarla sonuç yazar, insana_aktar insan devralacaksa kullanılır. takvim_bak döndürmediği saati önerme. Boş saat yoksa yeni saat vaat etme.');
+  const style = sup
+    ? (de
+      ? 'Sprechstil: wie ein freundlicher Mensch am Telefon. Kurze, natürliche Sätze, keine Listen, Zahlen und Uhrzeiten so sagen, wie man sie spricht. Keine Floskel wiederholen, kurze Reaktionen wie "genau" oder "verstehe" einstreuen.'
+      : 'Konuşma tarzı: telefonda konuşan samimi bir insan gibi. Kısa ve doğal cümleler kur, madde madde sayma, saat ve rakamları konuşurken söylendiği gibi söyle. Aynı kalıbı tekrar etme, araya "tamam", "anladım" gibi kısa tepkiler koy.')
+    : '';
   const handoff = sup
     ? (de ? 'Es gibt keine Weiterleitung. Wähle nur ein erlaubtes Ergebnis, das Warten oder Rückruf bedeutet, falls vorhanden.' : 'Aktarma yok. Varsa yalnız bekleme veya geri arama anlamına gelen izinli sonucu seç.')
     : transfer
@@ -207,6 +212,7 @@ export function buildAiBrief(input: AiBriefInput): AiBrief {
   const instructions = [
     de ? `Du telefonierst für ${company}. Sprich Deutsch.` : `${company} adına telefon edersin. Türkçe konuş.`,
     job,
+    style,
     bans.join(' '),
     prompt ? (de ? `Auftrag: ${prompt}` : `Görev: ${prompt}`) : '',
     note ? (de

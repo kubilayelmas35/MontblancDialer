@@ -103,6 +103,7 @@ function mbAiStaffNorm(row) {
     prompt: String(row.prompt || '').trim().slice(0, 2000),
     engine: row.engine === 'super' ? 'super' : (row.engine === 'std' ? 'std' : ''),
     llm: MB_AI_LLMS.some((item) => item.id === row.llm) ? row.llm : '',
+    voice_id: String(row.voice_id || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 40),
     results: mbAiKeys(row.results),
     call_statuses: mbAiKeys(row.call_statuses),
     call_when: when.length ? when : ['today'],
@@ -242,6 +243,7 @@ function mbAiReadDesk() {
       prompt: document.getElementById(`ai-prompt-${row.id}`)?.value,
       engine: document.getElementById(`ai-engine-${row.id}`)?.value ?? row.engine,
       llm: document.getElementById(`ai-llm-${row.id}`)?.value ?? row.llm,
+      voice_id: document.getElementById(`ai-evoice-${row.id}`)?.value ?? row.voice_id,
       results: checked('data-ai-result'),
       call_statuses: checked('data-ai-call'),
       call_when: checked('data-ai-when'),
@@ -490,6 +492,9 @@ function mbAiEngineSection(row) {
       <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.llm', 'Yapay zeka modeli'))}</div>
       <select class="form-input" id="ai-llm-${id}" onchange="mbAiEngineChanged('${id}')">${MB_AI_LLMS.map((item) => opt(item.id, llm, item.label)).join('')}</select>
       <div class="ai-hint" id="ai-llm-hint-${id}"></div>
+      <div class="ai-sec-t" style="margin-top:8px;">${mbAiEsc(mbAiSay('ai.eleven.voice', 'ElevenLabs ses kimliği (isteğe bağlı)'))}</div>
+      <input class="form-input" id="ai-evoice-${id}" maxlength="40" autocomplete="off" value="${mbAiEsc(row.voice_id || '')}" placeholder="${mbAiEsc(mbAiSay('ai.eleven.voice_ph', 'Boş bırakırsanız Türkçe ses otomatik seçilir'))}">
+      <div class="ai-hint">${mbAiEsc(mbAiSay('ai.eleven.voice_hint', 'ElevenLabs Voices bölümünden beğendiğiniz sesi Add to My Voices ile ekleyin, Voice ID değerini buraya yapıştırın.'))}</div>
       <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="mbAiElevenSetup(this)"><i class="ph ph-plugs-connected"></i> ${mbAiEsc(mbAiSay('ai.eleven.test', 'ElevenLabs bağlantısını dene'))}</button>
     </div>
   </div>`;

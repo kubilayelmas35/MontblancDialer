@@ -12,7 +12,7 @@ import {
   resultAllowed,
   type AiChoice,
 } from './instruct.ts';
-import { ensureEleven, elConversation, elDial, elWhy, el, llmOf } from './eleven.ts';
+import { ensureEleven, elAudio, elConversation, elDial, elWhy, el, llmOf } from './eleven.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -177,7 +177,7 @@ function staffOf(settings: Record<string, any>, staffId: string, campaignId: str
   if (ids.length && !ids.includes(campaignId)) return { error: 'staff' as const };
   const results = Array.isArray(hit.results) ? hit.results.map((key: unknown) => normKey(key)).filter(Boolean) : [];
   const engine = hit.engine === 'super' ? 'super' as const : hit.engine === 'std' ? 'std' as const : '';
-  return { id: staffId, prompt: clip(hit.prompt, 2000), greeting: clip(hit.greeting, 400), results, engine, llm: clip(hit.llm, 40) };
+  return { id: staffId, prompt: clip(hit.prompt, 2000), greeting: clip(hit.greeting, 400), results, engine, llm: clip(hit.llm, 40), voiceId: clip(hit.voice_id, 60).replace(/[^A-Za-z0-9]/g, '') };
 }
 
 function spokenBrief(brief: { ok: true; instructions: string; greeting: string; voice: string }, appt: Record<string, any>, extra: Record<string, any>, when: string) {
@@ -384,7 +384,7 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
   const { data: camp } = await admin.from('campaigns').select('telnyx_did').eq('id', appt.campaign_id).maybeSingle();
   const from = normDid(camp?.telnyx_did) || lineFrom(settings);
   if (ai.engine === 'super') {
-    return placeEleven(admin, appt, settings, { staffId: staff.id, llm: ai.llm, note, extra, to, from, speech: spokenBrief(brief, appt, extra, whenText(appt)) });
+    return placeEleven(admin, appt, settings, { staffId: staff.id, by: String(user.id || ''), voiceId: staff.voiceId, llm: ai.llm, note, extra, to, from, speech: spokenBrief(brief, appt, extra, whenText(appt)) });
   }
   const connection = clip(settings.integrations?.sip_connection_id, 80);
   const key = clip(settings.integrations?.telnyx_api_key, 200);
@@ -451,6 +451,7 @@ function elementsFor(settings: Record<string, any>, from: string, hook: string) 
     lang: ai.lang,
     llm: ai.llm,
     voice: ai.voice,
+    voiceId: '',
     from,
     sipUser: clip(integ.sip_username, 120),
     sipPass: clip(integ.sip_password, 200),
@@ -461,7 +462,7 @@ async function placeEleven(
   admin: SupabaseClient,
   appt: Record<string, any>,
   settings: Record<string, any>,
-  job: { staffId: string; llm: string; note: string; extra: Record<string, any>; to: string; from: string; speech: { instructions: string; greeting: string } },
+  job: { staffId: string; by: string; voiceId: string; llm: string; note: string; extra: Record<string, any>; to: string; from: string; speech: { instructions: string; greeting: string } },
 ) {
   const key = clip(settings.integrations?.elevenlabs_api_key, 300);
   if (!key) return json({ ok: false, error: 'nokey_el' }, 400);
@@ -473,6 +474,7 @@ async function placeEleven(
   const ctx = elementsFor(settings, job.from, `${base}/functions/v1/telnyx-ai`);
   ctx.firmId = String(appt.firm_id);
   ctx.llm = llmOf(job.llm);
+  ctx.voiceId = job.voiceId;
   const ready = await ensureEleven(admin, ctx);
   if (!ready.ok || !ready.agentId || !ready.phoneId) {
     return json({ ok: false, error: 'eleven', detail: clip(ready.why || 'setup', 300) }, 502);
@@ -485,6 +487,8 @@ async function placeEleven(
     callin_state: 'dialing',
     callin_at: new Date().toISOString(),
     callin_engine: 'eleven',
+    callin_by: job.by,
+    callin_log: '',
     callin_conv: '',
     callin_error: '',
     callin_billed: '',
@@ -512,16 +516,73 @@ async function placeEleven(
 async function syncEleven(admin: SupabaseClient, appt: Record<string, any>) {
   const extra = appt.form_ek || {};
   if (extra.callin_engine !== 'eleven' || !extra.callin_conv) return { state: String(extra.callin_state || ''), done: String(extra.callin_state || '') === 'done' };
-  if (String(extra.callin_billed || '') === '1') return { state: 'done', done: true };
   const { data: firm } = await admin.from('firms').select('settings').eq('id', appt.firm_id).maybeSingle();
   const key = clip(firm?.settings?.integrations?.elevenlabs_api_key, 300);
+  if (String(extra.callin_billed || '') === '1') {
+    // Billing is done; a missing call-history row (audio not ready earlier) is retried here.
+    if (key && !extra.callin_log && Number(extra.callin_sec) > 0) {
+      const again = await elConversation(key, String(extra.callin_conv));
+      if (again.ok) await saveElevenLog(admin, appt, key, String(extra.callin_conv), again);
+    }
+    return { state: 'done', done: true };
+  }
   if (!key) return { state: 'dialing', done: false };
   const conv = await elConversation(key, String(extra.callin_conv));
   if (!conv.ok) return { state: 'dialing', done: false, why: conv.why };
   if (conv.status !== 'done' && conv.status !== 'failed') return { state: 'dialing', done: false, status: conv.status };
   await onHangup(admin, appt, { duration_secs: conv.secs });
   if (conv.secs <= 0) await mergeEk(admin, appt, { callin_error: 'noanswer' });
+  else await saveElevenLog(admin, appt, key, String(extra.callin_conv), conv);
   return { state: 'done', done: true, secs: conv.secs };
+}
+
+// Puts the finished AI call into the normal call history with its recording and transcript.
+async function saveElevenLog(
+  admin: SupabaseClient,
+  appt: Record<string, any>,
+  key: string,
+  conv: string,
+  info: { secs: number; start: number; summary: string; transcript: string },
+) {
+  if (!conv || appt.form_ek?.callin_log) return;
+  const tag = `el:${conv}`;
+  const { data: dup } = await admin.from('call_logs').select('id').eq('telnyx_call_id', tag).maybeSingle();
+  if (dup?.id) {
+    await mergeEk(admin, appt, { callin_log: dup.id });
+    return;
+  }
+  let url = '';
+  for (let attempt = 0; attempt < 4 && !url; attempt += 1) {
+    const audio = await elAudio(key, conv);
+    if (audio.ok && audio.bytes.byteLength > 500) {
+      const path = `${appt.firm_id}/el-${conv}.mp3`;
+      const up = await admin.storage.from('call-recordings').upload(path, audio.bytes, { contentType: audio.type || 'audio/mpeg', upsert: true });
+      if (!up.error) url = admin.storage.from('call-recordings').getPublicUrl(path).data.publicUrl;
+    }
+    if (!url && attempt < 3) await new Promise((resolve) => setTimeout(resolve, 4000));
+  }
+  const secs = Math.max(0, Math.round(info.secs));
+  const started = info.start ? new Date(info.start * 1000).toISOString() : new Date(Date.now() - secs * 1000).toISOString();
+  const by = String(appt.form_ek?.callin_by || '');
+  const notes = [info.summary, info.transcript].filter(Boolean).join('\n\n').slice(0, 3500);
+  const row = {
+    contact_id: appt.contact_id || null,
+    campaign_id: appt.campaign_id || null,
+    firm_id: appt.firm_id,
+    agent_id: uuidRe.test(by) ? by : null,
+    phone: clip(appt.telefonnummer, 40) || null,
+    outcome: 'qc_ai',
+    duration_sec: secs,
+    notes,
+    telnyx_call_id: tag,
+    started_at: started,
+    ended_at: new Date().toISOString(),
+    recording_url: url || null,
+    work_type: 'ai_qc',
+  };
+  const { data: made, error } = await admin.from('call_logs').insert(row).select('id').maybeSingle();
+  if (error) console.error('call log insert failed', error.message);
+  if (made?.id) await mergeEk(admin, appt, { callin_log: made.id });
 }
 
 async function sweepEleven(admin: SupabaseClient, firmId: string) {

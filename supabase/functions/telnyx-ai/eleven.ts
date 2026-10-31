@@ -6,7 +6,7 @@ const EL = 'https://api.elevenlabs.io';
 
 export const EL_LLMS = ['gemini-2.5-flash', 'gpt-4o-mini', 'claude-haiku-4-5', 'gpt-4o', 'claude-sonnet-4-5'];
 export const EL_DEFAULT_LLM = 'gemini-2.5-flash';
-const TTS_MODEL = 'eleven_flash_v2_5';
+const TTS_MODEL = 'eleven_turbo_v2_5';
 // Premade multilingual voices, used only when no Turkish library voice can be attached.
 const FALLBACK_VOICES: Record<string, string> = { female: '21m00Tcm4TlvDq8ikWAM', male: 'pNInz6obpgDQGcFmaJgB' };
 
@@ -100,15 +100,29 @@ async function ensureTools(key: string, saved: Record<string, any>, hook: string
   return { ids, why: '' };
 }
 
+type VoiceTry = { id: string; owner: string; fallback?: boolean };
+
 async function voiceCandidates(key: string, lang: string, kind: string) {
   const gender = kind === 'male' ? 'male' : 'female';
-  const out: string[] = [];
-  const shared = await el(key, 'GET', `/v1/shared-voices?page_size=8&language=${lang === 'tr' ? 'tr' : 'de'}&gender=${gender}&sort=usage_character_count_7d`);
-  const list = Array.isArray(shared.data?.voices) ? shared.data.voices : [];
-  list.forEach((row: any) => { const id = clip(row?.voice_id, 60); if (id && !out.includes(id)) out.push(id); });
-  const fallback = FALLBACK_VOICES[gender];
-  if (!out.includes(fallback)) out.push(fallback);
+  const base = `/v1/shared-voices?page_size=10&language=${lang === 'tr' ? 'tr' : 'de'}&gender=${gender}&sort=usage_character_count_7d`;
+  let shared = await el(key, 'GET', `${base}&use_cases=conversational`);
+  let list = Array.isArray(shared.data?.voices) ? shared.data.voices : [];
+  if (!list.length) {
+    shared = await el(key, 'GET', base);
+    list = Array.isArray(shared.data?.voices) ? shared.data.voices : [];
+  }
+  const out: VoiceTry[] = [];
+  list.forEach((row: any) => {
+    const id = clip(row?.voice_id, 60);
+    if (id && !out.some((item) => item.id === id)) out.push({ id, owner: clip(row?.public_owner_id, 100) });
+  });
   return out.slice(0, 4);
+}
+
+// Library voices must sit in "My voices" before an agent may use them.
+async function addToLibrary(key: string, voice: VoiceTry) {
+  if (!voice.owner) return;
+  await el(key, 'POST', `/v1/voices/add/${encodeURIComponent(voice.owner)}/${encodeURIComponent(voice.id)}`, { new_name: `Callin ${voice.id.slice(0, 6)}` });
 }
 
 function agentConfig(lang: string, llm: string, toolIds: string[], voiceId: string) {
@@ -117,9 +131,9 @@ function agentConfig(lang: string, llm: string, toolIds: string[], voiceId: stri
       first_message: '{{greeting}}',
       language: lang === 'tr' ? 'tr' : 'de',
       dynamic_variables: { dynamic_variable_placeholders: { brief: 'brief', greeting: 'greeting', callin_token: 'token' } },
-      prompt: { prompt: '{{brief}}', llm, temperature: 0.3, timezone: 'Europe/Berlin', tool_ids: toolIds, built_in_tools: { end_call: { name: 'end_call', description: '', params: { system_tool_type: 'end_call' } } } },
+      prompt: { prompt: '{{brief}}', llm, temperature: 0.4, timezone: 'Europe/Berlin', tool_ids: toolIds, built_in_tools: { end_call: { name: 'end_call', description: '', params: { system_tool_type: 'end_call' } } } },
     },
-    tts: { model_id: TTS_MODEL, voice_id: voiceId },
+    tts: { model_id: TTS_MODEL, voice_id: voiceId, stability: 0.5, similarity_boost: 0.8, speed: 1 },
     conversation: { max_duration_seconds: 420 },
   };
 }
@@ -132,6 +146,7 @@ export type ElevenSetup = {
   lang: string;
   llm: string;
   voice: string;
+  voiceId?: string;
   from: string;
   sipUser: string;
   sipPass: string;
@@ -153,33 +168,39 @@ export async function ensureEleven(admin: SupabaseClient, ctx: ElevenSetup) {
   const toolIds = [tools.ids.takvim_bak, tools.ids.sonuc_yaz].filter(Boolean);
   log.push('tools ok');
 
-  // One agent per language model, so two staff members with different models never overwrite each other.
+  // One agent per language model and pinned voice, so staff with different choices never overwrite each other.
+  const pinned = clip(ctx.voiceId, 60).replace(/[^A-Za-z0-9]/g, '');
+  const akey = pinned ? `${ctx.llm}@${pinned}` : ctx.llm;
   const agents = { ...(saved.agents || {}) } as Record<string, { id: string; sig: string }>;
-  if (!agents[ctx.llm] && saved.agent_id && saved.sig && String(saved.sig).includes(`|${ctx.llm}|`)) agents[ctx.llm] = { id: String(saved.agent_id), sig: String(saved.sig) };
-  let agentId = clip(agents[ctx.llm]?.id, 80);
-  const sig = `v2|${ctx.llm}|${ctx.lang}|${kind}|${toolIds.join(',')}`;
+  if (!pinned && !agents[akey] && saved.agent_id && saved.sig && String(saved.sig).includes(`|${ctx.llm}|`)) agents[akey] = { id: String(saved.agent_id), sig: String(saved.sig) };
+  let agentId = clip(agents[akey]?.id, 80);
   const voices = { ...(saved.voices || {}) } as Record<string, string>;
-  if (!agentId || agents[ctx.llm]?.sig !== sig || !voices[`${ctx.lang}_${kind}`]) {
-    const picked = voices[`${ctx.lang}_${kind}`] ? [voices[`${ctx.lang}_${kind}`]] : await voiceCandidates(ctx.key, ctx.lang, kind);
+  const vkey = `v3_${ctx.lang}_${kind}`;
+  const known = pinned || clip(voices[vkey], 60);
+  const sigFor = (voiceId: string) => `v3|${ctx.llm}|${ctx.lang}|${kind}|${toolIds.join(',')}|${voiceId}`;
+  if (!agentId || !known || agents[akey]?.sig !== sigFor(known)) {
+    const picked: VoiceTry[] = known ? [{ id: known, owner: '' }] : await voiceCandidates(ctx.key, ctx.lang, kind);
+    if (!known) picked.push({ id: FALLBACK_VOICES[kind], owner: '', fallback: true });
     let lastWhy = '';
-    let done = false;
-    for (const voiceId of picked) {
-      const config = agentConfig(ctx.lang, ctx.llm, toolIds, voiceId);
+    let used: VoiceTry | null = null;
+    for (const voice of picked) {
+      await addToLibrary(ctx.key, voice);
+      const config = agentConfig(ctx.lang, ctx.llm, toolIds, voice.id);
       const res = agentId
         ? await el(ctx.key, 'PATCH', `/v1/convai/agents/${encodeURIComponent(agentId)}`, { conversation_config: config })
         : await el(ctx.key, 'POST', '/v1/convai/agents/create', { name: `Callin Kalite ${ctx.llm}`, conversation_config: config });
       if (res.ok) {
         agentId = agentId || clip(res.data?.agent_id, 80);
-        voices[`${ctx.lang}_${kind}`] = voiceId;
-        done = !!agentId;
+        used = voice;
         break;
       }
-      lastWhy = `agent ${elWhy(res)} voice=${voiceId}`;
+      lastWhy = `agent ${elWhy(res)} voice=${voice.id}`;
     }
-    if (!done) return fail(lastWhy || 'agent');
-    agents[ctx.llm] = { id: agentId, sig };
+    if (!used || !agentId) return fail(lastWhy || 'agent');
+    if (!used.fallback && !pinned) voices[vkey] = used.id;
+    agents[akey] = { id: agentId, sig: sigFor(used.id) };
     saved = await saveEl(admin, ctx.firmId, { agents, voices });
-    log.push('agent ok');
+    log.push(`agent ok voice=${used.id}${used.fallback ? ' (yedek, Turkce ses eklenemedi)' : ''}`);
   }
 
   let phoneId = '';
@@ -232,8 +253,28 @@ export async function elDial(key: string, agentId: string, phoneId: string, to: 
 
 export async function elConversation(key: string, conv: string) {
   const res = await el(key, 'GET', `/v1/convai/conversations/${encodeURIComponent(conv)}`);
-  if (!res.ok) return { ok: false as const, status: '', secs: 0, why: elWhy(res) };
+  if (!res.ok) return { ok: false as const, status: '', secs: 0, start: 0, summary: '', transcript: '', why: elWhy(res) };
   const meta = res.data?.metadata || {};
   const secs = Number(meta.call_duration_secs ?? meta.duration_secs ?? 0);
-  return { ok: true as const, status: String(res.data?.status || ''), secs: Number.isFinite(secs) ? secs : 0, why: '' };
+  const rows = Array.isArray(res.data?.transcript) ? res.data.transcript : [];
+  const transcript = rows
+    .filter((row: any) => row?.message)
+    .map((row: any) => `${row.role === 'agent' ? 'YZ' : 'Kisi'}: ${clip(row.message, 400)}`)
+    .join('\n');
+  return {
+    ok: true as const,
+    status: String(res.data?.status || ''),
+    secs: Number.isFinite(secs) ? secs : 0,
+    start: Number(meta.start_time_unix_secs) || 0,
+    summary: clip(res.data?.analysis?.transcript_summary, 600),
+    transcript,
+    why: '',
+  };
+}
+
+export async function elAudio(key: string, conv: string) {
+  const res = await fetch(`${EL}/v1/convai/conversations/${encodeURIComponent(conv)}/audio`, { headers: { 'xi-api-key': key } });
+  if (!res.ok) return { ok: false as const, bytes: new Uint8Array(0), type: '' };
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  return { ok: true as const, bytes, type: res.headers.get('content-type') || 'audio/mpeg' };
 }
