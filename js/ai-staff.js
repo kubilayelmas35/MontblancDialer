@@ -104,6 +104,7 @@ function mbAiStaffNorm(row) {
     engine: row.engine === 'super' ? 'super' : (row.engine === 'std' ? 'std' : ''),
     llm: MB_AI_LLMS.some((item) => item.id === row.llm) ? row.llm : '',
     voice_id: String(row.voice_id || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 40),
+    voice_name: String(row.voice_name || '').trim().slice(0, 60),
     results: mbAiKeys(row.results),
     call_statuses: mbAiKeys(row.call_statuses),
     call_when: when.length ? when : ['today'],
@@ -244,6 +245,7 @@ function mbAiReadDesk() {
       engine: document.getElementById(`ai-engine-${row.id}`)?.value ?? row.engine,
       llm: document.getElementById(`ai-llm-${row.id}`)?.value ?? row.llm,
       voice_id: document.getElementById(`ai-evoice-${row.id}`)?.value ?? row.voice_id,
+      voice_name: document.getElementById(`ai-evname-${row.id}`)?.value ?? row.voice_name,
       results: checked('data-ai-result'),
       call_statuses: checked('data-ai-call'),
       call_when: checked('data-ai-when'),
@@ -492,12 +494,146 @@ function mbAiEngineSection(row) {
       <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.llm', 'Yapay zeka modeli'))}</div>
       <select class="form-input" id="ai-llm-${id}" onchange="mbAiEngineChanged('${id}')">${MB_AI_LLMS.map((item) => opt(item.id, llm, item.label)).join('')}</select>
       <div class="ai-hint" id="ai-llm-hint-${id}"></div>
-      <div class="ai-sec-t" style="margin-top:8px;">${mbAiEsc(mbAiSay('ai.eleven.voice', 'ElevenLabs ses kimliği (isteğe bağlı)'))}</div>
-      <input class="form-input" id="ai-evoice-${id}" maxlength="40" autocomplete="off" value="${mbAiEsc(row.voice_id || '')}" placeholder="${mbAiEsc(mbAiSay('ai.eleven.voice_ph', 'Boş bırakırsanız Türkçe ses otomatik seçilir'))}">
-      <div class="ai-hint">${mbAiEsc(mbAiSay('ai.eleven.voice_hint', 'ElevenLabs Voices bölümünden beğendiğiniz sesi Add to My Voices ile ekleyin, Voice ID değerini buraya yapıştırın.'))}</div>
+      <div class="ai-sec-t" style="margin-top:8px;">${mbAiEsc(mbAiSay('ai.voice.title', 'Ses'))}</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="hidden" id="ai-evoice-${id}" value="${mbAiEsc(row.voice_id || '')}">
+        <input type="hidden" id="ai-evname-${id}" value="${mbAiEsc(row.voice_name || '')}">
+        <span id="ai-evlabel-${id}" style="flex:1;min-width:140px;font-weight:700;">${mbAiEsc(row.voice_id ? (row.voice_name || row.voice_id) : mbAiSay('ai.voice.auto', 'Otomatik (Türkçe ses seçilir)'))}</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiVoicePick('${id}')"><i class="ph ph-speaker-high"></i> ${mbAiEsc(mbAiSay('ai.voice.pick', 'Ses seç ve dinle'))}</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiVoiceClear('${id}')">${mbAiEsc(mbAiSay('ai.voice.clear', 'Otomatik'))}</button>
+      </div>
       <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="mbAiElevenSetup(this)"><i class="ph ph-plugs-connected"></i> ${mbAiEsc(mbAiSay('ai.eleven.test', 'ElevenLabs bağlantısını dene'))}</button>
     </div>
   </div>`;
+}
+
+function mbAiVoiceClear(sid) {
+  const idEl = document.getElementById('ai-evoice-' + sid);
+  const nameEl = document.getElementById('ai-evname-' + sid);
+  const label = document.getElementById('ai-evlabel-' + sid);
+  if (idEl) idEl.value = '';
+  if (nameEl) nameEl.value = '';
+  if (label) label.textContent = mbAiSay('ai.voice.auto', 'Otomatik (Türkçe ses seçilir)');
+}
+
+// Ses seçici: ElevenLabs kütüphanesindeki sesleri dinletir; seçilen ses hesaba eklenir ve personele yazılır.
+function mbAiVoicePick(sid) {
+  window._aiVoice = { sid, gender: '', q: '', mine: false, page: 0, items: [], more: false, busy: false };
+  document.getElementById('ai-voice-pop')?.remove();
+  const pop = document.createElement('div');
+  pop.id = 'ai-voice-pop';
+  pop.className = 'ai-callin';
+  pop.innerHTML = `<div class="ai-callin-card" role="dialog" aria-modal="true" style="max-width:720px;width:min(720px,94vw);max-height:84vh;display:flex;flex-direction:column;gap:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <div style="font-weight:800;">${mbAiEsc(mbAiSay('ai.voice.title', 'Ses'))}</div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiVoiceClose()">${mbAiEsc(mbAiSay('qc.callin.cancel', 'Vazgeç'))}</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <select id="ai-voice-tab" class="form-input" style="width:auto;" onchange="mbAiVoiceFilter()">
+        <option value="lib">${mbAiEsc(mbAiSay('ai.voice.lib', 'Ses kütüphanesi'))}</option>
+        <option value="mine">${mbAiEsc(mbAiSay('ai.voice.mine', 'Eklediklerim'))}</option>
+      </select>
+      <select id="ai-voice-gender" class="form-input" style="width:auto;" onchange="mbAiVoiceFilter()">
+        <option value="">${mbAiEsc(mbAiSay('ai.voice.all', 'Hepsi'))}</option>
+        <option value="female">${mbAiEsc(mbAiSay('line.ai.voice.female', 'Kadın'))}</option>
+        <option value="male">${mbAiEsc(mbAiSay('line.ai.voice.male', 'Erkek'))}</option>
+      </select>
+      <input id="ai-voice-q" class="form-input" style="flex:1;min-width:140px;" maxlength="60" placeholder="${mbAiEsc(mbAiSay('ai.voice.search', 'Ara'))}" onkeydown="if(event.key==='Enter')mbAiVoiceFilter()">
+      <button type="button" class="btn btn-primary btn-sm" onclick="mbAiVoiceFilter()">${mbAiEsc(mbAiSay('ai.voice.search', 'Ara'))}</button>
+    </div>
+    <div id="ai-voice-list" style="overflow:auto;display:flex;flex-direction:column;gap:8px;min-height:120px;"></div>
+  </div>`;
+  pop.addEventListener('click', (event) => { if (event.target === pop) mbAiVoiceClose(); });
+  document.body.appendChild(pop);
+  mbAiVoiceFilter();
+}
+
+function mbAiVoiceClose() {
+  document.querySelectorAll('#ai-voice-pop audio').forEach((el) => el.pause());
+  document.getElementById('ai-voice-pop')?.remove();
+}
+
+function mbAiVoiceFilter() {
+  const st = window._aiVoice;
+  if (!st) return;
+  st.mine = document.getElementById('ai-voice-tab')?.value === 'mine';
+  st.gender = document.getElementById('ai-voice-gender')?.value || '';
+  st.q = String(document.getElementById('ai-voice-q')?.value || '').trim();
+  st.page = 0;
+  st.items = [];
+  void mbAiVoiceLoad();
+}
+
+async function mbAiVoiceLoad() {
+  const st = window._aiVoice;
+  const host = document.getElementById('ai-voice-list');
+  if (!st || !host || st.busy) return;
+  st.busy = true;
+  if (!st.items.length) host.innerHTML = `<div class="ai-hint">${mbAiEsc(mbAiSay('ai.voice.loading', 'Yükleniyor...'))}</div>`;
+  const lang = document.getElementById('ai-lang')?.value === 'de' ? 'de' : 'tr';
+  const res = await mbTelnyxAi('voices', { firm_id: _aiFirmId, lang, gender: st.gender, q: st.q, page: st.page, mine: st.mine });
+  st.busy = false;
+  if (window._aiVoice !== st) return;
+  if (!res?.ok) {
+    host.innerHTML = `<div class="ai-hint">${mbAiEsc(res?.error === 'nokey_el' ? mbAiSay('ai.eleven.nokey', 'ElevenLabs API anahtarı yok.') : mbAiSay('ai.voice.fail', 'Sesler alınamadı.') + ' ' + String(res?.detail || ''))}</div>`;
+    return;
+  }
+  st.items = st.items.concat(res.voices || []);
+  st.more = !!res.more;
+  mbAiVoicePaint();
+}
+
+function mbAiVoicePaint() {
+  const st = window._aiVoice;
+  const host = document.getElementById('ai-voice-list');
+  if (!st || !host) return;
+  if (!st.items.length) {
+    host.innerHTML = `<div class="ai-hint">${mbAiEsc(mbAiSay('ai.voice.none', 'Ses bulunamadı.'))}</div>`;
+    return;
+  }
+  const rows = st.items.map((item, index) => {
+    const tags = [item.gender, item.accent, item.use].filter(Boolean).join(' · ');
+    return `<div style="border:1px solid var(--border, #ddd);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+        <div><b>${mbAiEsc(item.name)}</b><div class="ai-hint">${mbAiEsc(tags)}</div></div>
+        <button type="button" class="btn btn-primary btn-sm" onclick="mbAiVoiceUse(${index}, this)">${mbAiEsc(mbAiSay('ai.voice.use', 'Bunu seç'))}</button>
+      </div>
+      ${item.desc ? `<div class="ai-hint">${mbAiEsc(item.desc)}</div>` : ''}
+      ${item.preview ? `<audio controls preload="none" src="${mbAiEsc(item.preview)}" style="width:100%;height:32px;"></audio>` : ''}
+    </div>`;
+  }).join('');
+  const more = st.more ? `<button type="button" class="btn btn-ghost btn-sm" onclick="mbAiVoiceMore()">${mbAiEsc(mbAiSay('ai.voice.more', 'Daha fazla'))}</button>` : '';
+  host.innerHTML = rows + more;
+}
+
+function mbAiVoiceMore() {
+  const st = window._aiVoice;
+  if (!st) return;
+  st.page += 1;
+  void mbAiVoiceLoad();
+}
+
+async function mbAiVoiceUse(index, btn) {
+  const st = window._aiVoice;
+  const item = st?.items?.[index];
+  if (!st || !item) return;
+  if (btn) btn.disabled = true;
+  const res = item.owner
+    ? await mbTelnyxAi('voice_add', { firm_id: _aiFirmId, voice_id: item.id, owner: item.owner, name: item.name })
+    : { ok: true };
+  if (!res?.ok) {
+    if (btn) btn.disabled = false;
+    if (typeof toast === 'function') toast(mbAiSay('ai.voice.fail', 'Ses eklenemedi.') + ' ' + String(res?.detail || '').slice(0, 200), 'err');
+    return;
+  }
+  const idEl = document.getElementById('ai-evoice-' + st.sid);
+  const nameEl = document.getElementById('ai-evname-' + st.sid);
+  const label = document.getElementById('ai-evlabel-' + st.sid);
+  if (idEl) idEl.value = item.id;
+  if (nameEl) nameEl.value = item.name;
+  if (label) label.textContent = item.name;
+  mbAiVoiceClose();
+  if (typeof toast === 'function') toast(mbAiSay('ai.voice.picked', 'Ses seçildi. Kaydet düğmesine basın.'), 'ok');
 }
 
 function mbAiQcAuto(row, choices) {

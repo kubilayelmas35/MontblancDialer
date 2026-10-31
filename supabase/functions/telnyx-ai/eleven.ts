@@ -179,23 +179,31 @@ export async function ensureEleven(admin: SupabaseClient, ctx: ElevenSetup) {
   const known = pinned || clip(voices[vkey], 60);
   const sigFor = (voiceId: string) => `v3|${ctx.llm}|${ctx.lang}|${kind}|${toolIds.join(',')}|${voiceId}`;
   if (!agentId || !known || agents[akey]?.sig !== sigFor(known)) {
-    const picked: VoiceTry[] = known ? [{ id: known, owner: '' }] : await voiceCandidates(ctx.key, ctx.lang, kind);
-    if (!known) picked.push({ id: FALLBACK_VOICES[kind], owner: '', fallback: true });
     let lastWhy = '';
-    let used: VoiceTry | null = null;
-    for (const voice of picked) {
-      await addToLibrary(ctx.key, voice);
-      const config = agentConfig(ctx.lang, ctx.llm, toolIds, voice.id);
-      const res = agentId
-        ? await el(ctx.key, 'PATCH', `/v1/convai/agents/${encodeURIComponent(agentId)}`, { conversation_config: config })
-        : await el(ctx.key, 'POST', '/v1/convai/agents/create', { name: `Callin Kalite ${ctx.llm}`, conversation_config: config });
-      if (res.ok) {
-        agentId = agentId || clip(res.data?.agent_id, 80);
-        used = voice;
-        break;
+    const got: { voice: VoiceTry | null } = { voice: null };
+    const attempt = async (list: VoiceTry[]) => {
+      for (const voice of list) {
+        await addToLibrary(ctx.key, voice);
+        const config = agentConfig(ctx.lang, ctx.llm, toolIds, voice.id);
+        const res = agentId
+          ? await el(ctx.key, 'PATCH', `/v1/convai/agents/${encodeURIComponent(agentId)}`, { conversation_config: config })
+          : await el(ctx.key, 'POST', '/v1/convai/agents/create', { name: `Callin Kalite ${ctx.llm}`, conversation_config: config });
+        if (res.ok) {
+          agentId = agentId || clip(res.data?.agent_id, 80);
+          got.voice = voice;
+          return;
+        }
+        lastWhy = `agent ${elWhy(res)} voice=${voice.id}`;
       }
-      lastWhy = `agent ${elWhy(res)} voice=${voice.id}`;
+    };
+    if (known) await attempt([{ id: known, owner: '' }]);
+    // A remembered voice that no longer works is replaced; a voice the user pinned is never swapped silently.
+    if (!got.voice && !pinned) {
+      const list = (await voiceCandidates(ctx.key, ctx.lang, kind)).filter((item) => item.id !== known);
+      list.push({ id: FALLBACK_VOICES[kind], owner: '', fallback: true });
+      await attempt(list);
     }
+    const used = got.voice;
     if (!used || !agentId) return fail(lastWhy || 'agent');
     if (!used.fallback && !pinned) voices[vkey] = used.id;
     agents[akey] = { id: agentId, sig: sigFor(used.id) };
@@ -234,6 +242,63 @@ export async function ensureEleven(admin: SupabaseClient, ctx: ElevenSetup) {
   }
   await saveEl(admin, ctx.firmId, { last: { ok: true, why: log.join(', '), at: new Date().toISOString() } });
   return { ok: true as const, agentId, phoneId, log, why: '' };
+}
+
+export type PickVoice = { id: string; owner: string; name: string; desc: string; gender: string; accent: string; use: string; preview: string; cat: string };
+
+// Lists voices for the picker: the public library for the firm's language, or the voices already in the account.
+export async function elVoices(key: string, opt: { lang: string; gender: string; q: string; page: number; mine: boolean }) {
+  if (opt.mine) {
+    const res = await el(key, 'GET', '/v1/voices');
+    if (!res.ok) return { ok: false as const, why: elWhy(res), voices: [] as PickVoice[], more: false };
+    const rows = Array.isArray(res.data?.voices) ? res.data.voices : [];
+    const q = opt.q.toLowerCase();
+    const voices: PickVoice[] = rows
+      .filter((row: any) => !q || String(row?.name || '').toLowerCase().includes(q))
+      .map((row: any) => ({
+        id: clip(row?.voice_id, 60),
+        owner: '',
+        name: clip(row?.name, 80),
+        desc: clip(row?.description || row?.labels?.descriptive, 140),
+        gender: clip(row?.labels?.gender, 20),
+        accent: clip(row?.labels?.accent, 30),
+        use: clip(row?.labels?.use_case, 30),
+        preview: clip(row?.preview_url, 500),
+        cat: clip(row?.category, 20),
+      }))
+      .filter((row: PickVoice) => row.id);
+    voices.sort((a, b) => (a.cat === 'premade' ? 1 : 0) - (b.cat === 'premade' ? 1 : 0));
+    return { ok: true as const, why: '', voices: voices.slice(0, 60), more: false };
+  }
+  const params = new URLSearchParams({ page_size: '20', page: String(opt.page), language: opt.lang === 'tr' ? 'tr' : 'de', sort: 'usage_character_count_7d' });
+  if (opt.gender === 'female' || opt.gender === 'male') params.set('gender', opt.gender);
+  if (opt.q) params.set('search', opt.q);
+  const res = await el(key, 'GET', `/v1/shared-voices?${params.toString()}`);
+  if (!res.ok) return { ok: false as const, why: elWhy(res), voices: [] as PickVoice[], more: false };
+  const rows = Array.isArray(res.data?.voices) ? res.data.voices : [];
+  const voices: PickVoice[] = rows
+    .map((row: any) => ({
+      id: clip(row?.voice_id, 60),
+      owner: clip(row?.public_owner_id, 100),
+      name: clip(row?.name, 80),
+      desc: clip(row?.description, 140),
+      gender: clip(row?.gender, 20),
+      accent: clip(row?.accent, 30),
+      use: clip(row?.use_case, 30),
+      preview: clip(row?.preview_url, 500),
+      cat: clip(row?.category, 20),
+    }))
+    .filter((row: PickVoice) => row.id);
+  return { ok: true as const, why: '', voices, more: !!res.data?.has_more };
+}
+
+export async function elVoiceAdd(key: string, id: string, owner: string, name: string) {
+  if (!owner) return { ok: true as const, why: '' };
+  const res = await el(key, 'POST', `/v1/voices/add/${encodeURIComponent(owner)}/${encodeURIComponent(id)}`, { new_name: clip(name, 40) || `Callin ${id.slice(0, 6)}` });
+  if (res.ok) return { ok: true as const, why: '' };
+  const why = elWhy(res);
+  if (/already|exist/i.test(why)) return { ok: true as const, why: '' };
+  return { ok: false as const, why };
 }
 
 export async function elDial(key: string, agentId: string, phoneId: string, to: string, vars: Record<string, string>) {

@@ -12,7 +12,7 @@ import {
   resultAllowed,
   type AiChoice,
 } from './instruct.ts';
-import { ensureEleven, elAudio, elConversation, elDial, elWhy, el, llmOf } from './eleven.ts';
+import { ensureEleven, elAudio, elConversation, elDial, elVoiceAdd, elVoices, elWhy, el, llmOf } from './eleven.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -897,7 +897,7 @@ Deno.serve(async (req) => {
   }
 
   const action = String(body?.action || '');
-  if (!['place', 'sync', 'eleven_setup'].includes(action)) return json({ error: 'action' }, 400);
+  if (!['place', 'sync', 'eleven_setup', 'voices', 'voice_add'].includes(action)) return json({ error: 'action' }, 400);
   const session = String(req.headers.get('x-mb-session') || '').trim();
   if (session.length < 32) return json({ error: 'auth' }, 401);
   const admin = adminClient();
@@ -907,6 +907,7 @@ Deno.serve(async (req) => {
   if (!user || user.is_active === false) return json({ error: 'auth' }, 401);
   if (action === 'sync') return syncAction(admin, user, body);
   if (action === 'eleven_setup') return setupAction(admin, user, body);
+  if (action === 'voices' || action === 'voice_add') return voiceAction(admin, user, body, action);
   return placeCall(admin, user, body);
 });
 
@@ -929,6 +930,35 @@ async function syncAction(admin: SupabaseClient, user: Record<string, any>, body
     durum: String(fresh?.durum || ''),
     error: String(fresh?.form_ek?.callin_error || ''),
   });
+}
+
+// Voice picker backend: lists voices with preview links and adds a chosen library voice to the account.
+async function voiceAction(admin: SupabaseClient, user: Record<string, any>, body: Record<string, any>, action: string) {
+  const role = String(user.role || '');
+  if (!['super_admin', 'admin', 'firm_admin'].includes(role)) return json({ ok: false, error: 'auth' }, 403);
+  const firmId = role === 'super_admin' ? String(body.firm_id || user.firm_id || '') : String(user.firm_id || '');
+  if (!uuidRe.test(firmId)) return json({ ok: false, error: 'id' }, 400);
+  const { data: firm } = await admin.from('firms').select('settings').eq('id', firmId).maybeSingle();
+  const key = clip(firm?.settings?.integrations?.elevenlabs_api_key, 300);
+  if (!key) return json({ ok: false, error: 'nokey_el' }, 400);
+  if (action === 'voice_add') {
+    const id = clip(body.voice_id, 60).replace(/[^A-Za-z0-9]/g, '');
+    const owner = clip(body.owner, 100).replace(/[^A-Za-z0-9]/g, '');
+    if (!id) return json({ ok: false, error: 'id' }, 400);
+    const added = await elVoiceAdd(key, id, owner, clip(body.name, 40));
+    if (!added.ok) return json({ ok: false, error: 'eleven', detail: clip(added.why, 300) }, 502);
+    return json({ ok: true, voice_id: id });
+  }
+  const page = Math.max(0, Math.min(40, Math.floor(Number(body.page) || 0)));
+  const list = await elVoices(key, {
+    lang: body.lang === 'tr' ? 'tr' : 'de',
+    gender: String(body.gender || ''),
+    q: clip(body.q, 60),
+    page,
+    mine: body.mine === true,
+  });
+  if (!list.ok) return json({ ok: false, error: 'eleven', detail: clip(list.why, 300) }, 502);
+  return json({ ok: true, voices: list.voices, more: list.more });
 }
 
 async function setupAction(admin: SupabaseClient, user: Record<string, any>, body: Record<string, any>) {
