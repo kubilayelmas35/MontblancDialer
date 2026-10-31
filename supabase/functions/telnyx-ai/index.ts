@@ -301,11 +301,14 @@ async function startAssistant(key: string, control: string, assistantId: string,
     voice_settings: voiceOpts(brief.voice),
     ...(asr ? { transcription: asr } : {}),
   });
-  if (first.ok || first.status !== 422) return first;
+  const why1 = telnyxWhy(first);
+  if (first.ok || first.status !== 422) return { ...first, tag: first.ok ? 'azure_asr' : 'err', why: why1 };
   const second = await telnyx(key, path, { assistant: assistantBody(assistantId, brief, url, true) });
-  if (second.ok || second.status !== 422 || !brief.voice.startsWith('Azure.')) return second;
+  const why2 = telnyxWhy(second);
+  if (second.ok || second.status !== 422 || !brief.voice.startsWith('Azure.')) return { ...second, tag: second.ok ? 'voice_only' : 'err', why: `1:${why1} | 2:${why2}` };
   const plain = { ...brief, voice: FALLBACK_VOICE };
-  return telnyx(key, path, { assistant: assistantBody(assistantId, plain, url, false), voice: FALLBACK_VOICE, voice_settings: { type: 'aws' } });
+  const third = await telnyx(key, path, { assistant: assistantBody(assistantId, plain, url, false), voice: FALLBACK_VOICE, voice_settings: { type: 'aws' } });
+  return { ...third, tag: third.ok ? 'polly' : 'err', why: `1:${why1} | 2:${why2} | 3:${telnyxWhy(third)}` };
 }
 
 async function loadByToken(admin: SupabaseClient, token: string) {
@@ -388,6 +391,7 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     callin_retry: '',
     callin_error_detail: '',
     callin_error_first: '',
+    callin_voice_used: '',
   });
   if (!saved) return json({ ok: false, error: 'save' }, 500);
   const callBody = {
@@ -481,10 +485,10 @@ async function onAnswer(admin: SupabaseClient, appt: Record<string, any>, contro
   const started = await startAssistant(key, control, ai.qcAssistant, spokenBrief(brief, appt, extra, whenText(appt)), hook);
   if (!started.ok) {
     await telnyx(key, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
-    await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'start', callin_error_detail: clip(telnyxWhy(started), 300) });
+    await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'start', callin_error_detail: clip(started.why, 300) });
     return;
   }
-  await mergeEk(admin, appt, { callin_started: '1' });
+  await mergeEk(admin, appt, { callin_started: '1', callin_voice_used: started.tag, callin_error_first: clip(started.why, 300) });
 }
 
 async function onHangup(admin: SupabaseClient, appt: Record<string, any>, payload: Record<string, any>) {
