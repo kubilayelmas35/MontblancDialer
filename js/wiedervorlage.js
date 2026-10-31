@@ -2,41 +2,89 @@
 // WİEDERVORLAGE — geri arama yönetimi
 // ─────────────────────────────────────────────
 
-async function loadWvPage() {
-  const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);
+let _wvCamps = [];
+
+function wvEsc(v) {
+  return typeof escapeHtml === 'function' ? escapeHtml(v) : String(v ?? '');
+}
+
+function wvSay(key, fb) {
+  const s = typeof t === 'function' ? t(key) : fb;
+  return !s || s === key ? fb : s;
+}
+
+function wvFirmId() {
+  return (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id || '';
+}
+
+function wvCampName(id) {
+  if (!id) return '—';
+  const hit = [...(_wvCamps || []), ...(typeof campaigns !== 'undefined' ? campaigns || [] : [])]
+    .find((c) => String(c.id) === String(id));
+  return hit?.name || '—';
+}
+
+function wvAgentLabel(sel, id) {
+  const opt = [...(sel?.options || [])].find((o) => o.value === id);
+  return String(opt?.textContent || '').replace(/\s*\(Ben\)\s*$/, '').trim();
+}
+
+async function wvFillAgents() {
+  const isAdminRole = mbIsFirmAdmin();
+  const sel = document.getElementById('wv-agent-sel');
   const col = document.getElementById('wv-agent-col');
-  if (col) col.style.display = isAdminRole ? '' : 'none';
   const agentRow = document.getElementById('wv-agent-row');
+  if (col) col.style.display = isAdminRole ? '' : 'none';
   if (agentRow) agentRow.style.display = isAdminRole ? '' : 'none';
-  if (isAdminRole) {
-    const sel = document.getElementById('wv-agent-sel');
-    if (sel) {
-      // Değer olarak agent_id (UUID) kullan — güvenilir filtre
-      const agents = await sb('users?role=in.(agent,firm_admin,admin)&select=id,name&is_active=eq.true&order=name.asc').catch(() => []);
-      sel.innerHTML = `<option value="">Tümü</option>` +
-        `<option value="${currentUser.id}">${currentUser.name} (Ben)</option>` +
-        (agents||[]).filter(a => a.id !== currentUser.id).map(a =>
-          `<option value="${a.id}">${a.name||a.id}</option>`
-        ).join('');
-    }
+  if (!isAdminRole || !sel) return;
+  const fid = wvFirmId();
+  const firmQ = fid ? `&firm_id=eq.${fid}` : '';
+  const agents = await sb(`users?role=in.(agent,firm_admin,admin)&is_active=eq.true&select=id,name&order=name.asc${firmQ}`).catch(() => []);
+  const keep = sel.value || '';
+  sel.innerHTML = `<option value="">${wvEsc(wvSay('wv.all_agents', 'Tüm temsilciler'))}</option>` +
+    `<option value="${wvEsc(currentUser.id)}">${wvEsc(currentUser.name)} (Ben)</option>` +
+    (agents || []).filter((a) => a.id !== currentUser.id).map((a) =>
+      `<option value="${wvEsc(a.id)}">${wvEsc(a.name || a.id)}</option>`
+    ).join('');
+  if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
+}
+
+async function wvFillCamps(selectedId) {
+  const sel = document.getElementById('wv-camp');
+  const fid = wvFirmId();
+  let list = [];
+  try {
+    list = fid ? (await sb(`campaigns?firm_id=eq.${fid}&select=id,name,settings&order=name.asc`)) || [] : [];
+  } catch (e) {
+    list = [];
   }
+  _wvCamps = list;
+  if (!sel) return;
+  const uid = currentUser?.id;
+  const choices = typeof mbUserSeesCampaign === 'function' && uid
+    ? list.filter((c) => mbUserSeesCampaign(c, uid))
+    : list;
+  const cur = String(selectedId || '');
+  sel.innerHTML = `<option value="">${wvEsc(wvSay('wv.no_camp', 'Kampanya yok'))}</option>` +
+    choices.map((c) => `<option value="${wvEsc(c.id)}" ${String(c.id) === cur ? 'selected' : ''}>${wvEsc(c.name || c.id)}</option>`).join('');
+  if (cur && ![...sel.options].some((o) => o.value === cur)) {
+    sel.insertAdjacentHTML('beforeend', `<option value="${wvEsc(cur)}" selected>${wvEsc(wvCampName(cur))}</option>`);
+  }
+}
+
+async function loadWvPage() {
+  await wvFillAgents();
+  await wvFillCamps();
   await refreshWvList();
   startWvReminders();
 }
 
 async function refreshWvList() {
   try {
-    const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);
-    const sel = document.getElementById('wv-agent-sel');
-    const selectedAgentId = sel?.value || '';
-    let url;
-    if (isAdminRole && !selectedAgentId) {
-      url = 'wiedervorlage?select=*&durum=eq.bekliyor&order=termin_zaman.asc';
-    } else if (isAdminRole && selectedAgentId) {
-      url = `wiedervorlage?select=*&agent_id=eq.${selectedAgentId}&durum=eq.bekliyor&order=termin_zaman.asc`;
-    } else {
-      url = `wiedervorlage?select=*&agent_id=eq.${currentUser?.id}&durum=eq.bekliyor&order=termin_zaman.asc`;
-    }
+    const isAdminRole = mbIsFirmAdmin();
+    const url = isAdminRole
+      ? 'wiedervorlage?select=*&durum=eq.bekliyor&order=termin_zaman.asc'
+      : `wiedervorlage?select=*&agent_id=eq.${currentUser?.id}&durum=eq.bekliyor&order=termin_zaman.asc`;
     wvList = await sb(url).catch(() => []);
     renderWvTable();
     updateWvBadge();
@@ -45,10 +93,10 @@ async function refreshWvList() {
 
 function loadWvBadge() {
   if (!currentUser) return;
-  const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);
+  const isAdminRole = mbIsFirmAdmin();
   const url = isAdminRole
-    ? 'wiedervorlage?select=id,termin_zaman,durum&durum=eq.bekliyor&order=termin_zaman.asc'
-    : `wiedervorlage?select=id,termin_zaman,durum&agent_id=eq.${currentUser.id}&durum=eq.bekliyor`;
+    ? 'wiedervorlage?select=id,termin_zaman,durum,hatirlatildi,nachname,telefon,telefon2,plz,ort,strasse,notiz,campaign_id,agent_name&durum=eq.bekliyor&order=termin_zaman.asc'
+    : `wiedervorlage?select=id,termin_zaman,durum,hatirlatildi,nachname,telefon,telefon2,plz,ort,strasse,notiz,campaign_id,agent_name&agent_id=eq.${currentUser.id}&durum=eq.bekliyor`;
   sb(url).then(list => {
     wvList = list || [];
     updateWvBadge();
@@ -83,6 +131,16 @@ function setWvTab(tab) {
   renderWvTable();
 }
 
+function wvWhenLabel(w) {
+  if (!w?.termin_zaman) return '—';
+  if (typeof mbFormatWall === 'function') {
+    return mbFormatWall(w.termin_zaman, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+  const dt = new Date(w.termin_zaman);
+  if (!Number.isFinite(dt.getTime())) return '—';
+  return dt.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' });
+}
+
 function filterWvTable() { renderWvTable(); }
 
 function renderWvTable() {
@@ -100,24 +158,46 @@ function renderWvTable() {
   } else if (wvTab === 'week') {
     list = list.filter(w => new Date(w.termin_zaman) <= weekEnd && new Date(w.termin_zaman) >= now);
   }
+  const col = (id) => String(document.getElementById(id)?.value || '').trim().toLocaleLowerCase('tr-TR');
+  const fTime = col('wv-f-time');
+  const fName = col('wv-f-name');
+  const fTel = col('wv-f-tel');
+  const fPlace = col('wv-f-place');
+  const fAgent = col('wv-f-agent');
+  const fCamp = col('wv-f-camp');
+  const fNote = col('wv-f-note');
+  if (fTime || fName || fTel || fPlace || fAgent || fCamp || fNote) {
+    list = list.filter((w) => {
+      const when = wvWhenLabel(w);
+      const place = `${w.plz || ''} ${w.ort || ''}`.toLocaleLowerCase('tr-TR');
+      const phone = `${w.telefon || ''} ${w.telefon2 || ''}`.toLocaleLowerCase('tr-TR');
+      if (fTime && !when.toLocaleLowerCase('tr-TR').includes(fTime)) return false;
+      if (fName && !String(w.nachname || '').toLocaleLowerCase('tr-TR').includes(fName)) return false;
+      if (fTel && !phone.includes(fTel)) return false;
+      if (fPlace && !place.includes(fPlace)) return false;
+      if (fAgent && !String(w.agent_name || w.agent || '').toLocaleLowerCase('tr-TR').includes(fAgent)) return false;
+      if (fCamp && !wvCampName(w.campaign_id).toLocaleLowerCase('tr-TR').includes(fCamp)) return false;
+      if (fNote && !String(w.notiz || '').toLocaleLowerCase('tr-TR').includes(fNote)) return false;
+      return true;
+    });
+  }
   if (search) {
     list = list.filter(w =>
       (w.nachname||'').toLowerCase().includes(search) ||
       (w.telefon||'').includes(search) ||
       (w.plz||'').includes(search) ||
-      (w.agent||'').toLowerCase().includes(search)
+      (w.agent_name||w.agent||'').toLowerCase().includes(search) ||
+      wvCampName(w.campaign_id).toLowerCase().includes(search)
     );
   }
   if (!list.length) {
-    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(7, 'ui.no_records') : `<tr><td colspan="7" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
+    tbody.innerHTML = typeof mbEmptyRow === 'function' ? mbEmptyRow(8, 'ui.no_records') : `<tr><td colspan="8" class="mb-empty-hint">${t('ui.no_records')}</td></tr>`;
     return;
   }
-  const isAdminRole = ['admin','super_admin','firm_admin'].includes(currentUser?.role);
+  const isAdminRole = mbIsFirmAdmin();
   tbody.innerHTML = list.map(w => {
     const dt = w.termin_zaman ? new Date(w.termin_zaman) : null;
-    const dtStr = w.termin_zaman && typeof mbFormatWall === 'function'
-      ? mbFormatWall(w.termin_zaman, { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
-      : (dt ? dt.toLocaleString('tr-TR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Berlin' }) : '—');
+    const dtStr = wvWhenLabel(w);
     const isOverdue = dt && dt < now && w.durum === 'bekliyor';
     const rowStyle = isOverdue ? 'background:rgba(var(--red-rgb),.06);' : '';
     // Conditionally render agent cell to avoid misalignment for non-admin
@@ -132,11 +212,13 @@ ${w.telefon2?`<br><a href="tel:${w.telefon2}" style="color:var(--text-3);font-fa
 </td>
 <td style="font-family:var(--mono);font-size:12px;">${w.plz||''} ${w.ort||''}</td>
 ${agentCell}
-<td style="font-size:11px;color:var(--text-2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(w.notiz||'').replace(/"/g,'')}">${w.notiz||'—'}</td>
+<td style="font-size:12px;">${wvEsc(wvCampName(w.campaign_id))}</td>
+<td style="font-size:11px;color:var(--text-2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${wvEsc(w.notiz || '')}">${wvEsc(w.notiz || '—')}</td>
 <td>
 <div style="display:flex;gap:4px;align-items:center;">
 <button class="icon-btn" onclick="openWvEditModal('${w.id}')" title="Düzenle"><i class="ph ph-pencil-simple"></i></button>
-<button class="icon-btn" style="border-color:var(--red);color:var(--red);" onclick="wvMarkOlumsuz('${w.id}')" title="Sil (olumsuz)"><i class="ph ph-trash"></i></button>
+<button class="icon-btn" style="border-color:var(--green);color:var(--green);" onclick="wvMarkDone('${w.id}')" title="${wvEsc(wvSay('wv.called', 'Arandı'))}"><i class="ph ph-check"></i></button>
+<button class="icon-btn" style="border-color:var(--red);color:var(--red);" onclick="wvMarkOlumsuz('${w.id}')" title="Olumsuz"><i class="ph ph-trash"></i></button>
 <button class="icon-btn" style="border-color:var(--accent);color:var(--accent);" onclick="wvCallNow('${w.id}')" title="Ara"><i class="ph ph-phone"></i></button>
 </div>
 </td>
@@ -154,10 +236,12 @@ function openWvModal(prefill) {
   document.getElementById('wv-ort').value = prefill?.city||prefill?.ort||'';
   document.getElementById('wv-str').value = prefill?.address||prefill?.strasse||'';
   document.getElementById('wv-note').value = prefill?.notiz||'';
-  const def = new Date(); def.setDate(def.getDate()+1); def.setHours(10,0,0,0);
-  document.getElementById('wv-dt').value = def.toISOString().slice(0,16);
+  const today = typeof mbBusinessNow === 'function' ? mbBusinessNow().dateStr : '';
+  const tomorrow = today && typeof mbShiftDate === 'function' ? mbShiftDate(today, 1) : '';
+  document.getElementById('wv-dt').value = tomorrow ? `${tomorrow}T10:00` : '';
   const sel = document.getElementById('wv-agent-sel');
-  if (sel && prefill?.agent) sel.value = prefill.agent;
+  if (sel) sel.value = prefill?.agent_id || currentUser?.id || '';
+  wvFillCamps(prefill?.campaign_id || '');
   openModal('m-wv-form');
 }
 
@@ -175,7 +259,8 @@ function openWvEditModal(id) {
   document.getElementById('wv-note').value = w.notiz||'';
   document.getElementById('wv-dt').value = w.termin_zaman ? (typeof mbIsoToWallInput === 'function' ? mbIsoToWallInput(w.termin_zaman) : w.termin_zaman.slice(0,16)) : '';
   const sel = document.getElementById('wv-agent-sel');
-  if (sel) sel.value = w.agent||'';
+  if (sel) sel.value = w.agent_id || '';
+  wvFillCamps(w.campaign_id || '');
   openModal('m-wv-form');
 }
 
@@ -188,14 +273,18 @@ async function saveWv() {
     toast('Telefon +49 veya +90 ile, ülke koduyla yazılmalı','err');
     return;
   }
+  const agentRow = document.getElementById('wv-agent-row');
   const agentSel = document.getElementById('wv-agent-sel');
+  const adminPick = agentRow && agentRow.style.display !== 'none';
   const pickedAgent = String(agentSel?.value || '').trim();
-  if (agentSel && !pickedAgent) {
+  if (adminPick && !pickedAgent) {
     toast('Temsilci seçin','err');
     return;
   }
   const when = typeof mbWallToIso === 'function' ? mbWallToIso(dt) : new Date(dt).toISOString();
   if (!when) { toast('Zaman geçersiz','err'); return; }
+  const agentId = pickedAgent || currentUser?.id;
+  const campId = document.getElementById('wv-camp')?.value || '';
   const data = {
     nachname: name, telefon: tel,
     telefon2: document.getElementById('wv-tel2').value.trim(),
@@ -204,9 +293,10 @@ async function saveWv() {
     strasse: document.getElementById('wv-str').value.trim(),
     notiz: document.getElementById('wv-note').value.trim(),
     termin_zaman: when,
-    agent_id: pickedAgent || currentUser?.id,
-    agent_name: currentUser?.name || '',
-    firm_id: currentUser?.firm_id,
+    agent_id: agentId,
+    agent_name: wvAgentLabel(agentSel, agentId) || currentUser?.name || '',
+    firm_id: wvFirmId() || currentUser?.firm_id,
+    campaign_id: campId || null,
     durum: 'bekliyor',
   };
   try {
@@ -222,10 +312,21 @@ async function saveWv() {
 }
 
 async function wvMarkOlumsuz(id) {
+  if (!window.confirm(wvSay('wv.confirm_negative', 'Bu kayıt olumsuz işaretlensin mi?'))) return;
   try {
     await sb(`wiedervorlage?id=eq.${id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ durum: 'olumsuz' }) });
     await refreshWvList();
     toast(t('wv.marked_negative'), 'ok');
+  } catch (e) {
+    toast('Hata: ' + e.message, 'err');
+  }
+}
+
+async function wvMarkDone(id) {
+  try {
+    await sb(`wiedervorlage?id=eq.${id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ durum: 'arandi' }) });
+    await refreshWvList();
+    toast(wvSay('wv.marked_done', 'Arandı — listeden çıktı'), 'ok');
   } catch (e) {
     toast('Hata: ' + e.message, 'err');
   }
@@ -260,11 +361,12 @@ async function wvCallNow(id) {
     }
     contact = rows[0] || null;
   }
+  const campId = w.campaign_id || contact?.campaign_id || '';
+  if (campId && typeof selectCamp === 'function') {
+    const campLabel = wvCampName(campId);
+    selectCamp(campId, campLabel === '—' ? '' : campLabel, { skipActivate: true });
+  }
   if (contact) {
-    if (contact.campaign_id && typeof selectCamp === 'function') {
-      const camp = typeof campaigns !== 'undefined' && campaigns?.find ? campaigns.find((c) => c.id === contact.campaign_id) : null;
-      selectCamp(contact.campaign_id, camp?.name || '', { skipActivate: true });
-    }
     currentContact = contact;
     if (typeof showCustomerCard === 'function') showCustomerCard(contact);
     if (typeof syncCustomerCardEmptyVisual === 'function') syncCustomerCardEmptyVisual();
@@ -283,7 +385,7 @@ async function wvCallNow(id) {
     address: w.strasse || '',
     notes: w.notiz || '',
     firm_id: fid,
-    campaign_id: typeof selectedCampId !== 'undefined' ? selectedCampId : null,
+    campaign_id: campId || null,
     status: 'pending',
     attempt_count: 0,
     _fromWiedervorlageId: w.id,
@@ -301,19 +403,191 @@ function startWvReminders() {
   wvReminderTimer = setInterval(checkWvReminders, 60000);
 }
 
+const _wvSnooze = new Set();
+const _wvPing = new Set();
+try {
+  JSON.parse(sessionStorage.getItem('mb_wv_snooze') || '[]').forEach((id) => { if (id) _wvSnooze.add(id); });
+} catch (e) {}
+
+function wvPlace(w) {
+  return [w?.plz, w?.ort].map((x) => String(x || '').trim()).filter(Boolean).join(' ');
+}
+
+function wvDueWhen(iso) {
+  if (typeof opsNoticeWhen === 'function') return opsNoticeWhen(iso);
+  const d = new Date(iso || '');
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('tr-TR', {
+    timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function wvDueLate(iso) {
+  const ms = Date.now() - new Date(iso || '').getTime();
+  if (!Number.isFinite(ms) || ms < 60000) return wvSay('wv.due.now', 'Şimdi');
+  return `${Math.max(1, Math.round(ms / 60000))} ${wvSay('wv.due.late', 'dk geçti')}`;
+}
+
+function wvDueCamp(w) {
+  if (w?.campLabel) return String(w.campLabel);
+  const name = w?.campaign_id ? wvCampName(w.campaign_id) : '';
+  return name && name !== '—' ? name : '';
+}
+
+function wvDueNotice(w) {
+  const place = [w?.strasse, [w?.plz, w?.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const camp = wvDueCamp(w);
+  return [
+    w?.nachname || '—',
+    [w?.telefon, w?.telefon2].filter(Boolean).join(' · '),
+    place,
+    camp ? `${wvSay('wv.due.camp', 'Kampanya')}: ${camp}` : '',
+    `${wvSay('wv.due.when', 'Saat')}: ${wvDueWhen(w?.termin_zaman)}`,
+    w?.notiz ? `${wvSay('wv.due.note', 'Not')}: ${w.notiz}` : '',
+  ].filter(Boolean).join('\n');
+}
+
+function wvDueRow(label, value, href) {
+  const text = String(value || '').trim();
+  if (!text) return null;
+  const row = document.createElement('div');
+  row.className = 'wv-due-row';
+  const name = document.createElement('span');
+  name.textContent = label;
+  const val = href ? document.createElement('a') : document.createElement('strong');
+  if (href) val.href = href;
+  val.textContent = text;
+  row.append(name, val);
+  return row;
+}
+
+function showWvDuePopup(w, sample) {
+  if (!w?.id && !sample) return;
+  const open = document.getElementById('wv-due-pop');
+  if (!sample && open && open.dataset.id === String(w.id)) return;
+  open?.remove();
+  if (!sample && typeof opsCue === 'function') opsCue('due');
+  if (!sample && typeof opsRememberNotice === 'function') {
+    const dueTitle = wvSay('wv.due.title', 'Arama vakti geldi');
+    const dueColor = typeof opsSoundEntry === 'function' ? opsSoundEntry('due').color : '#0f766e';
+    opsRememberNotice(dueTitle, wvDueNotice(w), dueColor, 'wv');
+  }
+  const pop = document.createElement('div');
+  pop.id = 'wv-due-pop';
+  pop.className = 'wv-due-pop';
+  pop.dataset.id = String(w?.id || 'sample');
+  const card = document.createElement('div');
+  card.className = 'wv-due-card';
+  const color = typeof opsSoundEntry === 'function' ? opsSoundEntry('due').color : '#0f766e';
+  card.style.borderTopColor = color;
+  const kicker = document.createElement('div');
+  kicker.className = 'wv-due-kicker';
+  const kind = document.createElement('span');
+  kind.textContent = wvSay('notif.cat.wv', 'Aranacaklar');
+  const when = document.createElement('span');
+  when.textContent = wvDueWhen(w?.termin_zaman);
+  kicker.append(kind, when);
+  const title = document.createElement('h3');
+  title.textContent = wvSay('wv.due.title', 'Arama vakti geldi');
+  const name = document.createElement('p');
+  name.className = 'wv-due-name';
+  name.textContent = w?.nachname || '—';
+  const late = document.createElement('p');
+  late.className = 'wv-due-late';
+  late.textContent = wvDueLate(w?.termin_zaman);
+  card.append(kicker, title, name, late);
+  [
+    wvDueRow(wvSay('wv.due.phone', 'Telefon'), w?.telefon, w?.telefon ? `tel:${w.telefon}` : ''),
+    wvDueRow(wvSay('wv.due.phone', 'Telefon') + ' 2', w?.telefon2, w?.telefon2 ? `tel:${w.telefon2}` : ''),
+    wvDueRow(wvSay('wv.due.addr', 'Adres'), [w?.strasse, [w?.plz, w?.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ')),
+    wvDueRow(wvSay('wv.due.camp', 'Kampanya'), wvDueCamp(w)),
+    wvDueRow(wvSay('wv.due.agent', 'Temsilci'), w?.agent_name),
+  ].forEach((row) => { if (row) card.appendChild(row); });
+  if (w?.notiz) {
+    const note = document.createElement('div');
+    note.className = 'wv-due-note';
+    note.textContent = w.notiz;
+    card.appendChild(note);
+  }
+  const actions = document.createElement('div');
+  actions.className = 'wv-due-actions';
+  const call = document.createElement('button');
+  call.type = 'button';
+  call.className = 'btn btn-primary';
+  call.textContent = wvSay('wv.due.call', 'Ara');
+  call.onclick = () => {
+    pop.remove();
+    if (!sample && typeof wvCallNow === 'function') wvCallNow(w.id);
+  };
+  const ok = document.createElement('button');
+  ok.type = 'button';
+  ok.className = 'btn btn-ghost';
+  ok.textContent = wvSay('wv.due.snooze', 'Tamam');
+  ok.onclick = () => {
+    if (sample) { pop.remove(); return; }
+    wvSnoozeDue(w.id);
+  };
+  actions.append(call, ok);
+  card.appendChild(actions);
+  pop.appendChild(card);
+  if (sample) pop.addEventListener('click', (ev) => { if (ev.target === pop) pop.remove(); });
+  document.body.appendChild(pop);
+}
+
+async function wvSnoozeDue(id) {
+  if (!id) return;
+  _wvSnooze.add(id);
+  try {
+    const cur = JSON.parse(sessionStorage.getItem('mb_wv_snooze') || '[]');
+    if (!cur.includes(id)) cur.push(id);
+    sessionStorage.setItem('mb_wv_snooze', JSON.stringify(cur.slice(-200)));
+  } catch (e) {}
+  document.getElementById('wv-due-pop')?.remove();
+  try {
+    await sb(`wiedervorlage?id=eq.${id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ hatirlatildi: true }),
+    });
+  } catch (e) {}
+}
+
 function checkWvReminders() {
   if (!wvList?.length) return;
   const now = new Date();
-  const in15 = new Date(now.getTime() + 15*60*1000);
-  const overdue = wvList.filter(w => {
-    if (w.durum !== 'bekliyor') return false;
-    const t = new Date(w.termin_zaman);
-    return t <= in15 && t >= new Date(now.getTime()-5*60*1000);
+  const on = (key) => (typeof opsSoundOn === 'function' ? opsSoundOn(key) : true);
+  const soon = [];
+  const hour = [];
+  let due = null;
+  wvList.forEach((w) => {
+    if (w.durum !== 'bekliyor' || w.hatirlatildi || _wvSnooze.has(w.id)) return;
+    const when = new Date(w.termin_zaman);
+    if (Number.isNaN(when.getTime())) return;
+    const diff = when - now;
+    if (diff <= 0 && diff >= -5 * 60 * 1000) {
+      if (!due || when < new Date(due.termin_zaman)) due = w;
+      return;
+    }
+    const min = Math.round(diff / 60000);
+    if (min > 0 && min <= 15) soon.push({ w, min });
+    else if (min > 15 && min <= 60) hour.push({ w, min });
   });
-  overdue.forEach(w => {
-    const t = new Date(w.termin_zaman);
-    const diff = Math.round((t-now)/60000);
-    const msg = diff <= 0 ? `${w.nachname||'?'} — ŞIMDI aranmalı!` : `${w.nachname||'?'} — ${diff} dk sonra aranacak`;
-    toast(msg, diff<=0 ? 'err' : 'ok', 6000);
-  });
+  if (on('soon')) {
+    soon.forEach(({ w, min }) => {
+      const key = `${w.id}:15`;
+      if (_wvPing.has(key)) return;
+      _wvPing.add(key);
+      const soonText = `${w.nachname || '?'} — ${min} dk sonra aranacak`;
+      toast(soonText, 'ok', 6000);
+      if (typeof opsCue === 'function') opsCue('soon');
+      if (typeof opsRememberNotice === 'function') {
+        const soonColor = typeof opsSoundEntry === 'function' ? opsSoundEntry('soon').color : '#64748b';
+        opsRememberNotice('15 dk kala', soonText, soonColor, 'wv');
+      }
+    });
+  }
+  if (on('hour') && typeof opsPaintApptStrip === 'function') opsPaintApptStrip(hour);
+  else if (typeof opsPaintApptStrip === 'function') opsPaintApptStrip([]);
+  if (due && on('due')) showWvDuePopup(due);
+  else document.getElementById('wv-due-pop')?.remove();
 }

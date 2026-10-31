@@ -144,6 +144,7 @@ function _supRenderCards() {
         <div class="live-line-clip">${name}</div>
         <div class="live-line-clip">${phone}</div>
         <div class="live-line-clip">${camp}</div>
+        ${typeof mbLiveActionsHtml === 'function' ? mbLiveActionsHtml(s) : ''}
       </div>`;
     }
     const callInfo = `
@@ -161,18 +162,20 @@ function _supRenderCards() {
       <span class="sup-status ${info.cls}">${label}</span>
     </div>
     <div class="sup-dur" data-clock>${dur}</div>
+    ${typeof mbLiveActionsHtml === 'function' ? mbLiveActionsHtml(s) : ''}
   </div>
   ${callInfo}
 </div>`;
     }).join('');
     grid.innerHTML = asRows
-      ? `<div class="live-rows">${`<div class="live-rows-head">
+      ? `<div class="live-rows live-rows--act">${`<div class="live-rows-head live-rows-head--act">
           <span>${de ? 'Agent' : 'Temsilci'}</span>
           <span>${de ? 'Status' : 'Durum'}</span>
           <span>${de ? 'Dauer' : 'Süre'}</span>
           <span>${de ? 'Kontakt' : 'Müşteri'}</span>
           <span>${de ? 'Nummer' : 'Numara'}</span>
           <span>${de ? 'Kampagne' : 'Kampanya'}</span>
+          <span>${de ? 'Aktion' : 'İşlem'}</span>
         </div>`}${lines}</div>`
       : lines;
   };
@@ -215,13 +218,13 @@ function _supUpdateSummary() {
 }
 
 async function _supFetchSessions() {
-  if (!currentUser?.firm_id && currentUser?.role !== 'super_admin') return;
+  if (!currentUser?.firm_id && !mbIsSuperAdmin()) return;
   const firmQ = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
   let rows = [];
   let camps = [];
   try {
     [rows, camps] = await Promise.all([
-      sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,firm_id,current_contact_name,current_contact_phone,call_started_at,call_start,break_start,updated_at,last_seen&order=agent_name.asc${firmQ}`),
+      sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,firm_id,current_contact_id,current_contact_name,current_contact_phone,telnyx_call_control_id,call_started_at,call_start,break_start,updated_at,last_seen&order=agent_name.asc${firmQ}`),
       sb(`campaigns?select=id,name${firmQ}`),
     ]);
   } catch (e) {
@@ -274,7 +277,7 @@ async function loadSupervisorPanel() {
   page.innerHTML = `
 <div class="page-hdr">
   <div>
-    <div class="page-title">${de ? 'Live-Ansicht' : 'Canlı Ekran'}</div>
+    <div class="page-title">${de ? 'Live-Ansicht' : 'Canlı ekran'}</div>
     <div class="page-sub" id="sup-live-badge">—</div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">

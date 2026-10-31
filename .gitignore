@@ -3,4 +3,5 @@ test-results/
 playwright-report/
 .env
 .env.local
+geocon/config.js
 supabase/.temp/

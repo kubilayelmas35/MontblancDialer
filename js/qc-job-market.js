@@ -1,14 +1,24 @@
 async function loadJobMarketQcQueue() {
   const list = document.getElementById('qc-job-market-queue');
   if (!list) return;
+  const card = document.getElementById('qc-job-queue-card');
   const canQc = ['qc', 'admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '');
   if (!canQc) {
-    list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:8px;">QC yetkisi yok</div>`;
+    if (card) card.style.display = 'none';
     return;
   }
+  if (String(currentUser?.role || '') === 'qc' && currentUser?.firm_id) {
+    const firms = await sb(`firms?id=eq.${currentUser.firm_id}&select=settings`).catch(() => []);
+    const see = firms?.[0]?.settings?.qc_job_see || {};
+    if (see[currentUser.id] === false) {
+      if (card) card.style.display = 'none';
+      return;
+    }
+  }
+  if (card) card.style.display = '';
   const fid = getActiveFirmId() || currentUser?.firm_id;
   const rows = await sb(`job_submissions?status=eq.qc_pending&select=id,job_post_id,worker_firm_id,worker_user_id,submission_type,payload,created_at,job_posts(id,title,requester_firm_id,budget,currency)&order=created_at.asc&limit=120`).catch(() => []);
-  const filtered = (rows || []).filter((r) => !fid || r?.job_posts?.requester_firm_id === fid || currentUser?.role === 'super_admin');
+  const filtered = (rows || []).filter((r) => !fid || r?.job_posts?.requester_firm_id === fid || mbIsSuperAdmin());
   if (!filtered.length) {
     list.innerHTML = `<div style="font-size:12px;color:var(--text-3);padding:8px;">QC bekleyen iş teslimi yok</div>`;
     return;
@@ -18,7 +28,7 @@ async function loadJobMarketQcQueue() {
 <div>
 <div style="font-size:12px;font-weight:800;">${r.job_posts?.title || 'İş ilanı'}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Teslim tipi: ${r.submission_type || 'custom'} · ${new Date(r.created_at).toLocaleString('tr-TR')}</div>
-<div style="font-size:11px;color:var(--text-2);margin-top:4px;">${(r.payload && Object.keys(r.payload).length) ? _jmEsc(JSON.stringify(r.payload).slice(0, 180)) : 'Payload yok'}</div>
+<div style="font-size:11px;color:var(--text-2);margin-top:4px;">${_jmEsc(r.payload?.note || (r.payload && Object.keys(r.payload).length ? JSON.stringify(r.payload).slice(0, 180) : 'Not yok'))}</div>
 </div>
 <div style="display:flex;gap:6px;align-items:center;">
 <button class="btn btn-ghost btn-sm" onclick="qcReviewJobSubmission('${r.id}', false)">Reddet</button>

@@ -1,0 +1,630 @@
+/* Tablet (≤1024) ve telefon (≤768 / ≤480). 1024 üstü masaüstü aynı kalır. */
+
+@media (max-width: 1024px) {
+  #page-geocon.page { overflow: hidden; min-height: 0; }
+  #page-geocon .geocon-frame { height: 100%; min-height: 0; flex: 1 1 auto; }
+  #app, #main, .page, .page > *, .card, .modal {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .page { padding: 12px; gap: 14px; }
+  .card { padding: 14px; }
+  .card-hdr, .page-hdr-actions, .modal-footer, .modal-hdr {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  .modal {
+    width: min(100%, calc(100vw - 16px));
+    max-width: min(720px, calc(100vw - 16px));
+    max-height: calc(100dvh - 16px);
+    padding: 16px;
+  }
+  .tbl-wrap, .camp-rows-wrap, #live-agents, .firmdesk-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .tbl-wrap table, .camp-rows, .firmdesk-table {
+    width: max-content;
+    min-width: 100%;
+  }
+  #live-agents { min-width: 0; }
+  .live-rows { min-width: 640px; }
+  #takvim-scroll, #takvim-scroll-ov {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+  }
+  .tb-mesai-pop, .tb-bal-pop, .tb-chip-pop, .tb-res-panel, .tb-ping-pop, .tb-camp-pop {
+    width: min(380px, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
+  }
+  #agent-camp-admin-pop { width: min(680px, calc(100vw - 16px)); }
+  #agent-camp-admin-pop .qops { min-width: 0; }
+  #notification-center { width: min(420px, calc(100vw - 16px)); right: 8px; }
+  .contact-drawer { width: min(420px, 100vw); }
+  .team-chat-panel { width: min(440px, calc(100vw - 16px)); }
+  .page-hdr .form-input { max-width: 100%; min-width: 0; }
+  #page-settings .settings-tabs { width: 100%; }
+  .dash-rings { flex-wrap: wrap; }
+  .dash-ring { flex: 1 1 88px; }
+  #page-dialer.page.active {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+  #page-dialer > .dialer-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    gap: 8px;
+  }
+  #page-dialer .dialer-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  #page-dialer .dialer-side {
+    flex: 0 1 auto;
+    width: 100%;
+    min-height: 0;
+    max-height: 34%;
+    overflow: auto;
+  }
+  #page-dialer #ready-section { flex: 0 0 auto; width: 100%; }
+  #page-dialer .dialer-main > #customer-card:not(.customer-card--empty) {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow: hidden;
+  }
+  #page-dialer #customer-card:not(.customer-card--empty) .cust-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg-2);
+  }
+  body:has(#page-dialer.page.active) .team-chat-root:not(:has(.team-chat-panel--open)) {
+    bottom: 108px;
+  }
+}
+
+.dialer-fold-toggle { display: none; }
+.dialer-fold-chevron {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--text-3);
+  flex: 0 0 auto;
+}
+.global-mascot.global-mascot--mobile-off .cust-empty-mascot {
+  transform: translate(calc(-50% + var(--gm-wx, 0px)), calc(-50% + var(--gm-wy, 0px)))
+    scale(calc(var(--mascot-scale, 1) * 0.48));
+}
+@media (max-width: 768px) {
+  .global-mascot-info {
+    min-width: 0;
+    max-height: min(340px, 46dvh);
+    overflow: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  #topbar {
+    gap: 4px;
+    padding: 0 6px;
+    overflow: hidden;
+  }
+  #topbar > .tb-hamburger,
+  #topbar > .tb-logo { flex-shrink: 0; }
+  #topbar > .tb-pills-wrap { flex: 1 1 auto; min-width: 0; }
+  .tb-pills-wrap { gap: 4px; min-width: 0; overflow: hidden; justify-content: flex-start; }
+  #tb-live-btn, #tb-mesai-btn { flex-shrink: 0; }
+  .tb-right {
+    flex: 0 0 auto;
+    min-width: 0;
+    gap: 4px;
+    overflow: visible;
+  }
+  #takvim-topbar-btn,
+  #tb-notif-btn,
+  #lang-btn { flex-shrink: 0; }
+  .tb-mascot-anchor { display: none !important; }
+  .tb-user { padding: 0; gap: 0; }
+  .tb-icon-btn.tb-mesai {
+    width: auto;
+    min-width: 0;
+    max-width: 120px;
+    padding: 0 6px;
+    overflow: hidden;
+  }
+  #tb-mesai-rot {
+    flex: 0 0 92px;
+    width: 92px;
+    min-width: 72px;
+    max-width: 92px;
+    overflow: hidden;
+  }
+  #tb-mesai-rot > span {
+    width: 100%;
+    max-width: 100%;
+    justify-self: stretch;
+    text-overflow: clip;
+  }
+  #tb-mesai-label { max-width: none; font-size: 11px; }
+  .tb-user > div:not(.tb-avatar) { display: none; }
+  #topbar .tb-user {
+    position: sticky;
+    right: 0;
+    z-index: 4;
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+    background: var(--topbar-bg, var(--bg));
+    box-shadow: -8px 0 8px var(--topbar-bg, var(--bg));
+  }
+  #topbar .tb-user .tb-avatar {
+    display: flex;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #0f172a;
+    color: #fff;
+    border: 0;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .tb-pill { padding: 0 6px; gap: 3px; }
+  .pill-ping .tb-pill-val { max-width: 42px; }
+  .tb-mesai-pop, .tb-bal-pop, .tb-chip-pop, .tb-res-panel, .tb-ping-pop, .tb-camp-pop {
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+  }
+  .page { padding: 10px; }
+  .page-title { font-size: 18px; }
+  .page-hdr { flex-direction: column; align-items: stretch; }
+  .page-hdr > div { width: 100%; margin-left: 0 !important; }
+  .page-hdr .form-input,
+  .page-hdr select.form-input,
+  .page-hdr input.form-input {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+  }
+  .firmdesk-grid, .stats-grid, .cd-identity { grid-template-columns: 1fr 1fr; }
+  .outcome-grid { grid-template-columns: 1fr 1fr; }
+  .agents-filters .form-input { width: 100%; min-width: 0; }
+  #page-dialer .customer-card:not(.customer-card--empty) { padding: 12px 14px; }
+  #page-dialer .cust-header { flex-wrap: wrap; }
+  #page-dialer .dialer-timer-block { margin-left: 0; flex-basis: auto; }
+  #page-dialer .dialer-fold-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin: 0;
+    padding: 8px 2px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    text-align: left;
+    cursor: pointer;
+  }
+  #page-dialer #dialer-page-hdr.is-collapsed { padding: 0 10px !important; }
+  #page-dialer #dialer-page-hdr.is-collapsed .dialer-hdr-main,
+  #page-dialer #dialer-page-hdr.is-collapsed .dialer-hdr-badges { display: none !important; }
+  #page-dialer #agent-camps-panel.is-collapsed > :not(.agent-camp-head) { display: none !important; }
+  #page-dialer #agent-camps-panel.is-collapsed .agent-camp-head { margin-bottom: 0; }
+  #page-dialer #dialer-page-hdr:not(.is-collapsed) .dialer-fold-chevron,
+  #page-dialer #agent-camps-panel:not(.is-collapsed) .dialer-fold-chevron,
+  #page-dialer #daily-goal-bar:not(.is-collapsed) .dialer-fold-chevron { transform: rotate(90deg); }
+  #page-dialer #daily-goal-bar.is-collapsed { padding: 0 10px !important; margin-bottom: 0; }
+  #page-dialer #daily-goal-bar.is-collapsed .daily-goal-body { display: none !important; }
+  #page-dialer #daily-goal-bar .daily-goal-fold-meta {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  #page-dialer.page.active {
+    padding: 8px 8px 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  #page-dialer > .dialer-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    gap: 8px;
+  }
+  #page-dialer .dialer-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  #page-dialer .dialer-side {
+    flex: 0 1 auto;
+    width: 100%;
+    min-height: 0;
+    max-height: 38%;
+    overflow: auto;
+  }
+  #page-dialer #agent-camps-panel.is-collapsed { max-height: none; overflow: hidden; }
+  #page-dialer > #dialer-page-hdr {
+    flex: 0 1 auto;
+    max-height: 42%;
+    overflow: auto;
+  }
+  #page-dialer > #dialer-page-hdr.is-collapsed { max-height: none; overflow: hidden; }
+  #page-dialer #ready-section { flex: 0 0 auto; width: 100%; }
+  #page-dialer .dialer-main > #customer-card,
+  #page-dialer .dialer-main > #customer-card.customer-card--empty {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    max-height: none;
+  }
+  #page-dialer .call-action-btn { flex: 1 1 calc(50% - 8px); }
+  .takvim-toolbar-cluster--right { margin-left: 0; justify-content: flex-start; }
+  #takvim-popup-overlay.open { padding: 0; align-items: stretch; justify-content: stretch; }
+  .takvim-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .takvim-toolbar-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
+  }
+  .takvim-toolbar-cluster--left,
+  .takvim-toolbar-cluster--right {
+    display: contents;
+  }
+  .takvim-seg,
+  .takvim-nav,
+  #takvim-overlay-admin,
+  #takvim-camp-select-wrap,
+  #takvim-page-firm-selector,
+  #takvim-overlay-firm-selector { flex: 1 1 100%; width: 100%; max-width: 100%; }
+  .takvim-seg { display: flex; }
+  .takvim-seg button { flex: 1 1 0; }
+  .takvim-nav { justify-content: space-between; }
+  .takvim-nav span { flex: 1 1 auto; min-width: 0; }
+  .takvim-plz-measure,
+  #takvim-filter-btn,
+  #takvim-filter-btn-ov { flex: 0 0 auto; width: auto; max-width: none; }
+  .takvim-overlay-admin {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+  }
+  .takvim-admin-tools {
+    flex: 1 1 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+    align-items: center;
+  }
+  .takvim-admin-tools > .btn { flex: 1 1 calc(33% - 8px); width: auto; }
+  #takvim-overlay-firm-selector select,
+  #takvim-page-firm-selector select,
+  #takvim-camp-select,
+  #takvim-camp-select-ov { max-width: 100%; min-width: 0; width: 100%; }
+  .takvim-toolbar--overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .takvim-ov-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+  }
+  .takvim-ov-close { margin-left: auto; }
+  .takvim-fs-panel {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    border-radius: 0 !important;
+  }
+  #page-takvim, #takvim-main, #takvim-popup-overlay, .takvim-fs-panel { overflow-x: hidden; max-width: 100%; }
+  #takvim-scroll, #takvim-scroll-ov { overflow-x: auto; }
+  .live-rows { min-width: 0; }
+  .live-filters { flex-wrap: wrap; overflow-x: visible; }
+  .modal-hdr { flex-wrap: nowrap; }
+  .modal-title { min-width: 0; flex: 1; }
+  .modal-close { flex: 0 0 28px; }
+  .camp-search { width: 100%; max-width: 100%; }
+  #toast { left: 10px; right: 10px; bottom: 12px; width: auto; align-items: stretch; }
+}
+
+@media (max-width: 480px) {
+  #topbar { gap: 2px; padding: 0 4px; }
+  .tb-pills-wrap, .tb-right { gap: 2px; }
+  .tb-logo { margin-right: 0; }
+  .tb-logo-mark { width: auto; height: auto; }
+  .tb-logo-inner { padding: 2px; }
+  #tb-live-btn { width: auto; max-width: none; flex: 0 1 auto; }
+  button.tb-icon-btn.tb-mesai {
+    width: auto;
+    min-width: 0;
+    max-width: 120px;
+    flex: 0 1 auto;
+    padding: 0 5px;
+    gap: 3px;
+    overflow: hidden;
+  }
+  #tb-mesai-label { max-width: none; font-size: 11px; }
+  .tb-pill, .tb-icon-btn, .tb-user, .tb-icon-btn.tb-mesai { height: 32px; }
+  button.tb-pill.tb-takvim,
+  button.tb-pill.pill-camp,
+  button.tb-pill.pill-bal,
+  .tb-icon-btn,
+  .tb-user {
+    width: 32px;
+    min-width: 32px;
+    max-width: 32px;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+    flex: 0 0 32px;
+  }
+  .pill-ping {
+    width: auto;
+    min-width: 32px;
+    max-width: 52px;
+    padding: 0 4px;
+    flex: 0 1 auto;
+  }
+  .tb-takvim .tb-pill-lbl,
+  .pill-camp .tb-pill-val,
+  .pill-bal .tb-pill-val,
+  .pill-ping .tb-pill-lbl { display: none !important; }
+  .pill-ping .tb-pill-val { max-width: 28px; font-size: 10px; }
+  #page-jobmarket > div[style*="minmax(280px"] { grid-template-columns: 1fr !important; }
+  #page-takvim, #takvim-main, #takvim-scroll, #takvim-grid, .takvim-toolbar { min-width: 0; max-width: 100%; }
+  .takvim-toolbar-cluster--left, .takvim-toolbar-cluster--right, .takvim-nav { flex-wrap: wrap; max-width: 100%; }
+  #takvim-week-label, #takvim-week-label-ov { min-width: 0 !important; }
+  .page { padding: 8px; gap: 10px; }
+  .card { padding: 12px; }
+  .firmdesk-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .form-grid, .mic-drawer__grid, .mic-drawer__sliders, .comp-top-grid,
+  .modal [style*="grid-template-columns:1fr 1fr"],
+  .page [style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+  #camp-detail .card-hdr { flex-wrap: nowrap; align-items: center; }
+  #camp-detail .card-hdr > div:first-child { flex: 1 1 auto; min-width: 0; }
+  #camp-detail .card-hdr > div:last-child { flex: 0 0 auto; }
+  #camp-detail .card-title { max-width: 100%; }
+  .modal-footer .btn { flex: 1 1 auto; justify-content: center; }
+  #page-dialer.page.active { padding: 6px 6px 6px; }
+  #page-dialer .btn-ready-big { font-size: 14px; padding: 12px 10px; }
+  #page-dialer #ready-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #page-dialer #daily-goal-bar { padding: 6px 8px !important; }
+  .dash-donut { width: 112px; height: 112px; }
+  .dash-donut > span { width: 74px; height: 74px; font-size: 20px; }
+}
+
+@media (max-width: 480px) {
+  #tb-swipe-host {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+    min-width: 0;
+    height: 100%;
+    position: relative;
+  }
+  #tb-swipe {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    width: auto;
+    height: 100%;
+    min-width: 0;
+    gap: 0;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overflow-anchor: none;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    container-type: inline-size;
+  }
+  #tb-swipe::-webkit-scrollbar { display: none; height: 0; }
+  #tb-swipe .tb-pills-wrap,
+  #tb-swipe .tb-right {
+    display: contents;
+  }
+  #tb-swipe .tb-slide {
+    display: flex;
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    order: 8;
+  }
+  #tb-swipe .tb-slide:has(#aria-live) { order: 1; }
+  #tb-swipe .tb-slide:has(#tb-live-btn) { order: 2; }
+  #tb-swipe .tb-slide:has(#tb-mesai-btn) { order: 3; }
+  #tb-swipe .tb-slide:has(#tb-results) { order: 4; }
+  #tb-swipe .tb-slide:has(#pill-camp-btn) { order: 5; }
+  #tb-swipe .tb-slide:has(#pill-bal-btn) { order: 6; }
+  #tb-swipe .tb-slide:has(#pill-ping-btn) { order: 7; }
+  #tb-swipe #tb-pills:not([style*="display:none"]):not([style*="display: none"]) {
+    display: contents;
+  }
+  #tb-swipe .tb-slide:has(> [hidden]),
+  #tb-swipe .tb-slide:has(> [style*="display:none"]),
+  #tb-swipe .tb-slide:has(> [style*="display: none"]) { display: none; }
+  #tb-swipe .tb-slide > * {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 32px;
+    max-width: calc(100cqi - 16px);
+    position: relative;
+  }
+  #tb-swipe #tb-mesai-btn { max-width: calc(100cqi - 8px); padding: 0 8px; }
+  #tb-swipe #tb-mesai-btn svg { display: none; }
+  #tb-swipe #tb-mesai-rot > span { max-width: calc(100cqi - 24px); font-size: 12px; }
+  #tb-swipe #pill-camp-btn,
+  #tb-swipe #pill-bal-btn,
+  #tb-swipe #pill-ping-btn,
+  #tb-swipe #aria-live {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: calc(100cqi - 12px) !important;
+    height: 32px;
+    padding: 0 10px !important;
+    gap: 6px !important;
+    flex: 0 1 auto !important;
+  }
+  #tb-swipe .pill-camp .tb-pill-val,
+  #tb-swipe .pill-bal .tb-pill-val,
+  #tb-swipe .pill-ping .tb-pill-lbl,
+  #tb-swipe .aria-live-name { display: inline !important; }
+  #tb-swipe .pill-camp .tb-pill-val,
+  #tb-swipe .pill-bal .tb-pill-val,
+  #tb-swipe .pill-ping .tb-pill-val {
+    max-width: calc(100cqi - 52px);
+    font-size: 12px;
+  }
+  #tb-swipe #pill-camp-btn {
+    width: calc(100cqi - 16px) !important;
+    min-width: calc(100cqi - 16px) !important;
+    justify-content: flex-start;
+  }
+  #tb-swipe .pill-camp .tb-pill-val {
+    flex: 1 1 auto;
+    max-width: none;
+    text-align: left;
+  }
+  @container (max-width: 150px) {
+    #tb-swipe .tb-live { padding: 0 3px; }
+    #tb-swipe .tb-live-n,
+    #tb-swipe .tb-live-sum { min-width: 14px; height: 22px; padding: 0 2px; font-size: 11px; }
+  }
+  #tb-swipe-dots {
+    display: flex;
+    position: absolute;
+    left: 0;
+    bottom: 2px;
+    width: 0;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 2;
+  }
+  #tb-swipe-dots:empty { display: none; }
+  #tb-swipe-dots i {
+    width: 4px;
+    height: 4px;
+    border-radius: 99px;
+    background: var(--text-3);
+    opacity: .45;
+  }
+  #tb-swipe-dots i.is-on {
+    width: 12px;
+    opacity: 1;
+    background: var(--accent);
+  }
+}
+@media (max-width: 768px) {
+  #tb-pin {
+    gap: 6px;
+    height: 32px;
+    z-index: 3;
+  }
+  #tb-pin #tb-notif-badge {
+    top: 0 !important;
+    right: 0 !important;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    font-size: 9px;
+    line-height: 14px;
+    border-radius: 99px;
+    box-shadow: 0 0 0 2px var(--topbar-bg, var(--bg));
+  }
+  #tb-pin #takvim-topbar-btn,
+  #tb-pin .tb-icon-btn,
+  #tb-pin .tb-user {
+    width: 30px;
+    min-width: 30px;
+    max-width: 30px;
+    height: 30px;
+    padding: 0;
+    gap: 0;
+    flex: 0 0 30px;
+    justify-content: center;
+  }
+  #tb-pin .tb-takvim .tb-pill-lbl,
+  #tb-pin .tb-user > div:not(.tb-avatar) { display: none !important; }
+  #tb-pin .tb-user {
+    position: static;
+    border-radius: 50%;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  #tb-pin .tb-user .tb-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #0f172a;
+    color: #fff;
+    border: 0;
+    font-size: 12px;
+  }
+  [data-theme="dark"] #tb-pin .tb-user .tb-avatar {
+    background: #334155;
+    color: #fff;
+  }
+}
