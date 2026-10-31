@@ -102,6 +102,35 @@ function telnyxWhy(res: { ok: boolean; status: number; data: any }) {
   return `${res.status} ${text}`.trim();
 }
 
+async function telnyxGet(key: string, path: string) {
+  const res = await fetch(`https://api.telnyx.com/v2/${path}`, { headers: { Authorization: `Bearer ${key}` } });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+// POST /v2/calls needs a Call Control App id. The saved sip connection is a credential connection, so one app is made once and kept.
+async function ensureCallApp(key: string, settings: Record<string, any>, firmId: string, admin: SupabaseClient, connection: string, hookBase: string) {
+  const ai = settings.ai && typeof settings.ai === 'object' ? settings.ai : {};
+  const saved = clip(ai.call_app_id, 80);
+  if (saved) return { id: saved, why: '' };
+  const conn = await telnyxGet(key, `credential_connections/${encodeURIComponent(connection)}`);
+  const profile = clip(conn.data?.data?.outbound?.outbound_voice_profile_id, 80);
+  const made = await telnyx(key, 'call_control_applications', {
+    application_name: 'Callin Kalite',
+    webhook_event_url: hookBase,
+    webhook_api_version: '2',
+    ...(profile ? { outbound: { outbound_voice_profile_id: profile } } : {}),
+  });
+  const id = clip(made.data?.data?.id, 80);
+  if (!made.ok || !id) return { id: '', why: `app ${telnyxWhy(made)}${profile ? '' : ' (no outbound profile on connection)'}` };
+  const { data: fresh } = await admin.from('firms').select('settings').eq('id', firmId).maybeSingle();
+  const current = (fresh?.settings || settings) as Record<string, any>;
+  const next = { ...(current.ai || {}), call_app_id: id };
+  await admin.from('firms').update({ settings: { ...current, ai: next } }).eq('id', firmId);
+  settings.ai = next;
+  return { id, why: '' };
+}
+
 function lineFrom(settings: Record<string, any>) {
   const direct = normDid(settings.line_default) || normDid(settings.dialer?.outbound_did);
   if (direct) return direct;
@@ -328,6 +357,8 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
   const token = newToken();
   const base = String(Deno.env.get('SUPABASE_URL') || '').replace(/\/$/, '');
   const hook = `${base}/functions/v1/telnyx-ai?callin=${token}`;
+  const app = await ensureCallApp(key, settings, String(appt.firm_id), admin, connection, `${base}/functions/v1/telnyx-ai`);
+  if (!app.id) return json({ ok: false, error: 'callapp', detail: clip(app.why, 300) }, 502);
   const saved = await mergeEk(admin, appt, {
     callin_note: note,
     callin_staff_id: staff.id,
@@ -341,7 +372,7 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
   });
   if (!saved) return json({ ok: false, error: 'save' }, 500);
   const callBody = {
-    connection_id: connection,
+    connection_id: app.id,
     to,
     from,
     webhook_url: hook,
