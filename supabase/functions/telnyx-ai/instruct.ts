@@ -194,15 +194,15 @@ export function buildAiBrief(input: AiBriefInput): AiBrief {
   const sup = input.engine === 'super';
   const tools = sup
     ? (de
-      ? 'Werkzeuge: takvim_bak für freie Zeiten, sonuc_yaz nur mit einem erlaubten Schlüssel (fields_json nur für korrigierte Angaben als JSON-Text). Biete keine Uhrzeit an, die takvim_bak nicht geliefert hat. Wenn keine Zeit frei ist, versprich keine neue Zeit. Nach sonuc_yaz verabschiede dich kurz und rufe end_call.'
-      : 'Araçlar: takvim_bak boş saatleri verir, sonuc_yaz yalnız izinli anahtarla sonuç yazar (düzeltilen bilgiler için fields_json, JSON metni). takvim_bak döndürmediği saati önerme. Boş saat yoksa yeni saat vaat etme. sonuc_yaz yazdıktan sonra kısaca vedalaş ve end_call ile aramayı bitir.')
+      ? 'Werkzeuge: takvim_bak für freie Zeiten, sonuc_yaz nur mit einem erlaubten Schlüssel (fields_json nur für korrigierte Angaben als JSON-Text). Biete keine Uhrzeit an, die takvim_bak nicht geliefert hat. Wenn keine Zeit frei ist, versprich keine neue Zeit. Nach sonuc_yaz verabschiede dich kurz und rufe end_call. Wenn die Person noch spricht, nachdenkt oder um einen Moment bittet, rufe skip_turn und bleib still. Wenn ein Anrufbeantworter oder eine Bandansage rangeht, rufe sofort voicemail_detection und lege ohne Nachricht auf.'
+      : 'Araçlar: takvim_bak boş saatleri verir, sonuc_yaz yalnız izinli anahtarla sonuç yazar (düzeltilen bilgiler için fields_json, JSON metni). takvim_bak döndürmediği saati önerme. Boş saat yoksa yeni saat vaat etme. sonuc_yaz yazdıktan sonra kısaca vedalaş ve end_call ile aramayı bitir. Kişi hâlâ konuşuyor, düşünüyor veya bir saniye istiyorsa skip_turn çağır ve sus. Telesekreter veya otomatik anons açılırsa hemen voicemail_detection çağır, mesaj bırakmadan kapat.')
     : (de
       ? 'Werkzeuge: takvim_bak für freie Zeiten, sonuc_yaz nur mit einem erlaubten Schlüssel, insana_aktar nur wenn ein Mensch übernehmen soll. Biete keine Uhrzeit an, die takvim_bak nicht geliefert hat. Wenn keine Zeit frei ist, versprich keine neue Zeit.'
       : 'Araçlar: takvim_bak boş saatleri verir, sonuc_yaz yalnız izinli anahtarla sonuç yazar, insana_aktar insan devralacaksa kullanılır. takvim_bak döndürmediği saati önerme. Boş saat yoksa yeni saat vaat etme.');
   const style = sup
     ? (de
-      ? 'Sprechstil: wie ein freundlicher Mensch am Telefon. Kurze, natürliche Sätze, keine Listen, Zahlen und Uhrzeiten so sagen, wie man sie spricht. Keine Floskel wiederholen, kurze Reaktionen wie "genau" oder "verstehe" einstreuen.'
-      : 'Konuşma tarzı: telefonda konuşan samimi bir insan gibi. Kısa ve doğal cümleler kur, madde madde sayma, saat ve rakamları konuşurken söylendiği gibi söyle. Aynı kalıbı tekrar etme, araya "tamam", "anladım" gibi kısa tepkiler koy.')
+      ? 'Sprechstil: wie ein freundlicher Mensch am Telefon. Kurze, natürliche Sätze, keine Listen, Zahlen und Uhrzeiten so sagen, wie man sie spricht. Keine Floskel wiederholen, kurze Reaktionen wie "genau" oder "verstehe" einstreuen. Nicht ins Wort fallen. Eine kleine Pause ist besser als zu früh zu antworten.'
+      : 'Konuşma tarzı: telefonda konuşan samimi bir insan gibi. Kısa ve doğal cümleler kur, madde madde sayma, saat ve rakamları konuşurken söylendiği gibi söyle. Aynı kalıbı tekrar etme, araya "tamam", "anladım" gibi kısa tepkiler koy. Söz kesme. Erken cevap vermektense kısa bir sessizlik daha iyi.')
     : '';
   const handoff = sup
     ? (de ? 'Es gibt keine Weiterleitung. Wähle nur ein erlaubtes Ergebnis, das Warten oder Rückruf bedeutet, falls vorhanden.' : 'Aktarma yok. Varsa yalnız bekleme veya geri arama anlamına gelen izinli sonucu seç.')

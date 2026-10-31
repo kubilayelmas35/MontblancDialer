@@ -25,17 +25,29 @@ function mbFirmAi(settings) {
     forbid_contract: ai.forbid_contract !== false,
     forbid_other: ai.forbid_other !== false,
     engine: ai.engine === 'super' ? 'super' : 'std',
-    llm: MB_AI_LLMS.some((row) => row.id === ai.llm) ? ai.llm : MB_AI_LLMS[0].id,
+    llm: mbAiLlmId(ai.llm) || MB_AI_LLMS[0].id,
   };
 }
 
 const MB_AI_LLMS = [
-  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', tag: 'rec' },
-  { id: 'gpt-4o-mini', label: 'GPT-4o mini', tag: 'eco' },
-  { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5', tag: 'smart' },
-  { id: 'gpt-4o', label: 'GPT-4o', tag: 'strong' },
-  { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5', tag: 'best' },
+  { id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash', tag: 'rec' },
+  { id: 'gpt-5.4-mini', label: 'GPT-5.4 mini', tag: 'eco' },
+  { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5', tag: 'smart' },
+  { id: 'gpt-5.4', label: 'GPT-5.4', tag: 'strong' },
+  { id: 'claude-sonnet-5', label: 'Claude Sonnet 5', tag: 'best' },
 ];
+const MB_AI_LLM_ALIAS = {
+  'gemini-2.5-flash': 'gemini-3.6-flash',
+  'gpt-4o-mini': 'gpt-5.4-mini',
+  'claude-haiku-4-5': 'claude-haiku-5-5',
+  'gpt-4o': 'gpt-5.4',
+  'claude-sonnet-4-5': 'claude-sonnet-5',
+};
+
+function mbAiLlmId(value) {
+  const id = MB_AI_LLM_ALIAS[String(value || '')] || String(value || '');
+  return MB_AI_LLMS.some((row) => row.id === id) ? id : '';
+}
 
 function mbAiLlmTag(tag) {
   return {
@@ -102,7 +114,7 @@ function mbAiStaffNorm(row) {
     greeting: String(row.greeting || '').trim().slice(0, 400),
     prompt: String(row.prompt || '').trim().slice(0, 2000),
     engine: row.engine === 'super' ? 'super' : (row.engine === 'std' ? 'std' : ''),
-    llm: MB_AI_LLMS.some((item) => item.id === row.llm) ? row.llm : '',
+    llm: mbAiLlmId(row.llm),
     voice_id: String(row.voice_id || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 40),
     voice_name: String(row.voice_name || '').trim().slice(0, 60),
     results: mbAiKeys(row.results),
