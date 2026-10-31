@@ -215,6 +215,7 @@ function mbLineFirmBody(firm) {
   const secret = superView ? `<div class="line-firm-block">
       <div class="form-label">${mbLineEsc(mbLineT('line.api', 'API anahtarları'))}</div>
       <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.telnyx', 'Telnyx API Key'))}</label><input type="password" class="form-input" id="line-telnyx" autocomplete="new-password" value="${mbLineEsc(integ.telnyx_api_key || '')}"></div>
+      <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.eleven', 'ElevenLabs API Key'))}</label><input type="password" class="form-input" id="line-eleven" autocomplete="new-password" value="${mbLineEsc(integ.elevenlabs_api_key || '')}"></div>
       <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.google', 'Google Maps API Key'))}</label><input class="form-input" id="line-google" autocomplete="off" value="${mbLineEsc(integ.google_key || '')}"></div>
       <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.tomtom', 'TomTom API Key'))}</label><input class="form-input" id="line-tomtom" autocomplete="off" value="${mbLineEsc(integ.tomtom_key || '')}"></div>
       <div class="form-row">
@@ -470,6 +471,7 @@ async function mbSaveLineFirm(firmId) {
         google_key: read('line-google') || prev.google_key,
         tomtom_key: read('line-tomtom') || prev.tomtom_key,
         telnyx_api_key: read('line-telnyx') || prev.telnyx_api_key,
+        elevenlabs_api_key: read('line-eleven') || prev.elevenlabs_api_key,
         sip_connection_id: read('line-conn') || prev.sip_connection_id,
         sip_username: read('line-sip-user') || prev.sip_username,
         sip_password: read('line-sip-pass') || prev.sip_password,

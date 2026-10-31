@@ -214,6 +214,7 @@ function mbIntegEmpty() {
     google_key: '',
     tomtom_key: '',
     telnyx_api_key: '',
+    elevenlabs_api_key: '',
     sip_connection_id: '',
     sip_username: '',
     sip_password: '',
