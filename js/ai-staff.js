@@ -249,41 +249,62 @@ function mbAiStaffCampChanged() {
   mbPaintAiStaff();
 }
 
+function mbAiPill(attr, id, value, label, on, onchange) {
+  return `<label class="ai-pill"><input type="checkbox" ${attr}="${mbAiEsc(id)}" value="${mbAiEsc(value)}"${on ? ' checked' : ''}${onchange ? ` onchange="${onchange}"` : ''}><span>${mbAiEsc(label)}</span></label>`;
+}
+
+function mbAiSwitch(id, on, label, onchange) {
+  return `<label class="ai-switch"><input type="checkbox" id="${id}"${on ? ' checked' : ''}${onchange ? ` onchange="${onchange}"` : ''}><i></i><span>${mbAiEsc(label)}</span></label>`;
+}
+
+function mbAiField(forId, label, control, wide) {
+  return `<div class="ai-field${wide ? ' is-wide' : ''}"><label for="${forId}">${mbAiEsc(label)}</label>${control}</div>`;
+}
+
 function mbPaintAiStaff() {
   const root = document.getElementById('ai-staff-root');
   if (!root || !_aiDesk) return;
   const ai = _aiDesk.settings?.ai?.draft ? _aiDesk.settings.ai : mbFirmAi(_aiDesk.settings);
   const firms = _aiDesk.firms || [];
   const firmPick = firms.length > 1
-    ? `<div class="form-row"><label class="form-label" for="ai-firm">${mbAiEsc(mbAiSay('ai.staff.firm', 'Firma'))}</label><select class="form-input" id="ai-firm" onchange="mbAiFirmPicked(this.value)">${firms.map((row) => `<option value="${mbAiEsc(row.id)}"${String(row.id) === String(_aiFirmId) ? ' selected' : ''}>${mbAiEsc(row.name || '')}</option>`).join('')}</select></div>`
+    ? mbAiField('ai-firm', mbAiSay('ai.staff.firm', 'Firma'), `<select class="form-input" id="ai-firm" onchange="mbAiFirmPicked(this.value)">${firms.map((row) => `<option value="${mbAiEsc(row.id)}"${String(row.id) === String(_aiFirmId) ? ' selected' : ''}>${mbAiEsc(row.name || '')}</option>`).join('')}</select>`, true)
     : '';
   const opt = (value, current, label) => `<option value="${mbAiEsc(value)}"${String(value) === String(current) ? ' selected' : ''}>${mbAiEsc(label)}</option>`;
   const ready = mbAiFirmReady({ ai: { spoken_name: ai.spoken_name, rate: ai.rate } });
-  const voice = `<div class="ai-staff-card">
-    <div class="form-label">${mbAiEsc(mbAiSay('line.ai', 'Agent'))}</div>
-    <div style="font-size:11px;color:var(--text-3);">${mbAiEsc(mbAiSay('line.ai.hint', ''))}</div>
-    <div style="font-size:12px;font-weight:700;">${mbAiEsc(ready ? mbAiSay('line.ai.ready', '') : mbAiSay('line.ai.idle', ''))}</div>
-    ${firmPick}
-    <div class="form-row"><label class="form-label" for="ai-spoken">${mbAiEsc(mbAiSay('line.ai.name', 'Söylenecek şirket adı'))}</label><input class="form-input" id="ai-spoken" maxlength="80" value="${mbAiEsc(ai.spoken_name || '')}" placeholder="${mbAiEsc(mbAiSay('line.ai.name_ph', ''))}"></div>
-    <div class="form-row"><label class="form-label" for="ai-lang">${mbAiEsc(mbAiSay('line.ai.lang', 'Dil'))}</label><select class="form-input" id="ai-lang">${opt('de', ai.lang, mbAiSay('line.ai.lang.de', 'Almanca'))}${opt('tr', ai.lang, mbAiSay('line.ai.lang.tr', 'Türkçe'))}</select></div>
-    <div class="form-row"><label class="form-label" for="ai-voice">${mbAiEsc(mbAiSay('line.ai.voice', 'Ses'))}</label><select class="form-input" id="ai-voice">${opt('', ai.voice || '', mbAiSay('line.ai.voice.default', 'Varsayılan'))}${opt('female', ai.voice || '', mbAiSay('line.ai.voice.female', 'Kadın'))}${opt('male', ai.voice || '', mbAiSay('line.ai.voice.male', 'Erkek'))}</select></div>
-    ${ai.rate > 0 ? '' : `<div style="font-size:12px;font-weight:700;">${mbAiEsc(mbAiSay('ai.staff.price_wait', 'Arama için süper admin dakika fiyatını hat bağlantısından yazar.'))}</div>`}
-    <div class="form-row"><label class="form-label" for="ai-transfer">${mbAiEsc(mbAiSay('line.ai.transfer', 'İnsana aktar'))}</label><input class="form-input" id="ai-transfer" maxlength="20" placeholder="+49301234567" value="${mbAiEsc(ai.transfer || ai.transfer_raw || '')}"></div>
-    <label style="display:flex;align-items:center;gap:8px;font-size:13px;"><input type="checkbox" id="ai-price" ${ai.forbid_price !== false ? 'checked' : ''}> ${mbAiEsc(mbAiSay('line.ai.forbid_price', 'Fiyat söylemesin'))}</label>
-    <label style="display:flex;align-items:center;gap:8px;font-size:13px;"><input type="checkbox" id="ai-contract" ${ai.forbid_contract !== false ? 'checked' : ''}> ${mbAiEsc(mbAiSay('line.ai.forbid_contract', 'Sözleşme konuşmasın'))}</label>
-    <label style="display:flex;align-items:center;gap:8px;font-size:13px;"><input type="checkbox" id="ai-other" ${ai.forbid_other !== false ? 'checked' : ''}> ${mbAiEsc(mbAiSay('line.ai.forbid_other', 'Başka şirket adı vermesin'))}</label>
-  </div>`;
+  const state = ready
+    ? `<span class="ai-state is-ok"><i class="ph ph-check-circle"></i> ${mbAiEsc(mbAiSay('ai.staff.state.ok', 'Hazır'))}</span>`
+    : `<span class="ai-state is-wait"><i class="ph ph-warning-circle"></i> ${mbAiEsc(mbAiSay('ai.staff.state.wait', 'Eksik var'))}</span>`;
+  const missing = ready ? '' : (!ai.spoken_name ? mbAiSay('line.ai.idle', '') : mbAiSay('ai.staff.price_wait', 'Arama için süper admin dakika fiyatını hat bağlantısından yazar.'));
+  const voice = `<section class="ai-card">
+    <header class="ai-card-hd"><div class="ai-card-title"><i class="ph ph-robot"></i> ${mbAiEsc(mbAiSay('line.ai', 'Agent'))}</div>${state}</header>
+    <p class="ai-note">${mbAiEsc(mbAiSay('line.ai.hint', ''))}</p>
+    ${missing ? `<p class="ai-note ai-note-warn">${mbAiEsc(missing)}</p>` : ''}
+    <div class="ai-grid">
+      ${firmPick}
+      ${mbAiField('ai-spoken', mbAiSay('line.ai.name', 'Söylenecek şirket adı'), `<input class="form-input" id="ai-spoken" maxlength="80" value="${mbAiEsc(ai.spoken_name || '')}" placeholder="${mbAiEsc(mbAiSay('line.ai.name_ph', ''))}">`)}
+      ${mbAiField('ai-transfer', mbAiSay('line.ai.transfer', 'İnsana aktar'), `<input class="form-input" id="ai-transfer" maxlength="20" placeholder="+49301234567" value="${mbAiEsc(ai.transfer || ai.transfer_raw || '')}">`)}
+      ${mbAiField('ai-lang', mbAiSay('line.ai.lang', 'Dil'), `<select class="form-input" id="ai-lang">${opt('de', ai.lang, mbAiSay('line.ai.lang.de', 'Almanca'))}${opt('tr', ai.lang, mbAiSay('line.ai.lang.tr', 'Türkçe'))}</select>`)}
+      ${mbAiField('ai-voice', mbAiSay('line.ai.voice', 'Ses'), `<select class="form-input" id="ai-voice">${opt('', ai.voice || '', mbAiSay('line.ai.voice.default', 'Varsayılan'))}${opt('female', ai.voice || '', mbAiSay('line.ai.voice.female', 'Kadın'))}${opt('male', ai.voice || '', mbAiSay('line.ai.voice.male', 'Erkek'))}</select>`)}
+    </div>
+    <div class="ai-switches">
+      ${mbAiSwitch('ai-price', ai.forbid_price !== false, mbAiSay('line.ai.forbid_price', 'Fiyat söylemesin'))}
+      ${mbAiSwitch('ai-contract', ai.forbid_contract !== false, mbAiSay('line.ai.forbid_contract', 'Sözleşme konuşmasın'))}
+      ${mbAiSwitch('ai-other', ai.forbid_other !== false, mbAiSay('line.ai.forbid_other', 'Başka şirket adı vermesin'))}
+    </div>
+  </section>`;
   const cards = _aiDesk.staff.map((row) => mbAiStaffCard(row)).join('');
-  const empty = _aiDesk.staff.length ? '' : `<div style="font-size:12px;color:var(--text-3);">${mbAiEsc(mbAiSay('ai.staff.empty', ''))}</div>`;
+  const empty = _aiDesk.staff.length ? '' : `<p class="ai-note">${mbAiEsc(mbAiSay('ai.staff.empty', ''))}</p>`;
   root.innerHTML = `<div class="ai-staff-grid">
-    <div style="font-size:12px;color:var(--text-3);line-height:1.45;">${mbAiEsc(mbAiSay('ai.staff.intro', ''))}</div>
+    <p class="ai-note">${mbAiEsc(mbAiSay('ai.staff.intro', ''))}</p>
     ${voice}
     ${empty}
     ${cards}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiAddStaff('sales')">${mbAiEsc(mbAiSay('ai.staff.add_sales', 'Randevu personeli'))}</button>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiAddStaff('qc')">${mbAiEsc(mbAiSay('ai.staff.add_qc', 'Kalite personeli'))}</button>
-      <button type="button" class="btn btn-primary btn-sm" onclick="mbSaveAiStaff()">${mbAiEsc(mbAiSay('ai.staff.save', 'Kaydet'))}</button>
+    <div class="ai-bar">
+      <div class="ai-bar-add">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiAddStaff('sales')"><i class="ph ph-plus"></i> ${mbAiEsc(mbAiSay('ai.staff.add_sales', 'Randevu personeli'))}</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiAddStaff('qc')"><i class="ph ph-plus"></i> ${mbAiEsc(mbAiSay('ai.staff.add_qc', 'Kalite personeli'))}</button>
+      </div>
+      <button type="button" class="btn btn-primary" onclick="mbSaveAiStaff()"><i class="ph ph-floppy-disk"></i> ${mbAiEsc(mbAiSay('ai.staff.save', 'Kaydet'))}</button>
     </div>
   </div>`;
 }
@@ -343,46 +364,66 @@ function mbAiInsertToken(staffId, token) {
 }
 
 function mbAiStaffCard(row) {
+  const id = mbAiEsc(row.id);
   const camps = _aiDesk?.camps || [];
   const pickedCamps = new Set(mbAiCampIds(row));
-  const campBoxes = camps.map((camp) => `<label class="ai-check"><input type="checkbox" data-ai-camp="${mbAiEsc(row.id)}" value="${mbAiEsc(camp.id)}"${pickedCamps.has(camp.id) ? ' checked' : ''} onchange="mbAiStaffCampChanged()"> ${mbAiEsc(camp.name || '')}</label>`).join('');
-  const kindLabel = row.kind === 'qc' ? mbAiSay('ai.staff.qc', 'Kalite') : mbAiSay('ai.staff.sales', 'Randevu');
-  const choices = row.kind === 'qc' ? mbAiQcChoices() : mbAiSalesChoicesMany(pickedCamps);
+  const campPills = camps.map((camp) => mbAiPill('data-ai-camp', row.id, camp.id, camp.name || '', pickedCamps.has(camp.id), 'mbAiStaffCampChanged()')).join('');
+  const qc = row.kind === 'qc';
+  const kindLabel = qc ? mbAiSay('ai.staff.qc', 'Kalite') : mbAiSay('ai.staff.sales', 'Randevu');
+  const choices = qc ? mbAiQcChoices() : mbAiSalesChoicesMany(pickedCamps);
   const picked = new Set(row.results || []);
-  const checks = choices.map((item) => `<label class="ai-check"><input type="checkbox" data-ai-result="${mbAiEsc(row.id)}" value="${mbAiEsc(item.key)}"${picked.has(item.key) ? ' checked' : ''}> ${mbAiEsc(item.label)}</label>`).join('');
-  const tokens = mbAiTokensFor(row).map(([token, label]) => `<button type="button" class="ai-token" onclick="mbAiInsertToken('${mbAiEsc(row.id)}','${mbAiEsc(token)}')">${mbAiEsc(label)} ${mbAiEsc(token)}</button>`).join('');
-  const salesBits = row.kind === 'sales'
-    ? `<div class="form-row"><label class="form-label" for="ai-parallel-${mbAiEsc(row.id)}">${mbAiEsc(mbAiSay('ai.staff.parallel', 'Aynı anda kaç kişi'))}</label><select class="form-input" id="ai-parallel-${mbAiEsc(row.id)}">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}"${row.parallel === n ? ' selected' : ''}>${n}</option>`).join('')}</select></div>`
-    : mbAiQcAuto(row, choices);
-  return `<div class="ai-staff-card">
-    <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><b>${mbAiEsc(kindLabel)}</b><button type="button" class="btn btn-ghost btn-sm" onclick="mbAiDropStaff('${mbAiEsc(row.id)}')">${mbAiEsc(mbAiSay('ai.staff.remove', 'Kaldır'))}</button></div>
-    <div class="form-row"><label class="form-label" for="ai-name-${mbAiEsc(row.id)}">${mbAiEsc(mbAiSay('ai.staff.name', 'Personel adı'))}</label><input class="form-input" id="ai-name-${mbAiEsc(row.id)}" maxlength="40" value="${mbAiEsc(row.name)}"></div>
-    <div class="form-label">${mbAiEsc(mbAiSay('ai.staff.camps', 'Kampanyalar'))}</div>
-    <div style="font-size:11px;color:var(--text-3);">${mbAiEsc(mbAiSay('ai.staff.camps_hint', 'Birden fazlasını işaretleyebilirsiniz. Hiçbiri işaretli değilse firmanın kampanyaları.'))}</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px 14px;">${campBoxes || mbAiEsc(mbAiSay('ai.staff.camp.all', 'Firmanın kampanyaları'))}</div>
-    ${salesBits}
-    <div class="form-label">${mbAiEsc(mbAiSay('ai.staff.tokens', 'Kişi kartından ekle'))}</div>
-    <div class="ai-token-row">${tokens}</div>
-    <div class="form-row"><label class="form-label" for="ai-greet-${mbAiEsc(row.id)}">${mbAiEsc(mbAiSay('ai.staff.greeting', 'İlk cümle'))}</label><textarea class="form-input" id="ai-greet-${mbAiEsc(row.id)}" rows="2" maxlength="400" placeholder="${mbAiEsc(mbAiSay('ai.staff.greeting_ph', ''))}" onfocus="mbAiTokenFocus(this.id)">${mbAiEsc(row.greeting || '')}</textarea></div>
-    <div class="form-row"><label class="form-label" for="ai-prompt-${mbAiEsc(row.id)}">${mbAiEsc(mbAiSay('ai.staff.prompt', 'Talimat'))}</label><textarea class="form-input" id="ai-prompt-${mbAiEsc(row.id)}" rows="6" maxlength="2000" placeholder="${mbAiEsc(mbAiSay('ai.staff.prompt_ph', ''))}" onfocus="mbAiTokenFocus(this.id)">${mbAiEsc(row.prompt)}</textarea></div>
-    <div class="form-label">${mbAiEsc(mbAiSay('ai.staff.results', 'Yazabileceği sonuçlar'))}</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px 14px;">${checks}</div>
-  </div>`;
+  const resultPills = choices.map((item) => mbAiPill('data-ai-result', row.id, item.key, item.label, picked.has(item.key))).join('');
+  const tokens = mbAiTokensFor(row).map(([token, label]) => `<button type="button" class="ai-token" title="${mbAiEsc(token)}" onclick="mbAiInsertToken('${id}','${mbAiEsc(token)}')"><b>${mbAiEsc(label)}</b><code>${mbAiEsc(token)}</code></button>`).join('');
+  const tail = qc
+    ? mbAiQcAuto(row, choices)
+    : `<div class="ai-sec"><div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.parallel', 'Aynı anda kaç kişi'))}</div><select class="form-input ai-narrow" id="ai-parallel-${id}">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}"${row.parallel === n ? ' selected' : ''}>${n}</option>`).join('')}</select></div>`;
+  return `<section class="ai-card">
+    <header class="ai-card-hd">
+      <span class="ai-badge ${qc ? 'is-qc' : 'is-sales'}"><i class="ph ${qc ? 'ph-seal-check' : 'ph-calendar-check'}"></i> ${mbAiEsc(kindLabel)}</span>
+      <input class="ai-name" id="ai-name-${id}" maxlength="40" value="${mbAiEsc(row.name)}" placeholder="${mbAiEsc(mbAiSay('ai.staff.name', 'Personel adı'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.name', 'Personel adı'))}">
+      <button type="button" class="ai-del" title="${mbAiEsc(mbAiSay('ai.staff.remove', 'Kaldır'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.remove', 'Kaldır'))}" onclick="mbAiDropStaff('${id}')"><i class="ph ph-trash"></i></button>
+    </header>
+    <div class="ai-sec">
+      <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.camps', 'Kampanyalar'))}</div>
+      <div class="ai-pills">${campPills || `<span class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.camp.all', 'Firmanın kampanyaları'))}</span>`}</div>
+      <div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.camps_hint', ''))}</div>
+    </div>
+    <div class="ai-sec">
+      <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.sec.talk', 'Konuşma'))}</div>
+      <div class="ai-tokens-lab">${mbAiEsc(mbAiSay('ai.staff.tokens', 'Kişi kartından ekle'))}</div>
+      <div class="ai-token-row">${tokens}</div>
+      ${mbAiField(`ai-greet-${row.id}`, mbAiSay('ai.staff.greeting', 'İlk cümle'), `<textarea class="form-input" id="ai-greet-${id}" rows="2" maxlength="400" placeholder="${mbAiEsc(mbAiSay('ai.staff.greeting_ph', ''))}" onfocus="mbAiTokenFocus(this.id)">${mbAiEsc(row.greeting || '')}</textarea><div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.greeting_hint', ''))}</div>`, true)}
+      ${mbAiField(`ai-prompt-${row.id}`, mbAiSay('ai.staff.prompt', 'Talimat'), `<textarea class="form-input" id="ai-prompt-${id}" rows="7" maxlength="2000" placeholder="${mbAiEsc(mbAiSay('ai.staff.prompt_ph', ''))}" onfocus="mbAiTokenFocus(this.id)">${mbAiEsc(row.prompt)}</textarea><div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.prompt_hint', ''))}</div>`, true)}
+    </div>
+    <div class="ai-sec">
+      <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.results', 'Yazabileceği sonuçlar'))}</div>
+      <div class="ai-pills">${resultPills}</div>
+    </div>
+    ${tail}
+  </section>`;
 }
 
 function mbAiQcAuto(row, choices) {
+  const id = mbAiEsc(row.id);
   const statuses = new Set(row.call_statuses || []);
   const when = new Set(row.call_when || []);
-  const statusBoxes = choices.map((item) => `<label class="ai-check"><input type="checkbox" data-ai-call="${mbAiEsc(row.id)}" value="${mbAiEsc(item.key)}"${statuses.has(item.key) ? ' checked' : ''}> ${mbAiEsc(item.label)}</label>`).join('');
-  const day = (key, label) => `<label class="ai-check"><input type="checkbox" data-ai-when="${mbAiEsc(row.id)}" value="${key}"${when.has(key) ? ' checked' : ''}> ${mbAiEsc(label)}</label>`;
-  return `<label style="display:flex;align-items:center;gap:8px;font-size:13px;"><input type="checkbox" id="ai-auto-${mbAiEsc(row.id)}" ${row.auto ? 'checked' : ''}> ${mbAiEsc(mbAiSay('ai.staff.auto', 'Otomatik arasın'))}</label>
-    <div style="font-size:11px;color:var(--text-3);">${mbAiEsc(mbAiSay('ai.staff.auto_hint', 'Otomatik arama bu sonucu ve bu günü bekleyen randevuları seçer.'))}</div>
-    <div class="form-label">${mbAiEsc(mbAiSay('ai.staff.call_status', 'Hangi sonuçtakileri arasın'))}</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px 14px;">${statusBoxes}</div>
-    <div class="form-label">${mbAiEsc(mbAiSay('ai.staff.call_when', 'Hangi randevuları arasın'))}</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px 14px;">${day('today', mbAiSay('ai.staff.when.today', 'Bugün'))}${day('tomorrow', mbAiSay('ai.staff.when.tomorrow', 'Yarın'))}${day('past', mbAiSay('ai.staff.when.past', 'Geçmişte kalan'))}</div>
-    <div class="form-row"><label class="form-label">${mbAiEsc(mbAiSay('ai.staff.call_hours', 'Hangi saatler arasında'))}</label><div style="display:flex;gap:8px;"><input class="form-input" type="time" id="ai-from-${mbAiEsc(row.id)}" value="${mbAiEsc(row.call_from || '')}"><input class="form-input" type="time" id="ai-until-${mbAiEsc(row.id)}" value="${mbAiEsc(row.call_until || '')}"></div></div>
-    <div class="form-row"><label class="form-label" for="ai-retry-${mbAiEsc(row.id)}">${mbAiEsc(mbAiSay('ai.staff.retry', 'Ulaşamazsa kaç dakikada bir'))}</label><select class="form-input" id="ai-retry-${mbAiEsc(row.id)}">${[15, 30, 60, 120, 240].map((n) => `<option value="${n}"${row.retry_min === n ? ' selected' : ''}>${n}</option>`).join('')}</select></div>`;
+  const statusPills = choices.map((item) => mbAiPill('data-ai-call', row.id, item.key, item.label, statuses.has(item.key))).join('');
+  const day = (key, label) => mbAiPill('data-ai-when', row.id, key, label, when.has(key));
+  const retry = [15, 30, 60, 120, 240].map((n) => `<option value="${n}"${row.retry_min === n ? ' selected' : ''}>${n}</option>`).join('');
+  return `<div class="ai-sec">
+    <div class="ai-auto${row.auto ? '' : ' is-off'}">
+      ${mbAiSwitch(`ai-auto-${id}`, row.auto, mbAiSay('ai.staff.auto', 'Otomatik arasın'), "this.closest('.ai-auto').classList.toggle('is-off',!this.checked)")}
+      <div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.auto_hint', ''))}</div>
+      <div class="ai-auto-body">
+        <div class="ai-field"><label>${mbAiEsc(mbAiSay('ai.staff.call_status', 'Hangi sonuçtakileri arasın'))}</label><div class="ai-pills">${statusPills}</div></div>
+        <div class="ai-field"><label>${mbAiEsc(mbAiSay('ai.staff.call_when', 'Hangi randevuları arasın'))}</label><div class="ai-pills">${day('today', mbAiSay('ai.staff.when.today', 'Bugün'))}${day('tomorrow', mbAiSay('ai.staff.when.tomorrow', 'Yarın'))}${day('past', mbAiSay('ai.staff.when.past', 'Geçmişte kalan'))}</div></div>
+        <div class="ai-grid">
+          <div class="ai-field"><label for="ai-from-${id}">${mbAiEsc(mbAiSay('ai.staff.call_hours', 'Hangi saatler arasında'))}</label><div class="ai-hours"><input class="form-input" type="time" id="ai-from-${id}" value="${mbAiEsc(row.call_from || '')}"><span>–</span><input class="form-input" type="time" id="ai-until-${id}" value="${mbAiEsc(row.call_until || '')}"></div></div>
+          <div class="ai-field"><label for="ai-retry-${id}">${mbAiEsc(mbAiSay('ai.staff.retry', 'Ulaşamazsa kaç dakikada bir'))}</label><select class="form-input" id="ai-retry-${id}">${retry}</select></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
 }
 
 function mbAiSalesChoicesMany(ids) {
