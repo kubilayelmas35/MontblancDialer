@@ -356,7 +356,6 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     when: whenText(appt),
   });
   if (!brief.ok) return json({ ok: false, error: brief.error }, 400);
-  const speech = spokenBrief(brief, appt, extra, whenText(appt));
   const to = normDid(appt.telefonnummer);
   if (!to) return json({ ok: false, error: 'phone' }, 400);
   const { data: camp } = await admin.from('campaigns').select('telnyx_did').eq('id', appt.campaign_id).maybeSingle();
@@ -386,6 +385,9 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     callin_billed: '',
     callin_started: '',
     callin_warm: '',
+    callin_retry: '',
+    callin_error_detail: '',
+    callin_error_first: '',
   });
   if (!saved) return json({ ok: false, error: 'save' }, 500);
   const callBody = {
@@ -396,19 +398,11 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     webhook_url_method: 'POST',
     client_state: packState({ token, appointment_id: appointmentId, firm_id: String(appt.firm_id) }),
   };
-  let dial = await telnyx(key, 'calls', {
-    ...callBody,
-    assistant: assistantBody(assistantId, speech, hook, true, true),
-  });
-  let control = clip(dial.data?.data?.call_control_id || '', 120);
-  let warm = !!(dial.ok && control);
-  let firstWhy = '';
-  if (!dial.ok) {
-    firstWhy = telnyxWhy(dial);
-    dial = await telnyx(key, 'calls', callBody);
-    control = clip(dial.data?.data?.call_control_id || '', 120);
-    warm = false;
-  }
+  // Plain dial; the assistant starts on answer so voice problems come back as readable 422s with a fallback.
+  const dial = await telnyx(key, 'calls', callBody);
+  const control = clip(dial.data?.data?.call_control_id || '', 120);
+  const warm = false;
+  const firstWhy = '';
   if (!dial.ok || !control) {
     const why = telnyxWhy(dial);
     console.error('telnyx dial failed', firstWhy, why);
@@ -417,6 +411,30 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
   }
   await mergeEk(admin, appt, { callin_control: control, callin_warm: warm ? '1' : '', callin_error_first: clip(firstWhy, 300) });
   return json({ ok: true });
+}
+
+function qcBrief(settings: Record<string, any>, appt: Record<string, any>, extra: Record<string, any>, staffId: string, note: string) {
+  const staff = staffOf(settings, staffId, String(appt.campaign_id || ''));
+  if ('error' in staff) return null;
+  const ai = firmAi(settings);
+  const brief = buildAiBrief({
+    kind: 'qc',
+    lang: ai.lang,
+    company: ai.spoken_name,
+    rate: ai.rate,
+    prompt: staff.prompt,
+    greetingText: staff.greeting,
+    note,
+    forbidPrice: ai.forbidPrice,
+    forbidContract: ai.forbidContract,
+    forbidOther: ai.forbidOther,
+    transfer: ai.transfer,
+    voice: ai.voice,
+    allowed: allowedChoices('qc', staff.results, resultChoices(settings)),
+    fields: fieldLines(ai.lang, appt, extra),
+    when: whenText(appt),
+  });
+  return brief.ok ? spokenBrief(brief, appt, extra, whenText(appt)) : null;
 }
 
 async function onAnswer(admin: SupabaseClient, appt: Record<string, any>, control: string) {
@@ -644,7 +662,29 @@ Deno.serve(async (req) => {
     if (event === 'call.conversation.start_failed') {
       const control = clip(body?.data?.payload?.call_control_id, 120);
       const { data: firm } = await admin.from('firms').select('settings').eq('id', appt.firm_id).maybeSingle();
-      const key = clip((firm?.settings || {}).integrations?.telnyx_api_key, 200);
+      const settings = (firm?.settings || {}) as Record<string, any>;
+      const key = clip(settings.integrations?.telnyx_api_key, 200);
+      const ai = firmAi(settings);
+      const seen = String(appt.form_ek?.callin_retry || '') === '1';
+      await mergeEk(admin, appt, { callin_retry: '1', callin_error_detail: clip(`start_failed ${JSON.stringify(body?.data?.payload || {})}`, 300) });
+      if (!seen && key && control && ai.qcAssistant) {
+        const extra = appt.form_ek || {};
+        const speech = qcBrief(settings, appt, extra, String(extra.callin_staff_id || ''), clip(extra.callin_note, 800));
+        if (speech) {
+          const base = String(Deno.env.get('SUPABASE_URL') || '').replace(/\/$/, '');
+          const hook = `${base}/functions/v1/telnyx-ai?callin=${extra.callin_token}`;
+          const plain = { ...speech, voice: FALLBACK_VOICE };
+          const again = await telnyx(key, `calls/${encodeURIComponent(control)}/actions/ai_assistant_start`, {
+            assistant: assistantBody(ai.qcAssistant, plain, hook, false),
+            voice: FALLBACK_VOICE,
+            voice_settings: { type: 'aws' },
+          });
+          if (again.ok) {
+            await mergeEk(admin, appt, { callin_state: 'dialing', callin_error: '', callin_started: '1', callin_voice_used: 'polly' });
+            return json({ ok: true });
+          }
+        }
+      }
       if (key && control) await telnyx(key, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
       await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'start' });
       return json({ ok: true });
