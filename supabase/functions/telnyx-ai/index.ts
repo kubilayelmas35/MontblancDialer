@@ -96,6 +96,12 @@ async function telnyx(key: string, path: string, body: Record<string, unknown>) 
   return { ok: res.ok, status: res.status, data };
 }
 
+function telnyxWhy(res: { ok: boolean; status: number; data: any }) {
+  const list = Array.isArray(res.data?.errors) ? res.data.errors : [];
+  const text = list.map((row: any) => [row?.code, row?.title, row?.detail].filter(Boolean).join(' ')).join(' | ');
+  return `${res.status} ${text}`.trim();
+}
+
 function lineFrom(settings: Record<string, any>) {
   const direct = normDid(settings.line_default) || normDid(settings.dialer?.outbound_did);
   if (direct) return direct;
@@ -348,14 +354,18 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
   });
   let control = clip(dial.data?.data?.call_control_id || '', 120);
   let warm = !!(dial.ok && control);
+  let firstWhy = '';
   if (!dial.ok) {
+    firstWhy = telnyxWhy(dial);
     dial = await telnyx(key, 'calls', callBody);
     control = clip(dial.data?.data?.call_control_id || '', 120);
     warm = false;
   }
   if (!dial.ok || !control) {
-    await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'dial' });
-    return json({ ok: false, error: 'dial' }, 502);
+    const why = telnyxWhy(dial);
+    console.error('telnyx dial failed', firstWhy, why);
+    await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'dial', callin_error_detail: clip(why, 300), callin_error_first: clip(firstWhy, 300) });
+    return json({ ok: false, error: 'dial', detail: clip(why, 300), first: clip(firstWhy, 300) }, 502);
   }
   await mergeEk(admin, appt, { callin_control: control, callin_warm: warm ? '1' : '' });
   return json({ ok: true });
@@ -522,7 +532,7 @@ async function writeResult(admin: SupabaseClient, appt: Record<string, any>, arg
     await admin.from('contacts').update({ status: contactStatus(key, settings) }).eq('id', appt.contact_id);
   }
   const { data: fresh } = await admin.from('firms').select('settings').eq('id', appt.firm_id).maybeSingle();
-  const callKey = clip((fresh.data?.settings || settings).integrations?.telnyx_api_key, 200);
+  const callKey = clip((fresh?.settings || settings).integrations?.telnyx_api_key, 200);
   const control = clip(extra.callin_control, 120);
   if (callKey && control) await telnyx(callKey, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
   return { result: `saved ${key}` };

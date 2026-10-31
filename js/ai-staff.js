@@ -533,7 +533,7 @@ function qcAskCallin(apptId) {
   pop.innerHTML = `<div class="ai-callin-card" role="dialog" aria-modal="true">
     <div style="font-weight:800;">${mbAiEsc(mbAiSay('qc.callin.ask', 'Aramadan önce bir şey söylemek ister misiniz?').replace('{name}', name))}</div>
     <div style="font-size:12px;color:var(--text-3);line-height:1.45;">${mbAiEsc(mbAiSay('qc.callin.hint', ''))}</div>
-    <textarea id="ai-callin-note" class="form-input" rows="4" maxlength="800">${mbAiEsc(staff.prompt || '')}</textarea>
+    <textarea id="ai-callin-note" class="form-input" rows="4" maxlength="800"></textarea>
     ${results.length ? `<div style="font-size:11px;color:var(--text-3);">${mbAiEsc(results.join(' · '))}</div>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
       <button type="button" class="btn btn-ghost btn-sm" onclick="qcCloseCallin()">${mbAiEsc(mbAiSay('qc.callin.cancel', 'Vazgeç'))}</button>
@@ -572,7 +572,8 @@ async function qcConfirmCallin(apptId, staffId, direct) {
   if (!res?.ok) {
     pop?.querySelectorAll('button').forEach((btn) => { btn.disabled = false; });
     const key = { gate: 'qc.callin.gate', results: 'qc.callin.gate', phone: 'qc.callin.phone', busy: 'qc.callin.busy' }[res?.error] || 'qc.callin.fail';
-    if (typeof toast === 'function') toast(mbAiSay(key, 'Arama çıkmadı.'), 'err');
+    const why = String(res?.detail || '').slice(0, 220);
+    if (typeof toast === 'function') toast(mbAiSay(key, 'Arama çıkmadı.') + (why ? ` (${why})` : ''), 'err');
     return;
   }
   qcCloseCallin();
