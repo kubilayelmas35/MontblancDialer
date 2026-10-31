@@ -90,7 +90,7 @@ export function berlinClock(now = new Date()) {
 }
 
 export function voiceFor(lang: 'de' | 'tr', voice: string) {
-  if (lang === 'tr') return 'AWS.Polly.Filiz';
+  if (lang === 'tr') return voice === 'male' ? 'Azure.tr-TR-AhmetNeural' : 'Azure.tr-TR-EmelNeural';
   return voice === 'male' ? 'AWS.Polly.Hans' : 'AWS.Polly.Vicki';
 }
 

@@ -269,7 +269,17 @@ function toolDefs(url: string) {
   ];
 }
 
-function assistantBody(assistantId: string, brief: { instructions: string; greeting: string; voice: string }, url: string, withVoice: boolean) {
+const FALLBACK_VOICE = 'AWS.Polly.Filiz';
+
+function voiceOpts(voice: string) {
+  return voice.startsWith('AWS.') ? { type: 'aws' } : {};
+}
+
+function asrFor(voice: string) {
+  return voice.startsWith('Azure.tr-') ? { model: 'azure/fast', language: 'tr-TR' } : null;
+}
+
+function assistantBody(assistantId: string, brief: { instructions: string; greeting: string; voice: string }, url: string, withVoice: boolean, withAsr = false) {
   const assistant: Record<string, unknown> = {
     id: assistantId,
     instructions: brief.instructions,
@@ -277,18 +287,25 @@ function assistantBody(assistantId: string, brief: { instructions: string; greet
     tools: toolDefs(url),
   };
   if (withVoice) assistant.voice_settings = { voice: brief.voice };
+  const asr = withAsr ? asrFor(brief.voice) : null;
+  if (asr) assistant.transcription = asr;
   return assistant;
 }
 
 async function startAssistant(key: string, control: string, assistantId: string, brief: { instructions: string; greeting: string; voice: string }, url: string) {
   const path = `calls/${encodeURIComponent(control)}/actions/ai_assistant_start`;
+  const asr = asrFor(brief.voice);
   const first = await telnyx(key, path, {
     assistant: assistantBody(assistantId, brief, url, false),
     voice: brief.voice,
-    voice_settings: { type: 'aws' },
+    voice_settings: voiceOpts(brief.voice),
+    ...(asr ? { transcription: asr } : {}),
   });
   if (first.ok || first.status !== 422) return first;
-  return telnyx(key, path, { assistant: assistantBody(assistantId, brief, url, true) });
+  const second = await telnyx(key, path, { assistant: assistantBody(assistantId, brief, url, true) });
+  if (second.ok || second.status !== 422 || !brief.voice.startsWith('Azure.')) return second;
+  const plain = { ...brief, voice: FALLBACK_VOICE };
+  return telnyx(key, path, { assistant: assistantBody(assistantId, plain, url, false), voice: FALLBACK_VOICE, voice_settings: { type: 'aws' } });
 }
 
 async function loadByToken(admin: SupabaseClient, token: string) {
@@ -381,7 +398,7 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
   };
   let dial = await telnyx(key, 'calls', {
     ...callBody,
-    assistant: assistantBody(assistantId, speech, hook, true),
+    assistant: assistantBody(assistantId, speech, hook, true, true),
   });
   let control = clip(dial.data?.data?.call_control_id || '', 120);
   let warm = !!(dial.ok && control);
@@ -398,7 +415,7 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'dial', callin_error_detail: clip(why, 300), callin_error_first: clip(firstWhy, 300) });
     return json({ ok: false, error: 'dial', detail: clip(why, 300), first: clip(firstWhy, 300) }, 502);
   }
-  await mergeEk(admin, appt, { callin_control: control, callin_warm: warm ? '1' : '' });
+  await mergeEk(admin, appt, { callin_control: control, callin_warm: warm ? '1' : '', callin_error_first: clip(firstWhy, 300) });
   return json({ ok: true });
 }
 
@@ -446,7 +463,7 @@ async function onAnswer(admin: SupabaseClient, appt: Record<string, any>, contro
   const started = await startAssistant(key, control, ai.qcAssistant, spokenBrief(brief, appt, extra, whenText(appt)), hook);
   if (!started.ok) {
     await telnyx(key, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
-    await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'start' });
+    await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'start', callin_error_detail: clip(telnyxWhy(started), 300) });
     return;
   }
   await mergeEk(admin, appt, { callin_started: '1' });
