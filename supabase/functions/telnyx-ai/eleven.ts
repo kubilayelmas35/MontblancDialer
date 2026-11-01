@@ -15,7 +15,7 @@ const EL_LLM_ALIAS: Record<string, string> = {
 };
 // v4 turbo is the current realtime voice: expressive, about 100ms, 90+ languages.
 const TTS_MODEL = 'eleven_v4_turbo';
-const AGENT_REV = 'v6';
+const AGENT_REV = 'v7';
 // Premade multilingual voices, used only when no Turkish library voice can be attached.
 const FALLBACK_VOICES: Record<string, string> = { female: '21m00Tcm4TlvDq8ikWAM', male: 'pNInz6obpgDQGcFmaJgB' };
 
@@ -145,7 +145,7 @@ function builtInTools() {
     skip_turn: {
       name: 'skip_turn',
       description: 'Stay silent when the caller is still speaking, thinking, or asked for a moment. Do not use this to avoid an answer.',
-      params: { system_tool_type: 'skip_turn', wait_timeout_secs: 6 },
+      params: { system_tool_type: 'skip_turn', wait_timeout_secs: 10 },
     },
     voicemail_detection: {
       name: 'voicemail_detection',
