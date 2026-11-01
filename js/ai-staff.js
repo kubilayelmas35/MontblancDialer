@@ -353,6 +353,28 @@ function mbAiFirmPicked(id) {
 
 function mbAiStaffCampChanged() {
   mbAiReadDesk();
+  setTimeout(() => { if (_aiDesk) mbPaintAiStaff(); }, 0);
+}
+
+function mbAiCopyStaff(id) {
+  mbAiReadDesk();
+  if (!_aiDesk) return;
+  if (_aiDesk.staff.length >= 8) {
+    if (typeof toast === 'function') toast(mbAiSay('ai.staff.copy_full', 'En fazla 8 personel.'), 'err');
+    return;
+  }
+  const src = _aiDesk.staff.find((row) => row.id === id);
+  if (!src) return;
+  const suffix = mbAiSay('ai.staff.copy_suffix', 'kopya');
+  const copy = mbAiStaffNorm({
+    ...src,
+    id: `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    name: `${src.name || ''} ${suffix}`.trim().slice(0, 40),
+  });
+  if (!copy) return;
+  const at = _aiDesk.staff.findIndex((row) => row.id === id);
+  _aiDesk.staff.splice(at + 1, 0, copy);
+  _aiOpen.add(copy.id);
   mbPaintAiStaff();
 }
 
@@ -430,9 +452,13 @@ function mbAiEngineChanged(sid) {
   const hint = document.getElementById('ai-engine-hint-' + sid);
   if (hint) {
     hint.textContent = sup
-      ? mbAiSay('ai.engine.super.desc', 'Süper: ElevenLabs Agents. Daha doğal ses, daha akıllı konuşma, model seçilebilir. Dakika maliyeti daha yüksek. Telnyx yalnız hat olarak kullanılır. ElevenLabs anahtarı gerekir.')
+      ? mbAiSay('ai.engine.super.desc', 'Gelişmiş: ElevenLabs. Daha doğal ses, daha akıllı konuşma, model seçilebilir. Dakika maliyeti daha yüksek. Telnyx yalnız hat olarak kullanılır. ElevenLabs anahtarı gerekir.')
       : mbAiSay('ai.engine.std.desc', 'Standart: Telnyx yapay zekası. Ek kurulum yok, dakika maliyeti düşük, ses kalitesi orta.');
   }
+  mbAiReadDesk();
+  const fresh = (_aiDesk?.staff || []).find((row) => String(row.id) === String(sid));
+  const jobs = document.getElementById(`ai-jobs-${sid}`);
+  if (jobs && fresh) jobs.outerHTML = mbAiJobsBlock(fresh);
   const llm = MB_AI_LLMS.find((row) => row.id === document.getElementById('ai-llm-' + sid)?.value) || MB_AI_LLMS[0];
   const llmHint = document.getElementById('ai-llm-hint-' + sid);
   if (llmHint) llmHint.textContent = mbAiLlmTag(llm.tag);
@@ -755,8 +781,16 @@ function mbAiRichBox(id, value, max, rows, placeholder, staffId) {
   return `<div class="ai-rich form-input" id="${mbAiEsc(id)}" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true" data-max="${max}" data-rows="${rows}" data-staff="${mbAiEsc(staffId)}" data-placeholder="${mbAiEsc(placeholder)}" onfocus="mbAiTokenFocus(this.id)" oninput="mbAiRichSync(this)" onblur="mbAiRichSync(this)" onpaste="mbAiRichPaste(event,this)" onkeydown="mbAiRichKey(event,this)">${html}</div>`;
 }
 
+function mbAiRowSuper(row) {
+  const live = document.getElementById(`ai-engine-${row?.id}`)?.value;
+  const engine = live || row?.engine || mbFirmAi(_aiDesk?.settings || {}).engine;
+  return engine === 'super';
+}
+
 function mbAiInsertTask(staffId, key) {
-  const text = mbAiSay(`ai.task.${key}_text`, '');
+  const row = (_aiDesk?.staff || []).find((item) => String(item.id) === String(staffId));
+  const textKey = key === 'end' && row && !mbAiRowSuper(row) ? 'ai.task.end_std_text' : `ai.task.${key}_text`;
+  const text = mbAiSay(textKey, '');
   const el = document.getElementById(`ai-prompt-${staffId}`);
   if (!el || !text) return;
   const plain = mbAiRichValue(el);
@@ -770,25 +804,30 @@ function mbAiInsertTask(staffId, key) {
   mbAiTokenFocus(el.id);
 }
 
-function mbAiQcTaskRow(staffId) {
-  const flow = ['name', 'when', 'form', 'move', 'bye'];
-  const jobs = [
-    ['look', 'look'],
-    ['slot', 'slot'],
-    ['result', 'save'],
-    ['fix', 'fix'],
-    ['end', 'end'],
-    ['quiet', 'quiet'],
-    ['tape', 'tape'],
-    ['hand', 'hand'],
-  ];
+function mbAiJobPairs(sup) {
+  const shared = [['look', 'look'], ['slot', 'slot'], ['result', 'save'], ['fix', 'fix'], ['end', sup ? 'end' : 'end_std']];
+  return sup ? [...shared, ['quiet', 'quiet'], ['tape', 'tape']] : [...shared, ['hand', 'hand']];
+}
+
+function mbAiJobsBlock(row) {
+  const staffId = row.id;
+  const jobs = mbAiJobPairs(mbAiRowSuper(row));
   const button = (key) => `<button type="button" class="ai-token" onclick="mbAiInsertTask('${mbAiEsc(staffId)}','${key}')"><b>${mbAiEsc(mbAiSay(`ai.task.${key}`, key))}</b></button>`;
   const note = (key) => `<p class="ai-job"><b>${mbAiEsc(mbAiSay(`ai.job.${key}`, ''))}</b> ${mbAiEsc(mbAiSay(`ai.job.${key}_note`, ''))}</p>`;
-  return `<div class="ai-tokens-lab">${mbAiEsc(mbAiSay('ai.staff.tasks', 'Görev ekle'))}</div>
-    <div class="ai-token-row">${flow.map(button).join('')}</div>
+  return `<div id="ai-jobs-${mbAiEsc(staffId)}">
     <div class="ai-tokens-lab">${mbAiEsc(mbAiSay('ai.staff.jobs', 'Nasıl yapılır'))}</div>
     <div class="ai-token-row">${jobs.map(([key]) => button(key)).join('')}</div>
     <div class="ai-job-notes">${jobs.map(([, key]) => note(key)).join('')}</div>
+  </div>`;
+}
+
+function mbAiQcTaskRow(row) {
+  const staffId = row.id;
+  const flow = ['name', 'when', 'form', 'move', 'bye'];
+  const button = (key) => `<button type="button" class="ai-token" onclick="mbAiInsertTask('${mbAiEsc(staffId)}','${key}')"><b>${mbAiEsc(mbAiSay(`ai.task.${key}`, key))}</b></button>`;
+  return `<div class="ai-tokens-lab">${mbAiEsc(mbAiSay('ai.staff.tasks', 'Görev ekle'))}</div>
+    <div class="ai-token-row">${flow.map(button).join('')}</div>
+    ${mbAiJobsBlock(row)}
     <div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.tasks_hint', ''))}</div>`;
 }
 
@@ -881,7 +920,8 @@ function mbAiStaffCard(row) {
       <span class="ai-badge ${qc ? 'is-qc' : 'is-sales'}"><i class="ph ${qc ? 'ph-seal-check' : 'ph-calendar-check'}"></i> ${mbAiEsc(kindLabel)}</span>
       <input class="ai-name" id="ai-name-${id}" maxlength="40" value="${mbAiEsc(row.name)}" placeholder="${mbAiEsc(mbAiSay('ai.staff.name', 'Personel adı'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.name', 'Personel adı'))}">
       <i class="ph ph-caret-down ai-caret"></i>
-      <button type="button" class="ai-del" title="${mbAiEsc(mbAiSay('ai.staff.remove', 'Kaldır'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.remove', 'Kaldır'))}" onclick="mbAiDropStaff('${id}')"><i class="ph ph-trash"></i></button>
+      <button type="button" class="ai-copy" title="${mbAiEsc(mbAiSay('ai.staff.copy', 'Kopyala'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.copy', 'Kopyala'))}" onclick="event.preventDefault(); event.stopPropagation(); mbAiCopyStaff('${id}')"><i class="ph ph-copy"></i></button>
+      <button type="button" class="ai-del" title="${mbAiEsc(mbAiSay('ai.staff.remove', 'Kaldır'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.remove', 'Kaldır'))}" onclick="event.preventDefault(); event.stopPropagation(); mbAiDropStaff('${id}')"><i class="ph ph-trash"></i></button>
     </summary>
     <div class="ai-fold-body">
     <div class="ai-sec">
@@ -893,7 +933,7 @@ function mbAiStaffCard(row) {
       <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.sec.talk', 'Konuşma'))}</div>
       <div class="ai-tokens-lab">${mbAiEsc(mbAiSay('ai.staff.tokens', 'Kişi kartından ekle'))}</div>
       <div class="ai-token-row">${tokens}</div>
-      ${qc ? mbAiQcTaskRow(row.id) : ''}
+      ${qc ? mbAiQcTaskRow(row) : ''}
       ${mbAiField(`ai-greet-${row.id}`, mbAiSay('ai.staff.greeting', 'İlk cümle'), `${mbAiRichBox(`ai-greet-${row.id}`, row.greeting || '', 400, 2, mbAiSay('ai.staff.greeting_ph', ''), row.id)}<div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.greeting_hint', ''))}</div>`, true)}
       ${mbAiField(`ai-prompt-${row.id}`, mbAiSay('ai.staff.prompt', 'Talimat'), `${mbAiRichBox(`ai-prompt-${row.id}`, row.prompt || '', 2000, 7, mbAiSay('ai.staff.prompt_ph', ''), row.id)}<div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.prompt_hint', ''))}</div>`, true)}
       ${mbAiRulesFields(row)}
@@ -918,7 +958,7 @@ function mbAiEngineSection(row) {
   const opt = (value, cur, label) => `<option value="${value}"${value === cur ? ' selected' : ''}>${mbAiEsc(label)}</option>`;
   return `<div class="ai-sec">
     <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.engine', 'Motor'))}</div>
-    <select class="form-input ai-narrow" id="ai-engine-${id}" onchange="mbAiEngineChanged('${id}')">${opt('std', engine, mbAiSay('ai.engine.std', 'Standart'))}${opt('super', engine, mbAiSay('ai.engine.super', 'Süper'))}</select>
+    <select class="form-input ai-narrow" id="ai-engine-${id}" onchange="mbAiEngineChanged('${id}')">${opt('std', engine, mbAiSay('ai.engine.std', 'Standart'))}${opt('super', engine, mbAiSay('ai.engine.super', 'Gelişmiş'))}</select>
     <div class="ai-hint" id="ai-engine-hint-${id}"></div>
     <div id="ai-llm-wrap-${id}" style="display:${engine === 'super' ? 'block' : 'none'};margin-top:8px;">
       <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.llm', 'Yapay zeka modeli'))}</div>
@@ -1297,7 +1337,7 @@ function qcAskCallin(apptId) {
 }
 
 function mbAiStaffEngineLabel(staff) {
-  return staff.engine === 'super' ? mbAiSay('ai.engine.super', 'Süper') : mbAiSay('ai.engine.std', 'Standart');
+  return staff.engine === 'super' ? mbAiSay('ai.engine.super', 'Gelişmiş') : mbAiSay('ai.engine.std', 'Standart');
 }
 
 function qcCloseCallin() {
