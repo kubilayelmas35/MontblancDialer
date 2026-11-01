@@ -15,7 +15,7 @@ const EL_LLM_ALIAS: Record<string, string> = {
 };
 // v4 turbo is the current realtime voice: expressive, about 100ms, 90+ languages.
 const TTS_MODEL = 'eleven_v4_turbo';
-const AGENT_REV = 'v7';
+const AGENT_REV = 'v8';
 // Premade multilingual voices, used only when no Turkish library voice can be attached.
 const FALLBACK_VOICES: Record<string, string> = { female: '21m00Tcm4TlvDq8ikWAM', male: 'pNInz6obpgDQGcFmaJgB' };
 
@@ -84,9 +84,9 @@ async function ensureTools(key: string, saved: Record<string, any>, hook: string
   const defs: { name: string; make: () => unknown }[] = [
     {
       name: 'takvim_bak',
-      make: () => webhookTool('takvim_bak', 'List free appointment times (Europe/Berlin). Offer only returned times.', hook, {
-        date: 'YYYY-MM-DD, optional',
-        after: 'HH:MM, optional',
+      make: () => webhookTool('takvim_bak', 'List free appointment times (Europe/Berlin). Offer only returned times. Omit after when the person wants an earlier hour the same day; after hides every time at or before that clock.', hook, {
+        date: 'YYYY-MM-DD, optional. Same day when they want another hour.',
+        after: 'HH:MM, optional. Leave empty to include earlier hours that day.',
       }),
     },
     {
@@ -114,7 +114,7 @@ type VoiceTry = { id: string; owner: string; fallback?: boolean };
 
 async function voiceCandidates(key: string, lang: string, kind: string) {
   const gender = kind === 'male' ? 'male' : 'female';
-  const base = `/v1/shared-voices?page_size=10&language=${lang === 'tr' ? 'tr' : 'de'}&gender=${gender}&sort=usage_character_count_7d`;
+  const base = `/v1/shared-voices?page_size=10&language=${lang === 'tr' ? 'tr' : 'de'}&gender=${gender}&sort=usage_character_count_1y`;
   let shared = await el(key, 'GET', `${base}&use_cases=conversational`);
   let list = Array.isArray(shared.data?.voices) ? shared.data.voices : [];
   if (!list.length) {
@@ -155,7 +155,17 @@ function builtInTools() {
   };
 }
 
-function agentConfig(lang: string, llm: string, toolIds: string[], voiceId: string) {
+function talkOf(ai: Record<string, any>) {
+  const eager = ai.eagerness === 'patient' || ai.eagerness === 'eager' ? ai.eagerness : 'normal';
+  const silence = [30, 60, 120, 300].includes(Number(ai.silence_sec)) ? Number(ai.silence_sec) : 60;
+  const maxMin = [5, 7, 10].includes(Number(ai.max_min)) ? Number(ai.max_min) : 7;
+  const style = ai.voice_style === 'calm' || ai.voice_style === 'lively' ? ai.voice_style : 'natural';
+  const stability = style === 'calm' ? 0.65 : style === 'lively' ? 0.28 : 0.42;
+  const expressive = ai.expressive !== false;
+  return { eager, silence, maxSec: maxMin * 60, stability, expressive, tag: `${eager}|${silence}|${maxMin}|${style}|${expressive ? 1 : 0}` };
+}
+
+function agentConfig(lang: string, llm: string, toolIds: string[], voiceId: string, talk = talkOf({})) {
   return {
     agent: {
       first_message: '{{greeting}}',
@@ -175,16 +185,16 @@ function agentConfig(lang: string, llm: string, toolIds: string[], voiceId: stri
     tts: {
       model_id: TTS_MODEL,
       voice_id: voiceId,
-      expressive_mode: true,
-      stability: 0.42,
+      expressive_mode: talk.expressive,
+      stability: talk.stability,
       similarity_boost: 0.75,
       text_normalisation_type: 'system_prompt',
     },
     turn: {
       turn_timeout: 7,
       // ElevenLabs rejects the old disabled value (-1). A minute of silence ends the call.
-      silence_end_call_timeout: 60,
-      turn_eagerness: 'normal',
+      silence_end_call_timeout: talk.silence,
+      turn_eagerness: talk.eager,
       turn_model: 'turn_v3',
       spelling_patience: 'auto',
       speculative_turn: true,
@@ -199,7 +209,7 @@ function agentConfig(lang: string, llm: string, toolIds: string[], voiceId: stri
       interruption_ignore_terms: ['ja', 'genau', 'okay', 'ok', 'mhm', 'richtig', 'verstehe', 'aha', 'tamam', 'evet', 'hıhı', 'anladım', 'doğru', 'hmm'],
     },
     vad: { background_voice_detection: true },
-    conversation: { max_duration_seconds: 420, text_only: false },
+    conversation: { max_duration_seconds: talk.maxSec, text_only: false },
   };
 }
 
@@ -297,14 +307,15 @@ export async function ensureEleven(admin: SupabaseClient, ctx: ElevenSetup) {
   const voices = { ...(saved.voices || {}) } as Record<string, string>;
   const vkey = `v3_${ctx.lang}_${kind}`;
   const known = pinned || clip(voices[vkey], 60);
-  const sigFor = (voiceId: string) => `${AGENT_REV}|${ctx.llm}|${ctx.lang}|${kind}|${toolIds.join(',')}|${voiceId}`;
+  const talk = talkOf(ai);
+  const sigFor = (voiceId: string) => `${AGENT_REV}|${ctx.llm}|${ctx.lang}|${kind}|${toolIds.join(',')}|${voiceId}|${talk.tag}`;
   if (!agentId || !known || agents[akey]?.sig !== sigFor(known)) {
     let lastWhy = '';
     const got: { voice: VoiceTry | null } = { voice: null };
     const attempt = async (list: VoiceTry[]) => {
       for (const voice of list) {
         await addToLibrary(ctx.key, voice);
-        const config = agentConfig(ctx.lang, ctx.llm, toolIds, voice.id);
+        const config = agentConfig(ctx.lang, ctx.llm, toolIds, voice.id, talk);
         const pushed = await pushAgent(ctx.key, agentId, ctx.llm, config);
         const res = pushed.res;
         if (pushed.note) log.push(pushed.note);
@@ -390,7 +401,7 @@ export async function elVoices(key: string, opt: { lang: string; gender: string;
     voices.sort((a, b) => (a.cat === 'premade' ? 1 : 0) - (b.cat === 'premade' ? 1 : 0));
     return { ok: true as const, why: '', voices: voices.slice(0, 60), more: false };
   }
-  const params = new URLSearchParams({ page_size: '20', page: String(opt.page), language: opt.lang === 'tr' ? 'tr' : 'de', sort: 'usage_character_count_7d' });
+  const params = new URLSearchParams({ page_size: '20', page: String(opt.page), language: opt.lang === 'tr' ? 'tr' : 'de', sort: 'usage_character_count_1y' });
   if (opt.gender === 'female' || opt.gender === 'male') params.set('gender', opt.gender);
   if (opt.q) params.set('search', opt.q);
   const res = await el(key, 'GET', `/v1/shared-voices?${params.toString()}`);

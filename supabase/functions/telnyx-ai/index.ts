@@ -177,7 +177,7 @@ function staffOf(settings: Record<string, any>, staffId: string, campaignId: str
   if (ids.length && !ids.includes(campaignId)) return { error: 'staff' as const };
   const results = Array.isArray(hit.results) ? hit.results.map((key: unknown) => normKey(key)).filter(Boolean) : [];
   const engine = hit.engine === 'super' ? 'super' as const : hit.engine === 'std' ? 'std' as const : '';
-  return { id: staffId, prompt: clip(hit.prompt, 2000), greeting: clip(hit.greeting, 400), results, engine, llm: clip(hit.llm, 40), voiceId: clip(hit.voice_id, 60).replace(/[^A-Za-z0-9]/g, '') };
+  return { id: staffId, prompt: clip(hit.prompt, 2000), greeting: clip(hit.greeting, 400), results, engine, llm: clip(hit.llm, 40), voiceId: clip(hit.voice_id, 60).replace(/[^A-Za-z0-9]/g, ''), moveTime: hit.move_time !== false };
 }
 
 function spokenBrief(brief: { ok: true; instructions: string; greeting: string; voice: string }, appt: Record<string, any>, extra: Record<string, any>, when: string) {
@@ -261,7 +261,7 @@ function toolDefs(url: string) {
   return [
     hook('takvim_bak', 'List free appointment times in Europe/Berlin. Offer only returned times.', `${url}&tool=takvim_bak`, {
       date: { type: 'string', description: 'YYYY-MM-DD, optional' },
-      after: { type: 'string', description: 'HH:MM, optional' },
+      after: { type: 'string', description: 'HH:MM, optional. Omit when the person wants an earlier hour the same day.' },
     }),
     hook('sonuc_yaz', 'Write one allowed result key and optional corrected fields or a free slot id.', `${url}&tool=sonuc_yaz`, {
       result: { type: 'string', description: 'Allowed result key' },
@@ -377,6 +377,7 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     fields: fieldLines(ai.lang, appt, extra),
     when: whenText(appt),
     engine: ai.engine,
+    moveTime: staff.moveTime,
   });
   if (!brief.ok) return json({ ok: false, error: brief.error }, 400);
   const to = normDid(appt.telefonnummer);
@@ -651,6 +652,7 @@ function qcBrief(settings: Record<string, any>, appt: Record<string, any>, extra
     allowed: allowedChoices('qc', staff.results, resultChoices(settings)),
     fields: fieldLines(ai.lang, appt, extra),
     when: whenText(appt),
+    moveTime: staff.moveTime,
   });
   return brief.ok ? spokenBrief(brief, appt, extra, whenText(appt)) : null;
 }
@@ -688,6 +690,7 @@ async function onAnswer(admin: SupabaseClient, appt: Record<string, any>, contro
     allowed: choices,
     fields: fieldLines(ai.lang, appt, extra),
     when: whenText(appt),
+    moveTime: staff.moveTime,
   });
   if (!brief.ok) {
     await telnyx(key, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
@@ -803,7 +806,9 @@ async function writeResult(admin: SupabaseClient, appt: Record<string, any>, arg
   const note = clip(args.note, 500);
   if (note) patch.qc_notu = note;
   const slotId = String(args.slot_id || '');
-  if (uuidRe.test(slotId)) {
+  let timeNote = '';
+  if (uuidRe.test(slotId) && staff.moveTime === false) timeNote = ' time_locked';
+  else if (uuidRe.test(slotId)) {
     const { data: slot } = await admin.from('takvim_slots').select('id,tarih,baslangic_saat,durum,campaign_id,firm_id,gun_kapali,alta_tasindi').eq('id', slotId).maybeSingle();
     const time = String(slot?.baslangic_saat || '').slice(0, 5);
     const open = slot && slot.durum === 'bos' && !slot.gun_kapali && !slot.alta_tasindi && String(slot.campaign_id) === String(appt.campaign_id) && String(slot.firm_id) === String(appt.firm_id);
@@ -821,7 +826,7 @@ async function writeResult(admin: SupabaseClient, appt: Record<string, any>, arg
   patch.form_ek = ek;
   const { error } = await admin.from('appointments').update(patch).eq('id', appt.id);
   if (error) {
-    if (uuidRe.test(slotId)) {
+    if (uuidRe.test(slotId) && !timeNote) {
       await admin.from('takvim_slots').update({ durum: 'bos', appointment_id: null }).eq('id', slotId);
       if (appt.slot_id && appt.slot_id !== slotId) {
         await admin.from('takvim_slots').update({ durum: 'dolu', appointment_id: appt.id }).eq('id', appt.slot_id);
@@ -836,7 +841,7 @@ async function writeResult(admin: SupabaseClient, appt: Record<string, any>, arg
   const callKey = clip((fresh?.settings || settings).integrations?.telnyx_api_key, 200);
   const control = clip(extra.callin_control, 120);
   if (callKey && control) await telnyx(callKey, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
-  return { result: `saved ${key}` };
+  return { result: `saved ${key}${timeNote}` };
 }
 
 async function transferCall(admin: SupabaseClient, appt: Record<string, any>) {

@@ -2,6 +2,7 @@
 
 let _aiDesk = null;
 let _aiFirmId = '';
+const _aiOpen = new Set();
 
 function mbAiSay(key, fallback) {
   const msg = typeof t === 'function' ? t(key) : fallback;
@@ -26,6 +27,11 @@ function mbFirmAi(settings) {
     forbid_other: ai.forbid_other !== false,
     engine: ai.engine === 'super' ? 'super' : 'std',
     llm: mbAiLlmId(ai.llm) || MB_AI_LLMS[0].id,
+    eagerness: ai.eagerness === 'patient' || ai.eagerness === 'eager' ? ai.eagerness : 'normal',
+    silence_sec: [30, 60, 120, 300].includes(Number(ai.silence_sec)) ? Number(ai.silence_sec) : 60,
+    max_min: [5, 7, 10].includes(Number(ai.max_min)) ? Number(ai.max_min) : 7,
+    voice_style: ai.voice_style === 'calm' || ai.voice_style === 'lively' ? ai.voice_style : 'natural',
+    expressive: ai.expressive !== false,
   };
 }
 
@@ -84,6 +90,11 @@ function mbAiCampIds(row) {
   return mbAiUuid(row?.campaign_id) ? [String(row.campaign_id)] : [];
 }
 
+function mbAiDay(raw) {
+  const text = String(raw || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : '';
+}
+
 function mbAiClock(raw) {
   const text = String(raw || '').trim();
   if (!text) return '';
@@ -120,8 +131,10 @@ function mbAiStaffNorm(row) {
     results: mbAiKeys(row.results),
     call_statuses: mbAiKeys(row.call_statuses),
     call_when: when.length ? when : ['today'],
+    call_on: mbAiDay(row.call_on),
     call_from: mbAiClock(row.call_from),
     call_until: mbAiClock(row.call_until),
+    move_time: row.move_time !== false,
   };
 }
 
@@ -241,14 +254,20 @@ function mbAiReadDesk() {
       forbid_price: !!document.getElementById('ai-price')?.checked,
       forbid_contract: !!document.getElementById('ai-contract')?.checked,
       forbid_other: !!document.getElementById('ai-other')?.checked,
+      eagerness: document.getElementById('ai-eager')?.value || prev.eagerness,
+      silence_sec: document.getElementById('ai-silence')?.value || prev.silence_sec,
+      max_min: document.getElementById('ai-maxmin')?.value || prev.max_min,
+      voice_style: document.getElementById('ai-style')?.value || prev.voice_style,
+      expressive: document.getElementById('ai-express') ? !!document.getElementById('ai-express').checked : prev.expressive !== false,
     },
   };
   _aiDesk.staff = _aiDesk.staff.map((row) => {
     const checked = (attr) => [...document.querySelectorAll(`[${attr}="${row.id}"]`)].filter((el) => el.checked).map((el) => el.value);
+    const moveEl = document.getElementById(`ai-move-${row.id}`);
     return mbAiStaffNorm({
       ...row,
       name: document.getElementById(`ai-name-${row.id}`)?.value,
-      campaign_ids: checked('data-ai-camp'),
+      campaign_ids: checked('data-ai-camp').filter((id) => id !== '*'),
       parallel: document.getElementById(`ai-parallel-${row.id}`)?.value,
       auto: !!document.getElementById(`ai-auto-${row.id}`)?.checked,
       retry_min: document.getElementById(`ai-retry-${row.id}`)?.value,
@@ -261,8 +280,10 @@ function mbAiReadDesk() {
       results: checked('data-ai-result'),
       call_statuses: checked('data-ai-call'),
       call_when: checked('data-ai-when'),
+      call_on: document.getElementById(`ai-ondate-${row.id}`)?.value,
       call_from: document.getElementById(`ai-from-${row.id}`)?.value,
       call_until: document.getElementById(`ai-until-${row.id}`)?.value,
+      move_time: moveEl ? !!moveEl.checked : row.move_time !== false,
     });
   }).filter(Boolean);
 }
@@ -273,7 +294,7 @@ function mbAiAddStaff(kind) {
   const results = kind === 'qc'
     ? (_aiDesk.results || []).map((row) => row.key).filter((key) => key && key !== 'qc_bekleniyor')
     : (typeof DEFAULT_OUTCOMES !== 'undefined' ? DEFAULT_OUTCOMES.map((row) => row.key) : []);
-  _aiDesk.staff.push(mbAiStaffNorm({
+  const added = mbAiStaffNorm({
     id: `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     kind,
     name: kind === 'qc' ? mbAiSay('ai.staff.qc', 'Kalite') : mbAiSay('ai.staff.sales', 'Randevu'),
@@ -282,7 +303,9 @@ function mbAiAddStaff(kind) {
     call_when: ['today'],
     retry_min: 30,
     parallel: 1,
-  }));
+  });
+  if (added) _aiOpen.add(added.id);
+  _aiDesk.staff.push(added);
   mbPaintAiStaff();
 }
 
@@ -290,7 +313,29 @@ function mbAiDropStaff(id) {
   mbAiReadDesk();
   if (!_aiDesk) return;
   _aiDesk.staff = _aiDesk.staff.filter((row) => row.id !== id);
+  _aiOpen.delete(id);
   mbPaintAiStaff();
+}
+
+function mbAiFold(id, open) {
+  if (open) _aiOpen.add(String(id || ''));
+  else _aiOpen.delete(String(id || ''));
+}
+
+function mbAiCampPick(el) {
+  const box = el?.closest?.('.ai-camp-pick');
+  if (!box) return;
+  const all = box.querySelector('[data-ai-camp][value="*"]');
+  const ones = [...box.querySelectorAll('[data-ai-camp]')].filter((node) => node.value !== '*');
+  if (el.value === '*') {
+    if (el.checked) ones.forEach((node) => { node.checked = false; });
+    else if (all) all.checked = true;
+  } else if (el.checked) {
+    if (all) all.checked = false;
+  } else if (!ones.some((node) => node.checked) && all) {
+    all.checked = true;
+  }
+  mbAiStaffCampChanged();
 }
 
 function mbAiFirmPicked(id) {
@@ -341,21 +386,26 @@ function mbPaintAiStaff() {
       ${mbAiField('ai-transfer', mbAiSay('line.ai.transfer', 'İnsana aktar'), `<input class="form-input" id="ai-transfer" maxlength="20" placeholder="+49301234567" value="${mbAiEsc(ai.transfer || ai.transfer_raw || '')}">`)}
       ${mbAiField('ai-lang', mbAiSay('line.ai.lang', 'Dil'), `<select class="form-input" id="ai-lang">${opt('de', ai.lang, mbAiSay('line.ai.lang.de', 'Almanca'))}${opt('tr', ai.lang, mbAiSay('line.ai.lang.tr', 'Türkçe'))}</select>`)}
       ${mbAiField('ai-voice', mbAiSay('line.ai.voice', 'Ses'), `<select class="form-input" id="ai-voice">${opt('', ai.voice || '', mbAiSay('line.ai.voice.default', 'Varsayılan'))}${opt('female', ai.voice || '', mbAiSay('line.ai.voice.female', 'Kadın'))}${opt('male', ai.voice || '', mbAiSay('line.ai.voice.male', 'Erkek'))}</select>`)}
+      ${mbAiField('ai-eager', mbAiSay('ai.talk.eager', 'Ne kadar çabuk cevap versin'), `<select class="form-input" id="ai-eager">${opt('patient', ai.eagerness || 'normal', mbAiSay('ai.talk.patient', 'Sabırlı, bekler'))}${opt('normal', ai.eagerness || 'normal', mbAiSay('ai.talk.normal', 'Normal'))}${opt('eager', ai.eagerness || 'normal', mbAiSay('ai.talk.eager_fast', 'Hemen cevaplar'))}</select>`)}
+      ${mbAiField('ai-silence', mbAiSay('ai.talk.silence', 'Sessiz kalırsa kapatsın'), `<select class="form-input" id="ai-silence">${opt(30, Number(ai.silence_sec) || 60, mbAiSay('ai.talk.silence.30', '30 saniye'))}${opt(60, Number(ai.silence_sec) || 60, mbAiSay('ai.talk.silence.60', '1 dakika'))}${opt(120, Number(ai.silence_sec) || 60, mbAiSay('ai.talk.silence.120', '2 dakika'))}${opt(300, Number(ai.silence_sec) || 60, mbAiSay('ai.talk.silence.300', '5 dakika'))}</select>`)}
+      ${mbAiField('ai-maxmin', mbAiSay('ai.talk.max', 'En uzun arama'), `<select class="form-input" id="ai-maxmin">${opt(5, Number(ai.max_min) || 7, mbAiSay('ai.talk.max.5', '5 dakika'))}${opt(7, Number(ai.max_min) || 7, mbAiSay('ai.talk.max.7', '7 dakika'))}${opt(10, Number(ai.max_min) || 7, mbAiSay('ai.talk.max.10', '10 dakika'))}</select>`)}
+      ${mbAiField('ai-style', mbAiSay('ai.talk.style', 'Ses karakteri'), `<select class="form-input" id="ai-style">${opt('calm', ai.voice_style || 'natural', mbAiSay('ai.talk.calm', 'Sakin'))}${opt('natural', ai.voice_style || 'natural', mbAiSay('ai.talk.natural', 'Doğal'))}${opt('lively', ai.voice_style || 'natural', mbAiSay('ai.talk.lively', 'Canlı'))}</select>`)}
     </div>
     <div class="ai-switches">
+      ${mbAiSwitch('ai-express', ai.expressive !== false, mbAiSay('ai.talk.express', 'İfadeli konuşsun'))}
       ${mbAiSwitch('ai-price', ai.forbid_price !== false, mbAiSay('line.ai.forbid_price', 'Fiyat söylemesin'))}
       ${mbAiSwitch('ai-contract', ai.forbid_contract !== false, mbAiSay('line.ai.forbid_contract', 'Sözleşme konuşmasın'))}
       ${mbAiSwitch('ai-other', ai.forbid_other !== false, mbAiSay('line.ai.forbid_other', 'Başka şirket adı vermesin'))}
     </div>
+    <p class="ai-hint">${mbAiEsc(mbAiSay('ai.talk.hint', ''))}</p>
   </section>`;
   const cards = _aiDesk.staff.map((row) => mbAiStaffCard(row)).join('');
   const empty = _aiDesk.staff.length ? '' : `<p class="ai-note">${mbAiEsc(mbAiSay('ai.staff.empty', ''))}</p>`;
   root.innerHTML = `<div class="ai-staff-grid">
-    <p class="ai-note">${mbAiEsc(mbAiSay('ai.staff.intro', ''))}</p>
-    ${voice}
-    ${empty}
-    ${cards}
-    <div class="ai-bar">
+    <p class="ai-note ai-staff-span">${mbAiEsc(mbAiSay('ai.staff.intro', ''))}</p>
+    <div class="ai-staff-side">${voice}</div>
+    <div class="ai-staff-main">${empty}${cards}</div>
+    <div class="ai-bar ai-staff-span">
       <div class="ai-bar-add">
         <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiAddStaff('sales')"><i class="ph ph-plus"></i> ${mbAiEsc(mbAiSay('ai.staff.add_sales', 'Randevu personeli'))}</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiAddStaff('qc')"><i class="ph ph-plus"></i> ${mbAiEsc(mbAiSay('ai.staff.add_qc', 'Kalite personeli'))}</button>
@@ -455,7 +505,8 @@ function mbAiStaffCard(row) {
   const id = mbAiEsc(row.id);
   const camps = _aiDesk?.camps || [];
   const pickedCamps = new Set(mbAiCampIds(row));
-  const campPills = camps.map((camp) => mbAiPill('data-ai-camp', row.id, camp.id, camp.name || '', pickedCamps.has(camp.id), 'mbAiStaffCampChanged()')).join('');
+  const campAll = mbAiPill('data-ai-camp', row.id, '*', mbAiSay('ai.staff.camps_all', 'Tümü'), pickedCamps.size === 0, 'mbAiCampPick(this)');
+  const campRest = camps.map((camp) => mbAiPill('data-ai-camp', row.id, camp.id, camp.name || '', pickedCamps.has(camp.id), 'mbAiCampPick(this)')).join('');
   const qc = row.kind === 'qc';
   const kindLabel = qc ? mbAiSay('ai.staff.qc', 'Kalite') : mbAiSay('ai.staff.sales', 'Randevu');
   const choices = qc ? mbAiQcChoices() : mbAiSalesChoicesMany(pickedCamps);
@@ -465,15 +516,24 @@ function mbAiStaffCard(row) {
   const tail = qc
     ? mbAiQcAuto(row, choices)
     : `<div class="ai-sec"><div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.parallel', 'Aynı anda kaç kişi'))}</div><select class="form-input ai-narrow" id="ai-parallel-${id}">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}"${row.parallel === n ? ' selected' : ''}>${n}</option>`).join('')}</select></div>`;
+  const powers = qc ? `<div class="ai-sec">
+      <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.powers', 'Yetki'))}</div>
+      ${mbAiSwitch(`ai-move-${id}`, row.move_time !== false, mbAiSay('ai.staff.move', 'Randevu saatini değiştirebilir'))}
+      <div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.move_hint', ''))}</div>
+    </div>` : '';
+  const open = _aiOpen.has(row.id) ? ' open' : '';
   return `<section class="ai-card">
-    <header class="ai-card-hd">
+    <details class="ai-fold"${open} ontoggle="mbAiFold('${id}', this.open)">
+    <summary class="ai-card-hd">
       <span class="ai-badge ${qc ? 'is-qc' : 'is-sales'}"><i class="ph ${qc ? 'ph-seal-check' : 'ph-calendar-check'}"></i> ${mbAiEsc(kindLabel)}</span>
       <input class="ai-name" id="ai-name-${id}" maxlength="40" value="${mbAiEsc(row.name)}" placeholder="${mbAiEsc(mbAiSay('ai.staff.name', 'Personel adı'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.name', 'Personel adı'))}">
+      <i class="ph ph-caret-down ai-caret"></i>
       <button type="button" class="ai-del" title="${mbAiEsc(mbAiSay('ai.staff.remove', 'Kaldır'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.remove', 'Kaldır'))}" onclick="mbAiDropStaff('${id}')"><i class="ph ph-trash"></i></button>
-    </header>
+    </summary>
+    <div class="ai-fold-body">
     <div class="ai-sec">
       <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.camps', 'Kampanyalar'))}</div>
-      <div class="ai-pills">${campPills || `<span class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.camp.all', 'Firmanın kampanyaları'))}</span>`}</div>
+      <div class="ai-camp-pick"><div class="ai-pills">${campAll}</div>${campRest ? `<div class="ai-camp-box"><div class="ai-pills">${campRest}</div></div>` : ''}</div>
       <div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.camps_hint', ''))}</div>
     </div>
     <div class="ai-sec">
@@ -488,7 +548,10 @@ function mbAiStaffCard(row) {
       <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.results', 'Yazabileceği sonuçlar'))}</div>
       <div class="ai-pills">${resultPills}</div>
     </div>
+    ${powers}
     ${tail}
+    </div>
+    </details>
   </section>`;
 }
 
@@ -662,6 +725,7 @@ function mbAiQcAuto(row, choices) {
       <div class="ai-auto-body">
         <div class="ai-field"><label>${mbAiEsc(mbAiSay('ai.staff.call_status', 'Hangi sonuçtakileri arasın'))}</label><div class="ai-pills">${statusPills}</div></div>
         <div class="ai-field"><label>${mbAiEsc(mbAiSay('ai.staff.call_when', 'Hangi randevuları arasın'))}</label><div class="ai-pills">${day('today', mbAiSay('ai.staff.when.today', 'Bugün'))}${day('tomorrow', mbAiSay('ai.staff.when.tomorrow', 'Yarın'))}${day('past', mbAiSay('ai.staff.when.past', 'Geçmişte kalan'))}</div></div>
+        <div class="ai-field"><label for="ai-ondate-${id}">${mbAiEsc(mbAiSay('ai.staff.call_on', 'Şu tarihteki randevular'))}</label><input class="form-input" type="date" id="ai-ondate-${id}" value="${mbAiEsc(row.call_on || '')}"><div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.call_on_hint', ''))}</div></div>
         <div class="ai-grid">
           <div class="ai-field"><label for="ai-from-${id}">${mbAiEsc(mbAiSay('ai.staff.call_hours', 'Hangi saatler arasında'))}</label><div class="ai-hours"><input class="form-input" type="time" id="ai-from-${id}" value="${mbAiEsc(row.call_from || '')}"><span>–</span><input class="form-input" type="time" id="ai-until-${id}" value="${mbAiEsc(row.call_until || '')}"></div></div>
           <div class="ai-field"><label for="ai-retry-${id}">${mbAiEsc(mbAiSay('ai.staff.retry', 'Ulaşamazsa kaç dakikada bir'))}</label><select class="form-input" id="ai-retry-${id}">${retry}</select></div>
@@ -721,6 +785,11 @@ async function mbSaveAiStaff() {
     forbid_price: draft.forbid_price !== false,
     forbid_contract: draft.forbid_contract !== false,
     forbid_other: draft.forbid_other !== false,
+    eagerness: draft.eagerness === 'patient' || draft.eagerness === 'eager' ? draft.eagerness : 'normal',
+    silence_sec: [30, 60, 120, 300].includes(Number(draft.silence_sec)) ? Number(draft.silence_sec) : 60,
+    max_min: [5, 7, 10].includes(Number(draft.max_min)) ? Number(draft.max_min) : 7,
+    voice_style: draft.voice_style === 'calm' || draft.voice_style === 'lively' ? draft.voice_style : 'natural',
+    expressive: draft.expressive !== false,
   };
   try {
     const rows = await sb(`firms?id=eq.${_aiFirmId}&select=settings`);
