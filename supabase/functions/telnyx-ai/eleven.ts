@@ -15,7 +15,7 @@ const EL_LLM_ALIAS: Record<string, string> = {
 };
 // v4 turbo is the current realtime voice: expressive, about 100ms, 90+ languages.
 const TTS_MODEL = 'eleven_v4_turbo';
-const AGENT_REV = 'v8';
+const AGENT_REV = 'v9';
 // Premade multilingual voices, used only when no Turkish library voice can be attached.
 const FALLBACK_VOICES: Record<string, string> = { female: '21m00Tcm4TlvDq8ikWAM', male: 'pNInz6obpgDQGcFmaJgB' };
 
@@ -204,7 +204,7 @@ function agentConfig(lang: string, llm: string, toolIds: string[], voiceId: stri
         use_llm_generated_message: true,
         max_soft_timeouts_per_generation: 1,
         disable_until_first_user_message: true,
-        llm_generated_message_prompt_override: 'One short listening sound in the conversation language, like a brief hmm. No sentence and no question.',
+        llm_generated_message_prompt_override: 'At most one brief listening sound in the conversation language, like a soft hmm. Never say anladım, tamam, verstehe, genau, okay, or any full word. No sentence and no question.',
       },
       interruption_ignore_terms: ['ja', 'genau', 'okay', 'ok', 'mhm', 'richtig', 'verstehe', 'aha', 'tamam', 'evet', 'hıhı', 'anladım', 'doğru', 'hmm'],
     },

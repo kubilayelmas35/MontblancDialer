@@ -197,6 +197,35 @@ function staffOf(settings: Record<string, any>, staffId: string, campaignId: str
   };
 }
 
+async function ensureAiUser(admin: SupabaseClient, firmId: string, settings: Record<string, any>, staff: { id: string; name: string; userId: string }) {
+  if (staff.userId) {
+    await admin.from('users').update({ name: staff.name || staff.id, role: 'ai', is_active: true, firm_id: firmId }).eq('id', staff.userId);
+    return staff.userId;
+  }
+  const email = `ai.${String(staff.id).toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40)}.${String(firmId).replace(/-/g, '').slice(0, 12)}@callin.internal`;
+  const { data: found } = await admin.from('users').select('id').eq('email', email).maybeSingle();
+  let userId = found?.id ? String(found.id) : '';
+  if (!userId) {
+    const { data: made } = await admin.from('users').insert({
+      firm_id: firmId,
+      email,
+      name: staff.name || staff.id,
+      role: 'ai',
+      is_active: true,
+      password_hash: `!ai!${crypto.randomUUID()}`,
+    }).select('id').maybeSingle();
+    userId = made?.id ? String(made.id) : '';
+  } else {
+    await admin.from('users').update({ name: staff.name || staff.id, role: 'ai', is_active: true, firm_id: firmId }).eq('id', userId);
+  }
+  if (!userId) return '';
+  const raw = Array.isArray(settings.ai_staff) ? settings.ai_staff : [];
+  const next = raw.map((row: any) => String(row?.id || '') === staff.id ? { ...row, user_id: userId, name: staff.name || row?.name } : row);
+  settings.ai_staff = next;
+  await admin.from('firms').update({ settings: { ...settings, ai_staff: next } }).eq('id', firmId);
+  return userId;
+}
+
 function callOutcome(appt: Record<string, any>, secs: number) {
   const durum = normKey(appt.durum);
   if (durum === 'qc_bekleniyor' || durum === 'appointment') return 'appointment';
@@ -475,6 +504,8 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
   const staff = staffOf(settings, staffId, String(appt.campaign_id || ''));
   if ('error' in staff) return json({ ok: false, error: staff.error }, 400);
   if (staff.kind !== wantKind) return json({ ok: false, error: 'kind' }, 400);
+  const linked = await ensureAiUser(admin, String(appt.firm_id), settings, staff);
+  if (linked) staff.userId = linked;
   const ai = firmAi(settings);
   // The staff member's own engine wins; firms that never chose per staff keep their old firm-level choice.
   ai.engine = staff.engine || ai.engine;
@@ -622,8 +653,12 @@ async function placeEleven(
   const token = newToken();
   const staffMeta = staffOf(settings, job.staffId, String(appt.campaign_id || ''));
   const staffName = !('error' in staffMeta) ? staffMeta.name : clip(job.staffId, 80);
-  const staffUser = !('error' in staffMeta) ? staffMeta.userId : '';
   const staffKind = !('error' in staffMeta) ? staffMeta.kind : 'qc';
+  let staffUser = !('error' in staffMeta) ? staffMeta.userId : '';
+  if (!('error' in staffMeta)) {
+    const linked = await ensureAiUser(admin, String(appt.firm_id), settings, staffMeta);
+    if (linked) staffUser = linked;
+  }
   const saved = await mergeEk(admin, appt, {
     callin_note: job.note,
     callin_staff_id: job.staffId,
@@ -740,7 +775,8 @@ async function saveElevenLog(
   const secs = Math.max(0, Math.round(info.secs));
   const started = info.start ? new Date(info.start * 1000).toISOString() : new Date(Date.now() - secs * 1000).toISOString();
   const ek = appt.form_ek && typeof appt.form_ek === 'object' ? appt.form_ek : {};
-  const by = String(ek.callin_user_id || ek.callin_by || '');
+  // AI calls credit the AI staff user only — never the human who pressed Çalışsın (callin_by).
+  const by = String(ek.callin_user_id || '');
   const staffId = clip(ek.callin_staff_id, 40);
   const opName = clip(ek.callin_staff_name, 80) || staffId || 'YZ';
   const kind = ek.callin_kind === 'sales' ? 'sales' : 'qc';

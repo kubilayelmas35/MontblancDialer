@@ -229,8 +229,8 @@ export function buildAiBrief(input: AiBriefInput): AiBrief {
       : `Araçlar: takvim_bak boş saatleri verir, sonuc_yaz yalnız izinli anahtarla sonuç yazar, insana_aktar insan devralacaksa kullanılır. ${move}`);
   const style = sup
     ? (de
-      ? 'Sprechstil: wie ein freundlicher Mensch am Telefon. Kurze, natürliche Sätze, keine Listen, Zahlen und Uhrzeiten so sagen, wie man sie spricht. Keine Floskel wiederholen, kurze Reaktionen wie "genau" oder "verstehe" einstreuen. Nicht ins Wort fallen. Eine kleine Pause ist besser als zu früh zu antworten.'
-      : 'Konuşma tarzı: telefonda konuşan samimi bir insan gibi. Kısa ve doğal cümleler kur, madde madde sayma, saat ve rakamları konuşurken söylendiği gibi söyle. Aynı kalıbı tekrar etme, araya "tamam", "anladım" gibi kısa tepkiler koy. Söz kesme. Erken cevap vermektense kısa bir sessizlik daha iyi.')
+      ? 'Sprechstil: wie ein echter Mensch am Telefon. Kurze, natürliche Sätze, keine Listen. Zahlen und Uhrzeiten so sagen, wie man sie spricht. Wichtig: nicht nach jedem Satz "verstehe", "genau", "okay" oder "alles klar" sagen — das klingt roboterhaft. Höre zu, antworte direkt mit der nächsten sinnvollen Frage oder Info. Dieselbe Floskel nie wiederholen. Nicht ins Wort fallen. Eine kurze Pause ist besser als zu früh zu antworten.'
+      : 'Konuşma tarzı: telefonda gerçek bir insan gibi. Kısa, doğal cümleler; madde madde sayma. Saat ve rakamları konuşurken söylendiği gibi söyle. Önemli: her cümleden sonra "anladım", "tamam", "pekala", "tabii" deme — yapay durur. Dinle, doğrudan sonraki soruya veya bilgiye geç. Aynı kalıbı tekrar etme. Söz kesme. Erken cevap vermektense kısa sessizlik daha iyi.')
     : '';
   const handoff = sup
     ? (de ? 'Es gibt keine Weiterleitung. Wähle nur ein erlaubtes Ergebnis, das Warten oder Rückruf bedeutet, falls vorhanden.' : 'Aktarma yok. Varsa yalnız bekleme veya geri arama anlamına gelen izinli sonucu seç.')
