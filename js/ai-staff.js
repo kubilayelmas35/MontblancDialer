@@ -1,8 +1,11 @@
-// YZ personel — Callin sayfasının ikinci sekmesi. Tek kalite araması onay kutusundan çıkar.
+// YZ personel — Callin sekmeleri: kurulum, başlatma. Tek kalite araması onay kutusundan da çıkar.
 
 let _aiDesk = null;
 let _aiFirmId = '';
 const _aiOpen = new Set();
+let _aiRunTimer = null;
+let _aiRunSaving = false;
+const _aiRunBusy = new Set();
 
 function mbAiSay(key, fallback) {
   const msg = typeof t === 'function' ? t(key) : fallback;
@@ -33,7 +36,20 @@ function mbFirmAi(settings) {
     max_min: [5, 7, 10].includes(Number(ai.max_min)) ? Number(ai.max_min) : 7,
     voice_style: ai.voice_style === 'calm' || ai.voice_style === 'lively' ? ai.voice_style : 'natural',
     expressive: ai.expressive !== false,
+    run_mode: ai.run_mode === 'server' ? 'server' : 'page',
   };
+}
+
+function mbAiRunMode(settings) {
+  return mbFirmAi(settings).run_mode === 'server' ? 'server' : 'page';
+}
+
+function mbAiFocusIds(row) {
+  const allowed = new Set(mbAiCampIds(row));
+  const focus = (Array.isArray(row?.focus_ids) ? row.focus_ids : []).map((id) => String(id || '')).filter(mbAiUuid);
+  const picked = focus.filter((id) => !allowed.size || allowed.has(id));
+  if (picked.length) return [...new Set(picked)].slice(0, 24);
+  return [...allowed];
 }
 
 const MB_AI_LLMS = [
@@ -138,6 +154,14 @@ function mbAiStaffNorm(row) {
     call_from: mbAiClock(row.call_from),
     call_until: mbAiClock(row.call_until),
     move_time: row.move_time !== false,
+    running: row.running === true,
+    focus_ids: (() => {
+      const allowed = new Set(campaignIds);
+      return (Array.isArray(row.focus_ids) ? row.focus_ids : [])
+        .map((id) => String(id || ''))
+        .filter((id) => mbAiUuid(id) && (!allowed.size || allowed.has(id)))
+        .slice(0, 24);
+    })(),
   };
 }
 
@@ -182,31 +206,29 @@ async function mbCacheAiStaff(firmId) {
 }
 
 function callinTab(name) {
-  const staff = name === 'staff';
+  const tab = name === 'staff' || name === 'run' ? name : 'auto';
   document.querySelectorAll('.callin-tab').forEach((btn) => {
-    const on = btn.dataset.callin === (staff ? 'staff' : 'auto');
+    const on = btn.dataset.callin === tab;
     btn.classList.toggle('is-on', on);
     btn.setAttribute('aria-selected', on ? 'true' : 'false');
   });
   const auto = document.getElementById('callin-pane-auto');
   const pane = document.getElementById('callin-pane-staff');
-  if (auto) auto.hidden = staff;
-  if (pane) pane.hidden = !staff;
-  if (staff) void mbLoadAiStaff();
+  const run = document.getElementById('callin-pane-run');
+  if (auto) auto.hidden = tab !== 'auto';
+  if (pane) pane.hidden = tab !== 'staff';
+  if (run) run.hidden = tab !== 'run';
+  if (tab !== 'run') mbAiStopRunLoop();
+  if (tab === 'staff' || tab === 'run') void mbLoadAiStaff(tab);
 }
 
-function mbAiActiveFirmId() {
-  if (_aiFirmId) return _aiFirmId;
-  const active = typeof getActiveFirmId === 'function' ? getActiveFirmId() : '';
-  return active || currentUser?.firm_id || '';
-}
-
-async function mbLoadAiStaff() {
-  const root = document.getElementById('ai-staff-root');
-  const pane = document.getElementById('callin-pane-staff');
+async function mbLoadAiStaff(tab) {
+  const wantRun = tab === 'run';
+  const root = document.getElementById(wantRun ? 'ai-run-root' : 'ai-staff-root');
+  const pane = document.getElementById(wantRun ? 'callin-pane-run' : 'callin-pane-staff');
   if (!root || !pane || pane.hidden || typeof sb !== 'function') return;
   const gen = (_aiDesk?.gen || 0) + 1;
-  _aiDesk = { gen, firms: [], camps: [], results: [], settings: {}, staff: [] };
+  _aiDesk = { gen, firms: [], camps: [], results: [], settings: {}, staff: [], view: wantRun ? 'run' : 'staff' };
   const superView = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
   let firms = [];
   if (superView) firms = await sb('firms?select=id,name,settings&order=name.asc').catch(() => []) || [];
@@ -219,6 +241,12 @@ async function mbLoadAiStaff() {
   const picked = firms.some((row) => String(row.id) === String(mbAiActiveFirmId())) ? mbAiActiveFirmId() : (firms[0]?.id || '');
   _aiFirmId = String(picked || '');
   await mbAiLoadFirm(gen);
+}
+
+function mbAiActiveFirmId() {
+  if (_aiFirmId) return _aiFirmId;
+  const active = typeof getActiveFirmId === 'function' ? getActiveFirmId() : '';
+  return active || currentUser?.firm_id || '';
 }
 
 async function mbAiLoadFirm(gen) {
@@ -236,7 +264,10 @@ async function mbAiLoadFirm(gen) {
   if (!_aiDesk || _aiDesk.gen !== gen) return;
   window._aiStaffByFirm = window._aiStaffByFirm || {};
   if (_aiFirmId) window._aiStaffByFirm[_aiFirmId] = mbAiResolveEngine(_aiDesk.staff, _aiDesk.settings);
-  mbPaintAiStaff();
+  if (_aiDesk.view === 'run') {
+    mbPaintAiRun();
+    mbAiStartRunLoop();
+  } else mbPaintAiStaff();
 }
 
 function mbAiReadDesk() {
@@ -350,9 +381,10 @@ function mbAiCampPick(el) {
 }
 
 function mbAiFirmPicked(id) {
-  mbAiReadDesk();
+  if (_aiDesk?.view !== 'run') mbAiReadDesk();
   _aiFirmId = String(id || '');
-  const gen = _aiDesk?.gen || 1;
+  const gen = (_aiDesk?.gen || 0) + 1;
+  if (_aiDesk) _aiDesk.gen = gen;
   void mbAiLoadFirm(gen);
 }
 
@@ -393,6 +425,209 @@ function mbAiSwitch(id, on, label, onchange) {
 
 function mbAiField(forId, label, control, wide) {
   return `<div class="ai-field${wide ? ' is-wide' : ''}"><label for="${forId}">${mbAiEsc(label)}</label>${control}</div>`;
+}
+
+function mbAiAllowedCamps(row) {
+  const ids = mbAiCampIds(row);
+  const camps = _aiDesk?.camps || [];
+  if (!ids.length) return camps;
+  const want = new Set(ids);
+  return camps.filter((camp) => want.has(camp.id));
+}
+
+function mbPaintAiRun() {
+  const root = document.getElementById('ai-run-root');
+  if (!root || !_aiDesk) return;
+  const mode = mbAiRunMode(_aiDesk.settings);
+  const firms = _aiDesk.firms || [];
+  const firmPick = firms.length > 1
+    ? `<div class="ai-field is-wide"><label for="ai-run-firm">${mbAiEsc(mbAiSay('ai.staff.firm', 'Firma'))}</label><select class="form-input" id="ai-run-firm" onchange="mbAiFirmPicked(this.value)">${firms.map((row) => `<option value="${mbAiEsc(row.id)}"${String(row.id) === String(_aiFirmId) ? ' selected' : ''}>${mbAiEsc(row.name || '')}</option>`).join('')}</select></div>`
+    : '';
+  const modeNote = mode === 'server'
+    ? mbAiSay('ai.run.mode.server', 'Bu firmada sunucu arar. Bilgisayar kapalıyken de Çalışsın açık kaldıkça devam eder.')
+    : mbAiSay('ai.run.mode.page', 'Bu firmada yalnız Başlat sayfası açıkken arar. Sayfa veya bilgisayar kapanınca yeni arama çıkmaz.');
+  const cards = (_aiDesk.staff || []).map((row) => mbAiRunCard(row, mode)).join('');
+  const empty = _aiDesk.staff.length ? '' : `<p class="ai-note">${mbAiEsc(mbAiSay('ai.run.empty', 'Önce YZ Personel sekmesinden personel ekleyin.'))}</p>`;
+  root.innerHTML = `<div class="ai-run">
+    <p class="ai-note">${mbAiEsc(mbAiSay('ai.run.intro', 'Personeli burada çalıştırırsın. Karttaki kampanyalar çalışabilir listesidir. Aşağıda yalnız bugün yoğunlaşacağın kampanyaları işaretle.'))}</p>
+    <p class="ai-note ${mode === 'server' ? 'ai-note-warn' : ''}">${mbAiEsc(modeNote)}</p>
+    ${firmPick}
+    <div class="ai-run-list">${empty}${cards}</div>
+  </div>`;
+}
+
+function mbAiRunCard(row, mode) {
+  const id = mbAiEsc(row.id);
+  const qc = row.kind === 'qc';
+  const kindLabel = qc ? mbAiSay('ai.staff.qc', 'Kalite') : mbAiSay('ai.staff.sales', 'Randevu');
+  const allowed = mbAiAllowedCamps(row);
+  const focus = new Set(row.focus_ids || []);
+  const noFocus = !focus.size;
+  const pills = allowed.length
+    ? allowed.map((camp) => mbAiPill('data-ai-focus', row.id, camp.id, camp.name || '', noFocus || focus.has(camp.id), `mbAiFocusPick('${id}')`)).join('')
+    : `<span class="ai-hint">${mbAiEsc(mbAiSay('ai.run.no_camp', 'Önce personel kartında kampanya seçin.'))}</span>`;
+  const parallel = qc ? '' : `<div class="ai-hint">${mbAiEsc(mbAiSay('ai.run.parallel', 'Aynı anda en fazla {n} hat').replace('{n}', String(row.parallel || 1)))}</div>`;
+  const salesNote = qc ? '' : `<div class="ai-hint">${mbAiEsc(mbAiSay('ai.run.sales_wait', 'Randevu personeli odak ve Çalışsın kaydını alır. Kişi listesinden arama bir sonraki adımda bağlanır.'))}</div>`;
+  const live = row.running
+    ? (mode === 'server'
+      ? mbAiSay('ai.run.live.server', 'Çalışıyor. Sunucu seçili kampanyalarda arar.')
+      : mbAiSay('ai.run.live.page', 'Çalışıyor. Bu sayfa açık kaldıkça arar.'))
+    : mbAiSay('ai.run.idle', 'Duruyor.');
+  return `<section class="ai-card ai-run-card${row.running ? ' is-on' : ''}">
+    <header class="ai-card-hd">
+      <span class="ai-badge ${qc ? 'is-qc' : 'is-sales'}"><i class="ph ${qc ? 'ph-seal-check' : 'ph-calendar-check'}"></i> ${mbAiEsc(kindLabel)}</span>
+      <div class="ai-card-title">${mbAiEsc(row.name || kindLabel)}</div>
+      ${mbAiSwitch(`ai-run-${id}`, row.running, mbAiSay('ai.run.work', 'Çalışsın'), `mbAiRunToggle('${id}')`)}
+    </header>
+    <div class="ai-sec">
+      <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.run.focus', 'Şimdi bu kampanyalarda'))}</div>
+      <div class="ai-pills" id="ai-focus-${id}">${pills}</div>
+      <div class="ai-hint">${mbAiEsc(mbAiSay('ai.run.focus_hint', 'Kartta izinli kampanyalardan seç. Hiçbiri işaretli değilse izinli olanların hepsinde çalışır.'))}</div>
+      ${parallel}
+      ${salesNote}
+      <div class="ai-run-live" id="ai-run-live-${id}">${mbAiEsc(live)}</div>
+    </div>
+  </section>`;
+}
+
+function mbAiFocusPick(staffId) {
+  if (!_aiDesk) return;
+  const row = _aiDesk.staff.find((item) => String(item.id) === String(staffId));
+  if (!row) return;
+  const boxes = [...document.querySelectorAll(`[data-ai-focus="${staffId}"]`)];
+  let on = boxes.filter((el) => el.checked).map((el) => el.value).filter(mbAiUuid);
+  if (!on.length) {
+    boxes.forEach((el) => { el.checked = true; });
+    on = boxes.map((el) => el.value).filter(mbAiUuid);
+  }
+  row.focus_ids = on.length === boxes.length ? [] : on;
+  void mbAiPersistRun();
+}
+
+async function mbAiRunToggle(staffId) {
+  if (!_aiDesk) return;
+  const row = _aiDesk.staff.find((item) => String(item.id) === String(staffId));
+  if (!row) return;
+  const on = !!document.getElementById(`ai-run-${staffId}`)?.checked;
+  if (on && !mbAiFirmReady(_aiDesk.settings)) {
+    if (document.getElementById(`ai-run-${staffId}`)) document.getElementById(`ai-run-${staffId}`).checked = false;
+    if (typeof toast === 'function') toast(mbAiSay('ai.run.not_ready', 'Önce şirket adı ve dakika fiyatı hazır olsun.'), 'err');
+    return;
+  }
+  if (on && !mbAiAllowedCamps(row).length) {
+    if (document.getElementById(`ai-run-${staffId}`)) document.getElementById(`ai-run-${staffId}`).checked = false;
+    if (typeof toast === 'function') toast(mbAiSay('ai.run.no_camp', 'Önce personel kartında kampanya seçin.'), 'err');
+    return;
+  }
+  row.running = on;
+  const card = document.querySelector(`#ai-run-${staffId}`)?.closest('.ai-run-card');
+  if (card) card.classList.toggle('is-on', on);
+  const live = document.getElementById(`ai-run-live-${staffId}`);
+  const mode = mbAiRunMode(_aiDesk.settings);
+  if (live) {
+    live.textContent = on
+      ? (mode === 'server'
+        ? mbAiSay('ai.run.live.server', 'Çalışıyor. Sunucu seçili kampanyalarda arar.')
+        : mbAiSay('ai.run.live.page', 'Çalışıyor. Bu sayfa açık kaldıkça arar.'))
+      : mbAiSay('ai.run.idle', 'Duruyor.');
+  }
+  await mbAiPersistRun();
+  if (on && row.kind === 'qc' && mode === 'page') void mbAiRunOneQc(row);
+}
+
+async function mbAiPersistRun() {
+  if (!_aiDesk || !_aiFirmId || _aiRunSaving || typeof sb !== 'function') return;
+  _aiRunSaving = true;
+  try {
+    const rows = await sb(`firms?id=eq.${_aiFirmId}&select=settings`);
+    const settings = { ...(rows?.[0]?.settings || {}) };
+    const prev = mbAiStaffList(settings);
+    const byId = new Map((_aiDesk.staff || []).map((row) => [row.id, row]));
+    settings.ai_staff = prev.map((row) => {
+      const next = byId.get(row.id);
+      if (!next) return row;
+      return mbAiStaffNorm({ ...row, running: next.running === true, focus_ids: next.focus_ids || [] });
+    }).filter(Boolean);
+    await sb(`firms?id=eq.${_aiFirmId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings }),
+    });
+    const hit = _aiDesk.firms.find((row) => String(row.id) === String(_aiFirmId));
+    if (hit) hit.settings = settings;
+    _aiDesk.settings = settings;
+    window._aiStaffByFirm = window._aiStaffByFirm || {};
+    window._aiStaffByFirm[_aiFirmId] = mbAiResolveEngine(mbAiStaffList(settings), settings);
+  } catch (e) {
+    if (typeof toast === 'function') toast((typeof t === 'function' ? t('dial.log_err') : '') + (e?.message || ''), 'err');
+  } finally {
+    _aiRunSaving = false;
+  }
+}
+
+function mbAiStartRunLoop() {
+  mbAiStopRunLoop();
+  if (!_aiDesk || _aiDesk.view !== 'run') return;
+  _aiRunTimer = setInterval(() => { void mbAiRunTick(); }, 20000);
+  void mbAiRunTick();
+}
+
+function mbAiStopRunLoop() {
+  if (_aiRunTimer) clearInterval(_aiRunTimer);
+  _aiRunTimer = null;
+}
+
+async function mbAiRunTick() {
+  if (!_aiDesk || _aiDesk.view !== 'run') return;
+  if (document.getElementById('callin-pane-run')?.hidden) return;
+  if (!mbAiFirmReady(_aiDesk.settings)) return;
+  const list = (_aiDesk.staff || []).filter((row) => row.running && row.kind === 'qc');
+  for (const row of list) await mbAiRunOneQc(row);
+}
+
+async function mbAiRunOneQc(staff) {
+  if (!_aiFirmId || typeof sb !== 'function') return;
+  const camps = mbAiFocusIds(staff);
+  const pool = camps.length ? camps : (_aiDesk.camps || []).map((camp) => camp.id).filter(mbAiUuid);
+  if (!pool.length) return;
+  const want = (staff.call_statuses || []).filter(Boolean);
+  const statuses = want.length ? want : ['qc_bekleniyor'];
+  const live = [..._aiRunBusy].filter((key) => key.startsWith(`${staff.id}:`)).length;
+  const room = Math.max(1, Number(staff.parallel) || 1) - live;
+  if (room <= 0) return;
+  const campQ = pool.map(encodeURIComponent).join(',');
+  const statusQ = statuses.map(encodeURIComponent).join(',');
+  const rows = await sb(
+    `appointments?select=id,campaign_id,form_ek,durum,telefonnummer&firm_id=eq.${_aiFirmId}&campaign_id=in.(${campQ})&durum=in.(${statusQ})&order=termin_tarih.asc&limit=${Math.max(room * 3, 3)}`
+  ).catch(() => []) || [];
+  let left = room;
+  for (const appt of rows) {
+    if (left <= 0) break;
+    const key = `${staff.id}:${appt.id}`;
+    if (_aiRunBusy.has(key)) continue;
+    const ek = appt.form_ek && typeof appt.form_ek === 'object' ? appt.form_ek : {};
+    if (ek.callin_state === 'dialing') continue;
+    const at = Date.parse(String(ek.callin_at || ''));
+    if (ek.callin_state === 'dialing' && at && Date.now() - at < 120000) continue;
+    _aiRunBusy.add(key);
+    left -= 1;
+    const res = await mbTelnyxAi('place', { appointment_id: appt.id, staff_id: staff.id, note: '' });
+    if (!res?.ok) {
+      _aiRunBusy.delete(key);
+      continue;
+    }
+    void mbAiWatchRun(appt.id, key);
+  }
+}
+
+async function mbAiWatchRun(apptId, busyKey) {
+  const started = Date.now();
+  while (Date.now() - started < 12 * 60 * 1000) {
+    await new Promise((resolve) => setTimeout(resolve, 4000));
+    const res = await mbTelnyxAi('sync', { appointment_id: apptId });
+    if (res?.ok && res.done) break;
+  }
+  _aiRunBusy.delete(busyKey);
 }
 
 function mbPaintAiStaff() {
