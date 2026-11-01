@@ -556,10 +556,9 @@ function mbAiRunCard(row, mode) {
   const pills = allowed.length
     ? allowed.map((camp) => mbAiPill('data-ai-focus', row.id, camp.id, camp.name || '', noFocus || focus.has(camp.id), `mbAiFocusPick('${id}')`)).join('')
     : `<span class="ai-hint">${mbAiEsc(mbAiSay('ai.run.no_camp', 'Önce personel kartında kampanya seçin.'))}</span>`;
-  const salesNote = qc ? '' : `<div class="ai-hint">${mbAiEsc(mbAiSay('ai.run.sales_wait', 'Randevu personeli odak ve Çalışsın kaydını alır. Kişi listesinden arama bir sonraki adımda bağlanır.'))}</div>`;
   const job = qc
     ? mbAiSay('ai.run.job.qc', 'Odaktaki kampanyalarda kalite bekleyen randevuları arar. Konuşur, sonucu yazar.')
-    : mbAiSay('ai.run.job.sales', 'Odaktaki kampanyalarda henüz randevusu olmayan kişileri arayacak. Bu yol sonraki adımda bağlanır.');
+    : mbAiSay('ai.run.job.sales', 'Odaktaki kampanyaların kuyruğundan kişileri arar. Randevu yazarsa kaliteye düşer.');
   return `<section class="ai-card ai-run-card${row.running ? ' is-on' : ''}" data-ai-run="${id}">
     <header class="ai-run-hd">
       <div class="ai-run-who">
@@ -577,7 +576,6 @@ function mbAiRunCard(row, mode) {
       <div class="ai-pills" id="ai-focus-${id}">${pills}</div>
       <div class="ai-hint">${mbAiEsc(mbAiSay('ai.run.focus_hint', 'Kartta izinli kampanyalardan seç. Hiçbiri işaretli değilse izinli olanların hepsinde çalışır.'))}</div>
       <div class="ai-hint">${mbAiEsc(mbAiSay('ai.run.parallel', 'Aynı anda {n} hat — kampanya hızı yok, havuz yok.').replace('{n}', String(max)))}</div>
-      ${salesNote}
     </div>
     <div class="ai-sec ai-run-board">
       <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.run.now', 'Şu an'))}</div>
@@ -621,7 +619,10 @@ async function mbAiRunToggle(staffId) {
   if (card) card.classList.toggle('is-on', on);
   mbAiPaintRunLive(staffId);
   await mbAiPersistRun();
-  if (on && row.kind === 'qc') void mbAiRunOneQc(row);
+  if (on) {
+    if (row.kind === 'qc') void mbAiRunOneQc(row);
+    else void mbAiRunOneSales(row);
+  }
 }
 
 async function mbAiPersistRun() {
@@ -670,8 +671,11 @@ async function mbAiRunTick() {
   if (!_aiDesk || _aiDesk.view !== 'run') return;
   if (document.getElementById('callin-pane-run')?.hidden) return;
   if (!mbAiFirmReady(_aiDesk.settings)) return;
-  const list = (_aiDesk.staff || []).filter((row) => row.running && row.kind === 'qc');
-  for (const row of list) await mbAiRunOneQc(row);
+  const list = (_aiDesk.staff || []).filter((row) => row.running);
+  for (const row of list) {
+    if (row.kind === 'qc') await mbAiRunOneQc(row);
+    else await mbAiRunOneSales(row);
+  }
   (_aiDesk.staff || []).forEach((row) => mbAiPaintRunLive(row.id));
 }
 
@@ -722,6 +726,57 @@ async function mbAiRunOneQc(staff) {
       mbAiPaintRunLive(staff.id);
       continue;
     }
+    void mbAiWatchRun(staff.id, meta);
+  }
+}
+
+async function mbAiRunOneSales(staff) {
+  if (!_aiFirmId || typeof sb !== 'function') return;
+  const camps = mbAiFocusIds(staff);
+  const pool = camps.length ? camps : (_aiDesk.camps || []).map((camp) => camp.id).filter(mbAiUuid);
+  if (!pool.length) return;
+  const open = mbAiRunLiveRows(staff.id).filter((row) => !row.doneAt).length;
+  const room = Math.max(1, Number(staff.parallel) || 1) - open;
+  if (room <= 0) return;
+  const campQ = pool.map(encodeURIComponent).join(',');
+  const rows = await sb(
+    `contacts?select=id,first_name,last_name,phone,campaign_id,status,last_called_at&firm_id=eq.${_aiFirmId}&campaign_id=in.(${campQ})&status=in.(pending,callback,no_answer)&order=last_called_at.asc.nullsfirst&limit=${Math.max(room * 3, 3)}`
+  ).catch(() => []) || [];
+  let left = room;
+  for (const contact of rows) {
+    if (left <= 0) break;
+    const key = `${staff.id}:c:${contact.id}`;
+    if (_aiRunBusy.has(key)) continue;
+    if ((_aiRunLive[staff.id] || []).some((row) => row.contactId === contact.id && !row.doneAt)) continue;
+    const calledAt = Date.parse(String(contact.last_called_at || ''));
+    if (contact.status === 'calling' && calledAt && Date.now() - calledAt < 120000) continue;
+    if (!String(contact.phone || '').trim()) continue;
+    _aiRunBusy.add(key);
+    left -= 1;
+    const name = [contact.first_name, contact.last_name].map((part) => String(part || '').trim()).filter(Boolean).join(' ');
+    const meta = {
+      key,
+      apptId: '',
+      contactId: contact.id,
+      name,
+      phone: String(contact.phone || '').trim(),
+      camp: mbAiCampName(contact.campaign_id),
+      phase: 'ringing',
+      secs: 0,
+      at: Date.now(),
+      doneAt: 0,
+    };
+    _aiRunLive[staff.id] = [...mbAiRunLiveRows(staff.id), meta];
+    mbAiPaintRunLive(staff.id);
+    const res = await mbTelnyxAi('place', { contact_id: contact.id, staff_id: staff.id, note: '' });
+    if (!res?.ok || !res.appointment_id) {
+      _aiRunBusy.delete(key);
+      meta.phase = 'missed';
+      meta.doneAt = Date.now();
+      mbAiPaintRunLive(staff.id);
+      continue;
+    }
+    meta.apptId = res.appointment_id;
     void mbAiWatchRun(staff.id, meta);
   }
 }

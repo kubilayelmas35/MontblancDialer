@@ -173,12 +173,40 @@ function staffOf(settings: Record<string, any>, staffId: string, campaignId: str
   const raw = Array.isArray(settings.ai_staff) ? settings.ai_staff : [];
   const hit = raw.find((row: any) => String(row?.id || '') === staffId);
   if (!hit) return { error: 'staff' as const };
-  if (hit.kind !== 'qc') return { error: 'kind' as const };
+  const kind = hit.kind === 'sales' ? 'sales' as const : hit.kind === 'qc' ? 'qc' as const : null;
+  if (!kind) return { error: 'kind' as const };
   const ids = campIds(hit);
-  if (ids.length && !ids.includes(campaignId)) return { error: 'staff' as const };
+  if (ids.length && campaignId && !ids.includes(campaignId)) return { error: 'staff' as const };
   const results = Array.isArray(hit.results) ? hit.results.map((key: unknown) => normKey(key)).filter(Boolean) : [];
   const engine = hit.engine === 'super' ? 'super' as const : hit.engine === 'std' ? 'std' as const : '';
-  return { id: staffId, prompt: clip(hit.prompt, 2000), greeting: clip(hit.greeting, 400), results, engine, llm: clip(hit.llm, 40), voiceId: clip(hit.voice_id, 60).replace(/[^A-Za-z0-9]/g, ''), moveTime: hit.move_time !== false, mustDo: clip(hit.must_do, 600), mustNot: clip(hit.must_not, 600) };
+  return { id: staffId, kind, prompt: clip(hit.prompt, 2000), greeting: clip(hit.greeting, 400), results, engine, llm: clip(hit.llm, 40), voiceId: clip(hit.voice_id, 60).replace(/[^A-Za-z0-9]/g, ''), moveTime: hit.move_time !== false, mustDo: clip(hit.must_do, 600), mustNot: clip(hit.must_not, 600) };
+}
+
+function salesResultChoices(): AiChoice[] {
+  return [
+    { key: 'appointment', label: 'Randevu' },
+    { key: 'negative', label: 'Olumsuz' },
+    { key: 'callback', label: 'Geri Ara' },
+    { key: 'no_answer', label: 'Cevap Yok' },
+    { key: 'voicemail', label: 'Telesekreter' },
+    { key: 'dnc', label: 'Kara Liste' },
+  ];
+}
+
+function staffChoices(kind: 'qc' | 'sales', results: string[], settings: Record<string, any>) {
+  return allowedChoices(kind, results, kind === 'sales' ? salesResultChoices() : resultChoices(settings));
+}
+
+function salesContactStatus(key: string) {
+  const map: Record<string, string> = {
+    appointment: 'appointment',
+    negative: 'negative',
+    callback: 'callback',
+    no_answer: 'no_answer',
+    voicemail: 'voicemail',
+    dnc: 'dnc',
+  };
+  return map[key] || key;
 }
 
 function spokenBrief(brief: { ok: true; instructions: string; greeting: string; voice: string }, appt: Record<string, any>, extra: Record<string, any>, when: string) {
@@ -359,28 +387,79 @@ async function mergeEk(admin: SupabaseClient, appt: Record<string, any>, patch: 
   return !error;
 }
 
+async function apptFromContact(admin: SupabaseClient, contact: Record<string, any>) {
+  const extra = contact.extra && typeof contact.extra === 'object' ? contact.extra as Record<string, any> : {};
+  const name = [contact.first_name, contact.last_name].map((part) => clip(part, 60)).filter(Boolean).join(' ').trim();
+  const row = {
+    firm_id: contact.firm_id,
+    campaign_id: contact.campaign_id,
+    contact_id: contact.id,
+    customer_id: contact.customer_id || null,
+    nachname: name || clip(contact.last_name, 80) || '—',
+    telefonnummer: clip(contact.phone, 40),
+    strasse: clip(contact.address || extra.strasse || extra.address, 180),
+    plz: clip(contact.plz || extra.plz, 20),
+    ortschaft: clip(contact.city || extra.ort || extra.ortschaft, 80),
+    hausart: clip(extra.hausart, 80) || null,
+    baujahr: clip(extra.baujahr, 40) || null,
+    qm: clip(extra.qm, 40) || null,
+    heizung: clip(extra.heizung, 80) || null,
+    alter_der_heizung: clip(extra.alter_der_heizung, 40) || null,
+    verbrauch_pro_jahr: clip(extra.verbrauch_pro_jahr, 40) || null,
+    personen: clip(extra.personen, 40) || null,
+    durum: 'ai_sales',
+    form_ek: { callin_kind: 'sales' },
+  };
+  const { data, error } = await admin.from('appointments').insert(row).select('*').maybeSingle();
+  if (error || !data) return null;
+  return data;
+}
+
 async function placeCall(admin: SupabaseClient, user: Record<string, any>, body: Record<string, any>) {
   const appointmentId = String(body.appointment_id || '');
+  const contactId = String(body.contact_id || '');
   const staffId = String(body.staff_id || '');
-  if (!uuidRe.test(appointmentId) || !staffId) return json({ ok: false, error: 'id' }, 400);
-  const { data: appt } = await admin.from('appointments').select('*').eq('id', appointmentId).maybeSingle();
-  if (!appt) return json({ ok: false, error: 'missing' }, 404);
+  if (!staffId) return json({ ok: false, error: 'id' }, 400);
   const role = String(user.role || '');
   if (!['super_admin', 'admin', 'firm_admin', 'qc'].includes(role)) return json({ ok: false, error: 'auth' }, 403);
-  if (role !== 'super_admin' && String(user.firm_id || '') !== String(appt.firm_id || '')) return json({ ok: false, error: 'auth' }, 403);
+
+  let appt: Record<string, any> | null = null;
+  let wantKind: 'qc' | 'sales' = 'qc';
+  if (uuidRe.test(contactId) && !uuidRe.test(appointmentId)) {
+    wantKind = 'sales';
+    const { data: contact } = await admin.from('contacts').select('*').eq('id', contactId).maybeSingle();
+    if (!contact) return json({ ok: false, error: 'missing' }, 404);
+    if (role !== 'super_admin' && String(user.firm_id || '') !== String(contact.firm_id || '')) return json({ ok: false, error: 'auth' }, 403);
+    if (!normDid(contact.phone)) return json({ ok: false, error: 'phone' }, 400);
+    const busy = String(contact.status || '') === 'calling';
+    const calledAt = Date.parse(String(contact.last_called_at || ''));
+    if (busy && calledAt && Date.now() - calledAt < 120000) return json({ ok: false, error: 'busy' }, 409);
+    appt = await apptFromContact(admin, contact);
+    if (!appt) return json({ ok: false, error: 'save' }, 500);
+    await admin.from('contacts').update({ status: 'calling', last_called_at: new Date().toISOString() }).eq('id', contact.id);
+  } else {
+    if (!uuidRe.test(appointmentId)) return json({ ok: false, error: 'id' }, 400);
+    const { data } = await admin.from('appointments').select('*').eq('id', appointmentId).maybeSingle();
+    if (!data) return json({ ok: false, error: 'missing' }, 404);
+    appt = data;
+    if (role !== 'super_admin' && String(user.firm_id || '') !== String(appt.firm_id || '')) return json({ ok: false, error: 'auth' }, 403);
+  }
+
   const { data: firm } = await admin.from('firms').select('settings').eq('id', appt.firm_id).maybeSingle();
   const settings = (firm?.settings || {}) as Record<string, any>;
   const staff = staffOf(settings, staffId, String(appt.campaign_id || ''));
   if ('error' in staff) return json({ ok: false, error: staff.error }, 400);
+  if (staff.kind !== wantKind) return json({ ok: false, error: 'kind' }, 400);
   const ai = firmAi(settings);
   // The staff member's own engine wins; firms that never chose per staff keep their old firm-level choice.
   ai.engine = staff.engine || ai.engine;
   ai.llm = llmOf(staff.llm || ai.llm);
-  const choices = allowedChoices('qc', staff.results, resultChoices(settings));
+  const choices = staffChoices(staff.kind, staff.results, settings);
   const extra = appt.form_ek && typeof appt.form_ek === 'object' ? appt.form_ek : {};
   const note = clip(body.note, 800);
+  const hold = staff.kind === 'qc' ? holdPick(settings, staff.results) : { wait: null as null, miss: null as null };
   const brief = buildAiBrief({
-    kind: 'qc',
+    kind: staff.kind,
     lang: ai.lang,
     company: ai.spoken_name,
     rate: ai.rate,
@@ -400,10 +479,10 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     mustDo: staff.mustDo,
     mustNot: staff.mustNot,
     work: ai.work,
-    waitKey: holdPick(settings, staff.results).wait?.key || '',
-    waitLabel: holdPick(settings, staff.results).wait?.label || '',
-    missKey: holdPick(settings, staff.results).miss?.key || '',
-    missLabel: holdPick(settings, staff.results).miss?.label || '',
+    waitKey: hold.wait?.key || '',
+    waitLabel: hold.wait?.label || '',
+    missKey: hold.miss?.key || '',
+    missLabel: hold.miss?.label || '',
   });
   if (!brief.ok) return json({ ok: false, error: brief.error }, 400);
   const to = normDid(appt.telefonnummer);
@@ -411,7 +490,13 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
   const { data: camp } = await admin.from('campaigns').select('telnyx_did').eq('id', appt.campaign_id).maybeSingle();
   const from = normDid(camp?.telnyx_did) || lineFrom(settings);
   if (ai.engine === 'super') {
-    return placeEleven(admin, appt, settings, { staffId: staff.id, by: String(user.id || ''), voiceId: staff.voiceId, llm: ai.llm, note, extra, to, from, speech: spokenBrief(brief, appt, extra, whenText(appt)) });
+    const placed = await placeEleven(admin, appt, settings, { staffId: staff.id, by: String(user.id || ''), voiceId: staff.voiceId, llm: ai.llm, note, extra, to, from, speech: spokenBrief(brief, appt, extra, whenText(appt)) });
+    if (placed.status !== 200) {
+      if (wantKind === 'sales' && appt.contact_id) await admin.from('contacts').update({ status: 'pending' }).eq('id', appt.contact_id);
+      return placed;
+    }
+    const bodyJson = await placed.json().catch(() => ({ ok: true }));
+    return json({ ...(bodyJson && typeof bodyJson === 'object' ? bodyJson : { ok: true }), appointment_id: appt.id });
   }
   const connection = clip(settings.integrations?.sip_connection_id, 80);
   const key = clip(settings.integrations?.telnyx_api_key, 200);
@@ -450,7 +535,7 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     from,
     webhook_url: hook,
     webhook_url_method: 'POST',
-    client_state: packState({ token, appointment_id: appointmentId, firm_id: String(appt.firm_id) }),
+    client_state: packState({ token, appointment_id: String(appt.id), firm_id: String(appt.firm_id) }),
   };
   // Plain dial; the assistant starts on answer so voice problems come back as readable 422s with a fallback.
   const dial = await telnyx(key, 'calls', callBody);
@@ -464,7 +549,7 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     return json({ ok: false, error: 'dial', detail: clip(why, 300), first: clip(firstWhy, 300) }, 502);
   }
   await mergeEk(admin, appt, { callin_control: control, callin_warm: warm ? '1' : '', callin_error_first: clip(firstWhy, 300) });
-  return json({ ok: true });
+  return json({ ok: true, appointment_id: appt.id });
 }
 
 function elementsFor(settings: Record<string, any>, from: string, hook: string) {
@@ -662,8 +747,9 @@ function qcBrief(settings: Record<string, any>, appt: Record<string, any>, extra
   const staff = staffOf(settings, staffId, String(appt.campaign_id || ''));
   if ('error' in staff) return null;
   const ai = firmAi(settings);
+  const hold = staff.kind === 'qc' ? holdPick(settings, staff.results) : { wait: null as null, miss: null as null };
   const brief = buildAiBrief({
-    kind: 'qc',
+    kind: staff.kind,
     lang: ai.lang,
     company: ai.spoken_name,
     rate: ai.rate,
@@ -675,17 +761,17 @@ function qcBrief(settings: Record<string, any>, appt: Record<string, any>, extra
     forbidOther: ai.forbidOther,
     transfer: ai.transfer,
     voice: ai.voice,
-    allowed: allowedChoices('qc', staff.results, resultChoices(settings)),
+    allowed: staffChoices(staff.kind, staff.results, settings),
     fields: fieldLines(ai.lang, appt, extra),
     when: whenText(appt),
     moveTime: staff.moveTime,
     mustDo: staff.mustDo,
     mustNot: staff.mustNot,
     work: ai.work,
-    waitKey: holdPick(settings, staff.results).wait?.key || '',
-    waitLabel: holdPick(settings, staff.results).wait?.label || '',
-    missKey: holdPick(settings, staff.results).miss?.key || '',
-    missLabel: holdPick(settings, staff.results).miss?.label || '',
+    waitKey: hold.wait?.key || '',
+    waitLabel: hold.wait?.label || '',
+    missKey: hold.miss?.key || '',
+    missLabel: hold.miss?.label || '',
   });
   return brief.ok ? spokenBrief(brief, appt, extra, whenText(appt)) : null;
 }
@@ -706,9 +792,10 @@ async function onAnswer(admin: SupabaseClient, appt: Record<string, any>, contro
     await mergeEk(admin, appt, { callin_state: 'idle', callin_error: 'start' });
     return;
   }
-  const choices = allowedChoices('qc', staff.results, resultChoices(settings));
+  const choices = staffChoices(staff.kind, staff.results, settings);
+  const hold = staff.kind === 'qc' ? holdPick(settings, staff.results) : { wait: null as null, miss: null as null };
   const brief = buildAiBrief({
-    kind: 'qc',
+    kind: staff.kind,
     lang: ai.lang,
     company: ai.spoken_name,
     rate: ai.rate,
@@ -727,10 +814,10 @@ async function onAnswer(admin: SupabaseClient, appt: Record<string, any>, contro
     mustDo: staff.mustDo,
     mustNot: staff.mustNot,
     work: ai.work,
-    waitKey: holdPick(settings, staff.results).wait?.key || '',
-    waitLabel: holdPick(settings, staff.results).wait?.label || '',
-    missKey: holdPick(settings, staff.results).miss?.key || '',
-    missLabel: holdPick(settings, staff.results).miss?.label || '',
+    waitKey: hold.wait?.key || '',
+    waitLabel: hold.wait?.label || '',
+    missKey: hold.miss?.key || '',
+    missLabel: hold.miss?.label || '',
   });
   if (!brief.ok) {
     await telnyx(key, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
@@ -825,10 +912,13 @@ async function writeResult(admin: SupabaseClient, appt: Record<string, any>, arg
   const extra = appt.form_ek || {};
   const staff = staffOf(settings, String(extra.callin_staff_id || ''), String(appt.campaign_id || ''));
   if ('error' in staff) return { result: 'no_staff' };
-  const choices = allowedChoices('qc', staff.results, resultChoices(settings));
+  const kind = staff.kind;
+  const choices = staffChoices(kind, staff.results, settings);
   const key = normKey(args.result);
-  if (!resultAllowed('qc', key, choices.map((row) => row.key))) return { result: 'result_denied' };
-  const patch: Record<string, unknown> = { durum: key };
+  if (!resultAllowed(kind, key, choices.map((row) => row.key))) return { result: 'result_denied' };
+  const slotIdEarly = String(args.slot_id || '');
+  if (kind === 'sales' && key === 'appointment' && !uuidRe.test(slotIdEarly)) return { result: 'need_slot' };
+  const patch: Record<string, unknown> = { durum: kind === 'sales' && key === 'appointment' ? 'qc_bekleniyor' : key };
   const extras: Record<string, string> = {};
   let rawFields: unknown = args.fields;
   if (typeof args.fields_json === 'string' && args.fields_json.trim()) {
@@ -875,7 +965,8 @@ async function writeResult(admin: SupabaseClient, appt: Record<string, any>, arg
     return { result: 'save_failed' };
   }
   if (appt.contact_id) {
-    await admin.from('contacts').update({ status: contactStatus(key, settings) }).eq('id', appt.contact_id);
+    const status = kind === 'sales' ? salesContactStatus(key) : contactStatus(key, settings);
+    await admin.from('contacts').update({ status, last_called_at: new Date().toISOString() }).eq('id', appt.contact_id);
   }
   const { data: fresh } = await admin.from('firms').select('settings').eq('id', appt.firm_id).maybeSingle();
   const callKey = clip((fresh?.settings || settings).integrations?.telnyx_api_key, 200);
