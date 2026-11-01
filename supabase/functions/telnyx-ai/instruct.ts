@@ -26,6 +26,7 @@ export type AiBriefInput = {
   moveTime?: boolean;
   mustDo?: string;
   mustNot?: string;
+  work?: string;
 };
 
 export type AiBrief = {
@@ -187,6 +188,7 @@ export function buildAiBrief(input: AiBriefInput): AiBrief {
   const prompt = clip(input.prompt, 2000);
   const mustDo = clip(input.mustDo, 600);
   const mustNot = clip(input.mustNot, 600);
+  const work = clip(input.work, 800);
   const when = clip(input.when, 40);
   const transfer = normDid(input.transfer);
   const job = kind === 'qc'
@@ -225,6 +227,9 @@ export function buildAiBrief(input: AiBriefInput): AiBrief {
   const instructions = [
     de ? `Du telefonierst für ${company}. Sprich Deutsch.` : `${company} adına telefon edersin. Türkçe konuş.`,
     job,
+    work ? (de
+      ? `Unser Geschäft. Nicht vorlesen. Kommt es zur Sache oder fragt die Person, erkläre es kurz in eigenen Worten und in der Sprache des Anrufs:\n${work}`
+      : `İşimiz. Aynen okuma. Konu açılırsa veya kişi sorarsa kendi cümlerinle, aramanın dilinde kısaca anlat:\n${work}`) : '',
     style,
     bans.join(' '),
     prompt ? (de ? `Auftrag: ${prompt}` : `Görev: ${prompt}`) : '',

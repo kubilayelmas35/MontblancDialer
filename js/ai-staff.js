@@ -18,6 +18,7 @@ function mbFirmAi(settings) {
   const rate = Number(ai.rate);
   return {
     spoken_name: String(ai.spoken_name || '').trim().slice(0, 80),
+    work: String(ai.work || '').trim().slice(0, 800),
     lang: ai.lang === 'tr' ? 'tr' : 'de',
     voice: ai.voice === 'female' || ai.voice === 'male' ? ai.voice : '',
     rate: Number.isFinite(rate) && rate > 0 ? Math.round(rate * 1000) / 1000 : 0,
@@ -247,6 +248,7 @@ function mbAiReadDesk() {
     ai: {
       ...(_aiDesk.settings.ai || {}),
       spoken_name: String(document.getElementById('ai-spoken')?.value || '').trim().slice(0, 80),
+      work: String(document.getElementById('ai-work')?.value || '').trim().slice(0, 800),
       lang: document.getElementById('ai-lang')?.value === 'tr' ? 'tr' : 'de',
       voice: ['female', 'male'].includes(document.getElementById('ai-voice')?.value) ? document.getElementById('ai-voice').value : '',
       rate: prev.rate,
@@ -387,6 +389,7 @@ function mbPaintAiStaff() {
     <div class="ai-grid">
       ${firmPick}
       ${mbAiField('ai-spoken', mbAiSay('line.ai.name', 'Söylenecek şirket adı'), `<input class="form-input" id="ai-spoken" maxlength="80" value="${mbAiEsc(ai.spoken_name || '')}" placeholder="${mbAiEsc(mbAiSay('line.ai.name_ph', ''))}">`)}
+      ${mbAiField('ai-work', mbAiSay('line.ai.work', 'Yaptığımız iş'), `<textarea class="form-input" id="ai-work" rows="5" maxlength="800" placeholder="${mbAiEsc(mbAiSay('line.ai.work_ph', ''))}">${mbAiEsc(ai.work || '')}</textarea><div class="ai-hint">${mbAiEsc(mbAiSay('line.ai.work_hint', ''))}</div>`, true)}
       ${mbAiField('ai-transfer', mbAiSay('line.ai.transfer', 'İnsana aktar'), `<input class="form-input" id="ai-transfer" maxlength="20" placeholder="+49301234567" value="${mbAiEsc(ai.transfer || ai.transfer_raw || '')}">`)}
       ${mbAiField('ai-lang', mbAiSay('line.ai.lang', 'Dil'), `<select class="form-input" id="ai-lang">${opt('de', ai.lang, mbAiSay('line.ai.lang.de', 'Almanca'))}${opt('tr', ai.lang, mbAiSay('line.ai.lang.tr', 'Türkçe'))}</select>`)}
       ${mbAiField('ai-voice', mbAiSay('line.ai.voice', 'Ses'), `<select class="form-input" id="ai-voice">${opt('', ai.voice || '', mbAiSay('line.ai.voice.default', 'Varsayılan'))}${opt('female', ai.voice || '', mbAiSay('line.ai.voice.female', 'Kadın'))}${opt('male', ai.voice || '', mbAiSay('line.ai.voice.male', 'Erkek'))}</select>`)}
@@ -812,6 +815,7 @@ async function mbSaveAiStaff() {
   }
   const ai = {
     spoken_name: String(draft.spoken_name || '').trim().slice(0, 80),
+    work: String(draft.work || '').trim().slice(0, 800),
     lang: draft.lang === 'tr' ? 'tr' : 'de',
     voice: draft.voice === 'female' || draft.voice === 'male' ? draft.voice : '',
     engine: draft.engine === 'super' ? 'super' : 'std',

@@ -147,6 +147,7 @@ function firmAi(settings: Record<string, any>) {
   const ai = settings.ai && typeof settings.ai === 'object' ? settings.ai : {};
   return {
     spoken_name: clip(ai.spoken_name, 80),
+    work: clip(ai.work, 800),
     lang: ai.lang === 'tr' ? 'tr' as const : 'de' as const,
     voice: ai.voice === 'female' || ai.voice === 'male' ? ai.voice : '',
     rate: Number(ai.rate) > 0 ? Number(ai.rate) : 0,
@@ -380,6 +381,7 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     moveTime: staff.moveTime,
     mustDo: staff.mustDo,
     mustNot: staff.mustNot,
+    work: ai.work,
   });
   if (!brief.ok) return json({ ok: false, error: brief.error }, 400);
   const to = normDid(appt.telefonnummer);
@@ -657,6 +659,7 @@ function qcBrief(settings: Record<string, any>, appt: Record<string, any>, extra
     moveTime: staff.moveTime,
     mustDo: staff.mustDo,
     mustNot: staff.mustNot,
+    work: ai.work,
   });
   return brief.ok ? spokenBrief(brief, appt, extra, whenText(appt)) : null;
 }
@@ -697,6 +700,7 @@ async function onAnswer(admin: SupabaseClient, appt: Record<string, any>, contro
     moveTime: staff.moveTime,
     mustDo: staff.mustDo,
     mustNot: staff.mustNot,
+    work: ai.work,
   });
   if (!brief.ok) {
     await telnyx(key, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
