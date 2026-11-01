@@ -27,6 +27,10 @@ export type AiBriefInput = {
   mustDo?: string;
   mustNot?: string;
   work?: string;
+  waitKey?: string;
+  waitLabel?: string;
+  missKey?: string;
+  missLabel?: string;
 };
 
 export type AiBrief = {
@@ -200,13 +204,22 @@ export function buildAiBrief(input: AiBriefInput): AiBrief {
       : 'Randevu için konuşursun. Başarılı yazmak yasak. Randevu, kaydı kalite kontrole bırakır.');
   const sup = input.engine === 'super';
   const canMove = input.moveTime !== false;
+  const waitName = clip(input.waitLabel, 80);
+  const waitKey = clip(input.waitKey, 40);
+  const missName = clip(input.missLabel, 80) || (de ? 'Nicht erreicht' : 'Ulaşılamadı');
+  const missKey = clip(input.missKey, 40) || 'ulasilamadi';
+  const held = waitKey
+    ? (de
+      ? `Die Uhrzeit darf nicht geändert werden. Rufe takvim_bak nicht auf und schicke kein slot_id. Will die Person eine andere Zeit, bleibt die eingetragene Zeit. Speichere das Ergebnis ${waitName} mit dem Schlüssel ${waitKey}. Schreibe nicht ${missName}.`
+      : `Randevu saati değiştirilemez. Boş saat arama, saat kaydetme. Kişi başka saat isterse kayıtlı saat kalır. Sonucu ${waitName} olarak, anahtar ${waitKey} ile kaydet. Bunu ${missName} yazma.`)
+    : (de
+      ? `Die Uhrzeit darf nicht geändert werden. Rufe takvim_bak nicht auf und schicke kein slot_id. Es gibt kein Warte-Ergebnis. Will die Person eine andere Zeit, bleibt die eingetragene Zeit. Speichere das Ergebnis ${missName} mit dem Schlüssel ${missKey}.`
+      : `Randevu saati değiştirilemez. Boş saat arama, saat kaydetme. Bekleme sonucu yok. Kişi başka saat isterse kayıtlı saat kalır ve sonucu ${missName} olarak, anahtar ${missKey} ile kaydet.`);
   const move = canMove
     ? (de
       ? 'Will die Person früher oder eine andere Uhrzeit, rufe takvim_bak für denselben Tag ohne after auf. after blendet jede Zeit davor aus, also nicht benutzen wenn sie früher möchte. Biete nur eine zurückgegebene freie Zeit an. Bestätigt sie diese, schreibe genau diese slot_id in sonuc_yaz: der alte Platz wird frei, der Kalender übernimmt die neue Zeit. Ist die gewünschte Uhrzeit nicht in der Liste, sage dass sie belegt ist und biete die nächste freie Zeit aus der Liste an. Erfinde keine Uhrzeit und schreibe keine slot_id, die takvim_bak nicht genannt hat.'
       : 'Kişi daha erken veya başka saat isterse takvim_bak\'ı aynı gün için after vermeden çağır. after, o saatten önceki boşlukları gizler; daha erken istenince kullanma. Yalnız dönen boş saatlerden birini öner. Onaylarsa sonuc_yaz\'a tam o slot_id\'yi yaz: eski yer boşalır, takvim yeni saate geçer. İstediği saat listede yoksa dolu olduğunu söyle ve listedeki en yakın boş saati öner. Listede olmayan saati uydurma, takvim_bak\'ın vermediği slot_id\'yi yazma.')
-    : (de
-      ? 'Die Uhrzeit darf nicht geändert werden. Rufe takvim_bak nicht auf und schicke kein slot_id. Sagt die Person, sie wolle früher oder anders, erkläre dass der Termin auf der eingetragenen Zeit bleibt.'
-      : 'Randevu saati değiştirilemez. takvim_bak çağırma, slot_id gönderme. Kişi daha erken veya başka saat isterse saatin kayıtlı kaldığını söyle.');
+    : held;
   const tools = sup
     ? (de
       ? `Werkzeuge: takvim_bak für freie Zeiten, sonuc_yaz nur mit einem erlaubten Schlüssel (fields_json nur für korrigierte Angaben als JSON-Text). ${move} Nach sonuc_yaz verabschiede dich kurz und rufe end_call. Wenn die Person noch spricht, nachdenkt oder um einen Moment bittet, rufe skip_turn und bleib still. Wenn ein Anrufbeantworter oder eine Bandansage rangeht, rufe sofort voicemail_detection und lege ohne Nachricht auf.`

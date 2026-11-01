@@ -275,8 +275,8 @@ function mbAiReadDesk() {
       parallel: document.getElementById(`ai-parallel-${row.id}`)?.value,
       auto: !!document.getElementById(`ai-auto-${row.id}`)?.checked,
       retry_min: document.getElementById(`ai-retry-${row.id}`)?.value,
-      greeting: document.getElementById(`ai-greet-${row.id}`)?.value,
-      prompt: document.getElementById(`ai-prompt-${row.id}`)?.value,
+      greeting: mbAiRichValue(document.getElementById(`ai-greet-${row.id}`)),
+      prompt: mbAiRichValue(document.getElementById(`ai-prompt-${row.id}`)),
       must_do: document.getElementById(`ai-must-${row.id}`)?.value,
       must_not: document.getElementById(`ai-mustnot-${row.id}`)?.value,
       engine: document.getElementById(`ai-engine-${row.id}`)?.value ?? row.engine,
@@ -495,26 +495,285 @@ function mbAiTokenFocus(id) {
   _aiTokenFocus = String(id || '');
 }
 
+function mbAiSystemChips() {
+  const look = mbAiSay('ai.job.look', 'Boş saatlere bak');
+  const slot = mbAiSay('ai.job.slot', 'Seçilen saat');
+  const save = mbAiSay('ai.job.save', 'Sonucu kaydet');
+  return [
+    { raw: 'takvim_bak', label: look, job: true },
+    { raw: 'takvim.bak', label: look, job: true, store: 'takvim_bak' },
+    { raw: '{takvim_bak}', label: look, job: true, store: 'takvim_bak' },
+    { raw: 'slot_id', label: slot, job: true },
+    { raw: '{slot_id}', label: slot, job: true, store: 'slot_id' },
+    { raw: 'sonuc_yaz', label: save, job: true },
+    { raw: '{sonuc_yaz}', label: save, job: true, store: 'sonuc_yaz' },
+  ];
+}
+
+function mbAiChipList(row) {
+  const list = mbAiSystemChips();
+  const seen = new Set(list.map((chip) => chip.raw));
+  mbAiTokensFor(row || {}).forEach(([token, label]) => {
+    if (!token || seen.has(token)) return;
+    seen.add(token);
+    list.push({ raw: token, label, job: false });
+  });
+  return list;
+}
+
+function mbAiChipHtml(text, chips) {
+  const ordered = [...chips].sort((a, b) => b.raw.length - a.raw.length);
+  const alt = ordered.map((chip) => chip.raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const src = String(text || '');
+  if (!alt) return mbAiEsc(src).replace(/\n/g, '<br>');
+  const re = new RegExp(alt, 'g');
+  let html = '';
+  let last = 0;
+  let match;
+  while ((match = re.exec(src))) {
+    html += mbAiEsc(src.slice(last, match.index)).replace(/\n/g, '<br>');
+    const hit = ordered.find((chip) => chip.raw === match[0]);
+    const store = hit?.store || hit?.raw || match[0];
+    html += `<span class="ai-chip${hit?.job ? ' is-job' : ''}" contenteditable="false" data-token="${mbAiEsc(store)}">${mbAiEsc(hit?.label || store)}</span>`;
+    last = match.index + match[0].length;
+  }
+  html += mbAiEsc(src.slice(last)).replace(/\n/g, '<br>');
+  return html;
+}
+
+function mbAiNodeLen(node) {
+  if (!node) return 0;
+  if (node.nodeType === 3) return node.textContent.length;
+  if (node.nodeType !== 1) return 0;
+  if (node.classList.contains('ai-chip')) return String(node.dataset.token || '').length;
+  if (node.tagName === 'BR') return 1;
+  let total = 0;
+  node.childNodes.forEach((child) => { total += mbAiNodeLen(child); });
+  return total;
+}
+
+function mbAiRichValue(el) {
+  if (!el) return '';
+  if (el.getAttribute?.('contenteditable') !== 'true') return String(el.value || '');
+  const max = Number(el.dataset.max) || 2000;
+  let out = '';
+  const walk = (node) => {
+    node.childNodes.forEach((child) => {
+      if (child.nodeType === 3) out += child.textContent.replace(/\u00a0/g, ' ');
+      else if (child.nodeType !== 1) return;
+      else if (child.classList.contains('ai-chip')) out += child.dataset.token || '';
+      else if (child.tagName === 'BR') out += '\n';
+      else {
+        if ((child.tagName === 'DIV' || child.tagName === 'P') && out && !out.endsWith('\n')) out += '\n';
+        walk(child);
+      }
+    });
+  };
+  walk(el);
+  return out.slice(0, max);
+}
+
+function mbAiRichCaret(el) {
+  const sel = window.getSelection?.();
+  if (!sel?.rangeCount || !el.contains(sel.anchorNode)) return null;
+  const anchor = sel.anchorNode;
+  const anchorOff = sel.anchorOffset;
+  let count = 0;
+  const walk = (parent) => {
+    const kids = [...parent.childNodes];
+    for (let i = 0; i < kids.length; i += 1) {
+      const child = kids[i];
+      if (parent === anchor && i === anchorOff) return true;
+      if (child === anchor && child.nodeType === 3) {
+        count += Math.min(anchorOff, child.textContent.length);
+        return true;
+      }
+      if (child.nodeType === 3) {
+        count += child.textContent.length;
+        continue;
+      }
+      if (child.nodeType !== 1) continue;
+      if (child.classList.contains('ai-chip')) {
+        count += String(child.dataset.token || '').length;
+        if (child === anchor || child.contains(anchor)) return true;
+        continue;
+      }
+      if (child.tagName === 'BR') {
+        if (child === anchor) return true;
+        count += 1;
+        continue;
+      }
+      if (child === anchor) {
+        const inner = [...child.childNodes];
+        for (let j = 0; j < anchorOff && j < inner.length; j += 1) count += mbAiNodeLen(inner[j]);
+        return true;
+      }
+      if (child.contains(anchor)) return walk(child);
+      count += mbAiNodeLen(child);
+    }
+    if (parent === anchor) return true;
+    return false;
+  };
+  return walk(el) ? count : null;
+}
+
+function mbAiRichCaretSet(el, offset) {
+  const sel = window.getSelection?.();
+  if (!sel || typeof document === 'undefined' || !document.createRange) return;
+  let left = Math.max(0, offset);
+  const range = document.createRange();
+  const place = (node) => {
+    const kids = [...node.childNodes];
+    for (const child of kids) {
+      if (child.nodeType === 3) {
+        if (left <= child.textContent.length) {
+          range.setStart(child, left);
+          range.collapse(true);
+          return true;
+        }
+        left -= child.textContent.length;
+      } else if (child.nodeType === 1 && child.classList.contains('ai-chip')) {
+        const len = String(child.dataset.token || '').length;
+        if (left <= len) {
+          range.setStartAfter(child);
+          range.collapse(true);
+          return true;
+        }
+        left -= len;
+      } else if (child.tagName === 'BR') {
+        if (left <= 0) {
+          range.setStartAfter(child);
+          range.collapse(true);
+          return true;
+        }
+        left -= 1;
+      } else if (child.nodeType === 1 && place(child)) return true;
+    }
+    return false;
+  };
+  if (!place(el)) {
+    range.selectNodeContents(el);
+    range.collapse(false);
+  }
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function mbAiChipListFor(el) {
+  const row = (_aiDesk?.staff || []).find((item) => String(item.id) === String(el?.dataset?.staff || ''));
+  return mbAiChipList(row);
+}
+
+let _aiRichLock = false;
+
+function mbAiRichDirty(el, chips) {
+  const raws = chips.map((chip) => chip.raw);
+  let dirty = false;
+  const walk = (node) => {
+    node.childNodes.forEach((child) => {
+      if (dirty) return;
+      if (child.nodeType === 3) {
+        if (raws.some((raw) => child.textContent.includes(raw))) dirty = true;
+      } else if (child.nodeType !== 1) return;
+      else if (child.tagName === 'DIV' || child.tagName === 'P') dirty = true;
+      else if (child.classList.contains('ai-chip')) {
+        if (!chips.some((chip) => (chip.store || chip.raw) === child.dataset.token)) dirty = true;
+      } else if (child.tagName !== 'BR') walk(child);
+    });
+  };
+  walk(el);
+  return dirty;
+}
+
+function mbAiRichRender(el, text, caret) {
+  const max = Number(el.dataset.max) || 2000;
+  const clipped = String(text || '').slice(0, max);
+  _aiRichLock = true;
+  el.innerHTML = mbAiChipHtml(clipped, mbAiChipListFor(el));
+  if (caret != null) mbAiRichCaretSet(el, Math.min(caret, clipped.length));
+  _aiRichLock = false;
+}
+
+function mbAiRichSync(el) {
+  if (_aiRichLock || !el || el.getAttribute?.('contenteditable') !== 'true') return;
+  const text = mbAiRichValue(el);
+  const max = Number(el.dataset.max) || 2000;
+  if (text.length <= max && !mbAiRichDirty(el, mbAiChipListFor(el))) return;
+  mbAiRichRender(el, text, mbAiRichCaret(el));
+}
+
+function mbAiRichPaste(event, el) {
+  event.preventDefault();
+  const text = event.clipboardData?.getData('text/plain') || '';
+  const plain = mbAiRichValue(el);
+  const caret = mbAiRichCaret(el);
+  const at = caret == null ? plain.length : caret;
+  const next = `${plain.slice(0, at)}${text}${plain.slice(at)}`;
+  mbAiRichRender(el, next, at + text.length);
+}
+
+function mbAiRichKey(event, el) {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  const plain = mbAiRichValue(el);
+  const caret = mbAiRichCaret(el);
+  const at = caret == null ? plain.length : caret;
+  mbAiRichRender(el, `${plain.slice(0, at)}\n${plain.slice(at)}`, at + 1);
+}
+
+function mbAiRichInsert(el, chunk) {
+  if (!el) return;
+  const max = Number(el.dataset.max) || 2000;
+  if (el.getAttribute?.('contenteditable') !== 'true') {
+    const start = el.selectionStart ?? el.value.length;
+    const prev = el.value.slice(0, start);
+    const next = `${prev}${chunk}${el.value.slice(el.selectionEnd ?? start)}`.slice(0, max);
+    el.value = next;
+    const at = Math.min(start + chunk.length, next.length);
+    el.focus();
+    if (typeof el.setSelectionRange === 'function') el.setSelectionRange(at, at);
+    return;
+  }
+  el.focus();
+  const plain = mbAiRichValue(el);
+  const caret = mbAiRichCaret(el);
+  const at = caret == null ? plain.length : caret;
+  const next = `${plain.slice(0, at)}${chunk}${plain.slice(at)}`.slice(0, max);
+  mbAiRichRender(el, next, Math.min(at + chunk.length, next.length));
+}
+
+function mbAiRichBox(id, value, max, rows, placeholder, staffId) {
+  const row = (_aiDesk?.staff || []).find((item) => String(item.id) === String(staffId));
+  const html = mbAiChipHtml(String(value || '').slice(0, max), mbAiChipList(row));
+  return `<div class="ai-rich form-input" id="${mbAiEsc(id)}" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true" data-max="${max}" data-rows="${rows}" data-staff="${mbAiEsc(staffId)}" data-placeholder="${mbAiEsc(placeholder)}" onfocus="mbAiTokenFocus(this.id)" oninput="mbAiRichSync(this)" onblur="mbAiRichSync(this)" onpaste="mbAiRichPaste(event,this)" onkeydown="mbAiRichKey(event,this)">${html}</div>`;
+}
+
 function mbAiInsertTask(staffId, key) {
   const text = mbAiSay(`ai.task.${key}_text`, '');
   const el = document.getElementById(`ai-prompt-${staffId}`);
   if (!el || !text) return;
-  const start = el.selectionStart ?? el.value.length;
-  const prev = el.value.slice(0, start);
-  const gap = prev && !prev.endsWith('\n') ? '\n' : '';
-  const chunk = `${gap}${text}`;
-  const next = `${prev}${chunk}${el.value.slice(el.selectionEnd ?? start)}`.slice(0, 2000);
-  el.value = next;
-  const at = Math.min(start + chunk.length, next.length);
-  el.focus();
-  if (typeof el.setSelectionRange === 'function') el.setSelectionRange(at, at);
+  const plain = mbAiRichValue(el);
+  const gap = plain && !plain.endsWith('\n') ? '\n' : '';
+  const caret = mbAiRichCaret(el);
+  if (el.getAttribute?.('contenteditable') === 'true' && caret != null && caret < plain.length) {
+    mbAiRichInsert(el, text);
+  } else {
+    mbAiRichInsert(el, `${gap}${text}`);
+  }
   mbAiTokenFocus(el.id);
 }
 
 function mbAiQcTaskRow(staffId) {
-  const keys = ['name', 'when', 'form', 'move', 'result', 'bye'];
-  const buttons = keys.map((key) => `<button type="button" class="ai-token" onclick="mbAiInsertTask('${mbAiEsc(staffId)}','${key}')"><b>${mbAiEsc(mbAiSay(`ai.task.${key}`, key))}</b></button>`).join('');
-  return `<div class="ai-tokens-lab">${mbAiEsc(mbAiSay('ai.staff.tasks', 'Görev ekle'))}</div><div class="ai-token-row">${buttons}</div><div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.tasks_hint', ''))}</div>`;
+  const flow = ['name', 'when', 'form', 'move', 'bye'];
+  const jobs = ['look', 'slot', 'result'];
+  const button = (key) => `<button type="button" class="ai-token" onclick="mbAiInsertTask('${mbAiEsc(staffId)}','${key}')"><b>${mbAiEsc(mbAiSay(`ai.task.${key}`, key))}</b></button>`;
+  const note = (key) => `<p class="ai-job"><b>${mbAiEsc(mbAiSay(`ai.job.${key}`, ''))}</b> ${mbAiEsc(mbAiSay(`ai.job.${key}_note`, ''))}</p>`;
+  return `<div class="ai-tokens-lab">${mbAiEsc(mbAiSay('ai.staff.tasks', 'Görev ekle'))}</div>
+    <div class="ai-token-row">${flow.map(button).join('')}</div>
+    <div class="ai-tokens-lab">${mbAiEsc(mbAiSay('ai.staff.jobs', 'Nasıl yapılır'))}</div>
+    <div class="ai-token-row">${jobs.map(button).join('')}</div>
+    <div class="ai-job-notes">${['look', 'slot', 'save'].map(note).join('')}</div>
+    <div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.tasks_hint', ''))}</div>`;
 }
 
 function mbAiRulesFields(row) {
@@ -529,13 +788,54 @@ function mbAiInsertToken(staffId, token) {
   const prefer = _aiTokenFocus.endsWith(`-${staffId}`) ? _aiTokenFocus : `ai-prompt-${staffId}`;
   const el = document.getElementById(prefer) || document.getElementById(`ai-prompt-${staffId}`);
   if (!el) return;
-  const start = el.selectionStart ?? el.value.length;
-  const end = el.selectionEnd ?? start;
-  el.value = `${el.value.slice(0, start)}${token}${el.value.slice(end)}`;
-  const at = start + token.length;
-  el.focus();
-  if (typeof el.setSelectionRange === 'function') el.setSelectionRange(at, at);
+  mbAiRichInsert(el, token);
   mbAiTokenFocus(el.id);
+}
+
+function mbAiIsWaitResult(row) {
+  const key = String(row?.key || '');
+  if (!key || key === 'qc_bekleniyor') return false;
+  if (key === 'beklemede') return true;
+  const status = String(row.contact_status || '').toLowerCase();
+  if (status === 'beklemede' || status === 'wartend') return true;
+  const label = String(row.label || '').toLowerCase();
+  return label === 'beklemede' || label === 'wartend' || label.includes('beklemede');
+}
+
+function mbAiIsMissResult(row) {
+  const key = String(row?.key || '');
+  if (key === 'ulasilamadi') return true;
+  const status = String(row?.contact_status || '').toLowerCase();
+  if (status === 'ulaşılamadı' || status === 'ulasilamadi' || status === 'nicht erreicht') return true;
+  const label = String(row?.label || '').toLowerCase();
+  return label === 'ulaşılamadı' || label.includes('ulaşılamadı') || label.includes('nicht erreicht');
+}
+
+function mbAiHoldPick(keys) {
+  const wanted = new Set(keys || []);
+  const rows = (_aiDesk?.results || []).filter((row) => wanted.has(row.key));
+  const labelOf = (row) => (typeof mbResultLabel === 'function' ? mbResultLabel(row.key, row.label) : (row.label || row.key));
+  const wait = rows.find(mbAiIsWaitResult);
+  const miss = rows.find(mbAiIsMissResult);
+  return {
+    wait: wait ? { key: wait.key, label: labelOf(wait) } : null,
+    miss: miss ? { key: miss.key, label: labelOf(miss) } : null,
+  };
+}
+
+function mbAiMoveHintText(on, keys) {
+  if (on) return mbAiSay('ai.staff.move_hint', '');
+  const hold = mbAiHoldPick(keys);
+  if (hold.wait) return mbAiSay('ai.staff.move_off_wait', 'Kapalıysa saat kalır. Başka saat istenirse sonuç «{name}» yazılır.').replace('{name}', hold.wait.label);
+  if (hold.miss) return mbAiSay('ai.staff.move_off_miss', 'Kapalıysa saat kalır. Bekleme sonucu işaretli değil. Başka saat istenirse «{name}» yazılır.').replace('{name}', hold.miss.label);
+  return mbAiSay('ai.staff.move_off_none', 'Kapalıysa saat kalır. Bekleme sonucu yok. Başka saat istenirse ulaşılamadı yazılır.');
+}
+
+function mbAiMoveHint(staffId) {
+  const hint = document.getElementById(`ai-move-hint-${staffId}`);
+  if (!hint) return;
+  const keys = [...document.querySelectorAll(`[data-ai-result="${staffId}"]`)].filter((el) => el.checked).map((el) => el.value);
+  hint.textContent = mbAiMoveHintText(!!document.getElementById(`ai-move-${staffId}`)?.checked, keys);
 }
 
 function mbAiStaffCard(row) {
@@ -548,15 +848,15 @@ function mbAiStaffCard(row) {
   const kindLabel = qc ? mbAiSay('ai.staff.qc', 'Kalite') : mbAiSay('ai.staff.sales', 'Randevu');
   const choices = qc ? mbAiQcChoices() : mbAiSalesChoicesMany(pickedCamps);
   const picked = new Set(row.results || []);
-  const resultPills = choices.map((item) => mbAiPill('data-ai-result', row.id, item.key, item.label, picked.has(item.key))).join('');
+  const resultPills = choices.map((item) => mbAiPill('data-ai-result', row.id, item.key, item.label, picked.has(item.key), `mbAiMoveHint('${id}')`)).join('');
   const tokens = mbAiTokensFor(row).map(([token, label]) => `<button type="button" class="ai-token" title="${mbAiEsc(token)}" onclick="mbAiInsertToken('${id}','${mbAiEsc(token)}')"><b>${mbAiEsc(label)}</b><code>${mbAiEsc(token)}</code></button>`).join('');
   const tail = qc
     ? mbAiQcAuto(row, choices)
     : `<div class="ai-sec"><div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.parallel', 'Aynı anda kaç kişi'))}</div><select class="form-input ai-narrow" id="ai-parallel-${id}">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}"${row.parallel === n ? ' selected' : ''}>${n}</option>`).join('')}</select></div>`;
   const powers = qc ? `<div class="ai-sec">
       <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.powers', 'Yetki'))}</div>
-      ${mbAiSwitch(`ai-move-${id}`, row.move_time !== false, mbAiSay('ai.staff.move', 'Randevu saatini değiştirebilir'))}
-      <div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.move_hint', ''))}</div>
+      ${mbAiSwitch(`ai-move-${id}`, row.move_time !== false, mbAiSay('ai.staff.move', 'Randevu saatini değiştirebilir'), `mbAiMoveHint('${id}')`)}
+      <div class="ai-hint" id="ai-move-hint-${id}">${mbAiEsc(mbAiMoveHintText(row.move_time !== false, row.results || []))}</div>
     </div>` : '';
   const open = _aiOpen.has(row.id) ? ' open' : '';
   return `<section class="ai-card">
@@ -578,8 +878,8 @@ function mbAiStaffCard(row) {
       <div class="ai-tokens-lab">${mbAiEsc(mbAiSay('ai.staff.tokens', 'Kişi kartından ekle'))}</div>
       <div class="ai-token-row">${tokens}</div>
       ${qc ? mbAiQcTaskRow(row.id) : ''}
-      ${mbAiField(`ai-greet-${row.id}`, mbAiSay('ai.staff.greeting', 'İlk cümle'), `<textarea class="form-input" id="ai-greet-${id}" rows="2" maxlength="400" placeholder="${mbAiEsc(mbAiSay('ai.staff.greeting_ph', ''))}" onfocus="mbAiTokenFocus(this.id)">${mbAiEsc(row.greeting || '')}</textarea><div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.greeting_hint', ''))}</div>`, true)}
-      ${mbAiField(`ai-prompt-${row.id}`, mbAiSay('ai.staff.prompt', 'Talimat'), `<textarea class="form-input" id="ai-prompt-${id}" rows="7" maxlength="2000" placeholder="${mbAiEsc(mbAiSay('ai.staff.prompt_ph', ''))}" onfocus="mbAiTokenFocus(this.id)">${mbAiEsc(row.prompt)}</textarea><div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.prompt_hint', ''))}</div>`, true)}
+      ${mbAiField(`ai-greet-${row.id}`, mbAiSay('ai.staff.greeting', 'İlk cümle'), `${mbAiRichBox(`ai-greet-${row.id}`, row.greeting || '', 400, 2, mbAiSay('ai.staff.greeting_ph', ''), row.id)}<div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.greeting_hint', ''))}</div>`, true)}
+      ${mbAiField(`ai-prompt-${row.id}`, mbAiSay('ai.staff.prompt', 'Talimat'), `${mbAiRichBox(`ai-prompt-${row.id}`, row.prompt || '', 2000, 7, mbAiSay('ai.staff.prompt_ph', ''), row.id)}<div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.prompt_hint', ''))}</div>`, true)}
       ${mbAiRulesFields(row)}
     </div>
     ${mbAiEngineSection(row)}

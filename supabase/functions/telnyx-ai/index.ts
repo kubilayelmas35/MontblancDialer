@@ -203,6 +203,24 @@ function resultChoices(settings: Record<string, any>): AiChoice[] {
   return raw.map((row: any) => ({ key: normKey(row?.key), label: clip(row?.label || row?.key, 80) })).filter((row: AiChoice) => row.key);
 }
 
+function holdPick(settings: Record<string, any>, allowed: string[]) {
+  const raw = Array.isArray(settings.appointment_results) && settings.appointment_results.length
+    ? settings.appointment_results
+    : [
+      { key: 'beklemede', label: 'Beklemede', contact_status: 'beklemede' },
+      { key: 'ulasilamadi', label: 'Ulaşılamadı', contact_status: 'ulaşılamadı' },
+    ];
+  const ok = new Set(allowed.map(normKey));
+  const rows = raw.map((row: any) => ({
+    key: normKey(row?.key),
+    label: clip(row?.label || row?.key, 80),
+    status: clip(row?.contact_status, 80).toLowerCase(),
+  })).filter((row: { key: string }) => row.key && ok.has(row.key) && row.key !== 'qc_bekleniyor');
+  const wait = rows.find((row: { key: string; label: string; status: string }) => row.key === 'beklemede' || row.status === 'beklemede' || row.status === 'wartend' || row.label.toLowerCase() === 'beklemede' || row.label.toLowerCase() === 'wartend');
+  const miss = rows.find((row: { key: string; label: string; status: string }) => row.key === 'ulasilamadi' || row.status === 'ulaşılamadı' || row.status === 'nicht erreicht' || row.label.toLowerCase() === 'ulaşılamadı');
+  return { wait: wait || null, miss: miss || null };
+}
+
 function contactStatus(key: string, settings: Record<string, any>) {
   const raw = Array.isArray(settings.appointment_results) ? settings.appointment_results : [];
   const hit = raw.find((row: any) => normKey(row?.key) === key);
@@ -382,6 +400,10 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     mustDo: staff.mustDo,
     mustNot: staff.mustNot,
     work: ai.work,
+    waitKey: holdPick(settings, staff.results).wait?.key || '',
+    waitLabel: holdPick(settings, staff.results).wait?.label || '',
+    missKey: holdPick(settings, staff.results).miss?.key || '',
+    missLabel: holdPick(settings, staff.results).miss?.label || '',
   });
   if (!brief.ok) return json({ ok: false, error: brief.error }, 400);
   const to = normDid(appt.telefonnummer);
@@ -660,6 +682,10 @@ function qcBrief(settings: Record<string, any>, appt: Record<string, any>, extra
     mustDo: staff.mustDo,
     mustNot: staff.mustNot,
     work: ai.work,
+    waitKey: holdPick(settings, staff.results).wait?.key || '',
+    waitLabel: holdPick(settings, staff.results).wait?.label || '',
+    missKey: holdPick(settings, staff.results).miss?.key || '',
+    missLabel: holdPick(settings, staff.results).miss?.label || '',
   });
   return brief.ok ? spokenBrief(brief, appt, extra, whenText(appt)) : null;
 }
@@ -701,6 +727,10 @@ async function onAnswer(admin: SupabaseClient, appt: Record<string, any>, contro
     mustDo: staff.mustDo,
     mustNot: staff.mustNot,
     work: ai.work,
+    waitKey: holdPick(settings, staff.results).wait?.key || '',
+    waitLabel: holdPick(settings, staff.results).wait?.label || '',
+    missKey: holdPick(settings, staff.results).miss?.key || '',
+    missLabel: holdPick(settings, staff.results).miss?.label || '',
   });
   if (!brief.ok) {
     await telnyx(key, `calls/${encodeURIComponent(control)}/actions/hangup`, {});
