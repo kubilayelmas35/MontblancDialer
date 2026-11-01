@@ -459,7 +459,8 @@ function _renderCdrHistory() {
   <span><i class="ph ph-megaphone-simple" style="vertical-align:-2px;"></i> ${campSafe}</span>
   <span><i class="ph ph-clock" style="vertical-align:-2px;"></i> ${dur}</span>
 </div>
-${(() => { const nt = _stripSimCallMarker(l.notes); return nt ? '<div style="margin-top:4px;font-size:11px;color:var(--text-2);font-style:italic;">"' + _escHtml(nt) + '"</div>' : ''; })()}
+${typeof mbAiCallLogHtml === 'function' ? mbAiCallLogHtml(l) : ''}
+${(() => { const nt = _stripSimCallMarker(l.notes); const ai = typeof mbIsAiOperator === 'function' && mbIsAiOperator(l); return (!ai && nt) ? '<div style="margin-top:4px;font-size:11px;color:var(--text-2);font-style:italic;">"' + _escHtml(nt) + '"</div>' : ''; })()}
 ${l.recording_url && typeof mbRecPlayerHtml === 'function' ? `<div style="margin-top:6px;">${mbRecPlayerHtml(l.id, l.recording_url, typeof _logDurationSec === 'function' ? _logDurationSec(l) : l.duration_sec, typeof mbRecMeta === 'function' ? mbRecMeta(l, _cdrContact) : null)}</div>` : (_isFakeRecordingRow(l) ? _fakeRecordingMarkup(l, 'cdrhist') : '')}
 </div>`;
   }).join('');

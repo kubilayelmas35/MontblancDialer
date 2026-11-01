@@ -3039,7 +3039,10 @@ function chCellHtml(row, key) {
     const note = row.note ? `<div class="ch-note" title="${statsEsc(row.note)}">${statsEsc(row.note)}</div>` : '<span style="color:var(--text-3);">—</span>';
     return `<td>${note}</td>`;
   }
-  if (key === 'name') return `<td style="font-weight:600;">${statsEsc(row.name || '—')}</td>`;
+  if (key === 'name') {
+    const aiLine = typeof mbAiCallLogHtml === 'function' ? mbAiCallLogHtml(l) : '';
+    return `<td style="font-weight:600;">${statsEsc(row.name || '—')}${aiLine}</td>`;
+  }
   if (key === 'id' || key === 'callid') return `<td class="td-mono" style="font-size:11px;" title="${statsEsc(key === 'id' ? l.id : (l.telnyx_call_id || ''))}">${statsEsc(chCellText(row, key) || '—')}</td>`;
   return `<td class="td-mono" style="font-size:11px;">${statsEsc(chCellText(row, key) || '—')}</td>`;
 }
