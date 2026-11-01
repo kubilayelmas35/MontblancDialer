@@ -15,7 +15,7 @@ const EL_LLM_ALIAS: Record<string, string> = {
 };
 // v4 turbo is the current realtime voice: expressive, about 100ms, 90+ languages.
 const TTS_MODEL = 'eleven_v4_turbo';
-const AGENT_REV = 'v5';
+const AGENT_REV = 'v6';
 // Premade multilingual voices, used only when no Turkish library voice can be attached.
 const FALLBACK_VOICES: Record<string, string> = { female: '21m00Tcm4TlvDq8ikWAM', male: 'pNInz6obpgDQGcFmaJgB' };
 
@@ -182,6 +182,8 @@ function agentConfig(lang: string, llm: string, toolIds: string[], voiceId: stri
     },
     turn: {
       turn_timeout: 7,
+      // ElevenLabs rejects the old disabled value (-1). A minute of silence ends the call.
+      silence_end_call_timeout: 60,
       turn_eagerness: 'normal',
       turn_model: 'turn_v3',
       spelling_patience: 'auto',
