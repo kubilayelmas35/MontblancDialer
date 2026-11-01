@@ -777,19 +777,23 @@ function qcCallinLiveHtml(row) {
   if (!phase) return '';
   const name = typeof ariaName === 'function' ? ariaName() : 'Callin';
   const who = row?.nachname || '—';
-  const line = {
-    ringing: mbAiSay('qc.callin.ringing', '{name}, {who} kişisini arıyor.'),
-    talking: mbAiSay('qc.callin.talking', 'Telefon açıldı. {name} konuşuyor.'),
-    talked: mbAiSay('qc.callin.talked', 'Telefon açıldı. {name} konuştu.'),
-    missed: mbAiSay('qc.callin.missed', 'Telefon açılmadı.'),
-  }[phase] || mbAiSay('qc.callin.ringing', '{name}, {who} kişisini arıyor.');
-  const text = line.replace('{name}', name).replace('{who}', who);
-  const tone = phase === 'missed' ? 'is-miss' : (phase === 'talking' || phase === 'talked' ? 'is-talk' : 'is-ring');
+  const finished = ek.callin_state === 'done' || phase === 'talked' || phase === 'missed';
   const key = typeof _qcDurumKey === 'function' ? _qcDurumKey(row) : '';
   const cfg = window._qcResultMap?.[key];
-  const result = phase === 'talked' && key && key !== 'qc_bekleniyor' && typeof _qcResultLabel === 'function'
-    ? `<div style="margin-top:4px;font-weight:800;color:${mbAiEsc(cfg?.color || 'var(--text)')};">${mbAiEsc(_qcResultLabel(key))}</div>`
-    : '';
+  let resultName = key && key !== 'qc_bekleniyor' && typeof _qcResultLabel === 'function' ? _qcResultLabel(key) : '';
+  if (!resultName && phase === 'missed') resultName = mbAiSay('qc.callin.missed_result', 'Ulaşılamadı');
+  if (!resultName && finished) resultName = mbAiSay('qc.callin.pending_result', 'Bekleniyor');
+  const line = finished
+    ? mbAiSay('qc.callin.result', '{name} aradı. Sonuç: {result}')
+    : {
+      ringing: mbAiSay('qc.callin.ringing', '{name}, {who} kişisini arıyor.'),
+      talking: mbAiSay('qc.callin.talking', 'Telefon açıldı. {name} konuşuyor.'),
+    }[phase] || mbAiSay('qc.callin.ringing', '{name}, {who} kişisini arıyor.');
+  const text = line.replace('{name}', name).replace('{who}', who).replace('{result}', resultName);
+  const tone = finished ? (phase === 'missed' || (cfg?.color && phase !== 'talked') ? 'is-miss' : 'is-talk') : (phase === 'talking' ? 'is-talk' : 'is-ring');
+  const color = cfg?.color || (phase === 'missed' ? '#b91c1c' : '');
+  const paint = color ? ` style="color:${mbAiEsc(color)};border-left-color:${mbAiEsc(color)}"` : '';
+  const result = `<b${finished && color ? ` style="color:${mbAiEsc(color)}"` : ''}>${mbAiEsc(text)}</b>`;
   const note = String(row?.qc_notu || ek.callin_summary || '').trim();
   const noteHtml = note ? `<div style="margin-top:4px;">${mbAiEsc(note)}</div>` : '';
   const script = String(ek.callin_transcript || '').trim();
@@ -800,7 +804,7 @@ function qcCallinLiveHtml(row) {
   const audio = rec?.recording_url
     ? `<audio controls preload="none" src="${mbAiEsc(rec.recording_url)}"></audio>`
     : '';
-  return `<div class="qc-callin-live ${tone}" data-callin-live="${mbAiEsc(row.id)}" onclick="event.stopPropagation()"><b>${mbAiEsc(text)}</b>${result}${noteHtml}${scriptHtml}${audio}</div>`;
+  return `<div class="qc-callin-live ${tone}" data-callin-live="${mbAiEsc(row.id)}" onclick="event.stopPropagation()"${paint}>${result}${noteHtml}${scriptHtml}${audio}</div>`;
 }
 
 function qcPaintCallin(row) {
