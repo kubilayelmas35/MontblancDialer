@@ -318,6 +318,9 @@ function mbAiAddStaff(kind) {
 }
 
 function mbAiDropStaff(id) {
+  const name = String(document.getElementById(`ai-name-${id}`)?.value || '').trim();
+  const ask = mbAiSay('ai.staff.remove_ask', '«{name}» silinsin mi? Kart kalkar.').replace('{name}', name || mbAiSay('ai.staff.name', 'Personel'));
+  if (!window.confirm(ask)) return;
   mbAiReadDesk();
   if (!_aiDesk) return;
   _aiDesk.staff = _aiDesk.staff.filter((row) => row.id !== id);
@@ -923,7 +926,6 @@ function mbAiStaffCard(row) {
       <input class="ai-name" id="ai-name-${id}" maxlength="40" value="${mbAiEsc(row.name)}" placeholder="${mbAiEsc(mbAiSay('ai.staff.name', 'Personel adı'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.name', 'Personel adı'))}">
       <i class="ph ph-caret-down ai-caret"></i>
       <button type="button" class="ai-copy" title="${mbAiEsc(mbAiSay('ai.staff.copy', 'Kopyala'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.copy', 'Kopyala'))}" onclick="event.preventDefault(); event.stopPropagation(); mbAiCopyStaff('${id}')"><i class="ph ph-copy"></i></button>
-      <button type="button" class="ai-del" title="${mbAiEsc(mbAiSay('ai.staff.remove', 'Kaldır'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.remove', 'Kaldır'))}" onclick="event.preventDefault(); event.stopPropagation(); mbAiDropStaff('${id}')"><i class="ph ph-trash"></i></button>
     </summary>
     <div class="ai-fold-body">
     <div class="ai-sec">
@@ -947,6 +949,9 @@ function mbAiStaffCard(row) {
     </div>
     ${powers}
     ${tail}
+    <div class="ai-sec">
+      <button type="button" class="btn btn-danger btn-sm" onclick="mbAiDropStaff('${id}')"><i class="ph ph-trash"></i> ${mbAiEsc(mbAiSay('ai.staff.remove', 'Bu personeli sil'))}</button>
+    </div>
     </div>
     </details>
   </section>`;

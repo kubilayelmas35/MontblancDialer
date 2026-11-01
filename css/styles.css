@@ -2212,8 +2212,7 @@ visibility: visible;
 .ai-badge.is-sales { background: var(--green-soft); color: var(--green); }
 .ai-name { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--text); font: inherit; font-size: 15px; font-weight: 800; }
 .ai-name:hover, .ai-name:focus { border-color: var(--border); background: var(--bg); outline: none; }
-.ai-del, .ai-copy { width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--text-3); cursor: pointer; }
-.ai-del:hover { background: var(--bg-3); color: var(--red); }
+.ai-copy { width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--text-3); cursor: pointer; }
 .ai-copy:hover { background: var(--bg-3); color: var(--accent-text); }
 .ai-sec { display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid var(--border); }
 .ai-sec-t { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); }
