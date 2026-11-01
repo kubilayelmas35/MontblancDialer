@@ -795,16 +795,14 @@ function qcCallinLiveHtml(row) {
   const paint = color ? ` style="color:${mbAiEsc(color)};border-left-color:${mbAiEsc(color)}"` : '';
   const result = `<b${finished && color ? ` style="color:${mbAiEsc(color)}"` : ''}>${mbAiEsc(text)}</b>`;
   const note = String(row?.qc_notu || ek.callin_summary || '').trim();
-  const noteHtml = note ? `<div style="margin-top:4px;">${mbAiEsc(note)}</div>` : '';
   const script = String(ek.callin_transcript || '').trim();
+  const noteHtml = note ? `<div class="qc-callin-note">${mbAiEsc(note)}</div>` : '';
   const scriptHtml = script
     ? `<details class="qc-callin-script"><summary>${mbAiEsc(mbAiSay('qc.callin.transcript', 'Konuşma'))}</summary>${mbAiEsc(script)}</details>`
     : '';
-  const rec = row?.contact_id ? window._qcRecByContact?.[row.contact_id] : null;
-  const audio = rec?.recording_url
-    ? `<audio controls preload="none" src="${mbAiEsc(rec.recording_url)}"></audio>`
-    : '';
-  return `<div class="qc-callin-live ${tone}" data-callin-live="${mbAiEsc(row.id)}" onclick="event.stopPropagation()"${paint}>${result}${noteHtml}${scriptHtml}${audio}</div>`;
+  const shell = `class="qc-callin-live ${tone}" data-callin-live="${mbAiEsc(row.id)}" onclick="event.stopPropagation()"${paint}`;
+  if (!note && !script) return `<div ${shell}>${result}</div>`;
+  return `<details ${shell}><summary>${result}</summary>${noteHtml}${scriptHtml}</details>`;
 }
 
 function qcPaintCallin(row) {
@@ -832,9 +830,9 @@ function qcApplyCallin(row, res) {
   row.form_ek = ek;
   if (res?.qc_notu) row.qc_notu = res.qc_notu;
   if (res?.durum) row.durum = res.durum;
-  if (res?.recording && row.contact_id) {
-    window._qcRecByContact = window._qcRecByContact || {};
-    window._qcRecByContact[row.contact_id] = { id: ek.callin_log || row.id, contact_id: row.contact_id, recording_url: res.recording, duration_sec: Number(res.secs) || 0 };
+  if (res?.recording && row.contact_id && typeof qcRememberRec === 'function') {
+    qcRememberRec(row.contact_id, { id: ek.callin_log || '', contact_id: row.contact_id, recording_url: res.recording, duration_sec: Number(res.secs) || 0, started_at: new Date().toISOString(), phone: row.telefonnummer || '' });
+    if (typeof renderQcTable === 'function') renderQcTable();
   }
   if (res?.phase && res.phase !== 'ringing') delete window._qcCallinBusy?.[row.id];
   qcPaintCallin(row);
@@ -941,7 +939,8 @@ async function mbAiWatchCall(apptId) {
       const recs = await _qcAttachRec([row]).catch(() => null);
       if (recs && row.contact_id && recs[row.contact_id]) {
         window._qcRecByContact = { ...(window._qcRecByContact || {}), [row.contact_id]: recs[row.contact_id] };
-        qcPaintCallin(row);
+        if (typeof renderQcTable === 'function') renderQcTable();
+        else qcPaintCallin(row);
       }
     }
     return;

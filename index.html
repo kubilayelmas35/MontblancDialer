@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="callin.one çağrı merkezi">
-<link rel="icon" href="favicon.svg?v=13.64" type="image/svg+xml">
+<link rel="icon" href="favicon.svg?v=13.65" type="image/svg+xml">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,17 +15,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=13.64">
-<link rel="stylesheet" href="css/styles-dialer.css?v=13.64">
-<link rel="stylesheet" href="css/styles-mascot.css?v=13.64">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=13.64">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=13.64">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=13.64">
-<link rel="stylesheet" href="css/styles-pages.css?v=13.64">
-<link rel="stylesheet" href="css/styles-aurora.css?v=13.64">
-<link rel="stylesheet" href="css/styles-chat.css?v=13.64">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=13.64">
-<link rel="stylesheet" href="css/styles-responsive.css?v=13.64">
+<link rel="stylesheet" href="css/styles.css?v=13.65">
+<link rel="stylesheet" href="css/styles-dialer.css?v=13.65">
+<link rel="stylesheet" href="css/styles-mascot.css?v=13.65">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=13.65">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=13.65">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=13.65">
+<link rel="stylesheet" href="css/styles-pages.css?v=13.65">
+<link rel="stylesheet" href="css/styles-aurora.css?v=13.65">
+<link rel="stylesheet" href="css/styles-chat.css?v=13.65">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=13.65">
+<link rel="stylesheet" href="css/styles-responsive.css?v=13.65">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -84,7 +84,7 @@
 </div>
 </div>
 </div>
-<div class="login-version">v13.64 — 2026</div>
+<div class="login-version">v13.65 — 2026</div>
 </div>
 </div>
 <div id="app" style="display:none;">
@@ -479,7 +479,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">callin.one v13.64</div>
+<div class="sb-ver">callin.one v13.65</div>
 </div>
 </div>
 </nav>
@@ -2301,12 +2301,16 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 .qc-callin-btn{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:7px 12px;font-weight:800;font-size:12px;color:#fff;cursor:pointer;background:linear-gradient(120deg,#7c3aed,#2563eb 46%,#06b6d4);box-shadow:0 6px 16px rgba(37,99,235,.35);animation:qc-callin-pulse 1.8s ease-out infinite;}
 .qc-callin-btn i{font-size:15px;}
 @keyframes qc-callin-pulse{0%{box-shadow:0 0 0 0 rgba(37,99,235,.45)}70%{box-shadow:0 0 0 8px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
-.qc-callin-live{margin-top:6px;padding:8px 10px;border-radius:10px;background:var(--bg-3);font-size:12px;line-height:1.45;}
+.qc-callin-live{max-width:420px;margin-top:6px;padding:8px 10px;border-radius:10px;background:var(--bg-3);font-size:12px;line-height:1.45;overflow-wrap:anywhere;}
 .qc-callin-live.is-talk{border-left:3px solid #16a34a;}
 .qc-callin-live.is-miss{border-left:3px solid #b91c1c;}
 .qc-callin-live.is-ring{border-left:3px solid #2563eb;}
-.qc-callin-live audio{width:100%;margin-top:6px;height:32px;}
-.qc-callin-script{margin-top:6px;white-space:pre-wrap;color:var(--text-2);max-height:140px;overflow:auto;}
+.qc-callin-live summary{cursor:pointer;font-weight:700;}
+.qc-callin-live summary::-webkit-details-marker{display:none;}
+.qc-callin-note,.qc-callin-script{margin-top:6px;white-space:pre-wrap;color:var(--text-2);max-height:140px;overflow:auto;}
+.qc-rec-list{display:flex;flex-direction:column;gap:4px;min-width:220px;max-width:280px;}
+.qc-rec-pick{text-align:left;font-size:11px;line-height:1.3;border:1px solid var(--border);background:var(--bg-3);color:var(--text);border-radius:6px;padding:4px 6px;cursor:pointer;}
+.qc-rec-pick.is-on{border-color:var(--accent);font-weight:700;}
 </style>
 <div class="page-hdr">
 <div>
@@ -5186,74 +5190,74 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=13.64"></script>
-<script src="js/i18n.js?v=13.64"></script>
-<script src="js/config.js?v=13.64"></script>
-<script src="js/state.js?v=13.64"></script>
-<script src="js/api.js?v=13.64"></script>
-<script src="js/access.js?v=13.64"></script>
-<script src="js/auth.js?v=13.64"></script>
-<script src="js/logo.js?v=13.64"></script>
-<script src="js/ui.js?v=13.64"></script>
-<script src="js/chat.js?v=13.64"></script>
-<script src="js/chat-settings.js?v=13.64"></script>
-<script src="js/field-settings.js?v=13.64"></script>
-<script src="js/audit.js?v=13.64"></script>
-<script src="js/feature-flags.js?v=13.64"></script>
-<script src="js/notification-center.js?v=13.64"></script>
+<script src="js/version.js?v=13.65"></script>
+<script src="js/i18n.js?v=13.65"></script>
+<script src="js/config.js?v=13.65"></script>
+<script src="js/state.js?v=13.65"></script>
+<script src="js/api.js?v=13.65"></script>
+<script src="js/access.js?v=13.65"></script>
+<script src="js/auth.js?v=13.65"></script>
+<script src="js/logo.js?v=13.65"></script>
+<script src="js/ui.js?v=13.65"></script>
+<script src="js/chat.js?v=13.65"></script>
+<script src="js/chat-settings.js?v=13.65"></script>
+<script src="js/field-settings.js?v=13.65"></script>
+<script src="js/audit.js?v=13.65"></script>
+<script src="js/feature-flags.js?v=13.65"></script>
+<script src="js/notification-center.js?v=13.65"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=13.64"></script>
-<script src="js/spend.js?v=13.64"></script>
-<script src="js/job-market.js?v=13.64"></script>
-<script src="js/qc-job-market.js?v=13.64"></script>
-<script src="js/export-admin.js?v=13.64"></script>
-<script src="js/export-termin.js?v=13.64"></script>
-<script src="js/performance.js?v=13.64"></script>
-<script src="js/competition.js?v=13.64"></script>
-<script src="js/dashboard.js?v=13.64"></script>
-<script src="js/reports.js?v=13.64"></script>
-<script src="js/dashboard-brief.js?v=13.64"></script>
-<script src="js/campaigns.js?v=13.64"></script>
-<script src="js/campaigns-detail.js?v=13.64"></script>
-<script src="js/campaigns-queue.js?v=13.64"></script>
-<script src="js/queues-page.js?v=13.64"></script>
-<script src="js/contacts-upload.js?v=13.64"></script>
-<script src="js/geocon.js?v=13.64"></script>
-<script src="js/contacts.js?v=13.64"></script>
-<script src="js/contacts-drawer.js?v=13.64"></script>
-<script src="js/telnyx.js?v=13.64"></script>
-<script src="js/hold-music.js?v=13.64"></script>
-<script src="js/voice-orb.js?v=13.64"></script>
-<script src="js/dialer.js?v=13.64"></script>
-<script src="js/ops-alerts.js?v=13.64"></script>
-<script src="js/radius-tour.js?v=13.64"></script>
-<script src="js/dialer-mascot.js?v=13.64"></script>
-<script src="js/dialer-mascot-live.js?v=13.64"></script>
-<script src="js/ui-prefs.js?v=13.64"></script>
-<script src="js/dialer-session.js?v=13.64"></script>
-<script src="js/dialer-call.js?v=13.64"></script>
-<script src="js/dialer-tools.js?v=13.64"></script>
-<script src="js/appointments.js?v=13.64"></script>
-<script src="js/appointments-actions.js?v=13.64"></script>
-<script src="js/appointments-tools.js?v=13.64"></script>
-<script src="js/field.js?v=13.64"></script>
-<script src="js/field-quote.js?v=13.64"></script>
-<script src="js/field-catalog.js?v=13.64"></script>
-<script src="js/field-ops.js?v=13.64"></script>
-<script src="js/wiedervorlage.js?v=13.64"></script>
-<script src="js/qc.js?v=13.64"></script>
-<script src="js/supervisor.js?v=13.64"></script>
-<script src="js/live-coach.js?v=13.64"></script>
-<script src="js/sms-settings.js?v=13.64"></script>
-<script src="js/line-firms.js?v=13.64"></script>
-<script src="js/ai-staff.js?v=13.64"></script>
-<script src="js/leave-hr.js?v=13.64"></script>
-<script src="js/muhasebe.js?v=13.64"></script>
-<script src="js/muhasebe-books.js?v=13.64"></script>
-<script src="js/agent-self-performance.js?v=13.64"></script>
-<script src="js/agents.js?v=13.64"></script>
-<script src="js/firm-desk.js?v=13.64"></script>
-<script src="js/mimi-brain.js?v=13.64"></script>
+<script src="js/wallet.js?v=13.65"></script>
+<script src="js/spend.js?v=13.65"></script>
+<script src="js/job-market.js?v=13.65"></script>
+<script src="js/qc-job-market.js?v=13.65"></script>
+<script src="js/export-admin.js?v=13.65"></script>
+<script src="js/export-termin.js?v=13.65"></script>
+<script src="js/performance.js?v=13.65"></script>
+<script src="js/competition.js?v=13.65"></script>
+<script src="js/dashboard.js?v=13.65"></script>
+<script src="js/reports.js?v=13.65"></script>
+<script src="js/dashboard-brief.js?v=13.65"></script>
+<script src="js/campaigns.js?v=13.65"></script>
+<script src="js/campaigns-detail.js?v=13.65"></script>
+<script src="js/campaigns-queue.js?v=13.65"></script>
+<script src="js/queues-page.js?v=13.65"></script>
+<script src="js/contacts-upload.js?v=13.65"></script>
+<script src="js/geocon.js?v=13.65"></script>
+<script src="js/contacts.js?v=13.65"></script>
+<script src="js/contacts-drawer.js?v=13.65"></script>
+<script src="js/telnyx.js?v=13.65"></script>
+<script src="js/hold-music.js?v=13.65"></script>
+<script src="js/voice-orb.js?v=13.65"></script>
+<script src="js/dialer.js?v=13.65"></script>
+<script src="js/ops-alerts.js?v=13.65"></script>
+<script src="js/radius-tour.js?v=13.65"></script>
+<script src="js/dialer-mascot.js?v=13.65"></script>
+<script src="js/dialer-mascot-live.js?v=13.65"></script>
+<script src="js/ui-prefs.js?v=13.65"></script>
+<script src="js/dialer-session.js?v=13.65"></script>
+<script src="js/dialer-call.js?v=13.65"></script>
+<script src="js/dialer-tools.js?v=13.65"></script>
+<script src="js/appointments.js?v=13.65"></script>
+<script src="js/appointments-actions.js?v=13.65"></script>
+<script src="js/appointments-tools.js?v=13.65"></script>
+<script src="js/field.js?v=13.65"></script>
+<script src="js/field-quote.js?v=13.65"></script>
+<script src="js/field-catalog.js?v=13.65"></script>
+<script src="js/field-ops.js?v=13.65"></script>
+<script src="js/wiedervorlage.js?v=13.65"></script>
+<script src="js/qc.js?v=13.65"></script>
+<script src="js/supervisor.js?v=13.65"></script>
+<script src="js/live-coach.js?v=13.65"></script>
+<script src="js/sms-settings.js?v=13.65"></script>
+<script src="js/line-firms.js?v=13.65"></script>
+<script src="js/ai-staff.js?v=13.65"></script>
+<script src="js/leave-hr.js?v=13.65"></script>
+<script src="js/muhasebe.js?v=13.65"></script>
+<script src="js/muhasebe-books.js?v=13.65"></script>
+<script src="js/agent-self-performance.js?v=13.65"></script>
+<script src="js/agents.js?v=13.65"></script>
+<script src="js/firm-desk.js?v=13.65"></script>
+<script src="js/mimi-brain.js?v=13.65"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof mbApplyChartTheme === 'function') mbApplyChartTheme();

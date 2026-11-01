@@ -330,37 +330,76 @@ async function loadQcData() {
 
 let _qcLoadGen = 0;
 
+function qcPhoneForms(value) {
+  const raw = String(value || '').trim();
+  const digits = raw.replace(/\D/g, '');
+  const forms = new Set();
+  if (raw) forms.add(raw);
+  if (digits.length >= 8) {
+    forms.add(digits);
+    forms.add(`+${digits}`);
+    if (digits.startsWith('00')) forms.add(`+${digits.slice(2)}`);
+  }
+  return [...forms];
+}
+
+function qcPushRec(map, contactId, log) {
+  if (!contactId || !log?.recording_url) return;
+  const list = map[contactId] || (map[contactId] = []);
+  if (list.some((item) => item.id && item.id === log.id)) return;
+  if (list.some((item) => item.recording_url === log.recording_url)) return;
+  list.push(log);
+}
+
+function qcTakeLog(map, rows, log) {
+  if (!log?.recording_url) return;
+  const phone = String(log.phone || '').trim();
+  (rows || []).forEach((row) => {
+    if (!row?.contact_id) return;
+    const sameContact = log.contact_id && String(log.contact_id) === String(row.contact_id);
+    const sameCall = row?.form_ek?.callin_log && row.form_ek.callin_log === log.id;
+    const samePhone = phone && qcPhoneForms(row.telefonnummer).includes(phone);
+    if (sameContact || sameCall || samePhone) qcPushRec(map, row.contact_id, log);
+  });
+}
+
+function qcRememberRec(contactId, log) {
+  window._qcRecByContact = window._qcRecByContact || {};
+  const prev = window._qcRecByContact[contactId];
+  const list = Array.isArray(prev) ? prev.slice() : (prev?.recording_url ? [prev] : []);
+  window._qcRecByContact[contactId] = list;
+  qcPushRec(window._qcRecByContact, contactId, log);
+  window._qcRecByContact[contactId].sort((a, b) => Date.parse(b.started_at || 0) - Date.parse(a.started_at || 0));
+}
+
 async function _qcAttachRec(rows) {
-  const ids = [...new Set((rows || []).map((r) => r.contact_id).filter((id) => typeof isValidUUID !== 'function' || isValidUUID(id)))];
+  const list = rows || [];
+  const ids = [...new Set(list.map((r) => r.contact_id).filter((id) => typeof isValidUUID !== 'function' || isValidUUID(id)))];
   const map = {};
-  let skipContacts = !ids.length;
-  if (!skipContacts && typeof mbHeadCount === 'function') {
-    const ff = typeof getFirmFilter === 'function' ? getFirmFilter('&') : '';
-    const n = await mbHeadCount(`call_logs?select=id&recording_url=not.is.null${ff}`).catch(() => null);
-    if (n === 0) skipContacts = true;
-  }
+  const select = 'id,contact_id,recording_url,duration_sec,started_at,phone';
   const chunks = [];
-  if (skipContacts) ids.length = 0;
-  for (let i = 0; i < ids.length; i += 40) chunks.push(ids.slice(i, i + 40).join(','));
-  for (let i = 0; i < chunks.length; i += 6) {
-    const wave = chunks.slice(i, i + 6);
-    const parts = await Promise.all(wave.map((chunk) => sb(`call_logs?contact_id=in.(${chunk})&select=id,contact_id,recording_url,duration_sec,started_at,phone&recording_url=not.is.null&order=started_at.desc&limit=400`).catch(() => [])));
-    parts.forEach((logs) => {
-      (logs || []).forEach((log) => {
-        if (!map[log.contact_id] && log.recording_url) map[log.contact_id] = log;
-      });
-    });
+  for (let i = 0; i < ids.length; i += 20) chunks.push(ids.slice(i, i + 20).join(','));
+  for (let i = 0; i < chunks.length; i += 4) {
+    const wave = chunks.slice(i, i + 4);
+    const parts = await Promise.all(wave.map((chunk) => sb(`call_logs?contact_id=in.(${chunk})&select=${select}&recording_url=not.is.null&order=started_at.desc&limit=1000`).catch(() => [])));
+    parts.forEach((logs) => { (logs || []).forEach((log) => qcTakeLog(map, list, log)); });
   }
-  const logIds = [...new Set((rows || []).map((r) => r?.form_ek?.callin_log).filter((id) => typeof isValidUUID !== 'function' || isValidUUID(id)))];
+  const phones = [...new Set(list.flatMap((row) => (row?.contact_id && !(map[row.contact_id] || []).length ? qcPhoneForms(row.telefonnummer) : [])))];
+  for (let i = 0; i < phones.length; i += 20) {
+    const chunk = phones.slice(i, i + 20).map((phone) => `"${encodeURIComponent(phone)}"`).join(',');
+    const logs = await sb(`call_logs?phone=in.(${chunk})&select=${select}&recording_url=not.is.null&order=started_at.desc&limit=200`).catch(() => []);
+    (logs || []).forEach((log) => qcTakeLog(map, list, log));
+  }
+  const logIds = [...new Set(list.map((r) => r?.form_ek?.callin_log).filter((id) => typeof isValidUUID !== 'function' || isValidUUID(id)))];
   for (let i = 0; i < logIds.length; i += 40) {
     const chunk = logIds.slice(i, i + 40).join(',');
-    const logs = await sb(`call_logs?id=in.(${chunk})&select=id,contact_id,recording_url,duration_sec,started_at,phone`).catch(() => []);
-    (logs || []).forEach((log) => {
-      const hit = (rows || []).find((row) => row?.form_ek?.callin_log === log.id);
-      const contactId = log.contact_id || hit?.contact_id;
-      if (contactId && log.recording_url && !map[contactId]) map[contactId] = log;
-    });
+    const logs = await sb(`call_logs?id=in.(${chunk})&select=${select}`).catch(() => []);
+    (logs || []).forEach((log) => qcTakeLog(map, list, log));
   }
+  Object.keys(map).forEach((id) => {
+    map[id].sort((a, b) => Date.parse(b.started_at || 0) - Date.parse(a.started_at || 0));
+    map[id] = map[id].slice(0, 8);
+  });
   return map;
 }
 
@@ -447,12 +486,57 @@ function qcCustomerText(row) {
   return hit?.name || row?.customers?.name || '';
 }
 
+function qcRecsFor(row) {
+  const raw = row?.contact_id ? window._qcRecByContact?.[row.contact_id] : null;
+  if (Array.isArray(raw)) return raw.filter((log) => log?.recording_url);
+  return raw?.recording_url ? [raw] : [];
+}
+
+function qcRecWhen(iso) {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return '';
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(d);
+  const pick = (type) => parts.find((part) => part.type === type)?.value || '';
+  return `${pick('day')}.${pick('month')}.${pick('year')} ${pick('hour')}:${pick('minute')}`;
+}
+
 function qcRecInfo(row) {
-  const rec = row?.contact_id ? window._qcRecByContact?.[row.contact_id] : null;
+  const recs = qcRecsFor(row);
+  const rec = recs[0];
   if (!rec?.recording_url) return { text: '', n: 0 };
   const sec = Number(rec.duration_sec) || 0;
-  const text = sec ? `${Math.floor(sec / 60)}m${sec % 60}s` : t('qc.rec');
-  return { text, n: sec || 1 };
+  const text = recs.length > 1 ? String(recs.length) : (sec ? `${Math.floor(sec / 60)}m${sec % 60}s` : t('qc.rec'));
+  return { text, n: sec || recs.length };
+}
+
+function qcRecPlaylistHtml(row) {
+  const recs = qcRecsFor(row);
+  if (!recs.length || typeof mbRecPlayerHtml !== 'function') return '<span style="font-size:10px;color:var(--text-3);">—</span>';
+  const person = { last_name: row?.nachname || '', phone: row?.telefonnummer || '' };
+  const buttons = recs.map((log, index) => {
+    const when = qcRecWhen(log.started_at);
+    const label = t('qc.rec.item').replace('{n}', String(index + 1)).replace('{when}', when).replace(/\s·\s*$/, '');
+    return `<button type="button" class="qc-rec-pick${index === 0 ? ' is-on' : ''}" data-id="${_uiEsc(log.id)}" data-url="${_uiEsc(log.recording_url)}" data-dur="${Number(log.duration_sec) || 0}" data-at="${_uiEsc(log.started_at || '')}" onclick="event.stopPropagation();qcPickRec(this)">${_uiEsc(label)}</button>`;
+  }).join('');
+  const first = recs[0];
+  const meta = typeof mbRecMeta === 'function' ? mbRecMeta(first, person) : null;
+  return `<div class="qc-rec-list" data-row="${_uiEsc(row?.id || '')}" onclick="event.stopPropagation()"><div class="qc-rec-player">${mbRecPlayerHtml(first.id, first.recording_url, first.duration_sec, meta)}</div>${buttons}</div>`;
+}
+
+function qcPickRec(btn) {
+  const box = btn?.closest?.('.qc-rec-list');
+  const host = box?.querySelector('.qc-rec-player');
+  if (!box || !host || typeof mbRecPlayerHtml !== 'function') return;
+  box.querySelectorAll('.qc-rec-pick').forEach((el) => el.classList.toggle('is-on', el === btn));
+  const row = (typeof qcList !== 'undefined' ? qcList : []).find((item) => item.id === box.getAttribute('data-row')) || {};
+  const meta = typeof mbRecMeta === 'function'
+    ? mbRecMeta({ phone: row.telefonnummer || '', started_at: btn.getAttribute('data-at') || '' }, { last_name: row.nachname || '', phone: row.telefonnummer || '' })
+    : null;
+  host.innerHTML = mbRecPlayerHtml(btn.getAttribute('data-id'), btn.getAttribute('data-url'), btn.getAttribute('data-dur'), meta);
 }
 
 function qcFields(row) {
@@ -613,10 +697,7 @@ function qcPaintBody() {
     const campName = row.campaigns?.name || window._qcCampById?.[row.campaign_id]?.name || '—';
     const agentName = row.users?.name || '—';
     const moved = _qcMoved(row) ? `<span class="qc-down">! ${_uiEsc(t('export.moved_short'))}</span>` : '';
-    const rec = row.contact_id ? window._qcRecByContact?.[row.contact_id] : null;
-    const recHtml = rec?.recording_url && typeof mbRecPlayerHtml === 'function'
-      ? mbRecPlayerHtml(rec.id, rec.recording_url, rec.duration_sec, typeof mbRecMeta === 'function' ? mbRecMeta(rec, { last_name: row.nachname || '', phone: row.telefonnummer || '' }) : null)
-      : '<span style="font-size:10px;color:var(--text-3);">—</span>';
+    const recHtml = qcRecPlaylistHtml(row);
     const selectedCustomer = row.customer_id || '';
     const custCell = hasCustomers
       ? `<select class="form-input" id="qc-customer-select-${_uiEsc(row.id)}" style="min-width:140px;max-width:180px;">
@@ -669,7 +750,7 @@ function openQcDetail(id) {
   const body = document.getElementById('qc-detail-body');
   const hasCustomers = (window._qcCustomers || []).length > 0;
   const canAssignField = typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin();
-  const rec = row.contact_id ? window._qcRecByContact?.[row.contact_id] : null;
+  const recHtml = qcRecPlaylistHtml(row);
   const moved = _qcMoved(row) ? `<span class="qc-down">! ${_uiEsc(t('export.moved_short'))}</span>` : '';
   const campName = row.campaigns?.name || window._qcCampById?.[row.campaign_id]?.name || '—';
   const camp = window._qcCampById?.[row.campaign_id] || {};
@@ -686,7 +767,7 @@ ${typeof qcCallinLiveHtml === 'function' ? qcCallinLiveHtml(row) : ''}
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.agent'))}</div><div style="font-weight:700;">${_uiEsc(row.users?.name || '—')}</div></div>
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.camp'))}</div><div class="qc-camp" style="font-weight:700;" title="${_uiEsc(campName)}">${_uiEsc(campName)}</div></div>
 ${row.agent_notu ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.agent_note'))}</div><div>${_uiEsc(row.agent_notu)}</div></div>` : ''}
-${rec?.recording_url && typeof mbRecPlayerHtml === 'function' ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:6px;">${_uiEsc(t('qc.rec'))}</div>${mbRecPlayerHtml(rec.id, rec.recording_url, rec.duration_sec, typeof mbRecMeta === 'function' ? mbRecMeta(rec, { last_name: row.nachname || '', phone: row.telefonnummer || '' }) : null)}</div>` : ''}
+${qcRecsFor(row).length ? `<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);margin-bottom:6px;">${_uiEsc(t('qc.rec'))}</div>${recHtml}</div>` : ''}
 </div>
 ${hasCustomers ? `<div style="margin-top:10px;">
   <label class="form-label">${_uiEsc(t('qc.customer_ph'))}</label>
@@ -1005,7 +1086,13 @@ async function quickQcUpdate(apptId, status) {
 
 async function qcHealCallin(rows) {
   if (typeof mbTelnyxAi !== 'function' || typeof qcApplyCallin !== 'function') return;
-  const need = (rows || []).filter((row) => row?.form_ek?.callin_conv && row.contact_id && !window._qcRecByContact?.[row.contact_id]).slice(0, 3);
+  const need = (rows || []).filter((row) => {
+    if (!row?.form_ek?.callin_conv || !row.contact_id) return false;
+    const list = qcRecsFor(row);
+    const logId = row.form_ek.callin_log;
+    if (!list.length) return true;
+    return !!(logId && !list.some((item) => item.id === logId));
+  }).slice(0, 3);
   for (const row of need) {
     const res = await mbTelnyxAi('sync', { appointment_id: row.id }).catch(() => null);
     if (res?.ok) qcApplyCallin(row, res);
