@@ -495,18 +495,25 @@ function mbAiTokenFocus(id) {
   _aiTokenFocus = String(id || '');
 }
 
+function mbAiJobChip(raw, label, extra) {
+  const rows = [
+    { raw, label, job: true },
+    { raw: `{${raw}}`, label, job: true, store: raw },
+  ];
+  (extra || []).forEach((alias) => rows.push({ raw: alias, label, job: true, store: raw }));
+  return rows;
+}
+
 function mbAiSystemChips() {
-  const look = mbAiSay('ai.job.look', 'Boş saatlere bak');
-  const slot = mbAiSay('ai.job.slot', 'Seçilen saat');
-  const save = mbAiSay('ai.job.save', 'Sonucu kaydet');
   return [
-    { raw: 'takvim_bak', label: look, job: true },
-    { raw: 'takvim.bak', label: look, job: true, store: 'takvim_bak' },
-    { raw: '{takvim_bak}', label: look, job: true, store: 'takvim_bak' },
-    { raw: 'slot_id', label: slot, job: true },
-    { raw: '{slot_id}', label: slot, job: true, store: 'slot_id' },
-    { raw: 'sonuc_yaz', label: save, job: true },
-    { raw: '{sonuc_yaz}', label: save, job: true, store: 'sonuc_yaz' },
+    ...mbAiJobChip('takvim_bak', mbAiSay('ai.job.look', 'Boş saatlere bak'), ['takvim.bak']),
+    ...mbAiJobChip('slot_id', mbAiSay('ai.job.slot', 'Seçilen saat')),
+    ...mbAiJobChip('sonuc_yaz', mbAiSay('ai.job.save', 'Sonucu kaydet')),
+    ...mbAiJobChip('fields_json', mbAiSay('ai.job.fix', 'Düzeltilen bilgi')),
+    ...mbAiJobChip('end_call', mbAiSay('ai.job.end', 'Görüşmeyi bitir')),
+    ...mbAiJobChip('skip_turn', mbAiSay('ai.job.quiet', 'Sus')),
+    ...mbAiJobChip('voicemail_detection', mbAiSay('ai.job.tape', 'Telesekreter')),
+    ...mbAiJobChip('insana_aktar', mbAiSay('ai.job.hand', 'İnsana aktar')),
   ];
 }
 
@@ -765,14 +772,23 @@ function mbAiInsertTask(staffId, key) {
 
 function mbAiQcTaskRow(staffId) {
   const flow = ['name', 'when', 'form', 'move', 'bye'];
-  const jobs = ['look', 'slot', 'result'];
+  const jobs = [
+    ['look', 'look'],
+    ['slot', 'slot'],
+    ['result', 'save'],
+    ['fix', 'fix'],
+    ['end', 'end'],
+    ['quiet', 'quiet'],
+    ['tape', 'tape'],
+    ['hand', 'hand'],
+  ];
   const button = (key) => `<button type="button" class="ai-token" onclick="mbAiInsertTask('${mbAiEsc(staffId)}','${key}')"><b>${mbAiEsc(mbAiSay(`ai.task.${key}`, key))}</b></button>`;
   const note = (key) => `<p class="ai-job"><b>${mbAiEsc(mbAiSay(`ai.job.${key}`, ''))}</b> ${mbAiEsc(mbAiSay(`ai.job.${key}_note`, ''))}</p>`;
   return `<div class="ai-tokens-lab">${mbAiEsc(mbAiSay('ai.staff.tasks', 'Görev ekle'))}</div>
     <div class="ai-token-row">${flow.map(button).join('')}</div>
     <div class="ai-tokens-lab">${mbAiEsc(mbAiSay('ai.staff.jobs', 'Nasıl yapılır'))}</div>
-    <div class="ai-token-row">${jobs.map(button).join('')}</div>
-    <div class="ai-job-notes">${['look', 'slot', 'save'].map(note).join('')}</div>
+    <div class="ai-token-row">${jobs.map(([key]) => button(key)).join('')}</div>
+    <div class="ai-job-notes">${jobs.map(([, key]) => note(key)).join('')}</div>
     <div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.tasks_hint', ''))}</div>`;
 }
 
