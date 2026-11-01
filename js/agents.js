@@ -806,6 +806,7 @@ function firmRoleLabel(role) {
     firm_admin: 'firm.role.firm_admin',
     admin: 'firm.role.admin',
     super_admin: 'firm.role.super',
+    ai: 'firm.role.ai',
   }[role];
   return key && typeof t === 'function' ? t(key) : (role || '');
 }
