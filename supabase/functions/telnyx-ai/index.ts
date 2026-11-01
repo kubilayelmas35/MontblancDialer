@@ -179,7 +179,32 @@ function staffOf(settings: Record<string, any>, staffId: string, campaignId: str
   if (ids.length && campaignId && !ids.includes(campaignId)) return { error: 'staff' as const };
   const results = Array.isArray(hit.results) ? hit.results.map((key: unknown) => normKey(key)).filter(Boolean) : [];
   const engine = hit.engine === 'super' ? 'super' as const : hit.engine === 'std' ? 'std' as const : '';
-  return { id: staffId, kind, prompt: clip(hit.prompt, 2000), greeting: clip(hit.greeting, 400), results, engine, llm: clip(hit.llm, 40), voiceId: clip(hit.voice_id, 60).replace(/[^A-Za-z0-9]/g, ''), moveTime: hit.move_time !== false, mustDo: clip(hit.must_do, 600), mustNot: clip(hit.must_not, 600) };
+  const userId = String(hit.user_id || '');
+  return {
+    id: staffId,
+    kind,
+    name: clip(hit.name, 80) || staffId,
+    userId: uuidRe.test(userId) ? userId : '',
+    prompt: clip(hit.prompt, 2000),
+    greeting: clip(hit.greeting, 400),
+    results,
+    engine,
+    llm: clip(hit.llm, 40),
+    voiceId: clip(hit.voice_id, 60).replace(/[^A-Za-z0-9]/g, ''),
+    moveTime: hit.move_time !== false,
+    mustDo: clip(hit.must_do, 600),
+    mustNot: clip(hit.must_not, 600),
+  };
+}
+
+function callOutcome(appt: Record<string, any>, secs: number) {
+  const durum = normKey(appt.durum);
+  if (durum === 'qc_bekleniyor' || durum === 'appointment') return 'appointment';
+  if (['negative', 'callback', 'no_answer', 'voicemail', 'dnc', 'busy', 'phone_off'].includes(durum)) return durum;
+  if (['basarili', 'basarisiz', 'beklemede', 'ulasilamadi', 'iptal'].includes(durum)) return durum;
+  if (String(appt.form_ek?.callin_error || '') === 'noanswer' || !(secs > 0)) return 'no_answer';
+  if (durum === 'ai_sales' || durum === 'ai_qc') return secs > 0 ? 'callback' : 'no_answer';
+  return durum || (secs > 0 ? 'callback' : 'no_answer');
 }
 
 function salesResultChoices(): AiChoice[] {
@@ -516,6 +541,9 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
   const saved = await mergeEk(admin, appt, {
     callin_note: note,
     callin_staff_id: staff.id,
+    callin_staff_name: staff.name,
+    callin_user_id: staff.userId || '',
+    callin_kind: staff.kind,
     callin_token: token,
     callin_state: 'dialing',
     callin_at: new Date().toISOString(),
@@ -592,9 +620,16 @@ async function placeEleven(
     return json({ ok: false, error: 'eleven', detail: clip(ready.why || 'setup', 300) }, 502);
   }
   const token = newToken();
+  const staffMeta = staffOf(settings, job.staffId, String(appt.campaign_id || ''));
+  const staffName = !('error' in staffMeta) ? staffMeta.name : clip(job.staffId, 80);
+  const staffUser = !('error' in staffMeta) ? staffMeta.userId : '';
+  const staffKind = !('error' in staffMeta) ? staffMeta.kind : 'qc';
   const saved = await mergeEk(admin, appt, {
     callin_note: job.note,
     callin_staff_id: job.staffId,
+    callin_staff_name: staffName,
+    callin_user_id: staffUser || '',
+    callin_kind: staffKind,
     callin_token: token,
     callin_state: 'dialing',
     callin_at: new Date().toISOString(),
@@ -704,31 +739,45 @@ async function saveElevenLog(
   }
   const secs = Math.max(0, Math.round(info.secs));
   const started = info.start ? new Date(info.start * 1000).toISOString() : new Date(Date.now() - secs * 1000).toISOString();
-  const by = String(appt.form_ek?.callin_by || '');
+  const ek = appt.form_ek && typeof appt.form_ek === 'object' ? appt.form_ek : {};
+  const by = String(ek.callin_user_id || ek.callin_by || '');
+  const staffId = clip(ek.callin_staff_id, 40);
+  const opName = clip(ek.callin_staff_name, 80) || staffId || 'YZ';
+  const kind = ek.callin_kind === 'sales' ? 'sales' : 'qc';
   const notes = [info.summary, info.transcript].filter(Boolean).join('\n\n').slice(0, 3500);
   const row = {
     contact_id: appt.contact_id || null,
     campaign_id: appt.campaign_id || null,
     firm_id: appt.firm_id,
     agent_id: uuidRe.test(by) ? by : null,
+    operator_name: opName,
+    ai_staff_id: staffId || null,
     phone: clip(appt.telefonnummer, 40) || null,
-    outcome: 'qc_ai',
+    outcome: callOutcome(appt, secs),
     duration_sec: secs,
     notes,
     telnyx_call_id: tag,
     started_at: started,
     ended_at: new Date().toISOString(),
     recording_url: url || null,
-    work_type: 'ai_qc',
+    work_type: kind === 'sales' ? 'ai_sales' : 'ai_qc',
   };
   const saved = await mergeEk(admin, appt, { callin_transcript: clip(info.transcript, 3500), callin_summary: clip(info.summary, 800) });
   if (!saved) return;
   if (dup?.id) {
-    if (url) await admin.from('call_logs').update({ recording_url: url, notes, duration_sec: secs }).eq('id', dup.id);
+    await admin.from('call_logs').update({
+      recording_url: url || dup.recording_url || null,
+      notes,
+      duration_sec: secs,
+      outcome: row.outcome,
+      operator_name: opName,
+      ai_staff_id: staffId || null,
+      agent_id: row.agent_id,
+      work_type: row.work_type,
+    }).eq('id', dup.id);
     await mergeEk(admin, appt, { callin_log: dup.id });
     return;
   }
-  if (!url) return;
   const { data: made, error } = await admin.from('call_logs').insert(row).select('id').maybeSingle();
   if (error) console.error('call log insert failed', error.message);
   if (made?.id) await mergeEk(admin, appt, { callin_log: made.id });
@@ -919,6 +968,8 @@ async function writeResult(admin: SupabaseClient, appt: Record<string, any>, arg
   const slotIdEarly = String(args.slot_id || '');
   if (kind === 'sales' && key === 'appointment' && !uuidRe.test(slotIdEarly)) return { result: 'need_slot' };
   const patch: Record<string, unknown> = { durum: kind === 'sales' && key === 'appointment' ? 'qc_bekleniyor' : key };
+  const aiUser = String(extra.callin_user_id || '');
+  if (uuidRe.test(aiUser)) patch.agent_id = aiUser;
   const extras: Record<string, string> = {};
   let rawFields: unknown = args.fields;
   if (typeof args.fields_json === 'string' && args.fields_json.trim()) {
@@ -1094,25 +1145,30 @@ async function syncAction(admin: SupabaseClient, user: Record<string, any>, body
   if (role !== 'super_admin' && String(user.firm_id || '') !== String(appt.firm_id || '')) return json({ ok: false, error: 'auth' }, 403);
   const res = await syncEleven(admin, appt);
   await sweepEleven(admin, String(appt.firm_id)).catch(() => null);
-  const { data: fresh } = await admin.from('appointments').select('durum, form_ek').eq('id', id).maybeSingle();
+  const { data: fresh } = await admin.from('appointments').select('durum, termin_tarih, form_ek, qc_notu').eq('id', id).maybeSingle();
   let recording = '';
   const logId = String(fresh?.form_ek?.callin_log || '');
   if (uuidRe.test(logId)) {
     const { data: log } = await admin.from('call_logs').select('recording_url').eq('id', logId).maybeSingle();
     recording = String(log?.recording_url || '');
   }
+  const durum = String(fresh?.durum || '');
+  const secs = Number((res as any).secs || fresh?.form_ek?.callin_sec || 0);
+  const err = String(fresh?.form_ek?.callin_error || '');
   return json({
     ok: true,
     done: !!res.done,
     state: res.state,
     phase: String((res as any).phase || fresh?.form_ek?.callin_phase || ''),
-    secs: Number((res as any).secs || fresh?.form_ek?.callin_sec || 0),
-    durum: String(fresh?.durum || ''),
+    secs,
+    durum,
+    termin_tarih: String(fresh?.termin_tarih || ''),
+    outcome: callOutcome({ ...appt, durum, form_ek: fresh?.form_ek || appt.form_ek }, secs),
     qc_notu: String(fresh?.qc_notu || appt.qc_notu || ''),
     summary: String((res as any).summary || fresh?.form_ek?.callin_summary || ''),
     transcript: String((res as any).transcript || fresh?.form_ek?.callin_transcript || ''),
     recording,
-    error: String(fresh?.form_ek?.callin_error || ''),
+    error: err,
   });
 }
 

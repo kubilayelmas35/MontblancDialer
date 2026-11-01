@@ -171,7 +171,13 @@ function perfAgentName(id, fallback) {
   if (!id) return fallback || '—';
   const row = _perfRawAppts.find((a) => String(a.agent_id) === String(id));
   const c = _perfRawCalls.find((x) => String(x.agent_id) === String(id));
-  let name = row?.users?.name || c?.users?.name || fallback || String(id).slice(0, 8);
+  const src = c || row;
+  let name = (typeof mbOperatorName === 'function' && src)
+    ? mbOperatorName(src, fallback)
+    : (src?.operator_name || row?.users?.name || c?.users?.name || fallback || String(id).slice(0, 8));
+  if (typeof mbIsAiOperator === 'function' && src && mbIsAiOperator(src) && name && !/^🤖|YZ ·/.test(name)) {
+    name = `🤖 ${name}`;
+  }
   if (!getActiveFirmId()) {
     const firmId = row?.firm_id || c?.firm_id;
     const firm = (_allFirms || []).find((f) => String(f.id) === String(firmId));
@@ -727,7 +733,7 @@ async function _perfFetchCalls(from, to) {
   const order = 'started_at.desc,id.desc';
   try {
     return await mbFetchAll(
-      `call_logs?select=id,started_at,agent_id,campaign_id,firm_id,outcome,phone,duration_sec,users(name),campaigns(name)${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=${order}`
+      `call_logs?select=id,started_at,agent_id,operator_name,ai_staff_id,work_type,campaign_id,firm_id,outcome,phone,duration_sec,users(name,role),campaigns(name)${ff}&started_at=gte.${gte}&started_at=lte.${lte}&order=${order}`
     );
   } catch (e) {
     const rows = await mbFetchAll(

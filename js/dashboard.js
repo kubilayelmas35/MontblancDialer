@@ -2268,8 +2268,8 @@ async function statsFillFilters(fid) {
 
 async function statsPullLogs(ff, gte, lte, camp, agent) {
   const tail = `${ff}&started_at=gte.${gte}&started_at=lte.${lte}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}&order=started_at.desc,id.desc`;
-  const rich = `call_logs?select=id,outcome,agent_id,campaign_id,firm_id,duration_sec,started_at,phone,users(id,name,role),campaigns(id,name)${tail}`;
-  const plain = `call_logs?select=id,outcome,agent_id,campaign_id,firm_id,duration_sec${tail}`;
+  const rich = `call_logs?select=id,outcome,agent_id,operator_name,ai_staff_id,work_type,campaign_id,firm_id,duration_sec,started_at,phone,users(id,name,role),campaigns(id,name)${tail}`;
+  const plain = `call_logs?select=id,outcome,agent_id,operator_name,ai_staff_id,work_type,campaign_id,firm_id,duration_sec${tail}`;
   try {
     const rows = await mbFetchAll(rich);
     return { rows: rows || [], capped: !!rows?.capped };
@@ -2528,13 +2528,17 @@ const campId  = l.campaign_id || 'unknown';
 const key = `${agentId}__${campId}`;
 if (!groups[key]) groups[key] = {
 agent_id: agentId,
-agent_name: l.users?.name || '',
+agent_name: (typeof mbOperatorName === 'function' ? mbOperatorName(l) : (l.operator_name || l.users?.name || '')),
+is_ai: typeof mbIsAiOperator === 'function' ? mbIsAiOperator(l) : false,
 campaign_id: campId,
 campaign_name: (typeof mbCampShown === 'function' ? mbCampShown(l.campaigns, l.campaign_id) : (l.campaigns?.name || '')),
 firm_id: l.firm_id || null,
 logs: []
 };
-if (!groups[key].agent_name && l.users?.name) groups[key].agent_name = l.users.name;
+if (!groups[key].agent_name) {
+  groups[key].agent_name = typeof mbOperatorName === 'function' ? mbOperatorName(l) : (l.operator_name || l.users?.name || '');
+}
+if (!groups[key].is_ai && typeof mbIsAiOperator === 'function') groups[key].is_ai = mbIsAiOperator(l);
 if (!groups[key].campaign_name && l.campaigns?.name) groups[key].campaign_name = typeof mbCampShown === 'function' ? mbCampShown(l.campaigns, l.campaign_id) : l.campaigns.name;
 groups[key].logs.push(l);
 });
@@ -2563,7 +2567,8 @@ _statsRows = rows.map((r) => {
   const extra = {};
   extras.forEach((col) => { extra[col.key] = countOf(ls, col.key); });
   return {
-    agent: `${r.agent_name || String(r.agent_id).slice(0, 8)}${statsFirmSuffix(r.firm_id)}`,
+    agent: `${r.is_ai ? '🤖 ' : ''}${r.agent_name || String(r.agent_id).slice(0, 8)}${statsFirmSuffix(r.firm_id)}`,
+    is_ai: !!r.is_ai,
     camp: r.campaign_name || (r.campaign_id === 'unknown' ? '—' : String(r.campaign_id).slice(0, 8)),
     calls,
     appointment: countOf(ls, 'appointment'),
@@ -2821,6 +2826,8 @@ function chWorkText(value) {
     auto: de ? 'Automatischer Anruf' : 'Otomatik arama',
     manual: de ? 'Manueller Anruf' : 'Manuel arama',
     inbound: de ? 'Eingehender Anruf' : 'Gelen arama',
+    ai_qc: de ? 'KI Qualität' : 'YZ kalite',
+    ai_sales: de ? 'KI Termin' : 'YZ randevu',
   };
   return map[String(value || '')] || '—';
 }
@@ -2867,12 +2874,12 @@ async function chFillFilters(fid) {
     })), 'Tüm Kampanyalar', 'Alle Kampagnen');
   } catch (e) { console.warn('ch camps', e); }
   try {
-    let uq = 'users?select=id,name,firm_id&order=name.asc&limit=400';
+    let uq = 'users?select=id,name,firm_id,role&order=name.asc&limit=400';
     if (fid) uq += `&firm_id=eq.${fid}`;
     const users = (await sb(uq).catch(() => [])) || [];
     await statsFillSelect('ch-agent-f', `u:${sig}:${users.length}`, users.map((u) => ({
       id: u.id,
-      name: `${u.name || '—'}${statsFirmSuffix(u.firm_id)}`,
+      name: `${u.role === 'ai' ? '🤖 ' : ''}${u.name || '—'}${statsFirmSuffix(u.firm_id)}`,
     })), 'Tüm temsilciler', 'Alle Agenten');
   } catch (e) { console.warn('ch agents', e); }
 }
@@ -2914,10 +2921,10 @@ async function chPullLogs(ff, gte, lte, camp, agent, outcome) {
     : outcome === 'appointment' ? '&outcome=in.(appointment,appointment_done)'
     : `&outcome=eq.${encodeURIComponent(outcome)}`;
   const tail = `${ff}&started_at=gte.${gte}&started_at=lte.${lte}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}${outcomeQ}&order=started_at.desc,id.desc`;
-  const fields = 'id,started_at,ended_at,dial_at,answered_at,outcome,agent_id,campaign_id,firm_id,phone,caller_number,work_type,hangup_by,duration_sec,cost_usd,contact_id,recording_url,notes,callback_at,telnyx_call_id';
+  const fields = 'id,started_at,ended_at,dial_at,answered_at,outcome,agent_id,operator_name,ai_staff_id,campaign_id,firm_id,phone,caller_number,work_type,hangup_by,duration_sec,cost_usd,contact_id,recording_url,notes,callback_at,telnyx_call_id';
   const legacy = 'id,started_at,ended_at,outcome,agent_id,campaign_id,firm_id,phone,duration_sec,cost_usd,contact_id,recording_url,notes,callback_at,telnyx_call_id';
-  const rich = `call_logs?select=${fields},users(id,name),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${tail}`;
-  const mid = `call_logs?select=${legacy},users(id,name),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${tail}`;
+  const rich = `call_logs?select=${fields},users(id,name,role),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${tail}`;
+  const mid = `call_logs?select=${legacy},users(id,name,role),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${tail}`;
   const plain = `call_logs?select=${legacy}${tail}`;
   const chain = [rich, mid, plain];
   let lastErr = null;
@@ -3016,6 +3023,10 @@ function chCellText(row, key) {
 function chCellHtml(row, key) {
   const l = row.raw;
   if (key === 'rec') return `<td>${chRecHtml(l)}</td>`;
+  if (key === 'agent') {
+    if (row.agentHtml) return `<td>${row.agentHtml}</td>`;
+    return `<td>${typeof mbOperatorHtml === 'function' ? mbOperatorHtml(l, { fallback: row.agent }) : statsEsc(row.agent || '—')}</td>`;
+  }
   if (key === 'outcome') {
     const cb = l.callback_at ? `<div class="ch-cb"><i class="ph ph-calendar"></i> ${statsEsc(chWhen(l.callback_at))}</div>` : '';
     return `<td>${chBadge(l.outcome)}${cb}</td>`;
@@ -3109,7 +3120,11 @@ async function loadCallHistory() {
         name,
         phone,
         caller: l.caller_number || l.campaigns?.telnyx_did || '—',
-        agent: `${l.users?.name || '—'}${statsFirmSuffix(l.firm_id)}`,
+        agent: `${(typeof mbOperatorName === 'function' ? mbOperatorName(l) : (l.operator_name || l.users?.name || '—'))}${statsFirmSuffix(l.firm_id)}`,
+        agentHtml: typeof mbOperatorHtml === 'function'
+          ? `${mbOperatorHtml(l)}${statsFirmSuffix(l.firm_id) ? `<span class="ch-firm">${statsEsc(statsFirmSuffix(l.firm_id))}</span>` : ''}`
+          : '',
+        isAi: typeof mbIsAiOperator === 'function' ? mbIsAiOperator(l) : false,
         camp: typeof mbCampShown === 'function' ? mbCampShown(l.campaigns, l.campaign_id) : (l.campaigns?.name || '—'),
         work: chWorkText(l.work_type),
         workKey: l.work_type || '',

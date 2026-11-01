@@ -105,7 +105,7 @@ function _buildCallHistoryQueryForExport() {
   const dateTo = document.getElementById('ch-date-to')?.value || chToday;
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
-  let query = `call_logs?select=*,users(id,name),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${ff}&order=started_at.desc,id.asc`;
+  let query = `call_logs?select=*,users(id,name,role),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${ff}&order=started_at.desc,id.asc`;
   query += `&started_at=gte.${gte}`;
   query += `&started_at=lte.${lte}`;
   const camp = document.getElementById('ch-camp-f')?.value || '';
@@ -148,7 +148,10 @@ function _logToExportRow(l) {
   const dt = _chWall(l.started_at);
   const name = `${l.contacts?.first_name || ''} ${l.contacts?.last_name || ''}`.trim() || '—';
   const phone = l.phone || l.contacts?.phone || '—';
-  const agent = l.users?.name || '—';
+  const agent = typeof mbOperatorName === 'function'
+    ? mbOperatorName(l)
+    : (l.operator_name || l.users?.name || '—');
+  const agentOut = (typeof mbIsAiOperator === 'function' && mbIsAiOperator(l)) ? `YZ · ${agent}` : agent;
   const camp = l.campaigns?.name || '—';
   const durSec = l.duration_sec != null ? l.duration_sec : '';
   const durStr =
@@ -163,7 +166,7 @@ function _logToExportRow(l) {
   const work = typeof chWorkText === 'function' ? chWorkText(l.work_type) : (l.work_type || '');
   const who = typeof chWhoText === 'function' ? chWhoText(l.hangup_by) : (l.hangup_by || '');
   const cost = l.cost_usd != null && Number(l.cost_usd) > 0 ? l.cost_usd : '';
-  return [dt, answer, end, name, phone, caller, agent, camp, work, durStr, durSec, cost, oc, who, notes, cb, rec];
+  return [dt, answer, end, name, phone, caller, agentOut, camp, work, durStr, durSec, cost, oc, who, notes, cb, rec];
 }
 
 async function exportCallHistoryCsv() {

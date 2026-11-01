@@ -2224,6 +2224,11 @@ visibility: visible;
 .ai-run-slot.is-talk .ai-run-phase { color: var(--green); }
 .ai-run-slot.is-ring .ai-run-phase { color: var(--accent-text); }
 .ai-run-slot.is-miss .ai-run-phase { color: var(--red); }
+.ai-run-slot.is-done .ai-run-phase { text-transform: none; letter-spacing: 0; font-weight: 700; max-width: 220px; text-align: right; }
+.mb-op { display: inline-flex; align-items: center; gap: 4px; }
+.mb-op i { font-size: 14px; opacity: .75; }
+.mb-op.is-ai { color: var(--accent-text, #2563eb); font-weight: 650; }
+.mb-op.is-ai i { opacity: 1; }
 .ai-staff-grid { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: 16px; max-width: none; align-items: start; }
 .ai-staff-span { grid-column: 1 / -1; }
 .ai-staff-side { position: sticky; top: 12px; }

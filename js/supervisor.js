@@ -21,6 +21,16 @@ function _supLang() {
   return (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'de' : 'tr';
 }
 
+function _supIsAiAgent(agentId) {
+  const id = String(agentId || '');
+  if (!id) return false;
+  const bags = Object.values(window._aiStaffByFirm || {});
+  for (const list of bags) {
+    if ((list || []).some((row) => String(row?.user_id || '') === id)) return true;
+  }
+  return false;
+}
+
 function _supFmtDuration(isoStart) {
   if (!isoStart) return '—';
   const sec = Math.floor((Date.now() - new Date(isoStart).getTime()) / 1000);
@@ -94,7 +104,11 @@ function _supRenderCards() {
         <th>${de ? 'Nummer' : 'Numara'}</th>
         <th>${de ? 'Kampagne' : 'Kampanya'}</th>
       </tr></thead><tbody>${calls.map((s) => {
-        const agent = escapeHtml(s.agent_name || s.agent_id?.slice(0, 8) || '?');
+        const agentRaw = s.agent_name || s.agent_id?.slice(0, 8) || '?';
+        const agentAi = typeof _supIsAiAgent === 'function' && _supIsAiAgent(s.agent_id);
+        const agent = agentAi
+          ? `<span class="mb-op is-ai" title="YZ"><i class="ph ph-robot"></i> ${escapeHtml(agentRaw)}</span>`
+          : escapeHtml(agentRaw);
         const name = escapeHtml(s.current_contact_name || '—');
         const phone = escapeHtml(s.current_contact_phone || '—');
         const camp = escapeHtml(_supCampaignName(s.campaign_id));
@@ -125,7 +139,11 @@ function _supRenderCards() {
     const lines = sorted.map((s) => {
     const info = _supStatusInfo(s.status);
     const label = de ? info.de : info.tr;
-    const agent = escapeHtml(s.agent_name || s.agent_id?.slice(0, 8) || '?');
+    const agentRaw = s.agent_name || s.agent_id?.slice(0, 8) || '?';
+    const agentAi = typeof _supIsAiAgent === 'function' && _supIsAiAgent(s.agent_id);
+    const agent = agentAi
+      ? `<span class="mb-op is-ai" title="YZ"><i class="ph ph-robot"></i> ${escapeHtml(agentRaw)}</span>`
+      : escapeHtml(agentRaw);
     const name = escapeHtml(s.current_contact_name || '—');
     const phone = escapeHtml(s.current_contact_phone || '—');
     const camp = escapeHtml(_supCampaignName(s.campaign_id));

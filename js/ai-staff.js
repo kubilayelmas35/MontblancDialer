@@ -135,6 +135,7 @@ function mbAiStaffNorm(row) {
     id,
     name: String(row.name || '').trim().slice(0, 40),
     kind: row.kind === 'qc' ? 'qc' : 'sales',
+    user_id: mbAiUuid(row.user_id) ? String(row.user_id) : '',
     campaign_ids: campaignIds,
     campaign_id: campaignIds.length === 1 ? campaignIds[0] : '',
     parallel: parallel >= 1 && parallel <= 5 ? parallel : 1,
@@ -164,6 +165,61 @@ function mbAiStaffNorm(row) {
         .slice(0, 24);
     })(),
   };
+}
+
+async function mbAiEnsureOperatorUser(staff) {
+  if (!_aiFirmId || !staff?.id || typeof sb !== 'function') return '';
+  const name = String(staff.name || staff.id).trim().slice(0, 40) || staff.id;
+  if (mbAiUuid(staff.user_id)) {
+    await sb(`users?id=eq.${staff.user_id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ name, is_active: true, role: 'ai' }),
+    }).catch(() => null);
+    return staff.user_id;
+  }
+  const firmKey = String(_aiFirmId).replace(/-/g, '').slice(0, 12);
+  const email = `ai.${String(staff.id).toLowerCase()}.${firmKey}@callin.internal`;
+  const found = await sb(`users?email=eq.${encodeURIComponent(email)}&select=id&limit=1`).catch(() => []) || [];
+  if (mbAiUuid(found[0]?.id)) {
+    await sb(`users?id=eq.${found[0].id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ name, is_active: true, role: 'ai', firm_id: _aiFirmId }),
+    }).catch(() => null);
+    return found[0].id;
+  }
+  const hash = `!ai!${(typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`}`;
+  const made = await sb('users', {
+    method: 'POST',
+    body: JSON.stringify({
+      firm_id: _aiFirmId,
+      email,
+      name,
+      role: 'ai',
+      is_active: true,
+      password_hash: hash,
+    }),
+  }).catch(() => null);
+  const id = made?.[0]?.id || made?.id || '';
+  return mbAiUuid(id) ? id : '';
+}
+
+async function mbAiSyncLiveSession(staff, meta) {
+  if (!staff?.user_id || typeof upsertAgentSession !== 'function') return;
+  const open = meta && !meta.doneAt;
+  const payload = {
+    agent_id: staff.user_id,
+    agent_name: staff.name || staff.id,
+    firm_id: _aiFirmId || null,
+    status: staff.running ? (open ? 'on_call' : 'ready') : 'offline',
+    last_seen: new Date().toISOString(),
+    current_contact_name: open ? (meta.name || meta.phone || '') : null,
+    current_contact_phone: open ? (meta.phone || '') : null,
+    campaign_id: open && mbAiUuid(meta.campId) ? meta.campId : null,
+    call_started_at: open ? new Date(meta.at || Date.now()).toISOString() : null,
+  };
+  await upsertAgentSession(payload).catch(() => null);
 }
 
 function mbAiStaffList(settings) {
@@ -459,6 +515,47 @@ function mbAiRunPhaseLabel(phase) {
   }[phase] || mbAiSay('ai.run.phase.ring', 'Arıyor');
 }
 
+function mbAiRunResultLabel(row) {
+  if (!row?.doneAt) return '';
+  const outcome = String(row.outcome || '').toLowerCase();
+  const durum = String(row.durum || '').toLowerCase();
+  const err = String(row.error || '');
+  const when = String(row.termin || '').trim();
+  const whenShort = when.length >= 16 ? `${when.slice(0, 10)} ${when.slice(11, 16)}` : when.slice(0, 16);
+  if (err === 'noanswer' || outcome === 'no_answer' || row.phase === 'missed') {
+    return mbAiSay('ai.run.result.no_answer', 'Cevapsız');
+  }
+  if (err && err !== 'noanswer') {
+    return mbAiSay('ai.run.result.fail', 'Başarısız — {why}').replace('{why}', err);
+  }
+  if (outcome === 'appointment' || durum === 'qc_bekleniyor' || durum === 'appointment') {
+    return whenShort
+      ? mbAiSay('ai.run.result.appt_when', 'Başarılı — {when} randevu').replace('{when}', whenShort)
+      : mbAiSay('ai.run.result.appt', 'Başarılı — randevu');
+  }
+  if (outcome === 'negative' || durum === 'negative' || durum === 'basarisiz') {
+    return mbAiSay('ai.run.result.neg', 'Olumsuz');
+  }
+  if (outcome === 'callback' || durum === 'callback' || durum === 'beklemede') {
+    return mbAiSay('ai.run.result.cb', 'Geri arama');
+  }
+  if (outcome === 'voicemail' || durum === 'voicemail') {
+    return mbAiSay('ai.run.result.vm', 'Telesekreter');
+  }
+  if (outcome === 'dnc' || durum === 'dnc') {
+    return mbAiSay('ai.run.result.dnc', 'Kara liste');
+  }
+  if (outcome === 'basarili' || durum === 'basarili') {
+    return mbAiSay('ai.run.result.ok', 'Başarılı');
+  }
+  if (outcome === 'ulasilamadi' || durum === 'ulasilamadi') {
+    return mbAiSay('ai.run.result.reach', 'Ulaşılamadı');
+  }
+  if (row.summary) return String(row.summary).slice(0, 80);
+  if (row.secs > 0) return mbAiSay('ai.run.result.talked', 'Konuşuldu');
+  return mbAiSay('ai.run.phase.done', 'Bitti');
+}
+
 function mbAiRunLiveRows(staffId) {
   const now = Date.now();
   const rows = (_aiRunLive[staffId] || []).filter((row) => {
@@ -503,13 +600,17 @@ function mbAiPaintRunLive(staffId) {
     const camp = row.camp ? `<span class="ai-run-camp">${mbAiEsc(row.camp)}</span>` : '';
     const phone = row.phone ? `<span class="ai-run-phone">${mbAiEsc(row.phone)}</span>` : '';
     const secs = row.secs > 0 ? `<span class="ai-run-secs">${mbAiEsc(String(row.secs))}s</span>` : '';
+    const result = mbAiRunResultLabel(row);
+    const phase = result
+      ? `<span class="ai-run-phase">${mbAiEsc(result)}</span>`
+      : `<span class="ai-run-phase">${mbAiEsc(mbAiRunPhaseLabel(row.phase))}</span>`;
     return `<div class="ai-run-slot ${tone}">
       <div class="ai-run-slot-main">
         <b>${mbAiEsc(who)}</b>
         ${camp}${phone}
       </div>
       <div class="ai-run-slot-meta">
-        <span class="ai-run-phase">${mbAiEsc(mbAiRunPhaseLabel(row.phase))}</span>
+        ${phase}
         ${secs}
       </div>
     </div>`;
@@ -617,8 +718,13 @@ async function mbAiRunToggle(staffId) {
   row.running = on;
   const card = document.querySelector(`[data-ai-run="${staffId}"]`);
   if (card) card.classList.toggle('is-on', on);
+  if (!row.user_id) {
+    const uid = await mbAiEnsureOperatorUser(row);
+    if (uid) row.user_id = uid;
+  }
   mbAiPaintRunLive(staffId);
   await mbAiPersistRun();
+  void mbAiSyncLiveSession(row, null);
   if (on) {
     if (row.kind === 'qc') void mbAiRunOneQc(row);
     else void mbAiRunOneSales(row);
@@ -636,7 +742,12 @@ async function mbAiPersistRun() {
     settings.ai_staff = prev.map((row) => {
       const next = byId.get(row.id);
       if (!next) return row;
-      return mbAiStaffNorm({ ...row, running: next.running === true, focus_ids: next.focus_ids || [] });
+      return mbAiStaffNorm({
+        ...row,
+        running: next.running === true,
+        focus_ids: next.focus_ids || [],
+        user_id: next.user_id || row.user_id || '',
+      });
     }).filter(Boolean);
     await sb(`firms?id=eq.${_aiFirmId}`, {
       method: 'PATCH',
@@ -708,6 +819,8 @@ async function mbAiRunOneQc(staff) {
     const meta = {
       key,
       apptId: appt.id,
+      contactId: '',
+      campId: appt.campaign_id || '',
       name: String(appt.nachname || '').trim(),
       phone: String(appt.telefonnummer || '').trim(),
       camp: mbAiCampName(appt.campaign_id),
@@ -717,12 +830,15 @@ async function mbAiRunOneQc(staff) {
       doneAt: 0,
     };
     _aiRunLive[staff.id] = [...mbAiRunLiveRows(staff.id), meta];
+    void mbAiSyncLiveSession(staff, meta);
     mbAiPaintRunLive(staff.id);
     const res = await mbTelnyxAi('place', { appointment_id: appt.id, staff_id: staff.id, note: '' });
     if (!res?.ok) {
       _aiRunBusy.delete(key);
       meta.phase = 'missed';
+      meta.error = String(res?.error || res?.detail || 'dial');
       meta.doneAt = Date.now();
+      void mbAiSyncLiveSession(staff, meta);
       mbAiPaintRunLive(staff.id);
       continue;
     }
@@ -758,6 +874,7 @@ async function mbAiRunOneSales(staff) {
       key,
       apptId: '',
       contactId: contact.id,
+      campId: contact.campaign_id || '',
       name,
       phone: String(contact.phone || '').trim(),
       camp: mbAiCampName(contact.campaign_id),
@@ -767,12 +884,15 @@ async function mbAiRunOneSales(staff) {
       doneAt: 0,
     };
     _aiRunLive[staff.id] = [...mbAiRunLiveRows(staff.id), meta];
+    void mbAiSyncLiveSession(staff, meta);
     mbAiPaintRunLive(staff.id);
     const res = await mbTelnyxAi('place', { contact_id: contact.id, staff_id: staff.id, note: '' });
     if (!res?.ok || !res.appointment_id) {
       _aiRunBusy.delete(key);
       meta.phase = 'missed';
+      meta.error = String(res?.error || res?.detail || 'dial');
       meta.doneAt = Date.now();
+      void mbAiSyncLiveSession(staff, meta);
       mbAiPaintRunLive(staff.id);
       continue;
     }
@@ -782,6 +902,7 @@ async function mbAiRunOneSales(staff) {
 }
 
 async function mbAiWatchRun(staffId, meta) {
+  const staff = (_aiDesk?.staff || []).find((row) => String(row.id) === String(staffId));
   const started = Date.now();
   while (Date.now() - started < 12 * 60 * 1000) {
     await new Promise((resolve) => setTimeout(resolve, 3500));
@@ -791,6 +912,12 @@ async function mbAiWatchRun(staffId, meta) {
     else if (!res.done) meta.phase = meta.phase === 'talking' ? 'talking' : 'ringing';
     meta.secs = Number(res.secs) || meta.secs || 0;
     if (res.phase === 'talking' || (meta.secs > 0 && !res.done)) meta.phase = 'talking';
+    if (res.durum) meta.durum = String(res.durum);
+    if (res.outcome) meta.outcome = String(res.outcome);
+    if (res.summary) meta.summary = String(res.summary);
+    if (res.termin_tarih) meta.termin = String(res.termin_tarih);
+    if (res.error) meta.error = String(res.error);
+    if (staff) void mbAiSyncLiveSession(staff, meta);
     mbAiPaintRunLive(staffId);
     if (res.done) {
       meta.phase = res.phase === 'missed' || !(res.secs > 0) ? 'missed' : 'talked';
@@ -804,6 +931,7 @@ async function mbAiWatchRun(staffId, meta) {
     meta.doneAt = Date.now();
   }
   _aiRunBusy.delete(meta.key);
+  if (staff) void mbAiSyncLiveSession(staff, meta);
   mbAiPaintRunLive(staffId);
 }
 
@@ -1616,6 +1744,10 @@ async function mbSaveAiStaff() {
     delete settings.ai.transfer_raw;
     delete settings.ai.rate_bad;
     delete settings.ai.draft;
+    for (const row of _aiDesk.staff) {
+      const uid = await mbAiEnsureOperatorUser(row);
+      if (uid) row.user_id = uid;
+    }
     settings.ai_staff = _aiDesk.staff.map((row) => mbAiStaffNorm(row)).filter(Boolean);
     await sb(`firms?id=eq.${_aiFirmId}`, {
       method: 'PATCH',

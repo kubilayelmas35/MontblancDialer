@@ -174,18 +174,21 @@ async function showPrevCallInfo(contact) {
   body.innerHTML = '';
   if (!contact?.id || (contact.attempt_count || 0) < 1) return;
   try {
-    const logs = await sb(`call_logs?contact_id=eq.${contact.id}&order=started_at.desc&limit=10&select=id,outcome,notes,started_at,duration_sec,recording_url,agent_id,users(name)`);
+    const logs = await sb(`call_logs?contact_id=eq.${contact.id}&order=started_at.desc&limit=10&select=id,outcome,notes,started_at,duration_sec,recording_url,agent_id,operator_name,ai_staff_id,work_type,users(name,role)`);
     if (gen !== _prevCallGen) return;
     if (!logs?.length) { el.style.display = 'none'; return; }
     const prev = logs[0];
     const recLog = logs.find((l) => String(l?.recording_url || '').trim());
     const dt = new Date(prev.started_at).toLocaleString('tr-TR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     const outcomeMap = {appointment:'Randevu',negative:'Olumsuz',callback:'Geri Ara',no_answer:'Cevap Yok',dnc:'Kara Liste',stuck:'Tıkanık',unused:'Kullanım dışı',busy:'Meşgul',phone_off:'Telefon kapalı'};
-    const rawAgent = prev?.users?.name || '';
-    const own = !!currentUser?.id && prev?.agent_id === currentUser.id;
+    const rawAgent = typeof mbOperatorName === 'function' ? mbOperatorName(prev) : (prev?.operator_name || prev?.users?.name || '');
+    const own = !!currentUser?.id && prev?.agent_id === currentUser.id && !(typeof mbIsAiOperator === 'function' && mbIsAiOperator(prev));
     const agentLabel = own
       ? `Sen${rawAgent ? ` · ${rawAgent}` : ''}`
       : (rawAgent || '—');
+    const agentHtml = typeof mbOperatorHtml === 'function' && !own
+      ? mbOperatorHtml(prev, { fallback: agentLabel })
+      : `<span class="prev-call-agent"><i class="ph ph-user-circle"></i> ${_escHtml(agentLabel)}</span>`;
     body.innerHTML = `
 <div class="prev-call-row">
   <div class="prev-call-main">
@@ -193,7 +196,7 @@ async function showPrevCallInfo(contact) {
       <span style="font-weight:700;">${outcomeMap[prev.outcome]||prev.outcome}</span>
       <span style="color:var(--text-3);">${dt}</span>
       <span style="color:var(--text-3);">(${uqSay('dial.attempt', '{n}. arama', { n: contact.attempt_count || 1 })})</span>
-      <span class="prev-call-agent"><i class="ph ph-user-circle"></i> ${agentLabel}</span>
+      ${agentHtml}
     </div>
     ${(() => { const nt = _stripSimCallMarker(prev.notes); return nt ? '<div style="margin-top:4px;color:var(--text-2);">"' + _escHtml(nt) + '"</div>' : ''; })()}
   </div>
@@ -346,7 +349,7 @@ async function openContactDrawer(contactId) {
   try {
     const [contacts, logs] = await Promise.all([
       sb(`contacts?id=eq.${contactId}&select=*,queues(name,status),campaigns:campaign_id(name)`),
-      sb(`call_logs?contact_id=eq.${contactId}&select=*,users(name),campaigns:campaign_id(name)&order=started_at.desc&limit=50`)
+      sb(`call_logs?contact_id=eq.${contactId}&select=*,users(name,role),campaigns:campaign_id(name)&order=started_at.desc&limit=50`)
     ]);
     const c = Array.isArray(contacts) ? contacts[0] : contacts;
     _cdrLogs = Array.isArray(logs) ? logs : [];
@@ -443,14 +446,16 @@ function _renderCdrHistory() {
     const camp = typeof mbCampShown === 'function' ? mbCampShown(l.campaigns, l.campaign_id) : (l.campaigns?.name || '—');
     const ocSafe = typeof _escHtml === 'function' ? _escHtml(oc) : oc;
     const campSafe = typeof _escHtml === 'function' ? _escHtml(camp) : camp;
-    const agent = l.users?.name || '—';
+    const agent = typeof mbOperatorHtml === 'function'
+      ? mbOperatorHtml(l)
+      : `<span><i class="ph ph-user" style="vertical-align:-2px;"></i> ${typeof _escHtml === 'function' ? _escHtml(l.operator_name || l.users?.name || '—') : (l.operator_name || l.users?.name || '—')}</span>`;
     return `<div class="cdr-log-row">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
   <div style="font-size:11px;font-family:var(--mono);color:var(--text-2);">${dt}</div>
   <span style="font-size:11px;font-weight:700;color:${oc_color};background:${oc_color}18;padding:2px 8px;border-radius:10px;">${ocSafe}</span>
 </div>
 <div style="display:flex;gap:12px;font-size:11px;color:var(--text-3);">
-  <span><i class="ph ph-user" style="vertical-align:-2px;"></i> ${agent}</span>
+  ${agent}
   <span><i class="ph ph-megaphone-simple" style="vertical-align:-2px;"></i> ${campSafe}</span>
   <span><i class="ph ph-clock" style="vertical-align:-2px;"></i> ${dur}</span>
 </div>

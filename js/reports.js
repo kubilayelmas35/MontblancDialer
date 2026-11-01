@@ -494,7 +494,7 @@ function repOperator(logs, appts, userById, sessById, pack) {
   const loginAt = sess?.login_at || '';
   const lastAct = (pack.statusLogs || []).find((row) => !agentId || String(row.agent_id) === String(agentId))?.started_at || sess?.last_seen || '';
   const card = `<div class="card rep-person">
-<div class="rep-person-name">${statsEsc(user?.name || t('rep.pick_person'))}</div>
+<div class="rep-person-name">${user?.role === 'ai' ? `<span class="mb-op is-ai"><i class="ph ph-robot"></i> ${statsEsc(user?.name || t('rep.pick_person'))}</span>` : statsEsc(user?.name || t('rep.pick_person'))}</div>
 <div class="firm-none">${statsEsc(user ? repRole(user.role) : t('rep.pick'))}</div>
 <div class="rep-person-meta"><span>${statsEsc(t('rep.login'))}</span><b>${statsEsc(loginAt ? repWhen(loginAt) : '—')}</b></div>
 <div class="rep-person-meta"><span>${statsEsc(t('rep.last_act'))}</span><b>${statsEsc(lastAct ? repWhen(lastAct) : '—')}</b></div>
@@ -504,7 +504,7 @@ function repOperator(logs, appts, userById, sessById, pack) {
 ${repCard(t('rep.count_ring'), repDonut(countParts, String(logs.length)))}
 ${repCard(t('rep.time_ring'), repDonut(timeParts, statsHms(totalSec)))}
 </div>`;
-  const staff = Object.values(userById).filter((u) => (u.role === 'agent' || u.role === 'qc') && u.is_active !== false);
+  const staff = Object.values(userById).filter((u) => (u.role === 'agent' || u.role === 'qc' || u.role === 'ai') && u.is_active !== false);
   const absent = staff.filter((u) => !repLoggedToday(sessById[u.id], today));
   const absentTable = absent.length
     ? repTable([t('rep.person'), t('rep.last')], absent.map((u) => {
@@ -689,12 +689,14 @@ function repPersonRows(logs, appts, userById, sessById, pack, range) {
     return bag[key];
   };
   Object.values(userById).forEach((user) => {
-    if (['agent', 'qc', 'admin', 'firm_admin'].includes(user.role)) rowOf(user.id);
+    if (['agent', 'qc', 'admin', 'firm_admin', 'ai'].includes(user.role)) rowOf(user.id);
   });
   (logs || []).forEach((log) => {
     const row = rowOf(log.agent_id);
-    if (!row.name || row.name === '—') row.name = log.users?.name || row.name;
-    if (!row.role) row.role = log.users?.role || '';
+    const named = typeof mbOperatorName === 'function' ? mbOperatorName(log) : (log.operator_name || log.users?.name || '');
+    if ((!row.name || row.name === '—') && named) row.name = named;
+    if (!row.role) row.role = log.users?.role || (log.ai_staff_id || log.work_type?.startsWith?.('ai_') ? 'ai' : '');
+    if (row.role === 'ai' && row.name && !/^🤖/.test(row.name)) row.name = `🤖 ${row.name}`;
     row.calls += 1;
     row.talk += Number(log.duration_sec) || 0;
   });

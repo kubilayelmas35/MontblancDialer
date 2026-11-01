@@ -12,6 +12,40 @@ function escapeHtml(v) {
 }
 try { window.escapeHtml = escapeHtml; } catch (_) {}
 
+/** Operator label: AI staff get a robot badge; humans stay plain. */
+function mbIsAiOperator(row) {
+  if (!row || typeof row !== 'object') return false;
+  if (row.ai_staff_id || row.is_ai === true) return true;
+  const work = String(row.work_type || '');
+  if (work === 'ai_qc' || work === 'ai_sales' || work.startsWith('ai_')) return true;
+  const role = String(row.users?.role || row.role || '');
+  return role === 'ai';
+}
+
+function mbOperatorName(row, fallback) {
+  if (!row || typeof row !== 'object') return fallback || '—';
+  const named = String(row.operator_name || row.users?.name || row.agent_name || '').trim();
+  if (named) return named;
+  return fallback || '—';
+}
+
+function mbOperatorHtml(row, opts) {
+  const name = mbOperatorName(row, opts?.fallback);
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  const ai = mbIsAiOperator(row);
+  const icon = ai ? 'ph-robot' : (opts?.icon || 'ph-user');
+  const title = ai
+    ? (typeof t === 'function' ? t('ai.op.badge') : 'YZ personel')
+    : '';
+  const cls = ai ? ' mb-op is-ai' : ' mb-op';
+  return `<span class="${cls.trim()}"${title ? ` title="${esc(title)}"` : ''}><i class="ph ${icon}"></i> ${esc(name)}</span>`;
+}
+try {
+  window.mbIsAiOperator = mbIsAiOperator;
+  window.mbOperatorName = mbOperatorName;
+  window.mbOperatorHtml = mbOperatorHtml;
+} catch (_) {}
+
 // ── SIDEBAR ──────────────────────────────────
 function toggleSidebar() {
 const sb   = document.getElementById('sidebar');
