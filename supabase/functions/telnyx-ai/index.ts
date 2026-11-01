@@ -177,7 +177,7 @@ function staffOf(settings: Record<string, any>, staffId: string, campaignId: str
   if (ids.length && !ids.includes(campaignId)) return { error: 'staff' as const };
   const results = Array.isArray(hit.results) ? hit.results.map((key: unknown) => normKey(key)).filter(Boolean) : [];
   const engine = hit.engine === 'super' ? 'super' as const : hit.engine === 'std' ? 'std' as const : '';
-  return { id: staffId, prompt: clip(hit.prompt, 2000), greeting: clip(hit.greeting, 400), results, engine, llm: clip(hit.llm, 40), voiceId: clip(hit.voice_id, 60).replace(/[^A-Za-z0-9]/g, ''), moveTime: hit.move_time !== false };
+  return { id: staffId, prompt: clip(hit.prompt, 2000), greeting: clip(hit.greeting, 400), results, engine, llm: clip(hit.llm, 40), voiceId: clip(hit.voice_id, 60).replace(/[^A-Za-z0-9]/g, ''), moveTime: hit.move_time !== false, mustDo: clip(hit.must_do, 600), mustNot: clip(hit.must_not, 600) };
 }
 
 function spokenBrief(brief: { ok: true; instructions: string; greeting: string; voice: string }, appt: Record<string, any>, extra: Record<string, any>, when: string) {
@@ -378,6 +378,8 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
     when: whenText(appt),
     engine: ai.engine,
     moveTime: staff.moveTime,
+    mustDo: staff.mustDo,
+    mustNot: staff.mustNot,
   });
   if (!brief.ok) return json({ ok: false, error: brief.error }, 400);
   const to = normDid(appt.telefonnummer);
@@ -653,6 +655,8 @@ function qcBrief(settings: Record<string, any>, appt: Record<string, any>, extra
     fields: fieldLines(ai.lang, appt, extra),
     when: whenText(appt),
     moveTime: staff.moveTime,
+    mustDo: staff.mustDo,
+    mustNot: staff.mustNot,
   });
   return brief.ok ? spokenBrief(brief, appt, extra, whenText(appt)) : null;
 }
@@ -691,6 +695,8 @@ async function onAnswer(admin: SupabaseClient, appt: Record<string, any>, contro
     fields: fieldLines(ai.lang, appt, extra),
     when: whenText(appt),
     moveTime: staff.moveTime,
+    mustDo: staff.mustDo,
+    mustNot: staff.mustNot,
   });
   if (!brief.ok) {
     await telnyx(key, `calls/${encodeURIComponent(control)}/actions/hangup`, {});

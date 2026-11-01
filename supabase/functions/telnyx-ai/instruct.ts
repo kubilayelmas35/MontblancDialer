@@ -24,6 +24,8 @@ export type AiBriefInput = {
   when: string;
   engine?: 'std' | 'super';
   moveTime?: boolean;
+  mustDo?: string;
+  mustNot?: string;
 };
 
 export type AiBrief = {
@@ -183,6 +185,8 @@ export function buildAiBrief(input: AiBriefInput): AiBrief {
   const known = (input.fields || []).filter((row) => clip(row.value, 180)).map((row) => `- ${clip(row.label, 80)}: ${clip(row.value, 180)}`).join('\n');
   const note = clip(input.note, 800);
   const prompt = clip(input.prompt, 2000);
+  const mustDo = clip(input.mustDo, 600);
+  const mustNot = clip(input.mustNot, 600);
   const when = clip(input.when, 40);
   const transfer = normDid(input.transfer);
   const job = kind === 'qc'
@@ -224,6 +228,8 @@ export function buildAiBrief(input: AiBriefInput): AiBrief {
     style,
     bans.join(' '),
     prompt ? (de ? `Auftrag: ${prompt}` : `Görev: ${prompt}`) : '',
+    mustDo ? (de ? `Unbedingt:\n${mustDo}` : `Kesinlikle yap:\n${mustDo}`) : '',
+    mustNot ? (de ? `Auf keinen Fall:\n${mustNot}` : `Kesinlikle yapma:\n${mustNot}`) : '',
     note ? (de
       ? `Einmaliger Hinweis, nicht wörtlich vorlesen: ${note}\nWenn der Hinweis die Uhrzeit verschiebt, rufe takvim_bak mit date und after auf die eingetragene Zeit. Biete nur die nächste freie Zeit danach an.`
       : `Tek seferlik not, aynen okuma: ${note}\nNot saati kaydırıyorsa takvim_bak çağır, date ve after olarak kayıtlı günü ve saati ver. Yalnız ondan sonraki ilk boş saati öner.`) : '',

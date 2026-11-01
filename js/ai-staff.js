@@ -124,6 +124,8 @@ function mbAiStaffNorm(row) {
     retry_min: [15, 30, 60, 120, 240].includes(retry) ? retry : 30,
     greeting: String(row.greeting || '').trim().slice(0, 400),
     prompt: String(row.prompt || '').trim().slice(0, 2000),
+    must_do: String(row.must_do || '').trim().slice(0, 600),
+    must_not: String(row.must_not || '').trim().slice(0, 600),
     engine: row.engine === 'super' ? 'super' : (row.engine === 'std' ? 'std' : ''),
     llm: mbAiLlmId(row.llm),
     voice_id: String(row.voice_id || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 40),
@@ -273,6 +275,8 @@ function mbAiReadDesk() {
       retry_min: document.getElementById(`ai-retry-${row.id}`)?.value,
       greeting: document.getElementById(`ai-greet-${row.id}`)?.value,
       prompt: document.getElementById(`ai-prompt-${row.id}`)?.value,
+      must_do: document.getElementById(`ai-must-${row.id}`)?.value,
+      must_not: document.getElementById(`ai-mustnot-${row.id}`)?.value,
       engine: document.getElementById(`ai-engine-${row.id}`)?.value ?? row.engine,
       llm: document.getElementById(`ai-llm-${row.id}`)?.value ?? row.llm,
       voice_id: document.getElementById(`ai-evoice-${row.id}`)?.value ?? row.voice_id,
@@ -488,6 +492,36 @@ function mbAiTokenFocus(id) {
   _aiTokenFocus = String(id || '');
 }
 
+function mbAiInsertTask(staffId, key) {
+  const text = mbAiSay(`ai.task.${key}_text`, '');
+  const el = document.getElementById(`ai-prompt-${staffId}`);
+  if (!el || !text) return;
+  const start = el.selectionStart ?? el.value.length;
+  const prev = el.value.slice(0, start);
+  const gap = prev && !prev.endsWith('\n') ? '\n' : '';
+  const chunk = `${gap}${text}`;
+  const next = `${prev}${chunk}${el.value.slice(el.selectionEnd ?? start)}`.slice(0, 2000);
+  el.value = next;
+  const at = Math.min(start + chunk.length, next.length);
+  el.focus();
+  if (typeof el.setSelectionRange === 'function') el.setSelectionRange(at, at);
+  mbAiTokenFocus(el.id);
+}
+
+function mbAiQcTaskRow(staffId) {
+  const keys = ['name', 'when', 'form', 'move', 'result', 'bye'];
+  const buttons = keys.map((key) => `<button type="button" class="ai-token" onclick="mbAiInsertTask('${mbAiEsc(staffId)}','${key}')"><b>${mbAiEsc(mbAiSay(`ai.task.${key}`, key))}</b></button>`).join('');
+  return `<div class="ai-tokens-lab">${mbAiEsc(mbAiSay('ai.staff.tasks', 'Görev ekle'))}</div><div class="ai-token-row">${buttons}</div><div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.tasks_hint', ''))}</div>`;
+}
+
+function mbAiRulesFields(row) {
+  const id = mbAiEsc(row.id);
+  return `<div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.rules', 'Kurallar'))}</div>
+    ${mbAiField(`ai-must-${row.id}`, mbAiSay('ai.staff.must', 'Kesinlikle yapılması gerek'), `<textarea class="form-input" id="ai-must-${id}" rows="3" maxlength="600" placeholder="${mbAiEsc(mbAiSay('ai.staff.must_ph', ''))}">${mbAiEsc(row.must_do || '')}</textarea>`, true)}
+    ${mbAiField(`ai-mustnot-${row.id}`, mbAiSay('ai.staff.mustnot', 'Kesinlikle yapılmaması gerek'), `<textarea class="form-input" id="ai-mustnot-${id}" rows="3" maxlength="600" placeholder="${mbAiEsc(mbAiSay('ai.staff.mustnot_ph', ''))}">${mbAiEsc(row.must_not || '')}</textarea>`, true)}
+    <div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.rules_hint', ''))}</div>`;
+}
+
 function mbAiInsertToken(staffId, token) {
   const prefer = _aiTokenFocus.endsWith(`-${staffId}`) ? _aiTokenFocus : `ai-prompt-${staffId}`;
   const el = document.getElementById(prefer) || document.getElementById(`ai-prompt-${staffId}`);
@@ -540,8 +574,10 @@ function mbAiStaffCard(row) {
       <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.sec.talk', 'Konuşma'))}</div>
       <div class="ai-tokens-lab">${mbAiEsc(mbAiSay('ai.staff.tokens', 'Kişi kartından ekle'))}</div>
       <div class="ai-token-row">${tokens}</div>
+      ${qc ? mbAiQcTaskRow(row.id) : ''}
       ${mbAiField(`ai-greet-${row.id}`, mbAiSay('ai.staff.greeting', 'İlk cümle'), `<textarea class="form-input" id="ai-greet-${id}" rows="2" maxlength="400" placeholder="${mbAiEsc(mbAiSay('ai.staff.greeting_ph', ''))}" onfocus="mbAiTokenFocus(this.id)">${mbAiEsc(row.greeting || '')}</textarea><div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.greeting_hint', ''))}</div>`, true)}
       ${mbAiField(`ai-prompt-${row.id}`, mbAiSay('ai.staff.prompt', 'Talimat'), `<textarea class="form-input" id="ai-prompt-${id}" rows="7" maxlength="2000" placeholder="${mbAiEsc(mbAiSay('ai.staff.prompt_ph', ''))}" onfocus="mbAiTokenFocus(this.id)">${mbAiEsc(row.prompt)}</textarea><div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.prompt_hint', ''))}</div>`, true)}
+      ${mbAiRulesFields(row)}
     </div>
     ${mbAiEngineSection(row)}
     <div class="ai-sec">
