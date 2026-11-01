@@ -268,10 +268,12 @@ function mbAiReadDesk() {
   _aiDesk.staff = _aiDesk.staff.map((row) => {
     const checked = (attr) => [...document.querySelectorAll(`[${attr}="${row.id}"]`)].filter((el) => el.checked).map((el) => el.value);
     const moveEl = document.getElementById(`ai-move-${row.id}`);
+    const campIds = checked('data-ai-camp').filter((id) => id !== '*');
     return mbAiStaffNorm({
       ...row,
       name: document.getElementById(`ai-name-${row.id}`)?.value,
-      campaign_ids: checked('data-ai-camp').filter((id) => id !== '*'),
+      campaign_ids: campIds,
+      campaign_id: campIds.length === 1 ? campIds[0] : '',
       parallel: document.getElementById(`ai-parallel-${row.id}`)?.value,
       auto: !!document.getElementById(`ai-auto-${row.id}`)?.checked,
       retry_min: document.getElementById(`ai-retry-${row.id}`)?.value,
