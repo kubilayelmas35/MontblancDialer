@@ -7,6 +7,8 @@ let _aiRunTimer = null;
 let _aiRunSaving = false;
 const _aiRunBusy = new Set();
 const _aiRunLive = {};
+const _aiRunRecent = [];
+let _aiRunHist = { staff: '', outcome: '', sort: 'new', q: '', rows: [], loading: false };
 
 function mbAiSay(key, fallback) {
   const msg = typeof t === 'function' ? t(key) : fallback;
@@ -517,7 +519,7 @@ function mbAiRunPhaseLabel(phase) {
 }
 
 function mbAiRunResultLabel(row) {
-  if (!row?.doneAt) return '';
+  if (!row?.doneAt && !row?.forceResult) return '';
   const outcome = String(row.outcome || '').toLowerCase();
   const durum = String(row.durum || '').toLowerCase();
   const err = String(row.error || '');
@@ -557,14 +559,235 @@ function mbAiRunResultLabel(row) {
   return mbAiSay('ai.run.phase.done', 'Bitti');
 }
 
+function mbAiRunTone(row) {
+  if (!row?.doneAt) return row?.phase === 'talking' ? 'is-talk' : 'is-ring';
+  const outcome = String(row.outcome || '').toLowerCase();
+  const durum = String(row.durum || '').toLowerCase();
+  if (row.phase === 'missed' || outcome === 'no_answer' || outcome === 'ulasilamadi' || durum === 'ulasilamadi' || row.error === 'noanswer') return 'is-miss';
+  if (outcome === 'appointment' || durum === 'qc_bekleniyor' || durum === 'appointment' || outcome === 'basarili' || durum === 'basarili') return 'is-ok';
+  if (outcome === 'negative' || durum === 'negative' || durum === 'basarisiz' || outcome === 'dnc' || durum === 'dnc') return 'is-neg';
+  if (outcome === 'callback' || durum === 'callback' || durum === 'beklemede' || outcome === 'voicemail') return 'is-cb';
+  if (row.error) return 'is-miss';
+  if (row.secs > 0) return 'is-ok';
+  return 'is-miss';
+}
+
+function mbAiRunSlotDetail(row) {
+  const note = String(row.summary || row.qc_notu || '').trim();
+  const script = String(row.transcript || '').trim();
+  const noteHtml = note ? `<div class="qc-callin-note">${mbAiEsc(note.slice(0, 500))}</div>` : '';
+  const scriptHtml = script
+    ? `<details class="qc-callin-script"><summary>${mbAiEsc(mbAiSay('qc.callin.transcript', 'Konuşma'))}</summary>${mbAiEsc(script.slice(0, 2500))}</details>`
+    : '';
+  const rec = row.recording && typeof mbRecPlayerHtml === 'function'
+    ? `<div class="ai-run-rec">${mbRecPlayerHtml(row.logId || row.key || row.id || 'ai', row.recording, row.secs || 0, { name: row.name || '', phone: row.phone || '', at: row.startedAt || '' })}</div>`
+    : '';
+  if (!noteHtml && !scriptHtml && !rec) return '';
+  return `<div class="ai-run-slot-detail">${noteHtml}${scriptHtml}${rec}</div>`;
+}
+
+function mbAiRunSlotHtml(row) {
+  const tone = mbAiRunTone(row);
+  const who = row.name || row.phone || '—';
+  const camp = row.camp ? `<span class="ai-run-camp">${mbAiEsc(row.camp)}</span>` : '';
+  const phone = row.phone ? `<span class="ai-run-phone">${mbAiEsc(row.phone)}</span>` : '';
+  const secs = row.secs > 0 ? `<span class="ai-run-secs">${mbAiEsc(String(row.secs))}s</span>` : '';
+  const result = mbAiRunResultLabel(row);
+  const phase = result
+    ? `<span class="ai-run-phase">${mbAiEsc(result)}</span>`
+    : `<span class="ai-run-phase">${mbAiEsc(mbAiRunPhaseLabel(row.phase))}</span>`;
+  return `<div class="ai-run-slot ${tone}">
+    <div class="ai-run-slot-top">
+      <div class="ai-run-slot-main">
+        <b>${mbAiEsc(who)}</b>
+        ${camp}${phone}
+      </div>
+      <div class="ai-run-slot-meta">${phase}${secs}</div>
+    </div>
+    ${mbAiRunSlotDetail(row)}
+  </div>`;
+}
+
 function mbAiRunLiveRows(staffId) {
   const now = Date.now();
   const rows = (_aiRunLive[staffId] || []).filter((row) => {
     if (!row.doneAt) return true;
-    return now - row.doneAt < 45000;
+    return now - row.doneAt < 180000;
   });
   _aiRunLive[staffId] = rows;
   return rows;
+}
+
+function mbAiRunEndedAlert(staff, meta) {
+  if (typeof toast !== 'function' || !meta) return;
+  const who = meta.name || meta.phone || '—';
+  const staffName = staff?.name || mbAiSay('ai.run.kicker', 'YZ');
+  const result = mbAiRunResultLabel({ ...meta, doneAt: meta.doneAt || Date.now(), forceResult: true });
+  const miss = meta.phase === 'missed' || !(meta.secs > 0) || meta.error === 'noanswer';
+  if (miss) {
+    toast(mbAiSay('ai.run.ended.miss', '{staff}: hat bitti — {who} açılmadı.')
+      .replace('{staff}', staffName)
+      .replace('{who}', who), 'warn');
+    return;
+  }
+  toast(mbAiSay('ai.run.ended.ok', '{staff}: hat bitti — {result} ({who})')
+    .replace('{staff}', staffName)
+    .replace('{result}', result)
+    .replace('{who}', who), 'ok');
+}
+
+function mbAiPushRunRecent(staff, meta) {
+  if (!meta) return;
+  const row = {
+    id: meta.logId || meta.key || `${staff?.id || 'ai'}-${meta.at || Date.now()}`,
+    key: meta.key || '',
+    staffId: staff?.id || meta.staffId || '',
+    staffName: staff?.name || meta.staffName || '',
+    name: meta.name || '',
+    phone: meta.phone || '',
+    camp: meta.camp || '',
+    campId: meta.campId || '',
+    outcome: meta.outcome || '',
+    durum: meta.durum || '',
+    phase: meta.phase || '',
+    secs: Number(meta.secs) || 0,
+    summary: meta.summary || meta.qc_notu || '',
+    transcript: meta.transcript || '',
+    recording: meta.recording || '',
+    termin: meta.termin || '',
+    error: meta.error || '',
+    startedAt: meta.startedAt || new Date(meta.at || Date.now()).toISOString(),
+    doneAt: meta.doneAt || Date.now(),
+    forceResult: true,
+  };
+  const idx = _aiRunRecent.findIndex((item) => String(item.key || item.id) === String(row.key || row.id));
+  if (idx >= 0) _aiRunRecent.splice(idx, 1);
+  _aiRunRecent.unshift(row);
+  if (_aiRunRecent.length > 80) _aiRunRecent.length = 80;
+  mbAiPaintRunHist();
+}
+
+function mbAiHistRows() {
+  const staff = String(_aiRunHist.staff || '');
+  const outcome = String(_aiRunHist.outcome || '');
+  const q = String(_aiRunHist.q || '').trim().toLowerCase();
+  let rows = _aiRunRecent.slice();
+  if (staff) rows = rows.filter((row) => String(row.staffId) === staff);
+  if (outcome) {
+    rows = rows.filter((row) => {
+      const key = String(row.outcome || row.durum || '').toLowerCase();
+      if (outcome === 'ok') return ['appointment', 'basarili', 'qc_bekleniyor'].includes(key) || (row.secs > 0 && row.phase === 'talked' && !key);
+      if (outcome === 'miss') return ['no_answer', 'ulasilamadi', 'voicemail'].includes(key) || row.phase === 'missed';
+      if (outcome === 'neg') return ['negative', 'basarisiz', 'dnc'].includes(key);
+      if (outcome === 'cb') return ['callback', 'beklemede'].includes(key);
+      return true;
+    });
+  }
+  if (q) {
+    rows = rows.filter((row) => [row.name, row.phone, row.camp, row.staffName, row.summary]
+      .join(' ')
+      .toLowerCase()
+      .includes(q));
+  }
+  const sort = String(_aiRunHist.sort || 'new');
+  rows.sort((a, b) => {
+    if (sort === 'old') return (a.doneAt || 0) - (b.doneAt || 0);
+    if (sort === 'long') return (b.secs || 0) - (a.secs || 0);
+    if (sort === 'short') return (a.secs || 0) - (b.secs || 0);
+    return (b.doneAt || 0) - (a.doneAt || 0);
+  });
+  return rows;
+}
+
+function mbAiPaintRunHist() {
+  const box = document.getElementById('ai-run-hist');
+  if (!box) return;
+  const rows = mbAiHistRows();
+  if (_aiRunHist.loading && !rows.length) {
+    box.innerHTML = `<div class="ai-run-empty">${mbAiEsc(mbAiSay('ui.loading', 'Yükleniyor…'))}</div>`;
+    return;
+  }
+  if (!rows.length) {
+    box.innerHTML = `<div class="ai-run-empty">${mbAiEsc(mbAiSay('ai.run.hist.empty', 'Henüz YZ araması yok.'))}</div>`;
+    return;
+  }
+  box.innerHTML = rows.map((row) => {
+    const when = row.startedAt
+      ? new Date(row.startedAt).toLocaleString(undefined, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+      : '';
+    const staff = row.staffName ? `<span class="ai-run-hist-staff"><i class="ph ph-robot"></i> ${mbAiEsc(row.staffName)}</span>` : '';
+    return `<article class="ai-run-hist-row ${mbAiRunTone(row)}">
+      <div class="ai-run-hist-top">
+        <div class="ai-run-hist-who">
+          <b>${mbAiEsc(row.name || row.phone || '—')}</b>
+          ${row.camp ? `<span class="ai-run-camp">${mbAiEsc(row.camp)}</span>` : ''}
+          ${row.phone ? `<span class="ai-run-phone">${mbAiEsc(row.phone)}</span>` : ''}
+        </div>
+        <div class="ai-run-hist-meta">
+          <span class="ai-run-phase">${mbAiEsc(mbAiRunResultLabel(row))}</span>
+          ${row.secs > 0 ? `<span class="ai-run-secs">${mbAiEsc(String(row.secs))}s</span>` : ''}
+        </div>
+      </div>
+      <div class="ai-run-hist-sub">${staff}${when ? `<span>${mbAiEsc(when)}</span>` : ''}</div>
+      ${mbAiRunSlotDetail(row)}
+    </article>`;
+  }).join('');
+}
+
+function mbAiRunHistFilter() {
+  _aiRunHist.staff = document.getElementById('ai-run-hist-staff')?.value || '';
+  _aiRunHist.outcome = document.getElementById('ai-run-hist-out')?.value || '';
+  _aiRunHist.sort = document.getElementById('ai-run-hist-sort')?.value || 'new';
+  _aiRunHist.q = document.getElementById('ai-run-hist-q')?.value || '';
+  mbAiPaintRunHist();
+}
+
+async function mbAiLoadRunHist() {
+  if (!_aiFirmId || typeof sb !== 'function') return;
+  _aiRunHist.loading = true;
+  mbAiPaintRunHist();
+  const staffById = new Map((_aiDesk?.staff || []).map((row) => [String(row.id), row]));
+  const rows = await sb(
+    `call_logs?firm_id=eq.${_aiFirmId}&or=(work_type.eq.ai_sales,work_type.eq.ai_qc,ai_staff_id.not.is.null)&select=id,started_at,phone,outcome,duration_sec,notes,recording_url,operator_name,ai_staff_id,work_type,campaign_id,campaigns(name),contacts(first_name,last_name)&order=started_at.desc&limit=60`
+  ).catch(() => []) || [];
+  const mapped = rows.map((log) => {
+    const contact = Array.isArray(log.contacts) ? log.contacts[0] : log.contacts;
+    const person = [contact?.first_name, contact?.last_name].map((part) => String(part || '').trim()).filter(Boolean).join(' ');
+    const notes = String(log.notes || '');
+    const summary = notes.split(/\n\n/)[0] || '';
+    const transcript = notes.includes('\n\n') ? notes.slice(summary.length).trim() : '';
+    const staff = staffById.get(String(log.ai_staff_id || '')) || null;
+    return {
+      id: log.id,
+      key: `log:${log.id}`,
+      logId: log.id,
+      staffId: log.ai_staff_id || '',
+      staffName: staff?.name || log.operator_name || '',
+      name: person || log.phone || '—',
+      phone: log.phone || '',
+      camp: log.campaigns?.name || mbAiCampName(log.campaign_id),
+      campId: log.campaign_id || '',
+      outcome: log.outcome || '',
+      phase: Number(log.duration_sec) > 0 ? 'talked' : 'missed',
+      secs: Number(log.duration_sec) || 0,
+      summary,
+      transcript,
+      recording: log.recording_url || '',
+      startedAt: log.started_at || '',
+      doneAt: Date.parse(log.started_at || '') || Date.now(),
+      forceResult: true,
+    };
+  });
+  const freshLocal = _aiRunRecent.filter((row) => {
+    if (String(row.key || '').startsWith('log:')) return false;
+    if (Date.now() - (row.doneAt || 0) > 10 * 60 * 1000) return false;
+    return !mapped.some((log) => log.phone && row.phone && String(log.phone) === String(row.phone)
+      && Math.abs((Date.parse(log.startedAt || '') || 0) - (row.at || row.doneAt || 0)) < 5 * 60 * 1000);
+  });
+  _aiRunRecent.length = 0;
+  [...freshLocal, ...mapped].forEach((row) => _aiRunRecent.push(row));
+  _aiRunHist.loading = false;
+  mbAiPaintRunHist();
 }
 
 function mbAiPaintRunLive(staffId) {
@@ -595,27 +818,7 @@ function mbAiPaintRunLive(staffId) {
       : mbAiSay('ai.run.none', 'Şu an açık arama yok.'))}</div>`;
     return;
   }
-  box.innerHTML = rows.map((row) => {
-    const tone = row.phase === 'talking' ? 'is-talk' : (row.phase === 'missed' ? 'is-miss' : (row.doneAt ? 'is-done' : 'is-ring'));
-    const who = row.name || row.phone || '—';
-    const camp = row.camp ? `<span class="ai-run-camp">${mbAiEsc(row.camp)}</span>` : '';
-    const phone = row.phone ? `<span class="ai-run-phone">${mbAiEsc(row.phone)}</span>` : '';
-    const secs = row.secs > 0 ? `<span class="ai-run-secs">${mbAiEsc(String(row.secs))}s</span>` : '';
-    const result = mbAiRunResultLabel(row);
-    const phase = result
-      ? `<span class="ai-run-phase">${mbAiEsc(result)}</span>`
-      : `<span class="ai-run-phase">${mbAiEsc(mbAiRunPhaseLabel(row.phase))}</span>`;
-    return `<div class="ai-run-slot ${tone}">
-      <div class="ai-run-slot-main">
-        <b>${mbAiEsc(who)}</b>
-        ${camp}${phone}
-      </div>
-      <div class="ai-run-slot-meta">
-        ${phase}
-        ${secs}
-      </div>
-    </div>`;
-  }).join('');
+  box.innerHTML = rows.map((row) => mbAiRunSlotHtml(row)).join('');
 }
 
 function mbPaintAiRun() {
@@ -631,7 +834,9 @@ function mbPaintAiRun() {
     : mbAiSay('ai.run.mode.page', 'Bu firmada yalnız Başlat sayfası açıkken arar. Sayfa veya bilgisayar kapanınca yeni arama çıkmaz.');
   const cards = (_aiDesk.staff || []).map((row) => mbAiRunCard(row, mode)).join('');
   const empty = _aiDesk.staff.length ? '' : `<p class="ai-note">${mbAiEsc(mbAiSay('ai.run.empty', 'Önce YZ Personel sekmesinden personel ekleyin.'))}</p>`;
-  root.innerHTML = `<div class="ai-run">
+  const staffOpts = (_aiDesk.staff || []).map((row) => `<option value="${mbAiEsc(row.id)}"${String(_aiRunHist.staff) === String(row.id) ? ' selected' : ''}>${mbAiEsc(row.name || row.id)}</option>`).join('');
+  root.innerHTML = `<div class="ai-run-shell">
+  <div class="ai-run">
     <header class="ai-run-hero">
       <div>
         <div class="ai-run-kicker">${mbAiEsc(mbAiSay('ai.run.kicker', 'YZ çalışma'))}</div>
@@ -643,8 +848,41 @@ function mbPaintAiRun() {
     <p class="ai-note ${mode === 'server' ? 'ai-note-warn' : ''}">${mbAiEsc(modeNote)}</p>
     ${firmPick}
     <div class="ai-run-list">${empty}${cards}</div>
-  </div>`;
+  </div>
+  <aside class="ai-run-side">
+    <header class="ai-run-side-hd">
+      <div>
+        <div class="ai-run-kicker">${mbAiEsc(mbAiSay('ai.run.hist.kicker', 'Geçmiş'))}</div>
+        <h3 class="ai-run-side-title">${mbAiEsc(mbAiSay('ai.run.hist.title', 'Son arananlar'))}</h3>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiLoadRunHist()">${mbAiEsc(mbAiSay('ai.run.hist.refresh', 'Yenile'))}</button>
+    </header>
+    <div class="ai-run-side-filters">
+      <input class="form-input" id="ai-run-hist-q" type="search" value="${mbAiEsc(_aiRunHist.q || '')}" placeholder="${mbAiEsc(mbAiSay('ai.run.hist.search', 'İsim, telefon, not…'))}" oninput="mbAiRunHistFilter()">
+      <select class="form-input" id="ai-run-hist-staff" onchange="mbAiRunHistFilter()">
+        <option value="">${mbAiEsc(mbAiSay('ai.run.hist.all_staff', 'Tüm personel'))}</option>
+        ${staffOpts}
+      </select>
+      <select class="form-input" id="ai-run-hist-out" onchange="mbAiRunHistFilter()">
+        <option value=""${ !_aiRunHist.outcome ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.all_out', 'Tüm sonuçlar'))}</option>
+        <option value="ok"${_aiRunHist.outcome === 'ok' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.out.ok', 'Başarılı'))}</option>
+        <option value="miss"${_aiRunHist.outcome === 'miss' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.out.miss', 'Cevapsız'))}</option>
+        <option value="neg"${_aiRunHist.outcome === 'neg' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.out.neg', 'Olumsuz'))}</option>
+        <option value="cb"${_aiRunHist.outcome === 'cb' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.out.cb', 'Geri arama'))}</option>
+      </select>
+      <select class="form-input" id="ai-run-hist-sort" onchange="mbAiRunHistFilter()">
+        <option value="new"${_aiRunHist.sort === 'new' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.sort.new', 'En yeni'))}</option>
+        <option value="old"${_aiRunHist.sort === 'old' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.sort.old', 'En eski'))}</option>
+        <option value="long"${_aiRunHist.sort === 'long' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.sort.long', 'En uzun'))}</option>
+        <option value="short"${_aiRunHist.sort === 'short' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.sort.short', 'En kısa'))}</option>
+      </select>
+    </div>
+    <div class="ai-run-hist" id="ai-run-hist"></div>
+  </aside>
+</div>`;
   (_aiDesk.staff || []).forEach((row) => mbAiPaintRunLive(row.id));
+  mbAiPaintRunHist();
+  void mbAiLoadRunHist();
 }
 
 function mbAiRunCard(row, mode) {
@@ -841,6 +1079,8 @@ async function mbAiRunOneQc(staff) {
       meta.doneAt = Date.now();
       void mbAiSyncLiveSession(staff, meta);
       mbAiPaintRunLive(staff.id);
+      mbAiRunEndedAlert(staff, meta);
+      mbAiPushRunRecent(staff, meta);
       continue;
     }
     void mbAiWatchRun(staff.id, meta);
@@ -895,11 +1135,28 @@ async function mbAiRunOneSales(staff) {
       meta.doneAt = Date.now();
       void mbAiSyncLiveSession(staff, meta);
       mbAiPaintRunLive(staff.id);
+      mbAiRunEndedAlert(staff, meta);
+      mbAiPushRunRecent(staff, meta);
       continue;
     }
     meta.apptId = res.appointment_id;
     void mbAiWatchRun(staff.id, meta);
   }
+}
+
+function mbAiApplySyncMeta(meta, res) {
+  if (!meta || !res) return;
+  if (res.phase) meta.phase = String(res.phase);
+  meta.secs = Number(res.secs) || meta.secs || 0;
+  if (res.phase === 'talking' || (meta.secs > 0 && !res.done)) meta.phase = 'talking';
+  if (res.durum) meta.durum = String(res.durum);
+  if (res.outcome) meta.outcome = String(res.outcome);
+  if (res.summary) meta.summary = String(res.summary);
+  if (res.qc_notu) meta.qc_notu = String(res.qc_notu);
+  if (res.transcript) meta.transcript = String(res.transcript);
+  if (res.recording) meta.recording = String(res.recording);
+  if (res.termin_tarih) meta.termin = String(res.termin_tarih);
+  if (res.error) meta.error = String(res.error);
 }
 
 async function mbAiWatchRun(staffId, meta) {
@@ -909,21 +1166,19 @@ async function mbAiWatchRun(staffId, meta) {
     await new Promise((resolve) => setTimeout(resolve, 3500));
     const res = await mbTelnyxAi('sync', { appointment_id: meta.apptId });
     if (!res?.ok) continue;
-    if (res.phase) meta.phase = String(res.phase);
-    else if (!res.done) meta.phase = meta.phase === 'talking' ? 'talking' : 'ringing';
-    meta.secs = Number(res.secs) || meta.secs || 0;
-    if (res.phase === 'talking' || (meta.secs > 0 && !res.done)) meta.phase = 'talking';
-    if (res.durum) meta.durum = String(res.durum);
-    if (res.outcome) meta.outcome = String(res.outcome);
-    if (res.summary) meta.summary = String(res.summary);
-    if (res.termin_tarih) meta.termin = String(res.termin_tarih);
-    if (res.error) meta.error = String(res.error);
+    if (!res.done && !res.phase) meta.phase = meta.phase === 'talking' ? 'talking' : 'ringing';
+    mbAiApplySyncMeta(meta, res);
     if (staff) void mbAiSyncLiveSession(staff, meta);
     mbAiPaintRunLive(staffId);
     if (res.done) {
       meta.phase = res.phase === 'missed' || !(res.secs > 0) ? 'missed' : 'talked';
       meta.secs = Number(res.secs) || meta.secs || 0;
       meta.doneAt = Date.now();
+      if (!meta.recording || !meta.transcript) {
+        await new Promise((resolve) => setTimeout(resolve, 2200));
+        const again = await mbTelnyxAi('sync', { appointment_id: meta.apptId });
+        if (again?.ok) mbAiApplySyncMeta(meta, again);
+      }
       break;
     }
   }
@@ -934,6 +1189,9 @@ async function mbAiWatchRun(staffId, meta) {
   _aiRunBusy.delete(meta.key);
   if (staff) void mbAiSyncLiveSession(staff, meta);
   mbAiPaintRunLive(staffId);
+  mbAiRunEndedAlert(staff, meta);
+  mbAiPushRunRecent(staff, meta);
+  setTimeout(() => { void mbAiLoadRunHist(); }, 2500);
 }
 
 function mbPaintAiStaff() {
