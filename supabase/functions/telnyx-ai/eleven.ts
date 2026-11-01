@@ -15,7 +15,7 @@ const EL_LLM_ALIAS: Record<string, string> = {
 };
 // v4 turbo is the current realtime voice: expressive, about 100ms, 90+ languages.
 const TTS_MODEL = 'eleven_v4_turbo';
-const AGENT_REV = 'v4';
+const AGENT_REV = 'v5';
 // Premade multilingual voices, used only when no Turkish library voice can be attached.
 const FALLBACK_VOICES: Record<string, string> = { female: '21m00Tcm4TlvDq8ikWAM', male: 'pNInz6obpgDQGcFmaJgB' };
 
@@ -201,8 +201,9 @@ function agentConfig(lang: string, llm: string, toolIds: string[], voiceId: stri
   };
 }
 
-function platformSettings() {
+function platformSettings(lang: string) {
   return {
+    summary_language: lang === 'tr' ? 'tr' : 'de',
     guardrails: {
       version: '1',
       focus: { is_enabled: true },
@@ -234,9 +235,10 @@ function platformSettings() {
 }
 
 async function pushAgent(key: string, agentId: string, llm: string, config: unknown) {
+  const lang = (config as { agent?: { language?: string } })?.agent?.language === 'tr' ? 'tr' : 'de';
   const send = (withPlatform: boolean) => {
     const body: Record<string, unknown> = { conversation_config: config };
-    if (withPlatform) body.platform_settings = platformSettings();
+    if (withPlatform) body.platform_settings = platformSettings(lang);
     if (!agentId) body.name = `Callin Kalite ${llm}`;
     const path = agentId ? `/v1/convai/agents/${encodeURIComponent(agentId)}` : '/v1/convai/agents/create';
     return el(key, agentId ? 'PATCH' : 'POST', path, body);

@@ -513,27 +513,56 @@ async function placeEleven(
   return json({ ok: true, engine: 'super' });
 }
 
+function callinPhase(status: string, secs: number, transcript: string) {
+  const talked = secs > 0 || /(?:^|\n)Kisi:/.test(transcript);
+  if (status === 'failed') return 'missed';
+  if (status === 'done') return talked ? 'talked' : 'missed';
+  if (status === 'in-progress' || status === 'processing') return talked ? 'talking' : 'ringing';
+  return 'ringing';
+}
+
+async function rememberCallinNote(admin: SupabaseClient, appt: Record<string, any>, summary: string) {
+  const text = clip(summary, 800);
+  if (!text) return;
+  const { data } = await admin.from('appointments').select('qc_notu').eq('id', appt.id).maybeSingle();
+  const prev = String(data?.qc_notu || '').trim();
+  if (prev.includes(text)) {
+    appt.qc_notu = prev;
+    return;
+  }
+  const next = (prev ? `${prev}\n\n${text}` : text).slice(0, 2000);
+  await admin.from('appointments').update({ qc_notu: next }).eq('id', appt.id);
+  appt.qc_notu = next;
+}
+
 async function syncEleven(admin: SupabaseClient, appt: Record<string, any>) {
   const extra = appt.form_ek || {};
-  if (extra.callin_engine !== 'eleven' || !extra.callin_conv) return { state: String(extra.callin_state || ''), done: String(extra.callin_state || '') === 'done' };
+  if (extra.callin_engine !== 'eleven' || !extra.callin_conv) return { state: String(extra.callin_state || ''), done: String(extra.callin_state || '') === 'done', phase: String(extra.callin_phase || ''), transcript: String(extra.callin_transcript || ''), summary: String(extra.callin_summary || '') };
   const { data: firm } = await admin.from('firms').select('settings').eq('id', appt.firm_id).maybeSingle();
   const key = clip(firm?.settings?.integrations?.elevenlabs_api_key, 300);
   if (String(extra.callin_billed || '') === '1') {
-    // Billing is done; a missing call-history row (audio not ready earlier) is retried here.
-    if (key && !extra.callin_log && Number(extra.callin_sec) > 0) {
+    if (key && Number(extra.callin_sec) > 0) {
       const again = await elConversation(key, String(extra.callin_conv));
-      if (again.ok) await saveElevenLog(admin, appt, key, String(extra.callin_conv), again);
+      if (again.ok) {
+        await saveElevenLog(admin, appt, key, String(extra.callin_conv), again);
+        if (again.summary) await rememberCallinNote(admin, appt, again.summary);
+      }
     }
-    return { state: 'done', done: true };
+    return { state: 'done', done: true, phase: String(extra.callin_phase || (Number(extra.callin_sec) > 0 ? 'talked' : 'missed')), secs: Number(extra.callin_sec) || 0, transcript: String(extra.callin_transcript || ''), summary: String(appt.qc_notu || extra.callin_summary || '') };
   }
-  if (!key) return { state: 'dialing', done: false };
+  if (!key) return { state: 'dialing', done: false, phase: 'ringing' };
   const conv = await elConversation(key, String(extra.callin_conv));
-  if (!conv.ok) return { state: 'dialing', done: false, why: conv.why };
-  if (conv.status !== 'done' && conv.status !== 'failed') return { state: 'dialing', done: false, status: conv.status };
+  if (!conv.ok) return { state: 'dialing', done: false, why: conv.why, phase: 'ringing' };
+  const phase = callinPhase(conv.status, conv.secs, conv.transcript);
+  if (conv.status !== 'done' && conv.status !== 'failed') {
+    await mergeEk(admin, appt, { callin_phase: phase, callin_transcript: clip(conv.transcript, 3500), callin_summary: clip(conv.summary, 800) });
+    return { state: 'dialing', done: false, status: conv.status, phase, secs: conv.secs, transcript: conv.transcript, summary: conv.summary };
+  }
   await onHangup(admin, appt, { duration_secs: conv.secs });
-  if (conv.secs <= 0) await mergeEk(admin, appt, { callin_error: 'noanswer' });
-  else await saveElevenLog(admin, appt, key, String(extra.callin_conv), conv);
-  return { state: 'done', done: true, secs: conv.secs };
+  await mergeEk(admin, appt, { callin_phase: phase, callin_transcript: clip(conv.transcript, 3500), callin_summary: clip(conv.summary, 800), ...(conv.secs <= 0 ? { callin_error: 'noanswer' } : {}) });
+  if (conv.secs > 0) await saveElevenLog(admin, appt, key, String(extra.callin_conv), conv);
+  if (conv.summary) await rememberCallinNote(admin, appt, conv.summary);
+  return { state: 'done', done: true, secs: conv.secs, phase, transcript: conv.transcript, summary: conv.summary };
 }
 
 // Puts the finished AI call into the normal call history with its recording and transcript.
@@ -544,22 +573,22 @@ async function saveElevenLog(
   conv: string,
   info: { secs: number; start: number; summary: string; transcript: string },
 ) {
-  if (!conv || appt.form_ek?.callin_log) return;
+  if (!conv) return;
   const tag = `el:${conv}`;
-  const { data: dup } = await admin.from('call_logs').select('id').eq('telnyx_call_id', tag).maybeSingle();
-  if (dup?.id) {
-    await mergeEk(admin, appt, { callin_log: dup.id });
+  const { data: dup } = await admin.from('call_logs').select('id,recording_url').eq('telnyx_call_id', tag).maybeSingle();
+  if (dup?.id && dup.recording_url) {
+    await mergeEk(admin, appt, { callin_log: dup.id, callin_transcript: clip(info.transcript, 3500), callin_summary: clip(info.summary, 800) });
     return;
   }
   let url = '';
-  for (let attempt = 0; attempt < 4 && !url; attempt += 1) {
+  for (let attempt = 0; attempt < 2 && !url; attempt += 1) {
     const audio = await elAudio(key, conv);
     if (audio.ok && audio.bytes.byteLength > 500) {
       const path = `${appt.firm_id}/el-${conv}.mp3`;
       const up = await admin.storage.from('call-recordings').upload(path, audio.bytes, { contentType: audio.type || 'audio/mpeg', upsert: true });
       if (!up.error) url = admin.storage.from('call-recordings').getPublicUrl(path).data.publicUrl;
     }
-    if (!url && attempt < 3) await new Promise((resolve) => setTimeout(resolve, 4000));
+    if (!url && attempt < 1) await new Promise((resolve) => setTimeout(resolve, 1500));
   }
   const secs = Math.max(0, Math.round(info.secs));
   const started = info.start ? new Date(info.start * 1000).toISOString() : new Date(Date.now() - secs * 1000).toISOString();
@@ -580,6 +609,14 @@ async function saveElevenLog(
     recording_url: url || null,
     work_type: 'ai_qc',
   };
+  const saved = await mergeEk(admin, appt, { callin_transcript: clip(info.transcript, 3500), callin_summary: clip(info.summary, 800) });
+  if (!saved) return;
+  if (dup?.id) {
+    if (url) await admin.from('call_logs').update({ recording_url: url, notes, duration_sec: secs }).eq('id', dup.id);
+    await mergeEk(admin, appt, { callin_log: dup.id });
+    return;
+  }
+  if (!url) return;
   const { data: made, error } = await admin.from('call_logs').insert(row).select('id').maybeSingle();
   if (error) console.error('call log insert failed', error.message);
   if (made?.id) await mergeEk(admin, appt, { callin_log: made.id });
@@ -922,12 +959,23 @@ async function syncAction(admin: SupabaseClient, user: Record<string, any>, body
   const res = await syncEleven(admin, appt);
   await sweepEleven(admin, String(appt.firm_id)).catch(() => null);
   const { data: fresh } = await admin.from('appointments').select('durum, form_ek').eq('id', id).maybeSingle();
+  let recording = '';
+  const logId = String(fresh?.form_ek?.callin_log || '');
+  if (uuidRe.test(logId)) {
+    const { data: log } = await admin.from('call_logs').select('recording_url').eq('id', logId).maybeSingle();
+    recording = String(log?.recording_url || '');
+  }
   return json({
     ok: true,
     done: !!res.done,
     state: res.state,
+    phase: String((res as any).phase || fresh?.form_ek?.callin_phase || ''),
     secs: Number((res as any).secs || fresh?.form_ek?.callin_sec || 0),
     durum: String(fresh?.durum || ''),
+    qc_notu: String(fresh?.qc_notu || appt.qc_notu || ''),
+    summary: String((res as any).summary || fresh?.form_ek?.callin_summary || ''),
+    transcript: String((res as any).transcript || fresh?.form_ek?.callin_transcript || ''),
+    recording,
     error: String(fresh?.form_ek?.callin_error || ''),
   });
 }

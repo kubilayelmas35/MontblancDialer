@@ -2209,6 +2209,15 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 #page-qc .qc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 #page-qc .qc-camp{display:inline-block;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;}
 #page-qc .qc-down{display:inline-flex;align-items:center;margin-left:6px;padding:1px 7px;border-radius:999px;background:#b91c1c;color:#fff;font-size:10px;font-weight:800;white-space:nowrap;}
+.qc-callin-btn{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:7px 12px;font-weight:800;font-size:12px;color:#fff;cursor:pointer;background:linear-gradient(120deg,#7c3aed,#2563eb 46%,#06b6d4);box-shadow:0 6px 16px rgba(37,99,235,.35);animation:qc-callin-pulse 1.8s ease-out infinite;}
+.qc-callin-btn i{font-size:15px;}
+@keyframes qc-callin-pulse{0%{box-shadow:0 0 0 0 rgba(37,99,235,.45)}70%{box-shadow:0 0 0 8px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
+.qc-callin-live{margin-top:6px;padding:8px 10px;border-radius:10px;background:var(--bg-3);font-size:12px;line-height:1.45;}
+.qc-callin-live.is-talk{border-left:3px solid #16a34a;}
+.qc-callin-live.is-miss{border-left:3px solid #b91c1c;}
+.qc-callin-live.is-ring{border-left:3px solid #2563eb;}
+.qc-callin-live audio{width:100%;margin-top:6px;height:32px;}
+.qc-callin-script{margin-top:6px;white-space:pre-wrap;color:var(--text-2);max-height:140px;overflow:auto;}
 </style>
 <div class="page-hdr">
 <div>

@@ -758,7 +758,82 @@ function qcCallinButton(row) {
   if (!staff || !row?.id) return '';
   const name = typeof ariaName === 'function' ? ariaName() : 'Callin';
   const label = mbAiSay('qc.callin', '{name} arasın').replace('{name}', name);
-  return `<button type="button" class="btn btn-ghost btn-sm" onclick="qcAskCallin('${mbAiEsc(row.id)}')">${mbAiEsc(label)}</button>`;
+  return `<button type="button" class="qc-callin-btn" onclick="qcAskCallin('${mbAiEsc(row.id)}')"><i class="ph ph-phone-call"></i><span>${mbAiEsc(label)}</span></button>`;
+}
+
+function qcCallinPhase(row) {
+  const busy = window._qcCallinBusy?.[row?.id];
+  if (busy) return busy;
+  const ek = row?.form_ek && typeof row.form_ek === 'object' ? row.form_ek : {};
+  if (ek.callin_phase) return String(ek.callin_phase);
+  if (ek.callin_state === 'dialing') return 'ringing';
+  if (ek.callin_state === 'done') return Number(ek.callin_sec) > 0 ? 'talked' : 'missed';
+  return '';
+}
+
+function qcCallinLiveHtml(row) {
+  const ek = row?.form_ek && typeof row.form_ek === 'object' ? row.form_ek : {};
+  const phase = qcCallinPhase(row);
+  if (!phase) return '';
+  const name = typeof ariaName === 'function' ? ariaName() : 'Callin';
+  const who = row?.nachname || '—';
+  const line = {
+    ringing: mbAiSay('qc.callin.ringing', '{name}, {who} kişisini arıyor.'),
+    talking: mbAiSay('qc.callin.talking', 'Telefon açıldı. {name} konuşuyor.'),
+    talked: mbAiSay('qc.callin.talked', 'Telefon açıldı. {name} konuştu.'),
+    missed: mbAiSay('qc.callin.missed', 'Telefon açılmadı.'),
+  }[phase] || mbAiSay('qc.callin.ringing', '{name}, {who} kişisini arıyor.');
+  const text = line.replace('{name}', name).replace('{who}', who);
+  const tone = phase === 'missed' ? 'is-miss' : (phase === 'talking' || phase === 'talked' ? 'is-talk' : 'is-ring');
+  const key = typeof _qcDurumKey === 'function' ? _qcDurumKey(row) : '';
+  const cfg = window._qcResultMap?.[key];
+  const result = phase === 'talked' && key && key !== 'qc_bekleniyor' && typeof _qcResultLabel === 'function'
+    ? `<div style="margin-top:4px;font-weight:800;color:${mbAiEsc(cfg?.color || 'var(--text)')};">${mbAiEsc(_qcResultLabel(key))}</div>`
+    : '';
+  const note = String(row?.qc_notu || ek.callin_summary || '').trim();
+  const noteHtml = note ? `<div style="margin-top:4px;">${mbAiEsc(note)}</div>` : '';
+  const script = String(ek.callin_transcript || '').trim();
+  const scriptHtml = script
+    ? `<details class="qc-callin-script"><summary>${mbAiEsc(mbAiSay('qc.callin.transcript', 'Konuşma'))}</summary>${mbAiEsc(script)}</details>`
+    : '';
+  const rec = row?.contact_id ? window._qcRecByContact?.[row.contact_id] : null;
+  const audio = rec?.recording_url
+    ? `<audio controls preload="none" src="${mbAiEsc(rec.recording_url)}"></audio>`
+    : '';
+  return `<div class="qc-callin-live ${tone}" data-callin-live="${mbAiEsc(row.id)}" onclick="event.stopPropagation()"><b>${mbAiEsc(text)}</b>${result}${noteHtml}${scriptHtml}${audio}</div>`;
+}
+
+function qcPaintCallin(row) {
+  if (!row?.id) return;
+  const html = qcCallinLiveHtml(row);
+  const nodes = document.querySelectorAll(`[data-callin-live="${row.id}"]`);
+  if (!nodes.length) {
+    if (typeof renderQcTable === 'function') renderQcTable();
+    if (typeof mountQcReviewForm === 'function') mountQcReviewForm();
+    return;
+  }
+  nodes.forEach((node) => { node.outerHTML = html; });
+}
+
+function qcApplyCallin(row, res) {
+  if (!row) return;
+  const ek = { ...(row.form_ek && typeof row.form_ek === 'object' ? row.form_ek : {}) };
+  if (res?.phase) ek.callin_phase = res.phase;
+  if (res?.state) ek.callin_state = res.done ? 'done' : (res.state || ek.callin_state);
+  if (res?.transcript) ek.callin_transcript = String(res.transcript).slice(0, 3500);
+  if (res?.summary) ek.callin_summary = String(res.summary).slice(0, 800);
+  if (res?.error) ek.callin_error = res.error;
+  if (res?.secs) ek.callin_sec = String(res.secs);
+  ek.callin_engine = ek.callin_engine || 'eleven';
+  row.form_ek = ek;
+  if (res?.qc_notu) row.qc_notu = res.qc_notu;
+  if (res?.durum) row.durum = res.durum;
+  if (res?.recording && row.contact_id) {
+    window._qcRecByContact = window._qcRecByContact || {};
+    window._qcRecByContact[row.contact_id] = { id: ek.callin_log || row.id, contact_id: row.contact_id, recording_url: res.recording, duration_sec: Number(res.secs) || 0 };
+  }
+  if (res?.phase && res.phase !== 'ringing') delete window._qcCallinBusy?.[row.id];
+  qcPaintCallin(row);
 }
 
 function qcAskCallin(apptId) {
@@ -818,36 +893,53 @@ async function mbTelnyxAi(action, payload) {
 }
 
 async function qcConfirmCallin(apptId, staffId, direct) {
-  const pop = document.getElementById('ai-callin-pop');
-  pop?.querySelectorAll('button').forEach((btn) => { btn.disabled = true; });
   const note = direct ? '' : String(document.getElementById('ai-callin-note')?.value || '').trim().slice(0, 800);
   const picked = String(document.getElementById('ai-callin-staff')?.value || '') || staffId;
+  const row = (typeof qcList !== 'undefined' ? qcList : []).find((item) => item.id === apptId);
+  qcCloseCallin();
+  window._qcCallinBusy = window._qcCallinBusy || {};
+  window._qcCallinBusy[apptId] = 'ringing';
+  if (row) {
+    row.form_ek = { ...(row.form_ek && typeof row.form_ek === 'object' ? row.form_ek : {}), callin_engine: 'eleven', callin_state: 'dialing', callin_phase: 'ringing' };
+    qcPaintCallin(row);
+  }
+  if (typeof toast === 'function') toast(mbAiSay('qc.callin.placing', 'Aranıyor. Hat açılınca konuşma başlar.'), 'ok');
   const res = await mbTelnyxAi('place', { appointment_id: apptId, staff_id: picked, note });
   if (!res?.ok) {
-    pop?.querySelectorAll('button').forEach((btn) => { btn.disabled = false; });
+    delete window._qcCallinBusy[apptId];
+    if (row?.form_ek) delete row.form_ek.callin_phase;
+    if (row) qcPaintCallin(row);
     const key = { gate: 'qc.callin.gate', results: 'qc.callin.gate', phone: 'qc.callin.phone', busy: 'qc.callin.busy', nokey_el: 'qc.callin.nokey_el' }[res?.error] || 'qc.callin.fail';
     const why = String(res?.detail || '').slice(0, 220);
     if (typeof toast === 'function') toast(mbAiSay(key, 'Arama çıkmadı.') + (why ? ` (${why})` : ''), 'err');
     return;
   }
-  qcCloseCallin();
   if (typeof toast === 'function') toast(mbAiSay('qc.callin.started', 'Arama çıktı. Karşı taraf açınca konuşma başlar.'), 'ok');
-  if (res?.engine === 'super') mbAiWatchCall(apptId);
+  mbAiWatchCall(apptId);
 }
 
 // Süper motorda bitiş bildirimi gelmez; arama bitene kadar sunucudan durum sorulur ve süre faturalanır.
 async function mbAiWatchCall(apptId) {
   const started = Date.now();
   while (Date.now() - started < 12 * 60 * 1000) {
-    await new Promise((resolve) => setTimeout(resolve, 6000));
+    await new Promise((resolve) => setTimeout(resolve, 2500));
     const res = await mbTelnyxAi('sync', { appointment_id: apptId });
+    const row = (typeof qcList !== 'undefined' ? qcList : []).find((item) => item.id === apptId);
+    if (res?.ok && row) qcApplyCallin(row, res);
     if (!res?.ok || !res.done) continue;
+    delete window._qcCallinBusy?.[apptId];
     if (typeof toast === 'function') {
-      toast(res.secs > 0
-        ? mbAiSay('qc.callin.done', 'Arama bitti.')
-        : mbAiSay('qc.callin.noanswer', 'Arama açılmadı.'), res.secs > 0 ? 'ok' : 'warn');
+      toast(res.phase === 'missed' || !(res.secs > 0)
+        ? mbAiSay('qc.callin.noanswer', 'Arama açılmadı.')
+        : mbAiSay('qc.callin.done', 'Arama bitti.'), res.secs > 0 ? 'ok' : 'warn');
     }
-    if (typeof loadQcData === 'function') loadQcData();
+    if (row && typeof _qcAttachRec === 'function') {
+      const recs = await _qcAttachRec([row]).catch(() => null);
+      if (recs && row.contact_id && recs[row.contact_id]) {
+        window._qcRecByContact = { ...(window._qcRecByContact || {}), [row.contact_id]: recs[row.contact_id] };
+        qcPaintCallin(row);
+      }
+    }
     return;
   }
 }

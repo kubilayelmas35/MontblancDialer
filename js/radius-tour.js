@@ -358,6 +358,7 @@ function tourPaintLive(plan, line, speak) {
     const camp = document.getElementById('aria-live-camp');
     const count = document.getElementById('aria-live-n');
     chip.hidden = !ariaAdmin();
+    if (!chip.hidden && typeof mbFitStatus === 'function') requestAnimationFrame(() => mbFitStatus());
     chip.classList.toggle('is-on', !!facts);
     chip.classList.toggle('is-pasif', tourEffectivePasif());
     if (day) day.textContent = facts ? facts.day : '';
@@ -1837,13 +1838,21 @@ function tourPackage(campaignId) {
   if (typeof toast === 'function') toast(tourSay('tour.sent', 'Paket haritada açıldı. İşaretleyip aktar.'), 'ok');
 }
 
+function tourShowChip() {
+  const chip = document.getElementById('aria-live');
+  if (!chip || !ariaAdmin()) return false;
+  chip.hidden = false;
+  if (typeof mbFitStatus === 'function') requestAnimationFrame(() => mbFitStatus());
+  return true;
+}
+
 function tourBoot() {
   if (window._tourBooted) return;
   window._tourBooted = true;
   ariaPaintName();
-  setTimeout(() => {
-    if (!ariaAdmin()) return;
-    void tourLoadSettings().then(async () => {
+  const start = () => {
+    if (!tourShowChip()) return false;
+    setTimeout(() => void tourLoadSettings().then(async () => {
       tourArm();
       if (tourFirmId() && !tourEffectivePasif()) {
         await tourRefresh({ apply: true });
@@ -1851,8 +1860,14 @@ function tourBoot() {
       }
       if (tourFirmId()) _tourPlan = await tourBuild().catch(() => _tourPlan);
       tourPaintLive(_tourPlan, null, false);
-    });
-  }, 8000);
+    }), 8000);
+    return true;
+  };
+  const attempt = (n) => {
+    if (start()) return;
+    if (n < 30) setTimeout(() => attempt(n + 1), 1000);
+  };
+  attempt(0);
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tourBoot);

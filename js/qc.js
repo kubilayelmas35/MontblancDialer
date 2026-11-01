@@ -35,6 +35,28 @@ function _qcWall(row) {
   return { dayKey: '', day: '', time: '', text: '' };
 }
 
+function qcYmd(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function qcEnsureDates() {
+  const from = document.getElementById('qc-date-from');
+  const to = document.getElementById('qc-date-to');
+  if (!from || !to || from.dataset.ready === '1') return;
+  from.dataset.ready = '1';
+  if (from.value || to.value) return;
+  const now = new Date();
+  const back = new Date(now);
+  const ahead = new Date(now);
+  back.setDate(back.getDate() - 7);
+  ahead.setDate(ahead.getDate() + 7);
+  from.value = qcYmd(back);
+  to.value = qcYmd(ahead);
+}
+
 function _qcInDates(row) {
   const from = document.getElementById('qc-date-from')?.value || '';
   const to = document.getElementById('qc-date-to')?.value || '';
@@ -217,6 +239,7 @@ async function qcFillAgentScope(userId, firmId) {
 }
 
 async function loadQcData() {
+  qcEnsureDates();
   const settingsBtn = document.getElementById('qc-settings-btn');
   if (settingsBtn) settingsBtn.style.display = (typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin()) ? '' : 'none';
   const qcSel = document.getElementById('qc-firm-selector');
@@ -292,6 +315,7 @@ async function loadQcData() {
     if (gen !== _qcLoadGen) return;
     window._qcRecByContact = recs;
     renderQcTable();
+    void qcHealCallin(qcList);
     const pending = qcList.filter((r) => _qcDurumKey(r) === 'qc_bekleniyor').length;
     const badge = document.getElementById('sb-badge-qc');
     if (badge) {
@@ -309,13 +333,14 @@ let _qcLoadGen = 0;
 async function _qcAttachRec(rows) {
   const ids = [...new Set((rows || []).map((r) => r.contact_id).filter((id) => typeof isValidUUID !== 'function' || isValidUUID(id)))];
   const map = {};
-  if (!ids.length) return map;
-  if (typeof mbHeadCount === 'function') {
+  let skipContacts = !ids.length;
+  if (!skipContacts && typeof mbHeadCount === 'function') {
     const ff = typeof getFirmFilter === 'function' ? getFirmFilter('&') : '';
     const n = await mbHeadCount(`call_logs?select=id&recording_url=not.is.null${ff}`).catch(() => null);
-    if (n === 0) return map;
+    if (n === 0) skipContacts = true;
   }
   const chunks = [];
+  if (skipContacts) ids.length = 0;
   for (let i = 0; i < ids.length; i += 40) chunks.push(ids.slice(i, i + 40).join(','));
   for (let i = 0; i < chunks.length; i += 6) {
     const wave = chunks.slice(i, i + 6);
@@ -324,6 +349,16 @@ async function _qcAttachRec(rows) {
       (logs || []).forEach((log) => {
         if (!map[log.contact_id] && log.recording_url) map[log.contact_id] = log;
       });
+    });
+  }
+  const logIds = [...new Set((rows || []).map((r) => r?.form_ek?.callin_log).filter((id) => typeof isValidUUID !== 'function' || isValidUUID(id)))];
+  for (let i = 0; i < logIds.length; i += 40) {
+    const chunk = logIds.slice(i, i + 40).join(',');
+    const logs = await sb(`call_logs?id=in.(${chunk})&select=id,contact_id,recording_url,duration_sec,started_at,phone`).catch(() => []);
+    (logs || []).forEach((log) => {
+      const hit = (rows || []).find((row) => row?.form_ek?.callin_log === log.id);
+      const contactId = log.contact_id || hit?.contact_id;
+      if (contactId && log.recording_url && !map[contactId]) map[contactId] = log;
     });
   }
   return map;
@@ -597,7 +632,7 @@ function qcPaintBody() {
       : '';
     return `<tr>
 <td><div style="font-weight:700;color:var(--accent);">${_uiEsc(wall.time || '—')}</div><div style="font-size:11px;color:var(--text-3);margin-top:2px;">${_uiEsc(wall.day || '')}</div></td>
-<td style="font-weight:600;cursor:pointer;" onclick="openQcDetail('${_uiEsc(row.id)}')">${_uiEsc(row.nachname || '—')}${moved}</td>
+<td style="font-weight:600;cursor:pointer;" onclick="openQcDetail('${_uiEsc(row.id)}')">${_uiEsc(row.nachname || '—')}${moved}${typeof qcCallinLiveHtml === 'function' ? qcCallinLiveHtml(row) : ''}</td>
 <td style="font-family:var(--mono);font-size:12px;">${_uiEsc(row.telefonnummer || '—')}</td>
 <td style="font-family:var(--mono);font-size:12px;">${_uiEsc(row.plz || '—')}</td>
 <td style="font-size:12px;">${_uiEsc(agentName)}</td>
@@ -606,9 +641,9 @@ function qcPaintBody() {
 <td>${recHtml}</td>
 <td><span style="font-size:11px;font-weight:700;color:${_uiEsc(color)};">${_uiEsc(_qcResultLabel(key))}</span></td>
 <td><div style="display:flex;gap:3px;align-items:center;flex-wrap:wrap;">
+${typeof qcCallinButton === 'function' ? qcCallinButton(row) : ''}
 <button type="button" class="icon-btn" onclick="qcOpenPersonCard('${_uiEsc(row.id)}')" title="${_uiEsc(t('qc.card'))}"><i class="ph ph-user"></i></button>
 <button type="button" class="icon-btn" onclick="openQcDetail('${_uiEsc(row.id)}')" title="${_uiEsc(t('qc.detail'))}"><i class="ph ph-magnifying-glass"></i></button>
-${typeof qcCallinButton === 'function' ? qcCallinButton(row) : ''}
 ${assignBtn}${resultBtn}
 </div></td>
 </tr>`;
@@ -640,11 +675,12 @@ function openQcDetail(id) {
   const camp = window._qcCampById?.[row.campaign_id] || {};
   const fields = typeof takvimFieldsMarkup === 'function' ? takvimFieldsMarkup(camp, row, null, 'edit') : '';
   if (body) body.innerHTML = `
-<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px;">
+<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
 <div style="font-size:12px;color:var(--text-3);">${_uiEsc(wall.time || '—')} · ${_uiEsc(wall.day || '')} ${moved}</div>
-<button type="button" class="btn btn-ghost btn-sm" onclick="qcOpenPersonCard('${_uiEsc(row.id)}')">${_uiEsc(t('qc.card'))}</button>
 ${typeof qcCallinButton === 'function' ? qcCallinButton(row) : ''}
+<button type="button" class="btn btn-ghost btn-sm" onclick="qcOpenPersonCard('${_uiEsc(row.id)}')">${_uiEsc(t('qc.card'))}</button>
 </div>
+${typeof qcCallinLiveHtml === 'function' ? qcCallinLiveHtml(row) : ''}
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">${fields}</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-top:8px;">
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">${_uiEsc(t('qc.agent'))}</div><div style="font-weight:700;">${_uiEsc(row.users?.name || '—')}</div></div>
@@ -696,7 +732,7 @@ function mountQcReviewForm() {
   const fields = typeof takvimFieldsMarkup === 'function' ? takvimFieldsMarkup(camp, row, currentContact, 'edit') : '';
   const host = old || document.createElement('div');
   host.id = 'qc-review-form';
-  host.innerHTML = `<div class="qc-review-form-title">${_uiEsc(t('qc.form'))}</div><div class="qc-review-form-grid">${fields}</div><div class="qc-review-form-hint">${_uiEsc(t('qc.form_hint'))}</div>`;
+  host.innerHTML = `${typeof qcCallinLiveHtml === 'function' ? qcCallinLiveHtml(row) : ''}<div class="qc-review-form-title">${_uiEsc(t('qc.form'))}</div><div class="qc-review-form-grid">${fields}</div><div class="qc-review-form-hint">${_uiEsc(t('qc.form_hint'))}</div>`;
   if (!old) anchor.after(host);
   if (host.dataset.twin !== '1') {
     host.dataset.twin = '1';
@@ -878,6 +914,7 @@ async function quickQcUpdate(apptId, status) {
   const custEl = document.getElementById(`qc-customer-select-${apptId}`) || (detailOpen ? document.getElementById('qc-detail-customer') : null);
   const customerId = custEl ? String(custEl.value || '') : '';
   try {
+    qcShiftRow(row, resultKey);
     const apptPatch = { durum: resultKey };
     const extra = window._qcDetailPatch;
     window._qcDetailPatch = null;
@@ -957,10 +994,46 @@ async function quickQcUpdate(apptId, status) {
         await showQcSmsPrompt(phone, row.nachname || '', apptDate, apptTime);
       }
     }
-    await loadQcData();
+    void qcRefreshMovedTab(resultKey);
     return true;
   } catch (e) {
     toast(t('qc.fail') + (e.message || ''), 'err');
+    void loadQcData();
     return false;
   }
+}
+
+async function qcHealCallin(rows) {
+  if (typeof mbTelnyxAi !== 'function' || typeof qcApplyCallin !== 'function') return;
+  const need = (rows || []).filter((row) => row?.form_ek?.callin_conv && row.contact_id && !window._qcRecByContact?.[row.contact_id]).slice(0, 3);
+  for (const row of need) {
+    const res = await mbTelnyxAi('sync', { appointment_id: row.id }).catch(() => null);
+    if (res?.ok) qcApplyCallin(row, res);
+  }
+}
+
+function qcShiftRow(row, resultKey) {
+  const prev = _qcDurumKey(row);
+  row.durum = resultKey;
+  const counts = window._qcCounts || (window._qcCounts = {});
+  if (prev && prev !== resultKey) counts[prev] = Math.max(0, (counts[prev] || 1) - 1);
+  if (prev !== resultKey) counts[resultKey] = (counts[resultKey] || 0) + 1;
+  const cache = window._qcTabCache || (window._qcTabCache = {});
+  if (Array.isArray(cache[prev])) cache[prev] = cache[prev].filter((item) => item.id !== row.id);
+  delete cache[resultKey];
+  qcTab = resultKey;
+  const locals = (qcList || []).filter((item) => item.id !== row.id && _qcDurumKey(item) === resultKey);
+  qcList = [row, ...locals];
+  renderQcTable();
+}
+
+async function qcRefreshMovedTab(resultKey) {
+  const embed = window._qcEmbed || '';
+  if (!embed || !resultKey || resultKey === '__moved') return;
+  const all = await mbFetchAll(`${embed}&durum=eq.${encodeURIComponent(resultKey)}`).catch(() => null);
+  if (!Array.isArray(all) || qcTab !== resultKey) return;
+  window._qcTabCache = window._qcTabCache || {};
+  window._qcTabCache[resultKey] = all;
+  qcList = all;
+  renderQcTable();
 }
