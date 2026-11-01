@@ -6,6 +6,7 @@ const _aiOpen = new Set();
 let _aiRunTimer = null;
 let _aiRunSaving = false;
 const _aiRunBusy = new Set();
+const _aiRunLive = {};
 
 function mbAiSay(key, fallback) {
   const msg = typeof t === 'function' ? t(key) : fallback;
@@ -435,6 +436,86 @@ function mbAiAllowedCamps(row) {
   return camps.filter((camp) => want.has(camp.id));
 }
 
+function mbAiParallelBlock(row) {
+  const id = mbAiEsc(row.id);
+  const n = Number(row.parallel) || 1;
+  return `<div class="ai-sec">
+    <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.parallel', 'Aynı anda kaç kişi'))}</div>
+    <select class="form-input ai-narrow" id="ai-parallel-${id}">${[1, 2, 3, 4, 5].map((v) => `<option value="${v}"${n === v ? ' selected' : ''}>${v}</option>`).join('')}</select>
+    <div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.parallel_hint', 'Kampanya hızı burada yok. 5 dersen bu personel aynı anda 5 kişi arar. İnsan dialer havuzu kullanılmaz.'))}</div>
+  </div>`;
+}
+
+function mbAiCampName(id) {
+  return (_aiDesk?.camps || []).find((camp) => String(camp.id) === String(id))?.name || '';
+}
+
+function mbAiRunPhaseLabel(phase) {
+  return {
+    ringing: mbAiSay('ai.run.phase.ring', 'Arıyor'),
+    talking: mbAiSay('ai.run.phase.talk', 'Konuşuyor'),
+    talked: mbAiSay('ai.run.phase.done', 'Bitti'),
+    missed: mbAiSay('ai.run.phase.miss', 'Açılmadı'),
+  }[phase] || mbAiSay('ai.run.phase.ring', 'Arıyor');
+}
+
+function mbAiRunLiveRows(staffId) {
+  const now = Date.now();
+  const rows = (_aiRunLive[staffId] || []).filter((row) => {
+    if (!row.doneAt) return true;
+    return now - row.doneAt < 45000;
+  });
+  _aiRunLive[staffId] = rows;
+  return rows;
+}
+
+function mbAiPaintRunLive(staffId) {
+  const staff = (_aiDesk?.staff || []).find((row) => String(row.id) === String(staffId));
+  const cap = document.getElementById(`ai-run-cap-${staffId}`);
+  const box = document.getElementById(`ai-run-calls-${staffId}`);
+  const live = document.getElementById(`ai-run-live-${staffId}`);
+  if (!staff) return;
+  const max = Math.max(1, Number(staff.parallel) || 1);
+  const rows = mbAiRunLiveRows(staffId);
+  const open = rows.filter((row) => !row.doneAt).length;
+  if (cap) {
+    cap.textContent = staff.running
+      ? mbAiSay('ai.run.cap', '{open} / {max} hat').replace('{open}', String(open)).replace('{max}', String(max))
+      : mbAiSay('ai.run.idle', 'Duruyor.');
+    cap.classList.toggle('is-on', !!staff.running);
+  }
+  if (live) {
+    live.textContent = staff.running
+      ? mbAiSay('ai.run.rule', 'Kampanya hızı yok. Bu personel kendi {max} hattında arar; havuz yok.')
+        .replace('{max}', String(max))
+      : mbAiSay('ai.run.idle_hint', 'Çalışsın deyince seçili kampanyalardan sıradaki kişiyi arar.');
+  }
+  if (!box) return;
+  if (!rows.length) {
+    box.innerHTML = `<div class="ai-run-empty">${mbAiEsc(staff.running
+      ? mbAiSay('ai.run.waiting', 'Sıradaki kişiyi arıyor…')
+      : mbAiSay('ai.run.none', 'Şu an açık arama yok.'))}</div>`;
+    return;
+  }
+  box.innerHTML = rows.map((row) => {
+    const tone = row.phase === 'talking' ? 'is-talk' : (row.phase === 'missed' ? 'is-miss' : (row.doneAt ? 'is-done' : 'is-ring'));
+    const who = row.name || row.phone || '—';
+    const camp = row.camp ? `<span class="ai-run-camp">${mbAiEsc(row.camp)}</span>` : '';
+    const phone = row.phone ? `<span class="ai-run-phone">${mbAiEsc(row.phone)}</span>` : '';
+    const secs = row.secs > 0 ? `<span class="ai-run-secs">${mbAiEsc(String(row.secs))}s</span>` : '';
+    return `<div class="ai-run-slot ${tone}">
+      <div class="ai-run-slot-main">
+        <b>${mbAiEsc(who)}</b>
+        ${camp}${phone}
+      </div>
+      <div class="ai-run-slot-meta">
+        <span class="ai-run-phase">${mbAiEsc(mbAiRunPhaseLabel(row.phase))}</span>
+        ${secs}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function mbPaintAiRun() {
   const root = document.getElementById('ai-run-root');
   if (!root || !_aiDesk) return;
@@ -444,16 +525,24 @@ function mbPaintAiRun() {
     ? `<div class="ai-field is-wide"><label for="ai-run-firm">${mbAiEsc(mbAiSay('ai.staff.firm', 'Firma'))}</label><select class="form-input" id="ai-run-firm" onchange="mbAiFirmPicked(this.value)">${firms.map((row) => `<option value="${mbAiEsc(row.id)}"${String(row.id) === String(_aiFirmId) ? ' selected' : ''}>${mbAiEsc(row.name || '')}</option>`).join('')}</select></div>`
     : '';
   const modeNote = mode === 'server'
-    ? mbAiSay('ai.run.mode.server', 'Bu firmada sunucu arar. Bilgisayar kapalıyken de Çalışsın açık kaldıkça devam eder.')
+    ? mbAiSay('ai.run.mode.server', 'Bu firmada Çalışsın sunucuya yazılır. Sayfa açıkken kalite araması çalışır. Kapalıyken tarama sonraki adımda bağlanır.')
     : mbAiSay('ai.run.mode.page', 'Bu firmada yalnız Başlat sayfası açıkken arar. Sayfa veya bilgisayar kapanınca yeni arama çıkmaz.');
   const cards = (_aiDesk.staff || []).map((row) => mbAiRunCard(row, mode)).join('');
   const empty = _aiDesk.staff.length ? '' : `<p class="ai-note">${mbAiEsc(mbAiSay('ai.run.empty', 'Önce YZ Personel sekmesinden personel ekleyin.'))}</p>`;
   root.innerHTML = `<div class="ai-run">
-    <p class="ai-note">${mbAiEsc(mbAiSay('ai.run.intro', 'Personeli burada çalıştırırsın. Karttaki kampanyalar çalışabilir listesidir. Aşağıda yalnız bugün yoğunlaşacağın kampanyaları işaretle.'))}</p>
+    <header class="ai-run-hero">
+      <div>
+        <div class="ai-run-kicker">${mbAiEsc(mbAiSay('ai.run.kicker', 'YZ çalışma'))}</div>
+        <h2 class="ai-run-title">${mbAiEsc(mbAiSay('ai.run.title', 'Personeli başlat'))}</h2>
+        <p class="ai-note">${mbAiEsc(mbAiSay('ai.run.intro', 'Karttaki kampanyalar çalışabilir listesidir. Burada yalnız bugün yoğunlaşacağın kampanyayı seçersin. Aynı anda kaç kişi, o personelin kendi hattıdır; kampanya hızı yok, havuz yok.'))}</p>
+      </div>
+      <div class="ai-run-mode ${mode === 'server' ? 'is-server' : 'is-page'}">${mbAiEsc(mode === 'server' ? mbAiSay('line.ai.run.server', 'Sunucudan') : mbAiSay('line.ai.run.page', 'Sayfa açıkken'))}</div>
+    </header>
     <p class="ai-note ${mode === 'server' ? 'ai-note-warn' : ''}">${mbAiEsc(modeNote)}</p>
     ${firmPick}
     <div class="ai-run-list">${empty}${cards}</div>
   </div>`;
+  (_aiDesk.staff || []).forEach((row) => mbAiPaintRunLive(row.id));
 }
 
 function mbAiRunCard(row, mode) {
@@ -463,29 +552,37 @@ function mbAiRunCard(row, mode) {
   const allowed = mbAiAllowedCamps(row);
   const focus = new Set(row.focus_ids || []);
   const noFocus = !focus.size;
+  const max = Math.max(1, Number(row.parallel) || 1);
   const pills = allowed.length
     ? allowed.map((camp) => mbAiPill('data-ai-focus', row.id, camp.id, camp.name || '', noFocus || focus.has(camp.id), `mbAiFocusPick('${id}')`)).join('')
     : `<span class="ai-hint">${mbAiEsc(mbAiSay('ai.run.no_camp', 'Önce personel kartında kampanya seçin.'))}</span>`;
-  const parallel = qc ? '' : `<div class="ai-hint">${mbAiEsc(mbAiSay('ai.run.parallel', 'Aynı anda en fazla {n} hat').replace('{n}', String(row.parallel || 1)))}</div>`;
   const salesNote = qc ? '' : `<div class="ai-hint">${mbAiEsc(mbAiSay('ai.run.sales_wait', 'Randevu personeli odak ve Çalışsın kaydını alır. Kişi listesinden arama bir sonraki adımda bağlanır.'))}</div>`;
-  const live = row.running
-    ? (mode === 'server'
-      ? mbAiSay('ai.run.live.server', 'Çalışıyor. Sunucu seçili kampanyalarda arar.')
-      : mbAiSay('ai.run.live.page', 'Çalışıyor. Bu sayfa açık kaldıkça arar.'))
-    : mbAiSay('ai.run.idle', 'Duruyor.');
-  return `<section class="ai-card ai-run-card${row.running ? ' is-on' : ''}">
-    <header class="ai-card-hd">
-      <span class="ai-badge ${qc ? 'is-qc' : 'is-sales'}"><i class="ph ${qc ? 'ph-seal-check' : 'ph-calendar-check'}"></i> ${mbAiEsc(kindLabel)}</span>
-      <div class="ai-card-title">${mbAiEsc(row.name || kindLabel)}</div>
-      ${mbAiSwitch(`ai-run-${id}`, row.running, mbAiSay('ai.run.work', 'Çalışsın'), `mbAiRunToggle('${id}')`)}
+  const job = qc
+    ? mbAiSay('ai.run.job.qc', 'Odaktaki kampanyalarda kalite bekleyen randevuları arar. Konuşur, sonucu yazar.')
+    : mbAiSay('ai.run.job.sales', 'Odaktaki kampanyalarda henüz randevusu olmayan kişileri arayacak. Bu yol sonraki adımda bağlanır.');
+  return `<section class="ai-card ai-run-card${row.running ? ' is-on' : ''}" data-ai-run="${id}">
+    <header class="ai-run-hd">
+      <div class="ai-run-who">
+        <span class="ai-badge ${qc ? 'is-qc' : 'is-sales'}"><i class="ph ${qc ? 'ph-seal-check' : 'ph-calendar-check'}"></i> ${mbAiEsc(kindLabel)}</span>
+        <div class="ai-card-title">${mbAiEsc(row.name || kindLabel)}</div>
+      </div>
+      <div class="ai-run-tools">
+        <span class="ai-run-cap" id="ai-run-cap-${id}">${mbAiEsc(row.running ? mbAiSay('ai.run.cap', '{open} / {max} hat').replace('{open}', '0').replace('{max}', String(max)) : mbAiSay('ai.run.idle', 'Duruyor.'))}</span>
+        ${mbAiSwitch(`ai-run-${id}`, row.running, mbAiSay('ai.run.work', 'Çalışsın'), `mbAiRunToggle('${id}')`)}
+      </div>
     </header>
+    <p class="ai-run-job">${mbAiEsc(job)}</p>
     <div class="ai-sec">
       <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.run.focus', 'Şimdi bu kampanyalarda'))}</div>
       <div class="ai-pills" id="ai-focus-${id}">${pills}</div>
       <div class="ai-hint">${mbAiEsc(mbAiSay('ai.run.focus_hint', 'Kartta izinli kampanyalardan seç. Hiçbiri işaretli değilse izinli olanların hepsinde çalışır.'))}</div>
-      ${parallel}
+      <div class="ai-hint">${mbAiEsc(mbAiSay('ai.run.parallel', 'Aynı anda {n} hat — kampanya hızı yok, havuz yok.').replace('{n}', String(max)))}</div>
       ${salesNote}
-      <div class="ai-run-live" id="ai-run-live-${id}">${mbAiEsc(live)}</div>
+    </div>
+    <div class="ai-sec ai-run-board">
+      <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.run.now', 'Şu an'))}</div>
+      <div class="ai-run-live" id="ai-run-live-${id}"></div>
+      <div class="ai-run-calls" id="ai-run-calls-${id}"></div>
     </div>
   </section>`;
 }
@@ -520,19 +617,11 @@ async function mbAiRunToggle(staffId) {
     return;
   }
   row.running = on;
-  const card = document.querySelector(`#ai-run-${staffId}`)?.closest('.ai-run-card');
+  const card = document.querySelector(`[data-ai-run="${staffId}"]`);
   if (card) card.classList.toggle('is-on', on);
-  const live = document.getElementById(`ai-run-live-${staffId}`);
-  const mode = mbAiRunMode(_aiDesk.settings);
-  if (live) {
-    live.textContent = on
-      ? (mode === 'server'
-        ? mbAiSay('ai.run.live.server', 'Çalışıyor. Sunucu seçili kampanyalarda arar.')
-        : mbAiSay('ai.run.live.page', 'Çalışıyor. Bu sayfa açık kaldıkça arar.'))
-      : mbAiSay('ai.run.idle', 'Duruyor.');
-  }
+  mbAiPaintRunLive(staffId);
   await mbAiPersistRun();
-  if (on && row.kind === 'qc' && mode === 'page') void mbAiRunOneQc(row);
+  if (on && row.kind === 'qc') void mbAiRunOneQc(row);
 }
 
 async function mbAiPersistRun() {
@@ -583,6 +672,7 @@ async function mbAiRunTick() {
   if (!mbAiFirmReady(_aiDesk.settings)) return;
   const list = (_aiDesk.staff || []).filter((row) => row.running && row.kind === 'qc');
   for (const row of list) await mbAiRunOneQc(row);
+  (_aiDesk.staff || []).forEach((row) => mbAiPaintRunLive(row.id));
 }
 
 async function mbAiRunOneQc(staff) {
@@ -592,42 +682,74 @@ async function mbAiRunOneQc(staff) {
   if (!pool.length) return;
   const want = (staff.call_statuses || []).filter(Boolean);
   const statuses = want.length ? want : ['qc_bekleniyor'];
-  const live = [..._aiRunBusy].filter((key) => key.startsWith(`${staff.id}:`)).length;
-  const room = Math.max(1, Number(staff.parallel) || 1) - live;
+  const open = mbAiRunLiveRows(staff.id).filter((row) => !row.doneAt).length;
+  const room = Math.max(1, Number(staff.parallel) || 1) - open;
   if (room <= 0) return;
   const campQ = pool.map(encodeURIComponent).join(',');
   const statusQ = statuses.map(encodeURIComponent).join(',');
   const rows = await sb(
-    `appointments?select=id,campaign_id,form_ek,durum,telefonnummer&firm_id=eq.${_aiFirmId}&campaign_id=in.(${campQ})&durum=in.(${statusQ})&order=termin_tarih.asc&limit=${Math.max(room * 3, 3)}`
+    `appointments?select=id,campaign_id,form_ek,durum,telefonnummer,nachname,termin_tarih&firm_id=eq.${_aiFirmId}&campaign_id=in.(${campQ})&durum=in.(${statusQ})&order=termin_tarih.asc&limit=${Math.max(room * 3, 3)}`
   ).catch(() => []) || [];
   let left = room;
   for (const appt of rows) {
     if (left <= 0) break;
     const key = `${staff.id}:${appt.id}`;
     if (_aiRunBusy.has(key)) continue;
+    if (( _aiRunLive[staff.id] || []).some((row) => row.apptId === appt.id && !row.doneAt)) continue;
     const ek = appt.form_ek && typeof appt.form_ek === 'object' ? appt.form_ek : {};
-    if (ek.callin_state === 'dialing') continue;
     const at = Date.parse(String(ek.callin_at || ''));
     if (ek.callin_state === 'dialing' && at && Date.now() - at < 120000) continue;
     _aiRunBusy.add(key);
     left -= 1;
+    const meta = {
+      key,
+      apptId: appt.id,
+      name: String(appt.nachname || '').trim(),
+      phone: String(appt.telefonnummer || '').trim(),
+      camp: mbAiCampName(appt.campaign_id),
+      phase: 'ringing',
+      secs: 0,
+      at: Date.now(),
+      doneAt: 0,
+    };
+    _aiRunLive[staff.id] = [...mbAiRunLiveRows(staff.id), meta];
+    mbAiPaintRunLive(staff.id);
     const res = await mbTelnyxAi('place', { appointment_id: appt.id, staff_id: staff.id, note: '' });
     if (!res?.ok) {
       _aiRunBusy.delete(key);
+      meta.phase = 'missed';
+      meta.doneAt = Date.now();
+      mbAiPaintRunLive(staff.id);
       continue;
     }
-    void mbAiWatchRun(appt.id, key);
+    void mbAiWatchRun(staff.id, meta);
   }
 }
 
-async function mbAiWatchRun(apptId, busyKey) {
+async function mbAiWatchRun(staffId, meta) {
   const started = Date.now();
   while (Date.now() - started < 12 * 60 * 1000) {
-    await new Promise((resolve) => setTimeout(resolve, 4000));
-    const res = await mbTelnyxAi('sync', { appointment_id: apptId });
-    if (res?.ok && res.done) break;
+    await new Promise((resolve) => setTimeout(resolve, 3500));
+    const res = await mbTelnyxAi('sync', { appointment_id: meta.apptId });
+    if (!res?.ok) continue;
+    if (res.phase) meta.phase = String(res.phase);
+    else if (!res.done) meta.phase = meta.phase === 'talking' ? 'talking' : 'ringing';
+    meta.secs = Number(res.secs) || meta.secs || 0;
+    if (res.phase === 'talking' || (meta.secs > 0 && !res.done)) meta.phase = 'talking';
+    mbAiPaintRunLive(staffId);
+    if (res.done) {
+      meta.phase = res.phase === 'missed' || !(res.secs > 0) ? 'missed' : 'talked';
+      meta.secs = Number(res.secs) || meta.secs || 0;
+      meta.doneAt = Date.now();
+      break;
+    }
   }
-  _aiRunBusy.delete(busyKey);
+  if (!meta.doneAt) {
+    meta.phase = meta.secs > 0 ? 'talked' : 'missed';
+    meta.doneAt = Date.now();
+  }
+  _aiRunBusy.delete(meta.key);
+  mbAiPaintRunLive(staffId);
 }
 
 function mbPaintAiStaff() {
@@ -1145,9 +1267,7 @@ function mbAiStaffCard(row) {
   const picked = new Set(row.results || []);
   const resultPills = choices.map((item) => mbAiPill('data-ai-result', row.id, item.key, item.label, picked.has(item.key), `mbAiMoveHint('${id}')`)).join('');
   const tokens = mbAiTokensFor(row).map(([token, label]) => `<button type="button" class="ai-token" title="${mbAiEsc(token)}" onclick="mbAiInsertToken('${id}','${mbAiEsc(token)}')"><b>${mbAiEsc(label)}</b><code>${mbAiEsc(token)}</code></button>`).join('');
-  const tail = qc
-    ? mbAiQcAuto(row, choices)
-    : `<div class="ai-sec"><div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.parallel', 'Aynı anda kaç kişi'))}</div><select class="form-input ai-narrow" id="ai-parallel-${id}">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}"${row.parallel === n ? ' selected' : ''}>${n}</option>`).join('')}</select></div>`;
+  const tail = `${mbAiParallelBlock(row)}${qc ? mbAiQcAuto(row, choices) : ''}`;
   const powers = qc ? `<div class="ai-sec">
       <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.powers', 'Yetki'))}</div>
       ${mbAiSwitch(`ai-move-${id}`, row.move_time !== false, mbAiSay('ai.staff.move', 'Randevu saatini değiştirebilir'), `mbAiMoveHint('${id}')`)}
