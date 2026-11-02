@@ -1157,7 +1157,7 @@ function opsShowSample(kind) {
     title.textContent = kind === 'wait' ? opsSay('ops.live.wait', 'Uzun süredir çağrı bekliyor') : opsSay('ops.live.long', 'Uzun görüşme');
     const name = document.createElement('div');
     name.className = 'ops-live-name';
-    name.textContent = 'Örnek Agent · 5:10';
+    name.textContent = (typeof t === 'function' ? t('agent.role.agent') : 'Temsilci') + ' · 5:10';
     card.append(title, name);
     host.appendChild(card);
     opsKeepSample(title.textContent, name.textContent, opsSoundEntry(kind).color, 'live');

@@ -526,7 +526,7 @@ const MB_I18N = {
     'dial.transfer_loading': 'Yükleniyor…',
     'dial.transfer_no_agents': 'Hazır temsilci bulunamadı.',
     'dial.transfer_ready_badge': 'Hazır',
-    'dial.transfer_toast': '{name} adlı agenta aktarılıyor…',
+    'dial.transfer_toast': '{name} adlı temsilciye aktarılıyor…',
     'dial.transfer_err': 'Aktarma hatası: ',
     'dial.route_from': 'Aktaran: {name}',
     'dial.contact_inbound': 'Gelen',

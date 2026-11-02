@@ -638,7 +638,7 @@ function mbAskDialerCallin() {
   pop.innerHTML = `<div class="ai-callin-card" role="dialog" aria-modal="true">
     <div style="font-weight:800;">${mbAiEsc(mbAiSay('dial.callin.ask', '{name}, {who} kişisini arasın mı?').replace('{name}', name).replace('{who}', who))}</div>
     <div style="font-size:12px;color:var(--text-3);line-height:1.45;">${mbAiEsc(mbAiSay('dial.callin.hint', 'İstersen kısa bir not yaz. Onaylayınca Callin bu kişiyi arar; senin hattın meşgul olmaz.'))}</div>
-    <label class="form-label" for="ai-callin-staff" style="margin:0;">${mbAiEsc(mbAiSay('dial.callin.staff', 'Hangi agent arasın'))}</label>
+    <label class="form-label" for="ai-callin-staff" style="margin:0;">${mbAiEsc(mbAiSay('dial.callin.staff', 'Hangi temsilci arasın'))}</label>
     <select id="ai-callin-staff" class="form-input" ${all.length < 2 ? 'disabled' : ''}>${staffOpts}</select>
     <textarea id="ai-callin-note" class="form-input" rows="3" maxlength="800" placeholder="${mbAiEsc(mbAiSay('dial.callin.note_ph', 'Opsiyonel not…'))}"></textarea>
     <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">

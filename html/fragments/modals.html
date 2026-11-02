@@ -47,7 +47,7 @@
 <div id="nc-customer-note" style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Bir müşteri seçin. Tümü derseniz randevu müşterisiz açılır ve müşteriyi Kalite kontrol yazar." data-de="Einen Kunden wählen. Alle: der Termin bleibt ohne Kunde, QC trägt ihn ein.">Bir müşteri seçin. Tümü derseniz randevu müşterisiz açılır ve müşteriyi Kalite kontrol yazar.</div>
 </div>
 <div class="form-row">
-<label class="form-label" data-tr="Personeller" data-de="Personal">Personeller</label>
+<label class="form-label" data-tr="Temsilciler" data-de="Mitarbeiter">Temsilciler</label>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;" data-tr="İşaretli personel dialerde bu kampanyanın kutusunu görür. Varsayılan herkes işaretlidir." data-de="Markiertes Personal sieht diese Kampagne im Dialer. Standard: alle markiert.">İşaretli personel dialerde bu kampanyanın kutusunu görür. Varsayılan herkes işaretlidir.</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
 <button type="button" class="btn btn-ghost btn-sm" onclick="ncPersonnelAll(true)" data-tr="Tümünü ekle" data-de="Alle hinzufügen">Tümünü ekle</button>
@@ -190,11 +190,11 @@ ondrop="handleDrop(event)">
 <div class="modal-overlay" id="m-assign">
 <div class="modal" style="max-width:360px;">
 <div class="modal-hdr">
-<div class="modal-title" data-tr="Agent Ekle" data-de="Agent hinzufügen">Agent Ekle</div>
+<div class="modal-title" data-tr="Temsilci ekle" data-de="Mitarbeiter hinzufügen">Temsilci ekle</div>
 <button class="modal-close" onclick="closeModal('m-assign')">✕</button>
 </div>
 <div class="form-row">
-<label class="form-label" data-tr="Agent Seç" data-de="Agent auswählen">Agent Seç</label>
+<label class="form-label" data-tr="Temsilci seç" data-de="Mitarbeiter wählen">Temsilci seç</label>
 <select class="form-input" id="assign-sel">
 <option value="">— Seç —</option>
 </select>
@@ -247,7 +247,7 @@ ondrop="handleDrop(event)">
 <div class="form-row">
 <label class="form-label" data-tr="Personel (sütun yoksa)" data-de="Personal (ohne Spalte)">Personel (sütun yoksa)</label>
 <select class="form-input" id="ia-agent">
-<option value="">Agent seçin...</option>
+<option value="" data-tr="Temsilci seçin..." data-de="Mitarbeiter wählen...">Temsilci seçin...</option>
 </select>
 </div>
 <div class="form-row">
@@ -395,7 +395,7 @@ ondrop="handleDrop(event)">
 <input class="form-input" id="user-pass" type="password" placeholder="••••••••"></div>
 <div class="form-row"><label class="form-label">Rol *</label>
 <select class="form-input" id="user-role">
-<option value="agent">Agent</option>
+<option value="agent" data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</option>
 <option value="qc">QC</option>
 <option value="field_agent">Saha Elemanı</option>
 <option value="firm_admin">Firma Admin</option>
@@ -511,7 +511,7 @@ Duyuru metni burada görünecek
 <input class="form-input" id="wv-str" placeholder="Musterstraße 1">
 </div>
 <div class="form-row" id="wv-agent-row">
-<label class="form-label" data-tr="Agent" data-de="Agent">Agent</label>
+<label class="form-label" data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</label>
 <select class="form-input" id="wv-agent-sel"></select>
 </div>
 <div class="form-row" style="grid-column:1/-1;">
@@ -600,12 +600,12 @@ Duyuru metni burada görünecek
 <div class="modal-overlay" id="m-assign">
 <div class="modal" style="max-width:380px;">
 <div class="modal-hdr">
-<div class="modal-title" data-tr="Agent ekle" data-de="Agent hinzufügen">Agent ekle</div>
+<div class="modal-title" data-tr="Temsilci ekle" data-de="Mitarbeiter hinzufügen">Temsilci ekle</div>
 <button class="modal-close" onclick="closeModal('m-assign')">✕</button>
 </div>
 <div style="padding:16px 20px;">
 <div class="form-row">
-<label class="form-label">Agent Seç</label>
+<label class="form-label" data-tr="Temsilci seç" data-de="Mitarbeiter wählen">Temsilci seç</label>
 <select class="form-input" id="assign-sel">
 <option value="">Yükleniyor...</option>
 </select>
@@ -650,7 +650,7 @@ Duyuru metni burada görünecek
 <button class="modal-close" onclick="closeModal('m-transfer')">✕</button>
 </div>
 <div style="padding:14px 18px 8px;">
-<div style="font-size:11px;color:var(--text-3);margin-bottom:10px;">Hazır agentu seçin — çağrı ona aktarılacak:</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:10px;">Hazır temsilciyi seçin — çağrı ona aktarılacak:</div>
 <div id="transfer-agent-list" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;"></div>
 </div>
 <div class="modal-footer">
