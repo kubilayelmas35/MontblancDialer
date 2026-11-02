@@ -467,6 +467,24 @@ function callinTab(name) {
     btn.classList.toggle('is-on', on);
     btn.setAttribute('aria-selected', on ? 'true' : 'false');
   });
+  const desc = document.getElementById('callin-tab-desc');
+  if (desc) {
+    const key = `callin.tab.${tab}.desc`;
+    const fallback = {
+      auto: 'Boş güne kampanya seçer, sıra azalınca kişi yükler. Randevu alta inince yer açar.',
+      staff: 'Randevu ve kalite YZ’lerini burada kurarsın: ses, dil, talimat ve kampanya izni.',
+      run: 'Kurulu personeli çalıştırır. Bugün hangi kampanyada arayacağını ve açık hatları buradan yönetirsin.',
+    }[tab] || '';
+    const text = mbAiSay(key, fallback);
+    desc.textContent = text;
+    const deMap = {
+      auto: 'Wählt die Kampagne am freien Tag, füllt die Reihe nach und öffnet einen Platz, wenn ein Termin nach unten geht.',
+      staff: 'Hier legst du Termin- und Qualitäts-KI an: Stimme, Sprache, Anweisung und Kampagnen-Erlaubnis.',
+      run: 'Startet das eingerichtete Personal. Hier steuerst du, in welcher Kampagne es heute anruft und welche Leitungen offen sind.',
+    };
+    desc.setAttribute('data-tr', fallback);
+    desc.setAttribute('data-de', deMap[tab] || '');
+  }
   const auto = document.getElementById('callin-pane-auto');
   const pane = document.getElementById('callin-pane-staff');
   const run = document.getElementById('callin-pane-run');
@@ -1144,7 +1162,7 @@ function mbPaintAiRun() {
       </div>`
     : `<div class="ai-run-mode ${mode === 'server' ? 'is-server' : 'is-page'}">${mbAiEsc(mode === 'server' ? mbAiSay('line.ai.run.server', 'Sunucudan') : mbAiSay('line.ai.run.page', 'Sayfa açıkken'))}</div>`;
   const cards = (_aiDesk.staff || []).map((row) => mbAiRunCard(row, mode)).join('');
-  const empty = _aiDesk.staff.length ? '' : `<p class="ai-note">${mbAiEsc(mbAiSay('ai.run.empty', 'Önce YZ Personel sekmesinden personel ekleyin.'))}</p>`;
+  const empty = _aiDesk.staff.length ? '' : `<p class="ai-note">${mbAiEsc(mbAiSay('ai.run.empty', 'Önce Personel kur sekmesinden personel ekleyin.'))}</p>`;
   const staffOpts = (_aiDesk.staff || []).map((row) => `<option value="${mbAiEsc(row.id)}"${String(_aiRunHist.staff) === String(row.id) ? ' selected' : ''}>${mbAiEsc(row.name || row.id)}</option>`).join('');
   root.innerHTML = `<div class="ai-run-shell">
   <div class="ai-run">

@@ -2187,9 +2187,17 @@ visibility: visible;
   cursor: pointer;
 }
 .tour-tab.is-on { background: var(--bg-2); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
-.callin-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; padding: 4px; border-radius: 14px; background: var(--bg-3); width: max-content; max-width: 100%; }
+.callin-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 6px; padding: 4px; border-radius: 14px; background: var(--bg-3); width: max-content; max-width: 100%; }
 .callin-tab { border: 0; background: transparent; color: var(--text-2); font-size: 13px; font-weight: 700; line-height: 1; padding: 8px 14px; border-radius: 10px; cursor: pointer; }
 .callin-tab.is-on { background: var(--bg-2); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+.callin-tab-desc {
+  margin: 0 0 14px;
+  max-width: 52rem;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-3);
+  font-weight: 600;
+}
 .ai-run-shell { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 .ai-run { display: flex; flex-direction: column; gap: 14px; max-width: none; min-width: 0; }
 .ai-run-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px; border: 1px solid var(--border); border-radius: 18px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent-soft) 70%, var(--bg-2)), var(--bg-2)); }
@@ -2331,6 +2339,19 @@ visibility: visible;
 .mb-op i { font-size: 14px; opacity: .75; }
 .mb-op.is-ai { color: var(--accent-text, #2563eb); font-weight: 650; }
 .mb-op.is-ai i { opacity: 1; }
+.sup-card .mb-op.is-ai,
+.live-line .mb-op.is-ai,
+.live-card .mb-op.is-ai,
+.sup-live-table .mb-op.is-ai {
+  color: #fff;
+}
+.sup-card .mb-op.is-ai i,
+.live-line .mb-op.is-ai i,
+.live-card .mb-op.is-ai i,
+.sup-live-table .mb-op.is-ai i {
+  color: #fff;
+  opacity: 1;
+}
 .ai-staff-grid { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: 16px; max-width: none; align-items: start; }
 .ai-staff-span { grid-column: 1 / -1; }
 .ai-staff-side { position: sticky; top: 12px; }

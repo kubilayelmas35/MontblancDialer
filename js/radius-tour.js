@@ -421,7 +421,7 @@ function ariaAiPhaseWord(row) {
 function ariaAiBlockHtml(snap) {
   const staff = snap?.staff || [];
   if (!staff.length) {
-    return `<div class="aria-ai-box"><div class="aria-ai-hd">${tourEsc(tourSay('aria.ai.title', 'YZ personel'))}</div><p class="aria-pop-job">${tourEsc(tourSay('aria.ai.empty', 'Henüz YZ personel yok. Callin → YZ Personel’den ekle.'))}</p></div>`;
+    return `<div class="aria-ai-box"><div class="aria-ai-hd">${tourEsc(tourSay('aria.ai.title', 'YZ personel'))}</div><p class="aria-pop-job">${tourEsc(tourSay('aria.ai.empty', 'Henüz YZ personel yok. Callin → Personel kur’dan ekle.'))}</p></div>`;
   }
   const sum = tourSay('aria.ai.sum', '{run} çalışıyor · {talk} konuşuyor · {ring} arıyor')
     .replace('{run}', String(snap.running || 0))
@@ -448,7 +448,7 @@ function ariaAiBlockHtml(snap) {
   return `<div class="aria-ai-box${liveCls}">
     <div class="aria-ai-hd"><span><span class="aria-ai-dot" aria-hidden="true"></span>${tourEsc(tourSay('aria.ai.title', 'YZ personel'))}</span><small>${tourEsc(sum)}</small></div>
     <div class="aria-ai-list">${rows}</div>
-    <button type="button" class="aria-pop-go is-ghost" onclick="ariaOpenAiRun()">${tourEsc(tourSay('aria.ai.open_run', 'Başlat sayfası'))}</button>
+    <button type="button" class="aria-pop-go is-ghost" onclick="ariaOpenAiRun()">${tourEsc(tourSay('aria.ai.open_run', 'YZ arama'))}</button>
   </div>`;
 }
 

@@ -255,7 +255,7 @@ function mbLineFirmBody(firm) {
       <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.ai.rate_admin', 'Bunu yalnız süper admin yazar. Firma admini personel ekranından değiştiremez.'))}</div>
       <input class="form-input" id="line-ai-rate" inputmode="decimal" placeholder="0.08" value="${Number(settings.ai?.rate) > 0 ? mbLineEsc(String(settings.ai.rate)) : ''}">
       <div class="form-label" style="margin-top:12px;">${mbLineEsc(mbLineT('line.ai.run', 'YZ otomatik arama'))}</div>
-      <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.ai.run_hint', 'Bu firmaya özel. İkisini de açabilirsin; ikisi de açıksa firma Başlat’tan hangisini kullanacağına karar verir.'))}</div>
+      <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.ai.run_hint', 'Bu firmaya özel. İkisini de açabilirsin; ikisi de açıksa firma YZ arama’dan hangisini kullanacağına karar verir.'))}</div>
       ${(() => {
         const allow = typeof mbAiRunAllowList === 'function'
           ? mbAiRunAllowList(settings.ai || {})
@@ -263,7 +263,7 @@ function mbLineFirmBody(firm) {
         const pageOn = allow.includes('page');
         const serverOn = allow.includes('server');
         return `<label class="tour-check" style="margin-top:6px;"><span class="tour-copy"><span class="tour-name">${mbLineEsc(mbLineT('line.ai.run.page', 'Sayfa açıkken'))}</span>
-      <small class="tour-help">${mbLineEsc(mbLineT('line.ai.run.page_hint', 'Callin Başlat sekmesi açıkken arar. Bilgisayar kapanınca yeni arama çıkmaz.'))}</small></span>
+      <small class="tour-help">${mbLineEsc(mbLineT('line.ai.run.page_hint', 'Callin YZ arama sekmesi açıkken arar. Bilgisayar kapanınca yeni arama çıkmaz.'))}</small></span>
       <input type="checkbox" id="line-ai-run-page"${pageOn ? ' checked' : ''}></label>
       <label class="tour-check"><span class="tour-copy"><span class="tour-name">${mbLineEsc(mbLineT('line.ai.run.server', 'Sunucudan'))}</span>
       <small class="tour-help">${mbLineEsc(mbLineT('line.ai.run.server_hint', 'Çalışsın kaydı sunucuda kalır. Sayfa açıkken kalite araması çalışır. Kapalıyken devam eden tarama sonraki adımda açılır.'))}</small></span>
