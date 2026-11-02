@@ -64,12 +64,14 @@ function _supCampaignName(id) {
 function _supFiltered() {
   const q = _supQuery;
   const on = typeof liveFloorFilter === 'function' ? liveFloorFilter() : null;
+  const aiOnly = typeof liveFloorAiOnly === 'function' ? liveFloorAiOnly() : !!window._liveFloorAiOnly;
   const rows = [..._supSessions].sort((a, b) => {
     if (typeof compareLiveAgents === 'function') return compareLiveAgents(a, b);
     const order = { on_call: 0, wrapping: 1, ready: 2, break: 3, offline: 4 };
     return (order[a.status] ?? 9) - (order[b.status] ?? 9);
   });
   return rows.filter((s) => {
+    if (aiOnly && !(typeof _supIsAiAgent === 'function' && _supIsAiAgent(s.agent_id))) return false;
     if (on && on[s.status] === false) return false;
     if (!q) return true;
     const camp = _supCampaignName(s.campaign_id);
@@ -337,6 +339,7 @@ async function loadSupervisorPanel() {
 
 <div class="sup-pills">
   <button type="button" class="sup-pill" onclick="toggleLiveFloorStatus('*')"><span class="sup-pill-num" id="sup-pill-total">—</span><span class="sup-pill-lbl">${de ? 'Alle' : 'Tümü'}</span></button>
+  <button type="button" class="sup-pill${typeof liveFloorAiOnly === 'function' && liveFloorAiOnly() ? ' is-on' : ''}" data-live-ai-only="1" onclick="toggleLiveFloorAiOnly()"><span class="sup-pill-num">${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink') : 'YZ'}</span><span class="sup-pill-lbl">${de ? 'Nur KI' : 'Yalnız YZ'}</span></button>
   <button type="button" class="sup-pill sup-pill--oncall" id="sup-filter-on_call" onclick="toggleLiveFloorStatus('on_call')"><span class="sup-pill-num" id="sup-pill-oncall">—</span><span class="sup-pill-lbl">${de ? 'Im Gespräch' : 'Çağrıda'}</span></button>
   <button type="button" class="sup-pill sup-pill--ready" id="sup-filter-ready" onclick="toggleLiveFloorStatus('ready')"><span class="sup-pill-num" id="sup-pill-ready">—</span><span class="sup-pill-lbl">${de ? 'Bereit' : 'Hazır'}</span></button>
   <button type="button" class="sup-pill sup-pill--wrap" id="sup-filter-wrap" onclick="toggleLiveFloorStatus('wrapping')"><span class="sup-pill-num" id="sup-pill-wrap">—</span><span class="sup-pill-lbl">${de ? 'Nacharbeit' : 'Sonuç'}</span></button>

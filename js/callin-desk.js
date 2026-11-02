@@ -1,11 +1,13 @@
-// Callin masaüstü: özet KPI, alarm, YZ/insan kıyas, hata panosu, canlı köprü.
+// Callin masaüstü: KPI, maliyet, sonuç chip’leri, sıra sağlığı, brif, hata/yeniden dene.
 
 const _callinDesk = {
   firmId: '',
   stats: null,
   compare: null,
+  cost: null,
   loading: false,
   timer: 0,
+  retryTimer: 0,
 };
 
 function callinDeskSay(key, fallback) {
@@ -26,6 +28,21 @@ function callinDeskFirmId() {
 function callinDeskErrors() {
   window._aiDeskErrors = Array.isArray(window._aiDeskErrors) ? window._aiDeskErrors : [];
   return window._aiDeskErrors;
+}
+
+function callinDeskRetries() {
+  window._aiDeskRetries = Array.isArray(window._aiDeskRetries) ? window._aiDeskRetries : [];
+  return window._aiDeskRetries;
+}
+
+function callinDeskOutChipsOn() {
+  try { return localStorage.getItem('mb_callin_out_chips') === '1'; } catch (e) { return false; }
+}
+
+function callinDeskToggleOutChips() {
+  const on = !callinDeskOutChipsOn();
+  try { localStorage.setItem('mb_callin_out_chips', on ? '1' : '0'); } catch (e) {}
+  callinDeskPaint();
 }
 
 function callinDeskPushError(err) {
@@ -56,41 +73,78 @@ function callinDeskDayRange() {
   return { gte: start.toISOString(), lt: end.toISOString() };
 }
 
+function callinDeskTally(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  let dialed = list.length;
+  let appt = 0;
+  let miss = 0;
+  let neg = 0;
+  let talk = 0;
+  let cb = 0;
+  let vm = 0;
+  let secs = 0;
+  let costUsd = 0;
+  list.forEach((row) => {
+    const out = String(row.outcome || '').toLowerCase();
+    const sec = Number(row.duration_sec) || 0;
+    if (sec > 0) talk += 1;
+    secs += sec;
+    if (row.cost_usd != null && row.cost_usd !== '') costUsd += Number(row.cost_usd) || 0;
+    if (['appointment', 'basarili', 'qc_bekleniyor'].includes(out)) appt += 1;
+    else if (out === 'voicemail') vm += 1;
+    else if (['callback', 'geri_arama', 'wiedervorlage'].includes(out)) cb += 1;
+    else if (['no_answer', 'ulasilamadi'].includes(out)) miss += 1;
+    else if (['negative', 'basarisiz', 'dnc'].includes(out)) neg += 1;
+  });
+  return { dialed, appt, miss, neg, talk, cb, vm, secs, costUsd };
+}
+
+function callinDeskRate(settings) {
+  const ai = settings?.ai || (typeof mbFirmAi === 'function' ? mbFirmAi(settings) : {}) || {};
+  const rate = Number(ai.rate);
+  return rate > 0 ? rate : 0;
+}
+
 async function callinDeskLoadStats() {
   const firmId = callinDeskFirmId();
   if (!firmId || typeof sb !== 'function') {
     _callinDesk.stats = null;
     _callinDesk.compare = null;
+    _callinDesk.cost = null;
     return;
   }
   _callinDesk.firmId = firmId;
   _callinDesk.loading = true;
   const { gte, lt } = callinDeskDayRange();
-  const aiQ = `call_logs?firm_id=eq.${firmId}&started_at=gte.${gte}&started_at=lt.${lt}&or=(work_type.eq.ai_sales,work_type.eq.ai_qc,ai_staff_id.not.is.null)&select=id,outcome,duration_sec,work_type,ai_staff_id&limit=800`;
-  const huQ = `call_logs?firm_id=eq.${firmId}&started_at=gte.${gte}&started_at=lt.${lt}&ai_staff_id=is.null&work_type=not.in.(ai_sales,ai_qc)&select=id,outcome,duration_sec&limit=800`;
-  const [aiRows, huRows] = await Promise.all([
+  const aiQ = `call_logs?firm_id=eq.${firmId}&started_at=gte.${gte}&started_at=lt.${lt}&or=(work_type.eq.ai_sales,work_type.eq.ai_qc,ai_staff_id.not.is.null)&select=id,outcome,duration_sec,cost_usd,work_type,ai_staff_id&limit=800`;
+  const huQ = `call_logs?firm_id=eq.${firmId}&started_at=gte.${gte}&started_at=lt.${lt}&ai_staff_id=is.null&work_type=not.in.(ai_sales,ai_qc)&select=id,outcome,duration_sec,cost_usd&limit=800`;
+  const [aiRows, huRows, firmRows] = await Promise.all([
     sb(aiQ).catch(() => []),
     sb(huQ).catch(() => []),
+    sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []),
   ]);
-  const tally = (rows) => {
-    const list = Array.isArray(rows) ? rows : [];
-    let dialed = list.length;
-    let appt = 0;
-    let miss = 0;
-    let neg = 0;
-    let talk = 0;
-    list.forEach((row) => {
-      const out = String(row.outcome || '').toLowerCase();
-      const sec = Number(row.duration_sec) || 0;
-      if (sec > 0) talk += 1;
-      if (['appointment', 'basarili', 'qc_bekleniyor'].includes(out)) appt += 1;
-      else if (['no_answer', 'ulasilamadi', 'voicemail'].includes(out)) miss += 1;
-      else if (['negative', 'basarisiz', 'dnc'].includes(out)) neg += 1;
-    });
-    return { dialed, appt, miss, neg, talk };
+  const settings = firmRows?.[0]?.settings || window._aiFirmSettings?.[firmId] || {};
+  window._aiFirmSettings = window._aiFirmSettings || {};
+  window._aiFirmSettings[firmId] = settings;
+  const ai = callinDeskTally(aiRows);
+  const human = callinDeskTally(huRows);
+  const rate = callinDeskRate(settings);
+  const mins = ai.secs / 60;
+  const estimate = rate > 0 ? mins * rate : 0;
+  _callinDesk.stats = ai;
+  _callinDesk.compare = { ai, human };
+  _callinDesk.cost = {
+    firmId,
+    rate,
+    secs: ai.secs,
+    mins,
+    estimate,
+    billed: ai.costUsd,
+    n: ai.dialed,
+    currency: (typeof window._tbBalCur === 'string' && window._tbBalCur) || 'EUR',
+    fresh: true,
   };
-  _callinDesk.stats = tally(aiRows);
-  _callinDesk.compare = { ai: tally(aiRows), human: tally(huRows) };
+  window._callinAiCostToday = _callinDesk.cost;
   _callinDesk.loading = false;
 }
 
@@ -105,6 +159,11 @@ function callinDeskLiveCounts() {
     }
   });
   return { staff: staff.length, running, open };
+}
+
+function callinDeskMoney(n, cur) {
+  if (typeof formatMoney === 'function') return formatMoney(n, cur || 'EUR');
+  return Number(n || 0).toFixed(2);
 }
 
 function callinDeskAlerts() {
@@ -190,31 +249,101 @@ function callinDeskBar(ai, human, key) {
   </div>`;
 }
 
+function callinDeskOutChipsHtml(stats) {
+  if (!callinDeskOutChipsOn()) return '';
+  const chips = [
+    { key: 'appt', n: stats.appt || 0, cls: 'is-ok' },
+    { key: 'neg', n: stats.neg || 0, cls: 'is-neg' },
+    { key: 'miss', n: stats.miss || 0, cls: 'is-miss' },
+    { key: 'cb', n: stats.cb || 0, cls: 'is-cb' },
+    { key: 'vm', n: stats.vm || 0, cls: 'is-vm' },
+  ];
+  return `<div class="callin-out-chips">${chips.map((chip) => `<span class="callin-out-chip ${chip.cls}"><b>${chip.n}</b>${callinDeskEsc(callinDeskSay(`callin.desk.out.${chip.key}`, chip.key))}</span>`).join('')}</div>`;
+}
+
+function callinDeskBriefText() {
+  const live = callinDeskLiveCounts();
+  const stats = _callinDesk.stats || {};
+  const errs = callinDeskErrors().filter((row) => Date.now() - row.at < 30 * 60 * 1000);
+  const cost = _callinDesk.cost;
+  const a = callinDeskSay('callin.desk.brief.a', '{run} YZ çalışıyor, bugün {appt} randevu · {dial} arama.')
+    .replace('{run}', String(live.running))
+    .replace('{appt}', String(stats.appt || 0))
+    .replace('{dial}', String(stats.dialed || 0));
+  let b = errs.length
+    ? callinDeskSay('callin.desk.brief.b.err', '{n} hata son 30 dk’da ({why}).')
+      .replace('{n}', String(errs.length))
+      .replace('{why}', errs[0].code || 'fail')
+    : callinDeskSay('callin.desk.brief.b.ok', 'Son 30 dk’da hata yok.');
+  if (cost && (cost.estimate > 0 || cost.billed > 0)) {
+    b += ' ' + callinDeskSay('callin.desk.brief.cost', 'YZ tahmini {m}.')
+      .replace('{m}', callinDeskMoney(cost.estimate || cost.billed, cost.currency));
+  }
+  return { a, b };
+}
+
+function callinDeskBriefHtml() {
+  const firmId = callinDeskFirmId();
+  const day = new Date().toISOString().slice(0, 10);
+  let skip = false;
+  try { skip = sessionStorage.getItem(`mb_callin_brief_${firmId}_${day}`) === '1'; } catch (e) {}
+  if (skip) return '';
+  const { a, b } = callinDeskBriefText();
+  return `<div class="callin-brief" id="callin-brief">
+    <div class="callin-brief-body">
+      <div class="callin-brief-kicker">${callinDeskEsc(callinDeskSay('callin.desk.brief.title', 'Bugün'))}</div>
+      <p>${callinDeskEsc(a)}</p>
+      <p>${callinDeskEsc(b)}</p>
+    </div>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskBriefDismiss()">${callinDeskEsc(callinDeskSay('callin.desk.brief.dismiss', 'Tamam'))}</button>
+  </div>`;
+}
+
+function callinDeskBriefDismiss() {
+  const firmId = callinDeskFirmId();
+  const day = new Date().toISOString().slice(0, 10);
+  try { sessionStorage.setItem(`mb_callin_brief_${firmId}_${day}`, '1'); } catch (e) {}
+  document.getElementById('callin-brief')?.remove();
+}
+
 function callinDeskPaint() {
   const root = document.getElementById('callin-desk');
   if (!root) return;
   const live = callinDeskLiveCounts();
-  const stats = _callinDesk.stats || { dialed: 0, appt: 0, miss: 0, neg: 0, talk: 0 };
+  const stats = _callinDesk.stats || { dialed: 0, appt: 0, miss: 0, neg: 0, talk: 0, cb: 0, vm: 0 };
   const cmp = _callinDesk.compare || { ai: stats, human: { dialed: 0, appt: 0, miss: 0, neg: 0, talk: 0 } };
+  const cost = _callinDesk.cost;
   const alerts = callinDeskAlerts();
   const errs = callinDeskErrors().slice(0, 8);
+  const retries = callinDeskRetries().filter((row) => row.at > Date.now()).slice(0, 6);
   const mark = typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink') : '';
+  const chipsOn = callinDeskOutChipsOn();
+  const costLabel = cost
+    ? callinDeskMoney(cost.estimate || cost.billed || 0, cost.currency)
+    : '—';
+  const costSub = cost && cost.mins > 0
+    ? `${cost.mins.toFixed(1)} ${callinDeskSay('callin.desk.kpi.min', 'dk')}`
+    : '';
   root.hidden = false;
   root.innerHTML = `
+  ${callinDeskBriefHtml()}
   <div class="callin-desk-top">
     <div class="callin-kpi">
       <div class="callin-kpi-card is-run"><span class="callin-kpi-lab">${callinDeskEsc(callinDeskSay('callin.desk.kpi.run', 'Çalışan YZ'))}</span><b>${live.running}<small>/${live.staff}</small></b></div>
       <div class="callin-kpi-card is-line"><span class="callin-kpi-lab">${callinDeskEsc(callinDeskSay('callin.desk.kpi.open', 'Açık hat'))}</span><b>${live.open}</b></div>
       <div class="callin-kpi-card"><span class="callin-kpi-lab">${callinDeskEsc(callinDeskSay('callin.desk.kpi.dial', 'Bugün aranan'))}</span><b>${stats.dialed}</b></div>
       <div class="callin-kpi-card is-ok"><span class="callin-kpi-lab">${callinDeskEsc(callinDeskSay('callin.desk.kpi.appt', 'Randevu'))}</span><b>${stats.appt}</b></div>
-      <div class="callin-kpi-card is-miss"><span class="callin-kpi-lab">${callinDeskEsc(callinDeskSay('callin.desk.kpi.miss', 'Cevapsız'))}</span><b>${stats.miss}</b></div>
+      <div class="callin-kpi-card is-cost" title="${callinDeskEsc(callinDeskSay('callin.desk.kpi.cost_tip', 'Dakika × YZ fiyatı (tahmini)'))}"><span class="callin-kpi-lab">${callinDeskEsc(callinDeskSay('callin.desk.kpi.cost', 'YZ maliyet'))}</span><b>${callinDeskEsc(costLabel)}${costSub ? `<small>${callinDeskEsc(costSub)}</small>` : ''}</b></div>
     </div>
     <div class="callin-desk-actions">
       <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskGoLive()">${mark} ${callinDeskEsc(callinDeskSay('callin.desk.live', 'Canlıya git'))}</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskToggleOutChips()">${callinDeskEsc(chipsOn ? callinDeskSay('callin.desk.out.hide', 'Sonuçları gizle') : callinDeskSay('callin.desk.out.show', 'Sonuç dağılımı'))}</button>
+      ${live.running ? `<button type="button" class="btn btn-ghost btn-sm is-danger" onclick="callinDeskStopAll()">${callinDeskEsc(callinDeskSay('callin.desk.stop_all', 'Hepsini durdur'))}</button>` : ''}
       <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskRefresh()">${callinDeskEsc(callinDeskSay('callin.desk.refresh', 'Yenile'))}</button>
       <button type="button" class="btn btn-primary btn-sm" onclick="callinTab('run'); callinDeskAskNow()">${callinDeskEsc(callinDeskSay('callin.desk.now', 'Şimdi bir kişi ara'))}</button>
     </div>
   </div>
+  ${callinDeskOutChipsHtml(stats)}
   ${alerts.length ? `<div class="callin-alerts">${alerts.map((row) => `<button type="button" class="callin-alert is-${row.tone}" onclick="callinTab('${row.action}')">${callinDeskEsc(row.text)}</button>`).join('')}</div>` : ''}
   <div class="callin-desk-grid">
     <section class="callin-panel">
@@ -244,10 +373,70 @@ function callinDeskPaint() {
         })[row.code] || row.code;
         return `<div class="callin-err-row">
           <div class="callin-err-main"><b>${callinDeskEsc(row.staffName || 'YZ')}</b> · ${callinDeskEsc(row.who || '—')}<div class="callin-err-why">${callinDeskEsc(label)}${row.detail ? ` · ${callinDeskEsc(row.detail)}` : ''}</div></div>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskRetry('${callinDeskEsc(row.id)}')">${callinDeskEsc(callinDeskSay('callin.desk.err.retry', 'Tekrar dene'))}</button>
+          <div class="callin-err-act">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskRetry('${callinDeskEsc(row.id)}')">${callinDeskEsc(callinDeskSay('callin.desk.err.retry', 'Tekrar dene'))}</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskRetryLater('${callinDeskEsc(row.id)}',30)">${callinDeskEsc(callinDeskSay('callin.desk.err.later', '30 dk sonra'))}</button>
+          </div>
         </div>`;
       }).join('')}</div>` : `<p class="callin-panel-empty">${callinDeskEsc(callinDeskSay('callin.desk.err.empty', 'Son 30 dk’da hata yok.'))}</p>`}
+      ${retries.length ? `<div class="callin-retry-list">${retries.map((row) => {
+        const left = Math.max(1, Math.round((row.at - Date.now()) / 60000));
+        return `<div class="callin-retry-row">${callinDeskEsc(callinDeskSay('callin.desk.err.scheduled', '{who} · {n} dk sonra').replace('{who}', row.who || '—').replace('{n}', String(left)))}
+          <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskCancelRetry('${callinDeskEsc(row.id)}')">${callinDeskEsc(callinDeskSay('callin.desk.err.cancel', 'İptal'))}</button></div>`;
+      }).join('')}</div>` : ''}
     </section>
+  </div>`;
+}
+
+function callinQueueHealthPaint(plan) {
+  const box = document.getElementById('callin-queue-health');
+  if (!box) return;
+  const pref = typeof tourPref === 'function' ? tourPref() : {};
+  const esik = Math.max(1, Number(pref.veriEsik) || 500);
+  const pick = plan?.pick || null;
+  const rows = Array.isArray(plan?.rows) ? plan.rows : (pick ? [pick] : []);
+  const pending = rows.reduce((sum, row) => sum + (Number(row.pending) || 0), 0);
+  const focusPending = Number(pick?.pending) || pending;
+  const focusName = pick?.name || callinDeskSay('callin.queue.all', 'Tüm kampanyalar');
+  const gunluk = (typeof _ariaGunluk !== 'undefined' && _ariaGunluk) || null;
+  const today = typeof tourClock === 'function' ? tourClock().ymd : new Date().toISOString().slice(0, 10);
+  const lines = gunluk && gunluk.day === today && Array.isArray(gunluk.lines) ? gunluk.lines : [];
+  const filled = lines.reduce((sum, line) => sum + (Number(line.added) || 0) + (Number(line.moved) || 0), 0);
+  const lastFill = [...lines].reverse().find((line) => (Number(line.added) || 0) + (Number(line.moved) || 0) > 0);
+  let underText = '';
+  if (focusPending < esik) {
+    underText = callinDeskSay('callin.queue.under', 'Eşiğin altında · {n} kişi lazım')
+      .replace('{n}', String(esik - focusPending));
+  } else {
+    const surplus = focusPending - esik;
+    const dialed = Number(_callinDesk.stats?.dialed) || 0;
+    const hours = Math.max(0.25, (Date.now() - new Date().setHours(0, 0, 0, 0)) / 3600000);
+    const perHour = dialed / hours;
+    if (surplus > 0 && perHour > 0.2) {
+      const mins = Math.round((surplus / perHour) * 60);
+      underText = callinDeskSay('callin.queue.until', 'Eşiğe ~{n} dk (tahmini)').replace('{n}', String(Math.max(1, mins)));
+    } else {
+      underText = callinDeskSay('callin.queue.ok', 'Eşik üstü · {n} fazla').replace('{n}', String(surplus));
+    }
+  }
+  const lastTxt = lastFill?.at
+    ? callinDeskSay('callin.queue.last', 'Son doldurma {t}').replace('{t}', lastFill.at)
+    : callinDeskSay('callin.queue.nolast', 'Bugün doldurma yok');
+  const pct = Math.max(0, Math.min(100, Math.round((focusPending / esik) * 100)));
+  const tone = focusPending < esik ? 'is-bad' : focusPending < esik * 1.2 ? 'is-mid' : 'is-ok';
+  box.hidden = false;
+  box.innerHTML = `<div class="callin-qh ${tone}">
+    <div class="callin-qh-main">
+      <div class="callin-qh-title">${callinDeskEsc(callinDeskSay('callin.queue.title', 'Sıra sağlığı'))}</div>
+      <div class="callin-qh-bits">
+        <span><b>${callinDeskEsc(focusName)}</b></span>
+        <span>${callinDeskEsc(callinDeskSay('callin.queue.pending', '{n} bekliyor').replace('{n}', String(focusPending)))}</span>
+        <span>${callinDeskEsc(callinDeskSay('callin.queue.esik', 'eşik {n}').replace('{n}', String(esik)))}</span>
+        <span>${callinDeskEsc(callinDeskSay('callin.queue.filled', 'bugün +{n}').replace('{n}', String(filled)))}</span>
+      </div>
+      <div class="callin-qh-sub">${callinDeskEsc(underText)} · ${callinDeskEsc(lastTxt)}</div>
+      <div class="tour-fill callin-qh-fill"><span style="width:${pct}%"></span></div>
+    </div>
   </div>`;
 }
 
@@ -255,19 +444,52 @@ async function callinDeskRefresh() {
   await callinDeskLoadStats();
   if (typeof mbCacheAiStaff === 'function') await mbCacheAiStaff(callinDeskFirmId());
   callinDeskPaint();
+  if (typeof _tourPlan !== 'undefined' && _tourPlan) callinQueueHealthPaint(_tourPlan);
+}
+
+function callinDeskTickRetries() {
+  const list = callinDeskRetries();
+  const due = list.filter((row) => row.at <= Date.now());
+  if (!due.length) return;
+  window._aiDeskRetries = list.filter((row) => row.at > Date.now());
+  due.forEach((row) => {
+    if (typeof toast === 'function') {
+      toast(callinDeskSay('callin.desk.err.firing', 'Zamanlanan tekrar: {who}').replace('{who}', row.who || '—'), 'ok');
+    }
+    callinTab('run');
+    if (row.contactId && typeof mbAskRunCallNow === 'function') {
+      void mbAskRunCallNow(row.staffId || '', row.contactId);
+    } else if (typeof mbAskRunCallNow === 'function') {
+      void mbAskRunCallNow(row.staffId || '');
+    }
+  });
+  callinDeskPaint();
 }
 
 function callinDeskStart() {
-  if (_callinDesk.timer) return;
-  void callinDeskRefresh();
-  _callinDesk.timer = setInterval(() => {
-    if (!document.getElementById('page-tour')?.classList.contains('active')) return;
+  if (!_callinDesk.timer) {
     void callinDeskRefresh();
-  }, 45000);
+    _callinDesk.timer = setInterval(() => {
+      if (!document.getElementById('page-tour')?.classList.contains('active')) return;
+      void callinDeskRefresh();
+    }, 45000);
+  }
+  if (!_callinDesk.retryTimer) {
+    _callinDesk.retryTimer = setInterval(() => {
+      callinDeskTickRetries();
+    }, 20000);
+  }
 }
 
 function callinDeskGoLive() {
   try { sessionStorage.setItem('mb_live_focus_ai', '1'); } catch (e) {}
+  if (typeof toggleLiveFloorAiOnly === 'function') {
+    try {
+      if (!window._liveFloorAiOnly) toggleLiveFloorAiOnly(true);
+    } catch (e) {}
+  } else {
+    window._liveFloorAiOnly = true;
+  }
   if (typeof navigate === 'function') navigate('supervisor');
 }
 
@@ -284,7 +506,36 @@ function callinDeskRetry(id) {
     void mbAskRunCallNow(row.staffId || '', row.contactId);
     return;
   }
+  if (typeof mbAskRunCallNow === 'function') {
+    void mbAskRunCallNow(row.staffId || '');
+    return;
+  }
   if (typeof toast === 'function') toast(callinDeskSay('callin.desk.err.retry_hint', 'YZ arama’dan personeli çalıştır veya Şimdi ara ile tekrar dene.'), 'warn');
+}
+
+function callinDeskRetryLater(id, mins) {
+  const row = callinDeskErrors().find((item) => String(item.id) === String(id));
+  if (!row) return;
+  const wait = Math.max(1, Number(mins) || 30);
+  const list = callinDeskRetries();
+  list.push({
+    id: `r${Date.now()}`,
+    errId: row.id,
+    at: Date.now() + wait * 60000,
+    staffId: row.staffId,
+    contactId: row.contactId,
+    who: row.who || row.phone || '',
+  });
+  window._aiDeskRetries = list.slice(-20);
+  if (typeof toast === 'function') {
+    toast(callinDeskSay('callin.desk.err.later_ok', '{n} dk sonra tekrar denenecek.').replace('{n}', String(wait)), 'ok');
+  }
+  callinDeskPaint();
+}
+
+function callinDeskCancelRetry(id) {
+  window._aiDeskRetries = callinDeskRetries().filter((row) => String(row.id) !== String(id));
+  callinDeskPaint();
 }
 
 function callinDeskAskNow() {
@@ -295,6 +546,20 @@ function callinDeskAskNow() {
   if (typeof toast === 'function') toast(callinDeskSay('callin.desk.now.wait', 'YZ arama yükleniyor…'), 'warn');
 }
 
+async function callinDeskStopAll() {
+  if (typeof mbAiStopAll !== 'function') {
+    if (typeof toast === 'function') toast(callinDeskSay('callin.desk.stop_wait', 'YZ arama yükleniyor…'), 'warn');
+    callinTab('run');
+    return;
+  }
+  const ok = typeof mbConfirm === 'function'
+    ? await mbConfirm(callinDeskSay('callin.desk.stop_ask', 'Çalışan tüm YZ personeli dursun mu?'), callinDeskSay('callin.desk.stop_all', 'Hepsini durdur'))
+    : window.confirm(callinDeskSay('callin.desk.stop_ask', 'Çalışan tüm YZ personeli dursun mu?'));
+  if (!ok) return;
+  await mbAiStopAll();
+  callinDeskPaint();
+}
+
 try {
   window.callinDeskPushError = callinDeskPushError;
   window.callinDeskRefresh = callinDeskRefresh;
@@ -302,6 +567,12 @@ try {
   window.callinDeskGoLive = callinDeskGoLive;
   window.callinDeskClearErrors = callinDeskClearErrors;
   window.callinDeskRetry = callinDeskRetry;
+  window.callinDeskRetryLater = callinDeskRetryLater;
+  window.callinDeskCancelRetry = callinDeskCancelRetry;
   window.callinDeskAskNow = callinDeskAskNow;
   window.callinDeskPaint = callinDeskPaint;
+  window.callinDeskToggleOutChips = callinDeskToggleOutChips;
+  window.callinDeskBriefDismiss = callinDeskBriefDismiss;
+  window.callinDeskStopAll = callinDeskStopAll;
+  window.callinQueueHealthPaint = callinQueueHealthPaint;
 } catch (_) {}

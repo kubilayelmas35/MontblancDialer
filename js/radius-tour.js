@@ -1407,6 +1407,7 @@ ${daysHtml}
 <p class="tour-meta">${tourEsc(tourSay('tour.pick', 'Çalışılacak'))}: ${tourEsc(pickLine)}</p>
 ${locked ? `<p class="tour-note">${tourEsc(tourSay('tour.blocked', 'Molada işlem yok'))}</p>` : ''}
 ${list}`;
+  if (typeof callinQueueHealthPaint === 'function') callinQueueHealthPaint(plan);
 }
 
 async function tourRefresh(opts) {

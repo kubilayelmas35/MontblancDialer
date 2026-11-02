@@ -707,6 +707,75 @@ function mbAiCopyStaff(id) {
   mbPaintAiStaff();
 }
 
+function mbAiCopyToCamp(id) {
+  mbAiReadDesk();
+  if (!_aiDesk) return;
+  if (_aiDesk.staff.length >= 8) {
+    if (typeof toast === 'function') toast(mbAiSay('ai.staff.copy_full', 'En fazla 8 personel.'), 'err');
+    return;
+  }
+  const src = _aiDesk.staff.find((row) => row.id === id);
+  if (!src) return;
+  const camps = _aiDesk.camps || [];
+  if (!camps.length) {
+    if (typeof toast === 'function') toast(mbAiSay('ai.staff.wiz.nocamp', 'Kampanya yok — sonra ekleyebilirsin.'), 'warn');
+    return;
+  }
+  document.getElementById('ai-copy-camp')?.remove();
+  const opts = camps.map((camp) => `<label class="ai-wiz-check"><input type="checkbox" value="${mbAiEsc(camp.id)}"> ${mbAiEsc(camp.name || '')}</label>`).join('');
+  const pop = document.createElement('div');
+  pop.id = 'ai-copy-camp';
+  pop.className = 'ai-callin';
+  pop.innerHTML = `<div class="ai-callin-card ai-wiz-card" role="dialog" aria-modal="true">
+    <div class="ai-wiz-hd">
+      <b>${mbAiEsc(mbAiSay('ai.staff.copy_camp.title', 'Kopyala → kampanya'))}</b>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('ai-copy-camp')?.remove()">${mbAiEsc(mbAiSay('qc.callin.cancel', 'Vazgeç'))}</button>
+    </div>
+    <p class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.copy_camp.hint', '«{name}» kopyası seçtiğin kampanyalarda çalışır.').replace('{name}', src.name || ''))}</p>
+    <div class="ai-wiz-camps">${opts}</div>
+    <div class="ai-wiz-foot">
+      <button type="button" class="btn btn-primary" onclick="mbAiCopyToCampDone('${mbAiEsc(id)}')">${mbAiEsc(mbAiSay('ai.staff.copy_camp.done', 'Kopyala'))}</button>
+    </div>
+  </div>`;
+  pop.addEventListener('click', (event) => { if (event.target === pop) pop.remove(); });
+  document.body.appendChild(pop);
+}
+
+function mbAiCopyToCampDone(id) {
+  mbAiReadDesk();
+  if (!_aiDesk) return;
+  const src = _aiDesk.staff.find((row) => row.id === id);
+  if (!src) return;
+  const campIds = [...document.querySelectorAll('#ai-copy-camp input[type="checkbox"]:checked')].map((el) => el.value).filter(mbAiUuid);
+  document.getElementById('ai-copy-camp')?.remove();
+  if (!campIds.length) {
+    if (typeof toast === 'function') toast(mbAiSay('ai.staff.copy_camp.need', 'En az bir kampanya seç.'), 'warn');
+    return;
+  }
+  if (_aiDesk.staff.length >= 8) {
+    if (typeof toast === 'function') toast(mbAiSay('ai.staff.copy_full', 'En fazla 8 personel.'), 'err');
+    return;
+  }
+  const campName = (_aiDesk.camps || []).find((camp) => String(camp.id) === String(campIds[0]))?.name || '';
+  const suffix = campIds.length === 1 && campName
+    ? campName.slice(0, 16)
+    : mbAiSay('ai.staff.copy_suffix', 'kopya');
+  const copy = mbAiStaffNorm({
+    ...src,
+    id: `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    name: `${String(src.name || '').replace(/\s+kopya$/i, '').trim()} ${suffix}`.trim().slice(0, 40),
+    campaign_ids: campIds,
+    focus_ids: campIds,
+    running: false,
+  });
+  if (!copy) return;
+  const at = _aiDesk.staff.findIndex((row) => row.id === id);
+  _aiDesk.staff.splice(at + 1, 0, copy);
+  _aiOpen.add(copy.id);
+  mbPaintAiStaff();
+  if (typeof toast === 'function') toast(mbAiSay('ai.staff.copy_camp.ok', 'Kopya hazır. Kaydetmeyi unutma.'), 'ok');
+}
+
 function mbAiPill(attr, id, value, label, on, onchange) {
   return `<label class="ai-pill"><input type="checkbox" ${attr}="${mbAiEsc(id)}" value="${mbAiEsc(value)}"${on ? ' checked' : ''}${onchange ? ` onchange="${onchange}"` : ''}><span>${mbAiEsc(label)}</span></label>`;
 }
@@ -1188,6 +1257,10 @@ function mbPaintAiRun() {
   const cards = (_aiDesk.staff || []).map((row) => mbAiRunCard(row, mode)).join('');
   const empty = _aiDesk.staff.length ? '' : `<p class="ai-note">${mbAiEsc(mbAiSay('ai.run.empty', 'Önce Personel kur sekmesinden personel ekleyin.'))}</p>`;
   const staffOpts = (_aiDesk.staff || []).map((row) => `<option value="${mbAiEsc(row.id)}"${String(_aiRunHist.staff) === String(row.id) ? ' selected' : ''}>${mbAiEsc(row.name || row.id)}</option>`).join('');
+  const anyRun = (_aiDesk.staff || []).some((row) => row.running);
+  const stopAll = anyRun
+    ? `<button type="button" class="btn btn-ghost btn-sm" onclick="mbAiStopAll()">${mbAiEsc(mbAiSay('callin.desk.stop_all', 'Hepsini durdur'))}</button>`
+    : '';
   root.innerHTML = `<div class="ai-run-shell">
   <div class="ai-run">
     <header class="ai-run-hero">
@@ -1196,7 +1269,7 @@ function mbPaintAiRun() {
         <h2 class="ai-run-title">${mbAiEsc(mbAiSay('ai.run.title', 'Personeli başlat'))}</h2>
         <p class="ai-note">${mbAiEsc(mbAiSay('ai.run.intro', 'Karttaki kampanyalar çalışabilir listesidir. Burada yalnız bugün yoğunlaşacağın kampanyayı seçersin. Aynı anda kaç kişi, o personelin kendi hattıdır; kampanya hızı yok, havuz yok.'))}</p>
       </div>
-      ${modePick}
+      <div class="ai-run-hero-tools">${stopAll}${modePick}</div>
     </header>
     <p class="ai-note ${mode === 'server' && !both ? 'ai-note-warn' : ''}">${mbAiEsc(modeNote)}</p>
     ${firmPick}
@@ -1306,6 +1379,31 @@ function mbAiFocusPick(staffId) {
   }
   row.focus_ids = on.length === boxes.length ? [] : on;
   void mbAiPersistRun();
+}
+
+async function mbAiStopAll() {
+  if (!_aiDesk) {
+    callinTab('run');
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  if (!_aiDesk) return;
+  const running = (_aiDesk.staff || []).filter((row) => row.running);
+  if (!running.length) {
+    if (typeof toast === 'function') toast(mbAiSay('callin.desk.stop_none', 'Çalışan YZ yok.'), 'warn');
+    return;
+  }
+  running.forEach((row) => {
+    row.running = false;
+    const el = document.getElementById(`ai-run-${row.id}`);
+    if (el) el.checked = false;
+    const card = document.querySelector(`[data-ai-run="${row.id}"]`);
+    if (card) card.classList.remove('is-on');
+    mbAiPaintRunLive(row.id);
+    void mbAiSyncLiveSession(row, null);
+  });
+  await mbAiPersistRun();
+  if (typeof toast === 'function') toast(mbAiSay('callin.desk.stop_ok', '{n} YZ durdu.').replace('{n}', String(running.length)), 'ok');
+  if (typeof callinDeskPaint === 'function') callinDeskPaint();
 }
 
 async function mbAiRunToggle(staffId) {
@@ -2339,6 +2437,7 @@ function mbAiStaffCard(row) {
         <span class="ai-card-blurb">${mbAiEsc(blurb)}</span>
       </div>
       <i class="ph ph-caret-down ai-caret"></i>
+      <button type="button" class="ai-copy" title="${mbAiEsc(mbAiSay('ai.staff.copy_camp.title', 'Kopyala → kampanya'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.copy_camp.title', 'Kopyala → kampanya'))}" onclick="event.preventDefault(); event.stopPropagation(); mbAiCopyToCamp('${id}')"><i class="ph ph-arrows-left-right"></i></button>
       <button type="button" class="ai-copy" title="${mbAiEsc(mbAiSay('ai.staff.copy', 'Kopyala'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.copy', 'Kopyala'))}" onclick="event.preventDefault(); event.stopPropagation(); mbAiCopyStaff('${id}')"><i class="ph ph-copy"></i></button>
     </summary>
     <div class="ai-fold-body">

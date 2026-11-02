@@ -2,6 +2,8 @@
 
 @media (max-width: 1024px) {
   .callin-kpi { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .callin-brief, .callin-qh-bits { flex-direction: column; align-items: stretch; }
+  .ai-run-hero-tools { align-items: stretch; width: 100%; }
   .callin-desk-grid, .ai-run-shell { grid-template-columns: 1fr; }
   .ai-run-side { position: static; }
   #page-geocon.page { overflow: hidden; min-height: 0; }

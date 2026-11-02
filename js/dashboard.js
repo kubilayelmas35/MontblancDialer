@@ -166,6 +166,30 @@ async function mbTodaySpend(fid) {
   return { cost, sec, n: (logs || []).length };
 }
 
+async function mbTodayAiSpend(fid) {
+  if (window._callinAiCostToday && String(window._callinAiCostToday.firmId || fid) === String(fid) && window._callinAiCostToday.fresh) {
+    const c = window._callinAiCostToday;
+    return { cost: c.billed || 0, sec: c.secs || 0, n: c.n || 0, estimate: c.estimate || 0, rate: c.rate || 0 };
+  }
+  const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
+  const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
+  const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
+  const [logs, firms] = await Promise.all([
+    mbFetchAll(`call_logs?select=id,duration_sec,cost_usd&firm_id=eq.${fid}&started_at=gte.${gte}&started_at=lte.${lte}&or=(work_type.eq.ai_sales,work_type.eq.ai_qc,ai_staff_id.not.is.null)&order=started_at.asc,id.asc`).catch(() => []),
+    sb(`firms?id=eq.${fid}&select=settings`).catch(() => []),
+  ]);
+  let cost = 0;
+  let sec = 0;
+  (logs || []).forEach((l) => {
+    sec += Number(l.duration_sec) || 0;
+    if (l.cost_usd == null || l.cost_usd === '') return;
+    cost += Number(l.cost_usd) || 0;
+  });
+  const rate = Number(firms?.[0]?.settings?.ai?.rate) || 0;
+  const estimate = rate > 0 ? (sec / 60) * rate : cost;
+  return { cost, sec, n: (logs || []).length, estimate, rate };
+}
+
 function mbFillBalPop(pop) {
   if (!pop) return;
   const esc = typeof statsEsc === 'function' ? statsEsc : (v) => String(v ?? '');
@@ -196,16 +220,31 @@ function mbFillBalPop(pop) {
 <div class="tb-bal-kicker">${esc(t('tb.bal_today'))}</div>
 <div class="tb-bal-today" id="tb-bal-today">${esc(t('tb.bal_loading'))}</div>
 <div class="tb-bal-sub" id="tb-bal-sub"></div>
+<div class="tb-bal-ai" id="tb-bal-ai" hidden></div>
 <div class="tb-bal-rows">${rows.join('')}</div>
 ${hold}
 <p class="tb-bal-note">${esc(t('tb.bal_note'))}</p>`;
   const seq = (window._tbBalSeq = (window._tbBalSeq || 0) + 1);
-  mbTodaySpend(fid).then((spend) => {
+  Promise.all([
+    mbTodaySpend(fid),
+    mbTodayAiSpend(fid),
+  ]).then(([spend, aiSpend]) => {
     if (seq !== window._tbBalSeq || pop.hidden) return;
     const todayEl = document.getElementById('tb-bal-today');
     const subEl = document.getElementById('tb-bal-sub');
+    const aiEl = document.getElementById('tb-bal-ai');
     if (todayEl) todayEl.textContent = money(spend.cost);
     if (subEl) subEl.textContent = `${tReplace('tb.bal_calls', { n: spend.n })} · ${tReplace('tb.bal_talk', { t: statsHms(spend.sec) })}`;
+    if (aiEl) {
+      const show = (aiSpend?.n > 0) || (aiSpend?.estimate > 0) || (aiSpend?.cost > 0);
+      aiEl.hidden = !show;
+      if (show) {
+        const est = money(aiSpend.estimate > 0 ? aiSpend.estimate : aiSpend.cost);
+        aiEl.innerHTML = `<div class="tb-bal-ai-kicker">${esc(t('tb.bal_ai') || 'Bugün YZ')}</div>
+          <div class="tb-bal-ai-val">${esc(est)}</div>
+          <div class="tb-bal-ai-sub">${esc(tReplace('tb.bal_ai_sub', { n: aiSpend.n, t: statsHms(aiSpend.sec), rate: aiSpend.rate > 0 ? money(aiSpend.rate) : '—' }))}</div>`;
+      }
+    }
   }).catch(() => {
     const todayEl = document.getElementById('tb-bal-today');
     if (todayEl && seq === window._tbBalSeq) todayEl.textContent = money(0);
@@ -3408,6 +3447,20 @@ function liveFloorFilter() {
   return window._liveFloorOn;
 }
 
+function liveFloorAiOnly() {
+  return !!window._liveFloorAiOnly;
+}
+
+function toggleLiveFloorAiOnly(force) {
+  window._liveFloorAiOnly = typeof force === 'boolean' ? force : !window._liveFloorAiOnly;
+  if (typeof _paintDashLive === 'function') _paintDashLive();
+  if (typeof _supRenderCards === 'function') _supRenderCards();
+  if (typeof _supUpdateSummary === 'function') _supUpdateSummary();
+  document.querySelectorAll('[data-live-ai-only]').forEach((btn) => {
+    btn.classList.toggle('is-on', !!window._liveFloorAiOnly);
+  });
+}
+
 function liveFloorLayout() {
   try {
     const v = localStorage.getItem('mb-live-layout');
@@ -3513,9 +3566,12 @@ function _paintDashLive() {
     return;
   }
   const filter = liveFloorFilter();
-  const allOn = liveFloorStatuses().every((st) => filter[st] !== false);
+  const aiOnly = liveFloorAiOnly();
+  const allOn = liveFloorStatuses().every((st) => filter[st] !== false) && !aiOnly;
   const allLabel = de ? 'Alle' : 'Tümü';
-  const chips = `<button type="button" class="live-filter live-filter--all${allOn ? ' is-all' : ''}" onclick="toggleLiveFloorStatus('*')">${allLabel}</button>`
+  const aiLabel = de ? 'Nur KI' : 'Yalnız YZ';
+  const chips = `<button type="button" class="live-filter live-filter--all${allOn ? ' is-all' : ''}" onclick="toggleLiveFloorStatus('*'); if(liveFloorAiOnly()) toggleLiveFloorAiOnly(false)">${allLabel}</button>`
+    + `<button type="button" class="live-filter${aiOnly ? ' is-all' : ''}" data-live-ai-only="1" onclick="toggleLiveFloorAiOnly()"><span class="label">${aiLabel}</span></button>`
     + liveFloorStatuses().map((st) => {
       const info = _DASH_LIVE_STATUS[st];
       const label = de ? info.de : info.tr;
@@ -3523,7 +3579,11 @@ function _paintDashLive() {
       const dot = typeof mbLiveDot === 'function' ? mbLiveDot(st) : _LIVE_DOT[st];
       return `<button type="button" class="live-filter${off}" data-live-status="${st}" style="--dot:${dot}" onclick="toggleLiveFloorStatus('${st}')"><span class="dot"></span><span class="label">${count(st)} ${label}</span></button>`;
     }).join('');
-  const visible = rows.filter((s) => filter[s.status] !== false);
+  const visible = rows.filter((s) => {
+    if (filter[s.status] === false) return false;
+    if (aiOnly && !(typeof _supIsAiAgent === 'function' && _supIsAiAgent(s.agent_id))) return false;
+    return true;
+  });
   const isAdmin = mbIsFirmAdmin();
   const asRows = liveFloorLayout() === 'rows';
   const people = visible.map((s) => {
@@ -3613,6 +3673,8 @@ loadDashboard();
 try {
   window.setLiveFloorLayout = setLiveFloorLayout;
   window.toggleLiveFloorStatus = toggleLiveFloorStatus;
+  window.toggleLiveFloorAiOnly = toggleLiveFloorAiOnly;
+  window.liveFloorAiOnly = liveFloorAiOnly;
   window._liveFlip = _liveFlip;
   window.liveFloorLayout = liveFloorLayout;
   window.liveFloorFilter = liveFloorFilter;
