@@ -592,7 +592,7 @@ async function mbLoadAiStaff(tab) {
   const pane = document.getElementById(wantRun ? 'callin-pane-run' : 'callin-pane-staff');
   if (!root || !pane || pane.hidden || typeof sb !== 'function') return;
   const gen = (_aiDesk?.gen || 0) + 1;
-  _aiDesk = { gen, firms: [], camps: [], results: [], settings: {}, staff: [], view: wantRun ? 'run' : 'staff' };
+  _aiDesk = { gen, firms: [], camps: [], results: [], settings: {}, staff: [], view: wantRun ? 'run' : 'staff', loading: true };
   const superView = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
   let firms = [];
   if (superView) firms = await sb('firms?select=id,name,settings&order=name.asc').catch(() => []) || [];
@@ -634,10 +634,14 @@ async function mbAiLoadFirm(gen) {
     window._aiStaffCacheAt = window._aiStaffCacheAt || {};
     window._aiStaffCacheAt[_aiFirmId] = Date.now();
   }
+  _aiDesk.loading = false;
   if (_aiDesk.view === 'run') {
     mbPaintAiRun();
     mbAiStartRunLoop();
   } else mbPaintAiStaff();
+  if (typeof callinDeskPaint === 'function') {
+    try { callinDeskPaint(); } catch (_) {}
+  }
 }
 
 function mbAiReadDesk() {

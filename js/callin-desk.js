@@ -330,7 +330,7 @@ function callinDeskHeatHtml() {
 }
 
 function callinDeskAbHtml() {
-  const bag = (typeof _aiDesk !== 'undefined' && _aiDesk?.staff) || window._aiStaffByFirm?.[callinDeskFirmId()] || [];
+  const bag = callinDeskStaffBag();
   const sales = (bag || []).filter((row) => row.kind !== 'qc');
   if (sales.length < 2) return '';
   const byStaff = _callinDesk.byStaff || {};
@@ -373,8 +373,21 @@ function callinDeskAbHtml() {
   </section>`;
 }
 
+function callinDeskStaffBag() {
+  const firmId = callinDeskFirmId();
+  const desk = (typeof _aiDesk !== 'undefined' && Array.isArray(_aiDesk?.staff)) ? _aiDesk.staff : null;
+  const cached = Array.isArray(window._aiStaffByFirm?.[firmId]) ? window._aiStaffByFirm[firmId] : null;
+  if (desk?.length) return desk;
+  if (cached?.length) return cached;
+  return desk || cached || [];
+}
+
+function callinDeskStaffLoading() {
+  return !!(typeof _aiDesk !== 'undefined' && _aiDesk?.loading);
+}
+
 function callinDeskLiveCounts() {
-  const staff = (typeof _aiDesk !== 'undefined' && _aiDesk?.staff) || window._aiStaffByFirm?.[callinDeskFirmId()] || [];
+  const staff = callinDeskStaffBag();
   let running = 0;
   let open = 0;
   staff.forEach((row) => {
@@ -404,8 +417,8 @@ function callinDeskAlerts() {
       fix: 'gate',
     });
   }
-  const staff = (typeof _aiDesk !== 'undefined' && _aiDesk?.staff) || [];
-  if (!staff.length && ready) {
+  const staff = callinDeskStaffBag();
+  if (!staff.length && ready && !callinDeskStaffLoading()) {
     alerts.push({
       tone: 'info',
       text: callinDeskSay('callin.desk.alert.nostaff', 'Henüz YZ personel yok. Personel kur’dan ekle.'),
