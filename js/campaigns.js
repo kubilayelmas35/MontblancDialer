@@ -1045,7 +1045,7 @@ const tpls = getFieldTemplates();
 delete tpls[name];
 saveFieldTemplates(tpls);
 renderNcTemplateSelect();
-toast('Şablon silindi', 'ok');
+toast(typeof t === 'function' ? t('camp.tpl.deleted') : 'Şablon silindi', 'ok');
 }
 
 function ncLoadDefault() {
@@ -1120,7 +1120,7 @@ if (didNorm && (typeof mbIsE164 !== 'function' || !mbIsE164(didNorm))) {
   return;
 }
 const targetFirmId = (isSuperAdmin() ? document.getElementById('nc-firm-id')?.value : null) || getActiveFirmId() || currentUser?.firm_id;
-if (!targetFirmId) { toast('Firma seçin veya yeniden giriş yapın','err'); return; }
+if (!targetFirmId) { toast(typeof t === 'function' ? t('camp.need_firm') : 'Firma seçin veya yeniden giriş yapın','err'); return; }
 if (!didNorm) didNorm = await firmOutboundDid(targetFirmId);
 const fieldConfig = ncBuildFieldConfig();
 const settings = ncBuildSettings();
@@ -1146,15 +1146,18 @@ const ns = status==='active'?'paused':'active';
 try {
 await sb(`campaigns?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:ns})});
 loadCampaigns();
-} catch(e){ toast('Hata','err'); }
+} catch(e){ toast(typeof t === 'function' ? t('camp.err') : 'Hata','err'); }
 }
 
 async function deleteCampaign(id) {
-if (!(await mbConfirm('Bu kampanyayı silmek istediğine emin misin?', 'Kampanya Sil'))) return;
+if (!(await mbConfirm(
+  typeof t === 'function' ? t('camp.delete.ask') : 'Bu kampanyayı silmek istediğine emin misin?',
+  typeof t === 'function' ? t('camp.delete.title') : 'Kampanya Sil'
+))) return;
 try {
 await sb(`campaigns?id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'});
-toast('Silindi','ok'); closeCampDetail(); loadCampaigns();
-} catch(e){ toast('Hata','err'); }
+toast(typeof t === 'function' ? t('camp.deleted') : 'Silindi','ok'); closeCampDetail(); loadCampaigns();
+} catch(e){ toast(typeof t === 'function' ? t('camp.err') : 'Hata','err'); }
 }
 
 async function saveSpeed(v) {

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="callin.one çağrı merkezi">
-<link rel="icon" href="favicon.svg?v=14.11" type="image/svg+xml">
+<link rel="icon" href="favicon.svg?v=14.12" type="image/svg+xml">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,17 +15,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=14.11">
-<link rel="stylesheet" href="css/styles-dialer.css?v=14.11">
-<link rel="stylesheet" href="css/styles-mascot.css?v=14.11">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.11">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.11">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.11">
-<link rel="stylesheet" href="css/styles-pages.css?v=14.11">
-<link rel="stylesheet" href="css/styles-aurora.css?v=14.11">
-<link rel="stylesheet" href="css/styles-chat.css?v=14.11">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=14.11">
-<link rel="stylesheet" href="css/styles-responsive.css?v=14.11">
+<link rel="stylesheet" href="css/styles.css?v=14.12">
+<link rel="stylesheet" href="css/styles-dialer.css?v=14.12">
+<link rel="stylesheet" href="css/styles-mascot.css?v=14.12">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.12">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.12">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.12">
+<link rel="stylesheet" href="css/styles-pages.css?v=14.12">
+<link rel="stylesheet" href="css/styles-aurora.css?v=14.12">
+<link rel="stylesheet" href="css/styles-chat.css?v=14.12">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=14.12">
+<link rel="stylesheet" href="css/styles-responsive.css?v=14.12">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -84,7 +84,7 @@
 </div>
 </div>
 </div>
-<div class="login-version">v14.11 — 2026</div>
+<div class="login-version">v14.12 — 2026</div>
 </div>
 </div>
 <div id="app" style="display:none;">
@@ -481,7 +481,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">callin.one v14.11</div>
+<div class="sb-ver">callin.one v14.12</div>
 </div>
 </div>
 </nav>
@@ -497,7 +497,7 @@
 <div id="dash-firm-selector"></div>
 <div id="dash-agent-wrap" style="display:none;">
 <select class="form-input" id="dash-agent-f" style="min-width:190px;font-size:12px;" onchange="loadDashboard()">
-<option value="" data-tr="Tüm agentler" data-de="Alle Agenten">Tüm agentler</option>
+<option value="" data-tr="Tüm temsilciler" data-de="Alle Mitarbeiter">Tüm temsilciler</option>
 </select>
 </div>
 <button class="btn btn-ghost btn-sm" onclick="loadDashboard()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
@@ -506,7 +506,7 @@
 <div id="dash-agent-day" class="dash-agent-day" hidden></div>
 <div class="stats-grid">
 <div class="stat-card stat-blue">
-<div class="stat-lbl" id="stat-lbl-calls">Bugünkü Aramalar</div>
+<div class="stat-lbl" id="stat-lbl-calls" data-tr="Bugünkü aramalar" data-de="Heutige Anrufe">Bugünkü aramalar</div>
 <div class="stat-val" id="d-calls">0</div>
 <div class="stat-meta" id="d-calls-m">—</div>
 <div class="stat-delta" id="d-calls-delta"></div>
@@ -526,7 +526,7 @@
 <div class="stat-card stat-red">
 <div class="stat-lbl" data-tr="Telesekreter" data-de="Mailbox">Telesekreter</div>
 <div class="stat-val" id="d-vm">0</div>
-<div class="stat-meta" data-tr="AMD yakaladı" data-de="AMD erkannt">AMD yakaladı</div>
+<div class="stat-meta" data-tr="Telesekreter algılandı" data-de="Mailbox erkannt">Telesekreter algılandı</div>
 <div class="stat-delta" id="d-vm-delta"></div>
 </div>
 <div class="stat-card" id="dash-stat-cost">
@@ -624,7 +624,7 @@
 <div class="card" id="dash-live-wrap">
 <div class="card-hdr">
 <div>
-<div class="card-title" data-tr="Canlı Agent Durumu" data-de="Live-Agentenstatus">Canlı Agent Durumu</div>
+<div class="card-title" data-tr="Canlı temsilci durumu" data-de="Live-Mitarbeiterstatus">Canlı temsilci durumu</div>
 <div class="card-sub" id="dash-live-sub">Kim görüşmede, kim hazır, kim molada</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -833,12 +833,12 @@
 <div class="page-hdr">
 <div>
 <div class="page-title" data-tr="Kuyruklar" data-de="Warteschlangen">Kuyruklar</div>
-<div class="page-sub" data-tr="Tüm kampanyaların kuyrukları. Aktifler üstte, en yeni önce." data-de="Listen aller Kampagnen. Aktive oben, die neueste zuerst.">Tüm kampanyaların kuyrukları. Aktifler üstte, en yeni önce.</div>
+<div class="page-sub" data-tr="Tüm kampanyaların kuyrukları. Aktifler üstte, en yeni önce." data-de="Warteschlangen aller Kampagnen. Aktive oben, neueste zuerst.">Tüm kampanyaların kuyrukları. Aktifler üstte, en yeni önce.</div>
 </div>
 <div class="page-hdr-actions">
-<input type="search" id="queues-search" class="form-input camp-search" data-tr="Kuyruk veya kampanya ara" data-de="Liste oder Kampagne suchen" placeholder="Kuyruk veya kampanya ara" oninput="paintQueuesPage()">
+<input type="search" id="queues-search" class="form-input camp-search" data-tr="Kuyruk veya kampanya ara" data-de="Warteschlange oder Kampagne suchen" placeholder="Kuyruk veya kampanya ara" oninput="paintQueuesPage()">
 <button type="button" class="btn btn-ghost btn-sm" onclick="loadQueuesPage()" data-tr="Yenile" data-de="Aktualisieren">Yenile</button>
-<button type="button" class="btn btn-primary" onclick="openQueuesNew()">+ <span data-tr="Yeni kuyruk" data-de="Neue Liste">Yeni kuyruk</span></button>
+<button type="button" class="btn btn-primary" onclick="openQueuesNew()">+ <span data-tr="Yeni kuyruk" data-de="Neue Warteschlange">Yeni kuyruk</span></button>
 </div>
 </div>
 <div class="camp-rows-wrap">
@@ -888,7 +888,7 @@
 <button class="cd-tab" data-tab="qc" onclick="switchCampTab('qc')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Mola/Sonuç" data-de="Pause/Ergebnis">Mola/Sonuç</button>
 <button class="cd-tab" data-tab="bildirim" onclick="switchCampTab('bildirim')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Bildirim" data-de="Hinweis">Bildirim</button>
 <button class="cd-tab" data-tab="kurallar" onclick="switchCampTab('kurallar')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Kurallar" data-de="Regeln">Kurallar</button>
-<button class="cd-tab" data-tab="agentler" onclick="switchCampTab('agentler')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Personeller" data-de="Personal">Personeller</button>
+<button class="cd-tab" data-tab="agentler" onclick="switchCampTab('agentler')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Temsilciler" data-de="Mitarbeiter">Temsilciler</button>
 <button class="cd-tab" data-tab="musteri" onclick="switchCampTab('musteri')" style="padding:8px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);white-space:nowrap;" data-tr="Müşteri" data-de="Kunde">Müşteri</button>
 </div>
 <div id="cd-tab-genel" class="cd-tab-panel">
@@ -1698,7 +1698,7 @@
 <div class="dialer-hdr-badges" style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-shrink:0;">
 <span class="badge badge-green" style="font-size:11px;padding:3px 8px;"><span id="my-appt">0</span> <span data-tr="randevu" data-de="Termin">randevu</span></span>
 <span class="badge badge-blue" style="font-size:11px;padding:3px 8px;"><span id="my-calls">0</span> <span data-tr="çağrı" data-de="Anruf">çağrı</span></span>
-<button type="button" id="test-mode-btn" onclick="toggleTestMode()" title="Test Modu — gerçek arama yapılmaz"
+<button type="button" id="test-mode-btn" onclick="toggleTestMode()" data-tr-title="Test modu — gerçek arama yapılmaz" data-de-title="Testmodus — kein echter Anruf" title="Test modu — gerçek arama yapılmaz"
 style="position:relative;z-index:3;pointer-events:auto;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;border:1.5px dashed var(--text-3);background:transparent;color:var(--text-3);cursor:pointer;transition:.2s;letter-spacing:.3px;">
 TEST MODU
 </button>
@@ -1999,7 +1999,7 @@ Son randevu bilgileri indirilebilir.
 <i class="ph ph-queue"></i> <span data-tr="Sıraya al" data-de="Einreihen">Sıraya al</span>
 </button>
 <button type="button" class="call-action-btn call-action-btn--dialer-hub" id="btn-dialer-hub-back" onclick="returnToDialerHub()" title="Boş hazır ekranına dön">
-<i class="ph ph-arrow-u-up-left" aria-hidden="true"></i> <span data-tr="Dialera dön" data-de="Zum Dialer">Dialera dön</span>
+<i class="ph ph-arrow-u-up-left" aria-hidden="true"></i> <span data-tr="Aramaya dön" data-de="Zurück zum Dialer">Aramaya dön</span>
 </button>
 <button class="call-action-btn" id="btn-mute" onclick="toggleMute()">
 <i class="ph ph-microphone"></i> <span data-tr="Mikrofon" data-de="Mikrofon">Mikrofon</span>
@@ -5220,75 +5220,75 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=14.11"></script>
-<script src="js/i18n.js?v=14.11"></script>
-<script src="js/config.js?v=14.11"></script>
-<script src="js/state.js?v=14.11"></script>
-<script src="js/api.js?v=14.11"></script>
-<script src="js/access.js?v=14.11"></script>
-<script src="js/auth.js?v=14.11"></script>
-<script src="js/logo.js?v=14.11"></script>
-<script src="js/ui.js?v=14.11"></script>
-<script src="js/chat.js?v=14.11"></script>
-<script src="js/chat-settings.js?v=14.11"></script>
-<script src="js/field-settings.js?v=14.11"></script>
-<script src="js/audit.js?v=14.11"></script>
-<script src="js/feature-flags.js?v=14.11"></script>
-<script src="js/notification-center.js?v=14.11"></script>
+<script src="js/version.js?v=14.12"></script>
+<script src="js/i18n.js?v=14.12"></script>
+<script src="js/config.js?v=14.12"></script>
+<script src="js/state.js?v=14.12"></script>
+<script src="js/api.js?v=14.12"></script>
+<script src="js/access.js?v=14.12"></script>
+<script src="js/auth.js?v=14.12"></script>
+<script src="js/logo.js?v=14.12"></script>
+<script src="js/ui.js?v=14.12"></script>
+<script src="js/chat.js?v=14.12"></script>
+<script src="js/chat-settings.js?v=14.12"></script>
+<script src="js/field-settings.js?v=14.12"></script>
+<script src="js/audit.js?v=14.12"></script>
+<script src="js/feature-flags.js?v=14.12"></script>
+<script src="js/notification-center.js?v=14.12"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=14.11"></script>
-<script src="js/spend.js?v=14.11"></script>
-<script src="js/job-market.js?v=14.11"></script>
-<script src="js/qc-job-market.js?v=14.11"></script>
-<script src="js/export-admin.js?v=14.11"></script>
-<script src="js/export-termin.js?v=14.11"></script>
-<script src="js/performance.js?v=14.11"></script>
-<script src="js/competition.js?v=14.11"></script>
-<script src="js/dashboard.js?v=14.11"></script>
-<script src="js/reports.js?v=14.11"></script>
-<script src="js/dashboard-brief.js?v=14.11"></script>
-<script src="js/campaigns.js?v=14.11"></script>
-<script src="js/campaigns-detail.js?v=14.11"></script>
-<script src="js/campaigns-queue.js?v=14.11"></script>
-<script src="js/queues-page.js?v=14.11"></script>
-<script src="js/contacts-upload.js?v=14.11"></script>
-<script src="js/geocon.js?v=14.11"></script>
-<script src="js/contacts.js?v=14.11"></script>
-<script src="js/contacts-drawer.js?v=14.11"></script>
-<script src="js/telnyx.js?v=14.11"></script>
-<script src="js/hold-music.js?v=14.11"></script>
-<script src="js/voice-orb.js?v=14.11"></script>
-<script src="js/dialer.js?v=14.11"></script>
-<script src="js/ops-alerts.js?v=14.11"></script>
-<script src="js/radius-tour.js?v=14.11"></script>
-<script src="js/dialer-mascot.js?v=14.11"></script>
-<script src="js/dialer-mascot-live.js?v=14.11"></script>
-<script src="js/ui-prefs.js?v=14.11"></script>
-<script src="js/dialer-session.js?v=14.11"></script>
-<script src="js/dialer-call.js?v=14.11"></script>
-<script src="js/dialer-tools.js?v=14.11"></script>
-<script src="js/appointments.js?v=14.11"></script>
-<script src="js/appointments-actions.js?v=14.11"></script>
-<script src="js/appointments-tools.js?v=14.11"></script>
-<script src="js/field.js?v=14.11"></script>
-<script src="js/field-quote.js?v=14.11"></script>
-<script src="js/field-catalog.js?v=14.11"></script>
-<script src="js/field-ops.js?v=14.11"></script>
-<script src="js/wiedervorlage.js?v=14.11"></script>
-<script src="js/qc.js?v=14.11"></script>
-<script src="js/supervisor.js?v=14.11"></script>
-<script src="js/live-coach.js?v=14.11"></script>
-<script src="js/sms-settings.js?v=14.11"></script>
-<script src="js/line-firms.js?v=14.11"></script>
-<script src="js/ai-staff.js?v=14.11"></script>
-<script src="js/callin-desk.js?v=14.11"></script>
-<script src="js/leave-hr.js?v=14.11"></script>
-<script src="js/muhasebe.js?v=14.11"></script>
-<script src="js/muhasebe-books.js?v=14.11"></script>
-<script src="js/agent-self-performance.js?v=14.11"></script>
-<script src="js/agents.js?v=14.11"></script>
-<script src="js/firm-desk.js?v=14.11"></script>
-<script src="js/mimi-brain.js?v=14.11"></script>
+<script src="js/wallet.js?v=14.12"></script>
+<script src="js/spend.js?v=14.12"></script>
+<script src="js/job-market.js?v=14.12"></script>
+<script src="js/qc-job-market.js?v=14.12"></script>
+<script src="js/export-admin.js?v=14.12"></script>
+<script src="js/export-termin.js?v=14.12"></script>
+<script src="js/performance.js?v=14.12"></script>
+<script src="js/competition.js?v=14.12"></script>
+<script src="js/dashboard.js?v=14.12"></script>
+<script src="js/reports.js?v=14.12"></script>
+<script src="js/dashboard-brief.js?v=14.12"></script>
+<script src="js/campaigns.js?v=14.12"></script>
+<script src="js/campaigns-detail.js?v=14.12"></script>
+<script src="js/campaigns-queue.js?v=14.12"></script>
+<script src="js/queues-page.js?v=14.12"></script>
+<script src="js/contacts-upload.js?v=14.12"></script>
+<script src="js/geocon.js?v=14.12"></script>
+<script src="js/contacts.js?v=14.12"></script>
+<script src="js/contacts-drawer.js?v=14.12"></script>
+<script src="js/telnyx.js?v=14.12"></script>
+<script src="js/hold-music.js?v=14.12"></script>
+<script src="js/voice-orb.js?v=14.12"></script>
+<script src="js/dialer.js?v=14.12"></script>
+<script src="js/ops-alerts.js?v=14.12"></script>
+<script src="js/radius-tour.js?v=14.12"></script>
+<script src="js/dialer-mascot.js?v=14.12"></script>
+<script src="js/dialer-mascot-live.js?v=14.12"></script>
+<script src="js/ui-prefs.js?v=14.12"></script>
+<script src="js/dialer-session.js?v=14.12"></script>
+<script src="js/dialer-call.js?v=14.12"></script>
+<script src="js/dialer-tools.js?v=14.12"></script>
+<script src="js/appointments.js?v=14.12"></script>
+<script src="js/appointments-actions.js?v=14.12"></script>
+<script src="js/appointments-tools.js?v=14.12"></script>
+<script src="js/field.js?v=14.12"></script>
+<script src="js/field-quote.js?v=14.12"></script>
+<script src="js/field-catalog.js?v=14.12"></script>
+<script src="js/field-ops.js?v=14.12"></script>
+<script src="js/wiedervorlage.js?v=14.12"></script>
+<script src="js/qc.js?v=14.12"></script>
+<script src="js/supervisor.js?v=14.12"></script>
+<script src="js/live-coach.js?v=14.12"></script>
+<script src="js/sms-settings.js?v=14.12"></script>
+<script src="js/line-firms.js?v=14.12"></script>
+<script src="js/ai-staff.js?v=14.12"></script>
+<script src="js/callin-desk.js?v=14.12"></script>
+<script src="js/leave-hr.js?v=14.12"></script>
+<script src="js/muhasebe.js?v=14.12"></script>
+<script src="js/muhasebe-books.js?v=14.12"></script>
+<script src="js/agent-self-performance.js?v=14.12"></script>
+<script src="js/agents.js?v=14.12"></script>
+<script src="js/firm-desk.js?v=14.12"></script>
+<script src="js/mimi-brain.js?v=14.12"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof mbApplyChartTheme === 'function') mbApplyChartTheme();

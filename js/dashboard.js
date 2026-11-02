@@ -1536,12 +1536,12 @@ function _dashUpdateStatLabels(rangeKey) {
     if (isTr) {
       calls.textContent =
         rangeKey === 'today'
-          ? 'Bugünkü Aramalar'
+          ? 'Bugünkü aramalar'
           : rangeKey === 'week'
-            ? 'Bu haftaki Aramalar'
+            ? 'Bu haftanın aramaları'
             : rangeKey === 'month'
-              ? 'Bu ayki Aramalar'
-              : 'Tüm zamanlar — Aramalar';
+              ? 'Bu ayın aramaları'
+              : 'Tüm zamanların aramaları';
     } else {
       calls.textContent =
         rangeKey === 'today'
@@ -3559,7 +3559,7 @@ function _paintDashLive() {
     const n = count('on_call');
     sub.textContent = de
       ? (n === 1 ? '1 aktives Gespräch' : `${n} aktive Gespräche`)
-      : `${n} kişi görüşmede`;
+      : (n === 1 ? '1 kişi görüşmede' : `${n} kişi görüşmede`);
   }
   if (!rows.length) {
     live.innerHTML = `<div class="mb-empty-hint" style="font-size:13px;">${t('ui.no_active_agents')}</div>`;

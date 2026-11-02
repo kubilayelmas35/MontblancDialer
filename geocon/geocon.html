@@ -857,7 +857,7 @@ html[data-theme="dark"] .kub-day.active{
       <div class="kub-label" data-geo-tr="Kaynak" data-geo-de="Quelle">Kaynak</div>
       <div class="kub-mode">
         <button type="button" class="kub-chip active" data-kub-mode="yarin" onclick="setKubMode('yarin')" data-geo-tr="Yarın" data-geo-de="Morgen">Yarın</button>
-        <button type="button" class="kub-chip" data-kub-mode="top" onclick="setKubMode('top')" data-geo-tr="En çok randevu" data-geo-de="Top PLZ">En çok randevu</button>
+        <button type="button" class="kub-chip" data-kub-mode="top" onclick="setKubMode('top')" data-geo-tr="En çok randevu" data-geo-de="Meiste Termine">En çok randevu</button>
         <button type="button" class="kub-chip" data-kub-mode="plz" onclick="setKubMode('plz')" data-geo-tr="Kod" data-geo-de="PLZ">Kod</button>
       </div>
     </div>
@@ -867,7 +867,7 @@ html[data-theme="dark"] .kub-day.active{
       <div id="kubDayDetail" class="kub-day-detail" style="display:none;"></div>
     </div>
     <div id="kubTopPlzWrap">
-      <div class="kub-label"><span data-geo-tr="En çok randevu" data-geo-de="Top PLZ">En çok randevu</span> <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(gün yok — en çok randevu)" data-geo-de="(kein Tag — meiste Termine)">(gün yok — en çok randevu)</small></div>
+      <div class="kub-label"><span data-geo-tr="En çok randevu" data-geo-de="Meiste Termine">En çok randevu</span> <small style="font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0;" data-geo-tr="(gün yok — en çok randevu)" data-geo-de="(kein Tag — meiste Termine)">(gün yok — en çok randevu)</small></div>
       <p class="kub-source-hint" id="kubTopPlzHint" data-geo-tr="Kampanya yoksa: tümünde en çok randevu (tüm zamanlar). Kampanya seçince kod / kampanya alt seçeneği çıkar." data-geo-de="Ohne Kampagne: meiste Termine insgesamt. Mit Kampagne erscheinen PLZ / Kampagne.">Kampanya yoksa: tümünde en çok randevu (tüm zamanlar). Kampanya seçince <b>kod</b> / <b>kampanya</b> alt seçeneği çıkar.</p>
       <div class="kub-mode" id="kubTopScopeRow" style="display:none;margin-bottom:6px;">
         <button type="button" class="kub-chip" data-kub-top-scope="plz" onclick="setKubTopScope('plz')" data-geo-tr="Kod" data-geo-de="PLZ">Kod</button>
@@ -880,7 +880,7 @@ html[data-theme="dark"] .kub-day.active{
       <p class="kub-source-hint" data-geo-tr="1–5 kod ekle. Hepsi referans olur; paket bunların yakınına kurulur." data-geo-de="1–5 PLZ. Alle werden Anker; das Paket entsteht in ihrer Nähe.">1–5 kod ekle. Hepsi referans olur; paket bunların yakınına kurulur.</p>
       <div class="kub-manual-row">
         <input type="text" id="kubManualPlzInput" placeholder="örn. 99734" data-geo-ph-tr="örn. 99734" data-geo-ph-de="z.B. 99734" maxlength="5" inputmode="numeric" onkeydown="if(event.key==='Enter'){event.preventDefault();addKubManualPlz();}">
-        <button type="button" onclick="addKubManualPlz()" data-geo-tr="Ekle" data-geo-de="Hinzu">Ekle</button>
+        <button type="button" onclick="addKubManualPlz()" data-geo-tr="Ekle" data-geo-de="Hinzufügen">Ekle</button>
       </div>
       <div class="kub-manual-tags" id="kubManualPlzTags"></div>
     </div>

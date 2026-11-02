@@ -155,7 +155,7 @@ ${boxes.map((f) => `<div style="background:var(--bg-3);border:1px solid var(--bo
 // ── Alan ayarları ──────────────────────────────
 function openCampFieldSettings(campId) {
 const camp = campaigns.find(c => c.id === campId);
-if (!camp) { toast('Kampanya bulunamadı','err'); return; }
+if (!camp) { toast(typeof t === 'function' ? t('camp.not_found') : 'Kampanya bulunamadı','err'); return; }
 _fsCampId = campId;
 const fc = mbParseFieldConfig(camp);
 _fsFields = mbMergeCampFields(fc);
@@ -446,7 +446,7 @@ async function saveCampRules() {
   const rules = String(document.getElementById('cd-rules')?.value || '').trim();
   try {
     await saveCampSettingsPatch({ rules });
-    toast('Kurallar kaydedildi', 'ok');
+    toast(typeof t === 'function' ? t('camp.rules.saved') : 'Kurallar kaydedildi', 'ok');
   } catch (e) { toast(e.message, 'err'); }
 }
 
@@ -1155,7 +1155,7 @@ toast(campT('camp.notif.saved','Bildirim ayarları kaydedildi'), 'ok');
 async function saveCampWebhook() {
 const url = getVal('cd-webhook-url').trim();
 if (url && !/^https:\/\//i.test(url)) {
-  toast('Adres https ile başlamalı', 'err');
+  toast(typeof t === 'function' ? t('camp.webhook.https') : 'Adres https ile başlamalı', 'err');
   return;
 }
 await saveCampSettingsPatch({webhook_url: url});
@@ -1170,7 +1170,11 @@ toast(campT('camp.notif.published','Kayan yazı yayınlandı'), 'ok');
 }
 
 async function activateCampaignForAgents() {
-const msg = await mbPrompt('Agentlere gönderilecek mesaj (opsiyonel):','', 'Kampanya Mesajı');
+const msg = await mbPrompt(
+  typeof t === 'function' ? t('camp.notify.prompt') : 'Temsilcilere gönderilecek mesaj (opsiyonel):',
+  '',
+  typeof t === 'function' ? t('camp.notify.title') : 'Kampanya mesajı'
+);
 await setActiveCampaign(currentCampId, msg||'');
 }
 
@@ -1202,7 +1206,7 @@ function getVal(id) { return document.getElementById(id)?.value||''; }
 async function setActiveCampaign(campId,msg='') {
 if(!campId)return;
 await sb(`campaigns?id=eq.${campId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({active_for_agents:true,notif_ts:Date.now(),notif_message:msg})});
-toast('Kampanya aktifleştirildi ✓','ok');
+toast((typeof t === 'function' ? t('camp.activated') : 'Kampanya aktifleştirildi') + ' ✓','ok');
 }
 
 let _tickerInterval2 = null;
