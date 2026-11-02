@@ -1078,7 +1078,7 @@ function openInboundTestRingUI(ctx) {
       const fwdKey = contact?._labInternal ? 'dial.lab.internal_fwd' : 'dial.inbound_fwd';
       fw.textContent =
         typeof tReplace === 'function'
-          ? tReplace(fwdKey, { from: fromNm || (typeof t === 'function' ? t('dial.inbound_fwd_fallback') : 'Agent') })
+          ? tReplace(fwdKey, { from: fromNm || (typeof t === 'function' ? t('dial.inbound_fwd_fallback') : 'Temsilci') })
           : '';
     }
   }

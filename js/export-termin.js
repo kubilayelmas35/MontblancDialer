@@ -716,7 +716,7 @@ function _etMeta() {
     pair('moved', 'Alta', 'Unten', true),
     pair('agent', 'Temsilci', 'Mitarbeiter', true),
     pair('customer', 'Atanan müşteri', 'Kundenzuweisung', true),
-    pair('note', 'Agent notu', 'Agentnotiz', true),
+    pair('note', 'Temsilci notu', 'Mitarbeiternotiz', true),
     pair('qc', 'Kalite kontrol notu', 'QC-Notiz', false),
     pair('created', 'Kayıt tarihi', 'Erfasst am', false),
   ];

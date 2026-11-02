@@ -3,7 +3,7 @@ const MB_ROLES = [
   { key: 'super_admin', label: 'Süper Admin', color: 'var(--red)' },
   { key: 'admin', label: 'Admin', color: 'var(--accent)' },
   { key: 'firm_admin', label: 'Firma Admin', color: 'var(--accent)' },
-  { key: 'agent', label: 'Agent', color: 'var(--green)' },
+  { key: 'agent', label: 'Temsilci', color: 'var(--green)' },
   { key: 'qc', label: 'QC', color: 'var(--yellow)' },
   { key: 'field_agent', label: 'Saha Elemanı', color: 'var(--accent-2)' },
 ];
@@ -16,7 +16,7 @@ const MB_PAGES = [
   { key: 'tour', label: 'Callin', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'callhistory', label: 'Çağrı geçmişi', roles: ['super_admin', 'admin', 'firm_admin', 'qc'] },
   { key: 'stats', label: 'İstatistikler', roles: ['super_admin', 'admin', 'firm_admin'] },
-  { key: 'agents', label: 'Personeller', roles: ['super_admin', 'admin', 'firm_admin'] },
+  { key: 'agents', label: 'Temsilciler', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'firms', label: 'Firmalar', roles: ['super_admin'] },
   { key: 'spend', label: 'Giderler', roles: ['super_admin'] },
   { key: 'firmdesk', label: 'Yönetim', roles: ['super_admin', 'admin', 'firm_admin'], inPerms: false },

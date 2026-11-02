@@ -162,7 +162,7 @@ async function mbDashGoalsData(ff, agentQ, role) {
 function mbDashGoalsHtml(data) {
   const people = data?.people || 1;
   const goals = data?.goals || mbDashGoalNums();
-  const who = people > 1 ? ` · ${people} ${mbDashTr('temsilci', 'Agenten')}` : '';
+  const who = people > 1 ? ` · ${people} ${mbDashTr('temsilci', 'Mitarbeiter')}` : '';
   return mbDashCard(
     mbDashTr('Randevu hedefi', 'Terminziel') + who,
     `<div class="dash-rings">${[
@@ -363,7 +363,7 @@ function mbDashAlertHtml(ops, goals, todayAppts) {
     items.push(mbDashAlertRow('empty-more', `${empty.length} ${mbDashTr('kampanyada aranacak kalmadı', 'Kampagnen ohne Kontakte')}`, `mbDashOpenPage('campaigns')`));
   }
   if (ops.ready > 0 && ops.target === 0) {
-    items.push(mbDashAlertRow('pace', mbDashTr('Hazır temsilci var, hedef hat 0', 'Agenten bereit, Zielleitung 0'), `mbDashOpenPage('campaigns')`));
+    items.push(mbDashAlertRow('pace', mbDashTr('Hazır temsilci var, hedef hat 0', 'Mitarbeiter bereit, Zielleitung 0'), `mbDashOpenPage('campaigns')`));
   }
   items.push(mbDashBehindAlert(todayAppts, goals?.daily));
   return mbDashAlertBox(items);
@@ -477,7 +477,7 @@ function mbSyncRankTitle() {
   const title = body?.closest('.dash-brief-card')?.querySelector('.card-title > span');
   if (!title) return;
   const n = body.querySelectorAll('.dash-camp').length;
-  const base = mbDashTr('Temsilci sırası', 'Agentenliste');
+  const base = mbDashTr('Temsilci sırası', 'Mitarbeiterliste');
   title.textContent = n > 3 ? `${base} · ${n}` : base;
 }
 
@@ -837,7 +837,7 @@ async function loadDashBrief(ctx) {
       : mbDashTr('Açık kampanyalar', 'Offene Kampagnen');
     parts.push(mbDashCard(campTitle, mbDashCampInner(liveLogs, ops), '', 'dash-camp-body', 'camps'));
     const rankInner = ready ? await mbDashRankInner(liveLogs, ff, await usersP) : `<div class="dash-mini-row">${mbDashTr('Yükleniyor...', 'Laden...')}</div>`;
-    parts.push(mbDashCard(mbDashTr('Temsilci sırası', 'Agentenliste'), rankInner, '', 'dash-rank-body', 'rank'));
+    parts.push(mbDashCard(mbDashTr('Temsilci sırası', 'Mitarbeiterliste'), rankInner, '', 'dash-rank-body', 'rank'));
   }
   if (qcHtml) parts.push(qcHtml);
   parts.push(mbDashCard(role === 'qc' ? mbDashTr('Kalite kontrol sonuçları', 'QC-Ergebnisse') : mbDashTr('Arama sonuçları', 'Anrufergebnisse'), mbDashOutcomeHtml(liveLogs), '', 'dash-out-body', 'out'));

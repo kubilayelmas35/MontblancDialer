@@ -75,7 +75,7 @@ function mbToggleLiveMenu(ev, agentId) {
     `<button type="button" title="${title}" onclick="${code} mbCloseLiveMenu()">${label}</button>`;
   const coach = (live && !self) ? `
     ${item(say('Dinle', 'Hören'), say('Çağrıyı dinle', 'Anruf mithören'), `mbCoachCall('${aid}','monitor');`)}
-    ${item(say('Fısılda', 'Flüstern'), say('Yalnız temsilci duyar', 'Nur der Agent hört'), `mbCoachCall('${aid}','whisper');`)}
+    ${item(say('Fısılda', 'Flüstern'), say('Yalnız temsilci duyar', 'Nur der Mitarbeiter hört'), `mbCoachCall('${aid}','whisper');`)}
     ${item(say('Katıl', 'Beitreten'), say('Çağrıya katıl', 'Anruf beitreten'), `mbCoachCall('${aid}','barge');`)}
     ${item(say('Göster', 'Zeigen'), say('Çağrıyı göster', 'Anruf zeigen'), `mbShowLiveCall('${aid}');`)}
     <div class="live-menu-gap"></div>` : '';
@@ -162,7 +162,7 @@ async function mbShowLiveCall(agentId) {
   }
   if (typeof navigate === 'function') navigate('dialer');
   if (typeof showCustomerCard === 'function') showCustomerCard(contact);
-  toast(de ? `Anruf von ${s.agent_name || 'Agent'} · nur ansehen` : `${s.agent_name || 'Temsilci'} görüşmesi · yalnız izleme`, 'ok', 3200);
+  toast(de ? `Anruf von ${s.agent_name || 'Mitarbeiter'} · nur ansehen` : `${s.agent_name || 'Temsilci'} görüşmesi · yalnız izleme`, 'ok', 3200);
 }
 
 async function mbCoachCall(agentId, role) {
