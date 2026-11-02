@@ -610,7 +610,8 @@ function ariaPaintAiState(snap) {
         : 0;
       errEl.hidden = errs <= 0;
       errEl.textContent = errs > 9 ? '9+' : String(errs || '');
-      errEl.title = tourSay('aria.ai.err_chip', '{n} hata · son 30 dk').replace('{n}', String(errs));
+      const tip = typeof callinDeskErrTip === 'function' ? callinDeskErrTip(5) : '';
+      errEl.title = tip || tourSay('aria.ai.err_chip', '{n} hata · son 30 dk').replace('{n}', String(errs));
       errEl.onclick = (ev) => {
         ev.stopPropagation();
         ariaOpenErrors();
@@ -794,8 +795,9 @@ function ariaFillPop() {
   const earlier = ariaEarlier(now.line).slice(-3);
   const qChip = ariaQueueChipHtml();
   const { errs } = ariaAiTodayBits();
+  const errTip = typeof callinDeskErrTip === 'function' ? callinDeskErrTip(5) : '';
   const errChip = errs
-    ? `<button type="button" class="aria-pop-chip is-err" onclick="ariaOpenErrors()">${tourEsc(tourSay('aria.ai.err_chip', '{n} hata · son 30 dk').replace('{n}', String(errs)))}</button>`
+    ? `<button type="button" class="aria-pop-chip is-err" title="${tourEsc(errTip || tourSay('aria.ai.err_chip', '{n} hata · son 30 dk').replace('{n}', String(errs)))}" onclick="ariaOpenErrors()">${tourEsc(tourSay('aria.ai.err_chip', '{n} hata · son 30 dk').replace('{n}', String(errs)))}</button>`
     : '';
   pop.classList.toggle('is-off', live.pasif);
   pop.classList.toggle('is-live', !live.pasif);

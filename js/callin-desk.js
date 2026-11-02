@@ -75,6 +75,33 @@ function callinDeskPushError(err) {
   callinDeskPaint();
 }
 
+function callinDeskErrCodeLabel(code) {
+  const key = String(code || '');
+  return ({
+    gate: callinDeskSay('qc.callin.gate', 'Kapı / fiyat'),
+    phone: callinDeskSay('qc.callin.phone', 'Numara'),
+    busy: callinDeskSay('qc.callin.busy', 'Meşgul'),
+    nokey_el: callinDeskSay('qc.callin.nokey_el', 'ElevenLabs anahtarı'),
+    fail: callinDeskSay('qc.callin.fail', 'Arama çıkmadı'),
+  })[key] || key || callinDeskSay('qc.callin.fail', 'Arama çıkmadı');
+}
+
+function callinDeskErrTip(limit = 5) {
+  const cut = Date.now() - 30 * 60 * 1000;
+  const rows = callinDeskErrors().filter((row) => row.at >= cut).slice(0, Math.max(1, Number(limit) || 5));
+  if (!rows.length) return '';
+  return rows.map((row) => {
+    const when = new Date(row.at);
+    const hh = String(when.getHours()).padStart(2, '0');
+    const mm = String(when.getMinutes()).padStart(2, '0');
+    const who = row.who || row.phone || '—';
+    const staff = row.staffName || 'YZ';
+    const why = callinDeskErrCodeLabel(row.code);
+    const detail = row.detail ? ` · ${row.detail}` : '';
+    return `${hh}:${mm} · ${staff} · ${who} · ${why}${detail}`;
+  }).join('\n');
+}
+
 function callinDeskSoundOn() {
   try { return localStorage.getItem('mb_callin_sound') === '1'; } catch (e) { return false; }
 }
@@ -779,13 +806,7 @@ function callinDeskPaint() {
         ${errs.length ? `<button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskClearErrors()">${callinDeskEsc(callinDeskSay('callin.desk.err.clear', 'Temizle'))}</button>` : ''}
       </header>
       ${errs.length ? `<div class="callin-err-list">${errs.map((row) => {
-        const label = ({
-          gate: callinDeskSay('qc.callin.gate', 'Kapı / fiyat'),
-          phone: callinDeskSay('qc.callin.phone', 'Numara'),
-          busy: callinDeskSay('qc.callin.busy', 'Meşgul'),
-          nokey_el: callinDeskSay('qc.callin.nokey_el', 'ElevenLabs anahtarı'),
-          fail: callinDeskSay('qc.callin.fail', 'Arama çıkmadı'),
-        })[row.code] || row.code;
+        const label = callinDeskErrCodeLabel(row.code);
         return `<div class="callin-err-row">
           <div class="callin-err-main"><b>${callinDeskEsc(row.staffName || 'YZ')}</b> · ${callinDeskEsc(row.who || '—')}<div class="callin-err-why">${callinDeskEsc(label)}${row.detail ? ` · ${callinDeskEsc(row.detail)}` : ''}</div></div>
           <div class="callin-err-act">
@@ -1109,6 +1130,8 @@ async function callinDeskStopAll() {
 
 try {
   window.callinDeskPushError = callinDeskPushError;
+  window.callinDeskErrTip = callinDeskErrTip;
+  window.callinDeskErrCodeLabel = callinDeskErrCodeLabel;
   window.callinDeskRefresh = callinDeskRefresh;
   window.callinDeskLoadStats = callinDeskLoadStats;
   window.callinDeskStart = callinDeskStart;
