@@ -115,7 +115,7 @@ async function _rdLoadResultDefs() {
 async function _rdFetchRows(from, to) {
   const ff = typeof getFirmFilter === 'function' ? getFirmFilter('&') : '';
   const cols =
-    'id,contact_id,slot_id,termin_tarih,kayit_tarihi,updated_at,durum,nachname,telefonnummer,telefon2,strasse,plz,ortschaft,agent_id,campaign_id,customer_id,firm_id,agent_notu,qc_notu';
+    'id,contact_id,slot_id,termin_tarih,kayit_tarihi,durum,nachname,telefonnummer,telefon2,strasse,plz,ortschaft,agent_id,campaign_id,customer_id,firm_id,agent_notu,qc_notu';
   const bounds = _rdBounds(from, to);
   let q = `appointments?select=${cols},users(name),campaigns(name),customers(name,code)${ff}`;
   q += `&termin_tarih=gte.${bounds.gte}&termin_tarih=lte.${bounds.lte}&order=termin_tarih.desc,id.desc`;
@@ -125,6 +125,30 @@ async function _rdFetchRows(from, to) {
   } catch (_) {
     q = `appointments?select=${cols}${ff}&termin_tarih=gte.${bounds.gte}&termin_tarih=lte.${bounds.lte}&order=termin_tarih.desc,id.desc`;
     rows = typeof mbFetchAll === 'function' ? await mbFetchAll(q).catch(() => []) : (await sb(q).catch(() => [])) || [];
+    if (rows?.length) {
+      const aIds = [...new Set(rows.map((r) => r.agent_id).filter(Boolean))];
+      const cIds = [...new Set(rows.map((r) => r.campaign_id).filter(Boolean))];
+      const uIds = [...new Set(rows.map((r) => r.customer_id).filter(Boolean))];
+      const uMap = {}; const campMap = {}; const custMap = {};
+      if (aIds.length) {
+        const uu = await sb(`users?id=in.(${aIds.join(',')})&select=id,name`).catch(() => []);
+        (uu || []).forEach((u) => { uMap[u.id] = u; });
+      }
+      if (cIds.length) {
+        const cc = await sb(`campaigns?id=in.(${cIds.join(',')})&select=id,name`).catch(() => []);
+        (cc || []).forEach((c) => { campMap[c.id] = c; });
+      }
+      if (uIds.length) {
+        const kk = await sb(`customers?id=in.(${uIds.join(',')})&select=id,name,code`).catch(() => []);
+        (kk || []).forEach((k) => { custMap[k.id] = k; });
+      }
+      rows = rows.map((r) => ({
+        ...r,
+        users: r.agent_id && uMap[r.agent_id] ? { name: uMap[r.agent_id].name } : null,
+        campaigns: r.campaign_id && campMap[r.campaign_id] ? { name: campMap[r.campaign_id].name } : null,
+        customers: r.customer_id && custMap[r.customer_id] ? custMap[r.customer_id] : null,
+      }));
+    }
   }
   rows = Array.isArray(rows) ? rows : [];
 
@@ -173,7 +197,6 @@ async function _rdFetchRows(from, to) {
       durumLabel: _rdDurumLabel(durumKey, r.firm_id),
       termin: r.termin_tarih || '',
       created: r.kayit_tarihi || '',
-      updated: r.updated_at || '',
       fieldName: field?.name || '',
       fieldStatus: field?.status || '',
       raw: r,
