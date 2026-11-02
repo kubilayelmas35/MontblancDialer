@@ -2210,7 +2210,7 @@ visibility: visible;
     inset 0 1px 0 rgba(255,255,255,.35);
   animation: callinOrbPulse 2.8s ease-in-out infinite;
 }
-.callin-brand-orb i { font-size: 22px; line-height: 1; }
+.callin-brand-orb .mb-ai-mark { width: 24px; height: 24px; }
 .callin-brand-title {
   font-size: clamp(28px, 3.2vw, 36px);
   font-weight: 900;
@@ -2378,10 +2378,36 @@ visibility: visible;
   .ai-run-shell { grid-template-columns: 1fr; }
   .ai-run-side { position: static; max-height: none; }
 }
-.mb-op { display: inline-flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; }
+.mb-ai-mark {
+  display: inline-flex;
+  width: 1.05em;
+  height: 1.05em;
+  flex-shrink: 0;
+  vertical-align: -0.12em;
+  color: inherit;
+}
+.mb-ai-mark svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.mb-ai-mark-l { fill: currentColor; }
+.mb-ai-mark-r { fill: var(--logo-eye-r, #2563eb); }
+.mb-ai-mark.is-on-dark .mb-ai-mark-l,
+.mb-ai-mark.is-on-dark .mb-ai-mark-r { fill: #fff; }
+.mb-ai-mark.is-blink .mb-ai-mark-l,
+.mb-ai-mark.is-blink .mb-ai-mark-r {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mbLogoBlink var(--logo-blink, 5.4s) ease-in-out infinite;
+}
+.mb-ai-mark.is-blink .mb-ai-mark-r { animation-name: mbLogoBlinkAlt; }
+@media (prefers-reduced-motion: reduce) {
+  .mb-ai-mark.is-blink .mb-ai-mark-l,
+  .mb-ai-mark.is-blink .mb-ai-mark-r { animation: none; }
+}
+.mb-op { display: inline-flex; align-items: center; gap: 5px; min-width: 0; max-width: 100%; }
 .mb-op i { font-size: 14px; opacity: .75; flex-shrink: 0; }
 .mb-op.is-ai { color: var(--accent-text, #2563eb); font-weight: 650; }
-.mb-op.is-ai i { opacity: 1; }
+.mb-op.is-ai i,
+.mb-op.is-ai .mb-ai-mark { opacity: 1; }
+.mb-op .mb-ai-mark { width: 15px; height: 15px; }
 .mb-op-label {
   min-width: 0;
   overflow: hidden;
@@ -2415,12 +2441,15 @@ visibility: visible;
 .sup-live-table .mb-op.is-ai {
   color: #fff;
 }
-.sup-card .mb-op.is-ai i,
-.live-line .mb-op.is-ai i,
-.live-card .mb-op.is-ai i,
-.sup-live-table .mb-op.is-ai i {
-  color: #fff;
-  opacity: 1;
+.sup-card .mb-op.is-ai .mb-ai-mark-l,
+.sup-card .mb-op.is-ai .mb-ai-mark-r,
+.live-line .mb-op.is-ai .mb-ai-mark-l,
+.live-line .mb-op.is-ai .mb-ai-mark-r,
+.live-card .mb-op.is-ai .mb-ai-mark-l,
+.live-card .mb-op.is-ai .mb-ai-mark-r,
+.sup-live-table .mb-op.is-ai .mb-ai-mark-l,
+.sup-live-table .mb-op.is-ai .mb-ai-mark-r {
+  fill: #fff;
 }
 .ai-staff-grid { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: 16px; max-width: none; align-items: start; }
 .ai-staff-span { grid-column: 1 / -1; }

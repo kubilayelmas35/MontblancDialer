@@ -1022,7 +1022,7 @@ function mbAiPaintRunHist() {
           ${script ? `<div class="qc-callin-note">${mbAiEsc(script.slice(0, 2500))}</div>` : ''}
         </details>`
       : '';
-    const staff = row.staffName ? `<div class="ai-run-hist-staff"><i class="ph ph-robot"></i> ${mbAiEsc(row.staffName)}</div>` : '';
+    const staff = row.staffName ? `<div class="ai-run-hist-staff">${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml() : ''}${mbAiEsc(row.staffName)}</div>` : '';
     return `<tr class="${mbAiRunTone(row)}">
       <td class="td-mono" style="font-size:11px;">${mbAiEsc(when)}</td>
       <td style="font-weight:600;">${mbAiEsc(row.name || row.phone || '—')}${staff}${talk}</td>
@@ -1585,7 +1585,7 @@ function mbPaintAiStaff() {
     : `<span class="ai-state is-wait"><i class="ph ph-warning-circle"></i> ${mbAiEsc(mbAiSay('ai.staff.state.wait', 'Eksik var'))}</span>`;
   const missing = ready ? '' : (!ai.spoken_name ? mbAiSay('line.ai.idle', '') : mbAiSay('ai.staff.price_wait', 'Arama için süper admin dakika fiyatını hat bağlantısından yazar.'));
   const voice = `<section class="ai-card">
-    <header class="ai-card-hd"><div class="ai-card-title"><i class="ph ph-robot"></i> ${mbAiEsc(mbAiSay('line.ai', 'Agent'))}</div>${state}</header>
+    <header class="ai-card-hd"><div class="ai-card-title">${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml() : ''}${mbAiEsc(mbAiSay('line.ai', 'Agent'))}</div>${state}</header>
     <p class="ai-note">${mbAiEsc(mbAiSay('line.ai.hint', ''))}</p>
     ${missing ? `<p class="ai-note ai-note-warn">${mbAiEsc(missing)}</p>` : ''}
     <div class="ai-grid">

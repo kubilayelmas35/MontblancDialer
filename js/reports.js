@@ -494,7 +494,7 @@ function repOperator(logs, appts, userById, sessById, pack) {
   const loginAt = sess?.login_at || '';
   const lastAct = (pack.statusLogs || []).find((row) => !agentId || String(row.agent_id) === String(agentId))?.started_at || sess?.last_seen || '';
   const card = `<div class="card rep-person">
-<div class="rep-person-name">${user?.role === 'ai' ? `<span class="mb-op is-ai"><i class="ph ph-robot"></i> ${statsEsc(user?.name || t('rep.pick_person'))}</span>` : statsEsc(user?.name || t('rep.pick_person'))}</div>
+<div class="rep-person-name">${user?.role === 'ai' ? `<span class="mb-op is-ai">${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink') : ''}<span class="mb-op-label">${statsEsc(user?.name || t('rep.pick_person'))}</span></span>` : statsEsc(user?.name || t('rep.pick_person'))}</div>
 <div class="firm-none">${statsEsc(user ? repRole(user.role) : t('rep.pick'))}</div>
 <div class="rep-person-meta"><span>${statsEsc(t('rep.login'))}</span><b>${statsEsc(loginAt ? repWhen(loginAt) : '—')}</b></div>
 <div class="rep-person-meta"><span>${statsEsc(t('rep.last_act'))}</span><b>${statsEsc(lastAct ? repWhen(lastAct) : '—')}</b></div>

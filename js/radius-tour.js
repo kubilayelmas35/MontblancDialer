@@ -436,7 +436,7 @@ function ariaAiBlockHtml(snap) {
     const phaseCls = talk ? ' is-talk' : (ring ? ' is-ring' : (on ? ' is-run' : ''));
     return `<div class="aria-ai-row${on ? ' is-on' : ''}${phaseCls}">
       <div class="aria-ai-main">
-        <b><span class="aria-ai-dot" aria-hidden="true"></span><i class="ph ph-robot"></i> ${tourEsc(row.name || row.id)}</b>
+        <b><span class="aria-ai-dot" aria-hidden="true"></span>${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink') : ''}${tourEsc(row.name || row.id)}</b>
         <span class="aria-ai-kind">${tourEsc(kind)}</span>
         <small class="aria-ai-phase">${tourEsc(ariaAiPhaseWord(row))}</small>
         ${who}

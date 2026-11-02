@@ -107,7 +107,7 @@ function _supRenderCards() {
         const agentRaw = s.agent_name || s.agent_id?.slice(0, 8) || '?';
         const agentAi = typeof _supIsAiAgent === 'function' && _supIsAiAgent(s.agent_id);
         const agent = agentAi
-          ? `<span class="mb-op is-ai" title="YZ"><i class="ph ph-robot"></i><span class="mb-op-label">${escapeHtml(agentRaw)}</span></span>`
+          ? `<span class="mb-op is-ai" title="YZ">${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink') : ''}<span class="mb-op-label">${escapeHtml(agentRaw)}</span></span>`
           : escapeHtml(agentRaw);
         const name = escapeHtml(s.current_contact_name || '—');
         const phone = escapeHtml(s.current_contact_phone || '—');
@@ -143,7 +143,7 @@ function _supRenderCards() {
     const agentRaw = s.agent_name || s.agent_id?.slice(0, 8) || '?';
     const agentAi = typeof _supIsAiAgent === 'function' && _supIsAiAgent(s.agent_id);
     const agent = agentAi
-      ? `<span class="mb-op is-ai" title="YZ"><i class="ph ph-robot"></i><span class="mb-op-label">${escapeHtml(agentRaw)}</span></span>`
+      ? `<span class="mb-op is-ai" title="YZ">${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink') : ''}<span class="mb-op-label">${escapeHtml(agentRaw)}</span></span>`
       : escapeHtml(agentRaw);
     const initial = escapeHtml(String(agentRaw).trim().charAt(0).toUpperCase() || '?');
     const name = escapeHtml(s.current_contact_name || '—');

@@ -29,16 +29,24 @@ function mbOperatorName(row, fallback) {
   return fallback || '—';
 }
 
+/** Callin göz-kırpan markası — AI / Callin yerlerinde robot yerine. */
+function mbAiMarkHtml(extraClass) {
+  const cls = ['mb-ai-mark', extraClass].filter(Boolean).join(' ');
+  return `<span class="${cls}" aria-hidden="true"><svg viewBox="0 0 64 64" focusable="false"><g transform="rotate(-38 32 32)"><rect class="mb-ai-mark-l" x="12" y="18" width="16" height="28" rx="8"/><rect class="mb-ai-mark-r" x="36" y="18" width="16" height="28" rx="8"/></g></svg></span>`;
+}
+
 function mbOperatorHtml(row, opts) {
   const name = mbOperatorName(row, opts?.fallback);
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   const ai = mbIsAiOperator(row);
-  const icon = ai ? 'ph-robot' : (opts?.icon || 'ph-user');
   const title = ai
     ? (typeof t === 'function' ? t('ai.op.badge') : 'YZ personel')
     : '';
   const cls = ai ? ' mb-op is-ai' : ' mb-op';
-  return `<span class="${cls.trim()}"${title ? ` title="${esc(title)}"` : ''}><i class="ph ${icon}"></i><span class="mb-op-label">${esc(name)}</span></span>`;
+  const mark = ai
+    ? mbAiMarkHtml('is-blink')
+    : `<i class="ph ${opts?.icon || 'ph-user'}"></i>`;
+  return `<span class="${cls.trim()}"${title ? ` title="${esc(title)}"` : ''}>${mark}<span class="mb-op-label">${esc(name)}</span></span>`;
 }
 
 /** Sığmayan isim: kayarak geçsin (kampanya pill’leriyle aynı animasyon). */
@@ -46,7 +54,7 @@ function mbFitMarquee(el, text) {
   if (!el) return;
   const op = el.querySelector(':scope > .mb-op, .mb-op');
   if (op && el.contains(op)) {
-    const icon = op.querySelector(':scope > i.ph');
+    const icon = op.querySelector(':scope > .mb-ai-mark, :scope > i.ph');
     let label = op.querySelector(':scope > .mb-op-label');
     const raw = String(text ?? el.dataset.full ?? label?.textContent ?? '').trim()
       || [...op.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent || '').join('').trim();
@@ -111,6 +119,7 @@ try {
   window.mbIsAiOperator = mbIsAiOperator;
   window.mbOperatorName = mbOperatorName;
   window.mbOperatorHtml = mbOperatorHtml;
+  window.mbAiMarkHtml = mbAiMarkHtml;
   window.mbFitMarquee = mbFitMarquee;
   window.mbFitLiveNames = mbFitLiveNames;
 } catch (_) {}

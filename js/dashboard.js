@@ -3533,7 +3533,7 @@ function _paintDashLive() {
     const agentRaw = s.agent_name || '—';
     const agentAi = typeof _supIsAiAgent === 'function' && _supIsAiAgent(s.agent_id);
     const nameHtml = agentAi
-      ? `<span class="mb-op is-ai" title="YZ"><i class="ph ph-robot"></i><span class="mb-op-label">${_dashLiveEsc(agentRaw)}</span></span>`
+      ? `<span class="mb-op is-ai" title="YZ">${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink') : ''}<span class="mb-op-label">${_dashLiveEsc(agentRaw)}</span></span>`
       : _dashLiveEsc(agentRaw);
     const initial = _dashLiveEsc(String(agentRaw).trim().charAt(0).toUpperCase() || '?');
     const camp = _dashLiveEsc(_dashLiveCamps[s.campaign_id] || '—');
