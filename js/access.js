@@ -97,13 +97,14 @@ function mbIsFirmAdmin(role) {
   return ['admin', 'firm_admin', 'super_admin'].includes(r || '');
 }
 
-const MB_PERM_REV = 6;
+const MB_PERM_REV = 7;
 const MB_PERM_GRANTS = [
   { rev: 2, keys: ['supervisor', 'jobmarket', 'fieldops'] },
   { rev: 3, keys: ['geocon'] },
   { rev: 4, keys: ['tour'] },
   { rev: 5, keys: ['queues'] },
   { rev: 6, keys: ['spend'] },
+  { rev: 7, keys: ['randevular'] },
 ];
 
 function mbMergeStoredPerms(list, role, settings) {
