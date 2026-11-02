@@ -8,7 +8,7 @@ let _aiRunSaving = false;
 const _aiRunBusy = new Set();
 const _aiRunLive = {};
 const _aiRunRecent = [];
-let _aiRunHist = { staff: '', outcome: '', sort: 'new', q: '', rows: [], loading: false };
+let _aiRunHist = { staff: '', outcome: '', sort: 'new', q: '', day: '7', from: '', to: '', rows: [], loading: false };
 
 function mbAiSay(key, fallback) {
   const msg = typeof t === 'function' ? t(key) : fallback;
@@ -554,8 +554,11 @@ function mbAiRunResultLabel(row) {
   if (outcome === 'ulasilamadi' || durum === 'ulasilamadi') {
     return mbAiSay('ai.run.result.reach', 'Ulaşılamadı');
   }
-  if (row.summary) return String(row.summary).slice(0, 80);
-  if (row.secs > 0) return mbAiSay('ai.run.result.talked', 'Konuşuldu');
+  if (row.secs > 0) {
+    const note = `${row.summary || ''} ${row.qc_notu || ''}`;
+    if (/randevu|termin|appointment/i.test(note)) return mbAiSay('ai.run.result.appt', 'Başarılı — randevu');
+    return mbAiSay('ai.run.result.talked', 'Konuşuldu');
+  }
   return mbAiSay('ai.run.phase.done', 'Bitti');
 }
 
@@ -596,16 +599,21 @@ function mbAiRunSlotHtml(row) {
   const phase = result
     ? `<span class="ai-run-phase">${mbAiEsc(result)}</span>`
     : `<span class="ai-run-phase">${mbAiEsc(mbAiRunPhaseLabel(row.phase))}</span>`;
-  return `<div class="ai-run-slot ${tone}">
-    <div class="ai-run-slot-top">
+  const head = `<div class="ai-run-slot-top">
       <div class="ai-run-slot-main">
         <b>${mbAiEsc(who)}</b>
         ${camp}${phone}
       </div>
       <div class="ai-run-slot-meta">${phase}${secs}</div>
-    </div>
-    ${mbAiRunSlotDetail(row)}
-  </div>`;
+    </div>`;
+  const detail = row.doneAt ? mbAiRunSlotDetail(row) : '';
+  if (row.doneAt && detail) {
+    return `<details class="ai-run-slot ${tone}">
+      <summary>${head}</summary>
+      ${detail}
+    </details>`;
+  }
+  return `<div class="ai-run-slot ${tone}">${head}${row.doneAt ? '' : mbAiRunSlotDetail(row)}</div>`;
 }
 
 function mbAiRunLiveRows(staffId) {
@@ -667,10 +675,42 @@ function mbAiPushRunRecent(staff, meta) {
   mbAiPaintRunHist();
 }
 
+function mbAiHistDayBounds(day, from, to) {
+  const mode = String(day || '7');
+  const startOf = (d) => {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  };
+  const endOf = (d) => {
+    const x = new Date(d);
+    x.setHours(23, 59, 59, 999);
+    return x;
+  };
+  const now = new Date();
+  if (mode === 'today') return { from: startOf(now), to: endOf(now) };
+  if (mode === 'yesterday') {
+    const y = new Date(now);
+    y.setDate(y.getDate() - 1);
+    return { from: startOf(y), to: endOf(y) };
+  }
+  if (mode === 'custom') {
+    const a = from ? startOf(from) : null;
+    const b = to ? endOf(to) : null;
+    return { from: a, to: b };
+  }
+  if (mode === 'all') return { from: null, to: null };
+  const days = mode === '30' ? 30 : 7;
+  const a = startOf(now);
+  a.setDate(a.getDate() - (days - 1));
+  return { from: a, to: endOf(now) };
+}
+
 function mbAiHistRows() {
   const staff = String(_aiRunHist.staff || '');
   const outcome = String(_aiRunHist.outcome || '');
   const q = String(_aiRunHist.q || '').trim().toLowerCase();
+  const bounds = mbAiHistDayBounds(_aiRunHist.day, _aiRunHist.from, _aiRunHist.to);
   let rows = _aiRunRecent.slice();
   if (staff) rows = rows.filter((row) => String(row.staffId) === staff);
   if (outcome) {
@@ -680,6 +720,15 @@ function mbAiHistRows() {
       if (outcome === 'miss') return ['no_answer', 'ulasilamadi', 'voicemail'].includes(key) || row.phase === 'missed';
       if (outcome === 'neg') return ['negative', 'basarisiz', 'dnc'].includes(key);
       if (outcome === 'cb') return ['callback', 'beklemede'].includes(key);
+      return true;
+    });
+  }
+  if (bounds.from || bounds.to) {
+    rows = rows.filter((row) => {
+      const at = Date.parse(row.startedAt || '') || Number(row.doneAt) || 0;
+      if (!at) return false;
+      if (bounds.from && at < bounds.from.getTime()) return false;
+      if (bounds.to && at > bounds.to.getTime()) return false;
       return true;
     });
   }
@@ -716,30 +765,46 @@ function mbAiPaintRunHist() {
       ? new Date(row.startedAt).toLocaleString(undefined, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
       : '';
     const staff = row.staffName ? `<span class="ai-run-hist-staff"><i class="ph ph-robot"></i> ${mbAiEsc(row.staffName)}</span>` : '';
-    return `<article class="ai-run-hist-row ${mbAiRunTone(row)}">
-      <div class="ai-run-hist-top">
+    const detail = mbAiRunSlotDetail(row);
+    const head = `<div class="ai-run-hist-top">
         <div class="ai-run-hist-who">
           <b>${mbAiEsc(row.name || row.phone || '—')}</b>
           ${row.camp ? `<span class="ai-run-camp">${mbAiEsc(row.camp)}</span>` : ''}
           ${row.phone ? `<span class="ai-run-phone">${mbAiEsc(row.phone)}</span>` : ''}
         </div>
         <div class="ai-run-hist-meta">
-          <span class="ai-run-phase">${mbAiEsc(mbAiRunResultLabel(row))}</span>
+          <span class="ai-run-phase" title="${mbAiEsc(mbAiRunResultLabel(row))}">${mbAiEsc(mbAiRunResultLabel(row))}</span>
           ${row.secs > 0 ? `<span class="ai-run-secs">${mbAiEsc(String(row.secs))}s</span>` : ''}
         </div>
       </div>
-      <div class="ai-run-hist-sub">${staff}${when ? `<span>${mbAiEsc(when)}</span>` : ''}</div>
-      ${mbAiRunSlotDetail(row)}
-    </article>`;
+      <div class="ai-run-hist-sub">${staff}${when ? `<span>${mbAiEsc(when)}</span>` : ''}</div>`;
+    if (!detail) return `<article class="ai-run-hist-row ${mbAiRunTone(row)}">${head}</article>`;
+    return `<details class="ai-run-hist-row ${mbAiRunTone(row)}">
+      <summary class="ai-run-hist-sum">${head}</summary>
+      ${detail}
+    </details>`;
   }).join('');
 }
 
-function mbAiRunHistFilter() {
+function mbAiRunHistFilter(reload) {
+  const prevDay = _aiRunHist.day;
+  const prevFrom = _aiRunHist.from;
+  const prevTo = _aiRunHist.to;
   _aiRunHist.staff = document.getElementById('ai-run-hist-staff')?.value || '';
   _aiRunHist.outcome = document.getElementById('ai-run-hist-out')?.value || '';
   _aiRunHist.sort = document.getElementById('ai-run-hist-sort')?.value || 'new';
   _aiRunHist.q = document.getElementById('ai-run-hist-q')?.value || '';
-  mbAiPaintRunHist();
+  _aiRunHist.day = document.getElementById('ai-run-hist-day')?.value || '7';
+  _aiRunHist.from = document.getElementById('ai-run-hist-from')?.value || '';
+  _aiRunHist.to = document.getElementById('ai-run-hist-to')?.value || '';
+  const custom = document.getElementById('ai-run-hist-custom');
+  if (custom) custom.hidden = _aiRunHist.day !== 'custom';
+  const dateChanged = reload
+    || prevDay !== _aiRunHist.day
+    || prevFrom !== _aiRunHist.from
+    || prevTo !== _aiRunHist.to;
+  if (dateChanged) void mbAiLoadRunHist();
+  else mbAiPaintRunHist();
 }
 
 async function mbAiLoadRunHist() {
@@ -747,9 +812,14 @@ async function mbAiLoadRunHist() {
   _aiRunHist.loading = true;
   mbAiPaintRunHist();
   const staffById = new Map((_aiDesk?.staff || []).map((row) => [String(row.id), row]));
-  const rows = await sb(
-    `call_logs?firm_id=eq.${_aiFirmId}&or=(work_type.eq.ai_sales,work_type.eq.ai_qc,ai_staff_id.not.is.null)&select=id,started_at,phone,outcome,duration_sec,notes,recording_url,operator_name,ai_staff_id,work_type,campaign_id,campaigns(name),contacts(first_name,last_name)&order=started_at.desc&limit=60`
-  ).catch(() => []) || [];
+  const bounds = mbAiHistDayBounds(_aiRunHist.day, _aiRunHist.from, _aiRunHist.to);
+  const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const gte = bounds.from ? (typeof mbInstantGte === 'function' ? mbInstantGte(ymd(bounds.from)) : bounds.from.toISOString()) : '';
+  const lte = bounds.to ? (typeof mbInstantLte === 'function' ? mbInstantLte(ymd(bounds.to)) : bounds.to.toISOString()) : '';
+  let path = `call_logs?firm_id=eq.${_aiFirmId}&or=(work_type.eq.ai_sales,work_type.eq.ai_qc,ai_staff_id.not.is.null)&select=id,started_at,phone,outcome,duration_sec,notes,recording_url,operator_name,ai_staff_id,work_type,campaign_id,campaigns(name),contacts(first_name,last_name)&order=started_at.desc&limit=120`;
+  if (gte) path += `&started_at=gte.${encodeURIComponent(gte)}`;
+  if (lte) path += `&started_at=lte.${encodeURIComponent(lte)}`;
+  const rows = await sb(path).catch(() => []) || [];
   const mapped = rows.map((log) => {
     const contact = Array.isArray(log.contacts) ? log.contacts[0] : log.contacts;
     const person = [contact?.first_name, contact?.last_name].map((part) => String(part || '').trim()).filter(Boolean).join(' ');
@@ -859,6 +929,18 @@ function mbPaintAiRun() {
     </header>
     <div class="ai-run-side-filters">
       <input class="form-input" id="ai-run-hist-q" type="search" value="${mbAiEsc(_aiRunHist.q || '')}" placeholder="${mbAiEsc(mbAiSay('ai.run.hist.search', 'İsim, telefon, not…'))}" oninput="mbAiRunHistFilter()">
+      <select class="form-input" id="ai-run-hist-day" onchange="mbAiRunHistFilter(true)">
+        <option value="today"${_aiRunHist.day === 'today' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.day.today', 'Bugün'))}</option>
+        <option value="yesterday"${_aiRunHist.day === 'yesterday' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.day.yesterday', 'Dün'))}</option>
+        <option value="7"${_aiRunHist.day === '7' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.day.7', 'Son 7 gün'))}</option>
+        <option value="30"${_aiRunHist.day === '30' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.day.30', 'Son 30 gün'))}</option>
+        <option value="all"${_aiRunHist.day === 'all' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.day.all', 'Tümü'))}</option>
+        <option value="custom"${_aiRunHist.day === 'custom' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.day.custom', 'Tarih seç'))}</option>
+      </select>
+      <div class="ai-run-hist-custom" id="ai-run-hist-custom"${_aiRunHist.day === 'custom' ? '' : ' hidden'}>
+        <input class="form-input" id="ai-run-hist-from" type="date" value="${mbAiEsc(_aiRunHist.from || '')}" onchange="mbAiRunHistFilter(true)">
+        <input class="form-input" id="ai-run-hist-to" type="date" value="${mbAiEsc(_aiRunHist.to || '')}" onchange="mbAiRunHistFilter(true)">
+      </div>
       <select class="form-input" id="ai-run-hist-staff" onchange="mbAiRunHistFilter()">
         <option value="">${mbAiEsc(mbAiSay('ai.run.hist.all_staff', 'Tüm personel'))}</option>
         ${staffOpts}
