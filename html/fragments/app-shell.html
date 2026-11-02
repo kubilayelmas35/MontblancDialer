@@ -2228,70 +2228,76 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </div>
 <div class="page" id="page-randevular">
 <style>
+#page-randevular .rd-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;padding:10px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius);}
+#page-randevular .rd-toolbar .form-input{font-size:12px;padding:5px 8px;min-height:32px;}
+#page-randevular .rd-presets{display:inline-flex;gap:4px;flex-wrap:wrap;}
+#page-randevular .rd-preset{border:1px solid var(--border);background:var(--bg-2);color:var(--text-2);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;}
+#page-randevular .rd-preset.is-on{background:var(--accent);color:#fff;border-color:transparent;}
 #page-randevular .rd-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-#page-randevular .rd-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px;}
-#page-randevular .rd-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--bg-2);color:var(--text-2);border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;line-height:1.2;}
-#page-randevular .rd-chip.is-on{background:var(--rd-chip,var(--accent));color:#fff;border-color:transparent;}
-#page-randevular .rd-chip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-#page-randevular .rd-chip-n{font-size:10px;background:var(--border);color:var(--text);border-radius:8px;padding:0 5px;}
-#page-randevular .rd-chip.is-on .rd-chip-n{background:rgba(255,255,255,.25);color:#fff;}
-#page-randevular .rd-filter{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;padding:10px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius);}
+#page-randevular .rd-btn-excel{background:#16a34a;color:#fff;border:0;}
+#page-randevular .rd-btn-csv{background:#0d9488;color:#fff;border:0;}
 #page-randevular .rd-status{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid;font-size:11px;font-weight:700;white-space:nowrap;}
 #page-randevular .rd-row{cursor:pointer;}
-#page-randevular .rd-row:hover td{background:var(--bg-3);}
+#page-randevular .rd-row td{background:var(--rd-row-bg,transparent);}
+#page-randevular .rd-row:hover td{filter:brightness(.97);}
 #page-randevular .rd-loading{position:absolute;inset:0;background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;z-index:5;border-radius:var(--radius);}
 #page-randevular .rd-loading[hidden]{display:none!important;}
 #page-randevular .rd-table-card{position:relative;padding:0;overflow:hidden;}
 #page-randevular .td-mono{font-variant-numeric:tabular-nums;font-family:var(--mono,ui-monospace,monospace);font-size:11px;}
 #page-randevular .rd-agent-sel{font-size:11px;padding:3px 6px;min-width:120px;max-width:180px;}
 #page-randevular .rd-agent-cell{min-width:130px;}
-#page-randevular .rd-table-card td{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
+#page-randevular .rd-table-card td{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;font-size:12px;}
+#page-randevular .rd-table-card th{font-size:11px;white-space:nowrap;}
 #page-randevular .rd-table-card td.rd-agent-cell,#page-randevular .rd-table-card td.rd-actions{max-width:none;overflow:visible;white-space:normal;}
+#page-randevular .rd-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;padding:6px 2px;font-size:11px;color:var(--text-3);}
+#page-randevular .rd-legend{display:inline-flex;gap:10px;flex-wrap:wrap;align-items:center;}
+#page-randevular .rd-leg{display:inline-flex;align-items:center;gap:5px;}
+#page-randevular .rd-leg i{width:10px;height:10px;border-radius:3px;display:inline-block;}
 </style>
 <div class="page-hdr">
 <div>
 <div class="page-title" data-tr="Randevular" data-de="Termine">Randevular</div>
-<div class="page-sub" data-tr="Tüm randevular — durum, temsilci ve saha" data-de="Alle Termine — Status, Mitarbeiter und Feld">Tüm randevular — durum, temsilci ve saha</div>
+<div class="page-sub" data-tr="Termin-Manager — filtre, renkli satır, Excel" data-de="Termin-Manager — Filter, Zeilenfarbe, Excel">Termin-Manager — filtre, renkli satır, Excel</div>
 </div>
 <div class="rd-tools">
 <div id="rd-firm-wrap"></div>
 <span class="badge" style="background:var(--accent);color:#fff;"><span id="rd-count">0</span> <span data-tr="kayıt" data-de="Einträge">kayıt</span></span>
-<button type="button" class="btn btn-ghost btn-sm" onclick="rdToggleFilterBar()"><i class="ph ph-magnifying-glass"></i> <span data-tr="Filtrele" data-de="Filtern">Filtrele</span></button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="rdExportCsv()"><i class="ph ph-download-simple"></i> <span data-tr="İndir" data-de="Export">İndir</span></button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="navigate('takvim')"><i class="ph ph-calendar-blank"></i> <span data-tr="Takvim" data-de="Kalender">Takvim</span></button>
-<button type="button" class="btn btn-primary btn-sm" onclick="loadRandevularPage()"><i class="ph ph-arrow-clockwise"></i> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
 </div>
 </div>
-<div id="rd-filter-bar" class="rd-filter" hidden>
-<div><label class="form-label" style="font-size:10px;" data-tr="Başlangıç" data-de="Von">Başlangıç</label><input type="date" class="form-input" id="rd-date-from" onchange="loadRandevularPage()"></div>
-<div><label class="form-label" style="font-size:10px;" data-tr="Bitiş" data-de="Bis">Bitiş</label><input type="date" class="form-input" id="rd-date-to" onchange="loadRandevularPage()"></div>
-<div style="flex:1;min-width:200px;"><label class="form-label" style="font-size:10px;" data-tr="Ara" data-de="Suche">Ara</label><input type="search" class="form-input" id="rd-search" data-tr="İsim, numara, PLZ, temsilci…" data-de="Name, Nummer, PLZ, Mitarbeiter…" placeholder="İsim, numara, PLZ, temsilci…" oninput="rdSetSearch(this.value)"></div>
+<div class="rd-toolbar">
+<input type="search" class="form-input" id="rd-search" style="min-width:160px;flex:1;" data-tr="Ara…" data-de="Suche…" placeholder="Ara…" oninput="rdSetSearch(this.value)">
+<div class="rd-presets">
+<button type="button" class="rd-preset is-on" data-rd-preset="range" onclick="rdPreset('range')">Alle</button>
+<button type="button" class="rd-preset" data-rd-preset="today" onclick="rdPreset('today')">Heute</button>
+<button type="button" class="rd-preset" data-rd-preset="week" onclick="rdPreset('week')">Woche</button>
+<button type="button" class="rd-preset" data-rd-preset="month" onclick="rdPreset('month')">Monat</button>
 </div>
-<div id="rd-status-chips" class="rd-chips"></div>
+<input type="date" class="form-input" id="rd-date-from" onchange="rdOnDateManual()">
+<span style="color:var(--text-3);">–</span>
+<input type="date" class="form-input" id="rd-date-to" onchange="rdOnDateManual()">
+<select class="form-input" id="rd-filter-status" onchange="rdSetStatusFilter(this.value)" style="min-width:130px;"><option value="">Alle Status</option></select>
+<select class="form-input" id="rd-filter-agent" onchange="rdSetAgentFilter(this.value)" style="min-width:130px;"><option value="">Alle Agenten</option></select>
+<select class="form-input" id="rd-filter-customer" onchange="rdSetCustomerFilter(this.value)" style="min-width:130px;"><option value="">Alle Kunden</option></select>
+<button type="button" class="btn btn-ghost btn-sm" onclick="rdClearFilters()" data-tr="Filtreyi temizle" data-de="Filter löschen">Filter löschen</button>
+<button type="button" class="btn btn-sm rd-btn-excel" onclick="rdExportExcel()"><i class="ph ph-microsoft-excel-logo"></i> Excel Export</button>
+<button type="button" class="btn btn-sm rd-btn-csv" onclick="rdExportCsv()">CSV Export</button>
+<button type="button" class="btn btn-primary btn-sm" onclick="loadRandevularPage()" title="Yenile"><i class="ph ph-arrow-clockwise"></i></button>
+</div>
 <div class="card rd-table-card">
 <div id="rd-loading" class="rd-loading" hidden><div class="card" style="padding:18px 24px;font-weight:700;">…</div></div>
 <div class="tbl-wrap">
-<table style="min-width:1100px;" id="rd-table">
-<thead id="rd-thead"><tr>
-<th>ID</th>
-<th data-tr="Ad Soyad" data-de="Name">Ad Soyad</th>
-<th data-tr="Numara" data-de="Nummer">Numara</th>
-<th data-tr="Cadde" data-de="Straße">Cadde</th>
-<th data-tr="PLZ" data-de="PLZ">PLZ</th>
-<th data-tr="Şehir" data-de="Ort">Şehir</th>
-<th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
-<th data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</th>
-<th data-tr="Saha" data-de="Feld">Saha</th>
-<th data-tr="Durum" data-de="Status">Durum</th>
-<th data-tr="Randevu" data-de="Termin">Randevu</th>
-<th data-tr="Kayıt" data-de="Erfasst">Kayıt</th>
-<th></th>
-</tr></thead>
+<table style="min-width:1400px;" id="rd-table">
+<thead id="rd-thead"><tr><th>…</th></tr></thead>
 <tbody id="rd-tbody">
-<tr><td colspan="13" style="text-align:center;padding:36px;color:var(--text-3);" data-tr="Yükleniyor..." data-de="Wird geladen...">Yükleniyor...</td></tr>
+<tr><td colspan="16" style="text-align:center;padding:36px;color:var(--text-3);" data-tr="Yükleniyor..." data-de="Wird geladen...">Yükleniyor...</td></tr>
 </tbody>
 </table>
 </div>
+</div>
+<div class="rd-foot">
+<div><span data-tr="Tüm randevular" data-de="Alle Termine">Alle Termine</span> · <span id="rd-count-foot">0</span> <span data-tr="kayıt" data-de="Einträge">Einträge</span></div>
+<div class="rd-legend" id="rd-legend"></div>
 </div>
 </div>
 <div class="page" id="page-qc">
