@@ -1,6 +1,9 @@
 /* Tablet (≤1024) ve telefon (≤768 / ≤480). 1024 üstü masaüstü aynı kalır. */
 
 @media (max-width: 1024px) {
+  .callin-kpi { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .callin-desk-grid, .ai-run-shell { grid-template-columns: 1fr; }
+  .ai-run-side { position: static; }
   #page-geocon.page { overflow: hidden; min-height: 0; }
   #page-geocon .geocon-frame { height: 100%; min-height: 0; flex: 1 1 auto; }
   #app, #main, .page, .page > *, .card, .modal {
@@ -577,6 +580,12 @@
   }
 }
 @media (max-width: 768px) {
+  .callin-kpi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .callin-desk-top, .callin-desk-actions, .ai-staff-sum, .ai-run-now-hd { flex-direction: column; align-items: stretch; }
+  .callin-cmp-row { grid-template-columns: 64px 1fr auto; }
+  .callin-err-row { flex-direction: column; align-items: stretch; }
+  .callin-tabs { width: 100%; }
+  .callin-tab { flex: 1 1 auto; text-align: center; }
   #tb-pin {
     gap: 6px;
     height: 32px;

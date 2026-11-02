@@ -433,6 +433,17 @@ async function mbConfirmDialerCallin(contactId, staffId, direct) {
     mbPaintDialerCallin();
     const key = { gate: 'qc.callin.gate', results: 'qc.callin.gate', phone: 'qc.callin.phone', busy: 'qc.callin.busy', nokey_el: 'qc.callin.nokey_el' }[res?.error] || 'qc.callin.fail';
     const why = String(res?.detail || '').slice(0, 220);
+    if (typeof callinDeskPushError === 'function') {
+      callinDeskPushError({
+        staffId: picked,
+        staffName: (window._aiStaffByFirm?.[mbDialerCallinFirmId()] || []).find((row) => String(row.id) === String(picked))?.name || '',
+        who: typeof currentContact !== 'undefined' ? [currentContact?.first_name, currentContact?.last_name].filter(Boolean).join(' ') : '',
+        phone: typeof currentContact !== 'undefined' ? currentContact?.phone : '',
+        contactId,
+        code: res?.error || 'fail',
+        detail: why,
+      });
+    }
     if (typeof toast === 'function') toast(mbAiSay(key, 'Arama çıkmadı.') + (why ? ` (${why})` : ''), 'err');
     return;
   }
@@ -493,6 +504,8 @@ function callinTab(name) {
   if (run) run.hidden = tab !== 'run';
   if (tab !== 'run') mbAiStopRunLoop();
   if (tab === 'staff' || tab === 'run') void mbLoadAiStaff(tab);
+  if (typeof callinDeskStart === 'function') callinDeskStart();
+  if (typeof callinDeskPaint === 'function') callinDeskPaint();
 }
 
 async function mbLoadAiStaff(tab) {
@@ -818,12 +831,15 @@ function mbAiRunSlotHtml(row) {
   const phase = result
     ? `<span class="ai-run-phase">${mbAiEsc(result)}</span>`
     : `<span class="ai-run-phase">${mbAiEsc(mbAiRunPhaseLabel(row.phase))}</span>`;
+  const liveBtn = !row.doneAt
+    ? `<button type="button" class="btn btn-ghost btn-sm ai-run-live-go" onclick="event.stopPropagation(); mbAiGoLiveFocus()">${mbAiEsc(mbAiSay('callin.desk.live', 'Canlıya git'))}</button>`
+    : '';
   const head = `<div class="ai-run-slot-top">
       <div class="ai-run-slot-main">
         <b>${mbAiEsc(who)}</b>
         ${camp}${phone}
       </div>
-      <div class="ai-run-slot-meta">${phase}${secs}</div>
+      <div class="ai-run-slot-meta">${phase}${secs}${liveBtn}</div>
     </div>`;
   const detail = row.doneAt ? mbAiRunSlotDetail(row) : '';
   if (row.doneAt && detail) {
@@ -833,6 +849,11 @@ function mbAiRunSlotHtml(row) {
     </details>`;
   }
   return `<div class="ai-run-slot ${tone}">${head}${row.doneAt ? '' : mbAiRunSlotDetail(row)}</div>`;
+}
+
+function mbAiGoLiveFocus() {
+  try { sessionStorage.setItem('mb_live_focus_ai', '1'); } catch (e) {}
+  if (typeof navigate === 'function') navigate('supervisor');
 }
 
 function mbAiRunLiveRows(staffId) {
@@ -1115,6 +1136,9 @@ function mbAiPaintRunLive(staffId) {
   const cap = document.getElementById(`ai-run-cap-${staffId}`);
   const box = document.getElementById(`ai-run-calls-${staffId}`);
   const live = document.getElementById(`ai-run-live-${staffId}`);
+  if (typeof callinDeskPaint === 'function' && document.getElementById('page-tour')?.classList.contains('active')) {
+    try { callinDeskPaint(); } catch (_) {}
+  }
   if (!staff) return;
   const max = Math.max(1, Number(staff.parallel) || 1);
   const rows = mbAiRunLiveRows(staffId);
@@ -1259,7 +1283,11 @@ function mbAiRunCard(row, mode) {
       <div class="ai-hint">${mbAiEsc(mbAiSay('ai.run.parallel', 'Aynı anda {n} hat — kampanya hızı yok, havuz yok.').replace('{n}', String(max)))}</div>
     </div>
     <div class="ai-sec ai-run-board">
-      <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.run.now', 'Şu an'))}</div>
+      <div class="ai-run-now-hd">
+        <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.run.now', 'Şu an'))}</div>
+        ${qc ? '' : `<button type="button" class="btn btn-ghost btn-sm" onclick="mbAskRunCallNow('${id}')"><i class="ph ph-phone-call"></i> ${mbAiEsc(mbAiSay('callin.desk.now', 'Şimdi bir kişi ara'))}</button>`}
+        <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiGoLiveFocus()">${mbAiEsc(mbAiSay('callin.desk.live', 'Canlıya git'))}</button>
+      </div>
       <div class="ai-run-live" id="ai-run-live-${id}"></div>
       <div class="ai-run-calls" id="ai-run-calls-${id}"></div>
     </div>
@@ -1453,6 +1481,17 @@ async function mbAiRunOneQc(staff) {
       meta.phase = 'missed';
       meta.error = String(res?.error || res?.detail || 'dial');
       meta.doneAt = Date.now();
+      if (typeof callinDeskPushError === 'function') {
+        callinDeskPushError({
+          staffId: staff.id,
+          staffName: staff.name,
+          who: meta.name,
+          phone: meta.phone,
+          apptId: appt.id,
+          code: res?.error || 'fail',
+          detail: String(res?.detail || '').slice(0, 220),
+        });
+      }
       void mbAiSyncLiveSession(staff, meta);
       mbAiPaintRunLive(staff.id);
       mbAiRunEndedAlert(staff, meta);
@@ -1509,6 +1548,17 @@ async function mbAiRunOneSales(staff) {
       meta.phase = 'missed';
       meta.error = String(res?.error || res?.detail || 'dial');
       meta.doneAt = Date.now();
+      if (typeof callinDeskPushError === 'function') {
+        callinDeskPushError({
+          staffId: staff.id,
+          staffName: staff.name,
+          who: meta.name,
+          phone: meta.phone,
+          contactId: contact.id,
+          code: res?.error || 'fail',
+          detail: String(res?.detail || '').slice(0, 220),
+        });
+      }
       void mbAiSyncLiveSession(staff, meta);
       mbAiPaintRunLive(staff.id);
       mbAiRunEndedAlert(staff, meta);
@@ -1518,6 +1568,90 @@ async function mbAiRunOneSales(staff) {
     meta.apptId = res.appointment_id;
     void mbAiWatchRun(staff.id, meta);
   }
+}
+
+async function mbAskRunCallNow(staffId, contactId) {
+  if (!_aiDesk || _aiDesk.view !== 'run') {
+    callinTab('run');
+    await new Promise((resolve) => setTimeout(resolve, 350));
+  }
+  if (!_aiDesk) {
+    if (typeof toast === 'function') toast(mbAiSay('callin.desk.now.wait', 'YZ arama yükleniyor…'), 'warn');
+    return;
+  }
+  if (!mbAiFirmReady(_aiDesk.settings)) {
+    if (typeof toast === 'function') toast(mbAiSay('ai.run.not_ready', 'Önce şirket adı ve dakika fiyatı hazır olsun.'), 'err');
+    return;
+  }
+  const sales = (_aiDesk.staff || []).filter((row) => row.kind !== 'qc');
+  const staff = (staffId && sales.find((row) => String(row.id) === String(staffId)))
+    || sales.find((row) => row.running)
+    || sales[0];
+  if (!staff) {
+    if (typeof toast === 'function') toast(mbAiSay('callin.desk.now.nostaff', 'Önce Personel kur’dan randevu personeli ekle.'), 'warn');
+    return;
+  }
+  if (!mbAiAllowedCamps(staff).length) {
+    if (typeof toast === 'function') toast(mbAiSay('ai.run.no_camp', 'Önce personel kartında kampanya seçin.'), 'err');
+    return;
+  }
+  if (contactId && typeof sb === 'function') {
+    const rows = await sb(`contacts?id=eq.${encodeURIComponent(contactId)}&select=id,first_name,last_name,phone,campaign_id&limit=1`).catch(() => []) || [];
+    const contact = rows[0];
+    if (!contact?.id || !String(contact.phone || '').trim()) {
+      if (typeof toast === 'function') toast(mbAiSay('qc.callin.phone', 'Numara yok'), 'err');
+      return;
+    }
+    const key = `${staff.id}:c:${contact.id}:now`;
+    if (_aiRunBusy.has(key)) return;
+    _aiRunBusy.add(key);
+    const name = [contact.first_name, contact.last_name].map((part) => String(part || '').trim()).filter(Boolean).join(' ');
+    const meta = {
+      key,
+      apptId: '',
+      contactId: contact.id,
+      campId: contact.campaign_id || '',
+      name,
+      phone: String(contact.phone || '').trim(),
+      camp: mbAiCampName(contact.campaign_id),
+      phase: 'ringing',
+      secs: 0,
+      at: Date.now(),
+      doneAt: 0,
+    };
+    _aiRunLive[staff.id] = [...mbAiRunLiveRows(staff.id), meta];
+    void mbAiSyncLiveSession(staff, meta);
+    mbAiPaintRunLive(staff.id);
+    if (typeof toast === 'function') toast(mbAiSay('qc.callin.placing', 'Aranıyor. Hat açılınca konuşma başlar.'), 'ok');
+    const res = await mbTelnyxAi('place', { contact_id: contact.id, staff_id: staff.id, note: '' });
+    if (!res?.ok || !res.appointment_id) {
+      _aiRunBusy.delete(key);
+      meta.phase = 'missed';
+      meta.error = String(res?.error || res?.detail || 'dial');
+      meta.doneAt = Date.now();
+      if (typeof callinDeskPushError === 'function') {
+        callinDeskPushError({
+          staffId: staff.id,
+          staffName: staff.name,
+          who: meta.name,
+          phone: meta.phone,
+          contactId: contact.id,
+          code: res?.error || 'fail',
+          detail: String(res?.detail || '').slice(0, 220),
+        });
+      }
+      mbAiPaintRunLive(staff.id);
+      if (typeof toast === 'function') toast(mbAiSay('qc.callin.fail', 'Arama çıkmadı.'), 'err');
+      return;
+    }
+    meta.apptId = res.appointment_id;
+    void mbAiWatchRun(staff.id, meta);
+    return;
+  }
+  if (typeof toast === 'function') toast(mbAiSay('callin.desk.now.going', 'Sıradaki kişi aranıyor…'), 'ok');
+  await mbAiRunOneSales(staff);
+  mbAiPaintRunLive(staff.id);
+  if (typeof callinDeskPaint === 'function') callinDeskPaint();
 }
 
 function mbAiApplySyncMeta(meta, res) {
@@ -1570,6 +1704,99 @@ async function mbAiWatchRun(staffId, meta) {
   setTimeout(() => { void mbAiLoadRunHist(); }, 2500);
 }
 
+function mbAiStaffSummaryHtml(ai, ready) {
+  const staff = _aiDesk?.staff || [];
+  const sales = staff.filter((row) => row.kind !== 'qc').length;
+  const qc = staff.length - sales;
+  const campsOk = staff.filter((row) => mbAiAllowedCamps(row).length).length;
+  const bits = [
+    ready ? mbAiSay('ai.staff.sum.ready', 'Firma hazır') : mbAiSay('ai.staff.sum.wait', 'Firma eksik'),
+    mbAiSay('ai.staff.sum.count', '{n} personel').replace('{n}', String(staff.length)),
+    mbAiSay('ai.staff.sum.split', '{s} randevu · {q} kalite').replace('{s}', String(sales)).replace('{q}', String(qc)),
+    staff.length ? mbAiSay('ai.staff.sum.camps', '{n} kampanya seçili').replace('{n}', String(campsOk)) : '',
+  ].filter(Boolean);
+  return `<div class="ai-staff-sum ai-staff-span">
+    <div class="ai-staff-sum-main">
+      <div class="ai-staff-sum-title">${mbAiEsc(mbAiSay('ai.staff.sum.title', 'Kısa özet'))}</div>
+      <div class="ai-staff-sum-bits">${bits.map((bit) => `<span>${mbAiEsc(bit)}</span>`).join('')}</div>
+      ${ai.spoken_name ? `<div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.sum.spoken', 'Söylenecek ad: {name}').replace('{name}', ai.spoken_name))}</div>` : ''}
+    </div>
+    <div class="ai-staff-sum-act">
+      <button type="button" class="btn btn-primary btn-sm" onclick="mbAiStaffWizard('sales')"><i class="ph ph-magic-wand"></i> ${mbAiEsc(mbAiSay('ai.staff.wiz.start', 'Hızlı kur'))}</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiStaffWizard('qc')">${mbAiEsc(mbAiSay('ai.staff.wiz.qc', 'Kalite hızlı'))}</button>
+    </div>
+  </div>`;
+}
+
+function mbAiStaffWizard(kind) {
+  if (!_aiDesk) return;
+  if (_aiDesk.staff.length >= 8) {
+    if (typeof toast === 'function') toast(mbAiSay('ai.staff.copy_full', 'En fazla 8 personel.'), 'err');
+    return;
+  }
+  document.getElementById('ai-staff-wiz')?.remove();
+  const qc = kind === 'qc';
+  const camps = _aiDesk.camps || [];
+  const campOpts = camps.map((camp) => `<label class="ai-wiz-check"><input type="checkbox" value="${mbAiEsc(camp.id)}" checked> ${mbAiEsc(camp.name || '')}</label>`).join('')
+    || `<div class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.wiz.nocamp', 'Kampanya yok — sonra ekleyebilirsin.'))}</div>`;
+  const pop = document.createElement('div');
+  pop.id = 'ai-staff-wiz';
+  pop.className = 'ai-callin';
+  pop.innerHTML = `<div class="ai-callin-card ai-wiz-card" role="dialog" aria-modal="true">
+    <div class="ai-wiz-hd">
+      <b>${mbAiEsc(mbAiSay('ai.staff.wiz.title', 'Hızlı personel'))}</b>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiStaffWizardClose()">${mbAiEsc(mbAiSay('qc.callin.cancel', 'Vazgeç'))}</button>
+    </div>
+    <p class="ai-hint">${mbAiEsc(mbAiSay('ai.staff.wiz.hint', '3 adım: ad, kampanya, ilk cümle. Detayları karttan sonra açarsın.'))}</p>
+    <label class="form-label">${mbAiEsc(mbAiSay('ai.staff.name', 'Personel adı'))}</label>
+    <input class="form-input" id="ai-wiz-name" maxlength="40" value="${mbAiEsc(qc ? mbAiSay('ai.staff.qc', 'Kalite') : mbAiSay('ai.staff.sales', 'Randevu'))}">
+    <div class="ai-wiz-sec-t">${mbAiEsc(mbAiSay('ai.staff.camps', 'Kampanyalar'))}</div>
+    <div class="ai-wiz-camps" id="ai-wiz-camps">${campOpts}</div>
+    <label class="form-label">${mbAiEsc(mbAiSay('ai.staff.greeting', 'İlk cümle'))}</label>
+    <textarea class="form-input" id="ai-wiz-greet" rows="3" maxlength="400" placeholder="${mbAiEsc(mbAiSay('ai.staff.greeting_ph', ''))}"></textarea>
+    <div class="ai-wiz-foot">
+      <button type="button" class="btn btn-primary" onclick="mbAiStaffWizardDone('${qc ? 'qc' : 'sales'}')">${mbAiEsc(mbAiSay('ai.staff.wiz.done', 'Oluştur ve aç'))}</button>
+    </div>
+  </div>`;
+  pop.addEventListener('click', (event) => { if (event.target === pop) mbAiStaffWizardClose(); });
+  document.body.appendChild(pop);
+  document.getElementById('ai-wiz-name')?.focus();
+}
+
+function mbAiStaffWizardClose() {
+  document.getElementById('ai-staff-wiz')?.remove();
+}
+
+function mbAiStaffWizardDone(kind) {
+  mbAiReadDesk();
+  if (!_aiDesk || _aiDesk.staff.length >= 8) return;
+  const name = String(document.getElementById('ai-wiz-name')?.value || '').trim().slice(0, 40);
+  const greeting = String(document.getElementById('ai-wiz-greet')?.value || '').trim().slice(0, 400);
+  const campIds = [...document.querySelectorAll('#ai-wiz-camps input[type="checkbox"]:checked')].map((el) => el.value).filter(mbAiUuid);
+  const allCamps = (_aiDesk.camps || []).map((camp) => camp.id).filter(mbAiUuid);
+  const results = kind === 'qc'
+    ? (_aiDesk.results || []).map((row) => row.key).filter((key) => key && key !== 'qc_bekleniyor')
+    : (typeof DEFAULT_OUTCOMES !== 'undefined' ? DEFAULT_OUTCOMES.map((row) => row.key) : []);
+  const added = mbAiStaffNorm({
+    id: `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    kind,
+    name: name || (kind === 'qc' ? mbAiSay('ai.staff.qc', 'Kalite') : mbAiSay('ai.staff.sales', 'Randevu')),
+    greeting,
+    campaign_ids: campIds.length && campIds.length < allCamps.length ? campIds : [],
+    results,
+    call_statuses: kind === 'qc' ? ['qc_bekleniyor'] : [],
+    call_when: ['today'],
+    retry_min: 30,
+    parallel: 1,
+  });
+  mbAiStaffWizardClose();
+  if (!added) return;
+  _aiOpen.add(added.id);
+  _aiDesk.staff.push(added);
+  mbPaintAiStaff();
+  if (typeof toast === 'function') toast(mbAiSay('ai.staff.wiz.ok', 'Personel hazır. Kaydetmeyi unutma.'), 'ok');
+}
+
 function mbPaintAiStaff() {
   const root = document.getElementById('ai-staff-root');
   if (!root || !_aiDesk) return;
@@ -1611,11 +1838,13 @@ function mbPaintAiStaff() {
   const cards = _aiDesk.staff.map((row) => mbAiStaffCard(row)).join('');
   const empty = _aiDesk.staff.length ? '' : `<p class="ai-note">${mbAiEsc(mbAiSay('ai.staff.empty', ''))}</p>`;
   root.innerHTML = `<div class="ai-staff-grid">
+    ${mbAiStaffSummaryHtml(ai, ready)}
     <p class="ai-note ai-staff-span">${mbAiEsc(mbAiSay('ai.staff.intro', ''))}</p>
     <div class="ai-staff-side">${voice}</div>
     <div class="ai-staff-main">${empty}${cards}</div>
     <div class="ai-bar ai-staff-span">
       <div class="ai-bar-add">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiStaffWizard('sales')"><i class="ph ph-magic-wand"></i> ${mbAiEsc(mbAiSay('ai.staff.wiz.start', 'Hızlı kur'))}</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiAddStaff('sales')"><i class="ph ph-plus"></i> ${mbAiEsc(mbAiSay('ai.staff.add_sales', 'Randevu personeli'))}</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiAddStaff('qc')"><i class="ph ph-plus"></i> ${mbAiEsc(mbAiSay('ai.staff.add_qc', 'Kalite personeli'))}</button>
       </div>
@@ -2092,11 +2321,23 @@ function mbAiStaffCard(row) {
       <div class="ai-hint" id="ai-move-hint-${id}">${mbAiEsc(mbAiMoveHintText(row.move_time !== false, row.results || []))}</div>
     </div>` : '';
   const open = _aiOpen.has(row.id) ? ' open' : '';
+  const campCount = pickedCamps.size || camps.length;
+  const engineLab = mbAiStaffEngineLabel(row);
+  const hours = row.call_from && row.call_until ? `${row.call_from.slice(0, 5)}–${row.call_until.slice(0, 5)}` : '';
+  const blurb = [
+    engineLab,
+    mbAiSay('ai.staff.sum.n_camps', '{n} kampanya').replace('{n}', String(campCount || 0)),
+    mbAiSay('ai.run.parallel', 'Aynı anda {n} hat').replace('{n}', String(Math.max(1, Number(row.parallel) || 1))),
+    hours,
+  ].filter(Boolean).join(' · ');
   return `<section class="ai-card">
     <details class="ai-fold"${open} ontoggle="mbAiFold('${id}', this.open)">
     <summary class="ai-card-hd">
       <span class="ai-badge ${qc ? 'is-qc' : 'is-sales'}"><i class="ph ${qc ? 'ph-seal-check' : 'ph-calendar-check'}"></i> ${mbAiEsc(kindLabel)}</span>
-      <input class="ai-name" id="ai-name-${id}" maxlength="40" value="${mbAiEsc(row.name)}" placeholder="${mbAiEsc(mbAiSay('ai.staff.name', 'Personel adı'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.name', 'Personel adı'))}">
+      <div class="ai-card-sum">
+        <input class="ai-name" id="ai-name-${id}" maxlength="40" value="${mbAiEsc(row.name)}" placeholder="${mbAiEsc(mbAiSay('ai.staff.name', 'Personel adı'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.name', 'Personel adı'))}" onclick="event.stopPropagation()">
+        <span class="ai-card-blurb">${mbAiEsc(blurb)}</span>
+      </div>
       <i class="ph ph-caret-down ai-caret"></i>
       <button type="button" class="ai-copy" title="${mbAiEsc(mbAiSay('ai.staff.copy', 'Kopyala'))}" aria-label="${mbAiEsc(mbAiSay('ai.staff.copy', 'Kopyala'))}" onclick="event.preventDefault(); event.stopPropagation(); mbAiCopyStaff('${id}')"><i class="ph ph-copy"></i></button>
     </summary>
@@ -2681,6 +2922,17 @@ async function qcConfirmCallin(apptId, staffId, direct) {
     if (row) qcPaintCallin(row);
     const key = { gate: 'qc.callin.gate', results: 'qc.callin.gate', phone: 'qc.callin.phone', busy: 'qc.callin.busy', nokey_el: 'qc.callin.nokey_el' }[res?.error] || 'qc.callin.fail';
     const why = String(res?.detail || '').slice(0, 220);
+    if (typeof callinDeskPushError === 'function') {
+      callinDeskPushError({
+        staffId: picked,
+        staffName: (mbAiQcStaffAll(row?.firm_id, row?.campaign_id) || []).find((item) => String(item.id) === String(picked))?.name || '',
+        who: row?.nachname || '',
+        phone: row?.telefonnummer || '',
+        apptId,
+        code: res?.error || 'fail',
+        detail: why,
+      });
+    }
     if (typeof toast === 'function') toast(mbAiSay(key, 'Arama çıkmadı.') + (why ? ` (${why})` : ''), 'err');
     return;
   }

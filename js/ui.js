@@ -254,7 +254,12 @@ const _NAVIGATE_LOADERS = {
   performansim: () => { _mbPageFn('loadPerformansimPage')?.(); },
   competition: () => { _mbPageFn('loadCompetitionPage')?.(); },
   geocon: () => { _mbPageFn('loadGeoconPage')?.(); },
-  tour: () => { _mbPageFn('tourRefresh')?.(); _mbPageFn('mbLoadAiStaff')?.(); },
+  tour: () => {
+    _mbPageFn('tourRefresh')?.();
+    _mbPageFn('mbLoadAiStaff')?.();
+    if (typeof callinDeskStart === 'function') callinDeskStart();
+    else if (typeof callinDeskPaint === 'function') callinDeskPaint();
+  },
 };
 
 function runPageEntry(page) {

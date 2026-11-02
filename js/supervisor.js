@@ -204,6 +204,26 @@ function _supRenderCards() {
   };
   if (typeof _liveFlip === 'function') _liveFlip(grid, paint);
   else paint();
+  _supApplyAiFocus();
+}
+
+function _supApplyAiFocus() {
+  let focus = false;
+  try { focus = sessionStorage.getItem('mb_live_focus_ai') === '1'; } catch (e) {}
+  if (!focus) return;
+  const root = document.getElementById('page-supervisor');
+  if (!root) return;
+  root.classList.add('is-ai-focus');
+  const prefer = root.querySelector('.sup-card--on_call .sup-avatar.is-ai, .live-line--on_call .live-av.is-ai, .sup-avatar.is-ai, .live-av.is-ai');
+  const card = prefer?.closest('.sup-card, .live-line, tr.live-line');
+  if (card) {
+    card.classList.add('is-ai-pulse');
+    try { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+  }
+  setTimeout(() => {
+    try { sessionStorage.removeItem('mb_live_focus_ai'); } catch (e) {}
+    root.classList.remove('is-ai-focus');
+  }, 12000);
 }
 
 function _supTickDurations() {
