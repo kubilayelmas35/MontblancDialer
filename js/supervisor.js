@@ -107,7 +107,7 @@ function _supRenderCards() {
         const agentRaw = s.agent_name || s.agent_id?.slice(0, 8) || '?';
         const agentAi = typeof _supIsAiAgent === 'function' && _supIsAiAgent(s.agent_id);
         const agent = agentAi
-          ? `<span class="mb-op is-ai" title="YZ"><i class="ph ph-robot"></i> ${escapeHtml(agentRaw)}</span>`
+          ? `<span class="mb-op is-ai" title="YZ"><i class="ph ph-robot"></i><span class="mb-op-label">${escapeHtml(agentRaw)}</span></span>`
           : escapeHtml(agentRaw);
         const name = escapeHtml(s.current_contact_name || '—');
         const phone = escapeHtml(s.current_contact_phone || '—');
@@ -117,13 +117,14 @@ function _supRenderCards() {
         const deep = age >= 0.55 ? ' live-tone--deep' : '';
         const dur = typeof liveClock === 'function' ? liveClock(since, de) : _supFmtDuration(since);
         return `<tr class="live-line live-line--on_call${deep}" data-since="${escapeHtml(since)}" style="--live-age:${Number(age).toFixed(3)}">
-          <td><span class="sup-live-dot" aria-hidden="true"></span>${agent}</td>
+          <td><span class="sup-live-dot" aria-hidden="true"></span><span class="sup-agent-name" data-full="${escapeHtml(agentRaw)}">${agent}</span></td>
           <td class="sup-dur" data-clock>${dur}</td>
           <td>${name}</td>
           <td class="sup-mono">${phone}</td>
           <td>${camp}</td>
         </tr>`;
       }).join('')}</tbody></table>`;
+      if (typeof mbFitLiveNames === 'function') requestAnimationFrame(() => mbFitLiveNames(board));
     }
   }
 
@@ -142,8 +143,9 @@ function _supRenderCards() {
     const agentRaw = s.agent_name || s.agent_id?.slice(0, 8) || '?';
     const agentAi = typeof _supIsAiAgent === 'function' && _supIsAiAgent(s.agent_id);
     const agent = agentAi
-      ? `<span class="mb-op is-ai" title="YZ"><i class="ph ph-robot"></i> ${escapeHtml(agentRaw)}</span>`
+      ? `<span class="mb-op is-ai" title="YZ"><i class="ph ph-robot"></i><span class="mb-op-label">${escapeHtml(agentRaw)}</span></span>`
       : escapeHtml(agentRaw);
+    const initial = escapeHtml(String(agentRaw).trim().charAt(0).toUpperCase() || '?');
     const name = escapeHtml(s.current_contact_name || '—');
     const phone = escapeHtml(s.current_contact_phone || '—');
     const camp = escapeHtml(_supCampaignName(s.campaign_id));
@@ -154,9 +156,10 @@ function _supRenderCards() {
     const tone = _SUP_STATUS_LABEL[s.status] ? s.status : 'offline';
     const sid = escapeHtml(s.agent_id || '');
     const sinceAttr = escapeHtml(since);
+    const fullAttr = escapeHtml(agentRaw);
     if (asRows) {
       return `<div class="live-line live-line--${tone}${deep}" data-live-id="${sid}" data-since="${sinceAttr}" style="--live-age:${Number(age).toFixed(3)}">
-        <div class="live-line-who"><span class="live-av">${agent.charAt(0).toUpperCase()}</span><span class="live-name">${agent}</span></div>
+        <div class="live-line-who"><span class="live-av">${initial}</span><span class="live-name" data-full="${fullAttr}">${agent}</span></div>
         <div class="live-status">${label}</div>
         <div class="live-dur" data-clock>${dur}</div>
         <div class="live-line-clip">${name}</div>
@@ -174,9 +177,9 @@ function _supRenderCards() {
     return `
 <div class="sup-card sup-card--${tone}${deep}" data-live-id="${sid}" data-since="${sinceAttr}" style="--live-age:${Number(age).toFixed(3)}">
   <div class="sup-card-top">
-    <div class="sup-avatar">${agent.charAt(0).toUpperCase()}</div>
+    <div class="sup-avatar">${initial}</div>
     <div class="sup-agent-info">
-      <div class="sup-agent-name">${agent}</div>
+      <div class="sup-agent-name" data-full="${fullAttr}">${agent}</div>
       <span class="sup-status ${info.cls}">${label}</span>
     </div>
     <div class="sup-dur" data-clock>${dur}</div>
@@ -196,6 +199,9 @@ function _supRenderCards() {
           <span>${de ? 'Aktion' : 'İşlem'}</span>
         </div>`}${lines}</div>`
       : lines;
+    if (typeof mbFitLiveNames === 'function') {
+      requestAnimationFrame(() => mbFitLiveNames(grid));
+    }
   };
   if (typeof _liveFlip === 'function') _liveFlip(grid, paint);
   else paint();

@@ -38,12 +38,81 @@ function mbOperatorHtml(row, opts) {
     ? (typeof t === 'function' ? t('ai.op.badge') : 'YZ personel')
     : '';
   const cls = ai ? ' mb-op is-ai' : ' mb-op';
-  return `<span class="${cls.trim()}"${title ? ` title="${esc(title)}"` : ''}><i class="ph ${icon}"></i> ${esc(name)}</span>`;
+  return `<span class="${cls.trim()}"${title ? ` title="${esc(title)}"` : ''}><i class="ph ${icon}"></i><span class="mb-op-label">${esc(name)}</span></span>`;
+}
+
+/** Sığmayan isim: kayarak geçsin (kampanya pill’leriyle aynı animasyon). */
+function mbFitMarquee(el, text) {
+  if (!el) return;
+  const op = el.querySelector(':scope > .mb-op, .mb-op');
+  if (op && el.contains(op)) {
+    const icon = op.querySelector(':scope > i.ph');
+    let label = op.querySelector(':scope > .mb-op-label');
+    const raw = String(text ?? el.dataset.full ?? label?.textContent ?? '').trim()
+      || [...op.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent || '').join('').trim();
+    if (!label) {
+      label = document.createElement('span');
+      label.className = 'mb-op-label';
+      op.replaceChildren();
+      if (icon) op.appendChild(icon);
+      op.appendChild(label);
+    }
+    if (el.dataset.full === raw && label.classList.contains('is-slide') && el.clientWidth > 0) return;
+    el.dataset.full = raw;
+    label.textContent = raw;
+    label.classList.remove('is-slide');
+    label.style.removeProperty('--slide');
+    label.style.animationDuration = '';
+    el.classList.remove('is-slide');
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const iconW = icon ? icon.offsetWidth + 4 : 0;
+    const room = Math.max(0, el.clientWidth - iconW);
+    if (reduce || room <= 0 || label.scrollWidth <= room + 2) return;
+    const dist = Math.max(0, label.scrollWidth - room);
+    if (dist < 2) return;
+    label.style.setProperty('--slide', `-${dist}px`);
+    label.style.animationDuration = `${Math.min(14000, Math.max(4500, dist * 35))}ms`;
+    label.classList.add('is-slide');
+    el.classList.add('is-slide');
+    return;
+  }
+  if (typeof opsFitMarquee === 'function') {
+    opsFitMarquee(el, text ?? el.dataset.full ?? el.textContent ?? '');
+    return;
+  }
+  const label = String(text ?? el.dataset.full ?? el.textContent ?? '');
+  if (el.dataset.full === label && el.clientWidth > 0 && (el.classList.contains('is-slide') || el.scrollWidth <= el.clientWidth + 2)) return;
+  el.dataset.full = label;
+  el.classList.remove('is-slide');
+  el.style.removeProperty('--slide');
+  el.textContent = label;
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || el.clientWidth <= 0 || el.scrollWidth <= el.clientWidth + 2) return;
+  const inner = document.createElement('i');
+  inner.textContent = label;
+  el.replaceChildren(inner);
+  const dist = Math.max(0, inner.offsetWidth - el.clientWidth);
+  if (dist < 2) {
+    el.textContent = label;
+    return;
+  }
+  el.style.setProperty('--slide', `-${dist}px`);
+  inner.style.animationDuration = `${Math.min(14000, Math.max(4500, dist * 35))}ms`;
+  el.classList.add('is-slide');
+}
+
+function mbFitLiveNames(root) {
+  const host = root || document;
+  host.querySelectorAll('.sup-agent-name, .live-name').forEach((el) => {
+    mbFitMarquee(el, el.dataset.full || el.textContent || '');
+  });
 }
 try {
   window.mbIsAiOperator = mbIsAiOperator;
   window.mbOperatorName = mbOperatorName;
   window.mbOperatorHtml = mbOperatorHtml;
+  window.mbFitMarquee = mbFitMarquee;
+  window.mbFitLiveNames = mbFitLiveNames;
 } catch (_) {}
 
 // ── SIDEBAR ──────────────────────────────────

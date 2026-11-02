@@ -284,7 +284,7 @@ button.sup-pill.inactive { opacity: 0.42; }
   font-weight: 800; font-size: 15px;
   flex-shrink: 0;
 }
-.sup-agent-info { flex: 1; min-width: 0; }
+.sup-agent-info { flex: 1; min-width: 0; overflow: hidden; }
 .sup-agent-name {
   font-size: 13px;
   font-weight: 700;
@@ -292,6 +292,8 @@ button.sup-pill.inactive { opacity: 0.42; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+  max-width: 100%;
 }
 .sup-status {
   display: inline-block;
