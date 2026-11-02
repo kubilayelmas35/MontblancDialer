@@ -1,5 +1,6 @@
 // ─────────────────────────────────────────────
 // Randevular — Satışlar benzeri liste + durum chip’leri
+// Kolonlar: çekirdek + firma/kampanya termin_form alanları
 // ─────────────────────────────────────────────
 
 let _rdBusy = false;
@@ -10,6 +11,11 @@ let _rdResults = [];
 let _rdResultsByFirm = {};
 let _rdQ = '';
 let _rdSort = { key: 'termin', dir: 'desc' };
+let _rdAgents = [];
+let _rdCampById = {};
+let _rdExtraCols = [];
+
+const _RD_CORE_SKIP = new Set(['name', 'phone', 'phone2', 'address', 'plz', 'city', 'attempt', 'notes']);
 
 function _rdEsc(v) {
   return typeof escapeHtml === 'function' ? escapeHtml(v ?? '') : String(v ?? '')
@@ -33,6 +39,12 @@ function _rdBounds(from, to) {
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
   return { gte, lte };
+}
+
+function _rdCanEditAgent() {
+  const role = currentUser?.role || '';
+  if (typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin(role)) return true;
+  return role === 'qc';
 }
 
 function _rdNormDurum(raw) {
@@ -90,6 +102,85 @@ function _rdShowLoading(on) {
   if (el) el.hidden = !on;
 }
 
+function _rdEk(raw) {
+  let value = raw?.form_ek;
+  if (typeof value === 'string') {
+    try { value = JSON.parse(value); } catch (_) { value = {}; }
+  }
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function _rdFormList(camp) {
+  const tf = typeof getCampSettings === 'function' ? getCampSettings(camp).termin_form : null;
+  if (typeof terminFormListFromSaved === 'function') return terminFormListFromSaved(tf);
+  if (typeof dialerTerminFields === 'function') {
+    return dialerTerminFields(camp).map((field) => ({ key: field.key, label: field.l, enabled: true }));
+  }
+  return [];
+}
+
+function _rdFieldValue(raw, key) {
+  const col = typeof TAKVIM_APPT_COL !== 'undefined' ? TAKVIM_APPT_COL[key] : '';
+  if (col && raw?.[col] != null && raw[col] !== '') {
+    if (typeof takvimYesNo === 'function' && (key === 'interesse_an_pv' || raw[col] === true || raw[col] === false)) {
+      return takvimYesNo(raw[col]);
+    }
+    return raw[col];
+  }
+  const extra = _rdEk(raw);
+  if (extra[key] != null && extra[key] !== '') {
+    if (typeof takvimYesNo === 'function' && (key === 'interesse_an_pv' || extra[key] === true || extra[key] === false)) {
+      return takvimYesNo(extra[key]);
+    }
+    return extra[key];
+  }
+  return '';
+}
+
+function _rdDiscoverExtraCols(rows) {
+  const map = new Map();
+  Object.values(_rdCampById).forEach((camp) => {
+    _rdFormList(camp).forEach((field) => {
+      const key = String(field.key || '').trim();
+      if (!key || _RD_CORE_SKIP.has(key) || field.enabled === false) return;
+      const label = String(field.label || field.l || key).trim() || key;
+      const prev = map.get(key);
+      if (!prev) map.set(key, label);
+    });
+  });
+  (rows || []).forEach((row) => {
+    Object.keys(_rdEk(row.raw || row)).forEach((key) => {
+      if (!key || _RD_CORE_SKIP.has(key) || map.has(key)) return;
+      if (typeof TAKVIM_APPT_COL !== 'undefined' && TAKVIM_APPT_COL[key]) {
+        map.set(key, key);
+        return;
+      }
+      map.set(key, key);
+    });
+  });
+  // Standart termin kolonları kampanya ayarında yoksa ama veride varsa göster
+  const std = [
+    ['hausart', _rdSay('Ev tipi', 'Haustyp')],
+    ['baujahr', _rdSay('Yapım yılı', 'Baujahr')],
+    ['qm', 'm²'],
+    ['heizung', _rdSay('Isıtma', 'Heizung')],
+    ['alter_der_heizung', _rdSay('Isıtma yaşı', 'Heizungsalter')],
+    ['verbrauch_pro_jahr', _rdSay('Tüketim/yıl', 'Verbrauch/Jahr')],
+    ['personen', _rdSay('Kişi', 'Personen')],
+    ['interesse_an_pv', _rdSay('PV ilgisi', 'PV-Interesse')],
+  ];
+  std.forEach(([key, label]) => {
+    if (map.has(key)) return;
+    const hit = (rows || []).some((r) => String(_rdFieldValue(r.raw || r, key) || '').trim());
+    if (hit) map.set(key, label);
+  });
+  return [...map.entries()].map(([key, label]) => ({ key, label }));
+}
+
+function _rdColSpan() {
+  return 12 + _rdExtraCols.length;
+}
+
 function _rdStatusKeys() {
   const keys = [];
   const push = (k) => { if (k && !keys.includes(k)) keys.push(k); };
@@ -112,10 +203,23 @@ async function _rdLoadResultDefs() {
   }
 }
 
+async function _rdLoadCampsAndAgents() {
+  const ff = typeof getFirmFilter === 'function' ? getFirmFilter('&') : '';
+  const fid = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id;
+  _rdCampById = {};
+  const camps = await sb(`campaigns?select=id,name,settings,field_config${ff}&order=name.asc&limit=500`).catch(() => []);
+  (camps || []).forEach((c) => { if (c?.id) _rdCampById[c.id] = c; });
+
+  let agentQ = `users?select=id,name,role&role=eq.agent&is_active=eq.true&order=name.asc`;
+  if (fid) agentQ += `&firm_id=eq.${fid}`;
+  else if (ff) agentQ += ff;
+  _rdAgents = (await sb(agentQ).catch(() => [])) || [];
+}
+
 async function _rdFetchRows(from, to) {
   const ff = typeof getFirmFilter === 'function' ? getFirmFilter('&') : '';
   const cols =
-    'id,contact_id,slot_id,termin_tarih,kayit_tarihi,durum,nachname,telefonnummer,telefon2,strasse,plz,ortschaft,agent_id,campaign_id,customer_id,firm_id,agent_notu,qc_notu';
+    'id,contact_id,slot_id,termin_tarih,kayit_tarihi,durum,nachname,telefonnummer,telefon2,strasse,plz,ortschaft,hausart,baujahr,qm,heizung,alter_der_heizung,verbrauch_pro_jahr,personen,interesse_an_pv,agent_id,campaign_id,customer_id,firm_id,agent_notu,qc_notu,form_ek';
   const bounds = _rdBounds(from, to);
   let q = `appointments?select=${cols},users(name),campaigns(name),customers(name,code)${ff}`;
   q += `&termin_tarih=gte.${bounds.gte}&termin_tarih=lte.${bounds.lte}&order=termin_tarih.desc,id.desc`;
@@ -179,6 +283,9 @@ async function _rdFetchRows(from, to) {
   return rows.map((r) => {
     const durumKey = _rdNormDurum(r.durum);
     const field = fieldByAppt[r.id];
+    if (r.campaign_id && r.campaigns && !_rdCampById[r.campaign_id]) {
+      _rdCampById[r.campaign_id] = { id: r.campaign_id, name: r.campaigns.name, settings: {} };
+    }
     return {
       id: r.id,
       contactId: r.contact_id || '',
@@ -256,8 +363,18 @@ function rdSortBy(key) {
 function _rdCmp(a, b) {
   const dir = _rdSort.dir === 'asc' ? 1 : -1;
   const k = _rdSort.key;
-  const va = k === 'name' ? a.name : k === 'phone' ? a.phone : k === 'plz' ? a.plz : k === 'created' ? a.created : a.termin;
-  const vb = k === 'name' ? b.name : k === 'phone' ? b.phone : k === 'plz' ? b.plz : k === 'created' ? b.created : b.termin;
+  let va = a.termin;
+  let vb = b.termin;
+  if (k === 'name') { va = a.name; vb = b.name; }
+  else if (k === 'phone') { va = a.phone; vb = b.phone; }
+  else if (k === 'plz') { va = a.plz; vb = b.plz; }
+  else if (k === 'created') { va = a.created; vb = b.created; }
+  else if (k === 'agent') { va = a.agent; vb = b.agent; }
+  else if (String(k).startsWith('f:')) {
+    const fk = k.slice(2);
+    va = _rdFieldValue(a.raw, fk);
+    vb = _rdFieldValue(b.raw, fk);
+  }
   return String(va || '').localeCompare(String(vb || ''), 'tr', { numeric: true }) * dir;
 }
 
@@ -266,7 +383,8 @@ function rdApplyFilter() {
   if (_rdStatSel.size) list = list.filter((r) => _rdStatSel.has(r.durumKey));
   if (_rdQ) {
     list = list.filter((r) => {
-      const blob = [r.name, r.phone, r.street, r.plz, r.city, r.camp, r.agent, r.fieldName, r.durumLabel, r.id]
+      const extras = _rdExtraCols.map((c) => _rdFieldValue(r.raw, c.key)).join(' ');
+      const blob = [r.name, r.phone, r.street, r.plz, r.city, r.camp, r.agent, r.fieldName, r.durumLabel, r.id, extras]
         .join(' ').toLocaleLowerCase('tr-TR');
       return blob.includes(_rdQ);
     });
@@ -274,21 +392,67 @@ function rdApplyFilter() {
   list.sort(_rdCmp);
   _rdFiltered = list;
   _rdBuildChips();
+  _rdPaintHead();
   _rdPaintTable();
   const n = document.getElementById('rd-count');
   if (n) n.textContent = String(list.length);
 }
 
+function _rdPaintHead() {
+  const head = document.getElementById('rd-thead');
+  if (!head) return;
+  const th = (label, sortKey) => sortKey
+    ? `<th onclick="rdSortBy('${sortKey}')" style="cursor:pointer;">${_rdEsc(label)}</th>`
+    : `<th>${_rdEsc(label)}</th>`;
+  const extra = _rdExtraCols.map((c) => th(c.label, `f:${c.key}`)).join('');
+  head.innerHTML = `<tr>
+${th('ID', 'id')}
+${th(_rdSay('Ad Soyad', 'Name'), 'name')}
+${th(_rdSay('Numara', 'Nummer'), 'phone')}
+${th(_rdSay('Cadde', 'Straße'))}
+${th('PLZ', 'plz')}
+${th(_rdSay('Şehir', 'Ort'))}
+${extra}
+${th(_rdSay('Kampanya', 'Kampagne'))}
+${th(_rdSay('Temsilci', 'Mitarbeiter'), 'agent')}
+${th(_rdSay('Saha', 'Feld'))}
+${th(_rdSay('Durum', 'Status'))}
+${th(_rdSay('Randevu', 'Termin'), 'termin')}
+${th(_rdSay('Kayıt', 'Erfasst'), 'created')}
+<th></th>
+</tr>`;
+}
+
+function _rdAgentSelect(row) {
+  const idAttr = String(row.id).replace(/'/g, '');
+  if (!_rdCanEditAgent()) return _rdEsc(row.agent || '—');
+  const opts = [`<option value="">—</option>`]
+    .concat(_rdAgents.map((a) => {
+      const sel = String(a.id) === String(row.agentId || '') ? ' selected' : '';
+      return `<option value="${_rdEsc(a.id)}"${sel}>${_rdEsc(a.name || a.id)}</option>`;
+    }));
+  // Mevcut temsilci listede yoksa ekle
+  if (row.agentId && !_rdAgents.some((a) => String(a.id) === String(row.agentId))) {
+    opts.splice(1, 0, `<option value="${_rdEsc(row.agentId)}" selected>${_rdEsc(row.agent || row.agentId)}</option>`);
+  }
+  return `<select class="form-input rd-agent-sel" onclick="event.stopPropagation()" onchange="rdChangeAgent('${idAttr}', this.value)">${opts.join('')}</select>`;
+}
+
 function _rdPaintTable() {
   const tb = document.getElementById('rd-tbody');
   if (!tb) return;
+  const span = _rdColSpan();
   if (!_rdFiltered.length) {
-    tb.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:36px;color:var(--text-3);">${_rdEsc(_rdSay('Kayıt yok', 'Keine Einträge'))}</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="${span}" style="text-align:center;padding:36px;color:var(--text-3);">${_rdEsc(_rdSay('Kayıt yok', 'Keine Einträge'))}</td></tr>`;
     return;
   }
   tb.innerHTML = _rdFiltered.map((r) => {
     const color = _rdBadgeColor(r.durumKey);
     const idAttr = String(r.id).replace(/'/g, '');
+    const extras = _rdExtraCols.map((c) => {
+      const v = _rdFieldValue(r.raw, c.key);
+      return `<td>${_rdEsc(v === '' || v == null ? '—' : v)}</td>`;
+    }).join('');
     return `<tr class="rd-row" onclick="rdOpenRow('${idAttr}')">
 <td class="td-mono" title="${_rdEsc(r.id)}">${_rdEsc(_rdShortId(r.id))}</td>
 <td><b>${_rdEsc(r.name)}</b></td>
@@ -296,8 +460,9 @@ function _rdPaintTable() {
 <td>${_rdEsc(r.street || '—')}</td>
 <td class="td-mono">${_rdEsc(r.plz || '—')}</td>
 <td>${_rdEsc(r.city || '—')}</td>
+${extras}
 <td>${_rdEsc(r.camp || '—')}</td>
-<td>${_rdEsc(r.agent || '—')}</td>
+<td class="rd-agent-cell" onclick="event.stopPropagation()">${_rdAgentSelect(r)}</td>
 <td>${_rdEsc(r.fieldName || '—')}</td>
 <td><span class="rd-status" style="background:${color}22;color:${color};border-color:${color}55">${_rdEsc(r.durumLabel)}</span></td>
 <td>${_rdEsc(_rdFmtWhen(r.termin))}</td>
@@ -307,6 +472,33 @@ function _rdPaintTable() {
 </td>
 </tr>`;
   }).join('');
+}
+
+async function rdChangeAgent(apptId, agentId) {
+  if (!_rdCanEditAgent()) return;
+  const next = agentId || null;
+  const row = _rdRows.find((r) => r.id === apptId);
+  const prev = row?.agentId || '';
+  try {
+    await sb(`appointments?id=eq.${apptId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ agent_id: next }),
+    });
+    if (row) {
+      row.agentId = next || '';
+      row.agent = next ? (_rdAgents.find((a) => String(a.id) === String(next))?.name || row.agent) : '';
+      if (row.raw) row.raw.agent_id = next;
+    }
+    if (typeof toast === 'function') toast(_rdSay('Temsilci güncellendi', 'Mitarbeiter aktualisiert'), 'ok');
+    rdApplyFilter();
+  } catch (e) {
+    console.error(e);
+    if (typeof toast === 'function') toast(e.message || _rdSay('Temsilci değiştirilemedi', 'Mitarbeiter konnte nicht geändert werden'), 'err');
+    // select geri al
+    const sel = document.querySelector(`select.rd-agent-sel[onchange*="${apptId}"]`);
+    if (sel) sel.value = prev;
+  }
 }
 
 async function rdOpenRow(id) {
@@ -348,11 +540,18 @@ async function rdExportCsv() {
     toast(_rdSay('Dışa aktarılacak kayıt yok', 'Keine Daten zum Export'), 'warn');
     return;
   }
-  const headers = ['ID', 'Ad Soyad', 'Numara', 'Cadde', 'PLZ', 'Şehir', 'Kampanya', 'Temsilci', 'Saha', 'Durum', 'Randevu', 'Kayıt'];
+  const headers = [
+    'ID', 'Ad Soyad', 'Numara', 'Cadde', 'PLZ', 'Şehir',
+    ..._rdExtraCols.map((c) => c.label),
+    'Kampanya', 'Temsilci', 'Saha', 'Durum', 'Randevu', 'Kayıt',
+  ];
   const lines = [headers.join(';')];
   rows.forEach((r) => {
-    const cells = [r.id, r.name, r.phone, r.street, r.plz, r.city, r.camp, r.agent, r.fieldName, r.durumLabel, _rdFmtWhen(r.termin), _rdFmtWhen(r.created)]
-      .map((c) => `"${String(c || '').replace(/"/g, '""')}"`);
+    const cells = [
+      r.id, r.name, r.phone, r.street, r.plz, r.city,
+      ..._rdExtraCols.map((c) => _rdFieldValue(r.raw, c.key)),
+      r.camp, r.agent, r.fieldName, r.durumLabel, _rdFmtWhen(r.termin), _rdFmtWhen(r.created),
+    ].map((c) => `"${String(c || '').replace(/"/g, '""')}"`);
     lines.push(cells.join(';'));
   });
   const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
@@ -380,13 +579,14 @@ async function loadRandevularPage() {
       renderFirmSelector('rd-firm-wrap', loadRandevularPage);
     }
 
-    await _rdLoadResultDefs();
+    await Promise.all([_rdLoadResultDefs(), _rdLoadCampsAndAgents()]);
     _rdRows = await _rdFetchRows(from, to);
+    _rdExtraCols = _rdDiscoverExtraCols(_rdRows);
     rdApplyFilter();
   } catch (e) {
     console.error(e);
     const tb = document.getElementById('rd-tbody');
-    if (tb) tb.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:28px;color:var(--red);">${_rdEsc(e.message || 'Hata')}</td></tr>`;
+    if (tb) tb.innerHTML = `<tr><td colspan="${_rdColSpan()}" style="text-align:center;padding:28px;color:var(--red);">${_rdEsc(e.message || 'Hata')}</td></tr>`;
   } finally {
     _rdShowLoading(false);
     _rdBusy = false;
@@ -401,4 +601,5 @@ try {
   window.rdOpenRow = rdOpenRow;
   window.rdToggleFilterBar = rdToggleFilterBar;
   window.rdExportCsv = rdExportCsv;
+  window.rdChangeAgent = rdChangeAgent;
 } catch (_) {}

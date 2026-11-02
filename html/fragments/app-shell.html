@@ -2243,6 +2243,8 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 #page-randevular .rd-loading[hidden]{display:none!important;}
 #page-randevular .rd-table-card{position:relative;padding:0;overflow:hidden;}
 #page-randevular .td-mono{font-variant-numeric:tabular-nums;font-family:var(--mono,ui-monospace,monospace);font-size:11px;}
+#page-randevular .rd-agent-sel{font-size:11px;padding:3px 6px;min-width:120px;max-width:180px;}
+#page-randevular .rd-agent-cell{min-width:130px;}
 </style>
 <div class="page-hdr">
 <div>
@@ -2267,20 +2269,20 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="card rd-table-card">
 <div id="rd-loading" class="rd-loading" hidden><div class="card" style="padding:18px 24px;font-weight:700;">…</div></div>
 <div class="tbl-wrap">
-<table style="min-width:1100px;">
-<thead><tr>
-<th onclick="rdSortBy('id')" style="cursor:pointer;">ID</th>
-<th onclick="rdSortBy('name')" style="cursor:pointer;" data-tr="Ad Soyad" data-de="Name">Ad Soyad</th>
-<th onclick="rdSortBy('phone')" style="cursor:pointer;" data-tr="Numara" data-de="Nummer">Numara</th>
+<table style="min-width:1100px;" id="rd-table">
+<thead id="rd-thead"><tr>
+<th>ID</th>
+<th data-tr="Ad Soyad" data-de="Name">Ad Soyad</th>
+<th data-tr="Numara" data-de="Nummer">Numara</th>
 <th data-tr="Cadde" data-de="Straße">Cadde</th>
-<th onclick="rdSortBy('plz')" style="cursor:pointer;" data-tr="PLZ" data-de="PLZ">PLZ</th>
+<th data-tr="PLZ" data-de="PLZ">PLZ</th>
 <th data-tr="Şehir" data-de="Ort">Şehir</th>
 <th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
 <th data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</th>
 <th data-tr="Saha" data-de="Feld">Saha</th>
 <th data-tr="Durum" data-de="Status">Durum</th>
-<th onclick="rdSortBy('termin')" style="cursor:pointer;" data-tr="Randevu" data-de="Termin">Randevu</th>
-<th onclick="rdSortBy('created')" style="cursor:pointer;" data-tr="Kayıt" data-de="Erfasst">Kayıt</th>
+<th data-tr="Randevu" data-de="Termin">Randevu</th>
+<th data-tr="Kayıt" data-de="Erfasst">Kayıt</th>
 <th></th>
 </tr></thead>
 <tbody id="rd-tbody">
