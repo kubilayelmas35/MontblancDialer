@@ -268,9 +268,9 @@ async function saveWv() {
   const name = document.getElementById('wv-name').value.trim();
   const tel  = document.getElementById('wv-tel').value.trim();
   const dt   = document.getElementById('wv-dt').value;
-  if (!name||!tel||!dt) { toast('Ad, telefon ve zaman zorunlu','err'); return; }
+  if (!name||!tel||!dt) { toast(wvSay('wv.need_fields', 'Ad, telefon ve zaman zorunlu'),'err'); return; }
   if (typeof mbIsE164 === 'function' && !mbIsE164(tel)) {
-    toast('Telefon +49 veya +90 ile, ülke koduyla yazılmalı','err');
+    toast(wvSay('wv.phone_format', 'Telefon +49 veya +90 ile, ülke koduyla yazılmalı'),'err');
     return;
   }
   const agentRow = document.getElementById('wv-agent-row');
@@ -278,11 +278,11 @@ async function saveWv() {
   const adminPick = agentRow && agentRow.style.display !== 'none';
   const pickedAgent = String(agentSel?.value || '').trim();
   if (adminPick && !pickedAgent) {
-    toast('Temsilci seçin','err');
+    toast(wvSay('wv.need_agent', 'Temsilci seçin'),'err');
     return;
   }
   const when = typeof mbWallToIso === 'function' ? mbWallToIso(dt) : new Date(dt).toISOString();
-  if (!when) { toast('Zaman geçersiz','err'); return; }
+  if (!when) { toast(wvSay('wv.bad_time', 'Zaman geçersiz'),'err'); return; }
   const agentId = pickedAgent || currentUser?.id;
   const campId = document.getElementById('wv-camp')?.value || '';
   const data = {
@@ -307,8 +307,8 @@ async function saveWv() {
     }
     closeModal('m-wv-form');
     await refreshWvList();
-    toast(currentLang === 'de' ? 'Rückruf gespeichert' : 'Geri arama kaydedildi','ok');
-  } catch(e) { toast('Hata: '+e.message,'err'); }
+    toast(wvSay('wv.saved', 'Geri arama kaydedildi'),'ok');
+  } catch(e) { toast(wvSay('wv.err', 'Hata: {m}').replace('{m}', e.message || ''),'err'); }
 }
 
 async function wvMarkOlumsuz(id) {
@@ -318,7 +318,7 @@ async function wvMarkOlumsuz(id) {
     await refreshWvList();
     toast(t('wv.marked_negative'), 'ok');
   } catch (e) {
-    toast('Hata: ' + e.message, 'err');
+    toast(wvSay('wv.err', 'Hata: {m}').replace('{m}', e.message || ''), 'err');
   }
 }
 
@@ -328,7 +328,7 @@ async function wvMarkDone(id) {
     await refreshWvList();
     toast(wvSay('wv.marked_done', 'Arandı — listeden çıktı'), 'ok');
   } catch (e) {
-    toast('Hata: ' + e.message, 'err');
+    toast(wvSay('wv.err', 'Hata: {m}').replace('{m}', e.message || ''), 'err');
   }
 }
 

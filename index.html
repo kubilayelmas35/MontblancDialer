@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="callin.one çağrı merkezi">
-<link rel="icon" href="favicon.svg?v=14.12" type="image/svg+xml">
+<link rel="icon" href="favicon.svg?v=14.13" type="image/svg+xml">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,17 +15,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=14.12">
-<link rel="stylesheet" href="css/styles-dialer.css?v=14.12">
-<link rel="stylesheet" href="css/styles-mascot.css?v=14.12">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.12">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.12">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.12">
-<link rel="stylesheet" href="css/styles-pages.css?v=14.12">
-<link rel="stylesheet" href="css/styles-aurora.css?v=14.12">
-<link rel="stylesheet" href="css/styles-chat.css?v=14.12">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=14.12">
-<link rel="stylesheet" href="css/styles-responsive.css?v=14.12">
+<link rel="stylesheet" href="css/styles.css?v=14.13">
+<link rel="stylesheet" href="css/styles-dialer.css?v=14.13">
+<link rel="stylesheet" href="css/styles-mascot.css?v=14.13">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.13">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.13">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.13">
+<link rel="stylesheet" href="css/styles-pages.css?v=14.13">
+<link rel="stylesheet" href="css/styles-aurora.css?v=14.13">
+<link rel="stylesheet" href="css/styles-chat.css?v=14.13">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=14.13">
+<link rel="stylesheet" href="css/styles-responsive.css?v=14.13">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -84,7 +84,7 @@
 </div>
 </div>
 </div>
-<div class="login-version">v14.12 — 2026</div>
+<div class="login-version">v14.13 — 2026</div>
 </div>
 </div>
 <div id="app" style="display:none;">
@@ -302,7 +302,7 @@
 </button>
 <button class="sb-item" onclick="navigate('wiedervorlage')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
-<span data-tr="Aranacaklar" data-de="Wiedervorlage">Aranacaklar</span>
+<span data-tr="Aranacaklar" data-de="Rückrufe">Aranacaklar</span>
 <span class="sb-badge" id="sb-badge-wv" style="display:none;background:var(--yellow);color:#000;">0</span>
 </button>
 <button class="sb-item" id="nav-takvim-btn" onclick="openNavTakvim()">
@@ -315,7 +315,7 @@
 </button>
 <button class="sb-item" id="nav-performansim-btn" style="display:none;" onclick="navigate('performansim')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
-<span data-tr="Performansım" data-de="Meine Performance">Performansım</span>
+<span data-tr="Performansım" data-de="Meine Leistung">Performansım</span>
 </button>
 <button class="sb-item" id="nav-field-btn" style="display:none;" onclick="navigate('field')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></span>
@@ -481,7 +481,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">callin.one v14.12</div>
+<div class="sb-ver">callin.one v14.13</div>
 </div>
 </div>
 </nav>
@@ -665,8 +665,8 @@
 </div>
 <div class="callin-hdr-nav">
 <div class="callin-tabs" role="tablist">
-<button type="button" class="callin-tab is-on" role="tab" aria-selected="true" data-callin="auto" onclick="callinTab('auto')" data-tr="Kampanya &amp; sıra" data-de="Kampagne &amp; Reihe">Kampanya &amp; sıra</button>
-<button type="button" class="callin-tab" role="tab" aria-selected="false" data-callin="staff" onclick="callinTab('staff')" data-tr="Personel kur" data-de="Personal einrichten">Personel kur</button>
+<button type="button" class="callin-tab is-on" role="tab" aria-selected="true" data-callin="auto" onclick="callinTab('auto')" data-tr="Kampanya &amp; sıra" data-de="Kampagne &amp; Warteschlange">Kampanya &amp; sıra</button>
+<button type="button" class="callin-tab" role="tab" aria-selected="false" data-callin="staff" onclick="callinTab('staff')" data-tr="Personel ayarla" data-de="Personal einrichten">Personel ayarla</button>
 <button type="button" class="callin-tab" role="tab" aria-selected="false" data-callin="run" onclick="callinTab('run')" data-tr="YZ arama" data-de="KI-Anrufe">YZ arama</button>
 </div>
 <p class="callin-tab-desc" id="callin-tab-desc" data-tr="Boş güne kampanya seçer, sıra azalınca kişi yükler. Randevu alta inince yer açar." data-de="Wählt die Kampagne am freien Tag, füllt die Reihe nach und öffnet einen Platz, wenn ein Termin nach unten geht.">Boş güne kampanya seçer, sıra azalınca kişi yükler. Randevu alta inince yer açar.</p>
@@ -684,7 +684,7 @@
 </div>
 <div class="aria-job-switch">
 <label class="aria-job"><input type="checkbox" id="tour-camp-auto-run" onchange="tourFlag('kampanyaDegis', this)"><span data-tr="Kampanya" data-de="Kampagne">Kampanya</span></label>
-<label class="aria-job"><input type="checkbox" id="tour-queue-auto-run" onchange="tourFlag('kuyrukYenile', this)"><span data-tr="Kuyruk" data-de="Queue">Kuyruk</span></label>
+<label class="aria-job"><input type="checkbox" id="tour-queue-auto-run" onchange="tourFlag('kuyrukYenile', this)"><span data-tr="Kuyruk" data-de="Warteschlange">Kuyruk</span></label>
 </div>
 </div>
 <p class="tour-help" id="tour-say-on" hidden><b data-tr="Açık" data-de="An">Açık</b> <span data-tr="kendi kendine bakar, yaklaşık her dakika. Açınca bir kez hemen de bakar." data-de="schaut von selbst, ungefähr jede Minute. Beim Einschalten schaut sie einmal sofort.">kendi kendine bakar, yaklaşık her dakika. Açınca bir kez hemen de bakar.</span></p>
@@ -704,7 +704,7 @@
 <div class="aria-status-head">
 <div class="aria-status-kicker"><span data-aria-name="1" data-tr="Callin" data-de="Callin">Callin</span></div>
 <span class="aria-status-mode" id="aria-status-mode"></span>
-<span class="aria-looking" id="aria-looking" hidden data-tr="Bakıyorum" data-de="Ich schaue">Bakıyorum</span>
+<span class="aria-looking" id="aria-looking" hidden data-tr="Bakıyorum" data-de="Schaue nach">Bakıyorum</span>
 </div>
 <p class="aria-status-line" id="aria-last"></p>
 <div class="aria-now" id="aria-now" hidden></div>
@@ -715,7 +715,7 @@
 <div class="tour-tabs" role="tablist">
 <button type="button" class="tour-tab is-on" role="tab" aria-selected="true" data-tab="kampanya" onclick="tourTab('kampanya')" data-tr="Kampanya" data-de="Kampagne">Kampanya</button>
 <button type="button" class="tour-tab" role="tab" aria-selected="false" data-tab="saat" onclick="tourTab('saat')" data-tr="Saat" data-de="Uhrzeit">Saat</button>
-<button type="button" class="tour-tab" role="tab" aria-selected="false" data-tab="sira" onclick="tourTab('sira')" data-tr="Sıra" data-de="Reihe">Sıra</button>
+<button type="button" class="tour-tab" role="tab" aria-selected="false" data-tab="sira" onclick="tourTab('sira')" data-tr="Sıra" data-de="Warteschlange">Sıra</button>
 <button type="button" class="tour-tab" role="tab" aria-selected="false" data-tab="takvim" onclick="tourTab('takvim')" data-tr="Takvim" data-de="Kalender">Takvim</button>
 </div>
 <div class="tour-pane is-on" data-pane="kampanya">
@@ -723,7 +723,7 @@
 <p class="tour-note" data-tr="Bu hesap için. Boş saatler arasından hangi kampanyaya geçeceğini sırayla sorar." data-de="Für dieses Konto. Fragt der Reihe nach, zu welcher Kampagne sie unter den freien Stunden wechselt.">Bu hesap için. Boş saatler arasından hangi kampanyaya geçeceğini sırayla sorar.</p>
 <div class="tour-grid">
 <label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="Kampanyayı kendi değiştirsin" data-de="Kampagne selbst wechseln">Kampanyayı kendi değiştirsin</span>
-<small class="tour-help" data-tr="Açıkken boş saate göre kampanya seçer ve ekibe söyler. Kapalıyken açık kampanyaya dokunmaz. Kuyruk ayrı kalır." data-de="An: wählt die Kampagne nach freien Stunden und sagt es dem Team. Aus: die offene Kampagne bleibt. Die Queue bleibt getrennt.">Açıkken boş saate göre kampanya seçer ve ekibe söyler. Kapalıyken açık kampanyaya dokunmaz. Kuyruk ayrı kalır.</small></span>
+<small class="tour-help" data-tr="Açıkken boş saate göre kampanya seçer ve ekibe söyler. Kapalıyken açık kampanyaya dokunmaz. Kuyruk ayrı kalır." data-de="An: wählt die Kampagne nach freien Stunden und sagt es dem Team. Aus: die offene Kampagne bleibt. Die Warteschlange bleibt getrennt.">Açıkken boş saate göre kampanya seçer ve ekibe söyler. Kapalıyken açık kampanyaya dokunmaz. Kuyruk ayrı kalır.</small></span>
 <input type="checkbox" id="tour-camp-auto" onchange="tourFlag('kampanyaDegis', this)"></label>
 <label class="tour-field"><span class="tour-name" data-tr="En az kaç boş saat olsun" data-de="Mindestens so viele freie Stunden">En az kaç boş saat olsun</span>
 <small class="tour-help" data-tr="Bir kampanyanın seçilmesi için o günde en az bu kadar boş saati olmalı. 1 yazarsan, tek boş saati olan kampanya da seçilebilir." data-de="Eine Kampagne braucht an dem Tag mindestens so viele freie Stunden. Bei 1 reicht schon eine freie Stunde.">Bir kampanyanın seçilmesi için o günde en az bu kadar boş saati olmalı. 1 yazarsan, tek boş saati olan kampanya da seçilebilir.</small>
@@ -2110,7 +2110,7 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="page-hdr">
 <div>
 <div class="page-title"><span data-tr="Saha görevlerim" data-de="Meine Einsätze">Saha görevlerim</span></div>
-<div class="page-sub" id="field-page-sub" data-tr="Atanmış saha görevleriniz" data-de="Ihre zugewiesenen Feldaufgaben">Atanmış saha görevleriniz</div>
+<div class="page-sub" id="field-page-sub" data-tr="Atanmış saha görevleriniz" data-de="Ihre zugewiesenen Außeneinsätze">Atanmış saha görevleriniz</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
 <button class="btn btn-ghost btn-sm" onclick="loadFieldPage()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
@@ -2226,13 +2226,13 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="page-title" data-tr="Geçmişim" data-de="Mein Verlauf">Geçmişim</div>
 </div>
 <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-<input type="text" class="form-input" id="mh-search" placeholder="İsim, numara..." style="width:160px;padding:5px 10px;font-size:12px;" oninput="loadMyHistory()">
+<input type="text" class="form-input" id="mh-search" data-tr="İsim, numara…" data-de="Name, Nummer…" placeholder="İsim, numara…" style="width:160px;padding:5px 10px;font-size:12px;" oninput="loadMyHistory()">
 <select class="form-input" id="mh-outcome" style="width:130px;padding:5px 8px;font-size:12px;" onchange="loadMyHistory()">
-<option value="">Tüm Sonuçlar</option>
-<option value="appointment">Randevu</option>
-<option value="callback">Geri Ara</option>
-<option value="negative">Olumsuz</option>
-<option value="no_answer">Cevap Yok</option>
+<option value="" data-tr="Tüm sonuçlar" data-de="Alle Ergebnisse">Tüm sonuçlar</option>
+<option value="appointment" data-tr="Randevu" data-de="Termin">Randevu</option>
+<option value="callback" data-tr="Geri ara" data-de="Rückruf">Geri ara</option>
+<option value="negative" data-tr="Olumsuz" data-de="Negativ">Olumsuz</option>
+<option value="no_answer" data-tr="Cevap yok" data-de="Keine Antwort">Cevap yok</option>
 </select>
 <input type="date" class="form-input" id="mh-date-from" style="width:135px;padding:5px 8px;font-size:12px;" onchange="loadMyHistory()">
 <span style="font-size:12px;color:var(--text-3);">—</span>
@@ -2256,7 +2256,7 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <th></th>
 </tr></thead>
 <tbody id="my-tbody">
-<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
+<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;" data-tr="Yükleniyor…" data-de="Wird geladen…">Yükleniyor…</td></tr>
 </tbody>
 </table>
 </div>
@@ -2265,14 +2265,14 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="page" id="page-wiedervorlage">
 <div class="page-hdr">
 <div>
-<div class="page-title" data-tr="Aranacaklar" data-de="Wiedervorlage">Aranacaklar</div>
+<div class="page-title" data-tr="Aranacaklar" data-de="Rückrufe">Aranacaklar</div>
 <div class="page-sub" data-tr="Geri arama hatırlatmaları" data-de="Rückruferinnerungen">Geri arama hatırlatmaları</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;">
-<input type="text" class="form-input" id="wv-search" placeholder="İsim, numara, PLZ..." style="width:200px;padding:6px 10px;font-size:12px;" oninput="filterWvTable()">
+<input type="text" class="form-input" id="wv-search" data-tr="İsim, numara, PLZ…" data-de="Name, Nummer, PLZ…" placeholder="İsim, numara, PLZ…" style="width:200px;padding:6px 10px;font-size:12px;" oninput="filterWvTable()">
 <button class="btn btn-primary btn-sm" onclick="openWvModal()">
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-<span data-tr="Yeni Ekle" data-de="Neu">Yeni</span>
+<span data-tr="Yeni" data-de="Neu">Yeni</span>
 </button>
 </div>
 </div>
@@ -2299,13 +2299,13 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <th><span data-tr="İsim" data-de="Name">İsim</span><input class="camp-col-filter" id="wv-f-name" oninput="filterWvTable()"></th>
 <th><span data-tr="Telefon" data-de="Telefon">Telefon</span><input class="camp-col-filter" id="wv-f-tel" oninput="filterWvTable()"></th>
 <th><span data-tr="PLZ / Şehir" data-de="PLZ / Ort">PLZ / Şehir</span><input class="camp-col-filter" id="wv-f-place" oninput="filterWvTable()"></th>
-<th id="wv-agent-col"><span data-tr="Agent" data-de="Agent">Agent</span><input class="camp-col-filter" id="wv-f-agent" oninput="filterWvTable()"></th>
+<th id="wv-agent-col"><span data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</span><input class="camp-col-filter" id="wv-f-agent" oninput="filterWvTable()"></th>
 <th><span data-tr="Kampanya" data-de="Kampagne">Kampanya</span><input class="camp-col-filter" id="wv-f-camp" oninput="filterWvTable()"></th>
 <th><span data-tr="Not" data-de="Notiz">Not</span><input class="camp-col-filter" id="wv-f-note" oninput="filterWvTable()"></th>
 <th data-tr="İşlem" data-de="Aktion">İşlem</th>
 </tr></thead>
 <tbody id="wv-tbody">
-<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
+<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;" data-tr="Yükleniyor…" data-de="Wird geladen…">Yükleniyor…</td></tr>
 </tbody>
 </table>
 </div>
@@ -3132,16 +3132,16 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div class="page" id="page-performansim">
 <div class="page-hdr">
 <div>
-<div class="page-title"><span data-tr="Performansım" data-de="Meine Performance">Performansım</span></div>
+<div class="page-title"><span data-tr="Performansım" data-de="Meine Leistung">Performansım</span></div>
 <div class="page-sub" id="performansim-sub" data-tr="Randevu ve çağrı özeti" data-de="Termin- und Anrufübersicht">Randevu ve çağrı özeti</div>
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="performansim-firm-selector"></div>
 <input type="month" class="form-input" id="performansim-period" style="width:160px;" onchange="_mSyncPayrollPeriodInputs(this);loadPerformansimPage()">
-<button class="btn btn-ghost btn-sm" onclick="loadPerformansimPage()"><i class="ph ph-arrow-clockwise"></i> Yenile</button>
+<button class="btn btn-ghost btn-sm" onclick="loadPerformansimPage()"><i class="ph ph-arrow-clockwise"></i> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
 </div>
 </div>
-<div id="performansim-no-access" class="card" style="display:none;padding:18px;">Bu sayfayı görüntüleme yetkiniz yok.</div>
+<div id="performansim-no-access" class="card" style="display:none;padding:18px;" data-tr="Bu sayfayı görüntüleme yetkiniz yok." data-de="Sie haben keinen Zugriff auf diese Seite.">Bu sayfayı görüntüleme yetkiniz yok.</div>
 <div id="performansim-main" style="display:flex;flex-direction:column;gap:14px;padding-bottom:28px;">
 <div id="muh-agent-perf-wrap" style="display:none;"></div>
 </div>
@@ -5220,75 +5220,75 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=14.12"></script>
-<script src="js/i18n.js?v=14.12"></script>
-<script src="js/config.js?v=14.12"></script>
-<script src="js/state.js?v=14.12"></script>
-<script src="js/api.js?v=14.12"></script>
-<script src="js/access.js?v=14.12"></script>
-<script src="js/auth.js?v=14.12"></script>
-<script src="js/logo.js?v=14.12"></script>
-<script src="js/ui.js?v=14.12"></script>
-<script src="js/chat.js?v=14.12"></script>
-<script src="js/chat-settings.js?v=14.12"></script>
-<script src="js/field-settings.js?v=14.12"></script>
-<script src="js/audit.js?v=14.12"></script>
-<script src="js/feature-flags.js?v=14.12"></script>
-<script src="js/notification-center.js?v=14.12"></script>
+<script src="js/version.js?v=14.13"></script>
+<script src="js/i18n.js?v=14.13"></script>
+<script src="js/config.js?v=14.13"></script>
+<script src="js/state.js?v=14.13"></script>
+<script src="js/api.js?v=14.13"></script>
+<script src="js/access.js?v=14.13"></script>
+<script src="js/auth.js?v=14.13"></script>
+<script src="js/logo.js?v=14.13"></script>
+<script src="js/ui.js?v=14.13"></script>
+<script src="js/chat.js?v=14.13"></script>
+<script src="js/chat-settings.js?v=14.13"></script>
+<script src="js/field-settings.js?v=14.13"></script>
+<script src="js/audit.js?v=14.13"></script>
+<script src="js/feature-flags.js?v=14.13"></script>
+<script src="js/notification-center.js?v=14.13"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=14.12"></script>
-<script src="js/spend.js?v=14.12"></script>
-<script src="js/job-market.js?v=14.12"></script>
-<script src="js/qc-job-market.js?v=14.12"></script>
-<script src="js/export-admin.js?v=14.12"></script>
-<script src="js/export-termin.js?v=14.12"></script>
-<script src="js/performance.js?v=14.12"></script>
-<script src="js/competition.js?v=14.12"></script>
-<script src="js/dashboard.js?v=14.12"></script>
-<script src="js/reports.js?v=14.12"></script>
-<script src="js/dashboard-brief.js?v=14.12"></script>
-<script src="js/campaigns.js?v=14.12"></script>
-<script src="js/campaigns-detail.js?v=14.12"></script>
-<script src="js/campaigns-queue.js?v=14.12"></script>
-<script src="js/queues-page.js?v=14.12"></script>
-<script src="js/contacts-upload.js?v=14.12"></script>
-<script src="js/geocon.js?v=14.12"></script>
-<script src="js/contacts.js?v=14.12"></script>
-<script src="js/contacts-drawer.js?v=14.12"></script>
-<script src="js/telnyx.js?v=14.12"></script>
-<script src="js/hold-music.js?v=14.12"></script>
-<script src="js/voice-orb.js?v=14.12"></script>
-<script src="js/dialer.js?v=14.12"></script>
-<script src="js/ops-alerts.js?v=14.12"></script>
-<script src="js/radius-tour.js?v=14.12"></script>
-<script src="js/dialer-mascot.js?v=14.12"></script>
-<script src="js/dialer-mascot-live.js?v=14.12"></script>
-<script src="js/ui-prefs.js?v=14.12"></script>
-<script src="js/dialer-session.js?v=14.12"></script>
-<script src="js/dialer-call.js?v=14.12"></script>
-<script src="js/dialer-tools.js?v=14.12"></script>
-<script src="js/appointments.js?v=14.12"></script>
-<script src="js/appointments-actions.js?v=14.12"></script>
-<script src="js/appointments-tools.js?v=14.12"></script>
-<script src="js/field.js?v=14.12"></script>
-<script src="js/field-quote.js?v=14.12"></script>
-<script src="js/field-catalog.js?v=14.12"></script>
-<script src="js/field-ops.js?v=14.12"></script>
-<script src="js/wiedervorlage.js?v=14.12"></script>
-<script src="js/qc.js?v=14.12"></script>
-<script src="js/supervisor.js?v=14.12"></script>
-<script src="js/live-coach.js?v=14.12"></script>
-<script src="js/sms-settings.js?v=14.12"></script>
-<script src="js/line-firms.js?v=14.12"></script>
-<script src="js/ai-staff.js?v=14.12"></script>
-<script src="js/callin-desk.js?v=14.12"></script>
-<script src="js/leave-hr.js?v=14.12"></script>
-<script src="js/muhasebe.js?v=14.12"></script>
-<script src="js/muhasebe-books.js?v=14.12"></script>
-<script src="js/agent-self-performance.js?v=14.12"></script>
-<script src="js/agents.js?v=14.12"></script>
-<script src="js/firm-desk.js?v=14.12"></script>
-<script src="js/mimi-brain.js?v=14.12"></script>
+<script src="js/wallet.js?v=14.13"></script>
+<script src="js/spend.js?v=14.13"></script>
+<script src="js/job-market.js?v=14.13"></script>
+<script src="js/qc-job-market.js?v=14.13"></script>
+<script src="js/export-admin.js?v=14.13"></script>
+<script src="js/export-termin.js?v=14.13"></script>
+<script src="js/performance.js?v=14.13"></script>
+<script src="js/competition.js?v=14.13"></script>
+<script src="js/dashboard.js?v=14.13"></script>
+<script src="js/reports.js?v=14.13"></script>
+<script src="js/dashboard-brief.js?v=14.13"></script>
+<script src="js/campaigns.js?v=14.13"></script>
+<script src="js/campaigns-detail.js?v=14.13"></script>
+<script src="js/campaigns-queue.js?v=14.13"></script>
+<script src="js/queues-page.js?v=14.13"></script>
+<script src="js/contacts-upload.js?v=14.13"></script>
+<script src="js/geocon.js?v=14.13"></script>
+<script src="js/contacts.js?v=14.13"></script>
+<script src="js/contacts-drawer.js?v=14.13"></script>
+<script src="js/telnyx.js?v=14.13"></script>
+<script src="js/hold-music.js?v=14.13"></script>
+<script src="js/voice-orb.js?v=14.13"></script>
+<script src="js/dialer.js?v=14.13"></script>
+<script src="js/ops-alerts.js?v=14.13"></script>
+<script src="js/radius-tour.js?v=14.13"></script>
+<script src="js/dialer-mascot.js?v=14.13"></script>
+<script src="js/dialer-mascot-live.js?v=14.13"></script>
+<script src="js/ui-prefs.js?v=14.13"></script>
+<script src="js/dialer-session.js?v=14.13"></script>
+<script src="js/dialer-call.js?v=14.13"></script>
+<script src="js/dialer-tools.js?v=14.13"></script>
+<script src="js/appointments.js?v=14.13"></script>
+<script src="js/appointments-actions.js?v=14.13"></script>
+<script src="js/appointments-tools.js?v=14.13"></script>
+<script src="js/field.js?v=14.13"></script>
+<script src="js/field-quote.js?v=14.13"></script>
+<script src="js/field-catalog.js?v=14.13"></script>
+<script src="js/field-ops.js?v=14.13"></script>
+<script src="js/wiedervorlage.js?v=14.13"></script>
+<script src="js/qc.js?v=14.13"></script>
+<script src="js/supervisor.js?v=14.13"></script>
+<script src="js/live-coach.js?v=14.13"></script>
+<script src="js/sms-settings.js?v=14.13"></script>
+<script src="js/line-firms.js?v=14.13"></script>
+<script src="js/ai-staff.js?v=14.13"></script>
+<script src="js/callin-desk.js?v=14.13"></script>
+<script src="js/leave-hr.js?v=14.13"></script>
+<script src="js/muhasebe.js?v=14.13"></script>
+<script src="js/muhasebe-books.js?v=14.13"></script>
+<script src="js/agent-self-performance.js?v=14.13"></script>
+<script src="js/agents.js?v=14.13"></script>
+<script src="js/firm-desk.js?v=14.13"></script>
+<script src="js/mimi-brain.js?v=14.13"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof mbApplyChartTheme === 'function') mbApplyChartTheme();
