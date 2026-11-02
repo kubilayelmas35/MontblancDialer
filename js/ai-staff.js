@@ -2456,7 +2456,7 @@ function mbPaintAiStaff() {
     : `<span class="ai-state is-wait"><i class="ph ph-warning-circle"></i> ${mbAiEsc(mbAiSay('ai.staff.state.wait', 'Eksik var'))}</span>`;
   const missing = ready ? '' : (!ai.spoken_name ? mbAiSay('line.ai.idle', '') : mbAiSay('ai.staff.price_wait', 'Arama için süper admin dakika fiyatını hat bağlantısından yazar.'));
   const voice = `<section class="ai-card">
-    <header class="ai-card-hd"><div class="ai-card-title">${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml() : ''}${mbAiEsc(mbAiSay('line.ai', 'Agent'))}</div>${state}</header>
+    <header class="ai-card-hd"><div class="ai-card-title">${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml() : ''}${mbAiEsc(mbAiSay('line.ai', 'YZ'))}</div>${state}</header>
     <p class="ai-note">${mbAiEsc(mbAiSay('line.ai.hint', ''))}</p>
     ${missing ? `<p class="ai-note ai-note-warn">${mbAiEsc(missing)}</p>` : ''}
     <div class="ai-grid">

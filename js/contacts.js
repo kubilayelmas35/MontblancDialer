@@ -351,7 +351,7 @@ ${f.type==='number'?`<div data-tf-warn style="display:none;font-size:10px;color:
 <div id="tf2-customer-wrap" style="margin-top:8px;"></div>
 <div id="tf-note-row" style="margin-top:8px;">
 <label style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;">Not</label>
-<textarea id="tf2-note" class="form-input" rows="2" style="font-size:12px;resize:vertical;margin-top:3px;" placeholder="Agent notu..." oninput="onDialerNoteInput(this.value,'tf2')">${_escHtml(c.notes || '')}</textarea>
+<textarea id="tf2-note" class="form-input" rows="2" style="font-size:12px;resize:vertical;margin-top:3px;" placeholder="Temsilci notu..." oninput="onDialerNoteInput(this.value,'tf2')">${_escHtml(c.notes || '')}</textarea>
 </div>
 <button onclick="saveTerminFromSection()" style="margin-top:8px;width:100%;padding:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2,var(--accent)));color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer;">
 Randevuyu Kaydet

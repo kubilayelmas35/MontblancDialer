@@ -585,7 +585,7 @@ function _agentModal(userId, prefill) {
   modal.innerHTML = `
 <div class="modal" style="max-width:460px;">
 <div class="modal-hdr">
-<div class="modal-title"><i class="ph ph-user-circle"></i> ${isEdit ? 'Agent Düzenle' : 'Yeni Agent / Kullanıcı'}</div>
+<div class="modal-title"><i class="ph ph-user-circle"></i> ${isEdit ? t('agent.edit.title') : t('agent.new.title')}</div>
 <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
 </div>
 <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;">
@@ -602,7 +602,7 @@ ${!isEdit ? `<div class="form-row"><label class="form-label">Şifre *</label>
 <div class="form-grid">
 <div class="form-row"><label class="form-label">Rol</label>
 <select class="form-input" id="am-role">
-<option value="agent" ${prefill?.role==='agent'?'selected':''}>Agent</option>
+<option value="agent" ${prefill?.role==='agent'?'selected':''}>${t('agent.role.agent')}</option>
 <option value="qc" ${prefill?.role==='qc'?'selected':''}>QC</option>
 <option value="firm_admin" ${prefill?.role==='firm_admin'?'selected':''}>Firma Admin</option>
 ${showFieldOpt ? `<option value="field_agent" ${prefill?.role==='field_agent'?'selected':''}>Saha Elemanı</option>` : ''}
@@ -763,7 +763,7 @@ async function openAssignModal() {
     const users = await sb(`users?select=id,name,email,role${ff}&role=eq.agent&is_active=eq.true&order=name.asc`) || [];
     const sel = document.getElementById('assign-sel');
     if (sel) {
-      sel.innerHTML = '<option value="">Agent seçin...</option>' +
+      sel.innerHTML = `<option value="">${t('agent.assign.pick_one')}</option>` +
         users.map(u=>`<option value="${u.id}">${u.name} (${u.email})</option>`).join('');
     }
   } catch(e) {}

@@ -943,7 +943,7 @@ async function loadAdminLeaveTables(fid) {
         pend.innerHTML = `
 <table class="data-table" style="width:100%;font-size:12px;border-collapse:collapse;">
 <thead><tr style="text-align:left;color:var(--text-3);">
-<th>Agent</th><th>Başlangıç</th><th>Bitiş</th><th>Gün</th><th>Tür</th><th>Açıklama</th><th></th>
+<th>${typeof t === 'function' ? t('agent.role.agent') : 'Temsilci'}</th><th>Başlangıç</th><th>Bitiş</th><th>Gün</th><th>Tür</th><th>Açıklama</th><th></th>
 </tr></thead>
 <tbody>
 ${pendingRows
@@ -976,7 +976,7 @@ ${pendingRows
         all.innerHTML = `
 <table class="data-table" style="width:100%;font-size:12px;border-collapse:collapse;">
 <thead><tr style="text-align:left;color:var(--text-3);">
-<th>Agent</th><th>Başlangıç</th><th>Bitiş</th><th>Gün</th><th>Durum</th><th>Tarih</th>
+<th>${typeof t === 'function' ? t('agent.role.agent') : 'Temsilci'}</th><th>Başlangıç</th><th>Bitiş</th><th>Gün</th><th>Durum</th><th>Tarih</th>
 </tr></thead>
 <tbody>
 ${allRows
@@ -1078,7 +1078,7 @@ async function fillLateUserSelect(fid) {
   try {
     const users = await sb(`users?firm_id=eq.${fid}&role=in.(agent,qc,firm_admin,admin)&select=id,name,email&order=name.asc`).catch(() => []);
     const opts = (users || []).map((u) => `<option value="${u.id}">${_leaveEsc(u.name || u.email)}</option>`).join('');
-    if (sel) sel.innerHTML = `<option value="">Agent seç…</option>` + opts;
+    if (sel) sel.innerHTML = `<option value="">${typeof t === 'function' ? t('agent.assign.pick_one') : 'Temsilci seçin...'}</option>` + opts;
     if (ent) ent.innerHTML = `<option value="">Kullanıcı seç…</option>` + opts;
     if (who) who.innerHTML = `<option value="">Kendim</option>` + opts;
   } catch (e) {
@@ -1094,7 +1094,7 @@ async function submitLateArrival() {
   const mins = Number(document.getElementById('late-mins')?.value);
   const note = document.getElementById('late-note')?.value?.trim() || '';
   if (!uid || !day) {
-    toast('Agent ve tarih seçin', 'err');
+    toast(typeof t === 'function' ? `${t('agent.role.agent')} ve tarih seçin` : 'Temsilci ve tarih seçin', 'err');
     return;
   }
   if (mins == null || mins < 0) {
@@ -1141,7 +1141,7 @@ async function loadLateAdminTable(fid) {
     box.innerHTML = `
 <table class="data-table" style="width:100%;font-size:12px;border-collapse:collapse;">
 <thead><tr style="text-align:left;color:var(--text-3);">
-<th>Tarih</th><th>Agent</th><th>Dakika</th><th>Not</th>
+<th>Tarih</th><th>${typeof t === 'function' ? t('agent.role.agent') : 'Temsilci'}</th><th>Dakika</th><th>Not</th>
 </tr></thead>
 <tbody>
 ${rows

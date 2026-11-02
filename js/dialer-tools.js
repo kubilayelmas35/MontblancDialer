@@ -1280,7 +1280,7 @@ function inboundTestTransferToSelectedAgent() {
   const sel = document.getElementById('dialer-incoming-xfer-agent');
   const targetId = sel?.value;
   if (!targetId) {
-    toast(typeof t === 'function' ? t('dial.inbound_pick_agent_warn') : 'Agent seçin', 'warn');
+    toast(typeof t === 'function' ? t('dial.inbound_pick_agent_warn') : 'Temsilci seçin', 'warn');
     return;
   }
   const payload = {
