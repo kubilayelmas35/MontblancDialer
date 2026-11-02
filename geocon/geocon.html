@@ -1663,7 +1663,7 @@ const T={
     heatBtnText:"Heatmap",filterBtn:"Filter",
     sortPlz:"PLZ ↑",sortScore:"Score ↓",sortCount:"Daten ↓",sortLead:"Leads ↓",sortMb:"Termine ↓",
     allScores:"Alle Scores",filterShown:n=>`${n} angezeigt`,
-    alerts:{minChars:"Mind. 3 Zeichen eingeben",noData:"Keine Daten.",plzNotFound:"PLZ nicht gefunden.",cityNotFound:"Stadt nicht gefunden.",error:"Fehler. Bitte erneut versuchen.",noUsedPLZs:"Keine markierten PLZ."}
+    alerts:{minChars:"Mind. 2 Zeichen eingeben",noData:"Keine Daten.",plzNotFound:"PLZ nicht gefunden.",cityNotFound:"Stadt nicht gefunden.",error:"Fehler. Bitte erneut versuchen.",noUsedPLZs:"Keine markierten PLZ."}
   },
   en:{
     searchLabel:"Search city or ZIP",searchButtonText:"Search",resultsTitle:"Found ZIPs",
@@ -1728,7 +1728,7 @@ const T={
     heatBtnText:"Heatmap",filterBtn:"Filter",
     sortPlz:"ZIP ↑",sortScore:"Score ↓",sortCount:"Data ↓",sortLead:"Leads ↓",sortMb:"Appointments ↓",
     allScores:"All Scores",filterShown:n=>`${n} shown`,
-    alerts:{minChars:"Enter 3+ characters",noData:"No data.",plzNotFound:"ZIP not found.",cityNotFound:"City not found.",error:"Error. Please try again.",noUsedPLZs:"No marked ZIPs."}
+    alerts:{minChars:"Enter 2+ characters",noData:"No data.",plzNotFound:"ZIP not found.",cityNotFound:"City not found.",error:"Error. Please try again.",noUsedPLZs:"No marked ZIPs."}
   },
   tr:{
     searchLabel:"Şehir veya posta kodu ara",searchButtonText:"Ara",resultsTitle:"Bulunan PLZ",
@@ -1793,7 +1793,7 @@ const T={
     heatBtnText:"Isı haritası",filterBtn:"Filtre",
     sortPlz:"PLZ ↑",sortScore:"Skor ↓",sortCount:"Veri ↓",sortLead:"Lead ↓",sortMb:"Randevu ↓",
     allScores:"Tüm Skorlar",filterShown:n=>`${n} gösteriliyor`,
-    alerts:{minChars:"En az 3 karakter girin",noData:"Veri yok.",plzNotFound:"PLZ bulunamadı.",cityNotFound:"Şehir bulunamadı.",error:"Hata. Lütfen tekrar deneyin.",noUsedPLZs:"İşaretlenmiş PLZ yok."}
+    alerts:{minChars:"En az 2 karakter girin",noData:"Veri yok.",plzNotFound:"PLZ bulunamadı.",cityNotFound:"Şehir bulunamadı.",error:"Hata. Lütfen tekrar deneyin.",noUsedPLZs:"İşaretlenmiş PLZ yok."}
   }
 };
 let lang='tr';
@@ -1849,7 +1849,7 @@ Object.assign(T.tr,{
   downloadingPLZ:n=>`${n} kod yükleniyor…`,
   needFirm:'İşaret için üstten bir firma seçin',
   analysingPlz:(plz,n)=>`Analiz ${plz}… (${n})`,
-  alerts:{minChars:'En az 3 karakter girin',noData:'Veri yok.',plzNotFound:'Posta kodu bulunamadı.',cityNotFound:'Şehir bulunamadı.',error:'Hata. Lütfen tekrar deneyin.',noUsedPLZs:'İşaretlenmiş kod yok.'}
+  alerts:{minChars:'En az 2 karakter girin',noData:'Veri yok.',plzNotFound:'Posta kodu bulunamadı.',cityNotFound:'Şehir bulunamadı.',error:'Hata. Lütfen tekrar deneyin.',noUsedPLZs:'İşaretlenmiş kod yok.'}
 });
 Object.assign(T.en,T.de);
 function geoWantLang(){
@@ -4668,6 +4668,129 @@ function _doUpdateHeatmap(){
 
 // ── SUGGESTIONS ──
 let cityCache={};
+let suggTimer=null;
+let suggSeq=0;
+const GEO_CITY_BOOST={
+  berlin:120,hamburg:119,muenchen:118,munich:118,koeln:117,cologne:117,
+  frankfurt:116,'frankfurt am main':116,stuttgart:115,duesseldorf:114,
+  dortmund:113,essen:112,leipzig:111,bremen:110,dresden:109,hannover:108,
+  nuernberg:107,duisburg:106,bochum:105,wuppertal:104,bielefeld:103,bonn:102,
+  muenster:101,karlsruhe:100,mannheim:99,augsburg:98,wiesbaden:97,aachen:96,
+  freiburg:95,'freiburg im breisgau':95,kiel:94,luebeck:93,rostock:92,mainz:91,
+  erfurt:90,kassel:89,hagen:88,hamm:87,saarbruecken:86,potsdam:85,chemnitz:84,
+  ludwigshafen:83,oldenburg:82,osnabrueck:81,heidelberg:80,paderborn:79,
+  regensburg:78,wuerzburg:77,wolfsburg:76,goettingen:75,heilbronn:74,
+  ulm:73,offenbach:72,pforzheim:71,reutlingen:70,koblenz:69,jena:68,
+  trier:67,moenchengladbach:66,gelsenkirchen:65,braunschweig:64
+};
+const GEO_CITY_COORDS={
+  stuttgart:[48.7758,9.1829],
+  wiesbaden:[50.0826,8.24],
+  freiburg:[47.999,7.842],
+  'freiburg im breisgau':[47.999,7.842],
+  saarbruecken:[49.2402,6.9969],
+  goettingen:[51.5413,9.9158],
+  wuerzburg:[49.7913,9.9534],
+  nuernberg:[49.4521,11.0767],
+  muenchen:[48.1372,11.5755],
+  koeln:[50.9375,6.9603],
+  duesseldorf:[51.2277,6.7735]
+};
+function normCityKey(s){
+  return String(s||'').toLowerCase().trim()
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9\s\-]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function cityBoost(name){
+  const n=normCityKey(name);
+  if(!n)return 0;
+  if(GEO_CITY_BOOST[n])return GEO_CITY_BOOST[n];
+  const first=n.split(/[\s\-]/)[0];
+  return GEO_CITY_BOOST[first]||0;
+}
+function localCityHits(q){
+  const nq=normCityKey(q);
+  if(nq.length<2)return [];
+  const out=[];
+  for(const row of GEO_TREND_DATA){
+    const name=row[3];
+    const nn=normCityKey(name);
+    if(!nn)continue;
+    let rank=0;
+    if(nn===nq)rank=2000;
+    else if(nn.startsWith(nq))rank=1000-Math.min(nn.length,120);
+    else{
+      const parts=nn.split(/[\s\-]/);
+      if(parts.some(p=>p.startsWith(nq)))rank=700-Math.min(nn.length,120);
+      else if(nn.includes(nq)&&nq.length>=3)rank=300-Math.min(nn.length,120);
+      else continue;
+    }
+    rank+=cityBoost(name);
+    out.push({name,lat:row[0],lng:row[1],adminName1:'',population:rank,_rank:rank,_local:true});
+  }
+  // Listede yoksa bilinen büyük şehir koordinatı
+  if(!out.some(x=>normCityKey(x.name)===nq)&&GEO_CITY_COORDS[nq]){
+    const [lat,lng]=GEO_CITY_COORDS[nq];
+    const pretty=q.trim().replace(/\b\w/g,c=>c.toUpperCase());
+    out.unshift({name:pretty,lat,lng,adminName1:'',population:2500,_rank:2500,_local:true});
+  }
+  out.sort((a,b)=>b._rank-a._rank);
+  return out.slice(0,10);
+}
+function mergeCitySugg(local,remote){
+  const seen=new Set();
+  const all=[];
+  for(const row of [...(local||[]),...(remote||[])]){
+    const key=normCityKey(row.name);
+    if(!key||seen.has(key))continue;
+    seen.add(key);
+    const pop=Number(row.population)||0;
+    const rank=(row._rank||0)+cityBoost(row.name)+Math.min(80,Math.log10(pop+10)*12);
+    all.push({...row,_rank:rank});
+  }
+  all.sort((a,b)=>b._rank-a._rank);
+  return all.slice(0,8);
+}
+async function remoteCitySugg(q){
+  const starts=await geonamesJson(
+    `searchJSON?name_startsWith=${encodeURIComponent(q)}&maxRows=12&country=DE&featureClass=P&orderby=population&cities=cities5000`
+  );
+  let rows=starts?.geonames||[];
+  if(rows.length<3){
+    const fuzzy=await geonamesJson(
+      `searchJSON?name=${encodeURIComponent(q)}&maxRows=10&country=DE&featureClass=P&orderby=population&cities=cities15000`
+    );
+    rows=[...rows,...(fuzzy?.geonames||[])];
+  }
+  return rows.map(c=>({
+    name:c.name,
+    lat:+c.lat,
+    lng:+c.lng,
+    adminName1:c.adminName1||'',
+    population:Number(c.population)||0,
+    _rank:0
+  }));
+}
+async function remotePlzSugg(q){
+  const code=String(q||'').replace(/\D/g,'').slice(0,5);
+  if(code.length<2)return [];
+  const d=await geonamesJson(
+    `postalCodeSearchJSON?postalcode_startsWith=${encodeURIComponent(code)}&maxRows=8&country=DE`
+  );
+  return (d?.postalCodes||[]).map(x=>({
+    name:`${x.postalCode} ${x.placeName||''}`.trim(),
+    plz:String(x.postalCode||''),
+    lat:+x.lat,
+    lng:+x.lng,
+    adminName1:x.adminName1||'',
+    population:Number(x.population)||0,
+    _rank:1000-String(x.postalCode||'').length,
+    _plz:true
+  }));
+}
 radInput.addEventListener('input',function(){document.getElementById('radiusValue').textContent=this.value+' km';if(searchDir!=='center')setSearchDir(searchDir);});
 const corridorWidthInput=document.getElementById('corridorWidthInput');
 if(corridorWidthInput){
@@ -4682,11 +4805,67 @@ if(corridorWidthInput){
   el.addEventListener('keypress',e=>{if(e.key==='Enter')searchCorridor();});
 });
 searchInput.addEventListener('focus',function(){const el=this;setTimeout(function(){el.removeAttribute('readonly');},0);});
-searchInput.addEventListener('input',function(){const q=this.value.trim();if(q.length>=2)fetchSugg(q);else suggestDrop.style.display='none';});
-searchInput.addEventListener('keypress',e=>{if(e.key==='Enter')searchLocation();});
+searchInput.addEventListener('input',function(){
+  const q=this.value.trim();
+  clearTimeout(suggTimer);
+  if(q.length<2){suggestDrop.style.display='none';return;}
+  suggTimer=setTimeout(()=>fetchSugg(q),180);
+});
+searchInput.addEventListener('keypress',e=>{if(e.key==='Enter'){suggestDrop.style.display='none';searchLocation();}});
 document.addEventListener('click',e=>{if(!searchInput.contains(e.target)&&!suggestDrop.contains(e.target))suggestDrop.style.display='none';});
-function fetchSugg(q){if(cityCache[q]){showSugg(cityCache[q]);return;}geonamesJson(`searchJSON?q=${encodeURIComponent(q)}&maxRows=5&country=DE`).then(d=>{if(d?.geonames?.length){cityCache[q]=d.geonames;showSugg(d.geonames);}else suggestDrop.style.display='none';}).catch(()=>suggestDrop.style.display='none');}
-function showSugg(list){suggestDrop.innerHTML='';list.forEach(c=>{const el=document.createElement('div');el.className='suggestion-item';el.innerHTML=`<strong>${c.name}</strong>${c.adminName1?`, ${c.adminName1}`:''}`;el.addEventListener('click',()=>{searchInput.value=c.name;suggestDrop.style.display='none';searchLocation();});suggestDrop.appendChild(el);});suggestDrop.style.display='block';}
+async function fetchSugg(q){
+  if(cityCache[q]){showSugg(cityCache[q]);return;}
+  const seq=++suggSeq;
+  try{
+    let list;
+    if(/^\d+$/.test(q)){
+      list=await remotePlzSugg(q);
+    }else{
+      const local=localCityHits(q);
+      // Yerel iyi eşleşme varsa hemen göster, GeoNames arkadan zenginleştirir
+      if(local.length)showSugg(local.slice(0,8));
+      const remote=await remoteCitySugg(q);
+      if(seq!==suggSeq)return;
+      list=mergeCitySugg(local,remote);
+    }
+    if(seq!==suggSeq)return;
+    if(list?.length){cityCache[q]=list;showSugg(list);}
+    else if(!/^\d+$/.test(q)&&!localCityHits(q).length)suggestDrop.style.display='none';
+  }catch(_){
+    if(seq!==suggSeq)return;
+    const local=localCityHits(q);
+    if(local.length)showSugg(local);
+    else suggestDrop.style.display='none';
+  }
+}
+function showSugg(list){
+  suggestDrop.innerHTML='';
+  list.forEach(c=>{
+    const el=document.createElement('div');
+    el.className='suggestion-item';
+    const sub=c._plz?(c.adminName1?`, ${c.adminName1}`:''):(c.adminName1?`, ${c.adminName1}`:'');
+    el.innerHTML=`<strong>${c.name}</strong>${sub}`;
+    el.addEventListener('click',()=>{
+      searchInput.value=c._plz?(c.plz||String(c.name).slice(0,5)):c.name;
+      suggestDrop.style.display='none';
+      if(c.lat&&c.lng&&!c._plz){
+        // Bilinen koordinatla doğrudan ara — yanlış GeoNames ilk sonucuna düşmesin
+        const rm=radInput.value*1000;
+        clearResults();
+        lastSearchMode='circle';
+        lastCorridor=null;
+        lastCenter={lat:+c.lat,lon:+c.lng,label:c.name,isCity:true,city:c.name};
+        lastRm=rm;
+        searchAnchorPlz=null;
+        if(isGoogleMap())ensureGoogle().then(()=>{googleMap.setMapTypeId(google.maps.MapTypeId.HYBRID);try{googleMap.setTilt(0);googleMap.setHeading(0);}catch(_){}googleMap.setCenter({lat:+c.lat,lng:+c.lng});googleMap.setZoom(12);});
+        else map.setView([+c.lat,+c.lng],12);
+        showPLZ(+c.lat,+c.lng,c.name,rm,true,c.name);
+      }else searchLocation();
+    });
+    suggestDrop.appendChild(el);
+  });
+  suggestDrop.style.display='block';
+}
 
 // ── SEARCH ──
 let searchAbortController=null;
@@ -4756,7 +4935,7 @@ function clearResults(){
     try{clearMap3DOverlays();clearMap3DMarkers();}catch(_){}
   }
 }
-function searchLocation(){const q=searchInput.value.trim();const rm=radInput.value*1000;if(q.length<3){alert(tr().alerts.minChars);return;}clearResults();lastSearchMode='circle';lastCorridor=null;if(/^\d+$/.test(q))geocodePLZ(q,rm);else geocodeCity(q,rm);}
+function searchLocation(){const q=searchInput.value.trim();const rm=radInput.value*1000;if(q.length<2){alert(tr().alerts.minChars);return;}clearResults();lastSearchMode='circle';lastCorridor=null;if(/^\d+$/.test(q))geocodePLZ(q,rm);else geocodeCity(q,rm);}
 
 function setSearchMode(mode){
   const circle=mode!=='corridor';
@@ -4992,20 +5171,42 @@ function geocodePLZ(plz,rm){
     showPLZ(clat,clon,`${placeName} (${plz})`,rm,false,placeName);
   }).catch(()=>{setSearchLoading(false);alert(tr().alerts.error);});
 }
+async function resolveCityHit(name){
+  const q=String(name||'').trim();
+  if(!q)return null;
+  const nq=normCityKey(q);
+  if(GEO_CITY_COORDS[nq]){
+    const [lat,lng]=GEO_CITY_COORDS[nq];
+    return {name:q,lat,lng};
+  }
+  const local=localCityHits(q);
+  if(local.length){
+    const exact=local.find(x=>normCityKey(x.name)===nq);
+    const best=exact||local[0];
+    if(best&&(exact||normCityKey(best.name).startsWith(nq)||cityBoost(best.name)>=90)){
+      return {name:best.name,lat:+best.lat,lng:+best.lng};
+    }
+  }
+  try{
+    const remote=await remoteCitySugg(q);
+    const merged=mergeCitySugg(local,remote);
+    if(merged[0])return {name:merged[0].name,lat:+merged[0].lat,lng:+merged[0].lng};
+  }catch(_){}
+  if(local[0])return {name:local[0].name,lat:+local[0].lat,lng:+local[0].lng};
+  return null;
+}
 function geocodeCity(name,rm){
   setSearchLoading(true);
-  geonamesJson(`searchJSON?q=${encodeURIComponent(name)}&maxRows=1&country=DE`).then(d=>{
+  resolveCityHit(name).then(c=>{
     setSearchLoading(false);
-    if(d?.geonames?.length){
-      const c=d.geonames[0];
-      const clat=+c.lat,clon=+c.lng;
-      lastCenter={lat:clat,lon:clon,label:c.name,isCity:true,city:c.name};
-      lastRm=rm;
-      searchAnchorPlz=null;
-      if(isGoogleMap())ensureGoogle().then(()=>{googleMap.setMapTypeId(google.maps.MapTypeId.HYBRID);try{googleMap.setTilt(0);googleMap.setHeading(0);}catch(_){}googleMap.setCenter({lat:clat,lng:clon});googleMap.setZoom(12);});
-      else map.setView([clat,clon],12);
-      showPLZ(clat,clon,c.name,rm,true,c.name);
-    }else alert(tr().alerts.cityNotFound);
+    if(!c){alert(tr().alerts.cityNotFound);return;}
+    const clat=+c.lat,clon=+c.lng;
+    lastCenter={lat:clat,lon:clon,label:c.name,isCity:true,city:c.name};
+    lastRm=rm;
+    searchAnchorPlz=null;
+    if(isGoogleMap())ensureGoogle().then(()=>{googleMap.setMapTypeId(google.maps.MapTypeId.HYBRID);try{googleMap.setTilt(0);googleMap.setHeading(0);}catch(_){}googleMap.setCenter({lat:clat,lng:clon});googleMap.setZoom(12);});
+    else map.setView([clat,clon],12);
+    showPLZ(clat,clon,c.name,rm,true,c.name);
   }).catch(()=>{setSearchLoading(false);alert(tr().alerts.error);});
 }
 
