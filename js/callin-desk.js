@@ -7,9 +7,11 @@ const _callinDesk = {
   cost: null,
   week: null,
   byStaff: {},
+  byCamp: [],
   loading: false,
   timer: 0,
   retryTimer: 0,
+  eveningTimer: 0,
 };
 
 function callinDeskSay(key, fallback) {
@@ -64,7 +66,60 @@ function callinDeskPushError(err) {
   };
   list.unshift(row);
   window._aiDeskErrors = list.slice(0, 24);
+  callinDeskBeep('err');
+  if (err.staffId && typeof mbAiSetStopWhy === 'function') {
+    mbAiSetStopWhy(err.staffId, 'error', row.code);
+  }
   callinDeskPaint();
+}
+
+function callinDeskSoundOn() {
+  try { return localStorage.getItem('mb_callin_sound') === '1'; } catch (e) { return false; }
+}
+
+function callinDeskToggleSound() {
+  const on = !callinDeskSoundOn();
+  try { localStorage.setItem('mb_callin_sound', on ? '1' : '0'); } catch (e) {}
+  callinDeskPaint();
+  if (on) callinDeskBeep('ok');
+}
+
+function callinDeskEveningOn() {
+  try { return localStorage.getItem('mb_callin_evening') === '1'; } catch (e) { return false; }
+}
+
+function callinDeskToggleEvening() {
+  const on = !callinDeskEveningOn();
+  try { localStorage.setItem('mb_callin_evening', on ? '1' : '0'); } catch (e) {}
+  callinDeskPaint();
+  if (typeof toast === 'function') {
+    toast(on
+      ? callinDeskSay('callin.desk.evening.on', '18:00 gece raporu açık (onaylı).')
+      : callinDeskSay('callin.desk.evening.off', 'Gece raporu kapalı.'), 'ok');
+  }
+}
+
+function callinDeskBeep(kind) {
+  if (!callinDeskSoundOn()) return;
+  if (typeof opsPlayTone === 'function') {
+    opsPlayTone(kind === 'err' ? 'alert' : kind === 'stop' ? 'bell' : kind === 'warn' ? 'soft' : 'chime', 55);
+    return;
+  }
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = kind === 'err' ? 520 : 740;
+    gain.gain.value = 0.04;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.18);
+    setTimeout(() => { try { ctx.close(); } catch (e) {} }, 400);
+  } catch (e) {}
 }
 
 function callinDeskDayRange() {
@@ -137,24 +192,28 @@ async function callinDeskLoadStats() {
     _callinDesk.cost = null;
     _callinDesk.week = null;
     _callinDesk.byStaff = {};
+    _callinDesk.byCamp = [];
     return;
   }
   _callinDesk.firmId = firmId;
   _callinDesk.loading = true;
   const { gte, lt } = callinDeskDayRange();
   const week = callinDeskWeekRange();
-  const aiQ = `call_logs?firm_id=eq.${firmId}&started_at=gte.${gte}&started_at=lt.${lt}&or=(work_type.eq.ai_sales,work_type.eq.ai_qc,ai_staff_id.not.is.null)&select=id,outcome,duration_sec,cost_usd,work_type,ai_staff_id&limit=800`;
+  const aiQ = `call_logs?firm_id=eq.${firmId}&started_at=gte.${gte}&started_at=lt.${lt}&or=(work_type.eq.ai_sales,work_type.eq.ai_qc,ai_staff_id.not.is.null)&select=id,outcome,duration_sec,cost_usd,work_type,ai_staff_id,campaign_id&limit=800`;
   const huQ = `call_logs?firm_id=eq.${firmId}&started_at=gte.${gte}&started_at=lt.${lt}&ai_staff_id=is.null&work_type=not.in.(ai_sales,ai_qc)&select=id,outcome,duration_sec,cost_usd&limit=800`;
   const weekQ = `call_logs?firm_id=eq.${firmId}&started_at=gte.${week.gte}&started_at=lt.${week.lt}&or=(work_type.eq.ai_sales,work_type.eq.ai_qc,ai_staff_id.not.is.null)&select=id,outcome,duration_sec,cost_usd,ai_staff_id&limit=2000`;
-  const [aiRows, huRows, weekRows, firmRows] = await Promise.all([
+  const [aiRows, huRows, weekRows, firmRows, camps] = await Promise.all([
     sb(aiQ).catch(() => []),
     sb(huQ).catch(() => []),
     sb(weekQ).catch(() => []),
     sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []),
+    sb(`campaigns?firm_id=eq.${firmId}&select=id,name&order=name.asc`).catch(() => []),
   ]);
   const settings = firmRows?.[0]?.settings || window._aiFirmSettings?.[firmId] || {};
   window._aiFirmSettings = window._aiFirmSettings || {};
   window._aiFirmSettings[firmId] = settings;
+  const campNames = {};
+  (Array.isArray(camps) ? camps : []).forEach((c) => { if (c?.id) campNames[c.id] = c.name || c.id; });
   const ai = callinDeskTally(aiRows);
   const human = callinDeskTally(huRows);
   const weekTally = callinDeskTally(weekRows);
@@ -162,19 +221,29 @@ async function callinDeskLoadStats() {
   const mins = ai.secs / 60;
   const estimate = rate > 0 ? mins * rate : 0;
   const byStaff = {};
+  const byCampMap = {};
   (Array.isArray(aiRows) ? aiRows : []).forEach((row) => {
     const sid = String(row.ai_staff_id || '');
+    const cid = String(row.campaign_id || '') || '_';
+    if (!byCampMap[cid]) byCampMap[cid] = { id: cid, name: campNames[cid] || (cid === '_' ? '—' : cid), dialed: 0, appt: 0 };
+    byCampMap[cid].dialed += 1;
+    const out = String(row.outcome || '').toLowerCase();
+    if (['appointment', 'basarili', 'qc_bekleniyor'].includes(out)) byCampMap[cid].appt += 1;
     if (!sid) return;
-    if (!byStaff[sid]) byStaff[sid] = { dialed: 0, appt: 0, miss: 0, secs: 0 };
+    if (!byStaff[sid]) byStaff[sid] = { dialed: 0, appt: 0, miss: 0, secs: 0, camps: {} };
     byStaff[sid].dialed += 1;
     byStaff[sid].secs += Number(row.duration_sec) || 0;
-    const out = String(row.outcome || '').toLowerCase();
-    if (['appointment', 'basarili', 'qc_bekleniyor'].includes(out)) byStaff[sid].appt += 1;
-    else if (['no_answer', 'ulasilamadi', 'voicemail'].includes(out)) byStaff[sid].miss += 1;
+    if (!byStaff[sid].camps[cid]) byStaff[sid].camps[cid] = { dialed: 0, appt: 0 };
+    byStaff[sid].camps[cid].dialed += 1;
+    if (['appointment', 'basarili', 'qc_bekleniyor'].includes(out)) {
+      byStaff[sid].appt += 1;
+      byStaff[sid].camps[cid].appt += 1;
+    } else if (['no_answer', 'ulasilamadi', 'voicemail'].includes(out)) byStaff[sid].miss += 1;
   });
   const staffNames = {};
   const bag = window._aiStaffByFirm?.[firmId] || (typeof _aiDesk !== 'undefined' ? _aiDesk?.staff : null) || [];
   (bag || []).forEach((row) => { if (row?.id) staffNames[row.id] = row.name || row.id; });
+  _callinDesk.byCamp = Object.values(byCampMap).sort((a, b) => b.dialed - a.dialed).slice(0, 8);
   let bestId = '';
   let bestAppt = -1;
   Object.keys(byStaff).forEach((sid) => {
@@ -217,6 +286,13 @@ async function callinDeskLoadStats() {
     monday: new Date().getDay() === 1,
   };
   const quota = callinDeskQuota(settings, ai.secs);
+  const qKey = `${firmId}:${new Date().toISOString().slice(0, 10)}:${quota.blocked ? 'block' : quota.warn ? 'warn' : 'ok'}`;
+  if ((quota.blocked || quota.warn) && window._callinQuotaBeep !== qKey) {
+    window._callinQuotaBeep = qKey;
+    callinDeskBeep(quota.blocked ? 'err' : 'warn');
+  } else if (!quota.blocked && !quota.warn) {
+    window._callinQuotaBeep = qKey;
+  }
   _callinDesk.cost = {
     firmId,
     rate,
@@ -231,6 +307,70 @@ async function callinDeskLoadStats() {
   };
   window._callinAiCostToday = _callinDesk.cost;
   _callinDesk.loading = false;
+}
+
+function callinDeskHeatHtml() {
+  const rows = _callinDesk.byCamp || [];
+  if (!rows.length) return '';
+  const max = Math.max(...rows.map((r) => r.dialed), 1);
+  return `<section class="callin-panel callin-heat">
+    <header class="callin-panel-hd">
+      <div class="callin-panel-title">${callinDeskEsc(callinDeskSay('callin.desk.heat.title', 'Kampanya ısı haritası'))}</div>
+      <span class="callin-panel-sub">${callinDeskEsc(callinDeskSay('callin.desk.heat.sub', 'Bugün YZ'))}</span>
+    </header>
+    <div class="callin-heat-list">${rows.map((row) => {
+      const pct = Math.round((row.dialed / max) * 100);
+      return `<div class="callin-heat-row">
+        <div class="callin-heat-lab">${callinDeskEsc(row.name)}</div>
+        <div class="callin-heat-bar"><span style="width:${pct}%"></span></div>
+        <div class="callin-heat-num">${row.dialed}<small>/${row.appt}</small></div>
+      </div>`;
+    }).join('')}</div>
+  </section>`;
+}
+
+function callinDeskAbHtml() {
+  const bag = (typeof _aiDesk !== 'undefined' && _aiDesk?.staff) || window._aiStaffByFirm?.[callinDeskFirmId()] || [];
+  const sales = (bag || []).filter((row) => row.kind !== 'qc');
+  if (sales.length < 2) return '';
+  const byStaff = _callinDesk.byStaff || {};
+  const pairs = [];
+  const seen = new Set();
+  sales.forEach((a, i) => {
+    sales.slice(i + 1).forEach((b) => {
+      const aCamps = new Set((typeof mbAiCampIds === 'function' ? mbAiCampIds(a) : a.campaign_ids) || []);
+      const bCamps = new Set((typeof mbAiCampIds === 'function' ? mbAiCampIds(b) : b.campaign_ids) || []);
+      let share = '';
+      if (!aCamps.size && !bCamps.size) share = '*';
+      else {
+        for (const id of aCamps) {
+          if (!bCamps.size || bCamps.has(id)) { share = id; break; }
+        }
+        if (!share && !aCamps.size) share = [...bCamps][0] || '';
+      }
+      if (!share) return;
+      const key = [a.id, b.id].sort().join(':');
+      if (seen.has(key)) return;
+      seen.add(key);
+      const sa = byStaff[a.id] || { dialed: 0, appt: 0 };
+      const sb = byStaff[b.id] || { dialed: 0, appt: 0 };
+      const ra = sa.dialed ? Math.round((sa.appt / sa.dialed) * 100) : 0;
+      const rb = sb.dialed ? Math.round((sb.appt / sb.dialed) * 100) : 0;
+      pairs.push({ a, b, sa, sb, ra, rb });
+    });
+  });
+  if (!pairs.length) return '';
+  return `<section class="callin-panel callin-ab">
+    <header class="callin-panel-hd">
+      <div class="callin-panel-title">${callinDeskEsc(callinDeskSay('callin.desk.ab.title', 'Personel A/B'))}</div>
+      <span class="callin-panel-sub">${callinDeskEsc(callinDeskSay('callin.desk.ab.sub', 'Aynı kampanya · bugün'))}</span>
+    </header>
+    <div class="callin-ab-list">${pairs.slice(0, 4).map((p) => `<div class="callin-ab-row">
+      <div class="callin-ab-col"><b>${callinDeskEsc(p.a.name || 'A')}</b><span>${p.sa.appt}/${p.sa.dialed} · %${p.ra}</span></div>
+      <div class="callin-ab-vs">vs</div>
+      <div class="callin-ab-col"><b>${callinDeskEsc(p.b.name || 'B')}</b><span>${p.sb.appt}/${p.sb.dialed} · %${p.rb}</span></div>
+    </div>`).join('')}</div>
+  </section>`;
 }
 
 function callinDeskLiveCounts() {
@@ -539,6 +679,8 @@ function callinDeskPaint() {
     <div class="callin-desk-actions">
       <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskGoLive()">${mark} ${callinDeskEsc(callinDeskSay('callin.desk.live', 'Canlıya git'))}</button>
       <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskToggleOutChips()">${callinDeskEsc(chipsOn ? callinDeskSay('callin.desk.out.hide', 'Sonuçları gizle') : callinDeskSay('callin.desk.out.show', 'Sonuç dağılımı'))}</button>
+      <button type="button" class="btn btn-ghost btn-sm${callinDeskSoundOn() ? ' is-on' : ''}" onclick="callinDeskToggleSound()">${callinDeskEsc(callinDeskSoundOn() ? callinDeskSay('callin.desk.sound.on', 'Ses açık') : callinDeskSay('callin.desk.sound.off', 'Ses kapalı'))}</button>
+      <button type="button" class="btn btn-ghost btn-sm${callinDeskEveningOn() ? ' is-on' : ''}" onclick="callinDeskToggleEvening()">${callinDeskEsc(callinDeskEveningOn() ? callinDeskSay('callin.desk.evening.btn_on', '18:00 rapor açık') : callinDeskSay('callin.desk.evening.btn_off', '18:00 rapor'))}</button>
       ${live.running ? `<button type="button" class="btn btn-ghost btn-sm is-danger" onclick="callinDeskStopAll()">${callinDeskEsc(callinDeskSay('callin.desk.stop_all', 'Hepsini durdur'))}</button>` : ''}
       <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskRefresh()">${callinDeskEsc(callinDeskSay('callin.desk.refresh', 'Yenile'))}</button>
       <button type="button" class="btn btn-primary btn-sm" onclick="callinTab('run'); callinDeskAskNow()">${callinDeskEsc(callinDeskSay('callin.desk.now', 'Şimdi bir kişi ara'))}</button>
@@ -592,6 +734,8 @@ function callinDeskPaint() {
           <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskCancelRetry('${callinDeskEsc(row.id)}')">${callinDeskEsc(callinDeskSay('callin.desk.err.cancel', 'İptal'))}</button></div>`;
       }).join('')}</div>` : ''}
     </section>
+    ${callinDeskHeatHtml()}
+    ${callinDeskAbHtml()}
   </div>`;
   if (typeof mbAiStaffScoreHtml === 'function') {
     Object.keys(_callinDesk.byStaff || {}).forEach((id) => {
@@ -693,6 +837,37 @@ function callinDeskTickRetries() {
   callinDeskPaint();
 }
 
+function callinDeskEveningTick() {
+  if (!callinDeskEveningOn()) return;
+  const now = new Date();
+  if (now.getHours() < 18) return;
+  const day = now.toISOString().slice(0, 10);
+  const firmId = callinDeskFirmId() || 'x';
+  const key = `mb_callin_evening_${firmId}_${day}`;
+  try { if (localStorage.getItem(key) === '1') return; } catch (e) { return; }
+  try { localStorage.setItem(key, '1'); } catch (e) {}
+  const { a, b } = callinDeskBriefText();
+  const title = callinDeskSay('callin.desk.evening.title', '18:00 gece raporu');
+  callinDeskBeep('ok');
+  if (typeof toast === 'function') toast(`${title}: ${a} ${b}`, 'ok');
+  document.getElementById('callin-evening-pop')?.remove();
+  const pop = document.createElement('div');
+  pop.id = 'callin-evening-pop';
+  pop.className = 'callin-evening-pop';
+  pop.innerHTML = `<div class="callin-evening-card" role="dialog" aria-modal="true">
+    <div class="callin-brief-kicker">${callinDeskEsc(title)}</div>
+    <p>${callinDeskEsc(a)}</p>
+    <p>${callinDeskEsc(b)}</p>
+    <div class="callin-brief-act">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskBriefCopy()">${callinDeskEsc(callinDeskSay('callin.desk.brief.copy', 'Kopyala'))}</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskBriefShare()">${callinDeskEsc(callinDeskSay('callin.desk.brief.share', 'Ekibe'))}</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('callin-evening-pop')?.remove()">${callinDeskEsc(callinDeskSay('callin.desk.brief.dismiss', 'Tamam'))}</button>
+    </div>
+  </div>`;
+  pop.addEventListener('click', (ev) => { if (ev.target === pop) pop.remove(); });
+  document.body.appendChild(pop);
+}
+
 function callinDeskStart() {
   if (!_callinDesk.timer) {
     void callinDeskRefresh();
@@ -705,6 +880,10 @@ function callinDeskStart() {
     _callinDesk.retryTimer = setInterval(() => {
       callinDeskTickRetries();
     }, 20000);
+  }
+  if (!_callinDesk.eveningTimer) {
+    callinDeskEveningTick();
+    _callinDesk.eveningTimer = setInterval(() => { callinDeskEveningTick(); }, 60000);
   }
 }
 
@@ -804,6 +983,9 @@ try {
   window.callinDeskBriefShare = callinDeskBriefShare;
   window.callinDeskFixAlert = callinDeskFixAlert;
   window.callinDeskStopAll = callinDeskStopAll;
+  window.callinDeskToggleSound = callinDeskToggleSound;
+  window.callinDeskToggleEvening = callinDeskToggleEvening;
+  window.callinDeskBeep = callinDeskBeep;
   window.callinQueueHealthPaint = callinQueueHealthPaint;
   window.callinQueueFillNow = callinQueueFillNow;
   window.callinDeskQuota = callinDeskQuota;

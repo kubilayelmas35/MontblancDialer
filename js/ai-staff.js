@@ -42,6 +42,7 @@ function mbFirmAi(settings) {
     run_mode: ai.run_mode === 'server' ? 'server' : 'page',
     run_allow: mbAiRunAllowList(ai),
     day_min_cap: Number(ai.day_min_cap) > 0 ? Math.min(1440, Math.round(Number(ai.day_min_cap))) : 0,
+    qc_after: ['now', '5', '15', '30'].includes(String(ai.qc_after || '')) ? String(ai.qc_after) : 'off',
   };
 }
 
@@ -115,6 +116,50 @@ function mbAiWithinHours(row) {
   const now = new Date();
   const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   return hhmm >= from && hhmm <= until;
+}
+
+function mbAiStopWhyMap() {
+  window._aiStopWhy = window._aiStopWhy && typeof window._aiStopWhy === 'object' ? window._aiStopWhy : {};
+  return window._aiStopWhy;
+}
+
+function mbAiSetStopWhy(staffId, code, detail) {
+  if (!staffId) return;
+  const map = mbAiStopWhyMap();
+  map[String(staffId)] = { code: code || 'manual', detail: String(detail || '').slice(0, 120), at: Date.now() };
+}
+
+function mbAiClearStopWhy(staffId) {
+  if (!staffId) return;
+  delete mbAiStopWhyMap()[String(staffId)];
+}
+
+function mbAiStopWhyLabel(staffId) {
+  const row = mbAiStopWhyMap()[String(staffId || '')];
+  if (!row) return '';
+  const map = {
+    hours: mbAiSay('ai.run.stop.hours', 'Saat dışı durdu'),
+    quota: mbAiSay('ai.run.stop.quota', 'Kota doldu, durdu'),
+    error: mbAiSay('ai.run.stop.error', 'Hata sonrası durdu'),
+    manual: mbAiSay('ai.run.stop.manual', 'Elle durduruldu'),
+    stop_all: mbAiSay('ai.run.stop.all', 'Hepsini durdur'),
+  };
+  const base = map[row.code] || map.manual;
+  return row.detail ? `${base} · ${row.detail}` : base;
+}
+
+function mbAiQcAfterMode(settings) {
+  const raw = String((settings || _aiDesk?.settings)?.ai?.qc_after || 'off');
+  if (raw === 'now' || raw === '5' || raw === '15' || raw === '30') return raw;
+  return 'off';
+}
+
+function mbAiTranscriptSnippet(text) {
+  const raw = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!raw) return '';
+  const parts = raw.split(/(?<=[.!?…])\s+/).filter(Boolean);
+  const take = parts.length > 3 ? parts.slice(-3) : parts;
+  return take.join(' ').slice(0, 280);
 }
 
 function mbAiDayCap(settings) {
@@ -623,6 +668,10 @@ function mbAiReadDesk() {
         const n = Number(document.getElementById('ai-daycap')?.value);
         return Number.isFinite(n) && n > 0 ? Math.min(1440, Math.round(n)) : 0;
       })(),
+      qc_after: (() => {
+        const v = String(document.getElementById('ai-qcafter')?.value || 'off');
+        return ['now', '5', '15', '30'].includes(v) ? v : 'off';
+      })(),
     },
   };
   _aiDesk.staff = _aiDesk.staff.map((row) => {
@@ -940,6 +989,8 @@ function mbAiRunSlotHtml(row) {
   const liveBtn = !row.doneAt
     ? `<button type="button" class="btn btn-ghost btn-sm ai-run-live-go" onclick="event.stopPropagation(); mbAiGoLiveFocus()">${mbAiEsc(mbAiSay('callin.desk.live', 'Canlıya git'))}</button>`
     : '';
+  const snip = !row.doneAt ? mbAiTranscriptSnippet(row.transcript) : '';
+  const snipHtml = snip ? `<div class="ai-run-snip">${mbAiEsc(snip)}</div>` : '';
   const head = `<div class="ai-run-slot-top">
       <div class="ai-run-slot-main">
         <b>${mbAiEsc(who)}</b>
@@ -954,7 +1005,7 @@ function mbAiRunSlotHtml(row) {
       ${detail}
     </details>`;
   }
-  return `<div class="ai-run-slot ${tone}">${head}${row.doneAt ? '' : mbAiRunSlotDetail(row)}</div>`;
+  return `<div class="ai-run-slot ${tone}">${head}${snipHtml}${row.doneAt ? '' : mbAiRunSlotDetail(row)}</div>`;
 }
 
 function mbAiGoLiveFocus() {
@@ -988,6 +1039,49 @@ function mbAiRunEndedAlert(staff, meta) {
     .replace('{staff}', staffName)
     .replace('{result}', result)
     .replace('{who}', who), 'ok');
+  const out = String(meta.outcome || meta.durum || '').toLowerCase();
+  const appt = ['appointment', 'basarili', 'qc_bekleniyor'].includes(out)
+    || /randevu|termin|appointment/i.test(String(meta.summary || ''));
+  if (appt && staff?.kind !== 'qc' && meta.apptId) void mbAiQcHandoff(meta);
+}
+
+function mbAiPickQcStaff(campId) {
+  const list = (_aiDesk?.staff || []).filter((row) => row.kind === 'qc');
+  if (!list.length) return null;
+  const camp = String(campId || '');
+  const fit = list.find((row) => {
+    const ids = mbAiCampIds(row);
+    return !ids.length || !camp || ids.includes(camp);
+  });
+  return fit || list[0];
+}
+
+async function mbAiQcHandoff(meta) {
+  const mode = mbAiQcAfterMode(_aiDesk?.settings);
+  if (mode === 'off' || !meta?.apptId) return;
+  const qc = mbAiPickQcStaff(meta.campId);
+  if (!qc) return;
+  const wait = mode === 'now' ? 0 : Math.max(1, Number(mode) || 0);
+  const run = async () => {
+    if (typeof toast === 'function') {
+      toast(mbAiSay('ai.run.qc_hand', 'Kalite sıraya alındı: {name} → {who}')
+        .replace('{name}', qc.name || 'QC')
+        .replace('{who}', meta.name || meta.phone || '—'), 'ok');
+    }
+    if (!qc.running) {
+      qc.running = true;
+      mbAiClearStopWhy(qc.id);
+      const el = document.getElementById(`ai-run-${qc.id}`);
+      if (el) el.checked = true;
+      await mbAiPersistRun();
+    }
+    await mbAiRunOneQc(qc);
+  };
+  if (!wait) {
+    void run();
+    return;
+  }
+  setTimeout(() => { void run(); }, wait * 60000);
 }
 
 function mbAiPushRunRecent(staff, meta) {
@@ -1256,10 +1350,12 @@ function mbAiPaintRunLive(staffId) {
     cap.classList.toggle('is-on', !!staff.running);
   }
   if (live) {
-    live.textContent = staff.running
-      ? mbAiSay('ai.run.rule', 'Kampanya hızı yok. Bu personel kendi {max} hattında arar; havuz yok.')
-        .replace('{max}', String(max))
-      : mbAiSay('ai.run.idle_hint', 'Çalışsın deyince seçili kampanyalardan sıradaki kişiyi arar.');
+    const why = !staff.running ? mbAiStopWhyLabel(staff.id) : '';
+    live.innerHTML = staff.running
+      ? mbAiEsc(mbAiSay('ai.run.rule', 'Kampanya hızı yok. Bu personel kendi {max} hattında arar; havuz yok.').replace('{max}', String(max)))
+      : (why
+        ? `<span class="ai-run-why">${mbAiEsc(why)}</span>`
+        : mbAiEsc(mbAiSay('ai.run.idle_hint', 'Çalışsın deyince seçili kampanyalardan sıradaki kişiyi arar.')));
   }
   if (!box) return;
   if (!rows.length) {
@@ -1397,6 +1493,7 @@ function mbAiRunCard(row, mode) {
       <div class="ai-run-now-hd">
         <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.run.now', 'Şu an'))}</div>
         ${qc ? '' : `<button type="button" class="btn btn-ghost btn-sm" onclick="mbAskRunCallNow('${id}')"><i class="ph ph-phone-call"></i> ${mbAiEsc(mbAiSay('callin.desk.now', 'Şimdi bir kişi ara'))}</button>`}
+        <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiDryRun('${id}')"><i class="ph ph-eye"></i> ${mbAiEsc(mbAiSay('ai.run.dry', 'Kuru koşum'))}</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="mbAiGoLiveFocus()">${mbAiEsc(mbAiSay('callin.desk.live', 'Canlıya git'))}</button>
       </div>
       <div class="ai-run-live" id="ai-run-live-${id}"></div>
@@ -1432,6 +1529,7 @@ async function mbAiStopAll() {
   }
   running.forEach((row) => {
     row.running = false;
+    mbAiSetStopWhy(row.id, 'stop_all');
     const el = document.getElementById(`ai-run-${row.id}`);
     if (el) el.checked = false;
     const card = document.querySelector(`[data-ai-run="${row.id}"]`);
@@ -1473,6 +1571,8 @@ async function mbAiRunToggle(staffId) {
     if (typeof toast === 'function') toast(mbAiSay('ai.run.quota_lock', 'Günlük YZ dakika kotası doldu. Yeni arama yok.'), 'err');
     return;
   }
+  if (on) mbAiClearStopWhy(staffId);
+  else mbAiSetStopWhy(staffId, 'manual');
   row.running = on;
   const card = document.querySelector(`[data-ai-run="${staffId}"]`);
   if (card) card.classList.toggle('is-on', on);
@@ -1487,6 +1587,21 @@ async function mbAiRunToggle(staffId) {
     if (row.kind === 'qc') void mbAiRunOneQc(row);
     else void mbAiRunOneSales(row);
   }
+}
+
+async function mbAiAutoStop(staff, code, detail) {
+  if (!staff?.running) return;
+  staff.running = false;
+  mbAiSetStopWhy(staff.id, code, detail);
+  const el = document.getElementById(`ai-run-${staff.id}`);
+  if (el) el.checked = false;
+  const card = document.querySelector(`[data-ai-run="${staff.id}"]`);
+  if (card) card.classList.remove('is-on');
+  mbAiPaintRunLive(staff.id);
+  await mbAiPersistRun();
+  void mbAiSyncLiveSession(staff, null);
+  if (typeof toast === 'function') toast(mbAiStopWhyLabel(staff.id), 'warn');
+  if (typeof callinDeskBeep === 'function') callinDeskBeep('stop');
 }
 
 async function mbAiPersistRun() {
@@ -1575,12 +1690,82 @@ async function mbAiRunTick() {
   if (!_aiDesk || _aiDesk.view !== 'run') return;
   if (document.getElementById('callin-pane-run')?.hidden) return;
   if (!mbAiFirmReady(_aiDesk.settings)) return;
+  if (mbAiQuotaBlocked(_aiDesk.settings)) {
+    const running = (_aiDesk.staff || []).filter((row) => row.running);
+    for (const row of running) await mbAiAutoStop(row, 'quota');
+    return;
+  }
   const list = (_aiDesk.staff || []).filter((row) => row.running);
   for (const row of list) {
+    if (!mbAiWithinHours(row)) {
+      await mbAiAutoStop(row, 'hours', `${String(row.call_from || '').slice(0, 5)}–${String(row.call_until || '').slice(0, 5)}`);
+      continue;
+    }
     if (row.kind === 'qc') await mbAiRunOneQc(row);
     else await mbAiRunOneSales(row);
   }
   (_aiDesk.staff || []).forEach((row) => mbAiPaintRunLive(row.id));
+}
+
+async function mbAiDryRun(staffId) {
+  if (!_aiDesk || typeof sb !== 'function') {
+    if (typeof toast === 'function') toast(mbAiSay('callin.desk.now.wait', 'YZ arama yükleniyor…'), 'warn');
+    return;
+  }
+  const staff = _aiDesk.staff.find((row) => String(row.id) === String(staffId));
+  if (!staff) return;
+  const camps = mbAiFocusIds(staff);
+  const pool = camps.length ? camps : (_aiDesk.camps || []).map((camp) => camp.id).filter(mbAiUuid);
+  if (!pool.length) {
+    if (typeof toast === 'function') toast(mbAiSay('ai.run.no_camp', 'Önce personel kartında kampanya seçin.'), 'err');
+    return;
+  }
+  const campQ = pool.map(encodeURIComponent).join(',');
+  let who = null;
+  let kind = 'sales';
+  if (staff.kind === 'qc') {
+    kind = 'qc';
+    const want = (staff.call_statuses || []).filter(Boolean);
+    const statuses = want.length ? want : ['qc_bekleniyor'];
+    const statusQ = statuses.map(encodeURIComponent).join(',');
+    const rows = await sb(
+      `appointments?select=id,campaign_id,telefonnummer,nachname,termin_tarih,durum&firm_id=eq.${_aiFirmId}&campaign_id=in.(${campQ})&durum=in.(${statusQ})&order=termin_tarih.asc&limit=1`
+    ).catch(() => []) || [];
+    who = rows[0] || null;
+  } else {
+    const rows = await sb(
+      `contacts?select=id,first_name,last_name,phone,campaign_id,status&firm_id=eq.${_aiFirmId}&campaign_id=in.(${campQ})&status=in.(pending,callback,no_answer)&order=last_called_at.asc.nullsfirst&limit=1`
+    ).catch(() => []) || [];
+    who = rows[0] || null;
+  }
+  document.getElementById('ai-dry-pop')?.remove();
+  const name = who
+    ? (kind === 'qc'
+      ? String(who.nachname || who.telefonnummer || '—')
+      : [who.first_name, who.last_name].filter(Boolean).join(' ') || who.phone || '—')
+    : '';
+  const phone = who ? String(who.telefonnummer || who.phone || '') : '';
+  const camp = who ? mbAiCampName(who.campaign_id) : '';
+  const greet = String(staff.greeting || '').trim() || mbAiSay('ai.run.dry.nogreet', 'İlk cümle boş.');
+  const prompt = String(staff.prompt || '').trim().slice(0, 400);
+  const pop = document.createElement('div');
+  pop.id = 'ai-dry-pop';
+  pop.className = 'ai-callin';
+  pop.innerHTML = `<div class="ai-callin-card ai-wiz-card" role="dialog" aria-modal="true">
+    <div class="ai-wiz-hd">
+      <b>${mbAiEsc(mbAiSay('ai.run.dry.title', 'Kuru koşum'))}</b>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('ai-dry-pop')?.remove()">${mbAiEsc(mbAiSay('qc.callin.cancel', 'Vazgeç'))}</button>
+    </div>
+    <p class="ai-hint">${mbAiEsc(mbAiSay('ai.run.dry.hint', 'Gerçek arama yok. Sıradaki kişi ve script önizlemesi.'))}</p>
+    ${who ? `<div class="ai-dry-who"><b>${mbAiEsc(name)}</b>
+      <div class="ai-hint">${mbAiEsc(phone)}${camp ? ` · ${mbAiEsc(camp)}` : ''}</div></div>`
+      : `<p class="ai-note">${mbAiEsc(mbAiSay('ai.run.dry.empty', 'Sırada kişi yok.'))}</p>`}
+    <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.greeting', 'İlk cümle'))}</div>
+    <div class="ai-dry-script">${mbAiEsc(greet)}</div>
+    ${prompt ? `<div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.prompt', 'Talimat'))}</div><div class="ai-dry-script is-muted">${mbAiEsc(prompt)}</div>` : ''}
+  </div>`;
+  pop.addEventListener('click', (event) => { if (event.target === pop) pop.remove(); });
+  document.body.appendChild(pop);
 }
 
 async function mbAiRunOneQc(staff) {
@@ -1993,6 +2178,7 @@ function mbPaintAiStaff() {
       ${mbAiField('ai-maxmin', mbAiSay('ai.talk.max', 'En uzun arama'), `<select class="form-input" id="ai-maxmin">${opt(5, Number(ai.max_min) || 7, mbAiSay('ai.talk.max.5', '5 dakika'))}${opt(7, Number(ai.max_min) || 7, mbAiSay('ai.talk.max.7', '7 dakika'))}${opt(10, Number(ai.max_min) || 7, mbAiSay('ai.talk.max.10', '10 dakika'))}</select>`)}
       ${mbAiField('ai-style', mbAiSay('ai.talk.style', 'Ses karakteri'), `<select class="form-input" id="ai-style">${opt('calm', ai.voice_style || 'natural', mbAiSay('ai.talk.calm', 'Sakin'))}${opt('natural', ai.voice_style || 'natural', mbAiSay('ai.talk.natural', 'Doğal'))}${opt('lively', ai.voice_style || 'natural', mbAiSay('ai.talk.lively', 'Canlı'))}</select>`)}
       ${mbAiField('ai-daycap', mbAiSay('ai.talk.daycap', 'Günlük YZ dakika kotası'), `<input class="form-input" id="ai-daycap" type="number" min="0" max="1440" step="1" value="${mbAiEsc(ai.day_min_cap || '')}" placeholder="0"><div class="ai-hint">${mbAiEsc(mbAiSay('ai.talk.daycap_hint', '0 = limitsiz. Doluluğunda yeni YZ araması çıkmaz; %80’de uyarı gelir.'))}</div>`, true)}
+      ${mbAiField('ai-qcafter', mbAiSay('ai.talk.qc_after', 'Randevu sonrası kalite'), `<select class="form-input" id="ai-qcafter">${opt('off', ai.qc_after || 'off', mbAiSay('ai.talk.qc_after.off', 'Kapalı'))}${opt('now', ai.qc_after || 'off', mbAiSay('ai.talk.qc_after.now', 'Hemen'))}${opt('5', ai.qc_after || 'off', mbAiSay('ai.talk.qc_after.5', '5 dk sonra'))}${opt('15', ai.qc_after || 'off', mbAiSay('ai.talk.qc_after.15', '15 dk sonra'))}${opt('30', ai.qc_after || 'off', mbAiSay('ai.talk.qc_after.30', '30 dk sonra'))}</select><div class="ai-hint">${mbAiEsc(mbAiSay('ai.talk.qc_after_hint', 'Satış randevu yazınca kalite personeli sıraya alınır.'))}</div>`, true)}
     </div>
     <div class="ai-switches">
       ${mbAiSwitch('ai-express', ai.expressive !== false, mbAiSay('ai.talk.express', 'İfadeli konuşsun'))}
@@ -2776,6 +2962,7 @@ async function mbSaveAiStaff() {
     voice_style: draft.voice_style === 'calm' || draft.voice_style === 'lively' ? draft.voice_style : 'natural',
     expressive: draft.expressive !== false,
     day_min_cap: Number(draft.day_min_cap) > 0 ? Math.min(1440, Math.round(Number(draft.day_min_cap))) : 0,
+    qc_after: ['now', '5', '15', '30'].includes(String(draft.qc_after || '')) ? String(draft.qc_after) : 'off',
   };
   try {
     const rows = await sb(`firms?id=eq.${_aiFirmId}&select=settings`);
