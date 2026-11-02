@@ -1133,11 +1133,22 @@ function mbFitResultZeros() {
   swipe.style.justifyContent = prev;
 }
 
+function mbWideBar() {
+  return window.matchMedia('(min-width: 1400px)').matches;
+}
+
 function mbPackBar() {
   const swipe = document.getElementById('tb-swipe');
+  const bar = document.getElementById('topbar');
   if (!swipe) return;
+  if (bar) bar.classList.toggle('is-tb-wide', mbWideBar());
   if (mbNarrowBar()) {
     swipe.style.justifyContent = '';
+    swipe.classList.remove('is-overflow', 'is-fade-left', 'is-fade-right');
+    return;
+  }
+  if (mbWideBar()) {
+    swipe.style.justifyContent = 'space-between';
     swipe.classList.remove('is-overflow', 'is-fade-left', 'is-fade-right');
     return;
   }
@@ -1228,6 +1239,7 @@ function mbFitStatus() {
   wrap._fitLock = true;
   wrap.classList.remove('is-today-open', 'is-mesai-open', 'is-live-letter');
   bar.classList.remove('is-tb-tight');
+  bar.classList.toggle('is-tb-wide', mbWideBar());
   mbPlaceMascotChip();
   mbFitResultZeros();
   if (mbNarrowBar()) {
@@ -1243,6 +1255,7 @@ function mbFitStatus() {
     return;
   }
   wrap.classList.add('is-today-open');
+  if (mbWideBar()) wrap.classList.add('is-live-letter');
   wrap._fitLock = false;
   mbPackBar();
   mbSwipeSync();
