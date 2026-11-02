@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="callin.one çağrı merkezi">
-<link rel="icon" href="favicon.svg?v=14.14" type="image/svg+xml">
+<link rel="icon" href="favicon.svg?v=14.15" type="image/svg+xml">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,17 +15,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=14.14">
-<link rel="stylesheet" href="css/styles-dialer.css?v=14.14">
-<link rel="stylesheet" href="css/styles-mascot.css?v=14.14">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.14">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.14">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.14">
-<link rel="stylesheet" href="css/styles-pages.css?v=14.14">
-<link rel="stylesheet" href="css/styles-aurora.css?v=14.14">
-<link rel="stylesheet" href="css/styles-chat.css?v=14.14">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=14.14">
-<link rel="stylesheet" href="css/styles-responsive.css?v=14.14">
+<link rel="stylesheet" href="css/styles.css?v=14.15">
+<link rel="stylesheet" href="css/styles-dialer.css?v=14.15">
+<link rel="stylesheet" href="css/styles-mascot.css?v=14.15">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.15">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.15">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.15">
+<link rel="stylesheet" href="css/styles-pages.css?v=14.15">
+<link rel="stylesheet" href="css/styles-aurora.css?v=14.15">
+<link rel="stylesheet" href="css/styles-chat.css?v=14.15">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=14.15">
+<link rel="stylesheet" href="css/styles-responsive.css?v=14.15">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -84,7 +84,7 @@
 </div>
 </div>
 </div>
-<div class="login-version">v14.14 — 2026</div>
+<div class="login-version">v14.15 — 2026</div>
 </div>
 </div>
 <div id="app" style="display:none;">
@@ -359,7 +359,7 @@
 </button>
 <button class="sb-item" data-rep="operator" onclick="openStatsReport('operator')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="8" r="3"/><path d="M5 19a7 7 0 0 1 14 0"/></svg></span>
-<span data-tr="Temsilci günlüğü" data-de="Agententagebuch">Temsilci günlüğü</span>
+<span data-tr="Temsilci günlüğü" data-de="Mitarbeitertagebuch">Temsilci günlüğü</span>
 </button>
 <button class="sb-item" data-rep="calls" onclick="openStatsReport('calls')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 19V5M4 19h16"/><path d="M8 16v-5M12 16V8M16 16v-3"/></svg></span>
@@ -383,11 +383,11 @@
 <div class="sb-sub">
 <button class="sb-item" id="nav-performance-btn" style="display:none;" onclick="navigate('performance')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
-<span data-tr="Personel performans" data-de="Mitarbeiterleistung">Personel performans</span>
+<span data-tr="Personel performansı" data-de="Mitarbeiterleistung">Personel performansı</span>
 </button>
 <button class="sb-item" data-rep="perf" onclick="openStatsReport('perf')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 16l4-4 3 3 7-8"/></svg></span>
-<span data-tr="Temsilci masası" data-de="Agententisch">Temsilci masası</span>
+<span data-tr="Temsilci masası" data-de="Mitarbeitertisch">Temsilci masası</span>
 </button>
 <button class="sb-item" data-rep="group" onclick="openStatsReport('group')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="8" cy="9" r="2.5"/><circle cx="16" cy="9" r="2.5"/><path d="M3 18a5 5 0 0 1 10 0M11 18a5 5 0 0 1 10 0"/></svg></span>
@@ -481,7 +481,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">callin.one v14.14</div>
+<div class="sb-ver">callin.one v14.15</div>
 </div>
 </div>
 </nav>
@@ -1151,12 +1151,12 @@
 <div class="page-hdr">
 <div>
 <div class="page-title" id="stats-page-title" data-tr="Firma özeti" data-de="Firmenüberblick">Firma özeti</div>
-<div class="page-sub" data-tr="Arama sonucu. Randevu, agentin aramada yazdığı sonuçtur. Kalite kontrol sonrası durum Personel performansta." data-de="Anrufergebnis. Termin ist das Ergebnis des Agenten. Der Stand nach QC steht unter Mitarbeiterleistung.">Arama sonucu. Randevu, agentin aramada yazdığı sonuçtur. Kalite kontrol sonrası durum Personel performansta.</div>
+<div class="page-sub" data-tr="Arama sonucu. Randevu, temsilcinin aramada yazdığı sonuçtur. Kalite kontrol sonrası durum Personel performansta." data-de="Anrufergebnis. Termin ist das Ergebnis des Mitarbeiters. Der Stand nach QC steht unter Mitarbeiterleistung.">Arama sonucu. Randevu, temsilcinin aramada yazdığı sonuçtur. Kalite kontrol sonrası durum Personel performansta.</div>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto;">
 <div id="stats-firm-selector"></div>
 <select class="form-input" style="width:auto;" id="stats-agent-f" onchange="loadStats()">
-<option value="" data-tr="Tüm temsilciler" data-de="Alle Agenten">Tüm temsilciler</option>
+<option value="" data-tr="Tüm temsilciler" data-de="Alle Mitarbeiter">Tüm temsilciler</option>
 </select>
 <select class="form-input" style="width:auto;" id="stats-camp-f" onchange="loadStats()">
 <option value="" data-tr="Tüm Kampanyalar" data-de="Alle Kampagnen">Tüm Kampanyalar</option>
@@ -1193,11 +1193,11 @@
 </div>
 <div id="stats-cap" style="display:none;font-size:12px;font-weight:700;color:var(--yellow);"></div>
 <div class="card">
-<div class="card-title" style="margin-bottom:14px;" data-tr="Agent performansı" data-de="Agentenleistung">Agent performansı</div>
+<div class="card-title" style="margin-bottom:14px;" data-tr="Temsilci performansı" data-de="Mitarbeiterleistung">Temsilci performansı</div>
 <div class="tbl-wrap">
 <table>
 <thead><tr>
-<th data-tr="Agent" data-de="Agent">Agent</th>
+<th data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</th>
 <th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
 <th data-tr="Aramalar" data-de="Anrufe">Aramalar</th>
 <th data-tr="Randevu" data-de="Termin">Randevu</th>
@@ -1226,14 +1226,14 @@
 </div>
 <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:auto;">
 <div id="ch-firm-selector"></div>
-<input type="text" class="form-input" style="width:150px;" placeholder="İsim, numara..." id="ch-search" oninput="chPaint()">
+<input type="text" class="form-input" style="width:150px;" placeholder="İsim, numara..." id="ch-search" data-tr="İsim, numara..." data-de="Name, Nummer..." oninput="chPaint()">
 <select class="form-input" style="width:auto;" id="ch-dir" onchange="chPaint()">
 <option value="" data-tr="Tümü" data-de="Alle">Tümü</option>
 <option value="out" data-tr="Giden" data-de="Ausgehend">Giden</option>
 <option value="in" data-tr="Gelen" data-de="Eingehend">Gelen</option>
 </select>
 <select class="form-input" style="width:auto;" id="ch-agent-f" onchange="loadCallHistory()">
-<option value="" data-tr="Tüm temsilciler" data-de="Alle Agenten">Tüm temsilciler</option>
+<option value="" data-tr="Tüm temsilciler" data-de="Alle Mitarbeiter">Tüm temsilciler</option>
 </select>
 <select class="form-input" style="width:auto;" id="ch-camp-f" onchange="loadCallHistory()">
 <option value="" data-tr="Tüm Kampanyalar" data-de="Alle Kampagnen">Tüm Kampanyalar</option>
@@ -1268,20 +1268,20 @@
 <div id="ch-cap" style="display:none;font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:8px;"></div>
 <div class="card">
 <div id="ch-export-hint" style="display:none;font-size:11px;color:var(--text-3);margin:-4px 0 10px 0;padding:0 2px;">
-<span data-tr="Admin: Tarih, temsilci, kampanya ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8000 satır)." data-de="Admin: Datum, Agent, Kampagne und Ergebnis gelten für den Export (höchstens 8000 Zeilen).">Admin: Tarih, temsilci, kampanya ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8000 satır).</span>
+<span data-tr="Admin: Tarih, temsilci, kampanya ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8000 satır)." data-de="Admin: Datum, Mitarbeiter, Kampagne und Ergebnis gelten für den Export (höchstens 8000 Zeilen).">Admin: Tarih, temsilci, kampanya ve sonuç filtreleri dışa aktarıma uygulanır (en fazla 8000 satır).</span>
 </div>
 <div class="tbl-wrap">
 <table>
 <thead><tr>
-<th>Tarih/Saat</th>
-<th>Müşteri</th>
-<th>Numara</th>
-<th>Agent</th>
-<th>Kampanya</th>
-<th>Süre</th>
-<th>Kayıt</th>
-<th>Sonuç</th>
-<th>Not</th>
+<th data-tr="Tarih/Saat" data-de="Datum/Zeit">Tarih/Saat</th>
+<th data-tr="Müşteri" data-de="Kunde">Müşteri</th>
+<th data-tr="Numara" data-de="Nummer">Numara</th>
+<th data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</th>
+<th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
+<th data-tr="Süre" data-de="Dauer">Süre</th>
+<th data-tr="Kayıt" data-de="Aufnahme">Kayıt</th>
+<th data-tr="Sonuç" data-de="Ergebnis">Sonuç</th>
+<th data-tr="Not" data-de="Notiz">Not</th>
 <th></th>
 </tr></thead>
 <tbody id="ch-tbody">
@@ -1371,24 +1371,24 @@
 <div class="et-date-field"><label class="form-label" style="font-size:10px;" data-tr="Başlangıç" data-de="Beginn">Başlangıç</label><input type="date" class="form-input" id="et-date-from" onchange="mbExportRangeChanged()"/></div>
 <div class="et-date-field"><label class="form-label" style="font-size:10px;" data-tr="Bitiş" data-de="Ende">Bitiş</label><input type="date" class="form-input" id="et-date-to" onchange="mbExportRangeChanged()"/></div>
 </div>
-<div style="margin-bottom:12px;"><label class="form-label" style="font-size:10px;">Agent</label>
-<select class="form-input" id="et-agent" onchange="etApplyFilter()"><option value="">Tüm agentler</option></select></div>
-<div style="margin-bottom:12px;"><label class="form-label" style="font-size:10px;">Müşteri</label>
-<select class="form-input" id="et-customer" onchange="etApplyFilter()"><option value="">Tüm müşteriler</option></select></div>
+<div style="margin-bottom:12px;"><label class="form-label" style="font-size:10px;" data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</label>
+<select class="form-input" id="et-agent" onchange="etApplyFilter()"><option value="" data-tr="Tüm temsilciler" data-de="Alle Mitarbeiter">Tüm temsilciler</option></select></div>
+<div style="margin-bottom:12px;"><label class="form-label" style="font-size:10px;" data-tr="Müşteri" data-de="Kunde">Müşteri</label>
+<select class="form-input" id="et-customer" onchange="etApplyFilter()"><option value="" data-tr="Tüm müşteriler" data-de="Alle Kunden">Tüm müşteriler</option></select></div>
 <div style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
 <label class="form-label" style="margin:0;font-size:10px;">Kampanyalar</label>
 <span class="badge" id="et-kamp-count" style="background:var(--yellow);color:#000;font-size:10px;">0</span>
 </div>
 <div class="et-kamp-list" id="et-kamp-list"></div>
 <div style="display:flex;gap:6px;margin-top:8px;">
-<button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="etSelectAllKamp()"><i class="ph ph-checks"></i> Tümü</button>
-<button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="etDeselectAllKamp()"><i class="ph ph-x"></i> Hiçbiri</button>
+<button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="etSelectAllKamp()"><i class="ph ph-checks"></i> <span data-tr="Tümü" data-de="Alle">Tümü</span></button>
+<button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="etDeselectAllKamp()"><i class="ph ph-x"></i> <span data-tr="Hiçbiri" data-de="Keine">Hiçbiri</span></button>
 </div>
-<div style="margin-top:14px;margin-bottom:8px;"><label class="form-label" style="font-size:10px;">Durum</label></div>
+<div style="margin-top:14px;margin-bottom:8px;"><label class="form-label" style="font-size:10px;" data-tr="Durum" data-de="Status">Durum</label></div>
 <div class="et-stat-grid" id="et-status-grid"></div>
 <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
 <button type="button" class="btn btn-primary btn-sm" onclick="etReload()"><i class="ph ph-cloud-arrow-down"></i> <span data-tr="Veriyi yükle" data-de="Daten laden">Veriyi yükle</span></button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="etResetFilters(true)"><i class="ph ph-arrow-counter-clockwise"></i> Sıfırla</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="etResetFilters(true)"><i class="ph ph-arrow-counter-clockwise"></i> <span data-tr="Sıfırla" data-de="Zurücksetzen">Sıfırla</span></button>
 </div>
 <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);">
 <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--accent);"><i class="ph ph-file-arrow-down"></i> <span data-tr="Hızlı liste (hafta · başarılı)" data-de="Schnellliste (Woche · erfolgreich)">Hızlı liste (hafta · başarılı)</span></div>
@@ -1398,7 +1398,7 @@
 </div>
 <div class="card et-main" style="min-height:420px;display:flex;flex-direction:column;">
 <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
-<div style="font-weight:700;font-size:14px;"><i class="ph ph-calendar-dots"></i> Randevular</div>
+<div style="font-weight:700;font-size:14px;"><i class="ph ph-calendar-dots"></i> <span data-tr="Randevular" data-de="Termine">Randevular</span></div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
 <span class="badge" style="background:var(--accent);color:#fff;"><span id="et-results-count">0</span> <span data-tr="kayıt" data-de="Einträge">kayıt</span></span>
 <span class="badge" style="background:var(--green);color:#fff;"><span id="et-selected-count">0</span> <span data-tr="seçili" data-de="gewählt">seçili</span></span>
@@ -1406,9 +1406,9 @@
 </div>
 <div id="et-cols" class="et-cols"></div>
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-<button type="button" class="btn btn-ghost btn-sm" onclick="etSelectAllFiltered()"><i class="ph ph-check-square"></i> Tümünü seç</button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="etDeselectAll()">Seçimi kaldır</button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="etInvertSelection()">Tersine çevir</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="etSelectAllFiltered()"><i class="ph ph-check-square"></i> <span data-tr="Tümünü seç" data-de="Alle wählen">Tümünü seç</span></button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="etDeselectAll()"><span data-tr="Seçimi kaldır" data-de="Auswahl aufheben">Seçimi kaldır</span></button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="etInvertSelection()"><span data-tr="Tersine çevir" data-de="Auswahl umkehren">Tersine çevir</span></button>
 </div>
 <div class="tbl-wrap" style="flex:1;max-height:calc(100vh - 260px);">
 <table style="min-width:1100px;">
@@ -1420,7 +1420,7 @@
 <th data-tr="Adres" data-de="Adresse">Adres</th>
 <th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
 <th data-tr="Durum" data-de="Status">Durum</th>
-<th data-tr="Agent" data-de="Agent">Agent</th>
+<th data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</th>
 <th data-tr="Atanan müşteri" data-de="Kundenzuweisung">Atanan müşteri</th>
 </tr></thead>
 <tbody id="et-tbody"><tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:32px;">—</td></tr></tbody>
@@ -2354,7 +2354,7 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="qc-date-field"><label class="form-label" style="font-size:10px;" data-tr="Bitiş" data-de="Ende">Bitiş</label><input type="date" class="form-input" id="qc-date-to" onchange="loadQcData()"></div>
 <div class="qc-date-field"><label class="form-label" id="qc-near-lbl" style="font-size:10px;">Tarih sırası</label><button type="button" class="dash-range-btn" id="qc-near-btn" onclick="qcToggleNear()"></button></div>
 </div>
-<input type="text" class="form-input" id="qc-search" data-tr="İsim, numara, agent, kampanya" data-de="Name, Nummer, Agent, Kampagne" placeholder="İsim, numara, agent, kampanya" style="width:220px;padding:6px 10px;font-size:12px;" oninput="filterQcTable()">
+<input type="text" class="form-input" id="qc-search" data-tr="İsim, numara, temsilci, kampanya" data-de="Name, Nummer, Mitarbeiter, Kampagne" placeholder="İsim, numara, temsilci, kampanya" style="width:220px;padding:6px 10px;font-size:12px;" oninput="filterQcTable()">
 <button type="button" class="btn btn-ghost btn-sm" id="qc-settings-btn" style="display:none;" onclick="openQcSettings()">
 <i class="ph ph-sliders-horizontal"></i>
 <span data-tr="Ayarlar" data-de="Einstellungen">Ayarlar</span>
@@ -2371,16 +2371,16 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="tbl-wrap" id="qc-scroll">
 <table>
 <thead id="qc-thead"><tr>
-<th>Tarih / saat</th>
-<th>Ad</th>
-<th>Telefon</th>
-<th>Posta kodu</th>
-<th>Agent</th>
-<th>Kampanya</th>
-<th>Müşteri</th>
-<th>Kayıt</th>
-<th>Durum</th>
-<th>İşlem</th>
+<th data-tr="Tarih / saat" data-de="Datum / Zeit">Tarih / saat</th>
+<th data-tr="Ad" data-de="Name">Ad</th>
+<th data-tr="Telefon" data-de="Telefon">Telefon</th>
+<th data-tr="Posta kodu" data-de="PLZ">Posta kodu</th>
+<th data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</th>
+<th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
+<th data-tr="Müşteri" data-de="Kunde">Müşteri</th>
+<th data-tr="Kayıt" data-de="Aufnahme">Kayıt</th>
+<th data-tr="Durum" data-de="Status">Durum</th>
+<th data-tr="İşlem" data-de="Aktion">İşlem</th>
 </tr></thead>
 <tbody id="qc-tbody">
 <tr><td colspan="10" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
@@ -5220,75 +5220,75 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=14.14"></script>
-<script src="js/i18n.js?v=14.14"></script>
-<script src="js/config.js?v=14.14"></script>
-<script src="js/state.js?v=14.14"></script>
-<script src="js/api.js?v=14.14"></script>
-<script src="js/access.js?v=14.14"></script>
-<script src="js/auth.js?v=14.14"></script>
-<script src="js/logo.js?v=14.14"></script>
-<script src="js/ui.js?v=14.14"></script>
-<script src="js/chat.js?v=14.14"></script>
-<script src="js/chat-settings.js?v=14.14"></script>
-<script src="js/field-settings.js?v=14.14"></script>
-<script src="js/audit.js?v=14.14"></script>
-<script src="js/feature-flags.js?v=14.14"></script>
-<script src="js/notification-center.js?v=14.14"></script>
+<script src="js/version.js?v=14.15"></script>
+<script src="js/i18n.js?v=14.15"></script>
+<script src="js/config.js?v=14.15"></script>
+<script src="js/state.js?v=14.15"></script>
+<script src="js/api.js?v=14.15"></script>
+<script src="js/access.js?v=14.15"></script>
+<script src="js/auth.js?v=14.15"></script>
+<script src="js/logo.js?v=14.15"></script>
+<script src="js/ui.js?v=14.15"></script>
+<script src="js/chat.js?v=14.15"></script>
+<script src="js/chat-settings.js?v=14.15"></script>
+<script src="js/field-settings.js?v=14.15"></script>
+<script src="js/audit.js?v=14.15"></script>
+<script src="js/feature-flags.js?v=14.15"></script>
+<script src="js/notification-center.js?v=14.15"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=14.14"></script>
-<script src="js/spend.js?v=14.14"></script>
-<script src="js/job-market.js?v=14.14"></script>
-<script src="js/qc-job-market.js?v=14.14"></script>
-<script src="js/export-admin.js?v=14.14"></script>
-<script src="js/export-termin.js?v=14.14"></script>
-<script src="js/performance.js?v=14.14"></script>
-<script src="js/competition.js?v=14.14"></script>
-<script src="js/dashboard.js?v=14.14"></script>
-<script src="js/reports.js?v=14.14"></script>
-<script src="js/dashboard-brief.js?v=14.14"></script>
-<script src="js/campaigns.js?v=14.14"></script>
-<script src="js/campaigns-detail.js?v=14.14"></script>
-<script src="js/campaigns-queue.js?v=14.14"></script>
-<script src="js/queues-page.js?v=14.14"></script>
-<script src="js/contacts-upload.js?v=14.14"></script>
-<script src="js/geocon.js?v=14.14"></script>
-<script src="js/contacts.js?v=14.14"></script>
-<script src="js/contacts-drawer.js?v=14.14"></script>
-<script src="js/telnyx.js?v=14.14"></script>
-<script src="js/hold-music.js?v=14.14"></script>
-<script src="js/voice-orb.js?v=14.14"></script>
-<script src="js/dialer.js?v=14.14"></script>
-<script src="js/ops-alerts.js?v=14.14"></script>
-<script src="js/radius-tour.js?v=14.14"></script>
-<script src="js/dialer-mascot.js?v=14.14"></script>
-<script src="js/dialer-mascot-live.js?v=14.14"></script>
-<script src="js/ui-prefs.js?v=14.14"></script>
-<script src="js/dialer-session.js?v=14.14"></script>
-<script src="js/dialer-call.js?v=14.14"></script>
-<script src="js/dialer-tools.js?v=14.14"></script>
-<script src="js/appointments.js?v=14.14"></script>
-<script src="js/appointments-actions.js?v=14.14"></script>
-<script src="js/appointments-tools.js?v=14.14"></script>
-<script src="js/field.js?v=14.14"></script>
-<script src="js/field-quote.js?v=14.14"></script>
-<script src="js/field-catalog.js?v=14.14"></script>
-<script src="js/field-ops.js?v=14.14"></script>
-<script src="js/wiedervorlage.js?v=14.14"></script>
-<script src="js/qc.js?v=14.14"></script>
-<script src="js/supervisor.js?v=14.14"></script>
-<script src="js/live-coach.js?v=14.14"></script>
-<script src="js/sms-settings.js?v=14.14"></script>
-<script src="js/line-firms.js?v=14.14"></script>
-<script src="js/ai-staff.js?v=14.14"></script>
-<script src="js/callin-desk.js?v=14.14"></script>
-<script src="js/leave-hr.js?v=14.14"></script>
-<script src="js/muhasebe.js?v=14.14"></script>
-<script src="js/muhasebe-books.js?v=14.14"></script>
-<script src="js/agent-self-performance.js?v=14.14"></script>
-<script src="js/agents.js?v=14.14"></script>
-<script src="js/firm-desk.js?v=14.14"></script>
-<script src="js/mimi-brain.js?v=14.14"></script>
+<script src="js/wallet.js?v=14.15"></script>
+<script src="js/spend.js?v=14.15"></script>
+<script src="js/job-market.js?v=14.15"></script>
+<script src="js/qc-job-market.js?v=14.15"></script>
+<script src="js/export-admin.js?v=14.15"></script>
+<script src="js/export-termin.js?v=14.15"></script>
+<script src="js/performance.js?v=14.15"></script>
+<script src="js/competition.js?v=14.15"></script>
+<script src="js/dashboard.js?v=14.15"></script>
+<script src="js/reports.js?v=14.15"></script>
+<script src="js/dashboard-brief.js?v=14.15"></script>
+<script src="js/campaigns.js?v=14.15"></script>
+<script src="js/campaigns-detail.js?v=14.15"></script>
+<script src="js/campaigns-queue.js?v=14.15"></script>
+<script src="js/queues-page.js?v=14.15"></script>
+<script src="js/contacts-upload.js?v=14.15"></script>
+<script src="js/geocon.js?v=14.15"></script>
+<script src="js/contacts.js?v=14.15"></script>
+<script src="js/contacts-drawer.js?v=14.15"></script>
+<script src="js/telnyx.js?v=14.15"></script>
+<script src="js/hold-music.js?v=14.15"></script>
+<script src="js/voice-orb.js?v=14.15"></script>
+<script src="js/dialer.js?v=14.15"></script>
+<script src="js/ops-alerts.js?v=14.15"></script>
+<script src="js/radius-tour.js?v=14.15"></script>
+<script src="js/dialer-mascot.js?v=14.15"></script>
+<script src="js/dialer-mascot-live.js?v=14.15"></script>
+<script src="js/ui-prefs.js?v=14.15"></script>
+<script src="js/dialer-session.js?v=14.15"></script>
+<script src="js/dialer-call.js?v=14.15"></script>
+<script src="js/dialer-tools.js?v=14.15"></script>
+<script src="js/appointments.js?v=14.15"></script>
+<script src="js/appointments-actions.js?v=14.15"></script>
+<script src="js/appointments-tools.js?v=14.15"></script>
+<script src="js/field.js?v=14.15"></script>
+<script src="js/field-quote.js?v=14.15"></script>
+<script src="js/field-catalog.js?v=14.15"></script>
+<script src="js/field-ops.js?v=14.15"></script>
+<script src="js/wiedervorlage.js?v=14.15"></script>
+<script src="js/qc.js?v=14.15"></script>
+<script src="js/supervisor.js?v=14.15"></script>
+<script src="js/live-coach.js?v=14.15"></script>
+<script src="js/sms-settings.js?v=14.15"></script>
+<script src="js/line-firms.js?v=14.15"></script>
+<script src="js/ai-staff.js?v=14.15"></script>
+<script src="js/callin-desk.js?v=14.15"></script>
+<script src="js/leave-hr.js?v=14.15"></script>
+<script src="js/muhasebe.js?v=14.15"></script>
+<script src="js/muhasebe-books.js?v=14.15"></script>
+<script src="js/agent-self-performance.js?v=14.15"></script>
+<script src="js/agents.js?v=14.15"></script>
+<script src="js/firm-desk.js?v=14.15"></script>
+<script src="js/mimi-brain.js?v=14.15"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof mbApplyChartTheme === 'function') mbApplyChartTheme();

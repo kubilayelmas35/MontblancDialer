@@ -2301,7 +2301,7 @@ async function statsFillFilters(fid) {
     await statsFillSelect('stats-agent-f', `u:${sig}:${users.length}`, users.map((u) => ({
       id: u.id,
       name: `${u.name || '—'}${statsFirmSuffix(u.firm_id)}`,
-    })), 'Tüm temsilciler', 'Alle Agenten');
+    })), 'Tüm temsilciler', 'Alle Mitarbeiter');
   } catch (e) { console.warn('stats agents', e); }
 }
 
@@ -2363,7 +2363,7 @@ function statsColumns(extras) {
   const de = typeof currentLang !== 'undefined' && currentLang === 'de';
   const pair = (key, tr, deLabel, type) => ({ key, tr, de: deLabel, label: de ? deLabel : tr, type });
   return [
-    pair('agent', 'Agent', 'Agent', 'text'),
+    pair('agent', 'Temsilci', 'Mitarbeiter', 'text'),
     pair('camp', 'Kampanya', 'Kampagne', 'text'),
     pair('calls', 'Aramalar', 'Anrufe', 'num'),
     pair('appointment', 'Randevu', 'Termin', 'num'),
@@ -2919,7 +2919,7 @@ async function chFillFilters(fid) {
     await statsFillSelect('ch-agent-f', `u:${sig}:${users.length}`, users.map((u) => ({
       id: u.id,
       name: `${u.role === 'ai' ? '🤖 ' : ''}${u.name || '—'}${statsFirmSuffix(u.firm_id)}`,
-    })), 'Tüm temsilciler', 'Alle Agenten');
+    })), 'Tüm temsilciler', 'Alle Mitarbeiter');
   } catch (e) { console.warn('ch agents', e); }
 }
 
@@ -3632,7 +3632,7 @@ function _paintDashLive() {
     </article>`;
   }).join('');
   const head = asRows ? `<div class="live-rows-head${isAdmin ? ' live-rows-head--act' : ''}">
-      <span>${de ? 'Agent' : 'Temsilci'}</span>
+      <span>${de ? 'Mitarbeiter' : 'Temsilci'}</span>
       <span>${de ? 'Status' : 'Durum'}</span>
       <span>${de ? 'Dauer' : 'Süre'}</span>
       <span>${de ? 'Kontakt' : 'Müşteri'}</span>
@@ -3644,7 +3644,7 @@ function _paintDashLive() {
     ? (asRows
       ? `<div class="live-rows${isAdmin ? ' live-rows--act' : ''}">${head}${people}</div>`
       : `<div class="live-grid">${people}</div>`)
-    : `<div class="mb-empty-hint" style="font-size:13px;">${de ? 'Keine Agenten in dieser Auswahl.' : 'Bu seçimde temsilci yok.'}</div>`;
+    : `<div class="mb-empty-hint" style="font-size:13px;">${de ? 'Keine Mitarbeiter in dieser Auswahl.' : 'Bu seçimde temsilci yok.'}</div>`;
   _liveFlip(live, () => {
     live.innerHTML = `<div class="live-filters">${chips}</div>${board}`;
     if (typeof mbAfterLivePaint === 'function') mbAfterLivePaint(live);

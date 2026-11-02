@@ -714,7 +714,7 @@ function _etMeta() {
     pair('camp', 'Kampanya', 'Kampagne', true),
     pair('status', 'Durum', 'Status', true),
     pair('moved', 'Alta', 'Unten', true),
-    pair('agent', 'Agent', 'Agent', true),
+    pair('agent', 'Temsilci', 'Mitarbeiter', true),
     pair('customer', 'Atanan müşteri', 'Kundenzuweisung', true),
     pair('note', 'Agent notu', 'Agentnotiz', true),
     pair('qc', 'Kalite kontrol notu', 'QC-Notiz', false),
