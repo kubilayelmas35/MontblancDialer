@@ -1,0 +1,1 @@
+window.GEOCON_CONFIG = {"supabaseUrl": "https://igckcwilhjeybbjqqlkt.supabase.co", "supabaseKey": "sb_publishable_BxcpcMFS8WGSttQ0-wH3qw_qPSSZ1cv", "leadPw": "150716", "tomtomKeys": ["0Qr9jgM8qfMzocWF9rhOsI6oHjebH59Y", "fkh1ZrLXDgG4P6zyDMUWL2gd0tqoA6Vc"], "googleKey": "AIzaSyDzUsnQG-sKIO6wseQEbfrOOHRvwSyGUoM"};
