@@ -3442,13 +3442,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Menü kaydırma çubuğu" data-de="Menü-Scrollbar">Menü kaydırma çubuğu</label>
-<p class="live-grad-hint" data-tr="Sol menüdeki scroll rengi. Gradient açıksa iki renk dikey geçiş yapar." data-de="Farbe der Menü-Scrollbar. Mit Verlauf mischen sich zwei Farben senkrecht.">Sol menüdeki scroll rengi. Gradient açıksa iki renk dikey geçiş yapar.</p>
+<p class="live-grad-hint" data-tr="Yalnızca rengi değiştirir (eski ince scroll). Gradient için iki renk seç. Eski haline dön varsayılan scrollu getirir." data-de="Nur die Farbe (dünne Scrollbar). Verlauf braucht zwei Farben. Zurücksetzen stellt die Standard-Scrollbar wieder her.">Yalnızca rengi değiştirir (eski ince scroll). Gradient için iki renk seç. Eski haline dön varsayılan scrollu getirir.</p>
 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;">
-<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Renk 1" data-de="Farbe 1">Renk 1</span><input type="color" id="sb-scroll-a" value="#94a3b8" oninput="mbSetSbScrollColor('a', this.value)"></label>
-<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Renk 2" data-de="Farbe 2">Renk 2</span><input type="color" id="sb-scroll-b" value="#334155" oninput="mbSetSbScrollColor('b', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Renk" data-de="Farbe">Renk</span><input type="color" id="sb-scroll-a" value="#94a3b8" oninput="mbSetSbScrollColor('a', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;" id="sb-scroll-b-wrap"><span data-tr="Renk 2" data-de="Farbe 2">Renk 2</span><input type="color" id="sb-scroll-b" value="#334155" oninput="mbSetSbScrollColor('b', this.value)"></label>
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="sb-scroll-grad" onchange="mbSetSbScrollGrad(this.checked)"> <span data-tr="Gradient" data-de="Verlauf">Gradient</span></label>
 <span id="sb-scroll-preview" style="width:14px;height:36px;border-radius:8px;border:1px solid var(--border);background:#94a3b8;"></span>
-<button type="button" class="btn btn-ghost btn-sm" onclick="mbResetSbScroll()" data-tr="Sıfırla" data-de="Zurücksetzen">Sıfırla</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbResetSbScroll()" data-tr="Eski haline dön" data-de="Standard wiederherstellen">Eski haline dön</button>
 </div>
 </div>
 <div class="form-row">

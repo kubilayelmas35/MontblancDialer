@@ -1926,17 +1926,6 @@ box-shadow: 4px 0 24px rgba(0,0,0,0.15);
   overflow-y: auto;
   overscroll-behavior: contain;
   touch-action: manipulation;
-  scrollbar-width: thin;
-  scrollbar-color: var(--sb-scroll-a, rgba(255,255,255,0.32)) transparent;
-}
-.sidebar-scroll::-webkit-scrollbar { width: 8px; }
-.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
-.sidebar-scroll::-webkit-scrollbar-thumb {
-  border-radius: 8px;
-  background: var(--sb-scroll-a, rgba(255,255,255,0.32));
-}
-html.mb-sb-scroll-grad .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--sb-scroll-a, #94a3b8), var(--sb-scroll-b, #334155));
 }
 /* Aurora altta (z-index:0), menü üstte — sb-top-strip kaldırıldı; yanlış seçici aurorayı bozuyordu */
 #sidebar > *:not(.fluid-aurora--sidebar) {
