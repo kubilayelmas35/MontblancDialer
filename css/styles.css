@@ -1913,12 +1913,24 @@ transition: width var(--transition), min-width var(--transition), transform var(
 box-shadow: 4px 0 24px rgba(0,0,0,0.15);
 }
 .sidebar-scroll {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
+  max-height: calc(100% - 96px);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   touch-action: manipulation;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-scroll-a, rgba(255,255,255,0.32)) transparent;
+}
+.sidebar-scroll::-webkit-scrollbar { width: 8px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background: var(--sb-scroll-a, rgba(255,255,255,0.32));
+}
+html.mb-sb-scroll-grad .sidebar-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--sb-scroll-a, #94a3b8), var(--sb-scroll-b, #334155));
 }
 /* Aurora altta (z-index:0), menü üstte — sb-top-strip kaldırıldı; yanlış seçici aurorayı bozuyordu */
 #sidebar > *:not(.fluid-aurora--sidebar) {
@@ -2075,14 +2087,15 @@ border-radius: 10px; font-family: var(--mono);
 .sb-badge--open[hidden] { display: none !important; }
 .sb-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 4px 10px; }
 .sb-footer {
-  margin-top: auto;
+  margin-top: 0;
+  flex: 1 0 auto;
   padding: 10px 12px 8px;
   border-top: 1px solid rgba(255,255,255,0.08);
   min-height: 88px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 6px;
 }
 .sb-foot-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; width: 100%; }

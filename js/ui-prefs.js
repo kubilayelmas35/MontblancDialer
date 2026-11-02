@@ -54,6 +54,8 @@ function mbCollectUiPrefs() {
   if (typeof mbFieldTemplates === 'function') prefs.field_templates = mbFieldTemplates();
   const grads = mbReadLiveGrads();
   if (Object.keys(grads).length) prefs.live_grads = grads;
+  const sbScroll = mbReadSbScrollPrefs();
+  if (sbScroll) prefs.sb_scroll = sbScroll;
   const ex = typeof mbExportLayoutsForPrefs === 'function' ? mbExportLayoutsForPrefs() : null;
   if (ex) {
     prefs.export_layouts = ex.layouts;
@@ -142,6 +144,9 @@ function mbApplyUiPrefs(remote) {
       } catch (e) {}
       mbApplyLiveGrads(grads);
       mbPaintLiveGradForm();
+    }
+    if (remote.sb_scroll && typeof remote.sb_scroll === 'object') {
+      mbAdoptSbScrollPrefs(remote.sb_scroll);
     }
     if (typeof mbAdoptExportLayouts === 'function') {
       mbAdoptExportLayouts(remote.export_layouts, remote.export_layout_active);
@@ -323,3 +328,89 @@ function mbResetLiveGrads() {
 
 mbApplyLiveGrads(mbReadLiveGrads());
 mbPaintLiveGradForm();
+
+const MB_SB_SCROLL_DEF = { a: '#94a3b8', b: '#334155', grad: false };
+
+function mbReadSbScrollPrefs() {
+  try {
+    const a = mbNormHex(localStorage.getItem('mb-sb-scroll-a')) || MB_SB_SCROLL_DEF.a;
+    const b = mbNormHex(localStorage.getItem('mb-sb-scroll-b')) || MB_SB_SCROLL_DEF.b;
+    const grad = localStorage.getItem('mb-sb-scroll-grad') === '1';
+    if (a === MB_SB_SCROLL_DEF.a && b === MB_SB_SCROLL_DEF.b && !grad) return null;
+    return { a, b, grad };
+  } catch (_) {
+    return null;
+  }
+}
+
+function mbAdoptSbScrollPrefs(raw) {
+  const a = mbNormHex(raw?.a) || MB_SB_SCROLL_DEF.a;
+  const b = mbNormHex(raw?.b) || MB_SB_SCROLL_DEF.b;
+  const grad = !!raw?.grad;
+  try {
+    localStorage.setItem('mb-sb-scroll-a', a);
+    localStorage.setItem('mb-sb-scroll-b', b);
+    localStorage.setItem('mb-sb-scroll-grad', grad ? '1' : '0');
+  } catch (_) {}
+  mbApplySbScrollPrefs();
+  mbPaintSbScrollForm();
+}
+
+function mbApplySbScrollPrefs() {
+  const a = mbNormHex(localStorage.getItem('mb-sb-scroll-a')) || MB_SB_SCROLL_DEF.a;
+  const b = mbNormHex(localStorage.getItem('mb-sb-scroll-b')) || MB_SB_SCROLL_DEF.b;
+  const grad = localStorage.getItem('mb-sb-scroll-grad') === '1';
+  const root = document.documentElement;
+  root.style.setProperty('--sb-scroll-a', a);
+  root.style.setProperty('--sb-scroll-b', b);
+  root.classList.toggle('mb-sb-scroll-grad', grad);
+  const prev = document.getElementById('sb-scroll-preview');
+  if (prev) prev.style.background = grad ? `linear-gradient(180deg, ${a}, ${b})` : a;
+}
+
+function mbPaintSbScrollForm() {
+  const a = mbNormHex(localStorage.getItem('mb-sb-scroll-a')) || MB_SB_SCROLL_DEF.a;
+  const b = mbNormHex(localStorage.getItem('mb-sb-scroll-b')) || MB_SB_SCROLL_DEF.b;
+  const grad = localStorage.getItem('mb-sb-scroll-grad') === '1';
+  const elA = document.getElementById('sb-scroll-a');
+  const elB = document.getElementById('sb-scroll-b');
+  const elG = document.getElementById('sb-scroll-grad');
+  if (elA) elA.value = a;
+  if (elB) elB.value = b;
+  if (elG) elG.checked = grad;
+  mbApplySbScrollPrefs();
+}
+
+function mbSetSbScrollColor(which, value) {
+  const hex = mbNormHex(value);
+  if (!hex) return;
+  const key = which === 'b' ? 'mb-sb-scroll-b' : 'mb-sb-scroll-a';
+  try { localStorage.setItem(key, hex); } catch (_) {}
+  mbApplySbScrollPrefs();
+  if (!_mbPrefsApplying && typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+function mbSetSbScrollGrad(on) {
+  try { localStorage.setItem('mb-sb-scroll-grad', on ? '1' : '0'); } catch (_) {}
+  mbApplySbScrollPrefs();
+  if (!_mbPrefsApplying && typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+function mbResetSbScroll() {
+  try {
+    localStorage.removeItem('mb-sb-scroll-a');
+    localStorage.removeItem('mb-sb-scroll-b');
+    localStorage.removeItem('mb-sb-scroll-grad');
+  } catch (_) {}
+  mbPaintSbScrollForm();
+  if (!_mbPrefsApplying && typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+try {
+  window.mbSetSbScrollColor = mbSetSbScrollColor;
+  window.mbSetSbScrollGrad = mbSetSbScrollGrad;
+  window.mbResetSbScroll = mbResetSbScroll;
+  window.mbPaintSbScrollForm = mbPaintSbScrollForm;
+} catch (_) {}
+
+mbPaintSbScrollForm();
