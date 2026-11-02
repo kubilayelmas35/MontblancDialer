@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="callin.one çağrı merkezi">
-<link rel="icon" href="favicon.svg?v=14.15" type="image/svg+xml">
+<link rel="icon" href="favicon.svg?v=14.16" type="image/svg+xml">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,17 +15,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=14.15">
-<link rel="stylesheet" href="css/styles-dialer.css?v=14.15">
-<link rel="stylesheet" href="css/styles-mascot.css?v=14.15">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.15">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.15">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.15">
-<link rel="stylesheet" href="css/styles-pages.css?v=14.15">
-<link rel="stylesheet" href="css/styles-aurora.css?v=14.15">
-<link rel="stylesheet" href="css/styles-chat.css?v=14.15">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=14.15">
-<link rel="stylesheet" href="css/styles-responsive.css?v=14.15">
+<link rel="stylesheet" href="css/styles.css?v=14.16">
+<link rel="stylesheet" href="css/styles-dialer.css?v=14.16">
+<link rel="stylesheet" href="css/styles-mascot.css?v=14.16">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.16">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.16">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.16">
+<link rel="stylesheet" href="css/styles-pages.css?v=14.16">
+<link rel="stylesheet" href="css/styles-aurora.css?v=14.16">
+<link rel="stylesheet" href="css/styles-chat.css?v=14.16">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=14.16">
+<link rel="stylesheet" href="css/styles-responsive.css?v=14.16">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -84,7 +84,7 @@
 </div>
 </div>
 </div>
-<div class="login-version">v14.15 — 2026</div>
+<div class="login-version">v14.16 — 2026</div>
 </div>
 </div>
 <div id="app" style="display:none;">
@@ -481,7 +481,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">callin.one v14.15</div>
+<div class="sb-ver">callin.one v14.16</div>
 </div>
 </div>
 </nav>
@@ -1134,7 +1134,7 @@
 </div>
 <div class="page-hdr-actions">
 <input type="search" id="agents-search" class="form-input camp-search" placeholder="İsim veya e-posta" data-tr="İsim veya e-posta" data-de="Name oder E-Mail" oninput="setAgentSearch(this.value)">
-<div class="camp-view-seg" role="group" aria-label="Personel görünümü" data-tr-aria="Personel görünümü" data-de-aria="Personalansicht">
+<div class="camp-view-seg" role="group" aria-label="Temsilci görünümü" data-tr-aria="Temsilci görünümü" data-de-aria="Mitarbeiteransicht">
 <button type="button" class="camp-view-btn is-on" id="agent-view-cards" onclick="setAgentView('cards')" data-tr="Kartlar" data-de="Karten">Kartlar</button>
 <button type="button" class="camp-view-btn" id="agent-view-rows" onclick="setAgentView('rows')" data-tr="Satırlar" data-de="Zeilen">Satırlar</button>
 </div>
@@ -2607,7 +2607,7 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </div>
 <button class="btn btn-primary btn-sm" onclick="openFirmModal()">
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-Firma Ekle
+<span data-tr="Firma ekle" data-de="Firma hinzufügen">Firma ekle</span>
 </button>
 </div>
 <div class="firms-tools">
@@ -2834,24 +2834,24 @@ Başarısız / Alta Taşınan
 <button type="button" class="btn btn-primary" onclick="saveHrSettings()" data-tr="Kuralları kaydet" data-de="Regeln speichern">Kuralları kaydet</button>
 </div>
 <div class="card" id="leave-admin-late" style="padding:16px;display:none;">
-<div class="card-title" style="margin-bottom:12px;">Geç kalma kaydı</div>
+<div class="card-title" style="margin-bottom:12px;" data-tr="Geç kalma kaydı" data-de="Verspätungseintrag">Geç kalma kaydı</div>
 <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr 100px;gap:12px;align-items:end;">
 <div class="form-row">
-<label class="form-label">Agent</label>
+<label class="form-label" data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</label>
 <select class="form-input" id="late-user"></select>
 </div>
 <div class="form-row">
-<label class="form-label">Tarih</label>
+<label class="form-label" data-tr="Tarih" data-de="Datum">Tarih</label>
 <input type="date" class="form-input" id="late-date">
 </div>
 <div class="form-row">
-<label class="form-label">Dakika</label>
+<label class="form-label" data-tr="Dakika" data-de="Minuten">Dakika</label>
 <input type="number" class="form-input" id="late-mins" min="0" value="0">
 </div>
 </div>
 <div class="form-row" style="margin-top:10px;">
-<label class="form-label">Not</label>
-<input type="text" class="form-input" id="late-note" placeholder="İsteğe bağlı">
+<label class="form-label" data-tr="Not" data-de="Notiz">Not</label>
+<input type="text" class="form-input" id="late-note" placeholder="İsteğe bağlı" data-tr="İsteğe bağlı" data-de="Optional">
 </div>
 <button type="button" class="btn btn-primary btn-sm" onclick="submitLateArrival()">Kaydet</button>
 <div id="leave-late-table" style="margin-top:16px;"></div>
@@ -2906,16 +2906,16 @@ Başarısız / Alta Taşınan
 <button type="button" class="muh-fx-refresh" onclick="testFxRateNow()" title="Kuru yenile"><i class="ph ph-arrow-clockwise"></i></button>
 </div>
 </div>
-<div class="page-sub" id="muhasebe-sub">Maaş, prim, kesinti ve müşteri yönetimi</div>
+<div class="page-sub" id="muhasebe-sub" data-tr="Maaş, prim, kesinti ve müşteri yönetimi" data-de="Gehalt, Prämie, Abzug und Kundenverwaltung">Maaş, prim, kesinti ve müşteri yönetimi</div>
 <span id="muh-fx-meta" hidden>Kur yükleniyor</span>
 </div>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 <div id="muhasebe-firm-selector"></div>
 <input type="month" class="form-input" id="muhasebe-period" style="width:160px;" onchange="_mSyncPayrollPeriodInputs(this);loadMuhasebePage()">
-<button class="btn btn-ghost btn-sm" onclick="loadMuhasebePage()"><i class="ph ph-arrow-clockwise"></i> Yenile</button>
+<button class="btn btn-ghost btn-sm" onclick="loadMuhasebePage()"><i class="ph ph-arrow-clockwise"></i> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
 </div>
 </div>
-<div id="muhasebe-no-access" class="card" style="display:none;padding:18px;">Bu sayfayı görüntüleme yetkiniz yok.</div>
+<div id="muhasebe-no-access" class="card" style="display:none;padding:18px;" data-tr="Bu sayfayı görüntüleme yetkiniz yok." data-de="Keine Berechtigung für diese Seite.">Bu sayfayı görüntüleme yetkiniz yok.</div>
 <div id="muhasebe-main" style="display:flex;flex-direction:column;gap:14px;padding-bottom:28px;">
 <div class="muh-tabbar">
 <button class="btn btn-ghost btn-sm muh-tab-btn active" data-muh-tab="ozet" onclick="setMuhasebeTab('ozet')" data-tr="Özet" data-de="Übersicht">Özet</button>
@@ -2960,7 +2960,7 @@ Başarısız / Alta Taşınan
 <label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-gov" onchange="updatePayrollPreview()"> <span data-tr="Devlet destekli, şirket vergisi yok" data-de="Staatlich gefördert, keine Unternehmensteuer">Devlet destekli, şirket vergisi yok</span></label>
 <label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-late-on"> <span data-tr="Geç kalınca kes" data-de="Bei Verspätung abziehen">Geç kalınca kes</span></label>
 <label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-leave-over"> <span data-tr="İzin aşımında kes" data-de="Bei Urlaubsüberschreitung abziehen">İzin aşımında kes</span></label>
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-agent-customer"> <span data-tr="Temsilci randevuda müşteri seçsin" data-de="Agent wählt den Kunden am Termin">Temsilci randevuda müşteri seçsin</span></label>
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="pr-agent-customer"> <span data-tr="Temsilci randevuda müşteri seçsin" data-de="Mitarbeiter wählt den Kunden am Termin">Temsilci randevuda müşteri seçsin</span></label>
 </div>
 <div style="display:grid;grid-template-columns:1fr;gap:12px;">
 <div>
@@ -3255,7 +3255,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="card" id="notif-settings-card">
 <div class="card-title" data-tr="Bildirim" data-de="Hinweis">Bildirim</div>
 <div id="ops-notif-firm" class="ops-firm-only" hidden></div>
-<p class="ops-set-lead ops-firm-only" data-tr="Şerit, rol ve önizleme kendi bölümündedir. Agent kendi gördüğü satırın sesini kaydeder." data-de="Streifen, Rollen und Vorschau stehen im eigenen Abschnitt. Der Agent speichert den Ton seiner eigenen Zeile.">Şerit, rol ve önizleme kendi bölümündedir. Agent kendi gördüğü satırın sesini kaydeder.</p>
+<p class="ops-set-lead ops-firm-only" data-tr="Şerit, rol ve önizleme kendi bölümündedir. Temsilci kendi gördüğü satırın sesini kaydeder." data-de="Streifen, Rollen und Vorschau stehen im eigenen Abschnitt. Der Mitarbeiter speichert den Ton seiner eigenen Zeile.">Şerit, rol ve önizleme kendi bölümündedir. Temsilci kendi gördüğü satırın sesini kaydeder.</p>
 <p class="ops-set-lead ops-agent-only" data-tr="Kendi gördüğün bildirimlerin sesini ve rengini seçersin. Örnek, bildirim merkezine de düşer." data-de="Du stellst Ton und Farbe der Hinweise ein, die du siehst. Beispiel landet auch im Zentrum.">Kendi gördüğün bildirimlerin sesini ve rengini seçersin. Örnek, bildirim merkezine de düşer.</p>
 <div class="ops-sound-vol">
 <span data-tr="Ses yüksekliği" data-de="Lautstärke">Ses yüksekliği</span>
@@ -3281,7 +3281,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="ops-subpane" data-sub="appt" hidden>
 <div class="form-label ops-firm-only" data-tr="Randevu" data-de="Termin">Randevu</div>
 <div class="ops-set-checks ops-firm-only">
-<label><input type="checkbox" id="ops-notify-appt" checked> <span data-tr="Agent kendi randevu bildirimini alsın" data-de="Agent erhält Hinweise zu eigenen Terminen">Agent kendi randevu bildirimini alsın</span></label>
+<label><input type="checkbox" id="ops-notify-appt" checked> <span data-tr="Temsilci kendi randevu bildirimini alsın" data-de="Mitarbeiter erhält Hinweise zu eigenen Terminen">Temsilci kendi randevu bildirimini alsın</span></label>
 </div>
 <div class="ops-sound-list">
 <label class="ops-note-row ops-agent-row-hide"><input type="checkbox" data-sound="slot" checked><span><b data-tr="Randevu kaydı" data-de="Termin gespeichert">Randevu kaydı</b><small data-tr="Kim, kimin için, hangi kampanyada ve saatte kaydetti." data-de="Wer für wen in welcher Kampagne gespeichert hat.">Kim, kimin için, hangi kampanyada ve saatte kaydetti.</small></span><select data-tone="slot"><option value="glass">Cam</option></select><button type="button" onclick="opsPreviewSound('slot')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('slot')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
@@ -3292,7 +3292,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <p class="ops-camp-hint" data-tr="Bildir deyince üstte mavi şerit çıkar. Kampanya adları yazılır." data-de="Beim Melden erscheint oben ein blauer Streifen mit den Kampagnennamen.">Bildir deyince üstte mavi şerit çıkar. Kampanya adları yazılır.</p>
 <div class="form-label ops-firm-only" data-tr="Şeridi gören roller" data-de="Rollen für den Streifen">Şeridi gören roller</div>
 <div class="ops-role-picks ops-firm-only">
-<label class="ops-role-chip"><input type="checkbox" data-camp-role="agent" checked> <span>Agent</span></label>
+<label class="ops-role-chip"><input type="checkbox" data-camp-role="agent" checked> <span data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</span></label>
 <label class="ops-role-chip"><input type="checkbox" data-camp-role="field_agent"> <span data-tr="Saha" data-de="Feld">Saha</span></label>
 <label class="ops-role-chip"><input type="checkbox" data-camp-role="qc"> <span>QC</span></label>
 <label class="ops-role-chip"><input type="checkbox" data-camp-role="firm_admin"> <span data-tr="Firma admin" data-de="Firmenadmin">Firma admin</span></label>
@@ -3317,7 +3317,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <p class="ops-camp-hint" data-tr="Yeni kampanya şeridinden sonra, süre dolunca hâlâ yanlışsa bu şerit çıkar." data-de="Nach dem Streifen der neuen Kampagne erscheint dieser, wenn die Zeit um ist und die Kampagne noch falsch ist.">Yeni kampanya şeridinden sonra, süre dolunca hâlâ yanlışsa bu şerit çıkar.</p>
 <div class="form-label ops-firm-only" data-tr="Şeridi gören roller" data-de="Rollen für den Streifen">Şeridi gören roller</div>
 <div class="ops-role-picks ops-firm-only">
-<label class="ops-role-chip"><input type="checkbox" data-role="agent" checked> <span>Agent</span></label>
+<label class="ops-role-chip"><input type="checkbox" data-role="agent" checked> <span data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</span></label>
 <label class="ops-role-chip"><input type="checkbox" data-role="field_agent"> <span data-tr="Saha" data-de="Feld">Saha</span></label>
 <label class="ops-role-chip"><input type="checkbox" data-role="qc"> <span>QC</span></label>
 <label class="ops-role-chip"><input type="checkbox" data-role="firm_admin"> <span data-tr="Firma admin" data-de="Firmenadmin">Firma admin</span></label>
@@ -4172,21 +4172,21 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="card" id="settings-goals-card">
 <div class="card-title" style="margin-bottom:16px;" data-tr="Randevu hedefleri" data-de="Terminziele">Randevu hedefleri</div>
 <div style="display:flex;flex-direction:column;gap:10px;">
-<div style="font-size:11px;color:var(--text-3);" data-tr="Günlük, haftalık ve aylık hedef ayrıdır. Kayıt, seçilen firmanın temsilcilerine uygulanır." data-de="Tages-, Wochen- und Monatsziel stehen getrennt. Die Speicherung gilt für die Agenten der gewählten Firma.">Günlük, haftalık ve aylık hedef ayrıdır. Kayıt, seçilen firmanın temsilcilerine uygulanır.</div>
+<div style="font-size:11px;color:var(--text-3);" data-tr="Günlük, haftalık ve aylık hedef ayrıdır. Kayıt, seçilen firmanın temsilcilerine uygulanır." data-de="Tages-, Wochen- und Monatsziel stehen getrennt. Die Speicherung gilt für die Mitarbeiter der gewählten Firma.">Günlük, haftalık ve aylık hedef ayrıdır. Kayıt, seçilen firmanın temsilcilerine uygulanır.</div>
 <div class="form-row" id="goal-firm-row" style="display:none;">
 <label class="form-label" data-tr="Firma" data-de="Firma">Firma</label>
 <select class="form-input" id="goal-firm-select" onchange="onGoalFirmChange()"></select>
 </div>
 <div class="form-row">
-<label class="form-label" data-tr="Günlük randevu hedefi (temsilci)" data-de="Tägliches Terminziel (Agent)">Günlük randevu hedefi (temsilci)</label>
+<label class="form-label" data-tr="Günlük randevu hedefi (temsilci)" data-de="Tägliches Terminziel (Mitarbeiter)">Günlük randevu hedefi (temsilci)</label>
 <input class="form-input" id="s-daily-goal" type="number" min="1" max="50" value="5" style="width:120px;">
 </div>
 <div class="form-row">
-<label class="form-label" data-tr="Haftalık randevu hedefi (temsilci)" data-de="Wöchentliches Terminziel (Agent)">Haftalık randevu hedefi (temsilci)</label>
+<label class="form-label" data-tr="Haftalık randevu hedefi (temsilci)" data-de="Wöchentliches Terminziel (Mitarbeiter)">Haftalık randevu hedefi (temsilci)</label>
 <input class="form-input" id="s-weekly-goal" type="number" min="1" max="400" value="25" style="width:120px;">
 </div>
 <div class="form-row">
-<label class="form-label" data-tr="Aylık randevu hedefi (temsilci)" data-de="Monatliches Terminziel (Agent)">Aylık randevu hedefi (temsilci)</label>
+<label class="form-label" data-tr="Aylık randevu hedefi (temsilci)" data-de="Monatliches Terminziel (Mitarbeiter)">Aylık randevu hedefi (temsilci)</label>
 <input class="form-input" id="s-monthly-goal" type="number" min="1" max="1600" value="100" style="width:120px;">
 </div>
 <button class="btn btn-primary" style="align-self:flex-start;" onclick="saveGoalSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Randevu hedeflerini kaydet" data-de="Terminziele speichern">Randevu hedeflerini kaydet</span></button>
@@ -4222,7 +4222,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
 <input type="checkbox" id="chat-set-peer-dm" checked style="width:15px;height:15px;cursor:pointer;">
-<span>Personel / QC birbirine hızlı mesaj atabilsin</span>
+<span data-tr="Temsilci / Kalite kontrol birbirine hızlı mesaj atabilsin" data-de="Mitarbeiter / QC können sich schnell schreiben">Temsilci / Kalite kontrol birbirine hızlı mesaj atabilsin</span>
 </label>
 <label id="chat-set-firmadmin-super-row" style="display:none;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
 <input type="checkbox" id="chat-set-firmadmin-super" checked style="width:15px;height:15px;cursor:pointer;">
@@ -4615,13 +4615,13 @@ ondrop="handleDrop(event)">
 <div class="modal-overlay" id="m-assign">
 <div class="modal" style="max-width:360px;">
 <div class="modal-hdr">
-<div class="modal-title" data-tr="Agent Ekle" data-de="Agent hinzufügen">Agent Ekle</div>
+<div class="modal-title" data-tr="Temsilci ekle" data-de="Mitarbeiter hinzufügen">Temsilci ekle</div>
 <button class="modal-close" onclick="closeModal('m-assign')">✕</button>
 </div>
 <div class="form-row">
-<label class="form-label" data-tr="Agent Seç" data-de="Agent auswählen">Agent Seç</label>
+<label class="form-label" data-tr="Temsilci seç" data-de="Mitarbeiter wählen">Temsilci seç</label>
 <select class="form-input" id="assign-sel">
-<option value="">— Seç —</option>
+<option value="" data-tr="— Seç —" data-de="— Wählen —">— Seç —</option>
 </select>
 </div>
 <div class="modal-footer">
@@ -4820,12 +4820,12 @@ ondrop="handleDrop(event)">
 <input class="form-input" id="user-pass" type="password" placeholder="••••••••"></div>
 <div class="form-row"><label class="form-label">Rol *</label>
 <select class="form-input" id="user-role">
-<option value="agent">Agent</option>
+<option value="agent" data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</option>
 <option value="qc">QC</option>
-<option value="field_agent">Saha Elemanı</option>
-<option value="firm_admin">Firma Admin</option>
+<option value="field_agent" data-tr="Saha Elemanı" data-de="Außendienst">Saha Elemanı</option>
+<option value="firm_admin" data-tr="Firma Admin" data-de="Firmenadmin">Firma Admin</option>
 <option value="admin">Admin</option>
-<option value="super_admin">Süper Admin</option>
+<option value="super_admin" data-tr="Süper Admin" data-de="Super-Admin">Süper Admin</option>
 </select></div>
 <div id="user-paycat-wrap"></div>
 <input type="hidden" id="user-firm-id">
@@ -4936,7 +4936,7 @@ Duyuru metni burada görünecek
 <input class="form-input" id="wv-str" placeholder="Musterstraße 1">
 </div>
 <div class="form-row" id="wv-agent-row">
-<label class="form-label" data-tr="Agent" data-de="Agent">Agent</label>
+<label class="form-label" data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</label>
 <select class="form-input" id="wv-agent-sel"></select>
 </div>
 <div class="form-row" style="grid-column:1/-1;">
@@ -5025,20 +5025,20 @@ Duyuru metni burada görünecek
 <div class="modal-overlay" id="m-assign">
 <div class="modal" style="max-width:380px;">
 <div class="modal-hdr">
-<div class="modal-title" data-tr="Agent ekle" data-de="Agent hinzufügen">Agent ekle</div>
+<div class="modal-title" data-tr="Temsilci ekle" data-de="Mitarbeiter hinzufügen">Temsilci ekle</div>
 <button class="modal-close" onclick="closeModal('m-assign')">✕</button>
 </div>
 <div style="padding:16px 20px;">
 <div class="form-row">
-<label class="form-label">Agent Seç</label>
+<label class="form-label" data-tr="Temsilci seç" data-de="Mitarbeiter wählen">Temsilci seç</label>
 <select class="form-input" id="assign-sel">
-<option value="">Yükleniyor...</option>
+<option value="" data-tr="Yükleniyor..." data-de="Wird geladen...">Yükleniyor...</option>
 </select>
 </div>
 </div>
 <div class="modal-footer">
-<button class="btn btn-ghost" onclick="closeModal('m-assign')">İptal</button>
-<button class="btn btn-primary" onclick="assignAgent()">Ekle</button>
+<button class="btn btn-ghost" onclick="closeModal('m-assign')" data-tr="İptal" data-de="Abbrechen">İptal</button>
+<button class="btn btn-primary" onclick="assignAgent()" data-tr="Ekle" data-de="Hinzufügen">Ekle</button>
 </div>
 </div>
 </div>
@@ -5220,75 +5220,75 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=14.15"></script>
-<script src="js/i18n.js?v=14.15"></script>
-<script src="js/config.js?v=14.15"></script>
-<script src="js/state.js?v=14.15"></script>
-<script src="js/api.js?v=14.15"></script>
-<script src="js/access.js?v=14.15"></script>
-<script src="js/auth.js?v=14.15"></script>
-<script src="js/logo.js?v=14.15"></script>
-<script src="js/ui.js?v=14.15"></script>
-<script src="js/chat.js?v=14.15"></script>
-<script src="js/chat-settings.js?v=14.15"></script>
-<script src="js/field-settings.js?v=14.15"></script>
-<script src="js/audit.js?v=14.15"></script>
-<script src="js/feature-flags.js?v=14.15"></script>
-<script src="js/notification-center.js?v=14.15"></script>
+<script src="js/version.js?v=14.16"></script>
+<script src="js/i18n.js?v=14.16"></script>
+<script src="js/config.js?v=14.16"></script>
+<script src="js/state.js?v=14.16"></script>
+<script src="js/api.js?v=14.16"></script>
+<script src="js/access.js?v=14.16"></script>
+<script src="js/auth.js?v=14.16"></script>
+<script src="js/logo.js?v=14.16"></script>
+<script src="js/ui.js?v=14.16"></script>
+<script src="js/chat.js?v=14.16"></script>
+<script src="js/chat-settings.js?v=14.16"></script>
+<script src="js/field-settings.js?v=14.16"></script>
+<script src="js/audit.js?v=14.16"></script>
+<script src="js/feature-flags.js?v=14.16"></script>
+<script src="js/notification-center.js?v=14.16"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=14.15"></script>
-<script src="js/spend.js?v=14.15"></script>
-<script src="js/job-market.js?v=14.15"></script>
-<script src="js/qc-job-market.js?v=14.15"></script>
-<script src="js/export-admin.js?v=14.15"></script>
-<script src="js/export-termin.js?v=14.15"></script>
-<script src="js/performance.js?v=14.15"></script>
-<script src="js/competition.js?v=14.15"></script>
-<script src="js/dashboard.js?v=14.15"></script>
-<script src="js/reports.js?v=14.15"></script>
-<script src="js/dashboard-brief.js?v=14.15"></script>
-<script src="js/campaigns.js?v=14.15"></script>
-<script src="js/campaigns-detail.js?v=14.15"></script>
-<script src="js/campaigns-queue.js?v=14.15"></script>
-<script src="js/queues-page.js?v=14.15"></script>
-<script src="js/contacts-upload.js?v=14.15"></script>
-<script src="js/geocon.js?v=14.15"></script>
-<script src="js/contacts.js?v=14.15"></script>
-<script src="js/contacts-drawer.js?v=14.15"></script>
-<script src="js/telnyx.js?v=14.15"></script>
-<script src="js/hold-music.js?v=14.15"></script>
-<script src="js/voice-orb.js?v=14.15"></script>
-<script src="js/dialer.js?v=14.15"></script>
-<script src="js/ops-alerts.js?v=14.15"></script>
-<script src="js/radius-tour.js?v=14.15"></script>
-<script src="js/dialer-mascot.js?v=14.15"></script>
-<script src="js/dialer-mascot-live.js?v=14.15"></script>
-<script src="js/ui-prefs.js?v=14.15"></script>
-<script src="js/dialer-session.js?v=14.15"></script>
-<script src="js/dialer-call.js?v=14.15"></script>
-<script src="js/dialer-tools.js?v=14.15"></script>
-<script src="js/appointments.js?v=14.15"></script>
-<script src="js/appointments-actions.js?v=14.15"></script>
-<script src="js/appointments-tools.js?v=14.15"></script>
-<script src="js/field.js?v=14.15"></script>
-<script src="js/field-quote.js?v=14.15"></script>
-<script src="js/field-catalog.js?v=14.15"></script>
-<script src="js/field-ops.js?v=14.15"></script>
-<script src="js/wiedervorlage.js?v=14.15"></script>
-<script src="js/qc.js?v=14.15"></script>
-<script src="js/supervisor.js?v=14.15"></script>
-<script src="js/live-coach.js?v=14.15"></script>
-<script src="js/sms-settings.js?v=14.15"></script>
-<script src="js/line-firms.js?v=14.15"></script>
-<script src="js/ai-staff.js?v=14.15"></script>
-<script src="js/callin-desk.js?v=14.15"></script>
-<script src="js/leave-hr.js?v=14.15"></script>
-<script src="js/muhasebe.js?v=14.15"></script>
-<script src="js/muhasebe-books.js?v=14.15"></script>
-<script src="js/agent-self-performance.js?v=14.15"></script>
-<script src="js/agents.js?v=14.15"></script>
-<script src="js/firm-desk.js?v=14.15"></script>
-<script src="js/mimi-brain.js?v=14.15"></script>
+<script src="js/wallet.js?v=14.16"></script>
+<script src="js/spend.js?v=14.16"></script>
+<script src="js/job-market.js?v=14.16"></script>
+<script src="js/qc-job-market.js?v=14.16"></script>
+<script src="js/export-admin.js?v=14.16"></script>
+<script src="js/export-termin.js?v=14.16"></script>
+<script src="js/performance.js?v=14.16"></script>
+<script src="js/competition.js?v=14.16"></script>
+<script src="js/dashboard.js?v=14.16"></script>
+<script src="js/reports.js?v=14.16"></script>
+<script src="js/dashboard-brief.js?v=14.16"></script>
+<script src="js/campaigns.js?v=14.16"></script>
+<script src="js/campaigns-detail.js?v=14.16"></script>
+<script src="js/campaigns-queue.js?v=14.16"></script>
+<script src="js/queues-page.js?v=14.16"></script>
+<script src="js/contacts-upload.js?v=14.16"></script>
+<script src="js/geocon.js?v=14.16"></script>
+<script src="js/contacts.js?v=14.16"></script>
+<script src="js/contacts-drawer.js?v=14.16"></script>
+<script src="js/telnyx.js?v=14.16"></script>
+<script src="js/hold-music.js?v=14.16"></script>
+<script src="js/voice-orb.js?v=14.16"></script>
+<script src="js/dialer.js?v=14.16"></script>
+<script src="js/ops-alerts.js?v=14.16"></script>
+<script src="js/radius-tour.js?v=14.16"></script>
+<script src="js/dialer-mascot.js?v=14.16"></script>
+<script src="js/dialer-mascot-live.js?v=14.16"></script>
+<script src="js/ui-prefs.js?v=14.16"></script>
+<script src="js/dialer-session.js?v=14.16"></script>
+<script src="js/dialer-call.js?v=14.16"></script>
+<script src="js/dialer-tools.js?v=14.16"></script>
+<script src="js/appointments.js?v=14.16"></script>
+<script src="js/appointments-actions.js?v=14.16"></script>
+<script src="js/appointments-tools.js?v=14.16"></script>
+<script src="js/field.js?v=14.16"></script>
+<script src="js/field-quote.js?v=14.16"></script>
+<script src="js/field-catalog.js?v=14.16"></script>
+<script src="js/field-ops.js?v=14.16"></script>
+<script src="js/wiedervorlage.js?v=14.16"></script>
+<script src="js/qc.js?v=14.16"></script>
+<script src="js/supervisor.js?v=14.16"></script>
+<script src="js/live-coach.js?v=14.16"></script>
+<script src="js/sms-settings.js?v=14.16"></script>
+<script src="js/line-firms.js?v=14.16"></script>
+<script src="js/ai-staff.js?v=14.16"></script>
+<script src="js/callin-desk.js?v=14.16"></script>
+<script src="js/leave-hr.js?v=14.16"></script>
+<script src="js/muhasebe.js?v=14.16"></script>
+<script src="js/muhasebe-books.js?v=14.16"></script>
+<script src="js/agent-self-performance.js?v=14.16"></script>
+<script src="js/agents.js?v=14.16"></script>
+<script src="js/firm-desk.js?v=14.16"></script>
+<script src="js/mimi-brain.js?v=14.16"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof mbApplyChartTheme === 'function') mbApplyChartTheme();
