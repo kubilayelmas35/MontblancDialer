@@ -106,9 +106,8 @@ function _supRenderCards() {
       </tr></thead><tbody>${calls.map((s) => {
         const agentRaw = s.agent_name || s.agent_id?.slice(0, 8) || '?';
         const agentAi = typeof _supIsAiAgent === 'function' && _supIsAiAgent(s.agent_id);
-        const agent = agentAi
-          ? `<span class="mb-op is-ai" title="YZ">${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink') : ''}<span class="mb-op-label">${escapeHtml(agentRaw)}</span></span>`
-          : escapeHtml(agentRaw);
+        const mark = agentAi && typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink') : '';
+        const agent = escapeHtml(agentRaw);
         const name = escapeHtml(s.current_contact_name || '—');
         const phone = escapeHtml(s.current_contact_phone || '—');
         const camp = escapeHtml(_supCampaignName(s.campaign_id));
@@ -117,14 +116,15 @@ function _supRenderCards() {
         const deep = age >= 0.55 ? ' live-tone--deep' : '';
         const dur = typeof liveClock === 'function' ? liveClock(since, de) : _supFmtDuration(since);
         return `<tr class="live-line live-line--on_call${deep}" data-since="${escapeHtml(since)}" style="--live-age:${Number(age).toFixed(3)}">
-          <td><span class="sup-live-dot" aria-hidden="true"></span><span class="sup-agent-name" data-full="${escapeHtml(agentRaw)}">${agent}</span></td>
+          <td><span class="sup-live-dot" aria-hidden="true"></span>${mark}<span class="sup-agent-name" data-full="${escapeHtml(agentRaw)}">${agent}</span></td>
           <td class="sup-dur" data-clock>${dur}</td>
           <td>${name}</td>
           <td class="sup-mono">${phone}</td>
           <td>${camp}</td>
         </tr>`;
       }).join('')}</tbody></table>`;
-      if (typeof mbFitLiveNames === 'function') requestAnimationFrame(() => mbFitLiveNames(board));
+      if (typeof mbAfterLivePaint === 'function') mbAfterLivePaint(board);
+      else if (typeof mbFitLiveNames === 'function') requestAnimationFrame(() => mbFitLiveNames(board));
     }
   }
 
@@ -142,10 +142,10 @@ function _supRenderCards() {
     const label = de ? info.de : info.tr;
     const agentRaw = s.agent_name || s.agent_id?.slice(0, 8) || '?';
     const agentAi = typeof _supIsAiAgent === 'function' && _supIsAiAgent(s.agent_id);
-    const agent = agentAi
-      ? `<span class="mb-op is-ai" title="YZ">${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink') : ''}<span class="mb-op-label">${escapeHtml(agentRaw)}</span></span>`
-      : escapeHtml(agentRaw);
-    const initial = escapeHtml(String(agentRaw).trim().charAt(0).toUpperCase() || '?');
+    const agentName = escapeHtml(agentRaw);
+    const avatar = agentAi
+      ? (typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink is-on-dark') : escapeHtml(String(agentRaw).trim().charAt(0).toUpperCase() || '?'))
+      : escapeHtml(String(agentRaw).trim().charAt(0).toUpperCase() || '?');
     const name = escapeHtml(s.current_contact_name || '—');
     const phone = escapeHtml(s.current_contact_phone || '—');
     const camp = escapeHtml(_supCampaignName(s.campaign_id));
@@ -159,7 +159,7 @@ function _supRenderCards() {
     const fullAttr = escapeHtml(agentRaw);
     if (asRows) {
       return `<div class="live-line live-line--${tone}${deep}" data-live-id="${sid}" data-since="${sinceAttr}" style="--live-age:${Number(age).toFixed(3)}">
-        <div class="live-line-who"><span class="live-av">${initial}</span><span class="live-name" data-full="${fullAttr}">${agent}</span></div>
+        <div class="live-line-who"><span class="live-av${agentAi ? ' is-ai' : ''}">${avatar}</span><span class="live-name" data-full="${fullAttr}">${agentName}</span></div>
         <div class="live-status">${label}</div>
         <div class="live-dur" data-clock>${dur}</div>
         <div class="live-line-clip">${name}</div>
@@ -177,9 +177,9 @@ function _supRenderCards() {
     return `
 <div class="sup-card sup-card--${tone}${deep}" data-live-id="${sid}" data-since="${sinceAttr}" style="--live-age:${Number(age).toFixed(3)}">
   <div class="sup-card-top">
-    <div class="sup-avatar">${initial}</div>
+    <div class="sup-avatar${agentAi ? ' is-ai' : ''}"${agentAi ? ' title="YZ"' : ''}>${avatar}</div>
     <div class="sup-agent-info">
-      <div class="sup-agent-name" data-full="${fullAttr}">${agent}</div>
+      <div class="sup-agent-name" data-full="${fullAttr}">${agentName}</div>
       <span class="sup-status ${info.cls}">${label}</span>
     </div>
     <div class="sup-dur" data-clock>${dur}</div>
@@ -199,9 +199,8 @@ function _supRenderCards() {
           <span>${de ? 'Aktion' : 'İşlem'}</span>
         </div>`}${lines}</div>`
       : lines;
-    if (typeof mbFitLiveNames === 'function') {
-      requestAnimationFrame(() => mbFitLiveNames(grid));
-    }
+    if (typeof mbAfterLivePaint === 'function') mbAfterLivePaint(grid);
+    else if (typeof mbFitLiveNames === 'function') requestAnimationFrame(() => mbFitLiveNames(grid));
   };
   if (typeof _liveFlip === 'function') _liveFlip(grid, paint);
   else paint();

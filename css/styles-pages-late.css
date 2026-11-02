@@ -228,8 +228,8 @@
 
 .sup-agent-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px;
 }
 .sup-empty {
   grid-column: 1 / -1;
@@ -275,7 +275,7 @@ button.sup-pill.inactive { opacity: 0.42; }
   gap: 10px;
 }
 .sup-avatar {
-  width: 40px; height: 40px;
+  width: 42px; height: 42px;
   border-radius: 50%;
   background: var(--bg-3);
   color: var(--text);
@@ -284,9 +284,25 @@ button.sup-pill.inactive { opacity: 0.42; }
   font-weight: 800; font-size: 15px;
   flex-shrink: 0;
 }
+.sup-avatar.is-ai,
+.live-av.is-ai {
+  background: color-mix(in srgb, var(--ink, #fff) 14%, transparent);
+  border-color: color-mix(in srgb, var(--ink, #fff) 22%, transparent);
+}
+.sup-avatar.is-ai .mb-ai-mark,
+.live-av.is-ai .mb-ai-mark {
+  width: 22px;
+  height: 22px;
+}
+.sup-avatar.is-ai .mb-ai-mark-l,
+.sup-avatar.is-ai .mb-ai-mark-r,
+.live-av.is-ai .mb-ai-mark-l,
+.live-av.is-ai .mb-ai-mark-r {
+  fill: #fff;
+}
 .sup-agent-info { flex: 1; min-width: 0; overflow: hidden; }
 .sup-agent-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;

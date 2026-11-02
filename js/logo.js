@@ -205,7 +205,10 @@ function mbLogoApply(raw) {
       root.style.removeProperty('--logo-box-b-dark');
     }
   });
-  requestAnimationFrame(mbLogoLockBlink);
+  requestAnimationFrame(() => {
+    mbLogoLockBlink();
+    if (typeof mbAiMarkLockBlink === 'function') mbAiMarkLockBlink();
+  });
   return cfg;
 }
 

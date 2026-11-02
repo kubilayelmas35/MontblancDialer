@@ -3532,10 +3532,10 @@ function _paintDashLive() {
     const label = de ? info.de : info.tr;
     const agentRaw = s.agent_name || '—';
     const agentAi = typeof _supIsAiAgent === 'function' && _supIsAiAgent(s.agent_id);
-    const nameHtml = agentAi
-      ? `<span class="mb-op is-ai" title="YZ">${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink') : ''}<span class="mb-op-label">${_dashLiveEsc(agentRaw)}</span></span>`
-      : _dashLiveEsc(agentRaw);
-    const initial = _dashLiveEsc(String(agentRaw).trim().charAt(0).toUpperCase() || '?');
+    const agentName = _dashLiveEsc(agentRaw);
+    const avatar = agentAi
+      ? (typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink is-on-dark') : _dashLiveEsc(String(agentRaw).trim().charAt(0).toUpperCase() || '?'))
+      : _dashLiveEsc(String(agentRaw).trim().charAt(0).toUpperCase() || '?');
     const camp = _dashLiveEsc(_dashLiveCamps[s.campaign_id] || '—');
     const who = _dashLiveEsc(s.current_contact_name || '—');
     const phone = _dashLiveEsc(s.current_contact_phone || '—');
@@ -3549,7 +3549,7 @@ function _paintDashLive() {
     const actions = (isAdmin && typeof mbLiveActionsHtml === 'function') ? mbLiveActionsHtml(s) : '';
     if (asRows) {
       return `<div class="live-line live-line--${st}${deep}" data-live-id="${aid}" data-since="${sinceAttr}" style="--live-age:${age.toFixed(3)}">
-        <div class="live-line-who"><span class="live-av">${initial}</span><span class="live-name" data-full="${fullAttr}">${nameHtml}</span></div>
+        <div class="live-line-who"><span class="live-av${agentAi ? ' is-ai' : ''}">${avatar}</span><span class="live-name" data-full="${fullAttr}">${agentName}</span></div>
         <div class="live-status">${label}</div>
         <div class="live-dur" data-clock>${_dashLiveEsc(dur)}</div>
         <div class="live-line-clip">${who}</div>
@@ -3563,8 +3563,8 @@ function _paintDashLive() {
          <div><dt>${de ? 'Kampagne' : 'Kampanya'}</dt><dd>${camp}</dd></div>`;
     return `<article class="live-card live-card--${st}${deep}" data-live-id="${aid}" data-since="${sinceAttr}" style="--live-age:${age.toFixed(3)}">
       <div class="live-card-top">
-        <div class="live-av">${initial}</div>
-        <div style="min-width:0;flex:1;"><div class="live-name" data-full="${fullAttr}">${nameHtml}</div><div class="live-status">${label}</div></div>
+        <div class="live-av${agentAi ? ' is-ai' : ''}"${agentAi ? ' title="YZ"' : ''}>${avatar}</div>
+        <div style="min-width:0;flex:1;"><div class="live-name" data-full="${fullAttr}">${agentName}</div><div class="live-status">${label}</div></div>
         <div class="live-dur" data-clock>${_dashLiveEsc(dur)}</div>
         ${actions}
       </div>
@@ -3587,7 +3587,8 @@ function _paintDashLive() {
     : `<div class="mb-empty-hint" style="font-size:13px;">${de ? 'Keine Agenten in dieser Auswahl.' : 'Bu seçimde temsilci yok.'}</div>`;
   _liveFlip(live, () => {
     live.innerHTML = `<div class="live-filters">${chips}</div>${board}`;
-    if (typeof mbFitLiveNames === 'function') requestAnimationFrame(() => mbFitLiveNames(live));
+    if (typeof mbAfterLivePaint === 'function') mbAfterLivePaint(live);
+    else if (typeof mbFitLiveNames === 'function') requestAnimationFrame(() => mbFitLiveNames(live));
   });
   if (window._dashLiveTimer) clearInterval(window._dashLiveTimer);
   window._dashLiveTimer = setInterval(() => {

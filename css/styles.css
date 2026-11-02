@@ -3887,7 +3887,7 @@ DASHBOARD
   border-radius:8px; background:var(--bg-2); cursor:pointer;
 }
 .live-grad-preview { height:28px; border-radius:8px; }
-.live-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:8px; }
+.live-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:10px; }
 .live-card,
 .live-line,
 .sup-card {
@@ -3920,13 +3920,14 @@ DASHBOARD
 }
 .live-card-top { display:flex; align-items:center; gap:10px; min-width:0; }
 .live-av {
-  width:34px; height:34px; border-radius:50%;
+  width:36px; height:36px; border-radius:50%;
   background:color-mix(in srgb, var(--ink) 12%, transparent);
   color:inherit; border:1px solid transparent;
   display:flex; align-items:center; justify-content:center;
   font-size:13px; font-weight:700; flex-shrink:0;
 }
-.live-name { font-size:13px; font-weight:700; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:inherit; }
+.live-av.is-ai .mb-ai-mark { width: 20px; height: 20px; }
+.live-name { font-size:14px; font-weight:700; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:inherit; }
 .live-status { font-size:11px; font-weight:700; color:inherit; opacity:0.92; margin-top:2px; }
 .live-dur { margin-left:auto; font-family:var(--mono); font-size:12px; font-weight:700; color:inherit; white-space:nowrap; }
 .live-facts { display:grid; gap:4px; margin:0; }
