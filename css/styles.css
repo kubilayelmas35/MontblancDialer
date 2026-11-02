@@ -110,10 +110,6 @@ SHARED TOKENS
 --purple-soft:  #7c3aed15;
 --sidebar-w:    248px;
 --topbar-h:     54px;
---tb-pill-h:    32px;
---tb-gap:       8px;
---tb-pad-x:     10px;
---tb-font:      12px;
 --radius:       12px;
 --radius-sm:    8px;
 --radius-xs:    5px;
@@ -164,8 +160,8 @@ background: var(--topbar-bg);
 border-bottom: 1px solid var(--border);
 display: flex;
 align-items: center;
-padding: 0 var(--tb-pad-x);
-gap: var(--tb-gap);
+padding: 0 10px;
+gap: 8px;
 z-index: 100;
 box-shadow: 0 1px 0 var(--border);
 position: relative;
@@ -625,7 +621,7 @@ width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 button.tb-pill.pill-ping {
   appearance: none;
   cursor: pointer;
-  height: var(--tb-pill-h);
+  height: 32px;
   gap: 5px;
   padding: 0 8px;
   border: 1px solid var(--border);
@@ -707,45 +703,9 @@ button.tb-pill.tb-takvim,
 .tb-icon-btn.tb-theme,
 .aria-live {
   box-sizing: border-box;
-  height: var(--tb-pill-h);
-  min-height: var(--tb-pill-h);
-  max-height: var(--tb-pill-h);
-}
-@media (min-width: 1400px) {
-  :root {
-    --topbar-h: 60px;
-    --tb-pill-h: 36px;
-    --tb-gap: 10px;
-    --tb-pad-x: 14px;
-    --tb-font: 13px;
-  }
-  .tb-pill { font-size: var(--tb-font); padding: 0 10px; max-width: 200px; gap: 6px; }
-  .tb-pill-val { font-size: 13px; max-width: 96px; }
-  .tb-pill-lbl { display: inline; font-size: 12px; }
-  .tb-pill-dot { width: 7px; height: 7px; }
-  .tb-pill-ico { width: 16px; height: 16px; }
-  .tb-icon-btn { width: var(--tb-pill-h); height: var(--tb-pill-h); font-size: 13px; }
-  .aria-live { font-size: 13px; padding: 0 12px 0 10px; }
-  .aria-live-n, .aria-live-ai { min-width: 18px; height: 18px; font-size: 11px; }
-  .tb-user { gap: 10px; padding: 0 12px 0 8px; min-height: var(--tb-pill-h); }
-  .tb-live-n, .tb-live-sum, .tb-live-cycle, .tb-today-cycle { height: 26px; min-width: 20px; padding: 0 6px; font-size: 12px; }
-}
-@media (min-width: 1800px) {
-  :root {
-    --topbar-h: 66px;
-    --tb-pill-h: 40px;
-    --tb-gap: 12px;
-    --tb-pad-x: 16px;
-    --tb-font: 13.5px;
-  }
-  .tb-pill { font-size: var(--tb-font); padding: 0 12px; max-width: 240px; border-radius: 18px; }
-  .tb-pill-val { font-size: 14px; max-width: 120px; }
-  .tb-pill-lbl { font-size: 12.5px; }
-  .tb-pill-dot { width: 8px; height: 8px; }
-  .tb-icon-btn { width: var(--tb-pill-h); height: var(--tb-pill-h); font-size: 14px; border-radius: 10px; }
-  .aria-live { font-size: 14px; border-radius: 18px; }
-  .aria-orb { width: 16px; height: 16px; }
-  .tb-live-n, .tb-live-sum, .tb-live-cycle, .tb-today-cycle { height: 28px; min-width: 22px; font-size: 13px; }
+  height: 32px;
+  min-height: 32px;
+  max-height: 32px;
 }
 .tb-live {
   display: inline-flex; align-items: center; justify-content: center; padding: 0 8px; gap: 0;
