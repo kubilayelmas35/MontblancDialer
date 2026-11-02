@@ -181,7 +181,7 @@ function _rdDiscoverExtraCols() {
 }
 
 function _rdColSpan() {
-  return 12 + _rdExtraCols.length;
+  return 13 + _rdExtraCols.length;
 }
 
 function _rdStatusKeys() {
@@ -476,6 +476,7 @@ function _rdPaintHead() {
   const extra = _rdExtraCols.map((c) => th(c.label, `f:${c.key}`)).join('');
   head.innerHTML = `<tr>
 ${th(_rdSay('Randevu', 'Termin'), 'termin')}
+${th(_rdSay('Kayıt', 'Erfasst am'), 'created')}
 ${th(_rdSay('Ad Soyad', 'Name/Nachname'), 'name')}
 ${th(_rdSay('Cadde', 'Strasse & Hausnummer'))}
 ${th('PLZ', 'plz')}
@@ -522,6 +523,7 @@ function _rdPaintTable() {
     }).join('');
     return `<tr class="rd-row" style="--rd-row-bg:${bg}" onclick="rdOpenRow('${idAttr}')">
 <td>${_rdEsc(_rdFmtWhen(r.termin))}</td>
+<td class="td-mono">${_rdEsc(_rdFmtWhen(r.created))}</td>
 <td><b>${_rdEsc(r.name)}</b></td>
 <td title="${_rdEsc(r.street)}">${_rdEsc(r.street || '—')}</td>
 <td class="td-mono">${_rdEsc(r.plz || '—')}</td>
@@ -594,6 +596,7 @@ async function rdOpenRow(id) {
 function _rdExportHeaders() {
   return [
     _rdSay('Randevu', 'Termin'),
+    _rdSay('Kayıt', 'Erfasst am'),
     _rdSay('Ad Soyad', 'Name/Nachname'),
     _rdSay('Cadde', 'Strasse & Hausnummer'),
     'PLZ',
@@ -610,6 +613,7 @@ function _rdExportHeaders() {
 function _rdExportCells(r) {
   return [
     _rdFmtWhen(r.termin),
+    _rdFmtWhen(r.created),
     r.name,
     r.street,
     r.plz,
