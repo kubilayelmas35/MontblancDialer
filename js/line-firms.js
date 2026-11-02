@@ -255,13 +255,20 @@ function mbLineFirmBody(firm) {
       <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.ai.rate_admin', 'Bunu yalnız süper admin yazar. Firma admini personel ekranından değiştiremez.'))}</div>
       <input class="form-input" id="line-ai-rate" inputmode="decimal" placeholder="0.08" value="${Number(settings.ai?.rate) > 0 ? mbLineEsc(String(settings.ai.rate)) : ''}">
       <div class="form-label" style="margin-top:12px;">${mbLineEsc(mbLineT('line.ai.run', 'YZ otomatik arama'))}</div>
-      <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.ai.run_hint', 'Bu firmaya özel. Başlat sayfası personeli çalıştırır. İki yoldan birini seç.'))}</div>
-      <label class="tour-check" style="margin-top:6px;"><span class="tour-copy"><span class="tour-name">${mbLineEsc(mbLineT('line.ai.run.page', 'Sayfa açıkken'))}</span>
+      <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.ai.run_hint', 'Bu firmaya özel. İkisini de açabilirsin; ikisi de açıksa firma Başlat’tan hangisini kullanacağına karar verir.'))}</div>
+      ${(() => {
+        const allow = typeof mbAiRunAllowList === 'function'
+          ? mbAiRunAllowList(settings.ai || {})
+          : [settings.ai?.run_mode === 'server' ? 'server' : 'page'];
+        const pageOn = allow.includes('page');
+        const serverOn = allow.includes('server');
+        return `<label class="tour-check" style="margin-top:6px;"><span class="tour-copy"><span class="tour-name">${mbLineEsc(mbLineT('line.ai.run.page', 'Sayfa açıkken'))}</span>
       <small class="tour-help">${mbLineEsc(mbLineT('line.ai.run.page_hint', 'Callin Başlat sekmesi açıkken arar. Bilgisayar kapanınca yeni arama çıkmaz.'))}</small></span>
-      <input type="radio" name="line-ai-run" value="page"${settings.ai?.run_mode !== 'server' ? ' checked' : ''}></label>
+      <input type="checkbox" id="line-ai-run-page"${pageOn ? ' checked' : ''}></label>
       <label class="tour-check"><span class="tour-copy"><span class="tour-name">${mbLineEsc(mbLineT('line.ai.run.server', 'Sunucudan'))}</span>
       <small class="tour-help">${mbLineEsc(mbLineT('line.ai.run.server_hint', 'Çalışsın kaydı sunucuda kalır. Sayfa açıkken kalite araması çalışır. Kapalıyken devam eden tarama sonraki adımda açılır.'))}</small></span>
-      <input type="radio" name="line-ai-run" value="server"${settings.ai?.run_mode === 'server' ? ' checked' : ''}></label>
+      <input type="checkbox" id="line-ai-run-server"${serverOn ? ' checked' : ''}></label>`;
+      })()}
     </div>` : '';
   const musicUrl = /^https:\/\//i.test(String(settings.hold_music_url || '')) ? String(settings.hold_music_url) : '';
   const musicOff = settings.hold_music_off === true;
@@ -471,8 +478,15 @@ async function mbSaveLineFirm(firmId) {
           toast(mbLineT('line.ai.rate_bad', 'Dakika fiyatı sayı olsun, örnek 0.08'), 'err');
           return;
         }
-        const runMode = document.querySelector('input[name="line-ai-run"]:checked')?.value === 'server' ? 'server' : 'page';
-        settings.ai = { ...(settings.ai || {}), rate, run_mode: runMode };
+        const pageOn = !!document.getElementById('line-ai-run-page')?.checked;
+        const serverOn = !!document.getElementById('line-ai-run-server')?.checked;
+        let runAllow = [];
+        if (pageOn) runAllow.push('page');
+        if (serverOn) runAllow.push('server');
+        if (!runAllow.length) runAllow = ['page'];
+        const prevMode = settings.ai?.run_mode === 'server' ? 'server' : 'page';
+        const runMode = runAllow.includes(prevMode) ? prevMode : runAllow[0];
+        settings.ai = { ...(settings.ai || {}), rate, run_mode: runMode, run_allow: runAllow };
       }
       const prev = typeof mbNormalizeFirmIntegrations === 'function' ? mbNormalizeFirmIntegrations(settings.integrations) : {};
       settings.integrations = mbNormalizeFirmIntegrations({

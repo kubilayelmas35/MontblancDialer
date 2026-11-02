@@ -3257,9 +3257,10 @@ const outcomeHtml = talkedOpen
 const recHtml = recHtmlFor(l);
 const openTitle = typeof statsEsc === 'function' ? statsEsc(typeof t === 'function' ? t('dial.history_open') : 'Dialerde aç') : 'Dialerde aç';
 const detailBtn = l.contact_id ? `<button class="icon-btn" onclick="openContactDrawer('${l.contact_id}')" title="Kişi Detayı"><i class="ph ph-magnifying-glass"></i></button><button class="icon-btn" onclick="openDialerForContact('${l.contact_id}')" title="${openTitle}"><i class="ph ph-arrow-square-out"></i></button>` : '';
+const aiLine = typeof mbAiCallLogHtml === 'function' ? mbAiCallLogHtml(l) : '';
 return `<tr>
 <td class="td-mono" style="font-size:11px;">${dt}</td>
-<td style="font-weight:600;">${name}</td>
+<td style="font-weight:600;">${name}${aiLine}</td>
 <td class="td-mono" style="font-size:12px;cursor:pointer;" onclick="copyToClipboard('${phone}','Kopyalandı')" title="Kopyala">${phone}</td>
 <td style="font-size:11px;">${camp}</td>
 <td class="td-mono" style="font-size:11px;">${dur}</td>

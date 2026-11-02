@@ -40,11 +40,33 @@ function mbFirmAi(settings) {
     voice_style: ai.voice_style === 'calm' || ai.voice_style === 'lively' ? ai.voice_style : 'natural',
     expressive: ai.expressive !== false,
     run_mode: ai.run_mode === 'server' ? 'server' : 'page',
+    run_allow: mbAiRunAllowList(ai),
   };
 }
 
+function mbAiRunAllowList(ai) {
+  const raw = Array.isArray(ai?.run_allow) ? ai.run_allow : null;
+  if (raw && raw.length) {
+    const set = [...new Set(raw.map((item) => String(item || '')).filter((item) => item === 'page' || item === 'server'))];
+    if (set.length) return set;
+  }
+  return [ai?.run_mode === 'server' ? 'server' : 'page'];
+}
+
+function mbAiRunAllow(settings) {
+  return mbFirmAi(settings).run_allow;
+}
+
 function mbAiRunMode(settings) {
-  return mbFirmAi(settings).run_mode === 'server' ? 'server' : 'page';
+  const allow = mbAiRunAllow(settings);
+  const pick = settings?.ai?.run_mode === 'server' ? 'server' : 'page';
+  if (allow.includes(pick)) return pick;
+  return allow[0] || 'page';
+}
+
+function mbAiRunAllowBoth(settings) {
+  const allow = mbAiRunAllow(settings);
+  return allow.includes('page') && allow.includes('server');
 }
 
 function mbAiFocusIds(row) {
@@ -748,6 +770,26 @@ function mbAiHistRows() {
   return rows;
 }
 
+function mbAiHistOutcomeBadge(row) {
+  const tone = mbAiRunTone(row);
+  const label = mbAiRunResultLabel(row) || '—';
+  const cls = tone === 'is-ok' || tone === 'is-talk' ? 'badge-green'
+    : (tone === 'is-miss' || tone === 'is-neg' ? 'badge-red'
+      : (tone === 'is-cb' ? 'badge-yellow' : 'badge-gray'));
+  return `<span class="badge ${cls}">${mbAiEsc(label)}</span>`;
+}
+
+function mbAiHistRecHtml(row) {
+  if (row.recording && typeof mbRecPlayerHtml === 'function') {
+    return mbRecPlayerHtml(row.logId || row.key || row.id || 'ai', row.recording, row.secs || 0, {
+      name: row.name || '',
+      phone: row.phone || '',
+      at: row.startedAt || '',
+    });
+  }
+  return `<span style="color:var(--text-3);font-size:11px;">—</span>`;
+}
+
 function mbAiPaintRunHist() {
   const box = document.getElementById('ai-run-hist');
   if (!box) return;
@@ -760,30 +802,41 @@ function mbAiPaintRunHist() {
     box.innerHTML = `<div class="ai-run-empty">${mbAiEsc(mbAiSay('ai.run.hist.empty', 'Henüz YZ araması yok.'))}</div>`;
     return;
   }
-  box.innerHTML = rows.map((row) => {
+  const head = `<thead><tr>
+    <th>${mbAiEsc(mbAiSay('ai.run.hist.col.time', 'Zaman'))}</th>
+    <th>${mbAiEsc(mbAiSay('ai.run.hist.col.who', 'Müşteri'))}</th>
+    <th>${mbAiEsc(mbAiSay('ai.run.hist.col.phone', 'Numara'))}</th>
+    <th>${mbAiEsc(mbAiSay('ai.run.hist.col.camp', 'Kampanya'))}</th>
+    <th>${mbAiEsc(mbAiSay('ai.run.hist.col.dur', 'Süre'))}</th>
+    <th>${mbAiEsc(mbAiSay('ai.run.hist.col.rec', 'Kayıt'))}</th>
+    <th>${mbAiEsc(mbAiSay('ai.run.hist.col.out', 'Sonuç'))}</th>
+  </tr></thead>`;
+  const body = rows.map((row) => {
     const when = row.startedAt
       ? new Date(row.startedAt).toLocaleString(undefined, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+      : '—';
+    const sec = Number(row.secs) || 0;
+    const dur = sec ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : '—';
+    const note = String(row.summary || row.qc_notu || '').trim();
+    const script = String(row.transcript || '').trim();
+    const talk = note || script
+      ? `<details class="ai-run-hist-talk"><summary>${mbAiEsc(mbAiSay('qc.callin.transcript', 'Konuşma'))}</summary>
+          ${note ? `<div class="qc-callin-note">${mbAiEsc(note.slice(0, 600))}</div>` : ''}
+          ${script ? `<div class="qc-callin-note">${mbAiEsc(script.slice(0, 2500))}</div>` : ''}
+        </details>`
       : '';
-    const staff = row.staffName ? `<span class="ai-run-hist-staff"><i class="ph ph-robot"></i> ${mbAiEsc(row.staffName)}</span>` : '';
-    const detail = mbAiRunSlotDetail(row);
-    const head = `<div class="ai-run-hist-top">
-        <div class="ai-run-hist-who">
-          <b>${mbAiEsc(row.name || row.phone || '—')}</b>
-          ${row.camp ? `<span class="ai-run-camp">${mbAiEsc(row.camp)}</span>` : ''}
-          ${row.phone ? `<span class="ai-run-phone">${mbAiEsc(row.phone)}</span>` : ''}
-        </div>
-        <div class="ai-run-hist-meta">
-          <span class="ai-run-phase" title="${mbAiEsc(mbAiRunResultLabel(row))}">${mbAiEsc(mbAiRunResultLabel(row))}</span>
-          ${row.secs > 0 ? `<span class="ai-run-secs">${mbAiEsc(String(row.secs))}s</span>` : ''}
-        </div>
-      </div>
-      <div class="ai-run-hist-sub">${staff}${when ? `<span>${mbAiEsc(when)}</span>` : ''}</div>`;
-    if (!detail) return `<article class="ai-run-hist-row ${mbAiRunTone(row)}">${head}</article>`;
-    return `<details class="ai-run-hist-row ${mbAiRunTone(row)}">
-      <summary class="ai-run-hist-sum">${head}</summary>
-      ${detail}
-    </details>`;
+    const staff = row.staffName ? `<div class="ai-run-hist-staff"><i class="ph ph-robot"></i> ${mbAiEsc(row.staffName)}</div>` : '';
+    return `<tr class="${mbAiRunTone(row)}">
+      <td class="td-mono" style="font-size:11px;">${mbAiEsc(when)}</td>
+      <td style="font-weight:600;">${mbAiEsc(row.name || row.phone || '—')}${staff}${talk}</td>
+      <td class="td-mono" style="font-size:11px;">${mbAiEsc(row.phone || '—')}</td>
+      <td style="font-size:11px;">${mbAiEsc(row.camp || '—')}</td>
+      <td class="td-mono" style="font-size:11px;">${mbAiEsc(dur)}</td>
+      <td>${mbAiHistRecHtml(row)}</td>
+      <td>${mbAiHistOutcomeBadge(row)}</td>
+    </tr>`;
   }).join('');
+  box.innerHTML = `<div class="ai-run-hist-scroll"><table class="ai-run-hist-table">${head}<tbody>${body}</tbody></table></div>`;
 }
 
 function mbAiRunHistFilter(reload) {
@@ -899,9 +952,18 @@ function mbPaintAiRun() {
   const firmPick = firms.length > 1
     ? `<div class="ai-field is-wide"><label for="ai-run-firm">${mbAiEsc(mbAiSay('ai.staff.firm', 'Firma'))}</label><select class="form-input" id="ai-run-firm" onchange="mbAiFirmPicked(this.value)">${firms.map((row) => `<option value="${mbAiEsc(row.id)}"${String(row.id) === String(_aiFirmId) ? ' selected' : ''}>${mbAiEsc(row.name || '')}</option>`).join('')}</select></div>`
     : '';
-  const modeNote = mode === 'server'
-    ? mbAiSay('ai.run.mode.server', 'Bu firmada Çalışsın sunucuya yazılır. Sayfa açıkken kalite araması çalışır. Kapalıyken tarama sonraki adımda bağlanır.')
-    : mbAiSay('ai.run.mode.page', 'Bu firmada yalnız Başlat sayfası açıkken arar. Sayfa veya bilgisayar kapanınca yeni arama çıkmaz.');
+  const both = mbAiRunAllowBoth(_aiDesk.settings);
+  const modeNote = both
+    ? mbAiSay('ai.run.mode.both', 'Süper admin iki yolu da açmış. Bu firmada hangisini kullanacağını sen seçersin.')
+    : (mode === 'server'
+      ? mbAiSay('ai.run.mode.server', 'Bu firmada Çalışsın sunucuya yazılır. Sayfa açıkken kalite araması çalışır. Kapalıyken tarama sonraki adımda bağlanır.')
+      : mbAiSay('ai.run.mode.page', 'Bu firmada yalnız Başlat sayfası açıkken arar. Sayfa veya bilgisayar kapanınca yeni arama çıkmaz.'));
+  const modePick = both
+    ? `<div class="ai-run-mode-pick" role="group" aria-label="${mbAiEsc(mbAiSay('line.ai.run', 'YZ otomatik arama'))}">
+        <button type="button" class="ai-run-mode-btn${mode === 'page' ? ' is-on' : ''}" onclick="mbAiPickRunMode('page')">${mbAiEsc(mbAiSay('line.ai.run.page', 'Sayfa açıkken'))}</button>
+        <button type="button" class="ai-run-mode-btn${mode === 'server' ? ' is-on' : ''}" onclick="mbAiPickRunMode('server')">${mbAiEsc(mbAiSay('line.ai.run.server', 'Sunucudan'))}</button>
+      </div>`
+    : `<div class="ai-run-mode ${mode === 'server' ? 'is-server' : 'is-page'}">${mbAiEsc(mode === 'server' ? mbAiSay('line.ai.run.server', 'Sunucudan') : mbAiSay('line.ai.run.page', 'Sayfa açıkken'))}</div>`;
   const cards = (_aiDesk.staff || []).map((row) => mbAiRunCard(row, mode)).join('');
   const empty = _aiDesk.staff.length ? '' : `<p class="ai-note">${mbAiEsc(mbAiSay('ai.run.empty', 'Önce YZ Personel sekmesinden personel ekleyin.'))}</p>`;
   const staffOpts = (_aiDesk.staff || []).map((row) => `<option value="${mbAiEsc(row.id)}"${String(_aiRunHist.staff) === String(row.id) ? ' selected' : ''}>${mbAiEsc(row.name || row.id)}</option>`).join('');
@@ -913,9 +975,9 @@ function mbPaintAiRun() {
         <h2 class="ai-run-title">${mbAiEsc(mbAiSay('ai.run.title', 'Personeli başlat'))}</h2>
         <p class="ai-note">${mbAiEsc(mbAiSay('ai.run.intro', 'Karttaki kampanyalar çalışabilir listesidir. Burada yalnız bugün yoğunlaşacağın kampanyayı seçersin. Aynı anda kaç kişi, o personelin kendi hattıdır; kampanya hızı yok, havuz yok.'))}</p>
       </div>
-      <div class="ai-run-mode ${mode === 'server' ? 'is-server' : 'is-page'}">${mbAiEsc(mode === 'server' ? mbAiSay('line.ai.run.server', 'Sunucudan') : mbAiSay('line.ai.run.page', 'Sayfa açıkken'))}</div>
+      ${modePick}
     </header>
-    <p class="ai-note ${mode === 'server' ? 'ai-note-warn' : ''}">${mbAiEsc(modeNote)}</p>
+    <p class="ai-note ${mode === 'server' && !both ? 'ai-note-warn' : ''}">${mbAiEsc(modeNote)}</p>
     ${firmPick}
     <div class="ai-run-list">${empty}${cards}</div>
   </div>
@@ -1084,6 +1146,37 @@ async function mbAiPersistRun() {
     if (typeof toast === 'function') toast((typeof t === 'function' ? t('dial.log_err') : '') + (e?.message || ''), 'err');
   } finally {
     _aiRunSaving = false;
+  }
+}
+
+async function mbAiPickRunMode(mode) {
+  if (!_aiDesk || !_aiFirmId || typeof sb !== 'function') return;
+  const want = mode === 'server' ? 'server' : 'page';
+  if (!mbAiRunAllow(_aiDesk.settings).includes(want)) {
+    if (typeof toast === 'function') toast(mbAiSay('ai.run.mode.locked', 'Bu yol süper admin tarafından kapalı.'), 'warn');
+    return;
+  }
+  if (mbAiRunMode(_aiDesk.settings) === want) return;
+  try {
+    const rows = await sb(`firms?id=eq.${_aiFirmId}&select=settings`);
+    const settings = { ...(rows?.[0]?.settings || {}) };
+    settings.ai = { ...(settings.ai || {}), run_mode: want, run_allow: mbAiRunAllow(settings) };
+    await sb(`firms?id=eq.${_aiFirmId}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ settings }),
+    });
+    const hit = _aiDesk.firms.find((row) => String(row.id) === String(_aiFirmId));
+    if (hit) hit.settings = settings;
+    _aiDesk.settings = settings;
+    if (typeof toast === 'function') {
+      toast(want === 'server'
+        ? mbAiSay('ai.run.mode.picked.server', 'Sunucudan moda geçildi')
+        : mbAiSay('ai.run.mode.picked.page', 'Sayfa açıkken moda geçildi'), 'ok');
+    }
+    mbPaintAiRun();
+  } catch (e) {
+    if (typeof toast === 'function') toast((typeof t === 'function' ? t('dial.log_err') : '') + (e?.message || ''), 'err');
   }
 }
 
