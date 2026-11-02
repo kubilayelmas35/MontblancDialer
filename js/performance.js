@@ -608,7 +608,7 @@ function perfExportCsv() {
     return;
   }
   const sep = ';';
-  const h = ['Agent', 'Randevu', 'Basarili', 'Beklemede', 'QC', 'Basarisiz', 'Oran%', 'Arama', 'AramaRandevu', 'Donusum%', 'OrtSureSn'];
+  const h = [typeof t === 'function' ? t('agent.role.agent') : 'Temsilci', 'Randevu', 'Basarili', 'Beklemede', 'QC', 'Basarisiz', 'Oran%', 'Arama', 'AramaRandevu', 'Donusum%', 'OrtSureSn'];
   const lines = [h.join(sep)];
   rows.forEach((r) => {
     lines.push([r.name, r.total, r.ok, r.pend, r.qc, r.fail, r.rate, r.calls, r.appt, r.conv, r.avgSec].join(sep));

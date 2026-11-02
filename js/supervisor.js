@@ -100,7 +100,7 @@ function _supRenderCards() {
       board.innerHTML = `<div class="sup-live-empty">${de ? 'Gerade keine Gespräche.' : 'Şu an görüşme yok.'}</div>`;
     } else {
       board.innerHTML = `<table class="sup-live-table"><thead><tr>
-        <th>${de ? 'Agent' : 'Temsilci'}</th>
+        <th>${de ? 'Mitarbeiter' : 'Temsilci'}</th>
         <th>${de ? 'Dauer' : 'Süre'}</th>
         <th>${de ? 'Kontakt' : 'Müşteri'}</th>
         <th>${de ? 'Nummer' : 'Numara'}</th>
@@ -192,7 +192,7 @@ function _supRenderCards() {
     }).join('');
     grid.innerHTML = asRows
       ? `<div class="live-rows live-rows--act">${`<div class="live-rows-head live-rows-head--act">
-          <span>${de ? 'Agent' : 'Temsilci'}</span>
+          <span>${de ? 'Mitarbeiter' : 'Temsilci'}</span>
           <span>${de ? 'Status' : 'Durum'}</span>
           <span>${de ? 'Dauer' : 'Süre'}</span>
           <span>${de ? 'Kontakt' : 'Müşteri'}</span>
@@ -348,7 +348,7 @@ async function loadSupervisorPanel() {
 </div>
 
 <div class="sup-toolbar">
-  <input class="form-input" id="sup-search" placeholder="${de ? 'Agent, Kunde, Nummer, Kampagne' : 'Temsilci, müşteri, numara, kampanya'}" oninput="_supOnSearch(this.value)">
+  <input class="form-input" id="sup-search" placeholder="${de ? 'Mitarbeiter, Kunde, Nummer, Kampagne' : 'Temsilci, müşteri, numara, kampanya'}" oninput="_supOnSearch(this.value)">
 </div>
 
 <div class="card sup-live-card">

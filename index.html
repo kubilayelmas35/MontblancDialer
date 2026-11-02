@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr" data-theme="light" data-palette="blue">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="callin.one çağrı merkezi">
-<link rel="icon" href="favicon.svg?v=14.13" type="image/svg+xml">
+<link rel="icon" href="favicon.svg?v=14.14" type="image/svg+xml">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,17 +15,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=14.13">
-<link rel="stylesheet" href="css/styles-dialer.css?v=14.13">
-<link rel="stylesheet" href="css/styles-mascot.css?v=14.13">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.13">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.13">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.13">
-<link rel="stylesheet" href="css/styles-pages.css?v=14.13">
-<link rel="stylesheet" href="css/styles-aurora.css?v=14.13">
-<link rel="stylesheet" href="css/styles-chat.css?v=14.13">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=14.13">
-<link rel="stylesheet" href="css/styles-responsive.css?v=14.13">
+<link rel="stylesheet" href="css/styles.css?v=14.14">
+<link rel="stylesheet" href="css/styles-dialer.css?v=14.14">
+<link rel="stylesheet" href="css/styles-mascot.css?v=14.14">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.14">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.14">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.14">
+<link rel="stylesheet" href="css/styles-pages.css?v=14.14">
+<link rel="stylesheet" href="css/styles-aurora.css?v=14.14">
+<link rel="stylesheet" href="css/styles-chat.css?v=14.14">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=14.14">
+<link rel="stylesheet" href="css/styles-responsive.css?v=14.14">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -84,7 +84,7 @@
 </div>
 </div>
 </div>
-<div class="login-version">v14.13 — 2026</div>
+<div class="login-version">v14.14 — 2026</div>
 </div>
 </div>
 <div id="app" style="display:none;">
@@ -331,7 +331,7 @@
 <div class="sb-sub">
 <button class="sb-item" onclick="navigate('agents')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.82"/></svg></span>
-<span data-tr="Personeller" data-de="Personal">Personeller</span>
+<span data-tr="Temsilciler" data-de="Mitarbeiter">Temsilciler</span>
 </button>
 <button class="sb-item" id="nav-supervisor-btn" style="display:none;" onclick="navigate('supervisor')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="12" cy="10" r="1.5" fill="currentColor" stroke="none"/></svg></span>
@@ -481,7 +481,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">callin.one v14.13</div>
+<div class="sb-ver">callin.one v14.14</div>
 </div>
 </div>
 </nav>
@@ -1129,7 +1129,7 @@
 <div class="page" id="page-agents">
 <div class="page-hdr">
 <div>
-<div class="page-title" data-tr="Personeller" data-de="Personal">Personeller</div>
+<div class="page-title" data-tr="Temsilciler" data-de="Mitarbeiter">Temsilciler</div>
 <div class="page-sub" data-tr="Ekip ve kampanya atamaları" data-de="Team und Kampagnenzuweisungen">Ekip ve kampanya atamaları</div>
 </div>
 <div class="page-hdr-actions">
@@ -1140,7 +1140,7 @@
 </div>
 <div id="agents-firm-selector"></div>
 <button class="btn btn-primary btn-sm" onclick="openAddAgentModal()">
-<i class="ph ph-plus"></i> <span data-tr="Yeni temsilci" data-de="Neuer Agent">Yeni temsilci</span>
+<i class="ph ph-plus"></i> <span data-tr="Yeni temsilci" data-de="Neuer Mitarbeiter">Yeni temsilci</span>
 </button>
 </div>
 </div>
@@ -1509,7 +1509,7 @@
 </div>
 <div class="page-hdr">
 <div>
-<div class="page-title" data-tr="Personel performans" data-de="Mitarbeiterleistung">Personel performans</div>
+<div class="page-title" data-tr="Personel performansı" data-de="Mitarbeiterleistung">Personel performansı</div>
 <div class="page-sub" data-tr="Randevu ve arama metrikleri" data-de="Termin- und Anrufmetriken">Randevu ve arama metrikleri</div>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -1520,17 +1520,17 @@
 </div>
 <div class="perf-hdr">
 <div class="perf-filters">
-<div><label class="form-label">Başlangıç</label><input type="date" class="form-input" id="perf-date-from" onchange="perfReload()"/></div>
-<div><label class="form-label">Bitiş</label><input type="date" class="form-input" id="perf-date-to" onchange="perfReload()"/></div>
-<div><label class="form-label">Agent</label><select class="form-input" id="perf-agent" onchange="perfOnFilterChange()"><option value="">Tümü</option></select></div>
-<div><label class="form-label">Kampanya</label><select class="form-input" id="perf-campaign" onchange="perfOnFilterChange()"><option value="">Tümü</option></select></div>
-<div><label class="form-label">Randevu durumu</label><select class="form-input" id="perf-status" onchange="perfOnFilterChange()">
-<option value="">Tümü</option>
-<option value="ok">Başarılı</option>
-<option value="pend">Beklemede</option>
-<option value="qc">QC bekleniyor</option>
-<option value="fail">Başarısız / İptal</option>
-<option value="other">Diğer</option>
+<div><label class="form-label" data-tr="Başlangıç" data-de="Von">Başlangıç</label><input type="date" class="form-input" id="perf-date-from" onchange="perfReload()"/></div>
+<div><label class="form-label" data-tr="Bitiş" data-de="Bis">Bitiş</label><input type="date" class="form-input" id="perf-date-to" onchange="perfReload()"/></div>
+<div><label class="form-label" data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</label><select class="form-input" id="perf-agent" onchange="perfOnFilterChange()"><option value="" data-tr="Tümü" data-de="Alle">Tümü</option></select></div>
+<div><label class="form-label" data-tr="Kampanya" data-de="Kampagne">Kampanya</label><select class="form-input" id="perf-campaign" onchange="perfOnFilterChange()"><option value="" data-tr="Tümü" data-de="Alle">Tümü</option></select></div>
+<div><label class="form-label" data-tr="Randevu durumu" data-de="Terminstatus">Randevu durumu</label><select class="form-input" id="perf-status" onchange="perfOnFilterChange()">
+<option value="" data-tr="Tümü" data-de="Alle">Tümü</option>
+<option value="ok" data-tr="Başarılı" data-de="Erfolg">Başarılı</option>
+<option value="pend" data-tr="Beklemede" data-de="Wartend">Beklemede</option>
+<option value="qc" data-tr="QC bekleniyor" data-de="QC offen">QC bekleniyor</option>
+<option value="fail" data-tr="Başarısız / İptal" data-de="Fehlschlag / Abbruch">Başarısız / İptal</option>
+<option value="other" data-tr="Diğer" data-de="Sonstiges">Diğer</option>
 </select></div>
 </div>
 <div class="perf-ranges">
@@ -1545,9 +1545,9 @@
 <div class="perf-sum">
 <div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-total">0</div><div class="perf-sum-lbl" data-tr="Toplam randevu (dönem)" data-de="Termine (Zeitraum)">Toplam randevu (dönem)</div></div>
 <div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-rate">0%</div><div class="perf-sum-lbl" data-tr="Başarı oranı" data-de="Erfolgsquote">Başarı oranı</div></div>
-<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-avg">0</div><div class="perf-sum-lbl" data-tr="Ort. randevu/agent" data-de="Durchschn. Termine/Agent">Ort. randevu/agent</div></div>
+<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-avg">0</div><div class="perf-sum-lbl" data-tr="Ort. randevu / temsilci" data-de="Ø Termine / Mitarbeiter">Ort. randevu / temsilci</div></div>
 <div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-days">0</div><div class="perf-sum-lbl" data-tr="Aktif gün" data-de="Aktive Tage">Aktif gün</div></div>
-<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-agents">0</div><div class="perf-sum-lbl" data-tr="Aktif agent" data-de="Aktive Agenten">Aktif agent</div></div>
+<div class="perf-sum-box"><div class="perf-sum-val" id="perf-sum-agents">0</div><div class="perf-sum-lbl" data-tr="Aktif temsilci" data-de="Aktive Mitarbeiter">Aktif temsilci</div></div>
 </div>
 </div>
 <div class="perf-mode">
@@ -1585,7 +1585,7 @@
 <div class="perf-chart-t"><canvas id="perf-chart-status"></canvas></div>
 </div>
 <div class="perf-chart-box">
-<div style="font-weight:800;font-size:13px;margin-bottom:8px;"><i class="ph ph-medal"></i> Agent başarı %</div>
+<div style="font-weight:800;font-size:13px;margin-bottom:8px;"><i class="ph ph-medal"></i> <span data-tr="Temsilci başarı %" data-de="Mitarbeiter-Erfolg %">Temsilci başarı %</span></div>
 <div class="perf-chart-t"><canvas id="perf-chart-rate"></canvas></div>
 </div>
 <div class="perf-chart-box perf-chart-wide">
@@ -1604,19 +1604,19 @@
 <div class="perf-table-stack">
 <div class="card" style="padding:0;overflow:hidden;">
 <div class="perf-section">
-<h3>Personel tablosu</h3>
+<h3 data-tr="Personel tablosu" data-de="Mitarbeitertabelle">Personel tablosu</h3>
 <div style="display:flex;gap:4px;flex-wrap:wrap;">
-<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('total')">Randevu</button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('ok')">Başarılı</button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('rate')">Oran</button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('calls')">Arama</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('total')" data-tr="Randevu" data-de="Termine">Randevu</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('ok')" data-tr="Başarılı" data-de="Erfolg">Başarılı</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('rate')" data-tr="Oran" data-de="Quote">Oran</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="perfRenderMainTable('calls')" data-tr="Arama" data-de="Anrufe">Arama</button>
 </div>
 </div>
 <div class="tbl-wrap">
 <table style="min-width:860px;">
 <thead><tr>
-<th>Agent</th>
-<th>Randevu</th>
+<th data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</th>
+<th data-tr="Randevu" data-de="Termine">Randevu</th>
 <th>OK</th>
 <th>Bekl.</th>
 <th>QC</th>
@@ -1643,7 +1643,7 @@
 </div>
 <div class="tbl-wrap">
 <table style="min-width:640px;">
-<thead><tr><th>Agent</th><th>Top.</th><th>OK</th><th>Bekl.</th><th>QC</th><th>Kötü</th><th>Oran</th><th></th></tr></thead>
+<thead><tr><th data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</th><th>Top.</th><th>OK</th><th data-tr="Bekl." data-de="Offen">Bekl.</th><th>QC</th><th data-tr="Kötü" data-de="Neg.">Kötü</th><th data-tr="Oran" data-de="Quote">Oran</th><th></th></tr></thead>
 <tbody id="perf-tbody-month"><tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-3);">—</td></tr></tbody>
 </table>
 </div>
@@ -1651,19 +1651,19 @@
 </div>
 <div class="perf-table-stack">
 <div class="card" style="padding:0;overflow:hidden;">
-<div class="perf-section"><h3><i class="ph ph-calendar-check"></i> Son randevular</h3></div>
+<div class="perf-section"><h3><i class="ph ph-calendar-check"></i> <span data-tr="Son randevular" data-de="Letzte Termine">Son randevular</span></h3></div>
 <div class="tbl-wrap" style="max-height:280px;">
 <table style="min-width:400px;font-size:12px;">
-<thead><tr><th>Tarih</th><th>Agent</th><th>Müşteri</th><th>Kamp.</th><th>Durum</th></tr></thead>
+<thead><tr><th data-tr="Tarih" data-de="Datum">Tarih</th><th data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</th><th data-tr="Müşteri" data-de="Kunde">Müşteri</th><th data-tr="Kamp." data-de="Kamp.">Kamp.</th><th data-tr="Durum" data-de="Status">Durum</th></tr></thead>
 <tbody id="perf-tbody-appts"></tbody>
 </table>
 </div>
 </div>
 <div class="card" style="padding:0;overflow:hidden;">
-<div class="perf-section"><h3><i class="ph ph-phone-call"></i> Son aramalar</h3></div>
+<div class="perf-section"><h3><i class="ph ph-phone-call"></i> <span data-tr="Son aramalar" data-de="Letzte Anrufe">Son aramalar</span></h3></div>
 <div class="tbl-wrap" style="max-height:280px;">
 <table style="min-width:400px;font-size:12px;">
-<thead><tr><th>Tarih</th><th>Agent</th><th>Numara</th><th>Kamp.</th><th>Sonuç</th><th>Süre</th></tr></thead>
+<thead><tr><th data-tr="Tarih" data-de="Datum">Tarih</th><th data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</th><th data-tr="Numara" data-de="Nummer">Numara</th><th data-tr="Kamp." data-de="Kamp.">Kamp.</th><th data-tr="Sonuç" data-de="Ergebnis">Sonuç</th><th data-tr="Süre" data-de="Dauer">Süre</th></tr></thead>
 <tbody id="perf-tbody-calls"></tbody>
 </table>
 </div>
@@ -2691,7 +2691,7 @@ Başarısız / Alta Taşınan
 <div id="leave-firm-selector" style="display:flex;align-items:center;"></div>
 </div>
 <div id="leave-no-firm" style="display:none;padding:24px;background:var(--bg-3);border-radius:var(--radius);border:1px solid var(--border);font-size:13px;color:var(--text-2);">
-Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
+<span data-tr="Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin." data-de="Als Super-Admin Firma oben wählen, um diese Seite zu nutzen.">Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.</span>
 </div>
 <div id="leave-main" style="display:flex;flex-direction:column;gap:16px;padding-bottom:24px;">
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
@@ -2780,8 +2780,8 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </select>
 </div>
 <div class="form-row" style="margin-top:10px;">
-<label class="form-label">Açıklama</label>
-<textarea class="form-input" id="lr-reason" rows="2" placeholder="İsteğe bağlı"></textarea>
+<label class="form-label" data-tr="Açıklama" data-de="Beschreibung">Açıklama</label>
+<textarea class="form-input" id="lr-reason" rows="2" placeholder="İsteğe bağlı" data-tr="İsteğe bağlı" data-de="Optional"></textarea>
 </div>
 <button type="button" class="btn btn-primary" onclick="submitLeaveRequest()" data-tr="Talep gönder" data-de="Antrag senden">Talep gönder</button>
 </div>
@@ -3158,16 +3158,16 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <span id="comp-period-label" style="min-width:128px;text-align:center;font-weight:800;font-size:13px;">—</span>
 <input type="hidden" id="comp-period">
 <button type="button" class="btn btn-ghost btn-sm" onclick="compShiftMonth(1)" aria-label="Sonraki ay">›</button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="loadCompetitionPage()"><i class="ph ph-arrow-clockwise"></i> Yenile</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="loadCompetitionPage()"><i class="ph ph-arrow-clockwise"></i> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
 </div>
 </div>
-<div id="comp-no-firm" style="display:none;padding:24px;background:var(--bg-3);border-radius:var(--radius);border:1px solid var(--border);font-size:13px;color:var(--text-2);">
+<div id="comp-no-firm" style="display:none;padding:24px;background:var(--bg-3);border-radius:var(--radius);border:1px solid var(--border);font-size:13px;color:var(--text-2);" data-tr="Süper admin olarak yarışı görmek için üstten firma seçin." data-de="Als Super-Admin Firma oben wählen, um die Rangliste zu sehen.">
 Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div id="comp-main" style="display:flex;flex-direction:column;gap:16px;padding-bottom:32px;">
 <div id="comp-you-banner" class="card" style="padding:12px 16px;display:none;background:var(--accent-soft);border-color:var(--accent);"></div>
 <div class="card" style="padding:14px 16px;">
-<div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:8px;">Ay ilerlemesi</div>
+<div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:8px;" data-tr="Ay ilerlemesi" data-de="Monatsfortschritt">Ay ilerlemesi</div>
 <div style="height:8px;background:var(--bg-3);border-radius:999px;overflow:hidden;">
 <div id="comp-month-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .6s ease;"></div>
 </div>
@@ -3175,12 +3175,12 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div class="comp-top-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
 <div class="card" style="padding:16px;">
-<div id="comp-leader-title" style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;">Bu ay lider</div>
+<div id="comp-leader-title" style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;" data-tr="Bu ay lider" data-de="Führend diesen Monat">Bu ay lider</div>
 <div id="comp-champ-name" style="font-size:22px;font-weight:800;margin-top:6px;">—</div>
 <div id="comp-champ-sub" style="font-size:12px;color:var(--text-3);margin-top:4px;"></div>
 </div>
 <div class="card" style="padding:16px;">
-<div id="comp-prev-title" style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;">Geçen ay</div>
+<div id="comp-prev-title" style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;" data-tr="Geçen ay" data-de="Letzter Monat">Geçen ay</div>
 <div id="comp-last-name" style="font-size:20px;font-weight:800;margin-top:6px;">—</div>
 <div id="comp-last-sub" style="font-size:12px;color:var(--text-3);margin-top:4px;"></div>
 </div>
@@ -3200,31 +3200,31 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <div class="card" style="padding:16px;">
-<div class="card-title" style="margin-bottom:6px;">Canlı yarış</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;"><span id="comp-rank-note" data-tr="Sıra, randevu günü seçilen aya denk gelen başarılı terminlere göre." data-de="Rang nach erfolgreichen Terminen, deren Tag im gewählten Monat liegt.">Sıra, randevu günü seçilen aya denk gelen başarılı terminlere göre.</span> <span class="comp-admin-only" style="display:none;">Admin: her satırda randevu sayısı görünür.</span><span class="comp-agent-hint">Agent: sadece sıra ve isim; adetler gizli.</span></div>
+<div class="card-title" style="margin-bottom:6px;" data-tr="Canlı yarış" data-de="Live-Rangliste">Canlı yarış</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;"><span id="comp-rank-note" data-tr="Sıra, randevu günü seçilen aya denk gelen başarılı randevulara göre." data-de="Rang nach erfolgreichen Terminen, deren Tag im gewählten Monat liegt.">Sıra, randevu günü seçilen aya denk gelen başarılı randevulara göre.</span> <span class="comp-admin-only" style="display:none;" data-tr="Yönetici: her satırda randevu sayısı görünür." data-de="Admin: Terminanzahl je Zeile sichtbar.">Yönetici: her satırda randevu sayısı görünür.</span><span class="comp-agent-hint" data-tr="Temsilci: yalnız sıra ve isim; adetler gizli." data-de="Mitarbeiter: nur Rang und Name; Anzahlen verborgen.">Temsilci: yalnız sıra ve isim; adetler gizli.</span></div>
 <div id="comp-race-lanes" class="comp-race-lanes"></div>
 </div>
 <div class="card" style="padding:0;overflow:hidden;">
-<div id="comp-month-table-title" style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;">Bu ay sıralaması</div>
+<div id="comp-month-table-title" style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;" data-tr="Bu ay sıralaması" data-de="Monatsrangliste">Bu ay sıralaması</div>
 <div class="tbl-wrap">
 <table>
 <thead><tr>
 <th style="width:56px;">#</th>
-<th>Agent</th>
-<th class="comp-admin-only td-mono" style="width:90px;text-align:right;">Randevu</th>
+<th data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</th>
+<th class="comp-admin-only td-mono" style="width:90px;text-align:right;" data-tr="Randevu" data-de="Termine">Randevu</th>
 </tr></thead>
 <tbody id="comp-lb-month"></tbody>
 </table>
 </div>
 </div>
 <div class="card" style="padding:0;overflow:hidden;">
-<div id="comp-year-title" style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;">Bu yıl</div>
+<div id="comp-year-title" style="padding:14px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:14px;" data-tr="Bu yıl" data-de="Dieses Jahr">Bu yıl</div>
 <div class="tbl-wrap">
 <table>
 <thead><tr>
 <th style="width:56px;">#</th>
-<th>Agent</th>
-<th class="comp-admin-only td-mono" style="width:90px;text-align:right;">Randevu</th>
+<th data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</th>
+<th class="comp-admin-only td-mono" style="width:90px;text-align:right;" data-tr="Randevu" data-de="Termine">Randevu</th>
 </tr></thead>
 <tbody id="comp-lb-year"></tbody>
 </table>
@@ -4472,8 +4472,8 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <div id="nc-customer-note" style="font-size:11px;color:var(--text-3);margin-top:4px;" data-tr="Bir müşteri seçin. Tümü derseniz randevu müşterisiz açılır ve müşteriyi Kalite kontrol yazar." data-de="Einen Kunden wählen. Alle: der Termin bleibt ohne Kunde, QC trägt ihn ein.">Bir müşteri seçin. Tümü derseniz randevu müşterisiz açılır ve müşteriyi Kalite kontrol yazar.</div>
 </div>
 <div class="form-row">
-<label class="form-label" data-tr="Personeller" data-de="Personal">Personeller</label>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;" data-tr="İşaretli personel dialerde bu kampanyanın kutusunu görür. Varsayılan herkes işaretlidir." data-de="Markiertes Personal sieht diese Kampagne im Dialer. Standard: alle markiert.">İşaretli personel dialerde bu kampanyanın kutusunu görür. Varsayılan herkes işaretlidir.</div>
+<label class="form-label" data-tr="Temsilciler" data-de="Mitarbeiter">Temsilciler</label>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;" data-tr="İşaretli temsilci dialerde bu kampanyanın kutusunu görür. Varsayılan herkes işaretlidir." data-de="Markierte Mitarbeiter sehen diese Kampagne im Dialer. Standard: alle markiert.">İşaretli temsilci dialerde bu kampanyanın kutusunu görür. Varsayılan herkes işaretlidir.</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
 <button type="button" class="btn btn-ghost btn-sm" onclick="ncPersonnelAll(true)" data-tr="Tümünü ekle" data-de="Alle hinzufügen">Tümünü ekle</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="ncPersonnelAll(false)" data-tr="Tümünü çıkar" data-de="Alle entfernen">Tümünü çıkar</button>
@@ -5220,75 +5220,75 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=14.13"></script>
-<script src="js/i18n.js?v=14.13"></script>
-<script src="js/config.js?v=14.13"></script>
-<script src="js/state.js?v=14.13"></script>
-<script src="js/api.js?v=14.13"></script>
-<script src="js/access.js?v=14.13"></script>
-<script src="js/auth.js?v=14.13"></script>
-<script src="js/logo.js?v=14.13"></script>
-<script src="js/ui.js?v=14.13"></script>
-<script src="js/chat.js?v=14.13"></script>
-<script src="js/chat-settings.js?v=14.13"></script>
-<script src="js/field-settings.js?v=14.13"></script>
-<script src="js/audit.js?v=14.13"></script>
-<script src="js/feature-flags.js?v=14.13"></script>
-<script src="js/notification-center.js?v=14.13"></script>
+<script src="js/version.js?v=14.14"></script>
+<script src="js/i18n.js?v=14.14"></script>
+<script src="js/config.js?v=14.14"></script>
+<script src="js/state.js?v=14.14"></script>
+<script src="js/api.js?v=14.14"></script>
+<script src="js/access.js?v=14.14"></script>
+<script src="js/auth.js?v=14.14"></script>
+<script src="js/logo.js?v=14.14"></script>
+<script src="js/ui.js?v=14.14"></script>
+<script src="js/chat.js?v=14.14"></script>
+<script src="js/chat-settings.js?v=14.14"></script>
+<script src="js/field-settings.js?v=14.14"></script>
+<script src="js/audit.js?v=14.14"></script>
+<script src="js/feature-flags.js?v=14.14"></script>
+<script src="js/notification-center.js?v=14.14"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=14.13"></script>
-<script src="js/spend.js?v=14.13"></script>
-<script src="js/job-market.js?v=14.13"></script>
-<script src="js/qc-job-market.js?v=14.13"></script>
-<script src="js/export-admin.js?v=14.13"></script>
-<script src="js/export-termin.js?v=14.13"></script>
-<script src="js/performance.js?v=14.13"></script>
-<script src="js/competition.js?v=14.13"></script>
-<script src="js/dashboard.js?v=14.13"></script>
-<script src="js/reports.js?v=14.13"></script>
-<script src="js/dashboard-brief.js?v=14.13"></script>
-<script src="js/campaigns.js?v=14.13"></script>
-<script src="js/campaigns-detail.js?v=14.13"></script>
-<script src="js/campaigns-queue.js?v=14.13"></script>
-<script src="js/queues-page.js?v=14.13"></script>
-<script src="js/contacts-upload.js?v=14.13"></script>
-<script src="js/geocon.js?v=14.13"></script>
-<script src="js/contacts.js?v=14.13"></script>
-<script src="js/contacts-drawer.js?v=14.13"></script>
-<script src="js/telnyx.js?v=14.13"></script>
-<script src="js/hold-music.js?v=14.13"></script>
-<script src="js/voice-orb.js?v=14.13"></script>
-<script src="js/dialer.js?v=14.13"></script>
-<script src="js/ops-alerts.js?v=14.13"></script>
-<script src="js/radius-tour.js?v=14.13"></script>
-<script src="js/dialer-mascot.js?v=14.13"></script>
-<script src="js/dialer-mascot-live.js?v=14.13"></script>
-<script src="js/ui-prefs.js?v=14.13"></script>
-<script src="js/dialer-session.js?v=14.13"></script>
-<script src="js/dialer-call.js?v=14.13"></script>
-<script src="js/dialer-tools.js?v=14.13"></script>
-<script src="js/appointments.js?v=14.13"></script>
-<script src="js/appointments-actions.js?v=14.13"></script>
-<script src="js/appointments-tools.js?v=14.13"></script>
-<script src="js/field.js?v=14.13"></script>
-<script src="js/field-quote.js?v=14.13"></script>
-<script src="js/field-catalog.js?v=14.13"></script>
-<script src="js/field-ops.js?v=14.13"></script>
-<script src="js/wiedervorlage.js?v=14.13"></script>
-<script src="js/qc.js?v=14.13"></script>
-<script src="js/supervisor.js?v=14.13"></script>
-<script src="js/live-coach.js?v=14.13"></script>
-<script src="js/sms-settings.js?v=14.13"></script>
-<script src="js/line-firms.js?v=14.13"></script>
-<script src="js/ai-staff.js?v=14.13"></script>
-<script src="js/callin-desk.js?v=14.13"></script>
-<script src="js/leave-hr.js?v=14.13"></script>
-<script src="js/muhasebe.js?v=14.13"></script>
-<script src="js/muhasebe-books.js?v=14.13"></script>
-<script src="js/agent-self-performance.js?v=14.13"></script>
-<script src="js/agents.js?v=14.13"></script>
-<script src="js/firm-desk.js?v=14.13"></script>
-<script src="js/mimi-brain.js?v=14.13"></script>
+<script src="js/wallet.js?v=14.14"></script>
+<script src="js/spend.js?v=14.14"></script>
+<script src="js/job-market.js?v=14.14"></script>
+<script src="js/qc-job-market.js?v=14.14"></script>
+<script src="js/export-admin.js?v=14.14"></script>
+<script src="js/export-termin.js?v=14.14"></script>
+<script src="js/performance.js?v=14.14"></script>
+<script src="js/competition.js?v=14.14"></script>
+<script src="js/dashboard.js?v=14.14"></script>
+<script src="js/reports.js?v=14.14"></script>
+<script src="js/dashboard-brief.js?v=14.14"></script>
+<script src="js/campaigns.js?v=14.14"></script>
+<script src="js/campaigns-detail.js?v=14.14"></script>
+<script src="js/campaigns-queue.js?v=14.14"></script>
+<script src="js/queues-page.js?v=14.14"></script>
+<script src="js/contacts-upload.js?v=14.14"></script>
+<script src="js/geocon.js?v=14.14"></script>
+<script src="js/contacts.js?v=14.14"></script>
+<script src="js/contacts-drawer.js?v=14.14"></script>
+<script src="js/telnyx.js?v=14.14"></script>
+<script src="js/hold-music.js?v=14.14"></script>
+<script src="js/voice-orb.js?v=14.14"></script>
+<script src="js/dialer.js?v=14.14"></script>
+<script src="js/ops-alerts.js?v=14.14"></script>
+<script src="js/radius-tour.js?v=14.14"></script>
+<script src="js/dialer-mascot.js?v=14.14"></script>
+<script src="js/dialer-mascot-live.js?v=14.14"></script>
+<script src="js/ui-prefs.js?v=14.14"></script>
+<script src="js/dialer-session.js?v=14.14"></script>
+<script src="js/dialer-call.js?v=14.14"></script>
+<script src="js/dialer-tools.js?v=14.14"></script>
+<script src="js/appointments.js?v=14.14"></script>
+<script src="js/appointments-actions.js?v=14.14"></script>
+<script src="js/appointments-tools.js?v=14.14"></script>
+<script src="js/field.js?v=14.14"></script>
+<script src="js/field-quote.js?v=14.14"></script>
+<script src="js/field-catalog.js?v=14.14"></script>
+<script src="js/field-ops.js?v=14.14"></script>
+<script src="js/wiedervorlage.js?v=14.14"></script>
+<script src="js/qc.js?v=14.14"></script>
+<script src="js/supervisor.js?v=14.14"></script>
+<script src="js/live-coach.js?v=14.14"></script>
+<script src="js/sms-settings.js?v=14.14"></script>
+<script src="js/line-firms.js?v=14.14"></script>
+<script src="js/ai-staff.js?v=14.14"></script>
+<script src="js/callin-desk.js?v=14.14"></script>
+<script src="js/leave-hr.js?v=14.14"></script>
+<script src="js/muhasebe.js?v=14.14"></script>
+<script src="js/muhasebe-books.js?v=14.14"></script>
+<script src="js/agent-self-performance.js?v=14.14"></script>
+<script src="js/agents.js?v=14.14"></script>
+<script src="js/firm-desk.js?v=14.14"></script>
+<script src="js/mimi-brain.js?v=14.14"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof mbApplyChartTheme === 'function') mbApplyChartTheme();

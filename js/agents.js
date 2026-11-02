@@ -96,7 +96,7 @@ function agentEsc(value) {
 
 function agentRoleLabel(role) {
   const map = {
-    agent: 'Agent',
+    agent: t('agent.role.agent'),
     qc: 'QC',
     firm_admin: t('agent.role.firm_admin'),
     field_agent: t('agent.role.field'),
@@ -227,7 +227,7 @@ function paintAgentFacets() {
   const host = document.getElementById('agents-filters');
   if (!host) return;
   const all = t('agent.filter.all');
-  const roles = [['', all], ['agent', 'Agent'], ['qc', 'QC'], ['firm_admin', t('agent.role.firm_admin')], ['field_agent', t('agent.role.field')], ['super_admin', t('agent.role.super')]];
+  const roles = [['', all], ['agent', t('agent.role.agent')], ['qc', 'QC'], ['firm_admin', t('agent.role.firm_admin')], ['field_agent', t('agent.role.field')], ['super_admin', t('agent.role.super')]];
   const statuses = [['', all], ['ready', t('agent.status.ready')], ['on_call', t('agent.status.on_call')], ['wrapping', t('agent.status.wrapping')], ['break', t('agent.status.break')], ['offline', t('agent.status.offline')]];
   const camps = [['', all]].concat((_agentCamps || []).map((c) => [c.id, c.name || c.id]));
   const active = [['', all], ['true', t('agent.active')], ['false', t('agent.passive')]];
@@ -772,7 +772,7 @@ async function openAssignModal() {
 
 async function assignAgent() {
   const id = document.getElementById('assign-sel').value;
-  if (!id||!currentCampId) { toast('Seçim yapın','err'); return; }
+  if (!id||!currentCampId) { toast(t('agent.assign.pick'),'err'); return; }
   const camp = campaigns.find(c=>c.id===currentCampId);
   try {
     await sb('agent_campaigns',{method:'POST',prefer:'return=minimal',
@@ -782,7 +782,7 @@ async function assignAgent() {
       })
     });
     closeModal('m-assign');
-    toast('Agent eklendi ✓','ok');
+    toast(t('agent.assign.added'),'ok');
     await loadCampaigns();
     openCampDetail(currentCampId, { keepTab: true });
   } catch(e) { toast('Hata: '+e.message,'err'); }
@@ -791,7 +791,7 @@ async function assignAgent() {
 async function removeAgent(agentId, campId) {
   try {
     await sb(`agent_campaigns?agent_id=eq.${agentId}&campaign_id=eq.${campId}`,{method:'DELETE',prefer:'return=minimal'});
-    toast('Agent çıkarıldı','ok');
+    toast(t('agent.assign.removed'),'ok');
     await loadCampaigns();
     openCampDetail(campId, { keepTab: true });
   } catch(e) {}
