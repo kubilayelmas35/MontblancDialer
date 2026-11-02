@@ -479,6 +479,10 @@ function ariaQueueChipHtml() {
   const rows = Array.isArray(plan?.rows) ? plan.rows : (pick ? [pick] : []);
   const pending = rows.reduce((sum, row) => sum + (Number(row.pending) || 0), Number(pick?.pending) || 0);
   if (!plan && !pending) return '';
+  if (!(pending > 0)) {
+    const empty = tourSay('aria.pop.queue_empty', 'Kuyruk boş — aranacak kişi yok');
+    return `<button type="button" class="aria-pop-chip is-bad" onclick="ariaOpenQueue()">${tourEsc(empty)}</button>`;
+  }
   const tone = pending < esik ? 'is-bad' : pending < esik * 1.2 ? 'is-mid' : 'is-ok';
   const line = tourSay('aria.pop.queue_chip', '{n} bekliyor / eşik {e}')
     .replace('{n}', String(pending))
@@ -665,6 +669,16 @@ async function ariaAiGateStart(row) {
   if (!pool.length) {
     if (typeof toast === 'function') toast(tourSay('ai.run.no_camp', 'Önce personel kartında kampanya seçin.'), 'err');
     return false;
+  }
+  const firmId = _ariaAiSnap?.firmId || (typeof _aiFirmId !== 'undefined' ? _aiFirmId : '') || '';
+  if (typeof mbAiCampsHaveQueue === 'function') {
+    const hasQueue = await mbAiCampsHaveQueue(firmId, pool);
+    if (!hasQueue) {
+      if (typeof toast === 'function') {
+        toast(tourSay('ai.run.noqueue', 'Seçili kampanyalarda aranacak kişi yok (pending / geri arama / cevapsız).'), 'warn');
+      }
+      return false;
+    }
   }
   if (typeof callinDeskTrustOn === 'function' && callinDeskTrustOn()) return true;
   if (typeof mbAiCampsMissingSlots !== 'function') return true;

@@ -326,6 +326,17 @@ async function mbAiCampsMissingSlots(campIds) {
   return ids.filter((id) => !have.has(String(id)));
 }
 
+async function mbAiCampsHaveQueue(firmId, campIds) {
+  const fid = String(firmId || '');
+  const ids = (campIds || []).map(String).filter(mbAiUuid);
+  if (!fid || !ids.length || typeof sb !== 'function') return false;
+  const campQ = ids.map(encodeURIComponent).join(',');
+  const any = await sb(
+    `contacts?select=id&firm_id=eq.${encodeURIComponent(fid)}&campaign_id=in.(${campQ})&status=in.(pending,callback,no_answer)&limit=1`
+  ).catch(() => []) || [];
+  return (Array.isArray(any) ? any : []).length > 0;
+}
+
 function mbAiFirmReady(settings) {
   const ai = mbFirmAi(settings);
   return !!(ai.spoken_name && ai.rate > 0);
@@ -1726,20 +1737,29 @@ async function mbAiRunToggle(staffId) {
     if (typeof toast === 'function') toast(mbAiSay('ai.run.quota_lock', 'Günlük YZ dakika kotası doldu. Yeni arama yok.'), 'err');
     return;
   }
-  if (on && row.kind !== 'qc' && !(typeof callinDeskTrustOn === 'function' && callinDeskTrustOn())) {
+  if (on && row.kind !== 'qc') {
     const focus = mbAiFocusIds(row);
     const pool = focus.length ? focus : mbAiCampIds(row);
-    const missing = await mbAiCampsMissingSlots(pool);
-    if (missing.length) {
-      const names = missing.map((id) => mbAiCampName(id) || id).filter(Boolean).join(', ');
-      const ask = mbAiSay('ai.run.noslot_ask', 'Şu takvimlerde boş slot yok: {names}. Yine de başlatılsın mı?')
-        .replace('{names}', names || '—');
-      const ok = typeof mbConfirm === 'function'
-        ? await mbConfirm(ask, mbAiSay('ai.run.work', 'Çalışsın'))
-        : window.confirm(ask);
-      if (!ok) {
-        if (document.getElementById(`ai-run-${staffId}`)) document.getElementById(`ai-run-${staffId}`).checked = false;
-        return;
+    if (!(await mbAiCampsHaveQueue(_aiFirmId, pool))) {
+      if (document.getElementById(`ai-run-${staffId}`)) document.getElementById(`ai-run-${staffId}`).checked = false;
+      if (typeof toast === 'function') {
+        toast(mbAiSay('ai.run.noqueue', 'Seçili kampanyalarda aranacak kişi yok (pending / geri arama / cevapsız).'), 'warn');
+      }
+      return;
+    }
+    if (!(typeof callinDeskTrustOn === 'function' && callinDeskTrustOn())) {
+      const missing = await mbAiCampsMissingSlots(pool);
+      if (missing.length) {
+        const names = missing.map((id) => mbAiCampName(id) || id).filter(Boolean).join(', ');
+        const ask = mbAiSay('ai.run.noslot_ask', 'Şu takvimlerde boş slot yok: {names}. Yine de başlatılsın mı?')
+          .replace('{names}', names || '—');
+        const ok = typeof mbConfirm === 'function'
+          ? await mbConfirm(ask, mbAiSay('ai.run.work', 'Çalışsın'))
+          : window.confirm(ask);
+        if (!ok) {
+          if (document.getElementById(`ai-run-${staffId}`)) document.getElementById(`ai-run-${staffId}`).checked = false;
+          return;
+        }
       }
     }
   }
@@ -2222,6 +2242,14 @@ async function mbAskRunCallNow(staffId, contactId) {
     }
     meta.apptId = res.appointment_id;
     void mbAiWatchRun(staff.id, meta);
+    return;
+  }
+  const focus = mbAiFocusIds(staff);
+  const pool = focus.length ? focus : mbAiCampIds(staff);
+  if (!(await mbAiCampsHaveQueue(_aiFirmId, pool))) {
+    if (typeof toast === 'function') {
+      toast(mbAiSay('ai.run.noqueue', 'Seçili kampanyalarda aranacak kişi yok (pending / geri arama / cevapsız).'), 'warn');
+    }
     return;
   }
   if (typeof toast === 'function') toast(mbAiSay('callin.desk.now.going', 'Sıradaki kişi aranıyor…'), 'ok');
