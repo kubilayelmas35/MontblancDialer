@@ -185,7 +185,7 @@ max-width: 100%;
   align-items: center;
   justify-content: flex-end;
   min-width: 0;
-  gap: var(--tb-gap, 8px);
+  gap: 8px;
 }
 .tb-swipe {
   display: flex;
@@ -194,7 +194,7 @@ max-width: 100%;
   justify-content: flex-start;
   min-width: 0;
   max-width: 100%;
-  gap: var(--tb-gap, 8px);
+  gap: 8px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
@@ -711,97 +711,41 @@ button.tb-pill.tb-takvim,
   min-height: var(--tb-pill-h);
   max-height: var(--tb-pill-h);
 }
-#topbar.is-tb-wide .tb-swipe {
-  justify-content: space-between !important;
-  gap: 14px;
-}
-#topbar.is-tb-wide .tb-pills-wrap {
-  flex: 1 1 auto;
-  justify-content: flex-start;
-  gap: 12px;
-}
-#topbar.is-tb-wide .tb-right {
-  margin-left: auto;
-  height: var(--tb-pill-h);
-  gap: 10px;
-}
-#topbar.is-tb-wide .tb-pin { gap: 10px; }
-#topbar.is-tb-wide .tb-logo { transform: scale(1.06); transform-origin: left center; }
-#topbar.is-tb-wide .tb-pill-lbl { display: inline !important; }
-#topbar.is-tb-wide .tb-pill-val {
-  max-width: none;
-  overflow: visible;
-  line-height: 1.15;
-}
-#topbar.is-tb-wide .pill-ping .tb-pill-val { min-width: 2.6ch; }
-#topbar.is-tb-wide .tb-icon-btn.tb-mesai {
-  height: var(--tb-pill-h);
-  padding: 0 12px;
-  font-size: var(--tb-font);
-  gap: 7px;
-}
-#topbar.is-tb-wide .tb-live { padding: 0 10px; gap: 2px; }
-#topbar.is-tb-wide .tb-pills-wrap.is-live-letter .tb-live {
-  padding: 0 8px;
-  gap: 2px;
-}
-#topbar.is-tb-wide .tb-pills-wrap.is-live-letter .tb-live-n {
-  min-width: 28px;
-  padding: 0 6px;
-  gap: 3px;
-}
-#topbar.is-tb-wide .tb-pills-wrap.is-live-letter .tb-live-num,
-#topbar.is-tb-wide .tb-pills-wrap.is-live-letter .tb-live-sum { display: inline-flex; }
-#topbar.is-tb-wide .tb-live-k { font-size: 10px; margin-right: 1px; }
-#topbar.is-tb-wide .tb-user {
-  height: var(--tb-pill-h);
-  gap: 10px;
-  padding: 0 14px 0 6px;
-  border-radius: 18px;
-}
-#topbar.is-tb-wide .tb-avatar { width: 30px; height: 30px; font-size: 12px; }
-#topbar.is-tb-wide .tb-uname { font-size: 13px; }
-#topbar.is-tb-wide .tb-urole { font-size: 10px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (min-width: 1400px) {
   :root {
-    --topbar-h: 62px;
-    --tb-pill-h: 38px;
-    --tb-gap: 12px;
-    --tb-pad-x: 16px;
+    --topbar-h: 60px;
+    --tb-pill-h: 36px;
+    --tb-gap: 10px;
+    --tb-pad-x: 14px;
     --tb-font: 13px;
   }
-  .tb-pill { font-size: var(--tb-font); padding: 0 12px; max-width: none; gap: 7px; border-radius: 18px; }
-  .tb-pill-val { font-size: 13px; max-width: none; line-height: 1.15; }
+  .tb-pill { font-size: var(--tb-font); padding: 0 10px; max-width: 200px; gap: 6px; }
+  .tb-pill-val { font-size: 13px; max-width: 96px; }
   .tb-pill-lbl { display: inline; font-size: 12px; }
-  .tb-pill-dot { width: 8px; height: 8px; }
+  .tb-pill-dot { width: 7px; height: 7px; }
   .tb-pill-ico { width: 16px; height: 16px; }
   .tb-icon-btn { width: var(--tb-pill-h); height: var(--tb-pill-h); font-size: 13px; }
-  .aria-live { font-size: 13px; padding: 0 14px 0 11px; border-radius: 18px; }
+  .aria-live { font-size: 13px; padding: 0 12px 0 10px; }
   .aria-live-n, .aria-live-ai { min-width: 18px; height: 18px; font-size: 11px; }
-  .tb-live-n, .tb-live-sum, .tb-live-cycle, .tb-today-cycle { height: 28px; min-width: 22px; padding: 0 7px; font-size: 12px; }
-  button.tb-pill.tb-takvim { padding: 0 12px; gap: 7px; }
+  .tb-user { gap: 10px; padding: 0 12px 0 8px; min-height: var(--tb-pill-h); }
+  .tb-live-n, .tb-live-sum, .tb-live-cycle, .tb-today-cycle { height: 26px; min-width: 20px; padding: 0 6px; font-size: 12px; }
 }
 @media (min-width: 1800px) {
   :root {
-    --topbar-h: 70px;
-    --tb-pill-h: 44px;
-    --tb-gap: 14px;
-    --tb-pad-x: 20px;
-    --tb-font: 14px;
+    --topbar-h: 66px;
+    --tb-pill-h: 40px;
+    --tb-gap: 12px;
+    --tb-pad-x: 16px;
+    --tb-font: 13.5px;
   }
-  .tb-pill { font-size: var(--tb-font); padding: 0 14px; border-radius: 20px; gap: 8px; }
-  .tb-pill-val { font-size: 15px; }
-  .tb-pill-lbl { font-size: 13px; }
-  .tb-pill-dot { width: 9px; height: 9px; }
-  .tb-icon-btn { width: var(--tb-pill-h); height: var(--tb-pill-h); font-size: 14px; border-radius: 12px; }
-  .aria-live { font-size: 15px; padding: 0 16px 0 12px; border-radius: 20px; }
-  .aria-orb { width: 17px; height: 17px; }
-  .aria-live-n, .aria-live-ai { min-width: 20px; height: 20px; font-size: 12px; }
-  .tb-live-n, .tb-live-sum, .tb-live-cycle, .tb-today-cycle { height: 30px; min-width: 24px; padding: 0 8px; font-size: 13px; }
-  #topbar.is-tb-wide .tb-avatar { width: 34px; height: 34px; font-size: 13px; }
-  #topbar.is-tb-wide .tb-uname { font-size: 14px; }
-  #topbar.is-tb-wide .tb-urole { font-size: 11px; max-width: 220px; }
-  #topbar.is-tb-wide .tb-logo { transform: scale(1.12); }
+  .tb-pill { font-size: var(--tb-font); padding: 0 12px; max-width: 240px; border-radius: 18px; }
+  .tb-pill-val { font-size: 14px; max-width: 120px; }
+  .tb-pill-lbl { font-size: 12.5px; }
+  .tb-pill-dot { width: 8px; height: 8px; }
+  .tb-icon-btn { width: var(--tb-pill-h); height: var(--tb-pill-h); font-size: 14px; border-radius: 10px; }
+  .aria-live { font-size: 14px; border-radius: 18px; }
+  .aria-orb { width: 16px; height: 16px; }
+  .tb-live-n, .tb-live-sum, .tb-live-cycle, .tb-today-cycle { height: 28px; min-width: 22px; font-size: 13px; }
 }
 .tb-live {
   display: inline-flex; align-items: center; justify-content: center; padding: 0 8px; gap: 0;
@@ -1175,11 +1119,11 @@ button.tb-pill.pill-bal.is-neg {
 .tb-right {
   display: flex;
   align-items: center;
-  gap: var(--tb-gap, 8px);
+  gap: 8px;
   margin-left: 0;
   flex: 0 0 auto;
   flex-wrap: nowrap;
-  height: var(--tb-pill-h, 32px);
+  height: 32px;
   position: relative;
 }
 .tb-icon-btn.tb-mesai {
@@ -1187,7 +1131,7 @@ button.tb-pill.pill-bal.is-neg {
   overflow: hidden;
   width: auto;
   min-width: 0;
-  height: var(--tb-pill-h, 32px);
+  height: 32px;
   padding: 0 8px;
   gap: 5px;
   justify-content: flex-start;
@@ -1923,7 +1867,7 @@ button.tb-pill.pill-camp.is-wrong .tb-pill-val { color: inherit; }
   }
 }
 .tb-icon-btn {
-width: var(--tb-pill-h, 32px); height: var(--tb-pill-h, 32px);
+width: 32px; height: 32px;
 display: flex; align-items: center; justify-content: center;
 border-radius: 8px;
 color: var(--text-2);
@@ -1945,7 +1889,7 @@ box-sizing: border-box;
 .tb-icon-btn:hover { background: var(--bg-3); color: var(--text); }
 .tb-user {
 display: flex; align-items: center; gap: 7px;
-height: var(--tb-pill-h, 32px);
+height: 32px;
 box-sizing: border-box;
 background: var(--bg-3);
 border: 1px solid var(--border);
