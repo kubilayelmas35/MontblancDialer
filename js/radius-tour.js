@@ -684,7 +684,10 @@ async function ariaAiGateStart(row) {
   if (typeof mbAiCampsMissingSlots !== 'function') return true;
   const missing = await mbAiCampsMissingSlots(pool);
   if (!missing.length) return true;
-  const names = missing.map((id) => (typeof mbAiCampName === 'function' ? mbAiCampName(id) : id) || id).filter(Boolean).join(', ');
+  const labels = typeof mbAiResolveCampNames === 'function'
+    ? await mbAiResolveCampNames(missing)
+    : missing.map((id) => (typeof mbAiCampName === 'function' ? mbAiCampName(id) : id) || id);
+  const names = (labels || []).filter(Boolean).join(', ');
   const ask = tourSay('ai.run.noslot_ask', 'Şu takvimlerde boş slot yok: {names}. Yine de başlatılsın mı?')
     .replace('{names}', names || '—');
   if (typeof mbConfirm === 'function') return mbConfirm(ask, tourSay('aria.ai.start', 'Başlat'));

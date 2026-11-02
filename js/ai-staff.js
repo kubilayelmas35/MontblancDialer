@@ -775,6 +775,7 @@ async function mbAiLoadFirm(gen) {
   _aiDesk.camps = _aiFirmId && typeof sb === 'function'
     ? await sb(`campaigns?firm_id=eq.${_aiFirmId}&select=id,name,settings&order=name.asc`).catch(() => []) || []
     : [];
+  (_aiDesk.camps || []).forEach((camp) => mbAiCampNameRemember(camp.id, camp.name));
   if (!_aiDesk || _aiDesk.gen !== gen) return;
   _aiDesk.results = typeof loadFirmAppointmentResults === 'function'
     ? await loadFirmAppointmentResults(_aiFirmId)
@@ -1052,8 +1053,46 @@ function mbAiParallelBlock(row) {
   </div>`;
 }
 
+const _aiCampNameCache = Object.create(null);
+
+function mbAiCampNameRemember(id, name) {
+  const key = String(id || '');
+  const label = String(name || '').trim();
+  if (!mbAiUuid(key) || !label) return label;
+  _aiCampNameCache[key] = label;
+  return label;
+}
+
 function mbAiCampName(id) {
-  return (_aiDesk?.camps || []).find((camp) => String(camp.id) === String(id))?.name || '';
+  const key = String(id || '');
+  if (!key) return '';
+  if (_aiCampNameCache[key]) return _aiCampNameCache[key];
+  const pools = [
+    _aiDesk?.camps,
+    window._dialerAdminCamps,
+    window._geoCamps,
+    typeof campaigns !== 'undefined' ? campaigns : null,
+  ];
+  for (const list of pools) {
+    if (!Array.isArray(list)) continue;
+    const hit = list.find((camp) => String(camp?.id) === key);
+    const name = String(hit?.name || '').trim();
+    if (name) return mbAiCampNameRemember(key, name);
+  }
+  return '';
+}
+
+async function mbAiResolveCampNames(ids) {
+  const want = [...new Set((ids || []).map(String).filter(mbAiUuid))];
+  const missing = want.filter((id) => !mbAiCampName(id));
+  if (!missing.length || typeof sb !== 'function') {
+    return want.map((id) => mbAiCampName(id) || id);
+  }
+  const rows = await sb(
+    `campaigns?id=in.(${missing.map(encodeURIComponent).join(',')})&select=id,name`
+  ).catch(() => []) || [];
+  (Array.isArray(rows) ? rows : []).forEach((row) => mbAiCampNameRemember(row.id, row.name));
+  return want.map((id) => mbAiCampName(id) || id);
 }
 
 function mbAiRunPhaseLabel(phase) {
@@ -1750,7 +1789,8 @@ async function mbAiRunToggle(staffId) {
     if (!(typeof callinDeskTrustOn === 'function' && callinDeskTrustOn())) {
       const missing = await mbAiCampsMissingSlots(pool);
       if (missing.length) {
-        const names = missing.map((id) => mbAiCampName(id) || id).filter(Boolean).join(', ');
+        const labels = await mbAiResolveCampNames(missing);
+        const names = labels.filter(Boolean).join(', ');
         const ask = mbAiSay('ai.run.noslot_ask', 'Şu takvimlerde boş slot yok: {names}. Yine de başlatılsın mı?')
           .replace('{names}', names || '—');
         const ok = typeof mbConfirm === 'function'
@@ -1917,8 +1957,8 @@ async function mbAiDryWhy(staff, pool, kind, who) {
   if (kind !== 'qc') {
     const missing = await mbAiCampsMissingSlots(pool);
     if (missing.length) {
-      const names = missing.map((id) => mbAiCampName(id) || id).filter(Boolean).join(', ');
-      reasons.push(mbAiSay('ai.run.dry.why.slot', 'Boş slot yok: {names}.').replace('{names}', names || '—'));
+      const labels = await mbAiResolveCampNames(missing);
+      reasons.push(mbAiSay('ai.run.dry.why.slot', 'Boş slot yok: {names}.').replace('{names}', labels.filter(Boolean).join(', ') || '—'));
     }
   }
   if (who) return reasons;
