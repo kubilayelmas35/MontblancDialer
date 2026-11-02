@@ -230,7 +230,7 @@ async function callinDeskLoadStats() {
     const out = String(row.outcome || '').toLowerCase();
     if (['appointment', 'basarili', 'qc_bekleniyor'].includes(out)) byCampMap[cid].appt += 1;
     if (!sid) return;
-    if (!byStaff[sid]) byStaff[sid] = { dialed: 0, appt: 0, miss: 0, secs: 0, camps: {} };
+    if (!byStaff[sid]) byStaff[sid] = { dialed: 0, appt: 0, miss: 0, neg: 0, cb: 0, vm: 0, secs: 0, camps: {} };
     byStaff[sid].dialed += 1;
     byStaff[sid].secs += Number(row.duration_sec) || 0;
     if (!byStaff[sid].camps[cid]) byStaff[sid].camps[cid] = { dialed: 0, appt: 0 };
@@ -238,7 +238,10 @@ async function callinDeskLoadStats() {
     if (['appointment', 'basarili', 'qc_bekleniyor'].includes(out)) {
       byStaff[sid].appt += 1;
       byStaff[sid].camps[cid].appt += 1;
-    } else if (['no_answer', 'ulasilamadi', 'voicemail'].includes(out)) byStaff[sid].miss += 1;
+    } else if (out === 'voicemail') byStaff[sid].vm += 1;
+    else if (['callback', 'geri_arama', 'wiedervorlage'].includes(out)) byStaff[sid].cb += 1;
+    else if (['no_answer', 'ulasilamadi'].includes(out)) byStaff[sid].miss += 1;
+    else if (['negative', 'basarisiz', 'dnc'].includes(out)) byStaff[sid].neg += 1;
   });
   const staffNames = {};
   const bag = window._aiStaffByFirm?.[firmId] || (typeof _aiDesk !== 'undefined' ? _aiDesk?.staff : null) || [];

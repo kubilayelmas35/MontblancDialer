@@ -174,14 +174,30 @@ function mbAiQuotaBlocked(settings) {
   return (secs / 60) >= cap;
 }
 
+function mbAiScoreFlip(cls, nKey, pKey, nLab, pLab, count, dialed) {
+  const n = Number(count) || 0;
+  const pct = dialed > 0 ? Math.round((n / dialed) * 100) : 0;
+  const num = mbAiSay(nKey, nLab).replace('{n}', String(n));
+  const per = mbAiSay(pKey, pLab).replace('{n}', String(pct));
+  return `<span class="ai-run-score-bit ${cls}" title="${mbAiEsc(`${num} · ${per}`)}">
+    <span class="ai-run-score-flip">
+      <span class="ai-run-score-n">${mbAiEsc(num)}</span>
+      <span class="ai-run-score-p">${mbAiEsc(per)}</span>
+    </span>
+  </span>`;
+}
+
 function mbAiStaffScoreHtml(staffId) {
   const bag = window._callinStaffToday || {};
-  const s = bag[String(staffId)] || { dialed: 0, appt: 0, miss: 0 };
-  const missPct = s.dialed ? Math.round((s.miss / s.dialed) * 100) : 0;
-  return `<div class="ai-run-score" id="ai-run-score-${mbAiEsc(staffId)}">
-    <span>${mbAiEsc(mbAiSay('ai.run.score.dial', '{n} arama').replace('{n}', String(s.dialed || 0)))}</span>
-    <span class="is-ok">${mbAiEsc(mbAiSay('ai.run.score.appt', '{n} randevu').replace('{n}', String(s.appt || 0)))}</span>
-    <span class="is-miss">${mbAiEsc(mbAiSay('ai.run.score.miss', '%{n} cevapsız').replace('{n}', String(missPct)))}</span>
+  const s = bag[String(staffId)] || { dialed: 0, appt: 0, miss: 0, neg: 0, cb: 0, vm: 0 };
+  const d = Number(s.dialed) || 0;
+  return `<div class="ai-run-score" id="ai-run-score-${mbAiEsc(staffId)}" data-ai-score="1">
+    <span class="ai-run-score-bit">${mbAiEsc(mbAiSay('ai.run.score.dial', '{n} arama').replace('{n}', String(d)))}</span>
+    ${mbAiScoreFlip('is-ok', 'ai.run.score.appt', 'ai.run.score.appt_pct', '{n} randevu', '%{n} randevu', s.appt, d)}
+    ${mbAiScoreFlip('is-neg', 'ai.run.score.neg', 'ai.run.score.neg_pct', '{n} olumsuz', '%{n} olumsuz', s.neg, d)}
+    ${mbAiScoreFlip('is-miss', 'ai.run.score.miss_n', 'ai.run.score.miss', '{n} cevapsız', '%{n} cevapsız', s.miss, d)}
+    ${mbAiScoreFlip('is-cb', 'ai.run.score.cb', 'ai.run.score.cb_pct', '{n} geri arama', '%{n} geri arama', s.cb, d)}
+    ${mbAiScoreFlip('is-vm', 'ai.run.score.vm', 'ai.run.score.vm_pct', '{n} telesekreter', '%{n} telesekreter', s.vm, d)}
   </div>`;
 }
 
