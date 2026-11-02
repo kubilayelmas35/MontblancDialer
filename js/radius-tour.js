@@ -399,6 +399,17 @@ function ariaPlacePop() {
 
 let _ariaAiSnap = null;
 let _ariaAiTimer = null;
+let _ariaAiBgTimer = null;
+
+function ariaStartAiWatch() {
+  if (_ariaAiBgTimer) return;
+  _ariaAiBgTimer = setInterval(() => {
+    const chip = document.getElementById('aria-live');
+    if (!chip || chip.hidden || !ariaAdmin()) return;
+    void ariaRefreshAi(false);
+  }, 8000);
+  void ariaRefreshAi(false);
+}
 
 function ariaAiPhaseWord(row) {
   if (row?.phase === 'talking') return tourSay('aria.ai.talk', 'Konuşuyor');
@@ -420,33 +431,38 @@ function ariaAiBlockHtml(snap) {
     const kind = row.kind === 'qc' ? tourSay('aria.ai.kind.qc', 'Kalite') : tourSay('aria.ai.kind.sales', 'Randevu');
     const who = row.who ? `<small class="aria-ai-who">${tourEsc(row.who)}${row.phone ? ` · ${tourEsc(row.phone)}` : ''}</small>` : '';
     const on = !!row.running;
-    return `<div class="aria-ai-row${on ? ' is-on' : ''}${row.phase === 'talking' ? ' is-talk' : ''}">
+    const talk = row.phase === 'talking';
+    const ring = row.phase === 'ringing';
+    const phaseCls = talk ? ' is-talk' : (ring ? ' is-ring' : (on ? ' is-run' : ''));
+    return `<div class="aria-ai-row${on ? ' is-on' : ''}${phaseCls}">
       <div class="aria-ai-main">
-        <b><i class="ph ph-robot"></i> ${tourEsc(row.name || row.id)}</b>
+        <b><span class="aria-ai-dot" aria-hidden="true"></span><i class="ph ph-robot"></i> ${tourEsc(row.name || row.id)}</b>
         <span class="aria-ai-kind">${tourEsc(kind)}</span>
-        <small>${tourEsc(ariaAiPhaseWord(row))}</small>
+        <small class="aria-ai-phase">${tourEsc(ariaAiPhaseWord(row))}</small>
         ${who}
       </div>
       <button type="button" class="aria-ai-toggle${on ? ' is-on' : ''}" onclick="ariaAiToggle('${tourEsc(row.id)}', ${on ? 'false' : 'true'})">${tourEsc(on ? tourSay('aria.ai.pause', 'Durdur') : tourSay('aria.ai.start', 'Başlat'))}</button>
     </div>`;
   }).join('');
-  return `<div class="aria-ai-box">
-    <div class="aria-ai-hd"><span>${tourEsc(tourSay('aria.ai.title', 'YZ personel'))}</span><small>${tourEsc(sum)}</small></div>
+  const liveCls = (snap?.talking || 0) > 0 ? ' is-talk' : ((snap?.ringing || 0) > 0 ? ' is-ring' : ((snap?.running || 0) > 0 ? ' is-run' : ''));
+  return `<div class="aria-ai-box${liveCls}">
+    <div class="aria-ai-hd"><span><span class="aria-ai-dot" aria-hidden="true"></span>${tourEsc(tourSay('aria.ai.title', 'YZ personel'))}</span><small>${tourEsc(sum)}</small></div>
     <div class="aria-ai-list">${rows}</div>
     <button type="button" class="aria-pop-go is-ghost" onclick="ariaOpenAiRun()">${tourEsc(tourSay('aria.ai.open_run', 'Başlat sayfası'))}</button>
   </div>`;
 }
 
-async function ariaRefreshAi(forcePaint) {
-  if (typeof mbAiLiveSnapshot !== 'function') return null;
-  _ariaAiSnap = await mbAiLiveSnapshot().catch(() => null);
+function ariaPaintAiState(snap) {
+  const talk = Number(snap?.talking || 0);
+  const ring = Number(snap?.ringing || 0);
+  const run = Number(snap?.running || 0);
+  const live = talk > 0 || ring > 0 || run > 0;
   const chip = document.getElementById('aria-live');
-  if (chip && _ariaAiSnap) {
-    const talk = Number(_ariaAiSnap.talking || 0);
-    const ring = Number(_ariaAiSnap.ringing || 0);
-    const run = Number(_ariaAiSnap.running || 0);
-    const live = talk > 0 || ring > 0 || run > 0;
+  if (chip) {
     chip.classList.toggle('is-ai-live', live);
+    chip.classList.toggle('is-ai-talk', talk > 0);
+    chip.classList.toggle('is-ai-ring', talk <= 0 && ring > 0);
+    chip.classList.toggle('is-ai-run', talk <= 0 && ring <= 0 && run > 0);
     const n = document.getElementById('aria-live-ai');
     if (n) {
       n.hidden = !live;
@@ -461,6 +477,19 @@ async function ariaRefreshAi(forcePaint) {
         : (ring > 0 ? tourSay('aria.ai.ring', 'Arıyor') : tourSay('aria.ai.run', 'Çalışıyor'));
     }
   }
+  const pop = document.getElementById('aria-pop');
+  if (pop) {
+    pop.classList.toggle('is-ai-live', live);
+    pop.classList.toggle('is-ai-talk', talk > 0);
+    pop.classList.toggle('is-ai-ring', talk <= 0 && ring > 0);
+    pop.classList.toggle('is-ai-run', talk <= 0 && ring <= 0 && run > 0);
+  }
+}
+
+async function ariaRefreshAi(forcePaint) {
+  if (typeof mbAiLiveSnapshot !== 'function') return null;
+  _ariaAiSnap = await mbAiLiveSnapshot().catch(() => null);
+  ariaPaintAiState(_ariaAiSnap);
   const pop = document.getElementById('aria-pop');
   if (forcePaint && pop && !pop.hidden) {
     const host = pop.querySelector('[data-aria-ai]');
@@ -1950,6 +1979,7 @@ function tourShowChip() {
   if (!chip || !ariaAdmin()) return false;
   chip.hidden = false;
   if (typeof mbFitStatus === 'function') requestAnimationFrame(() => mbFitStatus());
+  ariaStartAiWatch();
   return true;
 }
 
