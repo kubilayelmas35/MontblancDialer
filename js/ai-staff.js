@@ -9,6 +9,7 @@ const _aiRunBusy = new Set();
 const _aiRunLive = {};
 const _aiRunRecent = [];
 let _aiRunHist = { staff: '', outcome: '', sort: 'new', q: '', day: '7', from: '', to: '', rows: [], loading: false };
+let _aiHistJump = null;
 
 function mbAiSay(key, fallback) {
   const msg = typeof t === 'function' ? t(key) : fallback;
@@ -174,31 +175,91 @@ function mbAiQuotaBlocked(settings) {
   return (secs / 60) >= cap;
 }
 
-function mbAiScoreFlip(cls, nKey, pKey, nLab, pLab, count, dialed) {
+function mbAiScoreFlip(staffId, out, cls, nKey, pKey, nLab, pLab, count, dialed) {
   const n = Number(count) || 0;
   const pct = dialed > 0 ? Math.round((n / dialed) * 100) : 0;
   const num = mbAiSay(nKey, nLab).replace('{n}', String(n));
   const per = mbAiSay(pKey, pLab).replace('{n}', String(pct));
-  return `<span class="ai-run-score-bit ${cls}" title="${mbAiEsc(`${num} · ${per}`)}">
+  const sid = mbAiEsc(staffId);
+  const oid = mbAiEsc(out || '');
+  return `<button type="button" class="ai-run-score-bit ${cls}" title="${mbAiEsc(`${num} · ${per}`)}" onclick="mbAiScoreOpenHist('${sid}','${oid}')">
     <span class="ai-run-score-flip">
       <span class="ai-run-score-n">${mbAiEsc(num)}</span>
       <span class="ai-run-score-p">${mbAiEsc(per)}</span>
     </span>
-  </span>`;
+  </button>`;
 }
 
 function mbAiStaffScoreHtml(staffId) {
   const bag = window._callinStaffToday || {};
   const s = bag[String(staffId)] || { dialed: 0, appt: 0, miss: 0, neg: 0, cb: 0, vm: 0 };
   const d = Number(s.dialed) || 0;
-  return `<div class="ai-run-score" id="ai-run-score-${mbAiEsc(staffId)}" data-ai-score="1">
-    <span class="ai-run-score-bit">${mbAiEsc(mbAiSay('ai.run.score.dial', '{n} arama').replace('{n}', String(d)))}</span>
-    ${mbAiScoreFlip('is-ok', 'ai.run.score.appt', 'ai.run.score.appt_pct', '{n} randevu', '%{n} randevu', s.appt, d)}
-    ${mbAiScoreFlip('is-neg', 'ai.run.score.neg', 'ai.run.score.neg_pct', '{n} olumsuz', '%{n} olumsuz', s.neg, d)}
-    ${mbAiScoreFlip('is-miss', 'ai.run.score.miss_n', 'ai.run.score.miss', '{n} cevapsız', '%{n} cevapsız', s.miss, d)}
-    ${mbAiScoreFlip('is-cb', 'ai.run.score.cb', 'ai.run.score.cb_pct', '{n} geri arama', '%{n} geri arama', s.cb, d)}
-    ${mbAiScoreFlip('is-vm', 'ai.run.score.vm', 'ai.run.score.vm_pct', '{n} telesekreter', '%{n} telesekreter', s.vm, d)}
+  const sid = mbAiEsc(staffId);
+  return `<div class="ai-run-score" id="ai-run-score-${sid}" data-ai-score="1">
+    <button type="button" class="ai-run-score-bit" onclick="mbAiScoreOpenHist('${sid}','')">${mbAiEsc(mbAiSay('ai.run.score.dial', '{n} arama').replace('{n}', String(d)))}</button>
+    ${mbAiScoreFlip(staffId, 'ok', 'is-ok', 'ai.run.score.appt', 'ai.run.score.appt_pct', '{n} randevu', '%{n} randevu', s.appt, d)}
+    ${mbAiScoreFlip(staffId, 'neg', 'is-neg', 'ai.run.score.neg', 'ai.run.score.neg_pct', '{n} olumsuz', '%{n} olumsuz', s.neg, d)}
+    ${mbAiScoreFlip(staffId, 'miss', 'is-miss', 'ai.run.score.miss_n', 'ai.run.score.miss', '{n} cevapsız', '%{n} cevapsız', s.miss, d)}
+    ${mbAiScoreFlip(staffId, 'cb', 'is-cb', 'ai.run.score.cb', 'ai.run.score.cb_pct', '{n} geri arama', '%{n} geri arama', s.cb, d)}
+    ${mbAiScoreFlip(staffId, 'vm', 'is-vm', 'ai.run.score.vm', 'ai.run.score.vm_pct', '{n} telesekreter', '%{n} telesekreter', s.vm, d)}
   </div>`;
+}
+
+function mbAiScoreOpenHist(staffId, outcome) {
+  _aiHistJump = {
+    staff: String(staffId || ''),
+    outcome: String(outcome || ''),
+    day: 'today',
+  };
+  _aiRunHist.staff = _aiHistJump.staff;
+  _aiRunHist.outcome = _aiHistJump.outcome;
+  _aiRunHist.day = 'today';
+  if (typeof callinTab === 'function') callinTab('run');
+  mbAiApplyHistJump();
+  setTimeout(() => mbAiApplyHistJump(), 350);
+}
+
+function mbAiApplyHistJump() {
+  const jump = _aiHistJump;
+  if (!jump) return;
+  const staffEl = document.getElementById('ai-run-hist-staff');
+  const outEl = document.getElementById('ai-run-hist-out');
+  const dayEl = document.getElementById('ai-run-hist-day');
+  if (!staffEl && !outEl) return;
+  _aiRunHist.staff = jump.staff;
+  _aiRunHist.outcome = jump.outcome;
+  _aiRunHist.day = jump.day || 'today';
+  if (staffEl) staffEl.value = jump.staff;
+  if (outEl) outEl.value = jump.outcome;
+  if (dayEl) dayEl.value = _aiRunHist.day;
+  const custom = document.getElementById('ai-run-hist-custom');
+  if (custom) custom.hidden = _aiRunHist.day !== 'custom';
+  mbAiRunHistFilter(true);
+  const side = document.querySelector('.ai-run-side');
+  if (side) {
+    side.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    side.classList.add('is-flash');
+    setTimeout(() => side.classList.remove('is-flash'), 1400);
+  }
+  _aiHistJump = null;
+}
+
+function mbAiTodayYmd() {
+  if (typeof mbBusinessToday === 'function') return mbBusinessToday();
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+async function mbAiCampsMissingSlots(campIds) {
+  const ids = (campIds || []).map(String).filter(mbAiUuid);
+  if (!ids.length || typeof sb !== 'function') return [];
+  const today = mbAiTodayYmd();
+  const campQ = ids.map(encodeURIComponent).join(',');
+  const rows = await sb(
+    `takvim_slots?campaign_id=in.(${campQ})&durum=eq.bos&gun_kapali=eq.false&tarih=gte.${today}&select=campaign_id&limit=800`
+  ).catch(() => []) || [];
+  const have = new Set((Array.isArray(rows) ? rows : []).map((row) => String(row.campaign_id || '')));
+  return ids.filter((id) => !have.has(String(id)));
 }
 
 function mbAiFirmReady(settings) {
@@ -1177,9 +1238,10 @@ function mbAiHistRows() {
     rows = rows.filter((row) => {
       const key = String(row.outcome || row.durum || '').toLowerCase();
       if (outcome === 'ok') return ['appointment', 'basarili', 'qc_bekleniyor'].includes(key) || (row.secs > 0 && row.phase === 'talked' && !key);
-      if (outcome === 'miss') return ['no_answer', 'ulasilamadi', 'voicemail'].includes(key) || row.phase === 'missed';
+      if (outcome === 'miss') return ['no_answer', 'ulasilamadi'].includes(key) || row.phase === 'missed';
+      if (outcome === 'vm') return key === 'voicemail';
       if (outcome === 'neg') return ['negative', 'basarisiz', 'dnc'].includes(key);
-      if (outcome === 'cb') return ['callback', 'beklemede'].includes(key);
+      if (outcome === 'cb') return ['callback', 'geri_arama', 'wiedervorlage', 'beklemede'].includes(key);
       return true;
     });
   }
@@ -1460,6 +1522,7 @@ function mbPaintAiRun() {
         <option value="miss"${_aiRunHist.outcome === 'miss' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.out.miss', 'Cevapsız'))}</option>
         <option value="neg"${_aiRunHist.outcome === 'neg' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.out.neg', 'Olumsuz'))}</option>
         <option value="cb"${_aiRunHist.outcome === 'cb' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.out.cb', 'Geri arama'))}</option>
+        <option value="vm"${_aiRunHist.outcome === 'vm' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.out.vm', 'Telesekreter'))}</option>
       </select>
       <select class="form-input" id="ai-run-hist-sort" onchange="mbAiRunHistFilter()">
         <option value="new"${_aiRunHist.sort === 'new' ? ' selected' : ''}>${mbAiEsc(mbAiSay('ai.run.hist.sort.new', 'En yeni'))}</option>
@@ -1474,6 +1537,7 @@ function mbPaintAiRun() {
   (_aiDesk.staff || []).forEach((row) => mbAiPaintRunLive(row.id));
   mbAiPaintRunHist();
   void mbAiLoadRunHist();
+  if (_aiHistJump) setTimeout(() => mbAiApplyHistJump(), 80);
 }
 
 function mbAiRunCard(row, mode) {
@@ -1590,6 +1654,23 @@ async function mbAiRunToggle(staffId) {
     if (document.getElementById(`ai-run-${staffId}`)) document.getElementById(`ai-run-${staffId}`).checked = false;
     if (typeof toast === 'function') toast(mbAiSay('ai.run.quota_lock', 'Günlük YZ dakika kotası doldu. Yeni arama yok.'), 'err');
     return;
+  }
+  if (on && row.kind !== 'qc') {
+    const focus = mbAiFocusIds(row);
+    const pool = focus.length ? focus : mbAiCampIds(row);
+    const missing = await mbAiCampsMissingSlots(pool);
+    if (missing.length) {
+      const names = missing.map((id) => mbAiCampName(id) || id).filter(Boolean).join(', ');
+      const ask = mbAiSay('ai.run.noslot_ask', 'Şu takvimlerde boş slot yok: {names}. Yine de başlatılsın mı?')
+        .replace('{names}', names || '—');
+      const ok = typeof mbConfirm === 'function'
+        ? await mbConfirm(ask, mbAiSay('ai.run.work', 'Çalışsın'))
+        : window.confirm(ask);
+      if (!ok) {
+        if (document.getElementById(`ai-run-${staffId}`)) document.getElementById(`ai-run-${staffId}`).checked = false;
+        return;
+      }
+    }
   }
   if (on) mbAiClearStopWhy(staffId);
   else mbAiSetStopWhy(staffId, 'manual');
@@ -1727,6 +1808,52 @@ async function mbAiRunTick() {
   (_aiDesk.staff || []).forEach((row) => mbAiPaintRunLive(row.id));
 }
 
+async function mbAiDryWhy(staff, pool, kind, who) {
+  const reasons = [];
+  if (!pool.length) {
+    reasons.push(mbAiSay('ai.run.dry.why.camp', 'Odak / izinli kampanya yok.'));
+    return reasons;
+  }
+  if (!mbAiWithinHours(staff)) {
+    reasons.push(mbAiSay('ai.run.dry.why.hours', 'Çalışma saati dışında ({from}–{until}).')
+      .replace('{from}', String(staff.call_from || '').slice(0, 5) || '—')
+      .replace('{until}', String(staff.call_until || '').slice(0, 5) || '—'));
+  }
+  if (mbAiQuotaBlocked(_aiDesk?.settings)) {
+    reasons.push(mbAiSay('ai.run.dry.why.quota', 'Günlük YZ dakika kotası dolu.'));
+  }
+  const campQ = pool.map(encodeURIComponent).join(',');
+  if (kind !== 'qc') {
+    const missing = await mbAiCampsMissingSlots(pool);
+    if (missing.length) {
+      const names = missing.map((id) => mbAiCampName(id) || id).filter(Boolean).join(', ');
+      reasons.push(mbAiSay('ai.run.dry.why.slot', 'Boş slot yok: {names}.').replace('{names}', names || '—'));
+    }
+  }
+  if (who) return reasons;
+  if (kind === 'qc') {
+    const want = (staff.call_statuses || []).filter(Boolean);
+    const statuses = want.length ? want : ['qc_bekleniyor'];
+    const statusQ = statuses.map(encodeURIComponent).join(',');
+    const any = await sb(
+      `appointments?select=id&firm_id=eq.${_aiFirmId}&campaign_id=in.(${campQ})&durum=in.(${statusQ})&limit=1`
+    ).catch(() => []) || [];
+    if (!any.length) {
+      reasons.push(mbAiSay('ai.run.dry.why.qc', 'Seçili kampanyalarda kalite bekleyen randevu yok ({st}).')
+        .replace('{st}', statuses.join(', ')));
+    }
+  } else {
+    const any = await sb(
+      `contacts?select=id&firm_id=eq.${_aiFirmId}&campaign_id=in.(${campQ})&status=in.(pending,callback,no_answer)&limit=1`
+    ).catch(() => []) || [];
+    if (!any.length) {
+      reasons.push(mbAiSay('ai.run.dry.why.queue', 'Seçili kampanyalarda aranacak kişi yok (pending / geri arama / cevapsız).'));
+    }
+  }
+  if (!reasons.length) reasons.push(mbAiSay('ai.run.dry.why.busy', 'Aday var ama meşgul / kısa süre önce arandı olabilir.'));
+  return reasons;
+}
+
 async function mbAiDryRun(staffId) {
   if (!_aiDesk || typeof sb !== 'function') {
     if (typeof toast === 'function') toast(mbAiSay('callin.desk.now.wait', 'YZ arama yükleniyor…'), 'warn');
@@ -1758,6 +1885,7 @@ async function mbAiDryRun(staffId) {
     ).catch(() => []) || [];
     who = rows[0] || null;
   }
+  const why = await mbAiDryWhy(staff, pool, kind, who);
   document.getElementById('ai-dry-pop')?.remove();
   const name = who
     ? (kind === 'qc'
@@ -1768,6 +1896,10 @@ async function mbAiDryRun(staffId) {
   const camp = who ? mbAiCampName(who.campaign_id) : '';
   const greet = String(staff.greeting || '').trim() || mbAiSay('ai.run.dry.nogreet', 'İlk cümle boş.');
   const prompt = String(staff.prompt || '').trim().slice(0, 400);
+  const whyHtml = why.length
+    ? `<div class="ai-dry-why"><div class="ai-sec-t">${mbAiEsc(who ? mbAiSay('ai.run.dry.why_title_ok', 'Not') : mbAiSay('ai.run.dry.why_title', 'Neden atlandı / sırada yok'))}</div>
+        <ul>${why.map((line) => `<li>${mbAiEsc(line)}</li>`).join('')}</ul></div>`
+    : '';
   const pop = document.createElement('div');
   pop.id = 'ai-dry-pop';
   pop.className = 'ai-callin';
@@ -1780,6 +1912,7 @@ async function mbAiDryRun(staffId) {
     ${who ? `<div class="ai-dry-who"><b>${mbAiEsc(name)}</b>
       <div class="ai-hint">${mbAiEsc(phone)}${camp ? ` · ${mbAiEsc(camp)}` : ''}</div></div>`
       : `<p class="ai-note">${mbAiEsc(mbAiSay('ai.run.dry.empty', 'Sırada kişi yok.'))}</p>`}
+    ${whyHtml}
     <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.greeting', 'İlk cümle'))}</div>
     <div class="ai-dry-script">${mbAiEsc(greet)}</div>
     ${prompt ? `<div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.staff.prompt', 'Talimat'))}</div><div class="ai-dry-script is-muted">${mbAiEsc(prompt)}</div>` : ''}

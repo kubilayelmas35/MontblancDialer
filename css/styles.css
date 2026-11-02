@@ -2284,11 +2284,27 @@ visibility: visible;
   font-size: 11px; font-weight: 700; color: var(--text-3);
   padding: 2px 0 4px;
 }
+button.ai-run-score-bit {
+  appearance: none; border: 0; background: transparent; padding: 0; margin: 0;
+  font: inherit; color: inherit; cursor: pointer; text-align: left;
+}
+button.ai-run-score-bit:hover { text-decoration: underline; text-underline-offset: 2px; }
 .ai-run-score .is-ok { color: #15803d; }
 .ai-run-score .is-miss { color: #b91c1c; }
 .ai-run-score .is-neg { color: #dc2626; }
 .ai-run-score .is-cb { color: #b45309; }
 .ai-run-score .is-vm { color: #6d28d9; }
+.ai-run-side.is-flash {
+  animation: callinFlash 1.1s ease 2;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.ai-dry-why {
+  padding: 10px 12px; border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #b45309 35%, var(--border));
+  background: color-mix(in srgb, #b45309 8%, var(--bg));
+}
+.ai-dry-why ul { margin: 6px 0 0; padding-left: 18px; }
+.ai-dry-why li { font-size: 12px; font-weight: 650; color: var(--text-2); line-height: 1.35; margin: 0 0 4px; }
 .ai-run-score-flip {
   display: inline-grid;
   align-items: center;

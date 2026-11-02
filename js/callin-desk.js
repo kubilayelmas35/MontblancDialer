@@ -12,6 +12,7 @@ const _callinDesk = {
   timer: 0,
   retryTimer: 0,
   eveningTimer: 0,
+  morningTimer: 0,
 };
 
 function callinDeskSay(key, fallback) {
@@ -96,6 +97,21 @@ function callinDeskToggleEvening() {
     toast(on
       ? callinDeskSay('callin.desk.evening.on', '18:00 gece raporu açık (onaylı).')
       : callinDeskSay('callin.desk.evening.off', 'Gece raporu kapalı.'), 'ok');
+  }
+}
+
+function callinDeskMorningOn() {
+  try { return localStorage.getItem('mb_callin_morning') === '1'; } catch (e) { return false; }
+}
+
+function callinDeskToggleMorning() {
+  const on = !callinDeskMorningOn();
+  try { localStorage.setItem('mb_callin_morning', on ? '1' : '0'); } catch (e) {}
+  callinDeskPaint();
+  if (typeof toast === 'function') {
+    toast(on
+      ? callinDeskSay('callin.desk.morning.on', '08:00 sabah özeti açık (dün YZ).')
+      : callinDeskSay('callin.desk.morning.off', 'Sabah özeti kapalı.'), 'ok');
   }
 }
 
@@ -697,6 +713,7 @@ function callinDeskPaint() {
       <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskToggleOutChips()">${callinDeskEsc(chipsOn ? callinDeskSay('callin.desk.out.hide', 'Sonuçları gizle') : callinDeskSay('callin.desk.out.show', 'Sonuç dağılımı'))}</button>
       <button type="button" class="btn btn-ghost btn-sm${callinDeskSoundOn() ? ' is-on' : ''}" onclick="callinDeskToggleSound()">${callinDeskEsc(callinDeskSoundOn() ? callinDeskSay('callin.desk.sound.on', 'Ses açık') : callinDeskSay('callin.desk.sound.off', 'Ses kapalı'))}</button>
       <button type="button" class="btn btn-ghost btn-sm${callinDeskEveningOn() ? ' is-on' : ''}" onclick="callinDeskToggleEvening()">${callinDeskEsc(callinDeskEveningOn() ? callinDeskSay('callin.desk.evening.btn_on', '18:00 rapor açık') : callinDeskSay('callin.desk.evening.btn_off', '18:00 rapor'))}</button>
+      <button type="button" class="btn btn-ghost btn-sm${callinDeskMorningOn() ? ' is-on' : ''}" onclick="callinDeskToggleMorning()">${callinDeskEsc(callinDeskMorningOn() ? callinDeskSay('callin.desk.morning.btn_on', '08:00 özet açık') : callinDeskSay('callin.desk.morning.btn_off', '08:00 özet'))}</button>
       ${live.running ? `<button type="button" class="btn btn-ghost btn-sm is-danger" onclick="callinDeskStopAll()">${callinDeskEsc(callinDeskSay('callin.desk.stop_all', 'Hepsini durdur'))}</button>` : ''}
       <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskRefresh()">${callinDeskEsc(callinDeskSay('callin.desk.refresh', 'Yenile'))}</button>
       <button type="button" class="btn btn-primary btn-sm" onclick="callinTab('run'); callinDeskAskNow()">${callinDeskEsc(callinDeskSay('callin.desk.now', 'Şimdi bir kişi ara'))}</button>
@@ -853,6 +870,27 @@ function callinDeskTickRetries() {
   callinDeskPaint();
 }
 
+function callinDeskShowReportPop(id, title, a, b) {
+  callinDeskBeep('ok');
+  if (typeof toast === 'function') toast(`${title}: ${a} ${b}`, 'ok');
+  document.getElementById(id)?.remove();
+  const pop = document.createElement('div');
+  pop.id = id;
+  pop.className = 'callin-evening-pop';
+  pop.innerHTML = `<div class="callin-evening-card" role="dialog" aria-modal="true">
+    <div class="callin-brief-kicker">${callinDeskEsc(title)}</div>
+    <p>${callinDeskEsc(a)}</p>
+    <p>${callinDeskEsc(b)}</p>
+    <div class="callin-brief-act">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskBriefCopy()">${callinDeskEsc(callinDeskSay('callin.desk.brief.copy', 'Kopyala'))}</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskBriefShare()">${callinDeskEsc(callinDeskSay('callin.desk.brief.share', 'Ekibe'))}</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('${id}')?.remove()">${callinDeskEsc(callinDeskSay('callin.desk.brief.dismiss', 'Tamam'))}</button>
+    </div>
+  </div>`;
+  pop.addEventListener('click', (ev) => { if (ev.target === pop) pop.remove(); });
+  document.body.appendChild(pop);
+}
+
 function callinDeskEveningTick() {
   if (!callinDeskEveningOn()) return;
   const now = new Date();
@@ -863,25 +901,37 @@ function callinDeskEveningTick() {
   try { if (localStorage.getItem(key) === '1') return; } catch (e) { return; }
   try { localStorage.setItem(key, '1'); } catch (e) {}
   const { a, b } = callinDeskBriefText();
-  const title = callinDeskSay('callin.desk.evening.title', '18:00 gece raporu');
-  callinDeskBeep('ok');
-  if (typeof toast === 'function') toast(`${title}: ${a} ${b}`, 'ok');
-  document.getElementById('callin-evening-pop')?.remove();
-  const pop = document.createElement('div');
-  pop.id = 'callin-evening-pop';
-  pop.className = 'callin-evening-pop';
-  pop.innerHTML = `<div class="callin-evening-card" role="dialog" aria-modal="true">
-    <div class="callin-brief-kicker">${callinDeskEsc(title)}</div>
-    <p>${callinDeskEsc(a)}</p>
-    <p>${callinDeskEsc(b)}</p>
-    <div class="callin-brief-act">
-      <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskBriefCopy()">${callinDeskEsc(callinDeskSay('callin.desk.brief.copy', 'Kopyala'))}</button>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskBriefShare()">${callinDeskEsc(callinDeskSay('callin.desk.brief.share', 'Ekibe'))}</button>
-      <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('callin-evening-pop')?.remove()">${callinDeskEsc(callinDeskSay('callin.desk.brief.dismiss', 'Tamam'))}</button>
-    </div>
-  </div>`;
-  pop.addEventListener('click', (ev) => { if (ev.target === pop) pop.remove(); });
-  document.body.appendChild(pop);
+  callinDeskShowReportPop('callin-evening-pop', callinDeskSay('callin.desk.evening.title', '18:00 gece raporu'), a, b);
+}
+
+async function callinDeskMorningTick() {
+  if (!callinDeskMorningOn()) return;
+  const now = new Date();
+  if (now.getHours() < 8) return;
+  const day = now.toISOString().slice(0, 10);
+  const firmId = callinDeskFirmId();
+  if (!firmId || typeof sb !== 'function') return;
+  const key = `mb_callin_morning_${firmId}_${day}`;
+  try { if (localStorage.getItem(key) === '1') return; } catch (e) { return; }
+  try { localStorage.setItem(key, '1'); } catch (e) {}
+  const end = new Date();
+  end.setHours(0, 0, 0, 0);
+  const start = new Date(end);
+  start.setDate(start.getDate() - 1);
+  const gte = start.toISOString();
+  const lt = end.toISOString();
+  const rows = await sb(
+    `call_logs?firm_id=eq.${firmId}&started_at=gte.${gte}&started_at=lt.${lt}&or=(work_type.eq.ai_sales,work_type.eq.ai_qc,ai_staff_id.not.is.null)&select=id,outcome,duration_sec,cost_usd&limit=2000`
+  ).catch(() => []) || [];
+  const tally = callinDeskTally(rows);
+  const a = callinDeskSay('callin.desk.morning.a', 'Dün YZ: {appt} randevu · {dial} arama.')
+    .replace('{appt}', String(tally.appt || 0))
+    .replace('{dial}', String(tally.dialed || 0));
+  const b = callinDeskSay('callin.desk.morning.b', 'Cevapsız {miss} · olumsuz {neg} · geri arama {cb}.')
+    .replace('{miss}', String(tally.miss || 0))
+    .replace('{neg}', String(tally.neg || 0))
+    .replace('{cb}', String(tally.cb || 0));
+  callinDeskShowReportPop('callin-morning-pop', callinDeskSay('callin.desk.morning.title', '08:00 sabah özeti'), a, b);
 }
 
 function callinDeskStart() {
@@ -900,6 +950,10 @@ function callinDeskStart() {
   if (!_callinDesk.eveningTimer) {
     callinDeskEveningTick();
     _callinDesk.eveningTimer = setInterval(() => { callinDeskEveningTick(); }, 60000);
+  }
+  if (!_callinDesk.morningTimer) {
+    void callinDeskMorningTick();
+    _callinDesk.morningTimer = setInterval(() => { void callinDeskMorningTick(); }, 60000);
   }
 }
 
@@ -1001,6 +1055,7 @@ try {
   window.callinDeskStopAll = callinDeskStopAll;
   window.callinDeskToggleSound = callinDeskToggleSound;
   window.callinDeskToggleEvening = callinDeskToggleEvening;
+  window.callinDeskToggleMorning = callinDeskToggleMorning;
   window.callinDeskBeep = callinDeskBeep;
   window.callinQueueHealthPaint = callinQueueHealthPaint;
   window.callinQueueFillNow = callinQueueFillNow;
