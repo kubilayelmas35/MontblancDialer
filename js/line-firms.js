@@ -254,6 +254,9 @@ function mbLineFirmBody(firm) {
       <div class="form-label">${mbLineEsc(mbLineT('line.ai.rate', 'AI dakika fiyatı'))}</div>
       <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.ai.rate_admin', 'Bunu yalnız süper admin yazar. Firma admini personel ekranından değiştiremez.'))}</div>
       <input class="form-input" id="line-ai-rate" inputmode="decimal" placeholder="0.08" value="${Number(settings.ai?.rate) > 0 ? mbLineEsc(String(settings.ai.rate)) : ''}">
+      <div class="form-label" style="margin-top:12px;">${mbLineEsc(mbLineT('line.ai.daycap', 'Günlük YZ dakika kotası'))}</div>
+      <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.ai.daycap_hint', '0 = limitsiz. Firma Personel kur’dan da değiştirebilir.'))}</div>
+      <input class="form-input" id="line-ai-daycap" type="number" min="0" max="1440" step="1" value="${Number(settings.ai?.day_min_cap) > 0 ? mbLineEsc(String(settings.ai.day_min_cap)) : ''}" placeholder="0">
       <div class="form-label" style="margin-top:12px;">${mbLineEsc(mbLineT('line.ai.run', 'YZ otomatik arama'))}</div>
       <div style="font-size:11px;color:var(--text-3);">${mbLineEsc(mbLineT('line.ai.run_hint', 'Bu firmaya özel. İkisini de açabilirsin; ikisi de açıksa firma YZ arama’dan hangisini kullanacağına karar verir.'))}</div>
       ${(() => {
@@ -486,7 +489,9 @@ async function mbSaveLineFirm(firmId) {
         if (!runAllow.length) runAllow = ['page'];
         const prevMode = settings.ai?.run_mode === 'server' ? 'server' : 'page';
         const runMode = runAllow.includes(prevMode) ? prevMode : runAllow[0];
-        settings.ai = { ...(settings.ai || {}), rate, run_mode: runMode, run_allow: runAllow };
+        const dayCapRaw = Number(document.getElementById('line-ai-daycap')?.value);
+        const day_min_cap = Number.isFinite(dayCapRaw) && dayCapRaw > 0 ? Math.min(1440, Math.round(dayCapRaw)) : 0;
+        settings.ai = { ...(settings.ai || {}), rate, run_mode: runMode, run_allow: runAllow, day_min_cap };
       }
       const prev = typeof mbNormalizeFirmIntegrations === 'function' ? mbNormalizeFirmIntegrations(settings.integrations) : {};
       settings.integrations = mbNormalizeFirmIntegrations({

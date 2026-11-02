@@ -41,6 +41,7 @@ function mbFirmAi(settings) {
     expressive: ai.expressive !== false,
     run_mode: ai.run_mode === 'server' ? 'server' : 'page',
     run_allow: mbAiRunAllowList(ai),
+    day_min_cap: Number(ai.day_min_cap) > 0 ? Math.min(1440, Math.round(Number(ai.day_min_cap))) : 0,
   };
 }
 
@@ -105,6 +106,38 @@ function mbAiLlmTag(tag) {
     strong: mbAiSay('ai.llm.strong', 'güçlü, pahalı · yaklaşık 0,02 $/dk'),
     best: mbAiSay('ai.llm.best', 'en yüksek kalite, en pahalı · yaklaşık 0,03 $/dk'),
   }[tag] || '';
+}
+
+function mbAiWithinHours(row) {
+  const from = String(row?.call_from || '').slice(0, 5);
+  const until = String(row?.call_until || '').slice(0, 5);
+  if (!from || !until) return true;
+  const now = new Date();
+  const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  return hhmm >= from && hhmm <= until;
+}
+
+function mbAiDayCap(settings) {
+  const n = Number((settings || _aiDesk?.settings)?.ai?.day_min_cap);
+  return n > 0 ? n : 0;
+}
+
+function mbAiQuotaBlocked(settings) {
+  const cap = mbAiDayCap(settings);
+  if (!cap) return false;
+  const secs = Number(window._callinAiCostToday?.secs) || Number(_callinDesk?.stats?.secs) || 0;
+  return (secs / 60) >= cap;
+}
+
+function mbAiStaffScoreHtml(staffId) {
+  const bag = window._callinStaffToday || {};
+  const s = bag[String(staffId)] || { dialed: 0, appt: 0, miss: 0 };
+  const missPct = s.dialed ? Math.round((s.miss / s.dialed) * 100) : 0;
+  return `<div class="ai-run-score" id="ai-run-score-${mbAiEsc(staffId)}">
+    <span>${mbAiEsc(mbAiSay('ai.run.score.dial', '{n} arama').replace('{n}', String(s.dialed || 0)))}</span>
+    <span class="is-ok">${mbAiEsc(mbAiSay('ai.run.score.appt', '{n} randevu').replace('{n}', String(s.appt || 0)))}</span>
+    <span class="is-miss">${mbAiEsc(mbAiSay('ai.run.score.miss', '%{n} cevapsız').replace('{n}', String(missPct)))}</span>
+  </div>`;
 }
 
 function mbAiFirmReady(settings) {
@@ -586,6 +619,10 @@ function mbAiReadDesk() {
       max_min: document.getElementById('ai-maxmin')?.value || prev.max_min,
       voice_style: document.getElementById('ai-style')?.value || prev.voice_style,
       expressive: document.getElementById('ai-express') ? !!document.getElementById('ai-express').checked : prev.expressive !== false,
+      day_min_cap: (() => {
+        const n = Number(document.getElementById('ai-daycap')?.value);
+        return Number.isFinite(n) && n > 0 ? Math.min(1440, Math.round(n)) : 0;
+      })(),
     },
   };
   _aiDesk.staff = _aiDesk.staff.map((row) => {
@@ -1348,6 +1385,7 @@ function mbAiRunCard(row, mode) {
         ${mbAiSwitch(`ai-run-${id}`, row.running, mbAiSay('ai.run.work', 'Çalışsın'), `mbAiRunToggle('${id}')`)}
       </div>
     </header>
+    ${mbAiStaffScoreHtml(row.id)}
     <p class="ai-run-job">${mbAiEsc(job)}</p>
     <div class="ai-sec">
       <div class="ai-sec-t">${mbAiEsc(mbAiSay('ai.run.focus', 'Şimdi bu kampanyalarda'))}</div>
@@ -1419,6 +1457,20 @@ async function mbAiRunToggle(staffId) {
   if (on && !mbAiAllowedCamps(row).length) {
     if (document.getElementById(`ai-run-${staffId}`)) document.getElementById(`ai-run-${staffId}`).checked = false;
     if (typeof toast === 'function') toast(mbAiSay('ai.run.no_camp', 'Önce personel kartında kampanya seçin.'), 'err');
+    return;
+  }
+  if (on && !mbAiWithinHours(row)) {
+    if (document.getElementById(`ai-run-${staffId}`)) document.getElementById(`ai-run-${staffId}`).checked = false;
+    if (typeof toast === 'function') {
+      toast(mbAiSay('ai.run.hours_lock', 'Çalışma saati dışında açılamaz ({from}–{until}).')
+        .replace('{from}', String(row.call_from || '').slice(0, 5))
+        .replace('{until}', String(row.call_until || '').slice(0, 5)), 'err');
+    }
+    return;
+  }
+  if (on && mbAiQuotaBlocked(_aiDesk.settings)) {
+    if (document.getElementById(`ai-run-${staffId}`)) document.getElementById(`ai-run-${staffId}`).checked = false;
+    if (typeof toast === 'function') toast(mbAiSay('ai.run.quota_lock', 'Günlük YZ dakika kotası doldu. Yeni arama yok.'), 'err');
     return;
   }
   row.running = on;
@@ -1533,6 +1585,8 @@ async function mbAiRunTick() {
 
 async function mbAiRunOneQc(staff) {
   if (!_aiFirmId || typeof sb !== 'function') return;
+  if (!mbAiWithinHours(staff)) return;
+  if (mbAiQuotaBlocked(_aiDesk?.settings)) return;
   const camps = mbAiFocusIds(staff);
   const pool = camps.length ? camps : (_aiDesk.camps || []).map((camp) => camp.id).filter(mbAiUuid);
   if (!pool.length) return;
@@ -1602,6 +1656,8 @@ async function mbAiRunOneQc(staff) {
 
 async function mbAiRunOneSales(staff) {
   if (!_aiFirmId || typeof sb !== 'function') return;
+  if (!mbAiWithinHours(staff)) return;
+  if (mbAiQuotaBlocked(_aiDesk?.settings)) return;
   const camps = mbAiFocusIds(staff);
   const pool = camps.length ? camps : (_aiDesk.camps || []).map((camp) => camp.id).filter(mbAiUuid);
   if (!pool.length) return;
@@ -1681,12 +1737,24 @@ async function mbAskRunCallNow(staffId, contactId) {
     if (typeof toast === 'function') toast(mbAiSay('ai.run.not_ready', 'Önce şirket adı ve dakika fiyatı hazır olsun.'), 'err');
     return;
   }
+  if (mbAiQuotaBlocked(_aiDesk.settings)) {
+    if (typeof toast === 'function') toast(mbAiSay('ai.run.quota_lock', 'Günlük YZ dakika kotası doldu. Yeni arama yok.'), 'err');
+    return;
+  }
   const sales = (_aiDesk.staff || []).filter((row) => row.kind !== 'qc');
   const staff = (staffId && sales.find((row) => String(row.id) === String(staffId)))
     || sales.find((row) => row.running)
     || sales[0];
   if (!staff) {
     if (typeof toast === 'function') toast(mbAiSay('callin.desk.now.nostaff', 'Önce Personel kur’dan randevu personeli ekle.'), 'warn');
+    return;
+  }
+  if (!mbAiWithinHours(staff)) {
+    if (typeof toast === 'function') {
+      toast(mbAiSay('ai.run.hours_lock', 'Çalışma saati dışında açılamaz ({from}–{until}).')
+        .replace('{from}', String(staff.call_from || '').slice(0, 5))
+        .replace('{until}', String(staff.call_until || '').slice(0, 5)), 'err');
+    }
     return;
   }
   if (!mbAiAllowedCamps(staff).length) {
@@ -1924,6 +1992,7 @@ function mbPaintAiStaff() {
       ${mbAiField('ai-silence', mbAiSay('ai.talk.silence', 'Sessiz kalırsa kapatsın'), `<select class="form-input" id="ai-silence">${opt(30, Number(ai.silence_sec) || 60, mbAiSay('ai.talk.silence.30', '30 saniye'))}${opt(60, Number(ai.silence_sec) || 60, mbAiSay('ai.talk.silence.60', '1 dakika'))}${opt(120, Number(ai.silence_sec) || 60, mbAiSay('ai.talk.silence.120', '2 dakika'))}${opt(300, Number(ai.silence_sec) || 60, mbAiSay('ai.talk.silence.300', '5 dakika'))}</select>`)}
       ${mbAiField('ai-maxmin', mbAiSay('ai.talk.max', 'En uzun arama'), `<select class="form-input" id="ai-maxmin">${opt(5, Number(ai.max_min) || 7, mbAiSay('ai.talk.max.5', '5 dakika'))}${opt(7, Number(ai.max_min) || 7, mbAiSay('ai.talk.max.7', '7 dakika'))}${opt(10, Number(ai.max_min) || 7, mbAiSay('ai.talk.max.10', '10 dakika'))}</select>`)}
       ${mbAiField('ai-style', mbAiSay('ai.talk.style', 'Ses karakteri'), `<select class="form-input" id="ai-style">${opt('calm', ai.voice_style || 'natural', mbAiSay('ai.talk.calm', 'Sakin'))}${opt('natural', ai.voice_style || 'natural', mbAiSay('ai.talk.natural', 'Doğal'))}${opt('lively', ai.voice_style || 'natural', mbAiSay('ai.talk.lively', 'Canlı'))}</select>`)}
+      ${mbAiField('ai-daycap', mbAiSay('ai.talk.daycap', 'Günlük YZ dakika kotası'), `<input class="form-input" id="ai-daycap" type="number" min="0" max="1440" step="1" value="${mbAiEsc(ai.day_min_cap || '')}" placeholder="0"><div class="ai-hint">${mbAiEsc(mbAiSay('ai.talk.daycap_hint', '0 = limitsiz. Doluluğunda yeni YZ araması çıkmaz; %80’de uyarı gelir.'))}</div>`, true)}
     </div>
     <div class="ai-switches">
       ${mbAiSwitch('ai-express', ai.expressive !== false, mbAiSay('ai.talk.express', 'İfadeli konuşsun'))}
@@ -2706,6 +2775,7 @@ async function mbSaveAiStaff() {
     max_min: [5, 7, 10].includes(Number(draft.max_min)) ? Number(draft.max_min) : 7,
     voice_style: draft.voice_style === 'calm' || draft.voice_style === 'lively' ? draft.voice_style : 'natural',
     expressive: draft.expressive !== false,
+    day_min_cap: Number(draft.day_min_cap) > 0 ? Math.min(1440, Math.round(Number(draft.day_min_cap))) : 0,
   };
   try {
     const rows = await sb(`firms?id=eq.${_aiFirmId}&select=settings`);

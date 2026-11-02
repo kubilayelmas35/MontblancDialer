@@ -79,11 +79,17 @@ function mbToggleLiveMenu(ev, agentId) {
     ${item(say('Katıl', 'Beitreten'), say('Çağrıya katıl', 'Anruf beitreten'), `mbCoachCall('${aid}','barge');`)}
     ${item(say('Göster', 'Zeigen'), say('Çağrıyı göster', 'Anruf zeigen'), `mbShowLiveCall('${aid}');`)}
     <div class="live-menu-gap"></div>` : '';
+  const isAi = typeof _supIsAiAgent === 'function' && _supIsAiAgent(aid);
+  const watched = mbLiveAiWatchGet(aid);
+  const aiBits = isAi ? `
+    ${item(watched ? say('İzlemeyi kaldır', 'Beobachtung aus') : say('İzleniyor işaretle', 'Als beobachtet'), say('YZ hattını işaretle', 'KI-Leitung markieren'), `mbLiveAiWatchToggle('${aid}');`)}
+    ${item(say('Not ekle', 'Notiz'), say('YZ için kısa not', 'Kurze Notiz zur KI'), `mbLiveAiWatchNote('${aid}');`)}
+    <div class="live-menu-gap"></div>` : '';
   const menu = document.createElement('div');
   menu.id = 'mb-live-menu';
   menu.className = 'live-menu';
   menu.dataset.agent = aid;
-  menu.innerHTML = `${coach}
+  menu.innerHTML = `${coach}${aiBits}
     ${item(say('Hazır', 'Bereit'), say('Hazır yap', 'Bereit setzen'), `remoteChangeAgentStatus('${aid}','ready');`)}
     ${item(say('Mola', 'Pause'), say('Molaya al', 'Pause setzen'), `remoteChangeAgentStatus('${aid}','break');`)}
     ${item(say('Çıkış', 'Offline'), say('Çıkış yap', 'Offline setzen'), `remoteChangeAgentStatus('${aid}','offline');`)}`;
@@ -223,4 +229,77 @@ async function mbCoachCall(agentId, role) {
     try { detail = (await res.json())?.errors?.[0]?.detail || ''; } catch (e) {}
     toast((de ? 'Beitritt fehlgeschlagen' : 'Katılım olmadı') + (detail ? `: ${detail}` : ''), 'err', 4200);
   }
+}
+
+function mbLiveAiWatchMap() {
+  try {
+    const raw = sessionStorage.getItem('mb_live_ai_watch');
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function mbLiveAiWatchSave(map) {
+  try { sessionStorage.setItem('mb_live_ai_watch', JSON.stringify(map || {})); } catch (e) {}
+}
+
+function mbLiveAiWatchGet(agentId) {
+  const id = String(agentId || '');
+  if (!id) return null;
+  return mbLiveAiWatchMap()[id] || null;
+}
+
+function mbLiveAiWatchToggle(agentId) {
+  const id = String(agentId || '');
+  if (!id) return;
+  const map = mbLiveAiWatchMap();
+  if (map[id]) delete map[id];
+  else {
+    map[id] = {
+      at: Date.now(),
+      by: currentUser?.name || currentUser?.id || '',
+      note: '',
+    };
+  }
+  mbLiveAiWatchSave(map);
+  if (typeof _supRenderCards === 'function') _supRenderCards();
+  if (typeof _paintDashLive === 'function') _paintDashLive();
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  if (typeof toast === 'function') {
+    toast(map[id]
+      ? (de ? 'Als beobachtet markiert' : 'Izleniyor isaretlendi')
+      : (de ? 'Beobachtung entfernt' : 'Izleme kaldirildi'), 'ok');
+  }
+}
+
+function mbLiveAiWatchNote(agentId) {
+  const id = String(agentId || '');
+  if (!id) return;
+  const map = mbLiveAiWatchMap();
+  const prev = map[id]?.note || '';
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const next = window.prompt(de ? 'Notiz zur KI-Leitung' : 'YZ hatti icin not', prev);
+  if (next == null) return;
+  map[id] = {
+    at: Date.now(),
+    by: currentUser?.name || currentUser?.id || '',
+    note: String(next).trim().slice(0, 200),
+  };
+  mbLiveAiWatchSave(map);
+  if (typeof _supRenderCards === 'function') _supRenderCards();
+  if (typeof _paintDashLive === 'function') _paintDashLive();
+  if (typeof toast === 'function') toast(de ? 'Notiz gespeichert' : 'Not kaydedildi', 'ok');
+}
+
+function mbLiveAiWatchBadge(agentId) {
+  const w = mbLiveAiWatchGet(agentId);
+  if (!w) return '';
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const tip = w.note
+    ? (typeof escapeHtml === 'function' ? escapeHtml(w.note) : String(w.note).replace(/"/g, '&quot;'))
+    : (de ? 'Beobachtet' : 'Izleniyor');
+  const lab = de ? 'KI' : 'YZ';
+  return `<span class="live-ai-watch" title="${tip}">${lab}</span>`;
 }

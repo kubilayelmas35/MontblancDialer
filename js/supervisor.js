@@ -161,7 +161,7 @@ function _supRenderCards() {
     const fullAttr = escapeHtml(agentRaw);
     if (asRows) {
       return `<div class="live-line live-line--${tone}${deep}" data-live-id="${sid}" data-since="${sinceAttr}" style="--live-age:${Number(age).toFixed(3)}">
-        <div class="live-line-who"><span class="live-av${agentAi ? ' is-ai' : ''}">${avatar}</span><span class="live-name" data-full="${fullAttr}">${agentName}</span></div>
+        <div class="live-line-who"><span class="live-av${agentAi ? ' is-ai' : ''}">${avatar}</span><span class="live-name" data-full="${fullAttr}">${agentName}${agentAi && typeof mbLiveAiWatchBadge === 'function' ? mbLiveAiWatchBadge(s.agent_id) : ''}</span></div>
         <div class="live-status">${label}</div>
         <div class="live-dur" data-clock>${dur}</div>
         <div class="live-line-clip">${name}</div>
@@ -181,7 +181,7 @@ function _supRenderCards() {
   <div class="sup-card-top">
     <div class="sup-avatar${agentAi ? ' is-ai' : ''}"${agentAi ? ' title="YZ"' : ''}>${avatar}</div>
     <div class="sup-agent-info">
-      <div class="sup-agent-name" data-full="${fullAttr}">${agentName}</div>
+      <div class="sup-agent-name" data-full="${fullAttr}">${agentName}${agentAi && typeof mbLiveAiWatchBadge === 'function' ? mbLiveAiWatchBadge(s.agent_id) : ''}</div>
       <span class="sup-status ${info.cls}">${label}</span>
     </div>
     <div class="sup-dur" data-clock>${dur}</div>

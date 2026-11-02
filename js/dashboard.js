@@ -3609,7 +3609,7 @@ function _paintDashLive() {
     const actions = (isAdmin && typeof mbLiveActionsHtml === 'function') ? mbLiveActionsHtml(s) : '';
     if (asRows) {
       return `<div class="live-line live-line--${st}${deep}" data-live-id="${aid}" data-since="${sinceAttr}" style="--live-age:${age.toFixed(3)}">
-        <div class="live-line-who"><span class="live-av${agentAi ? ' is-ai' : ''}">${avatar}</span><span class="live-name" data-full="${fullAttr}">${agentName}</span></div>
+        <div class="live-line-who"><span class="live-av${agentAi ? ' is-ai' : ''}">${avatar}</span><span class="live-name" data-full="${fullAttr}">${agentName}${agentAi && typeof mbLiveAiWatchBadge === 'function' ? mbLiveAiWatchBadge(s.agent_id) : ''}</span></div>
         <div class="live-status">${label}</div>
         <div class="live-dur" data-clock>${_dashLiveEsc(dur)}</div>
         <div class="live-line-clip">${who}</div>
@@ -3624,7 +3624,7 @@ function _paintDashLive() {
     return `<article class="live-card live-card--${st}${deep}" data-live-id="${aid}" data-since="${sinceAttr}" style="--live-age:${age.toFixed(3)}">
       <div class="live-card-top">
         <div class="live-av${agentAi ? ' is-ai' : ''}"${agentAi ? ' title="YZ"' : ''}>${avatar}</div>
-        <div style="min-width:0;flex:1;"><div class="live-name" data-full="${fullAttr}">${agentName}</div><div class="live-status">${label}</div></div>
+        <div style="min-width:0;flex:1;"><div class="live-name" data-full="${fullAttr}">${agentName}${agentAi && typeof mbLiveAiWatchBadge === 'function' ? mbLiveAiWatchBadge(s.agent_id) : ''}</div><div class="live-status">${label}</div></div>
         <div class="live-dur" data-clock>${_dashLiveEsc(dur)}</div>
         ${actions}
       </div>
