@@ -278,13 +278,164 @@ function mbAiQcStaffAll(firmId, campaignId) {
   });
 }
 
-async function mbCacheAiStaff(firmId) {
+async function mbCacheAiStaff(firmId, force) {
   window._aiStaffByFirm = window._aiStaffByFirm || {};
+  window._aiFirmSettings = window._aiFirmSettings || {};
+  window._aiStaffCacheAt = window._aiStaffCacheAt || {};
   if (!firmId || typeof sb !== 'function') return [];
+  const at = Number(window._aiStaffCacheAt[firmId]) || 0;
+  if (!force && window._aiStaffByFirm[firmId] && window._aiFirmSettings[firmId] && Date.now() - at < 45000) {
+    return window._aiStaffByFirm[firmId];
+  }
   const rows = await sb(`firms?id=eq.${firmId}&select=settings`).catch(() => []);
-  const list = mbAiStaffList(rows?.[0]?.settings);
-  window._aiStaffByFirm[firmId] = mbAiResolveEngine(list, rows?.[0]?.settings);
+  const settings = rows?.[0]?.settings || {};
+  window._aiFirmSettings[firmId] = settings;
+  const list = mbAiStaffList(settings);
+  window._aiStaffByFirm[firmId] = mbAiResolveEngine(list, settings);
+  window._aiStaffCacheAt[firmId] = Date.now();
   return list;
+}
+
+function mbAiSalesStaffAll(firmId, campaignId) {
+  const list = window._aiStaffByFirm?.[firmId] || [];
+  const camp = String(campaignId || '');
+  return list.filter((row) => {
+    if (row.kind === 'qc') return false;
+    const ids = mbAiCampIds(row);
+    return !ids.length || !camp || ids.includes(camp);
+  });
+}
+
+function mbAiSalesStaffFor(firmId, campaignId) {
+  return mbAiSalesStaffAll(firmId, campaignId)[0] || null;
+}
+
+function mbDialerCallinFirmId() {
+  return String(
+    (typeof currentContact !== 'undefined' && currentContact?.firm_id)
+    || (typeof getActiveFirmId === 'function' && getActiveFirmId())
+    || currentUser?.firm_id
+    || ''
+  );
+}
+
+function mbDialerCallinEligible() {
+  if (typeof mbIsFirmAdmin === 'function' ? !mbIsFirmAdmin() : !['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '')) {
+    return false;
+  }
+  const contact = typeof currentContact !== 'undefined' ? currentContact : null;
+  if (!contact?.id || !String(contact.phone || '').trim()) return false;
+  if (typeof _callLineIsLive === 'function' && _callLineIsLive()) return false;
+  const firmId = mbDialerCallinFirmId();
+  if (!firmId) return false;
+  const settings = window._aiFirmSettings?.[firmId];
+  if (!settings || !mbAiFirmReady(settings)) return false;
+  return mbAiSalesStaffAll(firmId, contact.campaign_id || '').length > 0;
+}
+
+function mbPaintDialerCallin(forceOff) {
+  const btn = document.getElementById('btn-callin-dial');
+  if (!btn) return;
+  const visible = forceOff === true ? false : mbDialerCallinEligible();
+  btn.classList.toggle('is-on', visible);
+  btn.hidden = !visible;
+  btn.disabled = !!window._dialerCallinBusy;
+  btn.classList.toggle('is-busy', !!window._dialerCallinBusy);
+  const name = typeof ariaName === 'function' ? ariaName() : 'Callin';
+  const label = mbAiSay('qc.callin', '{name} arasın').replace('{name}', name);
+  const span = document.getElementById('btn-callin-dial-label') || btn.querySelector('span');
+  if (span) span.textContent = label;
+  btn.title = label;
+}
+
+async function mbRefreshDialerCallin() {
+  const btn = document.getElementById('btn-callin-dial');
+  if (!btn) return;
+  if (typeof mbIsFirmAdmin === 'function' ? !mbIsFirmAdmin() : !['admin', 'firm_admin', 'super_admin'].includes(currentUser?.role || '')) {
+    mbPaintDialerCallin(true);
+    return;
+  }
+  const firmId = mbDialerCallinFirmId();
+  const contact = typeof currentContact !== 'undefined' ? currentContact : null;
+  if (firmId && contact?.id) await mbCacheAiStaff(firmId);
+  mbPaintDialerCallin();
+}
+
+function mbAskDialerCallin() {
+  if (window._dialerCallinBusy) return;
+  const contact = typeof currentContact !== 'undefined' ? currentContact : null;
+  const firmId = mbDialerCallinFirmId();
+  const all = contact ? mbAiSalesStaffAll(firmId, contact.campaign_id || '') : [];
+  const staff = all[0] || null;
+  if (!contact?.id || !staff) {
+    if (typeof toast === 'function') toast(mbAiSay('dial.callin.none', 'Bu kampanya için randevu personeli yok'), 'warn');
+    void mbRefreshDialerCallin();
+    return;
+  }
+  if (!mbAiFirmReady(window._aiFirmSettings?.[firmId] || {})) {
+    if (typeof toast === 'function') toast(mbAiSay('ai.run.not_ready', 'Önce şirket adı ve dakika fiyatı hazır olsun.'), 'warn');
+    return;
+  }
+  document.getElementById('ai-callin-pop')?.remove();
+  const name = typeof ariaName === 'function' ? ariaName() : 'Callin';
+  const who = [contact.first_name, contact.last_name].map((part) => String(part || '').trim()).filter(Boolean).join(' ') || contact.phone || '—';
+  const pop = document.createElement('div');
+  pop.id = 'ai-callin-pop';
+  pop.className = 'ai-callin';
+  pop.innerHTML = `<div class="ai-callin-card" role="dialog" aria-modal="true">
+    <div style="font-weight:800;">${mbAiEsc(mbAiSay('dial.callin.ask', '{name}, {who} kişisini arasın mı?').replace('{name}', name).replace('{who}', who))}</div>
+    <div style="font-size:12px;color:var(--text-3);line-height:1.45;">${mbAiEsc(mbAiSay('dial.callin.hint', 'İstersen kısa bir not yaz. Onaylayınca Callin bu kişiyi arar; senin hattın meşgul olmaz.'))}</div>
+    ${all.length > 1 ? `<select id="ai-callin-staff" class="form-input">${all.map((item) => `<option value="${mbAiEsc(item.id)}">${mbAiEsc(item.name || mbAiSay('ai.staff.sales', 'Randevu'))} · ${mbAiEsc(mbAiStaffEngineLabel(item))}</option>`).join('')}</select>` : ''}
+    <textarea id="ai-callin-note" class="form-input" rows="3" maxlength="800" placeholder="${mbAiEsc(mbAiSay('dial.callin.note_ph', 'Opsiyonel not…'))}"></textarea>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="qcCloseCallin()">${mbAiEsc(mbAiSay('qc.callin.cancel', 'Vazgeç'))}</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="mbConfirmDialerCallin('${mbAiEsc(contact.id)}','${mbAiEsc(staff.id)}',true)">${mbAiEsc(mbAiSay('dial.callin.direct', 'Direkt arasın'))}</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="mbConfirmDialerCallin('${mbAiEsc(contact.id)}','${mbAiEsc(staff.id)}',false)">${mbAiEsc(mbAiSay('dial.callin.note', 'Bu notla arasın'))}</button>
+    </div>
+  </div>`;
+  document.body.appendChild(pop);
+}
+
+async function mbConfirmDialerCallin(contactId, staffId, direct) {
+  const note = direct ? '' : String(document.getElementById('ai-callin-note')?.value || '').trim().slice(0, 800);
+  const picked = String(document.getElementById('ai-callin-staff')?.value || '') || staffId;
+  if (typeof qcCloseCallin === 'function') qcCloseCallin();
+  else document.getElementById('ai-callin-pop')?.remove();
+  if (!contactId || !picked || window._dialerCallinBusy) return;
+  window._dialerCallinBusy = contactId;
+  mbPaintDialerCallin();
+  if (typeof toast === 'function') toast(mbAiSay('qc.callin.placing', 'Aranıyor. Hat açılınca konuşma başlar.'), 'ok');
+  const res = await mbTelnyxAi('place', { contact_id: contactId, staff_id: picked, note });
+  if (!res?.ok || !res.appointment_id) {
+    window._dialerCallinBusy = '';
+    mbPaintDialerCallin();
+    const key = { gate: 'qc.callin.gate', results: 'qc.callin.gate', phone: 'qc.callin.phone', busy: 'qc.callin.busy', nokey_el: 'qc.callin.nokey_el' }[res?.error] || 'qc.callin.fail';
+    const why = String(res?.detail || '').slice(0, 220);
+    if (typeof toast === 'function') toast(mbAiSay(key, 'Arama çıkmadı.') + (why ? ` (${why})` : ''), 'err');
+    return;
+  }
+  if (typeof toast === 'function') toast(mbAiSay('qc.callin.started', 'Arama çıktı. Karşı taraf açınca konuşma başlar.'), 'ok');
+  void mbDialerWatchCallin(res.appointment_id);
+}
+
+async function mbDialerWatchCallin(apptId) {
+  const started = Date.now();
+  try {
+    while (Date.now() - started < 12 * 60 * 1000) {
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      const res = await mbTelnyxAi('sync', { appointment_id: apptId });
+      if (!res?.ok || !res.done) continue;
+      if (typeof toast === 'function') {
+        toast(res.phase === 'missed' || !(res.secs > 0)
+          ? mbAiSay('qc.callin.noanswer', 'Arama açılmadı.')
+          : mbAiSay('qc.callin.done', 'Arama bitti.'), res.secs > 0 ? 'ok' : 'warn');
+      }
+      break;
+    }
+  } finally {
+    window._dialerCallinBusy = '';
+    mbPaintDialerCallin();
+  }
 }
 
 function callinTab(name) {
@@ -345,7 +496,13 @@ async function mbAiLoadFirm(gen) {
     : (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
   if (!_aiDesk || _aiDesk.gen !== gen) return;
   window._aiStaffByFirm = window._aiStaffByFirm || {};
-  if (_aiFirmId) window._aiStaffByFirm[_aiFirmId] = mbAiResolveEngine(_aiDesk.staff, _aiDesk.settings);
+  window._aiFirmSettings = window._aiFirmSettings || {};
+  if (_aiFirmId) {
+    window._aiStaffByFirm[_aiFirmId] = mbAiResolveEngine(_aiDesk.staff, _aiDesk.settings);
+    window._aiFirmSettings[_aiFirmId] = _aiDesk.settings || {};
+    window._aiStaffCacheAt = window._aiStaffCacheAt || {};
+    window._aiStaffCacheAt[_aiFirmId] = Date.now();
+  }
   if (_aiDesk.view === 'run') {
     mbPaintAiRun();
     mbAiStartRunLoop();
@@ -1141,7 +1298,11 @@ async function mbAiPersistRun() {
     if (hit) hit.settings = settings;
     _aiDesk.settings = settings;
     window._aiStaffByFirm = window._aiStaffByFirm || {};
+    window._aiFirmSettings = window._aiFirmSettings || {};
     window._aiStaffByFirm[_aiFirmId] = mbAiResolveEngine(mbAiStaffList(settings), settings);
+    window._aiFirmSettings[_aiFirmId] = settings;
+    window._aiStaffCacheAt = window._aiStaffCacheAt || {};
+    window._aiStaffCacheAt[_aiFirmId] = Date.now();
   } catch (e) {
     if (typeof toast === 'function') toast((typeof t === 'function' ? t('dial.log_err') : '') + (e?.message || ''), 'err');
   } finally {
@@ -2193,7 +2354,11 @@ async function mbSaveAiStaff() {
     _aiDesk.settings = settings;
     _aiDesk.staff = mbAiStaffList(settings);
     window._aiStaffByFirm = window._aiStaffByFirm || {};
+    window._aiFirmSettings = window._aiFirmSettings || {};
     window._aiStaffByFirm[_aiFirmId] = mbAiResolveEngine(_aiDesk.staff, settings);
+    window._aiFirmSettings[_aiFirmId] = settings;
+    window._aiStaffCacheAt = window._aiStaffCacheAt || {};
+    window._aiStaffCacheAt[_aiFirmId] = Date.now();
     if (typeof toast === 'function') toast(mbAiSay('ai.staff.saved', 'YZ personel kaydedildi'), 'ok');
     mbPaintAiStaff();
   } catch (e) {
@@ -2262,7 +2427,11 @@ async function mbAiSetRunning(staffId, on, firmId) {
       body: JSON.stringify({ settings }),
     });
     window._aiStaffByFirm = window._aiStaffByFirm || {};
+    window._aiFirmSettings = window._aiFirmSettings || {};
     window._aiStaffByFirm[fid] = mbAiResolveEngine(mbAiStaffList(settings), settings);
+    window._aiFirmSettings[fid] = settings;
+    window._aiStaffCacheAt = window._aiStaffCacheAt || {};
+    window._aiStaffCacheAt[fid] = Date.now();
     if (_aiDesk && String(_aiDesk.firms?.[0]?.id || _aiFirmId) === String(fid)) {
       _aiDesk.settings = settings;
       _aiDesk.staff = mbAiStaffList(settings);

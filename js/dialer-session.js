@@ -498,6 +498,7 @@ function paintCallActionButtons() {
     redial.classList.toggle('is-go', !live);
     redial.setAttribute('aria-disabled', live ? 'true' : 'false');
   }
+  if (typeof mbRefreshDialerCallin === 'function') void mbRefreshDialerCallin();
   const mute = document.getElementById('btn-mute');
   if (!mute) return;
   const off = !!isMuted;

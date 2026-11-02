@@ -1885,6 +1885,9 @@ Son randevu bilgileri indirilebilir.
 <button type="button" class="call-action-btn" id="btn-redial" onclick="redialCurrentContact()" title="Tekrar ara">
 <i class="ph ph-phone"></i> <span data-tr="Ara" data-de="Anrufen">Ara</span>
 </button>
+<button type="button" class="call-action-btn call-action-btn--callin" id="btn-callin-dial" hidden onclick="mbAskDialerCallin()" title="Callin arasın">
+<i class="ph ph-robot" aria-hidden="true"></i> <span id="btn-callin-dial-label">Callin arasın</span>
+</button>
 <button type="button" class="call-action-btn" id="btn-queue-next" onclick="mbQueueCurrentContact()" data-tr-title="Sıradaki arama bu kişi olsun" data-de-title="Diese Person als Nächstes anrufen" title="Sıradaki arama bu kişi olsun">
 <i class="ph ph-queue"></i> <span data-tr="Sıraya al" data-de="Einreihen">Sıraya al</span>
 </button>

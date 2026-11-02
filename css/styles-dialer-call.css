@@ -580,6 +580,29 @@ transition:var(--transition);
   border-color: var(--green);
 }
 #btn-redial.is-go:hover { color: #fff; filter: brightness(1.06); }
+#btn-callin-dial { display: none; }
+#call-actions.call-actions--pre-call #btn-callin-dial.is-on {
+  display: inline-flex;
+}
+#call-actions.call-actions--wrapping #btn-callin-dial,
+#call-actions:not(.call-actions--pre-call) #btn-callin-dial {
+  display: none !important;
+}
+.call-action-btn--callin.is-on {
+  background: color-mix(in srgb, var(--green) 14%, var(--bg-3));
+  color: var(--green);
+  border-color: color-mix(in srgb, var(--green) 42%, var(--border));
+  font-weight: 700;
+}
+.call-action-btn--callin.is-on:hover {
+  background: color-mix(in srgb, var(--green) 22%, var(--bg-3));
+  color: var(--green);
+}
+.call-action-btn--callin:disabled,
+.call-action-btn--callin.is-busy {
+  opacity: 0.55;
+  cursor: wait;
+}
 #btn-redial:disabled,
 #btn-redial.is-passive,
 #btn-redial.is-passive:hover {
