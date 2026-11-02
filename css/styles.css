@@ -3195,6 +3195,13 @@ button.ai-run-score-bit:hover { text-decoration: underline; text-underline-offse
 .aria-live-ai.is-talk { background: #16a34a; }
 .aria-live-ai.is-ring { background: #2563eb; }
 .aria-live-ai[hidden] { display: none !important; }
+.aria-live-err {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 16px; height: 16px; margin-left: 5px; padding: 0 4px;
+  border-radius: 999px; background: #b91c1c; color: #fff;
+  font-size: 9px; font-weight: 800; cursor: pointer;
+}
+.aria-live-err[hidden] { display: none !important; }
 .aria-live.is-on .aria-live-facts::before,
 .aria-live.is-ai-live .aria-live-facts::before {
   content: "";
@@ -3242,6 +3249,29 @@ button.ai-run-score-bit:hover { text-decoration: underline; text-underline-offse
   font-size: 11px; font-weight: 750; line-height: 1.3;
 }
 .aria-ai-today:hover { filter: brightness(1.03); }
+.aria-ai-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.aria-ai-tool {
+  appearance: none; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg-2); color: var(--text-2);
+  font-size: 11px; font-weight: 750; padding: 5px 9px; border-radius: 999px;
+}
+.aria-ai-tool.is-on {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  color: var(--accent-text);
+  background: color-mix(in srgb, var(--accent-soft) 70%, var(--bg-2));
+}
+.aria-ai-live {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 8px;
+  padding: 8px 10px; border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #16a34a 35%, var(--border));
+  background: color-mix(in srgb, #16a34a 8%, var(--bg-2));
+  font-size: 12px; font-weight: 700; color: var(--text-2);
+}
+.aria-ai-live b { color: var(--text); }
+.aria-ai-live-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #16a34a;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #16a34a 25%, transparent);
+}
 .aria-ai-stopall {
   appearance: none; cursor: pointer;
   align-self: flex-start;
@@ -3254,6 +3284,28 @@ button.ai-run-score-bit:hover { text-decoration: underline; text-underline-offse
 .aria-ai-stopall:hover { filter: brightness(1.03); }
 .aria-ai-phase.is-why { color: #b45309; font-weight: 750; }
 .aria-ai-list { display: flex; flex-direction: column; gap: 6px; }
+.aria-ai-acts { display: flex; flex-direction: column; gap: 4px; flex: 0 0 auto; }
+.aria-ai-now {
+  appearance: none; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text-2);
+  font-size: 10px; font-weight: 750; padding: 4px 8px; border-radius: 8px;
+}
+.aria-ai-pin {
+  appearance: none; border: 0; background: transparent; cursor: pointer;
+  color: var(--text-3); font-size: 12px; padding: 0 2px 0 0; line-height: 1;
+}
+.aria-ai-pin.is-on { color: #d97706; }
+.aria-ai-row.is-pin { border-color: color-mix(in srgb, #d97706 35%, var(--border)); }
+.aria-pop-chip {
+  appearance: none; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg-2); color: var(--text-2);
+  font-size: 11px; font-weight: 750; padding: 4px 8px; border-radius: 999px;
+}
+.aria-pop-chip.is-bad { border-color: color-mix(in srgb, #b91c1c 40%, var(--border)); color: #b91c1c; }
+.aria-pop-chip.is-mid { border-color: color-mix(in srgb, #d97706 40%, var(--border)); color: #b45309; }
+.aria-pop-chip.is-ok { border-color: color-mix(in srgb, var(--green) 40%, var(--border)); color: #15803d; }
+.aria-pop-chip.is-err { border-color: color-mix(in srgb, #b91c1c 45%, var(--border)); background: color-mix(in srgb, #b91c1c 8%, var(--bg-2)); color: #b91c1c; }
+.ai-ab-score { margin-top: 6px; font-size: 11px; font-weight: 700; color: var(--text-3); }
 .aria-ai-row {
   display: flex;
   align-items: center;

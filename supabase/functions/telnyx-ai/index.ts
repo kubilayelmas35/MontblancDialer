@@ -514,13 +514,14 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
   const extra = appt.form_ek && typeof appt.form_ek === 'object' ? appt.form_ek : {};
   const note = clip(body.note, 800);
   const hold = staff.kind === 'qc' ? holdPick(settings, staff.results) : { wait: null as null, miss: null as null };
+  const greetingOverride = clip(body.greeting, 400);
   const brief = buildAiBrief({
     kind: staff.kind,
     lang: ai.lang,
     company: ai.spoken_name,
     rate: ai.rate,
     prompt: staff.prompt,
-    greetingText: staff.greeting,
+    greetingText: greetingOverride || staff.greeting,
     note,
     forbidPrice: ai.forbidPrice,
     forbidContract: ai.forbidContract,

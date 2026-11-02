@@ -13,6 +13,7 @@ const _callinDesk = {
   retryTimer: 0,
   eveningTimer: 0,
   morningTimer: 0,
+  weeklyTimer: 0,
 };
 
 function callinDeskSay(key, fallback) {
@@ -112,6 +113,36 @@ function callinDeskToggleMorning() {
     toast(on
       ? callinDeskSay('callin.desk.morning.on', '08:00 sabah özeti açık (dün YZ).')
       : callinDeskSay('callin.desk.morning.off', 'Sabah özeti kapalı.'), 'ok');
+  }
+}
+
+function callinDeskWeeklyOn() {
+  try { return localStorage.getItem('mb_callin_weekly') === '1'; } catch (e) { return false; }
+}
+
+function callinDeskToggleWeekly() {
+  const on = !callinDeskWeeklyOn();
+  try { localStorage.setItem('mb_callin_weekly', on ? '1' : '0'); } catch (e) {}
+  callinDeskPaint();
+  if (typeof toast === 'function') {
+    toast(on
+      ? callinDeskSay('callin.desk.weekly.on', 'Pazartesi sabah YZ özeti açık.')
+      : callinDeskSay('callin.desk.weekly.off', 'Haftalık özet kapalı.'), 'ok');
+  }
+}
+
+function callinDeskTrustOn() {
+  try { return localStorage.getItem('mb_callin_trust') === '1'; } catch (e) { return false; }
+}
+
+function callinDeskToggleTrust() {
+  const on = !callinDeskTrustOn();
+  try { localStorage.setItem('mb_callin_trust', on ? '1' : '0'); } catch (e) {}
+  callinDeskPaint();
+  if (typeof toast === 'function') {
+    toast(on
+      ? callinDeskSay('callin.desk.trust.on', 'Güvenilir başlat açık — boş slot onayı yok.')
+      : callinDeskSay('callin.desk.trust.off', 'Boş slot onayı yeniden açık.'), 'ok');
   }
 }
 
@@ -714,6 +745,8 @@ function callinDeskPaint() {
       <button type="button" class="btn btn-ghost btn-sm${callinDeskSoundOn() ? ' is-on' : ''}" onclick="callinDeskToggleSound()">${callinDeskEsc(callinDeskSoundOn() ? callinDeskSay('callin.desk.sound.on', 'Ses açık') : callinDeskSay('callin.desk.sound.off', 'Ses kapalı'))}</button>
       <button type="button" class="btn btn-ghost btn-sm${callinDeskEveningOn() ? ' is-on' : ''}" onclick="callinDeskToggleEvening()">${callinDeskEsc(callinDeskEveningOn() ? callinDeskSay('callin.desk.evening.btn_on', '18:00 rapor açık') : callinDeskSay('callin.desk.evening.btn_off', '18:00 rapor'))}</button>
       <button type="button" class="btn btn-ghost btn-sm${callinDeskMorningOn() ? ' is-on' : ''}" onclick="callinDeskToggleMorning()">${callinDeskEsc(callinDeskMorningOn() ? callinDeskSay('callin.desk.morning.btn_on', '08:00 özet açık') : callinDeskSay('callin.desk.morning.btn_off', '08:00 özet'))}</button>
+      <button type="button" class="btn btn-ghost btn-sm${callinDeskWeeklyOn() ? ' is-on' : ''}" onclick="callinDeskToggleWeekly()">${callinDeskEsc(callinDeskWeeklyOn() ? callinDeskSay('callin.desk.weekly.btn_on', 'Pzt özet açık') : callinDeskSay('callin.desk.weekly.btn_off', 'Pzt özet'))}</button>
+      <button type="button" class="btn btn-ghost btn-sm${callinDeskTrustOn() ? ' is-on' : ''}" onclick="callinDeskToggleTrust()">${callinDeskEsc(callinDeskTrustOn() ? callinDeskSay('callin.desk.trust.btn_on', 'Güvenilir başlat') : callinDeskSay('callin.desk.trust.btn_off', 'Slot onayı'))}</button>
       ${live.running ? `<button type="button" class="btn btn-ghost btn-sm is-danger" onclick="callinDeskStopAll()">${callinDeskEsc(callinDeskSay('callin.desk.stop_all', 'Hepsini durdur'))}</button>` : ''}
       <button type="button" class="btn btn-ghost btn-sm" onclick="callinDeskRefresh()">${callinDeskEsc(callinDeskSay('callin.desk.refresh', 'Yenile'))}</button>
       <button type="button" class="btn btn-primary btn-sm" onclick="callinTab('run'); callinDeskAskNow()">${callinDeskEsc(callinDeskSay('callin.desk.now', 'Şimdi bir kişi ara'))}</button>
@@ -934,6 +967,40 @@ async function callinDeskMorningTick() {
   callinDeskShowReportPop('callin-morning-pop', callinDeskSay('callin.desk.morning.title', '08:00 sabah özeti'), a, b);
 }
 
+async function callinDeskWeeklyTick() {
+  if (!callinDeskWeeklyOn()) return;
+  const now = new Date();
+  if (now.getDay() !== 1 || now.getHours() < 8) return;
+  const day = now.toISOString().slice(0, 10);
+  const firmId = callinDeskFirmId();
+  if (!firmId || typeof sb !== 'function') return;
+  const key = `mb_callin_weekly_${firmId}_${day}`;
+  try { if (localStorage.getItem(key) === '1') return; } catch (e) { return; }
+  try { localStorage.setItem(key, '1'); } catch (e) {}
+  if (!_callinDesk.week || _callinDesk.firmId !== firmId) {
+    try { await callinDeskLoadStats(); } catch (_) {}
+  }
+  const week = _callinDesk.week || { dialed: 0, appt: 0, miss: 0, bestName: '', bestAppt: 0, estimate: 0 };
+  const a = callinDeskSay('callin.desk.weekly.a', 'Son 7 gün YZ: {appt} randevu · {dial} arama.')
+    .replace('{appt}', String(week.appt || 0))
+    .replace('{dial}', String(week.dialed || 0));
+  let b = week.bestName
+    ? callinDeskSay('callin.desk.weekly.b', 'En iyi: {name} ({n} randevu).')
+      .replace('{name}', week.bestName)
+      .replace('{n}', String(week.bestAppt || 0))
+    : callinDeskSay('callin.desk.weekly.bn', 'Henüz öne çıkan personel yok.');
+  if (week.estimate > 0) {
+    b += ' ' + callinDeskSay('callin.desk.brief.cost', 'YZ tahmini {m}.')
+      .replace('{m}', callinDeskMoney(week.estimate, _callinDesk.cost?.currency));
+  }
+  callinDeskShowReportPop('callin-weekly-pop', callinDeskSay('callin.desk.weekly.title', 'Pazartesi YZ özeti'), a, b);
+  try {
+    if (typeof toggleTeamChat === 'function') toggleTeamChat(true);
+    const inp = document.getElementById('team-chat-input');
+    if (inp) inp.value = `${callinDeskSay('callin.desk.weekly.title', 'Pazartesi YZ özeti')}\n${a}\n${b}`;
+  } catch (e) {}
+}
+
 function callinDeskStart() {
   if (!_callinDesk.timer) {
     void callinDeskRefresh();
@@ -954,6 +1021,10 @@ function callinDeskStart() {
   if (!_callinDesk.morningTimer) {
     void callinDeskMorningTick();
     _callinDesk.morningTimer = setInterval(() => { void callinDeskMorningTick(); }, 60000);
+  }
+  if (!_callinDesk.weeklyTimer) {
+    void callinDeskWeeklyTick();
+    _callinDesk.weeklyTimer = setInterval(() => { void callinDeskWeeklyTick(); }, 60000);
   }
 }
 
@@ -1055,8 +1126,12 @@ try {
   window.callinDeskFixAlert = callinDeskFixAlert;
   window.callinDeskStopAll = callinDeskStopAll;
   window.callinDeskToggleSound = callinDeskToggleSound;
+  window.callinDeskSoundOn = callinDeskSoundOn;
   window.callinDeskToggleEvening = callinDeskToggleEvening;
   window.callinDeskToggleMorning = callinDeskToggleMorning;
+  window.callinDeskToggleWeekly = callinDeskToggleWeekly;
+  window.callinDeskToggleTrust = callinDeskToggleTrust;
+  window.callinDeskTrustOn = callinDeskTrustOn;
   window.callinDeskBeep = callinDeskBeep;
   window.callinQueueHealthPaint = callinQueueHealthPaint;
   window.callinQueueFillNow = callinQueueFillNow;

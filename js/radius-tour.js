@@ -429,6 +429,63 @@ function ariaAiTodayBits() {
   return { appt, dial, errs };
 }
 
+function ariaAiPins() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('mb_callin_pins') || '[]');
+    return Array.isArray(raw) ? raw.map(String).filter(Boolean).slice(0, 2) : [];
+  } catch (e) { return []; }
+}
+
+function ariaAiTogglePin(staffId) {
+  const id = String(staffId || '');
+  if (!id) return;
+  let pins = ariaAiPins();
+  if (pins.includes(id)) pins = pins.filter((item) => item !== id);
+  else {
+    pins = [id, ...pins.filter((item) => item !== id)].slice(0, 2);
+  }
+  try { localStorage.setItem('mb_callin_pins', JSON.stringify(pins)); } catch (e) {}
+  void ariaRefreshAi(true);
+}
+
+function ariaAiFmtClock(secs) {
+  const n = Math.max(0, Math.floor(Number(secs) || 0));
+  const m = Math.floor(n / 60);
+  const s = n % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function ariaAiLiveLineHtml(snap) {
+  const who = String(snap?.talkWho || '').trim();
+  const phase = snap?.talkPhase || '';
+  if (!who && phase !== 'talking' && phase !== 'ringing') return '';
+  const label = phase === 'talking'
+    ? tourSay('aria.ai.talk', 'Konuşuyor')
+    : tourSay('aria.ai.ring', 'Arıyor');
+  const elapsed = snap?.talkAt ? ariaAiFmtClock((Date.now() - snap.talkAt) / 1000) : '';
+  const staff = snap?.talkStaff ? ` · ${snap.talkStaff}` : '';
+  return `<div class="aria-ai-live">
+    <span class="aria-ai-live-dot" aria-hidden="true"></span>
+    <b>${tourEsc(who || '—')}</b>
+    <span>${tourEsc(label)}${elapsed ? ` · ${tourEsc(elapsed)}` : ''}${tourEsc(staff)}</span>
+  </div>`;
+}
+
+function ariaQueueChipHtml() {
+  const plan = typeof _tourPlan !== 'undefined' ? _tourPlan : null;
+  const pref = typeof tourPref === 'function' ? tourPref() : {};
+  const esik = Math.max(1, Number(pref.veriEsik) || 500);
+  const pick = plan?.pick || null;
+  const rows = Array.isArray(plan?.rows) ? plan.rows : (pick ? [pick] : []);
+  const pending = rows.reduce((sum, row) => sum + (Number(row.pending) || 0), Number(pick?.pending) || 0);
+  if (!plan && !pending) return '';
+  const tone = pending < esik ? 'is-bad' : pending < esik * 1.2 ? 'is-mid' : 'is-ok';
+  const line = tourSay('aria.pop.queue_chip', '{n} bekliyor / eşik {e}')
+    .replace('{n}', String(pending))
+    .replace('{e}', String(esik));
+  return `<button type="button" class="aria-pop-chip ${tone}" onclick="ariaOpenQueue()">${tourEsc(line)}</button>`;
+}
+
 function ariaAiTodayHtml() {
   const { appt, dial, errs } = ariaAiTodayBits();
   if (!appt && !dial && !errs) return '';
@@ -439,11 +496,28 @@ function ariaAiTodayHtml() {
   return `<button type="button" class="aria-ai-today" onclick="ariaOpenAiHist()">${tourEsc(line)}</button>`;
 }
 
+function ariaAiToolsHtml() {
+  const soundOn = typeof callinDeskSoundOn === 'function' && callinDeskSoundOn();
+  const trustOn = typeof callinDeskTrustOn === 'function' && callinDeskTrustOn();
+  return `<div class="aria-ai-tools">
+    <button type="button" class="aria-ai-tool${soundOn ? ' is-on' : ''}" onclick="ariaToggleSound()">${tourEsc(soundOn ? tourSay('callin.desk.sound.on', 'Ses açık') : tourSay('callin.desk.sound.off', 'Ses kapalı'))}</button>
+    <button type="button" class="aria-ai-tool${trustOn ? ' is-on' : ''}" onclick="ariaToggleTrust()" title="${tourEsc(tourSay('aria.ai.trust_tip', 'Açıkken boş slot uyarısı sorulmaz.'))}">${tourEsc(trustOn ? tourSay('aria.ai.trust_on', 'Güvenilir başlat') : tourSay('aria.ai.trust_off', 'Slot onayı'))}</button>
+  </div>`;
+}
+
 function ariaAiBlockHtml(snap) {
   const staff = snap?.staff || [];
   if (!staff.length) {
     return `<div class="aria-ai-box"><div class="aria-ai-hd">${tourEsc(tourSay('aria.ai.title', 'YZ personel'))}</div><p class="aria-pop-job">${tourEsc(tourSay('aria.ai.empty', 'Henüz YZ personel yok. Callin → Personel kur’dan ekle.'))}</p></div>`;
   }
+  const pins = ariaAiPins();
+  const ordered = [...staff].sort((a, b) => {
+    const pa = pins.indexOf(String(a.id));
+    const pb = pins.indexOf(String(b.id));
+    const wa = pa >= 0 ? pa : 99;
+    const wb = pb >= 0 ? pb : 99;
+    return wa - wb;
+  });
   const sum = tourSay('aria.ai.sum', '{run} çalışıyor · {talk} konuşuyor · {ring} arıyor')
     .replace('{run}', String(snap.running || 0))
     .replace('{talk}', String(snap.talking || 0))
@@ -451,28 +525,37 @@ function ariaAiBlockHtml(snap) {
   const stopAll = (snap.running || 0) > 0
     ? `<button type="button" class="aria-ai-stopall" onclick="ariaAiStopAll()">${tourEsc(tourSay('aria.ai.stop_all', 'Hepsini durdur'))}</button>`
     : '';
-  const rows = staff.map((row) => {
+  const rows = ordered.map((row) => {
     const kind = row.kind === 'qc' ? tourSay('aria.ai.kind.qc', 'Kalite') : tourSay('aria.ai.kind.sales', 'Randevu');
     const who = row.who ? `<small class="aria-ai-who">${tourEsc(row.who)}${row.phone ? ` · ${tourEsc(row.phone)}` : ''}</small>` : '';
     const on = !!row.running;
     const talk = row.phase === 'talking';
     const ring = row.phase === 'ringing';
+    const pinned = pins.includes(String(row.id));
     const phaseCls = talk ? ' is-talk' : (ring ? ' is-ring' : (on ? ' is-run' : ''));
     const whyCls = !on && row.stopWhy ? ' is-why' : '';
-    return `<div class="aria-ai-row${on ? ' is-on' : ''}${phaseCls}${whyCls}">
+    const nowBtn = row.kind !== 'qc'
+      ? `<button type="button" class="aria-ai-now" onclick="ariaAiCallNow('${tourEsc(row.id)}')">${tourEsc(tourSay('callin.desk.now', 'Şimdi ara'))}</button>`
+      : '';
+    return `<div class="aria-ai-row${on ? ' is-on' : ''}${phaseCls}${whyCls}${pinned ? ' is-pin' : ''}">
       <div class="aria-ai-main">
-        <b><span class="aria-ai-dot" aria-hidden="true"></span>${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink') : ''}${tourEsc(row.name || row.id)}</b>
+        <b><button type="button" class="aria-ai-pin${pinned ? ' is-on' : ''}" onclick="ariaAiTogglePin('${tourEsc(row.id)}')" title="${tourEsc(tourSay('aria.ai.pin', 'Üste sabitle'))}">${pinned ? '★' : '☆'}</button><span class="aria-ai-dot" aria-hidden="true"></span>${typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink') : ''}${tourEsc(row.name || row.id)}</b>
         <span class="aria-ai-kind">${tourEsc(kind)}</span>
         <small class="aria-ai-phase${whyCls}">${tourEsc(ariaAiPhaseWord(row))}</small>
         ${who}
       </div>
-      <button type="button" class="aria-ai-toggle${on ? ' is-on' : ''}" onclick="ariaAiToggle('${tourEsc(row.id)}', ${on ? 'false' : 'true'})">${tourEsc(on ? tourSay('aria.ai.pause', 'Durdur') : tourSay('aria.ai.start', 'Başlat'))}</button>
+      <div class="aria-ai-acts">
+        ${nowBtn}
+        <button type="button" class="aria-ai-toggle${on ? ' is-on' : ''}" onclick="ariaAiToggle('${tourEsc(row.id)}', ${on ? 'false' : 'true'})">${tourEsc(on ? tourSay('aria.ai.pause', 'Durdur') : tourSay('aria.ai.start', 'Başlat'))}</button>
+      </div>
     </div>`;
   }).join('');
   const liveCls = (snap?.talking || 0) > 0 ? ' is-talk' : ((snap?.ringing || 0) > 0 ? ' is-ring' : ((snap?.running || 0) > 0 ? ' is-run' : ''));
   return `<div class="aria-ai-box${liveCls}">
     <div class="aria-ai-hd"><span><span class="aria-ai-dot" aria-hidden="true"></span>${tourEsc(tourSay('aria.ai.title', 'YZ personel'))}</span><small>${tourEsc(sum)}</small></div>
+    ${ariaAiLiveLineHtml(snap)}
     ${ariaAiTodayHtml()}
+    ${ariaAiToolsHtml()}
     ${stopAll}
     <div class="aria-ai-list">${rows}</div>
   </div>`;
@@ -515,6 +598,19 @@ function ariaPaintAiState(snap) {
         n.textContent = '';
         n.title = '';
       }
+    }
+    const errEl = document.getElementById('aria-live-err');
+    if (errEl) {
+      const errs = typeof callinDeskErrors === 'function'
+        ? callinDeskErrors().filter((row) => Date.now() - row.at < 30 * 60 * 1000).length
+        : 0;
+      errEl.hidden = errs <= 0;
+      errEl.textContent = errs > 9 ? '9+' : String(errs || '');
+      errEl.title = tourSay('aria.ai.err_chip', '{n} hata · son 30 dk').replace('{n}', String(errs));
+      errEl.onclick = (ev) => {
+        ev.stopPropagation();
+        ariaOpenErrors();
+      };
     }
   }
   const pop = document.getElementById('aria-pop');
@@ -570,6 +666,7 @@ async function ariaAiGateStart(row) {
     if (typeof toast === 'function') toast(tourSay('ai.run.no_camp', 'Önce personel kartında kampanya seçin.'), 'err');
     return false;
   }
+  if (typeof callinDeskTrustOn === 'function' && callinDeskTrustOn()) return true;
   if (typeof mbAiCampsMissingSlots !== 'function') return true;
   const missing = await mbAiCampsMissingSlots(pool);
   if (!missing.length) return true;
@@ -637,6 +734,40 @@ function ariaOpenAiHist() {
   ariaOpenAiRun();
 }
 
+function ariaOpenQueue() {
+  ariaClosePop();
+  if (typeof navigate === 'function') navigate('tour');
+  setTimeout(() => { if (typeof callinTab === 'function') callinTab('auto'); }, 80);
+}
+
+function ariaOpenErrors() {
+  ariaClosePop();
+  if (typeof navigate === 'function') navigate('tour');
+  setTimeout(() => {
+    if (typeof callinTab === 'function') callinTab('auto');
+    document.getElementById('callin-desk')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
+}
+
+function ariaToggleSound() {
+  if (typeof callinDeskToggleSound === 'function') callinDeskToggleSound();
+  void ariaRefreshAi(true);
+}
+
+function ariaToggleTrust() {
+  if (typeof callinDeskToggleTrust === 'function') callinDeskToggleTrust();
+  void ariaRefreshAi(true);
+}
+
+function ariaAiCallNow(staffId) {
+  ariaClosePop();
+  if (typeof navigate === 'function') navigate('tour');
+  setTimeout(() => {
+    if (typeof callinTab === 'function') callinTab('run');
+    if (typeof mbAskRunCallNow === 'function') void mbAskRunCallNow(staffId || '');
+  }, 120);
+}
+
 function ariaFillPop() {
   const pop = document.getElementById('aria-pop');
   if (!pop) return;
@@ -644,6 +775,11 @@ function ariaFillPop() {
   const live = ariaLiveBits();
   const chips = [now.day, now.camp, now.slots].filter(Boolean);
   const earlier = ariaEarlier(now.line).slice(-3);
+  const qChip = ariaQueueChipHtml();
+  const { errs } = ariaAiTodayBits();
+  const errChip = errs
+    ? `<button type="button" class="aria-pop-chip is-err" onclick="ariaOpenErrors()">${tourEsc(tourSay('aria.ai.err_chip', '{n} hata · son 30 dk').replace('{n}', String(errs)))}</button>`
+    : '';
   pop.classList.toggle('is-off', live.pasif);
   pop.classList.toggle('is-live', !live.pasif);
   pop.classList.toggle('is-looking', live.looking);
@@ -663,7 +799,7 @@ function ariaFillPop() {
   <label class="aria-job${live.queue && !live.pasif ? ' is-doing' : ''}${live.queue ? '' : ' is-wait'}" title="${tourEsc(tourSay('aria.job.queue.tip', 'Açıkken kuyruğu doldurur. Kapalıyken kuyruğa kimse yazmaz.'))}"><input type="checkbox" ${live.queue ? 'checked' : ''} onchange="tourFlag('kuyrukYenile', this)"><span class="aria-job-copy"><b>${tourEsc(tourSay('aria.job.queue', 'Kuyruk'))}</b><small>${tourEsc(live.queueWord)}</small></span></label>
 </div>
 ${ariaWatchLine() ? `<p class="aria-pop-job">${tourEsc(ariaWatchLine())}</p>` : ''}
-${chips.length ? `<div class="aria-pop-chips">${chips.map((item) => `<span>${tourEsc(item)}</span>`).join('')}</div>` : ''}
+${chips.length || qChip || errChip ? `<div class="aria-pop-chips">${chips.map((item) => `<span>${tourEsc(item)}</span>`).join('')}${qChip}${errChip}</div>` : ''}
 ${now.queue ? `<div class="aria-pop-meta">${tourEsc(now.queue)}</div><div class="tour-fill"><span style="width:${now.pct}%"></span></div>` : ''}
 <div data-aria-ai>${ariaAiBlockHtml(_ariaAiSnap)}</div>
 ${earlier.length ? `<div class="aria-pop-earlier"><span>${tourEsc(tourSay('aria.earlier', 'Bugün daha önce'))}</span>${earlier.map((item) => `<p><b>${tourEsc(item.at)}</b> ${tourEsc(item.text)}</p>`).join('')}</div>` : ''}
@@ -690,7 +826,7 @@ function ariaOpenPop() {
       return;
     }
     void ariaRefreshAi(true);
-  }, 5000);
+  }, 2000);
 }
 
 function ariaClosePop() {
