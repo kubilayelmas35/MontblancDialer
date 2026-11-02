@@ -2187,49 +2187,15 @@ visibility: visible;
   cursor: pointer;
 }
 .tour-tab.is-on { background: var(--bg-2); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
-.callin-page-hdr { align-items: center; margin-bottom: 4px; }
-.callin-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
+.callin-page-hdr { align-items: center; margin-bottom: 8px; }
+.callin-page-logo {
+  margin-right: 0;
+  max-height: none;
+  width: max-content;
 }
-.callin-brand-orb {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  color: #fff;
-  background:
-    linear-gradient(145deg, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent-2)),
-    radial-gradient(circle at 30% 25%, rgba(255,255,255,.35), transparent 55%);
-  box-shadow:
-    0 8px 20px color-mix(in srgb, var(--accent) 35%, transparent),
-    inset 0 1px 0 rgba(255,255,255,.35);
-  animation: callinOrbPulse 2.8s ease-in-out infinite;
-}
-.callin-brand-orb .mb-ai-mark { width: 24px; height: 24px; }
-.callin-brand-title {
-  font-size: clamp(28px, 3.2vw, 36px);
-  font-weight: 900;
-  letter-spacing: -1.2px;
-  line-height: 1;
-  background: linear-gradient(115deg, var(--text) 10%, var(--accent) 55%, var(--accent-2) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: none;
-  filter: drop-shadow(0 1px 0 color-mix(in srgb, var(--accent) 18%, transparent));
-}
-@keyframes callinOrbPulse {
-  0%, 100% { transform: translateY(0); box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 32%, transparent), inset 0 1px 0 rgba(255,255,255,.35); }
-  50% { transform: translateY(-1px); box-shadow: 0 12px 26px color-mix(in srgb, var(--accent) 48%, transparent), inset 0 1px 0 rgba(255,255,255,.4); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .callin-brand-orb { animation: none; }
-}
+.callin-page-logo .tb-logo-inner { padding: 8px 14px 8px 10px; gap: 8px; }
+.callin-page-logo .tb-logo-name { font-size: 20px; letter-spacing: -0.5px; }
+.callin-page-logo .tb-logo-faces { max-width: none; }
 .callin-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 6px; padding: 4px; border-radius: 14px; background: var(--bg-3); width: max-content; max-width: 100%; }
 .callin-tab { border: 0; background: transparent; color: var(--text-2); font-size: 13px; font-weight: 700; line-height: 1; padding: 8px 14px; border-radius: 10px; cursor: pointer; }
 .callin-tab.is-on { background: var(--bg-2); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
