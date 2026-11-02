@@ -17,6 +17,16 @@ let _rdExtraCols = [];
 
 const _RD_CORE_SKIP = new Set(['name', 'phone', 'phone2', 'address', 'plz', 'city', 'attempt', 'notes']);
 
+function _rdIsHiddenExtraKey(key) {
+  const k = String(key || '').trim().toLowerCase();
+  if (!k) return true;
+  if (_RD_CORE_SKIP.has(k)) return true;
+  // Callin dahili meta / transcript — listede gösterme
+  if (k.startsWith('callin_') || k.startsWith('callin')) return true;
+  if (k.includes('transcript') || k.includes('recording') || k.includes('voice_url')) return true;
+  return false;
+}
+
 function _rdEsc(v) {
   return typeof escapeHtml === 'function' ? escapeHtml(v ?? '') : String(v ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -142,15 +152,14 @@ function _rdDiscoverExtraCols(rows) {
   Object.values(_rdCampById).forEach((camp) => {
     _rdFormList(camp).forEach((field) => {
       const key = String(field.key || '').trim();
-      if (!key || _RD_CORE_SKIP.has(key) || field.enabled === false) return;
+      if (!key || _rdIsHiddenExtraKey(key) || field.enabled === false) return;
       const label = String(field.label || field.l || key).trim() || key;
-      const prev = map.get(key);
-      if (!prev) map.set(key, label);
+      if (!map.has(key)) map.set(key, label);
     });
   });
   (rows || []).forEach((row) => {
     Object.keys(_rdEk(row.raw || row)).forEach((key) => {
-      if (!key || _RD_CORE_SKIP.has(key) || map.has(key)) return;
+      if (!key || _rdIsHiddenExtraKey(key) || map.has(key)) return;
       if (typeof TAKVIM_APPT_COL !== 'undefined' && TAKVIM_APPT_COL[key]) {
         map.set(key, key);
         return;
@@ -170,7 +179,7 @@ function _rdDiscoverExtraCols(rows) {
     ['interesse_an_pv', _rdSay('PV ilgisi', 'PV-Interesse')],
   ];
   std.forEach(([key, label]) => {
-    if (map.has(key)) return;
+    if (map.has(key) || _rdIsHiddenExtraKey(key)) return;
     const hit = (rows || []).some((r) => String(_rdFieldValue(r.raw || r, key) || '').trim());
     if (hit) map.set(key, label);
   });
