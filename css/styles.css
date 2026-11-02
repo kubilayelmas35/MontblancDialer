@@ -3024,6 +3024,7 @@ visibility: visible;
   color: var(--text);
 }
 .aria-ai-main b i { font-size: 14px; color: #4f46e5; }
+.aria-ai-main b .mb-ai-mark { width: 14px; height: 14px; margin-right: 2px; }
 .aria-ai-kind {
   display: inline-flex;
   width: fit-content;
