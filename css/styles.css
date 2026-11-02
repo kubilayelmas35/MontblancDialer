@@ -2187,7 +2187,13 @@ visibility: visible;
   cursor: pointer;
 }
 .tour-tab.is-on { background: var(--bg-2); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
-.callin-page-hdr { align-items: center; margin-bottom: 8px; }
+.callin-page-hdr {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
 .callin-page-logo {
   margin-right: 0;
   max-height: none;
@@ -2196,11 +2202,19 @@ visibility: visible;
 .callin-page-logo .tb-logo-inner { padding: 8px 14px 8px 10px; gap: 8px; }
 .callin-page-logo .tb-logo-name { font-size: 20px; letter-spacing: -0.5px; }
 .callin-page-logo .tb-logo-faces { max-width: none; }
-.callin-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 6px; padding: 4px; border-radius: 14px; background: var(--bg-3); width: max-content; max-width: 100%; }
+.callin-hdr-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  max-width: 52rem;
+}
+.callin-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 4px; border-radius: 14px; background: var(--bg-3); width: max-content; max-width: 100%; }
 .callin-tab { border: 0; background: transparent; color: var(--text-2); font-size: 13px; font-weight: 700; line-height: 1; padding: 8px 14px; border-radius: 10px; cursor: pointer; }
 .callin-tab.is-on { background: var(--bg-2); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
 .callin-tab-desc {
-  margin: 0 0 14px;
+  margin: 0;
   max-width: 52rem;
   font-size: 12px;
   line-height: 1.45;
