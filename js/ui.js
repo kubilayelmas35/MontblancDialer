@@ -202,6 +202,7 @@ const _NAVIGATE_LOADERS = {
   stats: () => { _mbPageFn('initStatsFilters')?.(); _mbPageFn('loadStats')?.(); },
   callhistory: () => { _mbPageFn('initCallHistoryFilters')?.(); _mbPageFn('loadCallHistory')?.(); },
   export: () => { _mbPageFn('loadExportTerminPage')?.(); },
+  randevular: () => { _mbPageFn('loadRandevularPage')?.(); },
   performance: () => { _mbPageFn('loadPerformancePage')?.(); },
   dialer: () => {
     _mbPageFn('initDialer')?.();

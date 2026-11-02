@@ -336,6 +336,10 @@
 <svg class="sb-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
 </button>
 <div class="sb-sub">
+<button class="sb-item" onclick="navigate('randevular')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg></span>
+<span data-tr="Randevular" data-de="Termine">Randevular</span>
+</button>
 <button class="sb-item" onclick="navigate('qc')">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
 <span data-tr="Kalite kontrol" data-de="Qualitätskontrolle">Kalite kontrol</span>
@@ -2217,6 +2221,70 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </tr></thead>
 <tbody id="wv-tbody">
 <tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">Yükleniyor...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="page" id="page-randevular">
+<style>
+#page-randevular .rd-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+#page-randevular .rd-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px;}
+#page-randevular .rd-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--bg-2);color:var(--text-2);border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;line-height:1.2;}
+#page-randevular .rd-chip.is-on{background:var(--rd-chip,var(--accent));color:#fff;border-color:transparent;}
+#page-randevular .rd-chip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+#page-randevular .rd-chip-n{font-size:10px;background:var(--border);color:var(--text);border-radius:8px;padding:0 5px;}
+#page-randevular .rd-chip.is-on .rd-chip-n{background:rgba(255,255,255,.25);color:#fff;}
+#page-randevular .rd-filter{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;padding:10px 12px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius);}
+#page-randevular .rd-status{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid;font-size:11px;font-weight:700;white-space:nowrap;}
+#page-randevular .rd-row{cursor:pointer;}
+#page-randevular .rd-row:hover td{background:var(--bg-3);}
+#page-randevular .rd-loading{position:absolute;inset:0;background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;z-index:5;border-radius:var(--radius);}
+#page-randevular .rd-loading[hidden]{display:none!important;}
+#page-randevular .rd-table-card{position:relative;padding:0;overflow:hidden;}
+#page-randevular .td-mono{font-variant-numeric:tabular-nums;font-family:var(--mono,ui-monospace,monospace);font-size:11px;}
+</style>
+<div class="page-hdr">
+<div>
+<div class="page-title" data-tr="Randevular" data-de="Termine">Randevular</div>
+<div class="page-sub" data-tr="Tüm randevular — durum, temsilci ve saha" data-de="Alle Termine — Status, Mitarbeiter und Feld">Tüm randevular — durum, temsilci ve saha</div>
+</div>
+<div class="rd-tools">
+<div id="rd-firm-wrap"></div>
+<span class="badge" style="background:var(--accent);color:#fff;"><span id="rd-count">0</span> <span data-tr="kayıt" data-de="Einträge">kayıt</span></span>
+<button type="button" class="btn btn-ghost btn-sm" onclick="rdToggleFilterBar()"><i class="ph ph-magnifying-glass"></i> <span data-tr="Filtrele" data-de="Filtern">Filtrele</span></button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="rdExportCsv()"><i class="ph ph-download-simple"></i> <span data-tr="İndir" data-de="Export">İndir</span></button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="navigate('takvim')"><i class="ph ph-calendar-blank"></i> <span data-tr="Takvim" data-de="Kalender">Takvim</span></button>
+<button type="button" class="btn btn-primary btn-sm" onclick="loadRandevularPage()"><i class="ph ph-arrow-clockwise"></i> <span data-tr="Yenile" data-de="Aktualisieren">Yenile</span></button>
+</div>
+</div>
+<div id="rd-filter-bar" class="rd-filter" hidden>
+<div><label class="form-label" style="font-size:10px;" data-tr="Başlangıç" data-de="Von">Başlangıç</label><input type="date" class="form-input" id="rd-date-from" onchange="loadRandevularPage()"></div>
+<div><label class="form-label" style="font-size:10px;" data-tr="Bitiş" data-de="Bis">Bitiş</label><input type="date" class="form-input" id="rd-date-to" onchange="loadRandevularPage()"></div>
+<div style="flex:1;min-width:200px;"><label class="form-label" style="font-size:10px;" data-tr="Ara" data-de="Suche">Ara</label><input type="search" class="form-input" id="rd-search" data-tr="İsim, numara, PLZ, temsilci…" data-de="Name, Nummer, PLZ, Mitarbeiter…" placeholder="İsim, numara, PLZ, temsilci…" oninput="rdSetSearch(this.value)"></div>
+</div>
+<div id="rd-status-chips" class="rd-chips"></div>
+<div class="card rd-table-card">
+<div id="rd-loading" class="rd-loading" hidden><div class="card" style="padding:18px 24px;font-weight:700;">…</div></div>
+<div class="tbl-wrap">
+<table style="min-width:1100px;">
+<thead><tr>
+<th onclick="rdSortBy('id')" style="cursor:pointer;">ID</th>
+<th onclick="rdSortBy('name')" style="cursor:pointer;" data-tr="Ad Soyad" data-de="Name">Ad Soyad</th>
+<th onclick="rdSortBy('phone')" style="cursor:pointer;" data-tr="Numara" data-de="Nummer">Numara</th>
+<th data-tr="Cadde" data-de="Straße">Cadde</th>
+<th onclick="rdSortBy('plz')" style="cursor:pointer;" data-tr="PLZ" data-de="PLZ">PLZ</th>
+<th data-tr="Şehir" data-de="Ort">Şehir</th>
+<th data-tr="Kampanya" data-de="Kampagne">Kampanya</th>
+<th data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</th>
+<th data-tr="Saha" data-de="Feld">Saha</th>
+<th data-tr="Durum" data-de="Status">Durum</th>
+<th onclick="rdSortBy('termin')" style="cursor:pointer;" data-tr="Randevu" data-de="Termin">Randevu</th>
+<th onclick="rdSortBy('created')" style="cursor:pointer;" data-tr="Kayıt" data-de="Erfasst">Kayıt</th>
+<th></th>
+</tr></thead>
+<tbody id="rd-tbody">
+<tr><td colspan="13" style="text-align:center;padding:36px;color:var(--text-3);" data-tr="Yükleniyor..." data-de="Wird geladen...">Yükleniyor...</td></tr>
 </tbody>
 </table>
 </div>

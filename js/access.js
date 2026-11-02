@@ -22,6 +22,7 @@ const MB_PAGES = [
   { key: 'firmdesk', label: 'Yönetim', roles: ['super_admin', 'admin', 'firm_admin'], inPerms: false },
   { key: 'settings', label: 'Ayarlar', roles: ['super_admin', 'admin', 'firm_admin', 'agent'] },
   { key: 'takvim', label: 'Takvim', roles: ['super_admin', 'admin', 'firm_admin', 'agent'] },
+  { key: 'randevular', label: 'Randevular', roles: ['super_admin', 'admin', 'firm_admin', 'qc'] },
   { key: 'qc', label: 'Kalite kontrol', roles: ['super_admin', 'admin', 'firm_admin', 'qc'] },
   { key: 'wiedervorlage', label: 'Aranacaklar', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc'] },
   { key: 'dialer', label: 'Dialer', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc'] },
