@@ -306,8 +306,22 @@ function mbAiSalesStaffAll(firmId, campaignId) {
   });
 }
 
+function mbAiSalesStaffPickList(firmId, campaignId) {
+  const list = (window._aiStaffByFirm?.[firmId] || []).filter((row) => row.kind !== 'qc');
+  const camp = String(campaignId || '');
+  if (!camp || !list.length) return list;
+  const matched = [];
+  const rest = [];
+  for (const row of list) {
+    const ids = mbAiCampIds(row);
+    if (!ids.length || ids.includes(camp)) matched.push(row);
+    else rest.push(row);
+  }
+  return matched.length ? matched.concat(rest) : list;
+}
+
 function mbAiSalesStaffFor(firmId, campaignId) {
-  return mbAiSalesStaffAll(firmId, campaignId)[0] || null;
+  return mbAiSalesStaffPickList(firmId, campaignId)[0] || mbAiSalesStaffAll(firmId, campaignId)[0] || null;
 }
 
 function mbDialerCallinFirmId() {
@@ -330,7 +344,7 @@ function mbDialerCallinEligible() {
   if (!firmId) return false;
   const settings = window._aiFirmSettings?.[firmId];
   if (!settings || !mbAiFirmReady(settings)) return false;
-  return mbAiSalesStaffAll(firmId, contact.campaign_id || '').length > 0;
+  return mbAiSalesStaffPickList(firmId, contact.campaign_id || '').length > 0;
 }
 
 function mbPaintDialerCallin(forceOff) {
@@ -365,7 +379,7 @@ function mbAskDialerCallin() {
   if (window._dialerCallinBusy) return;
   const contact = typeof currentContact !== 'undefined' ? currentContact : null;
   const firmId = mbDialerCallinFirmId();
-  const all = contact ? mbAiSalesStaffAll(firmId, contact.campaign_id || '') : [];
+  const all = contact ? mbAiSalesStaffPickList(firmId, contact.campaign_id || '') : [];
   const staff = all[0] || null;
   if (!contact?.id || !staff) {
     if (typeof toast === 'function') toast(mbAiSay('dial.callin.none', 'Bu kampanya için randevu personeli yok'), 'warn');
@@ -379,13 +393,21 @@ function mbAskDialerCallin() {
   document.getElementById('ai-callin-pop')?.remove();
   const name = typeof ariaName === 'function' ? ariaName() : 'Callin';
   const who = [contact.first_name, contact.last_name].map((part) => String(part || '').trim()).filter(Boolean).join(' ') || contact.phone || '—';
+  const camp = String(contact.campaign_id || '');
+  const staffOpts = all.map((item) => {
+    const ids = mbAiCampIds(item);
+    const fit = !camp || !ids.length || ids.includes(camp);
+    const tag = fit ? '' : ` · ${mbAiSay('dial.callin.other_camp', 'başka kampanya')}`;
+    return `<option value="${mbAiEsc(item.id)}">${mbAiEsc(item.name || mbAiSay('ai.staff.sales', 'Randevu'))} · ${mbAiEsc(mbAiStaffEngineLabel(item))}${mbAiEsc(tag)}</option>`;
+  }).join('');
   const pop = document.createElement('div');
   pop.id = 'ai-callin-pop';
   pop.className = 'ai-callin';
   pop.innerHTML = `<div class="ai-callin-card" role="dialog" aria-modal="true">
     <div style="font-weight:800;">${mbAiEsc(mbAiSay('dial.callin.ask', '{name}, {who} kişisini arasın mı?').replace('{name}', name).replace('{who}', who))}</div>
     <div style="font-size:12px;color:var(--text-3);line-height:1.45;">${mbAiEsc(mbAiSay('dial.callin.hint', 'İstersen kısa bir not yaz. Onaylayınca Callin bu kişiyi arar; senin hattın meşgul olmaz.'))}</div>
-    ${all.length > 1 ? `<select id="ai-callin-staff" class="form-input">${all.map((item) => `<option value="${mbAiEsc(item.id)}">${mbAiEsc(item.name || mbAiSay('ai.staff.sales', 'Randevu'))} · ${mbAiEsc(mbAiStaffEngineLabel(item))}</option>`).join('')}</select>` : ''}
+    <label class="form-label" for="ai-callin-staff" style="margin:0;">${mbAiEsc(mbAiSay('dial.callin.staff', 'Hangi agent arasın'))}</label>
+    <select id="ai-callin-staff" class="form-input" ${all.length < 2 ? 'disabled' : ''}>${staffOpts}</select>
     <textarea id="ai-callin-note" class="form-input" rows="3" maxlength="800" placeholder="${mbAiEsc(mbAiSay('dial.callin.note_ph', 'Opsiyonel not…'))}"></textarea>
     <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
       <button type="button" class="btn btn-ghost btn-sm" onclick="qcCloseCallin()">${mbAiEsc(mbAiSay('qc.callin.cancel', 'Vazgeç'))}</button>
