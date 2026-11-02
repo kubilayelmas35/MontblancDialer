@@ -2361,9 +2361,12 @@ visibility: visible;
 .mb-ai-mark.is-blink .mb-ai-mark-r {
   transform-box: fill-box;
   transform-origin: center;
-  animation: mbLogoBlink var(--logo-blink, 5.4s) ease-in-out infinite;
+  animation-name: mbLogoBlink;
+  animation-duration: var(--logo-blink, 5.4s);
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-delay: 0s;
 }
-.mb-ai-mark.is-blink .mb-ai-mark-r { animation-name: mbLogoBlinkAlt; }
 @media (prefers-reduced-motion: reduce) {
   .mb-ai-mark.is-blink .mb-ai-mark-l,
   .mb-ai-mark.is-blink .mb-ai-mark-r { animation: none; }

@@ -116,23 +116,20 @@ function mbFitLiveNames(root) {
   });
 }
 
-/** Tüm AI göz kırpmalarını aynı anda hizala (sol üst logo ile de). */
+/** Sol+sağ göz ve tüm AI markaları aynı anda kırsın. */
 function mbAiMarkLockBlink(root) {
   const scope = root || document;
   const anims = [];
-  scope.querySelectorAll('.mb-ai-mark.is-blink .mb-ai-mark-l, .mb-ai-mark.is-blink .mb-ai-mark-r').forEach((el) => {
+  const pick = (el) => {
     el.getAnimations().forEach((anim) => {
       if (anim.animationName === 'mbLogoBlink' || anim.animationName === 'mbLogoBlinkAlt') anims.push(anim);
     });
-  });
-  document.querySelectorAll('.tb-logo.is-blink .tb-logo-eye').forEach((el) => {
-    el.getAnimations().forEach((anim) => {
-      if (anim.animationName === 'mbLogoBlink' || anim.animationName === 'mbLogoBlinkAlt') anims.push(anim);
-    });
-  });
-  if (anims.length < 2) return;
-  const start = anims.find((a) => a.startTime != null)?.startTime;
-  if (start == null) return;
+  };
+  scope.querySelectorAll('.mb-ai-mark.is-blink .mb-ai-mark-l, .mb-ai-mark.is-blink .mb-ai-mark-r').forEach(pick);
+  document.querySelectorAll('.tb-logo.is-blink .tb-logo-eye').forEach(pick);
+  if (!anims.length) return;
+  let start = anims.find((a) => a.startTime != null)?.startTime;
+  if (start == null) start = document.timeline?.currentTime ?? 0;
   anims.forEach((anim) => { anim.startTime = start; });
 }
 
@@ -140,7 +137,10 @@ function mbAfterLivePaint(root) {
   const host = root || document;
   requestAnimationFrame(() => {
     if (typeof mbFitLiveNames === 'function') mbFitLiveNames(host);
-    requestAnimationFrame(() => mbAiMarkLockBlink(host));
+    requestAnimationFrame(() => {
+      mbAiMarkLockBlink(host);
+      setTimeout(() => mbAiMarkLockBlink(host), 40);
+    });
   });
 }
 try {
