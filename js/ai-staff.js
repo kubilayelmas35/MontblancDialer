@@ -3210,6 +3210,8 @@ async function mbAiSetRunning(staffId, on, firmId) {
       if (uid) hit.user_id = uid;
     }
     hit.running = !!on;
+    if (on) mbAiClearStopWhy(staffId);
+    else if (!mbAiStopWhyMap()[String(staffId)]) mbAiSetStopWhy(staffId, 'manual');
     settings.ai_staff = list.map((row) => String(row.id) === String(staffId) ? mbAiStaffNorm(hit) : row).filter(Boolean);
     await sb(`firms?id=eq.${fid}`, {
       method: 'PATCH',
@@ -3222,9 +3224,11 @@ async function mbAiSetRunning(staffId, on, firmId) {
     window._aiFirmSettings[fid] = settings;
     window._aiStaffCacheAt = window._aiStaffCacheAt || {};
     window._aiStaffCacheAt[fid] = Date.now();
-    if (_aiDesk && String(_aiDesk.firms?.[0]?.id || _aiFirmId) === String(fid)) {
+    if (_aiDesk && String(_aiFirmId) === String(fid)) {
       _aiDesk.settings = settings;
-      _aiDesk.staff = mbAiStaffList(settings);
+      const deskRow = (_aiDesk.staff || []).find((row) => String(row.id) === String(staffId));
+      if (deskRow) deskRow.running = !!on;
+      else _aiDesk.staff = mbAiStaffList(settings);
       if (_aiDesk.view === 'run') mbPaintAiRun();
     }
     const staff = (window._aiStaffByFirm[fid] || []).find((row) => String(row.id) === String(staffId));
@@ -3266,9 +3270,21 @@ async function mbAiLiveSnapshot(firmId) {
       phase,
       who: live[0]?.name || sess?.current_contact_name || '',
       phone: live[0]?.phone || sess?.current_contact_phone || '',
+      stopWhy: !row.running ? mbAiStopWhyLabel(row.id) : '',
     };
   });
-  return { firmId: fid, staff: rows, talking, ringing, running };
+  const talker = rows.find((row) => row.phase === 'talking' || row.sess?.status === 'on_call')
+    || rows.find((row) => row.phase === 'ringing')
+    || null;
+  return {
+    firmId: fid,
+    staff: rows,
+    talking,
+    ringing,
+    running,
+    talkWho: talker?.who || '',
+    talkStaff: talker?.name || '',
+  };
 }
 
 function qcCallinButton(row) {

@@ -1039,6 +1039,7 @@ async function callinDeskStopAll() {
 try {
   window.callinDeskPushError = callinDeskPushError;
   window.callinDeskRefresh = callinDeskRefresh;
+  window.callinDeskLoadStats = callinDeskLoadStats;
   window.callinDeskStart = callinDeskStart;
   window.callinDeskGoLive = callinDeskGoLive;
   window.callinDeskClearErrors = callinDeskClearErrors;
