@@ -1135,6 +1135,12 @@ function mbApplyTypeDeviceVars(devicePrefs) {
 function mbApplyTypePrefs(prefs) {
   const all = prefs || mbReadTypePrefs();
   mbApplyTypeDeviceVars(mbActiveTypeDevice(all));
+  // Üst çubuk zoom CSS `zoom` ile değişir; ResizeObserver tetiklenmeyebilir — maskotu yeniden hizala.
+  const dock = () => {
+    if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
+  };
+  dock();
+  requestAnimationFrame(() => requestAnimationFrame(dock));
 }
 
 function mbPaintTypeDeviceToggle() {

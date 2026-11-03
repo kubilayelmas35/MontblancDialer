@@ -1729,8 +1729,9 @@ button.tb-pill.pill-camp.is-wrong .tb-pill-val { color: inherit; }
 }
 .global-mascot.global-mascot--topbar .cust-empty-mascot {
   animation: none;
+  /* Üst çubuk typography zoom (#topbar { zoom }) maskota yansımaz; aynı oranı elle uygula. */
   transform: translate(calc(-50% + var(--gm-wx, 0px)), calc(-50% + var(--gm-wy, 0px)))
-    scale(calc(var(--mascot-scale, 1) * 0.62));
+    scale(calc(var(--mascot-scale, 1) * 0.62 * var(--mb-type-topbar-zoom, 1)));
 }
 #sidebar.collapsed .sb-mascot-anchor {
   left: 50%;
