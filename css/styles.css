@@ -2046,11 +2046,18 @@ box-shadow: 4px 0 24px rgba(0,0,0,0.15);
   left: 0;
   width: 100%;
   min-height: 28px;
-  border-radius: 99px;
+  /* Üstte düz (mor kenarla birleşsin), altta yuvarlak */
+  border-radius: 0 0 99px 99px;
   background: var(--mb-sb-scroll-a, #c8c8d8);
   cursor: grab;
   pointer-events: auto;
   box-sizing: border-box;
+}
+#sidebar .sb-scroll-thumb.is-mid {
+  border-radius: 99px;
+}
+#sidebar .sb-scroll-thumb.is-end {
+  border-radius: 99px 99px 0 0;
 }
 /* Sağa yapışık kapalıysa thumb biraz içeride */
 #sidebar:not(.mb-sb-scroll-flush) .sb-scroll-thumb {

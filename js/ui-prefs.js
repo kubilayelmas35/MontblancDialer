@@ -456,10 +456,11 @@ function mbSyncSbScrollRail() {
   }
   const sbRect = sidebar.getBoundingClientRect();
   const scRect = sc.getBoundingClientRect();
-  /* Üst/alt 4px iç boşluk: overflow:hidden radius'u kesmesin (topbar altına girme hissi) */
-  const edge = 4;
-  const top = Math.max(0, Math.round(scRect.top - sbRect.top)) + edge;
-  const height = Math.max(0, Math.round(scRect.height) - edge * 2);
+  /* Üst: mor alanın tam başlangıcı (boşluksuz). Alt: 1px nefes. */
+  const edgeTop = 0;
+  const edgeBottom = 1;
+  const top = Math.max(0, Math.round(scRect.top - sbRect.top)) + edgeTop;
+  const height = Math.max(0, Math.round(scRect.height) - edgeTop - edgeBottom);
   rail.style.top = `${top}px`;
   rail.style.height = `${height}px`;
   rail.style.right = '0px';
@@ -471,6 +472,9 @@ function mbSyncSbScrollRail() {
   const thumbTop = Math.round((sc.scrollTop / maxScroll) * maxTop);
   thumb.style.height = `${thumbH}px`;
   thumb.style.top = `${thumbTop}px`;
+  thumb.classList.toggle('is-mid', thumbTop > 0 && thumbTop < maxTop);
+  thumb.classList.toggle('is-end', maxTop > 0 && thumbTop >= maxTop);
+  if (thumbTop <= 0) thumb.classList.remove('is-mid', 'is-end');
 }
 
 function mbBindSbScrollRail() {
