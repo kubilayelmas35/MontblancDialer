@@ -1919,9 +1919,8 @@ transition: width var(--transition), min-width var(--transition), transform var(
 box-shadow: 4px 0 24px rgba(0,0,0,0.15);
 }
 .sidebar-scroll {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-height: 0;
-  max-height: calc(100% - 96px);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -2085,17 +2084,28 @@ border-radius: 10px; font-family: var(--mono);
   position: relative;
   margin-top: 0;
   flex: 0 0 auto;
-  padding: 8px 12px 8px;
+  padding: 10px 12px 10px;
   border-top: 1px solid rgba(255,255,255,0.08);
   min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: flex-start;
-  gap: 6px;
+  justify-content: flex-end;
+  gap: 8px;
 }
-.sb-foot-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; width: 100%; }
-.sb-nav-search-wrap { position: relative; width: 100%; }
+.sb-foot-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+}
+.sb-nav-search-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+}
 .sb-nav-search {
   width: 100%;
   border: 1px solid rgba(255,255,255,0.16);
@@ -2137,7 +2147,15 @@ border-radius: 10px; font-family: var(--mono);
 #sidebar.collapsed .sb-nav-empty,
 #sidebar.collapsed .sb-nav-kbd,
 #sidebar.collapsed .sb-person-pop { display: none !important; }
-.sb-ver { font-size: 10px; color: rgba(255,255,255,0.68); font-family: var(--mono); }
+.sb-ver {
+  font-size: 10px;
+  color: rgba(255,255,255,0.68);
+  font-family: var(--mono);
+  width: 100%;
+  text-align: center;
+  margin-top: 2px;
+  padding-bottom: 2px;
+}
 /* Sidebar header logo */
 /* Sidebar içinde tb-logo olursa (koyu zemin) */
 #sidebar .tb-logo-name { color: var(--brand-chrome-fg) !important; }
