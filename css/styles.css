@@ -174,7 +174,7 @@ SHARED TOKENS
 --sb-aur-spin-rev: 31s;
 --sb-aur-op-before: 0.74;
 --sb-aur-op-after: 0.62;
-/* Dialer sahne + aurora — varsayılan = mevcut görünüm */
+/* Dialer arka plan (sabit) + aurora (hareketli) — varsayılan = mevcut görünüm */
 --dial-stage-1: #fce7f3;
 --dial-stage-2: #bae6fd;
 --dial-stage-3: #ddd6fe;
@@ -212,6 +212,10 @@ SHARED TOKENS
 --transition:   0.18s cubic-bezier(0.4,0,0.2,1);
 --font:         'Plus Jakarta Sans', sans-serif;
 --mono:         'JetBrains Mono', monospace;
+--mb-type-menu-zoom: 1;
+--mb-type-topbar-zoom: 1;
+--mb-type-main-zoom: 1;
+--mb-type-cal-zoom: 1;
 }
 /* ============================================================
 RESET
@@ -274,6 +278,8 @@ flex-shrink: 0;
 width: 100%;
 min-width: 0;
 max-width: 100%;
+font-family: var(--mb-type-topbar-font, var(--font));
+zoom: var(--mb-type-topbar-zoom, 1);
 }
 #topbar::-webkit-scrollbar {
   height: 0;
@@ -2018,6 +2024,8 @@ display: flex; flex-direction: column;
 overflow: hidden;
 z-index: 90;
 position: relative;
+font-family: var(--mb-type-menu-font, var(--font));
+zoom: var(--mb-type-menu-zoom, 1);
 transition: width var(--transition), min-width var(--transition), transform var(--transition);
 box-shadow: 4px 0 24px rgba(0,0,0,0.15);
 }
@@ -2346,6 +2354,15 @@ min-width: 0;
 overflow: hidden;
 position: relative;
 display: flex; flex-direction: column;
+}
+#main > .page:not(#page-takvim) {
+  font-family: var(--mb-type-main-font, var(--font));
+  zoom: var(--mb-type-main-zoom, 1);
+}
+#page-takvim,
+#takvim-popup-overlay .takvim-fs-panel {
+  font-family: var(--mb-type-cal-font, var(--font));
+  zoom: var(--mb-type-cal-zoom, 1);
 }
 @media (max-width: 1024px) { #main { padding: 0; min-width: 0; } }
 /* ============================================================

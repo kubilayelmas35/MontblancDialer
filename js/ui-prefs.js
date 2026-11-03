@@ -63,6 +63,7 @@ function mbCollectUiPrefs() {
   prefs.sb_scroll = mbReadSbScrollPrefs();
   prefs.sb_aurora = mbReadSbAuroraPrefs();
   prefs.dial_aurora = mbReadDialAuroraPrefs();
+  prefs.type = mbReadTypePrefs();
   const ex = typeof mbExportLayoutsForPrefs === 'function' ? mbExportLayoutsForPrefs() : null;
   if (ex) {
     prefs.export_layouts = ex.layouts;
@@ -165,6 +166,9 @@ function mbApplyUiPrefs(remote) {
     }
     if (remote.dial_aurora && typeof remote.dial_aurora === 'object') {
       mbAdoptDialAuroraPrefs(remote.dial_aurora);
+    }
+    if (remote.type && typeof remote.type === 'object') {
+      mbAdoptTypePrefs(remote.type);
     }
     if (typeof mbAdoptExportLayouts === 'function') {
       mbAdoptExportLayouts(remote.export_layouts, remote.export_layout_active);
@@ -998,6 +1002,128 @@ function mbResetDialAurora(skipSave) {
   mbStoreDialAuroraPrefs(MB_DIAL_AURORA_DEF, skipSave);
 }
 
+/* ── Yazı boyutu / tipi (menü, topbar, iç ekran, takvim) ── */
+const MB_TYPE_ZONES = ['menu', 'topbar', 'main', 'cal'];
+const MB_TYPE_FONT_KEYS = ['default', 'jakarta', 'system', 'arial', 'verdana', 'georgia', 'mono'];
+const MB_TYPE_FONTS = {
+  default: '',
+  jakarta: "'Plus Jakarta Sans', sans-serif",
+  system: "system-ui, 'Segoe UI', sans-serif",
+  arial: 'Arial, Helvetica, sans-serif',
+  verdana: 'Verdana, Geneva, sans-serif',
+  georgia: 'Georgia, "Times New Roman", serif',
+  mono: "'JetBrains Mono', monospace",
+};
+const MB_TYPE_ZONE_DEF = { size: 100, font: 'default' };
+
+function mbTypeZoneDef() {
+  return { size: MB_TYPE_ZONE_DEF.size, font: MB_TYPE_ZONE_DEF.font };
+}
+
+function mbTypePrefsDef() {
+  const out = {};
+  MB_TYPE_ZONES.forEach((z) => { out[z] = mbTypeZoneDef(); });
+  return out;
+}
+
+function mbSanitizeTypeSize(raw) {
+  const n = Math.round(Number(raw));
+  if (!Number.isFinite(n)) return 100;
+  const stepped = Math.round(n / 5) * 5;
+  return Math.max(85, Math.min(140, stepped));
+}
+
+function mbSanitizeTypeZone(raw) {
+  const out = mbTypeZoneDef();
+  if (!raw || typeof raw !== 'object') return out;
+  out.size = mbSanitizeTypeSize(raw.size);
+  out.font = MB_TYPE_FONT_KEYS.includes(raw.font) ? raw.font : 'default';
+  return out;
+}
+
+function mbSanitizeTypePrefs(raw) {
+  const out = mbTypePrefsDef();
+  if (!raw || typeof raw !== 'object') return out;
+  MB_TYPE_ZONES.forEach((z) => {
+    out[z] = mbSanitizeTypeZone(raw[z]);
+  });
+  return out;
+}
+
+function mbReadTypePrefs() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('mb-type') || 'null');
+    return mbSanitizeTypePrefs(raw);
+  } catch (_) {
+    return mbTypePrefsDef();
+  }
+}
+
+function mbStoreTypePrefs(prefs, skipSave) {
+  const clean = mbSanitizeTypePrefs(prefs);
+  try {
+    localStorage.setItem('mb-type', JSON.stringify(clean));
+  } catch (_) {}
+  mbApplyTypePrefs(clean);
+  mbPaintTypeForm(clean);
+  if (!skipSave && !_mbPrefsApplying && typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+function mbAdoptTypePrefs(raw) {
+  mbStoreTypePrefs(raw, true);
+}
+
+function mbApplyTypePrefs(prefs) {
+  const p = prefs || mbReadTypePrefs();
+  const root = document.documentElement;
+  MB_TYPE_ZONES.forEach((z) => {
+    const row = p[z] || mbTypeZoneDef();
+    const scale = mbSanitizeTypeSize(row.size) / 100;
+    const fontKey = MB_TYPE_FONT_KEYS.includes(row.font) ? row.font : 'default';
+    const fontVal = MB_TYPE_FONTS[fontKey] || '';
+    if (scale === 1) root.style.removeProperty(`--mb-type-${z}-zoom`);
+    else root.style.setProperty(`--mb-type-${z}-zoom`, String(scale));
+    if (!fontVal) root.style.removeProperty(`--mb-type-${z}-font`);
+    else root.style.setProperty(`--mb-type-${z}-font`, fontVal);
+  });
+}
+
+function mbPaintTypeForm(prefs) {
+  const p = prefs || mbReadTypePrefs();
+  MB_TYPE_ZONES.forEach((z) => {
+    const row = p[z] || mbTypeZoneDef();
+    const elS = document.getElementById(`type-${z}-size`);
+    const elL = document.getElementById(`type-${z}-size-lbl`);
+    const elF = document.getElementById(`type-${z}-font`);
+    if (elS) elS.value = String(row.size);
+    if (elL) elL.textContent = `${row.size}%`;
+    if (elF) elF.value = row.font;
+  });
+  mbApplyTypePrefs(p);
+}
+
+function mbSetTypeField(zone, field, value) {
+  if (!MB_TYPE_ZONES.includes(zone)) return;
+  const next = mbReadTypePrefs();
+  const row = Object.assign({}, next[zone] || mbTypeZoneDef());
+  if (field === 'size') row.size = mbSanitizeTypeSize(value);
+  else if (field === 'font') row.font = MB_TYPE_FONT_KEYS.includes(value) ? value : 'default';
+  else return;
+  next[zone] = row;
+  mbStoreTypePrefs(next);
+}
+
+function mbResetTypeZone(zone, skipSave) {
+  if (!MB_TYPE_ZONES.includes(zone)) return;
+  const next = mbReadTypePrefs();
+  next[zone] = mbTypeZoneDef();
+  mbStoreTypePrefs(next, skipSave);
+}
+
+function mbResetTypePrefs(skipSave) {
+  mbStoreTypePrefs(mbTypePrefsDef(), skipSave);
+}
+
 try {
   window.mbSetSbAuroraField = mbSetSbAuroraField;
   window.mbResetSbAurora = mbResetSbAurora;
@@ -1006,7 +1132,13 @@ try {
   window.mbResetDialAurora = mbResetDialAurora;
   window.mbPaintDialAuroraForm = mbPaintDialAuroraForm;
   window.mbApplyDialAuroraPrefs = mbApplyDialAuroraPrefs;
+  window.mbSetTypeField = mbSetTypeField;
+  window.mbResetTypeZone = mbResetTypeZone;
+  window.mbResetTypePrefs = mbResetTypePrefs;
+  window.mbPaintTypeForm = mbPaintTypeForm;
+  window.mbApplyTypePrefs = mbApplyTypePrefs;
 } catch (_) {}
 
 mbPaintSbAuroraForm();
 mbPaintDialAuroraForm();
+mbPaintTypeForm();

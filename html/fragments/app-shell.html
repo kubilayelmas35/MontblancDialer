@@ -3524,7 +3524,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Dialer aurora" data-de="Dialer-Aurora">Dialer aurora</label>
-<p class="live-grad-hint" data-tr="Arama ekranındaki sahne gradienti ve aurora. Varsayılan şu anki görünüm." data-de="Bühnenverlauf und Aurora im Dialer. Standard ist die aktuelle Optik.">Arama ekranındaki sahne gradienti ve aurora. Varsayılan şu anki görünüm.</p>
+<p class="live-grad-hint" data-tr="Arama ekranındaki boş kart: sabit arka plan renkleri + üstteki hareketli aurora. Varsayılan şu anki görünüm." data-de="Leere Dialer-Karte: ruhiger Hintergrund + bewegte Aurora darüber. Standard ist die aktuelle Optik.">Arama ekranındaki boş kart: sabit arka plan renkleri + üstteki hareketli aurora. Varsayılan şu anki görünüm.</p>
 <div id="dial-aurora-preview" style="height:36px;border-radius:10px;border:1px solid var(--border);margin-top:8px;"></div>
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;">
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="dial-aurora-on" checked onchange="mbSetDialAuroraField('on', this.checked)"> <span data-tr="Aurora açık" data-de="Aurora an">Aurora açık</span></label>
@@ -3538,13 +3538,14 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </label>
 <button type="button" class="btn btn-ghost btn-sm" onclick="mbResetDialAurora()" data-tr="Varsayılan" data-de="Standard">Varsayılan</button>
 </div>
-<div style="margin-top:10px;font-size:11px;color:var(--text-3);" data-tr="Sahne" data-de="Bühne">Sahne</div>
+<div style="margin-top:10px;font-size:11px;color:var(--text-3);" data-tr="Arka plan (sabit)" data-de="Hintergrund (ruhig)">Arka plan (sabit)</div>
+<p class="live-grad-hint" style="margin-top:4px;" data-tr="Boş arama kartının yumuşak zemin renkleri — hareket etmez. Aurora bunların üstünde akar." data-de="Weiche Bodenfarben der leeren Anrufkarte — ohne Bewegung. Aurora fließt darüber.">Boş arama kartının yumuşak zemin renkleri — hareket etmez. Aurora bunların üstünde akar.</p>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;align-items:center;">
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>1</span><input type="color" id="dial-aurora-s1" value="#fce7f3" oninput="mbSetDialAuroraField('s1', this.value)"></label>
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>2</span><input type="color" id="dial-aurora-s2" value="#bae6fd" oninput="mbSetDialAuroraField('s2', this.value)"></label>
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>3</span><input type="color" id="dial-aurora-s3" value="#ddd6fe" oninput="mbSetDialAuroraField('s3', this.value)"></label>
 </div>
-<div style="margin-top:10px;font-size:11px;color:var(--text-3);">Aurora</div>
+<div style="margin-top:10px;font-size:11px;color:var(--text-3);" data-tr="Aurora (hareketli)" data-de="Aurora (bewegt)">Aurora (hareketli)</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;align-items:center;">
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>1</span><input type="color" id="dial-aurora-a1" value="#f472b6" oninput="mbSetDialAuroraField('a1', this.value)"></label>
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>2</span><input type="color" id="dial-aurora-a2" value="#a78bfa" oninput="mbSetDialAuroraField('a2', this.value)"></label>
@@ -3555,6 +3556,96 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>7</span><input type="color" id="dial-aurora-a7" value="#2dd4bf" oninput="mbSetDialAuroraField('a7', this.value)"></label>
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>8</span><input type="color" id="dial-aurora-a8" value="#ec4899" oninput="mbSetDialAuroraField('a8', this.value)"></label>
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>9</span><input type="color" id="dial-aurora-a9" value="#22d3ee" oninput="mbSetDialAuroraField('a9', this.value)"></label>
+</div>
+</div>
+<div class="form-row" id="settings-type-row">
+<label class="form-label" data-tr="Yazı boyutu ve tipi" data-de="Schriftgröße und Schriftart">Yazı boyutu ve tipi</label>
+<p class="live-grad-hint" data-tr="Menü, üst çubuk, iç ekranlar ve takvim ayrı ayarlanır. Hesabına yazılır." data-de="Menü, Topbar, Innenflächen und Kalender getrennt. Wird am Konto gespeichert.">Menü, üst çubuk, iç ekranlar ve takvim ayrı ayarlanır. Hesabına yazılır.</p>
+<div class="mb-type-grid" style="display:flex;flex-direction:column;gap:12px;margin-top:10px;">
+<div class="mb-type-zone" data-zone="menu">
+<div style="font-size:12px;font-weight:700;margin-bottom:6px;" data-tr="Menü" data-de="Menü">Menü</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Boyut" data-de="Größe">Boyut</span>
+<input type="range" id="type-menu-size" min="85" max="140" step="5" value="100" style="width:110px;" oninput="mbSetTypeField('menu','size', this.value)">
+<span id="type-menu-size-lbl" style="font-size:11px;font-family:var(--mono);color:var(--text-3);min-width:36px;">100%</span>
+</label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Yazı tipi" data-de="Schriftart">Yazı tipi</span>
+<select class="form-input" id="type-menu-font" style="width:auto;min-width:140px;padding:4px 8px;" onchange="mbSetTypeField('menu','font', this.value)">
+<option value="default" data-tr="Varsayılan" data-de="Standard">Varsayılan</option>
+<option value="jakarta">Plus Jakarta</option>
+<option value="system" data-tr="Sistem" data-de="System">Sistem</option>
+<option value="arial">Arial</option>
+<option value="verdana">Verdana</option>
+<option value="georgia">Georgia</option>
+<option value="mono">JetBrains Mono</option>
+</select>
+</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbResetTypeZone('menu')" data-tr="Varsayılan" data-de="Standard">Varsayılan</button>
+</div>
+</div>
+<div class="mb-type-zone" data-zone="topbar">
+<div style="font-size:12px;font-weight:700;margin-bottom:6px;" data-tr="Üst çubuk" data-de="Topbar">Üst çubuk</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Boyut" data-de="Größe">Boyut</span>
+<input type="range" id="type-topbar-size" min="85" max="140" step="5" value="100" style="width:110px;" oninput="mbSetTypeField('topbar','size', this.value)">
+<span id="type-topbar-size-lbl" style="font-size:11px;font-family:var(--mono);color:var(--text-3);min-width:36px;">100%</span>
+</label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Yazı tipi" data-de="Schriftart">Yazı tipi</span>
+<select class="form-input" id="type-topbar-font" style="width:auto;min-width:140px;padding:4px 8px;" onchange="mbSetTypeField('topbar','font', this.value)">
+<option value="default" data-tr="Varsayılan" data-de="Standard">Varsayılan</option>
+<option value="jakarta">Plus Jakarta</option>
+<option value="system" data-tr="Sistem" data-de="System">Sistem</option>
+<option value="arial">Arial</option>
+<option value="verdana">Verdana</option>
+<option value="georgia">Georgia</option>
+<option value="mono">JetBrains Mono</option>
+</select>
+</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbResetTypeZone('topbar')" data-tr="Varsayılan" data-de="Standard">Varsayılan</button>
+</div>
+</div>
+<div class="mb-type-zone" data-zone="main">
+<div style="font-size:12px;font-weight:700;margin-bottom:6px;" data-tr="İç ekran" data-de="Innenfläche">İç ekran</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Boyut" data-de="Größe">Boyut</span>
+<input type="range" id="type-main-size" min="85" max="140" step="5" value="100" style="width:110px;" oninput="mbSetTypeField('main','size', this.value)">
+<span id="type-main-size-lbl" style="font-size:11px;font-family:var(--mono);color:var(--text-3);min-width:36px;">100%</span>
+</label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Yazı tipi" data-de="Schriftart">Yazı tipi</span>
+<select class="form-input" id="type-main-font" style="width:auto;min-width:140px;padding:4px 8px;" onchange="mbSetTypeField('main','font', this.value)">
+<option value="default" data-tr="Varsayılan" data-de="Standard">Varsayılan</option>
+<option value="jakarta">Plus Jakarta</option>
+<option value="system" data-tr="Sistem" data-de="System">Sistem</option>
+<option value="arial">Arial</option>
+<option value="verdana">Verdana</option>
+<option value="georgia">Georgia</option>
+<option value="mono">JetBrains Mono</option>
+</select>
+</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbResetTypeZone('main')" data-tr="Varsayılan" data-de="Standard">Varsayılan</button>
+</div>
+</div>
+<div class="mb-type-zone" data-zone="cal">
+<div style="font-size:12px;font-weight:700;margin-bottom:6px;" data-tr="Takvim" data-de="Kalender">Takvim</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Boyut" data-de="Größe">Boyut</span>
+<input type="range" id="type-cal-size" min="85" max="140" step="5" value="100" style="width:110px;" oninput="mbSetTypeField('cal','size', this.value)">
+<span id="type-cal-size-lbl" style="font-size:11px;font-family:var(--mono);color:var(--text-3);min-width:36px;">100%</span>
+</label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Yazı tipi" data-de="Schriftart">Yazı tipi</span>
+<select class="form-input" id="type-cal-font" style="width:auto;min-width:140px;padding:4px 8px;" onchange="mbSetTypeField('cal','font', this.value)">
+<option value="default" data-tr="Varsayılan" data-de="Standard">Varsayılan</option>
+<option value="jakarta">Plus Jakarta</option>
+<option value="system" data-tr="Sistem" data-de="System">Sistem</option>
+<option value="arial">Arial</option>
+<option value="verdana">Verdana</option>
+<option value="georgia">Georgia</option>
+<option value="mono">JetBrains Mono</option>
+</select>
+</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbResetTypeZone('cal')" data-tr="Varsayılan" data-de="Standard">Varsayılan</button>
+</div>
+</div>
 </div>
 </div>
 <div class="form-row">
