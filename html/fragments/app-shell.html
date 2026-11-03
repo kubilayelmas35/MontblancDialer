@@ -3462,13 +3462,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Menü kaydırma çubuğu" data-de="Menü-Scrollbar">Menü kaydırma çubuğu</label>
-<p class="live-grad-hint" data-tr="Modern: native okları kapatır, sağa yapışık özel ray. Klasik: kalın + oklar. Seçili kart renklenir." data-de="Modern: ohne System-Pfeile, eigene Leiste rechts. Klassisch: dick mit Pfeilen.">Modern: native okları kapatır, sağa yapışık özel ray. Klasik: kalın + oklar. Seçili kart renklenir.</p>
+<p class="live-grad-hint" data-tr="Modern: ok yok, sağ kenar özel çubuk. Aşağıdan arka plan, yapışık kenar ve kalınlığı ayarla." data-de="Modern: ohne Pfeile, eigene Leiste. Unten Hintergrund, Kante und Dicke einstellen.">Modern: ok yok, sağ kenar özel çubuk. Aşağıdan arka plan, yapışık kenar ve kalınlığı ayarla.</p>
 <div class="sb-scroll-style-row" role="group" aria-label="Scrollbar stili">
 <button type="button" class="sb-scroll-style-btn" id="sb-scroll-style-yeni" onclick="mbSetSbScrollStyle('ince')">
 <span class="sb-scroll-style-preview sb-scroll-style-preview--modern" aria-hidden="true"><i></i></span>
 <span class="sb-scroll-style-copy">
 <strong data-tr="Modern" data-de="Modern">Modern</strong>
-<small data-tr="Yedekteki eski · ok yok" data-de="Backup-Original · ohne Pfeile">Yedekteki eski · ok yok</small>
+<small data-tr="Ok yok · sağ kenar" data-de="Ohne Pfeile · rechts">Ok yok · sağ kenar</small>
 </span>
 </button>
 <button type="button" class="sb-scroll-style-btn" id="sb-scroll-style-eski" onclick="mbSetSbScrollStyle('eski')">
@@ -3480,10 +3480,18 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </button>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
-<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Renk" data-de="Farbe">Renk</span><input type="color" id="sb-scroll-a" value="#94a3b8" oninput="mbSetSbScrollColor('a', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Renk" data-de="Farbe">Renk</span><input type="color" id="sb-scroll-a" value="#c8c8d8" oninput="mbSetSbScrollColor('a', this.value)"></label>
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;" id="sb-scroll-b-wrap"><span data-tr="Renk 2" data-de="Farbe 2">Renk 2</span><input type="color" id="sb-scroll-b" value="#334155" oninput="mbSetSbScrollColor('b', this.value)"></label>
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="sb-scroll-grad" onchange="mbSetSbScrollGrad(this.checked)"> <span data-tr="Gradient" data-de="Verlauf">Gradient</span></label>
-<span id="sb-scroll-preview" style="width:14px;height:36px;border-radius:8px;border:1px solid var(--border);background:#94a3b8;"></span>
+<span id="sb-scroll-preview" style="width:14px;height:36px;border-radius:8px;border:1px solid var(--border);background:#c8c8d8;"></span>
+</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="sb-scroll-flush" checked onchange="mbSetSbScrollOpt('flush', this.checked)"> <span data-tr="Sağa yapışık" data-de="Rechts bündig">Sağa yapışık</span></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="sb-scroll-track" onchange="mbSetSbScrollOpt('track', this.checked)"> <span data-tr="Arka plan" data-de="Hintergrund">Arka plan</span></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Kalınlık" data-de="Dicke">Kalınlık</span>
+<input type="range" id="sb-scroll-width" min="3" max="12" step="1" value="5" style="width:90px;" oninput="mbSetSbScrollOpt('width', this.value)">
+<span id="sb-scroll-width-lbl" style="font-size:11px;font-family:var(--mono);color:var(--text-3);min-width:28px;">5px</span>
+</label>
 <button type="button" class="btn btn-ghost btn-sm" onclick="mbResetSbScroll()" data-tr="Varsayılan" data-de="Standard">Varsayılan</button>
 </div>
 </div>

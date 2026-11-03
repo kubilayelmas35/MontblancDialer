@@ -339,14 +339,28 @@ function mbResetLiveGrads() {
 mbApplyLiveGrads(mbReadLiveGrads());
 mbPaintLiveGradForm();
 
-/* Modern = git yedeği v14.27/5fe519a: global 5px, transparan ray, ok yok. Klasik = kalın + oklar. */
-const MB_SB_SCROLL_DEF = { a: '#c8c8d8', b: '#64748b', grad: false, style: 'ince' };
+/* Modern = ok yok, sağ ray. Klasik = kalın + oklar. */
+const MB_SB_SCROLL_DEF = {
+  a: '#c8c8d8',
+  b: '#64748b',
+  grad: false,
+  style: 'ince',
+  track: false,
+  flush: true,
+  width: 5,
+};
 
 function mbSbScrollStyle() {
   const s = localStorage.getItem('mb-sb-scroll-style');
   if (s === 'eski') return 'eski';
   if (s === 'yeni') return 'ince';
   return 'ince';
+}
+
+function mbSbScrollWidth() {
+  const n = parseInt(localStorage.getItem('mb-sb-scroll-width') || '', 10);
+  if (!Number.isFinite(n)) return MB_SB_SCROLL_DEF.width;
+  return Math.max(3, Math.min(12, n));
 }
 
 function mbReadSbScrollPrefs() {
@@ -357,6 +371,9 @@ function mbReadSbScrollPrefs() {
       a: mbNormHex(localStorage.getItem('mb-sb-scroll-a')) || MB_SB_SCROLL_DEF.a,
       b: mbNormHex(localStorage.getItem('mb-sb-scroll-b')) || MB_SB_SCROLL_DEF.b,
       grad: localStorage.getItem('mb-sb-scroll-grad') === '1',
+      track: localStorage.getItem('mb-sb-scroll-track') === '1',
+      flush: localStorage.getItem('mb-sb-scroll-flush') !== '0',
+      width: mbSbScrollWidth(),
     };
   } catch (_) {
     return {
@@ -365,6 +382,9 @@ function mbReadSbScrollPrefs() {
       a: MB_SB_SCROLL_DEF.a,
       b: MB_SB_SCROLL_DEF.b,
       grad: false,
+      track: false,
+      flush: true,
+      width: MB_SB_SCROLL_DEF.width,
     };
   }
 }
@@ -383,11 +403,17 @@ function mbAdoptSbScrollPrefs(raw) {
   const grad = !!raw.grad;
   let style = raw.style === 'eski' ? 'eski' : 'ince';
   if (raw.style === 'yeni') style = 'ince';
+  const track = !!raw.track;
+  const flush = raw.flush !== false;
+  const width = Math.max(3, Math.min(12, parseInt(raw.width, 10) || MB_SB_SCROLL_DEF.width));
   try {
     localStorage.setItem('mb-sb-scroll-style', style);
     localStorage.setItem('mb-sb-scroll-a', a);
     localStorage.setItem('mb-sb-scroll-b', b);
     localStorage.setItem('mb-sb-scroll-grad', grad ? '1' : '0');
+    localStorage.setItem('mb-sb-scroll-track', track ? '1' : '0');
+    localStorage.setItem('mb-sb-scroll-flush', flush ? '1' : '0');
+    localStorage.setItem('mb-sb-scroll-width', String(width));
     localStorage.setItem('mb-sb-scroll-on', '1');
   } catch (_) {}
   mbApplySbScrollPrefs();
@@ -430,10 +456,13 @@ function mbSyncSbScrollRail() {
   }
   const sbRect = sidebar.getBoundingClientRect();
   const scRect = sc.getBoundingClientRect();
-  const top = Math.max(0, Math.round(scRect.top - sbRect.top));
-  const height = Math.max(0, Math.round(scRect.height));
+  /* Üst/alt 4px iç boşluk: overflow:hidden radius'u kesmesin (topbar altına girme hissi) */
+  const edge = 4;
+  const top = Math.max(0, Math.round(scRect.top - sbRect.top)) + edge;
+  const height = Math.max(0, Math.round(scRect.height) - edge * 2);
   rail.style.top = `${top}px`;
   rail.style.height = `${height}px`;
+  rail.style.right = '0px';
   rail.classList.add('is-on');
   const ratio = ch / sh;
   const thumbH = Math.max(28, Math.round(height * ratio));
@@ -539,14 +568,20 @@ function mbApplySbScrollPrefs() {
   const a = mbNormHex(localStorage.getItem('mb-sb-scroll-a')) || MB_SB_SCROLL_DEF.a;
   const b = mbNormHex(localStorage.getItem('mb-sb-scroll-b')) || MB_SB_SCROLL_DEF.b;
   const grad = localStorage.getItem('mb-sb-scroll-grad') === '1';
+  const track = localStorage.getItem('mb-sb-scroll-track') === '1';
+  const flush = localStorage.getItem('mb-sb-scroll-flush') !== '0';
+  const width = mbSbScrollWidth();
   const thumbBg = grad ? `linear-gradient(180deg, ${a} 0%, ${b} 100%)` : a;
   const root = document.documentElement;
   root.classList.add('mb-sb-scroll-custom');
   root.classList.toggle('mb-sb-scroll-grad', grad);
   root.style.setProperty('--mb-sb-scroll-a', a);
+  root.style.setProperty('--mb-sb-rail-w', `${width}px`);
   if (sidebar) {
     sidebar.classList.toggle('mb-sb-overlay-scroll', st !== 'eski');
     sidebar.classList.toggle('mb-sb-scroll-classic', st === 'eski');
+    sidebar.classList.toggle('mb-sb-scroll-track', track && st !== 'eski');
+    sidebar.classList.toggle('mb-sb-scroll-flush', flush && st !== 'eski');
   }
   let styleEl = document.getElementById('mb-sb-scroll-css');
   if (st === 'eski') {
@@ -575,12 +610,23 @@ function mbPaintSbScrollForm() {
   const a = mbNormHex(localStorage.getItem('mb-sb-scroll-a')) || MB_SB_SCROLL_DEF.a;
   const b = mbNormHex(localStorage.getItem('mb-sb-scroll-b')) || MB_SB_SCROLL_DEF.b;
   const grad = localStorage.getItem('mb-sb-scroll-grad') === '1';
+  const track = localStorage.getItem('mb-sb-scroll-track') === '1';
+  const flush = localStorage.getItem('mb-sb-scroll-flush') !== '0';
+  const width = mbSbScrollWidth();
   const elA = document.getElementById('sb-scroll-a');
   const elB = document.getElementById('sb-scroll-b');
   const elG = document.getElementById('sb-scroll-grad');
+  const elT = document.getElementById('sb-scroll-track');
+  const elF = document.getElementById('sb-scroll-flush');
+  const elW = document.getElementById('sb-scroll-width');
+  const elWl = document.getElementById('sb-scroll-width-lbl');
   if (elA) elA.value = a;
   if (elB) elB.value = b;
   if (elG) elG.checked = grad;
+  if (elT) elT.checked = track;
+  if (elF) elF.checked = flush;
+  if (elW) elW.value = String(width);
+  if (elWl) elWl.textContent = `${width}px`;
   mbApplySbScrollPrefs();
 }
 
@@ -624,17 +670,36 @@ function mbSetSbScrollGrad(on) {
   if (!_mbPrefsApplying && typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 }
 
+function mbSetSbScrollOpt(which, value) {
+  try {
+    if (!localStorage.getItem('mb-sb-scroll-style') || localStorage.getItem('mb-sb-scroll-style') === 'yeni') {
+      localStorage.setItem('mb-sb-scroll-style', 'ince');
+    }
+    localStorage.setItem('mb-sb-scroll-on', '1');
+    if (which === 'track') localStorage.setItem('mb-sb-scroll-track', value ? '1' : '0');
+    else if (which === 'flush') localStorage.setItem('mb-sb-scroll-flush', value ? '1' : '0');
+    else if (which === 'width') {
+      const w = Math.max(3, Math.min(12, parseInt(value, 10) || MB_SB_SCROLL_DEF.width));
+      localStorage.setItem('mb-sb-scroll-width', String(w));
+      const elWl = document.getElementById('sb-scroll-width-lbl');
+      if (elWl) elWl.textContent = `${w}px`;
+    }
+  } catch (_) {}
+  mbApplySbScrollPrefs();
+  if (!_mbPrefsApplying && typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
 function mbResetSbScroll(skipSave) {
-  /* Varsayılan = ince görünüm + varsayılan renk (renk seçici çalışmaya devam eder) */
   try {
     localStorage.setItem('mb-sb-scroll-on', '1');
     localStorage.setItem('mb-sb-scroll-style', 'ince');
     localStorage.setItem('mb-sb-scroll-a', MB_SB_SCROLL_DEF.a);
     localStorage.setItem('mb-sb-scroll-b', MB_SB_SCROLL_DEF.b);
     localStorage.setItem('mb-sb-scroll-grad', '0');
+    localStorage.setItem('mb-sb-scroll-track', '0');
+    localStorage.setItem('mb-sb-scroll-flush', '1');
+    localStorage.setItem('mb-sb-scroll-width', String(MB_SB_SCROLL_DEF.width));
   } catch (_) {}
-  const elG = document.getElementById('sb-scroll-grad');
-  if (elG) elG.checked = false;
   mbPaintSbScrollForm();
   if (!skipSave && !_mbPrefsApplying && typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 }
@@ -643,6 +708,7 @@ try {
   window.mbSetSbScrollColor = mbSetSbScrollColor;
   window.mbSetSbScrollGrad = mbSetSbScrollGrad;
   window.mbSetSbScrollStyle = mbSetSbScrollStyle;
+  window.mbSetSbScrollOpt = mbSetSbScrollOpt;
   window.mbResetSbScroll = mbResetSbScroll;
   window.mbPaintSbScrollForm = mbPaintSbScrollForm;
 } catch (_) {}

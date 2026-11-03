@@ -2021,14 +2021,19 @@ box-shadow: 4px 0 24px rgba(0,0,0,0.15);
   position: absolute !important;
   right: 0;
   top: 0;
-  width: 8px;
+  width: var(--mb-sb-rail-w, 5px);
   height: 0;
   z-index: 20;
   pointer-events: none;
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent; /* varsayılan: arka plan yok */
   margin: 0;
   padding: 0;
   border: 0;
+  overflow: visible;
+  box-shadow: none;
+}
+#sidebar.mb-sb-scroll-track .sb-scroll-rail {
+  background: rgba(255, 255, 255, 0.08);
 }
 #sidebar:not(.mb-sb-scroll-classic) .sb-scroll-rail.is-on {
   display: block;
@@ -2037,14 +2042,21 @@ box-shadow: 4px 0 24px rgba(0,0,0,0.15);
 #sidebar .sb-scroll-thumb {
   position: absolute;
   top: 0;
-  right: 1px;
-  left: 1px;
-  width: auto;
+  right: 0;
+  left: 0;
+  width: 100%;
   min-height: 28px;
   border-radius: 99px;
   background: var(--mb-sb-scroll-a, #c8c8d8);
   cursor: grab;
   pointer-events: auto;
+  box-sizing: border-box;
+}
+/* Sağa yapışık kapalıysa thumb biraz içeride */
+#sidebar:not(.mb-sb-scroll-flush) .sb-scroll-thumb {
+  right: 2px;
+  left: 2px;
+  width: auto;
 }
 #sidebar .sb-scroll-thumb:active { cursor: grabbing; }
 #sidebar.mb-sb-scroll-classic .sb-scroll-rail { display: none !important; }
