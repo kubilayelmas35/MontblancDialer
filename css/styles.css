@@ -4512,6 +4512,41 @@ html[lang="de"] .login-lang-de {
   background:var(--bg-2); color:var(--text);
   box-shadow:0 1px 2px rgba(15, 23, 42, 0.08);
 }
+.login-remember-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.login-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+}
+.login-remember input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.login-remember-clear {
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.login-remember-clear:hover { color: var(--red); }
 .login-error { font-size:12px; color:var(--red); text-align:center; display:none; }
 @media (max-width:700px), (max-height:740px) {
   .login-stage { gap:16px; }

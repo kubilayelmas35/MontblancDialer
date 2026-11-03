@@ -1,11 +1,97 @@
 // ─────────────────────────────────────────────
 // AUTH — giriş, çıkış, oturum yönetimi
 // ─────────────────────────────────────────────
+const MB_LOGIN_REMEMBER_KEY = 'mb_login_remember';
+
+function _loginRememberEncode(pass) {
+  try {
+    return btoa(unescape(encodeURIComponent(String(pass || ''))));
+  } catch (_) {
+    return '';
+  }
+}
+
+function _loginRememberDecode(raw) {
+  try {
+    return decodeURIComponent(escape(atob(String(raw || ''))));
+  } catch (_) {
+    return '';
+  }
+}
+
+function readLoginRemember() {
+  try {
+    const raw = localStorage.getItem(MB_LOGIN_REMEMBER_KEY);
+    if (!raw) return null;
+    const row = JSON.parse(raw);
+    const email = String(row?.email || '').trim().toLowerCase();
+    const pass = _loginRememberDecode(row?.p);
+    if (!email || !pass) return null;
+    return { email, pass };
+  } catch (_) {
+    return null;
+  }
+}
+
+function saveLoginRemember(email, pass) {
+  const e = String(email || '').trim().toLowerCase();
+  const p = String(pass || '');
+  if (!e || !p) return;
+  localStorage.setItem(MB_LOGIN_REMEMBER_KEY, JSON.stringify({
+    email: e,
+    p: _loginRememberEncode(p),
+    at: Date.now(),
+  }));
+}
+
+function clearLoginRemember(opts) {
+  localStorage.removeItem(MB_LOGIN_REMEMBER_KEY);
+  const keepFields = !!(opts && opts.keepFields);
+  const box = document.getElementById('login-remember');
+  if (box) box.checked = false;
+  if (!keepFields) {
+    const pass = document.getElementById('login-pass');
+    if (pass) pass.value = '';
+  }
+  paintLoginRememberUi();
+}
+
+function onLoginRememberToggle() {
+  const box = document.getElementById('login-remember');
+  if (box && !box.checked && readLoginRemember()) {
+    // İşaret kalkınca kayıtlı bilgiyi hemen silme — girişte karar verilir.
+    // Kullanıcı silmek isterse "Kayıtlı bilgiyi sil" kullanır.
+  }
+  paintLoginRememberUi();
+}
+
+function paintLoginRememberUi() {
+  const saved = readLoginRemember();
+  const clearBtn = document.getElementById('login-remember-clear');
+  if (clearBtn) clearBtn.hidden = !saved;
+  const box = document.getElementById('login-remember');
+  if (box && saved && document.activeElement !== box) box.checked = true;
+}
+
+function fillLoginRemember() {
+  const saved = readLoginRemember();
+  const emailEl = document.getElementById('login-email');
+  const passEl = document.getElementById('login-pass');
+  const box = document.getElementById('login-remember');
+  if (saved) {
+    if (emailEl && !emailEl.value) emailEl.value = saved.email;
+    if (passEl && !passEl.value) passEl.value = saved.pass;
+    if (box) box.checked = true;
+  }
+  paintLoginRememberUi();
+}
+
 async function doLogin() {
 const email  = document.getElementById('login-email').value.trim().toLowerCase();
 const pass   = document.getElementById('login-pass').value;
 const errEl  = document.getElementById('login-err');
 const btn    = document.getElementById('login-submit');
+const remember = !!document.getElementById('login-remember')?.checked;
 if (!email || !pass) {
 errEl.textContent = (typeof t === 'function' ? t('login.err.required') : 'E-posta ve şifre gerekli');
 errEl.style.display = 'block';
@@ -44,6 +130,8 @@ if (_lbl) _lbl.textContent = (typeof t === 'function' ? t('login.btn') : 'Giriş
 else btn.textContent = 'Giriş Yap';
 return;
 }
+if (remember) saveLoginRemember(email, pass);
+else localStorage.removeItem(MB_LOGIN_REMEMBER_KEY);
 currentUser = {
 id:        u.user_id,
 firm_id:   u.firm_id,
@@ -107,6 +195,7 @@ _baseUser = null;
 _impersonation = null;
 document.getElementById('page-login').style.display = 'flex';
 document.getElementById('app').style.display = 'none';
+fillLoginRemember();
 }
 
 let _mbWhoamiAt = 0;
@@ -128,6 +217,7 @@ function mbDropDeadSession() {
     errEl.textContent = (typeof t === 'function' ? t('login.err.session') : 'Oturum sona erdi. Tekrar giriş yapın.');
     errEl.style.display = 'block';
   }
+  fillLoginRemember();
 }
 
 function mbApplyWhoami(me) {
@@ -614,5 +704,11 @@ bootApp();
 }
 }
 } catch(e) { _clearSessionStorageSafe(); }
+})();
+
+(function bootLoginRemember() {
+  const run = () => { try { fillLoginRemember(); } catch (_) {} };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
 })();
 

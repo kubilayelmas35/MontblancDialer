@@ -35,6 +35,13 @@
 </div>
 </div>
 </div>
+<div class="login-remember-row">
+<label class="login-remember">
+<input type="checkbox" id="login-remember" onchange="onLoginRememberToggle()">
+<span data-i18n="login.remember">Bilgileri kaydet</span>
+</label>
+<button type="button" class="login-remember-clear" id="login-remember-clear" onclick="clearLoginRemember()" hidden data-i18n="login.remember.clear">Kayıtlı bilgiyi sil</button>
+</div>
 <div id="login-err" class="login-error"></div>
 </div>
 <div class="login-window">

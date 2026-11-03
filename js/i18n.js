@@ -46,6 +46,8 @@ const MB_I18N = {
     'login.err.bad': 'E-posta veya şifre hatalı',
     'login.err.conn': 'Bağlantı hatası: ',
     'login.err.session': 'Oturum sona erdi. Tekrar giriş yapın.',
+    'login.remember': 'Bilgileri kaydet',
+    'login.remember.clear': 'Kayıtlı bilgiyi sil',
     'api.err.rls': 'Bu işlem için yetkin yok. Çıkış yapıp tekrar gir.',
     'api.err.auth': 'Oturum geçersiz. Tekrar giriş yapın.',
     'api.err.generic': 'İşlem tamamlanamadı. Tekrar deneyin.',
