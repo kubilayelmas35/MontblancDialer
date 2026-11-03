@@ -240,6 +240,7 @@ const _NAVIGATE_LOADERS = {
     _mbPageFn('loadJobPermissionsSettings')?.();
   },
   wiedervorlage: () => { _mbPageFn('loadWvPage')?.(); },
+  blacklist: () => { _mbPageFn('loadBlacklistPage')?.(); },
   qc: () => {
     _mbPageFn('loadQcData')?.();
     _mbPageFn('loadJobMarketQcQueue')?.();

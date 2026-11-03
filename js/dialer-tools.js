@@ -514,6 +514,11 @@ function isGermanHoliday(dateStr) {
   return getGermanHolidays(parseInt(dateStr.split('-')[0])).has(dateStr);
 }
 
+function isCustomHoliday(dateStr) {
+  const list = Array.isArray(_callHours?.custom_holidays) ? _callHours.custom_holidays : [];
+  return list.includes(String(dateStr || ''));
+}
+
 function isCallAllowed(dateStr, timeStr) {
   const d   = new Date(dateStr + 'T' + timeStr);
   const day = d.getDay();
@@ -532,6 +537,8 @@ function isCallAllowed(dateStr, timeStr) {
 
   if (day === 0 && !sunAllowed)
     return {allowed:false, reason:'Pazar günü arama yapılamaz'};
+  if (isCustomHoliday(dateStr))
+    return {allowed:false, reason:'Özel tatil günü arama yapılamaz'};
   if (holidayCheck && isGermanHoliday(dateStr))
     return {allowed:false, reason:'Tatil günü arama yapılamaz'};
   if (day === 6) {

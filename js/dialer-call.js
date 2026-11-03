@@ -171,6 +171,13 @@ async function mbRedialCurrentContact() {
     if (typeof mbNoteIntlBlocked === 'function') mbNoteIntlBlocked(currentContact);
     return;
   }
+  if (!_testMode && typeof mbIsFirmDnc === 'function' && await mbIsFirmDnc(currentContact.phone, campaign?.firm_id || currentUser?.firm_id)) {
+    toast(typeof t === 'function' ? t('bl.dial.blocked') : 'Bu numara kara listede', 'err');
+    return;
+  }
+  if (!_testMode && campaign && typeof mbEnsureHealthyDid === 'function') {
+    await mbEnsureHealthyDid(campaign);
+  }
   if (_testMode) {
     _fakeCallActive = true;
     window.__voiceOrbSimRemote = true;

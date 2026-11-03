@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="callin.one çağrı merkezi">
-<link rel="icon" href="favicon.svg?v=14.60" type="image/svg+xml">
+<link rel="icon" href="favicon.svg?v=14.70" type="image/svg+xml">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,17 +15,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=14.60">
-<link rel="stylesheet" href="css/styles-dialer.css?v=14.60">
-<link rel="stylesheet" href="css/styles-mascot.css?v=14.60">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.60">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.60">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.60">
-<link rel="stylesheet" href="css/styles-pages.css?v=14.60">
-<link rel="stylesheet" href="css/styles-aurora.css?v=14.60">
-<link rel="stylesheet" href="css/styles-chat.css?v=14.60">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=14.60">
-<link rel="stylesheet" href="css/styles-responsive.css?v=14.60">
+<link rel="stylesheet" href="css/styles.css?v=14.70">
+<link rel="stylesheet" href="css/styles-dialer.css?v=14.70">
+<link rel="stylesheet" href="css/styles-mascot.css?v=14.70">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.70">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.70">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.70">
+<link rel="stylesheet" href="css/styles-pages.css?v=14.70">
+<link rel="stylesheet" href="css/styles-aurora.css?v=14.70">
+<link rel="stylesheet" href="css/styles-chat.css?v=14.70">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=14.70">
+<link rel="stylesheet" href="css/styles-responsive.css?v=14.70">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -84,7 +84,7 @@
 </div>
 </div>
 </div>
-<div class="login-version">v14.60 — 2026</div>
+<div class="login-version">v14.70 — 2026</div>
 </div>
 </div>
 <div id="app" style="display:none;">
@@ -305,6 +305,10 @@
 <span data-tr="Aranacaklar" data-de="Wiedervorlage">Aranacaklar</span>
 <span class="sb-badge" id="sb-badge-wv" style="display:none;background:var(--yellow);color:#000;">0</span>
 </button>
+<button class="sb-item" onclick="navigate('blacklist')">
+<span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"/><path d="M5 5l14 14"/></svg></span>
+<span data-tr="Kara liste" data-de="Sperrliste">Kara liste</span>
+</button>
 <button class="sb-item" id="nav-takvim-btn" onclick="openNavTakvim()">
 <span class="sb-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
 <span data-tr="Takvim" data-de="Kalender">Takvim</span>
@@ -486,7 +490,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">callin.one v14.60</div>
+<div class="sb-ver">callin.one v14.70</div>
 </div>
 </div>
 </nav>
@@ -2265,6 +2269,99 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </tbody>
 </table>
 </div>
+</div>
+</div>
+<div class="page" id="page-blacklist">
+<div class="page-hdr">
+<div>
+<div class="page-title" data-tr="Kara liste ve spam" data-de="Sperrliste und Spam">Kara liste ve spam</div>
+<div class="page-sub" data-tr="Firma kara listesi, GDPR silme ve arayan numara sağlığı" data-de="Firmensperrliste, GDPR-Löschung und Anrufernummer-Gesundheit">Firma kara listesi, GDPR silme ve arayan numara sağlığı</div>
+</div>
+<div class="page-hdr-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+<div id="bl-firm-wrap" style="display:none;">
+<select class="form-input" id="bl-firm-select" style="min-width:180px;font-size:12px;" onchange="blSetTab(_blTab)"></select>
+</div>
+<button type="button" class="btn btn-ghost btn-sm" onclick="blSetTab(_blTab)" data-tr="Yenile" data-de="Aktualisieren">Yenile</button>
+</div>
+</div>
+<div style="display:flex;gap:4px;margin-bottom:14px;background:var(--bg-3);border-radius:var(--radius-sm);padding:3px;width:fit-content;">
+<button type="button" class="btn btn-sm" id="bl-tab-dnc" onclick="blSetTab('dnc')" style="background:var(--accent);color:#fff;font-size:11px;padding:4px 12px;" data-tr="Kara liste" data-de="Sperrliste">Kara liste</button>
+<button type="button" class="btn btn-sm" id="bl-tab-spam" onclick="blSetTab('spam')" style="background:transparent;color:var(--text-2);font-size:11px;padding:4px 12px;" data-tr="Spam sağlığı" data-de="Spam-Gesundheit">Spam sağlığı</button>
+</div>
+<div id="bl-pane-dnc">
+<div style="display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);gap:14px;align-items:start;">
+<div style="display:flex;flex-direction:column;gap:12px;">
+<div class="card" style="padding:14px;">
+<div class="card-title" style="margin-bottom:10px;" data-tr="Numara ekle" data-de="Nummer hinzufügen">Numara ekle</div>
+<input class="form-input" id="bl-dnc-phone" placeholder="+49..." style="margin-bottom:8px;" inputmode="tel">
+<input class="form-input" id="bl-dnc-note" data-tr="Not (isteğe bağlı)" data-de="Notiz (optional)" placeholder="Not (isteğe bağlı)" style="margin-bottom:8px;">
+<button type="button" class="btn btn-primary btn-sm" onclick="blAddDncManual()" data-tr="Kara listeye ekle" data-de="Zur Sperrliste">Kara listeye ekle</button>
+</div>
+<div class="card" style="padding:14px;">
+<div class="card-title" style="margin-bottom:8px;" data-tr="Toplu CSV" data-de="CSV-Bulk">Toplu CSV</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Her satır bir numara. İsteğe bağlı: phone,note" data-de="Eine Nummer pro Zeile. Optional: phone,note">Her satır bir numara. İsteğe bağlı: phone,note</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;">
+<label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+<span data-tr="Yükle" data-de="Hochladen">Yükle</span>
+<input type="file" accept=".csv,text/csv,text/plain" style="display:none;" onchange="blOnImportFile(this)">
+</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="blExportDncCsv()" data-tr="İndir" data-de="Download">İndir</button>
+</div>
+</div>
+<div class="card" style="padding:14px;">
+<div class="card-title" style="margin-bottom:8px;" data-tr="GDPR sil" data-de="GDPR löschen">GDPR sil</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Kişisel alanları anonimleştirir ve numarayı kara listeye alır." data-de="Anonymisiert Personenfelder und setzt die Nummer auf die Sperrliste.">Kişisel alanları anonimleştirir ve numarayı kara listeye alır.</div>
+<input class="form-input" id="bl-gdpr-phone" placeholder="+49..." style="margin-bottom:8px;" inputmode="tel">
+<button type="button" class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="blGdprByPhone()" data-tr="Sil / anonimleştir" data-de="Löschen / anonymisieren">Sil / anonimleştir</button>
+</div>
+</div>
+<div class="card" style="padding:0;overflow:hidden;">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;">
+<input type="search" class="form-input" id="bl-dnc-search" style="max-width:220px;font-size:12px;" data-tr="Numara veya not ara" data-de="Nummer oder Notiz" placeholder="Numara veya not ara" oninput="blLoadDnc()">
+<span style="font-size:12px;color:var(--text-3);"><span id="bl-dnc-count">0</span> <span data-tr="kayıt" data-de="Einträge">kayıt</span></span>
+</div>
+<div class="tbl-wrap">
+<table>
+<thead><tr>
+<th data-tr="Numara" data-de="Nummer">Numara</th>
+<th data-tr="Not" data-de="Notiz">Not</th>
+<th data-tr="Kaynak" data-de="Quelle">Kaynak</th>
+<th data-tr="Tarih" data-de="Datum">Tarih</th>
+<th></th>
+</tr></thead>
+<tbody id="bl-dnc-tbody">
+<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:24px;">—</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div id="bl-pane-spam" style="display:none;">
+<div class="card" style="padding:14px;margin-bottom:12px;">
+<div class="card-title" style="margin-bottom:10px;" data-tr="Otomatik numara değişimi" data-de="Automatischer Nummernwechsel">Otomatik numara değişimi</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;" data-tr="Cevap oranı eşiğin altına düşerse veya spam işaretlenirse kampanya arayan numarası havuzdaki sağlıklı numaraya geçer." data-de="Unter der Antwortrate oder bei Spam-Markierung wechselt die Kampagne zur nächsten gesunden Nummer.">Cevap oranı eşiğin altına düşerse veya spam işaretlenirse kampanya arayan numarası havuzdaki sağlıklı numaraya geçer.</div>
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:10px;cursor:pointer;">
+<input type="checkbox" id="bl-spam-auto" checked>
+<span data-tr="Düşük cevapta otomatik değiştir" data-de="Bei niedriger Rate automatisch wechseln">Düşük cevapta otomatik değiştir</span>
+</label>
+<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+<div>
+<label class="form-label" style="font-size:11px;" data-tr="Pencere (gün)" data-de="Fenster (Tage)">Pencere (gün)</label>
+<input type="number" class="form-input" id="bl-spam-days" min="1" max="60" value="7" style="width:80px;">
+</div>
+<div>
+<label class="form-label" style="font-size:11px;" data-tr="Min. çağrı" data-de="Min. Anrufe">Min. çağrı</label>
+<input type="number" class="form-input" id="bl-spam-min-calls" min="5" max="500" value="30" style="width:80px;">
+</div>
+<div>
+<label class="form-label" style="font-size:11px;" data-tr="Min. cevap %" data-de="Min. Antwort %">Min. cevap %</label>
+<input type="number" class="form-input" id="bl-spam-min-rate" min="1" max="50" value="8" style="width:80px;">
+</div>
+<button type="button" class="btn btn-primary btn-sm" onclick="blSaveSpamSettings()" data-tr="Kaydet" data-de="Speichern">Kaydet</button>
+</div>
+</div>
+<div id="bl-spam-body"></div>
 </div>
 </div>
 <div class="page" id="page-wiedervorlage">
@@ -4662,10 +4759,19 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <span style="font-size:12px;font-weight:600;">Pazar aramaya açık</span>
 </div>
 <!-- Tatil günleri -->
-<div style="padding:10px 12px;background:var(--bg-3);border-radius:6px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+<div style="padding:10px 12px;background:var(--bg-3);border-radius:6px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
 <input type="checkbox" id="ch-holiday-check" checked style="width:15px;height:15px;cursor:pointer;">
-<span style="font-size:12px;font-weight:600;">Resmi tatillerde arama yapılmasın</span>
-<span style="font-size:11px;color:var(--text-3);margin-left:auto;">(Almanya takvimi)</span>
+<span style="font-size:12px;font-weight:600;" data-tr="Resmi tatillerde arama yapılmasın" data-de="An Feiertagen nicht anrufen">Resmi tatillerde arama yapılmasın</span>
+<span style="font-size:11px;color:var(--text-3);margin-left:auto;" data-tr="(Almanya takvimi)" data-de="(DE-Kalender)">(Almanya takvimi)</span>
+</div>
+<div style="padding:10px 12px;background:var(--bg-3);border-radius:6px;margin-bottom:12px;">
+<div style="font-size:12px;font-weight:600;margin-bottom:8px;" data-tr="Özel tatil günleri" data-de="Eigene Feiertage">Özel tatil günleri</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Firma köprü günü vb. Elle eklenen tarihlerde de arama kapanır." data-de="Firmeneigene Brückentage. An diesen Daten ist Anruf gesperrt.">Firma köprü günü vb. Elle eklenen tarihlerde de arama kapanır.</div>
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+<input type="date" class="form-input" id="ch-custom-holiday" style="width:150px;font-size:12px;padding:4px 6px;">
+<button type="button" class="btn btn-ghost btn-sm" onclick="chAddCustomHoliday()" data-tr="Ekle" data-de="Hinzufügen">Ekle</button>
+</div>
+<div id="ch-custom-holiday-list" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
 </div>
 <button class="btn btn-primary btn-sm" onclick="saveCallHoursSettings()"><i class="ph ph-floppy-disk"></i> Kaydet</button>
 </div>
@@ -5517,76 +5623,77 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=14.60"></script>
-<script src="js/i18n.js?v=14.60"></script>
-<script src="js/config.js?v=14.60"></script>
-<script src="js/state.js?v=14.60"></script>
-<script src="js/api.js?v=14.60"></script>
-<script src="js/access.js?v=14.60"></script>
-<script src="js/auth.js?v=14.60"></script>
-<script src="js/logo.js?v=14.60"></script>
-<script src="js/ui.js?v=14.60"></script>
-<script src="js/chat.js?v=14.60"></script>
-<script src="js/chat-settings.js?v=14.60"></script>
-<script src="js/field-settings.js?v=14.60"></script>
-<script src="js/audit.js?v=14.60"></script>
-<script src="js/feature-flags.js?v=14.60"></script>
-<script src="js/notification-center.js?v=14.60"></script>
+<script src="js/version.js?v=14.70"></script>
+<script src="js/i18n.js?v=14.70"></script>
+<script src="js/config.js?v=14.70"></script>
+<script src="js/state.js?v=14.70"></script>
+<script src="js/api.js?v=14.70"></script>
+<script src="js/access.js?v=14.70"></script>
+<script src="js/auth.js?v=14.70"></script>
+<script src="js/logo.js?v=14.70"></script>
+<script src="js/ui.js?v=14.70"></script>
+<script src="js/chat.js?v=14.70"></script>
+<script src="js/chat-settings.js?v=14.70"></script>
+<script src="js/field-settings.js?v=14.70"></script>
+<script src="js/audit.js?v=14.70"></script>
+<script src="js/feature-flags.js?v=14.70"></script>
+<script src="js/notification-center.js?v=14.70"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=14.60"></script>
-<script src="js/spend.js?v=14.60"></script>
-<script src="js/job-market.js?v=14.60"></script>
-<script src="js/qc-job-market.js?v=14.60"></script>
-<script src="js/export-admin.js?v=14.60"></script>
-<script src="js/export-termin.js?v=14.60"></script>
-<script src="js/randevular.js?v=14.60"></script>
-<script src="js/performance.js?v=14.60"></script>
-<script src="js/competition.js?v=14.60"></script>
-<script src="js/dashboard.js?v=14.60"></script>
-<script src="js/reports.js?v=14.60"></script>
-<script src="js/dashboard-brief.js?v=14.60"></script>
-<script src="js/campaigns.js?v=14.60"></script>
-<script src="js/campaigns-detail.js?v=14.60"></script>
-<script src="js/campaigns-queue.js?v=14.60"></script>
-<script src="js/queues-page.js?v=14.60"></script>
-<script src="js/contacts-upload.js?v=14.60"></script>
-<script src="js/geocon.js?v=14.60"></script>
-<script src="js/contacts.js?v=14.60"></script>
-<script src="js/contacts-drawer.js?v=14.60"></script>
-<script src="js/telnyx.js?v=14.60"></script>
-<script src="js/hold-music.js?v=14.60"></script>
-<script src="js/voice-orb.js?v=14.60"></script>
-<script src="js/dialer.js?v=14.60"></script>
-<script src="js/ops-alerts.js?v=14.60"></script>
-<script src="js/radius-tour.js?v=14.60"></script>
-<script src="js/dialer-mascot.js?v=14.60"></script>
-<script src="js/dialer-mascot-live.js?v=14.60"></script>
-<script src="js/ui-prefs.js?v=14.60"></script>
-<script src="js/dialer-session.js?v=14.60"></script>
-<script src="js/dialer-call.js?v=14.60"></script>
-<script src="js/dialer-tools.js?v=14.60"></script>
-<script src="js/appointments.js?v=14.60"></script>
-<script src="js/appointments-actions.js?v=14.60"></script>
-<script src="js/appointments-tools.js?v=14.60"></script>
-<script src="js/field.js?v=14.60"></script>
-<script src="js/field-quote.js?v=14.60"></script>
-<script src="js/field-catalog.js?v=14.60"></script>
-<script src="js/field-ops.js?v=14.60"></script>
-<script src="js/wiedervorlage.js?v=14.60"></script>
-<script src="js/qc.js?v=14.60"></script>
-<script src="js/supervisor.js?v=14.60"></script>
-<script src="js/live-coach.js?v=14.60"></script>
-<script src="js/sms-settings.js?v=14.60"></script>
-<script src="js/line-firms.js?v=14.60"></script>
-<script src="js/ai-staff.js?v=14.60"></script>
-<script src="js/callin-desk.js?v=14.60"></script>
-<script src="js/leave-hr.js?v=14.60"></script>
-<script src="js/muhasebe.js?v=14.60"></script>
-<script src="js/muhasebe-books.js?v=14.60"></script>
-<script src="js/agent-self-performance.js?v=14.60"></script>
-<script src="js/agents.js?v=14.60"></script>
-<script src="js/firm-desk.js?v=14.60"></script>
-<script src="js/mimi-brain.js?v=14.60"></script>
+<script src="js/wallet.js?v=14.70"></script>
+<script src="js/spend.js?v=14.70"></script>
+<script src="js/job-market.js?v=14.70"></script>
+<script src="js/qc-job-market.js?v=14.70"></script>
+<script src="js/export-admin.js?v=14.70"></script>
+<script src="js/export-termin.js?v=14.70"></script>
+<script src="js/randevular.js?v=14.70"></script>
+<script src="js/performance.js?v=14.70"></script>
+<script src="js/competition.js?v=14.70"></script>
+<script src="js/dashboard.js?v=14.70"></script>
+<script src="js/reports.js?v=14.70"></script>
+<script src="js/dashboard-brief.js?v=14.70"></script>
+<script src="js/campaigns.js?v=14.70"></script>
+<script src="js/campaigns-detail.js?v=14.70"></script>
+<script src="js/campaigns-queue.js?v=14.70"></script>
+<script src="js/queues-page.js?v=14.70"></script>
+<script src="js/contacts-upload.js?v=14.70"></script>
+<script src="js/geocon.js?v=14.70"></script>
+<script src="js/contacts.js?v=14.70"></script>
+<script src="js/contacts-drawer.js?v=14.70"></script>
+<script src="js/telnyx.js?v=14.70"></script>
+<script src="js/hold-music.js?v=14.70"></script>
+<script src="js/voice-orb.js?v=14.70"></script>
+<script src="js/dialer.js?v=14.70"></script>
+<script src="js/ops-alerts.js?v=14.70"></script>
+<script src="js/radius-tour.js?v=14.70"></script>
+<script src="js/dialer-mascot.js?v=14.70"></script>
+<script src="js/dialer-mascot-live.js?v=14.70"></script>
+<script src="js/ui-prefs.js?v=14.70"></script>
+<script src="js/dialer-session.js?v=14.70"></script>
+<script src="js/dialer-call.js?v=14.70"></script>
+<script src="js/dialer-tools.js?v=14.70"></script>
+<script src="js/appointments.js?v=14.70"></script>
+<script src="js/appointments-actions.js?v=14.70"></script>
+<script src="js/appointments-tools.js?v=14.70"></script>
+<script src="js/field.js?v=14.70"></script>
+<script src="js/field-quote.js?v=14.70"></script>
+<script src="js/field-catalog.js?v=14.70"></script>
+<script src="js/field-ops.js?v=14.70"></script>
+<script src="js/wiedervorlage.js?v=14.70"></script>
+<script src="js/blacklist.js?v=14.70"></script>
+<script src="js/qc.js?v=14.70"></script>
+<script src="js/supervisor.js?v=14.70"></script>
+<script src="js/live-coach.js?v=14.70"></script>
+<script src="js/sms-settings.js?v=14.70"></script>
+<script src="js/line-firms.js?v=14.70"></script>
+<script src="js/ai-staff.js?v=14.70"></script>
+<script src="js/callin-desk.js?v=14.70"></script>
+<script src="js/leave-hr.js?v=14.70"></script>
+<script src="js/muhasebe.js?v=14.70"></script>
+<script src="js/muhasebe-books.js?v=14.70"></script>
+<script src="js/agent-self-performance.js?v=14.70"></script>
+<script src="js/agents.js?v=14.70"></script>
+<script src="js/firm-desk.js?v=14.70"></script>
+<script src="js/mimi-brain.js?v=14.70"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof mbApplyChartTheme === 'function') mbApplyChartTheme();

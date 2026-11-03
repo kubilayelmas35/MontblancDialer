@@ -1224,6 +1224,13 @@ async function mbPlacePoolCall(contact) {
   const own = (campaigns || []).find((c) => String(c.id) === String(contact?.campaign_id));
   const selected = (campaigns || []).find((c) => String(c.id) === String(selectedCampId));
   const campaign = own || selected;
+  if (!_testMode && !window.__mbPoolSimulate && typeof mbIsFirmDnc === 'function' && await mbIsFirmDnc(contact?.phone, campaign?.firm_id || currentUser?.firm_id)) {
+    if (typeof toast === 'function') toast(typeof t === 'function' ? t('bl.dial.blocked') : 'Bu numara kara listede', 'warn', 2200);
+    return;
+  }
+  if (!_testMode && !window.__mbPoolSimulate && campaign && typeof mbEnsureHealthyDid === 'function') {
+    await mbEnsureHealthyDid(campaign);
+  }
   const caller = campaign?.telnyx_did || '';
   if (!_testMode && !window.__mbPoolSimulate && typeof mbLineCallBlocked === 'function' && await mbLineCallBlocked(campaign?.firm_id || currentUser?.firm_id, caller, contact?.phone)) {
     if (typeof mbNoteIntlBlocked === 'function') mbNoteIntlBlocked(contact);

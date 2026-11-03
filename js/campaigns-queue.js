@@ -225,7 +225,12 @@ async function saveQueuePerson(id) {
 
 async function dncQueuePerson(id) {
   try {
+    const rows = await sb(`contacts?id=eq.${id}&select=id,phone,firm_id`).catch(() => []);
+    const row = rows?.[0];
     await sb(`contacts?id=eq.${id}`, { method: 'PATCH', prefer: 'return=minimal', body: JSON.stringify({ status: 'dnc' }) });
+    if (row?.phone && typeof mbAddFirmDnc === 'function') {
+      await mbAddFirmDnc(row.phone, { firmId: row.firm_id || currentUser?.firm_id, source: 'outcome' });
+    }
     await refreshQueuePeople();
   } catch (e) { toast(e.message, 'err'); }
 }

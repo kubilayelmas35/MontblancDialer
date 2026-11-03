@@ -361,6 +361,9 @@ async function openContactDrawer(contactId) {
     document.getElementById('cdr-phone').textContent = c.phone || '—';
     // Info tab
     const statusMap = {pending:'Bekliyor',no_answer:'Cevap Yok',callback:'Geri Ara',negative:'Olumsuz',appointment:'Randevu',dnc:'Kara Liste',done:'Tamamlandı',stuck:'Tıkanık',unused:'Kullanım dışı',busy:'Meşgul',phone_off:'Telefon kapalı'};
+    const extra = c.extra && typeof c.extra === 'object' ? c.extra : {};
+    const consentAt = extra.consent_at ? String(extra.consent_at).slice(0, 16) : '';
+    const consentSrc = extra.consent_source || '';
     const fields = [
       {l:'Telefon',    v:c.phone,      mono:true, copy:true},
       {l:'2. Tel',     v:c.phone2,     mono:true, copy:true},
@@ -374,14 +377,27 @@ async function openContactDrawer(contactId) {
       {l:'Deneme',     v:c.attempt_count ? `${c.attempt_count}. arama` : '—'},
       {l:'Geri Ara',   v:c.callback_at ? new Date(c.callback_at).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : null},
       {l:'Not',        v:c.notes},
+      {l: (typeof t === 'function' ? t('bl.consent.at') : 'İzin tarihi'), v: consentAt || (typeof t === 'function' ? t('bl.consent.none') : 'Yok')},
+      {l: (typeof t === 'function' ? t('bl.consent.src') : 'İzin kaynağı'), v: consentSrc || '—'},
     ].filter(f => f.v);
+    const canGdpr = typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin();
+    const consentBox = canGdpr ? `
+<div class="cdr-field" style="grid-column:1/-1;display:flex;flex-direction:column;gap:8px;padding-top:8px;border-top:1px solid var(--border);margin-top:4px;">
+  <div class="cdr-field-label">${typeof t === 'function' ? t('bl.consent.edit') : 'Arama izni'}</div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+    <input type="datetime-local" class="form-input" id="cdr-consent-at" value="${(consentAt || '').replace('Z','').slice(0,16)}" style="max-width:210px;font-size:12px;">
+    <input class="form-input" id="cdr-consent-src" value="${String(consentSrc).replace(/"/g,'&quot;')}" placeholder="${typeof t === 'function' ? t('bl.consent.src_ph') : 'web / form / sözlü'}" style="max-width:180px;font-size:12px;">
+    <button type="button" class="btn btn-ghost btn-sm" onclick="cdrSaveConsent()">${typeof t === 'function' ? t('bl.consent.save') : 'İzni kaydet'}</button>
+    <button type="button" class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="cdrGdprErase()">${typeof t === 'function' ? t('bl.gdpr.btn') : 'GDPR sil'}</button>
+  </div>
+</div>` : '';
     document.getElementById('cdr-fields-grid').innerHTML = fields.map(f => `
 <div class="cdr-field">
   <div class="cdr-field-label">${f.l}</div>
   <div class="cdr-field-val${f.mono?' mono':''}"
     ${f.copy?`style="cursor:pointer;" onclick="copyToClipboard('${(f.v||'').replace(/'/g,"\\'")}','${f.l} kopyalandı')" title="Kopyala"`:''}
   >${f.v}</div>
-</div>`).join('');
+</div>`).join('') + consentBox;
     // History tab
     _renderCdrHistory();
     // Recordings tab
@@ -397,6 +413,34 @@ async function openContactDrawer(contactId) {
   } catch(e) {
     toast('Drawer yüklenemedi: ' + e.message, 'err');
     closeContactDrawer();
+  }
+}
+
+async function cdrSaveConsent() {
+  if (!_cdrContactId) return;
+  const at = document.getElementById('cdr-consent-at')?.value || '';
+  const src = String(document.getElementById('cdr-consent-src')?.value || '').trim();
+  try {
+    const iso = at ? new Date(at).toISOString() : null;
+    if (typeof mbSaveContactConsent === 'function') {
+      await mbSaveContactConsent(_cdrContactId, iso, src);
+    }
+    toast(typeof t === 'function' ? t('bl.consent.saved') : 'İzin kaydedildi', 'ok');
+    await openContactDrawer(_cdrContactId);
+  } catch (e) {
+    toast((typeof t === 'function' ? t('bl.err') : 'Hata') + ': ' + (e.message || e), 'err');
+  }
+}
+
+async function cdrGdprErase() {
+  if (!_cdrContactId) return;
+  if (!confirm(typeof t === 'function' ? t('bl.gdpr.confirm') : 'Kişisel veriler silinsin mi?')) return;
+  try {
+    if (typeof mbGdprEraseContact === 'function') await mbGdprEraseContact(_cdrContactId);
+    toast(typeof t === 'function' ? t('bl.gdpr.done').replace('{n}', '1') : 'Anonimleştirildi', 'ok');
+    await openContactDrawer(_cdrContactId);
+  } catch (e) {
+    toast((typeof t === 'function' ? t('bl.err') : 'Hata') + ': ' + (e.message || e), 'err');
   }
 }
 

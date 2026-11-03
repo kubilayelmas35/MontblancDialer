@@ -202,12 +202,22 @@ async function getNextContact(campaignIds = null) {
     }
     const seenPick = new Set();
     const usable = [];
+    let dncSet = null;
+    if (typeof mbLoadFirmDncSet === 'function' && currentUser?.firm_id && !testRelax) {
+      dncSet = await mbLoadFirmDncSet(currentUser.firm_id).catch(() => null);
+    }
     for (let i = 0; i < contacts.length; i++) {
       const c = contacts[i];
       const key = String(c?.id || '');
       if (key && seenPick.has(key)) continue;
       if (key) seenPick.add(key);
       if (!isUsableRealContact(c)) continue;
+      if (String(c.status || '') === 'dnc') continue;
+      if (dncSet && dncSet.size) {
+        const ph = typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(c.phone) : String(c.phone || '');
+        const ph2 = typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(c.phone2) : String(c.phone2 || '');
+        if ((ph && dncSet.has(ph)) || (ph2 && dncSet.has(ph2))) continue;
+      }
       const qid = String(c.queue_id || '');
       if (qid && pausedQueueIds.has(qid) && !testRelax) continue;
       const prefs = typeof queueDialPrefs === 'function' ? queueDialPrefs(c.campaign_id, c.queue_id) : { priority: 0, maxAttempts: 0 };
@@ -1407,6 +1417,13 @@ async function addToDnc(phone, contactId) {
       method: 'PATCH', prefer: 'return=minimal',
       body: JSON.stringify({status: 'dnc', locked_by: null})
     });
+    if (typeof mbAddFirmDnc === 'function') {
+      await mbAddFirmDnc(phone, {
+        firmId: currentUser?.firm_id,
+        source: 'outcome',
+        note: '',
+      });
+    }
     await sb('call_logs', {method:'POST', prefer:'return=minimal',
       body: JSON.stringify({
         contact_id: contactId, agent_id: currentUser.id,

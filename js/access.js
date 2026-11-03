@@ -25,6 +25,7 @@ const MB_PAGES = [
   { key: 'randevular', label: 'Randevular', roles: ['super_admin', 'admin', 'firm_admin', 'qc'] },
   { key: 'qc', label: 'Kalite kontrol', roles: ['super_admin', 'admin', 'firm_admin', 'qc'] },
   { key: 'wiedervorlage', label: 'Aranacaklar', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc'] },
+  { key: 'blacklist', label: 'Kara liste', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'dialer', label: 'Dialer', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc'] },
   { key: 'field', label: 'Saha görevlerim', roles: ['field_agent', 'super_admin', 'admin', 'firm_admin'] },
   { key: 'myhistory', label: 'Geçmişim', roles: ['agent', 'super_admin', 'admin', 'firm_admin'] },
@@ -110,7 +111,7 @@ function mbIsFirmAdmin(role) {
   return ['admin', 'firm_admin', 'super_admin'].includes(r || '');
 }
 
-const MB_PERM_REV = 7;
+const MB_PERM_REV = 8;
 const MB_PERM_GRANTS = [
   { rev: 2, keys: ['supervisor', 'jobmarket', 'fieldops'] },
   { rev: 3, keys: ['geocon'] },
@@ -118,6 +119,7 @@ const MB_PERM_GRANTS = [
   { rev: 5, keys: ['queues'] },
   { rev: 6, keys: ['spend'] },
   { rev: 7, keys: ['randevular'] },
+  { rev: 8, keys: ['blacklist'] },
 ];
 
 function mbMergeStoredPerms(list, role, settings) {

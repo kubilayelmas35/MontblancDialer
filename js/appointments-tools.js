@@ -1450,11 +1450,49 @@ async function _renderCallHoursForm() {
 
   if (g('ch-sun-allowed'))   g('ch-sun-allowed').checked   = !!ch.sun_allowed;
   if (g('ch-holiday-check')) g('ch-holiday-check').checked = ch.holiday_check !== false;
+  window._chCustomHolidays = Array.isArray(ch.custom_holidays)
+    ? ch.custom_holidays.map(String).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))
+    : [];
+  if (typeof chPaintCustomHolidays === 'function') chPaintCustomHolidays();
 
   // value attribute does not update live input, set .value directly too
   ['ch-wd-start','ch-wd-end','ch-sat-start','ch-sat-end'].forEach(id => {
     const el = g(id); if (el) el.value = el.getAttribute('value');
   });
+}
+
+function chPaintCustomHolidays() {
+  const box = document.getElementById('ch-custom-holiday-list');
+  if (!box) return;
+  const list = Array.isArray(window._chCustomHolidays) ? window._chCustomHolidays.slice().sort() : [];
+  if (!list.length) {
+    box.innerHTML = `<span style="font-size:11px;color:var(--text-3);">${typeof t === 'function' ? t('ch.custom.empty') : 'Henüz özel gün yok'}</span>`;
+    return;
+  }
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  box.innerHTML = list.map((d) => `
+<span style="display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:6px;background:var(--bg-2);border:1px solid var(--border);font-size:12px;font-family:var(--mono);">
+${esc(d)}
+<button type="button" class="icon-btn" style="width:18px;height:18px;font-size:12px;" onclick="chRemoveCustomHoliday('${esc(d)}')" aria-label="×">×</button>
+</span>`).join('');
+}
+
+function chAddCustomHoliday() {
+  const el = document.getElementById('ch-custom-holiday');
+  const d = String(el?.value || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+    if (typeof toast === 'function') toast(typeof t === 'function' ? t('ch.custom.bad') : 'Tarih seçin', 'warn');
+    return;
+  }
+  if (!Array.isArray(window._chCustomHolidays)) window._chCustomHolidays = [];
+  if (!window._chCustomHolidays.includes(d)) window._chCustomHolidays.push(d);
+  if (el) el.value = '';
+  chPaintCustomHolidays();
+}
+
+function chRemoveCustomHoliday(day) {
+  window._chCustomHolidays = (window._chCustomHolidays || []).filter((d) => d !== day);
+  chPaintCustomHolidays();
 }
 
 async function onCallHoursFirmChange() {
@@ -1468,6 +1506,9 @@ async function saveCallHoursSettings() {
   if (!firmId) { toast('Önce firma seçin', 'err'); return; }
 
   const g = id => document.getElementById(id);
+  const custom = Array.isArray(window._chCustomHolidays)
+    ? [...new Set(window._chCustomHolidays.map(String).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)))].sort()
+    : [];
   const ch = {
     weekday_start  : g('ch-wd-start')?.value     || '09:00',
     weekday_end    : g('ch-wd-end')?.value        || '20:00',
@@ -1475,7 +1516,8 @@ async function saveCallHoursSettings() {
     sat_start      : g('ch-sat-start')?.value     || '09:00',
     sat_end        : g('ch-sat-end')?.value        || '13:00',
     sun_allowed    : !!g('ch-sun-allowed')?.checked,
-    holiday_check  : !!g('ch-holiday-check')?.checked
+    holiday_check  : !!g('ch-holiday-check')?.checked,
+    custom_holidays: custom,
   };
 
   try {
