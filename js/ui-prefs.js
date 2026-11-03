@@ -60,7 +60,7 @@ function mbCollectUiPrefs() {
   if (typeof mbFieldTemplates === 'function') prefs.field_templates = mbFieldTemplates();
   const grads = mbReadLiveGrads();
   if (Object.keys(grads).length) prefs.live_grads = grads;
-  prefs.sb_scroll = mbReadSbScrollPrefs() || { on: false };
+  prefs.sb_scroll = mbReadSbScrollPrefs();
   const ex = typeof mbExportLayoutsForPrefs === 'function' ? mbExportLayoutsForPrefs() : null;
   if (ex) {
     prefs.export_layouts = ex.layouts;
@@ -339,19 +339,17 @@ function mbResetLiveGrads() {
 mbApplyLiveGrads(mbReadLiveGrads());
 mbPaintLiveGradForm();
 
-const MB_SB_SCROLL_DEF = { a: '#94a3b8', b: '#334155', grad: false, style: 'yeni' };
-
-function mbSbScrollOn() {
-  return localStorage.getItem('mb-sb-scroll-on') === '1';
-}
+/* İnce = sağa yapışık ince çubuk (ok yok) — renk her zaman uygulanır. Klasik = eski kalın + oklar. */
+const MB_SB_SCROLL_DEF = { a: '#94a3b8', b: '#334155', grad: false, style: 'ince' };
 
 function mbSbScrollStyle() {
   const s = localStorage.getItem('mb-sb-scroll-style');
-  return s === 'eski' ? 'eski' : 'yeni';
+  if (s === 'eski') return 'eski';
+  if (s === 'yeni') return 'ince'; /* eski kayıt uyumu */
+  return 'ince';
 }
 
 function mbReadSbScrollPrefs() {
-  if (!mbSbScrollOn()) return null;
   try {
     return {
       on: true,
@@ -361,25 +359,37 @@ function mbReadSbScrollPrefs() {
       grad: localStorage.getItem('mb-sb-scroll-grad') === '1',
     };
   } catch (_) {
-    return null;
+    return {
+      on: true,
+      style: MB_SB_SCROLL_DEF.style,
+      a: MB_SB_SCROLL_DEF.a,
+      b: MB_SB_SCROLL_DEF.b,
+      grad: false,
+    };
   }
 }
 
 function mbAdoptSbScrollPrefs(raw) {
-  if (!raw || raw.on === false) {
+  if (!raw || typeof raw !== 'object') {
+    mbResetSbScroll(true);
+    return;
+  }
+  /* Eski "on:false = varsayılan" → ince + varsayılan renk (görünüm aynı, renk ayarlanabilir) */
+  if (raw.on === false) {
     mbResetSbScroll(true);
     return;
   }
   const a = mbNormHex(raw.a) || MB_SB_SCROLL_DEF.a;
   const b = mbNormHex(raw.b) || MB_SB_SCROLL_DEF.b;
   const grad = !!raw.grad;
-  const style = raw.style === 'eski' ? 'eski' : 'yeni';
+  let style = raw.style === 'eski' ? 'eski' : 'ince';
+  if (raw.style === 'yeni') style = 'ince';
   try {
-    localStorage.setItem('mb-sb-scroll-on', '1');
     localStorage.setItem('mb-sb-scroll-style', style);
     localStorage.setItem('mb-sb-scroll-a', a);
     localStorage.setItem('mb-sb-scroll-b', b);
     localStorage.setItem('mb-sb-scroll-grad', grad ? '1' : '0');
+    localStorage.setItem('mb-sb-scroll-on', '1');
   } catch (_) {}
   mbApplySbScrollPrefs();
   mbPaintSbScrollForm();
@@ -388,7 +398,6 @@ function mbAdoptSbScrollPrefs(raw) {
 function mbSbScrollCss(style, a, b, grad) {
   const thumb = grad ? `linear-gradient(180deg, ${a} 0%, ${b} 100%)` : a;
   if (style === 'eski') {
-    // Klasik kalın çubuk + ray (Windows tarzı)
     return `
 .sidebar-scroll{scrollbar-width:auto;scrollbar-color:${a} rgba(255,255,255,0.08);}
 .sidebar-scroll::-webkit-scrollbar{width:12px;height:12px;}
@@ -401,13 +410,14 @@ function mbSbScrollCss(style, a, b, grad) {
 .sidebar-scroll::-webkit-scrollbar-corner{background:transparent;}
 `;
   }
-  // Yeni: ince çizgi
+  /* İnce / varsayılan görünüm: sağ kenar, ok yok — global 5px stile yakın, renkli */
   return `
 .sidebar-scroll{scrollbar-width:thin;scrollbar-color:${a} transparent;}
-.sidebar-scroll::-webkit-scrollbar{width:4px;height:4px;}
+.sidebar-scroll::-webkit-scrollbar{width:5px;height:5px;}
 .sidebar-scroll::-webkit-scrollbar-track{background:transparent;}
-.sidebar-scroll::-webkit-scrollbar-thumb{background:${thumb};border-radius:99px;min-height:24px;}
-.sidebar-scroll::-webkit-scrollbar-button{display:none;width:0;height:0;}
+.sidebar-scroll::-webkit-scrollbar-thumb{background:${thumb};border-radius:3px;min-height:24px;}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover{filter:brightness(1.15);}
+.sidebar-scroll::-webkit-scrollbar-button{display:none!important;width:0!important;height:0!important;}
 .sidebar-scroll::-webkit-scrollbar-corner{background:transparent;}
 `;
 }
@@ -416,18 +426,11 @@ function mbApplySbScrollPrefs() {
   let styleEl = document.getElementById('mb-sb-scroll-css');
   const prev = document.getElementById('sb-scroll-preview');
   const bWrap = document.getElementById('sb-scroll-b-wrap');
-  const btnY = document.getElementById('sb-scroll-style-yeni');
-  const btnE = document.getElementById('sb-scroll-style-eski');
+  const btnInce = document.getElementById('sb-scroll-style-yeni') || document.getElementById('sb-scroll-style-ince');
+  const btnEski = document.getElementById('sb-scroll-style-eski');
   const st = mbSbScrollStyle();
-  if (btnY) btnY.classList.toggle('btn-primary', mbSbScrollOn() && st === 'yeni');
-  if (btnE) btnE.classList.toggle('btn-primary', mbSbScrollOn() && st === 'eski');
-  if (!mbSbScrollOn()) {
-    if (styleEl) styleEl.remove();
-    document.documentElement.classList.remove('mb-sb-scroll-custom', 'mb-sb-scroll-grad');
-    if (prev) prev.style.background = 'var(--border-2)';
-    if (bWrap) bWrap.style.opacity = '0.45';
-    return;
-  }
+  if (btnInce) btnInce.classList.toggle('btn-primary', st === 'ince');
+  if (btnEski) btnEski.classList.toggle('btn-primary', st === 'eski');
   const a = mbNormHex(localStorage.getItem('mb-sb-scroll-a')) || MB_SB_SCROLL_DEF.a;
   const b = mbNormHex(localStorage.getItem('mb-sb-scroll-b')) || MB_SB_SCROLL_DEF.b;
   const grad = localStorage.getItem('mb-sb-scroll-grad') === '1';
@@ -458,20 +461,13 @@ function mbPaintSbScrollForm() {
   mbApplySbScrollPrefs();
 }
 
-function mbEnsureSbScrollOn() {
+function mbSetSbScrollStyle(style) {
+  const st = style === 'eski' ? 'eski' : 'ince';
   try {
+    localStorage.setItem('mb-sb-scroll-style', st);
     localStorage.setItem('mb-sb-scroll-on', '1');
-    if (!localStorage.getItem('mb-sb-scroll-style')) localStorage.setItem('mb-sb-scroll-style', 'yeni');
     if (!mbNormHex(localStorage.getItem('mb-sb-scroll-a'))) localStorage.setItem('mb-sb-scroll-a', MB_SB_SCROLL_DEF.a);
     if (!mbNormHex(localStorage.getItem('mb-sb-scroll-b'))) localStorage.setItem('mb-sb-scroll-b', MB_SB_SCROLL_DEF.b);
-  } catch (_) {}
-}
-
-function mbSetSbScrollStyle(style) {
-  const st = style === 'eski' ? 'eski' : 'yeni';
-  try {
-    mbEnsureSbScrollOn();
-    localStorage.setItem('mb-sb-scroll-style', st);
   } catch (_) {}
   mbPaintSbScrollForm();
   if (!_mbPrefsApplying && typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
@@ -482,7 +478,11 @@ function mbSetSbScrollColor(which, value) {
   if (!hex) return;
   const key = which === 'b' ? 'mb-sb-scroll-b' : 'mb-sb-scroll-a';
   try {
-    mbEnsureSbScrollOn();
+    /* Renk değişince ince stilde kal — eski ok'lu stile geçirme */
+    if (!localStorage.getItem('mb-sb-scroll-style') || localStorage.getItem('mb-sb-scroll-style') === 'yeni') {
+      localStorage.setItem('mb-sb-scroll-style', 'ince');
+    }
+    localStorage.setItem('mb-sb-scroll-on', '1');
     localStorage.setItem(key, hex);
   } catch (_) {}
   mbApplySbScrollPrefs();
@@ -491,7 +491,10 @@ function mbSetSbScrollColor(which, value) {
 
 function mbSetSbScrollGrad(on) {
   try {
-    mbEnsureSbScrollOn();
+    if (!localStorage.getItem('mb-sb-scroll-style') || localStorage.getItem('mb-sb-scroll-style') === 'yeni') {
+      localStorage.setItem('mb-sb-scroll-style', 'ince');
+    }
+    localStorage.setItem('mb-sb-scroll-on', '1');
     localStorage.setItem('mb-sb-scroll-grad', on ? '1' : '0');
   } catch (_) {}
   mbPaintSbScrollForm();
@@ -499,12 +502,13 @@ function mbSetSbScrollGrad(on) {
 }
 
 function mbResetSbScroll(skipSave) {
+  /* Varsayılan = ince görünüm + varsayılan renk (renk seçici çalışmaya devam eder) */
   try {
-    localStorage.removeItem('mb-sb-scroll-on');
-    localStorage.removeItem('mb-sb-scroll-style');
-    localStorage.removeItem('mb-sb-scroll-a');
-    localStorage.removeItem('mb-sb-scroll-b');
-    localStorage.removeItem('mb-sb-scroll-grad');
+    localStorage.setItem('mb-sb-scroll-on', '1');
+    localStorage.setItem('mb-sb-scroll-style', 'ince');
+    localStorage.setItem('mb-sb-scroll-a', MB_SB_SCROLL_DEF.a);
+    localStorage.setItem('mb-sb-scroll-b', MB_SB_SCROLL_DEF.b);
+    localStorage.setItem('mb-sb-scroll-grad', '0');
   } catch (_) {}
   const elG = document.getElementById('sb-scroll-grad');
   if (elG) elG.checked = false;
