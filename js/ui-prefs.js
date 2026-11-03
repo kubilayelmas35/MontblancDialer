@@ -399,7 +399,7 @@ function mbSbScrollCss(style, a, b, grad) {
   const thumb = grad ? `linear-gradient(180deg, ${a} 0%, ${b} 100%)` : a;
   if (style === 'eski') {
     return `
-.sidebar-scroll{scrollbar-width:auto;scrollbar-color:${a} rgba(255,255,255,0.08);}
+.sidebar-scroll{scrollbar-width:auto;scrollbar-color:${a} rgba(255,255,255,0.08);scrollbar-gutter:stable;}
 .sidebar-scroll::-webkit-scrollbar{width:12px;height:12px;}
 .sidebar-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,0.08);}
 .sidebar-scroll::-webkit-scrollbar-thumb{background:${thumb};border-radius:6px;border:2px solid transparent;background-clip:padding-box;min-height:32px;}
@@ -410,14 +410,19 @@ function mbSbScrollCss(style, a, b, grad) {
 .sidebar-scroll::-webkit-scrollbar-corner{background:transparent;}
 `;
   }
-  /* İnce / varsayılan görünüm: sağ kenar, ok yok — global 5px stile yakın, renkli */
+  /* Modern: sağ kenara yapışık ince çizgi, üst/alt ok yok */
   return `
-.sidebar-scroll{scrollbar-width:thin;scrollbar-color:${a} transparent;}
+.sidebar-scroll{scrollbar-width:thin;scrollbar-color:${a} transparent;scrollbar-gutter:auto;}
 .sidebar-scroll::-webkit-scrollbar{width:5px;height:5px;}
-.sidebar-scroll::-webkit-scrollbar-track{background:transparent;}
-.sidebar-scroll::-webkit-scrollbar-thumb{background:${thumb};border-radius:3px;min-height:24px;}
-.sidebar-scroll::-webkit-scrollbar-thumb:hover{filter:brightness(1.15);}
-.sidebar-scroll::-webkit-scrollbar-button{display:none!important;width:0!important;height:0!important;}
+.sidebar-scroll::-webkit-scrollbar-track{background:transparent;border:none;box-shadow:none;}
+.sidebar-scroll::-webkit-scrollbar-thumb{background:${thumb};border-radius:99px;border:none;min-height:28px;background-clip:border-box;}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover{filter:brightness(1.18);}
+.sidebar-scroll::-webkit-scrollbar-button,
+.sidebar-scroll::-webkit-scrollbar-button:single-button,
+.sidebar-scroll::-webkit-scrollbar-button:start:decrement,
+.sidebar-scroll::-webkit-scrollbar-button:end:increment,
+.sidebar-scroll::-webkit-scrollbar-button:vertical:start:decrement,
+.sidebar-scroll::-webkit-scrollbar-button:vertical:end:increment{display:none!important;width:0!important;height:0!important;appearance:none!important;-webkit-appearance:none!important;background:transparent!important;border:0!important;}
 .sidebar-scroll::-webkit-scrollbar-corner{background:transparent;}
 `;
 }
@@ -429,8 +434,16 @@ function mbApplySbScrollPrefs() {
   const btnInce = document.getElementById('sb-scroll-style-yeni') || document.getElementById('sb-scroll-style-ince');
   const btnEski = document.getElementById('sb-scroll-style-eski');
   const st = mbSbScrollStyle();
-  if (btnInce) btnInce.classList.toggle('btn-primary', st === 'ince');
-  if (btnEski) btnEski.classList.toggle('btn-primary', st === 'eski');
+  if (btnInce) {
+    btnInce.classList.toggle('is-on', st === 'ince');
+    btnInce.classList.remove('btn-primary');
+    btnInce.setAttribute('aria-pressed', st === 'ince' ? 'true' : 'false');
+  }
+  if (btnEski) {
+    btnEski.classList.toggle('is-on', st === 'eski');
+    btnEski.classList.remove('btn-primary');
+    btnEski.setAttribute('aria-pressed', st === 'eski' ? 'true' : 'false');
+  }
   const a = mbNormHex(localStorage.getItem('mb-sb-scroll-a')) || MB_SB_SCROLL_DEF.a;
   const b = mbNormHex(localStorage.getItem('mb-sb-scroll-b')) || MB_SB_SCROLL_DEF.b;
   const grad = localStorage.getItem('mb-sb-scroll-grad') === '1';
@@ -446,6 +459,9 @@ function mbApplySbScrollPrefs() {
   document.documentElement.classList.toggle('mb-sb-scroll-grad', grad);
   if (prev) prev.style.background = thumb;
   if (bWrap) bWrap.style.opacity = grad ? '1' : '0.45';
+  document.querySelectorAll('.sb-scroll-style-btn').forEach((btn) => {
+    btn.style.setProperty('--sb-scroll-swatch', a);
+  });
 }
 
 function mbPaintSbScrollForm() {

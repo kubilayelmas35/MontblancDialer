@@ -3461,10 +3461,24 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Menü kaydırma çubuğu" data-de="Menü-Scrollbar">Menü kaydırma çubuğu</label>
-<p class="live-grad-hint" data-tr="İnce: sağa yapışık, ok yok — rengi buradan seç. Klasik: kalın çubuk + oklar. Varsayılan ince stili ve gri rengi geri getirir." data-de="Dünn: rechts bündig, ohne Pfeile — Farbe hier wählen. Klassisch: dick mit Pfeilen. Standard setzt dünnen Stil und graue Farbe zurück.">İnce: sağa yapışık, ok yok — rengi buradan seç. Klasik: kalın çubuk + oklar. Varsayılan ince stili ve gri rengi geri getirir.</p>
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center;">
-<button type="button" class="btn btn-ghost btn-sm" id="sb-scroll-style-yeni" onclick="mbSetSbScrollStyle('ince')" data-tr="İnce" data-de="Dünn">İnce</button>
-<button type="button" class="btn btn-ghost btn-sm" id="sb-scroll-style-eski" onclick="mbSetSbScrollStyle('eski')" data-tr="Klasik" data-de="Klassisch">Klasik</button>
+<p class="live-grad-hint" data-tr="Modern: sağa yapışık ince çubuk, üst/alt ok yok. Klasik: kalın çubuk + oklar. Seçili stil renklidir; çubuk rengini alttan değiştir." data-de="Modern: dünn rechts bündig, ohne Pfeile. Klassisch: dick mit Pfeilen. Gewählter Stil ist farbig; Leistenfarbe unten wählen.">Modern: sağa yapışık ince çubuk, üst/alt ok yok. Klasik: kalın çubuk + oklar. Seçili stil renklidir; çubuk rengini alttan değiştir.</p>
+<div class="sb-scroll-style-row" role="group" aria-label="Scrollbar stili">
+<button type="button" class="sb-scroll-style-btn" id="sb-scroll-style-yeni" onclick="mbSetSbScrollStyle('ince')">
+<span class="sb-scroll-style-preview sb-scroll-style-preview--modern" aria-hidden="true"><i></i></span>
+<span class="sb-scroll-style-copy">
+<strong data-tr="Modern" data-de="Modern">Modern</strong>
+<small data-tr="Sağa yapışık · ok yok" data-de="Rechts bündig · ohne Pfeile">Sağa yapışık · ok yok</small>
+</span>
+</button>
+<button type="button" class="sb-scroll-style-btn" id="sb-scroll-style-eski" onclick="mbSetSbScrollStyle('eski')">
+<span class="sb-scroll-style-preview sb-scroll-style-preview--classic" aria-hidden="true"><b></b><i></i><b></b></span>
+<span class="sb-scroll-style-copy">
+<strong data-tr="Klasik" data-de="Klassisch">Klasik</strong>
+<small data-tr="Kalın çubuk · oklar" data-de="Dicke Leiste · Pfeile">Kalın çubuk · oklar</small>
+</span>
+</button>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Renk" data-de="Farbe">Renk</span><input type="color" id="sb-scroll-a" value="#94a3b8" oninput="mbSetSbScrollColor('a', this.value)"></label>
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;" id="sb-scroll-b-wrap"><span data-tr="Renk 2" data-de="Farbe 2">Renk 2</span><input type="color" id="sb-scroll-b" value="#334155" oninput="mbSetSbScrollColor('b', this.value)"></label>
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="sb-scroll-grad" onchange="mbSetSbScrollGrad(this.checked)"> <span data-tr="Gradient" data-de="Verlauf">Gradient</span></label>

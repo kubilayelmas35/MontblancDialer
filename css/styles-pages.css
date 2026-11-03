@@ -61,6 +61,107 @@ transition:var(--transition); flex:none;
 .palette-dot:hover { transform:scale(1.15); }
 .palette-dot--custom { border-style:dashed; border-color:var(--border-2); }
 .palette-dot--custom.sel { border-style:solid; }
+/* Sidebar scrollbar style picker */
+.sb-scroll-style-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.sb-scroll-style-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 160px;
+  max-width: 260px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-2);
+  background: var(--bg-2);
+  color: var(--text-2);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s, background .15s, color .15s, box-shadow .15s;
+}
+.sb-scroll-style-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.sb-scroll-style-btn.is-on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 14px var(--accent-soft);
+}
+.sb-scroll-style-btn.is-on small { color: rgba(255,255,255,0.85); }
+.sb-scroll-style-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.sb-scroll-style-copy strong {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.sb-scroll-style-copy small {
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.25;
+}
+.sb-scroll-style-preview {
+  position: relative;
+  width: 18px;
+  height: 40px;
+  border-radius: 6px;
+  background: rgba(127,127,127,0.12);
+  flex: none;
+  overflow: hidden;
+}
+.sb-scroll-style-preview--modern i {
+  position: absolute;
+  top: 6px;
+  right: 1px;
+  bottom: 6px;
+  width: 4px;
+  border-radius: 99px;
+  background: var(--sb-scroll-swatch, currentColor);
+  opacity: 0.9;
+}
+.sb-scroll-style-btn.is-on .sb-scroll-style-preview--modern i { background: #fff; opacity: 1; }
+.sb-scroll-style-preview--classic {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 0;
+  width: 22px;
+}
+.sb-scroll-style-preview--classic b {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  opacity: 0.7;
+}
+.sb-scroll-style-preview--classic b:first-child {
+  border-bottom: 5px solid var(--sb-scroll-swatch, currentColor);
+}
+.sb-scroll-style-preview--classic b:last-child {
+  border-top: 5px solid var(--sb-scroll-swatch, currentColor);
+}
+.sb-scroll-style-preview--classic i {
+  width: 8px;
+  flex: 1;
+  margin: 3px 0;
+  border-radius: 3px;
+  background: var(--sb-scroll-swatch, currentColor);
+  opacity: 0.9;
+}
+.sb-scroll-style-btn.is-on .sb-scroll-style-preview--classic b:first-child { border-bottom-color: #fff; }
+.sb-scroll-style-btn.is-on .sb-scroll-style-preview--classic b:last-child { border-top-color: #fff; }
+.sb-scroll-style-btn.is-on .sb-scroll-style-preview--classic i { background: #fff; opacity: 1; }
 /* ============================================================
 AGENTS PAGE
 ============================================================ */
