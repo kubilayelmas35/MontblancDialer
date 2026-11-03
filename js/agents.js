@@ -537,7 +537,7 @@ async function canManageFieldAgents(targetFirmId) {
 function _safeErrorText(e) {
   const t = String(e?.message || e || '');
   if (t.includes('duplicate key') || t.includes('already exists') || t.includes('users_email_key')) {
-    return 'Bu e-posta zaten kayıtlı.';
+    return (typeof t === 'function' ? t('agent.err.dup_user') : null) || 'Bu kullanıcı adı zaten kayıtlı.';
   }
   if (t.includes('users_role_check')) {
     return 'Rol doğrulaması başarısız. Veritabanı migration güncel olmayabilir.';
@@ -592,8 +592,8 @@ function _agentModal(userId, prefill) {
 <div class="form-grid">
 <div class="form-row"><label class="form-label">Ad Soyad *</label>
 <input class="form-input" id="am-name" value="${prefill?.name||''}" placeholder="Kürşat Şahan"></div>
-<div class="form-row"><label class="form-label">E-posta *</label>
-<input class="form-input" id="am-email" type="email" value="${prefill?.email||''}" placeholder="k.sahan@firma.com" ${isEdit?'readonly style="opacity:.6;"':''}></div>
+<div class="form-row"><label class="form-label">${t('agent.col.email')} *</label>
+<input class="form-input" id="am-email" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" value="${prefill?.email||''}" placeholder="kursat" ${isEdit?'readonly style="opacity:.6;"':''}></div>
 </div>
 ${!isEdit ? `<div class="form-row"><label class="form-label">Şifre *</label>
 <input class="form-input" id="am-pass" type="password" placeholder="En az 6 karakter"></div>` : `
@@ -670,7 +670,7 @@ async function saveNewAgent() {
   const pass  = document.getElementById('am-pass')?.value;
   const role  = document.getElementById('am-role')?.value || 'agent';
   const firmId = document.getElementById('am-firm')?.value || currentUser.firm_id;
-  if (!name||!email||!pass) { toast('Ad, e-posta ve şifre zorunlu','err'); return; }
+  if (!name||!email||!pass) { toast(t('agent.err.required') || 'Ad, kullanıcı adı ve şifre zorunlu','err'); return; }
   const pwdErr = _validateUserPassword(pass, true);
   if (pwdErr) { toast(pwdErr, 'err'); return; }
   if (role === 'field_agent' && !(await canManageFieldAgents(firmId))) {
@@ -1292,8 +1292,8 @@ async function openEditUserModal(userId) {
 <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
 <div class="form-row"><label class="form-label">Ad Soyad *</label>
 <input class="form-input" id="eu-name" value="${escapeHtml(u.name || '')}"></div>
-<div class="form-row"><label class="form-label">E-posta *</label>
-<input class="form-input" id="eu-email" value="${escapeHtml(u.email || '')}" type="email"></div>
+<div class="form-row"><label class="form-label">${escapeHtml(t('agent.col.email'))} *</label>
+<input class="form-input" id="eu-email" value="${escapeHtml(u.email || '')}" type="text" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
 <div class="form-row"><label class="form-label">Yeni Şifre (boş = değişmez)</label>
 <input class="form-input" id="eu-pass" type="password" placeholder="••••••••"></div>
 <div class="form-row"><label class="form-label">Rol</label>
@@ -1337,7 +1337,7 @@ async function saveEditUser(userId) {
   const pass   = document.getElementById('eu-pass')?.value;
   const role   = document.getElementById('eu-role')?.value;
   const active = document.getElementById('eu-active')?.value === 'true';
-  if (!name||!email) { toast('Ad ve e-posta zorunlu','err'); return; }
+  if (!name||!email) { toast(t('agent.err.name_user') || 'Ad ve kullanıcı adı zorunlu','err'); return; }
   const pwdErr = _validateUserPassword(pass, false);
   if (pwdErr) { toast(pwdErr, 'err'); return; }
   const editFirmId = document.getElementById('m-edit-user')?.dataset.firmId || '';
@@ -1557,7 +1557,7 @@ async function saveUser() {
   const pass   = document.getElementById('user-pass').value;
   const role   = document.getElementById('user-role').value;
   const firmId = document.getElementById('user-firm-id').value;
-  if (!name||!email||!pass) { toast('Ad, e-posta ve şifre zorunlu','err'); return; }
+  if (!name||!email||!pass) { toast(t('agent.err.required') || 'Ad, kullanıcı adı ve şifre zorunlu','err'); return; }
   const pwdErr = _validateUserPassword(pass, true);
   if (pwdErr) { toast(pwdErr, 'err'); return; }
   if (role === 'field_agent' && !(await canManageFieldAgents(firmId))) {

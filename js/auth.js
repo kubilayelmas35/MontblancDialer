@@ -93,7 +93,7 @@ const errEl  = document.getElementById('login-err');
 const btn    = document.getElementById('login-submit');
 const remember = !!document.getElementById('login-remember')?.checked;
 if (!email || !pass) {
-errEl.textContent = (typeof t === 'function' ? t('login.err.required') : 'E-posta ve şifre gerekli');
+errEl.textContent = (typeof t === 'function' ? t('login.err.required') : 'Kullanıcı adı ve şifre gerekli');
 errEl.style.display = 'block';
 return;
 }
