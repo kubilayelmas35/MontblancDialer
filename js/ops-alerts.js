@@ -1886,23 +1886,29 @@ async function opsTickData() {
   const min = opsClamp(_opsAlerts.dataMin, 1000, 1, 100000);
   try {
     const camps = await sb(`campaigns?firm_id=eq.${fid}&status=eq.active&select=id,name&limit=30`) || [];
+    const lowNow = [];
     for (const camp of camps) {
       if (!camp?.id) continue;
       const n = await mbHeadCountExact(`contacts?campaign_id=eq.${camp.id}&status=in.(pending,no_answer,callback)&select=id`);
       if (n == null) continue;
       const id = String(camp.id);
-      if (n < min) {
-        if (_opsDataLow.has(id)) continue;
-        _opsDataLow.add(id);
-        const title = opsSay('ops.data.title', 'Veri azaldı');
-        const text = opsDataText(String(camp.name || '').trim() || 'Kampanya', n, min);
-        toast(`${title}. ${text}`, 'warn', 5000);
-        opsCue('data');
-        opsRememberNotice(title, text, opsSoundEntry('data').color, 'camp');
+      /* Boş kuyruk (0) = fiilen bitmiş — gürültü yapma. Yalnız 0 < n < min uyar. */
+      if (n > 0 && n < min) {
+        lowNow.push({ id, name: String(camp.name || '').trim() || 'Kampanya', n });
       } else {
         _opsDataLow.delete(id);
       }
     }
+    const fresh = lowNow.filter((row) => !_opsDataLow.has(row.id));
+    fresh.forEach((row) => _opsDataLow.add(row.id));
+    if (!fresh.length) return;
+    const title = opsSay('ops.data.title', 'Veri azaldı');
+    const text = fresh.length === 1
+      ? opsDataText(fresh[0].name, fresh[0].n, min)
+      : fresh.map((row) => `${row.name}: ${row.n}`).join(' · ') + ` (${opsSay('ops.data.limit', 'sınır')} ${min})`;
+    toast(`${title}. ${text}`, 'warn', 6000);
+    opsCue('data');
+    opsRememberNotice(title, text, opsSoundEntry('data').color, 'camp');
   } catch (e) {}
 }
 

@@ -105,7 +105,7 @@ function _buildCallHistoryQueryForExport() {
   const dateTo = document.getElementById('ch-date-to')?.value || chToday;
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(dateFrom) : `${dateFrom}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(dateTo) : `${dateTo}T23:59:59`;
-  let query = `call_logs?select=*,users(id,name,role),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${ff}&order=started_at.desc,id.asc`;
+  let query = `call_logs?select=*,users(id,name,role),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${ff}&order=started_at.desc`;
   query += `&started_at=gte.${gte}`;
   query += `&started_at=lte.${lte}`;
   const camp = document.getElementById('ch-camp-f')?.value || '';

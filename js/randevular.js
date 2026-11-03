@@ -228,7 +228,8 @@ function _rdFillFilterSelects() {
   const st = document.getElementById('rd-filter-status');
   if (st) {
     const cur = st.value;
-    st.innerHTML = `<option value="">Alle Status</option>` + _rdStatusKeys().map((k) =>
+    const allSt = (typeof t === 'function' ? t('rd.filter.all_status') : null) || 'Tüm durumlar';
+    st.innerHTML = `<option value="">${_rdEsc(allSt)}</option>` + _rdStatusKeys().map((k) =>
       `<option value="${_rdEsc(k)}">${_rdEsc(_rdDurumLabel(k))}</option>`
     ).join('');
     if (cur) st.value = cur;
@@ -236,7 +237,8 @@ function _rdFillFilterSelects() {
   const ag = document.getElementById('rd-filter-agent');
   if (ag) {
     const cur = ag.value;
-    ag.innerHTML = `<option value="">Alle Agenten</option>` + _rdAgents.map((a) =>
+    const allAg = (typeof t === 'function' ? t('rd.filter.all_agents') : null) || 'Tüm temsilciler';
+    ag.innerHTML = `<option value="">${_rdEsc(allAg)}</option>` + _rdAgents.map((a) =>
       `<option value="${_rdEsc(a.id)}">${_rdEsc(a.name || a.id)}</option>`
     ).join('');
     if (cur) ag.value = cur;
@@ -244,7 +246,8 @@ function _rdFillFilterSelects() {
   const cu = document.getElementById('rd-filter-customer');
   if (cu) {
     const cur = cu.value;
-    cu.innerHTML = `<option value="">Alle Kunden</option>` + _rdCustomers.map((c) => {
+    const allCu = (typeof t === 'function' ? t('rd.filter.all_customers') : null) || 'Tüm müşteriler';
+    cu.innerHTML = `<option value="">${_rdEsc(allCu)}</option>` + _rdCustomers.map((c) => {
       const label = c.code ? `${c.code} · ${c.name || ''}` : (c.name || c.id);
       return `<option value="${_rdEsc(c.id)}">${_rdEsc(label)}</option>`;
     }).join('');

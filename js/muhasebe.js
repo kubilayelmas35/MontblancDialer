@@ -878,12 +878,39 @@ async function _readFxJson(url) {
 
 async function _fetchFxRateByRules(dateStr, rules) {
   const provider = rules?.fx_api_provider || 'frankfurter';
+  const frankfurter = async () => {
+    const day = String(dateStr || '').slice(0, 10);
+    const urls = [
+      `https://api.frankfurter.app/${day}?from=EUR&to=TRY`,
+      'https://api.frankfurter.app/latest?from=EUR&to=TRY',
+      `https://api.frankfurter.dev/v1/${day}?from=EUR&to=TRY`,
+      'https://api.frankfurter.dev/v1/latest?from=EUR&to=TRY',
+    ];
+    for (const url of urls) {
+      try {
+        const n = await _readFxJson(url);
+        if (n) return { rate: n, source: 'frankfurter' };
+      } catch (_) {}
+    }
+    try {
+      const res = await fetch(`https://api.frankfurter.dev/v2/rate/EUR/TRY${day ? `/${day}` : ''}`, { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return null;
+      const json = await res.json();
+      const n = Number(json?.rate || 0);
+      return n > 0 ? { rate: n, source: 'frankfurter' } : null;
+    } catch (_) {
+      return null;
+    }
+  };
   const openEr = async () => {
     const n = await _readFxJson('https://open.er-api.com/v6/latest/EUR');
     return n ? { rate: n, source: 'live' } : null;
   };
+  /* exchangerate.host artık anahtarsız 401 veriyor — yalnız özel anahtar varsa dene */
   const host = async () => {
-    const n = await _readFxJson(`https://api.exchangerate.host/${dateStr}?base=EUR&symbols=TRY`);
+    const key = rules?.fx_api_key || '';
+    if (!key) return null;
+    const n = await _readFxJson(`https://api.exchangerate.host/${dateStr}?base=EUR&symbols=TRY&access_key=${encodeURIComponent(key)}`);
     return n ? { rate: n, source: 'exchangerate.host' } : null;
   };
   const custom = async () => {
@@ -897,9 +924,8 @@ async function _fetchFxRateByRules(dateStr, rules) {
   };
   const chain = [];
   if (provider === 'custom') chain.push(custom);
-  if (provider === 'exchangerate_host') chain.push(host);
-  chain.push(openEr);
-  if (provider !== 'exchangerate_host') chain.push(host);
+  else if (provider === 'exchangerate_host') chain.push(host, frankfurter, openEr);
+  else chain.push(frankfurter, openEr, host);
   for (const step of chain) {
     try {
       const got = await step();

@@ -155,7 +155,7 @@ async function mbTodaySpend(fid) {
   const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : new Date().toISOString().slice(0, 10);
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
-  const logs = await mbFetchAll(`call_logs?select=id,duration_sec,cost_usd&firm_id=eq.${fid}&started_at=gte.${gte}&started_at=lte.${lte}&order=started_at.asc,id.asc`).catch(() => []);
+  const logs = await mbFetchAll(`call_logs?select=id,duration_sec,cost_usd&firm_id=eq.${fid}&started_at=gte.${gte}&started_at=lte.${lte}&order=started_at.asc`).catch(() => []);
   let cost = 0;
   let sec = 0;
   (logs || []).forEach((l) => {
@@ -175,7 +175,7 @@ async function mbTodayAiSpend(fid) {
   const gte = typeof mbInstantGte === 'function' ? mbInstantGte(today) : `${today}T00:00:00`;
   const lte = typeof mbInstantLte === 'function' ? mbInstantLte(today) : `${today}T23:59:59`;
   const [logs, firms] = await Promise.all([
-    mbFetchAll(`call_logs?select=id,duration_sec,cost_usd&firm_id=eq.${fid}&started_at=gte.${gte}&started_at=lte.${lte}&or=(work_type.eq.ai_sales,work_type.eq.ai_qc,ai_staff_id.not.is.null)&order=started_at.asc,id.asc`).catch(() => []),
+    mbFetchAll(`call_logs?select=id,duration_sec,cost_usd&firm_id=eq.${fid}&started_at=gte.${gte}&started_at=lte.${lte}&or=(work_type.eq.ai_sales,work_type.eq.ai_qc,ai_staff_id.not.is.null)&order=started_at.asc`).catch(() => []),
     sb(`firms?id=eq.${fid}&select=settings`).catch(() => []),
   ]);
   let cost = 0;
@@ -2181,10 +2181,10 @@ const briefShell = typeof loadDashBrief === 'function'
 try {
 const logGte = typeof mbInstantGte === 'function' ? mbInstantGte(from) : `${from}T00:00:00`;
 const logLte = typeof mbInstantLte === 'function' ? mbInstantLte(to) : `${to}T23:59:59`;
-let qLogs = `call_logs?select=*&started_at=gte.${logGte}&started_at=lte.${logLte}`;
+let qLogs = `call_logs?select=*&started_at=gte.${encodeURIComponent(logGte)}&started_at=lte.${encodeURIComponent(logLte)}`;
 qLogs += ff;
 qLogs += agentQ;
-qLogs += '&order=started_at.asc,id.asc';
+qLogs += '&order=started_at.asc';
 const [logsRaw, apptRows] = await Promise.all([
   mbFetchAll(qLogs).catch((e) => { throw e; }),
   fetchDashAppointmentsInRange(from, to, ff, agentQ),
@@ -2306,7 +2306,7 @@ async function statsFillFilters(fid) {
 }
 
 async function statsPullLogs(ff, gte, lte, camp, agent) {
-  const tail = `${ff}&started_at=gte.${gte}&started_at=lte.${lte}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}&order=started_at.desc,id.desc`;
+  const tail = `${ff}&started_at=gte.${gte}&started_at=lte.${lte}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}&order=started_at.desc`;
   const rich = `call_logs?select=id,outcome,agent_id,operator_name,ai_staff_id,work_type,campaign_id,firm_id,duration_sec,started_at,phone,users(id,name,role),campaigns(id,name)${tail}`;
   const plain = `call_logs?select=id,outcome,agent_id,operator_name,ai_staff_id,work_type,campaign_id,firm_id,duration_sec${tail}`;
   try {
@@ -2959,7 +2959,10 @@ async function chPullLogs(ff, gte, lte, camp, agent, outcome) {
   const outcomeQ = !outcome ? ''
     : outcome === 'appointment' ? '&outcome=in.(appointment,appointment_done)'
     : `&outcome=eq.${encodeURIComponent(outcome)}`;
-  const tail = `${ff}&started_at=gte.${gte}&started_at=lte.${lte}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}${outcomeQ}&order=started_at.desc,id.desc`;
+  /* Embed varken order=...,id.desc PostgREST'te "id ambiguous" → 400. Yalnız started_at. */
+  const gteQ = encodeURIComponent(gte);
+  const lteQ = encodeURIComponent(lte);
+  const tail = `${ff}&started_at=gte.${gteQ}&started_at=lte.${lteQ}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}${outcomeQ}&order=started_at.desc`;
   const fields = 'id,started_at,ended_at,dial_at,answered_at,outcome,agent_id,operator_name,ai_staff_id,campaign_id,firm_id,phone,caller_number,work_type,hangup_by,duration_sec,cost_usd,contact_id,recording_url,notes,callback_at,telnyx_call_id';
   const legacy = 'id,started_at,ended_at,outcome,agent_id,campaign_id,firm_id,phone,duration_sec,cost_usd,contact_id,recording_url,notes,callback_at,telnyx_call_id';
   const rich = `call_logs?select=${fields},users(id,name,role),campaigns(name,telnyx_did),contacts(first_name,last_name,phone)${tail}`;
@@ -3396,11 +3399,11 @@ function liveClock(iso, de) {
   if (!iso) return '—';
   const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (!Number.isFinite(sec) || sec < 0) return '—';
-  const d = Math.floor(sec / 86400);
-  const h = Math.floor((sec % 86400) / 3600);
+  /* Eski/stale oturumlar "201g 16sa" gibi görünmesin — canlı ekranda 24s üstü eski kabul */
+  if (sec > 86400) return de ? '>24 Std' : '>24sa';
+  const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
   const s = sec % 60;
-  if (d > 0) return de ? `${d} T ${h} Std` : `${d}g ${h}sa`;
   if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   return `${m}:${String(s).padStart(2, '0')}`;
 }

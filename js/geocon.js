@@ -37,7 +37,8 @@ function loadGeoconPage() {
   const key = mbGeoconGoogleKey();
   try { sessionStorage.setItem('mb_geocon_google_key', key); } catch (e) {}
   const stamp = key ? '1' : '0';
-  if (frame.dataset.loaded === '1' && frame.dataset.gkey === stamp) {
+  const srcOk = frame.src && frame.src.indexOf('geocon.html') !== -1 && frame.src.indexOf('about:blank') === -1;
+  if (frame.dataset.loaded === '1' && frame.dataset.gkey === stamp && srcOk) {
     try { frame.contentWindow.postMessage({ type: 'mb-geocon-lang', lang }, window.location.origin); } catch (_) {}
     try { frame.contentWindow.postMessage({ type: 'mb-geocon-theme', theme }, window.location.origin); } catch (_) {}
     void mbGeoconPushState(frame.contentWindow);

@@ -2274,20 +2274,20 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <div class="rd-toolbar">
 <input type="search" class="form-input" id="rd-search" style="min-width:160px;flex:1;" data-tr="Ara…" data-de="Suche…" placeholder="Ara…" oninput="rdSetSearch(this.value)">
 <div class="rd-presets">
-<button type="button" class="rd-preset is-on" data-rd-preset="range" onclick="rdPreset('range')">Alle</button>
-<button type="button" class="rd-preset" data-rd-preset="today" onclick="rdPreset('today')">Heute</button>
-<button type="button" class="rd-preset" data-rd-preset="week" onclick="rdPreset('week')">Woche</button>
-<button type="button" class="rd-preset" data-rd-preset="month" onclick="rdPreset('month')">Monat</button>
+<button type="button" class="rd-preset is-on" data-rd-preset="range" onclick="rdPreset('range')" data-tr="Tümü" data-de="Alle">Tümü</button>
+<button type="button" class="rd-preset" data-rd-preset="today" onclick="rdPreset('today')" data-tr="Bugün" data-de="Heute">Bugün</button>
+<button type="button" class="rd-preset" data-rd-preset="week" onclick="rdPreset('week')" data-tr="Hafta" data-de="Woche">Hafta</button>
+<button type="button" class="rd-preset" data-rd-preset="month" onclick="rdPreset('month')" data-tr="Ay" data-de="Monat">Ay</button>
 </div>
 <input type="date" class="form-input" id="rd-date-from" onchange="rdOnDateManual()">
 <span style="color:var(--text-3);">–</span>
 <input type="date" class="form-input" id="rd-date-to" onchange="rdOnDateManual()">
-<select class="form-input" id="rd-filter-status" onchange="rdSetStatusFilter(this.value)" style="min-width:130px;"><option value="">Alle Status</option></select>
-<select class="form-input" id="rd-filter-agent" onchange="rdSetAgentFilter(this.value)" style="min-width:130px;"><option value="">Alle Agenten</option></select>
-<select class="form-input" id="rd-filter-customer" onchange="rdSetCustomerFilter(this.value)" style="min-width:130px;"><option value="">Alle Kunden</option></select>
-<button type="button" class="btn btn-ghost btn-sm" onclick="rdClearFilters()" data-tr="Filtreyi temizle" data-de="Filter löschen">Filter löschen</button>
-<button type="button" class="btn btn-sm rd-btn-excel" onclick="rdExportExcel()"><i class="ph ph-microsoft-excel-logo"></i> Excel Export</button>
-<button type="button" class="btn btn-sm rd-btn-csv" onclick="rdExportCsv()">CSV Export</button>
+<select class="form-input" id="rd-filter-status" onchange="rdSetStatusFilter(this.value)" style="min-width:130px;"><option value="" data-tr="Tüm durumlar" data-de="Alle Status">Tüm durumlar</option></select>
+<select class="form-input" id="rd-filter-agent" onchange="rdSetAgentFilter(this.value)" style="min-width:130px;"><option value="" data-tr="Tüm temsilciler" data-de="Alle Agenten">Tüm temsilciler</option></select>
+<select class="form-input" id="rd-filter-customer" onchange="rdSetCustomerFilter(this.value)" style="min-width:130px;"><option value="" data-tr="Tüm müşteriler" data-de="Alle Kunden">Tüm müşteriler</option></select>
+<button type="button" class="btn btn-ghost btn-sm" onclick="rdClearFilters()" data-tr="Filtreyi temizle" data-de="Filter löschen">Filtreyi temizle</button>
+<button type="button" class="btn btn-sm rd-btn-excel" onclick="rdExportExcel()"><i class="ph ph-microsoft-excel-logo"></i> <span data-tr="Excel aktar" data-de="Excel Export">Excel aktar</span></button>
+<button type="button" class="btn btn-sm rd-btn-csv" onclick="rdExportCsv()"><span data-tr="CSV aktar" data-de="CSV Export">CSV aktar</span></button>
 <button type="button" class="btn btn-primary btn-sm" onclick="loadRandevularPage()" title="Yenile"><i class="ph ph-arrow-clockwise"></i></button>
 </div>
 <div class="card rd-table-card">
@@ -2302,7 +2302,7 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </div>
 </div>
 <div class="rd-foot">
-<div><span data-tr="Tüm randevular" data-de="Alle Termine">Alle Termine</span> · <span id="rd-count-foot">0</span> <span data-tr="kayıt" data-de="Einträge">Einträge</span></div>
+<div><span data-tr="Tüm randevular" data-de="Alle Termine">Tüm randevular</span> · <span id="rd-count-foot">0</span> <span data-tr="kayıt" data-de="Einträge">kayıt</span></div>
 <div class="rd-legend" id="rd-legend"></div>
 </div>
 </div>

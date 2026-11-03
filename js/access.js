@@ -73,7 +73,20 @@ const BUILTIN_ROLES = MB_ROLES.map((role) => ({
 const ALL_PAGES = MB_PAGES.filter((page) => page.inPerms !== false).map((page) => ({ key: page.key, label: page.label }));
 
 function mbRoleLabel(role) {
-  return MB_ROLES.find((item) => item.key === role)?.label || role || '';
+  const key = String(role || '');
+  const i18nKey = {
+    super_admin: 'agent.role.super',
+    admin: 'agent.role.admin',
+    firm_admin: 'agent.role.firm_admin',
+    agent: 'agent.role.agent',
+    qc: 'agent.role.qc',
+    field_agent: 'agent.role.field',
+  }[key];
+  if (i18nKey && typeof t === 'function') {
+    const label = t(i18nKey);
+    if (label && label !== i18nKey) return label;
+  }
+  return MB_ROLES.find((item) => item.key === key)?.label || key || '';
 }
 
 function mbKnownRoles() {

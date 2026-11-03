@@ -153,7 +153,7 @@ async function _aspFetchCalls(fid, uid, start, end) {
   const fromMs = _aspBerlinStartMs(start);
   const toMs = _aspBerlinEndMs(end);
   const firm = fid ? `&firm_id=eq.${encodeURIComponent(fid)}` : '';
-  let rows = (await mbFetchAll(`call_logs?select=*&agent_id=eq.${encodeURIComponent(uid)}${firm}&order=started_at.desc,id.asc`).catch(() => [])) || [];
+  let rows = (await mbFetchAll(`call_logs?select=*&agent_id=eq.${encodeURIComponent(uid)}${firm}&order=started_at.desc`).catch(() => [])) || [];
   const meId = String(uid || '');
   const meName = String(currentUser?.name || '').trim().toLowerCase();
   const meEmail = String(currentUser?.email || '').trim().toLowerCase();

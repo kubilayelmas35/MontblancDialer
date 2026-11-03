@@ -347,7 +347,7 @@ async function agentFetchCounts(ff) {
   const gte = encodeURIComponent(typeof mbInstantGte === 'function' ? mbInstantGte(day) : `${day}T00:00:00`);
   const lte = encodeURIComponent(typeof mbInstantLte === 'function' ? mbInstantLte(day) : `${day}T23:59:59`);
   const [calls, appts] = await Promise.all([
-    mbFetchAll(`call_logs?select=id,agent_id&started_at=gte.${gte}&started_at=lte.${lte}${ff}&order=started_at.asc,id.asc`).catch(() => null),
+    mbFetchAll(`call_logs?select=id,agent_id&started_at=gte.${gte}&started_at=lte.${lte}${ff}&order=started_at.asc`).catch(() => null),
     mbFetchAll(`appointments?select=id,agent_id&kayit_tarihi=gte.${gte}&kayit_tarihi=lte.${lte}${ff}&order=kayit_tarihi.asc,id.asc`).catch(() => null),
   ]);
   return { calls: agentCountMap(calls), appts: agentCountMap(appts) };
