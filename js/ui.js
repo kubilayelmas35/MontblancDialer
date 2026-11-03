@@ -856,6 +856,7 @@ if (icon) icon.innerHTML = t==='light'
 localStorage.setItem('mb-theme', t);
 mbApplyChartTheme();
 if (typeof mbPaintLiveGradForm === 'function') mbPaintLiveGradForm();
+if (typeof mbApplySbScrollPrefs === 'function') mbApplySbScrollPrefs();
 if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 }
 

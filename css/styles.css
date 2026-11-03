@@ -2024,6 +2024,17 @@ box-shadow: 4px 0 24px rgba(0,0,0,0.15);
   touch-action: manipulation;
 }
 #sidebar .sb-scroll-rail { display: none !important; }
+/* Menü scroll: varsayılan border-2 (14.1); özel renk --mb-sb-scroll-thumb */
+#sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mb-sb-scroll-thumb, var(--border-2)) transparent;
+}
+#sidebar-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+#sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+#sidebar-scroll::-webkit-scrollbar-thumb {
+  background: var(--mb-sb-scroll-thumb, var(--border-2));
+  border-radius: 3px;
+}
 /* Aurora altta (z-index:0), menü üstte — sb-top-strip kaldırıldı; yanlış seçici aurorayı bozuyordu */
 #sidebar > *:not(.fluid-aurora--sidebar) {
 position: relative;
