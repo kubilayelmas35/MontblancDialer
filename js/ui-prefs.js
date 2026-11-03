@@ -574,87 +574,55 @@ function mbApplySbScrollPrefs() {
   const btnInce = document.getElementById('sb-scroll-style-yeni') || document.getElementById('sb-scroll-style-ince');
   const btnEski = document.getElementById('sb-scroll-style-eski');
   const sidebar = document.getElementById('sidebar');
-  let st = mbSbScrollStyle();
   try {
-    /* v14.40: bozuk klasik/oklu tercihi bir kez moderne çek */
-    if (localStorage.getItem('mb-sb-scroll-mig') !== '14.40') {
+    /* v14.49: menü komple 14.27 — native 5px, özel ray kapalı, stok renk yok */
+    if (localStorage.getItem('mb-sb-scroll-mig-soft') !== '14.49') {
       localStorage.setItem('mb-sb-scroll-style', 'ince');
+      localStorage.removeItem('mb-sb-scroll-a');
+      localStorage.removeItem('mb-sb-scroll-b');
+      localStorage.setItem('mb-sb-scroll-grad', '0');
+      localStorage.setItem('mb-sb-scroll-track', '0');
+      localStorage.setItem('mb-sb-scroll-flush', '1');
+      localStorage.setItem('mb-sb-scroll-width', '5');
+      localStorage.setItem('mb-sb-scroll-mig-soft', '14.49');
       localStorage.setItem('mb-sb-scroll-mig', '14.40');
-      st = 'ince';
-    } else if (!localStorage.getItem('mb-sb-scroll-style') || localStorage.getItem('mb-sb-scroll-style') === 'yeni') {
-      localStorage.setItem('mb-sb-scroll-style', 'ince');
-      st = 'ince';
-    }
-    /* v14.48: stok renkleri temizle → 14.27 soft varsayılan */
-    if (localStorage.getItem('mb-sb-scroll-mig-soft') !== '14.48') {
-      const curA = mbNormHex(localStorage.getItem('mb-sb-scroll-a'));
-      const curB = mbNormHex(localStorage.getItem('mb-sb-scroll-b'));
-      if (!curA || MB_SB_SCROLL_STOCK.includes(curA)) {
-        localStorage.removeItem('mb-sb-scroll-a');
-        localStorage.setItem('mb-sb-scroll-grad', '0');
-      }
-      if (!curB || MB_SB_SCROLL_STOCK.includes(curB)) {
-        localStorage.removeItem('mb-sb-scroll-b');
-      }
-      localStorage.setItem('mb-sb-scroll-mig-soft', '14.48');
     }
   } catch (_) {}
+  const st = 'ince';
   if (btnInce) {
-    btnInce.classList.toggle('is-on', st === 'ince');
+    btnInce.classList.toggle('is-on', true);
     btnInce.classList.remove('btn-primary');
-    btnInce.setAttribute('aria-pressed', st === 'ince' ? 'true' : 'false');
+    btnInce.setAttribute('aria-pressed', 'true');
   }
   if (btnEski) {
-    btnEski.classList.toggle('is-on', st === 'eski');
+    btnEski.classList.toggle('is-on', false);
     btnEski.classList.remove('btn-primary');
-    btnEski.setAttribute('aria-pressed', st === 'eski' ? 'true' : 'false');
+    btnEski.setAttribute('aria-pressed', 'false');
   }
   const a = mbSbScrollColorA();
   const b = mbSbScrollColorB();
   const grad = localStorage.getItem('mb-sb-scroll-grad') === '1' && !!a && !!b;
-  const track = localStorage.getItem('mb-sb-scroll-track') === '1';
-  const flush = localStorage.getItem('mb-sb-scroll-flush') !== '0';
-  const width = mbSbScrollWidth();
   const thumbBg = mbSbScrollThumbBg(a, b, grad);
   const root = document.documentElement;
-  root.classList.add('mb-sb-scroll-custom');
+  root.classList.remove('mb-sb-scroll-custom');
   root.classList.toggle('mb-sb-scroll-grad', grad);
   if (a) root.style.setProperty('--mb-sb-scroll-a', a);
   else root.style.removeProperty('--mb-sb-scroll-a');
-  root.style.setProperty('--mb-sb-rail-w', `${width}px`);
+  if (b) root.style.setProperty('--mb-sb-scroll-b', b);
+  else root.style.removeProperty('--mb-sb-scroll-b');
   if (sidebar) {
-    sidebar.classList.toggle('mb-sb-overlay-scroll', st !== 'eski');
-    sidebar.classList.toggle('mb-sb-scroll-classic', st === 'eski');
-    sidebar.classList.toggle('mb-sb-scroll-track', track && st !== 'eski');
-    sidebar.classList.toggle('mb-sb-scroll-flush', flush && st !== 'eski');
+    sidebar.classList.remove('mb-sb-overlay-scroll', 'mb-sb-scroll-classic', 'mb-sb-scroll-track', 'mb-sb-scroll-flush');
   }
-  let styleEl = document.getElementById('mb-sb-scroll-css');
-  if (st === 'eski') {
-    if (!styleEl) {
-      styleEl = document.createElement('style');
-      styleEl.id = 'mb-sb-scroll-css';
-      document.head.appendChild(styleEl);
-    }
-    const ca = a || 'rgba(255,255,255,0.18)';
-    const cb = b || a || 'rgba(255,255,255,0.12)';
-    styleEl.textContent = mbSbScrollCssClassic(ca, cb, grad && !!a && !!b);
-  } else if (styleEl) {
-    styleEl.remove();
-  }
-  const thumbEl = document.getElementById('sb-scroll-thumb');
-  if (thumbEl) {
-    /* Soft varsayılan: inline yazma — :hover CSS çalışsın */
-    if (a) thumbEl.style.background = thumbBg;
-    else thumbEl.style.removeProperty('background');
-  }
-  if (prev) prev.style.background = thumbBg;
+  const styleEl = document.getElementById('mb-sb-scroll-css');
+  if (styleEl) styleEl.remove();
+  const rail = document.getElementById('sb-scroll-rail');
+  if (rail) rail.classList.remove('is-on');
+  if (prev) prev.style.background = a ? thumbBg : 'var(--border-2)';
   if (bWrap) bWrap.style.opacity = grad ? '1' : '0.45';
   document.querySelectorAll('.sb-scroll-style-btn').forEach((btn) => {
-    btn.style.setProperty('--sb-scroll-swatch', a || 'rgba(255,255,255,0.35)');
+    btn.style.setProperty('--sb-scroll-swatch', a || 'var(--border-2)');
   });
-  mbBindSbScrollRail();
-  requestAnimationFrame(() => mbSyncSbScrollRail());
-  setTimeout(() => mbSyncSbScrollRail(), 50);
+  void st;
 }
 
 function mbPaintSbScrollForm() {
