@@ -339,13 +339,13 @@ function mbResetLiveGrads() {
 mbApplyLiveGrads(mbReadLiveGrads());
 mbPaintLiveGradForm();
 
-/* İnce = sağa yapışık ince çubuk (ok yok) — renk her zaman uygulanır. Klasik = eski kalın + oklar. */
-const MB_SB_SCROLL_DEF = { a: '#c4c4d4', b: '#64748b', grad: false, style: 'ince' };
+/* Modern = git yedeği v14.27/5fe519a: global 5px, transparan ray, ok yok. Klasik = kalın + oklar. */
+const MB_SB_SCROLL_DEF = { a: '#d0d5e8', b: '#64748b', grad: false, style: 'ince' };
 
 function mbSbScrollStyle() {
   const s = localStorage.getItem('mb-sb-scroll-style');
   if (s === 'eski') return 'eski';
-  if (s === 'yeni') return 'ince'; /* eski kayıt uyumu */
+  if (s === 'yeni') return 'ince';
   return 'ince';
 }
 
@@ -374,7 +374,6 @@ function mbAdoptSbScrollPrefs(raw) {
     mbResetSbScroll(true);
     return;
   }
-  /* Eski "on:false = varsayılan" → ince + varsayılan renk (görünüm aynı, renk ayarlanabilir) */
   if (raw.on === false) {
     mbResetSbScroll(true);
     return;
@@ -395,12 +394,29 @@ function mbAdoptSbScrollPrefs(raw) {
   mbPaintSbScrollForm();
 }
 
-function mbSbScrollArrowUrls(a) {
-  const fill = encodeURIComponent(a);
-  return {
-    up: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='${fill}' d='M4 1L7 6H1z'/%3E%3C/svg%3E")`,
-    down: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='${fill}' d='M1 2h6L4 7z'/%3E%3C/svg%3E")`,
-  };
+function mbSbScrollCss(style, a, b, grad) {
+  const thumb = grad ? `linear-gradient(180deg, ${a} 0%, ${b} 100%)` : a;
+  if (style === 'eski') {
+    const fill = encodeURIComponent(a);
+    return `
+#sidebar-scroll.sidebar-scroll{scrollbar-width:auto;scrollbar-color:${a} rgba(255,255,255,0.08);}
+#sidebar-scroll.sidebar-scroll::-webkit-scrollbar{width:12px;height:12px;}
+#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,0.08);}
+#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-thumb{background:${thumb};border-radius:6px;border:2px solid transparent;background-clip:padding-box;min-height:32px;}
+#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-button:single-button{display:block;height:14px;width:12px;background-color:rgba(255,255,255,0.1);background-repeat:no-repeat;background-position:center;background-size:7px 7px;}
+#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-button:single-button:vertical:decrement{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='${fill}' d='M4 1L7 6H1z'/%3E%3C/svg%3E");}
+#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-button:single-button:vertical:increment{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='${fill}' d='M1 2h6L4 7z'/%3E%3C/svg%3E");}
+`;
+  }
+  /* Modern = yedekteki global scrollbar birebir (5px, şeffaf track, border-radius 3px, ok yok) */
+  return `
+#sidebar-scroll.sidebar-scroll{scrollbar-width:thin;scrollbar-color:${a} transparent;}
+#sidebar-scroll.sidebar-scroll::-webkit-scrollbar{width:5px;height:5px;}
+#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-track{background:transparent;}
+#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-thumb{background:${thumb};border-radius:3px;}
+#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-button{width:0!important;height:0!important;display:none!important;background:transparent!important;}
+#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-corner{background:transparent;}
+`;
 }
 
 function mbApplySbScrollPrefs() {
@@ -423,26 +439,23 @@ function mbApplySbScrollPrefs() {
   const b = mbNormHex(localStorage.getItem('mb-sb-scroll-b')) || MB_SB_SCROLL_DEF.b;
   const grad = localStorage.getItem('mb-sb-scroll-grad') === '1';
   const thumb = grad ? `linear-gradient(180deg, ${a} 0%, ${b} 100%)` : a;
-  const track = st === 'eski' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)';
   const root = document.documentElement;
-  /* Eski enjekte stil kalıntısını kaldır — CSS styles.css'te */
-  const styleEl = document.getElementById('mb-sb-scroll-css');
-  if (styleEl) styleEl.remove();
-  root.classList.toggle('mb-sb-scroll-classic', st === 'eski');
+  root.classList.remove('mb-sb-scroll-classic');
   root.classList.add('mb-sb-scroll-custom');
   root.classList.toggle('mb-sb-scroll-grad', grad);
-  root.style.setProperty('--mb-sb-scroll-a', a);
-  root.style.setProperty('--mb-sb-scroll-b', b);
-  root.style.setProperty('--mb-sb-scroll-thumb', thumb);
-  root.style.setProperty('--mb-sb-scroll-track', track);
-  if (st === 'eski') {
-    const arrows = mbSbScrollArrowUrls(a);
-    root.style.setProperty('--mb-sb-scroll-arrow-up', arrows.up);
-    root.style.setProperty('--mb-sb-scroll-arrow-down', arrows.down);
-  } else {
-    root.style.removeProperty('--mb-sb-scroll-arrow-up');
-    root.style.removeProperty('--mb-sb-scroll-arrow-down');
+  root.style.removeProperty('--mb-sb-scroll-a');
+  root.style.removeProperty('--mb-sb-scroll-b');
+  root.style.removeProperty('--mb-sb-scroll-thumb');
+  root.style.removeProperty('--mb-sb-scroll-track');
+  root.style.removeProperty('--mb-sb-scroll-arrow-up');
+  root.style.removeProperty('--mb-sb-scroll-arrow-down');
+  let styleEl = document.getElementById('mb-sb-scroll-css');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'mb-sb-scroll-css';
+    document.head.appendChild(styleEl);
   }
+  styleEl.textContent = mbSbScrollCss(st, a, b, grad);
   if (prev) prev.style.background = thumb;
   if (bWrap) bWrap.style.opacity = grad ? '1' : '0.45';
   document.querySelectorAll('.sb-scroll-style-btn').forEach((btn) => {
