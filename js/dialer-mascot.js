@@ -1526,9 +1526,9 @@ async function mbSaveMascotDefault() {
         body: JSON.stringify({ settings: { ...prev, mascotDefault: cfg } })
       });
     }
-    if (typeof toast === 'function') toast('Varsayılan maskot kaydedildi', 'success');
+    if (typeof toast === 'function') toast(typeof t === 'function' ? t('dial.mascot_default_ok') : 'Varsayılan maskot kaydedildi', 'success');
   } catch (e) {
-    if (typeof toast === 'function') toast('Varsayılan bu oturumda duruyor, kayıt yazılamadı', 'warn');
+    if (typeof toast === 'function') toast(typeof t === 'function' ? t('dial.mascot_default_warn') : 'Varsayılan bu oturumda duruyor, kayıt yazılamadı', 'warn');
   }
 }
 

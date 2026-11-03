@@ -56,7 +56,7 @@ function toggleAutoDial() {
     return;
   }
   _autoDial = !_autoDial;
-  toast(_autoDial ? '⚡ Otomatik arama açık' : '⏸ Otomatik arama kapalı', 'ok', 1500);
+  toast(typeof t === 'function' ? t(_autoDial ? 'dial.autodial_on' : 'dial.autodial_off') : (_autoDial ? '⚡ Otomatik arama açık' : '⏸ Otomatik arama kapalı'), 'ok', 1500);
   refreshAutoDialUi();
 }
 
@@ -172,14 +172,15 @@ document.addEventListener('keydown', e => {
 
 // ── Clipboard ─────────────────────────────────
 function copyToClipboard(text, label) {
+  const done = typeof t === 'function' ? t('dial.copied') : 'Kopyalandı';
   navigator.clipboard.writeText(text).then(() => {
-    toast(`📋 ${label||'Kopyalandı'}`, 'ok', 1500);
+    toast(`📋 ${label || done}`, 'ok', 1500);
   }).catch(() => {
     const el = document.createElement('textarea');
     el.value = text; document.body.appendChild(el);
     el.select(); document.execCommand('copy');
     document.body.removeChild(el);
-    toast(`📋 ${label||'Kopyalandı'}`, 'ok', 1500);
+    toast(`📋 ${label || done}`, 'ok', 1500);
   });
 }
 
@@ -1761,7 +1762,10 @@ async function _loadTakvimOverlayCamps() {
     const fid = getActiveFirmId();
     const camps = typeof takvimCampChoices === 'function' ? await takvimCampChoices(fid) : ((await sb(fid ? `campaigns?firm_id=eq.${fid}&status=in.(active,paused)&select=id,name,status,settings,firm_id&order=name.asc` : `campaigns?status=in.(active,paused)&select=id,name,status,settings,firm_id&order=name.asc`)) || []);
     if (typeof takvimFillCampSelect === 'function') takvimFillCampSelect(sel, camps, takvimCampId);
-    else sel.innerHTML = '<option value="">Kampanya seç...</option>' + camps.map(c=>`<option value="${c.id}" ${c.id===takvimCampId?'selected':''}>${c.name}</option>`).join('');
+    else {
+      const pick = typeof t === 'function' ? t('dial.camp_pick') : 'Kampanya seç...';
+      sel.innerHTML = `<option value="">${pick}</option>` + camps.map(c=>`<option value="${c.id}" ${c.id===takvimCampId?'selected':''}>${c.name}</option>`).join('');
+    }
     if (sel.value) takvimCampId = sel.value;
     else if (!camps.some((c) => c.id === takvimCampId)) takvimCampId = null;
     if (takvimCampId) loadTakvimSlots();
@@ -1888,9 +1892,15 @@ async function startPrecallTest() {
       requestAnimationFrame(check);
     };
     check();
-    if (status) { status.textContent = 'Konuşun — ses seviyesi gösteriliyor'; status.style.color='var(--green)'; }
+    if (status) {
+      status.textContent = typeof t === 'function' ? t('dial.precall_speak') : 'Konuşun — ses seviyesi gösteriliyor';
+      status.style.color = 'var(--green)';
+    }
   } catch(e) {
-    if (status) { status.textContent = '❌ Mikrofon izni reddedildi'; status.style.color='var(--red)'; }
+    if (status) {
+      status.textContent = typeof t === 'function' ? t('dial.precall_denied') : '❌ Mikrofon izni reddedildi';
+      status.style.color = 'var(--red)';
+    }
   }
 }
 
@@ -1898,8 +1908,13 @@ function stopPrecallTest() {
   if (_precallStream) { _precallStream.getTracks().forEach(t=>t.stop()); _precallStream=null; }
   const status = document.getElementById('precall-status');
   if (status) {
-    if (_precallOk) { status.textContent='✅ Mikrofon çalışıyor'; status.style.color='var(--green)'; }
-    else { status.textContent='Ses algılanmadı — kontrol edin'; status.style.color='var(--yellow)'; }
+    if (_precallOk) {
+      status.textContent = typeof t === 'function' ? t('dial.precall_ok') : '✅ Mikrofon çalışıyor';
+      status.style.color = 'var(--green)';
+    } else {
+      status.textContent = typeof t === 'function' ? t('dial.precall_quiet') : 'Ses algılanmadı — kontrol edin';
+      status.style.color = 'var(--yellow)';
+    }
   }
 }
 

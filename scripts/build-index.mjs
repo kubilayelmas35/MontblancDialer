@@ -1,13 +1,27 @@
 /**
  * Rebuilds root index.html from html/fragments and version.json.
  * Run from repo root: node scripts/build-index.mjs
+ * Yayından önce i18n-check zorunlu (eksik çeviride build durur).
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
+
+const i18nCheck = spawnSync(process.execPath, [join(root, 'scripts', 'i18n-check.mjs')], {
+  cwd: root,
+  encoding: 'utf8',
+});
+if (i18nCheck.status !== 0) {
+  if (i18nCheck.stdout) process.stdout.write(i18nCheck.stdout);
+  if (i18nCheck.stderr) process.stderr.write(i18nCheck.stderr);
+  console.error('build-index: i18n-check failed — sürüm üretilmedi.');
+  process.exit(i18nCheck.status || 1);
+}
+if (i18nCheck.stdout) process.stdout.write(i18nCheck.stdout);
 
 const { version } = JSON.parse(await readFile(join(root, 'version.json'), 'utf8'));
 const v = String(version || '0.0').trim();

@@ -4,7 +4,9 @@
   "version": "8.26.0",
   "type": "module",
   "scripts": {
+    "i18n:check": "node scripts/i18n-check.mjs",
     "build": "node scripts/build-index.mjs",
+    "prebuild": "node scripts/i18n-check.mjs",
     "smoke": "node tests/smoke.mjs",
     "promo:walkthrough": "node promo/render-walkthrough.mjs",
     "promo:slides": "node promo/render-promo.mjs",

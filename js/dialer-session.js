@@ -142,7 +142,11 @@ function toggleUnfinalizedCallsPanel() {
   const list = document.getElementById('unfinalized-calls-list');
   const btn = document.getElementById('unfinalized-calls-toggle');
   if (list) list.style.display = _unfinalizedCallsOpen ? 'flex' : 'none';
-  if (btn) btn.textContent = _unfinalizedCallsOpen ? 'Kapat' : 'Aç';
+  if (btn) {
+    btn.textContent = _unfinalizedCallsOpen
+      ? (typeof t === 'function' ? t('dial.unfinal.close') : 'Kapat')
+      : (typeof t === 'function' ? t('dial.unfinal.open') : 'Aç');
+  }
   if (_unfinalizedCallsOpen) void loadUnfinalizedCalls();
 }
 
@@ -151,6 +155,7 @@ async function loadUnfinalizedCalls() {
   const el = document.getElementById('unfinalized-calls-list');
   const btn = document.getElementById('unfinalized-calls-toggle');
   if (!el || !currentUser) return;
+  const say = (key, fb) => (typeof t === 'function' ? t(key) : fb);
   try {
     const firmId = (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser.firm_id;
     let campIds = [];
@@ -161,11 +166,11 @@ async function loadUnfinalizedCalls() {
     const setBtnText = (count) => {
       mbPaintUnfinalizedCount(count);
       if (!btn) return;
-      btn.textContent = _unfinalizedCallsOpen ? 'Kapat' : 'Aç';
+      btn.textContent = _unfinalizedCallsOpen ? say('dial.unfinal.close', 'Kapat') : say('dial.unfinal.open', 'Aç');
     };
     if (!campIds.length) {
       setBtnText(0);
-      el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:8px;">Kampanya yok</div>';
+      el.innerHTML = `<div style="color:var(--text-3);text-align:center;padding:8px;">${say('dial.unfinal.no_camp', 'Kampanya yok')}</div>`;
       return;
     }
     const filter = `campaign_id=in.(${campIds.join(',')})&status=eq.calling`;
@@ -176,22 +181,26 @@ async function loadUnfinalizedCalls() {
     ]);
     if (!rows?.length) {
       setBtnText(0);
-      el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:8px;">Sonuçsuz çağrı yok</div>';
+      el.innerHTML = `<div style="color:var(--text-3);text-align:center;padding:8px;">${say('dial.unfinal.empty', 'Sonuçsuz çağrı yok')}</div>`;
       return;
     }
     setBtnText(counted == null ? rows.length : counted);
+    const loc = typeof mbLocale === 'function' ? mbLocale() : 'tr-TR';
     el.innerHTML = rows.map((r) => {
       const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || r.phone || '—';
-      const dt = r.last_called_at ? new Date(r.last_called_at).toLocaleString('tr-TR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
+      const dt = r.last_called_at ? new Date(r.last_called_at).toLocaleString(loc, { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
       const camp = campaigns.find((c) => c.id === r.campaign_id)?.name || '—';
+      const attempt = typeof tReplace === 'function'
+        ? tReplace('dial.unfinal.attempt', { n: r.attempt_count || 0 })
+        : `${r.attempt_count || 0}. deneme`;
       return `<button type="button" onclick="openUnfinalizedCall('${r.id}')" style="text-align:left;padding:6px 8px;border:1px solid var(--border);background:var(--bg-3);border-radius:6px;cursor:pointer;">
 <div style="font-weight:700;font-size:11px;color:var(--text);">${name}</div>
 <div style="font-size:10px;color:var(--text-3);">${r.phone || '—'} · ${camp}</div>
-<div style="font-size:10px;color:var(--yellow);margin-top:2px;">${dt} · ${r.attempt_count || 0}. deneme</div>
+<div style="font-size:10px;color:var(--yellow);margin-top:2px;">${dt} · ${attempt}</div>
 </button>`;
     }).join('');
   } catch (e) {
-    el.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:8px;">Yüklenemedi</div>';
+    el.innerHTML = `<div style="color:var(--text-3);text-align:center;padding:8px;">${say('dial.unfinal.load_fail', 'Yüklenemedi')}</div>`;
   }
 }
 

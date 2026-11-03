@@ -1243,7 +1243,7 @@ function mbReleaseBookingSlot() {
   if (sec) sec.style.display = 'none';
   document.getElementById('termin-cancel-slot-btn')?.remove();
   const badge = document.getElementById('termin-slot-badge');
-  if (badge) badge.textContent = 'Slot seçilmedi';
+  if (badge) badge.textContent = typeof t === 'function' ? t('dial.slot_none') : 'Slot seçilmedi';
 }
 
 function mbShowTerminForm(slot) {
@@ -1258,10 +1258,10 @@ function mbShowTerminForm(slot) {
   if (hdr) {
     hdr.innerHTML = slot
       ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${slot.tarih} · ${(slot.baslangic_saat||'').slice(0,5)}–${(slot.bitis_saat||'').slice(0,5)}`
-      : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Randevu Bilgileri`;
+      : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${typeof t === 'function' ? t('dial.termin_info') : 'Randevu Bilgileri'}`;
   }
   const badge = document.getElementById('termin-slot-badge');
-  if (badge) badge.textContent = slot ? `${slot.tarih} ${(slot.baslangic_saat||'').slice(0,5)}` : 'Slot seçilmedi';
+  if (badge) badge.textContent = slot ? `${slot.tarih} ${(slot.baslangic_saat||'').slice(0,5)}` : (typeof t === 'function' ? t('dial.slot_none') : 'Slot seçilmedi');
   if (currentContact) {
     const pre = {
       'tf2-hausart': currentContact.hausart,
@@ -1281,7 +1281,7 @@ function mbShowTerminForm(slot) {
     const cancelBtn = document.createElement('button');
     cancelBtn.id = 'termin-cancel-slot-btn';
     cancelBtn.style.cssText = 'margin-top:6px;width:100%;padding:6px;background:transparent;color:var(--text-3);border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;';
-    cancelBtn.textContent = '↩ Slotu İptal Et — Sonuç Seçimine Dön';
+    cancelBtn.textContent = typeof t === 'function' ? t('dial.slot_cancel_back') : '↩ Slotu İptal Et — Sonuç Seçimine Dön';
     cancelBtn.onclick = cancelSlotAndShowOutcome;
     terminSection.appendChild(cancelBtn);
   }
