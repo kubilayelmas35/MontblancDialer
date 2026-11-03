@@ -456,8 +456,8 @@ function mbSyncSbScrollRail() {
   }
   const sbRect = sidebar.getBoundingClientRect();
   const scRect = sc.getBoundingClientRect();
-  /* Üst: mor alanın tam başlangıcı (boşluksuz). Alt: 1px nefes. */
-  const edgeTop = 0;
+  /* Üst: 1px — 0 yapışık, 4 fazla kaçmıştı */
+  const edgeTop = 1;
   const edgeBottom = 1;
   const top = Math.max(0, Math.round(scRect.top - sbRect.top)) + edgeTop;
   const height = Math.max(0, Math.round(scRect.height) - edgeTop - edgeBottom);
