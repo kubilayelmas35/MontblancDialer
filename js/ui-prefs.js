@@ -575,8 +575,8 @@ function mbApplySbScrollPrefs() {
   const btnEski = document.getElementById('sb-scroll-style-eski');
   const sidebar = document.getElementById('sidebar');
   try {
-    /* v14.49: menü komple 14.27 — native 5px, özel ray kapalı, stok renk yok */
-    if (localStorage.getItem('mb-sb-scroll-mig-soft') !== '14.49') {
+    /* v14.50: menü = 14.1 native scroll (global border-2), özel ray/renk kapalı */
+    if (localStorage.getItem('mb-sb-scroll-mig-soft') !== '14.50') {
       localStorage.setItem('mb-sb-scroll-style', 'ince');
       localStorage.removeItem('mb-sb-scroll-a');
       localStorage.removeItem('mb-sb-scroll-b');
@@ -584,11 +584,11 @@ function mbApplySbScrollPrefs() {
       localStorage.setItem('mb-sb-scroll-track', '0');
       localStorage.setItem('mb-sb-scroll-flush', '1');
       localStorage.setItem('mb-sb-scroll-width', '5');
-      localStorage.setItem('mb-sb-scroll-mig-soft', '14.49');
+      localStorage.setItem('mb-sb-scroll-mig-soft', '14.50');
       localStorage.setItem('mb-sb-scroll-mig', '14.40');
+      try { localStorage.removeItem('mb-sb-aurora'); } catch (_) {}
     }
   } catch (_) {}
-  const st = 'ince';
   if (btnInce) {
     btnInce.classList.toggle('is-on', true);
     btnInce.classList.remove('btn-primary');
@@ -604,7 +604,7 @@ function mbApplySbScrollPrefs() {
   const grad = localStorage.getItem('mb-sb-scroll-grad') === '1' && !!a && !!b;
   const thumbBg = mbSbScrollThumbBg(a, b, grad);
   const root = document.documentElement;
-  root.classList.remove('mb-sb-scroll-custom');
+  root.classList.toggle('mb-sb-scroll-custom', !!a);
   root.classList.toggle('mb-sb-scroll-grad', grad);
   if (a) root.style.setProperty('--mb-sb-scroll-a', a);
   else root.style.removeProperty('--mb-sb-scroll-a');
@@ -622,7 +622,6 @@ function mbApplySbScrollPrefs() {
   document.querySelectorAll('.sb-scroll-style-btn').forEach((btn) => {
     btn.style.setProperty('--sb-scroll-swatch', a || 'var(--border-2)');
   });
-  void st;
 }
 
 function mbPaintSbScrollForm() {
@@ -783,11 +782,19 @@ function mbAdoptSbAuroraPrefs(raw) {
   mbStoreSbAuroraPrefs(raw, true);
 }
 
+function mbSbAuroraIsDefault(p) {
+  if (!p || !p.on || p.fx !== 'flow') return false;
+  if (p.base !== MB_SB_AURORA_DEF.base) return false;
+  return MB_SB_AURORA_KEYS.every((k) => p[k] === MB_SB_AURORA_DEF[k]);
+}
+
 function mbApplySbAuroraPrefs(prefs) {
   const p = prefs || mbReadSbAuroraPrefs();
   const root = document.documentElement;
   const sidebar = document.getElementById('sidebar');
-  root.style.setProperty('--sidebar-aurora-base', p.base);
+  const custom = !mbSbAuroraIsDefault(p);
+  if (p.base !== MB_SB_AURORA_DEF.base) root.style.setProperty('--sidebar-aurora-base', p.base);
+  else root.style.removeProperty('--sidebar-aurora-base');
   root.style.setProperty('--sb-aur-1', p.c1);
   root.style.setProperty('--sb-aur-2', p.c2);
   root.style.setProperty('--sb-aur-3', p.c3);
@@ -796,6 +803,7 @@ function mbApplySbAuroraPrefs(prefs) {
   root.style.setProperty('--sb-aur-6', p.c6);
   if (sidebar) {
     sidebar.classList.toggle('is-sb-aur-off', !p.on);
+    sidebar.classList.toggle('is-sb-aur-custom', custom && p.on);
     MB_SB_AURORA_FX.forEach((fx) => {
       if (fx === 'flow') return;
       sidebar.classList.toggle('is-sb-aur-' + fx, p.on && p.fx === fx);
@@ -808,6 +816,12 @@ function mbApplySbAuroraPrefs(prefs) {
 }
 
 function mbPaintSbAuroraForm(prefs) {
+  try {
+    if (localStorage.getItem('mb-sb-aurora-mig') !== '14.50') {
+      localStorage.removeItem('mb-sb-aurora');
+      localStorage.setItem('mb-sb-aurora-mig', '14.50');
+    }
+  } catch (_) {}
   const p = prefs || mbReadSbAuroraPrefs();
   const on = document.getElementById('sb-aurora-on');
   const fx = document.getElementById('sb-aurora-fx');
