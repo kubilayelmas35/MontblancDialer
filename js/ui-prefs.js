@@ -418,20 +418,20 @@ function mbSyncSbScrollRail() {
   const rail = document.getElementById('sb-scroll-rail');
   const thumb = document.getElementById('sb-scroll-thumb');
   if (!sidebar || !sc || !rail || !thumb) return;
-  if (!sidebar.classList.contains('mb-sb-overlay-scroll')) {
+  if (sidebar.classList.contains('mb-sb-scroll-classic')) {
     rail.classList.remove('is-on');
     return;
   }
   const sh = sc.scrollHeight;
   const ch = sc.clientHeight;
-  if (sh <= ch + 1) {
+  if (sh <= ch + 2) {
     rail.classList.remove('is-on');
     return;
   }
   const sbRect = sidebar.getBoundingClientRect();
   const scRect = sc.getBoundingClientRect();
-  const top = Math.max(0, scRect.top - sbRect.top);
-  const height = Math.max(0, scRect.height);
+  const top = Math.max(0, Math.round(scRect.top - sbRect.top));
+  const height = Math.max(0, Math.round(scRect.height));
   rail.style.top = `${top}px`;
   rail.style.height = `${height}px`;
   rail.classList.add('is-on');
@@ -451,16 +451,26 @@ function mbBindSbScrollRail() {
   const thumb = document.getElementById('sb-scroll-thumb');
   if (!sc || !rail || !thumb) return;
   _mbSbRailBound = true;
-  sc.addEventListener('scroll', () => mbSyncSbScrollRail(), { passive: true });
-  window.addEventListener('resize', () => mbSyncSbScrollRail());
+  const sync = () => mbSyncSbScrollRail();
+  sc.addEventListener('scroll', sync, { passive: true });
+  window.addEventListener('resize', sync);
   if (typeof ResizeObserver !== 'undefined') {
     try {
-      const ro = new ResizeObserver(() => mbSyncSbScrollRail());
+      const ro = new ResizeObserver(sync);
       ro.observe(sc);
       const sidebar = document.getElementById('sidebar');
       if (sidebar) ro.observe(sidebar);
     } catch (_) {}
   }
+  if (typeof MutationObserver !== 'undefined') {
+    try {
+      new MutationObserver(sync).observe(sc, { childList: true, subtree: true, attributes: true });
+    } catch (_) {}
+  }
+  // Menü geç yüklenince ray gelsin
+  setTimeout(sync, 100);
+  setTimeout(sync, 500);
+  setTimeout(sync, 1500);
   thumb.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     const sh = sc.scrollHeight;
@@ -504,7 +514,18 @@ function mbApplySbScrollPrefs() {
   const btnInce = document.getElementById('sb-scroll-style-yeni') || document.getElementById('sb-scroll-style-ince');
   const btnEski = document.getElementById('sb-scroll-style-eski');
   const sidebar = document.getElementById('sidebar');
-  const st = mbSbScrollStyle();
+  let st = mbSbScrollStyle();
+  try {
+    /* v14.40: bozuk klasik/oklu tercihi bir kez moderne çek */
+    if (localStorage.getItem('mb-sb-scroll-mig') !== '14.40') {
+      localStorage.setItem('mb-sb-scroll-style', 'ince');
+      localStorage.setItem('mb-sb-scroll-mig', '14.40');
+      st = 'ince';
+    } else if (!localStorage.getItem('mb-sb-scroll-style') || localStorage.getItem('mb-sb-scroll-style') === 'yeni') {
+      localStorage.setItem('mb-sb-scroll-style', 'ince');
+      st = 'ince';
+    }
+  } catch (_) {}
   if (btnInce) {
     btnInce.classList.toggle('is-on', st === 'ince');
     btnInce.classList.remove('btn-primary');
@@ -524,7 +545,7 @@ function mbApplySbScrollPrefs() {
   root.classList.toggle('mb-sb-scroll-grad', grad);
   root.style.setProperty('--mb-sb-scroll-a', a);
   if (sidebar) {
-    sidebar.classList.toggle('mb-sb-overlay-scroll', st === 'ince');
+    sidebar.classList.toggle('mb-sb-overlay-scroll', st !== 'eski');
     sidebar.classList.toggle('mb-sb-scroll-classic', st === 'eski');
   }
   let styleEl = document.getElementById('mb-sb-scroll-css');
@@ -547,6 +568,7 @@ function mbApplySbScrollPrefs() {
   });
   mbBindSbScrollRail();
   requestAnimationFrame(() => mbSyncSbScrollRail());
+  setTimeout(() => mbSyncSbScrollRail(), 50);
 }
 
 function mbPaintSbScrollForm() {

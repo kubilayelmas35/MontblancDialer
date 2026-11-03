@@ -2000,39 +2000,43 @@ box-shadow: 4px 0 24px rgba(0,0,0,0.15);
   overscroll-behavior: contain;
   touch-action: manipulation;
 }
-/* Modern: native scroll gizle, sağ kenarda özel ray (ok yok, tam yapışık) */
-#sidebar.mb-sb-overlay-scroll #sidebar-scroll {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+/* Modern (varsayılan): native scrollbar KAPALI — sağ kenar özel ray */
+#sidebar:not(.mb-sb-scroll-classic) #sidebar-scroll {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
-#sidebar.mb-sb-overlay-scroll #sidebar-scroll::-webkit-scrollbar {
+#sidebar:not(.mb-sb-scroll-classic) #sidebar-scroll::-webkit-scrollbar {
   width: 0 !important;
   height: 0 !important;
   display: none !important;
   background: transparent !important;
 }
-#sidebar.mb-sb-overlay-scroll #sidebar-scroll::-webkit-scrollbar-button {
+#sidebar:not(.mb-sb-scroll-classic) #sidebar-scroll::-webkit-scrollbar-button {
   width: 0 !important;
   height: 0 !important;
   display: none !important;
 }
-.sb-scroll-rail {
+#sidebar .sb-scroll-rail {
   display: none;
-  position: absolute;
+  position: absolute !important;
   right: 0;
   top: 0;
   width: 8px;
   height: 0;
-  z-index: 8;
+  z-index: 20;
   pointer-events: none;
-  background: rgba(0, 0, 0, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
-#sidebar.mb-sb-overlay-scroll .sb-scroll-rail.is-on {
+#sidebar:not(.mb-sb-scroll-classic) .sb-scroll-rail.is-on {
   display: block;
   pointer-events: auto;
 }
-.sb-scroll-thumb {
+#sidebar .sb-scroll-thumb {
   position: absolute;
+  top: 0;
   right: 1px;
   left: 1px;
   width: auto;
@@ -2042,10 +2046,10 @@ box-shadow: 4px 0 24px rgba(0,0,0,0.15);
   cursor: grab;
   pointer-events: auto;
 }
-.sb-scroll-thumb:active { cursor: grabbing; }
+#sidebar .sb-scroll-thumb:active { cursor: grabbing; }
 #sidebar.mb-sb-scroll-classic .sb-scroll-rail { display: none !important; }
-/* Aurora altta (z-index:0), menü üstte — sb-top-strip kaldırıldı; yanlış seçici aurorayı bozuyordu */
-#sidebar > *:not(.fluid-aurora--sidebar) {
+/* Aurora altta (z-index:0), menü üstte — scroll ray absolute kalsın */
+#sidebar > *:not(.fluid-aurora--sidebar):not(.sb-scroll-rail) {
 position: relative;
 z-index: 1;
 }
