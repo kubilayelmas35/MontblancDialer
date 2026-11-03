@@ -324,7 +324,7 @@ function initSettingsTabs(preferTab) {
   if (!page) return;
   const cards = [...page.querySelectorAll('.settings-layout > .card')];
   const groups = {
-    general: new Set(['settings-appearance-card']),
+    general: new Set(['settings-appearance-card', 'logo-settings-card']),
     mascot: new Set(['settings-mascot-card', 'mascot-default-card']),
     communication: new Set(['incoming-calls-settings-card', 'chat-settings-card']),
     notifications: new Set(['notif-settings-card']),
