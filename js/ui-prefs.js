@@ -347,21 +347,25 @@ function mbResetLiveGrads() {
 mbApplyLiveGrads(mbReadLiveGrads());
 mbPaintLiveGradForm();
 
-/* Modern = ok yok, sağ ray. Klasik = kalın + oklar.
-   Varsayılan = 14.27: soft rgba beyaz (özel solid renk yok). a/b boş = CSS fallback. */
+/* Varsayılan = 14.1: global 5px + var(--border-2). a/b boş = özel renk yok. */
 const MB_SB_SCROLL_DEF = {
   a: '',
   b: '',
-  soft: 'rgba(255, 255, 255, 0.18)',
-  softHover: 'rgba(255, 255, 255, 0.28)',
+  soft: 'var(--border-2)',
   grad: false,
   style: 'ince',
   track: false,
   flush: true,
   width: 5,
 };
-/* 14.28+ stok açık / silik denemeleri — bir kez 14.27 soft’a çek */
-const MB_SB_SCROLL_STOCK = ['#c8c8d8', '#94a3b8', '#5c6578', '#3f4654', '#334155', '#64748b'];
+/* 14.28+ denenen stok renkler — 14.1’e dönerken yok say */
+const MB_SB_SCROLL_STOCK = ['#c8c8d8', '#94a3b8', '#5c6578', '#3f4654', '#334155', '#64748b', '#9aa3b2', '#6b7280'];
+
+function mbSanitizeSbScrollColor(hex) {
+  const a = mbNormHex(hex);
+  if (!a || MB_SB_SCROLL_STOCK.includes(a)) return '';
+  return a;
+}
 
 function mbSbScrollStyle() {
   const s = localStorage.getItem('mb-sb-scroll-style');
@@ -377,10 +381,10 @@ function mbSbScrollWidth() {
 }
 
 function mbSbScrollColorA() {
-  return mbNormHex(localStorage.getItem('mb-sb-scroll-a')) || '';
+  return mbSanitizeSbScrollColor(localStorage.getItem('mb-sb-scroll-a'));
 }
 function mbSbScrollColorB() {
-  return mbNormHex(localStorage.getItem('mb-sb-scroll-b')) || '';
+  return mbSanitizeSbScrollColor(localStorage.getItem('mb-sb-scroll-b'));
 }
 function mbSbScrollThumbBg(a, b, grad) {
   if (grad && a && b) return `linear-gradient(180deg, ${a} 0%, ${b} 100%)`;
@@ -423,23 +427,20 @@ function mbAdoptSbScrollPrefs(raw) {
     mbResetSbScroll(true);
     return;
   }
-  const a = mbNormHex(raw.a) || '';
-  const b = mbNormHex(raw.b) || '';
+  /* Uzak hesapta kalan 14.28+ renklerini 14.1 native’e indir */
+  const a = mbSanitizeSbScrollColor(raw.a);
+  const b = mbSanitizeSbScrollColor(raw.b);
   const grad = !!raw.grad && !!a && !!b;
-  let style = raw.style === 'eski' ? 'eski' : 'ince';
-  if (raw.style === 'yeni') style = 'ince';
-  const track = !!raw.track;
-  const flush = raw.flush !== false;
   const width = Math.max(3, Math.min(12, parseInt(raw.width, 10) || MB_SB_SCROLL_DEF.width));
   try {
-    localStorage.setItem('mb-sb-scroll-style', style);
+    localStorage.setItem('mb-sb-scroll-style', 'ince');
     if (a) localStorage.setItem('mb-sb-scroll-a', a);
     else localStorage.removeItem('mb-sb-scroll-a');
     if (b) localStorage.setItem('mb-sb-scroll-b', b);
     else localStorage.removeItem('mb-sb-scroll-b');
     localStorage.setItem('mb-sb-scroll-grad', grad ? '1' : '0');
-    localStorage.setItem('mb-sb-scroll-track', track ? '1' : '0');
-    localStorage.setItem('mb-sb-scroll-flush', flush ? '1' : '0');
+    localStorage.setItem('mb-sb-scroll-track', '0');
+    localStorage.setItem('mb-sb-scroll-flush', '1');
     localStorage.setItem('mb-sb-scroll-width', String(width));
     localStorage.setItem('mb-sb-scroll-on', '1');
   } catch (_) {}
@@ -575,8 +576,8 @@ function mbApplySbScrollPrefs() {
   const btnEski = document.getElementById('sb-scroll-style-eski');
   const sidebar = document.getElementById('sidebar');
   try {
-    /* v14.50: menü = 14.1 native scroll (global border-2), özel ray/renk kapalı */
-    if (localStorage.getItem('mb-sb-scroll-mig-soft') !== '14.50') {
+    /* v14.52: scroll = 14.1 native (border-2). Eski renk/ray/hesap kaydını temizle. */
+    if (localStorage.getItem('mb-sb-scroll-mig-soft') !== '14.52') {
       localStorage.setItem('mb-sb-scroll-style', 'ince');
       localStorage.removeItem('mb-sb-scroll-a');
       localStorage.removeItem('mb-sb-scroll-b');
@@ -584,9 +585,8 @@ function mbApplySbScrollPrefs() {
       localStorage.setItem('mb-sb-scroll-track', '0');
       localStorage.setItem('mb-sb-scroll-flush', '1');
       localStorage.setItem('mb-sb-scroll-width', '5');
-      localStorage.setItem('mb-sb-scroll-mig-soft', '14.50');
+      localStorage.setItem('mb-sb-scroll-mig-soft', '14.52');
       localStorage.setItem('mb-sb-scroll-mig', '14.40');
-      try { localStorage.removeItem('mb-sb-aurora'); } catch (_) {}
     }
   } catch (_) {}
   if (btnInce) {
@@ -599,8 +599,15 @@ function mbApplySbScrollPrefs() {
     btnEski.classList.remove('btn-primary');
     btnEski.setAttribute('aria-pressed', 'false');
   }
-  const a = mbSbScrollColorA();
-  const b = mbSbScrollColorB();
+  let a = mbSbScrollColorA();
+  let b = mbSbScrollColorB();
+  /* stok renk local’de kaldıysa sil */
+  if (!a && localStorage.getItem('mb-sb-scroll-a')) {
+    try { localStorage.removeItem('mb-sb-scroll-a'); } catch (_) {}
+  }
+  if (!b && localStorage.getItem('mb-sb-scroll-b')) {
+    try { localStorage.removeItem('mb-sb-scroll-b'); } catch (_) {}
+  }
   const grad = localStorage.getItem('mb-sb-scroll-grad') === '1' && !!a && !!b;
   const thumbBg = mbSbScrollThumbBg(a, b, grad);
   const root = document.documentElement;
@@ -616,12 +623,24 @@ function mbApplySbScrollPrefs() {
   const styleEl = document.getElementById('mb-sb-scroll-css');
   if (styleEl) styleEl.remove();
   const rail = document.getElementById('sb-scroll-rail');
-  if (rail) rail.classList.remove('is-on');
+  if (rail) {
+    rail.classList.remove('is-on');
+    rail.style.display = 'none';
+  }
   if (prev) prev.style.background = a ? thumbBg : 'var(--border-2)';
   if (bWrap) bWrap.style.opacity = grad ? '1' : '0.45';
   document.querySelectorAll('.sb-scroll-style-btn').forEach((btn) => {
     btn.style.setProperty('--sb-scroll-swatch', a || 'var(--border-2)');
   });
+  /* Temiz native kaydı hesaba yaz (eski #94a3b8 vb. silinsin) */
+  if (!_mbPrefsApplying && typeof mbQueueUiPrefSave === 'function') {
+    try {
+      if (localStorage.getItem('mb-sb-scroll-push-clean') !== '14.52') {
+        localStorage.setItem('mb-sb-scroll-push-clean', '14.52');
+        mbQueueUiPrefSave();
+      }
+    } catch (_) {}
+  }
 }
 
 function mbPaintSbScrollForm() {
