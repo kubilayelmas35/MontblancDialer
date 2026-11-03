@@ -47,6 +47,73 @@ PALETTES
 --accent-soft:  #7c3aed18;
 --accent-text:  #7c3aed;
 }
+[data-palette="cyan"] {
+--accent:       #0891b2;
+--accent-2:     #0e7490;
+--accent-soft:  #0891b218;
+--accent-text:  #0891b2;
+}
+[data-palette="teal"] {
+--accent:       #0d9488;
+--accent-2:     #0f766e;
+--accent-soft:  #0d948818;
+--accent-text:  #0d9488;
+}
+[data-palette="orange"] {
+--accent:       #ea580c;
+--accent-2:     #c2410c;
+--accent-soft:  #ea580c18;
+--accent-text:  #ea580c;
+}
+[data-palette="amber"] {
+--accent:       #d97706;
+--accent-2:     #b45309;
+--accent-soft:  #d9770618;
+--accent-text:  #d97706;
+}
+[data-palette="pink"] {
+--accent:       #db2777;
+--accent-2:     #be185d;
+--accent-soft:  #db277718;
+--accent-text:  #db2777;
+}
+[data-palette="indigo"] {
+--accent:       #4f46e5;
+--accent-2:     #4338ca;
+--accent-soft:  #4f46e518;
+--accent-text:  #4f46e5;
+}
+[data-palette="sky"] {
+--accent:       #0284c7;
+--accent-2:     #0369a1;
+--accent-soft:  #0284c718;
+--accent-text:  #0284c7;
+}
+[data-palette="lime"] {
+--accent:       #65a30d;
+--accent-2:     #4d7c0f;
+--accent-soft:  #65a30d18;
+--accent-text:  #65a30d;
+}
+[data-palette="fuchsia"] {
+--accent:       #c026d3;
+--accent-2:     #a21caf;
+--accent-soft:  #c026d318;
+--accent-text:  #c026d3;
+}
+[data-palette="slate"] {
+--accent:       #475569;
+--accent-2:     #334155;
+--accent-soft:  #47556918;
+--accent-text:  #475569;
+}
+/* custom: --accent* html üzerinde JS ile set edilir */
+[data-palette="custom"] {
+--accent:       var(--mb-custom-accent, #2563eb);
+--accent-2:     var(--mb-custom-accent-2, #1d4ed8);
+--accent-soft:  var(--mb-custom-accent-soft, #2563eb18);
+--accent-text:  var(--mb-custom-accent, #2563eb);
+}
 /* ============================================================
 LIGHT THEME (default)
 ============================================================ */

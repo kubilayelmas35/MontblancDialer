@@ -3395,12 +3395,31 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Renk Paleti" data-de="Farbpalette">Renk Paleti</label>
-<div class="palette-grid" style="margin-top:8px;">
-<div class="palette-dot" style="background:#2563eb;" onclick="setPalette('blue')"  title="Mavi"    data-p="blue"></div>
-<div class="palette-dot" style="background:#b8860b;" onclick="setPalette('gold')"  title="Altın"   data-p="gold"></div>
-<div class="palette-dot" style="background:#059669;" onclick="setPalette('green')" title="Yeşil"   data-p="green"></div>
-<div class="palette-dot" style="background:#e11d48;" onclick="setPalette('rose')"  title="Kırmızı" data-p="rose"></div>
-<div class="palette-dot" style="background:#7c3aed;" onclick="setPalette('violet')"title="Mor"     data-p="violet"></div>
+<p class="live-grad-hint" data-tr="Hazır renklerden seç veya istediğin rengi alttan seç." data-de="Vorgegebene Farbe wählen oder unten eine eigene Farbe setzen.">Hazır renklerden seç veya istediğin rengi alttan seç.</p>
+<div class="palette-grid" style="margin-top:8px;" id="palette-grid">
+<div class="palette-dot" style="background:#2563eb;" onclick="setPalette('blue')" title="Mavi" data-p="blue"></div>
+<div class="palette-dot" style="background:#0284c7;" onclick="setPalette('sky')" title="Gök" data-p="sky"></div>
+<div class="palette-dot" style="background:#0891b2;" onclick="setPalette('cyan')" title="Cyan" data-p="cyan"></div>
+<div class="palette-dot" style="background:#0d9488;" onclick="setPalette('teal')" title="Teal" data-p="teal"></div>
+<div class="palette-dot" style="background:#059669;" onclick="setPalette('green')" title="Yeşil" data-p="green"></div>
+<div class="palette-dot" style="background:#65a30d;" onclick="setPalette('lime')" title="Lime" data-p="lime"></div>
+<div class="palette-dot" style="background:#b8860b;" onclick="setPalette('gold')" title="Altın" data-p="gold"></div>
+<div class="palette-dot" style="background:#d97706;" onclick="setPalette('amber')" title="Amber" data-p="amber"></div>
+<div class="palette-dot" style="background:#ea580c;" onclick="setPalette('orange')" title="Turuncu" data-p="orange"></div>
+<div class="palette-dot" style="background:#e11d48;" onclick="setPalette('rose')" title="Kırmızı" data-p="rose"></div>
+<div class="palette-dot" style="background:#db2777;" onclick="setPalette('pink')" title="Pembe" data-p="pink"></div>
+<div class="palette-dot" style="background:#c026d3;" onclick="setPalette('fuchsia')" title="Fuşya" data-p="fuchsia"></div>
+<div class="palette-dot" style="background:#7c3aed;" onclick="setPalette('violet')" title="Mor" data-p="violet"></div>
+<div class="palette-dot" style="background:#4f46e5;" onclick="setPalette('indigo')" title="Indigo" data-p="indigo"></div>
+<div class="palette-dot" style="background:#475569;" onclick="setPalette('slate')" title="Gri" data-p="slate"></div>
+<label class="palette-dot palette-dot--custom" title="Özel renk" data-p="custom" style="background:conic-gradient(red,yellow,lime,aqua,blue,magenta,red);position:relative;overflow:hidden;">
+<input type="color" id="palette-custom-input" value="#2563eb" oninput="setPalette('custom', this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;border:0;padding:0;">
+</label>
+</div>
+<div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap;">
+<span style="font-size:12px;color:var(--text-3);" data-tr="Özel renk" data-de="Eigene Farbe">Özel renk</span>
+<input type="color" id="palette-custom-input-2" value="#2563eb" oninput="setPalette('custom', this.value); const a=document.getElementById('palette-custom-input'); if(a) a.value=this.value;">
+<span id="palette-custom-hex" style="font-size:11px;font-family:var(--mono);color:var(--text-2);">#2563eb</span>
 </div>
 </div>
 <div class="form-row">

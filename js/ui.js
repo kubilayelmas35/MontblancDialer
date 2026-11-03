@@ -872,12 +872,73 @@ function toggleTheme() {
 setTheme(currentTheme==='light'?'dark':'light');
 }
 
-function setPalette(p) {
-currentPalette = p;
-document.documentElement.setAttribute('data-palette', p);
-document.querySelectorAll('.palette-dot').forEach(d => d.classList.toggle('sel', d.dataset.p===p));
-localStorage.setItem('mb-palette', p);
-if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+const MB_PALETTE_KEYS = ['blue','sky','cyan','teal','green','lime','gold','amber','orange','rose','pink','fuchsia','violet','indigo','slate','custom'];
+
+function mbNormPaletteHex(value) {
+  const s = String(value || '').trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+  if (/^#[0-9a-fA-F]{3}$/.test(s)) {
+    return `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}`.toLowerCase();
+  }
+  return '';
+}
+
+function mbShadePaletteHex(hex, factor) {
+  const h = mbNormPaletteHex(hex);
+  if (!h) return '#1d4ed8';
+  const r = Math.round(parseInt(h.slice(1, 3), 16) * factor);
+  const g = Math.round(parseInt(h.slice(3, 5), 16) * factor);
+  const b = Math.round(parseInt(h.slice(5, 7), 16) * factor);
+  const clamp = (n) => Math.max(0, Math.min(255, n));
+  return `#${[clamp(r), clamp(g), clamp(b)].map((n) => n.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function mbClearCustomPaletteVars() {
+  const root = document.documentElement;
+  root.style.removeProperty('--mb-custom-accent');
+  root.style.removeProperty('--mb-custom-accent-2');
+  root.style.removeProperty('--mb-custom-accent-soft');
+}
+
+function mbApplyCustomPalette(hex) {
+  const color = mbNormPaletteHex(hex) || '#2563eb';
+  const darker = mbShadePaletteHex(color, 0.78);
+  const root = document.documentElement;
+  root.style.setProperty('--mb-custom-accent', color);
+  root.style.setProperty('--mb-custom-accent-2', darker);
+  root.style.setProperty('--mb-custom-accent-soft', `${color}18`);
+  const hexLbl = document.getElementById('palette-custom-hex');
+  if (hexLbl) hexLbl.textContent = color;
+  const i1 = document.getElementById('palette-custom-input');
+  const i2 = document.getElementById('palette-custom-input-2');
+  if (i1) i1.value = color;
+  if (i2) i2.value = color;
+}
+
+function setPalette(p, hex) {
+  let key = String(p || 'blue');
+  if (hex) key = 'custom';
+  if (!MB_PALETTE_KEYS.includes(key)) key = 'blue';
+  currentPalette = key;
+  const root = document.documentElement;
+  if (key === 'custom') {
+    const color = mbNormPaletteHex(hex) || mbNormPaletteHex(localStorage.getItem('mb-palette-hex')) || '#2563eb';
+    mbApplyCustomPalette(color);
+    root.setAttribute('data-palette', 'custom');
+    try {
+      localStorage.setItem('mb-palette', 'custom');
+      localStorage.setItem('mb-palette-hex', color);
+    } catch (_) {}
+  } else {
+    mbClearCustomPaletteVars();
+    root.setAttribute('data-palette', key);
+    try {
+      localStorage.setItem('mb-palette', key);
+      localStorage.removeItem('mb-palette-hex');
+    } catch (_) {}
+  }
+  document.querySelectorAll('.palette-dot').forEach((d) => d.classList.toggle('sel', d.dataset.p === key));
+  if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
 }
 
 let _systemDialogResolve = null;
@@ -887,11 +948,13 @@ let _systemDialogType = 'alert';
 (()=>{
 const t = localStorage.getItem('mb-theme');
 const p = localStorage.getItem('mb-palette');
+const hex = localStorage.getItem('mb-palette-hex');
 const savedLang = localStorage.getItem('mb-lang');
 if (t) setTheme(t);
-if (p) setPalette(p);
+if (p === 'custom' || (hex && p === 'custom')) setPalette('custom', hex);
+else if (p) setPalette(p);
 if (savedLang === 'de' || savedLang === 'tr') setLang(savedLang);
-document.querySelectorAll('.palette-dot').forEach(d => d.classList.toggle('sel', d.dataset.p===(p||'blue')));
+document.querySelectorAll('.palette-dot').forEach((d) => d.classList.toggle('sel', d.dataset.p === (p || 'blue')));
 })();
 
 // ── TOAST ────────────────────────────────────

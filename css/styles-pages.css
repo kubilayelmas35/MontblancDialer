@@ -55,10 +55,12 @@ SETTINGS PAGE
 .palette-dot {
 width:30px; height:30px; border-radius:50%;
 cursor:pointer; border:3px solid transparent;
-transition:var(--transition);
+transition:var(--transition); flex:none;
 }
 .palette-dot.sel { border-color:var(--text); box-shadow:0 0 0 2px var(--bg-2); }
 .palette-dot:hover { transform:scale(1.15); }
+.palette-dot--custom { border-style:dashed; border-color:var(--border-2); }
+.palette-dot--custom.sel { border-style:solid; }
 /* ============================================================
 AGENTS PAGE
 ============================================================ */

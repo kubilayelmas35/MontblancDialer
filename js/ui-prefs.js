@@ -46,7 +46,13 @@ function mbCollectUiPrefs() {
   const prefs = { mascot: mbCollectMascotPrefs() };
   if (lang === 'tr' || lang === 'de') prefs.lang = lang;
   if (theme === 'light' || theme === 'dark') prefs.theme = theme;
-  if (['blue', 'gold', 'green', 'rose', 'violet'].includes(palette)) prefs.palette = palette;
+  if (typeof MB_PALETTE_KEYS !== 'undefined' ? MB_PALETTE_KEYS.includes(palette) : ['blue', 'gold', 'green', 'rose', 'violet'].includes(palette)) {
+    prefs.palette = palette;
+    if (palette === 'custom') {
+      const hex = localStorage.getItem('mb-palette-hex');
+      if (hex) prefs.palette_hex = hex;
+    }
+  }
   if (live === 'rows' || live === 'grid') prefs.live_layout = live;
   if (camp === 'rows' || camp === 'cards') prefs.camp_view = camp;
   prefs.script_open = localStorage.getItem('mb-script-open') !== '0';
@@ -106,8 +112,13 @@ function mbApplyUiPrefs(remote) {
     if (remote.theme === 'light' || remote.theme === 'dark') {
       if (typeof setTheme === 'function') setTheme(remote.theme);
     }
-    if (['blue', 'gold', 'green', 'rose', 'violet'].includes(remote.palette)) {
-      if (typeof setPalette === 'function') setPalette(remote.palette);
+    if (remote.palette === 'custom' && remote.palette_hex && typeof setPalette === 'function') {
+      setPalette('custom', remote.palette_hex);
+    } else if (remote.palette && typeof setPalette === 'function') {
+      const ok = typeof MB_PALETTE_KEYS !== 'undefined'
+        ? MB_PALETTE_KEYS.includes(remote.palette)
+        : ['blue', 'gold', 'green', 'rose', 'violet'].includes(remote.palette);
+      if (ok && remote.palette !== 'custom') setPalette(remote.palette);
     }
     if (remote.live_layout === 'rows' || remote.live_layout === 'grid') {
       try { localStorage.setItem('mb-live-layout', remote.live_layout); } catch (e) {}
