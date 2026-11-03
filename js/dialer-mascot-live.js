@@ -264,6 +264,7 @@ function mbMascotReturnHome() {
 
 function hideMimi() {
   setMascotPref('mb_mascot_hidden', '1');
+  setMascotPref('mb_mascot_off', '0');
   const bubble = document.getElementById('cust-empty-bubble');
   if (bubble) bubble.style.display = 'none';
   toggleGlobalMascotInfoPanel(false);
@@ -276,12 +277,61 @@ function hideMimi() {
   document.getElementById('global-mascot')?.classList.remove('global-mascot--peek-chat', 'global-mascot--peek-notif');
   if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
   syncGlobalMascotDock();
+  if (typeof mbSyncMascotOffUi === 'function') mbSyncMascotOffUi();
 }
 
-function showMimi() {
+/** Maskotu tamamen kapat — ekranda hiç görünmez; ayarlardan açılır. */
+function disableMimi() {
+  setMascotPref('mb_mascot_off', '1');
+  setMascotPref('mb_mascot_hidden', '0');
+  const bubble = document.getElementById('cust-empty-bubble');
+  if (bubble) bubble.style.display = 'none';
+  toggleGlobalMascotInfoPanel(false);
+  if (_custEmptyChatPeekTimer) {
+    clearTimeout(_custEmptyChatPeekTimer);
+    _custEmptyChatPeekTimer = null;
+  }
+  if (typeof _clearCustEmptyNotifPeek === 'function') _clearCustEmptyNotifPeek();
+  document.getElementById('cust-empty')?.classList.remove('cust-empty--peek-chat', 'cust-empty--peek-notif');
+  document.getElementById('global-mascot')?.classList.remove('global-mascot--peek-chat', 'global-mascot--peek-notif');
+  if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
+  syncGlobalMascotDock();
+  if (typeof mbSyncMascotOffUi === 'function') mbSyncMascotOffUi();
+}
+
+function enableMimi() {
+  setMascotPref('mb_mascot_off', '0');
   setMascotPref('mb_mascot_hidden', '0');
   syncGlobalMascotDock();
   if (typeof startCustEmptyCoach === 'function') startCustEmptyCoach();
+  if (typeof mbSyncMascotOffUi === 'function') mbSyncMascotOffUi();
+}
+
+function showMimi() {
+  setMascotPref('mb_mascot_off', '0');
+  setMascotPref('mb_mascot_hidden', '0');
+  syncGlobalMascotDock();
+  if (typeof startCustEmptyCoach === 'function') startCustEmptyCoach();
+  if (typeof mbSyncMascotOffUi === 'function') mbSyncMascotOffUi();
+}
+
+function mbSyncMascotOffUi() {
+  const off = typeof isMimiOff === 'function' && isMimiOff();
+  const gm = document.getElementById('global-mascot');
+  gm?.classList.toggle('global-mascot--off', off);
+  if (off) {
+    document.getElementById('tb-mascot-anchor')?.classList.add('is-off');
+    document.getElementById('sb-mascot-anchor')?.classList.add('is-off');
+  }
+  const box = document.getElementById('s-mascot-enabled');
+  if (box) box.checked = !off;
+  document.body.classList.toggle('mb-mascot-off', off);
+}
+
+function onMascotEnabledToggle() {
+  const on = !!document.getElementById('s-mascot-enabled')?.checked;
+  if (on) enableMimi();
+  else disableMimi();
 }
 
 function _loadMascotPos(base) {
@@ -359,8 +409,11 @@ function _wireGlobalMascotInteractions() {
       if (typeof syncGlobalMascotDock === 'function') syncGlobalMascotDock();
       else _syncGlobalMascotWanderOnly();
     } else {
-      if (isMimiHidden()) showMimi();
-      else toggleGlobalMascotInfoPanel();
+      if (typeof isMimiOff === 'function' && isMimiOff()) {
+        /* kapalıyken tıklanamaz */
+      } else if (typeof isMimiSoftHidden === 'function' ? isMimiSoftHidden() : isMimiHidden()) {
+        showMimi();
+      } else toggleGlobalMascotInfoPanel();
       _syncGlobalMascotWanderOnly();
     }
   });
@@ -689,9 +742,28 @@ function _syncGlobalMascotDockImpl() {
   const inSidebar = !!(anchor && anchor.id === 'sb-mascot-anchor' && !isMimiHidden());
   const narrowTop = (window.innerWidth || 0) <= 768 && !inSidebar;
   gm.classList.toggle('global-mascot--mobile-off', narrowTop);
+  if (typeof isMimiOff === 'function' && isMimiOff()) {
+    _restoreGlobalMascotHome(gm);
+    _stopGlobalMascotWander();
+    gm.classList.add('global-mascot--off', 'global-mascot--muted');
+    gm.classList.remove(
+      'global-mascot--placed',
+      'global-mascot--slot-dock',
+      'global-mascot--peek-chat',
+      'global-mascot--peek-notif',
+      'global-mascot--custom',
+      'global-mascot--dialer'
+    );
+    document.getElementById('tb-mascot-anchor')?.classList.add('is-off');
+    document.getElementById('sb-mascot-anchor')?.classList.add('is-off');
+    document.body.classList.add('mb-mascot-off');
+    return;
+  }
+  gm.classList.remove('global-mascot--off');
+  document.body.classList.remove('mb-mascot-off');
   if (narrowTop) {
     _restoreGlobalMascotHome(gm);
-    if (isMimiHidden()) {
+    if (typeof isMimiSoftHidden === 'function' ? isMimiSoftHidden() : isMimiHidden()) {
       gm.classList.add('global-mascot--muted');
       gm.classList.remove('global-mascot--placed');
       return;
@@ -706,14 +778,15 @@ function _syncGlobalMascotDockImpl() {
   const slot = document.getElementById('tb-mascot-anchor');
   if (slot) slot.classList.toggle('is-off', inSidebar);
   gm.classList.toggle('global-mascot--sidebar', inSidebar);
-  gm.classList.toggle('global-mascot--muted', isMimiHidden());
+  const softHidden = typeof isMimiSoftHidden === 'function' ? isMimiSoftHidden() : isMimiHidden();
+  gm.classList.toggle('global-mascot--muted', softHidden);
   _wireGlobalMascotInteractions();
   if (gm.classList.contains('global-mascot--peek-chat') || gm.classList.contains('global-mascot--peek-notif')) {
     _restoreGlobalMascotHome(gm);
     gm.classList.add('global-mascot--placed');
     return;
   }
-  if (isMimiHidden()) {
+  if (softHidden) {
     if (_dockHiddenMascotInTopbarSlot(gm)) return;
     _placeGlobalMascotAtRect(_topbarMascotRect());
     gm.classList.remove('global-mascot--dialer', 'global-mascot--custom');
@@ -824,6 +897,7 @@ function reloadMascotStateForUser() {
     refreshGlobalMascotInfoPanel();
     applyMascotTheme();
     syncGlobalMascotDock();
+    mbSyncMascotOffUi();
   } catch (e) {}
 }
 
@@ -838,6 +912,9 @@ try {
     if (bar && typeof ResizeObserver !== 'undefined') {
       new ResizeObserver(() => syncGlobalMascotDock()).observe(bar);
     }
+    setTimeout(() => {
+      try { mbSyncMascotOffUi(); syncGlobalMascotDock(); } catch (_) {}
+    }, 0);
   }
 } catch (e) {}
 
@@ -1361,4 +1438,8 @@ try {
   window.switchMimiTab = switchMimiTab;
   window.hideMimi = hideMimi;
   window.showMimi = showMimi;
+  window.disableMimi = disableMimi;
+  window.enableMimi = enableMimi;
+  window.mbSyncMascotOffUi = mbSyncMascotOffUi;
+  window.onMascotEnabledToggle = onMascotEnabledToggle;
 } catch (e) {}

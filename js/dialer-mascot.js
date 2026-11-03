@@ -908,8 +908,19 @@ function _mascotWanderBoundsFromViewport(gm) {
   };
 }
 
+function isMimiOff() {
+  return getMascotPref('mb_mascot_off', '0') === '1';
+}
+
+/** Gizli (mini chip) veya tamamen kapalı — konuşma / kutlama yok. */
 function isMimiHidden() {
+  if (isMimiOff()) return true;
   return getMascotPref('mb_mascot_hidden', '0') === '1';
+}
+
+/** Yalnız soft gizle: üst çubukta mini chip kalır. */
+function isMimiSoftHidden() {
+  return !isMimiOff() && getMascotPref('mb_mascot_hidden', '0') === '1';
 }
 
 function isMimiBubbleMuted() {
@@ -1080,6 +1091,8 @@ function loadMascotSettingsForm() {
   const coef = document.getElementById('s-mascot-age-coef');
   const coefHint = document.getElementById('s-mascot-age-coef-hint');
   if (!n || !c || !v) return;
+  const en = document.getElementById('s-mascot-enabled');
+  if (en) en.checked = !isMimiOff();
   n.value = getMascotPref('mb_mascot_name', '');
   c.value = getMascotPref('mb_mascot_color', '#a855f7');
   v.value = getMascotPref('mb_mascot_variant', 'aurora');
@@ -1356,6 +1369,9 @@ function saveMascotSettings() {
 }
 
 try {
+  window.isMimiOff = isMimiOff;
+  window.isMimiSoftHidden = isMimiSoftHidden;
+  window.isMimiHidden = isMimiHidden;
   window.mascotSpeechOn = mascotSpeechOn;
   window.saveMascotSettings = saveMascotSettings;
   window.loadMascotSettingsForm = loadMascotSettingsForm;

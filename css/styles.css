@@ -1834,6 +1834,20 @@ button.tb-pill.pill-camp.is-wrong .tb-pill-val { color: inherit; }
   text-align: left;
   transform: translate(calc(-12px + var(--gm-wx, 0px)), calc(-100% + var(--gm-wy, 0px))) scale(1);
 }
+/* Tamamen kapalı — hiçbir yüzeyde görünmez */
+.global-mascot.global-mascot--off,
+body.mb-mascot-off #global-mascot,
+body.mb-mascot-off #cust-empty-mascot,
+body.mb-mascot-off #cust-empty-bubble,
+body.mb-mascot-off #global-mascot-info,
+body.mb-mascot-off .tb-mascot-anchor,
+body.mb-mascot-off .sb-mascot-anchor {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
 /* Gizli (muted): üst çubuk slotuna gömülür — fixed + zoom kaymasını önler */
 .global-mascot.global-mascot--slot-dock {
   position: absolute;

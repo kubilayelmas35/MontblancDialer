@@ -149,7 +149,10 @@
     <i class="ph ph-arrow-u-up-left"></i> <span data-tr="Menü ayağına dön" data-de="Zurück zum Menü">Menü ayağına dön</span>
   </button>
   <button type="button" class="btn btn-ghost btn-sm" onclick="hideMimi()">
-    <i class="ph ph-eye-slash"></i> <span id="mimi-hide-label">Gizle</span>
+    <i class="ph ph-eye-slash"></i> <span id="mimi-hide-label" data-tr="Gizle" data-de="Ausblenden">Gizle</span>
+  </button>
+  <button type="button" class="btn btn-ghost btn-sm" onclick="disableMimi()" style="color:var(--red);">
+    <i class="ph ph-x-circle"></i> <span data-tr="Kapat" data-de="Ausschalten">Kapat</span>
   </button>
 </div>
 <div class="global-mascot-tabpanes">
@@ -3771,6 +3774,11 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="card settings-card-wide" id="settings-mascot-card">
 <div class="card-title" data-tr="Maskot" data-de="Maskottchen">Maskot</div>
 <div style="display:flex;flex-direction:column;gap:12px;">
+<label class="mic-switch" style="align-self:flex-start;">
+<span data-tr="Maskotu göster" data-de="Maskottchen anzeigen">Maskotu göster</span>
+<input type="checkbox" id="s-mascot-enabled" checked onchange="onMascotEnabledToggle()">
+</label>
+<div style="font-size:11px;color:var(--text-3);line-height:1.45;margin-top:-4px;" data-tr="Kapalıyken maskot ekranda hiç görünmez (randevu kutlaması dahil). Açmak için burayı işaretleyin." data-de="Ausgeschaltet erscheint das Maskottchen nirgends (auch keine Terminfeier). Zum Einschalten hier anhaken.">Kapalıyken maskot ekranda hiç görünmez (randevu kutlaması dahil). Açmak için burayı işaretleyin.</div>
 <div class="form-row">
 <label class="form-label" data-tr="Dialer maskotu" data-de="Dialer-Maskottchen">Dialer maskotu</label>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:10px;line-height:1.45;" data-tr="Gradient stili gövde rengini belirler. Siyah ve beyaz kendi tonundadır. Kendin oluştur dört renkten geçiş kurar. Ana renk yalnızca Aurora stilinde kullanılır." data-de="Der Verlauf bestimmt die Körperfarbe. Schwarz und Weiß haben eigene Töne. Eigener Verlauf mischt vier Farben. Die Grundfarbe gilt nur für Aurora.">Gradient stili gövde rengini belirler. Siyah ve beyaz kendi tonundadır. Kendin oluştur dört renkten geçiş kurar. Ana renk yalnızca Aurora stilinde kullanılır.</div>

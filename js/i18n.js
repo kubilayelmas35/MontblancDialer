@@ -2449,6 +2449,10 @@ const MB_I18N = {
     'bl.consent.saved': 'İzin kaydedildi',
     'ch.custom.empty': 'Henüz özel gün yok',
     'ch.custom.bad': 'Tarih seçin',
+    'mascot.off': 'Kapat',
+    'mascot.hide': 'Gizle',
+    'mascot.show_setting': 'Maskotu göster',
+    'mascot.off_hint': 'Kapalıyken maskot ekranda hiç görünmez (randevu kutlaması dahil). Açmak için burayı işaretleyin.',
   },
   de: {
     'login.brand.sub': 'Callcenter',
@@ -4899,6 +4903,10 @@ const MB_I18N = {
     'bl.consent.saved': 'Einwilligung gespeichert',
     'ch.custom.empty': 'Noch keine eigenen Tage',
     'ch.custom.bad': 'Datum wählen',
+    'mascot.off': 'Ausschalten',
+    'mascot.hide': 'Ausblenden',
+    'mascot.show_setting': 'Maskottchen anzeigen',
+    'mascot.off_hint': 'Ausgeschaltet erscheint das Maskottchen nirgends (auch keine Terminfeier). Zum Einschalten hier anhaken.',
   },
 };
 
