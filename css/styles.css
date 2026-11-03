@@ -163,6 +163,35 @@ SHARED TOKENS
 :root {
 /* Sol menü + logo kutusu tabanı (aynı düz renk) */
 --sidebar-aurora-base: #0f172a;
+/* Menü aurora — varsayılan = mevcut görünüm */
+--sb-aur-1: #052a3a;
+--sb-aur-2: #584466;
+--sb-aur-3: #0e2452;
+--sb-aur-4: #083a34;
+--sb-aur-5: #48261c;
+--sb-aur-6: #62303e;
+--sb-aur-spin: 26s;
+--sb-aur-spin-rev: 31s;
+--sb-aur-op-before: 0.74;
+--sb-aur-op-after: 0.62;
+/* Dialer sahne + aurora — varsayılan = mevcut görünüm */
+--dial-stage-1: #fce7f3;
+--dial-stage-2: #bae6fd;
+--dial-stage-3: #ddd6fe;
+--dial-aur-1: #f472b6;
+--dial-aur-2: #a78bfa;
+--dial-aur-3: #38bdf8;
+--dial-aur-4: #4ade80;
+--dial-aur-5: #fbbf24;
+--dial-aur-6: #818cf8;
+--dial-aur-7: #2dd4bf;
+--dial-aur-8: #ec4899;
+--dial-aur-9: #22d3ee;
+--dial-aur-spin: 48s;
+--dial-aur-spin-rev: 64s;
+--dial-aur-op-a: 0.42;
+--dial-aur-op-b: 0.36;
+--dial-aur-op-c: 0.28;
 /* Üst logo + sol menüdeki marka ön planı — tek ton */
 --brand-chrome-fg:     rgba(255, 255, 255, 0.93);
 --brand-chrome-frost:  rgba(255, 255, 255, 0.15);

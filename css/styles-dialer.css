@@ -561,9 +561,9 @@ overflow: hidden;
   clip-path: inset(0 round 14px);
   /* Aurora ile aynı pastel tonlarda taban — kenarlarda kart beyazına sert kesilmez */
   background:
-    radial-gradient(125% 90% at 50% 42%, color-mix(in srgb, #fce7f3 55%, var(--bg-2)) 0%, transparent 62%),
-    radial-gradient(90% 70% at 18% 88%, color-mix(in srgb, #bae6fd 35%, var(--bg-2)) 0%, transparent 55%),
-    radial-gradient(95% 75% at 88% 12%, color-mix(in srgb, #ddd6fe 40%, var(--bg-2)) 0%, transparent 58%),
+    radial-gradient(125% 90% at 50% 42%, color-mix(in srgb, var(--dial-stage-1, #fce7f3) 55%, var(--bg-2)) 0%, transparent 62%),
+    radial-gradient(90% 70% at 18% 88%, color-mix(in srgb, var(--dial-stage-2, #bae6fd) 35%, var(--bg-2)) 0%, transparent 55%),
+    radial-gradient(95% 75% at 88% 12%, color-mix(in srgb, var(--dial-stage-3, #ddd6fe) 40%, var(--bg-2)) 0%, transparent 58%),
     var(--bg-2);
   isolation: isolate;
 }
@@ -593,47 +593,55 @@ overflow: hidden;
   transform: translate(-50%, -50%);
   background: conic-gradient(
     from 160deg,
-    color-mix(in srgb, #f472b6 70%, transparent),
-    color-mix(in srgb, #a78bfa 65%, transparent),
-    color-mix(in srgb, #38bdf8 60%, transparent),
-    color-mix(in srgb, #4ade80 55%, transparent),
-    color-mix(in srgb, #fbbf24 58%, transparent),
-    color-mix(in srgb, #fb7185 65%, transparent),
-    color-mix(in srgb, #f472b6 70%, transparent)
+    color-mix(in srgb, var(--dial-aur-1, #f472b6) 70%, transparent),
+    color-mix(in srgb, var(--dial-aur-2, #a78bfa) 65%, transparent),
+    color-mix(in srgb, var(--dial-aur-3, #38bdf8) 60%, transparent),
+    color-mix(in srgb, var(--dial-aur-4, #4ade80) 55%, transparent),
+    color-mix(in srgb, var(--dial-aur-5, #fbbf24) 58%, transparent),
+    color-mix(in srgb, var(--dial-aur-1, #f472b6) 65%, transparent),
+    color-mix(in srgb, var(--dial-aur-1, #f472b6) 70%, transparent)
   );
   filter: blur(56px) saturate(1.05);
-  opacity: 0.42;
+  opacity: var(--dial-aur-op-a, 0.42);
   pointer-events: none;
   z-index: 0;
 }
 .cust-empty-aurora--a {
-  animation: cust-empty-aurora-spin 48s linear infinite;
+  animation: cust-empty-aurora-spin var(--dial-aur-spin, 48s) linear infinite;
 }
 .cust-empty-aurora--b {
-  opacity: 0.36;
+  opacity: var(--dial-aur-op-b, 0.36);
   background: conic-gradient(
     from -40deg,
-    color-mix(in srgb, #818cf8 68%, transparent),
-    color-mix(in srgb, #2dd4bf 62%, transparent),
-    color-mix(in srgb, #f472b6 65%, transparent),
-    color-mix(in srgb, #fcd34d 58%, transparent),
-    color-mix(in srgb, #818cf8 68%, transparent)
+    color-mix(in srgb, var(--dial-aur-6, #818cf8) 68%, transparent),
+    color-mix(in srgb, var(--dial-aur-7, #2dd4bf) 62%, transparent),
+    color-mix(in srgb, var(--dial-aur-1, #f472b6) 65%, transparent),
+    color-mix(in srgb, var(--dial-aur-5, #fbbf24) 58%, transparent),
+    color-mix(in srgb, var(--dial-aur-6, #818cf8) 68%, transparent)
   );
-  animation: cust-empty-aurora-spin-rev 64s linear infinite, cust-empty-aurora-hue 18s ease-in-out infinite;
+  animation: cust-empty-aurora-spin-rev var(--dial-aur-spin-rev, 64s) linear infinite, cust-empty-aurora-hue 18s ease-in-out infinite;
 }
 .cust-empty-aurora--c {
-  opacity: 0.28;
+  opacity: var(--dial-aur-op-c, 0.28);
   width: 200%;
   height: 220%;
   min-width: 360px;
   background: radial-gradient(
     ellipse 80% 70% at 50% 50%,
-    color-mix(in srgb, #ec4899 45%, transparent),
-    color-mix(in srgb, #22d3ee 35%, transparent) 42%,
+    color-mix(in srgb, var(--dial-aur-8, #ec4899) 45%, transparent),
+    color-mix(in srgb, var(--dial-aur-9, #22d3ee) 35%, transparent) 42%,
     transparent 70%
   );
   animation: cust-empty-aurora-drift 26s ease-in-out infinite, cust-empty-aurora-pulse 14s ease-in-out infinite;
 }
+html.is-dial-aur-off .cust-empty-aurora { display: none; }
+html.is-dial-aur-slow .cust-empty-aurora--a { animation-duration: 72s; }
+html.is-dial-aur-slow .cust-empty-aurora--b { animation-duration: 90s, 28s; }
+html.is-dial-aur-fast .cust-empty-aurora--a { animation-duration: 18s; }
+html.is-dial-aur-fast .cust-empty-aurora--b { animation-duration: 24s, 10s; }
+html.is-dial-aur-still .cust-empty-aurora--a,
+html.is-dial-aur-still .cust-empty-aurora--b,
+html.is-dial-aur-still .cust-empty-aurora--c { animation: none; }
 @keyframes cust-empty-aurora-spin {
   from { transform: translate(-50%, -50%) rotate(0deg) scale(1.02); }
   to { transform: translate(-50%, -50%) rotate(360deg) scale(1.06); }

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="callin.one çağrı merkezi">
-<link rel="icon" href="favicon.svg?v=14.45" type="image/svg+xml">
+<link rel="icon" href="favicon.svg?v=14.46" type="image/svg+xml">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,17 +15,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=14.45">
-<link rel="stylesheet" href="css/styles-dialer.css?v=14.45">
-<link rel="stylesheet" href="css/styles-mascot.css?v=14.45">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.45">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.45">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.45">
-<link rel="stylesheet" href="css/styles-pages.css?v=14.45">
-<link rel="stylesheet" href="css/styles-aurora.css?v=14.45">
-<link rel="stylesheet" href="css/styles-chat.css?v=14.45">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=14.45">
-<link rel="stylesheet" href="css/styles-responsive.css?v=14.45">
+<link rel="stylesheet" href="css/styles.css?v=14.46">
+<link rel="stylesheet" href="css/styles-dialer.css?v=14.46">
+<link rel="stylesheet" href="css/styles-mascot.css?v=14.46">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.46">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.46">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.46">
+<link rel="stylesheet" href="css/styles-pages.css?v=14.46">
+<link rel="stylesheet" href="css/styles-aurora.css?v=14.46">
+<link rel="stylesheet" href="css/styles-chat.css?v=14.46">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=14.46">
+<link rel="stylesheet" href="css/styles-responsive.css?v=14.46">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
 </head>
@@ -84,7 +84,7 @@
 </div>
 </div>
 </div>
-<div class="login-version">v14.45 — 2026</div>
+<div class="login-version">v14.46 — 2026</div>
 </div>
 </div>
 <div id="app" style="display:none;">
@@ -486,7 +486,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">callin.one v14.45</div>
+<div class="sb-ver">callin.one v14.46</div>
 </div>
 </div>
 </nav>
@@ -3585,6 +3585,67 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <div class="form-row">
+<label class="form-label" data-tr="Menü aurora" data-de="Menü-Aurora">Menü aurora</label>
+<p class="live-grad-hint" data-tr="Sol menünün tabanı ve aurora renkleri. Varsayılan şu anki görünüm." data-de="Basis und Aurora-Farben des Menüs. Standard ist die aktuelle Optik.">Sol menünün tabanı ve aurora renkleri. Varsayılan şu anki görünüm.</p>
+<div id="sb-aurora-preview" style="height:36px;border-radius:10px;border:1px solid var(--border);margin-top:8px;"></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="sb-aurora-on" checked onchange="mbSetSbAuroraField('on', this.checked)"> <span data-tr="Aurora açık" data-de="Aurora an">Aurora açık</span></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Efekt" data-de="Effekt">Efekt</span>
+<select class="form-input" id="sb-aurora-fx" style="width:auto;min-width:110px;padding:4px 8px;" onchange="mbSetSbAuroraField('fx', this.value)">
+<option value="flow" data-tr="Akış" data-de="Fluss">Akış</option>
+<option value="slow" data-tr="Yavaş" data-de="Langsam">Yavaş</option>
+<option value="fast" data-tr="Hızlı" data-de="Schnell">Hızlı</option>
+<option value="still" data-tr="Sabit" data-de="Still">Sabit</option>
+</select>
+</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbResetSbAurora()" data-tr="Varsayılan" data-de="Standard">Varsayılan</button>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Taban" data-de="Basis">Taban</span><input type="color" id="sb-aurora-base" value="#0f172a" oninput="mbSetSbAuroraField('base', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>1</span><input type="color" id="sb-aurora-c1" value="#052a3a" oninput="mbSetSbAuroraField('c1', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>2</span><input type="color" id="sb-aurora-c2" value="#584466" oninput="mbSetSbAuroraField('c2', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>3</span><input type="color" id="sb-aurora-c3" value="#0e2452" oninput="mbSetSbAuroraField('c3', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>4</span><input type="color" id="sb-aurora-c4" value="#083a34" oninput="mbSetSbAuroraField('c4', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>5</span><input type="color" id="sb-aurora-c5" value="#48261c" oninput="mbSetSbAuroraField('c5', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>6</span><input type="color" id="sb-aurora-c6" value="#62303e" oninput="mbSetSbAuroraField('c6', this.value)"></label>
+</div>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Dialer aurora" data-de="Dialer-Aurora">Dialer aurora</label>
+<p class="live-grad-hint" data-tr="Arama ekranındaki sahne gradienti ve aurora. Varsayılan şu anki görünüm." data-de="Bühnenverlauf und Aurora im Dialer. Standard ist die aktuelle Optik.">Arama ekranındaki sahne gradienti ve aurora. Varsayılan şu anki görünüm.</p>
+<div id="dial-aurora-preview" style="height:36px;border-radius:10px;border:1px solid var(--border);margin-top:8px;"></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="dial-aurora-on" checked onchange="mbSetDialAuroraField('on', this.checked)"> <span data-tr="Aurora açık" data-de="Aurora an">Aurora açık</span></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Efekt" data-de="Effekt">Efekt</span>
+<select class="form-input" id="dial-aurora-fx" style="width:auto;min-width:110px;padding:4px 8px;" onchange="mbSetDialAuroraField('fx', this.value)">
+<option value="flow" data-tr="Akış" data-de="Fluss">Akış</option>
+<option value="slow" data-tr="Yavaş" data-de="Langsam">Yavaş</option>
+<option value="fast" data-tr="Hızlı" data-de="Schnell">Hızlı</option>
+<option value="still" data-tr="Sabit" data-de="Still">Sabit</option>
+</select>
+</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbResetDialAurora()" data-tr="Varsayılan" data-de="Standard">Varsayılan</button>
+</div>
+<div style="margin-top:10px;font-size:11px;color:var(--text-3);" data-tr="Sahne" data-de="Bühne">Sahne</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>1</span><input type="color" id="dial-aurora-s1" value="#fce7f3" oninput="mbSetDialAuroraField('s1', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>2</span><input type="color" id="dial-aurora-s2" value="#bae6fd" oninput="mbSetDialAuroraField('s2', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>3</span><input type="color" id="dial-aurora-s3" value="#ddd6fe" oninput="mbSetDialAuroraField('s3', this.value)"></label>
+</div>
+<div style="margin-top:10px;font-size:11px;color:var(--text-3);">Aurora</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>1</span><input type="color" id="dial-aurora-a1" value="#f472b6" oninput="mbSetDialAuroraField('a1', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>2</span><input type="color" id="dial-aurora-a2" value="#a78bfa" oninput="mbSetDialAuroraField('a2', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>3</span><input type="color" id="dial-aurora-a3" value="#38bdf8" oninput="mbSetDialAuroraField('a3', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>4</span><input type="color" id="dial-aurora-a4" value="#4ade80" oninput="mbSetDialAuroraField('a4', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>5</span><input type="color" id="dial-aurora-a5" value="#fbbf24" oninput="mbSetDialAuroraField('a5', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>6</span><input type="color" id="dial-aurora-a6" value="#818cf8" oninput="mbSetDialAuroraField('a6', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>7</span><input type="color" id="dial-aurora-a7" value="#2dd4bf" oninput="mbSetDialAuroraField('a7', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>8</span><input type="color" id="dial-aurora-a8" value="#ec4899" oninput="mbSetDialAuroraField('a8', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>9</span><input type="color" id="dial-aurora-a9" value="#22d3ee" oninput="mbSetDialAuroraField('a9', this.value)"></label>
+</div>
+</div>
+<div class="form-row">
 <label class="form-label" data-tr="Menü" data-de="Menü">Menü</label>
 <p class="live-grad-hint" data-tr="Açıkken soldaki satırları ve Ofis, Raporlar gibi başlıkları sürükle. Sıra hesabına yazılır, başka bilgisayarda da aynı kalır." data-de="Ziehen Sie die Zeilen und Überschriften wie Büro und Berichte. Die Ordnung bleibt am Konto und gilt auch an einem anderen Rechner.">Açıkken soldaki satırları ve Ofis, Raporlar gibi başlıkları sürükle. Sıra hesabına yazılır, başka bilgisayarda da aynı kalır.</p>
 <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
@@ -5358,76 +5419,76 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=14.45"></script>
-<script src="js/i18n.js?v=14.45"></script>
-<script src="js/config.js?v=14.45"></script>
-<script src="js/state.js?v=14.45"></script>
-<script src="js/api.js?v=14.45"></script>
-<script src="js/access.js?v=14.45"></script>
-<script src="js/auth.js?v=14.45"></script>
-<script src="js/logo.js?v=14.45"></script>
-<script src="js/ui.js?v=14.45"></script>
-<script src="js/chat.js?v=14.45"></script>
-<script src="js/chat-settings.js?v=14.45"></script>
-<script src="js/field-settings.js?v=14.45"></script>
-<script src="js/audit.js?v=14.45"></script>
-<script src="js/feature-flags.js?v=14.45"></script>
-<script src="js/notification-center.js?v=14.45"></script>
+<script src="js/version.js?v=14.46"></script>
+<script src="js/i18n.js?v=14.46"></script>
+<script src="js/config.js?v=14.46"></script>
+<script src="js/state.js?v=14.46"></script>
+<script src="js/api.js?v=14.46"></script>
+<script src="js/access.js?v=14.46"></script>
+<script src="js/auth.js?v=14.46"></script>
+<script src="js/logo.js?v=14.46"></script>
+<script src="js/ui.js?v=14.46"></script>
+<script src="js/chat.js?v=14.46"></script>
+<script src="js/chat-settings.js?v=14.46"></script>
+<script src="js/field-settings.js?v=14.46"></script>
+<script src="js/audit.js?v=14.46"></script>
+<script src="js/feature-flags.js?v=14.46"></script>
+<script src="js/notification-center.js?v=14.46"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=14.45"></script>
-<script src="js/spend.js?v=14.45"></script>
-<script src="js/job-market.js?v=14.45"></script>
-<script src="js/qc-job-market.js?v=14.45"></script>
-<script src="js/export-admin.js?v=14.45"></script>
-<script src="js/export-termin.js?v=14.45"></script>
-<script src="js/randevular.js?v=14.45"></script>
-<script src="js/performance.js?v=14.45"></script>
-<script src="js/competition.js?v=14.45"></script>
-<script src="js/dashboard.js?v=14.45"></script>
-<script src="js/reports.js?v=14.45"></script>
-<script src="js/dashboard-brief.js?v=14.45"></script>
-<script src="js/campaigns.js?v=14.45"></script>
-<script src="js/campaigns-detail.js?v=14.45"></script>
-<script src="js/campaigns-queue.js?v=14.45"></script>
-<script src="js/queues-page.js?v=14.45"></script>
-<script src="js/contacts-upload.js?v=14.45"></script>
-<script src="js/geocon.js?v=14.45"></script>
-<script src="js/contacts.js?v=14.45"></script>
-<script src="js/contacts-drawer.js?v=14.45"></script>
-<script src="js/telnyx.js?v=14.45"></script>
-<script src="js/hold-music.js?v=14.45"></script>
-<script src="js/voice-orb.js?v=14.45"></script>
-<script src="js/dialer.js?v=14.45"></script>
-<script src="js/ops-alerts.js?v=14.45"></script>
-<script src="js/radius-tour.js?v=14.45"></script>
-<script src="js/dialer-mascot.js?v=14.45"></script>
-<script src="js/dialer-mascot-live.js?v=14.45"></script>
-<script src="js/ui-prefs.js?v=14.45"></script>
-<script src="js/dialer-session.js?v=14.45"></script>
-<script src="js/dialer-call.js?v=14.45"></script>
-<script src="js/dialer-tools.js?v=14.45"></script>
-<script src="js/appointments.js?v=14.45"></script>
-<script src="js/appointments-actions.js?v=14.45"></script>
-<script src="js/appointments-tools.js?v=14.45"></script>
-<script src="js/field.js?v=14.45"></script>
-<script src="js/field-quote.js?v=14.45"></script>
-<script src="js/field-catalog.js?v=14.45"></script>
-<script src="js/field-ops.js?v=14.45"></script>
-<script src="js/wiedervorlage.js?v=14.45"></script>
-<script src="js/qc.js?v=14.45"></script>
-<script src="js/supervisor.js?v=14.45"></script>
-<script src="js/live-coach.js?v=14.45"></script>
-<script src="js/sms-settings.js?v=14.45"></script>
-<script src="js/line-firms.js?v=14.45"></script>
-<script src="js/ai-staff.js?v=14.45"></script>
-<script src="js/callin-desk.js?v=14.45"></script>
-<script src="js/leave-hr.js?v=14.45"></script>
-<script src="js/muhasebe.js?v=14.45"></script>
-<script src="js/muhasebe-books.js?v=14.45"></script>
-<script src="js/agent-self-performance.js?v=14.45"></script>
-<script src="js/agents.js?v=14.45"></script>
-<script src="js/firm-desk.js?v=14.45"></script>
-<script src="js/mimi-brain.js?v=14.45"></script>
+<script src="js/wallet.js?v=14.46"></script>
+<script src="js/spend.js?v=14.46"></script>
+<script src="js/job-market.js?v=14.46"></script>
+<script src="js/qc-job-market.js?v=14.46"></script>
+<script src="js/export-admin.js?v=14.46"></script>
+<script src="js/export-termin.js?v=14.46"></script>
+<script src="js/randevular.js?v=14.46"></script>
+<script src="js/performance.js?v=14.46"></script>
+<script src="js/competition.js?v=14.46"></script>
+<script src="js/dashboard.js?v=14.46"></script>
+<script src="js/reports.js?v=14.46"></script>
+<script src="js/dashboard-brief.js?v=14.46"></script>
+<script src="js/campaigns.js?v=14.46"></script>
+<script src="js/campaigns-detail.js?v=14.46"></script>
+<script src="js/campaigns-queue.js?v=14.46"></script>
+<script src="js/queues-page.js?v=14.46"></script>
+<script src="js/contacts-upload.js?v=14.46"></script>
+<script src="js/geocon.js?v=14.46"></script>
+<script src="js/contacts.js?v=14.46"></script>
+<script src="js/contacts-drawer.js?v=14.46"></script>
+<script src="js/telnyx.js?v=14.46"></script>
+<script src="js/hold-music.js?v=14.46"></script>
+<script src="js/voice-orb.js?v=14.46"></script>
+<script src="js/dialer.js?v=14.46"></script>
+<script src="js/ops-alerts.js?v=14.46"></script>
+<script src="js/radius-tour.js?v=14.46"></script>
+<script src="js/dialer-mascot.js?v=14.46"></script>
+<script src="js/dialer-mascot-live.js?v=14.46"></script>
+<script src="js/ui-prefs.js?v=14.46"></script>
+<script src="js/dialer-session.js?v=14.46"></script>
+<script src="js/dialer-call.js?v=14.46"></script>
+<script src="js/dialer-tools.js?v=14.46"></script>
+<script src="js/appointments.js?v=14.46"></script>
+<script src="js/appointments-actions.js?v=14.46"></script>
+<script src="js/appointments-tools.js?v=14.46"></script>
+<script src="js/field.js?v=14.46"></script>
+<script src="js/field-quote.js?v=14.46"></script>
+<script src="js/field-catalog.js?v=14.46"></script>
+<script src="js/field-ops.js?v=14.46"></script>
+<script src="js/wiedervorlage.js?v=14.46"></script>
+<script src="js/qc.js?v=14.46"></script>
+<script src="js/supervisor.js?v=14.46"></script>
+<script src="js/live-coach.js?v=14.46"></script>
+<script src="js/sms-settings.js?v=14.46"></script>
+<script src="js/line-firms.js?v=14.46"></script>
+<script src="js/ai-staff.js?v=14.46"></script>
+<script src="js/callin-desk.js?v=14.46"></script>
+<script src="js/leave-hr.js?v=14.46"></script>
+<script src="js/muhasebe.js?v=14.46"></script>
+<script src="js/muhasebe-books.js?v=14.46"></script>
+<script src="js/agent-self-performance.js?v=14.46"></script>
+<script src="js/agents.js?v=14.46"></script>
+<script src="js/firm-desk.js?v=14.46"></script>
+<script src="js/mimi-brain.js?v=14.46"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof mbApplyChartTheme === 'function') mbApplyChartTheme();

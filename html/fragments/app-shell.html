@@ -3496,6 +3496,67 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <div class="form-row">
+<label class="form-label" data-tr="Menü aurora" data-de="Menü-Aurora">Menü aurora</label>
+<p class="live-grad-hint" data-tr="Sol menünün tabanı ve aurora renkleri. Varsayılan şu anki görünüm." data-de="Basis und Aurora-Farben des Menüs. Standard ist die aktuelle Optik.">Sol menünün tabanı ve aurora renkleri. Varsayılan şu anki görünüm.</p>
+<div id="sb-aurora-preview" style="height:36px;border-radius:10px;border:1px solid var(--border);margin-top:8px;"></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="sb-aurora-on" checked onchange="mbSetSbAuroraField('on', this.checked)"> <span data-tr="Aurora açık" data-de="Aurora an">Aurora açık</span></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Efekt" data-de="Effekt">Efekt</span>
+<select class="form-input" id="sb-aurora-fx" style="width:auto;min-width:110px;padding:4px 8px;" onchange="mbSetSbAuroraField('fx', this.value)">
+<option value="flow" data-tr="Akış" data-de="Fluss">Akış</option>
+<option value="slow" data-tr="Yavaş" data-de="Langsam">Yavaş</option>
+<option value="fast" data-tr="Hızlı" data-de="Schnell">Hızlı</option>
+<option value="still" data-tr="Sabit" data-de="Still">Sabit</option>
+</select>
+</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbResetSbAurora()" data-tr="Varsayılan" data-de="Standard">Varsayılan</button>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Taban" data-de="Basis">Taban</span><input type="color" id="sb-aurora-base" value="#0f172a" oninput="mbSetSbAuroraField('base', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>1</span><input type="color" id="sb-aurora-c1" value="#052a3a" oninput="mbSetSbAuroraField('c1', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>2</span><input type="color" id="sb-aurora-c2" value="#584466" oninput="mbSetSbAuroraField('c2', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>3</span><input type="color" id="sb-aurora-c3" value="#0e2452" oninput="mbSetSbAuroraField('c3', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>4</span><input type="color" id="sb-aurora-c4" value="#083a34" oninput="mbSetSbAuroraField('c4', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>5</span><input type="color" id="sb-aurora-c5" value="#48261c" oninput="mbSetSbAuroraField('c5', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>6</span><input type="color" id="sb-aurora-c6" value="#62303e" oninput="mbSetSbAuroraField('c6', this.value)"></label>
+</div>
+</div>
+<div class="form-row">
+<label class="form-label" data-tr="Dialer aurora" data-de="Dialer-Aurora">Dialer aurora</label>
+<p class="live-grad-hint" data-tr="Arama ekranındaki sahne gradienti ve aurora. Varsayılan şu anki görünüm." data-de="Bühnenverlauf und Aurora im Dialer. Standard ist die aktuelle Optik.">Arama ekranındaki sahne gradienti ve aurora. Varsayılan şu anki görünüm.</p>
+<div id="dial-aurora-preview" style="height:36px;border-radius:10px;border:1px solid var(--border);margin-top:8px;"></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="dial-aurora-on" checked onchange="mbSetDialAuroraField('on', this.checked)"> <span data-tr="Aurora açık" data-de="Aurora an">Aurora açık</span></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Efekt" data-de="Effekt">Efekt</span>
+<select class="form-input" id="dial-aurora-fx" style="width:auto;min-width:110px;padding:4px 8px;" onchange="mbSetDialAuroraField('fx', this.value)">
+<option value="flow" data-tr="Akış" data-de="Fluss">Akış</option>
+<option value="slow" data-tr="Yavaş" data-de="Langsam">Yavaş</option>
+<option value="fast" data-tr="Hızlı" data-de="Schnell">Hızlı</option>
+<option value="still" data-tr="Sabit" data-de="Still">Sabit</option>
+</select>
+</label>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbResetDialAurora()" data-tr="Varsayılan" data-de="Standard">Varsayılan</button>
+</div>
+<div style="margin-top:10px;font-size:11px;color:var(--text-3);" data-tr="Sahne" data-de="Bühne">Sahne</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>1</span><input type="color" id="dial-aurora-s1" value="#fce7f3" oninput="mbSetDialAuroraField('s1', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>2</span><input type="color" id="dial-aurora-s2" value="#bae6fd" oninput="mbSetDialAuroraField('s2', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>3</span><input type="color" id="dial-aurora-s3" value="#ddd6fe" oninput="mbSetDialAuroraField('s3', this.value)"></label>
+</div>
+<div style="margin-top:10px;font-size:11px;color:var(--text-3);">Aurora</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;align-items:center;">
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>1</span><input type="color" id="dial-aurora-a1" value="#f472b6" oninput="mbSetDialAuroraField('a1', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>2</span><input type="color" id="dial-aurora-a2" value="#a78bfa" oninput="mbSetDialAuroraField('a2', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>3</span><input type="color" id="dial-aurora-a3" value="#38bdf8" oninput="mbSetDialAuroraField('a3', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>4</span><input type="color" id="dial-aurora-a4" value="#4ade80" oninput="mbSetDialAuroraField('a4', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>5</span><input type="color" id="dial-aurora-a5" value="#fbbf24" oninput="mbSetDialAuroraField('a5', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>6</span><input type="color" id="dial-aurora-a6" value="#818cf8" oninput="mbSetDialAuroraField('a6', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>7</span><input type="color" id="dial-aurora-a7" value="#2dd4bf" oninput="mbSetDialAuroraField('a7', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>8</span><input type="color" id="dial-aurora-a8" value="#ec4899" oninput="mbSetDialAuroraField('a8', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span>9</span><input type="color" id="dial-aurora-a9" value="#22d3ee" oninput="mbSetDialAuroraField('a9', this.value)"></label>
+</div>
+</div>
+<div class="form-row">
 <label class="form-label" data-tr="Menü" data-de="Menü">Menü</label>
 <p class="live-grad-hint" data-tr="Açıkken soldaki satırları ve Ofis, Raporlar gibi başlıkları sürükle. Sıra hesabına yazılır, başka bilgisayarda da aynı kalır." data-de="Ziehen Sie die Zeilen und Überschriften wie Büro und Berichte. Die Ordnung bleibt am Konto und gilt auch an einem anderen Rechner.">Açıkken soldaki satırları ve Ofis, Raporlar gibi başlıkları sürükle. Sıra hesabına yazılır, başka bilgisayarda da aynı kalır.</p>
 <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">

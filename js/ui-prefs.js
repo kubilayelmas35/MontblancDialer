@@ -61,6 +61,8 @@ function mbCollectUiPrefs() {
   const grads = mbReadLiveGrads();
   if (Object.keys(grads).length) prefs.live_grads = grads;
   prefs.sb_scroll = mbReadSbScrollPrefs();
+  prefs.sb_aurora = mbReadSbAuroraPrefs();
+  prefs.dial_aurora = mbReadDialAuroraPrefs();
   const ex = typeof mbExportLayoutsForPrefs === 'function' ? mbExportLayoutsForPrefs() : null;
   if (ex) {
     prefs.export_layouts = ex.layouts;
@@ -157,6 +159,12 @@ function mbApplyUiPrefs(remote) {
     }
     if (remote.sb_scroll && typeof remote.sb_scroll === 'object') {
       mbAdoptSbScrollPrefs(remote.sb_scroll);
+    }
+    if (remote.sb_aurora && typeof remote.sb_aurora === 'object') {
+      mbAdoptSbAuroraPrefs(remote.sb_aurora);
+    }
+    if (remote.dial_aurora && typeof remote.dial_aurora === 'object') {
+      mbAdoptDialAuroraPrefs(remote.dial_aurora);
     }
     if (typeof mbAdoptExportLayouts === 'function') {
       mbAdoptExportLayouts(remote.export_layouts, remote.export_layout_active);
@@ -718,3 +726,243 @@ try {
 } catch (_) {}
 
 mbPaintSbScrollForm();
+
+/* ── Menü aurora / gradient ── */
+const MB_SB_AURORA_DEF = {
+  on: true,
+  fx: 'flow',
+  base: '#0f172a',
+  c1: '#052a3a',
+  c2: '#584466',
+  c3: '#0e2452',
+  c4: '#083a34',
+  c5: '#48261c',
+  c6: '#62303e',
+};
+const MB_SB_AURORA_KEYS = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'];
+const MB_SB_AURORA_FX = ['flow', 'slow', 'fast', 'still'];
+
+function mbReadSbAuroraPrefs() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('mb-sb-aurora') || 'null');
+    return mbSanitizeSbAurora(raw);
+  } catch (_) {
+    return Object.assign({}, MB_SB_AURORA_DEF);
+  }
+}
+
+function mbSanitizeSbAurora(raw) {
+  const out = Object.assign({}, MB_SB_AURORA_DEF);
+  if (!raw || typeof raw !== 'object') return out;
+  out.on = raw.on !== false;
+  out.fx = MB_SB_AURORA_FX.includes(raw.fx) ? raw.fx : 'flow';
+  out.base = mbNormHex(raw.base) || MB_SB_AURORA_DEF.base;
+  MB_SB_AURORA_KEYS.forEach((k) => {
+    out[k] = mbNormHex(raw[k]) || MB_SB_AURORA_DEF[k];
+  });
+  return out;
+}
+
+function mbStoreSbAuroraPrefs(prefs, skipSave) {
+  const clean = mbSanitizeSbAurora(prefs);
+  try {
+    localStorage.setItem('mb-sb-aurora', JSON.stringify(clean));
+  } catch (_) {}
+  mbApplySbAuroraPrefs(clean);
+  mbPaintSbAuroraForm(clean);
+  if (!skipSave && !_mbPrefsApplying && typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+function mbAdoptSbAuroraPrefs(raw) {
+  mbStoreSbAuroraPrefs(raw, true);
+}
+
+function mbApplySbAuroraPrefs(prefs) {
+  const p = prefs || mbReadSbAuroraPrefs();
+  const root = document.documentElement;
+  const sidebar = document.getElementById('sidebar');
+  root.style.setProperty('--sidebar-aurora-base', p.base);
+  root.style.setProperty('--sb-aur-1', p.c1);
+  root.style.setProperty('--sb-aur-2', p.c2);
+  root.style.setProperty('--sb-aur-3', p.c3);
+  root.style.setProperty('--sb-aur-4', p.c4);
+  root.style.setProperty('--sb-aur-5', p.c5);
+  root.style.setProperty('--sb-aur-6', p.c6);
+  if (sidebar) {
+    sidebar.classList.toggle('is-sb-aur-off', !p.on);
+    MB_SB_AURORA_FX.forEach((fx) => {
+      if (fx === 'flow') return;
+      sidebar.classList.toggle('is-sb-aur-' + fx, p.on && p.fx === fx);
+    });
+  }
+  const prev = document.getElementById('sb-aurora-preview');
+  if (prev) {
+    prev.style.background = `linear-gradient(120deg, ${p.base} 0%, ${p.c1} 22%, ${p.c2} 44%, ${p.c3} 66%, ${p.c4} 100%)`;
+  }
+}
+
+function mbPaintSbAuroraForm(prefs) {
+  const p = prefs || mbReadSbAuroraPrefs();
+  const on = document.getElementById('sb-aurora-on');
+  const fx = document.getElementById('sb-aurora-fx');
+  const base = document.getElementById('sb-aurora-base');
+  if (on) on.checked = !!p.on;
+  if (fx) fx.value = p.fx;
+  if (base) base.value = p.base;
+  MB_SB_AURORA_KEYS.forEach((k) => {
+    const el = document.getElementById('sb-aurora-' + k);
+    if (el) el.value = p[k];
+  });
+  mbApplySbAuroraPrefs(p);
+}
+
+function mbSetSbAuroraField(field, value) {
+  const next = mbReadSbAuroraPrefs();
+  if (field === 'on') next.on = !!value;
+  else if (field === 'fx') next.fx = MB_SB_AURORA_FX.includes(value) ? value : 'flow';
+  else if (field === 'base') {
+    const hex = mbNormHex(value);
+    if (!hex) return;
+    next.base = hex;
+  } else if (MB_SB_AURORA_KEYS.includes(field)) {
+    const hex = mbNormHex(value);
+    if (!hex) return;
+    next[field] = hex;
+  } else return;
+  mbStoreSbAuroraPrefs(next);
+}
+
+function mbResetSbAurora(skipSave) {
+  mbStoreSbAuroraPrefs(MB_SB_AURORA_DEF, skipSave);
+}
+
+/* ── Dialer aurora / gradient ── */
+const MB_DIAL_AURORA_DEF = {
+  on: true,
+  fx: 'flow',
+  s1: '#fce7f3',
+  s2: '#bae6fd',
+  s3: '#ddd6fe',
+  a1: '#f472b6',
+  a2: '#a78bfa',
+  a3: '#38bdf8',
+  a4: '#4ade80',
+  a5: '#fbbf24',
+  a6: '#818cf8',
+  a7: '#2dd4bf',
+  a8: '#ec4899',
+  a9: '#22d3ee',
+};
+const MB_DIAL_STAGE_KEYS = ['s1', 's2', 's3'];
+const MB_DIAL_AUR_KEYS = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9'];
+const MB_DIAL_AURORA_FX = ['flow', 'slow', 'fast', 'still'];
+
+function mbReadDialAuroraPrefs() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('mb-dial-aurora') || 'null');
+    return mbSanitizeDialAurora(raw);
+  } catch (_) {
+    return Object.assign({}, MB_DIAL_AURORA_DEF);
+  }
+}
+
+function mbSanitizeDialAurora(raw) {
+  const out = Object.assign({}, MB_DIAL_AURORA_DEF);
+  if (!raw || typeof raw !== 'object') return out;
+  out.on = raw.on !== false;
+  out.fx = MB_DIAL_AURORA_FX.includes(raw.fx) ? raw.fx : 'flow';
+  MB_DIAL_STAGE_KEYS.forEach((k) => {
+    out[k] = mbNormHex(raw[k]) || MB_DIAL_AURORA_DEF[k];
+  });
+  MB_DIAL_AUR_KEYS.forEach((k) => {
+    out[k] = mbNormHex(raw[k]) || MB_DIAL_AURORA_DEF[k];
+  });
+  return out;
+}
+
+function mbStoreDialAuroraPrefs(prefs, skipSave) {
+  const clean = mbSanitizeDialAurora(prefs);
+  try {
+    localStorage.setItem('mb-dial-aurora', JSON.stringify(clean));
+  } catch (_) {}
+  mbApplyDialAuroraPrefs(clean);
+  mbPaintDialAuroraForm(clean);
+  if (!skipSave && !_mbPrefsApplying && typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
+}
+
+function mbAdoptDialAuroraPrefs(raw) {
+  mbStoreDialAuroraPrefs(raw, true);
+}
+
+function mbApplyDialAuroraPrefs(prefs) {
+  const p = prefs || mbReadDialAuroraPrefs();
+  const root = document.documentElement;
+  root.style.setProperty('--dial-stage-1', p.s1);
+  root.style.setProperty('--dial-stage-2', p.s2);
+  root.style.setProperty('--dial-stage-3', p.s3);
+  root.style.setProperty('--dial-aur-1', p.a1);
+  root.style.setProperty('--dial-aur-2', p.a2);
+  root.style.setProperty('--dial-aur-3', p.a3);
+  root.style.setProperty('--dial-aur-4', p.a4);
+  root.style.setProperty('--dial-aur-5', p.a5);
+  root.style.setProperty('--dial-aur-6', p.a6);
+  root.style.setProperty('--dial-aur-7', p.a7);
+  root.style.setProperty('--dial-aur-8', p.a8);
+  root.style.setProperty('--dial-aur-9', p.a9);
+  const html = document.documentElement;
+  html.classList.toggle('is-dial-aur-off', !p.on);
+  MB_DIAL_AURORA_FX.forEach((fx) => {
+    if (fx === 'flow') return;
+    html.classList.toggle('is-dial-aur-' + fx, p.on && p.fx === fx);
+  });
+  const prev = document.getElementById('dial-aurora-preview');
+  if (prev) {
+    prev.style.background = `linear-gradient(120deg, ${p.s1}, ${p.a1}, ${p.a2}, ${p.a3}, ${p.s3})`;
+  }
+}
+
+function mbPaintDialAuroraForm(prefs) {
+  const p = prefs || mbReadDialAuroraPrefs();
+  const on = document.getElementById('dial-aurora-on');
+  const fx = document.getElementById('dial-aurora-fx');
+  if (on) on.checked = !!p.on;
+  if (fx) fx.value = p.fx;
+  MB_DIAL_STAGE_KEYS.forEach((k) => {
+    const el = document.getElementById('dial-aurora-' + k);
+    if (el) el.value = p[k];
+  });
+  MB_DIAL_AUR_KEYS.forEach((k) => {
+    const el = document.getElementById('dial-aurora-' + k);
+    if (el) el.value = p[k];
+  });
+  mbApplyDialAuroraPrefs(p);
+}
+
+function mbSetDialAuroraField(field, value) {
+  const next = mbReadDialAuroraPrefs();
+  if (field === 'on') next.on = !!value;
+  else if (field === 'fx') next.fx = MB_DIAL_AURORA_FX.includes(value) ? value : 'flow';
+  else if (MB_DIAL_STAGE_KEYS.includes(field) || MB_DIAL_AUR_KEYS.includes(field)) {
+    const hex = mbNormHex(value);
+    if (!hex) return;
+    next[field] = hex;
+  } else return;
+  mbStoreDialAuroraPrefs(next);
+}
+
+function mbResetDialAurora(skipSave) {
+  mbStoreDialAuroraPrefs(MB_DIAL_AURORA_DEF, skipSave);
+}
+
+try {
+  window.mbSetSbAuroraField = mbSetSbAuroraField;
+  window.mbResetSbAurora = mbResetSbAurora;
+  window.mbPaintSbAuroraForm = mbPaintSbAuroraForm;
+  window.mbSetDialAuroraField = mbSetDialAuroraField;
+  window.mbResetDialAurora = mbResetDialAurora;
+  window.mbPaintDialAuroraForm = mbPaintDialAuroraForm;
+  window.mbApplyDialAuroraPrefs = mbApplyDialAuroraPrefs;
+} catch (_) {}
+
+mbPaintSbAuroraForm();
+mbPaintDialAuroraForm();
