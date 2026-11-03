@@ -205,6 +205,13 @@ a { color: inherit; text-decoration: none; }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+/* Windows klasik oklarını global kapat */
+::-webkit-scrollbar-button {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
+}
 /* ============================================================
 APP SHELL
 ============================================================ */
@@ -1985,7 +1992,6 @@ position: relative;
 transition: width var(--transition), min-width var(--transition), transform var(--transition);
 box-shadow: 4px 0 24px rgba(0,0,0,0.15);
 }
-/* Yedek (v14.27 / 5fe519a): özel scrollbar YOK — global 5px kuralı (sağa yapışık, oksuz) */
 .sidebar-scroll {
   flex: 1 1 auto;
   min-height: 0;
@@ -1994,6 +2000,50 @@ box-shadow: 4px 0 24px rgba(0,0,0,0.15);
   overscroll-behavior: contain;
   touch-action: manipulation;
 }
+/* Modern: native scroll gizle, sağ kenarda özel ray (ok yok, tam yapışık) */
+#sidebar.mb-sb-overlay-scroll #sidebar-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+#sidebar.mb-sb-overlay-scroll #sidebar-scroll::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
+}
+#sidebar.mb-sb-overlay-scroll #sidebar-scroll::-webkit-scrollbar-button {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+.sb-scroll-rail {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 8px;
+  height: 0;
+  z-index: 8;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.22);
+}
+#sidebar.mb-sb-overlay-scroll .sb-scroll-rail.is-on {
+  display: block;
+  pointer-events: auto;
+}
+.sb-scroll-thumb {
+  position: absolute;
+  right: 1px;
+  left: 1px;
+  width: auto;
+  min-height: 28px;
+  border-radius: 99px;
+  background: var(--mb-sb-scroll-a, #c8c8d8);
+  cursor: grab;
+  pointer-events: auto;
+}
+.sb-scroll-thumb:active { cursor: grabbing; }
+#sidebar.mb-sb-scroll-classic .sb-scroll-rail { display: none !important; }
 /* Aurora altta (z-index:0), menü üstte — sb-top-strip kaldırıldı; yanlış seçici aurorayı bozuyordu */
 #sidebar > *:not(.fluid-aurora--sidebar) {
 position: relative;

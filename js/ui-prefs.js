@@ -340,7 +340,7 @@ mbApplyLiveGrads(mbReadLiveGrads());
 mbPaintLiveGradForm();
 
 /* Modern = git yedeği v14.27/5fe519a: global 5px, transparan ray, ok yok. Klasik = kalın + oklar. */
-const MB_SB_SCROLL_DEF = { a: '#d0d5e8', b: '#64748b', grad: false, style: 'ince' };
+const MB_SB_SCROLL_DEF = { a: '#c8c8d8', b: '#64748b', grad: false, style: 'ince' };
 
 function mbSbScrollStyle() {
   const s = localStorage.getItem('mb-sb-scroll-style');
@@ -394,29 +394,108 @@ function mbAdoptSbScrollPrefs(raw) {
   mbPaintSbScrollForm();
 }
 
-function mbSbScrollCss(style, a, b, grad) {
+function mbSbScrollCssClassic(a, b, grad) {
   const thumb = grad ? `linear-gradient(180deg, ${a} 0%, ${b} 100%)` : a;
-  if (style === 'eski') {
-    const fill = encodeURIComponent(a);
-    return `
-#sidebar-scroll.sidebar-scroll{scrollbar-width:auto;scrollbar-color:${a} rgba(255,255,255,0.08);}
-#sidebar-scroll.sidebar-scroll::-webkit-scrollbar{width:12px;height:12px;}
-#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,0.08);}
-#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-thumb{background:${thumb};border-radius:6px;border:2px solid transparent;background-clip:padding-box;min-height:32px;}
-#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-button:single-button{display:block;height:14px;width:12px;background-color:rgba(255,255,255,0.1);background-repeat:no-repeat;background-position:center;background-size:7px 7px;}
-#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-button:single-button:vertical:decrement{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='${fill}' d='M4 1L7 6H1z'/%3E%3C/svg%3E");}
-#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-button:single-button:vertical:increment{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='${fill}' d='M1 2h6L4 7z'/%3E%3C/svg%3E");}
-`;
-  }
-  /* Modern = yedekteki global scrollbar birebir (5px, şeffaf track, border-radius 3px, ok yok) */
+  const fill = encodeURIComponent(a);
   return `
-#sidebar-scroll.sidebar-scroll{scrollbar-width:thin;scrollbar-color:${a} transparent;}
-#sidebar-scroll.sidebar-scroll::-webkit-scrollbar{width:5px;height:5px;}
-#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-track{background:transparent;}
-#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-thumb{background:${thumb};border-radius:3px;}
-#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-button{width:0!important;height:0!important;display:none!important;background:transparent!important;}
-#sidebar-scroll.sidebar-scroll::-webkit-scrollbar-corner{background:transparent;}
+#sidebar.mb-sb-scroll-classic #sidebar-scroll{scrollbar-width:auto;scrollbar-color:${a} rgba(255,255,255,0.08);}
+#sidebar.mb-sb-scroll-classic #sidebar-scroll::-webkit-scrollbar{width:12px;height:12px;display:block!important;}
+#sidebar.mb-sb-scroll-classic #sidebar-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,0.08);}
+#sidebar.mb-sb-scroll-classic #sidebar-scroll::-webkit-scrollbar-thumb{background:${thumb};border-radius:6px;border:2px solid transparent;background-clip:padding-box;min-height:32px;}
+#sidebar.mb-sb-scroll-classic #sidebar-scroll::-webkit-scrollbar-button,
+#sidebar.mb-sb-scroll-classic #sidebar-scroll::-webkit-scrollbar-button:single-button{display:block!important;width:12px!important;height:14px!important;background-color:rgba(255,255,255,0.1)!important;background-repeat:no-repeat!important;background-position:center!important;background-size:7px 7px!important;}
+#sidebar.mb-sb-scroll-classic #sidebar-scroll::-webkit-scrollbar-button:single-button:vertical:decrement{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='${fill}' d='M4 1L7 6H1z'/%3E%3C/svg%3E");}
+#sidebar.mb-sb-scroll-classic #sidebar-scroll::-webkit-scrollbar-button:single-button:vertical:increment{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='${fill}' d='M1 2h6L4 7z'/%3E%3C/svg%3E");}
 `;
+}
+
+let _mbSbRailBound = false;
+let _mbSbRailDrag = null;
+
+function mbSyncSbScrollRail() {
+  const sidebar = document.getElementById('sidebar');
+  const sc = document.getElementById('sidebar-scroll');
+  const rail = document.getElementById('sb-scroll-rail');
+  const thumb = document.getElementById('sb-scroll-thumb');
+  if (!sidebar || !sc || !rail || !thumb) return;
+  if (!sidebar.classList.contains('mb-sb-overlay-scroll')) {
+    rail.classList.remove('is-on');
+    return;
+  }
+  const sh = sc.scrollHeight;
+  const ch = sc.clientHeight;
+  if (sh <= ch + 1) {
+    rail.classList.remove('is-on');
+    return;
+  }
+  const sbRect = sidebar.getBoundingClientRect();
+  const scRect = sc.getBoundingClientRect();
+  const top = Math.max(0, scRect.top - sbRect.top);
+  const height = Math.max(0, scRect.height);
+  rail.style.top = `${top}px`;
+  rail.style.height = `${height}px`;
+  rail.classList.add('is-on');
+  const ratio = ch / sh;
+  const thumbH = Math.max(28, Math.round(height * ratio));
+  const maxTop = Math.max(0, height - thumbH);
+  const maxScroll = Math.max(1, sh - ch);
+  const thumbTop = Math.round((sc.scrollTop / maxScroll) * maxTop);
+  thumb.style.height = `${thumbH}px`;
+  thumb.style.top = `${thumbTop}px`;
+}
+
+function mbBindSbScrollRail() {
+  if (_mbSbRailBound) return;
+  const sc = document.getElementById('sidebar-scroll');
+  const rail = document.getElementById('sb-scroll-rail');
+  const thumb = document.getElementById('sb-scroll-thumb');
+  if (!sc || !rail || !thumb) return;
+  _mbSbRailBound = true;
+  sc.addEventListener('scroll', () => mbSyncSbScrollRail(), { passive: true });
+  window.addEventListener('resize', () => mbSyncSbScrollRail());
+  if (typeof ResizeObserver !== 'undefined') {
+    try {
+      const ro = new ResizeObserver(() => mbSyncSbScrollRail());
+      ro.observe(sc);
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) ro.observe(sidebar);
+    } catch (_) {}
+  }
+  thumb.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const sh = sc.scrollHeight;
+    const ch = sc.clientHeight;
+    const maxScroll = Math.max(1, sh - ch);
+    const railH = rail.clientHeight;
+    const thumbH = thumb.offsetHeight;
+    const maxTop = Math.max(1, railH - thumbH);
+    _mbSbRailDrag = {
+      startY: e.clientY,
+      startTop: thumb.offsetTop,
+      maxScroll,
+      maxTop,
+    };
+    thumb.setPointerCapture(e.pointerId);
+  });
+  thumb.addEventListener('pointermove', (e) => {
+    if (!_mbSbRailDrag) return;
+    const dy = e.clientY - _mbSbRailDrag.startY;
+    const nextTop = Math.min(_mbSbRailDrag.maxTop, Math.max(0, _mbSbRailDrag.startTop + dy));
+    sc.scrollTop = (nextTop / _mbSbRailDrag.maxTop) * _mbSbRailDrag.maxScroll;
+  });
+  const endDrag = () => { _mbSbRailDrag = null; };
+  thumb.addEventListener('pointerup', endDrag);
+  thumb.addEventListener('pointercancel', endDrag);
+  rail.addEventListener('pointerdown', (e) => {
+    if (e.target === thumb) return;
+    const rect = rail.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const thumbH = thumb.offsetHeight;
+    const maxTop = Math.max(1, rail.clientHeight - thumbH);
+    const nextTop = Math.min(maxTop, Math.max(0, y - thumbH / 2));
+    const maxScroll = Math.max(1, sc.scrollHeight - sc.clientHeight);
+    sc.scrollTop = (nextTop / maxTop) * maxScroll;
+  });
 }
 
 function mbApplySbScrollPrefs() {
@@ -424,6 +503,7 @@ function mbApplySbScrollPrefs() {
   const bWrap = document.getElementById('sb-scroll-b-wrap');
   const btnInce = document.getElementById('sb-scroll-style-yeni') || document.getElementById('sb-scroll-style-ince');
   const btnEski = document.getElementById('sb-scroll-style-eski');
+  const sidebar = document.getElementById('sidebar');
   const st = mbSbScrollStyle();
   if (btnInce) {
     btnInce.classList.toggle('is-on', st === 'ince');
@@ -438,29 +518,35 @@ function mbApplySbScrollPrefs() {
   const a = mbNormHex(localStorage.getItem('mb-sb-scroll-a')) || MB_SB_SCROLL_DEF.a;
   const b = mbNormHex(localStorage.getItem('mb-sb-scroll-b')) || MB_SB_SCROLL_DEF.b;
   const grad = localStorage.getItem('mb-sb-scroll-grad') === '1';
-  const thumb = grad ? `linear-gradient(180deg, ${a} 0%, ${b} 100%)` : a;
+  const thumbBg = grad ? `linear-gradient(180deg, ${a} 0%, ${b} 100%)` : a;
   const root = document.documentElement;
-  root.classList.remove('mb-sb-scroll-classic');
   root.classList.add('mb-sb-scroll-custom');
   root.classList.toggle('mb-sb-scroll-grad', grad);
-  root.style.removeProperty('--mb-sb-scroll-a');
-  root.style.removeProperty('--mb-sb-scroll-b');
-  root.style.removeProperty('--mb-sb-scroll-thumb');
-  root.style.removeProperty('--mb-sb-scroll-track');
-  root.style.removeProperty('--mb-sb-scroll-arrow-up');
-  root.style.removeProperty('--mb-sb-scroll-arrow-down');
-  let styleEl = document.getElementById('mb-sb-scroll-css');
-  if (!styleEl) {
-    styleEl = document.createElement('style');
-    styleEl.id = 'mb-sb-scroll-css';
-    document.head.appendChild(styleEl);
+  root.style.setProperty('--mb-sb-scroll-a', a);
+  if (sidebar) {
+    sidebar.classList.toggle('mb-sb-overlay-scroll', st === 'ince');
+    sidebar.classList.toggle('mb-sb-scroll-classic', st === 'eski');
   }
-  styleEl.textContent = mbSbScrollCss(st, a, b, grad);
-  if (prev) prev.style.background = thumb;
+  let styleEl = document.getElementById('mb-sb-scroll-css');
+  if (st === 'eski') {
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'mb-sb-scroll-css';
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = mbSbScrollCssClassic(a, b, grad);
+  } else if (styleEl) {
+    styleEl.remove();
+  }
+  const thumbEl = document.getElementById('sb-scroll-thumb');
+  if (thumbEl) thumbEl.style.background = thumbBg;
+  if (prev) prev.style.background = thumbBg;
   if (bWrap) bWrap.style.opacity = grad ? '1' : '0.45';
   document.querySelectorAll('.sb-scroll-style-btn').forEach((btn) => {
     btn.style.setProperty('--sb-scroll-swatch', a);
   });
+  mbBindSbScrollRail();
+  requestAnimationFrame(() => mbSyncSbScrollRail());
 }
 
 function mbPaintSbScrollForm() {
