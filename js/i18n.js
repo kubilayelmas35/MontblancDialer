@@ -2502,6 +2502,8 @@ const MB_I18N = {
     'login.err.bad': 'E-Mail oder Passwort falsch',
     'login.err.conn': 'Verbindungsfehler: ',
     'login.err.session': 'Sitzung abgelaufen. Bitte erneut anmelden.',
+    'login.remember': 'Daten speichern',
+    'login.remember.clear': 'Gespeicherte Daten löschen',
     'api.err.rls': 'Keine Berechtigung für diesen Vorgang. Bitte abmelden und erneut anmelden.',
     'api.err.auth': 'Sitzung ungültig. Bitte erneut anmelden.',
     'api.err.generic': 'Vorgang fehlgeschlagen. Bitte erneut versuchen.',
