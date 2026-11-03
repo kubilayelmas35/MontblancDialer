@@ -2077,13 +2077,15 @@ box-shadow: 4px 0 24px rgba(0,0,0,0.15);
   min-height: 28px;
   /* Üstte düz (mor kenarla birleşsin), altta yuvarlak */
   border-radius: 0 0 99px 99px;
-  background: var(--mb-sb-scroll-a, #5c6578);
-  opacity: 0.72;
+  /* 14.27: özel renk yoktu — soft beyaz ~18% (border-2 dark) */
+  background: var(--mb-sb-scroll-a, rgba(255, 255, 255, 0.18));
   cursor: grab;
   pointer-events: auto;
   box-sizing: border-box;
 }
-#sidebar .sb-scroll-thumb:hover { opacity: 0.92; }
+#sidebar .sb-scroll-thumb:hover {
+  background: var(--mb-sb-scroll-a, rgba(255, 255, 255, 0.28));
+}
 #sidebar .sb-scroll-thumb.is-mid {
   border-radius: 99px;
 }
