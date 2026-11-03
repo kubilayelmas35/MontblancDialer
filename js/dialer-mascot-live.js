@@ -610,6 +610,51 @@ function _placeGlobalMascotAtRect(rect) {
   gm.classList.add('global-mascot--placed');
 }
 
+function _gmHomeParent() {
+  return document.getElementById('ops-live-alerts')?.parentElement
+    || document.getElementById('app')
+    || document.body;
+}
+
+function _restoreGlobalMascotHome(gm) {
+  if (!gm) return;
+  const slot = document.getElementById('tb-mascot-anchor');
+  if (slot && gm.parentElement === slot) {
+    const alerts = document.getElementById('ops-live-alerts');
+    const home = _gmHomeParent();
+    if (alerts && alerts.parentElement === home) alerts.after(gm);
+    else home.appendChild(gm);
+  }
+  gm.classList.remove('global-mascot--slot-dock');
+}
+
+/** Gizli maskot: üst çubuk zoom’u ile birlikte kalsın diye slot içine göm. */
+function _dockHiddenMascotInTopbarSlot(gm) {
+  const slot = document.getElementById('tb-mascot-anchor');
+  if (!gm || !slot) return false;
+  _stopGlobalMascotWander();
+  slot.classList.remove('is-off');
+  if (gm.parentElement !== slot) slot.appendChild(gm);
+  gm.style.left = '';
+  gm.style.top = '';
+  gm.style.setProperty('--gm-wx', '0px');
+  gm.style.setProperty('--gm-wy', '0px');
+  gm.classList.add(
+    'global-mascot--slot-dock',
+    'global-mascot--muted',
+    'global-mascot--topbar',
+    'global-mascot--placed'
+  );
+  gm.classList.remove(
+    'global-mascot--dialer',
+    'global-mascot--custom',
+    'global-mascot--sidebar',
+    'global-mascot--peek-chat',
+    'global-mascot--peek-notif'
+  );
+  return true;
+}
+
 function syncCustomerCardEmptyVisual() {
   const cc = document.getElementById('customer-card');
   const ce = document.getElementById('cust-empty');
@@ -645,7 +690,9 @@ function _syncGlobalMascotDockImpl() {
   const narrowTop = (window.innerWidth || 0) <= 768 && !inSidebar;
   gm.classList.toggle('global-mascot--mobile-off', narrowTop);
   if (narrowTop) {
+    _restoreGlobalMascotHome(gm);
     if (isMimiHidden()) {
+      gm.classList.add('global-mascot--muted');
       gm.classList.remove('global-mascot--placed');
       return;
     }
@@ -662,16 +709,19 @@ function _syncGlobalMascotDockImpl() {
   gm.classList.toggle('global-mascot--muted', isMimiHidden());
   _wireGlobalMascotInteractions();
   if (gm.classList.contains('global-mascot--peek-chat') || gm.classList.contains('global-mascot--peek-notif')) {
+    _restoreGlobalMascotHome(gm);
     gm.classList.add('global-mascot--placed');
     return;
   }
   if (isMimiHidden()) {
+    if (_dockHiddenMascotInTopbarSlot(gm)) return;
     _placeGlobalMascotAtRect(_topbarMascotRect());
     gm.classList.remove('global-mascot--dialer', 'global-mascot--custom');
-    gm.classList.add('global-mascot--topbar');
+    gm.classList.add('global-mascot--topbar', 'global-mascot--muted');
     _stopGlobalMascotWander();
     return;
   }
+  _restoreGlobalMascotHome(gm);
   if (gm.classList.contains('global-mascot--notif-morph')) {
     const nb = document.getElementById('tb-notif-btn');
     const r = nb

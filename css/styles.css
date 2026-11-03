@@ -1481,12 +1481,14 @@ button.tb-pill.pill-camp.is-wrong .tb-pill-val { color: inherit; }
   .tb-uname { max-width: 88px; }
 }
 .tb-mascot-anchor {
+  position: relative;
   width: 44px;
   height: 44px;
   flex: 0 0 44px;
   align-self: center;
   border-radius: 12px;
   pointer-events: none;
+  overflow: visible;
 }
 .tb-mascot-anchor.is-off {
   width: 0;
@@ -1494,6 +1496,9 @@ button.tb-pill.pill-camp.is-wrong .tb-pill-val { color: inherit; }
   flex-basis: 0;
   margin: 0;
   overflow: hidden;
+}
+.tb-mascot-anchor:has(.global-mascot--slot-dock) {
+  pointer-events: auto;
 }
 #tb-notif-btn { position: relative; }
 #tb-notif-btn #tb-notif-badge {
@@ -1829,8 +1834,33 @@ button.tb-pill.pill-camp.is-wrong .tb-pill-val { color: inherit; }
   text-align: left;
   transform: translate(calc(-12px + var(--gm-wx, 0px)), calc(-100% + var(--gm-wy, 0px))) scale(1);
 }
-.global-mascot.global-mascot--muted .cust-empty-mascot {
-  transform: translate(calc(-50% + var(--gm-wx, 0px)), calc(-50% + var(--gm-wy, 0px))) scale(0.5);
+/* Gizli (muted): üst çubuk slotuna gömülür — fixed + zoom kaymasını önler */
+.global-mascot.global-mascot--slot-dock {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  width: 1px;
+  height: 1px;
+  z-index: 6;
+  opacity: 1;
+  transform: none;
+  pointer-events: none;
+}
+.global-mascot.global-mascot--slot-dock .cust-empty-mascot {
+  left: 0;
+  top: 0;
+  margin: 0;
+  transform: translate(-50%, -50%) scale(0.48);
+  animation: none !important;
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.global-mascot.global-mascot--muted:not(.global-mascot--slot-dock) .cust-empty-mascot {
+  transform: translate(calc(-50% + var(--gm-wx, 0px)), calc(-50% + var(--gm-wy, 0px)))
+    scale(calc(0.5 * var(--mb-type-topbar-zoom, 1)));
   animation: none !important;
   opacity: 1;
 }
