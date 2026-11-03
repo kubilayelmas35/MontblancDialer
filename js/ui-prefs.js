@@ -347,16 +347,18 @@ function mbResetLiveGrads() {
 mbApplyLiveGrads(mbReadLiveGrads());
 mbPaintLiveGradForm();
 
-/* Modern = ok yok, sağ ray. Klasik = kalın + oklar. */
+/* Modern = ok yok, sağ ray. Klasik = kalın + oklar.
+   Varsayılan renk koyu menüde silik (14.28 öncesi soft beyaz hissi). */
 const MB_SB_SCROLL_DEF = {
-  a: '#c8c8d8',
-  b: '#64748b',
+  a: '#5c6578',
+  b: '#3f4654',
   grad: false,
   style: 'ince',
   track: false,
   flush: true,
   width: 5,
 };
+const MB_SB_SCROLL_LOUD = ['#c8c8d8', '#94a3b8'];
 
 function mbSbScrollStyle() {
   const s = localStorage.getItem('mb-sb-scroll-style');
@@ -565,6 +567,16 @@ function mbApplySbScrollPrefs() {
     } else if (!localStorage.getItem('mb-sb-scroll-style') || localStorage.getItem('mb-sb-scroll-style') === 'yeni') {
       localStorage.setItem('mb-sb-scroll-style', 'ince');
       st = 'ince';
+    }
+    /* v14.47: 14.28’den kalan göze batan açık griyi bir kez silik varsayılana çek */
+    if (localStorage.getItem('mb-sb-scroll-mig-soft') !== '14.47') {
+      const curA = mbNormHex(localStorage.getItem('mb-sb-scroll-a'));
+      if (!curA || MB_SB_SCROLL_LOUD.includes(curA)) {
+        localStorage.setItem('mb-sb-scroll-a', MB_SB_SCROLL_DEF.a);
+        localStorage.setItem('mb-sb-scroll-b', MB_SB_SCROLL_DEF.b);
+        localStorage.setItem('mb-sb-scroll-grad', '0');
+      }
+      localStorage.setItem('mb-sb-scroll-mig-soft', '14.47');
     }
   } catch (_) {}
   if (btnInce) {
