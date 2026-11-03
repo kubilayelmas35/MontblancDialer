@@ -2362,14 +2362,52 @@ visibility: visible;
   gap: 10px;
   margin-bottom: 12px;
 }
+/* Callin sayfa logosu: topbar daraltmasından bağımsız, mark + callin.one tam boy */
+.callin-page-hdr > .callin-page-logo {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  width: fit-content;
+  max-width: none;
+  min-width: auto;
+}
 .callin-page-logo {
   margin-right: 0;
   max-height: none;
-  width: max-content;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: top;
+  flex-shrink: 0;
 }
-.callin-page-logo .tb-logo-inner { padding: 8px 14px 8px 10px; gap: 8px; }
-.callin-page-logo .tb-logo-name { font-size: 20px; letter-spacing: -0.5px; }
-.callin-page-logo .tb-logo-faces { max-width: none; }
+.callin-page-logo .tb-logo-inner {
+  padding: 8px 14px 8px 10px;
+  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
+  width: auto;
+  min-width: auto;
+}
+.callin-page-logo .tb-logo-text {
+  flex: 0 0 auto;
+  min-width: auto;
+}
+/* 1280px topbar kuralı .tb-logo-name { display:none } — sayfa logosunda metni tut */
+.callin-page-logo .tb-logo-name {
+  display: block !important;
+  font-size: 20px;
+  letter-spacing: -0.5px;
+}
+.callin-page-logo .tb-logo-faces {
+  max-width: none;
+}
+.callin-page-logo .tb-logo-mark {
+  flex: 0 0 auto;
+}
+.callin-page-logo .tb-logo-mark svg {
+  display: block;
+  width: 36px;
+  height: 36px;
+}
 .callin-hdr-nav {
   display: flex;
   flex-direction: column;

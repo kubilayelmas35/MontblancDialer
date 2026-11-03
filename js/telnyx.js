@@ -386,7 +386,7 @@ client.on('telnyx.ready', () => {
 if (!mine()) return;
 telnyxReady = true;
 updateConnectionStatus('connected');
-toast('✅ Hat bağlantısı hazır', 'ok');
+toast(typeof t === 'function' ? t('dial.health.push.line') : 'Hat bağlantısı hazır', 'ok');
 });
 client.on('telnyx.error', (err) => {
 if (!mine()) return;
@@ -1131,7 +1131,7 @@ break;
 case 'MB_READY':
 telnyxReady = true;
 updateConnectionStatus('connected');
-toast('✅ ' + t('telnyx.line_connected'), 'ok');
+toast(t('telnyx.line_connected'), 'ok');
 break;
 case 'MB_DISCONNECTED':
 telnyxReady = false;

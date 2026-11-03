@@ -383,6 +383,15 @@
   .tb-logo { margin-right: 0; }
   .tb-logo-mark { width: auto; height: auto; }
   .tb-logo-inner { padding: 2px; }
+  /* Callin sayfa logosu: topbar padding/name gizlemesini ez */
+  #callin-page-logo.tb-logo .tb-logo-inner { padding: 8px 14px 8px 10px; gap: 8px; }
+  #callin-page-logo.tb-logo {
+    width: fit-content;
+    max-width: none;
+    max-height: none;
+    flex-shrink: 0;
+  }
+  #callin-page-logo.tb-logo .tb-logo-name { display: block !important; font-size: 20px; }
   #tb-live-btn { width: auto; max-width: none; flex: 0 1 auto; }
   button.tb-icon-btn.tb-mesai {
     width: auto;
