@@ -2023,20 +2023,75 @@ box-shadow: 4px 0 24px rgba(0,0,0,0.15);
   overscroll-behavior: contain;
   touch-action: manipulation;
 }
-#sidebar .sb-scroll-rail { display: none !important; }
-/* Menü scroll: varsayılan border-2 (14.1); özel renk --mb-sb-scroll-thumb */
-#sidebar-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: var(--mb-sb-scroll-thumb, var(--border-2)) transparent;
+/* Modern (varsayılan): native scrollbar KAPALI — sağ kenar özel ray */
+#sidebar:not(.mb-sb-scroll-classic) #sidebar-scroll {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
-#sidebar-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
-#sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
-#sidebar-scroll::-webkit-scrollbar-thumb {
-  background: var(--mb-sb-scroll-thumb, var(--border-2));
-  border-radius: 3px;
+#sidebar:not(.mb-sb-scroll-classic) #sidebar-scroll::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
 }
-/* Aurora altta (z-index:0), menü üstte — sb-top-strip kaldırıldı; yanlış seçici aurorayı bozuyordu */
-#sidebar > *:not(.fluid-aurora--sidebar) {
+#sidebar:not(.mb-sb-scroll-classic) #sidebar-scroll::-webkit-scrollbar-button {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+#sidebar .sb-scroll-rail {
+  display: none;
+  position: absolute !important;
+  right: 0;
+  top: 0;
+  width: var(--mb-sb-rail-w, 5px);
+  height: 0;
+  z-index: 20;
+  pointer-events: none;
+  background: transparent; /* varsayılan: arka plan yok */
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  box-shadow: none;
+}
+#sidebar.mb-sb-scroll-track .sb-scroll-rail {
+  background: rgba(255, 255, 255, 0.08);
+}
+#sidebar:not(.mb-sb-scroll-classic) .sb-scroll-rail.is-on {
+  display: block;
+  pointer-events: auto;
+}
+#sidebar .sb-scroll-thumb {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  width: 100%;
+  min-height: 28px;
+  /* Üstte düz (mor kenarla birleşsin), altta yuvarlak */
+  border-radius: 0 0 99px 99px;
+  background: var(--mb-sb-scroll-thumb, var(--mb-sb-scroll-a, #c8c8d8));
+  cursor: grab;
+  pointer-events: auto;
+  box-sizing: border-box;
+}
+#sidebar .sb-scroll-thumb.is-mid {
+  border-radius: 99px;
+}
+#sidebar .sb-scroll-thumb.is-end {
+  border-radius: 99px 99px 0 0;
+}
+/* Sağa yapışık kapalıysa thumb biraz içeride */
+#sidebar:not(.mb-sb-scroll-flush) .sb-scroll-thumb {
+  right: 2px;
+  left: 2px;
+  width: auto;
+}
+#sidebar .sb-scroll-thumb:active { cursor: grabbing; }
+#sidebar.mb-sb-scroll-classic .sb-scroll-rail { display: none !important; }
+/* Aurora altta (z-index:0), menü üstte — scroll ray absolute kalsın */
+#sidebar > *:not(.fluid-aurora--sidebar):not(.sb-scroll-rail) {
 position: relative;
 z-index: 1;
 }

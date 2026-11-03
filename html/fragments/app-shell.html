@@ -3462,7 +3462,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div class="form-row">
 <label class="form-label" data-tr="Menü kaydırma çubuğu" data-de="Menü-Scrollbar">Menü kaydırma çubuğu</label>
-<p class="live-grad-hint" data-tr="Açık/koyu tema için ayrı scroll rengi. Varsayılan = 14.1 (açık #d0d5e8, koyu soft beyaz)." data-de="Eigene Scrollfarbe für Hell/Dunkel. Standard = 14.1 (hell #d0d5e8, dunkel weiches Weiß).">Açık/koyu tema için ayrı scroll rengi. Varsayılan = 14.1 (açık #d0d5e8, koyu soft beyaz).</p>
+<p class="live-grad-hint" data-tr="Canlıdaki 14.43 scroll (sağ ince ray). Açık varsayılan #c8c8d8; koyu varsayılan 14.1 soft beyaz — ikisini ayrı ayarla." data-de="Scroll wie Live 14.43 (dünne rechte Leiste). Hell-Standard #c8c8d8; Dunkel-Standard weiches Weiß wie 14.1.">Canlıdaki 14.43 scroll (sağ ince ray). Açık varsayılan #c8c8d8; koyu varsayılan 14.1 soft beyaz — ikisini ayrı ayarla.</p>
 <div class="sb-scroll-style-row" role="group" aria-label="Scrollbar stili">
 <button type="button" class="sb-scroll-style-btn" id="sb-scroll-style-yeni" onclick="mbSetSbScrollStyle('ince')">
 <span class="sb-scroll-style-preview sb-scroll-style-preview--modern" aria-hidden="true"><i></i></span>
@@ -3480,9 +3480,9 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </button>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
-<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Açık" data-de="Hell">Açık</span><input type="color" id="sb-scroll-a" value="#d0d5e8" oninput="mbSetSbScrollColor('a', this.value)" title="Açık tema"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Açık" data-de="Hell">Açık</span><input type="color" id="sb-scroll-a" value="#c8c8d8" oninput="mbSetSbScrollColor('a', this.value)" title="Açık tema"></label>
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><span data-tr="Koyu" data-de="Dunkel">Koyu</span><input type="color" id="sb-scroll-a-dark" value="#8b93a3" oninput="mbSetSbScrollColor('aDark', this.value)" title="Koyu tema (varsayılan 14.1 soft beyaz)"></label>
-<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;" id="sb-scroll-b-wrap"><span data-tr="Renk 2" data-de="Farbe 2">Renk 2</span><input type="color" id="sb-scroll-b" value="#6b7280" oninput="mbSetSbScrollColor('b', this.value)"></label>
+<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;" id="sb-scroll-b-wrap"><span data-tr="Renk 2" data-de="Farbe 2">Renk 2</span><input type="color" id="sb-scroll-b" value="#64748b" oninput="mbSetSbScrollColor('b', this.value)"></label>
 <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" id="sb-scroll-grad" onchange="mbSetSbScrollGrad(this.checked)"> <span data-tr="Gradient" data-de="Verlauf">Gradient</span></label>
 <span id="sb-scroll-preview" style="width:14px;height:36px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.18);"></span>
 </div>
