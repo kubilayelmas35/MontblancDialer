@@ -210,7 +210,8 @@ SHARED TOKENS
 --radius-sm:    8px;
 --radius-xs:    5px;
 --transition:   0.18s cubic-bezier(0.4,0,0.2,1);
---font:         'Plus Jakarta Sans', sans-serif;
+--font-base:    'Plus Jakarta Sans', sans-serif;
+--font:         var(--font-base);
 --mono:         'JetBrains Mono', monospace;
 --mb-type-menu-zoom: 1;
 --mb-type-topbar-zoom: 1;
@@ -278,7 +279,8 @@ flex-shrink: 0;
 width: 100%;
 min-width: 0;
 max-width: 100%;
-font-family: var(--mb-type-topbar-font, var(--font));
+--font: var(--mb-type-topbar-font, var(--font-base));
+font-family: var(--font);
 zoom: var(--mb-type-topbar-zoom, 1);
 }
 #topbar::-webkit-scrollbar {
@@ -2024,7 +2026,8 @@ display: flex; flex-direction: column;
 overflow: hidden;
 z-index: 90;
 position: relative;
-font-family: var(--mb-type-menu-font, var(--font));
+--font: var(--mb-type-menu-font, var(--font-base));
+font-family: var(--font);
 zoom: var(--mb-type-menu-zoom, 1);
 transition: width var(--transition), min-width var(--transition), transform var(--transition);
 box-shadow: 4px 0 24px rgba(0,0,0,0.15);
@@ -2356,12 +2359,14 @@ position: relative;
 display: flex; flex-direction: column;
 }
 #main > .page:not(#page-takvim) {
-  font-family: var(--mb-type-main-font, var(--font));
+  --font: var(--mb-type-main-font, var(--font-base));
+  font-family: var(--font);
   zoom: var(--mb-type-main-zoom, 1);
 }
 #page-takvim,
 #takvim-popup-overlay .takvim-fs-panel {
-  font-family: var(--mb-type-cal-font, var(--font));
+  --font: var(--mb-type-cal-font, var(--font-base));
+  font-family: var(--font);
   zoom: var(--mb-type-cal-zoom, 1);
 }
 @media (max-width: 1024px) { #main { padding: 0; min-width: 0; } }

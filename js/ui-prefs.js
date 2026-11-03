@@ -1002,8 +1002,9 @@ function mbResetDialAurora(skipSave) {
   mbStoreDialAuroraPrefs(MB_DIAL_AURORA_DEF, skipSave);
 }
 
-/* ── Yazı boyutu / tipi (menü, topbar, iç ekran, takvim) ── */
+/* ── Yazı boyutu / tipi — masaüstü + mobil ayrı ── */
 const MB_TYPE_ZONES = ['menu', 'topbar', 'main', 'cal'];
+const MB_TYPE_DEVICES = ['desktop', 'mobile'];
 const MB_TYPE_FONT_KEYS = ['default', 'jakarta', 'system', 'arial', 'verdana', 'georgia', 'mono'];
 const MB_TYPE_FONTS = {
   default: '',
@@ -1015,15 +1016,22 @@ const MB_TYPE_FONTS = {
   mono: "'JetBrains Mono', monospace",
 };
 const MB_TYPE_ZONE_DEF = { size: 100, font: 'default' };
+const MB_TYPE_MOBILE_MQ = '(max-width: 1024px)';
+let _mbTypeFormDevice = 'desktop';
+let _mbTypeMqBound = false;
 
 function mbTypeZoneDef() {
   return { size: MB_TYPE_ZONE_DEF.size, font: MB_TYPE_ZONE_DEF.font };
 }
 
-function mbTypePrefsDef() {
+function mbTypeDeviceDef() {
   const out = {};
   MB_TYPE_ZONES.forEach((z) => { out[z] = mbTypeZoneDef(); });
   return out;
+}
+
+function mbTypePrefsDef() {
+  return { desktop: mbTypeDeviceDef(), mobile: mbTypeDeviceDef() };
 }
 
 function mbSanitizeTypeSize(raw) {
@@ -1041,13 +1049,49 @@ function mbSanitizeTypeZone(raw) {
   return out;
 }
 
-function mbSanitizeTypePrefs(raw) {
-  const out = mbTypePrefsDef();
+function mbSanitizeTypeDevice(raw) {
+  const out = mbTypeDeviceDef();
   if (!raw || typeof raw !== 'object') return out;
   MB_TYPE_ZONES.forEach((z) => {
     out[z] = mbSanitizeTypeZone(raw[z]);
   });
   return out;
+}
+
+function mbSanitizeTypePrefs(raw) {
+  const out = mbTypePrefsDef();
+  if (!raw || typeof raw !== 'object') return out;
+  /* Eski düz format → masaüstü; mobil varsayılan kalsın */
+  if (raw.menu || raw.topbar || raw.main || raw.cal) {
+    out.desktop = mbSanitizeTypeDevice(raw);
+    return out;
+  }
+  out.desktop = mbSanitizeTypeDevice(raw.desktop);
+  out.mobile = mbSanitizeTypeDevice(raw.mobile);
+  return out;
+}
+
+function mbIsTypeMobileViewport() {
+  try {
+    return window.matchMedia(MB_TYPE_MOBILE_MQ).matches;
+  } catch (_) {
+    return window.innerWidth <= 1024;
+  }
+}
+
+function mbTypeFormDevice() {
+  return _mbTypeFormDevice === 'mobile' ? 'mobile' : 'desktop';
+}
+
+function mbSetTypeFormDevice(device) {
+  _mbTypeFormDevice = device === 'mobile' ? 'mobile' : 'desktop';
+  try { localStorage.setItem('mb-type-form-device', _mbTypeFormDevice); } catch (_) {}
+  mbPaintTypeForm();
+}
+
+function mbActiveTypeDevice(prefs) {
+  const p = prefs || mbReadTypePrefs();
+  return mbIsTypeMobileViewport() ? p.mobile : p.desktop;
 }
 
 function mbReadTypePrefs() {
@@ -1073,9 +1117,9 @@ function mbAdoptTypePrefs(raw) {
   mbStoreTypePrefs(raw, true);
 }
 
-function mbApplyTypePrefs(prefs) {
-  const p = prefs || mbReadTypePrefs();
+function mbApplyTypeDeviceVars(devicePrefs) {
   const root = document.documentElement;
+  const p = devicePrefs || mbTypeDeviceDef();
   MB_TYPE_ZONES.forEach((z) => {
     const row = p[z] || mbTypeZoneDef();
     const scale = mbSanitizeTypeSize(row.size) / 100;
@@ -1088,8 +1132,46 @@ function mbApplyTypePrefs(prefs) {
   });
 }
 
+function mbApplyTypePrefs(prefs) {
+  const all = prefs || mbReadTypePrefs();
+  mbApplyTypeDeviceVars(mbActiveTypeDevice(all));
+}
+
+function mbPaintTypeDeviceToggle() {
+  const d = mbTypeFormDevice();
+  document.querySelectorAll('.mb-type-device-btn').forEach((btn) => {
+    const on = btn.getAttribute('data-device') === d;
+    btn.classList.toggle('btn-primary', on);
+    btn.classList.toggle('btn-ghost', !on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  const hint = document.getElementById('type-device-hint');
+  if (hint) {
+    const live = mbIsTypeMobileViewport() ? 'mobile' : 'desktop';
+    if (d === 'mobile') {
+      hint.setAttribute('data-tr', live === 'mobile'
+        ? 'Mobil ayarları düzenleniyor — bu cihazda hemen uygulanır.'
+        : 'Mobil ayarları düzenleniyor — telefonda / dar ekranda geçerli olur.');
+      hint.setAttribute('data-de', live === 'mobile'
+        ? 'Mobileinstellungen — gelten jetzt auf diesem Gerät.'
+        : 'Mobileinstellungen — gelten auf Telefon / schmalem Bildschirm.');
+      hint.textContent = hint.getAttribute('data-tr');
+    } else {
+      hint.setAttribute('data-tr', live === 'desktop'
+        ? 'Masaüstü ayarları düzenleniyor — bu ekranda hemen uygulanır.'
+        : 'Masaüstü ayarları düzenleniyor — geniş ekranda geçerli olur.');
+      hint.setAttribute('data-de', live === 'desktop'
+        ? 'Desktop-Einstellungen — gelten jetzt auf diesem Bildschirm.'
+        : 'Desktop-Einstellungen — gelten auf breitem Bildschirm.');
+      hint.textContent = hint.getAttribute('data-tr');
+    }
+  }
+}
+
 function mbPaintTypeForm(prefs) {
-  const p = prefs || mbReadTypePrefs();
+  const all = prefs || mbReadTypePrefs();
+  const device = mbTypeFormDevice();
+  const p = all[device] || mbTypeDeviceDef();
   MB_TYPE_ZONES.forEach((z) => {
     const row = p[z] || mbTypeZoneDef();
     const elS = document.getElementById(`type-${z}-size`);
@@ -1099,30 +1181,58 @@ function mbPaintTypeForm(prefs) {
     if (elL) elL.textContent = `${row.size}%`;
     if (elF) elF.value = row.font;
   });
-  mbApplyTypePrefs(p);
+  mbPaintTypeDeviceToggle();
+  mbApplyTypePrefs(all);
 }
 
 function mbSetTypeField(zone, field, value) {
   if (!MB_TYPE_ZONES.includes(zone)) return;
   const next = mbReadTypePrefs();
-  const row = Object.assign({}, next[zone] || mbTypeZoneDef());
+  const device = mbTypeFormDevice();
+  const block = Object.assign({}, next[device] || mbTypeDeviceDef());
+  const row = Object.assign({}, block[zone] || mbTypeZoneDef());
   if (field === 'size') row.size = mbSanitizeTypeSize(value);
   else if (field === 'font') row.font = MB_TYPE_FONT_KEYS.includes(value) ? value : 'default';
   else return;
-  next[zone] = row;
+  block[zone] = row;
+  next[device] = block;
   mbStoreTypePrefs(next);
 }
 
 function mbResetTypeZone(zone, skipSave) {
   if (!MB_TYPE_ZONES.includes(zone)) return;
   const next = mbReadTypePrefs();
-  next[zone] = mbTypeZoneDef();
+  const device = mbTypeFormDevice();
+  const block = Object.assign({}, next[device] || mbTypeDeviceDef());
+  block[zone] = mbTypeZoneDef();
+  next[device] = block;
   mbStoreTypePrefs(next, skipSave);
 }
 
 function mbResetTypePrefs(skipSave) {
-  mbStoreTypePrefs(mbTypePrefsDef(), skipSave);
+  const next = mbReadTypePrefs();
+  next[mbTypeFormDevice()] = mbTypeDeviceDef();
+  mbStoreTypePrefs(next, skipSave);
 }
+
+function mbBindTypeViewport() {
+  if (_mbTypeMqBound) return;
+  _mbTypeMqBound = true;
+  const onChange = () => { mbApplyTypePrefs(); mbPaintTypeDeviceToggle(); };
+  try {
+    const mq = window.matchMedia(MB_TYPE_MOBILE_MQ);
+    if (mq.addEventListener) mq.addEventListener('change', onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+  } catch (_) {
+    window.addEventListener('resize', onChange);
+  }
+}
+
+try {
+  const savedDev = localStorage.getItem('mb-type-form-device');
+  if (savedDev === 'mobile' || savedDev === 'desktop') _mbTypeFormDevice = savedDev;
+  else _mbTypeFormDevice = mbIsTypeMobileViewport() ? 'mobile' : 'desktop';
+} catch (_) {}
 
 try {
   window.mbSetSbAuroraField = mbSetSbAuroraField;
@@ -1135,6 +1245,7 @@ try {
   window.mbSetTypeField = mbSetTypeField;
   window.mbResetTypeZone = mbResetTypeZone;
   window.mbResetTypePrefs = mbResetTypePrefs;
+  window.mbSetTypeFormDevice = mbSetTypeFormDevice;
   window.mbPaintTypeForm = mbPaintTypeForm;
   window.mbApplyTypePrefs = mbApplyTypePrefs;
 } catch (_) {}
@@ -1142,3 +1253,4 @@ try {
 mbPaintSbAuroraForm();
 mbPaintDialAuroraForm();
 mbPaintTypeForm();
+mbBindTypeViewport();

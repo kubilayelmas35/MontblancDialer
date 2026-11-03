@@ -3560,7 +3560,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div class="form-row settings-span-2 settings-span-3" id="settings-type-row">
 <label class="form-label" data-tr="Yazı boyutu ve tipi" data-de="Schriftgröße und Schriftart">Yazı boyutu ve tipi</label>
-<p class="live-grad-hint" data-tr="Menü, üst çubuk, iç ekranlar ve takvim ayrı ayarlanır. Hesabına yazılır." data-de="Menü, Topbar, Innenflächen und Kalender getrennt. Wird am Konto gespeichert.">Menü, üst çubuk, iç ekranlar ve takvim ayrı ayarlanır. Hesabına yazılır.</p>
+<p class="live-grad-hint" data-tr="Menü, üst çubuk, iç ekran ve takvim ayrı. Masaüstü ile mobil ayrı kaydolur (≤1024px = mobil)." data-de="Menü, Topbar, Innenfläche und Kalender getrennt. Desktop und Mobil getrennt (≤1024px = mobil).">Menü, üst çubuk, iç ekran ve takvim ayrı. Masaüstü ile mobil ayrı kaydolur (≤1024px = mobil).</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+<button type="button" class="btn btn-sm btn-primary mb-type-device-btn" data-device="desktop" onclick="mbSetTypeFormDevice('desktop')" data-tr="Masaüstü" data-de="Desktop">Masaüstü</button>
+<button type="button" class="btn btn-sm btn-ghost mb-type-device-btn" data-device="mobile" onclick="mbSetTypeFormDevice('mobile')" data-tr="Mobil" data-de="Mobil">Mobil</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="mbResetTypePrefs()" data-tr="Bu cihaz varsayılan" data-de="Dieses Gerät Standard">Bu cihaz varsayılan</button>
+</div>
+<p class="live-grad-hint" id="type-device-hint" style="margin-top:6px;" data-tr="Masaüstü ayarları düzenleniyor — bu ekranda hemen uygulanır." data-de="Desktop-Einstellungen — gelten jetzt auf diesem Bildschirm.">Masaüstü ayarları düzenleniyor — bu ekranda hemen uygulanır.</p>
 <div class="mb-type-grid" style="display:flex;flex-direction:column;gap:12px;margin-top:10px;">
 <div class="mb-type-zone" data-zone="menu">
 <div style="font-size:12px;font-weight:700;margin-bottom:6px;" data-tr="Menü" data-de="Menü">Menü</div>
