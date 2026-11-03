@@ -57,4 +57,3 @@ console.log(`i18n-check: ${issues.length} issue(s)`);
 issues.slice(0, 80).forEach((line) => console.log(' -', line));
 if (issues.length > 80) console.log(` ... +${issues.length - 80} more`);
 process.exit(1);
-}
