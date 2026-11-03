@@ -64,7 +64,7 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
 #sidebar .fluid-aurora.fluid-aurora--sidebar {
   z-index: 0;
 }
-/* 14.1 birebir — varsayılan aurora (özel renk yoksa) */
+/* Aynı duraklar / blur / opaklık / süre; logo kutusunda merkeze yakın örnek (left/top) */
 .fluid-aurora--sidebar::before {
   background: conic-gradient(from 118deg at 20% 14%,
     rgba(5, 42, 58, 0.85) 0deg,
@@ -113,33 +113,6 @@ FLUID AURORA (ElevenLabs-style — giriş, topbar, dialer)
   left: -48%;
   top: -48%;
 }
-/* Ayarlardan özel renk — sadece is-sb-aur-custom iken */
-#sidebar.is-sb-aur-custom .fluid-aurora--sidebar::before {
-  background: conic-gradient(from 118deg at 20% 14%,
-    color-mix(in srgb, var(--sb-aur-1) 85%, transparent) 0deg,
-    color-mix(in srgb, var(--sb-aur-2) 44%, transparent) 45deg,
-    color-mix(in srgb, var(--sb-aur-3) 82%, transparent) 90deg,
-    color-mix(in srgb, var(--sb-aur-4) 80%, transparent) 168deg,
-    color-mix(in srgb, var(--sb-aur-5) 52%, transparent) 250deg,
-    color-mix(in srgb, var(--sb-aur-6) 72%, transparent) 310deg,
-    color-mix(in srgb, var(--sb-aur-1) 85%, transparent) 360deg);
-}
-#sidebar.is-sb-aur-custom .fluid-aurora--sidebar::after {
-  background: conic-gradient(from 302deg at 78% 68%,
-    color-mix(in srgb, var(--sb-aur-5) 52%, transparent) 0deg,
-    color-mix(in srgb, var(--sb-aur-6) 40%, transparent) 60deg,
-    color-mix(in srgb, var(--sb-aur-3) 54%, transparent) 140deg,
-    color-mix(in srgb, var(--sb-aur-4) 50%, transparent) 220deg,
-    color-mix(in srgb, var(--sb-aur-2) 48%, transparent) 300deg,
-    color-mix(in srgb, var(--sb-aur-5) 52%, transparent) 360deg);
-}
-#sidebar.is-sb-aur-off .fluid-aurora--sidebar { display: none; }
-#sidebar.is-sb-aur-slow .fluid-aurora--sidebar::before { animation-duration: 46s; }
-#sidebar.is-sb-aur-slow .fluid-aurora--sidebar::after { animation-duration: 54s; }
-#sidebar.is-sb-aur-fast .fluid-aurora--sidebar::before { animation-duration: 10s; }
-#sidebar.is-sb-aur-fast .fluid-aurora--sidebar::after { animation-duration: 12s; }
-#sidebar.is-sb-aur-still .fluid-aurora--sidebar::before,
-#sidebar.is-sb-aur-still .fluid-aurora--sidebar::after { animation: none; }
 .fluid-aurora--logo::before {
   background: conic-gradient(from 118deg at 38% 32%,
     rgba(255, 255, 255, 0.92) 0deg,

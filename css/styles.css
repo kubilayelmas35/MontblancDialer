@@ -2023,17 +2023,7 @@ box-shadow: 4px 0 24px rgba(0,0,0,0.15);
   overscroll-behavior: contain;
   touch-action: manipulation;
 }
-/* 14.1: özel menü scroll yok — global 5px + border-2 */
 #sidebar .sb-scroll-rail { display: none !important; }
-html.mb-sb-scroll-custom #sidebar-scroll {
-  scrollbar-color: var(--mb-sb-scroll-a) transparent;
-}
-html.mb-sb-scroll-custom #sidebar-scroll::-webkit-scrollbar-thumb {
-  background: var(--mb-sb-scroll-a);
-}
-html.mb-sb-scroll-grad #sidebar-scroll::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--mb-sb-scroll-a, #94a3b8), var(--mb-sb-scroll-b, #334155));
-}
 /* Aurora altta (z-index:0), menü üstte — sb-top-strip kaldırıldı; yanlış seçici aurorayı bozuyordu */
 #sidebar > *:not(.fluid-aurora--sidebar) {
 position: relative;
