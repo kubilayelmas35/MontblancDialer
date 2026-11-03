@@ -1709,11 +1709,15 @@ button.tb-pill.pill-camp.is-wrong .tb-pill-val { color: inherit; }
   opacity: 0.9;
 }
 .sb-mascot-anchor {
+  position: absolute;
+  left: 12px;
+  bottom: calc(100% + 4px);
   width: 64px;
   height: 64px;
-  margin: 0 0 8px;
+  margin: 0;
   opacity: 0;
   pointer-events: none;
+  z-index: 2;
 }
 .global-mascot.global-mascot--topbar .cust-empty-mascot {
   animation: none;
@@ -1721,12 +1725,14 @@ button.tb-pill.pill-camp.is-wrong .tb-pill-val { color: inherit; }
     scale(calc(var(--mascot-scale, 1) * 0.62));
 }
 #sidebar.collapsed .sb-mascot-anchor {
+  left: 50%;
+  transform: translateX(-50%);
   width: 36px;
   height: 36px;
-  margin: 0 auto 4px;
+  margin: 0;
 }
 #sidebar.collapsed .sb-footer {
-  min-height: 52px;
+  min-height: 0;
   justify-content: center;
   padding: 6px 4px;
 }
@@ -2245,18 +2251,31 @@ border-radius: 10px; font-family: var(--mono);
 .sb-badge--open[hidden] { display: none !important; }
 .sb-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 4px 10px; }
 .sb-footer {
-  margin-top: auto;
-  padding: 10px 12px 8px;
+  position: relative;
+  margin-top: 0;
+  flex: 0 0 auto;
+  padding: 10px 12px 10px;
   border-top: 1px solid rgba(255,255,255,0.08);
-  min-height: 88px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 8px;
 }
-.sb-foot-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; width: 100%; }
-.sb-nav-search-wrap { position: relative; width: 100%; }
+.sb-foot-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+}
+.sb-nav-search-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+}
 .sb-nav-search {
   width: 100%;
   border: 1px solid rgba(255,255,255,0.16);
@@ -2298,7 +2317,15 @@ border-radius: 10px; font-family: var(--mono);
 #sidebar.collapsed .sb-nav-empty,
 #sidebar.collapsed .sb-nav-kbd,
 #sidebar.collapsed .sb-person-pop { display: none !important; }
-.sb-ver { font-size: 10px; color: rgba(255,255,255,0.68); font-family: var(--mono); }
+.sb-ver {
+  font-size: 10px;
+  color: rgba(255,255,255,0.68);
+  font-family: var(--mono);
+  width: 100%;
+  text-align: center;
+  margin-top: 2px;
+  padding-bottom: 2px;
+}
 /* Sidebar header logo */
 /* Sidebar içinde tb-logo olursa (koyu zemin) */
 #sidebar .tb-logo-name { color: var(--brand-chrome-fg) !important; }
