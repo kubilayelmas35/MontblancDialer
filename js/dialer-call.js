@@ -1629,8 +1629,8 @@ async function submitOutcome(goBreak) {
       const expectRec = !!(window._mbCallMeta && window._mbCallMeta.answeredAt) && finalOutcome !== 'no_answer';
       if (!telnyxRec && talked && typeof mbFinishLocalRecording === 'function') {
         await Promise.race([
-          mbFinishLocalRecording(window._mbLocalRecCall, true),
-          new Promise((resolve) => setTimeout(resolve, 2000)),
+          mbFinishLocalRecording(window._mbLocalRecCall || null, true),
+          new Promise((resolve) => setTimeout(resolve, 3500)),
         ]);
       }
       if (!telnyxRec && window._mbLocalRecBlob && typeof mbUploadLocalRecording === 'function') {

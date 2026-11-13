@@ -142,7 +142,8 @@ function mbWrapSipSession(session, direction, dest) {
         if (typeof _attachLiveAudio === 'function') _attachLiveAudio(call);
       }
     } catch (e) {}
-    if (typeof mbStartCallRecording === 'function') mbStartCallRecording(call);
+    if (typeof mbArmLocalRecording === 'function') mbArmLocalRecording(call);
+    else if (typeof mbStartCallRecording === 'function') mbStartCallRecording(call);
   });
   session.on('hold', () => bump('held', { held: true }));
   session.on('unhold', () => bump('active', { held: false }));
