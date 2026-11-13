@@ -318,7 +318,10 @@ localStorage.removeItem('mb-sip-pass');
 try {
   if (typeof mbBootFirmIntegrations === 'function') {
     const line = await mbBootFirmIntegrations();
-    if (!line?.sip_username || !line?.sip_password) updateConnectionStatus('disconnected');
+    const sipOk = line?.voice_provider === 'sip'
+      && line?.sip_host && line?.sip_ext_user && line?.sip_ext_pass && line?.sip_wss;
+    const telnyxOk = line?.voice_provider !== 'sip' && line?.sip_username && line?.sip_password;
+    if (!sipOk && !telnyxOk) updateConnectionStatus('disconnected');
   } else {
     updateConnectionStatus('disconnected');
   }

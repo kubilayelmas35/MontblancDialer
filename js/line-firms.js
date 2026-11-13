@@ -130,7 +130,28 @@ function mbLineConnected(settings) {
   const line = typeof mbNormalizeFirmIntegrations === 'function'
     ? mbNormalizeFirmIntegrations(settings?.integrations)
     : (settings?.integrations || {});
+  if (String(line.voice_provider || 'telnyx') === 'sip') {
+    return !!(String(line.sip_host || '').trim()
+      && String(line.sip_ext_user || '').trim()
+      && String(line.sip_ext_pass || '').trim()
+      && String(line.sip_wss || '').trim());
+  }
   return !!(String(line.sip_username || '').trim() && String(line.sip_password || '').trim());
+}
+
+function mbToggleVoiceProviderFields() {
+  const sel = document.getElementById('line-voice-provider') || document.getElementById('s-voice-provider');
+  const provider = String(sel?.value || 'telnyx') === 'sip' ? 'sip' : 'telnyx';
+  document.querySelectorAll('[data-voice-panel]').forEach((el) => {
+    el.hidden = el.getAttribute('data-voice-panel') !== provider;
+  });
+  const rec = document.getElementById('line-rec-source');
+  if (rec && provider === 'sip') {
+    rec.value = 'supabase';
+    rec.disabled = true;
+  } else if (rec) {
+    rec.disabled = false;
+  }
 }
 
 async function mbLoadLineFirms() {
@@ -181,6 +202,7 @@ function mbPaintLineList() {
   }
   const noiseBox = document.getElementById('line-noise-agents');
   if (noiseBox && !noiseBox.hidden && _lineOpenId) void mbFillNoiseAgents(_lineOpenId);
+  if (_lineOpenId && typeof mbToggleVoiceProviderFields === 'function') mbToggleVoiceProviderFields();
 }
 
 function mbLineFirmBody(firm) {
@@ -231,14 +253,44 @@ function mbLineFirmBody(firm) {
     </div>
     <div class="line-firm-block">
       <div class="form-label">${mbLineEsc(mbLineT('line.sip', 'Hat bağlantısı'))}</div>
-      <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.conn', 'SIP Connection ID'))}</label><input class="form-input" id="line-conn" autocomplete="off" value="${mbLineEsc(integ.sip_connection_id || '')}"></div>
-      <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.user', 'SIP Username'))}</label><input class="form-input" id="line-sip-user" autocomplete="off" value="${mbLineEsc(integ.sip_username || '')}"></div>
-      <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.pass', 'SIP Password'))}</label><input type="password" class="form-input" id="line-sip-pass" autocomplete="new-password" value="${mbLineEsc(integ.sip_password || '')}"></div>
+      <div class="form-row">
+        <label class="form-label">${mbLineEsc(mbLineT('line.provider', 'Hat sağlayıcı'))}</label>
+        <select class="form-input" id="line-voice-provider" onchange="mbToggleVoiceProviderFields()">
+          <option value="telnyx"${integ.voice_provider === 'sip' ? '' : ' selected'}>${mbLineEsc(mbLineT('line.provider.telnyx', 'Telnyx'))}</option>
+          <option value="sip"${integ.voice_provider === 'sip' ? ' selected' : ''}>${mbLineEsc(mbLineT('line.provider.sip', 'Harici SIP / WebRTC'))}</option>
+        </select>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px;">${mbLineEsc(mbLineT('line.provider.hint', 'Telnyx kalır. Harici SIP ayrı seçenek; ikisi birden aynı anda bağlanmaz.'))}</div>
+      </div>
+      <div data-voice-panel="telnyx" ${integ.voice_provider === 'sip' ? 'hidden' : ''}>
+        <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.conn', 'SIP Connection ID'))}</label><input class="form-input" id="line-conn" autocomplete="off" value="${mbLineEsc(integ.sip_connection_id || '')}"></div>
+        <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.user', 'SIP Username'))}</label><input class="form-input" id="line-sip-user" autocomplete="off" value="${mbLineEsc(integ.sip_username || '')}"></div>
+        <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.pass', 'SIP Password'))}</label><input type="password" class="form-input" id="line-sip-pass" autocomplete="new-password" value="${mbLineEsc(integ.sip_password || '')}"></div>
+      </div>
+      <div data-voice-panel="sip" ${integ.voice_provider === 'sip' ? '' : 'hidden'}>
+        <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">${mbLineEsc(mbLineT('line.sip.hint', 'Tarayıcı UDP 5060 konuşamaz. Sağlayıcının WebRTC WSS adresi gerekir (ör. wss://sunucu:8089). Caller ID genelde onlar set eder.'))}</div>
+        <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.sip.host', 'SIP sunucu (IP/host)'))}</label><input class="form-input" id="line-sip-host" autocomplete="off" placeholder="157.90.32.149" value="${mbLineEsc(integ.sip_host || '')}"></div>
+        <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.sip.port', 'SIP port'))}</label><input class="form-input" id="line-sip-port" autocomplete="off" placeholder="5060" value="${mbLineEsc(integ.sip_port || '5060')}"></div>
+        <div class="form-row">
+          <label class="form-label">${mbLineEsc(mbLineT('line.sip.transport', 'Transport'))}</label>
+          <select class="form-input" id="line-sip-transport">
+            <option value="udp"${integ.sip_transport === 'tcp' || integ.sip_transport === 'tls' ? '' : ' selected'}>UDP</option>
+            <option value="tcp"${integ.sip_transport === 'tcp' ? ' selected' : ''}>TCP</option>
+            <option value="tls"${integ.sip_transport === 'tls' ? ' selected' : ''}>TLS</option>
+          </select>
+        </div>
+        <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.sip.wss', 'WebRTC WSS URL'))}</label><input class="form-input" id="line-sip-wss" autocomplete="off" placeholder="wss://157.90.32.149:8089" value="${mbLineEsc(integ.sip_wss || '')}"></div>
+        <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.sip.ext_user', 'SIP kullanıcı adı'))}</label><input class="form-input" id="line-sip-ext-user" autocomplete="off" value="${mbLineEsc(integ.sip_ext_user || '')}"></div>
+        <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.sip.ext_pass', 'SIP şifre'))}</label><input type="password" class="form-input" id="line-sip-ext-pass" autocomplete="new-password" value="${mbLineEsc(integ.sip_ext_pass || '')}"></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin:6px 0 10px;">
+          <input type="checkbox" id="line-sip-register" ${integ.sip_register === '1' ? 'checked' : ''}>
+          <span>${mbLineEsc(mbLineT('line.sip.register', 'REGISTER zorunlu'))}</span>
+        </label>
+      </div>
       <div class="form-row">
         <label class="form-label">${mbLineEsc(mbLineT('line.rec', 'Ses kaydı'))}</label>
-        <select class="form-input" id="line-rec-source">
-          <option value="supabase"${settings.recording_source === 'telnyx' ? '' : ' selected'}>${mbLineEsc(mbLineT('line.rec.supabase', 'Supabase deposu'))}</option>
-          <option value="telnyx"${settings.recording_source === 'telnyx' ? ' selected' : ''}>${mbLineEsc(mbLineT('line.rec.telnyx', 'Telnyx'))}</option>
+        <select class="form-input" id="line-rec-source" ${integ.voice_provider === 'sip' ? 'disabled' : ''}>
+          <option value="supabase"${settings.recording_source === 'telnyx' && integ.voice_provider !== 'sip' ? '' : ' selected'}>${mbLineEsc(mbLineT('line.rec.supabase', 'Supabase deposu'))}</option>
+          <option value="telnyx"${settings.recording_source === 'telnyx' && integ.voice_provider !== 'sip' ? ' selected' : ''}>${mbLineEsc(mbLineT('line.rec.telnyx', 'Telnyx'))}</option>
         </select>
         <div style="font-size:11px;color:var(--text-3);margin-top:4px;">${mbLineEsc(mbLineT('line.rec.hint', ''))}</div>
       </div>
@@ -494,16 +546,26 @@ async function mbSaveLineFirm(firmId) {
         settings.ai = { ...(settings.ai || {}), rate, run_mode: runMode, run_allow: runAllow, day_min_cap };
       }
       const prev = typeof mbNormalizeFirmIntegrations === 'function' ? mbNormalizeFirmIntegrations(settings.integrations) : {};
+      const voiceProvider = document.getElementById('line-voice-provider')?.value === 'sip' ? 'sip' : 'telnyx';
       settings.integrations = mbNormalizeFirmIntegrations({
         ...prev,
         google_key: read('line-google') || prev.google_key,
         tomtom_key: read('line-tomtom') || prev.tomtom_key,
         telnyx_api_key: read('line-telnyx') || prev.telnyx_api_key,
         elevenlabs_api_key: read('line-eleven') || prev.elevenlabs_api_key,
+        voice_provider: voiceProvider,
         sip_connection_id: read('line-conn') || prev.sip_connection_id,
         sip_username: read('line-sip-user') || prev.sip_username,
         sip_password: read('line-sip-pass') || prev.sip_password,
+        sip_host: read('line-sip-host') || prev.sip_host,
+        sip_port: read('line-sip-port') || prev.sip_port || '5060',
+        sip_transport: document.getElementById('line-sip-transport')?.value || prev.sip_transport || 'udp',
+        sip_wss: read('line-sip-wss') || prev.sip_wss,
+        sip_ext_user: read('line-sip-ext-user') || prev.sip_ext_user,
+        sip_ext_pass: read('line-sip-ext-pass') || prev.sip_ext_pass,
+        sip_register: document.getElementById('line-sip-register')?.checked ? '1' : '0',
       });
+      if (voiceProvider === 'sip') settings.recording_source = 'supabase';
       const draft = mbReadLineNumberDraft();
       settings.line_numbers = draft.numbers;
       settings.line_default = draft.def;

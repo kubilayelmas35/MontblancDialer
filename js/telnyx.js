@@ -324,6 +324,10 @@ async function mbPullRecording(logId, ids) {
 }
 
 function sendToRTC(type, data={}) {
+if (typeof mbIsSipVoice === 'function' && mbIsSipVoice()) {
+  if (typeof mbSipSend === 'function') mbSipSend(type, data);
+  return;
+}
 switch(type) {
 case 'MB_CONNECT':
 _connectTelnyx(data.sipUser, data.sipPass);

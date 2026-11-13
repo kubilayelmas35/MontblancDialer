@@ -216,9 +216,17 @@ function mbIntegEmpty() {
     tomtom_key: '',
     telnyx_api_key: '',
     elevenlabs_api_key: '',
+    voice_provider: 'telnyx',
     sip_connection_id: '',
     sip_username: '',
     sip_password: '',
+    sip_host: '',
+    sip_port: '5060',
+    sip_transport: 'udp',
+    sip_wss: '',
+    sip_ext_user: '',
+    sip_ext_pass: '',
+    sip_register: '0',
   };
 }
 
@@ -226,6 +234,10 @@ function mbNormalizeFirmIntegrations(raw) {
   const d = raw && typeof raw === 'object' ? raw : {};
   const out = mbIntegEmpty();
   Object.keys(out).forEach((key) => { out[key] = String(d[key] || '').trim(); });
+  out.voice_provider = out.voice_provider === 'sip' ? 'sip' : 'telnyx';
+  out.sip_port = out.sip_port || '5060';
+  out.sip_transport = ['tcp', 'tls', 'udp'].includes(out.sip_transport) ? out.sip_transport : 'udp';
+  out.sip_register = out.sip_register === '1' || out.sip_register === 'true' ? '1' : '0';
   return out;
 }
 
@@ -249,6 +261,24 @@ async function mbSaveFirmIntegrations(firmId, patch) {
 
 function mbApplyFirmIntegrationsLocal(cfg, connect) {
   const line = mbNormalizeFirmIntegrations(cfg);
+  // Eski yığını her zaman kapat — provider değişince yanlış MB_DISCONNECT gitmesin
+  if (typeof mbSipDisconnect === 'function') {
+    try { mbSipDisconnect(); } catch (e) {}
+  }
+  if (typeof _telnyxClient !== 'undefined' && _telnyxClient) {
+    try { _telnyxClient.disconnect(); } catch (e) {}
+    _telnyxClient = null;
+  }
+  if (typeof telnyxReady !== 'undefined') telnyxReady = false;
+
+  window.__mbVoiceProvider = line.voice_provider;
+  window.__mbSipHost = line.sip_host;
+  window.__mbSipPort = line.sip_port;
+  window.__mbSipTransport = line.sip_transport;
+  window.__mbSipWss = line.sip_wss;
+  window.__mbSipExtUser = line.sip_ext_user;
+  window.__mbSipExtPass = line.sip_ext_pass;
+  window.__mbSipRegister = line.sip_register === '1';
   if (line.google_key) {
     _googleApiKey = line.google_key;
     try { localStorage.setItem('mb_google_key', line.google_key); } catch (e) {}
@@ -267,10 +297,14 @@ function mbApplyFirmIntegrationsLocal(cfg, connect) {
   }
   if (line.sip_password) window.__mbSipPass = line.sip_password;
   try { localStorage.removeItem('mb-sip-pass'); } catch (e) {}
-  if (connect && line.sip_username && line.sip_password && typeof sendToRTC === 'function') {
+  const canTelnyx = line.voice_provider === 'telnyx' && line.sip_username && line.sip_password;
+  const canSip = line.voice_provider === 'sip' && line.sip_host && line.sip_ext_user && line.sip_ext_pass && line.sip_wss;
+  if (connect && (canTelnyx || canSip) && typeof sendToRTC === 'function') {
     if (typeof updateConnectionStatus === 'function') updateConnectionStatus('connecting');
-    if (typeof sendToRTC === 'function') sendToRTC('MB_DISCONNECT');
-    setTimeout(() => sendToRTC('MB_CONNECT', { sipUser: line.sip_username, sipPass: line.sip_password }), 600);
+    setTimeout(() => {
+      if (line.voice_provider === 'sip') sendToRTC('MB_CONNECT', {});
+      else sendToRTC('MB_CONNECT', { sipUser: line.sip_username, sipPass: line.sip_password });
+    }, 600);
   }
   return line;
 }
@@ -325,6 +359,16 @@ function mbFillIntegForms(cfg) {
   set('s-conn-id', line.sip_connection_id);
   set('s-sip-user', line.sip_username);
   set('s-sip-pass', line.sip_password);
+  set('s-voice-provider', line.voice_provider);
+  set('s-sip-host', line.sip_host);
+  set('s-sip-port', line.sip_port || '5060');
+  set('s-sip-transport', line.sip_transport || 'udp');
+  set('s-sip-wss', line.sip_wss);
+  set('s-sip-ext-user', line.sip_ext_user);
+  set('s-sip-ext-pass', line.sip_ext_pass);
+  const reg = document.getElementById('s-sip-register');
+  if (reg) reg.checked = line.sip_register === '1';
+  if (typeof mbToggleVoiceProviderFields === 'function') mbToggleVoiceProviderFields();
   const fid = (typeof _mbIntegFirmId !== 'undefined' && _mbIntegFirmId) || currentUser?.firm_id;
   if (fid && typeof mbFillFxForm === 'function') mbFillFxForm(fid);
 }
