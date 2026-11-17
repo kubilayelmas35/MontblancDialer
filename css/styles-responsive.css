@@ -58,40 +58,28 @@
     flex-direction: column;
     overflow: hidden;
     min-height: 0;
+    height: 100%;
+    max-height: 100%;
   }
   #page-dialer > .dialer-layout {
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     min-height: 0;
-    height: auto;
-    display: flex;
-    flex-direction: column;
+    height: 100%;
+    max-height: 100%;
     overflow: hidden;
-    gap: 8px;
   }
   #page-dialer .dialer-main {
-    flex: 1 1 auto;
     min-height: 0;
-    width: 100%;
-    overflow: auto;
-    display: flex;
-    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
   }
-  #page-dialer .dialer-side {
-    flex: 0 1 auto;
-    width: 100%;
-    min-height: 0;
-    max-height: min(180px, 26vh);
-    overflow: auto;
-  }
-  #page-dialer .dialer-main > #customer-card,
   #page-dialer .dialer-main > #customer-card.customer-card--empty {
-    width: 100%;
-    min-height: 280px;
-    overflow: auto;
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow: hidden;
   }
-  #page-dialer .cust-empty.cust-empty--ringing { overflow: visible; min-height: 260px; }
+  #page-dialer .cust-empty.cust-empty--ringing { overflow: hidden; min-height: 0; }
   #page-dialer .cust-empty-incoming-panel { max-width: min(560px, 100%); }
-  #page-dialer #ready-section { flex: 0 0 auto; width: 100%; }
   #page-dialer .dialer-main > #customer-card:not(.customer-card--empty) {
     flex: 1 1 auto;
     min-height: 240px;
@@ -263,27 +251,28 @@
     flex-direction: column;
   }
   #page-dialer > .dialer-layout {
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     min-height: 0;
-    height: auto;
+    height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     gap: 8px;
   }
   #page-dialer .dialer-main {
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     min-height: 0;
     width: 100%;
-    overflow: auto;
+    height: auto;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
   }
   #page-dialer .dialer-side {
-    flex: 0 1 auto;
+    flex: 0 0 128px;
     width: 100%;
     min-height: 0;
-    max-height: min(160px, 30vh);
+    max-height: 128px;
     overflow: auto;
   }
   #page-dialer #agent-camps-panel.is-collapsed { max-height: none; overflow: hidden; }
@@ -296,11 +285,11 @@
   #page-dialer #ready-section { flex: 0 0 auto; width: 100%; }
   #page-dialer .dialer-main > #customer-card,
   #page-dialer .dialer-main > #customer-card.customer-card--empty {
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     width: 100%;
-    min-height: 240px;
+    min-height: 0;
     max-height: none;
-    overflow: auto;
+    overflow: hidden;
   }
   #page-dialer .call-action-btn { flex: 1 1 calc(50% - 8px); }
   .takvim-toolbar-cluster--right { margin-left: 0; justify-content: flex-start; }

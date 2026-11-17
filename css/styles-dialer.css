@@ -41,8 +41,12 @@ max-width:100%;
 #page-dialer.page.active {
   position: absolute;
   inset: 0;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   min-width: 0;
+  height: 100%;
+  max-height: 100%;
   overflow: hidden;
   container-type: inline-size;
   container-name: dialer;
@@ -54,9 +58,11 @@ max-width:100%;
   z-index: 6;
 }
 #page-dialer > .dialer-layout {
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   min-height: 0;
-  height: auto;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
 }
 @media (min-width: 1025px) {
   #page-dialer.page.active {
@@ -64,18 +70,23 @@ max-width:100%;
     flex-direction: column;
   }
   #page-dialer > .dialer-layout {
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     min-height: 0;
+    height: 100%;
+    max-height: 100%;
   }
   #page-dialer .dialer-main {
     min-height: 0;
+    height: 100%;
     overflow: hidden;
   }
 }
 #page-dialer .dialer-main > #customer-card.customer-card--empty {
-  flex: 1 1 auto;
-  min-height: 240px;
+  flex: 1 1 0%;
+  min-height: 0;
   min-width: 0;
+  height: auto;
+  align-self: stretch;
 }
 #page-dialer .dialer-main > #customer-card:not(.customer-card--empty) {
   flex: 1 1 auto;
@@ -129,13 +140,13 @@ max-width:100%;
   min-width: 0;
 }
 #page-dialer #customer-card.customer-card--empty {
-  flex: 1 1 auto;
-  min-height: 240px;
+  flex: 1 1 0%;
+  min-height: 0;
   max-height: none;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: stretch;
 }
 #page-dialer .cust-empty.cust-empty--outbound-wait {
   flex: 1 1 auto;
@@ -153,19 +164,51 @@ max-width:100%;
   justify-content: center;
   align-items: center;
 }
+#page-dialer #customer-card.customer-card--empty > #cust-empty {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  margin: 0;
+  width: 100%;
+  overflow: auto;
+}
 #page-dialer .cust-empty {
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
-  margin: -18px -28px -12px;
-  width: calc(100% + 56px);
+  margin: 0;
+  width: 100%;
 }
-#page-dialer .cust-empty-default {
-  min-height: 0;
+#page-dialer .cust-empty-default,
+#page-dialer .cust-empty-stage {
+  min-height: 100%;
   flex: 1 1 auto;
   height: 100%;
-  max-height: 100%;
+  max-height: none;
   grid-template-rows: minmax(0, 1fr);
+}
+#page-dialer .cust-empty.cust-empty--ringing {
+  position: relative;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  overflow: hidden;
+}
+#page-dialer .cust-empty.cust-empty--ringing > .cust-empty-default {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+#page-dialer .cust-empty.cust-empty--ringing > #cust-empty-incoming-panel {
+  position: relative;
+  z-index: 4;
+  flex: 0 1 auto;
+  width: min(440px, 100%);
+  max-height: 100%;
+  margin: 0 auto;
+  overflow: auto;
 }
 #daily-goal-bar {
   overflow: visible;
@@ -234,43 +277,47 @@ max-width:100%;
   min-height: 280px;
   border-radius: 14px;
 }
-@container dialer (max-width: 1440px) {
+@container dialer (max-width: 860px) {
   #page-dialer > .dialer-layout {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    height: 100%;
     overflow: hidden;
     gap: 8px;
   }
   #page-dialer .dialer-main {
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     min-height: 0;
     width: 100%;
-    overflow: auto;
+    height: auto;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
   }
   #page-dialer .dialer-side {
-    flex: 0 1 auto;
+    flex: 0 0 132px;
     width: 100%;
-    max-height: min(180px, 26vh);
+    max-height: 132px;
     min-height: 0;
     overflow: auto;
   }
   #page-dialer #ready-section { flex: 0 0 auto; width: 100%; }
   #page-dialer .dialer-main > #customer-card,
   #page-dialer .dialer-main > #customer-card.customer-card--empty {
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     width: 100%;
-    min-height: 320px;
+    min-height: 0;
+    height: auto;
     max-height: none;
-    overflow: auto;
+    overflow: hidden;
   }
   #page-dialer .cust-empty,
   #page-dialer .cust-empty.cust-empty--ringing {
-    overflow: visible;
+    overflow: hidden;
     width: 100%;
-    min-height: 280px;
+    min-height: 0;
+    height: 100%;
   }
   #page-dialer .cust-empty-incoming-panel {
     max-width: min(560px, 100%);
