@@ -478,14 +478,17 @@ async function loadCampPersonnel() {
   try {
     [users, sessions] = await Promise.all([
       sb(`users?select=id,name,role&is_active=eq.true&role=in.(${roleIn})${firmQ}&order=name.asc`),
-      sb(`agent_sessions?select=agent_id,status,campaign_id&campaign_id=eq.${camp.id}`),
+      sb(`agent_sessions?select=agent_id,status,campaign_id,last_seen,updated_at&campaign_id=eq.${camp.id}`),
     ]);
   } catch (e) {
     users = [];
     sessions = [];
   }
   const off = new Set(typeof mbPersonnelOff === 'function' ? mbPersonnelOff(camp) : []);
-  const live = new Set((sessions || []).filter((s) => s.status && s.status !== 'offline').map((s) => String(s.agent_id)));
+  const live = new Set((sessions || []).filter((s) => {
+    const st = typeof mbLiveEffectiveStatus === 'function' ? mbLiveEffectiveStatus(s) : s.status;
+    return st && st !== 'offline';
+  }).map((s) => String(s.agent_id)));
   const rows = (users || []).filter((u) => u?.id);
   if (!rows.length) {
     el.innerHTML = `<span style="color:var(--text-3);font-size:12px;">${esc(campT('camp.personnel.empty', 'Bu firmada personel yok'))}</span>`;

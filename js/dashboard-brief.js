@@ -207,8 +207,9 @@ async function mbDashLinesOut(ids, ff) {
   if (!ids.length || typeof sb !== 'function') return 0;
   const camp = ids.map((id) => encodeURIComponent(id)).join(',');
   const firm = ff || '';
-  const sessions = await sb(`agent_sessions?select=agent_id&status=in.(ready,calling,on_call)${firm}&limit=300`).catch(() => []);
-  const live = (Array.isArray(sessions) ? sessions : [])
+  const sessions = await sb(`agent_sessions?select=agent_id,status,last_seen,updated_at&status=in.(ready,calling,on_call)${firm}&limit=300`).catch(() => []);
+  const live = (typeof mbWithLiveStatus === 'function' ? mbWithLiveStatus(sessions) : (Array.isArray(sessions) ? sessions : []))
+    .filter((row) => row.status === 'ready' || row.status === 'on_call')
     .map((row) => String(row?.agent_id || ''))
     .filter((id) => /^[0-9a-f-]{36}$/i.test(id));
   if (!live.length) return 0;
@@ -221,12 +222,14 @@ async function mbDashLinesOut(ids, ff) {
 async function mbDashOps(ff) {
   const [camps, readyRows, firms] = await Promise.all([
     sb(`campaigns?select=id,name,dial_speed,firm_id&status=eq.active${ff}&order=name.asc&limit=40`).catch(() => []),
-    sb(`agent_sessions?select=agent_id,firm_id&status=eq.ready${ff}&limit=300`).catch(() => []),
+    sb(`agent_sessions?select=agent_id,firm_id,status,last_seen,updated_at&status=eq.ready${ff}&limit=300`).catch(() => []),
     sb(`firms?select=id,name&limit=100`).catch(() => []),
   ]);
   const list = camps || [];
   const readyByFirm = {};
-  (readyRows || []).forEach((row) => {
+  const readyLive = (typeof mbWithLiveStatus === 'function' ? mbWithLiveStatus(readyRows) : (readyRows || []))
+    .filter((row) => row.status === 'ready');
+  readyLive.forEach((row) => {
     const key = row.firm_id || '_';
     readyByFirm[key] = (readyByFirm[key] || 0) + 1;
   });
@@ -253,7 +256,7 @@ async function mbDashOps(ff) {
   return {
     camps: shown.map((camp) => ({ ...camp, left: null })),
     ids,
-    ready: (readyRows || []).length,
+    ready: readyLive.length,
     open: list.length,
     target,
     ringing: ringing == null ? 0 : ringing,

@@ -12,6 +12,38 @@ function _fmtPillMoney(n) {
   return sign + abs.toFixed(2);
 }
 
+function mbLiveSeenMs() {
+  return typeof OPS_SEEN_MS === 'number' ? OPS_SEEN_MS : 90000;
+}
+
+function mbLiveEffectiveStatus(sess) {
+  if (!sess) return 'offline';
+  const at = new Date(sess.last_seen || sess.updated_at || 0).getTime();
+  if (!Number.isFinite(at) || Date.now() - at > mbLiveSeenMs()) return 'offline';
+  const st = String(sess.status || '');
+  if (st === 'calling') return 'ready';
+  if (st === 'on_call' || st === 'ready' || st === 'wrapping' || st === 'break' || st === 'offline') return st;
+  return 'offline';
+}
+
+function mbWithLiveStatus(rows) {
+  return (Array.isArray(rows) ? rows : []).map((row) => {
+    const status = mbLiveEffectiveStatus(row);
+    return status === row?.status ? row : { ...row, status };
+  });
+}
+
+function mbTouchOwnPresence() {
+  const st = typeof dialerStatus === 'string' ? dialerStatus : '';
+  if (!currentUser?.id || typeof sb !== 'function') return Promise.resolve();
+  if (!st || st === 'offline') return Promise.resolve();
+  return sb(`agent_sessions?agent_id=eq.${currentUser.id}`, {
+    method: 'PATCH',
+    prefer: 'return=minimal',
+    body: JSON.stringify({ last_seen: new Date().toISOString() }),
+  }).catch(() => {});
+}
+
 async function updateTopbarStats() {
 const t0 = Date.now();
 const ffLive = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
@@ -20,7 +52,8 @@ await fetch(`${SB_URL}/rest/v1/campaigns?limit=1`, { headers: mbAuthHeaders() })
 mbPaintPing(Date.now()-t0);
 } catch(e) { mbPaintPing('!'); }
 try {
-const sessions = await mbLoadLiveRows(ffLive);
+await mbTouchOwnPresence();
+const sessions = mbWithLiveStatus(await mbLoadLiveRows(ffLive));
 window._tbLiveRows = sessions;
 const setPill = (id, n) => {
   const el = document.getElementById(id);
@@ -3547,7 +3580,7 @@ async function renderDashLiveAgents() {
   ]);
   _dashLiveCamps = {};
   (Array.isArray(camps) ? camps : []).forEach((c) => { if (c?.id) _dashLiveCamps[c.id] = c.name || ''; });
-  _dashLiveCache = (Array.isArray(sessions) ? sessions : []).slice().sort(compareLiveAgents);
+  _dashLiveCache = mbWithLiveStatus(sessions).slice().sort(compareLiveAgents);
   _paintDashLive();
 }
 

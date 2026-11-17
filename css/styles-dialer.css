@@ -234,7 +234,7 @@ max-width:100%;
   min-height: 280px;
   border-radius: 14px;
 }
-@container dialer (max-width: 1040px) {
+@container dialer (max-width: 1440px) {
   #page-dialer > .dialer-layout {
     display: flex;
     flex-direction: column;
@@ -245,18 +245,38 @@ max-width:100%;
   #page-dialer .dialer-main {
     flex: 1 1 auto;
     min-height: 0;
-    overflow: hidden;
+    width: 100%;
+    overflow: auto;
     display: flex;
     flex-direction: column;
   }
   #page-dialer .dialer-side {
     flex: 0 1 auto;
     width: 100%;
-    max-height: 34%;
+    max-height: min(180px, 26vh);
     min-height: 0;
     overflow: auto;
   }
   #page-dialer #ready-section { flex: 0 0 auto; width: 100%; }
+  #page-dialer .dialer-main > #customer-card,
+  #page-dialer .dialer-main > #customer-card.customer-card--empty {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 320px;
+    max-height: none;
+    overflow: auto;
+  }
+  #page-dialer .cust-empty,
+  #page-dialer .cust-empty.cust-empty--ringing {
+    overflow: visible;
+    width: 100%;
+    min-height: 280px;
+  }
+  #page-dialer .cust-empty-incoming-panel {
+    max-width: min(560px, 100%);
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 .agent-camp-name {
   flex: 1 1 auto;

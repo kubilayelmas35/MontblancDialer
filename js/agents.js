@@ -134,6 +134,7 @@ function agentSeenFresh(sess) {
 }
 
 function agentLiveStatus(sess) {
+  if (typeof mbLiveEffectiveStatus === 'function') return mbLiveEffectiveStatus(sess);
   if (!sess || !agentSeenFresh(sess)) return 'offline';
   const st = String(sess.status || '');
   return ['ready', 'on_call', 'wrapping', 'break'].includes(st) ? st : 'offline';

@@ -320,6 +320,10 @@ try {
 } catch (e) {}
 }
 
+function mbSettingsStaffRole() {
+  return ['agent', 'qc', 'field_agent'].includes(String(currentUser?.role || ''));
+}
+
 function initSettingsTabs(preferTab) {
   const page = document.getElementById('page-settings');
   if (!page) return;
@@ -347,8 +351,11 @@ function initSettingsTabs(preferTab) {
     }
   });
   mbSyncSettingsTabs();
-  const agent = String(currentUser?.role || '') === 'agent';
-  const tab = agent ? 'notifications' : (preferTab || 'general');
+  const staff = mbSettingsStaffRole();
+  const personal = ['general', 'mascot', 'notifications'];
+  const tab = staff
+    ? (personal.includes(preferTab) ? preferTab : 'general')
+    : (preferTab || 'general');
   window.__settingsTab = '';
   setSettingsTab(tab);
   if (tab === 'notifications' && typeof opsEnsureNotifFirmForm === 'function') opsEnsureNotifFirmForm();
@@ -356,11 +363,12 @@ function initSettingsTabs(preferTab) {
 
 function mbSyncSettingsTabs() {
   const superOnly = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
-  const agent = String(currentUser?.role || '') === 'agent';
+  const staff = mbSettingsStaffRole();
+  const personal = new Set(['general', 'mascot', 'notifications']);
   document.querySelectorAll('#settings-tabs .settings-tab-btn').forEach((btn) => {
     const tab = btn.dataset.tab;
-    if (agent) {
-      btn.style.display = tab === 'notifications' ? '' : 'none';
+    if (staff) {
+      btn.style.display = personal.has(tab) ? '' : 'none';
       return;
     }
     if (tab === 'takvim' && !(typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin())) {
@@ -368,18 +376,13 @@ function mbSyncSettingsTabs() {
       return;
     }
     if (tab === 'lines') {
-      const show = !agent && typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin();
+      const show = typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin();
       btn.style.display = show ? '' : 'none';
       return;
     }
     const ownerTab = tab === 'system';
     btn.style.display = !superOnly && ownerTab ? 'none' : '';
   });
-  if (agent) {
-    setSettingsTab('notifications');
-    if (typeof opsEnsureNotifFirmForm === 'function') opsEnsureNotifFirmForm();
-    return;
-  }
   const active = document.querySelector('#settings-tabs .settings-tab-btn.active');
   if (active && active.style.display === 'none') setSettingsTab('general');
 }
@@ -399,6 +402,22 @@ function setSettingsTab(tabId) {
       card.dataset.settingsGroup = 'takvim';
       card.classList.remove('settings-card-tab-hidden');
       card.style.display = '';
+    }
+  }
+  if (tabId === 'general') {
+    const look = document.getElementById('settings-appearance-card');
+    if (look) {
+      look.dataset.settingsGroup = 'general';
+      look.classList.remove('settings-card-tab-hidden');
+      look.style.display = '';
+    }
+  }
+  if (tabId === 'mascot') {
+    const mascot = document.getElementById('settings-mascot-card');
+    if (mascot) {
+      mascot.dataset.settingsGroup = 'mascot';
+      mascot.classList.remove('settings-card-tab-hidden');
+      mascot.style.display = '';
     }
   }
   const tabs = page.querySelectorAll('.settings-tab-btn');

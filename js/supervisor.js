@@ -277,7 +277,7 @@ async function _supFetchSessions() {
     if (grid) grid.innerHTML = `<div class="sup-empty">${escapeHtml(e?.message || 'Yüklenemedi')}</div>`;
     return;
   }
-  _supSessions = Array.isArray(rows) ? rows : [];
+  _supSessions = typeof mbWithLiveStatus === 'function' ? mbWithLiveStatus(rows) : (Array.isArray(rows) ? rows : []);
   _supCampaigns = {};
   (Array.isArray(camps) ? camps : []).forEach((c) => { if (c?.id) _supCampaigns[c.id] = c.name || c.id; });
   _supRenderCards();

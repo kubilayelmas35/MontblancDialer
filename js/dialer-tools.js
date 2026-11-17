@@ -795,7 +795,8 @@ async function tickInboundTestSimulation() {
   if (!currentUser?.firm_id) return;
   const fid = currentUser.firm_id;
 
-  let sessions = await sb(`agent_sessions?firm_id=eq.${fid}&status=eq.ready&select=agent_id,agent_name,last_seen&order=last_seen.asc`).catch(() => []);
+  let sessions = await sb(`agent_sessions?firm_id=eq.${fid}&status=eq.ready&select=agent_id,agent_name,status,last_seen,updated_at&order=last_seen.asc`).catch(() => []);
+  sessions = (typeof mbWithLiveStatus === 'function' ? mbWithLiveStatus(sessions) : (sessions || [])).filter((row) => row.status === 'ready');
   if ((!sessions?.length || !sessions.some((x) => x.agent_id === currentUser.id)) && dialerStatus === 'ready') {
     sessions = [
       {
