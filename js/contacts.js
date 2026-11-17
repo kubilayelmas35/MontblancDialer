@@ -272,6 +272,7 @@ function showCustomerCard(c) {
   if (avInner) avInner.textContent = avLetter;
   else if (avEl) avEl.textContent = avLetter;
   document.getElementById('cust-name').textContent  = titleText;
+  if (typeof mbSyncInboundStrip === 'function') mbSyncInboundStrip();
   document.getElementById('cust-phone').textContent = subText;
   document.getElementById('cust-attempt-badge').style.display = show('attempt') ? '' : 'none';
   document.getElementById('cust-attempt-badge').textContent = uqSay('dial.attempt', '{n}. arama', { n: c.attempt_count || 1 });

@@ -821,6 +821,7 @@ function setDialerStatus(s) {
 function updateDialerNavCallIndicator() {
   const onCall = dialerStatus === 'on_call' || !!_fakeCallActive;
   document.getElementById('nav-dialer-btn')?.classList.toggle('dialer-calling', onCall);
+  if (typeof mbSyncInboundStrip === 'function') mbSyncInboundStrip();
 }
 
 let _outboundWaitTick = null;

@@ -1020,20 +1020,46 @@ function _closeInboundTestRingUI(opts = {}) {
   mbSyncInboundStrip();
 }
 
+function mbCallPartyName() {
+  const c = typeof currentContact !== 'undefined' ? currentContact : null;
+  const fromContact = [c?.first_name, c?.last_name].filter(Boolean).join(' ').trim();
+  if (fromContact) return fromContact;
+  const incoming = String(document.getElementById('dialer-incoming-name')?.textContent || '').trim();
+  if (incoming && incoming !== '—') return incoming;
+  const ctx = typeof _inboundTestCtx !== 'undefined' ? _inboundTestCtx : null;
+  const fromCtx = String(ctx?.displayName || '').trim();
+  if (fromCtx && fromCtx !== '—') return fromCtx;
+  return String(c?.phone || ctx?.phone || '').trim();
+}
+
 function mbSyncInboundStrip() {
   const strip = document.getElementById('mb-inbound-strip');
-  if (!strip) return;
+  const text = document.getElementById('mb-inbound-strip-text');
+  if (!strip || !text) return;
   const onDialer = !!document.getElementById('page-dialer')?.classList.contains('active');
   const ringing = typeof _inboundTestRingOpen !== 'undefined' && !!_inboundTestRingOpen;
-  if (!ringing || onDialer) {
+  const waiting = typeof dialerStatus !== 'undefined' && dialerStatus === 'calling';
+  const live = typeof dialerStatus !== 'undefined' && dialerStatus === 'on_call';
+  strip.classList.remove('is-wait', 'is-live', 'is-in');
+  if (onDialer || (!ringing && !waiting && !live)) {
     strip.hidden = true;
+    text.textContent = '';
     return;
   }
-  const ctx = typeof _inboundTestCtx !== 'undefined' ? _inboundTestCtx : null;
-  const name = String(ctx?.displayName || ctx?.phone || '').trim() || '—';
-  strip.textContent = typeof tReplace === 'function'
-    ? tReplace('dial.inbound_strip', { name })
-    : `Gelen arama · ${name}`;
+  const say = (key, fb) => (typeof t === 'function' ? t(key) : fb);
+  if (live) {
+    strip.classList.add('is-live');
+    text.textContent = mbCallPartyName() || say('dial.float.live', 'Hatta');
+  } else if (ringing) {
+    strip.classList.add('is-in');
+    const who = mbCallPartyName();
+    text.textContent = who
+      ? (typeof tReplace === 'function' ? tReplace('dial.inbound_strip', { name: who }) : `Gelen arama · ${who}`)
+      : say('dial.float.incoming', 'Gelen arama');
+  } else {
+    strip.classList.add('is-wait');
+    text.textContent = say('dial.float.dialing', 'Arama yapılıyor');
+  }
   strip.hidden = false;
 }
 
