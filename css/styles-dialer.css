@@ -268,12 +268,12 @@ max-width:100%;
 #page-dialer #daily-goal-bar.is-collapsed .daily-goal-body { display: none; }
 #page-dialer #daily-goal-bar:not(.is-collapsed) { padding: 8px 12px; }
 #page-dialer #dialer-page-hdr.dialer-page-hdr.page-hdr {
-  flex-direction: column;
+  flex-direction: row;
   flex-wrap: nowrap;
-  align-items: stretch;
+  align-items: center;
   justify-content: flex-start;
-  gap: 8px;
-  padding: 4px 12px 8px !important;
+  gap: 10px;
+  padding: 0 12px !important;
 }
 #page-dialer #dialer-page-hdr > .dialer-fold-toggle,
 #page-dialer #daily-goal-bar > .dialer-fold-toggle,
@@ -282,7 +282,7 @@ max-width:100%;
 }
 #page-dialer #dialer-page-hdr > .dialer-fold-toggle,
 #page-dialer #agent-camps-panel > .dialer-fold-toggle {
-  width: 100%;
+  width: auto;
   flex: 0 0 auto;
   align-self: stretch;
   align-items: center;
@@ -316,6 +316,9 @@ max-width:100%;
 #page-dialer #dialer-page-hdr.dialer-page-hdr.page-hdr.is-collapsed {
   padding: 0 12px !important;
   gap: 0;
+}
+#page-dialer #dialer-page-hdr.is-collapsed > .dialer-fold-toggle {
+  width: 100%;
 }
 #page-dialer #dialer-page-hdr.is-collapsed .dialer-hdr-main,
 #page-dialer #dialer-page-hdr.is-collapsed .dialer-hdr-badges {
