@@ -1,6 +1,9 @@
 let _uqCampOverride = '';
 let _uqCampFirm = '';
 let _uqGeoconQueue = null;
+let _geoFirmMode = null;
+let _geoFirmPick = [];
+let _geoFirmRows = [];
 let _geoCamps = [];
 let _geoQueues = [];
 
@@ -198,6 +201,13 @@ window.addEventListener('message', (event) => {
   if (data.action === 'GEO_GET_CAMPS') void mbGeoconCamps(event.source);
   if (data.action === 'GEO_GET_CAMP_DAYS') void mbGeoconCampDays(event.source, data.campaignId);
   if (data.action === 'GEO_GET_STATE') void mbGeoconPushState(event.source);
+  if (data.action === 'GEO_SET_FIRMS') {
+    _geoFirmMode = data.all ? 'all' : 'pick';
+    _geoFirmPick = Array.isArray(data.firmIds) ? data.firmIds.map((id) => String(id || '')).filter(Boolean) : [];
+    void mbGeoconPushState(event.source);
+    void mbGeoconMbCounts(event.source);
+  }
+  if (data.action === 'GEO_GET_MB_BULK') void mbGeoconMbBulk(event.source, data.plz, data.requestId);
   if (data.action === 'GEO_SAVE_SCORE') void mbGeoconSaveScore(data.plz, data.score);
   if (data.action === 'GEO_SAVE_FLAGS') void mbGeoconSaveFlags(data);
   if (data.action === 'GEO_IMPORT_SCORES') void mbGeoconImportScores(data.items);
@@ -216,39 +226,98 @@ function geoPlzCode(plz) {
 }
 
 function mbGeoconOnFirm() {
+  _geoFirmMode = null;
+  _geoFirmPick = [];
   const frame = document.getElementById('geocon-frame');
   if (!frame || frame.dataset.loaded !== '1') return;
   void mbGeoconPushState(frame.contentWindow);
   void mbGeoconCamps(frame.contentWindow);
+  void mbGeoconMbCounts(frame.contentWindow);
+}
+
+function geoViewFirmIds() {
+  const role = currentUser?.role || '';
+  const superAdmin = typeof mbIsSuperAdmin === 'function' ? mbIsSuperAdmin(role) : role === 'super_admin';
+  if (!superAdmin) {
+    const id = currentUser?.firm_id || geoActiveFirmId();
+    return { superAdmin: false, all: false, ids: id ? [id] : [] };
+  }
+  if (_geoFirmMode === 'all') return { superAdmin: true, all: true, ids: [] };
+  if (_geoFirmMode === 'pick') return { superAdmin: true, all: false, ids: _geoFirmPick.filter(Boolean) };
+  const active = geoActiveFirmId();
+  if (active) return { superAdmin: true, all: false, ids: [active] };
+  return { superAdmin: true, all: true, ids: [] };
+}
+
+function geoMergeFlags(rows) {
+  const bag = new Map();
+  (rows || []).forEach((row) => {
+    const code = geoPlzCode(row.plz);
+    if (!code) return;
+    const cur = bag.get(code) || { plz: code, used: false, recommended: false, used_at: null };
+    if (row.used) {
+      cur.used = true;
+      if (row.used_at && (!cur.used_at || String(row.used_at) > String(cur.used_at))) cur.used_at = row.used_at;
+    }
+    if (row.recommended) cur.recommended = true;
+    bag.set(code, cur);
+  });
+  return [...bag.values()];
+}
+
+async function geoLoadFirmRows() {
+  if (_geoFirmRows.length || typeof sb !== 'function') return _geoFirmRows;
+  try {
+    const rows = await sb('firms?select=id,name&order=name.asc&limit=200');
+    _geoFirmRows = (Array.isArray(rows) ? rows : []).map((row) => ({ id: row.id, name: row.name || '' })).filter((row) => row.id);
+  } catch (_) {
+    _geoFirmRows = [];
+  }
+  return _geoFirmRows;
 }
 
 async function mbGeoconPushState(target) {
   if (!target || target === window || typeof sb !== 'function') return;
-  const firmId = geoActiveFirmId();
+  const view = geoViewFirmIds();
+  const firmId = view.ids.length === 1 ? view.ids[0] : (view.superAdmin ? '' : (view.ids[0] || ''));
   let scores = [];
   let flags = [];
   try {
     const rows = await mbFetchAll('geocon_plz_analysis?select=plz,score&order=plz.asc');
     if (Array.isArray(rows)) scores = rows;
   } catch (_) {}
-  if (firmId) {
+  let flagQuery = 'geocon_plz_flags?select=plz,used,recommended,used_at,firm_id&order=plz.asc';
+  if (!view.all && view.ids.length === 1) flagQuery += `&firm_id=eq.${view.ids[0]}`;
+  else if (!view.all && view.ids.length > 1) flagQuery += `&firm_id=in.(${view.ids.join(',')})`;
+  else if (!view.all) flagQuery = '';
+  if (flagQuery) {
     try {
-      const rows = await mbFetchAll(`geocon_plz_flags?select=plz,used,recommended,used_at&firm_id=eq.${firmId}&order=plz.asc`);
-      if (Array.isArray(rows)) flags = rows;
+      const rows = await mbFetchAll(flagQuery);
+      if (Array.isArray(rows)) flags = geoMergeFlags(rows);
     } catch (_) {}
   }
+  let firms = [];
+  if (view.superAdmin) firms = await geoLoadFirmRows();
   try {
-    const superAdmin = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
-    target.postMessage({ type: 'GEO_STATE', firmId, scores, flags, superAdmin }, window.location.origin);
+    target.postMessage({
+      type: 'GEO_STATE',
+      firmId,
+      scores,
+      flags,
+      superAdmin: view.superAdmin,
+      firms,
+      firmIds: view.ids,
+      firmAll: view.all,
+    }, window.location.origin);
   } catch (_) {}
 }
 
 function geoMbFirmQuery() {
-  const role = currentUser?.role || '';
-  const superAdmin = typeof mbIsSuperAdmin === 'function' ? mbIsSuperAdmin(role) : role === 'super_admin';
-  if (superAdmin) return '';
-  const firmId = currentUser?.firm_id || '';
-  return firmId ? `&firm_id=eq.${firmId}` : null;
+  const view = geoViewFirmIds();
+  if (!view.superAdmin && !view.ids.length) return null;
+  if (view.all || !view.ids.length) return '';
+  if (view.ids.length === 1) return `&firm_id=eq.${view.ids[0]}`;
+  return `&firm_id=in.(${view.ids.join(',')})`;
 }
 
 function geoDurumText(key) {
@@ -335,6 +404,7 @@ async function mbGeoconMbLeads(target, plz, requestId) {
       telefon: row.telefonnummer || '',
       strasse: row.strasse || '',
       takvim: [camp, firm].filter(Boolean).join(' · '),
+      plz: geoPlzCode(row.plz) || code,
     };
   });
   geoPost(target, { type: 'GEO_MB_LEADS', plz: code, requestId, items, ok: true });
@@ -352,8 +422,51 @@ async function mbGeoconSaveScore(plz, score) {
   }).catch(() => {});
 }
 
+function geoApptItems(rows) {
+  return (rows || []).map((row) => {
+    const camp = row.campaigns && row.campaigns.name ? row.campaigns.name : '';
+    const firm = row.firms && row.firms.name ? row.firms.name : '';
+    return {
+      durum: geoDurumText(row.durum),
+      bucket: geoDurumBucket(row.durum),
+      when: geoWhenText(row.termin_tarih),
+      who: row.nachname || '',
+      ort: row.ortschaft || '',
+      telefon: row.telefonnummer || '',
+      strasse: row.strasse || '',
+      plz: geoPlzCode(row.plz),
+      takvim: [camp, firm].filter(Boolean).join(' · '),
+    };
+  });
+}
+
+async function mbGeoconMbBulk(target, plzList, requestId) {
+  const codes = [...new Set((Array.isArray(plzList) ? plzList : []).map(geoPlzCode).filter(Boolean))].slice(0, 60);
+  const firmQuery = geoMbFirmQuery();
+  if (!codes.length || firmQuery == null) {
+    geoPost(target, { type: 'GEO_MB_BULK', requestId, items: [], ok: true });
+    return;
+  }
+  const forms = new Set();
+  codes.forEach((code) => {
+    forms.add(code);
+    const bare = String(Number(code));
+    if (bare && bare !== code) forms.add(bare);
+  });
+  const filter = `&plz=in.(${[...forms].join(',')})`;
+  const rich = `appointments?select=id,termin_tarih,durum,nachname,telefonnummer,strasse,ortschaft,plz,campaigns(name),firms(name)${firmQuery}${filter}&order=termin_tarih.desc,id.desc`;
+  const plain = `appointments?select=id,termin_tarih,durum,nachname,telefonnummer,strasse,ortschaft,plz${firmQuery}${filter}&order=termin_tarih.desc,id.desc`;
+  let rows = null;
+  try { rows = await mbFetchAll(rich); } catch (_) { rows = null; }
+  if (!Array.isArray(rows)) {
+    try { rows = await mbFetchAll(plain); } catch (_) { rows = []; }
+  }
+  geoPost(target, { type: 'GEO_MB_BULK', requestId, items: geoApptItems(rows), ok: true });
+}
+
 async function mbGeoconSaveFlags(data) {
-  const firmId = geoActiveFirmId();
+  const view = geoViewFirmIds();
+  const firmId = view.ids.length === 1 && !view.all ? view.ids[0] : '';
   const code = geoPlzCode(data?.plz);
   if (!firmId || !code || typeof sb !== 'function') return;
   await sb('geocon_plz_flags', {
@@ -397,15 +510,12 @@ async function mbGeoconUpcoming(target, campaignId) {
   let query = `appointments?select=id,plz,ortschaft,durum&termin_tarih=gte.${day}T00:00:00&termin_tarih=lte.${day}T23:59:59&durum=not.in.(iptal,basarisiz)&order=termin_tarih.asc,id.asc`;
   const camp = geoCampId(campaignId);
   if (camp) query += `&campaign_id=eq.${camp}`;
-  const role = currentUser?.role || '';
-  if (role !== 'super_admin') {
-    const firmId = currentUser?.firm_id || '';
-    if (!firmId) {
-      try { target.postMessage({ type: 'GEO_UPCOMING_PLZ', items: [], detail: [], dayLabel: day }, window.location.origin); } catch (_) {}
-      return;
-    }
-    query += `&firm_id=eq.${firmId}`;
+  const firmQuery = geoMbFirmQuery();
+  if (firmQuery == null) {
+    try { target.postMessage({ type: 'GEO_UPCOMING_PLZ', items: [], detail: [], dayLabel: day }, window.location.origin); } catch (_) {}
+    return;
   }
+  query += firmQuery;
   let rows = [];
   try {
     const got = await mbFetchAll(query);
@@ -433,15 +543,12 @@ async function mbGeoconTop(target, campaignId) {
   let query = `appointments?select=id,plz,ortschaft&termin_tarih=gte.${from}T00:00:00&durum=not.in.(iptal,basarisiz)&order=termin_tarih.asc,id.asc`;
   const camp = geoCampId(campaignId);
   if (camp) query += `&campaign_id=eq.${camp}`;
-  const role = currentUser?.role || '';
-  if (role !== 'super_admin') {
-    const firmId = currentUser?.firm_id || '';
-    if (!firmId) {
-      try { target.postMessage({ type: 'GEO_TOP_PLZ', items: [] }, window.location.origin); } catch (_) {}
-      return;
-    }
-    query += `&firm_id=eq.${firmId}`;
+  const firmQuery = geoMbFirmQuery();
+  if (firmQuery == null) {
+    try { target.postMessage({ type: 'GEO_TOP_PLZ', items: [] }, window.location.origin); } catch (_) {}
+    return;
   }
+  query += firmQuery;
   let rows = [];
   try {
     const got = await mbFetchAll(query);
@@ -481,17 +588,14 @@ function geoCampOpen(row) {
 
 async function mbGeoconCamps(target) {
   if (!target || target === window || typeof sb !== 'function') return;
-  const role = currentUser?.role || '';
+  const view = geoViewFirmIds();
   let query = 'campaigns?select=id,name,status,settings&status=in.(active,paused)&order=name.asc&limit=1000';
-  if (role !== 'super_admin') {
-    const firmId = currentUser?.firm_id || '';
-    if (!firmId) {
-      try { target.postMessage({ type: 'GEO_CAMPS', items: [], needFirm: true }, window.location.origin); } catch (_) {}
-      return;
-    }
-    query = `campaigns?select=id,name,status,settings&status=in.(active,paused)&firm_id=eq.${firmId}&order=name.asc&limit=1000`;
-  } else if (geoActiveFirmId()) {
-    query = `campaigns?select=id,name,status,settings&status=in.(active,paused)&firm_id=eq.${geoActiveFirmId()}&order=name.asc&limit=1000`;
+  if (!view.superAdmin && !view.ids.length) {
+    try { target.postMessage({ type: 'GEO_CAMPS', items: [], needFirm: true }, window.location.origin); } catch (_) {}
+    return;
+  }
+  if (view.ids.length === 1) {
+    query = `campaigns?select=id,name,status,settings&status=in.(active,paused)&firm_id=eq.${view.ids[0]}&order=name.asc&limit=1000`;
   }
   let rows = [];
   try {
