@@ -615,6 +615,7 @@ async function placeCall(admin: SupabaseClient, user: Record<string, any>, body:
 function elementsFor(settings: Record<string, any>, from: string, hook: string) {
   const ai = firmAi(settings);
   const integ = settings.integrations || {};
+  const viaSip = String(integ.voice_provider || '') === 'sip' && String(integ.sip_ai_pass || '').trim() !== '';
   return {
     firmId: '',
     settings,
@@ -625,8 +626,10 @@ function elementsFor(settings: Record<string, any>, from: string, hook: string) 
     voice: ai.voice,
     voiceId: '',
     from,
-    sipUser: clip(integ.sip_username, 120),
-    sipPass: clip(integ.sip_password, 200),
+    sipUser: clip(viaSip ? (integ.sip_ai_user || 'eleven') : integ.sip_username, 120),
+    sipPass: clip(viaSip ? integ.sip_ai_pass : integ.sip_password, 200),
+    sipHost: viaSip ? clip(integ.sip_ai_host || '2.31.196.149', 120) : 'sip.telnyx.com',
+    sipTransport: 'tcp',
   };
 }
 

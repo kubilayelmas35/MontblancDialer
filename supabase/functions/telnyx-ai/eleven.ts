@@ -1,4 +1,4 @@
-// ElevenLabs Agents ("Süper" motor). Telnyx only carries the call as a SIP trunk.
+// ElevenLabs Agents ("Süper" motor). The call leaves through the firm's SIP trunk.
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { clip, normDid } from './instruct.ts';
 
@@ -274,7 +274,21 @@ export type ElevenSetup = {
   from: string;
   sipUser: string;
   sipPass: string;
+  sipHost: string;
+  sipTransport: string;
 };
+
+function outboundTrunk(ctx: ElevenSetup) {
+  const host = String(ctx.sipHost || 'sip.telnyx.com').trim() || 'sip.telnyx.com';
+  const ours = host !== 'sip.telnyx.com';
+  return {
+    address: host,
+    transport: (ctx.sipTransport === 'udp' ? 'udp' : 'tcp') as 'udp' | 'tcp',
+    media_encryption: ours ? 'disabled' as const : 'allowed' as const,
+    credentials: { username: ctx.sipUser, password: ctx.sipPass },
+    ...(ours ? { enabled_codecs: ['PCMU/8000', 'PCMA/8000'] } : {}),
+  };
+}
 
 export async function ensureEleven(admin: SupabaseClient, ctx: ElevenSetup) {
   const log: string[] = [];
@@ -352,24 +366,26 @@ export async function ensureEleven(admin: SupabaseClient, ctx: ElevenSetup) {
       const hit = rows.find((row: any) => normDid(row?.phone_number) === from);
       phoneId = clip(hit?.phone_number_id, 80);
     }
+    if (!ctx.sipUser || !ctx.sipPass) return fail('sip user/password missing');
+    const trunk = outboundTrunk(ctx);
+    const trunkSig = `${trunk.address}|${trunk.transport}|${trunk.credentials.username}`;
     if (!phoneId) {
-      if (!ctx.sipUser || !ctx.sipPass) return fail('sip user/password missing');
       const made = await el(ctx.key, 'POST', '/v1/convai/phone-numbers', {
         provider: 'sip_trunk',
         label: 'Callin Kalite',
         phone_number: from,
-        outbound_trunk_config: {
-          address: 'sip.telnyx.com',
-          transport: 'tcp',
-          media_encryption: 'allowed',
-          credentials: { username: ctx.sipUser, password: ctx.sipPass },
-        },
+        outbound_trunk_config: trunk,
       });
       phoneId = clip(made.data?.phone_number_id, 80);
       if (!made.ok || !phoneId) return fail(`phone ${elWhy(made)}`);
+    } else if (String(saved.trunk || '') !== trunkSig) {
+      const patched = await el(ctx.key, 'PATCH', `/v1/convai/phone-numbers/${encodeURIComponent(phoneId)}`, {
+        outbound_trunk_config: trunk,
+      });
+      if (!patched.ok) return fail(`phone update ${elWhy(patched)}`);
     }
-    saved = await saveEl(admin, ctx.firmId, { phones: { ...(saved.phones || {}), [from]: phoneId } });
-    log.push('phone ok');
+    saved = await saveEl(admin, ctx.firmId, { phones: { ...(saved.phones || {}), [from]: phoneId }, trunk: trunkSig });
+    log.push(`phone ok ${trunk.address}`);
   }
   await saveEl(admin, ctx.firmId, { last: { ok: true, why: log.join(', '), at: new Date().toISOString() } });
   return { ok: true as const, agentId, phoneId, log, why: '' };
