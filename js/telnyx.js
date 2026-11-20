@@ -163,6 +163,7 @@ function mbCallRemoteStream(call) {
 }
 
 function mbRecordingUsesTelnyx() {
+  if (typeof mbIsSipVoice === 'function' && mbIsSipVoice()) return false;
   return window._mbRecordingSource === 'telnyx';
 }
 
