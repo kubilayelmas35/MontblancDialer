@@ -251,6 +251,7 @@ const _NAVIGATE_LOADERS = {
   firmdesk: () => { _mbPageFn('loadFirmDesk')?.(); },
   takvim: () => { _mbPageFn('loadTakvimPage')?.(); },
   leave: () => { _mbPageFn('loadLeavePage')?.(); },
+  attendance: () => { _mbPageFn('loadAttendancePage')?.(); },
   muhasebe: () => { _mbPageFn('loadMuhasebePage')?.(); },
   maasim: () => { _mbPageFn('loadMaasimPage')?.(); },
   performansim: () => { _mbPageFn('loadPerformansimPage')?.(); },
