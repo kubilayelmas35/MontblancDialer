@@ -916,7 +916,7 @@ async function lockAndBookSlot(slot) {
 async function openTakvimBookForm(slot) {
   const contact = currentContact||{};
   const campId = (typeof takvimCampId !== 'undefined' && takvimCampId) || (typeof selectedCampId !== 'undefined' ? selectedCampId : null) || contact.campaign_id;
-  const preset = typeof mbCampDefaultCustomerId === 'function' ? mbCampDefaultCustomerId(campId) : null;
+  const preset = typeof mbCampCustomerForDate === 'function' ? mbCampCustomerForDate(campId, slot?.tarih) : (typeof mbCampDefaultCustomerId === 'function' ? mbCampDefaultCustomerId(campId) : null);
   const custCtx = await _getCustomerCtx(preset);
   document.getElementById('takvim-detail-title').textContent = `Randevu — ${slot.tarih} ${slot.baslangic_saat?.slice(0,5)}`;
   openModal('m-takvim-detail');
@@ -1051,7 +1051,7 @@ async function saveTerminFromSection() {
       ...terminColumnValues(),
       form_ek: { ...takvimCardExtras(contact, takvimCampOf(contact.campaign_id || takvimCampId || selectedCampId)), ...terminFormEk() },
       agent_notu: (document.getElementById('tf2-note')?.value || '').trim() || null, durum: 'qc_bekleniyor',
-      customer_id: mbResolveApptCustomerId('tf2-customer', takvimCampId||selectedCampId||contact.campaign_id),
+      customer_id: mbResolveApptCustomerId('tf2-customer', takvimCampId||selectedCampId||contact.campaign_id, slot.tarih),
       termin_tarih: `${slot.tarih}T${saatNorm(slot.baslangic_saat)}:00`
     };
     const created = await _createAppointmentWithCustomerFallback(data);
@@ -1136,7 +1136,7 @@ async function submitTakvimBook(slotId) {
       telefonnummer: body.telefonnummer || currentContact?.phone || '',
       form_ek: ek,
       agent_notu:(document.getElementById('tf-note')?.value || '').trim() || null, durum:'qc_bekleniyor',
-      customer_id: mbResolveApptCustomerId('tf-customer', takvimCampId||selectedCampId||currentContact?.campaign_id),
+      customer_id: mbResolveApptCustomerId('tf-customer', takvimCampId||selectedCampId||currentContact?.campaign_id, slot?.tarih),
       termin_tarih: slot ? `${slot.tarih}T${saatNorm(slot.baslangic_saat)}:00` : new Date().toISOString()
     };
     const created = await _createAppointmentWithCustomerFallback(data);
@@ -1172,6 +1172,60 @@ async function submitTakvimBook(slotId) {
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
+function tSay(key, fb) {
+  const s = typeof t === 'function' ? t(key) : '';
+  return s && s !== key ? s : (fb || '');
+}
+
+function escTs(v) {
+  return typeof escapeHtml === 'function' ? escapeHtml(v) : String(v ?? '');
+}
+
+async function mbLoadWeekCustomerChoices(firmId) {
+  let rows = [];
+  try {
+    if (firmId && typeof loadFirmCustomers === 'function') rows = await loadFirmCustomers(firmId, true);
+    if (!rows?.length && firmId && typeof sb === 'function') {
+      rows = await sb(`customers?firm_id=eq.${firmId}&is_active=eq.true&select=id,name,code&order=name.asc`) || [];
+    }
+  } catch (e) {
+    rows = [];
+  }
+  rows = (rows || []).filter((c) => c?.id);
+  if (!rows.length) {
+    return { html: `<div style="font-size:12px;color:var(--text-3);">${escTs(tSay('cal.week.empty', 'Bu firmada müşteri yok. Önce Muhasebe ayarlarından ekleyin.'))}</div>` };
+  }
+  const camp = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === takvimCampId);
+  const key = typeof mbFocusedWeekKey === 'function' ? mbFocusedWeekKey() : '';
+  const map = typeof mbCampWeekCustomerMap === 'function' ? mbCampWeekCustomerMap(camp) : {};
+  const stored = key && Object.prototype.hasOwnProperty.call(map, key) ? String(map[key] || '').trim() : '';
+  const fallback = typeof mbCampDefaultCustomerId === 'function' ? (mbCampDefaultCustomerId(camp) || '') : '';
+  let selected = stored === 'qc' ? 'qc' : (stored || fallback || 'qc');
+  if (selected !== 'qc' && !rows.some((c) => String(c.id) === String(selected))) {
+    selected = fallback && rows.some((c) => String(c.id) === String(fallback)) ? String(fallback) : 'qc';
+  }
+  const qcLabel = typeof campT === 'function'
+    ? campT('camp.customer.qc', 'Tümü — Kalite kontrol seçer')
+    : tSay('camp.customer.qc', 'Tümü — Kalite kontrol seçer');
+  const opts = [`<option value="qc"${selected === 'qc' ? ' selected' : ''}>${escTs(qcLabel)}</option>`].concat(rows.map((c) => {
+    const label = `${c.code ? c.code + ' · ' : ''}${c.name || ''}`.trim() || String(c.id);
+    return `<option value="${escTs(c.id)}"${String(c.id) === String(selected) ? ' selected' : ''}>${escTs(label)}</option>`;
+  }));
+  return { html: `<select class="form-input" id="ts-week-customer">${opts.join('')}</select>` };
+}
+
+function mbWeekCustomerPatch(existingSettings) {
+  const base = existingSettings && typeof existingSettings === 'object' ? existingSettings : {};
+  const el = document.getElementById('ts-week-customer');
+  if (!el) return base;
+  const pick = String(el.value || '').trim() || 'qc';
+  const key = typeof mbFocusedWeekKey === 'function' ? mbFocusedWeekKey() : '';
+  if (!key) return base;
+  const map = { ...(typeof mbCampWeekCustomerMap === 'function' ? mbCampWeekCustomerMap({ settings: base }) : {}) };
+  map[key] = pick === 'qc' ? 'qc' : pick;
+  return { ...base, week_customers: map };
+}
+
 async function openTakvimSettings() {
   if (!takvimCampId) { toast('Önce kampanya seçin','err'); return; }
   const c0 = (typeof campaigns !== 'undefined' && campaigns) ? campaigns.find((c) => c.id === takvimCampId) : null;
@@ -1189,6 +1243,7 @@ async function openTakvimSettings() {
     }
   } catch (_) {}
   const cfg = getCampaignTakvimSettings();
+  const weekCustomers = await mbLoadWeekCustomerChoices(resolvedFirmId);
   const old = document.getElementById('m-takvim-settings');
   if (old) old.remove();
   const m = document.createElement('div');
@@ -1208,6 +1263,7 @@ async function openTakvimSettings() {
 <button type="button" class="btn btn-ghost btn-sm ts-tab-btn active" data-tab="work" onclick="setTakvimSettingsTab('work')">Çalışma Düzeni</button>
 <button type="button" class="btn btn-ghost btn-sm ts-tab-btn" data-tab="slot" onclick="setTakvimSettingsTab('slot')">Slot Kuralları</button>
 <button type="button" class="btn btn-ghost btn-sm ts-tab-btn" data-tab="confirm" onclick="setTakvimSettingsTab('confirm')">Onay</button>
+<button type="button" class="btn btn-ghost btn-sm ts-tab-btn" data-tab="customer" onclick="setTakvimSettingsTab('customer')">${escTs(tSay('cal.week.tab', 'Müşteri'))}</button>
 </div>
 
 <div id="ts-tab-work" class="ts-tab-pane" style="display:flex;flex-direction:column;gap:14px;">
@@ -1252,6 +1308,15 @@ ${Object.entries(dayNames).map(([k, v]) => {
 <input type="checkbox" id="ts-confirm-slot" ${cfg.confirm_new_slot !== false ? 'checked' : ''}> Yeni slot eklerken onay penceresi göster
 </label>
 <div style="font-size:10px;color:var(--text-3);">Kapalıysa hücreye tıklayınca doğrudan slot oluşturulur. Kullanıcı “Bir daha gösterme” seçtiyse tarayıcıda hızlı mod açılır.</div>
+</div>
+
+<div id="ts-tab-customer" class="ts-tab-pane" style="display:none;flex-direction:column;gap:10px;">
+<div style="font-size:12px;font-weight:800;color:var(--text-2);">${escTs(mbWeekRangeLabel(takvimFmtD(takvimDate)) || '')}</div>
+<div class="form-row">
+<label class="form-label">${escTs(tSay('cal.week.customer', 'Bu haftanın müşterisi'))}</label>
+${weekCustomers.html}
+</div>
+<div style="font-size:11px;color:var(--text-3);line-height:1.45;">${escTs(tSay('cal.week.hint', ''))}</div>
 </div>
 </div>
 <div class="modal-footer">
@@ -1370,6 +1435,19 @@ async function saveTakvimSettings(applyAll = false) {
           }
         };
         if (verifyRows?.[0]?.firm_id) campaigns[idx].firm_id = verifyRows[0].firm_id;
+      }
+    }
+    const fresh = await sb(`campaigns?id=eq.${takvimCampId}&select=settings`);
+    const weekBase = _objOrEmpty(fresh?.[0]?.settings);
+    const withWeek = mbWeekCustomerPatch(weekBase);
+    if (withWeek.week_customers) {
+      await sb(`campaigns?id=eq.${takvimCampId}`, {
+        method: 'PATCH', prefer: 'return=minimal',
+        body: JSON.stringify({ settings: withWeek }),
+      });
+      const idxWeek = (typeof campaigns !== 'undefined' && campaigns) ? campaigns.findIndex((c) => c.id === takvimCampId) : -1;
+      if (idxWeek >= 0) {
+        campaigns[idxWeek].settings = { ..._objOrEmpty(campaigns[idxWeek].settings), ...withWeek };
       }
     }
     document.getElementById('m-takvim-settings')?.remove();

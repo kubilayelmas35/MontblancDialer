@@ -286,34 +286,78 @@ function _renderCustomerField(ctx, selectId) {
   const opts = (ctx.customers || []).map(c =>
     `<option value="${c.id}" ${String(ctx.selectedId || '') === String(c.id) ? 'selected' : ''}>${(c.code ? c.code + ' · ' : '') + c.name}</option>`
   ).join('');
-  if (!ctx.customers?.length) {
-    return '';
-  }
-  if (!ctx.canSelect) {
-    return `<div class="form-row" style="grid-column:1/-1;">
-      <label class="form-label">Müşteri</label>
-      <div style="font-size:11px;color:var(--text-3);padding:8px 10px;background:var(--bg-3);border:1px solid var(--border);border-radius:6px;">
-        Bu alanda müşteri seçimi sadece QC/Admin tarafından yapılır.
-      </div>
-    </div>`;
-  }
+  if (!ctx.customers?.length || !ctx.canSelect) return '';
   return `<div class="form-row" style="grid-column:1/-1;">
     <label class="form-label">Müşteri *</label>
     <select class="form-input" id="${selectId}"><option value="">Seçin...</option>${opts}</select>
   </div>`;
 }
 
+function mbCampRecord(campOrId) {
+  if (campOrId && typeof campOrId === 'object') return campOrId;
+  const id = String(campOrId || '');
+  if (!id || typeof campaigns === 'undefined') return null;
+  return (campaigns || []).find((c) => String(c.id) === id) || null;
+}
+
+function mbWeekKeyFromDate(dateStr) {
+  const m = String(dateStr || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return '';
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (isNaN(d.getTime())) return '';
+  return takvimFmtD(takvimGetMonday(d));
+}
+
+function mbFocusedWeekKey() {
+  const day = typeof takvimDate !== 'undefined' && takvimDate ? takvimFmtD(takvimDate) : '';
+  return mbWeekKeyFromDate(day);
+}
+
+function mbWeekRangeLabel(dateStr) {
+  const key = mbWeekKeyFromDate(dateStr) || mbFocusedWeekKey();
+  const m = String(key || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return '';
+  const mon = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const sun = new Date(mon);
+  sun.setDate(sun.getDate() + 6);
+  const loc = typeof mbLocale === 'function' ? mbLocale() : 'tr-TR';
+  const fmt = (d) => d.toLocaleDateString(loc, { day: 'numeric', month: 'short' });
+  return `${fmt(mon)} – ${fmt(sun)}`;
+}
+
+function mbCampWeekCustomerMap(camp) {
+  const raw = (typeof getCampSettings === 'function' ? getCampSettings(camp || {}) : camp?.settings)?.week_customers;
+  return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+}
+
+function mbCampCustomerForDate(campOrId, dateStr) {
+  const camp = mbCampRecord(campOrId);
+  const key = mbWeekKeyFromDate(dateStr);
+  const map = mbCampWeekCustomerMap(camp);
+  if (key && Object.prototype.hasOwnProperty.call(map, key)) {
+    const id = String(map[key] || '').trim();
+    if (!id || id === 'qc') return null;
+    return id;
+  }
+  return typeof mbCampDefaultCustomerId === 'function' ? mbCampDefaultCustomerId(camp) : null;
+}
+
 function _selectedCustomerId(selectId) {
   return String(document.getElementById(selectId)?.value || '').trim() || null;
 }
 
-function mbResolveApptCustomerId(selectId, campaignId) {
+function mbResolveApptCustomerId(selectId, campaignId, dateStr) {
   const picked = _selectedCustomerId(selectId);
   if (picked) return picked;
   const id = campaignId
     || (typeof currentContact !== 'undefined' ? currentContact?.campaign_id : null)
     || (typeof selectedCampId !== 'undefined' ? selectedCampId : null)
     || (typeof takvimCampId !== 'undefined' ? takvimCampId : null);
+  const day = dateStr
+    || (typeof _bookingSlot !== 'undefined' ? _bookingSlot?.tarih : '')
+    || window._selectedBookingSlot?.tarih
+    || '';
+  if (typeof mbCampCustomerForDate === 'function') return mbCampCustomerForDate(id, day);
   return typeof mbCampDefaultCustomerId === 'function' ? mbCampDefaultCustomerId(id) : null;
 }
 
@@ -345,10 +389,15 @@ async function _createAppointmentWithCustomerFallback(data) {
 async function renderInlineTerminCustomerField(selectedId) {
   const wrap = document.getElementById('tf2-customer-wrap');
   if (!wrap) return;
-  const campId = (typeof currentContact !== 'undefined' && currentContact?.campaign_id) || (typeof selectedCampId !== 'undefined' ? selectedCampId : null);
-  const preset = selectedId || (typeof mbCampDefaultCustomerId === 'function' ? mbCampDefaultCustomerId(campId) : null);
+  const campId = (typeof currentContact !== 'undefined' && currentContact?.campaign_id)
+    || (typeof selectedCampId !== 'undefined' ? selectedCampId : null)
+    || (typeof takvimCampId !== 'undefined' ? takvimCampId : null);
+  const day = (typeof _bookingSlot !== 'undefined' && _bookingSlot?.tarih) || window._selectedBookingSlot?.tarih || '';
+  const preset = selectedId || (typeof mbCampCustomerForDate === 'function' ? mbCampCustomerForDate(campId, day) : null);
   const ctx = await _getCustomerCtx(preset || null);
-  wrap.innerHTML = _renderCustomerField(ctx, 'tf2-customer');
+  const html = _renderCustomerField(ctx, 'tf2-customer');
+  wrap.innerHTML = html;
+  wrap.hidden = !String(html || '').trim();
 }
 
 function takvimClearMovePickMode() {
