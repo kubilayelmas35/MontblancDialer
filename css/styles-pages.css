@@ -106,6 +106,15 @@ SETTINGS PAGE
 .line-dot.is-on { background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 28%, transparent); }
 .line-dot.is-off { background: var(--red); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 28%, transparent); }
 .line-firm-body { display: flex; flex-direction: column; gap: 12px; padding: 0 12px 12px; }
+.pass-reveal { position: relative; }
+.pass-reveal .form-input { width: 100%; padding-right: 40px; }
+.pass-reveal__btn {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  width: 32px; height: 32px; border: none; border-radius: 8px;
+  background: none; color: var(--text-3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.pass-reveal__btn:hover { background: var(--bg-3); color: var(--text); }
 .line-firm-block { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
 .line-num-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .line-num-row .form-input { flex: 1; min-width: 140px; font-family: var(--mono); }

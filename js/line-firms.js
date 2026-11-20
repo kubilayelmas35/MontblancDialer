@@ -139,6 +139,26 @@ function mbLineConnected(settings) {
   return !!(String(line.sip_username || '').trim() && String(line.sip_password || '').trim());
 }
 
+function mbLinePassField(id, value, reveal) {
+  const input = `<input type="password" class="form-input" id="${id}" autocomplete="new-password" value="${mbLineEsc(value || '')}">`;
+  if (!reveal) return input;
+  const label = mbLineT('line.sip.show', 'Şifreyi göster');
+  return `<div class="pass-reveal">${input}<button type="button" class="pass-reveal__btn" onclick="mbTogglePassReveal('${id}', this)" aria-label="${mbLineEsc(label)}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>`;
+}
+
+function mbTogglePassReveal(id, btn) {
+  if (typeof mbIsSuperAdmin === 'function' && !mbIsSuperAdmin()) return;
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  if (!btn) return;
+  const open = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const shut = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>';
+  btn.innerHTML = show ? shut : open;
+  btn.setAttribute('aria-label', mbLineT(show ? 'line.sip.hide' : 'line.sip.show', show ? 'Şifreyi gizle' : 'Şifreyi göster'));
+}
+
 function mbToggleVoiceProviderFields() {
   const sel = document.getElementById('line-voice-provider') || document.getElementById('s-voice-provider');
   const provider = String(sel?.value || 'telnyx') === 'sip' ? 'sip' : 'telnyx';
@@ -267,7 +287,7 @@ function mbLineFirmBody(firm) {
         <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.pass', 'SIP Password'))}</label><input type="password" class="form-input" id="line-sip-pass" autocomplete="new-password" value="${mbLineEsc(integ.sip_password || '')}"></div>
       </div>
       <div data-voice-panel="sip" ${integ.voice_provider === 'sip' ? '' : 'hidden'}>
-        <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">${mbLineEsc(mbLineT('line.sip.hint', 'Tarayıcı UDP 5060 konuşamaz. Sağlayıcının WebRTC WSS adresi gerekir (ör. wss://sunucu:8089). Caller ID genelde onlar set eder.'))}</div>
+        <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">${mbLineEsc(mbLineT('line.sip.hint', 'Bu kullanıcı dialer’ın kendi sunucusuna girişidir. Sağlayıcının SIP hesabı sunucuda kayıtlıdır ve bu forma yazılmaz.'))}</div>
         <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.sip.host', 'SIP sunucu (IP/host)'))}</label><input class="form-input" id="line-sip-host" autocomplete="off" placeholder="157.90.32.149" value="${mbLineEsc(integ.sip_host || '')}"></div>
         <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.sip.port', 'SIP port'))}</label><input class="form-input" id="line-sip-port" autocomplete="off" placeholder="5060" value="${mbLineEsc(integ.sip_port || '5060')}"></div>
         <div class="form-row">
@@ -280,7 +300,7 @@ function mbLineFirmBody(firm) {
         </div>
         <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.sip.wss', 'WebRTC WSS URL'))}</label><input class="form-input" id="line-sip-wss" autocomplete="off" placeholder="wss://157.90.32.149:8089" value="${mbLineEsc(integ.sip_wss || '')}"></div>
         <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.sip.ext_user', 'SIP kullanıcı adı'))}</label><input class="form-input" id="line-sip-ext-user" autocomplete="off" value="${mbLineEsc(integ.sip_ext_user || '')}"></div>
-        <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.sip.ext_pass', 'SIP şifre'))}</label><input type="password" class="form-input" id="line-sip-ext-pass" autocomplete="new-password" value="${mbLineEsc(integ.sip_ext_pass || '')}"></div>
+        <div class="form-row"><label class="form-label">${mbLineEsc(mbLineT('line.sip.ext_pass', 'SIP şifre'))}</label>${mbLinePassField('line-sip-ext-pass', integ.sip_ext_pass, superView)}</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin:6px 0 10px;">
           <input type="checkbox" id="line-sip-register" ${integ.sip_register === '1' ? 'checked' : ''}>
           <span>${mbLineEsc(mbLineT('line.sip.register', 'REGISTER zorunlu'))}</span>
