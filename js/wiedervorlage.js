@@ -54,7 +54,7 @@ async function wvFillCamps(selectedId) {
   const fid = wvFirmId();
   let list = [];
   try {
-    list = fid ? (await sb(`campaigns?firm_id=eq.${fid}&select=id,name,settings&order=name.asc`)) || [] : [];
+    list = fid ? (await sb(`campaigns?firm_id=eq.${fid}&select=id,name,status,settings&order=name.asc`)) || [] : [];
   } catch (e) {
     list = [];
   }
@@ -121,13 +121,23 @@ function updateWvBadge() {
 
 function setWvTab(tab) {
   wvTab = tab;
-  ['all','today','overdue','week'].forEach(t => {
+  ['all','today','overdue','week','near'].forEach(t => {
     const btn = document.getElementById('wv-tab-'+t);
     if (btn) {
       btn.style.background = t === tab ? 'var(--accent)' : 'transparent';
       btn.style.color = t === tab ? '#fff' : 'var(--text-2)';
     }
   });
+  const bar = document.getElementById('wv-near-bar');
+  if (bar) {
+    const on = tab === 'near';
+    bar.hidden = !on;
+    bar.style.display = on ? 'flex' : 'none';
+  }
+  if (tab === 'near') {
+    loadWvNear();
+    return;
+  }
   renderWvTable();
 }
 
@@ -143,9 +153,272 @@ function wvWhenLabel(w) {
 
 function filterWvTable() { renderWvTable(); }
 
+let _wvNearRows = [];
+let _wvNearToken = 0;
+
+function wvNearChoices() {
+  const uid = currentUser?.id;
+  return (_wvCamps || []).filter((c) => {
+    if (c.status && c.status !== 'active' && c.status !== 'paused') return false;
+    if (uid && typeof mbUserSeesCampaign === 'function' && !mbUserSeesCampaign(c, uid)) return false;
+    return true;
+  });
+}
+
+function wvNearStamp(dateStr, timeStr) {
+  const [y, m, d] = String(dateStr || '').split('-').map(Number);
+  const [hh, mm] = String(timeStr || '00:00').slice(0, 5).split(':').map(Number);
+  if (!y || !m || !d) return 0;
+  return Date.UTC(y, m - 1, d, hh || 0, mm || 0);
+}
+
+function wvNearWhen(dateStr, timeStr) {
+  const [y, m, d] = String(dateStr || '').split('-');
+  const hm = String(timeStr || '').slice(0, 5);
+  if (!d || !m) return hm || '—';
+  return `${d}.${m} ${hm}`;
+}
+
+function wvNearStatus(key) {
+  const k = String(key || '').trim();
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const map = de
+    ? { beklemede: 'Offen', qc_bekleniyor: 'Prüfung', basarili: 'Erfolgreich', dolu: 'Belegt' }
+    : { beklemede: 'Beklemede', qc_bekleniyor: 'Kontrol', basarili: 'Başarılı', dolu: 'Dolu' };
+  return map[k] || k || '—';
+}
+
+function wvPaintNearCamp(id) {
+  const sel = document.getElementById('wv-near-camp');
+  if (!sel) return;
+  const choices = wvNearChoices();
+  const cur = String(id || '');
+  sel.innerHTML = choices.map((c) => `<option value="${wvEsc(c.id)}" ${String(c.id) === cur ? 'selected' : ''}>${wvEsc(c.name || c.id)}</option>`).join('');
+  if (cur && ![...sel.options].some((o) => o.value === cur)) {
+    sel.insertAdjacentHTML('beforeend', `<option value="${wvEsc(cur)}" selected>${wvEsc(wvCampName(cur))}</option>`);
+  }
+}
+
+function wvPickNearCamp() {
+  const choices = wvNearChoices();
+  const prefer = [typeof takvimCampId !== 'undefined' ? takvimCampId : '', typeof selectedCampId !== 'undefined' ? selectedCampId : ''].map(String);
+  const hit = choices.find((c) => prefer.includes(String(c.id)));
+  return hit?.id || choices[0]?.id || '';
+}
+
+function wvNearCamp(id) {
+  if (typeof takvimCampId !== 'undefined') takvimCampId = id || null;
+  loadWvNear(id);
+}
+
+async function loadWvNear(forcedId) {
+  const token = ++_wvNearToken;
+  const tbody = document.getElementById('wv-tbody');
+  if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">${wvEsc(wvSay('line.loading', 'Yükleniyor…'))}</td></tr>`;
+  if (!_wvCamps.length) await wvFillCamps();
+  if (token !== _wvNearToken || wvTab !== 'near') return;
+  const campId = forcedId || wvPickNearCamp();
+  wvPaintNearCamp(campId);
+  const countEl = document.getElementById('wv-near-count');
+  if (!campId) {
+    _wvNearRows = [];
+    if (countEl) countEl.textContent = '';
+    renderWvTable();
+    return;
+  }
+  if (typeof takvimCampId !== 'undefined') takvimCampId = campId;
+  const now = typeof mbBusinessNow === 'function' ? mbBusinessNow() : { dateStr: new Date().toISOString().slice(0, 10), timeStr: '00:00:00' };
+  const end = typeof mbShiftDate === 'function' ? mbShiftDate(now.dateStr, 14) : now.dateStr;
+  let slots = [];
+  try {
+    slots = (await sb(`takvim_slots?campaign_id=eq.${campId}&appointment_id=not.is.null&durum=eq.dolu&gun_kapali=eq.false&or=(alta_tasindi.eq.false,alta_tasindi.is.null)&tarih=gte.${now.dateStr}&tarih=lte.${end}&select=id,appointment_id,tarih,baslangic_saat&order=tarih.asc,baslangic_saat.asc&limit=300`)) || [];
+  } catch (e) {
+    slots = [];
+  }
+  if (token !== _wvNearToken || wvTab !== 'near') return;
+  const ids = [...new Set(slots.map((s) => s.appointment_id).filter(Boolean))];
+  const appts = [];
+  for (let i = 0; i < ids.length; i += 80) {
+    const chunk = ids.slice(i, i + 80);
+    const part = (await sb(`appointments?id=in.(${chunk.join(',')})&select=id,vorname,nachname,telefonnummer,telefon2,plz,ortschaft,strasse,contact_id,campaign_id,agent_id,durum`).catch(() => [])) || [];
+    appts.push(...part);
+  }
+  if (token !== _wvNearToken || wvTab !== 'near') return;
+  const agentIds = [...new Set(appts.map((a) => a.agent_id).filter(Boolean))];
+  const agentName = {};
+  if (agentIds.length) {
+    const users = (await sb(`users?id=in.(${agentIds.join(',')})&select=id,name`).catch(() => [])) || [];
+    users.forEach((u) => { if (u?.id) agentName[u.id] = u.name || ''; });
+  }
+  if (token !== _wvNearToken || wvTab !== 'near') return;
+  const byId = new Map(appts.map((a) => [String(a.id), a]));
+  const nowM = wvNearStamp(now.dateStr, now.timeStr);
+  const dead = new Set(['iptal', 'basarisiz', 'negative']);
+  const rows = [];
+  const seen = new Set();
+  slots.forEach((slot) => {
+    const appt = byId.get(String(slot.appointment_id));
+    if (!appt || dead.has(String(appt.durum || ''))) return;
+    const key = String(appt.id);
+    if (seen.has(key)) return;
+    seen.add(key);
+    const stamp = wvNearStamp(slot.tarih, slot.baslangic_saat);
+    const name = `${appt.vorname || ''} ${appt.nachname || ''}`.trim();
+    rows.push({
+      id: appt.id,
+      contact_id: appt.contact_id || '',
+      campaign_id: appt.campaign_id || campId,
+      nachname: name || appt.nachname || '—',
+      telefon: appt.telefonnummer || '',
+      telefon2: appt.telefon2 || '',
+      plz: appt.plz || '',
+      ort: appt.ortschaft || '',
+      strasse: appt.strasse || '',
+      agent_name: agentName[appt.agent_id] || '',
+      notiz: wvNearStatus(appt.durum),
+      when: wvNearWhen(slot.tarih, slot.baslangic_saat),
+      stamp,
+      past: stamp < nowM,
+    });
+  });
+  rows.sort((a, b) => {
+    const da = Math.abs(a.stamp - nowM);
+    const db = Math.abs(b.stamp - nowM);
+    if (da !== db) return da - db;
+    if (a.past !== b.past) return a.past ? 1 : -1;
+    return a.stamp - b.stamp;
+  });
+  _wvNearRows = rows;
+  if (countEl) countEl.textContent = rows.length ? String(rows.length) : '';
+  renderWvTable();
+}
+
+function renderWvNearTable(tbody) {
+  const search = (document.getElementById('wv-search')?.value || '').toLowerCase();
+  const col = (id) => String(document.getElementById(id)?.value || '').trim().toLocaleLowerCase('tr-TR');
+  const fTime = col('wv-f-time');
+  const fName = col('wv-f-name');
+  const fTel = col('wv-f-tel');
+  const fPlace = col('wv-f-place');
+  const fAgent = col('wv-f-agent');
+  const fCamp = col('wv-f-camp');
+  const fNote = col('wv-f-note');
+  let list = [...(_wvNearRows || [])];
+  if (fTime || fName || fTel || fPlace || fAgent || fCamp || fNote || search) {
+    list = list.filter((w) => {
+      const when = String(w.when || '').toLocaleLowerCase('tr-TR');
+      const place = `${w.plz || ''} ${w.ort || ''}`.toLocaleLowerCase('tr-TR');
+      const phone = `${w.telefon || ''} ${w.telefon2 || ''}`.toLocaleLowerCase('tr-TR');
+      const name = String(w.nachname || '').toLocaleLowerCase('tr-TR');
+      if (fTime && !when.includes(fTime)) return false;
+      if (fName && !name.includes(fName)) return false;
+      if (fTel && !phone.includes(fTel)) return false;
+      if (fPlace && !place.includes(fPlace)) return false;
+      if (fAgent && !String(w.agent_name || '').toLocaleLowerCase('tr-TR').includes(fAgent)) return false;
+      if (fCamp && !wvCampName(w.campaign_id).toLocaleLowerCase('tr-TR').includes(fCamp)) return false;
+      if (fNote && !String(w.notiz || '').toLocaleLowerCase('tr-TR').includes(fNote)) return false;
+      if (search && !name.includes(search) && !phone.includes(search) && !place.includes(search) && !wvCampName(w.campaign_id).toLowerCase().includes(search)) return false;
+      return true;
+    });
+  }
+  if (!list.length) {
+    const hasCamp = !!document.getElementById('wv-near-camp')?.value;
+    const msg = !_wvNearRows.length
+      ? wvSay(hasCamp ? 'wv.near.empty' : 'wv.near.none', hasCamp ? 'Bu takvimde yaklaşan randevu yok' : 'Açık takvim yok')
+      : (typeof t === 'function' ? t('ui.no_records') : 'Kayıt yok');
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-3);padding:32px;">${wvEsc(msg)}</td></tr>`;
+    return;
+  }
+  const isAdminRole = mbIsFirmAdmin();
+  tbody.innerHTML = list.map((w) => {
+    const agentCell = isAdminRole
+      ? `<td style="font-size:12px;">${wvEsc(w.agent_name || '—')}</td>`
+      : '';
+    const tel = wvEsc(w.telefon || '');
+    const tel2 = wvEsc(w.telefon2 || '');
+    return `<tr>
+<td style="font-family:var(--mono);font-size:11px;${w.past ? 'color:var(--text-3);' : 'font-weight:700;'}">${wvEsc(w.when || '—')}</td>
+<td style="font-weight:600;">${wvEsc(w.nachname || '—')}</td>
+<td>${tel ? `<a href="tel:${tel}" style="color:var(--accent);font-family:var(--mono);font-size:12px;">${tel}</a>` : '—'}
+${tel2 ? `<br><a href="tel:${tel2}" style="color:var(--text-3);font-family:var(--mono);font-size:11px;">${tel2}</a>` : ''}
+</td>
+<td style="font-family:var(--mono);font-size:12px;">${wvEsc(`${w.plz || ''} ${w.ort || ''}`.trim() || '—')}</td>
+${agentCell}
+<td style="font-size:12px;">${wvEsc(wvCampName(w.campaign_id))}</td>
+<td style="font-size:11px;color:var(--text-2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${wvEsc(w.notiz || '—')}</td>
+<td>
+<button class="icon-btn" style="border-color:var(--accent);color:var(--accent);" onclick="wvCallNear('${wvEsc(w.id)}')" title="${wvEsc(wvSay('wv.due.call', 'Ara'))}"><i class="ph ph-phone"></i></button>
+</td>
+</tr>`;
+  }).join('');
+}
+
+async function wvCallNear(id) {
+  const w = (_wvNearRows || []).find((x) => String(x.id) === String(id));
+  if (!w) return;
+  navigate('dialer');
+  if (typeof initDialer === 'function') await initDialer();
+  const fid = wvFirmId();
+  if (!fid || !w.telefon) {
+    toast(t('wv.err_firm_phone'), 'err');
+    return;
+  }
+  let contact = null;
+  if (w.contact_id && typeof isValidUUID === 'function' && isValidUUID(w.contact_id)) {
+    const rows = (await sb(`contacts?id=eq.${w.contact_id}&firm_id=eq.${fid}&select=*&limit=1`).catch(() => [])) || [];
+    contact = rows[0] || null;
+  }
+  if (!contact) {
+    const ph = encodeURIComponent(String(w.telefon).trim());
+    let rows = (await sb(`contacts?firm_id=eq.${fid}&phone=eq.${ph}&select=*&limit=1`).catch(() => [])) || [];
+    if (!rows.length) {
+      rows = (await sb(`contacts?firm_id=eq.${fid}&phone2=eq.${ph}&select=*&limit=1`).catch(() => [])) || [];
+    }
+    contact = rows[0] || null;
+  }
+  const campId = w.campaign_id || contact?.campaign_id || '';
+  if (campId && typeof selectCamp === 'function') {
+    const campLabel = wvCampName(campId);
+    selectCamp(campId, campLabel === '—' ? '' : campLabel, { skipActivate: true });
+  }
+  const opened = wvSay('wv.near.opened', 'Randevudan açıldı. Aramak için Ara’ya bas.');
+  if (contact) {
+    contact._mbSource = 'aranacaklar';
+    currentContact = contact;
+    if (typeof showCustomerCard === 'function') showCustomerCard(contact);
+    if (typeof syncCustomerCardEmptyVisual === 'function') syncCustomerCardEmptyVisual();
+    toast(opened, 'ok', 2600);
+    return;
+  }
+  const parts = String(w.nachname || '').trim().split(/\s+/);
+  currentContact = {
+    id: `appt-${w.id}`,
+    phone: String(w.telefon).trim(),
+    phone2: w.telefon2 || '',
+    first_name: parts[0] || '',
+    last_name: parts.slice(1).join(' ') || '',
+    plz: w.plz || '',
+    city: w.ort || '',
+    address: w.strasse || '',
+    notes: w.notiz || '',
+    firm_id: fid,
+    campaign_id: campId || null,
+    status: 'pending',
+    attempt_count: 0,
+    _mbSource: 'aranacaklar',
+  };
+  if (typeof showCustomerCard === 'function') showCustomerCard(currentContact);
+  if (typeof syncCustomerCardEmptyVisual === 'function') syncCustomerCardEmptyVisual();
+  toast(opened, 'ok', 2600);
+}
+
 function renderWvTable() {
   const tbody = document.getElementById('wv-tbody');
   if (!tbody) return;
+  if (wvTab === 'near') {
+    renderWvNearTable(tbody);
+    return;
+  }
   const search = (document.getElementById('wv-search')?.value||'').toLowerCase();
   const now = new Date();
   const todayStr = typeof mbBusinessNow === 'function' ? mbBusinessNow().dateStr : now.toISOString().split('T')[0];

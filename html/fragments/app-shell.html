@@ -2295,7 +2295,7 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 </button>
 </div>
 </div>
-<div style="display:flex;gap:4px;margin-bottom:12px;background:var(--bg-3);border-radius:var(--radius-sm);padding:3px;width:fit-content;">
+<div style="display:flex;gap:4px;margin-bottom:12px;background:var(--bg-3);border-radius:var(--radius-sm);padding:3px;width:fit-content;flex-wrap:wrap;">
 <button class="btn btn-sm" id="wv-tab-all" onclick="setWvTab('all')" style="background:var(--accent);color:#fff;font-size:11px;padding:4px 12px;">
 <span data-tr="Tümü" data-de="Alle">Tümü</span>
 </button>
@@ -2309,6 +2309,14 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();runManualDialSearch();
 <button class="btn btn-sm" id="wv-tab-week" onclick="setWvTab('week')" style="background:transparent;color:var(--text-2);font-size:11px;padding:4px 12px;">
 <span data-tr="Bu Hafta" data-de="Diese Woche">Bu Hafta</span>
 </button>
+<button class="btn btn-sm" id="wv-tab-near" onclick="setWvTab('near')" style="background:transparent;color:var(--text-2);font-size:11px;padding:4px 12px;">
+<span data-tr="En yakın randevu" data-de="Nächster Termin">En yakın randevu</span>
+</button>
+</div>
+<div id="wv-near-bar" hidden style="display:none;align-items:center;gap:8px;flex-wrap:wrap;margin:-4px 0 12px;font-size:12px;color:var(--text-2);">
+<span data-tr="Aktif takvim. En yakın saat üstte." data-de="Aktiver Kalender. Nächste Zeit oben.">Aktif takvim. En yakın saat üstte.</span>
+<select class="form-input" id="wv-near-camp" onchange="wvNearCamp(this.value)" style="font-size:12px;padding:4px 8px;min-height:30px;max-width:260px;" aria-label="Takvim"></select>
+<span id="wv-near-count" style="font-weight:800;color:var(--text);"></span>
 </div>
 <div class="card" style="padding:0;overflow:hidden;">
 <div class="tbl-wrap">
