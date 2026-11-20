@@ -267,6 +267,39 @@ max-width:100%;
 }
 #page-dialer #daily-goal-bar.is-collapsed .daily-goal-body { display: none; }
 #page-dialer #daily-goal-bar:not(.is-collapsed) { padding: 8px 12px; }
+#page-dialer #dialer-page-hdr > .dialer-fold-toggle,
+#page-dialer #daily-goal-bar > .dialer-fold-toggle {
+  display: flex;
+}
+#page-dialer #dialer-page-hdr > .dialer-fold-toggle {
+  width: auto;
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 4px 2px;
+}
+#page-dialer #dialer-page-hdr.is-collapsed {
+  padding: 0 12px !important;
+}
+#page-dialer #dialer-page-hdr.is-collapsed > .dialer-fold-toggle {
+  width: 100%;
+  padding: 8px 2px;
+}
+#page-dialer #dialer-page-hdr.is-collapsed .dialer-hdr-main,
+#page-dialer #dialer-page-hdr.is-collapsed .dialer-hdr-badges {
+  display: none !important;
+}
+#page-dialer #dialer-page-hdr:not(.is-collapsed) .dialer-fold-name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+#page-dialer #dialer-page-hdr:not(.is-collapsed) .dialer-fold-chevron,
 #page-dialer #daily-goal-bar:not(.is-collapsed) .dialer-fold-chevron { transform: rotate(90deg); }
 #page-dialer #daily-goal-bar .daily-goal-fold-meta {
   margin-left: auto;

@@ -103,6 +103,25 @@ function launchConfetti() {
 }
 
 // ── Hotkeys ───────────────────────────────────
+let _goalFoldTouched = false;
+
+function applyDialerFolds() {
+  const hdr = document.getElementById('dialer-page-hdr');
+  if (hdr) {
+    let open = true;
+    try { if (localStorage.getItem('mb_fold_hdr') === '0') open = false; } catch (e) {}
+    hdr.classList.toggle('is-collapsed', !open);
+    const btn = hdr.querySelector('.dialer-fold-toggle');
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  const goal = document.getElementById('daily-goal-bar');
+  if (goal && !_goalFoldTouched) {
+    goal.classList.add('is-collapsed');
+    const btn = goal.querySelector('.dialer-fold-toggle');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+}
+
 function toggleDialerFold(which) {
   const id = which === 'camps' ? 'agent-camps-panel' : which === 'goal' ? 'daily-goal-bar' : 'dialer-page-hdr';
   const el = document.getElementById(id);
@@ -111,6 +130,10 @@ function toggleDialerFold(which) {
   el.classList.toggle('is-collapsed', !open);
   const btn = el.querySelector('.dialer-fold-toggle');
   if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (which === 'goal') _goalFoldTouched = true;
+  if (which === 'hdr') {
+    try { localStorage.setItem('mb_fold_hdr', el.classList.contains('is-collapsed') ? '0' : '1'); } catch (e) {}
+  }
 }
 
 function renderHotkeyHints() {

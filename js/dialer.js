@@ -194,6 +194,7 @@ async function initDialer() {
   startTickerPoll();
   const goalBar = document.getElementById('daily-goal-bar');
   if (goalBar) goalBar.style.display = '';
+  if (typeof applyDialerFolds === 'function') applyDialerFolds();
   renderHotkeyHints();
   const hints = document.getElementById('hotkey-hints');
   if (hints) hints.style.display = '';
