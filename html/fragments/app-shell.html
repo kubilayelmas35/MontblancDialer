@@ -2810,6 +2810,16 @@ Başarısız / Alta Taşınan
 </div>
 <input type="search" id="att-search" class="form-input" data-tr="İsim ara" data-de="Name suchen" placeholder="İsim ara" oninput="attPaint()">
 </div>
+<div class="att-filters" id="att-filters">
+<button type="button" data-att-filter="all" onclick="attSetFilter('all')" data-tr="Tümü" data-de="Alle">Tümü</button>
+<button type="button" data-att-filter="came" onclick="attSetFilter('came')" data-tr="Gelen" data-de="Anwesend">Gelen</button>
+<button type="button" data-att-filter="absent" onclick="attSetFilter('absent')" data-tr="Girmedi" data-de="Nicht da">Girmedi</button>
+<button type="button" data-att-filter="on_call" onclick="attSetFilter('on_call')" data-tr="Aramada" data-de="Im Gespräch">Aramada</button>
+<button type="button" data-att-filter="ready" onclick="attSetFilter('ready')" data-tr="Hazır" data-de="Bereit">Hazır</button>
+<button type="button" data-att-filter="break" onclick="attSetFilter('break')" data-tr="Mola" data-de="Pause">Mola</button>
+<button type="button" data-att-filter="offline" onclick="attSetFilter('offline')" data-tr="Çevrimdışı" data-de="Offline">Çevrimdışı</button>
+<button type="button" data-att-filter="calls" onclick="attSetFilter('calls')" data-tr="Çağrısı olan" data-de="Mit Anruf">Çağrısı olan</button>
+</div>
 <div id="att-body"></div>
 </div>
 <div class="page" id="page-leave">

@@ -1455,7 +1455,9 @@ i.ph {
 
 #page-attendance { gap: 12px; }
 .att-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.att-seg, .att-nav { display: flex; align-items: center; gap: 6px; }
+.att-seg, .att-nav, .att-filters { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.att-filters button { border: 1px solid var(--border); background: var(--bg-2); color: var(--text-2); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.att-filters button.is-on { background: var(--accent); color: #fff; border-color: transparent; }
 .att-seg button, .att-day-h { border: 1px solid var(--border); background: var(--bg-2); color: var(--text-2); border-radius: 999px; padding: 6px 12px; font-weight: 700; cursor: pointer; }
 .att-seg button.is-on { background: var(--accent); color: #fff; border-color: transparent; }
 #att-search { width: min(220px, 100%); margin-left: auto; }

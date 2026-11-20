@@ -30,7 +30,7 @@ const MB_PAGES = [
   { key: 'field', label: 'Saha görevlerim', roles: ['field_agent', 'super_admin', 'admin', 'firm_admin'] },
   { key: 'myhistory', label: 'Geçmişim', roles: ['agent', 'super_admin', 'admin', 'firm_admin'] },
   { key: 'leave', label: 'İzin & devam', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc', 'field_agent'] },
-  { key: 'attendance', label: 'Mesai', roles: ['super_admin', 'admin', 'firm_admin'] },
+  { key: 'attendance', label: 'Mesai', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc', 'field_agent'] },
   { key: 'competition', label: 'Ayın elemanı', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc', 'field_agent'] },
   { key: 'muhasebe', label: 'Muhasebe', roles: ['super_admin', 'admin', 'firm_admin'] },
   { key: 'maasim', label: 'Maaşım', roles: ['agent', 'qc', 'field_agent', 'super_admin', 'admin', 'firm_admin'] },
@@ -112,7 +112,7 @@ function mbIsFirmAdmin(role) {
   return ['admin', 'firm_admin', 'super_admin'].includes(r || '');
 }
 
-const MB_PERM_REV = 9;
+const MB_PERM_REV = 10;
 const MB_PERM_GRANTS = [
   { rev: 2, keys: ['supervisor', 'jobmarket', 'fieldops'] },
   { rev: 3, keys: ['geocon'] },
@@ -122,6 +122,7 @@ const MB_PERM_GRANTS = [
   { rev: 7, keys: ['randevular'] },
   { rev: 8, keys: ['blacklist'] },
   { rev: 9, keys: ['attendance'] },
+  { rev: 10, keys: ['attendance'] },
 ];
 
 function mbMergeStoredPerms(list, role, settings) {
@@ -162,9 +163,9 @@ function openNavTakvim() {
 }
 
 const MB_NAV_FOCUS = {
-  agent: ['dialer', 'wiedervorlage', 'takvim', 'myhistory', 'performansim', 'dashboard', 'maasim', 'competition', 'leave'],
-  qc: ['qc', 'callhistory', 'dialer', 'wiedervorlage', 'dashboard', 'performansim', 'maasim', 'competition', 'leave'],
-  field_agent: ['field', 'dashboard', 'performansim', 'maasim', 'competition', 'leave'],
+  agent: ['dialer', 'wiedervorlage', 'takvim', 'myhistory', 'attendance', 'performansim', 'dashboard', 'maasim', 'competition', 'leave'],
+  qc: ['qc', 'callhistory', 'dialer', 'wiedervorlage', 'attendance', 'dashboard', 'performansim', 'maasim', 'competition', 'leave'],
+  field_agent: ['field', 'attendance', 'dashboard', 'performansim', 'maasim', 'competition', 'leave'],
 };
 
 function mbNavItemKey(btn) {
