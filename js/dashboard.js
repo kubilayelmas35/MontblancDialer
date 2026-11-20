@@ -2739,13 +2739,14 @@ async function statsPaintDetail(logs, fid) {
         const rate = statsMatchRate(l.phone, rates);
         if (!rate) return;
         const id = `${rate.prefix}|${rate.name || ''}`;
-        if (!bag[id]) bag[id] = { name: rate.name || rate.prefix, prefix: rate.prefix, price: Number(rate.price) || 0, sec: 0 };
+        if (!bag[id]) bag[id] = { name: rate.name || rate.prefix, prefix: rate.prefix, price: Number(rate.price) || 0, sec: 0, eur: 0 };
         bag[id].sec += Number(l.duration_sec) || 0;
+        bag[id].eur += typeof mbCallEuros === 'function' ? (Number(mbCallEuros(l.phone, l.duration_sec, rates)) || 0) : 0;
       });
       const lines = Object.values(bag);
       if (lines.length) {
         costRows = lines.map((line) => {
-          const money = (line.sec / 60) * line.price;
+          const money = line.eur;
           const shown = typeof formatMoney === 'function' ? formatMoney(money, cur) : money.toFixed(2);
           return `<tr><td>${statsEsc(line.prefix)}</td><td>${statsEsc(line.name)}</td><td>${statsEsc(statsHms(line.sec))}</td><td>${statsEsc(shown)}</td></tr>`;
         }).join('');

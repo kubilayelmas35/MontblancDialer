@@ -1175,7 +1175,9 @@ function firmBilling(firm) {
 }
 
 function firmRateRow(rate) {
-  return `<div class="firm-rate-row">
+  const init = Math.max(1, parseInt(rate?.initblock, 10) || 1);
+  const block = Math.max(1, parseInt(rate?.billingblock, 10) || 1);
+  return `<div class="firm-rate-row" data-init="${init}" data-block="${block}">
 <input class="form-input" data-rate="prefix" value="${escapeHtml(rate?.prefix || '')}" placeholder="49">
 <input class="form-input" data-rate="name" value="${escapeHtml(rate?.name || '')}" placeholder="${escapeHtml(t('firm.bill.dest'))}">
 <input class="form-input" data-rate="price" value="${rate?.price != null && rate.price !== '' ? escapeHtml(rate.price) : ''}" inputmode="decimal" placeholder="0.025">
@@ -1251,6 +1253,8 @@ async function saveFirmBilling(firmId) {
     prefix: String(row.querySelector('[data-rate="prefix"]')?.value || '').replace(/\D/g, ''),
     name: String(row.querySelector('[data-rate="name"]')?.value || '').trim(),
     price: Number(String(row.querySelector('[data-rate="price"]')?.value || '').replace(',', '.')) || 0,
+    initblock: Math.max(1, parseInt(row.dataset.init, 10) || 1),
+    billingblock: Math.max(1, parseInt(row.dataset.block, 10) || 1),
   })).filter((r) => r.prefix);
   try {
     const firms = await sb(`firms?id=eq.${firmId}&select=settings`);

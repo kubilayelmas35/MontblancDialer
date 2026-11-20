@@ -140,12 +140,23 @@ function mbNextBill(plan, today) {
   return { ...due, days: Math.round((to - from) / 86400000), key: `${due.y}-${String(due.m).padStart(2, '0')}` };
 }
 
+function mbBilledSeconds(seconds, rate) {
+  const sec = Math.max(0, Number(seconds) || 0);
+  if (!sec) return 0;
+  const init = Math.max(1, parseInt(rate?.initblock, 10) || 1);
+  const block = Math.max(1, parseInt(rate?.billingblock, 10) || 1);
+  if (sec <= init) return init;
+  return init + Math.ceil((sec - init) / block) * block;
+}
+
 function mbCallEuros(phone, seconds, rates) {
   const sec = Math.max(0, Number(seconds) || 0);
   if (!sec) return 0;
   const rate = typeof statsMatchRate === 'function' ? statsMatchRate(phone, rates) : null;
   if (!rate) return null;
-  return Math.round(((sec / 60) * (Number(rate.price) || 0)) * 100) / 100;
+  const billed = mbBilledSeconds(sec, rate);
+  const raw = (billed / 60) * (Number(rate.price) || 0);
+  return Math.round(raw * 1000000) / 1000000;
 }
 
 async function mbLoadBillFirm(firmId) {
