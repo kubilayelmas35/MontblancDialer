@@ -105,11 +105,20 @@ function launchConfetti() {
 // ── Hotkeys ───────────────────────────────────
 let _goalFoldTouched = false;
 
+function mbDialerFoldSaved(key) {
+  try { return localStorage.getItem(key); } catch (e) { return null; }
+}
+
+function mbDialerPageNarrow() {
+  const page = document.getElementById('page-dialer');
+  const w = page?.clientWidth || 0;
+  return !w || w <= 1100;
+}
+
 function applyDialerFolds() {
   const hdr = document.getElementById('dialer-page-hdr');
   if (hdr) {
-    let open = true;
-    try { if (localStorage.getItem('mb_fold_hdr') === '0') open = false; } catch (e) {}
+    const open = mbDialerFoldSaved('mb_fold_hdr') === '1';
     hdr.classList.toggle('is-collapsed', !open);
     const btn = hdr.querySelector('.dialer-fold-toggle');
     if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -119,6 +128,14 @@ function applyDialerFolds() {
     goal.classList.add('is-collapsed');
     const btn = goal.querySelector('.dialer-fold-toggle');
     if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+  const camps = document.getElementById('agent-camps-panel');
+  if (camps && camps.dataset.campFoldCall !== '1') {
+    const saved = mbDialerFoldSaved('mb_fold_camps');
+    const open = saved === '1' ? true : saved === '0' ? false : !mbDialerPageNarrow();
+    camps.classList.toggle('is-collapsed', !open);
+    const btn = camps.querySelector('.dialer-fold-toggle');
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
 }
 
@@ -134,7 +151,21 @@ function toggleDialerFold(which) {
   if (which === 'hdr') {
     try { localStorage.setItem('mb_fold_hdr', el.classList.contains('is-collapsed') ? '0' : '1'); } catch (e) {}
   }
+  if (which === 'camps') {
+    el.dataset.campFoldCall = '';
+    try { localStorage.setItem('mb_fold_camps', el.classList.contains('is-collapsed') ? '0' : '1'); } catch (e) {}
+  }
 }
+
+window.addEventListener('resize', () => {
+  if (mbDialerFoldSaved('mb_fold_camps')) return;
+  const camps = document.getElementById('agent-camps-panel');
+  if (!camps || camps.dataset.campFoldCall === '1') return;
+  const open = !mbDialerPageNarrow();
+  camps.classList.toggle('is-collapsed', !open);
+  const btn = camps.querySelector('.dialer-fold-toggle');
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
 
 function renderHotkeyHints() {
   const el = document.getElementById('hotkey-hints');

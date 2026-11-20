@@ -269,11 +269,16 @@
     flex-direction: column;
   }
   #page-dialer .dialer-side {
-    flex: 0 0 128px;
+    flex: 0 1 auto;
     width: 100%;
     min-height: 0;
-    max-height: 128px;
+    max-height: min(42vh, 380px);
     overflow: auto;
+  }
+  #page-dialer .dialer-side:has(#agent-camps-panel.is-collapsed) {
+    flex: 0 0 auto;
+    max-height: none;
+    overflow: visible;
   }
   #page-dialer #agent-camps-panel.is-collapsed { max-height: none; overflow: hidden; }
   #page-dialer > #dialer-page-hdr {
@@ -285,9 +290,9 @@
   #page-dialer #ready-section { flex: 0 0 auto; width: 100%; }
   #page-dialer .dialer-main > #customer-card,
   #page-dialer .dialer-main > #customer-card.customer-card--empty {
-    flex: 1 1 0%;
+    flex: 1 1 auto;
     width: 100%;
-    min-height: 0;
+    min-height: clamp(240px, 46vh, 640px);
     max-height: none;
     overflow: hidden;
   }

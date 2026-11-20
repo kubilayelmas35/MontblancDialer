@@ -610,9 +610,11 @@ function syncCampsFoldForCall() {
   const busy = dialerStatus === 'calling' || dialerStatus === 'on_call' || dialerStatus === 'wrapping';
   const btn = el.querySelector('.dialer-fold-toggle');
   if (narrow && busy) {
-    el.classList.add('is-collapsed');
-    el.dataset.campFoldCall = '1';
-    if (btn) btn.setAttribute('aria-expanded', 'false');
+    if (!el.classList.contains('is-collapsed')) {
+      el.classList.add('is-collapsed');
+      el.dataset.campFoldCall = '1';
+    }
+    if (btn) btn.setAttribute('aria-expanded', el.classList.contains('is-collapsed') ? 'false' : 'true');
     return;
   }
   if (el.dataset.campFoldCall === '1' && narrow) {
