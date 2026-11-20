@@ -342,6 +342,18 @@ max-width:100%;
 #page-dialer > .dialer-layout:has(#agent-camps-panel.is-collapsed) .dialer-main {
   grid-column: 1;
   grid-row: 1;
+  height: auto;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+#page-dialer > .dialer-layout:has(#agent-camps-panel.is-collapsed) .dialer-main > #customer-card,
+#page-dialer > .dialer-layout:has(#agent-camps-panel.is-collapsed) .dialer-main > #customer-card.customer-card--empty {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  height: auto;
+  overflow: hidden;
 }
 #page-dialer > .dialer-layout:has(#agent-camps-panel.is-collapsed) .dialer-side {
   grid-column: 1;
