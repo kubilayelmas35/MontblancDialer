@@ -1375,7 +1375,24 @@ i.ph {
 .firms-tools { margin-bottom: 12px; }
 .firms-tools .form-input { max-width: 360px; }
 .firms-list { display: flex; flex-direction: column; gap: 12px; }
+.firm-fold { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: transparent; border: 0; color: inherit; cursor: pointer; padding: 0; }
+.firm-fold-main { display: flex; flex-direction: column; min-width: 0; }
+.firm-fold-chev { width: 16px; font-size: 18px; line-height: 1; color: var(--text-3); transition: transform .15s ease; }
+.firm-card.is-open .firm-fold-chev { transform: rotate(90deg); }
+.firm-body { margin-top: 12px; }
 .firm-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.firm-fee { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.firm-fee-h { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.firm-fee-h b { font-size: 13px; }
+.firm-fee-h span { font-size: 11px; color: var(--text-3); }
+.firm-fee-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow: auto; margin-bottom: 8px; }
+.firm-fee-row { display: grid; grid-template-columns: minmax(120px, 160px) 110px 88px auto minmax(0, 1fr); gap: 8px; align-items: center; }
+.firm-fee-month { font-size: 12px; font-weight: 700; }
+.firm-fee-amt { height: 32px; padding: 4px 8px; }
+.firm-fee-tag, .firm-fee-files, .firm-fee-log { font-size: 11px; color: var(--text-3); }
+.firm-fee-log { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; }
+.firm-inv-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; font-size: 12px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+@media (max-width: 720px) { .firm-fee-row { grid-template-columns: 1fr 1fr; } }
 .firm-name { font-size: 16px; font-weight: 800; }
 .firm-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
 .firm-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }

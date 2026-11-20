@@ -118,6 +118,7 @@ function mbBillPlan(billing) {
     warn_amount: Number(src.warn_amount) || 0,
     agent_cap: Math.max(0, parseInt(src.agent_cap, 10) || 0),
     monthly_fee: monthly,
+    number_fee: Math.max(0, Number(src.number_fee) || 0),
     bill_day: day,
     grace_days: Math.max(0, parseInt(src.grace_days, 10) || 3),
     rates: rates.length ? rates : (src.rates_set ? [] : MB_DEFAULT_RATES.slice()),
@@ -259,8 +260,12 @@ async function mbChargeMonthlyFee(firmId) {
   const settings = rows?.[0]?.settings && typeof rows[0].settings === 'object' ? rows[0].settings : {};
   const billing = settings.billing && typeof settings.billing === 'object' ? settings.billing : {};
   const plan = mbBillPlan(billing);
-  if (!(plan.monthly_fee > 0)) return 0;
   const due = mbNextBill(plan);
+  const monthMap = billing.month_fees && typeof billing.month_fees === 'object' ? billing.month_fees : {};
+  const fee = monthMap[due.key] != null && monthMap[due.key] !== ''
+    ? Math.max(0, Number(monthMap[due.key]) || 0)
+    : plan.monthly_fee;
+  if (!(fee > 0)) return 0;
   if (due.days !== 0) return 0;
   if (plan.fee_months.includes(due.key)) return 0;
   const feeMonths = plan.fee_months.concat(due.key).slice(-24);
@@ -269,8 +274,8 @@ async function mbChargeMonthlyFee(firmId) {
     prefer: 'return=minimal',
     body: JSON.stringify({ settings: { ...settings, billing: { ...billing, fee_months: feeMonths, monthly_fee: plan.monthly_fee, bill_day: plan.bill_day, grace_days: plan.grace_days, rates_set: true } } }),
   });
-  await mbDebitFirm(firmId, plan.monthly_fee);
-  return plan.monthly_fee;
+  await mbDebitFirm(firmId, fee);
+  return fee;
 }
 
 function mbKickBilling(firmId) {

@@ -916,6 +916,9 @@ function onFirmsListClick(e) {
     else if (act === 'toggle') toggleUserActive(btn.dataset.userId, btn.dataset.active === '1');
     else if (act === 'pass') resetUserPass(btn.dataset.userId, btn.dataset.email || '');
     else if (act === 'paycat' && typeof openPayCategoryMonths === 'function') openPayCategoryMonths(btn.dataset.userId);
+    else if (act === 'fold') firmToggleOpen(btn.dataset.firmId);
+    else if (act === 'save-fees') void firmSaveFees(btn.dataset.firmId, btn.dataset.kind);
+    else if (act === 'invoice') openFirmInvoice(btn.dataset.firmId, btn.dataset.ym, btn.dataset.kind);
     return;
   }
   const row = e.target.closest('[data-user-id]');
@@ -941,7 +944,250 @@ async function loadFirmsPage() {
   }
 }
 
+const _firmOpen = new Set();
+
+function firmSay(key, fb) {
+  const text = typeof t === 'function' ? t(key) : '';
+  return !text || text === key ? fb : text;
+}
+
+function firmTodayParts() {
+  if (typeof mbBillToday === 'function') return mbBillToday();
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  return { y, m, d: now.getDate() };
+}
+
+function firmStartParts(firm) {
+  const iso = String(firm?.created_at || '');
+  const hit = iso.match(/^(\d{4})-(\d{2})/);
+  if (!hit) return firmTodayParts();
+  return { y: Number(hit[1]), m: Number(hit[2]) };
+}
+
+function firmMonthKeys(firm) {
+  const start = firmStartParts(firm);
+  const now = firmTodayParts();
+  const out = [];
+  let y = start.y;
+  let m = start.m;
+  let guard = 0;
+  while ((y < now.y || (y === now.y && m <= now.m)) && guard < 120) {
+    out.push(`${y}-${String(m).padStart(2, '0')}`);
+    m += 1;
+    if (m > 12) { m = 1; y += 1; }
+    guard += 1;
+  }
+  if (!out.length) out.push(`${now.y}-${String(now.m).padStart(2, '0')}`);
+  return out.reverse();
+}
+
+function firmFeeWhen(iso) {
+  const date = new Date(iso || 0);
+  if (Number.isNaN(date.getTime())) return '';
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  return new Intl.DateTimeFormat(de ? 'de-DE' : 'tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+}
+
+function firmMonthFace(ym) {
+  const hit = String(ym || '').match(/^(\d{4})-(\d{2})$/);
+  if (!hit) return ym;
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const date = new Date(Date.UTC(Number(hit[1]), Number(hit[2]) - 1, 1));
+  return new Intl.DateTimeFormat(de ? 'de-DE' : 'tr-TR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date);
+}
+
+function firmFeeMap(firm, kind) {
+  const billing = firm?.settings?.billing;
+  const raw = kind === 'number' ? billing?.number_fees : billing?.month_fees;
+  return raw && typeof raw === 'object' ? raw : {};
+}
+
+function firmFeeAmount(firm, kind, ym) {
+  const map = firmFeeMap(firm, kind);
+  if (Object.prototype.hasOwnProperty.call(map, ym) && map[ym] !== '' && map[ym] != null) {
+    return { amount: Math.max(0, Number(map[ym]) || 0), custom: true };
+  }
+  const bill = firmBilling(firm);
+  return { amount: kind === 'number' ? bill.number_fee : bill.monthly_fee, custom: false };
+}
+
+function firmInvoices(firm, kind, ym) {
+  const list = firm?.settings?.billing?.invoices;
+  if (!Array.isArray(list)) return [];
+  return list.filter((row) => row && row.kind === kind && row.ym === ym);
+}
+
+function firmFeeLogs(firm, kind) {
+  const list = firm?.settings?.billing?.fee_log;
+  if (!Array.isArray(list)) return [];
+  return list.filter((row) => row && row.kind === kind).slice(-6).reverse();
+}
+
+function firmToggleOpen(id) {
+  const key = String(id || '');
+  if (!key) return;
+  if (_firmOpen.has(key)) _firmOpen.delete(key);
+  else _firmOpen.add(key);
+  renderFirmsList();
+}
+
+function firmFeeBlock(firm, kind) {
+  const title = kind === 'number' ? firmSay('firm.num.title', 'Numara ücreti') : firmSay('firm.fee.title', 'Aylık ödeme');
+  const hint = kind === 'number'
+    ? firmSay('firm.num.hint', 'Başladığı aydan bugüne. Bir ay 20, sonraki ay 10 olabilir.')
+    : firmSay('firm.fee.hint', 'Başladığı aydan bugüne. Bir ay 100, sonraki ay 50 olabilir.');
+  const rows = firmMonthKeys(firm).map((ym) => {
+    const fee = firmFeeAmount(firm, kind, ym);
+    const invoices = firmInvoices(firm, kind, ym);
+    const files = invoices.map((row) => `<a href="${escapeHtml(row.url || '#')}" target="_blank" rel="noopener">${escapeHtml(row.no || row.name || firmSay('firm.fee.invoice', 'Fatura'))}</a>`).join(' ');
+    return `<div class="firm-fee-row">
+<span class="firm-fee-month">${escapeHtml(firmMonthFace(ym))}</span>
+<input class="form-input firm-fee-amt" data-fee-kind="${kind}" data-ym="${escapeHtml(ym)}" type="number" min="0" step="0.01" value="${fee.amount}">
+<span class="firm-fee-tag">${fee.custom ? '' : escapeHtml(firmSay('firm.fee.default', 'varsayılan'))}</span>
+<button type="button" class="btn btn-ghost btn-sm" data-firm-act="invoice" data-firm-id="${escapeHtml(firm.id)}" data-ym="${escapeHtml(ym)}" data-kind="${kind}">${escapeHtml(firmSay('firm.fee.invoice', 'Fatura'))}${invoices.length ? ` ${invoices.length}` : ''}</button>
+${files ? `<span class="firm-fee-files">${files}</span>` : ''}
+</div>`;
+  }).join('');
+  const logs = firmFeeLogs(firm, kind).map((row) => {
+    const when = firmFeeWhen(row.at);
+    return `<div>${escapeHtml(when)} · ${escapeHtml(firmMonthFace(row.ym))} · ${escapeHtml(String(row.from ?? '—'))} → ${escapeHtml(String(row.to ?? '—'))}</div>`;
+  }).join('');
+  return `<section class="firm-fee">
+<div class="firm-fee-h"><b>${escapeHtml(title)}</b><span>${escapeHtml(hint)}</span></div>
+<div class="firm-fee-list">${rows}</div>
+<button type="button" class="btn btn-primary btn-sm" data-firm-act="save-fees" data-firm-id="${escapeHtml(firm.id)}" data-kind="${kind}">${escapeHtml(firmSay('firm.fee.save', 'Kaydet'))}</button>
+${logs ? `<div class="firm-fee-log"><b>${escapeHtml(firmSay('firm.fee.log', 'Kayıt'))}</b>${logs}</div>` : ''}
+</section>`;
+}
+
+async function firmPatchBilling(firmId, patch, logRows) {
+  const firms = await sb(`firms?id=eq.${firmId}&select=settings`);
+  const settings = firms?.[0]?.settings && typeof firms[0].settings === 'object' ? firms[0].settings : {};
+  const prev = settings.billing && typeof settings.billing === 'object' ? settings.billing : {};
+  const fee_log = Array.isArray(prev.fee_log) ? prev.fee_log.slice(-80) : [];
+  (logRows || []).forEach((row) => fee_log.push(row));
+  const billing = { ...prev, ...patch, fee_log };
+  await sb(`firms?id=eq.${firmId}`, {
+    method: 'PATCH',
+    prefer: 'return=minimal',
+    body: JSON.stringify({ settings: { ...settings, billing } }),
+  });
+  const local = firmById(firmId);
+  if (local) {
+    local.settings = { ...(local.settings || {}), billing };
+  }
+}
+
+async function firmSaveFees(firmId, kind) {
+  if (!(typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin())) return;
+  const firm = firmById(firmId);
+  if (!firm) return;
+  const card = document.querySelector(`.firm-card[data-firm-id="${CSS.escape(firmId)}"]`);
+  const inputs = [...(card?.querySelectorAll(`.firm-fee-amt[data-fee-kind="${kind}"]`) || [])];
+  const prevMap = { ...firmFeeMap(firm, kind) };
+  const next = {};
+  const logs = [];
+  const now = new Date().toISOString();
+  inputs.forEach((input) => {
+    const ym = input.dataset.ym;
+    const amount = Math.max(0, Number(input.value) || 0);
+    next[ym] = amount;
+    const before = Object.prototype.hasOwnProperty.call(prevMap, ym) ? Number(prevMap[ym]) : null;
+    if (before == null || before !== amount) {
+      logs.push({ at: now, ym, kind, from: before, to: amount, by: currentUser?.name || '' });
+    }
+  });
+  const patch = kind === 'number' ? { number_fees: next } : { month_fees: next };
+  try {
+    await firmPatchBilling(firmId, patch, logs);
+    toast(firmSay('firm.fee.saved', 'Kaydedildi'), 'ok');
+    renderFirmsList();
+  } catch (e) {
+    toast(firmSay('firm.bill.fail', 'Kaydedilemedi') + ' ' + (e.message || ''), 'err');
+  }
+}
+
+async function firmUploadInvoice(firmId, file) {
+  if (!file || typeof SB_URL !== 'string' || typeof SB_KEY !== 'string') return '';
+  const safe = String(file.name || 'fatura').replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${firmId}/${Date.now()}_${safe}`;
+  const res = await fetch(`${SB_URL}/storage/v1/object/firm-invoices/${path}`, {
+    method: 'POST',
+    headers: {
+      apikey: SB_KEY,
+      Authorization: `Bearer ${SB_KEY}`,
+      'Content-Type': file.type || 'application/octet-stream',
+      'x-upsert': 'true',
+    },
+    body: file,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return `${SB_URL}/storage/v1/object/public/firm-invoices/${path}`;
+}
+
+function openFirmInvoice(firmId, ym, kind) {
+  if (!(typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin())) return;
+  const firm = firmById(firmId);
+  if (!firm) return;
+  document.getElementById('m-firm-invoice')?.remove();
+  const rows = firmInvoices(firm, kind, ym).map((row) => `<div class="firm-inv-row"><b>${escapeHtml(row.no || '—')}</b><span>${escapeHtml(firmMoney(row.amount, firm.currency || 'EUR'))}</span>${row.url ? `<a href="${escapeHtml(row.url)}" target="_blank" rel="noopener">${escapeHtml(row.name || firmSay('firm.fee.invoice', 'Fatura'))}</a>` : ''}<small>${escapeHtml(row.note || '')}</small></div>`).join('');
+  const modal = document.createElement('div');
+  modal.id = 'm-firm-invoice';
+  modal.className = 'modal-overlay open';
+  modal.style.zIndex = '3002';
+  modal.innerHTML = `<div class="modal" style="max-width:480px;">
+<div class="modal-hdr"><div class="modal-title">${escapeHtml(firmSay('firm.inv.title', 'Fatura'))} · ${escapeHtml(firmMonthFace(ym))}</div><button class="modal-close" type="button" data-inv-close>✕</button></div>
+<div style="padding:16px 20px;display:flex;flex-direction:column;gap:8px;">
+${rows || `<div class="firm-none">${escapeHtml(firmSay('firm.inv.empty', 'Fatura yok'))}</div>`}
+<label class="form-label">${escapeHtml(firmSay('firm.inv.no', 'Fatura no'))}</label>
+<input class="form-input" data-inv="no">
+<label class="form-label">${escapeHtml(firmSay('firm.inv.note', 'Not'))}</label>
+<input class="form-input" data-inv="note">
+<label class="form-label">${escapeHtml(firmSay('firm.inv.file', 'Dosya'))}</label>
+<input class="form-input" data-inv="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp">
+<button type="button" class="btn btn-primary" data-inv-add>${escapeHtml(firmSay('firm.inv.add', 'Ekle'))}</button>
+</div></div>`;
+  modal.addEventListener('click', async (ev) => {
+    if (ev.target === modal || ev.target.closest('[data-inv-close]')) modal.remove();
+    if (!ev.target.closest('[data-inv-add]')) return;
+    const no = String(modal.querySelector('[data-inv="no"]')?.value || '').trim();
+    const note = String(modal.querySelector('[data-inv="note"]')?.value || '').trim();
+    const file = modal.querySelector('[data-inv="file"]')?.files?.[0] || null;
+    if (!no && !file) return;
+    const fee = firmFeeAmount(firm, kind, ym);
+    let url = '';
+    if (file) {
+      try { url = await firmUploadInvoice(firmId, file); }
+      catch (e) { toast(firmSay('firm.inv.filefail', 'Dosya yüklenemedi, kayıt yine de tutuldu'), 'err'); }
+    }
+    try {
+      const invoices = Array.isArray(firm.settings?.billing?.invoices) ? firm.settings.billing.invoices.slice(-200) : [];
+      invoices.push({
+        id: `${Date.now()}`,
+        ym,
+        kind,
+        no,
+        note,
+        amount: fee.amount,
+        name: file?.name || '',
+        url,
+        at: new Date().toISOString(),
+      });
+      await firmPatchBilling(firmId, { invoices }, []);
+      modal.remove();
+      renderFirmsList();
+      toast(firmSay('firm.fee.saved', 'Kaydedildi'), 'ok');
+    } catch (e) {
+      toast(firmSay('firm.bill.fail', 'Kaydedilemedi') + ' ' + (e.message || ''), 'err');
+    }
+  });
+  document.body.appendChild(modal);
+}
+
 function renderFirmsList() {
+  bindFirmsList();
   const el = document.getElementById('firms-list');
   const data = window._firmsPageData;
   if (!el || !data) return;
@@ -1000,18 +1246,26 @@ ${cat ? `<span class="firm-cat">${escapeHtml(cat)}</span>` : ''}
 </div>`;
     }).join('');
     const emptyUsers = users.length ? '' : `<div class="firm-none">${escapeHtml(q ? t('firm.no_match_user') : t('firm.no_user'))}</div>`;
-    return `<div class="card firm-card">
+    const open = _firmOpen.has(f.id) || !!q;
+    const nowKey = firmMonthKeys(f)[0];
+    const monthNow = firmFeeAmount(f, 'fee', nowKey);
+    const numNow = firmFeeAmount(f, 'number', nowKey);
+    return `<div class="card firm-card${open ? ' is-open' : ''}" data-firm-id="${escapeHtml(f.id)}">
+<button type="button" class="firm-fold" data-firm-act="fold" data-firm-id="${escapeHtml(f.id)}">
+<span class="firm-fold-chev" aria-hidden="true">›</span>
+<span class="firm-fold-main">
+<span class="firm-name">${escapeHtml(f.name || '')}</span>
+<span class="firm-meta">${escapeHtml(f.slug || '')} · ${escapeHtml(firmPlanLabel(f.plan))} · ${all.length} ${escapeHtml(t('firm.users'))} · ${escapeHtml(firmSay('firm.fee.title', 'Aylık ödeme'))} ${escapeHtml(firmMoney(monthNow.amount, cur))} · ${escapeHtml(firmSay('firm.num.title', 'Numara'))} ${escapeHtml(firmMoney(numNow.amount, cur))}</span>
+</span>
+</button>
+<div class="firm-body"${open ? '' : ' hidden'}>
 <div class="firm-head">
-<div>
-<div class="firm-name">${escapeHtml(f.name || '')}</div>
-<div class="firm-meta">${escapeHtml(f.slug || '')} · ${escapeHtml(firmPlanLabel(f.plan))} · ${all.length} ${escapeHtml(t('firm.users'))}</div>
-</div>
-<div class="firm-actions">
 <div class="firm-bal">
 <span class="firm-bal-lbl">${escapeHtml(t('firm.balance'))}</span>
 <span class="firm-bal-val">${escapeHtml(firmMoney(bal, cur))}</span>
 ${reservedLine}${warnLine}${capLine}${lastNote}
 </div>
+<div class="firm-actions">
 <button type="button" class="btn btn-ghost btn-sm" data-firm-act="billing" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.bill.open'))}</button>
 <button type="button" class="btn btn-ghost btn-sm" data-firm-act="ledger" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.led.open'))}</button>
 <button type="button" class="btn btn-ghost btn-sm" data-firm-act="balance" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.topup'))}</button>
@@ -1020,6 +1274,9 @@ ${reservedLine}${warnLine}${capLine}${lastNote}
 </div>
 </div>
 <div class="firm-users">${userRows}${emptyUsers}</div>
+${firmFeeBlock(f, 'fee')}
+${firmFeeBlock(f, 'number')}
+</div>
 </div>`;
   }).join('');
   el.innerHTML = html || `<div class="firm-none">${escapeHtml(t('firm.no_match'))}</div>`;
@@ -1168,6 +1425,7 @@ function firmBilling(firm) {
     warn_amount: Number(b.warn_amount) || 0,
     agent_cap: Math.max(0, parseInt(b.agent_cap, 10) || 0),
     monthly_fee: b.monthly_fee == null ? 100 : Number(b.monthly_fee) || 0,
+    number_fee: Math.max(0, Number(b.number_fee) || 0),
     bill_day: Math.min(28, Math.max(1, parseInt(b.bill_day, 10) || 1)),
     grace_days: Math.max(0, parseInt(b.grace_days, 10) || 3),
     rates,
@@ -1212,6 +1470,8 @@ function openFirmBilling(firmId) {
 <input class="form-input" data-bill="cap" type="number" min="0" step="1" value="${bill.agent_cap}">
 <label class="form-label">${escapeHtml(t('firm.bill.month'))} (${escapeHtml(cur)})</label>
 <input class="form-input" data-bill="month" type="number" min="0" step="0.01" value="${bill.monthly_fee}">
+<label class="form-label">${escapeHtml(t('firm.bill.number'))} (${escapeHtml(cur)})</label>
+<input class="form-input" data-bill="number" type="number" min="0" step="0.01" value="${bill.number_fee}">
 <label class="form-label">${escapeHtml(t('firm.bill.day'))}</label>
 <input class="form-input" data-bill="day" type="number" min="1" max="28" step="1" value="${bill.bill_day}">
 <label class="form-label">${escapeHtml(t('firm.bill.grace'))}</label>
@@ -1249,6 +1509,7 @@ async function saveFirmBilling(firmId) {
   const warn_amount = Number(modal.querySelector('[data-bill="warn"]')?.value) || 0;
   const agent_cap = Math.max(0, parseInt(modal.querySelector('[data-bill="cap"]')?.value, 10) || 0);
   const monthly_fee = Math.max(0, Number(modal.querySelector('[data-bill="month"]')?.value) || 0);
+  const number_fee = Math.max(0, Number(modal.querySelector('[data-bill="number"]')?.value) || 0);
   const bill_day = Math.min(28, Math.max(1, parseInt(modal.querySelector('[data-bill="day"]')?.value, 10) || 1));
   const grace_days = Math.max(0, parseInt(modal.querySelector('[data-bill="grace"]')?.value, 10) || 0);
   const rates = [...modal.querySelectorAll('.firm-rate-row')].map((row) => ({
@@ -1268,7 +1529,7 @@ async function saveFirmBilling(firmId) {
       body: JSON.stringify({
         settings: {
           ...settings,
-          billing: { ...prev, overdraft, warn_amount, agent_cap, rates, monthly_fee, bill_day, grace_days, rates_set: true },
+          billing: { ...prev, overdraft, warn_amount, agent_cap, rates, monthly_fee, number_fee, bill_day, grace_days, rates_set: true },
         },
       }),
     });
