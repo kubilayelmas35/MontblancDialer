@@ -106,7 +106,8 @@ max-width:100%;
   }
   #page-dialer .dialer-main {
     min-height: 0;
-    height: 100%;
+    height: auto;
+    max-height: 100%;
     overflow: hidden;
   }
 }
@@ -408,7 +409,8 @@ max-width:100%;
   border-radius: 14px;
 }
 #page-dialer .dialer-main > #customer-card.customer-card--empty {
-  min-height: clamp(240px, 46vh, 640px);
+  min-height: 0;
+  max-height: 100%;
 }
 @container dialer (max-width: 1100px) {
   #page-dialer > .dialer-layout {
@@ -421,7 +423,7 @@ max-width:100%;
   }
   #page-dialer .dialer-main {
     flex: 1 1 auto;
-    min-height: 280px;
+    min-height: 0;
     width: 100%;
     height: auto;
     overflow: hidden;
@@ -445,9 +447,9 @@ max-width:100%;
   #page-dialer .dialer-main > #customer-card.customer-card--empty {
     flex: 1 1 auto;
     width: 100%;
-    min-height: clamp(240px, 46vh, 640px);
+    min-height: 0;
     height: auto;
-    max-height: none;
+    max-height: 100%;
     overflow: hidden;
   }
   #page-dialer .cust-empty,
