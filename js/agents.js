@@ -1186,6 +1186,7 @@ function firmRateRow(rate) {
 }
 
 function openFirmBilling(firmId) {
+  if (!(typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin())) return;
   const f = firmById(firmId) || {};
   const bill = firmBilling(f);
   const cur = typeof normalizeCurrency === 'function' ? normalizeCurrency(f.currency) : (f.currency || 'EUR');
@@ -1241,6 +1242,7 @@ function openFirmBilling(firmId) {
 }
 
 async function saveFirmBilling(firmId) {
+  if (!(typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin())) return;
   const modal = document.getElementById('m-firm-billing');
   if (!modal) return;
   const overdraft = Math.max(0, Number(modal.querySelector('[data-bill="overdraft"]')?.value) || 0);

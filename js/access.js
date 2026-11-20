@@ -20,7 +20,7 @@ const MB_PAGES = [
   { key: 'firms', label: 'Firmalar', roles: ['super_admin'] },
   { key: 'spend', label: 'Giderler', roles: ['super_admin'] },
   { key: 'firmdesk', label: 'Yönetim', roles: ['super_admin', 'admin', 'firm_admin'], inPerms: false },
-  { key: 'settings', label: 'Ayarlar', roles: ['super_admin', 'admin', 'firm_admin', 'agent'] },
+  { key: 'settings', label: 'Ayarlar', roles: ['super_admin', 'admin', 'firm_admin', 'agent', 'qc', 'field_agent'] },
   { key: 'takvim', label: 'Takvim', roles: ['super_admin', 'admin', 'firm_admin', 'agent'] },
   { key: 'randevular', label: 'Randevular', roles: ['super_admin', 'admin', 'firm_admin', 'qc'] },
   { key: 'qc', label: 'Kalite kontrol', roles: ['super_admin', 'admin', 'firm_admin', 'qc'] },
@@ -50,8 +50,8 @@ const MB_CHROME = [
   { id: 'chat-settings-card', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'field-settings-card', roles: ['admin', 'super_admin', 'firm_admin'] },
   { id: 'notif-settings-card', roles: ['admin', 'super_admin', 'firm_admin', 'agent'] },
-  { id: 'feature-flags-card', roles: ['admin', 'super_admin', 'firm_admin'] },
-  { id: 'job-permissions-card', roles: ['admin', 'super_admin', 'firm_admin'] },
+  { id: 'feature-flags-card', roles: ['super_admin'] },
+  { id: 'job-permissions-card', roles: ['super_admin'] },
   { id: 'logo-settings-card', roles: ['super_admin'] },
   { id: 'mascot-default-card', roles: ['super_admin'] },
 ];
@@ -112,7 +112,7 @@ function mbIsFirmAdmin(role) {
   return ['admin', 'firm_admin', 'super_admin'].includes(r || '');
 }
 
-const MB_PERM_REV = 10;
+const MB_PERM_REV = 11;
 const MB_PERM_GRANTS = [
   { rev: 2, keys: ['supervisor', 'jobmarket', 'fieldops'] },
   { rev: 3, keys: ['geocon'] },
@@ -123,6 +123,7 @@ const MB_PERM_GRANTS = [
   { rev: 8, keys: ['blacklist'] },
   { rev: 9, keys: ['attendance'] },
   { rev: 10, keys: ['attendance'] },
+  { rev: 11, keys: ['settings'] },
 ];
 
 function mbMergeStoredPerms(list, role, settings) {

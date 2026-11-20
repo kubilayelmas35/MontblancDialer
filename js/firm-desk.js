@@ -30,7 +30,11 @@ async function loadFirmDesk() {
   const host = document.getElementById('firmdesk-body');
   const edit = document.getElementById('firmdesk-edit');
   if (!host) return;
-  if (edit) edit.textContent = mbFirmDeskSay('firm.desk.edit', 'Ücreti düzenle');
+  if (edit) {
+    const canEdit = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
+    edit.hidden = !canEdit;
+    edit.textContent = mbFirmDeskSay('firm.desk.edit', 'Ücreti düzenle');
+  }
   host.innerHTML = `<div class="firmdesk-note">${mbFirmDeskSay('tb.bal_loading', 'Hesaplanıyor…')}</div>`;
   const fid = (typeof getActiveFirmId === 'function' && getActiveFirmId()) || currentUser?.firm_id;
   if (!fid) {
@@ -99,6 +103,7 @@ ${hold}
 }
 
 function mbFirmDeskEdit() {
+  if (!(typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin())) return;
   const firm = window._firmDesk;
   if (!firm || typeof openFirmBilling !== 'function') return;
   openFirmBilling(firm.id);

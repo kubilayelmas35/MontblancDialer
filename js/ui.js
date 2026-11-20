@@ -362,28 +362,32 @@ function initSettingsTabs(preferTab) {
   if (tab === 'notifications' && typeof opsEnsureNotifFirmForm === 'function') opsEnsureNotifFirmForm();
 }
 
+function mbSettingsTier() {
+  if (typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin()) return 'super';
+  if (typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin()) return 'firm';
+  return 'staff';
+}
+
 function mbSyncSettingsTabs() {
-  const superOnly = typeof mbIsSuperAdmin === 'function' && mbIsSuperAdmin();
-  const staff = mbSettingsStaffRole();
-  const personal = new Set(['general', 'mascot', 'notifications']);
+  const tier = mbSettingsTier();
+  const staffTabs = new Set(['general', 'mascot', 'notifications']);
+  const firmTabs = new Set([...staffTabs, 'communication', 'quality', 'takvim', 'operations', 'mesai', 'field']);
+  const allow = tier === 'super' ? null : (tier === 'firm' ? firmTabs : staffTabs);
   document.querySelectorAll('#settings-tabs .settings-tab-btn').forEach((btn) => {
-    const tab = btn.dataset.tab;
-    if (staff) {
-      btn.style.display = personal.has(tab) ? '' : 'none';
-      return;
-    }
-    if (tab === 'takvim' && !(typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin())) {
-      btn.style.display = 'none';
-      return;
-    }
-    if (tab === 'lines') {
-      const show = typeof mbIsFirmAdmin === 'function' && mbIsFirmAdmin();
-      btn.style.display = show ? '' : 'none';
-      return;
-    }
-    const ownerTab = tab === 'system';
-    btn.style.display = !superOnly && ownerTab ? 'none' : '';
+    btn.style.display = !allow || allow.has(btn.dataset.tab) ? '' : 'none';
   });
+  const sub = document.getElementById('settings-role-sub');
+  if (sub) {
+    const copy = {
+      staff: ['Tema, renk, maskot ve kendi bildirim sesin.', 'Thema, Farbe, Maskottchen und dein eigener Hinweiston.'],
+      firm: ['Firmanın iletişimi, kalitesi, takvimi, hedefi, mesaisi ve sahası. Fiyat ve hat süper adminde.', 'Kommunikation, Qualität, Kalender, Ziel, Schicht und Feld der Firma. Tarif und Leitung liegen beim Superadmin.'],
+      super: ['Tüm ayarlar, hat ve sistem. Fiyat Firmalar sayfasında, firmanın Ücret düğmesinde.', 'Alle Einstellungen, Leitung und System. Der Tarif steht bei Firmen, Knopf Tarif.'],
+    }[tier];
+    sub.dataset.tr = copy[0];
+    sub.dataset.de = copy[1];
+    const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+    sub.textContent = de ? copy[1] : copy[0];
+  }
   const active = document.querySelector('#settings-tabs .settings-tab-btn.active');
   if (active && active.style.display === 'none') setSettingsTab('general');
 }
