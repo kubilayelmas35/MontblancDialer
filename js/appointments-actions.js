@@ -1239,7 +1239,9 @@ async function openTakvimSettings() {
   const m = document.createElement('div');
   m.id = 'm-takvim-settings';
   m.className = 'modal-overlay open';
-  const dayNames = {pzt:'Pazartesi',sal:'Salı',car:'Çarşamba',per:'Perşembe',cum:'Cuma',cmt:'Cumartesi',paz:'Pazar'};
+  const dayNames = (typeof currentLang !== 'undefined' && currentLang === 'de')
+    ? {pzt:'Montag',sal:'Dienstag',car:'Mittwoch',per:'Donnerstag',cum:'Freitag',cmt:'Samstag',paz:'Sonntag'}
+    : {pzt:'Pazartesi',sal:'Salı',car:'Çarşamba',per:'Perşembe',cum:'Cuma',cmt:'Cumartesi',paz:'Pazar'};
   const slotOpts = [1, 2, 3, 4].map((n) =>
     `<option value="${n}"${cfg.slot_dur === n ? ' selected' : ''}>${n} saat</option>`
   ).join('');

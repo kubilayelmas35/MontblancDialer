@@ -206,13 +206,13 @@ const UQ_TARGET_FIELDS = [
 ];
 
 const GUNLER = [
-{key:'pzt', label:'Pazartesi'},
-{key:'sal', label:'Salı'},
-{key:'car', label:'Çarşamba'},
-{key:'per', label:'Perşembe'},
-{key:'cum', label:'Cuma'},
-{key:'cmt', label:'Cumartesi'},
-{key:'paz', label:'Pazar'},
+{key:'pzt', label:'Pazartesi', de:'Montag'},
+{key:'sal', label:'Salı', de:'Dienstag'},
+{key:'car', label:'Çarşamba', de:'Mittwoch'},
+{key:'per', label:'Perşembe', de:'Donnerstag'},
+{key:'cum', label:'Cuma', de:'Freitag'},
+{key:'cmt', label:'Cumartesi', de:'Samstag'},
+{key:'paz', label:'Pazar', de:'Sonntag'},
 ];
 
 const TOMTOM_KEY = () => localStorage.getItem('mb_tomtom_key') || DEFAULT_TOMTOM_KEY;

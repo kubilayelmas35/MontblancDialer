@@ -1912,7 +1912,12 @@ async function opsTickData() {
   } catch (e) {}
 }
 
-const OPS_GUN_LABEL = { pzt: 'Pazartesi', sal: 'Salı', car: 'Çarşamba', per: 'Perşembe', cum: 'Cuma', cmt: 'Cumartesi', paz: 'Pazar' };
+const OPS_GUN_LABEL = { pzt: ['Pazartesi', 'Montag'], sal: ['Salı', 'Dienstag'], car: ['Çarşamba', 'Mittwoch'], per: ['Perşembe', 'Donnerstag'], cum: ['Cuma', 'Freitag'], cmt: ['Cumartesi', 'Samstag'], paz: ['Pazar', 'Sonntag'] };
+function opsGunLabel(gun) {
+  const pair = OPS_GUN_LABEL[gun];
+  if (!pair) return gun || '';
+  return (typeof currentLang !== 'undefined' && currentLang === 'de') ? pair[1] : pair[0];
+}
 const OPS_GUN_ORDER = ['pzt', 'sal', 'car', 'per', 'cum', 'cmt', 'paz'];
 let _opsMesaiPlan = null;
 let _opsMesaiPaintTimer = 0;
@@ -2136,13 +2141,13 @@ function opsPaintMesaiSlides(slides) {
 function opsMesaiWindow() {
   const clock = opsBerlinClock(_opsMesaiTz);
   const row = _opsMesaiPlan?.[clock.gun] || opsMesaiFallbackDay(clock.gun);
-  if (!row || row.off) return { off: true, breaks: [], label: OPS_GUN_LABEL[clock.gun], clock };
+  if (!row || row.off) return { off: true, breaks: [], label: opsGunLabel(clock.gun), clock };
   return {
     off: false,
     start: row.start,
     end: row.end,
     breaks: Array.isArray(row.breaks) ? row.breaks : [],
-    label: OPS_GUN_LABEL[clock.gun],
+    label: opsGunLabel(clock.gun),
     clock,
   };
 }
@@ -2422,7 +2427,7 @@ function opsMesaiDay(gun) {
   return {
     gun,
     short: shorts[gun] || gun,
-    label: OPS_GUN_LABEL[gun] || gun,
+    label: opsGunLabel(gun),
     off: !row || !!row.off,
     start: row?.start || '',
     end: row?.end || '',
