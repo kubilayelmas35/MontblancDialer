@@ -1872,6 +1872,27 @@ async function tourNearbyInsert(row) {
   }
   if (!fresh.length) return { ...empty, reason: '' };
   const firmId = tourFirmId();
+  if (typeof mbAddrKey === 'function' && firmId) {
+    const addrKeys = new Set();
+    let offset = 0;
+    for (;;) {
+      const part = await sb(`contacts?firm_id=eq.${firmId}&campaign_id=eq.${row.id}&select=address,plz,city&limit=1000&offset=${offset}`).catch(() => []);
+      (Array.isArray(part) ? part : []).forEach((item) => {
+        const key = mbAddrKey(item.address, item.plz, '', item.city);
+        if (key) addrKeys.add(key);
+      });
+      if (!Array.isArray(part) || part.length < 1000 || offset >= 4000) break;
+      offset += 1000;
+    }
+    fresh = fresh.filter((item) => {
+      const key = mbAddrKey(item.address, item.plz, '', item.city);
+      if (!key) return true;
+      if (addrKeys.has(key)) return false;
+      addrKeys.add(key);
+      return true;
+    });
+    if (!fresh.length) return { ...empty, reason: '' };
+  }
   const plzName = ariaPlzList(fresh.map((item) => item.plz), 8) || `Yakın ${row.anchor || ''}`.trim();
   const wantNew = tourPref().kuyrukYer === 'yeni';
   const found = wantNew ? [] : await sb(`queues?campaign_id=eq.${row.id}&select=id,name,total_contacts&order=created_at.desc&limit=1`).catch(() => []);

@@ -417,44 +417,33 @@ async function mbShowUploadReport(lines) {
 
 let _uqAddrGroups = null;
 
-function mbAddrFold(value) {
-  return String(value || '')
-    .replace(/İ/g, 'i')
-    .replace(/I/g, 'i')
-    .toLowerCase()
-    .replace(/ß/g, 'ss')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/ı/g, 'i');
+function mbAddrExact(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
 function mbAddrHouse(raw) {
-  let s = mbAddrFold(raw).replace(/[.,:;]+/g, ' ').replace(/\s+/g, ' ').trim();
-  s = s.replace(/^(?:no|nr|numara|hausnr|hnr)\s+/, '');
-  s = s.replace(/(\d)\s*([/-])\s*(\d)/g, '$1$2$3');
+  const s = mbAddrExact(raw).replace(/^(?:no|nr|numara|hausnr|hnr)\s+/, '');
   if (!/^\d+[a-z]?(?:[/-]\d+[a-z]?)?$/.test(s)) return '';
   return s;
 }
 
-function mbAddrKey(address, plz, houseNo) {
-  const code = String(plz || '').replace(/\D/g, '');
+function mbAddrKey(address, plz, houseNo, city) {
+  const digits = String(plz || '').replace(/\D/g, '');
+  const code = digits.length >= 4 && digits.length <= 5 ? digits.padStart(5, '0') : digits;
   if (code.length < 4 || code.length > 6) return '';
-  let street = mbAddrFold(address).replace(/[.,:;]+/g, ' ').replace(/\s+/g, ' ').trim();
-  street = street.replace(/(\d)\s*([/-])\s*(\d)/g, '$1$2$3');
-  street = street.replace(/str\b/g, 'strasse');
+  let street = mbAddrExact(address);
   let no = mbAddrHouse(houseNo);
   if (no) {
     const tail = no.replace(/[.*+?^${}()|[\]\\/-]/g, '\\$&');
-    street = street.replace(new RegExp(`(?:\\s+(?:no|nr|numara|hausnr|hnr))?\\s+${tail}$`), '').trim();
+    street = street.replace(new RegExp(`\\s+${tail}$`), '').trim();
   } else {
-    const hit = street.match(/^(.*?)(?:\s+(?:no|nr|numara|hausnr|hnr))?\s+(\d+[a-z]?(?:[/-]\d+[a-z]?)?)$/);
+    const hit = street.match(/^(.*\S)\s+(\d+[a-z]?(?:[/-]\d+[a-z]?)?)$/);
     if (!hit) return '';
     street = hit[1].trim();
     no = hit[2];
   }
-  street = street.replace(/\s+(?:no|nr|numara|hausnr|hnr)$/, '').replace(/\s+/g, ' ').trim();
   if (!street || !no) return '';
-  return `${code}|${street}|${no}`;
+  return `${code}|${mbAddrExact(city)}|${street}|${no}`;
 }
 
 function mbAddrClear() {
@@ -478,8 +467,8 @@ function mbAddrWho(row) {
 function mbAddrFace(row) {
   const no = String(row?.house_no || '').trim();
   const addr = String(row?.address || '').trim();
-  const folded = mbAddrFold(addr);
-  const token = mbAddrFold(no);
+  const folded = mbAddrExact(addr);
+  const token = mbAddrExact(no);
   const shown = no && token && !folded.endsWith(token) ? `${addr} ${no}` : addr;
   return [shown, row?.plz || ''].filter(Boolean).join(' · ') || '—';
 }
@@ -506,8 +495,8 @@ function mbAddrExport(row) {
   delete out.house_no;
   if (no) {
     const addr = String(out.address || '').trim();
-    const token = mbAddrFold(no);
-    if (token && !mbAddrFold(addr).endsWith(token)) out.address = addr ? `${addr} ${no}` : no;
+    const token = mbAddrExact(no);
+    if (token && !mbAddrExact(addr).endsWith(token)) out.address = addr ? `${addr} ${no}` : no;
   }
   return out;
 }
@@ -521,7 +510,7 @@ async function mbAddrLive(plzs, firmId) {
     const list = codes.slice(i, i + 25).map((code) => `"${code}"`).join(',');
     let offset = 0;
     for (;;) {
-      const part = await sb(`contacts?select=id,phone,phone2,first_name,last_name,address,plz,notes&plz=in.(${list})${firm}&limit=1000&offset=${offset}`) || [];
+      const part = await sb(`contacts?select=id,phone,phone2,first_name,last_name,address,plz,city,notes&plz=in.(${list})${firm}&limit=1000&offset=${offset}`) || [];
       rows.push(...part);
       if (part.length < 1000 || rows.length >= 8000) return rows;
       offset += 1000;
@@ -533,7 +522,7 @@ async function mbAddrLive(plzs, firmId) {
 async function mbAddrCollect(contacts, firmId) {
   const byKey = new Map();
   (contacts || []).forEach((row, index) => {
-    const key = mbAddrKey(row.address, row.plz, row.house_no);
+    const key = mbAddrKey(row.address, row.plz, row.house_no, row.city);
     if (!key) return;
     if (!byKey.has(key)) byKey.set(key, { key, file: [], live: [] });
     byKey.get(key).file.push(index);
@@ -543,7 +532,7 @@ async function mbAddrCollect(contacts, firmId) {
   let live = [];
   try { live = await mbAddrLive(plzs, firmId); } catch (e) { live = []; }
   live.forEach((row) => {
-    const key = mbAddrKey(row.address, row.plz);
+    const key = mbAddrKey(row.address, row.plz, '', row.city);
     if (!key || !byKey.has(key)) return;
     const group = byKey.get(key);
     if (group.live.some((item) => item.id === row.id)) return;
@@ -567,7 +556,7 @@ function mbAddrPaint(groups, contacts) {
     const choice = (value, label, on) => `<label><input type="radio" name="uq-addr-${index}" value="${value}"${on ? ' checked' : ''}> ${esc(label)}</label>`;
     return `<div class="uq-addr-card"><strong>${esc(mbAddrFace(sample))}</strong>${live ? `<p>${esc(uqSay('uq.addr.live', 'Sistemde'))}: ${live}</p>` : ''}<p>${esc(uqSay('uq.addr.file', 'Dosyada'))}: ${file}</p><div class="uq-addr-choices">${choice('add', uqSay('uq.addr.add', 'Ekle'), false)}${choice('skip', uqSay('uq.addr.skip', 'Atla'), false)}${choice('merge', uqSay('uq.addr.merge', 'Birleştir'), true)}</div></div>`;
   }).join('');
-  box.innerHTML = `<div style="font-size:12px;font-weight:700;color:var(--text);">${esc(uqSay('uq.addr.title', 'Aynı adres'))}</div><div class="uq-addr-hint">${esc(uqSay('uq.addr.hint', 'Posta kodu, sokak ve kapı numarası birebir aynı olanlar. 5 ile 5/2 ayrı kayıttır.'))}</div><div class="uq-addr-bulk"><button type="button" class="btn btn-ghost btn-xs" onclick="mbAddrPickAll('merge')">${esc(uqSay('uq.addr.all.merge', 'Hepsini birleştir'))}</button><button type="button" class="btn btn-ghost btn-xs" onclick="mbAddrPickAll('add')">${esc(uqSay('uq.addr.all.add', 'Hepsini ekle'))}</button><button type="button" class="btn btn-ghost btn-xs" onclick="mbAddrPickAll('skip')">${esc(uqSay('uq.addr.all.skip', 'Hepsini atla'))}</button></div><div class="uq-addr-list">${cards}</div>`;
+  box.innerHTML = `<div style="font-size:12px;font-weight:700;color:var(--text);">${esc(uqSay('uq.addr.title', 'Aynı adres'))}</div><div class="uq-addr-hint">${esc(uqSay('uq.addr.hint', 'Posta kodu, şehir, sokak ve kapı numarası harfi harfine aynı olanlar. Kısaltma, 5 ile 5a, 5 ile 5/2 ayrı kayıttır.'))}</div><div class="uq-addr-bulk"><button type="button" class="btn btn-ghost btn-xs" onclick="mbAddrPickAll('merge')">${esc(uqSay('uq.addr.all.merge', 'Hepsini birleştir'))}</button><button type="button" class="btn btn-ghost btn-xs" onclick="mbAddrPickAll('add')">${esc(uqSay('uq.addr.all.add', 'Hepsini ekle'))}</button><button type="button" class="btn btn-ghost btn-xs" onclick="mbAddrPickAll('skip')">${esc(uqSay('uq.addr.all.skip', 'Hepsini atla'))}</button></div><div class="uq-addr-list">${cards}</div>`;
   box.hidden = false;
   box.dataset.open = '1';
   box.dataset.count = String(contacts.length);
