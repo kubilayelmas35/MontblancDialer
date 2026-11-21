@@ -627,7 +627,7 @@ async function applyImpersonation() {
   persistImpersonationState();
   closeImpersonationModal();
   bootApp();
-  toast(`Temsil aktif: ${u.name}`, 'ok');
+  toast(currentLang === 'de' ? `Vertretung aktiv: ${u.name}` : `Temsil aktif: ${u.name}`, 'ok');
 }
 
 function stopImpersonation() {

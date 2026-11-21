@@ -8792,7 +8792,7 @@ async function kubilaiRunPartialBackup(){
 }
 async function kubilaiAnalyseNote(plz){
   const cached=analyseCache[plz];
-  if(!cached){try{showToast('Önce analiz gerekli');}catch(e){}return;}
+  if(!cached){try{showToast(lang==='de'?'Zuerst die Analyse ausführen':'Önce analiz gerekli');}catch(e){}return;}
   const noteEl=document.getElementById('kubAnalyseNote');
   const btn=document.getElementById('kubAnalyseBtn');
   if(btn){btn.disabled=true;btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Kubilai…';}

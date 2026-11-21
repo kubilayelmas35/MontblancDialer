@@ -20,7 +20,7 @@
 <span class="team-chat-panel-title" data-tr="Sohbet" data-de="Chat">Sohbet</span>
 <div id="team-chat-mode-wrap" class="team-chat-mode-wrap" style="display:none;">
 <button type="button" class="team-chat-mode-pill active" data-mode="firm">Firma</button>
-<button type="button" class="team-chat-mode-pill" data-mode="global">Tümü</button>
+<button type="button" class="team-chat-mode-pill" data-mode="global" data-tr="Tümü" data-de="Alle">Tümü</button>
 </div>
 </div>
 <button type="button" id="team-chat-close" class="team-chat-icon-btn team-chat-close-btn" aria-label="Kapat"><i class="ph ph-x"></i></button>
@@ -29,7 +29,7 @@
 <div id="team-chat-firm-layout" class="team-chat-firm-layout">
 <div class="team-chat-groups-col">
 <div class="team-chat-groups-toolbar">
-<button type="button" id="team-chat-quick-dm" class="btn btn-sm btn-secondary team-chat-btn-quick" style="display:none;">Hızlı mesaj</button>
+<button type="button" id="team-chat-quick-dm" class="btn btn-sm btn-secondary team-chat-btn-quick" style="display:none;" data-tr="Hızlı mesaj" data-de="Schnellnachricht">Hızlı mesaj</button>
 <button type="button" id="team-chat-new-group" class="btn btn-sm btn-secondary team-chat-btn-new" style="display:none;">+ Grup</button>
 </div>
 <div id="team-chat-group-list" class="team-chat-group-list"></div>
@@ -41,39 +41,39 @@
 <input type="file" id="team-chat-file" accept="image/*,audio/*,.pdf,.doc,.docx,.xlsx,.zip" style="display:none"/>
 <button type="button" class="team-chat-icon-btn" onclick="document.getElementById('team-chat-file').click()" title="Dosya / görsel" aria-label="Dosya ekle"><i class="ph ph-paperclip"></i></button>
 <button type="button" id="team-chat-mic" class="team-chat-icon-btn" title="Sesli mesaj" aria-label="Sesli mesaj"><i class="ph ph-microphone"></i></button>
-<input type="text" id="team-chat-input" class="form-input team-chat-input" placeholder="Mesaj yazın…" autocomplete="off" aria-label="Mesaj"/>
+<input type="text" id="team-chat-input" class="form-input team-chat-input" placeholder="Mesaj yazın…" data-tr="Mesaj yazın…" data-de="Nachricht schreiben…" autocomplete="off" aria-label="Mesaj" data-tr-aria="Mesaj" data-de-aria="Nachricht"/>
 <button type="button" id="team-chat-send" class="btn btn-primary btn-sm team-chat-send-btn" aria-label="Gönder"><i class="ph ph-paper-plane-tilt"></i></button>
 </div>
 </div>
 </div>
 </div>
 <div id="team-chat-global-feed" class="team-chat-global-feed" style="display:none;">
-<div class="team-chat-global-hint"><i class="ph ph-info"></i> Tüm firmalardaki son mesajlar. Yanıtlamak için satıra tıklayın.</div>
+<div class="team-chat-global-hint"><i class="ph ph-info"></i> <span data-tr="Tüm firmalardaki son mesajlar. Yanıtlamak için satıra tıklayın." data-de="Letzte Nachrichten aller Firmen. Zum Antworten die Zeile anklicken.">Tüm firmalardaki son mesajlar. Yanıtlamak için satıra tıklayın.</span></div>
 <div id="team-chat-global-list" class="team-chat-global-list"></div>
 </div>
 </div>
 </div>
 <div id="team-chat-quick-modal" class="team-chat-modal" style="display:none;">
 <div class="team-chat-modal-card">
-<h3 style="margin:0 0 8px;font-size:15px;">Hızlı mesaj</h3>
-<p class="team-chat-muted" style="margin:0 0 12px;font-size:12px;">Seçtiğiniz kişiyle birebir sohbet açılır (aynı firma bağlamında).</p>
+<h3 style="margin:0 0 8px;font-size:15px;" data-tr="Hızlı mesaj" data-de="Schnellnachricht">Hızlı mesaj</h3>
+<p class="team-chat-muted" style="margin:0 0 12px;font-size:12px;" data-tr="Seçtiğiniz kişiyle birebir sohbet açılır (aynı firma bağlamında)." data-de="Mit der gewählten Person öffnet sich ein Einzelchat (in derselben Firma).">Seçtiğiniz kişiyle birebir sohbet açılır (aynı firma bağlamında).</p>
 <select id="team-chat-quick-user" class="form-input" style="width:100%;margin-bottom:12px;">
-<option value="">Kişi seçin…</option>
+<option value="" data-tr="Kişi seçin…" data-de="Person wählen…">Kişi seçin…</option>
 </select>
 <div style="display:flex;gap:8px;justify-content:flex-end;">
-<button type="button" class="btn btn-secondary btn-sm" id="team-chat-quick-cancel">İptal</button>
-<button type="button" class="btn btn-primary btn-sm" id="team-chat-quick-go">Sohbeti aç</button>
+<button type="button" class="btn btn-secondary btn-sm" id="team-chat-quick-cancel" data-tr="İptal" data-de="Abbrechen">İptal</button>
+<button type="button" class="btn btn-primary btn-sm" id="team-chat-quick-go" data-tr="Sohbeti aç" data-de="Chat öffnen">Sohbeti aç</button>
 </div>
 </div>
 </div>
 <div id="team-chat-group-modal" class="team-chat-modal" style="display:none;">
 <div class="team-chat-modal-card">
 <h3 style="margin:0 0 12px;font-size:15px;">Yeni grup</h3>
-<input type="text" id="team-chat-group-name" class="form-input" placeholder="Grup adı" style="margin-bottom:12px;width:100%;"/>
+<input type="text" id="team-chat-group-name" class="form-input" placeholder="Grup adı" data-tr="Grup adı" data-de="Gruppenname" style="margin-bottom:12px;width:100%;"/>
 <div id="team-chat-group-members" class="team-chat-member-pick"></div>
 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
-<button type="button" class="btn btn-secondary btn-sm" id="team-chat-group-cancel" onclick="closeNewGroupModal()">İptal</button>
-<button type="button" class="btn btn-primary btn-sm" id="team-chat-save-group">Oluştur</button>
+<button type="button" class="btn btn-secondary btn-sm" id="team-chat-group-cancel" onclick="closeNewGroupModal()" data-tr="İptal" data-de="Abbrechen">İptal</button>
+<button type="button" class="btn btn-primary btn-sm" id="team-chat-save-group" data-tr="Oluştur" data-de="Erstellen">Oluştur</button>
 </div>
 </div>
 </div>

@@ -1003,7 +1003,7 @@ if (!name) return;
 const tpls = getFieldTemplates();
 tpls[name] = _ncFields.map(f=>({...f}));
 saveFieldTemplates(tpls);
-toast(`"${name}" şablonu kaydedildi ✓`, 'ok');
+toast(currentLang === 'de' ? `Vorlage „${name}“ gespeichert ✓` : `"${name}" şablonu kaydedildi ✓`, 'ok');
 renderNcTemplateSelect();
 }
 
@@ -1034,7 +1034,7 @@ if (!tpls[name]) return;
 _ncFields = tpls[name].map(f=>({...f}));
 renderNcFieldList();
 updateCampPreview();
-toast(`"${name}" şablonu yüklendi`, 'ok');
+toast(currentLang === 'de' ? `Vorlage „${name}“ geladen` : `"${name}" şablonu yüklendi`, 'ok');
 }
 
 async function ncDeleteTemplate() {

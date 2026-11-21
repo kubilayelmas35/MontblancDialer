@@ -1018,7 +1018,8 @@ function toast(msg, type='ok', durationMs) {
   const mark = kind === 'ok' ? '✓ ' : kind === 'err' ? '✕ ' : '';
   const item = document.createElement('div');
   item.className = `toast-item ${kind}`;
-  item.textContent = mark + String(msg || '');
+  const shown = typeof mbDe === 'function' ? mbDe(msg) : String(msg || '');
+  item.textContent = mark + shown;
   host.appendChild(item);
   while (host.children.length > 6) {
     const oldest = host.firstElementChild;
@@ -1054,10 +1055,11 @@ function _openSystemDialog({ type = 'alert', title = 'Bildirim', message = '', d
     }
     _systemDialogType = type;
     _systemDialogResolve = resolve;
-    titleEl.textContent = title;
-    msgEl.textContent = message || '';
-    ok.textContent = okText || 'Tamam';
-    cancel.textContent = cancelText || 'İptal';
+    const say = typeof mbDe === 'function' ? mbDe : (s) => s;
+    titleEl.textContent = say(title);
+    msgEl.textContent = say(message || '');
+    ok.textContent = say(okText || 'Tamam');
+    cancel.textContent = say(cancelText || 'İptal');
     cancel.style.display = type === 'alert' ? 'none' : '';
     inputWrap.style.display = type === 'prompt' ? '' : 'none';
     input.value = defaultValue == null ? '' : String(defaultValue);

@@ -542,7 +542,7 @@ async function takvimFillNeighborDist(slot, appt) {
   const prev = idx > 0 ? day[idx - 1] : null;
   const next = idx >= 0 && idx < day.length - 1 ? day[idx + 1] : null;
   if (!prev && !next) {
-    host.textContent = 'Aynı günde komşu randevu yok';
+    host.textContent = typeof mbDe === 'function' ? mbDe('Aynı günde komşu randevu yok') : 'Aynı günde komşu randevu yok';
     return;
   }
   const line = async (other, label) => {
@@ -555,7 +555,8 @@ async function takvimFillNeighborDist(slot, appt) {
     if (!row) row = await takvimRoutePlz(from, dest);
     return row ? `${label}: ${typeof takvimDistHtml === 'function' ? takvimDistHtml(row.km, row.min) : `${row.km} km · ${row.min} dk`}` : `${label}: —`;
   };
-  const parts = [await line(prev, 'Üstteki termin'), await line(next, 'Alttaki termin')].filter(Boolean);
+  const say = typeof mbDe === 'function' ? mbDe : (s) => s;
+  const parts = [await line(prev, say('Üstteki termin')), await line(next, say('Alttaki termin'))].filter(Boolean);
   if (document.getElementById('takvim-neighbor-dist') === host) host.innerHTML = parts.join(' · ');
 }
 
@@ -1468,7 +1469,7 @@ async function saveBulkSlots() {
     await sb('takvim_slots',{method:'POST',prefer:'return=minimal',body:JSON.stringify(slots)});
     closeModal('m-bulk-slot');
     await loadTakvimSlots();
-    toast(`${slots.length} slot eklendi ✓`,'ok');
+    toast(currentLang === 'de' ? `${slots.length} Slots hinzugefügt ✓` : `${slots.length} slot eklendi ✓`, 'ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 

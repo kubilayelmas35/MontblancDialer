@@ -413,7 +413,7 @@ function setupDropZones() {
       try {
         await sb(`takvim_slots?id=eq.${_dragSlot.id}`, {method:'PATCH', prefer:'return=minimal', body: JSON.stringify({tarih: newDate, baslangic_saat: newStart, bitis_saat: newEnd})});
         await loadTakvimSlots();
-        toast(`Slot taşındı: ${newDate} ${newStart}`, 'ok');
+        toast(currentLang === 'de' ? `Slot verschoben: ${newDate} ${newStart}` : `Slot taşındı: ${newDate} ${newStart}`, 'ok');
       } catch(e2) { toast('Taşıma hatası: '+e2.message, 'err'); }
     });
   });
@@ -761,7 +761,7 @@ async function nudgeTakvimSlot(slotId, deltaMin) {
       body: JSON.stringify({ baslangic_saat: newStart, bitis_saat: newEnd })
     });
     await loadTakvimSlots();
-    toast(`Slot ${deltaMin > 0 ? '+' : ''}${deltaMin} dk kaydırıldı`, 'ok');
+    toast(currentLang === 'de' ? `Slot ${deltaMin > 0 ? '+' : ''}${deltaMin} Min. verschoben` : `Slot ${deltaMin > 0 ? '+' : ''}${deltaMin} dk kaydırıldı`, 'ok');
   } catch (e) {
     toast('Kaydırma hatası: ' + (e?.message || ''), 'err');
   }
@@ -1271,7 +1271,7 @@ ${_iaHeaders.map((h,i)=>`<option value="${i}" ${chosen[f.key]===i?'selected':''}
   document.getElementById('ia-match-btn').style.display='';
   document.getElementById('ia-submit-btn').style.display='';
   iaDirty();
-  toast(`${_iaRows.length} satır okundu ✓`, 'ok');
+  toast(currentLang === 'de' ? `${_iaRows.length} Zeilen gelesen ✓` : `${_iaRows.length} satır okundu ✓`, 'ok');
 }
 
 function iaParseTime(raw) {
@@ -1769,7 +1769,7 @@ async function applyDefaultTakvimToFirmCampaigns() {
       const idx = typeof campaigns !== 'undefined' && campaigns ? campaigns.findIndex((x) => x.id === c.id) : -1;
       if (idx >= 0) campaigns[idx].settings = { ...(campaigns[idx].settings || {}), takvim: { ...takvim } };
     }
-    toast(`${n} kampanyaya takvim ayarları uygulandı ✓`, 'ok');
+    toast(currentLang === 'de' ? `Kalender auf ${n} Kampagnen angewendet ✓` : `${n} kampanyaya takvim ayarları uygulandı ✓`, 'ok');
     if (typeof takvimCampId !== 'undefined' && takvimCampId) await loadTakvimSlots();
   } catch (e) {
     toast('Hata: ' + e.message, 'err');

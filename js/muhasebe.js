@@ -424,7 +424,7 @@ async function testFxRateNow() {
   const rate = await _getMonthFxRate(fid, ym, Number(rules.exchange_rate || 1), rules);
   const rateInput = document.getElementById('pr-rate');
   if (rateInput) rateInput.value = String(Number(rate || 1));
-  toast(`Kur güncellendi: 1 EUR = ${_mFmt(rate)} TRY`, 'ok');
+  toast(currentLang === 'de' ? `Kurs aktualisiert: 1 EUR = ${_mFmt(rate)} TRY` : `Kur güncellendi: 1 EUR = ${_mFmt(rate)} TRY`, 'ok');
   updatePayrollPreview();
 }
 

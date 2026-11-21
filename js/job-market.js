@@ -444,7 +444,7 @@ function jmCalApply() {
   updateJobPricePreview();
   refreshJobSlotPreview();
   document.getElementById('jm-cal-modal')?.remove();
-  toast(`Takvim seçildi; ${cnt} slot için forma işlendi`, 'ok');
+  toast(currentLang === 'de' ? `Kalender gewählt; ${cnt} Slots ins Formular übernommen` : `Takvim seçildi; ${cnt} slot için forma işlendi`, 'ok');
 }
 
 async function geocodePostalCode(country, postalCode) {
@@ -508,7 +508,7 @@ async function runJobMarketAutoWithdrawals() {
     const rows = txt ? JSON.parse(txt) : [];
     const row = rows?.[0];
     const w = Number(row?.withdrawn ?? 0);
-    if (w > 0) toast(`${w} randevu ilanı otomatik geri çekildi (CRM randevusu yok)`, 'ok', 4500);
+    if (w > 0) toast(currentLang === 'de' ? `${w} Termininserate automatisch zurückgezogen (kein CRM-Termin)` : `${w} randevu ilanı otomatik geri çekildi (CRM randevusu yok)`, 'ok', 4500);
   } catch (_) {}
 }
 
