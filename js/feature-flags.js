@@ -6,13 +6,13 @@ let _featureFlagsFirmId = null;
 let _featureFlagsCache = {};
 
 const FEATURE_FLAG_DEFS = [
-  { key: 'dialer_enabled', label: 'Dialer aktif' },
-  { key: 'qc_dialer_enabled', label: 'QC dialer aktif' },
-  { key: 'admin_dialer_enabled', label: 'Admin dialer aktif' },
-  { key: 'field_module_enabled', label: 'Saha modülü aktif' },
-  { key: 'chat_enabled', label: 'Chat aktif' },
-  { key: 'notification_center_enabled', label: 'Bildirim merkezi aktif' },
-  { key: 'job_market_enabled', label: 'İş platformu aktif' }
+  { key: 'dialer_enabled', tr: 'Dialer aktif', de: 'Dialer an' },
+  { key: 'qc_dialer_enabled', tr: 'QC dialer aktif', de: 'QC-Dialer an' },
+  { key: 'admin_dialer_enabled', tr: 'Admin dialer aktif', de: 'Admin-Dialer an' },
+  { key: 'field_module_enabled', tr: 'Saha modülü aktif', de: 'Feldmodul an' },
+  { key: 'chat_enabled', tr: 'Sohbet aktif', de: 'Chat an' },
+  { key: 'notification_center_enabled', tr: 'Bildirim merkezi aktif', de: 'Hinweiszentrum an' },
+  { key: 'job_market_enabled', tr: 'İş platformu aktif', de: 'Jobbörse an' }
 ];
 
 function defaultFeatureFlags() {
@@ -72,9 +72,10 @@ async function loadFeatureFlagsPage() {
   const flags = await getFirmFeatureFlags(_featureFlagsFirmId, true);
   list.innerHTML = FEATURE_FLAG_DEFS.map((f) => {
     const on = flags[f.key] !== false;
+    const shown = (typeof currentLang !== 'undefined' && currentLang === 'de') ? f.de : f.tr;
     return `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-3);border-radius:8px;font-size:12px;cursor:pointer;">
 <input type="checkbox" data-ff-key="${f.key}" ${on ? 'checked' : ''} style="width:15px;height:15px;">
-<span>${f.label}</span>
+<span data-tr="${f.tr}" data-de="${f.de}">${shown}</span>
 </label>`;
   }).join('');
 }

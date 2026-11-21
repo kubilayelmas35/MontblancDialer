@@ -1625,16 +1625,26 @@ async function loadDefaultTakvimFirmCard() {
     raw = rows?.[0]?.settings?.default_takvim && typeof rows[0].settings.default_takvim === 'object' ? rows[0].settings.default_takvim : {};
   } catch (_) {}
   const cfg = mergeTakvimSettings(raw);
-  const dayNames = { pzt: 'Pazartesi', sal: 'Salı', car: 'Çarşamba', per: 'Perşembe', cum: 'Cuma', cmt: 'Cumartesi', paz: 'Pazar' };
+  const deOn = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const dayNames = [
+    ['pzt', 'Paz', 'Mo'],
+    ['sal', 'Sal', 'Di'],
+    ['car', 'Çar', 'Mi'],
+    ['per', 'Per', 'Do'],
+    ['cum', 'Cum', 'Fr'],
+    ['cmt', 'Cmt', 'Sa'],
+    ['paz', 'Paz', 'So'],
+  ];
   const slotOpts = [1, 2, 3, 4]
-    .map((n) => `<option value="${n}"${cfg.slot_dur === n ? ' selected' : ''}>${n} saat</option>`)
+    .map((n) => `<option value="${n}" data-tr="${n} saat" data-de="${n} Std."${cfg.slot_dur === n ? ' selected' : ''}>${deOn ? `${n} Std.` : `${n} saat`}</option>`)
     .join('');
+  const ui = (tr, de) => `<span data-tr="${tr}" data-de="${de}">${deOn ? de : tr}</span>`;
   host.innerHTML = `
 <div>
-<div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">Çalışma Günleri</div>
+<div style="font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text-2);">${ui('Çalışma günleri', 'Arbeitstage')}</div>
 <div style="display:flex;gap:4px;flex-wrap:wrap;" id="fdt-days">
-${Object.entries(dayNames)
-  .map(([k, v]) => {
+${dayNames
+  .map(([k, tr, de]) => {
     const on = cfg.active_days.includes(k);
     const st = on ? 'background:var(--accent);color:#fff;border-color:var(--accent)' : '';
     return (
@@ -1642,10 +1652,10 @@ ${Object.entries(dayNames)
       (on ? ' active' : '') +
       '" data-d="' +
       k +
-      '" style="' +
+      '" data-tr="' + tr + '" data-de="' + de + '" style="' +
       st +
       '" onclick="this.classList.toggle(\'active\');this.style.background=this.classList.contains(\'active\')?\'var(--accent)\':\'\';this.style.color=this.classList.contains(\'active\')?\'#fff\':\'\';this.style.borderColor=this.classList.contains(\'active\')?\'var(--accent)\':\'\';">' +
-      v.slice(0, 3) +
+      (deOn ? de : tr) +
       '</button>'
     );
   })
@@ -1653,13 +1663,13 @@ ${Object.entries(dayNames)
 </div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-<div class="form-row"><label class="form-label">Başlangıç</label><input type="time" class="form-input" id="fdt-start" value="${cfg.start_hour}"></div>
-<div class="form-row"><label class="form-label">Bitiş</label><input type="time" class="form-input" id="fdt-end" value="${cfg.end_hour}"></div>
+<div class="form-row"><label class="form-label">${ui('Başlangıç', 'Beginn')}</label><input type="time" class="form-input" id="fdt-start" value="${cfg.start_hour}"></div>
+<div class="form-row"><label class="form-label">${ui('Bitiş', 'Ende')}</label><input type="time" class="form-input" id="fdt-end" value="${cfg.end_hour}"></div>
 </div>
-<div class="form-row" style="margin-top:8px;"><label class="form-label">Slot süresi</label><select class="form-input" id="fdt-slot-dur">${slotOpts}</select></div>
-<div class="form-row"><label class="form-label">Gün başına maks. slot</label><input type="number" class="form-input" id="fdt-max-slots" value="${cfg.max_slots}" min="1" max="40" style="width:80px;"></div>
+<div class="form-row" style="margin-top:8px;"><label class="form-label">${ui('Slot süresi', 'Slotdauer')}</label><select class="form-input" id="fdt-slot-dur">${slotOpts}</select></div>
+<div class="form-row"><label class="form-label">${ui('Gün başına maks. slot', 'Max. Slots pro Tag')}</label><input type="number" class="form-input" id="fdt-max-slots" value="${cfg.max_slots}" min="1" max="40" style="width:80px;"></div>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-top:6px;">
-<input type="checkbox" id="fdt-confirm-slot" ${cfg.confirm_new_slot !== false ? 'checked' : ''}> Yeni slot eklerken onay penceresi (varsayılan)
+<input type="checkbox" id="fdt-confirm-slot" ${cfg.confirm_new_slot !== false ? 'checked' : ''}> ${ui('Yeni slot eklerken onay penceresi (varsayılan)', 'Beim neuen Slot ein Bestätigungsfenster (Standard)')}
 </label>
 <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;cursor:pointer;margin-top:8px;">
 <input type="checkbox" id="fdt-alta-slot" ${raw.altaYeniSlot !== false ? 'checked' : ''}>
@@ -1675,9 +1685,9 @@ ${Object.entries(dayNames)
 </div>
 </div>
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;">
-<button type="button" class="btn btn-primary btn-sm" onclick="saveDefaultTakvimFirmSettings()">Varsayılanı kaydet</button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="applyDefaultTakvimToFirmCampaigns()">Tüm aktif kampanyalara uygula</button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="localStorage.removeItem('mb_takvim_skip_new_slot_confirm');toast('Hızlı slot tercihi sıfırlandı','ok')">Hızlı slot (bir daha gösterme) sıfırla</button>
+<button type="button" class="btn btn-primary btn-sm" onclick="saveDefaultTakvimFirmSettings()" data-tr="Varsayılanı kaydet" data-de="Standard speichern">${deOn ? 'Standard speichern' : 'Varsayılanı kaydet'}</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="applyDefaultTakvimToFirmCampaigns()" data-tr="Tüm aktif kampanyalara uygula" data-de="Auf alle aktiven Kampagnen">${deOn ? 'Auf alle aktiven Kampagnen' : 'Tüm aktif kampanyalara uygula'}</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="localStorage.removeItem('mb_takvim_skip_new_slot_confirm');toast('Hızlı slot tercihi sıfırlandı','ok')" data-tr="Hızlı slot (bir daha gösterme) sıfırla" data-de="Schnellslot zurücksetzen">${deOn ? 'Schnellslot zurücksetzen' : 'Hızlı slot (bir daha gösterme) sıfırla'}</button>
 </div>`;
 }
 
@@ -1782,7 +1792,11 @@ let _mesaiPlanFirm = '';
 let _mesaiPlanTz = 'Europe/Berlin';
 let _mesaiPlanFirms = [];
 const MESAI_GUN_ORDER = ['pzt', 'sal', 'car', 'per', 'cum', 'cmt', 'paz'];
-const MESAI_GUN_LABEL = { pzt: 'Pazartesi', sal: 'Salı', car: 'Çarşamba', per: 'Perşembe', cum: 'Cuma', cmt: 'Cumartesi', paz: 'Pazar' };
+const MESAI_GUN_LABEL = { pzt: ['Pazartesi', 'Montag'], sal: ['Salı', 'Dienstag'], car: ['Çarşamba', 'Mittwoch'], per: ['Perşembe', 'Donnerstag'], cum: ['Cuma', 'Freitag'], cmt: ['Cumartesi', 'Samstag'], paz: ['Pazar', 'Sonntag'] };
+function mesaiGunLabel(gun) {
+  const pair = MESAI_GUN_LABEL[gun] || [gun, gun];
+  return (typeof currentLang !== 'undefined' && currentLang === 'de') ? pair[1] : pair[0];
+}
 
 function mesaiPlanFallback() {
   const plan = {};
@@ -1841,9 +1855,10 @@ function mesaiPlanRender() {
   if (!host || !_mesaiPlanDraft) return;
   const gun = _mesaiPlanGun || 'pzt';
   const day = _mesaiPlanDraft[gun] || { off: false, start: '08:00', end: '20:00', breaks: [] };
-  const shorts = { pzt: 'Pzt', sal: 'Sal', car: 'Çar', per: 'Per', cum: 'Cum', cmt: 'Cmt', paz: 'Paz' };
+  const shorts = { pzt: ['Pzt', 'Mo'], sal: ['Sal', 'Di'], car: ['Çar', 'Mi'], per: ['Per', 'Do'], cum: ['Cum', 'Fr'], cmt: ['Cmt', 'Sa'], paz: ['Paz', 'So'] };
+  const deOn = typeof currentLang !== 'undefined' && currentLang === 'de';
   const pills = MESAI_GUN_ORDER.map((key) =>
-    `<button type="button" class="btn btn-ghost btn-sm mesai-plan-day${key === gun ? ' active' : ''}" onclick="mesaiPlanPick('${key}')">${shorts[key]}</button>`
+    `<button type="button" class="btn btn-ghost btn-sm mesai-plan-day${key === gun ? ' active' : ''}" data-tr="${shorts[key][0]}" data-de="${shorts[key][1]}" onclick="mesaiPlanPick('${key}')">${deOn ? shorts[key][1] : shorts[key][0]}</button>`
   ).join('');
   const breaks = Array.isArray(day.breaks) ? day.breaks : [];
   const breakHtml = day.off ? '' : breaks.map((item, index) => `<div class="mesai-plan-break mp-break">
@@ -1963,7 +1978,7 @@ async function saveMesaiPlan() {
     const start = opsHm(day.start, '08:00');
     const end = opsHm(day.end, '20:00');
     if (!day.off && opsHmMins(start) >= opsHmMins(end)) {
-      toast(`${MESAI_GUN_LABEL[gun]}: ${t('mesai.plan.order')}`, 'warn');
+      toast(`${mesaiGunLabel(gun)}: ${t('mesai.plan.order')}`, 'warn');
       return;
     }
     const breaks = [];
@@ -1974,7 +1989,7 @@ async function saveMesaiPlan() {
       const a = opsHmMins(b0);
       const z = opsHmMins(b1);
       if (a >= z || (!day.off && (a < opsHmMins(start) || z > opsHmMins(end)))) {
-        toast(`${MESAI_GUN_LABEL[gun]}: ${t('mesai.plan.bad')}`, 'warn');
+        toast(`${mesaiGunLabel(gun)}: ${t('mesai.plan.bad')}`, 'warn');
         return;
       }
       breaks.push({ start: b0, end: b1 });

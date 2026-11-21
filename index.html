@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="callin.one çağrı merkezi">
-<link rel="icon" href="favicon.svg?v=15.3" type="image/svg+xml">
+<link rel="icon" href="favicon.svg?v=15.4" type="image/svg+xml">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,20 +15,20 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=15.3">
-<link rel="stylesheet" href="css/styles-dialer.css?v=15.3">
-<link rel="stylesheet" href="css/styles-mascot.css?v=15.3">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=15.3">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=15.3">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=15.3">
-<link rel="stylesheet" href="css/styles-pages.css?v=15.3">
-<link rel="stylesheet" href="css/styles-aurora.css?v=15.3">
-<link rel="stylesheet" href="css/styles-chat.css?v=15.3">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=15.3">
-<link rel="stylesheet" href="css/styles-responsive.css?v=15.3">
+<link rel="stylesheet" href="css/styles.css?v=15.4">
+<link rel="stylesheet" href="css/styles-dialer.css?v=15.4">
+<link rel="stylesheet" href="css/styles-mascot.css?v=15.4">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=15.4">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=15.4">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=15.4">
+<link rel="stylesheet" href="css/styles-pages.css?v=15.4">
+<link rel="stylesheet" href="css/styles-aurora.css?v=15.4">
+<link rel="stylesheet" href="css/styles-chat.css?v=15.4">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=15.4">
+<link rel="stylesheet" href="css/styles-responsive.css?v=15.4">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
-<script defer src="vendor/jssip.min.js?v=15.3"></script>
+<script defer src="vendor/jssip.min.js?v=15.4"></script>
 </head>
 <body>
 <noscript><p>callin.one için JavaScript gerekir.</p></noscript>
@@ -101,7 +101,7 @@
 </div>
 </div>
 </div>
-<div class="login-version">v15.3 — 2026</div>
+<div class="login-version">v15.4 — 2026</div>
 </div>
 </div>
 <div id="app" style="display:none;">
@@ -517,7 +517,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">callin.one v15.3</div>
+<div class="sb-ver">callin.one v15.4</div>
 </div>
 </div>
 </nav>
@@ -3492,9 +3492,9 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="ops-subpane" data-sub="wv">
 <div class="form-label" data-tr="Aranacaklar" data-de="Rückrufe">Aranacaklar</div>
 <div class="ops-sound-list">
-<label class="ops-note-row"><input type="checkbox" data-sound="due" checked><span><b data-tr="Vakti gelince" data-de="Wenn fällig">Vakti gelince</b><small data-tr="Aranacaklar saati gelince ortada pencere açılır." data-de="Öffnet ein Fenster, wenn der Rückruf fällig ist.">Aranacaklar saati gelince ortada pencere açılır.</small></span><select data-tone="due"><option value="chime">Çan</option><option value="bell">Zil</option><option value="soft">Yumuşak</option><option value="glass">Cam</option><option value="pop">Kısa</option></select><button type="button" onclick="opsPreviewSound('due')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('due')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
-<label class="ops-note-row"><input type="checkbox" data-sound="soon" checked><span><b data-tr="15 dk kala" data-de="15 Min. vorher">15 dk kala</b><small data-tr="Aranacaklar kaydı 15 dakika kalınca kısa uyarı." data-de="Kurzer Hinweis 15 Minuten vor dem Rückruf.">Aranacaklar kaydı 15 dakika kalınca kısa uyarı.</small></span><select data-tone="soon"><option value="chime">Çan</option><option value="bell">Zil</option><option value="soft" selected>Yumuşak</option><option value="glass">Cam</option><option value="pop">Kısa</option></select><button type="button" onclick="opsPreviewSound('soon')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('soon')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
-<label class="ops-note-row"><input type="checkbox" data-sound="hour" checked><span><b data-tr="30 ve 60 dk kala" data-de="30 und 60 Min. vorher">30 ve 60 dk kala</b><small data-tr="Aranacaklar için üstte ince şerit." data-de="Schmaler Streifen oben für Rückrufe.">Aranacaklar için üstte ince şerit.</small></span><select data-tone="hour"><option value="chime">Çan</option><option value="bell" selected>Zil</option><option value="soft">Yumuşak</option><option value="glass">Cam</option><option value="pop">Kısa</option></select><button type="button" onclick="opsPreviewSound('hour')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('hour')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row"><input type="checkbox" data-sound="due" checked><span><b data-tr="Vakti gelince" data-de="Wenn fällig">Vakti gelince</b><small data-tr="Aranacaklar saati gelince ortada pencere açılır." data-de="Öffnet ein Fenster, wenn der Rückruf fällig ist.">Aranacaklar saati gelince ortada pencere açılır.</small></span><select data-tone="due"><option value="chime" data-tr="Çan" data-de="Glocke">Çan</option><option value="bell" data-tr="Zil" data-de="Klingel">Zil</option><option value="soft" data-tr="Yumuşak" data-de="Weich">Yumuşak</option><option value="glass" data-tr="Cam" data-de="Glas">Cam</option><option value="pop" data-tr="Kısa" data-de="Kurz">Kısa</option></select><button type="button" onclick="opsPreviewSound('due')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('due')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row"><input type="checkbox" data-sound="soon" checked><span><b data-tr="15 dk kala" data-de="15 Min. vorher">15 dk kala</b><small data-tr="Aranacaklar kaydı 15 dakika kalınca kısa uyarı." data-de="Kurzer Hinweis 15 Minuten vor dem Rückruf.">Aranacaklar kaydı 15 dakika kalınca kısa uyarı.</small></span><select data-tone="soon"><option value="chime" data-tr="Çan" data-de="Glocke">Çan</option><option value="bell" data-tr="Zil" data-de="Klingel">Zil</option><option value="soft" selected data-tr="Yumuşak" data-de="Weich">Yumuşak</option><option value="glass" data-tr="Cam" data-de="Glas">Cam</option><option value="pop" data-tr="Kısa" data-de="Kurz">Kısa</option></select><button type="button" onclick="opsPreviewSound('soon')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('soon')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row"><input type="checkbox" data-sound="hour" checked><span><b data-tr="30 ve 60 dk kala" data-de="30 und 60 Min. vorher">30 ve 60 dk kala</b><small data-tr="Aranacaklar için üstte ince şerit." data-de="Schmaler Streifen oben für Rückrufe.">Aranacaklar için üstte ince şerit.</small></span><select data-tone="hour"><option value="chime" data-tr="Çan" data-de="Glocke">Çan</option><option value="bell" selected data-tr="Zil" data-de="Klingel">Zil</option><option value="soft" data-tr="Yumuşak" data-de="Weich">Yumuşak</option><option value="glass" data-tr="Cam" data-de="Glas">Cam</option><option value="pop" data-tr="Kısa" data-de="Kurz">Kısa</option></select><button type="button" onclick="opsPreviewSound('hour')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('hour')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
 </div>
 </div>
 <div class="ops-subpane" data-sub="appt" hidden>
@@ -3503,7 +3503,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label><input type="checkbox" id="ops-notify-appt" checked> <span data-tr="Temsilci kendi randevu bildirimini alsın" data-de="Mitarbeiter erhält Hinweise zu eigenen Terminen">Temsilci kendi randevu bildirimini alsın</span></label>
 </div>
 <div class="ops-sound-list">
-<label class="ops-note-row ops-agent-row-hide"><input type="checkbox" data-sound="slot" checked><span><b data-tr="Randevu kaydı" data-de="Termin gespeichert">Randevu kaydı</b><small data-tr="Kim, kimin için, hangi kampanyada ve saatte kaydetti." data-de="Wer für wen in welcher Kampagne gespeichert hat.">Kim, kimin için, hangi kampanyada ve saatte kaydetti.</small></span><select data-tone="slot"><option value="glass">Cam</option></select><button type="button" onclick="opsPreviewSound('slot')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('slot')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row ops-agent-row-hide"><input type="checkbox" data-sound="slot" checked><span><b data-tr="Randevu kaydı" data-de="Termin gespeichert">Randevu kaydı</b><small data-tr="Kim, kimin için, hangi kampanyada ve saatte kaydetti." data-de="Wer für wen in welcher Kampagne gespeichert hat.">Kim, kimin için, hangi kampanyada ve saatte kaydetti.</small></span><select data-tone="slot"><option value="glass" data-tr="Cam" data-de="Glas">Cam</option></select><button type="button" onclick="opsPreviewSound('slot')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('slot')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
 </div>
 </div>
 <div class="ops-subpane" data-sub="camp" hidden>
@@ -3530,7 +3530,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label><input type="checkbox" id="ops-notify-camp" checked> <span data-tr="Yeni kampanya şeridi işaretli rollere gitsin" data-de="Der Streifen der neuen Kampagne geht an die markierten Rollen">Yeni kampanya şeridi işaretli rollere gitsin</span></label>
 </div>
 <div class="ops-sound-list">
-<label class="ops-note-row"><input type="checkbox" data-sound="camp" checked><span><b data-tr="Yeni kampanya" data-de="Neue Kampagne">Yeni kampanya</b><small data-tr="Şerit kampanya adlarıyla çıkar." data-de="Der Streifen nennt die Kampagnennamen.">Şerit kampanya adlarıyla çıkar.</small></span><select data-tone="camp"><option value="chime" selected>Çan</option></select><button type="button" onclick="opsPreviewSound('camp')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('camp')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row"><input type="checkbox" data-sound="camp" checked><span><b data-tr="Yeni kampanya" data-de="Neue Kampagne">Yeni kampanya</b><small data-tr="Şerit kampanya adlarıyla çıkar." data-de="Der Streifen nennt die Kampagnennamen.">Şerit kampanya adlarıyla çıkar.</small></span><select data-tone="camp"><option value="chime" selected data-tr="Çan" data-de="Glocke">Çan</option></select><button type="button" onclick="opsPreviewSound('camp')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('camp')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
 </div>
 <div class="form-label" data-tr="Yanlış kampanya" data-de="Falsche Kampagne">Yanlış kampanya</div>
 <p class="ops-camp-hint" data-tr="Yeni kampanya şeridinden sonra, süre dolunca hâlâ yanlışsa bu şerit çıkar." data-de="Nach dem Streifen der neuen Kampagne erscheint dieser, wenn die Zeit um ist und die Kampagne noch falsch ist.">Yeni kampanya şeridinden sonra, süre dolunca hâlâ yanlışsa bu şerit çıkar.</p>
@@ -3553,13 +3553,13 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div id="ops-warn-preview" class="ops-camp-warn is-aurora ops-warn-preview ops-firm-only"><span class="ops-camp-warn-text" data-tr="Yanlış kampanyadasın. Seçmelisin: örnek." data-de="Falsche Kampagne. Einschalten: Beispiel.">Yanlış kampanyadasın. Seçmelisin: örnek.</span></div>
 <label class="ops-camp-time ops-firm-only"><span data-tr="Yanlış kampanya kaç dk sonra" data-de="Falsche Kampagne nach Min.">Yanlış kampanya kaç dk sonra</span><span class="ops-camp-time-row"><input id="ops-set-wrong-after" class="form-input" type="number" min="1" max="30" value="2"><span class="ops-camp-unit" data-tr="dk" data-de="Min.">dk</span></span></label>
 <div class="ops-sound-list">
-<label class="ops-note-row"><input type="checkbox" data-sound="wrong" checked><span><b data-tr="Yanlış kampanya" data-de="Falsche Kampagne">Yanlış kampanya</b><small data-tr="Süre dolunca, hâlâ yanlışsa şerit çıkar. Örnek de bu dakikayı bekler." data-de="Der Streifen kommt nach der eingestellten Zeit. Das Beispiel wartet genauso lange.">Süre dolunca, hâlâ yanlışsa şerit çıkar. Örnek de bu dakikayı bekler.</small></span><select data-tone="wrong"><option value="pop" selected>Kısa</option></select><button type="button" onclick="opsPreviewSound('wrong')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('wrong')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row"><input type="checkbox" data-sound="wrong" checked><span><b data-tr="Yanlış kampanya" data-de="Falsche Kampagne">Yanlış kampanya</b><small data-tr="Süre dolunca, hâlâ yanlışsa şerit çıkar. Örnek de bu dakikayı bekler." data-de="Der Streifen kommt nach der eingestellten Zeit. Das Beispiel wartet genauso lange.">Süre dolunca, hâlâ yanlışsa şerit çıkar. Örnek de bu dakikayı bekler.</small></span><select data-tone="wrong"><option value="pop" selected data-tr="Kısa" data-de="Kurz">Kısa</option></select><button type="button" onclick="opsPreviewSound('wrong')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('wrong')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
 </div>
 <div class="form-label ops-firm-only" data-tr="Veri uyarısı" data-de="Datenhinweis">Veri uyarısı</div>
 <p class="ops-camp-hint ops-firm-only" data-tr="Aktif kampanyada aranacak kayıt (bekleyen, cevapsız, geri ara) bu sayının altına düşünce firma admini, admin ve süper admin görür. Aynı kampanya için bir kez gelir; sayı yeniden yükselirse tekrar bakar." data-de="Fällt die anrufbare Menge einer aktiven Kampagne unter diese Zahl, sehen Firmenadmin, Admin und Superadmin den Hinweis. Pro Kampagne einmal, bis die Menge wieder steigt.">Aktif kampanyada aranacak kayıt (bekleyen, cevapsız, geri ara) bu sayının altına düşünce firma admini, admin ve süper admin görür. Aynı kampanya için bir kez gelir; sayı yeniden yükselirse tekrar bakar.</p>
 <label class="ops-camp-time ops-firm-only"><span data-tr="Kuyruk bunun altındaysa" data-de="Warteschlange unter">Kuyruk bunun altındaysa</span><span class="ops-camp-time-row"><input id="ops-set-data-min" class="form-input" type="number" min="1" max="100000" value="1000"><span class="ops-camp-unit" data-tr="kayıt" data-de="Einträge">kayıt</span></span></label>
 <div class="ops-sound-list ops-firm-only">
-<label class="ops-note-row ops-agent-row-hide"><input type="checkbox" data-sound="data" checked><span><b data-tr="Veri azaldı" data-de="Wenig Daten">Veri azaldı</b><small data-tr="Kampanya adı, kalan kuyruk ve sınır yazar." data-de="Nennt Kampagne, Rest und Grenze.">Kampanya adı, kalan kuyruk ve sınır yazar.</small></span><select data-tone="data"><option value="alert" selected>Uyarı</option></select><button type="button" onclick="opsPreviewSound('data')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('data')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row ops-agent-row-hide"><input type="checkbox" data-sound="data" checked><span><b data-tr="Veri azaldı" data-de="Wenig Daten">Veri azaldı</b><small data-tr="Kampanya adı, kalan kuyruk ve sınır yazar." data-de="Nennt Kampagne, Rest und Grenze.">Kampanya adı, kalan kuyruk ve sınır yazar.</small></span><select data-tone="data"><option value="alert" selected data-tr="Uyarı" data-de="Warnung">Uyarı</option></select><button type="button" onclick="opsPreviewSound('data')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('data')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
 </div>
 </div>
 <div class="ops-subpane" data-sub="mesai" hidden>
@@ -3574,10 +3574,10 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 <div id="ops-mesai-preview" class="ops-camp-warn is-mesai is-aurora ops-warn-preview ops-firm-only"><span class="ops-camp-warn-text" data-tr="Mesai başladı" data-de="Schicht hat begonnen">Mesai başladı</span></div>
 <div class="ops-sound-list">
-<label class="ops-note-row"><input type="checkbox" data-sound="shift_on" checked><span><b data-tr="Mesai başladı" data-de="Schicht hat begonnen">Mesai başladı</b><small data-tr="Mesai saati gelince şerit ve üst çubuk yanar." data-de="Zum Schichtbeginn leuchten Streifen und Leiste.">Mesai saati gelince şerit ve üst çubuk yanar.</small></span><select data-tone="shift_on"><option value="bell" selected>Zil</option></select><button type="button" onclick="opsPreviewSound('shift_on')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('shift_on')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
-<label class="ops-note-row"><input type="checkbox" data-sound="break" checked><span><b data-tr="Mola başladı" data-de="Pause hat begonnen">Mola başladı</b><small data-tr="Planlanan mola başlayınca." data-de="Wenn eine geplante Pause beginnt.">Planlanan mola başlayınca.</small></span><select data-tone="break"><option value="soft" selected>Yumuşak</option></select><button type="button" onclick="opsPreviewSound('break')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('break')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
-<label class="ops-note-row"><input type="checkbox" data-sound="break_end" checked><span><b data-tr="Mola bitti" data-de="Pause beendet">Mola bitti</b><small data-tr="Planlanan mola bitince." data-de="Wenn eine geplante Pause endet.">Planlanan mola bitince.</small></span><select data-tone="break_end"><option value="soft" selected>Yumuşak</option></select><button type="button" onclick="opsPreviewSound('break_end')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('break_end')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
-<label class="ops-note-row"><input type="checkbox" data-sound="shift" checked><span><b data-tr="Mesai bitti" data-de="Schicht beendet">Mesai bitti</b><small data-tr="Mesai saati bitince." data-de="Wenn die Schicht endet.">Mesai saati bitince.</small></span><select data-tone="shift"><option value="bell" selected>Zil</option></select><button type="button" onclick="opsPreviewSound('shift')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('shift')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row"><input type="checkbox" data-sound="shift_on" checked><span><b data-tr="Mesai başladı" data-de="Schicht hat begonnen">Mesai başladı</b><small data-tr="Mesai saati gelince şerit ve üst çubuk yanar." data-de="Zum Schichtbeginn leuchten Streifen und Leiste.">Mesai saati gelince şerit ve üst çubuk yanar.</small></span><select data-tone="shift_on"><option value="bell" selected data-tr="Zil" data-de="Klingel">Zil</option></select><button type="button" onclick="opsPreviewSound('shift_on')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('shift_on')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row"><input type="checkbox" data-sound="break" checked><span><b data-tr="Mola başladı" data-de="Pause hat begonnen">Mola başladı</b><small data-tr="Planlanan mola başlayınca." data-de="Wenn eine geplante Pause beginnt.">Planlanan mola başlayınca.</small></span><select data-tone="break"><option value="soft" selected data-tr="Yumuşak" data-de="Weich">Yumuşak</option></select><button type="button" onclick="opsPreviewSound('break')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('break')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row"><input type="checkbox" data-sound="break_end" checked><span><b data-tr="Mola bitti" data-de="Pause beendet">Mola bitti</b><small data-tr="Planlanan mola bitince." data-de="Wenn eine geplante Pause endet.">Planlanan mola bitince.</small></span><select data-tone="break_end"><option value="soft" selected data-tr="Yumuşak" data-de="Weich">Yumuşak</option></select><button type="button" onclick="opsPreviewSound('break_end')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('break_end')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row"><input type="checkbox" data-sound="shift" checked><span><b data-tr="Mesai bitti" data-de="Schicht beendet">Mesai bitti</b><small data-tr="Mesai saati bitince." data-de="Wenn die Schicht endet.">Mesai saati bitince.</small></span><select data-tone="shift"><option value="bell" selected data-tr="Zil" data-de="Klingel">Zil</option></select><button type="button" onclick="opsPreviewSound('shift')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('shift')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
 </div>
 </div>
 <div class="ops-subpane" data-sub="live" hidden>
@@ -3588,17 +3588,17 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="ops-camp-time"><span data-tr="Çalan arama" data-de="Klingeln">Çalan arama</span><span class="ops-camp-time-row"><input id="ops-set-wait" class="form-input" type="number" min="1" max="30" value="1"><span class="ops-camp-unit" data-tr="dk" data-de="Min.">dk</span></span></label>
 </div>
 <div class="ops-sound-list">
-<label class="ops-note-row ops-agent-row-hide"><input type="checkbox" data-sound="call" checked><span><b data-tr="Uzun görüşme" data-de="Langes Gespräch">Uzun görüşme</b><small data-tr="Kart çıkınca ve altın olunca." data-de="Wenn die Karte erscheint und gold wird.">Kart çıkınca ve altın olunca.</small></span><select data-tone="call"><option value="chime">Çan</option><option value="bell" selected>Zil</option><option value="soft">Yumuşak</option><option value="glass">Cam</option><option value="pop">Kısa</option></select><button type="button" onclick="opsPreviewSound('call')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('call')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
-<label class="ops-note-row ops-agent-row-hide"><input type="checkbox" data-sound="wait" checked><span><b data-tr="Çalan arama" data-de="Klingeln">Çalan arama</b><small data-tr="Çağrı bu dakikayı geçince bekleme kartı." data-de="Wartekarte, wenn das Klingeln diese Minuten überschreitet.">Çağrı bu dakikayı geçince bekleme kartı.</small></span><select data-tone="wait"><option value="chime">Çan</option><option value="bell">Zil</option><option value="soft" selected>Yumuşak</option><option value="glass">Cam</option><option value="pop">Kısa</option></select><button type="button" onclick="opsPreviewSound('wait')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('wait')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row ops-agent-row-hide"><input type="checkbox" data-sound="call" checked><span><b data-tr="Uzun görüşme" data-de="Langes Gespräch">Uzun görüşme</b><small data-tr="Kart çıkınca ve altın olunca." data-de="Wenn die Karte erscheint und gold wird.">Kart çıkınca ve altın olunca.</small></span><select data-tone="call"><option value="chime" data-tr="Çan" data-de="Glocke">Çan</option><option value="bell" selected data-tr="Zil" data-de="Klingel">Zil</option><option value="soft" data-tr="Yumuşak" data-de="Weich">Yumuşak</option><option value="glass" data-tr="Cam" data-de="Glas">Cam</option><option value="pop" data-tr="Kısa" data-de="Kurz">Kısa</option></select><button type="button" onclick="opsPreviewSound('call')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('call')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row ops-agent-row-hide"><input type="checkbox" data-sound="wait" checked><span><b data-tr="Çalan arama" data-de="Klingeln">Çalan arama</b><small data-tr="Çağrı bu dakikayı geçince bekleme kartı." data-de="Wartekarte, wenn das Klingeln diese Minuten überschreitet.">Çağrı bu dakikayı geçince bekleme kartı.</small></span><select data-tone="wait"><option value="chime" data-tr="Çan" data-de="Glocke">Çan</option><option value="bell" data-tr="Zil" data-de="Klingel">Zil</option><option value="soft" selected data-tr="Yumuşak" data-de="Weich">Yumuşak</option><option value="glass" data-tr="Cam" data-de="Glas">Cam</option><option value="pop" data-tr="Kısa" data-de="Kurz">Kısa</option></select><button type="button" onclick="opsPreviewSound('wait')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('wait')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
 </div>
 </div>
 <div class="ops-subpane" data-sub="cal" hidden>
 <div class="form-label" data-tr="Takvim" data-de="Kalender">Takvim</div>
 <div class="ops-sound-list">
-<label class="ops-note-row ops-agent-row-hide"><input type="checkbox" data-sound="pick" checked><span><b data-tr="Slot seçildi" data-de="Slot gewählt">Slot seçildi</b><small data-tr="Kim, hangi kampanyada, hangi gün ve saatte slot seçti." data-de="Wer welchen Slot in welcher Kampagne gewählt hat.">Kim, hangi kampanyada, hangi gün ve saatte slot seçti.</small></span><select data-tone="pick"><option value="alert">Uyarı</option></select><button type="button" onclick="opsPreviewSound('pick')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('pick')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
-<label class="ops-note-row ops-agent-row-hide"><input type="checkbox" data-sound="drop" checked><span><b data-tr="Slot iptal" data-de="Slot abgebrochen">Slot iptal</b><small data-tr="Seçilen slot bırakılınca." data-de="Wenn die Slotwahl aufgehoben wird.">Seçilen slot bırakılınca.</small></span><select data-tone="drop"><option value="soft">Yumuşak</option></select><button type="button" onclick="opsPreviewSound('drop')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('drop')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
-<label class="ops-note-row"><input type="checkbox" data-sound="clear" checked><span><b data-tr="Randevu silindi" data-de="Termin gelöscht">Randevu silindi</b><small data-tr="Dolu slot tekrar boşalınca." data-de="Wenn ein belegter Slot wieder frei wird.">Dolu slot tekrar boşalınca.</small></span><select data-tone="clear"><option value="lose">Kayıp</option></select><button type="button" onclick="opsPreviewSound('clear')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('clear')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
-<label class="ops-note-row"><input type="checkbox" data-sound="move" checked><span><b data-tr="Saat değişti" data-de="Uhrzeit geändert">Saat değişti</b><small data-tr="Randevunun günü veya saati değişince." data-de="Wenn Tag oder Uhrzeit eines Termins sich ändert.">Randevunun günü veya saati değişince.</small></span><select data-tone="move"><option value="bell">Zil</option></select><button type="button" onclick="opsPreviewSound('move')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('move')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row ops-agent-row-hide"><input type="checkbox" data-sound="pick" checked><span><b data-tr="Slot seçildi" data-de="Slot gewählt">Slot seçildi</b><small data-tr="Kim, hangi kampanyada, hangi gün ve saatte slot seçti." data-de="Wer welchen Slot in welcher Kampagne gewählt hat.">Kim, hangi kampanyada, hangi gün ve saatte slot seçti.</small></span><select data-tone="pick"><option value="alert" data-tr="Uyarı" data-de="Warnung">Uyarı</option></select><button type="button" onclick="opsPreviewSound('pick')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('pick')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row ops-agent-row-hide"><input type="checkbox" data-sound="drop" checked><span><b data-tr="Slot iptal" data-de="Slot abgebrochen">Slot iptal</b><small data-tr="Seçilen slot bırakılınca." data-de="Wenn die Slotwahl aufgehoben wird.">Seçilen slot bırakılınca.</small></span><select data-tone="drop"><option value="soft" data-tr="Yumuşak" data-de="Weich">Yumuşak</option></select><button type="button" onclick="opsPreviewSound('drop')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('drop')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row"><input type="checkbox" data-sound="clear" checked><span><b data-tr="Randevu silindi" data-de="Termin gelöscht">Randevu silindi</b><small data-tr="Dolu slot tekrar boşalınca." data-de="Wenn ein belegter Slot wieder frei wird.">Dolu slot tekrar boşalınca.</small></span><select data-tone="clear"><option value="lose" data-tr="Kayıp" data-de="Verpasst">Kayıp</option></select><button type="button" onclick="opsPreviewSound('clear')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('clear')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
+<label class="ops-note-row"><input type="checkbox" data-sound="move" checked><span><b data-tr="Saat değişti" data-de="Uhrzeit geändert">Saat değişti</b><small data-tr="Randevunun günü veya saati değişince." data-de="Wenn Tag oder Uhrzeit eines Termins sich ändert.">Randevunun günü veya saati değişince.</small></span><select data-tone="move"><option value="bell" data-tr="Zil" data-de="Klingel">Zil</option></select><button type="button" onclick="opsPreviewSound('move')" data-tr="Dinle" data-de="Hören">Dinle</button><button type="button" onclick="opsShowSample('move')" data-tr="Örnek" data-de="Beispiel">Örnek</button></label>
 </div>
 </div>
 <div class="ops-subpane" data-sub="qc" hidden>
@@ -4036,21 +4036,21 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="form-label" style="font-size:11px;margin-bottom:8px;" data-tr="Aksesuarlar" data-de="Accessoires">Aksesuarlar</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;align-items:end;">
 <div>
-<label class="form-label" style="font-size:10px;">Göz</label>
+<label class="form-label" style="font-size:10px;" data-tr="Göz" data-de="Augen">Göz</label>
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-eye" style="font-size:12px;">
 <option value="none" data-tr="Varsayılan" data-de="Standard">Varsayılan</option>
 <option value="logo" data-tr="Logo göz" data-de="Logo-Augen">Logo göz</option>
 <option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
-<option value="sparkle">Işıltılı</option>
+<option value="sparkle" data-tr="Işıltılı" data-de="Leuchtend">Işıltılı</option>
 <option value="anime">Anime</option>
-<option value="sleepy">Uykulu</option>
+<option value="sleepy" data-tr="Uykulu" data-de="Schläfrig">Uykulu</option>
 <option value="wink" data-tr="Göz kırpma" data-de="Blinzeln">Göz kırpma</option>
 <option value="shy" data-tr="Utangaç" data-de="Schüchtern">Utangaç</option>
 <option value="big" data-tr="İri" data-de="Groß">İri</option>
 <option value="star" data-tr="Yıldız göz" data-de="Sternenauge">Yıldız göz</option>
 <option value="glow" data-tr="Parlak çerçeve" data-de="Heller Rahmen">Parlak çerçeve</option>
-<option value="retro">Piksel</option>
+<option value="retro" data-tr="Piksel" data-de="Pixel">Piksel</option>
 <option value="softsquare" data-tr="Kapsül" data-de="Kapsel">Kapsül</option>
 </select>
 <input type="color" id="s-mascot-ccol-eye" value="#64748b" title="Renk · çift tık: varsayılan" data-tr-title="Renk · çift tık: varsayılan" data-de-title="Farbe · Doppelklick: Standard" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
@@ -4091,17 +4091,17 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" style="font-size:10px;" data-tr="Kaş" data-de="Augenbraue">Kaş</label>
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-brow" style="font-size:12px;">
-<option value="none">Yok</option>
+<option value="none" data-tr="Yok" data-de="Keine">Yok</option>
 <option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
-<option value="thin">İnce</option>
-<option value="soft">Yumuşak</option>
-<option value="arch">Kavisli</option>
+<option value="thin" data-tr="İnce" data-de="Fein">İnce</option>
+<option value="soft" data-tr="Yumuşak" data-de="Weich">Yumuşak</option>
+<option value="arch" data-tr="Kavisli" data-de="Gebogen">Kavisli</option>
 <option value="thick" data-tr="Kalın" data-de="Kräftig">Kalın</option>
 <option value="wispy" data-tr="Dağınık" data-de="Zerzaust">Dağınık</option>
-<option value="bold">Belirgin</option>
+<option value="bold" data-tr="Belirgin" data-de="Markant">Belirgin</option>
 <option value="angry" data-tr="Kızgın" data-de="Verärgert">Kızgın</option>
-<option value="straight">Düz</option>
-<option value="curved">Kavis (ince)</option>
+<option value="straight" data-tr="Düz" data-de="Glatt">Düz</option>
+<option value="curved" data-tr="Kavis (ince)" data-de="Bogen (fein)">Kavis (ince)</option>
 </select>
 <input type="color" id="s-mascot-ccol-brow" value="#64748b" title="Renk · çift tık: varsayılan" data-tr-title="Renk · çift tık: varsayılan" data-de-title="Farbe · Doppelklick: Standard" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
 </div>
@@ -4110,16 +4110,16 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" style="font-size:10px;" data-tr="Bıyık" data-de="Bart">Bıyık</label>
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-stache" style="font-size:12px;">
-<option value="none">Yok</option>
+<option value="none" data-tr="Yok" data-de="Keine">Yok</option>
 <option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
-<option value="silk">İpek çizgi</option>
-<option value="gentle">Yumuşak gölge</option>
+<option value="silk" data-tr="İpek çizgi" data-de="Seidenlinie">İpek çizgi</option>
+<option value="gentle" data-tr="Yumuşak gölge" data-de="Weicher Schatten">Yumuşak gölge</option>
 <option value="twirl" data-tr="Uçları kıvrık" data-de="Nach oben gebogen">Uçları kıvrık</option>
-<option value="dapper">Zarif orta</option>
-<option value="velvet">Kadife dolgun</option>
-<option value="painter">Sanatsal süpürme</option>
+<option value="dapper" data-tr="Zarif orta" data-de="Elegant, mittel">Zarif orta</option>
+<option value="velvet" data-tr="Kadife dolgun" data-de="Samtig">Kadife dolgun</option>
+<option value="painter" data-tr="Sanatsal süpürme" data-de="Künstlerisch">Sanatsal süpürme</option>
 <option value="crescent" data-tr="İnce hilal" data-de="Schmale Sichel">İnce hilal</option>
-<option value="film">Klasik sinema</option>
+<option value="film" data-tr="Klasik sinema" data-de="Kino">Klasik sinema</option>
 <option value="sombrero" data-tr="Geniş kavis" data-de="Weiter Bogen">Geniş kavis</option>
 </select>
 <input type="color" id="s-mascot-ccol-stache" value="#64748b" title="Renk · çift tık: varsayılan" data-tr-title="Renk · çift tık: varsayılan" data-de-title="Farbe · Doppelklick: Standard" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
@@ -4129,31 +4129,31 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" style="font-size:10px;" data-tr="Ağız" data-de="Mund">Ağız</label>
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-mouth" style="font-size:12px;">
-<option value="none">Yok</option>
+<option value="none" data-tr="Yok" data-de="Keine">Yok</option>
 <option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
-<option value="beam">Parlak gülümseme</option>
-<option value="soft">Yumuşak gülüm</option>
-<option value="laugh">Kahkaha</option>
+<option value="beam" data-tr="Parlak gülümseme" data-de="Helles Lächeln">Parlak gülümseme</option>
+<option value="soft" data-tr="Yumuşak gülüm" data-de="Weiches Lächeln">Yumuşak gülüm</option>
+<option value="laugh" data-tr="Kahkaha" data-de="Lachen">Kahkaha</option>
 <option value="smitten" data-tr="Sevimli küçük" data-de="Klein und süß">Sevimli küçük</option>
-<option value="playful">Oyuncu</option>
-<option value="tiny">Minik O</option>
-<option value="pout">Somurtkan</option>
+<option value="playful" data-tr="Oyuncu" data-de="Verspielt">Oyuncu</option>
+<option value="tiny" data-tr="Minik O" data-de="Winziges O">Minik O</option>
+<option value="pout" data-tr="Somurtkan" data-de="Mürrisch">Somurtkan</option>
 <option value="cool" data-tr="Cool çizgi" data-de="Kühler Strich">Cool çizgi</option>
-<option value="dreamy">Hayalperest</option>
+<option value="dreamy" data-tr="Hayalperest" data-de="Verträumt">Hayalperest</option>
 </select>
 <input type="color" id="s-mascot-ccol-mouth" value="#64748b" title="Renk · çift tık: varsayılan" data-tr-title="Renk · çift tık: varsayılan" data-de-title="Farbe · Doppelklick: Standard" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
 </div>
 </div>
 <div>
-<label class="form-label" style="font-size:10px;">Burun</label>
+<label class="form-label" style="font-size:10px;" data-tr="Burun" data-de="Nase">Burun</label>
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-nose" style="font-size:12px;">
-<option value="none">Yok</option>
+<option value="none" data-tr="Yok" data-de="Keine">Yok</option>
 <option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
-<option value="dot">Nokta</option>
+<option value="dot" data-tr="Nokta" data-de="Punkt">Nokta</option>
 <option value="oval">Oval</option>
 <option value="button" data-tr="Düğme" data-de="Knopf">Düğme</option>
-<option value="tiny">Minik</option>
+<option value="tiny" data-tr="Minik" data-de="Winzig">Minik</option>
 <option value="upturned" data-tr="Hafif yukarı" data-de="Leicht nach oben">Hafif yukarı</option>
 <option value="pierced" data-tr="Hızma" data-de="Nasenring">Hızma</option>
 </select>
@@ -4164,32 +4164,32 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" style="font-size:10px;" data-tr="Şapka / baş" data-de="Hut / Kopf">Şapka / baş</label>
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-hat" style="font-size:12px;">
-<option value="none">Yok</option>
+<option value="none" data-tr="Yok" data-de="Keine">Yok</option>
 <option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
-<option value="cap">Kep</option>
-<option value="beanie">Bere</option>
-<option value="tophat">Silindir</option>
+<option value="cap" data-tr="Kep" data-de="Kappe">Kep</option>
+<option value="beanie" data-tr="Bere" data-de="Mütze">Bere</option>
+<option value="tophat" data-tr="Silindir" data-de="Zylinder">Silindir</option>
 <option value="crown" data-tr="Taç" data-de="Krone">Taç</option>
 <option value="headband" data-tr="Saç bandı" data-de="Haarband">Saç bandı</option>
 <option value="cat" data-tr="Kedi kulağı" data-de="Katzenohren">Kedi kulağı</option>
 <option value="party">Parti</option>
-<option value="wizard">Büyücü</option>
+<option value="wizard" data-tr="Büyücü" data-de="Zauberer">Büyücü</option>
 </select>
 <input type="color" id="s-mascot-ccol-hat" value="#64748b" title="Renk · çift tık: varsayılan" data-tr-title="Renk · çift tık: varsayılan" data-de-title="Farbe · Doppelklick: Standard" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
 </div>
 </div>
 <div>
-<label class="form-label" style="font-size:10px;">Küpe</label>
+<label class="form-label" style="font-size:10px;" data-tr="Küpe" data-de="Ohrring">Küpe</label>
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-earring" style="font-size:12px;">
-<option value="none">Yok</option>
+<option value="none" data-tr="Yok" data-de="Keine">Yok</option>
 <option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
-<option value="stud">Pim</option>
-<option value="hoop">Halka</option>
+<option value="stud" data-tr="Pim" data-de="Pin">Pim</option>
+<option value="hoop" data-tr="Halka" data-de="Ring">Halka</option>
 <option value="pearl" data-tr="İnci" data-de="Perlen">İnci</option>
-<option value="drop">Damla</option>
-<option value="crystal">Kristal</option>
-<option value="heart">Kalp</option>
+<option value="drop" data-tr="Damla" data-de="Tropfen">Damla</option>
+<option value="crystal" data-tr="Kristal" data-de="Kristall">Kristal</option>
+<option value="heart" data-tr="Kalp" data-de="Herz">Kalp</option>
 </select>
 <input type="color" id="s-mascot-ccol-earring" value="#64748b" title="Renk · çift tık: varsayılan" data-tr-title="Renk · çift tık: varsayılan" data-de-title="Farbe · Doppelklick: Standard" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
 </div>
@@ -4198,32 +4198,32 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" style="font-size:10px;" data-tr="Kıyafet / aksesuar" data-de="Kleidung / Accessoire">Kıyafet / aksesuar</label>
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-outfit" style="font-size:12px;max-width:100%;">
-<option value="none">Yok</option>
+<option value="none" data-tr="Yok" data-de="Keine">Yok</option>
 <option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
-<option value="bowtie">Papyon</option>
-<option value="necktie">Kravat</option>
+<option value="bowtie" data-tr="Papyon" data-de="Fliege">Papyon</option>
+<option value="necktie" data-tr="Kravat" data-de="Krawatte">Kravat</option>
 <option value="scarf" data-tr="Atkı" data-de="Schal">Atkı</option>
-<option value="badge">Rozet</option>
-<option value="collar">Yaka</option>
+<option value="badge" data-tr="Rozet" data-de="Anstecker">Rozet</option>
+<option value="collar" data-tr="Yaka" data-de="Kragen">Yaka</option>
 <option value="pearls" data-tr="İnci" data-de="Perlen">İnci</option>
-<option value="ribbon">Kurdele</option>
-<option value="vest">Yelek</option>
+<option value="ribbon" data-tr="Kurdele" data-de="Band">Kurdele</option>
+<option value="vest" data-tr="Yelek" data-de="Weste">Yelek</option>
 </select>
 <input type="color" id="s-mascot-ccol-outfit" value="#64748b" title="Renk · çift tık: varsayılan" data-tr-title="Renk · çift tık: varsayılan" data-de-title="Farbe · Doppelklick: Standard" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
 </div>
 </div>
 <div style="grid-column:1 / -1;">
-<label class="form-label" style="font-size:10px;">Makyaj</label>
+<label class="form-label" style="font-size:10px;" data-tr="Makyaj" data-de="Make-up">Makyaj</label>
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-makeup" style="font-size:12px;max-width:100%;">
-<option value="none">Yok</option>
+<option value="none" data-tr="Yok" data-de="Keine">Yok</option>
 <option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
-<option value="blush">Allık</option>
-<option value="glow">Parlama</option>
+<option value="blush" data-tr="Allık" data-de="Rouge">Allık</option>
+<option value="glow" data-tr="Parlama" data-de="Glanz">Parlama</option>
 <option value="freckles" data-tr="Çiller" data-de="Sommersprossen">Çiller</option>
-<option value="liner">Eyeliner hissi</option>
+<option value="liner" data-tr="Eyeliner hissi" data-de="Eyeliner">Eyeliner hissi</option>
 <option value="sparkle" data-tr="Işıltı" data-de="Glanz">Işıltı</option>
-<option value="cute">Sevimli pembe</option>
+<option value="cute" data-tr="Sevimli pembe" data-de="Süßes Rosa">Sevimli pembe</option>
 </select>
 <input type="color" id="s-mascot-ccol-makeup" value="#64748b" title="Renk · çift tık: varsayılan" data-tr-title="Renk · çift tık: varsayılan" data-de-title="Farbe · Doppelklick: Standard" style="width:30px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);cursor:pointer;">
 </div>
@@ -4232,20 +4232,20 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <label class="form-label" style="font-size:10px;" data-tr="Saç" data-de="Haar">Saç</label>
 <div style="display:grid;grid-template-columns:1fr 30px;gap:6px;align-items:center;margin-top:4px;">
 <select class="form-input" id="s-mascot-cos-hair" style="font-size:12px;max-width:100%;">
-<option value="none">Yok</option>
+<option value="none" data-tr="Yok" data-de="Keine">Yok</option>
 <option value="random" data-tr="Rastgele (sabit)" data-de="Zufällig (bleibt)">Rastgele (sabit)</option>
 <option value="bob">Bob</option>
-<option value="short">Kısa</option>
-<option value="long">Uzun</option>
-<option value="braid">Örgü</option>
-<option value="bun">Topuz</option>
+<option value="short" data-tr="Kısa" data-de="Kurz">Kısa</option>
+<option value="long" data-tr="Uzun" data-de="Lang">Uzun</option>
+<option value="braid" data-tr="Örgü" data-de="Zopf">Örgü</option>
+<option value="bun" data-tr="Topuz" data-de="Dutt">Topuz</option>
 <option value="pony" data-tr="At kuyruğu" data-de="Pferdeschwanz">At kuyruğu</option>
 <option value="pixie">Pixie</option>
 <option value="waves" data-tr="Dalgalı" data-de="Wellen">Dalgalı</option>
 <option value="slick" data-tr="Yapışık" data-de="Anliegend">Yapışık</option>
 <option value="mohawk">Mohawk</option>
 <option value="afro">Afro</option>
-<option value="spikes">Diken</option>
+<option value="spikes" data-tr="Diken" data-de="Stachel">Diken</option>
 <option value="curly" data-tr="Kıvırcık" data-de="Locken">Kıvırcık</option>
 <option value="side" data-tr="Yan perçem" data-de="Seitenscheitel">Yan perçem</option>
 </select>
@@ -4291,7 +4291,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="grid-column:1 / -1;">
 <label class="form-label" style="font-size:11px;" data-tr="Yaş katsayısı (admin)" data-de="Altersfaktor (Admin)">Yaş katsayısı (admin)</label>
 <input class="form-input" id="s-mascot-age-coef" type="number" min="1" max="30" step="0.1" value="10">
-<div id="s-mascot-age-coef-hint" style="font-size:10px;color:var(--text-3);margin-top:3px;">Firma geneli katsayıdır.</div>
+<div id="s-mascot-age-coef-hint" style="font-size:10px;color:var(--text-3);margin-top:3px;" data-tr="Firma geneli katsayıdır." data-de="Der Faktor gilt für die ganze Firma.">Firma geneli katsayıdır.</div>
 </div>
 </div>
 <div id="settings-mascot-preview-wrap" class="settings-mascot-preview-wrap mascot-theme-root" data-mascot-eye="none">
@@ -4679,7 +4679,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div style="font-size:12px;font-weight:600;margin-bottom:6px;" data-tr="Sohbet listelerinde gizlenecek kişiler" data-de="Personen, die in Chat-Listen fehlen">Sohbet listelerinde gizlenecek kişiler</div>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="İşaretli kullanıcılar listelerde görünür; işareti kaldırdığınız kişiler hızlı mesaj ve grup üyesi seçiminde gizlenir (Tüm ekip üyeliği ayrı senkron ile devam eder)." data-de="Markierte Benutzer bleiben in den Listen. Ohne Markierung fehlen sie bei Schnellnachricht und Gruppenauswahl (die Mitgliedschaft „Ganzes Team“ läuft separat weiter).">İşaretli kullanıcılar listelerde görünür; işareti kaldırdığınız kişiler hızlı mesaj ve grup üyesi seçiminde gizlenir (Tüm ekip üyeliği ayrı senkron ile devam eder).</div>
 <div id="chat-settings-user-list" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:8px;background:var(--bg-3);border-radius:8px;">
-<div style="color:var(--text-3);font-size:12px;text-align:center;padding:12px;">Yükleniyor…</div>
+<div style="color:var(--text-3);font-size:12px;text-align:center;padding:12px;" data-tr="Yükleniyor…" data-de="Wird geladen…">Yükleniyor…</div>
 </div>
 </div>
 <button type="button" class="btn btn-primary btn-sm" onclick="saveChatSettings()"><i class="ph ph-floppy-disk"></i> <span data-tr="Sohbet ayarlarını kaydet" data-de="Chat speichern">Sohbet ayarlarını kaydet</span></button>
@@ -4733,7 +4733,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <select class="form-input" id="feature-flags-firm-select" style="width:100%;" onchange="onFeatureFlagsFirmChange()"></select>
 </div>
 <div id="feature-flags-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-<button type="button" class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="saveFeatureFlags()">Özellikleri kaydet</button>
+<button type="button" class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="saveFeatureFlags()" data-tr="Özellikleri kaydet" data-de="Funktionen speichern">Özellikleri kaydet</button>
 </div>
 <div class="card" id="job-permissions-card" style="display:none;">
 <div class="card-title" style="margin-bottom:10px;"><i class="ph ph-lock-key" style="vertical-align:-3px;margin-right:6px;"></i><span data-tr="İş platformu izinleri" data-de="Berechtigungen der Jobbörse">İş platformu izinleri</span></div>
@@ -4755,7 +4755,7 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <div class="card" id="mesai-plan-card">
 <div class="card-title" style="margin-bottom:6px;" data-tr="Mesai saatlerini ayarla" data-de="Schichtzeiten einstellen">Mesai saatlerini ayarla</div>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:12px;" data-tr="Günün başlangıcı, bitişi ve aradaki molalar. Üst çubuk ile mola ve mesai bitiş bildirimleri bu saatleri kullanır." data-de="Beginn, Ende und die Pausen des Tages. Die Leiste und die Hinweise nutzen diese Zeiten.">Günün başlangıcı, bitişi ve aradaki molalar. Üst çubuk ile mola ve mesai bitiş bildirimleri bu saatleri kullanır.</div>
-<div id="mesai-plan-body" style="font-size:12px;color:var(--text-3);">Yükleniyor…</div>
+<div id="mesai-plan-body" style="font-size:12px;color:var(--text-3);" data-tr="Yükleniyor…" data-de="Wird geladen…">Yükleniyor…</div>
 </div>
 <div class="card" id="mesai-settings-card">
 <div class="card-title" style="margin-bottom:12px;" data-tr="Çalışma Saatleri &amp; Günler" data-de="Arbeitszeiten und Tage">Çalışma Saatleri &amp; Günler</div>
@@ -4767,11 +4767,11 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 <!-- Sadece süper admin görür: admin izin toggle -->
 <div id="mesai-admin-perm-row" style="display:none;margin-bottom:12px;padding:8px 12px;background:var(--bg-3);border-radius:6px;align-items:center;gap:8px;">
 <input type="checkbox" id="mesai-admin-perm-chk" style="width:15px;height:15px;cursor:pointer;">
-<span style="font-size:12px;flex:1;">Admin bu saatleri düzenleyebilir</span>
+<span style="font-size:12px;flex:1;" data-tr="Admin bu saatleri düzenleyebilir" data-de="Admin darf diese Zeiten ändern">Admin bu saatleri düzenleyebilir</span>
 <button class="btn btn-ghost btn-sm" style="font-size:11px;padding:3px 8px;" onclick="saveAdminMesaiPermission()" data-tr="Kaydet" data-de="Speichern">Kaydet</button>
 </div>
 <div id="mesai-readonly-notice" style="display:none;margin-bottom:8px;padding:6px 10px;background:var(--bg-3);border-radius:6px;font-size:11px;color:var(--text-3);">
-Sadece görüntüleme — düzenleme yetkiniz yok
+<span data-tr="Sadece görüntüleme — düzenleme yetkiniz yok" data-de="Nur ansehen — keine Berechtigung zum Ändern">Sadece görüntüleme — düzenleme yetkiniz yok</span>
 </div>
 <div id="mesai-grid" style="display:flex;flex-direction:column;gap:6px;"></div>
 <button class="btn btn-primary btn-sm" id="mesai-save-btn" style="margin-top:12px;" onclick="saveMesaiSaatleri()" data-tr="Kaydet" data-de="Speichern">Kaydet</button>
@@ -4831,11 +4831,11 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <div class="card" id="roles-card" style="display:none;">
 <div class="card-title" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
 <span><i class="ph ph-shield-check" style="vertical-align:-3px;margin-right:6px;"></i><span data-tr="Roller &amp; İzinler" data-de="Rollen und Berechtigungen">Roller & İzinler</span></span>
-<button class="btn btn-primary btn-sm" onclick="openAddRoleModal()"><i class="ph ph-plus"></i> Yeni Rol</button>
+<button class="btn btn-primary btn-sm" onclick="openAddRoleModal()"><i class="ph ph-plus"></i> <span data-tr="Yeni Rol" data-de="Neue Rolle">Yeni Rol</span></button>
 </div>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:14px;" data-tr="Hangi rolün hangi sayfayı göreceğini seçin. Yerleşik rol silinmez, izinleri değişir." data-de="Welche Rolle welche Seite sieht. Eingebaute Rollen bleiben, ihre Rechte ändern sich.">Hangi rolün hangi sayfayı göreceğini seçin. Yerleşik rol silinmez, izinleri değişir.</div>
 <div id="roles-list" style="display:flex;flex-direction:column;gap:8px;">
-<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;">Yükleniyor...</div>
+<div style="color:var(--text-3);font-size:12px;text-align:center;padding:16px;" data-tr="Yükleniyor..." data-de="Wird geladen...">Yükleniyor...</div>
 </div>
 </div>
 <div class="card" id="results-settings-card">
@@ -4858,7 +4858,7 @@ Sadece görüntüleme — düzenleme yetkiniz yok
 <div class="card-title" style="margin-bottom:12px;" data-tr="Takvim" data-de="Kalender">Takvim</div>
 <div id="takvim-settings-firm" style="margin-bottom:10px;"></div>
 <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;" data-tr="Çalışma günleri, saat aralığı ve slot süresi. Yeni kampanyalar bu varsayılanı alır. Boş slot rengi kalite kontrol sonuçlarındadır." data-de="Arbeitstage, Uhrzeiten und Slotlänge. Neue Kampagnen übernehmen diese Vorgabe. Die Farbe leerer Slots steht bei den QC-Ergebnissen.">Çalışma günleri, saat aralığı ve slot süresi. Yeni kampanyalar bu varsayılanı alır. Boş slot rengi kalite kontrol sonuçlarındadır.</div>
-<div id="default-takvim-firm-body" style="font-size:12px;color:var(--text-3);">Yükleniyor…</div>
+<div id="default-takvim-firm-body" style="font-size:12px;color:var(--text-3);" data-tr="Yükleniyor…" data-de="Wird geladen…">Yükleniyor…</div>
 </div>
 <div class="card settings-card-wide" id="line-firms-card">
 <div class="card-title" style="margin-bottom:8px;" data-tr="Hat ve API" data-de="Leitung und API">Hat ve API</div>
@@ -5675,79 +5675,79 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=15.3"></script>
-<script src="js/i18n.js?v=15.3"></script>
-<script src="js/config.js?v=15.3"></script>
-<script src="js/state.js?v=15.3"></script>
-<script src="js/api.js?v=15.3"></script>
-<script src="js/access.js?v=15.3"></script>
-<script src="js/auth.js?v=15.3"></script>
-<script src="js/logo.js?v=15.3"></script>
-<script src="js/ui.js?v=15.3"></script>
-<script src="js/chat.js?v=15.3"></script>
-<script src="js/chat-settings.js?v=15.3"></script>
-<script src="js/field-settings.js?v=15.3"></script>
-<script src="js/audit.js?v=15.3"></script>
-<script src="js/feature-flags.js?v=15.3"></script>
-<script src="js/notification-center.js?v=15.3"></script>
+<script src="js/version.js?v=15.4"></script>
+<script src="js/i18n.js?v=15.4"></script>
+<script src="js/config.js?v=15.4"></script>
+<script src="js/state.js?v=15.4"></script>
+<script src="js/api.js?v=15.4"></script>
+<script src="js/access.js?v=15.4"></script>
+<script src="js/auth.js?v=15.4"></script>
+<script src="js/logo.js?v=15.4"></script>
+<script src="js/ui.js?v=15.4"></script>
+<script src="js/chat.js?v=15.4"></script>
+<script src="js/chat-settings.js?v=15.4"></script>
+<script src="js/field-settings.js?v=15.4"></script>
+<script src="js/audit.js?v=15.4"></script>
+<script src="js/feature-flags.js?v=15.4"></script>
+<script src="js/notification-center.js?v=15.4"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=15.3"></script>
-<script src="js/spend.js?v=15.3"></script>
-<script src="js/job-market.js?v=15.3"></script>
-<script src="js/qc-job-market.js?v=15.3"></script>
-<script src="js/export-admin.js?v=15.3"></script>
-<script src="js/export-termin.js?v=15.3"></script>
-<script src="js/randevular.js?v=15.3"></script>
-<script src="js/performance.js?v=15.3"></script>
-<script src="js/competition.js?v=15.3"></script>
-<script src="js/dashboard.js?v=15.3"></script>
-<script src="js/reports.js?v=15.3"></script>
-<script src="js/dashboard-brief.js?v=15.3"></script>
-<script src="js/campaigns.js?v=15.3"></script>
-<script src="js/campaigns-detail.js?v=15.3"></script>
-<script src="js/campaigns-queue.js?v=15.3"></script>
-<script src="js/queues-page.js?v=15.3"></script>
-<script src="js/contacts-upload.js?v=15.3"></script>
-<script src="js/geocon.js?v=15.3"></script>
-<script src="js/contacts.js?v=15.3"></script>
-<script src="js/contacts-drawer.js?v=15.3"></script>
-<script src="js/telnyx.js?v=15.3"></script>
-<script src="js/sip-trunk.js?v=15.3"></script>
-<script src="js/hold-music.js?v=15.3"></script>
-<script src="js/voice-orb.js?v=15.3"></script>
-<script src="js/dialer.js?v=15.3"></script>
-<script src="js/ops-alerts.js?v=15.3"></script>
-<script src="js/radius-tour.js?v=15.3"></script>
-<script src="js/dialer-mascot.js?v=15.3"></script>
-<script src="js/dialer-mascot-live.js?v=15.3"></script>
-<script src="js/ui-prefs.js?v=15.3"></script>
-<script src="js/dialer-session.js?v=15.3"></script>
-<script src="js/dialer-call.js?v=15.3"></script>
-<script src="js/dialer-tools.js?v=15.3"></script>
-<script src="js/appointments.js?v=15.3"></script>
-<script src="js/appointments-actions.js?v=15.3"></script>
-<script src="js/appointments-tools.js?v=15.3"></script>
-<script src="js/field.js?v=15.3"></script>
-<script src="js/field-quote.js?v=15.3"></script>
-<script src="js/field-catalog.js?v=15.3"></script>
-<script src="js/field-ops.js?v=15.3"></script>
-<script src="js/wiedervorlage.js?v=15.3"></script>
-<script src="js/blacklist.js?v=15.3"></script>
-<script src="js/qc.js?v=15.3"></script>
-<script src="js/supervisor.js?v=15.3"></script>
-<script src="js/live-coach.js?v=15.3"></script>
-<script src="js/sms-settings.js?v=15.3"></script>
-<script src="js/line-firms.js?v=15.3"></script>
-<script src="js/ai-staff.js?v=15.3"></script>
-<script src="js/callin-desk.js?v=15.3"></script>
-<script src="js/leave-hr.js?v=15.3"></script>
-<script src="js/attendance.js?v=15.3"></script>
-<script src="js/muhasebe.js?v=15.3"></script>
-<script src="js/muhasebe-books.js?v=15.3"></script>
-<script src="js/agent-self-performance.js?v=15.3"></script>
-<script src="js/agents.js?v=15.3"></script>
-<script src="js/firm-desk.js?v=15.3"></script>
-<script src="js/mimi-brain.js?v=15.3"></script>
+<script src="js/wallet.js?v=15.4"></script>
+<script src="js/spend.js?v=15.4"></script>
+<script src="js/job-market.js?v=15.4"></script>
+<script src="js/qc-job-market.js?v=15.4"></script>
+<script src="js/export-admin.js?v=15.4"></script>
+<script src="js/export-termin.js?v=15.4"></script>
+<script src="js/randevular.js?v=15.4"></script>
+<script src="js/performance.js?v=15.4"></script>
+<script src="js/competition.js?v=15.4"></script>
+<script src="js/dashboard.js?v=15.4"></script>
+<script src="js/reports.js?v=15.4"></script>
+<script src="js/dashboard-brief.js?v=15.4"></script>
+<script src="js/campaigns.js?v=15.4"></script>
+<script src="js/campaigns-detail.js?v=15.4"></script>
+<script src="js/campaigns-queue.js?v=15.4"></script>
+<script src="js/queues-page.js?v=15.4"></script>
+<script src="js/contacts-upload.js?v=15.4"></script>
+<script src="js/geocon.js?v=15.4"></script>
+<script src="js/contacts.js?v=15.4"></script>
+<script src="js/contacts-drawer.js?v=15.4"></script>
+<script src="js/telnyx.js?v=15.4"></script>
+<script src="js/sip-trunk.js?v=15.4"></script>
+<script src="js/hold-music.js?v=15.4"></script>
+<script src="js/voice-orb.js?v=15.4"></script>
+<script src="js/dialer.js?v=15.4"></script>
+<script src="js/ops-alerts.js?v=15.4"></script>
+<script src="js/radius-tour.js?v=15.4"></script>
+<script src="js/dialer-mascot.js?v=15.4"></script>
+<script src="js/dialer-mascot-live.js?v=15.4"></script>
+<script src="js/ui-prefs.js?v=15.4"></script>
+<script src="js/dialer-session.js?v=15.4"></script>
+<script src="js/dialer-call.js?v=15.4"></script>
+<script src="js/dialer-tools.js?v=15.4"></script>
+<script src="js/appointments.js?v=15.4"></script>
+<script src="js/appointments-actions.js?v=15.4"></script>
+<script src="js/appointments-tools.js?v=15.4"></script>
+<script src="js/field.js?v=15.4"></script>
+<script src="js/field-quote.js?v=15.4"></script>
+<script src="js/field-catalog.js?v=15.4"></script>
+<script src="js/field-ops.js?v=15.4"></script>
+<script src="js/wiedervorlage.js?v=15.4"></script>
+<script src="js/blacklist.js?v=15.4"></script>
+<script src="js/qc.js?v=15.4"></script>
+<script src="js/supervisor.js?v=15.4"></script>
+<script src="js/live-coach.js?v=15.4"></script>
+<script src="js/sms-settings.js?v=15.4"></script>
+<script src="js/line-firms.js?v=15.4"></script>
+<script src="js/ai-staff.js?v=15.4"></script>
+<script src="js/callin-desk.js?v=15.4"></script>
+<script src="js/leave-hr.js?v=15.4"></script>
+<script src="js/attendance.js?v=15.4"></script>
+<script src="js/muhasebe.js?v=15.4"></script>
+<script src="js/muhasebe-books.js?v=15.4"></script>
+<script src="js/agent-self-performance.js?v=15.4"></script>
+<script src="js/agents.js?v=15.4"></script>
+<script src="js/firm-desk.js?v=15.4"></script>
+<script src="js/mimi-brain.js?v=15.4"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof mbApplyChartTheme === 'function') mbApplyChartTheme();
