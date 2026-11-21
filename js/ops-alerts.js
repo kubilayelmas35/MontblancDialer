@@ -1702,7 +1702,7 @@ function opsResultLabel(key) {
   if (opsDe() && deMap[norm]) return deMap[norm];
   const list = window._apptResultsByFirm?.[opsFirmId()] || [];
   const hit = list.find((r) => String(r.key) === norm);
-  if (hit?.label) return hit.label;
+  if (hit?.label || hit?.label_de) return typeof mbResultLabel === 'function' ? mbResultLabel(hit.key, hit.label, hit.label_de) : hit.label;
   const map = { basarili: 'Başarılı', basarisiz: 'Başarısız', beklemede: 'Beklemede', ulasilamadi: 'Ulaşılamadı', iptal: 'İptal', qc_bekleniyor: 'QC bekleniyor' };
   return map[norm] || String(key || '').trim() || (opsDe() ? 'Ergebnis' : 'sonuç');
 }

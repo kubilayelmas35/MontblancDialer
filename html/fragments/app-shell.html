@@ -1302,23 +1302,23 @@
 <div class="et-date-field"><label class="form-label" style="font-size:10px;" data-tr="Bitiş" data-de="Ende">Bitiş</label><input type="date" class="form-input" id="et-date-to" onchange="mbExportRangeChanged()"/></div>
 </div>
 <div style="margin-bottom:12px;"><label class="form-label" style="font-size:10px;" data-tr="Temsilci" data-de="Mitarbeiter">Temsilci</label>
-<select class="form-input" id="et-agent" onchange="etApplyFilter()"><option value="">Tüm temsilciler</option></select></div>
+<select class="form-input" id="et-agent" onchange="etApplyFilter()"><option value="" data-tr="Tüm temsilciler" data-de="Alle Mitarbeiter">Tüm temsilciler</option></select></div>
 <div style="margin-bottom:12px;"><label class="form-label" style="font-size:10px;" data-tr="Müşteri" data-de="Kunde">Müşteri</label>
 <select class="form-input" id="et-customer" onchange="etApplyFilter()"><option value="" data-tr="Tüm müşteriler" data-de="Alle Kunden">Tüm müşteriler</option></select></div>
 <div style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
-<label class="form-label" style="margin:0;font-size:10px;">Kampanyalar</label>
+<label class="form-label" style="margin:0;font-size:10px;" data-tr="Kampanyalar" data-de="Kampagnen">Kampanyalar</label>
 <span class="badge" id="et-kamp-count" style="background:var(--yellow);color:#000;font-size:10px;">0</span>
 </div>
 <div class="et-kamp-list" id="et-kamp-list"></div>
 <div style="display:flex;gap:6px;margin-top:8px;">
-<button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="etSelectAllKamp()"><i class="ph ph-checks"></i> Tümü</button>
+<button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="etSelectAllKamp()"><i class="ph ph-checks"></i> <span data-tr="Tümü" data-de="Alle">Tümü</span></button>
 <button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="etDeselectAllKamp()"><i class="ph ph-x"></i> <span data-tr="Hiçbiri" data-de="Keine">Hiçbiri</span></button>
 </div>
 <div style="margin-top:14px;margin-bottom:8px;"><label class="form-label" style="font-size:10px;" data-tr="Durum" data-de="Status">Durum</label></div>
 <div class="et-stat-grid" id="et-status-grid"></div>
 <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
 <button type="button" class="btn btn-primary btn-sm" onclick="etReload()"><i class="ph ph-cloud-arrow-down"></i> <span data-tr="Veriyi yükle" data-de="Daten laden">Veriyi yükle</span></button>
-<button type="button" class="btn btn-ghost btn-sm" onclick="etResetFilters(true)"><i class="ph ph-arrow-counter-clockwise"></i> Sıfırla</button>
+<button type="button" class="btn btn-ghost btn-sm" onclick="etResetFilters(true)"><i class="ph ph-arrow-counter-clockwise"></i> <span data-tr="Sıfırla" data-de="Zurücksetzen">Sıfırla</span></button>
 </div>
 <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border);">
 <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--accent);"><i class="ph ph-file-arrow-down"></i> <span data-tr="Hızlı liste (hafta · başarılı)" data-de="Schnellliste (Woche · erfolgreich)">Hızlı liste (hafta · başarılı)</span></div>
@@ -1488,15 +1488,15 @@
 <div class="perf-cards">
 <div class="perf-card perf-card-total"><div class="perf-ct" id="perf-card-total-lbl" data-tr="Toplam randevu" data-de="Gesamt">Toplam randevu</div><div class="perf-cv" id="perf-card-total">0</div></div>
 <div class="perf-card" style="border-color:var(--green);background:rgba(34,197,94,.08);"><div class="perf-ct" style="color:var(--green);" data-tr="Başarılı" data-de="Erfolgreich">Başarılı</div><div class="perf-cv" id="perf-card-ok" style="color:var(--green);">0</div><div style="font-size:11px;color:var(--text-3);"><span id="perf-card-okpct">0%</span></div></div>
-<div class="perf-card" style="border-color:var(--yellow);"><div class="perf-ct">Beklemede</div><div class="perf-cv" id="perf-card-pend">0</div></div>
+<div class="perf-card" style="border-color:var(--yellow);"><div class="perf-ct" data-tr="Beklemede" data-de="Wartend">Beklemede</div><div class="perf-cv" id="perf-card-pend">0</div></div>
 <div class="perf-card" style="border-color:var(--accent);"><div class="perf-ct">QC</div><div class="perf-cv" id="perf-card-qc">0</div></div>
 <div class="perf-card" style="border-color:var(--red);"><div class="perf-ct" data-tr="Başarısız" data-de="Fehlgeschlagen">Başarısız</div><div class="perf-cv" id="perf-card-fail">0</div></div>
 </div>
 <div class="perf-call-row">
-<div class="perf-card"><div class="perf-ct">Arama (dönem)</div><div class="perf-cv" id="perf-call-total">0</div></div>
-<div class="perf-card"><div class="perf-ct">Randevu sonucu</div><div class="perf-cv" id="perf-call-appt" style="color:var(--green);">0</div></div>
+<div class="perf-card"><div class="perf-ct" data-tr="Arama (dönem)" data-de="Anrufe (Zeitraum)">Arama (dönem)</div><div class="perf-cv" id="perf-call-total">0</div></div>
+<div class="perf-card"><div class="perf-ct" data-tr="Randevu sonucu" data-de="Terminergebnis">Randevu sonucu</div><div class="perf-cv" id="perf-call-appt" style="color:var(--green);">0</div></div>
 <div class="perf-card"><div class="perf-ct" data-tr="Dönüşüm" data-de="Quote">Dönüşüm</div><div class="perf-cv" id="perf-call-conv">0%</div></div>
-<div class="perf-card"><div class="perf-ct">Ort. süre</div><div class="perf-cv" id="perf-call-avg">0:00</div></div>
+<div class="perf-card"><div class="perf-ct" data-tr="Ort. süre" data-de="Ø Dauer">Ort. süre</div><div class="perf-cv" id="perf-call-avg">0:00</div></div>
 </div>
 <div class="perf-charts">
 <div class="perf-chart-box">
@@ -1511,7 +1511,7 @@
 <div class="perf-chart-t"><canvas id="perf-chart-trend"></canvas></div>
 </div>
 <div class="perf-chart-box">
-<div style="font-weight:800;font-size:13px;margin-bottom:8px;"><i class="ph ph-chart-pie-slice"></i> Durum</div>
+<div style="font-weight:800;font-size:13px;margin-bottom:8px;"><i class="ph ph-chart-pie-slice"></i> <span data-tr="Durum" data-de="Status">Durum</span></div>
 <div class="perf-chart-t"><canvas id="perf-chart-status"></canvas></div>
 </div>
 <div class="perf-chart-box">
@@ -1550,12 +1550,12 @@
 <th>OK</th>
 <th>Bekl.</th>
 <th>QC</th>
-<th>Kötü</th>
-<th>Oran</th>
+<th data-tr="Kötü" data-de="Schlecht">Kötü</th>
+<th data-tr="Oran" data-de="Quote">Oran</th>
 <th data-tr="Arama" data-de="Anruf">Arama</th>
-<th title="Aramadan randevu">A→T</th>
-<th title="Dönüşüm">Dön.</th>
-<th>Ort.sn</th>
+<th data-tr-title="Aramadan randevu" data-de-title="Anruf zu Termin" title="Aramadan randevu">A→T</th>
+<th data-tr-title="Dönüşüm" data-de-title="Quote" title="Dönüşüm" data-tr="Dön." data-de="Q.">Dön.</th>
+<th data-tr="Ort.sn" data-de="Ø Sek.">Ort.sn</th>
 <th></th>
 </tr></thead>
 <tbody id="perf-tbody-main"><tr><td colspan="12" style="text-align:center;padding:28px;color:var(--text-3);">—</td></tr></tbody>
@@ -1834,7 +1834,7 @@
 </div>
 <div id="ctab-history-panel" style="display:none;">
 <div id="prev-call-info" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;margin-bottom:10px;">
-<div style="font-weight:700;color:var(--yellow);margin-bottom:4px;"><i class="ph ph-clock-counter-clockwise"></i> Önceki Arama</div>
+<div style="font-weight:700;color:var(--yellow);margin-bottom:4px;"><i class="ph ph-clock-counter-clockwise"></i> <span data-tr="Önceki arama" data-de="Vorheriger Anruf">Önceki Arama</span></div>
 <div id="prev-call-body" style="color:var(--text-2);"></div>
 </div>
 <div id="contact-history-list" style="font-size:12px;color:var(--text-3);">Yükleniyor...</div>
@@ -2753,7 +2753,7 @@ Toplu Slot
 <div id="takvim-failed-section" style="display:none;border-top:2px solid var(--red);padding:8px 0;max-height:120px;overflow-y:auto;flex-shrink:0;">
 <div style="font-size:11px;font-weight:800;color:var(--red);margin-bottom:6px;padding:0 12px;">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-Başarısız / Alta Taşınan
+<span data-tr="Başarısız / Alta taşınan" data-de="Fehlgeschlagen / nach unten">Başarısız / Alta Taşınan</span>
 </div>
 <div id="takvim-failed-grid" style="width:100%;min-width:0;"></div>
 </div>
@@ -2969,7 +2969,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <div id="leave-late-table" style="margin-top:16px;"></div>
 </div>
 <div class="card" id="leave-admin-ent" style="padding:16px;display:none;">
-<div class="card-title" style="margin-bottom:12px;">Ek izin günü</div>
+<div class="card-title" style="margin-bottom:12px;" data-tr="Ek izin günü" data-de="Zusätzlicher Urlaubstag">Ek izin günü</div>
 <div class="form-grid" style="display:grid;grid-template-columns:1fr 100px 100px;gap:12px;align-items:end;">
 <div class="form-row">
 <label class="form-label" data-tr="Kullanıcı" data-de="Benutzer">Kullanıcı</label>
@@ -2980,7 +2980,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 <input type="number" class="form-input" id="ent-year" min="2020" max="2100">
 </div>
 <div class="form-row">
-<label class="form-label">Ek gün</label>
+<label class="form-label" data-tr="Ek gün" data-de="Extra-Tag">Ek gün</label>
 <input type="number" class="form-input" id="ent-days" min="0" step="0.5" value="0">
 </div>
 </div>
@@ -3142,7 +3142,7 @@ Süper admin olarak bu sayfayı kullanmak için üstten bir firma seçin.
 </div>
 <div id="muh-pane-gelir" class="muh-pane" style="display:none;">
 <div class="card" style="padding:16px;">
-<div class="card-title" style="margin-bottom:8px;">Gelir / Gider Özeti</div>
+<div class="card-title" style="margin-bottom:8px;" data-tr="Gelir / Gider özeti" data-de="Einnahmen / Ausgaben">Gelir / Gider Özeti</div>
 <div id="muh-income-expense-summary"></div>
 </div>
 </div>

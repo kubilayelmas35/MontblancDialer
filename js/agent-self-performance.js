@@ -484,7 +484,9 @@ async function loadAgentSelfPerformanceDash(fid, ym, rules) {
     _aspCharts.pie = new ChartCtor(pieEl.getContext('2d'), {
       type: 'pie',
       data: {
-        labels: ['Başarılı', 'Beklemede', 'QC', 'Diğer', 'Başarısız'],
+        labels: (typeof currentLang !== 'undefined' && currentLang === 'de')
+          ? ['Erfolgreich', 'Wartend', 'QC', 'Andere', 'Fehlgeschlagen']
+          : ['Başarılı', 'Beklemede', 'QC', 'Diğer', 'Başarısız'],
         datasets: [{ data: [ok, pend, qcN, Math.max(0, tot - ok - pend - qcN - fail), fail], backgroundColor: ['#10b981', '#f59e0b', '#3b82f6', '#94a3b8', '#ef4444'], borderWidth: 2, borderColor: '#fff' }],
       },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } },
