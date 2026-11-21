@@ -398,27 +398,30 @@ async function openTakvimSlotDetail(slot, appt) {
   const resultCfg = await loadFirmAppointmentResults(getActiveFirmId() || currentUser?.firm_id);
   const resultMap = {};
   (resultCfg || []).forEach(r => { resultMap[r.key] = r; });
-  document.getElementById('takvim-detail-title').textContent = appt ? appt.nachname : 'Boş Slot';
+  const say = typeof t === 'function' ? t : (k) => k;
+  document.getElementById('takvim-detail-title').textContent = appt ? appt.nachname : say('cal.detail.empty_title');
   openModal('m-takvim-detail');
   const body = document.getElementById('takvim-detail-body');
   const footer = document.getElementById('takvim-detail-footer');
   if (!appt) {
+    const whenLoc = typeof mbLocale === 'function' ? mbLocale() : 'tr-TR';
     const lockInfo = slot.durum==='kilitli' && isAdmin ?
-      `<div style="margin-top:8px;padding:6px 10px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.3);border-radius:5px;font-size:11px;"><b>Kilitleyen Agent:</b> ${slot.kilitli_agent_id||'?'}<br><b>Kilitlenme:</b> ${slot.kilitli_at?new Date(slot.kilitli_at).toLocaleString('tr-TR'):'—'}</div>` : '';
+      `<div style="margin-top:8px;padding:6px 10px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.3);border-radius:5px;font-size:11px;"><b>${say('cal.detail.locker')}:</b> ${slot.kilitli_agent_id||'?'}<br><b>${say('cal.detail.locked_at')}:</b> ${slot.kilitli_at?new Date(slot.kilitli_at).toLocaleString(whenLoc):'—'}</div>` : '';
     body.innerHTML = `<div style="text-align:center;padding:20px;">
 <div style="font-weight:800;font-size:14px;">${slot.tarih} · ${slot.baslangic_saat?.slice(0,5)} – ${slot.bitis_saat?.slice(0,5)}</div>
-<div style="color:var(--text-3);font-size:12px;margin-top:4px;">${slot.durum==='kilitli'?'Kilitli':'Boş'} slot</div>
+<div style="color:var(--text-3);font-size:12px;margin-top:4px;">${slot.durum==='kilitli'?say('cal.detail.locked_slot'):say('cal.detail.empty_slot')}</div>
 ${lockInfo}
 </div>`;
-    const bookLabel = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Termin eintragen' : 'Randevu ekle';
-    footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">Kapat</button>
-${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="deleteTakvimSlot('${slot.id}')">Sil</button>${slot.durum==='kilitli'?`<button class="btn btn-ghost" style="color:var(--yellow);" onclick="closeModal('m-takvim-detail');unlockSlot('${slot.id}')">Kilidi Kaldır</button>`:''}`:''}
-<button class="btn btn-primary" onclick="closeModal('m-takvim-detail');lockAndBookSlot(takvimSlots.find(s=>s.id==='${slot.id}'))">${bookLabel}</button>`;
+    footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">${say('cal.detail.close')}</button>
+${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="deleteTakvimSlot('${slot.id}')">${say('cal.detail.delete')}</button>${slot.durum==='kilitli'?`<button class="btn btn-ghost" style="color:var(--yellow);" onclick="closeModal('m-takvim-detail');unlockSlot('${slot.id}')">${say('cal.detail.unlock')}</button>`:''}`:''}
+<button class="btn btn-primary" onclick="closeModal('m-takvim-detail');lockAndBookSlot(takvimSlots.find(s=>s.id==='${slot.id}'))">${say('cal.detail.book')}</button>`;
     return;
   }
   const statusCfg = resultMap[_normResultKey(appt.durum)] || {};
   const dc = statusCfg.color || 'var(--accent)';
-  const statusLabel = statusCfg.label || (appt.durum || '').replace('_', ' ').toUpperCase();
+  const statusLabel = typeof mbResultLabel === 'function'
+    ? mbResultLabel(statusCfg.key || appt.durum, statusCfg.label, statusCfg.label_de)
+    : (statusCfg.label || (appt.durum || '').replace('_', ' ').toUpperCase());
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   const cell = (label, value) => `<div style="background:var(--bg-3);padding:8px;border-radius:6px;"><div style="font-size:10px;color:var(--text-3);">${label}</div><div style="font-weight:700;">${esc(value || '—')}</div></div>`;
   const agentName = String(appt.agent_name || window._takvimAgentNameById?.[appt.agent_id] || '').trim();
@@ -432,12 +435,12 @@ ${isAdmin?`<button class="btn btn-ghost" style="color:var(--red);" onclick="dele
   const camp = await takvimEnsureCamp(appt);
   const contact = await takvimLoadContact(appt);
   body.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">DURUM</div><div style="font-weight:800;font-size:14px;color:${dc};">${esc(statusLabel)}</div></div>
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">${say('cal.detail.status')}</div><div style="font-weight:800;font-size:14px;color:${dc};">${esc(statusLabel)}</div></div>
 ${takvimDetailCells(camp, appt, contact)}
-${cell('PERSONEL', agentName)}
+${cell(say('cal.detail.agent'), agentName)}
 ${takvimWhenBox(when, isAdmin && !!(slot?.id || appt?.id))}
-${cell('OLUŞTURULMA TARİHİ / SAATİ', created)}
-<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">KOMŞU RANDEVULARA MESAFE</div><div id="takvim-neighbor-dist" style="font-weight:700;">Hesaplanıyor…</div></div>
+${cell(say('cal.detail.created'), created)}
+<div style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);">${say('cal.detail.neighbor')}</div><div id="takvim-neighbor-dist" style="font-weight:700;">${say('cal.detail.calc')}</div></div>
 <div id="takvim-appt-recs" style="background:var(--bg-3);padding:8px;border-radius:6px;grid-column:1/-1;"><div style="font-size:10px;color:var(--text-3);font-weight:700;">${typeof t === 'function' ? t('cal.recs.title') : 'Görüşme kayıtları'}</div><div style="margin-top:6px;font-size:12px;color:var(--text-3);">${typeof t === 'function' ? t('cal.recs.loading') : 'Yükleniyor…'}</div></div>
 </div>`;
   takvimFillNeighborDist(slot, appt);
@@ -473,7 +476,7 @@ ${cell('OLUŞTURULMA TARİHİ / SAATİ', created)}
     if (!String(appt.qc_notu || '').trim()) qcWrap.hidden = true;
     const qcLab = document.createElement('div');
     qcLab.style.cssText = 'font-size:10px;color:var(--text-3);font-weight:700;';
-    qcLab.textContent = 'Kalite kontrol notu';
+    qcLab.textContent = say('cal.detail.qcnote');
     const qc = document.createElement('textarea');
     qc.id = 'takvim-qc-note';
     qc.className = 'form-input';
@@ -483,27 +486,27 @@ ${cell('OLUŞTURULMA TARİHİ / SAATİ', created)}
     qcWrap.append(qcLab, qc);
     body.appendChild(qcWrap);
   }
-  footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">Kapat</button>
-<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail');openDialerForContact('${appt.contact_id||''}')">Dialer'a Git</button>
-${isAdmin && slot?.id && !slot.alta_tasindi ? `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail');slotAltaTasi('${slot.id}')">Alta taşı</button>` : ''}
-${slot?.alta_tasindi && isAdmin ? `<button class="btn btn-primary" onclick="closeModal('m-takvim-detail');slotUsteCikar('${slot.id}')">${typeof t === 'function' ? t('cal.up') : 'Üste al'}</button>` : ''}
-${isAdmin ? `<button class="btn btn-ghost" onclick="openTakvimApptEdit('${appt.id}')">Düzenle</button>` : ''}
-${canAssignField ? `<button class="btn btn-primary" onclick="openFieldAssignModal('${appt.id}','${appt.firm_id || currentUser.firm_id}')">Sahaya Ata</button>` : ''}
+  footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">${say('cal.detail.close')}</button>
+<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail');openDialerForContact('${appt.contact_id||''}')">${say('cal.detail.dialer')}</button>
+${isAdmin && slot?.id && !slot.alta_tasindi ? `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail');slotAltaTasi('${slot.id}')">${say('cal.detail.down')}</button>` : ''}
+${slot?.alta_tasindi && isAdmin ? `<button class="btn btn-primary" onclick="closeModal('m-takvim-detail');slotUsteCikar('${slot.id}')">${say('cal.up')}</button>` : ''}
+${isAdmin ? `<button class="btn btn-ghost" onclick="openTakvimApptEdit('${appt.id}')">${say('cal.detail.edit')}</button>` : ''}
+${canAssignField ? `<button class="btn btn-primary" onclick="openFieldAssignModal('${appt.id}','${appt.firm_id || currentUser.firm_id}')">${say('cal.detail.field')}</button>` : ''}
 ${canManageAppt ? `
 <select class="form-input" id="appt-status-sel" style="width:auto;font-size:12px;padding:6px 10px;" onchange="takvimStatusOpensQcNote(this.value)">
-<option value="">Durum değiştir...</option>
-${(resultCfg||[]).map(r=>`<option value="${esc(r.key)}">${esc(r.label)}</option>`).join('')}
+<option value="">${say('cal.detail.change')}</option>
+${(resultCfg||[]).map(r=>`<option value="${esc(r.key)}">${esc(typeof mbResultLabel === 'function' ? mbResultLabel(r.key, r.label, r.label_de) : r.label)}</option>`).join('')}
 </select>` : ''}
-${canEditNote ? `<button class="btn btn-primary" onclick="takvimSaveSlotDetail('${appt.id}')">Kaydet</button>` : ''}`;
+${canEditNote ? `<button class="btn btn-primary" onclick="takvimSaveSlotDetail('${appt.id}')">${say('cal.detail.save')}</button>` : ''}`;
   if (canManageAppt) {
     _getCustomerCtx(appt.customer_id).then(ctx => {
       if (!ctx?.customers?.length) return;
       const el = document.createElement('div');
       el.className = 'form-row';
       el.style.cssText = 'margin-top:8px;';
-      el.innerHTML = `<label class="form-label">Müşteri</label>
+      el.innerHTML = `<label class="form-label">${typeof t === 'function' ? t('cal.detail.customer') : 'Müşteri'}</label>
       <select class="form-input" id="appt-customer-sel" style="width:100%;font-size:12px;padding:6px 10px;">
-        <option value="">Seçin...</option>
+        <option value="">${typeof t === 'function' ? t('field.pick') : 'Seçin'}...</option>
         ${ctx.customers.map(c => `<option value="${c.id}" ${String(appt.customer_id||'')===String(c.id)?'selected':''}>${(c.code?c.code+' · ':'')+c.name}</option>`).join('')}
       </select>`;
       body.appendChild(el);
@@ -638,7 +641,8 @@ ${player}
 function takvimEditSelect(id, label, value, options) {
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   const cur = String(value || '');
-  const opts = options.map((opt) => `<option value="${esc(opt)}"${opt === cur ? ' selected' : ''}>${esc(opt || 'Seçin')}</option>`).join('');
+  const pick = typeof t === 'function' ? t('field.pick') : 'Seçin';
+  const opts = options.map((opt) => `<option value="${esc(opt)}"${opt === cur ? ' selected' : ''}>${esc(opt || pick)}</option>`).join('');
   return `<div class="form-row"><label class="form-label">${label}</label><select class="form-input" id="${id}">${opts}</select></div>`;
 }
 
@@ -650,7 +654,7 @@ async function openTakvimApptEdit(apptId) {
   const ctx = await _getCustomerCtx(appt.customer_id).catch(() => null);
   const contact = await takvimLoadContact(appt);
   const camp = await takvimEnsureCamp(appt);
-  document.getElementById('takvim-detail-title').textContent = 'Randevuyu düzenle';
+  document.getElementById('takvim-detail-title').textContent = typeof t === 'function' ? t('cal.detail.edit_title') : 'Randevuyu düzenle';
   const when = slot ? `${slot.tarih || ''} ${String(slot.baslangic_saat || '').slice(0, 5)}` : '';
   document.getElementById('takvim-detail-body').innerHTML = `
 <div style="background:var(--bg-3);padding:8px;border-radius:6px;margin-bottom:12px;font-size:12px;font-weight:600;">${esc(when)}</div>
@@ -658,8 +662,8 @@ async function openTakvimApptEdit(apptId) {
 ${takvimFieldsMarkup(camp, appt, contact, 'edit')}
 ${ctx ? _renderCustomerField({ ...ctx, selectedId: appt.customer_id || '' }, 'te-customer') : ''}
 </div>
-<div class="form-row" style="margin-top:8px;"><label class="form-label">Not</label><textarea class="form-input" id="te-note" rows="2" style="resize:vertical;">${esc(appt.agent_notu || '')}</textarea></div>`;
-  document.getElementById('takvim-detail-footer').innerHTML = `<button class="btn btn-ghost" onclick="openTakvimSlotDetail(takvimSlots.find(s=>s.appointment_id==='${apptId}'), takvimAppts.find(a=>a.id==='${apptId}'))">Vazgeç</button><button class="btn btn-primary" onclick="saveTakvimApptEdit('${apptId}')">Kaydet</button>`;
+<div class="form-row" style="margin-top:8px;"><label class="form-label">${esc(typeof t === 'function' ? t('cal.detail.note') : 'Not')}</label><textarea class="form-input" id="te-note" rows="2" style="resize:vertical;">${esc(appt.agent_notu || '')}</textarea></div>`;
+  document.getElementById('takvim-detail-footer').innerHTML = `<button class="btn btn-ghost" onclick="openTakvimSlotDetail(takvimSlots.find(s=>s.appointment_id==='${apptId}'), takvimAppts.find(a=>a.id==='${apptId}'))">${typeof t === 'function' ? t('cal.detail.back') : 'Vazgeç'}</button><button class="btn btn-primary" onclick="saveTakvimApptEdit('${apptId}')">${typeof t === 'function' ? t('cal.detail.save') : 'Kaydet'}</button>`;
 }
 
 async function saveTakvimApptEdit(apptId) {
@@ -1533,15 +1537,16 @@ async function openTakvimChangeCampaignModal(slot, appt) {
     return;
   }
   const cur = String(appt?.campaign_id || slot?.campaign_id || takvimCampId || '');
+  const say = typeof t === 'function' ? t : (k) => k;
   const m = document.createElement('div');
   m.id = 'm-takvim-change-campaign';
   m.className = 'modal-overlay open';
   m.innerHTML =
     '<div class="modal" style="max-width:420px;">' +
-    '<div class="modal-hdr"><div class="modal-title">Kampanya değiştir</div>' +
+    `<div class="modal-hdr"><div class="modal-title">${say('cal.camp.title')}</div>` +
     '<button type="button" class="modal-close" onclick="document.getElementById(\'m-takvim-change-campaign\')?.remove()">✕</button></div>' +
     '<div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;">' +
-    '<div class="form-row"><label class="form-label">Yeni kampanya</label>' +
+    `<div class="form-row"><label class="form-label">${say('cal.camp.new')}</label>` +
     '<select class="form-input" id="tcc-sel">' +
     rows
       .map((c) => {
@@ -1550,10 +1555,10 @@ async function openTakvimChangeCampaignModal(slot, appt) {
       })
       .join('') +
     '</select></div>' +
-    '<div style="font-size:11px;color:var(--text-3);">Randevu ve bu slot aynı kampanyaya bağlanır.</div></div>' +
+    `<div style="font-size:11px;color:var(--text-3);">${say('cal.camp.hint')}</div></div>` +
     '<div class="modal-footer">' +
-    '<button type="button" class="btn btn-ghost" onclick="document.getElementById(\'m-takvim-change-campaign\')?.remove()">İptal</button>' +
-    `<button type="button" class="btn btn-primary" onclick="takvimSaveChangeCampaign('${slot.id}','${appt.id}')">Kaydet</button>` +
+    `<button type="button" class="btn btn-ghost" onclick="document.getElementById('m-takvim-change-campaign')?.remove()">${say('cal.move.cancel')}</button>` +
+    `<button type="button" class="btn btn-primary" onclick="takvimSaveChangeCampaign('${slot.id}','${appt.id}')">${say('cal.detail.save')}</button>` +
     '</div></div>';
   document.body.appendChild(m);
 }
@@ -1693,18 +1698,19 @@ async function openTakvimMoveAppointmentModal(slot, appt) {
   }
   const sid = slot.id;
   const aid = appt.id;
+  const say = typeof t === 'function' ? t : (k) => k;
   const m = document.createElement('div');
   m.id = 'm-takvim-move-appt';
   m.className = 'modal-overlay open';
   m.innerHTML =
     '<div class="modal" style="max-width:440px;">' +
-    '<div class="modal-hdr"><div class="modal-title">Randevuyu taşı</div>' +
+    `<div class="modal-hdr"><div class="modal-title">${say('cal.move.title')}</div>` +
     '<button type="button" class="modal-close" onclick="document.getElementById(\'m-takvim-move-appt\')?.remove()">✕</button></div>' +
     '<div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;" id="tma-body">' +
-    '<div style="font-size:13px;color:var(--text-2);">Boş slotlar yükleniyor…</div></div>' +
+    `<div style="font-size:13px;color:var(--text-2);">${say('cal.move.loading')}</div></div>` +
     '<div class="modal-footer" id="tma-footer" style="display:none;">' +
-    '<button type="button" class="btn btn-ghost" onclick="document.getElementById(\'m-takvim-move-appt\')?.remove()">İptal</button>' +
-    `<button type="button" class="btn btn-primary" onclick="takvimSaveMoveAppointment('${sid}','${aid}')">Taşı</button>` +
+    `<button type="button" class="btn btn-ghost" onclick="document.getElementById('m-takvim-move-appt')?.remove()">${say('cal.move.cancel')}</button>` +
+    `<button type="button" class="btn btn-primary" onclick="takvimSaveMoveAppointment('${sid}','${aid}')">${say('cal.move.go')}</button>` +
     '</div></div>';
   document.body.appendChild(m);
   let center = takvimDate;
@@ -1718,16 +1724,17 @@ async function openTakvimMoveAppointmentModal(slot, appt) {
     targets = (await takvimFetchEmptySlotsForMove(camp, center)).filter((s) => s.id !== sid);
   } catch (e) {
     const body = document.getElementById('tma-body');
-    if (body) body.innerHTML = `<div style="color:var(--red);font-size:13px;">Yüklenemedi: ${String(e.message || e)}</div>`;
+    if (body) body.innerHTML = `<div style="color:var(--red);font-size:13px;">${typeof t === 'function' ? t('cal.move.fail') : 'Yüklenemedi: '}${String(e.message || e)}</div>`;
     return;
   }
   const body = document.getElementById('tma-body');
   const footer = document.getElementById('tma-footer');
   if (!targets.length) {
     if (body) {
+      const say = typeof t === 'function' ? t : (k) => k;
       body.innerHTML =
-        '<div style="font-size:13px;color:var(--text-2);line-height:1.45;">Bu tarih aralığında uygun boş slot bulunamadı. İsterseniz takvimde bir boş slota tıklayarak taşıyın.</div>' +
-        `<div style="margin-top:12px;"><button type="button" class="btn btn-primary" onclick="takvimStartMovePickFromModal('${sid}','${aid}','${camp}')">Takvimde seç</button></div>`;
+        `<div style="font-size:13px;color:var(--text-2);line-height:1.45;">${say('cal.move.none')}</div>` +
+        `<div style="margin-top:12px;"><button type="button" class="btn btn-primary" onclick="takvimStartMovePickFromModal('${sid}','${aid}','${camp}')">${say('cal.move.pick')}</button></div>`;
     }
     if (footer) footer.style.display = 'none';
     return;
@@ -1751,13 +1758,14 @@ async function openTakvimMoveAppointmentModal(slot, appt) {
       '</optgroup>';
   }
   if (body) {
+    const say = typeof t === 'function' ? t : (k) => k;
     body.innerHTML =
-      '<div class="form-row"><label class="form-label">Hedef boş slot</label>' +
+      `<div class="form-row"><label class="form-label">${say('cal.move.target')}</label>` +
       '<select class="form-input" id="tma-sel">' +
       opts +
       '</select></div>' +
-      '<div style="font-size:11px;color:var(--text-3);">Aynı kampanya; yakın tarihlerdeki boş slotlar (ekrandaki haftadan geniş). Mevcut slot boşalır.</div>' +
-      `<div style="margin-top:10px;"><button type="button" class="btn btn-ghost" onclick="takvimStartMovePickFromModal('${sid}','${aid}','${camp}')">Takvimde tıkla</button></div>`;
+      `<div style="font-size:11px;color:var(--text-3);">${say('cal.move.hint')}</div>` +
+      `<div style="margin-top:10px;"><button type="button" class="btn btn-ghost" onclick="takvimStartMovePickFromModal('${sid}','${aid}','${camp}')">${say('cal.move.click')}</button></div>`;
   }
   if (footer) footer.style.display = '';
 }

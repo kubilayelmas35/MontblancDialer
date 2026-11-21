@@ -1076,7 +1076,8 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
     custChip ? 18 : canShift ? 6 : dense ? 4 : 6;
   el.style.cssText = `border-radius:4px;padding:${pt}px ${pr}px ${pb}px ${pl}px;font-size:${fzBase}px;cursor:pointer;overflow:hidden;box-shadow:none;background:${vis.background};color:${vis.color};text-align:left;`;
   if (slot.durum==='bos') {
-    el.innerHTML = `${canShift ? takvimSlotMoveMarkup(slot.id, false) : ''}<div style="font-weight:700;opacity:.95;font-size:${fzSm}px;text-align:left;">Boş ${slot.baslangic_saat.slice(0,5)}</div>${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}`;
+    const emptyWord = typeof t === 'function' ? t('cal.filter.empty') : 'Boş';
+    el.innerHTML = `${canShift ? takvimSlotMoveMarkup(slot.id, false) : ''}<div style="font-weight:700;opacity:.95;font-size:${fzSm}px;text-align:left;">${emptyWord} ${slot.baslangic_saat.slice(0,5)}</div>${canQuickAdd ? `<div class="tak-slot-add-wrap" onmousedown="event.stopPropagation()">${takvimSlotQuickAddMarkup(slot.id)}</div>` : ''}`;
     el.onclick = async (ev) => {
       ev.stopPropagation();
       const pick = window._takvimMovePick;
@@ -1100,7 +1101,8 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
       else lockAndBookSlot(slot);
     };
   } else if (slot.durum==='kilitli') {
-    el.innerHTML = `<div style="font-weight:650;">Kilitli ${slot.baslangic_saat.slice(0,5)}</div>`;
+    const lockedWord = typeof t === 'function' ? t('cal.filter.locked') : 'Kilitli';
+    el.innerHTML = `<div style="font-weight:650;">${lockedWord} ${slot.baslangic_saat.slice(0,5)}</div>`;
     el.style.color = '#1e40af';
     el.onclick = (ev) => ev.stopPropagation();
   } else if (appt) {
@@ -1572,7 +1574,7 @@ function takvimCellClick(ds, hh, e) {
 
 async function takvimHeaderClick(ds) {
   const isClosed = takvimClosedDays[ds];
-  if (!(await mbConfirm(isClosed ? 'Günü açmak istiyor musunuz?' : 'Günü kapatmak istiyor musunuz?', 'Gün Durumu'))) return;
+  if (!(await mbConfirm(isClosed ? (typeof t === 'function' ? t('cal.day.open') : 'Günü açmak istiyor musunuz?') : (typeof t === 'function' ? t('cal.day.close') : 'Günü kapatmak istiyor musunuz?'), typeof t === 'function' ? t('cal.day.title') : 'Gün Durumu'))) return;
   if (isClosed) {
     takvimClosedDays[ds] = false;
     sb(`takvim_slots?campaign_id=eq.${takvimCampId}&tarih=eq.${ds}&gun_kapali=eq.true`,{method:'DELETE',prefer:'return=minimal'}).then(()=>loadTakvimSlots());
@@ -1587,14 +1589,14 @@ function openTakvimNewSlotModal(ds, start, end) {
   document.getElementById('takvim-detail-title').textContent = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Neuer Slot' : 'Yeni slot';
   document.getElementById('takvim-detail-body').innerHTML = `
 <div style="display:flex;flex-direction:column;gap:10px;">
-<div class="form-row"><label class="form-label">Tarih</label><input type="date" class="form-input" id="ns-date" value="${ds}"></div>
-<div class="form-row"><label class="form-label">Başlangıç</label><input type="time" class="form-input" id="ns-start" value="${start}"></div>
-<div class="form-row"><label class="form-label">Bitiş</label><input type="time" class="form-input" id="ns-end" value="${end}"></div>
+<div class="form-row"><label class="form-label">${typeof t === 'function' ? t('cal.when.day') : 'Tarih'}</label><input type="date" class="form-input" id="ns-date" value="${ds}"></div>
+<div class="form-row"><label class="form-label">${typeof t === 'function' ? t('cal.when.start') : 'Başlangıç'}</label><input type="time" class="form-input" id="ns-start" value="${start}"></div>
+<div class="form-row"><label class="form-label">${typeof t === 'function' ? t('cal.when.end') : 'Bitiş'}</label><input type="time" class="form-input" id="ns-end" value="${end}"></div>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-top:4px;">
-<input type="checkbox" id="ns-skip-confirm"> Bir daha gösterme (hızlı slot)
+<input type="checkbox" id="ns-skip-confirm"> ${typeof t === 'function' ? t('cal.new.skip') : 'Bir daha gösterme (hızlı slot)'}
 </label>
 </div>`;
-  document.getElementById('takvim-detail-footer').innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">İptal</button><button class="btn btn-primary" onclick="saveTakvimSlot('${ds}')">Slot Oluştur</button>`;
+  document.getElementById('takvim-detail-footer').innerHTML = `<button class="btn btn-ghost" onclick="closeModal('m-takvim-detail')">${typeof t === 'function' ? t('cal.move.cancel') : 'İptal'}</button><button class="btn btn-primary" onclick="saveTakvimSlot('${ds}')">${typeof t === 'function' ? t('cal.new.create') : 'Slot Oluştur'}</button>`;
 }
 
 async function saveTakvimSlot(od) {
