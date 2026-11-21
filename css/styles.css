@@ -3843,8 +3843,11 @@ button.ai-run-score-bit:hover { text-decoration: underline; text-underline-offse
 .tour-check { flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .tour-check > input { margin-top: 2px; flex: none; }
 .aria-run-card .tour-check { width: 100%; background: transparent; border: 0; padding: 0; }
-.tour-pane .tour-grid { counter-reset: tourq; }
-.tour-pane .tour-name::before { counter-increment: tourq; content: counter(tourq) ". "; color: var(--accent); font-weight: 800; }
+.tour-lead { margin: 0; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 8%, var(--bg-2)); border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border)); }
+.tour-lead strong { display: block; font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.tour-lead span { display: block; font-size: 13px; line-height: 1.45; color: var(--text-2); }
+.tour-plain { margin: 0; font-size: 13px; font-weight: 650; line-height: 1.45; color: var(--text); }
+.tour-sec { margin: 8px 0 0; padding-top: 8px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
 .tour-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
 .tour-note { font-size: 12px; color: var(--text-2); margin: 0; }
 .tour-row { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; background: var(--bg-3, var(--bg-1)); }

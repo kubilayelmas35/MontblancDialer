@@ -852,6 +852,7 @@ if (typeof window._mbConnStatus === 'string' && typeof updateConnectionStatus ==
 if (typeof renderHotkeyHints === 'function') renderHotkeyHints();
 if (typeof mbPaintTopFirm === 'function') mbPaintTopFirm();
 if (typeof ariaPaintName === 'function') ariaPaintName();
+if (typeof tourPaintPlain === 'function') tourPaintPlain();
 if (typeof refreshGlobalMascotInfoPanel === 'function') refreshGlobalMascotInfoPanel();
 const testBtn = document.getElementById('test-mode-btn');
 if (testBtn && typeof t === 'function') {

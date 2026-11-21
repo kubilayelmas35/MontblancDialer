@@ -1389,6 +1389,44 @@ function tourPaintSettings() {
   tourSetChecked('tour-clock', pref.zamanlayici);
   const day = document.getElementById('tour-day-label');
   if (day) day.textContent = (pref.hedefManuel && pref.hedefTarih) || _tourPlan?.day || '—';
+  tourPaintPlain();
+}
+
+function tourPaintPlain() {
+  const pref = tourPref();
+  const camp = document.getElementById('tour-camp-plain');
+  const queue = document.getElementById('tour-queue-plain');
+  if (camp) {
+    if (pref.kampanyaDegis === false) {
+      camp.textContent = tourSay('tour.plain.camp.off', 'Kampanya seçimi kapalı. Açık kampanya değişmez.');
+    } else {
+      const min = Math.max(1, Math.min(20, Number(pref.minBos) || 1));
+      const gap = Math.max(0, Math.min(20, Number(pref.gecisBos) || 0));
+      const days = [7, 14, 21].includes(Number(pref.ufuk)) ? Number(pref.ufuk) : 14;
+      camp.textContent = [
+        tourSay('tour.plain.camp.on', 'En az {min} boş saati olan kampanyayı seçer. {days} gün ileri bakar.', { min, days }),
+        gap ? tourSay('tour.plain.gap', 'Başka kampanyaya ancak {gap} saat daha boşsa geçer.', { gap }) : tourSay('tour.plain.gap0', 'Bir saat daha boş olan kampanyaya hemen geçer.'),
+        pref.cumartesi ? tourSay('tour.plain.sat', 'Cumartesi sayılır.') : tourSay('tour.plain.nosat', 'Cumartesi atlanır.'),
+        pref.bosSlotAtla ? tourSay('tour.plain.skip', 'Boş günü atlar.') : tourSay('tour.plain.noskip', 'Yalnız bir sonraki iş gününe bakar.'),
+      ].join(' ');
+    }
+  }
+  if (queue) {
+    if (pref.kuyrukYenile === false) {
+      queue.textContent = tourSay('tour.plain.queue.off', 'Sıra doldurma kapalı. Kimse eklenmez.');
+    } else if (pref.kuyrukMod === 'yakin') {
+      queue.textContent = tourSay('tour.plain.queue.near', 'Sırada {n} kişiden az kalınca, {km} km çevresinden bir seferde en fazla {adet} kişi ekler.', {
+        n: pref.veriEsik,
+        km: pref.radiusKm,
+        adet: pref.yakinAdet,
+      });
+    } else {
+      queue.textContent = tourSay('tour.plain.queue.revert', 'Sırada {n} kişiden az kalınca, {k} kereden az aranmış kişileri yeniden sıraya alır.', {
+        n: pref.veriEsik,
+        k: tourGeriKere(),
+      });
+    }
+  }
 }
 
 function tourClock() {
@@ -2039,7 +2077,7 @@ function tourPaintGeri(near) {
   host.innerHTML = rows.map((row) => {
     const name = tourEsc(de ? row.de : row.tr);
     return `<label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="${tourEsc(row.tr)}" data-de="${tourEsc(row.de)}">${name}</span>
-<small class="tour-help" data-tr="Bu firmanın sonucu. İşaretlersen bu sonucu alan kişiyi yeniden sıraya koyar." data-de="Ergebnis dieser Firma. Angehakt stellt sie Personen mit diesem Ergebnis wieder in die Reihe.">Bu firmanın sonucu. İşaretlersen bu sonucu alan kişiyi yeniden sıraya koyar.</small></span>
+<small class="tour-help" data-tr="İşaretli sonuçtaki kişiler yeniden sıraya girer." data-de="Personen mit diesem Ergebnis kommen wieder in die Reihe.">İşaretli sonuçtaki kişiler yeniden sıraya girer.</small></span>
 <input type="checkbox" data-status="${tourEsc(row.status)}"${kim.has(row.status) ? ' checked' : ''} onchange="tourGeriPick()"></label>`;
   }).join('');
 }

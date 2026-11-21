@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="callin.one çağrı merkezi">
-<link rel="icon" href="favicon.svg?v=15.10" type="image/svg+xml">
+<link rel="icon" href="favicon.svg?v=15.11" type="image/svg+xml">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,20 +15,20 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=15.10">
-<link rel="stylesheet" href="css/styles-dialer.css?v=15.10">
-<link rel="stylesheet" href="css/styles-mascot.css?v=15.10">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=15.10">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=15.10">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=15.10">
-<link rel="stylesheet" href="css/styles-pages.css?v=15.10">
-<link rel="stylesheet" href="css/styles-aurora.css?v=15.10">
-<link rel="stylesheet" href="css/styles-chat.css?v=15.10">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=15.10">
-<link rel="stylesheet" href="css/styles-responsive.css?v=15.10">
+<link rel="stylesheet" href="css/styles.css?v=15.11">
+<link rel="stylesheet" href="css/styles-dialer.css?v=15.11">
+<link rel="stylesheet" href="css/styles-mascot.css?v=15.11">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=15.11">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=15.11">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=15.11">
+<link rel="stylesheet" href="css/styles-pages.css?v=15.11">
+<link rel="stylesheet" href="css/styles-aurora.css?v=15.11">
+<link rel="stylesheet" href="css/styles-chat.css?v=15.11">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=15.11">
+<link rel="stylesheet" href="css/styles-responsive.css?v=15.11">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
-<script defer src="vendor/jssip.min.js?v=15.10"></script>
+<script defer src="vendor/jssip.min.js?v=15.11"></script>
 </head>
 <body>
 <noscript><p>callin.one için JavaScript gerekir.</p></noscript>
@@ -101,7 +101,7 @@
 </div>
 </div>
 </div>
-<div class="login-version">v15.10 — 2026</div>
+<div class="login-version">v15.11 — 2026</div>
 </div>
 </div>
 <div id="app" style="display:none;">
@@ -517,7 +517,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">callin.one v15.10</div>
+<div class="sb-ver">callin.one v15.11</div>
 </div>
 </div>
 </nav>
@@ -755,30 +755,35 @@
 <button type="button" class="tour-tab" role="tab" aria-selected="false" data-tab="takvim" onclick="tourTab('takvim')" data-tr="Takvim" data-de="Kalender">Takvim</button>
 </div>
 <div class="tour-pane is-on" data-pane="kampanya">
-<p class="aria-ask" data-tr="Hangi kampanyayı seçsin" data-de="Welche Kampagne sie wählt">Hangi kampanyayı seçsin</p>
-<p class="tour-note" data-tr="Bu hesap için. Boş saatler arasından hangi kampanyaya geçeceğini sırayla sorar." data-de="Für dieses Konto. Fragt der Reihe nach, zu welcher Kampagne sie unter den freien Stunden wechselt.">Bu hesap için. Boş saatler arasından hangi kampanyaya geçeceğini sırayla sorar.</p>
+<div class="tour-lead">
+<strong data-tr="Callin hangi kampanyada aranacağını seçer" data-de="Callin wählt, in welcher Kampagne angerufen wird">Callin hangi kampanyada aranacağını seçer</strong>
+<span data-tr="Takvimde boş randevu saati en çok olan kampanyayı seçer ve ekibe söyler. Temsilciler o kampanyada arar." data-de="Sie nimmt die Kampagne mit den meisten freien Terminstunden und sagt es dem Team. Dort wird angerufen.">Takvimde boş randevu saati en çok olan kampanyayı seçer ve ekibe söyler. Temsilciler o kampanyada arar.</span>
+</div>
+<p class="tour-plain" id="tour-camp-plain"></p>
 <div class="tour-grid">
-<label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="Kampanyayı kendi değiştirsin" data-de="Kampagne selbst wechseln">Kampanyayı kendi değiştirsin</span>
-<small class="tour-help" data-tr="Açıkken boş saate göre kampanya seçer ve ekibe söyler. Kapalıyken açık kampanyaya dokunmaz. Kuyruk ayrı kalır." data-de="An: wählt die Kampagne nach freien Stunden und sagt es dem Team. Aus: die offene Kampagne bleibt. Die Queue bleibt getrennt.">Açıkken boş saate göre kampanya seçer ve ekibe söyler. Kapalıyken açık kampanyaya dokunmaz. Kuyruk ayrı kalır.</small></span>
+<p class="tour-sec" data-tr="Açık mı" data-de="Ein oder aus">Açık mı</p>
+<label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="Kampanyayı kendi seçsin" data-de="Kampagne selbst wählen">Kampanyayı kendi seçsin</span>
+<small class="tour-help" data-tr="Açıkken boş saate göre seçer. Kapalıyken açık kampanya değişmez." data-de="An: sie wählt nach freien Stunden. Aus: die offene Kampagne bleibt.">Açıkken boş saate göre seçer. Kapalıyken açık kampanya değişmez.</small></span>
 <input type="checkbox" id="tour-camp-auto" onchange="tourFlag('kampanyaDegis', this)"></label>
-<label class="tour-field"><span class="tour-name" data-tr="En az kaç boş saat olsun" data-de="Mindestens so viele freie Stunden">En az kaç boş saat olsun</span>
-<small class="tour-help" data-tr="Bir kampanyanın seçilmesi için o günde en az bu kadar boş saati olmalı. 1 yazarsan, tek boş saati olan kampanya da seçilebilir." data-de="Eine Kampagne braucht an dem Tag mindestens so viele freie Stunden. Bei 1 reicht schon eine freie Stunde.">Bir kampanyanın seçilmesi için o günde en az bu kadar boş saati olmalı. 1 yazarsan, tek boş saati olan kampanya da seçilebilir.</small>
+<p class="tour-sec" data-tr="Nasıl seçer" data-de="Wie sie wählt">Nasıl seçer</p>
+<label class="tour-field"><span class="tour-name" data-tr="En az boş saat" data-de="Mindestens freie Stunden">En az boş saat</span>
+<small class="tour-help" data-tr="Bir günde bundan az boş saati olan kampanya seçilmez. 1 ise tek saat de yeter." data-de="Eine Kampagne mit weniger freien Stunden an dem Tag wird nicht gewählt. Bei 1 reicht eine Stunde.">Bir günde bundan az boş saati olan kampanya seçilmez. 1 ise tek saat de yeter.</small>
 <input class="form-input" id="tour-min-bos" type="number" min="1" max="20" step="1" onchange="tourNum('minBos', this, 1, 20)"></label>
-<label class="tour-field"><span class="tour-name" data-tr="Başka kampanyaya geçmek için kaç saat fazla olsun" data-de="Wie viele Stunden mehr für einen Wechsel">Başka kampanyaya geçmek için kaç saat fazla olsun</span>
-<small class="tour-help" data-tr="Şu anki kampanyada kalır. Başka kampanyanın boş saati bu sayı kadar daha fazlaysa ona geçer. 0 yazarsan, bir saat fazla olan kampanyaya hemen geçer." data-de="Sie bleibt bei der aktuellen Kampagne. Sie wechselt nur, wenn die andere um diese Zahl mehr freie Stunden hat. Bei 0 reicht schon eine Stunde mehr.">Şu anki kampanyada kalır. Başka kampanyanın boş saati bu sayı kadar daha fazlaysa ona geçer. 0 yazarsan, bir saat fazla olan kampanyaya hemen geçer.</small>
+<label class="tour-field"><span class="tour-name" data-tr="Geçmek için ekstra saat" data-de="Mehr Stunden für einen Wechsel">Geçmek için ekstra saat</span>
+<small class="tour-help" data-tr="Şu anki kampanyada kalır. Diğeri en az bu kadar daha boşsa ona geçer. 0 ise bir saat fazla yeter." data-de="Sie bleibt bei der aktuellen Kampagne. Die andere braucht mindestens so viele Stunden mehr. Bei 0 reicht eine Stunde mehr.">Şu anki kampanyada kalır. Diğeri en az bu kadar daha boşsa ona geçer. 0 ise bir saat fazla yeter.</small>
 <input class="form-input" id="tour-margin" type="number" min="0" max="20" step="1" onchange="tourNum('gecisBos', this, 0, 20)"></label>
 <label class="tour-field"><span class="tour-name" data-tr="Kaç gün ileriye baksın" data-de="Wie viele Tage voraus">Kaç gün ileriye baksın</span>
-<small class="tour-help" data-tr="Boş saat ararken bugünden sonra en fazla bu kadar gün ileri gider. Gün şeridinden bir güne basarsan yalnız o güne bakar." data-de="Sie sucht freie Stunden höchstens so viele Tage voraus. Ein Tag in der Leiste legt sie auf genau diesen Tag.">Boş saat ararken bugünden sonra en fazla bu kadar gün ileri gider. Gün şeridinden bir güne basarsan yalnız o güne bakar.</small>
+<small class="tour-help" data-tr="Bugünden sonra en fazla bu kadar gün bakar. Alttan bir gün seçersen yalnız o güne bakar." data-de="Sie schaut höchstens so viele Tage voraus. Ein Tag unten legt sie auf genau diesen Tag.">Bugünden sonra en fazla bu kadar gün bakar. Alttan bir gün seçersen yalnız o güne bakar.</small>
 <select class="form-input" id="tour-horizon" onchange="tourPickHorizon(this)">
 <option value="7">7</option>
 <option value="14" selected>14</option>
 <option value="21">21</option>
 </select></label>
-<label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="Cumartesiyi de çalışma günü say" data-de="Samstag mitzählen">Cumartesiyi de çalışma günü say</span>
-<small class="tour-help" data-tr="Açıkken cumartesi de randevu günü olur. Pazar yine atlanır." data-de="Wenn an, ist Samstag ein Termintag. Sonntag wird weiter übersprungen.">Açıkken cumartesi de randevu günü olur. Pazar yine atlanır.</small></span>
+<label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="Cumartesi de sayılsın" data-de="Samstag mitzählen">Cumartesi de sayılsın</span>
+<small class="tour-help" data-tr="Açıksa cumartesi de randevu günüdür. Pazar yine atlanır." data-de="An: Samstag ist ein Termintag. Sonntag wird weiter übersprungen.">Açıksa cumartesi de randevu günüdür. Pazar yine atlanır.</small></span>
 <input type="checkbox" id="tour-sat" onchange="tourFlag('cumartesi', this)"></label>
-<label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="O gün boş saat yoksa sonraki güne bak" data-de="Ohne freie Stunde zum nächsten Tag">O gün boş saat yoksa sonraki güne bak</span>
-<small class="tour-help" data-tr="Kapalıyken yalnız bir sonraki iş gününe bakar. Açıksa boş saat bulana kadar sonraki günlere geçer." data-de="Aus: nur der nächste Werktag. An: sie geht weiter, bis ein Tag freie Stunden hat.">Kapalıyken yalnız bir sonraki iş gününe bakar. Açıksa boş saat bulana kadar sonraki günlere geçer.</small></span>
+<label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="Boş günü atlasın" data-de="Leeren Tag überspringen">Boş günü atlasın</span>
+<small class="tour-help" data-tr="Açıksa boş saat bulana kadar sonraki günlere bakar. Kapalıysa yalnız bir sonraki iş gününe bakar." data-de="An: sie geht weiter, bis ein Tag freie Stunden hat. Aus: nur der nächste Werktag.">Açıksa boş saat bulana kadar sonraki günlere bakar. Kapalıysa yalnız bir sonraki iş gününe bakar.</small></span>
 <input type="checkbox" id="tour-skip" onchange="tourFlag('bosSlotAtla', this)"></label>
 </div>
 </div>
@@ -798,47 +803,53 @@
 </div>
 </div>
 <div class="tour-pane" data-pane="sira">
-<p class="aria-ask" data-tr="Sıradaki kişi azalınca" data-de="Wenn die Reihe dünn wird">Sıradaki kişi azalınca</p>
-<p class="tour-note" data-tr="Eşik ve ne yapacağı bu hesap için. Kimleri alacağı, seçili firmanın kendi sonuçlarından gelir." data-de="Schwelle und die Arbeit gelten für dieses Konto. Wen sie nimmt, kommt aus den eigenen Ergebnissen der gewählten Firma.">Eşik ve ne yapacağı bu hesap için. Kimleri alacağı, seçili firmanın kendi sonuçlarından gelir.</p>
+<div class="tour-lead">
+<strong data-tr="Sıradaki kişi azalınca ne yapsın" data-de="Was passiert, wenn die Reihe dünn wird">Sıradaki kişi azalınca ne yapsın</strong>
+<span data-tr="Aranacak kişi belirlediğin sayının altına düşünce Callin sıraya kişi ekler." data-de="Sinkt die Zahl unter deinen Wert, fügt Callin Personen in die Reihe ein.">Aranacak kişi belirlediğin sayının altına düşünce Callin sıraya kişi ekler.</span>
+</div>
+<p class="tour-plain" id="tour-queue-plain"></p>
 <div class="tour-grid">
-<label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="Kuyruğu kendi doldursun" data-de="Queue selbst füllen">Kuyruğu kendi doldursun</span>
-<small class="tour-help" data-tr="Açıkken sıra eşiğin altına düşünce kişi ekler. Kapalıyken kuyruğa kimse yazmaz. Kampanya ayrı kalır." data-de="An: fügt Personen hinzu, wenn die Reihe unter die Schwelle sinkt. Aus: niemand kommt in die Queue. Die Kampagne bleibt getrennt.">Açıkken sıra eşiğin altına düşünce kişi ekler. Kapalıyken kuyruğa kimse yazmaz. Kampanya ayrı kalır.</small></span>
+<p class="tour-sec" data-tr="Ne zaman" data-de="Wann">Ne zaman</p>
+<label class="tour-check"><span class="tour-copy"><span class="tour-name" data-tr="Sırayı kendi doldursun" data-de="Reihe selbst füllen">Sırayı kendi doldursun</span>
+<small class="tour-help" data-tr="Açıkken kişi sayısı eşiğin altına düşünce ekler. Kapalıyken kimse eklenmez." data-de="An: sie fügt Personen hinzu, wenn die Zahl unter die Schwelle sinkt. Aus: niemand kommt dazu.">Açıkken kişi sayısı eşiğin altına düşünce ekler. Kapalıyken kimse eklenmez.</small></span>
 <input type="checkbox" id="tour-queue-auto" onchange="tourFlag('kuyrukYenile', this)"></label>
-<label class="tour-field"><span class="tour-name" data-tr="Ne yapsın" data-de="Was sie tun soll">Ne yapsın</span>
-<small class="tour-help" data-tr="Yeniden sıraya al: kimleri ve kaç kez aranmış olanı alacağını alttaki sorular seçer. GeoCon: seçtiği kampanyanın çevresinden, GeoCon’da son günlerde kullanılmamış posta kodlarını ekler." data-de="Wieder in die Reihe: die Fragen darunter wählen, wen und wie oft. GeoCon: nimmt um die Kampagne Personen, deren PLZ in GeoCon zuletzt nicht benutzt wurde.">Yeniden sıraya al: kimleri ve kaç kez aranmış olanı alacağını alttaki sorular seçer. GeoCon: seçtiği kampanyanın çevresinden, GeoCon’da son günlerde kullanılmamış posta kodlarını ekler.</small>
+<label class="tour-field"><span class="tour-name" data-tr="Sırada en az kaç kişi" data-de="Mindestens so viele in der Reihe">Sırada en az kaç kişi</span>
+<small class="tour-help" data-tr="Bunun altına düşünce doldurur." data-de="Darunter füllt sie auf.">Bunun altına düşünce doldurur.</small>
+<input class="form-input" id="tour-esik" type="number" min="50" max="20000" step="50" onchange="tourNum('veriEsik', this, 50, 20000)"></label>
+<p class="tour-sec" data-tr="Kimi eklesin" data-de="Wen">Kimi eklesin</p>
+<label class="tour-field"><span class="tour-name" data-tr="Ne eklesin" data-de="Was sie hinzufügt">Ne eklesin</span>
+<small class="tour-help" data-tr="Cevap vermeyenler: daha önce aranıp açılmayanlar. GeoCon: kampanyanın çevresinden yeni kişiler." data-de="Nicht erreichte: schon angerufen, niemand hat abgenommen. GeoCon: neue Personen um die Kampagne.">Cevap vermeyenler: daha önce aranıp açılmayanlar. GeoCon: kampanyanın çevresinden yeni kişiler.</small>
 <select class="form-input" id="tour-kuyruk" onchange="tourQueueMode(this)">
 <option value="revert" data-tr="Cevap vermeyenleri yeniden sıraya al" data-de="Nicht erreichte wieder in die Reihe">Cevap vermeyenleri yeniden sıraya al</option>
 <option value="yakin" data-tr="GeoCon’dan yakındaki kişileri ekle" data-de="Personen aus GeoCon in der Nähe hinzufügen">GeoCon’dan yakındaki kişileri ekle</option>
 </select></label>
 <div id="tour-geri-who" class="tour-geri" hidden></div>
 <label class="tour-field tour-geri" hidden><span class="tour-name" data-tr="En fazla kaç kez aranmış olsun" data-de="Höchstens so oft schon angerufen">En fazla kaç kez aranmış olsun</span>
-<small class="tour-help" data-tr="Bu sayıdan az aranmış kişiyi alır. 2 yazarsan hiç aranmayan ve bir kez aranan gelir. Daha çok aranan kalır. Deneme sayısı silinmez." data-de="Nimmt Personen, die seltener als diese Zahl angerufen wurden. 2 holt nie und einmal angerufene. Öfter angerufene bleiben. Die Versuche werden nicht gelöscht.">Bu sayıdan az aranmış kişiyi alır. 2 yazarsan hiç aranmayan ve bir kez aranan gelir. Daha çok aranan kalır. Deneme sayısı silinmez.</small>
+<small class="tour-help" data-tr="Bu sayıdan az aranmış kişiyi alır. 2 ise hiç aranmayan ve bir kez aranan gelir." data-de="Nimmt Personen, die seltener als diese Zahl angerufen wurden. 2 holt nie und einmal angerufene.">Bu sayıdan az aranmış kişiyi alır. 2 ise hiç aranmayan ve bir kez aranan gelir.</small>
 <input class="form-input" id="tour-geri-kere" type="number" min="1" max="10" step="1" onchange="tourNum('geriKere', this, 1, 10)"></label>
 <label class="tour-field tour-yakin" hidden><span class="tour-name" data-tr="Nereye yazsın" data-de="Wohin sie schreibt">Nereye yazsın</span>
-<small class="tour-help" data-tr="Son kuyruk: kampanyanın son kuyruğuna ekler. Yeni kuyruk: yüklediği posta kodlarıyla açar, 85185-85180-85187 gibi." data-de="Letzte Queue: hängt an die letzte Queue der Kampagne. Neue Queue: benennt sie nach den geladenen PLZ, etwa 85185-85180-85187.">Son kuyruk: kampanyanın son kuyruğuna ekler. Yeni kuyruk: yüklediği posta kodlarıyla açar, 85185-85180-85187 gibi.</small>
+<small class="tour-help" data-tr="Son kuyruk: kampanyanın son listesine ekler. Yeni kuyruk: posta kodlarıyla yeni liste açar." data-de="Letzte Queue: hängt an die letzte Liste der Kampagne. Neue Queue: öffnet eine Liste mit den PLZ.">Son kuyruk: kampanyanın son listesine ekler. Yeni kuyruk: posta kodlarıyla yeni liste açar.</small>
 <select class="form-input" id="tour-kuyruk-yer" onchange="tourQueuePlace(this)">
 <option value="son" data-tr="Son kuyruğa" data-de="In die letzte Queue">Son kuyruğa</option>
 <option value="yeni" data-tr="Yeni kuyruk aç" data-de="Neue Queue anlegen">Yeni kuyruk aç</option>
 </select></label>
-<label class="tour-field"><span class="tour-name" data-tr="Sırada en az kaç kişi kalsın" data-de="Mindestens so viele in der Reihe">Sırada en az kaç kişi kalsın</span>
-<small class="tour-help" data-tr="Sıradaki kişi bu sayının altına düşünce ilk soruda seçtiğin işi yapar." data-de="Sinkt die Reihe unter diese Zahl, macht sie die Arbeit aus der ersten Frage.">Sıradaki kişi bu sayının altına düşünce ilk soruda seçtiğin işi yapar.</small>
-<input class="form-input" id="tour-esik" type="number" min="50" max="20000" step="50" onchange="tourNum('veriEsik', this, 50, 20000)"></label>
-<label class="tour-field tour-yakin" hidden><span class="tour-name" data-tr="Ne kadar yakından alsın" data-de="Wie nah">Ne kadar yakından alsın</span>
-<small class="tour-help" data-tr="Seçtiği kampanyanın posta kodunun çevresi. En yakın koddan başlar, sayı dolunca durur." data-de="Umkreis der PLZ der gewählten Kampagne. Beginnt bei der nächsten PLZ und stoppt, wenn die Zahl voll ist.">Seçtiği kampanyanın posta kodunun çevresi. En yakın koddan başlar, sayı dolunca durur.</small>
+<p class="tour-sec tour-yakin" hidden data-tr="Nereden alsın" data-de="Woher">Nereden alsın</p>
+<label class="tour-field tour-yakin" hidden><span class="tour-name" data-tr="Ne kadar yakından" data-de="Wie nah">Ne kadar yakından</span>
+<small class="tour-help" data-tr="Kampanyanın posta kodunun çevresi. En yakın koddan başlar." data-de="Umkreis der PLZ der Kampagne. Beginnt bei der nächsten PLZ.">Kampanyanın posta kodunun çevresi. En yakın koddan başlar.</small>
 <select class="form-input" id="tour-radius" onchange="tourPickRadius(this)">
 <option value="10">10 km</option>
 <option value="20">20 km</option>
 <option value="30">30 km</option>
 <option value="50">50 km</option>
 </select></label>
-<label class="tour-field tour-yakin" hidden><span class="tour-name" data-tr="Bir seferde en fazla kaç kişi eklesin" data-de="Höchstens so viele auf einmal">Bir seferde en fazla kaç kişi eklesin</span>
-<small class="tour-help" data-tr="Sıradaki eksik bundan büyük olsa bile bir seferde en fazla bu kadar kişi ekler." data-de="Auch wenn mehr fehlen, fügt sie auf einmal höchstens so viele hinzu.">Sıradaki eksik bundan büyük olsa bile bir seferde en fazla bu kadar kişi ekler.</small>
+<label class="tour-field tour-yakin" hidden><span class="tour-name" data-tr="Bir seferde en fazla" data-de="Höchstens auf einmal">Bir seferde en fazla</span>
+<small class="tour-help" data-tr="Eksik daha çok olsa bile bir seferde en fazla bu kadar kişi ekler." data-de="Auch wenn mehr fehlen, fügt sie auf einmal höchstens so viele hinzu.">Eksik daha çok olsa bile bir seferde en fazla bu kadar kişi ekler.</small>
 <input class="form-input" id="tour-yakin-n" type="number" min="20" max="2000" step="50" onchange="tourNum('yakinAdet', this, 20, 2000)"></label>
-<label class="tour-check tour-yakin" hidden><span class="tour-copy"><span class="tour-name" data-tr="Yalnız aynı bölgeden alsın" data-de="Nur aus derselben Region">Yalnız aynı bölgeden alsın</span>
-<small class="tour-help" data-tr="Açıkken posta kodunun ilk iki hanesi aynı olan yerlere bakar." data-de="An: nur PLZ mit denselben ersten zwei Ziffern.">Açıkken posta kodunun ilk iki hanesi aynı olan yerlere bakar.</small></span>
+<label class="tour-check tour-yakin" hidden><span class="tour-copy"><span class="tour-name" data-tr="Yalnız aynı bölge" data-de="Nur dieselbe Region">Yalnız aynı bölge</span>
+<small class="tour-help" data-tr="Açıksa posta kodunun ilk iki hanesi aynı olan yerlere bakar." data-de="An: nur PLZ mit denselben ersten zwei Ziffern.">Açıksa posta kodunun ilk iki hanesi aynı olan yerlere bakar.</small></span>
 <input type="checkbox" id="tour-prefix" onchange="tourFlag('ayniPrefix', this)"></label>
-<label class="tour-field tour-yakin" hidden><span class="tour-name" data-tr="Kaç gün önce kullanılmış kodu almasın" data-de="PLZ der letzten Tage nicht nehmen">Kaç gün önce kullanılmış kodu almasın</span>
-<small class="tour-help" data-tr="GeoCon bir posta kodunu kullanılmış işaretler. Bu kadar gün içinde kullanılmış kodu atlar. 30 yazarsan son 30 günde kullanılan kod gelmez. Daha eskisi gelir. İşaretsiz kod her zaman gelir." data-de="GeoCon markiert eine PLZ als benutzt. Sie überspringt eine PLZ, die innerhalb dieser Tage benutzt wurde. 30 lässt die letzten 30 Tage aus. Älteres kommt. Eine unmarkierte PLZ kommt immer.">GeoCon bir posta kodunu kullanılmış işaretler. Bu kadar gün içinde kullanılmış kodu atlar. 30 yazarsan son 30 günde kullanılan kod gelmez. Daha eskisi gelir. İşaretsiz kod her zaman gelir.</small>
+<label class="tour-field tour-yakin" hidden><span class="tour-name" data-tr="Kullanılmış kodu kaç gün atlasın" data-de="Benutzte PLZ wie viele Tage auslassen">Kullanılmış kodu kaç gün atlasın</span>
+<small class="tour-help" data-tr="Bu kadar gün içinde GeoCon’da kullanılmış posta kodunu almaz. İşaretsiz kod her zaman gelir." data-de="Eine in GeoCon innerhalb dieser Tage benutzte PLZ nimmt sie nicht. Eine unmarkierte PLZ kommt immer.">Bu kadar gün içinde GeoCon’da kullanılmış posta kodunu almaz. İşaretsiz kod her zaman gelir.</small>
 <input class="form-input" id="tour-geo-gun" type="number" min="1" max="100" step="1" onchange="tourNum('geoGun', this, 1, 100)"></label>
 </div>
 </div>
@@ -5675,79 +5686,79 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=15.10"></script>
-<script src="js/i18n.js?v=15.10"></script>
-<script src="js/config.js?v=15.10"></script>
-<script src="js/state.js?v=15.10"></script>
-<script src="js/api.js?v=15.10"></script>
-<script src="js/access.js?v=15.10"></script>
-<script src="js/auth.js?v=15.10"></script>
-<script src="js/logo.js?v=15.10"></script>
-<script src="js/ui.js?v=15.10"></script>
-<script src="js/chat.js?v=15.10"></script>
-<script src="js/chat-settings.js?v=15.10"></script>
-<script src="js/field-settings.js?v=15.10"></script>
-<script src="js/audit.js?v=15.10"></script>
-<script src="js/feature-flags.js?v=15.10"></script>
-<script src="js/notification-center.js?v=15.10"></script>
+<script src="js/version.js?v=15.11"></script>
+<script src="js/i18n.js?v=15.11"></script>
+<script src="js/config.js?v=15.11"></script>
+<script src="js/state.js?v=15.11"></script>
+<script src="js/api.js?v=15.11"></script>
+<script src="js/access.js?v=15.11"></script>
+<script src="js/auth.js?v=15.11"></script>
+<script src="js/logo.js?v=15.11"></script>
+<script src="js/ui.js?v=15.11"></script>
+<script src="js/chat.js?v=15.11"></script>
+<script src="js/chat-settings.js?v=15.11"></script>
+<script src="js/field-settings.js?v=15.11"></script>
+<script src="js/audit.js?v=15.11"></script>
+<script src="js/feature-flags.js?v=15.11"></script>
+<script src="js/notification-center.js?v=15.11"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=15.10"></script>
-<script src="js/spend.js?v=15.10"></script>
-<script src="js/job-market.js?v=15.10"></script>
-<script src="js/qc-job-market.js?v=15.10"></script>
-<script src="js/export-admin.js?v=15.10"></script>
-<script src="js/export-termin.js?v=15.10"></script>
-<script src="js/randevular.js?v=15.10"></script>
-<script src="js/performance.js?v=15.10"></script>
-<script src="js/competition.js?v=15.10"></script>
-<script src="js/dashboard.js?v=15.10"></script>
-<script src="js/reports.js?v=15.10"></script>
-<script src="js/dashboard-brief.js?v=15.10"></script>
-<script src="js/campaigns.js?v=15.10"></script>
-<script src="js/campaigns-detail.js?v=15.10"></script>
-<script src="js/campaigns-queue.js?v=15.10"></script>
-<script src="js/queues-page.js?v=15.10"></script>
-<script src="js/contacts-upload.js?v=15.10"></script>
-<script src="js/geocon.js?v=15.10"></script>
-<script src="js/contacts.js?v=15.10"></script>
-<script src="js/contacts-drawer.js?v=15.10"></script>
-<script src="js/telnyx.js?v=15.10"></script>
-<script src="js/sip-trunk.js?v=15.10"></script>
-<script src="js/hold-music.js?v=15.10"></script>
-<script src="js/voice-orb.js?v=15.10"></script>
-<script src="js/dialer.js?v=15.10"></script>
-<script src="js/ops-alerts.js?v=15.10"></script>
-<script src="js/radius-tour.js?v=15.10"></script>
-<script src="js/dialer-mascot.js?v=15.10"></script>
-<script src="js/dialer-mascot-live.js?v=15.10"></script>
-<script src="js/ui-prefs.js?v=15.10"></script>
-<script src="js/dialer-session.js?v=15.10"></script>
-<script src="js/dialer-call.js?v=15.10"></script>
-<script src="js/dialer-tools.js?v=15.10"></script>
-<script src="js/appointments.js?v=15.10"></script>
-<script src="js/appointments-actions.js?v=15.10"></script>
-<script src="js/appointments-tools.js?v=15.10"></script>
-<script src="js/field.js?v=15.10"></script>
-<script src="js/field-quote.js?v=15.10"></script>
-<script src="js/field-catalog.js?v=15.10"></script>
-<script src="js/field-ops.js?v=15.10"></script>
-<script src="js/wiedervorlage.js?v=15.10"></script>
-<script src="js/blacklist.js?v=15.10"></script>
-<script src="js/qc.js?v=15.10"></script>
-<script src="js/supervisor.js?v=15.10"></script>
-<script src="js/live-coach.js?v=15.10"></script>
-<script src="js/sms-settings.js?v=15.10"></script>
-<script src="js/line-firms.js?v=15.10"></script>
-<script src="js/ai-staff.js?v=15.10"></script>
-<script src="js/callin-desk.js?v=15.10"></script>
-<script src="js/leave-hr.js?v=15.10"></script>
-<script src="js/attendance.js?v=15.10"></script>
-<script src="js/muhasebe.js?v=15.10"></script>
-<script src="js/muhasebe-books.js?v=15.10"></script>
-<script src="js/agent-self-performance.js?v=15.10"></script>
-<script src="js/agents.js?v=15.10"></script>
-<script src="js/firm-desk.js?v=15.10"></script>
-<script src="js/mimi-brain.js?v=15.10"></script>
+<script src="js/wallet.js?v=15.11"></script>
+<script src="js/spend.js?v=15.11"></script>
+<script src="js/job-market.js?v=15.11"></script>
+<script src="js/qc-job-market.js?v=15.11"></script>
+<script src="js/export-admin.js?v=15.11"></script>
+<script src="js/export-termin.js?v=15.11"></script>
+<script src="js/randevular.js?v=15.11"></script>
+<script src="js/performance.js?v=15.11"></script>
+<script src="js/competition.js?v=15.11"></script>
+<script src="js/dashboard.js?v=15.11"></script>
+<script src="js/reports.js?v=15.11"></script>
+<script src="js/dashboard-brief.js?v=15.11"></script>
+<script src="js/campaigns.js?v=15.11"></script>
+<script src="js/campaigns-detail.js?v=15.11"></script>
+<script src="js/campaigns-queue.js?v=15.11"></script>
+<script src="js/queues-page.js?v=15.11"></script>
+<script src="js/contacts-upload.js?v=15.11"></script>
+<script src="js/geocon.js?v=15.11"></script>
+<script src="js/contacts.js?v=15.11"></script>
+<script src="js/contacts-drawer.js?v=15.11"></script>
+<script src="js/telnyx.js?v=15.11"></script>
+<script src="js/sip-trunk.js?v=15.11"></script>
+<script src="js/hold-music.js?v=15.11"></script>
+<script src="js/voice-orb.js?v=15.11"></script>
+<script src="js/dialer.js?v=15.11"></script>
+<script src="js/ops-alerts.js?v=15.11"></script>
+<script src="js/radius-tour.js?v=15.11"></script>
+<script src="js/dialer-mascot.js?v=15.11"></script>
+<script src="js/dialer-mascot-live.js?v=15.11"></script>
+<script src="js/ui-prefs.js?v=15.11"></script>
+<script src="js/dialer-session.js?v=15.11"></script>
+<script src="js/dialer-call.js?v=15.11"></script>
+<script src="js/dialer-tools.js?v=15.11"></script>
+<script src="js/appointments.js?v=15.11"></script>
+<script src="js/appointments-actions.js?v=15.11"></script>
+<script src="js/appointments-tools.js?v=15.11"></script>
+<script src="js/field.js?v=15.11"></script>
+<script src="js/field-quote.js?v=15.11"></script>
+<script src="js/field-catalog.js?v=15.11"></script>
+<script src="js/field-ops.js?v=15.11"></script>
+<script src="js/wiedervorlage.js?v=15.11"></script>
+<script src="js/blacklist.js?v=15.11"></script>
+<script src="js/qc.js?v=15.11"></script>
+<script src="js/supervisor.js?v=15.11"></script>
+<script src="js/live-coach.js?v=15.11"></script>
+<script src="js/sms-settings.js?v=15.11"></script>
+<script src="js/line-firms.js?v=15.11"></script>
+<script src="js/ai-staff.js?v=15.11"></script>
+<script src="js/callin-desk.js?v=15.11"></script>
+<script src="js/leave-hr.js?v=15.11"></script>
+<script src="js/attendance.js?v=15.11"></script>
+<script src="js/muhasebe.js?v=15.11"></script>
+<script src="js/muhasebe-books.js?v=15.11"></script>
+<script src="js/agent-self-performance.js?v=15.11"></script>
+<script src="js/agents.js?v=15.11"></script>
+<script src="js/firm-desk.js?v=15.11"></script>
+<script src="js/mimi-brain.js?v=15.11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof mbApplyChartTheme === 'function') mbApplyChartTheme();
