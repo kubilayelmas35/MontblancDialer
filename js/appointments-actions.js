@@ -548,22 +548,11 @@ async function takvimFillNeighborDist(slot, appt) {
   const line = async (other, label) => {
     if (!other) return '';
     const otherAppt = (takvimAppts || []).find((a) => a.id === other.appointment_id);
-    if (!otherAppt?.plz || typeof geocodeTomTom !== 'function') return `${label}: —`;
+    if (!otherAppt?.plz || typeof takvimRoutePlz !== 'function') return `${label}: —`;
     const from = typeof takvimNormalizePlz === 'function' ? takvimNormalizePlz(appt.plz) : String(appt.plz);
     const dest = typeof takvimNormalizePlz === 'function' ? takvimNormalizePlz(otherAppt.plz) : String(otherAppt.plz);
-    const key = `${from}_${dest}`;
-    let row = (typeof _takvimPlzRouteCache !== 'undefined' && _takvimPlzRouteCache[key]) || null;
-    if (!row) {
-      try {
-        const g1 = await geocodeTomTom(`${from}, Germany`);
-        const g2 = await geocodeTomTom(`${dest}, Germany`);
-        const rt = g1 && g2 && typeof routeTomTomCoords === 'function' ? await routeTomTomCoords(g1, g2) : null;
-        if (rt && typeof _takvimPlzRouteCache !== 'undefined') {
-          row = { km: (rt.d / 1000).toFixed(1), min: Math.round(rt.t / 60) };
-          _takvimPlzRouteCache[key] = row;
-        }
-      } catch (_) {}
-    }
+    let row = await takvimRoutePlz(from, dest);
+    if (!row) row = await takvimRoutePlz(from, dest);
     return row ? `${label}: ${typeof takvimDistHtml === 'function' ? takvimDistHtml(row.km, row.min) : `${row.km} km · ${row.min} dk`}` : `${label}: —`;
   };
   const parts = [await line(prev, 'Üstteki termin'), await line(next, 'Alttaki termin')].filter(Boolean);

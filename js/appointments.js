@@ -687,8 +687,12 @@ async function loadTakvimSlots() {
     takvimAppts = [];
     for (let i = 0; i < ids.length; i += 80) {
       const chunk = ids.slice(i, i + 80);
-      const part = await sb(`appointments?id=in.(${chunk.join(',')})`).catch(() => []) || [];
-      takvimAppts.push(...part);
+      let part = null;
+      try { part = await sb(`appointments?id=in.(${chunk.join(',')})`); } catch (_) { part = null; }
+      if (!Array.isArray(part)) {
+        try { part = await sb(`appointments?id=in.(${chunk.join(',')})`); } catch (_) { part = []; }
+      }
+      takvimAppts.push(...(part || []));
     }
     await takvimLoadCustomerNames(takvimAppts);
     const agentIds = [...new Set(takvimAppts.map((a) => a.agent_id).filter(Boolean))];
@@ -1106,7 +1110,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
       const origin = takvimSlots.find((x) => x.id === _takvimDistAllOriginId);
       const oa = takvimAppts.find((a) => a.id === origin?.appointment_id);
       if (oa?.plz && appt?.plz) {
-        const r = _takvimPlzRouteCache[`${oa.plz}_${appt.plz}`];
+        const r = typeof takvimCachedRoute === 'function' ? takvimCachedRoute(oa.plz, appt.plz) : _takvimPlzRouteCache[`${oa.plz}_${appt.plz}`];
         if (r) distAllHtml = `<div class="tk-slot-meta">${takvimDistHtml(r.km, r.min)}</div>`;
       }
     }
@@ -1370,9 +1374,9 @@ function takvimPaintChipRow(host, kind, keys, counts) {
 
 function takvimPlzBadge(appt) {
   if (!_takvimMeasureFromPlz || !appt?.plz) return '';
-  const digits = String(appt.plz).replace(/\D/g, '');
-  const dest = digits.length === 4 ? `0${digits}` : digits.slice(0, 5);
-  const row = _takvimMeasureCache[`${_takvimMeasureFromPlz}_${dest}`] || _takvimMeasureCache[`${_takvimMeasureFromPlz}_${appt.plz}`];
+  const from = typeof takvimNormalizePlz === 'function' ? takvimNormalizePlz(_takvimMeasureFromPlz) : String(_takvimMeasureFromPlz || '');
+  const dest = typeof takvimNormalizePlz === 'function' ? takvimNormalizePlz(appt.plz) : String(appt.plz || '');
+  const row = _takvimMeasureCache[`${from}_${dest}`] || _takvimMeasureCache[`${_takvimMeasureFromPlz}_${dest}`] || _takvimMeasureCache[`${_takvimMeasureFromPlz}_${appt.plz}`];
   if (!row) return '';
   return `<div class="tk-plz-badge">${takvimDistHtml(row.km, row.min)}</div>`;
 }

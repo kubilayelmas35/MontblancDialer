@@ -528,31 +528,108 @@ ${camp.notif_message?`<div style="font-size:13px;color:var(--text-2);margin-bott
 }
 
 // ── TomTom mesafe / rota ──────────────────────
+const _takvimGeoCache = {};
+
+function takvimTomTomWait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function takvimTomTomJson(url) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return await res.json();
+      if (res.status !== 429 && res.status < 500) return null;
+    } catch (_) {}
+    await takvimTomTomWait(280 * (attempt + 1));
+  }
+  return null;
+}
+
 async function calcTomTomDistance(from, to) {
   const tk = localStorage.getItem('mb_tomtom_key') || DEFAULT_TOMTOM_KEY;
   if (!tk || !from || !to) return null;
-  try {
-    const enc = (s) => encodeURIComponent(s);
-    const url = `https://api.tomtom.com/routing/1/calculateRoute/${enc(from)}:${enc(to)}/json?key=${tk}&travelMode=car`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const meters = data?.routes?.[0]?.summary?.lengthInMeters;
-    if (!meters) return null;
-    return meters < 1000 ? `${meters}m` : `${(meters/1000).toFixed(1)}km`;
-  } catch(e) { return null; }
+  const enc = (s) => encodeURIComponent(s);
+  const url = `https://api.tomtom.com/routing/1/calculateRoute/${enc(from)}:${enc(to)}/json?key=${tk}&travelMode=car`;
+  const data = await takvimTomTomJson(url);
+  const meters = data?.routes?.[0]?.summary?.lengthInMeters;
+  if (!meters) return null;
+  return meters < 1000 ? `${meters}m` : `${(meters/1000).toFixed(1)}km`;
 }
 
 async function geocodeTomTom(query) {
+  const q = String(query || '').trim();
   const tk = localStorage.getItem('mb_tomtom_key') || DEFAULT_TOMTOM_KEY;
-  if (!tk || !String(query || '').trim()) return null;
-  try {
-    const url = `https://api.tomtom.com/search/2/geocode/${encodeURIComponent(query)}.json?key=${tk}&countrySet=DE&limit=1`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data?.results?.[0]?.position || null;
-  } catch (_) { return null; }
+  if (!tk || !q) return null;
+  if (_takvimGeoCache[q]) return _takvimGeoCache[q];
+  const url = `https://api.tomtom.com/search/2/geocode/${encodeURIComponent(q)}.json?key=${tk}&countrySet=DE&limit=1`;
+  const data = await takvimTomTomJson(url);
+  const pos = data?.results?.[0]?.position || null;
+  if (pos) _takvimGeoCache[q] = pos;
+  return pos;
+}
+
+function takvimRouteStoreKey(a, b) {
+  const x = typeof takvimNormalizePlz === 'function' ? takvimNormalizePlz(a) : String(a || '');
+  const y = typeof takvimNormalizePlz === 'function' ? takvimNormalizePlz(b) : String(b || '');
+  return x <= y ? `${x}_${y}` : `${y}_${x}`;
+}
+
+function takvimCachedRoute(a, b) {
+  const cache = typeof _takvimPlzRouteCache !== 'undefined' ? _takvimPlzRouteCache : null;
+  if (!cache) return null;
+  const x = typeof takvimNormalizePlz === 'function' ? takvimNormalizePlz(a) : String(a || '');
+  const y = typeof takvimNormalizePlz === 'function' ? takvimNormalizePlz(b) : String(b || '');
+  return cache[takvimRouteStoreKey(x, y)] || cache[`${x}_${y}`] || cache[`${a}_${b}`] || null;
+}
+
+async function takvimRoutePlz(from, to) {
+  const a = typeof takvimNormalizePlz === 'function' ? takvimNormalizePlz(from) : String(from || '');
+  const b = typeof takvimNormalizePlz === 'function' ? takvimNormalizePlz(to) : String(to || '');
+  if (a.length < 4 || b.length < 4) return null;
+  const cached = takvimCachedRoute(a, b);
+  if (cached) return cached;
+  if (a === b) {
+    const same = { km: '0.0', min: 0 };
+    if (typeof _takvimPlzRouteCache !== 'undefined') _takvimPlzRouteCache[takvimRouteStoreKey(a, b)] = same;
+    return same;
+  }
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const g1 = await geocodeTomTom(`${a}, Germany`);
+    const g2 = await geocodeTomTom(`${b}, Germany`);
+    const rt = g1 && g2 ? await routeTomTomCoords(g1, g2) : null;
+    if (rt) {
+      const row = { km: (rt.d / 1000).toFixed(1), min: Math.round(rt.t / 60) };
+      if (typeof _takvimPlzRouteCache !== 'undefined') {
+        _takvimPlzRouteCache[takvimRouteStoreKey(a, b)] = row;
+        _takvimPlzRouteCache[`${a}_${b}`] = row;
+        _takvimPlzRouteCache[`${b}_${a}`] = row;
+      }
+      return row;
+    }
+    await takvimTomTomWait(320 * (attempt + 1));
+  }
+  return null;
+}
+
+async function takvimFillDestRoutes(origin, dests, paint) {
+  const from = typeof takvimNormalizePlz === 'function' ? takvimNormalizePlz(origin) : String(origin || '');
+  const unique = [...new Set((dests || []).map((plz) => (typeof takvimNormalizePlz === 'function' ? takvimNormalizePlz(plz) : String(plz || ''))).filter((plz) => plz.length >= 4))];
+  const missed = [];
+  for (const dest of unique) {
+    const row = await takvimRoutePlz(from, dest);
+    if (row) {
+      if (typeof _takvimMeasureCache !== 'undefined') _takvimMeasureCache[`${from}_${dest}`] = row;
+      if (typeof paint === 'function') paint();
+    } else missed.push(dest);
+    await takvimTomTomWait(140);
+  }
+  for (const dest of missed) {
+    delete _takvimGeoCache[`${dest}, Germany`];
+    const row = await takvimRoutePlz(from, dest);
+    if (row && typeof _takvimMeasureCache !== 'undefined') _takvimMeasureCache[`${from}_${dest}`] = row;
+    if (row && typeof paint === 'function') paint();
+  }
 }
 
 async function searchTomTomAddresses(query, bias) {
@@ -596,15 +673,11 @@ async function searchTomTomAddresses(query, bias) {
 async function routeTomTomCoords(p1, p2) {
   const tk = localStorage.getItem('mb_tomtom_key') || DEFAULT_TOMTOM_KEY;
   if (!tk || !p1?.lat || !p2?.lat) return null;
-  try {
-    const url = `https://api.tomtom.com/routing/1/calculateRoute/${p1.lat},${p1.lon}:${p2.lat},${p2.lon}/json?key=${tk}&travelMode=car`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const s = data?.routes?.[0]?.summary;
-    if (!s) return null;
-    return { d: s.lengthInMeters, t: s.travelTimeInSeconds };
-  } catch (_) { return null; }
+  const url = `https://api.tomtom.com/routing/1/calculateRoute/${p1.lat},${p1.lon}:${p2.lat},${p2.lon}/json?key=${tk}&travelMode=car`;
+  const data = await takvimTomTomJson(url);
+  const s = data?.routes?.[0]?.summary;
+  if (!s) return null;
+  return { d: s.lengthInMeters, t: s.travelTimeInSeconds };
 }
 
 async function measureSlotDistance(slotId) {
@@ -645,21 +718,14 @@ async function toggleTakvimDistAll(slotId) {
   _takvimDistAllOriginId = slotId;
   renderTakvimSlots();
   toast('Diğer randevulara uzaklık hesaplanıyor…', 'ok');
-  const others = takvimSlots.filter((s) => s.id !== slotId && s.durum === 'dolu' && s.appointment_id);
-  for (const s of others) {
-    const da = takvimAppts.find((a) => a.id === s.appointment_id);
-    if (!da?.plz) continue;
-    const key = `${appt.plz}_${da.plz}`;
-    if (_takvimPlzRouteCache[key]) continue;
-    try {
-      const g1 = await geocodeTomTom(`${appt.plz}, Germany`);
-      const g2 = await geocodeTomTom(`${da.plz}, Germany`);
-      if (!g1 || !g2) continue;
-      const rt = await routeTomTomCoords(g1, g2);
-      if (rt) _takvimPlzRouteCache[key] = { km: (rt.d / 1000).toFixed(1), min: Math.round(rt.t / 60) };
-    } catch (_) {}
-  }
-  renderTakvimSlots();
+  const dests = takvimSlots
+    .filter((s) => s.id !== slotId && s.durum === 'dolu' && s.appointment_id)
+    .map((s) => takvimAppts.find((a) => a.id === s.appointment_id)?.plz)
+    .filter(Boolean);
+  await takvimFillDestRoutes(appt.plz, dests, () => {
+    if (_takvimDistAllOriginId === slotId && typeof renderTakvimSlots === 'function') renderTakvimSlots();
+  });
+  if (_takvimDistAllOriginId === slotId) renderTakvimSlots();
 }
 
 async function nudgeTakvimSlot(slotId, deltaMin) {
@@ -807,23 +873,14 @@ async function runTakvimPlzMeasure(plz) {
   _takvimDistAllOriginId = null;
   _takvimMeasureFromPlz = plz;
   _takvimMeasureCache = {};
-  const targets = (takvimSlots || []).filter((s) => s.durum === 'dolu' && s.appointment_id);
-  for (const s of targets) {
+  const dests = (takvimSlots || [])
+    .filter((s) => s.durum === 'dolu' && s.appointment_id)
+    .map((s) => takvimAppts.find((a) => a.id === s.appointment_id)?.plz)
+    .filter(Boolean);
+  await takvimFillDestRoutes(plz, dests, () => {
     if (run !== _takvimPlzRun || _takvimMeasureFromPlz !== plz) return;
-    const da = takvimAppts.find((a) => a.id === s.appointment_id);
-    if (!da?.plz) continue;
-    const dest = takvimNormalizePlz(da.plz);
-    if (dest.length < 4) continue;
-    const key = `${plz}_${dest}`;
-    if (_takvimMeasureCache[key]) continue;
-    try {
-      const g1 = await geocodeTomTom(`${plz}, Germany`);
-      const g2 = await geocodeTomTom(`${dest}, Germany`);
-      if (!g1 || !g2) continue;
-      const rt = await routeTomTomCoords(g1, g2);
-      if (rt) _takvimMeasureCache[key] = { km: (rt.d / 1000).toFixed(1), min: Math.round(rt.t / 60) };
-    } catch (_) {}
-  }
+    if (typeof renderTakvimSlots === 'function') renderTakvimSlots();
+  });
   if (run === _takvimPlzRun && _takvimMeasureFromPlz === plz && typeof renderTakvimSlots === 'function') {
     renderTakvimSlots();
     if (typeof renderTakvimFailed === 'function') renderTakvimFailed();
@@ -835,10 +892,8 @@ function openTakvimPlzMeasureModal() {
 
 async function runPlzMeasureFromModal() {
   const inp = document.getElementById('takvim-plz-measure-inp');
-  const plz = String(inp?.value || '')
-    .trim()
-    .replace(/\s+/g, '');
-  if (!plz) {
+  const plz = takvimNormalizePlz(inp?.value || '');
+  if (plz.length < 4) {
     toast('PLZ girin', 'warn');
     return;
   }
@@ -847,20 +902,13 @@ async function runPlzMeasureFromModal() {
   _takvimMeasureFromPlz = plz;
   _takvimMeasureCache = {};
   toast('Mesafeler hesaplanıyor…', 'ok');
-  const targets = takvimSlots.filter((s) => s.durum === 'dolu' && s.appointment_id);
-  for (const s of targets) {
-    const da = takvimAppts.find((a) => a.id === s.appointment_id);
-    if (!da?.plz) continue;
-    const key = `${plz}_${da.plz}`;
-    if (_takvimMeasureCache[key]) continue;
-    try {
-      const g1 = await geocodeTomTom(`${plz}, Germany`);
-      const g2 = await geocodeTomTom(`${da.plz}, Germany`);
-      if (!g1 || !g2) continue;
-      const rt = await routeTomTomCoords(g1, g2);
-      if (rt) _takvimMeasureCache[key] = { km: (rt.d / 1000).toFixed(1), min: Math.round(rt.t / 60) };
-    } catch (_) {}
-  }
+  const dests = (takvimSlots || [])
+    .filter((s) => s.durum === 'dolu' && s.appointment_id)
+    .map((s) => takvimAppts.find((a) => a.id === s.appointment_id)?.plz)
+    .filter(Boolean);
+  await takvimFillDestRoutes(plz, dests, () => {
+    if (_takvimMeasureFromPlz === plz && typeof renderTakvimSlots === 'function') renderTakvimSlots();
+  });
   renderTakvimSlots();
   toast('Mesafe satırları güncellendi', 'ok');
 }
