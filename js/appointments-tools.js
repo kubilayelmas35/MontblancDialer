@@ -1617,6 +1617,15 @@ ${Object.entries(dayNames)
 <input type="checkbox" id="fdt-alta-slot" ${raw.altaYeniSlot !== false ? 'checked' : ''}>
 <span>${typeof t === 'function' ? t('cal.alta.slot') : 'Alta inen randevunun yerine yeni yer aç'}<br><span style="color:var(--text-3);font-weight:500;">${typeof t === 'function' ? t('cal.alta.slot.help') : 'Başarısız, iptal ya da elle alta alınan randevunun saati boş kalmaz.'}</span></span>
 </label>
+<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+<div style="font-size:12px;font-weight:800;margin-bottom:4px;">${typeof t === 'function' ? t('cal.dist.title') : 'Uzaklık rengi'}</div>
+<div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">${typeof t === 'function' ? t('cal.dist.hint') : 'Diğer randevuya giden sürenin yazısı bu renkte durur.'}</div>
+<div class="fdt-dist">
+<label><span>${typeof t === 'function' ? t('cal.dist.green') : 'Yeşil, şu dakikaya kadar'}</span><input type="number" class="form-input" id="fdt-dist-green-to" min="1" max="240" value="${cfg.dist_green_to}"><input type="color" id="fdt-dist-green" value="${cfg.dist_green}"></label>
+<label><span>${typeof t === 'function' ? t('cal.dist.orange') : 'Turuncu, şu dakikaya kadar'}</span><input type="number" class="form-input" id="fdt-dist-orange-to" min="2" max="300" value="${cfg.dist_orange_to}"><input type="color" id="fdt-dist-orange" value="${cfg.dist_orange}"></label>
+<label><span>${typeof t === 'function' ? t('cal.dist.red') : 'Daha uzun süre'}</span><input type="color" id="fdt-dist-red" value="${cfg.dist_red}"></label>
+</div>
+</div>
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;">
 <button type="button" class="btn btn-primary btn-sm" onclick="saveDefaultTakvimFirmSettings()">Varsayılanı kaydet</button>
 <button type="button" class="btn btn-ghost btn-sm" onclick="applyDefaultTakvimToFirmCampaigns()">Tüm aktif kampanyalara uygula</button>
@@ -1642,7 +1651,27 @@ async function saveDefaultTakvimFirmSettings() {
     const prevTk = existing.default_takvim && typeof existing.default_takvim === 'object' ? existing.default_takvim : {};
     const altaBox = document.getElementById('fdt-alta-slot');
     const altaYeniSlot = altaBox ? !!altaBox.checked : prevTk.altaYeniSlot !== false;
-    const payload = { ...prevTk, active_days: activeDays, start_hour: start, end_hour: end, slot_dur: dur, max_slots: maxSlots, confirm_new_slot, altaYeniSlot };
+    const distHex = (id, fallback) => {
+      const value = String(document.getElementById(id)?.value || '').trim();
+      return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+    };
+    const dist_green_to = Math.min(240, Math.max(1, parseInt(document.getElementById('fdt-dist-green-to')?.value, 10) || prevTk.dist_green_to || 30));
+    const dist_orange_to = Math.min(300, Math.max(dist_green_to + 1, parseInt(document.getElementById('fdt-dist-orange-to')?.value, 10) || prevTk.dist_orange_to || 45));
+    const payload = {
+      ...prevTk,
+      active_days: activeDays,
+      start_hour: start,
+      end_hour: end,
+      slot_dur: dur,
+      max_slots: maxSlots,
+      confirm_new_slot,
+      altaYeniSlot,
+      dist_green_to,
+      dist_orange_to,
+      dist_green: distHex('fdt-dist-green', prevTk.dist_green || '#16a34a'),
+      dist_orange: distHex('fdt-dist-orange', prevTk.dist_orange || '#ea580c'),
+      dist_red: distHex('fdt-dist-red', prevTk.dist_red || '#dc2626'),
+    };
     await sb(`firms?id=eq.${fid}`, {
       method: 'PATCH',
       prefer: 'return=minimal',

@@ -77,6 +77,9 @@ function mergeTakvimSettings(raw) {
   const bos_color = String(tk.bos_color || '').trim() || '#3b82f6';
   const bos_color_from = /^#[0-9A-Fa-f]{6}$/.test(String(tk.bos_color_from || '').trim()) ? String(tk.bos_color_from).trim() : '';
   const confirm_new_slot = tk.confirm_new_slot !== false;
+  const distHex = (value, fallback) => (/^#[0-9a-fA-F]{6}$/.test(String(value || '').trim()) ? String(value).trim() : fallback);
+  const dist_green_to = Math.min(240, Math.max(1, parseInt(tk.dist_green_to, 10) || 30));
+  let dist_orange_to = Math.min(300, Math.max(dist_green_to + 1, parseInt(tk.dist_orange_to, 10) || 45));
   return {
     active_days: active,
     start_hour: `${String(startH).padStart(2, '0')}:00`,
@@ -87,8 +90,28 @@ function mergeTakvimSettings(raw) {
     max_slots,
     bos_color,
     bos_color_from,
-    confirm_new_slot
+    confirm_new_slot,
+    dist_green_to,
+    dist_orange_to,
+    dist_green: distHex(tk.dist_green, '#16a34a'),
+    dist_orange: distHex(tk.dist_orange, '#ea580c'),
+    dist_red: distHex(tk.dist_red, '#dc2626'),
   };
+}
+
+function takvimDistBand(min) {
+  const tk = typeof getCampaignTakvimSettings === 'function' ? getCampaignTakvimSettings() : {};
+  const n = Math.max(0, Number(min) || 0);
+  const greenTo = tk.dist_green_to || 30;
+  const orangeTo = tk.dist_orange_to || 45;
+  const bg = n <= greenTo ? (tk.dist_green || '#16a34a') : n <= orangeTo ? (tk.dist_orange || '#ea580c') : (tk.dist_red || '#dc2626');
+  const fg = typeof takvimInk === 'function' ? takvimInk(bg) : '#ffffff';
+  return { bg, fg };
+}
+
+function takvimDistHtml(km, min) {
+  const band = takvimDistBand(min);
+  return `<span class="tk-dist" style="background:${band.bg};color:${band.fg}">${km} km · ${min} dk</span>`;
 }
 
 window._firmDefaultTakvimByFirm = window._firmDefaultTakvimByFirm || {};
@@ -1084,7 +1107,7 @@ function makeTakvimSlotEl(slot, appt, isAdmin, colCount) {
       const oa = takvimAppts.find((a) => a.id === origin?.appointment_id);
       if (oa?.plz && appt?.plz) {
         const r = _takvimPlzRouteCache[`${oa.plz}_${appt.plz}`];
-        if (r) distAllHtml = `<div class="tk-slot-meta">${r.km} km · ${r.min} dk</div>`;
+        if (r) distAllHtml = `<div class="tk-slot-meta">${takvimDistHtml(r.km, r.min)}</div>`;
       }
     }
     const tEnd = (slot.bitis_saat || takvimAddHours(slot.baslangic_saat.slice(0, 5), takvimSlotDurHours())).slice(0, 5);
@@ -1351,9 +1374,7 @@ function takvimPlzBadge(appt) {
   const dest = digits.length === 4 ? `0${digits}` : digits.slice(0, 5);
   const row = _takvimMeasureCache[`${_takvimMeasureFromPlz}_${dest}`] || _takvimMeasureCache[`${_takvimMeasureFromPlz}_${appt.plz}`];
   if (!row) return '';
-  const min = Number(row.min) || 0;
-  const tone = min <= 30 ? 'is-ok' : min <= 45 ? 'is-warn' : 'is-bad';
-  return `<div class="tk-plz-badge ${tone}">${row.km} km · ${row.min} dk</div>`;
+  return `<div class="tk-plz-badge">${takvimDistHtml(row.km, row.min)}</div>`;
 }
 
 function renderTakvimFilterBar() {

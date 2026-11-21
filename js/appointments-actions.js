@@ -564,10 +564,10 @@ async function takvimFillNeighborDist(slot, appt) {
         }
       } catch (_) {}
     }
-    return row ? `${label}: ${row.km} km · ${row.min} dk` : `${label}: —`;
+    return row ? `${label}: ${typeof takvimDistHtml === 'function' ? takvimDistHtml(row.km, row.min) : `${row.km} km · ${row.min} dk`}` : `${label}: —`;
   };
   const parts = [await line(prev, 'Üstteki termin'), await line(next, 'Alttaki termin')].filter(Boolean);
-  if (document.getElementById('takvim-neighbor-dist') === host) host.textContent = parts.join(' · ');
+  if (document.getElementById('takvim-neighbor-dist') === host) host.innerHTML = parts.join(' · ');
 }
 
 function takvimRecordingVisible(log, appt) {
