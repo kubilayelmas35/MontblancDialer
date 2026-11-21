@@ -999,7 +999,7 @@ async function mbPaintResTeam() {
   const norm = (value) => (typeof _normResultKey === 'function' ? _normResultKey(value) : String(value || ''));
   const list = (defs || []).map((def) => ({
     key: norm(def.key),
-    label: typeof mbResultLabel === 'function' ? mbResultLabel(def.key, def.label) : String(def.label || def.key || '').trim(),
+    label: typeof mbResultLabel === 'function' ? mbResultLabel(def.key, def.label, def.label_de) : String(def.label || def.key || '').trim(),
     color: typeof _normalizeResultColor === 'function' ? _normalizeResultColor(def.color) : String(def.color || '#64748b'),
   })).filter((def) => def.key);
   const safeColor = (color) => (/^#[0-9a-fA-F]{6}$/.test(String(color || '')) ? color : '#64748b');
@@ -1069,7 +1069,7 @@ async function mbPaintTodayResults() {
   const norm = (value) => (typeof _normResultKey === 'function' ? _normResultKey(value) : String(value || ''));
   const list = (defs || []).map((def) => ({
     key: norm(def.key),
-    label: typeof mbResultLabel === 'function' ? mbResultLabel(def.key, def.label) : String(def.label || def.key || '').trim(),
+    label: typeof mbResultLabel === 'function' ? mbResultLabel(def.key, def.label, def.label_de) : String(def.label || def.key || '').trim(),
     color: typeof _normalizeResultColor === 'function' ? _normalizeResultColor(def.color) : String(def.color || '#64748b'),
   })).filter((def) => def.key);
   window._tbApptRows = rows;

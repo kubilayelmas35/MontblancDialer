@@ -1788,7 +1788,7 @@ function _paintQcReviewOutcomes(grid) {
   if (br) br.style.display = 'none';
   const defs = window._qcResultCfg || [];
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
-  const label = (def) => (typeof mbResultLabel === 'function' ? mbResultLabel(def.key, def.label) : (def.label || def.key));
+  const label = (def) => (typeof mbResultLabel === 'function' ? mbResultLabel(def.key, def.label, def.label_de) : (def.label || def.key));
   grid.innerHTML = defs.map((def) => `<button type="button" class="outcome-btn" data-outcome="${esc(def.key)}" onclick="pickOutcome('${esc(def.key)}')" style="border-color:${esc(def.color || 'var(--border)')}">
 <div class="icon" style="color:${esc(def.color || 'var(--accent)')}"><i class="ph ph-check-circle"></i></div>
 <div class="lbl">${esc(label(def))}</div>

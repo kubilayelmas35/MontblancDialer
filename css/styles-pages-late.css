@@ -848,6 +848,8 @@ i.ph {
 .ar-grip:active { cursor: grabbing; }
 .ar-row.is-dragging { opacity: .45; }
 .ar-row .form-row { margin: 0; min-width: 0; }
+.ar-lang { display: flex; gap: 4px; }
+.ar-lang .form-input { flex: 1; }
 .ar-row .form-input { width: 100%; min-width: 0; box-sizing: border-box; }
 .ar-row input[type="color"] {
   height: 36px;

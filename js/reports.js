@@ -565,7 +565,7 @@ async function repLoadQcResults(range) {
     const list = Array.isArray(raw) && raw.length
       ? raw
       : (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
-    list.forEach((row) => pushInto(columns, seen, row?.key, row?.label));
+    list.forEach((row) => pushInto(columns, seen, row?.key, typeof mbResultLabel === 'function' ? mbResultLabel(row?.key, row?.label, row?.label_de) : row?.label));
   });
   if (!columns.length && typeof defaultAppointmentResults === 'function') return defaultAppointmentResults();
   return columns;
@@ -578,7 +578,7 @@ function repSalesTable(appts, userById, defs) {
     const key = repDurumKey(def?.key);
     if (!key || key === '—' || seen.has(key)) return;
     seen.add(key);
-    columns.push({ key, label: String(def?.label || '').trim() || repDurumLabel(key) });
+    columns.push({ key, label: (typeof mbResultLabel === 'function' ? mbResultLabel(def?.key, def?.label, def?.label_de) : String(def?.label || '').trim()) || repDurumLabel(key) });
   });
   (appts || []).forEach((row) => {
     const key = repDurumKey(row.durum);

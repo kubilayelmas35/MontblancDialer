@@ -2924,7 +2924,7 @@ function mbAiIsMissResult(row) {
 function mbAiHoldPick(keys) {
   const wanted = new Set(keys || []);
   const rows = (_aiDesk?.results || []).filter((row) => wanted.has(row.key));
-  const labelOf = (row) => (typeof mbResultLabel === 'function' ? mbResultLabel(row.key, row.label) : (row.label || row.key));
+  const labelOf = (row) => (typeof mbResultLabel === 'function' ? mbResultLabel(row.key, row.label, row.label_de) : (row.label || row.key));
   const wait = rows.find(mbAiIsWaitResult);
   const miss = rows.find(mbAiIsMissResult);
   return {
@@ -3223,7 +3223,7 @@ function mbAiQcChoices() {
   const list = _aiDesk?.results || [];
   return list.map((row) => ({
     key: row.key,
-    label: typeof mbResultLabel === 'function' ? mbResultLabel(row.key, row.label) : (row.label || row.key),
+    label: typeof mbResultLabel === 'function' ? mbResultLabel(row.key, row.label, row.label_de) : (row.label || row.key),
   })).filter((row) => row.key);
 }
 

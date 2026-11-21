@@ -435,7 +435,7 @@ function _uiEsc(s) {
   return typeof escapeHtml === 'function' ? escapeHtml(s) : String(s ?? '');
 }
 
-function mbResultLabel(key, storedLabel) {
+function mbResultPack(key) {
   const k = typeof _normResultKey === 'function' ? _normResultKey(key) : String(key || '');
   const mapKey = {
     qc_bekleniyor: 'res.qc_bekleniyor',
@@ -445,13 +445,39 @@ function mbResultLabel(key, storedLabel) {
     ulasilamadi: 'res.ulasilamadi',
     iptal: 'res.iptal',
   }[k];
-  const raw = String(storedLabel || '').trim();
-  if (!mapKey || typeof t !== 'function' || typeof MB_I18N === 'undefined') return raw || key || '';
-  const tr = MB_I18N.tr[mapKey];
-  const de = MB_I18N.de[mapKey];
+  if (!mapKey || typeof MB_I18N === 'undefined') return null;
+  return { i18n: mapKey, tr: MB_I18N.tr[mapKey], de: MB_I18N.de[mapKey] };
+}
+
+function mbResultIsDefault(key, text) {
+  const raw = String(text || '').trim();
+  const k = typeof _normResultKey === 'function' ? _normResultKey(key) : String(key || '');
   const legacy = k === 'qc_bekleniyor' && (raw === 'QC Bekleniyor' || raw === 'QC ausstehend' || raw === 'KK Bekleniyor');
-  if (!raw || raw === tr || raw === de || raw === k || raw === key || legacy) return t(mapKey);
-  return raw;
+  if (!raw || raw === k || raw === key || legacy) return true;
+  const pack = mbResultPack(key);
+  return !!(pack && (raw === pack.tr || raw === pack.de));
+}
+
+function mbResultLabel(key, storedLabel, storedDe) {
+  const pack = mbResultPack(key);
+  const tr = String(storedLabel || '').trim();
+  const de = storedDe == null ? '' : String(storedDe).trim();
+  const trDefault = mbResultIsDefault(key, tr);
+  const deDefault = !de || mbResultIsDefault(key, de);
+  if (pack && trDefault && deDefault && typeof t === 'function') return t(pack.i18n);
+  const trText = trDefault && pack ? pack.tr : tr;
+  const deText = de || (trDefault && pack ? pack.de : '');
+  if (typeof mbLangText === 'function') return mbLangText(trText, deText) || key || '';
+  const wantDe = typeof currentLang !== 'undefined' && currentLang === 'de';
+  return (wantDe ? (deText || trText) : (trText || deText)) || key || '';
+}
+
+function mbResultEditPair(row) {
+  const pack = mbResultPack(row?.key);
+  const tr = String(row?.label || '').trim();
+  const deSaved = row?.label_de == null ? '' : String(row.label_de).trim();
+  const de = deSaved || (mbResultIsDefault(row?.key, tr) && pack ? pack.de : '');
+  return { tr: tr || pack?.tr || '', de };
 }
 
 function defaultAppointmentResults() {
@@ -517,11 +543,12 @@ async function loadFirmAppointmentResults(fid, force = false) {
     ? raw.map(r => ({
         key: _normResultKey(r?.key),
         label: String(r?.label || r?.key || '').trim(),
+        label_de: r?.label_de == null ? '' : String(r.label_de).trim(),
         color: String(r?.color || '').trim() || '#64748b',
         color_from: /^#[0-9A-Fa-f]{6}$/.test(String(r?.color_from || '').trim()) ? String(r.color_from).trim() : '',
         contact_status: String(r?.contact_status || appointmentResultToContactStatus(r?.key)).trim(),
         auto_move_down: !!r?.auto_move_down,
-      })).filter(r => r.key && r.label)
+      })).filter(r => r.key && (r.label || r.label_de))
     : defaultAppointmentResults();
   window._apptResultsByFirm[firmId] = norm;
   return norm;
@@ -557,7 +584,10 @@ function renderAppointmentResultRows(rows) {
   if (!wrap) return;
   const safe = rows?.length ? rows : [defaultAppointmentResults()[0]];
   const gripLabel = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Reihenfolge ändern' : 'Sırayı değiştir';
-  wrap.innerHTML = safe.map((r, i) => `
+  const nameLabel = (typeof currentLang !== 'undefined' && currentLang === 'de') ? 'Anzeigename' : 'Görünen ad';
+  wrap.innerHTML = safe.map((r, i) => {
+    const pair = mbResultEditPair(r);
+    return `
     <div class="ar-row">
       <button type="button" class="ar-grip" draggable="true" aria-label="${gripLabel}" title="${gripLabel}">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="7" r="1.4"/><circle cx="15" cy="7" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="17" r="1.4"/><circle cx="15" cy="17" r="1.4"/></svg>
@@ -574,7 +604,7 @@ function renderAppointmentResultRows(rows) {
           <option value="__custom" ${!['qc_bekleniyor','basarili','basarisiz','beklemede','ulasilamadi','iptal'].includes(r.key)?'selected':''}>Özel ad</option>
         </select>
       </div>
-      <div class="form-row"><label class="form-label">Görünen ad</label><input class="form-input" id="ar-label-${i}" value="${_uiEsc(r.label||'')}"></div>
+      <div class="form-row"><label class="form-label" data-tr="Görünen ad" data-de="Anzeigename">${nameLabel}</label><div class="ar-lang"><input class="form-input" id="ar-label-${i}" placeholder="TR" value="${_uiEsc(pair.tr)}"><input class="form-input" id="ar-label-de-${i}" placeholder="DE" value="${_uiEsc(pair.de)}"></div></div>
       <div class="form-row ar-colors">
         <label class="form-label">${_uiEsc(typeof t === 'function' ? t('qc.color.pair') : 'Renk')}</label>
         <div class="ar-grad">
@@ -586,7 +616,8 @@ function renderAppointmentResultRows(rows) {
       <label class="ar-move"><input type="checkbox" id="ar-move-${i}" ${r.auto_move_down?'checked':''}> Otomatik alta taşı</label>
       <button class="btn btn-ghost btn-sm" type="button" onclick="removeAppointmentResultRow(${i})">Sil</button>
     </div>
-  `).join('');
+  `;
+  }).join('');
   wrap.dataset.count = String(safe.length);
   wrap.querySelectorAll('.ar-row').forEach((row) => mbBindResultGradient(row));
   mbBindResultReorder(wrap);
@@ -693,19 +724,13 @@ function mbBindResultReorder(wrap) {
 }
 
 function syncAppointmentResultLabel(idx) {
-  const t = document.getElementById(`ar-type-${idx}`)?.value || '';
+  const picked = document.getElementById(`ar-type-${idx}`)?.value || '';
   const l = document.getElementById(`ar-label-${idx}`);
-  if (!l) return;
-  const map = {
-    qc_bekleniyor: 'Kalite kontrol bekliyor',
-    basarili: 'Başarılı',
-    basarisiz: 'Başarısız',
-    beklemede: 'Beklemede',
-    ulasilamadi: 'Ulaşılamadı',
-    iptal: 'İptal',
-  };
-  if (t === '__custom') return;
-  if (!String(l.value || '').trim()) l.value = map[t] || t;
+  const d = document.getElementById(`ar-label-de-${idx}`);
+  if (picked === '__custom') return;
+  const pack = mbResultPack(picked);
+  if (l && !String(l.value || '').trim()) l.value = pack?.tr || picked;
+  if (d && !String(d.value || '').trim()) d.value = pack?.de || '';
 }
 
 function _uniqueResultKey(base, used) {
@@ -723,16 +748,17 @@ function readAppointmentResultRows() {
   const used = new Set();
   domRows.forEach((row, i) => {
     const picked = row.querySelector('select')?.value || '';
-    const label = String(row.querySelector('input[id^="ar-label-"]')?.value || '').trim();
+    const label = String(row.querySelector('input[id^="ar-label-"]:not([id^="ar-label-de-"])')?.value || '').trim();
+    const labelDe = String(row.querySelector('input[id^="ar-label-de-"]')?.value || '').trim();
     const colorEl = [...row.querySelectorAll('input[type="color"]')].find((el) => /^ar-color-(?:\d+|bos)$/.test(el.id));
     const fromEl = row.querySelector('input[id^="ar-color-from-"]');
     const color = _normalizeResultColor(colorEl?.value || '#64748b');
     const auto_move_down = !!row.querySelector('input[type="checkbox"]')?.checked;
-    const base = picked === '__custom' ? (label || `ozel_${i + 1}`) : picked;
+    const base = picked === '__custom' ? (label || labelDe || `ozel_${i + 1}`) : picked;
     const key = _uniqueResultKey(base, used);
     if (!key) return;
     used.add(key);
-    const item = { key, label: label || key, color, contact_status: appointmentResultToContactStatus(key), auto_move_down };
+    const item = { key, label: label || (labelDe ? '' : key), label_de: labelDe, color, contact_status: appointmentResultToContactStatus(key), auto_move_down };
     if (fromEl && fromEl.dataset.auto !== '1') item.color_from = _normalizeResultColor(fromEl.value);
     out.push(item);
   });
@@ -743,7 +769,7 @@ function addAppointmentResultRow() {
   const cur = readAppointmentResultRows();
   const used = new Set(cur.map((row) => row.key));
   const key = _uniqueResultKey('yeni_sonuc', used);
-  cur.push({ key, label: 'Yeni sonuç', color: '#7c3aed', contact_status: appointmentResultToContactStatus(key), auto_move_down: false });
+  cur.push({ key, label: 'Yeni sonuç', label_de: '', color: '#7c3aed', contact_status: appointmentResultToContactStatus(key), auto_move_down: false });
   renderAppointmentResultRows(cur);
 }
 

@@ -1201,7 +1201,7 @@ function takvimStatusMeta(key) {
   if (key === 'kilitli') return { label: say('cal.filter.locked'), color: '#1d4ed8' };
   const cfg = takvimResultRows().find((r) => (typeof _normResultKey === 'function' ? _normResultKey(r.key) : r.key) === key);
   if (cfg) {
-    const label = typeof mbResultLabel === 'function' ? mbResultLabel(cfg.key, cfg.label) : (cfg.label || key);
+    const label = typeof mbResultLabel === 'function' ? mbResultLabel(cfg.key, cfg.label, cfg.label_de) : (cfg.label || key);
     return { label, color: cfg.color || '#64748b' };
   }
   return { label: key, color: '#64748b' };

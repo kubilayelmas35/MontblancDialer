@@ -25,7 +25,7 @@ function _qcDurumKey(row) {
 
 function _qcResultLabel(key) {
   const cfg = window._qcResultMap?.[key];
-  if (cfg && typeof mbResultLabel === 'function') return mbResultLabel(cfg.key, cfg.label);
+  if (cfg && typeof mbResultLabel === 'function') return mbResultLabel(cfg.key, cfg.label, cfg.label_de);
   if (cfg?.label) return cfg.label;
   return key || '—';
 }

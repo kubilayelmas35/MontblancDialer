@@ -1030,7 +1030,7 @@ async function loadMyMiniStats() {
     (orderedResultRows || []).forEach((r) => {
       const val = counts[r.key] || 0;
       const color = r.color || '#64748b';
-      const shown = typeof mbResultLabel === 'function' ? mbResultLabel(r.key, r.label) : (r.label || r.key || '');
+      const shown = typeof mbResultLabel === 'function' ? mbResultLabel(r.key, r.label, r.label_de) : (r.label || r.key || '');
       const lbl = String(shown).replace(/</g,'&lt;').replace(/>/g,'&gt;');
       boxes.push(`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
