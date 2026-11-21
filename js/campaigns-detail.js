@@ -311,6 +311,33 @@ function terminLangLabel(f) {
   return typeof mbLangText === 'function' ? mbLangText(tr, de) : (tr || de);
 }
 
+function terminSplitOpts(raw) {
+  if (Array.isArray(raw)) return raw.map((item) => String(item && item.value != null ? item.value : item || '').trim()).filter(Boolean);
+  return String(raw || '').split(',').map((item) => item.trim()).filter(Boolean);
+}
+
+function terminOptItems(opts, optsDe) {
+  const tr = terminSplitOpts(opts);
+  const de = terminSplitOpts(optsDe);
+  const count = Math.max(tr.length, de.length);
+  const items = [];
+  for (let i = 0; i < count; i += 1) {
+    const a = tr[i] || '';
+    const b = de[i] || '';
+    const value = a || b;
+    if (!value) continue;
+    const label = typeof mbLangText === 'function' ? mbLangText(a, b) : (a || b);
+    items.push({ value, label, alt: a && b && a !== b ? (value === a ? b : a) : '' });
+  }
+  return items;
+}
+
+function terminShownPlaceholder(f) {
+  const tr = String(f?.placeholder || '').trim();
+  const de = f?.placeholder_de == null ? '' : String(f.placeholder_de).trim();
+  return typeof mbLangText === 'function' ? mbLangText(tr, de) : (tr || de);
+}
+
 function terminFormListFromSaved(tf) {
   const saved = tf && typeof tf === 'object' ? tf : {};
   const pack = (f) => {
@@ -322,9 +349,11 @@ function terminFormListFromSaved(tf) {
       label_de: labelDe == null ? terminSuggestedDe(f.key, label) : labelDe,
       type: f.type || 'text',
       opts: f.opts || '',
+      opts_de: f.opts_de == null ? '' : String(f.opts_de),
       enabled: f.enabled !== false,
       required: !!f.required,
       placeholder: f.placeholder || '',
+      placeholder_de: f.placeholder_de == null ? '' : String(f.placeholder_de),
       min: f.min == null ? '' : String(f.min),
       max: f.max == null ? '' : String(f.max),
     };
@@ -340,7 +369,9 @@ function terminFormListFromSaved(tf) {
     label_de: saved[f.key] && Object.prototype.hasOwnProperty.call(saved[f.key], 'label_de') ? saved[f.key].label_de : f.label_de,
     type: saved[f.key]?.type || f.type,
     opts: saved[f.key]?.opts || f.opts || '',
+    opts_de: saved[f.key] && Object.prototype.hasOwnProperty.call(saved[f.key], 'opts_de') ? saved[f.key].opts_de : (f.opts_de || ''),
     placeholder: saved[f.key]?.placeholder ?? f.placeholder ?? '',
+    placeholder_de: saved[f.key] && Object.prototype.hasOwnProperty.call(saved[f.key], 'placeholder_de') ? saved[f.key].placeholder_de : (f.placeholder_de || ''),
     min: saved[f.key]?.min ?? f.min ?? '',
     max: saved[f.key]?.max ?? f.max ?? '',
   }));
@@ -355,7 +386,9 @@ function readTerminFormDraftFromDom() {
     type: document.getElementById(`tf-type-${i}`)?.value || f.type,
     required: document.getElementById(`tf-req-${i}`)?.checked ?? f.required,
     opts: document.getElementById(`tf-opts-${i}`)?.value ?? f.opts ?? '',
+    opts_de: document.getElementById(`tf-opts-de-${i}`)?.value ?? f.opts_de ?? '',
     placeholder: document.getElementById(`tf-ph-${i}`)?.value ?? f.placeholder ?? '',
+    placeholder_de: document.getElementById(`tf-ph-de-${i}`)?.value ?? f.placeholder_de ?? '',
     min: document.getElementById(`tf-min-${i}`)?.value ?? f.min ?? '',
     max: document.getElementById(`tf-max-${i}`)?.value ?? f.max ?? '',
   }));
@@ -383,12 +416,15 @@ function renderTerminFormDraft() {
 ${String(f.key).startsWith('custom_') ? `<button type="button" onclick="removeCampTerminField(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;">✕</button>` : ''}
 </div>
 ${f.type === 'boolean' ? '' : `<div style="padding:6px 0 0 68px;display:flex;flex-direction:column;gap:4px;">
-<input class="form-input" id="tf-ph-${i}" value="${campEsc(f.placeholder || '')}" placeholder="${campEsc(campT('camp.tf.ph','Yer tutucu'))}" style="font-size:11px;padding:3px 7px;">
+<div style="display:flex;gap:4px;">
+<input class="form-input" id="tf-ph-${i}" value="${campEsc(f.placeholder || '')}" placeholder="TR" style="flex:1;font-size:11px;padding:3px 7px;min-width:0;">
+<input class="form-input" id="tf-ph-de-${i}" value="${campEsc(f.placeholder_de || '')}" placeholder="DE" style="flex:1;font-size:11px;padding:3px 7px;min-width:0;">
+</div>
 ${f.type === 'number' ? `<div style="display:flex;gap:6px;">
 <input class="form-input" id="tf-min-${i}" value="${campEsc(f.min ?? '')}" placeholder="${campEsc(campT('camp.tf.min','Alt'))}" inputmode="decimal" style="font-size:11px;padding:3px 7px;width:90px;">
 <input class="form-input" id="tf-max-${i}" value="${campEsc(f.max ?? '')}" placeholder="${campEsc(campT('camp.tf.max','Üst'))}" inputmode="decimal" style="font-size:11px;padding:3px 7px;width:90px;">
 </div>` : ''}
-${f.type === 'select' ? `<input class="form-input" id="tf-opts-${i}" style="font-size:10px;padding:2px 6px;width:100%;" value="${campEsc(f.opts || '')}" placeholder="Seçenek 1, Seçenek 2">` : ''}
+${f.type === 'select' ? `<div style="display:flex;gap:4px;"><input class="form-input" id="tf-opts-${i}" style="flex:1;font-size:10px;padding:2px 6px;min-width:0;" value="${campEsc(f.opts || '')}" placeholder="TR"><input class="form-input" id="tf-opts-de-${i}" style="flex:1;font-size:10px;padding:2px 6px;min-width:0;" value="${campEsc(f.opts_de || '')}" placeholder="DE"></div>` : ''}
 </div>`}
 </div>`).join('');
 }
@@ -426,9 +462,11 @@ function addCampTerminField() {
     label_de: '',
     type: 'text',
     opts: '',
+    opts_de: '',
     enabled: true,
     required: false,
     placeholder: '',
+    placeholder_de: '',
     min: '',
     max: '',
   });
@@ -453,7 +491,9 @@ async function saveCampTerminFormSettings() {
       type: f.type || 'text',
       required: !!f.required,
       opts: f.opts || '',
+      opts_de: f.opts_de || '',
       placeholder: String(f.placeholder || '').trim(),
+      placeholder_de: String(f.placeholder_de || '').trim(),
       min: String(f.min ?? '').trim(),
       max: String(f.max ?? '').trim(),
     };

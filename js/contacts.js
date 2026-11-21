@@ -344,7 +344,14 @@ ${_escHtml(f.l)}${f.required?'<span style="color:var(--red);margin-left:2px;">*<
 </div>
 ${f.type==='select'
 ? `<select id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;" onchange="updateTerminField('${f.key}',this.value)">
-${(f.opts||['']).map(o=>`<option value="${_escHtml(o)}" ${o===f.v?'selected':''}>${_escHtml(o||f.placeholder||'…')}</option>`).join('')}
+${(f.opts||['']).map(o=>{
+  const value = o && typeof o === 'object' ? String(o.value ?? '') : String(o ?? '');
+  const label = o && typeof o === 'object' ? String(o.label || o.value || '') : String(o ?? '');
+  const alt = o && typeof o === 'object' ? String(o.alt || '') : '';
+  const stored = String(f.v ?? '');
+  const on = value === stored || label === stored || (alt && alt === stored);
+  return `<option value="${_escHtml(value)}" ${on?'selected':''}>${_escHtml(label||f.placeholder||'…')}</option>`;
+}).join('')}
 </select>`
 : f.type==='boolean'
 ? `<select id="tf2-${f.key}" class="form-input" style="font-size:12px;padding:2px 6px;height:26px;" onchange="updateTerminField('${f.key}',this.value)">
@@ -464,13 +471,14 @@ function dialerTerminFields(camp, contact) {
       v: contact?.[f.key] || '',
       type: f.type || base.type || 'text',
       required: !!(f.required ?? base.required),
-      placeholder: f.placeholder ?? base.placeholder ?? '',
+      placeholder: typeof terminShownPlaceholder === 'function' ? terminShownPlaceholder({ ...base, ...f }) : (f.placeholder ?? base.placeholder ?? ''),
       min: f.min ?? base.min ?? '',
       max: f.max ?? base.max ?? '',
     };
     if (next.type === 'select') {
-      const raw = f.opts || (base.opts || []).slice(1).join(',');
-      next.opts = [''].concat(String(raw || '').split(',').map((s) => s.trim()).filter(Boolean));
+      const raw = f.opts || (Array.isArray(base.opts) ? base.opts.slice(1).join(',') : '');
+      const items = typeof terminOptItems === 'function' ? terminOptItems(raw, f.opts_de || '') : String(raw || '').split(',').map((s) => s.trim()).filter(Boolean).map((value) => ({ value, label: value }));
+      next.opts = [{ value: '', label: '' }].concat(items);
     }
     return next;
   }).filter(Boolean);

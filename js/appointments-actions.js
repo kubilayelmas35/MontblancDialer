@@ -181,9 +181,17 @@ function takvimControl(field, value, mode, contactField) {
     control = `<input class="form-input" ${attrs} value="${esc(value ?? '')}" readonly>`;
   } else if (field.type === 'select') {
     let options = Array.isArray(field.opts) ? field.opts.slice() : [''].concat(field.options || []);
-    if (value != null && value !== '' && !options.map(String).includes(String(value))) options = options.concat([String(value)]);
+    const optValue = (opt) => (opt && typeof opt === 'object' ? String(opt.value ?? '') : String(opt ?? ''));
+    const optLabel = (opt) => (opt && typeof opt === 'object' ? String(opt.label || opt.value || '') : String(opt ?? ''));
+    const optAlt = (opt) => (opt && typeof opt === 'object' ? String(opt.alt || '') : '');
     const cur = String(value ?? '');
-    control = `<select class="form-input" ${attrs}>${options.map((opt) => `<option value="${esc(opt)}"${String(opt) === cur ? ' selected' : ''}>${esc(opt || 'Seçin')}</option>`).join('')}</select>`;
+    if (cur && !options.some((opt) => optValue(opt) === cur || optLabel(opt) === cur || optAlt(opt) === cur)) options = options.concat([cur]);
+    control = `<select class="form-input" ${attrs}>${options.map((opt) => {
+      const stored = optValue(opt);
+      const shown = optLabel(opt);
+      const on = stored === cur || shown === cur || optAlt(opt) === cur;
+      return `<option value="${esc(stored)}"${on ? ' selected' : ''}>${esc(shown || 'Seçin')}</option>`;
+    }).join('')}</select>`;
   } else if (isBool) {
     const cur = value === true || value === 'true' || value === 'Evet' ? 'true' : (value === false || value === 'false' || value === 'Hayır' ? 'false' : '');
     control = `<select class="form-input" ${attrs}><option value="">Seçin</option><option value="true"${cur === 'true' ? ' selected' : ''}>Evet</option><option value="false"${cur === 'false' ? ' selected' : ''}>Hayır</option></select>`;
