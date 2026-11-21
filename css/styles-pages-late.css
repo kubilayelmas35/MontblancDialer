@@ -1374,6 +1374,43 @@ i.ph {
 .muh-adj-type[data-adj="deduct"].is-on { background: #b91c1c; color: #fff; border-color: #b91c1c; }
 .firms-tools { margin-bottom: 12px; }
 .firms-tools .form-input { max-width: 360px; }
+.inc-set-lead { font-size: 12px; color: var(--text-2); line-height: 1.45; margin: 0 0 12px; }
+.inc-set-opt { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; cursor: pointer; }
+.inc-set-opt input { width: 15px; height: 15px; margin-top: 2px; cursor: pointer; flex-shrink: 0; }
+.inc-set-opt b { display: block; font-size: 13px; }
+.inc-set-opt small { display: block; color: var(--text-3); font-size: 11px; line-height: 1.4; margin-top: 2px; font-weight: 500; }
+.btn-primary,
+.settings-tab-btn.active,
+.sb-scroll-style-btn.is-on,
+.sb-badge,
+.tb-res-seg button.is-on,
+.tb-mesai-day.is-pick,
+.mesai-plan-day.active,
+.ai-run-mode-btn.is-on,
+#tour-mode-on.is-on,
+.aria-pop-switch .tour-switch-btn.is-on-side.is-on,
+.live-layout-btn.is-on,
+.live-filter--all.is-all,
+.camp-view-btn.is-on,
+.hold-mode-btn.is-on,
+.muh-cur-btn.is-on,
+.firm-avatar,
+.contact-drawer-av,
+.contact-drawer-tab.active,
+.agent-tag .av,
+#stats-hour-tools .dash-range-btn.active,
+.rep-perf-switch button.is-on,
+.att-filters button.is-on,
+.att-seg button.is-on,
+#page-qc #qc-near-btn.active,
+button.aca-qpick.is-on,
+.mic-ns-step.is-on,
+.btn-tak-shift:hover,
+.btn-tak-dist:hover,
+.btn-tak-slot-add:hover {
+  color: var(--on-accent, #fff);
+}
+.sb-scroll-style-btn.is-on small { color: var(--on-accent, #fff); opacity: .85; }
 .firms-list { display: flex; flex-direction: column; gap: 12px; }
 .firm-fold { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: transparent; border: 0; color: inherit; cursor: pointer; padding: 0; }
 .firm-fold-main { display: flex; flex-direction: column; min-width: 0; }

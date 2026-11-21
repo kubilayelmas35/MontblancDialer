@@ -87,7 +87,7 @@ function showSlotContextMenu(e, slot, appt) {
     }
     const btn = document.createElement('button');
     const baseColor = item.hexColor
-      ? item.hexColor
+      ? (takvimLum(item.hexColor) > 0.62 ? takvimDeepen(item.hexColor) : item.hexColor)
       : item.danger
         ? 'var(--red)'
         : item.green

@@ -697,20 +697,6 @@ function stopInboundTestSimulationScheduler() {
 
 function restartInboundTestSimulationScheduler() {
   stopInboundTestSimulationScheduler();
-  const page = document.getElementById('page-dialer');
-  if (!page?.classList.contains('active')) return;
-  /** Kullanıcı akışı: test modunda otomatik "yeni gelen çağrı" simülasyonu çalışmasın. */
-  if (_testMode) return;
-  const tick = () => {
-    const gap = _testMode
-      ? 12000 + Math.floor(Math.random() * 10000)
-      : 26000 + Math.floor(Math.random() * 24000);
-    _inboundSimTimer = setTimeout(async () => {
-      await tickInboundTestSimulation();
-      tick();
-    }, gap);
-  };
-  tick();
 }
 
 function _canShowInboundRoutingDetail() {
@@ -841,7 +827,7 @@ async function mbOfferInboundCall(call) {
 }
 
 async function tickInboundTestSimulation() {
-  if (!_testMode) return;
+  return;
   await loadFirmDialerSettingsCache();
   /** Test modunda gelen simülasyonu firma «Gelen aramalar» kapalı olsa da çalışır (demo). */
   if (dialerStatus !== 'ready') return;
@@ -1674,8 +1660,8 @@ function mbLabContact(phone) {
   };
 }
 
-function mbRunInboundLab(kind, fromName) {
-  if (!_testMode) return;
+function mbRunInboundLab() {
+  return;
   if (_fakeCallActive || dialerStatus === 'on_call' || dialerStatus === 'calling') {
     toast(typeof t === 'function' ? t('dial.lab.busy_now') : 'Önce açık sahte çağrıyı kapat', 'warn', 2600);
     return;
@@ -1761,49 +1747,16 @@ function mbRunInboundLab(kind, fromName) {
 
 // ── Test Modu ─────────────────────────────────
 function toggleTestMode() {
-  _testMode = !_testMode;
-  const btn    = document.getElementById('test-mode-btn');
-  const rdyBtn = document.getElementById('btn-ready');
-  const flag   = document.getElementById('tb-test-flag');
-  if (flag) flag.hidden = !_testMode;
-  if (_testMode) {
-    btn.style.cssText += ';background:rgba(234,179,8,.18)!important;color:var(--yellow)!important;border-color:var(--yellow)!important;';
-    btn.textContent = typeof t === 'function' ? t('dial.test_btn_on') : '⚙ TEST AÇIK';
-    // Hazır butonunu Telnyx'ten bağımsız hale getir
-    if (rdyBtn) {
-      const canStart = !!selectedCampId && getAutoDialCampaignIds().length > 0;
-      rdyBtn.disabled = !canStart;
-      rdyBtn.style.opacity = '1';
-      rdyBtn.style.cursor = canStart ? 'pointer' : 'not-allowed';
-      rdyBtn.onclick = testToggleReady; // Telnyx kontrolsüz versiyon
-    }
-    toast(typeof t === 'function' ? t('dial.test_mode_on') : 'Test modu açık', 'ok', 4000);
-    document.getElementById('dialer-test-lab')?.classList.remove('is-compact');
-  } else {
-    btn.style.cssText = btn.style.cssText.replace(/background[^;]+;|color[^;]+;|border-color[^;]+;/g, '');
-    btn.textContent = typeof t === 'function' ? t('dial.test_btn_off') : 'TEST MODU';
-    if (rdyBtn) {
-      rdyBtn.onclick = toggleReady; // Normal versiyona geri dön
-      if (!telnyxReady && !selectedCampId) {
-        rdyBtn.disabled = true;
-        rdyBtn.style.opacity = '0.45';
-        rdyBtn.style.cursor = 'not-allowed';
-      }
-    }
-    toast(typeof t === 'function' ? t('dial.test_mode_off') : 'Test modu kapatıldı', 'warn', 2000);
-    if (_inboundTestRingOpen) _closeInboundTestRingUI();
-  }
-  mbPaintInboundLab();
+  _testMode = false;
+  stopInboundTestSimulationScheduler();
+  const flag = document.getElementById('tb-test-flag');
+  if (flag) flag.hidden = true;
+  const lab = document.getElementById('dialer-test-lab');
+  if (lab) lab.hidden = true;
   if (_inboundTestXferPoll) {
     clearInterval(_inboundTestXferPoll);
     _inboundTestXferPoll = null;
   }
-  if (_testMode) {
-    _maybeConsumeTestTransferInbox();
-    _inboundTestXferPoll = setInterval(() => _maybeConsumeTestTransferInbox(), 2000);
-  }
-  restartInboundTestSimulationScheduler();
-  if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
 }
 
 // Test moduna özel hazır toggle — Telnyx kontrolü yok

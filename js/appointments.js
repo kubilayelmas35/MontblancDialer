@@ -152,10 +152,31 @@ function _takvimAdjustHex(hex, amt) {
   return `#${out.map((x) => x.toString(16).padStart(2, '0')).join('')}`;
 }
 
+function takvimLum(hex) {
+  const rgb = _takvimHexToRgb(hex);
+  if (!rgb) return 0;
+  const lin = rgb.map((v) => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+}
+
+function takvimInk(hex) {
+  return takvimLum(hex) > 0.62 ? '#111827' : '#ffffff';
+}
+
+function takvimDeepen(hex) {
+  const rgb = _takvimHexToRgb(hex);
+  if (!rgb) return '#111827';
+  return `#${rgb.map((v) => Math.round(v * 0.42).toString(16).padStart(2, '0')).join('')}`;
+}
+
 function takvimGradientFromAccent(hex) {
   const raw = String(hex || '').trim();
   const base = /^#?[a-f\d]{6}$/i.test(raw) ? (raw.startsWith('#') ? raw : `#${raw}`).toLowerCase() : '#3b82f6';
-  const dark = _takvimAdjustHex(base, -0.38);
+  const amt = takvimLum(base) > 0.55 ? -0.12 : -0.38;
+  const dark = _takvimAdjustHex(base, amt);
   return { gradient: `linear-gradient(135deg,${dark},${base})`, from: dark, to: base };
 }
 
@@ -177,21 +198,28 @@ function takvimResolveFirmId(slot, appt) {
   return fromAppt || fromSlot || fromCamp || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : null) || currentUser?.firm_id || null;
 }
 
+function takvimPaint(color, colorFrom) {
+  const endRaw = String(color || '').trim();
+  const end = /^#?[a-f\d]{6}$/i.test(endRaw) ? (endRaw.startsWith('#') ? endRaw : `#${endRaw}`).toLowerCase() : '#64748b';
+  const rawFrom = String(colorFrom || '').trim();
+  const from = /^#[a-f\d]{6}$/i.test(rawFrom) ? rawFrom.toLowerCase() : takvimGradientFromAccent(end).from;
+  const lighter = takvimLum(from) >= takvimLum(end) ? from : end;
+  return { background: `linear-gradient(135deg,${from},${end})`, color: takvimInk(lighter) };
+}
+
 function getSlotGradientAndText(slot, appt) {
   if (slot.durum === 'kilitli') {
     return { background: '#dbeafe', color: '#1e40af' };
   }
   if (slot.durum === 'bos') {
     const tk = getCampaignTakvimSettings();
-    return { background: takvimResultGradient(tk.bos_color, tk.bos_color_from), color: '#ffffff' };
+    return takvimPaint(tk.bos_color, tk.bos_color_from);
   }
   const fid = takvimResolveFirmId(slot, appt);
   const rows = (fid && window._apptResultsByFirm?.[fid]) || (typeof defaultAppointmentResults === 'function' ? defaultAppointmentResults() : []);
   const key = appt ? _normResultKey(appt.durum) : '';
   const cfg = Array.isArray(rows) ? rows.find((r) => _normResultKey(r.key) === key) : null;
-  if (cfg?.color) {
-    return { background: takvimResultGradient(cfg.color, cfg.color_from), color: '#ffffff' };
-  }
+  if (cfg?.color) return takvimPaint(cfg.color, cfg.color_from);
   const d = (appt?.durum || '').toLowerCase();
   if (d === 'basarili') return { background: 'linear-gradient(135deg,#15803d,#16a34a)', color: '#fff' };
   if (d.includes('basarisiz') || d.includes('iptal')) return { background: 'linear-gradient(135deg,#991b1b,#b91c1c)', color: '#fff' };

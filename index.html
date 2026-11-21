@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="callin.one çağrı merkezi">
-<link rel="icon" href="favicon.svg?v=14.99" type="image/svg+xml">
+<link rel="icon" href="favicon.svg?v=15.0" type="image/svg+xml">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,20 +15,20 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=14.99">
-<link rel="stylesheet" href="css/styles-dialer.css?v=14.99">
-<link rel="stylesheet" href="css/styles-mascot.css?v=14.99">
-<link rel="stylesheet" href="css/styles-mascot-face.css?v=14.99">
-<link rel="stylesheet" href="css/styles-mascot-shape.css?v=14.99">
-<link rel="stylesheet" href="css/styles-dialer-call.css?v=14.99">
-<link rel="stylesheet" href="css/styles-pages.css?v=14.99">
-<link rel="stylesheet" href="css/styles-aurora.css?v=14.99">
-<link rel="stylesheet" href="css/styles-chat.css?v=14.99">
-<link rel="stylesheet" href="css/styles-pages-late.css?v=14.99">
-<link rel="stylesheet" href="css/styles-responsive.css?v=14.99">
+<link rel="stylesheet" href="css/styles.css?v=15.0">
+<link rel="stylesheet" href="css/styles-dialer.css?v=15.0">
+<link rel="stylesheet" href="css/styles-mascot.css?v=15.0">
+<link rel="stylesheet" href="css/styles-mascot-face.css?v=15.0">
+<link rel="stylesheet" href="css/styles-mascot-shape.css?v=15.0">
+<link rel="stylesheet" href="css/styles-dialer-call.css?v=15.0">
+<link rel="stylesheet" href="css/styles-pages.css?v=15.0">
+<link rel="stylesheet" href="css/styles-aurora.css?v=15.0">
+<link rel="stylesheet" href="css/styles-chat.css?v=15.0">
+<link rel="stylesheet" href="css/styles-pages-late.css?v=15.0">
+<link rel="stylesheet" href="css/styles-responsive.css?v=15.0">
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@2.22.16/lib/bundle.js"></script>
-<script defer src="vendor/jssip.min.js?v=14.99"></script>
+<script defer src="vendor/jssip.min.js?v=15.0"></script>
 </head>
 <body>
 <noscript><p>callin.one için JavaScript gerekir.</p></noscript>
@@ -101,7 +101,7 @@
 </div>
 </div>
 </div>
-<div class="login-version">v14.99 — 2026</div>
+<div class="login-version">v15.0 — 2026</div>
 </div>
 </div>
 <div id="app" style="display:none;">
@@ -517,7 +517,7 @@
 <input type="search" id="sb-nav-search" class="sb-nav-search" data-tr="Sayfa veya kişi" data-de="Seite oder Person" placeholder="Sayfa veya kişi" autocomplete="off" spellcheck="false" oninput="mbNavQuery(this.value)" onkeydown="mbNavSearchKey(event)" onfocus="mbPersonRecent()">
 <kbd class="sb-nav-kbd">Ctrl+K</kbd>
 </div>
-<div class="sb-ver">callin.one v14.99</div>
+<div class="sb-ver">callin.one v15.0</div>
 </div>
 </div>
 </nav>
@@ -1737,34 +1737,6 @@
 </div>
 </div>
 <div id="dialer-inbound-banner" style="display:none;width:100%;box-sizing:border-box;padding:6px 14px;background:rgba(234,179,8,.14);border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text);"></div>
-<div id="dialer-test-lab" class="dialer-test-lab" hidden>
-<div class="dialer-test-lab__bar">
-<strong data-tr="Sahte arama" data-de="Testanruf">Sahte arama</strong>
-<span class="dialer-test-lab__lead" data-tr="Gerçek hat açılmaz. Müşteri satırı değişmez." data-de="Keine echte Leitung. Der Kontakt bleibt unverändert.">Gerçek hat açılmaz. Müşteri satırı değişmez.</span>
-<em id="dialer-test-lab-now" class="dialer-test-lab__now"></em>
-<button type="button" class="dialer-test-lab__more" onclick="mbExpandInboundLab()" data-tr="Senaryolar" data-de="Szenarien">Senaryolar</button>
-</div>
-<div class="dialer-test-lab__groups">
-<div class="dialer-test-lab__group">
-<span data-tr="Müşteri" data-de="Kunde">Müşteri</span>
-<button type="button" data-lab="mine" onclick="mbRunInboundLab('mine')" data-tr="Sahip sensin" data-de="Du bist zuständig">Sahip sensin</button>
-<button type="button" data-lab="busy" onclick="mbRunInboundLab('busy')" data-tr="Sahip meşgul" data-de="Zuständiger besetzt">Sahip meşgul</button>
-<button type="button" data-lab="transfer" onclick="mbRunInboundLab('transfer')" data-tr="Aktarmayı dene" data-de="Übergabe testen">Aktarmayı dene</button>
-<button type="button" data-lab="forwarded" onclick="mbRunInboundLab('forwarded')" data-tr="Sana aktarıldı" data-de="An dich übergeben">Sana aktarıldı</button>
-<button type="button" data-lab="external" onclick="mbRunInboundLab('external')" data-tr="Dış numara" data-de="Externe Nummer">Dış numara</button>
-</div>
-<div class="dialer-test-lab__group">
-<span data-tr="İç hat" data-de="Intern">İç hat</span>
-<button type="button" data-lab="internal" onclick="mbRunInboundLab('internal')" data-tr="Temsilci arıyor" data-de="Mitarbeiter ruft an">Temsilci arıyor</button>
-<button type="button" data-lab="internal-xfer" onclick="mbRunInboundLab('internal-xfer')" data-tr="İç aktarma" data-de="Interne Übergabe">İç aktarma</button>
-</div>
-</div>
-<ol class="dialer-test-lab__steps">
-<li data-tr="Müşteri senaryosu kayıtlı numarayı, iç hat senaryosu temsilciyi aratır." data-de="Kundenszenario simuliert eine Nummer, intern einen Mitarbeiter.">Müşteri senaryosu kayıtlı numarayı, iç hat senaryosu temsilciyi aratır.</li>
-<li data-tr="Sağa kaydır veya Yanıtla. Sola kaydır veya Reddet kapatır." data-de="Nach rechts oder Annehmen. Nach links oder Ablehnen legt auf.">Sağa kaydır veya Yanıtla. Sola kaydır veya Reddet kapatır.</li>
-<li data-tr="Seçince bu kutu küçülür. Senaryolar ile yeniden açılır." data-de="Nach der Wahl wird die Leiste klein. Szenarien öffnet sie wieder.">Seçince bu kutu küçülür. Senaryolar ile yeniden açılır.</li>
-</ol>
-</div>
 <div id="mic-audio-drawer" class="dialer-hdr-drawer" style="display:none;">
 <div class="mic-drawer">
 <div class="mic-drawer__head">
@@ -4658,21 +4630,30 @@ Süper admin olarak yarışı görmek için üstten firma seçin.
 </div>
 </div>
 <div class="card" id="incoming-calls-settings-card" style="display:none;">
-<div class="card-title" style="margin-bottom:10px;"><i class="ph ph-phone-incoming" style="vertical-align:-3px;margin-right:6px;"></i>Gelen aramalar</div>
-<div id="inc-set-locked-hint" style="display:none;font-size:12px;color:var(--yellow);margin-bottom:10px;padding:8px 10px;background:rgba(234,179,8,.12);border-radius:8px;border:1px solid rgba(234,179,8,.35);">Süper admin bu özelliği firmanız için henüz açmadı.</div>
-<div style="font-size:11px;color:var(--text-3);margin-bottom:12px;">Gelen çağrıları kabul etmek ve dış numaraları yönetmek için kullanılır. Test modunda hazır agentlere simüle gelen arama düşer.</div>
-<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;">
-<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="inc-set-enabled" style="width:15px;height:15px;cursor:pointer;">
-<span>Gelen aramaları kabul et</span>
+<div class="card-title" style="margin-bottom:10px;"><i class="ph ph-phone-incoming" style="vertical-align:-3px;margin-right:6px;"></i><span data-tr="Gelen aramalar" data-de="Eingehende Anrufe">Gelen aramalar</span></div>
+<div id="inc-set-locked-hint" style="display:none;font-size:12px;color:var(--yellow);margin-bottom:10px;padding:8px 10px;background:rgba(234,179,8,.12);border-radius:8px;border:1px solid rgba(234,179,8,.35);" data-tr="Süper admin bu özelliği firmanız için henüz açmadı. Açılmadan aşağıdaki kutular kaydedilmez." data-de="Der Super-Admin hat dies für Ihre Firma noch nicht freigegeben. Ohne Freigabe werden die Kästchen nicht gespeichert.">Süper admin bu özelliği firmanız için henüz açmadı. Açılmadan aşağıdaki kutular kaydedilmez.</div>
+<p class="inc-set-lead" data-tr="Hazır durumdaki temsilciye düşen gerçek gelen çağrıyı yönetir. Sahte veya deneme araması yoktur. Kapalıyken dışarıdan gelen arama temsilcinin ekranına düşmez." data-de="Steuert echte eingehende Anrufe an bereite Mitarbeiter. Es gibt keine Testanrufe. Ist es aus, erscheint kein Anruf auf dem Bildschirm.">Hazır durumdaki temsilciye düşen gerçek gelen çağrıyı yönetir. Sahte veya deneme araması yoktur. Kapalıyken dışarıdan gelen arama temsilcinin ekranına düşmez.</p>
+<div style="display:flex;flex-direction:column;gap:12px;margin-bottom:12px;">
+<label class="inc-set-opt">
+<input type="checkbox" id="inc-set-enabled">
+<span>
+<b data-tr="Gelen aramaları kabul et" data-de="Eingehende Anrufe annehmen">Gelen aramaları kabul et</b>
+<small data-tr="Açıkken, süper adminin bu firmaya izin verdiği gelen arama hazır temsilciye düşer. Temsilci yanıtlar, reddeder veya uygunsa başka temsilciye aktarır. Kapalıyken hat çalsa bile ekranda arama kartı açılmaz." data-de="Wenn an, geht ein freigegebener Anruf an einen bereiten Mitarbeiter. Er kann annehmen, ablehnen oder weiterleiten. Wenn aus, öffnet sich keine Anrufkarte.">Açıkken, süper adminin bu firmaya izin verdiği gelen arama hazır temsilciye düşer. Temsilci yanıtlar, reddeder veya uygunsa başka temsilciye aktarır. Kapalıyken hat çalsa bile ekranda arama kartı açılmaz.</small>
+</span>
 </label>
-<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="inc-set-external" style="width:15px;height:15px;cursor:pointer;">
-<span>Bilinmeyen / dış numaraları da kuyruğa al</span>
+<label class="inc-set-opt">
+<input type="checkbox" id="inc-set-external">
+<span>
+<b data-tr="Bilinmeyen numaraları da kabul et" data-de="Unbekannte Nummern auch annehmen">Bilinmeyen numaraları da kabul et</b>
+<small data-tr="Açıkken rehberde kaydı olmayan numaralar da hazır temsilciye gelir. Kartta numara görünür; isterseniz mevcut bir müşteriye ikinci telefon olarak bağlarsınız. Kapalıyken yalnız daha önce aranmış veya kartı olan numaralar düşer, yabancılar elenir." data-de="Wenn an, kommen auch Nummern ohne Kontakt zum bereiten Mitarbeiter. Die Nummer steht auf der Karte und kann einem bestehenden Kunden zugeordnet werden. Wenn aus, nur bekannte Nummern.">Açıkken rehberde kaydı olmayan numaralar da hazır temsilciye gelir. Kartta numara görünür; isterseniz mevcut bir müşteriye ikinci telefon olarak bağlarsınız. Kapalıyken yalnız daha önce aranmış veya kartı olan numaralar düşer, yabancılar elenir.</small>
+</span>
 </label>
-<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
-<input type="checkbox" id="inc-set-routing-info" style="width:15px;height:15px;cursor:pointer;">
-<span>Yönlendirme açıklamasını göster (admin)</span>
+<label class="inc-set-opt">
+<input type="checkbox" id="inc-set-routing-info">
+<span>
+<b data-tr="Yönlendirme açıklamasını göster" data-de="Weiterleitungstext anzeigen">Yönlendirme açıklamasını göster</b>
+<small data-tr="Yalnız firma yöneticisi görür. Arama, bu numarayla son konuşan temsilci hazırsa ona gider. O hazır değilse sıradaki hazır temsilciye gider ve yönetici bunun nedenini okur. Temsilcinin kendi ekranında bu açıklama çıkmaz." data-de="Nur für Firmenadmins. Der Anruf geht an den letzten Mitarbeiter dieser Nummer, wenn er bereit ist. Sonst an den nächsten bereiten Mitarbeiter, mit kurzer Begründung. Mitarbeiter sehen diesen Text nicht.">Yalnız firma yöneticisi görür. Arama, bu numarayla son konuşan temsilci hazırsa ona gider. O hazır değilse sıradaki hazır temsilciye gider ve yönetici bunun nedenini okur. Temsilcinin kendi ekranında bu açıklama çıkmaz.</small>
+</span>
 </label>
 </div>
 <button type="button" class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveIncomingCallsSettings()"><i class="ph ph-floppy-disk"></i> Gelen arama ayarlarını kaydet</button>
@@ -5694,79 +5675,79 @@ Duyuru metni burada görünecek
 <div id="notif-cats" class="notif-cats"></div>
 <div id="notification-center-list" class="notif-list"></div>
 </div>
-<script src="js/version.js?v=14.99"></script>
-<script src="js/i18n.js?v=14.99"></script>
-<script src="js/config.js?v=14.99"></script>
-<script src="js/state.js?v=14.99"></script>
-<script src="js/api.js?v=14.99"></script>
-<script src="js/access.js?v=14.99"></script>
-<script src="js/auth.js?v=14.99"></script>
-<script src="js/logo.js?v=14.99"></script>
-<script src="js/ui.js?v=14.99"></script>
-<script src="js/chat.js?v=14.99"></script>
-<script src="js/chat-settings.js?v=14.99"></script>
-<script src="js/field-settings.js?v=14.99"></script>
-<script src="js/audit.js?v=14.99"></script>
-<script src="js/feature-flags.js?v=14.99"></script>
-<script src="js/notification-center.js?v=14.99"></script>
+<script src="js/version.js?v=15.0"></script>
+<script src="js/i18n.js?v=15.0"></script>
+<script src="js/config.js?v=15.0"></script>
+<script src="js/state.js?v=15.0"></script>
+<script src="js/api.js?v=15.0"></script>
+<script src="js/access.js?v=15.0"></script>
+<script src="js/auth.js?v=15.0"></script>
+<script src="js/logo.js?v=15.0"></script>
+<script src="js/ui.js?v=15.0"></script>
+<script src="js/chat.js?v=15.0"></script>
+<script src="js/chat-settings.js?v=15.0"></script>
+<script src="js/field-settings.js?v=15.0"></script>
+<script src="js/audit.js?v=15.0"></script>
+<script src="js/feature-flags.js?v=15.0"></script>
+<script src="js/notification-center.js?v=15.0"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/wallet.js?v=14.99"></script>
-<script src="js/spend.js?v=14.99"></script>
-<script src="js/job-market.js?v=14.99"></script>
-<script src="js/qc-job-market.js?v=14.99"></script>
-<script src="js/export-admin.js?v=14.99"></script>
-<script src="js/export-termin.js?v=14.99"></script>
-<script src="js/randevular.js?v=14.99"></script>
-<script src="js/performance.js?v=14.99"></script>
-<script src="js/competition.js?v=14.99"></script>
-<script src="js/dashboard.js?v=14.99"></script>
-<script src="js/reports.js?v=14.99"></script>
-<script src="js/dashboard-brief.js?v=14.99"></script>
-<script src="js/campaigns.js?v=14.99"></script>
-<script src="js/campaigns-detail.js?v=14.99"></script>
-<script src="js/campaigns-queue.js?v=14.99"></script>
-<script src="js/queues-page.js?v=14.99"></script>
-<script src="js/contacts-upload.js?v=14.99"></script>
-<script src="js/geocon.js?v=14.99"></script>
-<script src="js/contacts.js?v=14.99"></script>
-<script src="js/contacts-drawer.js?v=14.99"></script>
-<script src="js/telnyx.js?v=14.99"></script>
-<script src="js/sip-trunk.js?v=14.99"></script>
-<script src="js/hold-music.js?v=14.99"></script>
-<script src="js/voice-orb.js?v=14.99"></script>
-<script src="js/dialer.js?v=14.99"></script>
-<script src="js/ops-alerts.js?v=14.99"></script>
-<script src="js/radius-tour.js?v=14.99"></script>
-<script src="js/dialer-mascot.js?v=14.99"></script>
-<script src="js/dialer-mascot-live.js?v=14.99"></script>
-<script src="js/ui-prefs.js?v=14.99"></script>
-<script src="js/dialer-session.js?v=14.99"></script>
-<script src="js/dialer-call.js?v=14.99"></script>
-<script src="js/dialer-tools.js?v=14.99"></script>
-<script src="js/appointments.js?v=14.99"></script>
-<script src="js/appointments-actions.js?v=14.99"></script>
-<script src="js/appointments-tools.js?v=14.99"></script>
-<script src="js/field.js?v=14.99"></script>
-<script src="js/field-quote.js?v=14.99"></script>
-<script src="js/field-catalog.js?v=14.99"></script>
-<script src="js/field-ops.js?v=14.99"></script>
-<script src="js/wiedervorlage.js?v=14.99"></script>
-<script src="js/blacklist.js?v=14.99"></script>
-<script src="js/qc.js?v=14.99"></script>
-<script src="js/supervisor.js?v=14.99"></script>
-<script src="js/live-coach.js?v=14.99"></script>
-<script src="js/sms-settings.js?v=14.99"></script>
-<script src="js/line-firms.js?v=14.99"></script>
-<script src="js/ai-staff.js?v=14.99"></script>
-<script src="js/callin-desk.js?v=14.99"></script>
-<script src="js/leave-hr.js?v=14.99"></script>
-<script src="js/attendance.js?v=14.99"></script>
-<script src="js/muhasebe.js?v=14.99"></script>
-<script src="js/muhasebe-books.js?v=14.99"></script>
-<script src="js/agent-self-performance.js?v=14.99"></script>
-<script src="js/agents.js?v=14.99"></script>
-<script src="js/firm-desk.js?v=14.99"></script>
-<script src="js/mimi-brain.js?v=14.99"></script>
+<script src="js/wallet.js?v=15.0"></script>
+<script src="js/spend.js?v=15.0"></script>
+<script src="js/job-market.js?v=15.0"></script>
+<script src="js/qc-job-market.js?v=15.0"></script>
+<script src="js/export-admin.js?v=15.0"></script>
+<script src="js/export-termin.js?v=15.0"></script>
+<script src="js/randevular.js?v=15.0"></script>
+<script src="js/performance.js?v=15.0"></script>
+<script src="js/competition.js?v=15.0"></script>
+<script src="js/dashboard.js?v=15.0"></script>
+<script src="js/reports.js?v=15.0"></script>
+<script src="js/dashboard-brief.js?v=15.0"></script>
+<script src="js/campaigns.js?v=15.0"></script>
+<script src="js/campaigns-detail.js?v=15.0"></script>
+<script src="js/campaigns-queue.js?v=15.0"></script>
+<script src="js/queues-page.js?v=15.0"></script>
+<script src="js/contacts-upload.js?v=15.0"></script>
+<script src="js/geocon.js?v=15.0"></script>
+<script src="js/contacts.js?v=15.0"></script>
+<script src="js/contacts-drawer.js?v=15.0"></script>
+<script src="js/telnyx.js?v=15.0"></script>
+<script src="js/sip-trunk.js?v=15.0"></script>
+<script src="js/hold-music.js?v=15.0"></script>
+<script src="js/voice-orb.js?v=15.0"></script>
+<script src="js/dialer.js?v=15.0"></script>
+<script src="js/ops-alerts.js?v=15.0"></script>
+<script src="js/radius-tour.js?v=15.0"></script>
+<script src="js/dialer-mascot.js?v=15.0"></script>
+<script src="js/dialer-mascot-live.js?v=15.0"></script>
+<script src="js/ui-prefs.js?v=15.0"></script>
+<script src="js/dialer-session.js?v=15.0"></script>
+<script src="js/dialer-call.js?v=15.0"></script>
+<script src="js/dialer-tools.js?v=15.0"></script>
+<script src="js/appointments.js?v=15.0"></script>
+<script src="js/appointments-actions.js?v=15.0"></script>
+<script src="js/appointments-tools.js?v=15.0"></script>
+<script src="js/field.js?v=15.0"></script>
+<script src="js/field-quote.js?v=15.0"></script>
+<script src="js/field-catalog.js?v=15.0"></script>
+<script src="js/field-ops.js?v=15.0"></script>
+<script src="js/wiedervorlage.js?v=15.0"></script>
+<script src="js/blacklist.js?v=15.0"></script>
+<script src="js/qc.js?v=15.0"></script>
+<script src="js/supervisor.js?v=15.0"></script>
+<script src="js/live-coach.js?v=15.0"></script>
+<script src="js/sms-settings.js?v=15.0"></script>
+<script src="js/line-firms.js?v=15.0"></script>
+<script src="js/ai-staff.js?v=15.0"></script>
+<script src="js/callin-desk.js?v=15.0"></script>
+<script src="js/leave-hr.js?v=15.0"></script>
+<script src="js/attendance.js?v=15.0"></script>
+<script src="js/muhasebe.js?v=15.0"></script>
+<script src="js/muhasebe-books.js?v=15.0"></script>
+<script src="js/agent-self-performance.js?v=15.0"></script>
+<script src="js/agents.js?v=15.0"></script>
+<script src="js/firm-desk.js?v=15.0"></script>
+<script src="js/mimi-brain.js?v=15.0"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof mbApplyChartTheme === 'function') mbApplyChartTheme();
