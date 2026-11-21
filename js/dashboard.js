@@ -544,6 +544,10 @@ function mbChipEsc(value) {
 }
 
 function mbChipInk(hex) {
+  const raw = String(hex || '');
+  const ink = typeof mbInkOn === 'function' ? mbInkOn(raw.startsWith('#') ? raw : `#${raw}`) : '';
+  if (ink === '#111827') return '#1f2937';
+  if (ink === '#ffffff') return '#fff';
   const h = String(hex || '').replace('#', '');
   if (!/^[0-9a-fA-F]{6}$/.test(h)) return '#fff';
   const r = parseInt(h.slice(0, 2), 16);

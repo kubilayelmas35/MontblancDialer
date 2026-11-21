@@ -1,19 +1,36 @@
 // Mola, harita, gelen arama ve test
 // ── Break / Mola modal ────────────────────────
-const AUX_LABEL_KEY = {
-  'Yemek Molası': 'dial.break.meal',
-  'Çay Molası': 'dial.break.tea',
-  'Lavabo': 'dial.break.wc',
-  'Toplantı': 'dial.break.meet',
-  'Teknik Sorun': 'dial.break.tech',
+const AUX_DE = {
+  'Yemek Molası': 'Essenspause',
+  'Çay Molası': 'Teepause',
+  'Lavabo': 'Toilette',
+  'Toplantı': 'Besprechung',
+  'Teknik Sorun': 'Technisches Problem',
 };
 
+function auxParts(code) {
+  if (code && typeof code === 'object') {
+    return { tr: String(code.tr || '').trim(), de: code.de == null ? null : String(code.de).trim() };
+  }
+  return { tr: String(code || '').trim(), de: null };
+}
+
+function auxStored(code) {
+  const p = auxParts(code);
+  return p.tr || p.de || '';
+}
+
+function auxShown(code) {
+  const stored = typeof code === 'object' ? auxStored(code) : String(code || '').trim();
+  const list = window._campAuxCodes || [];
+  const hit = list.find((item) => auxStored(item) === stored);
+  const p = auxParts(hit || code);
+  const de = p.de == null ? (AUX_DE[p.tr] || '') : p.de;
+  return typeof mbLangText === 'function' ? mbLangText(p.tr, de) : ((typeof currentLang !== 'undefined' && currentLang === 'de') ? (de || p.tr) : (p.tr || de));
+}
+
 function auxDisplay(code) {
-  const raw = String(code || '');
-  const key = AUX_LABEL_KEY[raw];
-  if (!key || typeof t !== 'function') return raw;
-  const label = t(key);
-  return label && label !== key ? label : raw;
+  return auxShown(code);
 }
 
 function openBreakModal() {
@@ -28,7 +45,7 @@ function openBreakModal() {
 <div style="font-size:14px;font-weight:800;margin-bottom:12px;">${esc(typeof t === 'function' ? t('dial.break.title') : 'Mola türü seç')}</div>
 <div style="display:flex;flex-direction:column;gap:6px;">
 ${auxCodes.map((c) => {
-  const raw = String(c).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const raw = auxStored(c).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   return `<button onclick="selectBreakCode('${raw}');this.closest('#m-break-select').remove();"
 style="padding:10px 14px;border:1px solid var(--border);background:var(--bg-3);border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;text-align:left;color:var(--text);">${esc(auxDisplay(c))}</button>`;
 }).join('')}

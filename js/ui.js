@@ -935,7 +935,8 @@ function mbInkOn(hex) {
     return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
   });
   const L = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
-  return L > 0.62 ? '#111827' : '#ffffff';
+  const white = 1.05 / (L + 0.05);
+  return white < 3.1 ? '#111827' : '#ffffff';
 }
 
 function mbSyncOnAccent() {

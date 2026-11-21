@@ -5257,6 +5257,13 @@ const MB_DE_PHRASE = {
   'Zorunlu alanları doldurun!': 'Pflichtfelder ausfüllen!',
 };
 
+function mbLangText(tr, de) {
+  const a = String(tr ?? '').trim();
+  const b = String(de ?? '').trim();
+  const wantDe = typeof currentLang !== 'undefined' && currentLang === 'de';
+  return wantDe ? (b || a) : (a || b);
+}
+
 function mbDe(msg) {
   const s = String(msg ?? '');
   if (typeof currentLang === 'undefined' || currentLang !== 'de') return s;
@@ -5337,6 +5344,7 @@ function mbErrorRow(colspan, message) {
 try {
   window.t = t;
   window.mbDe = mbDe;
+  window.mbLangText = mbLangText;
   window.tReplace = tReplace;
   window.tPair = tPair;
   window.mbLocale = mbLocale;

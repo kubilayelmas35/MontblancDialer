@@ -186,7 +186,8 @@ function takvimLum(hex) {
 }
 
 function takvimInk(hex) {
-  return takvimLum(hex) > 0.62 ? '#111827' : '#ffffff';
+  const white = 1.05 / (takvimLum(hex) + 0.05);
+  return white < 3.1 ? '#111827' : '#ffffff';
 }
 
 function takvimDeepen(hex) {
@@ -244,11 +245,11 @@ function getSlotGradientAndText(slot, appt) {
   const cfg = Array.isArray(rows) ? rows.find((r) => _normResultKey(r.key) === key) : null;
   if (cfg?.color) return takvimPaint(cfg.color, cfg.color_from);
   const d = (appt?.durum || '').toLowerCase();
-  if (d === 'basarili') return { background: 'linear-gradient(135deg,#15803d,#16a34a)', color: '#fff' };
-  if (d.includes('basarisiz') || d.includes('iptal')) return { background: 'linear-gradient(135deg,#991b1b,#b91c1c)', color: '#fff' };
-  if (d === 'beklemede') return { background: 'linear-gradient(135deg,#c2410c,#f97316)', color: '#fff' };
-  if (d === 'ulasilamadi') return { background: 'linear-gradient(135deg,#a16207,#ca8a04)', color: '#fff' };
-  return { background: 'linear-gradient(135deg,#1e3a8a,#2563eb)', color: '#fff' };
+  if (d === 'basarili') return takvimPaint('#16a34a', '#15803d');
+  if (d.includes('basarisiz') || d.includes('iptal')) return takvimPaint('#b91c1c', '#991b1b');
+  if (d === 'beklemede') return takvimPaint('#f97316', '#c2410c');
+  if (d === 'ulasilamadi') return takvimPaint('#ca8a04', '#a16207');
+  return takvimPaint('#2563eb', '#1e3a8a');
 }
 
 function takvimSlotDurHours() {

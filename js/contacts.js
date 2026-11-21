@@ -460,7 +460,7 @@ function dialerTerminFields(camp, contact) {
     if (f.enabled === false) return null;
     const next = {
       key: f.key,
-      l: f.label || f.l || base.l || f.key,
+      l: typeof terminLangLabel === 'function' ? terminLangLabel({ ...base, ...f, label: f.label || f.l || base.l }) : (f.label || f.l || base.l || f.key),
       v: contact?.[f.key] || '',
       type: f.type || base.type || 'text',
       required: !!(f.required ?? base.required),

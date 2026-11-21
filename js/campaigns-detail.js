@@ -283,23 +283,43 @@ if (tab === 'musteri' && currentCampId) loadCampCustomer();
 }
 
 const TERMIN_FORM_DEFAULTS = [
-  {key:'hausart',label:'Ev Tipi',type:'select',opts:'Einfamilienhaus,Zweifamilienhaus,Reihenhaus,Doppelhaus,Mehrfamilienhaus',enabled:true,required:true,placeholder:'',min:'',max:''},
-  {key:'baujahr',label:'Yapım Yılı',type:'text',opts:'',enabled:true,required:true,placeholder:'1998',min:'',max:''},
-  {key:'qm',label:'m²',type:'number',opts:'',enabled:true,required:true,placeholder:'140',min:'',max:''},
-  {key:'heizung',label:'Isıtma',type:'select',opts:'Gas,Öl,Pellet,WP,Fernwärme',enabled:true,required:true,placeholder:'',min:'',max:''},
-  {key:'alter_der_heizung',label:'Isıtma Yaşı',type:'text',opts:'',enabled:true,required:true,placeholder:'15',min:'',max:''},
-  {key:'verbrauch_pro_jahr',label:'Tüketim/Yıl',type:'text',opts:'',enabled:true,required:false,placeholder:'18000',min:'',max:''},
-  {key:'personen',label:'Kişi Sayısı',type:'number',opts:'',enabled:true,required:false,placeholder:'4',min:'',max:''},
-  {key:'interesse_an_pv',label:'PV İlgisi',type:'boolean',opts:'',enabled:false,required:false,placeholder:'',min:'',max:''},
+  {key:'hausart',label:'Ev Tipi',label_de:'Haustyp',type:'select',opts:'Einfamilienhaus,Zweifamilienhaus,Reihenhaus,Doppelhaus,Mehrfamilienhaus',enabled:true,required:true,placeholder:'',min:'',max:''},
+  {key:'baujahr',label:'Yapım Yılı',label_de:'Baujahr',type:'text',opts:'',enabled:true,required:true,placeholder:'1998',min:'',max:''},
+  {key:'qm',label:'m²',label_de:'m²',type:'number',opts:'',enabled:true,required:true,placeholder:'140',min:'',max:''},
+  {key:'heizung',label:'Isıtma',label_de:'Heizung',type:'select',opts:'Gas,Öl,Pellet,WP,Fernwärme',enabled:true,required:true,placeholder:'',min:'',max:''},
+  {key:'alter_der_heizung',label:'Isıtma Yaşı',label_de:'Heizungsalter',type:'text',opts:'',enabled:true,required:true,placeholder:'15',min:'',max:''},
+  {key:'verbrauch_pro_jahr',label:'Tüketim/Yıl',label_de:'Verbrauch/Jahr',type:'text',opts:'',enabled:true,required:false,placeholder:'18000',min:'',max:''},
+  {key:'personen',label:'Kişi Sayısı',label_de:'Personen',type:'number',opts:'',enabled:true,required:false,placeholder:'4',min:'',max:''},
+  {key:'interesse_an_pv',label:'PV İlgisi',label_de:'PV-Interesse',type:'boolean',opts:'',enabled:false,required:false,placeholder:'',min:'',max:''},
 ];
 let _terminFormDraft = [];
 
+function terminSuggestedDe(key, label) {
+  const def = TERMIN_FORM_DEFAULTS.find((d) => d.key === key);
+  const tr = String(label || '').trim();
+  if (!def) return '';
+  if (!tr || tr === def.label) return def.label_de || '';
+  return '';
+}
+
+function terminLangLabel(f) {
+  const tr = String(f?.label || f?.l || '').trim();
+  const savedDe = f && Object.prototype.hasOwnProperty.call(f, 'label_de') && f.label_de != null
+    ? String(f.label_de).trim()
+    : null;
+  const de = savedDe == null ? terminSuggestedDe(f?.key, tr) : savedDe;
+  return typeof mbLangText === 'function' ? mbLangText(tr, de) : (tr || de);
+}
+
 function terminFormListFromSaved(tf) {
   const saved = tf && typeof tf === 'object' ? tf : {};
-  if (Array.isArray(saved.fields) && saved.fields.length) {
-    return saved.fields.map((f) => ({
+  const pack = (f) => {
+    const label = f.label || f.key || 'Soru';
+    const labelDe = f.label_de != null ? String(f.label_de) : (saved[f.key]?.label_de != null ? String(saved[f.key].label_de) : null);
+    return {
       key: String(f.key || ''),
-      label: f.label || f.key || 'Soru',
+      label,
+      label_de: labelDe == null ? terminSuggestedDe(f.key, label) : labelDe,
       type: f.type || 'text',
       opts: f.opts || '',
       enabled: f.enabled !== false,
@@ -307,13 +327,17 @@ function terminFormListFromSaved(tf) {
       placeholder: f.placeholder || '',
       min: f.min == null ? '' : String(f.min),
       max: f.max == null ? '' : String(f.max),
-    })).filter((f) => f.key);
+    };
+  };
+  if (Array.isArray(saved.fields) && saved.fields.length) {
+    return saved.fields.map((f) => pack(f)).filter((f) => f.key);
   }
-  return TERMIN_FORM_DEFAULTS.map((f) => ({
+  return TERMIN_FORM_DEFAULTS.map((f) => pack({
     ...f,
     enabled: saved[f.key]?.enabled ?? f.enabled,
     required: saved[f.key]?.required ?? f.required,
     label: saved[f.key]?.label || f.label,
+    label_de: saved[f.key] && Object.prototype.hasOwnProperty.call(saved[f.key], 'label_de') ? saved[f.key].label_de : f.label_de,
     type: saved[f.key]?.type || f.type,
     opts: saved[f.key]?.opts || f.opts || '',
     placeholder: saved[f.key]?.placeholder ?? f.placeholder ?? '',
@@ -326,7 +350,8 @@ function readTerminFormDraftFromDom() {
   return _terminFormDraft.map((f, i) => ({
     ...f,
     enabled: document.getElementById(`tf-en-${i}`)?.checked ?? f.enabled,
-    label: document.getElementById(`tf-lbl-${i}`)?.value || f.label,
+    label: document.getElementById(`tf-lbl-${i}`)?.value ?? f.label,
+    label_de: document.getElementById(`tf-lbl-de-${i}`)?.value ?? f.label_de ?? '',
     type: document.getElementById(`tf-type-${i}`)?.value || f.type,
     required: document.getElementById(`tf-req-${i}`)?.checked ?? f.required,
     opts: document.getElementById(`tf-opts-${i}`)?.value ?? f.opts ?? '',
@@ -346,7 +371,8 @@ function renderTerminFormDraft() {
 <button type="button" class="btn btn-ghost btn-sm" style="padding:2px 6px;" ${i === 0 ? 'disabled' : ''} onclick="moveCampTerminField(${i},-1)" aria-label="Yukarı">↑</button>
 <button type="button" class="btn btn-ghost btn-sm" style="padding:2px 6px;" ${i === last ? 'disabled' : ''} onclick="moveCampTerminField(${i},1)" aria-label="Aşağı">↓</button>
 <input type="checkbox" id="tf-en-${i}" ${f.enabled ? 'checked' : ''} style="width:15px;height:15px;" title="Sor">
-<input class="form-input" id="tf-lbl-${i}" value="${campEsc(f.label)}" style="flex:1;font-size:12px;padding:3px 7px;">
+<input class="form-input" id="tf-lbl-${i}" value="${campEsc(f.label)}" placeholder="TR" style="flex:1;font-size:12px;padding:3px 7px;min-width:0;">
+<input class="form-input" id="tf-lbl-de-${i}" value="${campEsc(f.label_de || '')}" placeholder="DE" style="flex:1;font-size:12px;padding:3px 7px;min-width:0;">
 <select class="form-input" id="tf-type-${i}" style="width:110px;font-size:11px;padding:3px;" onchange="rememberTerminFormDraft();_terminFormDraft[${i}].type=this.value;renderTerminFormDraft()">
 <option value="text" ${f.type === 'text' ? 'selected' : ''}>${campEsc(campT('camp.tf.text','Metin'))}</option>
 <option value="number" ${f.type === 'number' ? 'selected' : ''}>${campEsc(campT('camp.tf.number','Sayı'))}</option>
@@ -397,6 +423,7 @@ function addCampTerminField() {
   _terminFormDraft.push({
     key: `custom_${Date.now()}`,
     label: 'Yeni soru',
+    label_de: '',
     type: 'text',
     opts: '',
     enabled: true,
@@ -416,12 +443,13 @@ function removeCampTerminField(index) {
 
 async function saveCampTerminFormSettings() {
   rememberTerminFormDraft();
-  const fields = _terminFormDraft.filter((f) => f.key && f.label);
+  const fields = _terminFormDraft.filter((f) => f.key && (String(f.label || '').trim() || String(f.label_de || '').trim()));
   const cfg = { fields };
   fields.forEach((f) => {
     cfg[f.key] = {
       enabled: f.enabled !== false,
       label: f.label,
+      label_de: f.label_de || '',
       type: f.type || 'text',
       required: !!f.required,
       opts: f.opts || '',
@@ -855,14 +883,27 @@ renderAuxCodes(s.aux_codes || DEFAULT_AUX_CODES);
 renderOutcomes(s.outcomes || DEFAULT_OUTCOMES);
 }
 
+function auxEditPair(code) {
+  if (code && typeof code === 'object') {
+    return { tr: String(code.tr || ''), de: code.de == null ? '' : String(code.de) };
+  }
+  const tr = String(code || '');
+  const known = { 'Yemek Molası': 'Essenspause', 'Çay Molası': 'Teepause', 'Lavabo': 'Toilette', 'Toplantı': 'Besprechung', 'Teknik Sorun': 'Technisches Problem' };
+  return { tr, de: known[tr] || '' };
+}
+
 function renderAuxCodes(codes) {
 const el = document.getElementById('cd-aux-codes');
 if (!el) return;
-el.innerHTML = codes.map((code,i)=>`
+el.innerHTML = codes.map((code,i)=>{
+  const pair = auxEditPair(code);
+  return `
 <div style="display:flex;align-items:center;gap:6px;">
-<input class="form-input" value="${code}" id="aux-code-${i}" style="flex:1;font-size:12px;padding:4px 8px;">
+<input class="form-input" value="${campEsc(pair.tr)}" id="aux-tr-${i}" placeholder="TR" style="flex:1;font-size:12px;padding:4px 8px;">
+<input class="form-input" value="${campEsc(pair.de)}" id="aux-de-${i}" placeholder="DE" style="flex:1;font-size:12px;padding:4px 8px;">
 <button onclick="removeAuxCode(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;">✕</button>
-</div>`).join('');
+</div>`;
+}).join('');
 }
 
 function addAuxCode() {
@@ -871,12 +912,12 @@ if (!el) return;
 const idx = el.children.length;
 const div = document.createElement('div');
 div.style.cssText='display:flex;align-items:center;gap:6px;';
-div.innerHTML=`<input class="form-input" value="Yeni Kod" id="aux-code-${idx}" style="flex:1;font-size:12px;padding:4px 8px;"><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--red);cursor:pointer;">✕</button>`;
+div.innerHTML=`<input class="form-input" value="Yeni Kod" id="aux-tr-${idx}" placeholder="TR" style="flex:1;font-size:12px;padding:4px 8px;"><input class="form-input" value="" id="aux-de-${idx}" placeholder="DE" style="flex:1;font-size:12px;padding:4px 8px;"><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--red);cursor:pointer;">✕</button>`;
 el.appendChild(div);
 }
 
 function removeAuxCode(i) {
-const el = document.getElementById(`aux-code-${i}`);
+const el = document.getElementById(`aux-tr-${i}`);
 el?.parentElement?.remove();
 }
 
@@ -1001,6 +1042,8 @@ function mbCampOutcomeRows(camp) {
     return {
       key,
       label: (typeof outcomeDisplayLabel === 'function' ? outcomeDisplayLabel(row) : '') || row?.label || key,
+      label_tr: String(row?.label || '').trim(),
+      label_de: row?.label_de == null ? '' : String(row.label_de).trim(),
       enabled: key === 'dnc' ? true : row?.enabled !== false,
       category: mbOutcomeCategory({ key, category: row?.category }),
       color: row?.color || 'gray',
@@ -1027,13 +1070,26 @@ function mbOutcomeStatus(key) {
   return key || 'no_answer';
 }
 
+function outcomeEditPair(o) {
+  const pack = OUTCOME_I18N[o?.key];
+  const tr = String(o?.label_tr ?? o?.label ?? '').trim();
+  const deSaved = o?.label_de == null ? '' : String(o.label_de).trim();
+  const trIsDefault = !tr || tr === o?.key || (pack && (tr === pack.tr || tr === pack.de));
+  const de = deSaved || (pack && trIsDefault ? pack.de : '');
+  return { tr: tr || pack?.tr || '', de };
+}
+
 function outcomeDisplayLabel(o) {
   const de = typeof currentLang !== 'undefined' && currentLang === 'de';
   const pack = OUTCOME_I18N[o?.key];
-  const raw = String(o?.label || '').trim();
-  if (!pack) return raw;
-  if (!raw || raw === o.key || raw === pack.tr || raw === pack.de) return de ? pack.de : pack.tr;
-  return raw;
+  const raw = String(o?.label_tr ?? o?.label ?? '').trim();
+  const deTxt = o?.label_de == null ? '' : String(o.label_de).trim();
+  const trIsDefault = !raw || raw === o?.key || (pack && (raw === pack.tr || raw === pack.de));
+  const deIsDefault = !deTxt || (pack && (deTxt === pack.tr || deTxt === pack.de));
+  if (pack && trIsDefault && deIsDefault) return de ? pack.de : pack.tr;
+  const trText = trIsDefault && pack ? pack.tr : raw;
+  const deText = deTxt || (trIsDefault && pack ? pack.de : '');
+  return typeof mbLangText === 'function' ? mbLangText(trText, deText) : (de ? (deText || trText) : (trText || deText));
 }
 
 function renderOutcomes(outcomes) {
@@ -1045,6 +1101,7 @@ const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '
 const rows = mbCampOutcomeRows({ settings: { outcomes } });
 el.innerHTML = rows.map((o,i)=>{
   const cat = mbOutcomeCategory(o);
+  const pair = outcomeEditPair(o);
   const catText = esc(mbOutcomeCatLabel(cat));
   const catUi = o.locked
     ? `<span style="flex-shrink:0;font-size:10px;font-weight:800;padding:3px 8px;border-radius:99px;background:var(--bg-3);color:var(--text-2);">${catText}</span>`
@@ -1056,7 +1113,8 @@ ${cats.map(c=>`<option value="${c}" ${cat===c?'selected':''}>${esc(mbOutcomeCatL
 <div data-outcome-row data-key="${esc(o.key)}" style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg-2);border-radius:5px;">
 <input type="checkbox" ${o.enabled?'checked':''} ${o.key==='dnc'?'disabled':''} id="outcome-enabled-${i}">
 ${mbOutcomeIconBtn(o.icon)}
-<input class="form-input" value="${esc(o.label)}" id="outcome-label-${i}" style="flex:1;font-size:12px;padding:3px 7px;">
+<input class="form-input" value="${esc(pair.tr)}" id="outcome-label-${i}" placeholder="TR" style="flex:1;font-size:12px;padding:3px 7px;min-width:0;">
+<input class="form-input" value="${esc(pair.de)}" id="outcome-label-de-${i}" placeholder="DE" style="flex:1;font-size:12px;padding:3px 7px;min-width:0;">
 ${catUi}
 </div>`;
 }).join('') +
@@ -1075,7 +1133,8 @@ div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 8px;bac
 div.innerHTML = `
 <input type="checkbox" checked id="outcome-enabled-${idx}">
 ${mbOutcomeIconBtn('ph-circle')}
-<input class="form-input" value="Yeni Sonuç" id="outcome-label-${idx}" style="flex:1;font-size:12px;padding:3px 7px;">
+<input class="form-input" value="Yeni Sonuç" id="outcome-label-${idx}" placeholder="TR" style="flex:1;font-size:12px;padding:3px 7px;min-width:0;">
+<input class="form-input" value="" id="outcome-label-de-${idx}" placeholder="DE" style="flex:1;font-size:12px;padding:3px 7px;min-width:0;">
 <select class="form-input" id="outcome-cat-${idx}" style="font-size:11px;padding:2px 4px;width:110px;">
 <option value="appointment">${campEsc(mbOutcomeCatLabel('appointment'))}</option>
 <option value="negative">${campEsc(mbOutcomeCatLabel('negative'))}</option>
@@ -1091,24 +1150,27 @@ document.getElementById('outcome-enabled-'+i)?.closest('div')?.remove();
 }
 
 async function saveCampQcSettings() {
-const auxRaw = [...document.querySelectorAll('[id^="aux-code-"]')].map(el => String(el.value || '').trim());
-if (!auxRaw.length || auxRaw.some((v) => !v)) {
+const auxCodes = [...document.querySelectorAll('#cd-aux-codes > div')].map((row) => ({
+  tr: String(row.querySelector('[id^="aux-tr-"]')?.value || '').trim(),
+  de: String(row.querySelector('[id^="aux-de-"]')?.value || '').trim(),
+}));
+if (!auxCodes.length || auxCodes.some((v) => !v.tr && !v.de)) {
   toast(campT('camp.aux.empty','Boş mola kodu kaydedilemez'), 'err');
   return;
 }
 const auxSeen = new Set();
-for (const code of auxRaw) {
-  const key = code.toLocaleLowerCase('tr-TR');
+for (const code of auxCodes) {
+  const key = (code.tr || code.de).toLocaleLowerCase('tr-TR');
   if (auxSeen.has(key)) {
     toast(campT('camp.aux.dup','Aynı mola kodu iki kez yazılamaz'), 'err');
     return;
   }
   auxSeen.add(key);
 }
-const auxCodes = auxRaw;
 const outcomeCodes = [...document.querySelectorAll('#cd-outcomes [data-outcome-row]')].map((row)=>{
   const cb = row.querySelector('[id^="outcome-enabled-"]');
-  const labelEl = row.querySelector('[id^="outcome-label-"]');
+  const labelEl = row.querySelector('[id^="outcome-label-"]:not([id^="outcome-label-de-"])');
+  const labelDeEl = row.querySelector('[id^="outcome-label-de-"]');
   const catEl = row.querySelector('[id^="outcome-cat-"]');
   const iconBtn = row.querySelector('[data-outcome-icon]');
   const idx = cb ? Number(String(cb.id).replace('outcome-enabled-', '')) : -1;
@@ -1117,6 +1179,7 @@ const outcomeCodes = [...document.querySelectorAll('#cd-outcomes [data-outcome-r
   return {
     key,
     label: labelEl?.value || '',
+    label_de: labelDeEl?.value || '',
     enabled: !!cb?.checked,
     color: builtin?.color || 'gray',
     category: mbOutcomeCategory({ key, category: catEl?.value }),

@@ -813,7 +813,11 @@ function _etCellHtml(row, col) {
   }
   if (col.key === 'moved' && row.movedDown) return `<span class="et-down">! ${_uiEsc(shown)}</span>`;
   if (col.key === 'camp') return `<span class="badge et-camp" style="background:var(--accent);color:#fff;font-size:10px;" title="${_uiEsc(text)}">${_uiEsc(shown)}</span>`;
-  if (col.key === 'status') return `<span class="badge" style="background:${_etBadgeColor(row.durumKey)};color:#fff;font-size:10px;">${_uiEsc(shown)}</span>`;
+  if (col.key === 'status') {
+    const bg = _etBadgeColor(row.durumKey);
+    const ink = typeof mbInkOn === 'function' ? mbInkOn(bg) : '#fff';
+    return `<span class="badge" style="background:${bg};color:${ink};font-size:10px;">${_uiEsc(shown)}</span>`;
+  }
   return _uiEsc(shown);
 }
 
