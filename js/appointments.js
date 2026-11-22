@@ -72,7 +72,7 @@ function _parseTakvimMinute(timeStr) {
 }
 
 function takvimShiftChoices() {
-  return [5, 10, 15, 20, 30, 60];
+  return [5, 10, 15, 20, 30, 60, 90, 120];
 }
 
 function takvimShiftMin(raw) {

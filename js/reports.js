@@ -67,6 +67,14 @@ function mbSyncStatsChrome() {
   if (extra) extra.style.display = view === 'overview' ? 'none' : 'flex';
   const exp = document.getElementById('stats-export-btns');
   if (exp) exp.style.display = view === 'overview' ? '' : 'none';
+  const dateSel = document.getElementById('stats-date-f');
+  const custom = document.getElementById('stats-custom-range');
+  if (dateSel) dateSel.style.display = view === 'live' ? 'none' : '';
+  if (view === 'live') {
+    if (custom) custom.style.display = 'none';
+  } else if (typeof toggleCustomDateRange === 'function') {
+    toggleCustomDateRange();
+  }
   if (typeof repSyncResultFilter === 'function') repSyncResultFilter(false);
   if (typeof repPaintHourTools === 'function') repPaintHourTools();
 }
