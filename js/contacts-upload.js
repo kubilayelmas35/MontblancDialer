@@ -497,20 +497,42 @@ function mbAddrCampFields() {
   return typeof mbParseFieldConfig === 'function' ? mbParseFieldConfig(camp) : {};
 }
 
-function mbAddrSlots(fc) {
-  const slots = [];
-  const phone2On = typeof mbFieldShown === 'function' ? mbFieldShown(fc, 'phone2', true) : true;
-  if (phone2On) slots.push({ key: 'phone2', store: 'column' });
+function mbAddrThirdKey(fc) {
   const fold = (value) => String(value || '').toLocaleLowerCase('tr-TR').replace(/[^a-z0-9ğüşöçı]/g, '');
+  let found = '';
   Object.entries(fc || {}).forEach(([key, spec]) => {
-    if (!spec || typeof spec !== 'object') return;
+    if (found || !spec || typeof spec !== 'object') return;
     if (['phone', 'phone2', 'notes', 'name', 'first_name', 'last_name', 'plz', 'city', 'address', 'attempt', 'house_no'].includes(key)) return;
-    if (typeof mbFieldShown === 'function' && !mbFieldShown(fc, key, false)) return;
     if (!/^[A-Za-z0-9_-]+$/.test(key)) return;
     const blob = fold(key) + fold(spec.label || '') + fold(spec.label_de || '');
-    if (/telefon3|phone3|tel3|handy3|mobil3|3telefon|3tel/.test(blob)) slots.push({ key, store: 'extra' });
+    if (/telefon3|phone3|tel3|handy3|mobil3|3telefon|3tel/.test(blob)) found = key;
   });
-  return slots.slice(0, 2);
+  return found;
+}
+
+function mbAddrSlots(fc) {
+  return [
+    { key: 'phone2', store: 'column' },
+    { key: mbAddrThirdKey(fc) || 'phone3', store: 'extra' },
+  ];
+}
+
+function mbMergedPhoneFields(contact, seen) {
+  const out = [];
+  const have = seen instanceof Set ? seen : new Set(seen || []);
+  const phone2 = String(contact?.phone2 || '').trim();
+  if (phone2 && !have.has('phone2')) {
+    out.push({ key: 'phone2', l: uqSay('dial.phone2', 'Telefon 2'), v: phone2, mono: true, call: true });
+  }
+  const extra = typeof mbAddrExtra === 'function' ? mbAddrExtra(contact) : {};
+  const camp = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === contact?.campaign_id);
+  const fc = typeof mbParseFieldConfig === 'function' ? mbParseFieldConfig(camp) : {};
+  const third = mbAddrThirdKey(fc) || 'phone3';
+  const phone3 = String(extra[third] || (third !== 'phone3' ? extra.phone3 : '') || '').trim();
+  if (phone3 && !have.has(third)) {
+    out.push({ key: third, l: uqSay('dial.phone3', 'Telefon 3'), v: phone3, mono: true, call: true });
+  }
+  return out;
 }
 
 function mbAddrPerson(row, phone3key) {

@@ -195,9 +195,17 @@ async function mbRedialCurrentContact() {
 }
 
 async function callSecondaryPhone() {
-  const p2 = String(currentContact?.phone2 || '').trim();
+  return callStoredPhone('phone2');
+}
+
+async function callStoredPhone(key) {
+  const slot = String(key || 'phone2');
+  const extra = currentContact?.extra && typeof currentContact.extra === 'object' ? currentContact.extra : {};
+  const p2 = String(slot === 'phone2' ? currentContact?.phone2 : (extra[slot] || '')).trim();
   if (!p2) {
-    toast(typeof t === 'function' ? t('dial.no_phone2') : '2. telefon numarası yok', 'warn');
+    const missing = slot === 'phone2' ? 'dial.no_phone2' : 'dial.no_phone3';
+    const missingFb = slot === 'phone2' ? '2. telefon numarası yok' : '3. telefon numarası yok';
+    toast(typeof uqSay === 'function' ? uqSay(missing, missingFb) : missingFb, 'warn');
     return;
   }
   if (!_testMode && !telnyxReady) {
@@ -215,7 +223,9 @@ async function callSecondaryPhone() {
     _fakeCallActive = true;
     window.__voiceOrbSimRemote = true;
     setDialerStatus('on_call');
-    toast(typeof t === 'function' ? t('dial.test_phone2') : 'TEST: 2. numara aranıyor', 'ok', 2200);
+    const testKey = slot === 'phone2' ? 'dial.test_phone2' : 'dial.test_phone3';
+    const testFb = slot === 'phone2' ? 'TEST: 2. numara aranıyor' : 'TEST: 3. numara aranıyor';
+    toast(typeof uqSay === 'function' ? uqSay(testKey, testFb) : testFb, 'ok', 2200);
     return;
   }
   _outboundAnswered = false;

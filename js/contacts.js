@@ -288,14 +288,20 @@ function showCustomerCard(c) {
     v: textOf(field.key),
     mono: field.key === 'plz' || field.key === 'phone' || field.key === 'phone2',
   }));
+  if (typeof mbMergedPhoneFields === 'function') {
+    mbMergedPhoneFields(c, new Set(layout.map((field) => field.key))).forEach((field) => visibleFields.push(field));
+  }
   const terminFields = dialerTerminFields(camp, c);
   document.getElementById('cust-fields').innerHTML = visibleFields.map(f=>{
     const canEditFields = typeof mbAgentCanEditFields !== 'function' || mbAgentCanEditFields(camp);
-    const canCallSecondary = f.key === 'phone2' && String(f.v || '').trim().length > 0;
-    const quickCallBtn = canCallSecondary
-      ? `<button type="button" onclick="callSecondaryPhone()"
+    const dialKey = (f.key === 'phone2' || f.call) && String(f.v || '').trim() ? f.key : '';
+    const callTitle = dialKey === 'phone2'
+      ? uqSay('dial.call2', '2. numarayı ara')
+      : uqSay('dial.call3', '3. numarayı ara');
+    const quickCallBtn = dialKey
+      ? `<button type="button" onclick="callStoredPhone('${dialKey}')"
 style="flex-shrink:0;background:var(--accent-soft);border:1px solid var(--accent);cursor:pointer;color:var(--accent);padding:4px 7px;border-radius:6px;transition:.15s;font-size:11px;font-weight:700;"
-title="2. numarayı ara"
+title="${typeof _escHtml === 'function' ? _escHtml(callTitle) : callTitle}"
 onmouseover="this.style.background='var(--accent)';this.style.color='#fff'"
 onmouseout="this.style.background='var(--accent-soft)';this.style.color='var(--accent)'">
 <i class="ph ph-phone-call" style="font-size:12px;vertical-align:-1px;"></i>

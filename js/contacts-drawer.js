@@ -366,7 +366,8 @@ async function openContactDrawer(contactId) {
     const consentSrc = extra.consent_source || '';
     const fields = [
       {l:'Telefon',    v:c.phone,      mono:true, copy:true},
-      {l:'2. Tel',     v:c.phone2,     mono:true, copy:true},
+      {l: (typeof t === 'function' ? t('dial.phone2') : 'Telefon 2'), v:c.phone2, mono:true, copy:true},
+      {l: (typeof t === 'function' ? t('dial.phone3') : 'Telefon 3'), v: extra.phone3 || '', mono:true, copy:true},
       {l:'Ad Soyad',   v:fullName},
       {l:'PLZ',        v:c.plz,        mono:true},
       {l:'Şehir',      v:c.city},
