@@ -1520,9 +1520,14 @@ function opsFloorText(kind, bits) {
   const inCamp = camp ? (de ? `in Kampagne ${camp}` : `${camp} kampanyasında`) : '';
   const atCamp = camp ? (de ? `in Kampagne ${camp}` : `${camp} kampanyasındaki`) : '';
   if (kind === 'pick') {
+    if (!bits.named) {
+      return de
+        ? opsJoin(['Der Slot', when, camp ? `in der Kampagne ${camp}` : '', 'wurde gesperrt'])
+        : opsJoin([camp ? `${camp} kampanyasında` : '', when, 'slotu kilitlendi']);
+    }
     return de
-      ? opsJoin([actor || 'Jemand', 'hat', when, 'einen Slot', ofCamp, 'gewählt'])
-      : opsJoin([`${actor || 'Bir kişi'},`, ofCamp, when, 'slotunu seçti']);
+      ? opsJoin([actor || 'Jemand', 'hat', when, 'einen Slot', ofCamp, 'gesperrt'])
+      : opsJoin([`${actor || 'Bir kişi'},`, ofCamp, when, 'slotunu kilitledi']);
   }
   if (kind === 'drop') {
     return de
@@ -1715,6 +1720,7 @@ const _opsAnnounced = new Set();
 function opsAgentSeesFloor(ev, role, userId) {
   if (String(role || '') !== 'agent') return true;
   const kind = ev?.kind;
+  if (kind === 'pick') return true;
   if (kind === 'clear' || kind === 'move' || kind === 'qc') {
     return !!userId && String(ev.ownerId || '') === String(userId);
   }
@@ -1817,7 +1823,8 @@ async function opsTickFloor() {
       const when = opsWhenFromSlot(s.tarih, s.baslangic_saat);
       const camp = opsCampName(s.campaign_id);
       if (old.durum === 'bos' && s.durum === 'kilitli') {
-        events.push({ sound: 'pick', title: 'pick', kind: 'pick', actor: opsPerson(s.kilitli_agent_id), camp, when });
+        const named = typeof mbShowLockName === 'function' && mbShowLockName(s.campaign_id);
+        events.push({ sound: 'pick', title: 'pick', kind: 'pick', named, actor: named ? opsPerson(s.kilitli_agent_id) : '', camp, when });
       } else if ((old.durum === 'kilitli' || old.durum === 'admin-kilitli') && s.durum === 'bos') {
         events.push({ sound: 'drop', title: 'drop', kind: 'drop', actor: opsPerson(old.kilitli_agent_id), camp, when });
       } else if (old.durum !== 'dolu' && s.durum === 'dolu') {

@@ -107,7 +107,19 @@ function notifMoveCat(id, dir) {
 }
 
 function notifSay(key, fallback) {
-  return typeof t === 'function' ? t(key) : fallback;
+  const value = typeof t === 'function' ? t(key) : '';
+  return value && value !== key ? value : fallback;
+}
+
+function notifOwnApptsOnly() {
+  return String(currentUser?.role || '') === 'agent';
+}
+
+function notifSlotWhen(tarih, saat) {
+  const bits = String(tarih || '').split('-');
+  const hm = String(saat || '').slice(0, 5);
+  if (bits.length < 3) return hm;
+  return `${bits[2]}.${bits[1]}.${bits[0]} ${hm}`.trim();
 }
 
 function notifHideKey() {
@@ -364,8 +376,10 @@ async function loadNotificationCenter() {
     return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   };
 
-  if (typeof opsNoticeRows === 'function') {
+    if (typeof opsNoticeRows === 'function') {
+    const lockTitles = new Set(['Slot seçildi', 'Slot gewählt', 'Slot kilitlendi', 'Slot gesperrt']);
     opsNoticeRows().forEach((row) => {
+      if (row?.cat === 'cal' && lockTitles.has(String(row.title || ''))) return;
       const id = notifStoreId(row);
       notifPush(out, hidden, {
         cat: notifCatIds().includes(row?.cat) ? row.cat : 'live',
@@ -380,7 +394,9 @@ async function loadNotificationCenter() {
     });
   }
 
+  const ownAppts = notifOwnApptsOnly();
   try {
+    if (ownAppts) throw new Error('skip');
     const chat = await sb(`chat_messages?${ff}order=created_at.desc&limit=5`).catch(() => []);
     const senderIds = [...new Set((chat || []).map((x) => x.sender_id).filter(Boolean))];
     let names = {};
@@ -393,8 +409,8 @@ async function loadNotificationCenter() {
         cat: 'chat',
         src: 'hide',
         id: `chat:${c.id || `${c.sender_id}:${c.created_at}`}`,
-        title: 'Sohbet',
-        body: `${names[c.sender_id] || 'Kullanıcı'}: ${c.body || c.file_name || 'Mesaj'}`,
+        title: notifSay('notif.chat.title', 'Sohbet'),
+        body: `${names[c.sender_id] || notifSay('notif.chat.user', 'Kullanıcı')}: ${c.body || c.file_name || notifSay('notif.chat.msg', 'Mesaj')}`,
         meta: clock(c.created_at),
         unread: c.sender_id !== currentUser.id,
       });
@@ -402,6 +418,7 @@ async function loadNotificationCenter() {
   } catch (e) {}
 
   try {
+    if (ownAppts) throw new Error('skip');
     const field = await sb(`field_tasks?${ff}status=eq.assigned&order=created_at.desc&limit=5`).catch(() => []);
     (field || []).forEach((task) => {
       const mine = task.assigned_to === currentUser.id;
@@ -410,7 +427,7 @@ async function loadNotificationCenter() {
         cat: 'field',
         src: 'hide',
         id: `field:${task.id || task.created_at}`,
-        title: 'Saha görevi',
+        title: notifSay('notif.field.title', 'Saha görevi'),
         body: `${typeof t === 'function' ? t('field.status.assigned') : 'Atandı'} · ${task.result_key && typeof fieldResultLabel === 'function' ? fieldResultLabel(task.result_key) : (typeof t === 'function' ? t('field.result.pending') : '')}`,
         meta: new Date(task.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
         unread: mine || (fresh && mbIsFirmAdmin()),
@@ -419,38 +436,43 @@ async function loadNotificationCenter() {
   } catch (e) {}
 
   try {
-    const qcRows = await sb(`appointments?${ff}durum=eq.qc_bekleniyor&select=id,nachname,son_guncelleme&order=son_guncelleme.desc&limit=5`).catch(() => []);
+    const mine = ownAppts && currentUser?.id ? `agent_id=eq.${currentUser.id}&` : '';
+    const qcRows = await sb(`appointments?${ff}${mine}durum=eq.qc_bekleniyor&select=id,nachname,son_guncelleme,agent_id&order=son_guncelleme.desc&limit=8`).catch(() => []);
+    const loc = typeof mbLocale === 'function' ? mbLocale() : 'tr-TR';
     (qcRows || []).forEach((a) => {
+      if (ownAppts && String(a.agent_id || '') !== String(currentUser.id)) return;
+      const who = a.nachname || notifSay('notif.customer', 'Müşteri');
       notifPush(out, hidden, {
         cat: 'qc',
         src: 'hide',
         id: `qc:${a.id}`,
-        title: 'QC bekleyen',
-        body: `${a.nachname || 'Müşteri'} için değerlendirme bekleniyor`,
-        meta: new Date(a.son_guncelleme || Date.now()).toLocaleDateString('tr-TR'),
-        unread: ['qc', 'admin', 'firm_admin', 'super_admin'].includes(currentUser.role),
+        title: notifSay('notif.qc.title', 'QC bekleyen'),
+        body: (typeof tReplace === 'function' ? tReplace('notif.qc.body', { name: who }) : `${who} için değerlendirme bekleniyor`),
+        meta: new Date(a.son_guncelleme || Date.now()).toLocaleDateString(loc),
+        unread: ownAppts || ['qc', 'admin', 'firm_admin', 'super_admin'].includes(currentUser.role),
       });
     });
   } catch (e) {}
 
   try {
+    if (ownAppts) throw new Error('skip');
     const events = await sb(`job_events?select=id,event_type,created_at,job_posts!inner(id,title,requester_firm_id)&order=created_at.desc&limit=12`).catch(() => []);
     (events || []).forEach((ev) => {
-      const title = ev?.job_posts?.title || 'İş ilanı';
+      const title = ev?.job_posts?.title || notifSay('notif.job.post', 'İş ilanı');
       const own = fid === 'all' || ev?.job_posts?.requester_firm_id === fid;
       const isWithdraw = ev.event_type === 'job_withdrawn';
       const eventLabel = {
-        job_created: 'İlan yayınlandı',
-        job_withdrawn: 'İlan geri çekildi',
-        job_joined: 'İlana katılım',
-        submission_created: 'Teslim geldi',
-      }[ev.event_type] || 'İş güncellemesi';
+        job_created: notifSay('notif.job.created', 'İlan yayınlandı'),
+        job_withdrawn: notifSay('notif.job.withdraw', 'İlan geri çekildi'),
+        job_joined: notifSay('notif.job.joined', 'İlana katılım'),
+        submission_created: notifSay('notif.job.submitted', 'Teslim geldi'),
+      }[ev.event_type] || notifSay('notif.job.update', 'İş güncellemesi');
       notifPush(out, hidden, {
         cat: 'job',
         src: 'hide',
         id: `job:${ev.id || ev.created_at}`,
-        title: isWithdraw ? 'İlan geri çekildi' : 'İş platformu',
-        body: isWithdraw ? `${title} · rezerv iade edildi, ilan iptal` : `${title} · ${eventLabel}`,
+        title: isWithdraw ? notifSay('notif.job.withdraw', 'İlan geri çekildi') : notifSay('notif.job.title', 'İş platformu'),
+        body: isWithdraw ? `${title} · ${notifSay('notif.job.withdraw_body', 'rezerv iade edildi, ilan iptal')}` : `${title} · ${eventLabel}`,
         meta: clock(ev.created_at),
         unread: own || ['admin', 'firm_admin', 'super_admin', 'qc'].includes(currentUser.role),
       });
@@ -474,7 +496,7 @@ async function loadNotificationCenter() {
         });
       });
     }
-    if (prefs?.campaign !== false && typeof opsRoleSeesWarn === 'function' && opsRoleSeesWarn()) {
+    if (!ownAppts && prefs?.campaign !== false && typeof opsRoleSeesWarn === 'function' && opsRoleSeesWarn()) {
       const ids = (typeof _opsDirective !== 'undefined' && Array.isArray(_opsDirective.ids)) ? _opsDirective.ids : [];
       if (ids.length) {
         const names = ids.map((id) => (typeof opsCampName === 'function' ? opsCampName(id) : id)).filter(Boolean).join(', ');
@@ -488,6 +510,44 @@ async function loadNotificationCenter() {
           unread: true,
         });
       }
+    }
+  } catch (e) {}
+
+  try {
+    if (fid !== 'all' && typeof sb === 'function') {
+      if (typeof ensureFirmTakvimDefaultsLoaded === 'function') await ensureFirmTakvimDefaultsLoaded(fid);
+      const since = new Date(Date.now() - 36 * 3600 * 1000).toISOString();
+      const locks = await sb(`takvim_slots?firm_id=eq.${fid}&durum=eq.kilitli&kilitli_at=gte.${since}&select=id,campaign_id,tarih,baslangic_saat,kilitli_agent_id,kilitli_at&order=kilitli_at.desc&limit=12`).catch(() => []);
+      const rows = (locks || []).filter((slot) => slot?.id && String(slot.kilitli_agent_id || '') !== String(currentUser.id || ''));
+      const needNames = rows.filter((slot) => typeof mbShowLockName === 'function' && mbShowLockName(slot.campaign_id)).map((slot) => slot.kilitli_agent_id).filter(Boolean);
+      if (needNames.length && typeof opsNames === 'function') await opsNames(needNames);
+      else if (needNames.length) {
+        window._takvimAgentNameById = window._takvimAgentNameById || {};
+        const missing = [...new Set(needNames.map(String))].filter((id) => !window._takvimAgentNameById[id]);
+        if (missing.length) {
+          const users = await sb(`users?id=in.(${missing.join(',')})&select=id,name`).catch(() => []);
+          (users || []).forEach((u) => { if (u?.id) window._takvimAgentNameById[u.id] = u.name || ''; });
+        }
+      }
+      if (typeof opsEnsureCampNames === 'function') await opsEnsureCampNames(rows.map((slot) => slot.campaign_id));
+      rows.forEach((slot) => {
+        const camp = (typeof opsCampName === 'function' && opsCampName(slot.campaign_id)) || notifSay('notif.slot.camp', 'Kampanya');
+        const when = notifSlotWhen(slot.tarih, slot.baslangic_saat);
+        const named = typeof mbShowLockName === 'function' && mbShowLockName(slot.campaign_id);
+        const person = named ? ((typeof opsPerson === 'function' && opsPerson(slot.kilitli_agent_id)) || (typeof mbLockerName === 'function' ? mbLockerName(slot.kilitli_agent_id) : '')) : '';
+        const body = person
+          ? (typeof tReplace === 'function' ? tReplace('notif.slot.lock_name', { name: person, camp, when }) : `${person}, ${camp} kampanyasında ${when} slotunu kilitledi`)
+          : (typeof tReplace === 'function' ? tReplace('notif.slot.lock', { camp, when }) : `${camp} kampanyasında ${when} slotu kilitlendi`);
+        notifPush(out, hidden, {
+          cat: 'cal',
+          src: 'hide',
+          id: `slot:${slot.id}`,
+          title: notifSay('notif.slot.title', 'Slot kilitlendi'),
+          body,
+          meta: notifSlotWhen(slot.tarih, slot.baslangic_saat),
+          unread: true,
+        });
+      });
     }
   } catch (e) {}
 

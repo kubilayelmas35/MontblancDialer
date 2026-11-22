@@ -25,8 +25,10 @@ function showSlotContextMenu(e, slot, appt) {
   if (slot.durum === 'kilitli') {
     // Admin can see who locked and unlock
     if (isAdmin) {
-      const agentName = slot.kilitli_agent_id || 'Bilinmiyor';
-      items.push({ icon:'', label:`Kilitleyen: ${agentName}`, onClick: null });
+      if (typeof mbShowLockName === 'function' && mbShowLockName(slot.campaign_id)) {
+        const agentName = typeof mbLockerName === 'function' ? mbLockerName(slot.kilitli_agent_id) : '';
+        if (agentName) items.push({ icon:'', label:`${typeof t === 'function' ? t('cal.detail.locker') : 'Kilitleyen'}: ${agentName}`, onClick: null });
+      }
       items.push({ icon:'', label:'Kilidi Kaldır', onClick: () => unlockSlot(slot.id), yellow:true });
     }
     // Agent can cancel their own lock
@@ -1675,6 +1677,10 @@ ${dayNames
 <input type="checkbox" id="fdt-confirm-slot" ${cfg.confirm_new_slot !== false ? 'checked' : ''}> ${ui('Yeni slot eklerken onay penceresi (varsayılan)', 'Beim neuen Slot ein Bestätigungsfenster (Standard)')}
 </label>
 <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;cursor:pointer;margin-top:8px;">
+<input type="checkbox" id="fdt-lock-name" ${raw.show_lock_name === true ? 'checked' : ''}>
+<span>${typeof t === 'function' ? t('cal.lockname') : 'Kilitleyenin adı görünsün'}<br><span style="color:var(--text-3);font-weight:500;">${typeof t === 'function' ? t('cal.lockname.default') : 'Firma varsayılanı. Kampanya takvimi kendi kutusunu ayrıca saklar.'}</span></span>
+</label>
+<label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;cursor:pointer;margin-top:8px;">
 <input type="checkbox" id="fdt-alta-slot" ${raw.altaYeniSlot !== false ? 'checked' : ''}>
 <span>${typeof t === 'function' ? t('cal.alta.slot') : 'Alta inen randevunun yerine yeni yer aç'}<br><span style="color:var(--text-3);font-weight:500;">${typeof t === 'function' ? t('cal.alta.slot.help') : 'Başarısız, iptal ya da elle alta alınan randevunun saati boş kalmaz.'}</span></span>
 </label>
@@ -1726,6 +1732,7 @@ async function saveDefaultTakvimFirmSettings() {
       slot_dur: dur,
       max_slots: maxSlots,
       confirm_new_slot,
+      show_lock_name: !!document.getElementById('fdt-lock-name')?.checked,
       altaYeniSlot,
       dist_green_to,
       dist_orange_to,
@@ -1766,7 +1773,8 @@ async function applyDefaultTakvimToFirmCampaigns() {
   const cached = window._firmDefaultTakvimByFirm?.[fid] || {};
   const bos_color = cached.bos_color || '#3b82f6';
   const confirm_new_slot = !!document.getElementById('fdt-confirm-slot')?.checked;
-  const takvim = { active_days: activeDays, start_hour: start, end_hour: end, slot_dur: dur, max_slots: maxSlots, bos_color, confirm_new_slot };
+  const show_lock_name = !!document.getElementById('fdt-lock-name')?.checked;
+  const takvim = { active_days: activeDays, start_hour: start, end_hour: end, slot_dur: dur, max_slots: maxSlots, bos_color, confirm_new_slot, show_lock_name };
   if (cached.bos_color_from) takvim.bos_color_from = cached.bos_color_from;
   try {
     const camps = await sb(`campaigns?firm_id=eq.${fid}&status=eq.active&select=id,settings`);

@@ -96,7 +96,28 @@ function mergeTakvimSettings(raw) {
     dist_green: distHex(tk.dist_green, '#16a34a'),
     dist_orange: distHex(tk.dist_orange, '#ea580c'),
     dist_red: distHex(tk.dist_red, '#dc2626'),
+    show_lock_name: tk.show_lock_name === true,
   };
+}
+
+function mbShowLockName(campaignId) {
+  const list = typeof campaigns !== 'undefined' && Array.isArray(campaigns) ? campaigns : [];
+  const camp = campaignId
+    ? list.find((c) => String(c.id) === String(campaignId))
+    : list.find((c) => c.id === (typeof takvimCampId !== 'undefined' ? takvimCampId : ''));
+  const campTk = camp?.settings?.takvim;
+  if (campTk && typeof campTk === 'object' && Object.prototype.hasOwnProperty.call(campTk, 'show_lock_name')) {
+    return campTk.show_lock_name === true;
+  }
+  const fid = camp?.firm_id || (typeof getActiveFirmId === 'function' ? getActiveFirmId() : '') || currentUser?.firm_id || '';
+  const firmTk = fid && window._firmDefaultTakvimByFirm ? window._firmDefaultTakvimByFirm[fid] : null;
+  return !!(firmTk && firmTk.show_lock_name === true);
+}
+
+function mbLockerName(id) {
+  const key = String(id || '');
+  if (!key) return '';
+  return String(window._takvimAgentNameById?.[key] || '').trim();
 }
 
 function takvimDistBand(min) {
@@ -696,7 +717,7 @@ async function loadTakvimSlots() {
       takvimAppts.push(...(part || []));
     }
     await takvimLoadCustomerNames(takvimAppts);
-    const agentIds = [...new Set(takvimAppts.map((a) => a.agent_id).filter(Boolean))];
+    const agentIds = [...new Set(takvimAppts.map((a) => a.agent_id).concat(takvimSlots.map((s) => s.kilitli_agent_id)).filter(Boolean))];
     window._takvimAgentNameById = window._takvimAgentNameById || {};
     if (agentIds.length) {
       try {

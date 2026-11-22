@@ -1811,8 +1811,9 @@ function _paintQcReviewOutcomes(grid) {
   grid.innerHTML = defs.map((def) => {
     const miss = def.key === 'ulasilamadi';
     const glyph = miss && typeof mbOutcomeGlyph === 'function' ? mbOutcomeGlyph('ph-phone-x') : '<i class="ph ph-check-circle"></i>';
+    const iconColor = miss ? '#7c2d12' : (def.color || 'var(--accent)');
     return `<button type="button" class="outcome-btn" data-outcome="${esc(def.key)}" onclick="pickOutcome('${esc(def.key)}')" style="border-color:${esc(def.color || 'var(--border)')}">
-<div class="icon" style="color:${esc(def.color || 'var(--accent)')}">${glyph}</div>
+<div class="icon" style="color:${esc(iconColor)}">${glyph}</div>
 <div class="lbl">${esc(label(def))}</div>
 </button>`;
   }).join('');

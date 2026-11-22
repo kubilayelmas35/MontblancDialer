@@ -405,8 +405,10 @@ async function openTakvimSlotDetail(slot, appt) {
   const footer = document.getElementById('takvim-detail-footer');
   if (!appt) {
     const whenLoc = typeof mbLocale === 'function' ? mbLocale() : 'tr-TR';
+    const showLocker = slot.durum === 'kilitli' && isAdmin && typeof mbShowLockName === 'function' && mbShowLockName(slot.campaign_id);
+    const lockerName = showLocker ? ((typeof mbLockerName === 'function' ? mbLockerName(slot.kilitli_agent_id) : '') || '—') : '';
     const lockInfo = slot.durum==='kilitli' && isAdmin ?
-      `<div style="margin-top:8px;padding:6px 10px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.3);border-radius:5px;font-size:11px;"><b>${say('cal.detail.locker')}:</b> ${slot.kilitli_agent_id||'?'}<br><b>${say('cal.detail.locked_at')}:</b> ${slot.kilitli_at?new Date(slot.kilitli_at).toLocaleString(whenLoc):'—'}</div>` : '';
+      `<div style="margin-top:8px;padding:6px 10px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.3);border-radius:5px;font-size:11px;">${showLocker ? `<b>${say('cal.detail.locker')}:</b> ${lockerName}<br>` : ''}<b>${say('cal.detail.locked_at')}:</b> ${slot.kilitli_at?new Date(slot.kilitli_at).toLocaleString(whenLoc):'—'}</div>` : '';
     body.innerHTML = `<div style="text-align:center;padding:20px;">
 <div style="font-weight:800;font-size:14px;">${slot.tarih} · ${slot.baslangic_saat?.slice(0,5)} – ${slot.bitis_saat?.slice(0,5)}</div>
 <div style="color:var(--text-3);font-size:12px;margin-top:4px;">${slot.durum==='kilitli'?say('cal.detail.locked_slot'):say('cal.detail.empty_slot')}</div>
@@ -1305,6 +1307,10 @@ ${Object.entries(dayNames).map(([k, v]) => {
 <label class="form-label">Gün başına maks. slot</label>
 <input type="number" class="form-input" id="ts-max-slots" value="${cfg.max_slots}" min="1" max="40" style="width:80px;">
 </div>
+<label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;cursor:pointer;">
+<input type="checkbox" id="ts-lock-name" ${cfg.show_lock_name ? 'checked' : ''}>
+<span>${escTs(tSay('cal.lockname', 'Kilitleyenin adı görünsün'))}<br><span style="color:var(--text-3);font-weight:500;">${escTs(tSay('cal.lockname.help', 'Açıksa bildirimde ve takvimde slotu kilitleyenin adı yazar. Kapalıysa kampanya, tarih ve saat yeter.'))}</span></span>
+</label>
 </div>
 
 <div id="ts-tab-confirm" class="ts-tab-pane" style="display:none;flex-direction:column;gap:14px;">
@@ -1391,6 +1397,7 @@ async function saveTakvimSettings(applyAll = false) {
   const maxSlots = parseInt(document.getElementById('ts-max-slots')?.value||'5');
   const bosColor = prevCfg.bos_color || '#3b82f6';
   const confirm_new_slot = !!document.getElementById('ts-confirm-slot')?.checked;
+  const show_lock_name = !!document.getElementById('ts-lock-name')?.checked;
   const takvimSettings = {
     active_days: activeDays,
     start_hour: start,
@@ -1398,7 +1405,8 @@ async function saveTakvimSettings(applyAll = false) {
     slot_dur: dur,
     max_slots: maxSlots,
     bos_color: bosColor,
-    confirm_new_slot
+    confirm_new_slot,
+    show_lock_name
   };
   if (prevCfg.bos_color_from) takvimSettings.bos_color_from = prevCfg.bos_color_from;
   try {
