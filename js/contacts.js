@@ -292,7 +292,11 @@ function showCustomerCard(c) {
     mbMergedPhoneFields(c, new Set(layout.map((field) => field.key))).forEach((field) => visibleFields.push(field));
   }
   const terminFields = dialerTerminFields(camp, c);
-  document.getElementById('cust-fields').innerHTML = visibleFields.map(f=>{
+  const dialHint = typeof mbDialLine === 'function' ? mbDialLine(c) : '';
+  const hintHtml = dialHint
+    ? `<div class="cust-dial-next" style="grid-column:1/-1;font-size:12px;font-weight:700;color:var(--text);background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">${typeof _escHtml === 'function' ? _escHtml(dialHint) : dialHint}</div>`
+    : '';
+  document.getElementById('cust-fields').innerHTML = hintHtml + visibleFields.map(f=>{
     const canEditFields = typeof mbAgentCanEditFields !== 'function' || mbAgentCanEditFields(camp);
     const dialKey = (f.key === 'phone2' || f.call) && String(f.v || '').trim() ? f.key : '';
     const callTitle = dialKey === 'phone2'

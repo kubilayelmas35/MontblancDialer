@@ -368,6 +368,7 @@ async function openContactDrawer(contactId) {
       {l:'Telefon',    v:c.phone,      mono:true, copy:true},
       {l: (typeof t === 'function' ? t('dial.phone2') : 'Telefon 2'), v:c.phone2, mono:true, copy:true},
       {l: (typeof t === 'function' ? t('dial.phone3') : 'Telefon 3'), v: extra.phone3 || '', mono:true, copy:true},
+      {l: (typeof t === 'function' ? t('dial.phone4') : 'Telefon 4'), v: extra.phone4 || '', mono:true, copy:true},
       {l:'Ad Soyad',   v:fullName},
       {l:'PLZ',        v:c.plz,        mono:true},
       {l:'Şehir',      v:c.city},

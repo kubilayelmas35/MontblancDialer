@@ -511,10 +511,62 @@ function mbAddrThirdKey(fc) {
 }
 
 function mbAddrSlots(fc) {
-  return [
+  const third = mbAddrThirdKey(fc);
+  const slots = [
     { key: 'phone2', store: 'column' },
-    { key: mbAddrThirdKey(fc) || 'phone3', store: 'extra' },
+    { key: third || 'phone3', store: 'extra' },
   ];
+  if (!slots.some((slot) => slot.key === 'phone4')) slots.push({ key: 'phone4', store: 'extra' });
+  return slots;
+}
+
+function mbContactPhones(contact) {
+  const extra = typeof mbAddrExtra === 'function' ? mbAddrExtra(contact) : {};
+  const list = [];
+  const seen = new Set();
+  const push = (value) => {
+    const raw = String(value || '').trim();
+    const n = typeof mbAddrNorm === 'function' ? mbAddrNorm(raw) : raw;
+    if (!raw || !n || seen.has(n)) return;
+    seen.add(n);
+    list.push(raw);
+  };
+  push(contact?.phone);
+  push(contact?.phone2);
+  push(extra.phone3);
+  push(extra.phone4);
+  const third = mbAddrThirdKey(typeof mbParseFieldConfig === 'function' ? mbParseFieldConfig((typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === contact?.campaign_id)) : {});
+  if (third && third !== 'phone3' && third !== 'phone4') push(extra[third]);
+  return list;
+}
+
+function mbDialSlot(contact) {
+  const phones = mbContactPhones(contact);
+  if (phones.length <= 1) return 0;
+  const extra = typeof mbAddrExtra === 'function' ? mbAddrExtra(contact) : {};
+  let idx = Number(extra.dial_idx);
+  if (!Number.isFinite(idx) || idx < 0) idx = 0;
+  return idx % phones.length;
+}
+
+function mbDialPhone(contact) {
+  const phones = mbContactPhones(contact);
+  if (!phones.length) return String(contact?.phone || '').trim();
+  return phones[mbDialSlot(contact)];
+}
+
+function mbDialLine(contact) {
+  const phones = mbContactPhones(contact);
+  const slot = mbDialSlot(contact);
+  if (phones.length < 2 || slot <= 0) return '';
+  return uqSay('dial.nextline', 'Sıradaki arama: Telefon {n}', { n: slot + 1 });
+}
+
+function mbNextDialExtra(contact) {
+  const extra = typeof mbAddrExtra === 'function' ? mbAddrExtra(contact) : {};
+  const phones = mbContactPhones(contact);
+  extra.dial_idx = phones.length <= 1 ? 0 : (mbDialSlot(contact) + 1) % phones.length;
+  return extra;
 }
 
 function mbMergedPhoneFields(contact, seen) {
@@ -531,6 +583,10 @@ function mbMergedPhoneFields(contact, seen) {
   const phone3 = String(extra[third] || (third !== 'phone3' ? extra.phone3 : '') || '').trim();
   if (phone3 && !have.has(third)) {
     out.push({ key: third, l: uqSay('dial.phone3', 'Telefon 3'), v: phone3, mono: true, call: true });
+  }
+  const phone4 = String(extra.phone4 || '').trim();
+  if (phone4 && !have.has('phone4')) {
+    out.push({ key: 'phone4', l: uqSay('dial.phone4', 'Telefon 4'), v: phone4, mono: true, call: true });
   }
   return out;
 }
@@ -549,6 +605,7 @@ function mbAddrPerson(row, phone3key) {
   push(row?.phone);
   push(row?.phone2);
   if (phone3key) push(mbAddrExtra(row)[phone3key]);
+  push(mbAddrExtra(row).phone4);
   return { name, phones };
 }
 

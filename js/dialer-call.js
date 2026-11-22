@@ -167,11 +167,13 @@ async function mbRedialCurrentContact() {
   const campId = currentContact.campaign_id || selectedCampId;
   const campaign = campaigns.find((c) => c.id === campId);
   if (campId) selectCamp(campId, campaign?.name || '', { skipActivate: true });
-  if (!_testMode && typeof mbLineCallBlocked === 'function' && await mbLineCallBlocked(campaign?.firm_id || currentUser?.firm_id, campaign?.telnyx_did || '', currentContact.phone)) {
+  const dialTo = typeof mbDialPhone === 'function' ? mbDialPhone(currentContact) : currentContact.phone;
+  currentContact._dialTarget = dialTo;
+  if (!_testMode && typeof mbLineCallBlocked === 'function' && await mbLineCallBlocked(campaign?.firm_id || currentUser?.firm_id, campaign?.telnyx_did || '', dialTo)) {
     if (typeof mbNoteIntlBlocked === 'function') mbNoteIntlBlocked(currentContact);
     return;
   }
-  if (!_testMode && typeof mbIsFirmDnc === 'function' && await mbIsFirmDnc(currentContact.phone, campaign?.firm_id || currentUser?.firm_id)) {
+  if (!_testMode && typeof mbIsFirmDnc === 'function' && await mbIsFirmDnc(dialTo, campaign?.firm_id || currentUser?.firm_id)) {
     toast(typeof t === 'function' ? t('bl.dial.blocked') : 'Bu numara kara listede', 'err');
     return;
   }
@@ -190,7 +192,9 @@ async function mbRedialCurrentContact() {
   _voicemailAutoLogged = false;
   showOutboundWait();
   setDialerStatus('calling');
-  sendToRTC('MB_CALL', { destination: currentContact.phone, callerNumber: campaign?.telnyx_did || '', contact: currentContact, work: 'manual' });
+  const hop = typeof mbDialSlot === 'function' ? mbDialSlot(currentContact) : 0;
+  if (hop > 0) toast(typeof uqSay === 'function' ? uqSay('dial.nextline', 'Sıradaki arama: Telefon {n}', { n: hop + 1 }) : `Telefon ${hop + 1}`, 'ok', 2200);
+  sendToRTC('MB_CALL', { destination: dialTo, callerNumber: campaign?.telnyx_did || '', contact: currentContact, work: 'manual' });
   if (typeof switchContactTab === 'function') switchContactTab('info');
 }
 
@@ -202,6 +206,7 @@ async function callStoredPhone(key) {
   const slot = String(key || 'phone2');
   const extra = currentContact?.extra && typeof currentContact.extra === 'object' ? currentContact.extra : {};
   const p2 = String(slot === 'phone2' ? currentContact?.phone2 : (extra[slot] || '')).trim();
+  if (currentContact && p2) currentContact._dialTarget = p2;
   if (!p2) {
     const missing = slot === 'phone2' ? 'dial.no_phone2' : 'dial.no_phone3';
     const missingFb = slot === 'phone2' ? '2. telefon numarası yok' : '3. telefon numarası yok';
@@ -1328,8 +1333,9 @@ function paintDialerOutcomes() {
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   grid.innerHTML = rows.map((row) => {
     const cls = mbOutcomeBtnClass(row);
+    const glyph = typeof mbOutcomeGlyph === 'function' ? mbOutcomeGlyph(row.icon) : `<i class="ph ${esc(row.icon)}"></i>`;
     return `<button type="button" class="outcome-btn ${cls}" data-outcome="${esc(row.key)}" onclick="pickOutcome('${row.key}')">
-<div class="icon"><i class="ph ${esc(row.icon)}"></i></div>
+<div class="icon">${glyph}</div>
 <div class="lbl">${esc(row.label)}</div>
 </button>`;
   }).join('');
@@ -1613,11 +1619,14 @@ async function submitOutcome(goBreak) {
       const logNotes = _testMode
         ? [note, '__test_sim__'].filter((x) => String(x || '').trim()).join('\n').trim() || '__test_sim__'
         : note;
+      const dialedPhone = (typeof mbContactPhones === 'function' && mbContactPhones(currentContact).includes(currentContact._dialTarget))
+        ? currentContact._dialTarget
+        : currentContact.phone;
       const logData = {
         campaign_id: selectedCampId,
         firm_id: currentContact.firm_id || currentUser.firm_id,
         agent_id: currentUser.id,
-        phone: currentContact.phone,
+        phone: dialedPhone,
         outcome: finalOutcome,   // normalleştirilmiş (appointment_done → appointment)
         notes: logNotes,
         duration_sec: callSeconds,
@@ -1680,7 +1689,7 @@ async function submitOutcome(goBreak) {
       if (savedRow?.id && typeof mbChargeCall === 'function') void mbChargeCall(savedRow);
       if (savedRow?.id && telnyxRec && expectRec && !String(logNotes || '').includes('__test_sim__') && typeof mbPullTelnyxRecording === 'function') {
         void mbPullTelnyxRecording(savedRow.id, {
-          phone: currentContact.phone,
+          phone: dialedPhone,
           since: window._mbCallMeta?.dialAt || logData.started_at,
         });
       } else if (savedRow?.id && !logData.recording_url && !String(logNotes || '').includes('__test_sim__') && (recIds.control || recIds.session || recIds.leg) && typeof mbPullRecording === 'function') {
@@ -1799,10 +1808,14 @@ function _paintQcReviewOutcomes(grid) {
   const defs = window._qcResultCfg || [];
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   const label = (def) => (typeof mbResultLabel === 'function' ? mbResultLabel(def.key, def.label, def.label_de) : (def.label || def.key));
-  grid.innerHTML = defs.map((def) => `<button type="button" class="outcome-btn" data-outcome="${esc(def.key)}" onclick="pickOutcome('${esc(def.key)}')" style="border-color:${esc(def.color || 'var(--border)')}">
-<div class="icon" style="color:${esc(def.color || 'var(--accent)')}"><i class="ph ph-check-circle"></i></div>
+  grid.innerHTML = defs.map((def) => {
+    const miss = def.key === 'ulasilamadi';
+    const glyph = miss && typeof mbOutcomeGlyph === 'function' ? mbOutcomeGlyph('ph-phone-x') : '<i class="ph ph-check-circle"></i>';
+    return `<button type="button" class="outcome-btn" data-outcome="${esc(def.key)}" onclick="pickOutcome('${esc(def.key)}')" style="border-color:${esc(def.color || 'var(--border)')}">
+<div class="icon" style="color:${esc(def.color || 'var(--accent)')}">${glyph}</div>
 <div class="lbl">${esc(label(def))}</div>
-</button>`).join('');
+</button>`;
+  }).join('');
   if (!selectedOutcome && window._qcReviewApptId && typeof qcList !== 'undefined') {
     const row = (qcList || []).find((x) => x.id === window._qcReviewApptId);
     const key = row && typeof _qcDurumKey === 'function' ? _qcDurumKey(row) : '';

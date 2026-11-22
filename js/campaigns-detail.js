@@ -982,7 +982,7 @@ const MB_OUTCOME_ICON = {
   appointment: 'ph-calendar-check',
   negative: 'ph-x-circle',
   callback: 'ph-phone-incoming',
-  neutral: 'ph-phone-slash',
+  neutral: 'ph-phone-x',
   voicemail: 'ph-voicemail',
   dnc: 'ph-prohibit',
 };
@@ -1009,6 +1009,15 @@ function mbOutcomeIcon(row) {
   if (key === 'voicemail') return MB_OUTCOME_ICON.voicemail;
   if (key === 'no_answer') return MB_OUTCOME_ICON.neutral;
   return MB_OUTCOME_ICON[mbOutcomeCategory(row)] || 'ph-circle';
+}
+
+function mbOutcomeGlyph(icon) {
+  const ic = String(icon || '');
+  if (ic === 'ph-phone-slash' || ic === 'ph-phone-x') {
+    return '<svg class="oc-miss" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2"></rect><path d="M11 18.2h2"></path><path d="M9.4 7.4l5.2 5.2M14.6 7.4l-5.2 5.2"></path></svg>';
+  }
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
+  return `<i class="ph ${esc(ic)}"></i>`;
 }
 
 function mbOutcomeIconBtn(icon) {

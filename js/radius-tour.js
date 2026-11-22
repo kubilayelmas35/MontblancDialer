@@ -2252,20 +2252,37 @@ async function tourRevert(campaignId, opts) {
     const ok = typeof mbConfirm === 'function' ? await mbConfirm(tourSay('tour.confirm', '{n} kişi tekrar aransın? Yarınki randevu kodları.', { n }), row.name) : false;
     if (!ok) return 0;
   }
+  let advance = !!auto;
+  if (!auto) {
+    advance = typeof mbConfirm === 'function'
+      ? await mbConfirm(tourSay('tour.nextphone', 'Sonraki numaraya geçilsin mi? İkinci, üçüncü ve dördüncü telefon sırayla aranır. Tek numara varsa ya da sıra bitince birinciye döner.'), row.name)
+      : true;
+  }
   let moved = 0;
   for (let i = 0; i < row.revertIds.length; i += 60) {
     const chunk = row.revertIds.slice(i, i + 60);
     const kim = tourGeriKim();
     if (!kim.length) continue;
-    const live = await sb(`contacts?id=in.(${chunk.join(',')})&status=in.(${kim.join(',')})&select=id`).catch(() => []);
-    const ids = (Array.isArray(live) ? live : []).map((c) => c.id).filter(Boolean);
-    if (!ids.length) continue;
-    await sb(`contacts?id=in.(${ids.join(',')})`, {
-      method: 'PATCH',
-      prefer: 'return=minimal',
-      body: JSON.stringify({ status: 'pending', last_called_at: null }),
-    });
-    moved += ids.length;
+    const live = await sb(`contacts?id=in.(${chunk.join(',')})&status=in.(${kim.join(',')})&select=id,phone,phone2,extra`).catch(() => []);
+    const rows = Array.isArray(live) ? live.filter((c) => c.id) : [];
+    if (!rows.length) continue;
+    if (advance && typeof mbNextDialExtra === 'function') {
+      for (let j = 0; j < rows.length; j += 8) {
+        await Promise.all(rows.slice(j, j + 8).map((c) => sb(`contacts?id=eq.${c.id}`, {
+          method: 'PATCH',
+          prefer: 'return=minimal',
+          body: JSON.stringify({ status: 'pending', last_called_at: null, extra: mbNextDialExtra(c) }),
+        })));
+      }
+    } else {
+      const ids = rows.map((c) => c.id);
+      await sb(`contacts?id=in.(${ids.join(',')})`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ status: 'pending', last_called_at: null }),
+      });
+    }
+    moved += rows.length;
   }
   if (typeof logAuditEvent === 'function') {
     void logAuditEvent('radius_tour_revert', 'campaign', campaignId, { moved, day: plan.day, anchor: row.anchor });
