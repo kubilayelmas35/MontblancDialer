@@ -569,6 +569,13 @@ function mbNextDialExtra(contact) {
   return extra;
 }
 
+function mbBumpRevertExtra(contact, advance) {
+  const extra = advance && typeof mbNextDialExtra === 'function' ? mbNextDialExtra(contact) : (typeof mbAddrExtra === 'function' ? mbAddrExtra(contact) : {});
+  const n = Number(extra.revert_n);
+  extra.revert_n = (Number.isFinite(n) && n > 0 ? Math.floor(n) : 0) + 1;
+  return extra;
+}
+
 function mbMergedPhoneFields(contact, seen) {
   const out = [];
   const have = seen instanceof Set ? seen : new Set(seen || []);

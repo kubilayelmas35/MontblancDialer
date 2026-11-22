@@ -1532,6 +1532,13 @@ function opsSliceCount(key) {
   return Math.min(n, Math.max(0, Math.round(n * safe / 100)));
 }
 
+function opsRenewNote(levels) {
+  const nums = [...(levels || [])].filter((n) => n > 0).sort((a, b) => a - b);
+  if (!nums.length) return '';
+  const text = nums.map((n) => campT('camp.ops.renew', '{n} yenileme').replace('{n}', String(n))).join(', ');
+  return ` (${text})`;
+}
+
 function opsPaintTake(key) {
   const el = opsEl(`ops-take-${key}`);
   if (el) el.textContent = String(opsSliceCount(key));
@@ -1603,15 +1610,31 @@ async function refreshQueueOps() {
   if (!body || !queueId) return;
   if (!opsDatesOk()) return;
   const range = opsRangeQuery();
-  const nums = await Promise.all(QUEUE_OPS_ROWS.map((row) => mbHeadCount(`contacts?queue_id=eq.${queueId}&status=eq.${row.key}&select=id${range}`)));
+  const [nums, people] = await Promise.all([
+    Promise.all(QUEUE_OPS_ROWS.map((row) => mbHeadCount(`contacts?queue_id=eq.${queueId}&status=eq.${row.key}&select=id${range}`))),
+    (typeof mbFetchAll === 'function'
+      ? mbFetchAll(`contacts?queue_id=eq.${queueId}&select=status,extra${range}&order=id.asc`)
+      : Promise.resolve([])
+    ).catch(() => []),
+  ]);
+  const renew = new Map();
+  (Array.isArray(people) ? people : []).forEach((person) => {
+    const extra = typeof mbAddrExtra === 'function' ? mbAddrExtra(person) : (person?.extra || {});
+    const times = Number(extra.revert_n) || 0;
+    if (times <= 0) return;
+    const key = String(person.status || '');
+    if (!renew.has(key)) renew.set(key, new Set());
+    renew.get(key).add(times);
+  });
   const total = nums.reduce((s, n) => s + n, 0);
   body.innerHTML = QUEUE_OPS_ROWS.map((row, i) => {
     const n = nums[i];
     const share = total > 0 ? Math.round(n / total * 1000) / 10 : 0;
     const sliced = row.requeue || row.pull;
     const take = n;
+    const note = opsRenewNote(renew.get(row.key));
     return `<tr data-ops="${row.key}" data-count="${n}" class="${row.key === 'pending' ? 'is-queue' : ''}">
-<td>${campEsc(campT(row.label, row.fb))}</td>
+<td>${campEsc(campT(row.label, row.fb))}${campEsc(note)}</td>
 <td style="font-family:var(--mono);font-weight:800;">${n}</td>
 <td>${share}%</td>
 <td>${sliced ? `<input type="range" id="ops-pct-${row.key}" min="0" max="100" value="100" oninput="opsPaintTake('${row.key}')">` : ''}</td>
@@ -1662,15 +1685,21 @@ async function requeueOpsSlice(queueId, status) {
   const ok = await mbConfirm(campT('camp.ops.confirm','{n} kişi yeniden kuyruğa alınsın').replace('{n}', String(n)), campT('camp.ops.title','İşlemler'));
   if (!ok) return;
   try {
-    const rows = await mbFetchAll(`contacts?queue_id=eq.${queueId}&status=eq.${status}${opsRangeQuery()}&select=id&order=created_at.asc,id.asc`);
-    const ids = (rows || []).map((r) => r.id).filter(Boolean);
-    for (let i = 0; i < ids.length; i += 60) {
-      const chunk = ids.slice(i, i + 60);
-      await sb(`contacts?id=in.(${chunk.join(',')})`, {
+    const rows = await mbFetchAll(`contacts?queue_id=eq.${queueId}&status=eq.${status}${opsRangeQuery()}&select=id,extra&order=created_at.asc,id.asc`);
+    const list = (rows || []).filter((r) => r.id);
+    for (let i = 0; i < list.length; i += 8) {
+      await Promise.all(list.slice(i, i + 8).map((person) => sb(`contacts?id=eq.${person.id}`, {
         method: 'PATCH', prefer: 'return=minimal',
-        body: JSON.stringify({ status: 'pending', last_called_at: null, locked_by: null, locked_at: null }),
-      });
+        body: JSON.stringify({
+          status: 'pending',
+          last_called_at: null,
+          locked_by: null,
+          locked_at: null,
+          extra: typeof mbBumpRevertExtra === 'function' ? mbBumpRevertExtra(person, false) : (person.extra || {}),
+        }),
+      })));
     }
+    const ids = list.map((r) => r.id);
     if (status === 'calling') await mbDropCallingHold(ids);
     await syncQueueDialed(queueId);
     if (typeof mbTouchCampLeft === 'function') mbTouchCampLeft(queueId, ids.length);

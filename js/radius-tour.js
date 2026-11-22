@@ -2283,21 +2283,16 @@ async function tourRevert(campaignId, opts) {
     const live = await sb(`contacts?id=in.(${chunk.join(',')})&status=in.(${kim.join(',')})&select=id,phone,phone2,extra`).catch(() => []);
     const rows = Array.isArray(live) ? live.filter((c) => c.id) : [];
     if (!rows.length) continue;
-    if (advance && typeof mbNextDialExtra === 'function') {
-      for (let j = 0; j < rows.length; j += 8) {
-        await Promise.all(rows.slice(j, j + 8).map((c) => sb(`contacts?id=eq.${c.id}`, {
-          method: 'PATCH',
-          prefer: 'return=minimal',
-          body: JSON.stringify({ status: 'pending', last_called_at: null, extra: mbNextDialExtra(c) }),
-        })));
-      }
-    } else {
-      const ids = rows.map((c) => c.id);
-      await sb(`contacts?id=in.(${ids.join(',')})`, {
+    for (let j = 0; j < rows.length; j += 8) {
+      await Promise.all(rows.slice(j, j + 8).map((c) => sb(`contacts?id=eq.${c.id}`, {
         method: 'PATCH',
         prefer: 'return=minimal',
-        body: JSON.stringify({ status: 'pending', last_called_at: null }),
-      });
+        body: JSON.stringify({
+          status: 'pending',
+          last_called_at: null,
+          extra: typeof mbBumpRevertExtra === 'function' ? mbBumpRevertExtra(c, advance) : (c.extra || {}),
+        }),
+      })));
     }
     moved += rows.length;
   }
