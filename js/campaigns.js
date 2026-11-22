@@ -383,11 +383,12 @@ async function attachCampaignDialCounts() {
   for (let i = 0; i < ids.length; i += chunk) {
     const slice = ids.slice(i, i + chunk);
     await Promise.all(slice.map(async (id) => {
-      const camp = (campaigns || []).find((c) => c.id === id);
-      const manualIds = mbManualQueueIds(camp);
+      const dialable = typeof mbDialableContactFilter === 'function'
+        ? mbDialableContactFilter(id)
+        : 'or=(status.eq.pending)';
       const jobs = [
         typeof mbDashCount === 'function'
-          ? mbDashCount(`contacts?select=id&campaign_id=eq.${id}&status=in.(pending,no_answer,callback)`)
+          ? mbDashCount(`contacts?select=id&campaign_id=eq.${id}&${dialable}`)
           : null,
         typeof mbDashCount === 'function'
           ? mbDashCount(`contacts?select=id&campaign_id=eq.${id}&status=eq.calling`)
@@ -396,13 +397,9 @@ async function attachCampaignDialCounts() {
           ? mbDashCount(`contacts?select=id&campaign_id=eq.${id}&queue_id=is.null&status=in.(pending,no_answer,callback)`)
           : null,
       ];
-      if (manualIds.length && typeof mbDashCount === 'function') {
-        jobs.push(mbDashCount(`contacts?select=id&queue_id=in.(${manualIds.join(',')})&status=eq.no_answer`));
-      }
       const nums = await Promise.all(jobs);
       const remain = nums[0];
-      const parked = manualIds.length ? nums[3] : 0;
-      left[id] = remain == null ? null : Math.max(0, remain - (Number(parked) || 0));
+      left[id] = remain == null ? null : Math.max(0, Number(remain) || 0);
       stuck[id] = nums[1];
       looseMap[id] = nums[2];
     }));
@@ -1377,12 +1374,20 @@ function campRecyclePolicy(campaignId) {
   return { on: !!s.recycle && statuses.length > 0, statuses, max, delayMin };
 }
 
+function mbManualSkipClause(campaignId) {
+  const camp = (campaigns || []).find((c) => String(c.id) === String(campaignId));
+  const ids = typeof mbManualQueueIds === 'function' ? mbManualQueueIds(camp) : [];
+  if (!ids.length) return '';
+  return `,or(queue_id.is.null,queue_id.not.in.(${ids.join(',')}))`;
+}
+
 function mbDialableContactFilter(campaignId) {
   const nowIso = new Date().toISOString();
   const pol = campRecyclePolicy(campaignId);
+  const skip = mbManualSkipClause(campaignId);
   const parts = [
-    'status.eq.pending',
-    `and(status.eq.callback,or(callback_at.is.null,callback_at.lte.${nowIso}))`,
+    `and(status.eq.pending${skip})`,
+    `and(status.eq.callback,or(callback_at.is.null,callback_at.lte.${nowIso})${skip})`,
   ];
   const recycleQueues = mbRecycleQueueIds(campaignId);
   if (pol?.on && recycleQueues.length) {

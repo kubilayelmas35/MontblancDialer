@@ -55,13 +55,14 @@ async function getNextContact(campaignIds = null) {
     // Eski/karma veride contact.campaign_id boş, sadece queue_id dolu olabilir.
     let queueIds = [];
     const pausedQueueIds = new Set();
+    const manualQueueIds = new Set();
     let queueRows = [];
     try {
       for (let i = 0; i < idList.length; i++) {
         const cid = idList[i];
         const rows =
           (await sb(
-            `queues?campaign_id=eq.${cid}&select=id,status,campaign_id&limit=500`
+            `queues?campaign_id=eq.${cid}&select=id,status,campaign_id,name&limit=500`
           ).catch(() => [])) || [];
         if (rows.length) queueRows = queueRows.concat(rows);
       }
@@ -72,10 +73,13 @@ async function getNextContact(campaignIds = null) {
         seenQ.add(k);
         if (q.status && q.status !== 'active') pausedQueueIds.add(k);
       });
+      queueRows.forEach((q) => {
+        if (typeof mbIsManualQueue === 'function' && mbIsManualQueue(q)) manualQueueIds.add(String(q.id || ''));
+      });
       const testRelaxEarly = typeof _testMode !== 'undefined' && _testMode;
       queueIds = queueRows
         .map((q) => String(q?.id || ''))
-        .filter((id, idx, arr) => id && arr.indexOf(id) === idx && (testRelaxEarly || !pausedQueueIds.has(id)));
+        .filter((id, idx, arr) => id && arr.indexOf(id) === idx && (testRelaxEarly || !pausedQueueIds.has(id)) && (testRelaxEarly || !manualQueueIds.has(id)));
     } catch (e) {}
     const fetchScopedContacts = async (extraFilters = '', limit = 80) => {
       let out = [];
@@ -190,7 +194,7 @@ async function getNextContact(campaignIds = null) {
     const testRelax = typeof _testMode !== 'undefined' && _testMode;
     if (!testRelax) {
       const hot = queueRows
-        .filter((q) => q?.id && !pausedQueueIds.has(String(q.id)) && typeof queueDialPrefs === 'function' && queueDialPrefs(q.campaign_id, q.id).priority > 0)
+        .filter((q) => q?.id && !pausedQueueIds.has(String(q.id)) && !manualQueueIds.has(String(q.id)) && typeof queueDialPrefs === 'function' && queueDialPrefs(q.campaign_id, q.id).priority > 0)
         .sort((a, b) => queueDialPrefs(b.campaign_id, b.id).priority - queueDialPrefs(a.campaign_id, a.id).priority)
         .slice(0, 5);
       for (let i = 0; i < hot.length; i++) {
@@ -219,6 +223,7 @@ async function getNextContact(campaignIds = null) {
         if ((ph && dncSet.has(ph)) || (ph2 && dncSet.has(ph2))) continue;
       }
       const qid = String(c.queue_id || '');
+      if (qid && manualQueueIds.has(qid) && !testRelax) continue;
       if (qid && pausedQueueIds.has(qid) && !testRelax) continue;
       const prefs = typeof queueDialPrefs === 'function' ? queueDialPrefs(c.campaign_id, c.queue_id) : { priority: 0, maxAttempts: 0 };
       if (!testRelax && prefs.maxAttempts > 0 && (Number(c.attempt_count) || 0) >= prefs.maxAttempts) continue;

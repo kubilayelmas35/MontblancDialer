@@ -256,7 +256,28 @@ async function mbPaintCampLeft(camps) {
     if (tone) el.classList.add(tone);
     const label = typeof t === 'function' ? t('camp.queue.band.left') : 'Kalan veri';
     el.title = `${label}: ${n}`;
+    if (n > 0 && n <= 40 && typeof mbCampLeftBits === 'function') {
+      const stamp = String(n);
+      mbCampLeftBits(camp).then((bits) => {
+        if (!el.isConnected || el.dataset.n !== stamp || !bits.length) return;
+        el.title = `${label}: ${n} · ${bits.join(' · ')}`;
+      }).catch(() => {});
+    }
   });
+}
+
+async function mbCampLeftBits(camp) {
+  if (!camp?.id || typeof sb !== 'function' || typeof mbDialableContactFilter !== 'function') return [];
+  const rows = await sb(`contacts?campaign_id=eq.${camp.id}&${mbDialableContactFilter(camp.id)}&select=queue_id&limit=40`).catch(() => []);
+  const names = new Map((camp.queues || []).map((q) => [String(q.id), String(q.name || '').trim()]));
+  const loose = typeof campT === 'function' ? campT('camp.queue.loose', 'Kuyruksuz') : 'Kuyruksuz';
+  const counts = new Map();
+  (rows || []).forEach((row) => {
+    const id = String(row?.queue_id || '');
+    const name = id ? (names.get(id) || loose) : loose;
+    counts.set(name, (counts.get(name) || 0) + 1);
+  });
+  return [...counts.entries()].map(([name, count]) => `${name}: ${count}`);
 }
 
 function mbBumpCampLeft(campId, delta) {

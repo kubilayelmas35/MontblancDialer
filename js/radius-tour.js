@@ -1652,14 +1652,31 @@ async function tourBuild() {
     const held = byCamp.get(currentId) || (camp ? { id: camp.id, name: camp.name || '', bos: 0, slots: [], appts: [], plzs: new Set(), pending: 0, revertIds: [], anchor: '', top: '' } : null);
     if (held) rows = [held, ...rows];
   }
+  const manualRows = await sb(`queues?firm_id=eq.${firmId}&name=ilike.manuel&select=id,campaign_id&limit=200`).catch(() => []);
+  const manualByCamp = new Map();
+  (Array.isArray(manualRows) ? manualRows : []).forEach((q) => {
+    const list = manualByCamp.get(q.campaign_id) || [];
+    if (q.id) list.push(q.id);
+    manualByCamp.set(q.campaign_id, list);
+  });
   await Promise.all(rows.map(async (row) => {
-    row.pending = await tourCount(`contacts?firm_id=eq.${firmId}&campaign_id=eq.${row.id}&status=eq.pending&select=id`).catch(() => 0);
+    const manualIds = manualByCamp.get(row.id) || [];
+    const skipManual = manualIds.length ? `&or=(queue_id.is.null,queue_id.not.in.(${manualIds.join(',')}))` : '';
+    row.pending = await tourCount(`contacts?firm_id=eq.${firmId}&campaign_id=eq.${row.id}&status=eq.pending${skipManual}&select=id`).catch(() => 0);
     row.anchor = tourAnchor(row.appts.filter((a) => a.plz), row.slots) || row.top || '';
     const kim = tourGeriKim();
     const kere = tourGeriKere();
     if (row.pending >= pref.veriEsik || !row.plzs.size || !kim.length) return;
-    const got = await mbFetchAll(`contacts?firm_id=eq.${firmId}&campaign_id=eq.${row.id}&status=in.(${kim.join(',')})&or=(attempt_count.lt.${kere},attempt_count.is.null)&select=id,plz&order=id.asc`).catch(() => []);
-    row.revertIds = (Array.isArray(got) ? got : []).filter((c) => row.plzs.has(tourPlz(c.plz))).map((c) => c.id).filter(Boolean);
+    const attempt = `or(attempt_count.lt.${kere},attempt_count.is.null)`;
+    const who = manualIds.length
+      ? `&and=(${attempt},or(queue_id.is.null,queue_id.not.in.(${manualIds.join(',')})))`
+      : `&${attempt.replace('or(', 'or=(')}`;
+    const got = await mbFetchAll(`contacts?firm_id=eq.${firmId}&campaign_id=eq.${row.id}&status=in.(${kim.join(',')})${who}&select=id,plz,queue_id&order=id.asc`).catch(() => []);
+    const blocked = new Set(manualIds);
+    row.revertIds = (Array.isArray(got) ? got : [])
+      .filter((c) => !blocked.has(c.queue_id) && row.plzs.has(tourPlz(c.plz)))
+      .map((c) => c.id)
+      .filter(Boolean);
   }));
   const pick = tourChoose(rows, currentId);
   return { firmId, clock, shift, day, rows, pick, activeId: currentId, manual: !!pref.hedefManuel, outlook };
