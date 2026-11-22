@@ -392,7 +392,7 @@ function mbUploadReportLines(skipped, campCounts) {
   if (skipped.empty) lines.push(uqSay('uq.report.empty', '{n} boş numara olduğu için eklenmedi', { n: skipped.empty }));
   if (skipped.invalid) lines.push(uqSay('uq.report.invalid', '{n} geçersiz numara olduğu için eklenmedi', { n: skipped.invalid }));
   if (skipped.duplicate) lines.push(uqSay('uq.report.file', 'Dosyada {n} mükerrer kayıt bulundu, eklenmedi', { n: skipped.duplicate }));
-  if (skipped.addrMerged) lines.push(uqSay('uq.addr.merged', '{n} aynı adres birleştirildi, numara nota yazıldı', { n: skipped.addrMerged }));
+  if (skipped.addrMerged) lines.push(uqSay('uq.addr.merged', '{n} aynı adres birleştirildi', { n: skipped.addrMerged }));
   if (skipped.addrSkipped) lines.push(uqSay('uq.addr.skipped', '{n} aynı adres atlandı', { n: skipped.addrSkipped }));
   Object.entries(campCounts || {}).forEach(([name, n]) => {
     if (!n) return;
@@ -473,19 +473,159 @@ function mbAddrFace(row) {
   return [shown, row?.plz || ''].filter(Boolean).join(' · ') || '—';
 }
 
-function mbAddrNote(existing, phones, ownPhone, ownPhone2) {
-  const have = new Set([ownPhone, ownPhone2].map((p) => (typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(p) : String(p || ''))).filter(Boolean));
-  const text = String(existing || '');
-  const add = [];
-  (phones || []).forEach((p) => {
-    const n = typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(p) : String(p || '');
-    if (!n || have.has(n) || text.includes(n)) return;
-    have.add(n);
-    add.push(n);
+function mbAddrNorm(phone) {
+  const raw = String(phone || '').trim();
+  if (!raw) return '';
+  return typeof mbNormalizeDialPhone === 'function' ? mbNormalizeDialPhone(raw) : raw;
+}
+
+function mbAddrExtra(row) {
+  const extra = row?.extra;
+  if (!extra) return {};
+  if (typeof extra === 'string') {
+    try {
+      const parsed = JSON.parse(extra);
+      return parsed && typeof parsed === 'object' ? { ...parsed } : {};
+    } catch (e) { return {}; }
+  }
+  return typeof extra === 'object' ? { ...extra } : {};
+}
+
+function mbAddrCampFields() {
+  const campId = (typeof _uqCampOverride !== 'undefined' && _uqCampOverride) || (typeof currentCampId !== 'undefined' ? currentCampId : '');
+  const camp = (typeof campaigns !== 'undefined' ? campaigns : []).find((c) => c.id === campId);
+  return typeof mbParseFieldConfig === 'function' ? mbParseFieldConfig(camp) : {};
+}
+
+function mbAddrSlots(fc) {
+  const slots = [];
+  const phone2On = typeof mbFieldShown === 'function' ? mbFieldShown(fc, 'phone2', true) : true;
+  if (phone2On) slots.push({ key: 'phone2', store: 'column' });
+  const fold = (value) => String(value || '').toLocaleLowerCase('tr-TR').replace(/[^a-z0-9ğüşöçı]/g, '');
+  Object.entries(fc || {}).forEach(([key, spec]) => {
+    if (!spec || typeof spec !== 'object') return;
+    if (['phone', 'phone2', 'notes', 'name', 'first_name', 'last_name', 'plz', 'city', 'address', 'attempt', 'house_no'].includes(key)) return;
+    if (typeof mbFieldShown === 'function' && !mbFieldShown(fc, key, false)) return;
+    if (!/^[A-Za-z0-9_-]+$/.test(key)) return;
+    const blob = fold(key) + fold(spec.label || '') + fold(spec.label_de || '');
+    if (/telefon3|phone3|tel3|handy3|mobil3|3telefon|3tel/.test(blob)) slots.push({ key, store: 'extra' });
   });
-  if (!add.length) return text;
-  const line = `${uqSay('uq.addr.note', 'Aynı adres')} · ${add.join(' · ')}`;
-  return text ? `${text}\n${line}` : line;
+  return slots.slice(0, 2);
+}
+
+function mbAddrPerson(row, phone3key) {
+  const name = [row?.first_name, row?.last_name].filter(Boolean).join(' ').trim();
+  const phones = [];
+  const seen = new Set();
+  const push = (value) => {
+    const raw = String(value || '').trim();
+    const n = mbAddrNorm(raw);
+    if (!raw || !n || seen.has(n)) return;
+    seen.add(n);
+    phones.push(raw);
+  };
+  push(row?.phone);
+  push(row?.phone2);
+  if (phone3key) push(mbAddrExtra(row)[phone3key]);
+  return { name, phones };
+}
+
+function mbAddrGroupPeople(live, incoming, phone3key) {
+  const people = [];
+  const seen = new Set();
+  const push = (row) => {
+    const person = mbAddrPerson(row, phone3key);
+    const key = person.phones[0] ? mbAddrNorm(person.phones[0]) : '';
+    if (key && seen.has(key)) return;
+    if (key) seen.add(key);
+    people.push(person);
+  };
+  (live || []).forEach(push);
+  (incoming || []).forEach(push);
+  return people;
+}
+
+function mbAddrPlace(row) {
+  if (!row) return '';
+  const no = String(row.house_no || '').trim();
+  const addr = String(row.address || '').trim();
+  const token = mbAddrExact(no);
+  const street = no && token && !mbAddrExact(addr).endsWith(token) ? `${addr} ${no}`.trim() : addr;
+  const tail = [String(row.plz || '').trim(), String(row.city || '').trim()].filter(Boolean).join(' ');
+  return [street, tail].filter(Boolean).join(', ');
+}
+
+function mbAddrStripRoster(text) {
+  const out = [];
+  let skip = false;
+  String(text || '').split('\n').forEach((line) => {
+    const trim = line.trim();
+    if (/^Bu adreste \d+ kişi kayıtlı/.test(trim) || /^An dieser Adresse (ist|sind) \d+ Person/.test(trim)) {
+      skip = true;
+      return;
+    }
+    if (skip) {
+      if (!trim || /^\d+\.\s/.test(trim)) return;
+      skip = false;
+    }
+    if (/^(Aynı adres|Gleiche Adresse) ·/.test(trim)) return;
+    out.push(line);
+  });
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function mbAddrRoster(existing, people, place) {
+  const n = people.length;
+  const head = n === 1
+    ? uqSay('uq.addr.roster.one', 'Bu adreste 1 kişi kayıtlı')
+    : uqSay('uq.addr.roster', 'Bu adreste {n} kişi kayıtlı', { n });
+  const title = place ? `${head} ${place}` : head;
+  const lines = people.map((person, index) => {
+    const bits = [person.name, ...(person.phones || [])].filter(Boolean);
+    return `${index + 1}. ${bits.join(' ') || '—'}`;
+  });
+  const block = [title, '', ...lines].join('\n');
+  const prev = mbAddrStripRoster(existing);
+  return prev ? `${prev}\n\n${block}` : block;
+}
+
+function mbAddrApply(host, people, place, slots) {
+  const taken = new Set();
+  const mark = (value) => {
+    const n = mbAddrNorm(value);
+    if (n) taken.add(n);
+  };
+  mark(host?.phone);
+  mark(host?.phone2);
+  const extra = mbAddrExtra(host);
+  (slots || []).forEach((slot) => { if (slot.store === 'extra') mark(extra[slot.key]); });
+  const waiting = [];
+  people.slice(1).forEach((person) => {
+    const main = (person.phones || [])[0];
+    const n = mbAddrNorm(main);
+    if (!main || !n || taken.has(n)) return;
+    taken.add(n);
+    waiting.push(main);
+  });
+  const changed = {};
+  (slots || []).forEach((slot) => {
+    const current = slot.store === 'column' ? host.phone2 : extra[slot.key];
+    if (String(current || '').trim()) return;
+    const next = waiting.shift();
+    if (!next) return;
+    if (slot.store === 'column') {
+      host.phone2 = next;
+      changed.phone2 = next;
+    } else {
+      extra[slot.key] = next;
+      changed.extra = extra;
+    }
+  });
+  if (changed.extra) host.extra = extra;
+  const notes = mbAddrRoster(host?.notes, people, place);
+  host.notes = notes;
+  changed.notes = notes;
+  return changed;
 }
 
 function mbAddrExport(row) {
@@ -510,7 +650,7 @@ async function mbAddrLive(plzs, firmId) {
     const list = codes.slice(i, i + 25).map((code) => `"${code}"`).join(',');
     let offset = 0;
     for (;;) {
-      const part = await sb(`contacts?select=id,phone,phone2,first_name,last_name,address,plz,city,notes&plz=in.(${list})${firm}&limit=1000&offset=${offset}`) || [];
+      const part = await sb(`contacts?select=id,phone,phone2,first_name,last_name,address,plz,city,notes,extra&plz=in.(${list})${firm}&limit=1000&offset=${offset}`) || [];
       rows.push(...part);
       if (part.length < 1000 || rows.length >= 8000) return rows;
       offset += 1000;
@@ -569,22 +709,24 @@ function mbAddrTake(contacts, groups) {
   const patches = [];
   let merged = 0;
   let skipped = 0;
+  const slots = mbAddrSlots(mbAddrCampFields());
+  const phone3key = slots.find((slot) => slot.store === 'extra')?.key || '';
   (groups || []).forEach((group, index) => {
     const choice = document.querySelector(`input[name="uq-addr-${index}"]:checked`)?.value || 'merge';
     const incoming = group.file.map((idx) => contacts[idx]).filter(Boolean);
-    const phones = incoming.flatMap((row) => [row.phone, row.phone2].filter(Boolean));
     if (choice === 'add') return;
     if (choice === 'skip') {
       group.file.forEach((idx) => drop.add(idx));
       skipped += group.file.length;
       return;
     }
+    const people = mbAddrGroupPeople(group.live, incoming, phone3key);
     if (group.live.length) {
       group.file.forEach((idx) => drop.add(idx));
       merged += group.file.length;
       const host = group.live[0];
-      const notes = mbAddrNote(host.notes, phones, host.phone, host.phone2);
-      if (host.id && notes !== String(host.notes || '')) patches.push({ id: host.id, notes });
+      const changed = mbAddrApply(host, people, mbAddrPlace(host) || mbAddrPlace(incoming[0]), slots);
+      if (host.id) patches.push({ id: host.id, ...changed });
       return;
     }
     const keep = group.file[0];
@@ -592,8 +734,7 @@ function mbAddrTake(contacts, groups) {
     merged += Math.max(0, group.file.length - 1);
     const host = contacts[keep];
     if (!host) return;
-    const others = incoming.slice(1).flatMap((row) => [row.phone, row.phone2].filter(Boolean));
-    host.notes = mbAddrNote(host.notes, others, host.phone, host.phone2);
+    mbAddrApply(host, people, mbAddrPlace(host), slots);
   });
   return { contacts: contacts.filter((_, idx) => !drop.has(idx)), patches, merged, skipped };
 }
@@ -601,10 +742,15 @@ function mbAddrTake(contacts, groups) {
 async function mbAddrPatch(patches) {
   for (const patch of patches || []) {
     if (!/^[0-9a-f-]{36}$/i.test(String(patch.id || ''))) continue;
+    const body = {};
+    if (patch.notes != null) body.notes = patch.notes;
+    if (patch.phone2 != null) body.phone2 = patch.phone2;
+    if (patch.extra && typeof patch.extra === 'object') body.extra = patch.extra;
+    if (!Object.keys(body).length) continue;
     await sb(`contacts?id=eq.${patch.id}`, {
       method: 'PATCH',
       prefer: 'return=minimal',
-      body: JSON.stringify({ notes: patch.notes }),
+      body: JSON.stringify(body),
     });
   }
 }
