@@ -1300,13 +1300,18 @@ ${Object.entries(dayNames).map(([k, v]) => {
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
 <div class="form-row">
-<label class="form-label">Başlangıç Saati</label>
-<input type="time" class="form-input" id="ts-start" value="${cfg.start_hour}">
+<label class="form-label">${escTs(tSay('cal.when.start', 'Başlangıç'))}</label>
+<input type="time" class="form-input" id="ts-start" step="60" value="${cfg.start_hour}">
 </div>
 <div class="form-row">
-<label class="form-label">Bitiş Saati</label>
-<input type="time" class="form-input" id="ts-end" value="${cfg.end_hour}">
+<label class="form-label">${escTs(tSay('cal.when.end', 'Bitiş'))}</label>
+<input type="time" class="form-input" id="ts-end" step="60" value="${cfg.end_hour}">
 </div>
+</div>
+<div class="form-row">
+<label class="form-label">${escTs(tSay('cal.shift', 'Kaydırma adımı'))}</label>
+<select class="form-input" id="ts-shift" style="width:140px;">${takvimShiftChoices().map((n) => `<option value="${n}"${cfg.shift_min === n ? ' selected' : ''}>${n} ${escTs(tSay('cal.shift.unit', 'dk'))}</option>`).join('')}</select>
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;">${escTs(tSay('cal.shift.help', 'Oklar slotu bu kadar dakika kaydırır. 10 seçilirse 10:10 gibi saatler de olur.'))}</div>
 </div>
 </div>
 
@@ -1405,6 +1410,7 @@ async function saveTakvimSettings(applyAll = false) {
   if (!activeDays.length) { toast('En az bir çalışma günü seçin', 'warn'); return; }
   const start    = document.getElementById('ts-start')?.value    || '08:00';
   const end      = document.getElementById('ts-end')?.value      || '20:00';
+  const shift_min = takvimShiftMin(document.getElementById('ts-shift')?.value);
   const dur      = parseInt(document.getElementById('ts-slot-dur')?.value||'2');
   const maxSlots = parseInt(document.getElementById('ts-max-slots')?.value||'5');
   const bosColor = prevCfg.bos_color || '#3b82f6';
@@ -1414,6 +1420,7 @@ async function saveTakvimSettings(applyAll = false) {
     active_days: activeDays,
     start_hour: start,
     end_hour: end,
+    shift_min,
     slot_dur: dur,
     max_slots: maxSlots,
     bos_color: bosColor,

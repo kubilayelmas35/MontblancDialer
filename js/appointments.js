@@ -64,6 +64,22 @@ function _parseTakvimHour(timeStr, fallback) {
   return Number.isFinite(h) ? Math.min(23, Math.max(0, h)) : fallback;
 }
 
+function _parseTakvimMinute(timeStr) {
+  const m = String(timeStr || '').trim().match(/^\d{1,2}:(\d{2})/);
+  if (!m) return 0;
+  const n = parseInt(m[1], 10);
+  return Number.isFinite(n) ? Math.min(59, Math.max(0, n)) : 0;
+}
+
+function takvimShiftChoices() {
+  return [5, 10, 15, 20, 30, 60];
+}
+
+function takvimShiftMin(raw) {
+  const n = parseInt(raw, 10);
+  return takvimShiftChoices().includes(n) ? n : 30;
+}
+
 function mergeTakvimSettings(raw) {
   const tk = raw && typeof raw === 'object' ? raw : {};
   let active = Array.isArray(tk.active_days) ? tk.active_days.map((d) => String(d).toLowerCase()) : [];
@@ -71,7 +87,13 @@ function mergeTakvimSettings(raw) {
   if (!active.length) active = ['pzt', 'sal', 'car', 'per', 'cum'];
   let startH = _parseTakvimHour(tk.start_hour, 8);
   let endH = _parseTakvimHour(tk.end_hour, 20);
-  if (endH < startH) endH = startH;
+  let startM = _parseTakvimMinute(tk.start_hour);
+  let endM = _parseTakvimMinute(tk.end_hour);
+  if (endH < startH || (endH === startH && endM < startM)) {
+    endH = Math.min(23, startH);
+    endM = 0;
+    if (endH === startH) endH = Math.min(23, startH + 1);
+  }
   const slot_dur = Math.min(4, Math.max(1, parseInt(tk.slot_dur, 10) || 2));
   const max_slots = Math.min(40, Math.max(1, parseInt(tk.max_slots, 10) || 5));
   const bos_color = String(tk.bos_color || '').trim() || '#3b82f6';
@@ -82,10 +104,13 @@ function mergeTakvimSettings(raw) {
   let dist_orange_to = Math.min(300, Math.max(dist_green_to + 1, parseInt(tk.dist_orange_to, 10) || 45));
   return {
     active_days: active,
-    start_hour: `${String(startH).padStart(2, '0')}:00`,
-    end_hour: `${String(endH).padStart(2, '0')}:00`,
+    start_hour: `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`,
+    end_hour: `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`,
     startH,
     endH,
+    startM,
+    endM,
+    shift_min: takvimShiftMin(tk.shift_min),
     slot_dur,
     max_slots,
     bos_color,
@@ -1034,9 +1059,13 @@ function renderTakvimSlotsMonth() {
 
 function takvimSlotMoveMarkup(slotId, reserveBottom = false) {
   const bottomPx = reserveBottom ? 30 : 2;
+  const step = typeof takvimShiftMin === 'function' ? takvimShiftMin(getCampaignTakvimSettings().shift_min) : 30;
+  const back = typeof tReplace === 'function' ? tReplace('cal.shift.back', { n: step }) : `-${step} dk`;
+  const fwd = typeof tReplace === 'function' ? tReplace('cal.shift.fwd', { n: step }) : `+${step} dk`;
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   return `<div class="tak-slot-move" onmousedown="event.stopPropagation()" style="position:absolute;left:2px;bottom:${bottomPx}px;width:28px;z-index:22;display:flex;flex-direction:column;gap:2px;align-items:stretch;justify-content:flex-end;box-sizing:border-box;">
-<button type="button" class="btn-tak-shift" title="-30 dk" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-30)">▲</button>
-<button type="button" class="btn-tak-shift" title="+30 dk" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',30)">▼</button>
+<button type="button" class="btn-tak-shift" title="${esc(back)}" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',-${step})">▲</button>
+<button type="button" class="btn-tak-shift" title="${esc(fwd)}" onclick="event.stopPropagation();nudgeTakvimSlot('${slotId}',${step})">▼</button>
 </div>`;
 }
 
@@ -1611,8 +1640,8 @@ function openTakvimNewSlotModal(ds, start, end) {
   document.getElementById('takvim-detail-body').innerHTML = `
 <div style="display:flex;flex-direction:column;gap:10px;">
 <div class="form-row"><label class="form-label">${typeof t === 'function' ? t('cal.when.day') : 'Tarih'}</label><input type="date" class="form-input" id="ns-date" value="${ds}"></div>
-<div class="form-row"><label class="form-label">${typeof t === 'function' ? t('cal.when.start') : 'Başlangıç'}</label><input type="time" class="form-input" id="ns-start" value="${start}"></div>
-<div class="form-row"><label class="form-label">${typeof t === 'function' ? t('cal.when.end') : 'Bitiş'}</label><input type="time" class="form-input" id="ns-end" value="${end}"></div>
+<div class="form-row"><label class="form-label">${typeof t === 'function' ? t('cal.when.start') : 'Başlangıç'}</label><input type="time" class="form-input" id="ns-start" step="60" value="${start}"></div>
+<div class="form-row"><label class="form-label">${typeof t === 'function' ? t('cal.when.end') : 'Bitiş'}</label><input type="time" class="form-input" id="ns-end" step="60" value="${end}"></div>
 <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-top:4px;">
 <input type="checkbox" id="ns-skip-confirm"> ${typeof t === 'function' ? t('cal.new.skip') : 'Bir daha gösterme (hızlı slot)'}
 </label>

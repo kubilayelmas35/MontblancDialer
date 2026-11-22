@@ -744,8 +744,8 @@ async function nudgeTakvimSlot(slotId, deltaMin) {
   let ns = startMin + deltaMin;
   let ne = ns + dur;
   const tset = getCampaignTakvimSettings();
-  const dayStart = tset.startH * 60;
-  const dayEnd = tset.endH * 60 + 60;
+  const dayStart = tset.startH * 60 + (tset.startM || 0);
+  const dayEnd = tset.endM ? tset.endH * 60 + tset.endM : tset.endH * 60 + 60;
   if (ns < dayStart) {
     toast('Gün başlangıcından önce taşınamaz', 'warn');
     return;
@@ -1668,8 +1668,12 @@ ${dayNames
 </div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
-<div class="form-row"><label class="form-label">${ui('Başlangıç', 'Beginn')}</label><input type="time" class="form-input" id="fdt-start" value="${cfg.start_hour}"></div>
-<div class="form-row"><label class="form-label">${ui('Bitiş', 'Ende')}</label><input type="time" class="form-input" id="fdt-end" value="${cfg.end_hour}"></div>
+<div class="form-row"><label class="form-label">${ui('Başlangıç', 'Beginn')}</label><input type="time" class="form-input" id="fdt-start" step="60" value="${cfg.start_hour}"></div>
+<div class="form-row"><label class="form-label">${ui('Bitiş', 'Ende')}</label><input type="time" class="form-input" id="fdt-end" step="60" value="${cfg.end_hour}"></div>
+</div>
+<div class="form-row" style="margin-top:8px;"><label class="form-label">${typeof t === 'function' ? t('cal.shift') : 'Kaydırma adımı'}</label>
+<select class="form-input" id="fdt-shift" style="width:140px;">${takvimShiftChoices().map((n) => `<option value="${n}"${cfg.shift_min === n ? ' selected' : ''}>${n} ${typeof t === 'function' ? t('cal.shift.unit') : 'dk'}</option>`).join('')}</select>
+<div style="font-size:11px;color:var(--text-3);margin-top:4px;">${typeof t === 'function' ? t('cal.shift.help') : ''}</div>
 </div>
 <div class="form-row" style="margin-top:8px;"><label class="form-label">${ui('Slot süresi', 'Slotdauer')}</label><select class="form-input" id="fdt-slot-dur">${slotOpts}</select></div>
 <div class="form-row"><label class="form-label">${ui('Gün başına maks. slot', 'Max. Slots pro Tag')}</label><input type="number" class="form-input" id="fdt-max-slots" value="${cfg.max_slots}" min="1" max="40" style="width:80px;"></div>
@@ -1729,6 +1733,7 @@ async function saveDefaultTakvimFirmSettings() {
       active_days: activeDays,
       start_hour: start,
       end_hour: end,
+      shift_min: takvimShiftMin(document.getElementById('fdt-shift')?.value),
       slot_dur: dur,
       max_slots: maxSlots,
       confirm_new_slot,
@@ -1774,7 +1779,8 @@ async function applyDefaultTakvimToFirmCampaigns() {
   const bos_color = cached.bos_color || '#3b82f6';
   const confirm_new_slot = !!document.getElementById('fdt-confirm-slot')?.checked;
   const show_lock_name = !!document.getElementById('fdt-lock-name')?.checked;
-  const takvim = { active_days: activeDays, start_hour: start, end_hour: end, slot_dur: dur, max_slots: maxSlots, bos_color, confirm_new_slot, show_lock_name };
+  const shift_min = takvimShiftMin(document.getElementById('fdt-shift')?.value);
+  const takvim = { active_days: activeDays, start_hour: start, end_hour: end, shift_min, slot_dur: dur, max_slots: maxSlots, bos_color, confirm_new_slot, show_lock_name };
   if (cached.bos_color_from) takvim.bos_color_from = cached.bos_color_from;
   try {
     const camps = await sb(`campaigns?firm_id=eq.${fid}&status=eq.active&select=id,settings`);
