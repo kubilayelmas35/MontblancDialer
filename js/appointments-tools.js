@@ -33,7 +33,7 @@ function showSlotContextMenu(e, slot, appt) {
     }
     // Agent can cancel their own lock
     if (isMySlot) {
-      items.push({ icon:'', label:'Randevuyu İptal Et', onClick: () => unlockSlot(slot.id), danger:true });
+      items.push({ icon:'', label: (typeof t === 'function' ? t('cal.lock.cancel') : 'Randevuyu iptal et'), onClick: () => unlockSlot(slot.id), danger:true });
     }
   }
   const canManageAppt = ['admin','super_admin','firm_admin','qc'].includes(currentUser?.role||'');

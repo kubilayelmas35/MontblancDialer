@@ -2574,6 +2574,7 @@ function statsCurrentRange() {
 async function loadStats() {
 if (typeof mbSyncStatsChrome === 'function') mbSyncStatsChrome();
 if (window._statsReport && window._statsReport !== 'overview') return loadStatsReport();
+if (typeof repStopLive === 'function') repStopLive();
 renderFirmSelector('stats-firm-selector', loadStats);
 const tbody = document.getElementById('stats-tbody');
 if (tbody) tbody.innerHTML = typeof mbLoadingRow === 'function' ? mbLoadingRow(STATS_COL) : `<tr><td colspan="${STATS_COL}" class="mb-empty-hint">${t('ui.loading')}</td></tr>`;

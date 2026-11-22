@@ -894,8 +894,20 @@ async function deleteTakvimSlot(slotId) {
   toast('Slot silindi','ok');
 }
 
+function mbAgentMayLockSlot() {
+  if (String(currentUser?.role || '') !== 'agent') return true;
+  const st = String(typeof dialerStatus !== 'undefined' ? dialerStatus : '');
+  const live = st === 'calling' || st === 'on_call' || st === 'wrapping';
+  const person = typeof currentContact !== 'undefined' && currentContact && (currentContact.id || currentContact.phone);
+  return live && !!person;
+}
+
 async function lockAndBookSlot(slot) {
   if (!slot) return;
+  if (!mbAgentMayLockSlot()) {
+    toast(typeof t === 'function' ? t('cal.lock.needcall') : 'Aktif arama ve müşteri yokken slot kilitlenmez', 'warn');
+    return;
+  }
   const prev = mbReadSlotHold();
   if (prev && prev !== String(slot.id)) await mbDropSlotHold();
   try {

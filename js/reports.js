@@ -25,7 +25,28 @@ const REP_TITLE = {
   perf: 'nav.rep_perf',
   group: 'nav.rep_group',
   rank: 'nav.rep_rank',
+  live: 'nav.rep_live',
 };
+
+let _repLiveTimer = null;
+function repStopLive() {
+  if (_repLiveTimer) {
+    clearInterval(_repLiveTimer);
+    _repLiveTimer = null;
+  }
+}
+
+function repArmLive() {
+  if (_repLiveTimer) return;
+  _repLiveTimer = setInterval(() => {
+    const on = window._statsReport === 'live' && document.getElementById('page-stats')?.classList.contains('active');
+    if (!on) {
+      repStopLive();
+      return;
+    }
+    repPaintLive();
+  }, 8000);
+}
 
 function mbSyncStatsChrome() {
   const view = window._statsReport || 'overview';
@@ -350,6 +371,16 @@ async function loadStatsReport() {
   mbSyncStatsChrome();
   if (typeof renderFirmSelector === 'function') renderFirmSelector('stats-firm-selector', loadStats);
   host.innerHTML = `<div class="card"><div class="firm-none">${statsEsc(t('ui.loading'))}</div></div>`;
+  if (view === 'live') {
+    try {
+      await repPaintLive();
+      repArmLive();
+    } catch (e) {
+      host.innerHTML = `<div class="card"><div class="firm-none">${statsEsc(t('ui.error_prefix') + (e?.message || ''))}</div></div>`;
+    }
+    return;
+  }
+  repStopLive();
   try {
     const range = statsCurrentRange();
     if (typeof statsFillFilters === 'function') await statsFillFilters(range.fid);
@@ -1127,4 +1158,62 @@ function repMountCreditChart() {
       },
     },
   });
+}
+
+function repLiveClock(iso) {
+  const at = new Date(iso || '').getTime();
+  if (!Number.isFinite(at)) return '—';
+  const sec = Math.max(0, Math.floor((Date.now() - at) / 1000));
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function repLiveCard(row, camp) {
+  const ringing = String(row.status) === 'calling';
+  const tone = ringing
+    ? 'background:#fef3c7;color:#92400e;border-color:#f59e0b'
+    : 'background:#dcfce7;color:#166534;border-color:#16a34a';
+  const state = ringing ? t('rep.live.ring') : t('rep.live.open');
+  const who = statsEsc(row.agent_name || '—');
+  const phone = statsEsc(row.current_contact_phone || '—');
+  const name = statsEsc(row.current_contact_name || '—');
+  const campName = statsEsc(camp || '—');
+  const dur = statsEsc(repLiveClock(row.call_started_at || row.call_start || row.updated_at));
+  return `<article style="display:grid;grid-template-columns:1.1fr .8fr 1fr 1fr .6fr;gap:8px;align-items:center;padding:10px 12px;border-radius:10px;border:1px solid;${tone}">
+<div style="font-weight:800;">${who}</div>
+<div style="font-weight:800;">${statsEsc(state)}</div>
+<div style="font-family:var(--font);font-weight:800;letter-spacing:.02em;">${phone}</div>
+<div>${name}</div>
+<div style="display:flex;justify-content:space-between;gap:8px;"><span>${campName}</span><span>${dur}</span></div>
+</article>`;
+}
+
+async function repPaintLive() {
+  const host = document.getElementById('stats-extra');
+  if (!host || window._statsReport !== 'live') return;
+  const range = typeof statsCurrentRange === 'function' ? statsCurrentRange() : {};
+  const firmQ = range.fid ? `&firm_id=eq.${range.fid}` : ((typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '');
+  const [rows, camps] = await Promise.all([
+    sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,current_contact_name,current_contact_phone,call_started_at,call_start,last_seen,updated_at&status=in.(calling,on_call)&order=agent_name.asc${firmQ}&limit=200`).catch(() => []),
+    sb(`campaigns?select=id,name${firmQ}&limit=200`).catch(() => []),
+  ]);
+  const maxAge = typeof mbLiveSeenMs === 'function' ? mbLiveSeenMs() : 90000;
+  const names = {};
+  (camps || []).forEach((c) => { if (c?.id) names[c.id] = c.name || ''; });
+  const live = (rows || []).filter((row) => {
+    const st = String(row?.status || '');
+    if (st !== 'calling' && st !== 'on_call') return false;
+    const at = new Date(row.last_seen || row.updated_at || 0).getTime();
+    return Number.isFinite(at) && Date.now() - at <= maxAge;
+  }).sort((a, b) => {
+    if (a.status !== b.status) return a.status === 'on_call' ? -1 : 1;
+    return String(a.agent_name || '').localeCompare(String(b.agent_name || ''), 'tr');
+  });
+  const head = `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:10px;"><div class="card-title" style="margin:0;">${statsEsc(t('nav.rep_live'))}</div><div style="font-size:12px;color:var(--text-3);">${statsEsc(t('rep.live.hint'))}</div></div>`
+    + `<div style="display:grid;grid-template-columns:1.1fr .8fr 1fr 1fr .6fr;gap:8px;padding:0 12px 6px;font-size:11px;color:var(--text-3);font-weight:700;"><span>${statsEsc(t('rep.live.who'))}</span><span>${statsEsc(t('rep.live.state'))}</span><span>${statsEsc(t('rep.live.phone'))}</span><span>${statsEsc(t('rep.live.customer'))}</span><span>${statsEsc(t('rep.live.camp'))}</span></div>`;
+  const body = live.length
+    ? live.map((row) => repLiveCard(row, names[row.campaign_id])).join('')
+    : `<div class="firm-none">${statsEsc(t('rep.live.empty'))}</div>`;
+  host.innerHTML = `<div class="card">${head}<div style="display:flex;flex-direction:column;gap:8px;">${body}</div></div>`;
 }
