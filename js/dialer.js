@@ -863,6 +863,11 @@ function setApptBasis(basis) {
   scheduleLoadMyMiniStats(0);
 }
 
+function mbStatInk(color, key) {
+  if (String(key || '') === 'ulasilamadi') return '#92400e';
+  return String(color || '').trim() || '#64748b';
+}
+
 function setPerfTab(tab) {
   _perfTab = tab;
   ['today','week','month'].forEach(t => {
@@ -1038,15 +1043,16 @@ async function loadMyMiniStats() {
     });
 
     const boxes = [];
+    const statNum = (color, val, key) => `<div style="font-size:18px;font-weight:800;color:${mbStatInk(color, key)};font-family:var(--font);line-height:1.1;">${val}</div>`;
     boxes.push(`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
-<div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono);">${appts}</div>
-<div style="font-size:10px;color:var(--text-3);">${typeof t === 'function' ? t('dial.stat.appt') : 'Randevu'}</div>
+${statNum('var(--green)', appts)}
+<div style="font-size:10px;color:var(--text-3);margin-top:2px;">${typeof t === 'function' ? t('dial.stat.appt') : 'Randevu'}</div>
 </div>`);
     boxes.push(`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
-<div style="font-size:18px;font-weight:800;color:var(--accent);font-family:var(--mono);">${calls}</div>
-<div style="font-size:10px;color:var(--text-3);">${typeof t === 'function' ? t('dial.stat.call') : 'Çağrı'}</div>
+${statNum('var(--accent)', calls)}
+<div style="font-size:10px;color:var(--text-3);margin-top:2px;">${typeof t === 'function' ? t('dial.stat.call') : 'Çağrı'}</div>
 </div>`);
     (orderedResultRows || []).forEach((r) => {
       const val = counts[r.key] || 0;
@@ -1055,8 +1061,8 @@ async function loadMyMiniStats() {
       const lbl = String(shown).replace(/</g,'&lt;').replace(/>/g,'&gt;');
       boxes.push(`
 <div style="text-align:center;background:var(--bg-3);border-radius:var(--radius-sm);padding:8px 6px;">
-<div style="font-size:18px;font-weight:800;color:${color};font-family:var(--mono);">${val}</div>
-<div style="font-size:10px;color:var(--text-3);">${lbl}</div>
+${statNum(color, val, r.key)}
+<div style="font-size:10px;color:var(--text-3);margin-top:2px;">${lbl}</div>
 </div>`);
     });
 
