@@ -1317,11 +1317,24 @@ function updateMicStatus(granted) {
 const el = document.getElementById('mic-status');
 if (!el) return;
 const icon = granted ? 'ph-microphone' : 'ph-microphone-slash';
-const kicker = typeof t === 'function' ? t('dial.mic_chip') : 'Mikrofon';
-const hint = typeof t === 'function' ? t('dial.mic_chip_hint') : 'Ayarlar için tıkla';
+const kick = typeof tPair === 'function' ? tPair('dial.mic_chip') : { tr: 'Mikrofon', de: 'Mikrofon' };
+const hint = typeof tPair === 'function' ? tPair('dial.mic_chip_hint') : { tr: 'Ayarlar için tıkla', de: 'Tippen für Einstellungen' };
+const de = typeof currentLang !== 'undefined' && currentLang === 'de';
 el.classList.toggle('is-on', !!granted);
 el.classList.toggle('is-off', !granted);
-el.innerHTML = `<i class="ph ${icon}"></i><span class="dialer-mic-chip__text"><span class="dialer-mic-chip__kicker">${kicker}</span><span class="dialer-mic-chip__hint">${hint}</span></span>`;
+el.innerHTML = `<i class="ph ${icon}"></i><span class="dialer-mic-chip__text"><span class="dialer-mic-chip__kicker"></span><span class="dialer-mic-chip__hint"></span></span>`;
+const kickerEl = el.querySelector('.dialer-mic-chip__kicker');
+const hintEl = el.querySelector('.dialer-mic-chip__hint');
+if (kickerEl) {
+  kickerEl.setAttribute('data-tr', kick.tr);
+  kickerEl.setAttribute('data-de', kick.de);
+  kickerEl.textContent = de ? kick.de : kick.tr;
+}
+if (hintEl) {
+  hintEl.setAttribute('data-tr', hint.tr);
+  hintEl.setAttribute('data-de', hint.de);
+  hintEl.textContent = de ? hint.de : hint.tr;
+}
 el.title = granted ? t('telnyx.mic_on') : t('telnyx.mic_off');
 }
 
@@ -1335,7 +1348,14 @@ connected:    { icon:'<i class="ph ph-circle-wavy-check"></i>',  color:'var(--gr
 disconnected: { icon:'<i class="ph ph-x-circle"></i>',    color:'var(--red)',    tr:'Bağlantı yok',  de:'Getrennt'    },
 };
 const s = map[status]||map.disconnected;
-el.innerHTML = `<span style="color:${s.color};font-size:11px;font-weight:600;display:flex;align-items:center;gap:3px;">${s.icon} ${s[currentLang]||s.tr}</span>`;
+const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+el.innerHTML = `<span style="color:${s.color};font-size:11px;font-weight:600;display:flex;align-items:center;gap:3px;">${s.icon} <span class="dialer-conn-chip__txt"></span></span>`;
+const txt = el.querySelector('.dialer-conn-chip__txt');
+if (txt) {
+  txt.setAttribute('data-tr', s.tr);
+  txt.setAttribute('data-de', s.de);
+  txt.textContent = de ? s.de : s.tr;
+}
 }
 
 function handleCallState(state, callId) {
@@ -1361,6 +1381,8 @@ updateSessionInDB('on_call', {
 }
 if (typeof switchContactTab === 'function') switchContactTab('info');
 } else if (subLabels[state] && label) {
+label.setAttribute('data-tr', subLabels[state].tr);
+label.setAttribute('data-de', subLabels[state].de);
 label.textContent = subLabels[state][currentLang] || subLabels[state].tr;
 }
 }

@@ -641,6 +641,42 @@ function mbAddrPlace(row) {
   return [street, tail].filter(Boolean).join(', ');
 }
 
+function mbAddrRosterExtract(text) {
+  const lines = String(text || '').split('\n');
+  const headRe = /^(?:Bu adreste \d+ kişi kayıtlı|An dieser Adresse (?:ist|sind) \d+ Person)/;
+  const start = lines.findIndex((line) => headRe.test(line.trim()));
+  if (start < 0) return '';
+  const block = [lines[start]];
+  for (let i = start + 1; i < lines.length; i++) {
+    const trim = lines[i].trim();
+    if (!trim || /^\d+\.\s/.test(trim)) {
+      block.push(lines[i]);
+      continue;
+    }
+    break;
+  }
+  return block.join('\n').trim();
+}
+
+function mbAddrRosterDisplay(text) {
+  const block = mbAddrRosterExtract(text);
+  if (!block) return '';
+  const lines = block.split('\n');
+  const head = lines[0].trim();
+  const count = head.match(/^(?:Bu adreste|An dieser Adresse (?:ist|sind)) (\d+)/);
+  const n = count ? Number(count[1]) : 0;
+  const place = head
+    .replace(/^Bu adreste \d+ kişi kayıtlı\s*/i, '')
+    .replace(/^An dieser Adresse ist \d+ Person eingetragen\s*/i, '')
+    .replace(/^An dieser Adresse sind \d+ Personen eingetragen\s*/i, '')
+    .trim();
+  const fresh = n === 1
+    ? uqSay('uq.addr.roster.one', 'Bu adreste 1 kişi kayıtlı')
+    : uqSay('uq.addr.roster', 'Bu adreste {n} kişi kayıtlı', { n: n || 0 });
+  lines[0] = place ? `${fresh} ${place}` : fresh;
+  return lines.join('\n').trim();
+}
+
 function mbAddrStripRoster(text) {
   const out = [];
   let skip = false;

@@ -532,22 +532,23 @@ i.ph {
 #page-dialer .dialer-live-chip,
 #page-dialer .dialer-mic-chip,
 #page-dialer .dialer-conn-chip {
-  height: 36px;
+  height: 28px;
   box-sizing: border-box;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg-2);
-  padding: 0 16px;
+  padding: 0 10px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  flex: 1 1 180px;
+  gap: 6px;
+  flex: 1 1 148px;
   min-width: max-content;
   justify-content: flex-start;
 }
 #page-dialer .dialer-live-chip .status-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 750;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: visible;
   text-overflow: clip;
@@ -565,21 +566,25 @@ i.ph {
   font: inherit;
   line-height: 1;
 }
-#page-dialer .dialer-mic-chip i.ph { font-size: 16px; }
+#page-dialer .dialer-mic-chip i.ph { font-size: 14px; }
 #page-dialer .dialer-mic-chip__text {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 1px;
+  justify-content: center;
+  gap: 0;
+  line-height: 1.05;
 }
 #page-dialer .dialer-mic-chip__kicker {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: -0.01em;
+  line-height: 1.05;
 }
 #page-dialer .dialer-mic-chip__hint {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 650;
+  line-height: 1.05;
   color: var(--text-3);
 }
 #page-dialer .dialer-mic-chip.is-off {
@@ -596,9 +601,21 @@ i.ph {
   font-size: 11px !important;
 }
 #page-dialer #test-mode-btn {
-  height: 36px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
+}
+#page-dialer .cust-addr-roster {
+  grid-column: 1 / -1;
+  white-space: pre-wrap;
+  font-size: 12.5px;
+  line-height: 1.45;
+  font-weight: 650;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-3));
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border-radius: 8px;
+  padding: 8px 10px;
 }
 .dialer-test-lab {
   margin: 0 16px 10px;

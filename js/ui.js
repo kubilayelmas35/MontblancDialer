@@ -818,7 +818,8 @@ document.querySelectorAll('.modal-overlay.open').forEach((m) => {
   if (m.id === 'm-system-dialog') return;
   m.classList.remove('open');
 });
-document.getElementById('lang-btn').textContent = l.toUpperCase();
+const langBtn = document.getElementById('lang-btn');
+if (langBtn) langBtn.textContent = l.toUpperCase();
 document.documentElement.lang = l;
 if (typeof applyDomI18n === 'function') applyDomI18n();
 document.querySelectorAll(`[data-${l}]`).forEach(el => {
@@ -826,6 +827,8 @@ if (el.tagName==='INPUT'||el.tagName==='TEXTAREA') {
 el.placeholder = el.getAttribute(`data-${l}`)||el.placeholder;
 } else if (el.tagName==='OPTION') {
 el.textContent = el.getAttribute(`data-${l}`)||el.textContent;
+} else if (el.querySelector('[data-tr],[data-de]')) {
+return;
 } else {
 el.textContent = el.getAttribute(`data-${l}`)||el.getAttribute('data-tr');
 }
@@ -882,6 +885,10 @@ const attemptBadge = document.getElementById('cust-attempt-badge');
 if (attemptBadge && typeof currentContact !== 'undefined' && currentContact && typeof uqSay === 'function') {
   attemptBadge.textContent = uqSay('dial.attempt', '{n}. arama', { n: currentContact.attempt_count || 1 });
 }
+if (typeof mbPaintDialerStatusLabel === 'function') mbPaintDialerStatusLabel();
+const micEl = document.getElementById('mic-status');
+if (micEl && typeof updateMicStatus === 'function') updateMicStatus(micEl.classList.contains('is-on'));
+if (typeof mbRepaintCustLabels === 'function') mbRepaintCustLabels();
   const _ce = document.getElementById('cust-empty');
   if (_ce && _ce.style.display !== 'none' && typeof refreshCustEmptyCoachBubble === 'function') {
     refreshCustEmptyCoachBubble();

@@ -274,7 +274,7 @@ max-width:100%;
   align-items: center;
   justify-content: flex-start;
   gap: 10px;
-  padding: 0 12px !important;
+  padding: 5px 12px !important;
 }
 #page-dialer #dialer-page-hdr > .dialer-fold-toggle,
 #page-dialer #daily-goal-bar > .dialer-fold-toggle,

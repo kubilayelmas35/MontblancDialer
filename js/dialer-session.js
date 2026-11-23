@@ -640,6 +640,28 @@ function syncCampsFoldForCall() {
 
 window.addEventListener('resize', syncCampsFoldForCall);
 
+function mbPaintDialerStatusLabel() {
+  const label = document.getElementById('status-label');
+  if (!label || typeof dialerStatus === 'undefined') return;
+  const keys = {
+    offline: 'dial.status.offline',
+    ready: 'dial.status.ready_wait',
+    calling: 'dial.status.calling',
+    on_call: 'dial.status.on_call',
+    wrapping: 'dial.status.wrapping',
+    break: 'dial.status.break',
+  };
+  const key = keys[dialerStatus];
+  if (!key) {
+    label.textContent = dialerStatus || '';
+    return;
+  }
+  const pair = typeof tPair === 'function' ? tPair(key) : { tr: dialerStatus, de: dialerStatus };
+  label.setAttribute('data-tr', pair.tr);
+  label.setAttribute('data-de', pair.de);
+  label.textContent = (typeof currentLang !== 'undefined' && currentLang === 'de') ? pair.de : pair.tr;
+}
+
 function setDialerStatus(s) {
   const prev = dialerStatus;
   dialerStatus = s;
@@ -668,23 +690,11 @@ function setDialerStatus(s) {
   if (s === 'on_call' && prev !== 'on_call' && typeof mbPlayCue === 'function') mbPlayCue('connect');
   if (s === 'wrapping' && (prev === 'on_call' || prev === 'calling') && typeof mbPlayCue === 'function' && !(window._mbBusyAt && Date.now() - window._mbBusyAt < 2500)) mbPlayCue('hangup');
   const dot    = document.getElementById('status-dot');
-  const label  = document.getElementById('status-label');
   const rdyBtn = document.getElementById('btn-ready');
   const rdyTxt = document.getElementById('ready-text');
   const rdyIc  = document.getElementById('ready-icon');
   if (dot) { dot.className = `status-dot ${s}`; }
-  const labels = {
-    offline: () => (typeof t === 'function' ? t('dial.status.offline') : 'offline'),
-    ready: () => (typeof t === 'function' ? t('dial.status.ready_wait') : 'ready'),
-    calling: () => (typeof t === 'function' ? t('dial.status.calling') : 'calling'),
-    on_call: () => (typeof t === 'function' ? t('dial.status.on_call') : 'on_call'),
-    wrapping: () => (typeof t === 'function' ? t('dial.status.wrapping') : 'wrapping'),
-    break: () => (typeof t === 'function' ? t('dial.status.break') : 'break'),
-  };
-  if (label) {
-    const fn = labels[s];
-    label.textContent = typeof fn === 'function' ? fn() : s;
-  }
+  mbPaintDialerStatusLabel();
   refreshStatusElapsed();
   const callAct = document.getElementById('call-actions');
   if (callAct) callAct.classList.remove('call-actions--wrapping');

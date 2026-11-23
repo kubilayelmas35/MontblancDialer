@@ -18,8 +18,45 @@ function mbFieldShown(fc, key, fallback) {
 
 function mbFieldLabel(fc, key, fallback) {
   const spec = fc?.[key];
-  if (spec && typeof spec === 'object' && spec.label) return String(spec.label);
-  return fallback;
+  const de = typeof currentLang !== 'undefined' && currentLang === 'de';
+  const customDe = spec && typeof spec === 'object' && spec.label_de ? String(spec.label_de).trim() : '';
+  const customTr = spec && typeof spec === 'object' && spec.label ? String(spec.label).trim() : '';
+  if (de && customDe) return customDe;
+  if (!de) {
+    if (customTr) return customTr;
+    const base = mbDefaultCampFields().find((f) => f.key === key);
+    return base?.defaultLabel || fallback;
+  }
+  const builtin = {
+    phone: 'Telefon',
+    phone2: 'Telefon 2',
+    name: 'Name',
+    plz: 'PLZ',
+    city: 'Ort',
+    address: 'Adresse',
+    notes: 'Notizen',
+    attempt: 'Versuche',
+    custom1: 'Eigenes Feld 1',
+    custom2: 'Eigenes Feld 2',
+    custom3: 'Eigenes Feld 3',
+  };
+  const defaults = {
+    phone: ['telefon'],
+    phone2: ['telefon 2'],
+    name: ['ad / soyad', 'ad soyad', 'isim', 'ad'],
+    plz: ['plz'],
+    city: ['şehir', 'sehir'],
+    address: ['adres'],
+    notes: ['notlar', 'not'],
+    attempt: ['arama sayısı', 'arama sayisi'],
+    custom1: ['özel alan 1', 'ozel alan 1'],
+    custom2: ['özel alan 2', 'ozel alan 2'],
+    custom3: ['özel alan 3', 'ozel alan 3'],
+  };
+  const norm = String(customTr || fallback || '').trim().toLocaleLowerCase('tr');
+  const isDefault = !customTr || (defaults[key] || []).includes(norm) || norm === String(key || '').toLowerCase();
+  if (isDefault && builtin[key]) return builtin[key];
+  return customTr || fallback;
 }
 
 function mbDefaultCampFields() {

@@ -288,12 +288,17 @@ function showCustomerCard(c) {
   if (typeof mbPaintCardSource === 'function') mbPaintCardSource(c);
   const labelOf = (key, fallback) => (typeof mbFieldLabel === 'function' ? mbFieldLabel(fc, key, fallback) : fallback);
   const textOf = (key) => (typeof mbContactFieldText === 'function' ? mbContactFieldText(c, key) : '');
-  const visibleFields = layout.slice(2).map((field) => ({
-    key: field.key,
-    l: labelOf(field.key, field.label || field.key),
-    v: textOf(field.key),
-    mono: field.key === 'plz' || field.key === 'phone' || field.key === 'phone2',
-  }));
+  const rosterText = typeof mbAddrRosterDisplay === 'function' ? mbAddrRosterDisplay(c.notes || '') : '';
+  const visibleFields = layout.slice(2).map((field) => {
+    let value = textOf(field.key);
+    if (field.key === 'notes' && rosterText && typeof mbAddrStripRoster === 'function') value = mbAddrStripRoster(value);
+    return {
+      key: field.key,
+      l: labelOf(field.key, field.label || field.key),
+      v: value,
+      mono: field.key === 'plz' || field.key === 'phone' || field.key === 'phone2',
+    };
+  });
   if (typeof mbMergedPhoneFields === 'function') {
     mbMergedPhoneFields(c, new Set(layout.map((field) => field.key))).forEach((field) => visibleFields.push(field));
   }
@@ -302,7 +307,10 @@ function showCustomerCard(c) {
   const hintHtml = dialHint
     ? `<div class="cust-dial-next" style="grid-column:1/-1;font-size:12px;font-weight:700;color:var(--text);background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">${typeof _escHtml === 'function' ? _escHtml(dialHint) : dialHint}</div>`
     : '';
-  document.getElementById('cust-fields').innerHTML = hintHtml + visibleFields.map(f=>{
+  const rosterHtml = rosterText
+    ? `<div id="cust-addr-roster" class="cust-addr-roster">${_escHtml(rosterText)}</div>`
+    : '';
+  document.getElementById('cust-fields').innerHTML = rosterHtml + hintHtml + visibleFields.map(f=>{
     const canEditFields = typeof mbAgentCanEditFields !== 'function' || mbAgentCanEditFields(camp);
     const dialKey = (f.key === 'phone2' || f.call) && String(f.v || '').trim() ? f.key : '';
     const callTitle = dialKey === 'phone2'
@@ -319,7 +327,7 @@ onmouseout="this.style.background='var(--accent-soft)';this.style.color='var(--a
       : '';
     return `
 <div class="cust-field" style="position:relative;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
-<div class="cust-field-lbl" style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">${f.l}</div>
+<div class="cust-field-lbl" data-field-key="${_escHtml(f.key)}" style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">${_escHtml(f.l)}</div>
 <div style="display:flex;align-items:center;gap:6px;">
 <div class="cust-field-val${f.mono?' mono':''}" id="cval-${f.key}"
 style="flex:1;font-size:14px;font-weight:600;cursor:pointer;min-height:20px;"
@@ -348,9 +356,9 @@ onmouseout="this.style.opacity='.6';this.style.color='var(--text-3)'">
   terminContainer.innerHTML = `
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
 <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:5px;" class="termin-slot-hdr">
-<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Randevu Bilgileri
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> <span id="termin-slot-title">${_escHtml(typeof t === 'function' ? t('dial.termin_info') : 'Randevu Bilgileri')}</span>
 </div>
-<span id="termin-slot-badge" style="font-size:9px;color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;">Slot seçilmedi</span>
+<span id="termin-slot-badge" style="font-size:9px;color:var(--text-3);background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;">${_escHtml(typeof t === 'function' ? t('dial.slot_none') : 'Slot seçilmedi')}</span>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 ${terminFields.map(f => `
@@ -384,11 +392,11 @@ ${f.type==='number'?`<div data-tf-warn style="display:none;font-size:10px;color:
 </div>
 <div id="tf2-customer-wrap" style="margin-top:8px;" hidden></div>
 <div id="tf-note-row" style="margin-top:8px;">
-<label style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;">Not</label>
-<textarea id="tf2-note" class="form-input" rows="2" style="font-size:12px;resize:vertical;margin-top:3px;" placeholder="Temsilci notu..." oninput="onDialerNoteInput(this.value,'tf2')">${_escHtml(c.notes || '')}</textarea>
+<label id="tf-note-label" style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;">${_escHtml(typeof t === 'function' ? t('dial.note_lbl') : 'Not')}</label>
+<textarea id="tf2-note" class="form-input" rows="2" style="font-size:12px;resize:vertical;margin-top:3px;" placeholder="${_escHtml(typeof t === 'function' ? t('dial.note_ph') : 'Temsilci notu...')}" oninput="onDialerNoteInput(this.value,'tf2')">${_escHtml(c.notes || '')}</textarea>
 </div>
-<button onclick="saveTerminFromSection()" style="margin-top:8px;width:100%;padding:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2,var(--accent)));color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer;">
-Randevuyu Kaydet
+<button id="termin-save-btn" onclick="saveTerminFromSection()" style="margin-top:8px;width:100%;padding:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2,var(--accent)));color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer;">
+${_escHtml(typeof t === 'function' ? t('dial.termin_save') : 'Randevuyu Kaydet')}
 </button>`;
   if (typeof renderInlineTerminCustomerField === 'function') {
     renderInlineTerminCustomerField();
@@ -430,6 +438,41 @@ Randevuyu Kaydet
   if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
   syncDialerNotes(c.notes || '', 'load');
   bindDialerNoteSync();
+}
+
+function mbRepaintCustLabels() {
+  const c = (typeof currentContact !== 'undefined' && currentContact) || window._mbLastContact || null;
+  if (!c) return;
+  const camp = (typeof campaigns !== 'undefined' ? campaigns : []).find((x) => x.id === c.campaign_id);
+  const fc = typeof mbParseFieldConfig === 'function' ? mbParseFieldConfig(camp) : {};
+  document.querySelectorAll('#cust-fields .cust-field-lbl[data-field-key]').forEach((el) => {
+    const key = el.getAttribute('data-field-key') || '';
+    el.textContent = typeof mbFieldLabel === 'function' ? mbFieldLabel(fc, key, key) : key;
+  });
+  const rosterText = typeof mbAddrRosterDisplay === 'function' ? mbAddrRosterDisplay(c.notes || '') : '';
+  let roster = document.getElementById('cust-addr-roster');
+  const host = document.getElementById('cust-fields');
+  if (rosterText && host) {
+    if (!roster) {
+      roster = document.createElement('div');
+      roster.id = 'cust-addr-roster';
+      roster.className = 'cust-addr-roster';
+      host.prepend(roster);
+    }
+    roster.textContent = rosterText;
+  } else if (roster) {
+    roster.remove();
+  }
+  const say = (id, key, fallback) => {
+    const el = document.getElementById(id);
+    if (el && typeof t === 'function') el.textContent = t(key) || fallback;
+  };
+  say('termin-slot-title', 'dial.termin_info', 'Randevu Bilgileri');
+  if (!window._selectedBookingSlot) say('termin-slot-badge', 'dial.slot_none', 'Slot seçilmedi');
+  say('tf-note-label', 'dial.note_lbl', 'Not');
+  say('termin-save-btn', 'dial.termin_save', 'Randevuyu Kaydet');
+  const note = document.getElementById('tf2-note');
+  if (note && typeof t === 'function') note.placeholder = t('dial.note_ph') || 'Temsilci notu...';
 }
 
 function mbTerminBound(raw) {
