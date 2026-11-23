@@ -335,7 +335,7 @@ function mbPingGrade(ms) {
 function mbPingShown(ms) {
   const n = Number(ms);
   if (!Number.isFinite(n)) return String(ms ?? '--');
-  return String(Math.max(0, Math.floor(n / 10)));
+  return String(Math.max(0, Math.round(n / 3)));
 }
 
 function mbPaintPing(ms) {
@@ -383,16 +383,17 @@ function mbFillPingPop(pop, state) {
   const meter = Number.isFinite(now) ? Math.max(8, Math.min(100, Math.round(100 - now / 4))) : 8;
   const tone = grade === 'slow' || grade === 'fail' ? 'is-slow' : grade === 'mid' ? 'is-mid' : '';
   const busy = !!(state && state.busy);
-  const num = (n) => (n == null ? '—' : `${n}`);
+  const face = (n) => (n == null ? '—' : mbPingShown(n));
+  const shown = Number.isFinite(now) ? mbPingShown(now) : '—';
   pop.innerHTML = `
 <div class="tb-ping-hd"><b>${mbPingSay('tb.ping.title', 'Bağlantı')}</b><span class="${tone}">${label}</span></div>
-<div class="tb-ping-now">${Number.isFinite(now) ? now : '—'}${Number.isFinite(now) ? '<small>ms</small>' : ''}</div>
+<div class="tb-ping-now">${shown}${Number.isFinite(now) ? '<small>ms</small>' : ''}</div>
 <div class="tb-ping-meter"><i class="${tone}" style="width:${meter}%"></i></div>
 <div class="tb-ping-hint">${mbPingSay('tb.ping.hint', 'Sunucuya gidiş-dönüş. Test beş ölçüm alır.')}</div>
 <div class="tb-ping-stats">
-<div><small>${mbPingSay('tb.ping.min', 'En düşük')}</small><b>${num(min)}</b></div>
-<div><small>${mbPingSay('tb.ping.avg', 'Ortalama')}</small><b>${num(avg)}</b></div>
-<div><small>${mbPingSay('tb.ping.max', 'En yüksek')}</small><b>${num(max)}</b></div>
+<div><small>${mbPingSay('tb.ping.min', 'En düşük')}</small><b>${face(min)}</b></div>
+<div><small>${mbPingSay('tb.ping.avg', 'Ortalama')}</small><b>${face(avg)}</b></div>
+<div><small>${mbPingSay('tb.ping.max', 'En yüksek')}</small><b>${face(max)}</b></div>
 </div>
 <button type="button" class="tb-ping-go" id="tb-ping-go" onclick="mbRunPingTest(event)" ${busy ? 'disabled' : ''}>${busy ? mbPingSay('tb.ping.testing', 'Ölçülüyor…') : (samples.length ? mbPingSay('tb.ping.again', 'Yeniden ölç') : mbPingSay('tb.ping.test', 'Hız testi'))}</button>`;
 }
