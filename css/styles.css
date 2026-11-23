@@ -1165,6 +1165,9 @@ button.tb-pill.pill-bal.is-neg {
 [data-theme="dark"] .live-card--on_call,
 [data-theme="dark"] .live-line--on_call,
 [data-theme="dark"] .sup-card--on_call { --tone-a: #2E7D32; --tone-b: #0d3311; }
+[data-theme="dark"] .live-card--calling,
+[data-theme="dark"] .live-line--calling,
+[data-theme="dark"] .sup-card--calling { --tone-a: #D97706; --tone-b: #78350f; }
 [data-theme="dark"] .live-card--ready,
 [data-theme="dark"] .live-line--ready,
 [data-theme="dark"] .sup-card--ready { --tone-a: #E65100; --tone-b: #7a2a00; }
@@ -4683,6 +4686,7 @@ DASHBOARD
   transition: background-color .6s linear, color .6s linear;
 }
 .live-card--on_call, .live-line--on_call, .sup-card--on_call { --tone-a: #81C784; --tone-b: #1B5E20; }
+.live-card--calling, .live-line--calling, .sup-card--calling { --tone-a: #FBBF24; --tone-b: #B45309; }
 .live-card--ready, .live-line--ready, .sup-card--ready { --tone-a: #FFB74D; --tone-b: #E65100; }
 .live-card--wrapping, .live-line--wrapping, .sup-card--wrapping { --tone-a: #4DD0E1; --tone-b: #006064; }
 .live-card--break, .live-line--break, .sup-card--break { --tone-a: #7E57C2; --tone-b: #311B92; }

@@ -212,6 +212,7 @@ async function mbLoadUiPrefs() {
 const MB_LIVE_GRAD_STATUS = ['on_call', 'ready', 'wrapping', 'break', 'offline'];
 const MB_LIVE_GRAD_LIGHT = {
   on_call: ['#81c784', '#1b5e20'],
+  calling: ['#fbbf24', '#b45309'],
   ready: ['#ffb74d', '#e65100'],
   wrapping: ['#4dd0e1', '#006064'],
   break: ['#7e57c2', '#311b92'],
@@ -219,6 +220,7 @@ const MB_LIVE_GRAD_LIGHT = {
 };
 const MB_LIVE_GRAD_DARK = {
   on_call: ['#2e7d32', '#0d3311'],
+  calling: ['#d97706', '#78350f'],
   ready: ['#e65100', '#7a2a00'],
   wrapping: ['#00838f', '#04363a'],
   break: ['#5e35b1', '#24124f'],
@@ -262,7 +264,10 @@ function mbEffectiveGrad(st) {
 }
 
 function mbLiveDot(st) {
-  return mbEffectiveGrad(st)[0];
+  const pair = mbEffectiveGrad(st);
+  if (pair && pair[0]) return pair[0];
+  if (st === 'calling') return '#F59E0B';
+  return '#94a3b8';
 }
 
 function mbApplyLiveGrads(raw) {

@@ -2153,6 +2153,7 @@ const subEl = document.getElementById('dash-chart-sub');
 if (costEl) costEl.style.display = onlySelf ? 'none' : '';
 const showLive = ['admin', 'super_admin', 'firm_admin'].includes(currentUser?.role || '');
 if (liveWrap) liveWrap.style.display = showLive ? '' : 'none';
+const liveAgentsP = showLive ? renderDashLiveAgents().catch((e) => console.warn('live', e)) : null;
 document.querySelectorAll('.dash-range-btn').forEach(b => {
   b.classList.toggle('active', b.dataset.dashRange === _dashGetRange());
 });
@@ -2255,7 +2256,7 @@ document.getElementById('d-avg').textContent    = isTr
   if (errSub) errSub.textContent = (typeof t === 'function' ? t('ui.error_prefix') : 'Hata: ') + (e?.message || '');
 }
 const dashTail = [];
-if (showLive) dashTail.push(renderDashLiveAgents().catch((e) => console.warn('live', e)));
+if (liveAgentsP) dashTail.push(liveAgentsP);
 if (eomP) dashTail.push(eomP);
 if (typeof loadJobMarketKpi === 'function') dashTail.push(loadJobMarketKpi().catch(() => {}));
 if (typeof loadJobFinanceSummary === 'function') dashTail.push(loadJobFinanceSummary().catch(() => {}));
@@ -3447,7 +3448,9 @@ function compareLiveAgents(a, b) {
   const ra = _DASH_LIVE_ORDER[a.status] ?? 9;
   const rb = _DASH_LIVE_ORDER[b.status] ?? 9;
   if (ra !== rb) return ra - rb;
-  const byAge = liveStateAgeSec(b) - liveStateAgeSec(a);
+  const ageA = liveStateAgeSec(a);
+  const ageB = liveStateAgeSec(b);
+  const byAge = a.status === 'offline' ? ageA - ageB : ageB - ageA;
   if (byAge) return byAge;
   return String(a.agent_name || '').localeCompare(String(b.agent_name || ''), 'tr');
 }
@@ -3493,9 +3496,13 @@ function liveFloorAiOnly() {
 
 function toggleLiveFloorAiOnly(force) {
   window._liveFloorAiOnly = typeof force === 'boolean' ? force : !window._liveFloorAiOnly;
-  if (typeof _paintDashLive === 'function') _paintDashLive();
-  if (typeof _supRenderCards === 'function') _supRenderCards();
-  if (typeof _supUpdateSummary === 'function') _supUpdateSummary();
+  if (mbLivePageOn('page-dashboard')) mbRunLivePaint(_paintDashLive);
+  if (mbLivePageOn('page-supervisor')) {
+    mbRunLivePaint(() => {
+      if (typeof _supRenderCards === 'function') _supRenderCards();
+      if (typeof _supUpdateSummary === 'function') _supUpdateSummary();
+    });
+  }
   document.querySelectorAll('[data-live-ai-only]').forEach((btn) => {
     btn.classList.toggle('is-on', !!window._liveFloorAiOnly);
   });
@@ -3519,8 +3526,9 @@ function _syncLiveLayoutButtons() {
 }
 
 function _liveFlip(root, render) {
-  if (!root) {
+  if (!root || window._mbLiveInstant) {
     render();
+    if (root) _syncLiveLayoutButtons();
     return;
   }
   const prev = new Map();
@@ -3557,17 +3565,32 @@ function setLiveFloorLayout(mode) {
   try { localStorage.setItem('mb-live-layout', next); } catch (_) {}
   if (typeof mbQueueUiPrefSave === 'function') mbQueueUiPrefSave();
   _syncLiveLayoutButtons();
-  if (typeof _paintDashLive === 'function') _paintDashLive();
-  if (typeof _supRenderCards === 'function') _supRenderCards();
+  if (mbLivePageOn('page-dashboard') && typeof _paintDashLive === 'function') mbRunLivePaint(_paintDashLive);
+  if (mbLivePageOn('page-supervisor') && typeof _supRenderCards === 'function') mbRunLivePaint(_supRenderCards);
+}
+
+function mbLivePageOn(id) {
+  return !!document.getElementById(id)?.classList.contains('active');
+}
+
+function mbRunLivePaint(fn) {
+  window._mbLiveInstant = true;
+  try { fn(); }
+  catch (e) { console.warn('live paint', e); }
+  finally { window._mbLiveInstant = false; }
 }
 
 function toggleLiveFloorStatus(st) {
   const on = liveFloorFilter();
   if (st === '*') liveFloorStatuses().forEach((k) => { on[k] = true; });
   else if (Object.prototype.hasOwnProperty.call(on, st)) on[st] = !on[st];
-  if (typeof _paintDashLive === 'function') _paintDashLive();
-  if (typeof _supRenderCards === 'function') _supRenderCards();
-  if (typeof _supUpdateSummary === 'function') _supUpdateSummary();
+  if (mbLivePageOn('page-dashboard')) mbRunLivePaint(_paintDashLive);
+  if (mbLivePageOn('page-supervisor')) {
+    mbRunLivePaint(() => {
+      if (typeof _supRenderCards === 'function') _supRenderCards();
+      if (typeof _supUpdateSummary === 'function') _supUpdateSummary();
+    });
+  }
 }
 
 let _dashLiveCache = [];
@@ -3584,7 +3607,7 @@ async function renderDashLiveAgents() {
     sb(`queues?select=id,name&limit=500`).catch(() => []),
   ]);
   _dashLiveCamps = {};
-  window._mbQueueNames = {};
+  window._mbQueueNames = window._mbQueueNames || {};
   (Array.isArray(camps) ? camps : []).forEach((c) => { if (c?.id) _dashLiveCamps[c.id] = c.name || ''; });
   (Array.isArray(queues) ? queues : []).forEach((q) => { if (q?.id) window._mbQueueNames[q.id] = q.name || ''; });
   _dashLiveCache = mbWithLiveStatus(sessions).slice().sort(compareLiveAgents);
@@ -3594,6 +3617,7 @@ async function renderDashLiveAgents() {
 function _paintDashLive() {
   const live = document.getElementById('live-agents');
   if (!live) return;
+  try {
   const de = currentLang === 'de';
   const rows = _dashLiveCache;
   const count = (st) => rows.filter((s) => s.status === st).length;
@@ -3703,6 +3727,10 @@ function _paintDashLive() {
     if (!document.getElementById('page-dashboard')?.classList.contains('active')) return;
     _dashLiveTick();
   }, 1000);
+  } catch (e) {
+    console.warn('live', e);
+    live.innerHTML = `<div class="mb-empty-hint" style="font-size:13px;">${currentLang === 'de' ? 'Live-Liste konnte nicht gezeichnet werden.' : 'Canlı liste çizilemedi.'}</div>`;
+  }
 }
 
 async function remoteChangeAgentStatus(agentId, newStatus) {
