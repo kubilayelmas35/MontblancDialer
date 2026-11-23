@@ -14,6 +14,9 @@ function mbNoteCallStart(caller, work) {
     answeredAt: '',
     hangupBy: '',
   };
+  window._mbLocalRecUrl = '';
+  window._mbLocalRecBlob = null;
+  window._mbLocalRecCall = null;
 }
 
 function mbNoteCallAnswered() {
@@ -199,7 +202,17 @@ async function mbPullTelnyxRecording(logId, info) {
   mbRecWarn('telnyx.rec_noid', 'Ses kaydı alınamadı');
 }
 
-function mbArmLocalRecording(call) {
+function mbMixRecTrack(ctx, dest, track) {
+  if (!ctx || !dest || !track) return;
+  let probe = track;
+  try {
+    const cloned = typeof track.clone === 'function' ? track.clone() : null;
+    if (cloned) probe = cloned;
+  } catch (e) {}
+  try { ctx.createMediaStreamSource(new MediaStream([probe])).connect(dest); } catch (e) {}
+}
+
+async function mbArmLocalRecording(call) {
   if (mbRecordingUsesTelnyx()) return;
   if (!call || call.__mbLocalRec || call.__mbSupervisor || String(call.id || '').startsWith('sim-')) return;
   if (typeof _testMode !== 'undefined' && _testMode) return;
@@ -221,21 +234,24 @@ function mbArmLocalRecording(call) {
   }
   try {
     const ctx = new Ctx();
-    if (ctx.state === 'suspended') void ctx.resume();
+    if (ctx.state === 'suspended') {
+      try { await ctx.resume(); } catch (e) {}
+    }
     const dest = ctx.createMediaStreamDestination();
-    ctx.createMediaStreamSource(remote).connect(dest);
+    remote.getAudioTracks?.().forEach((track) => mbMixRecTrack(ctx, dest, track));
     const local = mbCallLocalStream(call);
     if (local) {
-      try { ctx.createMediaStreamSource(local).connect(dest); } catch (e) {}
+      call.__mbLocalMicMixed = true;
+      local.getAudioTracks?.().forEach((track) => mbMixRecTrack(ctx, dest, track));
     } else {
-      // Mikrofon gecikmeli gelebilir — bir kez daha dene, yine de karşı tarafı kaydet
       call.__mbLocalMicTries = (call.__mbLocalMicTries || 0) + 1;
       if (call.__mbLocalMicTries <= 6) {
         setTimeout(() => {
-          if (call.__mbLocalRec || (typeof mbCallIsDead === 'function' && mbCallIsDead(call))) return;
+          if ((typeof mbCallIsDead === 'function' && mbCallIsDead(call))) return;
           const late = mbCallLocalStream(call);
-          if (!late || !call.__mbLocalCtx) return;
-          try { call.__mbLocalCtx.createMediaStreamSource(late).connect(call.__mbLocalDest); } catch (e) {}
+          if (!late || !call.__mbLocalCtx || call.__mbLocalMicMixed) return;
+          call.__mbLocalMicMixed = true;
+          late.getAudioTracks?.().forEach((track) => mbMixRecTrack(call.__mbLocalCtx, call.__mbLocalDest, track));
         }, 400);
       }
     }
@@ -247,7 +263,7 @@ function mbArmLocalRecording(call) {
     window._mbLocalRecWait = new Promise((resolve) => { call.__mbLocalDone = resolve; });
     rec.onstop = () => {
       const blob = new Blob(chunks, { type: rec.mimeType || mime || 'audio/webm' });
-      if (call.__mbLocalKeep && blob.size > 400) window._mbLocalRecBlob = blob;
+      if (call.__mbLocalKeep && blob.size > 120) window._mbLocalRecBlob = blob;
       else if (call.__mbLocalKeep) call.__mbLocalMiss = 'short';
       try { ctx.close(); } catch (e) {}
       call.__mbLocalCtx = null;
@@ -317,6 +333,37 @@ async function mbUploadLocalRecording(blob) {
     }
   }
   throw lastErr || new Error('storage');
+}
+
+function mbCommitLocalRecording() {
+  if (window._mbLocalRecUrl) return Promise.resolve(window._mbLocalRecUrl);
+  if (window._mbRecCommit) return window._mbRecCommit;
+  window._mbRecCommit = (async () => {
+    let blob = window._mbLocalRecBlob || null;
+    if (!blob) {
+      blob = await Promise.race([
+        mbFinishLocalRecording(window._mbLocalRecCall || null, true),
+        new Promise((resolve) => setTimeout(resolve, 4000)),
+      ]);
+    }
+    blob = blob || window._mbLocalRecBlob || null;
+    if (!blob) return '';
+    let url = '';
+    try { url = await mbUploadLocalRecording(blob); } catch (e) { url = ''; }
+    if (!url) return '';
+    window._mbLocalRecUrl = url;
+    const pending = window._mbPendingLogPromise;
+    const id = window._mbPendingLogId || (pending ? await pending.catch(() => '') : '');
+    if (id && typeof sb === 'function') {
+      await sb(`call_logs?id=eq.${id}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ recording_url: url }),
+      }).catch(() => {});
+    }
+    return url;
+  })().finally(() => { window._mbRecCommit = null; });
+  return window._mbRecCommit;
 }
 
 async function mbTelnyxRecord(action, payload) {
@@ -1339,6 +1386,9 @@ if (currentContact && typeof showCustomerCard === 'function') showCustomerCard(c
 setDialerStatus('wrapping');
 updateSessionInDB('wrapping');
 mbEnsureTalkLog(callSeconds);
+if ((Number(callSeconds) > 0 || window._mbCallMeta?.answeredAt) && typeof mbCommitLocalRecording === 'function') {
+  void mbCommitLocalRecording();
+}
 }
 _outboundAnswered = false;
 if (amdResult === 'machine') amdResult = null;

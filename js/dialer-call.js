@@ -1683,20 +1683,15 @@ async function submitOutcome(goBreak) {
       const callExtra = typeof mbCallLogExtras === 'function' ? mbCallLogExtras() : {};
       const telnyxRec = typeof mbRecordingUsesTelnyx === 'function' && mbRecordingUsesTelnyx();
       const expectRec = !!(window._mbCallMeta && window._mbCallMeta.answeredAt) && finalOutcome !== 'no_answer';
-      if (!telnyxRec && talked && typeof mbFinishLocalRecording === 'function') {
-        await Promise.race([
-          mbFinishLocalRecording(window._mbLocalRecCall || null, true),
-          new Promise((resolve) => setTimeout(resolve, 3500)),
-        ]);
-      }
-      if (!telnyxRec && window._mbLocalRecBlob && typeof mbUploadLocalRecording === 'function') {
+      if (!telnyxRec && talked && typeof mbCommitLocalRecording === 'function') {
         try {
-          const localRecUrl = await mbUploadLocalRecording(window._mbLocalRecBlob);
+          const localRecUrl = await mbCommitLocalRecording();
           if (localRecUrl) logData.recording_url = localRecUrl;
         } catch (e) {
           if (typeof mbRecWarn === 'function') mbRecWarn('telnyx.rec_fail', 'Ses kaydı kaydedilemedi');
         }
-      } else if (!telnyxRec && expectRec && !_testMode && !logData.recording_url && typeof mbRecWarn === 'function') {
+      }
+      if (!telnyxRec && expectRec && !_testMode && !logData.recording_url && typeof mbRecWarn === 'function') {
         mbRecWarn('telnyx.rec_noid', 'Ses kaydı alınamadı');
       }
       if (!skipAutoLog) {
