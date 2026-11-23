@@ -332,10 +332,21 @@ function mbPingGrade(ms) {
   return 'slow';
 }
 
+function mbPingShown(ms) {
+  const n = Number(ms);
+  if (!Number.isFinite(n)) return String(ms ?? '--');
+  return String(Math.max(0, Math.floor(n / 10)));
+}
+
 function mbPaintPing(ms) {
   const el = document.getElementById('pill-ping');
   const btn = document.getElementById('pill-ping-btn');
-  if (el) el.textContent = ms;
+  const n = Number(ms);
+  if (el) {
+    if (Number.isFinite(n)) el.dataset.ms = String(Math.round(n));
+    else delete el.dataset.ms;
+    el.textContent = mbPingShown(ms);
+  }
   if (btn) {
     btn.classList.remove('is-mid', 'is-slow');
     const grade = mbPingGrade(ms);
@@ -361,7 +372,7 @@ function mbPlacePingPop(pop) {
 
 function mbFillPingPop(pop, state) {
   if (!pop) return;
-  const raw = document.getElementById('pill-ping')?.textContent || '--';
+  const raw = document.getElementById('pill-ping')?.dataset.ms || '--';
   const now = Number(raw);
   const grade = mbPingGrade(now);
   const label = mbPingSay(`tb.ping.${grade}`, grade === 'fail' ? 'Ölçülemedi' : 'İyi');
