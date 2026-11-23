@@ -131,8 +131,12 @@ function mbWrapSipSession(session, direction, dest) {
   });
 
   session.on('progress', () => bump('ringing'));
-  session.on('accepted', () => bump('active'));
+  session.on('accepted', () => {
+    if (!call.sipAnsweredAt) call.sipAnsweredAt = Date.now();
+    bump('active');
+  });
   session.on('confirmed', () => {
+    if (!call.sipAnsweredAt) call.sipAnsweredAt = Date.now();
     bump('active');
     try {
       const pc = session.connection;
@@ -150,10 +154,12 @@ function mbWrapSipSession(session, direction, dest) {
   session.on('unhold', () => bump('active', { held: false }));
   session.on('muted', () => {});
   session.on('ended', (e) => {
+    if (!call.sipEndedAt) call.sipEndedAt = Date.now();
     mbSipStampFail(call, e);
     bump('hangup');
   });
   session.on('failed', (e) => {
+    if (!call.sipEndedAt) call.sipEndedAt = Date.now();
     mbSipStampFail(call, e);
     bump('hangup');
   });

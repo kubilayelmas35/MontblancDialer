@@ -19,10 +19,11 @@ function resetDialerVoiceVisuals() {
   page.style.removeProperty('--voice-progress');
 }
 
-function startCallTimer() {
+function startCallTimer(answeredAtMs) {
   clearInterval(callTimerInt);
-  const startedAt = Date.now();
-  callSeconds = 0;
+  const origin = Number(answeredAtMs) || Date.now();
+  const startedAt = origin > 0 ? origin : Date.now();
+  callSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
   _lastMascotCheerSec = -1;
   refreshStatusElapsed();
   updateDialerVoiceVisuals(0);
@@ -1654,8 +1655,11 @@ async function submitOutcome(goBreak) {
         ? currentContact._dialTarget
         : currentContact.phone;
       const answeredMs = window._mbCallMeta?.answeredAt ? Date.parse(window._mbCallMeta.answeredAt) : 0;
-      const fromAnswer = answeredMs ? Math.max(0, Math.round((Date.now() - answeredMs) / 1000)) : 0;
-      const talkedSec = Math.max(Number(callSeconds) || 0, fromAnswer);
+      const fromAnswer = answeredMs ? Math.max(0, Math.floor((Date.now() - answeredMs) / 1000)) : 0;
+      const billed = window._mbBillSec;
+      const talkedSec = (billed != null && billed !== '')
+        ? Math.max(0, Math.floor(Number(billed) || 0))
+        : Math.max(0, Math.floor(Number(callSeconds) || 0), fromAnswer);
       const logData = {
         campaign_id: selectedCampId,
         firm_id: currentContact.firm_id || currentUser.firm_id,

@@ -2797,7 +2797,7 @@ function chSpanSec(start, end) {
   const a = start ? new Date(start).getTime() : 0;
   const b = end ? new Date(end).getTime() : 0;
   if (!a || !b || b <= a) return 0;
-  return Math.max(0, Math.round((b - a) / 1000));
+  return Math.max(0, Math.floor((b - a) / 1000));
 }
 
 function chDurSec(l) {

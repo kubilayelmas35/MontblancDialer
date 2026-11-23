@@ -4,9 +4,11 @@
 
 function mbResetCallMeta() {
   window._mbCallMeta = null;
+  window._mbBillSec = null;
 }
 
 function mbNoteCallStart(caller, work) {
+  window._mbBillSec = null;
   window._mbCallMeta = {
     dialAt: new Date().toISOString(),
     caller: String(caller || '').trim(),
@@ -19,9 +21,12 @@ function mbNoteCallStart(caller, work) {
   window._mbLocalRecCall = null;
 }
 
-function mbNoteCallAnswered() {
+function mbNoteCallAnswered(atMs) {
   const meta = window._mbCallMeta || {};
-  if (!meta.answeredAt) meta.answeredAt = new Date().toISOString();
+  if (!meta.answeredAt) {
+    const ms = Number(atMs) || Date.now();
+    meta.answeredAt = new Date(ms).toISOString();
+  }
   window._mbCallMeta = meta;
 }
 
@@ -671,13 +676,34 @@ function mbCloseMiss(row, status) {
   return st;
 }
 
+function mbProviderSeconds(call, row) {
+  const session = call && call.__mbSip;
+  let start = Number(call && call.sipAnsweredAt) || 0;
+  if (!start && session && session.start_time) {
+    const t = new Date(session.start_time).getTime();
+    if (t) start = t;
+  }
+  if (!start) start = Number(row && row.answeredAt) || 0;
+  if (!start) return 0;
+  let end = Number(call && call.sipEndedAt) || 0;
+  if (!end && session && session.end_time) {
+    const t = new Date(session.end_time).getTime();
+    if (t) end = t;
+  }
+  if (!end) end = Date.now();
+  if (end <= start) return 0;
+  return Math.floor((end - start) / 1000);
+}
+
 function mbTalkSeconds(row) {
+  const billed = mbProviderSeconds(row?.call, row);
+  if (billed > 0) return billed;
   const at = Number(row?.answeredAt) || 0;
-  if (at) return Math.max(0, Math.round((Date.now() - at) / 1000));
+  if (at) return Math.max(0, Math.floor((Date.now() - at) / 1000));
   const iso = window._mbCallMeta?.answeredAt;
   const t = iso ? Date.parse(iso) : 0;
   if (!t) return 0;
-  return Math.max(0, Math.round((Date.now() - t) / 1000));
+  return Math.max(0, Math.floor((Date.now() - t) / 1000));
 }
 
 function mbFarEndMissed(row) {
@@ -911,7 +937,9 @@ function mbConnectHopperRow(row) {
   _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
   if (row.contact) currentContact = row.contact;
   _attachLiveAudio(row.call);
+  if (row.answeredAt || row.call?.sipAnsweredAt) mbNoteCallAnswered(row.answeredAt || row.call?.sipAnsweredAt);
   if (typeof handleCallState === 'function') handleCallState('active', row.id);
+  if (typeof startCallTimer === 'function') startCallTimer(row.answeredAt || row.call?.sipAnsweredAt);
   if (typeof mbPublishLiveLeg === 'function') mbPublishLiveLeg(row);
   if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
   if (typeof mbSyncPool === 'function') mbSyncPool();
@@ -976,7 +1004,7 @@ function mbEnsureTalkLog(sec) {
   if (window._mbPendingLogId || window._mbPendingLogPromise || typeof sb !== 'function') return;
   const meta = window._mbCallMeta || {};
   const duration = Math.max(0, Number(sec) || 0);
-  if (!meta.answeredAt && duration < 3) return;
+  if (!meta.answeredAt && duration < 3 && !(Number(window._mbBillSec) > 0)) return;
   const contact = (typeof currentContact !== 'undefined' && currentContact) ? currentContact : null;
   const campId = contact?.campaign_id || (typeof selectedCampId !== 'undefined' ? selectedCampId : null) || null;
   let firmId = contact?.firm_id || (typeof currentUser !== 'undefined' ? currentUser?.firm_id : null) || null;
@@ -1137,6 +1165,8 @@ function mbOnHopperCall(call) {
     return;
   }
   if (state === 'active') {
+    if (!call.sipAnsweredAt) call.sipAnsweredAt = Date.now();
+    row.answeredAt = row.answeredAt || call.sipAnsweredAt;
     if (typeof mbStopRingback === 'function') mbStopRingback();
     mbCaptureTelnyxIds(call);
     if (typeof mbApplyCallNoise === 'function') void mbApplyCallNoise(call);
@@ -1170,6 +1200,7 @@ function mbOnHopperCall(call) {
     return;
   }
   if (dead) {
+    if (!call.sipEndedAt) call.sipEndedAt = Date.now();
     const wasLive = (row.id === _liveCallId || row.phase === 'live') && !mbFarEndMissed(row);
     const dest = row.dest || mbCallDigits(call);
     _hopper = _hopper.filter((r) => {
@@ -1190,8 +1221,8 @@ function mbOnHopperCall(call) {
       mbNoteRecordingMiss(call);
       _liveCallId = null;
       _telnyxCall = null;
-      const talk = mbTalkSeconds(row);
-      const dur = talk >= 3 ? talk : (callStart ? Math.round((Date.now() - callStart) / 1000) : 0);
+      const dur = mbProviderSeconds(row.call, row);
+      window._mbBillSec = dur;
       callStart = null;
       if (typeof handleCallEnd === 'function') handleCallEnd(dur);
     } else {
@@ -1453,7 +1484,17 @@ if ((dialerStatus === 'calling' || dialerStatus === 'on_call') && !liveLeft) {
 }
 _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
 const wasAttempt = dialerStatus === 'on_call' || (dialerStatus === 'calling' && !liveLeft);
-callSeconds  = duration || callSeconds;
+if (window._mbBillSec != null && window._mbBillSec !== '') {
+  callSeconds = Math.max(0, Math.floor(Number(window._mbBillSec) || 0));
+} else {
+  callSeconds = duration || callSeconds;
+}
+const timerEl = document.getElementById('dialer-timer');
+if (timerEl && callSeconds >= 0) {
+  const mm = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+  const ss = String(callSeconds % 60).padStart(2, '0');
+  timerEl.textContent = `${mm}:${ss}`;
+}
 activeCallId = null;
 if (wasAttempt) {
 if (typeof hideOutboundWait === 'function') hideOutboundWait();
