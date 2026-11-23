@@ -149,18 +149,43 @@ function mbWrapSipSession(session, direction, dest) {
   session.on('unhold', () => bump('active', { held: false }));
   session.on('muted', () => {});
   session.on('ended', (e) => {
-    call.sipCode = Number(e?.message?.status_code || e?.cause || 0) || 0;
-    call.cause = String(e?.cause || '');
+    mbSipStampFail(call, e);
     bump('hangup');
   });
   session.on('failed', (e) => {
-    call.sipCode = Number(e?.message?.status_code || 0) || 0;
-    call.sip_reason = String(e?.cause || e?.message?.reason_phrase || '');
-    call.cause = String(e?.cause || '');
+    mbSipStampFail(call, e);
     bump('hangup');
   });
 
   return call;
+}
+
+function mbSipStampFail(call, e) {
+  if (!call) return;
+  const msg = e?.message;
+  const sip = Number(msg?.status_code || 0) || 0;
+  let reason = '';
+  try {
+    reason = String(msg?.getHeader?.('Reason') || '');
+    if (!reason && typeof msg?.parseHeader === 'function') {
+      const parsed = msg.parseHeader('Reason');
+      reason = Array.isArray(parsed) ? parsed.join(' ') : String(parsed || '');
+    }
+  } catch (err) {}
+  const q850 = Number((String(reason).match(/cause\s*=\s*(\d+)/i) || [])[1] || 0) || 0;
+  if (sip) {
+    call.sipCode = sip;
+    call.sip_code = sip;
+  }
+  if (q850) {
+    call.causeCode = q850;
+    call.cause_code = q850;
+  }
+  const cause = String(e?.cause || '');
+  const phrase = String(msg?.reason_phrase || '');
+  call.cause = [cause, phrase, reason].filter(Boolean).join(' ');
+  call.sip_reason = cause || phrase || reason;
+  call.sipReason = call.sip_reason;
 }
 
 function mbSipPcConfig() {

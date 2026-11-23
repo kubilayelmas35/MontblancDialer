@@ -533,7 +533,7 @@ function mbUnusedNumber(call) {
     call.hangupCause,
     call.hangup_cause,
   ].map((v) => String(v || '')).join(' ').toUpperCase();
-  return /UNALLOCATED|INVALID[_\s-]*NUMBER|NUMBER[_\s-]*CHANGED|NO[_\s-]*ROUTE[_\s-]*DESTINATION|DESTINATION[_\s-]*OUT[_\s-]*OF[_\s-]*ORDER|NOT[_\s-]*IN[_\s-]*SERVICE|UNASSIGNED|DOES[_\s-]*NOT[_\s-]*EXIST|ADDRESS[_\s-]*INCOMPLETE/.test(text);
+  return /UNALLOCATED|INVALID[_\s-]*NUMBER|NUMBER[_\s-]*CHANGED|NO[_\s-]*ROUTE[_\s-]*DESTINATION|DESTINATION[_\s-]*OUT[_\s-]*OF[_\s-]*ORDER|NOT[_\s-]*IN[_\s-]*SERVICE|UNASSIGNED|DOES[_\s-]*NOT[_\s-]*EXIST|ADDRESS[_\s-]*INCOMPLETE|NOT[_\s-]*FOUND/.test(text);
 }
 
 function mbDialPhoneBad(dest) {
@@ -569,8 +569,8 @@ function mbBusyLine(call) {
   if (!call) return false;
   const sip = Number(call.sipCode || call.sip_code || 0);
   const q850 = Number(call.causeCode || call.cause_code || 0);
-  if (sip === 486 || q850 === 17) return true;
-  return /USER[_\s-]*BUSY/.test(mbCallFailText(call));
+  if (sip === 486 || sip === 600 || q850 === 17) return true;
+  return /USER[_\s-]*BUSY|(^|[^A-Z])BUSY([^A-Z]|$)/.test(mbCallFailText(call));
 }
 
 function mbPhoneOff(call) {
@@ -582,15 +582,25 @@ function mbPhoneOff(call) {
   if (q850 === 19 || q850 === 18 || q850 === 17 || q850 === 21 || q850 === 102) return false;
   if (sip === 480 || sip === 503) return true;
   if ([20, 34, 38, 41, 42, 47].includes(q850)) return true;
-  return /SUBSCRIBER[_\s-]*ABSENT|TEMPORARY[_\s-]*FAILURE|NORMAL[_\s-]*TEMPORARY|NO[_\s-]*CIRCUIT|SWITCH[_\s-]*CONGEST|NETWORK[_\s-]*OUT[_\s-]*OF[_\s-]*ORDER|RESOURCE[_\s-]*UNAVAILABLE/.test(text);
+  return /SUBSCRIBER[_\s-]*ABSENT|TEMPORARY[_\s-]*FAILURE|NORMAL[_\s-]*TEMPORARY|NO[_\s-]*CIRCUIT|SWITCH[_\s-]*CONGEST|NETWORK[_\s-]*OUT[_\s-]*OF[_\s-]*ORDER|RESOURCE[_\s-]*UNAVAILABLE|(^|[^A-Z])UNAVAILABLE([^A-Z]|$)/.test(text);
 }
 
 function mbPoolEndStatus(row) {
-  if (mbUnusedNumber(row?.call)) return 'unused';
+  const call = row?.call;
+  if (String(call?.amd_result || row?.amd || '') === 'machine') return 'voicemail';
+  if (mbUnusedNumber(call)) return 'unused';
   if (row?.phase === 'hold') return 'stuck';
-  if (mbBusyLine(row?.call)) return 'busy';
-  if (mbPhoneOff(row?.call)) return 'phone_off';
+  if (mbBusyLine(call)) return 'busy';
+  if (mbPhoneOff(call)) return 'phone_off';
   return 'no_answer';
+}
+
+function mbCloseMiss(row, status) {
+  const st = status || mbPoolEndStatus(row);
+  const contact = row?.contact || null;
+  if (typeof mbWriteAttemptLog === 'function') mbWriteAttemptLog(contact, st, row);
+  if (contact) mbReleaseUnanswered(contact, st);
+  return st;
 }
 
 function mbTalkSeconds(row) {
@@ -684,23 +694,23 @@ function mbUnansweredEnded(row) {
       return;
     }
     if (byAgent) {
-      mbWriteAttemptLog(contact, 'no_answer', row);
+      mbCloseMiss(row);
+      mbFinishUnanswered(row);
       return;
     }
     if (contact && mbUnusedNumber(row?.call)) mbReleaseUnanswered(contact, 'unused');
     if (typeof handleCallEnd === 'function') handleCallEnd(0);
     return;
   }
-  if (mbAgentCancelledRing(row)) return;
   const endStatus = mbPoolEndStatus(row);
   if (mbHopperStillUp()) {
-    if (contact) mbReleaseUnanswered(contact, endStatus);
+    mbCloseMiss(row, endStatus);
     if (!_liveCallId && typeof mbRefillHopper === 'function') mbRefillHopper();
     return;
   }
   _outboundDialPending = false;
   _telnyxCall = null;
-  if (contact) mbReleaseUnanswered(contact, endStatus);
+  mbCloseMiss(row, endStatus);
   if (_poolSyncing) mbSettleEmptyCalling();
   else if (typeof mbRefillHopper === 'function') mbRefillHopper();
   else mbSettleEmptyCalling();
@@ -926,7 +936,9 @@ function mbEnsureTalkLog(sec) {
 function mbReleaseUnanswered(contact, status) {
   if (!contact?.id) return;
   const st = status || 'no_answer';
-  if (st === 'no_answer') _hopperSkip.set(String(contact.id), Date.now() + 60000);
+  if (st === 'no_answer' || st === 'busy' || st === 'phone_off' || st === 'voicemail' || st === 'unused') {
+    _hopperSkip.set(String(contact.id), Date.now() + 60000);
+  }
   if (typeof isValidUUID === 'function' && isValidUUID(contact.id) && typeof sb === 'function') {
     sb(`contacts?id=eq.${contact.id}`, {
       method: 'PATCH',
@@ -940,7 +952,7 @@ function mbReleaseUnanswered(contact, status) {
 function mbCancelHopper() {
   const rows = _hopper.filter((r) => r.phase !== 'live');
   rows.forEach((r) => {
-    if (r.contact && r.phase !== 'hold') mbReleaseUnanswered(r.contact, 'pending');
+    if (r.contact && r.phase !== 'hold') mbCloseMiss(r);
     _hopper = _hopper.filter((x) => x !== r);
     try { r.call.hangup(); } catch (e) {}
   });

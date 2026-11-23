@@ -1327,9 +1327,11 @@ async function mbSyncPool() {
       if (plan.drop <= 0) return;
       plan.local.slice(-plan.drop).forEach((row) => {
         if (row.contact?.id) _hopperSkip.set(String(row.contact.id), Date.now() + 20000);
-        if (row.contact && typeof mbReleaseUnanswered === 'function') mbReleaseUnanswered(row.contact, 'pending');
+        try { row.call?.hangup(); } catch (e) {}
+        if (!_hopper.includes(row)) return;
         _hopper = _hopper.filter((r) => r !== row);
-        try { row.call.hangup(); } catch (e) {}
+        if (typeof mbCloseMiss === 'function') mbCloseMiss(row);
+        else if (row.contact && typeof mbReleaseUnanswered === 'function') mbReleaseUnanswered(row.contact, 'no_answer');
       });
     });
     const canDial = _testMode || window.__mbPoolSimulate || telnyxReady;
