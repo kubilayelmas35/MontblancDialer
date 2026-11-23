@@ -955,6 +955,24 @@ function repMoney(amount, cur) {
   return `${Number(amount || 0).toFixed(2)} ${cur || 'EUR'}`;
 }
 
+function repRateText(price, cur) {
+  const n = Number(price);
+  if (!Number.isFinite(n)) return '—';
+  const sym = typeof getCurrencySymbol === 'function' ? getCurrencySymbol(cur || 'EUR') : '€';
+  const cents = Math.round(n * 100) / 100;
+  const digits = Math.abs(n - cents) < 0.0000001 ? 2 : 3;
+  const text = n.toLocaleString('de-DE', { minimumFractionDigits: digits, maximumFractionDigits: 3 });
+  return `${sym}${text}`;
+}
+
+function repCallCost(log, rates) {
+  const stored = log?.cost_usd;
+  if (stored != null && stored !== '' && Number(stored) > 0) return Number(stored) || 0;
+  const sec = Number(log?.duration_sec) || 0;
+  if (!(sec > 0) || typeof mbCallEuros !== 'function') return 0;
+  return Number(mbCallEuros(log.phone, sec, rates)) || 0;
+}
+
 function repCreditShare(pct) {
   const width = Math.max(0, Math.min(100, Math.round(pct)));
   return `<div class="rep-share" title="${width}%"><span style="width:${width}%"></span></div>`;
@@ -979,8 +997,9 @@ async function repCreditExtra(logs, range) {
     const firm = byFirm[log.firm_id] || {};
     const cur = typeof normalizeCurrency === 'function' ? normalizeCurrency(firm.currency) : (firm.currency || 'EUR');
     currency = cur;
-    const rate = typeof statsMatchRate === 'function' ? statsMatchRate(log.phone, firm.settings?.billing?.rates || []) : null;
-    const cost = log.cost_usd == null || log.cost_usd === '' ? 0 : (Number(log.cost_usd) || 0);
+    const rates = firm.settings?.billing?.rates || [];
+    const rate = typeof statsMatchRate === 'function' ? statsMatchRate(log.phone, rates) : null;
+    const cost = repCallCost(log, rates);
     if (rate) currencies.add(cur);
     money += cost;
     const qid = log.campaign_id || '—';
@@ -1024,7 +1043,7 @@ async function repCreditExtra(logs, range) {
     queueRows.push(`<tr class="rep-credit-total"><td>${statsEsc(t('rep.total'))}</td><td>${calls}</td><td>${statsEsc(statsHms(sec))}</td><td>${sec}</td><td>${statsEsc(prefixList.length ? repMoney(money, currency) : '—')}</td></tr>`);
   }
   const prefixRows = prefixList.map((row) => {
-    const rate = `${repMoney(row.price, row.cur)}/dk`;
+    const rate = `${repRateText(row.price, row.cur)}/dk`;
     return `<tr><td>${statsEsc(row.prefix)}</td><td>${statsEsc(row.name)}</td><td>${statsEsc(rate)}</td><td>${row.calls}</td><td>${statsEsc(statsHms(row.sec))}</td><td>${row.sec}</td><td>${statsEsc(repMoney(row.money, row.cur))}</td></tr>`;
   });
   const prefixBody = prefixRows.length

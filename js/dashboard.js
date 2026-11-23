@@ -2329,7 +2329,7 @@ async function statsFillFilters(fid) {
 
 async function statsPullLogs(ff, gte, lte, camp, agent) {
   const tail = `${ff}&started_at=gte.${gte}&started_at=lte.${lte}${camp ? `&campaign_id=eq.${camp}` : ''}${agent ? `&agent_id=eq.${agent}` : ''}&order=started_at.desc`;
-  const rich = `call_logs?select=id,outcome,agent_id,operator_name,ai_staff_id,work_type,campaign_id,firm_id,duration_sec,started_at,phone,users(id,name,role),campaigns(id,name)${tail}`;
+  const rich = `call_logs?select=id,outcome,agent_id,operator_name,ai_staff_id,work_type,campaign_id,firm_id,duration_sec,cost_usd,started_at,phone,users(id,name,role),campaigns(id,name)${tail}`;
   const plain = `call_logs?select=id,outcome,agent_id,operator_name,ai_staff_id,work_type,campaign_id,firm_id,duration_sec${tail}`;
   try {
     const rows = await mbFetchAll(rich);
