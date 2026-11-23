@@ -107,7 +107,7 @@ async function mbGeoconLoadCamps() {
   const sel = document.getElementById('uq-camp');
   if (!sel || typeof sb !== 'function') return;
   sel.innerHTML = `<option value="">${geoSay('geo.need.camp', 'Kampanya seç')}</option>`;
-  let query = 'campaigns?select=id,name,firm_id&order=name.asc';
+  let query = 'campaigns?select=id,name,firm_id,status&order=name.asc';
   const role = currentUser?.role || '';
   if (role !== 'super_admin') {
     const firmId = currentUser?.firm_id || '';
@@ -116,15 +116,20 @@ async function mbGeoconLoadCamps() {
   }
   try {
     const rows = await sb(query);
-    _geoCamps = Array.isArray(rows) ? rows : [];
+    _geoCamps = (Array.isArray(rows) ? rows : []).slice().sort((a, b) => {
+      const rank = (camp) => (camp?.status === 'active' ? 0 : 1);
+      return rank(a) - rank(b) || String(a?.name || '').localeCompare(String(b?.name || ''), 'tr');
+    });
   } catch (e) {
     _geoCamps = [];
     toast(e.message || geoSay('uq.err.generic', 'Yükleme başarısız'), 'err');
   }
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
-  sel.innerHTML = `<option value="">${esc(geoSay('geo.need.camp', 'Kampanya seç'))}</option>` + _geoCamps.map((camp) => (
-    `<option value="${esc(camp.id)}" data-firm="${esc(camp.firm_id || '')}">${esc(camp.name || '')}</option>`
-  )).join('');
+  sel.innerHTML = `<option value="">${esc(geoSay('geo.need.camp', 'Kampanya seç'))}</option>` + _geoCamps.map((camp) => {
+    const open = camp.status === 'active';
+    const tone = open ? ' style="color:#15803d;font-weight:700"' : '';
+    return `<option value="${esc(camp.id)}" data-firm="${esc(camp.firm_id || '')}"${tone}>${esc(camp.name || '')}</option>`;
+  }).join('');
 }
 
 async function mbGeoconPickCamp() {

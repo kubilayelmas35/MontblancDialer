@@ -623,7 +623,7 @@ async function opsOpenCampPanel() {
   if (!fid) { toast(opsSay('ops.panel.needfirm', 'Önce firma seçin'), 'warn'); return; }
   let camps = [];
   try {
-    camps = await sb(`campaigns?firm_id=eq.${fid}&status=in.(active,paused)&select=id,name,status&order=name.asc`) || [];
+    camps = await sb(`campaigns?firm_id=eq.${fid}&status=eq.active&select=id,name,status&order=name.asc`) || [];
   } catch (e) {
     toast(opsSay('ops.panel.fail', 'Bildirim kaydedilemedi: ') + (e.message || ''), 'err');
     return;

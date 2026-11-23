@@ -912,35 +912,10 @@ function mbResAgentBoard(rows, pieces) {
   return [...by.values()].sort((a, b) => b.total - a.total || String(a.name).localeCompare(String(b.name), 'tr'));
 }
 
-function mbResSampleBoard(pieces) {
-  const grid = [
-    [6, 2, 1, 0, 1, 0],
-    [4, 3, 0, 2, 0, 1],
-    [3, 1, 2, 1, 1, 0],
-    [2, 4, 0, 0, 1, 2],
-    [1, 1, 1, 2, 0, 0],
-  ];
-  const who = mbChipSay('tb.res.sampleAgent', 'Temsilci');
-  return grid.map((counts, index) => {
-    const slot = { name: `${who} ${index + 1}`, counts: {}, total: 0 };
-    pieces.forEach((item, i) => {
-      const n = counts[i] || 0;
-      slot.counts[item.key] = n;
-      slot.total += n;
-    });
-    return slot;
-  });
-}
-
 function mbTodayTeamPanel(pieces, rows, view, bounds) {
   const today = typeof mbBusinessToday === 'function' ? mbBusinessToday() : '';
-  const realAgents = mbResAgentBoard(rows, pieces);
-  const sample = !realAgents.length && view.span === 'day' && view.basis === 'kayit' && view.anchor === today;
-  const agents = sample ? mbResSampleBoard(pieces) : realAgents;
-  const shown = pieces.map((item) => ({
-    ...item,
-    n: sample ? agents.reduce((sum, agent) => sum + (agent.counts[item.key] || 0), 0) : item.n,
-  }));
+  const agents = mbResAgentBoard(rows, pieces);
+  const shown = pieces.map((item) => ({ ...item }));
   const total = shown.reduce((sum, item) => sum + (item.n || 0), 0);
   const title = view.span === 'day' && view.anchor === today
     ? mbChipSay('tb.res.today', 'Bugün')
@@ -948,14 +923,11 @@ function mbTodayTeamPanel(pieces, rows, view, bounds) {
   const totalLabel = mbChipSay('tb.res.total', 'Toplam');
   const agentsLabel = mbChipSay('tb.res.agents', 'Temsilciler');
   const emptyLabel = mbChipSay('tb.res.emptyRange', 'Bu aralıkta kayıt yok');
-  const sampleLabel = mbChipSay('tb.res.sample', 'Örnek');
   const seg = (key, on, fn, arg) => `<button type="button" class="${on ? 'is-on' : ''}" onclick="${fn}('${arg}', event)">${mbChipEsc(mbChipSay(key, arg))}</button>`;
   const tools = `<div class="tb-res-tools"><div class="tb-res-seg">${seg('tb.res.basis.kayit', view.basis === 'kayit', 'mbResSetBasis', 'kayit')}${seg('tb.res.basis.termin', view.basis === 'termin', 'mbResSetBasis', 'termin')}</div><div class="tb-res-nav"><button type="button" class="tb-res-step" aria-label="${mbChipEsc(mbChipSay('tb.res.prev', 'Geri'))}" onclick="mbResShift(-1, event)">‹</button><div class="tb-res-seg">${seg('tb.res.span.day', view.span === 'day', 'mbResSetSpan', 'day')}${seg('tb.res.span.week', view.span === 'week', 'mbResSetSpan', 'week')}${seg('tb.res.span.month', view.span === 'month', 'mbResSetSpan', 'month')}</div><button type="button" class="tb-res-step" aria-label="${mbChipEsc(mbChipSay('tb.res.next', 'İleri'))}" onclick="mbResShift(1, event)">›</button></div></div>`;
   const metrics = shown.map((item) => {
     const inner = `<b class="tb-res-num">${item.n}</b><span>${mbChipEsc(item.label)}</span>`;
-    return sample
-      ? `<div class="tb-res-row" style="--c:${item.color};--ink:${item.ink}">${inner}</div>`
-      : `<button type="button" class="tb-res-row" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')">${inner}</button>`;
+    return `<button type="button" class="tb-res-row" style="--c:${item.color};--ink:${item.ink}" onclick="mbToggleResPop(event,'${item.key}')">${inner}</button>`;
   }).join('');
   const headDots = shown.map((item) => `<th title="${mbChipEsc(item.label)}"><i class="tb-res-dot" style="--c:${item.color}"></i></th>`).join('');
   const body = agents.length ? agents.map((agent) => {
@@ -968,8 +940,7 @@ function mbTodayTeamPanel(pieces, rows, view, bounds) {
   }).join('') : `<tr><td class="tb-res-empty" colspan="${shown.length + 2}">${mbChipEsc(emptyLabel)}</td></tr>`;
   const foot = shown.map((item) => `<td style="color:${item.ink}">${item.n}</td>`).join('');
   const footRow = agents.length ? `<tfoot><tr><td>${mbChipEsc(totalLabel)}</td>${foot}<td>${total}</td></tr></tfoot>` : '';
-  const badge = sample ? `<em class="tb-res-sample">${mbChipEsc(sampleLabel)}</em>` : '';
-  return `${tools}<div class="tb-res-head"><div><span>${mbChipEsc(title)}</span>${badge}<small class="tb-res-day">${mbChipEsc(mbResRangeLabel(view, bounds))}</small></div><b>${total}</b></div><div class="tb-res-metrics">${metrics}</div><div class="tb-res-table-wrap"><table class="tb-res-table"><thead><tr><th>${mbChipEsc(agentsLabel)}</th>${headDots}<th>${mbChipEsc(totalLabel)}</th></tr></thead><tbody>${body}</tbody>${footRow}</table></div>`;
+  return `${tools}<div class="tb-res-head"><div><span>${mbChipEsc(title)}</span><small class="tb-res-day">${mbChipEsc(mbResRangeLabel(view, bounds))}</small></div><b>${total}</b></div><div class="tb-res-metrics">${metrics}</div><div class="tb-res-table-wrap"><table class="tb-res-table"><thead><tr><th>${mbChipEsc(agentsLabel)}</th>${headDots}<th>${mbChipEsc(totalLabel)}</th></tr></thead><tbody>${body}</tbody>${footRow}</table></div>`;
 }
 
 async function mbPaintResTeam() {
@@ -1030,7 +1001,7 @@ async function mbPaintResTeam() {
     pieces.push({ key, color, ink, n: extra[key], label });
   });
   window._tbTeamRows = rows;
-  window._tbTeamSample = !mbResAgentBoard(rows, pieces).length && view.span === 'day' && view.basis === 'kayit' && view.anchor === (typeof mbBusinessToday === 'function' ? mbBusinessToday() : '');
+  window._tbTeamSample = false;
   const keepOpen = !panel.hidden || host.matches(':hover') || panel.matches(':hover');
   panel.classList.add('is-team');
   panel.innerHTML = pieces.length ? mbTodayTeamPanel(pieces, rows, view, bounds) : '';

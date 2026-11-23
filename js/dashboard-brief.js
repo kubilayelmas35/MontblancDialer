@@ -298,7 +298,7 @@ function mbDashPaintPills(ops) {
     pill('ring', mbDashTr('Çalıyor', 'Klingelt'), ops.ringing),
     pill('target', mbDashTr('Hedef hat', 'Zielleitung'), ops.target),
     pill('wait', mbDashTr('Hatta', 'In der Leitung'), ops.ringing),
-    pill('pool', mbDashTr('Havuzda bekleyen', 'Im Pool'), ops.pool),
+    pill('pool', mbDashTr('Kuyrukta bekleyen', 'In der Warteschlange'), ops.pool),
   ].join('');
 }
 
