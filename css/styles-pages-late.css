@@ -526,6 +526,7 @@ i.ph {
   gap: 8px;
   flex-wrap: wrap;
   flex: 1;
+  width: 100%;
   min-width: 0;
 }
 #page-dialer .dialer-live-chip,
@@ -536,14 +537,20 @@ i.ph {
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--bg-2);
-  padding: 0 10px;
+  padding: 0 16px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  flex: 1 1 180px;
+  min-width: max-content;
+  justify-content: flex-start;
 }
 #page-dialer .dialer-live-chip .status-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 750;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
 }
 #page-dialer #status-elapsed {
   font-size: 11px;

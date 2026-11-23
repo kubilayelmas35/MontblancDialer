@@ -504,6 +504,14 @@ function _applyMicSensitivityToLiveCall() {
   }
 }
 
+function _releaseThresholdMute() {
+  if (!_micThresholdForcedMute) return;
+  _micThresholdForcedMute = false;
+  if (!_micForcedMute && !isMuted && dialerStatus === 'on_call') {
+    sendToRTC('MB_MUTE', { muted: false });
+  }
+}
+
 function _stopMicThresholdGate() {
   if (_micGateRaf) {
     cancelAnimationFrame(_micGateRaf);
@@ -514,17 +522,35 @@ function _stopMicThresholdGate() {
   }
   _micGateStream = null;
   _micGateOwnsStream = false;
+  _micGateCanClose = false;
+  _micGateStartedAt = 0;
+  _micGateSawLevel = false;
   try { _micGateCtx?.close(); } catch (e) {}
   _micGateCtx = null;
   _micGateAnalyser = null;
   _micGateLevelPct = 0;
   _micGateOpenUntilMs = 0;
-  if (_micThresholdForcedMute) {
-    _micThresholdForcedMute = false;
-    if (!_micForcedMute && !isMuted && dialerStatus === 'on_call') {
-      sendToRTC('MB_MUTE', { muted: false });
-    }
+  _releaseThresholdMute();
+}
+
+function _micSampleLevelPct() {
+  const an = _micGateAnalyser;
+  if (!an) return 0;
+  const freq = new Uint8Array(an.frequencyBinCount);
+  an.getByteFrequencyData(freq);
+  let sum = 0;
+  for (let i = 0; i < freq.length; i++) sum += freq[i];
+  const avg = freq.length ? sum / freq.length : 0;
+  const freqPct = _computeMicLevelPctFromAvg(avg, _getMicGainValue());
+  const td = new Uint8Array(an.fftSize);
+  an.getByteTimeDomainData(td);
+  let sq = 0;
+  for (let i = 0; i < td.length; i++) {
+    const v = (td[i] - 128) / 128;
+    sq += v * v;
   }
+  const rmsPct = Math.min(100, Math.sqrt(sq / td.length) * 320);
+  return Math.max(freqPct, rmsPct);
 }
 
 function _runMicThresholdGateTick() {
@@ -533,14 +559,11 @@ function _runMicThresholdGateTick() {
     return;
   }
   const threshold = _getMicThresholdValue();
-  const gain = _getMicGainValue();
-  const buf = new Uint8Array(_micGateAnalyser.frequencyBinCount);
-  _micGateAnalyser.getByteFrequencyData(buf);
-  let sum = 0;
-  for (let i = 0; i < buf.length; i++) sum += buf[i];
-  const avg = sum / buf.length;
-  const levelPct = _computeMicLevelPctFromAvg(avg, gain);
+  const levelPct = _micSampleLevelPct();
   _micGateLevelPct = levelPct;
+  if (levelPct >= 1) _micGateSawLevel = true;
+  const age = Date.now() - (_micGateStartedAt || Date.now());
+  const blind = !_micGateCanClose || !_micGateSawLevel;
   const openMargin = threshold <= 5 ? 1 : (threshold <= 20 ? 2 : 4);
   const closeMargin = threshold <= 5 ? 0.5 : (threshold <= 20 ? 1 : 2);
   const openThreshold = Math.min(100, threshold + openMargin);
@@ -550,18 +573,15 @@ function _runMicThresholdGateTick() {
   const gateOpen = levelPct >= closeThreshold || now < _micGateOpenUntilMs;
   const canAutoMute = !_micForcedMute && !isMuted;
 
-  if (!canAutoMute && _micThresholdForcedMute) {
-    _micThresholdForcedMute = false;
-  }
+  if (!canAutoMute && _micThresholdForcedMute) _micThresholdForcedMute = false;
 
-  if (!gateOpen && canAutoMute && !_micThresholdForcedMute) {
+  if (blind || age < 450) {
+    _releaseThresholdMute();
+  } else if (!gateOpen && canAutoMute && !_micThresholdForcedMute) {
     _micThresholdForcedMute = true;
     sendToRTC('MB_MUTE', { muted: true });
   } else if (gateOpen && _micThresholdForcedMute) {
-    _micThresholdForcedMute = false;
-    if (!_micForcedMute && !isMuted) {
-      sendToRTC('MB_MUTE', { muted: false });
-    }
+    _releaseThresholdMute();
   }
   _micGateRaf = requestAnimationFrame(_runMicThresholdGateTick);
 }
@@ -573,16 +593,31 @@ async function _startMicThresholdGate() {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     const call = typeof _telnyxCall !== 'undefined' ? _telnyxCall : null;
     const pc = call?.__mbSip?.connection;
-    const tracks = (pc?.getSenders?.() || []).map((s) => s.track).filter((t) => t && t.kind === 'audio' && t.readyState === 'live');
-    if (!tracks.length) return;
-    _micGateStream = new MediaStream(tracks);
-    _micGateOwnsStream = false;
+    const live = (pc?.getSenders?.() || []).map((s) => s.track).find((t) => t && t.kind === 'audio' && t.readyState === 'live');
+    if (!live) return;
+    let probe = live;
+    let owns = false;
+    try {
+      const cloned = typeof live.clone === 'function' ? live.clone() : null;
+      if (cloned && cloned !== live) {
+        probe = cloned;
+        owns = true;
+      }
+    } catch (e) {}
+    _micGateStream = new MediaStream([probe]);
+    _micGateOwnsStream = owns;
+    _micGateCanClose = owns;
     _micGateCtx = new Ctx();
+    if (_micGateCtx.state === 'suspended') {
+      try { await _micGateCtx.resume(); } catch (e) {}
+    }
     const src = _micGateCtx.createMediaStreamSource(_micGateStream);
     _micGateAnalyser = _micGateCtx.createAnalyser();
-    _micGateAnalyser.fftSize = 512;
-    _micGateAnalyser.smoothingTimeConstant = 0.72;
+    _micGateAnalyser.fftSize = 1024;
+    _micGateAnalyser.smoothingTimeConstant = 0.5;
     src.connect(_micGateAnalyser);
+    _micGateStartedAt = Date.now();
+    _micGateSawLevel = false;
     _runMicThresholdGateTick();
   } catch (e) {
     _stopMicThresholdGate();
