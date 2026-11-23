@@ -514,18 +514,13 @@ function takvimMergeCamps(rows) {
 }
 
 function takvimCampListed(c) {
-  if (!c || (c.status !== 'active' && c.status !== 'paused')) return false;
-  if (c.settings && Object.prototype.hasOwnProperty.call(c.settings, 'wix_active')) {
-    const on = c.settings.wix_active === true || c.settings.wix_active === 'true';
-    if (!on) return c.status === 'active';
-  }
-  return true;
+  return c?.status === 'active';
 }
 
 async function takvimCampChoices(fid) {
   const q = fid
-    ? `campaigns?firm_id=eq.${fid}&status=in.(active,paused)&select=id,name,status,settings,firm_id&order=name.asc`
-    : `campaigns?status=in.(active,paused)&select=id,name,status,settings,firm_id&order=name.asc`;
+    ? `campaigns?firm_id=eq.${fid}&status=eq.active&select=id,name,status,settings,firm_id&order=name.asc`
+    : `campaigns?status=eq.active&select=id,name,status,settings,firm_id&order=name.asc`;
   const rows = ((await sb(q).catch(() => [])) || []).filter(takvimCampListed);
   takvimMergeCamps(rows);
   return rows;
@@ -533,9 +528,9 @@ async function takvimCampChoices(fid) {
 
 async function takvimAgentCamps(firmId) {
   if (!firmId) return [];
-  const rows = (await sb(`campaigns?select=id,name,status,settings,firm_id&status=in.(active,paused)&firm_id=eq.${firmId}&order=name.asc`).catch(() => [])) || [];
+  const rows = (await sb(`campaigns?select=id,name,status,settings,firm_id&status=eq.active&firm_id=eq.${firmId}&order=name.asc`).catch(() => [])) || [];
   const uid = currentUser?.id;
-  const visible = rows.filter((c) => c.status === 'active' || (c.settings?.wix_active === true || c.settings?.wix_active === 'true'));
+  const visible = rows.filter((c) => c.status === 'active');
   takvimMergeCamps(visible);
   return visible.filter((c) => typeof mbUserSeesCampaign !== 'function' || mbUserSeesCampaign(c, uid));
 }
@@ -552,7 +547,7 @@ function takvimCampLabel(c) {
 function takvimFillCampSelect(sel, camps, selectedId) {
   if (!sel) return;
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (s) => String(s ?? '');
-  const list = Array.isArray(camps) ? camps : [];
+  const list = (Array.isArray(camps) ? camps : []).filter((c) => !c?.status || c.status === 'active');
   sel.innerHTML = `<option value="">Kampanya seç...</option>${list.map((c) => `<option value="${esc(c.id)}">${esc(takvimCampLabel(c))}</option>`).join('')}`;
   if (selectedId && [...sel.options].some((o) => o.value === String(selectedId))) sel.value = selectedId;
   else if (list.length === 1) sel.value = list[0].id;

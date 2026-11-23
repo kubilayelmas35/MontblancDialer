@@ -1862,7 +1862,7 @@ async function _loadTakvimOverlayCamps() {
   if (!sel) return;
   try {
     const fid = getActiveFirmId();
-    const camps = typeof takvimCampChoices === 'function' ? await takvimCampChoices(fid) : ((await sb(fid ? `campaigns?firm_id=eq.${fid}&status=in.(active,paused)&select=id,name,status,settings,firm_id&order=name.asc` : `campaigns?status=in.(active,paused)&select=id,name,status,settings,firm_id&order=name.asc`)) || []);
+    const camps = typeof takvimCampChoices === 'function' ? await takvimCampChoices(fid) : ((await sb(fid ? `campaigns?firm_id=eq.${fid}&status=eq.active&select=id,name,status,settings,firm_id&order=name.asc` : `campaigns?status=eq.active&select=id,name,status,settings,firm_id&order=name.asc`)) || []);
     if (typeof takvimFillCampSelect === 'function') takvimFillCampSelect(sel, camps, takvimCampId);
     else {
       const pick = typeof t === 'function' ? t('dial.camp_pick') : 'Kampanya seç...';
