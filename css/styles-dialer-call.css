@@ -496,7 +496,14 @@ border:2px solid #dc262625;
 .btn-ready-big.stop:hover { background:#dc262620; }
 /* Outcome buttons */
 .outcome-grid {
-display:grid; grid-template-columns:1fr 1fr; gap:8px;
+display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;
+}
+#page-dialer #ctab-outcome-panel,
+#page-dialer .outcome-form { width: 100%; max-width: none; }
+#page-dialer .outcome-btn {
+  flex-direction: row;
+  width: 100%;
+  min-height: 56px;
 }
 .outcome-btn {
 min-height:64px !important;

@@ -1225,27 +1225,54 @@ async function repPaintLive() {
   if (!host || window._statsReport !== 'live') return;
   const range = typeof statsCurrentRange === 'function' ? statsCurrentRange() : {};
   const firmQ = range.fid ? `&firm_id=eq.${range.fid}` : ((typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '');
-  const [rows, camps] = await Promise.all([
-    sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,current_contact_name,current_contact_phone,call_started_at,call_start,last_seen,updated_at,login_at&status=in.(calling,on_call,wrapping)&order=agent_name.asc${firmQ}&limit=200`).catch(() => []),
+  const since = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+  const [rows, camps, ringing] = await Promise.all([
+    sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,queue_id,current_contact_name,current_contact_phone,call_started_at,call_start,last_seen,updated_at,login_at&status=in.(calling,on_call,wrapping)&order=agent_name.asc${firmQ}&limit=200`).catch(() => []),
     sb(`campaigns?select=id,name${firmQ}&limit=200`).catch(() => []),
+    sb(`contacts?select=id,first_name,last_name,phone,campaign_id,locked_by,last_called_at&status=eq.calling&last_called_at=gte.${encodeURIComponent(since)}${firmQ}&order=last_called_at.desc&limit=200`).catch(() => []),
   ]);
   const maxAge = typeof mbLiveSeenMs === 'function' ? mbLiveSeenMs() : 90000;
   const names = {};
   (camps || []).forEach((c) => { if (c?.id) names[c.id] = c.name || ''; });
-  const live = (rows || []).filter((row) => {
+  const agents = {};
+  (rows || []).forEach((row) => { if (row?.agent_id) agents[row.agent_id] = row.agent_name || ''; });
+  const missing = [...new Set((ringing || []).map((c) => c.locked_by).filter((id) => id && !agents[id]))];
+  if (missing.length) {
+    const people = await sb(`users?select=id,name&id=in.(${missing.join(',')})`).catch(() => []);
+    (people || []).forEach((u) => { if (u?.id) agents[u.id] = u.name || ''; });
+  }
+  const openPhones = new Set((rows || []).filter((row) => row.status === 'on_call').map((row) => String(row.current_contact_phone || '').replace(/\D/g, '')).filter(Boolean));
+  const dialing = (ringing || []).map((c) => {
+    const phone = String(c.phone || '');
+    const digits = phone.replace(/\D/g, '');
+    const open = digits && openPhones.has(digits);
+    return {
+      status: open ? 'on_call' : 'calling',
+      agent_name: agents[c.locked_by] || '—',
+      current_contact_phone: phone,
+      current_contact_name: [c.first_name, c.last_name].filter(Boolean).join(' '),
+      campaign_id: c.campaign_id,
+      last_called_at: c.last_called_at,
+    };
+  });
+  const seen = new Set(dialing.map((row) => String(row.current_contact_phone || '').replace(/\D/g, '')).filter(Boolean));
+  const sessions = (rows || []).filter((row) => {
     const st = String(row?.status || '');
-    if (st !== 'calling' && st !== 'on_call' && st !== 'wrapping') return false;
+    if (st !== 'on_call' && st !== 'wrapping') return false;
     const at = new Date(row.last_seen || row.updated_at || 0).getTime();
-    return Number.isFinite(at) && Date.now() - at <= maxAge;
-  }).sort((a, b) => {
-    const rank = (status) => (status === 'on_call' ? 0 : status === 'calling' ? 1 : 2);
+    if (!Number.isFinite(at) || Date.now() - at > maxAge) return false;
+    const digits = String(row.current_contact_phone || '').replace(/\D/g, '');
+    return !digits || !seen.has(digits);
+  }).map((row) => ({ ...row, last_called_at: row.call_started_at || row.call_start }));
+  const live = dialing.concat(sessions).sort((a, b) => {
+    const rank = (status) => (status === 'calling' ? 0 : status === 'on_call' ? 1 : 2);
     if (a.status !== b.status) return rank(a.status) - rank(b.status);
     return String(a.agent_name || '').localeCompare(String(b.agent_name || ''), 'tr');
   });
   const head = `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:10px;"><div class="card-title" style="margin:0;">${statsEsc(t('nav.rep_live'))}</div><div style="font-size:12px;color:var(--text-3);">${statsEsc(t('rep.live.hint'))}</div></div>`
     + `<div style="display:grid;grid-template-columns:1.1fr .8fr 1fr 1fr .6fr;gap:8px;padding:0 12px 6px;font-size:11px;color:var(--text-3);font-weight:700;"><span>${statsEsc(t('rep.live.who'))}</span><span>${statsEsc(t('rep.live.state'))}</span><span>${statsEsc(t('rep.live.phone'))}</span><span>${statsEsc(t('rep.live.customer'))}</span><span>${statsEsc(t('rep.live.camp'))}</span></div>`;
   const body = live.length
-    ? live.map((row) => repLiveCard(row, names[row.campaign_id])).join('')
+    ? live.map((row) => repLiveCard({ ...row, call_started_at: row.last_called_at || row.call_started_at }, names[row.campaign_id])).join('')
     : `<div class="firm-none">${statsEsc(t('rep.live.empty'))}</div>`;
   host.innerHTML = `<div class="card">${head}<div style="display:flex;flex-direction:column;gap:8px;">${body}</div></div>`;
 }

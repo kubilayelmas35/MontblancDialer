@@ -585,6 +585,8 @@ async function saveContactEdits() {
 }
 
 function clearCustomerCard() {
+  if (typeof dialerStatus !== 'undefined' && dialerStatus === 'wrapping' && !window._mbAllowClearWrap) return;
+  window._mbAllowClearWrap = false;
   if (typeof hideOutboundWait === 'function') hideOutboundWait();
   document.getElementById('customer-card')?.classList.add('customer-card--empty');
   document.getElementById('cust-empty').style.display='';

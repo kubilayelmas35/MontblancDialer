@@ -1194,8 +1194,8 @@ async function mbAgentOpenGate(opts) {
   if (!/^[0-9a-f-]{36}$/i.test(uid)) return false;
   _mbOpenGateBusy = true;
   try {
-    const rows = await sb(`call_logs?select=contact_id,started_at,contacts!inner(id,status)&agent_id=eq.${uid}&contacts.status=eq.calling&order=started_at.asc&limit=8`).catch(() => []);
-    const hit = (Array.isArray(rows) ? rows : []).find((log) => log?.contacts?.id || log?.contact_id);
+    const rows = await sb(`call_logs?select=contact_id,duration_sec,outcome,started_at,contacts!inner(id,status)&agent_id=eq.${uid}&contacts.status=eq.calling&order=started_at.desc&limit=12`).catch(() => []);
+    const hit = (Array.isArray(rows) ? rows : []).find((log) => !log?.outcome && Number(log?.duration_sec) >= 3 && (log?.contacts?.id || log?.contact_id));
     const id = String(hit?.contacts?.id || hit?.contact_id || '');
     if (!/^[0-9a-f-]{36}$/i.test(id)) return false;
     if (typeof openUnfinalizedCall === 'function') await openUnfinalizedCall(id);

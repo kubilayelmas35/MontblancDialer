@@ -632,6 +632,27 @@ function mbPhoneOff(call) {
   return /SUBSCRIBER[_\s-]*ABSENT|TEMPORARY[_\s-]*FAILURE|NORMAL[_\s-]*TEMPORARY|NO[_\s-]*CIRCUIT|SWITCH[_\s-]*CONGEST|NETWORK[_\s-]*OUT[_\s-]*OF[_\s-]*ORDER|RESOURCE[_\s-]*UNAVAILABLE|(^|[^A-Z])UNAVAILABLE([^A-Z]|$)/.test(text);
 }
 
+function mbScreenMissOn() {
+  return localStorage.getItem('mb_screen_miss') !== '0';
+}
+
+function mbScreenThis(row) {
+  if (!row || !mbScreenMissOn()) return false;
+  const st = mbPoolEndStatus(row);
+  if (st !== 'phone_off' && st !== 'busy' && st !== 'voicemail') return false;
+  return mbTalkSeconds(row) < 8;
+}
+
+function mbContinueAfterScreen() {
+  _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
+  if (mbHopperStillUp()) return;
+  if (typeof setDialerStatus === 'function' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping' || dialerStatus === 'calling')) {
+    setDialerStatus('calling');
+  }
+  if (typeof mbRefillHopper === 'function') mbRefillHopper();
+  else mbSettleEmptyCalling();
+}
+
 function mbPoolEndStatus(row) {
   const call = row?.call;
   if (String(call?.amd_result || row?.amd || '') === 'machine') return 'voicemail';
@@ -1121,6 +1142,11 @@ function mbOnHopperCall(call) {
       return;
     }
     if (row.phase === 'hold') return;
+    if (mbScreenMissOn() && (call.amd_result === 'machine' || mbBusyLine(call) || mbPhoneOff(call))) {
+      if (call.amd_result === 'machine') row.amd = 'machine';
+      try { call.hangup(); } catch (e) {}
+      return;
+    }
     if (_agentBusy() && row.id !== _liveCallId) {
       row.phase = 'hold';
       row.answeredAt = row.answeredAt || Date.now();
@@ -1145,7 +1171,13 @@ function mbOnHopperCall(call) {
       return !(dest && mbSameDialDigits(r.dest || mbCallDigits(r.call) || r.contact?.phone, dest));
     });
     _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
-    if (wasLive) {
+    if (wasLive && mbScreenThis(row)) {
+      _liveCallId = null;
+      _telnyxCall = null;
+      callStart = null;
+      mbCloseMiss(row, mbPoolEndStatus(row));
+      mbContinueAfterScreen();
+    } else if (wasLive) {
       mbFinishLocalRecording(call, true);
       mbNoteRecordingMiss(call);
       _liveCallId = null;
@@ -1335,6 +1367,20 @@ label.textContent = subLabels[state][currentLang] || subLabels[state].tr;
 
 function handleAMD(result) {
 amdResult = result;
+if (result === 'machine' && mbScreenMissOn()) {
+  const row = _liveCallId ? _hopper.find((r) => r.id === _liveCallId) : _hopper.find((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'live');
+  if (!row || mbTalkSeconds(row) < 8) {
+    if (row) {
+      row.amd = 'machine';
+      if (row.call) row.call.amd_result = 'machine';
+    }
+    toast('🤖 ' + t('telnyx.amd_voicemail'), 'ok');
+    mbNoteCallHangup('system');
+    try { (row?.call || _telnyxCall)?.hangup(); } catch (e) {}
+    if (!_outboundAnswered) autoSaveVoicemail();
+    return;
+  }
+}
 if (result === 'machine' && !_outboundAnswered) {
 toast('🤖 ' + t('telnyx.amd_voicemail'), 'ok');
 mbNoteCallHangup('system');

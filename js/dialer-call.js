@@ -145,7 +145,13 @@ function redialCurrentContact() {
 
 async function mbRedialCurrentContact() {
   if (_callLineIsLive()) return;
-  if (typeof mbAgentOpenGate === 'function' && await mbAgentOpenGate({ force: true })) return;
+  const outcomeOpen = dialerStatus === 'wrapping' || (document.getElementById('outcome-dock') && !document.getElementById('outcome-dock').hidden);
+  if (outcomeOpen) {
+    const ask = typeof t === 'function' ? t('dial.redial_ask') : 'Tekrar aramak istiyor musunuz?';
+    if (!window.confirm(ask)) return;
+    window._mbAllowClearWrap = true;
+    if (dialerStatus === 'wrapping') setDialerStatus('ready');
+  } else if (typeof mbAgentOpenGate === 'function' && await mbAgentOpenGate({ force: true })) return;
   const queued = typeof mbTakeQueuedContact === 'function' ? await mbTakeQueuedContact() : null;
   if (queued) {
     if (!queued.phone) {
@@ -570,19 +576,7 @@ function _runMicThresholdGateTick() {
   const closeThreshold = Math.min(100, threshold + closeMargin);
   const now = Date.now();
   if (levelPct >= openThreshold) _micGateOpenUntilMs = now + 700;
-  const gateOpen = levelPct >= closeThreshold || now < _micGateOpenUntilMs;
-  const canAutoMute = !_micForcedMute && !isMuted;
-
-  if (!canAutoMute && _micThresholdForcedMute) _micThresholdForcedMute = false;
-
-  if (blind || age < 450) {
-    _releaseThresholdMute();
-  } else if (!gateOpen && canAutoMute && !_micThresholdForcedMute) {
-    _micThresholdForcedMute = true;
-    sendToRTC('MB_MUTE', { muted: true });
-  } else if (gateOpen && _micThresholdForcedMute) {
-    _releaseThresholdMute();
-  }
+  _releaseThresholdMute();
   _micGateRaf = requestAnimationFrame(_runMicThresholdGateTick);
 }
 
@@ -923,6 +917,8 @@ function mbPaintMicFilters() {
   const far = document.getElementById('mic-ns-far');
   if (mine) mine.checked = _micAudioFlag('mb_mic_ns_mine', true);
   if (far) far.checked = _micAudioFlag('mb_mic_ns_far', false);
+  const screen = document.getElementById('mic-screen-miss');
+  if (screen) screen.checked = localStorage.getItem('mb_screen_miss') !== '0';
   const level = Math.min(4, Math.max(1, Number(localStorage.getItem('mb_mic_ns_level') || '1') || 1));
   document.querySelectorAll('.mic-ns-step').forEach((btn) => {
     btn.classList.toggle('is-on', Number(btn.dataset.level) === level);
@@ -1779,6 +1775,7 @@ async function submitOutcome(goBreak) {
   currentContact = null;
   window._mbLastContact = null;
   window._mbDialerPreview = false;
+  window._mbAllowClearWrap = true;
   clearCustomerCard();
   loadMyMiniStats();
   let heldNext = false;
