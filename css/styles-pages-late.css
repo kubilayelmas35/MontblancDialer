@@ -1016,7 +1016,19 @@ i.ph {
   color: var(--text-2);
 }
 #page-callhistory .ch-cb { font-size: 10px; color: var(--yellow); margin-top: 2px; }
-#page-callhistory .card { min-width: 0; max-width: 100%; overflow: hidden; }
+#page-callhistory.page.active {
+  overflow: hidden;
+  min-height: 0;
+}
+#page-callhistory .card {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 #page-qc.page.active { overflow: hidden; }
 #page-qc .qc-table-card {
   flex: 1 1 auto;
@@ -1084,13 +1096,21 @@ i.ph {
 }
 .qc-result-opt:hover { background: var(--bg-3); }
 #page-callhistory .tbl-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
   max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: thin;
+  overflow: auto;
+  scrollbar-width: auto;
   scrollbar-color: var(--border-2) transparent;
 }
-#page-callhistory .tbl-wrap::-webkit-scrollbar { height: 10px; }
+#page-callhistory .tbl-wrap::-webkit-scrollbar { width: 12px; height: 12px; }
+#page-callhistory .tbl-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-2);
+}
 #page-callhistory .tbl-wrap table { width: max-content; min-width: 100%; }
 #page-callhistory .tbl-wrap th,
 #page-callhistory .tbl-wrap td { white-space: nowrap; }

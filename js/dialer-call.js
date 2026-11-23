@@ -1653,6 +1653,9 @@ async function submitOutcome(goBreak) {
       const dialedPhone = (typeof mbContactPhones === 'function' && mbContactPhones(currentContact).includes(currentContact._dialTarget))
         ? currentContact._dialTarget
         : currentContact.phone;
+      const answeredMs = window._mbCallMeta?.answeredAt ? Date.parse(window._mbCallMeta.answeredAt) : 0;
+      const fromAnswer = answeredMs ? Math.max(0, Math.round((Date.now() - answeredMs) / 1000)) : 0;
+      const talkedSec = Math.max(Number(callSeconds) || 0, fromAnswer);
       const logData = {
         campaign_id: selectedCampId,
         firm_id: currentContact.firm_id || currentUser.firm_id,
@@ -1660,7 +1663,7 @@ async function submitOutcome(goBreak) {
         phone: dialedPhone,
         outcome: finalOutcome,   // normalleştirilmiş (appointment_done → appointment)
         notes: logNotes,
-        duration_sec: callSeconds,
+        duration_sec: talkedSec,
         started_at: new Date(Date.now()-callSeconds*1000).toISOString(),
         ended_at: new Date().toISOString(),
       };

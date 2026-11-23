@@ -2793,8 +2793,17 @@ function chNoteText(raw) {
   return String(raw || '').replace(/__test_sim__/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+function chSpanSec(start, end) {
+  const a = start ? new Date(start).getTime() : 0;
+  const b = end ? new Date(end).getTime() : 0;
+  if (!a || !b || b <= a) return 0;
+  return Math.max(0, Math.round((b - a) / 1000));
+}
+
 function chDurSec(l) {
-  return Math.max(0, Number(l?.duration_sec ?? l?.duration_seconds ?? 0) || 0);
+  const stored = Math.max(0, Number(l?.duration_sec ?? l?.duration_seconds ?? 0) || 0);
+  if (stored > 0) return stored;
+  return chSpanSec(l?.answered_at, l?.ended_at);
 }
 
 function chIsFakeRec(l) {
@@ -2880,7 +2889,8 @@ function chColumns() {
 function chEuro(n) {
   const num = Number(n);
   if (!Number.isFinite(num)) return '—';
-  return `${num.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} €`;
+  const text = num.toLocaleString('de-DE', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+  return `${text} €`;
 }
 
 function chWorkText(value) {
@@ -2919,10 +2929,20 @@ function chEndIso(l) {
   return '';
 }
 
-function chMoney(l) {
-  if (l?.cost_usd == null || l.cost_usd === '') return { n: 0, text: '—', unit: '—' };
-  const n = Number(l.cost_usd) || 0;
-  return { n, text: chEuro(n), unit: '—' };
+function chMoney(l, ratesByFirm) {
+  const stored = l?.cost_usd;
+  const hasStored = stored != null && stored !== '' && Number(stored) > 0;
+  if (hasStored) {
+    const n = Number(stored) || 0;
+    return { n, text: chEuro(n), unit: '—' };
+  }
+  const sec = chDurSec(l);
+  const rates = ratesByFirm && l?.firm_id ? (ratesByFirm[l.firm_id] || []) : [];
+  if (sec > 0 && typeof mbCallEuros === 'function') {
+    const n = Number(mbCallEuros(l.phone, sec, rates));
+    if (Number.isFinite(n) && n > 0) return { n, text: chEuro(n), unit: '—' };
+  }
+  return { n: 0, text: '—', unit: '—' };
 }
 
 async function chFillFilters(fid) {

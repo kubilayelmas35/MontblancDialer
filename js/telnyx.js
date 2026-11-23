@@ -946,6 +946,10 @@ function mbWriteAttemptLog(contact, outcome, row) {
       if (camp?.firm_id) firmId = camp.firm_id;
     } catch (e) {}
   }
+  const talk = Math.max(0, Number(typeof mbTalkSeconds === 'function' ? mbTalkSeconds(row) : 0) || 0);
+  const answeredIso = talk
+    ? (meta.answeredAt || new Date(Date.now() - talk * 1000).toISOString())
+    : (meta.answeredAt || null);
   const body = {
     campaign_id: campId,
     firm_id: firmId,
@@ -953,15 +957,19 @@ function mbWriteAttemptLog(contact, outcome, row) {
     phone: phone || null,
     outcome: outcome || 'no_answer',
     notes: '',
-    duration_sec: 0,
-    started_at: meta.dialAt || new Date().toISOString(),
+    duration_sec: talk,
+    started_at: meta.dialAt || new Date(Date.now() - Math.max(talk, 0) * 1000).toISOString(),
     ended_at: new Date().toISOString(),
   };
+  if (answeredIso) body.answered_at = answeredIso;
   if (contact?.id && typeof isValidUUID === 'function' && isValidUUID(contact.id)) body.contact_id = contact.id;
   const extra = typeof mbCallLogExtras === 'function' ? mbCallLogExtras() : {};
   if (!extra.work_type) extra.work_type = row.manual ? 'manual' : (meta.work || 'manual');
-  const post = (payload) => sb('call_logs', { method: 'POST', prefer: 'return=minimal', body: JSON.stringify(payload) });
-  post({ ...body, ...extra }).catch(() => post(body).catch(() => {}));
+  const post = (payload) => sb('call_logs', { method: 'POST', prefer: 'return=representation', body: JSON.stringify(payload) });
+  post({ ...body, ...extra, duration_sec: talk }).then((rows) => {
+    const saved = Array.isArray(rows) ? rows[0] : rows;
+    if (saved?.id && talk > 0 && typeof mbChargeCall === 'function') void mbChargeCall(saved);
+  }).catch(() => post({ ...body, duration_sec: talk }).catch(() => {}));
 }
 
 function mbEnsureTalkLog(sec) {
