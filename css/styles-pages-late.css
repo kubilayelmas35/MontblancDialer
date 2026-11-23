@@ -1443,6 +1443,8 @@ button.aca-qpick.is-on,
 .firm-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
 .firm-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .firm-bal { display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius-sm); min-width: 0; }
+button.firm-bal { appearance: none; text-align: left; cursor: pointer; font: inherit; color: inherit; width: fit-content; }
+button.firm-bal:hover { border-color: var(--green); }
 .firm-bal-lbl { font-size: 11px; color: var(--text-3); }
 .firm-bal-val { font-size: 14px; font-weight: 800; color: var(--green); font-family: var(--mono); }
 .firm-bal-note { font-size: 11px; color: var(--text-3); max-width: 240px; overflow-wrap: anywhere; }

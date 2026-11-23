@@ -1260,11 +1260,11 @@ ${cat ? `<span class="firm-cat">${escapeHtml(cat)}</span>` : ''}
 </button>
 <div class="firm-body"${open ? '' : ' hidden'}>
 <div class="firm-head">
-<div class="firm-bal">
+<button type="button" class="firm-bal" data-firm-act="balance" data-firm-id="${escapeHtml(f.id)}" title="${escapeHtml(t('firm.bal.title'))}">
 <span class="firm-bal-lbl">${escapeHtml(t('firm.balance'))}</span>
 <span class="firm-bal-val">${escapeHtml(firmMoney(bal, cur))}</span>
 ${reservedLine}${warnLine}${capLine}${lastNote}
-</div>
+</button>
 <div class="firm-actions">
 <button type="button" class="btn btn-ghost btn-sm" data-firm-act="billing" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.bill.open'))}</button>
 <button type="button" class="btn btn-ghost btn-sm" data-firm-act="ledger" data-firm-id="${escapeHtml(f.id)}">${escapeHtml(t('firm.led.open'))}</button>
@@ -1658,14 +1658,14 @@ function openBalanceModal(firmId) {
 <div class="form-input" style="background:var(--bg-3);">${escapeHtml(firmMoney(f.balance || 0, cur))} · ${escapeHtml(cur)}</div>
 <div style="font-size:11px;color:var(--text-3);margin-top:4px;">${escapeHtml(t('firm.bal.currency_hint'))}</div></div>
 <div class="form-row"><label class="form-label">${escapeHtml(t('firm.bal.amount'))} *</label>
-<input class="form-input" id="bal-amount" type="number" min="0" step="0.01" placeholder="100.00"></div>
+<input class="form-input" id="bal-amount" type="number" step="0.01" value="${Number(f.balance || 0).toFixed(2)}"></div>
 <div class="form-row"><label class="form-label">${escapeHtml(t('firm.bal.note'))}</label>
 <input class="form-input" id="bal-note" placeholder=""></div>
 ${history}
 </div>
 <div class="modal-footer">
 <button class="btn btn-ghost" onclick="document.getElementById('m-balance').remove()">İptal</button>
-<button class="btn btn-primary" onclick="saveBalance('${firmId}')">✓ Yükle</button>
+<button class="btn btn-primary" onclick="saveBalance('${firmId}')">✓ ${escapeHtml(t('firm.bal.save'))}</button>
 </div>
 </div>`;
   modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
@@ -1673,23 +1673,30 @@ ${history}
 }
 
 async function saveBalance(firmId) {
-  const amount = parseFloat(document.getElementById('bal-amount')?.value || '0');
+  const raw = String(document.getElementById('bal-amount')?.value || '').trim().replace(',', '.');
+  const newBal = Math.round(Number(raw) * 100) / 100;
   const note = document.getElementById('bal-note')?.value.trim() || '';
-  if (!amount || amount <= 0) { toast(t('firm.bal.need'), 'err'); return; }
+  if (!Number.isFinite(newBal)) { toast(t('firm.bal.need'), 'err'); return; }
   try {
     const firms = await sb(`firms?id=eq.${firmId}&select=balance,currency,settings`);
     const row = firms?.[0] || {};
     const currency = typeof normalizeCurrency === 'function' ? normalizeCurrency(row.currency) : (row.currency || 'EUR');
-    const oldBal = Number(row.balance || 0);
-    const newBal = oldBal + amount;
+    const oldBal = Math.round(Number(row.balance || 0) * 100) / 100;
+    const delta = Math.round((newBal - oldBal) * 100) / 100;
     const settings = row.settings && typeof row.settings === 'object' ? row.settings : {};
     const log = Array.isArray(settings.balance_log) ? settings.balance_log.slice(-19) : [];
-    log.push({ ts: new Date().toISOString(), amount, note, currency, by: currentUser?.name || '' });
+    if (delta !== 0 || note) log.push({ ts: new Date().toISOString(), amount: delta, balance: newBal, note, currency, by: currentUser?.name || '' });
     await sb(`firms?id=eq.${firmId}`,{method:'PATCH',prefer:'return=minimal',
       body:JSON.stringify({ balance: newBal, settings: { ...settings, balance_log: log } })});
     document.getElementById('m-balance')?.remove();
     await loadFirmsPage();
-    toast(`${firmMoney(amount, currency)} ${t('firm.bal.saved')} (${t('firm.bal.total')}: ${firmMoney(newBal, currency)})`,'ok');
+    const activeId = typeof getActiveFirmId === 'function' ? (getActiveFirmId() || currentUser?.firm_id) : currentUser?.firm_id;
+    if (String(activeId || '') === String(firmId) && typeof getFirmWallet === 'function' && typeof mbPaintBalChip === 'function') {
+      const wallet = await getFirmWallet(firmId);
+      window._tbBalWallet = wallet;
+      mbPaintBalChip(Number(wallet?.balance || 0), currency);
+    }
+    toast(`${t('firm.balance')} ${firmMoney(newBal, currency)} ${t('firm.bal.saved')}`,'ok');
   } catch(e) { toast('Hata: '+e.message,'err'); }
 }
 
