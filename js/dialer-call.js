@@ -917,8 +917,6 @@ function mbPaintMicFilters() {
   const far = document.getElementById('mic-ns-far');
   if (mine) mine.checked = _micAudioFlag('mb_mic_ns_mine', true);
   if (far) far.checked = _micAudioFlag('mb_mic_ns_far', false);
-  const screen = document.getElementById('mic-screen-miss');
-  if (screen) screen.checked = localStorage.getItem('mb_screen_miss') !== '0';
   const level = Math.min(4, Math.max(1, Number(localStorage.getItem('mb_mic_ns_level') || '1') || 1));
   document.querySelectorAll('.mic-ns-step').forEach((btn) => {
     btn.classList.toggle('is-on', Number(btn.dataset.level) === level);

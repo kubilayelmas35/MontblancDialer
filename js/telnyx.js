@@ -633,7 +633,7 @@ function mbPhoneOff(call) {
 }
 
 function mbScreenMissOn() {
-  return localStorage.getItem('mb_screen_miss') !== '0';
+  return true;
 }
 
 function mbScreenThis(row) {
