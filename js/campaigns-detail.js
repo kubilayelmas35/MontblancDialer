@@ -1600,12 +1600,58 @@ async function openQueueOps(queueId) {
   await refreshQueueOps();
 }
 
+let _mbStaleSweepAt = 0;
+
+async function mbSweepStaleCalling(queueId) {
+  if (typeof sb !== 'function') return 0;
+  const scoped = /^[0-9a-f-]{36}$/i.test(String(queueId || ''));
+  const now = Date.now();
+  if (!scoped && now - _mbStaleSweepAt < 20000) return 0;
+  _mbStaleSweepAt = now;
+  const cutoff = new Date(now - 120000).toISOString();
+  const queue = scoped ? `&queue_id=eq.${queueId}` : '';
+  const rows = await sb(
+    `contacts?status=eq.calling&or=(last_called_at.is.null,last_called_at.lt.${encodeURIComponent(cutoff)})${queue}&select=id,locked_by&limit=80`
+  ).catch(() => []);
+  const list = Array.isArray(rows) ? rows : [];
+  if (!list.length) return 0;
+  const owners = [...new Set(list.map((row) => String(row.locked_by || '')).filter((id) => /^[0-9a-f-]{36}$/i.test(id)))];
+  const live = new Set();
+  if (owners.length) {
+    const seen = new Date(now - 90000).toISOString();
+    const sessions = await sb(
+      `agent_sessions?agent_id=in.(${owners.join(',')})&status=in.(calling,on_call)&last_seen=gte.${encodeURIComponent(seen)}&select=agent_id,current_contact_id&limit=80`
+    ).catch(() => []);
+    const blind = new Set();
+    (Array.isArray(sessions) ? sessions : []).forEach((session) => {
+      const contactId = String(session?.current_contact_id || '');
+      if (/^[0-9a-f-]{36}$/i.test(contactId)) live.add(contactId);
+      else if (session?.agent_id) blind.add(String(session.agent_id));
+    });
+    list.forEach((row) => {
+      if (blind.has(String(row.locked_by || ''))) live.add(String(row.id));
+    });
+  }
+  const stale = list.filter((row) => row?.id && !live.has(String(row.id)));
+  if (!stale.length) return 0;
+  for (let i = 0; i < stale.length; i += 40) {
+    const chunk = stale.slice(i, i + 40).map((row) => row.id).join(',');
+    await sb(`contacts?id=in.(${chunk})&status=eq.calling`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({ status: 'stuck', locked_by: null, locked_at: null }),
+    }).catch(() => {});
+  }
+  return stale.length;
+}
+
 async function refreshQueueOps() {
   const modal = opsHost();
   const body = opsEl('qops-body');
   const queueId = modal?.dataset.queueId;
   if (!body || !queueId) return;
   if (!opsDatesOk()) return;
+  await mbSweepStaleCalling(queueId);
   const range = opsRangeQuery();
   const [nums, people] = await Promise.all([
     Promise.all(QUEUE_OPS_ROWS.map((row) => mbHeadCount(`contacts?queue_id=eq.${queueId}&status=eq.${row.key}&select=id${range}`))),

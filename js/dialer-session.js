@@ -1287,6 +1287,7 @@ function mbEnsurePoolTimer() {
 }
 
 async function mbSyncPool() {
+  if (typeof mbSweepStaleCalling === 'function') void mbSweepStaleCalling();
   if (window._mbDialerPreview) return;
   if (dialerStatus === 'ready') {
     if (_mbDueCbBusy) return;
