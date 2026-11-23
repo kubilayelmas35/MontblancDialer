@@ -1012,10 +1012,7 @@ function mbOutcomeIcon(row) {
 }
 
 function mbOutcomeGlyph(icon) {
-  const ic = String(icon || '');
-  if (ic === 'ph-phone-slash' || ic === 'ph-phone-x') {
-    return '<svg class="oc-miss" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><rect class="oc-body" x="6.2" y="1.6" width="11.6" height="20.8" rx="2.4" fill="#fff" stroke="#7c2d12" stroke-width="1.8"></rect><path class="oc-x" d="M8.5 5.8l7 7M15.5 5.8l-7 7" fill="none" stroke="#9a3412" stroke-width="2.6" stroke-linecap="round"></path><path d="M10.6 19.2h2.8" fill="none" stroke="#7c2d12" stroke-width="1.6" stroke-linecap="round"></path></svg>';
-  }
+  const ic = String(icon || 'ph-phone-x');
   const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   return `<i class="ph ${esc(ic)}"></i>`;
 }
