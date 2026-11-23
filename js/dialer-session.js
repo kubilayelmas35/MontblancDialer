@@ -168,12 +168,18 @@ async function loadUnfinalizedCalls() {
       if (!btn) return;
       btn.textContent = _unfinalizedCallsOpen ? say('dial.unfinal.close', 'Kapat') : say('dial.unfinal.open', 'Aç');
     };
+    const uid = String(currentUser.id || '');
     if (!campIds.length) {
       setBtnText(0);
       el.innerHTML = `<div style="color:var(--text-3);text-align:center;padding:8px;">${say('dial.unfinal.no_camp', 'Kampanya yok')}</div>`;
       return;
     }
-    const filter = `campaign_id=in.(${campIds.join(',')})&status=eq.calling`;
+    if (!/^[0-9a-f-]{36}$/i.test(uid)) {
+      setBtnText(0);
+      el.innerHTML = `<div style="color:var(--text-3);text-align:center;padding:8px;">${say('dial.unfinal.empty', 'Sonuçsuz çağrı yok')}</div>`;
+      return;
+    }
+    const filter = `campaign_id=in.(${campIds.join(',')})&status=eq.calling&locked_by=eq.${uid}`;
     const query = `contacts?${filter}&select=id,first_name,last_name,phone,last_called_at,attempt_count,campaign_id&order=last_called_at.desc&limit=25`;
     const [rows, counted] = await Promise.all([
       sb(query).catch(() => []),
@@ -214,6 +220,13 @@ async function openUnfinalizedCall(contactId) {
     const rows = await sb(`contacts?id=eq.${contactId}&select=*,queues(name,status)&limit=1`);
     const c = rows?.[0];
     if (!c) return;
+    const owner = String(c.locked_by || '');
+    const me = String(currentUser?.id || '');
+    if (owner && me && owner !== me) {
+      toast(typeof t === 'function' ? t('dial.unfinal.not_yours') : 'Bu sonuçsuz çağrı başka temsilciye ait', 'warn', 2400);
+      void loadUnfinalizedCalls();
+      return;
+    }
     currentContact = c;
     if (c.campaign_id) {
       const camp = campaigns.find((x) => x.id === c.campaign_id);
