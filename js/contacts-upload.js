@@ -727,6 +727,28 @@ function mbAddrExport(row) {
   return out;
 }
 
+function mbUploadContactPayload(row) {
+  const text = (value) => {
+    const s = String(value == null ? '' : value).trim();
+    return s || null;
+  };
+  const extra = row?.extra && typeof row.extra === 'object' && !Array.isArray(row.extra) ? row.extra : {};
+  return {
+    queue_id: row?.queue_id || null,
+    campaign_id: row?.campaign_id || null,
+    firm_id: row?.firm_id || null,
+    phone: String(row?.phone || '').trim(),
+    phone2: text(row?.phone2),
+    first_name: text(row?.first_name),
+    last_name: text(row?.last_name),
+    address: text(row?.address),
+    city: text(row?.city),
+    plz: text(row?.plz),
+    notes: text(row?.notes),
+    extra,
+  };
+}
+
 async function mbAddrLive(plzs, firmId) {
   const codes = [...new Set((plzs || []).map((p) => String(p || '').replace(/\D/g, '')).filter((p) => p.length >= 4 && p.length <= 6))];
   const rows = [];
@@ -993,7 +1015,7 @@ async function uploadQueue() {
     const withQ = contacts.map(c => {
       const row = mbAddrExport({ ...c, queue_id: queue.id });
       if (firmId) row.firm_id = firmId;
-      return row;
+      return mbUploadContactPayload(row);
     });
     const batchSize = 500;
     const totalBatches = Math.ceil(withQ.length / batchSize);
