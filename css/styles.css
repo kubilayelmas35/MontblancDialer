@@ -4738,13 +4738,13 @@ DASHBOARD
 .live-rows { display:flex; flex-direction:column; gap:6px; min-width:760px; }
 .live-rows-head, .live-line {
   display:grid;
-  grid-template-columns: 1.3fr .8fr .75fr 1.15fr 1fr 1fr;
+  grid-template-columns: 1.15fr .72fr .68fr 1fr .9fr .9fr .9fr;
   gap:8px; align-items:center; padding:8px 10px;
 }
 .live-rows--act .live-rows-head,
 .live-rows--act .live-line,
 .live-rows-head--act {
-  grid-template-columns: 1.15fr .7fr .7fr 1fr .9fr .9fr auto;
+  grid-template-columns: 1.05fr .62fr .6fr .9fr .8fr .85fr .85fr auto;
 }
 .live-rows-head { font-size:11px; font-weight:700; color:var(--text-3); padding-bottom:2px; }
 .live-line { border-radius:10px; min-width:0; }

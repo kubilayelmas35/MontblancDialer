@@ -121,7 +121,9 @@ function mbPublishLiveLeg(row) {
     call_started_at: new Date().toISOString(),
   };
   if (contact?.id) extra.current_contact_id = contact.id;
+  const sipKey = String(call?.sipCallId || call?.__mbSip?.request?.call_id || call?.__mbSip?._request?.call_id || '').trim();
   if (ccid && !ccid.startsWith('sim-')) extra.telnyx_call_control_id = ccid;
+  else if (sipKey) extra.telnyx_call_control_id = `sip:${sipKey}`;
   updateSessionInDB('on_call', extra);
   if (!extra.telnyx_call_control_id && call && !call.__mbPublishTimer) {
     let tries = 0;
@@ -176,7 +178,19 @@ async function mbCoachCall(agentId, role) {
     return;
   }
   if (!s.telnyx_call_control_id) {
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    const again = await sb(`agent_sessions?agent_id=eq.${agentId}&select=telnyx_call_control_id&limit=1`).catch(() => []);
+    if (again?.[0]?.telnyx_call_control_id) s.telnyx_call_control_id = again[0].telnyx_call_control_id;
+  }
+  if (!s.telnyx_call_control_id) {
     toast(de ? 'Die Leitung dieser Anrufs ist noch nicht bereit' : 'Bu çağrının hat kimliği henüz yok', 'warn');
+    return;
+  }
+  if (String(s.telnyx_call_control_id).startsWith('sip:')) {
+    await mbShowLiveCall(agentId);
+    toast(de
+      ? 'SIP-Gespräch. Telnyx-Mithören gibt es auf dieser Leitung nicht; die Karte ist offen.'
+      : 'Bu SIP görüşmesi. Eski Telnyx dinlemesi bu hatta yok; kartı açtım.', 'warn', 4200);
     return;
   }
   const fid = s.firm_id || currentUser?.firm_id;

@@ -11,6 +11,7 @@ let _supQuery        = '';
 
 const _SUP_STATUS_LABEL = {
   on_call:  { tr: 'Çağrıda',     de: 'Im Gespräch', cls: 'sup-status--oncall'  },
+  calling:  { tr: 'Aranıyor',    de: 'Wählt',        cls: 'sup-status--ready'   },
   ready:    { tr: 'Hazır',       de: 'Bereit',       cls: 'sup-status--ready'   },
   wrapping: { tr: 'Sonuç',       de: 'Nacharbeit',   cls: 'sup-status--wrap'    },
   break:    { tr: 'Mola',        de: 'Pause',        cls: 'sup-status--break'   },
@@ -105,6 +106,7 @@ function _supRenderCards() {
         <th>${de ? 'Kontakt' : 'Müşteri'}</th>
         <th>${de ? 'Nummer' : 'Numara'}</th>
         <th>${de ? 'Kampagne' : 'Kampanya'}</th>
+        <th>${de ? 'Warteschlange' : 'Kuyruk'}</th>
       </tr></thead><tbody>${calls.map((s) => {
         const agentRaw = s.agent_name || s.agent_id?.slice(0, 8) || '?';
         const agentAi = typeof _supIsAiAgent === 'function' && _supIsAiAgent(s.agent_id);
@@ -113,6 +115,7 @@ function _supRenderCards() {
         const name = escapeHtml(s.current_contact_name || '—');
         const phone = escapeHtml(s.current_contact_phone || '—');
         const camp = escapeHtml(_supCampaignName(s.campaign_id));
+        const queue = escapeHtml((window._mbQueueNames || {})[s.queue_id] || '—');
         const since = typeof liveStateSinceIso === 'function' ? liveStateSinceIso(s) : (s.call_started_at || s.call_start || '');
         const age = typeof liveAgeUnit === 'function' ? liveAgeUnit(s) : 0;
         const deep = age >= 0.55 ? ' live-tone--deep' : '';
@@ -123,6 +126,7 @@ function _supRenderCards() {
           <td>${name}</td>
           <td class="sup-mono">${phone}</td>
           <td>${camp}</td>
+          <td>${queue}</td>
         </tr>`;
       }).join('')}</tbody></table>`;
       if (typeof mbAfterLivePaint === 'function') mbAfterLivePaint(board);
@@ -148,14 +152,16 @@ function _supRenderCards() {
     const avatar = agentAi
       ? (typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink is-on-dark') : escapeHtml(String(agentRaw).trim().charAt(0).toUpperCase() || '?'))
       : escapeHtml(String(agentRaw).trim().charAt(0).toUpperCase() || '?');
-    const name = escapeHtml(s.current_contact_name || '—');
-    const phone = escapeHtml(s.current_contact_phone || '—');
+    const tone = _SUP_STATUS_LABEL[s.status] ? s.status : 'offline';
+    const withCustomer = tone === 'on_call' || tone === 'calling' || tone === 'wrapping';
+    const name = escapeHtml(withCustomer ? (s.current_contact_name || '—') : '—');
+    const phone = escapeHtml(withCustomer ? (s.current_contact_phone || '—') : '—');
     const camp = escapeHtml(_supCampaignName(s.campaign_id));
+    const queue = escapeHtml((window._mbQueueNames || {})[s.queue_id] || '—');
     const since = typeof liveStateSinceIso === 'function' ? liveStateSinceIso(s) : (s.call_started_at || s.last_seen || '');
     const age = typeof liveAgeUnit === 'function' ? liveAgeUnit(s) : 0;
     const deep = age >= 0.55 ? ' live-tone--deep' : '';
     const dur = typeof liveClock === 'function' ? liveClock(since, de) : _supFmtDuration(since);
-    const tone = _SUP_STATUS_LABEL[s.status] ? s.status : 'offline';
     const sid = escapeHtml(s.agent_id || '');
     const sinceAttr = escapeHtml(since);
     const fullAttr = escapeHtml(agentRaw);
@@ -167,6 +173,7 @@ function _supRenderCards() {
         <div class="live-line-clip">${name}</div>
         <div class="live-line-clip">${phone}</div>
         <div class="live-line-clip">${camp}</div>
+        <div class="live-line-clip">${queue}</div>
         ${typeof mbLiveActionsHtml === 'function' ? mbLiveActionsHtml(s) : ''}
       </div>`;
     }
@@ -175,6 +182,7 @@ function _supRenderCards() {
     <div class="sup-call-row"><span class="sup-call-lbl">${de ? 'Kontakt' : 'Müşteri'}</span><span class="sup-call-val">${name}</span></div>
     <div class="sup-call-row"><span class="sup-call-lbl">${de ? 'Nummer' : 'Numara'}</span><span class="sup-call-val">${phone}</span></div>
     <div class="sup-call-row"><span class="sup-call-lbl">${de ? 'Kampagne' : 'Kampanya'}</span><span class="sup-call-val">${camp}</span></div>
+    <div class="sup-call-row"><span class="sup-call-lbl">${de ? 'Warteschlange' : 'Kuyruk'}</span><span class="sup-call-val">${queue}</span></div>
   </div>`;
     return `
 <div class="sup-card sup-card--${tone}${deep}" data-live-id="${sid}" data-since="${sinceAttr}" style="--live-age:${Number(age).toFixed(3)}">
@@ -198,6 +206,7 @@ function _supRenderCards() {
           <span>${de ? 'Kontakt' : 'Müşteri'}</span>
           <span>${de ? 'Nummer' : 'Numara'}</span>
           <span>${de ? 'Kampagne' : 'Kampanya'}</span>
+          <span>${de ? 'Warteschlange' : 'Kuyruk'}</span>
           <span>${de ? 'Aktion' : 'İşlem'}</span>
         </div>`}${lines}</div>`
       : lines;
@@ -267,10 +276,12 @@ async function _supFetchSessions() {
   const firmQ = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
   let rows = [];
   let camps = [];
+  let queues = [];
   try {
-    [rows, camps] = await Promise.all([
-      sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,firm_id,current_contact_id,current_contact_name,current_contact_phone,telnyx_call_control_id,call_started_at,call_start,break_start,updated_at,last_seen&order=agent_name.asc${firmQ}`),
+    [rows, camps, queues] = await Promise.all([
+      sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,queue_id,firm_id,current_contact_id,current_contact_name,current_contact_phone,telnyx_call_control_id,call_started_at,call_start,break_start,updated_at,last_seen&order=agent_name.asc${firmQ}`),
       sb(`campaigns?select=id,name${firmQ}`),
+      sb(`queues?select=id,name&limit=500`),
     ]);
   } catch (e) {
     const grid = document.getElementById('sup-agent-grid');
@@ -279,7 +290,9 @@ async function _supFetchSessions() {
   }
   _supSessions = typeof mbWithLiveStatus === 'function' ? mbWithLiveStatus(rows) : (Array.isArray(rows) ? rows : []);
   _supCampaigns = {};
+  window._mbQueueNames = window._mbQueueNames || {};
   (Array.isArray(camps) ? camps : []).forEach((c) => { if (c?.id) _supCampaigns[c.id] = c.name || c.id; });
+  (Array.isArray(queues) ? queues : []).forEach((q) => { if (q?.id) window._mbQueueNames[q.id] = q.name || ''; });
   _supRenderCards();
   _supUpdateSummary();
 }

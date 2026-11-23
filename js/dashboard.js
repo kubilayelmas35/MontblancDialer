@@ -21,7 +21,7 @@ function mbLiveEffectiveStatus(sess) {
   const at = new Date(sess.last_seen || sess.updated_at || 0).getTime();
   if (!Number.isFinite(at) || Date.now() - at > mbLiveSeenMs()) return 'offline';
   const st = String(sess.status || '');
-  if (st === 'calling') return 'ready';
+  if (st === 'calling') return 'calling';
   if (st === 'on_call' || st === 'ready' || st === 'wrapping' || st === 'break' || st === 'offline') return st;
   return 'offline';
 }
@@ -744,6 +744,7 @@ function mbLiveMeta(status) {
 function mbLiveDot(status) {
   return {
     on_call: '#4CAF50',
+    calling: '#F59E0B',
     ready: '#FFB74D',
     wrapping: '#00BCD4',
     break: '#7E57C2',
@@ -3378,12 +3379,13 @@ if (wrap) wrap.style.display = val==="custom" ? "flex" : "none";
 
 const _DASH_LIVE_STATUS = {
   on_call:  { tr: 'Aramada', de: 'Im Gespräch' },
+  calling:  { tr: 'Aranıyor', de: 'Wählt' },
   ready:    { tr: 'Hazır', de: 'Bereit' },
   wrapping: { tr: 'Sonuç', de: 'Nacharbeit' },
   break:    { tr: 'Mola', de: 'Pause' },
   offline:  { tr: 'Çevrimdışı', de: 'Offline' },
 };
-const _DASH_LIVE_ORDER = { on_call: 0, wrapping: 1, ready: 2, break: 3, offline: 4 };
+const _DASH_LIVE_ORDER = { on_call: 0, calling: 1, wrapping: 2, ready: 3, break: 4, offline: 5 };
 
 function _dashLiveEsc(v) {
   return typeof escapeHtml === 'function' ? escapeHtml(v ?? '') : String(v ?? '');
@@ -3466,6 +3468,7 @@ function _dashLiveTick() {
 
 const _LIVE_DOT = {
   on_call: '#4CAF50',
+  calling: '#F59E0B',
   ready: '#FFB74D',
   wrapping: '#00BCD4',
   break: '#7E57C2',
@@ -3473,13 +3476,14 @@ const _LIVE_DOT = {
 };
 
 function liveFloorStatuses() {
-  return ['on_call', 'ready', 'wrapping', 'break', 'offline'];
+  return ['on_call', 'calling', 'ready', 'wrapping', 'break', 'offline'];
 }
 
 function liveFloorFilter() {
   if (!window._liveFloorOn) {
-    window._liveFloorOn = { on_call: true, ready: true, wrapping: true, break: true, offline: true };
+    window._liveFloorOn = { on_call: true, calling: true, ready: true, wrapping: true, break: true, offline: true };
   }
+  if (window._liveFloorOn.calling == null) window._liveFloorOn.calling = true;
   return window._liveFloorOn;
 }
 
@@ -3574,12 +3578,15 @@ async function renderDashLiveAgents() {
   if (!live) return;
   const de = currentLang === 'de';
   const ff = (typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '';
-  const [sessions, camps] = await Promise.all([
+  const [sessions, camps, queues] = await Promise.all([
     sb(`agent_sessions?select=*&order=agent_name.asc${ff}`).catch(() => []),
     sb(`campaigns?select=id,name${ff}`).catch(() => []),
+    sb(`queues?select=id,name&limit=500`).catch(() => []),
   ]);
   _dashLiveCamps = {};
+  window._mbQueueNames = {};
   (Array.isArray(camps) ? camps : []).forEach((c) => { if (c?.id) _dashLiveCamps[c.id] = c.name || ''; });
+  (Array.isArray(queues) ? queues : []).forEach((q) => { if (q?.id) window._mbQueueNames[q.id] = q.name || ''; });
   _dashLiveCache = mbWithLiveStatus(sessions).slice().sort(compareLiveAgents);
   _paintDashLive();
 }
@@ -3633,8 +3640,10 @@ function _paintDashLive() {
       ? (typeof mbAiMarkHtml === 'function' ? mbAiMarkHtml('is-blink is-on-dark') : _dashLiveEsc(String(agentRaw).trim().charAt(0).toUpperCase() || '?'))
       : _dashLiveEsc(String(agentRaw).trim().charAt(0).toUpperCase() || '?');
     const camp = _dashLiveEsc(_dashLiveCamps[s.campaign_id] || '—');
-    const who = _dashLiveEsc(s.current_contact_name || '—');
-    const phone = _dashLiveEsc(s.current_contact_phone || '—');
+    const queue = _dashLiveEsc((window._mbQueueNames || {})[s.queue_id] || '—');
+    const withCustomer = st === 'on_call' || st === 'calling' || st === 'wrapping';
+    const who = _dashLiveEsc(withCustomer ? (s.current_contact_name || '—') : '—');
+    const phone = _dashLiveEsc(withCustomer ? (s.current_contact_phone || '—') : '—');
     const since = liveStateSinceIso(s);
     const age = liveAgeUnit(s);
     const deep = age >= 0.55 ? ' live-tone--deep' : '';
@@ -3651,12 +3660,14 @@ function _paintDashLive() {
         <div class="live-line-clip">${who}</div>
         <div class="live-line-clip">${phone}</div>
         <div class="live-line-clip">${camp}</div>
+        <div class="live-line-clip">${queue}</div>
         ${actions}
       </div>`;
     }
     const facts = `<div><dt>${de ? 'Kontakt' : 'Müşteri'}</dt><dd>${who}</dd></div>
          <div><dt>${de ? 'Nummer' : 'Numara'}</dt><dd>${phone}</dd></div>
-         <div><dt>${de ? 'Kampagne' : 'Kampanya'}</dt><dd>${camp}</dd></div>`;
+         <div><dt>${de ? 'Kampagne' : 'Kampanya'}</dt><dd>${camp}</dd></div>
+         <div><dt>${de ? 'Warteschlange' : 'Kuyruk'}</dt><dd>${queue}</dd></div>`;
     return `<article class="live-card live-card--${st}${deep}" data-live-id="${aid}" data-since="${sinceAttr}" style="--live-age:${age.toFixed(3)}">
       <div class="live-card-top">
         <div class="live-av${agentAi ? ' is-ai' : ''}"${agentAi ? ' title="YZ"' : ''}>${avatar}</div>
@@ -3674,6 +3685,7 @@ function _paintDashLive() {
       <span>${de ? 'Kontakt' : 'Müşteri'}</span>
       <span>${de ? 'Nummer' : 'Numara'}</span>
       <span>${de ? 'Kampagne' : 'Kampanya'}</span>
+      <span>${de ? 'Warteschlange' : 'Kuyruk'}</span>
       ${isAdmin ? `<span>${de ? 'Aktion' : 'İşlem'}</span>` : ''}
     </div>` : '';
   const board = visible.length

@@ -509,10 +509,11 @@ function _stopMicThresholdGate() {
     cancelAnimationFrame(_micGateRaf);
     _micGateRaf = null;
   }
-  if (_micGateStream) {
+  if (_micGateStream && _micGateOwnsStream) {
     try { _micGateStream.getTracks().forEach((t) => t.stop()); } catch (e) {}
-    _micGateStream = null;
   }
+  _micGateStream = null;
+  _micGateOwnsStream = false;
   try { _micGateCtx?.close(); } catch (e) {}
   _micGateCtx = null;
   _micGateAnalyser = null;
@@ -570,11 +571,12 @@ async function _startMicThresholdGate() {
   if (dialerStatus !== 'on_call') return;
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
-    try {
-      _micGateStream = await navigator.mediaDevices.getUserMedia(_micInputConstraints());
-    } catch (err) {
-      _micGateStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    }
+    const call = typeof _telnyxCall !== 'undefined' ? _telnyxCall : null;
+    const pc = call?.__mbSip?.connection;
+    const tracks = (pc?.getSenders?.() || []).map((s) => s.track).filter((t) => t && t.kind === 'audio' && t.readyState === 'live');
+    if (!tracks.length) return;
+    _micGateStream = new MediaStream(tracks);
+    _micGateOwnsStream = false;
     _micGateCtx = new Ctx();
     const src = _micGateCtx.createMediaStreamSource(_micGateStream);
     _micGateAnalyser = _micGateCtx.createAnalyser();
@@ -1739,6 +1741,8 @@ async function submitOutcome(goBreak) {
       await _markMatchingWiedervorlage(currentContact, durum);
     } catch (e) {}
   }
+  if (currentContact?.campaign_id) window._mbLiveCamp = currentContact.campaign_id;
+  if (currentContact?.queue_id) window._mbLiveQueue = currentContact.queue_id;
   setDialerStatus('wrapping');
   const savedDur = Math.max(0, Number(callSeconds) || 0);
   selectedOutcome = null;
@@ -1761,7 +1765,8 @@ async function submitOutcome(goBreak) {
     window._mbManualAttempt = false;
   } else {
     setDialerStatus('ready');
-    upsertAgentSession({agent_id:currentUser.id,status:'ready',last_seen:new Date().toISOString()}).catch(()=>{});
+    if (typeof updateSessionInDB === 'function') updateSessionInDB('ready');
+    else upsertAgentSession({agent_id:currentUser.id,status:'ready',last_seen:new Date().toISOString()}).catch(()=>{});
     const heldByOpen = typeof mbAgentOpenGate === 'function' && await mbAgentOpenGate();
     const heldByCallback = !heldByOpen && typeof mbOpenDueCallback === 'function' && await mbOpenDueCallback();
     if (heldByOpen || heldByCallback) {

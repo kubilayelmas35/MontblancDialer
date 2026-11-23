@@ -33,7 +33,7 @@
     min-width: 100%;
   }
   #live-agents { min-width: 0; }
-  .live-rows { min-width: 640px; }
+  .live-rows { min-width: 860px; }
   #takvim-scroll, #takvim-scroll-ov {
     min-width: 0;
     max-width: 100%;

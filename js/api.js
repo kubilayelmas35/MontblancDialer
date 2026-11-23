@@ -342,6 +342,15 @@ const prev = existing?.[0] || null;
 if (canLogin) mbStampLogin(data, prev);
 if (prev) {
 data.updated_at = data.updated_at || new Date().toISOString();
+const idle = data.status === 'ready' || data.status === 'offline' || data.status === 'break';
+if (idle) {
+  data.current_contact_name = null;
+  data.current_contact_phone = null;
+  data.current_contact_id = null;
+  data.telnyx_call_control_id = null;
+  data.call_started_at = null;
+  data.call_start = null;
+}
 await sb(`agent_sessions?agent_id=eq.${data.agent_id}`, {
 method:'PATCH', prefer:'return=minimal', body:JSON.stringify(data)
 });

@@ -1049,16 +1049,14 @@ function mbOnHopperCall(call) {
     return;
   }
   if (state === 'held' || state === 'hold') {
-    if (row.id === _liveCallId) {
-      row.agentHold = true;
+    if (row.id === _liveCallId && (row.agentHold || isOnHold)) {
       row.phase = 'live';
-      isOnHold = true;
       _setHoldButton(true);
       _pauseLiveAudio(true);
       if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
       return;
     }
-    row.phase = 'hold';
+    if (row.id !== _liveCallId) row.phase = 'hold';
     if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
     return;
   }

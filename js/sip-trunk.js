@@ -73,6 +73,7 @@ function mbSipDisconnect() {
 function mbWrapSipSession(session, direction, dest) {
   const call = {
     id: String(session?.id || ('sip-' + Date.now() + '-' + Math.random().toString(16).slice(2))),
+    sipCallId: String(session?.request?.call_id || session?._request?.call_id || session?.id || ''),
     direction: direction === 'inbound' ? 'inbound' : 'outbound',
     state: 'new',
     remoteStream: null,

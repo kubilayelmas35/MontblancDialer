@@ -1570,6 +1570,17 @@ async function updateSessionInDB(status, extra = {}) {
       status, last_seen: new Date().toISOString(),
       ...extra,
     };
+    const personNow = (typeof currentContact !== 'undefined' && currentContact) || window._mbLastContact || null;
+    const campId = personNow?.campaign_id || (typeof selectedCampId !== 'undefined' ? selectedCampId : '') || window._mbLiveCamp || '';
+    const queueId = personNow?.queue_id || window._mbLiveQueue || '';
+    if (/^[0-9a-f-]{36}$/i.test(String(campId))) {
+      payload.campaign_id = campId;
+      window._mbLiveCamp = campId;
+    }
+    if (/^[0-9a-f-]{36}$/i.test(String(queueId))) {
+      payload.queue_id = queueId;
+      window._mbLiveQueue = queueId;
+    }
     const keepCall = status === 'on_call' || status === 'calling' || status === 'wrapping';
     if (!keepCall) {
       payload.current_contact_name  = null;
