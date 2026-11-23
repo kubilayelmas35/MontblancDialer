@@ -256,6 +256,7 @@ function mbPaintAttemptWarn(c) {
 }
 
 function showCustomerCard(c) {
+  if (c) window._mbLastContact = c;
   if (typeof hideOutboundWait === 'function') hideOutboundWait();
   if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
   document.getElementById('customer-card')?.classList.remove('customer-card--empty');

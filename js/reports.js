@@ -1178,11 +1178,15 @@ function repLiveClock(iso) {
 }
 
 function repLiveCard(row, camp) {
-  const ringing = String(row.status) === 'calling';
+  const st = String(row.status);
+  const ringing = st === 'calling';
+  const wrap = st === 'wrapping';
   const tone = ringing
     ? 'background:#fef3c7;color:#92400e;border-color:#f59e0b'
-    : 'background:#dcfce7;color:#166534;border-color:#16a34a';
-  const state = ringing ? t('rep.live.ring') : t('rep.live.open');
+    : wrap
+      ? 'background:#e0f7fa;color:#0e7490;border-color:#00bcd4'
+      : 'background:#dcfce7;color:#166534;border-color:#16a34a';
+  const state = ringing ? t('rep.live.ring') : wrap ? t('rep.live.wrap') : t('rep.live.open');
   const who = statsEsc(row.agent_name || '—');
   const phone = statsEsc(row.current_contact_phone || '—');
   const name = statsEsc(row.current_contact_name || '—');
@@ -1203,7 +1207,7 @@ async function repPaintLive() {
   const range = typeof statsCurrentRange === 'function' ? statsCurrentRange() : {};
   const firmQ = range.fid ? `&firm_id=eq.${range.fid}` : ((typeof getFirmFilter === 'function' ? getFirmFilter('&') : '') || '');
   const [rows, camps] = await Promise.all([
-    sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,current_contact_name,current_contact_phone,call_started_at,call_start,last_seen,updated_at&status=in.(calling,on_call)&order=agent_name.asc${firmQ}&limit=200`).catch(() => []),
+    sb(`agent_sessions?select=agent_id,agent_name,status,campaign_id,current_contact_name,current_contact_phone,call_started_at,call_start,last_seen,updated_at,login_at&status=in.(calling,on_call,wrapping)&order=agent_name.asc${firmQ}&limit=200`).catch(() => []),
     sb(`campaigns?select=id,name${firmQ}&limit=200`).catch(() => []),
   ]);
   const maxAge = typeof mbLiveSeenMs === 'function' ? mbLiveSeenMs() : 90000;
@@ -1211,11 +1215,12 @@ async function repPaintLive() {
   (camps || []).forEach((c) => { if (c?.id) names[c.id] = c.name || ''; });
   const live = (rows || []).filter((row) => {
     const st = String(row?.status || '');
-    if (st !== 'calling' && st !== 'on_call') return false;
+    if (st !== 'calling' && st !== 'on_call' && st !== 'wrapping') return false;
     const at = new Date(row.last_seen || row.updated_at || 0).getTime();
     return Number.isFinite(at) && Date.now() - at <= maxAge;
   }).sort((a, b) => {
-    if (a.status !== b.status) return a.status === 'on_call' ? -1 : 1;
+    const rank = (status) => (status === 'on_call' ? 0 : status === 'calling' ? 1 : 2);
+    if (a.status !== b.status) return rank(a.status) - rank(b.status);
     return String(a.agent_name || '').localeCompare(String(b.agent_name || ''), 'tr');
   });
   const head = `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:10px;"><div class="card-title" style="margin:0;">${statsEsc(t('nav.rep_live'))}</div><div style="font-size:12px;color:var(--text-3);">${statsEsc(t('rep.live.hint'))}</div></div>`

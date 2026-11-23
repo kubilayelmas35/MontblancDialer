@@ -341,6 +341,7 @@ if (!canLogin) existing = await sb(`agent_sessions?agent_id=eq.${data.agent_id}&
 const prev = existing?.[0] || null;
 if (canLogin) mbStampLogin(data, prev);
 if (prev) {
+data.updated_at = data.updated_at || new Date().toISOString();
 await sb(`agent_sessions?agent_id=eq.${data.agent_id}`, {
 method:'PATCH', prefer:'return=minimal', body:JSON.stringify(data)
 });

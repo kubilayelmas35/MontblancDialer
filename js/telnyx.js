@@ -1324,6 +1324,7 @@ callSeconds  = duration || callSeconds;
 activeCallId = null;
 if (wasAttempt) {
 if (typeof hideOutboundWait === 'function') hideOutboundWait();
+if (!currentContact && window._mbLastContact) currentContact = window._mbLastContact;
 if (currentContact && typeof showCustomerCard === 'function') showCustomerCard(currentContact);
 setDialerStatus('wrapping');
 updateSessionInDB('wrapping');

@@ -3401,9 +3401,20 @@ function liveStateSinceIso(s) {
   if (!s) return '';
   if (typeof s === 'string') return s;
   const st = s.status;
-  if (st === 'on_call') return s.call_started_at || s.call_start || s.updated_at || s.last_seen || '';
-  if (st === 'break') return s.break_start || s.updated_at || s.last_seen || '';
-  return s.updated_at || s.last_seen || '';
+  let iso = '';
+  if (st === 'on_call') iso = s.call_started_at || s.call_start || '';
+  else if (st === 'break') iso = s.break_start || '';
+  else iso = s.updated_at || '';
+  const seen = s.last_seen || '';
+  const seenMs = new Date(seen).getTime();
+  const fresh = Number.isFinite(seenMs) && Date.now() - seenMs <= (typeof mbLiveSeenMs === 'function' ? mbLiveSeenMs() : 90000);
+  const isoMs = new Date(iso).getTime();
+  if (fresh && (!Number.isFinite(isoMs) || Date.now() - isoMs > 86400000)) {
+    const loginMs = new Date(s.login_at || '').getTime();
+    if (Number.isFinite(loginMs) && Date.now() - loginMs <= 86400000) return s.login_at;
+    return seen;
+  }
+  return iso || seen;
 }
 
 function liveStateAgeSec(s) {

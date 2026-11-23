@@ -487,6 +487,7 @@ function returnToDialerHub() {
   }
   window._mbDialerPreview = false;
   currentContact = null;
+  window._mbLastContact = null;
   window._manualDialLastResults = null;
   closeManualDialDrawer();
   clearCustomerCard();
@@ -759,10 +760,14 @@ function setDialerStatus(s) {
       if (dncEl) dncEl.checked = false;
     }
     const hasSlot = _bookingSlot || window._selectedBookingSlot;
+    if (!currentContact && window._mbLastContact) currentContact = window._mbLastContact;
     document.getElementById('customer-card').style.display='';
-    if (currentContact && typeof showCustomerCard === 'function') showCustomerCard(currentContact);
-    if (typeof switchContactTab === 'function') {
-      switchContactTab(hasSlot ? 'info' : 'outcome');
+    if (currentContact && typeof showCustomerCard === 'function') {
+      showCustomerCard(currentContact);
+      if (typeof switchContactTab === 'function') switchContactTab(hasSlot ? 'info' : 'outcome');
+    } else {
+      const dock = document.getElementById('outcome-dock');
+      if (dock) dock.hidden = true;
     }
     if (keepWrap) {
       if (keptOutcome && typeof setOutcome === 'function') setOutcome(keptOutcome);
@@ -1549,13 +1554,21 @@ async function updateSessionInDB(status, extra = {}) {
       status, last_seen: new Date().toISOString(),
       ...extra,
     };
-    // on_call dışında çağrı alanlarını temizle
-    if (status !== 'on_call') {
+    const keepCall = status === 'on_call' || status === 'calling' || status === 'wrapping';
+    if (!keepCall) {
       payload.current_contact_name  = null;
       payload.current_contact_phone = null;
       payload.current_contact_id = null;
       payload.telnyx_call_control_id = null;
       payload.call_started_at = null;
+    } else if (status !== 'on_call') {
+      const person = (typeof currentContact !== 'undefined' && currentContact) || window._mbLastContact || null;
+      if (person && payload.current_contact_phone == null) {
+        const nm = [person.first_name, person.last_name].filter(Boolean).join(' ').trim();
+        payload.current_contact_name = nm || person.phone || null;
+        payload.current_contact_phone = person.phone || person._dialTarget || null;
+        payload.current_contact_id = person.id || null;
+      }
     }
     await upsertAgentSession(payload);
   } catch(e) {}

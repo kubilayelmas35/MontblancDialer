@@ -1743,6 +1743,7 @@ async function submitOutcome(goBreak) {
   const savedDur = Math.max(0, Number(callSeconds) || 0);
   selectedOutcome = null;
   currentContact = null;
+  window._mbLastContact = null;
   window._mbDialerPreview = false;
   clearCustomerCard();
   loadMyMiniStats();
