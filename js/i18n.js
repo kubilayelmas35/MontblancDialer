@@ -676,7 +676,6 @@ const MB_I18N = {
     'dial.wait_answer_sub': 'Karşı taraf açınca müşteri kartı burada açılır',
     'dial.wait_connecting': 'Bağlanıyor…',
     'dial.wait_connecting_sub': 'Müşteri kartı az sonra açılır',
-    'dial.wait_answer_sub': 'Karşı taraf açınca müşteri kartı burada açılır',
     'dial.hopper.ringing': 'Havuz: {n} kişi aranıyor',
     'dial.hopper.hold': 'Müzikte: {n}',
     'dial.hopper.held_next': 'Müzikte bekleyen kişi bağlandı',
