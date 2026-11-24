@@ -739,6 +739,13 @@ overflow: hidden;
   color: var(--text-3);
   max-width: 340px;
 }
+.cust-outbound-wait__stop {
+  margin-top: 14px;
+  min-width: 140px;
+  font-weight: 800;
+  border-color: var(--red);
+  color: var(--red);
+}
 @keyframes cust-outbound-pulse {
   0% { transform: scale(0.55); opacity: 0.8; }
   100% { transform: scale(1.15); opacity: 0; }

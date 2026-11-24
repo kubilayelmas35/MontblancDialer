@@ -1125,35 +1125,77 @@ function mbEnsureTalkLog(sec) {
 function mbReleaseUnanswered(contact, status) {
   if (!contact?.id) return;
   const st = status || 'no_answer';
-  if (st === 'no_answer' || st === 'busy' || st === 'phone_off' || st === 'voicemail' || st === 'unused') {
+  if (st === 'no_answer' || st === 'busy' || st === 'phone_off' || st === 'voicemail' || st === 'unused' || st === 'stuck') {
     _hopperSkip.set(String(contact.id), Date.now() + 60000);
   }
   if (typeof isValidUUID === 'function' && isValidUUID(contact.id) && typeof sb === 'function') {
+    const attempts = Math.max(0, Number(contact.attempt_count) || 0) + 1;
+    contact.attempt_count = attempts;
+    contact.status = st;
+    contact.locked_by = null;
     sb(`contacts?id=eq.${contact.id}`, {
       method: 'PATCH',
       prefer: 'return=minimal',
-      body: JSON.stringify({ status: st, last_called_at: new Date().toISOString() }),
+      body: JSON.stringify({
+        status: st,
+        locked_by: null,
+        locked_at: null,
+        attempt_count: attempts,
+        last_called_at: new Date().toISOString(),
+      }),
     }).catch(() => {});
   }
   if (typeof mbRefreshCampLeftSoon === 'function') mbRefreshCampLeftSoon();
+  if (typeof loadUnfinalizedCalls === 'function') void loadUnfinalizedCalls();
+}
+
+async function mbSweepOwnCalling(fallbackStatus) {
+  const uid = String(currentUser?.id || '');
+  if (!/^[0-9a-f-]{36}$/i.test(uid) || typeof sb !== 'function') return;
+  const mine = new Set(_hopper.map((r) => String(r.contact?.id || '')).filter(Boolean));
+  if (_liveCallId) {
+    const live = _hopper.find((r) => r.id === _liveCallId);
+    if (live?.contact?.id) mine.add(String(live.contact.id));
+  }
+  const rows = await sb(
+    `contacts?status=eq.calling&locked_by=eq.${uid}&select=id,attempt_count,campaign_id&limit=40`
+  ).catch(() => []);
+  const st = fallbackStatus || 'no_answer';
+  await Promise.all((rows || []).map(async (row) => {
+    if (!row?.id || mine.has(String(row.id))) return;
+    const attempts = Math.max(0, Number(row.attempt_count) || 0) + 1;
+    await sb(`contacts?id=eq.${row.id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({
+        status: st,
+        locked_by: null,
+        locked_at: null,
+        attempt_count: attempts,
+        last_called_at: new Date().toISOString(),
+      }),
+    }).catch(() => {});
+  }));
+  if (typeof mbRefreshCampLeftSoon === 'function') mbRefreshCampLeftSoon();
+  if (typeof loadUnfinalizedCalls === 'function') void loadUnfinalizedCalls();
 }
 
 function mbCancelHopper() {
   const rows = _hopper.filter((r) => r.phase !== 'live');
   rows.forEach((r) => {
-    if (r.contact && r.phase !== 'hold') mbCloseMiss(r);
+    mbClearAnswerScreen(r);
+    if (r.contact && r.phase !== 'hold') mbCloseMiss(r, mbPoolEndStatus(r));
+    else if (r.contact) mbCloseMiss(r, 'no_answer');
     _hopper = _hopper.filter((x) => x !== r);
     try { r.call.hangup(); } catch (e) {}
   });
   if (!_liveCallId) {
     _outboundDialPending = false;
     _telnyxCall = null;
-    if (dialerStatus === 'calling' && typeof setDialerStatus === 'function') {
-      setDialerStatus('ready');
-      if (typeof clearCustomerCard === 'function') clearCustomerCard();
-    }
+    if (typeof hideOutboundWait === 'function') hideOutboundWait();
   }
   if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+  if (typeof mbRefreshCampLeftSoon === 'function') mbRefreshCampLeftSoon();
 }
 
 function mbHangupLiveOrWave() {

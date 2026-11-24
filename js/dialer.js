@@ -284,9 +284,15 @@ async function mbCampLeftBits(camp) {
 function mbBumpCampLeft(campId, delta) {
   const el = document.getElementById(`camp-left-${campId}`);
   if (!el) return;
-  const raw = String(el.dataset.n ?? el.textContent ?? '').replace(/\./g, '').replace(/,/g, '');
+  const raw = String(el.dataset.n ?? el.textContent ?? '')
+    .replace(/\s/g, '')
+    .replace(/\./g, '')
+    .replace(/,/g, '');
   const cur = parseInt(raw, 10);
-  if (!Number.isFinite(cur)) return;
+  if (!Number.isFinite(cur)) {
+    mbRefreshCampLeftSoon();
+    return;
+  }
   const n = Math.max(0, cur + (Number(delta) || 0));
   el.dataset.n = String(n);
   el.textContent = n.toLocaleString('tr-TR');
@@ -297,15 +303,31 @@ function mbBumpCampLeft(campId, delta) {
   if (tone) el.classList.add(tone);
   const label = typeof t === 'function' ? t('camp.queue.band.left') : 'Kalan veri';
   el.title = `${label}: ${n}`;
+  mbEnsureCampLeftPulse();
 }
 
 let _campLeftTimer = 0;
+let _campLeftPulse = 0;
 function mbRefreshCampLeftSoon() {
   clearTimeout(_campLeftTimer);
   _campLeftTimer = setTimeout(() => {
     _campLeftTimer = 0;
     if (typeof campaigns !== 'undefined') void mbPaintCampLeft(campaigns);
-  }, 400);
+  }, 250);
+}
+
+function mbEnsureCampLeftPulse() {
+  if (_campLeftPulse) return;
+  _campLeftPulse = setInterval(() => {
+    const live = typeof dialerStatus !== 'undefined'
+      && (dialerStatus === 'ready' || dialerStatus === 'calling' || dialerStatus === 'on_call' || dialerStatus === 'wrapping');
+    if (!live) {
+      clearInterval(_campLeftPulse);
+      _campLeftPulse = 0;
+      return;
+    }
+    if (typeof campaigns !== 'undefined') void mbPaintCampLeft(campaigns);
+  }, 3000);
 }
 
 function mbTouchCampLeft(queueId, delta) {

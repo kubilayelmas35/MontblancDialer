@@ -362,11 +362,18 @@ async function toggleReady() {
       });
     } catch(e){}
     setTimeout(()=>dialNext(), 500);
-  } else if (dialerStatus==='ready') {
+  } else if (dialerStatus === 'ready' || dialerStatus === 'calling') {
+    if (dialerStatus === 'calling') {
+      if (typeof mbCancelHopper === 'function') mbCancelHopper();
+      if (typeof hideOutboundWait === 'function') hideOutboundWait();
+      _outboundDialPending = false;
+      if (typeof clearCustomerCard === 'function') clearCustomerCard();
+    }
     setDialerStatus('offline');
     try {
       await sb(`agent_sessions?agent_id=eq.${currentUser.id}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({status:'offline'})});
     } catch(e){}
+    if (typeof mbSweepOwnCalling === 'function') void mbSweepOwnCalling('no_answer');
   }
 }
 
@@ -424,7 +431,7 @@ function _clearHangupUiTick() {
 }
 
 function refreshHangupFinalizeButton() {
-  const ringing = dialerStatus === 'calling' && (_outboundDialPending || _telnyxCall || _fakeCallActive || _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing'));
+  const ringing = dialerStatus === 'calling' && (_outboundDialPending || _telnyxCall || _fakeCallActive || _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen'));
   if (!ringing && document.getElementById('call-actions')?.classList.contains('call-actions--pre-call')) return;
   if (dialerStatus !== 'on_call' && !ringing) return;
   const lbl = document.getElementById('btn-hangup-label');
@@ -676,8 +683,9 @@ function setDialerStatus(s) {
   } else if (s !== 'ready') {
     _readyEnteredAt = null;
   }
-  if (s === 'calling' || s === 'on_call' || s === 'wrapping') {
+  if (s === 'calling' || s === 'on_call' || s === 'wrapping' || s === 'ready') {
     mbStartCampSpeedWatch().catch(() => {});
+    if (typeof mbEnsureCampLeftPulse === 'function') mbEnsureCampLeftPulse();
   }
   if (s === 'offline' || s === 'break') {
     mbStopCampSpeedWatch().catch(() => {});
@@ -740,9 +748,18 @@ function setDialerStatus(s) {
     _clearHangupUiTick();
   } else if (s==='calling') {
     mbClearSavedLine();
-    document.getElementById('ready-section').style.display='none';
+    // Durdur görünür kalsın — hazır bölümü gizlenince vazgeçilemiyordu.
+    if (rdyBtn) rdyBtn.className = 'btn-ready-big stop';
+    if (rdyIc) rdyIc.textContent = '⏹';
+    if (rdyTxt) {
+      const stp = typeof tPair === 'function' ? tPair('dial.stop') : { tr: 'Durdur', de: 'Stoppen' };
+      rdyTxt.setAttribute('data-tr', stp.tr);
+      rdyTxt.setAttribute('data-de', stp.de);
+      rdyTxt.textContent = typeof currentLang !== 'undefined' && currentLang === 'de' ? stp.de : stp.tr;
+    }
+    document.getElementById('ready-section').style.display = '';
     if (callAct) {
-      callAct.style.display='';
+      callAct.style.display = '';
       callAct.classList.remove('call-actions--pre-call', 'call-actions--wrapping');
     }
     document.getElementById('customer-card').style.display='';
@@ -1331,7 +1348,7 @@ async function mbNextPoolContact(campIds) {
     if ((_hopperSkip.get(String(contact.id)) || 0) > Date.now()) return null;
     if (typeof isValidUUID === 'function' && isValidUUID(contact.id) && typeof sb === 'function') {
       const updated = await sb(
-        `contacts?id=eq.${contact.id}&status=in.(pending,no_answer,callback)`,
+        `contacts?id=eq.${contact.id}&status=in.(pending,no_answer,callback,busy,phone_off,voicemail,stuck,unused)`,
         {
           method: 'PATCH',
           prefer: 'return=representation',
