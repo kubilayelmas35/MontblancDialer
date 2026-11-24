@@ -1490,6 +1490,13 @@ function mbEnsurePoolTimer() {
   }, 2000);
 }
 
+function mbHopperBlocksNewDial() {
+  // Seçim 1: canlı / sonuç / müzikte bekleyen varken yeni numara çevrilmez
+  if (typeof dialerStatus !== 'undefined' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping')) return true;
+  if (_liveCallId) return true;
+  return _hopper.some((r) => r.phase === 'live' || r.phase === 'hold');
+}
+
 async function mbSyncPool() {
   if (typeof mbSweepStaleCalling === 'function') void mbSweepStaleCalling();
   if (window._mbDialerPreview) return;
@@ -1498,7 +1505,7 @@ async function mbSyncPool() {
     if (await mbOpenDueCallback()) return;
   }
   if (_poolSyncing) return;
-  if (dialerStatus === 'offline' || dialerStatus === 'break' || dialerStatus === 'wrapping') return;
+  if (dialerStatus === 'offline' || dialerStatus === 'break') return;
   if (_hopper.some((r) => r.manual && (r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'live'))) {
     mbRefreshHopperUi();
     return;
@@ -1527,6 +1534,7 @@ async function mbSyncPool() {
     // Birden fazla açtıysa hızı kendi seçimleri arasında böler (10+10 → 5-5).
     // Başka temsilcinin kaç kampanya açtığı bunu etkilemez.
     const mine = 1;
+    const blockNewDial = mbHopperBlocksNewDial();
     const ringingLocal = (cid) => _hopper.filter((r) => (r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen') && String(r.contact?.campaign_id || '') === String(cid));
     const openCount = ids.length;
     const plans = ids.map((cid) => {
@@ -1535,6 +1543,11 @@ async function mbSyncPool() {
       const plan = mbPoolPlan(mine, speed, local.length, mine);
       plan.campId = cid;
       plan.local = local;
+      // Personel meşgulken / hold varken hedefe tamamlamayı dondur
+      if (blockNewDial) {
+        plan.dial = 0;
+        plan.drop = 0;
+      }
       return plan;
     });
     const totalTarget = plans.reduce((sum, plan) => sum + plan.target, 0);
@@ -1544,6 +1557,7 @@ async function mbSyncPool() {
       open: openCount,
       target: totalTarget,
       multi: plans.length > 1,
+      blocked: blockNewDial,
     };
     plans.forEach((plan) => {
       if (plan.drop <= 0) return;
@@ -1556,7 +1570,7 @@ async function mbSyncPool() {
         else if (row.contact && typeof mbReleaseUnanswered === 'function') mbReleaseUnanswered(row.contact, 'no_answer');
       });
     });
-    const canDial = _testMode || window.__mbPoolSimulate || telnyxReady;
+    const canDial = !blockNewDial && (_testMode || window.__mbPoolSimulate || telnyxReady);
     if (canDial && plans.some((plan) => plan.dial > 0)) {
       let placed = 0;
       for (let i = 0; i < plans.length; i++) {
@@ -1564,6 +1578,7 @@ async function mbSyncPool() {
         let left = plan.dial;
         while (left > 0) {
           if (dialerStatus === 'offline' || dialerStatus === 'break') break;
+          if (mbHopperBlocksNewDial()) break;
           if (ringingLocal(plan.campId).length >= plan.target) break;
           const contact = await mbNextPoolContact([plan.campId]);
           if (!contact) break;

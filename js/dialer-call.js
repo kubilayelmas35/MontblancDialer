@@ -1799,6 +1799,7 @@ async function submitOutcome(goBreak) {
     upsertAgentSession({agent_id:currentUser.id,status:'break',last_seen:new Date().toISOString()}).catch(()=>{});
     openBreakModal();
   } else if (typeof mbTakeHeldCall === 'function' && (heldNext = mbTakeHeldCall())) {
+    // FIFO hold → anında canlı (yalnız Sonuçlandır sonrası)
     upsertAgentSession({agent_id:currentUser.id,status:'on_call',last_seen:new Date().toISOString()}).catch(()=>{});
   } else if (manualDialWrap) {
     if (typeof hideOutboundWait === 'function') hideOutboundWait();
@@ -1806,9 +1807,10 @@ async function submitOutcome(goBreak) {
     upsertAgentSession({agent_id:currentUser.id,status:'offline',last_seen:new Date().toISOString()}).catch(()=>{});
     window._mbManualAttempt = false;
   } else {
-    setDialerStatus('ready');
-    if (typeof updateSessionInDB === 'function') updateSessionInDB('ready');
-    else upsertAgentSession({agent_id:currentUser.id,status:'ready',last_seen:new Date().toISOString()}).catch(()=>{});
+    const stillRinging = typeof _hopper !== 'undefined' && _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen');
+    setDialerStatus(stillRinging ? 'calling' : 'ready');
+    if (typeof updateSessionInDB === 'function') updateSessionInDB(stillRinging ? 'calling' : 'ready');
+    else upsertAgentSession({agent_id:currentUser.id,status: stillRinging ? 'calling' : 'ready',last_seen:new Date().toISOString()}).catch(()=>{});
     const heldByOpen = typeof mbAgentOpenGate === 'function' && await mbAgentOpenGate();
     const heldByCallback = !heldByOpen && typeof mbOpenDueCallback === 'function' && await mbOpenDueCallback();
     if (heldByOpen || heldByCallback) {
@@ -1827,14 +1829,24 @@ async function submitOutcome(goBreak) {
           const tog = document.getElementById('auto-dial-toggle');
           if (tog) tog.checked = false;
           refreshAutoDialUi();
+        } else if (stillRinging) {
+          // Kalan çalanlar sürerken personel boş → hız hedefine tamamla
+          if (typeof showOutboundWait === 'function') showOutboundWait();
+          if (typeof mbSyncPool === 'function') void mbSyncPool();
         } else {
           if (typeof showOutboundWait === 'function') showOutboundWait();
           setTimeout(() => dialNext(), 1200);
         }
+      } else if (stillRinging) {
+        if (typeof showOutboundWait === 'function') showOutboundWait();
+        if (typeof mbSyncPool === 'function') void mbSyncPool();
       } else {
         if (typeof showOutboundWait === 'function') showOutboundWait();
         setTimeout(() => dialNext(), 1200);
       }
+    } else if (stillRinging && typeof mbSyncPool === 'function') {
+      if (typeof showOutboundWait === 'function') showOutboundWait();
+      void mbSyncPool();
     }
   }
   if (outcomeSaved) {

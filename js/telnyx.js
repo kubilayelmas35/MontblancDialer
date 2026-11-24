@@ -837,6 +837,9 @@ function mbFinishUnanswered(row) {
     if (typeof updateSessionInDB === 'function') updateSessionInDB('offline');
     return;
   }
+  // Personel konuşurken / sonuç girerken boşalan yere yeni arama yok
+  if (typeof dialerStatus !== 'undefined' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping')) return;
+  if (_liveCallId) return;
   if (typeof mbRefillHopper === 'function') mbRefillHopper();
   else mbSettleEmptyCalling();
 }
@@ -993,7 +996,8 @@ function mbSweepDeadHopper() {
 }
 
 function _agentBusy() {
-  if (typeof dialerStatus !== 'undefined' && dialerStatus === 'wrapping') return true;
+  // Canlı görüşme veya sonuç ekranı → ikinci açan müzikte bekler
+  if (typeof dialerStatus !== 'undefined' && (dialerStatus === 'wrapping' || dialerStatus === 'on_call')) return true;
   if (typeof isOnHold !== 'undefined' && isOnHold && _liveCallId) return true;
   return !!_liveCallId && _hopper.some((r) => r.id === _liveCallId && (r.phase === 'live' || r.agentHold));
 }
@@ -1422,6 +1426,7 @@ function mbOnHopperCall(call) {
       const dur = mbProviderSeconds(row.call, row);
       window._mbBillSec = dur;
       callStart = null;
+      // Hold bağlama yalnız Sonuçlandır sonrası (mbTakeHeldCall)
       if (typeof handleCallEnd === 'function') handleCallEnd(dur);
     } else {
       const owned = row.id === _liveCallId || row.phase === 'live';
@@ -1430,14 +1435,15 @@ function mbOnHopperCall(call) {
         callStart = null;
       }
       if (_telnyxCall === row.call) _telnyxCall = null;
-      if (owned && dialerStatus === 'on_call' && !_liveCallId && !(typeof mbTakeHeldCall === 'function' && mbTakeHeldCall())) {
-        if (!mbHopperStillUp()) {
-          if (typeof clearCustomerCard === 'function') clearCustomerCard();
-          if (typeof hideOutboundWait === 'function') hideOutboundWait();
-          if (typeof setDialerStatus === 'function') setDialerStatus('calling');
-        }
+      if (owned && dialerStatus === 'on_call') {
+        // Hangup'ta hold'u bağlama — sonuç girilmeden sonraki kişiye geçilmez
+        mbFinishLocalRecording(call, true);
+        const dur = mbProviderSeconds(row.call, row);
+        window._mbBillSec = dur;
+        if (typeof handleCallEnd === 'function') handleCallEnd(dur);
+      } else {
+        mbUnansweredEnded(row);
       }
-      mbUnansweredEnded(row);
     }
     if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
   }
