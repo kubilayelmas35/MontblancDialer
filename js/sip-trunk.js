@@ -379,8 +379,11 @@ function mbSipMakeCall(destination, callerNumber, contact, work) {
     const call = mbWrapSipSession(session, 'outbound', destination);
     call.state = 'ringing';
     call.__mbManual = work !== 'auto';
+    // Kişi çağrı nesnesine yapışık kalsın — hopper satırı silinse bile geri bulunur
+    const who = contact || (typeof currentContact !== 'undefined' ? currentContact : null);
+    if (who) call.__mbContact = who;
     if (typeof _rememberHopper === 'function') {
-      _rememberHopper(call, contact || (typeof currentContact !== 'undefined' ? currentContact : null), destination, call.__mbManual);
+      _rememberHopper(call, who, destination, call.__mbManual);
     }
     window._mbOutboundManual = false;
     if (typeof _telnyxCall !== 'undefined' && !_telnyxCall) _telnyxCall = call;

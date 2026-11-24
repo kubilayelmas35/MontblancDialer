@@ -924,16 +924,22 @@ function mbUnansweredEnded(row) {
 function _hopperRowFor(call) {
   if (!call) return null;
   const id = call.id || call.callId || '';
-  const hit = _hopper.find((r) => r.call === call || (id && r.id === id));
-  if (hit) return hit;
+  const hit = _hopper.find((r) => r.call === call || (id && r.id === id) || (call.__mbSip && r.call?.__mbSip === call.__mbSip));
+  if (hit) {
+    if (hit.contact && call && !call.__mbContact) call.__mbContact = hit.contact;
+    if (!hit.contact && call.__mbContact) hit.contact = call.__mbContact;
+    return hit;
+  }
   const dest = mbCallDigits(call);
   const pending = () => _hopper.filter((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen');
   if (dest) {
     const same = pending().find((r) => mbSameDialDigits(r.dest || mbCallDigits(r.call) || r.contact?.phone, dest));
     if (same) {
-      if (same.call !== call && (!same.call?.id || String(same.id).startsWith('leg-') || same.call.id === call.id)) same.call = call;
+      if (same.call !== call && (!same.call?.id || String(same.id).startsWith('leg-') || same.call?.id === call.id || !same.call)) same.call = call;
       if (call.id) same.id = call.id;
       if (dest) same.dest = dest;
+      if (same.contact) call.__mbContact = same.contact;
+      else if (call.__mbContact) same.contact = call.__mbContact;
       return same;
     }
   }
@@ -943,14 +949,16 @@ function _hopperRowFor(call) {
       orphans[0].call = call;
       if (call.id) orphans[0].id = call.id;
       if (dest) orphans[0].dest = dest;
+      if (orphans[0].contact) call.__mbContact = orphans[0].contact;
+      else if (call.__mbContact) orphans[0].contact = call.__mbContact;
       return orphans[0];
     }
-    // Tek bekleyen otomatik hat varsa ona bağla (kişisiz ikinci satır üretme)
     const autos = pending().filter((r) => !r.manual && r.contact);
     if (autos.length === 1) {
       autos[0].call = call;
       if (call.id) autos[0].id = call.id;
       if (dest) autos[0].dest = dest;
+      call.__mbContact = autos[0].contact;
       return autos[0];
     }
   }
@@ -958,22 +966,26 @@ function _hopperRowFor(call) {
 }
 
 function _rememberHopper(call, contact, dest, manual) {
-  const existing = call && _hopper.find((r) => r.call === call);
+  const who = contact || call?.__mbContact || currentContact || null;
+  if (call && who) call.__mbContact = who;
+  const existing = call && _hopper.find((r) => r.call === call || (call.__mbSip && r.call?.__mbSip === call.__mbSip));
   if (existing) {
     if (manual) existing.manual = true;
-    if (contact && !existing.contact) existing.contact = contact;
+    if (who && !existing.contact) existing.contact = who;
+    if (existing.contact && call) call.__mbContact = existing.contact;
+    existing.call = call || existing.call;
     const digits = String(dest || '').replace(/\D/g, '');
     if (digits) existing.dest = digits;
     return existing;
   }
-  const id = call.id || ('leg-' + Date.now() + '-' + Math.random().toString(16).slice(2));
+  const id = call?.id || ('leg-' + Date.now() + '-' + Math.random().toString(16).slice(2));
   const row = {
     id,
     call,
-    contact: contact || currentContact || null,
+    contact: who,
     phase: 'dialing',
     answeredAt: 0,
-    dest: String(dest || mbCallDigits(call) || contact?.phone || '').replace(/\D/g, ''),
+    dest: String(dest || mbCallDigits(call) || who?.phone || '').replace(/\D/g, ''),
     manual: !!manual,
   };
   _hopper.push(row);
@@ -1436,13 +1448,15 @@ function mbOnHopperCall(call) {
       row.call = call;
       if (call.id) row.id = call.id;
     } else {
-      // Otomatik havuzda kişisiz yeni satır açma — eşleşme yoksa yok say
+      // Otomatik havuz: kişi çağrıda (__mbContact) veya currentContact'tan gelsin
       const manual = !!(call.__mbManual || window._mbOutboundManual);
-      if (!manual && !currentContact) {
+      const who = call.__mbContact || currentContact || null;
+      if (!manual && !who) {
         if (typeof mbDialTrace === 'function') mbDialTrace('hopper.orphan_drop', { id: call.id, dest: mbCallDigits(call) });
+        try { call.hangup?.(); } catch (e) {}
         return;
       }
-      row = _rememberHopper(call, currentContact, mbCallDigits(call), manual);
+      row = _rememberHopper(call, who, mbCallDigits(call), manual);
     }
   }
   if (call.id && row.id !== call.id && row.id === _liveCallId) _liveCallId = call.id;
@@ -1812,12 +1826,19 @@ function handleCallEnd(duration) {
 mbNoteCallHangup('customer');
 if (typeof mbMarkLiveHold === 'function') mbMarkLiveHold(false);
 _outboundWaitGen++;
-const liveLeft = _hopper.some((r) => r.phase === 'live' || r.phase === 'hold');
-if ((dialerStatus === 'calling' || dialerStatus === 'on_call') && !liveLeft) {
-  _hopper = _hopper.filter((r) => r.phase === 'live' || r.phase === 'hold');
+// ÖNEMLİ: çalan (ringing) hatları hopper'dan SİLME.
+// Eski kod live bitince yalnız live/hold bırakıyordu → SIP oturumu açık kalıp
+// cevap gelince kişisiz satır / beyaz ekran oluşuyordu.
+_outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen');
+const wasAttempt = dialerStatus === 'on_call' || dialerStatus === 'wrapping'
+  || (dialerStatus === 'calling' && !_hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen' || r.phase === 'hold'));
+if (typeof mbDialTrace === 'function') {
+  mbDialTrace('call.end', {
+    wasAttempt,
+    hop: _hopper.map((r) => r.phase),
+    hasCur: !!currentContact,
+  });
 }
-_outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
-const wasAttempt = dialerStatus === 'on_call' || (dialerStatus === 'calling' && !liveLeft);
 if (window._mbBillSec != null && window._mbBillSec !== '') {
   callSeconds = Math.max(0, Math.floor(Number(window._mbBillSec) || 0));
 } else {
