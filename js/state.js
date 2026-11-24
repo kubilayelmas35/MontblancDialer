@@ -112,6 +112,40 @@ let _hopperSkip = new Map();      // kısa süre tekrar aranmasın
 let _poolPlan = null;             // hazır × hız hesabı
 let _poolSyncing = false;
 let _poolTimer = null;
+let _mbDialTrace = [];            // son ~80 hopper/sonuç olayı (debug)
+window.MB_DIAL_DEBUG = window.MB_DIAL_DEBUG !== false; // konsola yaz (kapatmak için false)
+
+function mbDialTrace(event, detail) {
+  const row = {
+    t: new Date().toISOString().slice(11, 23),
+    e: String(event || ''),
+    d: detail || null,
+    st: typeof dialerStatus !== 'undefined' ? dialerStatus : '',
+    live: typeof _liveCallId !== 'undefined' ? _liveCallId : null,
+    hop: typeof _hopper !== 'undefined' && Array.isArray(_hopper)
+      ? _hopper.map((r) => ({
+          id: String(r.id || '').slice(0, 8),
+          ph: r.phase,
+          c: r.contact ? `${r.contact.first_name || ''} ${r.contact.last_name || ''}`.trim().slice(0, 24) : '',
+          cid: r.contact?.id ? String(r.contact.id).slice(0, 8) : '',
+        }))
+      : [],
+    cur: typeof currentContact !== 'undefined' && currentContact
+      ? `${currentContact.first_name || ''} ${currentContact.last_name || ''}`.trim().slice(0, 24)
+      : '',
+  };
+  _mbDialTrace.push(row);
+  if (_mbDialTrace.length > 80) _mbDialTrace.shift();
+  if (window.MB_DIAL_DEBUG && typeof console !== 'undefined' && console.debug) {
+    try { console.debug('[MB-DIAL]', row.e, row); } catch (_) {}
+  }
+  return row;
+}
+window.mbDialTraceDump = function mbDialTraceDump() {
+  const copy = _mbDialTrace.slice();
+  try { console.log('[MB-DIAL dump]', copy); } catch (_) {}
+  return copy;
+};
 // Mikrofon çekmecesi (ses göstergesi / hat girişi)
 let _micDrawerStream = null;
 let _micDrawerInputCtx = null;

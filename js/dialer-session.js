@@ -179,18 +179,42 @@ async function loadUnfinalizedCalls() {
       el.innerHTML = `<div style="color:var(--text-3);text-align:center;padding:8px;">${say('dial.unfinal.empty', 'Sonuçsuz çağrı yok')}</div>`;
       return;
     }
-    const filter = `campaign_id=in.(${campIds.join(',')})&status=eq.calling&locked_by=eq.${uid}`;
-    const query = `contacts?${filter}&select=id,first_name,last_name,phone,last_called_at,attempt_count,campaign_id&order=last_called_at.desc&limit=25`;
-    const [rows, counted] = await Promise.all([
-      sb(query).catch(() => []),
-      typeof mbDashCount === 'function' ? mbDashCount(`contacts?select=id&${filter}`) : Promise.resolve(null),
-    ]);
-    if (!rows?.length) {
+    // Gerçek sonuçsuz = konuşulmuş / sonuç bekleyen. Çalan (hopper) kişiler listeye girmesin.
+    const activeIds = new Set(
+      (typeof _hopper !== 'undefined' ? _hopper : [])
+        .filter((r) => r?.contact?.id && (r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen' || r.phase === 'live' || r.phase === 'hold'))
+        .map((r) => String(r.contact.id))
+    );
+    if (currentContact?.id && (dialerStatus === 'on_call' || dialerStatus === 'wrapping')) {
+      activeIds.add(String(currentContact.id));
+    }
+    const logRows = await sb(
+      `call_logs?select=contact_id,duration_sec,outcome,started_at,contacts!inner(id,first_name,last_name,phone,last_called_at,attempt_count,campaign_id,status,locked_by)&agent_id=eq.${uid}&contacts.status=eq.calling&order=started_at.desc&limit=40`
+    ).catch(() => []);
+    const seen = new Set();
+    const rows = [];
+    (Array.isArray(logRows) ? logRows : []).forEach((log) => {
+      const c = log?.contacts;
+      const id = String(c?.id || log?.contact_id || '');
+      if (!id || seen.has(id) || activeIds.has(id)) return;
+      if (String(c?.locked_by || '') && String(c.locked_by) !== uid) return;
+      if (log?.outcome) return;
+      if (Number(log?.duration_sec) < 3 && !log?.started_at) return;
+      // En az kısa konuşma veya cevap izi
+      if (Number(log?.duration_sec) < 3) return;
+      if (!campIds.includes(c.campaign_id)) return;
+      seen.add(id);
+      rows.push(c);
+    });
+    if (typeof mbDialTrace === 'function') {
+      mbDialTrace('unfinal.list', { n: rows.length, active: activeIds.size });
+    }
+    if (!rows.length) {
       setBtnText(0);
       el.innerHTML = `<div style="color:var(--text-3);text-align:center;padding:8px;">${say('dial.unfinal.empty', 'Sonuçsuz çağrı yok')}</div>`;
       return;
     }
-    setBtnText(counted == null ? rows.length : counted);
+    setBtnText(rows.length);
     const loc = typeof mbLocale === 'function' ? mbLocale() : 'tr-TR';
     el.innerHTML = rows.map((r) => {
       const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || r.phone || '—';
@@ -588,14 +612,19 @@ function syncDialerBottomChrome() {
 
   // Canlı görüşme: mikrofon / beklet / kapat her zaman altta
   if (dialerStatus === 'on_call') {
-    // Beyaz ekran: on_call ama kart yok → kartı geri aç veya kurtar
+    // Beyaz ekran: yalnız gerçek canlı bacak + currentContact ile kart aç (eski Kamile kartını basma)
     if (!_isCustDataVisible()) {
-      const c = currentContact || window._mbLastContact || null;
+      const liveRow = (typeof _liveCallId !== 'undefined' && _liveCallId && typeof _hopper !== 'undefined')
+        ? _hopper.find((r) => r.id === _liveCallId)
+        : null;
+      const c = currentContact || liveRow?.contact || null;
       if (c && typeof showCustomerCard === 'function') {
         currentContact = c;
         try { showCustomerCard(c); } catch (e) {}
+        if (typeof mbDialTrace === 'function') mbDialTrace('ui.card_rescue', { name: `${c.first_name || ''} ${c.last_name || ''}`.trim() });
       }
       if (!_isCustDataVisible() && !(typeof _liveCallId !== 'undefined' && _liveCallId) && !(typeof mbHopperStillUp === 'function' && mbHopperStillUp())) {
+        if (typeof mbDialTrace === 'function') mbDialTrace('ui.zombie_on_call', {});
         if (typeof mbRecoverDialerSurface === 'function') {
           mbRecoverDialerSurface(typeof _autoDial !== 'undefined' && _autoDial ? 'calling' : 'ready');
           return;

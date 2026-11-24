@@ -1047,8 +1047,8 @@ function mbConnectHopperRow(row) {
   row.phase = 'live';
   _outboundAnswered = true;
   _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen');
+  // Eski _mbLastContact ile yanlış kart basma (Kamile döngüsü)
   if (row.contact) currentContact = row.contact;
-  else if (window._mbLastContact) currentContact = window._mbLastContact;
   if (typeof hideOutboundWait === 'function') hideOutboundWait({ openingCard: true });
   if (currentContact && typeof showCustomerCard === 'function') {
     try { showCustomerCard(currentContact); } catch (e) {}
@@ -1056,6 +1056,13 @@ function mbConnectHopperRow(row) {
   const data = document.getElementById('cust-data');
   if (currentContact && data && data.style.display === 'none' && typeof showCustomerCard === 'function') {
     try { showCustomerCard(currentContact); } catch (e) {}
+  }
+  if (typeof mbDialTrace === 'function') {
+    mbDialTrace('bridge.live', {
+      id: row.id,
+      name: currentContact ? `${currentContact.first_name || ''} ${currentContact.last_name || ''}`.trim() : '',
+      cid: currentContact?.id || null,
+    });
   }
   _attachLiveAudio(row.call);
   if (row.answeredAt || row.call?.sipAnsweredAt) mbNoteCallAnswered(row.answeredAt || row.call?.sipAnsweredAt);
@@ -1182,6 +1189,13 @@ function mbSkipContact(contact, ms) {
 function mbReleaseUnanswered(contact, status) {
   if (!contact?.id) return;
   const st = status || 'no_answer';
+  if (typeof mbDialTrace === 'function') {
+    mbDialTrace('release', {
+      st,
+      name: `${contact.first_name || ''} ${contact.last_name || ''}`.trim(),
+      cid: contact.id,
+    });
+  }
   mbSkipContact(contact, 3 * 60 * 1000);
   if (typeof isValidUUID === 'function' && isValidUUID(contact.id) && typeof sb === 'function') {
     const attempts = Math.max(0, Number(contact.attempt_count) || 0) + 1;
@@ -1244,13 +1258,33 @@ async function mbSweepOwnCalling(fallbackStatus) {
     mine.add(String(currentContact.id));
   }
   const rows = await sb(
-    `contacts?status=eq.calling&locked_by=eq.${uid}&select=id,attempt_count,campaign_id&limit=80`
+    `contacts?status=eq.calling&locked_by=eq.${uid}&select=id,attempt_count,campaign_id,last_called_at&limit=80`
   ).catch(() => []);
   const st = fallbackStatus || 'no_answer';
+  const now = Date.now();
+  let released = 0;
+  let keptTalk = 0;
+  let skippedYoung = 0;
   await Promise.all((rows || []).map(async (row) => {
     if (!row?.id || mine.has(String(row.id))) return;
+    const age = row.last_called_at ? now - Date.parse(row.last_called_at) : 999999;
+    // Yeni claim / çalma yarışı — hemen silme (sonuçlandırınca liste boşalmasın)
+    if (age < 90000) {
+      skippedYoung++;
+      return;
+    }
+    // Konuşulmuş sonuç bekleyenleri ASLA otomatik no_answer yapma
+    const logs = await sb(
+      `call_logs?contact_id=eq.${row.id}&agent_id=eq.${uid}&select=id,duration_sec,outcome&order=started_at.desc&limit=1`
+    ).catch(() => []);
+    const log = Array.isArray(logs) ? logs[0] : null;
+    if (log && !log.outcome && Number(log.duration_sec) >= 3) {
+      keptTalk++;
+      return;
+    }
     const attempts = Math.max(0, Number(row.attempt_count) || 0) + 1;
     _hopperSkip.set(String(row.id), Date.now() + 3 * 60 * 1000);
+    released++;
     await sb(`contacts?id=eq.${row.id}`, {
       method: 'PATCH',
       prefer: 'return=minimal',
@@ -1263,6 +1297,9 @@ async function mbSweepOwnCalling(fallbackStatus) {
       }),
     }).catch(() => {});
   }));
+  if (typeof mbDialTrace === 'function') {
+    mbDialTrace('sweep.own', { released, keptTalk, skippedYoung, mine: mine.size });
+  }
   if (typeof mbRefreshCampLeftSoon === 'function') mbRefreshCampLeftSoon();
   if (typeof loadUnfinalizedCalls === 'function') void loadUnfinalizedCalls();
 }
@@ -1756,8 +1793,18 @@ if (timerEl && callSeconds >= 0) {
 activeCallId = null;
 if (wasAttempt) {
 if (typeof hideOutboundWait === 'function') hideOutboundWait();
-if (!currentContact && window._mbLastContact) currentContact = window._mbLastContact;
+// Yalnız bu görüşmenin kişisi — rastgele eski kartı (Kamile) geri getirme
+if (!currentContact && window._mbLastContact && dialerStatus === 'on_call') {
+  currentContact = window._mbLastContact;
+}
 if (currentContact && typeof showCustomerCard === 'function') showCustomerCard(currentContact);
+if (typeof mbDialTrace === 'function') {
+  mbDialTrace('call.end_wrap', {
+    name: currentContact ? `${currentContact.first_name || ''} ${currentContact.last_name || ''}`.trim() : '',
+    cid: currentContact?.id || null,
+    dur: callSeconds,
+  });
+}
 setDialerStatus('wrapping');
 updateSessionInDB('wrapping');
 mbEnsureTalkLog(callSeconds);
