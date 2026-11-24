@@ -125,8 +125,10 @@ function mbWrapSipSession(session, direction, dest) {
       const stream = ev.streams?.[0];
       if (stream) {
         call.remoteStream = stream;
-        // Yalnız temsilciye bağlı canlı hatta ses ver; eleme / çalma aşamasında meşgul anonsu düşmesin.
-        if (typeof _telnyxCall !== 'undefined' && _telnyxCall === call && typeof _attachLiveAudio === 'function') {
+        // Yalnız bridge sonrası (_liveCallId) veya manuel önizleme; elemede meşgul anonsu yok.
+        const bridged = typeof _liveCallId !== 'undefined' && _liveCallId && call.id === _liveCallId;
+        const manualEarly = !!(call.__mbManual) && typeof _telnyxCall !== 'undefined' && _telnyxCall === call;
+        if ((bridged || manualEarly) && typeof _attachLiveAudio === 'function') {
           _attachLiveAudio(call);
         }
       }
@@ -147,7 +149,9 @@ function mbWrapSipSession(session, direction, dest) {
       const tracks = receivers.map((r) => r.track).filter((t) => t && t.kind === 'audio');
       if (tracks.length) {
         call.remoteStream = new MediaStream(tracks);
-        if (typeof _telnyxCall !== 'undefined' && _telnyxCall === call && typeof _attachLiveAudio === 'function') {
+        const bridged = typeof _liveCallId !== 'undefined' && _liveCallId && call.id === _liveCallId;
+        const manualEarly = !!(call.__mbManual) && typeof _telnyxCall !== 'undefined' && _telnyxCall === call;
+        if ((bridged || manualEarly) && typeof _attachLiveAudio === 'function') {
           _attachLiveAudio(call);
         }
       }

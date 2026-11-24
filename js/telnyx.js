@@ -726,7 +726,7 @@ function mbArmAnswerScreen(row) {
 }
 
 function mbContinueAfterScreen() {
-  _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
+  _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen');
   if (mbHopperStillUp()) return;
   if (typeof setDialerStatus === 'function' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping' || dialerStatus === 'calling')) {
     setDialerStatus('calling');
@@ -1185,7 +1185,8 @@ async function mbSweepOwnCalling(fallbackStatus) {
   if (typeof loadUnfinalizedCalls === 'function') void loadUnfinalizedCalls();
 }
 
-function mbCancelHopper() {
+function mbCancelHopper(opts) {
+  const refill = !(opts && opts.refill === false);
   const rows = _hopper.filter((r) => r.phase !== 'live');
   rows.forEach((r) => {
     mbClearAnswerScreen(r);
@@ -1198,9 +1199,19 @@ function mbCancelHopper() {
     _outboundDialPending = false;
     _telnyxCall = null;
     if (typeof hideOutboundWait === 'function') hideOutboundWait();
+    // Kapat (refill=true): dalgayı bitir, hazırda kal + yeni arama.
+    // Durdur (refill=false): sadece kapat; offline’a geçiş toggleReady’de.
+    if (typeof dialerStatus !== 'undefined' && dialerStatus === 'calling') {
+      if (typeof clearCustomerCard === 'function') clearCustomerCard();
+      if (refill) {
+        if (typeof setDialerStatus === 'function') setDialerStatus('ready');
+        if (typeof mbRefillHopper === 'function') mbRefillHopper();
+      }
+    }
   }
   if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
   if (typeof mbRefreshCampLeftSoon === 'function') mbRefreshCampLeftSoon();
+  if (typeof mbSweepOwnCalling === 'function') void mbSweepOwnCalling('no_answer');
 }
 
 function mbHangupLiveOrWave() {
@@ -1215,6 +1226,11 @@ function mbHangupLiveOrWave() {
     return;
   }
   if (_telnyxCall) { try { _telnyxCall.hangup(); } catch (e) {} }
+  if (typeof dialerStatus !== 'undefined' && dialerStatus === 'calling' && !_liveCallId) {
+    if (typeof hideOutboundWait === 'function') hideOutboundWait();
+    if (typeof clearCustomerCard === 'function') clearCustomerCard();
+    if (typeof setDialerStatus === 'function') setDialerStatus('ready');
+  }
 }
 
 function mbOnHopperCall(call) {
@@ -1399,7 +1415,9 @@ detectAnsweringMachine: true,
 call.__mbManual = work !== 'auto';
 _rememberHopper(call, contact || currentContact, destination, call.__mbManual);
 window._mbOutboundManual = false;
-if (!_telnyxCall) _telnyxCall = call;
+// Otomatik havuzda erken _telnyxCall = meşgul/telesekreter anonsu sızıyordu.
+// Ses yalnız mbConnectHopperRow (bridge) ile bağlanır; manuel önizlemede erken ses OK.
+if (work !== 'auto' && !_telnyxCall) _telnyxCall = call;
 if (!callStart) callStart = Date.now();
 _outboundDialPending = true;
 } catch(e) { window._mbOutboundManual = false; _outboundDialPending = false; toast('Arama hatası: ' + e.message, 'err'); }

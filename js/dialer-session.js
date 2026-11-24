@@ -364,7 +364,8 @@ async function toggleReady() {
     setTimeout(()=>dialNext(), 500);
   } else if (dialerStatus === 'ready' || dialerStatus === 'calling') {
     if (dialerStatus === 'calling') {
-      if (typeof mbCancelHopper === 'function') mbCancelHopper();
+      // refill:false — aksi halde Kapat yolu yeni arama başlatır, Durdur ile çakışır
+      if (typeof mbCancelHopper === 'function') mbCancelHopper({ refill: false });
       if (typeof hideOutboundWait === 'function') hideOutboundWait();
       _outboundDialPending = false;
       if (typeof clearCustomerCard === 'function') clearCustomerCard();
@@ -859,7 +860,7 @@ function setDialerStatus(s) {
   if (s === 'break') refreshBreakCustEmpty();
   if (s !== 'on_call' && s !== 'wrapping') _stopMicThresholdGate();
   syncDialerBottomChrome();
-  if ((s === 'ready' || s === 'offline') && currentContact) {
+  if ((s === 'ready' || s === 'offline') && currentContact && _isCustDataVisible()) {
     forceDialerPreCallBar();
   }
   if (s === 'ready' || s === 'break' || s === 'offline') {
