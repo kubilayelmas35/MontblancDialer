@@ -1352,8 +1352,13 @@ function mbCancelHopper(opts) {
   rows.forEach((r) => {
     mbClearAnswerScreen(r);
     if (r.call) r.call.__mbCancelled = true;
-    if (r.contact && r.phase !== 'hold') mbCloseMiss(r, mbPoolEndStatus(r));
-    else if (r.contact) mbCloseMiss(r, 'no_answer');
+    // Açıp personele düşemeyen (hold/screen) → tıkanık; çalıp açılmayan → cevap yok/meşgul
+    if (r.contact) {
+      const st = (r.phase === 'hold' || r.phase === 'screen' || r.answeredAt)
+        ? 'stuck'
+        : mbPoolEndStatus(r);
+      mbCloseMiss(r, st);
+    }
     _hopper = _hopper.filter((x) => x !== r);
     try { r.call.hangup(); } catch (e) {}
   });
@@ -1415,18 +1420,22 @@ function mbHangupLiveOrWave() {
 function mbOnHopperCall(call) {
   if (!call) return;
   const state = String(call.state || '');
-  // Durdur sonrası geç gelen accepted — kart düşmesin
-  if (call.__mbCancelled || (call.__mbWaveId != null && Number(call.__mbWaveId) !== Number(_mbWaveId))) {
+  // Durdur / offline sonrası geç gelen accepted — kart düşmesin, açan tıkanığa yazılsın
+  const waveDead = call.__mbCancelled || (call.__mbWaveId != null && Number(call.__mbWaveId) !== Number(_mbWaveId));
+  const agentGone = !call.__mbManual && !call.__mbSupervisor && (dialerStatus === 'offline' || dialerStatus === 'break');
+  if (waveDead || agentGone) {
+    const answered = state === 'active' || state === 'held' || !!call.sipAnsweredAt;
+    const who = call.__mbContact || null;
+    if (answered && who && !call.__mbStuckLogged) {
+      call.__mbStuckLogged = true;
+      if (typeof mbReleaseUnanswered === 'function') mbReleaseUnanswered(who, 'stuck');
+      if (typeof mbDialTrace === 'function') mbDialTrace('release.stuck', { id: call.id, name: `${who.first_name || ''} ${who.last_name || ''}`.trim() });
+    }
+    call.__mbCancelled = true;
     if (state !== 'hangup' && state !== 'destroy' && state !== 'done' && state !== 'purge') {
       try { call.hangup?.(); } catch (e) {}
     }
-    if (typeof mbDialTrace === 'function') mbDialTrace('hopper.ignore_cancelled', { id: call.id, state });
-    return;
-  }
-  if (!call.__mbManual && !call.__mbSupervisor && (dialerStatus === 'offline' || dialerStatus === 'break')) {
-    call.__mbCancelled = true;
-    try { call.hangup?.(); } catch (e) {}
-    if (typeof mbDialTrace === 'function') mbDialTrace('hopper.ignore_offline', { id: call.id, state });
+    if (typeof mbDialTrace === 'function') mbDialTrace(waveDead ? 'hopper.ignore_cancelled' : 'hopper.ignore_offline', { id: call.id, state, stuck: !!answered });
     return;
   }
   if (call.__mbSupervisor || (typeof mbSupervisorHeader === 'function' && mbSupervisorHeader(call))) {
