@@ -1646,7 +1646,7 @@ break;
 
 function updateMicStatus(granted) {
 const el = document.getElementById('mic-status');
-if (!el) return;
+if (el) {
 const icon = granted ? 'ph-microphone' : 'ph-microphone-slash';
 const kick = typeof tPair === 'function' ? tPair('dial.mic_chip') : { tr: 'Mikrofon', de: 'Mikrofon' };
 const hint = typeof tPair === 'function' ? tPair('dial.mic_chip_hint') : { tr: 'Ayarlar için tıkla', de: 'Tippen für Einstellungen' };
@@ -1668,11 +1668,13 @@ if (hintEl) {
 }
 el.title = granted ? t('telnyx.mic_on') : t('telnyx.mic_off');
 }
+if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
+}
 
 function updateConnectionStatus(status) {
 window._mbConnStatus = status;
 const el = document.getElementById('rtc-status');
-if (!el) return;
+if (el) {
 const map = {
 connecting:   { icon:'<i class="ph ph-arrows-clockwise"></i>', color:'var(--yellow)', tr:'Bağlanıyor...', de:'Verbinde...' },
 connected:    { icon:'<i class="ph ph-circle-wavy-check"></i>',  color:'var(--green)',  tr:'Bağlandı',      de:'Verbunden'   },
@@ -1687,6 +1689,9 @@ if (txt) {
   txt.setAttribute('data-de', s.de);
   txt.textContent = de ? s.de : s.tr;
 }
+}
+// Hat bağlanınca / düşünce Hazır butonu da güncellensin (kampanya kapat-aç gerekmesin)
+if (typeof refreshDialerHealthPanel === 'function') refreshDialerHealthPanel();
 }
 
 function handleCallState(state, callId) {
