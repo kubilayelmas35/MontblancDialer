@@ -659,11 +659,31 @@ function mbClearAnswerScreen(row) {
   row._mbScreenArm = false;
 }
 
+function mbSipSessionAlive(call) {
+  const session = call?.__mbSip;
+  if (!session) return null;
+  try {
+    if (typeof session.isEnded === 'function' && session.isEnded()) return false;
+    // JsSIP: 7=canceled, 8=terminated
+    const status = Number(session.status);
+    if (status === 7 || status === 8) return false;
+    const pc = session.connection;
+    const ice = String(pc?.iceConnectionState || '');
+    const conn = String(pc?.connectionState || '');
+    if (ice === 'failed' || ice === 'closed' || conn === 'failed' || conn === 'closed') return false;
+  } catch (e) {
+    return null;
+  }
+  return true;
+}
+
 function mbCallStillUp(call) {
   if (!call) return false;
   if (call.sipEndedAt) return false;
-  const st = String(call.state || '');
-  if (st === 'hangup' || st === 'destroy' || st === 'done' || st === 'failed') return false;
+  const st = String(call.state || '').toLowerCase();
+  if (['hangup', 'destroy', 'done', 'failed', 'purge', 'bye', 'disconnected'].includes(st)) return false;
+  const sipAlive = mbSipSessionAlive(call);
+  if (sipAlive === false) return false;
   return true;
 }
 
@@ -845,13 +865,31 @@ function mbFinishUnanswered(row) {
 }
 
 function mbCallIsDead(call) {
+  if (!call) return true;
+  if (call.sipEndedAt) return true;
+  if (mbSipSessionAlive(call) === false) return true;
   const st = String(call?.state || '').toLowerCase();
-  if (['hangup', 'destroy', 'done', 'purge', 'bye', 'disconnected'].includes(st)) return true;
-  if (st === 'active') return false;
+  if (['hangup', 'destroy', 'done', 'purge', 'bye', 'disconnected', 'failed'].includes(st)) return true;
+  if (st === 'active' || st === 'held' || st === 'hold' || st === 'ringing') return false;
   const cause = String(call?.cause || call?.sipReason || call?.sip_reason || '').toUpperCase();
   if (/BUSY|REJECT|DECLINE|CANCEL|NO_ANSWER|NORMAL_CLEAR/.test(cause)) return true;
   const code = Number(call?.sipCode || call?.sip_code || call?.causeCode || 0);
   return [404, 408, 480, 486, 487, 603].includes(code);
+}
+
+function mbDropDeadHold(row, why) {
+  if (!row) return;
+  if (typeof mbDialTrace === 'function') {
+    mbDialTrace('hold.dead', {
+      why: why || '',
+      name: row.contact ? `${row.contact.first_name || ''} ${row.contact.last_name || ''}`.trim() : '',
+    });
+  }
+  mbClearAnswerScreen(row);
+  _hopper = _hopper.filter((r) => r !== row);
+  if (typeof mbStopHoldMusic === 'function') mbStopHoldMusic(row.call);
+  try { row.call?.hangup?.(); } catch (e) {}
+  if (row.contact) mbCloseMiss(row, 'stuck');
 }
 
 function mbSameDialDigits(a, b) {
@@ -1115,22 +1153,41 @@ function mbConnectHopperRow(row, opts) {
 }
 
 function mbTakeHeldCall() {
+  if (typeof mbPruneDeadHopperRows === 'function') mbPruneDeadHopperRows();
   const held = _hopper
     .filter((r) => r.phase === 'hold')
     .sort((a, b) => (Number(a.answeredAt) || 0) - (Number(b.answeredAt) || 0));
   while (held.length) {
     const row = held.shift();
     if (!row) break;
-    if (!row.contact || !mbCallStillUp(row.call) || mbBusyLine(row.call) || mbPhoneOff(row.call) || row.call?.amd_result === 'machine') {
-      _hopper = _hopper.filter((r) => r !== row);
-      if (typeof mbStopHoldMusic === 'function') mbStopHoldMusic(row.call);
-      try { row.call?.hangup(); } catch (e) {}
-      if (row.contact) mbCloseMiss(row, mbPoolEndStatus(row));
+    // Önce açıp sonra kapatan / ölü hold → personele verme, tıkanık
+    if (!row.contact || !mbCallStillUp(row.call) || mbCallIsDead(row.call) || mbBusyLine(row.call) || mbPhoneOff(row.call) || row.call?.amd_result === 'machine') {
+      mbDropDeadHold(row, 'pre_bridge');
       continue;
     }
     if (typeof mbStopHoldMusic === 'function') mbStopHoldMusic(row.call);
     try { row.call.unhold(); } catch (e) {}
+    // unhold sonrası da kapanmış olabilir
+    if (!mbCallStillUp(row.call) || mbCallIsDead(row.call)) {
+      mbDropDeadHold(row, 'after_unhold');
+      continue;
+    }
     mbConnectHopperRow(row, { fromHold: true });
+    // Bağladıktan hemen sonra hat ölüyse kartı geri alıp tıkanık yaz
+    setTimeout(() => {
+      if (!_hopper.includes(row) || row.phase !== 'live' || row.id !== _liveCallId) return;
+      if (mbCallStillUp(row.call) && !mbCallIsDead(row.call)) return;
+      if (typeof mbDialTrace === 'function') mbDialTrace('hold.dead_after_bridge', { id: row.id });
+      try { row.call?.hangup?.(); } catch (e) {}
+      _liveCallId = null;
+      if (_telnyxCall === row.call) _telnyxCall = null;
+      _hopper = _hopper.filter((r) => r !== row);
+      if (row.contact) mbCloseMiss(row, 'stuck');
+      if (typeof mbTakeHeldCall === 'function' && mbTakeHeldCall()) return;
+      if (typeof mbRecoverDialerSurface === 'function') {
+        mbRecoverDialerSurface(typeof _autoDial !== 'undefined' && _autoDial ? 'calling' : 'ready');
+      }
+    }, 400);
     return true;
   }
   return false;
@@ -1259,12 +1316,17 @@ function mbReleaseUnanswered(contact, status) {
 
 function mbPruneDeadHopperRows() {
   const dead = _hopper.filter((r) => {
-    if (!r || r.phase === 'live' || r.phase === 'hold') return false;
-    if (r.id === _liveCallId) return false;
-    return typeof mbCallIsDead === 'function' ? mbCallIsDead(r.call) : !r.call;
+    if (!r || r.id === _liveCallId || r.phase === 'live') return false;
+    if (!r.call) return true;
+    // Hold dahil: müşteri müzikte kapatmışsa tıkanığa düşsün, personele kalmasın
+    return !mbCallStillUp(r.call) || mbCallIsDead(r.call);
   });
   if (!dead.length) return;
   dead.forEach((row) => {
+    if (row.phase === 'hold' || row.answeredAt || row.phase === 'screen') {
+      mbDropDeadHold(row, 'prune');
+      return;
+    }
     mbClearAnswerScreen(row);
     _hopper = _hopper.filter((r) => r !== row);
     if (row.contact) mbCloseMiss(row, mbPoolEndStatus(row));
