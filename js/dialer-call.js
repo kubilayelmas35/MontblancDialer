@@ -1605,6 +1605,7 @@ async function submitOutcome(goBreak) {
     return;
   }
   if (!selectedOutcome) { toast(typeof t === 'function' ? t('dial.pick_outcome') : 'Sonuç seçin', 'err'); return; }
+  if (window._mbOutcomeSaving) return;
   const note   = document.getElementById('outcome-note')?.value.trim()||'';
   const noteCat = typeof mbOutcomeCategory === 'function' ? mbOutcomeCategory(typeof mbFindOutcome === 'function' ? mbFindOutcome(selectedOutcome) : { key: selectedOutcome }) : '';
   if (typeof mbHoldEmptyOutcomeNote === 'function' && mbHoldEmptyOutcomeNote(noteCat, note)) return;
@@ -1631,6 +1632,17 @@ async function submitOutcome(goBreak) {
   const manualDialWrap = !!(window._mbCallMeta && window._mbCallMeta.work && window._mbCallMeta.work !== 'auto');
   const talked = (Number(callSeconds) || 0) > 0 || !!(window._mbCallMeta && window._mbCallMeta.answeredAt);
   let outcomeSaved = !currentContact;
+  const sbRetry = async (path, opts) => {
+    try {
+      return await sb(path, opts);
+    } catch (err) {
+      const msg = String(err?.message || '');
+      if (!/zaman aşı|timeout|AbortError|network|Failed to fetch/i.test(msg)) throw err;
+      await new Promise((r) => setTimeout(r, 700));
+      return sb(path, opts);
+    }
+  };
+  window._mbOutcomeSaving = true;
   try {
     if (currentContact) {
       // appointment_done → call_logs'da 'appointment' olarak sakla (QC uyumu için)
@@ -1651,7 +1663,7 @@ async function submitOutcome(goBreak) {
       // Fake/test ID'lerinde UUID hatası önle
       const contactId = isValidUUID(currentContact.id) ? currentContact.id : null;
       if (contactId) {
-        await sb(`contacts?id=eq.${contactId}`,{method:'PATCH',prefer:'return=minimal',
+        await sbRetry(`contacts?id=eq.${contactId}`,{method:'PATCH',prefer:'return=minimal',
           body:JSON.stringify(contactPatch)
         });
       }
@@ -1715,17 +1727,17 @@ async function submitOutcome(goBreak) {
         window._mbPendingLogId = null;
         window._mbPendingLogPromise = null;
         try {
-          savedLog = await sb(`call_logs?id=eq.${pendingId}`,{method:'PATCH',prefer:'return=representation',body:JSON.stringify({ ...logData, ...callExtra })});
+          savedLog = await sbRetry(`call_logs?id=eq.${pendingId}`,{method:'PATCH',prefer:'return=representation',body:JSON.stringify({ ...logData, ...callExtra })});
         } catch (logErr) {
-          savedLog = await sb(`call_logs?id=eq.${pendingId}`,{method:'PATCH',prefer:'return=representation',body:JSON.stringify(logData)});
+          savedLog = await sbRetry(`call_logs?id=eq.${pendingId}`,{method:'PATCH',prefer:'return=representation',body:JSON.stringify(logData)});
         }
         if (!Array.isArray(savedLog) || !savedLog.length) savedLog = [{ id: pendingId }];
       } else {
       try {
-        savedLog = await sb('call_logs',{method:'POST',prefer:'return=representation',body:JSON.stringify({ ...logData, ...callExtra })});
+        savedLog = await sbRetry('call_logs',{method:'POST',prefer:'return=representation',body:JSON.stringify({ ...logData, ...callExtra })});
       } catch (logErr) {
         if (!Object.keys(callExtra).length) throw logErr;
-        savedLog = await sb('call_logs',{method:'POST',prefer:'return=representation',body:JSON.stringify(logData)});
+        savedLog = await sbRetry('call_logs',{method:'POST',prefer:'return=representation',body:JSON.stringify(logData)});
       }
       }
       const savedRow = Array.isArray(savedLog) ? savedLog[0] : savedLog;
@@ -1751,7 +1763,18 @@ async function submitOutcome(goBreak) {
       }
     }
     outcomeSaved = true;
-  } catch(e){ console.error(e); toast((typeof t === 'function' ? t('dial.log_err') : 'Kayıt hatası: ') + e.message,'err'); }
+  } catch(e){
+    console.error(e);
+    const raw = String(e?.message || '');
+    const soft = /zaman aşı|timeout|AbortError|network|Failed to fetch/i.test(raw)
+      ? (typeof t === 'function' ? t('dial.log_timeout') : 'Bağlantı yavaş — sonucu tekrar kaydedin')
+      : (raw && !/rest\/v1|call_logs|contacts\?/i.test(raw) ? raw : (typeof t === 'function' ? t('api.err.generic') : 'İşlem tamamlanamadı. Tekrar deneyin.'));
+    toast((typeof t === 'function' ? t('dial.log_err') : 'Kayıt hatası: ') + soft, 'err', 4200);
+    window._mbOutcomeSaving = false;
+    return; // kartı silme / molaya geçme — tekrar denenebilsin
+  } finally {
+    if (outcomeSaved) window._mbOutcomeSaving = false;
+  }
   // Termin dışı sonuç seçilirse kilitli slot serbest bırak
   const lockedSlotId = _bookingSlot?.id || window._selectedBookingSlot?.id;
   const submitCat = typeof mbOutcomeCategory === 'function' ? mbOutcomeCategory(typeof mbFindOutcome === 'function' ? mbFindOutcome(selectedOutcome) : { key: selectedOutcome }) : '';

@@ -5,6 +5,12 @@
 function mbResetCallMeta() {
   window._mbCallMeta = null;
   window._mbBillSec = null;
+  window._mbLocalRecUrl = '';
+  window._mbLocalRecBlob = null;
+  window._mbLocalRecCall = null;
+  window._mbPendingLogId = null;
+  window._mbPendingLogPromise = null;
+  window._mbRecCommit = null;
 }
 
 function mbNoteCallStart(caller, work) {
@@ -821,8 +827,11 @@ function mbProviderSeconds(call, row) {
 function mbTalkSeconds(row) {
   const billed = mbProviderSeconds(row?.call, row);
   if (billed > 0) return billed;
-  const at = Number(row?.answeredAt) || 0;
+  const at = Number(row?.answeredAt) || Number(row?.bridgedAt) || 0;
   if (at) return Math.max(0, Math.floor((Date.now() - at) / 1000));
+  // Canlı görüşmenin meta'sını başka satıra (hold/ring) bulaştırma
+  const isLiveRow = !!(row && (row.phase === 'live' || row.id === _liveCallId));
+  if (!isLiveRow) return 0;
   const iso = window._mbCallMeta?.answeredAt;
   const t = iso ? Date.parse(iso) : 0;
   if (!t) return 0;
@@ -1143,6 +1152,11 @@ function mbConnectHopperRow(row, opts) {
   // Hold'dan gelince süre 00:00'dan başlar (müşteri müzikte beklediği süre sayılmaz)
   const bridgeAt = fromHold ? Date.now() : (row.answeredAt || row.call?.sipAnsweredAt || Date.now());
   if (fromHold) row.bridgedAt = bridgeAt;
+  // Önceki görüşmenin kayıt URL / pending log'u bu kişiye yapışmasın
+  if (fromHold && typeof mbNoteCallStart === 'function') {
+    const caller = row.call?.__mbCaller || window._mbCallMeta?.caller || '';
+    mbNoteCallStart(caller, 'auto');
+  }
   if (typeof mbNoteCallAnswered === 'function') mbNoteCallAnswered(bridgeAt);
   if (typeof handleCallState === 'function') handleCallState('active', row.id);
   if (typeof startCallTimer === 'function') startCallTimer(fromHold ? null : bridgeAt);
@@ -1196,9 +1210,14 @@ function mbTakeHeldCall() {
 function mbWriteAttemptLog(contact, outcome, row) {
   if (!row || row.logged || String(row.id || '').startsWith('sim-')) return;
   if (typeof sb !== 'function') return;
+  // Canlı görüşmenin pending log'u varken aynı kişiye ikinci satır yazma
+  const liveCid = (typeof currentContact !== 'undefined' && currentContact?.id) ? String(currentContact.id) : '';
+  if (liveCid && contact?.id && String(contact.id) === liveCid && (window._mbPendingLogId || window._mbPendingLogPromise)) {
+    row.logged = true;
+    return;
+  }
   row.logged = true;
-  const meta = window._mbCallMeta || {};
-  let phone = String(contact?.phone || '').trim();
+  let phone = String(contact?.phone || contact?._dialTarget || '').trim();
   if (!phone && row?.dest) {
     const digits = String(row.dest).replace(/\D/g, '');
     if (digits.length >= 8) phone = `+${digits}`;
@@ -1212,29 +1231,28 @@ function mbWriteAttemptLog(contact, outcome, row) {
     } catch (e) {}
   }
   const talk = Math.max(0, Number(typeof mbTalkSeconds === 'function' ? mbTalkSeconds(row) : 0) || 0);
-  const answeredIso = talk
-    ? (meta.answeredAt || new Date(Date.now() - talk * 1000).toISOString())
-    : (meta.answeredAt || null);
+  const answeredMs = Number(row?.answeredAt) || Number(row?.bridgedAt) || Number(row?.call?.sipAnsweredAt) || 0;
+  const dialMs = Number(row?.dialAt) || Number(row?.startedAt) || (answeredMs ? answeredMs - Math.max(talk, 0) * 1000 : Date.now());
+  const answeredIso = talk && answeredMs ? new Date(answeredMs).toISOString() : null;
   const body = {
-    campaign_id: campId,
+    campaign_id: (campId && typeof isValidUUID === 'function' && isValidUUID(campId)) ? campId : null,
     firm_id: firmId,
     agent_id: (typeof currentUser !== 'undefined' ? currentUser?.id : null) || null,
     phone: phone || null,
     outcome: outcome || 'no_answer',
     notes: '',
     duration_sec: talk,
-    started_at: meta.dialAt || new Date(Date.now() - Math.max(talk, 0) * 1000).toISOString(),
+    started_at: new Date(dialMs || Date.now()).toISOString(),
     ended_at: new Date().toISOString(),
+    work_type: row.manual ? 'manual' : 'auto',
   };
   if (answeredIso) body.answered_at = answeredIso;
   if (contact?.id && typeof isValidUUID === 'function' && isValidUUID(contact.id)) body.contact_id = contact.id;
-  const extra = typeof mbCallLogExtras === 'function' ? mbCallLogExtras() : {};
-  if (!extra.work_type) extra.work_type = row.manual ? 'manual' : (meta.work || 'manual');
   const post = (payload) => sb('call_logs', { method: 'POST', prefer: 'return=representation', body: JSON.stringify(payload) });
-  post({ ...body, ...extra, duration_sec: talk }).then((rows) => {
+  post(body).then((rows) => {
     const saved = Array.isArray(rows) ? rows[0] : rows;
     if (saved?.id && talk > 0 && typeof mbChargeCall === 'function') void mbChargeCall(saved);
-  }).catch(() => post({ ...body, duration_sec: talk }).catch(() => {}));
+  }).catch(() => {});
 }
 
 function mbEnsureTalkLog(sec) {
