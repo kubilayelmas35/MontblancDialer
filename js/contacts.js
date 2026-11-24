@@ -632,10 +632,15 @@ function clearCustomerCard() {
   window._mbAllowClearWrap = false;
   if (typeof hideOutboundWait === 'function') hideOutboundWait();
   document.getElementById('customer-card')?.classList.add('customer-card--empty');
+  document.getElementById('customer-card')?.classList.remove('customer-card--has-bar');
   document.getElementById('cust-empty').style.display='';
   document.getElementById('cust-data').style.display='none';
   const dock = document.getElementById('outcome-dock');
   if (dock) dock.hidden = true;
+  // Boş hubda currentContact kalırsa Ara / Sıraya al yanlışlıkla açılıyordu
+  if (typeof dialerStatus !== 'undefined' && (dialerStatus === 'offline' || dialerStatus === 'ready' || dialerStatus === 'break' || dialerStatus === 'calling')) {
+    if (typeof currentContact !== 'undefined') currentContact = null;
+  }
   if (typeof showPrevCallInfo === 'function') showPrevCallInfo(null);
   if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
   if (typeof mbPaintCardSource === 'function') mbPaintCardSource(null);

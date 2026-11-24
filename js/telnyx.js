@@ -644,9 +644,9 @@ function mbScreenMissOn() {
 function mbScreenThis(row) {
   if (!row || !mbScreenMissOn()) return false;
   const st = mbPoolEndStatus(row);
-  // Meşgul / kapalı asla temsilciye düşmez. Telesekreter kısa ise elenir.
+  // Meşgul / kapalı asla temsilciye düşmez. Telesekreter kısa konuşmada elenir.
   if (st === 'busy' || st === 'phone_off') return true;
-  if (st === 'voicemail') return mbTalkSeconds(row) < 8;
+  if (st === 'voicemail') return mbTalkSeconds(row) < 12;
   return false;
 }
 
@@ -712,11 +712,15 @@ function mbArmAnswerScreen(row) {
   row._mbScreenArm = true;
   row.phase = 'screen';
   if (typeof mbStopRingback === 'function') mbStopRingback();
-  // Temsilciye ses yok — meşgul anonsu / kısa kesilme burada elenir.
-  const waitMs = 1200;
+  // Temsilciye ses yok. Telesekreter / meşgul anonsu için daha uzun eleme.
+  const waitMs = row.manual ? 1200 : 4000;
   row._mbScreenTimer = setTimeout(() => {
     row._mbScreenTimer = null;
     if (!_hopper.includes(row)) return;
+    if (mbScreenMissOn() && (row.call?.amd_result === 'machine' || mbBusyLine(row.call) || mbPhoneOff(row.call))) {
+      mbRejectScreened(row, row.call?.amd_result === 'machine' ? 'machine' : '');
+      return;
+    }
     mbBridgeAnswered(row);
   }, waitMs);
 }
@@ -1013,6 +1017,7 @@ function mbConnectHopperRow(row) {
   if (row.answeredAt || row.call?.sipAnsweredAt) mbNoteCallAnswered(row.answeredAt || row.call?.sipAnsweredAt);
   if (typeof handleCallState === 'function') handleCallState('active', row.id);
   if (typeof startCallTimer === 'function') startCallTimer(row.answeredAt || row.call?.sipAnsweredAt);
+  if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
   if (typeof mbPublishLiveLeg === 'function') mbPublishLiveLeg(row);
   if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
   if (typeof mbSyncPool === 'function') mbSyncPool();
@@ -1548,14 +1553,21 @@ label.textContent = subLabels[state][currentLang] || subLabels[state].tr;
 function handleAMD(result) {
 amdResult = result;
 if (result === 'machine' && mbScreenMissOn()) {
-  const row = _liveCallId ? _hopper.find((r) => r.id === _liveCallId) : _hopper.find((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'live');
-  if (!row || mbTalkSeconds(row) < 8) {
-    if (row) {
-      row.amd = 'machine';
-      if (row.call) row.call.amd_result = 'machine';
-    }
+  const row = _liveCallId
+    ? _hopper.find((r) => r.id === _liveCallId)
+    : _hopper.find((r) => r.phase === 'screen' || r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'live' || r.phase === 'hold');
+  if (row) {
+    row.amd = 'machine';
+    if (row.call) row.call.amd_result = 'machine';
+  }
+  // Eleme / kısa konuşmada telesekreteri temsilciye verme
+  if (!row || row.phase === 'screen' || mbTalkSeconds(row) < 12) {
     toast('🤖 ' + t('telnyx.amd_voicemail'), 'ok');
     mbNoteCallHangup('system');
+    if (row && row.phase === 'screen') {
+      mbRejectScreened(row, 'machine');
+      return;
+    }
     try { (row?.call || _telnyxCall)?.hangup(); } catch (e) {}
     if (!_outboundAnswered) autoSaveVoicemail();
     return;

@@ -487,6 +487,7 @@ function refreshPreCallToolbarUi() {
 function forceDialerPreCallBar() {
   if (_callLineIsLive()) return;
   if (!(dialerStatus === 'offline' || dialerStatus === 'ready')) return;
+  if (!_isCustDataVisible() || !currentContact) return;
   const readySec = document.getElementById('ready-section');
   const callAct = document.getElementById('call-actions');
   if (readySec) readySec.style.display = 'none';
@@ -560,42 +561,64 @@ function syncDialerBottomChrome() {
   const readySec = document.getElementById('ready-section');
   const callAct = document.getElementById('call-actions');
   const hold = document.getElementById('btn-hold');
+  const hangLbl = document.getElementById('btn-hangup-label');
+  const hangBtn = document.getElementById('btn-hangup');
+  const card = document.getElementById('customer-card');
 
-  const resetHold = () => {
+  const showLiveBar = () => {
+    if (readySec) readySec.style.display = 'none';
+    if (callAct) {
+      callAct.style.display = '';
+      callAct.classList.remove('call-actions--pre-call', 'call-actions--wrapping');
+    }
     if (hold) hold.disabled = false;
+    if (hangLbl) hangLbl.textContent = typeof t === 'function' ? t('dial.hangup_close') : 'Kapat';
+    if (hangBtn) {
+      hangBtn.style.color = 'var(--red)';
+      hangBtn.onclick = hangup;
+      hangBtn.style.display = '';
+    }
+    if (card) card.classList.add('customer-card--has-bar');
   };
 
-  const outboundRing = dialerStatus === 'calling' && (_outboundDialPending || _telnyxCall || _fakeCallActive);
-  if (dialerStatus === 'on_call' || dialerStatus === 'wrapping' || outboundRing) {
-    if (callAct) callAct.classList.remove('call-actions--pre-call');
-    if (outboundRing) {
-      if (readySec) readySec.style.display = 'none';
-      if (callAct) {
-        callAct.style.display = '';
-        callAct.classList.remove('call-actions--wrapping');
-      }
-    }
-    if (dialerStatus === 'on_call' || outboundRing) resetHold();
-    if (outboundRing) {
-      const hangLbl = document.getElementById('btn-hangup-label');
-      const hangBtn = document.getElementById('btn-hangup');
-      if (hangLbl) hangLbl.textContent = typeof t === 'function' ? t('dial.hangup_close') : 'Kapat';
-      if (hangBtn) {
-        hangBtn.style.color = 'var(--red)';
-        hangBtn.onclick = hangup;
-      }
-      const dock = document.getElementById('outcome-dock');
-      if (dock) dock.hidden = true;
-    }
+  // Canlı görüşme: mikrofon / beklet / kapat her zaman altta
+  if (dialerStatus === 'on_call') {
+    showLiveBar();
     if (typeof mbApplyCampWarning === 'function') mbApplyCampWarning();
     paintCallActionButtons();
     return;
   }
 
+  // Çalıyor / bekleniyor
+  if (dialerStatus === 'calling') {
+    showLiveBar();
+    // Durdur da hazır bandında kalsın
+    if (readySec) readySec.style.display = '';
+    const dock = document.getElementById('outcome-dock');
+    if (dock) dock.hidden = true;
+    if (typeof mbApplyCampWarning === 'function') mbApplyCampWarning();
+    paintCallActionButtons();
+    return;
+  }
+
+  if (dialerStatus === 'wrapping') {
+    if (readySec) readySec.style.display = 'none';
+    if (callAct) {
+      callAct.style.display = '';
+      callAct.classList.remove('call-actions--pre-call');
+      callAct.classList.add('call-actions--wrapping');
+    }
+    if (card) card.classList.add('customer-card--has-bar');
+    if (typeof mbApplyCampWarning === 'function') mbApplyCampWarning();
+    paintCallActionButtons();
+    return;
+  }
+
+  // Önizleme: kart açık + ready/offline → Ara / sıraya al
   const preCall =
-    (dialerStatus === 'offline' || dialerStatus === 'ready' || dialerStatus === 'calling') &&
-    !!currentContact &&
-    _isCustDataVisible();
+    (dialerStatus === 'offline' || dialerStatus === 'ready')
+    && !!currentContact
+    && _isCustDataVisible();
 
   if (preCall) {
     if (readySec) readySec.style.display = 'none';
@@ -604,6 +627,7 @@ function syncDialerBottomChrome() {
       callAct.classList.add('call-actions--pre-call');
       callAct.classList.remove('call-actions--wrapping');
     }
+    if (card) card.classList.add('customer-card--has-bar');
     refreshPreCallToolbarUi();
     _clearHangupUiTick();
     if (typeof mbApplyCampWarning === 'function') mbApplyCampWarning();
@@ -611,12 +635,13 @@ function syncDialerBottomChrome() {
     return;
   }
 
+  // Boş hub: yalnız Hazır / Durdur
   if (callAct) {
-    callAct.classList.remove('call-actions--pre-call');
+    callAct.classList.remove('call-actions--pre-call', 'call-actions--wrapping');
     callAct.style.display = 'none';
   }
-  resetHold();
-
+  if (hold) hold.disabled = false;
+  if (card) card.classList.remove('customer-card--has-bar');
   if (readySec && (dialerStatus === 'offline' || dialerStatus === 'ready' || dialerStatus === 'break')) {
     readySec.style.display = '';
   }
@@ -748,7 +773,6 @@ function setDialerStatus(s) {
     _clearHangupUiTick();
   } else if (s==='calling') {
     mbClearSavedLine();
-    // Durdur görünür kalsın — hazır bölümü gizlenince vazgeçilemiyordu.
     if (rdyBtn) rdyBtn.className = 'btn-ready-big stop';
     if (rdyIc) rdyIc.textContent = '⏹';
     if (rdyTxt) {
@@ -757,25 +781,15 @@ function setDialerStatus(s) {
       rdyTxt.setAttribute('data-de', stp.de);
       rdyTxt.textContent = typeof currentLang !== 'undefined' && currentLang === 'de' ? stp.de : stp.tr;
     }
-    document.getElementById('ready-section').style.display = '';
-    if (callAct) {
-      callAct.style.display = '';
-      callAct.classList.remove('call-actions--pre-call', 'call-actions--wrapping');
-    }
-    document.getElementById('customer-card').style.display='';
+    document.getElementById('customer-card').style.display = '';
     _startHangupUiTick();
   } else if (s==='on_call') {
     mbClearSavedLine();
-    document.getElementById('ready-section').style.display='none';
-    if (callAct) {
-      callAct.style.display='';
-      callAct.classList.remove('call-actions--wrapping');
-    }
     const xferBtn = document.getElementById('btn-transfer');
     if (xferBtn) xferBtn.style.display = '';
     const tblk = document.getElementById('dialer-timer-block');
     if (tblk) tblk.style.display = 'flex';
-    document.getElementById('customer-card').style.display='';
+    document.getElementById('customer-card').style.display = '';
     startCallTimer();
     _startHangupUiTick();
     _applyMicSensitivityToLiveCall();
