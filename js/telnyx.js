@@ -927,21 +927,31 @@ function _hopperRowFor(call) {
   const hit = _hopper.find((r) => r.call === call || (id && r.id === id));
   if (hit) return hit;
   const dest = mbCallDigits(call);
+  const pending = () => _hopper.filter((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen');
   if (dest) {
-    const same = _hopper.find((r) => (r.phase === 'dialing' || r.phase === 'ringing') && mbSameDialDigits(r.dest || mbCallDigits(r.call) || r.contact?.phone, dest));
+    const same = pending().find((r) => mbSameDialDigits(r.dest || mbCallDigits(r.call) || r.contact?.phone, dest));
     if (same) {
       if (same.call !== call && (!same.call?.id || String(same.id).startsWith('leg-') || same.call.id === call.id)) same.call = call;
       if (call.id) same.id = call.id;
+      if (dest) same.dest = dest;
       return same;
     }
   }
   if (call.direction !== 'inbound') {
-    const orphans = _hopper.filter((r) => (r.phase === 'dialing' || r.phase === 'ringing') && String(r.id).startsWith('leg-'));
+    const orphans = pending().filter((r) => String(r.id).startsWith('leg-') || !r.call?.id);
     if (orphans.length === 1) {
       orphans[0].call = call;
       if (call.id) orphans[0].id = call.id;
       if (dest) orphans[0].dest = dest;
       return orphans[0];
+    }
+    // Tek bekleyen otomatik hat varsa ona bağla (kişisiz ikinci satır üretme)
+    const autos = pending().filter((r) => !r.manual && r.contact);
+    if (autos.length === 1) {
+      autos[0].call = call;
+      if (call.id) autos[0].id = call.id;
+      if (dest) autos[0].dest = dest;
+      return autos[0];
     }
   }
   return null;
@@ -1043,26 +1053,33 @@ function _attachLiveAudio(call) {
 function mbConnectHopperRow(row, opts) {
   if (!row) return;
   const fromHold = !!(opts && opts.fromHold);
+  // Kişisiz hat → beyaz ekran; bağlama, kapat
+  if (!row.contact) {
+    if (typeof mbDialTrace === 'function') mbDialTrace('bridge.no_contact', { id: row.id, fromHold });
+    _hopper = _hopper.filter((r) => r !== row);
+    if (typeof mbStopHoldMusic === 'function') mbStopHoldMusic(row.call);
+    try { row.call?.hangup(); } catch (e) {}
+    return;
+  }
   _liveCallId = row.id;
   _telnyxCall = row.call;
   row.phase = 'live';
   _outboundAnswered = true;
   _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen');
-  // Eski _mbLastContact ile yanlış kart basma (Kamile döngüsü)
-  if (row.contact) currentContact = row.contact;
+  currentContact = row.contact;
   if (typeof hideOutboundWait === 'function') hideOutboundWait({ openingCard: true });
-  if (currentContact && typeof showCustomerCard === 'function') {
+  if (typeof showCustomerCard === 'function') {
     try { showCustomerCard(currentContact); } catch (e) {}
   }
   const data = document.getElementById('cust-data');
-  if (currentContact && data && data.style.display === 'none' && typeof showCustomerCard === 'function') {
+  if (data && data.style.display === 'none' && typeof showCustomerCard === 'function') {
     try { showCustomerCard(currentContact); } catch (e) {}
   }
   if (typeof mbDialTrace === 'function') {
     mbDialTrace('bridge.live', {
       id: row.id,
-      name: currentContact ? `${currentContact.first_name || ''} ${currentContact.last_name || ''}`.trim() : '',
-      cid: currentContact?.id || null,
+      name: `${currentContact.first_name || ''} ${currentContact.last_name || ''}`.trim(),
+      cid: currentContact.id || null,
       fromHold,
     });
   }
@@ -1086,11 +1103,11 @@ function mbTakeHeldCall() {
   while (held.length) {
     const row = held.shift();
     if (!row) break;
-    if (!mbCallStillUp(row.call) || mbBusyLine(row.call) || mbPhoneOff(row.call) || row.call?.amd_result === 'machine') {
+    if (!row.contact || !mbCallStillUp(row.call) || mbBusyLine(row.call) || mbPhoneOff(row.call) || row.call?.amd_result === 'machine') {
       _hopper = _hopper.filter((r) => r !== row);
       if (typeof mbStopHoldMusic === 'function') mbStopHoldMusic(row.call);
       try { row.call?.hangup(); } catch (e) {}
-      mbCloseMiss(row, mbPoolEndStatus(row));
+      if (row.contact) mbCloseMiss(row, mbPoolEndStatus(row));
       continue;
     }
     if (typeof mbStopHoldMusic === 'function') mbStopHoldMusic(row.call);
@@ -1413,13 +1430,19 @@ function mbOnHopperCall(call) {
     }
     if (state === 'held' || state === 'hold') return;
     if (call.direction === 'inbound' && state !== 'active') return;
-    const pendingManual = _hopper.filter((r) => r.manual && (r.phase === 'dialing' || r.phase === 'ringing'));
+    const pendingManual = _hopper.filter((r) => r.manual && (r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen'));
     if (pendingManual.length === 1) {
       row = pendingManual[0];
       row.call = call;
       if (call.id) row.id = call.id;
     } else {
-      row = _rememberHopper(call, currentContact, mbCallDigits(call), !!(call.__mbManual || window._mbOutboundManual));
+      // Otomatik havuzda kişisiz yeni satır açma — eşleşme yoksa yok say
+      const manual = !!(call.__mbManual || window._mbOutboundManual);
+      if (!manual && !currentContact) {
+        if (typeof mbDialTrace === 'function') mbDialTrace('hopper.orphan_drop', { id: call.id, dest: mbCallDigits(call) });
+        return;
+      }
+      row = _rememberHopper(call, currentContact, mbCallDigits(call), manual);
     }
   }
   if (call.id && row.id !== call.id && row.id === _liveCallId) _liveCallId = call.id;
@@ -1471,6 +1494,13 @@ function mbOnHopperCall(call) {
     if (row.phase === 'screen' || row._mbScreenArm) return;
     if (mbScreenMissOn() && (call.amd_result === 'machine' || mbBusyLine(call) || mbPhoneOff(call))) {
       mbRejectScreened(row, call.amd_result === 'machine' ? 'machine' : '');
+      return;
+    }
+    // Kişisiz aktif hat → beyaz ekran riski; tutma
+    if (!row.contact && !row.manual) {
+      if (typeof mbDialTrace === 'function') mbDialTrace('active.no_contact', { id: row.id });
+      _hopper = _hopper.filter((r) => r !== row);
+      try { call.hangup(); } catch (e) {}
       return;
     }
     // Temsilci zaten canlıdaysa ikinci hat: eleme UI'sına dokunma, müzikte bekle

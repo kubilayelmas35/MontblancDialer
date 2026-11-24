@@ -847,6 +847,17 @@ function setDialerStatus(s) {
     _applyMicSensitivityToLiveCall();
     _startMicThresholdGate();
   } else if (s==='wrapping') {
+    // Kişi yoksa beyaz ekranda kalma — hold varsa bağla, yoksa bekleme/hazıra dön
+    if (!currentContact && !(window._mbLastContact)) {
+      if (typeof mbDialTrace === 'function') mbDialTrace('wrap.no_contact', {});
+      if (typeof mbTakeHeldCall === 'function' && mbTakeHeldCall()) {
+        return;
+      }
+      if (typeof mbRecoverDialerSurface === 'function') {
+        mbRecoverDialerSurface(typeof _autoDial !== 'undefined' && _autoDial ? 'calling' : 'ready');
+        return;
+      }
+    }
     const keepWrap = prev === 'on_call';
     const keptOutcome = keepWrap ? selectedOutcome : null;
     const noteEl = document.getElementById('outcome-note');
@@ -879,6 +890,12 @@ function setDialerStatus(s) {
       showCustomerCard(currentContact);
       if (typeof switchContactTab === 'function') switchContactTab(hasSlot ? 'info' : 'outcome');
     } else {
+      // Hâlâ kişi yok → beyaz ekran yerine kurtar
+      if (typeof mbDialTrace === 'function') mbDialTrace('wrap.empty_card', {});
+      if (typeof mbRecoverDialerSurface === 'function') {
+        mbRecoverDialerSurface(typeof _autoDial !== 'undefined' && _autoDial ? 'calling' : 'ready');
+        return;
+      }
       const dock = document.getElementById('outcome-dock');
       if (dock) dock.hidden = true;
     }
