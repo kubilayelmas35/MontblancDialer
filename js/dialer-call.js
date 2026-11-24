@@ -1784,6 +1784,11 @@ async function submitOutcome(goBreak) {
   }
   if (currentContact?.campaign_id) window._mbLiveCamp = currentContact.campaign_id;
   if (currentContact?.queue_id) window._mbLiveQueue = currentContact.queue_id;
+  // Aynı kişi (Kamile vb.) sonuçtan hemen sonra tekrar çevrilmesin
+  if (currentContact && typeof mbSkipContact === 'function') mbSkipContact(currentContact, 5 * 60 * 1000);
+  else if (currentContact?.id && typeof _hopperSkip !== 'undefined' && _hopperSkip?.set) {
+    _hopperSkip.set(String(currentContact.id), Date.now() + 5 * 60 * 1000);
+  }
   setDialerStatus('wrapping');
   const savedDur = Math.max(0, Number(callSeconds) || 0);
   selectedOutcome = null;

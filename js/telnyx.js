@@ -1048,8 +1048,15 @@ function mbConnectHopperRow(row) {
   _outboundAnswered = true;
   _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen');
   if (row.contact) currentContact = row.contact;
+  else if (window._mbLastContact) currentContact = window._mbLastContact;
   if (typeof hideOutboundWait === 'function') hideOutboundWait({ openingCard: true });
-  if (row.contact && typeof showCustomerCard === 'function') showCustomerCard(row.contact);
+  if (currentContact && typeof showCustomerCard === 'function') {
+    try { showCustomerCard(currentContact); } catch (e) {}
+  }
+  const data = document.getElementById('cust-data');
+  if (currentContact && data && data.style.display === 'none' && typeof showCustomerCard === 'function') {
+    try { showCustomerCard(currentContact); } catch (e) {}
+  }
   _attachLiveAudio(row.call);
   if (row.answeredAt || row.call?.sipAnsweredAt) mbNoteCallAnswered(row.answeredAt || row.call?.sipAnsweredAt);
   if (typeof handleCallState === 'function') handleCallState('active', row.id);
@@ -1164,12 +1171,18 @@ function mbEnsureTalkLog(sec) {
   }).catch(() => '');
 }
 
+function mbSkipContact(contact, ms) {
+  if (!contact?.id) return;
+  const until = Date.now() + Math.max(5000, Number(ms) || 60000);
+  _hopperSkip.set(String(contact.id), until);
+  const phone = String(contact.phone || contact._dialTarget || '').replace(/\D/g, '');
+  if (phone.length >= 8) _hopperSkip.set('tel:' + phone.slice(-10), until);
+}
+
 function mbReleaseUnanswered(contact, status) {
   if (!contact?.id) return;
   const st = status || 'no_answer';
-  if (st === 'no_answer' || st === 'busy' || st === 'phone_off' || st === 'voicemail' || st === 'unused' || st === 'stuck') {
-    _hopperSkip.set(String(contact.id), Date.now() + 60000);
-  }
+  mbSkipContact(contact, 3 * 60 * 1000);
   if (typeof isValidUUID === 'function' && isValidUUID(contact.id) && typeof sb === 'function') {
     const attempts = Math.max(0, Number(contact.attempt_count) || 0) + 1;
     contact.attempt_count = attempts;
@@ -1191,21 +1204,53 @@ function mbReleaseUnanswered(contact, status) {
   if (typeof loadUnfinalizedCalls === 'function') void loadUnfinalizedCalls();
 }
 
+function mbPruneDeadHopperRows() {
+  const dead = _hopper.filter((r) => {
+    if (!r || r.phase === 'live' || r.phase === 'hold') return false;
+    if (r.id === _liveCallId) return false;
+    return typeof mbCallIsDead === 'function' ? mbCallIsDead(r.call) : !r.call;
+  });
+  if (!dead.length) return;
+  dead.forEach((row) => {
+    mbClearAnswerScreen(row);
+    _hopper = _hopper.filter((r) => r !== row);
+    if (row.contact) mbCloseMiss(row, mbPoolEndStatus(row));
+  });
+  _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen');
+}
+
 async function mbSweepOwnCalling(fallbackStatus) {
   const uid = String(currentUser?.id || '');
   if (!/^[0-9a-f-]{36}$/i.test(uid) || typeof sb !== 'function') return;
-  const mine = new Set(_hopper.map((r) => String(r.contact?.id || '')).filter(Boolean));
+  mbPruneDeadHopperRows();
+  // Yalnız gerçekten canlı / çalan / müzikte olanları koru
+  const mine = new Set(
+    _hopper
+      .filter((r) => {
+        if (!r?.contact?.id) return false;
+        if (r.phase === 'live' || r.phase === 'hold' || r.phase === 'screen') return true;
+        if (r.phase === 'dialing' || r.phase === 'ringing') {
+          return !(typeof mbCallIsDead === 'function' && mbCallIsDead(r.call));
+        }
+        return false;
+      })
+      .map((r) => String(r.contact.id))
+  );
   if (_liveCallId) {
     const live = _hopper.find((r) => r.id === _liveCallId);
     if (live?.contact?.id) mine.add(String(live.contact.id));
   }
+  if (currentContact?.id && (dialerStatus === 'on_call' || dialerStatus === 'wrapping')) {
+    mine.add(String(currentContact.id));
+  }
   const rows = await sb(
-    `contacts?status=eq.calling&locked_by=eq.${uid}&select=id,attempt_count,campaign_id&limit=40`
+    `contacts?status=eq.calling&locked_by=eq.${uid}&select=id,attempt_count,campaign_id&limit=80`
   ).catch(() => []);
   const st = fallbackStatus || 'no_answer';
   await Promise.all((rows || []).map(async (row) => {
     if (!row?.id || mine.has(String(row.id))) return;
     const attempts = Math.max(0, Number(row.attempt_count) || 0) + 1;
+    _hopperSkip.set(String(row.id), Date.now() + 3 * 60 * 1000);
     await sb(`contacts?id=eq.${row.id}`, {
       method: 'PATCH',
       prefer: 'return=minimal',

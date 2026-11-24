@@ -588,11 +588,18 @@ function syncDialerBottomChrome() {
 
   // Canlı görüşme: mikrofon / beklet / kapat her zaman altta
   if (dialerStatus === 'on_call') {
-    // Boş kart + Transfer bandı (zombie on_call) — kurtar
-    if (!_isCustDataVisible() && !(typeof _liveCallId !== 'undefined' && _liveCallId) && !(typeof mbHopperStillUp === 'function' && mbHopperStillUp())) {
-      if (typeof mbRecoverDialerSurface === 'function') {
-        mbRecoverDialerSurface(typeof _autoDial !== 'undefined' && _autoDial ? 'calling' : 'ready');
-        return;
+    // Beyaz ekran: on_call ama kart yok → kartı geri aç veya kurtar
+    if (!_isCustDataVisible()) {
+      const c = currentContact || window._mbLastContact || null;
+      if (c && typeof showCustomerCard === 'function') {
+        currentContact = c;
+        try { showCustomerCard(c); } catch (e) {}
+      }
+      if (!_isCustDataVisible() && !(typeof _liveCallId !== 'undefined' && _liveCallId) && !(typeof mbHopperStillUp === 'function' && mbHopperStillUp())) {
+        if (typeof mbRecoverDialerSurface === 'function') {
+          mbRecoverDialerSurface(typeof _autoDial !== 'undefined' && _autoDial ? 'calling' : 'ready');
+          return;
+        }
       }
     }
     showLiveBar();
@@ -1411,17 +1418,31 @@ async function mbAgentOpenGate(opts) {
   }
 }
 
+function mbHopperHasContactOrPhone(contact) {
+  if (!contact) return true;
+  const id = String(contact.id || '');
+  const phone = String(contact.phone || contact._dialTarget || '').replace(/\D/g, '');
+  const tail = phone.length >= 8 ? phone.slice(-10) : '';
+  if (id && (_hopperSkip.get(id) || 0) > Date.now()) return true;
+  if (tail && (_hopperSkip.get('tel:' + tail) || 0) > Date.now()) return true;
+  return _hopper.some((r) => {
+    if (id && String(r.contact?.id || '') === id) return true;
+    if (!tail) return false;
+    const other = String(r.dest || r.contact?.phone || r.contact?._dialTarget || '').replace(/\D/g, '');
+    return other.length >= 8 && other.slice(-10) === tail;
+  });
+}
+
 async function mbNextPoolContact(campIds) {
   const queued = await mbTakeQueuedContact();
   if (queued) return queued;
   if (Array.isArray(window.__mbPoolQueue)) {
     return window.__mbPoolQueue.shift() || null;
   }
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 8; i++) {
     const contact = await getNextContact(campIds);
     if (!contact) return null;
-    if (_hopper.some((r) => r.contact?.id === contact.id)) return null;
-    if ((_hopperSkip.get(String(contact.id)) || 0) > Date.now()) return null;
+    if (mbHopperHasContactOrPhone(contact)) continue;
     if (typeof isValidUUID === 'function' && isValidUUID(contact.id) && typeof sb === 'function') {
       const updated = await sb(
         `contacts?id=eq.${contact.id}&status=in.(pending,no_answer,callback,busy,phone_off,voicemail,stuck,unused)`,
@@ -1451,8 +1472,12 @@ async function mbPlacePoolCall(contact) {
   const campaign = own || selected;
   const dialTo = typeof mbDialPhone === 'function' ? mbDialPhone(contact) : contact?.phone;
   if (contact) contact._dialTarget = dialTo;
+  const abortClaim = (status) => {
+    if (contact && typeof mbReleaseUnanswered === 'function') mbReleaseUnanswered(contact, status || 'no_answer');
+  };
   if (!_testMode && !window.__mbPoolSimulate && typeof mbIsFirmDnc === 'function' && await mbIsFirmDnc(dialTo, campaign?.firm_id || currentUser?.firm_id)) {
     if (typeof toast === 'function') toast(typeof t === 'function' ? t('bl.dial.blocked') : 'Bu numara kara listede', 'warn', 2200);
+    abortClaim('dnc');
     return;
   }
   if (!_testMode && !window.__mbPoolSimulate && campaign && typeof mbEnsureHealthyDid === 'function') {
@@ -1461,6 +1486,11 @@ async function mbPlacePoolCall(contact) {
   const caller = campaign?.telnyx_did || '';
   if (!_testMode && !window.__mbPoolSimulate && typeof mbLineCallBlocked === 'function' && await mbLineCallBlocked(campaign?.firm_id || currentUser?.firm_id, caller, dialTo)) {
     if (typeof mbNoteIntlBlocked === 'function') mbNoteIntlBlocked(contact);
+    abortClaim('unused');
+    return;
+  }
+  if (!String(dialTo || '').trim()) {
+    abortClaim('unused');
     return;
   }
   if (!_liveCallId) {
@@ -1475,7 +1505,11 @@ async function mbPlacePoolCall(contact) {
     if (typeof mbSimOutbound === 'function') mbSimOutbound(contact, 900);
     return;
   }
-  sendToRTC('MB_CALL', { destination: dialTo, callerNumber: caller, contact, work: 'auto' });
+  try {
+    sendToRTC('MB_CALL', { destination: dialTo, callerNumber: caller, contact, work: 'auto' });
+  } catch (e) {
+    abortClaim('no_answer');
+  }
 }
 
 function mbEnsurePoolTimer() {
@@ -1497,8 +1531,19 @@ function mbHopperBlocksNewDial() {
   return _hopper.some((r) => r.phase === 'live' || r.phase === 'hold');
 }
 
+let _mbOwnSweepAt = 0;
+
 async function mbSyncPool() {
+  if (typeof mbPruneDeadHopperRows === 'function') mbPruneDeadHopperRows();
   if (typeof mbSweepStaleCalling === 'function') void mbSweepStaleCalling();
+  // Ölü calling kilitlerini temizle (sonuçsuz birikmesin) — en fazla ~8 sn'de bir
+  if (typeof mbSweepOwnCalling === 'function' && !_liveCallId && dialerStatus !== 'on_call' && dialerStatus !== 'wrapping') {
+    const now = Date.now();
+    if (now - _mbOwnSweepAt > 8000) {
+      _mbOwnSweepAt = now;
+      void mbSweepOwnCalling('no_answer');
+    }
+  }
   if (window._mbDialerPreview) return;
   if (dialerStatus === 'ready') {
     if (_mbDueCbBusy) return;
