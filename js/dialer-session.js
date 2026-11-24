@@ -1345,21 +1345,23 @@ async function mbSyncPool() {
   }
   _poolSyncing = true;
   try {
-    const ready = await mbCountReadyAgents();
-    const remoteMap = await mbRemoteRingingByCampaign(ids);
+    // Her temsilci yalnız kendi açık kampanyalarını çevirir.
+    // Hız = bu temsilcinin o kampanyada aynı anda açacağı hat; başkasının
+    // seçimine veya firmadaki hazır sayısına bölünmez / çarpılmaz.
+    const mine = 1;
     const ringingLocal = (cid) => _hopper.filter((r) => (r.phase === 'dialing' || r.phase === 'ringing') && String(r.contact?.campaign_id || '') === String(cid));
     const openCount = ids.length;
     const plans = ids.map((cid) => {
       const local = ringingLocal(cid);
-      const remote = remoteMap[String(cid)] || 0;
-      const plan = mbPoolPlan(ready, mbSharedDialSpeed(mbCampaignDialSpeed(cid), openCount), local.length + remote, mbPoolSeats(ready));
+      const speed = mbSharedDialSpeed(mbCampaignDialSpeed(cid), 1);
+      const plan = mbPoolPlan(mine, speed, local.length, mine);
       plan.campId = cid;
       plan.local = local;
       return plan;
     });
     const totalTarget = plans.reduce((sum, plan) => sum + plan.target, 0);
     _poolPlan = {
-      ready,
+      ready: mine,
       speed: plans.length === 1 ? plans[0].speed : null,
       open: openCount,
       target: totalTarget,
@@ -1384,8 +1386,7 @@ async function mbSyncPool() {
         let left = plan.dial;
         while (left > 0) {
           if (dialerStatus === 'offline' || dialerStatus === 'break') break;
-          const liveNow = ringingLocal(plan.campId).length + (remoteMap[String(plan.campId)] || 0);
-          if (liveNow >= plan.target) break;
+          if (ringingLocal(plan.campId).length >= plan.target) break;
           const contact = await mbNextPoolContact([plan.campId]);
           if (!contact) break;
           await mbPlacePoolCall(contact);
