@@ -243,9 +243,12 @@ async function mbDashOps(ff) {
   Object.keys(campsByFirm).forEach((key) => {
     const group = campsByFirm[key];
     const ready = readyByFirm[key] || 0;
-    const speed = typeof mbSharedDialSpeed === 'function'
-      ? group.reduce((sum, camp) => sum + mbSharedDialSpeed(camp.dial_speed, group.length), 0)
-      : group.length;
+    const speed = group.reduce((sum, camp) => {
+      const n = typeof mbSharedDialSpeed === 'function'
+        ? mbSharedDialSpeed(camp.dial_speed, 1)
+        : Math.min(10, Math.max(1, parseInt(camp.dial_speed, 10) || 1));
+      return sum + n;
+    }, 0);
     target += ready * speed;
   });
   const ids = list.map((camp) => camp.id).filter(Boolean);
@@ -384,16 +387,31 @@ function mbDashSpeedSelect(id, speed) {
 async function mbDashSetSpeed(id, value) {
   const speed = Math.min(10, Math.max(1, parseInt(value, 10) || 1));
   if (!/^[0-9a-f-]{36}$/i.test(String(id || ''))) return;
+  const sel = document.querySelector(`select[data-dash-speed="${id}"]`);
+  if (sel) sel.value = String(speed);
   try {
     await sb(`campaigns?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ dial_speed: speed }) });
-    const camp = (window._dashBriefSnap?.ops?.camps || []).find((row) => row.id === id);
-    if (camp) camp.dial_speed = speed;
-    if (typeof campaigns !== 'undefined' && Array.isArray(campaigns)) {
-      const row = campaigns.find((item) => item.id === id);
-      if (row) row.dial_speed = speed;
+    if (typeof mbApplyDialSpeed === 'function') mbApplyDialSpeed(id, speed);
+    else {
+      const camp = (window._dashBriefSnap?.ops?.camps || []).find((row) => row.id === id);
+      if (camp) camp.dial_speed = speed;
+      if (typeof campaigns !== 'undefined' && Array.isArray(campaigns)) {
+        const row = campaigns.find((item) => item.id === id);
+        if (row) row.dial_speed = speed;
+      }
+    }
+    if (typeof mbDashPaintPills === 'function' && window._dashBriefSnap?.ops) {
+      const ops = window._dashBriefSnap.ops;
+      const camp = (ops.camps || []).find((row) => row.id === id);
+      if (camp) camp.dial_speed = speed;
+      mbDashPaintPills(ops);
     }
     if (typeof toast === 'function') toast(mbDashTr('Hız kaydedildi', 'Tempo gespeichert'), 'ok');
   } catch (e) {
+    if (sel) {
+      const camp = (window._dashBriefSnap?.ops?.camps || []).find((row) => row.id === id);
+      sel.value = String(Math.min(10, Math.max(1, parseInt(camp?.dial_speed, 10) || 1)));
+    }
     if (typeof toast === 'function') toast(e?.message || mbDashTr('Hız kaydedilemedi', 'Tempo nicht gespeichert'), 'err');
   }
 }

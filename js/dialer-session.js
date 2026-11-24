@@ -958,10 +958,28 @@ function mbDialSpeed() {
   return mbCampaignDialSpeed(selectedCampId);
 }
 
-function mbSharedDialSpeed(speed, openCount) {
-  const s = Math.min(10, Math.max(1, Number(speed) || 1));
-  const n = Math.max(1, Number(openCount) || 1);
-  return Math.max(1, Math.floor(s / n));
+function mbSharedDialSpeed(speed, _openCount) {
+  // Her kampanya kendi hızını tam kullanır. Bölünce 5 açık kampanyada
+  // hız 5 → floor(5/5)=1 kalıyordu; kaydırıcı ile hesap uyuşmuyordu.
+  return Math.min(10, Math.max(1, Number(speed) || 1));
+}
+
+function mbApplyDialSpeed(campId, speed) {
+  const n = Math.min(10, Math.max(1, parseInt(speed, 10) || 1));
+  const id = String(campId || '');
+  if (!id) return n;
+  const touch = (row) => {
+    if (!row || String(row.id) !== id) return;
+    row.dial_speed = n;
+  };
+  if (typeof campaigns !== 'undefined' && Array.isArray(campaigns)) campaigns.forEach(touch);
+  if (Array.isArray(window._dialerAdminCamps)) window._dialerAdminCamps.forEach(touch);
+  const dashCamps = window._dashBriefSnap?.ops?.camps;
+  if (Array.isArray(dashCamps)) dashCamps.forEach(touch);
+  if (typeof mbSyncPool === 'function' && (dialerStatus === 'ready' || dialerStatus === 'calling' || dialerStatus === 'on_call' || dialerStatus === 'wrapping')) {
+    void mbSyncPool();
+  }
+  return n;
 }
 
 function mbPoolSeats(idle) {

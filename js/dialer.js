@@ -504,9 +504,16 @@ async function mbDialerAdminSpeed(id, value) {
   if (!/^[0-9a-f-]{36}$/i.test(String(id || ''))) return;
   try {
     await sb(`campaigns?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ dial_speed: speed }) });
-    const camp = (window._dialerAdminCamps || []).find((row) => String(row.id) === String(id))
-      || (typeof campaigns !== 'undefined' && Array.isArray(campaigns) ? campaigns.find((row) => String(row.id) === String(id)) : null);
-    if (camp) camp.dial_speed = speed;
+    if (typeof mbApplyDialSpeed === 'function') mbApplyDialSpeed(id, speed);
+    else {
+      const camp = (window._dialerAdminCamps || []).find((row) => String(row.id) === String(id))
+        || (typeof campaigns !== 'undefined' && Array.isArray(campaigns) ? campaigns.find((row) => String(row.id) === String(id)) : null);
+      if (camp) camp.dial_speed = speed;
+    }
+    const label = document.querySelector('#agent-camp-admin-pop [data-aca-speed-n]');
+    if (label) label.textContent = String(speed);
+    const slider = document.querySelector('#agent-camp-admin-pop .aca-speed input[type="range"]');
+    if (slider) slider.value = String(speed);
     const msg = typeof tReplace === 'function'
       ? tReplace('camp.speed.saved', { v: speed })
       : `Hız ${speed}`;

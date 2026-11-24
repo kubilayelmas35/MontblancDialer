@@ -1159,14 +1159,27 @@ toast(typeof t === 'function' ? t('camp.deleted') : 'Silindi','ok'); closeCampDe
 
 async function saveSpeed(v) {
 if (!currentCampId) return;
-const speed = parseInt(v, 10);
+const speed = Math.min(10, Math.max(1, parseInt(v, 10) || 0));
 if (!speed) return;
+const speedEl = document.getElementById('cd-speed');
+const speedVal = document.getElementById('cd-speed-v');
+if (speedEl) speedEl.value = String(speed);
+if (speedVal) speedVal.textContent = String(speed);
 try {
 await sb(`campaigns?id=eq.${currentCampId}`,{method:'PATCH',body:JSON.stringify({dial_speed:speed})});
-const camp = campaigns.find((c) => c.id === currentCampId);
-if (camp) camp.dial_speed = speed;
+if (typeof mbApplyDialSpeed === 'function') mbApplyDialSpeed(currentCampId, speed);
+else {
+  const camp = campaigns.find((c) => c.id === currentCampId);
+  if (camp) camp.dial_speed = speed;
+}
 toast(campT('camp.speed.saved','Hız {v} olarak kaydedildi').replace('{v}', String(speed)),'ok');
-} catch(e){ toast(e.message,'err'); }
+} catch(e){
+  toast(e.message,'err');
+  const camp = campaigns.find((c) => c.id === currentCampId);
+  const prev = Math.min(10, Math.max(1, parseInt(camp?.dial_speed, 10) || 1));
+  if (speedEl) speedEl.value = String(prev);
+  if (speedVal) speedVal.textContent = String(prev);
+}
 }
 
 function campEsc(v) {
