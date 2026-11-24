@@ -568,8 +568,12 @@ flex-direction:column; gap:4px;
 .outcome-note-hint.is-warn { color:var(--yellow); font-weight:800; }
 #call-actions.call-actions--wrapping #btn-mute,
 #call-actions.call-actions--wrapping #btn-hold,
-#call-actions.call-actions--wrapping #btn-hangup { display: none; }
-#call-actions.call-actions--wrapping #btn-redial { flex: 1; justify-content: center; }
+#call-actions.call-actions--wrapping #btn-hangup,
+#call-actions.call-actions--wrapping #btn-redial,
+#call-actions.call-actions--wrapping #btn-queue-next,
+#call-actions.call-actions--wrapping #btn-callin-dial,
+#call-actions.call-actions--wrapping #btn-dialer-hub-back,
+#call-actions.call-actions--wrapping #btn-transfer { display: none !important; }
 .call-action-btn {
 flex:1; padding:10px; border-radius:var(--radius-sm);
 background:var(--bg-3); border:1px solid var(--border);

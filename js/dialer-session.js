@@ -618,12 +618,12 @@ function syncDialerBottomChrome() {
 
   if (dialerStatus === 'wrapping') {
     if (readySec) readySec.style.display = 'none';
+    // Sonuç formundayken Ara/Sıraya al olmasın
     if (callAct) {
-      callAct.style.display = '';
-      callAct.classList.remove('call-actions--pre-call');
-      callAct.classList.add('call-actions--wrapping');
+      callAct.style.display = 'none';
+      callAct.classList.remove('call-actions--pre-call', 'call-actions--wrapping');
     }
-    if (card) card.classList.add('customer-card--has-bar');
+    if (card) card.classList.remove('customer-card--has-bar');
     if (typeof mbApplyCampWarning === 'function') mbApplyCampWarning();
     paintCallActionButtons();
     return;
@@ -941,6 +941,8 @@ function mbStopOutboundWaitClock() {
 }
 
 function mbPaintOutboundWaitConnecting() {
+  // Canlı görüşmeyi asla "Bağlanıyor" ile ezme
+  if (dialerStatus === 'on_call' || dialerStatus === 'wrapping' || (typeof _liveCallId !== 'undefined' && _liveCallId)) return;
   const panel = document.getElementById('cust-empty-outbound-wait');
   if (!panel || panel.style.display === 'none') {
     showOutboundWait();
@@ -952,6 +954,9 @@ function mbPaintOutboundWaitConnecting() {
 }
 
 function mbRecoverDialerSurface(nextStatus) {
+  // Konuşma sürerken kurtarma çalışmasın
+  if (dialerStatus === 'on_call' && (typeof _liveCallId !== 'undefined' && _liveCallId)) return;
+  if (typeof mbHopperStillUp === 'function' && mbHopperStillUp() && dialerStatus === 'on_call') return;
   const next = nextStatus || (typeof _autoDial !== 'undefined' && _autoDial ? 'calling' : 'ready');
   window._mbAllowClearWrap = true;
   currentContact = null;
@@ -966,6 +971,8 @@ function mbRecoverDialerSurface(nextStatus) {
 }
 
 function showOutboundWait() {
+  // Canlı kartı kapatıp bekleme ekranına atma
+  if (dialerStatus === 'on_call' || dialerStatus === 'wrapping' || (typeof _liveCallId !== 'undefined' && _liveCallId)) return;
   const card = document.getElementById('customer-card');
   const root = document.getElementById('cust-empty');
   const def = document.getElementById('cust-empty-default');

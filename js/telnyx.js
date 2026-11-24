@@ -712,9 +712,11 @@ function mbArmAnswerScreen(row) {
   row._mbScreenArm = true;
   row.phase = 'screen';
   if (typeof mbStopRingback === 'function') mbStopRingback();
-  // Kartı burada AÇMA — her elemede DOM şişirip lag / Ara-Sıraya al artığı yapıyordu.
-  // Bekleme metnini güncelle; kart yalnız bridge'de (mbConnectHopperRow) açılır.
-  if (typeof mbPaintOutboundWaitConnecting === 'function') mbPaintOutboundWaitConnecting();
+  // Canlı görüşmede asla bekleme ekranına dönme (kartı silip "Bağlanıyor"a atıyordu)
+  const agentLive = dialerStatus === 'on_call' || !!_liveCallId;
+  if (!agentLive && typeof mbPaintOutboundWaitConnecting === 'function') {
+    mbPaintOutboundWaitConnecting();
+  }
   const waitMs = row.manual ? 800 : 1200;
   row._mbScreenTimer = setTimeout(() => {
     row._mbScreenTimer = null;
@@ -730,12 +732,19 @@ function mbArmAnswerScreen(row) {
 function mbContinueAfterScreen() {
   _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen');
   if (mbHopperStillUp()) {
-    if (dialerStatus === 'calling' && typeof showOutboundWait === 'function') showOutboundWait();
+    // Canlı görüşmeyi bekleme ekranına çekme
+    if (dialerStatus === 'calling' && !(_liveCallId || dialerStatus === 'on_call') && typeof showOutboundWait === 'function') {
+      showOutboundWait();
+    }
+    return;
+  }
+  if (dialerStatus === 'on_call' || dialerStatus === 'wrapping') {
+    if (typeof mbSweepOwnCalling === 'function') void mbSweepOwnCalling('no_answer');
     return;
   }
   if (typeof mbRecoverDialerSurface === 'function') {
     mbRecoverDialerSurface(_autoDial ? 'calling' : 'ready');
-  } else if (typeof setDialerStatus === 'function' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping' || dialerStatus === 'calling')) {
+  } else if (typeof setDialerStatus === 'function' && dialerStatus === 'calling') {
     setDialerStatus('calling');
   }
   if (typeof mbRefillHopper === 'function') mbRefillHopper();
@@ -1372,6 +1381,15 @@ function mbOnHopperCall(call) {
     if (row.phase === 'screen' || row._mbScreenArm) return;
     if (mbScreenMissOn() && (call.amd_result === 'machine' || mbBusyLine(call) || mbPhoneOff(call))) {
       mbRejectScreened(row, call.amd_result === 'machine' ? 'machine' : '');
+      return;
+    }
+    // Temsilci zaten canlıdaysa ikinci hat: eleme UI'sına dokunma, müzikte bekle
+    if (_agentBusy() && row.id !== _liveCallId) {
+      row.phase = 'hold';
+      if (typeof mbStartHoldMusic === 'function') void mbStartHoldMusic(call, row.contact);
+      try { call.hold(); } catch (e) {}
+      if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+      if (typeof mbSyncPool === 'function') mbSyncPool();
       return;
     }
     mbArmAnswerScreen(row);
