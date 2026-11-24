@@ -109,6 +109,7 @@ let _voicemailAutoLogged = false;
 let _hopper = [];                 // aynı anda çalan / müzikte bekleyen bacaklar
 let _liveCallId = null;           // temsilciye bağlı bacak
 let _hopperSkip = new Map();      // kısa süre tekrar aranmasın
+let _mbWaveId = 0;                // Durdur / dalga iptali — geç gelen SIP accepted yok sayılır
 let _poolPlan = null;             // hazır × hız hesabı
 let _poolSyncing = false;
 let _poolTimer = null;

@@ -388,13 +388,20 @@ async function toggleReady() {
     setTimeout(()=>dialNext(), 500);
   } else if (dialerStatus === 'ready' || dialerStatus === 'calling') {
     if (dialerStatus === 'calling') {
+      // Önce offline — geç SIP accepted bağlanmasın
+      setDialerStatus('offline');
       // refill:false — aksi halde Kapat yolu yeni arama başlatır, Durdur ile çakışır
       if (typeof mbCancelHopper === 'function') mbCancelHopper({ refill: false });
       if (typeof hideOutboundWait === 'function') hideOutboundWait();
       _outboundDialPending = false;
       if (typeof clearCustomerCard === 'function') clearCustomerCard();
+      if (_poolTimer) {
+        clearInterval(_poolTimer);
+        _poolTimer = null;
+      }
+    } else {
+      setDialerStatus('offline');
     }
-    setDialerStatus('offline');
     try {
       await sb(`agent_sessions?agent_id=eq.${currentUser.id}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({status:'offline'})});
     } catch(e){}

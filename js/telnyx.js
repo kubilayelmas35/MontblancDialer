@@ -968,12 +968,17 @@ function _hopperRowFor(call) {
 function _rememberHopper(call, contact, dest, manual) {
   const who = contact || call?.__mbContact || currentContact || null;
   if (call && who) call.__mbContact = who;
+  if (call) {
+    call.__mbWaveId = Number(_mbWaveId) || 0;
+    call.__mbCancelled = false;
+  }
   const existing = call && _hopper.find((r) => r.call === call || (call.__mbSip && r.call?.__mbSip === call.__mbSip));
   if (existing) {
     if (manual) existing.manual = true;
     if (who && !existing.contact) existing.contact = who;
     if (existing.contact && call) call.__mbContact = existing.contact;
     existing.call = call || existing.call;
+    existing.waveId = Number(_mbWaveId) || 0;
     const digits = String(dest || '').replace(/\D/g, '');
     if (digits) existing.dest = digits;
     return existing;
@@ -987,6 +992,7 @@ function _rememberHopper(call, contact, dest, manual) {
     answeredAt: 0,
     dest: String(dest || mbCallDigits(call) || who?.phone || '').replace(/\D/g, ''),
     manual: !!manual,
+    waveId: Number(_mbWaveId) || 0,
   };
   _hopper.push(row);
   mbCaptureTelnyxIds(call);
@@ -1339,9 +1345,13 @@ async function mbSweepOwnCalling(fallbackStatus) {
 
 function mbCancelHopper(opts) {
   const refill = !(opts && opts.refill === false);
+  // Dalga++ → eski hatlar wave uyuşmazlığıyla yok sayılır
+  _mbWaveId = (Number(_mbWaveId) || 0) + 1;
+  const wave = _mbWaveId;
   const rows = _hopper.filter((r) => r.phase !== 'live');
   rows.forEach((r) => {
     mbClearAnswerScreen(r);
+    if (r.call) r.call.__mbCancelled = true;
     if (r.contact && r.phase !== 'hold') mbCloseMiss(r, mbPoolEndStatus(r));
     else if (r.contact) mbCloseMiss(r, 'no_answer');
     _hopper = _hopper.filter((x) => x !== r);
@@ -1361,6 +1371,7 @@ function mbCancelHopper(opts) {
       }
     }
   }
+  if (typeof mbDialTrace === 'function') mbDialTrace('hopper.cancel', { refill, wave, n: rows.length });
   if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
   if (typeof mbRefreshCampLeftSoon === 'function') mbRefreshCampLeftSoon();
   if (typeof mbSweepOwnCalling === 'function') void mbSweepOwnCalling('no_answer');
@@ -1404,6 +1415,20 @@ function mbHangupLiveOrWave() {
 function mbOnHopperCall(call) {
   if (!call) return;
   const state = String(call.state || '');
+  // Durdur sonrası geç gelen accepted — kart düşmesin
+  if (call.__mbCancelled || (call.__mbWaveId != null && Number(call.__mbWaveId) !== Number(_mbWaveId))) {
+    if (state !== 'hangup' && state !== 'destroy' && state !== 'done' && state !== 'purge') {
+      try { call.hangup?.(); } catch (e) {}
+    }
+    if (typeof mbDialTrace === 'function') mbDialTrace('hopper.ignore_cancelled', { id: call.id, state });
+    return;
+  }
+  if (!call.__mbManual && !call.__mbSupervisor && (dialerStatus === 'offline' || dialerStatus === 'break')) {
+    call.__mbCancelled = true;
+    try { call.hangup?.(); } catch (e) {}
+    if (typeof mbDialTrace === 'function') mbDialTrace('hopper.ignore_offline', { id: call.id, state });
+    return;
+  }
   if (call.__mbSupervisor || (typeof mbSupervisorHeader === 'function' && mbSupervisorHeader(call))) {
     const dead = state === 'hangup' || state === 'destroy' || state === 'done' || state === 'purge';
     if (state === 'active') {
