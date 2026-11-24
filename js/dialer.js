@@ -164,6 +164,7 @@ async function initDialer() {
     campaigns = (myCamps || []).map((ac) => ac.campaigns).filter(Boolean);
     mbDialerAdminGate(campaigns);
     void mbPaintCampLeft(campaigns);
+    if (typeof mbStartCampSpeedWatch === 'function') mbStartCampSpeedWatch().catch(() => {});
     // Önceki oturumdan seçili kampanya: arama başlatmaz ama hazır/etiket/sağlık paneli doğru olsun
     (function restoreSelectedCampFromStorage() {
       const allowedIds = new Set(myCamps.map((x) => String(x.campaign_id)));

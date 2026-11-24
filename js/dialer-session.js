@@ -672,8 +672,15 @@ function setDialerStatus(s) {
     _readyEnteredAt = Date.now();
     _custEmptyIdleSince = null;
     _startTransferSubscription().catch(() => {});
+    mbStartCampSpeedWatch().catch(() => {});
   } else if (s !== 'ready') {
     _readyEnteredAt = null;
+  }
+  if (s === 'calling' || s === 'on_call' || s === 'wrapping') {
+    mbStartCampSpeedWatch().catch(() => {});
+  }
+  if (s === 'offline' || s === 'break') {
+    mbStopCampSpeedWatch().catch(() => {});
   }
   if (s === 'offline' && prev !== 'offline') {
     _custEmptyIdleSince = Date.now();
@@ -966,22 +973,96 @@ function mbSharedDialSpeed(speed, openCount) {
   return Math.max(1, Math.floor(s / n));
 }
 
-function mbApplyDialSpeed(campId, speed) {
+function mbPaintDialSpeedUi(campId, speed) {
+  const id = String(campId || '');
+  const n = Math.min(10, Math.max(1, parseInt(speed, 10) || 1));
+  if (!id) return;
+  if (typeof currentCampId !== 'undefined' && String(currentCampId) === id) {
+    const el = document.getElementById('cd-speed');
+    const val = document.getElementById('cd-speed-v');
+    if (el && document.activeElement !== el) el.value = String(n);
+    if (val) val.textContent = String(n);
+  }
+  const pop = document.getElementById('agent-camp-admin-pop');
+  if (pop && !pop.hidden && String(pop.dataset.campId || '') === id) {
+    const slider = pop.querySelector('.aca-speed input[type="range"]');
+    const label = pop.querySelector('[data-aca-speed-n]');
+    if (slider && document.activeElement !== slider) slider.value = String(n);
+    if (label) label.textContent = String(n);
+  }
+  document.querySelectorAll(`select[data-dash-speed="${id}"]`).forEach((sel) => {
+    if (document.activeElement !== sel) sel.value = String(n);
+  });
+}
+
+function mbApplyDialSpeed(campId, speed, opts) {
   const n = Math.min(10, Math.max(1, parseInt(speed, 10) || 1));
   const id = String(campId || '');
   if (!id) return n;
+  let changed = false;
   const touch = (row) => {
     if (!row || String(row.id) !== id) return;
+    if (Number(row.dial_speed) !== n) changed = true;
     row.dial_speed = n;
   };
   if (typeof campaigns !== 'undefined' && Array.isArray(campaigns)) campaigns.forEach(touch);
   if (Array.isArray(window._dialerAdminCamps)) window._dialerAdminCamps.forEach(touch);
   const dashCamps = window._dashBriefSnap?.ops?.camps;
   if (Array.isArray(dashCamps)) dashCamps.forEach(touch);
-  if (typeof mbSyncPool === 'function' && (dialerStatus === 'ready' || dialerStatus === 'calling' || dialerStatus === 'on_call' || dialerStatus === 'wrapping')) {
+  mbPaintDialSpeedUi(id, n);
+  if (opts?.silent) return n;
+  if (changed && typeof mbSyncPool === 'function' && (dialerStatus === 'ready' || dialerStatus === 'calling' || dialerStatus === 'on_call' || dialerStatus === 'wrapping')) {
     void mbSyncPool();
   }
   return n;
+}
+
+let _campSpeedRt = null;
+let _campSpeedPullAt = 0;
+
+async function mbPullDialSpeeds(ids) {
+  const list = (ids || []).map((id) => String(id || '')).filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  if (!list.length || typeof sb !== 'function') return false;
+  const now = Date.now();
+  if (now - _campSpeedPullAt < 1500) return false;
+  _campSpeedPullAt = now;
+  const rows = await sb(`campaigns?select=id,dial_speed&id=in.(${list.join(',')})`).catch(() => null);
+  if (!Array.isArray(rows) || !rows.length) return false;
+  let changed = false;
+  rows.forEach((row) => {
+    const next = Math.min(10, Math.max(1, parseInt(row?.dial_speed, 10) || 1));
+    const camp = (campaigns || []).find((c) => String(c.id) === String(row.id));
+    if (camp && Number(camp.dial_speed) !== next) changed = true;
+    mbApplyDialSpeed(row.id, next, { silent: true });
+  });
+  return changed;
+}
+
+async function mbStartCampSpeedWatch() {
+  if (_campSpeedRt) return;
+  const client = typeof getSupabaseClient === 'function' ? await getSupabaseClient() : null;
+  if (!client) return;
+  const firmId = (typeof getActiveFirmId === 'function' && getActiveFirmId()) || currentUser?.firm_id || '';
+  const filter = /^[0-9a-f-]{36}$/i.test(String(firmId)) ? `firm_id=eq.${firmId}` : undefined;
+  const cfg = { event: 'UPDATE', schema: 'public', table: 'campaigns' };
+  if (filter) cfg.filter = filter;
+  _campSpeedRt = client
+    .channel(`camp-speed-${firmId || currentUser?.id || 'x'}`)
+    .on('postgres_changes', cfg, (payload) => {
+      const row = payload?.new;
+      if (!row?.id || row.dial_speed == null) return;
+      mbApplyDialSpeed(row.id, row.dial_speed);
+    })
+    .subscribe();
+}
+
+async function mbStopCampSpeedWatch() {
+  if (!_campSpeedRt) return;
+  try {
+    const client = typeof getSupabaseClient === 'function' ? await getSupabaseClient() : null;
+    if (client) await client.removeChannel(_campSpeedRt);
+  } catch (_) {}
+  _campSpeedRt = null;
 }
 
 function mbPoolSeats(idle) {
@@ -1347,6 +1428,8 @@ async function mbSyncPool() {
   }
   _poolSyncing = true;
   try {
+    mbStartCampSpeedWatch().catch(() => {});
+    await mbPullDialSpeeds(ids);
     // Her temsilci yalnız kendi açık kampanyalarını çevirir.
     // Birden fazla açtıysa hızı kendi seçimleri arasında böler (10+10 → 5-5).
     // Başka temsilcinin kaç kampanya açtığı bunu etkilemez.
