@@ -4,3 +4,5 @@ playwright-report/
 .env
 .env.local
 supabase/.temp/
+
+.tmp-asterisk/

@@ -466,8 +466,12 @@ function _startHangupUiTick() {
 
 /** Müşteri kartı açıkken (offline/ready) alt çubukta Hazır/sağlık yerine Ara/Mikrofon/Beklet/Sonuçlandır */
 function _isCustDataVisible() {
-  const custEmpty = document.getElementById('cust-empty');
-  return !!(custEmpty && custEmpty.style.display === 'none');
+  // Gerçek müşteri kartı açık mı? (wait ekranı cust-empty'yi gizler → eski kontrol Ara/Sıraya al açıyordu)
+  const card = document.getElementById('customer-card');
+  if (card?.classList.contains('customer-card--wait')) return false;
+  const data = document.getElementById('cust-data');
+  if (!data || data.style.display === 'none') return false;
+  return true;
 }
 
 function refreshPreCallToolbarUi() {
