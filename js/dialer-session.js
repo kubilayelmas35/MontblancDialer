@@ -1340,7 +1340,7 @@ async function mbSyncPool() {
         updateSessionInDB('offline');
       }
     }
-    if (dialerStatus === 'calling' && !_liveCallId && !_hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'live' || r.phase === 'hold') && typeof mbSettleEmptyCalling === 'function') {
+    if (dialerStatus === 'calling' && !_liveCallId && !_hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen' || r.phase === 'live' || r.phase === 'hold') && typeof mbSettleEmptyCalling === 'function') {
       mbSettleEmptyCalling();
     }
     return;
@@ -1351,7 +1351,7 @@ async function mbSyncPool() {
     // Birden fazla açtıysa hızı kendi seçimleri arasında böler (10+10 → 5-5).
     // Başka temsilcinin kaç kampanya açtığı bunu etkilemez.
     const mine = 1;
-    const ringingLocal = (cid) => _hopper.filter((r) => (r.phase === 'dialing' || r.phase === 'ringing') && String(r.contact?.campaign_id || '') === String(cid));
+    const ringingLocal = (cid) => _hopper.filter((r) => (r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen') && String(r.contact?.campaign_id || '') === String(cid));
     const openCount = ids.length;
     const plans = ids.map((cid) => {
       const local = ringingLocal(cid);
@@ -1404,7 +1404,7 @@ async function mbSyncPool() {
         if (typeof mbRefreshCampLeftSoon === 'function') mbRefreshCampLeftSoon();
       }
     }
-    if (dialerStatus === 'calling' && !_outboundDialPending && !_liveCallId && !_hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'live' || r.phase === 'hold') && typeof mbSettleEmptyCalling === 'function') {
+    if (dialerStatus === 'calling' && !_outboundDialPending && !_liveCallId && !_hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen' || r.phase === 'live' || r.phase === 'hold') && typeof mbSettleEmptyCalling === 'function') {
       mbSettleEmptyCalling();
     }
     mbRefreshHopperUi();

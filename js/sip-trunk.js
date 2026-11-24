@@ -125,7 +125,10 @@ function mbWrapSipSession(session, direction, dest) {
       const stream = ev.streams?.[0];
       if (stream) {
         call.remoteStream = stream;
-        if (typeof _attachLiveAudio === 'function') _attachLiveAudio(call);
+        // Yalnız temsilciye bağlı canlı hatta ses ver; eleme / çalma aşamasında meşgul anonsu düşmesin.
+        if (typeof _telnyxCall !== 'undefined' && _telnyxCall === call && typeof _attachLiveAudio === 'function') {
+          _attachLiveAudio(call);
+        }
       }
     });
   });
@@ -144,11 +147,15 @@ function mbWrapSipSession(session, direction, dest) {
       const tracks = receivers.map((r) => r.track).filter((t) => t && t.kind === 'audio');
       if (tracks.length) {
         call.remoteStream = new MediaStream(tracks);
-        if (typeof _attachLiveAudio === 'function') _attachLiveAudio(call);
+        if (typeof _telnyxCall !== 'undefined' && _telnyxCall === call && typeof _attachLiveAudio === 'function') {
+          _attachLiveAudio(call);
+        }
       }
     } catch (e) {}
-    if (typeof mbArmLocalRecording === 'function') mbArmLocalRecording(call);
-    else if (typeof mbStartCallRecording === 'function') mbStartCallRecording(call);
+    if (typeof _telnyxCall !== 'undefined' && _telnyxCall === call) {
+      if (typeof mbArmLocalRecording === 'function') mbArmLocalRecording(call);
+      else if (typeof mbStartCallRecording === 'function') mbStartCallRecording(call);
+    }
   });
   session.on('hold', () => bump('held', { held: true }));
   session.on('unhold', () => bump('active', { held: false }));

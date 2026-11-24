@@ -644,8 +644,81 @@ function mbScreenMissOn() {
 function mbScreenThis(row) {
   if (!row || !mbScreenMissOn()) return false;
   const st = mbPoolEndStatus(row);
-  if (st !== 'phone_off' && st !== 'busy' && st !== 'voicemail') return false;
-  return mbTalkSeconds(row) < 8;
+  // Meşgul / kapalı asla temsilciye düşmez. Telesekreter kısa ise elenir.
+  if (st === 'busy' || st === 'phone_off') return true;
+  if (st === 'voicemail') return mbTalkSeconds(row) < 8;
+  return false;
+}
+
+function mbClearAnswerScreen(row) {
+  if (!row) return;
+  if (row._mbScreenTimer) {
+    clearTimeout(row._mbScreenTimer);
+    row._mbScreenTimer = null;
+  }
+  row._mbScreenArm = false;
+}
+
+function mbCallStillUp(call) {
+  if (!call) return false;
+  if (call.sipEndedAt) return false;
+  const st = String(call.state || '');
+  if (st === 'hangup' || st === 'destroy' || st === 'done' || st === 'failed') return false;
+  return true;
+}
+
+function mbRejectScreened(row, why) {
+  mbClearAnswerScreen(row);
+  if (why) {
+    if (why === 'machine') {
+      row.amd = 'machine';
+      if (row.call) row.call.amd_result = 'machine';
+    }
+  }
+  try { row.call?.hangup(); } catch (e) {}
+}
+
+function mbBridgeAnswered(row) {
+  if (!row || !_hopper.includes(row)) return;
+  mbClearAnswerScreen(row);
+  const call = row.call;
+  if (!mbCallStillUp(call)) return;
+  if (mbScreenMissOn() && (call?.amd_result === 'machine' || mbBusyLine(call) || mbPhoneOff(call))) {
+    mbRejectScreened(row, call?.amd_result === 'machine' ? 'machine' : '');
+    return;
+  }
+  if (_agentBusy() && row.id !== _liveCallId) {
+    row.phase = 'hold';
+    row.answeredAt = row.answeredAt || call?.sipAnsweredAt || Date.now();
+    if (typeof mbStartHoldMusic === 'function') void mbStartHoldMusic(call, row.contact);
+    try { call.hold(); } catch (e) {}
+    if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
+    if (typeof mbSyncPool === 'function') mbSyncPool();
+    return;
+  }
+  row.answeredAt = row.answeredAt || call?.sipAnsweredAt || Date.now();
+  if (!callStart) callStart = Date.now();
+  mbConnectHopperRow(row);
+}
+
+function mbArmAnswerScreen(row) {
+  if (!row || row._mbScreenArm || row.phase === 'live' || row.phase === 'hold') return;
+  const call = row.call;
+  if (!mbCallStillUp(call)) return;
+  if (mbScreenMissOn() && (call?.amd_result === 'machine' || mbBusyLine(call) || mbPhoneOff(call))) {
+    mbRejectScreened(row, call?.amd_result === 'machine' ? 'machine' : '');
+    return;
+  }
+  row._mbScreenArm = true;
+  row.phase = 'screen';
+  if (typeof mbStopRingback === 'function') mbStopRingback();
+  // Temsilciye ses yok — meşgul anonsu / kısa kesilme burada elenir.
+  const waitMs = 1200;
+  row._mbScreenTimer = setTimeout(() => {
+    row._mbScreenTimer = null;
+    if (!_hopper.includes(row)) return;
+    mbBridgeAnswered(row);
+  }, waitMs);
 }
 
 function mbContinueAfterScreen() {
@@ -757,7 +830,7 @@ function mbSameDialDigits(a, b) {
 }
 
 function mbHopperStillUp() {
-  return !!_liveCallId || _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'live' || r.phase === 'hold');
+  return !!_liveCallId || _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen' || r.phase === 'live' || r.phase === 'hold');
 }
 
 function mbSettleEmptyCalling() {
@@ -946,14 +1019,26 @@ function mbConnectHopperRow(row) {
 }
 
 function mbTakeHeldCall() {
-  const held = _hopper.filter((r) => r.phase === 'hold').sort((a, b) => a.answeredAt - b.answeredAt);
-  if (!held.length) return false;
-  const row = held[0];
-  if (typeof mbStopHoldMusic === 'function') mbStopHoldMusic(row.call);
-  try { row.call.unhold(); } catch (e) {}
-  mbConnectHopperRow(row);
-  if (typeof toast === 'function') toast(typeof t === 'function' ? t('dial.hopper.held_next') : 'Müzikte bekleyen kişi bağlandı', 'ok', 2200);
-  return true;
+  const held = _hopper
+    .filter((r) => r.phase === 'hold')
+    .sort((a, b) => (Number(a.answeredAt) || 0) - (Number(b.answeredAt) || 0));
+  while (held.length) {
+    const row = held.shift();
+    if (!row) break;
+    if (!mbCallStillUp(row.call) || mbBusyLine(row.call) || mbPhoneOff(row.call) || row.call?.amd_result === 'machine') {
+      _hopper = _hopper.filter((r) => r !== row);
+      if (typeof mbStopHoldMusic === 'function') mbStopHoldMusic(row.call);
+      try { row.call?.hangup(); } catch (e) {}
+      mbCloseMiss(row, mbPoolEndStatus(row));
+      continue;
+    }
+    if (typeof mbStopHoldMusic === 'function') mbStopHoldMusic(row.call);
+    try { row.call.unhold(); } catch (e) {}
+    mbConnectHopperRow(row);
+    if (typeof toast === 'function') toast(typeof t === 'function' ? t('dial.hopper.held_next') : 'Müzikte bekleyen kişi bağlandı', 'ok', 2200);
+    return true;
+  }
+  return false;
 }
 
 function mbWriteAttemptLog(contact, outcome, row) {
@@ -1142,9 +1227,10 @@ function mbOnHopperCall(call) {
     return;
   }
   if (state === 'ringing' || state === 'trying' || state === 'requesting' || state === 'early' || state === 'answering') {
-    if (row.phase !== 'live' && row.phase !== 'hold') row.phase = 'ringing';
-    _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
-    if (call.remoteStream) {
+    if (row.phase !== 'live' && row.phase !== 'hold' && row.phase !== 'screen') row.phase = 'ringing';
+    _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen');
+    // Otomatik havuzda erken sesi temsilciye verme — meşgul anonsu bağlanmadan duyuluyordu.
+    if (row.manual && call.remoteStream) {
       _attachLiveAudio(call);
       if (typeof mbStopRingback === 'function') mbStopRingback();
     } else if (typeof mbStartRingback === 'function') mbStartRingback();
@@ -1180,28 +1266,19 @@ function mbOnHopperCall(call) {
       return;
     }
     if (row.phase === 'hold') return;
+    if (row.phase === 'screen' || row._mbScreenArm) return;
     if (mbScreenMissOn() && (call.amd_result === 'machine' || mbBusyLine(call) || mbPhoneOff(call))) {
-      if (call.amd_result === 'machine') row.amd = 'machine';
-      try { call.hangup(); } catch (e) {}
+      mbRejectScreened(row, call.amd_result === 'machine' ? 'machine' : '');
       return;
     }
-    if (_agentBusy() && row.id !== _liveCallId) {
-      row.phase = 'hold';
-      row.answeredAt = row.answeredAt || Date.now();
-      if (typeof mbStartHoldMusic === 'function') void mbStartHoldMusic(call, row.contact);
-      try { call.hold(); } catch (e) {}
-      if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
-      if (typeof mbSyncPool === 'function') mbSyncPool();
-      return;
-    }
-    row.answeredAt = row.answeredAt || Date.now();
-    if (!callStart) callStart = Date.now();
-    mbConnectHopperRow(row);
+    mbArmAnswerScreen(row);
     return;
   }
   if (dead) {
     if (!call.sipEndedAt) call.sipEndedAt = Date.now();
-    const wasLive = (row.id === _liveCallId || row.phase === 'live') && !mbFarEndMissed(row);
+    mbClearAnswerScreen(row);
+    const wasScreening = row.phase === 'screen';
+    const wasLive = !wasScreening && (row.id === _liveCallId || row.phase === 'live') && !mbFarEndMissed(row);
     const dest = row.dest || mbCallDigits(call);
     _hopper = _hopper.filter((r) => {
       if (r === row) return false;
@@ -1209,8 +1286,8 @@ function mbOnHopperCall(call) {
       if ((row.manual || window._mbManualAttempt) && (r.phase === 'dialing' || r.phase === 'ringing')) return false;
       return !(dest && mbSameDialDigits(r.dest || mbCallDigits(r.call) || r.contact?.phone, dest));
     });
-    _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
-    if (wasLive && mbScreenThis(row)) {
+    _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen');
+    if (wasScreening || (wasLive && mbScreenThis(row))) {
       _liveCallId = null;
       _telnyxCall = null;
       callStart = null;
