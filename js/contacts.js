@@ -257,10 +257,15 @@ function mbPaintAttemptWarn(c) {
 
 function showCustomerCard(c) {
   if (c) window._mbLastContact = c;
-  if (typeof hideOutboundWait === 'function') hideOutboundWait();
+  if (typeof hideOutboundWait === 'function') hideOutboundWait({ openingCard: true });
   if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
-  document.getElementById('customer-card')?.classList.remove('customer-card--empty');
+  document.getElementById('customer-card')?.classList.remove('customer-card--empty', 'customer-card--wait');
   document.getElementById('cust-empty').style.display='none';
+  const waitPanel = document.getElementById('cust-empty-outbound-wait');
+  if (waitPanel) {
+    waitPanel.style.display = 'none';
+    waitPanel.setAttribute('aria-hidden', 'true');
+  }
   document.getElementById('cust-data').style.display='';
   showPrevCallInfo(c);
   showCampScript(c);

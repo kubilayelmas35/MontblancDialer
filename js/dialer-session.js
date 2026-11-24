@@ -594,11 +594,14 @@ function syncDialerBottomChrome() {
     return;
   }
 
-  // Çalıyor / bekleniyor
+  // Çalıyor / bekleniyor: Ara/mikrofon/beklet yok — yalnız bekleme + Durdur
   if (dialerStatus === 'calling') {
-    showLiveBar();
-    // Durdur da hazır bandında kalsın
-    if (readySec) readySec.style.display = '';
+    if (readySec) readySec.style.display = 'none';
+    if (callAct) {
+      callAct.style.display = 'none';
+      callAct.classList.remove('call-actions--pre-call', 'call-actions--wrapping');
+    }
+    if (card) card.classList.remove('customer-card--has-bar');
     const dock = document.getElementById('outcome-dock');
     if (dock) dock.hidden = true;
     if (typeof mbApplyCampWarning === 'function') mbApplyCampWarning();
@@ -731,6 +734,7 @@ function setDialerStatus(s) {
     mbStopOutboundWaitClock();
     if (typeof mbStopRingback === 'function') mbStopRingback();
     if ((s === 'offline' || s === 'break') && typeof hideOutboundWait === 'function') hideOutboundWait();
+    if (s === 'on_call' && typeof hideOutboundWait === 'function') hideOutboundWait({ openingCard: true });
   }
   if (s === 'on_call' && prev !== 'on_call' && typeof mbPlayCue === 'function') mbPlayCue('connect');
   if (s === 'wrapping' && (prev === 'on_call' || prev === 'calling') && typeof mbPlayCue === 'function' && !(window._mbBusyAt && Date.now() - window._mbBusyAt < 2500)) mbPlayCue('hangup');
@@ -965,7 +969,8 @@ function showOutboundWait() {
   if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
 }
 
-function hideOutboundWait() {
+function hideOutboundWait(opts) {
+  const openingCard = !!(opts && opts.openingCard);
   const root = document.getElementById('cust-empty');
   const def = document.getElementById('cust-empty-default');
   const panel = document.getElementById('cust-empty-outbound-wait');
@@ -980,6 +985,11 @@ function hideOutboundWait() {
   const ringing = root?.classList.contains('cust-empty--ringing');
   const data = document.getElementById('cust-data');
   const cardOpen = data && data.style.display !== 'none';
+  // Kart açılırken boş hub'a geri dönme — sonuç sonrası sıradaki aramada ekran kilitleniyordu
+  if (openingCard || dialerStatus === 'on_call' || cardOpen) {
+    if (root) root.style.display = 'none';
+    return;
+  }
   if (!ringing && !cardOpen) {
     if (root) root.style.display = '';
     if (def) def.style.display = '';

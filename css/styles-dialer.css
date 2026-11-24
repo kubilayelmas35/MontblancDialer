@@ -752,6 +752,17 @@ overflow: hidden;
   font-weight: 800;
   border-color: var(--red);
   color: var(--red);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding-left: 18px;
+  padding-right: 18px;
+}
+.cust-outbound-wait__stop span {
+  display: block;
+  width: 100%;
+  text-align: center;
 }
 @keyframes cust-outbound-pulse {
   0% { transform: scale(0.55); opacity: 0.8; }

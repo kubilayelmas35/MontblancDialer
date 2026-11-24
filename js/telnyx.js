@@ -712,8 +712,15 @@ function mbArmAnswerScreen(row) {
   row._mbScreenArm = true;
   row.phase = 'screen';
   if (typeof mbStopRingback === 'function') mbStopRingback();
-  // Temsilciye ses yok. Telesekreter / meşgul anonsu için daha uzun eleme.
-  const waitMs = row.manual ? 1200 : 4000;
+  // Kartı hemen aç — 4sn eleme boyunca "bekleniyor"da kalmasın
+  if (row.contact) {
+    currentContact = row.contact;
+    if (typeof showCustomerCard === 'function') showCustomerCard(row.contact);
+  } else if (typeof hideOutboundWait === 'function') {
+    hideOutboundWait({ openingCard: true });
+  }
+  // Temsilciye ses yok. Meşgul anonsu için kısa eleme (AMD sunucuda kapalı).
+  const waitMs = row.manual ? 800 : 1500;
   row._mbScreenTimer = setTimeout(() => {
     row._mbScreenTimer = null;
     if (!_hopper.includes(row)) return;
@@ -1011,8 +1018,10 @@ function mbConnectHopperRow(row) {
   _telnyxCall = row.call;
   row.phase = 'live';
   _outboundAnswered = true;
-  _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing');
+  _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen');
   if (row.contact) currentContact = row.contact;
+  if (typeof hideOutboundWait === 'function') hideOutboundWait({ openingCard: true });
+  if (row.contact && typeof showCustomerCard === 'function') showCustomerCard(row.contact);
   _attachLiveAudio(row.call);
   if (row.answeredAt || row.call?.sipAnsweredAt) mbNoteCallAnswered(row.answeredAt || row.call?.sipAnsweredAt);
   if (typeof handleCallState === 'function') handleCallState('active', row.id);
