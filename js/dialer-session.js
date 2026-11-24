@@ -588,6 +588,13 @@ function syncDialerBottomChrome() {
 
   // Canlı görüşme: mikrofon / beklet / kapat her zaman altta
   if (dialerStatus === 'on_call') {
+    // Boş kart + Transfer bandı (zombie on_call) — kurtar
+    if (!_isCustDataVisible() && !(typeof _liveCallId !== 'undefined' && _liveCallId) && !(typeof mbHopperStillUp === 'function' && mbHopperStillUp())) {
+      if (typeof mbRecoverDialerSurface === 'function') {
+        mbRecoverDialerSurface(typeof _autoDial !== 'undefined' && _autoDial ? 'calling' : 'ready');
+        return;
+      }
+    }
     showLiveBar();
     if (typeof mbApplyCampWarning === 'function') mbApplyCampWarning();
     paintCallActionButtons();
@@ -933,6 +940,31 @@ function mbStopOutboundWaitClock() {
   el.textContent = '';
 }
 
+function mbPaintOutboundWaitConnecting() {
+  const panel = document.getElementById('cust-empty-outbound-wait');
+  if (!panel || panel.style.display === 'none') {
+    showOutboundWait();
+  }
+  const title = panel?.querySelector('.cust-outbound-wait__title');
+  const sub = panel?.querySelector('.cust-outbound-wait__sub');
+  if (title) title.textContent = typeof t === 'function' ? t('dial.wait_connecting') : 'Bağlanıyor…';
+  if (sub) sub.textContent = typeof t === 'function' ? t('dial.wait_connecting_sub') : 'Müşteri kartı az sonra açılır';
+}
+
+function mbRecoverDialerSurface(nextStatus) {
+  const next = nextStatus || (typeof _autoDial !== 'undefined' && _autoDial ? 'calling' : 'ready');
+  window._mbAllowClearWrap = true;
+  currentContact = null;
+  window._mbLastContact = null;
+  window._mbDialerPreview = false;
+  if (typeof hideOutboundWait === 'function') hideOutboundWait();
+  if (typeof clearCustomerCard === 'function') clearCustomerCard();
+  if (typeof setDialerStatus === 'function') setDialerStatus(next);
+  if (next === 'calling' && typeof showOutboundWait === 'function') showOutboundWait();
+  if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
+  if (typeof loadUnfinalizedCalls === 'function') void loadUnfinalizedCalls();
+}
+
 function showOutboundWait() {
   const card = document.getElementById('customer-card');
   const root = document.getElementById('cust-empty');
@@ -943,6 +975,7 @@ function showOutboundWait() {
   if (card) {
     card.style.display = '';
     card.classList.add('customer-card--empty', 'customer-card--wait');
+    card.classList.remove('customer-card--has-bar');
   }
   if (data) data.style.display = 'none';
   if (root) {
@@ -965,8 +998,15 @@ function showOutboundWait() {
   }
   const dock = document.getElementById('outcome-dock');
   if (dock) dock.hidden = true;
+  // Beklerken Ara/mikrofon bandı olmasın
+  const callAct = document.getElementById('call-actions');
+  if (callAct) {
+    callAct.style.display = 'none';
+    callAct.classList.remove('call-actions--pre-call', 'call-actions--wrapping');
+  }
   mbStartOutboundWaitClock();
   if (typeof stopCustEmptyCoach === 'function') stopCustEmptyCoach();
+  if (typeof syncDialerBottomChrome === 'function' && dialerStatus === 'calling') syncDialerBottomChrome();
 }
 
 function hideOutboundWait(opts) {

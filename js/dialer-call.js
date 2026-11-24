@@ -121,6 +121,16 @@ function hangup() {
     return;
   }
   if (dialerStatus === 'on_call' || dialerStatus === 'calling') handleCallEnd(Math.floor(callSeconds) || 0);
+  // Lag sonrası boş Transfer ekranı: zorla toparla
+  setTimeout(() => {
+    const up = typeof mbHopperStillUp === 'function' && mbHopperStillUp();
+    if (up || _telnyxCall || _outboundDialPending) return;
+    if (dialerStatus !== 'on_call' && dialerStatus !== 'calling') return;
+    if (typeof mbRecoverDialerSurface === 'function') {
+      mbRecoverDialerSurface(typeof _autoDial !== 'undefined' && _autoDial ? 'calling' : 'ready');
+    }
+    if (typeof mbSweepOwnCalling === 'function') void mbSweepOwnCalling('no_answer');
+  }, 600);
 }
 
 async function refreshDialerCampaignCacheIfEmpty() {

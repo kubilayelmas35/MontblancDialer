@@ -712,15 +712,10 @@ function mbArmAnswerScreen(row) {
   row._mbScreenArm = true;
   row.phase = 'screen';
   if (typeof mbStopRingback === 'function') mbStopRingback();
-  // Kartı hemen aç — 4sn eleme boyunca "bekleniyor"da kalmasın
-  if (row.contact) {
-    currentContact = row.contact;
-    if (typeof showCustomerCard === 'function') showCustomerCard(row.contact);
-  } else if (typeof hideOutboundWait === 'function') {
-    hideOutboundWait({ openingCard: true });
-  }
-  // Temsilciye ses yok. Meşgul anonsu için kısa eleme (AMD sunucuda kapalı).
-  const waitMs = row.manual ? 800 : 1500;
+  // Kartı burada AÇMA — her elemede DOM şişirip lag / Ara-Sıraya al artığı yapıyordu.
+  // Bekleme metnini güncelle; kart yalnız bridge'de (mbConnectHopperRow) açılır.
+  if (typeof mbPaintOutboundWaitConnecting === 'function') mbPaintOutboundWaitConnecting();
+  const waitMs = row.manual ? 800 : 1200;
   row._mbScreenTimer = setTimeout(() => {
     row._mbScreenTimer = null;
     if (!_hopper.includes(row)) return;
@@ -734,12 +729,18 @@ function mbArmAnswerScreen(row) {
 
 function mbContinueAfterScreen() {
   _outboundDialPending = _hopper.some((r) => r.phase === 'dialing' || r.phase === 'ringing' || r.phase === 'screen');
-  if (mbHopperStillUp()) return;
-  if (typeof setDialerStatus === 'function' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping' || dialerStatus === 'calling')) {
+  if (mbHopperStillUp()) {
+    if (dialerStatus === 'calling' && typeof showOutboundWait === 'function') showOutboundWait();
+    return;
+  }
+  if (typeof mbRecoverDialerSurface === 'function') {
+    mbRecoverDialerSurface(_autoDial ? 'calling' : 'ready');
+  } else if (typeof setDialerStatus === 'function' && (dialerStatus === 'on_call' || dialerStatus === 'wrapping' || dialerStatus === 'calling')) {
     setDialerStatus('calling');
   }
   if (typeof mbRefillHopper === 'function') mbRefillHopper();
   else mbSettleEmptyCalling();
+  if (typeof mbSweepOwnCalling === 'function') void mbSweepOwnCalling('no_answer');
 }
 
 function mbPoolEndStatus(row) {
@@ -753,10 +754,19 @@ function mbPoolEndStatus(row) {
 }
 
 function mbCloseMiss(row, status) {
-  const st = status || mbPoolEndStatus(row);
+  const st = status || mbPoolEndStatus(row) || 'no_answer';
   const contact = row?.contact || null;
   if (typeof mbWriteAttemptLog === 'function') mbWriteAttemptLog(contact, st, row);
   if (contact) mbReleaseUnanswered(contact, st);
+  // Temsilciye düşmeyen kaçış: kart/sonuçsuz artığı bırakma
+  if (contact?.id && currentContact?.id === contact.id && dialerStatus !== 'on_call' && dialerStatus !== 'wrapping') {
+    if (typeof clearCustomerCard === 'function') {
+      window._mbAllowClearWrap = true;
+      currentContact = null;
+      clearCustomerCard();
+    }
+  }
+  if (typeof loadUnfinalizedCalls === 'function') void loadUnfinalizedCalls();
   return st;
 }
 
@@ -845,11 +855,16 @@ function mbHopperStillUp() {
 }
 
 function mbSettleEmptyCalling() {
-  if (mbHopperStillUp() || _outboundDialPending || dialerStatus !== 'calling') return;
-  if (typeof hideOutboundWait === 'function') hideOutboundWait();
-  if (typeof setDialerStatus === 'function') setDialerStatus('ready');
+  if (mbHopperStillUp() || _outboundDialPending) return;
+  if (dialerStatus !== 'calling' && dialerStatus !== 'on_call') return;
+  if (typeof mbRecoverDialerSurface === 'function') mbRecoverDialerSurface('ready');
+  else {
+    if (typeof hideOutboundWait === 'function') hideOutboundWait();
+    if (typeof setDialerStatus === 'function') setDialerStatus('ready');
+  }
   if (typeof updateSessionInDB === 'function') updateSessionInDB('ready');
   if (typeof mbRefreshCampLeftSoon === 'function') mbRefreshCampLeftSoon();
+  if (typeof mbSweepOwnCalling === 'function') void mbSweepOwnCalling('no_answer');
 }
 
 function mbUnansweredEnded(row) {
@@ -1227,18 +1242,34 @@ function mbHangupLiveOrWave() {
   mbNoteCallHangup('agent');
   if (_liveCallId) {
     const row = _hopper.find((r) => r.id === _liveCallId);
-    try { (row?.call || _telnyxCall)?.hangup(); } catch (e) {}
+    const call = row?.call || _telnyxCall;
+    try { call?.hangup(); } catch (e) {}
+    // Ölü hat / lag: hangup event gelmezse UI on_call + boş kartta kalmasın
+    if (!call || (typeof mbCallIsDead === 'function' && mbCallIsDead(call))) {
+      setTimeout(() => {
+        if (dialerStatus === 'on_call' && !mbHopperStillUp()) {
+          if (typeof mbRecoverDialerSurface === 'function') {
+            mbRecoverDialerSurface(_autoDial ? 'calling' : 'ready');
+          }
+          if (typeof mbSweepOwnCalling === 'function') void mbSweepOwnCalling('no_answer');
+        }
+      }, 500);
+    }
     return;
   }
   if (_hopper.length) {
-    mbCancelHopper();
+    mbCancelHopper({ refill: !!_autoDial });
     return;
   }
   if (_telnyxCall) { try { _telnyxCall.hangup(); } catch (e) {} }
-  if (typeof dialerStatus !== 'undefined' && dialerStatus === 'calling' && !_liveCallId) {
-    if (typeof hideOutboundWait === 'function') hideOutboundWait();
-    if (typeof clearCustomerCard === 'function') clearCustomerCard();
-    if (typeof setDialerStatus === 'function') setDialerStatus('ready');
+  if (typeof dialerStatus !== 'undefined' && (dialerStatus === 'calling' || dialerStatus === 'on_call') && !_liveCallId) {
+    if (typeof mbRecoverDialerSurface === 'function') mbRecoverDialerSurface(_autoDial ? 'calling' : 'ready');
+    else {
+      if (typeof hideOutboundWait === 'function') hideOutboundWait();
+      if (typeof clearCustomerCard === 'function') clearCustomerCard();
+      if (typeof setDialerStatus === 'function') setDialerStatus('ready');
+    }
+    if (typeof mbSweepOwnCalling === 'function') void mbSweepOwnCalling('no_answer');
   }
 }
 
