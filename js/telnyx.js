@@ -1040,8 +1040,9 @@ function _attachLiveAudio(call) {
   if (String(call?.state || '') === 'active') mbArmLocalRecording(call);
 }
 
-function mbConnectHopperRow(row) {
+function mbConnectHopperRow(row, opts) {
   if (!row) return;
+  const fromHold = !!(opts && opts.fromHold);
   _liveCallId = row.id;
   _telnyxCall = row.call;
   row.phase = 'live';
@@ -1062,12 +1063,16 @@ function mbConnectHopperRow(row) {
       id: row.id,
       name: currentContact ? `${currentContact.first_name || ''} ${currentContact.last_name || ''}`.trim() : '',
       cid: currentContact?.id || null,
+      fromHold,
     });
   }
   _attachLiveAudio(row.call);
-  if (row.answeredAt || row.call?.sipAnsweredAt) mbNoteCallAnswered(row.answeredAt || row.call?.sipAnsweredAt);
+  // Hold'dan gelince süre 00:00'dan başlar (müşteri müzikte beklediği süre sayılmaz)
+  const bridgeAt = fromHold ? Date.now() : (row.answeredAt || row.call?.sipAnsweredAt || Date.now());
+  if (fromHold) row.bridgedAt = bridgeAt;
+  if (typeof mbNoteCallAnswered === 'function') mbNoteCallAnswered(bridgeAt);
   if (typeof handleCallState === 'function') handleCallState('active', row.id);
-  if (typeof startCallTimer === 'function') startCallTimer(row.answeredAt || row.call?.sipAnsweredAt);
+  if (typeof startCallTimer === 'function') startCallTimer(fromHold ? null : bridgeAt);
   if (typeof syncDialerBottomChrome === 'function') syncDialerBottomChrome();
   if (typeof mbPublishLiveLeg === 'function') mbPublishLiveLeg(row);
   if (typeof mbRefreshHopperUi === 'function') mbRefreshHopperUi();
@@ -1090,8 +1095,7 @@ function mbTakeHeldCall() {
     }
     if (typeof mbStopHoldMusic === 'function') mbStopHoldMusic(row.call);
     try { row.call.unhold(); } catch (e) {}
-    mbConnectHopperRow(row);
-    if (typeof toast === 'function') toast(typeof t === 'function' ? t('dial.hopper.held_next') : 'Müzikte bekleyen kişi bağlandı', 'ok', 2200);
+    mbConnectHopperRow(row, { fromHold: true });
     return true;
   }
   return false;
