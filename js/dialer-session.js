@@ -958,10 +958,12 @@ function mbDialSpeed() {
   return mbCampaignDialSpeed(selectedCampId);
 }
 
-function mbSharedDialSpeed(speed, _openCount) {
-  // Her kampanya kendi hızını tam kullanır. Bölünce 5 açık kampanyada
-  // hız 5 → floor(5/5)=1 kalıyordu; kaydırıcı ile hesap uyuşmuyordu.
-  return Math.min(10, Math.max(1, Number(speed) || 1));
+function mbSharedDialSpeed(speed, openCount) {
+  // Bölme yalnız O temsilcinin açık kampanya sayısına göre:
+  // tek kampanya hız 10 → 10; iki kampanya hız 10+10 → 5 ve 5.
+  const s = Math.min(10, Math.max(1, Number(speed) || 1));
+  const n = Math.max(1, Number(openCount) || 1);
+  return Math.max(1, Math.floor(s / n));
 }
 
 function mbApplyDialSpeed(campId, speed) {
@@ -1346,14 +1348,14 @@ async function mbSyncPool() {
   _poolSyncing = true;
   try {
     // Her temsilci yalnız kendi açık kampanyalarını çevirir.
-    // Hız = bu temsilcinin o kampanyada aynı anda açacağı hat; başkasının
-    // seçimine veya firmadaki hazır sayısına bölünmez / çarpılmaz.
+    // Birden fazla açtıysa hızı kendi seçimleri arasında böler (10+10 → 5-5).
+    // Başka temsilcinin kaç kampanya açtığı bunu etkilemez.
     const mine = 1;
     const ringingLocal = (cid) => _hopper.filter((r) => (r.phase === 'dialing' || r.phase === 'ringing') && String(r.contact?.campaign_id || '') === String(cid));
     const openCount = ids.length;
     const plans = ids.map((cid) => {
       const local = ringingLocal(cid);
-      const speed = mbSharedDialSpeed(mbCampaignDialSpeed(cid), 1);
+      const speed = mbSharedDialSpeed(mbCampaignDialSpeed(cid), openCount);
       const plan = mbPoolPlan(mine, speed, local.length, mine);
       plan.campId = cid;
       plan.local = local;

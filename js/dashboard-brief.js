@@ -243,10 +243,10 @@ async function mbDashOps(ff) {
   Object.keys(campsByFirm).forEach((key) => {
     const group = campsByFirm[key];
     const ready = readyByFirm[key] || 0;
+    // Özet: temsilci seçimleri tarayıcıda; panel üst sınır olarak
+    // hazır × kampanya hızı toplamını gösterir (tek kampanya varsayımı).
     const speed = group.reduce((sum, camp) => {
-      const n = typeof mbSharedDialSpeed === 'function'
-        ? mbSharedDialSpeed(camp.dial_speed, 1)
-        : Math.min(10, Math.max(1, parseInt(camp.dial_speed, 10) || 1));
+      const n = Math.min(10, Math.max(1, parseInt(camp.dial_speed, 10) || 1));
       return sum + n;
     }, 0);
     target += ready * speed;
